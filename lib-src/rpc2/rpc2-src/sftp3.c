@@ -245,7 +245,7 @@ void sftp_UpdateBW(RPC2_PacketBuffer *pb, unsigned long inbytes,
     entry.Value.Measured.Bytes = inbytes + outbytes;
     entry.Value.Measured.ElapsedTime = obs;
     (void) rpc2_AppendHostLog(sEntry->HostInfo, &entry, SE_MEASUREMENT);
-    say(0/*4*/, SFTP_DebugLevel, "sftp_UpdateBW: conn 0x%lx, %ld inbytes, %ld outbytes, %ld ms\n", 
+    say(0/*4*/, SFTP_DebugLevel, "sftp_UpdateBW: conn %#x, %ld inbytes, %ld outbytes, %ld ms\n", 
 	sEntry->LocalHandle, inbytes, outbytes, obs);
 }
 
@@ -271,7 +271,7 @@ int sftp_DataArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
 	sftp_MRecvd.Datas++;
     else
 	sftp_Recvd.Datas++;
-    say(/*9*/4, SFTP_DebugLevel, "R-%lu [%lu] {%ld} %s%s\n", pBuff->Header.SeqNumber, 
+    say(/*9*/4, SFTP_DebugLevel, "R-%u [%u] {%d} %s%s\n", pBuff->Header.SeqNumber, 
 				  pBuff->Header.TimeStamp, pBuff->Header.TimeEcho,
 				  (pBuff->Header.SEFlags & SFTP_FIRST)?"F":"",
 				  (pBuff->Header.Flags & SFTP_ACKME)?"A":"");
@@ -565,7 +565,7 @@ int sftp_AckArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
 
     sftp_ackr++;
     sftp_Recvd.Acks++;
-    say(/*9*/4, SFTP_DebugLevel, "A-%lu [%lu] {%lu} %lu\n",
+    say(/*9*/4, SFTP_DebugLevel, "A-%u [%u] {%u} %u\n",
 	pBuff->Header.SeqNumber, pBuff->Header.TimeStamp,
 	pBuff->Header.TimeEcho, pBuff->Header.GotEmAll);
 
@@ -1275,7 +1275,7 @@ int sftp_StartArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
 /*	if (sEntry->GotParms == FALSE)*/
 	    if (sftp_ExtractParmsFromPacket(sEntry, pBuff) < 0) return(-1);
 
-	say(/*9*/4, SFTP_DebugLevel, "X-%lu\n", pBuff->Header.SeqNumber);
+	say(/*9*/4, SFTP_DebugLevel, "X-%u\n", pBuff->Header.SeqNumber);
 	if (sftpd->hashmark != 0)
 	    switch(sftpd->Tag)
 		{
@@ -1296,7 +1296,7 @@ int sftp_StartArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
 		}
 	}
 
-    say(/*9*/4, SFTP_DebugLevel, "X-%lu [%lu]\n", pBuff->Header.SeqNumber, pBuff->Header.TimeStamp);
+    say(/*9*/4, SFTP_DebugLevel, "X-%u [%u]\n", pBuff->Header.SeqNumber, pBuff->Header.TimeStamp);
     /* 
      * grab the timestamp whether the transfer has started or not,
      * because we're going to send more data anyway. 
@@ -1360,7 +1360,7 @@ void sftp_InitPacket(RPC2_PacketBuffer *pb, struct SFTP_Entry *sfe,
 void PrintDb(struct SFTP_Entry *se, RPC2_PacketBuffer *pb)
 {
     printf("SFTP_Entry:\n");
-    printf("\tMagic = %ld  WhoAmI = %d  LocalHandle = 0x%lx  GotParms = %ld  SentParms = %ld\n",
+    printf("\tMagic = %ld  WhoAmI = %d  LocalHandle = %#x  GotParms = %ld  SentParms = %ld\n",
 	se->Magic, se->WhoAmI, se->LocalHandle, se->GotParms, se->SentParms);
     printf("\topenfd = %ld  XferState = %ld  HitEOF = %ld  CtrlSeqNumber = %ld\n",
     	se->openfd, se->XferState, se->HitEOF, se->CtrlSeqNumber);

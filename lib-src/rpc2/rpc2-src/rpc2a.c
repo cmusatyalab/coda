@@ -115,7 +115,7 @@ static RPC2_PacketBuffer *Send2Get3();
 static RPC2_PacketBuffer *HeldReq(RPC2_RequestFilter *filter, struct CEntry **ce);
 static int GetFilter(RPC2_RequestFilter *inf, RPC2_RequestFilter *outf);
 static long GetNewRequest(IN RPC2_RequestFilter *filter, IN struct timeval *timeout, OUT struct RPC2_PacketBuffer **pb, OUT struct CEntry **ce);
-static long MakeFake(INOUT RPC2_PacketBuffer *pb, IN struct CEntry *ce, RPC2_Integer *AuthenticationType, OUT long *xrand, OUT RPC2_CountedBS *cident);
+static long MakeFake(INOUT RPC2_PacketBuffer *pb, IN struct CEntry *ce, RPC2_Integer *AuthenticationType, OUT RPC2_Integer *xrand, OUT RPC2_CountedBS *cident);
 static long Test3(RPC2_PacketBuffer *pb, struct CEntry *ce, long yrand, RPC2_EncryptionKey ekey);
 
 FILE *rpc2_logfile;
@@ -140,7 +140,7 @@ static void rpc2_StampPacket(struct CEntry *ce, struct RPC2_PacketBuffer *pb)
     delta = TSDELTA(rpc2_MakeTimeStamp(), ce->RequestTime);
     pb->Header.TimeStamp = (unsigned int)ce->TimeStampEcho + delta;
 
-    say(15, RPC2_DebugLevel, "TSin %u delta %u TSout %lu\n",
+    say(15, RPC2_DebugLevel, "TSin %u delta %u TSout %u\n",
 	ce->TimeStampEcho, delta, pb->Header.TimeStamp);
 }
 
@@ -229,7 +229,8 @@ long RPC2_GetRequest(IN RPC2_RequestFilter *Filter,
 	RPC2_PacketBuffer *pb;
 	RPC2_Integer AuthenticationType;
 	RPC2_CountedBS cident;
-	long rc, saveXRandom;
+	RPC2_Integer saveXRandom;
+	long rc;
 
 	rpc2_Enter();
 	say(0, RPC2_DebugLevel, "RPC2_GetRequest()\n");
@@ -392,9 +393,9 @@ long RPC2_MakeRPC(RPC2_Handle ConnHandle, RPC2_PacketBuffer *Request,
 	if (SDesc && ce->sebroken) rpc2_Quit(RPC2_SEFAIL2);
 
 	if (!EnqueueRequest) rpc2_Quit(RPC2_CONNBUSY);
-	say(0, RPC2_DebugLevel, "Enqueuing on connection 0x%lx\n",ConnHandle);
+	say(0, RPC2_DebugLevel, "Enqueuing on connection %#x\n",ConnHandle);
 	LWP_WaitProcess((char *)ce);
-	say(0, RPC2_DebugLevel, "Dequeueing on connection 0x%lx\n", ConnHandle);
+	say(0, RPC2_DebugLevel, "Dequeueing on connection %#x\n", ConnHandle);
 	}
     /* XXXXXX race condition with preemptive threads */
     SetState(ce, C_AWAITREPLY);
@@ -430,7 +431,7 @@ long RPC2_MakeRPC(RPC2_Handle ConnHandle, RPC2_PacketBuffer *Request,
 
     /* send packet and await reply*/
 
-    say(9, RPC2_DebugLevel, "Sending request on  0x%lx\n", ConnHandle);
+    say(9, RPC2_DebugLevel, "Sending request on  %#x\n", ConnHandle);
     /* create call entry */
     sl = rpc2_AllocSle(OTHER, ce);
     rc = rpc2_SendReliably(ce, sl, preq, BreathOfLife);
@@ -441,7 +442,7 @@ long RPC2_MakeRPC(RPC2_Handle ConnHandle, RPC2_PacketBuffer *Request,
 
 	case RPC2_TIMEOUT:	/* don't destroy the connection */
 				say(9, RPC2_DebugLevel,
-				    "rpc2_SendReliably()--> %s on 0x%lx\n",
+				    "rpc2_SendReliably()--> %s on %#x\n",
 				    RPC2_ErrorMsg(rc), ConnHandle);
 				rpc2_FreeSle(&sl);
 				/* release packet allocated by SE routine */
@@ -456,7 +457,7 @@ long RPC2_MakeRPC(RPC2_Handle ConnHandle, RPC2_PacketBuffer *Request,
 	{
 	case ARRIVED:
 		say(9, RPC2_DebugLevel, 
-			"Request reliably sent on 0x%lx\n", ConnHandle);
+			"Request reliably sent on %#x\n", ConnHandle);
 		*Reply = preply = sl->Packet;
 		rpc2_FreeSle(&sl);
 		/* release packet allocated by SE routine */
@@ -465,7 +466,7 @@ long RPC2_MakeRPC(RPC2_Handle ConnHandle, RPC2_PacketBuffer *Request,
 		break;
 	
 	case TIMEOUT:
-		say(9, RPC2_DebugLevel,	"Request failed on 0x%lx\n", ConnHandle);
+		say(9, RPC2_DebugLevel,	"Request failed on %#x\n", ConnHandle);
 		rpc2_FreeSle(&sl);
 		rpc2_SetConnError(ce);	/* does signal on ConnHandle also */
 		/* release packet allocated by SE routine */
@@ -475,7 +476,7 @@ long RPC2_MakeRPC(RPC2_Handle ConnHandle, RPC2_PacketBuffer *Request,
 
 	case NAKED:
 		say(9, RPC2_DebugLevel,
-		    "Request NAK'ed on 0x%lx\n", ConnHandle);
+		    "Request NAK'ed on %#x\n", ConnHandle);
 		rpc2_FreeSle(&sl);
 		rpc2_SetConnError(ce);	/* does signal on ConnHandle also */
 		/* release packet allocated by SE routine */
@@ -537,7 +538,9 @@ long RPC2_NewBinding(IN RPC2_HostIdent *Host, IN RPC2_PortIdent *Port,
     struct Init3Body *ib3;
     struct Init4Body *ib4;    
     struct SL_Entry *sl;
-    long rc, init2rc, init4rc, savexrandom = 0, saveyrandom = 0, bsize;
+    long rc, init2rc, init4rc;
+    RPC2_Integer savexrandom = 0, saveyrandom = 0;
+    RPC2_Unsigned bsize;
     struct RPC2_addrinfo *addr, *peeraddrs;
 
 #define DROPCONN()\
@@ -583,7 +586,7 @@ try_next_addr:
     /* Step 1: Obtain and initialize a new connection */
     ce = rpc2_AllocConn(addr);
     *ConnHandle = ce->UniqueCID;
-    say(9, RPC2_DebugLevel, "Allocating connection 0x%lx\n", *ConnHandle);
+    say(9, RPC2_DebugLevel, "Allocating connection %#x\n", *ConnHandle);
     SetRole(ce, CLIENT);
     SetState(ce, C_AWAITINIT2);
     ce->PeerUnique = rpc2_NextRandom(NULL);
@@ -683,7 +686,7 @@ try_next_addr:
     if (Bparms->SecurityLevel != RPC2_OPENKIMONO)
 	{
 	savexrandom = rpc2_NextRandom(NULL);
-	say(9, RPC2_DebugLevel, "XRandom = %ld\n",savexrandom);
+	say(9, RPC2_DebugLevel, "XRandom = %d\n", savexrandom);
 	ib->XRandom = htonl(savexrandom);
 
 	rpc2_Encrypt((char *)&ib->XRandom, (char *)&ib->XRandom, sizeof(ib->XRandom),
@@ -694,7 +697,7 @@ try_next_addr:
 
     /* send packet and await positive acknowledgement (i.e., RPC2_INIT2 packet) */
 
-    say(9, RPC2_DebugLevel, "Sending INIT1 packet on 0x%lx\n", *ConnHandle);
+    say(9, RPC2_DebugLevel, "Sending INIT1 packet on %#x\n", *ConnHandle);
     /* create call entry */
     sl = rpc2_AllocSle(OTHER, ce);
     rpc2_SendReliably(ce, sl, pb, (struct timeval *)&ce->Retry_Beta[0]);
@@ -702,7 +705,7 @@ try_next_addr:
     switch(sl->ReturnCode)
 	{
 	case ARRIVED:
-		say(9, RPC2_DebugLevel, "Received INIT2 packet on 0x%lx\n", *ConnHandle);
+		say(9, RPC2_DebugLevel, "Received INIT2 packet on %#x\n", *ConnHandle);
 		RPC2_FreeBuffer(&pb);	/* release the Init1 Packet */
 		pb = sl->Packet;		/* and get the Init2 Packet */
 		rpc2_FreeSle(&sl);
@@ -712,7 +715,7 @@ try_next_addr:
 	case TIMEOUT:
 	case KEPTALIVE:
 		/* free connection, buffers, and quit */
-		say(9, RPC2_DebugLevel, "Failed to send INIT1 packet on 0x%lx\n", *ConnHandle);
+		say(9, RPC2_DebugLevel, "Failed to send INIT1 packet on %#x\n", *ConnHandle);
 		RPC2_FreeBuffer(&pb);	/* release the Init1 Packet */
 		rc = sl->ReturnCode == NAKED ? RPC2_NAKED : RPC2_NOBINDING;
 		rpc2_FreeSle(&sl);
@@ -744,7 +747,7 @@ try_next_addr:
 	    rpc2_Decrypt((char *)ib2, (char *)ib2, sizeof(struct Init2Body), 
 			 *Bparms->SharedSecret, Bparms->EncryptionType);
 	    ib2->XRandomPlusOne = ntohl(ib2->XRandomPlusOne);
-	    say(9, RPC2_DebugLevel, "XRandomPlusOne = %ld\n", 
+	    say(9, RPC2_DebugLevel, "XRandomPlusOne = %d\n", 
 		ib2->XRandomPlusOne);
 	    if (savexrandom+1 != ib2->XRandomPlusOne) {
 		    DROPCONN();
@@ -752,11 +755,11 @@ try_next_addr:
 		    rpc2_Quit(RPC2_NOTAUTHENTICATED);
 	    }
 	    saveyrandom = ntohl(ib2->YRandom);
-	    say(9, RPC2_DebugLevel, "YRandom = %ld\n", saveyrandom);	
+	    say(9, RPC2_DebugLevel, "YRandom = %d\n", saveyrandom);	
     }
 
     ce->PeerHandle = pb->Header.LocalHandle;
-    say(9, RPC2_DebugLevel, "PeerHandle for local 0x%lx is 0x%lx\n", 
+    say(9, RPC2_DebugLevel, "PeerHandle for local %#x is %#x\n", 
 	*ConnHandle, ce->PeerHandle);
     RPC2_FreeBuffer(&pb);	/* Release INIT2 packet */
     if (Bparms->SecurityLevel == RPC2_OPENKIMONO) 
@@ -777,7 +780,7 @@ try_next_addr:
 
     /* send packet and await positive acknowledgement (i.e., RPC2_INIT4 packet) */
 
-    say(9, RPC2_DebugLevel, "Sending INIT3 packet on 0x%lx\n", *ConnHandle);
+    say(9, RPC2_DebugLevel, "Sending INIT3 packet on %#x\n", *ConnHandle);
 
     /* create call entry */
     sl = rpc2_AllocSle(OTHER, ce);
@@ -786,7 +789,7 @@ try_next_addr:
     switch(sl->ReturnCode)
 	{
 	case ARRIVED:
-		say(9, RPC2_DebugLevel, "Received INIT4 packet on 0x%lx\n", *ConnHandle);
+		say(9, RPC2_DebugLevel, "Received INIT4 packet on %#x\n", *ConnHandle);
 		RPC2_FreeBuffer(&pb);	/* release the Init3 Packet */
 		pb = sl->Packet;	/* and get the Init4 Packet */
 		rpc2_FreeSle(&sl);
@@ -795,7 +798,7 @@ try_next_addr:
 	case NAKED:
 	case TIMEOUT:
 		/* free connection, buffers, and quit */
-		say(9, RPC2_DebugLevel, "Failed to send INIT3 packet on 0x%lx\n", *ConnHandle);
+		say(9, RPC2_DebugLevel, "Failed to send INIT3 packet on %#x\n", *ConnHandle);
 		RPC2_FreeBuffer(&pb);	/* release the Init3 Packet */
 		rpc2_FreeSle(&sl);
 		DROPCONN();
@@ -849,7 +852,7 @@ BindOver:
 
     SetState(ce, C_THINK);
 
-    say(9, RPC2_DebugLevel, "Bind complete for 0x%lx\n", *ConnHandle);
+    say(9, RPC2_DebugLevel, "Bind complete for %#x\n", *ConnHandle);
     rpc2_Quit(init2rc);	/* RPC2_SUCCESS or RPC2_OLDVERSION */
     /* quit */
 }
@@ -1074,7 +1077,7 @@ TryAnother:
 static long MakeFake(INOUT pb, IN ce, OUT xrand, OUT authenticationtype, OUT cident)
     RPC2_PacketBuffer *pb;
     struct CEntry *ce;
-    long *xrand;
+    RPC2_Integer *xrand;
     RPC2_Integer *authenticationtype;
     RPC2_CountedBS *cident;
     {
@@ -1274,7 +1277,7 @@ static long Test3(RPC2_PacketBuffer *pb, struct CEntry *ce, long yrand, RPC2_Enc
     ib3 = (struct Init3Body *)pb->Body;
     rpc2_Decrypt((char *)ib3, (char *)ib3, sizeof(struct Init3Body), ekey, ce->EncryptionType);
     ib3->YRandomPlusOne = ntohl(ib3->YRandomPlusOne);
-    say(9, RPC2_DebugLevel, "YRandomPlusOne = %ld\n", ib3->YRandomPlusOne);
+    say(9, RPC2_DebugLevel, "YRandomPlusOne = %d\n", ib3->YRandomPlusOne);
     if (ib3->YRandomPlusOne == yrand+1) return(RPC2_SUCCESS);
     else return(RPC2_NOTAUTHENTICATED);	
     }

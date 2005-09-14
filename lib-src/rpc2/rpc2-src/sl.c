@@ -246,7 +246,7 @@ void rpc2_HandlePacket(RPC2_PacketBuffer *pb)
 	if (pb->Header.Lamport  > rpc2_LamportClock)
 		rpc2_LamportClock = pb->Header.Lamport + 1;	
 
-	say(9, RPC2_DebugLevel, "Decoding opcode %ld\n", pb->Header.Opcode);
+	say(9, RPC2_DebugLevel, "Decoding opcode %d\n", pb->Header.Opcode);
 
 	DecodePacket(pb, ce);
 
@@ -414,7 +414,7 @@ static void Tell(RPC2_PacketBuffer *pb, struct CEntry *ce)
 
 	if (ce == NULL) 
 		return;
-	fprintf(rpc2_tracefile, "Connection 0x%lx state is ...\n",  
+	fprintf(rpc2_tracefile, "Connection %#x state is ...\n",  
 		ce->UniqueCID);
 	rpc2_PrintCEntry(ce, rpc2_tracefile);	    
 #endif
@@ -988,7 +988,7 @@ static void HandleRetriedBind(RPC2_PacketBuffer *pb, struct CEntry *ce)
 
 	if (TestState(ce, SERVER, S_STARTBIND)) {
 		/* Cases (1) and (2) */
-		say(0, RPC2_DebugLevel, "Busying Init1 on 0x%lx\n", ce->UniqueCID);
+		say(0, RPC2_DebugLevel, "Busying Init1 on %#x\n", ce->UniqueCID);
 
 		SendBusy(ce, FALSE);
 		RPC2_FreeBuffer(&pb);
@@ -996,7 +996,7 @@ static void HandleRetriedBind(RPC2_PacketBuffer *pb, struct CEntry *ce)
 	}
 	if (ce->SecurityLevel == RPC2_OPENKIMONO && ce->HeldPacket != NULL) {
 		/* Case (3): The Init2 must have been dropped; resend it */
-		say(0, RPC2_DebugLevel, "Resending Init2 0x%lx\n",  ce->UniqueCID);
+		say(0, RPC2_DebugLevel, "Resending Init2 %#x\n",  ce->UniqueCID);
 		ce->HeldPacket->Header.TimeStamp = htonl(ce->TimeStampEcho);
 		rpc2_XmitPacket(ce->HeldPacket, ce->HostInfo->Addr, 1);
 		RPC2_FreeBuffer(&pb);

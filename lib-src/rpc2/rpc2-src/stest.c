@@ -231,7 +231,7 @@ long NoteAuthFailure(authenticationtype, cIdent, eType, pHost, pPort)
     RPC2_HostIdent *pHost;
     RPC2_PortIdent *pPort;
     {
-    printf("Authentication using e-type %ld failed for %s from\n\t", eType, 
+    printf("Authentication using e-type %d failed for %s from\n\t", eType, 
 	   (char *)cIdent->SeqBody);
     PrintHostIdent(pHost, (FILE *)NULL); printf("\t");
     PrintPortIdent(pPort, (FILE *)NULL); printf("\n");
@@ -480,9 +480,9 @@ long ProcessPacket(RPC2_Handle cIn, RPC2_PacketBuffer *pIn, RPC2_PacketBuffer *p
 
 	case RPC2_NEWCONNECTION: /* new connection */
 	    newconnbody = (RPC2_NewConnectionBody *)pIn->Body;
-	    printf("New connection 0x%lx:   SideEffectType = %lu  SecurityLevel = %lu  ClientIdent = \"%s\"\n",
-		   cIn, (unsigned long)ntohl(newconnbody->SideEffectType),  
-		   (unsigned long)ntohl(newconnbody->SecurityLevel), 
+	    printf("New connection %#x:   SideEffectType = %u  SecurityLevel = %u  ClientIdent = \"%s\"\n",
+		   cIn, ntohl(newconnbody->SideEffectType),  
+		   ntohl(newconnbody->SecurityLevel), 
 		   (char *)&newconnbody->ClientIdent.SeqBody);
 	    i = RPC2_SUCCESS;
 	    (void) RPC2_Enable(cIn);

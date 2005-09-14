@@ -302,7 +302,7 @@ void rpc2_ReapDeadConns(void)
 	if (!ce->PrivatePtr && TestRole(ce, SERVER) &&
 	    ce->LastRef + RPC2_DEAD_CONN_TIMEOUT < now)
 	{
-	    say(0, RPC2_DebugLevel, "Reaping dead connection %ld\n",
+	    say(0, RPC2_DebugLevel, "Reaping dead connection %#x\n",
 		ce->UniqueCID);
 	    RPC2_Unbind(ce->UniqueCID);
 	}

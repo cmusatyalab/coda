@@ -960,7 +960,7 @@ void rpc2_ResetObs(obsp, ceaddr)
     struct CEntry *ceaddr;
     {
     long delta = (ceaddr->reqsize + ceaddr->respsize) * 8 * 100 / rpc2_Bandwidth;
-    say(4, RPC2_DebugLevel, "rpc2_ResetObs: conn 0x%lx, obs %ld, delta %ld, new %ld\n", 
+    say(4, RPC2_DebugLevel, "rpc2_ResetObs: conn %#x, obs %ld, delta %ld, new %ld\n", 
 			     ceaddr->UniqueCID, *obsp, delta, *obsp-delta);
     if (*obsp > delta)  *obsp -= delta;
     }
@@ -977,7 +977,7 @@ void rpc2_UpdateRTT(RPC2_PacketBuffer *pb, struct CEntry *ceaddr)
     if (!pb->Header.TimeStamp) return;
 
     TVTOTS(&pb->Prefix.RecvStamp, obs);
-    say(15, RPC2_DebugLevel, "updatertt %u %lu\n", obs, pb->Header.TimeStamp);
+    say(15, RPC2_DebugLevel, "updatertt %u %u\n", obs, pb->Header.TimeStamp);
     obs = TSDELTA(obs, pb->Header.TimeStamp);
     RPC2_UpdateEstimates(ceaddr->HostInfo, obs, ceaddr->respsize, ceaddr->reqsize);
 
@@ -1031,7 +1031,7 @@ void rpc2_UpdateRTT(RPC2_PacketBuffer *pb, struct CEntry *ceaddr)
     if (ceaddr->LowerLimit < LOWERLIMIT) ceaddr->LowerLimit = LOWERLIMIT;
     else if (ceaddr->LowerLimit > upperlimit) ceaddr->LowerLimit = upperlimit;
 
-    say(4, RPC2_DebugLevel, "rpc2_UpdateRTT: conn 0x%lx, obs %d, RTT %ld, RTTVar %ld LL %lu usec\n", 
+    say(4, RPC2_DebugLevel, "rpc2_UpdateRTT: conn %#x, obs %d, RTT %ld, RTTVar %ld LL %lu usec\n", 
 			     ceaddr->UniqueCID, obs, ceaddr->RTT, 
 			     ceaddr->RTTVar, ceaddr->LowerLimit);
 

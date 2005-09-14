@@ -103,7 +103,7 @@ void rpc2_PrintFilter(RPC2_RequestFilter *fPtr, FILE *tFile)
 	fPtr->OldOrNew == OLD ? "OLD" : (fPtr->OldOrNew == NEW ? "NEW" : (fPtr->OldOrNew == OLDORNEW ? "OLDORNEW" : "??????")));
     switch(fPtr->FromWhom)
 	{
-	case ONECONN:	fprintf(tFile, "WhichConn = 0x%lx", fPtr->ConnOrSubsys.WhichConn); break;
+	case ONECONN:	fprintf(tFile, "WhichConn = %#x", fPtr->ConnOrSubsys.WhichConn); break;
 	case ONESUBSYS: fprintf(tFile, "SubsysId = %ld", fPtr->ConnOrSubsys.SubsysId); break;
         case ANY:       break;
 	}
@@ -120,7 +120,7 @@ void rpc2_PrintSLEntry(struct SL_Entry *slPtr, FILE *tFile)
     switch(slPtr->Type)
 	{
 	case REPLY:
-		    fprintf(tFile, "\tType = REPLY  Conn = 0x%lx\n",
+		    fprintf(tFile, "\tType = REPLY  Conn = %#x\n",
 			    slPtr->Conn);
 		    break;
 	
@@ -131,7 +131,7 @@ void rpc2_PrintSLEntry(struct SL_Entry *slPtr, FILE *tFile)
 		    break;
 	
 	case OTHER:
-		    fprintf(tFile, "\tElementType = OTHER  Conn = 0x%lx  Packet = 0x%lx\n",
+		    fprintf(tFile, "\tElementType = OTHER  Conn = %#x  Packet = 0x%lx\n",
 			    slPtr->Conn, (long)slPtr->Packet);
 		    break;
 
@@ -160,7 +160,7 @@ static void PrintNetLog(char *what, unsigned int NumEntries,
 	switch(Log[ix].Tag) 
 	    {
 	    case RPC2_MEASURED_NLE:
-		fprintf(tFile, "\t\tentry %d: %ld.%06ld, conn 0x%lx, %ld bytes, %ld msec\n",
+		fprintf(tFile, "\t\tentry %d: %ld.%06ld, conn %#x, %d bytes, %d msec\n",
 			ix, Log[ix].TimeStamp.tv_sec, 
 			Log[ix].TimeStamp.tv_usec,
 			Log[ix].Value.Measured.Conn,
@@ -168,7 +168,7 @@ static void PrintNetLog(char *what, unsigned int NumEntries,
 			Log[ix].Value.Measured.ElapsedTime);
 		break;
 	    case RPC2_STATIC_NLE:
-		fprintf(tFile, "\t\tentry %d: %ld.%06ld, static bandwidth %ld bytes/sec\n",
+		fprintf(tFile, "\t\tentry %d: %ld.%06ld, static bandwidth %d bytes/sec\n",
 			ix, Log[ix].TimeStamp.tv_sec, 
 			Log[ix].TimeStamp.tv_usec,
 			Log[ix].Value.Static.Bandwidth);
@@ -244,11 +244,11 @@ void rpc2_PrintCEntry(struct CEntry *cPtr, FILE *tFile)
     fprintf(tFile, "\n\tSecurityLevel = %s", cPtr->SecurityLevel == RPC2_OPENKIMONO ? "RPC2_OPENKIMONO" : 
 	(cPtr->SecurityLevel == RPC2_AUTHONLY ? "RPC2_AUTHONLY" : (cPtr->SecurityLevel == RPC2_SECURE ? "RPC2_SECURE" : 
 	(cPtr->SecurityLevel == RPC2_HEADERSONLY ? "RPC2_HEADERSONLY" :"??????"))));
-    fprintf(tFile, "  EncryptionType = %ld  SessionKey = 0x", cPtr->EncryptionType);
-    for(i = 0; i < RPC2_KEYSIZE; i++)fprintf(tFile, "%02lx", (long)cPtr->SessionKey[i]);
+    fprintf(tFile, "  EncryptionType = %d  SessionKey = 0x", cPtr->EncryptionType);
+    for(i = 0; i < RPC2_KEYSIZE; i++)fprintf(tFile, "%02x", cPtr->SessionKey[i]);
 	
-    fprintf(tFile, "\n\tUniqueCID = 0x%lx  NextSeqNumber = %ld  PeerHandle = 0x%lx\n\tPrivatePtr = 0x%lx  SideEffectPtr = 0x%lx\n",
-    	cPtr->UniqueCID, cPtr->NextSeqNumber, cPtr->PeerHandle, (long)cPtr->PrivatePtr, (long)cPtr->SideEffectPtr);
+    fprintf(tFile, "\n\tUniqueCID = %#x  NextSeqNumber = %d  PeerHandle = %#x\n\tPrivatePtr = %p  SideEffectPtr = %p\n",
+    	cPtr->UniqueCID, cPtr->NextSeqNumber, cPtr->PeerHandle, cPtr->PrivatePtr, cPtr->SideEffectPtr);
 	
     fprintf(tFile, "\tLowerLimit = %lu usec  %s = %ld  %s = %ld  Retries = %ld\n",
 	    cPtr->LowerLimit,
@@ -263,8 +263,8 @@ void rpc2_PrintCEntry(struct CEntry *cPtr, FILE *tFile)
 	    fprintf(tFile, "\tRetry_Beta[%ld] = %ld.%0ld\n",
 		    i, cPtr->Retry_Beta[i].tv_sec, cPtr->Retry_Beta[i].tv_usec);
 
-    fprintf(tFile, "\tHeldPacket = 0x%lx  PeerUnique = %ld\n",
-    	(long)cPtr->HeldPacket, cPtr->PeerUnique);
+    fprintf(tFile, "\tHeldPacket = %p  PeerUnique = %d\n",
+    	cPtr->HeldPacket, cPtr->PeerUnique);
     fprintf(tFile, "Peer==> ");    
     rpc2_PrintHEntry(cPtr->HostInfo, tFile);
 
@@ -303,10 +303,10 @@ void rpc2_PrintMEntry(struct MEntry *mPtr, FILE *tFile)
     fprintf(tFile, "\n\tSecurityLevel = %s", mPtr->SecurityLevel == RPC2_OPENKIMONO ? "RPC2_OPENKIMONO" : 
 	(mPtr->SecurityLevel == RPC2_AUTHONLY ? "RPC2_AUTHONLY" : (mPtr->SecurityLevel == RPC2_SECURE ? "RPC2_SECURE" : 
 	(mPtr->SecurityLevel == RPC2_HEADERSONLY ? "RPC2_HEADERSONLY" :"??????"))));
-    fprintf(tFile, "  EncryptionType = %ld  SessionKey = 0x", mPtr->EncryptionType);
+    fprintf(tFile, "  EncryptionType = %d  SessionKey = 0x", mPtr->EncryptionType);
     for(i = 0; i < RPC2_KEYSIZE; i++)fprintf(tFile, "%lx", (long)mPtr->SessionKey[i]);
 
-    fprintf(tFile, "\n\tMgrpID = %ld  NextSeqNumber = %ld  SubsysID = %ld\n",
+    fprintf(tFile, "\n\tMgrpID = %#x  NextSeqNumber = %d  SubsysID = %d\n",
     	mPtr->MgroupID, mPtr->NextSeqNumber, mPtr->SubsysId);
 	
     fprintf(tFile, "Client Host Ident: ");
@@ -583,7 +583,7 @@ void rpc2_PrintTraceElem(struct TraceElem *whichTE, long whichIndex,
 		{
 		struct te_FREEBUFFER *tea;
 		tea = &whichTE->Args.FreeBufferEntry;
-		fprintf(outFile, "*BuffPtr:  0x%lx\n", (long)tea->BuffPtr);
+		fprintf(outFile, "*BuffPtr:  %p\n", tea->BuffPtr);
 		break;	/* switch */
 		}
 
@@ -591,7 +591,7 @@ void rpc2_PrintTraceElem(struct TraceElem *whichTE, long whichIndex,
 		{
 		struct te_SENDRESPONSE *tea;
 		tea = &whichTE->Args.SendResponseEntry;
-		fprintf(outFile, "ConnHandle: 0x%lx\n", tea->ConnHandle);
+		fprintf(outFile, "ConnHandle: %#x\n", tea->ConnHandle);
 		break;	/* switch */
 		}
 
@@ -610,7 +610,7 @@ void rpc2_PrintTraceElem(struct TraceElem *whichTE, long whichIndex,
 		{
 		struct te_MAKERPC *tea;
 		tea = &whichTE->Args.MakeRPCEntry;
-		fprintf(outFile, "Conn: 0x%lx  ", tea->ConnHandle);
+		fprintf(outFile, "Conn: %#x  ", tea->ConnHandle);
 		fprintf(outFile, "Enqueue: %d  ", tea->EnqueueRequest);
 		if (tea->IsNullBreathOfLife) fprintf(outFile, "BreathOfLife: NULL  ");
 		else fprintf(outFile, "BreathOfLife: %ld.%ld  ", tea->BreathOfLife.tv_sec,
@@ -705,7 +705,7 @@ void rpc2_PrintTraceElem(struct TraceElem *whichTE, long whichIndex,
 		else
 		    {
 		    long max;
-		    fprintf(outFile, "ClientIdent:    SeqLen = %ld   SeqBody\"", tea->ClientIdent.SeqLen);
+		    fprintf(outFile, "ClientIdent:    SeqLen = %u   SeqBody\"", tea->ClientIdent.SeqLen);
 		    max = (tea->ClientIdent.SeqLen < sizeof(tea->ClientIdent_Value)) ? tea->ClientIdent.SeqLen :
 		    	sizeof(tea->ClientIdent_Value);
 		    for (i = 0; i < max; i++) fprintf(outFile, "%c", (tea->ClientIdent_Value)[i]);
@@ -727,7 +727,7 @@ void rpc2_PrintTraceElem(struct TraceElem *whichTE, long whichIndex,
 		{
 		struct te_INITSIDEEFFECT *tea;
 		tea = &whichTE->Args.InitSideEffectEntry;
-		fprintf(outFile, "ConnHandle:    0x%lx\n", tea->ConnHandle);
+		fprintf(outFile, "ConnHandle:    %#x\n", tea->ConnHandle);
 		if (tea->IsNullSDesc) fprintf(outFile, "SDesc:    NULL\n");
 		else  {fprintf(outFile, "SDesc:    "); rpc2_PrintSEDesc(&tea->SDesc, outFile); }
 		break;	/* switch */
@@ -737,7 +737,7 @@ void rpc2_PrintTraceElem(struct TraceElem *whichTE, long whichIndex,
 		{
 		struct te_CHECKSIDEEFFECT *tea;
 		tea = &whichTE->Args.CheckSideEffectEntry;
-		fprintf(outFile, "ConnHandle:    0x%lx\n", tea->ConnHandle);
+		fprintf(outFile, "ConnHandle:    %#x\n", tea->ConnHandle);
 		if (tea->IsNullSDesc) fprintf(outFile, "SDesc:    NULL\n");
 		else  {fprintf(outFile, "SDesc:    ");  rpc2_PrintSEDesc(&tea->SDesc, outFile);}
 		fprintf(outFile, "Flags:  { ");
@@ -751,7 +751,7 @@ void rpc2_PrintTraceElem(struct TraceElem *whichTE, long whichIndex,
 		{
 		struct te_UNBIND *tea;
 		tea = &whichTE->Args.UnbindEntry;
-		fprintf(outFile, "whichConn:    0x%lx\n", tea->whichConn);
+		fprintf(outFile, "whichConn:    %#x\n", tea->whichConn);
 		break;	/* switch */
 		}
 
@@ -759,7 +759,7 @@ void rpc2_PrintTraceElem(struct TraceElem *whichTE, long whichIndex,
 		{
 		struct te_GETPRIVATEPOINTER *tea;
 		tea = &whichTE->Args.GetPrivatePointerEntry;
-		fprintf(outFile, "ConnHandle:    0x%lx\n", tea->ConnHandle);
+		fprintf(outFile, "ConnHandle:    %#x\n", tea->ConnHandle);
 		break;	/* switch */
 		}
 
@@ -767,8 +767,8 @@ void rpc2_PrintTraceElem(struct TraceElem *whichTE, long whichIndex,
 		{
 		struct te_SETPRIVATEPOINTER *tea;
 		tea = &whichTE->Args.SetPrivatePointerEntry;
-		fprintf(outFile, "ConnHandle:    0x%lx\n", tea->ConnHandle);
-		fprintf(outFile, "PrivatePtr:    0x%lx\n", (long)tea->PrivatePtr);
+		fprintf(outFile, "ConnHandle:    %#x\n", tea->ConnHandle);
+		fprintf(outFile, "PrivatePtr:    %p\n", tea->PrivatePtr);
 		break;	/* switch */
 		}
 
@@ -776,7 +776,7 @@ void rpc2_PrintTraceElem(struct TraceElem *whichTE, long whichIndex,
 		{
 		struct te_GETSEPOINTER *tea;
 		tea = &whichTE->Args.GetSEPointerEntry;
-		fprintf(outFile, "ConnHandle:    0x%lx\n", tea->ConnHandle);
+		fprintf(outFile, "ConnHandle:    %#x\n", tea->ConnHandle);
 		break;	/* switch */
 		}
 
@@ -784,8 +784,8 @@ void rpc2_PrintTraceElem(struct TraceElem *whichTE, long whichIndex,
 		{
 		struct te_SETSEPOINTER *tea;
 		tea = &whichTE->Args.SetSEPointerEntry;
-		fprintf(outFile, "ConnHandle:    0x%lx\n", tea->ConnHandle);
-		fprintf(outFile, "SEPtr:    0x%lx\n", (long)tea->SEPtr);
+		fprintf(outFile, "ConnHandle:    %#x\n", tea->ConnHandle);
+		fprintf(outFile, "SEPtr:    %p\n", tea->SEPtr);
 		break;	/* switch */
 		}
 
@@ -852,7 +852,7 @@ void rpc2_PrintTraceElem(struct TraceElem *whichTE, long whichIndex,
 		{
 		struct te_CREATEMGRP *tea;
 		tea = &whichTE->Args.CreateMgrpEntry;
-		fprintf(outFile, "MgroupHandle: %ld\n", tea->MgroupHandle);
+		fprintf(outFile, "MgroupHandle: %#x\n", tea->MgroupHandle);
 		fprintf(outFile, "McastHost:      ");
 		rpc2_PrintHostIdent((RPC2_HostIdent *)&(tea->McastHost), outFile);
 		fprintf(outFile, "           ");
@@ -864,7 +864,7 @@ void rpc2_PrintTraceElem(struct TraceElem *whichTE, long whichIndex,
 		fprintf(outFile, "           ");
 		fprintf(outFile, "SecurityLevel = %s", tea->SecurityLevel == RPC2_OPENKIMONO ? "RPC2_OPENKIMONO" : (tea->SecurityLevel == RPC2_AUTHONLY ? "RPC2_AUTHONLY" : (tea->SecurityLevel == RPC2_SECURE ? "RPC2_SECURE" : (tea->SecurityLevel == RPC2_HEADERSONLY ? "RPC2_HEADERSONLY" :"??????"))));
 		fprintf(outFile, "  IsEncrypted = %s  ", (tea->IsEncrypted) ? "TRUE" : "FALSE");
-		fprintf(outFile, "  EncryptionType = %ld  SessionKey = 0x", tea->EncryptionType);
+		fprintf(outFile, "  EncryptionType = %d  SessionKey = 0x", tea->EncryptionType);
 		for(i = 0; i < RPC2_KEYSIZE; i++)fprintf(outFile, "%lx", (long)tea->SessionKey[i]);
 		fprintf(outFile, "\n");
 		break; /* switch */
@@ -874,8 +874,7 @@ void rpc2_PrintTraceElem(struct TraceElem *whichTE, long whichIndex,
 		{
 		struct te_ADDTOMGRP *tea;
 		tea = &whichTE->Args.AddToMgrpEntry;
-		fprintf(outFile, "MgroupHandle:   %ld     ConnHandle:   %ld\n", tea->MgroupHandle,
-			tea->ConnHandle);
+		fprintf(outFile, "MgroupHandle:   %#x     ConnHandle:   %#x\n", tea->MgroupHandle, tea->ConnHandle);
 		break; /* switch */
 		}
 

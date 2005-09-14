@@ -51,6 +51,6 @@ struct CBUF_Header
 
 
 extern struct CBUF_Header *CBUF_Init();
-extern char *CBUF_NextSlot();
+char *CBUF_NextSlot(struct CBUF_Header *bufId);
 extern void CBUF_WalkBuff();
 extern void CBUF_Free();

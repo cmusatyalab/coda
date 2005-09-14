@@ -351,8 +351,8 @@ static void WorkerBody(void *arg)
 	i = RPC2_SendResponse(workercid, OutBuff);
 	if (i != RPC2_SUCCESS) 
 	    {
-	    printf ("\n%s: response for opcode %d on connection 0x%lX  failed (%s) at %s", 
-		MYNAME,	(int)InBuff->Header.Opcode, workercid,
+	    printf ("\n%s: response for opcode %d on connection %#x  failed (%s) at %s", 
+		MYNAME,	InBuff->Header.Opcode, workercid,
 		RPC2_ErrorMsg(i), TimeNow());
 	    DumpAndQuit(InBuff->Header.Opcode);
 	    }
@@ -365,7 +365,7 @@ static void BulkErr(RPC2_Handle cid, SE_Descriptor *sed, int retcode, int op)
 {
     char *x;
 
-    printf ("\n%s: File transfer failed  conn: 0x%lx   code: %s  op: %d  time: %s\n", 
+    printf ("\n%s: File transfer failed  conn: %#x   code: %s  op: %d  time: %s\n", 
 	MYNAME,	cid, RPC2_ErrorMsg(retcode), op, TimeNow());
     if (sed->Value.SmartFTPD.TransmissionDirection == CLIENTTOSERVER)
 	x = "CLIENTTOSERVER";
@@ -411,7 +411,7 @@ static void ListenerBody(void *arg)
 		newconnbody = (RPC2_NewConnectionBody *)InBuff->Body;
 
 		if (VerboseFlag)
-		    fprintf(stderr, "Newconn: 0x%lx  \"%s\"  at  %s",
+		    fprintf(stderr, "Newconn: %#x  \"%s\"  at  %s",
 			newcid, (char*)&newconnbody->ClientIdent.SeqBody,
 			TimeNow());
 
@@ -938,7 +938,7 @@ static void HandleRPCFailure(long cid, long rcode, long op)
 	return;
 	}
 
-    printf ("\n%s: call %ld on 0x%lX to %s for %s failed (%s) at %s", MYNAME,
+    printf ("\n%s: call %ld on %#x to %s for %s failed (%s) at %s", MYNAME,
 	op, ConnVector[cid].ConnHandle,
 	ConnVector[cid].RemoteHost.Value.Name,
 	ConnVector[cid].NameBuf, RPC2_ErrorMsg(rcode), TimeNow());

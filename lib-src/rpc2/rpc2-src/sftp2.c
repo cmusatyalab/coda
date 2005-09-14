@@ -166,7 +166,7 @@ void sftp_ExaminePacket(RPC2_PacketBuffer *pb)
     /* SANITY CHECK: make sure this pertains to the current RPC call. */
     if (pb->Header.ThisRPCCall != sfp->ThisRPCCall)
     {
-	say(0, SFTP_DebugLevel, "Old SFTP packet RPC %ld, expecting RPC %ld\n", pb->Header.ThisRPCCall, sfp->ThisRPCCall);
+	say(0, SFTP_DebugLevel, "Old SFTP packet RPC %d, expecting RPC %ld\n", pb->Header.ThisRPCCall, sfp->ThisRPCCall);
 	SFTP_FreeBuffer(&pb);
 	return;
     }

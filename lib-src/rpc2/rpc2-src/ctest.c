@@ -296,8 +296,8 @@ int main(int arg, char **argv)
 		else sed.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
 	
 		if (!qflag) printf("Request body length (0 unless testing piggybacking): ");
-		(void) fscanf(ifd, "%lu", &Buff1->Header.BodyLength);
-		if (!qflag && fflag) printf(" %ld\n", Buff1->Header.BodyLength);
+		(void) fscanf(ifd, "%u", &Buff1->Header.BodyLength);
+		if (!qflag && fflag) printf(" %u\n", Buff1->Header.BodyLength);
 
 		if (!qflag) printf("Local seek offset? (0): ");
 		(void) fscanf(ifd, "%ld", &sed.Value.SmartFTPD.SeekOffset);
@@ -632,12 +632,12 @@ void DoBinding(RPC2_Handle *cid)
     ssid.Value.SubsysId = SUBSYS_SRV;
 
     if (!qflag) printf("Side Effect Type (%d or %d)? ", 0, SMARTFTP);
-    (void) fscanf(ifd, "%ld", &bparms.SideEffectType);
-    if (!qflag && fflag) printf(" %ld\n", bparms.SideEffectType);
+    (void) fscanf(ifd, "%d", &bparms.SideEffectType);
+    if (!qflag && fflag) printf(" %d\n", bparms.SideEffectType);
 
     if (!qflag) printf("Security [98(OK), 12(AO), 73(HO), 66(S)]? ");
-    (void) fscanf(ifd, "%ld", &bparms.SecurityLevel);
-    if (!qflag && fflag) printf(" %ld\n", bparms.SecurityLevel);
+    (void) fscanf(ifd, "%d", &bparms.SecurityLevel);
+    if (!qflag && fflag) printf(" %d\n", bparms.SecurityLevel);
 
     who.SeqLen = 0;
     who.SeqBody = (RPC2_Byte *)whobuff;

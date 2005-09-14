@@ -509,7 +509,7 @@ long SFTP_CheckSE(RPC2_Handle ConnHandle, SE_Descriptor *SDesc, long Flags)
 	    	break;
 
 	    case FILEINVM:
-		say(0, SFTP_DebugLevel, "%p[%ld, %ld]: ", sftpd->FileInfo.ByAddr.vmfile.SeqBody, sftpd->FileInfo.ByAddr.vmfile.MaxSeqLen,  sftpd->FileInfo.ByAddr.vmfile.SeqLen);
+		say(0, SFTP_DebugLevel, "%p[%u, %u]: ", sftpd->FileInfo.ByAddr.vmfile.SeqBody, sftpd->FileInfo.ByAddr.vmfile.MaxSeqLen,  sftpd->FileInfo.ByAddr.vmfile.SeqLen);
 	    	break;
 	    }
 
@@ -1267,7 +1267,7 @@ long SFTP_PrintSED(IN SDesc, IN outFile)
 	    break;
 			
 	case FILEINVM:
-	    fprintf(outFile, "Tag:    FILEINVM   SeqBody:  %p    MaxSeqLen:    %ld    SeqLen: %ld\n", sftpd->FileInfo.ByAddr.vmfile.SeqBody, sftpd->FileInfo.ByAddr.vmfile.MaxSeqLen, sftpd->FileInfo.ByAddr.vmfile.SeqLen);
+	    fprintf(outFile, "Tag:    FILEINVM   SeqBody:  %p    MaxSeqLen:    %u    SeqLen: %u\n", sftpd->FileInfo.ByAddr.vmfile.SeqBody, sftpd->FileInfo.ByAddr.vmfile.MaxSeqLen, sftpd->FileInfo.ByAddr.vmfile.SeqLen);
 	    break;
 			
 	default:

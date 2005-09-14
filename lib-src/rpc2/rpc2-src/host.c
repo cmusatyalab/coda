@@ -325,9 +325,9 @@ void RPC2_UpdateEstimates(struct HEntry *host, RPC2_Unsigned elapsed_us,
 
     if (!host) return;
 
-    say(0, RPC2_DebugLevel, "uRTT: 0x%lx %lu %lu %lu\n", elapsed_us, elapsed_us, InBytes, OutBytes);
+    say(0, RPC2_DebugLevel, "uRTT: %u %u %u\n", elapsed_us, InBytes, OutBytes);
     
-    if ((long)elapsed_us < 0) elapsed_us = 0;
+    if ((int32_t)elapsed_us < 0) elapsed_us = 0;
 
     /* we need to clamp elapsed elapsed_us to about 16 seconds to avoid
      * overflows with the 31 bit calculations below */
@@ -384,7 +384,7 @@ void RPC2_UpdateEstimates(struct HEntry *host, RPC2_Unsigned elapsed_us,
 
     RPC2_formataddrinfo(host->Addr, addr, RPC2_ADDRSTRLEN);
     say(0, RPC2_DebugLevel,
-	"Est: %s %4ld.%06lu/%-5lu<%-5lu RTT:%lu/%lu us BR:%lu/%lu ns/B\n",
+	"Est: %s %4d.%06u/%-5u<%-5u RTT:%lu/%lu us BR:%lu/%lu ns/B\n",
 	    addr, elapsed_us / 1000000, elapsed_us % 1000000,
 	    InBytes, OutBytes, host->RTT>>RPC2_RTT_SHIFT, host->RTTVar>>RPC2_RTTVAR_SHIFT,
 	    (host->BR>>RPC2_BR_SHIFT), host->BRVar>>RPC2_BRVAR_SHIFT);

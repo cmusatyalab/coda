@@ -423,7 +423,7 @@ void rpc2_ResetLowerLimit(IN Conn, IN Packet)
     delta *= 1000;  /* was in msec to avoid overflow */
 
     say(4, RPC2_DebugLevel,
-	"ResetLowerLimit: conn 0x%lx, lower limit %ld usec, delta %ld usec\n",
+	"ResetLowerLimit: conn %#x, lower limit %ld usec, delta %ld usec\n",
 	 Conn->UniqueCID, Conn->LowerLimit, delta);
 
     Conn->LowerLimit += delta;
@@ -455,14 +455,14 @@ long rpc2_CancelRetry(IN Conn, IN Sle)
 	FT_GetTimeOfDay(&now, (struct timezone *)0);
 	SUBTIME(&now, &lastword);
 	say(9, RPC2_DebugLevel,
-	    "Heard from side effect on 0x%lx %ld.%06ld ago, retry interval was %ld.%06ld\n",
+	    "Heard from side effect on %#x %ld.%06ld ago, retry interval was %ld.%06ld\n",
 	     Conn->UniqueCID, now.tv_sec, now.tv_usec, 
 	     retry[Sle->RetryIndex].tv_sec, retry[Sle->RetryIndex].tv_usec);
 	if (CMPTIME(&now, &retry[Sle->RetryIndex], <)) {
 	    timeout = retry[0];
 	    SUBTIME(&timeout, &now);
 	    say(/*9*/4, RPC2_DebugLevel,
-		"Supressing retry %ld at %ld on 0x%lx, new timeout = %ld.%06ld\n",
+		"Supressing retry %ld at %ld on %#x, new timeout = %ld.%06ld\n",
 		 Sle->RetryIndex, rpc2_time(), Conn->UniqueCID,
 	         timeout.tv_sec, timeout.tv_usec);
 
@@ -503,7 +503,7 @@ long rpc2_SendReliably(IN Conn, IN Sle, IN Packet, IN TimeOut)
 	Packet->Header.TimeStamp = htonl(rpc2_MakeTimeStamp());
 	    
     /* Do an initial send of the packet */
-    say(9, RPC2_DebugLevel, "Sending try at %ld on 0x%lx (timeout %ld.%06ld)\n",
+    say(9, RPC2_DebugLevel, "Sending try at %ld on %#x (timeout %ld.%06ld)\n",
 			     rpc2_time(), Conn->UniqueCID,
 			     ThisRetryBeta[1].tv_sec, ThisRetryBeta[1].tv_usec);
     rpc2_XmitPacket(Packet, Conn->HostInfo->Addr, 0);
@@ -557,7 +557,7 @@ long rpc2_SendReliably(IN Conn, IN Sle, IN Packet, IN TimeOut)
 		else hopeleft = 1;
 		rpc2_ActivateSle(Sle, tout);
 		say(9, RPC2_DebugLevel,
-		    "Sending retry %ld at %ld on 0x%lx (timeout %ld.%06ld)\n",
+		    "Sending retry %ld at %ld on %#x (timeout %ld.%06ld)\n",
 		     Sle->RetryIndex, rpc2_time(), Conn->UniqueCID,
 		     tout->tv_sec, tout->tv_usec);
 		Packet->Header.Flags = htonl((ntohl(Packet->Header.Flags) | RPC2_RETRY));

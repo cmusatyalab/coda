@@ -98,7 +98,7 @@ long exchange(PacketCon *pcon, int cur_ind);
 static void MSend_Cleanup(int HowMany, MultiCon *mcon,
 			  SE_Descriptor SDescList[],
 			  struct timeval *Timeout, PacketCon *pcon);
-static inline long EXIT_MRPC(long code, int HowMany, long *RCList, MultiCon *context, struct MEntry *me);
+static inline long EXIT_MRPC(long code, int HowMany, RPC2_Integer *RCList, MultiCon *context, struct MEntry *me);
 
 #define GOODSEDLE(i)  (SDescList && SDescList[i].Tag != OMITSE)
 
@@ -200,7 +200,7 @@ long RPC2_MultiRPC(IN HowMany, IN ConnHandleList, IN RCList, IN MCast,
 
 /* easier to manage than the former macro definition */
 static inline long
-EXIT_MRPC(long code, int HowMany, long *RCList, MultiCon *mcon,
+EXIT_MRPC(long code, int HowMany, RPC2_Integer *RCList, MultiCon *mcon,
 	  struct MEntry *me)
 {
     int i;
@@ -209,7 +209,7 @@ EXIT_MRPC(long code, int HowMany, long *RCList, MultiCon *mcon,
        error codes */
     if (RCList) {
 	for (i = 0; i < HowMany; i++ ) {
-	    long rc;
+	    RPC2_Integer rc;
 	    rc = mcon[i].retcode;
 #ifdef ERRORTR
 	    rc = RPC2_R2SError(rc);
@@ -264,9 +264,9 @@ static void SetupConns(int HowMany, MultiCon *mcon,
 		{
 		    if (TRUE/*EnqueueRequest*/)
 			{
-			say(0, RPC2_DebugLevel, "Enqueuing on connection 0x%lx\n", ConnHandleList[host]);
+			say(0, RPC2_DebugLevel, "Enqueuing on connection %#x\n", ConnHandleList[host]);
 			LWP_WaitProcess((char *)thisconn);
-			say(0, RPC2_DebugLevel, "Dequeueing on connection 0x%lx\n", ConnHandleList[host]);
+			say(0, RPC2_DebugLevel, "Dequeueing on connection %#x\n", ConnHandleList[host]);
 			host = 0;	/* !!! restart loop !!! */
 			break;
 			}
@@ -801,7 +801,7 @@ static long mrpc_SendPacketsReliably(
 		    slp->RetryIndex += 1;
 		    tout = &c_entry->Retry_Beta[slp->RetryIndex];
 		    rpc2_ActivateSle(slp, tout);
-		    say(9, RPC2_DebugLevel, "Sending retry %ld at %ld on 0x%lx (timeout %ld.%06ld)\n", slp->RetryIndex, rpc2_time(), c_entry->UniqueCID, tout->tv_sec, tout->tv_usec);
+		    say(9, RPC2_DebugLevel, "Sending retry %ld at %ld on %#x (timeout %ld.%06ld)\n", slp->RetryIndex, rpc2_time(), c_entry->UniqueCID, tout->tv_sec, tout->tv_usec);
 		    mcon[thispacket].req->Header.Flags = htonl((ntohl(mcon[thispacket].req->Header.Flags) | RPC2_RETRY));
 		    mcon[thispacket].req->Header.TimeStamp = htonl(rpc2_MakeTimeStamp());
 		    rpc2_Sent.Retries += 1;	/* RPC retries are currently NOT multicasted! -JJK */

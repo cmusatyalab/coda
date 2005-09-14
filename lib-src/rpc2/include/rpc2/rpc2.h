@@ -253,14 +253,11 @@ extern long RPC2_strict_ip_matching;
 /*
 ************************* Data Types known to RPGen ***********************
 */
-typedef
-    long RPC2_Integer;     /*32-bit,  2's  complement representation.  On other machines, an explicit
+typedef int32_t RPC2_Integer;     /*32-bit,  2's  complement representation.  On other machines, an explicit
                         conversion may be needed.*/
-typedef
-    unsigned long RPC2_Unsigned;     /* 32-bits.*/
+typedef uint32_t RPC2_Unsigned;     /* 32-bits.*/
 
-typedef
-    unsigned char RPC2_Byte;      /*A single 8-bit byte.*/
+typedef uint8_t RPC2_Byte;      /*A single 8-bit byte.*/
 
 typedef
     double RPC2_Double;      /*A single 8-bit byte.*/
@@ -281,7 +278,7 @@ language string definition.  */
 typedef
     struct
         {
-        RPC2_Integer SeqLen; /*length of SeqBody*/
+        RPC2_Unsigned SeqLen; /*length of SeqBody*/
         RPC2_ByteSeq SeqBody; /*no restrictions on contents*/
         }
     RPC2_CountedBS;
@@ -292,8 +289,8 @@ A means of transmitting binary data.
 typedef
     struct
          {
-         RPC2_Integer MaxSeqLen; /*max size of buffer represented by SeqBody*/
-         RPC2_Integer SeqLen; /*number of interesting bytes in SeqBody*/
+         RPC2_Unsigned MaxSeqLen; /*max size of buffer represented by SeqBody*/
+         RPC2_Unsigned SeqLen; /*number of interesting bytes in SeqBody*/
          RPC2_ByteSeq SeqBody; /*No restrictions on contents*/
          }
     RPC2_BoundedBS;

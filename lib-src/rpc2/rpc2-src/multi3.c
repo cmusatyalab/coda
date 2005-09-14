@@ -142,7 +142,7 @@ struct MEntry *rpc2_AllocMgrp(struct RPC2_addrinfo *addr, RPC2_Handle handle)
        identifier is <client_host, client_port, mgrpid, role>. */
     mgrpid = (handle == 0) ? ++LastMgrpidAllocated : handle;
     RPC2_formataddrinfo(addr, buf, RPC2_ADDRSTRLEN);
-    say(9, RPC2_DebugLevel, "Allocating Mgrp: host = %s\tmgrpid = 0x%lx\t", buf, mgrpid);
+    say(9, RPC2_DebugLevel, "Allocating Mgrp: host = %s\tmgrpid = %#x\t", buf, mgrpid);
     bucket = rpc2_GetBucket(addr, mgrpid);
 
     me = (struct MEntry *)rpc2_MoveEntry(&rpc2_MgrpFreeList, &bucket->chain, NULL, &rpc2_MgrpFreeCount, &bucket->count);
@@ -190,7 +190,7 @@ void rpc2_FreeMgrp(me)
     rpc2_FreeMgrps++;
     SetRole(me, FREE);
     RPC2_formataddrinfo(me->ClientAddr, buf, RPC2_ADDRSTRLEN);
-    say(9, RPC2_DebugLevel, "Freeing Mgrp: ClientHost = %s\tMgroupID = 0x%lx\t", buf, me->MgroupID);
+    say(9, RPC2_DebugLevel, "Freeing Mgrp: ClientHost = %s\tMgroupID = %#x\t", buf, me->MgroupID);
 
     bucket = rpc2_GetBucket(me->ClientAddr, me->MgroupID);
 
@@ -217,7 +217,7 @@ struct MEntry *rpc2_GetMgrp(struct RPC2_addrinfo *addr, RPC2_Handle handle,
 	char buf[RPC2_ADDRSTRLEN];
 
 	RPC2_formataddrinfo(me->ClientAddr, buf, RPC2_ADDRSTRLEN);
-	say(9, RPC2_DebugLevel, "GetMgrp: %s %ld\n", buf, me->MgroupID);
+	say(9, RPC2_DebugLevel, "GetMgrp: %s %#x\n", buf, me->MgroupID);
 
 	if (RPC2_cmpaddrinfo(me->ClientAddr, addr) &&
 	    me->MgroupID == handle && TestRole(me, role))
@@ -402,9 +402,9 @@ long RPC2_AddToMgrp(IN MgroupHandle, IN ConnHandle)
 	if (TestState(me, CLIENT, ~C_THINK))
 	    {
 	    /*	if (!EnqueueRequest) rpc2_Quit(RPC2_MGRPBUSY);*/
-	    say(0, RPC2_DebugLevel, "Enqueuing on mgrp 0x%lx\n",MgroupHandle);
+	    say(0, RPC2_DebugLevel, "Enqueuing on mgrp %#x\n",MgroupHandle);
 	    LWP_WaitProcess((char *)me);
-	    say(0, RPC2_DebugLevel, "Dequeueing on mgrp 0x%lx\n", MgroupHandle);
+	    say(0, RPC2_DebugLevel, "Dequeueing on mgrp %#x\n", MgroupHandle);
 	    continue;
 	    }
 
@@ -424,9 +424,9 @@ long RPC2_AddToMgrp(IN MgroupHandle, IN ConnHandle)
 	}
 
 	/*  if (!EnqueueRequest) rpc2_Quit(RPC2_CONNBUSY);*/
-say(0, RPC2_DebugLevel, "Enqueuing on connection 0x%lx\n",ConnHandle);
+say(0, RPC2_DebugLevel, "Enqueuing on connection %#x\n",ConnHandle);
 	LWP_WaitProcess((char *)ce);
-	say(0, RPC2_DebugLevel, "Dequeueing on connection 0x%lx\n", ConnHandle);
+	say(0, RPC2_DebugLevel, "Dequeueing on connection %#x\n", ConnHandle);
 	}
 
     /* Check that the connection's SubsysId matches that of the mgrp. */
@@ -488,7 +488,7 @@ say(0, RPC2_DebugLevel, "Enqueuing on connection 0x%lx\n",ConnHandle);
     rpc2_ApplyE(pb, ce);
 
     /* Send packet and await positive acknowledgment. */
-    say(9, RPC2_DebugLevel, "Sending INITMULTICAST packet on 0x%lx\n", ConnHandle);
+    say(9, RPC2_DebugLevel, "Sending INITMULTICAST packet on %#x\n", ConnHandle);
     /* create call entry */
     sl = rpc2_AllocSle(OTHER, ce);
     rpc2_SendReliably(ce, sl, pb, NULL);
@@ -496,7 +496,7 @@ say(0, RPC2_DebugLevel, "Enqueuing on connection 0x%lx\n",ConnHandle);
     switch(sl->ReturnCode)
 	{
 	case ARRIVED:
-	    say(9, RPC2_DebugLevel, "Received INITMULTICAST response on 0x%lx\n", ConnHandle);
+	    say(9, RPC2_DebugLevel, "Received INITMULTICAST response on %#x\n", ConnHandle);
 	    RPC2_FreeBuffer(&pb);	/* release the request packet */
 	    pb = sl->Packet;		/* and get the response packet */
 	    rpc2_FreeSle(&sl);
@@ -505,7 +505,7 @@ say(0, RPC2_DebugLevel, "Enqueuing on connection 0x%lx\n",ConnHandle);
 	case NAKED:
 	case TIMEOUT:
 	    /* free connection, buffers, and quit */
-	    say(9, RPC2_DebugLevel, "Failed to send INITMULTICAST packet on 0x%lx\n", ConnHandle);
+	    say(9, RPC2_DebugLevel, "Failed to send INITMULTICAST packet on %#x\n", ConnHandle);
 	    RPC2_FreeBuffer(&pb);	/* release the request packet */
 	    rc = sl->ReturnCode == NAKED ? RPC2_NAKED : RPC2_DEAD;
 	    rpc2_FreeSle(&sl);
@@ -614,9 +614,9 @@ long RPC2_RemoveFromMgrp(IN MgroupHandle, IN ConnHandle)
 	if (TestState(me, CLIENT, ~C_THINK))
 	    {
 	    /*	if (!EnqueueRequest) rpc2_Quit(RPC2_MGRPBUSY);*/
-	    say(0, RPC2_DebugLevel, "Enqueuing on mgrp 0x%lx\n",MgroupHandle);
+	    say(0, RPC2_DebugLevel, "Enqueuing on mgrp %#x\n",MgroupHandle);
 	    LWP_WaitProcess((char *)me);
-	    say(0, RPC2_DebugLevel, "Dequeueing on mgrp 0x%lx\n", MgroupHandle);
+	    say(0, RPC2_DebugLevel, "Dequeueing on mgrp %#x\n", MgroupHandle);
 	    continue;
 	    }
 
@@ -632,9 +632,9 @@ long RPC2_RemoveFromMgrp(IN MgroupHandle, IN ConnHandle)
 	    }
 
 	/*  if (!EnqueueRequest) rpc2_Quit(RPC2_CONNBUSY);*/
-	say(0, RPC2_DebugLevel, "Enqueuing on connection 0x%lx\n",ConnHandle);
+	say(0, RPC2_DebugLevel, "Enqueuing on connection %#x\n",ConnHandle);
 	LWP_WaitProcess((char *)ce);
-	say(0, RPC2_DebugLevel, "Dequeueing on connection 0x%lx\n", ConnHandle);
+	say(0, RPC2_DebugLevel, "Dequeueing on connection %#x\n", ConnHandle);
 	}
 
     rpc2_RemoveFromMgrp(me, ce);
@@ -679,9 +679,9 @@ long RPC2_DeleteMgrp(IN MgroupHandle)
 	if (TestState(me, CLIENT, C_THINK)) break;
 
 	/*  if (!EnqueueRequest) rpc2_Quit(RPC2_MGRPBUSY);*/
-	say(0, RPC2_DebugLevel, "Enqueuing on mgrp 0x%lx\n",MgroupHandle);
+	say(0, RPC2_DebugLevel, "Enqueuing on mgrp %#x\n",MgroupHandle);
 	LWP_WaitProcess((char *)me);
-	say(0, RPC2_DebugLevel, "Dequeueing on mgrp 0x%lx\n", MgroupHandle);
+	say(0, RPC2_DebugLevel, "Dequeueing on mgrp %#x\n", MgroupHandle);
 	}
 
     rpc2_DeleteMgrp(me);
@@ -714,9 +714,9 @@ long SetupMulticast(MCast, meaddr, HowMany, ConnHandleList)
 	if (TestState(me, CLIENT, C_THINK)) break;
 
 	/*  if (!EnqueueRequest) rpc2_Quit(RPC2_MGRPBUSY);*/
-	say(0, RPC2_DebugLevel, "Enqueuing on mgrp 0x%lx\n", MCast->Mgroup);
+	say(0, RPC2_DebugLevel, "Enqueuing on mgrp %#x\n", MCast->Mgroup);
 	LWP_WaitProcess((char *)me);
-	say(0, RPC2_DebugLevel, "Dequeueing on mgrp 0x%lx\n", MCast->Mgroup);
+	say(0, RPC2_DebugLevel, "Dequeueing on mgrp %#x\n", MCast->Mgroup);
 	}
 
     assert(me->listeners != NULL && me->maxlisteners >= me->howmanylisteners);
