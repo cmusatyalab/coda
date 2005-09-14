@@ -115,7 +115,7 @@ int main(int argc, char **argv)
 
     /* truncate the shared secret */
     memset(authkey, 0, sizeof(RPC2_KEYSIZE));
-    strncpy(authkey, tokenkey, RPC2_KEYSIZE);
+    strncpy((char *)authkey, tokenkey, RPC2_KEYSIZE);
 
     /* strip newline from filename */
     len = strlen(filename);
@@ -148,7 +148,7 @@ int main(int argc, char **argv)
 
     /* encrypt the secret token */
     rpc2_Encrypt((char *)&stoken, (char *)estoken, sizeof(SecretToken),
-		 (char *)authkey, RPC2_XOR);
+		 authkey, RPC2_XOR);
 
     /* write the token to a tokenfile */
     WriteTokenToFile(filename, &ctoken, estoken);

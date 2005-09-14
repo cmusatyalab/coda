@@ -122,7 +122,7 @@ long PWGetKeys(RPC2_CountedBS *cIdent, RPC2_EncryptionKey hKey, RPC2_EncryptionK
 		LogMsg(0, AuthDebugLevel, stdout, "Problem statting auth2.pw");
 
 	memcpy(hKey, PWArray[vid], RPC2_KEYSIZE);
-	rpc2_Decrypt(hKey, hKey, RPC2_KEYSIZE, FileKey, RPC2_XOR);
+	rpc2_Decrypt((char *)hKey, (char *)hKey, RPC2_KEYSIZE, FileKey, RPC2_XOR);
 	for (i=0; i < RPC2_KEYSIZE; i++)
 		sKey[i] = rpc2_NextRandom(NULL);	/* random session key */
 
@@ -267,8 +267,7 @@ void AppendPW(int vId, RPC2_EncryptionKey eKey, char *otherInfo, int agentId)
 	time_t cl;
 
 	/* Encrypt the key first */
-	rpc2_Encrypt((char *)eKey, (char *)tempkey, RPC2_KEYSIZE,
-		(char *)FileKey, RPC2_XOR);
+	rpc2_Encrypt((char *)eKey, (char *)tempkey, RPC2_KEYSIZE, FileKey, RPC2_XOR);
 
 	/* Update PWArray after enlarging it */
 	if (vId >= PWLen) EnlargePW(2*vId);
@@ -488,7 +487,7 @@ int IsAdministrator(struct UserInfo *pU)
 int BogusKey(RPC2_EncryptionKey x)
 {
 	RPC2_EncryptionKey temp;
-	rpc2_Encrypt((char *)x, (char *)temp, RPC2_KEYSIZE, (char *)FileKey, RPC2_XOR);
+	rpc2_Encrypt((char *)x, (char *)temp, RPC2_KEYSIZE, FileKey, RPC2_XOR);
 	if (memcmp(temp, NullKey, RPC2_KEYSIZE) == 0) return(TRUE);
 	if (memcmp(temp, DeleteKey, RPC2_KEYSIZE) == 0) return(TRUE);
 	return(FALSE);

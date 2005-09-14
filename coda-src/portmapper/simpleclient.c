@@ -84,36 +84,36 @@ int main(void)
 
 	CODA_ASSERT(!(rc = RPC2_NewBinding(&hident, &pident, &sident, &bp, &cid)));
 
-	rc = portmapper_client_lookup_pbynvp(cid, "hithereservice", 0, 17, &port);
+	rc = portmapper_client_lookup_pbynvp(cid, (RPC2_String)"hithereservice", 0, 17, &port);
 
 	fprintf(stderr, "After initial lookup, rc=%d, port=%d\n", rc, port);
 
 	/* register the port */
-	rc = portmapper_client_register_excl(cid, "scraw", 0, 17, 12345);
+	rc = portmapper_client_register_excl(cid, (RPC2_String)"scraw", 0, 17, 12345);
 
 	fprintf(stderr, "After register, rc=%d\n", rc);
 
-	rc = portmapper_client_lookup_pbynvp(cid, "scraw", 0, 17, &port);
+	rc = portmapper_client_lookup_pbynvp(cid, (RPC2_String)"scraw", 0, 17, &port);
 
 	fprintf(stderr, "After second lookup, rc=%d, port=%d\n", rc, port);
 
-	rc = portmapper_client_delete(cid, "scraw", 0, 17);
+	rc = portmapper_client_delete(cid, (RPC2_String)"scraw", 0, 17);
 
 	fprintf(stderr, "After delete, rc=%d\n", rc);
 
-	rc = portmapper_client_register_excl(cid, "scraw", 0, 17, 12345);
+	rc = portmapper_client_register_excl(cid, (RPC2_String)"scraw", 0, 17, 12345);
 
 	fprintf(stderr, "After second register, rc=%d\n", rc);
 
-	rc = portmapper_client_register_excl(cid, "scraw", 0, 17, 12345);
+	rc = portmapper_client_register_excl(cid, (RPC2_String)"scraw", 0, 17, 12345);
 
 	fprintf(stderr, "After third register, rc=%d\n", rc);
 
-	rc = portmapper_client_register_sqsh(cid, "scraw", 0, 17, 12346);
+	rc = portmapper_client_register_sqsh(cid, (RPC2_String)"scraw", 0, 17, 12346);
 
 	fprintf(stderr, "After fourth register (sqsh), rc=%d\n", rc);
 
-	rc= portmapper_client_lookup_pbynvp(cid, "scraw", 0, 17, &port);
+	rc= portmapper_client_lookup_pbynvp(cid, (RPC2_String)"scraw", 0, 17, &port);
 
 	fprintf(stderr, "After third lookup, rc=%d, port=%d\n", rc, port);
 	

@@ -162,13 +162,13 @@ long GetKeysFromToken(IN RPC2_Integer *AuthenticationType,
     }
 
     if (Key1IsValid) {
-	rpc2_Decrypt(cIdent->SeqBody, (char *)&st, cIdent->SeqLen, Key1, RPC2_XOR);
-	if (strncmp(st.MagicString, AUTH_MAGICVALUE, sizeof(AuthMagic)) == 0)
+	rpc2_Decrypt((char *)cIdent->SeqBody, (char *)&st, cIdent->SeqLen, Key1, RPC2_XOR);
+	if (strncmp((char *)st.MagicString, AUTH_MAGICVALUE, sizeof(AuthMagic)) == 0)
 	    goto GotIt;
     }
     if (Key2IsValid) {
-	rpc2_Decrypt(cIdent->SeqBody, (char *)&st, cIdent->SeqLen, Key2, RPC2_XOR);
-	if (strncmp(st.MagicString, AUTH_MAGICVALUE, sizeof(AuthMagic)) == 0)
+	rpc2_Decrypt((char *)cIdent->SeqBody, (char *)&st, cIdent->SeqLen, Key2, RPC2_XOR);
+	if (strncmp((char *)st.MagicString, AUTH_MAGICVALUE, sizeof(AuthMagic)) == 0)
 	    goto GotIt;
     }
     LogMsg(-1, 0, stdout, "Could not get a valid key in GetKeysFromToken");

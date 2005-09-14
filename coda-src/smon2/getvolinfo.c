@@ -129,7 +129,7 @@ int main(int argc, char *argv[])
     }
     printf("RPC2 connection to %s:%d successful.\n", host, port);
 
-    rc = ViceGetVolumeInfo(cid, volume, &volinfo);
+    rc = ViceGetVolumeInfo(cid, (RPC2_String)volume, &volinfo);
 
     if (rc != RPC2_SUCCESS) {
         printf("ViceGetVolumeInfo for %s to %s:%d failed with %s.\n",

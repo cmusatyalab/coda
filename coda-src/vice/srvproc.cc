@@ -466,7 +466,7 @@ START_TIMING(ViceValidateAttrs_Total);
 		goto Exit;
     }
  	
-    if (VFlagBS->MaxSeqLen < NumPiggyFids) {
+    if (VFlagBS->MaxSeqLen < (RPC2_Unsigned)NumPiggyFids) {
 	    SLog(0, "Client sending wrong output buffer while validating"
 		 ": %s; MaxSeqLen %d, should be %d", 
 		 FID_(PrimaryFid), VFlagBS->MaxSeqLen, NumPiggyFids);

@@ -120,7 +120,7 @@ int main(int argc, char **argv)
 		thisline[strlen(thisline)-1] = '\0';
 	parse(thisline, thispw, &lastpart);
 	if (KeyIsValid)
-	    rpc2_Encrypt((char *)thispw, (char *)thispw, sizeof(RPC2_EncryptionKey), (char *)EKey, RPC2_XOR);
+	    rpc2_Encrypt((char *)thispw, (char *)thispw, sizeof(RPC2_EncryptionKey), EKey, RPC2_XOR);
 	printf("%s\t", thisline);	/* only viceid part */
 	for (i = 0; i < sizeof(RPC2_EncryptionKey); i++)
 	    printf("%02x", thispw[i]);
