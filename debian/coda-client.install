@@ -18,6 +18,7 @@ debian/tmp/usr/bin/removeinc
 debian/tmp/usr/bin/repair
 debian/tmp/usr/bin/coda_replay
 debian/tmp/usr/bin/spy
+debian/tmp/usr/bin/vcodacon
 debian/tmp/usr/bin/xaskuser
 debian/tmp/usr/bin/xfrepair
 debian/tmp/usr/sbin/coda-client-logrotate

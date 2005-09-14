@@ -186,6 +186,7 @@ exit 0
 /usr/bin/repair
 /usr/bin/coda_replay
 /usr/bin/spy
+/usr/bin/vcodacon
 /usr/bin/xaskuser
 /usr/bin/xfrepair
 /usr/share/man/man1/au.1.gz
