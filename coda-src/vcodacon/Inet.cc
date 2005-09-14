@@ -21,7 +21,7 @@
       Boston, MA 02111-1307 USA.
 
     You may contact the author by:
-       e-mail:  philnelson@acm.org
+       e-mail:  philnelson at acm.org
       us-mail:  Philip A. Nelson
                 Computer Science Department, 9062
                 Western Washington University
