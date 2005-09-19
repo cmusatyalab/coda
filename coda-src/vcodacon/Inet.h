@@ -1,4 +1,4 @@
-/*	$Id$	*/
+/*	$Id: Inet.h,v 1.2 2005/09/14 17:34:08 phil Exp $	*/
 
 /*
     Copyright (C) 2000 Philip A. Nelson

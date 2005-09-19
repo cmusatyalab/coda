@@ -249,8 +249,6 @@ static void SigChoke(int sig)
 static void SigExit(int sig)
 {
     LOG(0, ("TERM: About to terminate venus\n"));
-    MarinerLog("shutdown in progress\n");
-
     TerminateVenus = 1;
 
     RecovFlush(1);
