@@ -118,7 +118,7 @@ void ListVV(int fd, int vnode, VnodeDiskObject *vnp, unsigned int dumplevel)
     
     if (fd < 0) return;
 
-    sprintf(buffer, "%08x.%08x (%d.%d.%d.%d.%d.%d.%d.%d) (%x.%x) %u\n",
+    sprintf(buffer, "%d.%d (%d.%d.%d.%d.%d.%d.%d.%d) (%x.%x) %u\n",
 		    vnode, vnp->uniquifier,
 		    vv->Versions.Site0,     vv->Versions.Site1, 
 		    vv->Versions.Site2,     vv->Versions.Site3, 
@@ -158,7 +158,7 @@ vvtable::vvtable(FILE *Ancient, VnodeClass vclass, int listsize)
 
 	    if (n >= 12) {
 		/* Found a vnode, Insert it at the appropriate place! */
-		LogMsg(19, VolDebugLevel, stdout, "vvtable: found a vnode %d.%d StoreId %x.%x.",
+		LogMsg(19, VolDebugLevel, stdout, "vvtable: found a vnode %x.%x StoreId %x.%x.",
 		    vnum, unique, vvStoreIdHost, vvStoreIdUniquifier);
 		vvent *tmp = (vvent *)malloc(sizeof(vvent));
 		CODA_ASSERT(tmp != NULL);
@@ -173,7 +173,7 @@ vvtable::vvtable(FILE *Ancient, VnodeClass vclass, int listsize)
 
 		if (bitnum < 0 || bitnum >= nlists)
 		{
-		    LogMsg(0, VolDebugLevel, stdout, "vvtable: Vnode %d.%d StoreId %x.%x, has a bad index %d for vvlist[%d]\n",
+		    LogMsg(0, VolDebugLevel, stdout, "vvtable: Vnode %x.%x StoreId %x.%x, has a bad index %d for vvlist[%d]\n",
 			   vnum, unique, vvStoreIdHost, vvStoreIdUniquifier, bitnum, nlists);
 		    CODA_ASSERT(0);
 		}
