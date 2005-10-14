@@ -204,7 +204,7 @@ void vdb::TakeTransition()
     volrep_iterator vrnext;
     volent *v;
     while ((v = rvnext()) || (v = vrnext())) {
-	if (v->IsFake()) continue;
+	if (v->IsLocalRealm()) continue;
 	LOG(1000, ("vdb::TakeTransition: checking %s\n", v->name));
 	if (v->Enter((VM_OBSERVING | VM_NDELAY), V_UID) == 0)
 	    v->Exit(VM_OBSERVING, V_UID);

@@ -114,7 +114,7 @@ int fsobj::ExpandObject(void)
 	fsobj *fakelink;
 	char *name = LOCALCACHE;
 
-	if(IsFake() || !HAVEALLDATA(this))
+	if (IsFake() || !HAVEALLDATA(this))
 	  name = LOCALCACHE_HIDDEN;
 
 	fakelink = fakedir->vol->NewFakeMountLinkObj(&fid, name);

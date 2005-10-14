@@ -462,14 +462,11 @@ void fsobj::Recover()
 	goto FailSafe;
     }
 
-    if (!IsFake() && !vol->IsReplicated() && !IsLocalObj()) {
+    if (!vol->IsReplicated() && !IsLocalObj()) {
 	LOG(0, ("fsobj::Recover: (%s) is probably in a backup volume\n",
 		FID_(&fid)));
 	goto Failure;
     }
-
-    if (IsFake())
-	k_Purge(&fid, 1);
 
     /* Get rid of a former mount-root whose fid is not a volume root and whose
      * pfid is NullFid */
@@ -480,36 +477,40 @@ void fsobj::Recover()
 	goto FailSafe;
     }
 
+    if (IsFake()) {
+	LOG(1, ("fsobj::Recover: (%s) is marked as inconsistent (fake).\n",
+		FID_(&fid)));
+	return;
+    }
+
     /* Check the cache file. */
-    if (!IsFake()) {
-      switch(stat.VnodeType) {
-        case File:
-	    if (!HAVEDATA(this) && cf.Length() != 0) {
-		eprint("\t(%s, %s) cache file validation failed",
-		       comp, FID_(&fid));
-		FSDB->FreeBlocks(NBLOCKS(cf.Length()));
-		cf.Reset();
-	    }
-	    break;
+    switch(stat.VnodeType) {
+    case File:
+	if (!HAVEDATA(this) && cf.Length() != 0) {
+	    eprint("\t(%s, %s) cache file validation failed",
+		   comp, FID_(&fid));
+	    FSDB->FreeBlocks(NBLOCKS(cf.Length()));
+	    cf.Reset();
+	}
+	break;
 
-	case Directory:
-	case SymbolicLink:
-	    /* 
-	     * Reclaim cache-file blocks. Since directory contents are stored
-	     * in RVM (as are all fsobjs), cache file blocks for directories 
-	     * are thrown out at startup because they are the ``Unix format'' 
-	     * version of the object.  The stuff in RVM is the ``Vice format'' 
-	     * version. 
-	     */
-	    if (cf.Length() != 0) {
-		FSDB->FreeBlocks(NBLOCKS(cf.Length()));
-		cf.Reset();
-	    }
-	    break;
+    case Directory:
+    case SymbolicLink:
+	/*
+	 * Reclaim cache-file blocks. Since directory contents are stored
+	 * in RVM (as are all fsobjs), cache file blocks for directories
+	 * are thrown out at startup because they are the ``Unix format''
+	 * version of the object.  The stuff in RVM is the ``Vice format''
+	 * version.
+	 */
+	if (cf.Length() != 0) {
+	    FSDB->FreeBlocks(NBLOCKS(cf.Length()));
+	    cf.Reset();
+	}
+	break;
 
-	case Invalid:
-	    CHOKE("fsobj::Recover: bogus VnodeType (%d)", stat.VnodeType);
-      }
+    case Invalid:
+	CHOKE("fsobj::Recover: bogus VnodeType (%d)", stat.VnodeType);
     }
 
     if (LogLevel >= 1) print(logFile);
@@ -682,11 +683,14 @@ void fsobj::UpdateStatus(ViceStatus *vstat, vv_t *UpdateSet, uid_t uid)
     /* Mount points are never updated. */
     if (IsMtPt())
 	{ print(logFile); CHOKE("fsobj::UpdateStatus: IsMtPt!"); }
-    /* Fake objects are never updated. */
-    if (IsFake())
-	{ print(logFile); CHOKE("fsobj::UpdateStatus: IsFake!"); }
 
     LOG(100, ("fsobj::UpdateStatus: (%s), uid = %d\n", FID_(&fid), uid));
+
+    /* if we got new status, the object should not be inconsistent */
+    if (IsFake()) {
+	RVMLIB_REC_OBJECT(flags);
+	flags.fake = 0;
+    }
 
     /*
      * We have to update the status when we have,

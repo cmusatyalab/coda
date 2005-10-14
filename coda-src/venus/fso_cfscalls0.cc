@@ -186,7 +186,7 @@ int fsobj::Fetch(uid_t uid)
 
     LOG(10, ("fsobj::Fetch: (%s), uid = %d\n", GetComp(), uid));
 
-    CODA_ASSERT(!IsLocalObj());
+    CODA_ASSERT(!IsLocalObj() && !IsFake());
 
     /* Sanity checks. */
     {
@@ -200,10 +200,6 @@ int fsobj::Fetch(uid_t uid)
 	/* We never fetch data if we already have some. */
 	if (HAVEALLDATA(this))
 	    { print(logFile); CHOKE("fsobj::Fetch: HAVEALLDATA"); }
-
-	/* We never fetch data for fake objects. */
-	if (IsFake())
-	    { print(logFile); CHOKE("fsobj::Fetch: IsFake"); }
     }
 
     int code = 0;
@@ -1165,7 +1161,7 @@ int fsobj::GetACL(RPC2_BoundedBS *acl, uid_t uid)
 {
     LOG(10, ("fsobj::GetACL: (%s), uid = %d\n", GetComp(), uid));
 
-    if (IsFake() || IsLocalObj()) {
+    if (IsLocalObj()) {
 	/* Just read/lookup rights for System:AnyUser */
 	const char *fakeacl = "1\n0\nSystem:AnyUser\t9\n";
 	acl->SeqLen = strlen(fakeacl) + 1;

@@ -2340,7 +2340,7 @@ int volent::GetVolStat(VolumeStatus *volstat, RPC2_BoundedBS *Name,
 	*hogtime = rv->ReintLimit;
     }
 
-    if (IsFake() || IsDisconnected() || local_only) {
+    if (IsLocalRealm() || IsDisconnected() || local_only) {
 	memset(volstat, 0, sizeof(VolumeStatus));
 	volstat->Vid = vid;
 	volstat->Type = VolStatType();	

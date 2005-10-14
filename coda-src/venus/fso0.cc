@@ -707,7 +707,7 @@ RestartFind:
 	/*     - the object has been deleted (it must also be open for read at this point) */
 	/*     - the object's volume is disconnected */
 	/*     - the object's volume is in logging mode and the object is dirty */
-	if (!f->IsLocalObj() && FETCHABLE(f)) {
+	if (FETCHABLE(f)) {
 	    f->PromoteLock();
 
 	    /* Fetch status-only if we don't have any or if it is suspect. We
@@ -728,7 +728,7 @@ RestartFind:
 		  f->flags.fake = 1;
 		  Recov_EndTrans(MAXFP);
 
-		  //k_Purge(&f->fid, 1); /* isn't doing anything useful */
+		  k_Purge(&f->fid, 0);
 
 		  LOG(0, ("fsdb::Get: %s (%s) in server/server conflict\n",
 			  path, FID_(key)));
@@ -737,40 +737,41 @@ RestartFind:
 		} /* s/s conflict objs fall through if(GetInconsistent) */
 
 		if (code && !(code == EINCONS && GetInconsistent)) {
-                    if (code == EINCONS)
-                      LOG(0, ("fsdb::Get: EINCONS after GetAttr\n"));
-                    if (code == ETIMEDOUT)
-                      LOG(100, ("fsdb::Get: TIMEDOUT after GetAttr\n"));
+		    if (code == EINCONS)
+			LOG(0, ("fsdb::Get: EINCONS after GetAttr\n"));
+		    if (code == ETIMEDOUT)
+			LOG(100, ("fsdb::Get: TIMEDOUT after GetAttr\n"));
 		    Put(&f);
 		    return(code);
 		}
-	  }
-	  /* If we want data and we don't have any then fetch new stuff. */
-	  /* we have to re-check FETCHABLE because it may have changed as
-		 a result of the inconsistent object manipulation above. */
-	  if (getdata && FETCHABLE(f) && !HAVEALLDATA(f) && !f->IsFake()) {
+	   }
+
+	    /* If we want data and we don't have any then fetch new stuff. */
+	    /* we have to re-check FETCHABLE because it may have changed as
+	       a result of the inconsistent object manipulation above. */
+	    if (getdata && FETCHABLE(f) && !f->IsFake() && !HAVEALLDATA(f)) {
 		/* Turn off advice effects for the time being  -Remi
 		   CacheMissAdvice advice = CoerceToMiss; */
 		CacheMissAdvice advice = FetchFromServers;
 
 		if (f->vol->IsWeaklyConnected()) {
-		  char pathname[MAXPATHLEN];
-		  int hoard_priority = 0;
-		  
-		  if (f->HoardPri > 0)
+		    char pathname[MAXPATHLEN];
+		    int hoard_priority = 0;
+
+		    if (f->HoardPri > 0)
 			hoard_priority = f->HoardPri;
-		  else {
+		    else {
 			f->GetPath(pathname);
 			hoard_priority = HDB->GetSuspectPriority(MakeVolid(&f->fid), pathname, uid);
 		  }
-		  
+
 		  int estimatedCost = f->EstimatedFetchCost();
 		  /* If the fetch will take too long, coerce the request into a miss */
 		  if (f->PredetermineFetchState(estimatedCost, hoard_priority) != 1) {
 			advice = f->WeaklyConnectedCacheMiss(vp, uid);
 			if (advice == CoerceToMiss) {
 			  Put(&f);
-			  LOG(0, ("Weak Miss Coersion:\n\tObject:  %s <%s>\n\tEstimated Fetch Cost:  %d seconds\n\tReturn code:  EFBIG\n", 
+			  LOG(0, ("Weak Miss Coersion:\n\tObject:  %s <%s>\n\tEstimated Fetch Cost:  %d seconds\n\tReturn code:  EFBIG\n",
 					  comp, FID_(key), estimatedCost));
 			  MarinerLog("Weak Miss Coersion on %s <%s>\n",
 						 comp, FID_(key));
@@ -889,7 +890,7 @@ RestartFind:
 		    int found = 0;
 
 		    /* try the lookaside cache */
-		    if (!f->IsLocalObj()) {
+		    if (!f->IsLocalObj() && !f->IsFake()) {
 			f->PromoteLock();
 			found = f->LookAside();
 			f->DemoteLock();

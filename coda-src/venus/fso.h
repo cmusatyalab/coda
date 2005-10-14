@@ -789,8 +789,8 @@ void FSOD_ReclaimFSOs(void);
 #define	ACTIVE(f)	(WRITING(f) || EXECUTING(f))
 #define	BUSY(f)		((f)->refcnt > 0 || EXECUTING(f))
 #define	HOARDABLE(f)	((f)->HoardPri > 0)
-#define	FETCHABLE(f)	(!DYING(f) && WRITEDISCONNECTED(f) && !DIRTY(f) &&\
-			 (!HAVESTATUS(f) || !ACTIVE(f)))
+#define	FETCHABLE(f)	(!DYING(f) && WRITEDISCONNECTED(f) && !DIRTY(f) && \
+			 (!HAVESTATUS(f) || !ACTIVE(f)) && !f->IsLocalObj())
 /* we are replaceable whenever we are linked into FSDB->prioq */
 #define	REPLACEABLE(f)	((f)->prio_handle.tree() != 0)
 #define	GCABLE(f)	(DYING(f) && !DIRTY(f) && !BUSY(f))

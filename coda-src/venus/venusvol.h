@@ -666,7 +666,7 @@ class volent {
     int IsWriteDisconnected() { return (state == WriteDisconnected); }
     int IsWeaklyConnected(void);
     int IsResolving() { return (state == Resolving); }
-    int IsFake() { return (realm == LocalRealm); }
+    int IsLocalRealm() { return (realm == LocalRealm); }
     void GetMountPath(char *, int =1);
     void GetBandwidth(unsigned long *bw);
 

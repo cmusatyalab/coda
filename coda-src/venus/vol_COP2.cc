@@ -132,7 +132,7 @@ int repvol::COP2(mgrpent *m, ViceStoreId *StoreId, vv_t *UpdateSet,
 /* Other UpdateSets will either be piggybacked on subsequent RPCs, or sent directly when they are older. */
 int repvol::FlushCOP2(time_t window)
 {
-    CODA_ASSERT(!IsFake());
+    CODA_ASSERT(!IsLocalRealm());
     LOG(100, ("repvol::FlushCOP2: vol = %x, window = %d\n",
 	       vid, window));
 
@@ -186,7 +186,7 @@ int repvol::FlushCOP2(time_t window)
 /* Use the supplied Mgrp for the direct COP2s. */
 int repvol::FlushCOP2(mgrpent *m, RPC2_CountedBS *PiggyBS)
 {
-    CODA_ASSERT(!IsFake());
+    CODA_ASSERT(!IsLocalRealm());
     LOG(100, ("volent::FlushCOP2(Piggy): vol = %x\n", vid));
 
     int code = 0;
