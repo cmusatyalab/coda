@@ -292,7 +292,7 @@ long RS_DoForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
     }
 
     SLog(0,
-	   "RS_DoForceDirOps: Owner just before forcing dir contents is %d\n",
+	   "RS_DoForceDirOps: Owner just before forcing dir contents is %d",
 	   dirvptr->disk.owner);
     /* do the actual directory ops */
     {
@@ -309,9 +309,9 @@ long RS_DoForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
     }
 
     if (!errorCode) {
-	SLog(9, "RS_DoForceDirOps: Going to spool recoverable log record \n");
+	SLog(9, "RS_DoForceDirOps: Going to spool recoverable log record");
 	if ((errorCode = SpoolVMLogRecord(vlist, pv, volptr, &status->VV.StoreId, ResolveNULL_OP, 0))) 
-	    SLog(0, "RS_DoForceDirOps: Error %d during SpoolVMLogRecord\n", errorCode);
+	    SLog(0, "RS_DoForceDirOps: Error %d during SpoolVMLogRecord", errorCode);
     }
 	
   FreeLocks:
@@ -325,7 +325,7 @@ long RS_DoForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
 	delete forceList;
     }
     if (dirvptr) {
-	SLog(0, "RS_DoForceDirOps: Owner just before commiting is %d\n",
+	SLog(0, "RS_DoForceDirOps: Owner just before commiting is %d",
 	     dirvptr->disk.owner);
     }
     PutObjects(errorCode, volptr, NO_LOCK, vlist, deltablocks, 1);
