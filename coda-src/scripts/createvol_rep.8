@@ -39,39 +39,38 @@ createvol_rep - create read-write replicated volume
 .SH SYNOPSIS
 
 .Pp
-\fBcreatevol_rep\fP <volume-name> <vsgaddr> <partition-name> [rep group id]
+\fBcreatevol_rep\fP <volume-name> <server>[/<partition>] [<server>[/partition]]... [<volume-id>]
 .Pp
 .Pp
 .Pp
 .SH DESCRIPTION
 
 .Pp
-\fBcreatevol_rep\fP is a front end to \fIvolutil createvol_rep\fP and is used to create a Coda read/write replicated volume.
-The invoker must specify the volume name (\fI<volume-name>)\fP,
-the replication sites via a Volume Server Group address (\fI<vsgaddr>)\fP, 
-the partition on which the volume should be created (\fI<partition-name>)\fP,
-and an optional \fIGroup Id\fP\&.  
+\fBcreatevol_rep\fP is a front end to \fIvolutil create_rep\fP and is used to
+create a Coda read/write replicated volume. The invoker must specify the
+volume name (\fI<volume-name>)\fP, and the server(s) on which the
+volume should be created. (\fI<server>[/<partition>])\fP, the partition name
+is required when the server manages more than one data partition. Finally an
+replicated \fI<volume-id>\fP\& can be specified.
 .Pp
 \fBcreatevol_rep\fP first checks in  \fI/vice/vol/AllVolumes\fP and 
 \fI/vice/vol/VRList\fP to see if the volume name already exists.  If not, 
 it uses the \fIvolutil create_rep\fP command to create the volume at each of 
-the replication sites.  It then builds the Volume Location Data Base (VLDB)
+the replication sites.  It then rebuilds the Volume Location Data Base (VLDB)
 and the Volume Replication Data Base (VRDB).
 .Pp
-The replication sites are determined from the 
-\fI<vsgaddr>\fP and the \fI/vice/db/VSGDB\fP file.  
-The \fIRep Group Id\fP specifies the \&"replicated\&" volumeid of the volume 
-being created.  By default, the group id in \fI/vice/vol/maxgroupid\fP is 
-used.  Each time it is used it is also updated by adding 1 to it.
+The optional replicated \fI<volume-id>\fP specifies the \&"replicated\&"
+volumeid of the volume being created.  By default, the volume id in
+\fI/vice/vol/maxgroupid\fP is used.  Each time it is used it is also updated
+by adding 1 to it.
 .Pp
 After the replicas are created at each replication site, a new VLDB is built
 automatically using \fIbldvldb.sh\fP(8), and the Volume Replication
 List in \fI/vice/vol/VRList\fP is updated.  The VRList contains one line for 
 each replicated volume.  Each line specifies the replicated volume name, 
-group id, number of replication sites, 
-local volume id at each replication site and
-the VSG address.  This file is now used to create a new Volume Replication 
-Data Base (VRDB) using the \fI\&"volutil makevrdb /vice/vol/VRList\&"\fP command.
+replicated volume id, number of replication sites, and the local volume id at
+each replication site.  This file is now used to create a new Volume
+Replication Data Base (VRDB) using the \fI\&"volutil makevrdb /vice/vol/VRList\&"\fP command.
 .Pp
 .Pp
 .SH EXAMPLES
@@ -82,26 +81,24 @@ To create a replicated volume \&"coda.rep\&" on 3 sites foo, bar and  gorp use:
 .nr ll +1
 .nr t\n(ll 2
 .if \n(ll>1 .RS
-.IP "\fBcreatevol_rep coda.rep E0000107 /vicapa\fP"
+.IP "\fBcreatevol_rep coda.rep foo bar gorp\fP"
 .nr bi 1
 .Pp
 .if \n(ll>1 .RE
 .nr ll -1
 .Pp
-where \fI/vice/db/VSGDB\fP has an entry \&"E0000107 foo bar gorp\&" in it.  
-.Pp
-To assign a predetermined Group Id, use
+To assign a predetermined replicated volume id, use
 .Pp
 .nr ll +1
 .nr t\n(ll 2
 .if \n(ll>1 .RS
-.IP "\fBcreatevol_rep coda.rep E0000107 /vicepa 7F000003\fP"
+.IP "\fBcreatevol_rep coda.rep foo bar gorp 7F000003\fP"
 .nr bi 1
 .Pp
 .if \n(ll>1 .RE
 .nr ll -1
 .Pp
-where \&"7F000003\&" is the Group Id.
+where \&"7F000003\&" is the replicated volume id.
 .Pp
 .Pp
 .Pp
@@ -155,17 +152,6 @@ is used to describe the replicated volumes in terms of its non-replicated member
 .nr ll +1
 .nr t\n(ll 2
 .if \n(ll>1 .RS
-.IP "\fI/vice/db/VSGDB\fP"
-.nr bi 1
-.Pp
-is used to translate the VSG address to replication sites
-.Pp
-.if \n(ll>1 .RE
-.nr ll -1
-
-.nr ll +1
-.nr t\n(ll 2
-.if \n(ll>1 .RS
 .IP "\fI/vice/vol/AllVolumes\fP"
 .nr bi 1
 .Pp
@@ -180,7 +166,7 @@ is used to check if volume exists
 .IP "\fI/vice/vol/maxgroupid\fP"
 .nr bi 1
 .Pp
-is used to assign a group id to the replicated volume
+is used to assign a volume id to the replicated volume
 .Pp
 .if \n(ll>1 .RE
 .nr ll -1
@@ -190,7 +176,7 @@ is used to assign a group id to the replicated volume
 .SH SEE ALSO
 
 .Pp
-bldvldb.sh (8), volutil (8), createvol (8)
+bldvldb.sh (8), volutil (8)
 .Pp
 .Pp
 .Pp
@@ -198,11 +184,4 @@ bldvldb.sh (8), volutil (8), createvol (8)
 
 .Pp
 Puneet Kumar, 1990, Created
-.Pp
-.Pp
-.Pp
-.Pp
-.Pp
-.Pp
-.Pp
 .Pp
