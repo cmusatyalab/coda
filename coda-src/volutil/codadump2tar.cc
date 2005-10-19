@@ -219,7 +219,8 @@ int main(int argc, char **argv)
   if (DEBUG_HEAVY) PrintVolumeDiskData(stderr, &ThisVDD);
   if (DEBUG_HEAVY) fprintf(stderr, "\n\n");
 
-  RootName = ThisVDD.name;
+  if (!RootName)
+    RootName = ThisVDD.name;
 
   /* Initialize the directory package */
   DIR_Init(DIR_DATA_IN_VM);
