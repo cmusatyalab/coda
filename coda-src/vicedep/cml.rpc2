@@ -53,8 +53,8 @@ typedef RPC2_Enum
 		 IN ViceStoreId StoreId);
 
 2: CML_Remove	(IN ViceFid Did,
-		 IN RPC2_String Name,
 		 IN ViceVersionVector pVV,
+		 IN RPC2_String Name,
 		 IN ViceVersionVector VV,
 		 IN ViceStoreId StoreId);
 
