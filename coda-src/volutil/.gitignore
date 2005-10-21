@@ -1,7 +1,5 @@
-Makefile
-chdrinstall
-*.d
 backup
+codadump2tar
 merge
 parserecdump
 readdump

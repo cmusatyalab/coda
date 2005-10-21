@@ -1,8 +1,5 @@
-Makefile
-chdrinstall
-*.d
-y.tab.h
 resolver_lexer.c
 resolver_parser.c
 resolver_parser.h
+y.tab.h
 parser

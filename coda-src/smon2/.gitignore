@@ -1,5 +1,4 @@
-Makefile
-*.d
 getvolinfo
 rpc2ping
+rvmsizer
 smon2

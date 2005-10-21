@@ -1,11 +1,6 @@
-Makefile
-chdrinstall
-rp2hdrinstall
-*.d
-auth2.h
-auth2.*.c
 au
 auth2
+auth2.h
 clog
 cpasswd
 ctokens

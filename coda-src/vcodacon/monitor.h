@@ -1,4 +1,4 @@
-/* 	$Id$	*/
+/* 	$Id: monitor.h,v 1.3 2005/09/09 22:02:24 phil Exp $	*/
 
 /* BLURB gpl
  

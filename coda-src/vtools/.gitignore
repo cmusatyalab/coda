@@ -1,5 +1,3 @@
-Makefile
-*.d
 cfs
 cmon
 coda_replay

@@ -1,8 +1,4 @@
-Makefile
-rp2hdrinstall
-*.d
+update.h
 updateclnt
 updatefetch
 updatesrv
-update.h
-update.*.c
