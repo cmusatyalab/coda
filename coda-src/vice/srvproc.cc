@@ -2279,7 +2279,7 @@ static void CopyOnWrite(Vnode *vptr, Volume *volptr)
 
 int SystemUser(ClientEntry *client)
 {
-    return AL_IsAMember(SystemId, client->CPS);
+    return client && AL_IsAMember(SystemId, client->CPS);
 }
 
 
@@ -2711,6 +2711,13 @@ int CheckSetAttrSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
 
     /* Integrity checks. */
     {
+	/* chmod should not be allowed on symlinks, in fact it shouldn't even
+	 * be possible since the kernel will have already followed the link
+	 * in chmod or fchmod. Still, it is better not to assume the client
+	 * does the right thing. --JH */
+	if (chmodp && (*vptr)->disk.type == vSymlink)
+	    return EACCES;
+
 	if (truncp) { 
 	    if ((*vptr)->disk.type != vFile) {
 		SLog(0, "CheckSetAttrSemantics: non-file truncate %s",
@@ -3436,6 +3443,18 @@ static int Check_RR_Semantics(ClientEntry *client, Vnode **dirvptr, Vnode **vptr
 	    SLog(0, "%s: rights violation (%x : %x) %s", 
 		 ProcName, *rights, *anyrights, FID_(&Did));
 	    return(EACCES);
+	}
+
+	/* Only System:Administrators are allowed to remove the magic symlinks
+	 * we use for mountpoints (mode 0644 instead of 0777). We only test the
+	 * user execute bit because we used to create symlinks with the
+	 * modebits set to 0755. If we are too strict people won't be able to
+	 * remove those symlinks. */
+	if ((*vptr)->disk.type == vSymlink &&
+	    ((*vptr)->disk.modeBits & S_IXUSR) == 0 &&
+	    !SystemUser(client))
+	{
+	    return EACCES;
 	}
     }
 
@@ -4244,7 +4263,11 @@ static int Perform_CLMS(ClientEntry *client, VolumeId VSGVolnum,
 	    /* If resolving, inherit from the parent */
 	    vptr->disk.author = client ? client->Id : dirvptr->disk.author;
 	    vptr->disk.owner = client ? client->Id : dirvptr->disk.owner;
-	    vptr->disk.modeBits = Mode;
+
+	    /* Symlinks should have their modebits set to 0777, except for
+	     * special mountlinks which can only be created by members of
+	     * system:administrators */
+	    vptr->disk.modeBits = SystemUser(client) ? Mode : 0777;
 	    vptr->disk.vparent = Did.Vnode;
 	    vptr->disk.uparent = Did.Unique;
 	    vptr->disk.dataVersion = 1;

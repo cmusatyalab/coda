@@ -212,7 +212,7 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
 			 * In fact Coda stores mount-links as symlinks on the
 			 * server. The only visible differences are that the
 			 * mount-link has a Unix modemask of 0644, while a
-			 * symlink has 0755. And a mountpoint's contents always
+			 * symlink has 0777. A mountpoint's contents always
 			 * start with '#', '@' (or '%'?)
 			 *
 			 * This code is almost identical to vproc::symlink in

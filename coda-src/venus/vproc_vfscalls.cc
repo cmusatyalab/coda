@@ -1275,7 +1275,7 @@ void vproc::symlink(struct venus_cnode *dcp, char *contents,
 	/* Do the operation. */
 	parent_fso->PromoteLock();
 	u.u_error = parent_fso->Symlink(contents, name, u.u_uid,
-					0755, FSDB->StdPri());
+					0777, FSDB->StdPri());
 	if (u.u_error) goto FreeLocks;
 
 	/* Set vattr fields? */
