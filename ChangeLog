@@ -1,3 +1,77 @@
+2005-10-21	<jaharkes@cs.cmu.edu>
+	* ======== Release 6.0.13 =========
+	* Only allow members of the System Administrators group to create
+	  or remove mountlinks.
+	* Reintegrated remove operations were packed incorrectly and would
+	  trigger spurious conflicts.
+	* Allow overriding the path-prefix in codadump2tar with an -rn
+	  <prefix> argument. The prefix normally defaults to the name of the
+	  backup volume.
+
+2005-09-21	<jaharkes@cs.cmu.edu>
+	* ======== Release 6.0.12 =========
+	* Allow access to cached realms when starting disconnected.
+	* Allow getacl to work while write-disconnected (for unmodified
+	  directories).
+	* Drop last remains of the writeback code, this breaks network
+	  compatibility with clients and servers older than Coda-6.0.7.
+	* Do not cache inode number information of container files in RVM.
+	  This allows backup/restore of venus.cache and associated RVM data
+	  when venus is not running.
+	* Make sure reintegration will always try to make some progress even
+	  when the estimated bandwidth is so low that no entries are
+	  considered eligible.
+	* Fixed RPC2 connection entry leaks.
+	* Avoid closing a random filedescriptor when open fails.
+	* Avoid a crash in open when locally generated objects are reclaimed
+	  as a result of cache pressure.
+	* Avoid crash when updating cached status for an object and not all
+	  the data is available yet.
+	* Added vcodacon, fltk-based codacon implementation. (Phil Nelson) 
+	* Added CML size in bytes to 'cfs lv' output.
+	* Make sure the servers do not report a conflict for objects when the
+	  parent of those objects is marked as a conflict.
+	* gcc-4.0 and 64-bit related cleanups. (many from Brett Lymn)
+	  (Not yet enough to make Coda actually work correctly on a 64-bit CPU)
+
+2005-06-07	<jaharkes@cs.cmu.edu>
+	* ======== Release 6.0.11 =========
+	* Fixed kernel device check in venus-setup. (Maurice van der Pot)
+	* libc5 compilation fixes. (Dan Fandrich)
+	* Reintegration of 'mkdir bar; chown foo bar' was incorrectly
+	  considered as a conflicting update.
+	* Fix iterators to make sure we keep objects pinned down with a
+	  refcount to prevent them from being pulled out when we yield (make
+	  an RPC2 call) during the iteration.
+	* Send error messages from the backup scripts to root@localhost
+	  instead of the current (/dev/null-ed) addresses in the Coda domain.
+
+2005-04-28	<jaharkes@cs.cmu.edu>
+	* ======== Release 6.0.10 =========
+	* Fix file resolution bug that was introduced in the 6.0.9 release.
+
+2005-04-27	<jaharkes@cs.cmu.edu>
+	* ======== Release 6.0.9 =========
+	* Darwin patches from Stephen Turnbull.
+	* heimdal patches for the krb5 support code (Tom Ivar Helbekkmo)
+	* fixes some compile errors that resulted from the lwp.h cleanups.
+	* allow codadump2tar to deal with long volume names in dump files.
+	* rvmsizer now separately shows RVM used for directory contents.
+	* cunlog now uses the default realm in venus.conf if it wasn't
+	  specified.
+	* Avoid permission denied errors when an authenticated user revokes
+	  his tokens or when they expire.
+	* configure should now be able to find libresolv on Darwin.
+	* Added udev support to venus-setup along with some other cleanups.
+	* avoid a crash when running cfs fr during reintegration.
+	* split --with-crypto into individual --with-openssl/krb4/krb5
+	  options.
+	* added '-port' option to updatesrv to force it to bind to a specific
+	  port.
+	* Returning 1 as the directory link count so that the find -noleaf
+	  option is no longer necessary.
+	* Added a pretty much all of the old manpages that I could find.
+
 2005-03-03	<jaharkes@cs.cmu.edu>
 	* codadump2tar and volutil restore no longer break when a volume
 	  name is longer than 31 characters (names will be truncated
