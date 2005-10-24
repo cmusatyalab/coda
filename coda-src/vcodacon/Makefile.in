@@ -44,11 +44,19 @@ LIBS := @GUILIBS@ $(LIBBASE)
 
 OBJS = vcodacon.o Inet.o monitor.o util.o 
 
+ifdef VCODACON
 vcodacon: ${OBJS} $(DEPLIBS)
 	$(CXX) $(LDFLAGS) ${OBJS} $(LIBS) -o vcodacon
 
 vcodacon.cc vcodacon.h: vcodacon.fl 
 	fluid -c $(srcdir)/vcodacon.fl
+else
+vcodacon:
+	-echo "#!/bin/sh" > vcodacon
+	-echo "echo fltk libraries not found during build." >> vcodacon
+	-chmod 755 vcodacon
+	touch vcodacon
+endif
 
 EXTRACLEAN = vcodacon.cc vcodacon.h
 

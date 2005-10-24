@@ -54,6 +54,8 @@ LIBKRB5=     @LIBKRB5@
 LIBTERMCAP=  @LIBTERMCAP@
 LIBLWP=      @LIBLWP@ @LIBPTHREAD@
 
+VCODACON=    @VCODACON@
+
 # shortsys is derived in configs/codaconf.m4
 SYS = @shortsys@
 
