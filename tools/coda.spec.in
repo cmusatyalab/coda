@@ -47,7 +47,7 @@ well as the volume utilities.
 Summary: Coda graphical console
 Group: Networking/Daemons
 Requires: @CODA@-client
-%description Coda console
+%description vcodacon
 This package contains vcodacon, a graphical console for the Coda file
 system client.
 
