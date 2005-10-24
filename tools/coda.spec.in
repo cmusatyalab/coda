@@ -1,6 +1,6 @@
 %define version @VERSION@
 %define debug @DEBUG@
-Summary: Coda distributed filesystem
+Summary: Coda distributed file system
 Name: @CODA@
 Version: %{version}
 Release: @REL@
@@ -10,7 +10,7 @@ BuildRoot: %{_builddir}/coda-build
 #BuildRequires: lwp-devel >= 2.0, ncurses-devel, rpc2-devel, rvm-devel, libtermcap-devel
 Group: Networking/Daemons
 %description
-Source package for the Coda filesystem.  Three packages are provided by
+Source package for the Coda file system.  Three packages are provided by
 this rpm: the client and server and the backup components. Separately
 you must install a kernel module, or have a Coda enabled kernel, and 
 you should get the Coda documentation package.
@@ -33,15 +33,23 @@ Summary: Coda server
 Group: Networking/Daemons
 Requires: rvm-tools
 %description server
-This package contains the fileserver codasrv for the coda filesystem,
-as well as the volume utilities.
+This package contains the fileserver for the Coda file system, as well
+as the volume utilities.
 
 %package backup
 Summary: Coda backup coordinator
 Group: Networking/Daemons
 %description backup
-This package contains the backup software for the coda filesystem, as
+This package contains the backup software for the Coda file system, as
 well as the volume utilities.
+
+%package vcodacon
+Summary: Coda graphical console
+Group: Networking/Daemons
+Requires: @CODA@-client
+%description Coda console
+This package contains vcodacon, a graphical console for the Coda file
+system client.
 
 %changelog
 * Sun Jan 19 2003 Rafael Jesus Alcantara Perez <rafa@dedalo.ws>
@@ -185,7 +193,6 @@ exit 0
 /usr/bin/repair
 /usr/bin/coda_replay
 /usr/bin/spy
-/usr/bin/vcodacon
 /usr/bin/xaskuser
 /usr/bin/xfrepair
 /usr/share/man/man1/au.1.gz
@@ -281,3 +288,5 @@ exit 0
 /usr/share/man/man8/merge.8.gz
 /usr/share/man/man8/readdump.8.gz
 
+%files vcodacon
+/usr/bin/vcodacon

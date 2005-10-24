@@ -53,3 +53,15 @@ Description: Backup client for the Coda distributed filesystem
  .
  For more information see http://www.coda.cs.cmu.edu/
 
+Package: coda-vcodacon
+Architecture: arm i386 m68k powerpc sparc
+Depends: coda-client, ${shlibs:Depends}
+Description: Graphical console for the Coda distributed filesystem client
+ Coda is an advanced distributed filesystem. It has been developed at CMU
+ by the systems group of M. Satyanarayanan in the SCS department.
+ .
+ This package provides vcodacon, a graphical console to monitor the activity
+ of the Coda client.
+ .
+ For more information see http://www.coda.cs.cmu.edu/
+
