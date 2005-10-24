@@ -7,6 +7,9 @@
 	* Allow overriding the path-prefix in codadump2tar with an -rn
 	  <prefix> argument. The prefix normally defaults to the name of the
 	  backup volume.
+	* Do not use red zone/yellow zone slowdown if we are disconnected.
+	  We really only need to wait for background reintegration when we
+	  are write-disconnected.
 
 2005-09-21	<jaharkes@cs.cmu.edu>
 	* ======== Release 6.0.12 =========
