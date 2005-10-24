@@ -3,6 +3,7 @@ CVS
 Makefile
 Makeconf.setup
 autom4te.cache
+chdrinstall
 coda_config.h
 config.h
 config.h.in
@@ -10,10 +11,13 @@ config.log
 config.status
 configure
 include
-*.[ado]
-chdrinstall
 rp2hdrinstall
+tags
+*.[ado]
 *.client.c
 *.multi.c
 *.print.c
 *.server.c
+*.orig
+*.swp
+*~
