@@ -1,5 +1,10 @@
+2005-10-28	<jaharkes@cs.cmu.edu>
+	* ======== Release 6.0.14 =========
+	* Different, more backward compatible fix for the incorrectly
+	  packed CML remove operations.
+
 2005-10-21	<jaharkes@cs.cmu.edu>
-	* ======== Release 6.0.13 =========
+	* ======== Release 6.0.13 (dontuse) =========
 	* Only allow members of the System Administrators group to create
 	  or remove mountlinks.
 	* Reintegrated remove operations were packed incorrectly and would
