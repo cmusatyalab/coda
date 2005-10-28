@@ -907,6 +907,18 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 		}
 		break;
 
+	    case CML_BrokenRemove_OP:
+		RLE_Unpack(&_ptr, _end, CML_BrokenRemove_PTR, &r->Fid[0],
+			   &r->VV[0], OldName, &r->VV[1], &r->sid);
+
+		memset(&r->VV[0], 0, sizeof(ViceVersionVector));
+		r->Name[0] = strdup(OldName);
+		if (!r->Name[0]) {
+		    errorCode = ENOMEM;
+		    goto Exit;
+		}
+		break;
+
 	    case CML_Remove_OP:
 		RLE_Unpack(&_ptr, _end, CML_Remove_PTR, &r->Fid[0],
 			   &r->VV[0], OldName, &r->VV[1], &r->sid);

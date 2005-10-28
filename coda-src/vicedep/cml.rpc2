@@ -52,9 +52,9 @@ typedef RPC2_Enum
 		 IN ViceFid Fid,
 		 IN ViceStoreId StoreId);
 
-2: CML_Remove	(IN ViceFid Did,
-		 IN ViceVersionVector pVV,
-		 IN RPC2_String Name,
+2: CML_BrokenRemove (IN ViceFid Did,
+		 IN RPC2_String pVV,
+		 IN ViceVersionVector Name,
 		 IN ViceVersionVector VV,
 		 IN ViceStoreId StoreId);
 
@@ -195,6 +195,12 @@ typedef RPC2_Enum
 		 IN UserId Owner, 
 		 IN RPC2_Unsigned Mode,
 		 IN ViceStoreId StoreId);
+
+21: CML_Remove (IN ViceFid Did,
+		IN ViceVersionVector pVV,
+		IN RPC2_String Name,
+		IN ViceVersionVector VV,
+		IN ViceStoreId StoreId);
 
 33: OLDCML_Repair(IN ViceFid Fid,
 		  IN OUT ViceStatus status, 
