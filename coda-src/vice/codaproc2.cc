@@ -917,6 +917,7 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 		    errorCode = ENOMEM;
 		    goto Exit;
 		}
+                r->opcode = CML_Remove_OP;
 		break;
 
 	    case CML_Remove_OP:
