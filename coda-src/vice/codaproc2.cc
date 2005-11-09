@@ -1563,11 +1563,14 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 			{
 			    int opcode = (parent_v->d_needsres)
 				? ResolveViceCreate_OP : RES_Create_OP;
-			    if ((errorCode = SpoolVMLogRecord(vlist, parent_v, volptr, 
-							     &r->sid, opcode, 
-							     r->Name[0], 
-							     r->Fid[1].Vnode,
-							     r->Fid[1].Unique))) {
+			    UserId owner = child_v->vptr->disk.owner;
+			    errorCode = SpoolVMLogRecord(vlist, parent_v,
+							 volptr, &r->sid,
+							 opcode, r->Name[0], 
+							 r->Fid[1].Vnode,
+							 r->Fid[1].Unique,
+							 owner);
+			    if (errorCode) {
 				SLog(0, "Reint(CSAP): Error %d during spooling log record for create\n",
 				       errorCode);
 				goto Exit;
@@ -1847,28 +1850,25 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 			int p_opcode = (parent_v->d_needsres)
 			  ? ResolveViceMakeDir_OP : RES_MakeDir_OP;
 			int c_opcode = RES_MakeDir_OP;
-			if (!errorCode) {
-			    if ((errorCode = SpoolVMLogRecord(vlist, parent_v, volptr, 
-							     &r->sid, p_opcode, 
-							     r->Name[0],
-							     r->Fid[1].Vnode,
-							     r->Fid[1].Unique,
-							     r->u.u_mkdir.Owner))) {
-				SLog(0, "Reint: Error %d during SpoolVMLogRecord for parent in MakeDir_OP\n",
-				       errorCode);
+			UserId owner = child_v->vptr->disk.owner;
+			errorCode = SpoolVMLogRecord(vlist, parent_v, volptr,
+						     &r->sid, p_opcode,
+						     r->Name[0],
+						     r->Fid[1].Vnode,
+						     r->Fid[1].Unique,
+						     owner);
+			if (errorCode) {
+				SLog(0, "Reint: Error %d during SpoolVMLogRecord for parent in MakeDir_OP\n", errorCode);
 				goto Exit;
-			    }
-			    if ((errorCode = SpoolVMLogRecord(vlist, child_v, 
-							     volptr, &r->sid, 
-							     c_opcode, ".", 
-							     r->Fid[1].Vnode,
-							     r->Fid[1].Unique,
-							     r->u.u_mkdir.Owner))) {
-				SLog(0, 
-				       "Reint:  error %d during SpoolVMLogRecord for child in MakeDir_OP\n",
-				       errorCode);
+			}
+			errorCode = SpoolVMLogRecord(vlist, child_v, volptr,
+						     &r->sid, c_opcode, ".", 
+						     r->Fid[1].Vnode,
+						     r->Fid[1].Unique,
+						     owner);
+			if (errorCode) {
+				SLog(0, "Reint:  error %d during SpoolVMLogRecord for child in MakeDir_OP\n", errorCode);
 				goto Exit;
-			    }
 			}
 		    }
 		    *blocks += deltablocks;
@@ -1986,14 +1986,15 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    {
 			int opcode = (parent_v->d_needsres)
 			  ? ResolveViceSymLink_OP : RES_SymLink_OP;
-			if ((errorCode = SpoolVMLogRecord(vlist, parent_v, 
-							 volptr, &r->sid,
-							 opcode, r->Name[0],
-							 r->Fid[1].Vnode,
-							 r->Fid[1].Unique))) {
-			    SLog(0, 
-				   "Reint: Error %d during spool log record for ViceSymLink\n",
-				   errorCode);
+			UserId owner = child_v->vptr->disk.owner;
+			errorCode = SpoolVMLogRecord(vlist, parent_v, volptr,
+						     &r->sid, opcode,
+						     r->Name[0],
+						     r->Fid[1].Vnode,
+						     r->Fid[1].Unique,
+						     owner);
+			if (errorCode) {
+			    SLog(0, "Reint: Error %d during spool log record for ViceSymLink\n", errorCode);
 			    goto Exit;
 			}
 		    }
