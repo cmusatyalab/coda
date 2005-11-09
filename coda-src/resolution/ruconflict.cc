@@ -39,6 +39,7 @@ extern "C" {
 #include "rsle.h"
 #include "ruconflict.h"
 #include "parselog.h"
+#include "rescoord.h"
 
 // ************* Private Routines ***********
 static ViceVersionVector *FindDeletedFileVV(olist *, unsigned long, 
@@ -110,21 +111,32 @@ int FileRUConf(rsle *r, Vnode *vptr) {
 
 int FileRUConf(ViceVersionVector *DeletedVV, Vnode *vptr)
 {
-    if (!DeletedVV) return(1);	
-    if (!vptr) return(0);
+    ViceVersionVector *VVs[2];
+
+    if (!DeletedVV) return 1;	
+    if (!vptr) return 0;
+
+    VVs[0] = DeletedVV;
+    VVs[1] = &Vnode_vv(vptr);
+    if (IsWeaklyEqual(VVs, 2)) {
+	LogMsg(5, SrvDebugLevel, stdout,  
+	       "FileRUConflict: no R/U conflict, weak equality for %x.%x",
+	       vptr->vnodeNumber, vptr->disk.uniquifier);
+	return 0;
+    }
 
     VV_Cmp_Result res = VV_Cmp(&Vnode_vv(vptr), DeletedVV);
     if (res == VV_EQ || res == VV_SUB) {
 	LogMsg(9, SrvDebugLevel, stdout,  
-	       "FileRUConflict: no R/U conflict for 0x%x.%x",
+	       "FileRUConflict: no R/U conflict for %x.%x",
 	       vptr->vnodeNumber, vptr->disk.uniquifier);
-	return(0);
+	return 0;
     }
     else {
-	LogMsg(9, SrvDebugLevel, stdout,
+	LogMsg(0, SrvDebugLevel, stdout,
 	       "FileRUConflict: R/U conflict for %x.%x",
 	       vptr->vnodeNumber, vptr->disk.uniquifier);
-	return(1);
+	return 1;
     }
 }
 
