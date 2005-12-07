@@ -1,7 +1,5 @@
-Makefile
-Makefile.in
 pkg-bsd.sh
-rvm.spec
-rvm-nt.spec
 rvm-dos.spec
+rvm-nt.spec
 rvm-win95.spec
+rvm.spec

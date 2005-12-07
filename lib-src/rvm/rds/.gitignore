@@ -1,8 +1,1 @@
-Makefile
-Makefile.in
-librds.la
-librdslwp.la
 rdsinit
-*.lo
-.deps
-.libs
