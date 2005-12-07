@@ -1,12 +1,5 @@
-Makefile
-Makefile.in
 cswitch
-liblwp.la
-testlwp
-testlwp-static
-process.s
 rw
 tdb
-*.lo
-.deps
-.libs
+testlwp
+testlwp-static

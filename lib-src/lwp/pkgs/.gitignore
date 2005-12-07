@@ -1,7 +1,5 @@
-Makefile
-Makefile.in
-pkg-bsd.sh
-lwp.spec
-lwp-nt.spec
 lwp-dos.spec
+lwp-nt.spec
+lwp.spec
 lwp-win95.spec
+pkg-bsd.sh
