@@ -360,9 +360,6 @@ cmlent *ClientModifyLog::GetFatHead(int tid)
     cml_iterator next(*this, CommitOrder);
     unsigned long bw; /* bandwidth in bytes/sec */
 
-    if (!vol->ReadyToReintegrate())
-        return NULL;
-
     /* Get the first entry in the CML */
     m = next();
 
