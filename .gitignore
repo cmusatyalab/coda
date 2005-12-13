@@ -1,4 +1,5 @@
 .cvsignore
+.dotest
 CVS
 Makefile
 Makeconf.setup
