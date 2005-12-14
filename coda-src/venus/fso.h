@@ -607,33 +607,33 @@ class fsobj {
 
     /* Private portions of the CFS interface. */
     void LocalStore(Date_t, unsigned long);
-    int DisconnectedStore(Date_t, uid_t, unsigned long, int);
+    int DisconnectedStore(Date_t, uid_t, unsigned long, int tid=-1);
     void LocalSetAttr(Date_t, unsigned long, Date_t,
 		       uid_t, unsigned short);
     int DisconnectedSetAttr(Date_t, uid_t, unsigned long, Date_t,
-			     uid_t, unsigned short, int);
+			     uid_t, unsigned short, int tid=-1);
     int ConnectedSetAcl(uid_t, RPC2_CountedBS *);
     void LocalCreate(Date_t, fsobj *, char *,
 		      uid_t, unsigned short);
     int DisconnectedCreate(Date_t, uid_t, fsobj **,
-			    char *, unsigned short, int, int);
+			    char *, unsigned short, int, int tid=-1);
     void LocalRemove(Date_t, char *, fsobj *);
-    int DisconnectedRemove(Date_t, uid_t, char *, fsobj *, int);
+    int DisconnectedRemove(Date_t, uid_t, char *, fsobj *, int tid=-1);
     void LocalLink(Date_t, char *, fsobj *);
-    int DisconnectedLink(Date_t, uid_t, char *, fsobj *, int);
+    int DisconnectedLink(Date_t, uid_t, char *, fsobj *, int tid=-1);
     void LocalRename(Date_t, fsobj *, char *,
 		      fsobj *, char *, fsobj *);
     int DisconnectedRename(Date_t, uid_t, fsobj *,
-			    char *, fsobj *, char *, fsobj *, int);
+			    char *, fsobj *, char *, fsobj *, int tid=-1);
     void LocalMkdir(Date_t, fsobj *, char *, uid_t, unsigned short);
     int DisconnectedMkdir(Date_t, uid_t, fsobj **,
-			   char *, unsigned short, int, int);
+			   char *, unsigned short, int, int tid=-1);
     void LocalRmdir(Date_t, char *, fsobj *);
-    int DisconnectedRmdir(Date_t, uid_t, char *, fsobj *, int);
+    int DisconnectedRmdir(Date_t, uid_t, char *, fsobj *, int tid=-1);
     void LocalSymlink(Date_t, fsobj *, char *,
 		       char *, uid_t, unsigned short);
     int DisconnectedSymlink(Date_t, uid_t, fsobj **, char *,
-			     char *, unsigned short, int, int);
+			     char *, unsigned short, int, int tid=-1);
     int GetContainerFD(void);
     int LookAside(void);
 
@@ -710,7 +710,6 @@ class fsobj {
     void ListCacheLong(FILE *);
 
     /* local-repair additions */
-    void GetOperationState(int *tid);				/*N*/
     cmlent *FinalCmlent(int);                                   /*N*/
     void SetComp(char *);                                       /*U*/
     const char *GetComp(void);

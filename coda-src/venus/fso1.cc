@@ -2907,13 +2907,3 @@ fsobj *fso_iterator::operator()() {
     }
 }
 
-void fsobj::GetOperationState(int *tid)
-{
-    if (EMULATING(this)) {
-	*tid = -1;
-	return;
-    }
-
-    OBJ_ASSERT(this, LOGGING(this));
-    *tid = -1;
-}

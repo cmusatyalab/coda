@@ -125,10 +125,7 @@ int fsobj::Remove(char *name, fsobj *target_fso, uid_t uid)
     int code = 0;
     Date_t Mtime = Vtime();
 
-    int tid;
-    GetOperationState(&tid);
-
-    code = DisconnectedRemove(Mtime, uid, name, target_fso, tid);
+    code = DisconnectedRemove(Mtime, uid, name, target_fso);
 
     if (code != 0) {
 	Demote();
@@ -200,10 +197,7 @@ int fsobj::Link(char *name, fsobj *source_fso, uid_t uid)
     int code = 0;
     Date_t Mtime = Vtime();
 
-    int tid;
-    GetOperationState(&tid);
-
-    code = DisconnectedLink(Mtime, uid, name, source_fso, tid);
+    code = DisconnectedLink(Mtime, uid, name, source_fso);
 
     if (code != 0) {
 	Demote();
@@ -344,11 +338,8 @@ int fsobj::Rename(fsobj *s_parent_fso, char *s_name, fsobj *s_fso,
     if (SameParent) s_parent_fso = this;
     int TargetExists = (t_fso != 0);
 
-    int tid;
-    GetOperationState(&tid);
-
     code = DisconnectedRename(Mtime, uid, s_parent_fso, s_name, s_fso,
-			      t_name, t_fso, tid);
+			      t_name, t_fso);
 
     if (code != 0) {
 	Demote();
@@ -480,11 +471,8 @@ int fsobj::Mkdir(char *name, fsobj **target_fso_addr,
     Date_t Mtime = Vtime();
     *target_fso_addr = 0;
 
-    int tid;
-    GetOperationState(&tid);
-
     code = DisconnectedMkdir(Mtime, uid, target_fso_addr,
-			     name, Mode, target_pri, tid);
+			     name, Mode, target_pri);
 
     if (code != 0) {
 	Demote();
@@ -558,10 +546,7 @@ int fsobj::Rmdir(char *name, fsobj *target_fso, uid_t uid)
     int code = 0;
     Date_t Mtime = Vtime();
 
-    int tid;
-    GetOperationState(&tid);
-
-    code = DisconnectedRmdir(Mtime, uid, name, target_fso, tid);
+    code = DisconnectedRmdir(Mtime, uid, name, target_fso);
 
     if (code != 0) {
 	Demote();
@@ -694,11 +679,8 @@ int fsobj::Symlink(char *s_name, char *t_name, uid_t uid, unsigned short Mode,
     Date_t Mtime = Vtime();
     fsobj *target_fso = 0;
 
-    int tid;
-    GetOperationState(&tid);
-
     code = DisconnectedSymlink(Mtime, uid, &target_fso, t_name, s_name,
-			       Mode, target_pri, tid);
+			       Mode, target_pri);
 
     if (code == 0) {
 	/* Target is NOT an OUT parameter. */

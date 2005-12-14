@@ -1246,10 +1246,7 @@ int fsobj::Store(unsigned long NewLength, Date_t Mtime, uid_t uid)
 
     int code = 0;
 
-    int tid;
-    GetOperationState(&tid);
-
-    code = DisconnectedStore(Mtime, uid, NewLength, tid);
+    code = DisconnectedStore(Mtime, uid, NewLength);
 
     if (code != 0) {
 	Recov_BeginTrans();
@@ -1360,7 +1357,7 @@ int fsobj::SetAttr(struct coda_vattr *vap, uid_t uid)
 		Recov_BeginTrans();
 		data.file->Truncate((unsigned) NewLength);
 		Recov_EndTrans(MAXFP);
-		NewLength = VA_IGNORE_SIZE;
+		NewLength = (unsigned long)VA_IGNORE_SIZE;
 	}
 
 	/* Avoid performing action where possible. */
@@ -1373,11 +1370,8 @@ int fsobj::SetAttr(struct coda_vattr *vap, uid_t uid)
 	int code = 0;
 	Date_t Mtime = Vtime();
 
-	int tid;
-	GetOperationState(&tid);
-
 	code = DisconnectedSetAttr(Mtime, uid, NewLength, NewDate,
-				   NewOwner, NewMode, tid);
+				   NewOwner, NewMode);
 
 	if (code != 0) {
 		Demote();
@@ -1693,11 +1687,8 @@ int fsobj::Create(char *name, fsobj **target_fso_addr,
     Date_t Mtime = Vtime();
     *target_fso_addr = 0;
 
-    int tid;
-    GetOperationState(&tid);
-
     code = DisconnectedCreate(Mtime, uid, target_fso_addr,
-			      name, Mode, target_pri, tid);
+			      name, Mode, target_pri);
 
     if (code != 0) {
 	Demote();
