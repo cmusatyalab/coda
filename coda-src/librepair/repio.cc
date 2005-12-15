@@ -154,10 +154,6 @@ int repair_putdfile(char *fname, int replicaCount, struct listhdr *replicaList)
 
     fclose(file);
     return 0;
-
-err:
-    perror("repair_putdfile");
-    return -1;
 }
 
 int repair_getdfile(char *fname, int infd, int *replicaCount, struct listhdr **replicaList)
