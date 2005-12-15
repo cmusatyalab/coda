@@ -1160,7 +1160,7 @@ int fsobj::TryToCover(VenusFid *inc_fid, uid_t uid)
 	int n;
 	Realm *r = vol->realm;
 
-	n = sscanf(data.symlink, "%*c%lx.%lx.%lx@%c", &vid.Volume,
+	n = sscanf(data.symlink, "%*c%x.%x.%x@%c", &vid.Volume,
 		   &root_fid.Vnode, &root_fid.Unique, &tmp);
 	if (n < 3) {
 	  LOG(0,("fsobj::TryToCover: (%s) -> %s failed parse.\n",
