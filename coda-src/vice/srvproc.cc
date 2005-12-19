@@ -132,7 +132,6 @@ extern void HandleWeakEquality(Volume *, Vnode *, ViceVersionVector *);
 
 static int GrabFsObj(ViceFid *, Volume **, Vnode **, int, int, int);
 static int NormalVCmp(int, VnodeType, void *, void *);
-static int StoreVCmp(int, VnodeType, void *, void *);
 
 typedef enum { CLMS_Create, CLMS_Link, CLMS_MakeDir, CLMS_SymLink } CLMS_Op;
 static int Check_CLMS_Semantics(ClientEntry *, Vnode **, Vnode **, char *, Volume **,
@@ -876,29 +875,6 @@ static int NormalVCmp(int ReplicatedOp, VnodeType type, void *arg1, void *arg2) 
 
 	if (fva != fvb)
 	    errorCode = EINCOMPATIBLE;
-    }
-
-    return(errorCode);
-}
-
-
-/* Permits Strong or Weak Equality (replicated case). */
-/* Permits anything (non-replicated case). */
-static int StoreVCmp(int ReplicatedOp, VnodeType type, void *arg1, void *arg2) {
-    CODA_ASSERT(type == vFile);
-
-    int errorCode = 0;
-
-    if (ReplicatedOp) {
-	ViceVersionVector *vva = (ViceVersionVector *)arg1;
-	ViceVersionVector *vvb = (ViceVersionVector *)arg2;
-
-	if (!(vva->StoreId.Host == vvb->StoreId.Host &&
-	      vva->StoreId.Uniquifier == vvb->StoreId.Uniquifier))
-	    errorCode = EINCOMPATIBLE;
-    }
-    else {
-	/* No checks. */
     }
 
     return(errorCode);
