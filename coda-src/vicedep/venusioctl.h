@@ -71,8 +71,8 @@ extern "C" {
 
 /* PIOCTLS to Venus.  Apply these to path names with pioctl. */
 /* These need to be wrapped in _VICEIOCTL() to make a usable value */
-#define _VIOCSETAL		(1)	/* Get access control list */
-#define _VIOCGETAL		(2)	/* Set access control list */
+#define _VIOCSETAL		(1)	/* Set access control list */
+#define _VIOCGETAL		(2)	/* Get access control list */
 #define _VIOCSETTOK		(3)	/* Set authentication tokens */
 #define _VIOCGETVOLSTAT		(4)	/* Get volume status */
 #define _VIOCSETVOLSTAT		(5)	/* Set volume status */
