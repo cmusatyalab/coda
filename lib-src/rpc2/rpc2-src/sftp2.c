@@ -73,18 +73,7 @@ static void SFSendNAK(RPC2_PacketBuffer *pb);
 /* This function is not called by the sftp code itself */
 void SFTP_DispatchProcess(void)
 {
-    struct timeval tv;
-    int fd;
-
-    while ((fd = rpc2_MorePackets()) != -1)
-	rpc2_ProcessPackets(fd);
-
-    /* keep current time from being too inaccurate */
-    (void) FT_GetTimeOfDay(&tv, (struct timezone *) 0);
-
-    /* also check for timed-out events, using current time */
-    rpc2_ExpireEvents();
-    LWP_DispatchProcess();
+    RPC2_DispatchProcess();
 }
 
 void sftp_ExaminePacket(RPC2_PacketBuffer *pb)

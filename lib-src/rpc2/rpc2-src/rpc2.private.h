@@ -206,6 +206,10 @@ struct CEntry		/* describes a single RPC connection */
     long Retry_N;                       /* Number of retries for this connection. */
     struct timeval *Retry_Beta;         /* Retry parameters for this connection. */
     struct timeval SaveResponse;        /* 2*Beta0, lifetime of saved response packet. */
+    RPC2_RequestFilter Filter;		/* Set on the server during binding,
+					   filter incoming requests so that the
+					   SubsysID/Connection matches that of
+					   the handler we authenticated with */
     };
 
 
@@ -289,7 +293,8 @@ connection they are associated with.
 /* NOTE:  enum definitions  have to be non-anonymous: else a dbx bug is triggered */
 enum SL_Type {REPLY=1421, REQ=1422, OTHER=1423, DELACK=20010911};
 enum RetVal {WAITING=38358230, ARRIVED=38358231, TIMEOUT=38358232,
-	KEPTALIVE=38358233, KILLED=38358234, NAKED=38358235};
+	KEPTALIVE=38358233, KILLED=38358234, NAKED=38358235,
+	RPC2SEC_BIND_COMPLETED=38358236};
 
 /* data structure for communication with SocketListener */
 struct SL_Entry		
@@ -495,13 +500,14 @@ long rpc2_SetRetry(), rpc2_CancelRetry();
 void rpc2_ResetLowerLimit();
 void rpc2_UpdateRTT(RPC2_PacketBuffer *pb, struct CEntry *ceaddr);
 void rpc2_ResetObs();
-void rpc2_ProcessPackets(), rpc2_ExpireEvents();
+void rpc2_ExpireEvents();
 
 /* Connection manipulation routines  */
 int rpc2_InitConn(void);
 void rpc2_FreeConn(), rpc2_SetConnError();
 struct CEntry *rpc2_AllocConn();
 struct CEntry *rpc2_ConnFromBindInfo(struct RPC2_addrinfo *peeraddr,
+				     RPC2_Handle RemoteHandle,
 				     RPC2_Integer whichUnique);
 struct CEntry *__rpc2_GetConn(RPC2_Handle handle); /* doesn't bump lastref */
 struct CEntry *rpc2_GetConn(RPC2_Handle handle);
@@ -564,7 +570,9 @@ void rpc2_ApplyE(RPC2_PacketBuffer *pb, struct CEntry *ce);
 time_t rpc2_time();
 long rpc2_InitRetry(long HowManyRetries, struct timeval *Beta0);
 
-void rpc2_NoteBinding(struct RPC2_addrinfo *peeraddr, RPC2_Integer whichUnique, RPC2_Handle whichConn);
+void rpc2_NoteBinding(struct RPC2_addrinfo *peeraddr,
+		      RPC2_Handle RemoteHandle, RPC2_Integer whichUnique,
+		      RPC2_Handle whichConn);
 
 int mkcall(RPC2_HandleResult_func *ClientHandler, int ArgCount, int HowMany,
 	   RPC2_Handle ConnList[], long offset, long rpcval, int *args);

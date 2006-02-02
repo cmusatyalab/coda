@@ -232,6 +232,8 @@ struct CEntry *rpc2_AllocConn(struct RPC2_addrinfo *addr)
     ce->respsize = 0;
     ce->HostInfo = rpc2_GetHost(addr);
     assert(ce->HostInfo);
+    ce->Filter.FromWhom = ANY;
+    ce->Filter.OldOrNew = OLDORNEW;
 
     /* Then make it unique */
     Uniquefy(ce);
@@ -354,6 +356,7 @@ struct RecentBind
 {
     struct RPC2_addrinfo *addr;	/* Remote Host */
     RPC2_Integer Unique;	/* Uniquefier value in Init1 packet */
+    RPC2_Handle RemoteHandle;	/* Remote handle for this connection */
     RPC2_Handle MyConn;		/* Local handle allocated for this connection */
 };
 
@@ -367,7 +370,8 @@ static int RBCacheOn = 0;	/* 0 = RBCacheOff, 1 = RBCacheOn */
 
 /* Adds information about a new bind to the RBCache; throws out the
    oldest entry if needed */
-void rpc2_NoteBinding(struct RPC2_addrinfo *addr, RPC2_Integer whichUnique,
+void rpc2_NoteBinding(struct RPC2_addrinfo *addr,
+		      RPC2_Handle RemoteHandle, RPC2_Integer whichUnique,
 		      RPC2_Handle whichConn)
 {
     if (rpc2_ConnCount <= RBCACHE_THRESHOLD)
@@ -384,6 +388,7 @@ void rpc2_NoteBinding(struct RPC2_addrinfo *addr, RPC2_Integer whichUnique,
 
     RBCache[NextRB].addr = RPC2_copyaddrinfo(addr);
     RBCache[NextRB].Unique = whichUnique;
+    RBCache[NextRB].RemoteHandle = RemoteHandle;
     RBCache[NextRB].MyConn = whichConn;
     
     NextRB++;
@@ -400,7 +405,8 @@ void rpc2_NoteBinding(struct RPC2_addrinfo *addr, RPC2_Integer whichUnique,
    list.    */
 
 struct CEntry *
-rpc2_ConnFromBindInfo(struct RPC2_addrinfo *addr, RPC2_Integer whichUnique)
+rpc2_ConnFromBindInfo(struct RPC2_addrinfo *addr,
+		      RPC2_Handle RemoteHandle, RPC2_Integer whichUnique)
 {
     struct RecentBind *rbn;
     int next, count;
@@ -421,11 +427,17 @@ rpc2_ConnFromBindInfo(struct RPC2_addrinfo *addr, RPC2_Integer whichUnique)
 
 	    while (i < count) {
 		    rbn = &RBCache[next];
-		    /* do cheapest test first */
-		    if (rbn->Unique == whichUnique &&
-			RPC2_cmpaddrinfo(rbn->addr, addr)) {
-			    say(0, RPC2_DebugLevel, "RBCache hit after %d tries\n", i+1);
-			    return(rpc2_GetConn(rbn->MyConn));
+		    /* do cheapest tests first */
+		    if (rbn->RemoteHandle == RemoteHandle &&
+			rbn->Unique == whichUnique &&
+			RPC2_cmpaddrinfo(rbn->addr, addr))
+		    {
+			say(0, RPC2_DebugLevel, "RBCache hit after %d tries\n", i+1);
+			ce = rpc2_GetConn(rbn->MyConn);
+			/* can't test the state because OPENKIMONO connections
+			 * will already be in S_AWAITREQUEST state */
+			if (ce /* && TestState(ce, SERVER, S_STARTBIND) */)
+			    return ce;
 		    }
 
 	    /* Else bump counters and try previous one */
@@ -450,7 +462,10 @@ rpc2_ConnFromBindInfo(struct RPC2_addrinfo *addr, RPC2_Integer whichUnique)
 
 	j++; /* count # searched connections */
 
-	if (ce->PeerUnique == whichUnique && /* do cheapest test first */
+	/* do cheapest test first */
+	if (ce->PeerHandle == RemoteHandle &&
+	    ce->PeerUnique == whichUnique &&
+	    TestState(ce, SERVER, S_STARTBIND) &&
 	    RPC2_cmpaddrinfo(ce->HostInfo->Addr, addr))
 	{
 	    say(0, RPC2_DebugLevel,
