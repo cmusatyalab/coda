@@ -71,15 +71,13 @@ void rpc2_IncrementSeqNumber();
 static void DelayedAck(struct SL_Entry *sle);
 int XlateMcastPacket(RPC2_PacketBuffer *pb);
 void HandleInitMulticast();
-void rpc2_ProcessPackets(int fd);
-void rpc2_ExpireEvents();
+void rpc2_ExpireEvents(void);
 
-static RPC2_PacketBuffer *PullPacket(int fd), *ShrinkPacket();
+static RPC2_PacketBuffer *ShrinkPacket();
 static struct CEntry *MakeConn(), *FindOrNak();
 static struct SL_Entry *FindRecipient();
 static int BogusSl(), PacketCame(void);
-static void
-	    Tell(), HandleSLPacket(), DecodePacket(),
+static void HandleSLPacket(), DecodePacket(),
 	    HandleCurrentReply(),
 	    SendBusy(), HandleBusy(),
 	    HandleOldRequest(), HandleNewRequest(), HandleCurrentRequest(),
@@ -118,6 +116,126 @@ void SL_RegisterHandler(unsigned int pv, void (*handler)(RPC2_PacketBuffer *pb))
     nPacketHandlers++;
 }
 
+static int rpc2_CheckFDs(int (*select_func)(int n, fd_set *r, fd_set *w, fd_set *e, struct timeval *t), struct timeval *tvp)
+{
+    fd_set rmask;
+    int nfds;
+
+    FD_ZERO(&rmask);
+
+    if (rpc2_v4RequestSocket != -1)
+	FD_SET(rpc2_v4RequestSocket, &rmask);
+
+    if (rpc2_v6RequestSocket != -1)
+	FD_SET(rpc2_v6RequestSocket, &rmask);
+
+    nfds = rpc2_v4RequestSocket + 1;
+    if (rpc2_v6RequestSocket >= nfds)
+	nfds = rpc2_v6RequestSocket + 1;
+
+    if (select_func(nfds, &rmask, NULL, NULL, tvp) > 0) {
+	if (rpc2_v4RequestSocket != -1 && FD_ISSET(rpc2_v4RequestSocket,&rmask))
+	    return rpc2_v4RequestSocket;
+
+	if (rpc2_v6RequestSocket != -1 && FD_ISSET(rpc2_v6RequestSocket,&rmask))
+	    return rpc2_v6RequestSocket;
+    }
+    return(-1);
+}
+
+/* Also used by sftp3.c for ack supression */
+int rpc2_MorePackets(void)
+{
+    struct timeval tv = { 0, 0 };
+
+    /* This ioctl peeks into the socket's receive queue, and reports the amount
+     * of data ready to be read. Linux officially uses TIOCINQ, but it's an
+     * alias for FIONREAD, so this should work too. --JH */
+#if defined(FIONREAD)
+    int amount_ready = 0, rc, select_poll = 0;
+
+    if (rpc2_v4RequestSocket != -1) {
+	rc = ioctl(rpc2_v4RequestSocket, FIONREAD, &amount_ready);
+	if (rc == 0 && amount_ready != 0)
+	    return rpc2_v4RequestSocket;
+	if (rc == -1)
+	    select_poll = 1;
+    }
+    if (rpc2_v6RequestSocket != -1) {
+	rc = ioctl(rpc2_v6RequestSocket, FIONREAD, &amount_ready);
+	if (rc == 0 && amount_ready != 0)
+	    return rpc2_v6RequestSocket;
+	if (rc == -1)
+	    select_poll = 1;
+    }
+    if (!select_poll)
+	return -1;
+#endif
+    /* we use select instead of IOMGR_Select to avoid running other threads.
+     * This is acceptable since it will be a polling select (timeout 0)*/
+    return rpc2_CheckFDs(select, &tv);
+}
+
+/*  Await the earliest future event or a packet.
+    Returns active fd if packet came, -1 if earliest event expired */
+static int PacketCame(void)
+{
+    struct TM_Elem *t;
+
+    /* Obtain earliest event */
+    t = TM_GetEarliest(rpc2_TimerQueue);
+
+    /* Yield control */
+    say(999, RPC2_DebugLevel, "About to enter IOMGR_Select()\n");
+
+    return rpc2_CheckFDs(IOMGR_Select, t ? &t->TimeLeft : NULL);
+}
+
+static void rpc2_ProcessPacket(int fd)
+{
+    RPC2_PacketBuffer *pb = NULL;
+    unsigned int i, ProtoVersion;
+
+    /* We are guaranteed that there is a packet in the socket
+       buffer at this point */
+    RPC2_AllocBuffer(RPC2_MAXPACKETSIZE-sizeof(RPC2_PacketBuffer), &pb);
+    assert(pb != NULL);
+    assert(pb->Prefix.Qname == &rpc2_PBList);
+
+    if (rpc2_RecvPacket(fd, pb) < 0) {
+	say(9, RPC2_DebugLevel, "Recv error, ignoring.\n");
+	RPC2_FreeBuffer(&pb);
+	return;
+    }
+    assert(pb->Prefix.Qname == &rpc2_PBList);
+
+#ifdef RPC2DEBUG
+    if (RPC2_DebugLevel > 9) {
+	fprintf(rpc2_tracefile, "Packet received from   ");
+	rpc2_printaddrinfo(pb->Prefix.PeerAddr, rpc2_tracefile);
+	fprintf(rpc2_tracefile, "\n");
+    }
+#endif
+    assert(pb->Prefix.Qname == &rpc2_PBList);
+
+    if (pb->Prefix.LengthOfPacket < sizeof(struct RPC2_PacketHeader)) {
+	/* avoid memory reference errors */
+	BOGUS(pb, "Runt packet\n");
+	return;
+    }
+
+    ProtoVersion = ntohl(pb->Header.ProtoVersion);
+    for (i = 0; i < nPacketHandlers; i++) {
+	if (ProtoVersion == PacketHandlers[i].ProtoVersion) {
+	    PacketHandlers[i].Handler(pb);
+	    return;
+	}
+    }
+
+    /* we don't have a ghost of a chance */
+    BOGUS(pb, "Wrong version\n");
+}
+
 void rpc2_SocketListener(void *dummy)
 {
     int fd;
@@ -129,94 +247,56 @@ void rpc2_SocketListener(void *dummy)
        1. All packets in the socket buffer are processed before expiring events
        2. The number of select() system calls is kept to bare minimum
     */
-    while(TRUE) {
-	fd = rpc2_MorePackets();
+    while(1) {
+	/* block until we receive packets, or the next event timeout triggers */
+	fd = PacketCame();
 	if (fd == -1) {
-	    do {
-		rpc2_ExpireEvents();
-		fd = PacketCame();
-	    } while (fd == -1);
+	    /* some timeout elapsed, handle it and go back to waiting for the
+	     * next packet or timeout event */
+	    rpc2_ExpireEvents();
+	    continue;
 	}
-
-	rpc2_ProcessPackets(fd);
+	/* we received a packet, process any packets that have been queued
+	 * in the socket buffers */
+	do {
+	    rpc2_ProcessPacket(fd);
+	    fd = rpc2_MorePackets();
+	} while (fd != -1);
     }
 }
 
 void RPC2_DispatchProcess()
 {
-	struct timeval tv;
-	int fd;
+    struct timeval tv;
+    int fd;
 
-	while ((fd = rpc2_MorePackets()) != -1) {
-	    rpc2_ProcessPackets(fd);
-	}
+    while ((fd = rpc2_MorePackets()) != -1)
+	rpc2_ProcessPacket(fd);
 
-	/* keep current time from being too inaccurate */
-	(void) FT_GetTimeOfDay(&tv, (struct timezone *) 0);
+    /* keep current time from being too inaccurate */
+    (void) FT_GetTimeOfDay(&tv, (struct timezone *) 0);
 
-	/* also check for timed-out events, using current time */
-	rpc2_ExpireEvents();
+    /* also check for timed-out events, using current time */
+    rpc2_ExpireEvents();
 
-	LWP_DispatchProcess();
-	return; 
+    LWP_DispatchProcess();
 }
 
-
-void rpc2_ProcessPackets(int fd)
-{
-	RPC2_PacketBuffer *pb = NULL;
-        unsigned int i, ProtoVersion;
-	
-	/* We are guaranteed that there is a packet in the socket
-           buffer at this point */
-	pb = PullPacket(fd);
-	if (pb == NULL) 
-		return;
-	assert(pb->Prefix.Qname == &rpc2_PBList);
-
-        if (pb->Prefix.LengthOfPacket < sizeof(struct RPC2_PacketHeader)) {
-            /* avoid memory reference errors */
-            BOGUS(pb, "Runt packet\n");
-            return;
-        }
-
-        ProtoVersion = ntohl(pb->Header.ProtoVersion);
-        for (i = 0; i < nPacketHandlers; i++) {
-            if (ProtoVersion == PacketHandlers[i].ProtoVersion) {
-                PacketHandlers[i].Handler(pb);
-                return;
-            }
-        }
-
-        /* we don't have a ghost of a chance */
-        BOGUS(pb, "Wrong version\n");
-}
 
 void rpc2_HandlePacket(RPC2_PacketBuffer *pb)
 {
         struct CEntry *ce;
 	assert(pb->Prefix.Qname == &rpc2_PBList);
 
-	if (ntohl(pb->Header.Flags) & RPC2_MULTICAST) {
-	    rpc2_MRecvd.Total++;
-	    rpc2_MRecvd.Bytes += pb->Prefix.LengthOfPacket;
-	} else {
-	    rpc2_Recvd.Total++;
-	    rpc2_Recvd.Bytes += pb->Prefix.LengthOfPacket;
-	}
+	rpc2_Recvd.Total++;
+	rpc2_Recvd.Bytes += pb->Prefix.LengthOfPacket;
 
-	if ((ntohl(pb->Header.LocalHandle) == -1) || 
+	if ((ntohl(pb->Header.LocalHandle) == -1) ||
 	    (ntohl(pb->Header.Opcode) == RPC2_NAKED)) {
 		assert(pb->Prefix.Qname == &rpc2_PBList);
 		HandleSLPacket(pb);
 		return;
 	}
-
-	/* If the packet came in on the multicast channel, validate it
-	   and translate it onto the point-to-point channel. */
-	if (ntohl(pb->Header.Flags) & RPC2_MULTICAST)
-		if (! (XlateMcastPacket(pb)))
-			return;
 
 	if (ntohl(pb->Header.RemoteHandle) == 0)
 		ce = NULL;	/* Ought to be a new bind request */
@@ -230,8 +310,11 @@ void rpc2_HandlePacket(RPC2_PacketBuffer *pb)
 			rpc2_ApplyD(pb,  ce);
 	}
 
+#ifdef RPC2DEBUG
 	/* debugging */
-	Tell(pb, ce);
+	if (ce && RPC2_DebugLevel >= 10) 
+	    rpc2_PrintCEntry(ce, rpc2_tracefile);
+#endif
 	/*  pb is a good packet and ce is a good conn */
 	rpc2_ntohp(pb);
     
@@ -264,162 +347,16 @@ void rpc2_ExpireEvents()
 		sl = (struct SL_Entry *)t->BackPointer;
 		rpc2_DeactivateSle(sl, TIMEOUT);
 
-		if (sl->Type == REPLY) {
+		if (sl->Type == REPLY)
 		    FreeHeld(sl);
-		} else if (sl->Type == DELACK) {
+
+		else if (sl->Type == DELACK)
 		    DelayedAck(sl);
-		} else {
+
+		else
 		    LWP_NoYieldSignal((char *)sl);
-		}
 	}
 }
-
-
-int rpc2_MorePackets(void)
-{
-    struct timeval tv;
-    fd_set rmask;
-    int maxfd;
-
-    /* This ioctl peeks into the socket's receive queue, and reports the amount
-     * of data ready to be read. Linux officially uses TIOCINQ, but it's an alias
-     * for FIONREAD, so this should work too. --JH */
-#if defined(FIONREAD)
-    int checked = 0, amount_ready = 0;
-
-    if (rpc2_v4RequestSocket != -1 &&
-	ioctl(rpc2_v4RequestSocket, FIONREAD, &amount_ready) == 0)
-    {
-	checked = 1;
-	if (amount_ready != 0)
-	    return rpc2_v4RequestSocket;
-    }
-
-    if (rpc2_v6RequestSocket != -1 &&
-	ioctl(rpc2_v6RequestSocket, FIONREAD, &amount_ready) == 0)
-    {
-	checked = 1;
-	if (amount_ready != 0)
-	    return rpc2_v6RequestSocket;
-    }
-    /* if the ioctl worked on a socket, we know that there probably isn't
-     * any data waiting for us */
-    if (checked)
-	return -1;
-#endif
-    tv.tv_sec = tv.tv_usec = 0;	    /* do polling select */
-    FD_ZERO(&rmask);
-
-    if (rpc2_v4RequestSocket != -1)
-	FD_SET(rpc2_v4RequestSocket, &rmask);
-
-    if (rpc2_v6RequestSocket != -1)
-	FD_SET(rpc2_v6RequestSocket, &rmask);
-
-    maxfd = rpc2_v4RequestSocket + 1;
-    if (rpc2_v6RequestSocket >= maxfd)
-	maxfd = rpc2_v6RequestSocket + 1;
-
-    /* We use select rather than IOMGR_Select to avoid
-       overheads. This is acceptable only because we are doing a
-       polling select */
-    if (select(maxfd, &rmask, NULL, NULL, &tv) > 0) {
-	if (rpc2_v4RequestSocket != -1 &&
-	    FD_ISSET(rpc2_v4RequestSocket, &rmask))
-	    return rpc2_v4RequestSocket;
-
-	if (rpc2_v6RequestSocket != -1 &&
-	    FD_ISSET(rpc2_v6RequestSocket, &rmask))
-	    return rpc2_v6RequestSocket;
-    }
-    return -1;
-}
-
-
-/*  Await the earliest future event or a packet.
-    Returns active fd if packet came, -1 if earliest event expired */
-static int PacketCame(void)
-{
-    struct TM_Elem *t;
-    struct timeval *tvp;
-    fd_set rmask;
-    int nfds;
-
-    /* Obtain earliest event */
-    t = TM_GetEarliest(rpc2_TimerQueue);
-    if (t == NULL) tvp = NULL;
-    else	       tvp = &t->TimeLeft;
-
-    /* Yield control */
-    say(999, RPC2_DebugLevel, "About to enter IOMGR_Select()\n");
-    FD_ZERO(&rmask);
-
-    if (rpc2_v4RequestSocket != -1)
-	FD_SET(rpc2_v4RequestSocket, &rmask);
-
-    if (rpc2_v6RequestSocket != -1)
-	FD_SET(rpc2_v6RequestSocket, &rmask);
-
-    nfds = rpc2_v4RequestSocket + 1;
-    if (rpc2_v6RequestSocket >= nfds)
-	nfds = rpc2_v6RequestSocket + 1;
-
-    if (IOMGR_Select(nfds, &rmask, NULL, NULL, tvp) > 0) {
-	if (rpc2_v4RequestSocket != -1 &&
-	    FD_ISSET(rpc2_v4RequestSocket, &rmask))
-	    return rpc2_v4RequestSocket;
-
-	if (rpc2_v6RequestSocket != -1 &&
-	    FD_ISSET(rpc2_v6RequestSocket, &rmask))
-	    return rpc2_v6RequestSocket;
-
-    }
-    return(-1);
-}
-
-static RPC2_PacketBuffer *PullPacket(int fd)
-{
-	RPC2_PacketBuffer *pb = NULL;
-
-	RPC2_AllocBuffer(RPC2_MAXPACKETSIZE-sizeof(RPC2_PacketBuffer), &pb);
-	if ( !pb ) 
-		assert(0);
-	assert(pb->Prefix.Qname == &rpc2_PBList);
-	if (rpc2_RecvPacket(fd, pb) < 0) {
-		say(9, RPC2_DebugLevel, "Recv error, ignoring.\n");
-		RPC2_FreeBuffer(&pb);
-		return(NULL);
-	}
-	assert(pb->Prefix.Qname == &rpc2_PBList);
-
-#ifdef RPC2DEBUG
-	if (RPC2_DebugLevel > 9) {
-	    fprintf(rpc2_tracefile, "Packet received from   ");
-	    rpc2_printaddrinfo(pb->Prefix.PeerAddr, rpc2_tracefile);
-	    fprintf(rpc2_tracefile, "\n");
-	}
-#endif
-
-	return(pb);
-}
-
-static void Tell(RPC2_PacketBuffer *pb, struct CEntry *ce)
-{
-#ifdef RPC2DEBUG
-	if (RPC2_DebugLevel < 10) 
-		return;
-
-	fprintf(rpc2_tracefile, "Received packet....\n");
-	rpc2_PrintPacketHeader(pb, rpc2_tracefile);
-
-	if (ce == NULL) 
-		return;
-	fprintf(rpc2_tracefile, "Connection %#x state is ...\n",  
-		ce->UniqueCID);
-	rpc2_PrintCEntry(ce, rpc2_tracefile);	    
-#endif
-}
-
 
 /* Special packet from socketlistener: never encrypted */
 static void HandleSLPacket(RPC2_PacketBuffer *pb)
@@ -478,7 +415,7 @@ static struct CEntry *FindOrNak(RPC2_PacketBuffer *pb)
 
 static void DecodePacket(RPC2_PacketBuffer *pb, struct CEntry *ce)
 {
-	switch ((int) pb->Header.Opcode) {
+	switch (pb->Header.Opcode) {
 	case RPC2_BUSY: {
 		if (ce == NULL) {
 			NAKIT(pb);
@@ -531,7 +468,7 @@ static void DecodePacket(RPC2_PacketBuffer *pb, struct CEntry *ce)
 	case RPC2_INIT1AUTHONLY:
 	case RPC2_INIT1HEADERSONLY:
 	case RPC2_INIT1SECURE: {
-		if (ce != NULL) {
+		if (ce) {
 			NAKIT(pb); 
 			return;
 		}
@@ -933,21 +870,12 @@ static void HandleInit1(RPC2_PacketBuffer *pb)
 	rpc2_Recvd.Requests++;
 
 	/* Have we seen this bind request before? */
-	if (pb->Header.Flags & RPC2_RETRY) {
-		ce = rpc2_ConnFromBindInfo(pb->Prefix.PeerAddr,
-					   pb->Header.Uniquefier);
-		if (ce)	{
-			ce->TimeStampEcho = pb->Header.TimeStamp;
-			/* if we're modifying the TimeStampEcho, we also have
-			 * to reset the RequestTime */
-			TVTOTS(&pb->Prefix.RecvStamp, ce->RequestTime);
-
-			say(15, RPC2_DebugLevel, "handleinit1 TS %u RQ %u\n",
-			    ce->TimeStampEcho, ce->RequestTime);
-
-			HandleRetriedBind(pb, ce);
-			return;
-		}
+	ce = rpc2_ConnFromBindInfo(pb->Prefix.PeerAddr,
+				   pb->Header.LocalHandle,
+				   pb->Header.Uniquefier);
+	if (ce) {
+	    HandleRetriedBind(pb, ce);
+	    return;
 	}
 
 	/* Create a connection entry */
@@ -992,6 +920,13 @@ static void HandleRetriedBind(RPC2_PacketBuffer *pb, struct CEntry *ce)
 	   (2) in RPC2_GetRequest() on some LWP,
 	   (3) already completed.
 	*/
+	ce->TimeStampEcho = pb->Header.TimeStamp;
+	/* if we're modifying the TimeStampEcho, we also have
+	 * to reset the RequestTime */
+	TVTOTS(&pb->Prefix.RecvStamp, ce->RequestTime);
+
+	say(15, RPC2_DebugLevel, "handleinit1 TS %u RQ %u\n",
+	    ce->TimeStampEcho, ce->RequestTime);
 
 	if (TestState(ce, SERVER, S_STARTBIND)) {
 		/* Cases (1) and (2) */
@@ -1205,7 +1140,8 @@ static struct CEntry *MakeConn(struct RPC2_PacketBuffer *pb)
 	}
 #endif
 	
-	rpc2_NoteBinding(pb->Prefix.PeerAddr, pb->Header.Uniquefier, ce->UniqueCID);
+	rpc2_NoteBinding(pb->Prefix.PeerAddr, ce->PeerHandle,
+			 pb->Header.Uniquefier, ce->UniqueCID);
 	return(ce);
 }
 

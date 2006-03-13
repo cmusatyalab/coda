@@ -81,17 +81,10 @@ int sftp_XmitPacket(struct SFTP_Entry *sEntry, RPC2_PacketBuffer *pb,
 
     rpc2_XmitPacket(pb, sEntry->HostInfo->Addr, confirm);
 
-    if (ntohl(pb->Header.Flags) & RPC2_MULTICAST) {
-	rpc2_MSent.Total--;
-	rpc2_MSent.Bytes -= pb->Prefix.LengthOfPacket;
-	sftp_MSent.Total++;
-	sftp_MSent.Bytes += pb->Prefix.LengthOfPacket;
-    } else {
-	rpc2_Sent.Total--;
-	rpc2_Sent.Bytes -= pb->Prefix.LengthOfPacket;
-	sftp_Sent.Total++;
-	sftp_Sent.Bytes += pb->Prefix.LengthOfPacket;
-    }
+    rpc2_Sent.Total--;
+    rpc2_Sent.Bytes -= pb->Prefix.LengthOfPacket;
+    sftp_Sent.Total++;
+    sftp_Sent.Bytes += pb->Prefix.LengthOfPacket;
 
     return(RPC2_SUCCESS);
 }

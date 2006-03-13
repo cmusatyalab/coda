@@ -79,48 +79,9 @@ static int MC_SendStrategy(), SDescCmp(), MC_ExtractParmsFromPacket();
 
 /*----------------------- The procs below interface directly with RPC2 ------------------------ */
 
-#define	HOSTSEOK(host)\
-  (ceaddr[host] && (retcode[host] > RPC2_ELIMIT) && (SDescList[host].Tag != OMITSE))
-
-#define	FAIL_MCRPC1(rCode)\
-        {\
-        say(9, SFTP_DebugLevel, "FAIL_MCRPC1: code = %d\n", rCode);\
-	for (host = 0; host < HowMany; host++)\
-	    if (HOSTSEOK(host)) retcode[host] = rCode;\
-	mse->SDesc = NULL;\
-	if (mdesc) free(mdesc);\
-	free(ceaddr);\
-	return -1;\
-        }
-
-#define	INIT_SE_DESC(desc)\
-        {\
-	((SE_Descriptor	*)desc)->LocalStatus = SE_SUCCESS;  /* non-execution == success */\
-	((SE_Descriptor	*)desc)->RemoteStatus =	SE_SUCCESS; /* non-execution == success */\
-        sftp_Progress((SE_Descriptor *)desc, 0);\
-        }
-
-#define INIT_SE_ENTRY(se, desc, req)\
-	se->SDesc = desc;\
-	se->ThisRPCCall = req->Header.SeqNumber;\
-	se->XferState = XferNotStarted;\
-	se->UseMulticast = TRUE;\
-	se->RepliedSinceLastSS = FALSE;\
-	se->McastersStarted = 0;\
-	se->McastersFinished = 0;\
-	se->HitEOF = FALSE;\
-	se->SendFirst = se->SendLastContig + 1;\
-	se->SendMostRecent = se->SendLastContig;\
-	se->SendWorriedLimit = se->SendLastContig;\
-	memset(se->SendTheseBits, 0, BITMASKWIDTH * sizeof(long));\
-	se->ReadAheadCount = 0;\
-	se->RecvMostRecent = se->RecvLastContig;\
-	memset(se->RecvTheseBits, 0, BITMASKWIDTH * sizeof(long));
-
-long SFTP_MultiRPC1(IN HowMany, IN ConnHandleList, IN MCast, INOUT SDescList, INOUT req, INOUT retcode)
+long SFTP_MultiRPC1(IN HowMany, IN ConnHandleList, INOUT SDescList, INOUT req, INOUT retcode)
     int			HowMany;
     RPC2_Handle		ConnHandleList[];
-    RPC2_Multicast	*MCast;
     SE_Descriptor	SDescList[];
     RPC2_PacketBuffer	*req[];
     long		retcode[];
@@ -128,142 +89,16 @@ long SFTP_MultiRPC1(IN HowMany, IN ConnHandleList, IN MCast, INOUT SDescList, IN
     int	host;
     say(0, SFTP_DebugLevel, "SFTP_MultiRPC1()\n");
 
-    /* Non-multicast MRPC: simply iterate over the set of hosts calling
-     * SFTP_MakeRPC1() */
-    if (!MCast) {
-	  for (host = 0; host < HowMany; host++) {
-	      if (retcode[host] <= RPC2_ELIMIT || SDescList[host].Tag == OMITSE)
-		  continue;
+    /* simply iterate over the set of hosts calling SFTP_MakeRPC1() */
+    for (host = 0; host < HowMany; host++) {
+	if (retcode[host] <= RPC2_ELIMIT || SDescList[host].Tag == OMITSE)
+	    continue;
 
-	      retcode[host] = SFTP_MakeRPC1(ConnHandleList[host],
-					    &SDescList[host], &req[host]);		
-	  }
-	  return -1;
-    }
-
-    /* Multicast MRPC: a whole 'nother ballgame. */
-    /* NOTE: MULTICAST MRPC fetch currently has a HACK in it! */
-    {
-	struct MEntry		*me;
-	struct SFTP_Entry	*mse;		/* multicast SE entry */
-	SE_Descriptor		*mdesc = NULL;	/* multicast SE descriptor */
-	struct SFTP_Entry	*thisse;	/* singlecast SE entry */
-	SE_Descriptor		*thisdesc;	/* singlescast SE descriptor */
-	struct CEntry		**ceaddr;
-
-	ceaddr = (struct CEntry **)malloc(HowMany * sizeof(struct CEntry *));
-	assert(ceaddr != NULL);
-
-	/* reacquire CEntry pointers */
-	for (host = 0; host < HowMany; host++)
-	    ceaddr[host] = rpc2_GetConn(ConnHandleList[host]);
-
-	/* reacquire MEntry pointer */
-	assert(MCast->Mgroup != 0);
-	assert((me = rpc2_GetMgrp(NULL, MCast->Mgroup, CLIENT)) != NULL);
-	assert((mse = (struct SFTP_Entry *)me->SideEffectPtr) != NULL);
-	assert(mse->SDesc == NULL);
-	if (mse->WhoAmI != SFCLIENT) FAIL_MCRPC1(RPC2_SEFAIL1);
-
-	/* ALL descriptors (for valid connections) must be identical.  We FAIL if they are not. */
-	/* A Multicast descriptor is created to parallel the multicast se_entry. */
-	for (host = 0; host < HowMany; host++)
-	    if (HOSTSEOK(host))
-		{
-		enum WhichWay xdir;
-		thisdesc = &SDescList[host];
-		xdir = thisdesc->Value.SmartFTPD.TransmissionDirection;
-		assert(xdir == CLIENTTOSERVER || xdir == SERVERTOCLIENT);
-		if (mdesc == NULL)	/* initialize multicast SE descriptor */
-		    {
-		    assert((mdesc = (SE_Descriptor *)malloc(sizeof(SE_Descriptor))) != NULL);
-		    memcpy(mdesc, thisdesc, sizeof(SE_Descriptor));
-		    }
-		else
-		    if (!SDescCmp(mdesc, thisdesc)) FAIL_MCRPC1(RPC2_SEFAIL1);
-		}
-	if (mdesc == NULL) FAIL_MCRPC1(RPC2_SEFAIL2);	/* all connections BAD! */
-
-	/* Initialize the multicast data structures. */
-	INIT_SE_DESC(mdesc);
-	INIT_SE_ENTRY(mse, mdesc, (me->CurrentPacket));
-
-	/* Initialize the corresponding data structures for the participating connections. */
-	for (host = 0; host < HowMany; host++)
-	    if (HOSTSEOK(host))
-		{
-		INIT_SE_DESC(&SDescList[host]);
-		assert(RPC2_GetSEPointer(ConnHandleList[host], &thisse) == RPC2_SUCCESS);
-		INIT_SE_ENTRY(thisse, &(SDescList[host]), (req[host]));
-		mse->McastersStarted++;
-		}
-
-	switch(mdesc->Value.SmartFTPD.TransmissionDirection)
-	    {
-	    case CLIENTTOSERVER:
-		/* Attempt to open the file to be stored.  FD is recorded in MC se_entry ONLY! */
-		if (sftp_InitIO(mse) < 0)
-		    {
-		    for (host = 0; host < HowMany; host++)
-			if (HOSTSEOK(host)) SDescList[host].LocalStatus = SE_FAILURE;
-		    FAIL_MCRPC1(RPC2_SEFAIL1);
-		    }
-
-		/* piggyback file if possible; parms are guaranteed to already be there */
-		if (SFTP_DoPiggy)
-		    {
-		    off_t rc = sftp_AppendFileToPacket(mse, &me->CurrentPacket);
-		    switch(rc)
-			{
-			case -1:				/* system call failure */
-			    FAIL_MCRPC1(RPC2_SEFAIL4);
-
-			case -2:				/* file too big to fit */
-			    break;
-
-			default:				/* rc == length of file */
-			    for (host = 0; host < HowMany; host++)
-				if (HOSTSEOK(host))
-				    {
-				    /* copy packet body in case retries are singlecasted */
-				    assert(sftp_AddPiggy(&req[host],(char *)me->CurrentPacket->Header.SEDataOffset, rc, SFTP_MAXPACKETSIZE) == 0);
-                                    sftp_Progress(&SDescList[host], rc);
-				    sftp_didpiggy++;
-				    }
-			    break;
-			}
-		    }
-		break;
-
-	    case SERVERTOCLIENT:
-		/* Attempt to open the file to be fetched. */
-		for (host = 0; host < HowMany; host++)
-		    if (HOSTSEOK(host))
-			{
-			assert(RPC2_GetSEPointer(ConnHandleList[host], &thisse) == RPC2_SUCCESS);
-			if (sftp_InitIO(thisse) < 0)
-				{
-				for (host = 0; host < HowMany; host++)
-				    if (HOSTSEOK(host))
-					SDescList[host].LocalStatus = SE_FAILURE;
-				FAIL_MCRPC1(RPC2_SEFAIL1);
-				}
-			}
-		break;
-
-	    default:
-		assert(FALSE);	    /* this was checked above */
-	    }
-	free(ceaddr);
+	retcode[host] = SFTP_MakeRPC1(ConnHandleList[host],
+				      &SDescList[host], &req[host]);
     }
     return -1;
 }
-
-#undef	HOSTSEOK
-#undef	FAIL_MCRPC1
-#undef	INIT_SE_DESC
-#undef	INIT_SE_ENTRY
-
 
 long SFTP_MultiRPC2(IN ConnHandle, INOUT SDesc, INOUT Reply)
     RPC2_Handle		ConnHandle;

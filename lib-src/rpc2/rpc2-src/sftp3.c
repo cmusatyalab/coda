@@ -442,27 +442,25 @@ int sftp_WriteStrategy(struct SFTP_Entry *sEntry)
 	    (x + pb->Header.BodyLength) > 
 	    sEntry->SDesc->Value.SmartFTPD.ByteQuota) {
 	    sEntry->SDesc->Value.SmartFTPD.QuotaExceeded = 1;
-	    iovarray[i-1].iov_len = 
-		sEntry->SDesc->Value.SmartFTPD.ByteQuota - x; 
+	    iovarray[i-1].iov_len =
+		sEntry->SDesc->Value.SmartFTPD.ByteQuota - x;
 	    /* may result in 0 len for trailing packets after the
 	       one exceeding the quota */
-	} else 
+	} else
 	    iovarray[i-1].iov_len = pb->Header.BodyLength;
 
 	bytesnow += iovarray[i-1].iov_len;
 	iovlen++;
-	if (pb->Header.Flags & RPC2_MULTICAST) 
-	    mcastlen++;
     }
-    if (iovlen == 0) 
+    if (iovlen == 0)
 	return(0);  /* 0-length initial run of packets */
-    
+
     if (!(bytesnow == sftp_vfwritev(sEntry, iovarray, iovlen))) {
 	sftp_SetError(sEntry, DISKERROR);	/* probably disk full */
 	return(-1);
     }
-    
-    for (i = sEntry->RecvLastContig + 1; 
+
+    for (i = sEntry->RecvLastContig + 1;
 	 i < sEntry->RecvLastContig + iovlen + 1; i++)
 	SFTP_FreeBuffer(&sEntry->ThesePackets[PBUFF(i)]);
     sEntry->RecvLastContig += iovlen;
@@ -1008,10 +1006,7 @@ static int SendSendAhead(struct SFTP_Entry *sEntry, int worried)
 	    pb->Header.SEFlags |= SFTP_FIRST;
 	    pb->Header.SEFlags = htonl(pb->Header.SEFlags);
 	    }
-	if (ntohl(pb->Header.Flags) & RPC2_MULTICAST)
-	    sftp_MSent.Datas++;
-	else
-	    sftp_Sent.Datas++;
+	sftp_Sent.Datas++;
 	sftp_datas++;
 
 	now = rpc2_MakeTimeStamp();
@@ -1087,7 +1082,7 @@ int sftp_ReadStrategy(struct SFTP_Entry *sEntry)
 	{
 	SFTP_AllocBuffer(bodylength, &pb);
 	sftp_InitPacket(pb, sEntry, bodylength);	/* BodyLength set */
-	pb->Header.Flags = (sEntry->UseMulticast ? RPC2_MULTICAST : 0);
+	pb->Header.Flags = 0;
 	pb->Header.SEFlags = SFTP_MOREDATA;		/* tentative assumption */
 	pb->Header.Opcode = SFTP_DATA;
 	pb->Header.SeqNumber = sEntry->SendMostRecent + i;

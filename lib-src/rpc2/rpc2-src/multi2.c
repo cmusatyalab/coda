@@ -88,7 +88,6 @@ void byte_pad(PARM **args);
     HowMany	how many multiple servers
     CIDList	list of connection ids
     RCList	NULL or pointer to array for individual return codes
-    MCast	NULL if non-multicast; else points to multicast info
     HandleResult	user procedure to be called after each server return
     Timeout	user specified timeout
 */
@@ -324,19 +323,19 @@ long MRPC_MakeMulti (int ServerOp, ARG ArgTypes[], RPC2_Integer HowMany,
     arg_info.Args = va_array;
     arg_info.HandleResult = HandleResult;
     arg_info.ArgCount = count;
-    
+
     /* Generate RPC2 call */
-    
+
     _reqbuffer->Header.Opcode = ServerOp;
 
-    _rpc2val = RPC2_MultiRPC(HowMany, CIDList, RCList, MCast, _reqbuffer, SDescList, MRPC_UnpackMulti, &arg_info, Timeout);
-    
+    _rpc2val = RPC2_MultiRPC(HowMany, CIDList, RCList, NULL, _reqbuffer, SDescList, MRPC_UnpackMulti, &arg_info, Timeout);
+
     for(a_types = ArgTypes; ; a_types++)
 	    if (a_types->mode == C_END) {
 		    (*a_types->endlog)(ServerOp, HowMany, CIDList, RCList); /* Call Stub Log end */
 		    break;
 	    }
-    
+
     free(va_array);		/* done with the array */
     if (_rpc2val != RPC2_SUCCESS) {
 	    RPC2_FreeBuffer (&_reqbuffer);

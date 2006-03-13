@@ -500,13 +500,14 @@ long rpc2_SetRetry(), rpc2_CancelRetry();
 void rpc2_ResetLowerLimit();
 void rpc2_UpdateRTT(RPC2_PacketBuffer *pb, struct CEntry *ceaddr);
 void rpc2_ResetObs();
-void rpc2_ProcessPackets(), rpc2_ExpireEvents();
+void rpc2_ExpireEvents();
 
 /* Connection manipulation routines  */
 int rpc2_InitConn(void);
 void rpc2_FreeConn(), rpc2_SetConnError();
 struct CEntry *rpc2_AllocConn();
 struct CEntry *rpc2_ConnFromBindInfo(struct RPC2_addrinfo *peeraddr,
+				     RPC2_Handle RemoteHandle,
 				     RPC2_Integer whichUnique);
 struct CEntry *__rpc2_GetConn(RPC2_Handle handle); /* doesn't bump lastref */
 struct CEntry *rpc2_GetConn(RPC2_Handle handle);
@@ -569,7 +570,9 @@ void rpc2_ApplyE(RPC2_PacketBuffer *pb, struct CEntry *ce);
 time_t rpc2_time();
 long rpc2_InitRetry(long HowManyRetries, struct timeval *Beta0);
 
-void rpc2_NoteBinding(struct RPC2_addrinfo *peeraddr, RPC2_Integer whichUnique, RPC2_Handle whichConn);
+void rpc2_NoteBinding(struct RPC2_addrinfo *peeraddr,
+		      RPC2_Handle RemoteHandle, RPC2_Integer whichUnique,
+		      RPC2_Handle whichConn);
 
 int mkcall(RPC2_HandleResult_func *ClientHandler, int ArgCount, int HowMany,
 	   RPC2_Handle ConnList[], long offset, long rpcval, int *args);

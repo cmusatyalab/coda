@@ -82,15 +82,12 @@ typedef struct	{
 
 static void SetupConns(int HowMany, MultiCon *mcon,
 		       RPC2_Handle ConnHandleList[],
-		       RPC2_Multicast *MCast, struct MEntry *me,
 		       SE_Descriptor SDescList[]);
 static void SetupPackets(int HowMany, MultiCon *mcon,
 			 RPC2_Handle ConnHandleList[],
-			 RPC2_Multicast *MCast, struct MEntry *me,
 			 SE_Descriptor SDescList[], RPC2_PacketBuffer *Request);
 static MultiCon *InitMultiCon(int HowMany);
 static void FreeMultiCon(int HowMany, MultiCon *mcon);
-static void cleanup(struct MEntry *me);
 static long mrpc_SendPacketsReliably();
 static PacketCon *InitPacketCon(int HowMany);
 static void FreePacketCon(PacketCon *pcon);
@@ -98,13 +95,13 @@ long exchange(PacketCon *pcon, int cur_ind);
 static void MSend_Cleanup(int HowMany, MultiCon *mcon,
 			  SE_Descriptor SDescList[],
 			  struct timeval *Timeout, PacketCon *pcon);
-static inline long EXIT_MRPC(long code, int HowMany, RPC2_Integer *RCList, MultiCon *context, struct MEntry *me);
+static inline long EXIT_MRPC(long code, int HowMany, RPC2_Integer *RCList, MultiCon *context);
 
 #define GOODSEDLE(i)  (SDescList && SDescList[i].Tag != OMITSE)
 
 
-long RPC2_MultiRPC(IN HowMany, IN ConnHandleList, IN RCList, IN MCast, 
-		   IN Request, IN SDescList, IN UnpackMulti, IN OUT ArgInfo, 
+long RPC2_MultiRPC(IN HowMany, IN ConnHandleList, IN RCList, IN MCast,
+		   IN Request, IN SDescList, IN UnpackMulti, IN OUT ArgInfo,
 		   IN BreathOfLife)
     int	HowMany;			/* no of connections involved */
     RPC2_Handle	ConnHandleList[];
@@ -118,14 +115,13 @@ long RPC2_MultiRPC(IN HowMany, IN ConnHandleList, IN RCList, IN MCast,
 {
     MultiCon *mcon;
     int	host;
-    struct MEntry *me = NULL;
     int SomeConnsOK;
     long rc = 0;
 
 
     rpc2_Enter();
     say(0, RPC2_DebugLevel, "Entering RPC2_MultiRPC\n");
-	    
+
     TR_MULTI();
 
     /* perform sanity checks */
@@ -134,23 +130,13 @@ long RPC2_MultiRPC(IN HowMany, IN ConnHandleList, IN RCList, IN MCast,
     /* get context pointer */
     mcon = InitMultiCon(HowMany);
 
-    /* setup for multicast */
-    if (MCast) {
-	rc = SetupMulticast(MCast, &me, HowMany, ConnHandleList);
-	if (rc != RPC2_SUCCESS) {
-	    for (host = 0; host < HowMany; host++)
-		mcon[host].retcode = rc;
-	    return EXIT_MRPC(rc, HowMany, RCList, mcon, me);
-	}
-    }
-
     /*  verify and set connection state */
-    SetupConns(HowMany, mcon, ConnHandleList, MCast, me, SDescList);
+    SetupConns(HowMany, mcon, ConnHandleList, SDescList);
 
     /* prepare all of the packets */
-    SetupPackets(HowMany, mcon, ConnHandleList, MCast, me, SDescList, Request);
+    SetupPackets(HowMany, mcon, ConnHandleList, SDescList, Request);
 
-    /* call UnpackMulti on all bad connections; 
+    /* call UnpackMulti on all bad connections;
        if there are NO good connections, exit */
     SomeConnsOK = FALSE;
     for (host = 0; host < HowMany; host++) {
@@ -159,32 +145,32 @@ long RPC2_MultiRPC(IN HowMany, IN ConnHandleList, IN RCList, IN MCast,
 	} else {
 	    if ((*UnpackMulti)(HowMany, ConnHandleList, ArgInfo, NULL, 
 			       mcon[host].retcode, host) == -1) {
-		return EXIT_MRPC(rc, HowMany, RCList, mcon, me);
+		return EXIT_MRPC(rc, HowMany, RCList, mcon);
 	    }
 	}
     }
 
     if (!SomeConnsOK) /* NO usable connections */
-	return EXIT_MRPC(rc, HowMany, RCList, mcon, me);
+	return EXIT_MRPC(rc, HowMany, RCList, mcon);
 
     /* finally safe to update the state of the good connections */
-    for	(host =	0; host	< HowMany; host++) { 
-	if (mcon[host].retcode > RPC2_ELIMIT) { 
+    for	(host =	0; host	< HowMany; host++) {
+	if (mcon[host].retcode > RPC2_ELIMIT) {
 	    SetState(mcon[host].ceaddr, C_AWAITREPLY);
 	}
     }
 
     /* send packets and await replies */
     say(9, RPC2_DebugLevel, "Sending requests\n");
-    rc = mrpc_SendPacketsReliably(HowMany, mcon, ConnHandleList, MCast, me,
+    rc = mrpc_SendPacketsReliably(HowMany, mcon, ConnHandleList,
 				  ArgInfo, SDescList, UnpackMulti,BreathOfLife);
-    
+
     switch((int) rc) {
-    case RPC2_SUCCESS:	
+    case RPC2_SUCCESS:
 	break;
-    case RPC2_TIMEOUT:	
+    case RPC2_TIMEOUT:
     case RPC2_FAIL:
-	say(9, RPC2_DebugLevel, 
+	say(9, RPC2_DebugLevel,
 	    "mrpc_SendPacketsReliably()--> %s\n", RPC2_ErrorMsg(rc));
 	break;
     default:
@@ -194,14 +180,13 @@ long RPC2_MultiRPC(IN HowMany, IN ConnHandleList, IN RCList, IN MCast,
     }
 
     host = HowMany - 1;
-    return EXIT_MRPC(rc, HowMany, RCList, mcon, me);
+    return EXIT_MRPC(rc, HowMany, RCList, mcon);
 }
 
 
 /* easier to manage than the former macro definition */
 static inline long
-EXIT_MRPC(long code, int HowMany, RPC2_Integer *RCList, MultiCon *mcon,
-	  struct MEntry *me)
+EXIT_MRPC(long code, int HowMany, RPC2_Integer *RCList, MultiCon *mcon)
 {
     int i;
 
@@ -219,15 +204,12 @@ EXIT_MRPC(long code, int HowMany, RPC2_Integer *RCList, MultiCon *mcon,
     }
 
     FreeMultiCon(HowMany, mcon);
-    if (me)
-	cleanup(me);
 
     rpc2_Quit(code);
 }
 
 static void SetupConns(int HowMany, MultiCon *mcon,
 		       RPC2_Handle ConnHandleList[],
-		       RPC2_Multicast *MCast, struct MEntry *me,
 		       SE_Descriptor SDescList[])
 {
     struct CEntry   *thisconn;
@@ -260,7 +242,6 @@ static void SetupConns(int HowMany, MultiCon *mcon,
 
 	    default:
 /* This isn't the behavior the manual claims, but it's what I need. -JJK */
-/*		if (MCast)*/
 		{
 		    if (TRUE/*EnqueueRequest*/)
 			{
@@ -276,11 +257,6 @@ static void SetupConns(int HowMany, MultiCon *mcon,
 			goto exit_fail;
 		    }
 		}
-/*		else*/
-/*		    {*/
-/*		    mcon[host].retcode = RPC2_CONNBUSY;*/
-/*		    break;*/
-/*		    }*/
 	}
     }
 
@@ -314,36 +290,11 @@ exit_fail:
 
 static void SetupPackets(int HowMany, MultiCon *mcon,
 			 RPC2_Handle ConnHandleList[],
-			 RPC2_Multicast *MCast, struct MEntry *me,
 			 SE_Descriptor SDescList[], RPC2_PacketBuffer *Request)
 {
     struct CEntry	*thisconn;
     RPC2_PacketBuffer	*thisreq;
     int			host;
-
-    /* allocate and setup the multicast packet first */
-    if (MCast) 
-    {
-	assert(me->CurrentPacket == NULL);
-	RPC2_AllocBuffer(Request->Header.BodyLength, &me->CurrentPacket);
-	thisreq = me->CurrentPacket;
-
-	/* initialize header fields to defaults, and copy body of request packet */
-	rpc2_InitPacket(thisreq, NULL, Request->Header.BodyLength);
-        memcpy(thisreq->Body, Request->Body, Request->Header.BodyLength);
-
-	/* complete non-default header fields */
-	thisreq->Header.RemoteHandle = MCast->Mgroup;
-	thisreq->Header.LocalHandle = 0;		    /* checked at server */
-	thisreq->Header.SeqNumber = me->NextSeqNumber;
-	thisreq->Header.Opcode = Request->Header.Opcode;    /* set by client */
-	thisreq->Header.SubsysId = me->SubsysId;
-	if (me->SecurityLevel == RPC2_HEADERSONLY ||
-	    me->SecurityLevel == RPC2_SECURE)
-	    thisreq->Header.Flags = (RPC2_MULTICAST | RPC2_ENCRYPTED);
-	else
-	    thisreq->Header.Flags = (RPC2_MULTICAST);
-    }
 
     /* allocate and setup HowMany request packets */
     /* we won't send on bad connections, so don't bother to set them up */
@@ -368,10 +319,7 @@ static void SetupPackets(int HowMany, MultiCon *mcon,
 	if (thisconn->RTT && thisreq->Header.BindTime == 0)
 	    thisreq->Header.BindTime = 1;  /* ugh. zero is overloaded. */
 
-	/* For multicast, set MULTICAST flag even though these packets will only
-	   ever be sent out as retries on the point-to-point channels.  This
-	   is to help servers maintain correct multicast sequence numbers. */
-	thisreq->Header.Flags =  (MCast ? RPC2_MULTICAST : 0);
+	thisreq->Header.Flags = 0;
 
 	if (thisconn->SecurityLevel == RPC2_HEADERSONLY ||
 	    thisconn->SecurityLevel == RPC2_SECURE)
@@ -391,8 +339,6 @@ static void SetupPackets(int HowMany, MultiCon *mcon,
 	    }
 	if (thisconn && thisconn->SEProcs && thisconn->SEProcs->SE_MultiRPC1)
 	{
-	    RPC2_PacketBuffer *savedmcpkt = (MCast ? me->CurrentPacket : NULL);
-
 	    long *seretcode;
 	    RPC2_PacketBuffer **preqs;
 	    assert((seretcode = (long *)malloc(HowMany * sizeof(long))) != NULL);
@@ -402,8 +348,7 @@ static void SetupPackets(int HowMany, MultiCon *mcon,
 		preqs[host] = mcon[host].req;
 	    }
 
-	    /* N.B.  me->state is not set yet, so the se routine should NOT look at it. */
-	    (*thisconn->SEProcs->SE_MultiRPC1)(HowMany, ConnHandleList, MCast, SDescList, preqs, seretcode);
+	    (*thisconn->SEProcs->SE_MultiRPC1)(HowMany, ConnHandleList, SDescList, preqs, seretcode);
 	    for (host = 0; host < HowMany; host++) {
 		/* Has the sideeffect modified the original request? */
 		if (mcon[host].req != preqs[host]) {
@@ -427,45 +372,8 @@ static void SetupPackets(int HowMany, MultiCon *mcon,
 	    }
 	    free(preqs);
 	    free(seretcode);
-	    if (savedmcpkt != NULL && savedmcpkt != me->CurrentPacket)
-		RPC2_FreeBuffer(&savedmcpkt);   /* multicast packet reallocated; free old one */
 	}
     }
-
-    /* complete setup of the multicast packet */
-    if (MCast)
-	{
-	thisreq = me->CurrentPacket;
-
-	/* NO socket listener entry for the multicast packet */
-
-	/* convert to network order */
-	rpc2_htonp(thisreq);
-
-	/* Encrypt with MULTICAST key as appropriate. */
-        switch ((int) me->SecurityLevel)
-	    {
-	    case RPC2_OPENKIMONO:
-	    case RPC2_AUTHONLY:
-		break;
-		
-	    case RPC2_HEADERSONLY:
-		rpc2_Encrypt((char *)&thisreq->Header.BodyLength,
-				(char *)&thisreq->Header.BodyLength,
-				sizeof(struct RPC2_PacketHeader) - 4*sizeof(RPC2_Integer),
-				me->SessionKey, me->EncryptionType);
-		break;
-		
-	    case RPC2_SECURE:
-		rpc2_Encrypt((char *)&thisreq->Header.BodyLength,
-				(char *)&thisreq->Header.BodyLength,
-				thisreq->Prefix.LengthOfPacket - 4*sizeof(RPC2_Integer),
-				me->SessionKey, me->EncryptionType);
-		break;
-
-	    default:	assert(FALSE);
-	    }
-	}
 
     /* complete setup of the individual packets */
     /* we won't send on bad connections, so don't bother to set them up */
@@ -541,26 +449,11 @@ void FreeMultiCon(int HowMany, MultiCon *mcon)
     free(mcon);
 }
 
-static void cleanup(struct MEntry *me)
-{
-    SetState(me, C_THINK);
-    LWP_NoYieldSignal((char *)me);
-    if (me->CurrentPacket)
-    {
-	RPC2_FreeBuffer(&me->CurrentPacket);	/* release request packet */
-	me->CurrentPacket = NULL;
-    }
-}
-
-
 	/* MultiRPC version */
 static long mrpc_SendPacketsReliably(
     int HowMany,
     MultiCon *mcon,
     RPC2_Handle ConnHandleList[],	/* array of connection ids */
-    RPC2_Multicast *MCast,		/* NULL or pointer to multicast
-					   information */
-    struct MEntry *me,			/* used if MCast is non-NULL */
     ARG_INFO *ArgInfo,			/* Structure of client information
 					   (built in MakeMulti) */
     SE_Descriptor SDescList[],		/* array of side effect descriptors */
@@ -632,18 +525,14 @@ static long mrpc_SendPacketsReliably(
 	pcon->pending[goodpackets++] = slp;    /* build array of good packets */
 
 	/* send the packet and activate socket listener entry */
-	/* if we are multicasting, don't send the packet, but activate the sle's */
-	if (!MCast)
-	    {
-	    /* offer control to Socket Listener every 32 packets to prevent buffer overflow */
-	    if ((packets++ & 0x1f) && (packets < pcon->indexlen - 6)) {
-	       LWP_DispatchProcess();
-	       timestamp = rpc2_MakeTimeStamp();
-            }
+	/* offer control to Socket Listener every 32 packets to prevent buffer overflow */
+	if ((packets++ & 0x1f) && (packets < pcon->indexlen - 6)) {
+	    LWP_DispatchProcess();
+	    timestamp = rpc2_MakeTimeStamp();
+	}
 
-	    mcon[thispacket].req->Header.TimeStamp = htonl(timestamp);
-	    rpc2_XmitPacket(mcon[thispacket].req, mcon[thispacket].ceaddr->HostInfo->Addr, 0);
-	    }
+	mcon[thispacket].req->Header.TimeStamp = htonl(timestamp);
+	rpc2_XmitPacket(mcon[thispacket].req, mcon[thispacket].ceaddr->HostInfo->Addr, 0);
 
         if (rpc2_Bandwidth) 
 	    rpc2_ResetLowerLimit(mcon[thispacket].ceaddr, mcon[thispacket].req);
@@ -658,16 +547,6 @@ static long mrpc_SendPacketsReliably(
 
     if (busy == HowMany)
 	EXIT_MRPC_SPR(RPC2_FAIL)		    /* no packets were sent */
-
-    /* send multicast packet here. */
-    if (MCast)
-	{
-	say(9, RPC2_DebugLevel, "Sending multicast packet at time %ld\n",
-	    rpc2_time());
-	me->CurrentPacket->Header.TimeStamp = htonl(rpc2_MakeTimeStamp());
-	rpc2_XmitPacket(me->CurrentPacket, me->IPMAddr, 0);
-	me->NextSeqNumber += 2;	/* blindly increment the multicast sequence number??? */
-	}
 
     if (busy == 0) finalrc = RPC2_SUCCESS;	    /* RPC2_FAIL if anything goes wrong */
     else finalrc = RPC2_FAIL;

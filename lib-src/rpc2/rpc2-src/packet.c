@@ -131,16 +131,8 @@ void rpc2_XmitPacket(IN RPC2_PacketBuffer *whichPB, IN struct RPC2_addrinfo *add
 
     /* Only Internet for now; no name->number translation attempted */
 
-    if (ntohl(whichPB->Header.Flags) & RPC2_MULTICAST)
-    {
-	rpc2_MSent.Total++;
-	rpc2_MSent.Bytes += whichPB->Prefix.LengthOfPacket;
-    }
-    else
-    {
-	rpc2_Sent.Total++;
-	rpc2_Sent.Bytes += whichPB->Prefix.LengthOfPacket;
-    }
+    rpc2_Sent.Total++;
+    rpc2_Sent.Bytes += whichPB->Prefix.LengthOfPacket;
 
     whichSocket = rpc2_v6RequestSocket;
 
@@ -247,11 +239,8 @@ long rpc2_RecvPacket(IN long whichSocket, OUT RPC2_PacketBuffer *whichBuff)
     whichBuff->Prefix.LengthOfPacket = rc;
 
     if (rc == len) {
-	    if (ntohl(whichBuff->Header.Flags) & RPC2_MULTICAST)
-		    rpc2_MRecvd.Giant++;
-	    else
-		    rpc2_Recvd.Giant++;
-	    return(-3);
+	rpc2_Recvd.Giant++;
+	return(-3);
     }
 
     /* Try to get an accurate arrival time estimate for this packet */
