@@ -28,3 +28,4 @@ stamp-h1
 *.o
 *.lo
 *.la
+*.orig
