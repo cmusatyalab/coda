@@ -35,6 +35,7 @@ CLEANFILES = rp2gen_parser.c rp2gen_parser.h rp2gen_lexer.c
 MAINTAINERCLEANFILES = Makefile.in
 
 rp2gen_parser.h: rp2gen_parser.c
+rp2gen_lexer.c: rp2gen_parser.h
 
 # some systems don't have stdint.h, the generated lexer.c file won't compile
 dist-hook:
