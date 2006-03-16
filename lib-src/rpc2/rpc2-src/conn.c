@@ -232,6 +232,8 @@ struct CEntry *rpc2_AllocConn(struct RPC2_addrinfo *addr)
     ce->respsize = 0;
     ce->HostInfo = rpc2_GetHost(addr);
     assert(ce->HostInfo);
+    ce->Filter.FromWhom = ANY;
+    ce->Filter.OldOrNew = OLDORNEW;
 
     /* Then make it unique */
     Uniquefy(ce);

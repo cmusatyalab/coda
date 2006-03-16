@@ -206,6 +206,10 @@ struct CEntry		/* describes a single RPC connection */
     long Retry_N;                       /* Number of retries for this connection. */
     struct timeval *Retry_Beta;         /* Retry parameters for this connection. */
     struct timeval SaveResponse;        /* 2*Beta0, lifetime of saved response packet. */
+    RPC2_RequestFilter Filter;		/* Set on the server during binding,
+					   filter incoming requests so that the
+					   SubsysID/Connection matches that of
+					   the handler we authenticated with */
     };
 
 

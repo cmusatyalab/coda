@@ -618,6 +618,11 @@ static void DecodePacket(RPC2_PacketBuffer *pb, struct CEntry *ce)
 			return;
 		}
 
+		if (rpc2_FilterMatch(&ce->Filter, pb)) {
+		    BOGUS(pb, "DecodePacket: Invalid subsystem\n");
+		    return;
+		}
+
 		if (TestState(ce, SERVER, S_AWAITENABLE)) {
 			say(0, RPC2_DebugLevel, "Connection not enabled\n");
 			BOGUS(pb, "DecodePacket: connection not enabled\n"); 
@@ -962,6 +967,8 @@ static void HandleInit1(RPC2_PacketBuffer *pb)
 		assert(sl->MagicNumber == OBJ_SLENTRY);
 		rpc2_DeactivateSle(sl, ARRIVED);
 		sl->Packet = pb;
+		ce->Filter = sl->Filter; /* struct assignment */
+		ce->Filter.OldOrNew = OLDORNEW;
 		LWP_NoYieldSignal((char *)sl);
 	} else {
 		/* hold for a future RPC2_GetRequest() */
