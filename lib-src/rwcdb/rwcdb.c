@@ -51,20 +51,24 @@ static int owrite(struct rwcdb *c)
     return 0;
 }
 
+static void discard_pending_updates(struct rwcdb *c);
+
 static void checkdb(struct rwcdb *c)
 {
     struct stat sb;
 
     /* reopen the database, but only if it has been modified */
-    if (stat(c->file, &sb) == 0 && sb.st_ino != c->rf.ino)
-    {
-        db_file_close(&c->rf);
-        if (db_file_open(&c->rf, c->file, O_RDONLY)) {
-            /* Ouch, we just hosed ourselves big time */
-            abort();
-        }
-        c->index = 2048;
+    if (stat(c->file, &sb) != 0 || sb.st_ino == c->rf.ino)
+	return;
+
+    db_file_close(&c->rf);
+    if (db_file_open(&c->rf, c->file, O_RDONLY)) {
+	/* Ouch, we just hosed ourselves big time */
+	abort();
     }
+    c->index = 2048;
+
+    discard_pending_updates(c);
 }
 
 /*=====================================================================*/
@@ -161,6 +165,28 @@ static struct wrentry *fromhash(struct rwcdb *c, u_int32_t index)
     return NULL;
 }
 
+static void discard_pending_updates(struct rwcdb *c)
+{
+    struct dllist_head *p;
+    struct wrentry *w;
+    u_int32_t i;
+
+    /* discard left-over in-memory modifications */
+    for (i = 0; i < 256; i++) {
+        for (p = c->added[i].next; p != &c->added[i];) {
+            w = list_entry(p, struct wrentry, list);
+            p = p->next;
+            free_wrentry(w);
+        }
+    }
+    for (p = c->removed.next; p != &c->removed;) {
+        w = list_entry(p, struct wrentry, list);
+        p = p->next;
+        free_wrentry(w);
+    }
+    memset(c->hlens, 0, 256 * sizeof(u_int32_t));
+}
+
 /*=====================================================================*/
 /* The cdb hash function is "h = ((h << 5) + h) ^ c", with a starting
  * hash of 5381 */
@@ -220,6 +246,9 @@ int rwcdb_free(struct rwcdb *c)
 {
     if (rwcdb_sync(c) == -1)
         return -1;
+
+    /* just in case someone was modifying a readonly database */
+    discard_pending_updates(c);
 
     db_file_close(&c->rf);
 
@@ -305,8 +334,14 @@ int rwcdb_insert(struct rwcdb *c, const char *k, const u_int32_t klen,
 {
     struct wrentry *w, *old;
     u_int32_t hash, slot;
+    static u_int32_t warned = 0;
 
-    if (owrite(c) == -1) return -1;
+    if (c->readonly) {
+	if (!warned++)
+	    fprintf(stderr, "RWCDB warning: modifying read-only database\n");
+    }
+    else if (owrite(c) == -1)
+	return -1;
 
     hash = cdb_hash(k, klen);
     w = alloc_wrentry(klen, dlen, hash);
@@ -580,21 +615,6 @@ int rwcdb_sync(struct rwcdb *c)
 
     db_file_close(&c->wf);
     checkdb(c);
-
-    /* cleanup time */
-    for (i = 0; i < 256; i++) {
-        for (p = c->added[i].next; p != &c->added[i];) {
-            w = list_entry(p, struct wrentry, list);
-            p = p->next;
-            free_wrentry(w);
-        }
-    }
-    for (p = c->removed.next; p != &c->removed;) {
-        w = list_entry(p, struct wrentry, list);
-        p = p->next;
-        free_wrentry(w);
-    }
-    memset(c->hlens, 0, 256 * sizeof(u_int32_t));
 
     return 1;
 
