@@ -17,9 +17,14 @@ Coda are listed in the file CREDITS.
 #ifndef _RPC2_SECURE_H_
 #define _RPC2_SECURE_H_
 
+#include <stdint.h>
+
 /* initialize */
 void secure_init(int verbose);
 void secure_release(void);
+
+/* cryptographically strong deterministic pseudo random number generator */
+void secure_random_bytes(uint8_t *buf, size_t len);
 
 #endif /* _RPC2_SECURE_H_ */
 

@@ -25,10 +25,12 @@ noinst_PROGRAMS = secure_test
 
 secure_test_SOURCES = secure_test.c
 noinst_HEADERS = aes.h grunt.h rijndael-alg-fst.h testvectors.h
-libsecure_la_SOURCES = secure_init.c rijndael-alg-fst.c
-libsecure_la_LDFLAGS = -version-info $(LIBTOOL_VERSION)
-
+libsecure_la_SOURCES = secure_init.c secure_random.c \
+    rijndael-alg-fst.c
 EXTRA_DIST = README.secure gen_testvectors.sh \
     rijndael-mikescott.h rijndael-mikescott.c
+
+libsecure_la_LDFLAGS = -version-info $(LIBTOOL_VERSION)
+
 MAINTAINERCLEANFILES = Makefile.in
 
