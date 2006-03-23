@@ -293,7 +293,8 @@ connection they are associated with.
 /* NOTE:  enum definitions  have to be non-anonymous: else a dbx bug is triggered */
 enum SL_Type {REPLY=1421, REQ=1422, OTHER=1423, DELACK=20010911};
 enum RetVal {WAITING=38358230, ARRIVED=38358231, TIMEOUT=38358232,
-	KEPTALIVE=38358233, KILLED=38358234, NAKED=38358235};
+	KEPTALIVE=38358233, KILLED=38358234, NAKED=38358235,
+	RPC2SEC_BIND_COMPLETED=38358236};
 
 /* data structure for communication with SocketListener */
 struct SL_Entry		

@@ -523,9 +523,6 @@ QuitMRPC: /* finalrc has been correctly set by now */
     rpc2_Quit(finalrc);
 }
     
-
-    
-    
 long RPC2_NewBinding(IN RPC2_HostIdent *Host, IN RPC2_PortIdent *Port,
 		     IN RPC2_SubsysIdent *Subsys, IN RPC2_BindParms *Bparms,
 		     IN RPC2_Handle *ConnHandle)
@@ -664,6 +661,9 @@ try_next_addr:
 	    rpc2_Quit(RPC2_FAIL);	/* bogus security level  specified */
 	}
 
+    /* hint for the other side that we support the new encryption layer */
+    pb->Header.Flags |= RPC2SEC_CAPABLE;
+
     /* Fill in the body */
     ib = (struct Init1Body *)pb->Body;
     ib->FakeBody.SideEffectType = htonl(Bparms->SideEffectType);
@@ -724,6 +724,21 @@ try_next_addr:
 		    goto try_next_addr;
 		rpc2_Quit(rc);
 		
+	case RPC2SEC_BIND_COMPLETED:
+		/* the server noticed the RPC2SEC flag and the told the
+		 * security layer to complete the handshake and it successfully
+		 * established a secure association for this connection */
+		if (RPC2_DebugLevel > -1) {
+		    char addr[RPC2_ADDRSTRLEN];
+		    RPC2_formataddrinfo(ce->HostInfo->Addr, addr,
+					RPC2_ADDRSTRLEN);
+		    fprintf(rpc2_logfile,
+			    "[%s]%s: Secure connection established with %s\n",
+			    rpc2_timestring(), LWP_Name(), addr);
+		}
+		rpc2_FreeSle(&sl);
+		goto BindOver;
+
 	default:	assert(FALSE);
 	}
 
@@ -735,7 +750,7 @@ try_next_addr:
     init2rc = pb->Header.ReturnCode;	
 
     /* Authentication failure typically */
-    if (init2rc  < RPC2_ELIMIT) {
+    if (init2rc != RPC2_SUCCESS) {
 	    DROPCONN();
 	    RPC2_FreeBuffer(&pb);
 	    rpc2_Quit(init2rc);	
@@ -764,7 +779,6 @@ try_next_addr:
     RPC2_FreeBuffer(&pb);	/* Release INIT2 packet */
     if (Bparms->SecurityLevel == RPC2_OPENKIMONO) 
 	    goto BindOver;	/* skip remaining phases of handshake */
-    
 
     /* Step4: Construct Init3 packet and send it */
 
@@ -853,7 +867,7 @@ BindOver:
     SetState(ce, C_THINK);
 
     say(9, RPC2_DebugLevel, "Bind complete for %#x\n", *ConnHandle);
-    rpc2_Quit(init2rc);	/* RPC2_SUCCESS or RPC2_OLDVERSION */
+    rpc2_Quit(RPC2_SUCCESS);
     /* quit */
 }
 
