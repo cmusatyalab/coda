@@ -434,7 +434,7 @@ int rwcdb_read(struct rwcdb *c, char *d, const u_int32_t dlen,
     } else {
         /* sweep through the pending write hashes */
         w = fromhash(c, dpos - c->rf.eod);
-        if (!w || dlen != w->dlen) return -1;
+        if (!w || dlen > w->dlen) return -1;
         buf = wdata(w);
     }
     memcpy(d, buf, dlen);
