@@ -1,0 +1,67 @@
+AES implementation
+------------------
+
+The used AES implementation is the Rijndael reference implementation (v3.0).
+I picked this because it seems to be fairly portable ANSI-C and we do not have
+to deal with trying to teach automake/autoconf about various platform specific
+assembly implementations and they pose no licensing conflicts wrt. to RPC2's
+LGPL license.
+
+As an alternative there is also the very small implementation by Mike Scott,
+however that code relies on global variables for the encryption/decryption
+state, only supports in-place operations and uses fairly generic naming. So it
+could use a bit of cleaning up so that the context can be passed avoid
+name-clashes.
+
+To make it simply to replace the AES implementation, the remaining code
+expects to be able to include "aes.h", which defines 5 functions to
+initialize, setup keys and to encrypt/decrypt a single block.
+
+There are several alternative implementation that can be used,
+
+- A more optimized implementation by Dr. Brian Gladman, his code is dual
+  licensed as BSD with an advertising clause, or alternatively pure GPL.
+  Neither of these mix well with RPC2's LGPL license so we probably can't
+  distribute binaries that are linked using his code. If you really need the
+  extra performance and make sure you comply with his license terms (as this
+  code is LGPL that would be the BSD license + advertising clause) and provide
+  the required copyright notice and disclaimer in any documentation and/or
+  associated materials that you distribute, you can find his version at,
+
+	http://fp.gladman.plus.com/AES/index.htm
+
+- There is also a modified version of the rijndael v3.0 reference code
+  available as part of the wpa_supplicant sources. It can optionally use
+  smaller tables which make the code 8KB smaller, and possibly make the code
+  less vulnerable to timing attacks, however it only supports 128-bit keys.
+  The modification are by Jouni Malinen and it seems to be dual licensed as
+  BSD without advertising clause or GPL,
+
+	http://hostap.epitest.fi/wpa_supplicant/
+
+- There are more, but from what I've seen most implementations are based on,
+
+  * original NIST submission (aka. rijndael v2.2 reference implementation),
+  * The optimized/cleaned-up Rijndael v3.0 reference implementation,
+  * Mike Scott's code, when the requirements tend to favour small size,
+  * Brian Gladman's code, when the requirements are mostly performance.
+
+- If you feel brave you can implement your own, the following is an excellent
+  article that explains a lot of the implementations details,
+
+	http://msdn.microsoft.com/msdnmag/issues/03/11/AES/
+
+
+AES testvectors
+---------------
+
+testvectors.h contains several AES testvectors from
+
+    http://csrc.nist.gov/CryptoToolkit/aes/rijndael/rijndael-vals.zip
+
+If you want to regenerate or expand the number of tests that are run during
+intialization, unzip the testvalues in a subdirectory named 'testvalues' and
+run gen_testvectors.sh to rebuild. At the top of the script are some comments
+and possible settings to vary the memory overhead/execution time to run these
+tests.
+

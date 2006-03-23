@@ -17,7 +17,7 @@
 #                            none currently
 #*/
 
-SUBDIRS = rpc2-src rp2gen fail include pkgs debian
+SUBDIRS = secure rpc2-src rp2gen fail include pkgs debian
 
 EXTRA_DIST = acinclude.m4 bootstrap.sh configure README.ipv6
 
