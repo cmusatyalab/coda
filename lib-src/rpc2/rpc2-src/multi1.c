@@ -532,7 +532,9 @@ static long mrpc_SendPacketsReliably(
 	}
 
 	mcon[thispacket].req->Header.TimeStamp = htonl(timestamp);
-	rpc2_XmitPacket(mcon[thispacket].req, mcon[thispacket].ceaddr->HostInfo->Addr, 0);
+	rpc2_XmitPacket(mcon[thispacket].req,
+			mcon[thispacket].ceaddr->HostInfo->Addr,
+			mcon[thispacket].ceaddr->sa, 0);
 
         if (rpc2_Bandwidth) 
 	    rpc2_ResetLowerLimit(mcon[thispacket].ceaddr, mcon[thispacket].req);
@@ -684,7 +686,8 @@ static long mrpc_SendPacketsReliably(
 		    mcon[thispacket].req->Header.Flags = htonl((ntohl(mcon[thispacket].req->Header.Flags) | RPC2_RETRY));
 		    mcon[thispacket].req->Header.TimeStamp = htonl(rpc2_MakeTimeStamp());
 		    rpc2_Sent.Retries += 1;	/* RPC retries are currently NOT multicasted! -JJK */
-		    rpc2_XmitPacket(mcon[thispacket].req, c_entry->HostInfo->Addr, 0);
+		    rpc2_XmitPacket(mcon[thispacket].req,
+				    c_entry->HostInfo->Addr, c_entry->sa, 0);
 		    break;	/* switch */
 		    
 		default:    /* abort */

@@ -74,15 +74,18 @@ void HandleInitMulticast();
 void rpc2_ExpireEvents(void);
 
 static RPC2_PacketBuffer *ShrinkPacket();
-static struct CEntry *MakeConn(), *FindOrNak();
+static struct CEntry *MakeConn();
+static struct CEntry *FindOrNak(RPC2_PacketBuffer *pb);
+static void HandleSLPacket(RPC2_PacketBuffer *pb, struct CEntry *ce);
 static struct SL_Entry *FindRecipient();
-static int BogusSl(), PacketCame(void);
-static void HandleSLPacket(), DecodePacket(),
+static int BogusSl();
+static int PacketCame(void);
+static void DecodePacket(),
 	    HandleCurrentReply(),
 	    SendBusy(), HandleBusy(),
 	    HandleOldRequest(), HandleNewRequest(), HandleCurrentRequest(),
-	    HandleInit1(), HandleInit2(), HandleInit3(), HandleInit4(), 
-	    HandleNak(), HandleRetriedBind();
+	    HandleInit1(), HandleInit2(), HandleInit3(), HandleInit4(),
+	    HandleRetriedBind();
 
 static void SendNak(RPC2_PacketBuffer *pb);
 
@@ -95,9 +98,6 @@ static void SendNak(RPC2_PacketBuffer *pb);
     rpc2_Recvd.Bogus++;\
     SendNak(p);\
     RPC2_FreeBuffer(&p); } while (0) 
-
-/* Flag to toggle ip-address/port matching for received packets */
-long RPC2_strict_ip_matching = 0;
 
 /* Multiple transports can register a handler with the rpc2 socketlistener
  * when their headers are RPC2 compatible */
@@ -285,49 +285,50 @@ void RPC2_DispatchProcess()
 
 void rpc2_HandlePacket(RPC2_PacketBuffer *pb)
 {
-        struct CEntry *ce;
+	struct CEntry *ce = NULL;
 	assert(pb->Prefix.Qname == &rpc2_PBList);
 
 	rpc2_Recvd.Total++;
 	rpc2_Recvd.Bytes += pb->Prefix.LengthOfPacket;
 
+	/* request on existing connection? otherwise it must be a new binding */
+	if (!pb->Header.RemoteHandle)
+	    goto UnboundPacket;
+
+	ce = FindOrNak(pb);
+	if (!ce) return;
+
 	if ((ntohl(pb->Header.LocalHandle) == -1) ||
-	    (ntohl(pb->Header.Opcode) == RPC2_NAKED)) {
-		assert(pb->Prefix.Qname == &rpc2_PBList);
-		HandleSLPacket(pb);
+	    (ntohl(pb->Header.Opcode) == RPC2_NAKED))
+	{
+		HandleSLPacket(pb, ce);
 		return;
 	}
 
-	if (ntohl(pb->Header.RemoteHandle) == 0)
-		ce = NULL;	/* Ought to be a new bind request */
-	else {
-		ce = FindOrNak(pb);
-		if (ce == NULL) 
-			return;
-		if (!TestState(ce, CLIENT, C_AWAITINIT2) &&
-		    !TestState(ce, SERVER, S_AWAITINIT3) &&
-		    !TestState(ce, CLIENT, C_AWAITINIT4))
-			rpc2_ApplyD(pb,  ce);
-	}
+	if (!TestState(ce, CLIENT, C_AWAITINIT2) &&
+	    !TestState(ce, SERVER, S_AWAITINIT3) &&
+	    !TestState(ce, CLIENT, C_AWAITINIT4))
+	    rpc2_ApplyD(pb,  ce);
 
 #ifdef RPC2DEBUG
 	/* debugging */
-	if (ce && RPC2_DebugLevel >= 10) 
+	if (RPC2_DebugLevel >= 10)
 	    rpc2_PrintCEntry(ce, rpc2_tracefile);
 #endif
 	/*  pb is a good packet and ce is a good conn */
 	rpc2_ntohp(pb);
-    
+
 	/* update the host entry if there is one */
-	if (ce && ce->HostInfo) 
+	if (ce->HostInfo)
 	    ce->HostInfo->LastWord = pb->Prefix.RecvStamp;
 
+UnboundPacket:
 	/* See if smaller packet buffer will do */
 	pb = ShrinkPacket(pb);
 
 	/* maintain causality */
-	if (pb->Header.Lamport  > rpc2_LamportClock)
-		rpc2_LamportClock = pb->Header.Lamport + 1;	
+	if (pb->Header.Lamport >= rpc2_LamportClock)
+		rpc2_LamportClock = pb->Header.Lamport + 1;
 
 	say(9, RPC2_DebugLevel, "Decoding opcode %d\n", pb->Header.Opcode);
 
@@ -359,55 +360,66 @@ void rpc2_ExpireEvents()
 }
 
 /* Special packet from socketlistener: never encrypted */
-static void HandleSLPacket(RPC2_PacketBuffer *pb)
+static void HandleSLPacket(RPC2_PacketBuffer *pb, struct CEntry *ce)
 {
-	struct CEntry *ce;
+    rpc2_ntohp(pb);
 
-	rpc2_ntohp(pb);
-	
-	ce = rpc2_GetConn(pb->Header.RemoteHandle);
-	if (ce == NULL) {
-		BOGUS(pb, "HandleSLPacket: ce == NULL\n");
-		return;
-	}
-
-	switch((int) pb->Header.Opcode) {
-	case RPC2_NAKED:
-		if (TestState(ce, CLIENT, (C_AWAITREPLY|C_AWAITINIT2)))
-			HandleNak(pb, ce);
-		else {
-			assert(pb->Prefix.Qname == &rpc2_PBList);
-			BOGUS(pb, "HandleSLPacket: state != AWAIT\n");
-		}
-		break;
-		
-	default: BOGUS(pb, "HandleSLPacket: bogus opcode\n");
-		break;
+    if (pb->Header.Opcode != RPC2_NAKED) {
+	BOGUS(pb, "HandleSLPacket: bogus opcode\n");
+	return;
     }
+
+    if (!TestState(ce, CLIENT, (C_AWAITREPLY|C_AWAITINIT2))) {
+	BOGUS(pb, "HandleSLPacket: state != AWAIT\n");
+	return;
+    }
+
+    say(0, RPC2_DebugLevel, "HandleNak()\n");
+
+    rpc2_Recvd.Naks++;
+
+    if (BogusSl(ce, pb))
+	return;
+
+    rpc2_SetConnError(ce);
+    rpc2_DeactivateSle(ce->MySl, NAKED);
+    LWP_NoYieldSignal((char *)ce->MySl);
+    RPC2_FreeBuffer(&pb);
 }
-
-
 
 static struct CEntry *FindOrNak(RPC2_PacketBuffer *pb)
 {
 	struct CEntry *ce;
-	
+	int valid_sa, init2;
+
 	ce = rpc2_GetConn(ntohl(pb->Header.RemoteHandle));
 
-	if (ce == NULL ||
-	    TestState(ce, CLIENT, C_HARDERROR) ||
-	    TestState(ce, SERVER, S_HARDERROR) ||
-        //    pb->Header.LocalHandle != ce->PeerHandle ||
+	/* The received packet must be using the exact same security context as
+	 * the connection on which the packet was received. */
+	valid_sa = ce && (ce->sa == pb->Prefix.sa);
 
-	/* Optionally do a bit stronger checking whether the sender of the
-	 * packet is really a match. --JH */
-	    (RPC2_strict_ip_matching &&
-	     !RPC2_cmpaddrinfo(ce->HostInfo->Addr, pb->Prefix.PeerAddr)))
+	/* The only situation where this can differ is when we received an
+	 * non-encrypted response to the INIT1 request from a server that
+	 * doesn't know the new 'secret handshake'.
+	 * This test can be removed if we don't need or want to be compatible
+	 * with non-encrypted rpc2 connections anymore. */
+	init2 = ce && TestState(ce, CLIENT, C_AWAITINIT2) &&
+	    ce->sa && !pb->Prefix.sa;
+
+	if (!valid_sa && !init2) {
+	    /* should we log this? Responding is useless because the client
+	     * that sent this packet clearly did not have good intentions. */
+	    RPC2_FreeBuffer(&pb);
+	    return NULL;
+	}
+
+	if (!ce || TestState(ce, CLIENT, C_HARDERROR) ||
+	           TestState(ce, SERVER, S_HARDERROR))
 	{
 	    /* NAKIT() expects host order */
 	    pb->Header.LocalHandle = ntohl(pb->Header.LocalHandle);
 	    NAKIT(pb);
-	    return(NULL);
+	    return NULL;
 	}
 
 	return(ce);
@@ -555,11 +567,6 @@ static void DecodePacket(RPC2_PacketBuffer *pb, struct CEntry *ce)
 			return;
 		}
 
-		if (rpc2_FilterMatch(&ce->Filter, pb)) {
-		    BOGUS(pb, "DecodePacket: Invalid subsystem\n");
-		    return;
-		}
-
 		if (TestState(ce, SERVER, S_AWAITENABLE)) {
 			say(0, RPC2_DebugLevel, "Connection not enabled\n");
 			BOGUS(pb, "DecodePacket: connection not enabled\n"); 
@@ -696,7 +703,7 @@ static void SendBusy(struct CEntry *ce, int doEncrypt)
     rpc2_htonp(pb);
     if (doEncrypt) rpc2_ApplyE(pb, ce);
 
-    rpc2_XmitPacket(pb, ce->HostInfo->Addr, 1);
+    rpc2_XmitPacket(pb, ce->HostInfo->Addr, ce->sa, 1);
     RPC2_FreeBuffer(&pb);
 }
 
@@ -940,7 +947,7 @@ static void HandleRetriedBind(RPC2_PacketBuffer *pb, struct CEntry *ce)
 		/* Case (3): The Init2 must have been dropped; resend it */
 		say(0, RPC2_DebugLevel, "Resending Init2 %#x\n",  ce->UniqueCID);
 		ce->HeldPacket->Header.TimeStamp = htonl(ce->TimeStampEcho);
-		rpc2_XmitPacket(ce->HeldPacket, ce->HostInfo->Addr, 1);
+		rpc2_XmitPacket(ce->HeldPacket, ce->HostInfo->Addr, ce->sa, 1);
 		RPC2_FreeBuffer(&pb);
 		return;
 	}
@@ -1007,7 +1014,7 @@ static void HandleInit3(RPC2_PacketBuffer *pb, struct CEntry *ce)
 		if (ce->HeldPacket != NULL) {
 			/* My Init4 must have got lost; resend it */
 			ce->HeldPacket->Header.TimeStamp = htonl(pb->Header.TimeStamp);    
-			rpc2_XmitPacket(ce->HeldPacket, ce->HostInfo->Addr, 1);
+			rpc2_XmitPacket(ce->HeldPacket, ce->HostInfo->Addr, ce->sa, 1);
 		}  else 
 			say(0, RPC2_DebugLevel, "Bogus Init3\n");
 		/* Throw packet away anyway */
@@ -1031,21 +1038,6 @@ static void HandleInit3(RPC2_PacketBuffer *pb, struct CEntry *ce)
 }
 
 
-static void HandleNak(RPC2_PacketBuffer *pb,  struct CEntry *ce)
-{
-	say(0, RPC2_DebugLevel, "HandleNak()\n");
-    
-	rpc2_Recvd.Naks++;
-
-	if (BogusSl(ce, pb)) 
-		return;
-	rpc2_SetConnError(ce);
-	rpc2_DeactivateSle(ce->MySl, NAKED);
-	LWP_NoYieldSignal((char *)ce->MySl);
-	RPC2_FreeBuffer(&pb);
-}
-
-
 /* Sends a NAK packet for remoteHandle on (whichHost, whichPort) pair */
 static void SendNak(RPC2_PacketBuffer *pb)
 {
@@ -1060,7 +1052,9 @@ static void SendNak(RPC2_PacketBuffer *pb)
 	nakpb->Header.Opcode = RPC2_NAKED;
 
 	rpc2_htonp(nakpb);
-	rpc2_XmitPacket(nakpb, pb->Prefix.PeerAddr, 1);
+	/* use the same security association on which we received the packet
+	 * we're currently nak-ing */
+	rpc2_XmitPacket(nakpb, pb->Prefix.PeerAddr, pb->Prefix.sa, 1);
 	RPC2_FreeBuffer(&nakpb);
 	rpc2_Sent.Naks++;
 }
@@ -1163,7 +1157,7 @@ static void HandleOldRequest(RPC2_PacketBuffer *pb, struct CEntry *ce)
 
 	if (ce->HeldPacket != NULL) {
 			ce->HeldPacket->Header.TimeStamp = htonl(pb->Header.TimeStamp);
-			rpc2_XmitPacket(ce->HeldPacket, ce->HostInfo->Addr, 1);
+			rpc2_XmitPacket(ce->HeldPacket, ce->HostInfo->Addr, ce->sa, 1);
 		}
 	RPC2_FreeBuffer(&pb);
 }

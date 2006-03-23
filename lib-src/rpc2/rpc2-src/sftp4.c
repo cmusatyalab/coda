@@ -71,6 +71,7 @@ struct CBUF_Header *TraceBuf;
 int sftp_XmitPacket(struct SFTP_Entry *sEntry, RPC2_PacketBuffer *pb,
 		    int confirm)
 {
+    struct CEntry *ce;
 #ifdef RPC2DEBUG
     struct TraceEntry *te;
 
@@ -79,7 +80,8 @@ int sftp_XmitPacket(struct SFTP_Entry *sEntry, RPC2_PacketBuffer *pb,
     te->ph = pb->Header;	/* structure assignment */
 #endif
 
-    rpc2_XmitPacket(pb, sEntry->HostInfo->Addr, confirm);
+    ce = rpc2_GetConn(sEntry->LocalHandle);
+    rpc2_XmitPacket(pb, ce->HostInfo->Addr, ce->sa, confirm);
 
     rpc2_Sent.Total--;
     rpc2_Sent.Bytes -= pb->Prefix.LengthOfPacket;

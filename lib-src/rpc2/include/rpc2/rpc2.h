@@ -412,8 +412,9 @@ typedef struct RPC2_PacketBuffer {
 
 	/* these fields are set when we receive the packet. */
 	struct RPC2_addrinfo	*PeerAddr;
-	char   oldhostandport[88]; /* padding to keep the userspace interface
-				      mostly identical */
+	struct security_association *sa;
+	char   oldhostandport[84]; /* padding to keep the userspace interface
+				      mostly identical (on a 32-bit machine..)*/
 	struct timeval		RecvStamp;
     } Prefix;
 

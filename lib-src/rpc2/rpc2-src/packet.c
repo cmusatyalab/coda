@@ -1,26 +1,25 @@
 /* BLURB lgpl
 
-                           Coda File System
-                              Release 5
+			Coda File System
+			    Release 5
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
-                  Additional copyrights listed below
+	    Copyright (c) 1987-1999 Carnegie Mellon University
+		Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
 the  terms of the  GNU  Library General Public Licence  Version 2,  as
 shown in the file LICENSE. The technical and financial contributors to
 Coda are listed in the file CREDITS.
 
-                        Additional copyrights
-
+		    Additional copyrights
 #*/
 
 /*
-                         IBM COPYRIGHT NOTICE
+			IBM COPYRIGHT NOTICE
 
-                          Copyright (C) 1986
-             International Business Machines Corporation
-                         All Rights Reserved
+			Copyright (C) 1986
+	      International Business Machines Corporation
+			All Rights Reserved
 
 This  file  contains  some  code identical to or derived from the 1986
 version of the Andrew File System ("AFS"), which is owned by  the  IBM
@@ -51,6 +50,7 @@ Pittsburgh, PA.
 #include <assert.h>
 #include "rpc2.private.h"
 #include <rpc2/se.h>
+#include <rpc2/secure.h>
 #include "cbuf.h"
 #include "trace.h"
 
@@ -109,7 +109,8 @@ static long FailPacket(int (*predicate)(), RPC2_PacketBuffer *pb,
     return drop;
 }
 
-void rpc2_XmitPacket(IN RPC2_PacketBuffer *whichPB, IN struct RPC2_addrinfo *addr, int confirm)
+void rpc2_XmitPacket(RPC2_PacketBuffer *pb, struct RPC2_addrinfo *addr,
+		     struct security_association *sa, int confirm)
 {
     int whichSocket, n, flags = 0;
 
@@ -121,18 +122,18 @@ void rpc2_XmitPacket(IN RPC2_PacketBuffer *whichPB, IN struct RPC2_addrinfo *add
 	fprintf(rpc2_logfile, "\t");
 	rpc2_printaddrinfo(addr, rpc2_logfile);
 	fprintf(rpc2_logfile, "\n");
-	rpc2_PrintPacketHeader(whichPB, rpc2_logfile);
+	rpc2_PrintPacketHeader(pb, rpc2_logfile);
 	}
 #endif
 
-    assert(whichPB->Prefix.MagicNumber == OBJ_PACKETBUFFER);
+    assert(pb->Prefix.MagicNumber == OBJ_PACKETBUFFER);
 
     TR_XMIT();
 
     /* Only Internet for now; no name->number translation attempted */
 
     rpc2_Sent.Total++;
-    rpc2_Sent.Bytes += whichPB->Prefix.LengthOfPacket;
+    rpc2_Sent.Bytes += pb->Prefix.LengthOfPacket;
 
     whichSocket = rpc2_v6RequestSocket;
 
@@ -143,30 +144,16 @@ void rpc2_XmitPacket(IN RPC2_PacketBuffer *whichPB, IN struct RPC2_addrinfo *add
     if (whichSocket == -1)
 	return; // RPC2_NOCONNECTION
 
-    if (FailPacket(Fail_SendPredicate, whichPB, addr, whichSocket))
+    if (FailPacket(Fail_SendPredicate, pb, addr, whichSocket))
 	return;
 
     if (confirm)
 	flags = msg_confirm;
 
-    n = sendto(whichSocket, &whichPB->Header, whichPB->Prefix.LengthOfPacket,
-	       flags, addr->ai_addr, addr->ai_addrlen);
+    n = secure_sendto(whichSocket, &pb->Header,
+		      pb->Prefix.LengthOfPacket, flags,
+		      addr->ai_addr, addr->ai_addrlen, sa);
 
-#ifdef __linux__
-    if (n == -1 && errno == ECONNREFUSED)
-    {
-	/* On linux ECONNREFUSED is a result of a previous sendto
-	 * triggering an ICMP bad host/port response. This
-	 * behaviour seems to be required by RFC1122, but in
-	 * practice this is not implemented by other UDP stacks.
-	 * We retry the send, because the failing host was possibly
-	 * not the one we tried to send to this time. --JH
-	 */
-	n = sendto(whichSocket, &whichPB->Header,
-		   whichPB->Prefix.LengthOfPacket, 0,
-		   addr->ai_addr, addr->ai_addrlen);
-    } else
-#endif
     if (n == -1 && errno == EAGAIN)
     {
 	/* operation failed probably because the send buffer was full. we could
@@ -181,12 +168,18 @@ void rpc2_XmitPacket(IN RPC2_PacketBuffer *whichPB, IN struct RPC2_addrinfo *add
     }
     else
 
-    if (RPC2_Perror && n != whichPB->Prefix.LengthOfPacket)
+    if (RPC2_Perror && n != pb->Prefix.LengthOfPacket)
     {
 	char msg[100];
 	sprintf(msg, "Xmit_Packet socket %d", whichSocket);
 	perror(msg);
     }
+}
+
+static struct security_association *GetSA(uint32_t spi)
+{
+    struct CEntry *ce= __rpc2_GetConn((RPC2_Handle)spi);
+    return ce ? ce->sa : NULL;
 }
 
 /* Reads the next packet from whichSocket into whichBuff, sets its
@@ -197,22 +190,23 @@ void rpc2_XmitPacket(IN RPC2_PacketBuffer *whichPB, IN struct RPC2_addrinfo *add
    Note that whichBuff should at least be able to accomodate 1 byte
    more than the longest receivable packet.  Only Internet packets are
    dealt with currently.  */
-long rpc2_RecvPacket(IN long whichSocket, OUT RPC2_PacketBuffer *whichBuff) 
+long rpc2_RecvPacket(IN long whichSocket, OUT RPC2_PacketBuffer *whichBuff)
 {
     long rc, len;
     size_t fromlen;
-    struct sockaddr_storage sa;
+    struct sockaddr_storage ss;
 
     say(0, RPC2_DebugLevel, "rpc2_RecvPacket()\n");
     assert(whichBuff->Prefix.MagicNumber == OBJ_PACKETBUFFER);
 
     len = whichBuff->Prefix.BufferSize - (long)(&whichBuff->Header) + (long)(whichBuff);
     assert(len > 0);
-    
+
     /* WARNING: only Internet works; no warnings */
-    fromlen = sizeof(sa);
-    rc = recvfrom(whichSocket, &whichBuff->Header, len, 0,
-		  (struct sockaddr *) &sa, &fromlen);
+    fromlen = sizeof(ss);
+    rc = secure_recvfrom(whichSocket, &whichBuff->Header, len, 0,
+			 (struct sockaddr *) &ss, &fromlen,
+			 &whichBuff->Prefix.sa, GetSA);
 
     if (rc < 0 && errno == EAGAIN) {
 	/* the packet might have had a corrupt udp checksum */
@@ -224,7 +218,7 @@ long rpc2_RecvPacket(IN long whichSocket, OUT RPC2_PacketBuffer *whichBuff)
     }
 
     whichBuff->Prefix.PeerAddr =
-	RPC2_allocaddrinfo((struct sockaddr *)&sa, fromlen,
+	RPC2_allocaddrinfo((struct sockaddr *)&ss, fromlen,
 			   SOCK_DGRAM, IPPROTO_UDP);
 
     TR_RECV();
@@ -495,7 +489,7 @@ long rpc2_SendReliably(IN Conn, IN Sle, IN Packet, IN TimeOut)
     say(9, RPC2_DebugLevel, "Sending try at %ld on %#x (timeout %ld.%06ld)\n",
 			     rpc2_time(), Conn->UniqueCID,
 			     ThisRetryBeta[1].tv_sec, ThisRetryBeta[1].tv_usec);
-    rpc2_XmitPacket(Packet, Conn->HostInfo->Addr, 0);
+    rpc2_XmitPacket(Packet, Conn->HostInfo->Addr, Conn->sa, 0);
 
     if (rpc2_Bandwidth) rpc2_ResetLowerLimit(Conn, Packet);
 
@@ -553,7 +547,7 @@ long rpc2_SendReliably(IN Conn, IN Sle, IN Packet, IN TimeOut)
 		if (TestRole(Conn, CLIENT))   /* restamp retries if client */
 		    Packet->Header.TimeStamp = htonl(rpc2_MakeTimeStamp());
 		rpc2_Sent.Retries += 1;
-		rpc2_XmitPacket(Packet, Conn->HostInfo->Addr, 0);
+		rpc2_XmitPacket(Packet, Conn->HostInfo->Addr, Conn->sa, 0);
 		break;	/* switch */
 		
 	    default: assert(FALSE);

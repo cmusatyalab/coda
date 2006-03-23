@@ -90,15 +90,24 @@ void sftp_ExaminePacket(RPC2_PacketBuffer *pb)
     if (ntohl(pb->Header.ProtoVersion) != SFTPVERSION)
 	{ BOGUS(pb); return; }
 
-    /* Get the connection and side-effect entries, and make sure they aren't in error. */
+    /* Get the connection and side-effect entries, and make sure they aren't
+     * in error. */
     ce = rpc2_GetConn(ntohl(pb->Header.RemoteHandle));
-    if (ce == NULL ||
-	TestState(ce, CLIENT, C_HARDERROR) ||
-	TestState(ce, SERVER, S_HARDERROR) ||
-//	pb->Header.LocalHandle != ce->PeerHandle ||
-	(sfp = (struct SFTP_Entry *)ce->SideEffectPtr) == NULL ||
-	sfp->WhoAmI == ERROR ||
-	sfp->WhoAmI == DISKERROR)
+
+    /* check if the packet and the connection use the same security context. */
+    if (ce && (ce->sa != pb->Prefix.sa)) {
+	SFTP_FreeBuffer(&pb);
+	return;
+    }
+
+    sfp = ce ? (struct SFTP_Entry *)ce->SideEffectPtr : NULL;
+
+    if (!ce || !sfp
+	|| TestState(ce, CLIENT, C_HARDERROR)
+	|| TestState(ce, SERVER, S_HARDERROR)
+//	|| pb->Header.LocalHandle != ce->PeerHandle
+	|| sfp->WhoAmI == ERROR
+	|| sfp->WhoAmI == DISKERROR)
     {
 	/* SFSendNAK expects host-order */
 	pb->Header.LocalHandle = ntohl(pb->Header.LocalHandle);
@@ -108,7 +117,8 @@ void sftp_ExaminePacket(RPC2_PacketBuffer *pb)
     }
 
     /* Decrypt and net-to-host the packet. */
-    if (ntohl(pb->Header.Flags) & RPC2_ENCRYPTED) sftp_Decrypt(pb, sfp);
+    if (ntohl(pb->Header.Flags) & RPC2_ENCRYPTED)
+	sftp_Decrypt(pb, sfp);
     rpc2_ntohp(pb);
 
     /* Drop NAK's. */
@@ -126,7 +136,7 @@ void sftp_ExaminePacket(RPC2_PacketBuffer *pb)
 	/* When we are the SFSERVER, tell the blocked thread about the
 	 * failure now, instead of having it wait for a full timeout. */
 	if (iamserver) ServerPacket(NULL, sfp);
-	return;	
+	return;
     }
 
     /* SANITY CHECK: validate socket-level and connection-level host values. */
@@ -139,7 +149,7 @@ void sftp_ExaminePacket(RPC2_PacketBuffer *pb)
 	BOGUS(pb);
 	return;
     }
-	    
+
     /* SANITY CHECK: make sure this pertains to the current RPC call. */
     if (pb->Header.ThisRPCCall != sfp->ThisRPCCall)
     {
@@ -148,14 +158,15 @@ void sftp_ExaminePacket(RPC2_PacketBuffer *pb)
 	return;
     }
 
-    /* Client records SFTP port here since we may need to use it before we record other parms. */
+    /* Client records SFTP port here since we may need to use it before we
+     * record other parms. */
     if (sfp->GotParms == FALSE && sfp->WhoAmI == SFCLIENT)
     {
 	sfp->HostInfo = ce->HostInfo;		/* Set up host/port linkage. */
 	/* Can't set GotParms to TRUE yet; must pluck off other parms. */
     }
 
-    /* update the last-heard-from times for this SFTP entry, and the 
+    /* update the last-heard-from times for this SFTP entry, and the
        connection-independent entry for this host. */
     assert(sfp->HostInfo != NULL);
 
@@ -210,7 +221,7 @@ static void ClientPacket(RPC2_PacketBuffer *whichPacket,
     {
     case SFTP_NAK:
 	assert(FALSE);  /* should have been dealt with in sftp_ExaminePacket()*/
-	break;	    
+	break;
 
     case SFTP_ACK:
 	/* Makes sense only if we are on source side */
@@ -287,7 +298,7 @@ static void SFSendNAK(RPC2_PacketBuffer *pb)
     SFTP_AllocBuffer(0, &nakpb);
     nakpb->Prefix.LengthOfPacket = sizeof(struct RPC2_PacketHeader);
     nakpb->Header.ProtoVersion = SFTPVERSION;
-    nakpb->Header.RemoteHandle = remoteHandle; 
+    nakpb->Header.RemoteHandle = remoteHandle;
     nakpb->Header.LocalHandle = -1;	/* "from Listener" */
     nakpb->Header.BodyLength = 0;
     nakpb->Header.Opcode = SFTP_NAK;

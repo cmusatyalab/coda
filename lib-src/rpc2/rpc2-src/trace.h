@@ -501,8 +501,8 @@ struct TraceElem
 	te->CallCode = XMITPACKET;\
 	strncpy(te->ActiveLWP, LWP_Name(), sizeof(te->ActiveLWP)-1);\
 	tea->whichSocket = whichSocket;\
-	tea->whichPB_Address = whichPB;\
-	tea->whichPB = *whichPB;	/* structure assignment */\
+	tea->whichPB_Address = pb;\
+	tea->whichPB = *pb;	/* structure assignment */\
 	rpc2_htonp(&tea->whichPB);\
 	tea->whichAddr = *addr;	/* BAD! structure assignment */\
 	tea->whichAddr.ai_next = NULL; \
