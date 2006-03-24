@@ -46,6 +46,17 @@ Coda are listed in the file CREDITS.
 #define MAXIVLEN  32
 #define MAXICVLEN 32
 
+/* Identifiers for authentication algorithms (IANA) */
+#define SECURE_ENCR_NULL	11
+#define SECURE_ENCR_AES_CBC	12
+#define SECURE_ENCR_AES_CTR	13
+#define SECURE_ENCR_AES_CCM_8	14
+#define SECURE_ENCR_AES_CCM_12	15
+#define SECURE_ENCR_AES_CCM_16	16
+#define SECURE_ENCR_AES_GCM_8	18
+#define SECURE_ENCR_AES_GCM_12	19
+#define SECURE_ENCR_AES_GCM_16	20
+
 struct secure_crypt {
     const int id;
     const char *name;
@@ -53,11 +64,17 @@ struct secure_crypt {
     void (*release)(void **ctx);
     int (*func)(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
 		const uint8_t *iv);
-    const size_t keysize;
+    const size_t min_keysize;
+    const size_t max_keysize;
     const size_t blocksize;
     const size_t iv_len;
     const size_t icv_len;
 };
+
+/* Identifiers for authentication algorithms (IANA) */
+#define SECURE_AUTH_NONE	  0
+#define SECURE_AUTH_HMAC_SHA_1_96 2
+#define SECURE_AUTH_AES_XCBC_96	  9
 
 struct secure_auth {
     const int id;
@@ -68,6 +85,7 @@ struct secure_auth {
     const size_t keysize;
     const size_t icv_len;
 };
+
 
 struct security_association {
     /* incoming packets */
