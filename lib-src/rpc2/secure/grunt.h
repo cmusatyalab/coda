@@ -27,8 +27,12 @@ Coda are listed in the file CREDITS.
 	int32(out)[3] ^= int32(in)[3]; \
     } while(0)
 
+
 /* private functions */
-void secure_random_init(void);
+void secure_aes_init(int verbose);
+
+/* these might be exported at some point */
+void secure_random_init(int verbose);
 void secure_random_release(void);
 
 #endif /* _GRUNT_H_ */

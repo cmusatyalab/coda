@@ -179,8 +179,159 @@ static void get_initial_seed(uint8_t *ptr, size_t len)
      */
 }
 
-/* here are the exported functions */
-void secure_random_init(void)
+/* Statistical random number generator tests defined in
+ * FIPS 140-1 - 4.11.1 Power-Up Tests
+ *
+ *  A single bit stream of 20,000 consecutive bits of output from the
+ *  generator is subjected to each of the following tests. If any of the
+ *  tests fail, then the module shall enter an error state.
+ *
+ * The Monobit Test
+ *  1. Count the number of ones in the 20,000 bit stream. Denote this
+ *     quantity by X.
+ *  2. The test is passed if 9,654 < X < 10,346
+ *
+ * The Poker Test
+ *  1. Divide the 20,000 bit stream into 5,000 contiguous 4 bit
+ *     segments. Count and store the number of occurrences of each of
+ *     the 16 possible 4 bit values. Denote f(i) as the number of each 4
+ *     bit value i where 0 < i < 15.
+ *  2. Evaluate the following: X = (16/5000) * (Sum[f(i)]^2)-5000
+ *  3. The test is passed if 1.03 < X < 57.4
+ *
+ * The Runs Test
+ *  1. A run is defined as a maximal sequence of consecutive bits of
+ *     either all ones or all zeros, which is part of the 20,000 bit
+ *     sample stream. The incidences of runs (for both consecutive zeros
+ *     and consecutive ones) of all lengths ( 1) in the sample stream
+ *     should be counted and stored.
+ *  2. The test is passed if the number of runs that occur (of lengths 1
+ *     through 6) is each within the corresponding interval specified
+ *     below. This must hold for both the zeros and ones; that is, all
+ *     12 counts must lie in the specified interval. For the purpose of
+ *     this test, runs of greater than 6 are considered to be of length 6.
+ *       Length of Run			    Required Interval
+ *	     1					2,267-2,733
+ *	     2					1,079-1,421
+ *	     3					502-748
+ *	     4					223-402
+ *	     5					90-223
+ *	     6+					90-223
+ *
+ * The Long Run Test
+ *  1. A long run is defined to be a run of length 34 or more (of either
+ *     zeros or ones).
+ *  2. On the sample of 20,000 bits, the test is passed if there are NO
+ *     long runs.
+ */
+
+#define TESTSIZE (20000 / (sizeof(uint32_t) * 8))
+
+static void check_random(int verbose)
+{
+    uint32_t data[TESTSIZE], val;
+    int i, j, idx, failed = 0;
+    int ones, f[16], run, odd, longrun;
+
+    secure_random_bytes((uint8_t *)data, sizeof(data));
+
+    /* the tests do not define the 'endianess' of the stream, so
+     * I assume little endian */
+
+    /* Monobit Test */
+    if (verbose)
+	fprintf(stderr, "PRNG monobit test:              ");
+    for (ones = 0, i = 0 ; i < TESTSIZE; i++) {
+	val = data[i];
+	while (val) {
+	    if (val & 1) ones++;
+	    val >>= 1;
+	}
+    }
+    if (ones <= 9654 || ones >= 10346) {
+	fprintf(stderr, "PRNG monobit test FAILED\n");
+	failed++;
+    } else if (verbose)
+	fprintf(stderr, "PASSED\n");
+
+    /* Poker Test */
+    if (verbose)
+	fprintf(stderr, "PRNG poker test:                ");
+    memset(f, 0, sizeof(f));
+    for (i = 0 ; i < TESTSIZE; i++) {
+	for (j = 0; j < 32; j += 4) {
+	    idx = (data[i] >> j) & 0xf;
+	    f[idx]++;
+	}
+    }
+    for (val = 0, i = 0; i < 16; i++)
+	val += f[i] * f[i];
+    assert((val & 0xf0000000) == 0);
+    val <<= 4;
+    if (val <= 25005150 || val >= 25287000) {
+	fprintf(stderr, "PRNG poker test FAILED\n");
+	failed++;
+    } else if (verbose)
+	fprintf(stderr, "PASSED\n");
+
+    /* Runs Test */
+    if (verbose)
+	fprintf(stderr, "PRNG runs test:                 ");
+    memset(f, 0, sizeof(f));
+    odd = run = longrun = 0;
+    for (i = 0 ; i < TESTSIZE; i++) {
+	val = data[i];
+	for (j = 0; j < 32; j++) {
+	    if (odd ^ (val & 1)) {
+		if (run) {
+		    if (run > longrun)
+			longrun = run;
+		    if (run > 6)
+			run = 6;
+		    idx = run - 1 + (odd ? 6 : 0);
+		    f[idx]++;
+		}
+		odd = val & 1;
+		run = 0;
+	    }
+	    run++;
+	    val >>= 1;
+	}
+    }
+    if (run > longrun)
+	longrun = run;
+    if (run > 6)
+	run = 6;
+    idx = run - 1 + (odd ? 6 : 0);
+    f[idx]++;
+
+    if (f[0] <= 2267 || f[0] >= 2733 || f[6] <= 2267 || f[6] >= 2733 ||
+	f[1] <= 1079 || f[1] >= 1421 || f[7] <= 1079 || f[7] >= 1421 ||
+	f[2] <= 502  || f[2] >= 748  || f[8] <= 502  || f[8] >= 748 ||
+	f[3] <= 223  || f[3] >= 402  || f[9] <= 223  || f[9] >= 402 ||
+	f[4] <= 90   || f[4] >= 223  || f[10] <= 90  || f[10] >= 223 ||
+	f[5] <= 90   || f[5] >= 223  || f[11] <= 90  || f[11] >= 223)
+    {
+	fprintf(stderr, "PRNG runs test FAILED\n");
+	failed++;
+    } else if (verbose)
+	fprintf(stderr, "PASSED\n");
+
+    /* Long Run Test */
+    if (verbose)
+	fprintf(stderr, "PRNG long run test:             ");
+    if (longrun >= 34) {
+	fprintf(stderr, "PRNG long run test FAILED\n");
+	failed++;
+    } else if (verbose)
+	fprintf(stderr, "PASSED\n");
+
+    if (failed)
+	exit(-1);
+}
+
+/* initialization only called from secure_init */
+void secure_random_init(int verbose)
 {
     uint8_t initial_seed[INITIAL_SEED_LENGTH];
 
@@ -190,6 +341,8 @@ void secure_random_init(void)
 
     /* initialize the RNG */
     prng_init(initial_seed);
+
+    check_random(verbose);
 }
 
 void secure_random_release(void)
@@ -197,8 +350,10 @@ void secure_random_release(void)
     prng_free();
 }
 
+/* this is really the only exported function */
 void secure_random_bytes(uint8_t *random, size_t len)
 {
     prng_get_bytes(random, len);
 }
+
 

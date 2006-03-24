@@ -28,11 +28,11 @@ typedef struct {
     uint32_t context[4*(AES_MAXROUNDS+1)];
     uint32_t rounds;
 } aes_context;
-
 #define aes_encrypt_ctx aes_context
 #define aes_decrypt_ctx aes_context
 
-static inline int aes_init(void) { return 0; }
+/* Define this to the function used to setup tables during initialization */
+/* #define AES_INIT_FUNC */
 
 static inline int aes_encrypt_key(const uint8_t *key, int keylen,
 				  aes_encrypt_ctx *ctx)
@@ -50,7 +50,7 @@ static inline int aes_decrypt_key(const uint8_t *key, int keylen,
 
 static inline int aes_encrypt(const uint8_t in[AES_BLOCK_SIZE],
 			       uint8_t out[AES_BLOCK_SIZE],
-			       const aes_context *ctx)
+			       const aes_encrypt_ctx *ctx)
 {
     rijndaelEncrypt(ctx->context, ctx->rounds, in, out);
     return 0;
@@ -58,7 +58,7 @@ static inline int aes_encrypt(const uint8_t in[AES_BLOCK_SIZE],
 
 static inline int aes_decrypt(const uint8_t in[AES_BLOCK_SIZE],
 			       uint8_t out[AES_BLOCK_SIZE],
-			       const aes_context *ctx)
+			       const aes_decrypt_ctx *ctx)
 {
     rijndaelDecrypt(ctx->context, ctx->rounds, in, out);
     return 0;
