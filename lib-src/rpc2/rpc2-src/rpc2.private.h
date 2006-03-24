@@ -562,8 +562,6 @@ void rpc2_PrintTMElem(), rpc2_PrintFilter(), rpc2_PrintSLEntry(),
 	rpc2_PrintHostIdent(), rpc2_PrintPortIdent(), rpc2_PrintSEDesc();
 extern FILE *ErrorLogFile;
 
-unsigned int rpc2_TrueRandom(void);
-
 /* encryption */
 void rpc2_ApplyD(RPC2_PacketBuffer *pb, struct CEntry *ce);
 void rpc2_ApplyE(RPC2_PacketBuffer *pb, struct CEntry *ce);

@@ -528,7 +528,8 @@ typedef
 	}
     RPC2_Options;
 
-#define RPC2_OPTION_IPV6 1
+#define RPC2_OPTION_IPV6	 0x1
+#define RPC2_OPTION_VERBOSE_INIT 0x2
 
 /* Structure for passing parameters to RPC2_NewBinding() and its multi clone */
 

@@ -332,8 +332,13 @@ static void check_random(int verbose)
 	exit(-1);
 }
 
+static int initialized;
+
 void secure_init(int verbose)
 {
+    if (initialized) return;
+    initialized++;
+
     /* Initialize and run the AES test vectors */
     aes_init();
     check_aes_monte_carlo(verbose);
@@ -348,5 +353,6 @@ void secure_init(int verbose)
 void secure_release(void)
 {
     secure_random_release();
+    initialized = 0;
 }
 

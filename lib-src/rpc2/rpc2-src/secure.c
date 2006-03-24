@@ -45,10 +45,12 @@ Pittsburgh, PA.
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <assert.h>
+#include <rpc2/secure.h>
 #include "rpc2.private.h"
 
-static char RNState[256];	/* state for random() number generator;
-				can coexist with other states elsewhere  */
+#define RNDPOOL 256
+static uint8_t RNState[RNDPOOL];
+static int RNStateAvail;
 
 int rpc2_XDebug;
 
@@ -98,47 +100,22 @@ void rpc2_Decrypt(IN FromBuffer, OUT ToBuffer,  IN HowManyBytes, IN WhichKey, IN
 
 void rpc2_InitRandom()
 {
-    initstate(rpc2_TrueRandom(), RNState, sizeof(RNState));
-    setstate(RNState);		/* default for rpc2_NextRandom() */
+    /* just in case someone uses rpc2_InitRandom before calling RPC2_Init */
+    secure_init(0);
+    RNStateAvail = 0;
 }
-
-unsigned int rpc2_TrueRandom(void)
-/* Returns a non-zero random number which may be used as the seed of a
- * pseudo-random number generator. Obtained by looking at the microseconds part
- * of the time of day. How truly random this is depends on the hardware.  On
- * the VAX and SUNs, it seems reasonable when the lowest byte of gettimeofday
- * is thrown away. */
-{
-    struct timeval tp;
-    long x=0;
-
-    while (x == 0) {
-	TM_GetTimeOfDay(&tp, NULL);
-	x = tp.tv_usec >> 8;	/* No sign problems 'cause tv_usec never has high bit set */
-    }
-    return(x);
-}
-
 
 unsigned int rpc2_NextRandom(char *StatePtr)
-/* Generates the next random number from the sequence corr to StatePtr->state.
- * Restores the generator to use the state it was using upon entry. Isolates
- * multiple random number sequences. Handy when a server is also a client, or
- * when higher-level software also need random numbers.
- *
- * If StatePtr is NULL, the static variable RNState is used as default.
- *
- * NOTE: The numbers are less than 2**30 to make overflow problems unlikely. */
 {
-    char *prev_state;
     unsigned int x;
 
-    if (!StatePtr) StatePtr = RNState;	/* it's ok, call by value */
-    prev_state = setstate(StatePtr);
+    if (RNStateAvail < sizeof(x)) {
+	secure_random_bytes(RNState, sizeof(RNState));
+	RNStateAvail = sizeof(RNState);
+    }
+    memcpy(&x, RNState + (sizeof(RNState) - RNStateAvail), sizeof(x));
+    RNStateAvail -= sizeof(x);
 
-    x = ((unsigned int)random() >> 1) & 0x3fffffff; /* limit to 2**30 */
-
-    setstate(prev_state);
     return(x);
 }
 

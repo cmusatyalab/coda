@@ -59,6 +59,8 @@ Pittsburgh, PA.
 #include <errno.h>
 #include <assert.h>
 #include <sys/file.h>
+
+#include <rpc2/secure.h>
 #include "rpc2.private.h"
 #include <rpc2/se.h>
 #include "trace.h"
@@ -80,6 +82,7 @@ long RPC2_Init(char *VId,		/* magic version string */
     struct RPC2_addrinfo *rpc2_localaddrs;
     long rc1 = RPC2_NOCONNECTION, rc2, rc;
     short port = 0;
+    int verbose;
 
     rpc2_logfile = stderr;
     rpc2_tracefile = stderr;
@@ -88,7 +91,7 @@ long RPC2_Init(char *VId,		/* magic version string */
     say(0, RPC2_DebugLevel, "RPC2_Init()\n");
     say(999, RPC2_DebugLevel, "Runtime system version: \"%s\"\n", RPC2_VERSION);
 
-    if (strcmp(VId, RPC2_VERSION) != 0) 
+    if (strcmp(VId, RPC2_VERSION) != 0)
     {
 	say(-1, RPC2_DebugLevel, "RPC2_Init(): Wrong RPC2 version\n");
 	rpc2_Quit (RPC2_WRONGVERSION);
@@ -99,6 +102,9 @@ long RPC2_Init(char *VId,		/* magic version string */
 
     if (Options && (Options->Flags & RPC2_OPTION_IPV6))
 	rpc2_ipv6ready = 1;
+
+    verbose = (Options && (Options->Flags & RPC2_OPTION_IPV6));
+    secure_init(verbose);
 
     rpc2_InitMgrp();
     rpc2_InitHost();
@@ -137,9 +143,6 @@ long RPC2_Init(char *VId,		/* magic version string */
 	say(-1, RPC2_DebugLevel,"RPC2_Init(): Failed to init retryintervals\n");
 	rpc2_Quit(RPC2_FAIL);
     }
-
-    /* Initialize random number generation for sequence numbers */
-    rpc2_InitRandom();
 
     IOMGR_Initialize();
     TM_Init(&rpc2_TimerQueue);
