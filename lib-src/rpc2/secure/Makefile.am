@@ -27,6 +27,8 @@ secure_test_SOURCES = secure_test.c
 noinst_HEADERS = aes.h grunt.h rijndael-alg-fst.h testvectors.h
 libsecure_la_SOURCES = secure_init.c secure_aes.c secure_random.c \
     secure_recvfrom.c secure_sendto.c \
+    auth_none.c auth_aes_xcbc.c \
+    encr_null.c encr_aes_cbc.c encr_aes_ccm.c \
     rijndael-alg-fst.c
 EXTRA_DIST = README.secure gen_testvectors.sh \
     rijndael-mikescott.h rijndael-mikescott.c

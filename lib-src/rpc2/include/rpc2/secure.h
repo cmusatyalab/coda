@@ -60,7 +60,7 @@ Coda are listed in the file CREDITS.
 struct secure_crypt {
     const int id;
     const char *name;
-    int (*init)(void **ctx, const uint8_t *key);
+    int (*init)(void **ctx, const uint8_t *key, size_t len);
     void (*release)(void **ctx);
     int (*func)(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
 		const uint8_t *iv);

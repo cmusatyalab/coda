@@ -30,8 +30,11 @@ Coda are listed in the file CREDITS.
 
 /* private functions */
 void secure_aes_init(int verbose);
+int aes_cbc_encrypt(const uint8_t *in, uint8_t *out, size_t len,
+		    const uint8_t *iv, aes_encrypt_ctx *ctx);
+int aes_cbc_decrypt(const uint8_t *in, uint8_t *out, size_t len,
+		    const uint8_t *iv, aes_decrypt_ctx *ctx);
 
-/* these might be exported at some point */
 void secure_random_init(int verbose);
 void secure_random_release(void);
 

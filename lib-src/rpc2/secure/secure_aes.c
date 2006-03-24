@@ -24,6 +24,58 @@ Coda are listed in the file CREDITS.
 #include "grunt.h"
 #include "testvectors.h"
 
+
+/* Simple cbc encrypt/decrypt implementation,
+ * - Assumes buffers are aligned on a 4-byte boundary.
+ * - Assumes length is a multiple of AES_BLOCK_SIZE.
+ * - Allows for in-place encryption (in == out).
+ * - Does not modify iv.
+ * - Minimizes data copies.
+ */
+int aes_cbc_encrypt(const uint8_t *in, uint8_t *out, size_t len,
+		    const uint8_t *iv, aes_encrypt_ctx *ctx)
+{
+    int blocks = len / AES_BLOCK_SIZE;
+    assert((len % AES_BLOCK_SIZE) == 0);
+    while (blocks--)
+    {
+	int32(out)[0] = int32(in)[0] ^ int32(iv)[0];
+	int32(out)[1] = int32(in)[1] ^ int32(iv)[1];
+	int32(out)[2] = int32(in)[2] ^ int32(iv)[2];
+	int32(out)[3] = int32(in)[3] ^ int32(iv)[3];
+
+	aes_encrypt(out, out, ctx);
+
+	iv = out;
+	in += AES_BLOCK_SIZE;
+	out += AES_BLOCK_SIZE;
+    }
+    return len;
+}
+
+int aes_cbc_decrypt(const uint8_t *in, uint8_t *out, size_t len,
+		    const uint8_t *iv, aes_decrypt_ctx *ctx)
+{
+    int blocks = (len / AES_BLOCK_SIZE) - 1;
+    assert((len % AES_BLOCK_SIZE) == 0);
+
+    /* go backwards from the end to avoid an extra copy on every iteration */
+    in  += blocks * AES_BLOCK_SIZE;
+    out += blocks * AES_BLOCK_SIZE;
+    while (blocks--)
+    {
+	aes_decrypt(in, out, ctx);
+	in -= AES_BLOCK_SIZE;
+	xor128(out, in);
+	out -= AES_BLOCK_SIZE;
+    }
+    aes_decrypt(in, out, ctx);
+    xor128(out, iv);
+
+    return len;
+}
+
+
 /* check test vectors */
 static void check_aes_monte_carlo(int verbose)
 {
