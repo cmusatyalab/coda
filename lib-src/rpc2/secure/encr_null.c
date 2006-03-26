@@ -16,7 +16,7 @@ Coda are listed in the file CREDITS.
 #include <string.h>
 #include <rpc2/secure.h>
 
-static int init(void **ctx, const uint8_t *key)
+static int init(void **ctx, const uint8_t *key, size_t len)
 {
     return 1;
 }
