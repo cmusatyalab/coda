@@ -75,7 +75,7 @@ extern void B_And();
 
 static void SFSendBusy();
 static void MC_AppendParmsToPacket();
-static int MC_SendStrategy(), SDescCmp(), MC_ExtractParmsFromPacket();
+static int MC_SendStrategy(), MC_ExtractParmsFromPacket();
 
 /*----------------------- The procs below interface directly with RPC2 ------------------------ */
 
@@ -524,37 +524,6 @@ static int MC_SendStrategy(me, mse)
         }
 
     return(0);
-    }
-
-
-static int SDescCmp(desc1, desc2)
-    SE_Descriptor *desc1, *desc2;
-    {
-    struct SFTP_Descriptor *ftpd1 = &desc1->Value.SmartFTPD;
-    struct SFTP_Descriptor *ftpd2 = &desc2->Value.SmartFTPD;
-
-    if (desc1->Tag != desc2->Tag ||
-	ftpd1->TransmissionDirection != ftpd2->TransmissionDirection ||
-	ftpd1->hashmark != ftpd2->hashmark ||
-	ftpd1->SeekOffset != ftpd2->SeekOffset ||
-	ftpd1->ByteQuota != ftpd2->ByteQuota ||
-	 ftpd1->Tag != ftpd2->Tag)
-    { say(9, SFTP_DebugLevel, "SDescCmp: FAILED\n"); return(FALSE); }
-
-    if (ftpd1->Tag == FILEBYNAME)
-	{
-	if (ftpd1->FileInfo.ByName.ProtectionBits != ftpd2->FileInfo.ByName.ProtectionBits ||
-	    strncmp(ftpd1->FileInfo.ByName.LocalFileName, ftpd2->FileInfo.ByName.LocalFileName, sizeof(ftpd1->FileInfo.ByName.LocalFileName)) != 0)
-    { say(9, SFTP_DebugLevel, "SDescCmp: FAILED\n"); return(FALSE); }
-	}
-    else	/* ftpd1->Tag == FILEBYINODE */
-	{
-	if (ftpd1->FileInfo.ByInode.Device != ftpd2->FileInfo.ByInode.Device ||
-	    ftpd1->FileInfo.ByInode.Inode != ftpd2->FileInfo.ByInode.Inode)
-    { say(9, SFTP_DebugLevel, "SDescCmp: FAILED\n"); return(FALSE); }
-	}
-
-    return(TRUE);
     }
 
 
