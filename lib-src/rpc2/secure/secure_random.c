@@ -230,7 +230,8 @@ static void get_initial_seed(uint8_t *ptr, size_t len)
 static void check_random(int verbose)
 {
     uint32_t data[TESTSIZE], val;
-    int i, j, idx, fail, failed = 0;
+    unsigned int i, j, idx;
+    int fail, failed = 0;
     int ones, f[16], run, odd, longrun;
 
     secure_random_bytes(data, sizeof(data));

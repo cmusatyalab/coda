@@ -57,13 +57,17 @@ Coda are listed in the file CREDITS.
 #define SECURE_ENCR_AES_GCM_12	19
 #define SECURE_ENCR_AES_GCM_16	20
 
-struct secure_crypt {
+struct secure_encr {
     const int id;
     const char *name;
-    int (*init)(void **ctx, const uint8_t *key, size_t len);
-    void (*release)(void **ctx);
-    int (*func)(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
-		const uint8_t *iv);
+    int  (*encrypt_init)(void **ctx, const uint8_t *key, size_t len);
+    void (*encrypt_free)(void **ctx);
+    int  (*encrypt)(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
+		    const uint8_t *iv);
+    int  (*decrypt_init)(void **ctx, const uint8_t *key, size_t len);
+    void (*decrypt_free)(void **ctx);
+    int  (*decrypt)(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
+		    const uint8_t *iv);
     const size_t min_keysize;
     const size_t max_keysize;
     const size_t blocksize;
@@ -79,9 +83,9 @@ struct secure_crypt {
 struct secure_auth {
     const int id;
     const char *name;
-    int (*init)(void **ctx, const uint8_t *key);
-    void (*release)(void **ctx);
-    void (*func)(void *ctx, const uint8_t *in, size_t len, uint8_t *icv);
+    int  (*auth_init)(void **ctx, const uint8_t *key);
+    void (*auth_free)(void **ctx);
+    void (*auth)(void *ctx, const uint8_t *in, size_t len, uint8_t *icv);
     const size_t keysize;
     const size_t icv_len;
 };
@@ -96,7 +100,7 @@ struct security_association {
     const struct secure_auth *validate;
     void *validate_context;
 
-    const struct secure_crypt *decrypt;
+    const struct secure_encr *decrypt;
     void *decrypt_context;
 
     /* outgoing packets */
@@ -107,7 +111,7 @@ struct security_association {
     socklen_t peerlen;
     uint8_t send_iv[MAXIVLEN];
 
-    const struct secure_crypt *encrypt;
+    const struct secure_encr *encrypt;
     void *encrypt_context;
 
     const struct secure_auth *authenticate;

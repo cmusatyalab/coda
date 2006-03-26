@@ -55,7 +55,8 @@ static int sequence_number_verification(const struct security_association *sa,
     }
 
     /* too old, FAIL */
-    if (offset >= sizeof(sa->recv_win) * 8)
+    /* we already checked if offset is < 0 */
+    if (offset >= (int)(sizeof(sa->recv_win) * 8))
 	return -1;
 
     /* duplicate packet, FAIL */
@@ -121,7 +122,7 @@ static ssize_t packet_decryption(struct security_association *sa,
     in += sa->decrypt->iv_len;
     len -= sa->decrypt->iv_len;
 
-    len = sa->decrypt->func(sa->decrypt_context, in, out, len, iv);
+    len = sa->decrypt->decrypt(sa->decrypt_context, in, out, len, iv);
     if (len < 0)
 	return -1;
 
@@ -176,7 +177,7 @@ ssize_t secure_recvfrom(int s, void *buf, size_t len, int flags,
 	goto drop;
 
     /* check if we have valid spi & seq */
-    if (n >= (2 * sizeof(uint32_t))) {
+    if (n >= (int)(2 * sizeof(uint32_t))) {
 	spi = ntohl(((uint32_t *)packet)[0]);
 	seq = ntohl(((uint32_t *)packet)[1]);
     }
@@ -209,7 +210,7 @@ ssize_t secure_recvfrom(int s, void *buf, size_t len, int flags,
      * 257 bytes of padding */
     n -= sa->validate->icv_len;
     estimated_payload = n - (2 * sizeof(uint32_t)) - sa->decrypt->iv_len - 2;
-    if (estimated_payload < 0 || estimated_payload > len)
+    if (estimated_payload < 0 || (unsigned int)estimated_payload > len)
 	goto drop;
 
     if (sa->validate) {
@@ -228,7 +229,7 @@ ssize_t secure_recvfrom(int s, void *buf, size_t len, int flags,
 	assert(sa->validate->icv_len <= MAXICVLEN);
 
 	/* Perform the ICV computation */
-	sa->validate->func(sa, packet, n, tmp_icv);
+	sa->validate->auth(sa->validate_context, packet, n, tmp_icv);
 	if (memcmp(packet + n, tmp_icv, sa->validate->icv_len) != 0)
 	    goto drop;
 
@@ -236,8 +237,8 @@ ssize_t secure_recvfrom(int s, void *buf, size_t len, int flags,
 	    goto drop;
     }
 
-    len = packet_decryption(sa, buf, packet, n);
-    if (len < 0) goto drop;
+    n = packet_decryption(sa, buf, packet, n);
+    if (n < 0) goto drop;
 
     /* if we didn't have a validate function, assume we are using combined
      * decryption/validation algorithm such as AES-CCM */
@@ -245,18 +246,16 @@ ssize_t secure_recvfrom(int s, void *buf, size_t len, int flags,
 	if (integrity_check_passed(sa, seq, peer, *peerlen) == -1)
 	    goto drop;
 
-    /* Any truncated messages would not have validated correctly and would
-     * have been dropped by now */
-    n = len;
     goto done;
 
 not_encrypted:
-    if (n < len) len = n;
-    memcpy(buf, packet, len);
+    if ((ssize_t)len < n) n = len;
+    if (n > 0)
+	memcpy(buf, packet, n);
 
 done:
     if (ret_sa) *ret_sa = sa;
-    return (flags & MSG_TRUNC) ? n : len;
+    return n;
 
 drop:
     /* treat failures the same as an UDP checksum failures */

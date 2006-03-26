@@ -31,11 +31,11 @@ static void auth(void *ctx, const uint8_t *buf, size_t len, uint8_t *icv)
 }
 
 
-struct secure_auth secure_auth_NONE = {
+struct secure_auth secure_AUTH_NONE = {
     .id = SECURE_AUTH_NONE,
     .name = "AUTH-NONE",
-    .init = init,
-    .release = release,
-    .func = auth,
+    .auth_init = init,
+    .auth_free = release,
+    .auth = auth,
 };
 

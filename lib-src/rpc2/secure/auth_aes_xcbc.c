@@ -97,12 +97,12 @@ static void auth(void *ctx, const uint8_t *buf, size_t len, uint8_t *icv)
     memcpy(icv, iv, ICV_LEN);
 }
 
-struct secure_auth secure_auth_aes_xcbc_mac_96 = {
+struct secure_auth secure_AUTH_AES_XCBC_MAC_96 = {
     .id = SECURE_AUTH_AES_XCBC_96,
     .name = "AUTH-AES-XCBC-MAC-96",
-    .init = init,
-    .release = release,
-    .func = auth,
+    .auth_init = init,
+    .auth_free = release,
+    .auth = auth,
     .keysize = AES_BLOCK_SIZE,
     .icv_len = ICV_LEN,
 };

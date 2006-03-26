@@ -18,6 +18,9 @@ Coda are listed in the file CREDITS.
 #ifndef _GRUNT_H_
 #define _GRUNT_H_
 
+#include <stdint.h>
+#include "aes.h"
+
 #define bytes(bits)	((bits)/8)
 #define int32(x)	((uint32_t *)(x))
 #define xor128(out, in)	do { \
@@ -29,13 +32,19 @@ Coda are listed in the file CREDITS.
 
 
 /* private functions */
+/* secure_aes.c */
 void secure_aes_init(int verbose);
 int aes_cbc_encrypt(const uint8_t *in, uint8_t *out, size_t len,
 		    const uint8_t *iv, aes_encrypt_ctx *ctx);
 int aes_cbc_decrypt(const uint8_t *in, uint8_t *out, size_t len,
 		    const uint8_t *iv, aes_decrypt_ctx *ctx);
 
+/* secure_random.c */
 void secure_random_init(int verbose);
 void secure_random_release(void);
+
+/* secure_init.c */
+const struct secure_auth *secure_get_auth_byid(int id);
+const struct secure_encr *secure_get_encr_byid(int id);
 
 #endif /* _GRUNT_H_ */

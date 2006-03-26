@@ -36,7 +36,7 @@ struct aes_ccm_ctx {
 	uint8_t flag_n_salt[4];
     } u;
     aes_encrypt_ctx ctx;
-    int icv_len;
+    unsigned int icv_len;
 };
 
 static int init(void **ctx, const uint8_t *key, size_t len, size_t icv_len)
@@ -197,81 +197,51 @@ static int decrypt(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
     return aes_ccm_crypt(ctx, in, out, len, iv, 0);
 }
 
-struct secure_crypt encrypt_aes_ccm_8 = {
-    .id	         = SECURE_ENCR_AES_CCM_8,
-    .name        = "ENCR-AES-CCM-8",
-    .init        = init8,
-    .release     = release,
-    .func        = encrypt,
-    .min_keysize = bytes(128) + 3,
-    .max_keysize = bytes(256) + 3,
-    .blocksize   = AES_BLOCK_SIZE,
-    .iv_len      = 8,
-    .icv_len     = 8,
+struct secure_encr secure_ENCR_AES_CCM_8 = {
+    .id	          = SECURE_ENCR_AES_CCM_8,
+    .name         = "ENCR-AES-CCM-8",
+    .encrypt_init = init8,
+    .encrypt_free = release,
+    .encrypt      = encrypt,
+    .decrypt_init = init8,
+    .decrypt_free = release,
+    .decrypt      = decrypt,
+    .min_keysize  = bytes(128) + 3,
+    .max_keysize  = bytes(256) + 3,
+    .blocksize    = AES_BLOCK_SIZE,
+    .iv_len       = 8,
+    .icv_len      = 8,
 };
 
-struct secure_crypt decrypt_aes_ccm_8 = {
-    .id	         = SECURE_ENCR_AES_CCM_8,
-    .name        = "ENCR-AES-CCM-8",
-    .init        = init8,
-    .release     = release,
-    .func        = decrypt,
-    .min_keysize = bytes(128) + 3,
-    .max_keysize = bytes(256) + 3,
-    .blocksize   = AES_BLOCK_SIZE,
-    .iv_len      = 8,
-    .icv_len     = 8,
+struct secure_encr secure_ENCR_AES_CCM_12 = {
+    .id	          = SECURE_ENCR_AES_CCM_12,
+    .name         = "ENCR-AES-CCM-12",
+    .encrypt_init = init12,
+    .encrypt_free = release,
+    .encrypt      = encrypt,
+    .decrypt_init = init12,
+    .decrypt_free = release,
+    .decrypt      = decrypt,
+    .min_keysize  = bytes(128) + 3,
+    .max_keysize  = bytes(256) + 3,
+    .blocksize    = AES_BLOCK_SIZE,
+    .iv_len       = 8,
+    .icv_len      = 12,
 };
 
-struct secure_crypt encrypt_aes_ccm_12 = {
-    .id	         = SECURE_ENCR_AES_CCM_12,
-    .name        = "ENCR-AES-CCM-12",
-    .init        = init12,
-    .release     = release,
-    .func        = encrypt,
-    .min_keysize = bytes(128) + 3,
-    .max_keysize = bytes(256) + 3,
-    .blocksize   = AES_BLOCK_SIZE,
-    .iv_len      = 8,
-    .icv_len     = 12,
-};
-
-struct secure_crypt decrypt_aes_ccm_12 = {
-    .id	         = SECURE_ENCR_AES_CCM_12,
-    .name        = "ENCR-AES-CCM-12",
-    .init        = init12,
-    .release     = release,
-    .func        = decrypt,
-    .min_keysize = bytes(128) + 3,
-    .max_keysize = bytes(256) + 3,
-    .blocksize   = AES_BLOCK_SIZE,
-    .iv_len      = 8,
-    .icv_len     = 12,
-};
-
-struct secure_crypt encrypt_aes_ccm_16 = {
-    .id	         = SECURE_ENCR_AES_CCM_16,
-    .name        = "ENCR-AES-CCM-12",
-    .init        = init16,
-    .release     = release,
-    .func        = encrypt,
-    .min_keysize = bytes(128) + 3,
-    .max_keysize = bytes(256) + 3,
-    .blocksize   = AES_BLOCK_SIZE,
-    .iv_len      = 8,
-    .icv_len     = 16,
-};
-
-struct secure_crypt decrypt_aes_ccm_16 = {
-    .id	         = SECURE_ENCR_AES_CCM_16,
-    .name        = "ENCR-AES-CCM-16",
-    .init        = init16,
-    .release     = release,
-    .func        = decrypt,
-    .min_keysize = bytes(128) + 3,
-    .max_keysize = bytes(256) + 3,
-    .blocksize   = AES_BLOCK_SIZE,
-    .iv_len      = 8,
-    .icv_len     = 16,
+struct secure_encr secure_ENCR_AES_CCM_16 = {
+    .id	          = SECURE_ENCR_AES_CCM_16,
+    .name         = "ENCR-AES-CCM-12",
+    .encrypt_init = init16,
+    .encrypt_free = release,
+    .encrypt      = encrypt,
+    .decrypt_init = init16,
+    .decrypt_free = release,
+    .decrypt      = decrypt,
+    .min_keysize  = bytes(128) + 3,
+    .max_keysize  = bytes(256) + 3,
+    .blocksize    = AES_BLOCK_SIZE,
+    .iv_len       = 8,
+    .icv_len      = 16,
 };
 

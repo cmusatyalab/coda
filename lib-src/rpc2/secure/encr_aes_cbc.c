@@ -21,7 +21,7 @@ Coda are listed in the file CREDITS.
 #include "aes.h"
 #include "grunt.h"
 
-static int init_encrypt(void **ctx, const uint8_t *key, size_t len)
+static int encrypt_init(void **ctx, const uint8_t *key, size_t len)
 {
     *ctx = malloc(sizeof(aes_encrypt_ctx));
     if (!*ctx) return 0;
@@ -46,7 +46,7 @@ static int encrypt(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
     return aes_cbc_encrypt(in, out, len, iv, ctx);
 }
 
-static void release_encrypt(void **ctx)
+static void encrypt_free(void **ctx)
 {
     memset(*ctx, 0, sizeof(aes_encrypt_ctx));
     free(*ctx);
@@ -54,7 +54,7 @@ static void release_encrypt(void **ctx)
 }
 
 
-static int init_decrypt(void **ctx, const uint8_t *key, size_t len)
+static int decrypt_init(void **ctx, const uint8_t *key, size_t len)
 {
     *ctx = malloc(sizeof(aes_decrypt_ctx));
     if (!*ctx) return 0;
@@ -79,7 +79,7 @@ static int decrypt(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
     return aes_cbc_decrypt(in, out, len, iv, ctx);
 }
 
-static void release_decrypt(void **ctx)
+static void decrypt_free(void **ctx)
 {
     memset(*ctx, 0, sizeof(aes_decrypt_ctx));
     free(*ctx);
@@ -87,27 +87,18 @@ static void release_decrypt(void **ctx)
 }
 
 
-struct secure_crypt encrypt_aes_cbc = {
-    .id	         = SECURE_ENCR_AES_CBC,
-    .name        = "ENCR-AES-CBC",
-    .init        = init_encrypt,
-    .release     = release_encrypt,
-    .func        = encrypt,
-    .min_keysize = bytes(128),
-    .max_keysize = bytes(256),
-    .blocksize   = AES_BLOCK_SIZE,
-    .iv_len      = AES_BLOCK_SIZE,
-};
-
-struct secure_crypt decrypt_aes_cbc = {
-    .id	         = SECURE_ENCR_AES_CBC,
-    .name        = "ENCR-AES-CBC",
-    .init        = init_decrypt,
-    .release     = release_decrypt,
-    .func        = decrypt,
-    .min_keysize = bytes(128),
-    .max_keysize = bytes(256),
-    .blocksize   = AES_BLOCK_SIZE,
-    .iv_len      = AES_BLOCK_SIZE,
+struct secure_encr secure_ENCR_AES_CBC = {
+    .id	          = SECURE_ENCR_AES_CBC,
+    .name         = "ENCR-AES-CBC",
+    .encrypt_init = encrypt_init,
+    .encrypt_free = encrypt_free,
+    .encrypt      = encrypt,
+    .decrypt_init = decrypt_init,
+    .decrypt_free = decrypt_free,
+    .decrypt      = decrypt,
+    .min_keysize  = bytes(128),
+    .max_keysize  = bytes(256),
+    .blocksize    = AES_BLOCK_SIZE,
+    .iv_len       = AES_BLOCK_SIZE,
 };
 

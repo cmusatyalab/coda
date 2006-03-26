@@ -144,7 +144,8 @@ static void check_aes_monte_carlo(int verbose)
  * systems. */
 static int shift_right(uint8_t *buf, size_t buflen)
 {
-    int i, carry = 0;
+    unsigned int i;
+    int carry = 0;
 
     for (i = 0; i < buflen; i++) {
 	if (carry) {

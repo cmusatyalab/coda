@@ -22,14 +22,16 @@ Coda are listed in the file CREDITS.
 #include <errno.h>
 #include <assert.h>
 
-#include "rpc2/secure.h"
+#include <rpc2/secure.h>
+#include "grunt.h"
 
 ssize_t secure_sendto(int s, const void *buf, size_t len, int flags,
 		      const struct sockaddr *to, socklen_t tolen,
 		      struct security_association *sa)
 {
     uint8_t out[MAXPACKETSIZE];
-    size_t padded_size, n;
+    size_t padded_size;
+    ssize_t n;
     int i, pad_align, padding;
     uint8_t *p, *icv;
 
@@ -67,13 +69,13 @@ ssize_t secure_sendto(int s, const void *buf, size_t len, int flags,
 
     /* pack the header */
     p = out;
-    *(uint32_t *)p = htonl(sa->peer_spi); p += sizeof(uint32_t);
-    *(uint32_t *)p = htonl(sa->peer_seq); p += sizeof(uint32_t);
+    *int32(p) = htonl(sa->peer_spi); p += sizeof(uint32_t);
+    *int32(p) = htonl(sa->peer_seq); p += sizeof(uint32_t);
 
     /* increment and copy iv */
     if (sa->encrypt->iv_len) {
-	for (n = sa->encrypt->iv_len - 1; n >= 0; n--)
-	    if (++(sa->send_iv[n]))
+	for (i = sa->encrypt->iv_len - 1; i >= 0; i--)
+	    if (++(sa->send_iv[i]))
 		break;
 
 	memcpy(p, sa->send_iv, sa->encrypt->iv_len);
@@ -91,19 +93,19 @@ ssize_t secure_sendto(int s, const void *buf, size_t len, int flags,
 
     /* encrypt the payload */
     if (sa->encrypt) {
-	len = sa->encrypt->func(sa->encrypt_context,
-				p, p, len, out + 2 * sizeof(uint32_t));
-	if (len < 0) {
+	n = sa->encrypt->encrypt(sa->encrypt_context,
+				 p, p, len, out + 2 * sizeof(uint32_t));
+	if (n < 0) {
 	    errno = EMSGSIZE;
 	    return -1;
 	}
+	len = n + 2 * sizeof(uint32_t) + sa->encrypt->iv_len;
     }
-    len += 2 * sizeof(uint32_t) + sa->encrypt->iv_len;
 
     /* add message authentication */
     if (sa->authenticate) {
 	icv = out + len;
-	sa->authenticate->func(sa, out, len, icv);
+	sa->authenticate->auth(sa->authenticate_context, out, len, icv);
 	len += sa->authenticate->icv_len;
     }
 
