@@ -43,7 +43,7 @@ Pittsburgh, PA.
   Autonomous LWP that loops forever.  Effectively the "bottom half" of
   the RPC code.  Driven by timeouts and packet arrivals on the request
   socket.  Communicates with "top half" routines via SL entries.
-	
+
   ALL changes to NextSeqNumber field of connections take place
   entirely within rpc2_SocketListener(). Increments (+2) are performed
   by rpc2_IncrementSeqNumber(), which may be called in the MultiRPC
@@ -63,6 +63,7 @@ Pittsburgh, PA.
 #include <sys/time.h>
 #include <assert.h>
 #include "rpc2.private.h"
+#include <rpc2/secure.h>
 #include <rpc2/se.h>
 #include "trace.h"
 
@@ -1099,19 +1100,22 @@ static struct CEntry *MakeConn(struct RPC2_PacketBuffer *pb)
 
 	case RPC2_INIT1AUTHONLY:
 		ce->SecurityLevel = RPC2_AUTHONLY;
-		ce->NextSeqNumber = rpc2_NextRandom(0);
+		secure_random_bytes(&ce->NextSeqNumber,
+				    sizeof(ce->NextSeqNumber));
 		ce->EncryptionType = ntohl(ib1->FakeBody.EncryptionType);
 		break;
-		
+
 	case RPC2_INIT1HEADERSONLY:
 		ce->SecurityLevel = RPC2_HEADERSONLY;
-		ce->NextSeqNumber = rpc2_NextRandom(0);
+		secure_random_bytes(&ce->NextSeqNumber,
+				    sizeof(ce->NextSeqNumber));
 		ce->EncryptionType = ntohl(ib1->FakeBody.EncryptionType);
 		break;
 
 	case RPC2_INIT1SECURE:
 		ce->SecurityLevel = RPC2_SECURE;
-		ce->NextSeqNumber = rpc2_NextRandom(0);
+		secure_random_bytes(&ce->NextSeqNumber,
+				    sizeof(ce->NextSeqNumber));
 		ce->EncryptionType = ntohl(ib1->FakeBody.EncryptionType);
 		break;
 		

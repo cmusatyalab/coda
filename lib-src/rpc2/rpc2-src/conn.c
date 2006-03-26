@@ -48,6 +48,7 @@ Pittsburgh, PA.
 #include <time.h>
 #include <assert.h>
 #include <rpc2/rpc2.h>
+#include <rpc2/secure.h>
 #include "rpc2.private.h"
 
 /* HASHLENGTH should be a power of two, because we use modulo HASHLENGTH-1 to
@@ -64,7 +65,7 @@ DLLIST_HEAD(rpc2_ConnFreeList);		/* free connection blocks */
 int rpc2_InitConn(void)
 {
     int i;
-    
+
     /* safety check, never initialize twice */
     if (rpc2_ConnCount != -1) return 0;
 
@@ -83,14 +84,14 @@ int rpc2_InitConn(void)
    existing connection.  */
 struct CEntry *__rpc2_GetConn(RPC2_Handle handle)
 {
-    long                i;
+    uint32_t            i;
     struct dllist_head *ptr;
     struct CEntry      *ceaddr;
 
     if (handle == 0) return(NULL);
 
     /* bucket is handle modulo HASHLENGTH */
-    i = handle & (HASHLENGTH-1);	
+    i = handle & (HASHLENGTH-1);
 
     /* and walk the chain */
     for (ptr = HashTable[i].next; ptr != &HashTable[i]; ptr = ptr->next)
@@ -99,7 +100,7 @@ struct CEntry *__rpc2_GetConn(RPC2_Handle handle)
         ceaddr = list_entry(ptr, struct CEntry, Chain);
         assert(ceaddr->MagicNumber == OBJ_CENTRY);
 
-        if (ceaddr->UniqueCID == handle) 
+        if (ceaddr->UniqueCID == handle)
 	    return ceaddr;
     }
     return (NULL);
@@ -107,7 +108,7 @@ struct CEntry *__rpc2_GetConn(RPC2_Handle handle)
 
 static void __rehash_ce(struct CEntry *ce)
 {
-    long i = ce->UniqueCID & (HASHLENGTH-1);	
+    uint32_t i = ce->UniqueCID & (HASHLENGTH-1);
     list_del(&ce->Chain);
     list_add(&ce->Chain, &HashTable[i]);
 
@@ -131,13 +132,14 @@ struct CEntry *rpc2_GetConn(RPC2_Handle handle)
    UniqueCID field of ceaddr. */
 static void Uniquefy(IN struct CEntry *ceaddr)
 {
-    long handle, index;
+    RPC2_Integer handle;
+    uint32_t index;
 
-    /* rpc2_NextRandom will only return int's up to 2^30, effectively we will
+    /* secure_random_bytes will return int's up to 2^32 and effectively we will
      * have broken down before we use this many entries on either the time it
      * takes to find an available handle, or the memory usage. Still, I don't
      * want this function to get stuck into an endless search. --JH */
-    assert(rpc2_ConnCount < (1073741824 >> 1)); /* 50% utilization */
+    assert(rpc2_ConnCount < (INT_MAX >> 1)); /* 50% utilization */
 
     /* this might take some time once we get a lot of used handles. But even
      * with a `full' table (within the constraint above), we should, on
@@ -145,11 +147,11 @@ static void Uniquefy(IN struct CEntry *ceaddr)
      * who are afraid of long bucket chain lookups: increase HASHLENGTH */
     while(1)
     {
-        handle = rpc2_NextRandom(NULL);
+        secure_random_bytes(&handle, sizeof(handle));
 
-	/* skip the handles which have special meaning */
-	if (handle <= 0)
-	    continue;
+	/* ignore negative and '0' handles which have special meaning */
+	handle = abs(handle);
+	if (handle <= 0) continue;
 
 	if (__rpc2_GetConn(handle) == NULL)
 	    break;
@@ -166,7 +168,7 @@ static void Uniquefy(IN struct CEntry *ceaddr)
 struct CEntry *rpc2_getFreeConn()
 {
     struct CEntry *ce;
-    
+
     if (list_empty(&rpc2_ConnFreeList))
     {
 	/* allocate a new conn entry */

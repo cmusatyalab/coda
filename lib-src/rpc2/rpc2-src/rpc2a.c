@@ -49,6 +49,7 @@ Pittsburgh, PA.
 #include <lwp/lwp.h>
 #include <lwp/timer.h>
 #include <rpc2/rpc2.h>
+#include <rpc2/secure.h>
 #include <rpc2/se.h>
 #include <rpc2/multi.h>
 #include "rpc2.private.h"
@@ -586,7 +587,7 @@ try_next_addr:
     say(9, RPC2_DebugLevel, "Allocating connection %#x\n", *ConnHandle);
     SetRole(ce, CLIENT);
     SetState(ce, C_AWAITINIT2);
-    ce->PeerUnique = rpc2_NextRandom(NULL);
+    secure_random_bytes(&ce->PeerUnique, sizeof(ce->PeerUnique));
 
     switch((int) Bparms->SecurityLevel)  {
     case RPC2_OPENKIMONO:
@@ -594,7 +595,7 @@ try_next_addr:
 	    ce->NextSeqNumber = 0;
 	    ce->EncryptionType = 0;
 	    break;
-		
+
     case RPC2_AUTHONLY:
     case RPC2_HEADERSONLY:
     case RPC2_SECURE:
@@ -683,15 +684,14 @@ try_next_addr:
 
     rpc2_htonp(pb);	/* convert header to network order */
 
-    if (Bparms->SecurityLevel != RPC2_OPENKIMONO)
-	{
-	savexrandom = rpc2_NextRandom(NULL);
+    if (Bparms->SecurityLevel != RPC2_OPENKIMONO) {
+	secure_random_bytes(&savexrandom, sizeof(savexrandom));
 	say(9, RPC2_DebugLevel, "XRandom = %d\n", savexrandom);
 	ib->XRandom = htonl(savexrandom);
 
 	rpc2_Encrypt((char *)&ib->XRandom, (char *)&ib->XRandom, sizeof(ib->XRandom),
 		     *Bparms->SharedSecret, Bparms->EncryptionType);	/* in-place encryption */
-	}
+    }
 
     /* Step3: Send INIT1 packet  and wait for reply */
 
@@ -1241,7 +1241,7 @@ static RPC2_PacketBuffer *Send2Get3(IN ce, IN key, IN xrand, OUT yrand)
     /* Do xrand, yrand munging */
     say(9, RPC2_DebugLevel, "XRandom = %ld\n", xrand);
     ib2->XRandomPlusOne = htonl(xrand+1);
-    *yrand = rpc2_NextRandom(NULL);
+    secure_random_bytes(yrand, sizeof(*yrand));
     ib2->YRandom = htonl(*yrand);
     say(9, RPC2_DebugLevel, "YRandom = %ld\n", *yrand);
     rpc2_Encrypt((char *)ib2, (char *)ib2, sizeof(struct Init2Body), key, ce->EncryptionType);
