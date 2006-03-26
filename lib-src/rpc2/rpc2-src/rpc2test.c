@@ -95,7 +95,7 @@ static void GetVar(long *gVar, char *gPrompt);
 static void GetStringVar(char *gSVar, char *gPrompt);
 
 static void DumpAndQuit(int opcode);
-static void SelectParms(long *cid, long *opcode);
+static void SelectParms(RPC2_Handle *cid, RPC2_Integer *opcode);
 static void BulkErr(RPC2_Handle cid, SE_Descriptor *sed, int retcode, int op);
 static time_t mytime(void);
 static void MakeFiles(void);
@@ -269,13 +269,15 @@ static void WorkerBody(void *arg)
 		}
 
 	    case 5: /* Fetch a random file */
-		{
+	    {
+		uint32_t randval;
 		if (VerboseFlag) sed.Value.SmartFTPD.hashmark = myhashmark;
 		else sed.Value.SmartFTPD.hashmark = 0;
+		randval = (uint32_t)random();
 		strcpy(sed.Value.SmartFTPD.FileInfo.ByName.LocalFileName,
-			SysFiles[rpc2_NextRandom(0) % SysFileCount]);
+		       SysFiles[randval % SysFileCount]);
 		sed.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
-		sed.Value.SmartFTPD.SeekOffset = 0;		
+		sed.Value.SmartFTPD.SeekOffset = 0;
 		sed.Value.SmartFTPD.Tag = FILEBYNAME;
 
 		if ((rc = RPC2_InitSideEffect(workercid, &sed)) != RPC2_SUCCESS)
@@ -297,7 +299,7 @@ static void WorkerBody(void *arg)
 		OutBuff->Header.ReturnCode = (long)sed.LocalStatus;
 		OutBuff->Header.BodyLength = 0;
 		break;
-		}
+	    }
 
 	    case 6: /* Store a random file */
 		{
@@ -430,7 +432,8 @@ static void ListenerBody(void *arg)
 
 static void ClientBody(void *arg)
 {
-    long thisconn, thisopcode;
+    RPC2_Handle thisconn;
+    RPC2_Integer thisopcode;
     RPC2_PacketBuffer *request, *reply;
     long retcode, rpctime = 0;
     struct timeval t1, t2;
@@ -472,9 +475,10 @@ static void ClientBody(void *arg)
 	request->Header.Opcode = thisopcode;
 	
 	if (VerboseFlag)
-	    fprintf(stderr, "Making request %ld to %s for %s\n", thisopcode,
-		ConnVector[thisconn].RemoteHost.Value.Name,
-		ConnVector[thisconn].NameBuf);
+	    fprintf(stderr, "Making request %d to %s for %s\n",
+		    thisopcode,
+		    ConnVector[thisconn].RemoteHost.Value.Name,
+		    ConnVector[thisconn].NameBuf);
 
 	switch(thisopcode)
 	    {
@@ -492,46 +496,48 @@ static void ClientBody(void *arg)
 		    }
 		else HandleRPCFailure(thisconn, retcode, ntohl(request->Header.Opcode));
 		}
-		
+
 	    case 2: /* square the input integer */
-		{
-		long x = rpc2_NextRandom(0) % 100;
-		*(long *)(request->Body) = htonl(x);
+	    {
+		int32_t x = (int32_t)random() % 100;
 
-		request->Header.BodyLength = sizeof(long);
+		*(int32_t *)(request->Body) = htonl(x);
+		request->Header.BodyLength = sizeof(int32_t);
+
 		MakeTimedCall(NULL);
 		if (retcode == RPC2_SUCCESS)
 		    {
 		    if (VerboseFlag)
-			fprintf(stderr, " %s says square of %ld is %lu (%ld msecs)\n",
+			fprintf(stderr, " %s says square of %d is %u (%ld msecs)\n",
 				ConnVector[thisconn].RemoteHost.Value.Name, x,
-				(unsigned long)ntohl(*(long *)reply->Body),
+				(uint32_t)ntohl(*(uint32_t *)reply->Body),
 				rpctime);
 		    break;
 		    }
 		else HandleRPCFailure(thisconn, retcode, ntohl(request->Header.Opcode));
 		break;
-		}
-	    
+	    }
+
 	    case 3: /* cube the input integer */
-		{
-		long x = rpc2_NextRandom(0) % 100;
-		*(long *)(request->Body) = htonl(x);
+	    {
+		int32_t x = (int32_t)random() % 100;
 
-		request->Header.BodyLength = sizeof(long);
+		*(int32_t *)(request->Body) = htonl(x);
+		request->Header.BodyLength = sizeof(int32_t);
+
 		MakeTimedCall(NULL);
 		if (retcode == RPC2_SUCCESS)
 		    {
 		    if (VerboseFlag)
-			fprintf(stderr, "%s says cube of %ld is %lu (%ld msecs)\n",
+			fprintf(stderr, "%s says cube of %d is %u (%ld msecs)\n",
 				ConnVector[thisconn].RemoteHost.Value.Name, x,
-				(unsigned long)ntohl(*(long *)reply->Body),
+				(uint32_t)ntohl(*(uint32_t *)reply->Body),
 				rpctime);
 		    break;
 		    }
 		else HandleRPCFailure(thisconn, retcode, ntohl(request->Header.Opcode));
 		break;
-		}
+	    }
 
 	    case 4: /* Return your machine name */
 		{
@@ -578,9 +584,10 @@ static void ClientBody(void *arg)
 
 		break;
 		}
-		
+
 	    case 6: /* Store a random file */
-		{
+	    {
+		uint32_t randval;
 		if (AvoidBulk)
 		     {
 		     ConnVector[thisconn].Status = SFREE;
@@ -590,23 +597,24 @@ static void ClientBody(void *arg)
 		sed.Value.SmartFTPD.TransmissionDirection = CLIENTTOSERVER;
 		sed.Value.SmartFTPD.SeekOffset = 0;
 		sed.Value.SmartFTPD.Tag = FILEBYNAME;
-		strcpy(sed.Value.SmartFTPD.FileInfo.ByName.LocalFileName, SysFiles[rpc2_NextRandom(0) % SysFileCount]);
+		randval = (uint32_t)random();
+		strcpy(sed.Value.SmartFTPD.FileInfo.ByName.LocalFileName,
+		       SysFiles[randval % SysFileCount]);
 		if (VerboseFlag)
 		    sed.Value.SmartFTPD.hashmark = myhashmark;
 		else sed.Value.SmartFTPD.hashmark = 0;
 		MakeTimedCall(&sed);
 		if (retcode !=  RPC2_SUCCESS)
-		    {
+		{
 		    HandleRPCFailure(thisconn, retcode, ntohl(request->Header.Opcode));
-		    break;		    
-		    }
+		    break;
+		}
 		else
 		    if (VerboseFlag)
 			fprintf(stderr, "%ld bytes transferred\n",
-				sed.Value.SmartFTPD.BytesTransferred);		
+				sed.Value.SmartFTPD.BytesTransferred);
 		break;
-		}
-
+	    }
 
 	    case 7:   /* Unbind */
 		{
@@ -885,20 +893,20 @@ static void GetParms(void)
 
 static void RanDelay(int t) /* milliseconds */
 {
-    int tx;
+    uint32_t tx;
     struct timeval tval;
 
     if (t > 0)
-	{
-	tx = rpc2_NextRandom(0) % t;
+    {
+	tx = (uint32_t)random() % t;
 	tval.tv_sec = tx / 1000;
 	tval.tv_usec = 1000*(tx % 1000);
 	if (VerboseFlag)
-	    fprintf(stderr, "delaying for %ld:%ld seconds ....\n", 
+	    fprintf(stderr, "delaying for %ld:%ld seconds ....\n",
 		    tval.tv_sec, tval.tv_usec);
 	FLUSH();
 	assert(IOMGR_Select(0, NULL, NULL, NULL, &tval) == 0);
-	}
+    }
 }
 
 
@@ -966,34 +974,28 @@ static void PrintStats(void)
 }
 
 
-static void SelectParms(long *cid, long *opcode)
+static void SelectParms(RPC2_Handle *cid, RPC2_Integer *opcode)
 {
-    do
-	{
-	*cid = rpc2_NextRandom(0) % CVCount;
-	}
-    while (ConnVector[*cid].Status == BUSY);
+    do {
+	*cid = (uint32_t)random() % CVCount;
+    } while (ConnVector[*cid].Status == BUSY);
 
-    if (ConnVector[*cid].Status == UNBOUND || 
+    if (ConnVector[*cid].Status == UNBOUND ||
 	ConnVector[*cid].Status == BROKEN)
-	{
+    {
 	*opcode = 8;	/* rebind */
-	}
-    else
-	{
-	do
-	    {
-	    *opcode = 1 + (rpc2_NextRandom(0) % OPCODESINUSE);
-	    }
-	while (AvoidUnbinds && *opcode == 7);
-	}
+    } else {
+	do {
+	    *opcode = ((uint32_t)random() % OPCODESINUSE) + 1;
+	} while (AvoidUnbinds && *opcode == 7);
+    }
 }
 
 
 void DumpAndQuit(int opcode) /* of failing call; 0 if not an RPC call */
 {
     FILE *tracefile;
-    
+
     if (RPC2_Trace)
 	{
 	tracefile = fopen(MakeName("rpc2.trace"), "w");
