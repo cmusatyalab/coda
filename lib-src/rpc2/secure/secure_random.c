@@ -230,17 +230,15 @@ static void get_initial_seed(uint8_t *ptr, size_t len)
 static void check_random(int verbose)
 {
     uint32_t data[TESTSIZE], val;
-    int i, j, idx, failed = 0;
+    int i, j, idx, fail, failed = 0;
     int ones, f[16], run, odd, longrun;
 
-    secure_random_bytes((uint8_t *)data, sizeof(data));
+    secure_random_bytes(data, sizeof(data));
 
     /* the tests do not define the 'endianess' of the stream, so
      * I assume little endian */
 
     /* Monobit Test */
-    if (verbose)
-	fprintf(stderr, "PRNG monobit test:              ");
     for (ones = 0, i = 0 ; i < TESTSIZE; i++) {
 	val = data[i];
 	while (val) {
@@ -248,15 +246,14 @@ static void check_random(int verbose)
 	    val >>= 1;
 	}
     }
-    if (ones <= 9654 || ones >= 10346) {
-	fprintf(stderr, "PRNG monobit test FAILED\n");
-	failed++;
-    } else if (verbose)
-	fprintf(stderr, "PASSED\n");
+
+    fail = (ones <= 9654 || ones >= 10346);
+    failed += fail;
+    if (fail || verbose)
+	fprintf(stderr, "PRNG monobit test:              %s\n",
+		fail ? "FAILED" : "PASSED");
 
     /* Poker Test */
-    if (verbose)
-	fprintf(stderr, "PRNG poker test:                ");
     memset(f, 0, sizeof(f));
     for (i = 0 ; i < TESTSIZE; i++) {
 	for (j = 0; j < 32; j += 4) {
@@ -268,15 +265,14 @@ static void check_random(int verbose)
 	val += f[i] * f[i];
     assert((val & 0xf0000000) == 0);
     val <<= 4;
-    if (val <= 25005150 || val >= 25287000) {
-	fprintf(stderr, "PRNG poker test FAILED\n");
-	failed++;
-    } else if (verbose)
-	fprintf(stderr, "PASSED\n");
+
+    fail = (val <= 25005150 || val >= 25287000);
+    failed += fail;
+    if (fail || verbose)
+	fprintf(stderr, "PRNG poker test:                %s\n",
+		fail ? "FAILED" : "PASSED");
 
     /* Runs Test */
-    if (verbose)
-	fprintf(stderr, "PRNG runs test:                 ");
     memset(f, 0, sizeof(f));
     odd = run = longrun = 0;
     for (i = 0 ; i < TESTSIZE; i++) {
@@ -305,26 +301,23 @@ static void check_random(int verbose)
     idx = run - 1 + (odd ? 6 : 0);
     f[idx]++;
 
-    if (f[0] <= 2267 || f[0] >= 2733 || f[6] <= 2267 || f[6] >= 2733 ||
-	f[1] <= 1079 || f[1] >= 1421 || f[7] <= 1079 || f[7] >= 1421 ||
-	f[2] <= 502  || f[2] >= 748  || f[8] <= 502  || f[8] >= 748 ||
-	f[3] <= 223  || f[3] >= 402  || f[9] <= 223  || f[9] >= 402 ||
-	f[4] <= 90   || f[4] >= 223  || f[10] <= 90  || f[10] >= 223 ||
-	f[5] <= 90   || f[5] >= 223  || f[11] <= 90  || f[11] >= 223)
-    {
-	fprintf(stderr, "PRNG runs test FAILED\n");
-	failed++;
-    } else if (verbose)
-	fprintf(stderr, "PASSED\n");
+    fail = (f[0] <= 2267 || f[0] >= 2733 || f[6] <= 2267 || f[6] >= 2733 ||
+	    f[1] <= 1079 || f[1] >= 1421 || f[7] <= 1079 || f[7] >= 1421 ||
+	    f[2] <= 502  || f[2] >= 748  || f[8] <= 502  || f[8] >= 748 ||
+	    f[3] <= 223  || f[3] >= 402  || f[9] <= 223  || f[9] >= 402 ||
+	    f[4] <= 90   || f[4] >= 223  || f[10] <= 90  || f[10] >= 223 ||
+	    f[5] <= 90   || f[5] >= 223  || f[11] <= 90  || f[11] >= 223);
+    failed += fail;
+    if (fail || verbose)
+	fprintf(stderr, "PRNG runs test:                 %s\n",
+		fail ? "FAILED" : "PASSED");
 
     /* Long Run Test */
-    if (verbose)
-	fprintf(stderr, "PRNG long run test:             ");
-    if (longrun >= 34) {
-	fprintf(stderr, "PRNG long run test FAILED\n");
-	failed++;
-    } else if (verbose)
-	fprintf(stderr, "PASSED\n");
+    fail = (longrun >= 34);
+    failed += fail;
+    if (fail || verbose)
+	fprintf(stderr, "PRNG long run test:             %s\n",
+		fail ? "FAILED" : "PASSED");
 
     if (failed)
 	exit(-1);
@@ -351,9 +344,9 @@ void secure_random_release(void)
 }
 
 /* this is really the only exported function */
-void secure_random_bytes(uint8_t *random, size_t len)
+void secure_random_bytes(void *random, size_t len)
 {
-    prng_get_bytes(random, len);
+    prng_get_bytes((uint8_t *)random, len);
 }
 
 

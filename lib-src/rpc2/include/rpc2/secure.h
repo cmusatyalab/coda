@@ -120,7 +120,7 @@ void secure_init(int verbose);
 void secure_release(void);
 
 /* cryptographically strong deterministic pseudo random number generator */
-void secure_random_bytes(uint8_t *buf, size_t len);
+void secure_random_bytes(void *buf, size_t len);
 
 /* low level socket interface */
 ssize_t secure_sendto(int s, const void *buf, size_t len, int flags,
