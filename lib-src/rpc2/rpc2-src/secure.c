@@ -50,7 +50,7 @@ Pittsburgh, PA.
 
 #define RNDPOOL 256
 static uint8_t RNState[RNDPOOL];
-static int RNStateAvail;
+static unsigned int RNStateAvail;
 
 int rpc2_XDebug;
 

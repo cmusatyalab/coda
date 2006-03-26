@@ -161,7 +161,7 @@ struct CEntry		/* describes a single RPC connection */
     /* State, identity  and sequencing */
     long State;
     RPC2_Handle  UniqueCID;
-    RPC2_Integer NextSeqNumber;	
+    RPC2_Unsigned NextSeqNumber;	
     RPC2_Integer SubsysId;
     RPC2_Integer Flags;	    /* CE_OLDV ? */
     time_t LastRef;    			/* when CEntry was last looked up */

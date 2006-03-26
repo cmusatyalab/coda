@@ -81,8 +81,7 @@ typedef struct	{
 		} PacketCon;
 
 static void SetupConns(int HowMany, MultiCon *mcon,
-		       RPC2_Handle ConnHandleList[],
-		       SE_Descriptor SDescList[]);
+		       RPC2_Handle ConnHandleList[]);
 static void SetupPackets(int HowMany, MultiCon *mcon,
 			 RPC2_Handle ConnHandleList[],
 			 SE_Descriptor SDescList[], RPC2_PacketBuffer *Request);
@@ -131,7 +130,7 @@ long RPC2_MultiRPC(IN HowMany, IN ConnHandleList, IN RCList, IN MCast,
     mcon = InitMultiCon(HowMany);
 
     /*  verify and set connection state */
-    SetupConns(HowMany, mcon, ConnHandleList, SDescList);
+    SetupConns(HowMany, mcon, ConnHandleList);
 
     /* prepare all of the packets */
     SetupPackets(HowMany, mcon, ConnHandleList, SDescList, Request);
@@ -209,8 +208,7 @@ EXIT_MRPC(long code, int HowMany, RPC2_Integer *RCList, MultiCon *mcon)
 }
 
 static void SetupConns(int HowMany, MultiCon *mcon,
-		       RPC2_Handle ConnHandleList[],
-		       SE_Descriptor SDescList[])
+		       RPC2_Handle ConnHandleList[])
 {
     struct CEntry   *thisconn;
     int		    host;
