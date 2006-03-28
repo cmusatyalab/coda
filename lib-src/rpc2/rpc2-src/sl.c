@@ -316,14 +316,14 @@ void rpc2_HandlePacket(RPC2_PacketBuffer *pb)
 	if (RPC2_DebugLevel >= 10)
 	    rpc2_PrintCEntry(ce, rpc2_tracefile);
 #endif
-	/*  pb is a good packet and ce is a good conn */
-	rpc2_ntohp(pb);
-
 	/* update the host entry if there is one */
 	if (ce->HostInfo)
 	    ce->HostInfo->LastWord = pb->Prefix.RecvStamp;
 
 UnboundPacket:
+	/* convert to host-byte order */
+	rpc2_ntohp(pb);
+
 	/* See if smaller packet buffer will do */
 	pb = ShrinkPacket(pb);
 
@@ -610,14 +610,15 @@ static void DecodePacket(RPC2_PacketBuffer *pb, struct CEntry *ce)
 
 static RPC2_PacketBuffer *ShrinkPacket(RPC2_PacketBuffer *pb)
 {
-	RPC2_PacketBuffer *pb2 = 0;
+	RPC2_PacketBuffer *pb2 = NULL;
 	
 	if (pb->Prefix.LengthOfPacket <= MEDIUMPACKET) {
-		RPC2_AllocBuffer(pb->Header.BodyLength, &pb2);
-		if ( !pb2 ) 
-			return pb;
+		RPC2_AllocBuffer(pb->Prefix.LengthOfPacket - sizeof(struct RPC2_PacketHeader), &pb2);
+		if (!pb2) return pb;
+
 		pb2->Prefix.PeerAddr = pb->Prefix.PeerAddr;
 		pb->Prefix.PeerAddr = NULL;
+		pb2->Prefix.sa = pb->Prefix.sa;
 		pb2->Prefix.RecvStamp = pb->Prefix.RecvStamp;
 		pb2->Prefix.LengthOfPacket = pb->Prefix.LengthOfPacket;
 		memcpy(&pb2->Header, &pb->Header, pb->Prefix.LengthOfPacket);

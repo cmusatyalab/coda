@@ -614,6 +614,7 @@ void rpc2_InitPacket(RPC2_PacketBuffer *pb, struct CEntry *ce, long bodylen)
 	pb->Header.BodyLength   = bodylen;
 	pb->Prefix.LengthOfPacket = sizeof(struct RPC2_PacketHeader) + bodylen;
 	//pb->Prefix.PeerAddr   = NULL;
+	//pb->Prefix.sa = NULL;
 	memset(&pb->Prefix.RecvStamp, 0, sizeof(struct timeval));
 	if (ce)	{
 		pb->Header.RemoteHandle = ce->PeerHandle;

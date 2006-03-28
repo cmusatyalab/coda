@@ -331,6 +331,7 @@ long rpc2_AllocBuffer(IN long MinBodySize, OUT RPC2_PacketBuffer **BuffPtr,
 	*BuffPtr = GetPacket(thissize);
 	assert(*BuffPtr);
 	assert((*BuffPtr)->Prefix.MagicNumber == OBJ_PACKETBUFFER);
+	(*BuffPtr)->Prefix.sa = NULL;
 
 	memset(&(*BuffPtr)->Header, 0, sizeof(struct RPC2_PacketHeader));
 	(*BuffPtr)->Header.BodyLength = MinBodySize;
