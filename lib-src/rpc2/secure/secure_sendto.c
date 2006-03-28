@@ -37,7 +37,7 @@ ssize_t secure_sendto(int s, const void *buf, size_t len, int flags,
 
     if (!sa || (!sa->encrypt && !sa->authenticate)) {
 	/* make sure the other side will not mistake this as encrypted */
-	if (*(uint32_t *)buf >= 256) {
+	if (ntohl(*int32(buf)) >= 256) {
 	    errno = EINVAL;
 	    return -1;
 	}
