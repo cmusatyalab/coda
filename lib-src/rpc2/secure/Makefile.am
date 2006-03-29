@@ -20,7 +20,7 @@
 INCLUDES = -I$(top_srcdir)/include -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
 LDADD = libsecure.la
 
-lib_LTLIBRARIES = libsecure.la
+noinst_LTLIBRARIES = libsecure.la
 noinst_PROGRAMS = secure_test
 
 secure_test_SOURCES = secure_test.c
@@ -30,10 +30,9 @@ libsecure_la_SOURCES = secure_init.c secure_aes.c secure_random.c \
     auth_none.c auth_aes_xcbc.c \
     encr_null.c encr_aes_cbc.c encr_aes_ccm.c \
     rijndael-alg-fst.c
-EXTRA_DIST = README.secure gen_testvectors.sh \
-    rijndael-mikescott.h rijndael-mikescott.c
-
 libsecure_la_LDFLAGS = -version-info $(LIBTOOL_VERSION)
 
+EXTRA_DIST = README.secure gen_testvectors.sh \
+    rijndael-mikescott.h rijndael-mikescott.c
 MAINTAINERCLEANFILES = Makefile.in
 
