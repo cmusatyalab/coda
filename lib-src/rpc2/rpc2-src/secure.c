@@ -119,27 +119,29 @@ unsigned int rpc2_NextRandom(char *StatePtr)
     return(x);
 }
 
-void rpc2_ApplyE(RPC2_PacketBuffer *pb,     struct CEntry *ce)
+void rpc2_ApplyE(RPC2_PacketBuffer *pb, struct CEntry *ce)
 {
+	if (ce->sa) return;
+
 	switch((int)ce->SecurityLevel) {
 	case RPC2_OPENKIMONO:
 	case RPC2_AUTHONLY:
 		return;
-		    
+
 	case RPC2_HEADERSONLY:
-		rpc2_Encrypt((char *)&pb->Header.BodyLength, (char *)&pb->Header.BodyLength, 
+		rpc2_Encrypt((char *)&pb->Header.BodyLength, (char *)&pb->Header.BodyLength,
 			     sizeof(struct RPC2_PacketHeader)-4*sizeof(RPC2_Integer),
 			     ce->SessionKey, ce->EncryptionType);
 		break;
-	
+
 	case RPC2_SECURE:
-		rpc2_Encrypt((char *)&pb->Header.BodyLength, (char *)&pb->Header.BodyLength, 
+		rpc2_Encrypt((char *)&pb->Header.BodyLength, (char *)&pb->Header.BodyLength,
 			     pb->Prefix.LengthOfPacket-4*sizeof(RPC2_Integer),
 			     ce->SessionKey, ce->EncryptionType);
 		break;
 	}
-	
-	pb->Header.Flags = htonl(RPC2_ENCRYPTED | ntohl(pb->Header.Flags));
+
+	pb->Header.Flags = htonl(ntohl(pb->Header.Flags) | RPC2_ENCRYPTED);
 }
 
 void rpc2_ApplyD(RPC2_PacketBuffer *pb, struct CEntry *ce)
@@ -148,16 +150,20 @@ void rpc2_ApplyD(RPC2_PacketBuffer *pb, struct CEntry *ce)
 
 	switch((int)ce->SecurityLevel) {
 	case RPC2_HEADERSONLY:
-		rpc2_Decrypt((char *)&pb->Header.BodyLength, (char *)&pb->Header.BodyLength, 
+		rpc2_Decrypt((char *)&pb->Header.BodyLength, (char *)&pb->Header.BodyLength,
 			     sizeof(struct RPC2_PacketHeader)-4*sizeof(RPC2_Integer),
 			     ce->SessionKey, ce->EncryptionType);
-		return;
-	
+		break;
+
 	case RPC2_SECURE:
-		rpc2_Decrypt((char *)&pb->Header.BodyLength, (char *)&pb->Header.BodyLength, 
+		rpc2_Decrypt((char *)&pb->Header.BodyLength, (char *)&pb->Header.BodyLength,
 			     pb->Prefix.LengthOfPacket-4*sizeof(RPC2_Integer),
 			     ce->SessionKey, ce->EncryptionType);
-		return;
+		break;
+
+	default:
+		break;
 	}
+	pb->Header.Flags = htonl(ntohl(pb->Header.Flags) & ~RPC2_ENCRYPTED);
 }
 
