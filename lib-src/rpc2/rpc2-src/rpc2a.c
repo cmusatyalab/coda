@@ -205,7 +205,7 @@ long RPC2_SendResponse(IN RPC2_Handle ConnHandle, IN RPC2_PacketBuffer *Reply)
 
     /* Send reply */
     say(9, RPC2_DebugLevel, "Sending reply\n");
-    rpc2_XmitPacket(preply, ce->HostInfo->Addr, ce->sa, 1);
+    rpc2_XmitPacket(preply, ce->HostInfo->Addr, 1);
 
     /* Save reply for retransmission */
     memcpy(&pretry->Header, &preply->Header, preply->Prefix.LengthOfPacket);
@@ -1155,7 +1155,7 @@ static void SendOKInit2(IN struct CEntry *ce)
 	rpc2_StampPacket(ce, pb);
 
     rpc2_htonp(pb);	/* convert to network order */
-    rpc2_XmitPacket(pb, ce->HostInfo->Addr, ce->sa, 1);
+    rpc2_XmitPacket(pb, ce->HostInfo->Addr, 1);
     SavePacketForRetry(pb, ce);
     }
 
@@ -1215,7 +1215,7 @@ static void RejectBind(ce, bodysize, opcode)
     pb->Header.ReturnCode = RPC2_NOTAUTHENTICATED;
 
     rpc2_htonp(pb);
-    rpc2_XmitPacket(pb, ce->HostInfo->Addr, ce->sa, 1);
+    rpc2_XmitPacket(pb, ce->HostInfo->Addr, 1);
     RPC2_FreeBuffer(&pb);
     }
 
@@ -1321,7 +1321,7 @@ static void Send4AndSave(ce, xrand, ekey)
     rpc2_htonp(pb);
 
     /* Send packet; don't bother waiting for acknowledgement */
-    rpc2_XmitPacket(pb, ce->HostInfo->Addr, ce->sa, 1);
+    rpc2_XmitPacket(pb, ce->HostInfo->Addr, 1);
 
     SavePacketForRetry(pb, ce);
     }

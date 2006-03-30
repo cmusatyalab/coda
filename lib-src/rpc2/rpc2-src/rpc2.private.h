@@ -491,7 +491,7 @@ long rpc2_CreateIPSocket(int af, int *svar, struct RPC2_addrinfo *addr, short *P
 /* Packet  routines */
 long rpc2_SendReliably(), rpc2_MSendPacketsReliably();
 void rpc2_XmitPacket(RPC2_PacketBuffer *pb, struct RPC2_addrinfo *addr,
-		     struct security_association *sa, int confirm);
+		     int confirm);
 void rpc2_InitPacket();
 int rpc2_MorePackets(void);
 long rpc2_RecvPacket(long whichSocket, RPC2_PacketBuffer *whichBuff);

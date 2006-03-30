@@ -81,7 +81,7 @@ int sftp_XmitPacket(struct SFTP_Entry *sEntry, RPC2_PacketBuffer *pb,
 #endif
 
     ce = rpc2_GetConn(sEntry->LocalHandle);
-    rpc2_XmitPacket(pb, ce->HostInfo->Addr, ce->sa, confirm);
+    rpc2_XmitPacket(pb, ce->HostInfo->Addr, confirm);
 
     rpc2_Sent.Total--;
     rpc2_Sent.Bytes -= pb->Prefix.LengthOfPacket;

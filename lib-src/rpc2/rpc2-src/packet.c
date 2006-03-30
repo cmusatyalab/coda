@@ -110,7 +110,7 @@ static long FailPacket(int (*predicate)(), RPC2_PacketBuffer *pb,
 }
 
 void rpc2_XmitPacket(RPC2_PacketBuffer *pb, struct RPC2_addrinfo *addr,
-		     struct security_association *sa, int confirm)
+		     int confirm)
 {
     int whichSocket, n, flags = 0;
 
@@ -152,7 +152,7 @@ void rpc2_XmitPacket(RPC2_PacketBuffer *pb, struct RPC2_addrinfo *addr,
 
     n = secure_sendto(whichSocket, &pb->Header,
 		      pb->Prefix.LengthOfPacket, flags,
-		      addr->ai_addr, addr->ai_addrlen, sa);
+		      addr->ai_addr, addr->ai_addrlen, pb->Prefix.sa);
 
     if (n == -1 && errno == EAGAIN)
     {
@@ -489,7 +489,7 @@ long rpc2_SendReliably(IN Conn, IN Sle, IN Packet, IN TimeOut)
     say(9, RPC2_DebugLevel, "Sending try at %ld on %#x (timeout %ld.%06ld)\n",
 			     rpc2_time(), Conn->UniqueCID,
 			     ThisRetryBeta[1].tv_sec, ThisRetryBeta[1].tv_usec);
-    rpc2_XmitPacket(Packet, Conn->HostInfo->Addr, Conn->sa, 0);
+    rpc2_XmitPacket(Packet, Conn->HostInfo->Addr, 0);
 
     if (rpc2_Bandwidth) rpc2_ResetLowerLimit(Conn, Packet);
 
@@ -547,7 +547,7 @@ long rpc2_SendReliably(IN Conn, IN Sle, IN Packet, IN TimeOut)
 		if (TestRole(Conn, CLIENT))   /* restamp retries if client */
 		    Packet->Header.TimeStamp = htonl(rpc2_MakeTimeStamp());
 		rpc2_Sent.Retries += 1;
-		rpc2_XmitPacket(Packet, Conn->HostInfo->Addr, Conn->sa, 0);
+		rpc2_XmitPacket(Packet, Conn->HostInfo->Addr, 0);
 		break;	/* switch */
 		
 	    default: assert(FALSE);
@@ -617,6 +617,7 @@ void rpc2_InitPacket(RPC2_PacketBuffer *pb, struct CEntry *ce, long bodylen)
 	//pb->Prefix.sa = NULL;
 	memset(&pb->Prefix.RecvStamp, 0, sizeof(struct timeval));
 	if (ce)	{
+		pb->Prefix.sa = ce->sa;
 		pb->Header.RemoteHandle = ce->PeerHandle;
 		pb->Header.LocalHandle  = ce->UniqueCID;
 		pb->Header.SubsysId  = ce->SubsysId;

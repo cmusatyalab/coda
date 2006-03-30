@@ -705,7 +705,7 @@ static void SendBusy(struct CEntry *ce, int doEncrypt)
     rpc2_htonp(pb);
     if (doEncrypt) rpc2_ApplyE(pb, ce);
 
-    rpc2_XmitPacket(pb, ce->HostInfo->Addr, ce->sa, 1);
+    rpc2_XmitPacket(pb, ce->HostInfo->Addr, 1);
     RPC2_FreeBuffer(&pb);
 }
 
@@ -949,7 +949,7 @@ static void HandleRetriedBind(RPC2_PacketBuffer *pb, struct CEntry *ce)
 		/* Case (3): The Init2 must have been dropped; resend it */
 		say(0, RPC2_DebugLevel, "Resending Init2 %#x\n",  ce->UniqueCID);
 		ce->HeldPacket->Header.TimeStamp = htonl(ce->TimeStampEcho);
-		rpc2_XmitPacket(ce->HeldPacket, ce->HostInfo->Addr, ce->sa, 1);
+		rpc2_XmitPacket(ce->HeldPacket, ce->HostInfo->Addr, 1);
 		RPC2_FreeBuffer(&pb);
 		return;
 	}
@@ -1016,7 +1016,7 @@ static void HandleInit3(RPC2_PacketBuffer *pb, struct CEntry *ce)
 		if (ce->HeldPacket != NULL) {
 			/* My Init4 must have got lost; resend it */
 			ce->HeldPacket->Header.TimeStamp = htonl(pb->Header.TimeStamp);    
-			rpc2_XmitPacket(ce->HeldPacket, ce->HostInfo->Addr, ce->sa, 1);
+			rpc2_XmitPacket(ce->HeldPacket, ce->HostInfo->Addr, 1);
 		}  else 
 			say(0, RPC2_DebugLevel, "Bogus Init3\n");
 		/* Throw packet away anyway */
@@ -1049,14 +1049,15 @@ static void SendNak(RPC2_PacketBuffer *pb)
 	say(0, RPC2_DebugLevel, "Sending NAK\n");
 	RPC2_AllocBuffer(0, &nakpb);
 	rpc2_InitPacket(nakpb, NULL, 0);
-	nakpb->Header.RemoteHandle = remoteHandle; 
+	nakpb->Prefix.sa = pb->Prefix.sa;
+	nakpb->Header.RemoteHandle = remoteHandle;
 	nakpb->Header.LocalHandle = -1;	/* "from SocketListener" */
 	nakpb->Header.Opcode = RPC2_NAKED;
 
 	rpc2_htonp(nakpb);
 	/* use the same security association on which we received the packet
 	 * we're currently nak-ing */
-	rpc2_XmitPacket(nakpb, pb->Prefix.PeerAddr, pb->Prefix.sa, 1);
+	rpc2_XmitPacket(nakpb, pb->Prefix.PeerAddr, 1);
 	RPC2_FreeBuffer(&nakpb);
 	rpc2_Sent.Naks++;
 }
@@ -1162,7 +1163,7 @@ static void HandleOldRequest(RPC2_PacketBuffer *pb, struct CEntry *ce)
 
 	if (ce->HeldPacket != NULL) {
 			ce->HeldPacket->Header.TimeStamp = htonl(pb->Header.TimeStamp);
-			rpc2_XmitPacket(ce->HeldPacket, ce->HostInfo->Addr, ce->sa, 1);
+			rpc2_XmitPacket(ce->HeldPacket, ce->HostInfo->Addr, 1);
 		}
 	RPC2_FreeBuffer(&pb);
 }
