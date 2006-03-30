@@ -95,7 +95,8 @@ void sftp_ExaminePacket(RPC2_PacketBuffer *pb)
     ce = rpc2_GetConn(ntohl(pb->Header.RemoteHandle));
 
     /* check if the packet and the connection use the same security context. */
-    if (ce && (&ce->sa != pb->Prefix.sa)) {
+    if (ce && (ce->sa.decrypt || ce->sa.validate) && &ce->sa != pb->Prefix.sa)
+    {
 	SFTP_FreeBuffer(&pb);
 	return;
     }
