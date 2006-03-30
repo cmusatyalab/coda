@@ -47,15 +47,15 @@ Coda are listed in the file CREDITS.
 #define MAXICVLEN 32
 
 /* Identifiers for authentication algorithms (IANA) */
-#define SECURE_ENCR_NULL	11
-#define SECURE_ENCR_AES_CBC	12
-#define SECURE_ENCR_AES_CTR	13
-#define SECURE_ENCR_AES_CCM_8	14
-#define SECURE_ENCR_AES_CCM_12	15
-#define SECURE_ENCR_AES_CCM_16	16
-#define SECURE_ENCR_AES_GCM_8	18
-#define SECURE_ENCR_AES_GCM_12	19
-#define SECURE_ENCR_AES_GCM_16	20
+#define SECURE_ENCR_NULL		11
+#define SECURE_ENCR_AES_CBC		12
+//#define SECURE_ENCR_AES_CTR		13
+#define SECURE_ENCR_AES_CCM_8		14
+#define SECURE_ENCR_AES_CCM_12		15
+#define SECURE_ENCR_AES_CCM_16		16
+//#define SECURE_ENCR_AES_GCM_8		18
+//#define SECURE_ENCR_AES_GCM_12	19
+//#define SECURE_ENCR_AES_GCM_16	20
 
 struct secure_encr {
     const int id;
@@ -76,14 +76,14 @@ struct secure_encr {
 };
 
 /* Identifiers for authentication algorithms (IANA) */
-#define SECURE_AUTH_NONE	  0
-#define SECURE_AUTH_HMAC_SHA_1_96 2
-#define SECURE_AUTH_AES_XCBC_96	  9
+#define SECURE_AUTH_NONE		0
+//#define SECURE_AUTH_HMAC_SHA_1_96	2
+#define SECURE_AUTH_AES_XCBC_96		9
 
 struct secure_auth {
     const int id;
     const char *name;
-    int  (*auth_init)(void **ctx, const uint8_t *key);
+    int  (*auth_init)(void **ctx, const uint8_t *key, size_t len);
     void (*auth_free)(void **ctx);
     void (*auth)(void *ctx, const uint8_t *in, size_t len, uint8_t *icv);
     const size_t keysize;
@@ -122,6 +122,18 @@ struct security_association {
 /* initialize */
 void secure_init(int verbose);
 void secure_release(void);
+
+const struct secure_auth *secure_get_auth_byid(int id);
+const struct secure_encr *secure_get_encr_byid(int id);
+
+int secure_setup_encrypt(struct security_association *sa,
+			 const struct secure_auth *authenticate,
+			 const struct secure_encr *encrypt,
+			 const uint8_t *key, size_t len);
+int secure_setup_decrypt(struct security_association *sa,
+			 const struct secure_auth *validate,
+			 const struct secure_encr *decrypt,
+			 const uint8_t *key, size_t len);
 
 /* cryptographically strong deterministic pseudo random number generator */
 void secure_random_bytes(void *buf, size_t len);

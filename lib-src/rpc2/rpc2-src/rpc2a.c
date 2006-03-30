@@ -540,6 +540,7 @@ long RPC2_NewBinding(IN RPC2_HostIdent *Host, IN RPC2_PortIdent *Port,
     RPC2_Integer savexrandom = 0, saveyrandom = 0;
     RPC2_Unsigned bsize;
     struct RPC2_addrinfo *addr, *peeraddrs;
+    uint8_t key[16];
 
 #define DROPCONN()\
 	    {rpc2_SetConnError(ce); (void) RPC2_Unbind(*ConnHandle); *ConnHandle = 0;}
@@ -587,6 +588,34 @@ try_next_addr:
     SetRole(ce, CLIENT);
     SetState(ce, C_AWAITINIT2);
     secure_random_bytes(&ce->PeerUnique, sizeof(ce->PeerUnique));
+
+    /* The existing RPC2 EncryptionKey only provides very little key material,
+     * (if we even have a shared secret to begin with), so we expand it
+     * slightly by appending the randomized session identifier (PeerUnique).
+     *
+     * Maybe we should be using SHA1(SharedSecret . PeerUnique)?
+     *
+     * Hopefully we can fix this by the time we drop backward compatibility
+     * for existing clients and servers */
+    memset(key, 0, sizeof(key));
+    if (Bparms->SharedSecret)
+	memcpy(key, *Bparms->SharedSecret, sizeof(RPC2_EncryptionKey));
+    memcpy(key + sizeof(RPC2_EncryptionKey), &ce->PeerUnique,
+	   sizeof(ce->PeerUnique));
+
+    /* setup security context */
+    rc = secure_setup_decrypt(&ce->sa,
+			      secure_get_auth_byid(SECURE_AUTH_AES_XCBC_96),
+			      secure_get_encr_byid(SECURE_ENCR_AES_CBC),
+			      key, sizeof(key));
+    memset(key, 0, sizeof(key));
+
+    if (rc) {
+	/* failed to set up decryption/validation contexts */
+	secure_setup_decrypt(&ce->sa, NULL, NULL, NULL, 0);
+	say(0, RPC2_DebugLevel, "RPC2_NewBinding: failed to initialize security context\n");
+	rpc2_Quit(RPC2_FAIL);
+    }
 
     switch((int) Bparms->SecurityLevel)  {
     case RPC2_OPENKIMONO:
@@ -742,6 +771,10 @@ try_next_addr:
 	}
 
     /* At this point, pb points to the Init2 packet */
+
+    /* secure connection setup did not complete, drop the context */
+    secure_setup_decrypt(&ce->sa, NULL, NULL, NULL, 0);
+    say(1, RPC2_DebugLevel, "RPC2_NewBinding: Got INIT2 using old binding\n");
 
     /* Step3: Examine Init2 packet, get bind info (at least
        PeerHandle) and continue with handshake sequence */

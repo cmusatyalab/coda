@@ -84,6 +84,7 @@ static int init16(void **ctx, const uint8_t *key, size_t len)
 
 static void release(void **ctx)
 {
+    if (!*ctx) return;
     memset(*ctx, 0, sizeof(struct aes_ccm_ctx));
     free(*ctx);
     *ctx = NULL;

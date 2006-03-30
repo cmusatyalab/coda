@@ -21,6 +21,7 @@ Coda are listed in the file CREDITS.
 #include "grunt.h"
 
 #define ICV_LEN bytes(96)
+#define KEYSIZE AES_BLOCK_SIZE
 
 struct aes_xcbc_state {
     aes_encrypt_ctx C1;
@@ -28,16 +29,18 @@ struct aes_xcbc_state {
     uint8_t K3[AES_BLOCK_SIZE];
 };
 
-static int init(void **ctx, const uint8_t *key)
+static int init(void **ctx, const uint8_t *key, size_t len)
 {
     struct aes_xcbc_state *state;
     uint8_t tmp[AES_BLOCK_SIZE];
     aes_encrypt_ctx c;
 
+    if (len < KEYSIZE) return -1;
+
     state = malloc(sizeof(struct aes_xcbc_state));
     if (!state) return -1;
 
-    aes_encrypt_key(key, 128, &c);
+    aes_encrypt_key(key, KEYSIZE * 8, &c);
 
     memset(tmp, 0x01, AES_BLOCK_SIZE);
     aes_encrypt(tmp, tmp, &c);
@@ -59,6 +62,7 @@ static int init(void **ctx, const uint8_t *key)
 static void release(void **ctx)
 {
     struct aes_xcbc_state *state = *ctx;
+    if (!*ctx) return;
     memset(&state->C1, 0, sizeof(aes_encrypt_ctx));
     memset(&state->K2, 0, AES_BLOCK_SIZE);
     memset(&state->K3, 0, AES_BLOCK_SIZE);
@@ -103,7 +107,7 @@ struct secure_auth secure_AUTH_AES_XCBC_MAC_96 = {
     .auth_init = init,
     .auth_free = release,
     .auth = auth,
-    .keysize = AES_BLOCK_SIZE,
+    .keysize = KEYSIZE,
     .icv_len = ICV_LEN,
 };
 

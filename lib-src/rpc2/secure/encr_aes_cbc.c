@@ -48,6 +48,7 @@ static int encrypt(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
 
 static void encrypt_free(void **ctx)
 {
+    if (!*ctx) return;
     memset(*ctx, 0, sizeof(aes_encrypt_ctx));
     free(*ctx);
     *ctx = NULL;
@@ -81,6 +82,7 @@ static int decrypt(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
 
 static void decrypt_free(void **ctx)
 {
+    if (!*ctx) return;
     memset(*ctx, 0, sizeof(aes_decrypt_ctx));
     free(*ctx);
     *ctx = NULL;
