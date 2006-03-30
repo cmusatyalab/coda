@@ -662,7 +662,7 @@ try_next_addr:
 	}
 
     /* hint for the other side that we support the new encryption layer */
-    if (ce->sa) pb->Header.Flags |= RPC2SEC_CAPABLE;
+    if (ce->sa.decrypt) pb->Header.Flags |= RPC2SEC_CAPABLE;
 
     /* Fill in the body */
     ib = (struct Init1Body *)pb->Body;

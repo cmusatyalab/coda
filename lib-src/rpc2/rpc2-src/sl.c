@@ -397,7 +397,7 @@ static struct CEntry *FindOrNak(RPC2_PacketBuffer *pb)
 
 	/* The received packet must be using the exact same security context as
 	 * the connection on which the packet was received. */
-	valid_sa = ce && (ce->sa == pb->Prefix.sa);
+	valid_sa = ce && (&ce->sa == pb->Prefix.sa);
 
 	/* The only situation where this can differ is when we received an
 	 * non-encrypted response to the INIT1 request from a server that
@@ -405,7 +405,7 @@ static struct CEntry *FindOrNak(RPC2_PacketBuffer *pb)
 	 * This test can be removed if we don't need or want to be compatible
 	 * with non-encrypted rpc2 connections anymore. */
 	init2 = ce && TestState(ce, CLIENT, C_AWAITINIT2) &&
-	    ce->sa && !pb->Prefix.sa;
+	    ce->sa.decrypt && !pb->Prefix.sa;
 
 	if (!valid_sa && !init2) {
 	    /* should we log this? Responding is useless because the client

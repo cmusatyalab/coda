@@ -121,7 +121,7 @@ unsigned int rpc2_NextRandom(char *StatePtr)
 
 void rpc2_ApplyE(RPC2_PacketBuffer *pb, struct CEntry *ce)
 {
-	if (ce->sa) return;
+	if (ce->sa.encrypt) return;
 
 	switch((int)ce->SecurityLevel) {
 	case RPC2_OPENKIMONO:

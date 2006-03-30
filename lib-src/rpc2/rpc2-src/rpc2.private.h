@@ -53,6 +53,7 @@ Pittsburgh, PA.
 #include <dllist.h>
 
 #include <rpc2/rpc2_addrinfo.h>
+#include <rpc2/secure.h>
 
 #ifndef HAVE_STRUCT_SOCKADDR_STORAGE
 /* this should be large enough to fit 'any' socket address. */
@@ -210,7 +211,7 @@ struct CEntry		/* describes a single RPC connection */
 					   filter incoming requests so that the
 					   SubsysID/Connection matches that of
 					   the handler we authenticated with */
-    struct security_association *sa;
+    struct security_association sa;
     };
 
 

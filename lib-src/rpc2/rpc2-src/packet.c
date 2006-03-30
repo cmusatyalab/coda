@@ -179,7 +179,7 @@ void rpc2_XmitPacket(RPC2_PacketBuffer *pb, struct RPC2_addrinfo *addr,
 static struct security_association *GetSA(uint32_t spi)
 {
     struct CEntry *ce= __rpc2_GetConn((RPC2_Handle)spi);
-    return ce ? ce->sa : NULL;
+    return ce ? &ce->sa : NULL;
 }
 
 /* Reads the next packet from whichSocket into whichBuff, sets its
@@ -617,11 +617,11 @@ void rpc2_InitPacket(RPC2_PacketBuffer *pb, struct CEntry *ce, long bodylen)
 	//pb->Prefix.sa = NULL;
 	memset(&pb->Prefix.RecvStamp, 0, sizeof(struct timeval));
 	if (ce)	{
-		pb->Prefix.sa = ce->sa;
+		pb->Prefix.sa = &ce->sa;
 		pb->Header.RemoteHandle = ce->PeerHandle;
 		pb->Header.LocalHandle  = ce->UniqueCID;
 		pb->Header.SubsysId  = ce->SubsysId;
 		pb->Header.Uniquefier = ce->PeerUnique;
 		SetPktColor(pb, ce->Color);
-    	}
+	}
 }
