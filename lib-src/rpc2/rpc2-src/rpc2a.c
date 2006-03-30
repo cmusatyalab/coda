@@ -523,7 +523,7 @@ QuitMRPC: /* finalrc has been correctly set by now */
 
     rpc2_Quit(finalrc);
 }
-    
+
 long RPC2_NewBinding(IN RPC2_HostIdent *Host, IN RPC2_PortIdent *Port,
 		     IN RPC2_SubsysIdent *Subsys, IN RPC2_BindParms *Bparms,
 		     IN RPC2_Handle *ConnHandle)
@@ -534,7 +534,7 @@ long RPC2_NewBinding(IN RPC2_HostIdent *Host, IN RPC2_PortIdent *Port,
     struct Init1Body *ib;
     struct Init2Body *ib2;
     struct Init3Body *ib3;
-    struct Init4Body *ib4;    
+    struct Init4Body *ib4;
     struct SL_Entry *sl;
     long rc, init2rc, init4rc;
     RPC2_Integer savexrandom = 0, saveyrandom = 0;
@@ -557,18 +557,17 @@ long RPC2_NewBinding(IN RPC2_HostIdent *Host, IN RPC2_PortIdent *Port,
     case RPC2_HEADERSONLY:
     case RPC2_SECURE:
 	    /* unknown encryption type */
-	    if ((Bparms->EncryptionType & RPC2_ENCRYPTIONTYPES) == 0) 
-		    rpc2_Quit (RPC2_FAIL); 	
+	    if ((Bparms->EncryptionType & RPC2_ENCRYPTIONTYPES) == 0)
+		    rpc2_Quit (RPC2_FAIL);
 	    /* tell me just one */
-	    if (MORETHANONEBITSET(Bparms->EncryptionType)) 
+	    if (MORETHANONEBITSET(Bparms->EncryptionType))
 		    rpc2_Quit(RPC2_FAIL);
 	    break;
-	    
-    default:	
+
+    default:
 	    rpc2_Quit(RPC2_FAIL);	/* bogus security level */
     }
-    
-    
+
     /* Step 0: Resolve bind parameters */
     peeraddrs = rpc2_resolve(Host, Port);
     if (!peeraddrs)
@@ -602,13 +601,13 @@ try_next_addr:
 	    ce->SecurityLevel = Bparms->SecurityLevel;
 	    ce->EncryptionType = Bparms->EncryptionType;
 	    /* NextSeqNumber will be filled in in the last step of the handshake */
-	    break;	
+	    break;
     }
 
     /* Obtain pointer to appropriate set of side effect routines */
     if (Bparms->SideEffectType != 0) {
 	    for (i = 0; i < SE_DefCount; i++)
-		    if (SE_DefSpecs[i].SideEffectType == Bparms->SideEffectType) 
+		    if (SE_DefSpecs[i].SideEffectType == Bparms->SideEffectType)
 			    break;
 	    if (i >= SE_DefCount) {
 		    DROPCONN();
@@ -616,7 +615,7 @@ try_next_addr:
 	    }
 	    ce->SEProcs = &SE_DefSpecs[i];
     }
-    else 
+    else
 	    ce->SEProcs = NULL;
 
     /* Call side effect routine if present */
@@ -632,7 +631,7 @@ try_next_addr:
     ce->SubsysId = Subsys->Value.SubsysId;
 
     /* Step 2: Construct Init1 packet */
-    bsize = sizeof(struct Init1Body)  - sizeof(ib->Text) + 
+    bsize = sizeof(struct Init1Body)  - sizeof(ib->Text) +
 		    (Bparms->ClientIdent == NULL ? 0 : Bparms->ClientIdent->SeqLen);
     RPC2_AllocBuffer(bsize, &pb);
     rpc2_InitPacket(pb, ce, bsize);
@@ -663,7 +662,7 @@ try_next_addr:
 	}
 
     /* hint for the other side that we support the new encryption layer */
-    pb->Header.Flags |= RPC2SEC_CAPABLE;
+    if (ce->sa) pb->Header.Flags |= RPC2SEC_CAPABLE;
 
     /* Fill in the body */
     ib = (struct Init1Body *)pb->Body;
@@ -710,7 +709,7 @@ try_next_addr:
 		pb = sl->Packet;		/* and get the Init2 Packet */
 		rpc2_FreeSle(&sl);
 		break;
-	
+
 	case NAKED:
 	case TIMEOUT:
 	case KEPTALIVE:
@@ -723,7 +722,7 @@ try_next_addr:
 		if (rc == RPC2_NOBINDING && peeraddrs)
 		    goto try_next_addr;
 		rpc2_Quit(rc);
-		
+
 	case RPC2SEC_BIND_COMPLETED:
 		/* the server noticed the RPC2SEC flag and the told the
 		 * security layer to complete the handshake and it successfully
@@ -747,22 +746,22 @@ try_next_addr:
     /* Step3: Examine Init2 packet, get bind info (at least
        PeerHandle) and continue with handshake sequence */
     /* is usually RPC2_SUCCESS or RPC2_OLDVERSION */
-    init2rc = pb->Header.ReturnCode;	
+    init2rc = pb->Header.ReturnCode;
 
     /* Authentication failure typically */
     if (init2rc != RPC2_SUCCESS) {
 	    DROPCONN();
 	    RPC2_FreeBuffer(&pb);
-	    rpc2_Quit(init2rc);	
+	    rpc2_Quit(init2rc);
     }
 
     /* We have a good INIT2 packet in pb */
     if (Bparms->SecurityLevel != RPC2_OPENKIMONO) {
 	    ib2 = (struct Init2Body *)pb->Body;
-	    rpc2_Decrypt((char *)ib2, (char *)ib2, sizeof(struct Init2Body), 
+	    rpc2_Decrypt((char *)ib2, (char *)ib2, sizeof(struct Init2Body),
 			 *Bparms->SharedSecret, Bparms->EncryptionType);
 	    ib2->XRandomPlusOne = ntohl(ib2->XRandomPlusOne);
-	    say(9, RPC2_DebugLevel, "XRandomPlusOne = %d\n", 
+	    say(9, RPC2_DebugLevel, "XRandomPlusOne = %d\n",
 		ib2->XRandomPlusOne);
 	    if (savexrandom+1 != ib2->XRandomPlusOne) {
 		    DROPCONN();
@@ -770,7 +769,7 @@ try_next_addr:
 		    rpc2_Quit(RPC2_NOTAUTHENTICATED);
 	    }
 	    saveyrandom = ntohl(ib2->YRandom);
-	    say(9, RPC2_DebugLevel, "YRandom = %d\n", saveyrandom);	
+	    say(9, RPC2_DebugLevel, "YRandom = %d\n", saveyrandom);
     }
 
     ce->PeerHandle = pb->Header.LocalHandle;
@@ -808,7 +807,7 @@ try_next_addr:
 		pb = sl->Packet;	/* and get the Init4 Packet */
 		rpc2_FreeSle(&sl);
 		break;
-	
+
 	case NAKED:
 	case TIMEOUT:
 		/* free connection, buffers, and quit */
@@ -819,7 +818,7 @@ try_next_addr:
 		if (peeraddrs)
 		    goto try_next_addr;
 		rpc2_Quit(RPC2_NOBINDING);
-		
+
 	default: assert(FALSE);
 	}
 
@@ -830,7 +829,7 @@ try_next_addr:
 	{/* Authentication failure typically */
 	DROPCONN();
 	RPC2_FreeBuffer(&pb);
-	rpc2_Quit(init4rc);	
+	rpc2_Quit(init4rc);
 	}
 
     /* We have a good INIT4 packet in pb */
