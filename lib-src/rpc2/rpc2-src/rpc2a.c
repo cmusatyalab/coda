@@ -613,7 +613,7 @@ try_next_addr:
     if (rc) {
 	/* failed to set up decryption/validation contexts */
 	secure_setup_decrypt(&ce->sa, NULL, NULL, NULL, 0);
-	say(0, RPC2_DebugLevel, "RPC2_NewBinding: failed to initialize security context\n");
+	say(0, RPC2_DebugLevel, "Failed to initialize security context\n");
 	rpc2_Quit(RPC2_FAIL);
     }
 
@@ -774,7 +774,7 @@ try_next_addr:
 
     /* secure connection setup did not complete, drop the context */
     secure_setup_decrypt(&ce->sa, NULL, NULL, NULL, 0);
-    say(1, RPC2_DebugLevel, "RPC2_NewBinding: Got INIT2 using old binding\n");
+    say(1, RPC2_DebugLevel, "Got INIT2, falling back on old binding\n");
 
     /* Step3: Examine Init2 packet, get bind info (at least
        PeerHandle) and continue with handshake sequence */

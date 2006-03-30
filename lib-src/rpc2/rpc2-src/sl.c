@@ -391,23 +391,23 @@ static void HandleSLPacket(RPC2_PacketBuffer *pb, struct CEntry *ce)
 static struct CEntry *FindOrNak(RPC2_PacketBuffer *pb)
 {
 	struct CEntry *ce;
-	int valid_sa, init2;
+	int invalid_sa, init2;
 
 	ce = rpc2_GetConn(ntohl(pb->Header.RemoteHandle));
 
 	/* The received packet must be using the exact same security context as
 	 * the connection on which the packet was received. */
-	valid_sa = ce && (&ce->sa == pb->Prefix.sa);
+	invalid_sa = ce && (ce->sa.decrypt || ce->sa.validate) &&
+	    &ce->sa != pb->Prefix.sa;
 
 	/* The only situation where this can differ is when we received an
 	 * non-encrypted response to the INIT1 request from a server that
 	 * doesn't know the new 'secret handshake'.
 	 * This test can be removed if we don't need or want to be compatible
 	 * with non-encrypted rpc2 connections anymore. */
-	init2 = ce && TestState(ce, CLIENT, C_AWAITINIT2) &&
-	    ce->sa.decrypt && !pb->Prefix.sa;
+	init2 = ce && TestState(ce, CLIENT, C_AWAITINIT2);
 
-	if (!valid_sa && !init2) {
+	if (invalid_sa && !init2) {
 	    /* should we log this? Responding is useless because the client
 	     * that sent this packet clearly did not have good intentions. */
 	    RPC2_FreeBuffer(&pb);
