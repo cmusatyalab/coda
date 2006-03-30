@@ -236,7 +236,11 @@ struct CEntry *rpc2_AllocConn(struct RPC2_addrinfo *addr)
     assert(ce->HostInfo);
     ce->Filter.FromWhom = ANY;
     ce->Filter.OldOrNew = OLDORNEW;
+
+    /* initialize security association */
     memset(&ce->sa, 0, sizeof(struct security_association));
+    memcpy(&ce->sa.peer, addr->ai_addr, addr->ai_addrlen);
+    ce->sa.peerlen = addr->ai_addrlen;
 
     /* Then make it unique */
     Uniquefy(ce);
