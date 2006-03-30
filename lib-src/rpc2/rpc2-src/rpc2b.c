@@ -103,7 +103,7 @@ long RPC2_Init(char *VId,		/* magic version string */
     if (Options && (Options->Flags & RPC2_OPTION_IPV6))
 	rpc2_ipv6ready = 1;
 
-    verbose = (Options && (Options->Flags & RPC2_OPTION_IPV6));
+    verbose = (Options && (Options->Flags & RPC2_OPTION_VERBOSE_INIT));
     secure_init(verbose);
 
     rpc2_InitMgrp();
