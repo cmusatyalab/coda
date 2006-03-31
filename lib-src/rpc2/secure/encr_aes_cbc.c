@@ -32,12 +32,12 @@ static int encrypt_init(void **ctx, const uint8_t *key, size_t len)
     else goto err_out;
 
     if (aes_encrypt_key(key, len, *ctx) == 0)
-	return 1;
+	return 0;
 
 err_out:
     free(*ctx);
     *ctx = NULL;
-    return 0;
+    return -1;
 }
 
 static int encrypt(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
@@ -66,12 +66,12 @@ static int decrypt_init(void **ctx, const uint8_t *key, size_t len)
     else goto err_out;
 
     if (aes_decrypt_key(key, len, *ctx) == 0)
-	return 1;
+	return 0;
 
 err_out:
     free(*ctx);
     *ctx = NULL;
-    return 0;
+    return -1;
 }
 
 static int decrypt(void *ctx, const uint8_t *in, uint8_t *out, size_t len,

@@ -29,7 +29,10 @@ Coda are listed in the file CREDITS.
 	int32(out)[2] ^= int32(in)[2]; \
 	int32(out)[3] ^= int32(in)[3]; \
     } while(0)
-
+#define dump128(prefix, b) \
+    fprintf(stderr, "%c %08x%08x%08x%08x\n", prefix, \
+	    htonl(int32(b)[0]), htonl(int32(b)[1]), \
+	    htonl(int32(b)[2]), htonl(int32(b)[3]))
 
 /* private functions */
 /* secure_aes.c */

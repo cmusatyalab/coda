@@ -18,7 +18,7 @@ Coda are listed in the file CREDITS.
 
 static int init(void **ctx, const uint8_t *key, size_t len)
 {
-    return 1;
+    return 0;
 }
 
 static void release(void **ctx)

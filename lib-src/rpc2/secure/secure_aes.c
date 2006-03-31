@@ -24,7 +24,6 @@ Coda are listed in the file CREDITS.
 #include "grunt.h"
 #include "testvectors.h"
 
-
 /* Simple cbc encrypt/decrypt implementation,
  * - Assumes buffers are aligned on a 4-byte boundary.
  * - Assumes length is a multiple of AES_BLOCK_SIZE.

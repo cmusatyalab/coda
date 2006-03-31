@@ -95,7 +95,6 @@ int secure_setup_encrypt(struct security_association *sa,
     if (authenticate) {
 	rc = authenticate->auth_init(&sa->authenticate_context, key, len);
 	if (rc) return -1;
-	sa->authenticate = authenticate;
 
 	/* if we have enough key material, keep authentication and decryption
 	 * keys separate, otherwise we just have to reuse the same key data */
@@ -108,9 +107,15 @@ int secure_setup_encrypt(struct security_association *sa,
 
     if (encrypt) {
 	rc = encrypt->encrypt_init(&sa->encrypt_context, key, len);
-	if (rc) return -1;
-	sa->encrypt = encrypt;
+	if (rc) {
+	    if (authenticate)
+		authenticate->auth_free(&sa->authenticate_context);
+	    return -1;
+	}
     }
+
+    sa->authenticate = authenticate;
+    sa->encrypt = encrypt;
     return 0;
 }
 
@@ -136,7 +141,6 @@ int secure_setup_decrypt(struct security_association *sa,
     if (validate) {
 	rc = validate->auth_init(&sa->validate_context, key, len);
 	if (rc) return -1;
-	sa->validate = validate;
 
 	/* if we have enough key material, keep authentication and decryption
 	 * keys separate, otherwise we just have to reuse the same key data */
@@ -149,10 +153,15 @@ int secure_setup_decrypt(struct security_association *sa,
 
     if (decrypt) {
 	rc = decrypt->decrypt_init(&sa->decrypt_context, key, len);
-	if (rc) return -1;
-	sa->decrypt = decrypt;
+	if (rc) {
+	    if (validate)
+		validate->auth_free(&sa->validate_context);
+	    return -1;
+	}
     }
 
+    sa->validate = validate;
+    sa->decrypt = decrypt;
     secure_random_bytes(&sa->send_iv, sizeof(sa->send_iv));
     return 0;
 }

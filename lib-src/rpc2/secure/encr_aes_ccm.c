@@ -58,12 +58,12 @@ static int init(void **ctx, const uint8_t *key, size_t len, size_t icv_len)
 
     if (aes_encrypt_key(key, len * 8, &acc->ctx) == 0) {
 	*ctx = acc;
-	return 1;
+	return 0;
     }
 
 err_out:
     free(acc);
-    return 0;
+    return -1;
 }
 
 static int init8 (void **ctx, const uint8_t *key, size_t len)

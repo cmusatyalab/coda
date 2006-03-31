@@ -37,15 +37,15 @@ typedef struct {
 static inline int aes_encrypt_key(const uint8_t *key, int keylen,
 				  aes_encrypt_ctx *ctx)
 {
-    ctx->rounds = (keylen == 128) ? 10 : (keylen == 192) ? 12 : 14;
-    return rijndaelKeySetupEnc(ctx->context, key, keylen);
+    ctx->rounds = rijndaelKeySetupEnc(ctx->context, key, keylen);
+    return 0;
 }
 
 static inline int aes_decrypt_key(const uint8_t *key, int keylen,
 				  aes_decrypt_ctx *ctx)
 {
-    ctx->rounds = (keylen == 128) ? 10 : (keylen == 192) ? 12 : 14;
-    return rijndaelKeySetupDec(ctx->context, key, keylen);
+    ctx->rounds = rijndaelKeySetupDec(ctx->context, key, keylen);
+    return 0;
 }
 
 static inline int aes_encrypt(const uint8_t in[AES_BLOCK_SIZE],

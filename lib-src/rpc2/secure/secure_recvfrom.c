@@ -149,7 +149,7 @@ ssize_t secure_recvfrom(int s, void *buf, size_t len, int flags,
 			struct security_association **ret_sa,
 			struct security_association *(*GETSA)(uint32_t spi))
 {
-    uint8_t packet[MAXPACKETSIZE];
+    uint8_t packet[MAXPACKETSIZE], *in;
     struct sockaddr_storage from;
     socklen_t fromlen = sizeof(from);
     struct security_association *sa = NULL;
@@ -224,7 +224,7 @@ ssize_t secure_recvfrom(int s, void *buf, size_t len, int flags,
 	uint8_t tmp_icv[MAXICVLEN];
 
 	/* icv must be aligned on a 32-bit boundary */
-	if (len & 3) goto drop;
+	if (n & 3) goto drop;
 
 	assert(sa->validate->icv_len <= MAXICVLEN);
 
@@ -237,12 +237,15 @@ ssize_t secure_recvfrom(int s, void *buf, size_t len, int flags,
 	    goto drop;
     }
 
-    n = packet_decryption(sa, buf, packet, n);
+    in = packet + 2 * sizeof(uint32_t);
+    n -= 2 * sizeof(uint32_t);
+
+    n = packet_decryption(sa, buf, in, n);
     if (n < 0) goto drop;
 
-    /* if we didn't have a validate function, assume we are using combined
-     * decryption/validation algorithm such as AES-CCM */
-    if (!sa->validate && sa->decrypt)
+    /* pass integrity check for combined mode decryption/validation algorithms
+     * such as AES-CCM */
+    if (sa->decrypt && sa->decrypt->icv_len)
 	if (integrity_check_passed(sa, seq, peer, *peerlen) == -1)
 	    goto drop;
 
