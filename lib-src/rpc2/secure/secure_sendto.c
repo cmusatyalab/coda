@@ -41,6 +41,7 @@ ssize_t secure_sendto(int s, const void *buf, size_t len, int flags,
 	    errno = EINVAL;
 	    return -1;
 	}
+	n = len;
 	goto send_packet;
     }
 
@@ -86,27 +87,28 @@ ssize_t secure_sendto(int s, const void *buf, size_t len, int flags,
     memcpy(p, buf, len);
 
     /* append padding */
+    n = len;
     for (i = 1; i <= padding; i++)
-	p[len++] = i;
-    p[len++] = padding; /* length of padding */
-    p[len++] = 0;       /* next_header */
+	p[n++] = i;
+    p[n++] = padding; /* length of padding */
+    p[n++] = 0;       /* next_header */
 
     /* encrypt the payload */
     if (sa->encrypt) {
 	n = sa->encrypt->encrypt(sa->encrypt_context,
-				 p, p, len, out + 2 * sizeof(uint32_t));
+				 p, p, n, out + 2 * sizeof(uint32_t));
 	if (n < 0) {
 	    errno = EMSGSIZE;
 	    return -1;
 	}
-	len = n + 2 * sizeof(uint32_t) + sa->encrypt->iv_len;
+	n += 2 * sizeof(uint32_t) + sa->encrypt->iv_len;
     }
 
     /* add message authentication */
     if (sa->authenticate) {
-	icv = out + len;
-	sa->authenticate->auth(sa->authenticate_context, out, len, icv);
-	len += sa->authenticate->icv_len;
+	icv = out + n;
+	sa->authenticate->auth(sa->authenticate_context, out, n, icv);
+	n += sa->authenticate->icv_len;
     }
 
     buf = out;
@@ -114,7 +116,8 @@ ssize_t secure_sendto(int s, const void *buf, size_t len, int flags,
     tolen = sa->peerlen;
 
 send_packet:
-    n = sendto(s, buf, len, flags, to, tolen);
+    padding = len - n;
+    n = sendto(s, buf, n, flags, to, tolen);
 #ifdef __linux__
     if (n == -1 && errno == ECONNREFUSED)
     {
@@ -125,8 +128,10 @@ send_packet:
 	 * We retry the send, because the failing host was possibly
 	 * not the one we tried to send to this time. --JH
 	 */
-	n = sendto(s, buf, len, 0, to, tolen);
+	n = sendto(s, buf, n, 0, to, tolen);
     }
 #endif
+    n -= padding;
+    if (n < -1) n = -1;
     return n;
 }
