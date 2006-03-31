@@ -283,6 +283,10 @@ void rpc2_FreeConn(RPC2_Handle whichConn)
     rpc2_FreeHost(&ce->HostInfo);
     SetRole(ce, FREE);
 
+    /* clear encryption state */
+    secure_setup_encrypt(&ce->sa, NULL, NULL, NULL, 0);
+    secure_setup_decrypt(&ce->sa, NULL, NULL, NULL, 0);
+
     /* move the conn entry over to the freelist */
     list_del(&ce->connlist);
     assert(ce->MagicNumber == OBJ_CENTRY);

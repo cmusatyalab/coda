@@ -126,6 +126,8 @@ void secure_release(void);
 const struct secure_auth *secure_get_auth_byid(int id);
 const struct secure_encr *secure_get_encr_byid(int id);
 
+int secure_setup_key(const uint8_t rpc2key[8], uint32_t unique,
+		     uint8_t *key, size_t keylen);
 int secure_setup_encrypt(struct security_association *sa,
 			 const struct secure_auth *authenticate,
 			 const struct secure_encr *encrypt,

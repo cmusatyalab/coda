@@ -541,6 +541,7 @@ long RPC2_NewBinding(IN RPC2_HostIdent *Host, IN RPC2_PortIdent *Port,
     RPC2_Unsigned bsize;
     struct RPC2_addrinfo *addr, *peeraddrs;
     uint8_t key[16];
+    RPC2_EncryptionKey rpc2key;
 
 #define DROPCONN()\
 	    {rpc2_SetConnError(ce); (void) RPC2_Unbind(*ConnHandle); *ConnHandle = 0;}
@@ -597,10 +598,11 @@ try_next_addr:
      *
      * Hopefully we can fix this when we drop compatibility with old clients.
      */
-    memset(key, 0, sizeof(key));
     if (Bparms->SharedSecret)
-	memcpy(key, *Bparms->SharedSecret, sizeof(RPC2_EncryptionKey));
-    ((int32_t *)key)[2] = htonl(ce->PeerUnique);
+	 memcpy(rpc2key, *Bparms->SharedSecret, sizeof(RPC2_EncryptionKey));
+    else memset(rpc2key, 0, sizeof(RPC2_EncryptionKey));
+
+    secure_setup_key(rpc2key, ce->PeerUnique, key, sizeof(key));
 
     /* setup security context */
     rc = secure_setup_decrypt(&ce->sa,
