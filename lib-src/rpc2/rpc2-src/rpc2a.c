@@ -598,7 +598,7 @@ try_next_addr:
      *
      * Hopefully we can fix this when we drop compatibility with old clients.
      */
-    if (Bparms->SharedSecret)
+    if (Bparms->SecurityLevel != RPC2_OPENKIMONO && Bparms->SharedSecret)
 	 memcpy(rpc2key, *Bparms->SharedSecret, sizeof(RPC2_EncryptionKey));
     else memset(rpc2key, 0, sizeof(RPC2_EncryptionKey));
 
