@@ -595,13 +595,12 @@ try_next_addr:
      *
      * Maybe we should be using SHA1(SharedSecret . PeerUnique)?
      *
-     * Hopefully we can fix this by the time we drop backward compatibility
-     * for existing clients and servers */
+     * Hopefully we can fix this when we drop compatibility with old clients.
+     */
     memset(key, 0, sizeof(key));
     if (Bparms->SharedSecret)
 	memcpy(key, *Bparms->SharedSecret, sizeof(RPC2_EncryptionKey));
-    memcpy(key + sizeof(RPC2_EncryptionKey), &ce->PeerUnique,
-	   sizeof(ce->PeerUnique));
+    ((int32_t *)key)[2] = htonl(ce->PeerUnique);
 
     /* setup security context */
     rc = secure_setup_decrypt(&ce->sa,
@@ -612,7 +611,6 @@ try_next_addr:
 
     if (rc) {
 	/* failed to set up decryption/validation contexts */
-	secure_setup_decrypt(&ce->sa, NULL, NULL, NULL, 0);
 	say(0, RPC2_DebugLevel, "Failed to initialize security context\n");
 	rpc2_Quit(RPC2_FAIL);
     }
@@ -772,10 +770,6 @@ try_next_addr:
 
     /* At this point, pb points to the Init2 packet */
 
-    /* secure connection setup did not complete, drop the context */
-    secure_setup_decrypt(&ce->sa, NULL, NULL, NULL, 0);
-    say(1, RPC2_DebugLevel, "Got INIT2, falling back on old binding\n");
-
     /* Step3: Examine Init2 packet, get bind info (at least
        PeerHandle) and continue with handshake sequence */
     /* is usually RPC2_SUCCESS or RPC2_OLDVERSION */
@@ -805,7 +799,14 @@ try_next_addr:
 	    say(9, RPC2_DebugLevel, "YRandom = %d\n", saveyrandom);
     }
 
+    /* If the reply was not over a secure connection, we can drop the context */
+    if (!pb->Prefix.sa) {
+	secure_setup_decrypt(&ce->sa, NULL, NULL, NULL, 0);
+	say(1, RPC2_DebugLevel, "Got normal INIT2, using old binding\n");
+    }
+
     ce->PeerHandle = pb->Header.LocalHandle;
+    ce->sa.peer_spi = pb->Header.LocalHandle;
     say(9, RPC2_DebugLevel, "PeerHandle for local %#x is %#x\n", 
 	*ConnHandle, ce->PeerHandle);
     RPC2_FreeBuffer(&pb);	/* Release INIT2 packet */

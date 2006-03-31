@@ -244,6 +244,7 @@ struct CEntry *rpc2_AllocConn(struct RPC2_addrinfo *addr)
 
     /* Then make it unique */
     Uniquefy(ce);
+    ce->sa.recv_spi = ce->UniqueCID;
 
     return(ce);
 }

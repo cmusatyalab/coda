@@ -960,7 +960,7 @@ static void HandleRetriedBind(RPC2_PacketBuffer *pb, struct CEntry *ce)
 
 
 
-static void HandleInit2(RPC2_PacketBuffer *pb,     struct CEntry *ce)
+static void HandleInit2(RPC2_PacketBuffer *pb, struct CEntry *ce)
 {
 	struct SL_Entry *sl;
 
@@ -968,15 +968,15 @@ static void HandleInit2(RPC2_PacketBuffer *pb,     struct CEntry *ce)
 
 	rpc2_Recvd.Requests++;
 
-	if (BogusSl(ce, pb)) 
+	if (BogusSl(ce, pb))
 		return;
 	ce->respsize = pb->Prefix.LengthOfPacket;
 	rpc2_UpdateRTT(pb, ce);
 	sl = ce->MySl;
 	sl->Packet = pb;
-	if (ce->SecurityLevel == RPC2_OPENKIMONO)  	
+	if (ce->SecurityLevel == RPC2_OPENKIMONO)
 		SetState(ce, C_THINK);
-	else 
+	else
 		SetState(ce, C_AWAITINIT4);
 	rpc2_DeactivateSle(sl, ARRIVED);
 	LWP_NoYieldSignal((char *)sl);
@@ -1127,6 +1127,7 @@ static struct CEntry *MakeConn(struct RPC2_PacketBuffer *pb)
 	SetRole(ce, SERVER);
 	SetState(ce, S_STARTBIND);
 	ce->PeerHandle = pb->Header.LocalHandle;
+	ce->sa.peer_spi = pb->Header.LocalHandle;
 	ce->SubsysId   = pb->Header.SubsysId;
 	ce->PeerUnique = pb->Header.Uniquefier;
 	ce->SEProcs = NULL;
