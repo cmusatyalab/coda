@@ -564,6 +564,8 @@ void rpc2_PrintTMElem(), rpc2_PrintFilter(), rpc2_PrintSLEntry(),
 extern FILE *ErrorLogFile;
 
 /* encryption */
+struct security_association *rpc2_GetSA(uint32_t spi);
+
 void rpc2_ApplyD(RPC2_PacketBuffer *pb, struct CEntry *ce);
 void rpc2_ApplyE(RPC2_PacketBuffer *pb, struct CEntry *ce);
 

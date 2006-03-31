@@ -302,6 +302,7 @@ struct SFTP_Entry		/* per-connection data structure */
      * Sending side: The packets have been sent, and an ACK for them has been
      * received.
      */
+    struct security_association *sa;
     };
 
 

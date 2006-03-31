@@ -196,6 +196,7 @@ long SFTP_Bind1(IN ConnHandle, IN ClientIdent)
     se = sftp_AllocSEntry();	/* malloc and initialize SFTP_Entry */
     se->WhoAmI = SFCLIENT;
     se->LocalHandle = ConnHandle;
+    se->sa = rpc2_GetSA(ConnHandle);
     RPC2_SetSEPointer(ConnHandle, se);
     return(RPC2_SUCCESS);
     }
@@ -267,6 +268,7 @@ long SFTP_NewConn(IN ConnHandle, IN ClientIdent)
     se->HostInfo = rpc2_GetHost(se->PInfo.RemoteHost.Value.AddrInfo);
     assert(se->HostInfo);
 
+    se->sa = rpc2_GetSA(ConnHandle);
     RPC2_SetSEPointer(ConnHandle, se);
 
     return(RPC2_SUCCESS);    

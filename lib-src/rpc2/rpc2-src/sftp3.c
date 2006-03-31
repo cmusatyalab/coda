@@ -1342,12 +1342,13 @@ void sftp_InitPacket(RPC2_PacketBuffer *pb, struct SFTP_Entry *sfe,
     pb->Prefix.LengthOfPacket = sizeof(struct RPC2_PacketHeader) + bodylen;
     pb->Prefix.RecvStamp.tv_sec = pb->Prefix.RecvStamp.tv_usec = 0;
     if (sfe)
-    	{
+    {
+	pb->Prefix.sa = sfe->sa;
 	pb->Header.RemoteHandle = sfe->PInfo.RemoteHandle;
 	pb->Header.LocalHandle = sfe->LocalHandle;
 	pb->Header.SubsysId = SMARTFTP;
 	pb->Header.ThisRPCCall = sfe->ThisRPCCall;
-    	}
+    }
 }
 
 

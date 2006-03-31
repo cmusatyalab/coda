@@ -176,7 +176,7 @@ void rpc2_XmitPacket(RPC2_PacketBuffer *pb, struct RPC2_addrinfo *addr,
     }
 }
 
-static struct security_association *GetSA(uint32_t spi)
+struct security_association *rpc2_GetSA(uint32_t spi)
 {
     struct CEntry *ce= __rpc2_GetConn((RPC2_Handle)spi);
     return ce ? &ce->sa : NULL;
@@ -206,7 +206,7 @@ long rpc2_RecvPacket(IN long whichSocket, OUT RPC2_PacketBuffer *whichBuff)
     fromlen = sizeof(ss);
     rc = secure_recvfrom(whichSocket, &whichBuff->Header, len, 0,
 			 (struct sockaddr *) &ss, &fromlen,
-			 &whichBuff->Prefix.sa, GetSA);
+			 &whichBuff->Prefix.sa, rpc2_GetSA);
 
     if (rc < 0 && errno == EAGAIN) {
 	/* the packet might have had a corrupt udp checksum */
