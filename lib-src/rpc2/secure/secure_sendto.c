@@ -116,7 +116,7 @@ ssize_t secure_sendto(int s, const void *buf, size_t len, int flags,
     tolen = sa->peerlen;
 
 send_packet:
-    padding = len - n;
+    padding = n - len;
     n = sendto(s, buf, n, flags, to, tolen);
 #ifdef __linux__
     if (n == -1 && errno == ECONNREFUSED)
