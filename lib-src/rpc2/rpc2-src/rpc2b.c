@@ -43,6 +43,7 @@ Pittsburgh, PA.
 #endif
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <sys/types.h>
@@ -83,6 +84,7 @@ long RPC2_Init(char *VId,		/* magic version string */
     long rc1 = RPC2_NOCONNECTION, rc2, rc;
     short port = 0;
     int verbose;
+    char *env;
 
     rpc2_logfile = stderr;
     rpc2_tracefile = stderr;
@@ -103,6 +105,12 @@ long RPC2_Init(char *VId,		/* magic version string */
     if (Options && (Options->Flags & RPC2_OPTION_IPV6))
 	rpc2_ipv6ready = 1;
 
+    env = getenv("RPC2_KEYSIZE");
+    if (env)
+	RPC2_Preferred_Keysize = atoi(env);
+    if (RPC2_Preferred_Keysize > 64)
+	RPC2_Preferred_Keysize /= 8;
+
     verbose = (Options && (Options->Flags & RPC2_OPTION_VERBOSE_INIT));
     secure_init(verbose);
 
@@ -115,7 +123,7 @@ long RPC2_Init(char *VId,		/* magic version string */
 	say(-1, RPC2_DebugLevel, "RPC2_Init(): Couldn't get addrinfo for localhost!\n");
 	rpc2_Quit(RPC2_FAIL);
     }
-    
+
 #ifdef PF_INET6
     rc1 = rpc2_CreateIPSocket(PF_INET6, &rpc2_v6RequestSocket,
 			      rpc2_localaddrs, &port);

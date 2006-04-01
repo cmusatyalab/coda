@@ -249,6 +249,17 @@ extern long RPC2_Trace;
  */
 extern long RPC2_strict_ip_matching;
 
+/* The application can request a preferred minimal encryption key length
+ * The value is in bytes.
+ *
+ * AES_CCM uses three bytes of salt + AES key length, so useful values would be,
+ *   19 (128-bit AES key), 27 (192-bit AES key), or 35 (256-bit AES key).
+ *
+ * You can also set the environment variable 'RPC2_KEYSIZE', which is evaluated
+ * when RPC2_Init() is called, the environment variable can be set either in
+ * bytes or in bits. (19/152, 27/216, 35/280)
+ */
+extern int RPC2_Preferred_Keysize;
 
 /*
 ************************* Data Types known to RPGen ***********************

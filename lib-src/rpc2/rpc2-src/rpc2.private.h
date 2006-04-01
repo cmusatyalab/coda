@@ -377,7 +377,7 @@ struct Init1Body			/* Client to Server: format of packets with opcode of RPC2_IN
     char usedtobehostport[92];		/* XXX not used anymore but old rpc2
 					   servers need the alignment */
     RPC2_Integer Uniquefier;		/* to allow detection of retransmissions */
-    RPC2_Integer Spare1;
+    RPC2_Unsigned Preferred_Keysize;	/* preferred encryption key length */
     RPC2_Integer Spare2;
     RPC2_Integer Spare3;
     RPC2_Byte Version[96];		/* set to RPC2_VERSION */

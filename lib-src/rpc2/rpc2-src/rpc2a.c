@@ -70,11 +70,11 @@ Protocol
     Retries from client cause saved reply packet to be sent out.
     Reply packet is released on next request or on a timeout.  Further client retries
 	are ignored.
-	
+
 
 Connection Invariants:
 =====================
-	1. State:	  
+	1. State:
 	                  Modified in GetRequest, SendResponse,
 	                  MakeRPC, MultiRPC, Bind and SocketListener.
 	                  Always C_THINK in client code.  In
@@ -109,14 +109,17 @@ NOTE 1
 
 #define HAVE_SE_FUNC(xxx) (ce->SEProcs && ce->SEProcs->xxx)
 
+int RPC2_Preferred_Keysize;
+
 void SavePacketForRetry();
 static int InvokeSE();
 static void SendOKInit2();
 static int ServerHandShake(struct CEntry *ce, int32_t xrand,
-			   RPC2_EncryptionKey SharedSecret, int new_binding);
+			   RPC2_EncryptionKey SharedSecret,
+			   size_t peer_keysize, int new_binding);
 static RPC2_PacketBuffer *Send2Get3(struct CEntry *ce, RPC2_EncryptionKey key,
 				    int32_t xrand, int32_t *yrand,
-				    int new_binding);
+				    size_t peer_keysize, int new_binding);
 static long Test3(RPC2_PacketBuffer *pb, struct CEntry *ce, uint32_t yrand,
 		  RPC2_EncryptionKey ekey, int new_binding);
 static void Send4AndSave(struct CEntry *ce, int32_t xrand,
@@ -125,7 +128,7 @@ static void RejectBind(struct CEntry *ce, size_t bodysize, RPC2_Integer opcode);
 static RPC2_PacketBuffer *HeldReq(RPC2_RequestFilter *filter, struct CEntry **ce);
 static int GetFilter(RPC2_RequestFilter *inf, RPC2_RequestFilter *outf);
 static long GetNewRequest(IN RPC2_RequestFilter *filter, IN struct timeval *timeout, OUT struct RPC2_PacketBuffer **pb, OUT struct CEntry **ce);
-static long MakeFake(INOUT RPC2_PacketBuffer *pb, IN struct CEntry *ce, RPC2_Integer *AuthenticationType, OUT RPC2_Integer *xrand, OUT RPC2_CountedBS *cident);
+static long MakeFake(INOUT RPC2_PacketBuffer *pb, IN struct CEntry *ce, RPC2_Integer *AuthenticationType, OUT RPC2_Integer *xrand, OUT RPC2_CountedBS *cident, size_t *peer_keysize);
 
 FILE *rpc2_logfile;
 FILE *rpc2_tracefile;
@@ -133,7 +136,7 @@ extern struct timeval SaveResponse;
 
 void RPC2_SetLog(FILE *file, int level)
 {
-	if (file) { 
+	if (file) {
 		rpc2_logfile = file;
 		rpc2_tracefile = file;
 	}
@@ -262,8 +265,9 @@ long RPC2_GetRequest(IN RPC2_RequestFilter *Filter,
 	RPC2_PacketBuffer *pb;
 	RPC2_Integer AuthenticationType;
 	RPC2_CountedBS cident, *clientIdent;
-	RPC2_Integer saveXRandom;
+	RPC2_Integer XRandom;
 	RPC2_EncryptionKey SharedSecret;
+	size_t peer_keysize = 0;
 	long rc;
 
 	rpc2_Enter();
@@ -280,7 +284,7 @@ long RPC2_GetRequest(IN RPC2_RequestFilter *Filter,
 	} while(0)
 
 
-	if (!GetFilter(Filter, &myfilter)) 
+	if (!GetFilter(Filter, &myfilter))
 		rpc2_Quit(RPC2_BADFILTER);
 
  ScanWorkList:
@@ -288,7 +292,7 @@ long RPC2_GetRequest(IN RPC2_RequestFilter *Filter,
 	if (!pb) {
 		/* await a proper request */
 		rc = GetNewRequest(&myfilter, BreathOfLife, &pb, &ce);
-		if (rc != RPC2_SUCCESS) 
+		if (rc != RPC2_SUCCESS)
 			rpc2_Quit(rc);
 	}
 
@@ -303,7 +307,7 @@ long RPC2_GetRequest(IN RPC2_RequestFilter *Filter,
 	/* Invariants here:
 	   (1) pb points to a request packet, decrypted and nettohosted
 	   (2) ce is the connection associated with pb
-	   (3) ce's state is S_STARTBIND if this is a new bind, 
+	   (3) ce's state is S_STARTBIND if this is a new bind,
 	   S_PROCESS otherwise
 	*/
 
@@ -333,7 +337,8 @@ long RPC2_GetRequest(IN RPC2_RequestFilter *Filter,
        Extract relevant fields from Init1 packet and then
 	make it a fake NEWCONNECTION packet */
 
-    rc = MakeFake(pb, ce, &saveXRandom, &AuthenticationType, &cident);
+    rc = MakeFake(pb, ce, &XRandom, &AuthenticationType, &cident,
+		  &peer_keysize);
     if (rc < RPC2_WLIMIT) {DROPIT();}
 
     memset(SharedSecret, 0, sizeof(RPC2_EncryptionKey));
@@ -373,7 +378,7 @@ long RPC2_GetRequest(IN RPC2_RequestFilter *Filter,
 	 * sequence, but this is should not be a problem, the packets in the
 	 * new handshake are easily recognized by having a non-NULL
 	 * pb->Prefix.sa field */
-	rc = ServerHandShake(ce, saveXRandom, SharedSecret, 1);
+	rc = ServerHandShake(ce, XRandom, SharedSecret, peer_keysize, 1);
 	if (rc != RPC2_SUCCESS)
 	    DROPIT();
     }
@@ -389,7 +394,7 @@ long RPC2_GetRequest(IN RPC2_RequestFilter *Filter,
 	    DROPIT();
 	}
 
-	rc = ServerHandShake(ce, saveXRandom, SharedSecret, 0);
+	rc = ServerHandShake(ce, XRandom, SharedSecret, 0, 0);
 	if (rc != RPC2_SUCCESS)
 	    DROPIT();
     }
@@ -743,9 +748,6 @@ try_next_addr:
 	    rpc2_Quit(RPC2_FAIL);	/* bogus security level  specified */
 	}
 
-    /* hint for the other side that we support the new encryption layer */
-    if (ce->sa.decrypt) pb->Header.Flags |= RPC2SEC_CAPABLE;
-
     /* Fill in the body */
     ib = (struct Init1Body *)pb->Body;
     ib->FakeBody.SideEffectType = htonl(Bparms->SideEffectType);
@@ -762,6 +764,12 @@ try_next_addr:
 	}
     assert(sizeof(RPC2_VERSION) < sizeof(ib->Version));
     strcpy((char *)ib->Version, RPC2_VERSION);
+
+    /* hint for the other side that we support the new encryption layer */
+    if (ce->sa.decrypt) {
+	pb->Header.Flags |= RPC2SEC_CAPABLE;
+	ib->Preferred_Keysize = htonl(RPC2_Preferred_Keysize);
+    }
 
     rpc2_htonp(pb);	/* convert header to network order */
 
@@ -1269,13 +1277,10 @@ TryAnother:
     }
 
 
-static long MakeFake(INOUT pb, IN ce, OUT xrand, OUT authenticationtype, OUT cident)
-    RPC2_PacketBuffer *pb;
-    struct CEntry *ce;
-    RPC2_Integer *xrand;
-    RPC2_Integer *authenticationtype;
-    RPC2_CountedBS *cident;
-    {
+static long MakeFake(RPC2_PacketBuffer *pb, struct CEntry *ce,
+		     RPC2_Integer *xrand, RPC2_Integer *authenticationtype,
+		     RPC2_CountedBS *cident, size_t *peer_keysize)
+{
     /* Synthesize fake packet after extracting encrypted XRandom and clientident */
     long i;
     struct Init1Body *ib1;
@@ -1299,6 +1304,7 @@ static long MakeFake(INOUT pb, IN ce, OUT xrand, OUT authenticationtype, OUT cid
 
     *xrand  = ib1->XRandom;		/* Still encrypted */
     *authenticationtype = ntohl(ncb->AuthenticationType);
+    *peer_keysize = ntohl(ib1->Preferred_Keysize);
 
     cident->SeqLen = ntohl(ncb->ClientIdent.SeqLen);
     cident->SeqBody = (RPC2_ByteSeq) &ncb->ClientIdent.SeqBody;
@@ -1324,7 +1330,7 @@ static long MakeFake(INOUT pb, IN ce, OUT xrand, OUT authenticationtype, OUT cid
 
     pb->Header.Opcode = RPC2_NEWCONNECTION;
     return(RPC2_SUCCESS);
-    }
+}
 
 
 static void SendOKInit2(IN struct CEntry *ce)
@@ -1348,7 +1354,8 @@ static void SendOKInit2(IN struct CEntry *ce)
     }
 
 static int ServerHandShake(struct CEntry *ce, int32_t xrand,
-			   RPC2_EncryptionKey SharedSecret, int new_binding)
+			   RPC2_EncryptionKey SharedSecret,
+			   size_t peer_keysize, int new_binding)
 {
     RPC2_PacketBuffer *pb;
     int32_t saveYRandom;
@@ -1361,7 +1368,8 @@ static int ServerHandShake(struct CEntry *ce, int32_t xrand,
     }
 
     /* Send Init2 packet and await Init3 */
-    pb = Send2Get3(ce, SharedSecret, xrand, &saveYRandom, new_binding);
+    pb = Send2Get3(ce, SharedSecret, xrand, &saveYRandom, peer_keysize,
+		   new_binding);
     if (!pb) return(RPC2_NOTAUTHENTICATED);
 
     /* Validate Init3 */
@@ -1397,7 +1405,7 @@ static void RejectBind(struct CEntry *ce, size_t bodysize, RPC2_Integer opcode)
 
 static RPC2_PacketBuffer *Send2Get3(struct CEntry *ce, RPC2_EncryptionKey key,
 				    int32_t xrand, int32_t *yrand,
-				    int new_binding)
+				    size_t peer_keysize, int new_binding)
 {
     RPC2_PacketBuffer *pb2, *pb3 = NULL;
     struct Init2Body *ib2;
@@ -1413,10 +1421,13 @@ static RPC2_PacketBuffer *Send2Get3(struct CEntry *ce, RPC2_EncryptionKey key,
 	encr = secure_get_encr_byid(SECURE_ENCR_AES_CCM_8);
 	if (!auth || !encr) return NULL;
 
-	/* XXX here is where we can influence the chosen encryption key size
-	 * XXX by picking some value between encr->min_keysize and
-	 * XXX encr->max_keysize */
-	keysize = auth->keysize + encr->min_keysize;
+	/* find the longest key that both the client and the server agree on */
+	keysize = RPC2_Preferred_Keysize > peer_keysize ?
+	    RPC2_Preferred_Keysize : peer_keysize;
+	if      (keysize < encr->min_keysize) keysize = encr->min_keysize;
+	else if (keysize > encr->max_keysize) keysize = encr->max_keysize;
+
+	keysize += auth->keysize;
 	bodylen = 2 * sizeof(uint32_t) + keysize;
     }
 
