@@ -227,8 +227,7 @@ long RPC2_SendResponse(IN RPC2_Handle ConnHandle, IN RPC2_PacketBuffer *Reply)
     rpc2_Quit(rc);
 }
 
-/* By using helpers to set up keys, we can change keylengths by only updating
- * these functions */
+/* Helpers to set up keys and pack/unpack init2/init3 packets */
 static int setup_init1_key(int (*init)(struct security_association *sa,
 				       const struct secure_auth *auth,
 				       const struct secure_encr *encr,
@@ -251,6 +250,69 @@ static int setup_init1_key(int (*init)(struct security_association *sa,
 
     return rc;
 }
+
+static int pack_init2_init3_body(struct security_association *sa,
+				 struct RPC2_PacketBuffer *pb,
+				 const struct secure_auth *auth,
+				 const struct secure_encr *encr,
+				 size_t len)
+{
+	uint32_t *body = (uint32_t *)pb->Body;
+
+	body[0] = htonl(auth->id);
+	body[1] = htonl(encr->id);
+	secure_random_bytes(&body[2], len);
+
+	return secure_setup_decrypt(sa, auth, encr, (uint8_t *)&body[2], len);
+}
+
+static int unpack_init2_init3_body(struct CEntry *ce,
+				   struct RPC2_PacketBuffer *pb,
+				   const struct secure_auth **auth,
+				   const struct secure_encr **encr,
+				   size_t *keylen)
+{
+    const struct secure_auth *a;
+    const struct secure_encr *e;
+    uint32_t *body = (uint32_t *)pb->Body;
+    size_t len, min_keylen;
+    int rc;
+
+    /* Make sure the nonce in the decrypted packet is correct */
+    if (pb->Header.Uniquefier != ce->PeerUnique)
+	return RPC2_NOTAUTHENTICATED;
+
+    /* check for sufficient length of the incoming packet */
+    len = pb->Prefix.LengthOfPacket - sizeof(struct RPC2_PacketHeader);
+    if (len < 2 * sizeof(uint32_t))
+	return RPC2_NOTAUTHENTICATED;
+
+    /* lookup authentication and encryption functions */
+    a = secure_get_auth_byid(ntohl(body[0]));
+    e = secure_get_encr_byid(ntohl(body[1]));
+    if (!a || !e)
+	return RPC2_NOTAUTHENTICATED;
+
+    /* check for sufficient keying material in the incoming packet */
+    len -= 2 * sizeof(uint32_t);
+    min_keylen = e->min_keysize;
+    if (min_keylen < a->keysize)
+	min_keylen = a->keysize;
+
+    if (len < min_keylen)
+	return RPC2_NOTAUTHENTICATED;
+
+    /* initialize keys */
+    rc = secure_setup_encrypt(&ce->sa, a, e, (uint8_t *)&body[2], len);
+    if (rc) return RPC2_NOTAUTHENTICATED;
+
+    if (auth)   *auth = a;
+    if (encr)   *encr = e;
+    if (keylen) *keylen = len;
+
+    return RPC2_SUCCESS;
+}
+
 
 long RPC2_GetRequest(IN RPC2_RequestFilter *Filter,
 		     OUT RPC2_Handle *ConnHandle,
@@ -849,35 +911,11 @@ try_next_addr:
     /* If the reply was over a secure connection, we interpret the INIT2 body
      * differently (uint32_t auth, uint32_t encr, uint8_t key[]) */
     if (pb->Prefix.sa) {
-	uint32_t *body = (uint32_t *)pb->Body;
-	size_t min_keylen;
-
-	/* Make sure the nonce in the decrypted packet is correct */
-	if (pb->Header.Uniquefier != ce->PeerUnique)
-	    goto init2_fail;
-
-	/* lookup authentication and encryption functions */
-	auth = secure_get_auth_byid(ntohl(body[0]));
-	encr = secure_get_encr_byid(ntohl(body[1]));
-	if (!auth || !encr)
-	    goto init2_fail;
-
-	/* check for sufficient keying material in the incoming packet */
-	keylen = pb->Prefix.LengthOfPacket - sizeof(struct RPC2_PacketHeader) -
-	    2 * sizeof(uint32_t);
-	min_keylen = auth->keysize > encr->min_keysize ?
-	    auth->keysize : encr->min_keysize;
-	if (keylen < min_keylen)
-	    goto init2_fail;
-
-	/* initialize keys */
-	rc = secure_setup_encrypt(&ce->sa, auth, encr,
-				  (uint8_t *)&body[2], keylen);
-	if (rc) {
-init2_fail:
+	rc = unpack_init2_init3_body(ce, pb, &auth, &encr, &keylen);
+	if (rc != RPC2_SUCCESS) {
 	    DROPCONN();
 	    RPC2_FreeBuffer(&pb);
-	    rpc2_Quit(RPC2_NOTAUTHENTICATED);
+	    rpc2_Quit(rc);
 	}
 	new_binding = 1;
     } else {
@@ -934,7 +972,6 @@ init2_fail:
     rpc2_htonp(pb);
 
     if (new_binding) {
-	uint32_t *body = (uint32_t *)pb->Body;
 	/* keylen, auth and encr were initialized when we handled the secure
 	 * INIT2 packet. We could choose different algorithms and keylengths,
 	 * but that doesn't seem particularily useful.
@@ -943,11 +980,7 @@ init2_fail:
 	 * - A rogue server won't care how we encrypt outgoing data, it clearly
 	 *   will be getting any required key material with this INIT3 packet.
 	 */
-	body[0] = htonl(auth->id);
-	body[1] = htonl(encr->id);
-	secure_random_bytes(&body[2], keylen);
-	rc = secure_setup_decrypt(&ce->sa, auth, encr,
-				  (uint8_t *)&body[2], keylen);
+	rc = pack_init2_init3_body(&ce->sa, pb, auth, encr, keylen);
 	if (rc) {
 	    DROPCONN();
 	    RPC2_FreeBuffer(&pb);
@@ -1446,15 +1479,8 @@ static RPC2_PacketBuffer *Send2Get3(struct CEntry *ce, RPC2_EncryptionKey key,
 
     /* and pack the body */
     if (new_binding) {
-	uint32_t *body = (uint32_t *)pb2->Body;
-	int rc;
-
-	body[0] = htonl(auth->id);
-	body[1] = htonl(encr->id);
-	secure_random_bytes(&body[2], keysize);
-	rc = secure_setup_decrypt(&ce->sa, auth, encr,
-				  (uint8_t *)&body[2], keysize);
-	if (rc) {
+	if (pack_init2_init3_body(&ce->sa, pb2, auth, encr, keysize))
+	{
 	    RPC2_FreeBuffer(&pb2);
 	    return NULL;
 	}
@@ -1504,36 +1530,8 @@ static long Test3(RPC2_PacketBuffer *pb, struct CEntry *ce, uint32_t yrand,
 {
     struct Init3Body *ib3;
 
-    if (new_binding) {
-	uint32_t *body = (uint32_t *)pb->Body;
-	const struct secure_auth *auth;
-	const struct secure_encr *encr;
-	size_t keylen, min_keylen;
-	int rc;
-
-	if (pb->Header.Uniquefier != ce->PeerUnique)
-	    return RPC2_NOTAUTHENTICATED;
-
-	/* lookup authentication and encryption functions */
-	auth = secure_get_auth_byid(ntohl(body[0]));
-	encr = secure_get_encr_byid(ntohl(body[1]));
-	if (!auth || !encr)
-	    return RPC2_NOTAUTHENTICATED;
-
-	/* check for sufficient keying material in the incoming packet */
-	keylen = pb->Prefix.LengthOfPacket - sizeof(struct RPC2_PacketHeader) -
-	    2 * sizeof(uint32_t);
-	min_keylen = auth->keysize > encr->min_keysize ?
-	    auth->keysize : encr->min_keysize;
-	if (keylen < min_keylen)
-	    return RPC2_NOTAUTHENTICATED;
-
-	/* initialize keys */
-	rc = secure_setup_encrypt(&ce->sa, auth, encr,
-				  (uint8_t *)&body[2], keylen);
-
-	return rc ? RPC2_NOTAUTHENTICATED : RPC2_SUCCESS;
-    }
+    if (new_binding)
+	return unpack_init2_init3_body(ce, pb, NULL, NULL, NULL);
 
     if (pb->Prefix.LengthOfPacket <
 	sizeof(struct RPC2_PacketHeader) + sizeof(struct Init3Body))
