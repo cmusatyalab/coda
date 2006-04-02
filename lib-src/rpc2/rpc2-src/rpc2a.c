@@ -109,7 +109,7 @@ NOTE 1
 
 #define HAVE_SE_FUNC(xxx) (ce->SEProcs && ce->SEProcs->xxx)
 
-int RPC2_Preferred_Keysize;
+size_t RPC2_Preferred_Keysize;
 
 void SavePacketForRetry();
 static int InvokeSE();
@@ -120,7 +120,7 @@ static int ServerHandShake(struct CEntry *ce, int32_t xrand,
 static RPC2_PacketBuffer *Send2Get3(struct CEntry *ce, RPC2_EncryptionKey key,
 				    int32_t xrand, int32_t *yrand,
 				    size_t peer_keysize, int new_binding);
-static long Test3(RPC2_PacketBuffer *pb, struct CEntry *ce, uint32_t yrand,
+static long Test3(RPC2_PacketBuffer *pb, struct CEntry *ce, int32_t yrand,
 		  RPC2_EncryptionKey ekey, int new_binding);
 static void Send4AndSave(struct CEntry *ce, int32_t xrand,
 			 RPC2_EncryptionKey ekey, int new_binding);
@@ -922,8 +922,7 @@ try_next_addr:
 
 	/* old authenticated binding */
 	if (Bparms->SecurityLevel != RPC2_OPENKIMONO) {
-	    if (pb->Prefix.LengthOfPacket <
-		sizeof(struct RPC2_PacketHeader) + sizeof(struct Init2Body))
+	    if (pb->Prefix.LengthOfPacket < (ssize_t)(sizeof(struct RPC2_PacketHeader) + sizeof(struct Init2Body)))
 	    {
 		DROPCONN();
 		RPC2_FreeBuffer(&pb);
@@ -1030,8 +1029,7 @@ try_next_addr:
 	rpc2_Quit(init4rc);
 	}
 
-    if (pb->Prefix.LengthOfPacket <
-	sizeof(struct RPC2_PacketHeader) + sizeof(struct Init4Body))
+    if (pb->Prefix.LengthOfPacket < (ssize_t)(sizeof(struct RPC2_PacketHeader) + sizeof(struct Init4Body)))
     {
 	DROPCONN();
 	RPC2_FreeBuffer(&pb);
@@ -1313,9 +1311,9 @@ static long MakeFake(RPC2_PacketBuffer *pb, struct CEntry *ce,
     long i;
     struct Init1Body *ib1;
     RPC2_NewConnectionBody *ncb;
+    RPC2_Integer SideEffectType;
 
-    if (pb->Prefix.LengthOfPacket < sizeof(struct RPC2_PacketHeader) +
-	sizeof(struct Init1Body) - sizeof(ib1->Text))
+    if (pb->Prefix.LengthOfPacket < (ssize_t)(sizeof(struct RPC2_PacketHeader) + sizeof(struct Init1Body) - sizeof(ib1->Text)))
     {
 	return RPC2_FAIL;
     }
@@ -1348,13 +1346,14 @@ static long MakeFake(RPC2_PacketBuffer *pb, struct CEntry *ce,
 
     /* Obtain pointer to appropriate set of SE routines */
     ce->SEProcs = NULL;
-    if (ntohl(ncb->SideEffectType))
-	{
+    SideEffectType = ntohl(ncb->SideEffectType);
+    if (SideEffectType)
+    {
 	for (i = 0; i < SE_DefCount; i++)
-	    if (SE_DefSpecs[i].SideEffectType == ntohl(ncb->SideEffectType)) break;
+	    if (SE_DefSpecs[i].SideEffectType == SideEffectType) break;
 	if (i >= SE_DefCount) return(RPC2_SEFAIL2);
 	ce->SEProcs = &SE_DefSpecs[i];
-	}
+    }
 
     pb->Header.Opcode = RPC2_NEWCONNECTION;
     return(RPC2_SUCCESS);
@@ -1483,12 +1482,12 @@ static RPC2_PacketBuffer *Send2Get3(struct CEntry *ce, RPC2_EncryptionKey key,
     else
     {
 	/* Do xrand, yrand munging */
-	say(9, RPC2_DebugLevel, "XRandom = %ld\n", xrand);
+	say(9, RPC2_DebugLevel, "XRandom = %d\n", xrand);
 	ib2 = (struct Init2Body *)pb2->Body;
 	ib2->XRandomPlusOne = htonl(xrand+1);
 	secure_random_bytes(yrand, sizeof(*yrand));
 	ib2->YRandom = htonl(*yrand);
-	say(9, RPC2_DebugLevel, "YRandom = %ld\n", *yrand);
+	say(9, RPC2_DebugLevel, "YRandom = %d\n", *yrand);
 	rpc2_Encrypt((char *)ib2, (char *)ib2, sizeof(struct Init2Body), key,
 		     ce->EncryptionType);
     }
@@ -1520,7 +1519,7 @@ static RPC2_PacketBuffer *Send2Get3(struct CEntry *ce, RPC2_EncryptionKey key,
 }
 
 
-static long Test3(RPC2_PacketBuffer *pb, struct CEntry *ce, uint32_t yrand,
+static long Test3(RPC2_PacketBuffer *pb, struct CEntry *ce, int32_t yrand,
 		  RPC2_EncryptionKey ekey, int new_binding)
 {
     struct Init3Body *ib3;
@@ -1528,8 +1527,7 @@ static long Test3(RPC2_PacketBuffer *pb, struct CEntry *ce, uint32_t yrand,
     if (new_binding)
 	return unpack_initX_body(ce, pb, NULL, NULL, NULL);
 
-    if (pb->Prefix.LengthOfPacket <
-	sizeof(struct RPC2_PacketHeader) + sizeof(struct Init3Body))
+    if (pb->Prefix.LengthOfPacket < (ssize_t)(sizeof(struct RPC2_PacketHeader) + sizeof(struct Init3Body)))
     {
 	say(9, RPC2_DebugLevel, "Runt Init3 packet\n");
 	return RPC2_NOTAUTHENTICATED;

@@ -13,6 +13,9 @@ Coda are listed in the file CREDITS.
 			Additional copyrights
 #*/
 
+#include <arpa/inet.h>
+#include <string.h>
+
 #include <rpc2/secure.h>
 #include "aes.h"
 #include "grunt.h"
@@ -47,6 +50,7 @@ int secure_setup_key(const uint8_t rpc2key[8], uint32_t unique,
     }
     memset(&ctx, 0, sizeof(aes_encrypt_ctx));
     memset(block, 0, sizeof(block));
+    return 0;
 }
 
 int secure_setup_encrypt(struct security_association *sa,

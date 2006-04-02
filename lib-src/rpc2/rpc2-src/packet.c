@@ -99,7 +99,7 @@ static long FailPacket(int (*predicate)(), RPC2_PacketBuffer *pb,
     sin = (struct sockaddr_in *)addr->ai_addr;
     inaddr = (unsigned char *)&sin->sin_addr;
 
-    ip1 = inaddr[0]; ip2 = inaddr[1]; ip3 = inaddr[2]; ip4 = inaddr[3]; 
+    ip1 = inaddr[0]; ip2 = inaddr[1]; ip3 = inaddr[2]; ip4 = inaddr[3];
 
     ntohPktColor(pb);
     color = GetPktColor(pb);

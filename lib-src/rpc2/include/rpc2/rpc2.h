@@ -259,7 +259,7 @@ extern long RPC2_strict_ip_matching;
  * when RPC2_Init() is called, the environment variable can be set either in
  * bytes or in bits. (19/152, 27/216, 35/280)
  */
-extern int RPC2_Preferred_Keysize;
+extern size_t RPC2_Preferred_Keysize;
 
 /*
 ************************* Data Types known to RPGen ***********************

@@ -219,7 +219,8 @@ static void rpc2_ProcessPacket(int fd)
 #endif
     assert(pb->Prefix.Qname == &rpc2_PBList);
 
-    if (pb->Prefix.LengthOfPacket < sizeof(struct RPC2_PacketHeader)) {
+    if (pb->Prefix.LengthOfPacket < (ssize_t)sizeof(struct RPC2_PacketHeader))
+    {
 	/* avoid memory reference errors */
 	BOGUS(pb, "Runt packet\n");
 	return;
