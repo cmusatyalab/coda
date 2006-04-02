@@ -974,7 +974,7 @@ static void HandleInit2(RPC2_PacketBuffer *pb, struct CEntry *ce)
 	rpc2_UpdateRTT(pb, ce);
 	sl = ce->MySl;
 	sl->Packet = pb;
-	if (ce->SecurityLevel == RPC2_OPENKIMONO)
+	if (!pb->Prefix.sa && ce->SecurityLevel == RPC2_OPENKIMONO)
 		SetState(ce, C_THINK);
 	else
 		SetState(ce, C_AWAITINIT4);

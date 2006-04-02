@@ -477,7 +477,8 @@ rpc2_ConnFromBindInfo(struct RPC2_addrinfo *addr,
 	/* do cheapest test first */
 	if (ce->PeerHandle == RemoteHandle &&
 	    ce->PeerUnique == whichUnique &&
-	    TestState(ce, SERVER, S_STARTBIND) &&
+	    (TestState(ce, SERVER, S_STARTBIND) ||
+	     TestState(ce, SERVER, S_AWAITINIT3)) &&
 	    RPC2_cmpaddrinfo(ce->HostInfo->Addr, addr))
 	{
 	    say(0, RPC2_DebugLevel,
