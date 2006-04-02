@@ -32,10 +32,15 @@ Coda are listed in the file CREDITS.
  * - Minimizes data copies.
  */
 int aes_cbc_encrypt(const uint8_t *in, uint8_t *out, size_t len,
-		    const uint8_t *iv, aes_encrypt_ctx *ctx)
+		    uint8_t *iv, aes_encrypt_ctx *ctx)
 {
     int blocks = len / AES_BLOCK_SIZE;
     assert((len % AES_BLOCK_SIZE) == 0);
+
+    /* CBC mode encryption requires an unpredictable IV, so we encrypt the
+     * passed IV block (which is a counter) once. */
+    aes_encrypt(iv, iv, ctx);
+
     while (blocks--)
     {
 	int32(out)[0] = int32(in)[0] ^ int32(iv)[0];

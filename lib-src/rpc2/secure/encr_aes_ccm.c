@@ -187,7 +187,7 @@ static int aes_ccm_crypt(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
 }
 
 static int encrypt(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
-		   const uint8_t *iv)
+		   uint8_t *iv)
 {
     return aes_ccm_crypt(ctx, in, out, len, iv, 1);
 }

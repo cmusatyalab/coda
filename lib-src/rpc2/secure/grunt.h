@@ -38,7 +38,7 @@ Coda are listed in the file CREDITS.
 /* secure_aes.c */
 void secure_aes_init(int verbose);
 int aes_cbc_encrypt(const uint8_t *in, uint8_t *out, size_t len,
-		    const uint8_t *iv, aes_encrypt_ctx *ctx);
+		    uint8_t *iv, aes_encrypt_ctx *ctx);
 int aes_cbc_decrypt(const uint8_t *in, uint8_t *out, size_t len,
 		    const uint8_t *iv, aes_decrypt_ctx *ctx);
 

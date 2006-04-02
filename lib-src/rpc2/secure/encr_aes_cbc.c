@@ -41,7 +41,7 @@ err_out:
 }
 
 static int encrypt(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
-		   const uint8_t *iv)
+		   uint8_t *iv)
 {
     return aes_cbc_encrypt(in, out, len, iv, ctx);
 }

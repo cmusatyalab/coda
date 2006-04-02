@@ -34,12 +34,19 @@ static int crypt(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
     return len;
 }
 
+static int encrypt(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
+		   uint8_t *iv)
+{
+    return crypt(ctx, in, out, len, iv);
+}
+
+
 struct secure_encr secure_ENCR_NULL = {
     .id	          = SECURE_ENCR_NULL,
     .name         = "ENCR-NULL",
     .encrypt_init = init,
     .encrypt_free = release,
-    .encrypt      = crypt,
+    .encrypt      = encrypt,
     .decrypt_init = init,
     .decrypt_free = release,
     .decrypt      = crypt,
