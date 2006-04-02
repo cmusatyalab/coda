@@ -56,7 +56,7 @@ static int init(void **ctx, const uint8_t *key, size_t len, size_t icv_len)
     else if (len >= bytes(128)) len = 128;
     else goto err_out;
 
-    if (aes_encrypt_key(key, len * 8, &acc->ctx) == 0) {
+    if (aes_encrypt_key(key, len, &acc->ctx) == 0) {
 	*ctx = acc;
 	return 0;
     }
@@ -112,7 +112,7 @@ static int aes_ccm_crypt(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
     int32(CMAC)[1] = int32(iv)[0];
     int32(CMAC)[2] = int32(iv)[1];
     int32(CMAC)[3] = htonl(len);
-    aes_encrypt(CMAC, CMAC, ctx);
+    aes_encrypt(CMAC, CMAC, &acc->ctx);
 
     /* initialize counter block */
     int32(CTR)[0] = acc->u.salt & 0x07ffffff;
@@ -120,7 +120,7 @@ static int aes_ccm_crypt(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
     int32(CTR)[2] = int32(iv)[1];
     int32(CTR)[3] = 0;
     /* save the first counter block. we will use that for authentication. */
-    aes_encrypt(CTR, S0, ctx);
+    aes_encrypt(CTR, S0, &acc->ctx);
 
     /* authenticate the header (spi and sequence number values) */
     /* kind of ugly, assume the spi & seq are the two integers immediately
