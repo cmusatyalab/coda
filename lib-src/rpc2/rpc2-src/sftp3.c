@@ -267,10 +267,8 @@ int sftp_DataArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
 	sEntry->SentParms = TRUE;    /* this data packet is evidence that my Start got to the client */
 
     sftp_datar++;
-    if (IsMulticast(pBuff))
-	sftp_MRecvd.Datas++;
-    else
-	sftp_Recvd.Datas++;
+    sftp_Recvd.Datas++;
+
     say(/*9*/4, SFTP_DebugLevel, "R-%u [%u] {%d} %s%s\n", pBuff->Header.SeqNumber, 
 				  pBuff->Header.TimeStamp, pBuff->Header.TimeEcho,
 				  (pBuff->Header.SEFlags & SFTP_FIRST)?"F":"",
@@ -302,10 +300,8 @@ int sftp_DataArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
 	/* we have already seen this packet */
 	sftp_duplicates++;
 	sEntry->DupsSinceAck++;
-	if (IsMulticast(pBuff))
-	    sftp_MRecvd.DataRetries++;
-	else
-	    sftp_Recvd.DataRetries++;
+	sftp_Recvd.DataRetries++;
+
 	if (((pBuff->Header.Flags & SFTP_ACKME) && sEntry->WhoAmI == SFCLIENT)
 	    || sEntry->DupsSinceAck > sEntry->DupThreshold) {
 	    /* we already saw this packet, so this must be considered
@@ -869,18 +865,12 @@ static int ResendWorried(struct SFTP_Entry *sEntry)
 		pb->Header.SEFlags = htonl(pb->Header.SEFlags);
 	        }
 	    pb->Header.Flags |= RPC2_RETRY;
-	    if (IsMulticast(pb))
-		{
-		sftp_MSent.Datas++;
-		sftp_MSent.DataRetries++;
-		}
-	    else
-		{
-		sftp_Sent.Datas++;
-		sftp_Sent.DataRetries++;
-		}
+
+	    sftp_Sent.Datas++;
+	    sftp_Sent.DataRetries++;
 	    sftp_datas++;
 	    sftp_retries++;
+
 	    pb->Header.Flags = htonl(pb->Header.Flags);
 
 	    now = rpc2_MakeTimeStamp();
@@ -924,18 +914,12 @@ static int SendFirstUnacked(struct SFTP_Entry *sEntry)
     pb->Header.Flags |= SFTP_ACKME | RPC2_RETRY;
     pb->Header.SEFlags = ntohl(pb->Header.SEFlags);
     pb->Header.SEFlags |= SFTP_FIRST;
-    if (IsMulticast(pb))
-	{
-	sftp_MSent.Datas++;
-	sftp_MSent.DataRetries++;
-	}
-    else
-	{
-	sftp_Sent.Datas++;
-	sftp_Sent.DataRetries++;
-	}
+
+    sftp_Sent.Datas++;
+    sftp_Sent.DataRetries++;
     sftp_datas++;
     sftp_retries++;
+
     pb->Header.Flags = htonl(pb->Header.Flags);
     pb->Header.SEFlags = htonl(pb->Header.SEFlags);
 

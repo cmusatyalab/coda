@@ -490,10 +490,10 @@ typedef struct RPC2_PacketBuffer {
  * flags */
 #define RPC2_RETRY	0x1	/* set by runtime system */
 #define RPC2_ENCRYPTED	0x2	/* set by runtime system */
-#define RPC2_MULTICAST	0x4	/* set by runtime system */
 #define RPC2SEC_CAPABLE	0x8	/* set on Init1 packet by new rpc2sec stack */
 
-#define IsMulticast(pb)	((pb)->Header.Flags & RPC2_MULTICAST)
+//#define RPC2_MULTICAST 0x4	/* set by runtime system (no longer used) */
+//#define IsMulticast(pb)	((pb)->Header.Flags & RPC2_MULTICAST)
 
  /* Format of filter used in RPC2_GetRequest */
 

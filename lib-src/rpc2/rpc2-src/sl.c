@@ -767,25 +767,14 @@ static void HandleNewRequest(RPC2_PacketBuffer *pb, struct CEntry *ce)
 
 	say(0, RPC2_DebugLevel, "HandleNewRequest()\n");
 
-	if (IsMulticast(pb) && ce->Mgrp == NULL) {
-		say(0, RPC2_DebugLevel, "Multicast packet received without Mgroup\n");
-		BOGUS(pb, "HandleNewRequest: mc packet received w/o mgroup\n");
-		return;
-	}
-
 	ce->TimeStampEcho = pb->Header.TimeStamp;
 	TVTOTS(&pb->Prefix.RecvStamp, ce->RequestTime);
 
 	say(15, RPC2_DebugLevel, "handlenewrequest TS %u RQ %u\n",
 	    ce->TimeStampEcho, ce->RequestTime);
 
-	if (IsMulticast(pb)) {
-		rpc2_MRecvd.Requests++;
-		rpc2_MRecvd.GoodRequests++;
-	}    else	{
-		rpc2_Recvd.Requests++;
-		rpc2_Recvd.GoodRequests++;
-	}
+	rpc2_Recvd.Requests++;
+	rpc2_Recvd.GoodRequests++;
 
 	sl = ce->MySl;
 	/* Free held packet and SL entry */
@@ -795,8 +784,6 @@ static void HandleNewRequest(RPC2_PacketBuffer *pb, struct CEntry *ce)
 	}
 
 	rpc2_IncrementSeqNumber(ce);
-	if (IsMulticast(pb))
-		ce->Mgrp->NextSeqNumber += 2;
 
 	{ /* set up a timer to send a unsolicited ack response (actually an
 	     RCP2_BUSY) within 200ms. */
@@ -812,10 +799,6 @@ static void HandleNewRequest(RPC2_PacketBuffer *pb, struct CEntry *ce)
 	if (sl != NULL) {
 		assert(sl->MagicNumber == OBJ_SLENTRY);
 		SetState(ce, S_PROCESS);
-		if (IsMulticast(pb)) {
-			assert(ce->Mgrp != NULL);
-			SetState(ce->Mgrp, S_PROCESS);
-		}
 		rpc2_DeactivateSle(sl, ARRIVED);
 		sl->Packet = pb;
 		LWP_NoYieldSignal((char *)sl);
@@ -823,16 +806,11 @@ static void HandleNewRequest(RPC2_PacketBuffer *pb, struct CEntry *ce)
 		/* hold for a future RPC2_GetRequest() */
 		rpc2_HoldPacket(pb);
 		SetState(ce, S_REQINQUEUE);
-		if (IsMulticast(pb)) {
-			assert(ce->Mgrp != NULL);
-			SetState(ce->Mgrp, S_REQINQUEUE);
-		}
 	}
 }
 
 /* Find a server REQ sle with matching filter for this packet */
 static struct SL_Entry *FindRecipient(RPC2_PacketBuffer *pb)
-	
 {
 	long i;
 	struct SL_Entry *sl;
@@ -852,10 +830,7 @@ static void HandleCurrentRequest(RPC2_PacketBuffer *pbX, struct CEntry *ceA)
 {
 	say(0, RPC2_DebugLevel, "HandleCurrentRequest()\n");
 
-	if (IsMulticast(pbX))
-		rpc2_MRecvd.Requests++;
-	else
-		rpc2_Recvd.Requests++;
+	rpc2_Recvd.Requests++;
 
 	ceA->TimeStampEcho = pbX->Header.TimeStamp;
 	/* if we're modifying the TimeStampEcho, we also have to reset the
@@ -1158,10 +1133,7 @@ static void HandleOldRequest(RPC2_PacketBuffer *pb, struct CEntry *ce)
 {
 	say(0, RPC2_DebugLevel, "HandleOldRequest()\n");
 
-	if (IsMulticast(pb))
-		rpc2_MRecvd.Requests++;
-	else
-		rpc2_Recvd.Requests++;
+	rpc2_Recvd.Requests++;
 
 	if (ce->HeldPacket != NULL) {
 			ce->HeldPacket->Header.TimeStamp = htonl(pb->Header.TimeStamp);

@@ -353,14 +353,8 @@ long RPC2_GetRequest(IN RPC2_RequestFilter *Filter,
 			rpc2_Quit(rc);
 	}
 
-	if (!TestState(ce, SERVER, S_STARTBIND)) {
+	if (!TestState(ce, SERVER, S_STARTBIND))
 		SetState(ce, S_PROCESS);
-		if (IsMulticast(pb)) {
-			assert(ce->Mgrp != NULL);
-			SetState(ce->Mgrp, S_PROCESS);
-		}
-	}
-
 	/* Invariants here:
 	   (1) pb points to a request packet, decrypted and nettohosted
 	   (2) ce is the connection associated with pb
