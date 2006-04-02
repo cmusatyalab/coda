@@ -28,7 +28,6 @@ Coda are listed in the file CREDITS.
  * - Assumes buffers are aligned on a 4-byte boundary.
  * - Assumes length is a multiple of AES_BLOCK_SIZE.
  * - Allows for in-place encryption (in == out).
- * - Does not modify iv.
  * - Minimizes data copies.
  */
 int aes_cbc_encrypt(const uint8_t *in, uint8_t *out, size_t len,
