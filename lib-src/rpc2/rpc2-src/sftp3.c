@@ -633,13 +633,6 @@ int sftp_AckArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
     sEntry->SendLastContig = pBuff->Header.GotEmAll;
     B_CopyFromPacket(pBuff, (unsigned int *)sEntry->SendTheseBits);
 
-    /* Handle multicast STOREs here */
-    if (sEntry->UseMulticast)
-	{
-	assert(sEntry->SDesc->Value.SmartFTPD.TransmissionDirection == CLIENTTOSERVER);
-	return(MC_CheckAckorNak(sEntry));
-	}
-
     /* Release prefix sequence of packets received by other side */
     /* acked non-prefix packets are still kept, even though not needed */
     for (i = 0; i < prun; i++)
@@ -1012,31 +1005,6 @@ static int SendSendAhead(struct SFTP_Entry *sEntry, int worried)
 		(unsigned long)ntohl(pb->Header.TimeEcho));
 	}
 
-    /* if we are multicasting, update the per-connection
-       SendMostRecent markers */
-    /* note: we assume that sEntry here is the MULTICAST descriptor */
-    if (sEntry->UseMulticast)
-	{
-	struct MEntry		*me;
-	struct SFTP_Entry	*mse, *thisse;
-	struct CEntry		*thisce;
-	int			host;
-
-	me = rpc2_GetMgrp(NULL, sEntry->PInfo.RemoteHandle, CLIENT);
-	assert(me);
-	mse = (struct SFTP_Entry *)me->SideEffectPtr;
-	assert(mse);
-	assert(mse == sEntry);			/* paranoia */
-
-	for (host = 0; host < me->howmanylisteners; host++)
-	    {
-	    assert((thisce = me->listeners[host]) != NULL);
-	    assert((thisse = (struct SFTP_Entry *)thisce->SideEffectPtr) != NULL);
-	    if (TestState(thisce, CLIENT, ~C_HARDERROR) && thisse->WhoAmI == SFCLIENT)
-		thisse->SendMostRecent += mse->ReadAheadCount;
-	    }
-	}
-
     sEntry->ReadAheadCount = 0;  /* we have eaten all of them */
     return(0);
 }
@@ -1097,34 +1065,6 @@ int sftp_ReadStrategy(struct SFTP_Entry *sEntry)
     /* Update BytesTransferred field */
     sftp_Progress(sEntry->SDesc,
                   sEntry->SDesc->Value.SmartFTPD.BytesTransferred + bytesread);
-    /* if we are multicasting, update the per-connection byte-transfer counts */
-    /* note: we assume that sEntry here is the MULTICAST descriptor */
-    if (sEntry->UseMulticast)
-	{
-	struct MEntry		*me;
-	struct SFTP_Entry	*mse, *thisse;
-	struct CEntry		*thisce;
-	SE_Descriptor		*thisdesc;
-	int			host;
-
-	me = rpc2_GetMgrp(NULL, sEntry->PInfo.RemoteHandle, CLIENT);
-	assert(me);
-	mse = (struct SFTP_Entry *)me->SideEffectPtr;
-	assert(mse);
-	assert(mse == sEntry);			/* paranoia */
-
-	for (host = 0; host < me->howmanylisteners; host++)
-	    {
-	    assert((thisce = me->listeners[host]) != NULL);
-	    assert((thisse = (struct SFTP_Entry *)thisce->SideEffectPtr) != NULL);
-	    if (TestState(thisce, CLIENT, ~C_HARDERROR) && thisse->WhoAmI == SFCLIENT)
-		{
-		assert((thisdesc = thisse->SDesc) != NULL);
-                sftp_Progress(thisdesc, bytesread +
-                              thisdesc->Value.SmartFTPD.BytesTransferred);
-		}
-	    }
-	}
     
     /* Did we hit EOF? */
     if (bytesread == byteswanted)
@@ -1283,12 +1223,6 @@ int sftp_StartArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
     sEntry->TimeEcho = pBuff->Header.TimeStamp;
     
     sEntry->XferState = XferInProgress;
-
-    if (sEntry->UseMulticast)
-	{
-	assert(sftpd->TransmissionDirection == CLIENTTOSERVER);
-	return(MC_CheckStart(sEntry));
-	}
 
     return(sftp_SendStrategy(sEntry));
 }

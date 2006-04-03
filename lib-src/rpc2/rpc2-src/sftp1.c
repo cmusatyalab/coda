@@ -295,7 +295,6 @@ long SFTP_MakeRPC1(IN ConnHandle, INOUT SDesc, INOUT RequestPtr)
     sftp_Progress(SDesc, 0);
 
     se->XferState = XferNotStarted;
-    se->UseMulticast = FALSE;
     se->HitEOF = FALSE;
     if (SDesc->Value.SmartFTPD.TransmissionDirection == CLIENTTOSERVER)
 	{

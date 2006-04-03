@@ -263,7 +263,6 @@ struct SFTP_Entry		/* per-connection data structure */
     long XferState;		/* {XferNotStarted,XferInProgress,XferAborted,XferCompleted} */
 
     /* Next block is multicast specific */
-    long UseMulticast;		/* TRUE iff multicast was requested in SFTP_MultiRPC1 call */
     long RepliedSinceLastSS;	/* TRUE iff {ACK,NAK,START} received since last invocation of SendStrategy */
     long McastersStarted;	/* number of individual conns participating */
     long McastersFinished;	/* number of participating conns which have finished */
@@ -393,9 +392,6 @@ void sftp_Progress(SE_Descriptor *sdesc, off_t BytesTransferred);
 
 void sftp_UpdateRTT(RPC2_PacketBuffer *pb, struct SFTP_Entry *sEntry,
 		    unsigned long inbytes, unsigned long outbytes);
-int SFXlateMcastPacket(RPC2_PacketBuffer *pb);
-int MC_CheckAckorNak(struct SFTP_Entry *whichEntry);
-int MC_CheckStart(struct SFTP_Entry *whichEntry);
 
 struct SFTP_Entry *sftp_AllocSEntry(void);
 void sftp_FreeSEntry(struct SFTP_Entry *se);

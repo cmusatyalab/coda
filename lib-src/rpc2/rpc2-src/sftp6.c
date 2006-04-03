@@ -73,9 +73,12 @@ extern void B_ShiftRight();
 extern void B_Assign();
 extern void B_And();
 
-static void SFSendBusy();
-static void MC_AppendParmsToPacket();
-static int MC_SendStrategy(), MC_ExtractParmsFromPacket();
+static void MC_AppendParmsToPacket(struct SFTP_Entry *mse,
+				   struct SFTP_Entry *sse,
+				   RPC2_PacketBuffer **req);
+static int MC_ExtractParmsFromPacket(struct SFTP_Entry *mse,
+				     struct SFTP_Entry *sse,
+				     RPC2_PacketBuffer *req);
 
 /*----------------------- The procs below interface directly with RPC2 ------------------------ */
 
@@ -113,35 +116,6 @@ long SFTP_MultiRPC2(IN ConnHandle, INOUT SDesc, INOUT Reply)
     rc = SFTP_MakeRPC2(ConnHandle, SDesc, Reply);
     assert(RPC2_GetSEPointer(ConnHandle, &se) == RPC2_SUCCESS);
     se->XferState = XferCompleted;
-
-    /* if this was the last good connection in a multicast group, clean up the multicast state */
-    if (se->UseMulticast)
-	{
-	struct CEntry	    *ce;
-	struct MEntry	    *me;
-	struct SFTP_Entry   *mse;
-	int		    i;
-
-	assert((ce = rpc2_GetConn(se->LocalHandle)) != NULL);
-	assert((me = ce->Mgrp) != NULL);
-	assert((mse = (struct SFTP_Entry *)me->SideEffectPtr) != NULL);
-
-	/* See if everyone has finished. */
-	mse->McastersFinished++;
-	if (mse->McastersFinished < mse->McastersStarted) return(rc);
-
-	/* Everyone has finished, so clean up the multicast state. */
-	say(9, SFTP_DebugLevel, "SFTP_MultiRPC2: cleaning up multicast state\n");
-	sftp_vfclose(mse);
-	if (mse->PiggySDesc != NULL) sftp_FreePiggySDesc(mse);
-	for (i = 0; i < MAXOPACKETS; i++)
-	    if (mse->ThesePackets[i] != NULL) SFTP_FreeBuffer(&mse->ThesePackets[i]);
-	if (mse->SDesc != NULL)
-	    { free(mse->SDesc); mse->SDesc = NULL; }
-	mse->SendLastContig = mse->SendMostRecent;
-	memset(mse->SendTheseBits, 0, sizeof(int)*BITMASKWIDTH);
-	mse->XferState = XferCompleted;
-	}
 
     return(rc);
     }
@@ -280,274 +254,9 @@ long SFTP_DeleteMgrp(RPC2_Handle MgroupHandle, struct RPC2_addrinfo *ClientAddr,
 
 /*------------------------------------------------------------------------------*/
 
-int SFXlateMcastPacket(RPC2_PacketBuffer *pb)
-    {
-    struct MEntry  	*me;
-    struct CEntry  	*ce;
-    struct SFTP_Entry	*mse;			/* Multicast SFTP Entry */
-    struct SFTP_Entry	*sse;			/* Singlecast SFTP Entry */
-    long    h_RemoteHandle = ntohl(pb->Header.RemoteHandle),
-	    h_LocalHandle = ntohl(pb->Header.LocalHandle),
-	    h_Flags = ntohl(pb->Header.Flags),
-	    h_Opcode,						/* decrypt first */
-	    h_SeqNumber,					/* decrypt first */
-	    h_ThisRPCCall;					/* decrypt first */
-    char addr[RPC2_ADDRSTRLEN];
-
-    say(9, SFTP_DebugLevel, "SFXlateMcastPacket()\n");
-    RPC2_formataddrinfo(pb->Prefix.PeerAddr, addr, RPC2_ADDRSTRLEN);
-    say(9, SFTP_DebugLevel, "Host = %s\tMgrp = 0x%lx\n", addr, h_RemoteHandle);
-
-    /* Find and validate the relevant data structures */
-    assert(h_RemoteHandle != 0 && h_LocalHandle == 0);
-
-    me = rpc2_GetMgrp(pb->Prefix.PeerAddr, h_RemoteHandle, SERVER);
-    if (me == NULL) {
-	say(9, SFTP_DebugLevel, "me == NULL\n");
-	return(FALSE);
-    }
-    ce = me->conn;
-    assert(ce != NULL && TestRole(ce, SERVER) && ce->Mgrp == me);
-
-    sse = (struct SFTP_Entry *)ce->SideEffectPtr;
-    if  (!sse || sse->WhoAmI != SFSERVER) {
-	say(9, SFTP_DebugLevel, "sse == NULL || sse->WhoAmI != SFSERVER\n");
-	return(FALSE);
-    }
-
-    mse = (struct SFTP_Entry *)me->SideEffectPtr;
-    if  (!mse || mse->WhoAmI != SFSERVER) {
-	say(9, SFTP_DebugLevel, "mse == NULL || mse->WhoAmI != SFSERVER\n");
-	return(FALSE);
-    }
-
-    RPC2_formataddrinfo(pb->Prefix.PeerAddr, addr, RPC2_ADDRSTRLEN);
-    say(9, SFTP_DebugLevel, "Host = %s\tMgrp = 0x%lx\n", addr, h_RemoteHandle);
-
-    /* Decrypt the packet with the MULTICAST session key. Clear the encrypted bit so that we don't
-	decrypt again with the connection session key. */
-    if (h_Flags & RPC2_ENCRYPTED)
-	{ sftp_Decrypt(pb, mse); pb->Header.Flags = htonl(h_Flags &= ~RPC2_ENCRYPTED); }
-
-    /* Translate the Remote and Local Handles, the SeqNumber, and ThisRPCCall to the singlecast
-       channel.  The only (currently) valid opcode for multicasting is SFTP_DATA.  The algorithm for
-       SeqNumber and ThisRPCCall translation (for DATA packets) is to apply the difference in the
-       incoming multicast SeqNumber (ThisRPCCall) and the multicast RecvLastContig (NextSeqNumber)
-       marker to the singlecast RecvLastContig (NextSeqNumber) marker.*/
-    pb->Header.RemoteHandle = htonl(ce->UniqueCID);
-    pb->Header.LocalHandle = htonl(ce->PeerHandle);
-    h_Opcode = ntohl(pb->Header.Opcode);
-    assert(h_Opcode == SFTP_DATA);
-    h_SeqNumber = ntohl(pb->Header.SeqNumber);
-    pb->Header.SeqNumber = htonl(sse->RecvLastContig + (h_SeqNumber - mse->RecvLastContig));
-    h_ThisRPCCall = ntohl(pb->Header.ThisRPCCall);
-    pb->Header.ThisRPCCall = htonl(ce->NextSeqNumber + (h_ThisRPCCall - me->NextSeqNumber));
-    say(9, SFTP_DebugLevel, "pb->SN = %lu\tsse->RLC = %ld\tmse->RLC = %ld\n",
-	    (unsigned long)ntohl(pb->Header.SeqNumber), sse->RecvLastContig,
-	    mse->RecvLastContig);
-
-    /* Leave the Multicast flag set so that multicast state can be updated later */
-    return(TRUE);
-    }
-
-
-int MC_CheckAckorNak(struct SFTP_Entry *whichEntry)
-{
-    struct CEntry	*ce;
-    struct MEntry	*me;
-    struct SFTP_Entry	*mse;
-
-    say(9, SFTP_DebugLevel, "MC_CheckAckorNak()\n");
-    assert((ce = rpc2_GetConn(whichEntry->LocalHandle)) != NULL);
-    assert((me = ce->Mgrp) != NULL);
-    assert((mse = (struct SFTP_Entry *)me->SideEffectPtr) != NULL);
-
-    whichEntry->RepliedSinceLastSS = TRUE;
-
-    return(MC_SendStrategy(me, mse));
-}
-
-
-int MC_CheckStart(struct SFTP_Entry *whichEntry)
-{
-    struct CEntry	*ce, *thisce;
-    struct MEntry	*me;
-    struct SFTP_Entry	*mse, *thisse;
-    int			host;
-
-    say(9, SFTP_DebugLevel, "MC_CheckStart()\n");
-    assert((ce = rpc2_GetConn(whichEntry->LocalHandle)) != NULL);
-    assert((me = ce->Mgrp) != NULL);
-    assert((mse = (struct SFTP_Entry *)me->SideEffectPtr) != NULL);
-
-    whichEntry->RepliedSinceLastSS = TRUE;
-
-    if (mse->XferState == XferNotStarted)
-	{
-	/* For multicast STOREs we must wait until we have received STARTs on ALL GOOD
-	    conns before calling MC_SendStrategy.  If we don't yet have ALL replies, we send out an
-	    SFTP_BUSY to keep the START sender from timing us out while we wait for his colleagues. */
-	for (host = 0; host < me->howmanylisteners; host++)
-	    {
-	    assert((thisce = me->listeners[host]) != NULL);
-	    assert((thisse = (struct SFTP_Entry *)thisce->SideEffectPtr) != NULL);
-	    if (TestState(thisce, CLIENT, ~C_HARDERROR) &&
-		thisse->WhoAmI == SFCLIENT &&
-		thisse->XferState == XferNotStarted)
-		{ SFSendBusy(whichEntry); return(0); }  /* still waiting on someone */
-	    }
-
-	/* SFTP_START has now been received on all GOOD connections. */
-	mse->XferState = XferInProgress;
-	}
-
-    return(MC_SendStrategy(me, mse));
-}
-
-
-static int MC_SendStrategy(me, mse)
-    struct MEntry	*me;
-    struct SFTP_Entry	*mse;
-    {
-    struct CEntry	*thisce;
-    struct SFTP_Entry	*thisse;
-    int			host;
-    int			word;
-    int			i;
-    long		mgrpSendCount = mse->SendLastContig - mse->SendFirst + 1;
-    long		minSendCount = -1;
-    long		maxSendCount = -1;
-    long		thisSendCount;
-    long		diffSendCount;
-    unsigned long	CompositeSTB[BITMASKWIDTH], TempSTB[BITMASKWIDTH];
-    long		ms;
-    struct timeval	tt;
-    long		AllReplied = TRUE;
-
-    say(9, SFTP_DebugLevel, "MC_SendStrategy()\n");
-
-    /* we update the multicast values of SE transmission state here as follows:
-	(MC)SendLastContig: min(normalized SendLastContig) for all GOOD conns;
-	(MC)SendTheseBits: LOGICAL AND (normalized SendTheseBits) for all GOOD conns;
-
-	Invariants:
-    */
-
-    /* set CompositeSTB = '111...111' */
-    for (word = 0; word < BITMASKWIDTH; word++)
-	CompositeSTB[word] = 0xFFFFFFFF;		/* 32-bit long's assumed! */
-
-    /* normalize the per-connection values and form the Mgrp composites */
-    for (host = 0; host < me->howmanylisteners; host++)
-    {
-	assert((thisce = me->listeners[host]) != NULL);
-	assert((thisse = (struct SFTP_Entry *)thisce->SideEffectPtr) != NULL);
-	if (TestState(thisce, CLIENT, ~C_HARDERROR) && thisse->WhoAmI == SFCLIENT)
-	{
-	    thisSendCount = (thisse->SendLastContig - thisse->SendFirst + 1);
-	    diffSendCount = (thisSendCount - mgrpSendCount);
-	    assert(diffSendCount >= 0 && diffSendCount <= MAXOPACKETS);
-
-	    /* (minSendCount - mgrpSendCount) is the amount we can increase mse->SendLastContig */
-	    if (minSendCount ==	-1)	    /* first good connection */
-		{
-		minSendCount = thisSendCount;
-		maxSendCount = thisSendCount;
-		}
-	    else
-		{
-		if (thisSendCount < minSendCount) minSendCount = thisSendCount;
-		if (thisSendCount > maxSendCount) maxSendCount = thisSendCount;
-		}
-
-	    /* form a composite of the per-connection SendTheseBits masks */
-	    B_Assign(TempSTB, thisse->SendTheseBits);
-	    if (diffSendCount > 0) B_ShiftRight(TempSTB, diffSendCount);
-	    B_And(CompositeSTB, TempSTB);
-
-	    /* update the XferState for each connection */
-	    if (mse->HitEOF && mse->ReadAheadCount == 0 &&
-		thisse->SendMostRecent == thisse->SendLastContig) {
-		thisse->XferState = XferCompleted;
-	    } else {
-		thisse->XferState = XferInProgress;
-		/* note whether or not all (InProgress) connections have replied since the last SS */
-		if (!thisse->RepliedSinceLastSS) AllReplied = FALSE;
-	    }
-	}
-    }
-    if (minSendCount ==	-1) return(-1);	    /* all connections are BAD! */
-
-    /* finish the normalization and safety check it */
-    diffSendCount = minSendCount - mgrpSendCount;
-    for (i = 1; i <= diffSendCount; i++) assert(TESTBIT(CompositeSTB, i));
-    if (diffSendCount > 0) B_ShiftLeft(CompositeSTB, diffSendCount);
-    assert(!TESTBIT(CompositeSTB, 1));
-
-    /* update the Mgrp parameters (finally) */
-    say(9, SFTP_DebugLevel, "mse->SLC = %ld\n", mse->SendLastContig );
-    mse->SendLastContig += diffSendCount;
-    B_Assign(mse->SendTheseBits, CompositeSTB);
-    say(9, SFTP_DebugLevel, "mse->SLC = %ld\n", mse->SendLastContig );
-
-    /* we can now free those packets that we incremented SendLastContig over */
-    for (i = 0; i < diffSendCount; i++)
-	SFTP_FreeBuffer(&mse->ThesePackets[PBUFF((mse->SendLastContig - i))]);
-
-    /* only call sftp_SendStrategy if we have something to do */
-    if (mse->HitEOF && mse->ReadAheadCount == 0 && 
-	 mse->SendMostRecent == mse->SendLastContig)
-	return(0);
-
-    /* only send more if all (good) connections have replied since last
-     * invocation of sftp_SendStrategy or if timeout has been exceeded */
-    FT_GetTimeOfDay(&tt, 0);
-    ms = 1000*(tt.tv_sec - mse->LastSS.tv_sec) + (tt.tv_usec - mse->LastSS.tv_usec)/1000;
-    if ((AllReplied && (maxSendCount - minSendCount < mse->SendAhead)) || ms > 8000)
-        {
-	if(ms > 8000)
-		sftp_MSent.Timeouts++;
-	/* reset per-connection reply-received flags */
-	for (host = 0; host < me->howmanylisteners; host++)
-	    {
-	    assert((thisce = me->listeners[host]) != NULL);
-	    assert((thisse = (struct SFTP_Entry *)thisce->SideEffectPtr) != NULL);
-	    if (TestState(thisce, CLIENT, ~C_HARDERROR) && thisse->WhoAmI == SFCLIENT)
-		thisse->RepliedSinceLastSS = FALSE;
-	    }
-
-	/* now we can actually send packets */
-	if (sftp_SendStrategy(mse) < 0) return(-1);
-
-	/* There must be at least ONE outstanding unacked packet at this point */
-	if (mse->SendMostRecent == mse->SendLastContig) return(-1);
-        }
-
-    return(0);
-    }
-
-
-static void SFSendBusy(struct SFTP_Entry *whichEntry)
-{
-    RPC2_PacketBuffer *busypb;
-
-    sftp_Sent.Busies++;
-    say(9, SFTP_DebugLevel, "SFSendBusy()\n");
-
-    SFTP_AllocBuffer(0, &busypb);
-    sftp_InitPacket(busypb, whichEntry, 0);
-    busypb->Header.Opcode = SFTP_BUSY;
-    rpc2_htonp(busypb);
-
-    sftp_XmitPacket(whichEntry, busypb, 1);
-    SFTP_FreeBuffer(&busypb);
-}
-
-
-static void MC_AppendParmsToPacket(mse, sse, req)
-    struct SFTP_Entry *mse;
-    struct SFTP_Entry *sse;
-    RPC2_PacketBuffer **req;
+static void MC_AppendParmsToPacket(struct SFTP_Entry *mse,
+				   struct SFTP_Entry *sse,
+				   RPC2_PacketBuffer **req)
 {
     struct SFTP_MCParms mcp;
 
@@ -572,27 +281,26 @@ static void MC_AppendParmsToPacket(mse, sse, req)
     }
 
 
-static int MC_ExtractParmsFromPacket(mse, sse, req)
-    struct SFTP_Entry *mse;
-    struct SFTP_Entry *sse;
-    RPC2_PacketBuffer *req;
-    {
+static int MC_ExtractParmsFromPacket(struct SFTP_Entry *mse,
+				     struct SFTP_Entry *sse,
+				     RPC2_PacketBuffer *req)
+{
     struct SFTP_MCParms mcp;
 
     /* Extract information from the InitMulticast packet.  There are two things we are interested in:
-	    1/ the piggybacked parameters which we install in our SINGLECAST parameter block (even if 
-	       we already have a valid set of parms),
-	    2/ other piggybacked MULTICAST state information which we install in our MULTICAST
-	       parameter block.
-	The only item currently in the latter category is PeerSendLastContig which we record as our
-	RecvLastContig (later we may add a PeerCtrSeqNumber). */
+       1/ the piggybacked parameters which we install in our SINGLECAST parameter block (even if 
+       we already have a valid set of parms),
+       2/ other piggybacked MULTICAST state information which we install in our MULTICAST
+       parameter block.
+       The only item currently in the latter category is PeerSendLastContig which we record as our
+       RecvLastContig (later we may add a PeerCtrSeqNumber). */
     if (req->Header.BodyLength - req->Header.SEDataOffset < sizeof(struct SFTP_MCParms))
 	return(-1);
     memcpy(&mcp, &req->Body[req->Header.BodyLength-sizeof(struct SFTP_MCParms)],
 	   sizeof(struct SFTP_MCParms));
     mse->RecvLastContig = ntohl(mcp.PeerSendLastContig);
     req->Header.BodyLength -= sizeof(struct SFTP_MCParms);
-    
+
     /* Now it's safe to extract the SINGLECAST parameter block. */
     return(sftp_ExtractParmsFromPacket(sse, req));	/* sse->GotParms set TRUE here */
-    }
+}
