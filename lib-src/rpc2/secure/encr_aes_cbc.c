@@ -43,6 +43,10 @@ err_out:
 static int encrypt(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
 		   uint8_t *iv)
 {
+    /* CBC mode encryption requires an unpredictable IV, so we encrypt the
+     * passed IV block (which is a counter) once. */
+    aes_encrypt(iv, iv, ctx);
+
     return aes_cbc_encrypt(in, out, len, iv, ctx);
 }
 
