@@ -42,7 +42,15 @@ Coda are listed in the file CREDITS.
  * We limit the maximum packet size to: IPv6 minimum MTU - sizeof(IPv6 header) -
  * sizeof(Fragment header) - sizeof(UDP header) = 1224
  */
-#define MAXPACKETSIZE (1280 - 40 - 8 - 8)
+//#define MAXPACKETSIZE (1280 - 40 - 8 - 8)
+
+/* sigh, the default ValidateAttrsPlusSHA packet (21 piggybacked fids) is
+ * exactly 1376 bytes, so we cannot be a drop-in replacement for existing
+ * clients and servers unless we support a larger MTU.
+ * I guess we'll keep the MTU at 1452 for now, but I think that ValidateAttrs
+ * is really the only problematic packet */
+#define MAXPACKETSIZE (1500 - 40 - 8)
+
 #define MAXIVLEN  32
 #define MAXICVLEN 32
 
