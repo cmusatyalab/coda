@@ -17,8 +17,8 @@
 #                            none currently
 #*/
 
-EXTRA_DIST = changelog compat control copyright dirs librpc24.docs \
-    librpc24.install librpc2-dev.docs librpc2-dev.install rpc2-tools.install \
+EXTRA_DIST = changelog compat control copyright dirs librpc2-4.docs \
+    librpc2-4.install librpc2-dev.docs librpc2-dev.install rpc2-tools.install \
     rules watch
 
 MAINTAINERCLEANFILES = Makefile.in changelog
