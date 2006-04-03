@@ -53,15 +53,50 @@ There are several alternative implementation that can be used,
 
 
 AES testvectors
----------------
+===============
 
 testvectors.h contains several AES testvectors from
 
     http://csrc.nist.gov/CryptoToolkit/aes/rijndael/rijndael-vals.zip
 
-If you want to regenerate or expand the number of tests that are run during
-intialization, unzip the testvalues in a subdirectory named 'testvalues' and
-run gen_testvectors.sh to rebuild. At the top of the script are some comments
-and possible settings to vary the memory overhead/execution time to run these
-tests.
+If you want to regenerate or expand the number of tests that are run
+during initialization, unzip the testvalues in a subdirectory named
+'testvalues' and run gen_testvectors.sh to rebuild. At the top of the
+script are some comments and possible settings to vary the memory
+overhead/execution time to run these tests.
+
+We run the complete set of included test vectors during every startup.
+It only adds a delay of about 0.43 seconds on a 600MHz PIII, and less
+than 0.07 seconds on a 3.2GHz P4. But the delay does add a tiny amount
+of non-deterministic entropy for the PRNG initialization.
+
+
+PRNG implementation
+-------------------
+
+A deterministic pseudo random number generator based on ANSI X9.31, with
+the NIST recommended usage for using AES as a mixing function. The
+algorithm is fairly close to CBC mode encryption.
+
+There is a 16-byte pool of random data that we use as the IV. Then when
+we want to get random data we generate an initial seed based on the
+current timestamp, some uninitialized data from the stack, and a counter.
+
+This block is then encrypted using AES-CBC where the pool is used as the
+IV. This results in a block of 16-bytes of random data. The random block
+is then xor-ed with the original seed to get the next block of seed
+data. We then refresh the pool of random data by encrypting the seed
+block. These steps are repeated until we've returned the number of
+random bytes that were requested.
+
+To initialize the pool of random data and the AES128 encryption key, we
+get the current timestamp, and read random data from /dev/random (or
+/dev/urandom). When /dev/random is unavailable we fall back on several
+lower entropy sources such as times(), getpid(), and libc's random().
+
+The first block of random data is discarded, and we run a couple of
+statistical tests to see if the resulting random data actually looks
+reasonable. Passing these tests does not guarantee that the generated
+random numbers are cryptographically strong, but it should detect
+serious breakage.
 
