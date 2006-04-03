@@ -519,10 +519,9 @@ long RPC2_MakeRPC(RPC2_Handle ConnHandle, RPC2_PacketBuffer *Request,
     /* XXXXXX race condition with preemptive threads */
     SetState(ce, C_AWAITREPLY);
 
-	
-
-    preq = Request;	/* side effect routine usually does not reallocate packet */
-			/* preq will be the packet actually sent over the wire */
+    preq = Request;
+    /* side effect routine usually does not reallocate packet */
+    /* preq will be the packet actually sent over the wire */
 
     /* Complete  header fields and sanitize */
     opcode = preq->Header.Opcode;   /* InitPacket clobbers it */

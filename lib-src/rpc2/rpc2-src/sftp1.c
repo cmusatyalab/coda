@@ -940,8 +940,9 @@ static long MakeBigEnough(RPC2_PacketBuffer **whichP, off_t extraBytes,
     /* Realloc and copy */
     assert(extraBytes <= INT_MAX); /* LFS */
     RPC2_AllocBuffer(extraBytes + (*whichP)->Header.BodyLength, &pb);
-    pb->Header.BodyLength = (*whichP)->Header.BodyLength;
+    //pb->Header.BodyLength = (*whichP)->Header.BodyLength;
     memcpy(&pb->Header, &(*whichP)->Header, curlen);
+    pb->Prefix.sa = (*whichP)->Prefix.sa;
     *whichP = pb;	/* DON'T free old packet !!! */
     return(0);
 }
