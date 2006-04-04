@@ -47,9 +47,8 @@ Coda are listed in the file CREDITS.
 /* sigh, the default ValidateAttrsPlusSHA packet (21 piggybacked fids) is
  * exactly 1376 bytes, so we cannot be a drop-in replacement for existing
  * clients and servers unless we support a larger MTU.
- * I guess we'll keep the MTU at 1452 for now, but I think that ValidateAttrs
- * is really the only problematic packet */
-#define MAXPACKETSIZE (1500 - 40 - 8)
+ * I guess we'll keep the MTU the same as that used by RPC2 for now. */
+#define MAXPACKETSIZE (4500)
 
 #define MAXIVLEN  32
 #define MAXICVLEN 32

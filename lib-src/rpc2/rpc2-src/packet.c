@@ -112,6 +112,7 @@ static long FailPacket(int (*predicate)(), RPC2_PacketBuffer *pb,
 void rpc2_XmitPacket(RPC2_PacketBuffer *pb, struct RPC2_addrinfo *addr,
 		     int confirm)
 {
+    static int log_limit = 0;
     int whichSocket, n, flags = 0;
 
     say(0, RPC2_DebugLevel, "rpc2_XmitPacket()\n");
@@ -174,6 +175,23 @@ void rpc2_XmitPacket(RPC2_PacketBuffer *pb, struct RPC2_addrinfo *addr,
 	sprintf(msg, "Xmit_Packet socket %d", whichSocket);
 	perror(msg);
     }
+
+    /* Log outgoing packets that are larger than the IPv6 MTU
+     * (- ipv6 hdr, ipv6 fragment hdr, udp hdr, secure spi/seq/iv/icv)
+     *
+     * Only log the first 10 oversized packets and only when we know
+     * for sure that the headers are still unencrypted and thus, useful */
+    if (log_limit < 10 && pb->Prefix.sa &&
+	pb->Prefix.LengthOfPacket > (1280 - 40 - 8 - 8 - 24))
+    {
+	fprintf(rpc2_logfile,
+		"XMIT: Sent long packet (subsys %d, opcode %d, length %d)\n",
+		ntohl(pb->Header.SubsysId), ntohl(pb->Header.Opcode),
+		pb->Prefix.LengthOfPacket);
+	fflush(rpc2_logfile);
+	log_limit++;
+    }
+
 }
 
 struct security_association *rpc2_GetSA(uint32_t spi)
