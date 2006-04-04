@@ -398,8 +398,7 @@ static struct CEntry *FindOrNak(RPC2_PacketBuffer *pb)
 
 	/* The received packet must be using the exact same security context as
 	 * the connection on which the packet was received. */
-	invalid_sa = ce && (ce->sa.decrypt || ce->sa.validate) &&
-	    &ce->sa != pb->Prefix.sa;
+	invalid_sa = ce && ce->sa.decrypt && &ce->sa != pb->Prefix.sa;
 
 	/* The only situation where this can differ is when we received an
 	 * non-encrypted response to the INIT1 request from a server that
@@ -420,6 +419,7 @@ static struct CEntry *FindOrNak(RPC2_PacketBuffer *pb)
 	{
 	    /* NAKIT() expects host order */
 	    pb->Header.LocalHandle = ntohl(pb->Header.LocalHandle);
+	    pb->Header.Opcode = ntohl(pb->Header.Opcode);
 	    NAKIT(pb);
 	    return NULL;
 	}
@@ -612,7 +612,7 @@ static void DecodePacket(RPC2_PacketBuffer *pb, struct CEntry *ce)
 static RPC2_PacketBuffer *ShrinkPacket(RPC2_PacketBuffer *pb)
 {
 	RPC2_PacketBuffer *pb2 = NULL;
-	
+
 	if (pb->Prefix.LengthOfPacket <= MEDIUMPACKET) {
 		RPC2_AllocBuffer(pb->Prefix.LengthOfPacket - sizeof(struct RPC2_PacketHeader), &pb2);
 		if (!pb2) return pb;
@@ -1021,6 +1021,9 @@ static void SendNak(RPC2_PacketBuffer *pb)
 {
 	RPC2_PacketBuffer *nakpb;
 	RPC2_Handle remoteHandle  = pb->Header.LocalHandle;
+
+	if (pb->Header.Opcode == RPC2_NAKED)
+	    return;
 
 	say(0, RPC2_DebugLevel, "Sending NAK\n");
 	RPC2_AllocBuffer(0, &nakpb);
