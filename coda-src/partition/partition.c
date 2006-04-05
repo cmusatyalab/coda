@@ -202,13 +202,12 @@ DP_Get(char *name)
 }
 
 
-void 
-DP_SetUsage(struct DiskPartition *dp)
+void DP_SetUsage(struct DiskPartition *dp)
 {
+    unsigned int reserved, scale;
+    int rc;
 #if defined(HAVE_SYS_STATVFS_H)
     struct statvfs vfsbuf;
-    int rc;
-    int reserved_blocks, scale;
 
     rc = statvfs(dp->name, &vfsbuf);
     if ( rc != 0 ) {
@@ -218,8 +217,6 @@ DP_SetUsage(struct DiskPartition *dp)
     }
 #elif defined(HAVE_STATFS)
     struct statfs vfsbuf;
-    int rc;
-    long reserved_blocks, scale;
 
     rc = statfs(dp->name, &vfsbuf);
     if ( rc != 0 ) {
@@ -232,19 +229,24 @@ DP_SetUsage(struct DiskPartition *dp)
 #endif
 
     /* scale values to # of 512 byte blocks, further fixup is later-on */
-    scale = vfsbuf.f_bsize / 512;
-    reserved_blocks = vfsbuf.f_bfree-vfsbuf.f_bavail; /* reserved for s-user */
-    dp->free = vfsbuf.f_bavail * scale;  /* free blocks for non s-users */
-    dp->totalUsable = (vfsbuf.f_blocks - reserved_blocks) * scale; 
-    dp->minFree = 100 * reserved_blocks / vfsbuf.f_blocks;
+    reserved = vfsbuf.f_bfree - vfsbuf.f_bavail; /* reserved for s-user */
+    dp->free = vfsbuf.f_bavail;  /* free blocks for non s-users */
+    dp->totalUsable = (vfsbuf.f_blocks - reserved);
+    dp->minFree = 100 * reserved / vfsbuf.f_blocks;
 
     /* and scale values to the expected 1K per block */
-    dp->free /= 2;
-    dp->totalUsable /= 2;
+    if (vfsbuf.f_bsize < 1024) {
+	scale = 1024 / vfsbuf.f_bsize;
+	dp->free /= scale;
+	dp->totalUsable /= scale;
+    } else if (vfsbuf.f_bsize > 1024) {
+	scale = vfsbuf.f_bsize / 1024;
+	dp->free *= scale;
+	dp->totalUsable *= scale;
+    }
 }
 
-void 
-DP_ResetUsage() 
+void DP_ResetUsage()
 {
     struct DiskPartition *dp;
     struct dllist_head *tmp;
@@ -265,13 +267,9 @@ DP_PrintStats(FILE *fp)
 
     tmp = &DiskPartitionList;
     while( (tmp = tmp->next) != &DiskPartitionList) {
-	    dp = list_entry(tmp, struct DiskPartition, dp_chain);
-	    if (dp->free >= 0)
-		    SLog(0, "Partition %s: %dK available (minfree=%d%%), %dK free.",
-			 dp->name, dp->totalUsable, dp->minFree, dp->free);
-	    else
-		    SLog(0, "Partition %s: %dK available (minfree=%d%%), overallocated %dK.",
-			 dp->name, dp->totalUsable, dp->minFree, -dp->free);
+	dp = list_entry(tmp, struct DiskPartition, dp_chain);
+	SLog(0, "Partition %s: %uK available (minfree=%u%%), %uK free.",
+	     dp->name, dp->totalUsable, dp->minFree, dp->free);
     }
 }
 

@@ -99,8 +99,6 @@ extern int CmpMinus(AL_AccessEntry *a, AL_AccessEntry *b);
 
 extern int CheckWriteMode(ClientEntry *, Vnode *);
 
-extern void ChangeDiskUsage(Volume *, int);
-
 extern int FetchFileByFD(RPC2_Handle, int fd, ClientEntry *);
 
 extern long FileResolve(res_mgrpent *, ViceFid *, ViceVersionVector **);

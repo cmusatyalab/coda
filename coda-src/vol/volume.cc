@@ -1836,31 +1836,31 @@ void SetVolDebugLevel(int level) {
    We could enforce quota more strictly with the clause: 
       (V_maxquota(vp) && (V_diskused(vp) + blocks > V_maxquota(vp)))
  */
-void VAdjustDiskUsage(Error *ec, Volume *vp, int blocks)
+Error VCheckDiskUsage(Volume *vp, int blocks)
 {
-    *ec = 0;
-    if (blocks > 0) {
-	if (vp->partition->free - blocks < 0)
-	    *ec = VDISKFULL;
-	else if (V_maxquota(vp) && (V_diskused(vp) >= V_maxquota(vp)))
-	    *ec = EDQUOT;
-    }    
-    vp->partition->free -= blocks;
-    V_diskused(vp) += blocks;
+    if (blocks <= 0)
+	return 0;
+
+    if (vp->partition->free < (unsigned int)blocks)
+	return VDISKFULL;
+
+    if (V_maxquota(vp) && (V_diskused(vp) >= V_maxquota(vp)))	
+	return EDQUOT;
+
+    return 0;
 }
 
-void VCheckDiskUsage(Error *ec, Volume *vp, int blocks)
+Error VAdjustDiskUsage(Volume *vp, int blocks)
 {
-    *ec = 0;
-    if (blocks > 0){
-	if (vp->partition->free - blocks < 0)
-	    *ec = VDISKFULL;
-	else if (V_maxquota(vp) && (V_diskused(vp) >= V_maxquota(vp)))	
-	    *ec = EDQUOT;
+    Error rc = VCheckDiskUsage(vp, blocks);
+    if (!rc) {
+	vp->partition->free -= blocks;
+	V_diskused(vp) += blocks;
     }
+    return rc;
 }
 
-void VGetPartitionStatus(Volume *vp, int *totalBlocks, int *freeBlocks)
+void VGetPartitionStatus(Volume *vp, unsigned int *totalBlocks, unsigned int *freeBlocks)
 {
     *totalBlocks = vp->partition->totalUsable;
     *freeBlocks = vp->partition->free;

@@ -552,7 +552,7 @@ struct DiskPartition *findBestPartition(void)
 	tmp = &DiskPartitionList;
 	while( (tmp = tmp->next) != &DiskPartitionList) {
 		part = list_entry(tmp, struct DiskPartition, dp_chain);
-		if (!best || part->free > (long)space) {
+		if (!best || part->free > space) {
 			best = part;
 			space = part->free;
 		}

@@ -125,7 +125,6 @@ extern int CheckWriteMode(ClientEntry *, Vnode *);
 static void CopyOnWrite(Vnode *, Volume *);
 extern int AdjustDiskUsage(Volume *, int);
 extern int CheckDiskUsage(Volume *, int);
-extern void ChangeDiskUsage(Volume *, int);
 extern void HandleWeakEquality(Volume *, Vnode *, ViceVersionVector *);
 
 /* *****  Private routines  ***** */
@@ -2285,49 +2284,41 @@ int SystemUser(ClientEntry *client)
 
 int AdjustDiskUsage(Volume *volptr, int length)
 {
-    int		rc;
-    int		nc;
-    VAdjustDiskUsage((Error *)&rc, volptr, length);
-    if(rc) {
-	VAdjustDiskUsage((Error *)&nc, volptr, -length);
-	if(rc == ENOSPC) {
-	    SLog(0, "Partition %s that contains volume %u is full",
-		    volptr->partition->name, V_id(volptr));
-	    return(rc);
-	}
-	if(rc == EDQUOT) {
-	    SLog(0, "Volume %u (%s) is full", V_id(volptr), V_name(volptr));
-	    return(rc);
-	}
-	SLog(0, "Got error return %s from VAdjustDiskUsage",
-	     ViceErrorMsg(rc));
-	return(rc);
-    }
-    return(0);
+    Error rc = VAdjustDiskUsage(volptr, length);
+
+    if (rc == ENOSPC)
+	SLog(0, "Partition %s that contains volume %u is full",
+	     volptr->partition->name, V_id(volptr));
+
+    else if(rc == EDQUOT)
+	SLog(0, "Volume %u (%s) is full", V_id(volptr), V_name(volptr));
+
+    else if (rc)
+	SLog(0, "Got error return %s from VAdjustDiskUsage", ViceErrorMsg(rc));
+
+    return(rc);
 }
 
 int CheckDiskUsage(Volume *volptr, int length)
 {
-    int	rc;
-    VCheckDiskUsage((Error *)&rc, volptr, length);
-    if (rc == 0) return 0;
-    if (rc == ENOSPC){
+    Error rc = VCheckDiskUsage(volptr, length);
+
+    if (rc == ENOSPC)
 	SLog(0, "Partition %s that contains volume %u is full",
-		    volptr->partition->name, V_id(volptr));
-	return (rc);
-    }
-    else {
-	SLog(0, "Volume %u (%s) is full",
-		    V_id(volptr), V_name(volptr));
-	return(rc);
-    }
+	     volptr->partition->name, V_id(volptr));
+
+    else if (rc)
+	SLog(0, "Volume %u (%s) is full", V_id(volptr), V_name(volptr));
+
+    return(rc);
 }
 
-
+/* This function seems to be called when directory entries are added/removed.
+ * But directory data is stored in RVM, and not on-disk......
+ * Something seems wrong here --JH */
 void ChangeDiskUsage(Volume *volptr, int length)
 {
-    int rc;
-    VAdjustDiskUsage((Error *)&rc, volptr, length);
+    VAdjustDiskUsage(volptr, length);
 }
 
 
