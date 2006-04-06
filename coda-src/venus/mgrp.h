@@ -24,6 +24,9 @@ listed in the file CREDITS.
 #include <vcrcommon.h>
 #include "refcounted.h"
 
+void Mgrp_Wait(void);
+void Mgrp_Signal(void);
+
 class mgrpent;
 class fsobj;
 class repvol;

@@ -16,12 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
 /*
  *
  * Specification of the Venus Worker subsystem.
@@ -52,12 +46,12 @@ extern "C" {
 #include "fso.h"
 #include "vproc.h"
 
+int WorkerCloseMuxfd(void);
 
 class msgent;
 class msg_iterator;
 class worker;
 class worker_iterator;
-
 
 const int DFLT_MAXWORKERS = 20;
 const int UNSET_MAXWORKERS = -1;
@@ -107,7 +101,7 @@ class worker : public vproc {
   friend void PrintWorkers(int);
   friend int MsgRead(msgent *);
   friend size_t MsgWrite(char *, int);
-  friend int WorkerCloseMuxfd();
+  friend int WorkerCloseMuxfd(void);
   friend void VFSMount();
   friend class vproc;
   friend class fsobj;

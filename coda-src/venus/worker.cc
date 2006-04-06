@@ -821,7 +821,7 @@ void WorkerInit()
 }
 
 
-int WorkerCloseMuxfd()
+int WorkerCloseMuxfd(void)
 {
     int ret = 0;
 

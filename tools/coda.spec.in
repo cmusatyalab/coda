@@ -5,16 +5,15 @@ Name: @CODA@
 Version: %{version}
 Release: @REL@
 Source: ftp://ftp.coda.cs.cmu.edu/pub/coda/src/coda-%{version}.tar.gz
-Copyright: GPL
+License: GPL
 BuildRoot: %{_builddir}/coda-build
 #BuildRequires: lwp-devel >= 2.0, ncurses-devel, rpc2-devel, rvm-devel, libtermcap-devel
 Group: Networking/Daemons
 %description
 Source package for the Coda file system.  Three packages are provided by
 this rpm: the client and server and the backup components. Separately
-you must install a kernel module, or have a Coda enabled kernel, and 
+you must install a kernel module, or have a Coda enabled kernel, and
 you should get the Coda documentation package.
-
 
 %package client
 Summary: Coda client
@@ -68,12 +67,11 @@ system client.
 - Changed to BuildRoot
 - Do as much as possible at build time instead of in %post
 - Added initscript for venus
-	
+
 %prep
 %setup -n coda-%{version}
 
 %build
-chown -R root.bin $RPM_BUILD_DIR/coda-%{version}
 cd $RPM_BUILD_DIR/coda-%{version}
 [ -x configure ] || ./bootstrap.sh
 rm -rf $RPM_BUILD_DIR/obj-%{version}
@@ -113,8 +111,6 @@ if [ X%{debug} != X1 ]; then
    strip $RPM_BUILD_ROOT/usr/bin/* $RPM_BUILD_ROOT/vice/bin/* $RPM_BUILD_ROOT/usr/sbin/* || :
 fi
 
-chown -R root.root $RPM_BUILD_ROOT
-
 %clean
 rm -rf $RPM_BUILD_ROOT
 rm -rf $RPM_BUILD_DIR/obj-%{version}
@@ -129,13 +125,13 @@ else
 fi
 
 %post client
-if [ -e /usr/coda/venus.cache/pid ]; then 
+if [ -e /usr/coda/venus.cache/pid ]; then
     rm -f /usr/coda/venus.cache/pid
 fi
-if [ ! -e /etc/coda/venus.conf ]; then 
+if [ ! -e /etc/coda/venus.conf ]; then
 	/usr/sbin/venus-setup "" 100000
 fi
-if [ ! -e /dev/cfs0 ]; then 
+if [ ! -e /dev/cfs0 ]; then
 	/bin/mknod /dev/cfs0 c 67 0
 fi
 /sbin/chkconfig --add venus.init
@@ -160,6 +156,7 @@ exit 0
 /sbin/chkconfig --del codasrv.init
 
 %files client
+%defattr(-,root,root)
 %dir /usr/coda
 %dir /usr/coda/etc
 %dir /usr/coda/venus.cache
@@ -210,7 +207,8 @@ exit 0
 /usr/share/man/man8/venus-setup.8.gz
 /usr/share/man/man8/volmunge.8.gz
 
-%files server	
+%files server
+%defattr(-,root,root)
 /etc/coda/server.conf.ex
 /usr/sbin/auth2
 /usr/sbin/bldvldb.sh
@@ -272,6 +270,7 @@ exit 0
 /etc/rc.d/init.d/update.init
 
 %files backup
+%defattr(-,root,root)
 /usr/sbin/auth2
 /usr/sbin/backup
 /usr/sbin/backup.sh
@@ -289,4 +288,5 @@ exit 0
 /usr/share/man/man8/readdump.8.gz
 
 %files vcodacon
+%defattr(-,root,root)
 /usr/bin/vcodacon

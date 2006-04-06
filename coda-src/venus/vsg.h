@@ -38,6 +38,7 @@ class mgrpent;
 class vsgent : private RefCountedObject {
     friend class vsgdb;
     friend class mgrpent;
+    friend void Mgrp_Wait();
 
 private:
     unsigned int nhosts; /* number of replica servers in this VSG */
