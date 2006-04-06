@@ -45,7 +45,7 @@ struct DiskPartition {
     Device	device;		  /* device number MUST be unique */
     int		lock_fd;	  /* lock fd if locked; otherwise -1;
     				   Not used by the file server */
-    unsigned int free;		  /* Total number of blocks (1K) presumed
+    unsigned long free;		  /* Total number of blocks (1K) presumed
 				   available on this partition (accounting
 				   for the minfree parameter for the
 				   partition). This is adjusted
@@ -53,13 +53,13 @@ struct DiskPartition {
 				   and directories read/written, and
 				   periodically the superblock is read and
 				   this is recomputed. */
-    unsigned int totalUsable;	  /* Total number of blocks available on this
+    unsigned long totalUsable;	  /* Total number of blocks available on this
     				   partition, taking into account the minfree
 				   parameter for the partition  The
 				   superblock is re-read periodically by
 				   VSetPartitionDiskUsage().) */
     unsigned int minFree;	  /* Percentage to be kept free, as last read
-    				   from the superblock */
+    				   from the superblock (not used?) */
     struct inodeops *ops;         /* methods to access partition */
     union PartitionData *d;       /* private data stored with the partition */
 };

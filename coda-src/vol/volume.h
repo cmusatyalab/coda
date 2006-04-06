@@ -443,9 +443,8 @@ extern void InitLRU(int howmany);
 /* partition disk usage related routines */
 
 /* exported routines */
-void VAdjustDiskUsage(Error *ec, Volume *vp, int blocks);
-void VCheckDiskUsage(Error *ec, Volume *vp, int blocks);
-void VGetPartitionStatus(Volume *vp, int *totalBlocks, int *freeBlocks);
+Error VAdjustDiskUsage(Volume *vp, int blocks);
+Error VCheckDiskUsage(Volume *vp, int blocks);
 void PutVolObj(Volume **volptr, int LockLevel, int Dequeue);
 int GetVolObj(VolumeId Vid, Volume **volptr, 
 	      int LockLevel, int Enque, int LockerAddress);

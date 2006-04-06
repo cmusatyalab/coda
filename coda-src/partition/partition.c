@@ -204,8 +204,8 @@ DP_Get(char *name)
 
 void DP_SetUsage(struct DiskPartition *dp)
 {
-    unsigned int reserved, scale;
-    int rc;
+    unsigned long reserved;
+    int scale, rc;
 #if defined(HAVE_SYS_STATVFS_H)
     struct statvfs vfsbuf;
 

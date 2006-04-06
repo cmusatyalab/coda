@@ -575,7 +575,7 @@ void VListVolumes(char **buf, unsigned int *offset)
     for(p = DiskPartitionList.next; p != &DiskPartitionList; p = p->next) {
 	part = list_entry(p, struct DiskPartition, dp_chain);
 retry:
-	n = snprintf(*buf + *offset, buflen - *offset, "P%s H%s T%x F%x\n",
+	n = snprintf(*buf + *offset, buflen - *offset, "P%s H%s T%lx F%lx\n",
 		     part->name, ThisHost, part->totalUsable, part->free);
 
 	/* hack, snprintf sometimes fucks up and doesn't return -1 */
@@ -1833,18 +1833,19 @@ void SetVolDebugLevel(int level) {
 /* Quota enforcement: since the return value of close is not often
    checked we set ec only when we are already over quota. If a store
    operation exceeds the quota the next open will fail.
-   We could enforce quota more strictly with the clause: 
+   We could enforce quota more strictly with the clause:
       (V_maxquota(vp) && (V_diskused(vp) + blocks > V_maxquota(vp)))
  */
 Error VCheckDiskUsage(Volume *vp, int blocks)
 {
+    /* releasing blocks is always ok */
     if (blocks <= 0)
 	return 0;
 
-    if (vp->partition->free < (unsigned int)blocks)
+    if (vp->partition->free < (unsigned long)blocks)
 	return VDISKFULL;
 
-    if (V_maxquota(vp) && (V_diskused(vp) >= V_maxquota(vp)))	
+    if (V_maxquota(vp) && (V_diskused(vp) >= V_maxquota(vp)))
 	return EDQUOT;
 
     return 0;
@@ -1860,15 +1861,8 @@ Error VAdjustDiskUsage(Volume *vp, int blocks)
     return rc;
 }
 
-void VGetPartitionStatus(Volume *vp, unsigned int *totalBlocks, unsigned int *freeBlocks)
-{
-    *totalBlocks = vp->partition->totalUsable;
-    *freeBlocks = vp->partition->free;
-}
-
-
-int GetVolObj(VolumeId Vid, Volume **volptr, 
-	      int LockLevel, int Enque, int LockerAddress) 
+int GetVolObj(VolumeId Vid, Volume **volptr,
+	      int LockLevel, int Enque, int LockerAddress)
 {
     int errorCode = 0;
 

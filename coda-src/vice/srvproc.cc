@@ -2291,7 +2291,8 @@ int AdjustDiskUsage(Volume *volptr, int length)
 	     volptr->partition->name, V_id(volptr));
 
     else if(rc == EDQUOT)
-	SLog(0, "Volume %u (%s) is full", V_id(volptr), V_name(volptr));
+	SLog(0, "Volume %u (%s) is full (quota reached)",
+	     V_id(volptr), V_name(volptr));
 
     else if (rc)
 	SLog(0, "Got error return %s from VAdjustDiskUsage", ViceErrorMsg(rc));
@@ -2307,14 +2308,18 @@ int CheckDiskUsage(Volume *volptr, int length)
 	SLog(0, "Partition %s that contains volume %u is full",
 	     volptr->partition->name, V_id(volptr));
 
+    else if (rc == EDQUOT)
+	SLog(0, "Volume %u (%s) is full (quota reached)",
+	     V_id(volptr), V_name(volptr));
+
     else if (rc)
-	SLog(0, "Volume %u (%s) is full", V_id(volptr), V_name(volptr));
+	SLog(0, "Got error return %s from VCheckDiskUsage", ViceErrorMsg(rc));
 
     return(rc);
 }
 
 /* This function seems to be called when directory entries are added/removed.
- * But directory data is stored in RVM, and not on-disk......
+ * But directory data is stored in RVM, and not on-disk.
  * Something seems wrong here --JH */
 void ChangeDiskUsage(Volume *volptr, int length)
 {

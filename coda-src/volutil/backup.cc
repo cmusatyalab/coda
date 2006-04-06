@@ -542,7 +542,7 @@ static int backup(volinfo_t *vol) {
     return 0;
 }
 
-struct DiskPartition *findBestPartition(void) 
+struct DiskPartition *findBestPartition(void)
 {
 	unsigned long space = 0;
 	struct DiskPartition *best, *part;
