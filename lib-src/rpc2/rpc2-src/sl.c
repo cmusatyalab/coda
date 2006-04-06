@@ -67,14 +67,14 @@ Pittsburgh, PA.
 #include <rpc2/se.h>
 #include "trace.h"
 
- 
+
 void rpc2_IncrementSeqNumber();
 static void DelayedAck(struct SL_Entry *sle);
 int XlateMcastPacket(RPC2_PacketBuffer *pb);
 void HandleInitMulticast();
 void rpc2_ExpireEvents(void);
 
-static RPC2_PacketBuffer *ShrinkPacket();
+static RPC2_PacketBuffer *ShrinkPacket(RPC2_PacketBuffer *pb);
 static struct CEntry *MakeConn();
 static struct CEntry *FindOrNak(RPC2_PacketBuffer *pb);
 static void HandleSLPacket(RPC2_PacketBuffer *pb, struct CEntry *ce);
@@ -95,10 +95,10 @@ static void SendNak(RPC2_PacketBuffer *pb);
     rpc2_Recvd.Bogus++;\
     RPC2_FreeBuffer(&p); } while (0)
 
-#define NAKIT(p) do { 	/* bogus packet; NAK it and then throw it away */\
+#define NAKIT(p) do {	/* bogus packet; NAK it and then throw it away */\
     rpc2_Recvd.Bogus++;\
     SendNak(p);\
-    RPC2_FreeBuffer(&p); } while (0) 
+    RPC2_FreeBuffer(&p); } while (0)
 
 /* Multiple transports can register a handler with the rpc2 socketlistener
  * when their headers are RPC2 compatible */
@@ -293,9 +293,11 @@ void rpc2_HandlePacket(RPC2_PacketBuffer *pb)
 	rpc2_Recvd.Total++;
 	rpc2_Recvd.Bytes += pb->Prefix.LengthOfPacket;
 
-	/* request on existing connection? otherwise it must be a new binding */
-	if (!pb->Header.RemoteHandle)
-	    goto UnboundPacket;
+	/* no handle, this must be an INIT1 packet */
+	if (!pb->Header.RemoteHandle) {
+	    HandleInit1(pb);
+	    return;
+	}
 
 	ce = FindOrNak(pb);
 	if (!ce) return;
@@ -321,16 +323,12 @@ void rpc2_HandlePacket(RPC2_PacketBuffer *pb)
 	if (ce->HostInfo)
 	    ce->HostInfo->LastWord = pb->Prefix.RecvStamp;
 
-UnboundPacket:
 	/* convert to host-byte order */
 	rpc2_ntohp(pb);
 
-	/* See if smaller packet buffer will do */
-	pb = ShrinkPacket(pb);
-
 	/* maintain causality */
 	if (pb->Header.Lamport >= rpc2_LamportClock)
-		rpc2_LamportClock = pb->Header.Lamport + 1;
+	    rpc2_LamportClock = pb->Header.Lamport + 1;
 
 	say(9, RPC2_DebugLevel, "Decoding opcode %d\n", pb->Header.Opcode);
 
@@ -409,7 +407,7 @@ static struct CEntry *FindOrNak(RPC2_PacketBuffer *pb)
 
 	if (invalid_sa && !init2) {
 	    /* should we log this? Responding is useless because the client
-	     * that sent this packet clearly did not have good intentions. */
+	     * that sent this packet must not have had good intentions. */
 	    RPC2_FreeBuffer(&pb);
 	    return NULL;
 	}
@@ -417,9 +415,7 @@ static struct CEntry *FindOrNak(RPC2_PacketBuffer *pb)
 	if (!ce || TestState(ce, CLIENT, C_HARDERROR) ||
 	           TestState(ce, SERVER, S_HARDERROR))
 	{
-	    /* NAKIT() expects host order */
-	    pb->Header.LocalHandle = ntohl(pb->Header.LocalHandle);
-	    pb->Header.Opcode = ntohl(pb->Header.Opcode);
+	    rpc2_ntohp(pb);
 	    NAKIT(pb);
 	    return NULL;
 	}
@@ -429,15 +425,15 @@ static struct CEntry *FindOrNak(RPC2_PacketBuffer *pb)
 
 static void DecodePacket(RPC2_PacketBuffer *pb, struct CEntry *ce)
 {
-	switch (pb->Header.Opcode) {
+    /* either this was an INIT1 and was handled, or we found a valid connection
+     * entry before calling DecodePacket */
+    assert(ce != NULL);
+
+    switch (pb->Header.Opcode) {
 	case RPC2_BUSY: {
-		if (ce == NULL) {
-			NAKIT(pb);
+		if (!TestState(ce, CLIENT, (C_AWAITINIT2|C_AWAITREPLY))) {
+			BOGUS(pb, "DecodePacket(RPC2_BUSY): state != AWAIT\n");
 			return;
-		}
-		if (!TestState(ce, CLIENT, (C_AWAITINIT2|C_AWAITREPLY))) { 
-			BOGUS(pb, "DecodePacket(RPC2_BUSY): state != AWAIT\n"); 
-			return; 
 		}
 		/*
 		 * If the state is C_AWAITINIT2, the server is processing
@@ -445,14 +441,14 @@ static void DecodePacket(RPC2_PacketBuffer *pb, struct CEntry *ce)
 		 * but a busy during bind will have a sequence number of -1.
 		 */
 		if (TestState(ce, CLIENT, C_AWAITREPLY) &&
-		    ce->NextSeqNumber != pb->Header.SeqNumber-1) { 
-			BOGUS(pb, "DecodePacket(RPC2_BUSY): bad seqno\n"); 
-			return; 
+		    ce->NextSeqNumber != pb->Header.SeqNumber-1) {
+			BOGUS(pb, "DecodePacket(RPC2_BUSY): bad seqno\n");
+			return;
 		}
 		if (TestState(ce, CLIENT, C_AWAITINIT2) &&
-		    pb->Header.SeqNumber != -1) { 
-			BOGUS(pb, "DecodePacket(RPC2_BUSY): bad bind seqno\n"); 
-			return; 
+		    pb->Header.SeqNumber != -1) {
+			BOGUS(pb, "DecodePacket(RPC2_BUSY): bad bind seqno\n");
+			return;
 		}
 
 		HandleBusy(pb, ce);
@@ -460,55 +456,48 @@ static void DecodePacket(RPC2_PacketBuffer *pb, struct CEntry *ce)
 	}
 
 	case RPC2_REPLY: {
-		if (ce == NULL) {
-			NAKIT(pb); 
+		if (!TestState(ce, CLIENT, C_AWAITREPLY)) {
+			BOGUS(pb, "DecodePacket(RPC2_REPLY): state != AWAIT\n");
 			return;
 		}
-		if (!TestState(ce, CLIENT, C_AWAITREPLY)) { 
-			BOGUS(pb, "DecodePacket(RPC2_REPLY): state != AWAIT\n"); 
-			return; 
-		}
-		if (ce->NextSeqNumber != pb->Header.SeqNumber-1) { 
-			BOGUS(pb, "DecodePacket(RPC2_REPLY): bad seqno\n"); 
-			return; 
+		if (ce->NextSeqNumber != pb->Header.SeqNumber-1) {
+			BOGUS(pb, "DecodePacket(RPC2_REPLY): bad seqno\n");
+			return;
 		}
 
 		HandleCurrentReply(pb, ce);
 		return;
 	}
 
-
 	case RPC2_INIT1OPENKIMONO:
 	case RPC2_INIT1AUTHONLY:
 	case RPC2_INIT1HEADERSONLY:
 	case RPC2_INIT1SECURE: {
-		if (ce) {
-			NAKIT(pb); 
-			return;
-		}
-		HandleInit1(pb);
+	        /* INIT1 on an established connection is invalid */
+		NAKIT(pb);
 		return;
 	}
 
 	case RPC2_INIT2: {
-		if (ce == NULL) {
-			NAKIT(pb); 
-			return;
-		}
 		if (TestState(ce, CLIENT, C_AWAITINIT2)) {
 			HandleInit2(pb, ce);
 			return;
 		}
 		/* anything else */
-		BOGUS(pb, "DecodePacket(RPC2_INIT2): state != AWAIT\n"); 
+		BOGUS(pb, "DecodePacket(RPC2_INIT2): state != AWAIT\n");
+		return;
+	}
+
+	case RPC2_INIT3: {
+		if (!TestRole(ce, SERVER)) {
+			NAKIT(pb);
+			return;
+		}
+		HandleInit3(pb, ce);	/* This could be a retry */
 		return;
 	}
 
 	case RPC2_INIT4: {
-		if (ce == NULL) {
-			NAKIT(pb); 
-			return;
-		}
 		if (TestState(ce, CLIENT, C_AWAITINIT4)) {
 			HandleInit4(pb, ce);
 			return;
@@ -517,24 +506,11 @@ static void DecodePacket(RPC2_PacketBuffer *pb, struct CEntry *ce)
 		return;
 	}
 
-	case RPC2_INIT3: {
-		if (ce == NULL || (!TestRole(ce, SERVER))) {
-			NAKIT(pb); 
-			return;
-		}
-		HandleInit3(pb, ce);	/* This could be a retry */
-		return;
-	}
-
 	case RPC2_INITMULTICAST: {
-		if (ce == NULL) {
-			NAKIT(pb); 
-			return;
-		}
-	    
-		if (TestState(ce, SERVER, S_AWAITENABLE)) {
+		if (TestState(ce, SERVER, S_AWAITENABLE))
+		{
 			say(0, RPC2_DebugLevel, "Connection not enabled\n");
-			BOGUS(pb, "DecodePacket(INITMC): connection not enabled\n"); 
+			BOGUS(pb, "DecodePacket(INITMC): connection not enabled\n");
 			return;
 		}
 
@@ -545,7 +521,7 @@ static void DecodePacket(RPC2_PacketBuffer *pb, struct CEntry *ce)
 				return;
 			}
 
-		if (TestState(ce, SERVER, S_AWAITREQUEST) && 
+		if (TestState(ce, SERVER, S_AWAITREQUEST) &&
 		    ce->NextSeqNumber == pb->Header.SeqNumber + 2)
 			{
 				HandleOldRequest(pb, ce);
@@ -559,19 +535,14 @@ static void DecodePacket(RPC2_PacketBuffer *pb, struct CEntry *ce)
 		   situation because InitMulticast requests cannot be multicasted. */
 
 		/* Anything else */
-		BOGUS(pb, "DecodePacket(INITMC): anything else\n");	
+		BOGUS(pb, "DecodePacket(INITMC): anything else\n");
 		return;
 	}
 	/* cannot be any negative opcode XXXXXXXXXXXXXXXX */
 	default: {
-		if (ce == NULL)	{
-			NAKIT(pb);
-			return;
-		}
-
 		if (TestState(ce, SERVER, S_AWAITENABLE)) {
 			say(0, RPC2_DebugLevel, "Connection not enabled\n");
-			BOGUS(pb, "DecodePacket: connection not enabled\n"); 
+			BOGUS(pb, "DecodePacket: connection not enabled\n");
 			return;
 		}
 
@@ -581,7 +552,7 @@ static void DecodePacket(RPC2_PacketBuffer *pb, struct CEntry *ce)
 			return;
 		}
 
-		if (TestState(ce, SERVER, S_AWAITREQUEST) && 
+		if (TestState(ce, SERVER, S_AWAITREQUEST) &&
 		    ce->NextSeqNumber == pb->Header.SeqNumber + 2) {
 			HandleOldRequest(pb, ce);
 			return;
@@ -600,33 +571,31 @@ static void DecodePacket(RPC2_PacketBuffer *pb, struct CEntry *ce)
 			return;
 		}
 		/* Anything else */
-		BOGUS(pb, "DecodePacket: anything else\n");	
+		BOGUS(pb, "DecodePacket: anything else\n");
 		return;
 	}
-
-	}
+    }
 }
-
-
 
 static RPC2_PacketBuffer *ShrinkPacket(RPC2_PacketBuffer *pb)
 {
-	RPC2_PacketBuffer *pb2 = NULL;
+    RPC2_PacketBuffer *pb2 = NULL;
+    size_t len = pb->Prefix.LengthOfPacket - sizeof(struct RPC2_PacketHeader);
 
-	if (pb->Prefix.LengthOfPacket <= MEDIUMPACKET) {
-		RPC2_AllocBuffer(pb->Prefix.LengthOfPacket - sizeof(struct RPC2_PacketHeader), &pb2);
-		if (!pb2) return pb;
+    if (pb->Prefix.LengthOfPacket > MEDIUMPACKET)
+	return pb;
 
-		pb2->Prefix.PeerAddr = pb->Prefix.PeerAddr;
-		pb->Prefix.PeerAddr = NULL;
-		pb2->Prefix.sa = pb->Prefix.sa;
-		pb2->Prefix.RecvStamp = pb->Prefix.RecvStamp;
-		pb2->Prefix.LengthOfPacket = pb->Prefix.LengthOfPacket;
-		memcpy(&pb2->Header, &pb->Header, pb->Prefix.LengthOfPacket);
-		RPC2_FreeBuffer(&pb);
-		return(pb2);
-	} else 
-		return(pb);
+    RPC2_AllocBuffer(len, &pb2);
+    if (!pb2) return pb;
+
+    pb2->Prefix.PeerAddr = pb->Prefix.PeerAddr;
+    pb->Prefix.PeerAddr = NULL;
+    pb2->Prefix.sa = pb->Prefix.sa;
+    pb2->Prefix.RecvStamp = pb->Prefix.RecvStamp;
+    pb2->Prefix.LengthOfPacket = pb->Prefix.LengthOfPacket;
+    memcpy(&pb2->Header, &pb->Header, pb->Prefix.LengthOfPacket);
+    RPC2_FreeBuffer(&pb);
+    return(pb2);
 }
 
 
@@ -737,9 +706,7 @@ static void HandleBusy(RPC2_PacketBuffer *pb,  struct CEntry *ce)
 
 
 /* client receives a reply and bundles it off to the right sle */
-static void HandleCurrentReply(pb, ce)
-	RPC2_PacketBuffer *pb;
-struct CEntry *ce;
+static void HandleCurrentReply(RPC2_PacketBuffer *pb, struct CEntry *ce)
 {
 	struct SL_Entry *sl;
 
@@ -748,6 +715,8 @@ struct CEntry *ce;
 	/* should this assert ?? XXXX */
 	if (BogusSl(ce, pb)) 
 		return;
+
+	pb = ShrinkPacket(pb);
 	ce->respsize = pb->Prefix.LengthOfPacket;
 	rpc2_UpdateRTT(pb, ce);
 	rpc2_Recvd.GoodReplies++;
@@ -766,6 +735,7 @@ static void HandleNewRequest(RPC2_PacketBuffer *pb, struct CEntry *ce)
 	struct SL_Entry *sl;
 
 	say(0, RPC2_DebugLevel, "HandleNewRequest()\n");
+	pb = ShrinkPacket(pb);
 
 	ce->TimeStampEcho = pb->Header.TimeStamp;
 	TVTOTS(&pb->Prefix.RecvStamp, ce->RequestTime);
@@ -850,6 +820,17 @@ static void HandleInit1(RPC2_PacketBuffer *pb)
 	struct CEntry *ce;
 	struct SL_Entry *sl;
 
+	rpc2_ntohp(pb);
+
+	if (pb->Header.Opcode != RPC2_INIT1OPENKIMONO &&
+	    pb->Header.Opcode != RPC2_INIT1AUTHONLY &&
+	    pb->Header.Opcode != RPC2_INIT1HEADERSONLY &&
+	    pb->Header.Opcode != RPC2_INIT1SECURE)
+	{
+	    NAKIT(pb);
+	    return;
+	}
+
 	say(0, RPC2_DebugLevel, "HandleInit1()\n");
 
 	rpc2_Recvd.Requests++;
@@ -874,7 +855,10 @@ static void HandleInit1(RPC2_PacketBuffer *pb)
 	/* Now fix packet header so that it has a real RemoteHandle */
 	pb->Header.RemoteHandle = ce->UniqueCID;
 
-	/* Find a willing LWP in RPC2_GetRequest() and tap him on the shoulder */
+	/* we're going to keep this packet around, so try to save some space */
+	pb = ShrinkPacket(pb);
+
+	/* Find a willing LWP in RPC2_GetRequest() */
 	sl = FindRecipient(pb);
 	if (sl != NULL) {
 		assert(sl->MagicNumber == OBJ_SLENTRY);
@@ -892,9 +876,8 @@ static void HandleInit1(RPC2_PacketBuffer *pb)
 
 static void HandleRetriedBind(RPC2_PacketBuffer *pb, struct CEntry *ce)
 {
-    
 	say(0, RPC2_DebugLevel, "HandleRetriedBind()\n");
-    
+
 	if (!TestRole(ce, SERVER)) {
 		BOGUS(pb, "HandleRetriedBind: not server\n");
 		return;
@@ -946,14 +929,19 @@ static void HandleInit2(RPC2_PacketBuffer *pb, struct CEntry *ce)
 
 	if (BogusSl(ce, pb))
 		return;
+
+	pb = ShrinkPacket(pb);
 	ce->respsize = pb->Prefix.LengthOfPacket;
 	rpc2_UpdateRTT(pb, ce);
 	sl = ce->MySl;
 	sl->Packet = pb;
+
+	/* we're only done if we have an old-style anonymous binding */
 	if (!pb->Prefix.sa && ce->SecurityLevel == RPC2_OPENKIMONO)
-		SetState(ce, C_THINK);
+	    SetState(ce, C_THINK);
 	else
-		SetState(ce, C_AWAITINIT4);
+	    SetState(ce, C_AWAITINIT4);
+
 	rpc2_DeactivateSle(sl, ARRIVED);
 	LWP_NoYieldSignal((char *)sl);
 }
@@ -969,10 +957,13 @@ static void HandleInit4(pb, ce)
     rpc2_Recvd.Requests++;
 
     if (BogusSl(ce, pb)) return;
+    pb = ShrinkPacket(pb);
+
     ce->respsize = pb->Prefix.LengthOfPacket;
     rpc2_UpdateRTT(pb, ce);
     sl = ce->MySl;
     sl->Packet = pb;
+
     SetState(ce, C_THINK);
     rpc2_DeactivateSle(sl, ARRIVED);
     LWP_NoYieldSignal((char *)sl);
@@ -991,17 +982,19 @@ static void HandleInit3(RPC2_PacketBuffer *pb, struct CEntry *ce)
 	if (!TestState(ce, SERVER, S_AWAITINIT3)) {
 		if (ce->HeldPacket != NULL) {
 			/* My Init4 must have got lost; resend it */
-			ce->HeldPacket->Header.TimeStamp = htonl(pb->Header.TimeStamp);    
+			ce->HeldPacket->Header.TimeStamp = htonl(pb->Header.TimeStamp);
 			rpc2_XmitPacket(ce->HeldPacket, ce->HostInfo->Addr, 1);
-		}  else 
+		}  else
 			say(0, RPC2_DebugLevel, "Bogus Init3\n");
 		/* Throw packet away anyway */
 		RPC2_FreeBuffer(&pb);
-		return;	
+		return;
 	}
 
 	/* Expected Init3 */
 	if (BogusSl(ce, pb)) return;
+	pb = ShrinkPacket(pb);
+
 	ce->TimeStampEcho = pb->Header.TimeStamp;
 	TVTOTS(&pb->Prefix.RecvStamp, ce->RequestTime);
 
@@ -1056,13 +1049,18 @@ static struct CEntry *MakeConn(struct RPC2_PacketBuffer *pb)
 	say(9, RPC2_DebugLevel, " Request on brand new connection\n");
 
 	ib1 = (struct Init1Body *)(pb->Body);
-	if ( (pb->Header.BodyLength < sizeof(struct Init1Body) - 
-	      sizeof(ib1->Text))
-	     || (pb->Header.BodyLength < sizeof(struct Init1Body) - 
-		 sizeof(ib1->Text)+ ntohl(ib1->FakeBody.ClientIdent.SeqLen))) {
+
+#define INIT1LENGTH (sizeof(struct RPC2_PacketHeader) + \
+		     sizeof(struct Init1Body) - \
+		     sizeof(ib1->Text))
+
+	if (pb->Prefix.LengthOfPacket < INIT1LENGTH ||
+	    pb->Prefix.LengthOfPacket < (INIT1LENGTH +
+				     ntohl(ib1->FakeBody.ClientIdent.SeqLen)))
+	{
 		/* avoid memory reference errors from bogus packets */
 		say(0, RPC2_DebugLevel, "Ignoring short Init1 packet\n");
-		return(NULL);
+		return NULL;
 	}
 
 	ce = rpc2_AllocConn(pb->Prefix.PeerAddr);
@@ -1073,39 +1071,21 @@ static struct CEntry *MakeConn(struct RPC2_PacketBuffer *pb)
 	    ce->TimeStampEcho, ce->RequestTime);
 
 	switch((int) pb->Header.Opcode) {
-	case RPC2_INIT1OPENKIMONO:
-		ce->SecurityLevel = RPC2_OPENKIMONO;
-		ce->NextSeqNumber = 0;
-		ce->EncryptionType = 0;
-		break;
-
-	case RPC2_INIT1AUTHONLY:
-		ce->SecurityLevel = RPC2_AUTHONLY;
-		secure_random_bytes(&ce->NextSeqNumber,
-				    sizeof(ce->NextSeqNumber));
-		ce->EncryptionType = ntohl(ib1->FakeBody.EncryptionType);
-		break;
-
-	case RPC2_INIT1HEADERSONLY:
-		ce->SecurityLevel = RPC2_HEADERSONLY;
-		secure_random_bytes(&ce->NextSeqNumber,
-				    sizeof(ce->NextSeqNumber));
-		ce->EncryptionType = ntohl(ib1->FakeBody.EncryptionType);
-		break;
-
-	case RPC2_INIT1SECURE:
-		ce->SecurityLevel = RPC2_SECURE;
-		secure_random_bytes(&ce->NextSeqNumber,
-				    sizeof(ce->NextSeqNumber));
-		ce->EncryptionType = ntohl(ib1->FakeBody.EncryptionType);
-		break;
-		
+	case RPC2_INIT1OPENKIMONO:  ce->SecurityLevel = RPC2_OPENKIMONO; break;
+	case RPC2_INIT1AUTHONLY:    ce->SecurityLevel = RPC2_AUTHONLY; break;
+	case RPC2_INIT1HEADERSONLY: ce->SecurityLevel = RPC2_HEADERSONLY; break;
+	case RPC2_INIT1SECURE:      ce->SecurityLevel = RPC2_SECURE; break;
 	default:  assert(FALSE);
 	}
-	
+
+	if (ce->SecurityLevel != RPC2_OPENKIMONO) {
+	    secure_random_bytes(&ce->NextSeqNumber, sizeof(ce->NextSeqNumber));
+	    ce->EncryptionType = ntohl(ib1->FakeBody.EncryptionType);
+	}
+
 	SetRole(ce, SERVER);
 	SetState(ce, S_STARTBIND);
-	ce->PeerHandle = pb->Header.LocalHandle;
+	ce->PeerHandle  = pb->Header.LocalHandle;
 	ce->sa.peer_spi = pb->Header.LocalHandle;
 	ce->SubsysId   = pb->Header.SubsysId;
 	ce->PeerUnique = pb->Header.Uniquefier;
@@ -1119,7 +1099,7 @@ static struct CEntry *MakeConn(struct RPC2_PacketBuffer *pb)
 		(void) fflush(rpc2_tracefile);
 	}
 #endif
-	
+
 	rpc2_NoteBinding(pb->Prefix.PeerAddr, ce->PeerHandle,
 			 pb->Header.Uniquefier, ce->UniqueCID);
 	return(ce);
@@ -1130,8 +1110,6 @@ void rpc2_IncrementSeqNumber(struct CEntry *ce)
 	ce->NextSeqNumber += 2;
 }
 
-
-
 static void HandleOldRequest(RPC2_PacketBuffer *pb, struct CEntry *ce)
 {
 	say(0, RPC2_DebugLevel, "HandleOldRequest()\n");
@@ -1139,16 +1117,16 @@ static void HandleOldRequest(RPC2_PacketBuffer *pb, struct CEntry *ce)
 	rpc2_Recvd.Requests++;
 
 	if (ce->HeldPacket != NULL) {
-			ce->HeldPacket->Header.TimeStamp = htonl(pb->Header.TimeStamp);
-			rpc2_XmitPacket(ce->HeldPacket, ce->HostInfo->Addr, 1);
-		}
+	    ce->HeldPacket->Header.TimeStamp = htonl(pb->Header.TimeStamp);
+	    rpc2_XmitPacket(ce->HeldPacket, ce->HostInfo->Addr, 1);
+	}
 	RPC2_FreeBuffer(&pb);
 }
 
 void DelayedAck(struct SL_Entry *sle)
 {
 	struct CEntry *ce;
-    
+
 	ce = rpc2_GetConn(sle->Conn);
 	SendBusy(ce, TRUE);
 	rpc2_FreeSle(&ce->MySl);
@@ -1157,7 +1135,7 @@ void DelayedAck(struct SL_Entry *sle)
 void FreeHeld(struct SL_Entry *sle)
 {
 	struct CEntry *ce;
-    
+
 	ce = rpc2_GetConn(sle->Conn);
 	RPC2_FreeBuffer(&ce->HeldPacket);
 	rpc2_FreeSle(&ce->MySl);
@@ -1168,17 +1146,18 @@ static int BogusSl(struct CEntry *ce, RPC2_PacketBuffer *pb)
 	struct SL_Entry *sl;
 
 	sl = ce->MySl;
-	if (sl == NULL){ 
-		BOGUS(pb, "BogusSL: sl == NULL\n"); 
-		return(-1); 
+	if (sl == NULL){
+		BOGUS(pb, "BogusSL: sl == NULL\n");
+		return(-1);
 	}
-	if (sl->Conn != ce->UniqueCID) { 
-		BOGUS(pb, "BogusSL: sl->Conn != ce->UniqueCID\n"); 
-		return(-1); 
+	if (sl->Conn != ce->UniqueCID) {
+		BOGUS(pb, "BogusSL: sl->Conn != ce->UniqueCID\n");
+		return(-1);
 	}
 	if (sl->ReturnCode != WAITING && sl->ReturnCode != KEPTALIVE){
-		BOGUS(pb, "BogusSL: sl->ReturnCode != WAITING && sl->ReturnCode != KEPTALIVE\n"); 
-		return(-1); 
+		BOGUS(pb, "BogusSL: sl->ReturnCode != WAITING && sl->ReturnCode != KEPTALIVE\n");
+		return(-1);
 	}
 	return(0);
 }
+

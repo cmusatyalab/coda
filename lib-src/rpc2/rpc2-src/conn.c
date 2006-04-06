@@ -149,9 +149,9 @@ static void Uniquefy(IN struct CEntry *ceaddr)
     {
         secure_random_bytes(&handle, sizeof(handle));
 
-	/* ignore negative and '0' handles which have special meaning */
+	/* ignore any handles < 256 which have special meaning */
 	handle = abs(handle);
-	if (handle <= 0) continue;
+	if (handle < 256) continue;
 
 	if (__rpc2_GetConn(handle) == NULL)
 	    break;
