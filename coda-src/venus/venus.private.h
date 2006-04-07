@@ -335,7 +335,7 @@ extern struct timeval DaemonExpiry;
 class vproc;
 extern vproc *Main;
 extern VenusFid rootfid;
-extern int parent;
+extern int parent_fd;
 extern long rootnodeid;
 extern int CleanShutDown;
 extern char *venusRoot;

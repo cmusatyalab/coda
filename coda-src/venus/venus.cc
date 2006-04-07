@@ -126,7 +126,7 @@ struct in_addr venus_relay_addr = { INADDR_LOOPBACK };
 /* *****  venus.c  ***** */
 
 /* socket connecting us back to our parent */
-int parent = -1;
+int parent_fd = -1;
 
 /* local-repair modification */
 int main(int argc, char **argv)
@@ -140,7 +140,7 @@ int main(int argc, char **argv)
     // Cygwin runs as a service and doesn't need to daemonize.
 #ifndef __CYGWIN__
     if (LogLevel == 0)
-	parent = daemonize();
+	parent_fd = daemonize();
 #endif
 
     update_pidfile(VenusPidFile);

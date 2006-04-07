@@ -225,7 +225,11 @@ static void SigControl(int sig)
 
 static void SigChoke(int sig)
 {
+#ifndef DJGPP
+    sigset_t mask;
     int pid = getpid();
+#endif
+
     LOG(0, ("*****  FATAL SIGNAL (%d) *****\n", sig));
 
 #ifndef DJGPP
@@ -233,14 +237,17 @@ static void SigChoke(int sig)
     eprint("You may use gdb to attach to %d", pid);
     MarinerLog("zombie state::pid %d", pid);
 
-    {
-	int       living_dead = 1;
-	sigset_t  mask;
-	sigemptyset(&mask);
-	while (living_dead) {
-	    sigsuspend(&mask);
-	}
-    }
+    /* just in case we still have a parent process waiting for us we don't want
+     * to lock up the boot sequence... */
+    if (parent_fd != -1)
+	close(parent_fd);
+
+    /* block all signals, except for INT and TERM (and the non-blockable ones,
+     * KILL and STOP) */
+    sigfillset(&mask);
+    sigdelset(&mask, SIGINT);
+    sigdelset(&mask, SIGTERM);
+    sigsuspend(&mask);
 #endif
 
     SigExit(sig);
@@ -263,6 +270,6 @@ static void SigExit(int sig)
 
 static void SigMounted(int sig)
 {
-    gogogo(parent);
+    gogogo(parent_fd);
 }
 
