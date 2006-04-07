@@ -1,10 +1,10 @@
 Summary: RPC2 library
-Name: @PACKAGE@
-Version: @VERSION@
+Name: %{name}
+Version: %{version}
 Release: 1
 Source: ftp://ftp.coda.cs.cmu.edu/pub/coda/src/@PACKAGE@-@VERSION@.tar.gz
-Copyright: LGPL
-BuildRoot: %{_builddir}/@PACKAGE@-@VERSION@/Root
+License: LGPL
+BuildRoot: %{_builddir}/%{name}-%{version}/Root
 Group: Development/Libraries
 %description
 The RPC2 library.
@@ -18,7 +18,7 @@ Headers and static libraries for developing programs using the RPC2 library.
 %changelog
 * Thu Oct 28 1999 Jan Harkes <jaharkes@cs.cmu.edu>
 - First stab at packaging the rpc2 library.
-	
+
 %prep
 %setup -n @PACKAGE@-@VERSION@
 
@@ -72,4 +72,5 @@ rm -rf $RPM_BUILD_ROOT
 /usr/include/rpc2/rpc2_addrinfo.h
 /usr/include/rpc2/se.h
 /usr/include/rpc2/sftp.h
+/usr/include/rpc2/secure.h
 
