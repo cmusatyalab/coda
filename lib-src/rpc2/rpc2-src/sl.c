@@ -214,6 +214,8 @@ static void rpc2_ProcessPacket(int fd)
     if (RPC2_DebugLevel > 9) {
 	fprintf(rpc2_tracefile, "Packet received from   ");
 	rpc2_printaddrinfo(pb->Prefix.PeerAddr, rpc2_tracefile);
+	if (pb->Prefix.sa && pb->Prefix.sa->decrypt)
+	    fprintf(rpc2_tracefile, " (secure)");
 	fprintf(rpc2_tracefile, "\n");
     }
 #endif

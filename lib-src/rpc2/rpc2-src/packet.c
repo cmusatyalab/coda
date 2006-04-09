@@ -122,6 +122,8 @@ void rpc2_XmitPacket(RPC2_PacketBuffer *pb, struct RPC2_addrinfo *addr,
 	{
 	fprintf(rpc2_logfile, "\t");
 	rpc2_printaddrinfo(addr, rpc2_logfile);
+	if (pb->Prefix.sa && pb->Prefix.sa->encrypt)
+	    fprintf(rpc2_logfile, " (secure)");
 	fprintf(rpc2_logfile, "\n");
 	rpc2_PrintPacketHeader(pb, rpc2_logfile);
 	}
