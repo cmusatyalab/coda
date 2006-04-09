@@ -308,11 +308,13 @@ void RPC2_formataddrinfo(const struct RPC2_addrinfo *ai,
 {
     int n, port = 0;
     void *addr = NULL;
-    int prefix = 1;
+    char *p = buf;
+
+    buflen--;
 
     if (!ai) {
-	strncpy(buf, "(no addrinfo)", buflen-1);
-	buf[buflen-1] = '\0';
+	strncpy(buf, "(no addrinfo)", buflen);
+	buf[buflen] = '\0';
 	return;
     }
 
@@ -320,33 +322,32 @@ void RPC2_formataddrinfo(const struct RPC2_addrinfo *ai,
     case PF_INET:
 	addr = &((struct sockaddr_in *)ai->ai_addr)->sin_addr;
 	port = ((struct sockaddr_in *)ai->ai_addr)->sin_port;
-	prefix = 0;
 	break;
 #if defined(PF_INET6)
     case PF_INET6:
 	addr = &((struct sockaddr_in6 *)ai->ai_addr)->sin6_addr;
 	port = ((struct sockaddr_in6 *)ai->ai_addr)->sin6_port;
+	*(p++) = '[';
 	break;
 #endif
     }
 
-    if (ai->ai_canonname) {
-	strncpy(buf, ai->ai_canonname, buflen-1);
-	prefix = 0;
-    } 
-    else if (!addr || !inet_ntop(ai->ai_family, addr,
-				 prefix ? &buf[1] : buf, buflen-1)) {
-	strncpy(buf, "(untranslatable)", buflen-1);
-	prefix = 0;
+    if (ai->ai_canonname)
+    {
+	strncpy(buf, ai->ai_canonname, buflen);
+	p = buf;
     }
-    if (prefix)
-	buf[0] = '[';
+    else if (!addr || !inet_ntop(ai->ai_family, addr, p, buf + buflen - p))
+    {
+	strncpy(buf, "(untranslatable)", buflen);
+	p = buf;
+    }
+    buf[buflen] = '\0'; /* just in case inet_ntop didn't \0 terminate */
 
     n = strlen(buf);
     if (port && n < buflen - 3)
-	snprintf(&buf[n], buflen - n,"%s:%u", prefix ? "]" : "", ntohs(port));
-
-    buf[buflen-1] = '\0';
+	snprintf(&buf[n], buflen - n,"%s:%u", p != buf ? "]" : "", ntohs(port));
+    buf[buflen] = '\0';
 }
 
 
