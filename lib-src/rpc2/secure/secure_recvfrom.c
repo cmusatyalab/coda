@@ -20,6 +20,7 @@ Coda are listed in the file CREDITS.
 #include <assert.h>
 
 #include <rpc2/secure.h>
+#include "grunt.h"
 
 /* RFC 2406 - IP Encapsulating Security Payload (ESP)
  * Section 3.4.3  Sequence Number Verification
@@ -131,12 +132,12 @@ static ssize_t packet_decryption(struct security_association *sa,
     if (next_header != 0)
 	return -1;
 
-    /* check padding length */
+    /* check length of padding */
     padlength = out[--len];
     if (padlength > len)
 	return -1;
 
-    /* check padding data */
+    /* check padding */
     for (i = padlength; i > 0; i--) {
 	if (out[--len] != i)
 	    return -1;
@@ -200,17 +201,23 @@ ssize_t secure_recvfrom(int s, void *buf, size_t len, int flags,
      *   receiver MUST discard the packet
      */
     sa = GETSA ? GETSA(spi) : NULL;
-    if (!sa) goto drop;
-
-    if (sequence_number_verification(sa, seq) == -1)
+    if (!sa) {
+	secure_audit("SA lookup failed", spi, seq, peer);
 	goto drop;
+    }
+
+    /* only check sequence numbers if we can validate the received packet */
+    if ((sa->validate->icv_len || sa->decrypt->icv_len) &&
+	sequence_number_verification(sa, seq) == -1)
+	goto drop; /* drop duplicate packets */
 
     /* rough check if the packet would overflow the receive buffer
-     * there may be less data because there can be between 2 and
-     * 257 bytes of padding */
+     * there may be less data because the sender may add between 0
+     * and 255 bytes of padding */
     n -= sa->validate->icv_len;
     estimated_payload = n - (2 * sizeof(uint32_t)) - sa->decrypt->iv_len - 2;
     if (estimated_payload < 0 || (unsigned int)estimated_payload > len)
+	/* should we log this, or return a different error? (EMSGSIZE?) */
 	goto drop;
 
     if (sa->validate && sa->validate->icv_len) {
@@ -224,30 +231,38 @@ ssize_t secure_recvfrom(int s, void *buf, size_t len, int flags,
 	uint8_t tmp_icv[MAXICVLEN];
 
 	/* icv must be aligned on a 32-bit boundary */
-	if (n & 3) goto drop;
+	if (n & 3) {
+	    secure_audit("unaligned ICV", spi, seq, peer);
+	    goto drop;
+	}
 
 	assert(sa->validate->icv_len <= MAXICVLEN);
 
 	/* Perform the ICV computation */
 	sa->validate->auth(sa->validate_context, packet, n, tmp_icv);
-	if (memcmp(packet + n, tmp_icv, sa->validate->icv_len) != 0)
+	if (memcmp(packet + n, tmp_icv, sa->validate->icv_len) != 0) {
+	    secure_audit("ICV check failed", spi, seq, peer);
 	    goto drop;
+	}
 
 	if (integrity_check_passed(sa, seq, peer, *peerlen) == -1)
-	    goto drop;
+	    goto drop; /* drop duplicate packets */
     }
 
     in = packet + 2 * sizeof(uint32_t);
     n -= 2 * sizeof(uint32_t);
 
     n = packet_decryption(sa, buf, in, n);
-    if (n < 0) goto drop;
+    if (n < 0) {
+	secure_audit("Decryption failed", spi, seq, peer);
+	goto drop;
+    }
 
-    /* pass integrity check for combined mode decryption/validation algorithms
-     * such as AES-CCM */
-    if (sa->decrypt && sa->decrypt->icv_len)
+    /* we passed integrity check for combined mode decryption/validation
+     * algorithms such as AES-CCM */
+    if (!sa->validate->icv_len && sa->decrypt && sa->decrypt->icv_len)
 	if (integrity_check_passed(sa, seq, peer, *peerlen) == -1)
-	    goto drop;
+	    goto drop; /* drop duplicate packets */
 
     goto done;
 

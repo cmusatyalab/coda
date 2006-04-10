@@ -18,6 +18,9 @@ Coda are listed in the file CREDITS.
 #ifndef _GRUNT_H_
 #define _GRUNT_H_
 
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
 #include <stdint.h>
 #include "aes.h"
 
@@ -49,5 +52,7 @@ void secure_random_release(void);
 /* secure_init.c */
 const struct secure_auth *secure_get_auth_byid(int id);
 const struct secure_encr *secure_get_encr_byid(int id);
+void secure_audit(const char *event, uint32_t spi, uint32_t seq,
+		  const struct sockaddr *src);
 
 #endif /* _GRUNT_H_ */
