@@ -407,7 +407,6 @@ static struct CEntry *FindOrNak(RPC2_PacketBuffer *pb)
 	if (invalid_sa && !init2) {
 	    /* should we log this? Responding is useless because the client
 	     * that sent this packet must not have had good intentions. */
-	    rpc2_PrintPacketHeader(pb, rpc2_logfile);
 	    RPC2_FreeBuffer(&pb);
 	    return NULL;
 	}
