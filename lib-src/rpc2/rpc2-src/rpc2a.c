@@ -110,6 +110,7 @@ NOTE 1
 #define HAVE_SE_FUNC(xxx) (ce->SEProcs && ce->SEProcs->xxx)
 
 size_t RPC2_Preferred_Keysize;
+int    RPC2_secure_only;
 
 void SavePacketForRetry();
 static int InvokeSE();
@@ -385,10 +386,17 @@ long RPC2_GetRequest(IN RPC2_RequestFilter *Filter,
 	rpc2_Quit(rc);
 	}
 
-    /* Bind packet on a brand new connection
-       Extract relevant fields from Init1 packet and then
-	make it a fake NEWCONNECTION packet */
+    /* Bind packet on a brand new connection */
 
+    /* If we don't want to fall back on the old handshake, drop the packet */
+    if (RPC2_secure_only && !(pb->Header.Flags & RPC2SEC_CAPABLE))
+    {
+	rc = RPC2_NOTAUTHENTICATED;
+	DROPIT();
+    }
+
+    /* Extract relevant fields from Init1 packet and then make it a fake
+     * NEWCONNECTION packet */
     rc = MakeFake(pb, ce, &XRandom, &AuthenticationType, &cident, &keysize);
     if (rc < RPC2_WLIMIT) {DROPIT();}
 
@@ -906,7 +914,14 @@ try_next_addr:
 	    rpc2_Quit(rc);
 	}
 	new_binding = 1;
-    } else {
+    }
+    else if (RPC2_secure_only) {
+	/* We don't want to fall back on the old handshake */
+	DROPCONN();
+	RPC2_FreeBuffer(&pb);
+	rpc2_Quit(RPC2_OLDVERSION);
+    }
+    else {
 	/* The INIT2 packet came over insecure connection, remove decryption
 	 * context and fall back on the old handshake */
 	secure_setup_decrypt(&ce->sa, NULL, NULL, NULL, 0);

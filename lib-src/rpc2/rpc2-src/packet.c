@@ -187,7 +187,7 @@ void rpc2_XmitPacket(RPC2_PacketBuffer *pb, struct RPC2_addrinfo *addr,
 	pb->Prefix.LengthOfPacket > (1280 - 40 - 8 - 8 - 24))
     {
 	fprintf(rpc2_logfile,
-		"XMIT: Sent long packet (subsys %d, opcode %d, length %d)\n",
+		"XMIT: Sent long packet (subsys %d, opcode %d, length %ld)\n",
 		ntohl(pb->Header.SubsysId), ntohl(pb->Header.Opcode),
 		pb->Prefix.LengthOfPacket);
 	fflush(rpc2_logfile);
