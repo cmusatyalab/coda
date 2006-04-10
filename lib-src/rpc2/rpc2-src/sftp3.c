@@ -848,10 +848,10 @@ static int ResendWorried(struct SFTP_Entry *sEntry)
 		pb->Header.Flags &= ~SFTP_ACKME;
 	    } else {
 		/* Demand ack for first of the worried set */
-	    	pb->Header.Flags |= SFTP_ACKME;
+		pb->Header.Flags |= SFTP_ACKME;
 		acked = 1;
 	    }
-	    if (i == sEntry->SendLastContig+1) 
+	    if (i == sEntry->SendLastContig+1)
 	        {/* first packet */
 		pb->Header.SEFlags = ntohl(pb->Header.SEFlags);
 		pb->Header.SEFlags |= SFTP_FIRST;
@@ -894,7 +894,7 @@ static int SendFirstUnacked(struct SFTP_Entry *sEntry)
     /* Note: it's better to resend the first unacked rather than last
        unacked, because it will narrow the window faster than the
        latter */
-	
+
     RPC2_PacketBuffer *pb;
     unsigned long now;
 

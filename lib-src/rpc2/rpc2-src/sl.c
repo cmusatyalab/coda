@@ -1,26 +1,26 @@
 /* BLURB lgpl
 
-                           Coda File System
-                              Release 5
+	                   Coda File System
+	                      Release 5
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
-                  Additional copyrights listed below
+	  Copyright (c) 1987-1999 Carnegie Mellon University
+	          Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
 the  terms of the  GNU  Library General Public Licence  Version 2,  as
 shown in the file LICENSE. The technical and financial contributors to
 Coda are listed in the file CREDITS.
 
-                        Additional copyrights
+	                Additional copyrights
 
 #*/
 
 /*
-                         IBM COPYRIGHT NOTICE
+	                 IBM COPYRIGHT NOTICE
 
-                          Copyright (C) 1986
-             International Business Machines Corporation
-                         All Rights Reserved
+	                  Copyright (C) 1986
+	     International Business Machines Corporation
+	                 All Rights Reserved
 
 This  file  contains  some  code identical to or derived from the 1986
 version of the Andrew File System ("AFS"), which is owned by  the  IBM
@@ -39,7 +39,6 @@ Pittsburgh, PA.
 
 
 /*
-
   Autonomous LWP that loops forever.  Effectively the "bottom half" of
   the RPC code.  Driven by timeouts and packet arrivals on the request
   socket.  Communicates with "top half" routines via SL entries.
@@ -49,9 +48,7 @@ Pittsburgh, PA.
   by rpc2_IncrementSeqNumber(), which may be called in the MultiRPC
   case by RPC2_MultiRPC() (if SocketListener return code is WAITING)
   or by rpc2_MSendPacketsReliably() on client-initiated timeout.
-
 */
-
 
 #include <stdio.h>
 #include <unistd.h>
@@ -212,7 +209,7 @@ static void rpc2_ProcessPacket(int fd)
 
 #ifdef RPC2DEBUG
     if (RPC2_DebugLevel > 9) {
-	fprintf(rpc2_tracefile, "Packet received from   ");
+	fprintf(rpc2_tracefile, "Packet received from ");
 	rpc2_printaddrinfo(pb->Prefix.PeerAddr, rpc2_tracefile);
 	if (pb->Prefix.sa && pb->Prefix.sa->decrypt)
 	    fprintf(rpc2_tracefile, " (secure)");
@@ -245,7 +242,7 @@ void rpc2_SocketListener(void *dummy)
     int fd;
 
     /* just once, at RPC2_Init time, to be nice */
-    LWP_DispatchProcess();  
+    LWP_DispatchProcess();
 
     /* The funny if-do construct  below assures the following:
        1. All packets in the socket buffer are processed before expiring events
@@ -410,6 +407,7 @@ static struct CEntry *FindOrNak(RPC2_PacketBuffer *pb)
 	if (invalid_sa && !init2) {
 	    /* should we log this? Responding is useless because the client
 	     * that sent this packet must not have had good intentions. */
+	    rpc2_PrintPacketHeader(pb, rpc2_logfile);
 	    RPC2_FreeBuffer(&pb);
 	    return NULL;
 	}
@@ -601,11 +599,9 @@ static RPC2_PacketBuffer *ShrinkPacket(RPC2_PacketBuffer *pb)
 }
 
 
-int rpc2_FilterMatch(whichF, whichP)
-    RPC2_RequestFilter *whichF;	
-    RPC2_PacketBuffer *whichP;
-    /* Returns TRUE iff whichP matches whichF; FALSE otherwise */
-    {
+/* Returns TRUE iff whichP matches whichF; FALSE otherwise */
+int rpc2_FilterMatch(RPC2_RequestFilter *whichF, RPC2_PacketBuffer *whichP)
+{
     say(999, RPC2_DebugLevel, "rpc2_FilterMatch()\n");
     switch(whichF->OldOrNew)
 	{
@@ -621,8 +617,8 @@ int rpc2_FilterMatch(whichF, whichP)
 		    default:	break;
 		    }
 		break;
-		
-	case NEW:	
+
+	case NEW:
 		switch((int) whichP->Header.Opcode)
 		    {
 		    case RPC2_INIT1OPENKIMONO:
@@ -639,17 +635,17 @@ int rpc2_FilterMatch(whichF, whichP)
 
 	default:    assert(FALSE);
 	}
-	
+
     switch(whichF->FromWhom)
 	{
 	case ANY:	return(TRUE);
-	
+
 	case ONECONN:	if (whichF->ConnOrSubsys.WhichConn == whichP->Header.RemoteHandle) return(TRUE);
 			else return(FALSE);
-	
+
 	case ONESUBSYS: if (whichF->ConnOrSubsys.SubsysId == whichP->Header.SubsysId) return(TRUE);
 			else return(FALSE);
-			
+
 	default:	assert(FALSE);
 	}
     assert(0);
@@ -686,10 +682,10 @@ static void HandleBusy(RPC2_PacketBuffer *pb,  struct CEntry *ce)
 {
 	struct SL_Entry *sl;
 
-	say(0, RPC2_DebugLevel, "HandleBusy()\n");
+	say(0, RPC2_DebugLevel, "HandleBusy(%x)\n", ce->UniqueCID);
 
 	rpc2_Recvd.Busies++;
-	if (BogusSl(ce, pb)) 
+	if (BogusSl(ce, pb))
 		return;
 
 	/* update rtt/bw measurements */
@@ -715,7 +711,7 @@ static void HandleCurrentReply(RPC2_PacketBuffer *pb, struct CEntry *ce)
 	say(0, RPC2_DebugLevel, "HandleCurrentReply()\n");
 	rpc2_Recvd.Replies++;
 	/* should this assert ?? XXXX */
-	if (BogusSl(ce, pb)) 
+	if (BogusSl(ce, pb))
 		return;
 
 	pb = ShrinkPacket(pb);
@@ -789,31 +785,31 @@ static struct SL_Entry *FindRecipient(RPC2_PacketBuffer *pb)
 
 	sl = rpc2_SLReqList;
 	for (i=0; i < rpc2_SLReqCount; i++) {
-		if (sl->ReturnCode == WAITING && 
+		if (sl->ReturnCode == WAITING &&
 		    rpc2_FilterMatch(&sl->Filter, pb)) {
 			return(sl);
-		} else 
+		} else
 			sl = sl->NextEntry;
 	}
 	return(NULL);
 }
 
-static void HandleCurrentRequest(RPC2_PacketBuffer *pbX, struct CEntry *ceA)
+static void HandleCurrentRequest(RPC2_PacketBuffer *pb, struct CEntry *ce)
 {
 	say(0, RPC2_DebugLevel, "HandleCurrentRequest()\n");
 
 	rpc2_Recvd.Requests++;
 
-	ceA->TimeStampEcho = pbX->Header.TimeStamp;
+	ce->TimeStampEcho = pb->Header.TimeStamp;
 	/* if we're modifying the TimeStampEcho, we also have to reset the
 	 * RequestTime */
-	TVTOTS(&pbX->Prefix.RecvStamp, ceA->RequestTime);
+	TVTOTS(&pb->Prefix.RecvStamp, ce->RequestTime);
 
 	say(15, RPC2_DebugLevel, "handlecurrentrequest TS %u RQ %u\n",
-	    ceA->TimeStampEcho, ceA->RequestTime);
+	    ce->TimeStampEcho, ce->RequestTime);
 
-	SendBusy(ceA, TRUE);
-	RPC2_FreeBuffer(&pbX);
+	SendBusy(ce, TRUE);
+	RPC2_FreeBuffer(&pb);
 }
 
 
@@ -906,7 +902,7 @@ static void HandleRetriedBind(RPC2_PacketBuffer *pb, struct CEntry *ce)
 		RPC2_FreeBuffer(&pb);
 		return;
 	}
-	if (ce->SecurityLevel == RPC2_OPENKIMONO && ce->HeldPacket != NULL) {
+	if (ce->SecurityLevel == RPC2_OPENKIMONO && ce->HeldPacket) {
 		/* Case (3): The Init2 must have been dropped; resend it */
 		say(0, RPC2_DebugLevel, "Resending Init2 %#x\n",  ce->UniqueCID);
 		ce->HeldPacket->Header.TimeStamp = htonl(ce->TimeStampEcho);
@@ -982,7 +978,7 @@ static void HandleInit3(RPC2_PacketBuffer *pb, struct CEntry *ce)
 
 	/* Am I expecting this packet? */
 	if (!TestState(ce, SERVER, S_AWAITINIT3)) {
-		if (ce->HeldPacket != NULL) {
+		if (ce->HeldPacket) {
 			/* My Init4 must have got lost; resend it */
 			ce->HeldPacket->Header.TimeStamp = htonl(pb->Header.TimeStamp);
 			rpc2_XmitPacket(ce->HeldPacket, ce->HostInfo->Addr, 1);
@@ -1118,7 +1114,7 @@ static void HandleOldRequest(RPC2_PacketBuffer *pb, struct CEntry *ce)
 
 	rpc2_Recvd.Requests++;
 
-	if (ce->HeldPacket != NULL) {
+	if (ce->HeldPacket) {
 	    ce->HeldPacket->Header.TimeStamp = htonl(pb->Header.TimeStamp);
 	    rpc2_XmitPacket(ce->HeldPacket, ce->HostInfo->Addr, 1);
 	}

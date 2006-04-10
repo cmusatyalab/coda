@@ -686,7 +686,7 @@ static long mrpc_SendPacketsReliably(
 		    rpc2_XmitPacket(mcon[thispacket].req,
 				    c_entry->HostInfo->Addr, 0);
 		    break;	/* switch */
-		    
+
 		default:    /* abort */
 		    /* BUSY ReturnCode should never go into switch */
 		    assert(FALSE);

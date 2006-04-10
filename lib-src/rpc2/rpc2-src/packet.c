@@ -569,7 +569,7 @@ long rpc2_SendReliably(IN Conn, IN Sle, IN Packet, IN TimeOut)
 		rpc2_Sent.Retries += 1;
 		rpc2_XmitPacket(Packet, Conn->HostInfo->Addr, 0);
 		break;	/* switch */
-		
+
 	    default: assert(FALSE);
 	    }
 	}
