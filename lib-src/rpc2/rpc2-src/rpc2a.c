@@ -187,7 +187,7 @@ long RPC2_SendResponse(IN RPC2_Handle ConnHandle, IN RPC2_PacketBuffer *Reply)
 	    rpc2_FreeSle(&ce->MySl);
 	}
     }
-    
+
     preply = Reply;	/* side effect routine usually does not reallocate
 			 * packet. preply will be the packet actually sent
 			 * over the wire */
@@ -197,15 +197,15 @@ long RPC2_SendResponse(IN RPC2_Handle ConnHandle, IN RPC2_PacketBuffer *Reply)
     preply->Header.ReturnCode = rc;
     preply->Header.Opcode = RPC2_REPLY;
     preply->Header.SeqNumber = ce->NextSeqNumber-1;
-    			/* SocketListener has already updated NextSeqNumber */
+			/* SocketListener has already updated NextSeqNumber */
 
     rc = RPC2_SUCCESS;	/* tentative, for sendresponse */
     /* Notify side effect routine, if any */
     if (HAVE_SE_FUNC(SE_SendResponse))
 	rc = (*ce->SEProcs->SE_SendResponse)(ConnHandle, &preply);
 
-    /* Allocate retry packet before encrypting Bodylength */ 
-    RPC2_AllocBuffer(preply->Header.BodyLength, &pretry); 
+    /* Allocate retry packet before encrypting Bodylength */
+    RPC2_AllocBuffer(preply->Header.BodyLength, &pretry);
 
     if (ce->TimeStampEcho) /* service time is now-requesttime */
 	rpc2_StampPacket(ce, preply);
@@ -221,8 +221,9 @@ long RPC2_SendResponse(IN RPC2_Handle ConnHandle, IN RPC2_PacketBuffer *Reply)
     /* Save reply for retransmission */
     memcpy(&pretry->Header, &preply->Header, preply->Prefix.LengthOfPacket);
     pretry->Prefix.LengthOfPacket = preply->Prefix.LengthOfPacket;
+    pretry->Prefix.sa = preply->Prefix.sa;
     SavePacketForRetry(pretry, ce);
-    
+
     if (preply != Reply) RPC2_FreeBuffer(&preply);  /* allocated by SE routine */
     rpc2_Quit(rc);
 }
@@ -1132,7 +1133,7 @@ long RPC2_Unbind(RPC2_Handle whichConn)
 	struct CEntry *ce;
 	struct MEntry *me;
 	
-	say(0, RPC2_DebugLevel, "RPC2_Unbind()\n");
+	say(0, RPC2_DebugLevel, "RPC2_Unbind(%x)\n", whichConn);
 	
 	TR_UNBIND();
 
@@ -1175,7 +1176,7 @@ void SavePacketForRetry(RPC2_PacketBuffer *pb, struct CEntry *ce)
     pb->Header.Flags = htonl((ntohl(pb->Header.Flags) | RPC2_RETRY));
     ce->HeldPacket = pb;
 
-    if (ce->MySl) 
+    if (ce->MySl)
 	say(-1, RPC2_DebugLevel, "BUG: Pending DELAYED ACK response still queued!?");
 
     sl = rpc2_AllocSle(REPLY, ce);
