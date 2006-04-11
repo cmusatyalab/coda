@@ -1,5 +1,158 @@
+Secure Framework
+================
+
+This layer provides wrappers around sendto(2) and recvfrom(2), the
+secure versions expect an additional 'struct security_association *sa'.
+
+The security association describes the encryption/authentication and
+decryption/validation functions that are used to provide confidentiality
+and integrity for sent messages.
+
+The implementation heavily draws on the following IPsec related RFCs,
+
+    RFC 2401 -- Security Architecture for the Internet Protocol
+    RFC 2406 -- IP Encapsulating Security Payload (ESP)
+    RFC 3948 -- UDP Encapsulation of IPsec ESP Packets
+
+The main difference is that in our case the security layer does not work
+between a pair of hosts, but assists the application to create secure
+tunnels between (logical) application level endpoints. Unlike IPsec, our
+payload does not include the TCP or UDP, and IP headers.
+
+Similar to IPsec, this layer does not implement any key exchange and
+setup, that step is left up to the application.
+
+Here is a short description of the important structures and functions,
+
+    struct security_association {
+    /* incoming packets */
+
+	/* identifier to match an incoming packet with the the correct
+	 * logical connection. Really only here for the convenience of
+	 * the application, it is not used by secure_recvfrom.
+	 * Security identifiers < 256 are considered 'reserved', see
+	 * secure_sendto/secure_recvfrom */
+	uint32_t recv_spi;
+
+	/* The following are used for to detect replay attacks and
+	 * should be initialized to 0 */
+	uint32_t recv_seq;
+	unsigned long recv_win;
+
+	/* function descriptor and state for packet validation */
+	const struct secure_auth *validate;
+	void *validate_context;
+
+	/* function descriptor and state for decryption */
+	const struct secure_encr *decrypt;
+	void *decrypt_context;
+
+    /* outgoing packets */
+	/* remote connection identifier */
+	uint32_t peer_spi;
+
+	/* sequence number used for outgoing packets, should be
+	 * initialized to 0 */
+	uint32_t peer_seq;
+
+	/* trusted address of the peer, outgoing encrypted packets will
+	 * be sent to this address, incoming packets that are correctly
+	 * validated will update this address */
+	struct sockaddr_storage peer;
+	socklen_t peerlen;
+
+	/* initialization vector/counter, should be initialized to a
+	 * random value, secure_sendto will properly increment it */
+	uint8_t send_iv[MAXIVLEN];
+
+	/* function descriptor and context for encryption */
+	const struct secure_encr *encrypt;
+	void *encrypt_context;
+
+	/* function descriptor and context for packet authentication */
+	const struct secure_auth *authenticate;
+	void *authenticate_context;
+    };
+
+This structure contains all the information required to securely send
+and receive encrypted and authenticated packets.
+
+
+    ssize_t secure_recvfrom(int s, void *buf, size_t len, int flags,
+			    struct sockaddr *peer, socklen_t *peerlen,
+			    struct security_association **sa,
+			    struct security_association *(*GETSA)(uint32_t spi))
+
+Wrapper around recvfrom to decrypt/validate incoming packets. If the
+packet is smaller than 8 bytes, or the first big-endian 32-bit word is
+less than 256, the packet is considered unencrypted and passed through
+without any futher processing.
+
+Otherwise, the GETSA callback is called with the 32-bit identifier (in
+native byte order). If GETSA returns NULL, the packet is dropped and we
+return EAGAIN which is (in Linux) identical to a received packet with a
+bad UDP checksum.
+
+If GETSA did return a valid security association,
+   - the sequence number is checked (anti-replay)
+   - we validate the message checksum
+   - update the receive window and sa->peer
+   - decrypt the packet
+   - check the padding
+
+If any of these steps fail, the packet is dropped and EAGAIN is
+returned. 'peer' is set whenever the packet is received, but sa->peer
+is only updated when the packet has been successfully validated.
+
+
+    ssize_t secure_sendto(int s, const void *buf, size_t len, int flags,
+			  const struct sockaddr *to, socklen_t tolen,
+			  struct security_association *sa)
+
+Send a packet securely. If sa is NULL or does not have an encryption and
+authentication function defined, and the first 32-bit big-endian word in
+buf is less than 256 then the data in 'buf' is sent as-is to the address
+specified by the 'to' argument. The check if the value is less than 256
+is to make sure the packet does not get interpreted by the receiver side
+as a valid encrypted packet.
+
+If we do have a valid security association, the payload is padded,
+encrypted and authenticated. The result is sent to the address in
+sa->peer (i.e. NOT to the 'to' address).
+
+Implemented authentication and encryption modes
+===============================================
+
+AES-XCBC-MAC-96 authentication
+==============================
+
+    RFC 3566 -- The AES-XCBC-MAC-96 Algorithm and Its Use With IPsec
+
+AES-based message integrity checksum, requires a 128-bit (16-byte) key
+and adds 12 checksum bytes to the packet.
+
+
+AES-CBC encryption
+==================
+
+    RFC 3602 -- The AES-CBC Cipher Algorithm and Its Use with IPsec
+
+Pretty straightforward cipher block chaining encryption, using AES as
+the encryption algorithm. CBC encryption requires a 16-byte
+initialization vector and can be used
+with 128, 192, and 256 bit keys.
+
+
+AES-CCM encryption
+==================
+
+    RFC 4309 -- Using Advanced Encryption Standard (AES) CCM Mode with
+		IPsec Encapsulating Security Payload (ESP)
+
+This is an encryption
+
 AES implementation
-------------------
+==================
 
 The used AES implementation is the Rijndael reference implementation (v3.0).
 I picked this because it seems to be fairly portable ANSI-C and we do not have
@@ -72,7 +225,7 @@ of non-deterministic entropy for the PRNG initialization.
 
 
 PRNG implementation
--------------------
+===================
 
 A deterministic pseudo random number generator based on ANSI X9.31, with
 the NIST recommended usage for using AES as a mixing function. The
