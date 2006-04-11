@@ -197,9 +197,7 @@ void rpc2_FreeMgrp(me)
     /* why do we have 2 addrinfo structures? */
     if (me->ClientAddr)
 	RPC2_freeaddrinfo(me->ClientAddr);
-    if (me->IPMAddr)
-	RPC2_freeaddrinfo(me->IPMAddr);
-    me->ClientAddr = me->IPMAddr = NULL;
+    me->ClientAddr = NULL;
 
     rpc2_MoveEntry(&bucket->chain, &rpc2_MgrpFreeList, me, &bucket->count, &rpc2_MgrpFreeCount);
 }
@@ -245,7 +243,6 @@ long RPC2_CreateMgrp(OUT MgroupHandle, IN MulticastHost, IN MulticastPort, IN Su
     {
     struct MEntry	*me;
     long		secode;
-    RPC2_HostIdent Host;
 
     rpc2_Enter();
     say(0, RPC2_DebugLevel, "In RPC2_CreateMgrp()\n");
@@ -294,42 +291,6 @@ long RPC2_CreateMgrp(OUT MgroupHandle, IN MulticastHost, IN MulticastPort, IN Su
     me->maxlisteners = LISTENERALLOCSIZE;
 
     me->CurrentPacket = (RPC2_PacketBuffer *)NULL;
-
-    /* This is a bit useless as we really are not using actual multicast and
-     * the existing userspace code (venus) always passes 'INADDR_ANY'/2432.
-     * So this seems to be more of a place holder. */
-
-    /* any case, let's copy everything into a temporary HostIdent, so that we
-     * can throw it at the resolver. */
-    switch(MulticastHost->Tag) {
-    case RPC2_MGRPBYNAME:
-	Host.Tag = RPC2_HOSTBYNAME;
-	strcpy(Host.Value.Name, MulticastHost->Value.Name);
-	break;
-
-    case RPC2_MGRPBYINETADDR:
-	Host.Tag = RPC2_HOSTBYINETADDR;
-	/* struct assignment */
-	Host.Value.InetAddress = MulticastHost->Value.InetAddress;
-	break;
-
-    case RPC2_MGRPBYADDRINFO:
-	Host.Tag = RPC2_HOSTBYADDRINFO;
-	Host.Value.AddrInfo = MulticastHost->Value.AddrInfo;
-	break;
-
-    case RPC2_DUMMYMGRP:
-	Host.Tag = RPC2_DUMMYHOST;
-	break;
-    }
-
-    me->IPMAddr = rpc2_resolve(&Host, MulticastPort);
-    assert(me->IPMAddr);
-
-    /* XXX to avoid possible problems we probably should still truncate the
-     * list to the first returned address */
-    RPC2_freeaddrinfo(me->IPMAddr->ai_next);
-    me->IPMAddr->ai_next = NULL;
 
     switch(Subsys->Tag)
 	{

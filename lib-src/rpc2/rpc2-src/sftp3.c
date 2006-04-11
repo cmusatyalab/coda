@@ -419,10 +419,9 @@ int sftp_WriteStrategy(struct SFTP_Entry *sEntry)
 {
     RPC2_PacketBuffer *pb;
     struct iovec iovarray[MAXOPACKETS];
-    long i, iovlen, mcastlen, bytesnow;
+    long i, iovlen, bytesnow;
     
     iovlen = 0;
-    mcastlen = 0;
     bytesnow = 0;
     for (i = 1; i < MAXOPACKETS+1; i++) {
 	long x;
@@ -461,19 +460,6 @@ int sftp_WriteStrategy(struct SFTP_Entry *sEntry)
 	SFTP_FreeBuffer(&sEntry->ThesePackets[PBUFF(i)]);
     sEntry->RecvLastContig += iovlen;
     B_ShiftLeft((unsigned int *)sEntry->RecvTheseBits, iovlen);
-
-    /* update the multicast state */
-    assert(mcastlen == iovlen || mcastlen == 0);
-    if (mcastlen != 0) {
-	struct CEntry		*ce;
-	struct MEntry		*me;
-	struct SFTP_Entry	*mse;
-
-	assert((ce = rpc2_GetConn(sEntry->LocalHandle)) != NULL);
-	assert((me = ce->Mgrp) != NULL);
-	assert((mse = (struct SFTP_Entry *)me->SideEffectPtr) != NULL);
-	mse->RecvLastContig += mcastlen;
-    }
 
     sftp_Progress(sEntry->SDesc,
                   sEntry->SDesc->Value.SmartFTPD.BytesTransferred + bytesnow);

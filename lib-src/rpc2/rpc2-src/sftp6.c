@@ -138,18 +138,12 @@ long SFTP_CreateMgrp(IN MgroupHandle)
 
     /* fill in peer info; can't use RPC2_GetPeerInfo() */
     PeerInfo = &mse->PInfo;
-    rpc2_splitaddrinfo(&PeerInfo->RemoteHost, &PeerInfo->RemotePort,
-		       me->IPMAddr);
-
-    /* Depending on rpc2_ipv6ready, rpc2_splitaddrinfo might return a simple
-     * IPv4 address. Convert it back to the more useful RPC2_addrinfo... */
-    rpc2_simplifyHost(&PeerInfo->RemoteHost, &PeerInfo->RemotePort);
-
     PeerInfo->RemoteSubsys.Tag = RPC2_SUBSYSBYID;
     PeerInfo->RemoteSubsys.Value.SubsysId = me->SubsysId;
     PeerInfo->RemoteHandle = me->MgroupID;
     PeerInfo->SecurityLevel = me->SecurityLevel;
     PeerInfo->EncryptionType = me->EncryptionType;
+    PeerInfo->RemoteHost.Tag = RPC2_DUMMYHOST; /* was INADDR_ANY:2432 */
     PeerInfo->Uniquefier = 0;		/* not used */
     memcpy(PeerInfo->SessionKey, me->SessionKey, sizeof(RPC2_EncryptionKey));
 

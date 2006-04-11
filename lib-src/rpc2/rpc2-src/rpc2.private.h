@@ -259,7 +259,6 @@ struct MEntry			/* describes an RPC multicast connection */
 #define	conn		    me_conns.mes_conn
 
     /* Other information - Only needed by client */
-    struct RPC2_addrinfo    *IPMAddr;	    /* IP Multicast Host Address */
     RPC2_PacketBuffer	    *CurrentPacket; /* current multicast packet */
 	};
 
