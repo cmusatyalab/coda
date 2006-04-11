@@ -123,33 +123,69 @@ sa->peer (i.e. NOT to the 'to' address).
 Implemented authentication and encryption modes
 ===============================================
 
+The framework is pretty flexible and should be able to support many
+encryption and authentication algorithms, however the provided ones are
+all based on the AES block cipher.
+
 AES-XCBC-MAC-96 authentication
 ==============================
 
     RFC 3566 -- The AES-XCBC-MAC-96 Algorithm and Its Use With IPsec
 
-AES-based message integrity checksum, requires a 128-bit (16-byte) key
-and adds 12 checksum bytes to the packet.
+AES-CBC based message integrity checksum, requires a 128-bit (16-byte)
+key and adds 12 checksum bytes to the packet.
 
 
 AES-CBC encryption
 ==================
 
+    NIST Special Publication 800-38A -- Recommendation for Block Cipher
+					Modes of Operation
     RFC 3602 -- The AES-CBC Cipher Algorithm and Its Use with IPsec
 
-Pretty straightforward cipher block chaining encryption, using AES as
-the encryption algorithm. CBC encryption requires a 16-byte
-initialization vector and can be used
-with 128, 192, and 256 bit keys.
+This is a pretty straightforward and well understood cipher block
+chaining mode using AES as the encryption algorithm. CBC encryption
+requires the initialization vector to be the same size as the encryption
+block (which is 16-bytes for AES) The initialization vector has to be
+unpredictable, so we encrypt the IV-counter that was set up by the
+generic code in secure_sendto to obtain a pseudo random sequence.
+
+Can be used with 128, 192, and 256 bit keys (16, 24, and 32 bytes).
 
 
 AES-CCM encryption
 ==================
 
+    NIST Special Publication 800-38C -- Recommendation for Block Cipher
+					Modes of Operation: The CCM Mode for
+					Authentication and Confidentiality
     RFC 4309 -- Using Advanced Encryption Standard (AES) CCM Mode with
 		IPsec Encapsulating Security Payload (ESP)
 
-This is an encryption
+This is a combined encryption and authentication algorithm, so we do not
+need a separate authentication function. It also only needs 8 bytes for
+the initialization vector. The checksum can be either 8, 12, or 16
+bytes. As a result this algorithm has a lower per packet overhead, only
+between 16 and 24 bytes instead of the 28 bytes we need for AES-CBC with
+AES-XCBC-MAC-96.
+
+We also need less key material because we do not need a separate key for
+the message authentication algorithm. Finally, this algorithm lends
+itself well for several optimizations, it only uses the AES encrypt
+operation, initializing the encryption stream can be done off-line
+by the sender before the packet has be be sent and it is highly
+parallelizable.
+
+This encryption mode uses 152, 206, or 280-bits of key material
+(19, 27, or 35 bytes).
+
+Although there are several advantages, there is one pretty significant
+disadvantage. When a combination of the same key and initialization
+vector is reused at any time it becomes a trivial operation to obtain
+the plaintext of both messages. As such it is not recommended to use
+this encryption mode when we have static keys, such as during the
+initial handshake (user passwords, the keys in a Coda token, etc).
+
 
 AES implementation
 ==================
@@ -252,4 +288,48 @@ statistical tests to see if the resulting random data actually looks
 reasonable. Passing these tests does not guarantee that the generated
 random numbers are cryptographically strong, but it should detect
 serious breakage.
+
+
+RPC2 secure handshake
+=====================
+
+The modified RPC2 handshake is based on the analysis and proposed
+implementation of the Andrew Secure RPC Handshake in 'A Logic of
+Authentication', by Michael Burrows, Martin Abadi, and Roger Needham.
+
+The handshake uses 4 steps so set up separate server->client and
+client->server encryption and authentication keys.
+
+ 1. client -> server: Na, A
+
+    this is a normal RPC2 INIT1 packet, but with the RPC2SEC_CAPABLE
+    flag set in a header field. Na is a nonce which is used to avoid
+    replay attacks. A is the client identifier, it can be a username
+    or an encrypted Coda token.
+
+ 2. server -> client: {Na, K'ab}Kab
+
+    The server sends back the nonce and a random key which will be used
+    for client -> server traffic encrypted with the shared secret that
+    was obtained from the client identifier. The client knows this is in
+    response to it's INIT1 packet because of the value of the nonce.
+
+    This packet is encrypted with AES-CBC and authenticated with
+    AES-XCBC-MAC-96
+
+ 3. client -> server: {Na, K'ba}K'ab
+
+    The client responds with the nonce and a random key that will be
+    used for any further server -> client traffic, this is encrypted and
+    authenticated with the random session key we received in step 2.
+
+    The packet is encrypted with the encryption algorithm that server
+    chose and sent in step 2 along with the key. Currently this is
+    AES-CCM8.
+
+ 4. server -> client: {Na, Nb}K'ba
+
+    The server sends back the nonce and an initial sequence number (Nb)
+    encrypted with the session key and algorithm it received from the
+    client in step 3.
 
