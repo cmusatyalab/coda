@@ -257,11 +257,12 @@ static int pack_initX_body(struct security_association *sa,
 {
 	uint32_t *body = (uint32_t *)packet_body;
 
-	body[0] = htonl(auth->id);
-	body[1] = htonl(encr->id);
-	secure_random_bytes(&body[2], len);
+	body[0] = htonl(0); /* version */
+	body[1] = htonl(auth->id);
+	body[2] = htonl(encr->id);
+	secure_random_bytes(&body[3], len);
 
-	return secure_setup_decrypt(sa, auth, encr, (uint8_t *)&body[2], len);
+	return secure_setup_decrypt(sa, auth, encr, (uint8_t *)&body[3], len);
 }
 
 static int unpack_initX_body(struct CEntry *ce,
@@ -273,6 +274,7 @@ static int unpack_initX_body(struct CEntry *ce,
     const struct secure_auth *a;
     const struct secure_encr *e;
     uint32_t *body = (uint32_t *)pb->Body;
+    uint32_t version;
     size_t len, min_keylen;
     int rc;
 
@@ -282,17 +284,21 @@ static int unpack_initX_body(struct CEntry *ce,
 
     /* check for sufficient length of the incoming packet */
     len = pb->Prefix.LengthOfPacket - sizeof(struct RPC2_PacketHeader);
-    if (len < 2 * sizeof(uint32_t))
+    if (len < 3 * sizeof(uint32_t))
 	return RPC2_NOTAUTHENTICATED;
 
     /* lookup authentication and encryption functions */
-    a = secure_get_auth_byid(ntohl(body[0]));
-    e = secure_get_encr_byid(ntohl(body[1]));
+    version = ntohl(body[0]);
+    if (version != 0)
+	return RPC2_NOTAUTHENTICATED;
+
+    a = secure_get_auth_byid(ntohl(body[1]));
+    e = secure_get_encr_byid(ntohl(body[2]));
     if (!a || !e)
 	return RPC2_NOTAUTHENTICATED;
 
     /* check for sufficient keying material in the incoming packet */
-    len -= 2 * sizeof(uint32_t);
+    len -= 3 * sizeof(uint32_t);
     min_keylen = e->min_keysize;
     if (min_keylen < a->keysize)
 	min_keylen = a->keysize;
@@ -301,7 +307,7 @@ static int unpack_initX_body(struct CEntry *ce,
 	return RPC2_NOTAUTHENTICATED;
 
     /* initialize keys */
-    rc = secure_setup_encrypt(&ce->sa, a, e, (uint8_t *)&body[2], len);
+    rc = secure_setup_encrypt(&ce->sa, a, e, (uint8_t *)&body[3], len);
     if (rc) return RPC2_NOTAUTHENTICATED;
 
     if (auth)   *auth = a;
@@ -807,6 +813,7 @@ try_next_addr:
 
     /* Fill in the body */
     ib = (struct Init1Body *)pb->Body;
+    memset(ib, 0, sizeof(struct Init1Body));
     ib->FakeBody.SideEffectType = htonl(Bparms->SideEffectType);
     ib->FakeBody.SecurityLevel = htonl(Bparms->SecurityLevel);
     ib->FakeBody.EncryptionType = htonl(Bparms->EncryptionType);
@@ -825,6 +832,7 @@ try_next_addr:
     /* hint for the other side that we support the new encryption layer */
     if (ce->sa.decrypt) {
 	pb->Header.Flags |= RPC2SEC_CAPABLE;
+	ib->RPC2SEC_version = htonl(0);
 	ib->Preferred_Keysize = htonl(RPC2_Preferred_Keysize);
     }
 
@@ -964,7 +972,7 @@ try_next_addr:
 	    goto BindOver;
 
     /* Step4: Construct Init3 packet and send it */
-    bodylen = new_binding ? (2 * sizeof(uint32_t) + keylen) :
+    bodylen = new_binding ? (3 * sizeof(uint32_t) + keylen) :
 			    sizeof(struct Init3Body);
 
     RPC2_AllocBuffer(bodylen, &pb);
@@ -1461,7 +1469,7 @@ static RPC2_PacketBuffer *Send2Get3(struct CEntry *ce, RPC2_EncryptionKey key,
 	else if (keysize > encr->max_keysize) keysize = encr->max_keysize;
 
 	keysize += auth->keysize;
-	bodylen = 2 * sizeof(uint32_t) + keysize;
+	bodylen = 3 * sizeof(uint32_t) + keysize;
     }
 
     /* Allocate Init2 packet and initialize the header */
