@@ -2,7 +2,7 @@ Summary: RPC2 library
 Name: %{name}
 Version: %{version}
 Release: 1
-Source: ftp://ftp.coda.cs.cmu.edu/pub/coda/src/@PACKAGE@-@VERSION@.tar.gz
+Source: ftp://ftp.coda.cs.cmu.edu/pub/coda/src/%{name}-%{version}.tar.gz
 License: LGPL
 BuildRoot: %{_builddir}/%{name}-%{version}/Root
 Group: Development/Libraries
@@ -20,7 +20,7 @@ Headers and static libraries for developing programs using the RPC2 library.
 - First stab at packaging the rpc2 library.
 
 %prep
-%setup -n @PACKAGE@-@VERSION@
+%setup -n %{name}-%{version}
 
 %build
 ./configure --prefix=/usr
