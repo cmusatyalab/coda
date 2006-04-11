@@ -99,28 +99,49 @@ struct secure_auth {
 
 
 struct security_association {
-    /* incoming packets */
+/* incoming packets */
+
+    /* identifier to match an incoming packet with the the correct logical
+     * connection. Really only here for the convenience of the application,
+     * it is not used by secure_recvfrom. Security identifiers < 256 are
+     * considered 'reserved', see secure_sendto/secure_recvfrom */
     uint32_t recv_spi;
+
+    /* The following are used for to detect replay attacks and should be
+     * initialized to 0 */
     uint32_t recv_seq;
     unsigned long recv_win;
 
+    /* function descriptor and state for packet validation */
     const struct secure_auth *validate;
     void *validate_context;
 
+    /* function descriptor and state for decryption */
     const struct secure_encr *decrypt;
     void *decrypt_context;
 
-    /* outgoing packets */
+/* outgoing packets */
+    /* remote connection identifier */
     uint32_t peer_spi;
+
+    /* sequence number used for outgoing packets, should be initialized to 0 */
     uint32_t peer_seq;
 
+    /* trusted address of the peer, outgoing encrypted packets will be sent to
+     * this address, this will be updates when we receive a packet that
+     * is correctly validated */
     struct sockaddr_storage peer;
     socklen_t peerlen;
+
+    /* initialization vector/counter, should be initialized to a random value,
+     * secure_sendto will properly increment it */
     uint8_t send_iv[MAXIVLEN];
 
+    /* function descriptor and context for encryption */
     const struct secure_encr *encrypt;
     void *encrypt_context;
 
+    /* function descriptor and context for packet authentication */
     const struct secure_auth *authenticate;
     void *authenticate_context;
 };
