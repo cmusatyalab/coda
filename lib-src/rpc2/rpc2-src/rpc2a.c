@@ -879,21 +879,6 @@ try_next_addr:
 		    goto try_next_addr;
 		rpc2_Quit(rc);
 
-	case RPC2SEC_BIND_COMPLETED:
-		/* the server noticed the RPC2SEC flag and the told the
-		 * security layer to complete the handshake and it successfully
-		 * established a secure association for this connection */
-		if (RPC2_DebugLevel > -1) {
-		    char addr[RPC2_ADDRSTRLEN];
-		    RPC2_formataddrinfo(ce->HostInfo->Addr, addr,
-					RPC2_ADDRSTRLEN);
-		    fprintf(rpc2_logfile,
-			    "[%s]%s: Secure connection established with %s\n",
-			    rpc2_timestring(), LWP_Name(), addr);
-		}
-		rpc2_FreeSle(&sl);
-		goto BindOver;
-
 	default:	assert(FALSE);
 	}
 

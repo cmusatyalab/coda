@@ -116,7 +116,7 @@ void rpc2_PrintSLEntry(struct SL_Entry *slPtr, FILE *tFile)
     if (tFile == NULL) tFile = rpc2_logfile;
     
     fprintf(tFile, "MyAddr: 0x%lx\n\tNextEntry = 0x%lx PrevEntry = 0x%lx  MagicNumber = %s  ReturnCode = %s\n\tTElem==>  ", (long)slPtr, (long)slPtr->NextEntry, (long)slPtr->PrevEntry, WhichMagic(slPtr->MagicNumber), 
-	    slPtr->ReturnCode == WAITING ? "WAITING" : slPtr->ReturnCode == ARRIVED ? "ARRIVED" : slPtr->ReturnCode == TIMEOUT ? "TIMEOUT" : slPtr->ReturnCode == NAKED ? "NAKED" : slPtr->ReturnCode == RPC2SEC_BIND_COMPLETED ? "RPC2SEC_BIND_COMPLETED" : "??????");
+	    slPtr->ReturnCode == WAITING ? "WAITING" : slPtr->ReturnCode == ARRIVED ? "ARRIVED" : slPtr->ReturnCode == TIMEOUT ? "TIMEOUT" : slPtr->ReturnCode == NAKED ? "NAKED" : "??????");
     switch(slPtr->Type)
 	{
 	case REPLY:
