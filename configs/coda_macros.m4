@@ -364,7 +364,7 @@ AC_DEFUN(CODA_CHECK_FLTK,
             ;;
          *)
             echo -n "Checking for libX11.a... "
-            for d in /usr/X11R6 /usr/X11 /usr/openwin ; do
+            for d in /usr/X11R6 /usr/X11 /usr/openwin /usr ; do
               if test -f $d/lib/libX11.a ; then
                 X11PREFIX=$d
                 break
