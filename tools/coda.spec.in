@@ -166,10 +166,8 @@ exit 0
 %verify() /coda/NOT_REALLY_CODA
 /etc/coda/realms
 /etc/coda/venus.conf.ex
-/etc/coda/sidekick.intr.ex
 %{initdir}/venus.init
 /usr/sbin/asrlauncher
-/usr/sbin/sidekick
 /usr/sbin/codaconfedit
 /usr/sbin/coda-setup-ports
 /usr/sbin/venus

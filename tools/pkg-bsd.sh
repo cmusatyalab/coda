@@ -168,7 +168,6 @@ EOF
     if [ x${pkg} = xclient ]
     then
 	cat >> ${dst} << EOF
-sbin/sidekick
 sbin/codaconfedit
 sbin/coda-setup-ports
 sbin/venus
@@ -212,7 +211,6 @@ man/man8/volmunge.8
 man/man8/vutil.8
 etc/coda/realms
 etc/coda/venus.conf.ex
-etc/coda/sidekick.intr.ex
 EOF
     fi
 

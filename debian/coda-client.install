@@ -1,6 +1,5 @@
 debian/tmp/coda/NOT_REALLY_CODA
 debian/tmp/etc/coda/realms
-debian/tmp/etc/coda/sidekick.intr.ex
 debian/tmp/etc/coda/venus.conf.ex
 debian/tmp/usr/bin/au
 debian/tmp/usr/bin/cfs
@@ -22,7 +21,6 @@ debian/tmp/usr/bin/spy
 debian/tmp/usr/bin/xaskuser
 debian/tmp/usr/bin/xfrepair
 debian/tmp/usr/sbin/codaconfedit
-debian/tmp/usr/sbin/sidekick
 debian/tmp/usr/sbin/venus
 debian/tmp/usr/sbin/volmunge
 debian/tmp/usr/sbin/vutil
