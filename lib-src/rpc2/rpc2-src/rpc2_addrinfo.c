@@ -332,7 +332,9 @@ void RPC2_formataddrinfo(const struct RPC2_addrinfo *ai,
 #endif
     }
 
-    if (ai->ai_canonname)
+    /* only use the hostname if it is available and we can comfortably pack
+     * it with the port number in the buffer */
+    if (ai->ai_canonname && strlen(ai->ai_canonname) < (buflen - 12))
     {
 	strncpy(buf, ai->ai_canonname, buflen);
 	p = buf;
