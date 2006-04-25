@@ -2,9 +2,9 @@ Summary: RVM library
 Name: @PACKAGE@
 Version: @VERSION@
 Release: 1
-Source: ftp://ftp.coda.cs.cmu.edu/pub/coda/src/@PACKAGE@-@VERSION@.tar.gz
-Copyright: LGPL
-BuildRoot: %{_builddir}/@PACKAGE@-@VERSION@/Root
+Source: ftp://ftp.coda.cs.cmu.edu/pub/coda/src/%{name}-%{version}.tar.gz
+License: LGPL
+BuildRoot: %{_builddir}/%{name}-%{version}/Root
 Group: Development/Libraries
 %description
 The RVM persistent recoverable memory library. The RVM library is used by
@@ -27,9 +27,9 @@ The RVM library is used by the Coda distributed filesystem.
 %changelog
 * Tue Oct 26 1999 Jan Harkes <jaharkes@cs.cmu.edu>
 - First stab at packaging the rvm library.
-	
+
 %prep
-%setup -n @PACKAGE@-@VERSION@
+%setup -n %{name}-%{version}
 
 %build
 ./configure --prefix=/usr
