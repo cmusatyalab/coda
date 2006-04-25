@@ -2,10 +2,10 @@ Summary: LWP thread library
 Name: @PACKAGE@
 Version: @VERSION@
 Release: 1
-Source: ftp://ftp.coda.cs.cmu.edu/pub/coda/src/@PACKAGE@-@VERSION@.tar.gz
-Copyright: LGPL
+Source: ftp://ftp.coda.cs.cmu.edu/pub/coda/src/%{name}-%{version}.tar.gz
+License: LGPL
 Group: Development/Libraries
-BuildRoot: %{_builddir}/@PACKAGE@-@VERSION@/Root
+BuildRoot: %{_builddir}/%{name}-%{version}/Root
 %description
 The LWP userspace threads library. The LWP threads library is used by the Coda
 distributed filesystem, RVM (a persistent VM library), and RPC2/SFTP (remote
@@ -23,9 +23,9 @@ call library)
 %changelog
 * Mon Oct 25 1999 Jan Harkes <jaharkes@cs.cmu.edu>
 - First stab at packaging the lwp library.
-	
+
 %prep
-%setup -n @PACKAGE@-@VERSION@
+%setup -n %{name}-%{version}
 
 %build
 export CFLAGS="${CFLAGS} -Wall"
@@ -45,11 +45,11 @@ rm -rf $RPM_BUILD_ROOT
 /sbin/ldconfig
 
 %files
-%attr(-,root,root)
+%defattr(-,root,root)
 /usr/lib/liblwp.so.@LINUX_VERSION@
 
 %files devel
-%attr(-,root,root)
+%defattr(-,root,root)
 /usr/lib/liblwp.la
 /usr/lib/liblwp.a
 /usr/lib/liblwp.so

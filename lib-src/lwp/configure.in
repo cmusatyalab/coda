@@ -52,5 +52,5 @@ dnl Checks for system services.
 
 dnl Generate output files
 AC_SUBST(AFLAGS)
-AC_CONFIG_FILES(Makefile include/Makefile include/lwp/Makefile src/Makefile src-pt/Makefile pkgs/Makefile pkgs/pkg-bsd.sh pkgs/lwp.spec pkgs/lwp-nt.spec pkgs/lwp-dos.spec pkgs/lwp-win95.spec debian/Makefile debian/changelog)
+AC_CONFIG_FILES(Makefile include/Makefile include/lwp/Makefile src/Makefile src-pt/Makefile pkgs/Makefile pkgs/pkg-bsd.sh pkgs/lwp.spec debian/Makefile debian/changelog)
 AC_OUTPUT
