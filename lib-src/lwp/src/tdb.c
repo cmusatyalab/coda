@@ -65,11 +65,11 @@ int main(int argc, char **argv)
     LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY+1, &mainthread);
     IOMGR_Initialize();
     printf("Main thread going to create procA\n");
-    LWP_CreateProcess(procA, 2048, LWP_NORMAL_PRIORITY, NULL, "procA", &A_pid);
+    LWP_CreateProcess(procA, 8192, LWP_NORMAL_PRIORITY, NULL, "procA", &A_pid);
     printf("Main thread going to create procB\n");
-    LWP_CreateProcess(procB, 2048, LWP_NORMAL_PRIORITY, NULL, "procB", &B_pid); 
+    LWP_CreateProcess(procB, 8192, LWP_NORMAL_PRIORITY, NULL, "procB", &B_pid); 
     printf("Main thread going to create procC \n");
-    LWP_CreateProcess(procC, 2048, LWP_NORMAL_PRIORITY, NULL, "procC", &C_pid);
+    LWP_CreateProcess(procC, 8192, LWP_NORMAL_PRIORITY, NULL, "procC", &C_pid);
     printf("Main thread returned from creating procC  \n");
     LWP_WaitProcess(&b);
     exit(0);
