@@ -24,7 +24,7 @@ struct db_file {
     ino_t ino;
     u_int32_t pos, len, eod;
     u_int32_t cache_pos, cache_len, pending;
-    void *map, *cache;
+    void *cache;
 };
 
 /* prototypes for functions in rwcdb_file.c */
@@ -32,7 +32,7 @@ int db_file_open(struct db_file *f, const char *name, const int mode);
 void db_file_close(struct db_file *f);
 int db_file_seek(struct db_file *f, const u_int32_t pos);
 int db_file_mread(struct db_file *f, void **data, const u_int32_t len,
-                  const u_int32_t pos);
+		  const u_int32_t pos);
 int db_file_write(struct db_file *f, void *data, u_int32_t len);
 int db_file_flush(struct db_file *f);
 int readints(struct db_file *f, u_int32_t *a, u_int32_t *b, u_int32_t pos);
