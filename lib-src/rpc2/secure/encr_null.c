@@ -26,8 +26,8 @@ static void release(void **ctx)
     return;
 }
 
-static int crypt(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
-		 const uint8_t *iv)
+static int decrypt(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
+		   const uint8_t *iv, const uint8_t *aad, size_t aad_len)
 {
     if (out != in)
 	memcpy(out, in, len);
@@ -35,9 +35,9 @@ static int crypt(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
 }
 
 static int encrypt(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
-		   uint8_t *iv)
+		   uint8_t *iv, const uint8_t *aad, size_t aad_len)
 {
-    return crypt(ctx, in, out, len, iv);
+    return decrypt(ctx, in, out, len, iv, aad, aad_len);
 }
 
 
@@ -49,6 +49,6 @@ struct secure_encr secure_ENCR_NULL = {
     .encrypt      = encrypt,
     .decrypt_init = init,
     .decrypt_free = release,
-    .decrypt      = crypt,
+    .decrypt      = decrypt,
 };
 

@@ -91,7 +91,8 @@ static void release(void **ctx)
 }
 
 static int aes_ccm_crypt(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
-			 const uint8_t *iv, int encrypt)
+			 const uint8_t *iv, const uint8_t *aad,
+			 size_t aad_len, int encrypt)
 {
     struct aes_ccm_ctx *acc = (struct aes_ccm_ctx *)ctx;
     int i, nblocks;
@@ -123,15 +124,17 @@ static int aes_ccm_crypt(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
     aes_encrypt(CTR, S0, &acc->ctx);
 
     /* authenticate the header (spi and sequence number values) */
-    /* kind of ugly, assume the spi & seq are the two integers immediately
-     * preceding the initialization vector */
+    /* kind of ugly, assumes the additional authenticated data is only 8
+     * bytes long (spi & seq) */
     /* also ugly that this CCM header is not aligned on a 4-byte boundary
      * we have to copy everything byte-by-byte */
+
+    /* assert(aad_len == 2 * sizeof(uint32_t)); */
     tmp[0] = 0;      tmp[1] = 8;      /* length of authenticated data */
-    tmp[2] = iv[-8]; tmp[3] = iv[-7]; /* first 2 bytes of spi */
-    tmp[4] = iv[-6]; tmp[5] = iv[-5]; /* second 2 bytes of spi */
-    tmp[6] = iv[-4]; tmp[7] = iv[-3]; /* first 2 bytes of seq */
-    tmp[8] = iv[-2]; tmp[9] = iv[-1]; /* second 2 bytes of seq */
+    tmp[2] = aad[0]; tmp[3] = aad[1]; /* first 2 bytes of spi */
+    tmp[4] = aad[2]; tmp[5] = aad[3]; /* second 2 bytes of spi */
+    tmp[6] = aad[4]; tmp[7] = aad[5]; /* first 2 bytes of seq */
+    tmp[8] = aad[6]; tmp[9] = aad[7]; /* second 2 bytes of seq */
     tmp[10] = tmp[11] = 0;	      /* clear the rest */
     int32(tmp)[3] = 0;
 
@@ -187,15 +190,15 @@ static int aes_ccm_crypt(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
 }
 
 static int encrypt(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
-		   uint8_t *iv)
+		   uint8_t *iv, const uint8_t *aad, size_t aad_len)
 {
-    return aes_ccm_crypt(ctx, in, out, len, iv, 1);
+    return aes_ccm_crypt(ctx, in, out, len, iv, aad, aad_len, 1);
 }
 
 static int decrypt(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
-		   const uint8_t *iv)
+		   const uint8_t *iv, const uint8_t *aad, size_t aad_len)
 {
-    return aes_ccm_crypt(ctx, in, out, len, iv, 0);
+    return aes_ccm_crypt(ctx, in, out, len, iv, aad, aad_len, 0);
 }
 
 struct secure_encr secure_ENCR_AES_CCM_8 = {

@@ -111,7 +111,11 @@ static ssize_t packet_decryption(struct security_association *sa,
 				 uint8_t *out, const uint8_t *in, ssize_t len)
 {
     uint8_t i, padlength, next_header;
-    const uint8_t *iv;
+    const uint8_t *aad, *iv;
+
+    aad = in;
+    in += 2 * sizeof(uint32_t);
+    len -= 2 * sizeof(uint32_t);
 
     /* NULL encryption */
     if (!sa->decrypt) {
@@ -123,7 +127,8 @@ static ssize_t packet_decryption(struct security_association *sa,
     in += sa->decrypt->iv_len;
     len -= sa->decrypt->iv_len;
 
-    len = sa->decrypt->decrypt(sa->decrypt_context, in, out, len, iv);
+    len = sa->decrypt->decrypt(sa->decrypt_context, in, out, len, iv,
+			       aad, 2 * sizeof(uint32_t));
     if (len < 0)
 	return -1;
 
@@ -150,7 +155,7 @@ ssize_t secure_recvfrom(int s, void *buf, size_t len, int flags,
 			struct security_association **ret_sa,
 			struct security_association *(*GETSA)(uint32_t spi))
 {
-    uint8_t packet[MAXPACKETSIZE], *in;
+    uint8_t packet[MAXPACKETSIZE];
     struct sockaddr_storage from;
     socklen_t fromlen = sizeof(from);
     struct security_association *sa = NULL;
@@ -249,10 +254,7 @@ ssize_t secure_recvfrom(int s, void *buf, size_t len, int flags,
 	    goto drop; /* drop duplicate packets */
     }
 
-    in = packet + 2 * sizeof(uint32_t);
-    n -= 2 * sizeof(uint32_t);
-
-    n = packet_decryption(sa, buf, in, n);
+    n = packet_decryption(sa, buf, packet, n);
     if (n < 0) {
 	secure_audit("Decryption failed", spi, seq, peer);
 	goto drop;

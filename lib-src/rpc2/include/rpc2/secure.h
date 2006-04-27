@@ -70,11 +70,11 @@ struct secure_encr {
     int  (*encrypt_init)(void **ctx, const uint8_t *key, size_t len);
     void (*encrypt_free)(void **ctx);
     int  (*encrypt)(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
-		    uint8_t *iv);
+		    uint8_t *iv, const uint8_t *aad, size_t aad_len);
     int  (*decrypt_init)(void **ctx, const uint8_t *key, size_t len);
     void (*decrypt_free)(void **ctx);
     int  (*decrypt)(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
-		    const uint8_t *iv);
+		    const uint8_t *iv, const uint8_t *aad, size_t aad_len);
     const size_t min_keysize;
     const size_t max_keysize;
     const size_t blocksize;

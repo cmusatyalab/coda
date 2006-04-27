@@ -33,7 +33,7 @@ ssize_t secure_sendto(int s, const void *buf, size_t len, int flags,
     size_t padded_size;
     ssize_t n;
     int i, pad_align, padding;
-    uint8_t *p, *icv;
+    uint8_t *aad, *iv, *payload, *icv;
 
     if (!sa || (!sa->encrypt && !sa->authenticate)) {
 	/* make sure the other side will not mistake this as encrypted */
@@ -71,9 +71,10 @@ ssize_t secure_sendto(int s, const void *buf, size_t len, int flags,
     }
 
     /* pack the header */
-    p = out;
-    *int32(p) = htonl(sa->peer_spi); p += sizeof(uint32_t);
-    *int32(p) = htonl(sa->peer_seq); p += sizeof(uint32_t);
+    aad = out;
+    int32(aad)[0] = htonl(sa->peer_spi);
+    int32(aad)[1] = htonl(sa->peer_seq);
+    iv = aad + 2 * sizeof(uint32_t);
 
     /* increment and copy iv */
     if (sa->encrypt->iv_len) {
@@ -81,24 +82,25 @@ ssize_t secure_sendto(int s, const void *buf, size_t len, int flags,
 	    if (++(sa->send_iv[i]))
 		break;
 
-	memcpy(p, sa->send_iv, sa->encrypt->iv_len);
-	p += sa->encrypt->iv_len;
+	memcpy(iv, sa->send_iv, sa->encrypt->iv_len);
     }
+    payload = iv + sa->encrypt->iv_len;
 
     /* copy payload */
-    memcpy(p, buf, len);
+    memcpy(payload, buf, len);
 
     /* append padding */
     n = len;
     for (i = 1; i <= padding; i++)
-	p[n++] = i;
-    p[n++] = padding; /* length of padding */
-    p[n++] = 0;       /* next_header */
+	payload[n++] = i;
+    payload[n++] = padding; /* length of padding */
+    payload[n++] = 0;       /* next_header */
 
     /* encrypt the payload */
     if (sa->encrypt) {
 	n = sa->encrypt->encrypt(sa->encrypt_context,
-				 p, p, n, out + 2 * sizeof(uint32_t));
+				 payload, payload, n, iv,
+				 aad, 2 * sizeof(uint32_t));
 	if (n < 0) {
 	    errno = EMSGSIZE;
 	    return -1;
