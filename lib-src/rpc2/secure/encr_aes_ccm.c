@@ -25,10 +25,10 @@ Coda are listed in the file CREDITS.
 
 /* various constants that define the CCM flags, using fixed values according
  * to RFC4309. */
-#define AFLAG    1	/* we have additional authenticated data */
+#define AFLAG    (1<<6)	/* do we have additional authenticated data */
 #define NONCELEN 11	/* fixed nonce size, 3 byte salt + 8 byte IV */
 #define PARM_L   (AES_BLOCK_SIZE - 1 - NONCELEN) /* size of length field == 4 */
-#define CCMflags(len) (AFLAG<<6 | (((len/2)-1)<<3) | (PARM_L-1))
+#define CCMflags(len) ((((len/2)-1)<<3) | (PARM_L-1))
 
 struct aes_ccm_ctx {
     union {
@@ -95,10 +95,10 @@ static int aes_ccm_crypt(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
 			 size_t aad_len, int encrypt)
 {
     struct aes_ccm_ctx *acc = (struct aes_ccm_ctx *)ctx;
-    int i, nblocks;
+    int i, n, nblocks;
     uint8_t CMAC[AES_BLOCK_SIZE], CTR[AES_BLOCK_SIZE], S0[AES_BLOCK_SIZE];
-    uint8_t tmp[AES_BLOCK_SIZE];
-    const uint8_t *src;
+    uint8_t adata, tmp[AES_BLOCK_SIZE], *p;
+    const uint8_t *end = tmp + AES_BLOCK_SIZE, *src;
 
     if (!encrypt) {
 	if (len < acc->icv_len)
@@ -106,7 +106,8 @@ static int aes_ccm_crypt(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
 	len -= acc->icv_len;
     }
 
-    nblocks = (len + AES_BLOCK_SIZE - 1) / AES_BLOCK_SIZE;
+    if (aad_len) acc->u.flag_n_salt[0] |= AFLAG;
+    else	 acc->u.flag_n_salt[0] &= ~AFLAG;
 
     /* initialize CMAC (initial seed for authentication) */
     int32(CMAC)[0] = acc->u.salt;
@@ -124,23 +125,43 @@ static int aes_ccm_crypt(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
     aes_encrypt(CTR, S0, &acc->ctx);
 
     /* authenticate the header (spi and sequence number values) */
-    /* kind of ugly, assumes the additional authenticated data is only 8
-     * bytes long (spi & seq) */
-    /* also ugly that this CCM header is not aligned on a 4-byte boundary
+    /* ugly that this CCM header is not aligned on a 4-byte boundary
      * we have to copy everything byte-by-byte */
 
-    /* assert(aad_len == 2 * sizeof(uint32_t)); */
-    tmp[0] = 0;      tmp[1] = 8;      /* length of authenticated data */
-    tmp[2] = aad[0]; tmp[3] = aad[1]; /* first 2 bytes of spi */
-    tmp[4] = aad[2]; tmp[5] = aad[3]; /* second 2 bytes of spi */
-    tmp[6] = aad[4]; tmp[7] = aad[5]; /* first 2 bytes of seq */
-    tmp[8] = aad[6]; tmp[9] = aad[7]; /* second 2 bytes of seq */
-    tmp[10] = tmp[11] = 0;	      /* clear the rest */
-    int32(tmp)[3] = 0;
+    p = tmp;
+    /* length of authenticated data */
+#if 0 /* don't know if something like htonll actually exists */
+    if (aad_len >= UINT_MAX) {
+	uint64_t x = htonll(aad_len);
+	*(p++) = 0xff; *(p++) = 0xff;
+	memcpy(p, (void *)&x, sizeof(uint64_t));
+	p += sizeof(uint64_t);
+    } else
+#endif
+    if (aad_len >= (1<<16 - 1<<8)) {
+	uint32_t x = htonl(aad_len);
+	*(p++) = 0xff; *(p++) = 0xfe;
+	memcpy(p, (void *)&x, sizeof(uint32_t));
+	p += sizeof(uint32_t);
+    } else {
+	uint16_t x = htons(aad_len);
+	memcpy(p, (void *)&x, sizeof(uint16_t));
+	p += sizeof(uint16_t);
+    }
 
-    xor128(CMAC, tmp);
-    aes_encrypt(CMAC, CMAC, &acc->ctx);
+    while (aad_len > 0) {
+	n = end - p;
+	if (aad_len < n) n = aad_len;
+	memcpy(p, aad, n); p += n;
+	if (p < end) memset(p, 0, end - p);
 
+	xor128(CMAC, tmp);
+	aes_encrypt(CMAC, CMAC, &acc->ctx);
+
+	aad += n; aad_len -= n; p = tmp;
+    }
+
+    nblocks = (len + AES_BLOCK_SIZE - 1) / AES_BLOCK_SIZE;
     while (nblocks--)
     {
 	/* increment counter */
