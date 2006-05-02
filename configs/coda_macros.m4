@@ -108,20 +108,20 @@ AC_DEFUN(CODA_CHECK_FILE_LOCKING,
   fi
 
   if test $fu_cv_lib_c_flock = no -a $fu_cv_lib_c_fcntl = no; then
-         AC_MSG_ERROR("failed to find flock or fcntl")
+	 AC_MSG_ERROR("failed to find flock or fcntl")
   fi)
 
 dnl check for library providing md5 and sha160 checksumming
 AC_SUBST(LIBCRYPTO)
 AC_DEFUN(CODA_CHECK_OPENSSL,
- [AC_ARG_WITH(openssl,
+ [CODA_OPTION_LIBRARY(openssl)
+  AC_ARG_WITH(openssl,
    [  --with-openssl			Link against openssl library],
    [AC_CHECK_HEADERS(openssl/md5.h openssl/sha.h)
     coda_save_LIBS="$LIBS"
     AC_SEARCH_LIBS(SHA1_Init, crypto, [test "$ac_cv_search_SHA1_Init" = "none required" || LIBCRYPTO="$ac_cv_search_SHA1_Init"])
     AC_CHECK_FUNCS([MD5_Init SHA1_Init])
-    LIBS="$coda_save_LIBS"])
-    CODA_OPTION_LIBRARY(openssl)])
+    LIBS="$coda_save_LIBS"])])
 
 AC_DEFUN(CODA_CHECK_LIBCOMERR,
  [AC_CHECK_HEADERS(com_err.h)
@@ -129,7 +129,8 @@ AC_DEFUN(CODA_CHECK_LIBCOMERR,
 
 AC_SUBST(LIBKRB4)
 AC_DEFUN(CODA_CHECK_KRB4,
- [AC_ARG_WITH(krb4,
+ [CODA_OPTION_LIBRARY(krb4)
+  AC_ARG_WITH(krb4,
    [  --with-krb4			Link against kerberos4 libraries],
    [CODA_CHECK_LIBCOMERR
     AC_CHECK_HEADERS(krb.h des.h)
@@ -140,12 +141,12 @@ AC_DEFUN(CODA_CHECK_KRB4,
     LIBS="$coda_save_LIBS"
     if test "$ac_cv_search_krb_get_lrealm" != no ; then
 	AC_DEFINE(HAVE_KRB4, 1, [Define if kerberos 4 is available])
-    fi])
-    CODA_OPTION_LIBRARY(krb4)])
+    fi])])
 
 AC_SUBST(LIBKRB5)
 AC_DEFUN(CODA_CHECK_KRB5,
- [AC_ARG_WITH(krb5,
+ [CODA_OPTION_LIBRARY(krb5)
+  AC_ARG_WITH(krb5,
    [  --with-krb5			Link against kerberos5 libraries],
    [CODA_CHECK_LIBCOMERR
     AC_CHECK_HEADERS(krb5.h)
@@ -181,8 +182,7 @@ AC_DEFUN(CODA_CHECK_KRB5,
 	fi
     else
 	AC_MSG_WARN([Couldn't find krb5.h and com_err.h headers, not using kerberos 5])
-    fi])
-    CODA_OPTION_LIBRARY(krb5)])
+    fi])])
 
 
 dnl ---------------------------------------------
@@ -242,14 +242,14 @@ AC_DEFUN(CODA_OPTION_LIBRARY,
     [ pfx="`(cd ${withval} ; pwd)`"
       LDFLAGS="${LDFLAGS} -L${pfx}"
       if test x$RFLAG != x ; then
-            LDFLAGS="${LDFLAGS} -R${pfx}"
+	    LDFLAGS="${LDFLAGS} -R${pfx}"
       fi]) ])
 
 dnl AC_DEFUN(CODA_OPTION_CRYPTO,
-dnl   [AC_ARG_WITH($1,
+dnl   [CODA_OPTION_LIBRARY($1)
+dnl    AC_ARG_WITH($1,
 dnl     [  --with-$1			Link against $1 libraries],
-dnl     [AC_DEFINE(USE_`$1 | $as_tr_cpp`, 1, [Define if you want to use $1 libraries])])
-dnl    CODA_OPTION_LIBRARY($1)])
+dnl     [AC_DEFINE(USE_`$1 | $as_tr_cpp`, 1, [Define if you want to use $1 libraries])])])
 
 AC_DEFUN(CODA_OPTION_LWP_PT,
   [AC_ARG_WITH(lwp-pt,
