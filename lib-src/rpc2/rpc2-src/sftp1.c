@@ -896,7 +896,7 @@ static RPC2_PacketBuffer *AwaitPacket(struct timeval *tOut,
 {
     struct SL_Entry *sl;
 
-    if (LWP_GetRock(SMARTFTP, (char **)&sl) != LWP_SUCCESS)
+    if (LWP_GetRock(SMARTFTP, (void *)&sl) != LWP_SUCCESS)
     {
 	sl = rpc2_AllocSle(OTHER, NULL);
 	assert(LWP_NewRock(SMARTFTP, (char *)sl) == LWP_SUCCESS);

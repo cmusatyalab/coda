@@ -336,7 +336,7 @@ long RPC2_GetRequest(IN RPC2_RequestFilter *Filter,
 		     IN long EncryptionTypeMask,
 		     IN RPC2_AuthFail_func *AuthFail)
 {
-	struct CEntry *ce;
+	struct CEntry *ce = NULL;
 	RPC2_RequestFilter myfilter;
 	RPC2_PacketBuffer *pb;
 	RPC2_Integer AuthenticationType;

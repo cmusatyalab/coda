@@ -145,7 +145,7 @@ struct SL_Entry *rpc2_AllocSle(enum SL_Type slType, struct CEntry *slConn)
 	
 	if (rpc2_SLFreeCount == 0)
 		{
-			rpc2_Replenish((struct LinkEntry **) &rpc2_SLFreeList, &rpc2_SLFreeCount,
+			rpc2_Replenish(&rpc2_SLFreeList, &rpc2_SLFreeCount,
 				       sizeof(struct SL_Entry), &rpc2_SLCreationCount, OBJ_SLENTRY);
 	}
 
@@ -160,8 +160,8 @@ struct SL_Entry *rpc2_AllocSle(enum SL_Type slType, struct CEntry *slConn)
 	tocount = &rpc2_SLCount;
 	}
 
-    sl = (struct SL_Entry *)rpc2_MoveEntry((struct LinkEntry **)&rpc2_SLFreeList,
-	    (struct LinkEntry **)tolist, NULL, &rpc2_SLFreeCount, tocount);
+    sl = (struct SL_Entry *)rpc2_MoveEntry(&rpc2_SLFreeList,
+	    tolist, NULL, &rpc2_SLFreeCount, tocount);
 
     assert(sl->MagicNumber == OBJ_SLENTRY);
     sl->Type = slType;
@@ -198,9 +198,7 @@ void rpc2_FreeSle(INOUT struct SL_Entry **sl)
 	fromcount = &rpc2_SLCount;
     }
 
-    rpc2_MoveEntry((struct LinkEntry **)fromlist,
-			(struct LinkEntry **)&rpc2_SLFreeList,
-			(struct LinkEntry *)tsl, fromcount, &rpc2_SLFreeCount);
+    rpc2_MoveEntry(fromlist, &rpc2_SLFreeList, tsl, fromcount, &rpc2_SLFreeCount);
     *sl = NULL;
 }
 
@@ -262,11 +260,11 @@ struct SubsysEntry *rpc2_AllocSubsys()
     {
     struct SubsysEntry *ss;
     if (rpc2_SSFreeCount == 0)
-    	rpc2_Replenish((struct LinkEntry **)&rpc2_SSFreeList,
+    	rpc2_Replenish(&rpc2_SSFreeList,
 		&rpc2_SSFreeCount, sizeof(struct SubsysEntry),
 		&rpc2_SSCreationCount, OBJ_SSENTRY);
-    ss = (struct SubsysEntry *)rpc2_MoveEntry((struct LinkEntry **)&rpc2_SSFreeList,
-	 (struct LinkEntry **)&rpc2_SSList, NULL, &rpc2_SSFreeCount, &rpc2_SSCount);
+    ss = (struct SubsysEntry *)rpc2_MoveEntry(&rpc2_SSFreeList,
+	 &rpc2_SSList, NULL, &rpc2_SSFreeCount, &rpc2_SSCount);
     assert(ss->MagicNumber == OBJ_SSENTRY);
     return(ss);
     }
@@ -277,9 +275,7 @@ void rpc2_FreeSubsys(whichSubsys)
 	Sets whichSubsys to NULL;  */
 	{
 	assert((*whichSubsys)->MagicNumber == OBJ_SSENTRY);
-	rpc2_MoveEntry((struct LinkEntry **)&rpc2_SSList,
-		    (struct LinkEntry **)&rpc2_SSFreeList,
-		    (struct LinkEntry *)*whichSubsys,
+	rpc2_MoveEntry(&rpc2_SSList, &rpc2_SSFreeList, whichSubsys,
 		    &rpc2_SSCount, &rpc2_SSFreeCount);
 	*whichSubsys = NULL;
 	}
@@ -290,9 +286,7 @@ void rpc2_FreeSubsys(whichSubsys)
 void rpc2_HoldPacket(RPC2_PacketBuffer *whichPB)
 {
 	assert(whichPB->Prefix.MagicNumber == OBJ_PACKETBUFFER);
-	rpc2_MoveEntry((struct LinkEntry **)&rpc2_PBList,
-		       (struct LinkEntry **)&rpc2_PBHoldList,
-		       (struct LinkEntry *)whichPB,
+	rpc2_MoveEntry(&rpc2_PBList, &rpc2_PBHoldList, whichPB,
 		       &rpc2_PBCount, &rpc2_PBHoldCount);
 	if (rpc2_HoldHWMark < rpc2_PBHoldCount) 
 		rpc2_HoldHWMark = rpc2_PBHoldCount;
@@ -302,9 +296,7 @@ void rpc2_HoldPacket(RPC2_PacketBuffer *whichPB)
 void rpc2_UnholdPacket(RPC2_PacketBuffer *whichPB)
 {
 	assert(whichPB->Prefix.MagicNumber == OBJ_PACKETBUFFER);
-	rpc2_MoveEntry((struct LinkEntry **)&rpc2_PBHoldList,
-		       (struct LinkEntry **)&rpc2_PBList,
-		       (struct LinkEntry *)whichPB,
+	rpc2_MoveEntry(&rpc2_PBHoldList, &rpc2_PBList, whichPB,
 		       &rpc2_PBHoldCount, &rpc2_PBCount);
 }
 

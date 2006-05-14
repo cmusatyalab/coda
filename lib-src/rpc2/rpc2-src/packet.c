@@ -131,13 +131,6 @@ void rpc2_XmitPacket(RPC2_PacketBuffer *pb, struct RPC2_addrinfo *addr,
 
     assert(pb->Prefix.MagicNumber == OBJ_PACKETBUFFER);
 
-    TR_XMIT();
-
-    /* Only Internet for now; no name->number translation attempted */
-
-    rpc2_Sent.Total++;
-    rpc2_Sent.Bytes += pb->Prefix.LengthOfPacket;
-
     whichSocket = rpc2_v6RequestSocket;
 
     if (whichSocket == -1 ||
@@ -146,6 +139,13 @@ void rpc2_XmitPacket(RPC2_PacketBuffer *pb, struct RPC2_addrinfo *addr,
 
     if (whichSocket == -1)
 	return; // RPC2_NOCONNECTION
+
+    TR_XMIT();
+
+    /* Only Internet for now; no name->number translation attempted */
+
+    rpc2_Sent.Total++;
+    rpc2_Sent.Bytes += pb->Prefix.LengthOfPacket;
 
     if (FailPacket(Fail_SendPredicate, pb, addr, whichSocket))
 	return;

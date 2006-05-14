@@ -12,9 +12,6 @@ DEB_HOST_GNU_TYPE  := $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE )
 # As we're not yet 'stable' we default to building unstripped binaries.
 export DEB_BUILD_OPTIONS=nostrip
 
-CFLAGS += -Wall
-export CFLAGS
-
 build: build-stamp
 build-stamp:
 	dh_testdir
@@ -56,7 +53,7 @@ binary-arch: build install
 	dh_testdir
 	dh_testroot
 	dh_install
-#	dh_installdebconf	
+#	dh_installdebconf
 	dh_installdocs
 	dh_installexamples
 #	dh_installmanpages
@@ -78,3 +75,4 @@ binary-arch: build install
 
 binary: binary-indep binary-arch
 .PHONY: build clean binary-indep binary-arch binary install
+

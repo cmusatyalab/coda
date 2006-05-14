@@ -79,7 +79,8 @@ long RPC2_Init(char *VId,		/* magic version string */
 	       )
 {
     char *c;
-    long i, ctpid;
+    long i;
+    PROCESS ctpid;
     struct RPC2_addrinfo *rpc2_localaddrs;
     long rc1 = RPC2_NOCONNECTION, rc2, rc;
     short port = 0;
@@ -182,8 +183,7 @@ long RPC2_Init(char *VId,		/* magic version string */
 		      c, &rpc2_SocketListenerPID);
 
     c = "ClockTick";
-    LWP_CreateProcess(rpc2_ClockTick, 16384, LWP_NORMAL_PRIORITY, NULL,
-		      c, (PROCESS *)&ctpid);
+    LWP_CreateProcess(rpc2_ClockTick, 16384, LWP_NORMAL_PRIORITY, NULL, c, &ctpid);
 
     if (rc != RPC2_SUCCESS)
 	say(-1, RPC2_DebugLevel, "RPC2_Init(): Exiting with error\n");

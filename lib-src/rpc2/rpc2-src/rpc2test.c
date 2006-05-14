@@ -145,14 +145,8 @@ static long ClientsReady;  /* How many clients are ready; will be signalled by m
 
 char *TimeNow(void)
 {
-    int t;
-    
-    t = mytime();
-#if defined(ibmrt) || (__GNUC__ >= 2)
-    return(ctime((const time_t *)&t));
-#else 
+    time_t t = mytime();
     return(ctime(&t));
-#endif
 }
 
 

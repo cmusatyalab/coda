@@ -65,6 +65,7 @@ AC_CHECK_TYPES([struct sockaddr_storage, struct sockaddr_in6, socklen_t],,,
      #include <netinet/in.h>])
 
 dnl Checks for compiler characteristics.
+CODA_CC_FEATURE_TEST(Wall)
 
 dnl Checks for library functions.
 AC_CHECK_FUNCS(ffs iopen getaddrinfo gai_strerror getipnodebyname)

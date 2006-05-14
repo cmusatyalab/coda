@@ -185,9 +185,7 @@ void rpc2_FreeHost(struct HEntry **whichHost)
 	RPC2_freeaddrinfo((*whichHost)->Addr);
 	(*whichHost)->Addr = NULL;
 
-	rpc2_MoveEntry((struct LinkEntry **)&rpc2_HostList,
-		       (struct LinkEntry **)&rpc2_HostFreeList,
-		       (struct LinkEntry *)*whichHost,
+	rpc2_MoveEntry(&rpc2_HostList, &rpc2_HostFreeList, *whichHost,
 		       &rpc2_HostCount, &rpc2_HostFreeCount);
 	
 	/* remove from hash table */
