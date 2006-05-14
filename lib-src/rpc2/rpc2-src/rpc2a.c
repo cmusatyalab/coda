@@ -673,7 +673,7 @@ long RPC2_NewBinding(IN RPC2_HostIdent *Host, IN RPC2_PortIdent *Port,
     struct Init4Body *ib4;
     struct SL_Entry *sl;
     long rc, init2rc, init4rc;
-    RPC2_Integer savexrandom = 0, saveyrandom = 0;
+    RPC2_Integer xrandom = 0, yrandom = 0;
     RPC2_Unsigned bsize;
     struct RPC2_addrinfo *addr, *peeraddrs;
     RPC2_EncryptionKey rpc2key;
@@ -695,6 +695,7 @@ long RPC2_NewBinding(IN RPC2_HostIdent *Host, IN RPC2_PortIdent *Port,
 
     switch ((int) Bparms->SecurityLevel) {
     case RPC2_OPENKIMONO:
+	    Bparms->EncryptionType = 0;
 	    break;
 
     case RPC2_AUTHONLY:
@@ -731,6 +732,7 @@ try_next_addr:
     SetRole(ce, CLIENT);
     SetState(ce, C_AWAITINIT2);
     secure_random_bytes(&ce->PeerUnique, sizeof(ce->PeerUnique));
+    secure_random_bytes(&xrandom, sizeof(xrandom));
 
     if (Bparms->SecurityLevel != RPC2_OPENKIMONO && Bparms->SharedSecret)
 	 memcpy(rpc2key, *Bparms->SharedSecret, sizeof(RPC2_EncryptionKey));
@@ -743,24 +745,11 @@ try_next_addr:
 	rpc2_Quit(RPC2_FAIL);
     }
 
-    switch((int) Bparms->SecurityLevel)  {
-    case RPC2_OPENKIMONO:
-	    ce->SecurityLevel = RPC2_OPENKIMONO;
-	    ce->NextSeqNumber = 0;
-	    ce->EncryptionType = 0;
-	    break;
-
-    case RPC2_AUTHONLY:
-    case RPC2_HEADERSONLY:
-    case RPC2_SECURE:
-	    ce->SecurityLevel = Bparms->SecurityLevel;
-	    ce->EncryptionType = Bparms->EncryptionType;
-	    /* NextSeqNumber will be filled in in the last step of the handshake */
-	    break;
-    }
+    ce->SecurityLevel = Bparms->SecurityLevel;
+    ce->EncryptionType = Bparms->EncryptionType;
 
     /* Obtain pointer to appropriate set of side effect routines */
-    if (Bparms->SideEffectType != 0) {
+    if (Bparms->SideEffectType) {
 	    for (i = 0; i < SE_DefCount; i++)
 		    if (SE_DefSpecs[i].SideEffectType == Bparms->SideEffectType)
 			    break;
@@ -770,8 +759,6 @@ try_next_addr:
 	    }
 	    ce->SEProcs = &SE_DefSpecs[i];
     }
-    else
-	    ce->SEProcs = NULL;
 
     /* Call side effect routine if present */
     if (HAVE_SE_FUNC(SE_Bind1)) {
@@ -843,14 +830,14 @@ try_next_addr:
 
     rpc2_htonp(pb);	/* convert header to network order */
 
+    ib->XRandom = htonl(xrandom);
     if (Bparms->SecurityLevel != RPC2_OPENKIMONO)
     {
-	secure_random_bytes(&savexrandom, sizeof(savexrandom));
-	say(9, RPC2_DebugLevel, "XRandom = %d\n", savexrandom);
-	ib->XRandom = htonl(savexrandom);
-
-	rpc2_Encrypt((char *)&ib->XRandom, (char *)&ib->XRandom, sizeof(ib->XRandom),
-		     *Bparms->SharedSecret, Bparms->EncryptionType);	/* in-place encryption */
+	/* Same decryption steps as used on the server. */
+	rpc2_Decrypt((char *)&ib->XRandom, (char *)&xrandom, sizeof(xrandom),
+		     *Bparms->SharedSecret, Bparms->EncryptionType);
+	xrandom = ntohl(xrandom);
+	say(9, RPC2_DebugLevel, "XRandom = %d\n", xrandom);
     }
 
     /* Step3: Send INIT1 packet  and wait for reply */
@@ -941,13 +928,13 @@ try_next_addr:
 	    ib2->XRandomPlusOne = ntohl(ib2->XRandomPlusOne);
 	    say(9, RPC2_DebugLevel, "XRandomPlusOne = %d\n",
 		ib2->XRandomPlusOne);
-	    if (savexrandom+1 != ib2->XRandomPlusOne) {
+	    if (xrandom+1 != ib2->XRandomPlusOne) {
 		DROPCONN();
 		RPC2_FreeBuffer(&pb);
 		rpc2_Quit(RPC2_NOTAUTHENTICATED);
 	    }
-	    saveyrandom = ntohl(ib2->YRandom);
-	    say(9, RPC2_DebugLevel, "YRandom = %d\n", saveyrandom);
+	    yrandom = ntohl(ib2->YRandom);
+	    say(9, RPC2_DebugLevel, "YRandom = %d\n", yrandom);
 	}
     }
 
@@ -990,7 +977,7 @@ try_next_addr:
     else
     {
 	ib3 = (struct Init3Body *)pb->Body;
-	ib3->YRandomPlusOne = htonl(saveyrandom+1);
+	ib3->YRandomPlusOne = htonl(yrandom+1);
 	rpc2_Encrypt((char *)ib3, (char *)ib3, sizeof(struct Init3Body), *Bparms->SharedSecret, Bparms->EncryptionType);	/* in-place encryption */
     }
 
@@ -1057,7 +1044,7 @@ try_next_addr:
 		     *Bparms->SharedSecret, Bparms->EncryptionType);
 	ib4->XRandomPlusTwo = ntohl(ib4->XRandomPlusTwo);
 	//    say(9, RPC2_DebugLevel, "XRandomPlusTwo = %l\n", ib4->XRandomPlusTwo);
-	if (savexrandom+2 != ib4->XRandomPlusTwo)
+	if (xrandom+2 != ib4->XRandomPlusTwo)
 	{
 	    DROPCONN();
 	    RPC2_FreeBuffer(&pb);
