@@ -29,7 +29,7 @@ struct aes_xcbc_state {
     uint8_t K3[AES_BLOCK_SIZE];
 };
 
-static int init(void **ctx, const uint8_t *key, size_t len)
+int aes_xcbc_mac_init(void **ctx, const uint8_t *key, size_t len)
 {
     struct aes_xcbc_state *state;
     uint8_t tmp[AES_BLOCK_SIZE];
@@ -59,7 +59,7 @@ static int init(void **ctx, const uint8_t *key, size_t len)
     return 0;
 }
 
-static void release(void **ctx)
+void aes_xcbc_mac_release(void **ctx)
 {
     struct aes_xcbc_state *state = *ctx;
     if (!*ctx) return;
@@ -70,43 +70,50 @@ static void release(void **ctx)
     *ctx = NULL;
 }
 
-static void auth(void *ctx, const uint8_t *buf, size_t len, uint8_t *icv)
+void aes_xcbc_mac_128(void *ctx, const uint8_t *buf, size_t len, uint8_t *mac)
 {
     struct aes_xcbc_state *state = ctx;
-    uint8_t iv[AES_BLOCK_SIZE], tmp[AES_BLOCK_SIZE];
+    uint8_t tmp[AES_BLOCK_SIZE];
     size_t nblocks = (len + AES_BLOCK_SIZE - 1) / AES_BLOCK_SIZE;
 
-    memset(iv, 0, AES_BLOCK_SIZE);
+    memset(mac, 0, AES_BLOCK_SIZE);
 
     while(nblocks-- > 1) {
-	xor128(iv, buf);
-	aes_encrypt(iv, iv, &state->C1);
+	xor128(mac, buf);
+	aes_encrypt(mac, mac, &state->C1);
 	buf += AES_BLOCK_SIZE;
 	len -= AES_BLOCK_SIZE;
     }
 
     if (len == AES_BLOCK_SIZE) {
-	xor128(iv, buf);
-	xor128(iv, &state->K2);
+	xor128(mac, buf);
+	xor128(mac, &state->K2);
     } else {
 	memcpy(tmp, buf, len);
 	tmp[len++] = 0x80;
 	if (len != AES_BLOCK_SIZE)
 	    memset(tmp + len, 0, AES_BLOCK_SIZE - len);
 
-	xor128(iv, tmp);
-	xor128(iv, &state->K3);
+	xor128(mac, tmp);
+	xor128(mac, &state->K3);
     }
-    aes_encrypt(iv, iv, &state->C1);
-    memcpy(icv, iv, ICV_LEN);
+    aes_encrypt(mac, mac, &state->C1);
+}
+
+static void aes_xcbc_mac_96(void *ctx, const uint8_t *buf, size_t len,
+			    uint8_t *icv)
+{
+    uint8_t mac[AES_BLOCK_SIZE];
+    aes_xcbc_mac_128(ctx, buf, len, mac);
+    memcpy(icv, mac, ICV_LEN);
 }
 
 struct secure_auth secure_AUTH_AES_XCBC_MAC_96 = {
     .id = SECURE_AUTH_AES_XCBC_96,
     .name = "AUTH-AES-XCBC-MAC-96",
-    .auth_init = init,
-    .auth_free = release,
-    .auth = auth,
+    .auth_init = aes_xcbc_mac_init,
+    .auth_free = aes_xcbc_mac_release,
+    .auth = aes_xcbc_mac_96,
     .keysize = KEYSIZE,
     .icv_len = ICV_LEN,
 };

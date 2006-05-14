@@ -97,7 +97,7 @@ static int aes_ccm_crypt(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
     struct aes_ccm_ctx *acc = (struct aes_ccm_ctx *)ctx;
     int i, n, nblocks;
     uint8_t CMAC[AES_BLOCK_SIZE], CTR[AES_BLOCK_SIZE], S0[AES_BLOCK_SIZE];
-    uint8_t adata, tmp[AES_BLOCK_SIZE], *p;
+    uint8_t tmp[AES_BLOCK_SIZE], *p;
     const uint8_t *end = tmp + AES_BLOCK_SIZE, *src;
 
     if (!encrypt) {
@@ -138,7 +138,7 @@ static int aes_ccm_crypt(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
 	p += sizeof(uint64_t);
     } else
 #endif
-    if (aad_len >= (1<<16 - 1<<8)) {
+    if (aad_len >= (1<<16) - (1<<8)) {
 	uint32_t x = htonl(aad_len);
 	*(p++) = 0xff; *(p++) = 0xfe;
 	memcpy(p, (void *)&x, sizeof(uint32_t));

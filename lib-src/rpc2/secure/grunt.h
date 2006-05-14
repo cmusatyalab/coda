@@ -45,13 +45,20 @@ int aes_cbc_encrypt(const uint8_t *in, uint8_t *out, size_t len,
 int aes_cbc_decrypt(const uint8_t *in, uint8_t *out, size_t len,
 		    const uint8_t *iv, aes_decrypt_ctx *ctx);
 
+int aes_xcbc_prf_init(void **ctx, const uint8_t *key, size_t len);
+#define aes_xcbc_prf_release aes_xcbc_mac_release
+#define aes_xcbc_prf_128     aes_xcbc_mac_128
+
+/* auth_aes_xcbc.c */
+int aes_xcbc_mac_init(void **ctx, const uint8_t *key, size_t len);
+void aes_xcbc_mac_release(void **ctx);
+void aes_xcbc_mac_128(void *ctx, const uint8_t *buf, size_t len, uint8_t *mac);
+
 /* secure_random.c */
 void secure_random_init(int verbose);
 void secure_random_release(void);
 
 /* secure_init.c */
-const struct secure_auth *secure_get_auth_byid(int id);
-const struct secure_encr *secure_get_encr_byid(int id);
 void secure_audit(const char *event, uint32_t spi, uint32_t seq,
 		  const struct sockaddr *src);
 

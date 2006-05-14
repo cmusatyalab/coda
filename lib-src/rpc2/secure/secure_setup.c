@@ -20,39 +20,6 @@ Coda are listed in the file CREDITS.
 #include "aes.h"
 #include "grunt.h"
 
-/* key derivation function, given a relatively short user key, we expand it to
- * the requested amount of keying material.
- * Only use to get a connection setup key. Once the connection has been
- * established, use a session key generated from the PRNG */
-int secure_setup_key(const uint8_t rpc2key[8], uint32_t unique,
-		     uint8_t *key, size_t keylen)
-{
-    aes_encrypt_ctx ctx;
-    uint8_t block[AES_BLOCK_SIZE];
-    uint32_t ctr = 0;
-    int blocks = keylen / AES_BLOCK_SIZE;
-
-    int32(block)[0] = htonl(ctr++);
-    memcpy(block+4, rpc2key, 8);
-    int32(block)[3] = htonl(unique);
-    aes_encrypt_key(block, sizeof(block) * 8, &ctx);
-
-    while (blocks--) {
-	int32(block)[0] = htonl(ctr++);
-	aes_encrypt(block, key, &ctx);
-	key += AES_BLOCK_SIZE;
-	keylen -= AES_BLOCK_SIZE;
-    }
-    if (keylen) {
-	int32(block)[0] = htonl(ctr++);
-	aes_encrypt(block, block, &ctx);
-	memcpy(key, block, keylen);
-    }
-    memset(&ctx, 0, sizeof(aes_encrypt_ctx));
-    memset(block, 0, sizeof(block));
-    return 0;
-}
-
 int secure_setup_encrypt(struct security_association *sa,
 			 const struct secure_auth *authenticate,
 			 const struct secure_encr *encrypt,

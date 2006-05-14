@@ -489,12 +489,11 @@ typedef struct RPC2_PacketBuffer {
  * but SEFLAGS is. Second byte of Flags field is reserved for indicating
  * packet color by libfail. Third and fourth bytes are used as genuine RPC2
  * flags */
-#define RPC2_RETRY	0x1	/* set by runtime system */
-#define RPC2_ENCRYPTED	0x2	/* set by runtime system */
-#define RPC2SEC_CAPABLE	0x8	/* set on Init1 packet by new rpc2sec stack */
-
-//#define RPC2_MULTICAST 0x4	/* set by runtime system (no longer used) */
-//#define IsMulticast(pb)	((pb)->Header.Flags & RPC2_MULTICAST)
+#define RPC2_RETRY	0x01	/* set by runtime system */
+#define RPC2_ENCRYPTED	0x02	/* set by runtime system */
+/*      RPC2_MULTICAST  0x04	   Old multicast flag */
+/*      RPC2SEC_CAPABLE 0x08	   Old rpc2sec flag */
+#define RPC2SEC_CAPABLE	0x10	/* set on Init1 packet by new rpc2sec stack */
 
  /* Format of filter used in RPC2_GetRequest */
 

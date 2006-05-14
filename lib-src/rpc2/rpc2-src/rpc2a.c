@@ -238,13 +238,18 @@ static int setup_init1_key(int (*init)(struct security_association *sa,
 {
     const struct secure_auth *auth;
     const struct secure_encr *encr;
-    uint8_t key[32]; /* 128-bits for authentication + 128-bits for encryption */
+    uint8_t key[48]; /* 256-bits for encryption + 128-bits for authentication */
     int rc;
 
     auth = secure_get_auth_byid(SECURE_AUTH_AES_XCBC_96);
     encr = secure_get_encr_byid(SECURE_ENCR_AES_CBC);
+    if (!auth || !encr) return -1;
 
-    secure_setup_key(secret, ce->PeerUnique, key, sizeof(key));
+    rc = secure_pbkdf(secret, sizeof(RPC2_EncryptionKey),
+		      (uint8_t *)&ce->PeerUnique, sizeof(RPC2_Integer),
+		      SECURE_PBKDF_ITERATIONS, key, sizeof(key));
+    if (rc) return -1;
+
     rc = init(&ce->sa, auth, encr, key, sizeof(key));
     memset(key, 0, sizeof(key));
     return rc;
@@ -381,14 +386,14 @@ long RPC2_GetRequest(IN RPC2_RequestFilter *Filter,
 
 	/* Notify side effect routine, if any */
 	if (HAVE_SE_FUNC(SE_GetRequest))
-	    {
+	{
 	    rc = (*ce->SEProcs->SE_GetRequest)(*ConnHandle, *Request);
 	    if (rc != RPC2_SUCCESS)
-	    	{
-	    	RPC2_FreeBuffer(Request);
-	    	if (rc < RPC2_FLIMIT) rpc2_SetConnError(ce);
-	    	}
+	    {
+		RPC2_FreeBuffer(Request);
+		if (rc < RPC2_FLIMIT) rpc2_SetConnError(ce);
 	    }
+	}
 	rpc2_Quit(rc);
 	}
 

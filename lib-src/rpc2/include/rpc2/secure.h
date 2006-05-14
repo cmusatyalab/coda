@@ -147,15 +147,13 @@ struct security_association {
 };
 
 
-/* initialize */
+/* initialization */
 void secure_init(int verbose);
 void secure_release(void);
 
 const struct secure_auth *secure_get_auth_byid(int id);
 const struct secure_encr *secure_get_encr_byid(int id);
 
-int secure_setup_key(const uint8_t rpc2key[8], uint32_t unique,
-		     uint8_t *key, size_t keylen);
 int secure_setup_encrypt(struct security_association *sa,
 			 const struct secure_auth *authenticate,
 			 const struct secure_encr *encrypt,
@@ -164,6 +162,12 @@ int secure_setup_decrypt(struct security_association *sa,
 			 const struct secure_auth *validate,
 			 const struct secure_encr *decrypt,
 			 const uint8_t *key, size_t len);
+
+/* Password based key derivation function */
+#define SECURE_PBKDF_ITERATIONS 10000 /* see comments in secure_aes.c */
+int secure_pbkdf(const uint8_t *password, size_t plen,
+		 const uint8_t *salt, size_t slen, size_t iterations,
+		 uint8_t *key, size_t keylen);
 
 /* cryptographically strong deterministic pseudo random number generator */
 void secure_random_bytes(void *buf, size_t len);

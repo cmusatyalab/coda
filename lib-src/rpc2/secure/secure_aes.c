@@ -15,11 +15,14 @@ Coda are listed in the file CREDITS.
 
 /* Implementation of AES modes of operation and test vectors */
 
+#include <sys/time.h>
+#include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 
+#include <rpc2/secure.h>
 #include "aes.h"
 #include "grunt.h"
 #include "testvectors.h"
@@ -75,6 +78,40 @@ int aes_cbc_decrypt(const uint8_t *in, uint8_t *out, size_t len,
     return len;
 }
 
+/* AES-based pseudo random function
+ *
+ * RFC 4434: The AES-XCBC-PRF-128 Algorithm for the Internet Key Exchange
+ *	     Protocol (IKE)
+ */
+int aes_xcbc_prf_init(void **ctx, const uint8_t *key, size_t len)
+{
+    uint8_t tmp[AES_BLOCK_SIZE];
+    int rc;
+
+    if (len != AES_BLOCK_SIZE) {
+	memset(tmp, 0, AES_BLOCK_SIZE);
+
+	if (len > AES_BLOCK_SIZE) {
+	    /* long input key, use the digest as prf key */
+	    if (aes_xcbc_mac_init(ctx, tmp, AES_BLOCK_SIZE))
+		return -1;
+	    aes_xcbc_mac_128(*ctx, key, len, tmp);
+	    aes_xcbc_mac_release(ctx);
+	} else
+	    /* short input key, use zero padded key as prf key */
+	    memcpy(tmp, key, len);
+
+	key = tmp;
+    }
+
+    rc = aes_xcbc_mac_init(ctx, key, AES_BLOCK_SIZE);
+    if (len != AES_BLOCK_SIZE)
+	memset(tmp, 0, AES_BLOCK_SIZE);
+
+    return rc;
+}
+/* #define aes_xcbc_prf_release aes_xcbc_mac_release
+ * #define aes_xcbc_prf_128	aes_xcbc_mac_128 */
 
 /* check test vectors */
 static void check_aes_monte_carlo(int verbose)
@@ -376,6 +413,112 @@ static void check_aes_cbc(int verbose)
 	fprintf(stderr, "PASSED\n");
 }
 
+/* test vectors for AES-XCBC-PRF-128 from RFC 4434 */
+static void check_aes_xcbc_prf(int verbose)
+{
+    uint8_t key[20], input[20], output[AES_BLOCK_SIZE];
+    const char *PRV;
+    void *ctx;
+    int i, rc = 0;
+
+    if (verbose)
+	fprintf(stderr, "AES-XCBC-PRF-128 test vectors:  ");
+
+    /* setup keys and inputs */
+    for (i = 0; i < 20; i++)
+	key[i] = input[i] = i;
+    key[16] = 0xed; key[17] = 0xcb;
+
+    PRV = "\x47\xf5\x1b\x45\x64\x96\x62\x15\xb8\x98\x5c\x63\x05\x5e\xd3\x08";
+    aes_xcbc_prf_init(&ctx, key, 16);
+    aes_xcbc_prf_128(ctx, input, 20, output);
+    aes_xcbc_prf_release(&ctx);
+    rc = (memcmp(output, PRV, AES_BLOCK_SIZE) != 0);
+
+    PRV = "\x0f\xa0\x87\xaf\x7d\x86\x6e\x76\x53\x43\x4e\x60\x2f\xdd\xe8\x35";
+    aes_xcbc_prf_init(&ctx, key, 10);
+    aes_xcbc_prf_128(ctx, input, 20, output);
+    aes_xcbc_prf_release(&ctx);
+    rc += (memcmp(output, PRV, AES_BLOCK_SIZE) != 0);
+
+    PRV = "\x8c\xd3\xc9\x3a\xe5\x98\xa9\x80\x30\x06\xff\xb6\x7c\x40\xe9\xe4";
+    aes_xcbc_prf_init(&ctx, key, 18);
+    aes_xcbc_prf_128(ctx, input, 20, output);
+    aes_xcbc_prf_release(&ctx);
+    rc += (memcmp(output, PRV, AES_BLOCK_SIZE) != 0);
+
+    if (rc) {
+	fprintf(stderr, "AES-XCBC-PRF-128 test vectors FAILED\n");
+	exit(-1);
+    }
+
+    if (verbose)
+	fprintf(stderr, "PASSED\n");
+}
+
+static void check_pbkdf_timing(int verbose)
+{
+    struct timeval begin, end;
+    uint8_t password[8], salt[8], key[48];
+
+    if (verbose)
+	fprintf(stderr, "Password Based Key Derivation:  ");
+
+    memset(password, 0, sizeof(password));
+
+    gettimeofday(&begin, NULL);
+    secure_pbkdf(password, sizeof(password), salt, sizeof(salt),
+		 SECURE_PBKDF_ITERATIONS, key, sizeof(key));
+    gettimeofday(&end, NULL);
+
+    end.tv_sec -= begin.tv_sec;
+    end.tv_usec += 1000000 * end.tv_sec;
+    end.tv_usec -= begin.tv_usec;
+
+    /* How can we possibly do a pass/fail test on this?
+     *
+     * Clearly the security is based on the assumption that there are no
+     * shortcuts in the algorithm, and that someone has to revert to brute
+     * force password guessing.
+     *
+     * Now if we assume that it is probable that someone has a 10x faster
+     * implementation he can do close to 1313 operations per second on a
+     * 3GHz P4 (my machine seems to do 131.3 ops/s) and has ~1000 machines
+     * available and as such divides the keyspace by 2^10.
+     *
+     * If the password only consists of lowercase alpha characters, we have
+     * 40-bits from an 8 character secret. And a full search can be done in
+     * less than 10 days. But then again, lowercase only passwords have been
+     * considered weak for several years now.
+     *
+     * With a random alpha-numeric (mixed case) 8 character password, we have
+     * almost 48 bits and under the same assumptions it would take the attacker
+     * close to 2500 days (a more than 6 years).
+     *
+     * A truly random 8 byte secret (i.e. old Coda tokens) increases the
+     * time it takes to brute force the secret significantly (435,000 years).
+     *
+     * Of course computers are getting faster and cheaper. Maybe a hardware
+     * based implementation is already 100x faster, and someone has enough
+     * money to put a million of those in parallel.
+     *
+     * The best approach is probably to try to make our implementation as
+     * optimized as possible (so someone cannot be a 10-100x faster), and keep
+     * the cost high enough by increasing SECURE_PBKDF_ITERATIONS once in a
+     * while.
+     *
+     * With 10000 iterations,
+     *	600MHz PIII, 20 ops/s
+     *	3.2GHz P4,  133 ops/s
+     */
+
+    if (end.tv_usec <= 1000) /* i.e. >= 1000 ops/s */
+	fprintf(stderr, "WARNING: Password Based Key Derivation ");
+
+    if (verbose || end.tv_usec < 1000)
+	fprintf(stderr, "%.02f ops/s\n", 1000000.0 / end.tv_usec);
+}
+
 void secure_aes_init(int verbose)
 {
     static int initialized = 0;
@@ -393,5 +536,7 @@ void secure_aes_init(int verbose)
     check_aes_variable_text(verbose);
     check_aes_variable_key(verbose);
     check_aes_cbc(verbose);
+    check_aes_xcbc_prf(verbose);
+    check_pbkdf_timing(verbose);
 }
 
