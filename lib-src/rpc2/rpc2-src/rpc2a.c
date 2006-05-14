@@ -234,10 +234,13 @@ static int setup_init1_key(int (*init)(struct security_association *sa,
 				       const struct secure_auth *auth,
 				       const struct secure_encr *encr,
 				       const uint8_t *key, size_t len),
-			   struct CEntry *ce, RPC2_EncryptionKey secret)
+			   struct security_association *sa,
+			   uint32_t xrandom, uint32_t unique,
+			   RPC2_EncryptionKey secret)
 {
     const struct secure_auth *auth;
     const struct secure_encr *encr;
+    uint8_t salt[8];
     uint8_t key[48]; /* 256-bits for encryption + 128-bits for authentication */
     int rc;
 
@@ -245,12 +248,15 @@ static int setup_init1_key(int (*init)(struct security_association *sa,
     encr = secure_get_encr_byid(SECURE_ENCR_AES_CBC);
     if (!auth || !encr) return -1;
 
+    ((int32_t *)salt)[0] = xrandom;
+    ((int32_t *)salt)[1] = htonl(unique);
+
     rc = secure_pbkdf(secret, sizeof(RPC2_EncryptionKey),
-		      (uint8_t *)&ce->PeerUnique, sizeof(RPC2_Integer),
-		      SECURE_PBKDF_ITERATIONS, key, sizeof(key));
+		      salt, sizeof(salt), SECURE_PBKDF_ITERATIONS,
+		      key, sizeof(key));
     if (rc) return -1;
 
-    rc = init(&ce->sa, auth, encr, key, sizeof(key));
+    rc = init(sa, auth, encr, key, sizeof(key));
     memset(key, 0, sizeof(key));
     return rc;
 }
@@ -435,7 +441,8 @@ long RPC2_GetRequest(IN RPC2_RequestFilter *Filter,
     /* new bind sequence */
     if (pb->Header.Flags & RPC2SEC_CAPABLE) {
 	/* setup xmit key so we can reply with encrypted key material */
-	rc = setup_init1_key(secure_setup_encrypt, ce, SharedSecret);
+	rc = setup_init1_key(secure_setup_encrypt, &ce->sa, XRandom,
+			     ce->PeerUnique, SharedSecret);
 	if (rc) {
 	    RejectBind(ce, sizeof(struct Init2Body), RPC2_INIT2);
 	    rc = RPC2_FAIL;
@@ -739,7 +746,8 @@ try_next_addr:
     else memset(rpc2key, 0, sizeof(RPC2_EncryptionKey));
 
     /* set up decryption/validation context */
-    rc = setup_init1_key(secure_setup_decrypt, ce, rpc2key);
+    rc = setup_init1_key(secure_setup_decrypt, &ce->sa, xrandom, ce->PeerUnique,
+			 rpc2key);
     if (rc) {
 	say(0, RPC2_DebugLevel, "Failed to initialize security context\n");
 	rpc2_Quit(RPC2_FAIL);
@@ -830,7 +838,7 @@ try_next_addr:
 
     rpc2_htonp(pb);	/* convert header to network order */
 
-    ib->XRandom = htonl(xrandom);
+    ib->XRandom = xrandom;
     if (Bparms->SecurityLevel != RPC2_OPENKIMONO)
     {
 	/* Same decryption steps as used on the server. */
