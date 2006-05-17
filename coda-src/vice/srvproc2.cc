@@ -154,8 +154,14 @@ long FS_ViceDisconnectFS(RPC2_Handle RPCid)
 */
 long FS_TokenExpired(RPC2_Handle RPCid)
 {
+    ClientEntry *client = 0;
+    long   errorCode;
+
     SLog(100, "TokenExpired");
-    FS_ViceDisconnectFS(RPCid);
+    errorCode = RPC2_GetPrivatePointer(RPCid, (char **)&client);
+
+    if (!errorCode && client)
+	CLIENT_CleanUpHost(client->VenusId);
 
     return(RPC2_NAKED);
 }
