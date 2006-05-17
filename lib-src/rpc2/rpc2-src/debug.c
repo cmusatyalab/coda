@@ -297,8 +297,8 @@ void rpc2_PrintMEntry(struct MEntry *mPtr, FILE *tFile)
 	    default: fprintf(tFile, "??????"); break;
 	    }
 
-    fprintf(tFile, "\n\tMgrpID = %#x  NextSeqNumber = %d  SubsysID = %d\n",
-    	mPtr->MgroupID, mPtr->NextSeqNumber, mPtr->SubsysId);
+    fprintf(tFile, "\n\tMgrpID = %#x  NextSeqNumber = %d\n",
+	    mPtr->MgroupID, mPtr->NextSeqNumber);
 	
     fprintf(tFile, "Client Host Ident: ");
     rpc2_printaddrinfo(mPtr->ClientAddr, tFile);
@@ -307,8 +307,6 @@ void rpc2_PrintMEntry(struct MEntry *mPtr, FILE *tFile)
     if (TestRole(mPtr,CLIENT)) {
 	fprintf(tFile, "\n\tMaxlisteners = %ld  Listeners = %ld\n",
 	    mPtr->me_conns.me_client.mec_maxlisteners, mPtr->me_conns.me_client.mec_howmanylisteners);
-	fprintf(tFile, "Current multicast packet:\n");
-	rpc2_PrintPacketHeader(mPtr->CurrentPacket, tFile);
     }
     else {
 	fprintf(tFile, "Client CEntry:\n");

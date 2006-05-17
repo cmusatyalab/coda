@@ -149,7 +149,6 @@ struct MEntry *rpc2_AllocMgrp(struct RPC2_addrinfo *addr, RPC2_Handle handle)
     assert(me->MagicNumber == OBJ_MENTRY);
     me->ClientAddr = RPC2_copyaddrinfo(addr);
     me->MgroupID = mgrpid;
-    me->Flags = 0;
     me->SEProcs = NULL;
     me->SideEffectPtr = NULL;
     return(me);
@@ -274,34 +273,11 @@ long RPC2_CreateMgrp(OUT MgroupHandle, IN MulticastHost, IN MulticastPort, IN Su
     SetState(me, C_THINK);
     me->NextSeqNumber = 0;
 
-    me->SecurityLevel = SecurityLevel;
-    if (me->SecurityLevel == RPC2_OPENKIMONO) {
-	memset(me->SessionKey, 0, sizeof(RPC2_EncryptionKey));
-	me->EncryptionType = 0;
-    }
-    else {
-    	memcpy(me->SessionKey, SessionKey, sizeof(RPC2_EncryptionKey));
-    	me->EncryptionType = EncryptionType;
-    }
-
     me->listeners = (struct CEntry **)malloc(LISTENERALLOCSIZE*sizeof(struct CEntry *));
     assert(me->listeners != NULL);
     memset(me->listeners, 0, LISTENERALLOCSIZE*sizeof(struct CEntry *));
     me->howmanylisteners = 0;
     me->maxlisteners = LISTENERALLOCSIZE;
-
-    me->CurrentPacket = (RPC2_PacketBuffer *)NULL;
-
-    switch(Subsys->Tag)
-	{
-	case RPC2_SUBSYSBYID:
-	    me->SubsysId = Subsys->Value.SubsysId;
-	    break;
-
-	case RPC2_SUBSYSBYNAME:
-		say(-1, RPC2_DebugLevel, "RPC2_SUBSYSBYNAME has been banned\n");
-	default:    assert(FALSE);
-	}
 
     /* Obtain pointer to appropriate set of side effect routines */
     if (SideEffectType != 0)
@@ -390,19 +366,6 @@ say(0, RPC2_DebugLevel, "Enqueuing on connection %#x\n",ConnHandle);
 	say(0, RPC2_DebugLevel, "Dequeueing on connection %#x\n", ConnHandle);
 	}
 
-    /* Check that the connection's SubsysId matches that of the mgrp. */
-    if (me->SubsysId != ce->SubsysId)
-	rpc2_Quit(RPC2_BADMGROUP);
-
-    /* Check that the connection's security level and encryption type
-       match that of the mgrp. */
-    /* QUESTION: if both Mgroup and Connection security levels = open
-       kimono, should we bother checking that the Encryption Types are
-       equivalent? */
-    if ((me->SecurityLevel != ce->SecurityLevel) || 
-        (me->SecurityLevel != RPC2_OPENKIMONO && me->EncryptionType != ce->EncryptionType))
-	    rpc2_Quit(RPC2_BADMGROUP);
-    
     /* Check that the connection has the same side-effect type as the
        multicast group */
     if (me->SEProcs != ce->SEProcs)
@@ -420,7 +383,6 @@ say(0, RPC2_DebugLevel, "Enqueuing on connection %#x\n",ConnHandle);
     imb = (struct InitMulticastBody *)pb->Body;
     imb->MgroupHandle = htonl(me->MgroupID);
     imb->InitialSeqNumber = htonl(me->NextSeqNumber);
-    memcpy(imb->SessionKey, me->SessionKey, sizeof(RPC2_EncryptionKey));
 
     /* Notify side-effect routine, if any */
     savedpkt = pb;
@@ -687,11 +649,7 @@ void HandleInitMulticast(RPC2_PacketBuffer *pb, struct CEntry *ce)
     me = rpc2_AllocMgrp(ce->HostInfo->Addr, imb->MgroupHandle);
     SetRole(me, SERVER);
     SetState(me, S_AWAITREQUEST);
-    me->SubsysId = ce->SubsysId;
     me->NextSeqNumber = imb->InitialSeqNumber;
-    me->SecurityLevel = ce->SecurityLevel;
-    memcpy(me->SessionKey, imb->SessionKey, sizeof(RPC2_EncryptionKey));
-    me->EncryptionType = ce->EncryptionType;
     me->conn = ce;
     ce->Mgrp = me;
     me->SEProcs = ce->SEProcs;

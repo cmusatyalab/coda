@@ -162,7 +162,7 @@ struct CEntry		/* describes a single RPC connection */
     /* State, identity  and sequencing */
     long State;
     RPC2_Handle  UniqueCID;
-    RPC2_Unsigned NextSeqNumber;	
+    RPC2_Unsigned NextSeqNumber;
     RPC2_Integer SubsysId;
     RPC2_Integer Flags;	    /* CE_OLDV ? */
     time_t LastRef;    			/* when CEntry was last looked up */
@@ -229,13 +229,6 @@ struct MEntry			/* describes an RPC multicast connection */
     struct RPC2_addrinfo    *ClientAddr;    /* |		*/
     RPC2_Handle		    MgroupID;	    /* |		*/
     RPC2_Integer	    NextSeqNumber;  /* for mgrp connection */
-    RPC2_Integer	    SubsysId;
-    RPC2_Integer	    Flags;
-
-    /* Security */
-    RPC2_Integer	    SecurityLevel;
-    RPC2_EncryptionKey	    SessionKey;
-    RPC2_Integer	    EncryptionType;
 
     /* Auxiliary stuff */
     struct SE_Definition *SEProcs;	/* pointer to side effect routines */
@@ -257,9 +250,6 @@ struct MEntry			/* describes an RPC multicast connection */
 #define	howmanylisteners    me_conns.me_client.mec_howmanylisteners
 #define	maxlisteners	    me_conns.me_client.mec_maxlisteners
 #define	conn		    me_conns.mes_conn
-
-    /* Other information - Only needed by client */
-    RPC2_PacketBuffer	    *CurrentPacket; /* current multicast packet */
 	};
 
 
@@ -297,7 +287,7 @@ enum RetVal {WAITING=38358230, ARRIVED=38358231, TIMEOUT=38358232,
 	KEPTALIVE=38358233, KILLED=38358234, NAKED=38358235};
 
 /* data structure for communication with SocketListener */
-struct SL_Entry		
+struct SL_Entry
     {
     /* LinkEntry fields */
     struct SL_Entry *NextEntry;
@@ -305,11 +295,11 @@ struct SL_Entry
     enum {OBJ_SLENTRY = 107} MagicNumber;
     struct SL_Entry *Qname;
 
-    enum SL_Type Type;    
+    enum SL_Type Type;
 
     /* Timeout-related fields */
     struct TM_Elem TElem;	/* element  to be inserted into  timer chain;
-				    The BackPointer field of TElem will 
+				    The BackPointer field of TElem will
 				    point to this SL_Entry */
     enum RetVal ReturnCode;     /* SocketListener changes this from WAITING */
 
@@ -332,7 +322,7 @@ struct SubsysEntry	/* Defines a subsystem being actively serviced by a server */
 
 
 /* extend with other side effect types */
-typedef enum {UNSET_HE = 0, RPC2_HE = 1, SMARTFTP_HE = 2} HEType;	
+typedef enum {UNSET_HE = 0, RPC2_HE = 1, SMARTFTP_HE = 2} HEType;
 
 struct HEntry {
     /* Link Entry Pointers */
