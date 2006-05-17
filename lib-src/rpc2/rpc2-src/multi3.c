@@ -248,22 +248,6 @@ long RPC2_CreateMgrp(OUT MgroupHandle, IN MulticastHost, IN MulticastPort, IN Su
 
     TR_CREATEMGRP();
 
-    /* Validate the security parameters. */
-    switch ((int) SecurityLevel)
-	{
-	case RPC2_OPENKIMONO:
-		break;
-
-	case RPC2_AUTHONLY:
-	case RPC2_HEADERSONLY:
-	case RPC2_SECURE:
-		if ((EncryptionType & RPC2_ENCRYPTIONTYPES) == 0) rpc2_Quit(RPC2_FAIL); 	/* unknown encryption type */
-		if (MORETHANONEBITSET(EncryptionType)) rpc2_Quit(RPC2_FAIL);	/* tell me just one */
-		break;
-		
-	default:    rpc2_Quit(RPC2_FAIL);	/* bogus security level */
-	}
-
     /* Get an mgrp entry and initialize it. */
     me = rpc2_AllocMgrp(NULL, 0);
     assert(me != NULL);
@@ -381,6 +365,7 @@ say(0, RPC2_DebugLevel, "Enqueuing on connection %#x\n",ConnHandle);
     pb->Header.SeqNumber = ce->NextSeqNumber;
 
     imb = (struct InitMulticastBody *)pb->Body;
+    memset(imb, 0, sizeof(struct InitMulticastBody));
     imb->MgroupHandle = htonl(me->MgroupID);
     imb->InitialSeqNumber = htonl(me->NextSeqNumber);
 
@@ -388,7 +373,7 @@ say(0, RPC2_DebugLevel, "Enqueuing on connection %#x\n",ConnHandle);
     savedpkt = pb;
     if (me->SEProcs != NULL && me->SEProcs->SE_AddToMgrp != NULL){
 	    secode = (*me->SEProcs->SE_AddToMgrp)(MgroupHandle, ConnHandle, &pb);
-	    if (pb != savedpkt) 
+	    if (pb != savedpkt)
 		    RPC2_FreeBuffer(&savedpkt);	    /* free old buffer */
 	    if (secode != RPC2_SUCCESS) {
 		    RPC2_FreeBuffer(&pb);
