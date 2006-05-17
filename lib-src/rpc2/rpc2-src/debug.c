@@ -244,9 +244,7 @@ void rpc2_PrintCEntry(struct CEntry *cPtr, FILE *tFile)
     fprintf(tFile, "\n\tSecurityLevel = %s", cPtr->SecurityLevel == RPC2_OPENKIMONO ? "RPC2_OPENKIMONO" : 
 	(cPtr->SecurityLevel == RPC2_AUTHONLY ? "RPC2_AUTHONLY" : (cPtr->SecurityLevel == RPC2_SECURE ? "RPC2_SECURE" : 
 	(cPtr->SecurityLevel == RPC2_HEADERSONLY ? "RPC2_HEADERSONLY" :"??????"))));
-    fprintf(tFile, "  EncryptionType = %d  SessionKey = 0x", cPtr->EncryptionType);
-    for(i = 0; i < RPC2_KEYSIZE; i++)fprintf(tFile, "%02x", cPtr->SessionKey[i]);
-	
+
     fprintf(tFile, "\n\tUniqueCID = %#x  NextSeqNumber = %d  PeerHandle = %#x\n\tPrivatePtr = %p  SideEffectPtr = %p\n",
     	cPtr->UniqueCID, cPtr->NextSeqNumber, cPtr->PeerHandle, cPtr->PrivatePtr, cPtr->SideEffectPtr);
 	
@@ -274,7 +272,6 @@ void rpc2_PrintCEntry(struct CEntry *cPtr, FILE *tFile)
 
 void rpc2_PrintMEntry(struct MEntry *mPtr, FILE *tFile)
 {
-    long i;
     if (tFile == NULL) tFile = rpc2_logfile;	/* it's ok, call-by-value */
     fprintf(tFile, "MyAddr: 0x%lx\n\tNextEntry = 0x%lx  PrevEntry = 0x%lx  MagicNumber = %s  Role = %s  State = ",
 	(long)mPtr, (long)mPtr->Next, (long)mPtr->Prev,
@@ -299,12 +296,6 @@ void rpc2_PrintMEntry(struct MEntry *mPtr, FILE *tFile)
 	    case S_AWAITENABLE: fprintf(tFile, "S_AWAITENABLE");break;
 	    default: fprintf(tFile, "??????"); break;
 	    }
-
-    fprintf(tFile, "\n\tSecurityLevel = %s", mPtr->SecurityLevel == RPC2_OPENKIMONO ? "RPC2_OPENKIMONO" : 
-	(mPtr->SecurityLevel == RPC2_AUTHONLY ? "RPC2_AUTHONLY" : (mPtr->SecurityLevel == RPC2_SECURE ? "RPC2_SECURE" : 
-	(mPtr->SecurityLevel == RPC2_HEADERSONLY ? "RPC2_HEADERSONLY" :"??????"))));
-    fprintf(tFile, "  EncryptionType = %d  SessionKey = 0x", mPtr->EncryptionType);
-    for(i = 0; i < RPC2_KEYSIZE; i++)fprintf(tFile, "%lx", (long)mPtr->SessionKey[i]);
 
     fprintf(tFile, "\n\tMgrpID = %#x  NextSeqNumber = %d  SubsysID = %d\n",
     	mPtr->MgroupID, mPtr->NextSeqNumber, mPtr->SubsysId);
@@ -600,7 +591,6 @@ void rpc2_PrintTraceElem(struct TraceElem *whichTE, long whichIndex,
 		fprintf(outFile, "Filter: "); rpc2_PrintFilter(&tea->Filter, outFile);
 		if (tea->IsNullBreathOfLife) fprintf(outFile, "BreathOfLife:  NULL\n");
 		else fprintf(outFile, "BreathOfLife:	%ld.%ld\n", tea->BreathOfLife.tv_sec, tea->BreathOfLife.tv_usec);
-		fprintf(outFile, "GetKeys: 0x%lx    EncryptionTypeMask: 0x%x\n", (long)tea->GetKeys, tea->EncryptionTypeMask);
 		break;	/* switch */
 		}
 
@@ -639,10 +629,6 @@ void rpc2_PrintTraceElem(struct TraceElem *whichTE, long whichIndex,
 		{
 		struct te_BIND *tea;
 		tea = &whichTE->Args.BindEntry;
-		fprintf(outFile, "SecurityLevel:   %s    EncryptionType: %d\n", (tea->SecurityLevel == RPC2_OPENKIMONO) ? "RPC2_OPENKIMONO" :
-			(tea->SecurityLevel == RPC2_SECURE) ? "RPC2_SECURE" : (tea->SecurityLevel == RPC2_AUTHONLY) ?
-			"RPC2_ONLYAUTHENTICATE" : (tea->SecurityLevel == RPC2_HEADERSONLY) ? "RPC2_HEADERSONLY" : "????????", 
-			tea->EncryptionType);
 		switch (tea->Host.Tag)
 		    {
 		    case RPC2_HOSTBYNAME:
@@ -710,14 +696,6 @@ void rpc2_PrintTraceElem(struct TraceElem *whichTE, long whichIndex,
 		    if (max < tea->ClientIdent.SeqLen) fprintf(outFile, ".....");
 		    fprintf(outFile, "\"\n");
 		    }
-		if (tea->IsNullSharedSecret) fprintf(outFile, "SharedSecret:    NULL\n");		
-		else
-		    {
-		    fprintf(outFile, "SharedSecret:    0x");
-			for (i = 0; i < sizeof(RPC2_EncryptionKey); i++) fprintf(outFile, "%lx", (long)(tea->SharedSecret)[i]);
-		    fprintf(outFile, "\n");
-		    }
-		
 		break;	/* switch */
 		}
 
@@ -859,11 +837,6 @@ void rpc2_PrintTraceElem(struct TraceElem *whichTE, long whichIndex,
 		fprintf(outFile, "           ");
 		fprintf(outFile, "Subsystem:        ");
 		rpc2_PrintSubsysIdent(&(tea->Subsys), outFile);
-		fprintf(outFile, "           ");
-		fprintf(outFile, "SecurityLevel = %s", tea->SecurityLevel == RPC2_OPENKIMONO ? "RPC2_OPENKIMONO" : (tea->SecurityLevel == RPC2_AUTHONLY ? "RPC2_AUTHONLY" : (tea->SecurityLevel == RPC2_SECURE ? "RPC2_SECURE" : (tea->SecurityLevel == RPC2_HEADERSONLY ? "RPC2_HEADERSONLY" :"??????"))));
-		fprintf(outFile, "  IsEncrypted = %s  ", (tea->IsEncrypted) ? "TRUE" : "FALSE");
-		fprintf(outFile, "  EncryptionType = %d  SessionKey = 0x", tea->EncryptionType);
-		for(i = 0; i < RPC2_KEYSIZE; i++)fprintf(outFile, "%lx", (long)tea->SessionKey[i]);
 		fprintf(outFile, "\n");
 		break; /* switch */
 		}

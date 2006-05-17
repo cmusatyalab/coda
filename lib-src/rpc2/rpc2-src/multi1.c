@@ -318,10 +318,6 @@ static void SetupPackets(int HowMany, MultiCon *mcon,
 	    thisreq->Header.BindTime = 1;  /* ugh. zero is overloaded. */
 
 	thisreq->Header.Flags = 0;
-
-	if (thisconn->SecurityLevel == RPC2_HEADERSONLY ||
-	    thisconn->SecurityLevel == RPC2_SECURE)
-	    thisreq->Header.Flags |= RPC2_ENCRYPTED;
     }
 
     /* Notify side effect routine, if any. */
@@ -390,30 +386,11 @@ static void SetupPackets(int HowMany, MultiCon *mcon,
 	rpc2_htonp(thisreq);
 
 	/* Encrypt appropriate portions of the packet */
-	switch ((int) thisconn->SecurityLevel)
-	{
-	case RPC2_OPENKIMONO:
-	case RPC2_AUTHONLY:
-	    break;
-
-	case RPC2_HEADERSONLY:
-	    rpc2_Encrypt((char *)&thisreq->Header.BodyLength,
-			 (char *)&thisreq->Header.BodyLength,
-			 sizeof(struct RPC2_PacketHeader) - 4*sizeof(RPC2_Integer),
-			 thisconn->SessionKey, thisconn->EncryptionType);
-	    break;
-
-	case RPC2_SECURE:
-	    rpc2_Encrypt((char *)&thisreq->Header.BodyLength,
-			 (char *)&thisreq->Header.BodyLength,
-			 thisreq->Prefix.LengthOfPacket - 4*sizeof(RPC2_Integer),
-			 thisconn->SessionKey, thisconn->EncryptionType);
-	    break;
-	}
+	rpc2_ApplyE(thisreq, thisconn);
     }
 }
 
-	
+
 /* Get a free context */
 static MultiCon *InitMultiCon(int count)
 {

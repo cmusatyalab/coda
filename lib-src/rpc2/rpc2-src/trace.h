@@ -159,8 +159,6 @@ struct TraceElem
 	    int IsNullClientIdent;
 	    RPC2_CountedBS ClientIdent;
 	    char ClientIdent_Value[20];
-	    int IsNullSharedSecret;
-	    RPC2_EncryptionKey SharedSecret;
 	    }
 	    BindEntry;
 
@@ -271,10 +269,6 @@ struct TraceElem
 	    RPC2_McastIdent McastHost;
 	    RPC2_PortIdent Port;
 	    RPC2_SubsysIdent Subsys;
-	    RPC2_Integer SecurityLevel;
-	    int IsEncrypted;
-	    RPC2_EncryptionKey SessionKey;
-	    RPC2_Integer EncryptionType;
 	    }
 	    CreateMgrpEntry;
 
@@ -400,8 +394,6 @@ struct TraceElem
 		memcpy(tea->ClientIdent_Value, Bparms->ClientIdent->SeqBody, Bparms->ClientIdent->SeqLen);\
 	    else memcpy(tea->ClientIdent_Value, Bparms->ClientIdent->SeqBody, sizeof(tea->ClientIdent_Value));\
 	    }\
-	if (Bparms->SharedSecret == NULL) tea->IsNullSharedSecret = TRUE;\
-	else {tea->IsNullSharedSecret = FALSE; memcpy(tea->SharedSecret, Bparms->SharedSecret, sizeof(RPC2_EncryptionKey));}\
 	} } while (0)
 
 #define TR_INITSE()do {\
@@ -556,10 +548,6 @@ struct TraceElem
 	tea->MgroupHandle = *MgroupHandle;\
 	tea->McastHost = *MulticastHost;    /* structure assignment */\
 	tea->Subsys = *Subsys;		    /* structure assignment */\
-	tea->SecurityLevel = SecurityLevel;\
-	tea->IsEncrypted = ((SessionKey == NULL) ? 0 : 1);\
-	if (tea->IsEncrypted) memcpy(tea->SessionKey, SessionKey, sizeof(RPC2_EncryptionKey));\
-	tea->EncryptionType = EncryptionType;\
 	} } while(0)
 
 #define TR_ADDTOMGRP() do {\

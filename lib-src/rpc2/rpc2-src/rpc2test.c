@@ -123,7 +123,7 @@ struct CVEntry
     RPC2_HostIdent RemoteHost; 
     RPC2_CountedBS Identity;
     long SecurityLevel;
-    char  Password[RPC2_KEYSIZE+1];	/* 1 for trailing null */
+    RPC2_EncryptionKey Password;
     char NameBuf[30];
     };
 
@@ -636,10 +636,10 @@ static void ClientBody(void *arg)
 		bp.EncryptionType = RPC2_XOR;
 		bp.SideEffectType = SMARTFTP;
 		bp.ClientIdent = &ConnVector[thisconn].Identity;
-		bp.SharedSecret = (RPC2_EncryptionKey *)ConnVector[thisconn].Password; 
+		bp.SharedSecret = &ConnVector[thisconn].Password;
 		retcode = RPC2_NewBinding(&ConnVector[thisconn].RemoteHost,
-					  &PortId, &SubsysId, &bp, 
-					  &ConnVector[thisconn].ConnHandle); 
+					  &PortId, &SubsysId, &bp,
+					  &ConnVector[thisconn].ConnHandle);
 		if (retcode < RPC2_ELIMIT)
 		    {
 		    HandleRPCFailure(thisconn, retcode, ntohl(request->Header.Opcode));
@@ -713,9 +713,9 @@ static long GetPasswd(RPC2_Integer *AuthenticationType, RPC2_CountedBS *Who,
     for (i = 0; i < maxpw; i++)
 	if(strcmp((char *)PList[i].name, (char *)Who->SeqBody) == 0)
 	    {
-	    memcpy(Key1, "          ", RPC2_KEYSIZE);
+	    memcpy(Key1, "          ", sizeof(RPC2_EncryptionKey));
 	    strcpy((char *)Key1, PList[i].password);
-	    memcpy(Key2, Key1, RPC2_KEYSIZE);
+	    memcpy(Key2, Key1, sizeof(RPC2_EncryptionKey));
 	    return(0);
 	    }
     return(-1);
@@ -785,9 +785,9 @@ static void DoBindings(void)
 	 bp.EncryptionType = RPC2_XOR;
 	 bp.SideEffectType = SMARTFTP;
 	 bp.ClientIdent = &ConnVector[i].Identity;
-	 bp.SharedSecret = (RPC2_EncryptionKey *)ConnVector[i].Password;
-	 rc = RPC2_NewBinding(&ConnVector[i].RemoteHost, &PortId, 
-			      &SubsysId, &bp,&ConnVector[i].ConnHandle); 
+	 bp.SharedSecret = &ConnVector[i].Password;
+	 rc = RPC2_NewBinding(&ConnVector[i].RemoteHost, &PortId,
+			      &SubsysId, &bp,&ConnVector[i].ConnHandle);
 	if (rc < RPC2_ELIMIT)
 	     {
 	     printf("Couldn't bind to %s for %s ---> %s\n", ConnVector[i].RemoteHost.Value.Name,

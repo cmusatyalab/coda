@@ -470,6 +470,9 @@ long RPC2_GetRequest(IN RPC2_RequestFilter *Filter,
 	    DROPIT();
 	}
 
+	/* It is probably safer to ignore the SessionKey returned by GetKeys. */
+	secure_random_bytes(ce->SessionKey, sizeof(RPC2_EncryptionKey));
+
 	rc = ServerHandShake(ce, XRandom, SharedSecret, 0, 0);
 	if (rc != RPC2_SUCCESS)
 	    DROPIT();
@@ -517,12 +520,12 @@ long RPC2_MakeRPC(RPC2_Handle ConnHandle, RPC2_PacketBuffer *Request,
 
     rpc2_Enter();
     say(0, RPC2_DebugLevel, "RPC2_MakeRPC()\n");
-	    
+
     TR_MAKERPC();
 
     /* Perform sanity checks */
     assert(Request->Prefix.MagicNumber == OBJ_PACKETBUFFER);
-    
+
     /* Zero out reply pointer */
     *Reply = NULL;
 
@@ -579,7 +582,7 @@ long RPC2_MakeRPC(RPC2_Handle ConnHandle, RPC2_PacketBuffer *Request,
     /* create call entry */
     sl = rpc2_AllocSle(OTHER, ce);
     rc = rpc2_SendReliably(ce, sl, preq, BreathOfLife);
-    
+
     switch((int) rc)
 	{
 	case RPC2_SUCCESS:	break;
@@ -596,11 +599,10 @@ long RPC2_MakeRPC(RPC2_Handle ConnHandle, RPC2_PacketBuffer *Request,
 	default:		assert(FALSE);
 	}
 
-    
     switch(sl->ReturnCode)
 	{
 	case ARRIVED:
-		say(9, RPC2_DebugLevel, 
+		say(9, RPC2_DebugLevel,
 			"Request reliably sent on %#x\n", ConnHandle);
 		*Reply = preply = sl->Packet;
 		rpc2_FreeSle(&sl);
@@ -650,7 +652,7 @@ SendReliablyError:
 
     if (rc == RPC2_SUCCESS)
 	{
-	if (SDesc != NULL && (secode != RPC2_SUCCESS || 
+	if (SDesc != NULL && (secode != RPC2_SUCCESS ||
     		SDesc->LocalStatus == SE_FAILURE || SDesc->RemoteStatus == SE_FAILURE))
 	    {
 	    finalrc = RPC2_SEFAIL1;
@@ -658,7 +660,7 @@ SendReliablyError:
 	else finalrc = RPC2_SUCCESS;
 	}
     else finalrc = rc;
-    
+
 QuitMRPC: /* finalrc has been correctly set by now */
 
     /* wake up any enqueue'd threads */
@@ -841,7 +843,7 @@ try_next_addr:
     ib->XRandom = xrandom;
     if (Bparms->SecurityLevel != RPC2_OPENKIMONO)
     {
-	/* Same decryption steps as used on the server. */
+	/* Same decryption step as used on the server. */
 	rpc2_Decrypt((char *)&ib->XRandom, (char *)&xrandom, sizeof(xrandom),
 		     *Bparms->SharedSecret, Bparms->EncryptionType);
 	xrandom = ntohl(xrandom);

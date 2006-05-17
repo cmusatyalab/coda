@@ -1054,37 +1054,39 @@ int sftp_ReadStrategy(struct SFTP_Entry *sEntry)
     
     /* Did we hit EOF? */
     if (bytesread == byteswanted)
-	{/* EOF not seen yet */
+    {/* EOF not seen yet */
 	sEntry->ReadAheadCount = sEntry->SendAhead;
-	if (sEntry->PInfo.SecurityLevel == RPC2_SECURE)
+	if (!sEntry->sa->encrypt && sEntry->PInfo.SecurityLevel == RPC2_SECURE)
+	{
 	    /* Encrypt all packets here */
 	    for (i = 1; i < 1 + sEntry->SendAhead; i++)
-		{
+	    {
 		j = PBUFF((sEntry->SendMostRecent + i));
 		pb = sEntry->ThesePackets[j];
 		sftp_Encrypt(pb, sEntry);
 		pb->Header.Flags = htonl(ntohl(pb->Header.Flags) | RPC2_ENCRYPTED);
-		}
-	return(0);
+	    }
 	}
+	return(0);
+    }
     
     /* Alas, we did  */
     sEntry->HitEOF = TRUE;
     for (i = 1; i < sEntry->SendAhead + 1; i++)
-	{
+    {
 	if (bytesread > iovarray[i-1].iov_len)
-	    {
+	{
 	    bytesread -= iovarray[i-1].iov_len;
-	    if (sEntry->PInfo.SecurityLevel == RPC2_SECURE)
-		{
+	    if (!sEntry->sa->encrypt && sEntry->PInfo.SecurityLevel == RPC2_SECURE)
+	    {
 		/* encrypt packet */
 		j = PBUFF((sEntry->SendMostRecent + i));
 		pb = sEntry->ThesePackets[j];
 		sftp_Encrypt(pb, sEntry);
 		pb->Header.Flags |= RPC2_ENCRYPTED;
-	    	}
-	    continue;
 	    }
+	    continue;
+	}
 
 	/* this is the packet with the last data byte */
 	pb = sEntry->ThesePackets[PBUFF((sEntry->SendMostRecent + i))];
@@ -1094,13 +1096,13 @@ int sftp_ReadStrategy(struct SFTP_Entry *sEntry)
 	pb->Header.Flags |= SFTP_ACKME;	/* first transmission of last packet always acked */
 	pb->Prefix.LengthOfPacket = sizeof(struct RPC2_PacketHeader) + bytesread;
 	rpc2_htonp(pb);
-	if (sEntry->PInfo.SecurityLevel == RPC2_SECURE)
-	    {
+	if (!sEntry->sa->encrypt && sEntry->PInfo.SecurityLevel == RPC2_SECURE)
+	{
 	    sftp_Encrypt(pb, sEntry);
 	    pb->Header.Flags = htonl(ntohl(pb->Header.Flags) | RPC2_ENCRYPTED);
-	    }
-	break;
 	}
+	break;
+    }
 	
     sEntry->ReadAheadCount = i;
     /* release excess packets */
