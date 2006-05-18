@@ -1,3 +1,23 @@
+New in 2.0:
+
+* Removed unused multicast code.
+* Filter requests based on the subsystem we authenticated with.
+* New security framework that provides strong encryption.
+* Various standard encryption/authentication modes,
+    PKCS#5 v2.0 key derivation			(RFC 2898)
+    AES-XCBC-MAC-96 authentication		(RFC 3566)
+    AES-CBC encryption			 	(RFC 3602)
+    AES-CCM combined encryption/authentication	(RFC 4309)
+    AES-XCBC-PRF-128 pseudo random function	(RFC 4434)
+* Allow user to set minimum key length with RPC2SEC_KEYSIZE envvar.
+* Allow user to avoid reverting back to the old compatible handshake/xor
+  binding by setting the RPC2SEC_ONLY envvar.
+* Log packets larger than the IPv6 minimum MTU.
+* Automake cleanups, compile with -Wall, various other cleanups.
+* Attempt to fix conflicts with the Debian rpc2-4 package.
+* Replace incorrect %{_buildroot} with %{_builddir} in the RPM spec file.
+* rpc2 doesn't build on netbsd/sparc64 2.0ish (Greg Troxel)
+
 New in 1.28:
 
 * Do not truncate random numbers to 15 bits.
