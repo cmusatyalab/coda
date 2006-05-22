@@ -5,3 +5,4 @@ EXTRA_DIST = changelog compat control copyright dirs librpc2-4.docs \
     rules watch
 
 MAINTAINERCLEANFILES = Makefile.in changelog
+CONFIG_CLEAN_FILES =
