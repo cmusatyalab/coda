@@ -71,7 +71,10 @@ int secure_pbkdf(const uint8_t *password, size_t plen,
     /* recommended minimum number of iterations is 1000 */
     if (iterations < 1000) iterations = 1000;
 
-    memcpy(U0, salt, slen);
+    memset(U0, 0, U0len);
+    if (salt && slen)
+	memcpy(U0, salt, slen);
+
     for (i = 1; i <= nblocks; i++) {
 	F(ctx, U0, U0len, i, iterations, key);
 	key += AES_BLOCK_SIZE;
