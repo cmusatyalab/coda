@@ -56,6 +56,6 @@ parser: ${OBJECTS} $(DEPLIBS)
 resolver_parser.o: resolver_parser.c
 	$(CXX) -x c++ $(CXXFLAGS) $(CPPFLAGS) -c $<
 
-resolver_lexer.c: resolver_lexer.l
-        
+resolver_lexer.c: resolver_lexer.l resolver_parser.h
+
 TESTS= resolver_lexer.c resolver_parser.c y.tab.h
