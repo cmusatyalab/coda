@@ -64,12 +64,21 @@ static const int FSODaemonInterval = 5;
 static const int GetDownInterval = 30;
 static const int FlushRefVecInterval = 90;
 static const int FSODaemonStackSize = 32768;
+static time_t LastGetDown = 0;
 
 
 /* ***** Private variables  ***** */
 
 static char fsdaemon_sync;
 
+/* ***** Public functions ***** */
+
+/* wake the fso daemon so that it can free up some FSOs */
+void FSOD_ReclaimFSOs(void)
+{
+    LastGetDown = 0;
+    VprocSignal(&fsdaemon_sync);
+}
 
 /* ***** Private routines  ***** */
 
@@ -80,7 +89,6 @@ void FSODaemon(void) {
     vproc *vp = VprocSelf();
     RegisterDaemon(FSODaemonInterval, &fsdaemon_sync);
 
-    long LastGetDown = 0;
     long LastFlushRefVec = 0;
 
     for (;;) {

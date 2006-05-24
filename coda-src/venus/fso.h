@@ -763,7 +763,8 @@ extern void PrintCacheStats(char* description, CacheStats *, int);
 extern void VenusToViceStatus(VenusStat *, ViceStatus *);
 
 /* fso_daemon.c */
-extern void FSOD_Init(void);
+void FSOD_Init(void);
+void FSOD_ReclaimFSOs(void);
 
 /* More locking macros. */
 #define	FSO_HOLD(f)	    { (f)->refcnt++; }

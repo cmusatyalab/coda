@@ -575,12 +575,14 @@ wait_for_reintegration:
 		  (free_fsos <= MaxWorkers ||
 		   free_mles <= (MLEs>>3) || /* ~88% CMLs used */
 		   free_blocks <= (CacheBlocks >> 2)); /* ~75% cache dirty */
-	
+
 	if (yellowz) MarinerLog("progress::Yellow zone, slowing down writer\n");
 	else if (redzone) MarinerLog("progress::Red zone, stalling writer\n");
 
-	if (yellowz || redzone)
+	if (yellowz || redzone) {
+	    FSOD_ReclaimFSOs(); /* wake up fso daemon and let it reclaim fsos */
 	    VprocSleep(&delay);
+	}
 
 	if (redzone)
 	    goto wait_for_reintegration;
