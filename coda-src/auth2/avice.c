@@ -42,10 +42,6 @@ Pittsburgh, PA.
   Routines used by Vice file servers to do authentication
 */
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -60,18 +56,15 @@ extern "C" {
 #include <util.h>
 #include <rpc2/rpc2.h>
 #include <avice.h>
-
-#ifdef __cplusplus
-}
-#endif
+#include <time.h>
 
 #include <getsecret.h>
 #include "auth2.h"
+#include "codatoken.h"
 
-static int Key1IsValid = FALSE;
-static int Key2IsValid = FALSE;
-static RPC2_EncryptionKey Key1;
-static RPC2_EncryptionKey Key2;
+static int key1valid, key2valid;
+static uint8_t auth2key1[AUTH2KEYSIZE];
+static uint8_t auth2key2[AUTH2KEYSIZE];
 
 extern void ntoh_SecretToken(SecretToken *);
 
@@ -144,53 +137,50 @@ long GetKeys(RPC2_Integer *AuthenticationType, RPC2_CountedBS *cIdent, RPC2_Encr
 */
 
 long GetKeysFromToken(IN RPC2_Integer *AuthenticationType,
-		      INOUT RPC2_CountedBS *cIdent, 
-		      OUT RPC2_EncryptionKey hKey, 
+		      INOUT RPC2_CountedBS *cIdent,
+		      OUT RPC2_EncryptionKey hKey,
 		      OUT RPC2_EncryptionKey sKey)
 {
     SecretToken st;
-    struct timeval t;
+    time_t now, endtimestamp;
+    uint32_t viceid;
+    int rc;
 
-    if (!cIdent) {
-        /* unauthenticated (RPC2_OPENKIMONO) connections are allowed */
-        return(0);
-    }
+    /* unauthenticated (RPC2_OPENKIMONO) connections are allowed */
+    if (!cIdent) return 0;
 
     if (cIdent->SeqLen != sizeof(SecretToken)) {
 	LogMsg(-1, 0, stdout, "Invalid length token in GetKeysFromToken");
 	return(-1);
     }
 
-    if (Key1IsValid) {
-	rpc2_Decrypt((char *)cIdent->SeqBody, (char *)&st, cIdent->SeqLen, Key1, RPC2_XOR);
-	if (strncmp((char *)st.MagicString, AUTH_MAGICVALUE, sizeof(AuthMagic)) == 0)
-	    goto GotIt;
+    rc = -1;
+    if (key1valid)
+	rc = validate_CodaToken(auth2key1, cIdent->SeqBody, &viceid,
+				&endtimestamp, &st.HandShakeKey);
+    if (rc && key2valid)
+	rc = validate_CodaToken(auth2key2, cIdent->SeqBody, &viceid,
+				&endtimestamp, &st.HandShakeKey);
+    if (rc) {
+	LogMsg(-1, 0, stdout, "Token validation failed");
+	return(-1);	/* no valid key did the job */
     }
-    if (Key2IsValid) {
-	rpc2_Decrypt((char *)cIdent->SeqBody, (char *)&st, cIdent->SeqLen, Key2, RPC2_XOR);
-	if (strncmp((char *)st.MagicString, AUTH_MAGICVALUE, sizeof(AuthMagic)) == 0)
-	    goto GotIt;
-    }
-    LogMsg(-1, 0, stdout, "Could not get a valid key in GetKeysFromToken");
-    return(-1);	/* no valid key did the job */
-    
-GotIt:
-    ntoh_SecretToken(&st);
-    
-    gettimeofday(&t, 0);
-    if (t.tv_sec > st.EndTimestamp) {
+
+    now = time(0);
+    if (now > endtimestamp) {
 	LogMsg(10, SrvDebugLevel, stdout,
 	       "End time stamp %d > time %d for user %d",
-		st.EndTimestamp,t.tv_sec,st.ViceId);
+		st.EndTimestamp, now, st.ViceId);
 	return(-1);
     }
-    memcpy(hKey, st.HandShakeKey, sizeof(RPC2_EncryptionKey));
 
+    st.ViceId = viceid;
+    st.EndTimestamp = endtimestamp;
+    memcpy(hKey, st.HandShakeKey, sizeof(RPC2_EncryptionKey));
     GenerateSecret(sKey);
 
     memcpy(cIdent->SeqBody, &st, sizeof(SecretToken));
     /* to be passed back as new connection packet */
-
     return(0);
 }
 
@@ -198,22 +188,16 @@ GotIt:
    keys may be NULL, in which case the corresponding key is merely
    marked invalid */
 
-void SetServerKeys(IN RPC2_EncryptionKey serverKey1, 
+void SetServerKeys(IN RPC2_EncryptionKey serverKey1,
 		   IN RPC2_EncryptionKey serverKey2)
 {
-    memset(Key1, 0, sizeof(Key1));
-    memset(Key2, 0, sizeof(Key2));
+    int rc = -1;
+    if (serverKey1)
+	rc = getauth2key(serverKey1, RPC2_KEYSIZE, auth2key1);
+    key1valid = (serverKey1 != NULL && rc == 0);
 
-    if (serverKey1 == NULL) 
-	    Key1IsValid = FALSE;
-    else {
-	memcpy(Key1, serverKey1, sizeof(RPC2_EncryptionKey));
-	Key1IsValid = TRUE;
-    }
-    if (serverKey2 == NULL) 
-	    Key2IsValid = FALSE;
-    else {
-	memcpy(Key2, serverKey2, sizeof(RPC2_EncryptionKey));
-	Key2IsValid = TRUE;
-    }
+    if (serverKey2)
+	rc = getauth2key(serverKey2, RPC2_KEYSIZE, auth2key2);
+    key2valid = (serverKey2 != NULL && rc == 0);
 }
+

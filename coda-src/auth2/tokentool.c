@@ -31,6 +31,7 @@ listed in the file CREDITS.
 #include <rpc2/rpc2.h>
 #include "auth2.h"
 #include "tokenfile.h"
+#include "codatoken.h"
 
 static int read_int(char *question)
 {
@@ -93,11 +94,11 @@ int main(int argc, char **argv)
     float duration;
     char *tokenkey;
     char *filename;
-    int   i, len;
-    RPC2_EncryptionKey   authkey;
+    int   len;
     ClearToken 		 ctoken;
-    SecretToken		 stoken;
     EncryptedSecretToken estoken;
+    RPC2_EncryptionKey   token;
+    uint8_t auth2key[AUTH2KEYSIZE];
 
     rpc2_InitRandom();
 
@@ -114,41 +115,19 @@ int main(int argc, char **argv)
     }
 
     /* truncate the shared secret */
-    memset(authkey, 0, sizeof(RPC2_KEYSIZE));
-    strncpy((char *)authkey, tokenkey, RPC2_KEYSIZE);
+    memset(token, 0, sizeof(RPC2_KEYSIZE));
+    strncpy((char *)token, tokenkey, RPC2_KEYSIZE);
+
+    getauth2key(token, RPC2_KEYSIZE, auth2key);
 
     /* strip newline from filename */
     len = strlen(filename);
     if (filename[len-1] == '\n')
 	filename[len-1] = '\0';
 
-    /* construct the clear token */
-    ctoken.ViceId       = viceid;
-    ctoken.EndTimestamp = time(0) + (int)(60.0 * 60.0 * duration);
-
-    ctoken.AuthHandle     = -1;
-    ctoken.BeginTimestamp = 0;
-    for (i = 0; i < RPC2_KEYSIZE; i++)
-	ctoken.HandShakeKey[i] = rpc2_NextRandom(NULL) & 0xff;
-
-    /* then build secret token */
-    stoken.AuthHandle     = htonl(ctoken.AuthHandle);
-    stoken.ViceId         = htonl(ctoken.ViceId);
-    stoken.BeginTimestamp = htonl(ctoken.BeginTimestamp);
-    stoken.EndTimestamp   = htonl(ctoken.EndTimestamp);
-    memcpy(stoken.HandShakeKey, ctoken.HandShakeKey, RPC2_KEYSIZE);
-
-    memset(stoken.MagicString, '\0', sizeof(AuthMagic));
-    strncpy((char *)stoken.MagicString, (char *)AUTH_MAGICVALUE,
-	    sizeof(AuthMagic));
-    stoken.Noise1         = rpc2_NextRandom(NULL);
-    stoken.Noise2         = rpc2_NextRandom(NULL);
-    stoken.Noise3         = rpc2_NextRandom(NULL);
-    stoken.Noise4         = rpc2_NextRandom(NULL);
-
-    /* encrypt the secret token */
-    rpc2_Encrypt((char *)&stoken, (char *)estoken, sizeof(SecretToken),
-		 authkey, RPC2_XOR);
+    /* construct the token */
+    generate_CodaToken(auth2key, viceid, (int)(3600.0 * duration),
+		       &ctoken, estoken);
 
     /* write the token to a tokenfile */
     WriteTokenToFile(filename, &ctoken, estoken);

@@ -27,7 +27,7 @@ include $(TOPDIR)/Makeconf
 
 CFLAGS += -DCODAAUTH
 
-AUTHCOMMON := acommon.o
+AUTHCOMMON=
 LIBKRBS=
 
 ifneq ($(LIBKRB4),)
@@ -44,7 +44,7 @@ ifneq ($(LIBKRB4)$(LIBKRB5),)
 AUTHCOMMON += krbcommon.o
 endif
 
-LIBAUTH2OBJS=auth2.server.o avice.o pwsupport.o $(AUTHCOMMON)
+LIBAUTH2OBJS=auth2.server.o avice.o codatoken.o pwsupport.o $(AUTHCOMMON)
 LIBAUSEROBJS=auth2.client.o auser.o avenus.o $(AUTHCOMMON)
 
 CBINS       = clog cpasswd ctokens cunlog au
@@ -96,6 +96,6 @@ cunlog: cunlog.o libauser.a ${DEPLIBS}
 ctokens: ctokens.o libauser.a ${DEPLIBS}
 	${CC} $(LDFLAGS) $^ ${LIBS} -o $@
 
-tokentool: tokentool.o tokenfile.o ${DEPLIBS}
+tokentool: tokentool.o codatoken.o tokenfile.o ${DEPLIBS}
 	${CC} $(LDFLAGS) $^ ${LIBS} -o $@
 

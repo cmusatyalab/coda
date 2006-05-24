@@ -86,6 +86,7 @@ extern "C" {
 
 #include <codaconf.h>
 #include <vice_file.h>
+#include "codatoken.h"
 
 #define MAXNUMCLIENT 10
 
@@ -109,9 +110,7 @@ void LogFailures(RPC2_Integer AuthenticationType, RPC2_CountedBS *cIdent, RPC2_I
 
 int GetViceId(RPC2_CountedBS *cIdent);	/* must be post-name conversion */
 
-RPC2_EncryptionKey TokenKey;	/* Used for encrypting server tokens;
-				    modified by SetKeys() routine; changed periodically  */
-int TokenTime = 0;	/* last modified time on TokenKey file	*/
+static uint8_t auth2key[AUTH2KEYSIZE];
 static char *Auth2TKFile = NULL;	/* name of token key file */
 
 static int CheckOnly = 0;	/* only allow password checking at this server */
@@ -401,28 +400,31 @@ static void HandleRPCError(int rCode, RPC2_Handle connId)
 
 
 static void CheckTokenKey()
-    {
+{
     struct stat statbuf;
     FILE *tf;
+    RPC2_EncryptionKey TokenKey;
+    static int TokenTime = 0;		/* last modified time on token file */
 
     if(stat(Auth2TKFile, &statbuf))
-	{
+    {
 	perror("stat failed for token key file");
 	exit(-1);
-	}
-    if(TokenTime != statbuf.st_mtime) 
-	{
+    }
+    if(TokenTime != statbuf.st_mtime)
+    {
 	if ((tf = fopen(Auth2TKFile, "r")) == NULL)
-	    {
+	{
 	    perror(Auth2TKFile);
 	    exit(-1);
-	    }
+	}
 	memset(TokenKey, 0, RPC2_KEYSIZE);
 	fread(TokenKey, 1, RPC2_KEYSIZE, tf);
 	TokenTime = statbuf.st_mtime;
 	fclose(tf);
-	}
+	getauth2key(TokenKey, RPC2_KEYSIZE, auth2key);
     }
+}
 
 long GetKeys(RPC2_Integer *AuthenticationType, RPC2_CountedBS *cIdent, RPC2_EncryptionKey hKey, RPC2_EncryptionKey sKey)
 {
@@ -544,46 +546,26 @@ long S_AuthQuit(RPC2_Handle cid)
     return(0);
     }
 
-extern void hton_SecretToken(SecretToken *);
-long S_AuthGetTokens(RPC2_Handle cid, EncryptedSecretToken est, ClearToken *cToken)
-    {
-    int i;
+long S_AuthGetTokens(RPC2_Handle cid, EncryptedSecretToken est,
+		     ClearToken *cToken)
+{
     struct UserInfo *ui;
-    SecretToken sToken;
+    uint32_t lifetime;
 
     RPC2_GetPrivatePointer(cid, (void *)&ui);
     if (!ui || ui->HasQuit == TRUE) return(AUTH_FAILED);
     ui->LastUsed = time(0);
 
-    /* First build clear token */
-    cToken->AuthHandle = -1;	/* not in use right now */
-    for (i = 0; i < RPC2_KEYSIZE; i++)
-	cToken->HandShakeKey[i] = rpc2_NextRandom(NULL) & 0xff;
-    cToken->BeginTimestamp = 0;
-    cToken->EndTimestamp = time(0) + 60*60*25; /* valid for 25 hours */
-    cToken->ViceId = ui->ViceId;
-    
-    /* Then build secret token */
-    memset(sToken.MagicString, '\0', sizeof(AuthMagic));
-    strncpy((char *)sToken.MagicString, (char *)AUTH_MAGICVALUE, sizeof(AuthMagic));
-    sToken.AuthHandle = cToken->AuthHandle;
-    sToken.Noise1 = rpc2_NextRandom(NULL);
-    sToken.ViceId = cToken->ViceId;
-    sToken.BeginTimestamp = cToken->BeginTimestamp;
-    sToken.Noise2 = rpc2_NextRandom(NULL);
-    sToken.EndTimestamp = cToken->EndTimestamp;
-    sToken.Noise3 = rpc2_NextRandom(NULL);
-    memcpy(sToken.HandShakeKey, cToken->HandShakeKey, RPC2_KEYSIZE);
-    sToken.Noise4 = rpc2_NextRandom(NULL);
-    hton_SecretToken(&sToken);
     CheckTokenKey();
-    rpc2_Encrypt((char *)&sToken, (char *)est, sizeof(SecretToken), TokenKey, RPC2_XOR);
+
+    lifetime = 60 * 60 * 25; /* 25 hours */
+    generate_CodaToken(auth2key, ui->ViceId, lifetime, cToken, est);
 
     return(0);
-    }
+}
 
 
-long S_AuthChangePasswd (RPC2_Handle cid, RPC2_Integer viceId, 
+long S_AuthChangePasswd (RPC2_Handle cid, RPC2_Integer viceId,
 			 RPC2_String Passwd)
 {
 
