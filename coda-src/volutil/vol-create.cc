@@ -271,7 +271,7 @@ static int ViceCreateRoot(Volume *vp)
     /* set up vnode info */
     vnode->type = vDirectory;
     vnode->cloned = 0;
-    vnode->modeBits = 0777;
+    vnode->modeBits = 0755;
     vnode->linkCount = 2;
     vnode->length = DH_Length(dir);
     vnode->uniquifier = 1;
