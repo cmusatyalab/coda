@@ -1,4 +1,4 @@
-/* 	$Id: util.h,v 1.5 2005/09/09 00:29:16 phil Exp $	*/
+/* 	$Id: util.h,v 1.6 2006-05-24 20:04:40 jaharkes Exp $	*/
 
 /* BLURB gpl
  
