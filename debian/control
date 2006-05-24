@@ -3,7 +3,7 @@ Section: net
 Priority: optional
 Maintainer: Jan Harkes <jaharkes@cs.cmu.edu>
 Standards-Version: 3.6.1
-Build-Depends: debhelper (>= 4), g++, liblwp-dev, librpc2-dev, librvm-dev, rvm-tools, libreadline-dev, libncurses5-dev, libfltk1.1-dev, flex, bison | byacc, fluid
+Build-Depends: debhelper (>= 4), g++, liblwp-dev, librpc2-dev (>= 2.0), librvm-dev, rvm-tools, libreadline-dev, libncurses5-dev, libfltk1.1-dev, flex, bison | byacc, fluid
 
 Package: coda-client
 Architecture: arm i386 m68k powerpc sparc
