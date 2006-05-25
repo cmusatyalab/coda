@@ -108,10 +108,13 @@ static int validate_Secret(const struct secure_encr *decr, void *decr_ctx,
 	if (*(p++) != i) return -1;
 
     /* extract contents */
-    *keylen = payload[2]; *idlen = payload[3];
+    *key =  payload + 2 * sizeof(uint32_t);
+    *keylen = payload[2];
+
+    *identity = payload + 2 * sizeof(uint32_t) + *keylen;
+    *idlen = payload[3];
+
     *endtime = ntohl(((uint32_t *)payload)[1]);
-    memcpy(key, payload + 2 * sizeof(uint32_t), *keylen);
-    memcpy(identity, payload + 2 * sizeof(uint32_t) + *keylen, *idlen);
     return 0;
 }
 
