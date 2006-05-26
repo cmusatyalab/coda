@@ -47,6 +47,7 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(-,root,root)
 /usr/lib/liblwp.so.@LINUX_VERSION@
+/usr/lib/liblwp.so.@MAJOR_VERSION@
 
 %files devel
 %defattr(-,root,root)
