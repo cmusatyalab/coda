@@ -33,6 +33,9 @@ make prefix=$RPM_BUILD_ROOT/usr install
 chmod 755 $RPM_BUILD_ROOT/usr/lib/libfail.so.@LINUX_VERSION@
 chmod 755 $RPM_BUILD_ROOT/usr/lib/librpc2.so.@LINUX_VERSION@
 chmod 755 $RPM_BUILD_ROOT/usr/lib/libse.so.@LINUX_VERSION@
+rm -f $RPM_BUILD_ROOT/usr/lib/libfail.so.@MAJOR_VERSION@
+rm -f $RPM_BUILD_ROOT/usr/lib/librpc2.so.@MAJOR_VERSION@
+rm -f $RPM_BUILD_ROOT/usr/lib/libse.so.@MAJOR_VERSION@
 
 %clean
 rm -rf $RPM_BUILD_ROOT
