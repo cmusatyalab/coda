@@ -54,11 +54,6 @@ int secure_pbkdf(const uint8_t *password, size_t plen,
     uint32_t i = 1;
     void *ctx;
 
-    if (plen == keylen) {
-	memcpy(key, password, plen);
-	return 0;
-    }
-
     U0len = slen + sizeof(uint32_t);
     U0 = malloc(U0len);
     if (!U0) return -1;
