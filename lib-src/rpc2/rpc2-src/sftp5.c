@@ -53,10 +53,9 @@ Pittsburgh, PA.
 #include <rpc2/se.h>
 #include "sftp.h"
 
-void B_ShiftLeft(bMask, bShift)		/* rightmost bits are ZERO-filled */
-    unsigned int *bMask;		/* Bit string integer array */
-    int bShift;		/* Amount to shift by */
-    {
+/* rightmost bits are ZERO-filled */
+void B_ShiftLeft(unsigned int *bMask, int bShift)
+{
     /*  The bit string is made up of an integral number of integer parts. (assumption)
 	Each integer part is affected by at most two other integer parts, adjacent to each other.
 	In each iteration,
@@ -92,13 +91,12 @@ void B_ShiftLeft(bMask, bShift)		/* rightmost bits are ZERO-filled */
 	{
 	*current++ = 0;
 	}
-    }
+}
 
 
-void B_ShiftRight(bMask, bShift)		/* leftmost bits are ONE-filled */
-    unsigned int *bMask;		/* Bit string integer array */
-    int bShift;		/* Amount to shift by */
-    {
+/* leftmost bits are ONE-filled */
+void B_ShiftRight(unsigned int *bMask, int bShift)
+{
     /*  The bit string is made up of an integral number of integer parts. (assumption)
 	Each integer part is affected by at most two other integer parts, adjacent to each other.
 	In each iteration,
@@ -107,9 +105,8 @@ void B_ShiftRight(bMask, bShift)		/* leftmost bits are ONE-filled */
 	(32-shift) high-order bits of *first will become the low order bits of *current
 	(shift) low-order bits of *(first-1) will become the high-order bits of *current.
     */
-    
     unsigned int shift, *current, *first;
-    
+
     shift = bShift & 31;	/* modulo 32 */
     current = bMask + BITMASKWIDTH - 1;
     first = current - (bShift >> 5);
@@ -133,33 +130,28 @@ void B_ShiftRight(bMask, bShift)		/* leftmost bits are ONE-filled */
 	{
 	*current-- = 0xFFFFFFFF;
 	}
-    }
+}
 
 
-void B_Assign(dest, src)
-    unsigned int *dest, *src;
-    {
+void B_Assign(unsigned int *dest, unsigned int *src)
+{
     memcpy(dest, src, sizeof(int)*BITMASKWIDTH);
-    }
+}
 
 
-void B_CopyToPacket(bMask, whichPacket)
-    unsigned int *bMask;
-    RPC2_PacketBuffer *whichPacket;
-    {
+void B_CopyToPacket(unsigned int *bMask, RPC2_PacketBuffer *whichPacket)
+{
     assert(BITMASKWIDTH <= 2);	/* for now */
     whichPacket->Header.BitMask0 = (unsigned) bMask[0];
     whichPacket->Header.BitMask1 = (unsigned) bMask[1];
-    }
+}
 
-void B_CopyFromPacket(whichPacket, bMask)
-    unsigned int *bMask;
-    RPC2_PacketBuffer *whichPacket;
-    {
+void B_CopyFromPacket(RPC2_PacketBuffer *whichPacket, unsigned int *bMask)
+{
     assert(BITMASKWIDTH <= 2);	/* for now */
     bMask[0] = (unsigned) whichPacket->Header.BitMask0;
     bMask[1] = (unsigned) whichPacket->Header.BitMask1;
-    }
+}
 
 
 void B_And(arg1, arg2)	    /* *arg1 = *arg1 & *arg2 */

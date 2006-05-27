@@ -95,11 +95,11 @@ static int sftp_vfwritev(struct SFTP_Entry *se, struct iovec *iovarray, long how
 static int sftp_vfreadv(struct SFTP_Entry *se, struct iovec iovarray[], long howMany);
 
 /* sftp5.c */
-extern void B_ShiftLeft();
-extern void B_ShiftRight();
-extern void B_Assign();
-extern void B_CopyToPacket();
-extern void B_CopyFromPacket();
+void B_ShiftLeft(unsigned int *bMask, int bShift);
+void B_ShiftRight(unsigned int *bMask, int bShift);
+void B_Assign(unsigned int *dest, unsigned int *src);
+void B_CopyToPacket(unsigned int *bMask, RPC2_PacketBuffer *whichPacket);
+void B_CopyFromPacket(RPC2_PacketBuffer *whichPacket, unsigned int *bMask);
 
 #ifdef RPC2DEBUG
 void PrintDb(struct SFTP_Entry *se, RPC2_PacketBuffer *pb);
@@ -459,7 +459,7 @@ int sftp_WriteStrategy(struct SFTP_Entry *sEntry)
 	 i < sEntry->RecvLastContig + iovlen + 1; i++)
 	SFTP_FreeBuffer(&sEntry->ThesePackets[PBUFF(i)]);
     sEntry->RecvLastContig += iovlen;
-    B_ShiftLeft((unsigned int *)sEntry->RecvTheseBits, iovlen);
+    B_ShiftLeft(sEntry->RecvTheseBits, iovlen);
 
     sftp_Progress(sEntry->SDesc,
                   sEntry->SDesc->Value.SmartFTPD.BytesTransferred + bytesnow);
@@ -476,7 +476,7 @@ static void sftp_SendAck(struct SFTP_Entry *sEntry)
 {
     RPC2_PacketBuffer *pb;
     long i, shiftlen;
-    unsigned long btemp[BITMASKWIDTH], now;
+    unsigned int btemp[BITMASKWIDTH], now;
     int confirm = 1;
     
     sftp_acks++;
@@ -505,8 +505,8 @@ static void sftp_SendAck(struct SFTP_Entry *sEntry)
 	confirm = 0;
     }
 
-    B_Assign((unsigned int *)btemp, (unsigned int *)sEntry->RecvTheseBits);
-    
+    B_Assign(btemp, sEntry->RecvTheseBits);
+
     /* Bump GotEmAll here; this allows write to disk to occur after ack is sent */
     shiftlen = 0;
     for (i = 1; i <= sEntry->WindowSize ; i++)
@@ -516,8 +516,8 @@ static void sftp_SendAck(struct SFTP_Entry *sEntry)
 	    shiftlen++;
 	    }
 	else break;
-    if (shiftlen > 0) B_ShiftLeft((unsigned int *)btemp, shiftlen);
-    B_CopyToPacket((unsigned int *)btemp, pb);
+    if (shiftlen > 0) B_ShiftLeft(btemp, shiftlen);
+    B_CopyToPacket(btemp, pb);
     rpc2_htonp(pb);
     sftp_XmitPacket(sEntry, pb, confirm);
     sEntry->RecvSinceAck = 0;
@@ -617,7 +617,7 @@ int sftp_AckArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
 
     /* Update counters to match other side */
     sEntry->SendLastContig = pBuff->Header.GotEmAll;
-    B_CopyFromPacket(pBuff, (unsigned int *)sEntry->SendTheseBits);
+    B_CopyFromPacket(pBuff, sEntry->SendTheseBits);
 
     /* Release prefix sequence of packets received by other side */
     /* acked non-prefix packets are still kept, even though not needed */
@@ -625,8 +625,8 @@ int sftp_AckArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
 	SFTP_FreeBuffer(&sEntry->ThesePackets[PBUFF((sEntry->SendLastContig - i))]);
 
     /* Do we have more work to do? */
-    if (sEntry->HitEOF && sEntry->ReadAheadCount == 0 
-	    && sEntry->SendMostRecent == sEntry->SendLastContig)
+    if (sEntry->HitEOF && sEntry->ReadAheadCount == 0 &&
+	sEntry->SendMostRecent == sEntry->SendLastContig)
 	{/* I have nothing more to send, and peer has seen all I have sent */
 	sEntry->XferState = XferCompleted;
 	return(0);

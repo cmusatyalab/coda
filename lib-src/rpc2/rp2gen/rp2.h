@@ -39,6 +39,7 @@ Pittsburgh, PA.
 
 
 #include <rpc2/rpc2.h>
+#include <stdlib.h>
 
 /* Satya (7/31/96): changed bool, FALSE, TRUE to rp2_bool, RP2_{FALSE,TRUE}
 to avoid name clash with builtin bool on some versions of gcc; similar to

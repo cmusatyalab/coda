@@ -276,7 +276,7 @@ struct SFTP_Entry		/* per-connection data structure */
 				   This is the most recent packet such that it and all earlier packets
 				   are known by me to have been received by the other side */
     long SendMostRecent;	/* SendMostRecent is the latest data packet we have sent out  */
-    unsigned long SendTheseBits[BITMASKWIDTH];	/* Bit pattern of packets in the range SendLastContig+1..SendMostRecent
+    unsigned int SendTheseBits[BITMASKWIDTH];	/* Bit pattern of packets in the range SendLastContig+1..SendMostRecent
 				   that have successfully been sent by me AND are known by me to have
 				   been received by other side */
     long SendAckLimit;          /* Highest data packet for which an ack has been requested. */
@@ -289,7 +289,7 @@ struct SFTP_Entry		/* per-connection data structure */
     unsigned long RequestTime;  /* arrival time of packet, to correct RTT
 				   estimates for processing time */
 
-    unsigned long RecvTheseBits[BITMASKWIDTH];	/* Packets in RecvLastContig+1..RecvMostRecent that I have received */
+    unsigned int RecvTheseBits[BITMASKWIDTH];	/* Packets in RecvLastContig+1..RecvMostRecent that I have received */
     RPC2_PacketBuffer *ThesePackets[MAXOPACKETS];
     /* Packets being currently dealt with. There can be at most MAXOPACKETS
      * outstanding, in the range LastContig+1..LastContig+WindowSize. The
