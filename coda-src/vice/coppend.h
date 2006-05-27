@@ -73,7 +73,7 @@ class cpent : public olink {
 class cpman {
     char *name;
     struct Lock lock;
-    int pid;
+    PROCESS pid;
     ohashtab objects;
 
     cpman(char * ="anonymous coppendbuster");

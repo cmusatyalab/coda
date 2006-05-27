@@ -262,8 +262,7 @@ static char *CoordPhase2(res_mgrpent *mgrp, ViceFid *fid,
 	       mgrp->rrcc.retcodes[4], mgrp->rrcc.retcodes[5], 
 	       mgrp->rrcc.retcodes[6], mgrp->rrcc.retcodes[7]);
 	mgrp->CheckResult();
-	if ((errorCode = CheckRetCodes((unsigned long *)mgrp->rrcc.retcodes, 
-				      mgrp->rrcc.hosts, successFlags))) {
+	if ((errorCode = CheckRetCodes(mgrp->rrcc.retcodes, mgrp->rrcc.hosts, successFlags))) {
 	    LogMsg(0, SrvDebugLevel, stdout,  
 		   "Error Code from at least one server sending log");
 	   goto Exit;
@@ -395,8 +394,7 @@ static int CoordPhase3(res_mgrpent *mgrp, ViceFid *Fid, char *AllLogs,
 		       sidvar_bufs);
 	mgrp->CheckResult();
 	int errorCode = 0;
-	if ((errorCode = CheckRetCodes((unsigned long *)mgrp->rrcc.retcodes, 
-				      mgrp->rrcc.hosts, successFlags))) {
+	if ((errorCode = CheckRetCodes(mgrp->rrcc.retcodes, mgrp->rrcc.hosts, successFlags))) {
 	    LogMsg(0, SrvDebugLevel, stdout,  
 		   "CoordPhase3: Error %d in ShipLogs", errorCode);
 	    return(errorCode);
@@ -507,8 +505,7 @@ static int CoordPhase4(res_mgrpent *mgrp, ViceFid *Fid,
 		       mgrp->rrcc.MIp, 0, 0, Fid, &UpdateSet, sidvar_bufs);
 	mgrp->CheckResult();
 	
-	if ((Phase4Err = CheckRetCodes((unsigned long *)mgrp->rrcc.retcodes, 
-				      mgrp->rrcc.hosts, succflags)) )
+	if ((Phase4Err = CheckRetCodes(mgrp->rrcc.retcodes, mgrp->rrcc.hosts, succflags)) )
 	    LogMsg(0, SrvDebugLevel, stdout,  
 		   "CoordPhase4: Phase4 Error %d", Phase4Err);
 	PollAndYield();
@@ -563,7 +560,7 @@ static int CoordPhase34(res_mgrpent *mgrp, ViceFid *Fid,
     }
     mgrp->CheckResult();
 
-    errorCode = CheckRetCodes((unsigned long *)mgrp->rrcc.retcodes, mgrp->rrcc.hosts, hosts);
+    errorCode = CheckRetCodes(mgrp->rrcc.retcodes, mgrp->rrcc.hosts, hosts);
     if (errorCode)
 	LogMsg(0, SrvDebugLevel, stdout,
 	       "CoordPhase34: Error %d in DirResPhase2", errorCode);

@@ -129,8 +129,8 @@ void VprocPreamble(void *arg)
     vproc_iterator next;
     vproc *vp;
     while ((vp = next()))
-	if (vp->lwpid == (int)x) break;
-    if (vp == 0)
+	if (vp->lwpid == x) break;
+    if (vp == NULL)
 	CHOKE("VprocPreamble: lwp not found");
     lwprc = LWP_NewRock(VPROC_ROCK_TAG, (char *)vp);
     if (lwprc != LWP_SUCCESS)
@@ -150,9 +150,9 @@ void VprocPreamble(void *arg)
 
 
 vproc *VprocSelf() {
-    vproc *vp = 0;
-    if (LWP_GetRock(VPROC_ROCK_TAG, (char **)&vp) == LWP_SUCCESS)
-	return(vp);
+    char *rock;
+    if (LWP_GetRock(VPROC_ROCK_TAG, &rock) == LWP_SUCCESS)
+	return((vproc *)rock);
 
     /* Presumably this is the first call.  Set the rock so that future lookups will be fast. */
     {
@@ -359,7 +359,7 @@ vproc::vproc(char *n, PROCBODY f, vproctype t, int stksize, int priority)
 {
     /* Initialize the data members. LWPid is filled in as a side effect of
      * LWP operations in start_thread. */
-    lwpid = 0;
+    lwpid = NULL;
     name = new char[strlen(n) + 1];
     strcpy(name, n);
     func = f;
@@ -399,7 +399,7 @@ void vproc::start_thread(void)
 	/* pass the lock, instead of the function; we can get back to the
 	 * function once we know which vproc the new lwp is */
 	int lwprc = LWP_CreateProcess(VprocPreamble, stacksize, lwpri,
-				      &init_lock, name, (PROCESS *)&lwpid);
+				      &init_lock, name, &lwpid);
 	if (lwprc != LWP_SUCCESS)
 	    CHOKE("vproc::start_thread: LWP_CreateProcess(%d, %s) failed (%d)",
 		  stacksize, name, lwprc);
@@ -409,8 +409,7 @@ void vproc::start_thread(void)
 	VprocYield();
     } else {
 	/* Initialize the LWP subsystem. */
-	int lwprc = LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY,
-			     (PROCESS *)&lwpid);
+	int lwprc = LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, &lwpid);
 	if (lwprc != LWP_SUCCESS)
 	    CHOKE("VprocInit: LWP_Init failed (%d)", lwprc);
 

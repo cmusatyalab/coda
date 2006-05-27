@@ -593,12 +593,17 @@ void userent::print(FILE *fp) {
 void userent::print(int afd) {
     char begin_time[13];
     char end_time[13];
+    time_t timestamp;
+    char *tmp;
     if (tokensvalid) {
-	char *b = ctime((time_t *)&clear.BeginTimestamp);
-	strncpy(begin_time, b + 4, 12);
+	timestamp = (time_t)clear.BeginTimestamp;
+	tmp = ctime(&timestamp);
+	strncpy(begin_time, tmp + 4, 12);
 	begin_time[12] = '\0';
-	char *e = ctime((time_t *)&clear.EndTimestamp);
-	strncpy(end_time, e + 4, 12);
+
+	timestamp = (time_t)clear.EndTimestamp;
+	tmp = ctime(&timestamp);
+	strncpy(end_time, tmp + 4, 12);
 	end_time[12] = '\0';
     }
     else {

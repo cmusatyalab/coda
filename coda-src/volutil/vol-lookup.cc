@@ -90,10 +90,11 @@ long int S_VolLookup(RPC2_Handle rpcid, RPC2_String formal_vol, SE_Descriptor *f
 
     /* To keep C++ 2.0 happy */
     char *vol = (char *)formal_vol;
+    char *rock;
 
     LogMsg(9, VolDebugLevel, stdout, "Entering S_VolLookup(%u, %s)", rpcid, vol);
-    CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
-
+    CODA_ASSERT(LWP_GetRock(FSTAG, &rock) == LWP_SUCCESS);
+    pt = (ProgramType *)rock;
 
     VInitVolUtil(volumeUtility);
 

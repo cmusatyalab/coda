@@ -119,7 +119,7 @@ void AllocStoreId(ViceStoreId *s) {
 }
 
 /* check for return codes other than time outs */
-long CheckRetCodes(unsigned long *rc, unsigned long *rh, 
+long CheckRetCodes(RPC2_Integer *rc, unsigned long *rh, 
 		    unsigned long *hosts) {
     struct in_addr addr;
     long error = 0;
@@ -146,7 +146,7 @@ long CheckRetCodes(unsigned long *rc, unsigned long *rh,
    - result will hold the first error encountered if not VNOVNODE
 */
 
-long CheckResRetCodes(unsigned long *rc, unsigned long *rh, 
+long CheckResRetCodes(RPC2_Integer *rc, unsigned long *rh, 
 		      unsigned long *hosts) 
 {
     struct in_addr addr;

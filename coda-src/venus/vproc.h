@@ -187,7 +187,7 @@ class vproc : public olink {
     void init(void);
 
   protected:
-    int lwpid;
+    PROCESS lwpid;
     char *name;
     PROCBODY func; /* function should be set if vproc::main isn't overloaded */
     int vpid;

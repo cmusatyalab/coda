@@ -126,9 +126,11 @@ long FS_ViceDisconnectFS(RPC2_Handle RPCid)
 {
     ClientEntry *client = 0;
     long   errorCode;
+    char *rock;
 
     SLog(1, "ViceDisconnectFS");
-    errorCode = RPC2_GetPrivatePointer(RPCid, (char **)&client);
+    errorCode = RPC2_GetPrivatePointer(RPCid, &rock);
+    client = (ClientEntry *)rock;
 
     if (!errorCode && client) {
 	struct Lock *lock = &client->VenusId->lock;
@@ -156,9 +158,11 @@ long FS_TokenExpired(RPC2_Handle RPCid)
 {
     ClientEntry *client = 0;
     long   errorCode;
+    char *rock;
 
     SLog(100, "TokenExpired");
-    errorCode = RPC2_GetPrivatePointer(RPCid, (char **)&client);
+    errorCode = RPC2_GetPrivatePointer(RPCid, &rock);
+    client = (ClientEntry *)rock;
 
     if (!errorCode && client)
 	CLIENT_CleanUpHost(client->VenusId);
@@ -272,6 +276,7 @@ long FS_ViceGetVolumeStatus(RPC2_Handle RPCid, VolumeId vid, VolumeStatus *statu
     int		aCLSize;
     int		rights;
     int		anyrights;
+    char *rock;
 
     errorCode = fileCode = 0;
     vptr = 0;
@@ -319,8 +324,9 @@ long FS_ViceGetVolumeStatus(RPC2_Handle RPCid, VolumeId vid, VolumeStatus *statu
 
     SetAccessList(vptr, aCL, aCLSize);
 
-    if((errorCode = RPC2_GetPrivatePointer(RPCid, (char **)&client)) != RPC2_SUCCESS)
+    if((errorCode = RPC2_GetPrivatePointer(RPCid, &rock)) != RPC2_SUCCESS)
 	goto Final;
+    client = (ClientEntry *)rock;
 
     if(!client) {
 	errorCode = EFAULT;
@@ -541,12 +547,14 @@ long FS_ViceSetRootVolume(RPC2_Handle RPCid, RPC2_String volume)
     long errorCode = 0;
     ClientEntry * client;	/* pointer to client entry */
     int fd, rc, len;
+    char *rock;
 
     SLog(1,"ViceSetRootVolume to %s", (char *)volume);
 
-    errorCode = RPC2_GetPrivatePointer(RPCid, (char **)&client);
+    errorCode = RPC2_GetPrivatePointer(RPCid, &rock);
     if (errorCode != RPC2_SUCCESS)
 	goto exit;
+    client = (ClientEntry *)rock;
 
     if (!client) {
 	errorCode = EFAULT;
@@ -599,14 +607,16 @@ long FS_ViceGetTime(RPC2_Handle RPCid, RPC2_Unsigned *seconds,
 	struct timezone tspl;
 	ClientEntry *client = NULL;
 	long errorCode;
+	char *rock;
 
 	TM_GetTimeOfDay(&tpl,&tspl);
 	*seconds = tpl.tv_sec;
 	*useconds = tpl.tv_usec;
 
-	errorCode = RPC2_GetPrivatePointer(RPCid, (char **)&client);
+	errorCode = RPC2_GetPrivatePointer(RPCid, &rock);
+	client = (ClientEntry *)rock;
 
-	if (!client) { 
+	if (errorCode || !client) { 
 		SLog(0, "No client structure built by ViceNewConnection");
 		return ENOTCONN;
 	}
@@ -989,12 +999,14 @@ long FS_ViceNewConnectFS(RPC2_Handle RPCid, RPC2_Unsigned ViceVersion,
 {
     long errorCode;
     ClientEntry *client = NULL;
+    char *rock;
 
     SLog(1, "FS_ViceNewConnectFS (version %d) for user %s at %s.%s",
          ViceVersion, ClientId->UserName, ClientId->WorkStationName, 
          ClientId->VenusName);
 
-    errorCode = RPC2_GetPrivatePointer(RPCid, (char **)&client);
+    errorCode = RPC2_GetPrivatePointer(RPCid, &rock);
+    client = (ClientEntry *)rock;
 
     if (errorCode || !client) {
         SLog(0, "No client structure built by ViceNewConnection");

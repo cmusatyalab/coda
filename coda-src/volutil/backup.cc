@@ -1288,18 +1288,20 @@ static void VolDumpLWP(void *arg)
 long S_WriteDump(RPC2_Handle rpcid, RPC2_Unsigned offset, RPC2_Unsigned *nbytes, VolumeId volid, SE_Descriptor *BD)
 {
     long rc = 0;
-    struct rockInfo *rock;
+    struct rockInfo *rockinfo;
     SE_Descriptor sed;
+    char *rock;
     
-    CODA_ASSERT(LWP_GetRock(ROCKTAG, (char **)&rock) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_GetRock(ROCKTAG, &rock) == LWP_SUCCESS);
+    rockinfo = (struct rockInfo *)rock;
 
-    if (volid != rock->volid) {
-	LogMsg(0, 0, stdout, "Got a WriteDump for %x, I'm dumping %x!\n", volid, rock->volid);
+    if (volid != rockinfo->volid) {
+	LogMsg(0, 0, stdout, "Got a WriteDump for %x, I'm dumping %x!\n", volid, rockinfo->volid);
 	return -1;
     }
 
-    if (rock->numbytes != offset) {
-	LogMsg(0, 0, stdout, "Offest %d != rock->numbytes %d\n", offset, rock->numbytes);
+    if (rockinfo->numbytes != offset) {
+	LogMsg(0, 0, stdout, "Offest %d != rockinfo->numbytes %d\n", offset, rockinfo->numbytes);
     }
     
     /* fetch the file with volume data */
@@ -1311,9 +1313,9 @@ long S_WriteDump(RPC2_Handle rpcid, RPC2_Unsigned offset, RPC2_Unsigned *nbytes,
     sed.Value.SmartFTPD.hashmark = 0;
     sed.Value.SmartFTPD.Tag = FILEBYNAME;
     sed.Value.SmartFTPD.FileInfo.ByName.ProtectionBits = 0755;
-    CODA_ASSERT(strlen(rock->dumpfile) <
+    CODA_ASSERT(strlen(rockinfo->dumpfile) <
 	   sizeof(sed.Value.SmartFTPD.FileInfo.ByName.LocalFileName));
-    strcpy(sed.Value.SmartFTPD.FileInfo.ByName.LocalFileName, rock->dumpfile);
+    strcpy(sed.Value.SmartFTPD.FileInfo.ByName.LocalFileName, rockinfo->dumpfile);
 
     struct timeval before, after;
     gettimeofday(&before, 0);
@@ -1332,7 +1334,7 @@ long S_WriteDump(RPC2_Handle rpcid, RPC2_Unsigned offset, RPC2_Unsigned *nbytes,
 	    sed.Value.SmartFTPD.BytesTransferred, *nbytes);
 	*nbytes = sed.Value.SmartFTPD.BytesTransferred;
     }
-    rock->numbytes += sed.Value.SmartFTPD.BytesTransferred;
+    rockinfo->numbytes += sed.Value.SmartFTPD.BytesTransferred;
 
     /* Update the Histogram */
     double tmp;

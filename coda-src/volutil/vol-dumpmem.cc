@@ -67,8 +67,10 @@ long S_VolDumpMem(RPC2_Handle rpcid, RPC2_String formal_dumpfile, RPC2_Unsigned 
 
     /* To keep C++ 2.0 happy */
     char *dumpfile = (char *)formal_dumpfile;
+    char *rock;
 
-    CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_GetRock(FSTAG, &rock) == LWP_SUCCESS);
+    pt = (ProgramType *)rock;
 
     LogMsg(9, VolDebugLevel, stdout, "Entering S_DumpMem: rpcid = %d, addr = 0x%x, size = %d", rpcid, addr, size);
 

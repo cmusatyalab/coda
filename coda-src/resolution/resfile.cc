@@ -195,8 +195,7 @@ long FileResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV)
 	mgrp->CheckResult();
 	/* collect replies and do cop2 */
 	unsigned long hosts[VSG_MEMBERS];
-	errorcode = CheckRetCodes((unsigned long *)mgrp->rrcc.retcodes,
-				  mgrp->rrcc.hosts, hosts);
+	errorcode = CheckRetCodes(mgrp->rrcc.retcodes, mgrp->rrcc.hosts, hosts);
 	mgrp->GetHostSet(hosts);
 	PROBE(FileresTPinfo, COORDENDFORCEFILE);
     }

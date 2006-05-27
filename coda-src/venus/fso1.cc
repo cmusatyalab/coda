@@ -783,8 +783,8 @@ void fsobj::ReplaceStatus(ViceStatus *vstat, vv_t *UpdateSet)
 	LOG(0, ("fsobj::ReplaceStatus: (%s), changed stat.length %d->%d\n",
 		FID_(&fid), stat.Length, vstat->Length));
 	if (IsFile())
-	    LocalSetAttr((unsigned long)-1, vstat->Length, (unsigned long)-1,
-			 (unsigned long)-1, (unsigned long)-1);
+	    LocalSetAttr((Date_t)-1, vstat->Length, (Date_t)-1,
+			 (uid_t)-1, (unsigned short)-1);
 	SetRcRights(RC_STATUS);
     }
 

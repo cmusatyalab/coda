@@ -57,9 +57,11 @@ long S_VolTiming(RPC2_Handle rpcid, RPC2_Integer OnFlag, SE_Descriptor *formal_s
     SE_Descriptor sed;
     ProgramType *pt;
     int rc = 0;
+    char *rock;
     
     LogMsg(9, VolDebugLevel, stdout, "Entering S_VolTiming: OnFlag = %d", OnFlag);
-    CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_GetRock(FSTAG, &rock) == LWP_SUCCESS);
+    pt = (ProgramType *)rock;
     VInitVolUtil(volumeUtility);
     if (OnFlag) {
 	probingon = 1;

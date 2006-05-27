@@ -86,9 +86,11 @@ long int S_VolPurge(RPC2_Handle rpcid, RPC2_Unsigned formal_purgeId,
     /* To keep C++ 2.0 happy */
     char *purgeName = (char *)formal_purgeName;
     VolumeId purgeId = (VolumeId)formal_purgeId;
+    char *rock;
 
     VLog(69, "Checking lwp rock in S_VolPurge");
-    CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_GetRock(FSTAG, &rock) == LWP_SUCCESS);
+    pt = (ProgramType *)rock;
 
     VLog(9, "Entering S_VolPurge: purgeId = %x, purgeName = %s",
 					    purgeId, purgeName);

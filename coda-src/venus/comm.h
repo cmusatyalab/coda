@@ -316,7 +316,7 @@ class probeslave : public vproc {
     virtual void main(void); /* entry point */
 
   public:
-    probeslave::probeslave(ProbeSlaveTask, void *, void *, char *);
+    probeslave(ProbeSlaveTask, void *, void *, char *);
 };
 
 /*  *****  Variables  *****  */

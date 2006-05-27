@@ -125,9 +125,10 @@ long S_VolRestore(RPC2_Handle rpcid, RPC2_String formal_partition,
     char *partition = (char *)formal_partition;
     char *volname = (char *)formal_volname;
     VolumeId *volid = (VolumeId *)formal_volid;
+    char *rock;
     
-    
-    CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_GetRock(FSTAG, &rock) == LWP_SUCCESS);
+    pt = (ProgramType *)rock;
 
     VLog(9, "Entering S_VolRestore for %x--%s, partition %s", *volid, volname,
 	partition);
@@ -220,6 +221,7 @@ static int RestoreVolume(DumpBuffer_t *buf, char *partition,
     register Volume *vp = NULL;
     VolumeId parentid;
     rvm_return_t status = RVM_SUCCESS;
+    time_t backupdate;
 
     /* Get header information from the dump buffer. */
     if (!ReadDumpHeader(buf, &header)) {
@@ -228,8 +230,9 @@ static int RestoreVolume(DumpBuffer_t *buf, char *partition,
     }
     VLog(9, "Volume id = %x, Volume name = %s", 
 	 header.volumeId, header.volumeName);
+    backupdate = (time_t)header.backupDate;
     VLog(9, "Dump from backup taken from %x at %s", 
-	 header.parentId, ctime((time_t *)&header.backupDate));
+	 header.parentId, ctime(&backupdate));
     VLog(9, "Dump uniquifiers %x -> %x", 
 	 header.oldest, header.latest);
     

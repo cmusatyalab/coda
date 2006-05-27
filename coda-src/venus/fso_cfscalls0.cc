@@ -1772,7 +1772,7 @@ int fsobj::SetAttr(struct coda_vattr *vap, uid_t uid, RPC2_CountedBS *acl)
 		Recov_BeginTrans();
 		data.file->Truncate((unsigned) NewLength);
 		Recov_EndTrans(MAXFP);
-		NewLength = VA_IGNORE_SIZE;
+		NewLength = (unsigned long)VA_IGNORE_SIZE;
 	}
 
 	/* Avoid performing action where possible. */

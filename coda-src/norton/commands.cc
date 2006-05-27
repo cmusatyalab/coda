@@ -216,7 +216,7 @@ long address_ok(vm_address_t addr, vm_size_t sz, vm_prot_t perm)
 #define BYTES_PER_LINE	16
 void examine(int argc, char *argv[])
 {
-    int *base, *addr;
+    unsigned int *base, *addr;
     char *buf;
     unsigned int len, i;
     

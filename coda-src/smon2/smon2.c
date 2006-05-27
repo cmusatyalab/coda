@@ -59,7 +59,7 @@ listed in the file CREDITS.
 
 struct server
 {
-    int pid; /* process id of lwp for this server */
+    PROCESS pid; /* process id of lwp for this server */
     char *srvname;
     RPC2_Handle cid;
     int  old;
@@ -393,8 +393,7 @@ int main(int argc, char *argv[])
     /* start monitoring */
     for (i = 0; i < SrvCount; i++) {
         LWP_CreateProcess(srvlwp, 0x8000, LWP_NORMAL_PRIORITY,
-                          (void *)i, srv[i].srvname,
-                          (PROCESS *)&srv[i].pid);
+                          (void *)i, srv[i].srvname, &srv[i].pid);
     }
 
     /* QSignal/QWait doesn't actually queue anything so we still have to rely

@@ -75,13 +75,13 @@ lqman::lqman(char *n)
     /* Create the LWP process */
     printf("lqman: Creating LockQueue Manager.....");
     LWP_CreateProcess(LQman_init, LockQueManStkSize, LWP_NORMAL_PRIORITY,
-		      this, name, (PROCESS *)&pid);
+		      this, name, &pid);
     printf("done\n");
 }
 
 lqman::~lqman()
 {
-    LWP_DestroyProcess((PROCESS) pid);
+    LWP_DestroyProcess(pid);
     delete [] name;
 }
 

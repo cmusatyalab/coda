@@ -63,11 +63,13 @@ long S_VolSetLogParms(RPC2_Handle rpcid, VolumeId Vid, RPC2_Integer OnFlag,
     ProgramType *pt;
     int rc = 0;
     rvm_return_t status = RVM_SUCCESS;
+    char *rock;
 
     VLog(9, "Entering S_VolSetLogParms: rpcid = %d, Volume = %x", 
 	 rpcid, Vid);
     
-    CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_GetRock(FSTAG, &rock) == LWP_SUCCESS);
+    pt = (ProgramType *)rock;
 
     rc = VInitVolUtil(volumeUtility);
     if (rc != 0){

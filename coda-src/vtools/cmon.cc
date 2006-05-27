@@ -67,7 +67,7 @@ typedef enum {DEAD, NEWBORN, ALIVE} SrvState;
 
 struct server
     {
-    int pid; /* process id of lwp for this server */
+    PROCESS pid; /* process id of lwp for this server */
     char *srvname;
     int hz; /*  jiffies per second on this server (64 for RT) */
     WINDOW *win;
@@ -144,6 +144,7 @@ cleanup_and_go(int ignored)
 
 int main(int argc, char *argv[])
 {
+    PROCESS lwpid;
     int i;
 
     /* lets try to leave the tty sane */
@@ -178,15 +179,15 @@ int main(int argc, char *argv[])
     InitRPC();
     rpc2_logfile = dbg;
 
-    LWP_CreateProcess(kbdlwp, 0x4000, LWP_NORMAL_PRIORITY, NULL, "KBD", (PROCESS *)&i);
+    LWP_CreateProcess(kbdlwp, 0x4000, LWP_NORMAL_PRIORITY, NULL, "KBD", &lwpid);
     for (i = 0; i < SrvCount; i++)
-	{
-	LWP_CreateProcess(srvlwp, 0x8000, LWP_NORMAL_PRIORITY, (char *)i, (char *)srv[i].srvname, (PROCESS *)&srv[i].pid);
-	}
+    {
+	LWP_CreateProcess(srvlwp, 0x8000, LWP_NORMAL_PRIORITY, (char *)i, (char *)srv[i].srvname, &srv[i].pid);
+    }
     
     LWP_WaitProcess(&Dummy); /* wait for Godot */
     cleanup_and_go(0);
-    }
+}
 
 static void srvlwp(void *arg)
 {
@@ -366,13 +367,13 @@ BadArgs:
 static void InitRPC()
 {
     RPC2_Options options;
-    int pid;
+    PROCESS pid;
     int rc;
     SFTP_Initializer sei;
     struct timeval tv;
 
     /* Init RPC2 */
-    rc = LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, (PROCESS *)&pid);
+    rc = LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, &pid);
     if (rc != LWP_SUCCESS) 
     	{printf("LWP_Init() failed\n"); exit(-1);}
 

@@ -148,8 +148,8 @@ struct ilink : public dlink {
 
 extern void GetResStatus(unsigned long *, ResStatus **, ViceStatus *);
 extern void AllocStoreId(ViceStoreId *);
-extern long CheckRetCodes(unsigned long *, unsigned long *, unsigned long *);
-extern long CheckResRetCodes(unsigned long *, unsigned long *, unsigned long *);
+extern long CheckRetCodes(RPC2_Integer *, unsigned long *, unsigned long *);
+extern long CheckResRetCodes(RPC2_Integer *, unsigned long *, unsigned long *);
 extern void BSToDlist(RPC2_BoundedBS *, dlist *);
 extern void DlistToBS(dlist *, RPC2_BoundedBS *);
 extern void ParseIncBSEntry(char **, char **, long *, long *, long *, long *, 

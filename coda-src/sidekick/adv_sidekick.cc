@@ -784,9 +784,11 @@ long S_InvokeASR(RPC2_Handle _cid, RPC2_String pathname, RPC2_Integer realmid,
     int ret;
     struct pnode *pinfo, *ptmp;
     RPC2_SubsysIdent subsysid;
+    char *rock;
 
-    if ((ret = LWP_GetRock(DEF_ROCK, (char **)&pinfo)) != LWP_SUCCESS)
+    if ((ret = LWP_GetRock(DEF_ROCK, &rock)) != LWP_SUCCESS)
 	quit("Could not get LWP node from under rock (%d)", ret);
+    pinfo = (struct pnode *)rock;
 
   /* fork off the executor */
     ret = fork();

@@ -102,8 +102,10 @@ long int S_VolInfo(RPC2_Handle rpcid, RPC2_String formal_volkey, RPC2_Integer du
 
     /* To keep C++ 2.0 happy */
     char *volkey = (char *)formal_volkey;
+    char *rock;
     
-    CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_GetRock(FSTAG, &rock) == LWP_SUCCESS);
+    pt = (ProgramType *)rock;
     VLog(9, "Entering S_VolInfo(%u, %s, %d)", rpcid, volkey, dumpall);
 
     VInitVolUtil(volumeUtility);

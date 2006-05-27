@@ -591,6 +591,7 @@ static void ServerLWP(void *arg)
     int     lwpid;
     ClientEntry *client = 0;
     ProgramType *pt;
+    char *rock;
 
     /* using rvm - so set the per thread data structure */
     rvm_perthread_t rvmptt;
@@ -619,8 +620,10 @@ static void ServerLWP(void *arg)
 	    continue;
 	}
 
-	if (RPC2_GetPrivatePointer(mycid, (char **)&client) != RPC2_SUCCESS) 
-	    client = 0;
+	if (RPC2_GetPrivatePointer(mycid, &rock) == RPC2_SUCCESS) 
+	    client = (ClientEntry *)rock;
+	else
+	    client = NULL;
 	    
 	/* check rpc2 connection handle */
 	if (client && client->RPCid != mycid) {
@@ -778,6 +781,7 @@ static void CheckLWP(void *arg)
     struct timezone tspl;
     ProgramType *pt;
     rvm_perthread_t rvmptt;
+    char *rock;
 
     /* using rvm - so set the per thread data structure for executing
        transactions */
@@ -803,8 +807,9 @@ static void CheckLWP(void *arg)
 		TM_GetTimeOfDay(&tpl, &tspl);
 		SLog(0, "Shutting down the File Server %s",
 		     ctime((const time_t *)&tpl.tv_sec));
-		CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+		CODA_ASSERT(LWP_GetRock(FSTAG, &rock) == LWP_SUCCESS);
 		/* masquerade as fileServer lwp */
+		pt = (ProgramType *)rock;
 		tmp_pt = *pt;
 		*pt = fileServer;
 	    	ShutDown();
@@ -831,7 +836,9 @@ static void ShutDown()
 	close(fvlock);
 	
 	ProgramType *pt, tmppt;
-	CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+	char *rock;
+	CODA_ASSERT(LWP_GetRock(FSTAG, &rock) == LWP_SUCCESS);
+	pt = (ProgramType *)rock;
 	tmppt = *pt;
 	*pt = salvager;	/* MUST set *pt to salvager before vol_salvage */
 	CODA_ASSERT(S_VolSalvage(0, NULL, 0, 1, 1, 0) == 0);
@@ -892,12 +899,14 @@ void PrintCounters(FILE *fp)
     int seconds;
     int workstations;
     int activeworkstations;
+    time_t timestamp;
 
     TM_GetTimeOfDay(&tpl, &tspl);
     Statistics = 1;
     SLog(0, "Total operations for File Server = %d : time = %s",
 	    Counters[TOTAL], ctime((const time_t *)&tpl.tv_sec));
-    SLog(0, "Vice was last started at %s", ctime((const time_t *)&StartTime));
+    timestamp = (time_t)StartTime;
+    SLog(0, "Vice was last started at %s", ctime(&timestamp));
 
     SLog(0, "NewConnectFS %d", Counters[NEWCONNECTFS]);
     SLog(0, "DisconnectFS %d", Counters[DISCONNECT]);

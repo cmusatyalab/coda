@@ -122,7 +122,10 @@ void PrintVersionVector(vv_t *v, char *str) {
 	     v->StoreId.Host, v->StoreId.Uniquifier, v->Flags);
 }    
 
-void showHeader(int largc, char **largv) {
+void showHeader(int largc, char **largv)
+{
+    time_t timestamp;
+
     if (!Open) {
 	printf("No DumpFile open yet!\n");
 	return;
@@ -139,7 +142,8 @@ void showHeader(int largc, char **largv) {
     printf("%s Dump Version = %d\n", (head.Incremental)?"Incremental":"Full",
 	   head.version);
     printf("VolId = %08x, name = %s\n", head.volumeId, head.volumeName);
-    printf("Parent = %08x, backupDate = %s", head.parentId, ctime((time_t *)&head.backupDate));
+    timestamp = (time_t)head.backupDate;
+    printf("Parent = %08x, backupDate = %s", head.parentId, ctime(&timestamp));
     printf("Ordering references: Oldest %d, Latest %d\n",
 	   head.oldest, head.latest);
     return;

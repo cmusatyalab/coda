@@ -292,17 +292,16 @@ void print_VolumeDiskData(VolumeDiskData *ddata)
     printf("\t\t\tmotd = %s\n\n", ddata->motd);
 }
 
-void PrintCamVnode(int level, int volindex, int vclass, VnodeId vnodeindex, 
+void PrintCamVnode(int level, int volindex, int vclass, VnodeId vnodeindex,
 		    Unique_t unq)
 {
-    char *buf[SIZEOF_LARGEDISKVNODE];
+    char buf[SIZEOF_LARGEDISKVNODE];
     VnodeDiskObject *vnode = (VnodeDiskObject *)buf;
     Error ec;
     int rc = 0;
 
     if (level > VolDebugLevel) return;
 
-    
     rc = ExtractVnode(&ec, volindex, vclass, vnodeindex, unq, vnode);
     if (ec != 0) {
 	printf("Error %u from ExtractVnode; aborting vnode dump\n", ec);

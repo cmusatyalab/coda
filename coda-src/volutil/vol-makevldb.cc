@@ -139,11 +139,13 @@ long S_VolMakeVLDB(RPC2_Handle rpcid, RPC2_String formal_infile)
 
     /* To keep C++ 2.0 happy */
     char *infile = (char *)formal_infile;
+    char *rock;
 
     LogMsg(9, VolDebugLevel, stdout, "Entering S_VolMakeVLDB; infile %s", infile);
     InitAddEntry();
 
-    CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_GetRock(FSTAG, &rock) == LWP_SUCCESS);
+    pt = (ProgramType *)rock;
 
     volumelist = fopen(infile, "r");
     if (volumelist == NULL) {

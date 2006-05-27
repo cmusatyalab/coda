@@ -471,20 +471,20 @@ int dumpstream::getVnodeIndex(VnodeClass Type, long *nVnodes, long *listsize)
 int dumpstream::skip_vnode_garbage()
 {
     char buf[4096];
-    int size; 
+    unsigned int size; 
     
     int tag = fgetc(stream);
 
     if (tag == D_DIRPAGES) {
-	long npages;
+	unsigned int npages;
 	int size = DIR_PAGESIZE;
 
 	CODA_ASSERT (IndexType == vLarge);
 	LogMsg(10, VolDebugLevel, stdout, "SkipVnodeData: Skipping dirpages for %s", name);
-	if (!GetInt32(stream, (unsigned int *)&npages))
+	if (!GetInt32(stream, &npages))
 	    return -1;
 	
-	for (int i = 0; i < npages; i++){ 	/* Skip directory pages */
+	for (unsigned int i = 0; i < npages; i++){ 	/* Skip directory pages */
 	    tag = fgetc(stream);
 	    if (tag != 'P'){
 		LogMsg(0, VolDebugLevel, stderr, "Restore: Dir page does not have a P tag");
@@ -494,12 +494,12 @@ int dumpstream::skip_vnode_garbage()
 	} 
     } else if (tag == D_FILEDATA) {
 	size = (int) sizeof(buf);
-	long nbytes, filesize;
+	unsigned int nbytes, filesize;
 
 	CODA_ASSERT (IndexType == vSmall);
 	LogMsg(10, VolDebugLevel, stdout, "SkipVnodeData: Skipping file data for %s", name);
 
-	if (!GetInt32(stream, (unsigned int *)&filesize))
+	if (!GetInt32(stream, &filesize))
 	    return -1;
 
 	for (nbytes = filesize; nbytes; nbytes -= size) { /* Skip the filedata */
@@ -696,21 +696,21 @@ dumpstream::copyVnodeData(DumpBuffer_t *dbuf)
 {
     int tag = fgetc(stream);
     char buf[DIR_PAGESIZE];
-    int nbytes;
+    unsigned int nbytes;
 
     LogMsg(10, VolDebugLevel, stdout, "Copy:%s type %x", (IndexType == vLarge?"Large":"Small"), tag);
     if (IndexType == vLarge) {
 	CODA_ASSERT(tag == D_DIRPAGES); /* Do something similar for dirpages. */
 
 	/* We get a number of pages, pages are DIR_PAGESIZE bytes long. */
-	long num_pages;
+	unsigned int num_pages;
 	
-	if (!GetInt32(stream, (unsigned int *)&num_pages))
+	if (!GetInt32(stream, &num_pages))
 	    return -1;
 
 	DumpInt32(dbuf, D_DIRPAGES, num_pages);
 
-	for (int i = 0; i < num_pages; i++) { /* copy DIR_PAGESIZE bytes to output. */
+	for (unsigned int i = 0; i < num_pages; i++) { /* copy DIR_PAGESIZE bytes to output. */
 	    tag = fgetc(stream);
 	    if (tag != 'P'){
 		LogMsg(0, VolDebugLevel, stderr, "Restore: Dir page does not have a P tag");
@@ -728,7 +728,7 @@ dumpstream::copyVnodeData(DumpBuffer_t *dbuf)
 	CODA_ASSERT(tag == D_FILEDATA);
 
 	/* First need to output the tag and the length */
-	long filesize, size = DIR_PAGESIZE;
+	unsigned int filesize, size = DIR_PAGESIZE;
 	if (!GetInt32(stream, (unsigned int *)&filesize)) 
 	    return -1;
 	char *p;
@@ -846,11 +846,15 @@ int dumpstream::CopyBytesToFile(FILE *outfile, int nbytes) {
 }
 
 
-void PrintDumpHeader(FILE * outfile, struct DumpHeader *dh) {
+void PrintDumpHeader(FILE * outfile, struct DumpHeader *dh)
+{
+    time_t timestamp;
+
     fprintf(outfile, "Volume id = %08x, Volume name = '%s'\n", 
 	 dh->volumeId, dh->volumeName);
+    timestamp = (time_t)dh->backupDate;
     fprintf(outfile, "Parent id = %08x  Timestamp = %s", 
-	 dh->parentId, ctime((time_t *)&dh->backupDate));
+	 dh->parentId, ctime(&timestamp));
     fprintf(outfile, "Dump uniquifiers: oldest = %08x   latest = %08x\n",
 	 dh->oldest, dh->latest);
 }

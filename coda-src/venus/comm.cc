@@ -792,7 +792,7 @@ long HandleProbe(int HowMany, RPC2_Handle Handles[], long offset, long rpcval, .
     if (RPCid != 0) {
 	/* Get the {host,port} pair for this call. */
 	RPC2_PeerInfo thePeer;
-	long rc = RPC2_GetPeerInfo(RPCid, &thePeer);
+	int rc = RPC2_GetPeerInfo(RPCid, &thePeer);
 	if (thePeer.RemoteHost.Tag != RPC2_HOSTBYINETADDR ||
 	    thePeer.RemotePort.Tag != RPC2_PORTBYINETNUMBER) {
 	    LOG(0, ("HandleProbe: RPC2_GetPeerInfo return code = %d\n", rc));
@@ -808,8 +808,10 @@ long HandleProbe(int HowMany, RPC2_Handle Handles[], long offset, long rpcval, .
 	    CHOKE("HandleProbe: no srvent (RPCid = %d, PeerHost = %s)",
                   RPCid, inet_ntoa(thePeer.RemoteHost.Value.InetAddress));
 	LOG(1, ("HandleProbe: (%s, %d)\n", s->name, rpcval));
-	if (rpcval < 0)
-	    s->ServerError((int *)&rpcval);
+	if (rpcval < 0) {
+	    int rc = rpcval;
+	    s->ServerError(&rc);
+	}
     }
 
     return(0);

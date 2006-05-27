@@ -166,6 +166,7 @@ long FS_ViceAllocFids(RPC2_Handle cid, VolumeId Vid,
     Volume *volptr = 0;
     ClientEntry *client = 0;
     int	stride, ix;
+    char *rock;
 
 START_TIMING(AllocFids_Total);
     SLog(1,  "ViceAllocFids: Vid = %x, Type = %d, Count = %d, AllocHost = %x",
@@ -177,8 +178,9 @@ START_TIMING(AllocFids_Total);
 	    goto FreeLocks;
 
 	/* Retrieve the client handle. */
-	if ((errorCode = RPC2_GetPrivatePointer(cid, (char **)&client)) != RPC2_SUCCESS)
+	if ((errorCode = RPC2_GetPrivatePointer(cid, &rock)) != RPC2_SUCCESS)
 	    goto FreeLocks;
+	client = (ClientEntry *)rock;
 	if (!client) {
 	    errorCode = EINVAL;
 	    goto FreeLocks;
@@ -350,8 +352,7 @@ long FS_ViceResolve(RPC2_Handle cid, ViceFid *Fid)
     (void)mgrp->CheckResult();
 
     // delete hosts from mgroup where rpc succeeded but call returned error 
-    lockerror = CheckResRetCodes((unsigned long *)mgrp->rrcc.retcodes, 
-				 mgrp->rrcc.hosts, hosts);
+    lockerror = CheckResRetCodes(mgrp->rrcc.retcodes, mgrp->rrcc.hosts, hosts);
     errorCode = mgrp->GetHostSet(hosts);
 
     // call resolve on object  only if no locking errors 
@@ -416,13 +417,15 @@ long FS_ViceSetVV(RPC2_Handle cid, ViceFid *Fid, ViceVersionVector *VV, RPC2_Cou
     ClientEntry *client = 0;
     long errorCode = 0;
     rvm_return_t camstatus = RVM_SUCCESS;
+    char *rock;
 
     SLog(9,  "Entering ViceSetVV(%s", FID_(Fid));
     
     /* translate replicated fid to rw fid */
     XlateVid(&Fid->Volume);		/* dont bother checking for errors */
-    if (RPC2_GetPrivatePointer(cid, (char **)&client) != RPC2_SUCCESS)
+    if (RPC2_GetPrivatePointer(cid, &rock) != RPC2_SUCCESS)
 	return(EINVAL);	
+    client = (ClientEntry *)rock;
 
     if (!client) return EINVAL;
     if ((PiggyBS->SeqLen > 0) && (errorCode = FS_ViceCOP2(cid, PiggyBS)))
@@ -2401,10 +2404,12 @@ long FS_ViceGetVolVS(RPC2_Handle cid, VolumeId Vid, RPC2_Integer *VS,
     ViceFid fid;
     ClientEntry *client = 0;
     int ix, count;
+    char *rock;
 
     SLog(1, "ViceGetVolVS for volume 0x%x", Vid);
 
-    errorCode = RPC2_GetPrivatePointer(cid, (char **)&client);
+    errorCode = RPC2_GetPrivatePointer(cid, &rock);
+    client = (ClientEntry *)rock;
     if(!client || errorCode) {
 	SLog(0, "No client structure built by ViceConnectFS");
 	return(errorCode);
@@ -2520,6 +2525,7 @@ long FS_ViceValidateVols(RPC2_Handle cid, RPC2_Integer numVids,
 {
     long errorCode = 0;
     ClientEntry *client = 0;
+    char *rock;
 
     SLog(1, "ViceValidateVols, (%d volumes)", numVids);
 
@@ -2532,7 +2538,8 @@ long FS_ViceValidateVols(RPC2_Handle cid, RPC2_Integer numVids,
 	    return(EINVAL);
     }
 
-    errorCode = RPC2_GetPrivatePointer(cid, (char **)&client);
+    errorCode = RPC2_GetPrivatePointer(cid, &rock);
+    client = (ClientEntry *)rock;
     if(!client || errorCode) {
 	SLog(0, "No client structure built by ViceConnectFS");
 	return(errorCode);

@@ -335,16 +335,18 @@ long FS_ViceQueryReintHandle(RPC2_Handle RPCid, VolumeId Vid,
     ClientEntry *client = 0;
     int fd = -1;
     struct stat status;
+    char *rock;
 
     SLog(0/*1*/, "ViceQueryReintHandle for volume %x", Vid);
 
     *Length = (RPC2_Unsigned)-1;
 
     /* Map RPC handle to client structure. */
-    if ((errorCode = (int) RPC2_GetPrivatePointer(RPCid, (char **)&client)) != RPC2_SUCCESS) {
+    if ((errorCode = (int) RPC2_GetPrivatePointer(RPCid, &rock)) != RPC2_SUCCESS) {
 	SLog(0, "ViceQueryReintHandle: GetPrivatePointer failed (%d)", errorCode);
 	goto Exit;
-    }	
+    }
+    client = (ClientEntry *)rock;
 
     if ( (errorCode = ValidateRHandle(Vid, RHandle)) )
 	goto Exit;
@@ -394,14 +396,16 @@ long FS_ViceSendReintFragment(RPC2_Handle RPCid, VolumeId Vid,
     int fd = -1;
     struct stat status;
     SE_Descriptor sid;
+    char *rock;
 
     SLog(0/*1*/, "ViceSendReintFragment for volume %x", Vid);
 
     /* Map RPC handle to client structure. */
-    if ((errorCode = (int) RPC2_GetPrivatePointer(RPCid, (char **)&client)) != RPC2_SUCCESS) {
+    if ((errorCode = (int) RPC2_GetPrivatePointer(RPCid, &rock)) != RPC2_SUCCESS) {
 	SLog(0, "ViceSendReintFragment: GetPrivatePointer failed (%d)", errorCode);
 	goto Exit;
     }	
+    client = (ClientEntry *)rock;
 
     if ( (errorCode = ValidateRHandle(Vid, RHandle)) )
 	goto Exit;

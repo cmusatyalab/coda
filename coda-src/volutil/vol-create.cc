@@ -116,10 +116,12 @@ long S_VolCreate(RPC2_Handle rpcid, RPC2_String formal_partition,
 	/* To keep C++ 2.0 happy */
 	char *partition = (char *)formal_partition;
 	char *volname = (char *)formal_volname;    
+	char *rock;
 
 	error = 0;
 
-	CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+	CODA_ASSERT(LWP_GetRock(FSTAG, &rock) == LWP_SUCCESS);
+	pt = (ProgramType *)rock;
 
 	VLog(9, "Entering S_VolCreate: rpcid = %d, partition = %s," 
 	     "volname = %s, volumeid = %x, repvol = %d, grpid = %x",

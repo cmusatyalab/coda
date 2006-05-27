@@ -132,12 +132,12 @@ cpman::cpman(char *n): objects(COPHASHSIZE, coppendhashfn)
     strcpy(name, n);
     Lock_Init(&lock);
     LWP_CreateProcess(&cpman_func, cpman_stacksize, LWP_NORMAL_PRIORITY,
-		      this, name, (PROCESS *)&pid);
+		      this, name, &pid);
 }
 
 cpman::~cpman() {
     delete [] name;
-    LWP_DestroyProcess((PROCESS) pid);
+    LWP_DestroyProcess(pid);
 }
 
 const int CPINTERVAL = 60; 	/* seconds */

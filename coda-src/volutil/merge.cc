@@ -203,7 +203,7 @@ int main(int argc, char **argv)
 static void BuildTable(dumpstream *dump, vtable *table)
 {
     VnodeId vnodeNumber;
-    char *buf[SIZEOF_LARGEDISKVNODE];
+    char buf[SIZEOF_LARGEDISKVNODE];
     VnodeDiskObject *vdo = (VnodeDiskObject *)buf;
 
     table->table = (ventry **)malloc(sizeof(ventry*) * table->nslots);
@@ -241,7 +241,7 @@ static void BuildTable(dumpstream *dump, vtable *table)
 
 static void ModifyTable(dumpstream *dump, VnodeClass vclass, vtable *Table)
 {
-    char *buf[SIZEOF_LARGEDISKVNODE];
+    char buf[SIZEOF_LARGEDISKVNODE];
     VnodeDiskObject *vdo = (VnodeDiskObject *)buf;
     long nvnodes, nslots;
     VnodeId vnodeNumber;
@@ -328,7 +328,7 @@ static void WriteDumpHeader(DumpBuffer_t *buf, struct DumpHeader *head, struct D
 
 static void WriteTable(DumpBuffer_t *buf, vtable *table, VnodeClass vclass)
 {
-    char *vbuf[SIZEOF_LARGEDISKVNODE];
+    char vbuf[SIZEOF_LARGEDISKVNODE];
     VnodeDiskObject *vdo = (VnodeDiskObject *)vbuf;
 
     DumpInt32(buf, 'v', table->nvnodes);

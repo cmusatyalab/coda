@@ -219,21 +219,23 @@ int VInitVolUtil(ProgramType pt)
 }
 
 /* one time initialization for file server only */
-void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage) 
+void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage)
 {
     struct timeval tv;
     struct timezone tz;
     ProgramType *pt;
+    char *rock;
 
     VLog(9, "Entering VInitVolumePackage(%d, %d, %d)",
 	nLargeVnodes, nSmallVnodes, DoSalvage);
 
-    CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_GetRock(FSTAG, &rock) == LWP_SUCCESS);
+    pt = (ProgramType *)rock;
 
     srandom((int)time(0));	/* For VGetVolumeInfo */
     gettimeofday(&tv, &tz);
     TimeZoneCorrection = tz.tz_minuteswest*60;
-    
+
     dump_storage(9, "InitVolumePackage");
 
     /* Don't grab the lock yet in case we run the salvager */
@@ -341,9 +343,11 @@ void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage)
 int VConnectFS() {
     int rc;
     ProgramType *pt;
+    char *rock;
 
     VLog(9, "Entering VConnectFS");
-    CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_GetRock(FSTAG, &rock) == LWP_SUCCESS);
+    pt = (ProgramType *)rock;
     CODA_ASSERT(VInit == 1 && *pt == volumeUtility);
     rc = FSYNC_clientInit();
     return rc;
@@ -351,9 +355,11 @@ int VConnectFS() {
 
 void VDisconnectFS() {
     ProgramType *pt;
+    char *rock;
 
     VLog(9, "Entering VDisconnectFS");
-    CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_GetRock(FSTAG, &rock) == LWP_SUCCESS);
+    pt = (ProgramType *)rock;
     CODA_ASSERT(VInit == 1 && *pt == volumeUtility);
     FSYNC_clientFinis();
 }
@@ -737,10 +743,11 @@ VAttachVolumeById(Error *ec, char *partition, VolumeId volid, int mode)
 	struct DiskPartition *dp;
 	char name[V_MAXVOLNAMELEN];
 	ProgramType *pt;
-
+	char *rock;
 
 	VLog(9, "Entering VAttachVolumeById() for volume %x", volid);
-	CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+	CODA_ASSERT(LWP_GetRock(FSTAG, &rock) == LWP_SUCCESS);
+	pt = (ProgramType *)rock;
 
 	dp = DP_Get(partition);
 	if (!dp) {
@@ -841,14 +848,16 @@ VAttachVolumeById(Error *ec, char *partition, VolumeId volid, int mode)
 	return vp;
 }
 
-static Volume *attach2(Error *ec, char *name, 
+static Volume *attach2(Error *ec, char *name,
 		       struct VolumeHeader *header,
 		       struct DiskPartition *dp)
 {
 	Volume *vp;
 	ProgramType *pt;
+	char *rock;
 
-	CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+	CODA_ASSERT(LWP_GetRock(FSTAG, &rock) == LWP_SUCCESS);
+	pt = (ProgramType *)rock;
 	VLog(9, "Entering attach2(); %s running as fileServer",
 	     (*pt==fileServer)?"":"not");
 
@@ -970,9 +979,11 @@ Volume *VGetVolume(Error *ec, VolumeId volumeId)
     Volume *vp;
     ProgramType *pt;
     int headerExists = 0;
+    char *rock;
 
     VLog(9, "Entering VGetVolume for volume %x", volumeId);
-    CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_GetRock(FSTAG, &rock) == LWP_SUCCESS);
+    pt = (ProgramType *)rock;
     for(;;) {
 	*ec = 0;
 	for (vp = VolumeHashTable[VOLUME_HASH(volumeId)];
@@ -1077,9 +1088,11 @@ Volume *VGetVolume(Error *ec, VolumeId volumeId)
 void VPutVolume(Volume *vp)
 {
     ProgramType *pt;
+    char *rock;
 
     VLog(9, "Entering VPutVolume for volume %x", V_id(vp));
-    CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_GetRock(FSTAG, &rock) == LWP_SUCCESS);
+    pt = (ProgramType *)rock;
     CODA_ASSERT(--(vp->nUsers) >= 0);
     if (vp->nUsers == 0) {
 	Error error;
@@ -1133,14 +1146,16 @@ void VForceOffline(Volume *vp)
 /* The opposite of VAttachVolume.  The volume header is written to disk, with
    the inUse bit turned off.  A copy of the header is maintained in memory,
    however (which is why this is VOffline, not VDetach).
- */   
+ */
 void VOffline(Volume *vp, char *message)
 {
     Error error;
     VolumeId vid = V_id(vp);
     ProgramType *pt;
+    char *rock;
 
-    CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_GetRock(FSTAG, &rock) == LWP_SUCCESS);
+    pt = (ProgramType *)rock;
     VLog(9, "Entering VOffline for volume %x, running as %s",
 	 V_id(vp), (*pt == fileServer)?"fileServer":((*pt == volumeUtility)?"volumeUtility":"fileUtility"));
 
@@ -1179,9 +1194,11 @@ void VDetachVolume(Error *ec, Volume *vp)
     VolumeId volume;
     int notifyServer = 0;
     ProgramType *pt;
+    char *rock;
 
     VLog(9, "Entering VDetachVolume() for volume %x", V_id(vp));
-    CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_GetRock(FSTAG, &rock) == LWP_SUCCESS);
+    pt = (ProgramType *)rock;
     *ec = 0;	/* always "succeeds" */
     if (*pt == volumeUtility)
 	notifyServer = (V_destroyMe(vp) != DESTROY_ME);
@@ -1365,9 +1382,11 @@ void VFreeBitMapEntry(Error *ec, struct vnodeIndex *index, int bitNumber)
 void VUpdateVolume(Error *ec, Volume *vp)
 {
 	ProgramType *pt;
+	char *rock;
 
 	VLog(9, "Entering VUpdateVolume() for volume %x", V_id(vp));
-	CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+	CODA_ASSERT(LWP_GetRock(FSTAG, &rock) == LWP_SUCCESS);
+	pt = (ProgramType *)rock;
 	*ec = 0;
 
 	WriteVolumeHeader(ec, vp);
@@ -1400,9 +1419,11 @@ void FreeVolume(Volume *vp)
 {
 	int i;
 	ProgramType *pt;
+	char *rock;
 
 	VLog(9, "Entering FreeVolume for volume %x", V_id(vp));
-	CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+	CODA_ASSERT(LWP_GetRock(FSTAG, &rock) == LWP_SUCCESS);
+	pt = (ProgramType *)rock;
 	if (!vp)
 		return;
 	for (i = 0; i<nVNODECLASSES; i++)

@@ -95,12 +95,15 @@ long S_VolShowVnode(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
     long rc = 0;
     ProgramType *pt;
     VolumeId tmpvolid;
+    time_t timestamp;
 
     /* To keep C++ 2.0 happy */
     VolumeId volid = (VolumeId)formal_volid;
+    char *rock;
 
     VLog(9, "Checking lwp rock in S_VolShowVnode");
-    CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_GetRock(FSTAG, &rock) == LWP_SUCCESS);
+    pt = (ProgramType *)rock;
 
     VLog(9, "Entering VolShowVnode(%d, 0x%x, 0x%x)", rpcid, volid, vnodeid);
 
@@ -137,11 +140,12 @@ long S_VolShowVnode(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
 	vnp->disk.type == vSymlink? "symlink" : "unknown type",
 	vnp->disk.cloned, vnp->disk.modeBits, vnp->disk.linkCount,
 	vnp->disk.length);
+    timestamp = (time_t)vnp->disk.serverModifyTime;
     fprintf(infofile, "inode=%x, parent=%08x.%08x, serverTime=%s",
-	vnp->disk.inodeNumber, vnp->disk.vparent, vnp->disk.uparent, ctime((time_t *)&vnp->disk.serverModifyTime));
+	vnp->disk.inodeNumber, vnp->disk.vparent, vnp->disk.uparent, ctime(&timestamp));
+    timestamp = (time_t)vnp->disk.unixModifyTime;
     fprintf(infofile, "author=%u, owner=%u, modifyTime=%s, volumeindex = %d",
-        vnp->disk.author, vnp->disk.owner, ctime((time_t *)&vnp->disk.unixModifyTime),
-	vnp->disk.vol_index);
+        vnp->disk.author, vnp->disk.owner, ctime(&timestamp), vnp->disk.vol_index);
     FPrintVV(infofile, &(vnp->disk.versionvector));
 
     if (vnp->disk.type == vDirectory) {

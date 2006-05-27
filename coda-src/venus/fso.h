@@ -692,7 +692,7 @@ class fsobj {
     void RemoveShadow();
     void CacheReport(int, int);
 
-    int /*(secs)*/ fsobj::EstimatedFetchCost(int =1);  /* 0 = status; 1 = data (default) */
+    int /*(secs)*/ EstimatedFetchCost(int =1);  /* 0 = status; 1 = data (default) */
     void RecordReplacement(int, int);
 
     void print() { print(stdout); }

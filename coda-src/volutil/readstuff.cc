@@ -321,9 +321,9 @@ int ReadVV(DumpBuffer_t *buf, vv_t *vv)
 int ReadDumpHeader(DumpBuffer_t *buf, struct DumpHeader *hp)
 {
     int tag;
-    unsigned long beginMagic;
+    unsigned int beginMagic;
     if (ReadTag(buf) != D_DUMPHEADER ||
-	!ReadInt32(buf, (unsigned int *)&beginMagic) ||
+	!ReadInt32(buf, &beginMagic) ||
 	!ReadInt32(buf, (unsigned int *)&hp->version) ||
 	beginMagic != DUMPBEGINMAGIC
        ) return FALSE;
@@ -367,14 +367,14 @@ int ReadDumpHeader(DumpBuffer_t *buf, struct DumpHeader *hp)
    of a dump */
 int EndOfDump(DumpBuffer_t *buf)
 {
-    long magic;
+    unsigned int magic;
 
     if (ReadTag(buf) != D_DUMPEND) {
 	LogMsg(0, VolDebugLevel, stdout, "End of dump not	found; restore aborted");
 	return FALSE;
     }
 
-    if (!ReadInt32(buf, (unsigned int *)&magic) || (magic != DUMPENDMAGIC)) {
+    if (!ReadInt32(buf, &magic) || (magic != DUMPENDMAGIC)) {
 	LogMsg(0, VolDebugLevel, stdout, "Dump Magic Value Incorrect; restore aborted");
 	return FALSE;
     }

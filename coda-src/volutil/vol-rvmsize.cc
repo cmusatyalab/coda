@@ -57,9 +57,11 @@ long S_VolRVMSize(RPC2_Handle rpcid, VolumeId VolID, RVMSize_data *data) {
     int status = 0;
     long size = 0;
     ProgramType *pt;
+    char *rock;
 
     LogMsg(9, VolDebugLevel, stdout, "Checking lwp rock in S_VolRVMSize");
-    CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_GetRock(FSTAG, &rock) == LWP_SUCCESS);
+    pt = (ProgramType *)rock;
 
     LogMsg(9, VolDebugLevel, stdout, "Entering VolRVMSize()");
     VInitVolUtil(volumeUtility);

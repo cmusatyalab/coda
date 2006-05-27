@@ -72,6 +72,7 @@ static int GetTokens(const char *realm)
 {
     ClearToken clear;
     EncryptedSecretToken secret;
+    time_t endtimestamp;
     int rc;
 
     fprintf(stdout, "    @%s\n", realm);
@@ -93,7 +94,8 @@ static int GetTokens(const char *realm)
 	fprintf(stdout, "\tThis token has expired.\n");
 	return -2;
     }
-    fprintf(stdout, "\tExpiration time: %s", ctime((time_t *)&clear.EndTimestamp));
+    endtimestamp = (time_t)clear.EndTimestamp;
+    fprintf(stdout, "\tExpiration time: %s", ctime(&endtimestamp));
     return 0;
 }
 

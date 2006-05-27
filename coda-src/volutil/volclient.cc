@@ -465,7 +465,7 @@ static void stripslash(char *partition)
 static void create(void)
 {
     char *partition, *volumeName;
-    long volumeid = 0;
+    VolumeId volumeid = 0;
 
     if (these_args != 4) {
 	fprintf(stderr, "Usage:  volutil create partition-path volumeName\n");
@@ -475,12 +475,12 @@ static void create(void)
     stripslash(partition);
     volumeName = this_argp[3];
 
-    rc = VolCreate(rpcid, (RPC2_String)partition, (RPC2_String)volumeName, (RPC2_Unsigned *)&volumeid, 0, 0);
+    rc = VolCreate(rpcid, (RPC2_String)partition, (RPC2_String)volumeName, &volumeid, 0, 0);
     if (rc != RPC2_SUCCESS) {
 	fprintf(stderr, "VolCreate failed with %s\n", RPC2_ErrorMsg((int)rc));
 	exit(-1);
     }
-    printf("Volume %lx (%s) created \n", volumeid, volumeName);
+    printf("Volume %08x (%s) created \n", volumeid, volumeName);
     exit(0);
 }
 
@@ -502,13 +502,13 @@ static void clone(void)
 	fprintf(stderr, "Usage: volutil clone <volume-id> [-n <new volume name>]\n");
 	exit(-1);
     }
-    long ovolid, newvolid;
+    VolumeId ovolid, newvolid;
     char buf[1];
     buf[0] = '\0';
     char *newvolname = buf;
     long rc;
 
-    if (sscanf(this_argp[2], "%lX", &ovolid) != 1){
+    if (sscanf(this_argp[2], "%x", &ovolid) != 1){
 	fprintf(stderr, "Clone: Bad Volumeid %s\n", this_argp[2]);
 	exit(-1);
     }
@@ -517,12 +517,12 @@ static void clone(void)
 	    newvolname = this_argp[4];
     }
     
-    rc = VolClone(rpcid, ovolid, (RPC2_String)newvolname, (RPC2_Unsigned *)&newvolid);
+    rc = VolClone(rpcid, ovolid, (RPC2_String)newvolname, &newvolid);
     if (rc != RPC2_SUCCESS) {
 	fprintf(stderr, "VolClone failed with %s\n", RPC2_ErrorMsg((int)rc));
 	exit(-1);
     }
-    printf("VolClone: New Volume id = %lx\n", newvolid);
+    printf("VolClone: New Volume id = %08x\n", newvolid);
     printf("VolClone: New Volume name is %s\n", newvolname);
     exit(0);
 }
@@ -671,20 +671,22 @@ static void VolDumpLWP(void *arg)
 long S_WriteDump(RPC2_Handle rpcid, RPC2_Unsigned offset, RPC2_Unsigned *nbytes, VolumeId volid, SE_Descriptor *BD)
 {
     long rc = 0;
-    struct rockInfo *rock;
+    struct rockInfo *rockinfo;
     SE_Descriptor sed;
+    char *rock;
     
-    CODA_ASSERT(LWP_GetRock(ROCKTAG, (char **)&rock) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_GetRock(ROCKTAG, &rock) == LWP_SUCCESS);
+    rockinfo = (struct rockInfo *)rock;
 
-    if (volid != rock->volid) {
+    if (volid != rockinfo->volid) {
 	fprintf(stderr, "Got a WriteDump for %08x, I'm dumping %08x!\n",
-		volid, rock->volid);
+		volid, rockinfo->volid);
 	exit(-1);
     }
 
-    if (rock->numbytes != offset) {
-	fprintf(stderr, "Offset %d != rock->numbytes %ld\n",
-		offset, rock->numbytes);
+    if (rockinfo->numbytes != offset) {
+	fprintf(stderr, "Offset %d != rockInfo->numbytes %ld\n",
+		offset, rockinfo->numbytes);
     }
     
     /* fetch the file with volume data */
@@ -695,7 +697,7 @@ long S_WriteDump(RPC2_Handle rpcid, RPC2_Unsigned offset, RPC2_Unsigned *nbytes,
     sed.Value.SmartFTPD.SeekOffset = offset;
     sed.Value.SmartFTPD.hashmark = 0;
     sed.Value.SmartFTPD.Tag = FILEBYFD;
-    sed.Value.SmartFTPD.FileInfo.ByFD.fd = rock->fd;
+    sed.Value.SmartFTPD.FileInfo.ByFD.fd = rockinfo->fd;
 
     if ((rc = RPC2_InitSideEffect(rpcid, &sed)) <= RPC2_ELIMIT){
 	fprintf(stderr, "WriteDump: Error %s in InitSideEffect\n", RPC2_ErrorMsg((int)rc));
@@ -715,7 +717,7 @@ long S_WriteDump(RPC2_Handle rpcid, RPC2_Unsigned offset, RPC2_Unsigned *nbytes,
 #else
     fprintf(stderr, ".");
 #endif
-    rock->numbytes += sed.Value.SmartFTPD.BytesTransferred;
+    rockinfo->numbytes += sed.Value.SmartFTPD.BytesTransferred;
     return rc;
 }
 
@@ -736,7 +738,7 @@ static void restorefromback(void)
 {
     char volname[70], *partition;
     long rc = 0;
-    long volid = 0;
+    VolumeId volid = 0;
     char *filename = NULL;
     FILE *outf;
 
@@ -762,7 +764,7 @@ static void restorefromback(void)
     else
 	strcpy(volname, this_argp[3]);
 
-    if ((these_args < 5) || (sscanf(this_argp[4], "%lX", &volid) == 0))
+    if ((these_args < 5) || (sscanf(this_argp[4], "%x", &volid) == 0))
 	volid = 0;
 
     /* Create lwp thread DumpLwp */
@@ -787,31 +789,33 @@ static void restorefromback(void)
 	exit(-1);
     }
 
-    rc = VolRestore(rpcid, (RPC2_String)partition, (RPC2_String)volname, (RPC2_Unsigned *)&volid);
+    rc = VolRestore(rpcid, (RPC2_String)partition, (RPC2_String)volname, &volid);
     if (rc != RPC2_SUCCESS){
 	fprintf(stderr, "\nVolRestore failed with %s\n", RPC2_ErrorMsg((int)rc));
 	exit(-1);
     }
 
-    printf("\nVolRestore successful, created %#8lx\n", volid);
+    printf("\nVolRestore successful, created %08x\n", volid);
     exit(0);
 }
 
 long S_ReadDump(RPC2_Handle rpcid, RPC2_Unsigned offset, RPC2_Integer *nbytes, VolumeId volid, SE_Descriptor *BD)
 {
     long rc = 0;
-    struct rockInfo *rock;
+    struct rockInfo *rockinfo;
     SE_Descriptor sed;
     char *buf;
+    char *rock;
     
-    CODA_ASSERT(LWP_GetRock(ROCKTAG, (char **)&rock) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_GetRock(ROCKTAG, &rock) == LWP_SUCCESS);
+    rockinfo = (struct rockInfo *)rock;
 
     if (volid == 0) { /* User didn't assign one, use volId fileserver gives us. */
-	rock->volid = volid;
+	rockinfo->volid = volid;
     }
     
-    if (volid != rock->volid) {
-	fprintf(stderr, "Got a ReadDump for %08x, I'm reading %08x!\n", volid, rock->volid);
+    if (volid != rockinfo->volid) {
+	fprintf(stderr, "Got a ReadDump for %08x, I'm reading %08x!\n", volid, rockinfo->volid);
 	exit(-1);
     }
 
@@ -822,16 +826,16 @@ long S_ReadDump(RPC2_Handle rpcid, RPC2_Unsigned offset, RPC2_Integer *nbytes, V
 	exit(-1);
     }
 
-    CODA_ASSERT(rock->fd != 0);	/* Better have been opened by restore() */
+    CODA_ASSERT(rockinfo->fd != 0); /* Better have been opened by restore() */
 
-    if (lseek(rock->fd, offset, L_SET) == -1) {
+    if (lseek(rockinfo->fd, offset, L_SET) == -1) {
 	perror("ReadDump: lseek");
 	*nbytes = 0;
 	free(buf);
 	return 0;
     }
 
-    *nbytes = read(rock->fd, buf, (int)*nbytes);
+    *nbytes = read(rockinfo->fd, buf, (int)*nbytes);
     if (*nbytes == -1) {
 	perror("ReadDump: read");
 	*nbytes = 0;
@@ -863,7 +867,7 @@ long S_ReadDump(RPC2_Handle rpcid, RPC2_Unsigned offset, RPC2_Integer *nbytes, V
 #else
     fprintf(stderr, ".");
 #endif
-    rock->numbytes += sed.Value.SmartFTPD.BytesTransferred;
+    rockinfo->numbytes += sed.Value.SmartFTPD.BytesTransferred;
     free(buf);
     return rc;
 }
@@ -980,7 +984,7 @@ static void backup(void)
 static void create_rep(void)
 {
     char *partition, *volumeName;
-    long volumeid = 0;
+    VolumeId volumeid = 0;
     long groupid;
 
     if (these_args != 5 && these_args != 6) {
@@ -996,19 +1000,19 @@ static void create_rep(void)
 	exit(-1);
     }
     if (these_args == 6) {
-	if (sscanf(this_argp[5], "%lX", &volumeid) != 1){
+	if (sscanf(this_argp[5], "%x", &volumeid) != 1){
 	    fprintf(stderr, "CreateRep: Bad Volume Id %s\n", this_argp[5]);
 	    exit(-1);
 	}
     }
 
     rc = VolCreate(rpcid, (RPC2_String)partition, (RPC2_String)volumeName,
-		   (RPC2_Unsigned *)&volumeid, 1, groupid);
+		   &volumeid, 1, groupid);
     if (rc != RPC2_SUCCESS) {
 	fprintf(stderr, "VolCreate failed with %s\n", RPC2_ErrorMsg((int)rc));
 	exit(-1);
     }
-    printf("Volume %lx (%s) created \n", volumeid, volumeName);
+    printf("Volume %08x (%s) created \n", volumeid, volumeName);
     exit(0);
 }
 

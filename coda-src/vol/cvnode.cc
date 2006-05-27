@@ -241,7 +241,9 @@ int VAllocFid(Volume *vp, VnodeType type, ViceFidRange *range, int stride, int i
 	/* Sanity checks. */
 	{
 		ProgramType *pt;
-		CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+		char *rock;
+		CODA_ASSERT(LWP_GetRock(FSTAG, &rock) == LWP_SUCCESS);
+		pt = (ProgramType *)rock;
 		if (*pt == fileServer && !V_inUse(vp))
 			return(VOFFLINE);
 		
@@ -297,14 +299,16 @@ int VAllocFid(Volume *vp, VnodeType type, VnodeId vnode, Unique_t unique)
 	/* Sanity checks. */
 	{
 		ProgramType *pt;
-		CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+		char *rock;
+		CODA_ASSERT(LWP_GetRock(FSTAG, &rock) == LWP_SUCCESS);
+		pt = (ProgramType *)rock;
 		if (*pt == fileServer && !V_inUse(vp))
 			return(VOFFLINE);
-		
+
 		if (!VolumeWriteable(vp))
 			return(VREADONLY);
 	}
-	
+
 	/* Extend VM counter beyond specified uniquifier if necessary.
        Extend RVM counter by another chunk if VM counter has now
        reached or exceeded it! */
@@ -473,6 +477,7 @@ Vnode *VGetVnode(Error *ec, Volume *vp, VnodeId vnodeNumber,
 	VnodeClass vclass;
 	struct VnodeClassInfo *vcp;
 	ProgramType *pt;
+	char *rock;
 
 	SLog(9, "Entering VGetVnode(vol %x, vnode %lx, lock %d, ignoreIncon %d)",
 	     V_id(vp), vnodeNumber, locktype, ignoreIncon);
@@ -484,7 +489,8 @@ Vnode *VGetVnode(Error *ec, Volume *vp, VnodeId vnodeNumber,
 		return NULL;
 	}
 
-	CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+	CODA_ASSERT(LWP_GetRock(FSTAG, &rock) == LWP_SUCCESS);
+	pt = (ProgramType *)rock;
 	if (*pt == fileServer && !V_inUse(vp)) {
 		*ec = VOFFLINE;
 		SLog(9, "VGetVnode: volume 0x%x is offline", V_id(vp));
@@ -493,7 +499,7 @@ Vnode *VGetVnode(Error *ec, Volume *vp, VnodeId vnodeNumber,
 	vclass = vnodeIdToClass(vnodeNumber);
 	vcp = &VnodeClassInfo_Array[vclass];
 
-	if ( (locktype == WRITE_LOCK || locktype == TRY_WRITE_LOCK) && 
+	if ( (locktype == WRITE_LOCK || locktype == TRY_WRITE_LOCK) &&
 	     !VolumeWriteable(vp)) {
 		*ec = VREADONLY;
 		SLog(0, "VGetVnode: attempt to write lock readonly volume %x", 

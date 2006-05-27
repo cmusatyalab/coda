@@ -247,14 +247,13 @@ static int ResolveInc(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV)
 		       mgrp->rrcc.MIp, 0, 0, Fid, sizevar_ptrs, statusvar_ptrs,
 		       sidvar_bufs);
 	mgrp->CheckResult();
-	if (CheckRetCodes((unsigned long *)mgrp->rrcc.retcodes, mgrp->rrcc.hosts, 
-			  succflags)) {
+	if (CheckRetCodes(mgrp->rrcc.retcodes, mgrp->rrcc.hosts, succflags)) {
 	    SLog(0, "ResolveInc: Error during FetchDirContents");
 	    goto Exit;
 	}
     }
-    
-    // compare the contents 
+
+    // compare the contents
     {
 	if (CompareDirStatus(statusvar_bufs, mgrp, &newVV) == 0) {
 	    if (CompareDirContents(sidvar_bufs, Fid) == 0) {
@@ -264,7 +263,7 @@ static int ResolveInc(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV)
 	    else 
 		SLog(0, "ResolveInc: Dir contents are unequal");
 	}
-	else 
+	else
 	    SLog(0, "ResolveInc: Dir Status blocks are different");
     }
     // clear inconsistency if equal
@@ -274,14 +273,14 @@ static int ResolveInc(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV)
 			   mgrp->rrcc.handles, mgrp->rrcc.retcodes,
 			   mgrp->rrcc.MIp, 0, 0, Fid, newVV);
 	    mgrp->CheckResult();
-	    errorcode = CheckRetCodes((unsigned long *)mgrp->rrcc.retcodes, mgrp->rrcc.hosts, succflags);
+	    errorcode = CheckRetCodes(mgrp->rrcc.retcodes, mgrp->rrcc.hosts, succflags);
 	}
     }
   Exit:
     // free all the allocate dir bufs
   { /* drop scope for int i below; to avoid identifier clash */
-    for (int i = 0 ; i < VSG_MEMBERS; i++) 
-	if (dirbufs[i]) 
+    for (int i = 0 ; i < VSG_MEMBERS; i++)
+	if (dirbufs[i])
 	    free(dirbufs[i]);
   } /* drop scope for int i above; to avoid identifier clash */
 
@@ -323,7 +322,7 @@ int IsWeaklyEqual(ViceVersionVector **VV, int nvvs)
 
 int WEResPhase1(ViceFid *Fid, ViceVersionVector **VV, 
 		res_mgrpent *mgrp, unsigned long *hosts,
-		ViceStoreId *stid, ResStatus **rstatusp) 
+		ViceStoreId *stid, ResStatus **rstatusp)
 {
 	int errorCode = 0;
 	ViceVersionVector newvv;
@@ -334,8 +333,7 @@ int WEResPhase1(ViceFid *Fid, ViceVersionVector **VV,
 
 	if (rstatusp) {
 	    unsigned long succflags[VSG_MEMBERS];
-	    CheckRetCodes((unsigned long *)mgrp->rrcc.retcodes,
-			  mgrp->rrcc.hosts, succflags);
+	    CheckRetCodes(mgrp->rrcc.retcodes, mgrp->rrcc.hosts, succflags);
 	    GetResStatus(succflags, rstatusp, &vstatus);
 	}
 
@@ -344,15 +342,14 @@ int WEResPhase1(ViceFid *Fid, ViceVersionVector **VV,
         if (stid)
 	    *stid = newvv.StoreId;
 
-	MRPC_MakeMulti(ForceVV_OP, ForceVV_PTR, VSG_MEMBERS, 
+	MRPC_MakeMulti(ForceVV_OP, ForceVV_PTR, VSG_MEMBERS,
 		       mgrp->rrcc.handles, mgrp->rrcc.retcodes,
 		       mgrp->rrcc.MIp, 0, 0, Fid, &newvv, &vstatus);
 	SLog(9,  "WEResPhase1 returned from ForceVV");
-	
+
 	/* coerce rpc errors as timeouts - check ret codes */
 	mgrp->CheckResult();
-	errorCode = CheckRetCodes((unsigned long *)mgrp->rrcc.retcodes, 
-				  mgrp->rrcc.hosts, hosts);
+	errorCode = CheckRetCodes(mgrp->rrcc.retcodes, mgrp->rrcc.hosts, hosts);
 	SLog(9,  "WEResPhase1 returning %d", errorCode);
 	return(errorCode);
 }
@@ -368,19 +365,17 @@ static int WEResPhase2(res_mgrpent *mgrp, ViceFid *Fid,
 	SLog(9,  "Entering ResPhase2 %s", FID_(Fid));
 	/* form the update set */
 	memset((void *)&UpdateSet, 0, sizeof(ViceVersionVector));
-	
+
 	for (i = 0; i < VSG_MEMBERS; i++)
 	    if (successHosts[i])
 		(&(UpdateSet.Versions.Site0))[i] = 1;
-    
-	MRPC_MakeMulti(COP2_OP, COP2_PTR, VSG_MEMBERS, 
+
+	MRPC_MakeMulti(COP2_OP, COP2_PTR, VSG_MEMBERS,
 		       mgrp->rrcc.handles, mgrp->rrcc.retcodes,
-		       mgrp->rrcc.MIp, 0, 0, stid, &UpdateSet);     
+		       mgrp->rrcc.MIp, 0, 0, stid, &UpdateSet);
 
 	mgrp->CheckResult();
-	error = CheckRetCodes((unsigned long *)mgrp->rrcc.retcodes, 
-			      mgrp->rrcc.hosts, 
-			      hosts);
+	error = CheckRetCodes(mgrp->rrcc.retcodes, mgrp->rrcc.hosts, hosts);
 	return(error);
 }
 

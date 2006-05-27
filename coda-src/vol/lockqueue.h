@@ -59,7 +59,7 @@ class lqent;
 class lqman {
     char *name;
     struct Lock lock;
-    int pid;
+    PROCESS pid;
     dlist objects;
 
     friend void LQman_init(void *);

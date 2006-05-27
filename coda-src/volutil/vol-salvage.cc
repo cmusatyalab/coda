@@ -175,10 +175,12 @@ long S_VolSalvage(RPC2_Handle rpcid, RPC2_String path,
     long rc = 0;
     int UtilityOK = 0;	/* flag specifying whether the salvager may run as a volume utility */
     ProgramType *pt;  /* These are to keep C++ > 2.0 happy */
+    char *rock;
 
     VLog(9, "Entering S_VolSalvage (%d, %s, %x, %d, %d, %d)",
 	 rpcid, path, singleVolumeNumber, force, Debug, list);
-    CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_GetRock(FSTAG, &rock) == LWP_SUCCESS);
+    pt = (ProgramType *)rock;
 
     zero_globals();
 
@@ -1120,13 +1122,15 @@ static int AskOffline(VolumeId volumeId)
 {
     ProgramType *pt, tmp;
     int rc = 0;
+    char *rock;
 
     VLog(9, "Entering AskOffline(%x)", volumeId);
 
     /* Note:  we're depending upon file server to put the volumes online
        after salvaging */
     /* masquerade as fileserver for FSYNC_askfs call */
-    CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_GetRock(FSTAG, &rock) == LWP_SUCCESS);
+    pt = (ProgramType *)rock;
     tmp = *pt;
     *pt = fileServer;
     rc = FSYNC_askfs(volumeId, FSYNC_OFF, FSYNC_SALVAGE);
@@ -1144,13 +1148,15 @@ static int AskOnline(VolumeId volumeId)
 {
     ProgramType *pt, tmp;
     int rc = 0;
+    char *rock;
 
     VLog(9, "Entering AskOnline(%x)", volumeId);
 
     /* Note:  we're depending upon file server to put the volumes online
        after salvaging */
     /* masquerade as fileserver for FSYNC_askfs call */
-    CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_GetRock(FSTAG, &rock) == LWP_SUCCESS);
+    pt = (ProgramType *)rock;
     tmp = *pt;
     *pt = fileServer;
     rc = FSYNC_askfs(volumeId, FSYNC_ON, 0);

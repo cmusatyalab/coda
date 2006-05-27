@@ -565,8 +565,10 @@ long S_VolNewDump(RPC2_Handle rpcid, RPC2_Unsigned formal_volumeNumber,
 
     /* To keep C++ 2.0 happy */
     VolumeId volumeNumber = (VolumeId)formal_volumeNumber;
+    char *rock;
 
-    CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_GetRock(FSTAG, &rock) == LWP_SUCCESS);
+    pt = (ProgramType *)rock;
 
     SLog(9, "S_VolNewDump: conn: %d, volume:  %#x, Inc?: %u", 
 	 rpcid, volumeNumber, *Incremental);
