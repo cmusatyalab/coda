@@ -12,6 +12,9 @@
 #
 # BUGS: need to substitute /etc/coda with @sysconfdir@ and have configure
 #	splice in the right location of the venus.conf file.
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+
 OS=`uname -s | cut -c1-5`
 
 if [ $OS = CYGWI ] ; then
@@ -30,7 +33,7 @@ REALM=$1
 if [ x$2 != x ] ; then
     CACHESIZE=$2
 else
-    CACHESIZE=40000
+    CACHESIZE=100000
 fi
 if [ x$3 != x ] ; then
     MOUNTPOINT=`echo $3 | cut -c1`
@@ -49,8 +52,10 @@ fi
 #restart=0
 #[ ! -f /etc/coda/venus.conf ] && restart=1
 
-[ "$REALM" ] && codaconfedit venus.conf realm $REALM
-codaconfedit venus.conf cacheblocks $CACHESIZE
+[ "$REALM" ] && @sbindir@/codaconfedit venus.conf realm $REALM
+@sbindir@/codaconfedit venus.conf cacheblocks $CACHESIZE
+
+conf="`@sbindir@/codaconfedit venus.conf`"
 
 #if [ $restart = 1 ] ; then
 #    echo "We just created an initial configuration file /etc/coda/venus.conf"
@@ -72,8 +77,8 @@ rvm_data=/usr/coda/DATA
 mountpoint=/coda
 
 # override with user defined paths
-if [ -f /etc/coda/venus.conf ] ; then
-    . /etc/coda/venus.conf
+if [ x${conf} != x/dev/null ] ; then
+    . ${conf}
 fi
 
 #
@@ -191,9 +196,9 @@ if [ $OS = CYGWI ]; then
 
   ln -s /cygdrive/$MOUNTPOINT $mountpoint
 
-  codaconfedit venus.conf mapprivate 0
-  codaconfedit venus.conf mountpoint $MOUNTPOINT:
-  codaconfedit venus.conf cache_prefix /??/`mount | grep ' / ' | cut -d' ' -f1 | tr \\\\\\\\ /`
+  @sbindir@/codaconfedit venus.conf mapprivate 0
+  @sbindir@/codaconfedit venus.conf mountpoint $MOUNTPOINT:
+  @sbindir@/codaconfedit venus.conf cache_prefix /??/`mount | grep ' / ' | cut -d' ' -f1 | tr \\\\\\\\ /`
 
 else
 
@@ -225,5 +230,5 @@ if [ -f /usr/coda/etc/vstab ] ; then
 fi
 
 # Make sure the ports are listed in /etc/services
-coda-setup-ports
+@sbindir@/coda-setup-ports
 
