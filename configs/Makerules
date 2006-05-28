@@ -14,7 +14,7 @@ all: Coda
 ifdef SUBDIRS
 .PHONY: $(SUBDIRS)
 $(SUBDIRS):
-	${MAKE} -C $@ all; 
+	${MAKE} -C $@ all
 endif
 
 
@@ -22,7 +22,7 @@ endif
 #  recursively descend into subdirs and install all
 ###############################################################
 
-install: 
+install:
 	@echo "Choose from client-install or server-install"
 
 ###############################################################
@@ -93,11 +93,11 @@ ifdef SUBDIRS
 endif
 
 #####################
-# install  client or server executables 
+# install  client or server executables
 #####################
 installclient: c_bin_install c_sbin_install c_conf_install c_script_install c_sscript_install c_man_install
 
-ifeq ($(target),i386-pc-djgpp) 
+ifeq ($(target),i386-pc-djgpp)
 TARGETCBINS := $(CBINS:%=%.exe)
 TARGETCSBINS := $(CSBINS:%=%.exe)
 else
@@ -110,7 +110,7 @@ TARGETCSBINS := $(CSBINS)
 endif
 endif
 
-c_bin_install: $(TARGETCBINS) 
+c_bin_install: $(TARGETCBINS)
 ifdef TARGETCBINS
 	$(TOPDIR)/tools/our-install 755 $(BINDIR) $?
 endif
@@ -133,7 +133,7 @@ c_script_install: $(CSCRIPTS)
 ifdef CSCRIPTS
 	$(TOPDIR)/tools/our-install 755 $(BINDIR) $?
 endif
-	
+
 c_sscript_install: $(CSSCRIPTS)
 ifdef CSSCRIPTS
 	$(TOPDIR)/tools/our-install 755 $(SBINDIR) $?
@@ -172,7 +172,7 @@ s_script_install: $(SSCRIPTS)
 ifdef SSCRIPTS
 	$(TOPDIR)/tools/our-install 755 $(BINDIR) $?
 endif
-	
+
 s_sscript_install: $(SSSCRIPTS)
 ifdef SSSCRIPTS
 	$(TOPDIR)/tools/our-install 755 $(SBINDIR) $?
@@ -201,7 +201,7 @@ endif
 #####################
 hdrinstall: chdrinstall rp2hdrinstall
 
-chdrinstall: $(HEADERS) 
+chdrinstall: $(HEADERS)
 ifdef HEADERS
 	$(TOPDIR)/tools/our-install 644 $(INCLDIR) $?
 	-touch chdrinstall
@@ -260,6 +260,12 @@ distclean: clean
 	-$(RM) coda-src/scripts/vice-setup
 	-$(RM) coda-src/scripts/vice-setup-rvm
 
+dist:
+	-$(RM) coda-$(RELEASE).tar.gz
+	-cp -al . coda-$(RELEASE)
+	( cd coda-$(RELEASE) ; make distclean ; rm -rf .git )
+	tar chof - coda-$(RELEASE) | gzip -c > coda-$(RELEASE).tar.gz
+	-$(RM) -r coda-$(RELEASE)
 
 #####################
 # dependency generation
@@ -279,7 +285,7 @@ VARS=SECSRC OLDVPATH VPATH VPATHTAIL CFLAGS AFLAGS LFLAGS\
     INCLDIR INCLFLAGS INCLPATH TOPDIR LIBDIR LIBS LIBEXECDIR\
     BINDIR SBINDIR MANDIR SHORTSYS VFSDIR LIBRARIES EXECUTABLES SSBINS\
     SBINS CSBINS CBINS TARGETCBINS TARGETCSBINS target sys\
-    shortsys HEADERS RP2HEADERS 
+    shortsys HEADERS RP2HEADERS
 ECHOVAR+= echo "$(VAR)	 $($(VAR))" ;
 ECHOCMD:= $(foreach VAR, $(VARS), $(ECHOVAR))
 

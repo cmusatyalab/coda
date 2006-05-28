@@ -14,6 +14,7 @@
 # Where to install binaries -- usual configure flags
 # 
 
+RELEASE	    = @PACKAGE_VERSION@
 exec_prefix = @exec_prefix@
 prefix      = @prefix@
 libdir      = @libdir@
@@ -37,7 +38,6 @@ MV=	  @MV@
 SED=	  @SED@
 INSTALL=  @INSTALL@
 RP2GEN=   @RP2GEN@
-DB2MAN=   @DB2MAN@
 
 CPPFLAGS=      @CPPFLAGS@
 CFLAGS=        @CFLAGS@
