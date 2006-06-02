@@ -1,7 +1,8 @@
 %define version @VERSION@
 %define debug @DEBUG@
+%define initdir %(if test -d /etc/init.d/. ; then echo /etc/init.d ; else echo /etc/rc.d/init.d ; fi)
 Summary: Coda distributed file system
-Name: @CODA@
+Name: @CODA
 Version: %{version}
 Release: @REL@
 Source: ftp://ftp.coda.cs.cmu.edu/pub/coda/src/coda-%{version}.tar.gz
@@ -93,7 +94,7 @@ rm -rf $RPM_BUILD_ROOT
 mkdir -p \
 	$RPM_BUILD_ROOT/coda \
 	$RPM_BUILD_ROOT/dev \
-	$RPM_BUILD_ROOT/etc/rc.d/init.d \
+	$RPM_BUILD_ROOT%{initdir} \
 	$RPM_BUILD_ROOT/usr/coda/etc \
 	$RPM_BUILD_ROOT/usr/coda/venus.cache \
 	$RPM_BUILD_ROOT/usr/share/man/man1 \
@@ -165,7 +166,7 @@ exit 0
 /etc/coda/realms
 /etc/coda/venus.conf.ex
 /etc/coda/sidekick.intr.ex
-/etc/rc.d/init.d/venus.init
+%{initdir}/venus.init
 /usr/sbin/sidekick
 /usr/sbin/codaconfedit
 /usr/sbin/coda-setup-ports
@@ -265,9 +266,9 @@ exit 0
 /usr/share/man/man8/vice-setup.8.gz
 /usr/share/man/man8/volutil.8.gz
 /usr/share/man/man8/vutil.8.gz
-/etc/rc.d/init.d/codasrv.init
-/etc/rc.d/init.d/auth2.init
-/etc/rc.d/init.d/update.init
+%{initdir}/codasrv.init
+%{initdir}/auth2.init
+%{initdir}/update.init
 
 %files backup
 %defattr(-,root,root)
