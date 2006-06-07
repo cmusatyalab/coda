@@ -195,20 +195,18 @@ static int DumpVnodeDiskObject(DumpBuffer_t *dbuf, VnodeDiskObject *v,
     DumpInt32(dbuf, 'p', v->vparent);
     if (DumpInt32(dbuf, 'q', v->uparent) == -1)
 	return -1;
-    
+
     if (v->type != vDirectory) {
-	if (v->inodeNumber) {
-	    fd = iopen((int)device, (int)v->inodeNumber, O_RDONLY);
+	if (v->node.inodeNumber) {
+	    fd = iopen(device, v->node.inodeNumber, O_RDONLY);
 	    if (fd < 0) {
 
 		/* Instead of causing the dump to fail, I should just stick in
 		   a null marker, which will cause an empty inode to be created
 		   upon restore.
 		 */
-		
-		SLog(0, 0, stdout,
-		       "dump: Unable to open inode %d for vnode 0x%x; not dumped",
-		       v->inodeNumber, vnodeNumber);
+		SLog(0, 0, stdout, "dump: Unable to open inode %d for vnode 0x%x; not dumped",
+		       v->node.inodeNumber, vnodeNumber);
 		DumpTag(dbuf, D_BADINODE);
 	    } else {
 		if (DumpFile(dbuf, D_FILEDATA, fd, vnodeNumber) == -1) {
@@ -224,11 +222,10 @@ static int DumpVnodeDiskObject(DumpBuffer_t *dbuf, VnodeDiskObject *v,
 	    DumpTag(dbuf, D_BADINODE);
 	}
     } else {
-            DirInode *dip;
+	PDirInode dip = v->node.dirNode;
 	int size;
 
-	CODA_ASSERT(v->inodeNumber != 0);
-	dip = (DirInode *)(v->inodeNumber);
+	CODA_ASSERT(dip);
 
 	/* Dump the Access Control List */
 	if (DumpByteString(dbuf, 'A', (char *)VVnodeDiskACL(v), VAclDiskSize(v)) == -1) {
@@ -428,10 +425,8 @@ static unsigned int DumpVnodeDiskObject_estimate(VnodeDiskObject *v)
     if (v->type != vDirectory) {
 	size += 5 + v->length;
     } else {
-	DirInode *dip;
-
-	CODA_ASSERT(v->inodeNumber != 0);
-	dip = (DirInode *)(v->inodeNumber);
+	DirInode *dip = v->node.dirNode;
+	CODA_ASSERT(dip);
 
 	size += 6 + VAclDiskSize(v) + ((1 + DIR_PAGESIZE) * DI_Pages(dip));
     }

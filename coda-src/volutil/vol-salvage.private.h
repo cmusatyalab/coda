@@ -68,7 +68,7 @@ struct VnodeInfo {
     int 	nVnodes;    	/* Total number of vnodes in index */
     int 	nAllocatedVnodes;/* Total number actually used */
     int 	volumeBlockCount;/* Total number of blocks used by volume */
-    Inode 	*inodes;	/* Directory only */
+    PDirInode 	*dirnodes;	/* Directory only */
     struct VnodeEssence *vnodes;
 };
 

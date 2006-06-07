@@ -494,11 +494,9 @@ static void deleteDeadVnode(rec_smolist *list,
     CODA_ASSERT(list->remove(&(vdop->nextvn)));
 
     /* decrement the reference count by one */
-    if (vdop->inodeNumber) {
-	if (vdop->type == vDirectory)
-	    DI_Dec((DirInode *)vdop->inodeNumber); 
-    }
-    
+    if (vdop->type == vDirectory && vdop->node.dirNode)
+	DI_Dec(vdop->node.dirNode);
+
     /* Don't bother with the vnode free list */
     rvmlib_rec_free((char *)strbase(VnodeDiskObject, &(vdop->nextvn), nextvn)); 
     
@@ -561,10 +559,10 @@ static void purgeDeadVnodes(Volume *backupvp, rec_smolist *BackupLists,
 		VLog(1, "purgeDeadVnodes: purging %x.%x.%x",
 		       V_id(backupvp), bitNumberToVnodeNumber(vnodeIndex, vclass),
 		       bvdop->uniquifier);
-		
+
 		if (vclass == vSmall)
-		    DeadInodes[count] = bvdop->inodeNumber;
-		
+		    DeadInodes[count] = bvdop->node.inodeNumber;
+
 		deleteDeadVnode(&BackupLists[vnodeIndex], bvdop, nBackupVnodes);
 	    }
 	}
@@ -578,7 +576,7 @@ static void purgeDeadVnodes(Volume *backupvp, rec_smolist *BackupLists,
 		 * the VolumeId of the original read/write volume.
 		 */
 		if (DeadInodes[i])
-		    if (idec((int)V_device(backupvp), (int)DeadInodes[i],
+		    if (idec(V_device(backupvp), DeadInodes[i],
 			     V_parentId(backupvp)))
 			VLog(0,0,stdout,"VolBackup: idec failed with %d",errno);
 	    }	
@@ -670,12 +668,20 @@ static void updateBackupVnodes(Volume *rwvp, Volume *backupvp,
 			   bitNumberToVnodeNumber(vnodeIndex, vclass),
 			   rwVnode->uniquifier,
 			   rwVnode->dataVersion, bvdop->dataVersion);
-		
-		if (rwVnode->inodeNumber != bvdop->inodeNumber) {
-		    /* This can't change without a COW!!! */
-		    CODA_ASSERT(IsBarren(rwVnode->versionvector));
-		    CODA_ASSERT(bvdop->inodeNumber);	/* RO vnode Can't be barren */
-		}		    
+
+		if (rwVnode->type != vDirectory) {
+		    if (rwVnode->node.inodeNumber != bvdop->node.inodeNumber) {
+			/* This can't change without a COW!!! */
+			CODA_ASSERT(IsBarren(rwVnode->versionvector));
+			CODA_ASSERT(bvdop->node.inodeNumber); /* RO vnode Can't be barren */
+		    }
+		} else {
+		    if (rwVnode->node.dirNode != bvdop->node.dirNode) {
+			/* This can't change without a COW!!! */
+			CODA_ASSERT(IsBarren(rwVnode->versionvector));
+			CODA_ASSERT(bvdop->node.dirNode); /* RO vnode Can't be barren */
+		    }
+		}
 
 
 		CODA_ASSERT(bvdop->vol_index != rwVnode->vol_index);
@@ -733,9 +739,9 @@ static void updateBackupVnodes(Volume *rwvp, Volume *backupvp,
 		       bvdop->uniquifier);
 
 		/* Directory Inodes are in RVM so DI_Decs get undone on abort. */
-		if (vclass == vSmall)	
-		    DeadInodes[count] = bvdop->inodeNumber;
-		
+		if (vclass == vSmall)
+		    DeadInodes[count] = bvdop->node.inodeNumber;
+
 		deleteDeadVnode(&BackupLists[vnodeIndex], bvdop, nBackupVnodes);
 	    }
 

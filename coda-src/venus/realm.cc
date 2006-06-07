@@ -43,8 +43,11 @@ extern "C" {
 #define DEFAULT_ROOTVOLNAME "/"
 
 /* MUST be called from within a transaction */
-Realm::Realm(const char *realm_name)
+Realm::Realm(const RealmId id, const char *realm_name)
 {
+    RVMLIB_REC_OBJECT(realmid);
+    realmid = id;
+
     RVMLIB_REC_OBJECT(name);
     name = rvmlib_rec_strdup(realm_name);
     CODA_ASSERT(name);
@@ -79,8 +82,8 @@ Realm::~Realm(void)
 	eprint("Removing realm '%s'", name);
 	ReplaceRootServers();
     }
-    rvmlib_rec_free(name); 
-    rvmlib_rec_free(rootvolname); 
+    rvmlib_rec_free(name);
+    rvmlib_rec_free(rootvolname);
 
     delete system_anyuser;
 
@@ -134,7 +137,7 @@ void Realm::PutRef(void)
     intrans = rvmlib_in_transaction();
     if (!intrans)
 	Recov_BeginTrans();
-    
+
     delete this;
 
     if (!intrans)
@@ -284,7 +287,7 @@ void Realm::print(FILE *f)
     for (p = rootservers; p; p = p->ai_next) {
 	char buf[RPC2_ADDRSTRLEN];
 	RPC2_formataddrinfo(p, buf, RPC2_ADDRSTRLEN);
-	fprintf(f, "\t%s\n", buf); 
+	fprintf(f, "\t%s\n", buf);
     }
 }
 

@@ -180,8 +180,8 @@ void print_VnodeDiskObject(VnodeDiskObject *vnode)
 	return;
     printf("\t\t\ttype = %u\n\t\t\tcloned = %u\n\t\t\tmode = %o\n\t\t\tlinks = %u\n",
 	vnode->type, vnode->cloned, vnode->modeBits, vnode->linkCount);
-    printf("\t\t\tlength = %u\n\t\t\tunique = %08x\n\t\t\tversion = %u\n\t\t\tinode = %u\n",
-	vnode->length, vnode->uniquifier, vnode->dataVersion, vnode->inodeNumber);
+    printf("\t\t\tlength = %u\n\t\t\tunique = %08x\n\t\t\tversion = %u\n\t\t\tinode = %p\n",
+	vnode->length, vnode->uniquifier, vnode->dataVersion, vnode->node.dirNode);
     PrintVersionVector(vnode->versionvector, "\t\t\t");
     printf("\t\t\tvolindex = %d\n\t\t\tmodtime = %u\n\t\t\tauthor = %u\n\t\t\towner = %u\n\t\t\tparent = %08x.%08x\n",
 	vnode->vol_index, vnode->unixModifyTime, vnode->author, vnode->owner, vnode->vparent, vnode->uparent);

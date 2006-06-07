@@ -361,10 +361,10 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid,
 					   cv->vptr->disk.uniquifier, 
 					   cv->vptr->disk.dataVersion);
 		    CODA_ASSERT(cv->f_finode > 0);
-		    cv->vptr->disk.inodeNumber = cv->f_finode;
+		    cv->vptr->disk.node.inodeNumber = cv->f_finode;
 */
 		    CODA_ASSERT(cv->f_sinode > 0);
-		    cv->vptr->disk.inodeNumber = cv->f_sinode;
+		    cv->vptr->disk.node.inodeNumber = cv->f_sinode;
 		    cv->f_sinode = 0;
 
 		    // spool log record for recoverable res logs 
@@ -422,13 +422,13 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid,
 		    *blocks += tblocks;
 		    CODA_ASSERT(errorCode == 0);
 		    cv->vptr->disk.dataVersion = 1;
-		    cv->f_finode = icreate((int) V_device(vp), (int) V_id(vp),
-					   (int) cv->vptr->vnodeNumber,
-					   (int) cv->vptr->disk.uniquifier,
-					   (int) cv->vptr->disk.dataVersion);
+		    cv->f_finode = icreate(V_device(vp), V_id(vp),
+					   cv->vptr->vnodeNumber,
+					   cv->vptr->disk.uniquifier,
+					   cv->vptr->disk.dataVersion);
 		    CODA_ASSERT(cv->f_finode > 0);
-		    cv->vptr->disk.inodeNumber = cv->f_finode;
-		    
+		    cv->vptr->disk.node.inodeNumber = cv->f_finode;
+
 		    // spool log record 
 		    if ((errorCode = SpoolVMLogRecord(vlist, pv, vp, &stid,
 						      ResolveViceCreate_OP, 
@@ -453,13 +453,13 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid,
 		    *blocks += tblocks;
 		    CODA_ASSERT(errorCode == 0);
 		    cv->vptr->disk.dataVersion = 1;
-		    cv->f_finode = icreate((int) V_device(vp), (int) V_id(vp),
-					   (int) cv->vptr->vnodeNumber,
-					   (int) cv->vptr->disk.uniquifier,
-					   (int) cv->vptr->disk.dataVersion);
+		    cv->f_finode = icreate(V_device(vp), V_id(vp),
+					   cv->vptr->vnodeNumber,
+					   cv->vptr->disk.uniquifier,
+					   cv->vptr->disk.dataVersion);
 		    CODA_ASSERT(cv->f_finode > 0);
-		    cv->vptr->disk.inodeNumber = cv->f_finode;
-		    
+		    cv->vptr->disk.node.inodeNumber = cv->f_finode;
+
 		    if ((errorCode = SpoolVMLogRecord(vlist, pv, vp, &stid, 
 						      ResolveViceSymLink_OP, 
 						      name, cFid->Vnode, cFid->Unique))) 

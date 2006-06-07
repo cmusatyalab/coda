@@ -141,8 +141,8 @@ long S_VolShowVnode(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
 	vnp->disk.cloned, vnp->disk.modeBits, vnp->disk.linkCount,
 	vnp->disk.length);
     timestamp = (time_t)vnp->disk.serverModifyTime;
-    fprintf(infofile, "inode=%x, parent=%08x.%08x, serverTime=%s",
-	vnp->disk.inodeNumber, vnp->disk.vparent, vnp->disk.uparent, ctime(&timestamp));
+    fprintf(infofile, "inode=%p, parent=%08x.%08x, serverTime=%s",
+	vnp->disk.node.dirNode, vnp->disk.vparent, vnp->disk.uparent, ctime(&timestamp));
     timestamp = (time_t)vnp->disk.unixModifyTime;
     fprintf(infofile, "author=%u, owner=%u, modifyTime=%s, volumeindex = %d",
         vnp->disk.author, vnp->disk.owner, ctime(&timestamp), vnp->disk.vol_index);
@@ -150,7 +150,7 @@ long S_VolShowVnode(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
 
     if (vnp->disk.type == vDirectory) {
 	PDCEntry pdce;
-	pdce = DC_Get((PDirInode)vnp->disk.inodeNumber);
+	pdce = DC_Get(vnp->disk.node.dirNode);
 	if (pdce) {
 	    DH_Print(DC_DC2DH(pdce), infofile);
 	    DC_Put(pdce);

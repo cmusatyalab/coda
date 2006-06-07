@@ -34,6 +34,7 @@ extern "C" {
 #include <errno.h>
 #include "coda_string.h"
 #include <stdlib.h>
+#include <stdint.h>
 #ifdef __BSD44__
 #include <ufs/ufs/dir.h>
 #undef	DIRSIZ

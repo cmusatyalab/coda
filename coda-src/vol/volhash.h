@@ -34,6 +34,7 @@ extern "C" {
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 }
@@ -53,7 +54,7 @@ class vhashtab : public ohashtab {
     int vols;    /* number of volumes in table */
     int lock;
   public:
-    vhashtab(int, int (*)(void *), char*);
+    vhashtab(int size, intptr_t (*hashfn)(void *), char*);
     ~vhashtab();
     void Lock(int);
     void Unlock();

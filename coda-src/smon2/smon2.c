@@ -354,7 +354,7 @@ static void DoSleep(struct server *srv)
 
 static void srvlwp(void *arg)
 {
-    int slot = (int)arg;
+    int slot = *(int *)arg;
     srv[slot].cid = 0;
     srv[slot].old = 0;
 
@@ -379,7 +379,7 @@ int main(int argc, char *argv[])
     int i;
 
     GetArgs(argc, argv);
-    
+
     /* create missing rrd databases */
     for (i = 0; i < SrvCount; i++) {
 	sprintf(buf, "%s.rrd", srv[i].srvname);
@@ -393,14 +393,14 @@ int main(int argc, char *argv[])
     /* start monitoring */
     for (i = 0; i < SrvCount; i++) {
         LWP_CreateProcess(srvlwp, 0x8000, LWP_NORMAL_PRIORITY,
-                          (void *)i, srv[i].srvname, &srv[i].pid);
+                          (void *)&i, srv[i].srvname, &srv[i].pid);
     }
 
     /* QSignal/QWait doesn't actually queue anything so we still have to rely
      * on a counter to catch possibly missed events */
     while (SrvCount)
 	LWP_QWait();
-    
+
     exit(0);
 }
 

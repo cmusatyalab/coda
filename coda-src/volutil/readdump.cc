@@ -377,8 +377,8 @@ void skipVnodes(int largc, char **largv) {
 	return;
     printf("\ttype = %u\n\tcloned = %u\n\tmode = %o\n\tlinks = %u\n",
 	vnode->type, vnode->cloned, vnode->modeBits, vnode->linkCount);
-    printf("\tlength = %u\n\tunique = %08x\n\tversion = %u\n\tinode = %u\n",
-	vnode->length, vnode->uniquifier, vnode->dataVersion, vnode->inodeNumber);
+    printf("\tlength = %u\n\tunique = %08x\n\tversion = %u\n\tinode = %p\n",
+	vnode->length, vnode->uniquifier, vnode->dataVersion, vnode->node.dirNode);
     PrintVersionVector(&vnode->versionvector, "\t");
     printf("\tvolindex = %u\n\tmodtime = %u\n\tauthor = %u\n\towner = %u\n\tparent = %08x.%08x\n",
 	vnode->vol_index, vnode->unixModifyTime, vnode->author, vnode->owner, vnode->vparent, vnode->uparent);
@@ -415,8 +415,8 @@ void showVnodeDiskObject(int largc, char **largv)
 	return;
     printf("\ttype = %u\n\tcloned = %u\n\tmode = %o\n\tlinks = %u\n",
 	vnode->type, vnode->cloned, vnode->modeBits, vnode->linkCount);
-    printf("\tlength = %u\n\tunique = %08x\n\tversion = %u\n\tinode = %u\n",
-	vnode->length, vnode->uniquifier, vnode->dataVersion, vnode->inodeNumber);
+    printf("\tlength = %u\n\tunique = %08x\n\tversion = %u\n\tinode = %p\n",
+	vnode->length, vnode->uniquifier, vnode->dataVersion, vnode->node.dirNode);
     PrintVersionVector(&vnode->versionvector, "\t");
     printf("\tvolindex = %d\n\tmodtime = %u\n\tauthor = %u\n\towner = %u\n\tparent = %08x.%08x\n",
 	vnode->vol_index, vnode->unixModifyTime, vnode->author, vnode->owner, vnode->vparent, vnode->uparent);

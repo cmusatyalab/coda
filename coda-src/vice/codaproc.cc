@@ -662,12 +662,12 @@ static int PerformFileRepair(vle *ov, Volume *volptr, VolumeId VSGVolnum,
 	CodaBreakCallBack(0, Fid, VSGVolnum);
     }
 
-    if (ov->vptr->disk.inodeNumber)
-	ov->f_sinode = ov->vptr->disk.inodeNumber;
-    
+    if (ov->vptr->disk.node.inodeNumber)
+	ov->f_sinode = ov->vptr->disk.node.inodeNumber;
+
     {
 	Vnode *vptr = ov->vptr;
-	vptr->disk.inodeNumber = ov->f_finode;
+	vptr->disk.node.inodeNumber = ov->f_finode;
 	vptr->disk.cloned = 0;	// invoke COW - added 9/30/92 - Puneet Kumar
 	vptr->disk.length = status->Length;
 	vptr->disk.owner = status->Owner;
@@ -1300,12 +1300,12 @@ static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 
 		/* create the inode */
 		cv->vptr->disk.dataVersion = 1;
-		cv->f_finode = icreate((int)V_device(volptr), (int)V_id(volptr),
-				       (int)cv->vptr->vnodeNumber, 
-				       (int)cv->vptr->disk.uniquifier,
-				       (int)cv->vptr->disk.dataVersion);
+		cv->f_finode = icreate(V_device(volptr), V_id(volptr),
+				       cv->vptr->vnodeNumber,
+				       cv->vptr->disk.uniquifier,
+				       cv->vptr->disk.dataVersion);
 		CODA_ASSERT(cv->f_finode > 0);
-		cv->vptr->disk.inodeNumber = cv->f_finode;
+		cv->vptr->disk.node.inodeNumber = cv->f_finode;
 
 		/* set the delete flag to true - for abort case */
 		cv->vptr->delete_me = 1;
@@ -1359,12 +1359,12 @@ static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 		
 		/* create the inode */
 		cv->vptr->disk.dataVersion = 1;
-		cv->f_finode = icreate((int)V_device(volptr), (int)V_id(volptr),
-				       (int)cv->vptr->vnodeNumber, 
-				       (int)cv->vptr->disk.uniquifier,
-				       (int)cv->vptr->disk.dataVersion);
+		cv->f_finode = icreate(V_device(volptr), V_id(volptr),
+				       cv->vptr->vnodeNumber,
+				       cv->vptr->disk.uniquifier,
+				       cv->vptr->disk.dataVersion);
 		CODA_ASSERT(cv->f_finode > 0);
-		cv->vptr->disk.inodeNumber = cv->f_finode;
+		cv->vptr->disk.node.inodeNumber = cv->f_finode;
 
 		/* set the delete flag to true - for abort case */
 		cv->vptr->delete_me = 1;
@@ -1406,8 +1406,8 @@ static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 		    int tblocks = (int) -nBlocks(cv->vptr->disk.length);
 		    CODA_ASSERT(AdjustDiskUsage(volptr, tblocks) == 0);
 		    *deltablocks += tblocks;
-		    cv->f_sinode = cv->vptr->disk.inodeNumber;
-		    cv->vptr->disk.inodeNumber = 0;
+		    cv->f_sinode = cv->vptr->disk.node.inodeNumber;
+		    cv->vptr->disk.node.inodeNumber = 0;
 		}
 	    }
 	    break;
@@ -1497,9 +1497,9 @@ static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 		*deltablocks += tblocks;
 
 		if (tv && tv->vptr->disk.type != vDirectory) {
-		    tv->f_sinode = tv->vptr->disk.inodeNumber;
-		    tv->vptr->disk.inodeNumber = 0;
-		}		
+		    tv->f_sinode = tv->vptr->disk.node.inodeNumber;
+		    tv->vptr->disk.node.inodeNumber = 0;
+		}
 
 		// make sure both parents are inconsistent
 		if (!IsIncon(sdv->vptr->disk.versionvector))
@@ -2061,8 +2061,8 @@ int PerformTreeRemoval(PDirEntry de, void *data)
 		    nblocks = (int)-nBlocks(cv->vptr->disk.length);
 		    CODA_ASSERT(AdjustDiskUsage(pkdparm->volptr, nblocks) == 0);
 		    *(pkdparm->blocks) += nblocks;
-		    cv->f_sinode = cv->vptr->disk.inodeNumber;
-		    cv->vptr->disk.inodeNumber = 0;
+		    cv->f_sinode = cv->vptr->disk.node.inodeNumber;
+		    cv->vptr->disk.node.inodeNumber = 0;
 		}
 
 		//spool log record for resolution 

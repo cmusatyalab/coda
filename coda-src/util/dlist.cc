@@ -262,7 +262,7 @@ dlist_iterator::dlist_iterator(dlist& l, DlIterOrder Order)
 
 dlink * dlist_iterator::operator() ()
 {
-    switch((unsigned int)cdlink) {
+    switch((intptr_t)cdlink) {
 	case -1:		/* state == NOTSTARTED */
 	    if (order == DlAscending) {
 		cdlink = cdlist->first();

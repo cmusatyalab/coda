@@ -63,9 +63,9 @@ void PrintVolumeDiskData(FILE *outfile, VolumeDiskData *vdd){
 void PrintVnodeDiskObject(FILE *outfile, VnodeDiskObject *vnode,
 			  VnodeId vnodeNumber)
 {
-    fprintf(outfile, "Vnode %08x.%08x %08x, cloned = %d, length = %u, inode = %u\n",
+    fprintf(outfile, "Vnode %08x.%08x %08x, cloned = %d, length = %u, inode = %p\n",
         vnodeNumber, vnode->uniquifier, vnode->dataVersion, vnode->cloned,
-	vnode->length, vnode->inodeNumber);
+	vnode->length, vnode->node.dirNode);
     fprintf(outfile, "link count = %u, type = %u, volume index = %d\n", vnode->linkCount, vnode->type, vnode->vol_index);
     fprintf(outfile, "parent = %08x.%08x\n", vnode->vparent, vnode->uparent);
     FPrintVV(outfile, &(vnode->versionvector));

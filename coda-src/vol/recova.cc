@@ -321,14 +321,16 @@ static int DeleteVnodes(unsigned int myind, Device dev, VnodeClass vclass)
 		}
 
 		/* decrement the reference counts by one */
-		if (vdo->inodeNumber){
-			if (vdo->type != vDirectory) {
-				CODA_ASSERT(vclass == vSmall);
-				/* Delay the idec until after commit */
-				DeadInodes[count] = (int)vdo->inodeNumber; 
-			} else 
-				DI_Dec((DirInode *)vdo->inodeNumber);
-		}	
+		if (vdo->type != vDirectory) {
+		    if (vdo->node.inodeNumber){
+			/* Delay the idec until after commit */
+			DeadInodes[count] = vdo->node.inodeNumber;
+		    }
+		} else {
+		    if (vdo->node.dirNode)
+			DI_Dec(vdo->node.dirNode);
+		}
+
 		count++;
 
 		/* Delete the vnode */
@@ -346,7 +348,7 @@ static int DeleteVnodes(unsigned int myind, Device dev, VnodeClass vclass)
 		 * the VolumeId of the original read/write volume.
 		 */
 		if (DeadInodes[j])
-		    if (idec((int)dev, DeadInodes[j], (vdata->volumeInfo)->parentId))
+		    if (idec(dev, DeadInodes[j], (vdata->volumeInfo)->parentId))
 			VLog(0, "DeleteVnodes: idec failed with %d", errno);
 	    }	
 	}

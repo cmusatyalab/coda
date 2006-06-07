@@ -182,7 +182,8 @@ int main(int argc, char *argv[])
     LWP_CreateProcess(kbdlwp, 0x4000, LWP_NORMAL_PRIORITY, NULL, "KBD", &lwpid);
     for (i = 0; i < SrvCount; i++)
     {
-	LWP_CreateProcess(srvlwp, 0x8000, LWP_NORMAL_PRIORITY, (char *)i, (char *)srv[i].srvname, &srv[i].pid);
+	LWP_CreateProcess(srvlwp, 0x8000, LWP_NORMAL_PRIORITY, (void *)&i,
+			  (char *)srv[i].srvname, &srv[i].pid);
     }
     
     LWP_WaitProcess(&Dummy); /* wait for Godot */
@@ -191,7 +192,7 @@ int main(int argc, char *argv[])
 
 static void srvlwp(void *arg)
 {
-    int slot = (int)arg;
+    int slot = *(int*)arg;
     struct server *moi;
     RPC2_HostIdent hi;
     RPC2_PortIdent pi;
@@ -257,7 +258,7 @@ static void srvlwp(void *arg)
 
 	IOMGR_Select(32, 0, 0, 0, &ProbeInterval);  /* sleep */
 	}
-    }
+}
 
 static void kbdlwp(void *arg)
     /* LWP to listen for keyboard activity */

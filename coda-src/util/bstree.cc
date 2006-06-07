@@ -428,7 +428,7 @@ bstree_iterator::bstree_iterator(bstree& Bst, BstIterOrder Order) {
 bsnode *bstree_iterator::operator()() {
     bsnode *prev = cbsnode;
 
-    switch((unsigned int)cbsnode) {
+    switch((intptr_t)cbsnode) {
 	case -1:		/* state == NOTSTARTED */
 	    if (order == BstAscending) {
 		cbsnode = cbstree->first();

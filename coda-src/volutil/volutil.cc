@@ -86,7 +86,7 @@ void InitVolUtil(int stacksize)
     PROCESS mypid;
     for(int i = 0; i < 2; i++) {
 	LWP_CreateProcess(VolUtilLWP, stacksize, LWP_NORMAL_PRIORITY,
-			  &i, "VolUtilLWP", &mypid);
+			  (void *)&i, "VolUtilLWP", &mypid);
     }
 }
 
@@ -244,7 +244,7 @@ long GetVolId(char *volume)
     LogMsg(29, SrvDebugLevel, stdout, "GetVolId Returns %x", volid);
     return volid;
 }
-	    
+
 /*
  * Routines for forwarding volutil administrative
  * calls to the appropriate fileserver routines.
@@ -315,4 +315,24 @@ long S_VolMerge(RPC2_Handle cid)
     LogMsg(0, VolDebugLevel, stdout, "S_VolMerge not yet implemented");
     return(0);
 }
+
+static long usegdb(const char *f)
+    { LogMsg(0, VolDebugLevel, stdout, "%s ignored, use gdb", f); return 0; }
+#define USEGDB return usegdb(__FUNCTION__)
+
+long S_VolDumpMem(RPC2_Handle cid, RPC2_String filename, RPC2_Unsigned addr,
+		  RPC2_Unsigned size)
+{ USEGDB; }
+
+long S_VolPeekInt(RPC2_Handle cid, RPC2_String address, RPC2_Integer *pvalue)
+{ *pvalue = 0; USEGDB; }
+
+long S_VolPokeInt(RPC2_Handle cid, RPC2_String address, RPC2_Integer value)
+{ USEGDB; }
+
+long S_VolPeekMem(RPC2_Handle cid, RPC2_String address, RPC2_BoundedBS *buf)
+{ buf->SeqLen = 0; USEGDB; }
+
+long S_VolPokeMem(RPC2_Handle cid, RPC2_String address, RPC2_CountedBS *buf)
+{ USEGDB; }
 

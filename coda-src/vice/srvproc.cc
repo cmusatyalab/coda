@@ -80,6 +80,7 @@ extern "C" {
 #include <vice.h>
 #include <cml.h>
 #include <lka.h>
+#include <copyfile.h>
 
 #ifdef __cplusplus
 }
@@ -375,9 +376,9 @@ START_TIMING(GetAttr_Total);
 
     if (IsZeroSHA(VnSHA(v->vptr)))
     {
-	int fd = iopen(V_device(volptr), v->vptr->disk.inodeNumber, O_RDONLY);
+	int fd = iopen(V_device(volptr), v->vptr->disk.node.inodeNumber, O_RDONLY);
 	SLog(0, "GetAttrPlusSHA: Computing SHA %s, disk.inode=%x", 
-	      FID_(Fid), v->vptr->disk.inodeNumber);
+	      FID_(Fid), v->vptr->disk.node.inodeNumber);
 	if (fd == -1) goto FreeLocks;
 
 	ComputeViceSHA(fd, VnSHA(v->vptr));
@@ -689,16 +690,16 @@ START_TIMING(Store_Total);
 	    goto FreeLocks;
 	deltablocks = tblocks;
 
-	v->f_finode = icreate((int) V_device(volptr), (int) V_id(volptr),
-			      (int) v->vptr->vnodeNumber,
-			      (int) v->vptr->disk.uniquifier,
-			      (int) v->vptr->disk.dataVersion + 1);
-	CODA_ASSERT(v->f_finode > (unsigned long) 0);
+	v->f_finode = icreate(V_device(volptr), V_id(volptr),
+			      v->vptr->vnodeNumber,
+			      v->vptr->disk.uniquifier,
+			      v->vptr->disk.dataVersion + 1);
+	CODA_ASSERT(v->f_finode > 0);
 
 	if ((errorCode = StoreBulkTransfer(RPCid, client, volptr, v->vptr,
 					   v->f_finode, Length)))
 	    goto FreeLocks;
-	v->f_sinode = v->vptr->disk.inodeNumber;
+	v->f_sinode = v->vptr->disk.node.inodeNumber;
 	if (ReplicatedOp) {
 	    HandleWeakEquality(volptr, v->vptr, &Status->VV);
 	    GetMyVS(volptr, OldVS, NewVS);
@@ -815,12 +816,17 @@ START_TIMING(SetAttr_Total);
 		       Status->Length, Status->Date, Status->Owner,
 		       Status->Mode, Mask, StoreId, &v->f_sinode, NewVS);
 	if (v->f_sinode != 0) {
-	    v->f_finode = v->vptr->disk.inodeNumber;
+	    /* COW only happens on truncation, which can only be a file,
+	     * but just in case... */
+	    CODA_ASSERT(v->vptr->disk.type != vDirectory);
+	    v->f_finode = v->vptr->disk.node.inodeNumber;
 	    truncp = 0;
 	}
 
 	if (truncp) {
-	    v->f_tinode = v->vptr->disk.inodeNumber;
+	    /* already checked by CheckSetAttrSemantics, but just in case... */
+	    CODA_ASSERT(v->vptr->disk.type != vDirectory);
+	    v->f_tinode = v->vptr->disk.node.inodeNumber;
 	    v->f_tlength = v->vptr->disk.length;
 	}
 
@@ -1178,8 +1184,8 @@ long FS_ViceVRemove(RPC2_Handle RPCid, ViceFid *Did, RPC2_String Name,
 			goto FreeLocks;
 		deltablocks += tblocks;
 
-		cv->f_sinode = cv->vptr->disk.inodeNumber;
-		cv->vptr->disk.inodeNumber = 0;
+		cv->f_sinode = cv->vptr->disk.node.inodeNumber;
+		cv->vptr->disk.node.inodeNumber = 0;
 	}
 
 	SetStatus(pv->vptr, DirStatus, rights, anyrights);
@@ -1470,10 +1476,10 @@ START_TIMING(Rename_Total);
 	if ((errorCode = CheckRenameSemantics(client, &spv->vptr, &tpv->vptr, 
 			    &sv->vptr, (char *)OldName, (tv ? &tv->vptr : 0), 
 			    (char *)NewName, &volptr, ReplicatedOp, NormalVCmp,
-                            ReplicatedOp ? (void *)&OldDirStatus->VV : (void*)OldDirStatus->DataVersion,
-                            ReplicatedOp ? (void *)&NewDirStatus->VV : (void*)NewDirStatus->DataVersion,
-                            ReplicatedOp ? (void *)&SrcStatus->VV : (void*)SrcStatus->DataVersion,
-                            ReplicatedOp ? (void *)&TgtStatus->VV : (void*)TgtStatus->DataVersion,
+                            ReplicatedOp ? (void *)&OldDirStatus->VV : (void*)&OldDirStatus->DataVersion,
+                            ReplicatedOp ? (void *)&NewDirStatus->VV : (void*)&NewDirStatus->DataVersion,
+                            ReplicatedOp ? (void *)&SrcStatus->VV : (void*)&SrcStatus->DataVersion,
+                            ReplicatedOp ? (void *)&TgtStatus->VV : (void*)&TgtStatus->DataVersion,
                             &sp_rights, &sp_anyrights, &tp_rights,
                             &tp_anyrights, &s_rights, &s_anyrights,
                             1, 0)))
@@ -1495,10 +1501,10 @@ START_TIMING(Rename_Total);
 		if ((errorCode = AdjustDiskUsage(volptr, tblocks)))
 			goto FreeLocks;
 		deltablocks = tblocks;
-		
+
 		if (tv->vptr->disk.type != vDirectory) {
-			tv->f_sinode = tv->vptr->disk.inodeNumber;
-			tv->vptr->disk.inodeNumber = 0;
+			tv->f_sinode = tv->vptr->disk.node.inodeNumber;
+			tv->vptr->disk.node.inodeNumber = 0;
 		}
 	}
 
@@ -2229,10 +2235,7 @@ int CheckReadMode(ClientEntry *client, Vnode *vptr)
 static void CopyOnWrite(Vnode *vptr, Volume *volptr)
 {
 	Inode    ino;
-	int	     rdlen;
-	int      wrlen;
 	int      size;
-	char   * buff;
 
 	if (vptr->disk.type == vDirectory) {
 
@@ -2244,33 +2247,36 @@ static void CopyOnWrite(Vnode *vptr, Volume *volptr)
 		SLog(0, "CopyOnWrite: Copying inode for files (vnode%d)", 
 		     vptr->vnodeNumber);
 		size = (int) vptr->disk.length;
-		ino = icreate((int) V_device(volptr), (int) V_id(volptr),
-			      (int) vptr->vnodeNumber, 
-			      (int) vptr->disk.uniquifier, 
-			      (int) vptr->disk.dataVersion);
+		ino = icreate(V_device(volptr), V_id(volptr),
+			      vptr->vnodeNumber,
+			      vptr->disk.uniquifier,
+			      vptr->disk.dataVersion);
 		CODA_ASSERT(ino > 0);
 		if (size > 0) {
-			buff = (char *)malloc(size);
-			CODA_ASSERT(buff != 0);
-			rdlen = iread((int) V_device(volptr), 
-				      (int) vptr->disk.inodeNumber, 
-				      (int) V_parentId(volptr), 0, buff, size);
-			START_TIMING(CopyOnWrite_iwrite);
-			wrlen = iwrite((int) V_device(volptr), (int) ino, 
-				       (int) V_parentId(volptr), 0, buff, size);
-			END_TIMING(CopyOnWrite_iwrite);
-			CODA_ASSERT(rdlen == wrlen);
-			free(buff);
+		    int infd, outfd, rc;
+		    infd = iopen(V_device(volptr), vptr->disk.node.inodeNumber,
+				 O_RDONLY);
+		    outfd = iopen(V_device(volptr), ino, O_WRONLY);
+		    CODA_ASSERT(infd && outfd);
+
+		    START_TIMING(CopyOnWrite_iwrite);
+		    rc = copyfile(infd, outfd);
+		    END_TIMING(CopyOnWrite_iwrite);
+
+		    CODA_ASSERT(rc != -1);
+
+		    close(infd);
+		    close(outfd);
 		}
 
 		/*
 		  START_NSC_TIMING(CopyOnWrite_idec);
-		  CODA_ASSERT(!(idec(V_device(volptr), 
-		  vptr->disk.inodeNumber, V_parentId(volptr))));
+		  CODA_ASSERT(!(idec(V_device(volptr),
+		  vptr->disk.node.inodeNumber, V_parentId(volptr))));
 		  END_NSC_TIMING(CopyOnWrite_idec);
 		*/
 
-		vptr->disk.inodeNumber = ino;
+		vptr->disk.node.inodeNumber = ino;
 		vptr->disk.cloned = 0;
 	}
 }
@@ -2436,7 +2442,7 @@ START_TIMING(AllocVnode_Total);
     }
 
     /* Initialize the new vnode. */
-    (*vptr)->disk.inodeNumber = (Inode)NEWVNODEINODE;
+    (*vptr)->disk.node.dirNode = NEWVNODEINODE;
     (*vptr)->disk.dataVersion = (vtype == vFile ? 0 : 1);
     InitVV(&Vnode_vv((*vptr)));
     (*vptr)->disk.vparent = pFid->Vnode;
@@ -2618,7 +2624,7 @@ int CheckGetACLSemantics(ClientEntry *client, Vnode **vptr,
 
 static int IsVirgin(Vnode *vptr)
 {
-    return (vptr->disk.type != vDirectory) && !vptr->disk.inodeNumber;
+    return (vptr->disk.type != vDirectory) && !vptr->disk.node.inodeNumber;
 }
 
 int CheckStoreSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
@@ -3514,8 +3520,8 @@ int FetchBulkTransfer(RPC2_Handle RPCid, ClientEntry *client,
 	sid.Value.SmartFTPD.hashmark = (SrvDebugLevel > 2 ? '#' : '\0');
 	sid.Value.SmartFTPD.ByteQuota = -1;
 	if (vptr->disk.type != vDirectory) {
-	    if (vptr->disk.inodeNumber) {
-		fd = iopen(V_device(volptr), vptr->disk.inodeNumber, O_RDONLY);
+	    if (vptr->disk.node.inodeNumber) {
+		fd = iopen(V_device(volptr), vptr->disk.node.inodeNumber, O_RDONLY);
 		sid.Value.SmartFTPD.Tag = FILEBYFD;
 		sid.Value.SmartFTPD.FileInfo.ByFD.fd = fd;
 	    } else {
@@ -3697,7 +3703,7 @@ void PerformStore(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
     CodaBreakCallBack(client->VenusId, &Fid, VSGVolnum);
 
     vptr->disk.cloned =	0;		/* installation of shadow copy here effectively does COW! */
-    vptr->disk.inodeNumber = newinode;
+    vptr->disk.node.inodeNumber = newinode;
     vptr->disk.length = Length;
     vptr->disk.unixModifyTime = Mtime;
     vptr->disk.author = client->Id;
@@ -3824,7 +3830,8 @@ void PerformSetAttr(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
     /* Truncate invokes COW - files only here */
     if (Mask & SET_LENGTH)
 	if (vptr->disk.cloned) {
-	    *CowInode = vptr->disk.inodeNumber;
+	    CODA_ASSERT(vptr->disk.type != vDirectory);
+	    *CowInode = vptr->disk.node.inodeNumber;
 	    CopyOnWrite(vptr, volptr);
 	}
 
@@ -3869,8 +3876,8 @@ void PerformSetACL(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
 
 int PerformCreate(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
                    Vnode *dirvptr, Vnode *vptr, char *Name, Date_t Mtime, RPC2_Unsigned Mode,
-                   int ReplicatedOp, ViceStoreId *StoreId, 
-                   DirInode **CowInode, int *blocks, RPC2_Integer *vsptr)
+                   int ReplicatedOp, ViceStoreId *StoreId,
+                   PDirInode *CowInode, int *blocks, RPC2_Integer *vsptr)
 {
     return Perform_CLMS(client, VSGVolnum, volptr, dirvptr, vptr, CLMS_Create,
 			Name, 0, 0, Mtime, Mode, ReplicatedOp, StoreId,
@@ -3880,7 +3887,7 @@ int PerformCreate(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
 
 void PerformRemove(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
                    Vnode *dirvptr, Vnode *vptr, char *Name, Date_t Mtime,
-                   int ReplicatedOp, ViceStoreId *StoreId, DirInode **CowInode, 
+                   int ReplicatedOp, ViceStoreId *StoreId, PDirInode *CowInode,
                    int *blocks, RPC2_Integer *vsptr)
 {
     Perform_RR(client, VSGVolnum, volptr, dirvptr, vptr,
@@ -3890,7 +3897,7 @@ void PerformRemove(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
 
 int PerformLink(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
                  Vnode *dirvptr, Vnode *vptr, char *Name, Date_t Mtime,
-                 int ReplicatedOp, ViceStoreId *StoreId, DirInode **CowInode,
+                 int ReplicatedOp, ViceStoreId *StoreId, PDirInode *CowInode,
                  int *blocks, RPC2_Integer *vsptr)
 {
     return Perform_CLMS(client, VSGVolnum, volptr, dirvptr, vptr, CLMS_Link,
@@ -3902,9 +3909,9 @@ int PerformLink(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
 void PerformRename(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
                    Vnode *sd_vptr, Vnode *td_vptr, Vnode *s_vptr, Vnode *t_vptr,
                    char *OldName, char *NewName, Date_t Mtime,
-                   int ReplicatedOp, ViceStoreId *StoreId, DirInode **sd_CowInode,
-                   DirInode **td_CowInode, DirInode **s_CowInode, int *nblocks,
-                   RPC2_Integer *vsptr) 
+                   int ReplicatedOp, ViceStoreId *StoreId, PDirInode *sd_CowInode,
+                   PDirInode *td_CowInode, PDirInode *s_CowInode, int *nblocks,
+                   RPC2_Integer *vsptr)
 {
     ViceFid SDid;			/* Source directory */
     SDid.Volume = V_id(volptr);
@@ -3944,7 +3951,7 @@ void PerformRename(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
     /* Rename invokes COW! */
     PDirHandle sd_dh;
     if (sd_vptr->disk.cloned) {
-	    *sd_CowInode = (DirInode *)sd_vptr->disk.inodeNumber;
+	    *sd_CowInode = sd_vptr->disk.node.dirNode;
 	    CopyOnWrite(sd_vptr, volptr);
     }
     sd_dh = VN_SetDirHandle(sd_vptr);
@@ -3952,9 +3959,9 @@ void PerformRename(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
     PDirHandle td_dh;
     if (!SameParent ) {
 	    if (td_vptr->disk.cloned) {
-		    *td_CowInode = (DirInode *)td_vptr->disk.inodeNumber;
+		    *td_CowInode = td_vptr->disk.node.dirNode;
 		    CopyOnWrite(td_vptr, volptr);
-	    } 
+	    }
 	    td_dh = VN_SetDirHandle(td_vptr);
     } else {
 	    td_dh = sd_dh;
@@ -3963,7 +3970,7 @@ void PerformRename(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
     PDirHandle s_dh = NULL;
     if (s_vptr->disk.type == vDirectory) {
 	    if ( s_vptr->disk.cloned) {
-		    *s_CowInode = (DirInode *)s_vptr->disk.inodeNumber;
+		    *s_CowInode = s_vptr->disk.node.dirNode;
 		    CopyOnWrite(s_vptr, volptr);
 	    }
 	    s_dh = VN_SetDirHandle(s_vptr);
@@ -4093,7 +4100,7 @@ void PerformRename(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
 
 int PerformMkdir(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
                   Vnode *dirvptr, Vnode *vptr, char *Name, Date_t Mtime, RPC2_Unsigned Mode,
-                  int ReplicatedOp, ViceStoreId *StoreId, DirInode **CowInode,
+                  int ReplicatedOp, ViceStoreId *StoreId, PDirInode *CowInode,
                   int *blocks, RPC2_Integer *vsptr)
 {
     return Perform_CLMS(client, VSGVolnum, volptr, dirvptr, vptr, CLMS_MakeDir,
@@ -4104,7 +4111,7 @@ int PerformMkdir(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
 
 void PerformRmdir(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
                   Vnode *dirvptr, Vnode *vptr, char *Name, Date_t Mtime,
-                  int ReplicatedOp, ViceStoreId *StoreId, DirInode **CowInode, 
+                  int ReplicatedOp, ViceStoreId *StoreId, PDirInode *CowInode,
                   int *blocks, RPC2_Integer *vsptr)
 {
     Perform_RR(client, VSGVolnum, volptr, dirvptr, vptr,
@@ -4115,7 +4122,7 @@ void PerformRmdir(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
 int PerformSymlink(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
                     Vnode *dirvptr, Vnode *vptr, char *Name, Inode newinode,
                     RPC2_Unsigned Length, Date_t Mtime, RPC2_Unsigned Mode,
-                    int ReplicatedOp, ViceStoreId *StoreId, DirInode **CowInode,
+                    int ReplicatedOp, ViceStoreId *StoreId, PDirInode *CowInode,
                     int *blocks, RPC2_Integer *vsptr)
 {
     return Perform_CLMS(client, VSGVolnum, volptr, dirvptr, vptr, CLMS_SymLink,
@@ -4133,8 +4140,8 @@ static int Perform_CLMS(ClientEntry *client, VolumeId VSGVolnum,
                          Volume *volptr, Vnode *dirvptr, Vnode *vptr,
                          CLMS_Op opcode, char *Name, Inode newinode,
                          RPC2_Unsigned Length, Date_t Mtime, RPC2_Unsigned Mode,
-                         int ReplicatedOp, ViceStoreId *StoreId, DirInode **CowInode,
-                         int *nblocks, RPC2_Integer *vsptr) 
+                         int ReplicatedOp, ViceStoreId *StoreId, PDirInode *CowInode,
+                         int *nblocks, RPC2_Integer *vsptr)
 {
     int error;
     *nblocks = 0;
@@ -4154,7 +4161,7 @@ static int Perform_CLMS(ClientEntry *client, VolumeId VSGVolnum,
     /* CLMS invokes COW! */
     PDirHandle dh;
     if (dirvptr->disk.cloned) {
-	    *CowInode = (DirInode *)dirvptr->disk.inodeNumber;
+	    *CowInode = dirvptr->disk.node.dirNode;
 	    CopyOnWrite(dirvptr, volptr);
     }
     dh = VN_SetDirHandle(dirvptr);
@@ -4193,7 +4200,7 @@ static int Perform_CLMS(ClientEntry *client, VolumeId VSGVolnum,
     /* Initialize/Update the child vnode. */
     switch(opcode) {
 	case CLMS_Create:
-	    vptr->disk.inodeNumber = 0;
+	    vptr->disk.node.inodeNumber = 0;
 	    vptr->disk.linkCount = 1;
 	    vptr->disk.length = 0;
 	    vptr->disk.unixModifyTime = Mtime;
@@ -4215,7 +4222,7 @@ static int Perform_CLMS(ClientEntry *client, VolumeId VSGVolnum,
 
 	case CLMS_MakeDir:
 	    PDirHandle cdh;
-	    vptr->disk.inodeNumber = 0;
+	    vptr->disk.node.dirNode = NULL;
 	    vptr->dh = 0;
 	    CODA_ASSERT(vptr->changed);
 
@@ -4252,7 +4259,7 @@ static int Perform_CLMS(ClientEntry *client, VolumeId VSGVolnum,
 	    break;
 
 	case CLMS_SymLink:
-	    vptr->disk.inodeNumber = newinode;
+	    vptr->disk.node.inodeNumber = newinode;
 	    vptr->disk.linkCount = 1;
 	    vptr->disk.length = Length;
 	    vptr->disk.unixModifyTime = Mtime;
@@ -4287,8 +4294,8 @@ static int Perform_CLMS(ClientEntry *client, VolumeId VSGVolnum,
 
 static void Perform_RR(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
                        Vnode *dirvptr, Vnode *vptr, char *Name, Date_t Mtime,
-                       int ReplicatedOp, ViceStoreId *StoreId, DirInode **CowInode,
-                       int *blocks, RPC2_Integer *vsptr) 
+                       int ReplicatedOp, ViceStoreId *StoreId, PDirInode *CowInode,
+                       int *blocks, RPC2_Integer *vsptr)
 {
     *blocks = 0;
     ViceFid Did;
@@ -4306,7 +4313,7 @@ static void Perform_RR(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
     /* RR invokes COW! */
     PDirHandle pDir;
     if (dirvptr->disk.cloned) {
-	    *CowInode = (DirInode *)dirvptr->disk.inodeNumber;
+	    *CowInode = dirvptr->disk.node.dirNode;
 	    CopyOnWrite(dirvptr, volptr);
     }
     pDir = VN_SetDirHandle(dirvptr);
@@ -4543,9 +4550,13 @@ START_TIMING(PutObjects_Transaction);
 		    {
 			Error fileCode = 0;
 			/* Make sure that "allocated and abandoned" vnodes get deleted. */
-			if (v->vptr->disk.inodeNumber == (Inode)NEWVNODEINODE) {
+			/* node.inodeNumber is initialized to (intptr_t)-1 */
+			if (v->vptr->disk.node.dirNode == NEWVNODEINODE) {
 			    v->vptr->delete_me = 1;
-			    v->vptr->disk.inodeNumber = 0;
+
+			    if (v->vptr->disk.type == vDirectory)
+				 v->vptr->disk.node.dirNode = NULL;
+			    else v->vptr->disk.node.inodeNumber = 0;
 			}
 			if (errorCode == 0)
 			    VPutVnode(&fileCode, v->vptr);

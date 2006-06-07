@@ -100,7 +100,9 @@ PDCEntry SetDirHandle(int volid, int vnum, int unique)
     int	    volindex;
     Error   error;
     struct stat status;
-    
+
+    CODA_ASSERT(vclass == vLarge);
+
     volindex = GetVolIndex(volid);
     if (volindex < 0) {
 	fprintf(stderr, "Unable to get volume 0x%x\n", volid);
@@ -126,8 +128,7 @@ PDCEntry SetDirHandle(int volid, int vnum, int unique)
 	return 0;
     }
 
-    dc = DC_Get((PDirInode) vnode->inodeNumber);
-    
+    dc = DC_Get(vnode->node.dirNode);
 
     return dc;
 }
@@ -189,15 +190,13 @@ delete_name(VolumeId volid, VnodeId vnum, Unique_t unique, char *name, int flag)
     VnodeId vnodeindex = vnodeIdToBitNumber(vnum);
     int     vclass = vnodeIdToClass(vnum);
     int	    volindex;
-    
+
+    CODA_ASSERT(vclass == vLarge);
+
     volindex = GetVolIndex(volid);
     if (volindex < 0) {
 	    fprintf(stderr, "Unable to get volume 0x%x\n", volid);
 	    return;
-    }
-
-    if (vclass != vLarge) {
-	    fprintf(stderr, "Not a directory (i.e. large) vnode.\n");
     }
 
     dc = SetDirHandle(volid, vnum, unique);
@@ -235,10 +234,10 @@ delete_name(VolumeId volid, VnodeId vnum, Unique_t unique, char *name, int flag)
     // ignore changing the length for now
     DI_DhToDi(dc);
     pdi = DC_DC2DI(dc);
-    
-    if ( pdi != (PDirInode) vnode->inodeNumber ) {
+
+    if ( pdi != vnode->node.dirNode ) {
 	    printf("WARNING: directory inode has changed!\n");
-	    vnode->inodeNumber = (long unsigned int)pdi;
+	    vnode->node.dirNode = pdi;
     }
 
     // mark the vnode with inconsistent flag
@@ -297,15 +296,13 @@ create_name(VolumeId volid, VnodeId vnum, Unique_t unique, char *name,
     int     vclass = vnodeIdToClass(vnum);
     int     cvclass = vnodeIdToClass(cvnum);
     int	    volindex;
-    
+
+    CODA_ASSERT(vclass == vLarge);
+
     volindex = GetVolIndex(volid);
     if (volindex < 0) {
 	fprintf(stderr, "Unable to get volume 0x%x\n", volid);
 	return;
-    }
-
-    if (vclass != vLarge) {
-	fprintf(stderr, "Not a directory (i.e. large) vnode.\n");
     }
 
     dc = SetDirHandle(volid, vnum, unique);
@@ -357,10 +354,10 @@ create_name(VolumeId volid, VnodeId vnum, Unique_t unique, char *name,
     
     DI_DhToDi(dc);
     pdi = DC_DC2DI(dc);
-    
-    if ( pdi != (PDirInode) vnode->inodeNumber ) {
+
+    if ( pdi != vnode->node.dirNode ) {
 	    printf("WARNING: directory inode has changed!\n");
-	    vnode->inodeNumber = (long unsigned int)pdi;
+	    vnode->node.dirNode = pdi;
     }
 
     // mark the vnode with inconsistent flag

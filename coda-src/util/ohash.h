@@ -39,6 +39,7 @@ listed in the file CREDITS.
 extern "C" {
 #endif
 
+#include <stdint.h>
 #include <stdio.h>
 
 #ifdef __cplusplus
@@ -54,12 +55,12 @@ class ohashtab_iterator;
 
 class ohashtab {
   friend class ohashtab_iterator;
-    int	sz;			    // size of the array
-    olist *a;			    // array of olists
-    int	(*hfn)(void *);		    // the hash function
+    int sz;		        // size of the array
+    olist *a;			// array of olists
+    intptr_t (*hfn)(void *);	// the hash function
     int cnt;
   public:
-    ohashtab(int, int (*)(void *));
+    ohashtab(int size, intptr_t (*hashfn)(void *));
     ohashtab(ohashtab&);	    // not supported!
     int operator=(ohashtab&);	    // not supported!
     virtual ~ohashtab();
@@ -72,7 +73,7 @@ class ohashtab {
     void clear();		    // remove all entries
     int count();
     int IsMember(void *, olink *);
-    int	bucket(void *);		    // returns bucket number of key
+    int bucket(void *);		    // returns bucket number of key
     virtual void print();
     virtual void print(FILE *);
     virtual void print(int);
@@ -87,7 +88,7 @@ class ohashtab {
 class ohashtab_iterator {
     ohashtab *chashtab;		    // current ohashtab
     int	allbuckets;		    // iterate over all or single bucket
-    int	cbucket;		    // current bucket
+    int cbucket;		    // current bucket
     olist_iterator *nextlink;	    // current olist iterator
   public:
     ohashtab_iterator(ohashtab&, void * =(void *)-1);

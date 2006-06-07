@@ -1,6 +1,9 @@
 Incompatible RVM update (Coda client)
 -------------------------------------
 
+2005/06/07 RVM version 38
+    Added realm::realmid (as we can't use &realm_object on 64-bit systems)
+
 2005/06/16 RVM version 37
     Removed fsdb::device and fsobj::inode
 

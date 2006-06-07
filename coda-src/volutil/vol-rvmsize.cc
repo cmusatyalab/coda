@@ -99,7 +99,7 @@ long S_VolRVMSize(RPC2_Handle rpcid, VolumeId VolID, RVMSize_data *data) {
 
     data->SmallVnodeSize = voldata->nsmallvnodes * SIZEOF_SMALLDISKVNODE;
     data->LargeVnodeSize = (voldata->nlargevnodes * 
-	(SIZEOF_LARGEDISKVNODE + sizeof(DirInode)));
+	(SIZEOF_LARGEDISKVNODE + sizeof(struct DirInode)));
     size += data->SmallVnodeSize + data->LargeVnodeSize;
     
     /* Find the number of DirPages by iterating through the large vnode array
@@ -115,8 +115,8 @@ long S_VolRVMSize(RPC2_Handle rpcid, VolumeId VolID, RVMSize_data *data) {
     int vnodeindex;
     while ((vnodeindex = vnext(vnode)) != -1) {
 	int tmp;
-	CODA_ASSERT(vnode->inodeNumber != 0);
-	DirInode *dip = (DirInode *)(vnode->inodeNumber);
+	PDirInode dip = vnode->node.dirNode;
+	CODA_ASSERT(dip);
 	tmp = DI_Pages(dip) * DIR_PAGESIZE;
 	size +=  tmp;
 	data->DirPagesSize += tmp;

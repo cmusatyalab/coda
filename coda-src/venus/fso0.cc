@@ -140,7 +140,7 @@ void FSOInit() {
 	dir = opendir(".");
 	if (!dir) CHOKE("FSOInit: opendir");
 
-	char *cwd,*abspath,*eos,*origpath;
+	char *cwd,*abspath,*eos;
 	struct stat statbuf;
 
 	cwd = getwd(NULL);

@@ -69,9 +69,9 @@ extern "C" {
 /* copies DirHandle data  into pages in recoverable storage */
 /* Called from within a transaction */
 int VN_DCommit(Vnode *vnp)
-{   
-	PDirInode   pdi = (PDirInode) vnp->disk.inodeNumber;
-	PDCEntry    pdce = vnp->dh;
+{
+	PDirInode pdi = vnp->disk.node.dirNode;
+	PDCEntry  pdce = vnp->dh;
 
 	if (!vnp || (vnp->disk.type != vDirectory) || !pdce) {
 		DLog(29, "VN_DCommit: Vnode or dh not allocated/not a directory");
@@ -80,10 +80,10 @@ int VN_DCommit(Vnode *vnp)
 
 	if (vnp->delete_me) {
 		/* directory was deleted */
-		DLog(29, "VN_DCommit: deleted directory, vnode = %x",  
+		DLog(29, "VN_DCommit: deleted directory, vnode = %x",
 		     vnp->vnodeNumber);
-		vnp->disk.inodeNumber = 0;
-		/* if this vnode was just cloned, there won't be a pdi upon 
+		vnp->disk.node.dirNode = NULL;
+		/* if this vnode was just cloned, there won't be a pdi upon
 		   removal */
 		if (pdi)
 			DI_Dec(pdi);
@@ -97,7 +97,7 @@ int VN_DCommit(Vnode *vnp)
 		CODA_ASSERT(DC_DC2DI(pdce));
 		/* rehash just in case it is new */
 		DC_Rehash(pdce);
-		vnp->disk.inodeNumber = (long unsigned int) DC_DC2DI(pdce);
+		vnp->disk.node.dirNode = DC_DC2DI(pdce);
 	}
 	return 0;
 }
@@ -116,7 +116,7 @@ int VN_DAbort(Vnode *vnp)
 	DC_SetDirty(vnp->dh, 0);
 	
 	/* if this was a new directory, clean up further */
-	if ( !vnp->disk.inodeNumber ) {
+	if ( !vnp->disk.node.dirNode ) {
 		vnp->dh_refc = 0;
 		DC_Drop(vnp->dh);
 		vnp->dh = NULL;
@@ -134,19 +134,19 @@ PDirHandle VN_SetDirHandle(struct Vnode *vn)
 	PDCEntry pdce = NULL;
 
 	/* three cases:
-	   - new not previously seen: inodeNumber=0, dh=0
-           - new, not yet in RVM: inodeNumber = 0, dh!=0
-	   - not new, already in RVM: inodeNumber != 0
+	   - new not previously seen: node.dirNode=0, dh=0
+           - new, not yet in RVM: node.dirNode = 0, dh!=0
+	   - not new, already in RVM: node.dirNode != 0
 	*/
 
-	if ( vn->disk.inodeNumber == 0 && vn->dh == 0 ) {  
+	if ( !vn->disk.node.dirNode && !vn->dh ) {
 		pdce = DC_New();
 		vn->dh = pdce;
 		vn->dh_refc = 1;
 		SLog(5, "VN_GetDirHandle NEW %x.%x: cnt %d\n",
 		     vn->vnodeNumber, vn->disk.uniquifier, DC_Count(pdce));
-	} else if ( vn->disk.inodeNumber ) {
-		pdce = DC_Get((PDirInode)vn->disk.inodeNumber);
+	} else if ( vn->disk.node.dirNode ) {
+		pdce = DC_Get(vn->disk.node.dirNode);
 		vn->dh = pdce;
 		vn->dh_refc++;
 		SLog(5, "VN_GetDirHandle for %x.%x: cnt %d, vn_cnt %d\n",
@@ -213,8 +213,8 @@ void VN_CopyOnWrite(struct Vnode *vn)
 	PDirHeader pdirh;
 	PDirHandle pdh;
 	int others_count;
-	
-	CODA_ASSERT(vn->disk.inodeNumber != 0);
+
+	CODA_ASSERT(vn->disk.node.dirNode);
 	/* pin it */
 	pdh = VN_SetDirHandle(vn);
 	CODA_ASSERT(pdh);
@@ -224,7 +224,7 @@ void VN_CopyOnWrite(struct Vnode *vn)
 	/* no one else has a reference to this directory - 
 	   merely prepare for cloning the RVM directory inode */
 	if ( ! others_count ) {
-		DC_SetCowpdi(oldpdce, (PDirInode)vn->disk.inodeNumber);
+		DC_SetCowpdi(oldpdce, vn->disk.node.dirNode);
 		DC_SetRefcount(oldpdce, 1);
 		DC_SetDirty(oldpdce, 1);
 	}
@@ -244,7 +244,7 @@ void VN_CopyOnWrite(struct Vnode *vn)
 		/* set up the copied directory */
 		vn->dh = pdce;
 		DC_SetDirh(pdce, pdirh);
-		DC_SetCowpdi(pdce, (PDirInode)vn->disk.inodeNumber);
+		DC_SetCowpdi(pdce, vn->disk.node.dirNode);
 		DC_SetDirty(pdce, 1);
 		DC_SetCount(pdce, vn->dh_refc);
 
@@ -252,7 +252,7 @@ void VN_CopyOnWrite(struct Vnode *vn)
 		DC_SetCount(oldpdce, others_count);
 	}
 
-	vn->disk.inodeNumber = 0;
+	vn->disk.node.dirNode = NULL;
 	vn->disk.cloned = 0;
  	VN_PutDirHandle(vn);
 	

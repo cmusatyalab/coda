@@ -505,7 +505,7 @@ rec_bstree_iterator::rec_bstree_iterator(rec_bstree& Bst, BstIterOrder Order) {
 rec_bsnode *rec_bstree_iterator::operator()() {
     rec_bsnode *prev = crec_bsnode;
 
-    switch((unsigned int)crec_bsnode) {
+    switch((intptr_t)crec_bsnode) {
 	case -1:		/* state == NOTSTARTED */
 	    if (order == BstAscending) {
 		crec_bsnode = crec_bstree->first();

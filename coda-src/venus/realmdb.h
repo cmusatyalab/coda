@@ -66,6 +66,7 @@ public:
 
 private:
      struct dllist_head realms;
+     RealmId max_realmid; /*T*/
 };
 
 void RealmDBInit(void);

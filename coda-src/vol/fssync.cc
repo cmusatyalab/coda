@@ -116,19 +116,19 @@ static int RemoveUtility (int myid);
    watch over the synchronization. This is bogus, since now that it
    doesn't have to listen on a socket this is only performing a timer
    function */
-void FSYNC_fsInit() 
+void FSYNC_fsInit()
 {
 	PROCESS pid;
 	long rc;
 
 	VLog(9, "Entering FSYNC_fsInit(), creating LWP");
 	rc = LWP_CreateProcess(FSYNC_sync, 5*1024, USUAL_PRIORITY,
-			       0, "FSYNC_sync", &pid);
+			       NULL, "FSYNC_sync", &pid);
 	CODA_ASSERT (rc == LWP_SUCCESS);
 }
 
 /* Wake up periodically to delete outdated relocation information */
-static void FSYNC_sync(void * arg) 
+static void FSYNC_sync(void * arg)
 {
 	LogMsg(9, VolDebugLevel, stdout,  "Entering FSYNC_sync()");
 	while (!VInit)	// Wait for fileserver initialization to complete

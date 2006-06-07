@@ -39,13 +39,7 @@ extern "C" {
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/time.h>
-#if 0
-#ifdef __NetBSD__
-#define __attribute__(x)    /* dummied out because of machine/segments.h */
-#include <sys/user.h>
-#undef __attribute__
-#endif /* __NetBSD__ */
-#endif
+#include <stdint.h>
 
 #include <coda.h>
 

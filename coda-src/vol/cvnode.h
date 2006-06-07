@@ -107,10 +107,12 @@ typedef struct VnodeDiskObjectStruct {
 				   from nextVnodeUnique in the Volume
 				   structure) */
     FileVersion   dataVersion;	/* version number of the data */
-#define	NEWVNODEINODE ((Inode)-1) /* inode number for a vnode allocated 
-                                     but not used for creation */
-    Inode	  inodeNumber;	/* inode number of the data attached to
-    				   this vnode */
+#define	NEWVNODEINODE ((PDirInode)-1) /* inode number for a vnode allocated 
+					 but not used for creation */
+    union {
+	Inode	  inodeNumber; /* container file containing file/symlink data */
+	PDirInode dirNode;     /* pointer to RVM copy of the directory data. */
+    } node;
     /* version vector is updated atomically with the data */
     vv_t	  versionvector;/* CODA file version vector for this vnode */
     int		  vol_index;	/* index of vnode's volume in recoverable volume array */

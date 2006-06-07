@@ -1122,8 +1122,8 @@ static int PerformResOp(rsle *r, dlist *vlist, olist *AllLogs,
 		    int tblocks = (int) (-nBlocks(cv->vptr->disk.length));
 		    CODA_ASSERT(AdjustDiskUsage(volptr, tblocks) == 0);
 		    *blocks += tblocks;
-		    cv->f_sinode = cv->vptr->disk.inodeNumber;
-		    cv->vptr->disk.inodeNumber = 0;
+		    cv->f_sinode = cv->vptr->disk.node.inodeNumber;
+		    cv->vptr->disk.node.inodeNumber = 0;
 		}
 	    }
 	    /* spool log record */
@@ -1203,12 +1203,12 @@ static int PerformResOp(rsle *r, dlist *vlist, olist *AllLogs,
 	    cv->vptr->disk.owner = r->u.slink.owner;
 	    cv->vptr->disk.author = r->u.slink.owner;
 	    /* create the inode */
-	    cv->f_finode = icreate((int)V_device(volptr), (int)V_id(volptr),
-				   (int) cv->vptr->vnodeNumber,
-				   (int) cv->vptr->disk.uniquifier, 1);
+	    cv->f_finode = icreate(V_device(volptr), V_id(volptr),
+				   cv->vptr->vnodeNumber,
+				   cv->vptr->disk.uniquifier, 1);
 	    CODA_ASSERT(cv->f_finode > 0);
-	    cv->vptr->disk.inodeNumber = cv->f_finode;
-	    
+	    cv->vptr->disk.node.inodeNumber = cv->f_finode;
+
 	    /* append log record */
 	    SLog(9, "PerformResOp: Spooling log record SymLink(%s)", name);
 	    if ((errorCode = SpoolVMLogRecord(vlist, pv, volptr, &r->storeid,

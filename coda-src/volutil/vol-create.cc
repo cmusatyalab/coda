@@ -279,7 +279,7 @@ static int ViceCreateRoot(Volume *vp)
     vnode->uniquifier = 1;
     V_uniquifier(vp) = vnode->uniquifier+1;
     vnode->dataVersion = 1;
-    vnode->inodeNumber = 0;
+    vnode->node.dirNode = NULL;
     /* we need to simultaneously update vv in VolumeDiskData struct ***/
     InitVV(&vnode->versionvector);
     vnode->vol_index = vp->vol_index;	/* index of vnode's volume in recoverable storage */
@@ -297,12 +297,12 @@ static int ViceCreateRoot(Volume *vp)
     vn->vnodeNumber = (VnodeId)bitNumberToVnodeNumber(0, vLarge);
     vn->volumePtr = vp;
     memcpy((void *)&vn->disk, (const void *)vnode, sizeof(VnodeDiskObject));
-    VN_DCommit(vn);   
+    VN_DCommit(vn);
     DC_SetDirty(vn->dh, 0);
     VN_PutDirHandle(vn);
 
     memcpy((void *) vnode, (const void *)&(vn->disk), sizeof(VnodeDiskObject));
-    CODA_ASSERT(vnode->inodeNumber != 0);
+    CODA_ASSERT(vnode->node.dirNode);
     CODA_ASSERT(vnode->uniquifier == 1);
 
     /* create the resolution log for this vnode if rvm resolution is

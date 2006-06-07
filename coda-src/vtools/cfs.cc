@@ -2227,7 +2227,7 @@ static void SetACL (int argc, char *argv[], int opslot)
         /* If id already present, just replace rights */
         for(j = 0; j < *asize; j++)
             {
-            if (CaseFoldedCmp((*aptr)[j].id, newid) == 0)
+            if (strcasecmp((*aptr)[j].id, newid) == 0)
                 {
                 (*aptr)[j].rights = newrights;
                 goto EntryDone;

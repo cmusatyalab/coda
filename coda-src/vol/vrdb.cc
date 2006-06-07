@@ -46,19 +46,22 @@ extern "C" {
 vrtab VRDB("VRDB");
 
 /* hash function for the vrdb hash table - just return the id */
-int vrtabHashfn(void *id) {
-    return((int)id);
+static intptr_t vrtabHashfn(void *id)
+{
+    return (intptr_t)id;
 }
 
-int nametabHashfn(void *p) {
-    int length = strlen((char *)p);
+static intptr_t nametabHashfn(void *p)
+{
+    char *name = (char *)p;
+    int length = strlen(name);
     int hash = 0;
     for (int i = 0; i < length; i++)
-	hash += (int)(((char *)p)[i]);
+	hash += (int)(name[i]);
     return(hash);
 }
 
-vrtab::vrtab(char *n) : ohashtab(VRTABHASHSIZE, vrtabHashfn), 
+vrtab::vrtab(char *n) : ohashtab(VRTABHASHSIZE, vrtabHashfn),
     namehtb(VRTABHASHSIZE, nametabHashfn)
 {
     name = strdup(n);
@@ -72,8 +75,8 @@ vrtab::~vrtab() {
 
 
 void vrtab::add(vrent *vre) {
-  ohashtab::insert((void *)vre->volnum, vre);
-  namehtb.insert((void *)vre->key, &vre->namehtblink);
+  ohashtab::insert((void *)(intptr_t)vre->volnum, vre);
+  namehtb.insert(vre->key, &vre->namehtblink);
 
 #ifdef MULTICAST
     if (vre->index(ThisHostAddr) != -1) 
@@ -83,7 +86,7 @@ void vrtab::add(vrent *vre) {
 
 
 void vrtab::remove(vrent *vre) {
-    ohashtab::remove((void *)vre->volnum, vre);
+    ohashtab::remove((void *)(intptr_t)vre->volnum, vre);
     namehtb.remove(vre->key, &vre->namehtblink);
       
     delete vre;
@@ -91,7 +94,7 @@ void vrtab::remove(vrent *vre) {
 
 
 vrent *vrtab::find(VolumeId grpvolnum) {
-    ohashtab_iterator next(*this, (void *)grpvolnum);
+    ohashtab_iterator next(*this, (void *)(intptr_t)grpvolnum);
     vrent *vre;
 
     while ((vre = (vrent *)next()))
@@ -102,7 +105,7 @@ vrent *vrtab::find(VolumeId grpvolnum) {
 
 
 vrent *vrtab::find(char *grpname) {
-    ohashtab_iterator next(namehtb, (void *)grpname);
+    ohashtab_iterator next(namehtb, grpname);
     vrent *vre;
     olink *l;
     
@@ -142,7 +145,7 @@ void vrtab::clear() {
 	vrent *dying = vre;
 	vre = (vrent *)next();
 
-	ohashtab::remove((void *)dying->volnum, dying);
+	ohashtab::remove((void *)(intptr_t)dying->volnum, dying);
 	namehtb.remove(dying->key, &(dying->namehtblink));
 	delete dying;
     }
@@ -162,10 +165,10 @@ void vrtab::print(FILE *fp) {
 
 void vrtab::print(int afd) {
     char buf[40];
-    sprintf(buf, "%#08lx : %-16s\n", (long)this, name);
+    sprintf(buf, "%p : %-16s\n", this, name);
     write(afd, buf, strlen(buf));
 
-    ohashtab_iterator next(*this, (void *)-1);
+    ohashtab_iterator next(*this, (void *)(intptr_t)-1);
     vrent *vre;
     while ((vre = (vrent *)next())) 
 	    vre->print(afd);
@@ -173,7 +176,7 @@ void vrtab::print(int afd) {
 
 int vrtab::dump(int afd)
 {
-    ohashtab_iterator next(*this, (void *)-1);
+    ohashtab_iterator next(*this, (void *)(intptr_t)-1);
     vrent *vre;
     while ((vre = (vrent *)next())) 
 	    if (vre->dump(afd) == -1)

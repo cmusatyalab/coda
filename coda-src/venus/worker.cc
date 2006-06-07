@@ -1229,7 +1229,7 @@ void worker::main(void)
 		unsigned char type = _IOC_TYPE(cmd);
 		unsigned char nr = _IOC_NR(cmd);
 
-		data.in = (char *)in + (int)in->coda_ioctl.data;
+		data.in = (char *)in + (intptr_t)in->coda_ioctl.data;
 		data.in_size = 0;
 		data.out = outbuf;	/* Can't risk overcopying. Sigh. -dcs */
 		data.out_size =	0;
@@ -1274,7 +1274,7 @@ void worker::main(void)
 
 		out->coda_ioctl.len = data.out_size;
 		out->coda_ioctl.data = (char *)(sizeof (struct coda_ioctl_out));
-		memcpy((char *)out + (int)out->coda_ioctl.data, data.out, data.out_size);
+		memcpy((char *)out + (intptr_t)out->coda_ioctl.data, data.out, data.out_size);
 		if (nr == _VIOCPREFETCH)
 		    worker::nprefetchers--;
 

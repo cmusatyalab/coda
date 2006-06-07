@@ -61,14 +61,13 @@ LIBS := ${DEPLIBS} ${LIBRDSLWP} ${LIBSEG} ${LIBRVMLWP} ${LIBSE} ${LIBRPC2} \
 LOCALOBJS = readstuff.o dumpstuff.o vvlist.o
 
 # Keep these in alphabetical order, and 1 per line for easy
-# comparison with ls output 
+# comparison with ls output
 VOLUTILOBJS = \
 	vol-ancient.o \
 	vol-backup.o \
 	vol-clone.o \
 	vol-create.o \
 	vol-dump.o \
-	vol-dumpmem.o \
 	vol-dumpvrdb.o \
 	vol-info.o \
 	vol-lock.o \
@@ -76,7 +75,6 @@ VOLUTILOBJS = \
 	vol-makevldb.o \
 	vol-makevrdb.o \
 	vol-maxid.o \
-	vol-peekpoke.o \
 	vol-purge.o \
 	vol-restore.o \
 	vol-rvmsize.o \
@@ -93,16 +91,16 @@ VOLUTILOBJS = \
 	${LOCALOBJS}
 
 
-VOLCLIENTOBJS = volclient.o 
+VOLCLIENTOBJS = volclient.o
 VOLCLIENTLIBS = ${LIBAUSER} ${LIBKERNDEP}
 
-OBJS =		${VOLUTILOBJS} ${VOLCLIENTOBJS}
+OBJS = ${VOLUTILOBJS} ${VOLCLIENTOBJS}
 
 include $(TOPDIR)/configs/Makerules
 
 CXXFLAGS += -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
 
-libvolutil.a:	${VOLUTILOBJS} 
+libvolutil.a:	${VOLUTILOBJS}
 libvolserv.a:   volutil.o
 
 parserecdump.o:	parserecdump.cc

@@ -53,7 +53,7 @@ extern void Die(char * ...);
 */
 
 
-ohashtab::ohashtab(int size, int (*hashfn)(void *)) {
+ohashtab::ohashtab(int size, intptr_t (*hashfn)(void *)) {
     /* Ensure that size is a power of 2 so that we can use "AND" for modulus division. */
     /*CODA_ASSERT(size > 0);*/ if (size <= 0) abort();
     for (sz = 1; sz < size; sz *= 2) ;
@@ -90,21 +90,21 @@ ohashtab::~ohashtab() {
 
 
 void ohashtab::insert(void *key, olink *p) {
-    int bucket = hfn(key) & (sz - 1);
+    unsigned int bucket = hfn(key) & (sz - 1);
     a[bucket].insert(p);
     cnt++;
 }
 
 
 void ohashtab::append(void *key, olink *p) {
-    int bucket = hfn(key) & (sz - 1);
+    unsigned int bucket = hfn(key) & (sz - 1);
     a[bucket].append(p);
     cnt++;
 }
 
 
 olink *ohashtab::remove(void *key, olink *p) {
-    int bucket = hfn(key) & (sz - 1);
+    unsigned int bucket = hfn(key) & (sz - 1);
     return(cnt--, a[bucket].remove(p));
 }
 

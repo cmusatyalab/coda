@@ -518,32 +518,32 @@ int main(int argc, char *argv[])
     ClearCounters();
 
     CODA_ASSERT(LWP_CreateProcess(CallBackCheckLWP, stack*1024, LWP_NORMAL_PRIORITY,
-	    (char *)&cbwait, "CheckCallBack", &serverPid) == LWP_SUCCESS);
-	    
+				  (void *)&cbwait, "CheckCallBack", &serverPid) == LWP_SUCCESS);
+
     CODA_ASSERT(LWP_CreateProcess(CheckLWP, stack*1024, LWP_NORMAL_PRIORITY,
-	    (char *)&chk, "Check", &serverPid) == LWP_SUCCESS);
-	    
+				  (void *)&chk, "Check", &serverPid) == LWP_SUCCESS);
+
     for (i=0; i < lwps; i++) {
 	sprintf(sname, "ServerLWP-%d",i);
 	CODA_ASSERT(LWP_CreateProcess(ServerLWP, stack*1024, LWP_NORMAL_PRIORITY,
-				      &i, sname, &serverPid) == LWP_SUCCESS);
+				      (void *)&i, sname, &serverPid) == LWP_SUCCESS);
     }
 
     /* set up resolution threads */
     for (i = 0; i < 2; i++){
 	sprintf(sname, "ResLWP-%d", i);
-	CODA_ASSERT(LWP_CreateProcess(ResLWP, stack*1024, 
-				      LWP_NORMAL_PRIORITY, (char *)&i, 
+	CODA_ASSERT(LWP_CreateProcess(ResLWP, stack*1024,
+				      LWP_NORMAL_PRIORITY, (void *)&i,
 				      sname, &resPid) == LWP_SUCCESS);
     }
     sprintf(sname, "ResCheckSrvrLWP");
     CODA_ASSERT(LWP_CreateProcess(ResCheckServerLWP, stack*1024,
-				  LWP_NORMAL_PRIORITY, &i, 
+				  LWP_NORMAL_PRIORITY, (void *)&i,
 				  sname, &resPid) == LWP_SUCCESS);
 
     sprintf(sname, "ResCheckSrvrLWP_worker");
     CODA_ASSERT(LWP_CreateProcess(ResCheckServerLWP_worker, stack*1024,
-				  LWP_NORMAL_PRIORITY, &i, 
+				  LWP_NORMAL_PRIORITY, (void *)&i,
 				  sname, &resworkerPid) == LWP_SUCCESS);
     /* Set up volume utility subsystem (spawns 2 lwps) */
     SLog(29, "fileserver: calling InitvolUtil");
@@ -555,7 +555,7 @@ int main(int argc, char *argv[])
     extern void SmonDaemon(void *);
     sprintf(sname, "SmonDaemon");
     CODA_ASSERT(LWP_CreateProcess(SmonDaemon, stack*1024,
-				  LWP_NORMAL_PRIORITY, &smonPid,
+				  LWP_NORMAL_PRIORITY, (void *)&smonPid,
 				  sname, &smonPid) == LWP_SUCCESS);
 #ifdef PERFORMANCE
 #ifndef OLDLWP

@@ -98,7 +98,7 @@ int main(int argc, char **argv) {
 	    ptmp->req = reqcnt;
 	    sprintf(ptmp->name, "worker%d", ++workers);
 	    rc = LWP_CreateProcess(worker, DSTACK, LWP_NORMAL_PRIORITY,
-				   ptmp, ptmp->name, &(ptmp->cpid));
+				   (void *)ptmp, ptmp->name, &(ptmp->cpid));
 	    if (rc != LWP_SUCCESS)
 		quit("Could not create worker LWP (%d)", rc);
 	}
@@ -585,8 +585,6 @@ void worker(void *arg)
 	ReleaseWriteLock(&plock);
 	LWP_WaitProcess(pinfo);
     }
-
-    return;
 }
 
 /* AdvSkk RPC2 calls */

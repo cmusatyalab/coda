@@ -27,6 +27,7 @@ RealmDB::RealmDB(void)
 {
     RVMLIB_REC_OBJECT(*this);
     rec_list_head_init(&realms);
+    max_realmid = 0;
 }
 
 RealmDB::~RealmDB(void)
@@ -47,6 +48,8 @@ void RealmDB::ResetTransient(void)
 	realm = list_entry_plusplus(p, Realm, realms);
 	p = p->next;
 	realm->ResetTransient();
+	if (realm->Id() > max_realmid)
+	    max_realmid = realm->Id();
     }
 
     LocalRealm = GetRealm(LOCALREALM);
@@ -76,7 +79,7 @@ Realm *RealmDB::GetRealm(const char *realmname)
     }
 
     Recov_BeginTrans();
-    realm = new Realm(realmname);
+    realm = new Realm(++max_realmid, realmname);
     rec_list_add(&realm->realms, &realms);
     Recov_EndTrans(0);
 

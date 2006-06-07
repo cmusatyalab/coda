@@ -181,7 +181,7 @@ void ProcessHardLinks();
 
 /* helper routines */
 DumpObject *GetDumpObj(VnodeId, Unique_t);
-int LowBits(DumpObject *);
+intptr_t LowBits(void *arg);
 void FreeDirectory(PDirInode);
 int AddNameEntry(struct DirEntry *, void *);
 void CreateHardLinkRecd(DumpObject *, int idx);
@@ -356,7 +356,7 @@ void DoGlobalSetup()
   /* separate routine so main() doesn't get too long */
 
   /* create dump object table */
-  DumpTable = new ohashtab((2 << (HashPower-1)), (int (*)(void *)) LowBits);
+  DumpTable = new ohashtab((2 << (HashPower-1)), LowBits);
   if (!DumpTable) {
     fprintf(stderr, "Can't create DumpTable\n");
     exit(-1);
@@ -862,15 +862,16 @@ void FreeDirectory(PDirInode pdiri)
 }
 
 
-int LowBits(DumpObject *obj)
+intptr_t LowBits(void *arg)
 {
+  DumpObject *obj = (DumpObject *)arg;
   /* hash function: use low order bits of object's vnode number */
   int bucket, shift;
 
   shift = 32-HashPower;
   bucket = (obj->oid.vnode) << shift;
   bucket = bucket >> shift;
-  return(bucket);  
+  return bucket;
 }
 
 int AddNameEntry(struct DirEntry *de, void *hook)

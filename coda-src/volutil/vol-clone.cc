@@ -460,28 +460,28 @@ int CloneVnode(Volume *rwVp, Volume *cloneVp, int vnodeIndex,
      */
 	
     if (vclass == vLarge) { /* Directory -- no way it can be BARREN */
-	int linkcount = DI_Count((PDirInode)(vnode->inodeNumber));
+	int linkcount = DI_Count(vnode->node.dirNode);
 	CODA_ASSERT(linkcount > 0);
-	DI_Inc((PDirInode)(vnode->inodeNumber));
+	DI_Inc(vnode->node.dirNode);
     } else {	/* Small Vnode -- file or symlink. */
 
-	if (vnode->inodeNumber == 0) {
+	if (vnode->node.inodeNumber == 0) {
 	    VLog(0, "CloneVolume: VNODE %d HAD ZERO INODE.\n",vnodeNum);
 	    CODA_ASSERT(vnode->type != vNull);
 	    docreate = TRUE;
 	} else
 	    docreate = (int)IsBarren(vnode->versionvector);
-	
+
 	if (docreate) {
-	    vnode->inodeNumber = icreate((int)V_device(cloneVp),
-					 (int)V_id(rwVp), vnodeNum,
-					 (int)vnode->uniquifier, 0);
+	    vnode->node.inodeNumber = icreate(V_device(cloneVp),
+					      V_id(rwVp), vnodeNum,
+					      vnode->uniquifier, 0);
 	    vnode->length = 0;	/* Reset length since we have a new null inode. */
-	} else	
+	} else
 	    /* Inodes should not disappear while the server is running. */
-	    CODA_ASSERT(iinc((int)V_device(rwVp), (int)vnode->inodeNumber,
-			(int)V_parentId(rwVp)) == 0);
-    } 
+	    CODA_ASSERT(iinc(V_device(rwVp), vnode->node.inodeNumber,
+			     V_parentId(rwVp)) == 0);
+    }
     
     /* Mark the RW vnode as cloned, !docreate ==> vnode was cloned. */
     if (VolumeWriteable(rwVp) && !docreate) {

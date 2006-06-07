@@ -114,10 +114,10 @@ void cpent::print(int fd) {
 
 }
 
-int coppendhashfn(void *a)
+intptr_t coppendhashfn(void *a)
 {
     ViceStoreId *sid = (ViceStoreId *)a;
-    return(sid->Host + sid->Uniquifier);
+    return (sid->Host + sid->Uniquifier);
 }
 
 void cpman_func(void *arg)

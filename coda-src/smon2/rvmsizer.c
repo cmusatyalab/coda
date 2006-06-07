@@ -160,23 +160,26 @@ void scantree(char * const *root)
 #define OneMB (1024 * 1024)
 #define MB(x) ((double)(x) / OneMB)
 
+    tmpsize = filesize;
     printf("\ntotal file size        %llu bytes (%.2fMB)\n",
-	   filesize, MB(filesize));
+	   tmpsize, MB(tmpsize));
 
-    printf("average file size      %llu bytes\n", filesize / small_vnodes);
+    tmpsize /= small_vnodes;
+    printf("average file size      %llu bytes\n", tmpsize);
 
+    tmpsize = totalsize - filesize;
     printf("total directory size   %llu bytes (%.2fMB)\n",
-	   totalsize - filesize, MB(totalsize - filesize));
+	   tmpsize, MB(tmpsize));
 
-    printf("average directory size %llu bytes\n",
-	   (totalsize - filesize) / large_vnodes);
+    tmpsize /= large_vnodes;
+    printf("average directory size %llu bytes\n", tmpsize);
 
     tmpsize = (unsigned long long) dirpages * DIRPAGE;
     printf("estimated RVM used by directory data, %llu bytes (%.2fMB)\n",
 	   tmpsize, MB(tmpsize));
 
-    tmpsize += (unsigned long long)small_vnodes * FILERVMSIZE +
-	      (unsigned long long)large_vnodes * DIRSIZE;
+    tmpsize += (unsigned long long) small_vnodes * FILERVMSIZE +
+	      (unsigned long long) large_vnodes * DIRSIZE;
     printf("estimated RVM usage based on object counts, %llu bytes (%.2fMB)\n",
 	   tmpsize, MB(tmpsize));
 

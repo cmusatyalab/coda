@@ -337,7 +337,7 @@ static int DumpVnodeList(int fd, struct VolumeData *vol, int vol_index,
     int    nvnodes,
 	   vnode_index,
 	   vnode_num;
-    DirInode *inode;
+    PDirInode inode;
     int	   npages;
     
     /* Send in a 0 for device, since noone uses it anyway. */
@@ -374,7 +374,7 @@ static int DumpVnodeList(int fd, struct VolumeData *vol, int vol_index,
 
 	if (vclass == vLarge) {
 	    /* Now write the inode information and directory pages. */
-	    inode = (DirInode *)vnode->inodeNumber;
+	    inode = vnode->node.dirNode;
 	    for (npages = 0; inode->di_pages[npages]; npages++);
 
 	    if (norton_debug) {
@@ -415,16 +415,16 @@ static int DumpVolVnodes(int fd, struct VolumeData *vol, int vol_index) {
     return 1;
 }
 
-int CopyDirInode(DirInode *oldinode, DirInode **newinode)
+int CopyDirInode(PDirInode oldinode, PDirInode *newinode)
 {
-    DirInode    shadowInode;
+    struct DirInode shadowInode;
 
     if (!oldinode){
        LogMsg(29, DirDebugLevel, stdout, "CopyDirInode: Null oldinode");
        return -1;
     }
-    *newinode = (DirInode *)rvmlib_rec_malloc(sizeof(DirInode));
-    memset((void *)&shadowInode, 0, sizeof(DirInode));
+    *newinode = (PDirInode)rvmlib_rec_malloc(sizeof(struct DirInode));
+    memset((void *)&shadowInode, 0, sizeof(struct DirInode));
     for(int i = 0; i < DIR_MAXPAGES; i++)
         if (oldinode->di_pages[i]){
             shadowInode.di_pages[i] = (long *)rvmlib_rec_malloc(DIR_PAGESIZE);
@@ -432,7 +432,7 @@ int CopyDirInode(DirInode *oldinode, DirInode **newinode)
 				oldinode->di_pages[i], DIR_PAGESIZE);
         }
     shadowInode.di_refcount = oldinode->di_refcount;
-    rvmlib_modify_bytes(*newinode, &shadowInode, sizeof(DirInode));
+    rvmlib_modify_bytes(*newinode, &shadowInode, sizeof(struct DirInode));
     return 0;
 
 }
@@ -449,15 +449,15 @@ static int ReadVnodeList(int fd, Volume *vp, VnodeClass vclass, int ResOn) {
     Error	err;
 
     /* We need to allocate this in RVM! */
-    DirInode *inode = (DirInode *)malloc(sizeof(DirInode));
-    DirInode *newinode;
+    PDirInode inode = (PDirInode)malloc(sizeof(struct DirInode));
+    PDirInode newinode;
 
     if (!inode) {
 	fprintf(stderr, "Cannot allocate VM inode.\n");
 	return 0;
     }
     
-    if (read(fd, (void *)&nvnodes, (int)sizeof(nvnodes)) == -1) {
+    if (read(fd, (void *)&nvnodes, sizeof(nvnodes)) == -1) {
 	sprintf(buf, "Reading number of %s vnodes\n", VNODECLASS(vclass));
 	perror(buf);
 	return 0;
@@ -465,13 +465,13 @@ static int ReadVnodeList(int fd, Volume *vp, VnodeClass vclass, int ResOn) {
     if (norton_debug) printf("Reading %d vnodes...\n", nvnodes);
 
     while (nvnodes--) {
-	if (read(fd, (void *)&vnode_num, (int)sizeof(vnode_num)) == -1) {
+	if (read(fd, (void *)&vnode_num, sizeof(vnode_num)) == -1) {
 	    perror("Reading vnode number\n");
 	    return 0;
 	}
 	if (norton_debug) printf("Reading vnode number %08x\n", vnode_num);
 
-	memset((void *)(void *)vnode, 0, VNODESIZE(vclass));
+	memset(vnode, 0, VNODESIZE(vclass));
 	
 	if (read(fd, (void *) vnode, VNODESIZE(vclass)) == -1) {
 	    perror("Reading vnode\n");
@@ -503,7 +503,7 @@ static int ReadVnodeList(int fd, Volume *vp, VnodeClass vclass, int ResOn) {
 	
 	rvmlib_begin_transaction(restore);
 	if (vclass == vLarge) {
-	    memset(inode, 0, sizeof(DirInode));
+	    memset(inode, 0, sizeof(struct DirInode));
 		
 	    /* Read in the directory pages */
 	    if (read(fd, (void *)&npages, (int)sizeof(npages)) == -1) {
@@ -539,9 +539,9 @@ static int ReadVnodeList(int fd, Volume *vp, VnodeClass vclass, int ResOn) {
 		rvmlib_abort(VFAIL);
 		return 0;
 	    }
-		
-	    vnp->disk.inodeNumber = (Inode)newinode;
-	    
+
+	    vnp->disk.node.dirNode = newinode;
+
 	    /* Read in the resolution log */
 	    if (ResOn) {
 		if (!ReadResLog(fd, vp, vnp)) {

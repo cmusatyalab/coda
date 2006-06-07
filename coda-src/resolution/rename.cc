@@ -98,8 +98,8 @@ int CheckAndPerformRename(rsle *r, Volume *volptr, VolumeId VSGVolnum,
 	    CODA_ASSERT(AdjustDiskUsage(volptr, tblocks) == 0);
 	    *blocks += tblocks;
 	    if (tv->vptr->disk.type != vDirectory) {
-		tv->f_sinode = tv->vptr->disk.inodeNumber;
-		tv->vptr->disk.inodeNumber = 0;
+		tv->f_sinode = tv->vptr->disk.node.inodeNumber;
+		tv->vptr->disk.node.inodeNumber = 0;
 	    }
 	}
 	/* XXX - MIGHT HAVE TO UPDATE THE VERSION VECTOR FOR THE CHILD ! */

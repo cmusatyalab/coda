@@ -250,14 +250,20 @@ long RS_FetchFile(RPC2_Handle RPCid, ViceFid *Fid,
 	goto FreeLocks;
     }
 
+    if (vptr->disk.type == vDirectory) {
+	errorcode = EISDIR;
+	SLog(0,  "RS_FetchFile Error, attempted to fetch directory", errorcode);
+	goto FreeLocks;
+    }
+
     /* Do the file Transfer */
     memset(&sid, 0, sizeof(SE_Descriptor));
     sid.Tag = SMARTFTP;
     sid.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
     sid.Value.SmartFTPD.Tag = FILEBYFD;
 
-    if (vptr->disk.inodeNumber)
-	    fd = iopen(V_device(volptr), vptr->disk.inodeNumber, O_RDONLY);
+    if (vptr->disk.node.inodeNumber)
+	fd = iopen(V_device(volptr), vptr->disk.node.inodeNumber, O_RDONLY);
     else {
 	/* no inode for this file - send over an empty file */
 	tmpinode = icreate(V_device(volptr), V_id(volptr), 
@@ -419,14 +425,14 @@ long RS_ForceFile(RPC2_Handle RPCid, ViceFid *Fid,
 		goto FreeLocks;
 	    }
 
-	    if (vptr->disk.inodeNumber != 0) {
-		SLog(9,  "RS_ForceFile: Blowing away old inode %x", 
-			vptr->disk.inodeNumber);
-		oldinode = vptr->disk.inodeNumber;
+	    if (vptr->disk.node.inodeNumber) {
+		SLog(9,  "RS_ForceFile: Blowing away old inode %x",
+			vptr->disk.node.inodeNumber);
+		oldinode = vptr->disk.node.inodeNumber;
 	    }
 
 	    vptr->disk.length = sid.Value.SmartFTPD.BytesTransferred;
-	    vptr->disk.inodeNumber = newinode;
+	    vptr->disk.node.inodeNumber = newinode;
 	    vptr->disk.cloned = 0;		// ForceFile effectively is a COW
 	    newinode = 0;
 	}

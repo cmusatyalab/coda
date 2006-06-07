@@ -816,14 +816,14 @@ int main(int argc, char **argv) {
 
     /* Start up thread to handle WriteDump requests. */
     PROCESS dumpPid;
-    memset((char *)&Rock, 0, sizeof(struct rockInfo));
+    memset(&Rock, 0, sizeof(struct rockInfo));
     LWP_CreateProcess(VolDumpLWP, 5 * 1024, LWP_NORMAL_PRIORITY,
-		      &Rock, "VolDumpLWP", &dumpPid);
+		      (void *)&Rock, "VolDumpLWP", &dumpPid);
 
     /* Start up thread to periodically poll down servers */
     PROCESS pollPid;
     LWP_CreateProcess(PollLWP, 8 * 1024, LWP_NORMAL_PRIORITY - 1,
-		      (void *)Naptime, "PollLWP", &pollPid);
+		      (void *)&Naptime, "PollLWP", &pollPid);
 
     /* First try to backup (clone, dump, and mark) all volumes. Do all
      * volumes for a phase before starting the next phase to localize
@@ -1190,7 +1190,7 @@ static void V_BindToServer(char *fileserver, RPC2_Handle *RPCid)
  */
 static void PollLWP(void *arg)
 {
-    int naptime = (int)arg;
+    int naptime = *(int *)arg;
     struct timeval time;
     struct DiskPartition *part;
     struct dllist_head *tmp;

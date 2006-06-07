@@ -632,12 +632,12 @@ int ForceDir(vle *pv, Volume *volptr, VolumeId repvolid,
 		
 		/*create the inode */
 		cv->vptr->disk.dataVersion = 1;
-		cv->f_finode = icreate((int) V_device(volptr), (int) V_id(volptr),
-				       (int) cv->vptr->vnodeNumber, 
-				       (int) cv->vptr->disk.uniquifier,
-				       (int) cv->vptr->disk.dataVersion);
+		cv->f_finode = icreate(V_device(volptr), V_id(volptr),
+				       cv->vptr->vnodeNumber,
+				       cv->vptr->disk.uniquifier,
+				       cv->vptr->disk.dataVersion);
 		CODA_ASSERT(cv->f_finode > 0);
-		cv->vptr->disk.inodeNumber = cv->f_finode;
+		cv->vptr->disk.node.inodeNumber = cv->f_finode;
 
 		cv->vptr->delete_me = 1;
 	    }
@@ -680,12 +680,12 @@ int ForceDir(vle *pv, Volume *volptr, VolumeId repvolid,
 		
 		/*create the inode */
 		cv->vptr->disk.dataVersion = 1;
-		cv->f_finode = icreate((int) V_device(volptr), (int) V_id(volptr),
-				       (int) cv->vptr->vnodeNumber, 
-				       (int) cv->vptr->disk.uniquifier,
-				       (int) cv->vptr->disk.dataVersion);
+		cv->f_finode = icreate(V_device(volptr), V_id(volptr),
+				       cv->vptr->vnodeNumber,
+				       cv->vptr->disk.uniquifier,
+				       cv->vptr->disk.dataVersion);
 		CODA_ASSERT(cv->f_finode > 0);
-		cv->vptr->disk.inodeNumber = cv->f_finode;
+		cv->vptr->disk.node.inodeNumber = cv->f_finode;
 
 		cv->vptr->delete_me = 1;
 	    }

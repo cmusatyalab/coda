@@ -73,30 +73,6 @@ int DirDebugLevel = 0;		/* Dir package */
 int AL_DebugLevel = 0;		/* ACL package */
 int AuthDebugLevel = 0;		/* Auth package */
 
-extern int CaseFoldedCmp(char *s1, char *s2)
-    /* same as strcmp() except that case differences are ignored */
-{
-	register int i;
-	register char c1, c2;
-    
-	i = -1;
-	do  {
-		/* Inv: s1[0:i] is identical to s2[0:i] and i is smaller than 
-		   the shorter of s1 and s2 */
-		i += 1;
-		c1 = s1[i];
-		if (islower(c1)) c1 -= ('a' - 'A');
-		c2 = s2[i];
-		if (islower(c2)) c2 -= ('a' - 'A');
-		if (c1 == 0 && c2 ==0) return(0);
-	} while(c1 == c2);
-
-	if (c1 < c2) 
-		return (-1);
-	else 
-		return(1);
-}
-
 int SafeStrCat(char *dest, char *src, int totalspace)
 {
     if (strlen(dest)+strlen(src) >= totalspace) 

@@ -28,6 +28,7 @@ extern "C" {
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/time.h>
+#include <stdint.h>
 #include <time.h>
 #include <errno.h>
 #include "coda_string.h"
@@ -139,22 +140,25 @@ int main(int argc, char *argv[])
 }
 
 
-int ValidateHeader(hblock& hdr) {
+int ValidateHeader(hblock& hdr)
+{
+    uint16_t mode;
+    uid_t uid;
+    gid_t gid;
+    off_t size;
+    time_t mtime;
+    uint32_t val;
+
     if (hdr.dbuf.name[0] == '\0') {
 	trailers++;
 	return(1);
     }
 
-    /*unsigned short*/int mode;
-    sscanf(hdr.dbuf.mode, "%o", &mode);
-    /*uid_t*/int uid;
-    sscanf(hdr.dbuf.uid, "%o", &uid);
-    /*gid_t*/int gid;
-    sscanf(hdr.dbuf.gid, "%o", &gid);
-    off_t size;
-    sscanf(hdr.dbuf.size, "%lo", &size);
-    time_t mtime;
-    sscanf(hdr.dbuf.mtime, "%lo", &mtime);
+    sscanf(hdr.dbuf.mode, "%o", &val); mode = val;
+    sscanf(hdr.dbuf.uid, "%o", &val); uid = val;
+    sscanf(hdr.dbuf.gid, "%o", &val); gid = val;
+    sscanf(hdr.dbuf.size, "%o", &val); size = val;
+    sscanf(hdr.dbuf.mtime, "%o", &val); mtime = val;
 
     switch(hdr.dbuf.linkflag) {
 	case STOREDATA:
@@ -220,7 +224,7 @@ int ValidateHeader(hblock& hdr) {
 	    exit(-1);
     }
     
-    int chksum1, chksum2;
+    uint32_t chksum1, chksum2;
     sscanf(hdr.dbuf.chksum, "%o", &chksum1);
     chksum2 = checksum(hdr);
     sprintf(hdr.dbuf.chksum, "%o", chksum1);
@@ -233,22 +237,25 @@ int ValidateHeader(hblock& hdr) {
 }
 
 
-void HandleRecord(hblock& hdr) {
+void HandleRecord(hblock& hdr)
+{
+    uint16_t mode;
+    uid_t uid;
+    gid_t gid;
+    off_t size;
+    time_t mtime;
+    uint32_t val;
+
     if (hdr.dbuf.name[0] == '\0') {
 	/* trailer */
 	return;
     }
 
-    /*unsigned short*/int mode;
-    sscanf(hdr.dbuf.mode, "%o", &mode);
-    /*uid_t*/int uid;
-    sscanf(hdr.dbuf.uid, "%o", &uid);
-    /*gid_t*/int gid;
-    sscanf(hdr.dbuf.gid, "%o", &gid);
-    off_t size;
-    sscanf(hdr.dbuf.size, "%lo", &size);
-    time_t mtime;
-    sscanf(hdr.dbuf.mtime, "%lo", &mtime);
+    sscanf(hdr.dbuf.mode, "%o", &val); mode = val;
+    sscanf(hdr.dbuf.uid, "%o", &val); uid = val;
+    sscanf(hdr.dbuf.gid, "%o", &val); gid = val;
+    sscanf(hdr.dbuf.size, "%o", &val); size = val;
+    sscanf(hdr.dbuf.mtime, "%o", &val); mtime = val;
 
     switch(hdr.dbuf.linkflag) {
 	case STOREDATA:

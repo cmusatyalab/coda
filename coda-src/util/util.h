@@ -60,9 +60,8 @@ extern "C" {
 #define FALSE 0
 
 /* Useful functions in libutil.a */
-extern int CaseFoldedCmp(char *s1, char *s2);
-extern int SafeStrCat(char *dest, char *src, int totalspace);
-extern int SafeStrCpy(char *dest, char *src, int totalspace);
+int SafeStrCat(char *dest, char *src, int totalspace);
+int SafeStrCpy(char *dest, char *src, int totalspace);
 int HashString(char *s, unsigned int size);
 void eprint(char *, ...);
 void fdprint(long afd, char *fmt, ...);

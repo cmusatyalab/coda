@@ -232,9 +232,9 @@ static void printvns(Volume *vp, VnodeClass vclass)
 
 void PrintVnode(FILE *outfile, VnodeDiskObject *vnode, VnodeId vnodeNumber)
 {
-    fprintf(outfile, "Vnode %08x.%08x.%08x, cloned = %u, length = %u, inode = %u\n",
+    fprintf(outfile, "Vnode %08x.%08x.%08x, cloned = %u, length = %u, inode = %p\n",
         vnodeNumber, vnode->uniquifier, vnode->dataVersion, vnode->cloned,
-	vnode->length, vnode->inodeNumber);
+	vnode->length, vnode->node.dirNode);
     fprintf(outfile, "link count = %u, type = %u, volume index = %d\n", vnode->linkCount, vnode->type, vnode->vol_index);
     FPrintVV(outfile, &(vnode->versionvector));
 }
@@ -242,6 +242,7 @@ void PrintVnode(FILE *outfile, VnodeDiskObject *vnode, VnodeId vnodeNumber)
 static void date(time_t date, char *result)
 {
     struct tm *tm = localtime(&date);
-    sprintf(result, "%lu (%04d/%02d/%02d.%02d:%02d:%02d)", date,
-	1900 + tm->tm_year, tm->tm_mon+1, tm->tm_mday, tm->tm_hour, tm->tm_min, tm->tm_sec);
+    sprintf(result, "(%04d/%02d/%02d.%02d:%02d:%02d)", 1900 + tm->tm_year,
+	    tm->tm_mon+1, tm->tm_mday, tm->tm_hour, tm->tm_min, tm->tm_sec);
 }
+

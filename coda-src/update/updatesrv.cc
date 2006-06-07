@@ -306,7 +306,7 @@ int main(int argc, char **argv)
 	sprintf(sname, "ServerLWP-%d", i);
 	CODA_ASSERT(LWP_CreateProcess(ServerLWP, 32 * 1024,
 				      LWP_MAX_PRIORITY - 1,
-				      &i, sname, &serverPid) 
+				      (void *)&i, sname, &serverPid)
 	       == LWP_SUCCESS);
     }
     gettimeofday(&tp, &tsp);

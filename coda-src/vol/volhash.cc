@@ -40,14 +40,11 @@ extern "C" {
 #include "volhash.h"
 #include "voldefs.h"
 
-typedef int (*PFIV)(void *);
-
-
 static vhashtab *VolTable;
-static int VolIdHash(VolumeId volid);
 
-int VolIdHash(VolumeId volid)
+static intptr_t VolIdHash(void *arg)
 {
+    VolumeId volid = *(VolumeId *)arg;
     unsigned int sum = 0;
     int n;
     char s[V_MAXVOLNAMELEN], *tmp;
@@ -66,12 +63,12 @@ int VolIdHash(VolumeId volid)
 /* NOTE: 'size' must be a power of 2! */
 void InitVolTable(int size)
 {
-    VolTable = new vhashtab(size, (int (*)(void *)) VolIdHash, "VolTable");
+    VolTable = new vhashtab(size, VolIdHash, "VolTable");
 /*    VolTable = new vhashtab(size, NULL, "VolTable");*/
 }
 
 /* Constructor for vhashtab */
-vhashtab::vhashtab(int size, int (*hashfn)(void *), char *n)
+vhashtab::vhashtab(int size, intptr_t (*hashfn)(void *), char *n)
 : ohashtab(size, hashfn)
 {
     CODA_ASSERT(size > 0);
@@ -99,7 +96,7 @@ void vhashtab::Unlock()
 
 void vhashtab::add(hashent *vol)
 {
-    ohashtab::insert((void *)vol->id, vol);
+    ohashtab::insert((void *)(intptr_t)vol->id, vol);
     vols++;
 }
 
@@ -110,7 +107,7 @@ void vhashtab::remove(hashent *vol)
 	exit(-1);
     }
 
-    ohashtab::remove((void *)vol->id, vol);
+    ohashtab::remove((void *)(intptr_t)vol->id, vol);
     vols--;
 }
 
@@ -128,7 +125,7 @@ hashent *vhashtab::find(VolumeId volid)
 }
 
 /* Returns the number of volumes in the table */
-int vhashtab::volumes() 
+int vhashtab::volumes()
 {
     return(vols);
 }
@@ -146,7 +143,7 @@ void vhashtab::vprint(FILE *fp) {
 
 /* initialize vhash iterator; key of -1 iterates through whole table */
 vhash_iterator::vhash_iterator(vhashtab& voltab, VolumeId key)
-: ohashtab_iterator(voltab, (void *)key)
+: ohashtab_iterator(voltab, (void *)(intptr_t)key)
 {
 }
 
@@ -172,7 +169,7 @@ int HashLookup(VolumeId volid) {
 
 /* insert a new volume into the volume name hash table. */
 /* Returns -1 if the entry already exists */
-int HashInsert(VolumeId volid, int vol_index) 
+int HashInsert(VolumeId volid, int vol_index)
 {
 	hashent *vol = VolTable->find(volid);
 	if (vol != NULL) return (-1);

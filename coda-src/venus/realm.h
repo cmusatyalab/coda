@@ -40,7 +40,7 @@ public:
     }
     void operator delete(void *p, size_t size) { rvmlib_rec_free(p); } /*T*/
 
-    Realm(const char *realm);	/*T*/
+    Realm(const RealmId id, const char *realm);	/*T*/
     ~Realm(void);		/*T*/
 
     void ResetTransient(void);
@@ -54,7 +54,7 @@ public:
     void PutRef(void);
 
     const char *Name(void) { return name; }
-    const RealmId Id(void) { return (RealmId)this; }
+    const RealmId Id(void) { return realmid; }
 
     /* MUST NOT be called from within a transaction */
     void SetRootVolName(char *name);
@@ -71,14 +71,15 @@ public:
     void print(FILE *f);
 
 private:
+    RealmId realmid;
+    unsigned int rec_refcount;
     char *name;
     char *rootvolname;
     struct dllist_head realms;
-    unsigned int rec_refcount;
 
 /*T*/unsigned int refcount;
-/*T*/struct RPC2_addrinfo *rootservers;
 /*T*/int generation;
+/*T*/struct RPC2_addrinfo *rootservers;
 /*T*/userent *system_anyuser;
 };
 

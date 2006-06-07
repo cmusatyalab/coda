@@ -583,7 +583,7 @@ static void dump(void)
     
     PROCESS dumpPid;
     LWP_CreateProcess(VolDumpLWP, 16 * 1024, LWP_NORMAL_PRIORITY,
-		      rock, "VolDumpLWP", &dumpPid);
+		      (void *)rock, "VolDumpLWP", &dumpPid);
     
     rc = VolNewDump(rpcid, volid, &Incremental);
     if (rc != RPC2_SUCCESS) {
@@ -665,7 +665,6 @@ static void VolDumpLWP(void *arg)
 	}
 	else fprintf(stderr, "VolDumpLWP: Get_Request failed with %s\n",RPC2_ErrorMsg((int)rc));
     }
-
 }
 
 long S_WriteDump(RPC2_Handle rpcid, RPC2_Unsigned offset, RPC2_Unsigned *nbytes, VolumeId volid, SE_Descriptor *BD)
@@ -783,7 +782,7 @@ static void restorefromback(void)
     
     PROCESS restorePid;
     LWP_CreateProcess(VolDumpLWP, 16 * 1024, LWP_NORMAL_PRIORITY,
-		      rock, "VolDumpLWP", &restorePid);
+		      (void *)rock, "VolDumpLWP", &restorePid);
     if (rc != LWP_SUCCESS) {
 	fprintf(stderr, "VolDump can't create child %s\n", RPC2_ErrorMsg((int)rc));
 	exit(-1);

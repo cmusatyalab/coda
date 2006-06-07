@@ -1365,7 +1365,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    /* Perform. */
 		    if (v->f_finode == 0) {
 			/* First StoreData; record pre-reintegration inode. */
-			v->f_sinode = v->vptr->disk.inodeNumber;
+			v->f_sinode = v->vptr->disk.node.inodeNumber;
 		    }
 		    else {
 			/* Nth StoreData; discard previous inode. */
@@ -1501,7 +1501,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    if (c_inode) {
 			CODA_ASSERT(v->f_sinode == 0);
 			v->f_sinode = c_inode;
-			v->f_finode = v->vptr->disk.inodeNumber;
+			v->f_finode = v->vptr->disk.node.inodeNumber;
 			truncp = 0;
 		    }
 
@@ -1509,8 +1509,8 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    if (truncp) {
 			SLog(3,  "CheckSemanticsAndPerform: noting truncation (%s, %d, %d), (%d, %d)",
 			     FID_(&v->fid), v->f_tinode, v->f_tlength,
-			     v->vptr->disk.inodeNumber, v->vptr->disk.length);
-			v->f_tinode = v->vptr->disk.inodeNumber;
+			     v->vptr->disk.node.inodeNumber, v->vptr->disk.length);
+			v->f_tinode = v->vptr->disk.node.inodeNumber;
 			v->f_tlength = v->vptr->disk.length;
 		    }
 
@@ -1644,8 +1644,8 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 			*blocks += deltablocks;
 
 			child_v->f_sid = NullSid;
-			child_v->f_sinode = child_v->vptr->disk.inodeNumber;
-			child_v->vptr->disk.inodeNumber = 0;
+			child_v->f_sinode = child_v->vptr->disk.node.inodeNumber;
+			child_v->vptr->disk.node.inodeNumber = 0;
 
 			/* Cancel previous truncate. */
 			SLog(3,  "CheckSemanticsAndPerform: cancelling truncate (%s, %d, %d)",
@@ -1810,8 +1810,8 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 
 			if (t_v->vptr->disk.type != vDirectory) {
 			    t_v->f_sid = NullSid;
-			    t_v->f_sinode = t_v->vptr->disk.inodeNumber;
-			    t_v->vptr->disk.inodeNumber = 0;
+			    t_v->f_sinode = t_v->vptr->disk.node.inodeNumber;
+			    t_v->vptr->disk.node.inodeNumber = 0;
 			}
 		    }
 		    }

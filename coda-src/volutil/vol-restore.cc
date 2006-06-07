@@ -96,7 +96,7 @@ extern "C" {
 static int RestoreVolume(DumpBuffer_t *, char *, char *, VolumeId *);
 static int ReadLargeVnodeIndex(DumpBuffer_t *, Volume *);
 static int ReadSmallVnodeIndex(DumpBuffer_t *, Volume *);
-static int ReadVnodeDiskObject(DumpBuffer_t *, VnodeDiskObject *, DirInode **, Volume *, long *);
+static int ReadVnodeDiskObject(DumpBuffer_t *, VnodeDiskObject *, PDirInode *, Volume *, long *);
 
 static int VnodePollPeriod = 16;  /* Number of vnodes restored per transaction */
 extern void PollAndYield();
@@ -425,8 +425,8 @@ static int ReadLargeVnodeIndex(DumpBuffer_t *buf, Volume *vp)
     char    vbuf[SIZEOF_LARGEDISKVNODE];
     VnodeDiskObject *vdo = (VnodeDiskObject *)vbuf;
     rec_smolist *rlist;
-    DirInode *dinode = NULL;
-    DirInode *camdInode = NULL;
+    PDirInode dinode = NULL;
+    PDirInode camdInode = NULL;
     register signed char tag;
     int volindex = V_volumeindex(vp);
 
@@ -487,7 +487,7 @@ static int ReadLargeVnodeIndex(DumpBuffer_t *buf, Volume *vp)
 		dinode->di_refcount = 1;
 		DI_Copy(dinode, &camdInode);
 		DI_VMFree(dinode);
-		vdo->inodeNumber = (Inode)camdInode;
+		vdo->node.dirNode = camdInode;
 		camvdo=(VnodeDiskObject *)rvmlib_rec_malloc(SIZEOF_LARGEDISKVNODE);
 		rvmlib_modify_bytes(&(camvdo->nextvn), &tmp, sizeof(long));
 		rlist[vnodeIdToBitNumber(vnodenumber)].append(&(camvdo->nextvn));
@@ -602,8 +602,8 @@ static int ReadSmallVnodeIndex(DumpBuffer_t *buf, Volume *vp)
 }
 
 static int ReadVnodeDiskObject(DumpBuffer_t *buf, VnodeDiskObject *vdop, 
-				DirInode **dinode, Volume *vp, 
-				long *vnodeNumber)
+			       PDirInode *dinode, Volume *vp, 
+			       long *vnodeNumber)
 {
     register signed char tag;
     *vnodeNumber = -1;
@@ -685,8 +685,8 @@ static int ReadVnodeDiskObject(DumpBuffer_t *buf, VnodeDiskObject *vdop,
 		 *vnodeNumber);
 	    return -1;
 	}
-	*dinode = (DirInode *)malloc(sizeof(DirInode));
-	memset((void *)*dinode, 0, sizeof(DirInode));
+	*dinode = (PDirInode)malloc(sizeof(struct DirInode));
+	memset((void *)*dinode, 0, sizeof(struct DirInode));
 	for (int i = 0; i < npages; i++){
 	    (*dinode)->di_pages[i] = (long *)malloc(DIR_PAGESIZE);
 	    int tmp = ReadTag(buf);
@@ -698,26 +698,26 @@ static int ReadVnodeDiskObject(DumpBuffer_t *buf, VnodeDiskObject *vdop,
 		VLog(0, "Restore: Failure reading dir page, aborting.");
 		return -1;
 	    }
-		
+
 	}
-	vdop->inodeNumber = (Inode)(*dinode);
+	vdop->node.dirNode = *dinode;
 	(*dinode)->di_refcount = 1;
     } else {
 	tag = ReadTag(buf);
 	if (tag == D_FILEDATA) {
 	    int fd;
-	
-	    vdop->inodeNumber = icreate((int)V_device(vp),
-					(int)V_parentId(vp),
-					(int)*vnodeNumber, 
-					(int)vdop->uniquifier,
-					(int)vdop->dataVersion);
-	    if (vdop->inodeNumber < 0) {
+
+	    vdop->node.inodeNumber = icreate(V_device(vp),
+					     V_parentId(vp),
+					     *vnodeNumber,
+					     vdop->uniquifier,
+					     vdop->dataVersion);
+	    if (vdop->node.inodeNumber < 0) {
 		VLog(0,"Unable to allocate inode for vnode %#x: aborted",
 		     *vnodeNumber);
 		return -1;
 	    }
-	    fd = iopen((int)V_device(vp), (int)vdop->inodeNumber, O_WRONLY);
+	    fd = iopen(V_device(vp), vdop->node.inodeNumber, O_WRONLY);
 	    if (fd == -1){
 		VLog(0, "Failure to open inode for writing %d", errno);
 		return -1;
@@ -740,15 +740,14 @@ static int ReadVnodeDiskObject(DumpBuffer_t *buf, VnodeDiskObject *vdop,
 	    close(fd);
 	} else if (tag == D_BADINODE) {
 	    /* Create a null inode. */
-	    vdop->inodeNumber = icreate((int)V_device(vp),
-					(int)V_parentId(vp),
-					(int)*vnodeNumber, 
-					(int)vdop->uniquifier,
-					(int)vdop->dataVersion);
-	    if (vdop->inodeNumber < 0) {
-		VLog(0,
-		       "Unable to allocate inode for vnode %d: aborted",
-		       *vnodeNumber);
+	    vdop->node.inodeNumber = icreate(V_device(vp),
+					     V_parentId(vp),
+					     *vnodeNumber,
+					     vdop->uniquifier,
+					     vdop->dataVersion);
+	    if (vdop->node.inodeNumber < 0) {
+		VLog(0, "Unable to allocate inode for vnode %d: aborted",
+		     *vnodeNumber);
 		return -1;
 	    }
 	} else {

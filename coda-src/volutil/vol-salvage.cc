@@ -568,22 +568,23 @@ static int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes,
 
 	/* take care of special cases first */
 	{
-	    if (vnode->inodeNumber == NEWVNODEINODE){
+	    /* special case, newly allocated vnodes are set to (intptr_t)-1 */
+	    if (vnode->node.dirNode == NEWVNODEINODE){
 		vnode->type = vNull;
 		CODA_ASSERT(v_index.put(vnodeNumber, vnode->uniquifier, vnode) == 0);
 		VolumeChanged = 1;
 		continue;
 	    }
-	    else if (vnode->inodeNumber == 0){
-		VLog(0, "SalvageIndex:  Vnode 0x%x has no inodeNumber", 
+	    else if (!vnode->node.inodeNumber){
+		VLog(0, "SalvageIndex:  Vnode 0x%x has no inodeNumber",
 		     vnodeNumber);
 		CODA_ASSERT(RW);
 		CODA_ASSERT(vnode->dataVersion == 0); // inodenumber == 0 only after create 
 		VLog(0, "SalvageIndex: Creating an empty object for it");
-		vnode->inodeNumber = icreate(fileSysDevice,
-					     vsp->header.id, vnodeNumber,
-					     vnode->uniquifier, 0);
-		CODA_ASSERT(vnode->inodeNumber > 0);
+		vnode->node.inodeNumber = icreate(fileSysDevice,
+						  vsp->header.id, vnodeNumber,
+						  vnode->uniquifier, 0);
+		CODA_ASSERT(vnode->node.inodeNumber > 0);
 		if (vnode->cloned)
 		    vnode->cloned = 0;		// invoke COW - XXX added 9/30/92 Puneet Kumar
 		CODA_ASSERT(v_index.put(vnodeNumber, vnode->uniquifier, vnode) == 0);
@@ -602,7 +603,7 @@ static int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes,
 	int lnInodes = nInodes;
 	/* skip over old inodes with same vnodeNumber */
 	while (lnInodes && (int)lip->VnodeNumber == vnodeNumber){
-	    if (vnode->inodeNumber == lip->InodeNumber){
+	    if (vnode->node.inodeNumber == lip->InodeNumber){
 		foundinode = 1;
 		break;
 	    }
@@ -651,10 +652,12 @@ static int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes,
 		VLog(0, 
 		       "Vnode 0x%x.%x in a ro volume has no inode - creating one\n",
 		       vnodeNumber, vnode->uniquifier);
-		vnode->inodeNumber = icreate(fileSysDevice,
-					     vsp->header.parent, vnodeNumber,
-					     vnode->uniquifier, vnode->dataVersion);
-		CODA_ASSERT(vnode->inodeNumber > 0);
+		vnode->node.inodeNumber = icreate(fileSysDevice,
+						  vsp->header.parent,
+						  vnodeNumber,
+						  vnode->uniquifier,
+						  vnode->dataVersion);
+		CODA_ASSERT(vnode->node.inodeNumber > 0);
 		vnode->length = 0;
 		CODA_ASSERT(v_index.put(vnodeNumber,vnode->uniquifier,vnode) == 0);
 		VolumeChanged = 1;
@@ -673,10 +676,12 @@ static int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes,
 			VLog(0, 
 			       "Vnode 0x%x.%x.%x incorrect inode - Correcting\n",
 			       vsp->header.id, vnodeNumber, vnode->uniquifier);
-			vnode->inodeNumber = icreate(fileSysDevice,
-						     vsp->header.parent, vnodeNumber,
-						     vnode->uniquifier, vnode->dataVersion);
-			CODA_ASSERT(vnode->inodeNumber > 0);
+			vnode->node.inodeNumber = icreate(fileSysDevice,
+							  vsp->header.parent,
+							  vnodeNumber,
+							  vnode->uniquifier,
+							  vnode->dataVersion);
+			CODA_ASSERT(vnode->node.inodeNumber > 0);
 			vnode->length = 0;
 			extern ViceVersionVector NullVV;
 			vnode->versionvector = NullVV;
@@ -689,10 +694,12 @@ static int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes,
 			VLog(0, 
 			       "Vnode 0x%x.%x.%x is BARREN - Debarrenizing\n",
 			       vsp->header.id, vnodeNumber, vnode->uniquifier);
-			vnode->inodeNumber = icreate(fileSysDevice,
-						     vsp->header.parent, vnodeNumber,
-						     vnode->uniquifier, vnode->dataVersion);
-			CODA_ASSERT(vnode->inodeNumber > 0);
+			vnode->node.inodeNumber = icreate(fileSysDevice,
+							  vsp->header.parent,
+							  vnodeNumber,
+							  vnode->uniquifier,
+							  vnode->dataVersion);
+			CODA_ASSERT(vnode->node.inodeNumber > 0);
 			vnode->length = 0;
 			extern ViceVersionVector NullVV;
 			vnode->versionvector = NullVV;
@@ -894,17 +901,17 @@ static void DistilVnodeEssence(VnodeClass vclass, VolumeId volid) {
 	vip->vnodes = (struct VnodeEssence *)calloc(vip->nVnodes, sizeof(struct VnodeEssence));
 	CODA_ASSERT(vip->vnodes != NULL);
 	if (vclass == vLarge) {	    /* alloc space for directory entries */
-	    vip->inodes = (Inode *) calloc(vip->nVnodes, sizeof (Inode));
-	    CODA_ASSERT(vip->inodes != NULL);
+	    vip->dirnodes = (PDirInode *) calloc(vip->nVnodes, sizeof (PDirInode));
+	    CODA_ASSERT(vip->dirnodes != NULL);
 	}
 	else {
-	    vip->inodes = NULL;
+	    vip->dirnodes = NULL;
 	}
     }
     else {  /* no vnodes of this class in this volume */
 	vip->nVnodes = 0;
 	vip->vnodes = NULL;
-	vip->inodes = NULL;
+	vip->dirnodes = NULL;
     }
     vip->volumeBlockCount = vip->nAllocatedVnodes = 0;
 
@@ -926,8 +933,8 @@ static void DistilVnodeEssence(VnodeClass vclass, VolumeId volid) {
 		CODA_ASSERT(vclass == vLarge);
 		/* for directory vnodes inode should never be zero */
 		/* if the inode number is NEWVNODEINODE blow away vnode */
-		CODA_ASSERT(vnode->inodeNumber != 0);
-		if (vnode->inodeNumber == NEWVNODEINODE){
+		CODA_ASSERT(vnode->node.dirNode);
+		if (vnode->node.dirNode == NEWVNODEINODE){
 		    /* delete the vnode */
 		    VLog(0, "DistilVnodeEssence: Found a Directory"
 			 "vnode %lx that has a special inode ... deleting vnode ",
@@ -938,8 +945,8 @@ static void DistilVnodeEssence(VnodeClass vclass, VolumeId volid) {
 		    vnode->type = vNull;
 		    v_index.oput(vnodeIndex, vnode->uniquifier, vnode);
 		}
-		else 
-		    vip->inodes[v] = vnode->inodeNumber;
+		else
+		    vip->dirnodes[v] = vnode->node.dirNode;
 		vep->log = vnode->log;
 	    }
 	}
@@ -983,7 +990,7 @@ void DirCompletenessCheck(struct VolumeSummary *vsp)
     dirVnodeInfo = &vnodeInfo[vLarge];
     /* iterate through all directory vnodes in this volume */
     for (i = 0; i < dirVnodeInfo->nVnodes; i++) {
-	    if (dirVnodeInfo->inodes[i] == 0)
+	    if (dirVnodeInfo->dirnodes[i] == 0)
 		    continue;	/* Not allocated to any directory */
 	    dir.vnodeNumber = dirVnodeInfo->vnodes[i].vid;
 	    dir.unique = dirVnodeInfo->vnodes[i].unique;
@@ -992,7 +999,7 @@ void DirCompletenessCheck(struct VolumeSummary *vsp)
 	    dir.uparent = dirVnodeInfo->vnodes[i].uparent;
 	    dir.haveDot = dir.haveDotDot = 0;
 
-	    dir.dirCache = DC_Get((PDirInode) dirVnodeInfo->inodes[i]);
+	    dir.dirCache = DC_Get(dirVnodeInfo->dirnodes[i]);
 
 	    /* dir inode is data inode of directory vnode */
 	    VLog(9, "DCC: Going to check Directory (%#x.%x.%x)", vid, 
@@ -1063,8 +1070,8 @@ void DirCompletenessCheck(struct VolumeSummary *vsp)
 	struct VnodeInfo *vip = &vnodeInfo[vclass];
 	if (vip->vnodes)
 		free((char *)vip->vnodes);
-	if (vip->inodes)
-		free((char *)vip->inodes);
+	if (vip->dirnodes)
+		free((char *)vip->dirnodes);
     }
     
     /* Set correct resource utilization statistics */
