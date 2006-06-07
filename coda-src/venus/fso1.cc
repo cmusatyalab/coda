@@ -1990,7 +1990,9 @@ int fsobj::Fakeify()
 	    if (p == &vol->fso_list) {
 		LOG(0, ("fsobj::Fakeify: %s, (%s), parent not found\n",
 			comp, FID_(&fid)));
+		Recov_BeginTrans();
 		Matriculate();
+		Recov_EndTrans(MAXFP);
 		return ENOENT;
 	    }
 	}
