@@ -579,9 +579,10 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 		    code = EINVAL; /* XXXX - Could use a more meaningful return code here */
 		    break;
 		}
-		
-		/* if (code != 0) goto Exit; */
-		CODA_ASSERT(code == 0);
+
+		/* we still want to send a COP2 to finalize the repair of the
+		 * server-server conflict. */
+		// if (code != 0) goto Exit;
 	    }
 	}
     }
