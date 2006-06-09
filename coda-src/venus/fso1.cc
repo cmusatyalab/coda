@@ -817,7 +817,7 @@ int fsobj::CheckRcRights(int rights) {
 
 void fsobj::SetRcRights(int rights)
 {
-    if (vol->IsBackup() || IsFake())
+    if (!vol->IsReplicated() || IsFake())
 	return;
 
     if (!HAVEALLDATA(this))
