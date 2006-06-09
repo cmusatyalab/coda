@@ -202,7 +202,7 @@ class hdb {
 
     /* Constructors, destructors. */
     void *operator new(size_t);
-    void operator delete(void *, size_t);
+    void operator delete(void *);
     hdb();
     void ResetTransient();
     ~hdb() { abort(); }
@@ -289,7 +289,7 @@ class hdbent {
     hdbent(VolumeId, char *, char *, uid_t, int, int, int);
     void ResetTransient();
     ~hdbent();
-    void operator delete(void *, size_t);
+    void operator delete(void *);
 
   public:
     void print() { print(stdout); }
@@ -372,7 +372,7 @@ class namectxt {
     namectxt(namectxt&);		/* not supported! */
     int operator=(namectxt&);		/* not supported! */
     ~namectxt();
-    void operator delete(void *, size_t);
+    void operator delete(void *);
 
     void Demote(int recursive=0);		/* --> immediate or eventual transition to suspect state */
     void CheckComponent(fsobj *);

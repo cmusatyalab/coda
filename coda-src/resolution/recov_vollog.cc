@@ -120,7 +120,7 @@ recov_vol_log::~recov_vol_log()
     if (index) rvmlib_rec_free(index); 
 }
 
-void recov_vol_log::operator delete(void *deadobj, size_t len) 
+void recov_vol_log::operator delete(void *deadobj)
 {
     rvmlib_rec_free(deadobj);
 }

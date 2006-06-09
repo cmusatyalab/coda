@@ -236,7 +236,7 @@ void hdb::ResetTransient() {
 }
 
 
-void hdb::operator delete(void *deadobj, size_t len){
+void hdb::operator delete(void *deadobj){
     abort(); /* couldn't possibly get here! */
 }
 
@@ -1398,7 +1398,7 @@ hdbent::~hdbent()
 }
 
 
-void hdbent::operator delete(void *deadobj, size_t len){
+void hdbent::operator delete(void *deadobj){
     /* Nothing to do; storage already relinquished in ~hdbent() */
 
 }
@@ -1744,7 +1744,7 @@ namectxt::~namectxt() {
 }
 
 
-void namectxt::operator delete(void *deadobj, size_t len){
+void namectxt::operator delete(void *deadobj){
     namectxt *n;
     n = (namectxt *)deadobj;
 

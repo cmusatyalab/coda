@@ -60,7 +60,7 @@ class rec_olist {
 
   public:
     void *operator new(size_t);
-    void operator delete(void *, size_t);
+    void operator delete(void *);
 
     rec_olist();
     rec_olist(rec_olist&);			    /* not supported! */

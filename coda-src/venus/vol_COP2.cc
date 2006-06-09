@@ -339,7 +339,7 @@ cop2ent::~cop2ent() {
 #endif
 }
 
-void cop2ent::operator delete(void *deadobj, size_t len) {
+void cop2ent::operator delete(void *deadobj) {
     cop2ent *c = (cop2ent *) deadobj;
 
     LOG(100, ("cop2ent::operator delete()\n"));

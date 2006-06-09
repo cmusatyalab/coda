@@ -58,7 +58,7 @@ void *recvarl::operator new(size_t size) {
     return 0;
 }
 
-void recvarl::operator delete(void *deadobj, size_t size) {
+void recvarl::operator delete(void *deadobj) {
     CODA_ASSERT(0); /* destructor should never let control get here */
 }
 

@@ -38,7 +38,7 @@ class recvarl {
 
     void *operator new(size_t, int); /* the real new */
     void *operator new(size_t);    /* dummy to keep g++ happy */
-    void operator delete(void *, size_t);
+    void operator delete(void *);
     recvarl(int); 
     ~recvarl();
     int size();			/* return sizeof(varl) for a particular  class instance */

@@ -776,7 +776,7 @@ cmlent::~cmlent() {
 }
 
 /* MUST be called from within transaction! */
-void cmlent::operator delete(void *deadobj, size_t len) {
+void cmlent::operator delete(void *deadobj) {
     cmlent *c = (cmlent *)deadobj;
 
     LOG(1, ("cmlent::operator delete()\n"));

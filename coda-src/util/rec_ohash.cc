@@ -53,7 +53,7 @@ void *rec_ohashtab::operator new(size_t size) {
     return(r);
 }
 
-void rec_ohashtab::operator delete(void *deadobj, size_t size) {
+void rec_ohashtab::operator delete(void *deadobj) {
 	rvmlib_rec_free(deadobj);
 }
 

@@ -108,7 +108,7 @@ void *rec_bstree::operator new (size_t size) {
     return(r);
 }
 
-void rec_bstree::operator delete(void *deadobj, size_t size){
+void rec_bstree::operator delete(void *deadobj){
     rvmlib_rec_free(deadobj);
 }
 

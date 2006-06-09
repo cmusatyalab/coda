@@ -83,7 +83,7 @@ class recov_vol_log {
     void *operator new(size_t);
     recov_vol_log(VolumeId =0, int adm =4096);	// default: max 4k log entries 
     ~recov_vol_log();
-    void operator delete(void *, size_t);
+    void operator delete(void *);
     int init(int);
     void ResetTransients(VolumeId =0);
     

@@ -361,7 +361,7 @@ void vdb::ResetTransient()
     repvol_hash.SetHFn(VOL_HashFN);
 }
 
-void vdb::operator delete(void *deadobj, size_t len) {
+void vdb::operator delete(void *deadobj) {
     abort(); /* what else? */
 }
 
@@ -958,7 +958,7 @@ volent::~volent()
 }
 
 /* MUST be called from within transaction! */
-void volent::operator delete(void *deadobj, size_t len)
+void volent::operator delete(void *deadobj)
 {
     LOG(10, ("volent::operator delete()\n"));
     rvmlib_rec_free(deadobj);

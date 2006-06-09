@@ -350,7 +350,7 @@ class cmlent {
     cmlent(ClientModifyLog *, time_t, uid_t, int, int ...);	/* local-repair modification */
     void ResetTransient();
     ~cmlent();
-    void operator delete(void *, size_t);
+    void operator delete(void *);
 
     /* Size of an entry */
     long bytes();
@@ -474,7 +474,7 @@ class vdb {
     vdb();
     void ResetTransient();
     ~vdb() { abort(); }
-    void operator delete(void *, size_t);
+    void operator delete(void *);
 
     /* Allocation/Deallocation routines. */
     volent *Create(Realm *realm, VolumeInfo *, const char *);
@@ -614,7 +614,7 @@ class volent {
     /*T*/short shrd_count;		/* for volume pgid locking */
     /*T*/int lc_asr;            /* last/current ASR run for this volume */
 
-    void operator delete(void *, size_t);
+    void operator delete(void *);
     volent(Realm *r, VolumeId vid, const char *name);
     ~volent();
     void ResetVolTransients();
@@ -946,7 +946,7 @@ class cop2ent : public dlink {
     cop2ent(cop2ent&);		/* not supported! */
     int operator=(cop2ent&);	/* not supported! */
     ~cop2ent();
-    void operator delete(void *, size_t);
+    void operator delete(void *);
 
   public:
 #ifdef	VENUSDEBUG

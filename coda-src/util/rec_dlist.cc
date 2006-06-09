@@ -62,7 +62,7 @@ void *rec_dlist::operator new(size_t size) {
     return(r);
 }
 
-void rec_dlist::operator delete(void *deadobj, size_t size) {
+void rec_dlist::operator delete(void *deadobj) {
 	rvmlib_rec_free(deadobj);
 }
 

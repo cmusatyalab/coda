@@ -426,7 +426,7 @@ void fsdb::ResetTransient() {
 }
 
 
-void fsdb::operator delete(void *, size_t){
+void fsdb::operator delete(void *){
     abort(); /* how could we possibly get here? */
 }
 

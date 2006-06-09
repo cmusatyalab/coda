@@ -178,7 +178,7 @@ class fsdb {
 
     /* Constructors, destructors. */
     void *operator new(size_t);
-    void operator delete(void *, size_t);
+    void operator delete(void *);
 
     fsdb();
     void ResetTransient();
@@ -468,7 +468,7 @@ class fsobj {
     void *operator new(size_t, fso_alloc_t, int); /* for allocation from freelist */
     void *operator new(size_t, fso_alloc_t); /* for allocation from heap */
     void *operator new(size_t); /* dummy to pacify g++ */
-    void operator delete(void *, size_t);
+    void operator delete(void *);
     fsobj(int);
     fsobj(VenusFid *, char *);
     void ResetPersistent();

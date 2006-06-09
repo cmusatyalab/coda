@@ -43,7 +43,7 @@ public:
     }
 
     /* MUST be called from within a transaction */
-    void operator delete(void *p, size_t size)
+    void operator delete(void *p)
     {
 	rvmlib_rec_free(p);
     }

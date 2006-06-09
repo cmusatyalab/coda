@@ -51,7 +51,7 @@ class bitmap {
 
   public:
     void *operator new (size_t, int = 0);
-    void operator delete(void *, size_t);
+    void operator delete(void *);
     bitmap(int = 0, int = 0);
     ~bitmap();
     void Grow(int);		/* grow the index to a new size */

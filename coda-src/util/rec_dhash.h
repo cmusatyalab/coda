@@ -64,7 +64,7 @@ class rec_dhashtab {
 
   public:
     void *operator new (size_t);
-    void operator delete(void *, size_t);
+    void operator delete(void *);
 
     rec_dhashtab(int, RHFN, RCFN =0);
     rec_dhashtab(rec_dhashtab&);    // not supported!

@@ -55,7 +55,7 @@ class rec_ohashtab {
 
   public:
     void *operator new(size_t);
-    void operator delete(void *, size_t);
+    void operator delete(void *);
 
     rec_ohashtab(int, RHFN);
     rec_ohashtab(rec_ohashtab&);			// not supported! 

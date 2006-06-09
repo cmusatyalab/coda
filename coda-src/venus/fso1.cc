@@ -376,7 +376,7 @@ fsobj::~fsobj() {
     }
 }
 
-void fsobj::operator delete(void *deadobj, size_t len) {
+void fsobj::operator delete(void *deadobj) {
 
     LOG(10, ("fsobj::operator delete()\n"));
 

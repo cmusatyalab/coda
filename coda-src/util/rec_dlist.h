@@ -64,7 +64,7 @@ class rec_dlist {
 	
   public:
     void *operator new (size_t);
-    void operator delete(void *, size_t);
+    void operator delete(void *);
 
     rec_dlist(RCFN =0);
     ~rec_dlist();

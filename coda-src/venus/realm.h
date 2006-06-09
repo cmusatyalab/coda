@@ -38,7 +38,7 @@ public:
 	CODA_ASSERT(p);
 	return p;
     }
-    void operator delete(void *p, size_t size) { rvmlib_rec_free(p); } /*T*/
+    void operator delete(void *p) { rvmlib_rec_free(p); } /*T*/
 
     Realm(const RealmId id, const char *realm);	/*T*/
     ~Realm(void);		/*T*/

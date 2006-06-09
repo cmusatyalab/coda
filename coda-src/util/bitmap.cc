@@ -76,7 +76,7 @@ void *bitmap::operator new(size_t size, int recable) {
 }
 
 
-void bitmap::operator delete(void *deadobj, size_t size){
+void bitmap::operator delete(void *deadobj){
     /* Nothing to do; ~bitmap() has already done deallocation */
     }
 

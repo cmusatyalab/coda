@@ -68,7 +68,7 @@ class rec_bstree {
 
   public:
     void *operator new (size_t);
-    void operator delete(void *, size_t);
+    void operator delete(void *);
 
     rec_bstree(RBSTCFN);
     rec_bstree(rec_bstree&);				/* not supported! */
