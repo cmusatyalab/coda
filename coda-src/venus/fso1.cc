@@ -2452,11 +2452,13 @@ void fsobj::GetPath(char *buf, int scope)
 	}
 
 	if (IsVenusRoot()) {
+  	    LOG(100, ("fsobj::GetPath (%s): venusRoot.\n", FID_(&fid)));
 	    strcpy(buf, venusRoot);
 	    return;
 	}
 
 	if (!u.mtpoint) {
+  	    LOG(100, ("fsobj::GetPath (%s): Root, but no mountpoint found.\n", FID_(&fid)));
 	    strcpy(buf, "???");
 	    return;
 	}
@@ -2473,10 +2475,20 @@ void fsobj::GetPath(char *buf, int scope)
 	}
     }
 
-    if (pfso)
+    if (pfso) {
 	pfso->GetPath(buf, scope);
-    else
+    }
+    else {
+      if(fid.Volume == FakeRootVolumeId) {
+	LOG(0, ("fsobj::GetPath (%s): In the local realm without a parent. "
+		"Realm mountpoint?\n", FID_(&fid)));	
+	strcpy(buf, venusRoot);
+      }
+      else {
+	LOG(0, ("fsobj::GetPath (%s): Couldn't find parent.\n", FID_(&fid)));
 	strcpy(buf, "???");
+      }
+    }
 
     strcat(buf, "/");
     strcat(buf, comp);
@@ -2740,6 +2752,220 @@ void fsobj::ListCacheLong(FILE* fp)
   fflush(fp);
 }
 
+int fsobj::LaunchASR() {
+  int conflict_type, uid, rc, index;
+  char path[MAXPATHLEN], rootPath[MAXPATHLEN];
+  pid_t pid;
+  userent *ue;
+  vproc *vp;
+  SecretToken st;
+  ClearToken ct;
+  repvol *v;
+
+  vp = VprocSelf();
+  if(vp == NULL)
+    return -1;
+
+  uid = vp->u.u_uid;
+
+  v = (repvol *) vol;
+
+  /* Prepare args for launch. */
+
+  /* Conflict path is the first argument to ASRLauncher. */
+  GetPath(path, 1);
+
+  /* Volume root's path is the second argument to ASRLauncher. */
+  { 
+    VenusFid rootFid;
+    fsobj *root = NULL;
+
+    /* Prepare a fid identical to the root's to ->Find it without locking. */
+    rootFid.Realm = fid.Realm;
+    rootFid.Volume = fid.Volume;
+    rootFid.Vnode = 1;
+    rootFid.Unique = 1;
+    
+    root = FSDB->Find(&rootFid);
+    if(root == NULL) {
+      LOG(0, ("fsobj::LaunchASR: ASR's Volume Root not cached!\n"));
+      return -1;
+    }
+
+    root->GetPath(rootPath, 1);
+    LOG(0, ("fsobj::LaunchASR: ASR's Volume Root is: %s\n", rootPath));    
+  }
+
+  /* Conflict type (integer) is the third and final argument to ASRLauncher. */
+  /*
+   * 0 = None
+   * 1 = Server/Server
+   * 2 = Local/Global
+   * 3 = Both
+   */
+
+  conflict_type = IsFake() + (2 * IsToBeRepaired());
+
+
+  /* Obtain the user and his token's to assign them to the ASRLauncher uid. */
+
+  /* XXX - At the moment, this is root and is a serious security flaw. This
+   * should be changed as soon as Venus switches to user privileges. */
+
+  switch(conflict_type) {
+  case 1:
+    LOG(0, ("fsobj::LaunchASR: Server/Server conflict!\n"));
+    ue = v->realm->GetUser(uid);
+    CODA_ASSERT(ue != NULL);
+    break;
+  case 2:
+    {
+      uid_t uid_temp;
+      LOG(0, ("fsobj::LaunchASR: Local/Global conflict!\n"));
+      uid_temp = WhoIsLastAuthor();
+      CODA_ASSERT(uid_temp > 0);
+      ue = v->realm->GetUser(uid_temp);
+      CODA_ASSERT(ue != NULL);
+    }
+    break;
+  case 3:
+    {
+      uid_t uid_temp;
+      LOG(0, ("fsobj::LaunchASR: Mixed conflict!\n"));
+      uid_temp = WhoIsLastAuthor();
+      CODA_ASSERT(uid_temp > 0);
+      ue = v->realm->GetUser(uid_temp);
+      CODA_ASSERT(ue != NULL);
+    }
+    break;
+  default:
+    LOG(0, ("fsobj::LaunchASR: Unknown conflict type!\n"));    
+    return -1;
+  }
+
+
+  /* Find tokens associated with this user */
+
+  rc = ue->GetTokens(&st, &ct);
+  if(rc != 0) {
+    LOG(0, ("fsobj::LaunchASR: ASR cannot launch: No valid"
+	    " tokens exist for user: %d\n", uid));	    
+    return -1;
+  }	  
+
+  /* At this point, we have all of the information required to begin the
+   * launch sequence. */
+
+	  
+  /* Begin launch by locking other ASR's out of the volume under repair. */
+
+  v->lock_asr();  
+          
+	  
+  /* Store the ASRLauncher's pid in the ASRLauncher table, to give the
+   * SIGCHLD signal handler some information to work with later. */
+
+  for(index = 0; index < 10; index++)           /* Find ASRTable entry. */
+
+    /* Not exactly thread-safe, but rarely do ASR's run concurrently,
+     * and never within the same volume. */
+
+    if(ASRTable[index].pid == 0) {
+      ASRTable[index].pid = 1;
+      break;
+    }
+  
+
+  /* Abort if we cannot find an ASRTable entry ( > 10 ASR's running ) */
+
+  if(index >= 10) {
+    LOG(0, ("fsobj::LaunchASR: Maximum number of concurrent "
+	    "ASR's reached. Aborting.\n"));
+    v->unlock_asr();
+    return -1;
+  }
+
+
+  /* Tell the user what is in conflict, and what launcher is handling it. 
+   * Exposing this to the user is important because the volume locks. */
+
+  MarinerLog("ASRLauncher(%s) HANDLING %s\n", ASRLauncherFile, path);
+	  
+
+  /* Assign Coda tokens to Venus' uid. */
+
+  LOG(0, ("fsobj::LaunchASR: Assigning tokens from uid %d to uid %d\n",
+	  uid, getuid()));
+
+  v->realm->NewUserToken(getuid(), &st, &ct);
+
+
+  /* Fork child ASRLauncher and exec() the file in the ASRLaunchFile global. */
+
+  pid = fork();
+  if(pid == 0) {
+    char *arg[5];
+    char confstr[4];
+    
+    if(setpgrp() < 0) {
+      int error = errno;
+      LOG(0, ("fsobj::LaunchASR: (%s) ASRLauncher setpgrp() failed "
+	      "with code %d: %s\n", FID_(&fid), error, strerror(error)));
+      exit(0);
+    }
+    
+    LOG(0, ("fsdb::LaunchASR: (%s) repairing %s\n"
+	    "fsdb::LaunchASR: ASRLauncher's  pid = %d, pgid = %d\n",   
+	    ASRLauncherFile, path, getpid(), getpgrp()));
+
+    sprintf(confstr, "%d", conflict_type);
+
+    /* Set up argument array. */
+
+    arg[0] = ASRLauncherFile; /* extracted from venus.conf */
+    arg[1] = path;
+    arg[2] = rootPath;
+    arg[3] = confstr;
+    arg[4] = NULL;
+
+    LOG(0, ("fsdb::LaunchASR: Command: %s %s %s %s\n",
+	    ASRLauncherFile, path, rootPath, confstr));
+
+    if(execve(arg[0], arg, 0) < 0) {
+      int error = errno;
+      LOG(0, ("fsobj::LaunchASR: (%s) ASRLauncher exec() failed "
+	      "with code %d: %s\n", FID_(&fid), error, strerror(error)));
+    }
+
+    v->unlock_asr();
+    exit(0);
+  }
+  
+
+  /* Restrict access to this volume by process group id (the ASRLauncher's). */
+
+  v->asr_pgid(pid);
+  
+
+  /* Store more relevant information in our ASRLauncher table. */
+
+  ASRTable[index].pid = pid;
+  ASRTable[index].fid.Realm = fid.Realm;
+  ASRTable[index].fid.Volume = fid.Volume;
+  ASRTable[index].fid.Vnode = fid.Vnode;
+  ASRTable[index].fid.Unique = fid.Unique;
+  
+  LOG(0, ("fsobj::LaunchASR: Found ASRTable entry %d open, assigned "
+	  "pid %d to fid %s\n", index, pid, FID_(&ASRTable[index].fid)));
+
+  {
+    struct timeval tv;
+    gettimeofday(&tv, 0);
+    lastresolved = tv.tv_sec;
+  }
+  
+  return 0;
+}
 
 /* *****  Iterator  ***** */
 

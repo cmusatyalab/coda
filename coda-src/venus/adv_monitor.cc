@@ -143,6 +143,7 @@ void adv_monitor::ServerBandwidthEstimate(char *name, long bandwidth) {
 
 int adv_monitor::RequestASRInvokation(repvol *vol, char *pathname, uid_t uid)
 {
+#if 0
   long rc;
   RPC2_Integer ASRid;
   RPC2_Integer ASRrc;
@@ -164,6 +165,8 @@ int adv_monitor::RequestASRInvokation(repvol *vol, char *pathname, uid_t uid)
     vol->asr_id(ASRid); /* give ASR permission to mess with volume in conflict */
   }
   return(rc);
+#endif
+  return 0;
 }
 
 int adv_monitor::Spike(int cmd) {

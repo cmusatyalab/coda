@@ -177,6 +177,8 @@ unsigned int repvol::allocs = 0;
 unsigned int repvol::deallocs = 0;
 #endif
 
+#define ASR_UID 0 /* XXX: To be changed! */
+
 /* local-repair modification */
 void VolInit(void)
 {
@@ -900,7 +902,7 @@ volent::volent(Realm *r, VolumeId volid, const char *volname)
     flags.reserved = 0;
     flags.has_local_subtree = 0;
     flags.logv = 0;
-    lc_asr = -1;
+    pgid = 0;
 }
 
 
@@ -1113,6 +1115,7 @@ int volent::Enter(int mode, uid_t uid)
 		 */
 		if (IsReplicated()) {
                     repvol *rv = (repvol *)this;
+
 		    /* 
 		     * Claim ownership if the volume is free. 
 		     * The CML lock is used to prevent checkpointers and
@@ -1138,7 +1141,7 @@ int volent::Enter(int mode, uid_t uid)
 		    /* Continue using the volume if possible. */
 		    /* We might need to do something about fairness here
 		     * eventually! -JJK */
-		    if (rv->GetCML()->Owner() == uid) {
+		    if (rv->GetCML()->Owner()) {
                         if (mutator_count == 0 && rv->GetCML()->count() == 0 &&
                             !rv->IsReintegrating())
 			    { print(logFile); CHOKE("volent::Enter: mutating, CML owner == %d\n", rv->GetCML()->Owner()); }
@@ -1148,6 +1151,19 @@ int volent::Enter(int mode, uid_t uid)
 			ObtainReadLock(&rv->CML_lock);
 			return(0);
 		    }
+
+		    /*
+		     * Allow ASR's in regardless; they cannot be locked out or
+		     * the system will die in deadlock.
+		     */
+
+		    if (rv->asr_running() && uid == ASR_UID) {
+		      mutator_count++;
+		      shrd_count++;
+		      ObtainReadLock(&rv->CML_lock);
+		      return(0);
+		    }
+
 
 		    /* Wait until the volume becomes free again. */
 		    {

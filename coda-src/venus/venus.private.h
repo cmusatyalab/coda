@@ -366,8 +366,18 @@ extern int   allow_reattach;
 extern int   masquerade_port;
 extern int   PiggyValidations;
 extern int   T1Interval;
+extern char *ASRLauncherFile;
 
 /* spool.cc */
 extern void MakeUserSpoolDir(char *, uid_t);
+
+/* internal table for keeping track of ASRLaunches */
+
+struct ASRLaunch {
+  int pid;
+  VenusFid fid;
+};
+
+extern ASRLaunch *ASRTable;
 
 #endif /* _VENUS_PRIVATE_H_ */

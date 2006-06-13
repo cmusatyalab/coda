@@ -562,6 +562,11 @@ class fsobj {
     void DemoteLock();
     void UnLock(LockLevel);
 
+    /* Local-global conflict detection */
+    int IsToBeRepaired(void);
+    uid_t WhoIsLastAuthor(void);
+    int LaunchASR(void);
+
     /* Interface to the dir package. */
     void dir_Create(const char *, VenusFid *);
     int dir_Length();

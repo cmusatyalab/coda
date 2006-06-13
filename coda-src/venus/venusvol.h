@@ -543,9 +543,11 @@ struct VolFlags {
 /*  */unsigned unused1 : 2;
 /*RT*/unsigned sync_reintegrate : 1; /* perform reintegration synchronously*/
 /*  */unsigned unused2 : 2;
-/*V */unsigned readonly : 1;    /* is this a readonly (backup) volume replica */
+/*V */unsigned readonly : 1;   /* is this a readonly (backup) volume replica */
+/*RT*/unsigned enable_asrinvocation : 1; /* asr's enabled in this volume */
 /*VT*/unsigned available : 1;   /* is the server for this volume online? */
-      unsigned reserved : 13;
+
+      unsigned reserved : 12;
 };
 
 
@@ -612,7 +614,7 @@ class volent {
     /*T*/short observer_count;
     /*T*/short resolver_count;
     /*T*/short shrd_count;		/* for volume pgid locking */
-    /*T*/int lc_asr;            /* last/current ASR run for this volume */
+    /*T*/int pgid;  /* pgid of ASRLauncher and children (0 if none) */
 
     void operator delete(void *);
     volent(Realm *r, VolumeId vid, const char *name);
@@ -899,14 +901,17 @@ class repvol : public volent {
     int ValidateFSOs();
 
     /* ASR routines */
+    int AllowASR(uid_t);
+    int DisallowASR(uid_t);
     int EnableASR(uid_t);
     int DisableASR(uid_t);
     int IsASRAllowed() { return flags.allow_asrinvocation; }
+    int IsASREnabled() { return flags.enable_asrinvocation; }
     void lock_asr();
     void unlock_asr();
     int asr_running() { return flags.asr_running; }
-    void asr_id(int);
-    int asr_id() { return lc_asr; }
+    void asr_pgid(pid_t new_pgid);
+    pid_t asr_pgid() { return pgid; }
 
     /* Repair routines */
     int IsUnderRepair(uid_t);

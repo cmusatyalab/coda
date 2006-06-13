@@ -916,7 +916,7 @@ OI_FreeLocks:
 
 		    break;
 		    }
-   	        case _VIOC_ENDML:
+		case _VIOC_ENDML:
 		    {
 		    /* 
 		     * Stop logging mutations to this volume, and
@@ -930,23 +930,23 @@ OI_FreeLocks:
 			       v->GetName(), ((repvol *)v)->GetCML()->count());
 		    break;
 		    }
-	      case _VIOC_ENABLEASR:
+		case _VIOC_ENABLEASR:
 		    {			
                         u.u_error = EOPNOTSUPP;
                         if (v->IsReplicated())
-                            u.u_error = ((repvol *)v)->EnableASR(u.u_uid);
+                            u.u_error = ((repvol *)v)->AllowASR(u.u_uid);
 			break;
 		    }
-	      case _VIOC_DISABLEASR:
+		case _VIOC_DISABLEASR:
 		    {
                         u.u_error = EOPNOTSUPP;
                         if (v->IsReplicated())
-                            u.u_error = ((repvol *)v)->DisableASR(u.u_uid);
+                            u.u_error = ((repvol *)v)->DisallowASR(u.u_uid);
 			break;
 		    }
 
-	      case _VIOC_SYNCCACHE:
-              {
+		case _VIOC_SYNCCACHE:
+			{
                   u.u_error = EOPNOTSUPP;
                   if (v->IsReplicated()) {
 		      v->Exit(volmode, u.u_uid);
@@ -956,22 +956,22 @@ OI_FreeLocks:
 		  break;
               }
 
-	      case _VIOC_REDIR:
+		case _VIOC_REDIR:
 	      {
-		  struct in_addr staging_server;
-		  if (data->in_size != (int)sizeof(struct in_addr)) {
+			struct in_addr staging_server;
+			if (data->in_size != (int)sizeof(struct in_addr)) {
 		      u.u_error = EINVAL; break;
-		  }
-		  if (!v->IsReplicated()) {
+			}
+			if (!v->IsReplicated()) {
 		      u.u_error = EINVAL; break;
-		  }
-
-		  staging_server = *(struct in_addr *)data->in;
-		  ((repvol *)v)->SetStagingServer(&staging_server);
-		  break;
+			}
+			
+			staging_server = *(struct in_addr *)data->in;
+			((repvol *)v)->SetStagingServer(&staging_server);
+			break;
 	      }
 	    }
-
+		
 V_FreeLocks:
 	    if (entered) v->Exit(volmode, u.u_uid);
  	    float elapsed = 0.0;
@@ -980,11 +980,11 @@ V_FreeLocks:
 	    gettimeofday(&u.u_tv2, 0);
 	    elapsed = SubTimes(&(u.u_tv2), &(u.u_tv1));
 #endif
-
+		
 	    VDB->Put(&v);
 	    }
 	    if (u.u_error == ERETRY)
-		u.u_error = EWOULDBLOCK;
+		  u.u_error = EWOULDBLOCK;
 	    return;
 
 	/* FS-based. */

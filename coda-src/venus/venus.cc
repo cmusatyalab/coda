@@ -95,10 +95,11 @@ char *SpoolDir;
 char *VenusPidFile;
 char *VenusControlFile;
 char *VenusLogFile;
+char *ASRLauncherFile;
 char *MarinerSocketPath;
 int masquerade_port;
 int PiggyValidations;
-
+struct ASRLaunch *ASRTable;
 
 #if defined(HAVE_SYS_UN_H) && !defined(__CYGWIN32__)
 int mariner_tcp_enable = 0;
@@ -168,6 +169,8 @@ int main(int argc, char **argv)
     }
     V_UID = getuid();
 #endif    
+
+    ASRTable = (ASRLaunch *)malloc(10 * sizeof(struct ASRLaunch));
 
     /* test mismatch with kernel before doing real work */
     testKernDevice();
@@ -256,6 +259,9 @@ int main(int argc, char **argv)
     VFSUnmount();
     fflush(logFile);
     fflush(stderr);
+
+    if(ASRTable)
+      free(ASRTable);
 
     MarinerLog("shutdown in progress\n");
 
@@ -580,6 +586,8 @@ static void DefaultCmdlineParms()
 	    strcat(VenusControlFile, CTRLFILE);
 	}
     }
+
+    CODACONF_STR(ASRLauncherFile, "asrlauncher_path", NULL);
 
     CODACONF_INT(PiggyValidations, "validateattrs", 21);
     {

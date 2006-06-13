@@ -258,6 +258,7 @@ long S_HoardCommands(RPC2_Handle _cid, RPC2_Integer userId, RPC2_Integer numComm
 }
 
 long S_ResultOfASR(RPC2_Handle _cid, RPC2_Integer realm, VolumeId volume, RPC2_Integer ASRid, RPC2_Integer result) {
+#if 0
   volent *vol = NULL;
 
   LOG(0, ("ResultOfASR: VID = %x.%x, ASRid = %d, result = %d\n",
@@ -284,6 +285,8 @@ long S_ResultOfASR(RPC2_Handle _cid, RPC2_Integer realm, VolumeId volume, RPC2_I
   /* unlock the volume */
   vp->unlock_asr();
   vol->release();
+
+#endif
 
   return RPC2_SUCCESS;
 }

@@ -33,6 +33,7 @@ extern "C" {
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <errno.h>
 #include <signal.h>
 #include <unistd.h>
@@ -46,7 +47,9 @@ extern "C" {
 #include "sighand.h"
 #include "venus.private.h"
 #include "venusrecov.h"
+#include "venusvol.h"
 #include "worker.h"
+#include "fso.h"
 #include "adv_monitor.h"
 #include "adv_daemon.h"
 #include "codaconf.h"
@@ -56,12 +59,14 @@ static void SigControl(int);
 static void SigChoke(int);
 static void SigExit(int);
 static void SigMounted(int);
+static void SigASR(int);
 
 int TerminateVenus;
 int mount_done;
 
 void SigInit(void)
 {
+  int i;
     /* Establish/Join our own process group to avoid extraneous signals. */
 #ifndef DJGPP
   if (setpgid(0, 0) < 0)
@@ -78,9 +83,6 @@ void SigInit(void)
     sigaction(SIGPIPE, &sa, NULL);
 #ifdef SIGIO
     sigaction(SIGIO, &sa, NULL);
-#endif
-#ifdef SIGCHLD
-    sigaction(SIGCHLD, &sa, NULL);
 #endif
 #ifdef SIGTSTP
     sigaction(SIGTSTP, &sa, NULL);
@@ -147,6 +149,13 @@ void SigInit(void)
      * SIGIOT  == SIGABRT
      * SIGPOLL == SIGIO
      */
+
+    sa.sa_handler = SigASR;
+#ifdef SIGCHLD
+    sigaction(SIGCHLD, &sa, NULL);
+    for(i = 0; i < 10; i++)
+      ASRTable[i].pid = 0; 
+#endif
 }
 
 static void SigControl(int sig)
@@ -273,3 +282,82 @@ static void SigMounted(int sig)
     gogogo(parent_fd);
 }
 
+int GetASRTableIndex(int pid) {
+  int i;
+  for(i=0; i<10; i++)
+    if(ASRTable[i].pid == pid)
+      break;
+
+  if(i == 10)
+    LOG(0, ("GetASRTableIndex: No match for ASRLauncher pid lookup (%d)\n",
+	    pid));
+  return i;
+}
+
+static void SigASR(int sig)
+{
+  int pid, child_pid, status, options, index;
+  fsobj *f = NULL;
+  repvol *v;
+  char path[MAXPATHLEN];
+
+  /* Beyond Venus initialization, the only forking occurring within Venus
+   * is a result of ASRLauncher invocation. Thus, every SIGCHLD received is
+   * an ASRLauncher completing execution, and the status is the return code
+   * of success or failure of the repair. */
+
+  pid = getpid();
+  status = options = 0;
+
+  for(index = 0; index < 10; index++) {
+    if(ASRTable[index].pid <= 0)
+      continue;
+    
+    child_pid = waitpid(ASRTable[index].pid, &status, WNOHANG);
+    if(child_pid == ASRTable[index].pid) {
+      LOG(0, ("Signal Handler(ASR): Caught ASRLauncher (%d) with status %d\n", 
+	      child_pid, status));
+      break;
+    }
+  }
+
+  if(index == 10) {
+    LOG(0, ("Signal Handler(ASR): Failed to find ASRLauncher zombie\n"));
+    return;             /* If there are no documented ASR's running, this
+			 * could be the VFSMount double-fork middle child. */
+  }
+
+
+  /* Blueprint:
+   * Find object under resolution.
+   *   Do we need a table to keep track of these? We allow one ASR per volume.
+   * 
+   * Mark object as not-in-conflict regardless. This flushes attributes.
+   *
+   * Unlock volume for regular operation.
+   */
+
+  f = FSDB->Find(&ASRTable[index].fid);
+  CODA_ASSERT(f);
+
+  f->GetPath(path);
+
+  /* Mark conflict as repaired regardless of result */
+  LOG(0, ("Signal Handler(ASR): Unmarking conflict on %s\n", path));
+
+  v = (repvol *)VDB->Find(MakeVolid(&ASRTable[index].fid)); 
+    /* must be replicated to be here, not an issue */
+
+  /* Clear out table entry */
+  ASRTable[index].pid = 0;
+
+  /* Unassign Tokens */
+  /* TODO*/
+
+  /* Unlock volume */
+  LOG(0, ("Signal Handler(ASR): Unlocking volume (%s)\n", path));
+  v->asr_pgid(0);  /* default value */
+  v->unlock_asr();
+
+  LOG(0, ("Signal Handler(ASR): Signal handling complete. (%s)\n", path));
+}

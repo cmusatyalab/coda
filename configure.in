@@ -181,6 +181,7 @@ coda-src/update/Makefile
 coda-src/norton/Makefile
 coda-src/asr/Makefile
 coda-src/egasr/Makefile
+coda-src/asrlauncher/Makefile
 coda-src/vcodacon/Makefile
 utils-src/Makefile
 utils-src/potemkin/Makefile

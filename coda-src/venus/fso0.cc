@@ -39,6 +39,7 @@ extern "C" {
 #include <sys/stat.h>
 #include <struct.h>
 #include <sys/param.h>
+#include <sys/wait.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <dirent.h>
@@ -70,6 +71,7 @@ int CacheFiles = 0;
 int FSO_SWT = UNSET_SWT;
 int FSO_MWT = UNSET_MWT;
 int FSO_SSF = UNSET_SSF;
+
 
 /* Call with CacheDir the current directory. */
 void FSOInit() {
@@ -496,45 +498,44 @@ fsobj *fsdb::Create(VenusFid *key, int priority, char *comp)
 int fsdb::Get(fsobj **f_addr, VenusFid *key, uid_t uid, int rights,
 	      char *comp, int *rcode, int GetInconsistent)
 {
-    int getdata = (rights & RC_DATA);
-
-    LOG(100, ("fsdb::Get-mre: key = (%s), uid = %d, rights = %d, comp = %s\n",
-	       FID_(key), uid, rights, comp));
-
-    { 	/* a special check for accessing already localized object */
+  int getdata = (rights & RC_DATA);
+  
+  LOG(100, ("fsdb::Get-mre: key = (%s), uid = %d, rights = %d, comp = %s\n",
+			FID_(key), uid, rights, comp));
+  
+  { 	/* a special check for accessing already localized object */
 	volent *vol = VDB->Find(MakeVolid(key));
 	if (vol && vol->IsReplicated()) {
-	    repvol *vp = (repvol *)vol;
-	    if (!vp->IsUnderRepair(ANYUSER_UID) && vp->HasLocalSubtree()) {
+	  repvol *vp = (repvol *)vol;
+	  if (!vp->IsUnderRepair(ANYUSER_UID) && vp->HasLocalSubtree()) {
 		lgm_iterator next(LRDB->local_global_map);
 		lgment *lgm;
 		VenusFid *gfid;
 		while ((lgm = next())) {
-		    gfid = lgm->GetGlobalFid();
-		    if (FID_EQ(gfid, key)) {
+		  gfid = lgm->GetGlobalFid();
+		  if (FID_EQ(gfid, key)) {
 			LOG(0, ("fsdb::Get: trying to access localized object %s\n",
-				FID_(key)));
+					FID_(key)));
 			return EACCES;
-		    }
+		  }
 		}
-	    }
+	  }
 	}
 	VDB->Put(&vol);
-    }
-
-    int code = 0;
-    *f_addr = 0;				/* OUT parameter valid on success only. */
-    vproc *vp = VprocSelf();
-
-    /* if (vp->type != VPT_HDBDaemon)
-     *  NotifyUserOfProgramAccess(uid, vp->u.u_pid, vp->u.u_pgid, key); */
-
-    /* Volume state synchronization. */
-    /* If a thread is already "in" one volume, we must switch contexts before entering another. */
-    if (vp->u.u_vol && 
-	!(vp->u.u_vol->GetRealmId() == key->Realm &&
-	  vp->u.u_vol->GetVolumeId() == key->Volume))
-    {
+  }
+  
+  int code = 0;
+  *f_addr = 0;				/* OUT parameter valid on success only. */
+  vproc *vp = VprocSelf();
+  
+  /* if (vp->type != VPT_HDBDaemon)
+   *  NotifyUserOfProgramAccess(uid, vp->u.u_pid, vp->u.u_pgid, key); */
+  
+  /* Volume state synchronization. */
+  /* If a thread is already "in" one volume, we must switch contexts before entering another. */
+  if (vp->u.u_vol && 
+	  !(vp->u.u_vol->GetRealmId() == key->Realm &&
+		vp->u.u_vol->GetVolumeId() == key->Volume)) {
 	/* Preserve the user context. */
 	struct uarea saved_ctxt = vp->u;
 	vp->u.Init();
@@ -542,37 +543,37 @@ int fsdb::Get(fsobj **f_addr, VenusFid *key, uid_t uid, int rights,
 	vp->u.u_priority = saved_ctxt.u_priority;
 	vp->u.u_flags = saved_ctxt.u_flags;
 	vp->u.u_pid = saved_ctxt.u_pid;
-        vp->u.u_pgid = saved_ctxt.u_pgid;
-
+	vp->u.u_pgid = saved_ctxt.u_pgid;
+	
 	/* Do the Get on behalf of another volume. */
 	for (;;) {
-	    vp->Begin_VFS(MakeVolid(key), CODA_VGET);
-	    if (vp->u.u_error) break;
-
-	    vp->u.u_error = Get(f_addr, key, uid, rights, comp, rcode,
-				GetInconsistent);
-
-	    if (vp->u.u_error != 0)
+	  vp->Begin_VFS(MakeVolid(key), CODA_VGET);
+	  if (vp->u.u_error) break;
+	  
+	  vp->u.u_error = Get(f_addr, key, uid, rights, comp, rcode,
+						  GetInconsistent);
+	  
+	  if (vp->u.u_error != 0)
 		Put(f_addr);
-	    int retry_call = 0;
-	    vp->End_VFS(&retry_call);
-	    if (!retry_call) break;
+	  int retry_call = 0;
+	  vp->End_VFS(&retry_call);
+	  if (!retry_call) break;
 	}
 	code = vp->u.u_error;
-
+	
 	/* Restore the user context. */
 	vp->u = saved_ctxt;
-
+	
 	return(code);
-    }
-
-    fsobj *f = 0;
-    int	reference = (vp->u.u_flags & REFERENCE);
-
-    /* Find the fsobj, or create a fresh one. */
-RestartFind:
-    f = Find(key);
-    if (f == NULL) {
+  }
+  
+  fsobj *f = 0;
+  int	reference = (vp->u.u_flags & REFERENCE);
+  
+  /* Find the fsobj, or create a fresh one. */
+ RestartFind:
+  f = Find(key);
+  if (f == NULL) {
 	/* 
 	 * check if the key is a locally generated fid.  We should never send
 	 * these to the server.  This check is not to be confused with
@@ -580,140 +581,139 @@ RestartFind:
 	 * the object belongs to is the local volume.  yuck.  --lily
 	 */
 	if (FID_IsDisco(MakeViceFid(key))) {
-		LOG(0, ("fsdb::Get: Locally created fid %s not found!\n", 
-			FID_(key)));
-		return ETIMEDOUT;
+	  LOG(0, ("fsdb::Get: Locally created fid %s not found!\n", 
+			  FID_(key)));
+	  return ETIMEDOUT;
 	}
-
-        /* Must ensure that the volume is cached. */
-        volent *v = 0;
-        if (VDB->Get(&v, MakeVolid(key))) {
-            LOG(100, ("Volume not cached and we couldn't get it...\n"));
-            return(ETIMEDOUT);
-        }
-
+	
+	/* Must ensure that the volume is cached. */
+	volent *v = 0;
+	if (VDB->Get(&v, MakeVolid(key))) {
+	  LOG(100, ("Volume not cached and we couldn't get it...\n"));
+	  return(ETIMEDOUT);
+	}
+	
 	/* Retry the find, in case some other thread created the object while we blocked in vdb::Get(). */
 	if (Find(key)) {
-	    VDB->Put(&v);
-	    goto RestartFind;
+	  VDB->Put(&v);
+	  goto RestartFind;
 	}
-
-        if (v->state == Resolving) {
-            LOG(0, ("Volume resolving and file not cached, retrying VDB->Get!\n"));
-            VDB->Put(&v);
-	    return(ERETRY);
-        }
-
-        /* Cut-out early if volume is disconnected! */
-        if (v->state == Emulating) {
-            LOG(100, ("Volume disconnected and file not cached!\n"));
-            VDB->Put(&v);
-            return(ETIMEDOUT);
-        }
-
+	
+	if (v->state == Resolving) {
+	  LOG(0, ("Volume resolving and file not cached, retrying VDB->Get!\n"));
+	  VDB->Put(&v);
+	  return(ERETRY);
+	}
+	
+	/* Cut-out early if volume is disconnected! */
+	if (v->state == Emulating) {
+	  LOG(100, ("Volume disconnected and file not cached!\n"));
+	  VDB->Put(&v);
+	  return(ETIMEDOUT);
+	}
+	
 	/* Attempt the create. */
 	f = Create(key, vp->u.u_priority, comp);
-
+	
 	/* Release the volume. */
 	VDB->Put(&v);
-
+	
 	if (!f)
-	    return(ENOSPC);
-
+	  return(ENOSPC);
+	
 	/* Transform object into fake mtpt if necessary. */
 	if (FID_IsLocalFake(key) || FID_IsFakeRoot(MakeViceFid(key))) {
-	    if (f->Fakeify()) {
+	  if (f->Fakeify()) {
 		LOG(0, ("fsdb::Get: can't transform %s (%s) into fake mt pt\n",
-			f->GetComp(), FID_(&f->fid)));
+				f->GetComp(), FID_(&f->fid)));
 		Recov_BeginTrans();
 		f->Kill();
 		Recov_EndTrans(MAXFP);
 		Put(&f);  		 /* will unlock and garbage collect */
 		return(EIO);
-	    }
+	  }
 	}
 	f->DemoteLock();
-    }
-    else {
+  }
+  else {
 	/* Object without status must be matriculating now.  Wait for it to complete. */
 	int curr_matriculation_count = matriculation_count;
 	if (!HAVESTATUS(f)) {
-	    while (curr_matriculation_count == matriculation_count) {
+	  while (curr_matriculation_count == matriculation_count) {
 		LOG(0, ("WAITING(MATRICULATION): count = %d\n", matriculation_count));
 		START_TIMING();
 		VprocWait(&matriculation_sync);
 		END_TIMING();
 		LOG(0, ("WAIT OVER, elapsed = %3.1f\n", elapsed));
-	    }
-	    goto RestartFind;
+	  }
+	  goto RestartFind;
 	}
-
+	
 	/* Perform GC if necessary. */
 	if (GCABLE(f)) {
-	    Recov_BeginTrans();
-	    f->GC();
-	    Recov_EndTrans(MAXFP);
-	    goto RestartFind;
+	  Recov_BeginTrans();
+	  f->GC();
+	  Recov_EndTrans(MAXFP);
+	  goto RestartFind;
 	}
-
+	
 	/* Read-lock the entry. */
 	f->Lock(RD);
-
+	
 	/* Update component. */
 	if (comp && comp[0] != '\0' &&
-	    !STREQ(comp, ".") && !STREQ(comp, "..") && !STREQ(comp, f->comp))
-	{
-	    Recov_BeginTrans();
-	    f->SetComp(comp);
-	    Recov_EndTrans(MAXFP);
+		!STREQ(comp, ".") && !STREQ(comp, "..") && !STREQ(comp, f->comp)) {
+	  Recov_BeginTrans();
+	  f->SetComp(comp);
+	  Recov_EndTrans(MAXFP);
 	}
-    }
-
-    /* Consider fetching status and/or data. */
-    if (!f->IsLocalObj() &&
-	((!getdata && !STATUSVALID(f)) || (getdata && !DATAVALID(f)))) {
+  }
+  
+  /* Consider fetching status and/or data. */
+  if (!f->IsLocalObj() &&
+	  ((!getdata && !STATUSVALID(f)) || (getdata && !DATAVALID(f)))) {
 	/* Note that we CANNOT fetch, and must use whatever status/data we have, if : */
 	/*     - the file is being exec'ed (or the VM system refuses to release its pages) */
 	/*     - the file is open for write */
 	/*     - the object has been deleted (it must also be open for read at this point) */
 	/*     - the object's volume is disconnected */
- 	/*     - the object's volume is in logging mode and the object is dirty */
+	/*     - the object's volume is in logging mode and the object is dirty */
 	if (FETCHABLE(f)) {
-	    f->PromoteLock();
-
-	    /* Fetch status-only if we don't have any or if it is suspect. We
-	     * do this even if we want data and we don't have any so that we
-	     * ALWAYS know how many blocks to allocate when fetching data. */
-	    if (!STATUSVALID(f)) {
+	  f->PromoteLock();
+	  
+	  /* Fetch status-only if we don't have any or if it is suspect. We
+	   * do this even if we want data and we don't have any so that we
+	   * ALWAYS know how many blocks to allocate when fetching data. */
+	  if (!STATUSVALID(f)) {
 		code = f->GetAttr(uid);
-
+		
 		if (rcode) *rcode = code;	/* added for local-repair */
 		/* Conjure a fake directory to represent an inconsistent object. */
 		if (code == EINCONS) { 
-		    LOG(0, ("fsdb::Get: Object inconsistent. (key = <%s>)\n", 
-			    FID_(key)));
+		  LOG(0, ("fsdb::Get: Object inconsistent. (key = <%s>)\n", 
+				  FID_(key)));
 #if 0
-		    userent *u;
-		    char path[MAXPATHLEN];
-		    
-		    f->GetPath(path,1);
-		    GetUser(&u, f->vol->realm, uid);
-		    CODA_ASSERT(u != NULL);
-		    PutUser(&u);
-
-		    /* We notify all users that objects are in conflict because
-		     * it is often the case that uid=-1, so we notify nobody.
-		     * It'd be better if we could notify the user whose
-		     * activities triggered this object to go inconsistent.
-		     * However, that person is difficult to determine and could
-		     * be the hoard daemon.  Notifying everyone seems to be a
-		     * reasonable alternative, if not terribly satisfying. */
-		    /* NotifyUsersObjectInConflict(path, key); */
+		  userent *u;
+		  char path[MAXPATHLEN];
+		  
+		  f->GetPath(path,1);
+		  GetUser(&u, f->vol->realm, uid);
+		  CODA_ASSERT(u != NULL);
+		  PutUser(&u);
+		  
+		  /* We notify all users that objects are in conflict because
+		   * it is often the case that uid=-1, so we notify nobody.
+		   * It'd be better if we could notify the user whose
+		   * activities triggered this object to go inconsistent.
+		   * However, that person is difficult to determine and could
+		   * be the hoard daemon.  Notifying everyone seems to be a
+		   * reasonable alternative, if not terribly satisfying. */
+		  /* NotifyUsersOb`jectInConflict(path, key); */
 #endif
-
-		    k_Purge(&f->fid, 1);
-                    if (f->refcnt > 1) {
-		        /* If refcnt is greater than 1, it means we aren't the
+		  
+		  k_Purge(&f->fid, 1);
+		  if (f->refcnt > 1) {
+			/* If refcnt is greater than 1, it means we aren't the
 			 * only one with an active reference to this object.
 			 * If this is the case, then the following Put cannot
 			 * possibly clear all the references to this file.  If
@@ -726,257 +726,276 @@ RestartFind:
 			Put(&f);
 			LOG(0, ("fsdb::Get: Object with active reference has gone inconsistent.\n\t Cannot conjure fake directory until object is inactive. (key =  <%s>)\n", FID_(key)));
 			return(ETOOMANYREFS);
-		    }
-
-		    Put(&f);
-		    code = 0;
-
-		    /* Attempt the create. */
-                    /* N.B. The volume should be explicitly pinned here! 
-                          XXX mre 10/21/94 The volume is pinned prior to fsdb::Get call */
-		    /* N.B. If preceding PUT didn't clear all references,
-		       and if the refcnt test above didn't catch that
-		       the Put wouldn't, we're hosed!  We'll most likely
-		       get a "Create: key found" fatal error. */
-		    f = Create(key, vp->u.u_priority, comp);
-		    if (!f)
+		  }
+		  
+		  Put(&f);
+		  code = 0;
+		  
+		  /* Attempt the create. */
+		  /* N.B. The volume should be explicitly pinned here! 
+			 XXX mre 10/21/94 The volume is pinned prior to fsdb::Get call */
+		  /* N.B. If preceding PUT didn't clear all references,
+			 and if the refcnt test above didn't catch that
+			 the Put wouldn't, we're hosed!  We'll most likely
+			 get a "Create: key found" fatal error. */
+		  f = Create(key, vp->u.u_priority, comp);
+		  if (!f)
 			return(ENOSPC);
-
-		    /* 
-		     * Transform object into fake directory.  If that doesn't
-		     * work, return EIO...NOT EINCONS, which will get passed
-		     * back to the user as ENOENT (too alarming).  We must kill
-		     * the object here, otherwise Venus will think it is
-		     * "matriculating" and wait (forever) for it to finish.
-		     */
-		    eprint("%s (%s) inconsistent!", f->GetComp(), FID_(&f->fid));
-		    if (f->Fakeify()) {
+		  
+		  /* 
+		   * Transform object into fake directory.  If that doesn't
+		   * work, return EIO...NOT EINCONS, which will get passed
+		   * back to the user as ENOENT (too alarming).  We must kill
+		   * the object here, otherwise Venus will think it is
+		   * "matriculating" and wait (forever) for it to finish.
+		   */
+		  eprint("%s (%s) inconsistent!", f->GetComp(), FID_(&f->fid));
+		  if (f->Fakeify()) {
 			Recov_BeginTrans();
 			f->Kill();
 			Recov_EndTrans(MAXFP);
 			Put(&f);
 			return(EIO);
-		    }
+		  }
 		}
-
+		
 		if (code != 0) {
-                    if (code == ETIMEDOUT)
-                      LOG(100, ("(MARIA) Code is TIMEDOUT after GetAttr...\n"));
-
-		    Put(&f);
-		    return(code);
+		  /* Mark fsobj in server/server conflict */
+		  if (code == EINCONS) { 
+			char path[MAXPATHLEN];
+		    
+			f->GetPath(path, PATH_FULL);
+			LOG(0, ("fsdb::Get: %s (%s) in server/server conflict\n", path, FID_(key)));
+			MarinerLog("fsobj::CONFLICT (server/server): %s (%s)\n", path, FID_(key));
+		    
+			/* Clear return code so that an ASR might be invoked. */
+			code = 0;
+		  }
+		  /* s/s conflict objs fall through if(GetInconsistent) */
+		  if (code && !(code == EINCONS && GetInconsistent)) {
+			if (code == EINCONS)
+			  LOG(100, ("fsdb::Get: EINCONS after GetAttr\n"));
+			if (code == ETIMEDOUT)
+			  LOG(100, ("(MARIA) Code is TIMEDOUT after GetAttr...\n"));
+			
+			Put(&f);
+			return(code);
+		  }
 		}
-	   } 
-
-	    /* If we want data and we don't have any then fetch new stuff. */
-	    /* we have to re-check FETCHABLE because it may have changed as
-	       a result of the inconsistent object manipulation above. */
-	    if (getdata && FETCHABLE(f) && !HAVEALLDATA(f)) {
-                /* Turn off advice effects for the time being  -Remi 
-                   CacheMissAdvice advice = CoerceToMiss; */
-                CacheMissAdvice advice = FetchFromServers;
-
-                if (f->vol->IsWeaklyConnected()) {
-                    char pathname[MAXPATHLEN];
-                    int hoard_priority = 0;
-
-                    if (f->HoardPri > 0)
-                        hoard_priority = f->HoardPri;
-                    else {
+	  }
+	  /* If we want data and we don't have any then fetch new stuff. */
+	  /* we have to re-check FETCHABLE because it may have changed as
+		 a result of the inconsistent object manipulation above. */
+	  if (getdata && FETCHABLE(f) && !HAVEALLDATA(f)) {
+		/* Turn off advice effects for the time being  -Remi 
+		   CacheMissAdvice advice = CoerceToMiss; */
+		CacheMissAdvice advice = FetchFromServers;
+		
+		if (f->vol->IsWeaklyConnected()) {
+		  char pathname[MAXPATHLEN];
+		  int hoard_priority = 0;
+		  
+		  if (f->HoardPri > 0)
+			hoard_priority = f->HoardPri;
+		  else {
 			f->GetPath(pathname);
-                        hoard_priority = HDB->GetSuspectPriority(MakeVolid(&f->fid), pathname, uid);
-		    }
-
-                    int estimatedCost = f->EstimatedFetchCost();
-                    /* If the fetch will take too long, coerce the request into a miss */
-                    if (f->PredetermineFetchState(estimatedCost, hoard_priority) != 1) {
-                        advice = f->WeaklyConnectedCacheMiss(vp, uid);
-                        if (advice == CoerceToMiss) {
-                            Put(&f);
-                            LOG(0, ("Weak Miss Coersion:\n\tObject:  %s <%s>\n\tEstimated Fetch Cost:  %d seconds\n\tReturn code:  EFBIG\n", 
-                                    comp, FID_(key), estimatedCost));
-                            MarinerLog("Weak Miss Coersion on %s <%s>\n",
-                                       comp, FID_(key));
-                            return(EFBIG);
-                        }
-                    }
-                    /* Otherwise, let fsdb::Get go ahead and fetch the object */
-                }
-
-                int nblocks = BLOCKS(f);
-
-                /* If we haven't got any data yet, allocate enough for the
-                 * whole file. When we have a partial file, we should
-                 * already have reserved enough blocks. */
-                if (f->IsFile() && !HAVEDATA(f)) {
-                    code = AllocBlocks(vp->u.u_priority, nblocks);
-                    if (code != 0) {
-                        Put(&f);
-                        return(code);
-                    }
-                }
-
-                /* Make cache misses non-transparent. */
-                if (advice == CoerceToMiss)
-                    advice = f->ReadDisconnectedCacheMiss(vp, uid);
-                switch (advice) {
-                case FetchFromServers:
-                    LOG(10, ("The advice was to ReadDiscFetch --> Fetching.\n"));
-                    break;
-                case CoerceToMiss:
-                    LOG(0, ("Read Disconnected Miss Coersion:\n\tObject:  %s <%s>\n\tReturn code:  EFBIG\n", 
-                            comp, FID_(key)));
-                    MarinerLog("Read Disconnected Miss Coersion on %s <%s>\n",
-                               comp, FID_(key));
-                    /* We have to release any previously allocated
-                     * cachespace */
-                    FreeBlocks(-nblocks);
-                    Put(&f);
-                    return(ETIMEDOUT);
-                default:
-                    LOG(0, ("The advice was Unrecognized --> Fetching anyway.\n"));
-                    break;
-                }
-
-                /* compensate # blocks for the amount we already have.
-                 * (only used for vmon statistical stuff later on, but
-                 * the fetch will modify f->cf.ValidData) */
-                nblocks -= NBLOCKS(f->cf.ValidData());
-
+			hoard_priority = HDB->GetSuspectPriority(MakeVolid(&f->fid), pathname, uid);
+		  }
+		  
+		  int estimatedCost = f->EstimatedFetchCost();
+		  /* If the fetch will take too long, coerce the request into a miss */
+		  if (f->PredetermineFetchState(estimatedCost, hoard_priority) != 1) {
+			advice = f->WeaklyConnectedCacheMiss(vp, uid);
+			if (advice == CoerceToMiss) {
+			  Put(&f);
+			  LOG(0, ("Weak Miss Coersion:\n\tObject:  %s <%s>\n\tEstimated Fetch Cost:  %d seconds\n\tReturn code:  EFBIG\n", 
+					  comp, FID_(key), estimatedCost));
+			  MarinerLog("Weak Miss Coersion on %s <%s>\n",
+						 comp, FID_(key));
+			  return(EFBIG);
+			}
+		  }
+		  /* Otherwise, let fsdb::Get go ahead and fetch the object */
+		}
+		
+		int nblocks = BLOCKS(f);
+		
+		/* If we haven't got any data yet, allocate enough for the
+		 * whole file. When we have a partial file, we should
+		 * already have reserved enough blocks. */
+		if (f->IsFile() && !HAVEDATA(f)) {
+		  code = AllocBlocks(vp->u.u_priority, nblocks);
+		  if (code != 0) {
+			Put(&f);
+			return(code);
+		  }
+		}
+		
+		/* Make cache misses non-transparent. */
+		if (advice == CoerceToMiss)
+		  advice = f->ReadDisconnectedCacheMiss(vp, uid);
+		switch (advice) {
+		case FetchFromServers:
+		  LOG(10, ("The advice was to ReadDiscFetch --> Fetching.\n"));
+		  break;
+		case CoerceToMiss:
+		  LOG(0, ("Read Disconnected Miss Coersion:\n\tObject:  %s <%s>\n\tReturn code:  EFBIG\n", 
+				  comp, FID_(key)));
+		  MarinerLog("Read Disconnected Miss Coersion on %s <%s>\n",
+					 comp, FID_(key));
+		  /* We have to release any previously allocated
+		   * cachespace */
+		  FreeBlocks(-nblocks);
+		  Put(&f);
+		  return(ETIMEDOUT);
+		default:
+		  LOG(0, ("The advice was Unrecognized --> Fetching anyway.\n"));
+		  break;
+		}
+		
+		/* compensate # blocks for the amount we already have.
+		 * (only used for vmon statistical stuff later on, but
+		 * the fetch will modify f->cf.ValidData) */
+		nblocks -= NBLOCKS(f->cf.ValidData());
+		
 		code = 0;
 		/* first try the LookAside cache */
 		if (!f->LookAside()) {
-		    /* Let fsobj::Fetch go ahead and fetch the object */
-		    code = f->Fetch(uid);
+		  /* Let fsobj::Fetch go ahead and fetch the object */
+		  code = f->Fetch(uid);
 		}
-
-                /* Restart operation in case of inconsistency. */
-                if (code == EINCONS)
-                    code = ERETRY;
-
-                if (code != 0) {
-                    Put(&f);
-                    return(code);
-                }
-	    }
-
-	    f->DemoteLock();
+		
+		/* Restart operation in case of inconsistency. */
+		if (code == EINCONS)
+		  code = ERETRY;
+		
+		if (code != 0) {
+		  Put(&f);
+		  return(code);
+		}
+	  }
+	  
+	  f->DemoteLock();
 	} else {	/* !FETCHABLE(f) */
-            if (!HOARDING(f) && !LOGGING(f) && !EMULATING(f)) /* = Resolving */
-            {
-                LOG(100, ("(MARIA) TIMEOUT after something...\n"));
-                Put(&f);
-                return(ETIMEDOUT);
-	    }
-
-            if (!HAVESTATUS(f)) {
-                Put(&f);
-                return(ETIMEDOUT);
-            }
-
-            /*
-             * Unfortunately, trying to limit access to stale STATUS
-             * won't work because in order to gracefully recover from
-             * the active reference to a now inconsistent object, we
-             * have to be able to close the object.  In order to close
-             * the object, we have to be able to get the STATUS of the
-             * object...  I guess we allow full access to the stale
-             * STATUS, but log that we did so.
-             *
-             *   if (DYING(f)) {
-             *     LOG(0, ("Active reference prevents refetching object!  Providing limited access to stale status!\n"));
-             *     *f_addr = f;
-             *     Put(&f);
-             *     return(ETOOMANYREFS);
-             *   }
-             */
-            if (DYING(f)) 
-                LOG(0, ("Active reference prevents refetching object! "
-                        "Allowing access to stale status! (key = <%s>)\n",
-                        FID_(key)));
-
-            else if (!STATUSVALID(f))
-                LOG(0, ("Allowing access to stale status! (key = <%s>)\n",
-			FID_(key)));
-
-            if (getdata) {
-                if (DYING(f)) { 
-                    LOG(0, ("Active reference prevents refetching object! "
-			    "Disallowing access to stale data! (key = <%s>)\n",
-			    FID_(key)));
-                    Put(&f);
-                    return(ETOOMANYREFS);
-                } 
-
-                if (!HAVEALLDATA(f)) {
-		    int found;
-
-		    /* try the lookaside cache */
-		    f->PromoteLock();
-		    found = f->LookAside();
-		    f->DemoteLock();
-
-		    if (!found) {
+	  if (!HOARDING(f) && !LOGGING(f) && !EMULATING(f)) /* = Resolving */
+		{
+		  LOG(100, ("(MARIA) TIMEOUT after something...\n"));
+		  Put(&f);
+		  return(ETIMEDOUT);
+		}
+	  
+	  if (!HAVESTATUS(f)) {
+		Put(&f);
+		return(ETIMEDOUT);
+	  }
+	  
+	  /*
+	   * Unfortunately, trying to limit access to stale STATUS
+	   * won't work because in order to gracefully recover from
+	   * the active reference to a now inconsistent object, we
+	   * have to be able to close the object.  In order to close
+	   * the object, we have to be able to get the STATUS of the
+	   * object...  I guess we allow full access to the stale
+	   * STATUS, but log that we did so.
+	   *
+	   *   if (DYING(f)) {
+	   *     LOG(0, ("Active reference prevents refetching object!  Providing limited access to stale status!\n"));
+	   *     *f_addr = f;
+	   *     Put(&f);
+	   *     return(ETOOMANYREFS);
+	   *   }
+	   */
+	  if (DYING(f)) 
+		LOG(0, ("Active reference prevents refetching object! "
+				"Allowing access to stale status! (key = <%s>)\n",
+				FID_(key)));
+	  
+	  else if (!STATUSVALID(f))
+		LOG(0, ("Allowing access to stale status! (key = <%s>)\n",
+				FID_(key)));
+	  
+	  if (getdata) {
+		if (DYING(f)) { 
+		  LOG(0, ("Active reference prevents refetching object! "
+				  "Disallowing access to stale data! (key = <%s>)\n",
+				  FID_(key)));
+		  Put(&f);
+		  return(ETOOMANYREFS);
+		} 
+		
+		if (!HAVEALLDATA(f)) {
+		  int found;
+		  
+		  /* try the lookaside cache */
+		  f->PromoteLock();
+		  found = f->LookAside();
+		  f->DemoteLock();
+		  
+		  if (!found) {
 			Put(&f);
 			return(ETIMEDOUT);
-		    }
-                }
-
-                if (!DATAVALID(f))
-                    LOG(0, ("Allowing access to stale data! (key = <%s>)\n",
-			    FID_(key)));
-            }
+		  }
+		}
+		
+		if (!DATAVALID(f))
+		  LOG(0, ("Allowing access to stale data! (key = <%s>)\n",
+				  FID_(key)));
+	  }
 	}
-    }
-
-    /* Finalize handling of fake objects. */
-    if (!GetInconsistent && f->IsFake() && f->vol->IsReplicated() &&
-        !((repvol *)f->vol)->IsUnderRepair(uid))
-    {
-        repvol *v = (repvol *)f->vol;
-        LOG(1, ("(Puneet)fsdb::Get:Volume (%u) NOT under repair and IsFake(%s)\n",
-		uid, FID_(&f->fid)));
-        char path[MAXPATHLEN];
-        f->GetPath(path, 1);
-        LOG(1, ("(Maria, Puneet) After GetPath, path = %s\n", path));
-
-        /* object is inconsistent - try running the ASR */
-        /* check that ASR time interval has expired */
-#if 0
-        userent *u;
-        GetUser(&u, f->vol->realm, uid);
-#endif
-        struct timeval tv;
-        gettimeofday(&tv, 0);
-        int ASRInvokable = (SkkEnabled && ASRallowed && (vp->type == VPT_Worker) &&
-                            v->IsASRAllowed() && !v->asr_running() &&
-                            ((tv.tv_sec - f->lastresolved) > ASR_INTERVAL) &&
-			    !adv_mon.skkPgid(vp->u.u_pgid) && adv_mon.ConnValid());
-	if (v->asr_running() && vp->u.u_pgid != v->asr_id())
-	  code = EAGAIN; /* bounce out anything which tries to hold kernel locks while repairing */
-        else if (ASRInvokable && (!adv_mon.RequestASRInvokation(v, path, uid))) {
-                gettimeofday(&tv, 0);
-                f->lastresolved = tv.tv_sec;
-                code = ERETRY; /* tell application to retry so that kernel locks get released */
-		/* Actually, the application will get an EAGAIN when the retry bounces out */
+  }
+  
+  /* Examine the possibility of executing an ASR. */
+  if (!GetInconsistent && f->IsFake() && f->vol->IsReplicated()) {
+	int ASRInvokable;
+	repvol *v;
+	struct timeval tv;
+	
+	LOG(0, ("fsdb::Get:Volume (%u) NOT under repair and IsFake(%s)\n",
+			uid, FID_(&f->fid)));
+	
+	v = (repvol *)f->vol;
+	gettimeofday(&tv, 0);
+    
+	
+	/* Check that:
+	 * 1.) An ASRLauncher path was parsed in venus.conf.
+	 * 2.) This thread is a worker.
+	 * 3.) ASR's are allowed and enabled to execute within this volume.
+	 * 4.) An ASR is not currently running within this volume.
+	 * 5.) The timeout interval for ASR launching has expired. 
+	 */
+	
+	ASRInvokable = ((ASRLauncherFile != NULL) && (vp->type == VPT_Worker) &&
+					v->IsASRAllowed() && !v->asr_running() &&
+					((tv.tv_sec - f->lastresolved) > ASR_INTERVAL) &&
+					v->IsASREnabled());
+	
+	if(v->asr_running() && vp->u.u_pgid != v->asr_pgid())
+	  code = ERETRY;     /* Bounce out anything which tries to hold 
+						  * kernel locks while repairing. */
+	
+	else if (ASRInvokable) { /* Execute ASR. */
+	  if(f->LaunchASR() == 0 )
+		code = ERETRY;  /* wait a short duration and retry */
+	  else
+		code = EINCONS;
+	  LOG(0, ("fsdb::Get: ASR not invokable for %s\n", FID_(&f->fid)));
 	}
-	else code = (f->IsFakeDir() ? EINCONS : ERETRY);
-
-	LOG(1, ("fsdb::Get: returning %d\n", code));
-        Put(&f);
-        return(code);
-    }
-
-    /* Update priority. */
-    if (reference)
+	
+	LOG(0, ("fsdb::Get: returning %d\n", code));
+	Put(&f);
+	return(code);
+  }
+  
+  /* Update priority. */
+  if (reference)
 	f->Reference();
-    f->ComputePriority();
-
-    *f_addr = f;
-    return(0);
+  f->ComputePriority();
+  
+  *f_addr = f;
+  return(0);
 }
-
-
+  
 /* MUST NOT be called from within transaction! */
 void fsdb::Put(fsobj **f_addr) {
     if (!(*f_addr)) { LOG(100, ("fsdb::Put: Null FSO\n")); return; }
