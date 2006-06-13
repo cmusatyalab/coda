@@ -760,21 +760,22 @@ int fsdb::Get(fsobj **f_addr, VenusFid *key, uid_t uid, int rights,
 		}
 		
 		if (code != 0) {
-		  /* Mark fsobj in server/server conflict */
-		  if (code == EINCONS) { 
+
+		  if (code == EINCONS) { /* Servers do not contain consistent object.*/
 			char path[MAXPATHLEN];
-		    
+
 			f->GetPath(path, PATH_FULL);
-			LOG(0, ("fsdb::Get: %s (%s) in server/server conflict\n", path, FID_(key)));
-			MarinerLog("fsobj::CONFLICT (server/server): %s (%s)\n", path, FID_(key));
-		    
-			/* Clear return code so that an ASR might be invoked. */
-			code = 0;
+
+			LOG(0, ("fsdb::Get: %s (%s) in server/server conflict\n",
+					path, FID_(key)));
+			MarinerLog("fsobj::CONFLICT (server/server): %s (%s)\n",
+					   path, FID_(key));
+		 
+			if(GetInconsistent) /* Caller knows/doesn't care about conflict. */
+			  code = 0;
 		  }
-		  /* s/s conflict objs fall through if(GetInconsistent) */
-		  if (code && !(code == EINCONS && GetInconsistent)) {
-			if (code == EINCONS)
-			  LOG(100, ("fsdb::Get: EINCONS after GetAttr\n"));
+		  else {
+
 			if (code == ETIMEDOUT)
 			  LOG(100, ("(MARIA) Code is TIMEDOUT after GetAttr...\n"));
 			
@@ -945,10 +946,12 @@ int fsdb::Get(fsobj **f_addr, VenusFid *key, uid_t uid, int rights,
   }
   
   /* Examine the possibility of executing an ASR. */
-  if (!GetInconsistent && f->IsFake() && f->vol->IsReplicated()) {
+  if (!GetInconsistent && f->IsFake()) {
 	int ASRInvokable;
 	repvol *v;
 	struct timeval tv;
+
+	CODA_ASSERT(f->vol->IsReplicated());
 	
 	LOG(0, ("fsdb::Get:Volume (%u) NOT under repair and IsFake(%s)\n",
 			uid, FID_(&f->fid)));
@@ -969,17 +972,35 @@ int fsdb::Get(fsobj **f_addr, VenusFid *key, uid_t uid, int rights,
 					v->IsASRAllowed() && !v->asr_running() &&
 					((tv.tv_sec - f->lastresolved) > ASR_INTERVAL) &&
 					v->IsASREnabled());
+	if(ASRLauncherFile == NULL)
+	  LOG(0, ("fsdb::Get: ASRLauncherFile NULL\n"));
+	if(vp->type != VPT_Worker)
+	  LOG(0, ("fsdb::Get: Non-worker Thread\n"));
+	if(!v->IsASREnabled())
+	  LOG(0, ("fsdb::Get: ASRs disabled by the system at the moment \n"));
+	if(v->asr_running())
+	  LOG(0, ("fsdb::Get: ASR already running in this volume\n"));
+	if(((tv.tv_sec - f->lastresolved) <= ASR_INTERVAL))
+	  LOG(0, ("fsdb::Get: ASR executed too recently for this object\n"
+			  "fsdb::Get: New time: %d\tOld time: %d\tDiff:%d\n",
+			  tv.tv_sec, f->lastresolved, tv.tv_sec - f->lastresolved));
+	if(!v->IsASRAllowed())
+	  LOG(0, ("fsdb::Get: ASRs disabled in this volume by some user\n"));
 	
 	if(v->asr_running() && vp->u.u_pgid != v->asr_pgid())
 	  code = ERETRY;     /* Bounce out anything which tries to hold 
 						  * kernel locks while repairing. */
 	
 	else if (ASRInvokable) { /* Execute ASR. */
-	  if(f->LaunchASR() == 0 )
+	  LOG(0, ("fsdb::Get: Launching for (%s)... \n", FID_(&f->fid)));
+	  if(f->LaunchASR() == 0)
 		code = ERETRY;  /* wait a short duration and retry */
 	  else
 		code = EINCONS;
+	} 
+	else {
 	  LOG(0, ("fsdb::Get: ASR not invokable for %s\n", FID_(&f->fid)));
+	  code = EINCONS;
 	}
 	
 	LOG(0, ("fsdb::Get: returning %d\n", code));
