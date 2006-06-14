@@ -23,13 +23,14 @@ listed in the file CREDITS.
  *
  */
 
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <unistd.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 
 /* Definitions */
@@ -41,14 +42,13 @@ listed in the file CREDITS.
 
 #define MAXPATHLEN     256
 #define MAXCOMMANDLEN  1024
+#define MAXRULELEN     (30*1024)
 #define MAXNUMDPND     20
 #define MAXDPNDLEN     (MAXPATHLEN * MAXNUMDPND)
-#define MAXENVLEN      30  /* Max length of environment variable name */
-#define MAXPARMS       20
 
 /* Environment variable names */
 
-#define CONFLICT_FILENAME             '>' /* Puneet's original 3 vars */
+#define CONFLICT_BASENAME             '>' /* Puneet's original 3 vars */
 #define CONFLICT_WILDCARD             '*'
 #define CONFLICT_PARENT               '<'
 
@@ -66,20 +66,33 @@ listed in the file CREDITS.
 #define MIXED_CONFLICT      3
 #define MIXED_CONFLICT_STR "3"
 
+struct rule {
+  char name[MAXPATHLEN];
+  char dependencies[MAXDPNDLEN];
+  char *commands;
+};
 
-/* Global Variables */
+/* ASRLauncher-related Globals */
 
 int My_Pid;                 /* getpid() result. Only for logging purposes. */
+
+/* Conflict Information Globals */
 
 int Conflict_Type;          /* 0 = S/S, 1 = L/G, 2 = Mixed */
 char *Conflict_Path;        /* Full path to the conflict. */
 char Conflict_Parent[MAXPATHLEN]; /* Parent directory of conflict. */
-char *Conflict_Filename;    /* Just the filename to the conflict. */
+char *Conflict_Basename;    /* Just the filename to the conflict. */
 char *Conflict_Volume_Path; /* Full path to the conflict's volume's root. */
 char *Conflict_Wildcard;    /* Holds the part of the pathname that matched
 			     * an asterisk in a rule, for convenience.
 			     * Example: *.dvi matching foo.dvi puts "foo" in
 			     * this variable. */
+
+
+/* Lexical Scoping/Rule Parsing Globals */
+
+FILE *Rules_File;
+char *Rules_File_Path;
 
 /*
  * openRulesFile
@@ -89,6 +102,7 @@ char *Conflict_Wildcard;    /* Holds the part of the pathname that matched
  *
  * Returns the FILE handle or NULL on failure.
  */
+
 FILE* openRulesFile(char *conflict) {
   FILE *rules;
   char parentPath[MAXPATHLEN], *end;
@@ -119,138 +133,158 @@ FILE* openRulesFile(char *conflict) {
 int compareWithWilds(char *str, char *wildstr) {
   char *s, *w;
   int asterisk = 0;
-
-begin:
-   for (s = str, w = wildstr; *s != '\0'; s++, w++) {
-      switch (*w) {
-
-      case '?':
-	/* Skip one letter. */
-	break;
-	
-      case '*':
-	asterisk = 1;
-	str = s;
-	wildstr = w + 1;
-	
-	/* Skip multiple *'s */
-	while (*wildstr == '*')
-	  wildstr++;
-	
-	/* Ending on asterisk indicates success. */
-	if (*wildstr == '\0') 
-	  return 0;
-	
-	goto begin;
-	break;
-
-      default:
-	
-	/* On character mismatch, check if we had a previous asterisk. */
-	if(*s != *w)
-	  goto mismatch;
-	
-	/* Otherwise, the characters match. */
-	break;
-      }
-   }
-   
-   while (*w == '*') w++;
-
-   /* If there's no string left to match wildstr chars after the final 
-    * asterisk, return failure. Otherwise, success. */
-   return (*w != '\0');
-
-mismatch:
-   if (asterisk == 0) return -1;
-   str++;
-   goto begin;
+  
+ begin:
+  for (s = str, w = wildstr; *s != '\0'; s++, w++) {
+	switch (*w) {
+	  
+	case '?':
+	  /* Skip one letter. */
+	  break;
+	  
+	case '*':
+	  asterisk = 1;
+	  str = s;
+	  wildstr = w + 1;
+	  
+	  /* Skip multiple *'s */
+	  while (*wildstr == '*')
+		wildstr++;
+	  
+	  /* Ending on asterisk indicates success. */
+	  if (*wildstr == '\0') 
+		return 0;
+	  
+	  goto begin;
+	  break;
+	  
+	default:
+	  
+	  /* On character mismatch, check if we had a previous asterisk. */
+	  if(*s != *w)
+		goto mismatch;
+	  
+	  /* Otherwise, the characters match. */
+	  break;
+	}
+  }
+  
+  while (*w == '*') w++;
+  
+  /* If there's no string left to match wildstr chars after the final 
+   * asterisk, return failure. Otherwise, success. */
+  return (*w != '\0');
+  
+ mismatch:
+  if (asterisk == 0) return -1;
+  str++;
+  goto begin;
 }
 
-int parseRulesFile(FILE *rulesFile, char *asrDependency, char *asrCommand) {
-  char rule[MAXPATHLEN];
-  int notfound = 1;
+int parseRulesFile(struct rule *data) {
+  char command[MAXCOMMANDLEN];
+  int rule_not_found = 1; /* invariant */
 
-  if((rulesFile == NULL) || (asrDependency == NULL) || (asrCommand == NULL))
-    return -1;
+  if((Rules_File == NULL) || (data == NULL))
+    return 1;
 
-  while(notfound > 0) {
+  while(rule_not_found) {
     char *end;
     char fmt[10];
 
+	/* Get first word from the current line. */
     sprintf(fmt, "%%%ds", MAXPATHLEN-1);
-    if(fscanf(rulesFile, fmt, rule) == EOF) {
+    if(fscanf(Rules_File, fmt, data->name) == EOF) {
       fprintf(stderr, "ASRLauncher(%d): No matching rule exists in this "
-	      "file.\n", My_Pid);
-      return 0;
+			  "file.\n", My_Pid);
+      return 1;
     }
 
-    if((end = strchr(rule, ':')) == NULL) /* it's not a rule without ':' */
+	if((end = strchr(data->name, ':')) == NULL) {
+	  /* XXX: Advance to next line. */
       continue;
-    
-    end[0] = '\0'; /* isolate the rule */
-
-    /* match rule against conflict filename */
-    if(compareWithWilds(Conflict_Filename, rule))
+	}
+	else
+	  end[0] = '\0';
+	
+    /* Match rule against conflict filename. */
+    if(compareWithWilds(Conflict_Basename, data->name)) /* Not a match. */
       continue;
-
+	
     fprintf(stderr, "ASRLauncher(%d): Found matching (conflict name, rule): "
-	    "(%s, %s)\n",  My_Pid, Conflict_Filename, rule);
- 
-    notfound = 0; /* don't needlessly loop anymore */
+			"(%s, %s)\n",  My_Pid, Conflict_Basename, data->name);
+	
+    rule_not_found = 0;
 
-    /* Store Conflict_Wildcard match for environment variables. */
-    if(Conflict_Wildcard != NULL)
+    /* Store Conflict_Wildcard for $* environment variable. */
+    if(Conflict_Wildcard != NULL) {
       free(Conflict_Wildcard);
-
-    Conflict_Wildcard = NULL;
+	  Conflict_Wildcard = NULL;
+	}
 
     /* Store what matched that '*', if the rule led off with one. */
-    if(rule[0] == '*') 
-    {
-      int diff; /* how many bytes to cut off of the end of Conflict_Path */
-
-      diff = strlen(Conflict_Filename) - strlen(rule + 1);
+    if(data->name[0] == '*') {
+	  int diff; /* how many bytes to cut off of the end of Conflict_Path */
+	  
+	  diff = strlen(Conflict_Basename) - (strlen(data->name) - 1);
       
-      Conflict_Wildcard = strdup(Conflict_Filename);
+      Conflict_Wildcard = strdup(Conflict_Basename);
       if(Conflict_Wildcard == NULL) {
-	fprintf(stderr, "ASRLauncher(%d): Malloc error!\n", My_Pid);
-	exit(1);
+		fprintf(stderr, "ASRLauncher(%d): Malloc error!\n", My_Pid);
+		exit(1);
       }
       
       *(Conflict_Wildcard + diff) = '\0';
       
       fprintf(stderr, "ASRLauncher(%d): Wildcard variable $* = %s\n",
-	      My_Pid, Conflict_Wildcard);
+			  My_Pid, Conflict_Wildcard);
     }
+	
+    { /* Read in data to be used later in the launch. */
+      int len, i;
+	  char *strerror;
 
-    {
-      int len;
-      /* Read in dependencies */
-      if(fgets(asrDependency, MAXDPNDLEN, rulesFile) == NULL) {
-	fprintf(stderr, "ASRLauncher(%d): Malformed rule: %s\n",
-		My_Pid, rule);
-	return -1;
+      /* Read in dependencies. */
+
+      if((strerror = fgets(data->dependencies, MAXDPNDLEN, Rules_File))
+		 == NULL) {
+		fprintf(stderr, "ASRLauncher(%d): Malformed dependencies!\n", My_Pid);
+		return -1;
       }
-      len = strlen(asrDependency);
-      if(asrDependency[len-1] == '\n')
-	asrDependency[len-1] = '\0';
+      len = strlen(data->dependencies);
+      if(data->dependencies[len-1] == '\n')
+		data->dependencies[len-1] = '\0';
       
-      /* Read in command */
-      if(fgets(asrCommand, MAXCOMMANDLEN, rulesFile) == NULL) {
-	fprintf(stderr, "ASRLauncher(%d): Malformed rule: %s\n",
-		My_Pid, rule);
-	return -1;
+
+      /* Read in commands. */
+
+      for(i = 0; 
+		  ((strerror = fgets(command, MAXCOMMANDLEN, Rules_File)) != NULL);
+		  i++) {
+
+		if((command[0] != '\t') && (command[0] != ' '))
+		  break;
+
+		if((strlen(command) + strlen(data->commands)) > MAXRULELEN) {
+		  fprintf(stderr, "ASRLauncher(%d): Command buffer overrun!\n",
+				  My_Pid);
+		  return 1;
+		}
+
+		strncat(data->commands, command, MAXCOMMANDLEN);
       }
-      len = strlen(asrCommand);
-      if(asrCommand[len-1] == '\n')
-	asrCommand[len-1] = '\0';
+
+	  if(command[0] == '\0') {
+		fprintf(stderr, "ASRLauncher(%d): Malformed rule!\n", My_Pid);
+		return 1;
+	  }
     }
-  }
+  } /* while(rule_not_found) */
+  
+  return 0;
+} /* parseRulesFiles */
 
-  return notfound;
-}
-
+/* XXX: Does this work with cygwin? */
 int isConflict(char *path) {
   struct stat buf;
   char link[MAXPATHLEN];
@@ -340,8 +374,8 @@ int replaceEnvVars(char *string, int maxlen) {
 
 	switch(*(trav+1)) {
 
-	case CONFLICT_FILENAME:
-	  replace = Conflict_Filename;
+	case CONFLICT_BASENAME:
+	  replace = Conflict_Basename;
 	  break;
 	
 	case CONFLICT_PATH:
@@ -361,9 +395,9 @@ int replaceEnvVars(char *string, int maxlen) {
 	  break;
 
 	case CONFLICT_TYPE:
-
+	  
 	  switch(Conflict_Type) {
-
+		
 	  case SERVER_SERVER:
 	    replace = SERVER_SERVER_STR;
 	    break;
@@ -379,22 +413,22 @@ int replaceEnvVars(char *string, int maxlen) {
 	  default: /* Unknown conflict type, leave it untouched. */
 	    break;
 	  }
-
+	  
 	  break;
-
+	  
 	default:
 	  break;
 	}
 	
 	if(replace == NULL) { /* Unknown environment variable name. */
 	  fprintf(stderr, "ASRLauncher(%d): Unknown environment variable!\n",
-		  My_Pid);
+			  My_Pid);
 	  trav++;
 	  continue;
 	}
 	
 	fprintf(stderr, "ASRLauncher(%d): Replacing environment "
-		"variable with: %s\n", My_Pid, replace);
+			"variable with: %s\n", My_Pid, replace);
 	
 	{
 	  char *src, *dest, *holder;
@@ -402,9 +436,9 @@ int replaceEnvVars(char *string, int maxlen) {
 	  /* See if the replacement string will fit in the buffer. */
 	  if((strlen(temp) + strlen(replace)) > maxlen) {
 	    fprintf(stderr, "ASRLauncher(%d): Replacement does not fit!\n",
-		    My_Pid);
+				My_Pid);
 	    free(temp);
-	    return -1;
+	    return 1;
 	  }
 	  
 	  src = trav + 2;                     /* skip environment var name */
@@ -413,35 +447,33 @@ int replaceEnvVars(char *string, int maxlen) {
 	  if((holder = (char *)malloc(maxlen * sizeof(char))) == NULL) {
 	    fprintf(stderr, "ASRLauncher(%d): malloc failed!\n", My_Pid);
 	    free(temp);
-	    return -1;
+	    return 1;
 	  }
-
+	  
 	  strcpy(holder, src);
 	  strcpy(dest, holder);
 	  strncpy(trav, replace, strlen(replace));
 	  free(holder);
-
-	  fprintf(stderr, "ASRLauncher(%d): During: %s\n", 
-		  My_Pid, temp);
+	  
+	  fprintf(stderr, "ASRLauncher(%d): During: %s\n", My_Pid, temp);
 	}
 	
-	/* Set trav to the next unchecked character. */
-	//trav += strlen(replace);
 	break;
       }
-
+	  
     default:
       trav++;
       break;
     }
   }
+  
+  if(strcmp(string, temp))
+	strncpy(string, temp, maxlen-1);
 
-  strncpy(string, temp, maxlen);
   free(temp);
-
-  fprintf(stderr, "ASRLauncher(%d): After: %s\n", 
-	  My_Pid, string);
-
+  
+  fprintf(stderr, "ASRLauncher(%d): After: %s\n", My_Pid, string);
+  
   return 0;
 }
 
@@ -481,18 +513,184 @@ int evaluateDependencies(char *dpndstr) {
 
 
 /*
+ * findRule
+ *
+ * Fills in a rule struct with the data associated with a matching rule,
+ * lexically scoping up the conflict's pathname if necessary.
+ *
+ * @param struct rule *data The rule structure to be filled in for the caller.
+ * @returns 0 on success, -1 on failure
+ *
+ */
+
+int findRule(struct rule *data) {
+  int scope;
+  char *temp;
+
+  if(data == NULL) {
+	fprintf(stderr, "ASRLauncher(%d): Bad rule structure!\n", My_Pid);
+	return -1;
+  }
+
+  if(Rules_File_Path == NULL) {
+	Rules_File_Path = (char *) malloc(MAXPATHLEN * sizeof(char));
+	strncpy(Rules_File_Path, Conflict_Path, MAXPATHLEN);
+  }
+
+  while((scope = strcmp(Conflict_Volume_Path, Rules_File_Path)) != 0) {   
+	int error;
+
+	Rules_File = openRulesFile(Rules_File_Path);
+	
+	error = parseRulesFile(data);
+	if(error) { /* Scope one directory level higher, trying new rules file. */
+	  temp = strrchr(Rules_File_Path, '/');
+	  *temp = '\0';               /* Remove final slash. Parent directory
+								   * then looks like a filename and is
+								   * dropped in opening the new rules file. */
+	  fclose(Rules_File);
+	  Rules_File = NULL;
+	}
+	else        /* We have found a matching rule. */
+	  break;
+  }
+  
+  if(scope == 0) {  /* Stop after volume root. */
+	fprintf(stderr, "ASRLauncher(%d): Failed lexically scoping a"
+			"matching rules file!\n", My_Pid);
+	return 1;
+  }
+
+  return 0;
+}
+
+int executeCommands(char *command_list) {
+
+  int status = 0, options = WNOHANG, error, i;
+  pid_t pid;
+  char *asr_argv[4];
+
+  if(command_list == NULL) {
+    fprintf(stderr, "ASRLauncher(%d): Empty command list!\n", My_Pid);
+    return 1;
+  }
+  
+  /* Expand any environment variables in our 
+   * command-list to their appropriate strings. */
+
+  error = replaceEnvVars(command_list, MAXRULELEN);
+  if(error) {
+    fprintf(stderr, "ASRLauncher(%d): Failed replacing environment "
+			"variables!\n", My_Pid);
+    return 1;
+  }
+
+  pid = fork();
+  if(pid < 0) {
+	fprintf(stderr, "ASRLauncher(%d): Failed forking ASR!\n",
+			My_Pid);
+	return 1;
+  }
+  
+  if(pid == 0) {
+
+	/* Separate the commands for /bin/sh */
+
+	for(i = 0; command_list[i] != '\0'; i++) {
+	  int j;
+
+	  switch(command_list[i]) {
+
+	  case '\n':
+
+		if(command_list[i+1] == '\0')
+		  command_list[i] = '\0';
+		else
+		  command_list[i] = ';';
+
+		break;
+
+	  case '\t':
+
+		while((command_list[i] == '\t') || (command_list[i] == ' '))
+		  for(j = i; command_list[j] != '\0'; j++)
+			command_list[j] = command_list[j+1];
+
+		break;
+
+	  default:
+		break;
+	  }
+	}
+	
+	fprintf(stderr, "\nASRLauncher(%d): Commands to execute: %s\n", 
+			My_Pid, command_list);
+	
+	asr_argv[0] = "/bin/sh"; 
+	asr_argv[1] = "-c";
+	asr_argv[2] = command_list;
+	asr_argv[3] = NULL;
+	
+	if(execvp(asr_argv[0], asr_argv) < 0) {
+	  int error = errno;
+
+	  fprintf(stderr, "ASRLauncher(%d): ASR exec() failed: %s\n", 
+			  My_Pid, strerror(error));
+
+	  exit(1);
+	}
+  }
+  else {
+	int runtime;
+	
+	for(runtime = 0;
+		(waitpid(pid, &status, options) == 0) && (runtime < ASR_TIMEOUT);
+		runtime++) {
+	  struct timeval timeout;
+	  
+	  timeout.tv_usec = 1000; 
+	  select(1, NULL, NULL, NULL, &timeout);		/* wait 10 ms */
+	}
+	
+	if(runtime >= ASR_TIMEOUT) {
+	  
+	  fprintf(stderr, "ASRLauncher(%d): ASR Timed Out!\n", My_Pid);
+	  
+	  /* Destroy ASR process group. */
+	  kill(pid * -1, SIGKILL);
+	  
+	  /* The aborting of partial changes should be done in Venus, not here.
+	   * Return failure to tell Venus to abort changes. */
+	  return 1;
+	}
+	
+	/* Evaluate the status of the ASR. */
+	if(WIFEXITED(status)) {
+	  int ret = WEXITSTATUS(status);
+	  fprintf(stderr, "ASRLauncher(%d): ASR terminated normally with "
+			  "return code %d.\n", My_Pid, ret);
+	}
+	else {
+	  fprintf(stderr, "ASRLauncher(%d): ASR terminated abnormally!\n",
+			  My_Pid);
+	  return 1;
+	}
+  }
+  
+  return 0;
+}
+
+/*
  * Arguments passed by Venus:
  */
 
 int
 main(int argc, char *argv[])
 {
-  char asrCommand[MAXCOMMANDLEN];
-  char asrDependency[MAXDPNDLEN];
-  char *rulesPath;
-  FILE *rules = NULL;
-  int error;
-  int len;
+  struct rule conf_rule;
+  int error, len, asr_has_not_executed;
+
+  asr_has_not_executed = 1; /* invariant */
 
   My_Pid = getpid();
 
@@ -527,10 +725,18 @@ main(int argc, char *argv[])
     return 1;
   }
 
-  Conflict_Filename = strrchr(Conflict_Path, '/');
-  Conflict_Filename++;
+  /* Conflict_Basename init */
+  Conflict_Basename = strrchr(Conflict_Path, '/');
+  if(*(Conflict_Basename + 1) == '\0') { /* Directory conflicts end in '/' */
+	char *temp = Conflict_Basename;
+	Conflict_Basename[0]='\0';
+	Conflict_Basename = strrchr(Conflict_Path, '/');
+	temp[0] = '/';
+  }
+  Conflict_Basename++;
 
-  {					   /* Set up Conflict_Parent */
+  /* Conflict_Parent init */
+  {
     char *temp;
     if(strlen(Conflict_Path) < MAXPATHLEN -1 )
        strcpy(Conflict_Parent, Conflict_Path);
@@ -540,20 +746,10 @@ main(int argc, char *argv[])
       *temp = '\0';
   }
 
-  rulesPath = strdup(Conflict_Path);
-  if(rulesPath == NULL)
-    return 1;
-
-  /*
-   * Steps
-   * 1.) Discover ASR rules file.
-   * 2.) Parse ASR rules file.
-   * 3.) Fork and execute appropriate ASR
-   * 4.) Wait for ASR signal, timing out as appropriate
-   * 5.) Die, telling Venus repair is complete or has failed.
-   */
-
-  *asrCommand = *asrDependency = '\0';
+  if((conf_rule.commands = (char *) malloc(MAXRULELEN * sizeof(char))) == NULL) {
+	fprintf(stderr, "ASRLauncher(%d): Malloc failed!\n", My_Pid);
+	return 1;
+  }
 
   fprintf(stderr, "ASRLauncher(%d): Conflict received: %s\n", 
 	  My_Pid, Conflict_Path);
@@ -564,215 +760,56 @@ main(int argc, char *argv[])
   fprintf(stderr, "ASRLauncher(%d): Conflict's parent dir: %s\n", 
 	  My_Pid, Conflict_Parent);
 
+  /*
+   * Steps
+   * 1.) Discover associated rule.
+   * 2.) Check rule dependencies for conflicts, going back to 1 if failed.
+   * 3.) Fork and execute appropriate ASR commands.
+   * 4.) Wait for ASR signal, timing out as appropriate
+   * 5.) Die, telling Venus that the ASR is complete or has failed.
+   */
 
- lexicalScope:
-  
-  *asrCommand = '\0';
+  while(asr_has_not_executed) {
 
-  rules = openRulesFile(rulesPath);
-  if(rules == NULL) {
-    fprintf(stderr, "ASRLauncher(%d): Rules file doesn't exist!\n", My_Pid);
-    goto skipParse;
-  }
+	conf_rule.name[0] = '\0';
+	conf_rule.dependencies[0] = '\0';
+	conf_rule.commands[0] = '\0';
 
-  error = parseRulesFile(rules, asrDependency, asrCommand);
-  if(error) {
-    fprintf(stderr, "ASRLauncher(%d): Failed parsing rules file!\n", My_Pid);
-    return 1;
-  }
-
-  error = parseRulesFile(rules, conflictPath, asrCommand);
-
-  if(*asrCommand == '\0') { /* Indicates no matching rule was found. */
-    if(rules != NULL)
-      fclose(rules);
-
-    {
-      char *temp;
-      /* Scope one directory level higher. */
-      temp = strrchr(rulesPath, '/');
-      *temp = '\0';               /* Remove final slash. Parent directory
-				   * then looks like a filename and is
-				   * dropped in opening the new rules file. */
-
-      /* Stop after volume root. */
-      if(strcmp(Conflict_Volume_Path, rulesPath) == 0) { 
-	fprintf(stderr, "ASRLauncher(%d): Failed to lexically scope the "
-		"rules file!\n", My_Pid);
-	return 1;
-      }
-    }
-    
-    goto lexicalScope;
-  }
-  fclose(rules); /* At this point, we have found an acceptable rule. */
-
-  /* Ensure that no rule dependency is in conflict. */
-  error = evaluateDependencies(asrDependency);
-  if(error) {
-    fprintf(stderr, "ASRLauncher(%d): Failed evaluating dependencies!\n",
-	    My_Pid);
-    return 1;
-  }
-
-  /* Expand any environment variables in our command to appropriate values. */
-  error = replaceEnvVars(asrCommand, MAXCOMMANDLEN);
-  if(error) {
-    fprintf(stderr, "ASRLauncher(%d): Failed replacing environ vars!\n",
-	    My_Pid);
-    return 1;
-  }
-
-
-  if(Conflict_Wildcard != NULL) /* Old string no longer needed. */
-    free(Conflict_Wildcard);
-
-  {
-    int status = 0, options = WNOHANG, i;
-    pid_t pid;
-    char *asr_argv[MAXPARMS], *trav;
-    
-    pid = fork();
-    if(pid < 0) {
-      fprintf(stderr, "ASRLauncher(%d): Failed forking ASR!\n",
-	      My_Pid);
-      return 1;
-    }
-    
-    if(pid == 0) {      /* prepare the arguments to the ASR */
-      int parms = 0, quotes = 0;
-      char *parm_start;
-      
-      fprintf(stderr, "\nASRLauncher(%d): Command to execute: %s\n", 
-	      My_Pid, asrCommand);
-
-      /* mutilate the command string, making it an argv[] */
-      
-      trav = parm_start = asrCommand;
-      while(parms < MAXPARMS-1) {
-	
-	fprintf(stderr, "%c", *trav);
-
-	switch(*trav) {
-	
-	case ' ':		 		/* end of token? */
-	case '\t':
-	  if(parm_start == trav ) {
-	    parm_start++;
-	    trav++;
-	    break;
-	  }
-
-	  if(!quotes) {
-	    *trav = '\0';			/* isolate parameter */
-	    asr_argv[parms] = parm_start;
-	    parms++;
-	    
-	    trav++;
-	    parm_start = trav;
-
-	    fprintf(stderr, "ASRLauncher(%d): Param: %s\n", 
-		    My_Pid, asr_argv[parms-1]);
-	  }
-	  else {
-	    trav++;
-	  }
-
-	  break;	  
-
-	case '\'':				/* beginning/end quote */
-	case '"':
-
-	  if(quotes) {				/* end quote (isolate parm) */
-	    *trav = '\0';
-	    asr_argv[parms] = parm_start;
-	    parms++;
-	    quotes = 0;
-	  }
-	  else { 				/* beginning quote */
-	    quotes = 1;
-	  }
-
-	  trav++;
-	  parm_start = trav;
-	  break;
-
-	case '\0':
-  	  if(*parm_start != ' ') {		/* edge case */
-	    asr_argv[parms] = parm_start;
-	    parms++;
-	  }
-	  goto noMoreParms;	  
-
-	default:
-	  trav++;
+	/* Find a wildcard-matched rule and parse its information. */
+	error = findRule(&conf_rule);
+	if(error) {
+	  fprintf(stderr, "ASRLauncher(%d): Failed finding valid associated "
+			  "rule!\n", My_Pid);
 	  break;
 	}
-      }
 
-    noMoreParms:
-      
-      /* START DEBUG CODE */
-      //      fprintf(log, "\n%d parameters\n", parms);
-      //      for(i = 0;i < parms; i++)
-	//	fprintf(log, "%s ", asr_argv[i]);
-      //      fprintf(log, "\n");
-      /* END DEBUG CODE */
-      
-      asr_argv[parms] = '\0'; /* must be null-terminated */
+	/* See if the dependencies on this rule are not in conflict. */
+	error = evaluateDependencies(conf_rule.dependencies);
+	if(error) {
+	  fprintf(stderr, "ASRLauncher(%d): Failed evaluating dependencies!\n",
+			  My_Pid);
+	  continue;
+	}
 
-      fprintf(stderr, "ASRLauncher(%d): Params: %d\n", My_Pid, parms);
-      
-      for(i = 0; i < parms; i++)
-	fprintf(stderr, "ASRLauncher(%d): Param %d: %s\n",
-		My_Pid, i, asr_argv[i]);
+	/* Execute all commands indented below the rule name. */
+	error = executeCommands(conf_rule.commands);
+	if(error) {
+	  fprintf(stderr, "ASRLauncher(%d): Failed executing related commands!\n",
+			  My_Pid);
+	  break;
+	}	  
 
-      if(execvp(asr_argv[0], asr_argv) < 0) {
-	int error = errno;
-	fprintf(stderr, "ASRLauncher(%d): ASR exec() failed: %s\n", 
-		My_Pid, strerror(error));
-	exit(1);
-      }
-    }
-    else {
-      int runtime;
-
-      for(runtime = 0;
-	  (waitpid(pid, &status, options) == 0) && (runtime < ASR_TIMEOUT);
-	  runtime++) {
-	struct timeval timeout;
-
-	timeout.tv_usec = 1000; 
-	select(1, NULL, NULL, NULL, &timeout);		/* wait 10 ms */
-      }
-	
-      if(runtime >= ASR_TIMEOUT) {
-
-	fprintf(stderr, "ASRLauncher(%d): ASR Timed Out!\n", My_Pid);
-
-	/* Destroy ASR process group. */
-	kill(pid * -1, SIGKILL);
-
-	/* The aborting of partial changes should be done in Venus, not here.
-	 * Return failure to tell Venus to abort changes. */
-	return 1;
-      }
-
-      /* Evaluate the status of the ASR. */
-      if(WIFEXITED(status)) {
-	int ret = WEXITSTATUS(status);
-	fprintf(stderr, "ASRLauncher(%d): ASR terminated normally with "
-		"return code %d.\n", My_Pid, ret);
-      }
-      else {
-	fprintf(stderr, "ASRLauncher(%d): ASR terminated abnormally!\n",
-		My_Pid);
-	return 1;
-      }
-    }
+	asr_has_not_executed = 0;
   }
+	
+  if(Rules_File != NULL)
+	fclose(Rules_File);
 
-  //  fprintf(log, "asr succeeded\n");
-  //  fclose(log);
-  return 0;
+  if(Rules_File_Path != NULL)
+	free(Rules_File_Path);
+
+  if(Conflict_Wildcard != NULL)
+    free(Conflict_Wildcard);
+
+  return error;
 }

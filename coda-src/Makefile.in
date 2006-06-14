@@ -40,7 +40,7 @@ III =  util vicedep dir
 VIII =  repair sidekick
   IX =  resolution volutil vtools vcodacon
    X =  vice
-  XI =  update asr egasr norton smon2
+  XI =  update asr egasr norton smon2 asrlauncher
 
 # If you add a new module to Coda, add it to the right set above
 ifneq ($(SHORTSYS),djgpp)
