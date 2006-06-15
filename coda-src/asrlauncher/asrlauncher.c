@@ -41,10 +41,7 @@ listed in the file CREDITS.
 /* Character array lengths */
 
 #define MAXPATHLEN     256
-#define MAXCOMMANDLEN  1024
-#define MAXRULELEN     (30*1024)
-#define MAXNUMDPND     20
-#define MAXDPNDLEN     (MAXPATHLEN * MAXNUMDPND)
+#define MAXCOMMANDLEN  4096
 
 /* Environment variable names */
 
@@ -77,22 +74,23 @@ int My_Pid;                 /* getpid() result. Only for logging purposes. */
 
 /* Conflict Information Globals */
 
-int Conflict_Type;          /* 0 = S/S, 1 = L/G, 2 = Mixed */
-char *Conflict_Path;        /* Full path to the conflict. */
-char Conflict_Parent[MAXPATHLEN]; /* Parent directory of conflict. */
-char *Conflict_Basename;    /* Just the filename to the conflict. */
-char *Conflict_Volume_Path; /* Full path to the conflict's volume's root. */
-char *Conflict_Wildcard;    /* Holds the part of the pathname that matched
-							 * an asterisk in a rule, for convenience.
-							 * Example: *.dvi matching foo.dvi puts "foo" in
-							 * this variable. */
+int Conflict_Type;                     
+char Conflict_Path[MAXPATHLEN];        /* Full path to the conflict. */
+char Conflict_Parent[MAXPATHLEN];      /* Parent directory of conflict. */
+char *Conflict_Basename;               /* Just the filename to the conflict. */
+char Conflict_Volume_Path[MAXPATHLEN]; /* Path to conflict's volume root. */
+char Conflict_Wildcard[MAXPATHLEN];    /* Holds the part of the pathname that 
+									    * matched an asterisk in a rule, for 
+									    * convenience.
+										* Example: *.dvi matching foo.dvi puts 
+										* "foo" in this variable. */
 
 
 /* Lexical Scoping/Rule Parsing Globals */
 
 FILE *Rules_File;
 long Rules_File_Offset;
-char *Rules_File_Path;
+char Rules_File_Path[MAXPATHLEN];
 
 /*
  * openRulesFile
@@ -226,20 +224,13 @@ int parseRulesFile(struct rule_info *data) {
 	
     rule_not_found = 0;
 
-    if(Conflict_Wildcard != NULL) {
-      free(Conflict_Wildcard);
-	  Conflict_Wildcard = NULL;
-	}
-
     /* Store what matched that '*' in $* (if the rule led off with one). */
     if(name[0] == '*') {
 	  int diff; /* how many bytes to cut off of the end of Conflict_Path */
 	  
 	  diff = strlen(Conflict_Basename) - (strlen(name) - 1);
       
-      Conflict_Wildcard = strdup(Conflict_Basename);
-      if(Conflict_Wildcard == NULL) { perror("malloc");	exit(EXIT_FAILURE); }
-      
+      strcpy(Conflict_Wildcard, Conflict_Basename);
       *(Conflict_Wildcard + diff) = '\0';
       
       fprintf(stderr, "ASRLauncher(%d): Wildcard variable $* = %s\n",
@@ -519,13 +510,8 @@ int findRule(struct rule_info *data) {
 	return -1;
   }
 
-  if(Rules_File_Path == NULL) {
-	Rules_File_Path = (char *) malloc(MAXPATHLEN * sizeof(char));
-	if(Rules_File_Path == NULL) { perror("malloc");	exit(EXIT_FAILURE); }
-
-	/* Will be changed later by parseRulesFile. */
-	strncpy(Rules_File_Path, Conflict_Path, MAXPATHLEN);
-  }
+  /* Will be changed later by parseRulesFile. */
+  strncpy(Rules_File_Path, Conflict_Path, MAXPATHLEN);
 
   while((scope = strcmp(Conflict_Volume_Path, Rules_File_Path)) != 0) {   
 	int error;
@@ -704,25 +690,23 @@ main(int argc, char *argv[])
     return 1;
   }
 
-  Conflict_Path = argv[1];
-  Conflict_Volume_Path = argv[2];
+
+  /* Conflict_Path init */
+
+  strncpy(Conflict_Path, argv[1], MAXPATHLEN-1);
+
+
+  /* Conflict_Basename init */
+
+  strncpy(Conflict_Volume_Path, argv[2], MAXPATHLEN-1);
+  len = strlen(Conflict_Volume_Path);
+  if(Conflict_Volume_Path[len-1] == '/') /* remove any trailing slash */
+	Conflict_Volume_Path[len-1] = '\0';
+
+
+  /* Conflict_Type init */
+
   Conflict_Type = atoi(argv[3]); 
-  Conflict_Wildcard = NULL;
-
-  if(Conflict_Path == NULL) {
-    fprintf(stderr, "ASRLauncher(%d): Conflict pathname null!\n", My_Pid);
-    return 1;
-  }
-
-  if(Conflict_Volume_Path == NULL) {
-    fprintf(stderr, "ASRLauncher(%d): Volume pathname null!\n", My_Pid);
-    return 1;
-  }
-  else {
-    len = strlen(Conflict_Volume_Path);
-    if(Conflict_Volume_Path[len-1] == '/') /* remove any trailing slash */
-      Conflict_Volume_Path[len-1] = '\0';
-  }
 
   if((Conflict_Type > MIXED_CONFLICT) || (Conflict_Type < SERVER_SERVER)) {
     fprintf(stderr, "ASRLauncher(%d): Unknown conflict type %d (%s)!\n", 
@@ -730,7 +714,9 @@ main(int argc, char *argv[])
     return 1;
   }
 
+
   /* Conflict_Basename init */
+
   Conflict_Basename = strrchr(Conflict_Path, '/');
   if(*(Conflict_Basename + 1) == '\0') { /* Directory conflicts end in '/' */
 	char *temp = Conflict_Basename;
@@ -740,15 +726,20 @@ main(int argc, char *argv[])
   }
   Conflict_Basename++;
 
+
   /* Conflict_Parent init */
   {
     char *temp;
-    if(strlen(Conflict_Path) < MAXPATHLEN -1 )
-       strcpy(Conflict_Parent, Conflict_Path);
+	strcpy(Conflict_Parent, Conflict_Path);
   
     temp = strrchr(Conflict_Parent, '/');
     if(temp != NULL)
       *temp = '\0';
+	else {
+	  fprintf(stderr, "ASRLauncher(%d): %s has no parent!\n", 
+			  My_Pid, Conflict_Path);
+	  return 1;
+	}
   }
 
 
@@ -799,12 +790,6 @@ main(int argc, char *argv[])
 	
   if(Rules_File != NULL)
 	fclose(Rules_File);
-
-  if(Rules_File_Path != NULL)
-	free(Rules_File_Path);
-
-  if(Conflict_Wildcard != NULL)
-    free(Conflict_Wildcard);
 
   return error;
 }
