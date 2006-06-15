@@ -66,10 +66,9 @@ listed in the file CREDITS.
 #define MIXED_CONFLICT      3
 #define MIXED_CONFLICT_STR "3"
 
-struct rule {
-  char name[MAXPATHLEN];
-  char dependencies[MAXDPNDLEN];
-  char *commands;
+struct rule_info {
+  long dependencies;
+  long commands;
 };
 
 /* ASRLauncher-related Globals */
@@ -92,6 +91,7 @@ char *Conflict_Wildcard;    /* Holds the part of the pathname that matched
 /* Lexical Scoping/Rule Parsing Globals */
 
 FILE *Rules_File;
+long Rules_File_Offset;
 char *Rules_File_Path;
 
 /*
@@ -183,11 +183,15 @@ int compareWithWilds(char *str, char *wildstr) {
   goto begin;
 }
 
-int parseRulesFile(struct rule *data) {
+int parseRulesFile(struct rule_info *data) {
   int rule_not_found = 1; /* invariant */
+  char name[MAXPATHLEN];
 
   if((Rules_File == NULL) || (data == NULL))
     return 1;
+
+  if(fseek(Rules_File, Rules_File_Offset, SEEK_SET) < 0)
+	{ perror("ftell"); exit(EXIT_FAILURE); }
 
   while(rule_not_found) {
     char *end;
@@ -195,18 +199,18 @@ int parseRulesFile(struct rule *data) {
 
 	/* Get first word from the current line. */
     sprintf(fmt, "%%%ds", MAXPATHLEN-1);
-    if(fscanf(Rules_File, fmt, data->name) == EOF) {
+    if(fscanf(Rules_File, fmt, name) == EOF) {
       fprintf(stderr, "ASRLauncher(%d): No matching rule exists in this "
 			  "file.\n", My_Pid);
       return 1;
     }
 
-	if((end = strchr(data->name, ':')) == NULL) {
+	if((end = strchr(name, ':')) == NULL) {
 	  char c;
 
 	  /* Ignore the rest of this line if the first word doesn't have ':' */
 	  do { c = fgetc(Rules_File); } 
-	  while((c != ';') && (c != '\0'));
+	  while((c != '\n') && (c != '\0'));
 
       continue;
 	}
@@ -214,11 +218,11 @@ int parseRulesFile(struct rule *data) {
 	  end[0] = '\0';
 	
     /* Match rule against conflict filename. */
-    if(compareWithWilds(Conflict_Basename, data->name)) /* Not a match. */
+    if(compareWithWilds(Conflict_Basename, name)) /* Not a match. */
       continue;
 	
     fprintf(stderr, "ASRLauncher(%d): Found matching (conflict name, rule): "
-			"(%s, %s)\n",  My_Pid, Conflict_Basename, data->name);
+			"(%s, %s)\n",  My_Pid, Conflict_Basename, name);
 	
     rule_not_found = 0;
 
@@ -228,10 +232,10 @@ int parseRulesFile(struct rule *data) {
 	}
 
     /* Store what matched that '*' in $* (if the rule led off with one). */
-    if(data->name[0] == '*') {
+    if(name[0] == '*') {
 	  int diff; /* how many bytes to cut off of the end of Conflict_Path */
 	  
-	  diff = strlen(Conflict_Basename) - (strlen(data->name) - 1);
+	  diff = strlen(Conflict_Basename) - (strlen(name) - 1);
       
       Conflict_Wildcard = strdup(Conflict_Basename);
       if(Conflict_Wildcard == NULL) { perror("malloc");	exit(EXIT_FAILURE); }
@@ -242,63 +246,20 @@ int parseRulesFile(struct rule *data) {
 			  My_Pid, Conflict_Wildcard);
     }
 	
-    { /* Read in data to be used later in the launch. */
-      int len;
-	  char *strerror;
-	  fpos_t pos;
+    { /* Mark data to be used later in the launch. */
 
-      /* Read in dependencies. */
-
-      if((strerror = fgets(data->dependencies, MAXDPNDLEN, Rules_File))
-		 == NULL) {
-		fprintf(stderr, "ASRLauncher(%d): Malformed dependencies!\n", My_Pid);
-		return -1;
-      }
-      len = strlen(data->dependencies);
-      if(data->dependencies[len-1] == '\n')
-		data->dependencies[len-1] = '\0';
-      
-
-      /* Read in commands line-by-line. */
-
-      do {
-		char firstword[MAXPATHLEN];
-		char command[MAXCOMMANDLEN];
-
-		if(fgetpos(Rules_File, &pos) < 0) 
-		  { perror("fgetpos"); exit(EXIT_FAILURE); }
-
-		/* Get first word from the current line. */
-		sprintf(fmt, "%%%ds", MAXPATHLEN-1);
-		if(fscanf(Rules_File, fmt, firstword) == EOF)
-		  break;
-		
-		if((end = strchr(firstword, ':')) != NULL) /* New rule. */
-		  break;
-
-		if(fsetpos(Rules_File, &pos) < 0)
-		  { perror("fsetpos"); exit(EXIT_FAILURE); }
-	
-		strerror = fgets(command, MAXCOMMANDLEN, Rules_File);
-		if(strerror == NULL) /* EOF */
-		  break;
-		
-		if((strlen(command) + strlen(data->commands)) > MAXRULELEN) {
-		  fprintf(stderr, "ASRLauncher(%d): Command buffer overrun!\n",
-				  My_Pid);
-		  return 1;
-		}
-
-		strcat(data->commands, command);
-      } while(1);
-
-	  if(fsetpos(Rules_File, &pos) < 0) /* rewind to beginning of next rule */
-		{ perror("fsetpos"); exit(EXIT_FAILURE); }
+      /* Mark dependency list. */
 	  
-	  if(data->commands == '\0') {
-		fprintf(stderr, "ASRLauncher(%d): Malformed rule!\n", My_Pid);
-		return 1;
-	  }
+	  if((data->dependencies = ftell(Rules_File)) < 0) 
+		{ perror("ftell"); exit(EXIT_FAILURE); }
+	  
+	  while(fgetc(Rules_File) != '\n') continue;
+
+      /* Mark command list, and remember where we left off. */
+
+	  if((Rules_File_Offset = data->commands = ftell(Rules_File)) < 0) 
+		{ perror("ftell"); exit(EXIT_FAILURE); }
+	  
     }
   } /* while(rule_not_found) */
   
@@ -491,37 +452,49 @@ int replaceEnvVars(char *string, int maxlen) {
 }
 
 
-int evaluateDependencies(char *dpndstr) {
-  char *temp;
+/* Tokenize dependency line. */
+
+int evaluateDependencies(struct rule_info *data) {
   char dpnd[MAXPATHLEN];
+  char fmt[10];
+  long pos;
 
-  if(dpndstr == NULL)
-    return -1;
+  if(data == NULL) return 1;
+  if(fseek(Rules_File, data->dependencies, SEEK_SET) < 0)
+	{ perror("fseek"); exit(EXIT_FAILURE); }
 
-  /* Tokenize dependency line. */
-    
-  for(temp = strtok(dpndstr, " ");
-      (temp = strtok(NULL, " ")) != NULL; ) {
+  sprintf(fmt, "%%%ds", MAXPATHLEN-1);
+  
+  pos = data->dependencies;
 
-    strcpy(dpnd, temp);
+  while(pos < (data->commands-1)) {
+
+	/* Grab a dependency. */
+	fscanf(Rules_File, fmt, dpnd);
 
     /* Do environment variable expansion. */
     if(replaceEnvVars(dpnd, MAXPATHLEN) < 0) {
-      fprintf(stderr, "ASRLauncher(%d): Failed replacing env vars on %s!\n",
-	      My_Pid, dpnd);
+      fprintf(stderr, "ASRLauncher(%d): Failed replacing env vars on %s! "
+			  "Skipping it!\n", My_Pid, dpnd);
       continue;
     }
-
+	
     fprintf(stderr, "ASRLauncher(%d): Dependency: %s\n",
-	    My_Pid, dpnd);
+			My_Pid, dpnd);
 
-    /* Check if it is a conflict. */
+    /* Check if it is in conflict. */
     if(isConflict(dpnd)) {
       fprintf(stderr, "ASRLauncher(%d): Conflict detected!\n", My_Pid);
-      return -1;
+      return 1;
     }
-  }
 
+	/* Update current position. */
+	if((pos = ftell(Rules_File)) < 0)
+	  { perror("ftell"); exit(EXIT_FAILURE); }
+	else
+	  fprintf(stderr, "position: %ld\tend position: %ld\n", pos, data->commands);
+  }
+    
   return 0;
 }
 
@@ -532,12 +505,12 @@ int evaluateDependencies(char *dpndstr) {
  * Fills in a rule struct with the data associated with a matching rule,
  * lexically scoping up the conflict's pathname if necessary.
  *
- * @param struct rule *data The rule structure to be filled in for the caller.
+ * @param struct rule_info *data Rule info to be filled in for the caller.
  * @returns 0 on success, -1 on failure
  *
  */
 
-int findRule(struct rule *data) {
+int findRule(struct rule_info *data) {
   int scope;
   char *temp;
 
@@ -584,27 +557,17 @@ int findRule(struct rule *data) {
   return 0;
 }
 
-int executeCommands(char *command_list) {
+int executeCommands(long pos) {
 
   int status = 0, options = WNOHANG, error, pfd[2];
   pid_t pid;
   char *asr_argv[4];
 
-  if(command_list == NULL) {
+  if(pos < 0) {
     fprintf(stderr, "ASRLauncher(%d): Empty command list!\n", My_Pid);
     return 1;
   }
   
-  /* Expand any environment variables in our 
-   * command-list to their appropriate strings. */
-
-  error = replaceEnvVars(command_list, MAXRULELEN);
-  if(error) {
-    fprintf(stderr, "ASRLauncher(%d): Failed replacing environment "
-			"variables!\n", My_Pid);
-    return 1;
-  }
-
   if(pipe(pfd) == -1) { perror("pipe"); exit(EXIT_FAILURE); }
   
   pid = fork();
@@ -617,9 +580,6 @@ int executeCommands(char *command_list) {
 	close(pfd[1]);
 	dup2(pfd[0], STDIN_FILENO);
 
-	fprintf(stderr, "\nASRLauncher(%d): Commands to execute:\n\n%s\n", 
-			My_Pid, command_list);
-
 	asr_argv[0] = "/bin/sh"; 
 	asr_argv[1] = NULL;
 	
@@ -630,24 +590,74 @@ int executeCommands(char *command_list) {
 	}
   }
   else {
-	int runtime;
+	int ms;
+	char command[MAXCOMMANDLEN], fmt[10], firstword[MAXPATHLEN];
+
+	close(pfd[0]);
+	
+	if(fseek(Rules_File, pos, SEEK_SET) < 0)   /* Go to command list. */
+	  { perror("fseek"); exit(EXIT_FAILURE); }
 
 	/* Now, pipe data to the child shell. */
 
-	close(pfd[0]);
-	write(pfd[1], (void *) command_list, strlen(command_list));
+	fprintf(stderr, "\nASRLauncher(%d): Commands to execute:\n\n", My_Pid);
+
+	do {
+	  long line;
+
+	  if((line = ftell(Rules_File)) < 0) 
+		{ perror("ftell"); exit(EXIT_FAILURE); }
+	  
+	  /* Get first word from the current line. */
+	  sprintf(fmt, "%%%ds", MAXPATHLEN-1);
+	  if(fscanf(Rules_File, fmt, firstword) == EOF)
+		break;
+	  
+	  if(strchr(firstword, ':') != NULL) /* New rule. */
+		break;
+	  
+	  if(fseek(Rules_File, line, SEEK_SET) < 0) /* Rewind to start of line. */
+		{ perror("fseek"); exit(EXIT_FAILURE); }
+	  
+	  if(fgets(command, MAXCOMMANDLEN, Rules_File) == NULL) /* EOF */
+		break;
+	  
+	  /* Expand any environment variables in our 
+	   * command to their appropriate strings. */		
+	  
+	  error = replaceEnvVars(command, MAXCOMMANDLEN);
+	  if(error) {
+		fprintf(stderr, "ASRLauncher(%d): Failed replacing environment "
+				"variables!\n", My_Pid);
+		return 1;
+	  }
+
+	  fprintf(stderr, "%s", command);
+
+	  if(write(pfd[1], (void *) command, strlen(command)) < 0) {
+		perror("write");
+		exit(EXIT_FAILURE);
+	  }
+	} while(1);
+	
 	close(pfd[1]);
 
-	for(runtime = 0;
-		(waitpid(pid, &status, options) == 0) && (runtime < ASR_TIMEOUT);
-		runtime++) {
+	for(ms = 0; ms < ASR_TIMEOUT; ms += 10) {
+	  int newpid;
 	  struct timeval timeout;
-	  
-	  timeout.tv_usec = 1000; 
-	  select(1, NULL, NULL, NULL, &timeout);		/* wait 10 ms */
+
+	  timeout.tv_sec = 0;
+	  timeout.tv_usec = 10000; 
+
+	  select(0, NULL, NULL, NULL, &timeout);		/* wait 10 ms */
+
+	  newpid = waitpid(pid, &status, options);
+	  if(newpid == 0) continue;
+	  else if(newpid > 0) break;
+	  else if(newpid < 0) { perror("waitpid"); exit(EXIT_FAILURE); }
 	}
 	
-	if(runtime >= ASR_TIMEOUT) {
+	if(ms >= ASR_TIMEOUT) {
 	  
 	  fprintf(stderr, "ASRLauncher(%d): ASR timed out!\n", My_Pid);
 	  
@@ -682,7 +692,7 @@ int executeCommands(char *command_list) {
 int
 main(int argc, char *argv[])
 {
-  struct rule conf_rule;
+  struct rule_info conf_rule;
   int error, len, asr_has_not_executed;
 
   asr_has_not_executed = 1; /* invariant */
@@ -741,8 +751,6 @@ main(int argc, char *argv[])
       *temp = '\0';
   }
 
-  conf_rule.commands = (char *) malloc(MAXRULELEN * sizeof(char));
-  if(conf_rule.commands == NULL) { perror("malloc");	exit(EXIT_FAILURE); }
 
   fprintf(stderr, "ASRLauncher(%d): Conflict received: %s\n", 
 	  My_Pid, Conflict_Path);
@@ -762,10 +770,6 @@ main(int argc, char *argv[])
 
   while(asr_has_not_executed) {
 
-	conf_rule.name[0] = '\0';
-	conf_rule.dependencies[0] = '\0';
-	conf_rule.commands[0] = '\0';
-
 	/* Find a wildcard-matched rule and parse its information. */
 	error = findRule(&conf_rule);
 	if(error) {
@@ -775,7 +779,7 @@ main(int argc, char *argv[])
 	}
 
 	/* See if the dependencies on this rule are not in conflict. */
-	error = evaluateDependencies(conf_rule.dependencies);
+	error = evaluateDependencies(&conf_rule);
 	if(error) {
 	  fprintf(stderr, "ASRLauncher(%d): Failed evaluating dependencies!\n",
 			  My_Pid);
