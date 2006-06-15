@@ -84,9 +84,9 @@ char Conflict_Parent[MAXPATHLEN]; /* Parent directory of conflict. */
 char *Conflict_Basename;    /* Just the filename to the conflict. */
 char *Conflict_Volume_Path; /* Full path to the conflict's volume's root. */
 char *Conflict_Wildcard;    /* Holds the part of the pathname that matched
-			     * an asterisk in a rule, for convenience.
-			     * Example: *.dvi matching foo.dvi puts "foo" in
-			     * this variable. */
+							 * an asterisk in a rule, for convenience.
+							 * Example: *.dvi matching foo.dvi puts "foo" in
+							 * this variable. */
 
 
 /* Lexical Scoping/Rule Parsing Globals */
@@ -97,8 +97,9 @@ char *Rules_File_Path;
 /*
  * openRulesFile
  *
- * Takes in a pathname (with or without a filename at the end), strips
- * it down to the final '/', and concatenates the universal rules filename.
+ * Takes in a directory pathname (with or without garbage at the end), strips
+ * it down to the final '/', and concatenates the universal rules filename. It
+ * then updates Rules_File_Path with the new correct path.
  *
  * Returns the FILE handle or NULL on failure.
  */
@@ -119,11 +120,12 @@ FILE* openRulesFile(char *conflict) {
 
   strcat(parentPath, ".asr"); /* Concatenate filename of rules file. */
 
-  fprintf(stderr, "ASRLauncher(%d): Trying rules file: %s\n", 
-	  My_Pid, parentPath);
   rules = fopen(parentPath, "r"); /* Could fail with ENOENT or EACCES
-				   * at which point we loop to a
-				   * higher directory to try again. */
+								   * at which point we loop to a
+								   * higher directory to try again. */
+
+  strncpy(Rules_File_Path, parentPath, MAXPATHLEN);
+
   return rules;
 }
 
@@ -182,7 +184,6 @@ int compareWithWilds(char *str, char *wildstr) {
 }
 
 int parseRulesFile(struct rule *data) {
-  char command[MAXCOMMANDLEN];
   int rule_not_found = 1; /* invariant */
 
   if((Rules_File == NULL) || (data == NULL))
@@ -201,7 +202,12 @@ int parseRulesFile(struct rule *data) {
     }
 
 	if((end = strchr(data->name, ':')) == NULL) {
-	  /* XXX: Advance to next line. */
+	  char c;
+
+	  /* Ignore the rest of this line if the first word doesn't have ':' */
+	  do { c = fgetc(Rules_File); } 
+	  while((c != ';') && (c != '\0'));
+
       continue;
 	}
 	else
@@ -216,23 +222,19 @@ int parseRulesFile(struct rule *data) {
 	
     rule_not_found = 0;
 
-    /* Store Conflict_Wildcard for $* environment variable. */
     if(Conflict_Wildcard != NULL) {
       free(Conflict_Wildcard);
 	  Conflict_Wildcard = NULL;
 	}
 
-    /* Store what matched that '*', if the rule led off with one. */
+    /* Store what matched that '*' in $* (if the rule led off with one). */
     if(data->name[0] == '*') {
 	  int diff; /* how many bytes to cut off of the end of Conflict_Path */
 	  
 	  diff = strlen(Conflict_Basename) - (strlen(data->name) - 1);
       
       Conflict_Wildcard = strdup(Conflict_Basename);
-      if(Conflict_Wildcard == NULL) {
-		fprintf(stderr, "ASRLauncher(%d): Malloc error!\n", My_Pid);
-		exit(1);
-      }
+      if(Conflict_Wildcard == NULL) { perror("malloc");	exit(EXIT_FAILURE); }
       
       *(Conflict_Wildcard + diff) = '\0';
       
@@ -241,8 +243,9 @@ int parseRulesFile(struct rule *data) {
     }
 	
     { /* Read in data to be used later in the launch. */
-      int len, i;
+      int len;
 	  char *strerror;
+	  fpos_t pos;
 
       /* Read in dependencies. */
 
@@ -256,25 +259,43 @@ int parseRulesFile(struct rule *data) {
 		data->dependencies[len-1] = '\0';
       
 
-      /* Read in commands. */
+      /* Read in commands line-by-line. */
 
-      for(i = 0; 
-		  ((strerror = fgets(command, MAXCOMMANDLEN, Rules_File)) != NULL);
-		  i++) {
+      do {
+		char firstword[MAXPATHLEN];
+		char command[MAXCOMMANDLEN];
 
-		if((command[0] != '\t') && (command[0] != ' '))
+		if(fgetpos(Rules_File, &pos) < 0) 
+		  { perror("fgetpos"); exit(EXIT_FAILURE); }
+
+		/* Get first word from the current line. */
+		sprintf(fmt, "%%%ds", MAXPATHLEN-1);
+		if(fscanf(Rules_File, fmt, firstword) == EOF)
+		  break;
+		
+		if((end = strchr(firstword, ':')) != NULL) /* New rule. */
 		  break;
 
+		if(fsetpos(Rules_File, &pos) < 0)
+		  { perror("fsetpos"); exit(EXIT_FAILURE); }
+	
+		strerror = fgets(command, MAXCOMMANDLEN, Rules_File);
+		if(strerror == NULL) /* EOF */
+		  break;
+		
 		if((strlen(command) + strlen(data->commands)) > MAXRULELEN) {
 		  fprintf(stderr, "ASRLauncher(%d): Command buffer overrun!\n",
 				  My_Pid);
 		  return 1;
 		}
 
-		strncat(data->commands, command, MAXCOMMANDLEN);
-      }
+		strcat(data->commands, command);
+      } while(1);
 
-	  if(command[0] == '\0') {
+	  if(fsetpos(Rules_File, &pos) < 0) /* rewind to beginning of next rule */
+		{ perror("fsetpos"); exit(EXIT_FAILURE); }
+	  
+	  if(data->commands == '\0') {
 		fprintf(stderr, "ASRLauncher(%d): Malformed rule!\n", My_Pid);
 		return 1;
 	  }
@@ -344,10 +365,7 @@ int replaceEnvVars(char *string, int maxlen) {
 
   /* Allocate temporary buffer to perform copies into. */
   temp = (char *) malloc((maxlen)*sizeof(char));
-  if(temp == NULL) {
-    fprintf(stderr, "ASRLauncher(%d): Malloc error!\n", My_Pid);
-    exit(1);
-  }
+  if(temp == NULL) { perror("malloc");	exit(EXIT_FAILURE); }
 
   strncpy(temp, string, maxlen-1);
 
@@ -442,10 +460,11 @@ int replaceEnvVars(char *string, int maxlen) {
 		  src = trav + 2;                     /* skip environment var name */
 		  dest = trav + strlen(replace);
 		  
-		  if((holder = (char *)malloc(maxlen * sizeof(char))) == NULL) {
-			fprintf(stderr, "ASRLauncher(%d): malloc failed!\n", My_Pid);
+		  holder = (char *)malloc(maxlen * sizeof(char));
+		  if(holder == NULL) { 
+			perror("malloc");	
 			free(temp);
-			return 1;
+			exit(EXIT_FAILURE); 
 		  }
 		  
 		  strcpy(holder, src);
@@ -467,8 +486,6 @@ int replaceEnvVars(char *string, int maxlen) {
 	strncpy(string, temp, maxlen-1);
 
   free(temp);
-  
-  fprintf(stderr, "ASRLauncher(%d): After: %s\n", My_Pid, string);
   
   return 0;
 }
@@ -531,6 +548,9 @@ int findRule(struct rule *data) {
 
   if(Rules_File_Path == NULL) {
 	Rules_File_Path = (char *) malloc(MAXPATHLEN * sizeof(char));
+	if(Rules_File_Path == NULL) { perror("malloc");	exit(EXIT_FAILURE); }
+
+	/* Will be changed later by parseRulesFile. */
 	strncpy(Rules_File_Path, Conflict_Path, MAXPATHLEN);
   }
 
@@ -548,8 +568,11 @@ int findRule(struct rule *data) {
 	  fclose(Rules_File);
 	  Rules_File = NULL;
 	}
-	else        /* We have found a matching rule. */
+	else {       /* We have found a matching rule. */
+	  fprintf(stderr, "ASRLauncher(%d): Opening rules file: %s\n", 
+			  My_Pid, Rules_File_Path);
 	  break;
+	}
   }
   
   if(scope == 0) {  /* Stop after volume root. */
@@ -718,10 +741,8 @@ main(int argc, char *argv[])
       *temp = '\0';
   }
 
-  if((conf_rule.commands = (char *) malloc(MAXRULELEN * sizeof(char))) == NULL) {
-	fprintf(stderr, "ASRLauncher(%d): Malloc failed!\n", My_Pid);
-	return 1;
-  }
+  conf_rule.commands = (char *) malloc(MAXRULELEN * sizeof(char));
+  if(conf_rule.commands == NULL) { perror("malloc");	exit(EXIT_FAILURE); }
 
   fprintf(stderr, "ASRLauncher(%d): Conflict received: %s\n", 
 	  My_Pid, Conflict_Path);
@@ -729,8 +750,6 @@ main(int argc, char *argv[])
 	  My_Pid, getuid(), My_Pid, getpgrp());
   fprintf(stderr, "ASRLauncher(%d): Conflict's volume root: %s\n", 
 	  My_Pid, Conflict_Volume_Path);
-  fprintf(stderr, "ASRLauncher(%d): Conflict's parent dir: %s\n", 
-	  My_Pid, Conflict_Parent);
 
   /*
    * Steps
