@@ -350,8 +350,6 @@ int replaceEnvVars(char *string, int maxlen) {
   }
 
   strncpy(temp, string, maxlen-1);
-  fprintf(stderr, "ASRLauncher(%d): replaceEnvVars: Before: %s\n", 
-	  My_Pid, string);
 
   trav = temp;
   while(*trav != '\0') {
@@ -360,105 +358,103 @@ int replaceEnvVars(char *string, int maxlen) {
       
     case '$':                /* marks beginning of a env variable name */
       {
-	char *replace;        /* points to replacement str for env variable */
-
-	/* Compare against known environment variables. */
-	
-	/* These are the important environment variables that make the
-	 * .asr files much more useful. It's possible that user-defined 
-	 * variables could be set within the .asr file itself and checked 
-	 * here for convenience -- however, I haven't come across a case where
-	 * this would be useful yet. */
-	
-	replace = NULL;
-
-	switch(*(trav+1)) {
-
-	case CONFLICT_BASENAME:
-	  replace = Conflict_Basename;
-	  break;
-	
-	case CONFLICT_PATH:
-	  replace = Conflict_Path;
-	  break;
-
-	case CONFLICT_PARENT:
-	  replace = Conflict_Parent;
-	  break;
-	
-	case CONFLICT_WILDCARD:
-	  replace = Conflict_Wildcard;
-	  break;
-
-	case CONFLICT_VOLUME:
-	  replace = Conflict_Volume_Path;
-	  break;
-
-	case CONFLICT_TYPE:
-	  
-	  switch(Conflict_Type) {
+		char *replace;        /* points to replacement str for env variable */
 		
-	  case SERVER_SERVER:
-	    replace = SERVER_SERVER_STR;
-	    break;
-	    
-	  case LOCAL_GLOBAL:
-	    replace = LOCAL_GLOBAL_STR;
-	    break;
-	    
-	  case MIXED_CONFLICT:
-	    replace = MIXED_CONFLICT_STR;
-	    break;
-	    
-	  default: /* Unknown conflict type, leave it untouched. */
-	    break;
-	  }
-	  
-	  break;
-	  
-	default:
-	  break;
-	}
-	
-	if(replace == NULL) { /* Unknown environment variable name. */
-	  fprintf(stderr, "ASRLauncher(%d): Unknown environment variable!\n",
-			  My_Pid);
-	  trav++;
-	  continue;
-	}
-	
-	fprintf(stderr, "ASRLauncher(%d): Replacing environment "
-			"variable with: %s\n", My_Pid, replace);
-	
-	{
-	  char *src, *dest, *holder;
-	  
-	  /* See if the replacement string will fit in the buffer. */
-	  if((strlen(temp) + strlen(replace)) > maxlen) {
-	    fprintf(stderr, "ASRLauncher(%d): Replacement does not fit!\n",
-				My_Pid);
-	    free(temp);
-	    return 1;
-	  }
-	  
-	  src = trav + 2;                     /* skip environment var name */
-	  dest = trav + strlen(replace);
-	  
-	  if((holder = (char *)malloc(maxlen * sizeof(char))) == NULL) {
-	    fprintf(stderr, "ASRLauncher(%d): malloc failed!\n", My_Pid);
-	    free(temp);
-	    return 1;
-	  }
-	  
-	  strcpy(holder, src);
-	  strcpy(dest, holder);
-	  strncpy(trav, replace, strlen(replace));
-	  free(holder);
-	  
-	  fprintf(stderr, "ASRLauncher(%d): During: %s\n", My_Pid, temp);
-	}
-	
-	break;
+		/* Compare against known environment variables. */
+		
+		/* These are the important environment variables that make the
+		 * .asr files much more useful. It's possible that user-defined 
+		 * variables could be set within the .asr file itself and checked 
+		 * here for convenience -- however, I haven't come across a case where
+		 * this would be useful yet. */
+		
+		replace = NULL;
+		
+		switch(*(trav+1)) {
+		  
+		case CONFLICT_BASENAME:
+		  replace = Conflict_Basename;
+		  break;
+		  
+		case CONFLICT_PATH:
+		  replace = Conflict_Path;
+		  break;
+		  
+		case CONFLICT_PARENT:
+		  replace = Conflict_Parent;
+		  break;
+		  
+		case CONFLICT_WILDCARD:
+		  replace = Conflict_Wildcard;
+		  break;
+		  
+		case CONFLICT_VOLUME:
+		  replace = Conflict_Volume_Path;
+		  break;
+		  
+		case CONFLICT_TYPE:
+		  
+		  switch(Conflict_Type) {
+			
+		  case SERVER_SERVER:
+			replace = SERVER_SERVER_STR;
+			break;
+			
+		  case LOCAL_GLOBAL:
+			replace = LOCAL_GLOBAL_STR;
+			break;
+			
+		  case MIXED_CONFLICT:
+			replace = MIXED_CONFLICT_STR;
+			break;
+			
+		  default: /* Unknown conflict type, leave it untouched. */
+			break;
+		  }
+		  
+		  break;
+		  
+		default:
+		  break;
+		}
+		
+		if(replace == NULL) { /* Unknown environment variable name. */
+		  fprintf(stderr, "ASRLauncher(%d): Unknown environment variable!\n",
+				  My_Pid);
+		  trav++;
+		  continue;
+		}
+		
+		fprintf(stderr, "ASRLauncher(%d): Replacing environment "
+				"variable with: %s\n", My_Pid, replace);
+		
+		{
+		  char *src, *dest, *holder;
+		  
+		  /* See if the replacement string will fit in the buffer. */
+		  if((strlen(temp) + strlen(replace)) > maxlen) {
+			fprintf(stderr, "ASRLauncher(%d): Replacement does not fit!\n",
+					My_Pid);
+			free(temp);
+			return 1;
+		  }
+		  
+		  src = trav + 2;                     /* skip environment var name */
+		  dest = trav + strlen(replace);
+		  
+		  if((holder = (char *)malloc(maxlen * sizeof(char))) == NULL) {
+			fprintf(stderr, "ASRLauncher(%d): malloc failed!\n", My_Pid);
+			free(temp);
+			return 1;
+		  }
+		  
+		  strcpy(holder, src);
+		  strcpy(dest, holder);
+		  strncpy(trav, replace, strlen(replace));
+		  free(holder);
+		}
+		
+		break;
       }
 	  
     default:
@@ -476,6 +472,7 @@ int replaceEnvVars(char *string, int maxlen) {
   
   return 0;
 }
+
 
 int evaluateDependencies(char *dpndstr) {
   char *temp;
@@ -566,7 +563,7 @@ int findRule(struct rule *data) {
 
 int executeCommands(char *command_list) {
 
-  int status = 0, options = WNOHANG, error, i;
+  int status = 0, options = WNOHANG, error, pfd[2];
   pid_t pid;
   char *asr_argv[4];
 
@@ -585,64 +582,39 @@ int executeCommands(char *command_list) {
     return 1;
   }
 
+  if(pipe(pfd) == -1) { perror("pipe"); exit(EXIT_FAILURE); }
+  
   pid = fork();
-  if(pid < 0) {
-	fprintf(stderr, "ASRLauncher(%d): Failed forking ASR!\n",
-			My_Pid);
-	return 1;
-  }
+  if(pid == -1) { perror("fork"); exit(EXIT_FAILURE); }
   
   if(pid == 0) {
 
-	/* Separate the commands for /bin/sh */
+	/* Make the child shell think that pfd[0] is stdin. */
 
-	for(i = 0; command_list[i] != '\0'; i++) {
-	  int j;
+	close(pfd[1]);
+	dup2(pfd[0], STDIN_FILENO);
 
-	  switch(command_list[i]) {
-
-	  case '\n':
-
-		if(command_list[i+1] == '\0')
-		  command_list[i] = '\0';
-		else
-		  command_list[i] = ';';
-
-		break;
-
-	  case '\t':
-
-		while((command_list[i] == '\t') || (command_list[i] == ' '))
-		  for(j = i; command_list[j] != '\0'; j++)
-			command_list[j] = command_list[j+1];
-
-		break;
-
-	  default:
-		break;
-	  }
-	}
-	
-	fprintf(stderr, "\nASRLauncher(%d): Commands to execute: %s\n", 
+	fprintf(stderr, "\nASRLauncher(%d): Commands to execute:\n\n%s\n", 
 			My_Pid, command_list);
-	
+
 	asr_argv[0] = "/bin/sh"; 
-	asr_argv[1] = "-c";
-	asr_argv[2] = command_list;
-	asr_argv[3] = NULL;
+	asr_argv[1] = NULL;
 	
 	if(execvp(asr_argv[0], asr_argv) < 0) {
-	  int error = errno;
-
-	  fprintf(stderr, "ASRLauncher(%d): ASR exec() failed: %s\n", 
-			  My_Pid, strerror(error));
-
-	  exit(1);
+	  perror("exec");
+	  close(pfd[0]);
+	  exit(EXIT_FAILURE); 
 	}
   }
   else {
 	int runtime;
-	
+
+	/* Now, pipe data to the child shell. */
+
+	close(pfd[0]);
+	write(pfd[1], (void *) command_list, strlen(command_list));
+	close(pfd[1]);
+
 	for(runtime = 0;
 		(waitpid(pid, &status, options) == 0) && (runtime < ASR_TIMEOUT);
 		runtime++) {
@@ -654,7 +626,7 @@ int executeCommands(char *command_list) {
 	
 	if(runtime >= ASR_TIMEOUT) {
 	  
-	  fprintf(stderr, "ASRLauncher(%d): ASR Timed Out!\n", My_Pid);
+	  fprintf(stderr, "ASRLauncher(%d): ASR timed out!\n", My_Pid);
 	  
 	  /* Destroy ASR process group. */
 	  kill(pid * -1, SIGKILL);
