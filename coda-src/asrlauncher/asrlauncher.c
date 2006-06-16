@@ -23,6 +23,8 @@ listed in the file CREDITS.
  *
  */
 
+/* System includes */
+
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -32,6 +34,9 @@ listed in the file CREDITS.
 #include <string.h>
 #include <unistd.h>
 
+/* Venus includes */
+
+#include <coda_config.h>
 
 /* Definitions */
 
@@ -48,9 +53,10 @@ listed in the file CREDITS.
 #define CONFLICT_BASENAME             '>' /* Puneet's original 3 vars */
 #define CONFLICT_WILDCARD             '*'
 #define CONFLICT_PARENT               '<'
+#define SYSTYPE_VAR                   '@'
 
 #define CONFLICT_PATH                 '=' /* Additional variables */
-#define CONFLICT_VOLUME               '@'
+#define CONFLICT_VOLUME               ':'
 #define CONFLICT_TYPE                 '?'
 
 /* Conflict type enumerations.
@@ -341,6 +347,10 @@ int replaceEnvVars(char *string, int maxlen) {
 		replace = NULL;
 		
 		switch(*(trav+1)) {
+
+		case SYSTYPE_VAR:
+		  replace = SYSTYPE;
+		  break;
 		  
 		case CONFLICT_BASENAME:
 		  replace = Conflict_Basename;
