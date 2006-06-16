@@ -2907,6 +2907,20 @@ int fsobj::LaunchASR() {
     char *arg[5];
     char confstr[4];
     
+	/* Restrict access to this volume by process group id. */
+
+	v->asr_pgid(getpid());
+
+
+	/* Store more relevant information in our ASRLauncher table.
+	 * This is used when we receive a SIGCHLD at the end of our launch. */
+	
+	ASRTable[index].pid = getpid();
+	ASRTable[index].fid.Realm = fid.Realm;
+	ASRTable[index].fid.Volume = fid.Volume;
+	ASRTable[index].fid.Vnode = fid.Vnode;
+	ASRTable[index].fid.Unique = fid.Unique;
+
     if(setpgrp() < 0) {
       int error = errno;
       LOG(0, ("fsobj::LaunchASR: (%s) ASRLauncher setpgrp() failed "
@@ -2937,31 +2951,21 @@ int fsobj::LaunchASR() {
 	      "with code %d: %s\n", FID_(&fid), error, strerror(error)));
     }
 
+	ASRTable[index].pid = 0;
+
+	v->asr_pgid(-1);
     v->unlock_asr();
     exit(0);
   }
-  
 
-  /* Restrict access to this volume by process group id (the ASRLauncher's). */
 
-  v->asr_pgid(pid);
-  
-
-  /* Store more relevant information in our ASRLauncher table. */
-
-  ASRTable[index].pid = pid;
-  ASRTable[index].fid.Realm = fid.Realm;
-  ASRTable[index].fid.Volume = fid.Volume;
-  ASRTable[index].fid.Vnode = fid.Vnode;
-  ASRTable[index].fid.Unique = fid.Unique;
-  
   LOG(0, ("fsobj::LaunchASR: Found ASRTable entry %d open, assigned "
 	  "pid %d to fid %s\n", index, pid, FID_(&ASRTable[index].fid)));
 
   {
     struct timeval tv;
     gettimeofday(&tv, 0);
-    lastresolved = tv.tv_sec;
+    lastresolved = tv.tv_sec; /* This is much easier to do here than SIGASR. */
   }
   
   return 0;
