@@ -2853,6 +2853,12 @@ int fsobj::LaunchASR() {
     return -1;
   }	  
 
+  if(IsDir()) {
+	if((path[strlen(path)-1]) != '/')
+	  strcat(path, "/");
+    LOG(0, ("fsobj::LaunchASR: Directory conflict! Pathname: %s\n", path));
+  }
+
   /* At this point, we have all of the information required to begin the
    * launch sequence. */
 

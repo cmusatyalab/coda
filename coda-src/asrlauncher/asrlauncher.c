@@ -19,9 +19,11 @@ listed in the file CREDITS.
 /*						
  * asrlauncher.c
  *
- * This file contains all of the code that makes up the ASRLauncher.
+ * This file contains all of the code that makes up the ASRLauncher binary.
  *
+ * Author: Adam Wolbach
  */
+
 
 /* System includes */
 
@@ -34,22 +36,25 @@ listed in the file CREDITS.
 #include <string.h>
 #include <unistd.h>
 
+
 /* Venus includes */
 
 #include <coda_config.h>
 
+
 /* Definitions */
+
+/* Globally-defined ASR rules file name. */
+#define ASR_RULES_FILENAME ".asr"
 
 /* ASR timeout period (milliseconds). Currently this is identical to RPC2's. */
 #define ASR_TIMEOUT 60000
 
 /* Character array lengths */
-
 #define MAXPATHLEN     256
 #define MAXCOMMANDLEN  4096
 
 /* Environment variable names */
-
 #define CONFLICT_BASENAME             '>' /* Puneet's original 3 vars */
 #define CONFLICT_WILDCARD             '*'
 #define CONFLICT_PARENT               '<'
@@ -69,10 +74,22 @@ listed in the file CREDITS.
 #define MIXED_CONFLICT      3
 #define MIXED_CONFLICT_STR "3"
 
+
+/* Data Structures */
+
+/*
+ * struct rule_info
+ *
+ * This is used to keep track of offsets of important data into the
+ * current rules file. The offsets are set and used with ftell/fseek.
+ */
 struct rule_info {
   long dependencies;
   long commands;
 };
+
+
+/* Global Variables */
 
 /* ASRLauncher-related Globals */
 
@@ -91,12 +108,110 @@ char Conflict_Wildcard[MAXPATHLEN];    /* Holds the part of the pathname that
 										* Example: *.dvi matching foo.dvi puts 
 										* "foo" in this variable. */
 
-
 /* Lexical Scoping/Rule Parsing Globals */
 
 FILE *Rules_File;
 long Rules_File_Offset;
 char Rules_File_Path[MAXPATHLEN];
+
+
+
+/*
+ * escapeString
+ *
+ * Replaces all instances of special metacharacters in a string with their
+ * 'escaped' counterparts, such that a shell will read them for their
+ * character data and not as a control symbol.
+ *
+ * The list of metacharacters comes from the WWW Security FAQ, referenced by
+ * http://www.dwheeler.com/secure-programs/Secure-Programs-HOWTO/handle-metacharacters.html
+ * Other characters may also be appropriate, but tend to be shell-specific.
+ *
+ * Returns 0 on success, 1 on failure
+ */
+
+int escapeString(char *str, int maxlen) {
+  int len, i;
+  char *tempstr;
+
+  if(str == NULL || maxlen <= 0 ) {
+	fprintf(stderr, "ASRLauncher(%d): Corrupt pathname.\n", My_Pid);
+	return 1;
+  }
+
+  tempstr = (char *) malloc(maxlen * sizeof(char));
+  if(tempstr == NULL) {	perror("malloc"); exit(EXIT_FAILURE); }
+   
+  strncpy(tempstr, str, maxlen-1);
+  str[maxlen-1] = '\0';
+
+  len = strlen(str);
+  for(i = 0; (tempstr[i] != '\0') && (len < (maxlen - 1)); i++) {
+
+	switch(tempstr[i]) {
+
+	case '\n': /* special case: see man BASH(1) */
+
+	  if((len + 2) < (maxlen - 1)) {
+		memmove(&(tempstr[i+2]), &(tempstr[i]), strlen(&(tempstr[i])));
+		tempstr[i] = '\\';
+		tempstr[i+1] = '\\';
+		i++;
+	  }
+	  else {
+		fprintf(stderr, "ASRLauncher(%d): Pathname buffer overflow.\n", 
+				My_Pid);
+		free(tempstr);
+		return 1;
+	  }
+	  break;
+
+	case '`':
+	case '\"':
+	case '\'':
+	case '[':
+	case ']':
+	case '{':
+	case '}':
+	case '(':
+	case ')':
+	case '~':
+	case '^':
+	case '<':
+	case '>':
+	case '&':
+	case '|':
+	case '?':
+	case '*':
+	case '$':
+	case ';':
+	case '\r':
+	case '\\':
+
+	  if((len + 1) < (maxlen - 1)) {
+		memmove(&(tempstr[i+1]), &(tempstr[i]), strlen(&(tempstr[i])));
+		tempstr[i++] = '\\';
+	  }
+	  else {
+		fprintf(stderr, "ASRLauncher(%d): Pathname buffer overflow.\n", 
+				My_Pid);
+		free(tempstr);
+		return 1;
+	  }
+	  break;
+
+	default:
+	  continue;
+	}
+
+	len = strlen(tempstr);
+  }
+
+  strcpy(str, tempstr);
+  free(tempstr);
+
+  return 0;
+}
 
 /*
  * openRulesFile
@@ -108,13 +223,13 @@ char Rules_File_Path[MAXPATHLEN];
  * Returns the FILE handle or NULL on failure.
  */
 
-FILE* openRulesFile(char *conflict) {
+FILE* openRulesFile(char *dirpath) {
   FILE *rules;
   char parentPath[MAXPATHLEN], *end;
   
   rules = NULL;
 
-  strncpy(parentPath, conflict, MAXPATHLEN);
+  strncpy(parentPath, dirpath, MAXPATHLEN);
 
   end = strrchr(parentPath, '/');
   if(end == NULL)
@@ -122,7 +237,7 @@ FILE* openRulesFile(char *conflict) {
 
   *(end + 1)='\0';            /* Terminate string just after final '/'. */
 
-  strcat(parentPath, ".asr"); /* Concatenate filename of rules file. */
+  strcat(parentPath, ASR_RULES_FILENAME);
 
   rules = fopen(parentPath, "r"); /* Could fail with ENOENT or EACCES
 								   * at which point we loop to a
@@ -329,6 +444,7 @@ int replaceEnvVars(char *string, int maxlen) {
 
   trav = temp;
   while(*trav != '\0') {
+	int varlen = 2;
 
     switch(*trav) {
       
@@ -373,25 +489,44 @@ int replaceEnvVars(char *string, int maxlen) {
 		  break;
 		  
 		case CONFLICT_TYPE:
-		  
-		  switch(Conflict_Type) {
+
+		  switch(*(trav+2)) {
 			
-		  case SERVER_SERVER:
+		  case 'S':
+			varlen = 3;
 			replace = SERVER_SERVER_STR;
 			break;
 			
-		  case LOCAL_GLOBAL:
+		  case 'L':
+			varlen = 3;
 			replace = LOCAL_GLOBAL_STR;
 			break;
 			
-		  case MIXED_CONFLICT:
+		  case 'M':
+			varlen = 3;
 			replace = MIXED_CONFLICT_STR;
 			break;
 			
-		  default: /* Unknown conflict type, leave it untouched. */
+		  default:
+			switch(Conflict_Type) {
+			  
+			case SERVER_SERVER:
+			  replace = SERVER_SERVER_STR;
+			  break;
+			  
+			case LOCAL_GLOBAL:
+			  replace = LOCAL_GLOBAL_STR;
+			  break;
+			  
+			case MIXED_CONFLICT:
+			  replace = MIXED_CONFLICT_STR;
+			  break;
+			  
+			default: /* Unknown conflict type, leave it untouched. */
+			  break;
+			}
 			break;
 		  }
-		  
 		  break;
 		  
 		default:
@@ -419,7 +554,7 @@ int replaceEnvVars(char *string, int maxlen) {
 			return 1;
 		  }
 		  
-		  src = trav + 2;                     /* skip environment var name */
+		  src = trav + varlen;                  /* skip environment var name */
 		  dest = trav + strlen(replace);
 		  
 		  holder = (char *)malloc(maxlen * sizeof(char));
@@ -492,8 +627,6 @@ int evaluateDependencies(struct rule_info *data) {
 	/* Update current position. */
 	if((pos = ftell(Rules_File)) < 0)
 	  { perror("ftell"); exit(EXIT_FAILURE); }
-	else
-	  fprintf(stderr, "position: %ld\tend position: %ld\n", pos, data->commands);
   }
     
   return 0;
@@ -752,6 +885,16 @@ main(int argc, char *argv[])
 	}
   }
 
+  /* 
+   * Escaping of filename, pathname characters done here. This is necessary
+   * because it is possible to hide shell commands within a filename, i.e.
+   * a rule that launches for *.o could run into a conflict named
+   * "foo; foo.sh; .odt" which clearly cannot be piped directly into /bin/sh.
+   */
+  
+  escapeString(Conflict_Path, MAXPATHLEN);
+  escapeString(Conflict_Parent, MAXPATHLEN);
+  escapeString(Conflict_Volume_Path, MAXPATHLEN);
 
   fprintf(stderr, "ASRLauncher(%d): Conflict received: %s\n", 
 	  My_Pid, Conflict_Path);
@@ -759,6 +902,7 @@ main(int argc, char *argv[])
 	  My_Pid, getuid(), My_Pid, getpgrp());
   fprintf(stderr, "ASRLauncher(%d): Conflict's volume root: %s\n", 
 	  My_Pid, Conflict_Volume_Path);
+
 
   /*
    * Steps
