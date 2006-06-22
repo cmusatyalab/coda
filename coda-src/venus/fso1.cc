@@ -2751,8 +2751,8 @@ void fsobj::ListCacheLong(FILE* fp)
   fflush(fp);
 }
 
-int fsobj::LaunchASR() {
-  int conflict_type, uid, rc;
+int fsobj::LaunchASR(int conflict_type, int object_type) {
+  int uid, rc, pfd[2];
   char path[MAXPATHLEN], rootPath[MAXPATHLEN];
   pid_t pid;
   userent *ue;
@@ -2765,7 +2765,19 @@ int fsobj::LaunchASR() {
   if(vp == NULL)
     return -1;
 
-  uid = vp->u.u_uid;
+  switch(conflict_type) {
+  case SERVER_SERVER:
+	uid = vp->u.u_uid;
+	break;
+  case LOCAL_GLOBAL:
+  case MIXED_CONFLICT:
+	uid = WhoIsLastAuthor();
+	break;
+
+  default:
+	LOG(0, ("fsobj::LaunchASR: Bad conflict type!\n"));
+	return -1;
+  }
 
   v = (repvol *) vol;
 
@@ -2795,52 +2807,11 @@ int fsobj::LaunchASR() {
     LOG(0, ("fsobj::LaunchASR: ASR's Volume Root is: %s\n", rootPath));    
   }
 
-  /* Conflict type (integer) is the third and final argument to ASRLauncher. */
-  /*
-   * 0 = None
-   * 1 = Server/Server
-   * 2 = Local/Global
-   * 3 = Both
-   */
 
-  conflict_type = IsFake() + (2 * IsToBeRepaired());
+  /* Obtain the user and his tokens to assign them to the ASRLauncher uid. */
 
-
-  /* Obtain the user and his token's to assign them to the ASRLauncher uid. */
-
-  /* XXX - At the moment, this is root and is a serious security flaw. This
-   * should be changed as soon as Venus switches to user privileges. */
-
-  switch(conflict_type) {
-  case 1:
-    LOG(0, ("fsobj::LaunchASR: Server/Server conflict!\n"));
-    ue = v->realm->GetUser(uid);
-    CODA_ASSERT(ue != NULL);
-    break;
-  case 2:
-    {
-      uid_t uid_temp;
-      LOG(0, ("fsobj::LaunchASR: Local/Global conflict!\n"));
-      uid_temp = WhoIsLastAuthor();
-      CODA_ASSERT(uid_temp > 0);
-      ue = v->realm->GetUser(uid_temp);
-      CODA_ASSERT(ue != NULL);
-    }
-    break;
-  case 3:
-    {
-      uid_t uid_temp;
-      LOG(0, ("fsobj::LaunchASR: Mixed conflict!\n"));
-      uid_temp = WhoIsLastAuthor();
-      CODA_ASSERT(uid_temp > 0);
-      ue = v->realm->GetUser(uid_temp);
-      CODA_ASSERT(ue != NULL);
-    }
-    break;
-  default:
-    LOG(0, ("fsobj::LaunchASR: Unknown conflict type!\n"));    
-    return -1;
-  }
+  ue = v->realm->GetUser(uid);
+  CODA_ASSERT(ue != NULL);
 
 
   /* Find tokens associated with this user */
@@ -2852,10 +2823,23 @@ int fsobj::LaunchASR() {
     return -1;
   }	  
 
-  if(IsDir()) {
+  switch(object_type) {
+
+  case DIRECTORY_CONFLICT:
+
 	if((path[strlen(path)-1]) != '/')
 	  strcat(path, "/");
+
     LOG(0, ("fsobj::LaunchASR: Directory conflict! Pathname: %s\n", path));
+	break;
+
+  case FILE_CONFLICT:
+
+    LOG(0, ("fsobj::LaunchASR: File conflict! Pathname: %s\n", path));
+	break;
+	
+  default:
+	CODA_ASSERT(0);
   }
 
   /* At this point, we have all of the information required to begin the
@@ -2872,11 +2856,16 @@ int fsobj::LaunchASR() {
 
   /* Not exactly thread-safe, but rarely do ASR's start concurrently. */
   
-  ASRpid = 1;
+
+  if(ASRpid > 0) {
+    LOG(0, ("fsobj::LaunchASR: ASR in progress in another volume!\n"));
+	return -1; /* or should we yield() for a while? */
+  }
+	
+  ASRpid = 1; /* reserve our place */
 
 
-  /* Tell the user what is in conflict, and what launcher is handling it. 
-   * Exposing this to the user is important because the volume locks. */
+  /* Tell the user what is in conflict, and what launcherfile's handling it. */
 
   MarinerLog("ASRLauncher(%s) HANDLING %s\n", ASRLauncherFile, path);
 	  
@@ -2890,26 +2879,15 @@ int fsobj::LaunchASR() {
 
 
   /* Fork child ASRLauncher and exec() the file in the ASRLaunchFile global. */
+  if(pipe(pfd) == -1) { perror("pipe"); exit(EXIT_FAILURE); }
 
   pid = fork();
   if(pid == 0) {
-    char *arg[5];
+	int error;
+    char *arg[5], buf[3];
     char confstr[4];
     
-	/* Restrict access to this volume by process group id. */
-
-	v->asr_pgid(getpid());
-
-
-	/* Store more relevant information in our ASRLauncher table.
-	 * This is used when we receive a SIGCHLD at the end of our launch. */
-	
-	ASRpid = getpid();
-	ASRfid.Realm = fid.Realm;
-	ASRfid.Volume = fid.Volume;
-	ASRfid.Vnode = fid.Vnode;
-	ASRfid.Unique = fid.Unique;
-
+	close(pfd[1]);
     if(setpgrp() < 0) { perror("setpgrp"); exit(EXIT_FAILURE); }
     
     sprintf(confstr, "%d", conflict_type);
@@ -2922,8 +2900,37 @@ int fsobj::LaunchASR() {
     arg[3] = confstr;
     arg[4] = NULL;
 
+	while((error = read(pfd[0], (void *)buf, 2)) == 0)
+	  continue;
+
+	if(error < 0) { perror("read"); exit(EXIT_FAILURE); }
+
+	if(setuid(uid) < 0) { perror("setuid"); exit(EXIT_FAILURE); }
+
+	close(pfd[0]);
+
     if(execve(arg[0], arg, 0) < 0) { perror("exec"); exit(EXIT_FAILURE); }
   }
+  
+  close(pfd[0]);
+
+  /* Restrict access to this volume by process group id. */
+
+  v->asr_pgid(pid);
+  
+  
+  /* Store relevant information globally, and make sure it is stored before
+   * we exec().
+   * This is used when we receive a SIGCHLD at the end of our launch. */
+  
+  ASRpid = pid;
+  ASRfid = fid;
+  ASRuid = uid;
+
+  if(write(pfd[1], (void *) "go", 2) < 0)
+	{ perror("write"); exit(EXIT_FAILURE); }
+
+  close(pfd[1]);
 
   {
     struct timeval tv;

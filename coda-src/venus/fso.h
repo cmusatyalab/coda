@@ -112,6 +112,12 @@ const int CPSIZE = 8;
 
 void FSODaemon(void); /* used to be member of class fsdb (Satya 3/31/95) */
 
+#define SERVER_SERVER   1
+#define LOCAL_GLOBAL    2
+#define MIXED_CONFLICT  3
+
+#define FILE_CONFLICT       1
+#define DIRECTORY_CONFLICT  2
 
 /* The (cached) file-system database. */
 class fsdb {
@@ -565,7 +571,7 @@ class fsobj {
     /* Local-global conflict detection */
     int IsToBeRepaired(void);
     uid_t WhoIsLastAuthor(void);
-    int LaunchASR(void);
+    int LaunchASR(int, int);
 
     /* Interface to the dir package. */
     void dir_Create(const char *, VenusFid *);

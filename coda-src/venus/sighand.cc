@@ -152,7 +152,7 @@ void SigInit(void)
     sa.sa_handler = SigASR;
 #ifdef SIGCHLD
     sigaction(SIGCHLD, &sa, NULL);
-    ASRpid = 0; 
+    ASRpid = NO_ASR; 
 #endif
 }
 
@@ -291,6 +291,12 @@ static void SigASR(int sig)
    * an ASRLauncher completing execution, and the status is the return code
    * of success or failure of the repair. */
 
+  if(ASRpid == NO_ASR)
+	return;
+
+  LOG(0, ("Signal Handler(ASR): ASRpid:%d, ASRfid:%s\n", 
+		  ASRpid, FID_(&ASRfid)));
+
   pid = getpid();
   status = options = 0;
 
@@ -312,7 +318,7 @@ static void SigASR(int sig)
   }
 
   /* Clear out table entry */
-  ASRpid = 0;
+  ASRpid = NO_ASR;
 
   /* Unassign Tokens */
   /* TODO: not easy to do at the moment. */

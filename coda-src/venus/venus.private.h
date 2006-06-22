@@ -381,5 +381,6 @@ extern void MakeUserSpoolDir(char *, uid_t);
 
 extern pid_t ASRpid;
 extern VenusFid ASRfid;
+extern uid_t ASRuid;
 
 #endif /* _VENUS_PRIVATE_H_ */

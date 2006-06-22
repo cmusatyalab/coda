@@ -585,13 +585,14 @@ int fsobj::Readlink(char *buf, unsigned long len, int *cc, uid_t uid)
 	      GetComp(), buf, len, cc, uid));
 
     if (!HAVEALLDATA(this))
-	{ print(logFile); CHOKE("fsobj::Readlink: called without data"); }
+	  { print(logFile); CHOKE("fsobj::Readlink: called without data"); }
+
     if (!IsSymLink() && !IsMtPt())
-	return(EINVAL);
+	  return(EINVAL);
 
     if (stat.Length > len - 1) {
-	eprint("readlink: contents > bufsize");
-	return(EINVAL);
+	  eprint("readlink: contents > bufsize");
+	  return(EINVAL);
     }
 
     /* Fill in the buffer. */

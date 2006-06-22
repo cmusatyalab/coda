@@ -542,7 +542,8 @@ void ClientModifyLog::HandleFailedMLE()
 			LOG(0, ("ClientModifyLog::HandleFailedMLE: ASR too soon!\n"));
 		  
 		  if(ASRInvokable)  /* Execute ASR. */
-			conflict->LaunchASR();
+			conflict->LaunchASR(LOCAL_GLOBAL, 
+					(conflict->IsDir() ? DIRECTORY_CONFLICT : FILE_CONFLICT));
 		  
 		}
 	}

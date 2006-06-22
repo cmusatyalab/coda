@@ -499,7 +499,7 @@ int fsdb::Get(fsobj **f_addr, VenusFid *key, uid_t uid, int rights,
 	      char *comp, int *rcode, int GetInconsistent)
 {
   int getdata = (rights & RC_DATA);
-  
+
   LOG(100, ("fsdb::Get-mre: key = (%s), uid = %d, rights = %d, comp = %s\n",
 			FID_(key), uid, rights, comp));
   
@@ -568,7 +568,9 @@ int fsdb::Get(fsobj **f_addr, VenusFid *key, uid_t uid, int rights,
   }
   
   fsobj *f = 0;
+
   int	reference = (vp->u.u_flags & REFERENCE);
+  int   isdir = -1;
   
   /* Find the fsobj, or create a fresh one. */
  RestartFind:
@@ -727,7 +729,9 @@ int fsdb::Get(fsobj **f_addr, VenusFid *key, uid_t uid, int rights,
 			LOG(0, ("fsdb::Get: Object with active reference has gone inconsistent.\n\t Cannot conjure fake directory until object is inactive. (key =  <%s>)\n", FID_(key)));
 			return(ETOOMANYREFS);
 		  }
-		  
+
+		  isdir = f->IsDir();
+
 		  Put(&f);
 		  code = 0;
 		  
@@ -952,13 +956,27 @@ int fsdb::Get(fsobj **f_addr, VenusFid *key, uid_t uid, int rights,
 	int ASRInvokable;
 	repvol *v;
 	struct timeval tv;
-
-	CODA_ASSERT(f->vol->IsReplicated());
+	fsobj *realobj;
 	
 	LOG(0, ("fsdb::Get:Volume (%u) NOT under repair and IsFake(%s)\n",
 			uid, FID_(&f->fid)));
 	
-	v = (repvol *)f->vol;
+
+	/* At this point, we have Fakeify'd the real object, and f is the
+	 * fake object served in its place. Unfortunately, it is not linked
+	 * into the directory structure and therefore calls to GetPath fail.
+	 * Find the underlying object, and call LaunchASR on that to get
+	 * the required information. */
+
+	realobj = Find(key);
+	if((isdir < 0) || (realobj == NULL)) {
+	  LOG(0, ("fsdb::Get:Find failed!\n"));
+	  code = EINCONS;
+	  Put(&f);
+	  return code;
+	}	
+	
+	v = (repvol *)realobj->vol;
 	gettimeofday(&tv, 0);
     
 	
@@ -972,20 +990,27 @@ int fsdb::Get(fsobj **f_addr, VenusFid *key, uid_t uid, int rights,
 	
 	ASRInvokable = ((ASRLauncherFile != NULL) && (vp->type == VPT_Worker) &&
 					v->IsASRAllowed() && !v->asr_running() &&
-					((tv.tv_sec - f->lastresolved) > ASR_INTERVAL) &&
+					((tv.tv_sec - realobj->lastresolved) > ASR_INTERVAL) &&
 					v->IsASREnabled());
+
 	if(ASRLauncherFile == NULL)
-	  LOG(0, ("fsdb::Get: ASRLauncherFile NULL\n"));
+	  LOG(0, ("fsdb::Get: ASRLauncherFile not specified in venus.conf!\n"));
+
 	if(vp->type != VPT_Worker)
 	  LOG(0, ("fsdb::Get: Non-worker Thread\n"));
+
 	if(!v->IsASREnabled())
 	  LOG(0, ("fsdb::Get: ASRs disabled by the system at the moment \n"));
+
 	if(v->asr_running())
 	  LOG(0, ("fsdb::Get: ASR already running in this volume\n"));
-	if(((tv.tv_sec - f->lastresolved) <= ASR_INTERVAL))
+
+	if(((tv.tv_sec - realobj->lastresolved) <= ASR_INTERVAL))
 	  LOG(0, ("fsdb::Get: ASR executed too recently for this object\n"
 			  "fsdb::Get: New time: %d\tOld time: %d\tDiff:%d\n",
-			  tv.tv_sec, f->lastresolved, tv.tv_sec - f->lastresolved));
+			  tv.tv_sec, realobj->lastresolved, 
+			  tv.tv_sec - realobj->lastresolved));
+
 	if(!v->IsASRAllowed())
 	  LOG(0, ("fsdb::Get: ASRs disabled in this volume by some user\n"));
 	
@@ -994,18 +1019,20 @@ int fsdb::Get(fsobj **f_addr, VenusFid *key, uid_t uid, int rights,
 						  * kernel locks while repairing. */
 	
 	else if (ASRInvokable) { /* Execute ASR. */
-	  LOG(0, ("fsdb::Get: Launching for (%s)... \n", FID_(&f->fid)));
-	  if(f->LaunchASR() == 0)
+	  LOG(0, ("fsdb::Get: Launching for (%s)... \n", FID_(key)));
+	  if((realobj->LaunchASR(SERVER_SERVER, 
+						   (isdir ? DIRECTORY_CONFLICT : FILE_CONFLICT))) == 0)
 		code = ERETRY;  /* wait a short duration and retry */
 	  else
 		code = EINCONS;
 	} 
 	else {
-	  LOG(0, ("fsdb::Get: ASR not invokable for %s\n", FID_(&f->fid)));
+	  LOG(0, ("fsdb::Get: ASR not invokable for %s\n", FID_(key)));
 	  code = EINCONS;
 	}
 	
 	LOG(0, ("fsdb::Get: returning %d\n", code));
+
 	Put(&f);
 	return(code);
   }

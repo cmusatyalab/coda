@@ -101,6 +101,7 @@ int masquerade_port;
 int PiggyValidations;
 pid_t ASRpid;
 VenusFid ASRfid;
+uid_t ASRuid;
 
 #if defined(HAVE_SYS_UN_H) && !defined(__CYGWIN32__)
 int mariner_tcp_enable = 0;

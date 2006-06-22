@@ -318,8 +318,8 @@ int parseRulesFile(struct rule_info *data) {
 	/* Get first word from the current line. */
     sprintf(fmt, "%%%ds", MAXPATHLEN-1);
     if(fscanf(Rules_File, fmt, name) == EOF) {
-      fprintf(stderr, "ASRLauncher(%d): No matching rule exists in this "
-			  "file.\n", My_Pid);
+      fprintf(stderr, "ASRLauncher(%d): No matching rule exists in %s\n",
+			  My_Pid, Rules_File_Path);
       return 1;
     }
 
@@ -328,10 +328,8 @@ int parseRulesFile(struct rule_info *data) {
 
 	  /* Ignore the rest of this line if the first word doesn't have ':' */
 
-	  if(fseek(Rules_File, line, SEEK_SET) < 0) {
-		perror("fseek");
-		exit(EXIT_FAILURE);
-	  }
+	  if(fseek(Rules_File, line, SEEK_SET) < 0) 
+		{ perror("fseek"); exit(EXIT_FAILURE); }
 
 	  do { c = fgetc(Rules_File); }
 	  while((c != '\n') && (c != '\0'));
@@ -552,9 +550,6 @@ int replaceEnvVars(char *string, int maxlen) {
 		  trav++;
 		  continue;
 		}
-		
-		fprintf(stderr, "ASRLauncher(%d): Replacing environment "
-				"variable with: %s\n", My_Pid, replace);
 		
 		{
 		  char *src, *dest, *holder;
