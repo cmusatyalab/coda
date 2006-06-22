@@ -2875,7 +2875,7 @@ int fsobj::LaunchASR(int conflict_type, int object_type) {
   LOG(0, ("fsobj::LaunchASR: Assigning tokens from uid %d to uid %d\n",
 	  uid, getuid()));
 
-  v->realm->NewUserToken(getuid(), &st, &ct);
+  v->realm->NewUserToken(uid, &st, &ct);
 
 
   /* Fork child ASRLauncher and exec() the file in the ASRLaunchFile global. */
