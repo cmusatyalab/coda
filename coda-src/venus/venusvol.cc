@@ -902,7 +902,7 @@ volent::volent(Realm *r, VolumeId volid, const char *volname)
     flags.reserved = 0;
     flags.has_local_subtree = 0;
     flags.logv = 0;
-    pgid = 0;
+    pgid = NO_ASR;
 }
 
 

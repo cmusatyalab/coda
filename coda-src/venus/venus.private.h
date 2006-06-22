@@ -371,13 +371,15 @@ extern char *ASRLauncherFile;
 /* spool.cc */
 extern void MakeUserSpoolDir(char *, uid_t);
 
-/* internal table for keeping track of ASRLaunches */
 
-struct ASRLaunch {
-  int pid;
-  VenusFid fid;
-};
+/* ASR misc */
+/* Note: At some point, it would be nice to run ASRs in different
+ * volumes concurrently. This requires replacing the globals
+ * below with a table or other data structure. Due to token
+ * assignment constraints, though, this is not possible as of 06/2006.
+ */
 
-extern ASRLaunch *ASRTable;
+extern pid_t ASRpid;
+extern VenusFid ASRfid;
 
 #endif /* _VENUS_PRIVATE_H_ */

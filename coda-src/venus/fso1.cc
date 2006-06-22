@@ -81,7 +81,6 @@ extern "C" {
 static int NullRcRights = 0;
 static AcRights NullAcRights = { ANYUSER_UID, 0, 0, 0 };
 
-
 /*  *****  Constructors, Destructors  *****  */
 
 /* Pre-allocation routine. */
@@ -2753,7 +2752,7 @@ void fsobj::ListCacheLong(FILE* fp)
 }
 
 int fsobj::LaunchASR() {
-  int conflict_type, uid, rc, index;
+  int conflict_type, uid, rc;
   char path[MAXPATHLEN], rootPath[MAXPATHLEN];
   pid_t pid;
   userent *ue;
@@ -2849,7 +2848,7 @@ int fsobj::LaunchASR() {
   rc = ue->GetTokens(&st, &ct);
   if(rc != 0) {
     LOG(0, ("fsobj::LaunchASR: ASR cannot launch: No valid"
-	    " tokens exist for user: %d\n", uid));	    
+			" tokens exist for user: %d\n", uid));	    
     return -1;
   }	  
 
@@ -2871,25 +2870,9 @@ int fsobj::LaunchASR() {
   /* Store the ASRLauncher's pid in the ASRLauncher table, to give the
    * SIGCHLD signal handler some information to work with later. */
 
-  for(index = 0; index < 10; index++)           /* Find ASRTable entry. */
-
-    /* Not exactly thread-safe, but rarely do ASR's run concurrently,
-     * and never within the same volume. */
-
-    if(ASRTable[index].pid == 0) {
-      ASRTable[index].pid = 1;
-      break;
-    }
+  /* Not exactly thread-safe, but rarely do ASR's start concurrently. */
   
-
-  /* Abort if we cannot find an ASRTable entry ( > 10 ASR's running ) */
-
-  if(index >= 10) {
-    LOG(0, ("fsobj::LaunchASR: Maximum number of concurrent "
-	    "ASR's reached. Aborting.\n"));
-    v->unlock_asr();
-    return -1;
-  }
+  ASRpid = 1;
 
 
   /* Tell the user what is in conflict, and what launcher is handling it. 
@@ -2921,23 +2904,14 @@ int fsobj::LaunchASR() {
 	/* Store more relevant information in our ASRLauncher table.
 	 * This is used when we receive a SIGCHLD at the end of our launch. */
 	
-	ASRTable[index].pid = getpid();
-	ASRTable[index].fid.Realm = fid.Realm;
-	ASRTable[index].fid.Volume = fid.Volume;
-	ASRTable[index].fid.Vnode = fid.Vnode;
-	ASRTable[index].fid.Unique = fid.Unique;
+	ASRpid = getpid();
+	ASRfid.Realm = fid.Realm;
+	ASRfid.Volume = fid.Volume;
+	ASRfid.Vnode = fid.Vnode;
+	ASRfid.Unique = fid.Unique;
 
-    if(setpgrp() < 0) {
-      int error = errno;
-      LOG(0, ("fsobj::LaunchASR: (%s) ASRLauncher setpgrp() failed "
-	      "with code %d: %s\n", FID_(&fid), error, strerror(error)));
-      exit(0);
-    }
+    if(setpgrp() < 0) { perror("setpgrp"); exit(EXIT_FAILURE); }
     
-    LOG(0, ("fsdb::LaunchASR: (%s) repairing %s\n"
-	    "fsdb::LaunchASR: ASRLauncher's  pid = %d, pgid = %d\n",   
-	    ASRLauncherFile, path, getpid(), getpgrp()));
-
     sprintf(confstr, "%d", conflict_type);
 
     /* Set up argument array. */
@@ -2948,25 +2922,8 @@ int fsobj::LaunchASR() {
     arg[3] = confstr;
     arg[4] = NULL;
 
-    LOG(0, ("fsdb::LaunchASR: Command: %s %s %s %s\n",
-	    ASRLauncherFile, path, rootPath, confstr));
-
-    if(execve(arg[0], arg, 0) < 0) {
-      int error = errno;
-      LOG(0, ("fsobj::LaunchASR: (%s) ASRLauncher exec() failed "
-	      "with code %d: %s\n", FID_(&fid), error, strerror(error)));
-    }
-
-	ASRTable[index].pid = 0;
-
-	v->asr_pgid(-1);
-    v->unlock_asr();
-    exit(0);
+    if(execve(arg[0], arg, 0) < 0) { perror("exec"); exit(EXIT_FAILURE); }
   }
-
-
-  LOG(0, ("fsobj::LaunchASR: Found ASRTable entry %d open, assigned "
-	  "pid %d to fid %s\n", index, pid, FID_(&ASRTable[index].fid)));
 
   {
     struct timeval tv;

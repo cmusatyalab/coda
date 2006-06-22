@@ -92,5 +92,5 @@ uid_t fsobj::WhoIsLastAuthor(void) {
       /* else this cmlent is not in conflict */
     }
   }
-  return -1;
+  return (uid_t)-1;
 }

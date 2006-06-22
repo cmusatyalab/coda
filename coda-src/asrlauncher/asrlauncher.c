@@ -111,7 +111,6 @@ char Conflict_Wildcard[MAXPATHLEN];    /* Holds the part of the pathname that
 /* Lexical Scoping/Rule Parsing Globals */
 
 FILE *Rules_File;
-long Rules_File_Offset;
 char Rules_File_Path[MAXPATHLEN];
 
 
@@ -309,12 +308,12 @@ int parseRulesFile(struct rule_info *data) {
   if((Rules_File == NULL) || (data == NULL))
     return 1;
 
-  if(fseek(Rules_File, Rules_File_Offset, SEEK_SET) < 0)
-	{ perror("ftell"); exit(EXIT_FAILURE); }
-
   while(rule_not_found) {
     char *end;
     char fmt[10];
+	long line;
+
+	line = ftell(Rules_File);
 
 	/* Get first word from the current line. */
     sprintf(fmt, "%%%ds", MAXPATHLEN-1);
@@ -328,13 +327,20 @@ int parseRulesFile(struct rule_info *data) {
 	  char c;
 
 	  /* Ignore the rest of this line if the first word doesn't have ':' */
-	  do { c = fgetc(Rules_File); } 
-	  while((c != '\n') && (c != '\0'));
 
+	  if(fseek(Rules_File, line, SEEK_SET) < 0) {
+		perror("fseek");
+		exit(EXIT_FAILURE);
+	  }
+
+	  do { c = fgetc(Rules_File); }
+	  while((c != '\n') && (c != '\0'));
+			 
       continue;
 	}
 	else
-	  end[0] = '\0';
+	  end[0] = '\0'; /* Okay because it's a local buffer. */
+	
 	
     /* Match rule against conflict filename. */
     if(compareWithWilds(Conflict_Basename, name)) /* Not a match. */
@@ -360,18 +366,25 @@ int parseRulesFile(struct rule_info *data) {
 	
     { /* Mark data to be used later in the launch. */
 
+	  if(fseek(Rules_File, line, SEEK_SET) < 0) 
+		{ perror("fseek"); exit(EXIT_FAILURE); }
+
       /* Mark dependency list. */
-	  
+
+	  while(fgetc(Rules_File) != ':') continue;
+
 	  if((data->dependencies = ftell(Rules_File)) < 0) 
 		{ perror("ftell"); exit(EXIT_FAILURE); }
 	  
+      /* Mark command list. */
+
 	  while(fgetc(Rules_File) != '\n') continue;
 
-      /* Mark command list, and remember where we left off. */
-
-	  if((Rules_File_Offset = data->commands = ftell(Rules_File)) < 0) 
+	  if((data->commands = ftell(Rules_File)) < 0) 
 		{ perror("ftell"); exit(EXIT_FAILURE); }
-	  
+
+      fprintf(stderr, "ASRLauncher(%d): Offsets: dep=%ld,com=%ld\n",
+			  My_Pid, data->dependencies, data->commands);
     }
   } /* while(rule_not_found) */
   
@@ -608,6 +621,20 @@ int evaluateDependencies(struct rule_info *data) {
 	/* Grab a dependency. */
 	fscanf(Rules_File, fmt, dpnd);
 
+	/* Check to see we didn't overrun into the next line. */
+	{
+	  int offset;
+
+	  if((offset = ftell(Rules_File)) < 0) 
+		{ perror("ftell"); exit(EXIT_FAILURE); }
+
+	  if(offset > data->commands) {
+		fprintf(stderr, "ASRLauncher(%d): Accidentally overran into command "
+				"string.. no worries, it was caught.\n", My_Pid);
+		return 0;
+	  }
+	}
+
     /* Do environment variable expansion. */
     if(replaceEnvVars(dpnd, MAXPATHLEN) < 0) {
       fprintf(stderr, "ASRLauncher(%d): Failed replacing env vars on %s! "
@@ -650,7 +677,7 @@ int findRule(struct rule_info *data) {
 
   if(data == NULL) {
 	fprintf(stderr, "ASRLauncher(%d): Bad rule structure!\n", My_Pid);
-	return -1;
+	return 1;
   }
 
   /* Will be changed later by parseRulesFile. */
@@ -660,25 +687,34 @@ int findRule(struct rule_info *data) {
 	int error;
 
 	Rules_File = openRulesFile(Rules_File_Path);
+	if(Rules_File == NULL)
+	  goto scopeUp;
 	
 	error = parseRulesFile(data);
-	if(error) { /* Scope one directory level higher, trying new rules file. */
-	  temp = strrchr(Rules_File_Path, '/');
-	  *temp = '\0';               /* Remove final slash. Parent directory
-								   * then looks like a filename and is
-								   * dropped in opening the new rules file. */
+	if(error)
+	  goto scopeUp;
+
+	/* We have found a matching rule. */
+
+	break;
+
+  scopeUp:
+
+	/* Scope one directory level higher, trying new rules file. */
+
+	temp = strrchr(Rules_File_Path, '/');
+	if(temp == NULL)
+	  return 1;
+	temp[0] = '\0';
+
+	if(Rules_File != NULL) {
 	  fclose(Rules_File);
 	  Rules_File = NULL;
-	}
-	else {       /* We have found a matching rule. */
-	  fprintf(stderr, "ASRLauncher(%d): Opening rules file: %s\n", 
-			  My_Pid, Rules_File_Path);
-	  break;
 	}
   }
   
   if(scope == 0) {  /* Stop after volume root. */
-	fprintf(stderr, "ASRLauncher(%d): Failed lexically scoping a"
+	fprintf(stderr, "ASRLauncher(%d): Failed lexically scoping a "
 			"matching rules file!\n", My_Pid);
 	return 1;
   }
@@ -693,7 +729,7 @@ int executeCommands(long pos) {
   char *asr_argv[4];
 
   if(pos < 0) {
-    fprintf(stderr, "ASRLauncher(%d): Empty command list!\n", My_Pid);
+    fprintf(stderr, "ASRLauncher(%d): Empty/bad command list!\n", My_Pid);
     return 1;
   }
   
@@ -763,10 +799,8 @@ int executeCommands(long pos) {
 
 	  fprintf(stderr, "%s", command);
 
-	  if(write(pfd[1], (void *) command, strlen(command)) < 0) {
-		perror("write");
-		exit(EXIT_FAILURE);
-	  }
+	  if(write(pfd[1], (void *) command, strlen(command)) < 0) 
+		{ perror("write"); exit(EXIT_FAILURE); }
 	} while(1);
 	
 	close(pfd[1]);
@@ -822,9 +856,7 @@ int
 main(int argc, char *argv[])
 {
   struct rule_info conf_rule;
-  int error, len, asr_has_not_executed;
-
-  asr_has_not_executed = 1; /* invariant */
+  int error, len;
 
   My_Pid = getpid();
 
@@ -913,37 +945,34 @@ main(int argc, char *argv[])
    * 5.) Die, telling Venus that the ASR is complete or has failed.
    */
 
-  while(asr_has_not_executed) {
-
-	/* Find a wildcard-matched rule and parse its information. */
-	error = findRule(&conf_rule);
-	if(error) {
-	  fprintf(stderr, "ASRLauncher(%d): Failed finding valid associated "
-			  "rule!\n", My_Pid);
-	  break;
-	}
-
-	/* See if the dependencies on this rule are not in conflict. */
-	error = evaluateDependencies(&conf_rule);
-	if(error) {
-	  fprintf(stderr, "ASRLauncher(%d): Failed evaluating dependencies!\n",
-			  My_Pid);
-	  continue;
-	}
-
-	/* Execute all commands indented below the rule name. */
-	error = executeCommands(conf_rule.commands);
-	if(error) {
-	  fprintf(stderr, "ASRLauncher(%d): Failed executing related commands!\n",
-			  My_Pid);
-	  break;
-	}	  
-
-	asr_has_not_executed = 0;
+  /* Find a wildcard-matched rule and parse its information. */
+  error = findRule(&conf_rule);
+  if(error) {
+	fprintf(stderr, "ASRLauncher(%d): Failed finding valid associated "
+			"rule!\n", My_Pid);
+	goto endLaunch;
   }
-	
+
+  /* See if the dependencies on this rule are not in conflict. */
+  error = evaluateDependencies(&conf_rule);
+  if(error) {
+	fprintf(stderr, "ASRLauncher(%d): Failed evaluating dependencies!\n",
+			My_Pid);
+	goto endLaunch;
+  }
+
+  /* Execute all commands indented below the rule name. */
+  error = executeCommands(conf_rule.commands);
+  if(error) {
+	fprintf(stderr, "ASRLauncher(%d): Failed executing related commands!\n",
+			My_Pid);
+	goto endLaunch;
+  }
+
+ endLaunch:
+  
   if(Rules_File != NULL)
 	fclose(Rules_File);
 
-  return error;
+  return (error ? 1 : 0);
 }

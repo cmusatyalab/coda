@@ -773,6 +773,8 @@ int fsdb::Get(fsobj **f_addr, VenusFid *key, uid_t uid, int rights,
 		 
 			if(GetInconsistent) /* Caller knows/doesn't care about conflict. */
 			  code = 0;
+
+			/* Fall through to possible ASR launch. */
 		  }
 		  else {
 

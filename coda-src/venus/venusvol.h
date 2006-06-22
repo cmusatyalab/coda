@@ -108,6 +108,10 @@ const unsigned V_UNSETREINTLIMIT = (unsigned)-1;/* huge */
                                            already locked. It's necessary to
                                            keep daemons from getting ``stuck''
                                            on volumes already in use. */
+
+/* Define for 'no ASR running'  */
+#define NO_ASR 0
+
 /*  *****  Types  ***** */
 
 class cmlstats {
