@@ -764,30 +764,11 @@ int fsdb::Get(fsobj **f_addr, VenusFid *key, uid_t uid, int rights,
 		}
 		
 		if (code != 0) {
-
-		  if (code == EINCONS) { /* Servers do not contain consistent object.*/
-			char path[MAXPATHLEN];
-
-			f->GetPath(path, PATH_FULL);
-
-			LOG(0, ("fsdb::Get: %s (%s) in server/server conflict\n",
-					path, FID_(key)));
-			MarinerLog("fsobj::CONFLICT (server/server): %s (%s)\n",
-					   path, FID_(key));
-		 
-			if(GetInconsistent) /* Caller knows/doesn't care about conflict. */
-			  code = 0;
-
-			/* Fall through to possible ASR launch. */
-		  }
-		  else {
-
 			if (code == ETIMEDOUT)
 			  LOG(100, ("(MARIA) Code is TIMEDOUT after GetAttr...\n"));
 			
 			Put(&f);
 			return(code);
-		  }
 		}
 	  }
 	  /* If we want data and we don't have any then fetch new stuff. */
@@ -971,9 +952,8 @@ int fsdb::Get(fsobj **f_addr, VenusFid *key, uid_t uid, int rights,
 	realobj = Find(key);
 	if((isdir < 0) || (realobj == NULL)) {
 	  LOG(0, ("fsdb::Get:Find failed!\n"));
-	  code = EINCONS;
 	  Put(&f);
-	  return code;
+	  return EINCONS;
 	}	
 	
 	v = (repvol *)realobj->vol;
@@ -1031,8 +1011,6 @@ int fsdb::Get(fsobj **f_addr, VenusFid *key, uid_t uid, int rights,
 	  code = EINCONS;
 	}
 	
-	LOG(0, ("fsdb::Get: returning %d\n", code));
-
 	Put(&f);
 	return(code);
   }
