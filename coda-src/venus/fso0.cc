@@ -764,11 +764,14 @@ int fsdb::Get(fsobj **f_addr, VenusFid *key, uid_t uid, int rights,
 		}
 		
 		if (code != 0) {
-			if (code == ETIMEDOUT)
-			  LOG(100, ("(MARIA) Code is TIMEDOUT after GetAttr...\n"));
-			
-			Put(&f);
+		    if (code == ETIMEDOUT)
+			LOG(100, ("(MARIA) Code is TIMEDOUT after GetAttr...\n"));
+		    if (code == EINCONS && GetInconsistent) {
+		        code = 0;
+		    } else {
+		        Put(&f);
 			return(code);
+		    }
 		}
 	  }
 	  /* If we want data and we don't have any then fetch new stuff. */
@@ -933,7 +936,9 @@ int fsdb::Get(fsobj **f_addr, VenusFid *key, uid_t uid, int rights,
   }
   
   /* Examine the possibility of executing an ASR. */
-  if (!GetInconsistent && f->IsFake()) {
+  if (!GetInconsistent && f->IsFake() && f->vol->IsReplicated() &&
+      !((repvol *)f->vol)->IsUnderRepair(uid))
+  {
 	int ASRInvokable;
 	repvol *v;
 	struct timeval tv;

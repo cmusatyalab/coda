@@ -345,7 +345,8 @@ int parseRulesFile(struct rule_info *data) {
       continue;
 	
     fprintf(stderr, "ASRLauncher(%d): Found matching (conflict name, rule): "
-			"(%s, %s)\n",  My_Pid, Conflict_Basename, name);
+			"(%s, %s) in %s\n",  My_Pid, Conflict_Basename, name,
+			Rules_File_Path);
 	
     rule_not_found = 0;
 
@@ -380,9 +381,6 @@ int parseRulesFile(struct rule_info *data) {
 
 	  if((data->commands = ftell(Rules_File)) < 0) 
 		{ perror("ftell"); exit(EXIT_FAILURE); }
-
-      fprintf(stderr, "ASRLauncher(%d): Offsets: dep=%ld,com=%ld\n",
-			  My_Pid, data->dependencies, data->commands);
     }
   } /* while(rule_not_found) */
   
@@ -545,8 +543,6 @@ int replaceEnvVars(char *string, int maxlen) {
 		}
 		
 		if(replace == NULL) { /* Unknown environment variable name. */
-		  fprintf(stderr, "ASRLauncher(%d): Unknown environment variable!\n",
-				  My_Pid);
 		  trav++;
 		  continue;
 		}
