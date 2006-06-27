@@ -10,6 +10,7 @@
 # autoconf   - configure
 #
 
+rm -rf autom4te.cache
 touch ChangeLog
 autoheader
 aclocal
