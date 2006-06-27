@@ -10,6 +10,7 @@
 # autoconf   - configure
 #
 
+rm -rf autom4te.cache
 touch AUTHORS ChangeLog README
 autoheader
 aclocal
