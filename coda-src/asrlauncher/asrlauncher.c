@@ -56,23 +56,26 @@ listed in the file CREDITS.
 
 /* Environment variable names */
 #define CONFLICT_BASENAME             '>' /* Puneet's original 3 vars */
-#define CONFLICT_WILDCARD             '*'
+#define CONFLICT_WILDCARD             '^'
 #define CONFLICT_PARENT               '<'
 #define SYSTYPE_VAR                   '@'
 
 #define CONFLICT_PATH                 '=' /* Additional variables */
 #define CONFLICT_VOLUME               ':'
-#define CONFLICT_TYPE                 '?'
+#define CONFLICT_TYPE                 '!'
 
 /* Conflict type enumerations.
  * Note: these values are standard also in Venus. */
 
-#define SERVER_SERVER       1
-#define SERVER_SERVER_STR  "1"
-#define LOCAL_GLOBAL        2
-#define LOCAL_GLOBAL_STR   "2"
-#define MIXED_CONFLICT      3
-#define MIXED_CONFLICT_STR "3"
+#define SERVER_SERVER        1
+#define SERVER_SERVER_STR   "1"
+#define SERVER_SERVER_CHAR  'S'
+#define LOCAL_GLOBAL         2
+#define LOCAL_GLOBAL_STR    "2"
+#define LOCAL_GLOBAL_CHAR   'L'
+#define MIXED_CONFLICT       3
+#define MIXED_CONFLICT_STR  "3"
+#define MIXED_CONFLICT_CHAR 'M'
 
 
 /* Data Structures */
@@ -501,17 +504,17 @@ int replaceEnvVars(char *string, int maxlen) {
 
 		  switch(*(trav+2)) {
 			
-		  case 'S':
+		  case SERVER_SERVER_CHAR:
 			varlen = 3;
 			replace = SERVER_SERVER_STR;
 			break;
 			
-		  case 'L':
+		  case LOCAL_GLOBAL_CHAR:
 			varlen = 3;
 			replace = LOCAL_GLOBAL_STR;
 			break;
 			
-		  case 'M':
+		  case MIXED_CONFLICT_CHAR:
 			varlen = 3;
 			replace = MIXED_CONFLICT_STR;
 			break;
