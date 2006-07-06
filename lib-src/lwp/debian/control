@@ -6,7 +6,7 @@ Standards-Version: 3.6.1
 Build-Depends: debhelper (>= 4)
 
 Package: liblwp-dev
-Architecture: alpha arm i386 m68k powerpc sparc
+Architecture: alpha amd64 arm i386 m68k powerpc sparc
 Depends: liblwp2 (= ${Source-Version})
 Description: LWP thread library
  Headers and static libraries for developing programs using the LWP
@@ -15,7 +15,7 @@ Description: LWP thread library
  remote procedure call library)
 
 Package: liblwp2
-Architecture: alpha arm i386 m68k powerpc sparc
+Architecture: alpha amd64 arm i386 m68k powerpc sparc
 Depends: ${shlibs:Depends}
 Description: LWP thread library
  The LWP userspace threads library. The LWP threads library is used by the
