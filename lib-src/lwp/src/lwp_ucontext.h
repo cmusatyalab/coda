@@ -22,10 +22,10 @@ listed in the file CREDITS.
 #include <config.h>
 #endif
 
-#ifdef HAVE_UCONTEXT_H
+#ifdef CODA_USE_UCONTEXT
 #include <ucontext.h>
 
-#else /* !HAVE_UCONTEXT_H */
+#else /* !CODA_USE_UCONTEXT */
 #include <setjmp.h>
 #include <signal.h>
 #include "lwp_stacktrace.h"
@@ -44,6 +44,6 @@ void _lwp_initctx(ucontext_t *ucp);
 int setcontext(const ucontext_t *ucp);
 void makecontext(ucontext_t *ucp, void (*func)(), int argc, ...);
 int swapcontext(ucontext_t *oucp, ucontext_t *ucp);
-#endif /* !HAVE_UCONTEXT_H */
+#endif /* !CODA_USE_UCONTEXT */
 
 #endif /* LWP_UCONTEXT_H */
