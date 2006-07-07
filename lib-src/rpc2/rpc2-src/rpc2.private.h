@@ -359,8 +359,20 @@ struct HEntry {
 /* WARNING: if you port RPC2, make sure the structure sizes work out to be the same on your target machine */
 
 struct Init1Body			/* Client to Server: format of packets with opcode of RPC2_INIT1xxx */
-    {
-    RPC2_NewConnectionBody FakeBody;	/* body of fake packet from RPC2_GetRequest() */
+{
+/* body of fake packet from RPC2_GetRequest() */
+    RPC2_Integer FakeBody_SideEffectType;
+    RPC2_Integer FakeBody_SecurityLevel;
+    RPC2_Integer FakeBody_EncryptionType;
+    RPC2_Integer FakeBody_AuthenticationType;
+    RPC2_Unsigned FakeBody_ClientIdent_SeqLen;
+    RPC2_Unsigned FakeBody_ClientIdent_SeqBody;
+/* end of body of fake packet from RPC2_GetRequest() */
+    /* When MakeFake is called we'll clobber the remaining data in this packet
+     * because we don't really send a pointer to the ClientIdent.SeqBody, but
+     * we move it there from the tail of the packet so that the stub generator
+     * can unpack it as a valid RPC2_NEWCONNECTION rpc call */
+
     RPC2_Integer XRandom;		/* encrypted random number */
     char usedtobehostport[92];		/* XXX not used anymore but old rpc2
 					   servers need the alignment */
@@ -369,9 +381,11 @@ struct Init1Body			/* Client to Server: format of packets with opcode of RPC2_IN
     RPC2_Unsigned Preferred_Keysize;	/* preferred encryption key length */
     RPC2_Integer Spare3;
     RPC2_Byte Version[96];		/* set to RPC2_VERSION */
-    RPC2_Byte Text[4];	    /* Storage pointed to by FakeBody.ClientIdent.SeqBody;
-				4 bytes is a fake to cause proper longword alignment
-				on all interesting machines */
+    RPC2_Byte Text[4];			/* Storage for the ClientIdent. Moved
+					   to FakeBody_ClientIdent_SeqBody in
+					   rpc2a.c:MakeFake(). It can of course
+					   be more than 4 bytes, this is just
+					   for alignment purposes. */
     };
 
 struct Init2Body		/* Server to Client */

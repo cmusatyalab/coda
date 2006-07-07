@@ -816,16 +816,17 @@ try_next_addr:
     /* Fill in the body */
     ib = (struct Init1Body *)pb->Body;
     memset(ib, 0, sizeof(struct Init1Body));
-    ib->FakeBody.SideEffectType = htonl(Bparms->SideEffectType);
-    ib->FakeBody.SecurityLevel = htonl(Bparms->SecurityLevel);
-    ib->FakeBody.EncryptionType = htonl(Bparms->EncryptionType);
-    ib->FakeBody.AuthenticationType = htonl(Bparms->AuthenticationType);
+    ib->FakeBody_SideEffectType = htonl(Bparms->SideEffectType);
+    ib->FakeBody_SecurityLevel = htonl(Bparms->SecurityLevel);
+    ib->FakeBody_EncryptionType = htonl(Bparms->EncryptionType);
+    ib->FakeBody_AuthenticationType = htonl(Bparms->AuthenticationType);
+    ib->FakeBody_ClientIdent_SeqBody = 0;
     if (Bparms->ClientIdent == NULL)
-	ib->FakeBody.ClientIdent.SeqLen = 0;
+	ib->FakeBody_ClientIdent_SeqLen = 0;
     else
 	{
-	ib->FakeBody.ClientIdent.SeqLen = htonl(Bparms->ClientIdent->SeqLen);
-	ib->FakeBody.ClientIdent.SeqBody = ib->Text;    /* not really meaningful: this is pointer has to be reset on other side */
+	ib->FakeBody_ClientIdent_SeqLen = htonl(Bparms->ClientIdent->SeqLen);
+	/* ib->FakeBody_ClientIdent_SeqBody = ib->Text; // not really meaningful: this is pointer has to be reset on other side */
 	memcpy(ib->Text, Bparms->ClientIdent->SeqBody, Bparms->ClientIdent->SeqLen);
 	}
     assert(sizeof(RPC2_VERSION) < sizeof(ib->Version));
@@ -1310,7 +1311,11 @@ static long MakeFake(RPC2_PacketBuffer *pb, struct CEntry *ce,
 		     RPC2_Integer *xrand, RPC2_Integer *authenticationtype,
 		     RPC2_CountedBS *cident, size_t *keysize)
 {
-    /* Synthesize fake packet after extracting encrypted XRandom and clientident */
+    /* Synthesize fake packet after extracting encrypted XRandom and
+     * clientident. It is really pretty ugly if you think about it, we
+     * transform the Init1 packet to look like a valid RPC2_NEWCONNECTION
+     * rpc so that it can be unpacked by the stub generated code and passed
+     * back to the application. */
     long i;
     struct Init1Body *ib1;
     RPC2_NewConnectionBody *ncb;
@@ -1322,7 +1327,7 @@ static long MakeFake(RPC2_PacketBuffer *pb, struct CEntry *ce,
     }
 
     ib1 = (struct Init1Body *)(pb->Body);
-    ncb = &ib1->FakeBody;
+    ncb = (RPC2_NewConnectionBody *)&ib1->FakeBody_SideEffectType;
 
     if (strcmp((char *)ib1->Version, RPC2_VERSION) != 0)
 	{

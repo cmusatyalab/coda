@@ -1053,7 +1053,7 @@ static struct CEntry *MakeConn(struct RPC2_PacketBuffer *pb)
 
 	if (pb->Prefix.LengthOfPacket < INIT1LENGTH ||
 	    pb->Prefix.LengthOfPacket < (INIT1LENGTH +
-				     ntohl(ib1->FakeBody.ClientIdent.SeqLen)))
+				     ntohl(ib1->FakeBody_ClientIdent_SeqLen)))
 	{
 		/* avoid memory reference errors from bogus packets */
 		say(0, RPC2_DebugLevel, "Ignoring short Init1 packet\n");
@@ -1077,7 +1077,7 @@ static struct CEntry *MakeConn(struct RPC2_PacketBuffer *pb)
 
 	if (ce->SecurityLevel != RPC2_OPENKIMONO) {
 	    secure_random_bytes(&ce->NextSeqNumber, sizeof(ce->NextSeqNumber));
-	    ce->EncryptionType = ntohl(ib1->FakeBody.EncryptionType);
+	    ce->EncryptionType = ntohl(ib1->FakeBody_EncryptionType);
 	}
 
 	SetRole(ce, SERVER);
