@@ -173,7 +173,7 @@ int asleep;	/* Number of processes sleeping -- used for
 
 static void read_process(void *arg)
 {
-    int id = (int)arg;
+    int id = *(int *)arg;
 
     printf("\t[Reader %d]\n", id);
 
@@ -263,8 +263,7 @@ int main(int argc, char **argv)
     printf("[Creating Readers...\n");
     readers = (PROCESS *) calloc((unsigned)nreaders, (unsigned)(sizeof(PROCESS)));
     for (i=0; i<nreaders; i++)
-	LWP_CreateProcess(read_process, STACK_SIZE, 0, (char *)(long)i,
-			  "Reader", &readers[i]);
+	LWP_CreateProcess(read_process, STACK_SIZE, 0, &i, "Reader", &readers[i]);
     printf("done]\n");
 
     printf("\t[Creating Writer...\n");
