@@ -525,9 +525,9 @@ void ClientModifyLog::HandleFailedMLE()
 		   * 5.) The timeout interval for ASR launching has expired. 
 		   */
 		  
-		  ASRInvokable = ((ASRLauncherFile != NULL) && 
-						  v->IsASRAllowed() && !v->asr_running() &&
-						  ((tv.tv_sec - conflict->lastresolved) > ASR_INTERVAL));
+		  ASRInvokable = ((ASRLauncherFile != NULL) && (ASRPolicyFile != NULL)
+					 && v->IsASRAllowed() && !v->asr_running()
+					 && ((tv.tv_sec - conflict->lastresolved) > ASR_INTERVAL));
 		  
 		  if(ASRLauncherFile == NULL)
 			LOG(0, ("ClientModifyLog::HandleFailedMLE: No ASRLauncher "

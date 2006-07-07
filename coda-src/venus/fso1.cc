@@ -2884,7 +2884,7 @@ int fsobj::LaunchASR(int conflict_type, int object_type) {
   pid = fork();
   if(pid == 0) {
 	int error;
-    char *arg[5], buf[3];
+    char *arg[6], buf[3];
     char confstr[4];
     
 	close(pfd[1]);
@@ -2898,7 +2898,8 @@ int fsobj::LaunchASR(int conflict_type, int object_type) {
     arg[1] = path;
     arg[2] = rootPath;
     arg[3] = confstr;
-    arg[4] = NULL;
+    arg[4] = ASRPolicyFile;   /* extracted from venus.conf */
+    arg[5] = NULL;
 
 	while((error = read(pfd[0], (void *)buf, 2)) == 0)
 	  continue;

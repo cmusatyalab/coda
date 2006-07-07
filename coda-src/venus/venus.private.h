@@ -367,6 +367,7 @@ extern int   masquerade_port;
 extern int   PiggyValidations;
 extern int   T1Interval;
 extern char *ASRLauncherFile;
+extern char *ASRPolicyFile;
 
 /* spool.cc */
 extern void MakeUserSpoolDir(char *, uid_t);

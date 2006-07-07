@@ -30,6 +30,7 @@ listed in the file CREDITS.
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/param.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -50,9 +51,6 @@ listed in the file CREDITS.
 /* ASR timeout period (milliseconds). Currently this is identical to RPC2's. */
 #define ASR_TIMEOUT 60000
 
-/* Character array lengths */
-#define MAXPATHLEN     256
-#define MAXCOMMANDLEN  4096
 
 /* Environment variable names */
 #define CONFLICT_BASENAME             '>' /* Puneet's original 3 vars */
@@ -96,7 +94,8 @@ struct rule_info {
 
 /* ASRLauncher-related Globals */
 
-int My_Pid;                 /* getpid() result. Only for logging purposes. */
+int My_Pid;                               /* for logging purposes */
+char Local_Policy_Path[MAXPATHLEN];       /* list of enabled ASR rules files */
 
 /* Conflict Information Globals */
 
@@ -115,6 +114,7 @@ char Conflict_Wildcard[MAXPATHLEN];    /* Holds the part of the pathname that
 
 FILE *Rules_File;
 char Rules_File_Path[MAXPATHLEN];
+char Rules_File_Parent[MAXPATHLEN];
 
 
 
@@ -215,40 +215,126 @@ int escapeString(char *str, int maxlen) {
   return 0;
 }
 
+
 /*
- * openRulesFile
+ * nameNextRulesFile
  *
- * Takes in a directory pathname (with or without garbage at the end), strips
- * it down to the final '/', and concatenates the universal rules filename. It
- * then updates Rules_File_Path with the new correct path.
+ * Takes the pathname of an ASR rules file (or any file),
+ * creates the pathname of the rules file scoped up one level in the directory
+ * hierarchy, and writes it back into the storage parameter. If the empty 
+ * or null string is sent in as the path, then we use Conflict_Path as 
+ * our pathname.
  *
- * Returns the FILE handle or NULL on failure.
+ * Returns 0 on success, nonzero on failure.
  */
 
-FILE* openRulesFile(char *dirpath) {
-  FILE *rules;
-  char parentPath[MAXPATHLEN], *end;
+int nameNextRulesFile(char *path) {
+  char *parent, temp[MAXPATHLEN];
+
+  if((path != NULL) && (strlen(path) > 0)) { /* Scope one level higher. */
+	strncpy(temp, path, MAXPATHLEN);
+
+	parent = strrchr(temp, '/');
+	if(parent == NULL)
+	  return 1;
+	
+	parent[0] = '\0';
+  }
+  else                  /* Use current directory level's rules file. */
+	strncpy(temp, Conflict_Path, MAXPATHLEN);
+
+  parent = strrchr(temp, '/');
+  if(parent == NULL)
+	return 1;
   
-  rules = NULL;
+  parent[1] = '\0';
 
-  strncpy(parentPath, dirpath, MAXPATHLEN);
+  strncpy(Rules_File_Parent, temp, MAXPATHLEN);
 
-  end = strrchr(parentPath, '/');
-  if(end == NULL)
-    return NULL;
+  if(strcat(temp, ASR_RULES_FILENAME) == NULL)
+	return 1;
 
-  *(end + 1)='\0';            /* Terminate string just after final '/'. */
+  strncpy(Rules_File_Path, temp, MAXPATHLEN);
 
-  strcat(parentPath, ASR_RULES_FILENAME);
-
-  rules = fopen(parentPath, "r"); /* Could fail with ENOENT or EACCES
-								   * at which point we loop to a
-								   * higher directory to try again. */
-
-  strncpy(Rules_File_Path, parentPath, MAXPATHLEN);
-
-  return rules;
+  return 0;
 }
+
+
+/* checkRulesFile
+ *
+ * Check whether the ASR rules file pathname sent in is enabled
+ * locally on this system. The list of enabled rules files is stored in a text
+ * file named in venus.conf. If this file is not named or doesn't exist, no
+ * ASRs can be launched for security reasons.
+ */
+
+int checkRulesFile(char *pathname) {
+  int ret = 1;
+  FILE *allow_list;
+  char allow_path[MAXPATHLEN], rules_path[MAXPATHLEN], *error, *last_slash;
+
+  if(Local_Policy_Path == NULL)
+	return 1;
+
+  if(pathname == NULL)
+	return 1;
+
+  if((allow_list = fopen(Local_Policy_Path, "r")) == NULL) {
+	fprintf(stderr, "ASRLauncher(%d): Couldn't open local ASR policy!\n",
+			My_Pid);
+	return 1;
+  }
+  
+  strcpy(rules_path, pathname);
+  last_slash = strrchr(rules_path, '/');
+  last_slash[1] = '\0';
+
+  /* Check paths one-by-one, line-by-line. */
+  while((error = fgets(allow_path, MAXPATHLEN, allow_list)) != NULL) {
+	int len = strlen(allow_path);
+	
+	if(allow_path[len-1] == '\n') {
+	  allow_path[len-1] = '\0';
+	  len--;
+	}
+
+	if(allow_path[len-1] != '/' && len < (MAXPATHLEN - 1)) {
+	  allow_path[len] = '/';
+	  allow_path[len+1] = '\0';
+	  len++;
+	}
+
+	/* Double slashes indicate the entire directory hierarchy is allowed. */
+	if((allow_path[len-1] == '/') && (allow_path[len-2] == '/')) {
+	  char c = rules_path[len-2];
+
+	  allow_path[len-2] = '\0';
+	  rules_path[len-2] = '\0';
+
+	  if(strcmp(allow_path, rules_path) == 0) {
+		ret = 0;
+		break;
+	  }
+
+	  rules_path[len-2] = c;	  
+	  continue;
+	}
+
+	if(strcmp(allow_path, rules_path) == 0) {
+	  ret = 0;
+	  break;
+	}
+  }
+  
+  fclose(allow_list);
+
+  if(ret)
+	fprintf(stderr, "ASRLauncher(%d): Security policy disallows %s\n",
+			My_Pid, rules_path);
+
+  return ret;
+}
+
 
 /*
  * Perform wildcard matching between strings.
@@ -661,57 +747,46 @@ int evaluateDependencies(struct rule_info *data) {
  * lexically scoping up the conflict's pathname if necessary.
  *
  * @param struct rule_info *data Rule info to be filled in for the caller.
- * @returns 0 on success, -1 on failure
+ * @returns 0 on success, nonzero on failure
  *
  */
 
 int findRule(struct rule_info *data) {
   int scope;
-  char *temp;
 
-  if(data == NULL) {
-	fprintf(stderr, "ASRLauncher(%d): Bad rule structure!\n", My_Pid);
+  if(data == NULL)
 	return 1;
-  }
 
-  /* Will be changed later by parseRulesFile. */
-  strncpy(Rules_File_Path, Conflict_Path, MAXPATHLEN);
+  Rules_File_Path[0] = '\0';
 
-  while((scope = strcmp(Conflict_Volume_Path, Rules_File_Path)) != 0) {   
-	int error;
+  while((scope = strcmp(Conflict_Volume_Path, Rules_File_Parent)) != 0) {   
 
-	Rules_File = openRulesFile(Rules_File_Path);
-	if(Rules_File == NULL)
-	  goto scopeUp;
-	
-	error = parseRulesFile(data);
-	if(error)
-	  goto scopeUp;
-
-	/* We have found a matching rule. */
-
-	break;
-
-  scopeUp:
-
-	/* Scope one directory level higher, trying new rules file. */
-
-	temp = strrchr(Rules_File_Path, '/');
-	if(temp == NULL)
+	/* Piece together the name of the next potential rules file. */
+	if(nameNextRulesFile(Rules_File_Path))
 	  return 1;
-	temp[0] = '\0';
 
-	if(Rules_File != NULL) {
-	  fclose(Rules_File);
-	  Rules_File = NULL;
+	/* Check if the local allow/deny policy allows execution of this file. */
+	if(checkRulesFile(Rules_File_Path))
+	  continue;
+
+	/* Open the ASR rules file in Codaland. This could fail with ENOENT or 
+	 * EACCES at which point we scope to a higher directory and try again. */
+	if((Rules_File = fopen(Rules_File_Path, "r")) == NULL)
+	  { perror("fopen"); continue; }
+
+	/* Analyze the contents of the rules file, looking for a match. */
+	if(parseRulesFile(data)) {
+	  if(fclose(Rules_File))
+		perror("fclose");
+	  continue;
 	}
+
+	/* If we made it here, we have found a matching rule. */
+	break;   
   }
   
-  if(scope == 0) {  /* Stop after volume root. */
-	fprintf(stderr, "ASRLauncher(%d): Failed lexically scoping a "
-			"matching rules file!\n", My_Pid);
+  if(scope == 0) /* Stop after volume root. */
 	return 1;
-  }
 
   return 0;
 }
@@ -750,7 +825,7 @@ int executeCommands(long pos) {
   }
   else {
 	int ms;
-	char command[MAXCOMMANDLEN], fmt[10], firstword[MAXPATHLEN];
+	char command[NCARGS], fmt[10], firstword[MAXPATHLEN];
 
 	close(pfd[0]);
 	
@@ -778,13 +853,13 @@ int executeCommands(long pos) {
 	  if(fseek(Rules_File, line, SEEK_SET) < 0) /* Rewind to start of line. */
 		{ perror("fseek"); exit(EXIT_FAILURE); }
 	  
-	  if(fgets(command, MAXCOMMANDLEN, Rules_File) == NULL) /* EOF */
+	  if(fgets(command, NCARGS, Rules_File) == NULL) /* EOF */
 		break;
 	  
 	  /* Expand any environment variables in our 
 	   * command to their appropriate strings. */		
 	  
-	  error = replaceEnvVars(command, MAXCOMMANDLEN);
+	  error = replaceEnvVars(command, NCARGS);
 	  if(error) {
 		fprintf(stderr, "ASRLauncher(%d): Failed replacing environment "
 				"variables!\n", My_Pid);
@@ -854,7 +929,7 @@ main(int argc, char *argv[])
 
   My_Pid = getpid();
 
-  if(argc != 4) {
+  if(argc != 5) {
     fprintf(stderr, "ASRLauncher(%d): Invalid number of arguments!\n", My_Pid);
     return 1;
   }
@@ -865,12 +940,14 @@ main(int argc, char *argv[])
   strncpy(Conflict_Path, argv[1], MAXPATHLEN-1);
 
 
-  /* Conflict_Basename init */
+  /* Conflict_Volume_Path init */
 
-  strncpy(Conflict_Volume_Path, argv[2], MAXPATHLEN-1);
+  strncpy(Conflict_Volume_Path, argv[2], MAXPATHLEN-2);
   len = strlen(Conflict_Volume_Path);
-  if(Conflict_Volume_Path[len-1] == '/') /* remove any trailing slash */
-	Conflict_Volume_Path[len-1] = '\0';
+  if(Conflict_Volume_Path[len-1] != '/') { /* add a trailing slash */
+	Conflict_Volume_Path[len] = '/';
+	Conflict_Volume_Path[len+1] = '\0';
+  }
 
 
   /* Conflict_Type init */
@@ -882,6 +959,19 @@ main(int argc, char *argv[])
 	    My_Pid, Conflict_Type, argv[3]);
     return 1;
   }
+
+
+  /* Local_Policy_Path init */
+
+  if(argv[4] == NULL) {
+	fprintf(stderr, "ASRLauncher(%d): No local ASR policy defined "
+			"in venus.conf!\n", My_Pid);
+	return 1;
+  }
+
+  strncpy(Local_Policy_Path, argv[4], MAXPATHLEN-1);
+  fprintf(stderr, "ASRLauncher(%d): Using local ASR policy in %s\n", 
+		  My_Pid, Local_Policy_Path);
 
 
   /* Conflict_Basename init */
@@ -914,7 +1004,7 @@ main(int argc, char *argv[])
   /* 
    * Escaping of filename, pathname characters done here. This is necessary
    * because it is possible to hide shell commands within a filename, i.e.
-   * a rule that launches for *.o could run into a conflict named
+   * a rule that launches for *.odt could run into a conflict named
    * "foo; foo.sh; .odt" which clearly cannot be piped directly into /bin/sh.
    */
   

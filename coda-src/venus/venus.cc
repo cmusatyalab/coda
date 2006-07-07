@@ -96,6 +96,7 @@ char *VenusPidFile;
 char *VenusControlFile;
 char *VenusLogFile;
 char *ASRLauncherFile;
+char *ASRPolicyFile;
 char *MarinerSocketPath;
 int masquerade_port;
 int PiggyValidations;
@@ -585,6 +586,8 @@ static void DefaultCmdlineParms()
     }
 
     CODACONF_STR(ASRLauncherFile, "asrlauncher_path", NULL);
+
+    CODACONF_STR(ASRPolicyFile, "asrpolicy_path", NULL);
 
     CODACONF_INT(PiggyValidations, "validateattrs", 21);
     {

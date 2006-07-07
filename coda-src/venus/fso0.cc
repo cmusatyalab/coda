@@ -976,10 +976,13 @@ int fsdb::Get(fsobj **f_addr, VenusFid *key, uid_t uid, int rights,
 	ASRInvokable = ((ASRLauncherFile != NULL) && (vp->type == VPT_Worker) &&
 					v->IsASRAllowed() && !v->asr_running() &&
 					((tv.tv_sec - realobj->lastresolved) > ASR_INTERVAL) &&
-					v->IsASREnabled());
+					v->IsASREnabled() && (ASRPolicyFile != NULL));
 
 	if(ASRLauncherFile == NULL)
-	  LOG(0, ("fsdb::Get: ASRLauncherFile not specified in venus.conf!\n"));
+	  LOG(0, ("fsdb::Get: asrlauncher_file not specified in venus.conf!\n"));
+
+	if(ASRPolicyFile == NULL)
+	  LOG(0, ("fsdb::Get: asrpolicy_file not specified in venus.conf!\n"));
 
 	if(vp->type != VPT_Worker)
 	  LOG(0, ("fsdb::Get: Non-worker Thread\n"));
