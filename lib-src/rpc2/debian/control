@@ -6,7 +6,7 @@ Standards-Version: 3.6.1
 Build-Depends: debhelper (>= 4), liblwp-dev, flex, bison | byacc, libreadline5-dev
 
 Package: librpc2-dev
-Architecture: arm i386 m68k powerpc sparc
+Architecture: amd64 arm i386 m68k powerpc sparc
 Depends: librpc2-4 (= ${Source-Version})
 Description: Remote procedure call library, development files
  RPC2 is a remote procedure call library developed at CMU. It is layered
@@ -18,7 +18,7 @@ Description: Remote procedure call library, development files
  For more information, check the Coda website http://www.coda.cs.cmu.edu/
 
 Package: rpc2-tools
-Architecture: arm i386 m68k powerpc sparc
+Architecture: amd64 arm i386 m68k powerpc sparc
 Depends: ${shlibs:Depends}
 Description: Remote procedure call library - support tools
  RPC2 is a remote procedure call library developed at CMU. It is layered
@@ -30,7 +30,7 @@ Description: Remote procedure call library - support tools
  For more information, check the Coda website http://www.coda.cs.cmu.edu/
 
 Package: librpc2-4
-Architecture: arm i386 m68k powerpc sparc
+Architecture: amd64 arm i386 m68k powerpc sparc
 Depends: ${shlibs:Depends}
 Provides: librpc24
 Replaces: librpc24
