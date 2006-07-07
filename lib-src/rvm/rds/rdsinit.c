@@ -249,10 +249,10 @@ static int get_valid_parm(argc, argv, pdatalen,
      char         **argv;
      long         *pdatalen;
      char         **pstatic_addr;
-     unsigned int *phlen;
-     unsigned int *pslen;
-     unsigned int *pnlists;
-     unsigned int *pchunksize;
+     unsigned long *phlen;
+     unsigned long *pslen;
+     unsigned long *pnlists;
+     unsigned long *pchunksize;
      int          firm;
 {
     char string[80];
