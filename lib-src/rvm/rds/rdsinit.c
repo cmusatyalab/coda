@@ -390,7 +390,7 @@ int main(argc, argv)
     int err, fd, i;
     char *static_addr=NULL, buf[4096];
     char *logName, *dataName;
-    unsigned int slen=0, hlen=0, nlists=0, chunksize=0;
+    unsigned long slen=0, hlen=0, nlists=0, chunksize=0;
     rvm_offset_t DataLen;
     long         datalen=0;
     int firm=0, opt_unknown=0;
