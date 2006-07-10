@@ -54,7 +54,6 @@ listed in the file CREDITS.
 
 /* Environment variable names */
 #define CONFLICT_BASENAME             '>' /* Puneet's original 3 vars */
-#define CONFLICT_WILDCARD             '^'
 #define CONFLICT_PARENT               '<'
 #define SYSTYPE_VAR                   '@'
 
@@ -104,11 +103,6 @@ char Conflict_Path[MAXPATHLEN];        /* Full path to the conflict. */
 char Conflict_Parent[MAXPATHLEN];      /* Parent directory of conflict. */
 char *Conflict_Basename;               /* Just the filename to the conflict. */
 char Conflict_Volume_Path[MAXPATHLEN]; /* Path to conflict's volume root. */
-char Conflict_Wildcard[MAXPATHLEN];    /* Holds the part of the pathname that 
-									    * matched an asterisk in a rule, for 
-									    * convenience.
-										* Example: *.dvi matching foo.dvi puts 
-										* "foo" in this variable. */
 
 /* Lexical Scoping/Rule Parsing Globals */
 
@@ -337,61 +331,6 @@ int checkRulesFile(char *pathname) {
 
 
 /*
- * Perform wildcard matching between strings.
- */
-int compareWithWilds(char *str, char *wildstr) {
-  char *s, *w;
-  int asterisk = 0;
-  
- begin:
-  for (s = str, w = wildstr; *s != '\0'; s++, w++) {
-	switch (*w) {
-	  
-	case '?':
-	  /* Skip one letter. */
-	  break;
-	  
-	case '*':
-	  asterisk = 1;
-	  str = s;
-	  wildstr = w + 1;
-	  
-	  /* Skip multiple *'s */
-	  while (*wildstr == '*')
-		wildstr++;
-	  
-	  /* Ending on asterisk indicates success. */
-	  if (*wildstr == '\0') 
-		return 0;
-	  
-	  goto begin;
-	  break;
-	  
-	default:
-	  
-	  /* On character mismatch, check if we had a previous asterisk. */
-	  if(*s != *w)
-		goto mismatch;
-	  
-	  /* Otherwise, the characters match. */
-	  break;
-	}
-  }
-  
-  while (*w == '*') w++;
-  
-  /* If there's no string left to match wildstr chars after the final 
-   * asterisk, return failure. Otherwise, success. */
-  return (*w != '\0');
-  
- mismatch:
-  if (asterisk == 0) return -1;
-  str++;
-  goto begin;
-}
-
-
-/*
  * replaceEnvVars
  *
  * Takes a string of text and replaces all instances of special
@@ -454,10 +393,6 @@ int replaceEnvVars(char *string, int maxlen) {
 		  
 		case CONFLICT_PARENT:
 		  replace = Conflict_Parent;
-		  break;
-		  
-		case CONFLICT_WILDCARD:
-		  replace = Conflict_Wildcard;
 		  break;
 		  
 		case CONFLICT_VOLUME:
@@ -1143,7 +1078,7 @@ main(int argc, char *argv[])
    * 5.) Die, telling Venus that the ASR is complete or has failed.
    */
 
-  /* Find a wildcard-matched rule and parse its information. */
+  /* Find a triggered rule and parse its information. */
   error = findRule(&conf_rule);
   if(error) {
 	fprintf(stderr, "ASRLauncher(%d): Failed finding valid associated "
