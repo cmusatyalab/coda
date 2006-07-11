@@ -62,23 +62,25 @@ Pittsburgh, PA.
 #include <rpc2/se.h>
 #include <rpc2/multi.h>
 
+#define _ROUND(n, a) (n) = (void *)((((intptr_t)n)+((a)-1)) & ~((a)-1))
+#define _INCR(n, a)  (n) = (void *)((intptr_t)(n) + a)
 
-#define SIZE 4
-#define _PAD(n)(((n)+3) & ~3)
-#define _PADWORD(n)(((n)+1) & ~1)
-#define _PADLONG(n)_PAD(n)
+#define _PAD(n)     (((n)+3) & ~3)
+#define _PADWORD(n) (((n)+1) & ~1)
+#define _PADLONG(n) _PAD(n)
 
 long MRPC_UnpackMulti(int HowMany, RPC2_Handle ConnHandleList[],
                       ARG_INFO *ArgInfo, RPC2_PacketBuffer *rspbuffer,
                       long rpcval, long offset);
 
 int  get_len(ARG **a_types, PARM **args, MODE mode);
-void pack(ARG *a_types, PARM **args, PARM **_ptr);
-void pack_struct(ARG *a_types, PARM **args, PARM **ptr);
+void pack(ARG *a_types, PARM **args, unsigned char **_ptr);
+void pack_struct(ARG *a_types, PARM **args, unsigned char **ptr);
 int  get_arraylen_pack(ARG *a_types, PARM *args);
 void incr_struct_byte(ARG *a_types, PARM **args);
-int unpack(ARG *a_types, PARM *args, PARM **_ptr, char *_end, long offset);
-int unpack_struct(ARG *a_types, PARM **args, PARM **_ptr, char *_end,
+int unpack(ARG *a_types, PARM **args, unsigned char **_ptr, char *_end,
+	   long offset);
+int unpack_struct(ARG *a_types, PARM **args, unsigned char **_ptr, char *_end,
 		  long offset);
 void byte_pad(PARM **args);
 
@@ -101,7 +103,7 @@ long MRPC_MakeMulti (int ServerOp, ARG ArgTypes[], RPC2_Integer HowMany,
     struct timeval;
     PARM *args;
     PARM *va_array;		/* a copy of those variable-length arguments */
-    PARM *_ptr;
+    unsigned char *_ptr;
     ARG *a_types;
     ARG_INFO arg_info;
     SE_Descriptor *SDescList = NULL;
@@ -207,10 +209,10 @@ long MRPC_MakeMulti (int ServerOp, ARG ArgTypes[], RPC2_Integer HowMany,
 		    case OUT_MODE:
 		    case IN_OUT_MODE:	/* not sure if this is correct way: bulk descriptor is
 					   not documented in Ch.2 of RPC2 manual*/
-			    va_array[i].bd = va_arg(ap, long *); 
+			    va_array[i].sedp = va_arg(ap, SE_Descriptor *);
 			    break;
 		    default:
-			    assert(0);      
+			    assert(0);
 		    }
 		    break;                    /* 6: end   of case RPC2_BULKDESCRIPTOR_TAG */
 	    case RPC2_ENCRYPTIONKEY_TAG:  /* 7: begin of case RPC2_ENCRYPTIONKEY_TAG */
@@ -273,17 +275,19 @@ long MRPC_MakeMulti (int ServerOp, ARG ArgTypes[], RPC2_Integer HowMany,
 	    case IN_MODE:
 	    case IN_OUT_MODE:
 		    switch(a_types->type) {
-		    case RPC2_STRUCT_TAG:	_length += struct_len(&a_types, &args);
+		    case RPC2_STRUCT_TAG:
+			    _length += struct_len(&a_types, &args);
 			    break;
-			    
+
 		    case RPC2_BULKDESCRIPTOR_TAG:
 			    a_types->bound = 0;
 			    SDescList = args[0].sedp;
 			    break;
-			    
-		    default:		a_types->bound = 0;
+
+		    default:
+			    a_types->bound = 0;
 			    _length += get_len(&a_types, &args, a_types->mode);
-			    
+
 		    }
 		    break;
 
@@ -303,9 +307,9 @@ long MRPC_MakeMulti (int ServerOp, ARG ArgTypes[], RPC2_Integer HowMany,
 	free(va_array);
 	return _rpc2val;
     }
-    
+
     /* Pack arguments */
-    _ptr = (PARM *)_reqbuffer->Body;
+    _ptr = _reqbuffer->Body;
     for(a_types = ArgTypes, args = va_array; a_types->mode != C_END; a_types++) {
 	    if (a_types->mode != OUT_MODE || a_types->type == RPC2_BOUNDEDBS_TAG) {
 		    if (a_types->type != RPC2_STRUCT_TAG)
@@ -347,11 +351,11 @@ long MRPC_MakeMulti (int ServerOp, ARG ArgTypes[], RPC2_Integer HowMany,
 }
 
 /* Packs the given structure into the RequestBuffer (called recursively) */
-void pack_struct(ARG *a_types, PARM **args, PARM **ptr)
+void pack_struct(ARG *a_types, PARM **args, unsigned char **ptr)
 {
 	ARG *field;
 	PARM **strp, *str;
-	int i, maxiterate;
+	int i, maxiterate = 1;
 
 	if (a_types->mode == IN_OUT_MODE) {
 		str = *(*args)->structpp;
@@ -362,208 +366,209 @@ void pack_struct(ARG *a_types, PARM **args, PARM **ptr)
 		strp = &str;
 	}
 	else strp = args;
-	
-	if (a_types->bound != 0) {
-		maxiterate = get_arraylen_pack(a_types-1, *args-1);
-		for(i = 0; i < maxiterate; i++) {
-			for(field = a_types->field; field->mode != C_END; field++) {
-				if (field->type == RPC2_STRUCT_TAG)
-					pack_struct(field, strp, ptr);
-				else pack(field, strp, ptr);
-			}
-		}
-	} else {
-		for(field = a_types->field; field->mode != C_END; field++) {
-			if (field->type == RPC2_STRUCT_TAG)
-				pack_struct(field, strp, ptr);
-			else pack(field, strp, ptr);
-		}
+
+	if (a_types->bound != 0)
+	    maxiterate = get_arraylen_pack(a_types-1, *args-1);
+
+	for(i = 0; i < maxiterate; i++) {
+	    for(field = a_types->field; field->mode != C_END; field++) {
+		if (field->type == RPC2_STRUCT_TAG)
+		    pack_struct(field, strp, ptr);
+		else pack(field, strp, ptr);
+	    }
 	}
 }
 
-
 /* Packs the given type into the RequestBuffer */
-void pack(ARG *a_types, PARM **args, PARM **_ptr)
-  {
-    RPC2_Byte byte;
-    long _length;
+void pack(ARG *a_types, PARM **args, unsigned char **_ptr)
+{
+    unsigned char *_body;
+    int32_t _length, _maxlength;
     MODE mode = a_types->mode;
-    PARM *arg = *args;
-    RPC2_CountedBS *cbsbodyp;
-    RPC2_BoundedBS *bbsbodyp;
 
     switch(a_types->type) {
+	case RPC2_UNSIGNED_TAG:
+	    if (mode == IN_OUT_MODE) {
+		_ROUND(*args, sizeof(intptr_t));
+		*(uint32_t *)(*_ptr) = htonl(**(*args)->unsgnedp);
+		_INCR(*args, sizeof(intptr_t));
+	    } else {
+		_ROUND(*args, sizeof(uint32_t));
+		*(uint32_t *)(*_ptr) = htonl((*args)->unsgned);
+		_INCR(*args, sizeof(uint32_t));
+	    }
+
+	    _INCR(*_ptr, sizeof(uint32_t));
+	    break;
+
 	case RPC2_INTEGER_TAG:
-			      if (mode == IN_OUT_MODE)
-				(*_ptr)->integer = htonl(**arg->integerp);
-			      else (*_ptr)->integer = htonl(arg->integer);
-			      (*_ptr)++;
-			      (*args)++;
-			      break;
-	   case RPC2_UNSIGNED_TAG:
-			      if (mode == IN_OUT_MODE)
-				(*_ptr)->unsgned = htonl(**arg->unsgnedp);
-			      else (*_ptr)->unsgned = htonl(arg->unsgned);
-			      (*_ptr)++;
-			      (*args)++;
-			      break;
-	   case RPC2_BYTE_TAG:
-			      if (a_types->bound != 0) {	/* Byte array */
-				if (mode == IN_MODE)
-				{
-				  memcpy(*_ptr, arg->bytep, a_types->bound);
-				  (*args)++;
-				}
-				else if(mode == IN_OUT_MODE)
-				{
-				  memcpy(*_ptr, *arg->bytep, a_types->bound);
-				  (*args)++;
-				}
-				else if (mode == NO_MODE)
-				{	/* structure field */
-				  memcpy(*_ptr, &arg->byte, a_types->bound);
-				  incr_struct_byte(a_types, args);
-				}
-#if SIZE == 4
-			      (*_ptr) += (a_types->size) >> 2;
-#else
-			      (*_ptr) += a_types->size / SIZE;
-#endif
-			      }
-			      else {				/* single byte */
-				if (mode == IN_OUT_MODE) {
-				   /* byte = **arg->integerp; */ /* bug fix */
-				   byte = **(arg->bytep);
-				   *(RPC2_Byte *)(*_ptr) = byte;
-				   (*args)++;  /* bug fix */
-				}
-				else {
-				   if (mode == NO_MODE) {	/* structure field */
-				     *(RPC2_Byte *)(*_ptr) = *(RPC2_Byte *)arg;
-				     incr_struct_byte(a_types, args);
-				   }
-				   else {			/* IN mode only */
-				     byte = arg->integer;
-				     *(RPC2_Byte *)(*_ptr) = byte;
-				     (*args)++;
-				   }
-				}
-				(PARM *)(*_ptr)++;
-			      }
-			      break;
-	   case RPC2_ENUM_TAG:
-			      if (mode == IN_OUT_MODE)
-				(*_ptr)->integer = htonl((long)**arg->integerp);
-			      else (*_ptr)->integer = htonl((long)arg->integer);
-			      (*_ptr)++;
-			      (*args)++;
-			      break;
-	   case RPC2_STRING_TAG:
-			      if (mode == IN_OUT_MODE) {
-				_length = strlen((char *)(*arg->stringp[0]));
-				(*_ptr)->integer = htonl(_length);
-				(*_ptr)++;
-				(void) strcpy((char *)(*_ptr), (char *)(*arg->stringp[0]));
-			      }
-			      else {
-				_length = strlen((char *)arg->string);
-				(*_ptr)->integer = htonl(_length);
-				(*_ptr)++;
-				(void) strcpy((char *)(*_ptr), (char *)arg->string);
-			      }
-			      ((RPC2_Byte *)(*_ptr))[_length] = '\0';
-#if SIZE == 4
-			      (*_ptr) += (_PAD(_length+1) >> 2);
-			      /* (*_ptr) += ((a_types->size) >> 2) - 1; */
-#else
-			      (*_ptr) += (_PAD(_length+1) / SIZE);
-			      /* (*_ptr) += (a_types->size / SIZE) - 1; */
-#endif
-			      (*args)++;
-			      break;
-	   case RPC2_COUNTEDBS_TAG:
-			      if (mode == NO_MODE) {
-				cbsbodyp = (RPC2_CountedBS *)arg;
-			        _length = cbsbodyp->SeqLen;
-			        ((*_ptr)++)->integer = htonl(_length);
-				memcpy(*_ptr, cbsbodyp->SeqBody, _length);
-				/* Later *args is added by 4. Now add 4 for SeqLen */
-				(*args)++; /* Ugly!! */
-			      }
-			      else if (mode == IN_OUT_MODE) {
-			        _length = (*arg->cbsp)->SeqLen;
-			        ((*_ptr)++)->integer = htonl(_length);
-			        memcpy(*_ptr, (*arg->cbsp)->SeqBody, _length);
-			      }
-			      else {
-			        _length = arg->cbs->SeqLen;
-			        ((*_ptr)++)->integer = htonl(_length);
-			        memcpy(*_ptr, arg->cbs->SeqBody, _length);
-			      }
-#if SIZE == 4
-			      (*_ptr) += (_PAD(_length) >> 2);
-			      /* (*_ptr) += ((a_types->size) >> 2) - 1; */
-#else
-			      (*_ptr) += (_PAD(_length) / SIZE);
-			      /* (*_ptr) += (a_types->size / SIZE) - 1; */
-#endif
-			      (*args)++;
-			      break;
-	   case RPC2_BOUNDEDBS_TAG:
-			      if (mode == NO_MODE) {
-				bbsbodyp = (RPC2_BoundedBS *)arg;
-			        ((*_ptr)++)->integer = htonl(bbsbodyp->MaxSeqLen);
-			        _length = bbsbodyp->SeqLen;
-			        ((*_ptr)++)->integer = htonl(_length);
-			        memcpy(*_ptr, bbsbodyp->SeqBody, _length);
-				/* Later *args is added by 4. Now add 4 for SeqLen */
-				(*args)++; /* Ugly!! */
-				/* Later *args is added by 4. Now add 4 for MaxSeqLen */
-				(*args)++; /* Ugly!! */
-			      }
-			      else if (mode == IN_MODE) {
-			        _length = (*arg->bbs).SeqLen;
-			        ((*_ptr)++)->integer = htonl(_length); /* pack an 'unused' MaxSeqLen */
-			        ((*_ptr)++)->integer = htonl(_length);
-				memcpy(*_ptr, (*arg->bbs).SeqBody, _length);
-			      }
-			      else if (mode == IN_OUT_MODE) {
-			        ((*_ptr)++)->integer = htonl((*arg->bbsp)->MaxSeqLen);
-			        _length = (*arg->bbsp)->SeqLen;
-			        ((*_ptr)++)->integer = htonl(_length);
-				memcpy(*_ptr, (*arg->bbsp)->SeqBody, _length);
-			      }
-			      else { /* OUT_MODE */
-			        ((*_ptr)++)->integer = htonl((*arg->bbsp)->MaxSeqLen);
-			        ((*_ptr)++)->integer = _length = 0; /* pack 'unused' SeqLen */
-			      }
-			      (*_ptr) += _PAD(_length) / SIZE;
-			      /* (*_ptr) += (a_types->size / SIZE) - 2; */
-			      (*args)++;
-			      break;
-	   case RPC2_ENCRYPTIONKEY_TAG:
-			       if (mode == IN_OUT_MODE) {
-			         memcpy(*_ptr, (*arg->keyp[0]), RPC2_KEYSIZE);
-			       }
-			       else {
-			         memcpy(*_ptr, *arg->key, RPC2_KEYSIZE);
-			       }
-#if SIZE == 4
-			      (*_ptr) += _PAD(RPC2_KEYSIZE) >> 2;
-#else
-			      (*_ptr) += _PAD(RPC2_KEYSIZE) / SIZE;
-#endif
-			      (*args)++;
-			       break;
-	   case RPC2_BULKDESCRIPTOR_TAG:
-			      (*args)++;
-			       break;
-	   case RPC2_STRUCT_TAG:
-				say(0, RPC2_DebugLevel, "MakeMulti (pack): RPC2_STRUCT_TAG encountered\n");
-				break;
-	   default:
-			       say(0, RPC2_DebugLevel, "MakeMulti (pack): unknown type tag: %d\n", a_types->type);
-	}
+	case RPC2_ENUM_TAG:
+	    if (mode == IN_OUT_MODE) {
+		_ROUND(*args, sizeof(intptr_t));
+		*(int32_t *)(*_ptr) = htonl(**(*args)->integerp);
+		_INCR(*args, sizeof(intptr_t));
+	    } else {
+		_ROUND(*args, sizeof(int32_t));
+		*(int32_t *)(*_ptr) = htonl((*args)->integer);
+		_INCR(*args, sizeof(int32_t));
+	    }
+
+	    _INCR(*_ptr, sizeof(int32_t));
+	    break;
+
+	case RPC2_BYTE_TAG:
+	    if (a_types->bound != 0) {	/* Byte array */
+		if (mode == IN_MODE)
+		{
+		    _ROUND(*args, sizeof(intptr_t));
+		    memcpy(*_ptr, (*args)->bytep, a_types->bound);
+		    _INCR(*args, sizeof(intptr_t));
+		}
+		else if(mode == IN_OUT_MODE)
+		{
+		    _ROUND(*args, sizeof(intptr_t));
+		    memcpy(*_ptr, *(*args)->bytep, a_types->bound);
+		    _INCR(*args, sizeof(intptr_t));
+		}
+		else if (mode == NO_MODE) /* structure field */
+		{
+		    memcpy(*_ptr, &(*args)->byte, a_types->bound);
+		    incr_struct_byte(a_types, args);
+		}
+		_INCR(*_ptr, a_types->size);
+		_ROUND(*_ptr, sizeof(int32_t));
+	    }
+	    else {			/* single byte */
+		if (mode == IN_OUT_MODE) {
+		    _ROUND(*args, sizeof(intptr_t));
+		    /* **_ptr = **(*args)->integerp; */ /* bug fix */
+		    **_ptr = **((*args)->bytep);
+		    _INCR(*args, sizeof(intptr_t));
+		}
+		else if (mode == IN_MODE) /* IN mode only */
+		{
+		    **_ptr = (*args)->integer;
+		    _INCR(*args, sizeof(int8_t));
+		}
+		else if (mode == NO_MODE) /* structure field */
+		{
+		    **_ptr = *(unsigned char *)(*args);
+		    incr_struct_byte(a_types, args);
+		}
+		_INCR(*_ptr, sizeof(uint32_t));
+	    }
+	    break;
+
+	case RPC2_STRING_TAG:
+	    _body = (mode == IN_OUT_MODE) ? **(*args)->stringp :(*args)->string;
+
+	    _length = strlen((char *)_body);
+	    *(int32_t *)(*_ptr) = htonl(_length);
+	    _INCR(*_ptr, sizeof(int32_t));
+
+	    (void) strcpy((char *)*_ptr, (char *)_body);
+	    (*_ptr)[_length] = '\0';
+	    _INCR(*_ptr, _length+1);
+	    _ROUND(*_ptr, sizeof(int32_t));
+
+	    _INCR(*args, sizeof(intptr_t));
+	    break;
+
+	case RPC2_COUNTEDBS_TAG:
+	    if (mode == NO_MODE) {
+		_ROUND(*args, sizeof(int32_t));
+		_length = ((RPC2_CountedBS *)(*args))->SeqLen;
+		_body = ((RPC2_CountedBS *)(*args))->SeqBody;
+
+		_INCR(*args, sizeof(int32_t));
+	    }
+	    else if (mode == IN_OUT_MODE) {
+		_ROUND(*args, sizeof(intptr_t));
+		_length = (*(*args)->cbsp)->SeqLen;
+		_body = (*(*args)->cbsp)->SeqBody;
+	    }
+	    else {
+		_ROUND(*args, sizeof(intptr_t));
+		_length = (*args)->cbs->SeqLen;
+		_body = (*args)->cbs->SeqBody;
+	    }
+	    *(int32_t *)(*_ptr) = htonl(_length);
+	    _INCR(*_ptr, sizeof(int32_t));
+	    memcpy(*_ptr, _body, _length);
+	    _INCR(*_ptr, _length);
+	    _ROUND(*_ptr, sizeof(int32_t));
+
+	    _INCR(*args, sizeof(intptr_t));
+	    break;
+
+	case RPC2_BOUNDEDBS_TAG:
+	    if (mode == NO_MODE) {
+		_ROUND(*args, sizeof(int32_t));
+		_maxlength = ((RPC2_BoundedBS *)(*args))->MaxSeqLen;
+		_length = ((RPC2_BoundedBS *)(*args))->SeqLen;
+		_body = ((RPC2_BoundedBS *)(*args))->SeqBody;
+		_INCR(*args, 2 * sizeof(int32_t));
+	    }
+	    else if (mode == IN_MODE) {
+		_ROUND(*args, sizeof(intptr_t));
+		/* pack an 'unused' MaxSeqLen */
+		_maxlength = (*(*args)->bbs).SeqLen;
+		_length = (*(*args)->bbs).SeqLen;
+		_body = (*(*args)->bbs).SeqBody;
+	    }
+	    else if (mode == IN_OUT_MODE) {
+		_ROUND(*args, sizeof(intptr_t));
+		_maxlength = (*(*args)->bbsp)->MaxSeqLen;
+		_length = (*(*args)->bbsp)->SeqLen;
+		_body = (*(*args)->bbsp)->SeqBody;
+	    }
+	    else { /* OUT_MODE */
+		_ROUND(*args, sizeof(intptr_t));
+		_maxlength = (*(*args)->bbsp)->MaxSeqLen;
+		_length = 0;
+		_body = NULL;
+	    }
+
+	    *(int32_t *)(*_ptr) = htonl(_maxlength);
+	    _INCR(*_ptr, sizeof(int32_t));
+	    *(int32_t *)(*_ptr) = htonl(_length);
+	    _INCR(*_ptr, sizeof(int32_t));
+	    if (_length) {
+		memcpy(*_ptr, (char *)_body, _length);
+		_INCR(*_ptr, _length);
+		_ROUND(*_ptr, sizeof(int32_t));
+	    }
+
+	    _INCR(*args, sizeof(intptr_t));
+	    break;
+
+	case RPC2_ENCRYPTIONKEY_TAG:
+	    if (mode == IN_OUT_MODE) {
+		_ROUND(*args, sizeof(intptr_t));
+		memcpy(*_ptr, (*(*args)->keyp[0]), RPC2_KEYSIZE);
+	    }
+	    else {
+		memcpy(*_ptr, *(*args)->key, RPC2_KEYSIZE);
+	    }
+	    _INCR(*_ptr, RPC2_KEYSIZE);
+	    _ROUND(*_ptr, sizeof(int32_t));
+
+	    _INCR(*args, sizeof(intptr_t));
+	    break;
+
+	case RPC2_BULKDESCRIPTOR_TAG:
+	    break;
+
+	case RPC2_STRUCT_TAG:
+	    say(0, RPC2_DebugLevel, "MakeMulti (pack): RPC2_STRUCT_TAG encountered\n");
+	    break;
+
+	default:
+	    say(0, RPC2_DebugLevel, "MakeMulti (pack): unknown type tag: %d\n", a_types->type);
+    }
+
+    if (mode != NO_MODE)
+	_ROUND(*args, sizeof(PARM));
 }
 
 /* Returns the buffer length needed for the given structure (called
@@ -576,7 +581,7 @@ int struct_len(ARG **a_types, PARM **args)
 	int i, maxiterate;
 
 	if ((*a_types)->mode == IN_OUT_MODE) {
-		str = *((*args)->structpp);
+		str = *(*args)->structpp;
 		strp = &str;
 	}
 	else if ((*a_types)->mode == IN_MODE) {
@@ -648,7 +653,7 @@ long MRPC_UnpackMulti(int HowMany, RPC2_Handle ConnHandleList[],
     ARG *a_types;	/* holds ArgTypes */
     PARM *args;	/* holds Args */
     PARM *str;
-    PARM *_ptr;	/* holds rspbuffer */
+    unsigned char *_ptr;	/* holds rspbuffer */
     int ret = 0;
     char *_end;
 
@@ -656,21 +661,23 @@ long MRPC_UnpackMulti(int HowMany, RPC2_Handle ConnHandleList[],
        if(rspbuffer->Header.ReturnCode == RPC2_INVALIDOPCODE)
 	  rpcval = RPC2_INVALIDOPCODE;
        else {
-	  _ptr = (PARM *)rspbuffer->Body;
+	  _ptr = rspbuffer->Body;
 	  _end = (char *)_ptr + rspbuffer->Header.BodyLength;
 	  rpcval = rspbuffer->Header.ReturnCode;
-	  for(a_types = ArgInfo->ArgTypes, args = ArgInfo->Args; a_types->mode != C_END; a_types++, args++) {
+	  for(a_types = ArgInfo->ArgTypes, args = ArgInfo->Args; a_types->mode != C_END; a_types++) {
 	    switch(a_types->mode){
 		case IN_MODE:
-			break;
+		    args++;
+		    break;
 		case OUT_MODE:
 		case IN_OUT_MODE:
-			if (a_types->type == RPC2_STRUCT_TAG) {
-			   str = (PARM *) args->structpp[offset];
-			   ret = unpack_struct(a_types, &str, &_ptr, _end, offset);
-			}
-			else ret = unpack(a_types, args, &_ptr, _end, offset);
-			break;
+		    if (a_types->type == RPC2_STRUCT_TAG) {
+			str = (PARM *) args->structpp[offset];
+			ret = unpack_struct(a_types, &str, &_ptr, _end, offset);
+			args++;
+		    }
+		    else ret = unpack(a_types, &args, &_ptr, _end, offset);
+		    break;
 		default:	assert(FALSE);
 	    }
 	    if (ret) break;
@@ -707,32 +714,50 @@ int get_len(ARG **a_types, PARM **args, MODE mode)
 			   (*a_types)->bound = ((*a_types)->size);
 			   return((*a_types)->size = _PAD((*a_types)->bound));
 			}
-			else return(SIZE);	/* don't set (*a_types)->size for single char variable */
+			else return(sizeof(int32_t));	/* don't set (*a_types)->size for single char variable */
 	case RPC2_INTEGER_TAG:
 	case RPC2_UNSIGNED_TAG:
 	case RPC2_ENUM_TAG:
 			return ((*a_types)->size);
 	case RPC2_STRING_TAG:
-	     		if (mode == IN_OUT_MODE) 
-			  return((*a_types)->size = SIZE+_PAD(strlen((char *)(*(*args)->stringp[0]))+1));
-			else return((*a_types)->size = SIZE+_PAD(strlen((char *)(*args)->string)+1));
+			(*a_types)->size = sizeof(int32_t);
+	     		if (mode == IN_OUT_MODE)
+			    (*a_types)->size += _PAD(strlen((char *)(*(*args)->stringp[0]))+1);
+			else
+			    (*a_types)->size += _PAD(strlen((char *)(*args)->string)+1);
+			return (*a_types)->size;
+
 	case RPC2_COUNTEDBS_TAG:
+			(*a_types)->size = sizeof(int32_t);
 			if (mode == NO_MODE) {
-			  cbsbodyp = (RPC2_CountedBS *)(*args);
-			  return((*a_types)->size = SIZE+_PAD(cbsbodyp->SeqLen));
-			} else if (mode == IN_OUT_MODE) 
-			  return((*a_types)->size = SIZE+_PAD((*(*args)->cbsp)->SeqLen));
-			else return((*a_types)->size = SIZE+_PAD((*args)->cbs->SeqLen));
+			    cbsbodyp = (RPC2_CountedBS *)(*args);
+			    (*a_types)->size += _PAD(cbsbodyp->SeqLen);
+			}
+			else if (mode == IN_OUT_MODE)
+			    (*a_types)->size += _PAD((*(*args)->cbsp)->SeqLen);
+
+			else
+			    (*a_types)->size += _PAD((*args)->cbs->SeqLen);
+
+			return (*a_types)->size;
+
 	case RPC2_BOUNDEDBS_TAG:
+			(*a_types)->size = 2 * sizeof(int32_t);
 			if (mode == NO_MODE) {
 			  bbsbodyp = (RPC2_BoundedBS *)(*args);
-			  return((*a_types)->size = 2*SIZE+_PAD(bbsbodyp->SeqLen));
-			} else if (mode == IN_OUT_MODE)
-			  return((*a_types)->size = 2*SIZE+_PAD((*(*args)->bbsp)->SeqLen));
+			  (*a_types)->size += _PAD(bbsbodyp->SeqLen);
+			}
+			else if (mode == IN_OUT_MODE)
+			  (*a_types)->size += _PAD((*(*args)->bbsp)->SeqLen);
+
 			else if (mode == IN_MODE)
-			  return((*a_types)->size = 2*SIZE+_PAD((*(*args)->bbs).SeqLen));
-			else return((*a_types)->size = 2*SIZE); /* OUT_MODE */
-	case RPC2_BULKDESCRIPTOR_TAG:	
+			  (*a_types)->size += _PAD((*(*args)->bbs).SeqLen);
+
+			/* else OUT_MODE */
+
+			return (*a_types)->size;
+
+	case RPC2_BULKDESCRIPTOR_TAG:
 	case RPC2_ENCRYPTIONKEY_TAG:
 			return((*a_types)->size);
 	case RPC2_STRUCT_TAG:		
@@ -766,11 +791,11 @@ int get_arraylen_pack(ARG *a_types, PARM *args)
     /*NOTREACHED*/
 }
 
-int get_arraylen_unpack(ARG *a_types, PARM *ptr)
+int get_arraylen_unpack(ARG *a_types, unsigned char *ptr)
 {
     switch(a_types->type) {
         case RPC2_INTEGER_TAG:
-			return ntohl(ptr->integer);
+			return ntohl(*(uint32_t *)ptr);
 			/*NOTREACHED*/
 			break;
         default:
@@ -785,129 +810,168 @@ int get_arraylen_unpack(ARG *a_types, PARM *ptr)
 	return EINVAL; \
     } while(0)
 
-int unpack(ARG *a_types, PARM *args, PARM **_ptr, char *_end, long offset)
+int unpack(ARG *a_types, PARM **args, unsigned char **_ptr, char *_end, long offset)
 {
-     int _length, _maxlength;
-     RPC2_CountedBS *cbsbodyp;
-     RPC2_BoundedBS *bbsbodyp;
-     MODE mode = a_types->mode;
+    int32_t _length, _maxlength;
+    RPC2_BoundedBS *bbsbodyp;
+    MODE mode = a_types->mode;
 
-     switch(a_types->type) {
-     case RPC2_INTEGER_TAG:
-	 CHECK(SIZE);
-	 if (mode != NO_MODE)
-	     *(args->integerp[offset]) = ntohl((*_ptr)->integer);
-	 else args->integer = ntohl((*_ptr)->integer);
-	 (*_ptr)++;
-	 break;
-     case RPC2_UNSIGNED_TAG:
-	 CHECK(SIZE);
-	 if (mode != NO_MODE)
-	     *(args->unsgnedp[offset]) = ntohl((*_ptr)->unsgned);
-	 else args->unsgned = ntohl((*_ptr)->unsgned);
-	 (*_ptr)++;
-	 break;
-     case RPC2_BYTE_TAG:
-	 if (a_types->bound != 0) {
-	     CHECK(a_types->bound);
-	     if (mode == NO_MODE) {
-		 memcpy(&(args->byte), *_ptr, a_types->bound);
-		 (*_ptr) += a_types->size / SIZE;
-	     }
-	     else {
-		 memcpy(args->bytep[offset], *_ptr, a_types->bound);
-		 (*_ptr)++;
-	     }
-	 }
-	 else {
-	     CHECK(1);
-	     if (mode != NO_MODE)
-		 *(args->bytep[offset]) = *(RPC2_Byte *)(*_ptr);
-	     else args->byte = *(RPC2_Byte *)(*_ptr);
-	     (*_ptr)++;
-	 }
-	 break;
-     case RPC2_ENUM_TAG:
-	 CHECK(SIZE);
-	 if (mode != NO_MODE) {
-	     *(args->integerp[offset]) = ntohl((*_ptr)->integer);
-	 }
-	 else args->integer = ntohl((*_ptr)->integer);
-	 (*_ptr)++;
-	 break;
-     case RPC2_STRING_TAG:
-	 CHECK(SIZE);
-	 _length = ntohl((*_ptr)->integer) + 1; (*_ptr)++;
-	 CHECK(_length);
-	 if (mode != NO_MODE) {
-	     memcpy(*(args->stringp[offset]), *_ptr, _length);
-	     (*args->stringp[offset])[_length - 1] = '\0';
-	 }
-	 else {
-	     memcpy(args->string, *_ptr, _length);
-	     args->string[_length - 1] = '\0';  /* used to be [length] */
-	 }
-	 (*_ptr) += (_PAD(_length)) / SIZE;
-	 break;
-     case RPC2_COUNTEDBS_TAG:
-	 CHECK(SIZE);
-	 _length = ntohl((*_ptr)->integer); (*_ptr)++;
-	 CHECK(_length);
-	 if (mode != NO_MODE) {
-	     args->cbsp[offset]->SeqLen = _length;
-	     memcpy(args->cbsp[offset]->SeqBody, *_ptr, _length);
-	 }
-	 else {
-	     cbsbodyp = (RPC2_CountedBS *)args;
-	     cbsbodyp->SeqLen = _length;
-	     memcpy(cbsbodyp->SeqBody, *_ptr, _length);
-	 }
-	 (*_ptr) += (_PAD(_length)) / SIZE;
-	 break;
-     case RPC2_BOUNDEDBS_TAG:
-	 CHECK(2*SIZE);
-	 _maxlength = ntohl((*_ptr)->integer); (*_ptr)++;
-	 _length = ntohl((*_ptr)->integer); (*_ptr)++;
-	 CHECK(_length);
-	 if (mode == OUT_MODE || mode == IN_OUT_MODE) {
-	     /* ignore received MaxSeqLen */
-	     args->bbsp[offset]->SeqLen = _length;
-	     if (_length <= args->bbsp[offset]->MaxSeqLen)
-		 memcpy(args->bbsp[offset]->SeqBody, *_ptr, _length);
-	 }
-	 else if (mode == NO_MODE) {
-	     bbsbodyp = (RPC2_BoundedBS *)args;
-	     bbsbodyp->MaxSeqLen = _maxlength;
-	     bbsbodyp->SeqLen = _length;
-	     memcpy(bbsbodyp->SeqBody, *_ptr, _length);
-	 }
-	 (*_ptr) += (_PAD(_length)) / SIZE;
-     case RPC2_BULKDESCRIPTOR_TAG:
-	 break;
-     case RPC2_STRUCT_TAG:
-	 say(0, RPC2_DebugLevel, "Unpack: encountered struct\n");
-	 break;
-     case RPC2_ENCRYPTIONKEY_TAG:
-	 CHECK(RPC2_KEYSIZE);
-	 if (mode == IN_OUT_MODE) {
-	     memcpy(args->keyp[offset], *_ptr, RPC2_KEYSIZE);
-	 }
-	 else memcpy(*(args->key), *_ptr, RPC2_KEYSIZE);
-	 (*_ptr) += (_PAD(RPC2_KEYSIZE)) / SIZE;
-	 break;
-     default:
-	 say(0, RPC2_DebugLevel, "UnpackMulti (unpack): unknown tag: %d\n", a_types->type);
-     }
-     return 0;
+    switch(a_types->type) {
+	case RPC2_UNSIGNED_TAG:
+	    CHECK(sizeof(uint32_t));
+	    if (mode != NO_MODE) {
+		*((*args)->unsgnedp[offset]) = ntohl(*(uint32_t *)(*_ptr));
+		_INCR(*args, sizeof(intptr_t));
+	    }
+	    else {
+		(*args)->unsgned = ntohl(*(uint32_t *)(*_ptr));
+		_INCR(*args, sizeof(uint32_t));
+	    }
+	    _INCR(*_ptr, sizeof(uint32_t));
+	    break;
+
+	case RPC2_INTEGER_TAG:
+	case RPC2_ENUM_TAG:
+	    CHECK(sizeof(int32_t));
+	    if (mode != NO_MODE) {
+		*((*args)->integerp[offset]) = ntohl(*(int32_t *)(*_ptr));
+		_INCR(*args, sizeof(intptr_t));
+	    }
+	    else {
+		(*args)->integer = ntohl(*(int32_t *)(*_ptr));
+		_INCR(*args, sizeof(uint32_t));
+	    }
+	    _INCR(*_ptr, sizeof(int32_t));
+	    break;
+
+	case RPC2_BYTE_TAG:
+	    if (a_types->bound != 0) {
+		CHECK(a_types->bound);
+		if (mode == NO_MODE) {
+		    memcpy(&((*args)->byte), *_ptr, a_types->bound);
+		    incr_struct_byte(a_types, args);
+		}
+		else {
+		    memcpy((*args)->bytep[offset], *_ptr, a_types->bound);
+		    _INCR(*args, sizeof(intptr_t));
+		}
+		_INCR(*_ptr, a_types->size);
+		_ROUND(*_ptr, sizeof(int32_t));
+	    }
+	    else {
+		CHECK(1);
+		if (mode != NO_MODE) {
+		    *((*args)->bytep[offset]) = *(RPC2_Byte *)(*_ptr);
+		    _INCR(*args, sizeof(intptr_t));
+		}
+		else {
+		    (*args)->byte = *(RPC2_Byte *)(*_ptr);
+		    incr_struct_byte(a_types, args);
+		}
+		_INCR(*_ptr, sizeof(int32_t));
+	    }
+	    break;
+
+	case RPC2_STRING_TAG:
+	    CHECK(sizeof(int32_t));
+	    _length = ntohl(*(int32_t *)(*_ptr)) + 1;
+	    _INCR(*_ptr, sizeof(int32_t));
+	    CHECK(_length);
+	    if (mode != NO_MODE) {
+		memcpy(*((*args)->stringp[offset]), *_ptr, _length);
+		(*(*args)->stringp[offset])[_length - 1] = '\0';
+	    }
+	    else {
+		memcpy((*args)->string, *_ptr, _length);
+		(*args)->string[_length - 1] = '\0';  /* used to be [length] */
+	    }
+	    _INCR(*_ptr, _length);
+	    _ROUND(*_ptr, sizeof(int32_t));
+
+	    _INCR(*args, sizeof(intptr_t));
+	    break;
+
+	case RPC2_COUNTEDBS_TAG:
+	    CHECK(sizeof(int32_t));
+	    _length = ntohl(*(int32_t *)(*_ptr));
+	    _INCR(*_ptr, sizeof(int32_t));
+	    CHECK(_length);
+	    if (mode != NO_MODE) {
+		(*args)->cbsp[offset]->SeqLen = _length;
+		memcpy((*args)->cbsp[offset]->SeqBody, *_ptr, _length);
+	    }
+	    else {
+		((RPC2_CountedBS *)(*args))->SeqLen = _length;
+		memcpy(((RPC2_CountedBS *)(*args))->SeqBody, *_ptr, _length);
+		_INCR(*args, sizeof(int32_t));
+	    }
+	    _INCR(*_ptr, _length);
+	    _ROUND(*_ptr, sizeof(int32_t));
+
+	    _INCR(*args, sizeof(intptr_t));
+	    break;
+
+	case RPC2_BOUNDEDBS_TAG:
+	    CHECK(2*sizeof(int32_t));
+	    _maxlength = ntohl(*(int32_t *)(*_ptr));
+	    _INCR(*_ptr, sizeof(int32_t));
+	    _length = ntohl(*(int32_t *)(*_ptr));
+	    _INCR(*_ptr, sizeof(int32_t));
+	    CHECK(_length);
+	    if (mode == OUT_MODE || mode == IN_OUT_MODE) {
+		/* ignore received MaxSeqLen */
+		(*args)->bbsp[offset]->SeqLen = _length;
+		if (_length <= (*args)->bbsp[offset]->MaxSeqLen)
+		    memcpy((*args)->bbsp[offset]->SeqBody, *_ptr, _length);
+	    }
+	    else if (mode == NO_MODE) {
+		bbsbodyp = (RPC2_BoundedBS *)(*args);
+		bbsbodyp->MaxSeqLen = _maxlength;
+		bbsbodyp->SeqLen = _length;
+		memcpy(bbsbodyp->SeqBody, *_ptr, _length);
+		_INCR(*args, 2 * sizeof(int32_t));
+	    }
+	    _INCR(*_ptr, _length);
+	    _ROUND(*_ptr, sizeof(int32_t));
+
+	    _INCR(*args, sizeof(intptr_t));
+	    break;
+
+	case RPC2_ENCRYPTIONKEY_TAG:
+	    CHECK(RPC2_KEYSIZE);
+	    if (mode == IN_OUT_MODE) {
+		memcpy((*args)->keyp[offset], *_ptr, RPC2_KEYSIZE);
+	    }
+	    else memcpy(*((*args)->key), *_ptr, RPC2_KEYSIZE);
+	    _INCR(*_ptr, RPC2_KEYSIZE);
+	    _ROUND(*_ptr, sizeof(int32_t));
+
+	    _INCR(*args, sizeof(intptr_t));
+	    break;
+
+	case RPC2_BULKDESCRIPTOR_TAG:
+	    break;
+
+	case RPC2_STRUCT_TAG:
+	    say(0, RPC2_DebugLevel, "Unpack: encountered struct\n");
+	    break;
+
+	default:
+	    say(0, RPC2_DebugLevel, "UnpackMulti (unpack): unknown tag: %d\n", a_types->type);
+    }
+
+    if (mode != NO_MODE)
+	_ROUND(*args, sizeof(PARM));
+    return 0;
 }
 
 
-int unpack_struct(ARG *a_types, PARM **args, PARM **_ptr, char *_end,
+int unpack_struct(ARG *a_types, PARM **args, unsigned char **_ptr, char *_end,
 		  long offset)
 {
     ARG *field;
     PARM **strp, *str;
-    int i, maxiterate, ret;
+    int i, maxiterate = 1, ret;
 
     if (a_types->mode != NO_MODE) {
 	str = *args;
@@ -915,54 +979,17 @@ int unpack_struct(ARG *a_types, PARM **args, PARM **_ptr, char *_end,
     }
     else strp = args;
 
-    if (a_types->bound != 0) {
+    if (a_types->bound != 0)
         /* Array size should be stored before array structures */
         maxiterate = get_arraylen_unpack(a_types-1, *_ptr-1);
-        for(i = 0; i < maxiterate; i++) {
-	    for(field = a_types->field; field->mode != C_END; field++) {
-	        if (field->type == RPC2_STRUCT_TAG) {
-	            ret = unpack_struct(field, strp, _ptr, _end, -1);
-		    if (ret) return ret;
-		} else {
-	            ret = unpack(field, *strp, _ptr, _end, offset);
-		    if (ret) return ret;
-		    switch (field->type) {
-		      case RPC2_BYTE_TAG:
-		        incr_struct_byte(field, strp);
-			break;
-		      case RPC2_BOUNDEDBS_TAG:
-			(*strp)++;
-		      case RPC2_COUNTEDBS_TAG:
-			(*strp)++;
-		      default:
-			(*strp)++;
-			break;
-		    }
-		}
-	    }
-	}
-    } else {
-	for(field = a_types->field; field->mode != C_END; field++) {
-	    if (field->type == RPC2_STRUCT_TAG) {
-	        ret = unpack_struct(field, strp, _ptr, _end, -1);
-		if (ret) return ret;
-	    } else {
-	        ret = unpack(field, *strp, _ptr, _end, offset);
-		if (ret) return ret;
-		switch (field->type) {
-		  case RPC2_BYTE_TAG:
-		    incr_struct_byte(field, strp);
-		    break;
-		  case RPC2_BOUNDEDBS_TAG:
-		    (*strp)++;
-		  case RPC2_COUNTEDBS_TAG:
-		    (*strp)++;
-		  default:
-		    (*strp)++;
-		    break;
-		}
-	    }
 
+    for(i = 0; i < maxiterate; i++) {
+	for(field = a_types->field; field->mode != C_END; field++) {
+	    if (field->type == RPC2_STRUCT_TAG)
+		ret = unpack_struct(field, strp, _ptr, _end, -1);
+	    else
+		ret = unpack(field, strp, _ptr, _end, offset);
+	    if (ret) return ret;
 	}
     }
     return 0;
@@ -980,16 +1007,10 @@ void incr_struct_byte(ARG *a_types, PARM **args)
 void byte_pad(PARM **args)
 {
 #ifdef sun
-				     *(char **) args = (char *)_PADWORD((int) *args);
+    *(char **)args = (char *)_PADWORD((long) *args);
 #endif
-#ifdef ibm032
-				     *(char **) args = (char *)_PADLONG((int) *args);
-#endif
-#ifdef vax
-				     *(char **) args = (char *)_PADLONG((int) *args);
-#endif
-#ifdef mips
-				     *(char **) args = (char *)_PADLONG((int) *args);
+#if defined(ibm032) || defined(vax) || defined(mips)
+    *(char **)args = (char *)_PADLONG((long) *args);
 #endif
 }
 

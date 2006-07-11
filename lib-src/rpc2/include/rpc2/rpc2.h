@@ -348,7 +348,7 @@ typedef
 	PortTag Tag;
 	union
 	    {
-	    unsigned short InetPortNumber; /* NOTE: in network order, not host order */
+	    uint16_t InetPortNumber; /* NOTE: in network order, not host order */
 	    char Name[20];	/* this is a pretty arbitrary length */
 	    }
 	    Value;

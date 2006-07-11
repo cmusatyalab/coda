@@ -62,7 +62,6 @@ typedef	union PARM {				     /* PARM will always be 4 bytes */
 			RPC2_CountedBS	**cbsp;
 			RPC2_BoundedBS	*bbs;
 			RPC2_BoundedBS	**bbsp;
-			long 		*bd;
 			RPC2_EncryptionKey *key;
 			RPC2_EncryptionKey **keyp;
 			RPC2_Handle	*cidp;

@@ -213,7 +213,7 @@ struct security_association *rpc2_GetSA(uint32_t spi)
 long rpc2_RecvPacket(IN long whichSocket, OUT RPC2_PacketBuffer *whichBuff)
 {
     long rc, len;
-    size_t fromlen;
+    socklen_t fromlen;
     struct sockaddr_storage ss;
 
     say(0, RPC2_DebugLevel, "rpc2_RecvPacket()\n");
