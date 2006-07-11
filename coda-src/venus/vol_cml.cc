@@ -2898,7 +2898,7 @@ int cmlent::WriteReintegrationHandle()
 
 	Recov_BeginTrans();
 	    RVMLIB_REC_OBJECT(u);
-	    if (u.u_store.Offset == (unsigned long)-1) 
+	    if (u.u_store.Offset == (unsigned)-1)
 	         u.u_store.Offset = length;
 	    else u.u_store.Offset += length;
 	Recov_EndTrans(MAXFP);
@@ -3983,7 +3983,7 @@ unsigned long cmlent::ReintAmount()
     else
 	amount = u.u_store.Length;
 
-    offset = u.u_store.Offset != (unsigned long)-1 ? u.u_store.Offset : 0;
+    offset = u.u_store.Offset != (unsigned)-1 ? u.u_store.Offset : 0;
     if (offset + amount > u.u_store.Length)
 	amount = u.u_store.Length - offset;
 

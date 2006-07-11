@@ -64,7 +64,7 @@ struct DirBlob {
 
 /* A page header entry: padded to be a 32 byte blob. */
 struct PageHeader {
-    long tag;
+    int tag;
     char freecount;	/* duplicated info: also in allomap */
     char freebitmap[EPP/8];
     char padding[32-(5+EPP/8)];

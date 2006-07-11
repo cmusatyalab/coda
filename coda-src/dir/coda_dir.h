@@ -58,9 +58,9 @@ extern int Length (long *);
 /* extern definitions for buffer.c */
 struct buffer
     {
-    long fid[5];	/* Unique cache key + i/o addressing */
-    long page;
-    long accesstime;
+    int fid[5];	/* Unique cache key + i/o addressing */
+    int page;
+    int accesstime;
     struct buffer *hashNext;
     char *data;
     char lockers;

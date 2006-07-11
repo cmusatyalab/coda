@@ -49,14 +49,14 @@ struct DirHandle {
 };
 /* A file identifier in host order. */
 struct DirFid {
-	long df_vnode;	/* file's vnode slot */
-	long df_unique;	/* the slot incarnation number */
+	int df_vnode;	/* file's vnode slot */
+	int df_unique;	/* the slot incarnation number */
 };
 
 /* File identifier in network order */
 struct DirNFid {
-	long dnf_vnode;	/* file's vnode slot */
-	long dnf_unique;	/* the slot incarnation number */
+	int dnf_vnode;	/* file's vnode slot */
+	int dnf_unique;	/* the slot incarnation number */
 };
 
 /* A directory entry */

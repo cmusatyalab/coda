@@ -686,7 +686,7 @@ int DIR_PrintEntry(PDirEntry entry, FILE *f)
 
 	fid_NFid2Fid(&(entry->fid), &fid);
 
-	fprintf(f, "next: %hu, flag %d fid: (%lx.%lx) %s\n",
+	fprintf(f, "next: %hu, flag %d fid: (%x.%x) %s\n",
 		ntohs(entry->next), entry->flag,
 		fid.df_vnode, fid.df_unique, entry->name);
 

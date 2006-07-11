@@ -68,7 +68,7 @@ static void ClearVattr(void *)
 
 static void ClearXfer(void *data)
 {
-  int ix = (int)data;
+  int ix = (long)data;
   if (!XferProg[ix]->active() && XferProg[ix]->visible())
     XferProg[ix]->hide();
 }

@@ -186,7 +186,7 @@ struct venus_dirent {
 #ifndef _VENUS_DIRENT_T_
 #define _VENUS_DIRENT_T_ 1
 struct venus_dirent {
-        unsigned long	d_fileno;		/* file number of entry */
+        unsigned int	d_fileno;		/* file number of entry */
         unsigned short	d_reclen;		/* length of this record */
         unsigned char 	d_type;			/* file type, see below */
         unsigned char	d_namlen;		/* length of string in d_name */

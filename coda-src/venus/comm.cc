@@ -565,8 +565,7 @@ void PutServer(srvent **spp)
  *    yet a part of MultiRPC.
  */
 
-probeslave::probeslave(ProbeSlaveTask Task, void *Arg, void *Result, char *Sync) :
-	vproc("ProbeSlave", NULL, VPT_ProbeDaemon, 16384) {
+probeslave::probeslave(ProbeSlaveTask Task, void *Arg, void *Result, char *Sync) : vproc("ProbeSlave", NULL, VPT_ProbeDaemon, 32768) {
     LOG(100, ("probeslave::probeslave(%#x): %-16s : lwpid = %d\n", this, name, lwpid));
 
     task = Task;
