@@ -170,24 +170,24 @@ Pittsburgh, PA.
 #define BITMASKWIDTH	(MAXOPACKETS / 32)	/* No of elements in integer array */
 
 struct SFTP_Parms
-    {/* sent in SFTP_START packets, and piggy-backed on very first RPC call on a connection */
+{/* sent in SFTP_START packets, and piggy-backed on very first RPC call on a connection */
     RPC2_PortIdent Port;
     int32_t WindowSize;
     int32_t SendAhead;
     int32_t AckPoint;
     int32_t PacketSize;
     int32_t DupThreshold;
-    };
+};
 
 struct SFTP_MCParms	/* Multicast parameters */
-    {
-    long PeerSendLastContig;
-    };
+{
+    uint32_t PeerSendLastContig;
+};
 
 enum  SFState {SFSERVER, SFCLIENT, ERROR, DISKERROR};
 
 struct SFTP_Entry		/* per-connection data structure */
-    {
+{
     long  Magic;		/* SFTPMAGIC */
     enum  SFState WhoAmI;
     RPC2_Handle LocalHandle;	/* which RPC2 conn on this side do I
@@ -198,15 +198,15 @@ struct SFTP_Entry		/* per-connection data structure */
 				   ExaminePacket on client side (if
 				   !GotParms), and sftp_ExtractParmsFromPacket
 				   on server side */
-    long ThisRPCCall;		/* Client-side RPC sequence number of the call
+    uint32_t ThisRPCCall;	/* Client-side RPC sequence number of the call
 				   in progress. Used to reject outdated SFTP
 				   packets that may be floating around after
 				   the next RPC has begun. Set on client side
 				   in SFTP_MakeRPC1() and on server side on
 				   SFTP_GetRequest() */
-    long GotParms;		/* FALSE initially; TRUE after I have
+    uint32_t GotParms;		/* FALSE initially; TRUE after I have
 				   discovered my peer's parms */
-    long SentParms;		/* FALSE initially; TRUE after I have sent my
+    uint32_t SentParms;		/* FALSE initially; TRUE after I have sent my
 				   parms to peer */
     SE_Descriptor *SDesc; 	/* set by SFTP_MakeRPC1 on client side, by
 				   SFTP_InitSE and SFTP_CheckSE on server side
@@ -217,23 +217,23 @@ struct SFTP_Entry		/* per-connection data structure */
 				   within the file after each read/write */
     struct SL_Entry *Sleeper;	/* SL_Entry of LWP sleeping on this connection,
 				   or NULL */
-    long PacketSize;		/* Amount of  data in each packet */
-    long WindowSize;		/* Max Number of outstanding packets without
+    uint32_t PacketSize;	/* Amount of  data in each packet */
+    uint32_t WindowSize;	/* Max Number of outstanding packets without
 				   acknowledgement <= MAXOPACKETS */
-    long SendAhead;		/* How many more packets to send after
+    uint32_t SendAhead;		/* How many more packets to send after
 				   demanding an ack. Equal to read-ahead  */
-    long AckPoint;		/* After how many send ahead packets should an
+    uint32_t AckPoint;		/* After how many send ahead packets should an
 				   ack be demanded? */
-    long DupThreshold;		/* How many duplicate data packets can I see
+    uint32_t DupThreshold;	/* How many duplicate data packets can I see
 				   before sending Ack spontaneously? */
-    long RetryCount;		/* How many times to retry Ack request */
-    long ReadAheadCount;	/* How many packets have been read by read
+    uint32_t RetryCount;	/* How many times to retry Ack request */
+    uint32_t ReadAheadCount;	/* How many packets have been read by read
 				   strategy routine */
-    long CtrlSeqNumber;		/* Seq number of last control packet sent out */
+    uint32_t CtrlSeqNumber;	/* Seq number of last control packet sent out */
     struct timeval RInterval;	/* retransmission interval; initially
 				   SFTP_RetryInterval milliseconds */
-    long Retransmitting;        /* FALSE initially; TRUE prevents RTT update */
-    unsigned long TimeEcho;     /* Timestamp to send on next packet (valid
+    uint32_t Retransmitting;	/* FALSE initially; TRUE prevents RTT update */
+    uint32_t TimeEcho;     	/* Timestamp to send on next packet (valid
 				   when not retransmitting) */
     struct timeval LastSS;	/* time SendStrategy was last invoked by an
 				   Ack on this connection */
@@ -257,37 +257,38 @@ struct SFTP_Entry		/* per-connection data structure */
 	2. RecvLastContig (at sink) = RecvMostRecent (at sink)
 	3. SendLastContig (at source) = RecvLastContig (at sink)
 */
-#define XferNotStarted 0
-#define XferInProgress 1
-#define XferCompleted  2
-    long XferState;		/* {XferNotStarted,XferInProgress,XferAborted,XferCompleted} */
+    enum {
+	XferNotStarted = 0,
+	XferInProgress = 1,
+	XferCompleted  = 2
+    } XferState;
 
     /* Next block is multicast specific */
-    long RepliedSinceLastSS;	/* TRUE iff {ACK,NAK,START} received since last invocation of SendStrategy */
-    long McastersStarted;	/* number of individual conns participating */
-    long McastersFinished;	/* number of participating conns which have finished */
-    long FirstSeqNo;
+    uint32_t RepliedSinceLastSS; /* TRUE iff {ACK,NAK,START} received since last invocation of SendStrategy */
+    uint32_t McastersStarted;	/* number of individual conns participating */
+    uint32_t McastersFinished;	/* number of participating conns which have finished */
+    uint32_t FirstSeqNo;
 #define	SendFirst FirstSeqNo	/* Value of SendLastContig (+1) when Multicast MRPC call is initiated */
 #define	RecvFirst FirstSeqNo	/* Value of RecvMostRecent (+1) when Multicast MRPC call is initiated */
 
-    long HitEOF;		/* source side: EOF has been seen by read strategy routine
+    uint32_t HitEOF;		/* source side: EOF has been seen by read strategy routine
     				   sink side: last packet for this transfer has been received */
-    long SendLastContig;	/* Seq no. of packet before (and including) which NO state is maintained.
+    uint32_t SendLastContig;	/* Seq no. of packet before (and including) which NO state is maintained.
 				   This is the most recent packet such that it and all earlier packets
 				   are known by me to have been received by the other side */
-    long SendMostRecent;	/* SendMostRecent is the latest data packet we have sent out  */
+    uint32_t SendMostRecent;	/* SendMostRecent is the latest data packet we have sent out  */
     unsigned int SendTheseBits[BITMASKWIDTH];	/* Bit pattern of packets in the range SendLastContig+1..SendMostRecent
 				   that have successfully been sent by me AND are known by me to have
 				   been received by other side */
-    long SendAckLimit;          /* Highest data packet for which an ack has been requested. */
-    long SendWorriedLimit;	/* Highest data packet about which we are worried. */
-    long RecvLastContig;	/* Most recent data packet up to which I no longer maintain state */
-    long RecvMostRecent;	/* Highest numbered data packet seen so far */
-    long DupsSinceAck;		/* Duplicates seen since the last ack I sent */
-    long RecvSinceAck;		/* Packets received since the last ack I sent */
+    uint32_t SendAckLimit;          /* Highest data packet for which an ack has been requested. */
+    uint32_t SendWorriedLimit;	/* Highest data packet about which we are worried. */
+    uint32_t RecvLastContig;	/* Most recent data packet up to which I no longer maintain state */
+    uint32_t RecvMostRecent;	/* Highest numbered data packet seen so far */
+    uint32_t DupsSinceAck;		/* Duplicates seen since the last ack I sent */
+    uint32_t RecvSinceAck;		/* Packets received since the last ack I sent */
 
-    unsigned long RequestTime;  /* arrival time of packet, to correct RTT
-				   estimates for processing time */
+    uint32_t RequestTime;  /* arrival time of packet, to correct RTT
+			      estimates for processing time */
 
     unsigned int RecvTheseBits[BITMASKWIDTH];	/* Packets in RecvLastContig+1..RecvMostRecent that I have received */
     RPC2_PacketBuffer *ThesePackets[MAXOPACKETS];
@@ -302,7 +303,7 @@ struct SFTP_Entry		/* per-connection data structure */
      * received.
      */
     struct security_association *sa;
-    };
+};
 
 
 extern long SFTP_DebugLevel;

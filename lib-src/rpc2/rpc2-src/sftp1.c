@@ -1113,7 +1113,15 @@ int sftp_ExtractParmsFromPacket(struct SFTP_Entry *sEntry,
 	sEntry->DupThreshold = sp.DupThreshold;
 	}
     sEntry->GotParms = TRUE;
-    say(9, SFTP_DebugLevel, "GotParms: %ld %ld %ld %ld %ld\n", sEntry->WindowSize, sEntry->SendAhead, sEntry->AckPoint, sEntry->PacketSize, sEntry->DupThreshold);
+
+    if (sEntry->WindowSize < SFTP_MINWINDOWSIZE)
+	sEntry->WindowSize = SFTP_MINWINDOWSIZE;
+    if (sEntry->SendAhead < SFTP_MINSENDAHEAD)
+        sEntry->SendAhead = SFTP_MINSENDAHEAD;
+    if (sEntry->PacketSize < SFTP_MINPACKETSIZE)
+	sEntry->PacketSize = SFTP_MINPACKETSIZE;
+
+    say(9, SFTP_DebugLevel, "GotParms: %d %d %d %d %d\n", sEntry->WindowSize, sEntry->SendAhead, sEntry->AckPoint, sEntry->PacketSize, sEntry->DupThreshold);
 
     whichP->Header.BodyLength -= sizeof(struct SFTP_Parms);
 

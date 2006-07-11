@@ -806,7 +806,7 @@ static int CheckWorried(struct SFTP_Entry *sEntry)
 	}
     }
     sEntry->SendWorriedLimit = i;
-    say(/*9*/4, SFTP_DebugLevel, "LastContig = %ld, Worried = %ld, AckLimit = %ld, MostRecent = %ld\n",
+    say(/*9*/4, SFTP_DebugLevel, "LastContig = %d, Worried = %d, AckLimit = %d, MostRecent = %d\n",
 				  sEntry->SendLastContig, sEntry->SendWorriedLimit, sEntry->SendAckLimit, sEntry->SendMostRecent);
 
     return (sEntry->SendWorriedLimit > sEntry->SendLastContig);
@@ -1262,13 +1262,13 @@ void sftp_InitPacket(RPC2_PacketBuffer *pb, struct SFTP_Entry *sfe,
 void PrintDb(struct SFTP_Entry *se, RPC2_PacketBuffer *pb)
 {
     printf("SFTP_Entry:\n");
-    printf("\tMagic = %ld  WhoAmI = %d  LocalHandle = %#x  GotParms = %ld  SentParms = %ld\n",
+    printf("\tMagic = %ld  WhoAmI = %d  LocalHandle = %#x  GotParms = %d  SentParms = %d\n",
 	se->Magic, se->WhoAmI, se->LocalHandle, se->GotParms, se->SentParms);
-    printf("\topenfd = %ld  XferState = %ld  HitEOF = %ld  CtrlSeqNumber = %ld\n",
+    printf("\topenfd = %ld  XferState = %d  HitEOF = %d  CtrlSeqNumber = %d\n",
     	se->openfd, se->XferState, se->HitEOF, se->CtrlSeqNumber);
-    printf("\tSendLastContig = %ld   SendMostRecent = %ld  SendAckLimit = %ld SendWorriedLimit = %ld  ReadAheadCount = %ld\n",
+    printf("\tSendLastContig = %d   SendMostRecent = %d  SendAckLimit = %d SendWorriedLimit = %d  ReadAheadCount = %d\n",
 	se->SendLastContig,	se->SendMostRecent, se->SendAckLimit, se->SendWorriedLimit, se->ReadAheadCount);
-    printf("\tRecvLastContig = %ld   RecvMostRecent = %ld\n",
+    printf("\tRecvLastContig = %d   RecvMostRecent = %d\n",
 	se->RecvLastContig,	se->RecvMostRecent);
 
     if (!pb) return;
