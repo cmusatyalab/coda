@@ -172,11 +172,11 @@ Pittsburgh, PA.
 struct SFTP_Parms
     {/* sent in SFTP_START packets, and piggy-backed on very first RPC call on a connection */
     RPC2_PortIdent Port;
-    long WindowSize;
-    long SendAhead;
-    long AckPoint;
-    long PacketSize;
-    long DupThreshold;
+    int32_t WindowSize;
+    int32_t SendAhead;
+    int32_t AckPoint;
+    int32_t PacketSize;
+    int32_t DupThreshold;
     };
 
 struct SFTP_MCParms	/* Multicast parameters */
