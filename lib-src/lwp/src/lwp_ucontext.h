@@ -31,8 +31,8 @@ listed in the file CREDITS.
 #include "lwp_stacktrace.h"
 
 typedef sigjmp_buf mcontext_t;
-typedef struct ucontext {
-    struct ucontext *uc_link;
+typedef struct lwp_ucontext {
+    struct lwp_ucontext *uc_link;
     sigset_t uc_sigmask;
     stack_t uc_stack;
     mcontext_t uc_mcontext;
