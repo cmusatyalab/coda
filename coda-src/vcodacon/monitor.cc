@@ -1,5 +1,3 @@
-/* 	$Id: monitor.cc,v 1.13 2006-05-24 20:04:40 jaharkes Exp $	*/
-
 /* BLURB gpl
  
                             Coda File System
