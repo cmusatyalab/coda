@@ -44,7 +44,7 @@ static vhashtab *VolTable;
 
 static intptr_t VolIdHash(void *arg)
 {
-    VolumeId volid = *(VolumeId *)arg;
+    VolumeId volid = (intptr_t)arg;
     unsigned int sum = 0;
     int n;
     char s[V_MAXVOLNAMELEN], *tmp;
