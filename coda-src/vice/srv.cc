@@ -323,6 +323,11 @@ int main(int argc, char *argv[])
 
     coda_assert_action = CODA_ASSERT_EXIT;
 
+    if (!CHECKSIZE_SMALLVNODE) {
+	SLog(0, "SERIOUS ERROR: Small vnode size is incorrect, aborting.\n");
+	exit(-1);
+    }
+
     if(ParseArgs(argc,argv)) {
 	SLog(0, "usage: srv [-d (debug level)] [-p (number of processes)] ");
 	SLog(0, "[-b (buffers)] [-l (large vnodes)] [-s (small vnodes)]");

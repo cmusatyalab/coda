@@ -140,7 +140,11 @@ typedef struct VnodeDiskObjectStruct {
      */
 } VnodeDiskObject;
 
+#if UINT_MAX == ULONG_MAX
 #define SIZEOF_SMALLDISKVNODE	112	/* used to be 64 */
+#else
+#define SIZEOF_SMALLDISKVNODE	128
+#endif
 #define CHECKSIZE_SMALLVNODE\
 	(sizeof(VnodeDiskObject) == SIZEOF_SMALLDISKVNODE)
 /* must be a power of 2! */
