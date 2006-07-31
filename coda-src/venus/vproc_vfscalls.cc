@@ -120,8 +120,8 @@ void vproc::statfs(struct coda_statfs *sfs) {
 }
 
 
-void vproc::vget(struct venus_cnode *vpp, struct cfid *cfidp) {
-
+void vproc::vget(struct venus_cnode *vpp, struct cfid *cfidp, int what)
+{
     LOG(1, ("vproc::vget: fid = %s, nc = %x\n", FID_(&cfidp->cfid_fid),
 	    u.u_nc));
 
@@ -130,11 +130,21 @@ void vproc::vget(struct venus_cnode *vpp, struct cfid *cfidp) {
     if (u.u_nc && LogLevel >= 100)
 	u.u_nc->print(logFile);
 
+    /* return early if we're called to prefetch data */
+    if (type == VPT_Worker && (what & RC_DATA))
+    {
+	worker *w = (worker *)this;
+	union outputArgs *out = (union outputArgs *)w->msg->msg_buf;
+	out->coda_vget.Fid = *VenusToKernelFid(&cfidp->cfid_fid);
+	out->coda_vget.vtype = CDT_UNKNOWN;
+	w->Return(w->msg, sizeof(struct coda_vget_out));
+    }
+
     for (;;) {
 	Begin_VFS(&cfidp->cfid_fid, CODA_VGET);
 	if (u.u_error) break;
 
-	u.u_error = FSDB->Get(&f, &cfidp->cfid_fid, u.u_uid, RC_STATUS);
+	u.u_error = FSDB->Get(&f, &cfidp->cfid_fid, u.u_uid, what);
 	if (u.u_error) {
 	    if (u.u_error == EINCONS) {
 		u.u_error = 0;

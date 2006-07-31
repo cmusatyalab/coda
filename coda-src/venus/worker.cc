@@ -1486,7 +1486,7 @@ void worker::main(void)
 		struct cfid fid;
 		fid.cfid_len = (unsigned short)sizeof(VenusFid);
 		KernelToVenusFid(&fid.cfid_fid, &in->coda_vget.Fid);
-		vget(&vtarget, &fid);
+		vget(&vtarget, &fid, RC_DATA);
 
 		if (u.u_error == 0) {
 		    out->coda_vget.Fid = *VenusToKernelFid(&vtarget.c_fid);
