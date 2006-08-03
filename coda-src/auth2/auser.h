@@ -33,8 +33,6 @@ typedef enum AuthMethod {
 int U_GetAuthMethod(const char *arg, RPC2_Integer *type);
 void U_HostToNetClearToken(ClearToken *cToken);
 void U_NetToHostClearToken(ClearToken *cToken);
-void ntoh_SecretToken(SecretToken *stoken);
-void hton_SecretToken(SecretToken *stoken);
 
 int U_Authenticate(struct RPC2_addrinfo *srvs, const int AuthenticationType,
 		   const char *uName, const int uNamelen,

@@ -66,8 +66,6 @@ static int key1valid, key2valid;
 static uint8_t auth2key1[AUTH2KEYSIZE];
 static uint8_t auth2key2[AUTH2KEYSIZE];
 
-extern void ntoh_SecretToken(SecretToken *);
-
 /*  Wrapper function when multiple authentication type support was added;
     fits new calling parameters.  We only allow by-token authentication to
     vice
