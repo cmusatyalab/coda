@@ -498,11 +498,9 @@ int executeTriggers(long *cmds) {
   if((Rules_File == NULL) || (cmds == NULL))
     return 1;
 
-  while(trigger_not_hit) {
+  while(trigger_not_hit) { /* Each iteration assumes the start of a line. */
     char c;
 	int i;
-
-	trigger_num++; /* Just useful information for debugging. */
 
 	line = ftell(Rules_File);
 
@@ -511,20 +509,22 @@ int executeTriggers(long *cmds) {
 
 	c = fgetc(Rules_File);
 
-	if(c != '`') {
-
+	if(c == '\n')
+	  continue;
+	else if(c == EOF) {
+	  fprintf(stderr, "ASRLauncher(%d): No rule was triggered in %s\n",
+			  My_Pid, Rules_File_Path);
+	  return 1;
+	}
+	else if(c != '`') {
 	  /* Ignore the rest of this line if the first char isn't ` */
 	  do { c = fgetc(Rules_File); }
 	  while((c != '\n') && (c != EOF));
 			 
-	  if(c == EOF) {
-		fprintf(stderr, "ASRLauncher(%d): No rule was triggered in %s\n",
-				My_Pid, Rules_File_Path);
-		return 1;
-	  }
-
       continue;
 	}
+
+	trigger_num++; /* Just useful information for debugging. */
 
 	for(i = 0; i < NCARGS; i++) {
 
@@ -599,7 +599,7 @@ int executeTriggers(long *cmds) {
 		}
 
 		fprintf(stderr, "\nASRLauncher(%d): Trigger to execute:\n\n", My_Pid);
-		fprintf(stderr, "%s", trigger);
+		fprintf(stderr, "%s\n\n", trigger);
 		  
 		if(write(pfd[1], (void *) trigger, strlen(trigger)) < 0) 
 		  { perror("write"); exit(EXIT_FAILURE); }
@@ -644,19 +644,27 @@ int executeTriggers(long *cmds) {
 			trigger_not_hit = 0;
 			break;
 		  }
-
-		  continue;
 		}
 		else {
-		  fprintf(stderr, "ASRLauncher(%d): Trigger terminated abnormally!\n",
+		  fprintf(stderr, "ASRLauncher(%d): Trigger terminated abnormally! "
+				  "Not continuing the ASRLaunch. Check your rules file!\n",
 				  My_Pid);
 		  return 1;
 		}
 	  }
 	}
+
+	/* Advance to next line. */
+	{
+	  char c;
+	  do { c = fgetc(Rules_File); }
+	  while((c != '\n') && (c != EOF));
+	}
+
   } /* while(trigger_not_hit) */
   
   if(trigger_not_hit == 0) {
+	char c;
 
 	/* Mark data to be used later in the launch. */
 	
@@ -665,7 +673,8 @@ int executeTriggers(long *cmds) {
 	
 	/* Mark command list. */
 	
-	while(fgetc(Rules_File) != '\n') continue;
+	do { c = fgetc(Rules_File); }
+	while((c != '\n') && (c != EOF));
 	
 	if((*cmds = ftell(Rules_File)) < 0) 
 	  { perror("ftell"); exit(EXIT_FAILURE); }
@@ -808,6 +817,8 @@ int executeCommands(long cmds) {
 		{ perror("write"); exit(EXIT_FAILURE); }
 	} while(1);
 	
+	fprintf(stderr, "\n\n");
+	  
 	close(pfd[1]);
 
 	for(ms = 0; ms < ASR_TIMEOUT; ms += 10) {
@@ -958,11 +969,10 @@ main(int argc, char *argv[])
 
   /*
    * Steps
-   * 1.) Discover associated rule.
-   * 2.) Check rule dependencies for conflicts, going back to 1 if failed.
-   * 3.) Fork and execute appropriate ASR commands.
-   * 4.) Wait for ASR signal, timing out as appropriate
-   * 5.) Die, telling Venus that the ASR is complete or has failed.
+   * 1.) Discover associated rule by executing triggers until one succeeds.
+   * 2.) Fork and execute appropriate ASR commands.
+   * 3.) Wait for ASR signal, timing out as appropriate.
+   * 4.) Die, telling Venus that the ASR is complete or has failed.
    */
 
   /* Find a triggered rule and parse its information. */
