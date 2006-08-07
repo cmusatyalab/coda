@@ -919,7 +919,7 @@ void volent::ResetVolTransients()
     resolver_count = 0;
     flags.transition_pending = 1;
     flags.demotion_pending = 0;
-    flags.allow_asrinvocation = 0;  /* user preference, disabled by default */
+    flags.allow_asrinvocation = 1;  /* user preference, controlled by cfs */
 	flags.enable_asrinvocation = 1; /* whether system is able to launch */
     flags.asr_running = 0;
     flags.reintegratepending = 0;

@@ -50,6 +50,7 @@ listed in the file CREDITS.
 
 /* ASR timeout period (milliseconds). Currently this is identical to RPC2's. */
 #define ASR_TIMEOUT 60000
+#define TRIGGER_TIMEOUT ASR_TIMEOUT
 
 
 /* Environment variable names */
@@ -73,20 +74,6 @@ listed in the file CREDITS.
 #define MIXED_CONFLICT       3
 #define MIXED_CONFLICT_STR  "3"
 #define MIXED_CONFLICT_CHAR 'M'
-
-
-/* Data Structures */
-
-/*
- * struct rule_info
- *
- * This is used to keep track of offsets of important data into the
- * current rules file. The offsets are set and used with ftell/fseek.
- */
-struct rule_info {
-  long dependencies;
-  long commands;
-};
 
 
 /* Global Variables */
@@ -496,17 +483,19 @@ int replaceEnvVars(char *string, int maxlen) {
 /* executeTriggers
  *
  * Run the triggers in the specified rules file, stopping when one succeeds
- * or we run out of them.
+ * or we run out of them. Also, as a side effect, fills in cmds with a
+ * pointer to the beginning of the command-list, if a trigger succeeds.
  *
- * Returns 0 on successful trigger, nonzero on trigger failure or error
+ * @param long *cmds A pointer to where the correct command-list begins
+ * @returns 0 on successful trigger, nonzero on trigger failure or error
  */
 
-int executeTriggers(struct rule_info *data) {
+int executeTriggers(long *cmds) {
   int trigger_not_hit = 1, trigger_num = 0;
   long line;
   char trigger[NCARGS];
 
-  if((Rules_File == NULL) || (data == NULL))
+  if((Rules_File == NULL) || (cmds == NULL))
     return 1;
 
   while(trigger_not_hit) {
@@ -617,7 +606,7 @@ int executeTriggers(struct rule_info *data) {
 		
 		close(pfd[1]);
 	
-		for(ms = 0; ms < ASR_TIMEOUT; ms += 10) {
+		for(ms = 0; ms < TRIGGER_TIMEOUT; ms += 10) {
 		  int newpid;
 		  struct timeval timeout;
 		  
@@ -632,9 +621,9 @@ int executeTriggers(struct rule_info *data) {
 		  else if(newpid < 0) { perror("waitpid"); exit(EXIT_FAILURE); }
 		}
 		
-		if(ms >= ASR_TIMEOUT) {
+		if(ms >= TRIGGER_TIMEOUT) {
 		  
-		  fprintf(stderr, "ASRLauncher(%d): ASR trigger timed out!\n", My_Pid);
+		  fprintf(stderr, "ASRLauncher(%d): Trigger timed out!\n", My_Pid);
 		  
 		  /* Destroy ASR process group. */
 		  kill(pid * -1, SIGKILL);
@@ -659,7 +648,7 @@ int executeTriggers(struct rule_info *data) {
 		  continue;
 		}
 		else {
-		  fprintf(stderr, "ASRLauncher(%d): ASR terminated abnormally!\n",
+		  fprintf(stderr, "ASRLauncher(%d): Trigger terminated abnormally!\n",
 				  My_Pid);
 		  return 1;
 		}
@@ -674,124 +663,16 @@ int executeTriggers(struct rule_info *data) {
 	if(fseek(Rules_File, line, SEEK_SET) < 0) 
 	  { perror("fseek"); exit(EXIT_FAILURE); }
 	
-	/* Mark dependency list. */
-	
-	fgetc(Rules_File);                         // discard leading `
-	while(fgetc(Rules_File) != '`') continue;
-	fgetc(Rules_File);                         // discard trailing :
-	
-	if((data->dependencies = ftell(Rules_File)) < 0) 
-	  { perror("ftell"); exit(EXIT_FAILURE); }
-	
 	/* Mark command list. */
 	
 	while(fgetc(Rules_File) != '\n') continue;
 	
-	if((data->commands = ftell(Rules_File)) < 0) 
+	if((*cmds = ftell(Rules_File)) < 0) 
 	  { perror("ftell"); exit(EXIT_FAILURE); }
   }
 
   return trigger_not_hit;
 } /* executeTriggers */
-
-/* XXX: Does this work with cygwin? */
-int isConflict(char *path) {
-  struct stat buf;
-  char link[MAXPATHLEN];
-
-  if(path == NULL)
-    return 0;
-
-  if(path[0] == '\0')
-    return 0;
-
-  /* Get stat() info. */
-  if(lstat(path, &buf) < 0) {
-    int error = errno;
-    fprintf(stderr, "ASRLauncher(%d): lstat() failed on dependency %s: %s\n",
-	    My_Pid, path, strerror(error));
-    return 1;
-  }
-
-  /* Conflict defined as a dangling symlink. */
-  if(!S_ISLNK(buf.st_mode))
-    return 0;
-
-  /* Read symlink contents. */
-  if(readlink(path, link, MAXPATHLEN) < 0) {
-    int error = errno;
-    fprintf(stderr, "ASRLauncher(%d): readlink() failed: %s\n",
-	    My_Pid, strerror(error));
-    return 0;
-  }
-  
-  /* The dangling symlink contents must begin with a '@', '#', or '$' */
-  if((link[0] != '@') && (link[0] != '#') && (link[0] != '$'))
-    return 0;
-
-  return 1; /* passed all tests, considered a 'conflict' */
-}
-
-
-
-
-/* Tokenize dependency line. */
-
-int evaluateDependencies(struct rule_info *data) {
-  char dpnd[MAXPATHLEN];
-  char fmt[10];
-  long pos;
-
-  if(data == NULL) return 1;
-  if(fseek(Rules_File, data->dependencies, SEEK_SET) < 0)
-	{ perror("fseek"); exit(EXIT_FAILURE); }
-
-  sprintf(fmt, "%%%ds", MAXPATHLEN-1);
-  
-  pos = data->dependencies;
-
-  while(pos < (data->commands-1)) {
-
-	/* Grab a dependency. */
-	fscanf(Rules_File, fmt, dpnd);
-
-	/* Check to see we didn't overrun into the next line. */
-	{
-	  int offset;
-
-	  if((offset = ftell(Rules_File)) < 0) 
-		{ perror("ftell"); exit(EXIT_FAILURE); }
-
-	  if(offset > data->commands) {
-		fprintf(stderr, "ASRLauncher(%d): Accidentally overran into command "
-				"string.. no worries, it was caught.\n", My_Pid);
-		return 0;
-	  }
-	}
-
-    /* Do environment variable expansion. */
-    if(replaceEnvVars(dpnd, MAXPATHLEN) < 0) {
-      fprintf(stderr, "ASRLauncher(%d): Failed replacing env vars on %s! "
-			  "Skipping it!\n", My_Pid, dpnd);
-      continue;
-    }
-	
-    fprintf(stderr, "ASRLauncher(%d): Dependency: %s\n",
-			My_Pid, dpnd);
-
-    /* Check if it is in conflict. */
-    if(isConflict(dpnd)) {
-      fprintf(stderr, "ASRLauncher(%d): Conflict detected!\n", My_Pid);
-      return 1;
-    }
-
-	/* Update current position. */
-	if((pos = ftell(Rules_File)) < 0)
-	  { perror("ftell"); exit(EXIT_FAILURE); }
-  }
-    
-  return 0;
-}
 
 
 /*
@@ -800,15 +681,15 @@ int evaluateDependencies(struct rule_info *data) {
  * Fills in a rule struct with the data associated with a matching rule,
  * lexically scoping up the conflict's pathname if necessary.
  *
- * @param struct rule_info *data Rule info to be filled in for the caller.
+ * @param long *cmds File position of beginning of command-list
  * @returns 0 on success, nonzero on failure
  *
  */
 
-int findRule(struct rule_info *data) {
+int findRule(long *cmds) {
   int scope;
 
-  if(data == NULL)
+  if(cmds == NULL)
 	return 1;
 
   Rules_File_Path[0] = '\0';
@@ -829,7 +710,7 @@ int findRule(struct rule_info *data) {
 	  continue;
 
 	/* Start running triggers, looking for one that indicates success. */
-	if(executeTriggers(data)) {
+	if(executeTriggers(cmds)) {
 	  if(fclose(Rules_File))
 		perror("fclose");
 	  Rules_File = NULL;
@@ -844,15 +725,15 @@ int findRule(struct rule_info *data) {
 	return 1;
 
   return 0;
-}
+} /* findRule */
 
-int executeCommands(long pos) {
+int executeCommands(long cmds) {
 
   int status = 0, options = WNOHANG, error, pfd[2];
   pid_t pid;
   char *asr_argv[4];
 
-  if(pos < 0) {
+  if(cmds < 0) {
     fprintf(stderr, "ASRLauncher(%d): Empty/bad command list!\n", My_Pid);
     return 1;
   }
@@ -884,7 +765,7 @@ int executeCommands(long pos) {
 
 	close(pfd[0]);
 	
-	if(fseek(Rules_File, pos, SEEK_SET) < 0)   /* Go to command list. */
+	if(fseek(Rules_File, cmds, SEEK_SET) < 0)   /* Go to command list. */
 	  { perror("fseek"); exit(EXIT_FAILURE); }
 
 	/* Now, pipe data to the child shell. */
@@ -979,7 +860,7 @@ int executeCommands(long pos) {
 int
 main(int argc, char *argv[])
 {
-  struct rule_info conf_rule;
+  long cmds;
   int error, len;
 
   My_Pid = getpid();
@@ -1085,23 +966,15 @@ main(int argc, char *argv[])
    */
 
   /* Find a triggered rule and parse its information. */
-  error = findRule(&conf_rule);
+  error = findRule(&cmds);
   if(error) {
 	fprintf(stderr, "ASRLauncher(%d): Failed finding valid associated "
 			"rule!\n", My_Pid);
 	goto endLaunch;
   }
 
-  /* See if the dependencies on this rule are not in conflict. */
-  error = evaluateDependencies(&conf_rule);
-  if(error) {
-	fprintf(stderr, "ASRLauncher(%d): Failed evaluating dependencies!\n",
-			My_Pid);
-	goto endLaunch;
-  }
-
   /* Execute all commands indented below the rule name. */
-  error = executeCommands(conf_rule.commands);
+  error = executeCommands(cmds);
   if(error) {
 	fprintf(stderr, "ASRLauncher(%d): Failed executing related commands!\n",
 			My_Pid);
