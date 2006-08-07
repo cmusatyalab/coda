@@ -542,8 +542,14 @@ int executeTriggers(struct rule_info *data) {
 	  trigger[i] = fgetc(Rules_File);
 
 	  if(trigger[i] == '`') {
-		trigger[i] = '\0';
-		break;
+		if((i > 0) && (trigger[i-1] == '\\')) { /* escaped ` */
+		  trigger[i-1] = trigger[i];
+		  i--;
+		}
+		else{
+		  trigger[i] = '\0';
+		  break;
+		}
 	  }
 	  else if(trigger[i] == EOF) {
 		fprintf(stderr, "ASRLauncher(%d): Trigger %d: syntax error(file %s)\n",
