@@ -6,7 +6,7 @@ AC_INIT
 AC_CONFIG_SRCDIR(src/lwp.c)
 CODA_SETUP_BUILD
 AM_INIT_AUTOMAKE(lwp, 2.2)
-AM_CONFIG_HEADER(config.h)
+AC_CONFIG_HEADERS(config.h)
 
 dnl For library version updates, follow these steps in order.
 dnl - when any library source has changed, increment first
@@ -23,7 +23,7 @@ dnl Checks for programs.
 AC_PROG_CC
 AC_PROG_CPP
 AC_CHECK_PROG(AR, ar, ar)
-dnl AM_PROG_AS
+AM_PROG_AS
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 AC_PROG_LIBTOOL
