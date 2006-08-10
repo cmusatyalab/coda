@@ -114,7 +114,8 @@ nt_do_mounts (void *junk)
     } 
     
     // Set up the info for the DeviceIoControl.
-    info.PseudoVolumeHandle = (HANDLE*)1;
+    info.PseudoVolumeHandle = (HANDLE*)(('C'<<24) + ('F'<<16) + ('S'<<8)
+					+ (drive & 0xff)) ;
     info.PseudoDeviceName = L"\\Device\\coda";
     info.PseudoDeviceNameLength =
 	wcslen(info.PseudoDeviceName) * sizeof(WCHAR);
