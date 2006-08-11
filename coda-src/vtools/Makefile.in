@@ -26,7 +26,7 @@ TOPOBJ = @TOPOBJ@
 include $(TOPDIR)/Makeconf
 
 LOGSCRIPTS = # logbandwidth logcmls logreintegration logprogress
-EXECUTABLES = codacon cfs hoard spy coda_replay
+EXECUTABLES = codacon cfs hoard spy coda_replay mkcodabf
 ifneq ($(SYS),cygwin32)
 EXECUTABLES += cmon $(LOGSCRIPTS)
 endif
@@ -35,7 +35,7 @@ CBINS := $(EXECUTABLES)
 CSBINS = codaconfedit
 SSBINS = codaconfedit
 EXECUTABLES += codaconfedit
-CMANPAGES := cfs.1 cmon.1 coda_replay.1 hoard.1 spy.1
+CMANPAGES := cfs.1 cmon.1 coda_replay.1 hoard.1 spy.1 mkcodabf.1
 
 CMON_LIBS   = $(LIBVICEDEP) $(LIBBASE)
 CFS_LIBS    = $(LIBKERNDEP) $(LIBUTIL) $(LIBVV) $(LIBBASE)
@@ -66,6 +66,9 @@ spy: spy.o $(LIBBASE)
 
 coda_replay: coda_replay.o
 	$(CXX) $(LDFLAGS) coda_replay.o $(LIBS) -o coda_replay
+
+mkcodabf: mkcodabf.o
+	$(CC) $(LDFLAGS) mkcodabf.o -o mkcodabf
 
 # up is broken on the pmax because a.out.h seems incomplete
 # fix if up is really needed (Satya 3/23/92)
