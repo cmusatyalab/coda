@@ -186,6 +186,7 @@ bin/ctokens
 bin/cunlog
 bin/filerepair
 bin/hoard
+bin/mkcodabf
 bin/mklka
 bin/parser
 bin/removeinc
@@ -203,6 +204,7 @@ man/man1/cpasswd.1
 man/man1/ctokens.1
 man/man1/cunlog.1
 man/man1/hoard.1
+man/man1/mkcodabf.1
 man/man1/repair.1
 man/man1/spy.1
 man/man8/venus.8

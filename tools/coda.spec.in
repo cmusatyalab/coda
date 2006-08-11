@@ -185,6 +185,7 @@ exit 0
 /usr/bin/cunlog
 /usr/bin/filerepair
 /usr/bin/hoard
+/usr/bin/mkcodabf
 /usr/bin/mklka
 /usr/bin/parser
 /usr/bin/removeinc
@@ -202,6 +203,7 @@ exit 0
 /usr/share/man/man1/ctokens.1.gz
 /usr/share/man/man1/cunlog.1.gz
 /usr/share/man/man1/hoard.1.gz
+/usr/share/man/man1/mkcodabf.1.gz
 /usr/share/man/man1/repair.1.gz
 /usr/share/man/man1/spy.1.gz
 /usr/share/man/man8/venus.8.gz

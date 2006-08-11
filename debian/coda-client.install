@@ -12,6 +12,7 @@ debian/tmp/usr/bin/ctokens
 debian/tmp/usr/bin/cunlog
 debian/tmp/usr/bin/filerepair
 debian/tmp/usr/bin/hoard
+debian/tmp/usr/bin/mkcodabf
 debian/tmp/usr/bin/mklka
 debian/tmp/usr/bin/parser
 debian/tmp/usr/bin/removeinc
@@ -35,6 +36,7 @@ debian/tmp/usr/share/man/man1/cpasswd.1
 debian/tmp/usr/share/man/man1/ctokens.1
 debian/tmp/usr/share/man/man1/cunlog.1
 debian/tmp/usr/share/man/man1/hoard.1
+debian/tmp/usr/share/man/man1/mkcodabf.1
 debian/tmp/usr/share/man/man1/repair.1
 debian/tmp/usr/share/man/man1/spy.1
 debian/tmp/usr/share/man/man8/venus.8
