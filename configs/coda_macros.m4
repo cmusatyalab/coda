@@ -276,8 +276,8 @@ AC_DEFUN(CODA_FIND_LIB,
  [AC_CACHE_CHECK(location of lib$1, coda_cv_path_$1,
   [saved_CFLAGS="${CFLAGS}" ; saved_LDFLAGS="${LDFLAGS}" ; saved_LIBS="${LIBS}"
    coda_cv_path_$1=none ; LIBS="-l$1 $4"
-   for path in /usr /usr/local /usr/pkg ${prefix} ; do
-     if test ${path} != NONE ; then
+   for path in default /usr /usr/local /usr/pkg ${prefix} ; do
+     if test ${path} != default ; then
        CFLAGS="${CFLAGS} -I${path}/include"
        LDFLAGS="${LDFLAGS} -L${path}/lib"
      fi
@@ -322,11 +322,10 @@ dnl also test for new functions introduced by readline 4.2
 
 AC_SUBST(LIBREADLINE)
 AC_DEFUN(CODA_CHECK_READLINE,
-  [CODA_FIND_LIB(readline, [], rl_initialize())
-  AC_CHECK_LIB(readline, rl_initialize, [LIBREADLINE=-lreadline],
-                [AC_MSG_ERROR("failed to find readline library")], $LIBTERMCAP)
+  [CODA_FIND_LIB(readline, [], rl_initialize(), $LIBTERMCAP)
    AC_CHECK_LIB(readline, rl_completion_matches,
-     [AC_DEFINE(HAVE_RL_COMPLETION_MATCHES, 1, [Define if you have readline 4.2 or later])], [], $LIBTERMCAP)])
+     [AC_DEFINE(HAVE_RL_COMPLETION_MATCHES, 1, [Define if you have readline 4.2 or later])], [], $LIBTERMCAP)
+   LIBREADLINE=-lreadline])
 
 dnl -----------------
 dnl Looks for the fltk library
