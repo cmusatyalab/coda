@@ -45,6 +45,10 @@ listed in the file CREDITS.
 
 /* Definitions */
 
+#ifndef NCARGS
+#define NCARGS 8192 
+#endif
+
 /* Globally-defined ASR rules file name. */
 #define ASR_RULES_FILENAME ".asr"
 
