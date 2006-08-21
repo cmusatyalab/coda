@@ -464,6 +464,8 @@ static void check_pbkdf_timing(int verbose)
     if (verbose)
 	fprintf(stderr, "Password Based Key Derivation:  ");
 
+    memset(key, 0, sizeof(key));
+    memset(salt, 0, sizeof(salt));
     memset(password, 0, sizeof(password));
 
     gettimeofday(&begin, NULL);
