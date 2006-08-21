@@ -41,7 +41,6 @@ extern "C" {
 #include <stdio.h>
 #include <stdarg.h>
 
-#include <portmapper.h>
 #include <map.h>
 #include <lwp/lwp.h>
 #include <lwp/lock.h>
@@ -73,7 +72,7 @@ static char *LocalFileName = NULL, *RemoteFileName = NULL;
 
 static RPC2_Handle con;
 static char host[256];
-static char *pname = "coda_udpsrv";
+static RPC2_Integer port = 2431; /* reuse the usually unused venus-se port -- rl */
 
 /*static struct timeval  tp;
 static struct timezone tsp; */
@@ -146,15 +145,16 @@ static void ProcessArgs(int argc, char **argv)
 	else
 	    if (!strcmp(argv[i], "-l"))
 		LocalFileName = argv[++i];
-	else
-	    if (!strcmp(argv[i], "-q"))
-		strcpy(pname, argv[++i]);
+        else
+            if (!strcmp(argv[i], "-port"))
+                port = atoi(argv[++i]);
 	else {
 	    PrintHelp();
 	    exit(-1);
 	}
     }
-    if ( host[0] == '\0' || (!LocalFileName) || (!RemoteFileName) ) {
+    if ( host[0] == '\0' || (!LocalFileName) || (!RemoteFileName)
+      || port == 0 ) {
         PrintHelp();
         exit(-1);
     }
@@ -166,7 +166,7 @@ static void PrintHelp(){
 	    LogMsg(0, SrvDebugLevel, stdout, 
 		   "-r remotefile -l localfile");
 	    LogMsg(0, SrvDebugLevel, stdout, 
-		   " [-d debuglevel]  [-q  port]\n");
+		   " [-d debuglevel]  [-port serverport]\n");
 }
 
 static int FetchFile(char *RemoteFileName, char *LocalFileName, int mode)
@@ -209,22 +209,6 @@ static void Connect()
     RPC2_CountedBS cident;
     RPC2_EncryptionKey secret;
     char hostname[64];
-    RPC2_Integer portmapid;
-    RPC2_Integer port;
-
-    portmapid = portmap_bind(host);
-    if ( !portmapid ) {
-	    fprintf(stderr, "Cannot bind to rpc2portmap; exiting\n");
-	    exit(1);
-    }
-    rc = portmapper_client_lookup_pbynvp(portmapid, (RPC2_String)"codaupdate",
-					 0, 17, &port);
-
-    RPC2_Unbind(portmapid);
-    if ( rc ) {
-	    fprintf(stderr, "Cannot get port from rpc2portmap; exiting\n");
-	    exit(1);
-    }
 
     hident.Tag = RPC2_HOSTBYNAME;
     strcpy(hident.Value.Name, host);

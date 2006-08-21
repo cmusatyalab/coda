@@ -81,7 +81,6 @@ extern "C" {
 #include <rpc2/rpc2.h>
 #include <rpc2/rpc2_addrinfo.h>
 #include <map.h>
-#include <portmapper.h>
 #include <rpc2/se.h>
 extern void SFTP_SetDefaults (SFTP_Initializer *initPtr);
 extern void SFTP_Activate (SFTP_Initializer *initPtr);
@@ -183,10 +182,9 @@ int main(int argc, char **argv)
     SFTP_Initializer sftpi;
     RPC2_Options options;
     int rc;
-    long portmapid;
     struct stat statbuf;
     char *miscdir;
-    int port = 0;
+    int port = 2431; /* reuse the usually unused venus-se port -- rl */
 
     /* process the command line arguments */
     for (i = 1; i < argc; i++) {
@@ -197,18 +195,24 @@ int main(int argc, char **argv)
 	    lwps = atoi(argv[++i]);
 	else if (!strcmp(argv[i], "-port"))
 	    port = atoi(argv[++i]);
-	else if (!strcmp(argv[i], "-p")) {
+	else if (!strcmp(argv[i], "-p"))
 	    prefix = argv[++i];
-	} else if (!strcmp(argv[i], "-q")) {
+	else if (!strcmp(argv[i], "-q")) {
 	    fprintf(stderr, "Old argument -q to update srv\n");
 	    ++i;
 	} else {
 	    fprintf(stderr, "Bad argument %s to update srv\n", 
 		    argv[i]);
-	    fprintf(stderr, "Usage: updatesrv [-p prefix"
-		    "-d (debug level)]) [-l (number of lwps)]\n");
+	    fprintf(stderr, "Usage: updatesrv [-p prefix] [-port port]"
+		    " [-d (debug level)] [-l (number of lwps)]\n");
 	    exit(1);
 	}
+    }
+
+    /* kind of safety net -- rl */
+    if (port == 0) {
+        fprintf(stderr, "Cannot use port '0'; exiting\n");
+        exit(1);
     }
 
     ReadConfigFile();
@@ -280,23 +284,6 @@ int main(int argc, char **argv)
     options.Flags = RPC2_OPTION_IPV6;
     CODA_ASSERT(RPC2_Init(RPC2_VERSION, &options, &port1, 6, &tp) == RPC2_SUCCESS);
     RPC2_enableReaping = 1;
-
-    /* register the port with the portmapper */
-    fprintf(stderr, "Attempting to bind with rpc2portmap\n");
-    portmapid = portmap_bind("localhost");
-    if ( !portmapid ) {
-	    fprintf(stderr, "Cannot bind to rpc2portmap; exiting\n");
-	    return 1;
-    }
-    rc = portmapper_client_register_sqsh(portmapid, (RPC2_String)"codaupdate",
-					 0, 17,
-					 ntohs(port1.Value.InetPortNumber));
-
-    if ( rc ) {
-	    fprintf(stderr, "Cannot register with rpc2portmap; exiting, rc = %i \n", rc);
-	    return 1;
-    }
-    RPC2_Unbind(portmapid); 
 
     server.Tag = RPC2_SUBSYSBYID;
     server.Value.SubsysId = SUBSYS_UPDATE;

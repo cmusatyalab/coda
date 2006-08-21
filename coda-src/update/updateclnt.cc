@@ -80,7 +80,6 @@ extern "C" {
 #include <rpc2/se.h>
 #include <rpc2/sftp.h>
 #include <map.h>
-#include <portmapper.h>
 #include <vice.h>
 #include <util.h>
 
@@ -130,6 +129,7 @@ static RPC2_Integer operatorUsecs = 0;
 
 static RPC2_Handle con = 0;
 static char host[256];
+static RPC2_Integer port = 2431; /* reuse the usually unused venus-se port -- rl */
 static int waitinterval = 30;	/* 5 min */
 static int reps = 6;
 
@@ -303,6 +303,9 @@ static void ProcessArgs(int argc, char **argv)
     for (i = 1; i < argc; i++) {
 	if (!strcmp(argv[i], "-d"))
 	    SrvDebugLevel = atoi(argv[++i]);
+        else
+	    if (!strcmp(argv[i], "-port"))
+		port = atoi(argv[++i]);
 	else
 	    if (!strcmp(argv[i], "-h"))
 		strcpy(host, argv[++i]);
@@ -321,7 +324,9 @@ static void ProcessArgs(int argc, char **argv)
 	    LogMsg(0, SrvDebugLevel, stdout, 
 		   "usage: update [-d (debug level)] ");
 	    LogMsg(0, SrvDebugLevel, stdout, 
-		   "[-h (operator console hostname)] ");
+		   "[-h (update server hostname)] ");
+	    LogMsg(0, SrvDebugLevel, stdout,
+		   "[-port (port of the update server)] ");
 	    LogMsg(0, SrvDebugLevel, stdout, 
 		   "[-r (reps of w for long wait time)] [-w (short wait time)]\n");
 	    exit(-1);
@@ -591,8 +596,6 @@ static void ReConnect()
     RPC2_CountedBS cident;
     RPC2_EncryptionKey secret;
     char hostname[64];
-    RPC2_Integer portmapid;
-    RPC2_Integer port;
 
     if (con) {
 	LogMsg(0, SrvDebugLevel, stdout, "Unbinding\n");
@@ -600,18 +603,10 @@ static void ReConnect()
 	con = 0;
     }
 
-    portmapid = portmap_bind(host);
-    if ( !portmapid ) {
-	fprintf(stderr, "Cannot bind to rpc2portmap; exiting\n");
-	return;
-    }
-
-    rc = portmapper_client_lookup_pbynvp(portmapid, (RPC2_String)"codaupdate",
-					 0, 17, &port);
-    RPC2_Unbind(portmapid);
-    if (rc) {
-	fprintf(stderr, "Cannot get port from rpc2portmap; exiting\n");
-	return;
+    /* kind of safety net -- rl */
+    if (port == 0) {
+	fprintf(stderr, "Cannot use port '0'; exiting\n");
+	exit(1);
     }
 
     hident.Tag = RPC2_HOSTBYNAME;
