@@ -78,8 +78,8 @@ void pack(ARG *a_types, PARM **args, unsigned char **_ptr);
 void pack_struct(ARG *a_types, PARM **args, unsigned char **ptr);
 int  get_arraylen_pack(ARG *a_types, PARM *args);
 void incr_struct_byte(ARG *a_types, PARM **args);
-int unpack(ARG *a_types, PARM **args, unsigned char **_ptr, char *_end,
-	   long offset);
+int new_unpack(ARG *a_types, PARM **args, unsigned char **_ptr, char *_end,
+	       long offset);
 int unpack_struct(ARG *a_types, PARM **args, unsigned char **_ptr, char *_end,
 		  long offset);
 void byte_pad(PARM **args);
@@ -676,7 +676,7 @@ long MRPC_UnpackMulti(int HowMany, RPC2_Handle ConnHandleList[],
 			ret = unpack_struct(a_types, &str, &_ptr, _end, offset);
 			args++;
 		    }
-		    else ret = unpack(a_types, &args, &_ptr, _end, offset);
+		    else ret = new_unpack(a_types, &args, &_ptr, _end, offset);
 		    break;
 		default:	assert(FALSE);
 	    }
@@ -810,7 +810,13 @@ int get_arraylen_unpack(ARG *a_types, unsigned char *ptr)
 	return EINVAL; \
     } while(0)
 
-int unpack(ARG *a_types, PARM **args, unsigned char **_ptr, char *_end, long offset)
+/* buggy but needed, codasrv calls this function directly to unpack the CML */
+int unpack(ARG *a_types, PARM *args, unsigned char **_ptr, char *_end, long offset)
+{
+    return new_unpack(a_types, &args, _ptr, _end, offset);
+}
+
+int new_unpack(ARG *a_types, PARM **args, unsigned char **_ptr, char *_end, long offset)
 {
     int32_t _length, _maxlength;
     RPC2_BoundedBS *bbsbodyp;
@@ -988,7 +994,7 @@ int unpack_struct(ARG *a_types, PARM **args, unsigned char **_ptr, char *_end,
 	    if (field->type == RPC2_STRUCT_TAG)
 		ret = unpack_struct(field, strp, _ptr, _end, -1);
 	    else
-		ret = unpack(field, strp, _ptr, _end, offset);
+		ret = new_unpack(field, strp, _ptr, _end, offset);
 	    if (ret) return ret;
 	}
     }
