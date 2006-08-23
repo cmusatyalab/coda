@@ -1,3 +1,20 @@
+New in 2.3:
+
+* LWP builds and passes simple tests on amd64/em64t.
+* Avoid crash when running lwp_basher.
+* Work around broken makecontext on amd64
+* Fix warning in rw.c
+* Fix some autoconf/automake warnings during bootstrap.
+* On bootstrap, get rid of the autom4te.cache. (Phil Nelson)
+* struct ucontext changed to struct lwp_ucontext. (Phil Nelson)
+
+New in 2.2:
+
+* Removed cross-compilation spec files.
+* Avoid stack overflow in the tdb test program on sparc64.
+* FC5 build fixes.
+* Don't package the link created by ldconfig.
+
 New in 2.1:
 
 * Sometimes we can only switch to a context created by makecontext once.
