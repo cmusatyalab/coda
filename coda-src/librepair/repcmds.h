@@ -68,6 +68,8 @@ extern "C" {
 /* MAXPATHLEN defined in <sys/param.h>, length in bytes of OUT path parameters */
 #define DEF_BUF        2048  /* XXXX -- temporary buffer size */
 
+int rep_ioctl(struct ViceIoctl *vioc);
+
 /* Replicated volume under repair */
 struct repvol {
     VolumeId vid;           /* id of this volume */

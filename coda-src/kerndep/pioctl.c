@@ -1,18 +1,18 @@
 /* BLURB lgpl
 
-                           Coda File System
-                              Release 6
+			   Coda File System
+			      Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
-                  Additional copyrights listed below
+	  Copyright (c) 1987-2003 Carnegie Mellon University
+		  Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
 the  terms of the  GNU  Library General Public Licence  Version 2,  as
 shown in the file LICENSE. The technical and financial contributors to
 Coda are listed in the file CREDITS.
 
-                        Additional copyrights
-                           none currently
+			Additional copyrights
+			   none currently
 
 #*/
 
@@ -33,10 +33,9 @@ extern "C" {
 #include <errno.h>
 #include <pioctl.h>
 
-#include "codaconf.h"    
+#include "codaconf.h"
 #include "coda_config.h"
 #include "coda.h"
-
 
 #ifdef __CYGWIN32__
 #include <ctype.h>
@@ -52,6 +51,16 @@ extern "C" {
 }
 #endif
 
+static char *getMountPoint(void)
+{
+    static char *mountPoint = NULL;
+
+    if (!mountPoint) {
+	codaconf_init("venus.conf");
+	CODACONF_STR(mountPoint, "mountpoint", "/coda");
+    }
+    return mountPoint;
+}
 
 #if defined(__CYGWIN32__) // Windows NT and 2000
 
@@ -103,31 +112,28 @@ int pioctl(const char *path, unsigned long cmd,
     char prefix [CODA_MAXPATHLEN] = "";
     char *cwd;
 
-    /* Set these only once for each run of a program using pioctl. */ 
+    /* Set these only once for each run of a program using pioctl. */
     static HANDLE hdev = NULL;
-    static char *mountPoint = NULL;
+    char *mountPoint = NULL;
     static char cygdrive [ 15 ] = "/cygdrive/./";
     static char driveletter = 0;
     static char ctl_file [CODA_MAXPATHLEN] = "";
 
-    /*  Do this only once for each execution. */
-
-    if (!mountPoint) {
-	codaconf_init("venus.conf");
-	CODACONF_STR(mountPoint, "mountpoint", "/coda");
-	mPlen = strlen(mountPoint);
-	if (mPlen == 2 && mountPoint[1] == ':') {
-	    driveletter = tolower(mountPoint[0]);
-	    cygdrive[10] = driveletter;
-	}
-	// Make a control file name.
-	strcpy (ctl_file, mountPoint);
-	strcat (ctl_file, "\\");
-	strcat (ctl_file, CODA_CONTROL);
+    mountPoint = getMountPoint();
+    mPlen = strlen(mountPoint);
+    if (mPlen == 2 && mountPoint[1] == ':') {
+	driveletter = tolower(mountPoint[0]);
+	cygdrive[10] = driveletter;
     }
+    // Make a control file name.
+    strcpy (ctl_file, mountPoint);
+    strcat (ctl_file, "\\");
+    strcat (ctl_file, CODA_CONTROL);
 
     /* Check out the path to see if it is a coda path.  If it is
        a relative path, prefix the path with the working directory. */
+    if (!path)
+	path = getMountPoint();
 
     if (strlen(path)) {
 	if (driveletter && path[1] == ':' && tolower(path[0]) == driveletter) {
@@ -256,14 +262,15 @@ int pioctl(const char *path, unsigned long com,
 
     cmd	|= (size & PIOCPARM_MASK) << 16;  /* or in corrected size */
 
+    if (!path)
+	path = getMountPoint();
+
     data.path = path;
     data.follow = follow;
     data.vi = *vidata;
 
     if (!ctlfile) {
-	char *mtpt = NULL;
-	codaconf_init("venus.conf");
-	CODACONF_STR(mtpt, "mountpoint", "/coda");
+	char *mtpt = getMountPoint();
 	ctlfile = malloc(strlen(mtpt) + strlen(CODA_CONTROL) + 2);
 	sprintf(ctlfile, "%s/%s", mtpt, CODA_CONTROL);
     }

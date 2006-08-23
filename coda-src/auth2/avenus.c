@@ -83,10 +83,6 @@ extern "C" {
 #define O_BINARY 0
 #endif
 
-static void GetPathName();
-
-static char *pName;		/* name to use on PIOCTLS */
-
 typedef struct {
     int			    sTokenSize;
     EncryptedSecretToken    stoken;
@@ -122,8 +118,7 @@ int U_SetLocalTokens(IN int setPag, IN ClearToken *cToken, IN EncryptedSecretTok
     buffer.in_size = sizeof(inbuff);
     buffer.out_size = 0;
 
-    GetPathName(); 
-    rc = pioctl(pName, _VICEIOCTL(3), &buffer, 0);
+    rc = pioctl(NULL, _VICEIOCTL(3), &buffer, 0);
     if(rc) {
 	return(-1);
     }
@@ -145,8 +140,7 @@ int U_GetLocalTokens(OUT ClearToken *cToken, OUT EncryptedSecretToken sToken, IN
     buffer.out = (char *)&outbuff;
     buffer.in_size = strlen(realm) + 1;
     buffer.out_size = sizeof(venusbuff);
-    GetPathName();
-    rc = pioctl(pName, _VICEIOCTL(8), &buffer, 0);
+    rc = pioctl(NULL, _VICEIOCTL(8), &buffer, 0);
     if(rc) {
 #ifdef __CYGWIN__
 	return rc;
@@ -174,20 +168,7 @@ int U_DeleteLocalTokens(char *realm)
     buffer.out = 0;
     buffer.in_size = strlen(realm) + 1;
     buffer.out_size = 0;
-    GetPathName();
-    pioctl(pName, _VICEIOCTL(9), &buffer, 0);
-    return(0);    
-}
-
-#ifdef __CYGWIN32__
-#define DFLT_MNT "N:"
-#else
-#define DFLT_MNT "/coda"
-#endif
-
-static void GetPathName()
-{
-    codaconf_init("venus.conf");
-    CODACONF_STR(pName, "mountpoint", DFLT_MNT);
+    pioctl(NULL, _VICEIOCTL(9), &buffer, 0);
+    return(0);
 }
 

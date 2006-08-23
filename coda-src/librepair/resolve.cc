@@ -78,7 +78,7 @@ static int getfid (char *path, ViceFid *Fid, ViceVersionVector *VV, struct ViceI
     char buf[2048];
     vi->out = buf;
     vi->out_size = sizeof(buf);
-                      
+
     if (pioctl(path, _VICEIOCTL(_VIOC_GETFID), vi, 0)) {
 	char symval[MAXPATHLEN];
 	symval[0] = 0;
@@ -678,8 +678,7 @@ int GetParent(char *realm, ViceFid *cfid, ViceFid *dfid, char *volmtpt,
     vi.out_size = sizeof(tmp);
     memset(tmp, 0, sizeof(tmp));
 
-    strcpy(path, "/coda");
-    rc = pioctl(path, _VICEIOCTL(_VIOC_GETPATH), &vi, 0);
+    rc = pioctl(NULL, _VICEIOCTL(_VIOC_GETPATH), &vi, 0);
     if (rc) {
 	//printf("GetParent: Getpath returns error %d, errno = %d\n",
 	//rc, errno);
@@ -696,13 +695,12 @@ int GetParent(char *realm, ViceFid *cfid, ViceFid *dfid, char *volmtpt,
 
     /* form the absolute path name of the parent */
     char *lastcomp = rindex(tmp, '/');
-    if (lastcomp) 
-	*lastcomp = '\0';
     char *firstcomp = index(tmp, '/');
+    if (lastcomp) *lastcomp = '\0';
 
-    /* if a volmtpt has not been passed along use "/coda", which already
-     * happens to be what path contains. --JH */
+    /* if a volmtpt has not been passed along use the default mountpoint */
     if (volmtpt) strcpy(path, volmtpt);
+    else	 strcpy(path, "/coda");
 
     if (firstcomp && (firstcomp != lastcomp)) {
 	strcat(path, "/");
@@ -711,7 +709,7 @@ int GetParent(char *realm, ViceFid *cfid, ViceFid *dfid, char *volmtpt,
     strcpy(dpath, path);
     strcpy(childname, lastcomp + 1);
 
-    // get fid of parent 
+    // get fid of parent
     //ViceVersionVector VV;
     //res_getfid(path, dfid, &VV);
     gp.fid = *cfid;
@@ -720,8 +718,7 @@ int GetParent(char *realm, ViceFid *cfid, ViceFid *dfid, char *volmtpt,
     vi.in_size = sizeof(gp);
     vi.out = tmp;
     vi.out_size = sizeof(tmp);
-    strcpy(path, "/coda");
-    rc = pioctl(path, _VICEIOCTL(_VIOC_GETPFID), &vi, 0);
+    rc = pioctl(NULL, _VICEIOCTL(_VIOC_GETPFID), &vi, 0);
     if (rc) {
 	printf("Error %d occured while trying to get fid of %s's parent\n", rc, childname);
 	return(rc);

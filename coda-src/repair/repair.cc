@@ -16,11 +16,14 @@ listed in the file CREDITS.
 
 #*/
 
+#include <codaconf.h>
 #include "repair.h"
 
 int allowclear = 0, session = NOT_IN_SESSION, repair_DebugFlag = 0;
 struct repvol *RepairVol = NULL;
 char cfix[MAXPATHLEN];
+
+static char *coda_mountpoint;
 
 /* Relax, command parser allows abbreviations of command names */
 command_t list[] = {
@@ -45,6 +48,12 @@ command_t list[] = {
     { NULL, NULL, 0, ""},
 };
 
+#if defined(DJGPP) || defined(__CYGWIN32__)
+#define DFLT_MNT "N:"
+#else
+#define DFLT_MNT "/coda"
+#endif
+
 int main(int argc, char **argv)
 {
     struct repvol *repv;
@@ -52,6 +61,9 @@ int main(int argc, char **argv)
 
     memset(cfix, 0, sizeof(cfix));
     signal(SIGINT, (void (*)(int))INT); /* catch SIGINT */
+
+    codaconf_init("venus.conf");
+    CODACONF_STR(coda_mountpoint, "mountpoint", DFLT_MNT);
 
     if ((argc > 1) && (strcmp(argv[1], "-remove") == 0)) {
 	if (argc != 3) {
@@ -179,8 +191,8 @@ int getcompareargs(int largc, char **largv, char **filepath, struct repinfo *inf
 
     *filepath = largv[1];
     if (!repair_getfid(*filepath, NULL, NULL, NULL, NULL, 0)) {
-	fprintf(stderr, "%s is in /coda and cannot be used as the fix file\n", *filepath);
-	return(-1); 
+	fprintf(stderr, "%s is in %s and cannot be used as the fix file\n", *filepath, coda_mountpoint);
+	return(-1);
     }
     strncpy(cfix, *filepath, sizeof(cfix));
 
@@ -200,8 +212,8 @@ int getrepairargs(int largc, char **largv, char *fixpath)
 	return(-1);
     }
     if (!repair_getfid(fixpath, NULL, NULL, NULL, NULL, 0)) {
-	fprintf(stderr, "%s is in /coda and cannot be used as the fix file\n", fixpath);
-	return(-1); 
+	fprintf(stderr, "%s is in %s and cannot be used as the fix file\n", fixpath, coda_mountpoint);
+	return(-1);
     }
     strncpy(cfix, fixpath, sizeof(cfix));
     return(0);
@@ -284,7 +296,7 @@ void rep_CheckLocal(int largc, char **largv) {
     vioc.out = space;
     vioc.out_size = DEF_BUF;
 
-    rc = pioctl("/coda", _VICEIOCTL(_VIOC_REP_CMD), &vioc, 0);
+    rc = pioctl(NULL, _VICEIOCTL(_VIOC_REP_CMD), &vioc, 0);
     if (rc < 0) perror("VIOC_REP_CMD(REP_CMD_CHECK)");
     printf("%s\n", vioc.out);
     fflush(stdout);
@@ -357,16 +369,16 @@ void rep_DiscardLocal(int largc, char **largv) {
     int rc;
     char space[DEF_BUF];
     char buf[BUFSIZ];
-    
+
     if (checkIfLocal("discardlocal")) return;
 
     vioc.out = space;
     vioc.out_size = DEF_BUF;
     sprintf(buf, "%d", REP_CMD_DISCARD);
-    vioc.in = buf;    
+    vioc.in = buf;
     vioc.in_size = (short) strlen(buf) + 1;
 
-    rc = pioctl("/coda", _VICEIOCTL(_VIOC_REP_CMD), &vioc, 0);
+    rc = pioctl(NULL, _VICEIOCTL(_VIOC_REP_CMD), &vioc, 0);
     if (rc < 0) perror("VIOC_REP_CMD(REP_CMD_DISCARD)");
     printf("%s\n", vioc.out);
     fflush(stdout);
@@ -452,7 +464,7 @@ void rep_ListLocal(int largc, char **largv)
     sprintf(buf, "%d %s", REP_CMD_LIST, filename);
     vioc.in_size = (short) strlen(vioc.in) + 1;
 
-    rc = pioctl("/coda", _VICEIOCTL(_VIOC_REP_CMD), &vioc, 0);
+    rc = pioctl(NULL, _VICEIOCTL(_VIOC_REP_CMD), &vioc, 0);
     if (rc < 0) perror("VIOC_REP_CMD(REP_CMD_LIST)");
     printf("%s\n", vioc.out);
     fflush(stdout);
@@ -479,7 +491,7 @@ void rep_PreserveAllLocal(int largc, char **largv) {
     vioc.in = buf;
     vioc.in_size = (short) strlen(buf) + 1;
 
-    rc = pioctl("/coda", _VICEIOCTL(_VIOC_REP_CMD), &vioc, 0);
+    rc = pioctl(NULL, _VICEIOCTL(_VIOC_REP_CMD), &vioc, 0);
     if (rc < 0) perror("VIOC_REP_CMD(REP_CMD_PRESERVE_ALL)");
     printf("%s\n", vioc.out);
     fflush(stdout);
@@ -499,7 +511,7 @@ void rep_PreserveLocal(int largc, char **largv) {
     vioc.in = buf;
     vioc.in_size = (short) strlen(buf) + 1;
 
-    rc = pioctl("/coda", _VICEIOCTL(_VIOC_REP_CMD), &vioc, 0);
+    rc = pioctl(NULL, _VICEIOCTL(_VIOC_REP_CMD), &vioc, 0);
     if (rc < 0) perror("VIOC_REP_CMD(REP_CMU_PRESERVE)");
     printf("%s\n", vioc.out);
     fflush(stdout);
@@ -596,14 +608,14 @@ void rep_SetGlobalView(int largc, char **largv)
     char buf[BUFSIZ];
 
     if (checkIfLocal("setglobalview")) return;
-    
+
     vioc.out = space;
     vioc.out_size = DEF_BUF;
     sprintf(buf, "%d", REP_CMD_GLOBAL_VIEW);
     vioc.in = buf;
     vioc.in_size = (short) strlen(buf) + 1;
 
-    rc = pioctl("/coda", _VICEIOCTL(_VIOC_REP_CMD), &vioc, 0);
+    rc = pioctl(NULL, _VICEIOCTL(_VIOC_REP_CMD), &vioc, 0);
     if (rc < 0) perror("VIOC_REP_CMD(REP_CMD_GLOBAL_VIEW)");
     printf("%s\n", vioc.out);
     fflush(stdout);
@@ -623,7 +635,7 @@ void rep_SetLocalView(int largc, char **largv) {
     vioc.in = buf;
     vioc.in_size = (short) strlen(buf) + 1;
 
-    rc = pioctl("/coda", _VICEIOCTL(_VIOC_REP_CMD), &vioc, 0);
+    rc = pioctl(NULL, _VICEIOCTL(_VIOC_REP_CMD), &vioc, 0);
     if (rc < 0) perror("VIOC_REP_CMD(REP_CMD_LOCAL_VIEW)");
     printf("%s\n", vioc.out);
     fflush(stdout);
@@ -643,7 +655,7 @@ void rep_SetMixedView(int largc, char **largv) {
     vioc.in = buf;
     vioc.in_size = (short) strlen(buf) + 1;
 
-    rc = pioctl("/coda", _VICEIOCTL(_VIOC_REP_CMD), &vioc, 0);
+    rc = pioctl(NULL, _VICEIOCTL(_VIOC_REP_CMD), &vioc, 0);
     if (rc < 0) perror("VIOC_REP_CMD(REP_CMD_MIXED_VIEW)");
     printf("%s\n", vioc.out);
     fflush(stdout);

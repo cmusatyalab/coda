@@ -18,7 +18,7 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif /* __cplusplus */
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>

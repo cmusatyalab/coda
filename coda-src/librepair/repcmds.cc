@@ -16,6 +16,7 @@ listed in the file CREDITS.
 
 #*/
 
+#include <codaconf.h>
 #include "repcmds.h"
 
 int  compareAcl(int, resreplica *);
@@ -343,7 +344,7 @@ int DiscardAllLocal(struct repvol *repv, char *msg, int msgsize) {
     vioc.in_size = (short)strlen(buf) + 1;
     vioc.out = space;
     vioc.out_size = sizeof(space);
-    rc = pioctl("/coda", _VICEIOCTL(_VIOC_REP_CMD), &vioc, 0);
+    rc = pioctl(NULL, _VICEIOCTL(_VIOC_REP_CMD), &vioc, 0);
     if (rc < 0) strerr(msg, msgsize, "%s", space);
     return(rc);
 }

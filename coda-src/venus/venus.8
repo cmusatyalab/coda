@@ -187,10 +187,6 @@ Venus may be unable to unmount itself cleanly when it exits.
 Usually this is due to processes which have references to vnodes in
 the Coda namespace (e.g., a process is cd'ed somewhere in Coda).
 Once these references are released, /coda can be unmounted.
-.SH "BUGS"
-.PP
-A mount point of \fB/coda\fR is assumed by the
-pioctl library.
 .SH "SEE ALSO"
 .PP
 \fBvenus.conf\fR,
