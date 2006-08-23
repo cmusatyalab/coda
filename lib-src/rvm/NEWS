@@ -1,3 +1,15 @@
+New in 1.13:
+
+* Fix rdsinit interactive mode on amd64.
+* Additional rdsinit fix.
+* On bootstrap, remove the autom4te.cache. (Phil Nelson)
+
+New in 1.12:
+
+* Make sure we don't strip packaged binaries.
+* Removed cross-compilation spec files
+* FC5 build fixes
+
 New in 1.11:
 
 * Compile fixes for LWP-2.0
