@@ -38,7 +38,7 @@ listed in the file CREDITS.
 
 void FID_PrintFid(const DirFid *fid)
 {
-	printf("vnode: %d, unique %d\n", fid->Vnode, fid->Unique);
+	printf("vnode: %08x, unique %08x\n", fid->Vnode, fid->Unique);
 	return;
 }
 
