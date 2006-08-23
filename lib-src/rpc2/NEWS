@@ -1,3 +1,17 @@
+New in 2.2:
+
+* Avoid valgrind warnings in the pbkdf test function.
+* Fix codasrv regression, it failed to unpack the CML.
+
+New in 2.1 (unreleased):
+
+* Fix RPC2 binding on amd64.
+* Fix layout of struct SFTP_Parms for 64-bit.
+* Fix MultiRPC packing and unpacking on 64-bit.
+* Convert a couple other longs to int32_t in sftp.
+* Remove the autom4te.cache when bootstraping. (Phil Nelson)
+* Cygwin does not have IPV6 yet. (Phil Nelson)
+
 New in 2.0:
 
 * Removed unused multicast code.
