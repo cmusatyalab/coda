@@ -1,3 +1,52 @@
+2006-08-??	<jaharkes@cs.cmu.edu>
+	* ======== Release 6.1.0 =========
+	* Rewrite of the application specific resolver (ASR) framework.
+	  (Adam Wolbach)
+	* Double stack size for Callback threads to avoid stack overflows
+	  on cygwin.
+
+2006-08-??	<jaharkes@cs.cmu.edu>
+	* ======== Release 6.0.16 =========
+	* Fix client crash during repair introduced in 6.0.15
+	* Merged 64-bit fixes from Brett Lymn
+	* Fix many 64-bit issues in the Coda client, 64-bit seems to be
+	  somewhat working now.
+	* Changes to have the vget upcall fetch the file into cache yet return
+	* Try to finalize server-server part of a repair.
+	* Try to not cache attributes from individual replicas.
+	* Fix libreadline test on FC2 and link libreadline5-dev on Debian.
+	* Remove prototypes for unused/no longer existing functions. (Rune)
+	* One small fix for coda.spec to fix the init.d file locations on
+	  OpenSuse. (Jerry Amundson)
+	* Increase minimum RVM allocation size. (Jerry Amundson)
+	* Compilation fix for coda with MIT krb5. (Maurice van der Pot)
+	* Make the test for libreadline find it in /usr/pkg tree if it is
+	  there. (Phil Nelson)
+	* Add the mkcodabf utility. (Phil Nelson)
+
+2006-05-30	<jaharkes@cs.cmu.edu>
+	* ======== Release 6.0.15 =========
+	* Make sure we pass valid 'owner' to resolution log entries.
+	* Weakly equal VVs should not trigger a R/U file conflict.
+	* Fix large file trickle reintegration.
+	* Interpret setmode argument in the fix file as an octal value.
+	* Use unsigned int for partition blocks free/available counts.
+	* Use unsigned long for partition used/free block counts.
+	* FC5 compilation fixes that were sent to the bug tracker.
+	* Allow updates even when the rwcdb is opened read-only.
+	* Fix rwcdb_read on in-memory records.
+	* Look for libX11 in /usr/lib as well.
+	* Remove mmap code in rwcdb.
+	* Fix kerberos checks in configure (Maurice van der Pot)
+	* Agressively disconnect client when tokens expire.
+	* Close pipe to the parent when we crash during startup.
+	* Kick the FSO daemon when we hit yellow or red zones.
+	* Set root directory mode-bits on a new volume to 0755.
+	* Implemented a new Coda token format.
+	* Fix pathnames for binaries called by venus-setup.
+	* FC5 compile fixes
+	* Add make dist target
+
 2005-10-28	<jaharkes@cs.cmu.edu>
 	* ======== Release 6.0.14 =========
 	* Different, more backward compatible fix for the incorrectly
