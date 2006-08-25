@@ -168,6 +168,7 @@ exit 0
 /etc/coda/venus.conf.ex
 /etc/coda/sidekick.intr.ex
 %{initdir}/venus.init
+/usr/sbin/asrlauncher
 /usr/sbin/sidekick
 /usr/sbin/codaconfedit
 /usr/sbin/coda-setup-ports
