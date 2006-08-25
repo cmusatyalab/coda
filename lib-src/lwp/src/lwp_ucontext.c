@@ -21,7 +21,7 @@ listed in the file CREDITS.
 #include "lwp_ucontext.h"
 
 /* if we already have ucontext.h we don't need any of this */
-#ifndef CODA_USE_UCONTEXT
+#ifndef HAVE_UCONTEXT_H
 
 /* Some architectures have a stack that grows up instead of down */
 //#define STACK_GROWS_UP 1

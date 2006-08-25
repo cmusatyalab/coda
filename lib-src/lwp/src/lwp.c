@@ -661,7 +661,7 @@ static int InitializeProcessSupport(int priority, PROCESS *pid)
 	gettimeofday(&temp->lastReady, NULL);
 	LWP_DispatchProcess();
 	LWPANCHOR.outersp = temp->topstack;
-	if (pid) *pid = temp;
+	*pid = temp;
 	return LWP_SUCCESS;
 }
 

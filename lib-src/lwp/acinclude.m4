@@ -101,31 +101,3 @@ AC_DEFUN([CODA_LIBRARY_VERSION],
    FREEBSD_VERSION="$2"
    GENERIC_VERSION="$2.$1"])
 
-AC_DEFUN([CODA_CHECK_MAKECONTEXT],
-   [AC_MSG_CHECKING(if makecontext correctly passes stack pointers)
-    makecontext=no
-    AC_TRY_RUN([
-#if STDC_HEADERS
-#include <stdlib.h>
-#endif
-#ifdef HAVE_UCONTEXT_H
-#include <ucontext.h>
-#endif
-void *ptr;
-void test(void *arg) { exit(ptr != arg); }
-int main(int argc, char **argv) {
-#ifdef HAVE_UCONTEXT_H
-ucontext_t x;
-int arg = 0;
-ptr = &arg;
-getcontext(&x);
-x.uc_stack.ss_sp = malloc(16384);
-x.uc_stack.ss_size = 16384;
-makecontext(&x, (void (*)(void))test, 1, &arg);
-setcontext(&x);
-#endif
-exit(2);
-}], [AC_DEFINE(CODA_USE_UCONTEXT, 1,
-	      [makecontext correctly passes stack pointers])
-     makecontext=yes])
-  AC_MSG_RESULT($makecontext)])

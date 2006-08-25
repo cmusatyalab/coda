@@ -6,7 +6,7 @@ Standards-Version: 3.6.1
 Build-Depends: debhelper (>= 4), liblwp-dev
 
 Package: librvm-dev
-Architecture: alpha amd64 arm i386 m68k powerpc sparc
+Architecture: alpha arm i386 m68k powerpc sparc
 Depends: librvm1 (= ${Source-Version})
 Description: Recoverable Virtual Memory, development files
  Recoverable Virtual Memory provides easy to use persistent storage
@@ -19,7 +19,7 @@ Description: Recoverable Virtual Memory, development files
  For more information see http://www.coda.cs.cmu.edu/
 
 Package: librvm1
-Architecture: alpha amd64 arm i386 m68k powerpc sparc
+Architecture: alpha arm i386 m68k powerpc sparc
 Depends: ${shlibs:Depends}
 Suggests: rvm-tools
 Description: Recoverable Virtual Memory
@@ -33,7 +33,7 @@ Description: Recoverable Virtual Memory
  For more information see http://www.coda.cs.cmu.edu/
 
 Package: rvm-tools
-Architecture: alpha amd64 arm i386 m68k powerpc sparc
+Architecture: alpha arm i386 m68k powerpc sparc
 Depends: librvm1
 Description: Recoverable Virtual Memory, support tools
  Recoverable Virtual Memory provides easy to use persistent storage

@@ -41,7 +41,7 @@ Pittsburgh, PA.
 #include <config.h>
 #endif
 
-#if !defined(CODA_USE_UCONTEXT) && !defined(HAVE_SIGALTSTACK)
+#if !defined(HAVE_UCONTEXT_H) && !defined(HAVE_SIGALTSTACK)
 
 #define __ASSEMBLY__ 1
 

@@ -22,7 +22,7 @@
  * These notices must be retained in any copies of any part of this
  * documentation and/or software.
  *
- * $Id: md5c.c,v 1.5 2004/04/22 19:58:42 jaharkes Exp $
+ * $Id: md5c.c,v 1.5.2.2 2006/09/07 18:45:03 jaharkes Exp $
  *
  * This code is the same as the code published by RSA Inc.  It has been
  * edited for clarity and style only.

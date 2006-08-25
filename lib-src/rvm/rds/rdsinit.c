@@ -249,10 +249,10 @@ static int get_valid_parm(argc, argv, pdatalen,
      char         **argv;
      long         *pdatalen;
      char         **pstatic_addr;
-     unsigned long *phlen;
-     unsigned long *pslen;
-     unsigned long *pnlists;
-     unsigned long *pchunksize;
+     unsigned int *phlen;
+     unsigned int *pslen;
+     unsigned int *pnlists;
+     unsigned int *pchunksize;
      int          firm;
 {
     char string[80];
@@ -390,7 +390,7 @@ int main(argc, argv)
     int err, fd, i;
     char *static_addr=NULL, buf[4096];
     char *logName, *dataName;
-    unsigned long slen=0, hlen=0, nlists=0, chunksize=0;
+    unsigned int slen=0, hlen=0, nlists=0, chunksize=0;
     rvm_offset_t DataLen;
     long         datalen=0;
     int firm=0, opt_unknown=0;
