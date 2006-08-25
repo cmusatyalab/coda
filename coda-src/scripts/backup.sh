@@ -33,7 +33,7 @@ DUMPLIST=/vice/db/dumplist
 mail -s dumplist $ADDR < $DUMPLIST
 
 # run backup
-backup -t 135 /vice/db/dumplist /backup > $BACKUPLOG 2>&1
+backup -t 135 /vice/db/dumplist $BACKUPDIR > $BACKUPLOG 2>&1
 if [ $? != 0 ]; then
      echo "Coda backup program failed" | mail -s '** backup failure!! **' $ADDR
 fi

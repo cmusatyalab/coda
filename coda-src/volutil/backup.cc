@@ -287,7 +287,7 @@ int getReplica(repinfo_t *rep) {
     VolumeId volId = rep->repvolId;
     rep->serverNum = 0;
     
-    sprintf(volIdstr, "%08x", volId);
+    sprintf(volIdstr, "%u", volId);
     vldbp = VLDBLookup(volIdstr);
     if (vldbp == NULL) {
 	LogMsg(0, 0, stdout, "Volume replica %x doesn't exist!\n", volId);
