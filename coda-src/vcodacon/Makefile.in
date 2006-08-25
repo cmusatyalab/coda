@@ -25,24 +25,20 @@ TOPOBJ = @TOPOBJ@
 
 include $(TOPDIR)/Makeconf
 
-FLTKPREFIX = @FLTKPREFIX@
-
 EXECUTABLES = vcodacon
 CBINS       = vcodacon
 LIBRARIES   =
-HEADERS	    = 
+HEADERS	    =
 CMANPAGES   = # vcodacon.1
 
 DEBUG =  -DDEBUG
 
-INCLUDES =  -I$(FLTKPREFIX)/include @XINCDIR@
-CXXFLAGS += $(DEBUG) $(INCLUDES) @GUIFLAGS@
-LDFLAGS += -L$(FLTKPREFIX)/lib @XLIBDIR@
-DEPLIBS := 
-	   
-LIBS := @GUILIBS@ $(LIBBASE)
+CXXFLAGS += $(DEBUG) @GUIFLAGS@
+DEPLIBS :=
 
-OBJS = vcodacon.o Inet.o monitor.o util.o 
+LIBS := -lfltk @GUILIBS@ $(LIBBASE)
+
+OBJS = vcodacon.o Inet.o monitor.o util.o
 
 ifdef VCODACON
 vcodacon: ${OBJS} $(DEPLIBS)

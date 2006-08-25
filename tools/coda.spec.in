@@ -1,14 +1,15 @@
 %define version @VERSION@
+%define release @REL@
 %define debug @DEBUG@
-%define initdir %(if test -d /etc/init.d/. ; then echo /etc/init.d ; else echo /etc/rc.d/init.d ; fi)
+%define initdir %(if test -d /etc/rc.d/init.d ; then echo /etc/rc.d/init.d ; else echo /etc/init.d ; fi)
 Summary: Coda distributed file system
-Name: @CODA
+Name: coda
 Version: %{version}
-Release: @REL@
+Release: %{release}
 Source: ftp://ftp.coda.cs.cmu.edu/pub/coda/src/coda-%{version}.tar.gz
 License: GPL
 BuildRoot: %{_builddir}/coda-build
-#BuildRequires: lwp-devel >= 2.0, ncurses-devel, rpc2-devel, rvm-devel, libtermcap-devel
+#BuildRequires: lwp-devel >= 2.0, ncurses-devel, rpc2-devel, rvm-devel, libtermcap-devel, fltk-devel
 Group: Networking/Daemons
 %description
 Source package for the Coda file system.  Three packages are provided by
