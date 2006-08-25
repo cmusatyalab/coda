@@ -1,5 +1,5 @@
 /*
- *	$Id: portmapper.rpc2,v 1.4 2006-05-24 20:04:39 jaharkes Exp $
+ *	$Id: portmapper.rpc2,v 1.4 2006/05/24 20:04:39 jaharkes Exp $
  *
  *	A simple portmapper for RPC2
  */

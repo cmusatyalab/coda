@@ -1,4 +1,4 @@
-/*  $Id: Inet.cc,v 1.4 2006-05-24 20:04:39 jaharkes Exp $	*/
+/*  $Id: Inet.cc,v 1.4 2006/05/24 20:04:39 jaharkes Exp $	*/
 
 /*
     Copyright (C) 2000 Philip A. Nelson
