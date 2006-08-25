@@ -276,7 +276,7 @@ AC_DEFUN(CODA_FIND_LIB,
  [AC_CACHE_CHECK(location of lib$1, coda_cv_path_$1,
   [saved_CFLAGS="${CFLAGS}" ; saved_LDFLAGS="${LDFLAGS}" ; saved_LIBS="${LIBS}"
    coda_cv_path_$1=none ; LIBS="-l$1 $4"
-   for path in default /usr /usr/local /usr/pkg ${prefix} ; do
+   for path in default /usr /usr/local /usr/pkg /usr/X11R6 /usr/X11 /usr/openwin ${prefix} ; do
      if test ${path} != default ; then
        CFLAGS="${CFLAGS} -I${path}/include"
        LDFLAGS="${LDFLAGS} -L${path}/lib"
@@ -287,10 +287,8 @@ AC_DEFUN(CODA_FIND_LIB,
    LIBS="${saved_LIBS}"
   ])
   case ${coda_cv_path_$1} in
-    none) AC_MSG_ERROR("Cannot determine the location of lib$1")
-          ;;
-    default)
-	  ;;
+    none) ;;
+    default) ;;
     *)    CPPFLAGS="-I${coda_cv_path_$1}/include ${CPPFLAGS}"
           LDFLAGS="${LDFLAGS} -L${coda_cv_path_$1}/lib" 
 	  if test x$RFLAG != x ; then
@@ -298,6 +296,11 @@ AC_DEFUN(CODA_FIND_LIB,
 	  fi
           ;;
   esac])
+
+AC_DEFUN(CODA_REQUIRE_LIB,
+  [if test "${coda_cv_path_$1}" = none ; then
+	AC_MSG_ERROR("Cannot determine the location of lib$1")
+   fi])
 
 dnl ---------------------------------------------
 dnl Fail if we haven't been able to find some required component
@@ -323,6 +326,7 @@ dnl also test for new functions introduced by readline 4.2
 AC_SUBST(LIBREADLINE)
 AC_DEFUN(CODA_CHECK_READLINE,
   [CODA_FIND_LIB(readline, [], rl_initialize(), $LIBTERMCAP)
+   CODA_REQUIRE_LIB(readline)
    AC_CHECK_LIB(readline, rl_completion_matches,
      [AC_DEFINE(HAVE_RL_COMPLETION_MATCHES, 1, [Define if you have readline 4.2 or later])], [], $LIBTERMCAP)
    LIBREADLINE=-lreadline])
@@ -331,63 +335,25 @@ dnl -----------------
 dnl Looks for the fltk library
 dnl 
 
+AC_SUBST(VCODACON)
+AC_SUBST(GUIFLAGS)
+AC_SUBST(GUILIBS)
 AC_DEFUN(CODA_CHECK_FLTK,
-   [ # do our own check for fltk library since it appears
-     # in unusual places on some OSes.
-     UNAME=`uname -s`
-     FLTKPREFIX=
-     VCODACON=
-     GUIFLAGS=
-     GUILIBS=
-     XINCDIR=
-     XLIBDIR=
-     AC_SUBST(FLTKPREFIX)
-     AC_SUBST(VCODACON)
-     AC_SUBST(GUIFLAGS)
-     AC_SUBST(GUILIBS)
-     AC_SUBST(XINCDIR)
-     AC_SUBST(XLIBDIR)
-     echo -n "Checking for libfltk.a... "
-     for d in /usr /usr/local /usr/pkg /usr/X11R6 ; do
-       if test -f $d/lib/libfltk.a ; then
-         FLTKPREFIX=$d
-         break
-       fi
-     done
-     if test x${FLTKPREFIX} != x ; then
-       echo "yes"
-       case $UNAME in
-         CYGWIN*)
-            echo "Will build native windows binary for vcodacon. "
-            GUILIBS="-mwindows -lfltk -lole32 -luuid -lcomctl32 -lwsock32 "
-            GUIFLAGS="-fno-exceptions -mwindows "
-            ;;
-         *)
-            echo -n "Checking for libX11.a... "
-            for d in /usr/X11R6 /usr/X11 /usr/openwin /usr ; do
-              if test -f $d/lib/libX11.a ; then
-                X11PREFIX=$d
-                break
-              fi
-            done
-            if test x$X11PREFIX = x ; then
-              echo "No, aborting."
-              exit 1;
-	    else
-              echo "yes"
-            fi
-            echo libX11.a is $X11PREFIX/lib/libX11.a
-            GUILIBS="-lfltk -lX11 -lm"
-            XLIBDIR="-L$X11PREFIX/lib"
-            XINCDIR="-I$X11PREFIX/include"
-            if test X$UNAME = XSunOS  ; then
-               GUIFLAGS="-D__Solaris__"
-               GUILIBS="-lsocket -lnsl"
-            fi
-            ;;
-       esac
-       VCODACON=vcodacon
-     else
-	echo "no"
-	echo "libfltk.a not found, not building vcodacon."
-     fi])
+  [if test $target != "i386-pc-cygwin32"; then
+    CODA_FIND_LIB(X11, [], XFlush(), "$LIBS")
+    GUILIBS="-lX11 $LIBS -lm"
+   else
+    GUIFLAGS="-fno-exceptions -mwindows"
+    GUILIBS="-lole32 -luuid -lcomctl32 -lwsock32"
+   fi
+   AC_LANG_SAVE
+   AC_LANG_CPLUSPLUS
+   CODA_FIND_LIB(fltk, [#include <Fl/Fl.H>], Fl::run(), "$GUILIBS")
+   AC_LANG_RESTORE
+   AC_MSG_CHECKING([if we can build vcodacon])
+   if test "${coda_cv_path_fltk}" != none ; then
+     VCODACON=vcodacon
+     AC_MSG_RESULT([ yes])
+   else
+     AC_MSG_RESULT([ couldn't find suitable libfltk])
+   fi])
