@@ -1,11 +1,11 @@
-2006-08-??	<jaharkes@cs.cmu.edu>
+2006-08-28	<jaharkes@cs.cmu.edu>
 	* ======== Release 6.1.0 =========
 	* Rewrite of the application specific resolver (ASR) framework.
 	  (Adam Wolbach)
 	* Double stack size for Callback threads to avoid stack overflows
 	  on cygwin.
 
-2006-08-??	<jaharkes@cs.cmu.edu>
+2006-08-25	<jaharkes@cs.cmu.edu>
 	* ======== Release 6.0.16 =========
 	* Fix client crash during repair introduced in 6.0.15
 	* Merged 64-bit fixes from Brett Lymn
