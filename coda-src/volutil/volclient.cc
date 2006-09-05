@@ -127,9 +127,10 @@ static void pokexmem(void);
 
 #define ROCKTAG 12345
 struct rockInfo {
-    int fd;		    /* Open filedescriptor for ReadDump. */
+    int fd;		    /* Open filedescriptor for ReadDump/WriteDump. */
     VolumeId volid;	    /* Volume being dumped. */
-    unsigned long numbytes; /* Number of bytes already written to the file. */
+    unsigned int numbytes;  /* Number of bytes already written to the file.
+			       (has to wrap around the same way as 'offset') */
 };
 
 static void V_InitRPC(int timeout);
@@ -580,18 +581,18 @@ static void dump(void)
     rock->fd = fileno(outf);
     rock->volid = volid;
     rock->numbytes = 0;
-    
+
     PROCESS dumpPid;
     LWP_CreateProcess(VolDumpLWP, 16 * 1024, LWP_NORMAL_PRIORITY,
 		      (void *)rock, "VolDumpLWP", &dumpPid);
-    
+
     rc = VolNewDump(rpcid, volid, &Incremental);
     if (rc != RPC2_SUCCESS) {
 	fprintf(stderr, "\nVolDump failed with %s\n", RPC2_ErrorMsg((int)rc));
 	exit(-1);
     }
 
-    fprintf(stderr, "\n%sVolDump completed, %lu bytes dumped\n",
+    fprintf(stderr, "\n%sVolDump completed, %u bytes dumped\n",
 	    Incremental ? "Incremental " : "", rock->numbytes);
     exit(0);
 }
@@ -673,7 +674,7 @@ long S_WriteDump(RPC2_Handle rpcid, RPC2_Unsigned offset, RPC2_Unsigned *nbytes,
     struct rockInfo *rockinfo;
     SE_Descriptor sed;
     char *rock;
-    
+
     CODA_ASSERT(LWP_GetRock(ROCKTAG, &rock) == LWP_SUCCESS);
     rockinfo = (struct rockInfo *)rock;
 
@@ -684,23 +685,24 @@ long S_WriteDump(RPC2_Handle rpcid, RPC2_Unsigned offset, RPC2_Unsigned *nbytes,
     }
 
     if (rockinfo->numbytes != offset) {
-	fprintf(stderr, "Offset %d != rockInfo->numbytes %ld\n",
+	fprintf(stderr, "Offset %d != rockInfo->numbytes %d\n",
 		offset, rockinfo->numbytes);
     }
-    
+
     /* fetch the file with volume data */
     memset(&sed, 0, sizeof(SE_Descriptor));
     sed.Tag = SMARTFTP;
     sed.Value.SmartFTPD.TransmissionDirection = CLIENTTOSERVER;
     sed.Value.SmartFTPD.ByteQuota = -1;
-    sed.Value.SmartFTPD.SeekOffset = offset;
+    sed.Value.SmartFTPD.SeekOffset = -1; /* setting this to 'offset' wreaks
+					    havoc with dumps > 4GB */
     sed.Value.SmartFTPD.hashmark = 0;
     sed.Value.SmartFTPD.Tag = FILEBYFD;
     sed.Value.SmartFTPD.FileInfo.ByFD.fd = rockinfo->fd;
 
     if ((rc = RPC2_InitSideEffect(rpcid, &sed)) <= RPC2_ELIMIT){
 	fprintf(stderr, "WriteDump: Error %s in InitSideEffect\n", RPC2_ErrorMsg((int)rc));
-    } else if ((rc = RPC2_CheckSideEffect(rpcid, &sed, SE_AWAITLOCALSTATUS)) 
+    } else if ((rc = RPC2_CheckSideEffect(rpcid, &sed, SE_AWAITLOCALSTATUS))
 	       <= RPC2_ELIMIT) {
 	fprintf(stderr, "WriteDump: Error %s in CheckSideEffect\n", RPC2_ErrorMsg((int)rc));
     }
@@ -803,7 +805,6 @@ long S_ReadDump(RPC2_Handle rpcid, RPC2_Unsigned offset, RPC2_Integer *nbytes, V
     long rc = 0;
     struct rockInfo *rockinfo;
     SE_Descriptor sed;
-    char *buf;
     char *rock;
     
     CODA_ASSERT(LWP_GetRock(ROCKTAG, &rock) == LWP_SUCCESS);
@@ -818,41 +819,17 @@ long S_ReadDump(RPC2_Handle rpcid, RPC2_Unsigned offset, RPC2_Integer *nbytes, V
 	exit(-1);
     }
 
-    /* Set up a buffer and read in the data from the dump file. */
-    buf = (char *)malloc((unsigned int)*nbytes);
-    if (!buf) {
-	perror("ReadDump: Can't malloc buffer!");
-	exit(-1);
-    }
-
     CODA_ASSERT(rockinfo->fd != 0); /* Better have been opened by restore() */
 
-    if (lseek(rockinfo->fd, offset, L_SET) == -1) {
-	perror("ReadDump: lseek");
-	*nbytes = 0;
-	free(buf);
-	return 0;
-    }
-
-    *nbytes = read(rockinfo->fd, buf, (int)*nbytes);
-    if (*nbytes == -1) {
-	perror("ReadDump: read");
-	*nbytes = 0;
-	free(buf);
-	return 0;
-    }
-    
     /* fetch the file with volume data */
     memset(&sed, 0, sizeof(SE_Descriptor));
     sed.Tag = SMARTFTP;
     sed.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
-    sed.Value.SmartFTPD.ByteQuota = -1;
-    sed.Value.SmartFTPD.SeekOffset = 0;
+    sed.Value.SmartFTPD.ByteQuota = *nbytes;
+    sed.Value.SmartFTPD.SeekOffset = -1;
     sed.Value.SmartFTPD.hashmark = 0;
-    sed.Value.SmartFTPD.Tag = FILEINVM;
-    sed.Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqBody = (RPC2_ByteSeq)buf;
-    sed.Value.SmartFTPD.FileInfo.ByAddr.vmfile.MaxSeqLen = 
-    sed.Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqLen = *nbytes;
+    sed.Value.SmartFTPD.Tag = FILEBYFD;
+    sed.Value.SmartFTPD.FileInfo.ByFD.fd = rockinfo->fd;
 
     if ((rc = RPC2_InitSideEffect(rpcid, &sed)) <= RPC2_ELIMIT){
 	fprintf(stderr, "ReadDump: Error %s in InitSideEffect\n", RPC2_ErrorMsg((int)rc));
@@ -867,7 +844,6 @@ long S_ReadDump(RPC2_Handle rpcid, RPC2_Unsigned offset, RPC2_Integer *nbytes, V
     fprintf(stderr, ".");
 #endif
     rockinfo->numbytes += sed.Value.SmartFTPD.BytesTransferred;
-    free(buf);
     return rc;
 }
 

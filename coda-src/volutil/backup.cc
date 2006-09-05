@@ -87,27 +87,28 @@ static int Debug = 0;		   /* Global debugging flag */
 static int Naptime = 30;	   /* Sleep period for PollLWP */
 
 struct hostinfo {
-    bit32      	address;  /* Assume host IP addresses are 32 bits */
+    bit32	address;  /* Assume host IP addresses are 32 bits */
     RPC2_Handle rpcid;	  /* should be -1 if connection is dead. */
     char	name[36];
-}  Hosts[N_SERVERIDS];
+} Hosts[N_SERVERIDS];
 
 #define BADCONNECTION	(RPC2_Handle) -1
 
 bit32 HostAddress[N_SERVERIDS];		/* Need these for macros in vrdb.c */
 char *ThisHost;			/* This machine's hostname */
-int ThisServerId = -1;	       	/* this server id, as found in ../db/servers */
+int ThisServerId = -1;		/* this server id, as found in ../db/servers */
 
 /* Rock info for communicating with the DumpLWP. */
 #define ROCKTAG 12345
 struct rockInfo {
-    char dumpfile[MAXPATHLEN];
-    VolumeId volid;	      /* Volume being dumped. */
-    unsigned long numbytes; /* Number of bytes already written to the file. */
+    int dumpfd;		   /* Open filedescriptor for WriteDump */
+    VolumeId volid;	   /* Volume being dumped. */
+    unsigned int numbytes; /* Number of bytes already written to the file.
+			      (has to wrap around the same way as 'offset') */
 } Rock;
 
-struct hgram DataRate;			/* Statistics on rate of data transfer */
-struct hgram DataTransferred;   	/* and size of dumpfiles. */
+struct hgram DataRate;		/* Statistics on rate of data transfer */
+struct hgram DataTransferred;	/* and size of dumpfiles. */
 
 /* Per replica info. */
 #define LOCKED 0x1
@@ -588,47 +589,48 @@ int dumpVolume(volinfo_t *vol)
     long rc;
     RPC2_Unsigned dumplevel = (vol->flags & DUMPLVL_MASK) >> DUMPLVL_SHFT;
     int ndumped = 0;
-    
+
     for (int i = 0; i < vol->nReplicas; i++) {
 	if ((Hosts[reps[i].serverNum].rpcid == BADCONNECTION) ||
 	    !ISCLONED(reps[i].flags))
-	    continue;	
-	
+	    continue;
+
 	if (ISDUMPED(reps[i].flags)) {
 	    ndumped++; /* Count it, but don't need to redo it. */
 	    continue;
 	}
-	
+
 	CODA_ASSERT(reps[i].backupId > 0);
-	
+
 	/* get the name of the dumpfile. */
 	struct DiskPartition *part = NULL;
 	char buf[MAXPATHLEN];
 
 	part = findBestPartition();
-	if (vol->flags & REPLICATED) 
+	if (vol->flags & REPLICATED)
 		sprintf(buf, "%s/%s-%08x.%08x", part->name,
 			Hosts[reps[i].serverNum].name, volId, reps[i].repvolId);
-	    else 
+	else
 		sprintf(buf, "%s/%s-%08x", part->name, Hosts[reps[i].serverNum].name, volId);
-	
 
 	/* Remove the file if it already exists. Since we made the
 	 * dump dir it can only exist if we are retrying the
 	 * replicated dump even though it succeeded for this replica
 	 * last time around. Don't care if it fails.  */
 	unlink(buf);
-	
+
 	/* Setup the write thread to handle this operation. */
-	CODA_ASSERT(strlen(buf) < sizeof(Rock.dumpfile));
-	strcpy(Rock.dumpfile, buf);
+	Rock.dumpfd = open(buf, O_CREAT | O_WRONLY | O_TRUNC, 0644);
 	Rock.volid = reps[i].backupId;
 	Rock.numbytes = 0;
-	
+
 	VLog(0, "Dumping %x.%x to %s ...", volId, reps[i].repvolId, buf);
 
 	rc = VolNewDump(Hosts[reps[i].serverNum].rpcid, reps[i].backupId,
 			&dumplevel);
+
+	close(Rock.dumpfd);
+
 	if (rc != RPC2_SUCCESS) {
 	    LogMsg(0,0,stdout, "VolDump (%x) failed on %x with %s\n",
 		   Hosts[reps[i].serverNum].rpcid, /* For debugging. */
@@ -639,26 +641,26 @@ int dumpVolume(volinfo_t *vol)
 	    continue;
 	}
 
-	/* Incremental can be forced to be full. */	
+	/* Incremental can be forced to be full. */
 	if (dumplevel == 0) {
 		vol->flags &= ~(INCREMENTAL | DUMPLVL_MASK);
 	}
-	
+
 	/* Setup a pointer from the dump subtree to the actual dumpfile
 	 * if a different partition was used for storage.
 	 */
-	
+
 	char link[66];
 	if (vol->flags & REPLICATED)
 		sprintf(link,"%s/%08x.%08x",Hosts[reps[i].serverNum].name,
 			volId, reps[i].repvolId);
 	else
 		sprintf(link, "%s/%08x", Hosts[reps[i].serverNum].name, volId);
-	    
+
 	/* Remove the link if it exists. See comment by previous
 	   unlink. */
 	unlink(link);
-	    
+
 	if (symlink(buf, link) == -1) {
 		if (errno == EEXIST) {	/* Retrying dump. */
 			if (unlink(link) != -1)
@@ -666,7 +668,7 @@ int dumpVolume(volinfo_t *vol)
 					break;
 		}
 		perror("symlink");
-		unlink(buf);	/* Delete the dump file. */		
+		unlink(buf);	/* Delete the dump file. */
 		return -1;
 	}
 
@@ -1291,7 +1293,7 @@ long S_WriteDump(RPC2_Handle rpcid, RPC2_Unsigned offset, RPC2_Unsigned *nbytes,
     struct rockInfo *rockinfo;
     SE_Descriptor sed;
     char *rock;
-    
+
     CODA_ASSERT(LWP_GetRock(ROCKTAG, &rock) == LWP_SUCCESS);
     rockinfo = (struct rockInfo *)rock;
 
@@ -1309,13 +1311,11 @@ long S_WriteDump(RPC2_Handle rpcid, RPC2_Unsigned offset, RPC2_Unsigned *nbytes,
     sed.Tag = SMARTFTP;
     sed.Value.SmartFTPD.TransmissionDirection = CLIENTTOSERVER;
     sed.Value.SmartFTPD.ByteQuota = -1;
-    sed.Value.SmartFTPD.SeekOffset = offset;
+    sed.Value.SmartFTPD.SeekOffset = -1; /* setting this to 'offset' wreaks
+					    havoc with dumps > 4GB */
     sed.Value.SmartFTPD.hashmark = 0;
-    sed.Value.SmartFTPD.Tag = FILEBYNAME;
-    sed.Value.SmartFTPD.FileInfo.ByName.ProtectionBits = 0755;
-    CODA_ASSERT(strlen(rockinfo->dumpfile) <
-	   sizeof(sed.Value.SmartFTPD.FileInfo.ByName.LocalFileName));
-    strcpy(sed.Value.SmartFTPD.FileInfo.ByName.LocalFileName, rockinfo->dumpfile);
+    sed.Value.SmartFTPD.Tag = FILEBYFD;
+    sed.Value.SmartFTPD.FileInfo.ByFD.fd = rockinfo->dumpfd;
 
     struct timeval before, after;
     gettimeofday(&before, 0);
