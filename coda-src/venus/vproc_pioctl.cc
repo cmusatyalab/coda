@@ -512,7 +512,7 @@ O_FreeLocks:
 		  */
 		case _VIOC_REPAIR:
 		  {
-		    if(f->IsExpandedDir()) {
+		    if (f->IsLocalObj()) {
 		      int rc;
 		      fsobj *fakedir = f;
 
@@ -1064,7 +1064,7 @@ OI_FreeLocks:
 			goto BEGIN_cleanup;
 		      }
 
-		      if(!dir->IsExpandedDir()) {
+		      if(!dir->IsLocalObj()) {
 			LOG(0, ("REP_CMD_BEGIN: (%s) not an expanded dir\n",
 				FID_(fid)));
 			code = -1;
