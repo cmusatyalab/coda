@@ -60,18 +60,49 @@ int resent::allocs = 0;
 int resent::deallocs = 0;
 #endif
 
+struct resolve_node {
+  struct resolve_node *next;
+  struct resolve_node *prev;
+  VenusFid HintFid;
+};
+
 void repvol::Resolve()
 {
     LOG(0, ("repvol::Resolve: %s\n", name));
     MarinerLog("resolve::%s\n", name);
 
     fsobj *f;
-    int code = 0;
+    int code = 0, nonhint = 0, firsttime = 1;
     vproc *v = VprocSelf();
+    struct resolve_node *head, *cur, *hint;
 
     Volid volid;
     volid.Realm = realm->Id();
     volid.Volume = vid;
+
+    /* Set up resolve list */
+
+    if((head = (struct resolve_node *)malloc(sizeof(struct resolve_node)))
+       == NULL) {
+      perror("malloc");
+      exit(EXIT_FAILURE);
+    }
+
+    /* hint serves as a blank node that records the hinted fid if necessary. */
+    if((hint = (struct resolve_node *)malloc(sizeof(struct resolve_node)))
+       == NULL) {
+      perror("malloc");
+      exit(EXIT_FAILURE);
+    }
+
+    /* cur always holds the current fid under resolution. */
+    cur = head;
+
+    /* Set up doubly linked list. */
+    cur->prev = NULL;
+    cur->next = hint;
+    hint->prev = cur;
+    hint->next = NULL;
 
     /* Grab control of the volume. */
     v->Begin_VFS(&volid, CODA_RESOLVE);
@@ -94,6 +125,19 @@ void repvol::Resolve()
 	mgrpent *m = 0;
 	connent *c = 0;
 
+	if(firsttime) {
+	  firsttime = 0;
+
+	  /* Set head of list to original fid parameter. */
+	  cur->HintFid.Realm = r->fid.Realm;
+	  cur->HintFid.Volume = r->fid.Volume;
+	  cur->HintFid.Vnode = r->fid.Vnode;
+	  cur->HintFid.Unique = r->fid.Unique;
+
+	  /* Necessary initialization for FID_EQ. */
+	  hint->HintFid.Realm = r->fid.Realm;
+	}
+
 	{
 	    /* Get an Mgroup. */
 	    code = GetMgrp(&m, V_UID);
@@ -102,12 +146,30 @@ void repvol::Resolve()
 	    /* Pick a coordinator and get a connection to it. */
 	    struct in_addr *phost = m->GetPrimaryHost();
 	    CODA_ASSERT(phost->s_addr != 0);
-            srvent *s = GetServer(phost, GetRealmId());
+	    srvent *s = GetServer(phost, GetRealmId());
 	    code = s->GetConn(&c, ANYUSER_UID);
-            PutServer(&s);
+	    PutServer(&s);
 	    if (code != 0) goto HandleResult;
 
 	    /* Make the RPC call. */
+	    if(!nonhint) {
+	      MarinerLog("store::ResolveHinted (%s)\n", FID_(&r->fid));
+	      UNI_START_MESSAGE(ViceResolveHinted_OP);
+	      code = ViceResolveHinted(c->connid, MakeViceFid(&r->fid),
+				       MakeViceFid(&(hint->HintFid)));
+	      UNI_END_MESSAGE(ViceResolveHinted_OP);
+	      MarinerLog("store::resolvehinted done\n");
+
+	      /* Examine the return code to decide what to do next. */
+	      code = Collate(c, code);
+	      UNI_RECORD_STATS(ViceResolveHinted_OP);
+	    }
+	    if(nonhint || (code == EOPNOTSUPP)) {
+
+	      if(code == EOPNOTSUPP)
+		LOG(0, ("repvol::Resolve: Server doesn't support "
+			"ResolveHints!\n"));
+
 	    MarinerLog("store::Resolve (%s)\n", FID_(&r->fid));
 	    UNI_START_MESSAGE(ViceResolve_OP);
 	    code = ViceResolve(c->connid, MakeViceFid(&r->fid));
@@ -119,9 +181,58 @@ void repvol::Resolve()
 	    UNI_RECORD_STATS(ViceResolve_OP);
 	}
 
+	}
+
 	/* Demote the object (if cached) */
 	f = FSDB->Find(&r->fid);
 	if (f) f->Demote();
+
+	if (code == ERESHINT) {
+	  struct resolve_node *trav;
+
+	  /* Look to see if we've already tried to resolve the hinted fid. */
+
+	  for(trav = head; ((trav != NULL) && (trav != hint));
+	      trav=trav->next) {
+	    if(FID_EQ(&(trav->HintFid), &(hint->HintFid))) {
+
+	      /* We have created a resolution loop in the file system
+	       * hierarchy. Free linked list and submit original node
+	       * for non-hinted resolution, which will mark everything
+	       * from original resolution in conflict. */
+
+	      LOG(0,("Resolve: Recursive resolve failed, resubmitting "
+		      "original object for non-hinted resolution.\n"));
+
+	      nonhint = 1;
+	      ResSubmit(NULL, &(head->HintFid));
+	      trav = NULL; /* hint won't be null */
+	    }
+	  }
+	  if(trav == hint) {
+	    /* Add it to the list, to be resolved if the hint succeeds. */
+
+	    LOG(0,("Resolve: Submitting rename source for resolution\n"));
+	    ResSubmit(NULL, &(hint->HintFid));
+
+	    cur = hint;
+	    if((hint = (struct resolve_node *)
+		malloc(sizeof(struct resolve_node))) == NULL) {
+	      perror("malloc");
+	      exit(EXIT_FAILURE);
+	    }
+
+	    cur->next = hint;
+	    hint->next = NULL;
+	    hint->prev = cur;
+
+	    /* Necessary initialization for FID_EQ. */
+	    hint->HintFid.Realm = cur->HintFid.Realm;
+	  }
+
+	  /* If this succeeds, we will resubmit the failed node for
+	   * resolution. */
+	}
 
 	if (code == VNOVNODE) {
 	    VenusFid *pfid;
@@ -142,9 +253,36 @@ void repvol::Resolve()
 		LOG(10,("Resolve: Couldn't find current object\n"));
 	}
 
+	if(!code && !nonhint && cur && hint && (cur->prev != NULL)) {
+	  struct resolve_node *freeme = cur;
+
+	  /* We succeeded in some recursed level of resolution; try the
+	   * one before to see if it could succeed now. */
+
+	  /* Remove from linked list. */
+	  cur = cur->prev;
+	  hint->prev = cur;
+	  cur->next = hint;
+	  free(freeme);
+
+	  /* Resubmit a previously failed resolve. */
+	  ResSubmit(NULL, &(cur->HintFid));
+	}
+
+	if(code && !nonhint && (code != ERESHINT)) {
+
+	  /* We failed deep within a recursive resolution. Abort. */
+
+	  LOG(0,("Resolve: Recursive resolve failed, resubmitting "
+		 "original object for non-hinted resolution.\n"));
+
+	  nonhint = 1;
+	  ResSubmit(NULL, &(head->HintFid));
+	}
+
 HandleResult:
 	PutConn(&c);
-        if (m) m->Put();
+	if (m) m->Put();
 	r->HandleResult(code);
     }
 
@@ -154,6 +292,15 @@ Exit:
 	resent *r;
 	while ((r = (resent *)res_list->get()))
 	    r->HandleResult(ERETRY);
+    }
+
+    {
+      /* Clean up resolution linked list. */
+      struct resolve_node *freenow, *freenext;
+      for(freenow = head; freenow != NULL; freenow = freenext) {
+	freenext = freenow->next;
+	free(freenow);
+      }
     }
 
     /* Surrender control of the volume. */

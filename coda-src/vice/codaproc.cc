@@ -279,9 +279,10 @@ Exit:
 }
 
 /*
-  ViceResolve: Resolve the diverging replicas of an object
+  ViceResolveHinted: Resolve the diverging replicas of an object
+		     or provide a hint as the correct object to resolve.
 */
-long FS_ViceResolve(RPC2_Handle cid, ViceFid *Fid) 
+long FS_ViceResolveHinted(RPC2_Handle cid, ViceFid *Fid, ViceFid *HintFid)
 {
     int errorCode = 0;
     VolumeId VSGVolnum;
@@ -364,11 +365,11 @@ long FS_ViceResolve(RPC2_Handle cid, ViceFid *Fid)
     if (ISDIR(*Fid)) {
 	    SLog(9,  "ViceResolve: Going to call DirResolve");
 	    if (reson) {
-                resError = RecovDirResolve(mgrp, Fid, VVvar_ptrs,
-                                           rstatusvar_ptrs,
-                                           (int *)logsizesvar_bufs);
-            } else {
-                resError = OldDirResolve(mgrp, Fid, VVvar_ptrs);
+		resError = RecovDirResolve(mgrp, Fid, VVvar_ptrs,
+					   rstatusvar_ptrs,
+					   (int *)logsizesvar_bufs, HintFid);
+	    } else {
+		resError = OldDirResolve(mgrp, Fid, VVvar_ptrs);
 	    }
     } else {
 	    SLog(9, "ViceResolve: Going to call Fileresolve");
@@ -402,6 +403,14 @@ long FS_ViceResolve(RPC2_Handle cid, ViceFid *Fid)
 	    return(errorCode);
     }
     return(resError);
+}
+
+/*
+  ViceResolve: Resolve the diverging replicas of an object
+*/
+long FS_ViceResolve(RPC2_Handle cid, ViceFid *Fid)
+{
+    return FS_ViceResolveHinted(cid, Fid, NULL);
 }
 
 /*

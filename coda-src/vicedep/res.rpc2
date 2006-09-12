@@ -140,4 +140,12 @@ NewConnection	(IN RPC2_Integer SideEffectType,
 
 19: ClearIncon      (IN ViceFid Fid,
 		 IN ViceVersionVector VV);
-		 
+
+20: NewShipLogs    (IN ViceFid Fid,
+		    IN RPC2_Integer size,
+		    IN RPC2_Integer totalentries,
+		    IN OUT ViceStatus vstatus,
+		    IN OUT RPC2_BoundedBS piggyinc,
+		    IN OUT SE_Descriptor sed,
+		    OUT ViceFid HintFid);
+

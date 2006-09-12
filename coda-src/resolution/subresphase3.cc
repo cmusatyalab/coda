@@ -82,8 +82,8 @@ static int GatherFids(dlist *, Vnode *, Volume *, arrlist *);
 static int AddRenameChildrenToList(dlist *, Volume *, Vnode *, rsle *);
 static int SetPhase3DirStatus(ViceStatus *, ViceFid *, Volume *, dlist *);
 static int GetResObjs(arrlist *, ViceFid *, Volume **, dlist *);
-static int CheckSemPerformRes(arrlist *, Volume *, ViceFid *, dlist *, 
-			       olist *, dlist *, int *);
+static int CheckSemPerformRes(arrlist *, Volume *, ViceFid *, dlist *,
+			      olist *, dlist *, int *, ViceFid *);
 static int CheckRegularCompOp(rsle *, dlist *, vle *, ViceFid *, Volume *, olist *);
 static int PerformRegularCompOp(int, rsle *, dlist *, dlist *, 
 				 olist *, ViceFid *, vle *, Volume *, VolumeId, int *);
@@ -106,9 +106,10 @@ const int Yield_rp3CheckSemPerformRes_Mask = Yield_rp3CheckSemPerformRes_Period 
 
 
 
-long RS_ShipLogs(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer size, 
-		   RPC2_Integer nentries, ViceStatus *status, 
-		   RPC2_BoundedBS *piggyinc, SE_Descriptor *sed) 
+long RS_NewShipLogs(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer size,
+		    RPC2_Integer nentries, ViceStatus *status,
+		    RPC2_BoundedBS *piggyinc, SE_Descriptor *sed,
+		    ViceFid *HintFid)
 {
 
     SLog(1, 
@@ -175,12 +176,12 @@ long RS_ShipLogs(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer size,
     // Check Semantics and Perform compensating operations
     {
 	PROBE(tpinfo, RecovPerformResOpBegin);
-	if ((errorCode = CheckSemPerformRes(CompOps, volptr, Fid, 
-					   vlist, AllLogs, inclist, 
-					   &nblocks))) {
-	    SLog(0,  
-		   "RS_ShipLogs: Error %d during CheckSemPerformRes",
-		   errorCode);
+	errorCode = CheckSemPerformRes(CompOps, volptr, Fid, vlist, AllLogs,
+				       inclist, &nblocks, HintFid);
+	if (errorCode)
+	{
+	    SLog(0, "RS_ShipLogs: Error %d during CheckSemPerformRes",
+		 errorCode);
 	    goto Exit;
 	}
 	PROBE(tpinfo, RecovPerformResOpEnd);
@@ -223,6 +224,13 @@ long RS_ShipLogs(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer size,
     return(errorCode);
 }
 
+long RS_ShipLogs(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer size,
+		 RPC2_Integer nentries, ViceStatus *status,
+		 RPC2_BoundedBS *piggyinc, SE_Descriptor *sed)
+{
+  return RS_NewShipLogs(RPCid, Fid, size, nentries, status,
+			piggyinc, sed, NULL);
+}
 
 static int FetchLog(RPC2_Handle RPCid, char **buf, int size) {
     int errorCode = 0;
@@ -515,17 +523,17 @@ static int GatherFids(dlist *vlist, Vnode *pvptr,
  *		Look up table to see if operation not allowed
  *	Then perform the operation accordingly
  *
- * 	Return values:
+ *	Return values:
  *		functions return value indicates abort/commit
  *		result[] - array of codes for outcome of each operation
  *			PERFORMOP, NULLOP, MARKPARENTINC, MARKOBJINC
  *			CREATEINCOBJ
- *			
+ *
  */
-static int CheckSemPerformRes(arrlist *ops, Volume *volptr, 
-			       ViceFid *dFid, dlist *vlist, 
-			       olist *AllLogs, dlist *inclist, 
-			       int *nblocks) {
+static int CheckSemPerformRes(arrlist *ops, Volume *volptr,
+			       ViceFid *dFid, dlist *vlist,
+			       olist *AllLogs, dlist *inclist,
+			      int *nblocks, ViceFid *HintFid) {
     int errorCode = 0;
     *nblocks = 0;
 
@@ -556,24 +564,26 @@ static int CheckSemPerformRes(arrlist *ops, Volume *volptr,
 	    // yield after every few operations
 	    if ((count & Yield_rp3CheckSemPerformRes_Mask) == 0)
 		PollAndYield();
-	    
+
 	    if (r->opcode == ResolveNULL_OP) continue;
-	    
+
 	    // handle renames separately
-	    if (r->opcode == RES_Rename_OP || 
+	    if (r->opcode == RES_Rename_OP ||
 		r->opcode == ResolveViceRename_OP) {
-		if (!(errorCode = CheckAndPerformRename(r, volptr, VSGVolnum, dFid,
-							vlist, AllLogs, inclist, &tblocks)))
+		if (!(errorCode = CheckAndPerformRename(r, volptr, VSGVolnum,
+							dFid, vlist, AllLogs,
+							inclist, &tblocks,
+							HintFid)))
 		    *nblocks += tblocks;
 		continue;
 	    }
-	    
-	    // regular operation check and perform 
+
+	    // regular operation check and perform
 	    {
 		int result = CheckRegularCompOp(r, vlist, pv, dFid, volptr, AllLogs);
 		SLog(9, "CheckRegularCompOp returns %d\n", result);
-		if (!(errorCode = PerformRegularCompOp(result, r, vlist, inclist, 
-						       AllLogs, dFid, pv, volptr, 
+		if (!(errorCode = PerformRegularCompOp(result, r, vlist, inclist,
+						       AllLogs, dFid, pv, volptr,
 						       VSGVolnum, &tblocks)))
 		    *nblocks += tblocks;
 	    }

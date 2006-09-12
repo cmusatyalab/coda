@@ -56,9 +56,9 @@ static int CheckResolveRenameSemantics(rsle *, Volume *, ViceFid *, dlist *, vle
 					vle **,olist *, dlist *, dlist *, int *);
 static int CleanRenameTarget(rsle *, dlist *, Volume *, VolumeId , olist *, int *);
 
-int CheckAndPerformRename(rsle *r, Volume *volptr, VolumeId VSGVolnum, 
-			  ViceFid *dFid, dlist *vlist, olist *AllLogs, 
-			  dlist *inclist, int *blocks)
+int CheckAndPerformRename(rsle *r, Volume *volptr, VolumeId VSGVolnum,
+			  ViceFid *dFid, dlist *vlist, olist *AllLogs,
+			  dlist *inclist, int *blocks, ViceFid *HintFid)
 {
     LogMsg(1, SrvDebugLevel, stdout,
 	   "Entering CheckAndPerformRename\n");
@@ -103,12 +103,30 @@ int CheckAndPerformRename(rsle *r, Volume *volptr, VolumeId VSGVolnum,
 	    }
 	}
 	/* XXX - MIGHT HAVE TO UPDATE THE VERSION VECTOR FOR THE CHILD ! */
-        errorCode = SpoolRenameLogRecord(ResolveViceRename_OP, vlist, sv, tv,
-                                         sdv, tdv, volptr, r->name1, r->name2,
-                                         &r->storeid);
+	errorCode = SpoolRenameLogRecord(ResolveViceRename_OP, vlist, sv, tv,
+					 sdv, tdv, volptr, r->name1, r->name2,
+					 &r->storeid);
     }
-    // merge the inconsistencies 
+    // merge the inconsistencies
     if (errorCode && errorCode == EINCONS) {
+	if(HintFid != NULL) {
+	  /* Don't mark anything in conflict; instead, return a "suggestion"
+	   * to the client, hoping that they will try a resolve on that
+	   * object. The question is, should we _always_ do this?
+	   */
+	  LogMsg(0, SrvDebugLevel, stdout,
+		 "Incorrect Res Rename: src = %s (%x.%x), tgt = %s (%x.%x)s\n"
+		 "Hinting source object to user (volume=%x!\n",
+		 r->name1,
+		 r->u.mv.svnode,	r->u.mv.sunique,
+		 r->name2, r->u.mv.tvnode, r->u.mv.tunique, V_id(volptr));
+
+	  HintFid->Volume = V_id(volptr); /* XXX: not sure this matters */
+	  HintFid->Vnode = r->u.mv.svnode;
+	  HintFid->Unique = r->u.mv.sunique;
+	  errorCode = ERESHINT;
+	}
+	else {
 	LogMsg(0, SrvDebugLevel, stdout,  
 	       "Incorrect Res Rename: src = %s (%x.%x), tgt = %s (%x.%x)s",
 	       r->name1, 
@@ -133,7 +151,8 @@ int CheckAndPerformRename(rsle *r, Volume *volptr, VolumeId VSGVolnum,
 	errorCode = 0;
 	V_VolLog(volptr)->vmrstats->conf.mv++;
     }
-    
+    }
+
     if (newinclist) {
 	CODA_ASSERT(newinclist->count() == 0);
 	delete newinclist;

@@ -60,7 +60,7 @@ extern "C" {
 // ********** Private Routines *************
 static int ComparePhase3Status(res_mgrpent *, int *, ViceStatus *);
 static char *CoordPhase2(res_mgrpent *, ViceFid *, int *, int *, int *, unsigned long *,dirresstats *);
-static int CoordPhase3(res_mgrpent*, ViceFid*, char*, int, int, ViceVersionVector**, dlist*, ResStatus**, unsigned long*, int*);
+static int CoordPhase3(res_mgrpent*, ViceFid*, char*, int, int, ViceVersionVector**, dlist*, ResStatus**, unsigned long*, int*, ViceFid *);
 static int CoordPhase4(res_mgrpent *, ViceFid *, unsigned long *, int *);
 static int CoordPhase34(res_mgrpent *, ViceFid *, dlist *, int *);
 static void AllocateBufs(res_mgrpent *, char **, int *);
@@ -101,7 +101,7 @@ static void UpdateStats(ViceFid *, dirresstats *);
 //
 
 long RecovDirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV, 
-		     ResStatus **rstatusp, int *sizes)
+		     ResStatus **rstatusp, int *sizes, ViceFid *HintFid)
 {
     int reserror = EINCONS;
     char *AllLogs = NULL;
@@ -158,10 +158,14 @@ long RecovDirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV,
     }
     // Phase3
     {	
+       int reshint;
 	PROBE(tpinfo, RecovCoorP3Begin);
 	inclist = new dlist((CFN)CompareIlinkEntry);
-	if (CoordPhase3(mgrp, Fid, AllLogs, totalsize, totalentries, VV, 
-			inclist, rstatusp, succFlags, dirlengths)) {
+	if ((reshint = CoordPhase3(mgrp, Fid, AllLogs, totalsize,
+				   totalentries, VV, inclist, rstatusp,
+				   succFlags, dirlengths, HintFid))) {
+	    if(reshint == ERESHINT)
+	      retval = reserror = ERESHINT;
 	    LogMsg(0, SrvDebugLevel, stdout,
 		   "RecovDirResolve: Error during phase 3\n");
 	    goto Exit;
@@ -192,7 +196,7 @@ long RecovDirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV,
   Exit:
     // mark object inconsistent in case of error 
     // Phase5
-    if (reserror) {
+    if (reserror && (reserror != ERESHINT)) {
 	MRPC_MakeMulti(MarkInc_OP, MarkInc_PTR, VSG_MEMBERS,
 		       mgrp->rrcc.handles, mgrp->rrcc.retcodes, 
 		       mgrp->rrcc.MIp, 0, 0, Fid);
@@ -352,12 +356,14 @@ static char *ConcatLogs(res_mgrpent *mgrp, char **bufs,
 static int CoordPhase3(res_mgrpent *mgrp, ViceFid *Fid, char *AllLogs,
 		       int logsize, int totalentries, ViceVersionVector **VV,
 		       dlist *inclist, ResStatus **rstatusp,
-		       unsigned long *successFlags, int *dirlengths)
+		       unsigned long *successFlags, int *dirlengths,
+		       ViceFid *HintFid)
 {
     RPC2_BoundedBS PBinc;
     char buf[RESCOMM_MAXBSLEN];
     SE_Descriptor sid;
     ViceStatus status;
+    ViceFid hint;
     // init parms PB, sid, status block
     {
 	PBinc.SeqBody = (RPC2_ByteSeq)buf;
@@ -380,24 +386,49 @@ static int CoordPhase3(res_mgrpent *mgrp, ViceFid *Fid, char *AllLogs,
 	    GetMaxVV(&status.VV, VV, -1);
 	    AllocStoreId(&status.VV.StoreId);
 	}
+
+	hint.Volume = (VolumeId)NULL;
+	hint.Vnode = (VnodeId)NULL;
+	hint.Unique = (Unique_t)NULL;
     }
     ARG_MARSHALL(IN_OUT_MODE, SE_Descriptor, sidvar, sid, VSG_MEMBERS);
-    ARG_MARSHALL_BS(IN_OUT_MODE, RPC2_BoundedBS, PBincvar, PBinc, VSG_MEMBERS, RESCOMM_MAXBSLEN);
+    ARG_MARSHALL_BS(IN_OUT_MODE, RPC2_BoundedBS, PBincvar, PBinc, VSG_MEMBERS,
+		    RESCOMM_MAXBSLEN);
     ARG_MARSHALL(IN_OUT_MODE, ViceStatus, statusvar, status, VSG_MEMBERS);
+    ARG_MARSHALL(OUT_MODE, ViceFid, hintvar, hint, VSG_MEMBERS);
 
     // Ship log to Subordinates & Parse results
     {
-	MRPC_MakeMulti(ShipLogs_OP, ShipLogs_PTR, VSG_MEMBERS,
-		       mgrp->rrcc.handles, mgrp->rrcc.retcodes, 
-		       mgrp->rrcc.MIp, 0, 0, Fid, logsize, 
-		       totalentries, statusvar_ptrs, PBincvar_ptrs, 
-		       sidvar_bufs);
+	if(HintFid == NULL)
+	    MRPC_MakeMulti(ShipLogs_OP, ShipLogs_PTR, VSG_MEMBERS,
+			   mgrp->rrcc.handles, mgrp->rrcc.retcodes,
+			   mgrp->rrcc.MIp, 0, 0, Fid, logsize,
+			   totalentries, statusvar_ptrs, PBincvar_ptrs,
+			   sidvar_bufs);
+	else
+	    MRPC_MakeMulti(NewShipLogs_OP, NewShipLogs_PTR, VSG_MEMBERS,
+			   mgrp->rrcc.handles, mgrp->rrcc.retcodes,
+			   mgrp->rrcc.MIp, 0, 0, Fid, logsize,
+			   totalentries, statusvar_ptrs, PBincvar_ptrs,
+			   sidvar_bufs, hintvar_ptrs);
 	mgrp->CheckResult();
 	int errorCode = 0;
 	if ((errorCode = CheckRetCodes(mgrp->rrcc.retcodes, mgrp->rrcc.hosts, successFlags))) {
 	    LogMsg(0, SrvDebugLevel, stdout,  
 		   "CoordPhase3: Error %d in ShipLogs", errorCode);
 	    return(errorCode);
+	}
+
+	/* Do I want to check/collate fid hint results also? */
+	if(HintFid != NULL)
+	{
+	  /* For now, just take the 1st result */
+	  ViceFid *result = hintvar_ptrs[0];
+	  if(result != NULL) {
+	    HintFid->Volume = result->Volume;
+	    HintFid->Vnode = result->Vnode;
+	    HintFid->Unique = result->Unique;
+	  }
 	}
 
 	if (ComparePhase3Status(mgrp, dirlengths, statusvar_bufs)) {
