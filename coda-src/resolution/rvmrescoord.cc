@@ -100,7 +100,7 @@ static void UpdateStats(ViceFid *, dirresstats *);
 // *		In case of problems it marks the replicas inconsistent
 //
 
-long RecovDirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV, 
+long RecovDirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV,
 		     ResStatus **rstatusp, int *sizes, ViceFid *HintFid)
 {
     int reserror = EINCONS;
@@ -157,7 +157,7 @@ long RecovDirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV,
 	PollAndYield();
     }
     // Phase3
-    {	
+    {
        int reshint;
 	PROBE(tpinfo, RecovCoorP3Begin);
 	inclist = new dlist((CFN)CompareIlinkEntry);
@@ -194,11 +194,11 @@ long RecovDirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV,
 	PROBE(tpinfo, RecovCoorP4End);
     }
   Exit:
-    // mark object inconsistent in case of error 
+    // mark object inconsistent in case of error
     // Phase5
     if (reserror && (reserror != ERESHINT)) {
 	MRPC_MakeMulti(MarkInc_OP, MarkInc_PTR, VSG_MEMBERS,
-		       mgrp->rrcc.handles, mgrp->rrcc.retcodes, 
+		       mgrp->rrcc.handles, mgrp->rrcc.retcodes,
 		       mgrp->rrcc.MIp, 0, 0, Fid);
 	drstats.dir_conf++;
     }
@@ -414,7 +414,32 @@ static int CoordPhase3(res_mgrpent *mgrp, ViceFid *Fid, char *AllLogs,
 	mgrp->CheckResult();
 	int errorCode = 0;
 	if ((errorCode = CheckRetCodes(mgrp->rrcc.retcodes, mgrp->rrcc.hosts, successFlags))) {
-	    LogMsg(0, SrvDebugLevel, stdout,  
+
+	  /* Do I want to collate and check fid hint results also? */
+
+	  if((errorCode == ERESHINT) && (HintFid != NULL)) {
+
+	    /* For now, just take the first result and copy it into the
+	     * fid to be sent back to the client. */
+
+	    ViceFid *result = hintvar_ptrs[0];
+
+	    if(result != NULL) {
+	      LogMsg(0, SrvDebugLevel, stdout,
+		     "CoordPhase3: ERESHINT (Hint = %s)", FID_(result));
+
+	      HintFid->Volume = result->Volume;
+	      HintFid->Vnode = result->Vnode;
+	      HintFid->Unique = result->Unique;
+	    }
+	    else {
+	      HintFid->Volume = (unsigned int)NULL;
+	      HintFid->Vnode = (unsigned int)NULL;
+	      HintFid->Unique = (unsigned int)NULL;
+	    }
+	  }
+
+	    LogMsg(0, SrvDebugLevel, stdout,
 		   "CoordPhase3: Error %d in ShipLogs", errorCode);
 	    return(errorCode);
 	}

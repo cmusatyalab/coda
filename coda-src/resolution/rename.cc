@@ -109,11 +109,12 @@ int CheckAndPerformRename(rsle *r, Volume *volptr, VolumeId VSGVolnum,
     }
     // merge the inconsistencies
     if (errorCode && errorCode == EINCONS) {
-	if(HintFid != NULL) {
+	if(HintFid != NULL) { /* Hinted resolution! */
+
 	  /* Don't mark anything in conflict; instead, return a "suggestion"
 	   * to the client, hoping that they will try a resolve on that
-	   * object. The question is, should we _always_ do this?
-	   */
+	   * object. The question is, should we _always_ do this? */
+
 	  LogMsg(0, SrvDebugLevel, stdout,
 		 "Incorrect Res Rename: src = %s (%x.%x), tgt = %s (%x.%x)s\n"
 		 "Hinting source object to user (volume=%x!\n",
@@ -121,15 +122,15 @@ int CheckAndPerformRename(rsle *r, Volume *volptr, VolumeId VSGVolnum,
 		 r->u.mv.svnode,	r->u.mv.sunique,
 		 r->name2, r->u.mv.tvnode, r->u.mv.tunique, V_id(volptr));
 
-	  HintFid->Volume = V_id(volptr); /* XXX: not sure this matters */
+	  HintFid->Volume = V_id(volptr);
 	  HintFid->Vnode = r->u.mv.svnode;
 	  HintFid->Unique = r->u.mv.sunique;
 	  errorCode = ERESHINT;
 	}
 	else {
-	LogMsg(0, SrvDebugLevel, stdout,  
+	LogMsg(0, SrvDebugLevel, stdout,
 	       "Incorrect Res Rename: src = %s (%x.%x), tgt = %s (%x.%x)s",
-	       r->name1, 
+	       r->name1,
 	       r->u.mv.svnode,	r->u.mv.sunique,
 	       r->name2, r->u.mv.tvnode, r->u.mv.tunique);
     
