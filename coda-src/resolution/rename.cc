@@ -122,7 +122,7 @@ int CheckAndPerformRename(rsle *r, Volume *volptr, VolumeId VSGVolnum,
 		 r->u.mv.svnode,	r->u.mv.sunique,
 		 r->name2, r->u.mv.tvnode, r->u.mv.tunique, V_id(volptr));
 
-	  HintFid->Volume = V_id(volptr);
+	  HintFid->Volume = VSGVolnum;
 	  HintFid->Vnode = r->u.mv.svnode;
 	  HintFid->Unique = r->u.mv.sunique;
 	  errorCode = ERESHINT;
