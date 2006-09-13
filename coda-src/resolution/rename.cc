@@ -110,22 +110,24 @@ int CheckAndPerformRename(rsle *r, Volume *volptr, VolumeId VSGVolnum,
     // merge the inconsistencies
     if (errorCode && errorCode == EINCONS) {
 	if(HintFid != NULL) { /* Hinted resolution! */
+	  ilink *il;
 
 	  /* Don't mark anything in conflict; instead, return a "suggestion"
 	   * to the client, hoping that they will try a resolve on that
 	   * object. The question is, should we _always_ do this? */
 
+	  HintFid->Volume = VSGVolnum;
+	  HintFid->Vnode = r->u.mv.otherdirv;
+	  HintFid->Unique = r->u.mv.otherdiru;
+
 	  LogMsg(0, SrvDebugLevel, stdout,
 		 "Incorrect Res Rename: src = %s (%x.%x), tgt = %s (%x.%x)s\n"
-		 "Hinting source object to user (volume=%x!\n",
-		 r->name1,
-		 r->u.mv.svnode,	r->u.mv.sunique,
-		 r->name2, r->u.mv.tvnode, r->u.mv.tunique, V_id(volptr));
+		 "Hinting other directory to user (%s)\n",
+		 r->name1, r->u.mv.svnode, r->u.mv.sunique,
+		 r->name2, r->u.mv.tvnode, r->u.mv.tunique, FID_(HintFid));
 
-	  HintFid->Volume = VSGVolnum;
-	  HintFid->Vnode = r->u.mv.svnode;
-	  HintFid->Unique = r->u.mv.sunique;
-	  errorCode = ERESHINT;
+	  while ((il = (ilink *)newinclist->get()))
+	      delete il;
 	}
 	else {
 	LogMsg(0, SrvDebugLevel, stdout,

@@ -187,69 +187,6 @@ void repvol::Resolve()
 	f = FSDB->Find(&r->fid);
 	if (f) f->Demote();
 
-	if (code == ERESHINT) {
-	  struct resolve_node *trav;
-
-	  /* First, check to see if the hinted fid is bad. */
-
-	  if((hint->HintFid.Volume == (unsigned int)NULL) &&
-	     (hint->HintFid.Vnode == (unsigned int)NULL) &&
-	     (hint->HintFid.Unique == (unsigned int)NULL)) {
-
-	    /* The server is out of hints. Submit original node
-	     * for non-hinted resolution, which will mark everything
-	     * from original resolution in conflict. */
-
-	    nonhint = 1;
-	    ResSubmit(NULL, &(head->HintFid));
-	    goto HandleResult;
-	  }
-
-	  /* Look to see if we've already tried to resolve the hinted fid. */
-
-	  for(trav = head; ((trav != NULL) && (trav != hint));
-	      trav=trav->next) {
-	    if(FID_EQ(&(trav->HintFid), &(hint->HintFid))) {
-
-	      /* We have created a resolution loop in the file system
-	       * hierarchy. Submit original node
-	       * for non-hinted resolution, which will mark everything
-	       * from original resolution in conflict. */
-
-	      LOG(0,("Resolve: Recursive resolve failed, resubmitting "
-		      "original object for non-hinted resolution.\n"));
-
-	      nonhint = 1;
-	      ResSubmit(NULL, &(head->HintFid));
-	      goto HandleResult;
-	    }
-	  }
-	  if(trav == hint) {
-	    /* General hint case. Add the hinted fid to the list,
-	     * to be resolved if the hinted resolution succeeds. */
-
-	    LOG(0,("Resolve: Submitting rename source for resolution\n"));
-	    ResSubmit(NULL, &(hint->HintFid));
-
-	    cur = hint;
-	    if((hint = (struct resolve_node *)
-		malloc(sizeof(struct resolve_node))) == NULL) {
-	      perror("malloc");
-	      exit(EXIT_FAILURE);
-	    }
-
-	    cur->next = hint;
-	    hint->next = NULL;
-	    hint->prev = cur;
-
-	    /* Necessary initialization for FID_EQ. */
-	    hint->HintFid.Realm = cur->HintFid.Realm;
-	  }
-
-	  /* If this succeeds, we will resubmit the failed node for
-	   * resolution. */
-	}
-
 	if (code == VNOVNODE) {
 	    VenusFid *pfid;
 	    if (f) {
@@ -295,7 +232,62 @@ void repvol::Resolve()
 	    goto HandleResult;
 	}
 
-	if(!code && !nonhint && cur && hint && (cur->prev != NULL)) {
+	if (nonhint) /* no hinted resolution, we have to stop here. */
+	    goto HandleResult;
+
+	if (code == EINCONS && !FID_EQ(&hint->HintFid, &NullFid))
+	{
+	    struct resolve_node *trav;
+
+	    /* Look to see if we've already tried to resolve this fid. */
+
+	    for(trav = head; ((trav != NULL) && (trav != hint));
+		trav=trav->next) {
+		if(FID_EQ(&(trav->HintFid), &(hint->HintFid))) {
+
+		    /* We have created a resolution loop in the file system
+		     * hierarchy. Submit original node for non-hinted
+		     * resolution, which will mark everything from original
+		     * resolution in conflict. */
+
+		    LOG(0,("Resolve: Recursive resolve failed, resubmitting "
+			   "original object for non-hinted resolution.\n"));
+
+		    nonhint = 1;
+		    ResSubmit(NULL, &(head->HintFid));
+		    code = 0;
+		    goto HandleResult;
+		}
+	    }
+	    if(trav == hint) {
+		/* General hint case. Add the hinted fid to the list,
+		 * to be resolved if the hinted resolution succeeds. */
+
+		LOG(0,("Resolve: Submitting rename source for resolution\n"));
+		ResSubmit(NULL, &(hint->HintFid));
+
+		cur = hint;
+		if((hint = (struct resolve_node *)
+		    malloc(sizeof(struct resolve_node))) == NULL) {
+		    perror("malloc");
+		    exit(EXIT_FAILURE);
+		}
+
+		cur->next = hint;
+		hint->next = NULL;
+		hint->prev = cur;
+
+		/* Necessary initialization for FID_EQ. */
+		hint->HintFid.Realm = cur->HintFid.Realm;
+		code = 0;
+		goto HandleResult;
+	    }
+
+	    /* If this succeeds, we will resubmit the failed node for
+	     * resolution. */
+	}
+
+	if(!code && cur && hint && (cur->prev != NULL)) {
 	  struct resolve_node *freeme = cur;
 
 	  /* We succeeded in some recursed level of resolution, and have
@@ -317,7 +309,7 @@ void repvol::Resolve()
 	  goto HandleResult;
 	}
 
-	if(code && !nonhint && (code != ERESHINT)) {
+	if(code) {
 
 	  /* We failed, !nonhint meaning it was a hinted resolution. Stop
 	   * with the hinted resolution attempts, and simply try a normal
@@ -328,33 +320,7 @@ void repvol::Resolve()
 
 	  nonhint = 1;
 	  ResSubmit(NULL, &(head->HintFid));
-	}
-
-	if(!code && !nonhint && cur && hint && (cur->prev != NULL)) {
-	  struct resolve_node *freeme = cur;
-
-	  /* We succeeded in some recursed level of resolution; try the
-	   * one before to see if it could succeed now. */
-
-	  /* Remove from linked list. */
-	  cur = cur->prev;
-	  hint->prev = cur;
-	  cur->next = hint;
-	  free(freeme);
-
-	  /* Resubmit a previously failed resolve. */
-	  ResSubmit(NULL, &(cur->HintFid));
-	}
-
-	if(code && !nonhint && (code != ERESHINT)) {
-
-	  /* We failed deep within a recursive resolution. Abort. */
-
-	  LOG(0,("Resolve: Recursive resolve failed, resubmitting "
-		 "original object for non-hinted resolution.\n"));
-
-	  nonhint = 1;
-	  ResSubmit(NULL, &(head->HintFid));
+	  code = 0;
 	}
 
 HandleResult:

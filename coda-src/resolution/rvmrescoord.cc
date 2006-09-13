@@ -158,16 +158,15 @@ long RecovDirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV,
     }
     // Phase3
     {
-	int reshint;
 	PROBE(tpinfo, RecovCoorP3Begin);
 	inclist = new dlist((CFN)CompareIlinkEntry);
-	if ((reshint = CoordPhase3(mgrp, Fid, AllLogs, totalsize,
-				   totalentries, VV, inclist, rstatusp,
-				   succFlags, dirlengths, HintFid))) {
-	    if(reshint == ERESHINT)
-	      retval = reserror = ERESHINT;
+	if (HintFid) *HintFid = NullFid;
+	if (CoordPhase3(mgrp, Fid, AllLogs, totalsize, totalentries, VV,
+			inclist, rstatusp, succFlags, dirlengths, HintFid))
+	{
 	    LogMsg(0, SrvDebugLevel, stdout,
 		   "RecovDirResolve: Error during phase 3\n");
+	    retval = EINCONS;
 	    goto Exit;
 	}
 	PROBE(tpinfo, RecovCoorP3End);
@@ -196,7 +195,7 @@ long RecovDirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV,
   Exit:
     // mark object inconsistent in case of error
     // Phase5
-    if (reserror && (reserror != ERESHINT)) {
+    if (reserror && (HintFid == NULL || FID_EQ(HintFid, &NullFid))) {
 	MRPC_MakeMulti(MarkInc_OP, MarkInc_PTR, VSG_MEMBERS,
 		       mgrp->rrcc.handles, mgrp->rrcc.retcodes,
 		       mgrp->rrcc.MIp, 0, 0, Fid);
@@ -386,10 +385,6 @@ static int CoordPhase3(res_mgrpent *mgrp, ViceFid *Fid, char *AllLogs,
 	    GetMaxVV(&status.VV, VV, -1);
 	    AllocStoreId(&status.VV.StoreId);
 	}
-
-	hint.Volume = (VolumeId)NULL;
-	hint.Vnode = (VnodeId)NULL;
-	hint.Unique = (Unique_t)NULL;
     }
     ARG_MARSHALL(IN_OUT_MODE, SE_Descriptor, sidvar, sid, VSG_MEMBERS);
     ARG_MARSHALL_BS(IN_OUT_MODE, RPC2_BoundedBS, PBincvar, PBinc, VSG_MEMBERS,
@@ -419,11 +414,10 @@ static int CoordPhase3(res_mgrpent *mgrp, ViceFid *Fid, char *AllLogs,
 		/* we got an error, let's see if any of the servers came up
 		 * with a suggested fid that may resolve better than the
 		 * current one */
-		*HintFid = NullFid;
 		for (int i = 0; i < VSG_MEMBERS; i++) {
-		    if (mgrp->rrcc.retcodes[i] == ERESHINT) {
+		    if (mgrp->rrcc.retcodes[i] == EINCONS &&
+			!FID_EQ(hintvar_ptrs[i], &NullFid)) {
 			*HintFid = *hintvar_ptrs[i];
-			errorCode = ERESHINT;
 			break;
 		    }
 		}

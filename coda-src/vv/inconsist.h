@@ -29,7 +29,6 @@ listed in the file CREDITS.
 #include <vcrcommon.h>
 
 #define EINCONS  199		/* should go into /usr/cs/include/errno.h */
-#define ERESHINT 201		/* is this the correct place? */
 
 /* The possible results of a two-way version vector compare. */
 typedef enum {
