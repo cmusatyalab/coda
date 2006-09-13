@@ -158,7 +158,7 @@ long RecovDirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV,
     }
     // Phase3
     {
-       int reshint;
+	int reshint;
 	PROBE(tpinfo, RecovCoorP3Begin);
 	inclist = new dlist((CFN)CompareIlinkEntry);
 	if ((reshint = CoordPhase3(mgrp, Fid, AllLogs, totalsize,
@@ -415,45 +415,26 @@ static int CoordPhase3(res_mgrpent *mgrp, ViceFid *Fid, char *AllLogs,
 	int errorCode = 0;
 	if ((errorCode = CheckRetCodes(mgrp->rrcc.retcodes, mgrp->rrcc.hosts, successFlags))) {
 
-	  /* Do I want to collate and check fid hint results also? */
+	    if (HintFid) {
+		/* we got an error, let's see if any of the servers came up
+		 * with a suggested fid that may resolve better than the
+		 * current one */
+		*HintFid = NullFid;
+		for (int i = 0; i < VSG_MEMBERS; i++) {
+		    if (mgrp->rrcc.retcodes[i] == ERESHINT) {
+			*HintFid = *hintvar_ptrs[i];
+			errorCode = ERESHINT;
+			break;
+		    }
+		}
 
-	  if((errorCode == ERESHINT) && (HintFid != NULL)) {
-
-	    /* For now, just take the first result and copy it into the
-	     * fid to be sent back to the client. */
-
-	    ViceFid *result = hintvar_ptrs[0];
-
-	    if(result != NULL) {
-	      LogMsg(0, SrvDebugLevel, stdout,
-		     "CoordPhase3: ERESHINT (Hint = %s)", FID_(result));
-
-	      HintFid->Volume = result->Volume;
-	      HintFid->Vnode = result->Vnode;
-	      HintFid->Unique = result->Unique;
+		LogMsg(0, SrvDebugLevel, stdout,
+		       "CoordPhase3: ERESHINT (Hint = %s)", FID_(HintFid));
 	    }
-	    else {
-	      HintFid->Volume = (unsigned int)NULL;
-	      HintFid->Vnode = (unsigned int)NULL;
-	      HintFid->Unique = (unsigned int)NULL;
-	    }
-	  }
 
 	    LogMsg(0, SrvDebugLevel, stdout,
 		   "CoordPhase3: Error %d in ShipLogs", errorCode);
 	    return(errorCode);
-	}
-
-	/* Do I want to check/collate fid hint results also? */
-	if(HintFid != NULL)
-	{
-	  /* For now, just take the 1st result */
-	  ViceFid *result = hintvar_ptrs[0];
-	  if(result != NULL) {
-	    HintFid->Volume = result->Volume;
-	    HintFid->Vnode = result->Vnode;
-	    HintFid->Unique = result->Unique;
-	  }
 	}
 
 	if (ComparePhase3Status(mgrp, dirlengths, statusvar_bufs)) {
