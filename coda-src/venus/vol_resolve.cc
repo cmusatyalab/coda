@@ -60,49 +60,18 @@ int resent::allocs = 0;
 int resent::deallocs = 0;
 #endif
 
-struct resolve_node {
-  struct resolve_node *next;
-  struct resolve_node *prev;
-  VenusFid HintFid;
-};
-
 void repvol::Resolve()
 {
     LOG(0, ("repvol::Resolve: %s\n", name));
     MarinerLog("resolve::%s\n", name);
 
     fsobj *f;
-    int code = 0, nonhint = 0, firsttime = 1;
+    int code = 0, hintedres = 1;
     vproc *v = VprocSelf();
-    struct resolve_node *head, *cur, *hint;
 
     Volid volid;
     volid.Realm = realm->Id();
     volid.Volume = vid;
-
-    /* Set up resolve list */
-
-    if((head = (struct resolve_node *)malloc(sizeof(struct resolve_node)))
-       == NULL) {
-      perror("malloc");
-      exit(EXIT_FAILURE);
-    }
-
-    /* hint serves as a blank node that records the hinted fid if necessary. */
-    if((hint = (struct resolve_node *)malloc(sizeof(struct resolve_node)))
-       == NULL) {
-      perror("malloc");
-      exit(EXIT_FAILURE);
-    }
-
-    /* cur always holds the current fid under resolution. */
-    cur = head;
-
-    /* Set up doubly linked list. */
-    cur->prev = NULL;
-    cur->next = hint;
-    hint->prev = cur;
-    hint->next = NULL;
 
     /* Grab control of the volume. */
     v->Begin_VFS(&volid, CODA_RESOLVE);
@@ -124,19 +93,7 @@ void repvol::Resolve()
     while ((r = (resent *)res_list->get())) {
 	mgrpent *m = 0;
 	connent *c = 0;
-
-	if(firsttime) {
-	  firsttime = 0;
-
-	  /* Set head of list to original fid parameter. */
-	  cur->HintFid.Realm = r->fid.Realm;
-	  cur->HintFid.Volume = r->fid.Volume;
-	  cur->HintFid.Vnode = r->fid.Vnode;
-	  cur->HintFid.Unique = r->fid.Unique;
-
-	  /* Necessary initialization for FID_EQ. */
-	  hint->HintFid.Realm = r->fid.Realm;
-	}
+	VenusFid hint = NullFid;
 
 	{
 	    /* Get an Mgroup. */
@@ -152,36 +109,46 @@ void repvol::Resolve()
 	    if (code != 0) goto HandleResult;
 
 	    /* Make the RPC call. */
-	    if(!nonhint) {
+	    if(hintedres) {
+
 	      MarinerLog("store::ResolveHinted (%s)\n", FID_(&r->fid));
 	      UNI_START_MESSAGE(ViceResolveHinted_OP);
 	      code = ViceResolveHinted(c->connid, MakeViceFid(&r->fid),
-				       MakeViceFid(&(hint->HintFid)));
+				       MakeViceFid(&hint));
 	      UNI_END_MESSAGE(ViceResolveHinted_OP);
 	      MarinerLog("store::resolvehinted done\n");
 
 	      /* Examine the return code to decide what to do next. */
 	      code = Collate(c, code);
 	      UNI_RECORD_STATS(ViceResolveHinted_OP);
+
+	      LOG(0, ("repvol::ResolveHinted: Resolved (%s), hint was (%s), "
+		      "returned code %d\n", FID_(&r->fid), FID_(&hint), code));
 	    }
-	    if(nonhint || (code == EOPNOTSUPP)) {
+	    if(!hintedres || (code == EOPNOTSUPP)) {
 
 	      if(code == EOPNOTSUPP)
 		LOG(0, ("repvol::Resolve: Server doesn't support "
 			"ResolveHints!\n"));
 
-	    MarinerLog("store::Resolve (%s)\n", FID_(&r->fid));
-	    UNI_START_MESSAGE(ViceResolve_OP);
-	    code = ViceResolve(c->connid, MakeViceFid(&r->fid));
-	    UNI_END_MESSAGE(ViceResolve_OP);
-	    MarinerLog("store::resolve done\n");
+	      MarinerLog("store::Resolve (%s)\n", FID_(&r->fid));
+	      UNI_START_MESSAGE(ViceResolve_OP);
+	      code = ViceResolve(c->connid, MakeViceFid(&r->fid));
+	      UNI_END_MESSAGE(ViceResolve_OP);
+	      MarinerLog("store::resolve done\n");
 
-	    /* Examine the return code to decide what to do next. */
-	    code = Collate(c, code);
-	    UNI_RECORD_STATS(ViceResolve_OP);
+	      /* Examine the return code to decide what to do next. */
+	      code = Collate(c, code);
+	      UNI_RECORD_STATS(ViceResolve_OP);
+
+	      LOG(0, ("repvol::Resolve: Resolving (non-hinted) (%s) returned "
+		      "code %d\n", FID_(&r->fid), code));
+	    }
 	}
 
-	}
+	/* Necessary initialization for FID_EQ (rpc2 call doesn't set realm) */
+	if(hintedres && !FID_EQ(&hint, &NullFid))
+	  hint.Realm = r->fid.Realm;
 
 	/* Demote the object (if cached) */
 	f = FSDB->Find(&r->fid);
@@ -190,137 +157,60 @@ void repvol::Resolve()
 	if (code == VNOVNODE) {
 	    VenusFid *pfid;
 	    if (f) {
+
+	      /* Retrying resolve on parent is also a "hint" of sorts. */
+
 		pfid = &(f->pfid);
 		if (!FID_EQ(pfid, &NullFid) && FID_VolEQ(pfid, &r->fid) &&
 		    (pfid->Vnode != r->fid.Vnode) ) {
 
-		    LOG(10,("Resolve: Submitting parent for resolution\n"));
-		    ResSubmit(NULL, pfid);
-
-		    /* Retrying resolve on parent is also a "hint" of sorts.
-		     * Make sure to add it into the hint linked list to
-		     * avoid possible cycles. */
-
-		    cur = hint; /* Move up a node. */
-
-		    /* Remember the pfid. */
-		    cur->HintFid.Realm = pfid->Realm;
-		    cur->HintFid.Volume = pfid->Volume;
-		    cur->HintFid.Vnode = pfid->Vnode;
-		    cur->HintFid.Unique = pfid->Unique;
-
-		    if((hint = (struct resolve_node *)
-			malloc(sizeof(struct resolve_node))) == NULL) {
-		      perror("malloc");
-		      exit(EXIT_FAILURE);
-		    }
-
-		    cur->next = hint;
-		    hint->next = NULL;
-		    hint->prev = cur;
-
-		    /* Necessary initialization for FID_EQ. */
-		    hint->HintFid.Realm = cur->HintFid.Realm;
+		    LOG(0, ("Resolve: Submitting parent (%s) for resolution, "
+			    "failed on its child (%s)\n", FID_(pfid),
+			    FID_(&r->fid)));
 
 		    /* We shouldn't resubmit ourselves as this might lead to an
 		     * endless loop. Hopefully the hoard/getattr that triggered
 		     * the resolution will loop around and retry. --JH */
-		    // ResSubmit(NULL, r->fid);
+
+		    if(ResSubmitHint(NULL, &r->fid)) hintedres = 0;
+		    if(ResSubmitHint(NULL, pfid)) hintedres = 0;
 		}
-	    } else
-		LOG(10,("Resolve: Couldn't find current object\n"));
+	    } else {
+		LOG(0, ("Resolve: Couldn't find current object\n"));
+	    }
 	    goto HandleResult;
 	}
 
-	if (nonhint) /* no hinted resolution, we have to stop here. */
+	if (!hintedres) /* non-hinted resolution, we have to stop here. */
 	    goto HandleResult;
-
-	if (code == EINCONS && !FID_EQ(&hint->HintFid, &NullFid))
-	{
-	    struct resolve_node *trav;
-
-	    /* Look to see if we've already tried to resolve this fid. */
-
-	    for(trav = head; ((trav != NULL) && (trav != hint));
-		trav=trav->next) {
-		if(FID_EQ(&(trav->HintFid), &(hint->HintFid))) {
-
-		    /* We have created a resolution loop in the file system
-		     * hierarchy. Submit original node for non-hinted
-		     * resolution, which will mark everything from original
-		     * resolution in conflict. */
-
-		    LOG(0,("Resolve: Recursive resolve failed, resubmitting "
-			   "original object for non-hinted resolution.\n"));
-
-		    nonhint = 1;
-		    ResSubmit(NULL, &(head->HintFid));
-		    code = 0;
-		    goto HandleResult;
-		}
-	    }
-	    if(trav == hint) {
-		/* General hint case. Add the hinted fid to the list,
-		 * to be resolved if the hinted resolution succeeds. */
-
-		LOG(0,("Resolve: Submitting rename source for resolution\n"));
-		ResSubmit(NULL, &(hint->HintFid));
-
-		cur = hint;
-		if((hint = (struct resolve_node *)
-		    malloc(sizeof(struct resolve_node))) == NULL) {
-		    perror("malloc");
-		    exit(EXIT_FAILURE);
-		}
-
-		cur->next = hint;
-		hint->next = NULL;
-		hint->prev = cur;
-
-		/* Necessary initialization for FID_EQ. */
-		hint->HintFid.Realm = cur->HintFid.Realm;
-		code = 0;
-		goto HandleResult;
-	    }
-
-	    /* If this succeeds, we will resubmit the failed node for
-	     * resolution. */
-	}
-
-	if(!code && cur && hint && (cur->prev != NULL)) {
-	  struct resolve_node *freeme = cur;
-
-	  /* We succeeded in some recursed level of resolution, and have
-	   * something else to try; try the one before to see if
-	   * it could succeed now. */
-
-	  LOG(0, ("Resolve: Recursive call succeeded on (%s), falling back "
-		  "on (%s).\n", FID_(&(cur->HintFid)),
-		  FID_(&(cur->prev->HintFid))));
-
-	  /* Remove from linked list. */
-	  cur = cur->prev;
-	  hint->prev = cur;
-	  cur->next = hint;
-	  free(freeme);
-
-	  /* Resubmit a previously failed resolve. */
-	  ResSubmit(NULL, &(cur->HintFid));
-	  goto HandleResult;
-	}
 
 	if(code) {
+	  if (code == EINCONS && !FID_EQ(&hint, &NullFid)) {
+	    /* We have received a valid hint. */
 
-	  /* We failed, !nonhint meaning it was a hinted resolution. Stop
-	   * with the hinted resolution attempts, and simply try a normal
-	   * resolution on the original obj to mark everything in conflict. */
+	    LOG(0, ("Resolve: Submitting hint (%s) for resolution. \n",
+		    FID_(&hint)));
 
-	  LOG(0,("Resolve: Recursive resolve failed, resubmitting "
-		 "original object for non-hinted resolution.\n"));
+	    if(ResSubmitHint(NULL, &r->fid)) hintedres = 0; /* Add to front */
+	    if(ResSubmitHint(NULL, &hint)) hintedres = 0;   /* Add to front */
 
-	  nonhint = 1;
-	  ResSubmit(NULL, &(head->HintFid));
-	  code = 0;
+	    code = 0;
+	    goto HandleResult;
+	  }
+	  else {
+	    /* General failure case (can't win them all). */
+
+	    if(hintedres) {
+	      LOG(0,("Resolve: Recursive resolve failed on (%s), resubmitting "
+		     "all resolves for non-hinted resolution.\n",
+		     FID_(&r->fid)));
+	      hintedres = 0;
+	      code = 0;
+	      ResSubmitHint(NULL, &r->fid); /* Add it to front. */
+	    }
+
+	    goto HandleResult;
+	  }
 	}
 
 HandleResult:
@@ -335,15 +225,6 @@ Exit:
 	resent *r;
 	while ((r = (resent *)res_list->get()))
 	    r->HandleResult(ERETRY);
-    }
-
-    {
-      /* Clean up resolution linked list. */
-      struct resolve_node *freenow, *freenext;
-      for(freenow = head; freenow != NULL; freenow = freenext) {
-	freenext = freenow->next;
-	free(freenow);
-      }
     }
 
     /* Surrender control of the volume. */
@@ -387,6 +268,41 @@ void repvol::ResSubmit(char **waitblkp, VenusFid *fid)
     /* Demote the object (if cached). */
     fsobj *f = FSDB->Find(fid);
     if (f) f->Demote();
+}
+
+/* Asynchronous resolve is indicated by NULL waitblk. */
+/* nonzero return means a loop was found */
+int repvol::ResSubmitHint(char **waitblkp, VenusFid *fid)
+{
+    int retval = 0;
+    VOL_ASSERT(this, fid->Realm == realm->Id() && fid->Volume == vid);
+
+    /* Create a new resolver entry for the fid, unless one already exists. */
+    {
+	olist_iterator next(*res_list);
+	resent *r = 0;
+	while ((r = (resent *)next()))
+	  if (FID_EQ(&r->fid, fid)) { retval = 1; break; }
+	if (r == 0) {
+	    r = new resent(fid);
+	    res_list->insert(r);
+	}
+
+	/* Bump refcnt and set up pointer to resent in case of SYN resolve. */
+	if (waitblkp != 0) {
+	    r->refcnt++;
+	    *(resent **)waitblkp = r;
+	}
+    }
+
+    /* Force volume state transition at next convenient point. */
+    flags.transition_pending = 1;
+
+    /* Demote the object (if cached). */
+    fsobj *f = FSDB->Find(fid);
+    if (f) f->Demote();
+
+    return retval;
 }
 
 
