@@ -299,13 +299,6 @@ int repvol::ResSubmitHint(char **waitblkp, VenusFid *fid)
 	}
     }
 
-    /* Force volume state transition at next convenient point. */
-    flags.transition_pending = 1;
-
-    /* Demote the object (if cached). */
-    fsobj *f = FSDB->Find(fid);
-    if (f) f->Demote();
-
     return retval;
 }
 

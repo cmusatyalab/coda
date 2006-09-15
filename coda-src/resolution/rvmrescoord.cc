@@ -405,7 +405,7 @@ static int CoordPhase3(res_mgrpent *mgrp, ViceFid *Fid, char *AllLogs,
 			   mgrp->rrcc.handles, mgrp->rrcc.retcodes,
 			   mgrp->rrcc.MIp, 0, 0, Fid, logsize,
 			   totalentries, statusvar_ptrs, PBincvar_ptrs,
-			   sidvar_bufs, hintvar_ptrs);
+			   hintvar_ptrs, sidvar_bufs);
 	mgrp->CheckResult();
 	int errorCode = 0;
 	if ((errorCode = CheckRetCodes(mgrp->rrcc.retcodes, mgrp->rrcc.hosts, successFlags))) {

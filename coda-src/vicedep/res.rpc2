@@ -146,6 +146,6 @@ NewConnection	(IN RPC2_Integer SideEffectType,
 		    IN RPC2_Integer totalentries,
 		    IN OUT ViceStatus vstatus,
 		    IN OUT RPC2_BoundedBS piggyinc,
-		    IN OUT SE_Descriptor sed,
-		    OUT ViceFid HintFid);
+		    OUT ViceFid HintFid,
+		    IN OUT SE_Descriptor sed);
 

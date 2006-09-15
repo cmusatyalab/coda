@@ -108,8 +108,8 @@ const int Yield_rp3CheckSemPerformRes_Mask = Yield_rp3CheckSemPerformRes_Period 
 
 long RS_NewShipLogs(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer size,
 		    RPC2_Integer nentries, ViceStatus *status,
-		    RPC2_BoundedBS *piggyinc, SE_Descriptor *sed,
-		    ViceFid *HintFid)
+		    RPC2_BoundedBS *piggyinc, ViceFid *HintFid,
+		    SE_Descriptor *sed)
 {
 
     SLog(1, 
@@ -229,7 +229,7 @@ long RS_ShipLogs(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer size,
 		 RPC2_BoundedBS *piggyinc, SE_Descriptor *sed)
 {
   return RS_NewShipLogs(RPCid, Fid, size, nentries, status,
-			piggyinc, sed, NULL);
+			piggyinc, NULL, sed);
 }
 
 static int FetchLog(RPC2_Handle RPCid, char **buf, int size) {
