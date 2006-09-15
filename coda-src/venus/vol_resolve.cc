@@ -96,6 +96,8 @@ void repvol::Resolve()
 	VenusFid hint = NullFid;
 
 	{
+	    LOG(0, ("repvol::Resolve: Resolving (%s)\n", FID_(&r->fid)));
+
 	    /* Get an Mgroup. */
 	    code = GetMgrp(&m, V_UID);
 	    if (code != 0) goto HandleResult;
@@ -147,8 +149,10 @@ void repvol::Resolve()
 	}
 
 	/* Necessary initialization for FID_EQ (rpc2 call doesn't set realm) */
-	if(hintedres && !FID_EQ(&hint, &NullFid))
+	if(hintedres && (code == EINCONS) && !FID_EQ(&hint, &NullFid))
 	  hint.Realm = r->fid.Realm;
+	else
+	  hint = NullFid;
 
 	/* Demote the object (if cached) */
 	f = FSDB->Find(&r->fid);
@@ -201,7 +205,7 @@ void repvol::Resolve()
 	    /* General failure case (can't win them all). */
 
 	    if(hintedres) {
-	      LOG(0,("Resolve: Recursive resolve failed on (%s), resubmitting "
+	      LOG(0,("Resolve: Hinted resolve failed on (%s), resubmitting "
 		     "all resolves for non-hinted resolution.\n",
 		     FID_(&r->fid)));
 	      hintedres = 0;
