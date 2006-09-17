@@ -378,33 +378,6 @@ static long ViceResolveOne(vrent *vre, int reson, ViceFid *Fid, DirFid *HintFid)
 }
 
 /*
-  ViceResolveHinted: Resolve the diverging replicas of an object
-		     or provide a hint as the correct object to resolve.
- */
-long FS_ViceResolveHinted(RPC2_Handle cid, ViceFid *Fid, ViceFid *HintFid)
-{
-    DirFid hint = { 0, 0 };
-    long err;
-
-    int reson = GetResFlag(Fid->Volume);
-    vrent *vre = VRDB.find(Fid->Volume);
-    if (!vre) {
-	SLog(0, "ViceResolve: Can't find replicated volume (%s)", FID_(Fid));
-	return EINVAL;
-    }
-
-    err = ViceResolveOne(vre, reson, Fid, &hint);
-    if (err == EINCONS && (hint.Vnode || hint.Unique))
-    {
-	FID_CpyVol(HintFid, Fid);
-	FID_DFid2VFid(&hint, HintFid);
-    } else
-	*HintFid = NullFid;
-
-    return err;
-}
-
-/*
   ViceResolve: Resolve the diverging replicas of an object
 */
 #define MAX_HINTS 5

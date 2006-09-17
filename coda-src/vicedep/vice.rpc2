@@ -530,5 +530,3 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 		       IN OUT RPC2_BoundedBS VFlagBS,
 		       IN RPC2_CountedBS PiggyCOP2);
 
-65: ViceResolveHinted	(IN ViceFid Fid,
-			OUT ViceFid HintFid);
