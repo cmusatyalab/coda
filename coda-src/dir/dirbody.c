@@ -73,9 +73,9 @@ static void dir_FreeBlobs(struct DirHeader *dir, int firstblob, int nblobs);
 static struct DirHeader *dir_Extend(struct DirHeader *olddirh, int in_rvm);
 
 
-static int fid_FidEqNFid(struct DirFid *fid, struct DirNFid *nfid);
-static void fid_Fid2NFid(struct DirFid *fid, struct DirNFid *nfid);
-static void fid_NFid2Fid(struct DirNFid *nfid, struct DirFid *fid); 
+static int fid_FidEqNFid(DirFid *fid, struct DirNFid *nfid);
+static void fid_Fid2NFid(DirFid *fid, struct DirNFid *nfid);
+static void fid_NFid2Fid(struct DirNFid *nfid, DirFid *fid);
 static void fid_NFidV2Fid(struct DirNFid *, VolumeId, struct ViceFid *);
 
 struct DirFind {
@@ -375,36 +375,36 @@ static int dir_DirEntry2VDirent(PDirEntry ep, struct venus_dirent *vd, VolumeId 
  */
 
 
-static int fid_FidEqNFid(struct DirFid *fid, struct DirNFid *nfid) 
+static int fid_FidEqNFid(DirFid *fid, struct DirNFid *nfid)
 {
 	if ( !fid || !nfid ) 
 		CODA_ASSERT(0);
 	
-	if ( (ntohl(nfid->dnf_vnode) == fid->df_vnode) &&
-	     (ntohl(nfid->dnf_unique) == fid->df_unique) )
+	if ( (ntohl(nfid->dnf_vnode) == fid->Vnode) &&
+	     (ntohl(nfid->dnf_unique) == fid->Unique) )
 		return 1;
 	else 
 		return 0;
 
 }
 
-static void fid_Fid2NFid(struct DirFid *fid, struct DirNFid *nfid) 
+static void fid_Fid2NFid(DirFid *fid, struct DirNFid *nfid)
 {
 	if ( !fid || !nfid ) 
 		CODA_ASSERT(0);
 	
-	nfid->dnf_vnode = htonl(fid->df_vnode);
-	nfid->dnf_unique = htonl(fid->df_unique);
+	nfid->dnf_vnode = htonl(fid->Vnode);
+	nfid->dnf_unique = htonl(fid->Unique);
 
 }
 
-static void fid_NFid2Fid(struct DirNFid *nfid, struct DirFid *fid) 
+static void fid_NFid2Fid(struct DirNFid *nfid, DirFid *fid)
 {
 	if ( !fid || !nfid ) 
 		CODA_ASSERT(0);
 	
-	fid->df_vnode = ntohl(nfid->dnf_vnode);
-	fid->df_unique = ntohl(nfid->dnf_unique);
+	fid->Vnode = ntohl(nfid->dnf_vnode);
+	fid->Unique = ntohl(nfid->dnf_unique);
 
 }
 
@@ -440,7 +440,7 @@ void DH_PrintStats(FILE *fp)
    return 0 if found
    return EONOENT upon failure
 */
-int DIR_LookupByFid(PDirHeader dhp, char *name, struct DirFid *fid) 
+int DIR_LookupByFid(PDirHeader dhp, char *name, DirFid *fid)
 {
 	int i;
 	int code = 0;
@@ -500,7 +500,7 @@ int DIR_Length (struct DirHeader *dir)
 
 
 /* Create an entry in a directory file.  */
-int DIR_Create (struct DirHeader **dh, char *entry, struct DirFid *fid)
+int DIR_Create (struct DirHeader **dh, char *entry, DirFid *fid)
 {
 	int blobs, firstblob;
 	int i;
@@ -605,8 +605,7 @@ int DIR_Delete(struct DirHeader *dir, char *entry)
    We don't do this in conjunction with the parent, to flexibly create
    root directories too. Maybe MakeSubDir is a good idea? 
 */
-int DIR_MakeDir (struct DirHeader **dir,struct DirFid *me, 
-		 struct DirFid *parent)
+int DIR_MakeDir (struct DirHeader **dir, DirFid *me, DirFid *parent)
 {
 	int i;
 	struct DirHeader *dhp;
@@ -682,13 +681,13 @@ void DIR_Free(struct DirHeader *dir, int in_rvm)
 /* print one entry */
 int DIR_PrintEntry(PDirEntry entry, FILE *f)
 {
-	struct DirFid fid;
+	DirFid fid;
 
 	fid_NFid2Fid(&(entry->fid), &fid);
 
 	fprintf(f, "next: %hu, flag %d fid: (%x.%x) %s\n",
 		ntohs(entry->next), entry->flag,
-		fid.df_vnode, fid.df_unique, entry->name);
+		fid.Vnode, fid.Unique, entry->name);
 
 
 	return 0;
@@ -779,7 +778,7 @@ static void fid_NFidV2Fid(struct DirNFid *dnfid, VolumeId vol, struct ViceFid *f
    return 0 upon success
    return ENOENT upon failure
 */
-int DIR_Lookup(struct DirHeader *dir, char *entry, struct DirFid *fid,
+int DIR_Lookup(struct DirHeader *dir, char *entry, DirFid *fid,
 	       int flags)
 {
 	struct DirEntry *de;
@@ -800,7 +799,7 @@ int DIR_Lookup(struct DirHeader *dir, char *entry, struct DirFid *fid,
 /* an EnumerateDir hook for comparing two directories. */
 int dir_HkCompare(PDirEntry de, void *hook)
 {
-	struct DirFid dfid;
+	DirFid dfid;
 	int rc;
 	PDirHeader dh = (PDirHeader)hook;
 	rc = DIR_Lookup(dh, de->name, &dfid, CLU_CASE_SENSITIVE);

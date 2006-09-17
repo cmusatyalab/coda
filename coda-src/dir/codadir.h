@@ -47,11 +47,14 @@ struct DirHandle {
 	PDirHeader        dh_data;
 	int               dh_dirty;  /* used by server only */
 };
+
+#if 0 /* moved to vcrcommon.rpc2 */
 /* A file identifier in host order. */
 struct DirFid {
 	int df_vnode;	/* file's vnode slot */
 	int df_unique;	/* the slot incarnation number */
 };
+#endif
 
 /* File identifier in network order */
 struct DirNFid {

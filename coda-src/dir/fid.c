@@ -36,9 +36,9 @@ listed in the file CREDITS.
  * Public FID routines: to be taken elsewhere.
  */
 
-void FID_PrintFid(const struct DirFid *fid)
+void FID_PrintFid(const DirFid *fid)
 {
-	printf("vnode: %ld, unique %ld\n", fid->df_vnode, fid->df_unique);
+	printf("vnode: %d, unique %d\n", fid->Vnode, fid->Unique);
 	return;
 }
 
@@ -49,12 +49,12 @@ void FID_CpyVol(struct ViceFid *target, const struct ViceFid *source)
 }
 
 
-void FID_Int2DFid(struct DirFid *fid, const int vnode, const int unique)
+void FID_Int2DFid(DirFid *fid, const int vnode, const int unique)
 {
 	CODA_ASSERT(fid);
 
-	fid->df_vnode = vnode;
-	fid->df_unique = unique;
+	fid->Vnode = vnode;
+	fid->Unique = unique;
 	return;
 }
 
@@ -65,19 +65,19 @@ void FID_NFid2Int(const struct DirNFid *fid, VnodeId *vnode, Unique_t *unique)
 	return;
 }
 
-void FID_VFid2DFid(const struct ViceFid *vf, struct DirFid *df)
+void FID_VFid2DFid(const struct ViceFid *vf, DirFid *df)
 {
 	CODA_ASSERT( vf && df );
-	df->df_vnode = vf->Vnode;
-	df->df_unique = vf->Unique;
+	df->Vnode = vf->Vnode;
+	df->Unique = vf->Unique;
 
 }
 
-void FID_DFid2VFid(const struct DirFid *df, struct ViceFid *vf)
+void FID_DFid2VFid(const DirFid *df, struct ViceFid *vf)
 {
 	CODA_ASSERT( vf && df );
-	vf->Vnode = df->df_vnode;
-	vf->Unique = df->df_unique;
+	vf->Vnode = df->Vnode;
+	vf->Unique = df->Unique;
 }
 
 int FID_Cmp(const struct ViceFid *fa, const struct ViceFid *fb) 

@@ -92,6 +92,12 @@ typedef RPC2_Struct
 	Unique_t	Unique;
 }	ViceFid;
 
+typedef RPC2_Struct
+{
+	VnodeId		Vnode;
+	Unique_t	Unique;
+}	DirFid;
+
 %{ 
 #endif
 %}
