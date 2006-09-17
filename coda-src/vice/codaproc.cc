@@ -278,14 +278,9 @@ Exit:
     return(errorCode);
 }
 
-/*
-  ViceResolveHinted: Resolve the diverging replicas of an object
-		     or provide a hint as the correct object to resolve.
-*/
-long FS_ViceResolveHinted(RPC2_Handle cid, ViceFid *Fid, ViceFid *HintFid)
+static long ViceResolveOne(vrent *vre, int reson, ViceFid *Fid, DirFid *HintFid)
 {
     int errorCode = 0;
-    VolumeId VSGVolnum;
     ViceVersionVector VV;
     ResStatus rstatus;
     unsigned long hosts[VSG_MEMBERS];
@@ -293,20 +288,9 @@ long FS_ViceResolveHinted(RPC2_Handle cid, ViceFid *Fid, ViceFid *HintFid)
     long resError = 0;
     long lockerror = 0;
     int logsizes = 0;
-    int reson = 0;
-    VolumeId tmpvid = Fid->Volume;
     int j;
 
-    if ( !Fid ) { 
-	    SLog(0, "ViceResolve: I was handed NULL Fid");
-	    CODA_ASSERT(0);
-    }
-
-    if (HintFid)
-	*HintFid = NullFid;
-
-    SLog(2,  "ViceResolve(%d, %s)", cid, FID_(Fid));
-    VSGVolnum = Fid->Volume;
+    SLog(2,  "ViceResolveOne(%s)", FID_(Fid));
 
     if (pathtiming && probingon && (!(ISDIR(*Fid)))) {
 	    FileresTPinfo = new timing_path(MAXPROBES);
@@ -314,20 +298,7 @@ long FS_ViceResolveHinted(RPC2_Handle cid, ViceFid *Fid, ViceFid *HintFid)
     }
 
     /* get an mgroup */
-    vrent *vre = VRDB.find(VSGVolnum);
-    if (!vre) {
-	    SLog(0, "ViceResolve: Can't find replicated volume (%s)", FID_(Fid));
-	    errorCode = EINVAL;
-	    goto FreeGroups;
-    }
     vre->GetHosts(hosts);
-
-    if (!XlateVid(&tmpvid)) {
-	    SLog(0,  "ViceResolve: Couldn't xlate vid %x", tmpvid);
-	    errorCode = EINVAL;
-	    goto FreeGroups;
-    }
-    reson = GetResFlag(tmpvid);
     if (GetResMgroup(&mgrp, hosts)){
 	    /* error getting mgroup */
 	    errorCode = EINVAL;
@@ -360,9 +331,7 @@ long FS_ViceResolveHinted(RPC2_Handle cid, ViceFid *Fid, ViceFid *HintFid)
     errorCode = mgrp->GetHostSet(hosts);
 
     // call resolve on object  only if no locking errors 
-    if ( errorCode ) 
-	    goto UnlockExit;
-    if ( lockerror )
+    if ( errorCode || lockerror )
 	    goto UnlockExit;
 
     if (ISDIR(*Fid)) {
@@ -393,8 +362,8 @@ long FS_ViceResolveHinted(RPC2_Handle cid, ViceFid *Fid, ViceFid *HintFid)
 	PutResMgroup(&mgrp);
     PROBE(FileresTPinfo, COORDENDVICERESOLVE);
     if (lockerror) {
-	    SLog(0,  "ViceResolve:Couldnt lock volume %x at all accessible servers",
-		 Fid->Volume);
+	    SLog(0, "ViceResolve: Couldnt lock volume %x at all accessible "
+		    "servers", Fid->Volume);
 	if ( lockerror != VNOVNODE ) 
 	    lockerror = EWOULDBLOCK;
 	return(lockerror);
@@ -409,11 +378,74 @@ long FS_ViceResolveHinted(RPC2_Handle cid, ViceFid *Fid, ViceFid *HintFid)
 }
 
 /*
+  ViceResolveHinted: Resolve the diverging replicas of an object
+		     or provide a hint as the correct object to resolve.
+ */
+long FS_ViceResolveHinted(RPC2_Handle cid, ViceFid *Fid, ViceFid *HintFid)
+{
+    DirFid hint = { 0, 0 };
+    long err;
+
+    int reson = GetResFlag(Fid->Volume);
+    vrent *vre = VRDB.find(Fid->Volume);
+    if (!vre) {
+	SLog(0, "ViceResolve: Can't find replicated volume (%s)", FID_(Fid));
+	return EINVAL;
+    }
+
+    err = ViceResolveOne(vre, reson, Fid, &hint);
+    if (err == EINCONS && (hint.Vnode || hint.Unique))
+    {
+	FID_CpyVol(HintFid, Fid);
+	FID_DFid2VFid(&hint, HintFid);
+    } else
+	*HintFid = NullFid;
+
+    return err;
+}
+
+/*
   ViceResolve: Resolve the diverging replicas of an object
 */
+#define MAX_HINTS 5
 long FS_ViceResolve(RPC2_Handle cid, ViceFid *Fid)
 {
-    return FS_ViceResolveHinted(cid, Fid, NULL);
+    DirFid hints[MAX_HINTS];
+    int i = 1, j;
+    long err;
+
+    int reson = GetResFlag(Fid->Volume);
+    vrent *vre = VRDB.find(Fid->Volume);
+    if (!vre) {
+	SLog(0, "ViceResolve: Can't find replicated volume (%s)", FID_(Fid));
+	return EINVAL;
+    }
+
+    memset(hints, 0, MAX_HINTS * sizeof(DirFid));
+    FID_VFid2DFid(Fid, &hints[0]);
+    while (i < MAX_HINTS)
+    {
+	err = ViceResolveOne(vre, reson, Fid, &hints[i]);
+	if (!err && i == 1) return 0;
+
+	/* loop avoidance */
+	for (j = 0; j < i; j++)
+	    if (hints[i].Vnode  == hints[j].Vnode &&
+		hints[i].Unique == hints[j].Unique)
+		break;
+
+	if (err != EINCONS || j != i || !(hints[i].Vnode || hints[i].Unique))
+	    break;
+
+	FID_DFid2VFid(&hints[i++], Fid);
+    }
+
+    while (i--)
+    {
+	FID_DFid2VFid(&hints[i], Fid);
+	err = ViceResolveOne(vre, reson, Fid, NULL);
+    }
+    return err;
 }
 
 /*
@@ -2197,6 +2229,11 @@ static int GetResFlag(VolumeId Vid)
 {
     int error = 0;
     Volume *volptr = 0;
+
+    if (!XlateVid(&Vid)) {
+	SLog(0,  "GetResFlag: Couldn't xlate vid %x", Vid);
+	return 0;
+    }
 
     if (!AllowResolution) return(0);
     if ((error = GetVolObj(Vid, &volptr, VOL_NO_LOCK, 0, 0))) {

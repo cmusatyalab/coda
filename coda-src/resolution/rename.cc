@@ -58,7 +58,7 @@ static int CleanRenameTarget(rsle *, dlist *, Volume *, VolumeId , olist *, int 
 
 int CheckAndPerformRename(rsle *r, Volume *volptr, VolumeId VSGVolnum,
 			  ViceFid *dFid, dlist *vlist, olist *AllLogs,
-			  dlist *inclist, int *blocks, ViceFid *HintFid)
+			  dlist *inclist, int *blocks, DirFid *HintFid)
 {
     LogMsg(1, SrvDebugLevel, stdout,
 	   "Entering CheckAndPerformRename\n");
@@ -109,22 +109,22 @@ int CheckAndPerformRename(rsle *r, Volume *volptr, VolumeId VSGVolnum,
     }
     // merge the inconsistencies
     if (errorCode && errorCode == EINCONS) {
-	if(HintFid != NULL) { /* Hinted resolution! */
+	if (HintFid) { /* Hinted resolution! */
 	  ilink *il;
 
 	  /* Don't mark anything in conflict; instead, return a "suggestion"
 	   * to the client, hoping that they will try a resolve on that
 	   * object. The question is, should we _always_ do this? */
 
-	  HintFid->Volume = VSGVolnum;
 	  HintFid->Vnode = r->u.mv.otherdirv;
 	  HintFid->Unique = r->u.mv.otherdiru;
 
 	  LogMsg(0, SrvDebugLevel, stdout,
 		 "Incorrect Res Rename: src = %s (%x.%x), tgt = %s (%x.%x)s\n"
-		 "Hinting other directory to user (%s)\n",
+		 "Hinting other directory to user (%08x.%08x)\n",
 		 r->name1, r->u.mv.svnode, r->u.mv.sunique,
-		 r->name2, r->u.mv.tvnode, r->u.mv.tunique, FID_(HintFid));
+		 r->name2, r->u.mv.tvnode, r->u.mv.tunique,
+		 HintFid->Vnode, HintFid->Unique);
 
 	  while ((il = (ilink *)newinclist->get()))
 	      delete il;

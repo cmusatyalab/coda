@@ -60,7 +60,7 @@ extern "C" {
 // ********** Private Routines *************
 static int ComparePhase3Status(res_mgrpent *, int *, ViceStatus *);
 static char *CoordPhase2(res_mgrpent *, ViceFid *, int *, int *, int *, unsigned long *,dirresstats *);
-static int CoordPhase3(res_mgrpent*, ViceFid*, char*, int, int, ViceVersionVector**, dlist*, ResStatus**, unsigned long*, int*, ViceFid *);
+static int CoordPhase3(res_mgrpent*, ViceFid*, char*, int, int, ViceVersionVector**, dlist*, ResStatus**, unsigned long*, int*, DirFid *);
 static int CoordPhase4(res_mgrpent *, ViceFid *, unsigned long *, int *);
 static int CoordPhase34(res_mgrpent *, ViceFid *, dlist *, int *);
 static void AllocateBufs(res_mgrpent *, char **, int *);
@@ -101,7 +101,7 @@ static void UpdateStats(ViceFid *, dirresstats *);
 //
 
 long RecovDirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV,
-		     ResStatus **rstatusp, int *sizes, ViceFid *HintFid)
+		     ResStatus **rstatusp, int *sizes, DirFid *HintFid)
 {
     int reserror = EINCONS;
     char *AllLogs = NULL;
@@ -194,7 +194,8 @@ long RecovDirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV,
   Exit:
     // mark object inconsistent in case of error
     // Phase5
-    if (reserror && (HintFid == NULL || FID_EQ(HintFid, &NullFid))) {
+    if (reserror && (!HintFid || !(HintFid->Vnode || HintFid->Unique)))
+    {
 	MRPC_MakeMulti(MarkInc_OP, MarkInc_PTR, VSG_MEMBERS,
 		       mgrp->rrcc.handles, mgrp->rrcc.retcodes,
 		       mgrp->rrcc.MIp, 0, 0, Fid);
@@ -355,13 +356,14 @@ static int CoordPhase3(res_mgrpent *mgrp, ViceFid *Fid, char *AllLogs,
 		       int logsize, int totalentries, ViceVersionVector **VV,
 		       dlist *inclist, ResStatus **rstatusp,
 		       unsigned long *successFlags, int *dirlengths,
-		       ViceFid *HintFid)
+		       DirFid *HintFid)
 {
     RPC2_BoundedBS PBinc;
     char buf[RESCOMM_MAXBSLEN];
     SE_Descriptor sid;
     ViceStatus status;
-    ViceFid hint;
+    DirFid hint;
+
     // init parms PB, sid, status block
     {
 	PBinc.SeqBody = (RPC2_ByteSeq)buf;
@@ -389,11 +391,11 @@ static int CoordPhase3(res_mgrpent *mgrp, ViceFid *Fid, char *AllLogs,
     ARG_MARSHALL_BS(IN_OUT_MODE, RPC2_BoundedBS, PBincvar, PBinc, VSG_MEMBERS,
 		    RESCOMM_MAXBSLEN);
     ARG_MARSHALL(IN_OUT_MODE, ViceStatus, statusvar, status, VSG_MEMBERS);
-    ARG_MARSHALL(OUT_MODE, ViceFid, hintvar, hint, VSG_MEMBERS);
+    ARG_MARSHALL(OUT_MODE, DirFid, hintvar, hint, VSG_MEMBERS);
 
     // Ship log to Subordinates & Parse results
     {
-	if(HintFid == NULL)
+	if (!HintFid)
 	    MRPC_MakeMulti(ShipLogs_OP, ShipLogs_PTR, VSG_MEMBERS,
 			   mgrp->rrcc.handles, mgrp->rrcc.retcodes,
 			   mgrp->rrcc.MIp, 0, 0, Fid, logsize,
@@ -414,15 +416,17 @@ static int CoordPhase3(res_mgrpent *mgrp, ViceFid *Fid, char *AllLogs,
 		 * with a suggested fid that may resolve better than the
 		 * current one */
 		for (int i = 0; i < VSG_MEMBERS; i++) {
-		    if (mgrp->rrcc.retcodes[i] == EINCONS &&
-			!FID_EQ(hintvar_ptrs[i], &NullFid)) {
+		    if (mgrp->rrcc.retcodes[i] == EINCONS)
+		    {
 			ARG_UNMARSHALL(hintvar, *HintFid, i);
-			break;
+			if (HintFid->Vnode || HintFid->Unique)
+			    break;
 		    }
 		}
 
 		LogMsg(0, SrvDebugLevel, stdout,
-		       "CoordPhase3: ERESHINT (Hint = %s)", FID_(HintFid));
+		       "CoordPhase3: ERESHINT (Hint = %08x.%08x)",
+		       HintFid->Vnode, HintFid->Unique);
 	    }
 
 	    LogMsg(0, SrvDebugLevel, stdout,

@@ -83,7 +83,7 @@ static int AddRenameChildrenToList(dlist *, Volume *, Vnode *, rsle *);
 static int SetPhase3DirStatus(ViceStatus *, ViceFid *, Volume *, dlist *);
 static int GetResObjs(arrlist *, ViceFid *, Volume **, dlist *);
 static int CheckSemPerformRes(arrlist *, Volume *, ViceFid *, dlist *,
-			      olist *, dlist *, int *, ViceFid *);
+			      olist *, dlist *, int *, DirFid *);
 static int CheckRegularCompOp(rsle *, dlist *, vle *, ViceFid *, Volume *, olist *);
 static int PerformRegularCompOp(int, rsle *, dlist *, dlist *, 
 				 olist *, ViceFid *, vle *, Volume *, VolumeId, int *);
@@ -108,7 +108,7 @@ const int Yield_rp3CheckSemPerformRes_Mask = Yield_rp3CheckSemPerformRes_Period 
 
 long RS_NewShipLogs(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer size,
 		    RPC2_Integer nentries, ViceStatus *status,
-		    RPC2_BoundedBS *piggyinc, ViceFid *HintFid,
+		    RPC2_BoundedBS *piggyinc, DirFid *HintFid,
 		    SE_Descriptor *sed)
 {
 
@@ -124,7 +124,10 @@ long RS_NewShipLogs(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer size,
     arrlist *CompOps = NULL;
     int nblocks = 0;
 
-    if (HintFid) *HintFid = NullFid;
+    if (HintFid) {
+	HintFid->Vnode  = 0;
+	HintFid->Unique = 0;
+    }
 
     // fetch log from coordinator 
     char *buf = NULL;
@@ -533,7 +536,8 @@ static int GatherFids(dlist *vlist, Vnode *pvptr,
 static int CheckSemPerformRes(arrlist *ops, Volume *volptr,
 			       ViceFid *dFid, dlist *vlist,
 			       olist *AllLogs, dlist *inclist,
-			      int *nblocks, ViceFid *HintFid) {
+			      int *nblocks, DirFid *HintFid)
+{
     int errorCode = 0;
     *nblocks = 0;
 

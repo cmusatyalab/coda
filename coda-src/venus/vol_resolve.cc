@@ -94,7 +94,6 @@ void repvol::Resolve()
     while ((r = (resent *)res_list->get())) {
 	mgrpent *m = 0;
 	connent *c = 0;
-	VenusFid hint = NullFid;
 
 	{
 	    LOG(0, ("repvol::Resolve: Resolving (%s)\n", FID_(&r->fid)));
@@ -112,39 +111,19 @@ void repvol::Resolve()
 	    if (code != 0) goto HandleResult;
 
 	    /* Make the RPC call. */
-	    if (r->requeues) {
-	      MarinerLog("store::ResolveHinted (%s)\n", FID_(&r->fid));
-	      UNI_START_MESSAGE(ViceResolveHinted_OP);
-	      code = ViceResolveHinted(c->connid, MakeViceFid(&r->fid),
-				       MakeViceFid(&hint));
-	      UNI_END_MESSAGE(ViceResolveHinted_OP);
-	      MarinerLog("store::resolvehinted done\n");
+	    MarinerLog("store::Resolve (%s)\n", FID_(&r->fid));
+	    UNI_START_MESSAGE(ViceResolve_OP);
+	    code = ViceResolve(c->connid, MakeViceFid(&r->fid));
+	    UNI_END_MESSAGE(ViceResolve_OP);
+	    MarinerLog("store::resolve done\n");
 
-	      /* Examine the return code to decide what to do next. */
-	      code = Collate(c, code);
-	      UNI_RECORD_STATS(ViceResolveHinted_OP);
+	    /* Examine the return code to decide what to do next. */
+	    code = Collate(c, code);
+	    UNI_RECORD_STATS(ViceResolve_OP);
 
-	      LOG(0, ("repvol::ResolveHinted: Resolved (%s), hint was (%s), "
-		      "returned code %d\n", FID_(&r->fid), FID_(&hint), code));
-	    } else {
-	      MarinerLog("store::Resolve (%s)\n", FID_(&r->fid));
-	      UNI_START_MESSAGE(ViceResolve_OP);
-	      code = ViceResolve(c->connid, MakeViceFid(&r->fid));
-	      UNI_END_MESSAGE(ViceResolve_OP);
-	      MarinerLog("store::resolve done\n");
-
-	      /* Examine the return code to decide what to do next. */
-	      code = Collate(c, code);
-	      UNI_RECORD_STATS(ViceResolve_OP);
-
-	      LOG(0, ("repvol::Resolve: Resolving (non-hinted) (%s) returned "
-		      "code %d\n", FID_(&r->fid), code));
-	    }
+	    LOG(0, ("repvol::Resolve: Resolving (non-hinted) (%s) returned "
+		    "code %d\n", FID_(&r->fid), code));
 	}
-
-	/* Necessary initialization for FID_EQ (server doesn't know realm) */
-	if (!FID_EQ(&hint, &NullFid))
-	    hint.Realm = r->fid.Realm;
 
 	/* Demote the object (if cached) */
 	f = FSDB->Find(&r->fid);
@@ -154,32 +133,16 @@ void repvol::Resolve()
 	    if (code == VNOVNODE && f)
 	    {
 		/* Retrying resolve on parent is also a "hint" of sorts. */
-		hint = f->pfid;
 		LOG(0, ("Resolve: Submitting parent (%s) for resolution, "
 			"failed on its child (%s)\n",
-			FID_(&hint), FID_(&r->fid)));
-	    }
-	    else if (code == EINCONS && !FID_EQ(&hint, &NullFid))
-	    {
-		/* We have received a valid hint. */
-		LOG(0, ("Resolve: Submitting hint (%s) for resolution.\n",
-			FID_(&hint)));
-	    }
-	    else if (code == EOPNOTSUPP)
-	    {
-		LOG(0, ("repvol::Resolve: Server doesn't support "
-			"ResolveHinted!\n"));
-		hint = NullFid;
+			FID_(&f->pfid), FID_(&r->fid)));
+		ResSubmit(NULL, &f->pfid, &r);
 	    }
 	    else
 	    {
 		/* General failure case (can't win them all). */
-		LOG(0,("Resolve: Hinted resolve failed on (%s), resubmitting "
-		       "for non-hinted resolution.\n",
-		       FID_(&r->fid)));
-		hint = NullFid;
+		LOG(0,("Resolve: Failed on (%s)\n", FID_(&r->fid)));
 	    }
-	    ResSubmit(NULL, &hint, &r);
 	}
 
 HandleResult:

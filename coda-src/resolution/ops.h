@@ -56,6 +56,6 @@ extern void PrintLog(rec_dlist *, FILE *);
 extern void PrintLog(Vnode *, FILE *);
 extern void DumpLog(rec_dlist *, Volume *, char **, int *, int *);
 // temporary  - should go to rvmrescoord.h
-extern long RecovDirResolve(res_mgrpent *, ViceFid *, ViceVersionVector **, ResStatus **, int *, ViceFid *);
-extern int CheckAndPerformRename(rsle *, Volume *, VolumeId, ViceFid *, dlist *, olist *, dlist *, int *, ViceFid *);
+extern long RecovDirResolve(res_mgrpent *, ViceFid *, ViceVersionVector **, ResStatus **, int *, struct DirFid *);
+extern int CheckAndPerformRename(rsle *, Volume *, VolumeId, ViceFid *, dlist *, olist *, dlist *, int *, DirFid *);
 #endif /* _OPS_H_ */
