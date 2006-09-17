@@ -302,6 +302,9 @@ long FS_ViceResolveHinted(RPC2_Handle cid, ViceFid *Fid, ViceFid *HintFid)
 	    CODA_ASSERT(0);
     }
 
+    if (HintFid)
+	*HintFid = NullFid;
+
     SLog(2,  "ViceResolve(%d, %s)", cid, FID_(Fid));
     VSGVolnum = Fid->Volume;
 

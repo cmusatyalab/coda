@@ -160,7 +160,6 @@ long RecovDirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV,
     {
 	PROBE(tpinfo, RecovCoorP3Begin);
 	inclist = new dlist((CFN)CompareIlinkEntry);
-	if (HintFid) *HintFid = NullFid;
 	if (CoordPhase3(mgrp, Fid, AllLogs, totalsize, totalentries, VV,
 			inclist, rstatusp, succFlags, dirlengths, HintFid))
 	{
@@ -417,7 +416,7 @@ static int CoordPhase3(res_mgrpent *mgrp, ViceFid *Fid, char *AllLogs,
 		for (int i = 0; i < VSG_MEMBERS; i++) {
 		    if (mgrp->rrcc.retcodes[i] == EINCONS &&
 			!FID_EQ(hintvar_ptrs[i], &NullFid)) {
-			*HintFid = *hintvar_ptrs[i];
+			ARG_UNMARSHALL(hintvar, *HintFid, i);
 			break;
 		    }
 		}

@@ -112,9 +112,7 @@ long RS_NewShipLogs(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer size,
 		    SE_Descriptor *sed)
 {
 
-    SLog(1, 
-	   "RS_ShipLogs: Entering for Fid (0x%x.%x.%x)\n",
-	   Fid->Volume, Fid->Vnode, Fid->Unique);
+    SLog(1, "RS_ShipLogs: Entering for Fid (%s)\n", FID_(Fid));
 
     PROBE(tpinfo, RecovSubP3Begin);
     int errorCode = 0;
@@ -125,6 +123,8 @@ long RS_NewShipLogs(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer size,
     rsle *AllLogEntries = NULL;
     arrlist *CompOps = NULL;
     int nblocks = 0;
+
+    if (HintFid) *HintFid = NullFid;
 
     // fetch log from coordinator 
     char *buf = NULL;
