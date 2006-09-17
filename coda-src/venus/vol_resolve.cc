@@ -54,6 +54,7 @@ extern "C" {
 #include "venusvol.h"
 #include "vproc.h"
 
+#define MAX_REQUEUE 3
 
 #ifdef VENUSDEBUG
 int resent::allocs = 0;
@@ -66,7 +67,7 @@ void repvol::Resolve()
     MarinerLog("resolve::%s\n", name);
 
     fsobj *f;
-    int code = 0, hintedres = 1;
+    int code = 0;
     vproc *v = VprocSelf();
 
     Volid volid;
@@ -111,8 +112,7 @@ void repvol::Resolve()
 	    if (code != 0) goto HandleResult;
 
 	    /* Make the RPC call. */
-	    if(hintedres) {
-
+	    if (r->requeues) {
 	      MarinerLog("store::ResolveHinted (%s)\n", FID_(&r->fid));
 	      UNI_START_MESSAGE(ViceResolveHinted_OP);
 	      code = ViceResolveHinted(c->connid, MakeViceFid(&r->fid),
@@ -126,13 +126,7 @@ void repvol::Resolve()
 
 	      LOG(0, ("repvol::ResolveHinted: Resolved (%s), hint was (%s), "
 		      "returned code %d\n", FID_(&r->fid), FID_(&hint), code));
-	    }
-	    if(!hintedres || (code == EOPNOTSUPP)) {
-
-	      if(code == EOPNOTSUPP)
-		LOG(0, ("repvol::Resolve: Server doesn't support "
-			"ResolveHints!\n"));
-
+	    } else {
 	      MarinerLog("store::Resolve (%s)\n", FID_(&r->fid));
 	      UNI_START_MESSAGE(ViceResolve_OP);
 	      code = ViceResolve(c->connid, MakeViceFid(&r->fid));
@@ -148,79 +142,50 @@ void repvol::Resolve()
 	    }
 	}
 
-	/* Necessary initialization for FID_EQ (rpc2 call doesn't set realm) */
-	if(hintedres && (code == EINCONS) && !FID_EQ(&hint, &NullFid))
-	  hint.Realm = r->fid.Realm;
-	else
-	  hint = NullFid;
+	/* Necessary initialization for FID_EQ (server doesn't know realm) */
+	if (!FID_EQ(&hint, &NullFid))
+	    hint.Realm = r->fid.Realm;
 
 	/* Demote the object (if cached) */
 	f = FSDB->Find(&r->fid);
 	if (f) f->Demote();
 
-	if (code == VNOVNODE) {
-	    VenusFid *pfid;
-	    if (f) {
-
-	      /* Retrying resolve on parent is also a "hint" of sorts. */
-
-		pfid = &(f->pfid);
-		if (!FID_EQ(pfid, &NullFid) && FID_VolEQ(pfid, &r->fid) &&
-		    (pfid->Vnode != r->fid.Vnode) ) {
-
-		    LOG(0, ("Resolve: Submitting parent (%s) for resolution, "
-			    "failed on its child (%s)\n", FID_(pfid),
-			    FID_(&r->fid)));
-
-		    /* We shouldn't resubmit ourselves as this might lead to an
-		     * endless loop. Hopefully the hoard/getattr that triggered
-		     * the resolution will loop around and retry. --JH */
-
-		    if(ResSubmitHint(NULL, &r->fid)) hintedres = 0;
-		    if(ResSubmitHint(NULL, pfid)) hintedres = 0;
-		}
-	    } else {
-		LOG(0, ("Resolve: Couldn't find current object\n"));
+	if (code) {
+	    if (code == VNOVNODE && f)
+	    {
+		/* Retrying resolve on parent is also a "hint" of sorts. */
+		hint = f->pfid;
+		LOG(0, ("Resolve: Submitting parent (%s) for resolution, "
+			"failed on its child (%s)\n",
+			FID_(&hint), FID_(&r->fid)));
 	    }
-	    goto HandleResult;
-	}
-
-	if (!hintedres) /* non-hinted resolution, we have to stop here. */
-	    goto HandleResult;
-
-	if(code) {
-	  if (code == EINCONS && !FID_EQ(&hint, &NullFid)) {
-	    /* We have received a valid hint. */
-
-	    LOG(0, ("Resolve: Submitting hint (%s) for resolution. \n",
-		    FID_(&hint)));
-
-	    if(ResSubmitHint(NULL, &r->fid)) hintedres = 0; /* Add to front */
-	    if(ResSubmitHint(NULL, &hint)) hintedres = 0;   /* Add to front */
-
-	    code = 0;
-	    goto HandleResult;
-	  }
-	  else {
-	    /* General failure case (can't win them all). */
-
-	    if(hintedres) {
-	      LOG(0,("Resolve: Hinted resolve failed on (%s), resubmitting "
-		     "all resolves for non-hinted resolution.\n",
-		     FID_(&r->fid)));
-	      hintedres = 0;
-	      code = 0;
-	      ResSubmitHint(NULL, &r->fid); /* Add it to front. */
+	    else if (code == EINCONS && !FID_EQ(&hint, &NullFid))
+	    {
+		/* We have received a valid hint. */
+		LOG(0, ("Resolve: Submitting hint (%s) for resolution.\n",
+			FID_(&hint)));
 	    }
-
-	    goto HandleResult;
-	  }
+	    else if (code == EOPNOTSUPP)
+	    {
+		LOG(0, ("repvol::Resolve: Server doesn't support "
+			"ResolveHinted!\n"));
+		hint = NullFid;
+	    }
+	    else
+	    {
+		/* General failure case (can't win them all). */
+		LOG(0,("Resolve: Hinted resolve failed on (%s), resubmitting "
+		       "for non-hinted resolution.\n",
+		       FID_(&r->fid)));
+		hint = NullFid;
+	    }
+	    ResSubmit(NULL, &hint, &r);
 	}
 
 HandleResult:
 	PutConn(&c);
 	if (m) m->Put();
-	r->HandleResult(code);
+	if (r) r->HandleResult(code);
     }
 
 Exit:
@@ -244,64 +209,54 @@ Exit:
 
 
 /* Asynchronous resolve is indicated by NULL waitblk. */
-void repvol::ResSubmit(char **waitblkp, VenusFid *fid)
+void repvol::ResSubmit(char **waitblkp, VenusFid *fid, resent **requeue)
 {
-    VOL_ASSERT(this, fid->Realm == realm->Id() && fid->Volume == vid);
+    if (requeue && !(*requeue)->requeues)
+	return;
+
+    if (fid->Realm != realm->Id() || fid->Volume != vid ||
+	(requeue && FID_EQ(fid, &(*requeue)->fid)))
+	*fid = NullFid;
 
     /* Create a new resolver entry for the fid, unless one already exists. */
+    if (!FID_EQ(fid, &NullFid))
     {
 	olist_iterator next(*res_list);
-	resent *r = 0;
+	resent *r = NULL;
 	while ((r = (resent *)next()))
-	    if (FID_EQ(&r->fid, fid)) break;
-	if (r == 0) {
+	    if (FID_EQ(&r->fid, fid))
+		break;
+
+	if (r == NULL) {
 	    r = new resent(fid);
 	    res_list->append(r);
 	}
 
 	/* Bump refcnt and set up pointer to resent in case of SYN resolve. */
-	if (waitblkp != 0) {
+	if (waitblkp) {
 	    r->refcnt++;
 	    *(resent **)waitblkp = r;
 	}
     }
 
-    /* Force volume state transition at next convenient point. */
-    flags.transition_pending = 1;
+    /* Append requeue'd entries at the end of the list (this way they are
+     * guaranteed to be behind whatever entry we just found or created) */
+    if (requeue) {
+	if (FID_EQ(fid, &NullFid))
+	     (*requeue)->requeues = 0;
+	else (*requeue)->requeues--;
+
+	res_list->append(*requeue);
+	*requeue = NULL;
+    } else {
+	/* Force volume state transition at next convenient point. */
+	flags.transition_pending = 1;
+    }
 
     /* Demote the object (if cached). */
     fsobj *f = FSDB->Find(fid);
     if (f) f->Demote();
 }
-
-/* Asynchronous resolve is indicated by NULL waitblk. */
-/* nonzero return means a loop was found */
-int repvol::ResSubmitHint(char **waitblkp, VenusFid *fid)
-{
-    int retval = 0;
-    VOL_ASSERT(this, fid->Realm == realm->Id() && fid->Volume == vid);
-
-    /* Create a new resolver entry for the fid, unless one already exists. */
-    {
-	olist_iterator next(*res_list);
-	resent *r = 0;
-	while ((r = (resent *)next()))
-	  if (FID_EQ(&r->fid, fid)) { retval = 1; break; }
-	if (r == 0) {
-	    r = new resent(fid);
-	    res_list->insert(r);
-	}
-
-	/* Bump refcnt and set up pointer to resent in case of SYN resolve. */
-	if (waitblkp != 0) {
-	    r->refcnt++;
-	    *(resent **)waitblkp = r;
-	}
-    }
-
-    return retval;
-}
-
 
 /* Wait for resolve to complete. */
 int repvol::ResAwait(char *waitblk)
@@ -328,6 +283,7 @@ resent::resent(VenusFid *Fid) {
     fid = *Fid;
     result = -1;
     refcnt = 0;
+    requeues = MAX_REQUEUE;
 
 #ifdef VENUSDEBUG
     allocs++;

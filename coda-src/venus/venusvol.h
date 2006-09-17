@@ -877,8 +877,7 @@ class repvol : public volent {
 
     /* Resolution routines */
     void Resolve();
-    void ResSubmit(char **, VenusFid *);
-    int ResSubmitHint(char **, VenusFid *);
+    void ResSubmit(char **, VenusFid *, resent **requeue=NULL);
     int ResAwait(char *);
     int RecResolve(connent *, VenusFid *);
     int ResListCount() { return(res_list->count()); }
@@ -973,13 +972,13 @@ class cop2ent : public dlink {
 /* Entries representing fids that need to be resolved. */
 class resent : public olink {
   friend void repvol::Resolve();
-  friend void repvol::ResSubmit(char **, VenusFid *);
-  friend int repvol::ResSubmitHint(char **, VenusFid *);
+  friend void repvol::ResSubmit(char **, VenusFid *, resent **requeue);
   friend int repvol::ResAwait(char *);
 
     VenusFid fid;
     int result;
     int refcnt;
+    int requeues;
 
     resent(VenusFid *);
     resent(resent&);		/* not supported! */
