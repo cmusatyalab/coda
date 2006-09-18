@@ -426,7 +426,6 @@ long FS_ViceResolve(RPC2_Handle cid, ViceFid *Fid)
     while (i < MAX_HINTS)
     {
 	err = ViceResolveOne(vre, reson, Fid, &hints[i]);
-	if (!err && i == 1) return 0;
 
 	/* loop avoidance */
 	for (j = 0; j < i; j++)
@@ -439,8 +438,11 @@ long FS_ViceResolve(RPC2_Handle cid, ViceFid *Fid)
 
 	FID_DFid2VFid(&hints[i++], Fid);
     }
+    /* If the last resolve was successful (or a total loss), there is no
+     * need to re-resolve the last object */
+    if (!err || err == VNOVNODE) i--;
 
-    while (i--)
+    while (i-- > 0)
     {
 	FID_DFid2VFid(&hints[i], Fid);
 	err = ViceResolveOne(vre, reson, Fid, NULL);
