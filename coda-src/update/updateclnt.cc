@@ -79,7 +79,6 @@ extern "C" {
 #include <rpc2/rpc2.h>
 #include <rpc2/se.h>
 #include <rpc2/sftp.h>
-#include <map.h>
 #include <vice.h>
 #include <util.h>
 

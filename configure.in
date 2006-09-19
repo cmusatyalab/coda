@@ -165,7 +165,6 @@ coda-src/scripts/vice-setup-rvm
 coda-src/kerndep/Makefile
 coda-src/partition/Makefile
 coda-src/dir/Makefile
-coda-src/portmapper/Makefile
 coda-src/util/Makefile
 coda-src/al/Makefile
 coda-src/vicedep/Makefile

@@ -41,7 +41,6 @@ extern "C" {
 #include <stdio.h>
 #include <stdarg.h>
 
-#include <map.h>
 #include <lwp/lwp.h>
 #include <lwp/lock.h>
 #include <lwp/timer.h>
