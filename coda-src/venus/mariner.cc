@@ -144,9 +144,7 @@ Next:
         }
 
         /* Make address reusable. */
-#ifndef DJGPP
         setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (char *)&opt, sizeof(int));
-#endif
 
         /* Bind to it. */
         struct sockaddr_in sin;
@@ -209,17 +207,10 @@ void MarinerMux(fd_set *mask)
     else if (mariner::nmariners >= MaxMariners)
         ::close(newfd);
     else if (newfd >= 0) {
-#ifndef DJGPP
         if (::fcntl(newfd, F_SETFL, O_NONBLOCK) < 0) {
             eprint("MarinerMux: fcntl failed (%d)", errno);
             ::close(newfd);
         }
-#else
-        if (::__djgpp_set_socket_blocking_mode(newfd, 1) < 0) {
-            eprint("MarinerMux: set nonblock failed (%d)", errno);
-            ::close(newfd);
-        }
-#endif
         else new mariner(newfd);
     }
 

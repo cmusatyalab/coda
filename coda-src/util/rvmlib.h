@@ -72,12 +72,6 @@ extern long rvm_no_yield;	 /*  exported by rvm */
 
 
 
-#ifdef DJGPP
-#define _setjmp setjmp
-#define _longjmp longjmp
-#include <setjmp.h>
-#endif
-
 #ifdef __cplusplus
 extern "C" {
 #endif

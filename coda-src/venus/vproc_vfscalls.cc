@@ -971,11 +971,7 @@ void vproc::rename(struct venus_cnode *spcp, char *name,
 	 */
 	{
 	    fsobj *f = (SameParent ? t_parent_fso : s_parent_fso);
-#ifdef DJGPP
-	    int flags = CLU_CASE_INSENSITIVE;
-#else
 	    int flags = CLU_CASE_SENSITIVE;
-#endif
 	    u.u_error = f->Lookup(&s_fso, NULL, name, u.u_uid, flags);
 	    if (u.u_error) goto FreeLocks;
 

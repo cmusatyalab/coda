@@ -61,9 +61,8 @@ Mellon the rights to redistribute these changes without encumbrance.
 
 
 
-/* Catch new _KERNEL defn for NetBSD and DJGPP/__CYGWIN32__ */
-#if defined(__NetBSD__) || \
-  ((defined(DJGPP) || defined(__CYGWIN32__)) && !defined(KERNEL))
+/* Catch new _KERNEL defn for NetBSD and __CYGWIN32__ */
+#if defined(__NetBSD__) || (defined(__CYGWIN32__) && !defined(KERNEL))
 #include <sys/types.h>
 #endif 
 
@@ -71,7 +70,7 @@ Mellon the rights to redistribute these changes without encumbrance.
 #define CODA_MAXSYMLINKS 10
 #endif
 
-#if defined(DJGPP) || defined(__CYGWIN32__)
+#ifdef __CYGWIN32__
 #ifdef KERNEL
 typedef unsigned long u_long;
 typedef unsigned int u_int;
@@ -91,11 +90,11 @@ struct timespec {
         long       ts_sec;
         long       ts_nsec;
 };
-#else  /* DJGPP but not KERNEL */
+#else  /* __CYGWIN32__ but not KERNEL */
 #include <sys/time.h>
 typedef unsigned long long u_quad_t;
 #endif /* !KERNEL */
-#endif /* !DJGPP */
+#endif /* !__CYGWIN32__ */
 
 
 #if defined(__linux__)

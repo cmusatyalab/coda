@@ -115,9 +115,7 @@ int RepairRename (int nreplicas, resreplica *dirs, resdir_entry **deGroup,
 	sprintf(curpath, "%s/%s", parentpath[i], childpath[i]);
 	if (prevset &&  (!strcmp(curpath, prevpath))) continue; 
 	sprintf(buf, "Do you want to preserve %s? ", curpath);
-#ifndef DJGPP  /* under Windows 95 this call will never run */
 	if (Parser_getbool(buf, 1)) break;
-#endif
 	strcpy(prevpath, curpath);
 	prevset = 1;
     }

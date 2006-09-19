@@ -13,7 +13,7 @@ dnl For some reason the default prefix was set to NONE on Solaris.
 AC_PREFIX_DEFAULT(/usr/local)
 
 AC_CONFIG_AUX_DIR(configs)
-dnl Set up the environment for djgpp/cygwin cross compilation.
+dnl Set up the environment for cygwin cross compilation.
 sinclude(configs/coda_cross.m4)
 
 dnl Checks for programs.
@@ -190,10 +190,6 @@ utils-src/Makefile
 utils-src/potemkin/Makefile
 utils-src/potemkin/ds/Makefile
 utils-src/potemkin/potemkin/Makefile
-djgpp/Makefile
-djgpp/relay/Makefile
-djgpp/inject/Makefile
-djgpp/tests/Makefile
 coda-src/partition/tests/Makefile
 coda-src/util/tests/Makefile
 coda-src/venus/tests/Makefile

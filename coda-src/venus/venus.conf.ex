@@ -146,8 +146,7 @@ mapprivate=1
 #
 # Mountpoint,
 # Where the coda filesystem is mounted, many application still depend on
-# this being /coda. I am unsure whether it matters much on Windows95/98,
-# but we normally use N: for those.
+# this being /coda.
 #
 #mountpoint=N:
 #mountpoint=/coda
@@ -155,8 +154,8 @@ mapprivate=1
 #
 # Kernel device,
 # The character device used by venus to communicate with the kernel module.
-# Standard name is /dev/cfs0, ignored by the Win95/98 port. Maybe we will
-# switch to using /dev/coda0 at some point to avoid name conflicts.
+# Standard name is /dev/cfs0. Maybe we will switch to using /dev/coda0 at
+# some point to avoid name conflicts.
 #
 #kerneldevice=/dev/cfs0,/dev/coda/0
 

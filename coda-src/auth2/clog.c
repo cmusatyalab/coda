@@ -115,10 +115,6 @@ int main(int argc, char **argv)
     authmethod = AUTH_METHOD_KERBEROS5;
 #endif 
 
-#ifdef DJGPP
-	__djgpp_set_quiet_socket(1);	
-#endif
-
     i = 1;
     while (i < argc) {
 	    if (U_GetAuthMethod(argv[i], &authmethod)) {

@@ -27,9 +27,6 @@ listed in the file CREDITS.
 #ifdef __CYGWIN32__
 #define HUGE 1.701411733192644270e38
 #endif
-#ifdef DJGPP
-#define HUGE HUGE_VAL
-#endif
 
 
 int InitHisto(hg, lolimit, hilimit, bucketcount, ht)

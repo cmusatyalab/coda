@@ -66,12 +66,6 @@ int HashString(char *s, unsigned int size);
 void eprint(char *, ...);
 void fdprint(long afd, char *fmt, ...);
 
-#if defined(DJGPP)
-#define MAX(a,b)  ( ((a) > (b)) ? (a) : (b) )
-#define MIN(a,b)  ( ((a) < (b)) ? (a) : (b) )
-#endif
-
-
 /* Routine for conditionally printing timestamped log messages */
 extern void LogMsg(int msglevel, int debuglevel, FILE *fout, char *fmt,  ...);
 #define VLog(level, format, a...)   LogMsg(level, VolDebugLevel, stdout, format, ## a)

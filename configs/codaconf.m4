@@ -70,7 +70,6 @@ AC_SUBST(cputype)
 AC_MSG_CHECKING(systype substitution)
 shortsys=${host_os}
 case ${shortsys} in
-	djgpp )     shortsys=win95 ;;
 	cygwin32 )  shortsys=cygwin32 ;;
 	netbsd* )   shortsys=nbsd ;;
 	freebsd3* ) case `objformat` in

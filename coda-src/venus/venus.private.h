@@ -87,18 +87,8 @@ extern "C" {
 
 
 /*  *****  parameter defaults.  ***** */
-#if defined(DJGPP)
-#define DFLT_VR "N:"                     /* Venus Root */ 
-#define MCFD    16                       /* Michael Callahan File Descriptor? */
-#else
-#define	DFLT_VR	"/coda"			 /* venus root */
-#endif
-
-#if defined(DJGPP) /* || defined(__CYGWIN32__) Not right now ... */
-#define	DFLT_CD	"C:/usr/coda/venus.cache"    /* Win cache directory */
-#else 
-#define	DFLT_CD	"/usr/coda/venus.cache"	    /* cache directory */
-#endif
+#define DFLT_VR "/coda"				/* venus root */
+#define DFLT_CD "/usr/coda/venus.cache"		/* cache directory */
 
 /* rule of thumb */
 const int BLOCKS_PER_FILE = 24;
@@ -117,7 +107,7 @@ const int FREE_FACTOR = 16;
 
 /*  *****  Manifest constants for Venus.  *****  */
 const int NFDS = 32;	/* IOMGR-enforced limit!  Kernel may allocate fds numbered higher than this! */
-#if defined(DJGPP) || defined(__CYGWIN32__)
+#ifdef __CYGWIN32__
 extern uid_t V_UID;    /* UID that the venus process runs under. */
 #else
 const uid_t V_UID = (uid_t)0;	    /* UID that the venus process runs under. */

@@ -56,10 +56,6 @@ EXECUTABLES = $(CBINS) $(SSBINS) tokentool
 #
 # only build clog on win9x
 #
-ifeq ($(SHORTSYS),djgpp)
-EXECUTABLES = clog
-endif
-
 RP2HEADERS  = auth2.h
 
 DEPLIBS = $(LIBUTIL) $(LIBKERNDEP) $(LIBBASE)

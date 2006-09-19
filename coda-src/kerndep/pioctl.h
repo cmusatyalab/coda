@@ -42,9 +42,8 @@ in coda.h */
 int pioctl(const char *path, unsigned long com, struct
 	   ViceIoctl *vidata, int follow);
 
-#if defined(DJGPP) || (defined(__APPLE__) && defined(__MACH__))
+#if defined(__APPLE__) && defined(__MACH__)
 /*
- * Win95/DOS or Darwin
  * These are absent from Darwin's <sys/ioccom.h>.
  */
 #define _IOC_NRBITS	8
@@ -68,36 +67,7 @@ int pioctl(const char *path, unsigned long com, struct
 #define _IOC_NR(nr)		(((nr) >> _IOC_NRSHIFT) & _IOC_NRMASK)
 #define _IOC_SIZE(nr)		(((nr) >> _IOC_SIZESHIFT) & _IOC_SIZEMASK)
 
-#endif /* DJGPP || Darwin */
-
-#if defined(DJGPP)
-/*
- * Direction bits.
- */
-#define _IOC_NONE	0U
-#define _IOC_WRITE	1U
-#define _IOC_READ	2U
-
-#define _IOC(dir,type,nr,size) \
-	(((dir)  << _IOC_DIRSHIFT) | \
-	 ((type) << _IOC_TYPESHIFT) | \
-	 ((nr)   << _IOC_NRSHIFT) | \
-	 ((size) << _IOC_SIZESHIFT))
-
-/* used to create numbers */
-#define _IO(type,nr)		_IOC(_IOC_NONE,(type),(nr),0)
-#define _IOR(type,nr,size)	_IOC(_IOC_READ,(type),(nr),sizeof(size))
-#define _IOW(type,nr,size)	_IOC(_IOC_WRITE,(type),(nr),sizeof(size))
-#define _IOWR(type,nr,size)	_IOC(_IOC_READ|_IOC_WRITE,(type),(nr),sizeof(size))
-
-/* ...and for the drivers/sound files... */
-
-#define IOC_IN		(_IOC_WRITE << _IOC_DIRSHIFT)
-#define IOC_OUT		(_IOC_READ << _IOC_DIRSHIFT)
-#define IOC_INOUT	((_IOC_WRITE|_IOC_READ) << _IOC_DIRSHIFT)
-#define IOCSIZE_MASK	(_IOC_SIZEMASK << _IOC_SIZESHIFT)
-#define IOCSIZE_SHIFT	(_IOC_SIZESHIFT)
-#endif /* DJGPP */
+#endif /* Darwin */
 
 #if defined(__CYGWIN32__)
 /* Get the _IO... definitions for CYGWIN. */

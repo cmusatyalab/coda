@@ -38,7 +38,7 @@ extern "C" {
 #include <sys/stat.h>
 #include <netinet/in.h>
 
-#if !defined(__CYGWIN32__) && !defined(DJGPP)
+#ifndef __CYGWIN32__
 #include <sys/syscall.h>
 #include <sys/mount.h>
 #endif
@@ -70,10 +70,6 @@ extern "C" {
 #endif
 
 #include <vice.h>
-
-#ifdef DJGPP
-#include <relay.h>
-#endif
 
 #ifdef __CYGWIN__
 #include <windows.h>
@@ -161,10 +157,7 @@ msgent *FindMsg(olist& ol, u_long seq) {
 
 int MsgRead(msgent *m) 
 {
-#ifdef DJGPP
-	size_t cc = read_relay(m->msg_buf);
-
-#elif defined(__CYGWIN32__)
+#ifdef __CYGWIN32__
         DWORD size;  
         size_t cc = read(worker::muxfd, (char *)&size, sizeof(size)); 
 	CODA_ASSERT(size <= VC_MAXMSGSIZE);
@@ -181,9 +174,7 @@ int MsgRead(msgent *m)
 
 size_t MsgWrite(char *buf, int size) 
 {
-#ifdef DJGPP
-	 return write_relay(buf, size);
-#elif defined(__CYGWIN32__)
+#ifdef __CYGWIN32__
 	 return nt_msg_write(buf, size);
 #else 
 	return write(worker::muxfd, buf, size);
@@ -222,7 +213,7 @@ msgent *msg_iterator::operator()()
    BSD systems like to purge that cache */
 void testKernDevice() 
 {
-#if defined(DJGPP) || defined(__CYGWIN32__)
+#ifdef __CYGWIN32__
 	return;
 #else
 	int fd = -1;
@@ -469,19 +460,6 @@ child_done:
     }
 #endif
 
-#ifdef DJGPP
-    int res;
-    eprint ("Mounting on %s", venusRoot);
-    res = mount_relay(venusRoot);
-    if (res)
-	    eprint("Mount OK");
-    else{
-	    eprint ("Mount failed");
-	    close_relay();
-	    exit(0);
-    }
-#endif
-
 #ifdef __CYGWIN32__
     /* Mount by starting another thread. */
     eprint ("Mounting on %s", venusRoot);
@@ -491,41 +469,8 @@ child_done:
     Mounted = 1;
 }
 
-int VFSUnload()
-{
-#ifdef DJGPP
-  	int i = 0, res;
-	do {
-		i++;
-		eprint ("UNLOAD result %d.", res = unload_vxd("CODADEV"));    
-    
-	} while (i < 10 && res == 0);
-	if (i==10 && res ==0) return -1;
-#endif
-	return 0;
-}
-
 void VFSUnmount() 
 {
-#ifdef DJGPP
-    int res;
-    
-    if (!Mounted) return;
-
-    res = unmount_relay();
-    eprint (res ? "Unmount OK" : "Unmount failed");
-
-    res = close_relay();
-    eprint (res ? "Close relay OK" : "Close relay failed");
-
-    res = VFSUnload();
-    eprint (res == 0 ? "Kernel module unloaded" :
-	               "Kernel module could not be unloaded");
-
-    if (res == 0) KernelFD = -1;	
-
-    return;
-#endif
     /* Purge the kernel cache so that all cnodes are (hopefully) released. */
     k_Purge();
 
@@ -759,14 +704,7 @@ void WorkerInit()
             exit(-1);
         }
 
-#ifdef DJGPP
-    if (!init_relay()){
-	    LOG(0, ("init_relay failed.\n"));
-	    exit(-1);
-    }
-    worker::muxfd = MCFD;
-    dprint("WorkerInit: muxfd = %d\n", worker::muxfd);
-#elif defined(__CYGWIN32__)
+#ifdef __CYGWIN32__
     int sd[2];
     if (socketpair(AF_LOCAL, SOCK_STREAM, 0, sd)) {
 	    eprint("WorkerInit: socketpair() returns %d", errno);
@@ -1372,7 +1310,7 @@ void worker::main(void)
 	    case CODA_OPEN_BY_PATH:
 		{
 		LOG(100, ("CODA_OPEN_BY_PATH: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid)); 
-#if defined(DJGPP) || defined(__CYGWIN32__)
+#ifdef __CYGWIN32__
 		char *slash;
 #endif
                 /* Remember some info for dealing with interrupted open calls */
@@ -1390,7 +1328,7 @@ void worker::main(void)
                     out->coda_open_by_path.path = begin - (char *)out;
                     sprintf(begin, "%s%s/%s", CachePrefix, CacheDir, 
                             vtarget.c_cf->Name());
-#if defined(DJGPP) || defined(__CYGWIN32__)
+#ifdef __CYGWIN32__
                     slash = begin;
                     for (slash = begin ; *slash ; slash++ ) {
                         if ( *slash == '/' ) 

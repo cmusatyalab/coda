@@ -65,7 +65,7 @@ AC_DEFUN(CODA_CHECK_LIBTERMCAP,
 dnl Check for a curses library, and if it needs termcap
 AC_SUBST(LIBCURSES)
 AC_DEFUN(CODA_CHECK_LIBCURSES,
-  if test $target != "i386-pc-cygwin32" -a $target != "i386-pc-djgpp" ; then
+  if test $target != "i386-pc-cygwin32" ; then
     AC_CHECK_LIB(ncurses, main, [LIBCURSES="-lncurses"],
 	[AC_CHECK_LIB(curses, main, [LIBCURSES="-lcurses"],
 	    [AC_MSG_ERROR("failed to find curses library")

@@ -27,16 +27,12 @@ TOPOBJ = @TOPOBJ@
 
 include $(MAKDIR)/Makeconf
 
-ifneq ($(SHORTSYS),djgpp)
 TESTS	    = altest
-endif
 
-ifneq ($(SHORTSYS),djgpp)
 EXECUTABLES = pdbtool altest
 SSBINS      = pdbtool
 SMANPAGES   = pdbtool.8
 LIBRARIES   = libal.a
-endif
 HEADERS	    = al.h prs.h
 
 NO_LEX = yes

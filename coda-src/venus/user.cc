@@ -43,9 +43,7 @@ extern "C" {
 #include <errno.h>
 #include <struct.h>
 #include <netdb.h>
-#ifndef DJGPP
 #include <utmp.h>
-#endif
 #include <pwd.h>
 
 #include <rpc2/rpc2.h>
@@ -172,10 +170,10 @@ int AuthorizedUser(uid_t thisUser)
 
 int ConsoleUser(uid_t user)
 {
-#if defined(DJGPP) || defined(__CYGWIN32__)
+#ifdef __CYGWIN32__
     return(1);
 
-#elif __linux__
+#elif defined(__linux__)
 #define	CONSOLE	    "tty1"
 
     struct utmp w, *u;

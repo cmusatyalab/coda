@@ -97,17 +97,12 @@ endif
 #####################
 installclient: c_bin_install c_sbin_install c_conf_install c_script_install c_sscript_install c_man_install
 
-ifeq ($(target),i386-pc-djgpp)
-TARGETCBINS := $(CBINS:%=%.exe)
-TARGETCSBINS := $(CSBINS:%=%.exe)
-else
 ifeq ($(SYS),cygwin32)
 TARGETCBINS := $(CBINS:%=%.exe)
 TARGETCSBINS := $(CSBINS:%=%.exe)
 else
 TARGETCBINS := $(CBINS)
 TARGETCSBINS := $(CSBINS)
-endif
 endif
 
 c_bin_install: $(TARGETCBINS)

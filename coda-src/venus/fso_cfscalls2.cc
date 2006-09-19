@@ -145,7 +145,7 @@ int fsobj::Open(int writep, int truncp, struct venus_cnode *cp, uid_t uid)
                    the fsobj. */
 		int tfd = ::open(data.dir->udcf->name, O_BINARY | O_RDWR | O_CREAT, V_MODE);
 		if (tfd < 0) CHOKE("fsobj::Open: open");
-#if !defined(DJGPP) && !defined(__CYGWIN32__)
+#ifndef __CYGWIN32__
 		if (::fchmod(tfd, V_MODE) < 0)
 		    CHOKE("fsobj::Open: fchmod");
 		if (::fchown(tfd, (uid_t)V_UID, (gid_t)V_GID) < 0)

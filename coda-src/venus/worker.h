@@ -156,7 +156,6 @@ extern int k_Purge(uid_t);
 extern int k_Replace(VenusFid *, VenusFid *);
 extern void VFSMount();
 extern void VFSUnmount();
-extern int VFSUnload();
 extern void WorkerInit();
 extern worker *FindWorker(u_long);
 extern worker *GetIdleWorker();

@@ -44,7 +44,7 @@ listed in the file CREDITS.
 #include <sys/mntent.h>
 #endif
 
-#if defined(DJGPP) || defined(__CYGWIN32__) || defined(__linux__)
+#if defined(__CYGWIN32__) || defined(__linux__)
 #include <sys/socket.h>
 #include <netinet/in.h>
 #define lstat stat
@@ -227,7 +227,6 @@ fid_assign_type(fid_ent_t *fep, struct stat *sbuf) {
     case S_IFREG:
 	fep->type = C_VREG;
 	break;
-#ifndef DJGPP
     case S_IFLNK:
 	fep->type = C_VLNK;
 	break;
@@ -238,7 +237,6 @@ fid_assign_type(fid_ent_t *fep, struct stat *sbuf) {
 	fep->type = C_VBAD;
 	return -1;
 	break;
-#endif
     default:
 	CODA_ASSERT(0);
 	break;
@@ -347,7 +345,7 @@ ParseArgs(int argc, char *argv[]) {
 
 int MsgRead(char *m) 
 {
-#if defined(DJGPP) || defined(__CYGWIN32__)
+#ifdef __CYGWIN32__
         struct sockaddr_in addr;
          int len = sizeof(addr);
          int cc = recvfrom(KernFD, m, (int) (VC_MAXMSGSIZE),
@@ -366,7 +364,7 @@ int MsgRead(char *m)
 
 int MsgWrite(char *buf, int size)
 {
-#if defined(DJGPP) || defined(__CYGWIN32__)
+#ifdef __CYGWIN32__
          struct sockaddr_in addr;
          int cc;
 
@@ -396,7 +394,7 @@ Setup() {
     union outputArgs msg;
     struct sigaction  sa;
 
-#if defined(DJGPP) || defined(__CYGWIN32__)
+#ifdef __CYGWIN32__
 
     struct sockaddr_in addr;
     int rc;
@@ -416,7 +414,7 @@ Setup() {
      * Construct a purge message and see if we can send it in... 
      */
 
-#if defined(DJGPP) || defined(__CYGWIN32__)
+#ifdef __CYGWIN32__
     KernFD = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     printf("Socket KernFD is %d\n", KernFD);
     addr.sin_family = AF_INET;
@@ -543,9 +541,7 @@ Setup() {
 
     /* Set up a signal handler to dump the contents of the FidTab */
     sa.sa_handler = dump_fids;
-#ifndef DJGPP
     sa.sa_flags = SA_RESTART;
-#endif
     sigemptyset(&sa.sa_mask);  /* or -1, who knows? */
     CODA_ASSERT (!sigaction(SIGUSR1, &sa, NULL));
 
@@ -716,7 +712,7 @@ DoOpenByPath(union inputArgs *in, union outputArgs *out, int *reply)
     struct stat           sbuf;
     char *begin=NULL;
 
-#if defined(DJGPP) || defined(__CYGWIN32__)
+#ifdef __CYGWIN32__
 
     char *slash;
 
@@ -742,7 +738,7 @@ DoOpenByPath(union inputArgs *in, union outputArgs *out, int *reply)
     if (verbose)
       printf("Rootdir %s path %s, total %s\n", RootDir, path, begin);
     sprintf(begin, "%s/%s", RootDir, path);
-#if defined(DJGPP) || defined(__CYGWIN32__)
+#ifdef __CYGWIN32__
     slash = begin;
     for (slash = begin ; *slash ; slash++ ) {
 	    if ( *slash == '/' ) 
@@ -1307,7 +1303,6 @@ DoRemove(union inputArgs *in, union outputArgs *out, int *reply)
 	    out->oh.result = EINVAL;
 	    goto exit;
 	    break;
-#ifndef DJGPP
     case S_IFLNK:
 	    /* This might not be okay for symlinks. */
 	    break;
@@ -1319,7 +1314,6 @@ DoRemove(union inputArgs *in, union outputArgs *out, int *reply)
 	    out->oh.result = EINVAL;
 	    goto exit;
 	    break;
-#endif
     default:
 	CODA_ASSERT(0);
 	break;
@@ -1895,7 +1889,6 @@ DoRmdir(union inputArgs *in, union outputArgs *out, int *reply)
     case S_IFDIR:
 	/* OK */
 	break;
-#ifndef DJGPP
     case S_IFLNK:
 	printf("RMDIR: trying to remove a symlink!\n");
 	out->oh.result = EINVAL;
@@ -1909,7 +1902,6 @@ DoRmdir(union inputArgs *in, union outputArgs *out, int *reply)
 	out->oh.result = EINVAL;
 	goto exit;
 	break;
-#endif
     default:
 	CODA_ASSERT(0);
 	break;
@@ -1982,11 +1974,9 @@ DoReadlink(union inputArgs *in, union outputArgs *out, int *reply)
     setfsuid(in->ih.uid);
 
     out->coda_readlink.data = (char*)VC_OUTSIZE(coda_readlink_out);
-#ifndef DJGPP
     *count = readlink(path,
 		      (char*)out+(int)out->coda_readlink.data,
 		      VC_MAXDATASIZE-1);
-#endif
     setfsuid(getuid());
 
     if (*count < 0) {

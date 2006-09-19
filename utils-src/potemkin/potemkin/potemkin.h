@@ -47,10 +47,6 @@ typedef struct fid_ent_s {
 #define SYS_STRING "linux"
 #endif
 
-#ifdef DJGPP
-#define SYS_STRING "dos"
-#endif
-
 #ifdef sun
 #define SYS_STRING "solaris"
 #endif

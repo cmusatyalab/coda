@@ -179,7 +179,7 @@ int U_DeleteLocalTokens(char *realm)
     return(0);    
 }
 
-#if defined(DJGPP) || defined(__CYGWIN32__)
+#ifdef __CYGWIN32__
 #define DFLT_MNT "N:"
 #else
 #define DFLT_MNT "/coda"

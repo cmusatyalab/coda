@@ -107,7 +107,7 @@ int CacheFile::ValidContainer()
     if (rc) return 0;
 
     int valid =
-#if !defined(DJGPP) && !defined(__CYGWIN32__)
+#ifndef __CYGWIN32__
       tstat.st_uid == (uid_t)V_UID &&
       tstat.st_gid == (gid_t)V_GID &&
       (tstat.st_mode & ~S_IFMT) == V_MODE &&
@@ -138,13 +138,11 @@ void CacheFile::Create(int newlength)
     if ((tfd = ::open(name, O_RDWR | O_CREAT | O_TRUNC | O_BINARY, V_MODE)) < 0)
 	CHOKE("CacheFile::Create: open failed (%d)", errno);
 
-#ifndef DJGPP
 #ifndef __CYGWIN32__
     if (::fchown(tfd, (uid_t)V_UID, (gid_t)V_GID) < 0)
 	CHOKE("CacheFile::Create: fchown failed (%d)", errno);
 #else
     chown(name, (uid_t)V_UID, (gid_t)V_GID);
-#endif
 #endif
     if (::ftruncate(tfd, newlength) < 0)
       CHOKE("CacheFile::Create: ftruncate failed (%d)", errno);
@@ -188,7 +186,6 @@ int CacheFile::Copy(char *destname, int recovering)
 	LOG(0, ("CacheFile::Copy: open failed (%d)\n", errno));
 	return -1;
     }
-#ifndef DJGPP
     if (::fchmod(tfd, V_MODE) < 0)
 	CHOKE("CacheFile::Copy: fchmod failed (%d)\n", errno);
 #ifdef __CYGWIN32__
@@ -197,7 +194,6 @@ int CacheFile::Copy(char *destname, int recovering)
 #else
     if (::fchown(tfd, (uid_t)V_UID, (gid_t)V_GID) < 0)
 	CHOKE("CacheFile::Copy: fchown failed (%d)\n", errno);
-#endif
 #endif
     if ((ffd = ::open(name, O_RDONLY| O_BINARY, V_MODE)) < 0)
 	CHOKE("CacheFile::Copy: source open failed (%d)\n", errno);

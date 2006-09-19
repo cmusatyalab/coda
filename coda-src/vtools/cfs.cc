@@ -1056,7 +1056,7 @@ static void BeginRepair(int argc, char *argv[], int opslot)
         exit(-1);
     }
 
-#if defined(DJGPP) || defined(__CYGWIN32__)
+#ifdef __CYGWIN32__
     /* test if the filename ends in ".$cf" */
     int len = strlen(argv[2]);
     if (len >= 4 && (argv[2][len-3] == '$' && argv[2][len-2] == 'c' &&
@@ -1186,7 +1186,7 @@ static int pioctl_GetFid(char *path, ViceFid *fid, char *realm, ViceVersionVecto
     vio.out = (char *)&out;
     vio.out_size = sizeof(out);
 
-#if defined(DJGPP) || defined(__CYGWIN32__)
+#ifdef __CYGWIN32__
     rc = pioctl(path, 8972, &vio, 0);
 #else
     rc = pioctl(path, _VICEIOCTL(_VIOC_GETFID), &vio, 0);
@@ -1289,7 +1289,7 @@ static int pioctl_SetVV(char *path, ViceVersionVector *vv)
     vio.out = 0;
     vio.out_size = 0;
 
-#if defined(DJGPP) || defined(__CYGWIN32__)
+#ifdef __CYGWIN32__
     rc = pioctl(path, 8974, &vio, 0);
 #else
     rc = pioctl(path, _VICEIOCTL(_VIOC_SETVV), &vio, 0);

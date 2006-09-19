@@ -67,10 +67,8 @@ int mount_done;
 void SigInit(void)
 {
     /* Establish/Join our own process group to avoid extraneous signals. */
-#ifndef DJGPP
   if (setpgid(0, 0) < 0)
     eprint("SigInit: setpgid failed (%d)", errno);
-#endif /* !DJGPP */
 
     /* set up the signal handlers */
     struct sigaction sa;
@@ -232,14 +230,11 @@ static void SigControl(int sig)
 
 static void SigChoke(int sig)
 {
-#ifndef DJGPP
     sigset_t mask;
     int pid = getpid();
-#endif
 
     LOG(0, ("*****  FATAL SIGNAL (%d) *****\n", sig));
 
-#ifndef DJGPP
     eprint("Fatal Signal (%d); pid %d becoming a zombie...", sig, pid);
     eprint("You may use gdb to attach to %d", pid);
     MarinerLog("zombie state::pid %d", pid);
@@ -255,7 +250,6 @@ static void SigChoke(int sig)
     sigdelset(&mask, SIGINT);
     sigdelset(&mask, SIGTERM);
     sigsuspend(&mask);
-#endif
 
     SigExit(sig);
 }

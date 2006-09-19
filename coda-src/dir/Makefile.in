@@ -31,9 +31,7 @@ include $(TOPDIR)/Makeconf
 LIBRARIES = libcodadir.a 
 HEADERS   = codadir.h
 
-ifneq ($(SHORTSYS),djgpp)
 TESTS = dirtest
-endif
 
 OBJS= fid.o codadir.o dirbody.o dirinode.o dhcache.o # salvage.o 
 

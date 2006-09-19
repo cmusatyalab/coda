@@ -58,9 +58,7 @@ extern "C" {
 #include <stdlib.h>
 #include <pwd.h>
 #include <fcntl.h>
-#ifndef DJGPP
 #include <utmp.h>
-#endif
 #include <netdb.h>
 
 #include <codadir.h>
@@ -395,7 +393,6 @@ int hdb::List(hdb_list_msg *m, uid_t local_id) {
 	return(errno);
     }
 
-#ifndef DJGPP
     /* set ownership of file to actual owner */
 #ifndef __CYGWIN32__
     int err = ::fchown(outfd, local_id, (gid_t) -1);
@@ -407,7 +404,7 @@ int hdb::List(hdb_list_msg *m, uid_t local_id) {
 		m->outfile, local_id, errno));
 	return(errno);
     }
-#endif
+
     /* Dump the entries. */
     hdb_iterator next(m->luid);
     hdbent *h;
@@ -1214,7 +1211,6 @@ int hdb::Verify(hdb_verify_msg *m, uid_t local_id) {
     }
 
     /* set ownership of file to actual owner */
-#ifndef DJGPP
 #ifndef __CYGWIN32__
     int err = ::fchown(outfd, local_id, (gid_t) -1);
 #else
@@ -1227,7 +1223,6 @@ int hdb::Verify(hdb_verify_msg *m, uid_t local_id) {
 	return(errno);
     }
 
-#endif
     /* Print suspicious entries. */
     hdb_iterator next(m->luid);
     hdbent *h;

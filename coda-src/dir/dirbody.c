@@ -52,7 +52,7 @@ extern "C" {
 #endif
 
 #undef MMAP_DIR_CONTENTS
-#if defined(HAVE_MMAP) && !defined(DJGPP)
+#ifdef HAVE_MMAP
 #define MMAP_DIR_CONTENTS 1
 #endif
 

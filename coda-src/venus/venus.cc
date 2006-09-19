@@ -159,11 +159,6 @@ int main(int argc, char **argv)
     /* Initialize.  N.B. order of execution is very important here! */
     /* RecovInit < VSGInit < VolInit < FSOInit < HDB_Init */
 
-#ifdef DJGPP
-    /* disable debug messages */
-    __djgpp_set_quiet_socket(1);
-#endif
-
 #ifdef __CYGWIN32__
     /* MapPrivate does not work on Cygwin */
     if (MapPrivate) {
@@ -212,9 +207,6 @@ int main(int argc, char **argv)
     eprint("Mounting root volume...");
 
     VFSMount();
-#ifdef DJGPP
-    k_Purge();
-#endif
 
     UnsetInitFile();
     eprint("Venus starting...");
@@ -534,10 +526,6 @@ static void DefaultCmdlineParms()
     {
 	if (!CacheFiles) CacheFiles = CacheBlocks / BLOCKS_PER_FILE;
 
-#ifdef DJGPP
-	if (CacheFiles > 1500)
-	    CacheFiles = 1500;
-#endif
 	if (CacheFiles < MIN_CF) {
 	    eprint("Cannot start: minimum number of cache files is %d", MIN_CF);
 	    exit(-1); 
@@ -619,11 +607,7 @@ static void CheckInitFile() {
     struct stat tstat;
 
     /* Construct name for INIT file */
-#ifndef DJGPP
-        snprintf(initPath, MAXPATHLEN, "%s/INIT", CacheDir);
-#else
-        sprintf(initPath, "%s/INIT", CacheDir);
-#endif
+    snprintf(initPath, MAXPATHLEN, "%s/INIT", CacheDir);
 
     /* See if it's there */ 
     if (stat(initPath, &tstat) == 0) {
@@ -645,16 +629,12 @@ static void UnsetInitFile() {
     char initPath[MAXPATHLEN];
 
     /* Create the file, if it doesn't already exist */
-#ifndef DJGPP
-         snprintf(initPath, MAXPATHLEN, "%s/INIT", CacheDir);
-#else
-        sprintf(initPath, "%s/INIT", CacheDir);
-#endif
+    snprintf(initPath, MAXPATHLEN, "%s/INIT", CacheDir);
     unlink(initPath);
 }
 
 static void SetRlimits() {
-#if !defined(__CYGWIN32__) && !defined(DJGPP)
+#ifndef __CYGWIN32__
     /* Set DATA segment limit to maximum allowable. */
     struct rlimit rl;
     if (getrlimit(RLIMIT_DATA, &rl) < 0)

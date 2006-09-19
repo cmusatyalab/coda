@@ -43,12 +43,8 @@ VIII =  repair sidekick
   XI =  update asr egasr norton smon2 asrlauncher
 
 # If you add a new module to Coda, add it to the right set above
-ifneq ($(SHORTSYS),djgpp)
 SUBDIRS = $(I) $(II) $(III) $(IV) $(V) $(VI) $(VII) $(VIII) $(IX) \
 	  $(X) $(XI)
-else
-SUBDIRS = $(II) $(III) $(IV) $(V) $(VI) $(VII)
-endif
 
 include $(TOPDIR)/configs/Makerules
 

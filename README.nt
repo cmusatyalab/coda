@@ -1,11 +1,10 @@
 
-Coda Servers for Windows NT (and Windows 95)
-============================================
+Coda Servers for Windows NT
+==== ======================
 
-This release of Coda has alpha support for Coda servers running on NT
-and Windows 95.  The Win32 binaries are constructed using the Cygnus
-Win32 kit, which effectively translates Unix system calls to Win32
-calls.
+This release of Coda has alpha support for Coda servers running on NT.
+The Win32 binaries are constructed using the Cygnus Win32 kit, which
+effectively translates Unix system calls to Win32 calls.
 
 We build the Win32 binaries on Linux workstations using a cross
 compiler, just for our convenience.
@@ -137,6 +136,4 @@ Strategy:
 ---------
 
 The Coda filesystem is a large Unix application.  Our porting strategy
-is to use the Cygwin kit to port it to Windows NT.  For Windows 95
-this approach leads to a working server but not client (see
-README.win95).
+is to use the Cygwin kit to port it to Windows NT.

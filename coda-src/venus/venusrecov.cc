@@ -106,12 +106,9 @@ static const char *VM_RVMADDR = (char *)0x50000000;
  * start address without a problem.
  *
  * Sun/solaris could probably use it as well. I do wonder why sparc-linux is
- * using such an unusual RVM start address. djgpp (win95) is the most likely
- * exception to the rule because we are running in a strange DOS environment */
+ * using such an unusual RVM start address. */
 #elif defined(__linux__) && defined(sparc)
 static const char *VM_RVMADDR = (char *)0xbebd000;
-#elif defined(DJGPP)
-static const char *VM_RVMADDR = (char *)0x03000000;
 #elif defined(sun)
 static const char *VM_RVMADDR = (char *)0x40000000;
 #else
