@@ -1,4 +1,3 @@
-debian/tmp/usr/sbin/rpc2portmap
 debian/tmp/usr/sbin/updatesrv
 debian/tmp/usr/sbin/updateclnt
 debian/tmp/usr/sbin/updatefetch

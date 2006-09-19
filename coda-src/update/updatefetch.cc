@@ -72,7 +72,7 @@ static char *LocalFileName = NULL, *RemoteFileName = NULL;
 
 static RPC2_Handle con;
 static char host[256];
-static RPC2_Integer port = 2431; /* reuse the usually unused venus-se port -- rl */
+static RPC2_Integer port = 2433; /* reuse the unused codasrv-se port -- rl */
 
 /*static struct timeval  tp;
 static struct timezone tsp; */

@@ -46,16 +46,12 @@ echon() {
 case "$1" in
   start)
 	echon "Starting coda update servers: "
-	# rpc2portmap
 	if [ -f $LOCKFILE ]; then
 		echo "already locked."
 		exit 1
 	fi
 
 	if [ "`cat /vice/hostname`" = "`cat /vice/db/scm`" ]; then
-                echon "rpc2portmap "
-                rpc2portmap &
-
 		echon "updatesrv "
 		updatesrv &
 	fi
@@ -66,15 +62,8 @@ case "$1" in
 	echo "done."
 	;;
   stop)
+	echon "Stopping coda update servers "
 	if [ "`cat /vice/hostname`" = "`cat /vice/db/scm`" ]; then
-                echon "Stopping coda update servers "
-                echon "rpc2portmap "
-                if [ `uname` = 'SunOS' ] ; then
-                        pkill -9 rpc2portmap
-                else
-                        killall -9 rpc2portmap
-                fi
-    
 		if [ -f $PIDDIR/updatesrv.pid ]; then
 			echon "updatesrv "
 			kill -9 `cat $PIDDIR/updatesrv.pid`

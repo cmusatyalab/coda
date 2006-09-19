@@ -129,7 +129,7 @@ static RPC2_Integer operatorUsecs = 0;
 
 static RPC2_Handle con = 0;
 static char host[256];
-static RPC2_Integer port = 2431; /* reuse the usually unused venus-se port -- rl */
+static RPC2_Integer port = 2433; /* reuse the unused codasrv-se port -- rl */
 static int waitinterval = 30;	/* 5 min */
 static int reps = 6;
 

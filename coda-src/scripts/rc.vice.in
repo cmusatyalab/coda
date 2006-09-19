@@ -44,7 +44,7 @@ if [ -x ${CODABASE}/sbin/kauth2 ] ; then
     FLAGS="-realm CS.CMU.EDU"
 fi
 
-if [ ! -x ${AUTH2} -o ! -x ${CODABASE}/sbin/rpc2portmap \
+if [ ! -x ${AUTH2} \
 	-o ! -x ${CODABASE}/sbin/updatesrv \
 	-o ! -x ${CODABASE}/sbin/updateclnt \
 	-o ! -x ${CODABASE}/sbin/codasrv \
@@ -78,9 +78,6 @@ case "${1:-start}" in
 
     # update srv and updatemon run on all servers
     if [ "`cat ${VICE}/hostname`" = "`cat ${VICE}/db/scm`" ]; then
-            rpc2portmap &
-            echon " rpc2portmap"
-
             updatesrv &
             echon " updatesrv"
     fi
@@ -132,8 +129,6 @@ case "${1:-start}" in
     if [ "`cat ${VICE}/hostname`" = "`cat ${VICE}/db/scm`" ]; then
         $KILLALL -9 updatesrv
         echon " updatesrv"
-        $KILLALL -9 rpc2portmap
-        echon " rpc2portmap"
     fi
 
     if [ -f ${VICESRV}/pid ]; then

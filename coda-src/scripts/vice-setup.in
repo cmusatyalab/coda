@@ -226,8 +226,7 @@ if [ $isscm = N ]; then
 
     if ! updatefetch -h $scmhost -r db/servers -l servers ; then
 	echo "Could not contact SCM."
-	echo "Check whether the rpc2portmap and updatesrv processes are"
-	echo "running on the SCM."
+	echo "Check whether the updatesrv process is running on the SCM."
 	exit 1
     fi
 
@@ -383,8 +382,6 @@ if [ $isscm = Y ]; then
     set -e
     echo " - Coda authentication server (auth2 &)"
     [ "$start" ] && auth2 &
-    echo " - Coda portmapper (rpc2portmap)"
-    [ "$start" ] && rpc2portmap
     echo " - Coda update server (updatesrv)"
     [ "$start" ] && updatesrv
     echo " - Coda update client (updateclnt -h $hn)"

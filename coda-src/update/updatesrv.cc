@@ -184,7 +184,7 @@ int main(int argc, char **argv)
     int rc;
     struct stat statbuf;
     char *miscdir;
-    int port = 2431; /* reuse the usually unused venus-se port -- rl */
+    int port = 2433; /* reuse the unused codasrv-se port -- rl */
 
     /* process the command line arguments */
     for (i = 1; i < argc; i++) {

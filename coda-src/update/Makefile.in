@@ -54,7 +54,6 @@ RP2HEADERS  = $(notdir ${RP2FILES:.rpc2=.h})
 
 DEPLIBS := ${LIBVICEERROR}\
 	${LIBUTIL}\
-	${LIBPORTMAP}\
 	$(LIBVICEDEP)\
 	$(LIBIFS)\
 	${LIBVV}\

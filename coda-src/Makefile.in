@@ -32,7 +32,7 @@ include $(TOPDIR)/Makeconf
   I =  scripts
  II =  kerndep 
 III =  util vicedep dir 
- IV =  al portmapper
+ IV =  al
   V =  partition
 
   VI =  auth2 vv lka

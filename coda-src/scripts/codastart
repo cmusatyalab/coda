@@ -1,7 +1,6 @@
 #!/bin/sh
 if [ "`cat /vice/hostname`" = "`cat /vice/db/scm`" ]
 then
-    rpc2portmap &
     updatesrv &
     auth2 &
 else

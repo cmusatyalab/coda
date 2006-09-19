@@ -242,7 +242,6 @@ sbin/pdbtool
 sbin/printvrdb
 sbin/purgevol_rep
 sbin/readdump
-sbin/rpc2portmap
 sbin/startserver
 sbin/tape.pl
 sbin/updateclnt
