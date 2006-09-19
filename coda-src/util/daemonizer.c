@@ -170,7 +170,6 @@ int daemonize(void)
     /* obtain a new process group, change cwd, clear umask */
     setsid();
     chdir("/");
-    umask(0);
 
     /* second part of the double fork */
     pid = fork();
