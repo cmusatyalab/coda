@@ -121,3 +121,93 @@ void lrdb::CheckLocalSubtree()
 void LRD_Init(void) {
     (void)new vproc("LRDaemon", &LRDBDaemon, VPT_LRDaemon, LRDaemonStackSize);
 }
+
+void lrdb::GetLocalConflictFid(VenusFid *ConflictFid)
+{
+    if(!ConflictFid)
+      return;
+
+    if (InRepairSession())
+      /*
+       * can't iterate root_fid_map while a local/global repair session
+       * is going on which may very well remove elements from the list.
+       */
+      return;
+
+    ObtainReadLock(&rfm_lock);
+    rfm_iterator next(root_fid_map);
+    rfment *rfm;
+    while ((rfm = next())) {
+	if (!rfm->RootCovered()) {
+
+	    VenusFid *RootFid = rfm->GetRootParentFid();
+	    OBJ_ASSERT(this, RootFid != NULL);
+	    fsobj *RootParentObj = FSDB->Find(RootFid);
+	    OBJ_ASSERT(this, RootParentObj != NULL);
+
+	    VenusFid *objFid = rfm->GetGlobalRootFid();
+	    CODA_ASSERT(objFid);
+
+	    LOG(0, ("lrdb::GetLocalObjData: Conflict Fid = %s", FID_(objFid)));
+
+	    *ConflictFid = *objFid;
+	}
+    }
+    ReleaseReadLock(&rfm_lock);
+}
+
+void lrdb::GetLocalObjData(char *RootPath, char *FullPath, int *isdir)
+{
+    if (InRepairSession())
+      /*
+       * can't iterate root_fid_map while a local/global repair session
+       * is going on which may very well remove elements from the list.
+       */
+      return;
+
+    if( !RootPath || !FullPath || !isdir )
+      return;
+
+    ObtainReadLock(&rfm_lock);
+    rfm_iterator next(root_fid_map);
+    rfment *rfm;
+    while ((rfm = next())) {
+	if (!rfm->RootCovered()) {
+
+	    VenusFid *RootFid = rfm->GetRootParentFid();
+	    VenusFid VolumeFid;
+	    OBJ_ASSERT(this, RootFid != NULL);
+	    fsobj *RootParentObj = FSDB->Find(RootFid);
+	    OBJ_ASSERT(this, RootParentObj != NULL);
+
+	    /* Write out full path of conflict. */
+
+	    RootParentObj->GetPath(RootPath, 1);
+	    snprintf(FullPath, MAXPATHLEN, "%s/%s", RootPath, rfm->GetName());
+
+	    /* Get volume root fid and write out its full path. */
+
+	    VolumeFid = *RootFid;
+	    VolumeFid.Vnode = 1;
+	    VolumeFid.Unique = 1;
+
+	    fsobj *RootVolumeObj = FSDB->Find(&VolumeFid);
+	    OBJ_ASSERT(this, RootVolumeObj != NULL);
+
+	    RootVolumeObj->GetPath(RootPath, 1); /* Volume root path */
+
+	    VenusFid *objFid = rfm->GetGlobalRootFid();
+	    CODA_ASSERT(objFid);
+
+	    LOG(0, ("lrdb::GetLocalObjData: Conflict Fid = %s", FID_(objFid)));
+
+	    /* Remember type of conflict (fid isn't available elsewhere). */
+
+	    if(ISDIR(*objFid))
+	      *isdir = DIRECTORY_CONFLICT;
+	    else
+	      *isdir = FILE_CONFLICT;
+	}
+    }
+    ReleaseReadLock(&rfm_lock);
+}

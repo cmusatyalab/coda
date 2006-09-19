@@ -145,7 +145,11 @@ public:
     void SetSubtreeView(char, char *);						/*U*/
     void ReplaceRepairFid(VenusFid *, VenusFid *);				/*U*/
     void CheckLocalSubtree();							/*N*/
+
     void RemoveSubtree(VenusFid *);						/*U*/
+    void GetLocalConflictFid(VenusFid *);
+    void GetLocalObjData(char *, char *, int *);
+
     int GetRepairSessionTid() { return repair_session_tid; }		        /*N*/
     int Cancel(cmlent *);                                                       /*T*/
 

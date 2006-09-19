@@ -2783,11 +2783,17 @@ int fsobj::LaunchASR(int conflict_type, int object_type) {
 
   /* Prepare args for launch. */
 
-  /* Conflict path is the first argument to ASRLauncher. */
-  GetPath(path, 1);
-
-  /* Volume root's path is the second argument to ASRLauncher. */
+  if(conflict_type != SERVER_SERVER) {
+    LRDB->GetLocalObjData(rootPath, path, &object_type);
+  }
+  else
   { 
+    /* Conflict path is the first argument to ASRLauncher. */
+
+    GetPath(path, 1);
+
+    /* Volume root's path is the second argument to ASRLauncher. */
+
     VenusFid rootFid;
     fsobj *root = NULL;
 
@@ -2804,9 +2810,10 @@ int fsobj::LaunchASR(int conflict_type, int object_type) {
     }
 
     root->GetPath(rootPath, 1);
-    LOG(0, ("fsobj::LaunchASR: ASR's Volume Root is: %s\n", rootPath));    
   }
 
+  LOG(0, ("fsobj::LaunchASR:\n  Conflict path: %s\n  Volume Root: %s\n",
+	  path, rootPath));
 
   /* Obtain the user and his tokens to assign them to the ASRLauncher uid. */
 
@@ -2925,7 +2932,13 @@ int fsobj::LaunchASR(int conflict_type, int object_type) {
    * This is used when we receive a SIGCHLD at the end of our launch. */
   
   ASRpid = pid;
-  ASRfid = fid;
+  if(conflict_type == SERVER_SERVER)
+    ASRfid = fid;
+  else {
+    VenusFid realfid = NullFid;
+    LRDB->GetLocalConflictFid(&realfid);
+    ASRfid = realfid;
+  }
   ASRuid = uid;
 
   if(write(pfd[1], (void *) "go", 2) < 0)

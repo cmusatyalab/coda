@@ -452,7 +452,7 @@ void ClientModifyLog::MarkCommittedMLE(RPC2_Unsigned Uniquifier)
  * was marked and may or may not still be there. 
  * Note that an abort may delete a record out from under us.
  */
-void ClientModifyLog::HandleFailedMLE()
+void ClientModifyLog::HandleFailedMLE(VenusFid *RepairFid)
 {
     repvol *vol = strbase(repvol, this, CML);
     cmlent *m, *n;
@@ -460,9 +460,6 @@ void ClientModifyLog::HandleFailedMLE()
 
     n = next();
     while ((m = n) != NULL) {
-        char path[MAXPATHLEN];
-        fsobj *conflict;
-
 		n = next();
 		
 		if (!m->flags.failed)
@@ -494,59 +491,10 @@ void ClientModifyLog::HandleFailedMLE()
 		}
 		
 		m->SetRepairFlag();
-		
-		CODA_ASSERT((conflict = FSDB->Find(&m->u.u_repair.Fid)));
-		conflict->GetPath(path, 1);
-		
-		LOG(0, ("ClientModifyLog::HandleFailedMLE: %s(%s) now in "
-				"local/global conflict\n", path, 
-				FID_(&m->u.u_repair.Fid)));
-		
-		MarinerLog("ClientModifyLog::CONFLICT (local/global): %s (%s)\n",
-				   path, FID_(&m->u.u_repair.Fid));
-		
-		/* Check and launch ASRs, if appropriate. */
-		{
-		  int ASRInvokable;
-		  repvol *v;
-		  struct timeval tv;
-		  vproc *vp;
-		  
-		  vp = VprocSelf();
-		  v = (repvol *)conflict->vol;
-		  gettimeofday(&tv, 0);
-		  
-		  
-		  /* Check that:
-		   * 1.) An ASRLauncher path was parsed in venus.conf.
-		   * 2.) This thread is a worker.
-		   * 3.) ASR's are allowed to execute within this volume.
-		   * 4.) An ASR is not currently running within this volume.
-		   * 5.) The timeout interval for ASR launching has expired. 
-		   */
-		  
-		  ASRInvokable = ((ASRLauncherFile != NULL) && (ASRPolicyFile != NULL)
-					 && v->IsASRAllowed() && !v->asr_running()
-					 && ((tv.tv_sec - conflict->lastresolved) > ASR_INTERVAL));
-		  
-		  if(ASRLauncherFile == NULL)
-			LOG(0, ("ClientModifyLog::HandleFailedMLE: No ASRLauncher "
-					"specified in venus.conf!\n"));
-		  if(!(v->IsASRAllowed()))
-			LOG(0, ("ClientModifyLog::HandleFailedMLE: User does not "
-					"allow ASR execution in this volume.\n"));
-		  if(v->asr_running())
-			LOG(0, ("ClientModifyLog::HandleFailedMLE: ASR already "
-					"running in this volume.\n"));
-		  if((tv.tv_sec - conflict->lastresolved) <= ASR_INTERVAL)
-			LOG(0, ("ClientModifyLog::HandleFailedMLE: ASR too soon!\n"));
-		  
-		  if(ASRInvokable)  /* Execute ASR. */
-			conflict->LaunchASR(LOCAL_GLOBAL, 
-					(conflict->IsDir() ? DIRECTORY_CONFLICT : FILE_CONFLICT));
-		  
-		}
-	}
+
+		if(RepairFid)
+		  *RepairFid = m->u.u_repair.Fid;
+    }
 }
 
 
