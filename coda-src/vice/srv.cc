@@ -101,6 +101,12 @@ extern int Fcon_Init();
 #include <codadir.h>
 #include <avice.h>
 
+#include <rpc2/rpc2_addrinfo.h>
+/* XXX rpc2_simplifyhost isn't exported by rpc2 but it is very
+ * useful since it will make sure the RemoteHost information is
+ * always RPC2_HOSTBYADDRINFO. */
+extern void rpc2_simplifyHost(RPC2_HostIdent *, RPC2_PortIdent *);
+
 #ifdef __cplusplus
 }
 #endif
@@ -183,7 +189,8 @@ static int SrvSendAhead = 0;	// default 8
 static int timeout = 0;		// default 60, formerly 15, 30, then 60
 static int retrycnt = 0;	// default 5, formerly 4, 20, then 6
 static int debuglevel = 0;	// Command line set only.
-static int lwps = 0;		// default 6
+static int auth_lwps = 0;	// default 5
+static int server_lwps = 0;	// default 10
 static int buffs = 0;		// default 100, formerly 200
        int stack = 0;		// default 96
 static int cbwait = 0;		// default 240
@@ -233,6 +240,7 @@ static ClientEntry *CurrentClient[MAXLWP];
 
 /* *****  Private routines  ***** */
 
+static void AuthLWP(void *);
 static void ServerLWP(void *);
 static void ResLWP(void *);
 static void CallBackCheckLWP(void *);
@@ -528,7 +536,12 @@ int main(int argc, char *argv[])
     CODA_ASSERT(LWP_CreateProcess(CheckLWP, stack*1024, LWP_NORMAL_PRIORITY,
 				  (void *)&chk, "Check", &serverPid) == LWP_SUCCESS);
 
-    for (i=0; i < lwps; i++) {
+    for (i=0; i < auth_lwps; i++) {
+	sprintf(sname, "AuthLWP-%d",i);
+	CODA_ASSERT(LWP_CreateProcess(AuthLWP, stack*1024, LWP_NORMAL_PRIORITY,
+				      (void *)&i, sname, &serverPid) == LWP_SUCCESS);
+    }
+    for (i=0; i < server_lwps; i++) {
 	sprintf(sname, "ServerLWP-%d",i);
 	CODA_ASSERT(LWP_CreateProcess(ServerLWP, stack*1024, LWP_NORMAL_PRIORITY,
 				      (void *)&i, sname, &serverPid) == LWP_SUCCESS);
@@ -583,8 +596,85 @@ int main(int argc, char *argv[])
     exit(0);
 }
 
-
 #define BADCLIENT 1000
+
+/* Thread to handle new incoming connections */
+static void AuthLWP(void *arg)
+{
+    int lwpid = *(int *)arg;
+    RPC2_RequestFilter myfilter;
+    RPC2_PacketBuffer *myrequest;
+    RPC2_Handle mycid;
+    RPC2_Integer opcode;
+    long rc;
+    ProgramType *pt;
+    char *rock, peeraddr[RPC2_ADDRSTRLEN];
+    RPC2_PeerInfo peer;
+
+    /* Not sure if the connection setup actually uses rvm, but allocate the
+     * per thread data structure just in case */
+    rvm_perthread_t rvmptt;
+    rvmlib_init_threaddata(&rvmptt);
+
+    SLog(0, "Starting AuthLWP-%d", lwpid);
+
+    /* tag fileserver lwps with rock */
+    pt = (ProgramType *) malloc(sizeof(ProgramType));
+    *pt = fileServer;
+    CODA_ASSERT(LWP_NewRock(FSTAG, (char *)pt) == LWP_SUCCESS);
+
+    while (1) {
+	myfilter.FromWhom = ONESUBSYS;
+	myfilter.OldOrNew = NEW;
+	myfilter.ConnOrSubsys.SubsysId = SUBSYS_SRV;
+	rc = RPC2_GetRequest(&myfilter, &mycid, &myrequest, 0,
+			     GetKeysFromToken, RPC2_XOR, NULL);
+
+	if (rc != RPC2_SUCCESS) {
+	    SLog(0, "AuthLWP-%d RPC2_GetRequest failed: %s", lwpid,
+		 ViceErrorMsg((int)rc));
+	    continue;
+	}
+
+	/* Get information about the incoming connection */
+	/* quick and dirty way...
+	RPC2_formataddrinfo(myrequest->Prefix.PeerAddr,
+			    peeraddr, RPC2_ADDRSTRLEN);
+	 */
+	if (RPC2_GetPeerInfo(mycid, &peer) == RPC2_SUCCESS)
+	{
+	    rpc2_simplifyHost(&peer.RemoteHost, &peer.RemotePort);
+
+	    CODA_ASSERT(peer.RemoteHost.Tag == RPC2_HOSTBYADDRINFO);
+	    RPC2_formataddrinfo(peer.RemoteHost.Value.AddrInfo,
+				peeraddr, RPC2_ADDRSTRLEN);
+	    RPC2_freeaddrinfo(peer.RemoteHost.Value.AddrInfo);
+	}
+	else
+	    strcpy(peeraddr, "(unknown peer)");
+
+	SLog(0, "AuthLWP-%d received new connection %d from %s", lwpid,
+	     mycid, peeraddr);
+
+	rock = NULL;
+	if (RPC2_GetPrivatePointer(mycid, &rock) == RPC2_SUCCESS && rock) {
+	    SLog(0, "AuthLWP-%d new connection from known client?", lwpid);
+	    myrequest->Header.Opcode = BADCLIENT; /* ignore request & Unbind */
+	}
+
+	opcode = myrequest->Header.Opcode;
+	rc = srv_ExecuteRequest(mycid, myrequest, 0);
+
+	if (rc || opcode == BADCLIENT) {
+	    SLog(0, "AuthLWP-%d binding failed: %s", lwpid,
+		 ViceErrorMsg((int)rc));
+	    RPC2_Unbind(mycid);
+	}
+    }
+}
+
+/* The ServerLWP threads are the real workhorses, they handle all file system
+ * requests from clients. */
 static void ServerLWP(void *arg)
 {
     int *Ident = (int *)arg;
@@ -601,10 +691,10 @@ static void ServerLWP(void *arg)
     /* using rvm - so set the per thread data structure */
     rvm_perthread_t rvmptt;
     rvmlib_init_threaddata(&rvmptt);
-    SLog(0, "ServerLWP %d just did a rvmlib_set_thread_data()\n", *Ident);
+    SLog(0, "ServerLWP %d just did a rvmlib_set_thread_data()", *Ident);
 
     myfilter.FromWhom = ONESUBSYS;
-    myfilter.OldOrNew = OLDORNEW;
+    myfilter.OldOrNew = OLD;
     myfilter.ConnOrSubsys.SubsysId = SUBSYS_SRV;
     lwpid = *Ident;
     SLog(1, "Starting Worker %d", lwpid);
@@ -625,22 +715,28 @@ static void ServerLWP(void *arg)
 	    continue;
 	}
 
-	if (RPC2_GetPrivatePointer(mycid, &rock) == RPC2_SUCCESS) 
-	    client = (ClientEntry *)rock;
-	else
-	    client = NULL;
-	    
+	rock = NULL;
+	if (RPC2_GetPrivatePointer(mycid, &rock) != RPC2_SUCCESS || !rock)
+	{
+	    /* no known client identity is unexpected and bad */
+	    myrequest->Header.Opcode = BADCLIENT; /* ignore request & Unbind */
+	    goto badclient;
+	}
+
+	client = (ClientEntry *)rock;
+
 	/* check rpc2 connection handle */
-	if (client && client->RPCid != mycid) {
+	if (client->RPCid != mycid) {
 	    SLog(0, "Invalid client pointer from GetPrivatePointer");
 	    myrequest->Header.Opcode = BADCLIENT; /* ignore request & Unbind */
-	    client = 0;
+	    goto badclient;
 	}
 
 	/* check token expiry, compare the token expiry time to the
 	 * receive timestamp in the PacketBuffer. */
-	if (client && client->SecurityLevel != RPC2_OPENKIMONO &&
-	    myrequest->Prefix.RecvStamp.tv_sec > client->EndTimestamp) {
+	if (client->SecurityLevel != RPC2_OPENKIMONO &&
+	    myrequest->Prefix.RecvStamp.tv_sec > client->EndTimestamp)
+	{
 	    SLog(0, "Client Token expired");
 	    /* force a disconnection for this rpc2 connection */
 	    myrequest->Header.Opcode = TokenExpired_OP;
@@ -649,18 +745,15 @@ static void ServerLWP(void *arg)
 	LastOp[lwpid] = myrequest->Header.Opcode;
 	CurrentClient[lwpid] = client;
 
-	if (client) {
-	    client->LastCall = client->VenusId->LastCall = (unsigned int)time(0);
-	    /* the next time is used to eliminate GetTime calls from active stat */
-	    if (myrequest->Header.Opcode != GETTIME)
-		client->VenusId->ActiveCall = client->LastCall;
-	    client->LastOp = (int)myrequest->Header.Opcode;
-	}
+	client->LastCall = client->VenusId->LastCall = (unsigned int)time(0);
+	/* the next time is used to eliminate GetTime calls from active stat */
+	if (myrequest->Header.Opcode != GETTIME)
+	    client->VenusId->ActiveCall = client->LastCall;
+	client->LastOp = (int)myrequest->Header.Opcode;
 
 	SLog(5, "Worker %d received request %d on cid %d for %s at %s",
 	     lwpid, myrequest->Header.Opcode, mycid,
-	     client ? client->UserName : "NA",
-	     client ? inet_ntoa(client->VenusId->host) : "NA");
+	     client->UserName, inet_ntoa(client->VenusId->host));
 
 	if (myrequest->Header.Opcode > 0 && myrequest->Header.Opcode < FETCHDATA) {
 	    Counters[TOTAL]++;
@@ -670,39 +763,38 @@ static void ServerLWP(void *arg)
 	}
 
 	/* save fields we need, ExecuteRequest will thrash the buffer */
+badclient:
 	opcode = myrequest->Header.Opcode;
-
 	rc = srv_ExecuteRequest(mycid, myrequest, 0);
 
-	if (rc) {
-	    SLog(0, "srv.c request %d for %s at %s failed: %s",
-		 opcode, client ? client->UserName : "NA",
-		 client ? inet_ntoa(client->VenusId->host) : "NA",
-		 ViceErrorMsg((int)rc));
-
-	    if(client && rc <= RPC2_ELIMIT)
-		client->DoUnbind = 1;
-	}
-	if(client) {
-	    if(client->DoUnbind) {
-		struct Lock *lock = &client->VenusId->lock;
-
-		SLog(0, "Worker%d: Unbinding RPC connection %d",
-		     lwpid, mycid);
-
-		ObtainWriteLock(lock);
-		client->LastOp = 0;
-		CLIENT_Delete(client);
-		ReleaseWriteLock(lock);
-	    } else
-		client->LastOp = 0;
-	}
 	/* if bad client pointer Unbind the rpc connection */
-	if (opcode == BADCLIENT) {
+	if (opcode == BADCLIENT || !client) {
 	    SLog(0, "Worker%d: Unbinding RPC connection %d (BADCLIENT)",
 		 lwpid, mycid);
 	    RPC2_Unbind(mycid);
+	    continue;
 	}
+
+	if (rc) {
+	    SLog(0, "srv.c request %d for %s at %s failed: %s",
+		 opcode, client->UserName, inet_ntoa(client->VenusId->host),
+		 ViceErrorMsg((int)rc));
+
+	    if(rc <= RPC2_ELIMIT)
+		client->DoUnbind = 1;
+	}
+	if(client->DoUnbind) {
+	    struct Lock *lock = &client->VenusId->lock;
+
+	    SLog(0, "Worker%d: Unbinding RPC connection %d",
+		 lwpid, mycid);
+
+	    ObtainWriteLock(lock);
+	    client->LastOp = 0;
+	    CLIENT_Delete(client);
+	    ReleaseWriteLock(lock);
+	} else
+	    client->LastOp = 0;
     }
 }
 
@@ -1282,8 +1374,9 @@ static int ReadConfigFile(void)
     CODACONF_INT(SrvSendAhead,	"sendahead",	8);
     CODACONF_INT(timeout,	"timeout",	60);
     CODACONF_INT(retrycnt,	"retrycnt",	5);
-    CODACONF_INT(lwps,		"lwps",		6);
-    if (lwps > MAXLWP) lwps = MAXLWP;
+    CODACONF_INT(auth_lwps,	"auth_lwps",	5);
+    CODACONF_INT(server_lwps,	"lwps",		10);
+    if (server_lwps > MAXLWP) server_lwps = MAXLWP;
 
     CODACONF_INT(buffs,		    "buffs",	    100);
     CODACONF_INT(stack,		    "stack",	    96);
@@ -1385,9 +1478,9 @@ static int ParseArgs(int argc, char *argv[])
 		vicetab = argv[++i];
 	else
 	    if (!strcmp(argv[i], "-p")) {
-		lwps = atoi(argv[++i]);
-		if(lwps > MAXLWP)
-		    lwps = MAXLWP;
+		server_lwps = atoi(argv[++i]);
+		if(server_lwps > MAXLWP)
+		    server_lwps = MAXLWP;
 	    }
 	else
 	    if (!strcmp(argv[i], "-c"))

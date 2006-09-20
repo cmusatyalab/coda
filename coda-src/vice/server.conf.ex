@@ -89,6 +89,19 @@ trace=100
 #
 allow_sha=1
 
+
+#
+# The number of threads a server uses to handle the authentication of
+# new connections. This defaults to 5.
+#
+#auth_lwps=5
+
+#
+# The number of threads to handle Coda client requests. There is a
+# hardcoded limit of 16 (NUM_LWPS in srv.cc) the default value is 10.
+#
+#lwps=10
+
 #authenticate=1
 #buffs=100
 #cbwait=240
@@ -97,7 +110,6 @@ allow_sha=1
 #dumpvm=0
 #forcesalvage=1
 #large=500
-#lwps=6
 #nodebarrenize=0
 #pollandyield=1
 #pathtiming=1
