@@ -452,7 +452,7 @@ void ClientModifyLog::MarkCommittedMLE(RPC2_Unsigned Uniquifier)
  * was marked and may or may not still be there. 
  * Note that an abort may delete a record out from under us.
  */
-void ClientModifyLog::HandleFailedMLE(VenusFid *RepairFid)
+void ClientModifyLog::HandleFailedMLE(void)
 {
     repvol *vol = strbase(repvol, this, CML);
     cmlent *m, *n;
@@ -491,9 +491,6 @@ void ClientModifyLog::HandleFailedMLE(VenusFid *RepairFid)
 		}
 		
 		m->SetRepairFlag();
-
-		if(RepairFid)
-		  *RepairFid = m->u.u_repair.Fid;
     }
 }
 
@@ -3859,6 +3856,46 @@ void cmlent::DetachFidBindings()
     }
     delete fid_bindings;
     fid_bindings = 0;
+}
+
+void cmlent::getfids(VenusFid fid[3])
+{
+    fid[0] = fid[1] = fid[2] = NullFid;
+    switch(opcode) {
+    case CML_Store_OP:     fid[0] = u.u_store.Fid;
+			   break;
+    case CML_Utimes_OP:    fid[0] = u.u_utimes.Fid;
+			   break;
+    case CML_Chown_OP:     fid[0] = u.u_chown.Fid;
+			   break;
+    case CML_Chmod_OP:     fid[0] = u.u_chmod.Fid;
+			   break;
+    case CML_Create_OP:    fid[0] = u.u_create.PFid;
+			   fid[1] = u.u_create.CFid;
+			   break;
+    case CML_Remove_OP:    fid[0] = u.u_remove.PFid;
+			   fid[1] = u.u_remove.CFid;
+			   break;
+    case CML_Link_OP:      fid[0] = u.u_link.PFid;
+			   fid[1] = u.u_link.CFid;
+			   break;
+    case CML_Rename_OP:    fid[0] = u.u_rename.SPFid;
+			   fid[1] = u.u_rename.TPFid;
+			   fid[2] = u.u_rename.SFid;
+			   break;
+    case CML_MakeDir_OP:   fid[0] = u.u_mkdir.PFid;
+			   fid[1] = u.u_mkdir.CFid;
+			   break;
+    case CML_RemoveDir_OP: fid[0] = u.u_rmdir.PFid;
+			   fid[1] = u.u_rmdir.CFid;
+			   break;
+    case CML_SymLink_OP:   fid[0] = u.u_symlink.PFid;
+			   fid[1] = u.u_symlink.CFid;
+			   break;
+    case CML_Repair_OP:    fid[0] = u.u_repair.Fid;
+			   break;
+    default:		   break;
+    }
 }
 
 void cmlent::writeops(FILE *fp)

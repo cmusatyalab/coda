@@ -124,8 +124,8 @@ void LRD_Init(void) {
 
 void lrdb::GetLocalConflictFid(VenusFid *ConflictFid)
 {
-    if(!ConflictFid)
-      return;
+    CODA_ASSERT(ConflictFid);
+    *ConflictFid = NullFid;
 
     if (InRepairSession())
       /*

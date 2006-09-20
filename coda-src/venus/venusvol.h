@@ -180,7 +180,7 @@ class ClientModifyLog {
     int COP1(char *, int, ViceVersionVector *, int outoforder);
     void UnLockObjs(int);
     void MarkFailedMLE(int);
-    void HandleFailedMLE(VenusFid *);
+    void HandleFailedMLE(void);
     void MarkCommittedMLE(RPC2_Unsigned);
     void CancelPending();
     void ClearPending();
@@ -392,6 +392,8 @@ class cmlent {
     void abort();
     int checkpoint(FILE *);
     void writeops(FILE *);
+
+    void getfids(VenusFid fid[3]);
 
     void AttachFidBindings();
     void DetachFidBindings();
@@ -815,8 +817,8 @@ class repvol : public volent {
 
     /* Reintegration routines. */
     void Reintegrate();
-    int IncReintegrate(int, VenusFid *);
-    int PartialReintegrate(int, VenusFid *);
+    int IncReintegrate(int);
+    int PartialReintegrate(int);
     void SetReintegratePending();
     void CheckReintegratePending();
     int IsReintegratePending() { return flags.reintegratepending; }

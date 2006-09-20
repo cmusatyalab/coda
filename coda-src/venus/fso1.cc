@@ -2934,11 +2934,8 @@ int fsobj::LaunchASR(int conflict_type, int object_type) {
   ASRpid = pid;
   if(conflict_type == SERVER_SERVER)
     ASRfid = fid;
-  else {
-    VenusFid realfid = NullFid;
-    LRDB->GetLocalConflictFid(&realfid);
-    ASRfid = realfid;
-  }
+  else
+    LRDB->GetLocalConflictFid(&ASRfid);
   ASRuid = uid;
 
   if(write(pfd[1], (void *) "go", 2) < 0)

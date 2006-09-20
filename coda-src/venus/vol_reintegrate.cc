@@ -77,7 +77,6 @@ extern "C" {
 /* must not be called from within a transaction */
 void repvol::Reintegrate()
 {
-    VenusFid RepairFid = NullFid;
     LOG(0, ("repvol::Reintegrate\n"));
 
     if (!ReadyToReintegrate())
@@ -126,7 +125,7 @@ void repvol::Reintegrate()
          * step 2. Attempt to do partial reintegration for big stores at
          * the head of the CML.
          */
-	code = PartialReintegrate(thisTid, &RepairFid);
+	code = PartialReintegrate(thisTid);
 
         /* PartialReintegrate returns ENOENT when there was no CML entry
          * available for partial reintegration */
@@ -157,7 +156,7 @@ void repvol::Reintegrate()
         startedrecs = CML.count();
         MarinerLog("reintegrate::%s, %d/%d\n", name, nrecs, startedrecs);
 
-	code = IncReintegrate(thisTid, &RepairFid);
+	code = IncReintegrate(thisTid);
 
 	/* Log how many entries are left to reintegrate */
 	MarinerLog("reintegrate::%s, 0/%d\n", name, CML.count());
@@ -204,61 +203,74 @@ void repvol::Reintegrate()
     v->End_VFS();
 
     /* Check and launch ASRs, if appropriate. */
-    if((code == EINCOMPATIBLE || code == EINCONS) &&
-       !FID_EQ(&RepairFid, &NullFid))
+    if (code == EINCOMPATIBLE || code == EINCONS)
     {
-      int ASRInvokable;
-      fsobj *conflict;
-      repvol *v;
-      struct timeval tv;
-      vproc *vp;
-      VenusFid ConflictFid = NullFid;
+	VenusFid fids[3];
+	int i, ASRInvokable;
+	fsobj *conflict;
+	repvol *v;
+	struct timeval tv;
+	cml_iterator next(CML, CommitOrder);
+	cmlent *m;
 
-      vp = VprocSelf();
+	/* grab the first cmlent that is flagged as 'to_be_repaired' */
+	while ((m = next()))
+	    if (!m->IsToBeRepaired())
+		continue;
 
-      conflict = FSDB->Find(&ConflictFid);
-      if(!conflict) {
-	LOG(0, ("repvol::Reintegrate: Couldn't find conflict obj for ASR!\n"));
-	goto FinishedLaunch;
-      }
+	if (!m) goto Done;
 
-      v = (repvol *)conflict->vol;
-      gettimeofday(&tv, 0);
+	m->getfids(fids);
 
-      /* Check that:
-       * 1.) An ASRLauncher path was parsed in venus.conf.
-       * 2.) This thread is a worker.
-       * 3.) ASR's are allowed to execute within this volume.
-       * 4.) An ASR is not currently running within this volume.
-       * 5.) The timeout interval for ASR launching has expired.
-       */
+	/* we could also iterate through all returned fids, now we just pick
+	 * the (first) parent directory. */
+	if (FID_EQ(&fids[0], &NullFid))
+	    goto Done;
 
-      ASRInvokable = ((ASRLauncherFile != NULL) && (ASRPolicyFile != NULL)
-		     && v->IsASRAllowed() && v->IsASREnabled()
-		     && !v->asr_running()
-		     && ((tv.tv_sec - conflict->lastresolved) > ASR_INTERVAL));
+	conflict = FSDB->Find(&fids[0]);
+	if(!conflict) {
+	    LOG(0, ("repvol::Reintegrate: Couldn't find conflict for ASR!\n"));
+	    goto Done;
+	}
 
-      if(ASRLauncherFile == NULL)
-	LOG(0, ("ClientModifyLog::HandleFailedMLE: No ASRLauncher "
-		"specified in venus.conf!\n"));
-      if(!(v->IsASRAllowed()))
-	LOG(0, ("ClientModifyLog::HandleFailedMLE: User does not "
-		"allow ASR execution in this volume.\n"));
-      if(v->asr_running())
-	LOG(0, ("ClientModifyLog::HandleFailedMLE: ASR already "
-		"running in this volume.\n"));
-      if((tv.tv_sec - conflict->lastresolved) <= ASR_INTERVAL)
-	LOG(0, ("ClientModifyLog::HandleFailedMLE: ASR too soon!\n"));
+	v = (repvol *)conflict->vol;
+	gettimeofday(&tv, 0);
 
-      /* Send in any conflict type, it will get changed later. */
-      if(ASRInvokable)  /* Execute ASR. */
-	conflict->LaunchASR(LOCAL_GLOBAL, DIRECTORY_CONFLICT);
+	/* Check that:
+	 * 1.) An ASRLauncher path was parsed in venus.conf.
+	 * 2.) This thread is a worker.
+	 * 3.) ASR's are allowed to execute within this volume.
+	 * 4.) An ASR is not currently running within this volume.
+	 * 5.) The timeout interval for ASR launching has expired.
+	 */
+	if (!ASRLauncherFile) {
+	    LOG(0, ("ClientModifyLog::HandleFailedMLE: No ASRLauncher "
+		    "specified in venus.conf!\n"));
+	    goto Done;
+	}
+	if (!v->IsASRAllowed()) {
+	    LOG(0, ("ClientModifyLog::HandleFailedMLE: User does not "
+		    "allow ASR execution in this volume.\n"));
+	    goto Done;
+	}
+	if (v->asr_running()) {
+	    LOG(0, ("ClientModifyLog::HandleFailedMLE: ASR already "
+		    "running in this volume.\n"));
+	    goto Done;
+	}
+	if ((tv.tv_sec - conflict->lastresolved) <= ASR_INTERVAL) {
+	    LOG(0, ("ClientModifyLog::HandleFailedMLE: ASR too soon!\n"));
+	    goto Done;
+	}
 
+	ASRInvokable = ASRPolicyFile && v->IsASREnabled();
+	/* Send in any conflict type, it will get changed later. */
+	if (ASRInvokable)  /* Execute ASR. */
+	    conflict->LaunchASR(LOCAL_GLOBAL, DIRECTORY_CONFLICT);
     }
 
- FinishedLaunch:
-
-    /* reset it, 'cause we can't leave errors just laying around */
+Done:
+    /* reset any errors, 'cause we can't leave errors just laying around */
     v->u.u_error = 0;
 
     /* Let user know reintegration has completed */
@@ -276,7 +288,7 @@ void repvol::Reintegrate()
  */
 
 /* must not be called from within a transaction */
-int repvol::IncReintegrate(int tid, VenusFid *RepairFid)
+int repvol::IncReintegrate(int tid)
 {
     LOG(0, ("volent::IncReintegrate: (%s, %d) uid = %d\n",
 	    name, tid, CML.owner));
@@ -448,7 +460,7 @@ extern struct timeval *VprocRetryBeta;
 		 * session.  Local repair does its own error handling.
 		 */
 		if (tid != LRDB->GetRepairSessionTid())
-		    CML.HandleFailedMLE(RepairFid);
+		    CML.HandleFailedMLE();
 
 		break;
 	    }
@@ -490,7 +502,7 @@ extern struct timeval *VprocRetryBeta;
  * Reintegrate some portion of the store record at the head
  * of the log.
  */
-int repvol::PartialReintegrate(int tid, VenusFid *RepairFid)
+int repvol::PartialReintegrate(int tid)
 {
     cmlent *m;
     int code = 0;
@@ -600,7 +612,7 @@ CheckResult:
 	/* cancel, localize, or abort the offending record */
 	m->ClearReintegrationHandle();
 	CML.CancelPending();       
-	CML.HandleFailedMLE(RepairFid);
+	CML.HandleFailedMLE();
 
 	break;
     }
