@@ -1,3 +1,19 @@
+2006-09-21	<jaharkes@cs.cmu.edu>
+	* ======== Release 6.1.1 =========
+	* Calculate usable RVM setup parameters instead of hardcoding them.
+	* Break the 4GB limit for backup dumps.
+	* Return hints for cross directory rename resolution (Adam Wolbach)
+	* Make cross-directory rename hinting server-side only.
+	* Fix launching of ASRs for local/global conflicts. (Adam Wolbach)
+	* Get the fid(s) for local/global conflicts from the cmlent
+	* Don't assume Coda is mounted at /coda, try to use the path specified
+	  in venus.conf for pioctls.
+	* Separate worker threads from authentication threads on the server.
+	* Don't try to be smart and leave the umask alone. (Rune)
+	* Remove updateclnt/updatesrv dependency on rpc2portmap. (Rune)
+	* Remove rpc2portmap source, move updatesrv to codasrv-se port.
+	* Remove win95 (djgpp compiled, dos binary client) code.
+
 2006-08-28	<jaharkes@cs.cmu.edu>
 	* ======== Release 6.1.0 =========
 	* Rewrite of the application specific resolver (ASR) framework.
