@@ -206,7 +206,7 @@ void repvol::Reintegrate()
     if (code == EINCOMPATIBLE || code == EINCONS)
     {
 	VenusFid fids[3];
-	int i, ASRInvokable;
+	int ASRInvokable;
 	fsobj *conflict;
 	repvol *v;
 	struct timeval tv;
@@ -215,8 +215,8 @@ void repvol::Reintegrate()
 
 	/* grab the first cmlent that is flagged as 'to_be_repaired' */
 	while ((m = next()))
-	    if (!m->IsToBeRepaired())
-		continue;
+	    if (m->IsToBeRepaired())
+		break;
 
 	if (!m) goto Done;
 
