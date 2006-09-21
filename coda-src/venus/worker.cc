@@ -469,7 +469,7 @@ child_done:
     Mounted = 1;
 }
 
-void VFSUnmount() 
+void VFSUnmount()
 {
     /* Purge the kernel cache so that all cnodes are (hopefully) released. */
     k_Purge();
@@ -766,7 +766,12 @@ int WorkerCloseMuxfd(void)
     if (KernelFD)
 	ret = close(worker::muxfd);
 
-    worker::muxfd = KernelFD = -1;
+    /* just in case we still have a parent process waiting for us we don't want
+     * to lock up the boot sequence... */
+    if (parent_fd != -1)
+	close(parent_fd);
+
+    worker::muxfd = KernelFD = parent_fd = -1;
 
     return ret;
 }

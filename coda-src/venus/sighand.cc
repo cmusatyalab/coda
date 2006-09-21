@@ -241,8 +241,7 @@ static void SigChoke(int sig)
 
     /* just in case we still have a parent process waiting for us we don't want
      * to lock up the boot sequence... */
-    if (parent_fd != -1)
-	close(parent_fd);
+    WorkerCloseMuxfd();
 
     /* block all signals, except for INT and TERM (and the non-blockable ones,
      * KILL and STOP) */
