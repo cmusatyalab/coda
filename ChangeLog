@@ -6,8 +6,8 @@
 	* Make cross-directory rename hinting server-side only.
 	* Fix launching of ASRs for local/global conflicts. (Adam Wolbach)
 	* Get the fid(s) for local/global conflicts from the cmlent
-	* Don't assume Coda is mounted at /coda, try to use the path specified
-	  in venus.conf for pioctls.
+	* Don't assume Coda is mounted at /coda, try to use the configured
+	  location for pioctls.
 	* Separate worker threads from authentication threads on the server.
 	* Don't try to be smart and leave the umask alone. (Rune)
 	* Remove updateclnt/updatesrv dependency on rpc2portmap. (Rune)

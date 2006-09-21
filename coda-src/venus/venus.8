@@ -4,7 +4,7 @@
 venus \- Coda client cache manager
 .SH SYNOPSIS
 
-\fBvenus\fR [ \fB-k \fIkernel device\fB\fR ] [ \fB-cf \fIcache files\fB\fR ] [ \fB-c \fIcache blocks\fB\fR ] [ \fB-mles \fICML entries\fB\fR ] [ \fB-d \fIdebuglevel\fB\fR ] [ \fB-rpcdebug \fIrpc2 debuglevel\fB\fR ] [ \fB-f \fIcache directory\fB\fR ] [ \fB-m \fICOP modes\fB\fR ] [ \fB-console \fIconsole file\fB\fR ] [ \fB-retries \fIRPC2 retries\fB\fR ] [ \fB-timeout \fIRPC2 timeout\fB\fR ] [ \fB-ws \fISFTP window size\fB\fR ] [ \fB-sa \fISFTP sendahead\fB\fR ] [ \fB-ap \fISFTP ackpoint\fB\fR ] [ \fB-init\fR ] [ \fB-hdbes \fIhoard entries\fB\fR ] [ \fB-rvmt \fIRVM type\fB\fR ] [ \fB-maxprefetchers \fIfetch threads\fB\fR ] [ \fB-maxworkers \fIworker threads\fB\fR ] [ \fB-maxcbservers \fIcallback threads\fB\fR ] [ \fB-vld \fIRVM log device\fB\fR ] [ \fB-vlds \fIRVM log size\fB\fR ] [ \fB-vdd \fIRVM data device\fB\fR ] [ \fB-vdds \fIRVM data size\fB\fR ] [ \fB-rdscs \fIRVM data chunk size\fB\fR ] [ \fB-rdsnl \fIRVM data nr lists\fB\fR ] [ \fB-logopts 0 | 1\fR ] [ \fB-swt \fIweight\fB\fR ] [ \fB-mwt \fIweight\fB\fR ] [ \fB-ssf \fIscale factor\fB\fR ] [ \fBmount point\fR ]
+\fBvenus\fR [ \fB-k \fIkernel device\fB\fR ] [ \fB-cf \fIcache files\fB\fR ] [ \fB-c \fIcache blocks\fB\fR ] [ \fB-mles \fICML entries\fB\fR ] [ \fB-d \fIdebuglevel\fB\fR ] [ \fB-rpcdebug \fIrpc2 debuglevel\fB\fR ] [ \fB-f \fIcache directory\fB\fR ] [ \fB-m \fICOP modes\fB\fR ] [ \fB-console \fIconsole file\fB\fR ] [ \fB-retries \fIRPC2 retries\fB\fR ] [ \fB-timeout \fIRPC2 timeout\fB\fR ] [ \fB-ws \fISFTP window size\fB\fR ] [ \fB-sa \fISFTP sendahead\fB\fR ] [ \fB-ap \fISFTP ackpoint\fB\fR ] [ \fB-init\fR ] [ \fB-hdbes \fIhoard entries\fB\fR ] [ \fB-rvmt \fIRVM type\fB\fR ] [ \fB-maxprefetchers \fIfetch threads\fB\fR ] [ \fB-maxworkers \fIworker threads\fB\fR ] [ \fB-maxcbservers \fIcallback threads\fB\fR ] [ \fB-vld \fIRVM log device\fB\fR ] [ \fB-vlds \fIRVM log size\fB\fR ] [ \fB-vdd \fIRVM data device\fB\fR ] [ \fB-vdds \fIRVM data size\fB\fR ] [ \fB-rdscs \fIRVM data chunk size\fB\fR ] [ \fB-rdsnl \fIRVM data nr lists\fB\fR ] [ \fB-logopts 0 | 1\fR ] [ \fB-swt \fIweight\fB\fR ] [ \fB-mwt \fIweight\fB\fR ] [ \fB-ssf \fIscale factor\fB\fR ]
 
 .SH "DESCRIPTION"
 .PP
@@ -161,9 +161,6 @@ Medium term cache priority weight.
 .TP
 \fB-ssf\fR
 Short term cache scale factor.
-.TP
-\fBmount point\fR
-Directory to serve as the mount point for Coda.
 
 Default: \fB/coda\fR
 .SH "DIAGNOSTICS"

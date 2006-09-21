@@ -144,14 +144,6 @@ cacheblocks=100000
 mapprivate=1
 
 #
-# Mountpoint,
-# Where the coda filesystem is mounted, many application still depend on
-# this being /coda.
-#
-#mountpoint=N:
-#mountpoint=/coda
-
-#
 # Kernel device,
 # The character device used by venus to communicate with the kernel module.
 # Standard name is /dev/cfs0. Maybe we will switch to using /dev/coda0 at

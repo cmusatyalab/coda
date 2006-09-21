@@ -471,8 +471,6 @@ static void ParseCmdline(int argc, char **argv)
 		done = -1;
 	    }
 	}
-	else
-	    venusRoot = argv[i];   /* default is /coda */
     }
     if (done) exit(done < 0 ? 1 : 0);
 }
