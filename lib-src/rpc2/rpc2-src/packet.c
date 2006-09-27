@@ -479,12 +479,9 @@ long rpc2_CancelRetry(IN Conn, IN Sle)
   }
 
 
-long rpc2_SendReliably(IN Conn, IN Sle, IN Packet, IN TimeOut)
-    struct CEntry *Conn;
-    struct SL_Entry *Sle;	
-    RPC2_PacketBuffer *Packet;
-    struct timeval *TimeOut;
-    {
+long rpc2_SendReliably(struct CEntry *Conn, struct SL_Entry *Sle,
+		       RPC2_PacketBuffer *Packet, struct timeval *TimeOut)
+{
     struct SL_Entry *tlp;
     long hopeleft, finalrc;
     struct timeval *tout;
@@ -495,16 +492,16 @@ long rpc2_SendReliably(IN Conn, IN Sle, IN Packet, IN TimeOut)
     TR_SENDRELIABLY();
 
     if (TimeOut != NULL)
-	{/* create a time bomb */
+    {/* create a time bomb */
 	tlp = rpc2_AllocSle(OTHER, NULL);
 	rpc2_ActivateSle(tlp, TimeOut);
-	}
+    }
     else tlp = NULL;
 
     ThisRetryBeta = Conn->Retry_Beta;
     if (TestRole(Conn, CLIENT))   /* stamp the outgoing packet */
 	Packet->Header.TimeStamp = htonl(rpc2_MakeTimeStamp());
-	    
+
     /* Do an initial send of the packet */
     say(9, RPC2_DebugLevel, "Sending try at %ld on %#x (timeout %ld.%06ld)\n",
 			     rpc2_time(), Conn->UniqueCID,
@@ -514,8 +511,7 @@ long rpc2_SendReliably(IN Conn, IN Sle, IN Packet, IN TimeOut)
     if (rpc2_Bandwidth) rpc2_ResetLowerLimit(Conn, Packet);
 
     /* Initialize the SL Entry */
-    /* NOTE: we don't register for RetryBeta[0] here which is the 
-       keepalive */ 
+    /* NOTE: we don't register for RetryBeta[0] here which is the keepalive */
     Sle->RetryIndex = 1;
     rpc2_ActivateSle(Sle, &ThisRetryBeta[1]);
 
@@ -539,13 +535,13 @@ long rpc2_SendReliably(IN Conn, IN Sle, IN Packet, IN TimeOut)
 	    case NAKED:
 	    case ARRIVED:
 		break;		/* switch */
-	    
+
 	    case KEPTALIVE:
 		hopeleft = 1;
 		Sle->RetryIndex = 0;
 		rpc2_ActivateSle(Sle, &ThisRetryBeta[0]);
 		break;	/* switch */
-		
+
 	    case TIMEOUT:
 		if ((hopeleft = rpc2_CancelRetry(Conn, Sle)))
 		    break;      /* switch; we heard from side effect recently */
