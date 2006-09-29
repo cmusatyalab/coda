@@ -289,9 +289,9 @@ int sftp_DataArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
 	return(0); 
     }
 
-    moffset = pBuff->Header.SeqNumber-sEntry->RecvLastContig;
+    moffset = (long)pBuff->Header.SeqNumber - (long)sEntry->RecvLastContig;
 
-    if (moffset > sEntry->WindowSize) {
+    if (moffset > (long)sEntry->WindowSize) {
 	BOGOSITY(sEntry, pBuff);
 	return(-1);
     }
