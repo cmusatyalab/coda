@@ -488,7 +488,7 @@ int main(int arg, char **argv)
 	if(Buff2 != NULL)
 	    {
 #ifdef RPC2DEBUG
-	    if (RPC2_DebugLevel > 0) {
+	    if (RPC2_DebugLevel > 1) {
 		rpc2_htonp(Buff2);  /* rpc2_PrintPacketHeader assumes net order */
 		rpc2_PrintPacketHeader(Buff2, rpc2_tracefile);
 		rpc2_ntohp(Buff2);

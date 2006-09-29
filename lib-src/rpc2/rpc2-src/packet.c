@@ -115,7 +115,7 @@ void rpc2_XmitPacket(RPC2_PacketBuffer *pb, struct RPC2_addrinfo *addr,
     static int log_limit = 0;
     int whichSocket, n, flags = 0;
 
-    say(0, RPC2_DebugLevel, "rpc2_XmitPacket()\n");
+    say(1, RPC2_DebugLevel, "rpc2_XmitPacket()\n");
 
 #ifdef RPC2DEBUG
     if (RPC2_DebugLevel > 9)
@@ -216,7 +216,7 @@ long rpc2_RecvPacket(IN long whichSocket, OUT RPC2_PacketBuffer *whichBuff)
     socklen_t fromlen;
     struct sockaddr_storage ss;
 
-    say(0, RPC2_DebugLevel, "rpc2_RecvPacket()\n");
+    say(1, RPC2_DebugLevel, "rpc2_RecvPacket()\n");
     assert(whichBuff->Prefix.MagicNumber == OBJ_PACKETBUFFER);
 
     len = whichBuff->Prefix.BufferSize - (long)(&whichBuff->Header) + (long)(whichBuff);
@@ -447,7 +447,7 @@ long rpc2_CancelRetry(IN Conn, IN Sle)
     struct timeval now, lastword, timeout;
     struct timeval *retry;
 
-    say(0, RPC2_DebugLevel, "rpc2_CancelRetry()\n");
+    say(1, RPC2_DebugLevel, "rpc2_CancelRetry()\n");
 
     retry = Conn->Retry_Beta;
 
@@ -487,7 +487,7 @@ long rpc2_SendReliably(struct CEntry *Conn, struct SL_Entry *Sle,
     struct timeval *tout;
     struct timeval *ThisRetryBeta;
 
-    say(0, RPC2_DebugLevel, "rpc2_SendReliably()\n");
+    say(1, RPC2_DebugLevel, "rpc2_SendReliably()\n");
 
     TR_SENDRELIABLY();
 

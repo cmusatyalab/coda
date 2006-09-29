@@ -164,7 +164,7 @@ long RPC2_SendResponse(IN RPC2_Handle ConnHandle, IN RPC2_PacketBuffer *Reply)
     long rc;
 
     rpc2_Enter();
-    say(0, RPC2_DebugLevel, "RPC2_SendResponse()\n");
+    say(1, RPC2_DebugLevel, "RPC2_SendResponse()\n");
     assert(!Reply || Reply->Prefix.MagicNumber == OBJ_PACKETBUFFER);
 
     /* Perform sanity checks */
@@ -347,7 +347,7 @@ long RPC2_GetRequest(IN RPC2_RequestFilter *Filter,
 	long rc;
 
 	rpc2_Enter();
-	say(0, RPC2_DebugLevel, "RPC2_GetRequest()\n");
+	say(1, RPC2_DebugLevel, "RPC2_GetRequest()\n");
 
 	TR_GETREQUEST();
 
@@ -519,7 +519,7 @@ long RPC2_MakeRPC(RPC2_Handle ConnHandle, RPC2_PacketBuffer *Request,
     long rc, secode = RPC2_SUCCESS, finalrc, opcode;
 
     rpc2_Enter();
-    say(0, RPC2_DebugLevel, "RPC2_MakeRPC()\n");
+    say(1, RPC2_DebugLevel, "RPC2_MakeRPC()\n");
 
     TR_MAKERPC();
 
@@ -541,9 +541,9 @@ long RPC2_MakeRPC(RPC2_Handle ConnHandle, RPC2_PacketBuffer *Request,
 	if (SDesc && ce->sebroken) rpc2_Quit(RPC2_SEFAIL2);
 
 	if (!EnqueueRequest) rpc2_Quit(RPC2_CONNBUSY);
-	say(0, RPC2_DebugLevel, "Enqueuing on connection %#x\n",ConnHandle);
+	say(1, RPC2_DebugLevel, "Enqueuing on connection %#x\n",ConnHandle);
 	LWP_WaitProcess((char *)ce);
-	say(0, RPC2_DebugLevel, "Dequeueing on connection %#x\n", ConnHandle);
+	say(1, RPC2_DebugLevel, "Dequeueing on connection %#x\n", ConnHandle);
 	}
     /* XXXXXX race condition with preemptive threads */
     SetState(ce, C_AWAITREPLY);
@@ -698,7 +698,7 @@ long RPC2_NewBinding(IN RPC2_HostIdent *Host, IN RPC2_PortIdent *Port,
 	    {rpc2_SetConnError(ce); (void) RPC2_Unbind(*ConnHandle); *ConnHandle = 0;}
 
     rpc2_Enter();
-    say(0, RPC2_DebugLevel, "In RPC2_NewBinding()\n");
+    say(1, RPC2_DebugLevel, "In RPC2_NewBinding()\n");
 
     TR_BIND();
 
@@ -751,7 +751,7 @@ try_next_addr:
     rc = setup_init1_key(secure_setup_decrypt, &ce->sa, xrandom, ce->PeerUnique,
 			 rpc2key);
     if (rc) {
-	say(0, RPC2_DebugLevel, "Failed to initialize security context\n");
+	say(1, RPC2_DebugLevel, "Failed to initialize security context\n");
 	rpc2_Quit(RPC2_FAIL);
     }
 
@@ -1092,7 +1092,7 @@ BindOver:
 
 long RPC2_InitSideEffect(IN RPC2_Handle ConnHandle, IN SE_Descriptor *SDesc)
 {
-    say(0, RPC2_DebugLevel, "RPC2_InitSideEffect()\n");
+    say(1, RPC2_DebugLevel, "RPC2_InitSideEffect()\n");
 
     TR_INITSE();
 
@@ -1103,7 +1103,7 @@ long RPC2_InitSideEffect(IN RPC2_Handle ConnHandle, IN SE_Descriptor *SDesc)
 long RPC2_CheckSideEffect(IN RPC2_Handle ConnHandle, 
 			  INOUT SE_Descriptor *SDesc, IN long Flags)
 {
-    say(0, RPC2_DebugLevel, "RPC2_CheckSideEffect()\n");
+    say(1, RPC2_DebugLevel, "RPC2_CheckSideEffect()\n");
 
     TR_CHECKSE();
     
@@ -1144,7 +1144,7 @@ long RPC2_Unbind(RPC2_Handle whichConn)
 	struct CEntry *ce;
 	struct MEntry *me;
 	
-	say(0, RPC2_DebugLevel, "RPC2_Unbind(%x)\n", whichConn);
+	say(1, RPC2_DebugLevel, "RPC2_Unbind(%x)\n", whichConn);
 	
 	TR_UNBIND();
 

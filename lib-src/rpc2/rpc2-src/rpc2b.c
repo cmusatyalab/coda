@@ -91,7 +91,7 @@ long RPC2_Init(char *VId,		/* magic version string */
     rpc2_tracefile = stderr;
 
     rpc2_Enter();
-    say(0, RPC2_DebugLevel, "RPC2_Init()\n");
+    say(1, RPC2_DebugLevel, "RPC2_Init()\n");
     say(999, RPC2_DebugLevel, "Runtime system version: \"%s\"\n", RPC2_VERSION);
 
     if (strcmp(VId, RPC2_VERSION) != 0)
@@ -225,7 +225,7 @@ long RPC2_Export(IN Subsys)
     struct SubsysEntry *sp;
 
     rpc2_Enter();
-    say(0, RPC2_DebugLevel, "RPC2_Export()\n");
+    say(1, RPC2_DebugLevel, "RPC2_Export()\n");
 
     switch(Subsys->Tag)
 	{
@@ -234,7 +234,7 @@ long RPC2_Export(IN Subsys)
 	    break;
 	
 	case RPC2_SUBSYSBYNAME:
-		say(0, RPC2_DebugLevel, "RPC2_Export: obsolete SUBSYSBYNAME used!\n");
+		say(1, RPC2_DebugLevel, "RPC2_Export: obsolete SUBSYSBYNAME used!\n");
 		assert(0);
 	    break;
 
@@ -259,7 +259,7 @@ long RPC2_DeExport(IN Subsys)
     struct SubsysEntry *sp;
 
     rpc2_Enter();
-    say(0, RPC2_DebugLevel, "RPC2_DeExport()\n");
+    say(1, RPC2_DebugLevel, "RPC2_DeExport()\n");
 
     if (Subsys == NULL)
 	{/* Terminate all subsystems */
@@ -276,7 +276,7 @@ long RPC2_DeExport(IN Subsys)
 	    break;
 	
 	case RPC2_SUBSYSBYNAME:
-		say(0, RPC2_DebugLevel, "RPC2_Export: obsolete SUBSYSBYNAME used!\n");
+		say(1, RPC2_DebugLevel, "RPC2_Export: obsolete SUBSYSBYNAME used!\n");
 		assert(0);
 
 	    break;
@@ -637,7 +637,7 @@ long RPC2_Enable(RPC2_Handle whichConn)
 {
 	struct CEntry *ceaddr;
 
-	say(0, RPC2_DebugLevel, "RPC2_Enable()\n");
+	say(1, RPC2_DebugLevel, "RPC2_Enable()\n");
 
 	rpc2_Enter();
 	ceaddr = rpc2_GetConn(whichConn);
@@ -655,7 +655,7 @@ long RPC2_SetColor(Conn, Color)
     {
     struct CEntry *ceaddr;
 
-    say(0, RPC2_DebugLevel, "RPC2_SetColor()\n");
+    say(1, RPC2_DebugLevel, "RPC2_SetColor()\n");
 
     rpc2_Enter();
     ceaddr = rpc2_GetConn(Conn);
@@ -670,7 +670,7 @@ long RPC2_GetColor(Conn, Color)
     {
     struct CEntry *ceaddr;
 
-    say(0, RPC2_DebugLevel, "RPC2_GetColor()\n");
+    say(1, RPC2_DebugLevel, "RPC2_GetColor()\n");
 
     rpc2_Enter();
     ceaddr = rpc2_GetConn(Conn);
@@ -731,7 +731,7 @@ long RPC2_GetNetInfo(IN Conn, INOUT RPCLog, INOUT SELog)
     {
     struct CEntry *ceaddr;
 
-    say(0, RPC2_DebugLevel, "RPC2_GetNetInfo()\n");
+    say(1, RPC2_DebugLevel, "RPC2_GetNetInfo()\n");
 
     rpc2_Enter();
 
@@ -782,7 +782,7 @@ long RPC2_PutNetInfo(IN Conn, INOUT RPCLog, INOUT SELog)
     struct CEntry *ceaddr;
     int i;
 
-    say(0, RPC2_DebugLevel, "RPC2_PutNetInfo()\n");
+    say(1, RPC2_DebugLevel, "RPC2_PutNetInfo()\n");
 
     rpc2_Enter();
 

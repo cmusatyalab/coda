@@ -78,7 +78,7 @@ void rpc2_ClockTick(void *dummy)
 
 	LWP_WaitProcess((char *)sl);
 	timenow = rpc2_time();
-	say(0, RPC2_DebugLevel, "Clock Tick at %ld\n",  timenow);
+	say(1, RPC2_DebugLevel, "Clock Tick at %ld\n",  timenow);
 
 #ifdef RPC2DEBUG
 	if (RPC2_Trace && rpc2_TraceBuffHeader)

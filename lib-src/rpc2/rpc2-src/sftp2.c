@@ -126,7 +126,7 @@ void sftp_ExaminePacket(RPC2_PacketBuffer *pb)
     if (pb->Header.Opcode == SFTP_NAK)
     {
 	sftp_Recvd.Naks++;
-	say(0, SFTP_DebugLevel, "SFTP_NAK received\n");
+	say(1, SFTP_DebugLevel, "SFTP_NAK received\n");
 
 	/* sfp->WhoAmI is set to ERROR by sftp_SetError */
 	iamserver = (sfp->WhoAmI == SFSERVER);
@@ -145,7 +145,7 @@ void sftp_ExaminePacket(RPC2_PacketBuffer *pb)
      * I disabled this for now */
     if (0 && !RPC2_cmpaddrinfo(sfp->HostInfo->Addr, pb->Prefix.PeerAddr))
     {
-	say(0, SFTP_DebugLevel, "Received SFTP packet from unexpected host\n");
+	say(1, SFTP_DebugLevel, "Received SFTP packet from unexpected host\n");
 	SFSendNAK(pb); /* NAK this packet */
 	BOGUS(pb);
 	return;
@@ -154,7 +154,7 @@ void sftp_ExaminePacket(RPC2_PacketBuffer *pb)
     /* SANITY CHECK: make sure this pertains to the current RPC call. */
     if (pb->Header.ThisRPCCall != sfp->ThisRPCCall)
     {
-	say(0, SFTP_DebugLevel, "Old SFTP packet RPC %d, expecting RPC %d\n", pb->Header.ThisRPCCall, sfp->ThisRPCCall);
+	say(1, SFTP_DebugLevel, "Old SFTP packet RPC %d, expecting RPC %d\n", pb->Header.ThisRPCCall, sfp->ThisRPCCall);
 	SFTP_FreeBuffer(&pb);
 	return;
     }
@@ -295,7 +295,7 @@ static void SFSendNAK(RPC2_PacketBuffer *pb)
     if (remoteHandle == -1) return;
 
     sftp_Sent.Naks++;
-    say(0, SFTP_DebugLevel, "SFSendNAK\n");
+    say(1, SFTP_DebugLevel, "SFSendNAK\n");
     SFTP_AllocBuffer(0, &nakpb);
     nakpb->Prefix.LengthOfPacket = sizeof(struct RPC2_PacketHeader);
     nakpb->Header.ProtoVersion = SFTPVERSION;

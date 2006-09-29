@@ -99,7 +99,7 @@ static long MakeBigEnough();
 
 long SFTP_Init()
 {
-    say(0, SFTP_DebugLevel, "SFTP_Init()\n");
+    say(1, SFTP_DebugLevel, "SFTP_Init()\n");
 
     sftp_InitTrace();
 
@@ -191,7 +191,7 @@ long SFTP_Bind1(IN ConnHandle, IN ClientIdent)
     {
     struct SFTP_Entry *se;
 
-    say(0, SFTP_DebugLevel, "SFTP_Bind()\n");
+    say(1, SFTP_DebugLevel, "SFTP_Bind()\n");
 
     se = sftp_AllocSEntry();	/* malloc and initialize SFTP_Entry */
     se->WhoAmI = SFCLIENT;
@@ -253,7 +253,7 @@ long SFTP_NewConn(IN ConnHandle, IN ClientIdent)
     {
     struct SFTP_Entry *se;
 
-    say(0, SFTP_DebugLevel, "SFTP_NewConn()\n");
+    say(1, SFTP_DebugLevel, "SFTP_NewConn()\n");
 
     se = sftp_AllocSEntry();	/* malloc and initialize */
     se->WhoAmI = SFSERVER;
@@ -284,7 +284,7 @@ long SFTP_MakeRPC1(IN ConnHandle, INOUT SDesc, INOUT RequestPtr)
     int rc;
     off_t len;
 
-    say(0, SFTP_DebugLevel, "SFTP_MakeRPC1 ()\n");
+    say(1, SFTP_DebugLevel, "SFTP_MakeRPC1 ()\n");
 
     SDesc->LocalStatus = SE_SUCCESS;	/* non-execution == success */
     SDesc->RemoteStatus = SE_SUCCESS;	/* non-execution == success */
@@ -350,7 +350,7 @@ long SFTP_MakeRPC2(IN ConnHandle, INOUT SDesc, INOUT Reply)
     int i;
     off_t nbytes;
 
-    say(0, SFTP_DebugLevel, "SFTP_MakeRPC2()\n");
+    say(1, SFTP_DebugLevel, "SFTP_MakeRPC2()\n");
     
     assert(RPC2_GetSEPointer(ConnHandle, &se) == RPC2_SUCCESS);
 
@@ -407,7 +407,7 @@ long SFTP_GetRequest(RPC2_Handle ConnHandle, RPC2_PacketBuffer *Request)
     off_t len;
     int retry;
 
-    say(0, SFTP_DebugLevel, "SFTP_GetRequest()\n");
+    say(1, SFTP_DebugLevel, "SFTP_GetRequest()\n");
 
     assert (RPC2_GetSEPointer(ConnHandle, &se) == RPC2_SUCCESS &&  se != NULL);
     if (se->WhoAmI != SFSERVER) FAIL(se, RPC2_SEFAIL2);
@@ -453,7 +453,7 @@ long SFTP_InitSE(RPC2_Handle ConnHandle, SE_Descriptor *SDesc)
     struct SFTP_Entry *se;
     int rc;
 
-    say(0, SFTP_DebugLevel, "SFTP_InitSE ()\n");
+    say(1, SFTP_DebugLevel, "SFTP_InitSE ()\n");
 	
     SDesc->LocalStatus = SE_NOTSTARTED;
     SDesc->RemoteStatus = SE_NOTSTARTED;
@@ -481,7 +481,7 @@ long SFTP_CheckSE(RPC2_Handle ConnHandle, SE_Descriptor *SDesc, long Flags)
     struct FileInfoByAddr *p;
 	
 
-    say(0, SFTP_DebugLevel, "SFTP_CheckSE()\n");
+    say(1, SFTP_DebugLevel, "SFTP_CheckSE()\n");
 
     if (Flags == 0) return(RPC2_SUCCESS);
     assert (RPC2_GetSEPointer(ConnHandle, &se) == RPC2_SUCCESS &&  se != NULL);
@@ -498,19 +498,19 @@ long SFTP_CheckSE(RPC2_Handle ConnHandle, SE_Descriptor *SDesc, long Flags)
 	switch(sftpd->Tag)
 	    {
 	    case FILEBYNAME:
-		say(0, SFTP_DebugLevel, "%s: ", sftpd->FileInfo.ByName.LocalFileName);
+		say(1, SFTP_DebugLevel, "%s: ", sftpd->FileInfo.ByName.LocalFileName);
 	    	break;
 
 	    case FILEBYINODE:
-		say(0, SFTP_DebugLevel, "%ld.%ld: ", sftpd->FileInfo.ByInode.Device, sftpd->FileInfo.ByInode.Inode);
+		say(1, SFTP_DebugLevel, "%ld.%ld: ", sftpd->FileInfo.ByInode.Device, sftpd->FileInfo.ByInode.Inode);
 	    	break;
 
 	    case FILEBYFD:
-		say(0, SFTP_DebugLevel, "%ld: ", sftpd->FileInfo.ByFD.fd);
+		say(1, SFTP_DebugLevel, "%ld: ", sftpd->FileInfo.ByFD.fd);
 	    	break;
 
 	    case FILEINVM:
-		say(0, SFTP_DebugLevel, "%p[%u, %u]: ", sftpd->FileInfo.ByAddr.vmfile.SeqBody, sftpd->FileInfo.ByAddr.vmfile.MaxSeqLen,  sftpd->FileInfo.ByAddr.vmfile.SeqLen);
+		say(1, SFTP_DebugLevel, "%p[%u, %u]: ", sftpd->FileInfo.ByAddr.vmfile.SeqBody, sftpd->FileInfo.ByAddr.vmfile.MaxSeqLen,  sftpd->FileInfo.ByAddr.vmfile.SeqLen);
 	    	break;
 	    }
 
@@ -582,7 +582,7 @@ long SFTP_SendResponse(IN ConnHandle, IN Reply)
     struct SFTP_Entry *se;
     long rc;
 
-    say(0, SFTP_DebugLevel, "SFTP_SendResponse()\n");
+    say(1, SFTP_DebugLevel, "SFTP_SendResponse()\n");
 
     assert (RPC2_GetSEPointer(ConnHandle, &se) == RPC2_SUCCESS &&  se != NULL);
     
@@ -645,7 +645,7 @@ long SFTP_GetTime(IN RPC2_Handle ConnHandle, INOUT struct timeval *Time)
     struct SFTP_Entry *se;
     long rc;
 
-    say(0, SFTP_DebugLevel, "SFTP_GetTime()\n");
+    say(1, SFTP_DebugLevel, "SFTP_GetTime()\n");
 
     se = NULL;
     /* 
@@ -669,7 +669,7 @@ long SFTP_GetHostInfo(IN ConnHandle, INOUT HPtr)
     struct SFTP_Entry *se;
     long rc;
 
-    say(0, SFTP_DebugLevel, "SFTP_GetHostInfo()\n");
+    say(1, SFTP_DebugLevel, "SFTP_GetHostInfo()\n");
 
     se = NULL;
     if ((rc = RPC2_GetSEPointer(ConnHandle, &se)) != RPC2_SUCCESS)

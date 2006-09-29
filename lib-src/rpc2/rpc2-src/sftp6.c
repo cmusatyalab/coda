@@ -90,7 +90,7 @@ long SFTP_MultiRPC1(IN HowMany, IN ConnHandleList, INOUT SDescList, INOUT req, I
     long		retcode[];
 {
     int	host;
-    say(0, SFTP_DebugLevel, "SFTP_MultiRPC1()\n");
+    say(1, SFTP_DebugLevel, "SFTP_MultiRPC1()\n");
 
     /* simply iterate over the set of hosts calling SFTP_MakeRPC1() */
     for (host = 0; host < HowMany; host++) {
@@ -111,7 +111,7 @@ long SFTP_MultiRPC2(IN ConnHandle, INOUT SDesc, INOUT Reply)
     struct SFTP_Entry	*se;
     long		rc;
 
-    say(0, SFTP_DebugLevel, "SFTP_MultiRPC2()\n");
+    say(1, SFTP_DebugLevel, "SFTP_MultiRPC2()\n");
 
     rc = SFTP_MakeRPC2(ConnHandle, SDesc, Reply);
     assert(RPC2_GetSEPointer(ConnHandle, &se) == RPC2_SUCCESS);
@@ -128,7 +128,7 @@ long SFTP_CreateMgrp(IN MgroupHandle)
     struct SFTP_Entry	*mse;			/* Multicast SFTP Entry */
     RPC2_PeerInfo	*PeerInfo;
 
-    say(0, SFTP_DebugLevel, "SFTP_CreateMgrp()\n");
+    say(1, SFTP_DebugLevel, "SFTP_CreateMgrp()\n");
     assert((me = rpc2_GetMgrp(NULL, MgroupHandle, CLIENT)) != NULL);
 
     /* allocate an SFTP_Entry for the multicast group */
@@ -181,7 +181,7 @@ long SFTP_InitMulticast(IN MgroupHandle, IN ConnHandle, IN Request)
     struct SFTP_Entry	*mse;			/* Multicast SFTP Entry */
     int ret;
 
-    say(0, SFTP_DebugLevel, "SFTP_InitMulticast()\n");
+    say(1, SFTP_DebugLevel, "SFTP_InitMulticast()\n");
     ce = rpc2_GetConn(ConnHandle);
     assert(ce != NULL);
 
@@ -223,7 +223,7 @@ long SFTP_DeleteMgrp(RPC2_Handle MgroupHandle, struct RPC2_addrinfo *ClientAddr,
     struct SFTP_Entry	*mse;			/* Multicast SFTP Entry */
     int			i;
 
-    say(0, SFTP_DebugLevel, "SFTP_DeleteMgrp()\n");
+    say(1, SFTP_DebugLevel, "SFTP_DeleteMgrp()\n");
     assert((me = rpc2_GetMgrp(ClientAddr, MgroupHandle, Role)) != NULL);
 
     /* ...below is taken from SFTP_Unbind()... */

@@ -100,7 +100,7 @@ int HASHMGRP(struct RPC2_addrinfo *ai, int id)
    is zeroing the hash table. */
 void rpc2_InitMgrp()
 {
-	say(0, RPC2_DebugLevel, "In rpc2_InitMgrp()\n");
+	say(1, RPC2_DebugLevel, "In rpc2_InitMgrp()\n");
 	
 	memset(MgrpHashTable, 0, sizeof(MgrpHashTable));
 	LastMgrpidAllocated = 0;
@@ -244,7 +244,7 @@ long RPC2_CreateMgrp(OUT MgroupHandle, IN MulticastHost, IN MulticastPort, IN Su
     long		secode;
 
     rpc2_Enter();
-    say(0, RPC2_DebugLevel, "In RPC2_CreateMgrp()\n");
+    say(1, RPC2_DebugLevel, "In RPC2_CreateMgrp()\n");
 
     TR_CREATEMGRP();
 
@@ -309,7 +309,7 @@ long RPC2_AddToMgrp(IN MgroupHandle, IN ConnHandle)
     RPC2_PacketBuffer		*savedpkt;	/* in case SE reallocates */
 
     rpc2_Enter();
-    say(0, RPC2_DebugLevel, "In RPC2_AddToMgrp()\n");
+    say(1, RPC2_DebugLevel, "In RPC2_AddToMgrp()\n");
 
     TR_ADDTOMGRP();
 
@@ -323,9 +323,9 @@ long RPC2_AddToMgrp(IN MgroupHandle, IN ConnHandle)
 	if (TestState(me, CLIENT, ~C_THINK))
 	    {
 	    /*	if (!EnqueueRequest) rpc2_Quit(RPC2_MGRPBUSY);*/
-	    say(0, RPC2_DebugLevel, "Enqueuing on mgrp %#x\n",MgroupHandle);
+	    say(1, RPC2_DebugLevel, "Enqueuing on mgrp %#x\n",MgroupHandle);
 	    LWP_WaitProcess((char *)me);
-	    say(0, RPC2_DebugLevel, "Dequeueing on mgrp %#x\n", MgroupHandle);
+	    say(1, RPC2_DebugLevel, "Dequeueing on mgrp %#x\n", MgroupHandle);
 	    continue;
 	    }
 
@@ -345,9 +345,9 @@ long RPC2_AddToMgrp(IN MgroupHandle, IN ConnHandle)
 	}
 
 	/*  if (!EnqueueRequest) rpc2_Quit(RPC2_CONNBUSY);*/
-say(0, RPC2_DebugLevel, "Enqueuing on connection %#x\n",ConnHandle);
+	say(1, RPC2_DebugLevel, "Enqueuing on connection %#x\n",ConnHandle);
 	LWP_WaitProcess((char *)ce);
-	say(0, RPC2_DebugLevel, "Dequeueing on connection %#x\n", ConnHandle);
+	say(1, RPC2_DebugLevel, "Dequeueing on connection %#x\n", ConnHandle);
 	}
 
     /* Check that the connection has the same side-effect type as the
@@ -510,7 +510,7 @@ long RPC2_RemoveFromMgrp(IN MgroupHandle, IN ConnHandle)
     struct CEntry  *ce;
 
     rpc2_Enter();
-    say(0, RPC2_DebugLevel, "In RPC2_RemoveFromMgrp()\n");
+    say(1, RPC2_DebugLevel, "In RPC2_RemoveFromMgrp()\n");
 
     /* Validate multicast group and connection. */
     while (TRUE)
@@ -522,9 +522,9 @@ long RPC2_RemoveFromMgrp(IN MgroupHandle, IN ConnHandle)
 	if (TestState(me, CLIENT, ~C_THINK))
 	    {
 	    /*	if (!EnqueueRequest) rpc2_Quit(RPC2_MGRPBUSY);*/
-	    say(0, RPC2_DebugLevel, "Enqueuing on mgrp %#x\n",MgroupHandle);
+	    say(1, RPC2_DebugLevel, "Enqueuing on mgrp %#x\n",MgroupHandle);
 	    LWP_WaitProcess((char *)me);
-	    say(0, RPC2_DebugLevel, "Dequeueing on mgrp %#x\n", MgroupHandle);
+	    say(1, RPC2_DebugLevel, "Dequeueing on mgrp %#x\n", MgroupHandle);
 	    continue;
 	    }
 
@@ -540,9 +540,9 @@ long RPC2_RemoveFromMgrp(IN MgroupHandle, IN ConnHandle)
 	    }
 
 	/*  if (!EnqueueRequest) rpc2_Quit(RPC2_CONNBUSY);*/
-	say(0, RPC2_DebugLevel, "Enqueuing on connection %#x\n",ConnHandle);
+	say(1, RPC2_DebugLevel, "Enqueuing on connection %#x\n",ConnHandle);
 	LWP_WaitProcess((char *)ce);
-	say(0, RPC2_DebugLevel, "Dequeueing on connection %#x\n", ConnHandle);
+	say(1, RPC2_DebugLevel, "Dequeueing on connection %#x\n", ConnHandle);
 	}
 
     rpc2_RemoveFromMgrp(me, ce);
@@ -575,7 +575,7 @@ long RPC2_DeleteMgrp(IN MgroupHandle)
     struct MEntry  *me;
 
     rpc2_Enter();
-    say(0, RPC2_DebugLevel, "In RPC2_DeleteMgrp()\n");
+    say(1, RPC2_DebugLevel, "In RPC2_DeleteMgrp()\n");
 
     /* Validate multicast group. */
     while (TRUE)
@@ -587,9 +587,9 @@ long RPC2_DeleteMgrp(IN MgroupHandle)
 	if (TestState(me, CLIENT, C_THINK)) break;
 
 	/*  if (!EnqueueRequest) rpc2_Quit(RPC2_MGRPBUSY);*/
-	say(0, RPC2_DebugLevel, "Enqueuing on mgrp %#x\n",MgroupHandle);
+	say(1, RPC2_DebugLevel, "Enqueuing on mgrp %#x\n",MgroupHandle);
 	LWP_WaitProcess((char *)me);
-	say(0, RPC2_DebugLevel, "Dequeueing on mgrp %#x\n", MgroupHandle);
+	say(1, RPC2_DebugLevel, "Dequeueing on mgrp %#x\n", MgroupHandle);
 	}
 
     rpc2_DeleteMgrp(me);
@@ -604,7 +604,7 @@ void HandleInitMulticast(RPC2_PacketBuffer *pb, struct CEntry *ce)
     struct InitMulticastBody	*imb;
     unsigned long              ts;
 
-    say(0, RPC2_DebugLevel, "In HandleInitMulticast()\n");
+    say(1, RPC2_DebugLevel, "In HandleInitMulticast()\n");
 
     rpc2_Recvd.Requests++;	    /* classify this as a normal request? */
 

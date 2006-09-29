@@ -317,7 +317,7 @@ void rpc2_ReapDeadConns(void)
 	if (!ce->PrivatePtr && TestRole(ce, SERVER) &&
 	    ce->LastRef + RPC2_DEAD_CONN_TIMEOUT < now)
 	{
-	    say(0, RPC2_DebugLevel, "Reaping dead connection %#x\n",
+	    say(1, RPC2_DebugLevel, "Reaping dead connection %#x\n",
 		ce->UniqueCID);
 	    RPC2_Unbind(ce->UniqueCID);
 	}
@@ -445,7 +445,7 @@ rpc2_ConnFromBindInfo(struct RPC2_addrinfo *addr,
 			rbn->Unique == whichUnique &&
 			RPC2_cmpaddrinfo(rbn->addr, addr))
 		    {
-			say(0, RPC2_DebugLevel, "RBCache hit after %d tries\n", i+1);
+			say(1, RPC2_DebugLevel, "RBCache hit after %d tries\n", i+1);
 			ce = rpc2_GetConn(rbn->MyConn);
 			/* can't test the state because OPENKIMONO connections
 			 * will already be in S_AWAITREQUEST state */
@@ -460,7 +460,7 @@ rpc2_ConnFromBindInfo(struct RPC2_addrinfo *addr,
 		    else next--;
 	    }
 	    
-	    say(0, RPC2_DebugLevel, "RBCache miss after %d tries\n", RBSIZE);
+	    say(1, RPC2_DebugLevel, "RBCache miss after %d tries\n", RBSIZE);
     }
     
     /* It was not in the RBCache; scan all the connections */
@@ -482,14 +482,14 @@ rpc2_ConnFromBindInfo(struct RPC2_addrinfo *addr,
 	     TestState(ce, SERVER, S_AWAITINIT3)) &&
 	    RPC2_cmpaddrinfo(ce->HostInfo->Addr, addr))
 	{
-	    say(0, RPC2_DebugLevel,
+	    say(1, RPC2_DebugLevel,
 		"Match after searching %d connection entries\n", j);
 	    /* and put the CE at the head of it's hashbucket */
 	    __rehash_ce(ce);
 	    return(ce);
 	}
     }
-    say(0, RPC2_DebugLevel, "No match after searching %ld connections\n",
+    say(1, RPC2_DebugLevel, "No match after searching %ld connections\n",
         rpc2_ConnCount);
 
     return(NULL);

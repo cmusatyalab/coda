@@ -103,7 +103,7 @@ void B_CopyFromPacket(RPC2_PacketBuffer *whichPacket, unsigned int *bMask);
 
 #ifdef RPC2DEBUG
 void PrintDb(struct SFTP_Entry *se, RPC2_PacketBuffer *pb);
-#define BOGOSITY(se, pb)  (printf("SFTP bogosity:  file %s, line %d\n", __FILE__, __LINE__), PrintDb(se, pb))
+#define BOGOSITY(se, pb)  (fprintf(rpc2_tracefile, "SFTP bogosity:  file %s, line %d\n", __FILE__, __LINE__), PrintDb(se, pb))
 #else 
 #define BOGOSITY(se, pb)
 #endif
@@ -245,7 +245,7 @@ void sftp_UpdateBW(RPC2_PacketBuffer *pb, unsigned long inbytes,
     entry.Value.Measured.Bytes = inbytes + outbytes;
     entry.Value.Measured.ElapsedTime = obs;
     (void) rpc2_AppendHostLog(sEntry->HostInfo, &entry, SE_MEASUREMENT);
-    say(0/*4*/, SFTP_DebugLevel, "sftp_UpdateBW: conn %#x, %ld inbytes, %ld outbytes, %ld ms\n", 
+    say(1/*4*/, SFTP_DebugLevel, "sftp_UpdateBW: conn %#x, %ld inbytes, %ld outbytes, %ld ms\n", 
 	sEntry->LocalHandle, inbytes, outbytes, obs);
 }
 
@@ -1187,18 +1187,18 @@ int sftp_StartArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
 	    switch(sftpd->Tag)
 		{
 		case FILEBYNAME:
-		    say(0, SFTP_DebugLevel, "%s: ", sftpd->FileInfo.ByName.LocalFileName);
+		    say(1, SFTP_DebugLevel, "%s: ", sftpd->FileInfo.ByName.LocalFileName);
 		    break;
 
 		case FILEBYFD:
-		    say(0, SFTP_DebugLevel, "%ld: ", sftpd->FileInfo.ByFD.fd);
+		    say(1, SFTP_DebugLevel, "%ld: ", sftpd->FileInfo.ByFD.fd);
 		    break;
 
 		case FILEBYINODE:
-		    say(0, SFTP_DebugLevel, "%ld.%ld: ", sftpd->FileInfo.ByInode.Device, sftpd->FileInfo.ByInode.Inode);
+		    say(1, SFTP_DebugLevel, "%ld.%ld: ", sftpd->FileInfo.ByInode.Device, sftpd->FileInfo.ByInode.Inode);
 		    break;
 		case FILEINVM:
-		    say(0, SFTP_DebugLevel, "FILEINVM ");
+		    say(1, SFTP_DebugLevel, "FILEINVM ");
 		    break;
 		}
 	}
@@ -1261,20 +1261,22 @@ void sftp_InitPacket(RPC2_PacketBuffer *pb, struct SFTP_Entry *sfe,
 #ifdef RPC2DEBUG
 void PrintDb(struct SFTP_Entry *se, RPC2_PacketBuffer *pb)
 {
-    printf("SFTP_Entry:\n");
-    printf("\tMagic = %ld  WhoAmI = %d  LocalHandle = %#x  GotParms = %d  SentParms = %d\n",
+    fprintf(rpc2_tracefile, "SFTP_Entry:\n");
+    fprintf(rpc2_tracefile, "\tMagic = %ld  WhoAmI = %d  LocalHandle = %#x  GotParms = %d  SentParms = %d\n",
 	se->Magic, se->WhoAmI, se->LocalHandle, se->GotParms, se->SentParms);
-    printf("\topenfd = %ld  XferState = %d  HitEOF = %d  CtrlSeqNumber = %d\n",
+    fprintf(rpc2_tracefile, "\topenfd = %ld  XferState = %d  HitEOF = %d  CtrlSeqNumber = %d\n",
     	se->openfd, se->XferState, se->HitEOF, se->CtrlSeqNumber);
-    printf("\tSendLastContig = %d   SendMostRecent = %d  SendAckLimit = %d SendWorriedLimit = %d  ReadAheadCount = %d\n",
+    fprintf(rpc2_tracefile, "\tSendLastContig = %d   SendMostRecent = %d  SendAckLimit = %d SendWorriedLimit = %d  ReadAheadCount = %d\n",
 	se->SendLastContig,	se->SendMostRecent, se->SendAckLimit, se->SendWorriedLimit, se->ReadAheadCount);
-    printf("\tRecvLastContig = %d   RecvMostRecent = %d\n",
+    fprintf(rpc2_tracefile, "\tRecvLastContig = %d   RecvMostRecent = %d\n",
 	se->RecvLastContig,	se->RecvMostRecent);
 
     if (!pb) return;
 
-    printf("\nSFTP_Packet:\n");
+    fprintf(rpc2_tracefile, "\nSFTP_Packet:\n");
+    rpc2_htonp(pb);
     rpc2_PrintPacketHeader(pb, rpc2_tracefile);
+    rpc2_ntohp(pb);
 }
 #endif
 

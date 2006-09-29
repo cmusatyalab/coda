@@ -373,7 +373,7 @@ static void HandleSLPacket(RPC2_PacketBuffer *pb, struct CEntry *ce)
 	return;
     }
 
-    say(0, RPC2_DebugLevel, "HandleNak()\n");
+    say(1, RPC2_DebugLevel, "HandleNak()\n");
 
     rpc2_Recvd.Naks++;
 
@@ -508,7 +508,7 @@ static void DecodePacket(RPC2_PacketBuffer *pb, struct CEntry *ce)
 	case RPC2_INITMULTICAST: {
 		if (TestState(ce, SERVER, S_AWAITENABLE))
 		{
-			say(0, RPC2_DebugLevel, "Connection not enabled\n");
+			say(1, RPC2_DebugLevel, "Connection not enabled\n");
 			BOGUS(pb, "DecodePacket(INITMC): connection not enabled\n");
 			return;
 		}
@@ -540,7 +540,7 @@ static void DecodePacket(RPC2_PacketBuffer *pb, struct CEntry *ce)
 	/* cannot be any negative opcode XXXXXXXXXXXXXXXX */
 	default: {
 		if (TestState(ce, SERVER, S_AWAITENABLE)) {
-			say(0, RPC2_DebugLevel, "Connection not enabled\n");
+			say(1, RPC2_DebugLevel, "Connection not enabled\n");
 			BOGUS(pb, "DecodePacket: connection not enabled\n");
 			return;
 		}
@@ -681,7 +681,7 @@ static void HandleBusy(RPC2_PacketBuffer *pb,  struct CEntry *ce)
 {
 	struct SL_Entry *sl;
 
-	say(0, RPC2_DebugLevel, "HandleBusy(%x)\n", ce->UniqueCID);
+	say(1, RPC2_DebugLevel, "HandleBusy(%x)\n", ce->UniqueCID);
 
 	rpc2_Recvd.Busies++;
 	if (BogusSl(ce, pb))
@@ -707,7 +707,7 @@ static void HandleCurrentReply(RPC2_PacketBuffer *pb, struct CEntry *ce)
 {
 	struct SL_Entry *sl;
 
-	say(0, RPC2_DebugLevel, "HandleCurrentReply()\n");
+	say(1, RPC2_DebugLevel, "HandleCurrentReply()\n");
 	rpc2_Recvd.Replies++;
 	/* should this assert ?? XXXX */
 	if (BogusSl(ce, pb))
@@ -731,7 +731,7 @@ static void HandleNewRequest(RPC2_PacketBuffer *pb, struct CEntry *ce)
 {
 	struct SL_Entry *sl;
 
-	say(0, RPC2_DebugLevel, "HandleNewRequest()\n");
+	say(1, RPC2_DebugLevel, "HandleNewRequest()\n");
 	pb = ShrinkPacket(pb);
 
 	ce->TimeStampEcho = pb->Header.TimeStamp;
@@ -795,7 +795,7 @@ static struct SL_Entry *FindRecipient(RPC2_PacketBuffer *pb)
 
 static void HandleCurrentRequest(RPC2_PacketBuffer *pb, struct CEntry *ce)
 {
-	say(0, RPC2_DebugLevel, "HandleCurrentRequest()\n");
+	say(1, RPC2_DebugLevel, "HandleCurrentRequest()\n");
 
 	rpc2_Recvd.Requests++;
 
@@ -828,7 +828,7 @@ static void HandleInit1(RPC2_PacketBuffer *pb)
 	    return;
 	}
 
-	say(0, RPC2_DebugLevel, "HandleInit1()\n");
+	say(1, RPC2_DebugLevel, "HandleInit1()\n");
 
 	rpc2_Recvd.Requests++;
 
@@ -873,7 +873,7 @@ static void HandleInit1(RPC2_PacketBuffer *pb)
 
 static void HandleRetriedBind(RPC2_PacketBuffer *pb, struct CEntry *ce)
 {
-	say(0, RPC2_DebugLevel, "HandleRetriedBind()\n");
+	say(1, RPC2_DebugLevel, "HandleRetriedBind()\n");
 
 	if (!TestRole(ce, SERVER)) {
 		BOGUS(pb, "HandleRetriedBind: not server\n");
@@ -895,7 +895,7 @@ static void HandleRetriedBind(RPC2_PacketBuffer *pb, struct CEntry *ce)
 
 	if (TestState(ce, SERVER, S_STARTBIND)) {
 		/* Cases (1) and (2) */
-		say(0, RPC2_DebugLevel, "Busying Init1 on %#x\n", ce->UniqueCID);
+		say(1, RPC2_DebugLevel, "Busying Init1 on %#x\n", ce->UniqueCID);
 
 		SendBusy(ce, FALSE);
 		RPC2_FreeBuffer(&pb);
@@ -903,7 +903,7 @@ static void HandleRetriedBind(RPC2_PacketBuffer *pb, struct CEntry *ce)
 	}
 	if (ce->SecurityLevel == RPC2_OPENKIMONO && ce->HeldPacket) {
 		/* Case (3): The Init2 must have been dropped; resend it */
-		say(0, RPC2_DebugLevel, "Resending Init2 %#x\n",  ce->UniqueCID);
+		say(1, RPC2_DebugLevel, "Resending Init2 %#x\n",  ce->UniqueCID);
 		ce->HeldPacket->Header.TimeStamp = htonl(ce->TimeStampEcho);
 		rpc2_XmitPacket(ce->HeldPacket, ce->HostInfo->Addr, 1);
 		RPC2_FreeBuffer(&pb);
@@ -920,7 +920,7 @@ static void HandleInit2(RPC2_PacketBuffer *pb, struct CEntry *ce)
 {
 	struct SL_Entry *sl;
 
-	say(0, RPC2_DebugLevel, "HandleInit2()\n");
+	say(1, RPC2_DebugLevel, "HandleInit2()\n");
 
 	rpc2_Recvd.Requests++;
 
@@ -949,7 +949,7 @@ static void HandleInit4(pb, ce)
     {
     struct SL_Entry *sl;
 
-    say(0, RPC2_DebugLevel, "HandleInit4()\n");
+    say(1, RPC2_DebugLevel, "HandleInit4()\n");
 
     rpc2_Recvd.Requests++;
 
@@ -971,7 +971,7 @@ static void HandleInit3(RPC2_PacketBuffer *pb, struct CEntry *ce)
 {
 	struct SL_Entry *sl;
 
-	say(0, RPC2_DebugLevel, "HandleInit3()\n");
+	say(1, RPC2_DebugLevel, "HandleInit3()\n");
 
 	rpc2_Recvd.Requests++;
 
@@ -982,7 +982,7 @@ static void HandleInit3(RPC2_PacketBuffer *pb, struct CEntry *ce)
 			ce->HeldPacket->Header.TimeStamp = htonl(pb->Header.TimeStamp);
 			rpc2_XmitPacket(ce->HeldPacket, ce->HostInfo->Addr, 1);
 		}  else
-			say(0, RPC2_DebugLevel, "Bogus Init3\n");
+			say(1, RPC2_DebugLevel, "Bogus Init3\n");
 		/* Throw packet away anyway */
 		RPC2_FreeBuffer(&pb);
 		return;
@@ -1015,7 +1015,7 @@ static void SendNak(RPC2_PacketBuffer *pb)
 	if (pb->Header.Opcode == RPC2_NAKED)
 	    return;
 
-	say(0, RPC2_DebugLevel, "Sending NAK\n");
+	say(1, RPC2_DebugLevel, "Sending NAK\n");
 	RPC2_AllocBuffer(0, &nakpb);
 	rpc2_InitPacket(nakpb, NULL, 0);
 	nakpb->Prefix.sa = pb->Prefix.sa;
@@ -1056,7 +1056,7 @@ static struct CEntry *MakeConn(struct RPC2_PacketBuffer *pb)
 				     ntohl(ib1->FakeBody_ClientIdent_SeqLen)))
 	{
 		/* avoid memory reference errors from bogus packets */
-		say(0, RPC2_DebugLevel, "Ignoring short Init1 packet\n");
+		say(1, RPC2_DebugLevel, "Ignoring short Init1 packet\n");
 		return NULL;
 	}
 
@@ -1109,7 +1109,7 @@ void rpc2_IncrementSeqNumber(struct CEntry *ce)
 
 static void HandleOldRequest(RPC2_PacketBuffer *pb, struct CEntry *ce)
 {
-	say(0, RPC2_DebugLevel, "HandleOldRequest()\n");
+	say(1, RPC2_DebugLevel, "HandleOldRequest()\n");
 
 	rpc2_Recvd.Requests++;
 

@@ -119,7 +119,7 @@ long RPC2_MultiRPC(IN HowMany, IN ConnHandleList, IN RCList, IN MCast,
 
 
     rpc2_Enter();
-    say(0, RPC2_DebugLevel, "Entering RPC2_MultiRPC\n");
+    say(1, RPC2_DebugLevel, "Entering RPC2_MultiRPC\n");
 
     TR_MULTI();
 
@@ -243,9 +243,9 @@ static void SetupConns(int HowMany, MultiCon *mcon,
 		{
 		    if (TRUE/*EnqueueRequest*/)
 			{
-			say(0, RPC2_DebugLevel, "Enqueuing on connection %#x\n", ConnHandleList[host]);
+			say(1, RPC2_DebugLevel, "Enqueuing on connection %#x\n", ConnHandleList[host]);
 			LWP_WaitProcess((char *)thisconn);
-			say(0, RPC2_DebugLevel, "Dequeueing on connection %#x\n", ConnHandleList[host]);
+			say(1, RPC2_DebugLevel, "Dequeueing on connection %#x\n", ConnHandleList[host]);
 			host = 0;	/* !!! restart loop !!! */
 			break;
 			}
@@ -453,7 +453,7 @@ static long mrpc_SendPacketsReliably(
 	return(rc);\
 	}
 
-    say(0, RPC2_DebugLevel, "mrpc_SendPacketsReliably()\n");
+    say(1, RPC2_DebugLevel, "mrpc_SendPacketsReliably()\n");
 
     TR_MSENDRELIABLY();
 
