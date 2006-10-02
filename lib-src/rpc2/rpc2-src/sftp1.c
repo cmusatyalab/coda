@@ -72,7 +72,8 @@ Pittsburgh, PA.
 /*----------------------- Local procedure specs  ----------------------*/
 static long GetFile();
 static long PutFile();
-static RPC2_PacketBuffer *AwaitPacket();
+static RPC2_PacketBuffer *AwaitPacket(struct SFTP_Entry *sEntry, int retry,
+				      int outbytes, int inbytes);
 static long MakeBigEnough();
 
 /*---------------------------  Local macros ---------------------------*/
@@ -205,7 +206,6 @@ long SFTP_Bind1(IN ConnHandle, IN ClientIdent)
 long SFTP_Bind2(IN RPC2_Handle ConnHandle, IN RPC2_Unsigned BindTime)
 {
     struct SFTP_Entry *se;
-    int retry;
 
     assert(RPC2_GetSEPointer(ConnHandle, &se) == RPC2_SUCCESS);
     RPC2_GetPeerInfo(ConnHandle, &se->PInfo);
@@ -218,19 +218,6 @@ long SFTP_Bind2(IN RPC2_Handle ConnHandle, IN RPC2_Unsigned BindTime)
     se->HostInfo = rpc2_GetHost(se->PInfo.RemoteHost.Value.AddrInfo);
     assert(se->HostInfo);
 
-    if (BindTime)
-    {
-        /* XXX Do some estimate of the amount of transferred data --JH */
-	RPC2_UpdateEstimates(se->HostInfo, BindTime,
-			     sizeof(struct RPC2_PacketHeader),
-			     sizeof(struct RPC2_PacketHeader));
-
-	retry = 1;
-        rpc2_RetryInterval(ConnHandle, sizeof(struct RPC2_PacketHeader),
-			   sizeof(struct RPC2_PacketHeader), &retry,
-			   se->RetryCount, &se->RInterval);
-    }
-    
     return(RPC2_SUCCESS);
 }
 
@@ -405,25 +392,12 @@ long SFTP_GetRequest(RPC2_Handle ConnHandle, RPC2_PacketBuffer *Request)
 {
     struct SFTP_Entry *se;
     off_t len;
-    int retry;
 
     say(1, SFTP_DebugLevel, "SFTP_GetRequest()\n");
 
     assert (RPC2_GetSEPointer(ConnHandle, &se) == RPC2_SUCCESS &&  se != NULL);
     if (se->WhoAmI != SFSERVER) FAIL(se, RPC2_SEFAIL2);
     se->ThisRPCCall = Request->Header.SeqNumber;   /* acquire client's RPC call number */
-
-    if (Request->Header.BindTime)
-    {
-        /* XXX Do some estimate of the amount of transferred data --JH */
-	RPC2_UpdateEstimates(se->HostInfo, Request->Header.BindTime,
-			     sizeof(struct RPC2_PacketHeader),
-			     sizeof(struct RPC2_PacketHeader));
-	retry = 1;
-        rpc2_RetryInterval(ConnHandle, sizeof(struct RPC2_PacketHeader),
-			   sizeof(struct RPC2_PacketHeader), &retry,
-			   se->RetryCount, &se->RInterval);
-    }
 
     se->PiggySDesc = NULL; /* default is no piggybacked file */
     if ((Request->Header.SEFlags & SFTP_PIGGY))
@@ -714,12 +688,8 @@ static long GetFile(struct SFTP_Entry *sEntry)
     packetsize = sEntry->PacketSize + sizeof(struct RPC2_PacketHeader);
     while (sEntry->XferState == XferInProgress) {
 	for (i = 1; i <= sEntry->RetryCount; i++) {
-	    /* get a new retry interval estimate */
-	    rpc2_RetryInterval(sEntry->LocalHandle, packetsize,
-			       sizeof(struct RPC2_PacketHeader), &i,
-			       sEntry->RetryCount, &sEntry->RInterval);
-
-	    pb = (RPC2_PacketBuffer *)AwaitPacket(&sEntry->RInterval, sEntry);
+	    pb = AwaitPacket(sEntry, i, packetsize,
+			     sizeof(struct RPC2_PacketHeader));
 
 	    /* Make sure nothing bad happened while we were waiting */
 	    if (sEntry->WhoAmI == ERROR) {
@@ -832,11 +802,7 @@ static long PutFile(struct SFTP_Entry *sEntry)
 
     while (sEntry->XferState == XferInProgress) {
 	for (i = 1; i <= sEntry->RetryCount; i++) {
-	    /* get a new retry interval estimate */
-	    rpc2_RetryInterval(sEntry->LocalHandle, sizeof(struct RPC2_PacketHeader),
-			       bytes, &i, sEntry->RetryCount, &sEntry->RInterval);
-
-	    pb = (RPC2_PacketBuffer *)AwaitPacket(&sEntry->RInterval, sEntry);
+	    pb = AwaitPacket(sEntry, i, sizeof(struct RPC2_PacketHeader),bytes);
 
 	    /* Make sure nothing bad happened while we were waiting */
 	    if (sEntry->WhoAmI == ERROR) {
@@ -888,9 +854,9 @@ GotAck:
 }
 
 
-static RPC2_PacketBuffer *AwaitPacket(struct timeval *tOut,
-				      struct SFTP_Entry *sEntry)
-    /* Awaits for a packet on sEntry or  timeout tOut
+static RPC2_PacketBuffer *AwaitPacket(struct SFTP_Entry *sEntry, int retry,
+				      int outbytes, int inbytes)
+    /* Awaits for a packet on sEntry
 	Returns pointer to arrived packet or NULL
     */
 {
@@ -902,8 +868,16 @@ static RPC2_PacketBuffer *AwaitPacket(struct timeval *tOut,
 	assert(LWP_NewRock(SMARTFTP, (char *)sl) == LWP_SUCCESS);
     }
 
+    sl->RetryIndex = retry;
+    rpc2_RetryInterval(sEntry->HostInfo, sl, outbytes, inbytes,
+		       sEntry->RetryCount, &KeepAlive);
+
+#warning "fix checkworried"
+    sEntry->RetryInterval = sl->RInterval.tv_sec * 1000 + \
+			    sl->RInterval.tv_usec / 1000;
+
     sEntry->Sleeper = sl;
-    rpc2_ActivateSle(sl, tOut);
+    rpc2_ActivateSle(sl, &sl->RInterval);
     LWP_WaitProcess((char *)sl);
 
     switch(sl->ReturnCode)
@@ -916,7 +890,6 @@ static RPC2_PacketBuffer *AwaitPacket(struct timeval *tOut,
     assert(0);
     return NULL;
 }
-    
 
 /*---------------------- Piggybacking routines -------------------------*/
 
@@ -1144,8 +1117,7 @@ struct SFTP_Entry *sftp_AllocSEntry(void)
     sfp->SendAhead = SFTP_SendAhead;
     sfp->AckPoint = SFTP_AckPoint;
     sfp->DupThreshold = SFTP_DupThreshold;
-    sfp->RInterval.tv_sec = SFTP_RetryInterval/1000;
-    sfp->RInterval.tv_usec = (SFTP_RetryInterval*1000) % 1000000;
+    sfp->RetryInterval = SFTP_RetryInterval;
     sfp->Retransmitting = FALSE;
     sfp->RequestTime = 0;
     CLRTIME(&sfp->LastWord);

@@ -66,8 +66,7 @@ struct CBUF_Header *rpc2_TraceBuffHeader = NULL;
 PROCESS rpc2_SocketListenerPID=NULL;
 
 long Retry_N;			/* total number of retries -- see packet.c */
-struct timeval *Retry_Beta;	/* array of timeout intervals */
-struct timeval SaveResponse;    /* 2*Beta0: lifetime of saved response packet */
+struct timeval KeepAlive;	/* keepalive timeout */
 long rpc2_Bandwidth = 10485760; /* bandwidth hint supplied externally */
 
 /* Doubly-linked lists and counts */

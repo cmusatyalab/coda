@@ -210,7 +210,6 @@ void rpc2_PrintHEntry(struct HEntry *hPtr, FILE *tFile)
 
 void rpc2_PrintCEntry(struct CEntry *cPtr, FILE *tFile)
 {
-    long i;
     if (tFile == NULL) tFile = rpc2_logfile;	/* it's ok, call-by-value */
     fprintf(tFile, "MyAddr: %p\n\tNextEntry = %p  PrevEntry = %p  MagicNumber = %s  Role = %s  State = ",
 	cPtr, cPtr->connlist.next, cPtr->connlist.prev,
@@ -247,19 +246,9 @@ void rpc2_PrintCEntry(struct CEntry *cPtr, FILE *tFile)
 
     fprintf(tFile, "\n\tUniqueCID = %#x  NextSeqNumber = %d  PeerHandle = %#x\n\tPrivatePtr = %p  SideEffectPtr = %p\n",
     	cPtr->UniqueCID, cPtr->NextSeqNumber, cPtr->PeerHandle, cPtr->PrivatePtr, cPtr->SideEffectPtr);
-	
-    fprintf(tFile, "\tLowerLimit = %lu usec  %s = %ld  %s = %ld  Retries = %ld\n",
-	    cPtr->LowerLimit,
-	    TestRole(cPtr, CLIENT) ? "RTT" : (TestRole(cPtr, SERVER) ? "TimeEcho" : "?????"),
-	    cPtr->RTT, 
-	    TestRole(cPtr, CLIENT) ? "RTTVar" : (TestRole(cPtr, SERVER) ? "RequestTime" : "?????"),
-	     cPtr->RTTVar,  cPtr->Retry_N);
 
-    fprintf(tFile, "\tRetry_Beta[0] = %ld.%0ld  (timeout)\n",
-	    cPtr->Retry_Beta[0].tv_sec, cPtr->Retry_Beta[0].tv_usec);
-    for (i = 1; i < cPtr->Retry_N+2; i++) 
-	    fprintf(tFile, "\tRetry_Beta[%ld] = %ld.%0ld\n",
-		    i, cPtr->Retry_Beta[i].tv_sec, cPtr->Retry_Beta[i].tv_usec);
+    fprintf(tFile, "\tRetries = %ld, KeepAlive = %ld.%0ld  (timeout)\n",
+	    cPtr->Retry_N, cPtr->KeepAlive.tv_sec, cPtr->KeepAlive.tv_usec);
 
     fprintf(tFile, "\tHeldPacket = %p  PeerUnique = %d\n",
     	cPtr->HeldPacket, cPtr->PeerUnique);

@@ -214,8 +214,6 @@ static void ServerPacket(RPC2_PacketBuffer *whichPacket,
 static void ClientPacket(RPC2_PacketBuffer *whichPacket,
 			 struct SFTP_Entry *sEntry)
 {
-    unsigned long bytes;
-    int retry;
     /* Deal with this packet on Listener's thread of control */
 
     switch ((int) whichPacket->Header.Opcode)
@@ -227,17 +225,23 @@ static void ClientPacket(RPC2_PacketBuffer *whichPacket,
     case SFTP_ACK:
 	/* Makes sense only if we are on source side */
 	if (IsSource(sEntry)) {
+	    struct SL_Entry sl;
+	    uint32_t bytes;
 	    /* we need to get some indication of a retry interval, so that
 	     * AckArrived->SendStrategy->CheckWorried() can actually do
 	     * the right thing */
 
+#warning "fix checkworried"
 	    /* estimated size of an sftp data transfer */
 	    bytes = ((sEntry->PacketSize + sizeof(struct RPC2_PacketHeader)) *
 		     sEntry->SendAhead);
 
-	    retry = 1;
-	    rpc2_RetryInterval(sEntry->LocalHandle, sizeof(struct RPC2_PacketHeader),
-			       bytes, &retry, sEntry->RetryCount, &sEntry->RInterval);
+	    sl.RetryIndex = 1;
+	    rpc2_RetryInterval(sEntry->HostInfo, &sl, bytes,
+			       sizeof(struct RPC2_PacketHeader),
+			       sEntry->RetryCount, &KeepAlive);
+	    sEntry->RetryInterval = sl.RInterval.tv_sec * 1000 + \
+				    sl.RInterval.tv_usec / 1000;
 
 	    if (sftp_AckArrived(whichPacket, sEntry) < 0) {
 		SFSendNAK(whichPacket); /* NAK this packet */

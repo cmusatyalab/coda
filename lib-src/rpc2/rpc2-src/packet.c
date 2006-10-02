@@ -278,205 +278,68 @@ long rpc2_RecvPacket(IN long whichSocket, OUT RPC2_PacketBuffer *whichBuff)
 /*
   Initializes default retry intervals given the number of
   retries desired and the keepalive interval.
-  This implementation has:
 
-  Note: Beta(0) is a special case of keepalive.
-  
-  (1)	Beta[i+1] = 2*Beta[i] for i >= 1
-  (2)	Beta[0] = Beta[1] + Beta[2] ... + Beta[Retry_N+1]
-
-  Time constants less than LOWERLIMIT are set to LOWERLIMIT.
-  There is a limit on retry intervals and timeouts of just over an
-  hour, since we do these computations in microseconds.
   Returns 0 on success, -1 on bogus parameters.
 */
 long rpc2_InitRetry(IN long HowManyRetries, IN struct timeval *Beta0)
 		/*  HowManyRetries" should be less than 30; -1 for default */
-	        /*  Beta0: NULL for default */
+		/*  Beta0: NULL for default */
 {
-    long betax, timeused, beta0;	/* entirely in microseconds */
-    long i;
+    if (HowManyRetries >= 30) return(-1); /* avoid overflow with 32-bit integers */
+    Retry_N = (HowManyRetries >= 0) ? HowManyRetries : DefaultRetryCount;
+    KeepAlive = Beta0 ? *Beta0 : DefaultRetryInterval;
 
-    if (HowManyRetries >= 30) return(-1);	/* else overflow with 32-bit integers */
-    if (HowManyRetries < 0) HowManyRetries = DefaultRetryCount;	/* it's ok, call by value */
-    if (Beta0 == NULL) Beta0 = &DefaultRetryInterval; /* ditto */
-
-    assert(Retry_Beta == NULL);
-
-    Retry_N = HowManyRetries;
-    Retry_Beta = (struct timeval *)malloc(sizeof(struct timeval)*(2+HowManyRetries));
-    memset(Retry_Beta, 0, sizeof(struct timeval)*(2+HowManyRetries));
-    Retry_Beta[0] = *Beta0;	/* structure assignment */
-
-    /* this prevents long stalls whenever the server sends RPC2_BUSY */
-    Retry_Beta[0].tv_sec /= 3;
-    Retry_Beta[0].tv_usec /= 3;
-    
-    /* Twice Beta0 is how long responses are saved */
-    SaveResponse.tv_usec = (2*Beta0->tv_usec) % 1000000;
-    SaveResponse.tv_sec = (2*Beta0->tv_usec) / 1000000;
-    SaveResponse.tv_sec += 2*Beta0->tv_sec;
-    
-    /* compute Retry_Beta[1] .. Retry_Beta[N] */
-    betax = (1000000 * Beta0->tv_sec + Beta0->tv_usec)/((1 << (Retry_N+1)) - 1);
-    beta0 = (1000000 * Beta0->tv_sec + Beta0->tv_usec);
-    timeused = 0;
-    for (i = 1; i < Retry_N+2 && beta0 > timeused; i++)
-	{
-	if (betax < LOWERLIMIT)	/* NOTE: we don't bother with (beta0 - timeused < LOWERLIMIT) */
-	    {
-	    Retry_Beta[i].tv_sec = 0;
-	    Retry_Beta[i].tv_usec = LOWERLIMIT;
-	    timeused += LOWERLIMIT;
-	    }
-	else
-	    {
-	    if (beta0 - timeused > betax)
-		{
-		Retry_Beta[i].tv_sec = betax/1000000;
-		Retry_Beta[i].tv_usec = betax % 1000000;
-		timeused += betax;
-		}
-	    else
-		{
-		Retry_Beta[i].tv_sec = (beta0 - timeused)/1000000;
-		Retry_Beta[i].tv_usec = (beta0 - timeused)%1000000;
-		timeused = beta0;
-		}
-	    }
-	betax = betax << 1;
-	}
     return(0);
-    }
+}
 
-
-long rpc2_SetRetry(IN Conn)
-    struct CEntry *Conn;
-
-    /*
-      Resets the retry intervals for the given connection
-      based on the number of retries and the keepalive
-      interval (which don't change at the moment), and 
-      the LowerLimit for the connection (which does change
-      based on the RTT).  The comment for rpc2_InitRetry
-      applies here.
-    */
-    {
-    long betax, timeused, beta0;	/* entirely in microseconds */
-    long i;
-
-    assert(Conn);
-
-    /* zero everything but the keep alive interval */
-    memset(&Conn->Retry_Beta[1], 0, sizeof(struct timeval)*(1+Conn->Retry_N));
-    
-    /* recompute Retry_Beta[1] .. Retry_Beta[N] */
-    /* betax is the shortest interval */
-    betax = (1000000*Conn->Retry_Beta[0].tv_sec + Conn->Retry_Beta[0].tv_usec)/((1 << (Conn->Retry_N+1)) - 1);
-    beta0 = (1000000*Conn->Retry_Beta[0].tv_sec + Conn->Retry_Beta[0].tv_usec);
-    timeused = 0;
-    for (i = 1; i < Conn->Retry_N+2 && beta0 > timeused; i++)
-	{
-	if (betax < Conn->LowerLimit)	/* NOTE: we don't bother with (beta0 - timeused < LOWERLIMIT) */
-	    {
-	    Conn->Retry_Beta[i].tv_sec = Conn->LowerLimit / 1000000;
-	    Conn->Retry_Beta[i].tv_usec = Conn->LowerLimit % 1000000;
-	    timeused += Conn->LowerLimit;
-	    }
-	else
-	    {
-	    if (beta0 - timeused > betax)
-		{
-		Conn->Retry_Beta[i].tv_sec = betax/1000000;
-		Conn->Retry_Beta[i].tv_usec = betax % 1000000;
-		timeused += betax;
-		}
-	    else
-		{
-		Conn->Retry_Beta[i].tv_sec = (beta0 - timeused)/1000000;
-		Conn->Retry_Beta[i].tv_usec = (beta0 - timeused)%1000000;
-		timeused = beta0;
-		}
-	    }
-	betax = betax << 1;
-	}
-    return(0);
-    }
 
 int RPC2_SetTimeout(RPC2_Handle whichConn, struct timeval timeout)
 {
     struct CEntry *Conn = rpc2_GetConn(whichConn);
     if (!Conn) return RPC2_NOCONNECTION;
-    Conn->Retry_Beta[0] = timeout;
-    return rpc2_SetRetry(Conn);
+    Conn->KeepAlive = timeout;
+    return RPC2_SUCCESS;
 }
 
-/* HACK. if bandwidth is low, increase retry intervals appropriately */
-void rpc2_ResetLowerLimit(IN Conn, IN Packet)
-    struct CEntry *Conn;
-    RPC2_PacketBuffer *Packet;
+long rpc2_CancelRetry(struct CEntry *Conn, struct SL_Entry *Sle)
 {
-    unsigned long delta, bits;
-
-    Conn->reqsize = Packet->Prefix.LengthOfPacket;
-
-    /* take response into account.  At least a packet header, probably more */
-    bits = (Conn->reqsize + 2*sizeof(struct RPC2_PacketHeader)) * 8;
-    delta = bits * 1000 / rpc2_Bandwidth;
-    delta *= 1000;  /* was in msec to avoid overflow */
-
-    say(4, RPC2_DebugLevel,
-	"ResetLowerLimit: conn %#x, lower limit %ld usec, delta %ld usec\n",
-	 Conn->UniqueCID, Conn->LowerLimit, delta);
-
-    Conn->LowerLimit += delta;
-    rpc2_SetRetry(Conn);
-}
-
-
-long rpc2_CancelRetry(IN Conn, IN Sle)
-    struct CEntry *Conn;
-    struct SL_Entry *Sle;	
     /* 
      * see if we've heard anything from a side effect
      * since we've been asleep. If so, pretend we got
      * a keepalive at that time, and activate a SLE 
      * with a timeout of beta_0 after that time.
      */
-    {
-    struct timeval now, lastword, timeout;
-    struct timeval *retry;
+    struct timeval now, lastword;
 
     say(1, RPC2_DebugLevel, "rpc2_CancelRetry()\n");
 
-    retry = Conn->Retry_Beta;
-
-    if ((Conn->SEProcs != NULL) && 
-	(Conn->SEProcs->SE_GetSideEffectTime != NULL) &&
+    if (Conn->SEProcs && Conn->SEProcs->SE_GetSideEffectTime &&
 	(Conn->SEProcs->SE_GetSideEffectTime(Conn->UniqueCID, &lastword) == RPC2_SUCCESS) &&
 	TIMERISSET(&lastword)) {  /* don't bother unless we've actually heard */
 	FT_GetTimeOfDay(&now, (struct timezone *)0);
 	SUBTIME(&now, &lastword);
 	say(9, RPC2_DebugLevel,
 	    "Heard from side effect on %#x %ld.%06ld ago, retry interval was %ld.%06ld\n",
-	     Conn->UniqueCID, now.tv_sec, now.tv_usec, 
-	     retry[Sle->RetryIndex].tv_sec, retry[Sle->RetryIndex].tv_usec);
-	if (CMPTIME(&now, &retry[Sle->RetryIndex], <)) {
-	    timeout = retry[0];
-	    SUBTIME(&timeout, &now);
+	     Conn->UniqueCID, now.tv_sec, now.tv_usec,
+	     Sle->RInterval.tv_sec, Sle->RInterval.tv_usec);
+	if (CMPTIME(&now, &Sle->RInterval, <)) {
+	    Sle->RInterval.tv_sec  = Conn->KeepAlive.tv_sec / 3;
+	    Sle->RInterval.tv_usec = Conn->KeepAlive.tv_usec / 3;
+	    SUBTIME(&Sle->RInterval, &now);
+
 	    say(/*9*/4, RPC2_DebugLevel,
-		"Supressing retry %ld at %ld on %#x, new timeout = %ld.%06ld\n",
+		"Supressing retry %d at %ld on %#x, new timeout = %ld.%06ld\n",
 		 Sle->RetryIndex, rpc2_time(), Conn->UniqueCID,
-	         timeout.tv_sec, timeout.tv_usec);
+		 Sle->RInterval.tv_sec, Sle->RInterval.tv_usec);
 
 	    rpc2_Sent.Cancelled++;
 	    Sle->RetryIndex = 0;
-	    rpc2_ActivateSle(Sle, &timeout);
+	    rpc2_ActivateSle(Sle, &Sle->RInterval);
 	    return(1);
 	}
     }
     return(0);
-  }
+}
 
 
 long rpc2_SendReliably(struct CEntry *Conn, struct SL_Entry *Sle,
@@ -484,8 +347,6 @@ long rpc2_SendReliably(struct CEntry *Conn, struct SL_Entry *Sle,
 {
     struct SL_Entry *tlp;
     long hopeleft, finalrc;
-    struct timeval *tout;
-    struct timeval *ThisRetryBeta;
 
     say(1, RPC2_DebugLevel, "rpc2_SendReliably()\n");
 
@@ -498,22 +359,25 @@ long rpc2_SendReliably(struct CEntry *Conn, struct SL_Entry *Sle,
     }
     else tlp = NULL;
 
-    ThisRetryBeta = Conn->Retry_Beta;
-    if (TestRole(Conn, CLIENT))   /* stamp the outgoing packet */
-	Packet->Header.TimeStamp = htonl(rpc2_MakeTimeStamp());
+    Conn->reqsize = Packet->Prefix.LengthOfPacket;
+    Sle->RetryIndex = 1;
+    rpc2_RetryInterval(Conn->HostInfo, Sle, Packet->Prefix.LengthOfPacket,
+	    /* XXX we should have the size of the expected reply packet,
+	    * somewhere... */ sizeof(struct RPC2_PacketHeader),
+		       Conn->Retry_N, &Conn->KeepAlive);
 
     /* Do an initial send of the packet */
     say(9, RPC2_DebugLevel, "Sending try at %ld on %#x (timeout %ld.%06ld)\n",
 			     rpc2_time(), Conn->UniqueCID,
-			     ThisRetryBeta[1].tv_sec, ThisRetryBeta[1].tv_usec);
+			     Sle->RInterval.tv_sec, Sle->RInterval.tv_usec);
+
+    if (TestRole(Conn, CLIENT))   /* stamp the outgoing packet */
+	Packet->Header.TimeStamp = htonl(rpc2_MakeTimeStamp());
+
     rpc2_XmitPacket(Packet, Conn->HostInfo->Addr, 0);
 
-    if (rpc2_Bandwidth) rpc2_ResetLowerLimit(Conn, Packet);
-
     /* Initialize the SL Entry */
-    /* NOTE: we don't register for RetryBeta[0] here which is the keepalive */
-    Sle->RetryIndex = 1;
-    rpc2_ActivateSle(Sle, &ThisRetryBeta[1]);
+    rpc2_ActivateSle(Sle, &Sle->RInterval);
 
     finalrc = RPC2_SUCCESS;
     do
@@ -539,26 +403,32 @@ long rpc2_SendReliably(struct CEntry *Conn, struct SL_Entry *Sle,
 	    case KEPTALIVE:
 		hopeleft = 1;
 		Sle->RetryIndex = 0;
-		rpc2_ActivateSle(Sle, &ThisRetryBeta[0]);
+		Sle->RInterval.tv_sec  = Conn->KeepAlive.tv_sec / 3;
+		Sle->RInterval.tv_usec = Conn->KeepAlive.tv_usec / 3;
+		rpc2_ActivateSle(Sle, &Sle->RInterval);
 		break;	/* switch */
 
 	    case TIMEOUT:
 		if ((hopeleft = rpc2_CancelRetry(Conn, Sle)))
 		    break;      /* switch; we heard from side effect recently */
-		if (Sle->RetryIndex > Conn->Retry_N)
+		if (Sle->RetryIndex >= Conn->Retry_N)
 		    break;	/* switch; note hopeleft must be 0 */
 		/* else retry with the next Beta value  for timeout */
 		Sle->RetryIndex += 1;
-		tout = &ThisRetryBeta[Sle->RetryIndex];
+		rpc2_RetryInterval(Conn->HostInfo, Sle,
+				   Packet->Prefix.LengthOfPacket,
+		    /* XXX we should have the size of the expected reply
+		     * packet, somewhere... */ sizeof(struct RPC2_PacketHeader),
+				   Conn->Retry_N, &Conn->KeepAlive);
 
-		if (tout->tv_sec  <= 0 && tout->tv_usec  <= 0)
-		    break;	/* switch; LowerLimit must have shortened later retries to 0 */
+		if (Sle->RInterval.tv_sec < 0 || Sle->RInterval.tv_usec < 0)
+		    break;
 		else hopeleft = 1;
-		rpc2_ActivateSle(Sle, tout);
+		rpc2_ActivateSle(Sle, &Sle->RInterval);
 		say(9, RPC2_DebugLevel,
-		    "Sending retry %ld at %ld on %#x (timeout %ld.%06ld)\n",
+		    "Sending retry %d at %ld on %#x (timeout %ld.%06ld)\n",
 		     Sle->RetryIndex, rpc2_time(), Conn->UniqueCID,
-		     tout->tv_sec, tout->tv_usec);
+		     Sle->RInterval.tv_sec, Sle->RInterval.tv_usec);
 		Packet->Header.Flags = htonl((ntohl(Packet->Header.Flags) | RPC2_RETRY));
 		if (TestRole(Conn, CLIENT))   /* restamp retries if client */
 		    Packet->Header.TimeStamp = htonl(rpc2_MakeTimeStamp());

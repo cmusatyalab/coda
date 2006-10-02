@@ -230,10 +230,10 @@ struct SFTP_Entry		/* per-connection data structure */
     uint32_t ReadAheadCount;	/* How many packets have been read by read
 				   strategy routine */
     uint32_t CtrlSeqNumber;	/* Seq number of last control packet sent out */
-    struct timeval RInterval;	/* retransmission interval; initially
+    uint32_t RetryInterval;	/* retransmission interval; initially
 				   SFTP_RetryInterval milliseconds */
     uint32_t Retransmitting;	/* FALSE initially; TRUE prevents RTT update */
-    uint32_t TimeEcho;     	/* Timestamp to send on next packet (valid
+    uint32_t TimeEcho;		/* Timestamp to send on next packet (valid
 				   when not retransmitting) */
     struct timeval LastSS;	/* time SendStrategy was last invoked by an
 				   Ack on this connection */
@@ -336,8 +336,8 @@ void sftp_ExaminePacket(RPC2_PacketBuffer *pb);
 
 
 /* The transmission parameters below are initial values; actual ones are per-connection */
-extern long SFTP_PacketSize;	
-extern long SFTP_WindowSize;	
+extern long SFTP_PacketSize;
+extern long SFTP_WindowSize;
 extern long SFTP_RetryCount;
 extern long SFTP_RetryInterval; /* In what units? */
 extern long SFTP_EnforceQuota;	/* Nonzero to activate ByteQuota in SE_Descriptors */

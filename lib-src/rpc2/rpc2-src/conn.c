@@ -222,17 +222,16 @@ struct CEntry *rpc2_AllocConn(struct RPC2_addrinfo *addr)
     ce->PrivatePtr = NULL;
     ce->SideEffectPtr = NULL;
     ce->Color = 0;
-    ce->RTT = 0;
-    ce->RTTVar = 0;
-    ce->LowerLimit= LOWERLIMIT;  /* usec */
+
     ce->Retry_N = Retry_N;
-    ce->Retry_Beta = (struct timeval *)malloc(sizeof(struct timeval)*(2+Retry_N));
-    memcpy(ce->Retry_Beta, Retry_Beta, sizeof(struct timeval)*(2+Retry_N));
-    ce->SaveResponse = SaveResponse;  /* structure assignment */
+    ce->KeepAlive = KeepAlive;
+    ce->SaveResponse.tv_usec = (2 * KeepAlive.tv_usec) % 1000000;
+    ce->SaveResponse.tv_sec = (2 * KeepAlive.tv_usec) / 1000000;
+    ce->SaveResponse.tv_sec += 2 * KeepAlive.tv_sec;
+
     ce->MySl = NULL;
     ce->HeldPacket = NULL;
     ce->reqsize = 0;
-    ce->respsize = 0;
     ce->HostInfo = rpc2_GetHost(addr);
     assert(ce->HostInfo);
     ce->Filter.FromWhom = ANY;
@@ -261,7 +260,6 @@ void rpc2_FreeConn(RPC2_Handle whichConn)
     assert(ce && ce->MagicNumber == OBJ_CENTRY);
     rpc2_FreeConns++;
 
-    free(ce->Retry_Beta);
     if (ce->HeldPacket != NULL)
 	RPC2_FreeBuffer(&ce->HeldPacket);
     if (ce->MySl != NULL) {

@@ -688,11 +688,7 @@ static void HandleBusy(RPC2_PacketBuffer *pb,  struct CEntry *ce)
 		return;
 
 	/* update rtt/bw measurements */
-	ce->respsize = pb->Prefix.LengthOfPacket;
 	rpc2_UpdateRTT(pb, ce);
-
-	/* now continue waiting for the real reply again */
-	ce->respsize = 0;
 
 	rpc2_Recvd.GoodBusies++;
 	sl = ce->MySl;
@@ -714,7 +710,6 @@ static void HandleCurrentReply(RPC2_PacketBuffer *pb, struct CEntry *ce)
 		return;
 
 	pb = ShrinkPacket(pb);
-	ce->respsize = pb->Prefix.LengthOfPacket;
 	rpc2_UpdateRTT(pb, ce);
 	rpc2_Recvd.GoodReplies++;
 	sl = ce->MySl;
@@ -928,7 +923,6 @@ static void HandleInit2(RPC2_PacketBuffer *pb, struct CEntry *ce)
 		return;
 
 	pb = ShrinkPacket(pb);
-	ce->respsize = pb->Prefix.LengthOfPacket;
 	rpc2_UpdateRTT(pb, ce);
 	sl = ce->MySl;
 	sl->Packet = pb;
@@ -956,7 +950,6 @@ static void HandleInit4(pb, ce)
     if (BogusSl(ce, pb)) return;
     pb = ShrinkPacket(pb);
 
-    ce->respsize = pb->Prefix.LengthOfPacket;
     rpc2_UpdateRTT(pb, ce);
     sl = ce->MySl;
     sl->Packet = pb;

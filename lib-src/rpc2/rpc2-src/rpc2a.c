@@ -557,8 +557,7 @@ long RPC2_MakeRPC(RPC2_Handle ConnHandle, RPC2_PacketBuffer *Request,
     rpc2_InitPacket(preq, ce, preq->Header.BodyLength);
     preq->Header.SeqNumber = ce->NextSeqNumber;
     preq->Header.Opcode = opcode;
-    preq->Header.BindTime = ce->RTT >> RPC2_RTT_SHIFT;  /* bind time on 1st rpc */
-    if (ce->RTT && preq->Header.BindTime == 0) preq->Header.BindTime = 1;  /* ugh */
+    preq->Header.BindTime = 0;
 
     /* Notify side effect routine, if any */
     if (SDesc && HAVE_SE_FUNC(SE_MakeRPC1))
@@ -858,7 +857,7 @@ try_next_addr:
     say(9, RPC2_DebugLevel, "Sending INIT1 packet on %#x\n", *ConnHandle);
     /* create call entry */
     sl = rpc2_AllocSle(OTHER, ce);
-    rpc2_SendReliably(ce, sl, pb, (struct timeval *)&ce->Retry_Beta[0]);
+    rpc2_SendReliably(ce, sl, pb, &ce->KeepAlive);
 
     switch(sl->ReturnCode)
 	{
@@ -998,7 +997,7 @@ try_next_addr:
 
     /* create call entry */
     sl = rpc2_AllocSle(OTHER, ce);
-    rpc2_SendReliably(ce, sl, pb, (struct timeval *)&ce->Retry_Beta[0]);
+    rpc2_SendReliably(ce, sl, pb, &ce->KeepAlive);
 
     switch(sl->ReturnCode)
 	{
@@ -1072,15 +1071,12 @@ try_next_addr:
 BindOver:
     /* Call side effect routine if present */
     if (HAVE_SE_FUNC(SE_Bind2)) {
-	RPC2_Unsigned BindTime;
-
-	BindTime = ce->RTT >> RPC2_RTT_SHIFT;
-	if (BindTime == 0) BindTime = 1;  /* ugh. zero is overloaded. */
-	if ((rc = (*ce->SEProcs->SE_Bind2)(*ConnHandle, BindTime)) != RPC2_SUCCESS)
-	    {
+	rc = (*ce->SEProcs->SE_Bind2)(*ConnHandle, 0);
+	if (rc != RPC2_SUCCESS)
+	{
 	    DROPCONN();
 	    rpc2_Quit(rc);
-	    }
+	}
     }
 
     SetState(ce, C_THINK);
@@ -1501,7 +1497,7 @@ static RPC2_PacketBuffer *Send2Get3(struct CEntry *ce, RPC2_EncryptionKey key,
     /* Send Init2 packet and await Init3 packet */
     SetState(ce, S_AWAITINIT3);
     sl = rpc2_AllocSle(OTHER, ce);
-    rpc2_SendReliably(ce, sl, pb2, (struct timeval *)&ce->Retry_Beta[0]);
+    rpc2_SendReliably(ce, sl, pb2, &ce->KeepAlive);
 
     switch(sl->ReturnCode)
 	{

@@ -977,23 +977,10 @@ unsigned int rpc2_MakeTimeStamp()
 }
 
 
-void rpc2_ResetObs(obsp, ceaddr) 
-    long *obsp;
-    struct CEntry *ceaddr;
-    {
-    long delta = (ceaddr->reqsize + ceaddr->respsize) * 8 * 100 / rpc2_Bandwidth;
-    say(4, RPC2_DebugLevel, "rpc2_ResetObs: conn %#x, obs %ld, delta %ld, new %ld\n", 
-			     ceaddr->UniqueCID, *obsp, delta, *obsp-delta);
-    if (*obsp > delta)  *obsp -= delta;
-    }
-
-
 /* Retransmission timer stuff */
 void rpc2_UpdateRTT(RPC2_PacketBuffer *pb, struct CEntry *ceaddr)
 {
-    int diff; 
-    unsigned int obs, upperlimit;
-    struct timeval *beta0;
+    unsigned int obs;
     RPC2_NetLogEntry entry;
 
     if (!pb->Header.TimeStamp) return;
@@ -1001,7 +988,7 @@ void rpc2_UpdateRTT(RPC2_PacketBuffer *pb, struct CEntry *ceaddr)
     TVTOTS(&pb->Prefix.RecvStamp, obs);
     say(15, RPC2_DebugLevel, "updatertt %u %u\n", obs, pb->Header.TimeStamp);
     obs = TSDELTA(obs, pb->Header.TimeStamp);
-    RPC2_UpdateEstimates(ceaddr->HostInfo, obs, ceaddr->respsize, ceaddr->reqsize);
+    RPC2_UpdateEstimates(ceaddr->HostInfo, obs, ceaddr->reqsize, pb->Prefix.LengthOfPacket);
 
     /* 
      * Requests can be sent and received in the same tick.  
@@ -1015,49 +1002,9 @@ void rpc2_UpdateRTT(RPC2_PacketBuffer *pb, struct CEntry *ceaddr)
 
     /* log the round-trip time observation in the host log */
     entry.Tag = RPC2_MEASURED_NLE;
-    entry.Value.Measured.Bytes = ceaddr->reqsize + ceaddr->respsize; //-2*sizeof(struct RPC2_PacketHeader);
+    entry.Value.Measured.Bytes = ceaddr->reqsize + pb->Prefix.LengthOfPacket;
     entry.Value.Measured.ElapsedTime = obs;
     entry.Value.Measured.Conn = ceaddr->UniqueCID;
     (void) rpc2_AppendHostLog(ceaddr->HostInfo, &entry, RPC2_MEASUREMENT);
-
-    /* smooth observation if we have a bandwidth estimate */
-    if (rpc2_Bandwidth) rpc2_ResetObs(&obs, ceaddr);
-
-    if (ceaddr->RTT == 0)
-        {
-	/* initialize estimates */
-	ceaddr->RTT = obs << RPC2_RTT_SHIFT;
-	ceaddr->RTTVar = obs << (RPC2_RTTVAR_SHIFT-1);
-        }
-    else 
-        {
-	diff = (long)obs - 1 - (ceaddr->RTT >> RPC2_RTT_SHIFT);
-	if ((ceaddr->RTT += diff) <= 0)
-	    ceaddr->RTT = 1;
-
-	if (diff < 0) diff = -diff;
-	diff -= ceaddr->RTTVar >> RPC2_RTTVAR_SHIFT;
-	if ((ceaddr->RTTVar += diff) <= 0)
-	    ceaddr->RTTVar = 1;
-        }
-
-    /* 
-     * reset the lower limit on retry interval, in microseconds for
-     * rpc2_SetRetry. It should be at least LOWERLIMIT, but no more than
-     * Retry_Beta[0]. Try RTT + (RPC2_RTTVAR_SCALE * RTTVar) first.
-     */
-    ceaddr->LowerLimit = ((ceaddr->RTT >> RPC2_RTT_SHIFT) + ceaddr->RTTVar) * 1000;
-    beta0 = &ceaddr->Retry_Beta[0];
-    upperlimit = beta0->tv_usec + beta0->tv_sec * 1000000;
-
-    if (ceaddr->LowerLimit < LOWERLIMIT) ceaddr->LowerLimit = LOWERLIMIT;
-    else if (ceaddr->LowerLimit > upperlimit) ceaddr->LowerLimit = upperlimit;
-
-    say(4, RPC2_DebugLevel, "rpc2_UpdateRTT: conn %#x, obs %d, RTT %ld, RTTVar %ld LL %lu usec\n", 
-			     ceaddr->UniqueCID, obs, ceaddr->RTT, 
-			     ceaddr->RTTVar, ceaddr->LowerLimit);
-
-    /* now adjust retransmission intervals with new Lowerlimit */
-    (void) rpc2_SetRetry(ceaddr);
 }
 

@@ -67,7 +67,7 @@ Pittsburgh, PA.
 long SFTP_PacketSize;
 long SFTP_WindowSize;
 long SFTP_RetryCount;
-long SFTP_RetryInterval;	/* milliseconds */
+long SFTP_RetryInterval;
 long SFTP_EnforceQuota;
 long SFTP_SendAhead;
 long SFTP_AckPoint;
@@ -261,7 +261,6 @@ int sftp_DataArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
 {
     long moffset;	/* bit position of TheseBits corresponding to pBuff */
     long i, j;
-    int retry;
     
     if (sEntry->SentParms == FALSE && sEntry->WhoAmI == SFSERVER)
 	sEntry->SentParms = TRUE;    /* this data packet is evidence that my Start got to the client */
@@ -366,12 +365,6 @@ int sftp_DataArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
 		 * was actually sent if we sent duplicate packets! -JH */
 		sftp_UpdateBW(pBuff, dataThisRound,
 			      sizeof(struct RPC2_PacketHeader), sEntry);
-
-	    /* recalculate the retry timeout */
-	    retry = 1;
-	    rpc2_RetryInterval(sEntry->LocalHandle, dataThisRound,
-			       sizeof(struct RPC2_PacketHeader), &retry,
-			       sEntry->RetryCount, &sEntry->RInterval);
 	}
     }
 
@@ -778,14 +771,13 @@ static int CheckWorried(struct SFTP_Entry *sEntry)
     /* Check the packets from SendWorriedLimit to SendAckLimit, and
        see if we should be Worried about any of them.  */
 {
-    long i, rexmit;
+    long i;
     unsigned long now, then;
     RPC2_PacketBuffer *thePacket;
 
     if (sEntry->SendWorriedLimit < sEntry->SendLastContig)
 	sEntry->SendWorriedLimit = sEntry->SendLastContig;
-    
-    TVTOTS(&sEntry->RInterval, rexmit);
+
     TVTOTS(&sEntry->LastSS, now);
     for (i = sEntry->SendAckLimit; i > sEntry->SendWorriedLimit; i--) {
 	if (TESTBIT(sEntry->SendTheseBits, i - sEntry->SendLastContig))
@@ -797,7 +789,7 @@ static int CheckWorried(struct SFTP_Entry *sEntry)
 	thePacket = sEntry->ThesePackets[PBUFF(i)];
 	if (thePacket) {
 	    then = ntohl(thePacket->Header.TimeStamp);
-	    if ((long)TSDELTA(now, then) > rexmit) {
+	    if ((long)TSDELTA(now, then) > sEntry->RetryInterval) {
 		say(4, SFTP_DebugLevel,
 		    "Worried packet %ld, sent %lu, (%lu msec ago)\n",
 		    i, then, (long)TSDELTA(now, then));

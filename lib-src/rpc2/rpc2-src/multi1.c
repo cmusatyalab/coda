@@ -313,10 +313,7 @@ static void SetupPackets(int HowMany, MultiCon *mcon,
 	/* complete non-default header fields */
 	thisreq->Header.SeqNumber = thisconn->NextSeqNumber;
 	thisreq->Header.Opcode = Request->Header.Opcode;	/* set by client */
-	thisreq->Header.BindTime = thisconn->RTT >> RPC2_RTT_SHIFT;
-	if (thisconn->RTT && thisreq->Header.BindTime == 0)
-	    thisreq->Header.BindTime = 1;  /* ugh. zero is overloaded. */
-
+	thisreq->Header.BindTime = 0;
 	thisreq->Header.Flags = 0;
     }
 
@@ -440,7 +437,6 @@ static long mrpc_SendPacketsReliably(
     struct CEntry *c_entry;
     long finalrc, secode = 0;
     long thispacket, hopeleft, i;
-    struct timeval *tout;
     int packets = 1; 			/* packet counter for LWP yield */
     int busy = 0;
     int goodpackets = 0;		/* packets with good connection state */
@@ -510,11 +506,14 @@ static long mrpc_SendPacketsReliably(
 	rpc2_XmitPacket(mcon[thispacket].req,
 			mcon[thispacket].ceaddr->HostInfo->Addr, 0);
 
-        if (rpc2_Bandwidth) 
-	    rpc2_ResetLowerLimit(mcon[thispacket].ceaddr, mcon[thispacket].req);
-
 	slp->RetryIndex = 1;
-	rpc2_ActivateSle(slp, &mcon[thispacket].ceaddr->Retry_Beta[1]);
+	rpc2_RetryInterval(mcon[thispacket].ceaddr->HostInfo, slp,
+			   mcon[thispacket].req->Prefix.LengthOfPacket,
+	    /* XXX we should have the size of the expected reply packet,
+	     * somewhere... */ sizeof(struct RPC2_PacketHeader),
+			   mcon[thispacket].ceaddr->Retry_N,
+			   &mcon[thispacket].ceaddr->KeepAlive);
+	rpc2_ActivateSle(slp, &slp->RInterval);
     }
 
     /* don't forget to account for the Timer entry */
@@ -544,7 +543,7 @@ static long mrpc_SendPacketsReliably(
 	    slp = mcon[thispacket].sle;
 	    switch(slp->ReturnCode)
 		{
-		case WAITING:   
+		case WAITING:
 		    hopeleft = 1;	/* someday we will be told about this packet */
 		    break;		/* switch */
 
@@ -562,29 +561,30 @@ static long mrpc_SendPacketsReliably(
 		    /* Do preliminary side effect processing: */
 		    /* Notify side effect routine, if any */
 		    if (GOODSEDLE(thispacket) && c_entry->SEProcs != NULL &&
-		        c_entry->SEProcs->SE_MultiRPC2 != NULL)
-		        if ((secode = (*c_entry->SEProcs->SE_MultiRPC2)(ConnHandleList[thispacket],
-									&(SDescList[thispacket]), preply)) != RPC2_SUCCESS)
-			    if (secode < RPC2_FLIMIT)
-				{
-				rpc2_SetConnError(c_entry);
-				finalrc = RPC2_FAIL;
-				if ((*UnpackMulti)(HowMany, ConnHandleList, ArgInfo, preply, RPC2_SEFAIL2, thispacket) == -1)
-				    /* enough responses, return */
-				    EXIT_MRPC_SPR(finalrc)
-				else
-				    /* continue waiting for responses */
-				    break;
-				}
+			c_entry->SEProcs->SE_MultiRPC2 != NULL)
+			secode = (*c_entry->SEProcs->SE_MultiRPC2)
+			    (ConnHandleList[thispacket],
+			     &(SDescList[thispacket]), preply);
+		    if (secode < RPC2_FLIMIT)
+		    {
+			rpc2_SetConnError(c_entry);
+			finalrc = RPC2_FAIL;
+			if ((*UnpackMulti)(HowMany, ConnHandleList, ArgInfo, preply, RPC2_SEFAIL2, thispacket) == -1)
+			    /* enough responses, return */
+			    EXIT_MRPC_SPR(finalrc)
+			else
+			    /* continue waiting for responses */
+			    break;
+		    }
 		    /* return code may be LWP_SUCCESS or LWP_ENOWAIT */
 /*		    LWP_NoYieldSignal((char *)c_entry);*/
 		    /* Continue side effect processing: */
-		    if (GOODSEDLE(thispacket) && (secode != RPC2_SUCCESS || 
-		        SDescList[thispacket].LocalStatus == SE_FAILURE ||
-		        SDescList[thispacket].RemoteStatus == SE_FAILURE))
-		        {
-		        finalrc = RPC2_FAIL;
-		        if ((*UnpackMulti)(HowMany, ConnHandleList, ArgInfo, preply, RPC2_SEFAIL1, thispacket) == -1)
+		    if (GOODSEDLE(thispacket) && (secode != RPC2_SUCCESS ||
+			SDescList[thispacket].LocalStatus == SE_FAILURE ||
+			SDescList[thispacket].RemoteStatus == SE_FAILURE))
+		    {
+			finalrc = RPC2_FAIL;
+			if ((*UnpackMulti)(HowMany, ConnHandleList, ArgInfo, preply, RPC2_SEFAIL1, thispacket) == -1)
 			    /* enough responses, return */
 			    EXIT_MRPC_SPR(finalrc)
 			else
@@ -593,34 +593,36 @@ static long mrpc_SendPacketsReliably(
 			}
 		    /* RPC2_SUCCESS if ARRIVED and SE's are OK */
 		    if ((*UnpackMulti)(HowMany, ConnHandleList, ArgInfo, preply, RPC2_SUCCESS, thispacket) == -1)
-		        /* enough responses, return */
-		        EXIT_MRPC_SPR(finalrc)
+			/* enough responses, return */
+			EXIT_MRPC_SPR(finalrc)
 		    else
-		        /* continue waiting for responses */
-		        break;
+			/* continue waiting for responses */
+			break;
 
 		case KEPTALIVE:
 		    hopeleft = 1;
 		    slp->RetryIndex = 0;
-		    rpc2_ActivateSle(slp, &c_entry->Retry_Beta[0]);
+		    slp->RInterval.tv_sec  = c_entry->KeepAlive.tv_sec / 3;
+		    slp->RInterval.tv_usec = c_entry->KeepAlive.tv_usec / 3;
+		    rpc2_ActivateSle(slp, &slp->RInterval);
 		    break;	/* switch */
-		    
+
 		case NAKED:	/* explicitly NAK'ed this time or earlier */
 		    say(9, RPC2_DebugLevel, "Request NAK'ed on 0x%p\n", c_entry);
 		    rpc2_SetConnError(c_entry);	    /* does signal on ConnHandle also */
 		    i = exchange(pcon, i);
 		    finalrc = RPC2_FAIL;
-    		    mcon[thispacket].retcode = RPC2_NAKED;
+		    mcon[thispacket].retcode = RPC2_NAKED;
 		    /* call side-effect routine, and ignore result */
 		    if (GOODSEDLE(thispacket) &&
 			 c_entry->SEProcs != NULL && c_entry->SEProcs->SE_MultiRPC2 != NULL)
 			(*c_entry->SEProcs->SE_MultiRPC2)(ConnHandleList[thispacket], &(SDescList[thispacket]), NULL);
 		    if ((*UnpackMulti)(HowMany, ConnHandleList, ArgInfo, NULL, RPC2_NAKED, thispacket) == -1)
-		        /* enough responses, return */
-		        EXIT_MRPC_SPR(finalrc)
+			/* enough responses, return */
+			EXIT_MRPC_SPR(finalrc)
 		    else
-		        /* continue waiting for responses */
-		        break;
+			/* continue waiting for responses */
+			break;
 
 		case TIMEOUT:
 		    if ((hopeleft = rpc2_CancelRetry(c_entry, slp)))
@@ -629,10 +631,8 @@ static long mrpc_SendPacketsReliably(
 		     * check if all retries exhausted, if not check if later
 		     * retries shortened to 0 because of high LOWERLIMIT.
 		     */
-		    if ((slp->RetryIndex > c_entry->Retry_N) || 
-			((c_entry->Retry_Beta[slp->RetryIndex+1].tv_sec <= 0) &&
-			 (c_entry->Retry_Beta[slp->RetryIndex+1].tv_usec <= 0)))
-			{
+		    if (slp->RetryIndex >= c_entry->Retry_N)
+		    {
 			say(9, RPC2_DebugLevel, "Request failed on 0x%p\n", c_entry);
 			rpc2_SetConnError(c_entry); /* does signal on ConnHandle also */
 			/* remote site is now declared dead; mark all inactive connections to there likewise */
@@ -650,13 +650,17 @@ static long mrpc_SendPacketsReliably(
 			else
 			    /* continue waiting for responses */
 			    break;
-			}
+		    }
 		    /* else retry with the next Beta value  for timeout */
 		    hopeleft = 1;
 		    slp->RetryIndex += 1;
-		    tout = &c_entry->Retry_Beta[slp->RetryIndex];
-		    rpc2_ActivateSle(slp, tout);
-		    say(9, RPC2_DebugLevel, "Sending retry %ld at %ld on %#x (timeout %ld.%06ld)\n", slp->RetryIndex, rpc2_time(), c_entry->UniqueCID, tout->tv_sec, tout->tv_usec);
+		    rpc2_RetryInterval(c_entry->HostInfo, slp,
+				    mcon[thispacket].req->Prefix.LengthOfPacket,
+		    /* XXX we should have the size of the expected reply
+		     * packet, somewhere... */ sizeof(struct RPC2_PacketHeader),
+				       c_entry->Retry_N, &c_entry->KeepAlive);
+		    rpc2_ActivateSle(slp, &slp->RInterval);
+		    say(9, RPC2_DebugLevel, "Sending retry %d at %ld on %#x (timeout %ld.%06ld)\n", slp->RetryIndex, rpc2_time(), c_entry->UniqueCID, slp->RInterval.tv_sec, slp->RInterval.tv_usec);
 		    mcon[thispacket].req->Header.Flags = htonl((ntohl(mcon[thispacket].req->Header.Flags) | RPC2_RETRY));
 		    mcon[thispacket].req->Header.TimeStamp = htonl(rpc2_MakeTimeStamp());
 		    rpc2_Sent.Retries += 1;	/* RPC retries are currently NOT multicasted! -JJK */

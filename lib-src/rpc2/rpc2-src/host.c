@@ -389,59 +389,52 @@ void RPC2_UpdateEstimates(struct HEntry *host, RPC2_Unsigned elapsed_us,
     return;
 }
 
-void rpc2_RetryInterval(RPC2_Handle whichConn, RPC2_Unsigned InBytes,
-			RPC2_Unsigned OutBytes, int *retry,
-			int maxretry, struct timeval *tv)
+void rpc2_RetryInterval(struct HEntry *host, struct SL_Entry *sl,
+			RPC2_Unsigned OutBytes, RPC2_Unsigned InBytes,
+			int maxretry, struct timeval *keepalive)
 {
-    struct CEntry *ce;
     unsigned long rto, rtt;
-    long          effBR;
+    long	  effBR;
     int		  i;
 
-    ce = rpc2_GetConn(whichConn);
-
-    if (!ce || !tv) {
-	say(0, RPC2_DebugLevel, "RetryInterval: !ce || !tv\n");
+    if (!host || !sl) {
+	say(0, RPC2_DebugLevel, "RetryInterval: !host || !sl\n");
 	return;
     }
 
     /* calculate the estimated RTT */
-
-    rto = (ce->HostInfo->RTT >> RPC2_RTT_SHIFT) + ce->HostInfo->RTTVar;
+    rto = (host->RTT >> RPC2_RTT_SHIFT) + host->RTTVar;
 
     /* because we have subtracted the time to took to transfer data from our
      * RTT estimate (it is latency estimate), we have to add in the time to
      * send our packet into the estimated RTO */
 
-    effBR = (ce->HostInfo->BR >> RPC2_BR_SHIFT);
+    effBR = (host->BR >> RPC2_BR_SHIFT);
 
     /* rto += ( effBR * (InBytes + OutBytes) ) / 1000 ; */
     rto += (((effBR >> 3) * (InBytes + OutBytes)) >> 7) + RPC2_DELACK_DELAY;
-    
-    if (*retry != 1) {
-	rtt = ce->MaxRetryInterval.tv_sec * 1000000 +
-	      ce->MaxRetryInterval.tv_usec;
 
-	for (i = maxretry; i > *retry; i--) {
+    if (sl->RetryIndex != 1) {
+	rtt = (keepalive->tv_sec * 1000000 + keepalive->tv_usec) >> 1;
+
+	for (i = maxretry; i > sl->RetryIndex; i--) {
 	    rtt >>= 1;
 	    if (rtt < rto) break;
 	}
-	*retry = i;
+	sl->RetryIndex = i;
 	if (rtt > rto) rto = rtt;
     }
-    
+
     /* clamp retry estimate */
     /* we shouldn't need a lower bound because we already account for the
      * server processing delay */
     if (rto > RPC2_MAXRTO) rto = RPC2_MAXRTO;
 
-    tv->tv_sec  = rto / 1000000;
-    tv->tv_usec = rto % 1000000;
+    sl->RInterval.tv_sec  = rto / 1000000;
+    sl->RInterval.tv_usec = rto % 1000000;
 
     say(0, RPC2_DebugLevel, "RetryInterval: %lu.%06lu\n",
-	tv->tv_sec, tv->tv_usec);
-
-    return;
+	sl->RInterval.tv_sec, sl->RInterval.tv_usec);
 }
 
 int RPC2_GetRTT(RPC2_Handle handle, unsigned long *RTT, unsigned long *RTTvar)

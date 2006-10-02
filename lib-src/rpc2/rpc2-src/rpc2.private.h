@@ -196,19 +196,12 @@ struct CEntry		/* describes a single RPC connection */
 					    for retransmission (reply or last packet
 					    of Bind handshake */
     unsigned long reqsize;              /* size of request, for RTT calcs */
-    unsigned long respsize;              /* size of response, for RTT calcs */
 
-    /* Retransmission info - client */
-#define LOWERLIMIT 300000               /* floor on lower limit, usec. */
-    unsigned long LowerLimit;           /* minimum retry interval, usec */
-
-    long RTT;                           /* Smoothed RTT estimate, 1msec units. */
-    long RTTVar;                        /* Variance of RTT, 1msec units. */
     unsigned int TimeStampEcho;
     unsigned int RequestTime;
     long Retry_N;                       /* Number of retries for this connection. */
-    struct timeval *Retry_Beta;         /* Retry parameters for this connection. */
-    struct timeval SaveResponse;        /* 2*Beta0, lifetime of saved response packet. */
+    struct timeval KeepAlive;           /* Retry parameter for this connection. */
+    struct timeval SaveResponse;        /* 2*KeepAlive, lifetime of saved response packet. */
     RPC2_RequestFilter Filter;		/* Set on the server during binding,
 					   filter incoming requests so that the
 					   SubsysID/Connection matches that of
@@ -309,7 +302,8 @@ struct SL_Entry
     RPC2_Handle Conn;		/* NULL or conn corr to this SL Entry */
     RPC2_PacketBuffer *Packet;  /* NULL,  awaiting retransmission or just arrived */
     RPC2_RequestFilter Filter;  /* useful only in GetRequest */
-    long RetryIndex;		/* useful only in MakeRPC */
+    int RetryIndex;		/* useful only in MakeRPC */
+    struct timeval RInterval;		/* current retry timeout */
     };
 
 
@@ -474,9 +468,7 @@ extern struct CBUF_Header *rpc2_TraceBuffHeader;
 extern PROCESS rpc2_SocketListenerPID;	/* used in IOMGR_Cancel() calls */
 extern unsigned long rpc2_LamportClock;
 extern long Retry_N;
-extern struct timeval *Retry_Beta;
-#define MaxRetryInterval Retry_Beta[0]
-extern struct timeval SaveResponse;
+extern struct timeval KeepAlive;
 
 /* List manipulation routines */
 void rpc2_Replenish();
@@ -502,10 +494,8 @@ int rpc2_MorePackets(void);
 long rpc2_RecvPacket(long whichSocket, RPC2_PacketBuffer *whichBuff);
 void rpc2_htonp(RPC2_PacketBuffer *p);
 void rpc2_ntohp(RPC2_PacketBuffer *p);
-long rpc2_SetRetry(), rpc2_CancelRetry();
-void rpc2_ResetLowerLimit();
+long rpc2_CancelRetry(struct CEntry *Conn, struct SL_Entry *Sle);
 void rpc2_UpdateRTT(RPC2_PacketBuffer *pb, struct CEntry *ceaddr);
-void rpc2_ResetObs();
 void rpc2_ExpireEvents();
 
 /* Connection manipulation routines  */
@@ -532,9 +522,9 @@ void rpc2_ClearHostLog(struct HEntry *whichHost, NetLogEntryType type);
 
 void RPC2_UpdateEstimates(struct HEntry *whichHost, RPC2_Unsigned ElapsedTime,
 			  RPC2_Unsigned InBytes, RPC2_Unsigned OutBytes);
-void rpc2_RetryInterval(RPC2_Handle whichConn, RPC2_Unsigned InBytes,
-			RPC2_Unsigned OutBytes, int *retry, int maxretry,
-			struct timeval *tv);
+void rpc2_RetryInterval(struct HEntry *host, struct SL_Entry *sl,
+			RPC2_Unsigned OutBytes, RPC2_Unsigned InBytes,
+			int maxretry, struct timeval *keepalive);
 
 /* Multicast group manipulation routines */
 void rpc2_InitMgrp(), rpc2_FreeMgrp(), rpc2_RemoveFromMgrp(), rpc2_DeleteMgrp();

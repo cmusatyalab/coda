@@ -65,7 +65,6 @@ Pittsburgh, PA.
 extern long RPC2_Perror;
 extern long RPC2_DebugLevel;
 extern long SFTP_DebugLevel;
-extern long SFTP_RetryInterval;
 
 static char ShortText[200];
 static char LongText[3000];
