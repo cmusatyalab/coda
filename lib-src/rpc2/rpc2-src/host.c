@@ -407,7 +407,7 @@ void rpc2_RetryInterval(RPC2_Handle whichConn, RPC2_Unsigned InBytes,
 
     /* calculate the estimated RTT */
 
-    rto = (ce->HostInfo->RTT >> RPC2_RTT_SHIFT) + (ce->HostInfo->RTTVar >> 1);
+    rto = (ce->HostInfo->RTT >> RPC2_RTT_SHIFT) + ce->HostInfo->RTTVar;
 
     /* because we have subtracted the time to took to transfer data from our
      * RTT estimate (it is latency estimate), we have to add in the time to
@@ -416,7 +416,7 @@ void rpc2_RetryInterval(RPC2_Handle whichConn, RPC2_Unsigned InBytes,
     effBR = (ce->HostInfo->BR >> RPC2_BR_SHIFT);
 
     /* rto += ( effBR * (InBytes + OutBytes) ) / 1000 ; */
-    rto += ((effBR >> 3) * (InBytes + OutBytes)) >> 7;
+    rto += (((effBR >> 3) * (InBytes + OutBytes)) >> 7) + RPC2_DELACK_DELAY;
     
     if (*retry != 1) {
 	rtt = ce->MaxRetryInterval.tv_sec * 1000000 +
@@ -430,9 +430,10 @@ void rpc2_RetryInterval(RPC2_Handle whichConn, RPC2_Unsigned InBytes,
 	if (rtt > rto) rto = rtt;
     }
     
-    /* clamp retry estimates */
-    if      (rto < RPC2_MINRTO) rto = RPC2_MINRTO;
-    else if (rto > RPC2_MAXRTO) rto = RPC2_MAXRTO;
+    /* clamp retry estimate */
+    /* we shouldn't need a lower bound because we already account for the
+     * server processing delay */
+    if (rto > RPC2_MAXRTO) rto = RPC2_MAXRTO;
 
     tv->tv_sec  = rto / 1000000;
     tv->tv_usec = rto % 1000000;

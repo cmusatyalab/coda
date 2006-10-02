@@ -133,9 +133,11 @@ OBJ_HENTRY = 48127
 #define O_BINARY 0
 #endif
 
-/* MINRTO/MAXRTO are used to avoid unbounded timeouts */
-#define RPC2_MINRTO   300000        /* min rto (rtt + variance) is 300 msec */
-#define RPC2_MAXRTO   30000000     /* max rto (rtt + variance) is 30 seconds */
+/* MAXRTO is used to avoid unbounded timeouts */
+#define RPC2_MAXRTO     30000000   /* max rto (rtt + variance) is 30 seconds */
+#define RPC2_DELACK_DELAY 100000   /* delay for server to send an ack that it
+				      received a request. This provides an
+				      upper bound on server response time. */
 
 /* Definitions for Flags field of connections */
 #define CE_OLDV  0x1  /* old version detected during bind */

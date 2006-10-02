@@ -753,10 +753,10 @@ static void HandleNewRequest(RPC2_PacketBuffer *pb, struct CEntry *ce)
 	rpc2_IncrementSeqNumber(ce);
 
 	{ /* set up a timer to send a unsolicited ack response (actually an
-	     RCP2_BUSY) within 200ms. */
+	     RCP2_BUSY) within 100ms. */
 	    struct timeval tv;
 	    tv.tv_sec = 0;
-	    tv.tv_usec = 200000;
+	    tv.tv_usec = RPC2_DELACK_DELAY;
 	    sl = rpc2_AllocSle(DELACK, ce);
 	    rpc2_ActivateSle(sl, &tv);
 	}
