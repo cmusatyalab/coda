@@ -340,13 +340,14 @@ struct HEntry {
 
 #define RPC2_RTT_SHIFT    3     /* Bits to right of binary point of RTT */
 #define RPC2_RTTVAR_SHIFT 2     /* Bits to right of binary point of RTTVar */
-    unsigned long   RTT;	/* RTT          (us<<RPC2_RTT_SHIFT) */
+    unsigned long   RTT;	/* RTT		(us<<RPC2_RTT_SHIFT) */
     unsigned long   RTTVar;	/* RTT variance (us<<RPC2_RTTVAR_SHIFT) */
 
-#define RPC2_BR_SHIFT    3
-#define RPC2_BRVAR_SHIFT 2
-    unsigned long   BR;		/* Byterate          (ns/B<<RPC2_BW_SHIFT) */
-    unsigned long   BRVar;	/* Byterate variance (ns/B<<RPC2_BWVAR_SHIFT) */
+#define RPC2_BW_SHIFT    3
+    unsigned long   BWout;	/* Outgoing Bandwidth	(B/s) */
+    unsigned long   BRout;	/* Outgoing Byterate	(ns/B<<RPC2_BW_SHIFT) */
+    unsigned long   BWin;	/* Incoming Bandwidth	(B/s) */
+    unsigned long   BRin;	/* Incoming Byterate	(ns/B<<RPC2_BW_SHIFT) */
 };
 
 
