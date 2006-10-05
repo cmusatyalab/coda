@@ -144,9 +144,8 @@ struct HEntry *rpc2_GetHost(struct RPC2_addrinfo *addr)
 
     he->RTT     = 0;
     he->RTTVar  = 0;
-#define INITIAL_BW 1000000
-    he->BWout = he->BWin = INITIAL_BW;
-    he->BRout = he->BRin = (1000000000 / INITIAL_BW) << RPC2_BW_SHIFT;
+    he->BWlo_out = he->BWhi_out = RPC2_INITIAL_BW;
+    he->BWlo_in = he->BWhi_in = RPC2_INITIAL_BW;
 
     /* insert into hash table */
     he->HLink = HostHashTable[bucket];
@@ -315,26 +314,30 @@ void rpc2_ClearHostLog(struct HEntry *whichHost, NetLogEntryType type)
 void RPC2_UpdateEstimates(struct HEntry *host, RPC2_Unsigned elapsed_us,
 			  RPC2_Unsigned InBytes, RPC2_Unsigned OutBytes)
 {
-    long	  eRTT;		/* estimated null roundtrip time */
-    unsigned long BRout, BRin;	/* estimated byterate (ns/B) */
-    unsigned long avgBWout, avgBWin; /* average bandwidth (B/s) */
-    unsigned long eUout, eUin;	/* temporary unsigned variable */
-    long	  eL;		/* temporary signed variable */
-    unsigned long bytes, BW, BR;
+    unsigned long avgBWout, avgBWin;
+    unsigned long bytes, BR, BW;
+    unsigned long rto, rtt, rtt_out, rtt_in;/* estimated roundtrip time(s) */
+    long rte;
 
     if (!host) return;
 
-    eRTT = host->RTT >> RPC2_RTT_SHIFT;
+    rtt = host->RTT >> RPC2_RTT_SHIFT;
 
-    BRout = (host->BRout >= 4) ? (host->BRout >> 2) : 1;
-    BRout = (1000000000 << 1) / BRout;
-    avgBWout = (BRout + host->BWout) >> 1;
+    bytes = OutBytes;
+    avgBWout = BW = (host->BWlo_out + host->BWhi_out) >> 1;
+    while (bytes > 2048) { bytes >>= 1; BW >>= 1; }
+    if (!BW) BW = 1;
+    rtt_out = (1000000 * bytes) / BW;
 
-    BRin = (host->BRin >= 4) ? (host->BRin >> 2) : 1;
-    BRin = (1000000000 << 1) / BRin;
-    avgBWin = (BRin + host->BWin) >> 1;
+    bytes = InBytes;
+    avgBWin = BW = (host->BWlo_in + host->BWhi_in) >> 1;
+    while (bytes > 2048) { bytes >>= 1; BW >>= 1; }
+    if (!BW) BW = 1;
+    rtt_in = (1000000 * bytes) / BW;
 
     if ((int32_t)elapsed_us < 0) elapsed_us = 0;
+
+    rto = rtt + rtt_out + rtt_in;
 
     if (RPC2_DebugLevel)
     {
@@ -342,79 +345,75 @@ void RPC2_UpdateEstimates(struct HEntry *host, RPC2_Unsigned elapsed_us,
 	RPC2_formataddrinfo(host->Addr, addr, RPC2_ADDRSTRLEN);
 	fprintf(rpc2_logfile,
 		"uRTT: %s %u %u %u %lu %lu %lu %lu %lu %lu %lu %lu\n",
-		addr, elapsed_us, OutBytes, InBytes,
-		eRTT, host->RTTVar >> RPC2_RTTVAR_SHIFT,
-		avgBWout, BRout, host->BWout, avgBWin, BRin, host->BWin);
+		addr, elapsed_us, OutBytes, InBytes, rto, rtt,
+		avgBWout, host->BWlo_out, host->BWhi_out,
+		avgBWin, host->BWlo_in, host->BWhi_in);
     }
 
-    BRout = host->BRout >> RPC2_BW_SHIFT;
-    BRin = host->BRin >> RPC2_BW_SHIFT;
+    if (elapsed_us >= rto) {
+	rte = (elapsed_us - rto) >> 1;
+	rtt_out += rte;
+	rtt_in += rte;
+	rte >>= 1;
+	rtt += rte;
+    } else {
+	rte = elapsed_us >> 1;
+	rtt_out = rte;
+	rtt_in = rte;
+	rte >>= 1;
+	rtt = rte;
+    }
 
-    /* we need to clamp elapsed elapsed_us to about 16 seconds to avoid
-     * overflows with the 31 bit calculations below */
-    if (elapsed_us > 0x00ffffff) elapsed_us = 0x00ffffff;
-    //if (elapsed_us > eRTT) eU = elapsed_us - eRTT;
-    //else		   eU = 0;
-    //
-    bytes = InBytes;
-    while (bytes > 4096) { bytes >>= 1; avgBWin >>= 1; }
-    if (!avgBWin) avgBWin = 1;
-
-    eUout = elapsed_us - (1000000 * bytes / avgBWin);
-    if ((long)eUout < 0) eUout = 0;
-
-    bytes = OutBytes;
-    while (bytes > 4096) { bytes >>= 1; avgBWout >>= 1; }
-    if (!avgBWout) avgBWout = 1;
-
-    eUin = elapsed_us - (1000000 * bytes / avgBWout);
-    if ((long)eUin < 0) eUin = 0;
-
-    eL = (long)elapsed_us - (long)eUout - (long)eUin;
-    if (eL < 0) eL = 0;
-
-    say(0, RPC2_DebugLevel, "%u %lu %lu %ld\n", elapsed_us, eUout, eUin, eL);
-
-    /* eBR = ( eU * 1000 ) / Bytes ; */
-    BR = (eUout * 125 / OutBytes) << 3;
-    if (BR >= BRout) host->BRout += BR - BRout;
-    else	     host->BRout -= BRout - BR;
-
-    while (OutBytes > 4096) { OutBytes >>= 1; eUout >>= 1; }
-    if (!eUout) eUout = 1;
-    BW = 1000000 * OutBytes / eUout;
-    if (BW >= host->BWout)
-	 host->BWout += (BW - host->BWout) >> RPC2_BW_SHIFT;
-    else host->BWout -= (host->BWout - BW) >> RPC2_BW_SHIFT;
-
-    BR = (eUin * 125 / InBytes) << 3;
-    if (BR >= BRin) host->BRin += BR - BRin;
-    else	    host->BRin -= BRin - BR;
-
-    while (InBytes > 4096) { InBytes >>= 1; eUin >>= 1; }
-    if (!eUin) eUin = 1;
-    BW = 1000000 * InBytes / eUin;
-    if (BW >= host->BWin)
-	 host->BWin += (BW - host->BWin) >> RPC2_BW_SHIFT;
-    else host->BWin -= (host->BWin - BW) >> RPC2_BW_SHIFT;
+    say(0,RPC2_DebugLevel,"%u %lu %lu %lu\n", elapsed_us, rtt, rtt_out, rtt_in);
 
     /* the RTT & RTT variance are shifted analogous to Jacobson's
      * article in SIGCOMM'88 */
-    eL -= host->RTT >> RPC2_RTT_SHIFT;
-    host->RTT += eL;
+    rtt -= (long)(host->RTT >> RPC2_RTT_SHIFT);
+    host->RTT += rtt;
+    if (rtt < 0) rtt = -rtt;
+    rtt -= (long)(host->RTTVar >> RPC2_RTTVAR_SHIFT);
+    host->RTTVar += rtt;
 
-    if (eL < 0) eL = -eL;
-    eL -= host->RTTVar >> RPC2_RTTVAR_SHIFT;
-    host->RTTVar += eL;
+    /* eBR = ( eU * 1000 ) / Bytes ; */
+    BR = (rtt_out * 125 / OutBytes) << 3;
+    if (!host->BWlo_out) host->BWlo_out = 1;
+    BW = 1000000000 / host->BWlo_out;
+    if (BR >= BW) BW += (BR - BW) >> RPC2_BW_SHIFT;
+    else	  BW -= (BW - BR) >> RPC2_BW_SHIFT;
+    if (!BW) BW = 1;
+    host->BWlo_out = 1000000000 / BW;
+
+    say(0, RPC2_DebugLevel, "%lu %lu\n", BR, BW);
+
+    while (OutBytes > 4096) { OutBytes >>= 1; rtt_out >>= 1; }
+    if (!rtt_out) rtt_out = 1;
+    BW = 1000000 * OutBytes / rtt_out;
+    if (BW >= host->BWhi_out)
+	 host->BWhi_out += (BW - host->BWhi_out) >> RPC2_BW_SHIFT;
+    else host->BWhi_out -= (host->BWhi_out - BW) >> RPC2_BW_SHIFT;
+
+    BR = (rtt_in * 125 / InBytes) << 3;
+    if (!host->BWlo_in) host->BWlo_in = 1;
+    BW = 1000000000 / host->BWlo_in;
+    if (BR >= BW) BW += (BR - BW) >> RPC2_BW_SHIFT;
+    else	  BW -= (BW - BR) >> RPC2_BW_SHIFT;
+    if (!BW) BW = 1;
+    host->BWlo_in = 1000000000 / BW;
+
+    while (InBytes > 4096) { InBytes >>= 1; rtt_in >>= 1; }
+    if (!rtt_in) rtt_in = 1;
+    BW = 1000000 * InBytes / rtt_in;
+    if (BW >= host->BWhi_in)
+	 host->BWhi_in += (BW - host->BWhi_in) >> RPC2_BW_SHIFT;
+    else host->BWhi_in -= (host->BWhi_in - BW) >> RPC2_BW_SHIFT;
 }
 
 void rpc2_RetryInterval(struct HEntry *host, struct SL_Entry *sl,
 			RPC2_Unsigned OutBytes, RPC2_Unsigned InBytes,
 			int maxretry, struct timeval *keepalive)
 {
-    unsigned long rto, rtt;
-    unsigned long BR, avgBW;
-    int		  i;
+    unsigned long rto, rtt, avgBW;
+    int i;
 
     if (!host || !sl) {
 	say(1, RPC2_DebugLevel, "RetryInterval: !host || !sl\n");
@@ -422,27 +421,16 @@ void rpc2_RetryInterval(struct HEntry *host, struct SL_Entry *sl,
     }
 
     /* calculate the estimated RTT */
-    rto = (host->RTT >> RPC2_RTT_SHIFT) + host->RTTVar;
-
-    /* because we have subtracted the time to took to transfer data from our
-     * RTT estimate (it is latency estimate), we have to add in the time to
-     * send our packet into the estimated RTO */
-    /* BR = (host->BR >> RPC2_BW_SHIFT); */
-    BR = (host->BRout >= 2) ? (host->BRout >> 1) : 1;
-    BR = (1000000000 << 2) / BR;
+    rto = (host->RTT >> RPC2_RTT_SHIFT); // + host->RTTVar;
 
     /* rto += 1000000 * bytes / BW; */
-    avgBW = (host->BWout + BR) >> 1;
+    avgBW = (host->BWlo_out + host->BWhi_out) >> 1;
     while (OutBytes > 4096) { OutBytes >>= 1; avgBW >>= 1; }
     if (!avgBW) avgBW = 1;
     rto += 1000000 * OutBytes / avgBW;
 
-    /* BR = (host->BR >> RPC2_BW_SHIFT); */
-    BR = (host->BRin >= 2) ? (host->BRin >> 1) : 1;
-    BR = (1000000000 << 2) / BR;
-
     /* rto += 1000000 * bytes / BW; */
-    avgBW = (host->BWin + BR) >> 1;
+    avgBW = (host->BWlo_in + host->BWhi_in) >> 1;
     while (InBytes > 4096) { InBytes >>= 1; avgBW >>= 1; }
     if (!avgBW) avgBW = 1;
     rto += 1000000 * InBytes / avgBW;
@@ -469,8 +457,13 @@ void rpc2_RetryInterval(struct HEntry *host, struct SL_Entry *sl,
     sl->RInterval.tv_sec  = rto / 1000000;
     sl->RInterval.tv_usec = rto % 1000000;
 
-    say(1, RPC2_DebugLevel, "RetryInterval: %lu.%06lu\n",
-	sl->RInterval.tv_sec, sl->RInterval.tv_usec);
+    if (RPC2_DebugLevel > 1)
+    {
+	char addr[RPC2_ADDRSTRLEN];
+	RPC2_formataddrinfo(host->Addr, addr, RPC2_ADDRSTRLEN);
+	fprintf(rpc2_logfile, "RetryInterval: %s %d %lu.%06lu\n",
+	    addr, sl->RetryIndex, sl->RInterval.tv_sec, sl->RInterval.tv_usec);
+    }
 }
 
 int RPC2_GetRTT(RPC2_Handle handle, unsigned long *RTT, unsigned long *RTTvar)
@@ -491,18 +484,13 @@ int RPC2_GetBandwidth(RPC2_Handle handle, unsigned long *BWlow,
 		      unsigned long *BWavg, unsigned long *BWhigh)
 {
     struct CEntry *ce;
-    unsigned long BR;
 
     ce = rpc2_GetConn(handle);
     if (ce == NULL) return(RPC2_NOCONNECTION);
 
-    /* BR = 1000000000 / (ce->HostInfo->BR >> RPC2_BW_SHIFT); */
-    BR = (ce->HostInfo->BRout >= 2) ?
-	(1000000000 << 2) / (ce->HostInfo->BRout >> 1) : 1;
-
-    if (BWlow)  *BWlow = BR;
-    if (BWavg)  *BWavg = (BR + ce->HostInfo->BWout) >> 1;
-    if (BWhigh) *BWhigh = ce->HostInfo->BWout;
+    if (BWlow)  *BWlow = ce->HostInfo->BWlo_out;
+    if (BWavg)  *BWavg = (ce->HostInfo->BWlo_out + ce->HostInfo->BWhi_out) >> 1;
+    if (BWhigh) *BWhigh = ce->HostInfo->BWhi_out;
 
     return(RPC2_SUCCESS);
 }

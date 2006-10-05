@@ -182,8 +182,6 @@ static void PrintNetLog(char *what, unsigned int NumEntries,
 
 void rpc2_PrintHEntry(struct HEntry *hPtr, FILE *tFile)
 {
-    unsigned long BRout, BRin;
-
     if (tFile == NULL) tFile = rpc2_logfile;	/* it's ok, call-by-value */
 
     fprintf(tFile, "\nHost 0x%lx state is...\n\tNextEntry = 0x%lx  PrevEntry = 0x%lx  MagicNumber = %s\n",
@@ -198,14 +196,8 @@ void rpc2_PrintHEntry(struct HEntry *hPtr, FILE *tFile)
 	    hPtr->RTTVar >> RPC2_RTTVAR_SHIFT,
 	    hPtr->RTTVar % ((1 << RPC2_RTTVAR_SHIFT) - 1));
 
-    /* Try to utilize a 32-bit integer as best as possible */
-    /* BR = 1000000000 / (hPtr->BR >> RPC2_BW_SHIFT); */
-    /*    = (1000000000 << 2) / (hPtr->BR >> 1); */
-    BRout = (hPtr->BRout >= 2) ? (hPtr->BRout >> 1) : 1;
-    BRin = (hPtr->BRin >= 2) ? (hPtr->BRin >> 1) : 1;
     fprintf(tFile, "\tBandwidth = out: %ld:%ld B/s, in: %ld:%ld B/s\n",
-	    (1000000000 << 2) / BRout, hPtr->BWout >> RPC2_BW_SHIFT,
-	    (1000000000 << 2) / BRin, hPtr->BWin >> RPC2_BW_SHIFT);
+	    hPtr->BWlo_out, hPtr->BWhi_out, hPtr->BWlo_in, hPtr->BWhi_in);
 
     PrintNetLog("RPC2", hPtr->RPC2_NumEntries, hPtr->RPC2_Log, tFile);
     PrintNetLog("SE",   hPtr->SE_NumEntries,   hPtr->SE_Log,   tFile);

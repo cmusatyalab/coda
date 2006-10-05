@@ -343,11 +343,10 @@ struct HEntry {
     unsigned long   RTT;	/* RTT		(us<<RPC2_RTT_SHIFT) */
     unsigned long   RTTVar;	/* RTT variance (us<<RPC2_RTTVAR_SHIFT) */
 
-#define RPC2_BW_SHIFT    3
-    unsigned long   BWout;	/* Outgoing Bandwidth	(B/s) */
-    unsigned long   BRout;	/* Outgoing Byterate	(ns/B<<RPC2_BW_SHIFT) */
-    unsigned long   BWin;	/* Incoming Bandwidth	(B/s) */
-    unsigned long   BRin;	/* Incoming Byterate	(ns/B<<RPC2_BW_SHIFT) */
+#define RPC2_INITIAL_BW 100000
+#define RPC2_BW_SHIFT    4
+    unsigned long   BWlo_out, BWhi_out; /* Outgoing Bandwidth	(B/s) */
+    unsigned long   BWlo_in,  BWhi_in;	/* Incoming Bandwidth	(B/s) */
 };
 
 

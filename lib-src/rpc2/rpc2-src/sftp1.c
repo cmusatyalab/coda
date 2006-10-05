@@ -964,6 +964,7 @@ off_t sftp_AppendFileToPacket(struct SFTP_Entry *sEntry,
 {
     long rc, maxbytes;
     off_t filelen;
+    struct CEntry *ce;
     static char GlobalJunk[SFTP_MAXBODYSIZE];	/* buffer for read();
 				    avoids huge local on my stack */
     
@@ -986,6 +987,8 @@ off_t sftp_AppendFileToPacket(struct SFTP_Entry *sEntry,
     if (rc < 0) return(-1);
     assert(!sftp_AddPiggy(whichP, GlobalJunk, filelen, SFTP_MAXPACKETSIZE));
     sEntry->HitEOF = TRUE;
+    ce = rpc2_GetConn(sEntry->LocalHandle);
+    if (ce) ce->reqsize += filelen;
 
     /* cleanup and quit */
     sftp_vfclose(sEntry);
