@@ -1,3 +1,9 @@
+New in 2.3:
+
+* Fix failing SFTP transfer when a duplicate packet arrives.
+* Account for server processing delay in roundtrip time estimate.
+* Rewrote bandwidth/latency estimator to improve stability.
+
 New in 2.2:
 
 * Avoid valgrind warnings in the pbkdf test function.
