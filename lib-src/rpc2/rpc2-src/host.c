@@ -321,6 +321,20 @@ void RPC2_UpdateEstimates(struct HEntry *host, RPC2_Unsigned elapsed_us,
 
     if (!host) return;
 
+    /* account for IP/UDP header overhead
+     * an IPv4 header is (typically) 20 bytes but can be up to 60 bytes, IPv6
+     * headers are 40 bytes but could include additional headers such as an 8
+     * byte fragment header. In addition the UDP header adds another 8 bytes.
+     * And then there is an additional 18 bytes ethernet header, but that may
+     * not exist on PPP links. And of course if we have some compression layer
+     * below us none of these numbers make any sense.
+     * If we pick 40 we will be slightly reasonably close for a IPv4 ethernet
+     * network but underestimate the packet size over a v6 network. At least it
+     * brings us a bit closer to reality. If we don't account for this
+     * overhead, the delay of a 60 byte RPC2 ping packet is considerably
+     * underestimated, which leads to an incorrect bandwidth estimate. */
+    InBytes += 40; OutBytes += 40;
+
     rtt = host->RTT >> RPC2_RTT_SHIFT;
 
     bytes = OutBytes;
@@ -364,8 +378,6 @@ void RPC2_UpdateEstimates(struct HEntry *host, RPC2_Unsigned elapsed_us,
 	rtt = rte;
     }
 
-    say(0,RPC2_DebugLevel,"%u %lu %lu %lu\n", elapsed_us, rtt, rtt_out, rtt_in);
-
     /* the RTT & RTT variance are shifted analogous to Jacobson's
      * article in SIGCOMM'88 */
     rtt -= (long)(host->RTT >> RPC2_RTT_SHIFT);
@@ -382,8 +394,6 @@ void RPC2_UpdateEstimates(struct HEntry *host, RPC2_Unsigned elapsed_us,
     else	  BW -= (BW - BR) >> RPC2_BW_SHIFT;
     if (!BW) BW = 1;
     host->BWlo_out = 1000000000 / BW;
-
-    say(0, RPC2_DebugLevel, "%lu %lu\n", BR, BW);
 
     while (OutBytes > 4096) { OutBytes >>= 1; rtt_out >>= 1; }
     if (!rtt_out) rtt_out = 1;
@@ -419,6 +429,9 @@ void rpc2_RetryInterval(struct HEntry *host, struct SL_Entry *sl,
 	say(1, RPC2_DebugLevel, "RetryInterval: !host || !sl\n");
 	return;
     }
+
+    /* Account for IP/UDP header overhead, see rpc2_UpdateEstimates */
+    InBytes += 40; OutBytes += 40;
 
     /* calculate the estimated RTT */
     rto = (host->RTT >> RPC2_RTT_SHIFT); // + host->RTTVar;
