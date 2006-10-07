@@ -503,6 +503,9 @@ static long mrpc_SendPacketsReliably(
 	}
 
 	mcon[thispacket].req->Header.TimeStamp = htonl(timestamp);
+	mcon[thispacket].ceaddr->reqsize =
+	    mcon[thispacket].req->Prefix.LengthOfPacket;
+
 	rpc2_XmitPacket(mcon[thispacket].req,
 			mcon[thispacket].ceaddr->HostInfo->Addr, 0);
 
