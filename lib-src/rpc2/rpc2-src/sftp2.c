@@ -231,7 +231,7 @@ static void ClientPacket(RPC2_PacketBuffer *whichPacket,
 	     * AckArrived->SendStrategy->CheckWorried() can actually do
 	     * the right thing */
 
-#warning "fix checkworried"
+#warning "move to checkworried"
 	    /* estimated size of an sftp data transfer */
 	    bytes = ((sEntry->PacketSize + sizeof(struct RPC2_PacketHeader)) *
 		     sEntry->SendAhead);

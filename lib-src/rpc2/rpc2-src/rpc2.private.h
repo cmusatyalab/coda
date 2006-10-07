@@ -338,15 +338,14 @@ struct HEntry {
     unsigned SE_NumEntries;	/* number of sideeffect observations recorded */
     RPC2_NetLogEntry SE_Log[RPC2_MAXLOGLENGTH];
 
+/* the RTT is shifted analogous to Jacobson's article in SIGCOMM'88 */
 #define RPC2_RTT_SHIFT    3     /* Bits to right of binary point of RTT */
-#define RPC2_RTTVAR_SHIFT 2     /* Bits to right of binary point of RTTVar */
     unsigned long   RTT;	/* RTT		(us<<RPC2_RTT_SHIFT) */
-    unsigned long   RTTVar;	/* RTT variance (us<<RPC2_RTTVAR_SHIFT) */
 
 #define RPC2_INITIAL_BW 100000
 #define RPC2_BW_SHIFT    4
-    unsigned long   BWlo_out, BWhi_out; /* Outgoing Bandwidth	(B/s) */
-    unsigned long   BWlo_in,  BWhi_in;	/* Incoming Bandwidth	(B/s) */
+    uint32_t BWlo_in,  BWhi_in;	/* Incoming Bandwidth	(B/s) */
+    uint32_t BWlo_out, BWhi_out; /* Outgoing Bandwidth	(B/s) */
 };
 
 

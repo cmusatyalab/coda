@@ -872,7 +872,7 @@ static RPC2_PacketBuffer *AwaitPacket(struct SFTP_Entry *sEntry, int retry,
     rpc2_RetryInterval(sEntry->HostInfo, sl, outbytes, inbytes,
 		       sEntry->RetryCount, &KeepAlive);
 
-#warning "fix checkworried"
+#warning "move to checkworried"
     sEntry->RetryInterval = sl->RInterval.tv_sec * 1000 + \
 			    sl->RInterval.tv_usec / 1000;
 

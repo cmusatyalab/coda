@@ -190,13 +190,10 @@ void rpc2_PrintHEntry(struct HEntry *hPtr, FILE *tFile)
     rpc2_printaddrinfo(hPtr->Addr, tFile);
 
     fprintf(tFile, "\tLastWord = %ld.%06ld\n", hPtr->LastWord.tv_sec, hPtr->LastWord.tv_usec);
-    fprintf(tFile, "\tRTT = %ld.%03ld, RTTvar = %ld.%03ld\n",
-	    hPtr->RTT >> RPC2_RTT_SHIFT,
-	    hPtr->RTT % ((1 << RPC2_RTT_SHIFT) - 1),
-	    hPtr->RTTVar >> RPC2_RTTVAR_SHIFT,
-	    hPtr->RTTVar % ((1 << RPC2_RTTVAR_SHIFT) - 1));
+    fprintf(tFile, "\tRTT = %ld.%03ld\n",
+	    hPtr->RTT >> RPC2_RTT_SHIFT, hPtr->RTT % ((1 << RPC2_RTT_SHIFT) - 1));
 
-    fprintf(tFile, "\tBandwidth = out: %ld:%ld B/s, in: %ld:%ld B/s\n",
+    fprintf(tFile, "\tBandwidth = out: %u:%u B/s, in: %u:%u B/s\n",
 	    hPtr->BWlo_out, hPtr->BWhi_out, hPtr->BWlo_in, hPtr->BWhi_in);
 
     PrintNetLog("RPC2", hPtr->RPC2_NumEntries, hPtr->RPC2_Log, tFile);
