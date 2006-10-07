@@ -988,7 +988,7 @@ void rpc2_UpdateRTT(RPC2_PacketBuffer *pb, struct CEntry *ceaddr)
     TVTOTS(&pb->Prefix.RecvStamp, obs);
     say(15, RPC2_DebugLevel, "updatertt %u %u\n", obs, pb->Header.TimeStamp);
     obs = TSDELTA(obs, pb->Header.TimeStamp);
-    RPC2_UpdateEstimates(ceaddr->HostInfo, obs, ceaddr->reqsize, pb->Prefix.LengthOfPacket);
+    RPC2_UpdateEstimates(ceaddr->HostInfo, obs, pb->Prefix.LengthOfPacket, ceaddr->reqsize);
 
     /* 
      * Requests can be sent and received in the same tick.  
