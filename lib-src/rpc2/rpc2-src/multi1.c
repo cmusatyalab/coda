@@ -558,7 +558,7 @@ static long mrpc_SendPacketsReliably(
 
 		    /* At this point the final reply has been received;
 		       SocketListener has already decrypted it. */
-		    preply = slp->Packet;
+		    preply = (RPC2_PacketBuffer *)slp->data;
 		    mcon[thispacket].retcode = preply->Header.ReturnCode;
 
 		    /* Do preliminary side effect processing: */

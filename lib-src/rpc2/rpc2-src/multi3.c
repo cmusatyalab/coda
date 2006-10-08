@@ -406,7 +406,7 @@ long RPC2_AddToMgrp(IN MgroupHandle, IN ConnHandle)
 	case ARRIVED:
 	    say(9, RPC2_DebugLevel, "Received INITMULTICAST response on %#x\n", ConnHandle);
 	    RPC2_FreeBuffer(&pb);	/* release the request packet */
-	    pb = sl->Packet;		/* and get the response packet */
+	    pb = (RPC2_PacketBuffer *)sl->data;	/* get the response packet */
 	    rpc2_FreeSle(&sl);
 	    break;
 

@@ -206,7 +206,7 @@ static void ServerPacket(RPC2_PacketBuffer *whichPacket,
     }
     sEntry->Sleeper = NULL;	/* no longer anyone waiting for a packet */
     rpc2_DeactivateSle(sl, ARRIVED);
-    sl->Packet = whichPacket;
+    sl->data = whichPacket;
     LWP_SignalProcess((char *)sl);
 }
 

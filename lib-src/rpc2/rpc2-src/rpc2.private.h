@@ -267,6 +267,9 @@ struct MEntry			/* describes an RPC multicast connection */
 		       destroyed by SocketListener on timeout
 	               destroyed by user LWP when reply is sent.
 
+          DELAYED_SEND Artificially introduced a transmission delay
+          DELAYED_RECV Artificially introduced a reception delay
+
           OTHER        associated with a specific connection
 	               created and destroyed by user LWP
 
@@ -277,7 +280,8 @@ connection they are associated with.
 */
 
 /* NOTE:  enum definitions  have to be non-anonymous: else a dbx bug is triggered */
-enum SL_Type {REPLY=1421, REQ=1422, OTHER=1423, DELACK=20010911};
+enum SL_Type {REPLY=1421, REQ=1422, OTHER=1423, DELACK=20010911,
+	      DELAYED_SEND=20061016, DELAYED_RECV=20061017};
 enum RetVal {WAITING=38358230, ARRIVED=38358231, TIMEOUT=38358232,
 	KEPTALIVE=38358233, KILLED=38358234, NAKED=38358235};
 
@@ -300,10 +304,10 @@ struct SL_Entry
 
     /* Other fields */
     RPC2_Handle Conn;		/* NULL or conn corr to this SL Entry */
-    RPC2_PacketBuffer *Packet;  /* NULL,  awaiting retransmission or just arrived */
+    void *data;			/* NULL, packet buffer, or delayed xmit data */
     RPC2_RequestFilter Filter;  /* useful only in GetRequest */
     int RetryIndex;		/* useful only in MakeRPC */
-    struct timeval RInterval;		/* current retry timeout */
+    struct timeval RInterval;	/* current retry timeout */
     };
 
 
@@ -698,6 +702,7 @@ int LUA_rtt_getbandwidth(struct HEntry *he, uint32_t *bw_tx, uint32_t *bw_rx);
 /* not sure if we want to allow the estimator to control number of retries
  * and/or overall timeout, so I might not actually use this function... */
 int LUA_rtt_retryinterval(struct HEntry *he, uint32_t n, uint32_t tx, uint32_t rx);
+int LUA_fail_delay(struct RPC2_addrinfo *addr, RPC2_PacketBuffer *pb, int out);
 #else
 /* do not include Lua interpreter, define empty stubs */
 #define LUA_init()
@@ -707,7 +712,15 @@ int LUA_rtt_retryinterval(struct HEntry *he, uint32_t n, uint32_t tx, uint32_t r
 #define LUA_rtt_getrto(a,b,c)		0
 #define LUA_rtt_getbandwidth(a,b,c)	0
 #define LUA_rtt_retryinterval(a,b,c)	0
+#define LUA_fail_delay(a,b,c)		0
 #endif
+
+int rpc2_DelayedSend(int delay, int s, struct RPC2_addrinfo *addr,
+		     RPC2_PacketBuffer *pb);
+int rpc2_DelayedRecv(int delay, RPC2_PacketBuffer *pb);
+
+void rpc2_SendDelayedPacket(struct SL_Entry *sl);
+RPC2_PacketBuffer *rpc2_RecvDelayedPacket(struct SL_Entry *sl);
 
 #endif /* _RPC2_PRIVATE_H_ */
 

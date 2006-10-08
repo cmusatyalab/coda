@@ -114,6 +114,7 @@ void rpc2_XmitPacket(RPC2_PacketBuffer *pb, struct RPC2_addrinfo *addr,
 {
     static int log_limit = 0;
     int whichSocket, n, flags = 0;
+    int delay;
 
     say(1, RPC2_DebugLevel, "rpc2_XmitPacket()\n");
 
@@ -149,6 +150,10 @@ void rpc2_XmitPacket(RPC2_PacketBuffer *pb, struct RPC2_addrinfo *addr,
 
     if (FailPacket(Fail_SendPredicate, pb, addr, whichSocket))
 	return;
+
+    delay = LUA_fail_delay(addr, pb, 1);
+    if (delay == -1) return; /* drop */
+    if (delay > 0 && rpc2_DelayedSend(delay, whichSocket, addr, pb)) return;
 
     if (confirm)
 	flags = msg_confirm;
@@ -193,7 +198,6 @@ void rpc2_XmitPacket(RPC2_PacketBuffer *pb, struct RPC2_addrinfo *addr,
 	fflush(rpc2_logfile);
 	log_limit++;
     }
-
 }
 
 struct security_association *rpc2_GetSA(uint32_t spi)

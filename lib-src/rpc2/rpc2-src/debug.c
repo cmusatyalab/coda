@@ -125,14 +125,13 @@ void rpc2_PrintSLEntry(struct SL_Entry *slPtr, FILE *tFile)
 		    break;
 	
 	case REQ:
-		    fprintf(tFile, "\tElementType = REQ  Packet = 0x%lx  Filter==>  ",
-			    (long)slPtr->Packet);
+		    fprintf(tFile, "\tElementType = REQ  Packet = %p  Filter==>  ", slPtr->data);
 		    rpc2_PrintFilter(&slPtr->Filter, tFile);
 		    break;
 	
 	case OTHER:
-		    fprintf(tFile, "\tElementType = OTHER  Conn = %#x  Packet = 0x%lx\n",
-			    slPtr->Conn, (long)slPtr->Packet);
+		    fprintf(tFile, "\tElementType = OTHER  Conn = %#x  Packet = %p\n",
+			    slPtr->Conn, slPtr->data);
 		    break;
 
 	default:

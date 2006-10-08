@@ -603,7 +603,7 @@ long RPC2_MakeRPC(RPC2_Handle ConnHandle, RPC2_PacketBuffer *Request,
 	case ARRIVED:
 		say(9, RPC2_DebugLevel,
 			"Request reliably sent on %#x\n", ConnHandle);
-		*Reply = preply = sl->Packet;
+		*Reply = preply = (RPC2_PacketBuffer *)sl->data;
 		rpc2_FreeSle(&sl);
 		/* release packet allocated by SE routine */
 		if (preq != Request) RPC2_FreeBuffer(&preq);
@@ -864,7 +864,7 @@ try_next_addr:
 	case ARRIVED:
 		say(9, RPC2_DebugLevel, "Received INIT2 packet on %#x\n", *ConnHandle);
 		RPC2_FreeBuffer(&pb);	/* release the Init1 Packet */
-		pb = sl->Packet;		/* and get the Init2 Packet */
+		pb = (RPC2_PacketBuffer *)sl->data; /* get the Init2 Packet */
 		rpc2_FreeSle(&sl);
 		break;
 
@@ -1004,7 +1004,7 @@ try_next_addr:
 	case ARRIVED:
 		say(9, RPC2_DebugLevel, "Received INIT4 packet on %#x\n", *ConnHandle);
 		RPC2_FreeBuffer(&pb);	/* release the Init3 Packet */
-		pb = sl->Packet;	/* and get the Init4 Packet */
+		pb = (RPC2_PacketBuffer *)sl->data; /* get the Init4 Packet */
 		rpc2_FreeSle(&sl);
 		break;
 
@@ -1284,7 +1284,7 @@ TryAnother:
 		    
 	case ARRIVED:	/* a request that matches my filter was received */
 		    say(9, RPC2_DebugLevel, "Request wait succeeded\n");
-		    *pb = sl->Packet;	/* save a pointer to the buffer */
+		    *pb = (RPC2_PacketBuffer *)sl->data; /* save the buffer */
 		    rpc2_FreeSle(&sl);
 
 		    *ce = rpc2_GetConn((*pb)->Header.RemoteHandle);
@@ -1502,7 +1502,7 @@ static RPC2_PacketBuffer *Send2Get3(struct CEntry *ce, RPC2_EncryptionKey key,
     switch(sl->ReturnCode)
 	{
 	case ARRIVED:
-		pb3 = sl->Packet;	/* get the Init3 Packet */
+		pb3 = (RPC2_PacketBuffer *)sl->data; /* get the Init3 Packet */
 		break;
 
 	case NAKED:

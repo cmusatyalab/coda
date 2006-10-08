@@ -189,10 +189,25 @@ static int PacketCame(void)
     return rpc2_CheckFDs(IOMGR_Select, t ? &t->TimeLeft : NULL);
 }
 
+static void DispatchPacket(RPC2_PacketBuffer *pb)
+{
+    unsigned int i, ProtoVersion = ntohl(pb->Header.ProtoVersion);
+
+    for (i = 0; i < nPacketHandlers; i++) {
+	if (ProtoVersion == PacketHandlers[i].ProtoVersion) {
+	    PacketHandlers[i].Handler(pb);
+	    return;
+	}
+    }
+
+    /* we don't have a ghost of a chance */
+    BOGUS(pb, "Wrong version\n");
+}
+
 static void rpc2_ProcessPacket(int fd)
 {
     RPC2_PacketBuffer *pb = NULL;
-    unsigned int i, ProtoVersion;
+    int delay;
 
     /* We are guaranteed that there is a packet in the socket
        buffer at this point */
@@ -225,16 +240,11 @@ static void rpc2_ProcessPacket(int fd)
 	return;
     }
 
-    ProtoVersion = ntohl(pb->Header.ProtoVersion);
-    for (i = 0; i < nPacketHandlers; i++) {
-	if (ProtoVersion == PacketHandlers[i].ProtoVersion) {
-	    PacketHandlers[i].Handler(pb);
-	    return;
-	}
-    }
+    delay = LUA_fail_delay(pb->Prefix.PeerAddr, pb, 0);
+    if (delay == -1) { RPC2_FreeBuffer(&pb); return; } /* drop */
+    if (delay > 0 && rpc2_DelayedRecv(delay, pb)) { return; } /* delay */
 
-    /* we don't have a ghost of a chance */
-    BOGUS(pb, "Wrong version\n");
+    DispatchPacket(pb);
 }
 
 void rpc2_SocketListener(void *dummy)
@@ -353,6 +363,13 @@ void rpc2_ExpireEvents()
 		else if (sl->Type == DELACK)
 		    DelayedAck(sl);
 
+		else if (sl->Type == DELAYED_SEND)
+		    rpc2_SendDelayedPacket(sl);
+
+		else if (sl->Type == DELAYED_RECV) {
+		    RPC2_PacketBuffer *pb = rpc2_RecvDelayedPacket(sl);
+		    DispatchPacket(pb);
+		}
 		else
 		    LWP_NoYieldSignal((char *)sl);
 	}
@@ -713,7 +730,7 @@ static void HandleCurrentReply(RPC2_PacketBuffer *pb, struct CEntry *ce)
 	rpc2_UpdateRTT(pb, ce);
 	rpc2_Recvd.GoodReplies++;
 	sl = ce->MySl;
-	sl->Packet = pb;
+	sl->data = pb;
 	SetState(ce, C_THINK);
 	rpc2_IncrementSeqNumber(ce);
 	rpc2_DeactivateSle(sl, ARRIVED);
@@ -762,7 +779,7 @@ static void HandleNewRequest(RPC2_PacketBuffer *pb, struct CEntry *ce)
 		assert(sl->MagicNumber == OBJ_SLENTRY);
 		SetState(ce, S_PROCESS);
 		rpc2_DeactivateSle(sl, ARRIVED);
-		sl->Packet = pb;
+		sl->data = pb;
 		LWP_NoYieldSignal((char *)sl);
 	}  else	{
 		/* hold for a future RPC2_GetRequest() */
@@ -855,7 +872,7 @@ static void HandleInit1(RPC2_PacketBuffer *pb)
 	if (sl != NULL) {
 		assert(sl->MagicNumber == OBJ_SLENTRY);
 		rpc2_DeactivateSle(sl, ARRIVED);
-		sl->Packet = pb;
+		sl->data = pb;
 		ce->Filter = sl->Filter; /* struct assignment */
 		ce->Filter.OldOrNew = OLDORNEW;
 		LWP_NoYieldSignal((char *)sl);
@@ -925,7 +942,7 @@ static void HandleInit2(RPC2_PacketBuffer *pb, struct CEntry *ce)
 	pb = ShrinkPacket(pb);
 	rpc2_UpdateRTT(pb, ce);
 	sl = ce->MySl;
-	sl->Packet = pb;
+	sl->data = pb;
 
 	/* we're only done if we have an old-style anonymous binding */
 	if (!pb->Prefix.sa && ce->SecurityLevel == RPC2_OPENKIMONO)
@@ -952,7 +969,7 @@ static void HandleInit4(pb, ce)
 
     rpc2_UpdateRTT(pb, ce);
     sl = ce->MySl;
-    sl->Packet = pb;
+    sl->data = pb;
 
     SetState(ce, C_THINK);
     rpc2_DeactivateSle(sl, ARRIVED);
@@ -992,7 +1009,7 @@ static void HandleInit3(RPC2_PacketBuffer *pb, struct CEntry *ce)
 	    ce->TimeStampEcho, ce->RequestTime);
 
 	sl = ce->MySl;
-	sl->Packet = pb;
+	sl->data = pb;
 	SetState(ce, S_FINISHBIND);
 	rpc2_DeactivateSle(sl, ARRIVED);
 	LWP_NoYieldSignal((char *)sl);

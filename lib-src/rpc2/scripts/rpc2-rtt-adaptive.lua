@@ -4,9 +4,9 @@
 
 print "loading adaptive estimator"
 
-RPC2_RETRIES = 5
-RPC2_TIMEOUT = 15
-RPC2_DELACK_DELAY = 100000
+-- These globals are set by RPC2
+-- RPC2_RETRIES = 5
+-- RPC2_TIMEOUT = 15
 
 local RTT_SCALE = 8
 local BW_SCALE = 16
@@ -96,7 +96,7 @@ function rtt_retryinterval(host, attempt, bytes_sent, bytes_recv)
     local rto, timeout, retry
     if attempt > RPC2_RETRIES then return nil end
 
-    rto = (estimate(host, bytes_sent, bytes_recv)) -- + RPC2_DELACK_DELAY
+    rto = (estimate(host, bytes_sent, bytes_recv))
     if attempt == 0 then return rto end
 
     timeout, retry = RPC2_TIMEOUT * 1e6 / 2, 0

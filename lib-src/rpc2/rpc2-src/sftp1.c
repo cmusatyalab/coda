@@ -883,7 +883,7 @@ static RPC2_PacketBuffer *AwaitPacket(struct SFTP_Entry *sEntry, int retry,
     switch(sl->ReturnCode)
 	{
 	case TIMEOUT:	sl->ReturnCode = 0; return(NULL);
-	case ARRIVED:	sl->ReturnCode = 0; return(sl->Packet);
+	case ARRIVED:	sl->ReturnCode = 0; return((RPC2_PacketBuffer *)sl->data);
 	default: assert(FALSE);
 	}
     /*NOTREACHED*/

@@ -20,10 +20,12 @@ Coda are listed in the file CREDITS.
 
 #include <sys/stat.h>
 #include <sys/time.h>
+#include <stdlib.h>
 #include <stdio.h>
 
 #include "lua.h"
 #include "lauxlib.h"
+#include "lualib.h"
 
 static char *lua_script = "/etc/rpc2.lua";
 
@@ -140,6 +142,7 @@ void LUA_clocktick(void)
     static ino_t script_inode = 0;
     static time_t script_mtime = 0;
     struct stat st;
+    lua_Integer timeout;
     int rc;
 
     rc = stat(lua_script, &st);
@@ -167,7 +170,20 @@ void LUA_clocktick(void)
     if (L) lua_close(L);
 
     L = luaL_newstate();
+
+    /* Load default libraries. Maybe this is a bit too much, we probably
+     * really only need math and string. */
+    luaL_openlibs(L);
+
+    /* make sure print sends it's output to rpc2_logfile */
     lua_register(L, "print", print);
+
+    timeout = KeepAlive.tv_sec * 1000000 + KeepAlive.tv_usec;
+    lua_pushinteger(L, timeout);
+    lua_setglobal(L, "RPC2_TIMEOUT");
+
+    lua_pushinteger(L, (lua_Integer)Retry_N);
+    lua_setglobal(L, "RPC2_RETRIES");
 
     if (luaL_dofile(L, lua_script)) {
 	badscript();
@@ -228,6 +244,37 @@ int LUA_rtt_getbandwidth(struct HEntry *he, uint32_t *bw_tx, uint32_t *bw_rx)
     if (bw_rx) *bw_rx = (uint32_t)lua_tointeger(L, -1);
     lua_pop(L, 2);
     return 1;
+}
+
+int LUA_fail_delay(struct RPC2_addrinfo *Addr, RPC2_PacketBuffer *pb, int out)
+{
+    char addr[RPC2_ADDRSTRLEN];
+    int rc, color;
+
+    if (out) rc = setup_function("fail_delay_tx");
+    else     rc = setup_function("fail_delay_rx");
+    if (rc) return 0;
+
+    ntohPktColor(pb);
+    color = GetPktColor(pb);
+
+    RPC2_formataddrinfo(Addr, addr, RPC2_ADDRSTRLEN);
+    lua_pushstring(L, addr);
+    lua_pushinteger(L, pb->Prefix.LengthOfPacket);
+    lua_pushinteger(L, color);
+    if (lua_pcall(L, 3, 2, 0)) { badscript(); return 0; }
+
+    if (lua_isnil(L, -2)) rc = -1;	 /* drop packet */
+    else rc = (int)lua_tointeger(L, -2); /* delay packet */
+
+    if (!lua_isnil(L, -1)) { /* not nil, set new color value */
+	color = lua_tointeger(L, -1);
+	SetPktColor(pb, color);
+    }
+    lua_pop(L, 2);
+
+    htonPktColor(pb);
+    return rc;
 }
 #endif
 
