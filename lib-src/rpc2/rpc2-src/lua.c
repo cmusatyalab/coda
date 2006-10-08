@@ -25,7 +25,7 @@ Coda are listed in the file CREDITS.
 #include "lua.h"
 #include "lauxlib.h"
 
-static char *lua_script = "/etc/rpc2-rtt.lua";
+static char *lua_script = "/etc/rpc2.lua";
 
 /* Keep the state in a global variable, that way the rest of RPC2 doesn't have
  * to know anything about lua */
@@ -116,6 +116,15 @@ static int push_hosttable(struct HEntry *he)
 /********************************************************************
  * functions called by librpc2
  ********************************************************************/
+/* Initialization */
+void LUA_init(void)
+{
+    char *c = getenv("RPC2_LUA_SCRIPT");
+    if (c) lua_script = c;
+    /* check if the script exists */
+    LUA_clocktick();
+}
+
 /* cleanup lua state that was associated with a removed hostentry */
 void LUA_drop_hosttable(struct HEntry *he)
 {

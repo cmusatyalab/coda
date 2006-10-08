@@ -185,6 +185,8 @@ long RPC2_Init(char *VId,		/* magic version string */
     c = "ClockTick";
     LWP_CreateProcess(rpc2_ClockTick, 16384, LWP_NORMAL_PRIORITY, NULL, c, &ctpid);
 
+    LUA_init();
+
     if (rc != RPC2_SUCCESS)
 	say(-1, RPC2_DebugLevel, "RPC2_Init(): Exiting with error\n");
 

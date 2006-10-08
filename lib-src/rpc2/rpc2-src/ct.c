@@ -74,11 +74,11 @@ void rpc2_ClockTick(void *dummy)
 
     while (TRUE)
     {
-	LUA_clocktick();
-
 	/* ask for SocketListener to wake me up after TICKINTERVAL seconds */
 	rpc2_ActivateSle(sl, &tval);
 	LWP_WaitProcess((char *)sl);
+
+	LUA_clocktick();
 
 	/* only reap connections once a minute */
 	if ((ticks++ % 12) == 0) continue;

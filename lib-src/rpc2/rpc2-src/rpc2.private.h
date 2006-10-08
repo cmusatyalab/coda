@@ -688,6 +688,7 @@ do {\
 
 #ifdef USE_LUA
 /* lua.c - include Lua interpreter for roundtrip time estimators */
+void LUA_init(void);
 void LUA_clocktick(void);
 void LUA_drop_hosttable(struct HEntry *he);
 
@@ -699,6 +700,7 @@ int LUA_rtt_getbandwidth(struct HEntry *he, uint32_t *bw_tx, uint32_t *bw_rx);
 int LUA_rtt_retryinterval(struct HEntry *he, uint32_t n, uint32_t tx, uint32_t rx);
 #else
 /* do not include Lua interpreter, define empty stubs */
+#define LUA_init()
 #define LUA_clocktick()
 #define LUA_drop_hosttable(a)
 #define LUA_rtt_update(a,b,c,d)
