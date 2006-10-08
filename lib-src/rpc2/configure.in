@@ -34,6 +34,12 @@ AC_PROG_LIBTOOL
 AC_CHECK_PROG(CP, cp, cp)
 AC_CHECK_PROG(PERL, perl, perl)
 
+dnl pkg-config stuff
+PKG_PROG_PKG_CONFIG()
+AC_ARG_WITH(lua, [  --with-lua		  embed Lua interpreter],
+  [ PKG_CHECK_MODULES([LUA], [lua5.1])
+    AC_DEFINE(USE_LUA, 1, [Define this when linking against Lua])])
+
 dnl Checks for libraries.
 CODA_FIND_LIB(lwp, [#include <lwp/lwp.h>], [LWP_Init(0,0,0)])
 CODA_CHECK_LIBTERMCAP
@@ -79,6 +85,6 @@ if test ${with_LWP_PT}p != nop ; then
 fi
 
 dnl Generate output files
-AC_CONFIG_FILES(Makefile pkgs/Makefile pkgs/pkg-bsd.sh pkgs/rpc2.spec debian/Makefile debian/changelog include/Makefile include/rpc2/Makefile secure/Makefile rpc2-src/Makefile rp2gen/Makefile fail/Makefile)
+AC_CONFIG_FILES(Makefile pkgs/Makefile pkgs/pkg-bsd.sh pkgs/rpc2.spec debian/Makefile debian/changelog include/Makefile include/rpc2/Makefile secure/Makefile rpc2-src/Makefile rp2gen/Makefile fail/Makefile scripts/Makefile)
 AC_OUTPUT
 

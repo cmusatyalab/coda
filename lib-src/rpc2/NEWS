@@ -1,3 +1,16 @@
+New in 2.4:
+
+* Added 'configure --with-lua' to enable linking against the Lua libraries.
+* Support for Lua scripts to customize bandwidth and roundtrip time
+  estimation. Currently assumes the script can be found as /etc/rpc2-rtt.lua
+  and periodically checks if that file has been updated and automatically
+  reloads it. The custom script is temporarily disabled whenever a parse or
+  runtime error is encountered.
+* Included example scripts,
+  rpc2-rtt-adaptive.lua	- current RPC2 estimator, but implemented in Lua.
+  rpc2-rtt-fixed.lua	- simple estimator using fixed network parameters.
+  rpc2-rtt-vj.lua	- simple latency only estimator.
+
 New in 2.3:
 
 * Fix failing SFTP transfer when a duplicate packet arrives.

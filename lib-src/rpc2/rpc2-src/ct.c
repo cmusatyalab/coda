@@ -57,7 +57,7 @@ Pittsburgh, PA.
 */
 
 
-#define TICKINTERVAL 60		/* in seconds */
+#define TICKINTERVAL 5		/* in seconds */
 
 int RPC2_enableReaping = 0;
 
@@ -66,17 +66,23 @@ void rpc2_ClockTick(void *dummy)
     struct SL_Entry *sl;
     struct timeval tval;
     long timenow;
-    
+    int ticks = 0;
+
     sl = rpc2_AllocSle(OTHER, NULL);
     tval.tv_sec = TICKINTERVAL;
     tval.tv_usec = 0;
 
     while (TRUE)
     {
+	LUA_clocktick();
+
 	/* ask for SocketListener to wake me up after TICKINTERVAL seconds */
 	rpc2_ActivateSle(sl, &tval);
-
 	LWP_WaitProcess((char *)sl);
+
+	/* only reap connections once a minute */
+	if ((ticks++ % 12) == 0) continue;
+
 	timenow = rpc2_time();
 	say(1, RPC2_DebugLevel, "Clock Tick at %ld\n",  timenow);
 
@@ -92,7 +98,7 @@ void rpc2_ClockTick(void *dummy)
 	    tea->TimeNow = timenow;	/* structure assignment */
 	}
 #endif
-	
+
 	/* and free up `dead' connections */
 	if (RPC2_enableReaping)
 	    rpc2_ReapDeadConns();

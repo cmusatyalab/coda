@@ -686,4 +686,26 @@ do {\
 
 #define TSDELTA(_ts1_, _ts2_) ((int)(_ts1_) - (int)(_ts2_))
 
+#ifdef USE_LUA
+/* lua.c - include Lua interpreter for roundtrip time estimators */
+void LUA_clocktick(void);
+void LUA_drop_hosttable(struct HEntry *he);
+
+void LUA_rtt_update(struct HEntry *he, uint32_t rtt, uint32_t tx, uint32_t rx);
+int LUA_rtt_getrto(struct HEntry *he, uint32_t tx, uint32_t rx);
+int LUA_rtt_getbandwidth(struct HEntry *he, uint32_t *bw_tx, uint32_t *bw_rx);
+/* not sure if we want to allow the estimator to control number of retries
+ * and/or overall timeout, so I might not actually use this function... */
+int LUA_rtt_retryinterval(struct HEntry *he, uint32_t n, uint32_t tx, uint32_t rx);
+#else
+/* do not include Lua interpreter, define empty stubs */
+#define LUA_clocktick()
+#define LUA_drop_hosttable(a)
+#define LUA_rtt_update(a,b,c,d)
+#define LUA_rtt_getrto(a,b,c)		0
+#define LUA_rtt_getbandwidth(a,b,c)	0
+#define LUA_rtt_retryinterval(a,b,c)	0
 #endif
+
+#endif /* _RPC2_PRIVATE_H_ */
+

@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-INCLUDES = -I$(top_builddir)/include -I$(top_srcdir)/include \
+INCLUDES = -I$(top_builddir)/include -I$(top_srcdir)/include $(LUA_CFLAGS) \
     -DRPC2DEBUG -DERRORTR -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
 LDADD = librpc2.la libse.la $(LIBLWP)
 
@@ -13,9 +13,9 @@ EXTRA_DIST = makeinc.pl errordb.txt fxor.s
 librpc2_la_SOURCES = rpc2a.c rpc2b.c sl.c packet.c secure.c globals.c se.c \
     lists.c ct.c debug.c conn.c cbuf.c ffs.c host.c multi1.c multi2.c \
     multi3.c mkcall.c stats.c errors.c cbuf.h trace.h dllist.c rpc2_addrinfo.c \
-    compat.c
+    compat.c lua.c
 librpc2_la_LIBADD = $(top_builddir)/secure/libsecure.la
-librpc2_la_LDFLAGS = -version-info $(LIBTOOL_VERSION)
+librpc2_la_LDFLAGS = -version-info $(LIBTOOL_VERSION) $(LUA_LIBS)
 
 libse_la_SOURCES = sftp1.c sftp2.c sftp3.c sftp4.c sftp5.c sftp6.c
 libse_la_LDFLAGS = -version-info $(LIBTOOL_VERSION)

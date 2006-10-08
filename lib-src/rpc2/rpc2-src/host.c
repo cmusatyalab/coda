@@ -196,6 +196,9 @@ void rpc2_FreeHost(struct HEntry **whichHost)
 		}
 		link = &(*link)->HLink;
 	}
+
+	LUA_drop_hosttable(*whichHost);
+
 	*whichHost = NULL;
 }
 
@@ -401,6 +404,8 @@ void RPC2_UpdateEstimates(struct HEntry *host, RPC2_Unsigned elapsed_us,
     host->RTT += adjustment;
     update_bw(&host->BWlo_in, &host->BWhi_in, rtt_in, InBytes);
     update_bw(&host->BWlo_out, &host->BWhi_out, rtt_out, OutBytes);
+
+    LUA_rtt_update(host, elapsed_us, OutBytes, InBytes);
 }
 
 void rpc2_RetryInterval(struct HEntry *host, struct SL_Entry *sl,
@@ -419,8 +424,11 @@ void rpc2_RetryInterval(struct HEntry *host, struct SL_Entry *sl,
     InBytes += 40; OutBytes += 40;
 
     /* calculate the estimated RTT */
-    getestimates(host, InBytes, OutBytes, &rtt_lat, &rtt_in, &rtt_out);
-    rto = rtt_lat + rtt_out + rtt_in;
+    rto = LUA_rtt_getrto(host, OutBytes, InBytes);
+    if (!rto) {
+	getestimates(host, InBytes, OutBytes, &rtt_lat, &rtt_in, &rtt_out);
+	rto = rtt_lat + rtt_out + rtt_in;
+    }
 
     /* account for server processing overhead */
     rto += RPC2_DELACK_DELAY;
@@ -471,13 +479,23 @@ int RPC2_GetBandwidth(RPC2_Handle handle, unsigned long *BWlow,
 		      unsigned long *BWavg, unsigned long *BWhigh)
 {
     struct CEntry *ce;
+    uint32_t bw_lo, bw_avg, bw_hi;
 
     ce = rpc2_GetConn(handle);
     if (ce == NULL) return(RPC2_NOCONNECTION);
 
-    if (BWlow)  *BWlow = ce->HostInfo->BWlo_out;
-    if (BWavg)  *BWavg = (ce->HostInfo->BWlo_out + ce->HostInfo->BWhi_out) >> 1;
-    if (BWhigh) *BWhigh = ce->HostInfo->BWhi_out;
+    if (LUA_rtt_getbandwidth(ce->HostInfo, &bw_avg, NULL))
+	bw_lo = bw_hi = bw_avg;
+    else
+    {
+	bw_lo = ce->HostInfo->BWlo_out;
+	bw_avg = (ce->HostInfo->BWlo_out + ce->HostInfo->BWhi_out) >> 1;
+	bw_hi = ce->HostInfo->BWhi_out;
+    }
+
+    if (BWlow)  *BWlow = bw_lo;
+    if (BWavg)  *BWavg = bw_avg;
+    if (BWhigh) *BWhigh = bw_hi;
 
     return(RPC2_SUCCESS);
 }
