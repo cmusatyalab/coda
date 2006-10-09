@@ -3,7 +3,7 @@ Section: devel
 Priority: optional
 Maintainer: Jan Harkes <jaharkes@cs.cmu.edu>
 Standards-Version: 3.6.1
-Build-Depends: debhelper (>= 4), liblwp-dev, flex, bison | byacc, libreadline5-dev
+Build-Depends: debhelper (>= 4), liblwp-dev, flex, bison | byacc, libreadline5-dev, pkg-config, liblua5.1-dev
 
 Package: librpc2-dev
 Architecture: amd64 arm i386 m68k powerpc sparc

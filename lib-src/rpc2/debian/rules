@@ -16,7 +16,7 @@ build: build-stamp
 build-stamp:
 	dh_testdir
 
-	./configure --build=${DEB_BUILD_GNU_TYPE} --host=${DEB_HOST_GNU_TYPE} --prefix=/usr --mandir=\$${prefix}/share/man
+	./configure --build=${DEB_BUILD_GNU_TYPE} --host=${DEB_HOST_GNU_TYPE} --prefix=/usr --mandir=\$${prefix}/share/man --with-lua
 	# Add here commands to compile the package.
 	$(MAKE)
 
