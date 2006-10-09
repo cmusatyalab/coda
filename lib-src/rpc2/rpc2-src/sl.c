@@ -358,6 +358,7 @@ void rpc2_ExpireEvents()
 
 	for (i = TM_Rescan(rpc2_TimerQueue); i > 0; i--) {
 		t = TM_GetExpired(rpc2_TimerQueue);
+		if (!t) continue;
 		sl = (struct SL_Entry *)t->BackPointer;
 		rpc2_DeactivateSle(sl, TIMEOUT);
 
