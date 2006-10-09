@@ -9,7 +9,7 @@ latency = 100000	-- us
 bandwidth = 56000 / 8	-- B/s
 
 function dialup_modem(addr, size, color)
-    delay = 1e6 * size / bandwidth
+    local delay = 1e6 * size / bandwidth
     return delay
 end
 

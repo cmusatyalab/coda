@@ -9,6 +9,7 @@ print "loading adaptive estimator"
 -- RPC2_TIMEOUT = 15
 
 local RTT_SCALE = 8
+local RTTVAR_SCALE = 4
 local BW_SCALE = 16
 
 local function estimate(host, bytes_sent, bytes_recv)
@@ -40,6 +41,7 @@ end
 
 function rtt_init(host)
     host.RTT = 0
+    host.RTTvar = 0
     host.BW_send_lo = 1e5
     host.BW_send_hi = 1e5
     host.BW_recv_lo = 1e5
@@ -55,7 +57,7 @@ function rtt_update(host, elapsed, bytes_sent, bytes_recv)
     --[[
     print("uRTT", host.name, elapsed, bytes_sent, bytes_recv, rto, rtt_lat,
 	  host.BW_send_lo, host.BW_send_hi, host.BW_recv_lo, host.BW_recv_hi)
-    ]]
+    --]]
 
     -- Calculate error and desired correction
     if elapsed >= rto then
@@ -71,6 +73,8 @@ function rtt_update(host, elapsed, bytes_sent, bytes_recv)
 
     -- Update estimates
     host.RTT = host.RTT + err
+    err = err - host.RTTvar / RTTVAR_SCALE
+    host.RTTvar = host.RTTvar + err
 
     host.BW_send_lo, host.BW_send_hi =
 	update_bw(host.BW_send_lo, host.BW_send_hi, rtt_send, bytes_sent)
@@ -89,7 +93,7 @@ end
 function rtt_getrto(host, bytes_sent, bytes_recv)
     local rtt = (estimate(host, bytes_sent, bytes_recv))
     -- print("est", host.name, rtt, bytes_sent, bytes_recv)
-    return rtt
+    return rtt + host.RTTvar / 2
 end
 
 function rtt_retryinterval(host, attempt, bytes_sent, bytes_recv)

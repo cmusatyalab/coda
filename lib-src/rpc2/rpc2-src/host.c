@@ -1,26 +1,26 @@
 /* BLURB lgpl
 
-                           Coda File System
-                              Release 5
+			Coda File System
+			    Release 6
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
-                  Additional copyrights listed below
+	    Copyright (c) 1987-2006 Carnegie Mellon University
+		    Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
 the  terms of the  GNU  Library General Public Licence  Version 2,  as
 shown in the file LICENSE. The technical and financial contributors to
 Coda are listed in the file CREDITS.
 
-                        Additional copyrights
+			Additional copyrights
 
 #*/
 
 /*
-                         IBM COPYRIGHT NOTICE
+			IBM COPYRIGHT NOTICE
 
-                          Copyright (C) 1986
-             International Business Machines Corporation
-                         All Rights Reserved
+			  Copyright (C) 1986
+	       International Business Machines Corporation
+			  All Rights Reserved
 
 This  file  contains  some  code identical to or derived from the 1986
 version of the Andrew File System ("AFS"), which is owned by  the  IBM
@@ -49,7 +49,7 @@ Pittsburgh, PA.
 #include <string.h>
 #include "rpc2.private.h"
 
-/* Code to track host liveness 
+/* Code to track host liveness
 
    We track liveness by host ip-address, as we're really interested
    in the bandwidth and latency of connection between us and the server
@@ -62,7 +62,7 @@ Pittsburgh, PA.
    connections, because of the possibility of lost request packets.
    Hosts are kept in a hash table.
    We hash on the low bytes of the host address (in network order) */
- 
+
 #define HOSTHASHBUCKETS 64
 /* try to grab the low-order bits, assuming all are stored big endian */
 int HASHHOST(struct RPC2_addrinfo *ai)
@@ -311,7 +311,7 @@ void rpc2_ClearHostLog(struct HEntry *whichHost, NetLogEntryType type)
 }
 
 static void getestimates(struct HEntry *host, uint32_t InB, uint32_t OutB,
-		  uint32_t *rtt_lat, uint32_t *rtt_in, uint32_t *rtt_out)
+			 uint32_t *rtt_lat, uint32_t *rtt_in, uint32_t *rtt_out)
 {
     uint32_t avgBW;
 
@@ -359,7 +359,7 @@ void RPC2_UpdateEstimates(struct HEntry *host, RPC2_Unsigned elapsed_us,
 			  RPC2_Unsigned InBytes, RPC2_Unsigned OutBytes)
 {
     uint32_t rto, rtt_lat, rtt_out, rtt_in;/* estimated roundtrip time(s) */
-    uint32_t adjustment;
+    uint32_t adjustment, rttvar = host->RTTvar >> RPC2_RTTVAR_SHIFT;
 
     if (!host) return;
 
@@ -405,6 +405,10 @@ void RPC2_UpdateEstimates(struct HEntry *host, RPC2_Unsigned elapsed_us,
     update_bw(&host->BWlo_in, &host->BWhi_in, rtt_in, InBytes);
     update_bw(&host->BWlo_out, &host->BWhi_out, rtt_out, OutBytes);
 
+    if (adjustment >= rttvar)
+	 host->RTTvar += adjustment - rttvar;
+    else host->RTTvar -= rttvar - adjustment;
+
     LUA_rtt_update(host, elapsed_us, OutBytes, InBytes);
 }
 
@@ -426,8 +430,9 @@ void rpc2_RetryInterval(struct HEntry *host, struct SL_Entry *sl,
     /* calculate the estimated RTT */
     rto = LUA_rtt_getrto(host, OutBytes, InBytes);
     if (rto <= 0) {
+	uint32_t rttvar = host->RTTvar >> RPC2_RTTVAR_SHIFT;
 	getestimates(host, InBytes, OutBytes, &rtt_lat, &rtt_in, &rtt_out);
-	rto = rtt_lat + rtt_out + rtt_in;
+	rto = rtt_lat + rtt_out + rtt_in + (rttvar << 1);
     }
 
     /* account for server processing overhead */
@@ -470,7 +475,7 @@ int RPC2_GetRTT(RPC2_Handle handle, unsigned long *RTT, unsigned long *RTTvar)
 	return(RPC2_NOCONNECTION);
 
     if (RTT)    *RTT    = ce->HostInfo->RTT    >> RPC2_RTT_SHIFT;
-    if (RTTvar) *RTTvar = 0;
+    if (RTTvar) *RTTvar = ce->HostInfo->RTTvar >> RPC2_RTTVAR_SHIFT;
 
     return(RPC2_SUCCESS);
 }
