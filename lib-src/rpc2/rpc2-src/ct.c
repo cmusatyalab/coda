@@ -81,7 +81,7 @@ void rpc2_ClockTick(void *dummy)
 	LUA_clocktick();
 
 	/* only reap connections once a minute */
-	if ((ticks++ % 12) == 0) continue;
+	if ((ticks++ % 12) != 0) continue;
 
 	timenow = rpc2_time();
 	say(1, RPC2_DebugLevel, "Clock Tick at %ld\n",  timenow);
