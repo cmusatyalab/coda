@@ -425,7 +425,7 @@ void rpc2_RetryInterval(struct HEntry *host, struct SL_Entry *sl,
 
     /* calculate the estimated RTT */
     rto = LUA_rtt_getrto(host, OutBytes, InBytes);
-    if (!rto) {
+    if (rto <= 0) {
 	getestimates(host, InBytes, OutBytes, &rtt_lat, &rtt_in, &rtt_out);
 	rto = rtt_lat + rtt_out + rtt_in;
     }

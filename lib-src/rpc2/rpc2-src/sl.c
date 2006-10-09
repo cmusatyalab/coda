@@ -241,7 +241,11 @@ static void rpc2_ProcessPacket(int fd)
     }
 
     delay = LUA_fail_delay(pb->Prefix.PeerAddr, pb, 0);
-    if (delay == -1) { RPC2_FreeBuffer(&pb); return; } /* drop */
+    if (delay == -1) {
+	say(9, RPC2_DebugLevel, "Dropping incoming packet\n");
+	RPC2_FreeBuffer(&pb);
+	return;
+    }
     if (delay > 0 && rpc2_DelayedRecv(delay, pb)) { return; } /* delay */
 
     DispatchPacket(pb);

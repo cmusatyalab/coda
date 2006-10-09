@@ -152,8 +152,12 @@ void rpc2_XmitPacket(RPC2_PacketBuffer *pb, struct RPC2_addrinfo *addr,
 	return;
 
     delay = LUA_fail_delay(addr, pb, 1);
-    if (delay == -1) return; /* drop */
-    if (delay > 0 && rpc2_DelayedSend(delay, whichSocket, addr, pb)) return;
+    if (delay == -1) {
+	say(9, RPC2_DebugLevel, "Dropping outgoing packet\n");
+	return;
+    }
+    if (delay > 0 && rpc2_DelayedSend(delay, whichSocket, addr, pb))
+	return;
 
     if (confirm)
 	flags = msg_confirm;
