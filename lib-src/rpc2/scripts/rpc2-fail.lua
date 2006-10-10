@@ -5,26 +5,38 @@
 
 print "enabling packet delay/failure functionality"
 
-latency = 100000	-- us
-bandwidth = 56000 / 8	-- B/s
+local packet_loss = 0.1		-- % chance of packet loss
+local bandwidth = 64000		-- desired bandwidth (bits/s)
+local latency_min = 0.10	-- network latency
+local latency_max = 0.15
 
-function dialup_modem(addr, size, color)
-    local delay = 1e6 * size / bandwidth
-    return delay
-end
+bandwidth = bandwidth / 8
+lat_range = latency_max - latency_min
 
-loss = 0.50 -- 50% chance of packet loss
+function slow(queue)
+    local drained = time()
+    return function (addr, size, color)
+	-- packet loss
+	if math.random() < loss then return nil end
 
-function lossy_network(addr, size, color)
-    if math.random() < loss then
-	print("drop", addr)
-	return nil
-    else
-	print("pass", addr)
-	return 0
+	-- bandwidth delay
+	local now = time()
+	local delay = size / bandwidth
+	if drained < now then drained = now end
+	drained = drained + delay
+
+	-- network delay
+	local latency = latency_min
+	if lat_range then
+	    latency = latency + math.random() * lat_range
+	end
+
+	delay = drained - now + latency
+	print("delaying", queue, delay)
+	return delay
     end
 end
 
-fail_delay_tx = dialup_modem
-fail_delay_rx = lossy_network
+fail_delay_tx = slow("tx")
+fail_delay_rx = slow("rx")
 

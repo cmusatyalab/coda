@@ -28,7 +28,7 @@ function rtt_update(host, elapsed, bytes_sent, bytes_recv)
     host.RTT = host.RTT + delta
 
     -- Update RTT variance estimate
-    if delta < 0 then delta = -delta end
+    if delta < time(0) then delta = -delta end
     delta = delta - host.RTTVAR / RTTVAR_SCALE
     host.RTTVAR = host.RTTVAR + delta
 end
