@@ -83,6 +83,7 @@ AC_CHECK_FUNCS(inet_aton inet_ntoa inet_pton inet_ntop)
 AC_FUNC_SELECT_ARGTYPES
 
 dnl Checks for system services.
+AC_C_BIGENDIAN()
 
 if test ${with_LWP_PT}p != nop ; then
   AC_MSG_WARN(["Building against pthreaded lwp libraries, *experimental*"])
