@@ -22,6 +22,7 @@ Coda are listed in the file CREDITS.
 #include <sys/time.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <math.h>
 
 #include "lua.h"
 #include "lauxlib.h"
@@ -46,11 +47,14 @@ static int print(lua_State *L)
 	    fprintf(rpc2_logfile, "\t");
 	if (lua_isnil(L, i))
 	    fprintf(rpc2_logfile, "nil");
-	else if (lua_isstring(L, i))
-	    fprintf(rpc2_logfile, "%s", lua_tostring(L, i));
 	else if (lua_isboolean(L, i))
 	    fprintf(rpc2_logfile, "%s", lua_toboolean(L, i) ? "true" : "false");
-	else
+	else if (lua_isstring(L, i))
+	    fprintf(rpc2_logfile, "%s", lua_tostring(L, i));
+	else if (luaL_callmeta(L, i, "__tostring")) {
+	    fprintf(rpc2_logfile, "%s", lua_tostring(L, -1));
+	    lua_pop(L, 1);
+	} else
 	    fprintf(rpc2_logfile, "%s:%p", luaL_typename(L, i),
 		    lua_topointer(L, i));
     }
@@ -58,6 +62,215 @@ static int print(lua_State *L)
     fflush(rpc2_logfile);
     return 0;
 }
+
+
+/********************************************************************
+ * timeval object
+ *
+ * By making the following 3 functions non-static, this could also
+ * be part of a separate library.
+ ********************************************************************/
+static int l2c_timeval_init(lua_State *L);
+static int l2c_pushtimeval(lua_State *L, struct timeval *tv);
+static void l2c_totimeval(lua_State *L, int index, struct timeval *tv);
+
+static int timeval_eq(lua_State *L)
+{
+    struct timeval a, b;
+    l2c_totimeval(L, 1, &a);
+    l2c_totimeval(L, 2, &b);
+    lua_pushboolean(L, (a.tv_sec == b.tv_sec) && (a.tv_usec == b.tv_usec));
+    return 1;
+}
+
+static int timeval_le(lua_State *L)
+{
+    struct timeval a, b;
+    l2c_totimeval(L, 1, &a);
+    l2c_totimeval(L, 2, &b);
+    lua_pushboolean(L, (a.tv_sec < b.tv_sec) ||
+		    ((a.tv_sec == b.tv_sec) && (a.tv_usec <= b.tv_usec)));
+    return 1;
+}
+
+static int timeval_lt(lua_State *L)
+{
+    struct timeval a, b;
+    l2c_totimeval(L, 1, &a);
+    l2c_totimeval(L, 2, &b);
+    lua_pushboolean(L, (a.tv_sec < b.tv_sec) ||
+		    ((a.tv_sec == b.tv_sec) && (a.tv_usec < b.tv_usec)));
+    return 1;
+}
+
+static int timeval_add(lua_State *L)
+{
+    struct timeval a, b, res;
+    l2c_totimeval(L, 1, &a);
+    l2c_totimeval(L, 2, &b);
+
+    res.tv_sec = a.tv_sec + b.tv_sec;
+    res.tv_usec = a.tv_usec + b.tv_usec;
+    if (res.tv_usec >= 1000000) { res.tv_usec -= 1000000; res.tv_sec++; }
+    l2c_pushtimeval(L, &res);
+    return 1;
+}
+
+static int timeval_sub(lua_State *L)
+{
+    struct timeval a, b, res;
+    l2c_totimeval(L, 1, &a);
+    l2c_totimeval(L, 2, &b);
+
+    res.tv_sec = a.tv_sec - b.tv_sec;
+    res.tv_usec = a.tv_usec - b.tv_usec;
+    if (res.tv_usec < 0) { res.tv_usec += 1000000; res.tv_sec--; }
+    l2c_pushtimeval(L, &res);
+    return 1;
+}
+
+static int timeval_umn(lua_State *L)
+{
+    struct timeval a, res;
+    l2c_totimeval(L, 1, &a);
+
+    res.tv_sec = -a.tv_sec - 1;
+    res.tv_usec = 1000000 - a.tv_usec;
+    if (res.tv_usec == 1000000) { res.tv_usec -= 1000000; res.tv_sec++; }
+    l2c_pushtimeval(L, &res);
+    return 1;
+}
+
+static int timeval_mul(lua_State *L)
+{
+    struct timeval tv;
+    lua_Number x;
+    struct timeval res;
+
+    if (lua_isnumber(L, 2)) {
+	l2c_totimeval(L, 1, &tv);
+	x = lua_tonumber(L, 2);
+    } else {
+	l2c_totimeval(L, 2, &tv);
+	x = luaL_checknumber(L, 1);
+    }
+
+    res.tv_sec = tv.tv_sec * x;
+    res.tv_usec = tv.tv_usec * x;
+    while (res.tv_usec < 0)	   { res.tv_usec += 1000000; res.tv_sec--; }
+    while (res.tv_usec >= 1000000) { res.tv_usec -= 1000000; res.tv_sec++; }
+    l2c_pushtimeval(L, &res);
+    return 1;
+}
+
+static int timeval_div(lua_State *L)
+{
+    struct timeval tv;
+    lua_Number x, val;
+    lua_Integer y;
+    struct timeval res;
+
+    if (lua_isnumber(L, 1)) {
+	l2c_totimeval(L, 2, &tv);
+	x = luaL_checknumber(L, 1);
+	val = (lua_Number)tv.tv_sec + (lua_Number)tv.tv_usec / 1000000;
+	lua_pushnumber(L, x / val);
+    } else {
+	l2c_totimeval(L, 1, &tv);
+	y = luaL_checkinteger(L, 2);
+	res.tv_usec = ((tv.tv_sec % y) * 1000000 + tv.tv_usec) / y;
+	res.tv_sec = tv.tv_sec / y;
+	while (res.tv_usec < 0)       { res.tv_usec += 1000000; res.tv_sec--; }
+	while (res.tv_usec > 1000000) { res.tv_usec -= 1000000; res.tv_sec++; }
+	l2c_pushtimeval(L, &res);
+    }
+    return 1;
+}
+
+static int timeval_tostring(lua_State *L)
+{
+    struct timeval tv;
+    char buf[20];
+    l2c_totimeval(L, 1, &tv);
+
+    snprintf(buf, 19, "%ld.%06lus", (long)tv.tv_sec, (unsigned long)tv.tv_usec);
+    lua_pushstring(L, buf);
+    return 1;
+}
+
+static int timeval_tonumber(lua_State *L)
+{
+    struct timeval tv;
+    l2c_totimeval(L, 1, &tv);
+    lua_Number val = (lua_Number)tv.tv_sec + (lua_Number)tv.tv_usec / 1000000;
+    lua_pushnumber(L, val);
+    return 1;
+}
+
+static const struct luaL_reg timeval_m [] = {
+    { "__eq", timeval_eq },
+    { "__le", timeval_le },
+    { "__lt", timeval_lt },
+    { "__add", timeval_add },
+    { "__sub", timeval_sub },
+    { "__umn", timeval_umn },
+    { "__mul", timeval_mul },
+    { "__div", timeval_div },
+    { "__tostring", timeval_tostring },
+    { "__call", timeval_tonumber },
+    { NULL, NULL }
+};
+
+static int timeval_new(lua_State *L)
+{
+    struct timeval tv;
+
+    if (!lua_gettop(L) || lua_isnil(L, 1))
+	gettimeofday(&tv, NULL);
+    else
+	l2c_totimeval(L, 1, &tv);
+
+    l2c_pushtimeval(L, &tv);
+    return 1;
+}
+
+static int l2c_pushtimeval(lua_State *L, struct timeval *tv)
+{
+    struct timeval *ud = lua_newuserdata(L, sizeof(struct timeval));
+    ud->tv_sec = tv->tv_sec;
+    ud->tv_usec = tv->tv_usec;
+    luaL_getmetatable(L, "RPC2.timeval");
+    lua_setmetatable(L, -2);
+    return 1;
+}
+
+static void l2c_totimeval(lua_State *L, int index, struct timeval *tv)
+{
+    struct timeval *ud;
+    lua_Number val;
+
+    if (lua_isnumber(L, index)) {
+	val = lua_tonumber(L, index);
+
+	tv->tv_sec = (int)floor(val);
+	val -= tv->tv_sec;
+	tv->tv_usec = (int)floor(1000000 * val);
+	if (tv->tv_usec < 0) { tv->tv_usec += 1000000; tv->tv_sec--; };
+    } else {
+	ud = luaL_checkudata(L, index, "RPC2.timeval");
+	tv->tv_sec = ud->tv_sec;
+	tv->tv_usec = ud->tv_usec;
+    }
+}
+
+static int l2c_timeval_init(lua_State *L)
+{
+    luaL_newmetatable(L, "RPC2.timeval");
+    luaL_openlib(L, NULL, timeval_m, 0);
+    lua_register(L, "time", timeval_new);
+    return 1;
+}
+
 
 /********************************************************************
  * internal helpers
@@ -142,7 +355,6 @@ void LUA_clocktick(void)
     static ino_t script_inode = 0;
     static time_t script_mtime = 0;
     struct stat st;
-    lua_Integer timeout;
     int rc;
 
     rc = stat(lua_script, &st);
@@ -177,9 +389,9 @@ void LUA_clocktick(void)
 
     /* make sure print sends it's output to rpc2_logfile */
     lua_register(L, "print", print);
+    l2c_timeval_init(L);
 
-    timeout = KeepAlive.tv_sec * 1000000 + KeepAlive.tv_usec;
-    lua_pushinteger(L, timeout);
+    l2c_pushtimeval(L, &KeepAlive);
     lua_setglobal(L, "RPC2_TIMEOUT");
 
     lua_pushinteger(L, (lua_Integer)Retry_N);
@@ -195,9 +407,14 @@ void LUA_clocktick(void)
 
 void LUA_rtt_update(struct HEntry *he, uint32_t rtt, uint32_t tx, uint32_t rx)
 {
+    struct timeval tv;
     if (setup_function("rtt_update")) return;
     if (push_hosttable(he)) return;
-    lua_pushinteger(L, (lua_Integer)rtt);
+
+    tv.tv_sec = rtt / 1000000;
+    tv.tv_usec = rtt % 1000000;
+    l2c_pushtimeval(L, &tv);
+
     lua_pushinteger(L, (lua_Integer)tx);
     lua_pushinteger(L, (lua_Integer)rx);
     if (lua_pcall(L, 4, 0, 0)) badscript();
@@ -205,7 +422,8 @@ void LUA_rtt_update(struct HEntry *he, uint32_t rtt, uint32_t tx, uint32_t rx)
 
 int LUA_rtt_getrto(struct HEntry *he, uint32_t tx, uint32_t rx)
 {
-    lua_Integer rtt = 0;
+    struct timeval tv;
+    uint32_t rtt;
 
     if (setup_function("rtt_getrto")) return 0;
     if (push_hosttable(he)) return 0;
@@ -213,14 +431,16 @@ int LUA_rtt_getrto(struct HEntry *he, uint32_t tx, uint32_t rx)
     lua_pushinteger(L, (lua_Integer)rx);
     if (lua_pcall(L, 3, 1, 0)) { badscript(); return 0; }
 
-    rtt = lua_tointeger(L, -1);
+    l2c_totimeval(L, -1, &tv);
+    rtt = tv.tv_sec * 1000000 + tv.tv_usec;
     lua_pop(L, 1);
-    return (uint32_t)rtt;
+    return rtt;
 }
 
 int LUA_rtt_retryinterval(struct HEntry *he, uint32_t n, uint32_t tx, uint32_t rx)
 {
-    lua_Integer rtt = 0;
+    struct timeval tv;
+    uint32_t rtt;
 
     if (setup_function("rtt_retryinterval")) return 0;
     if (push_hosttable(he)) return 0;
@@ -229,9 +449,10 @@ int LUA_rtt_retryinterval(struct HEntry *he, uint32_t n, uint32_t tx, uint32_t r
     lua_pushinteger(L, (lua_Integer)rx);
     if (lua_pcall(L, 4, 1, 0)) { badscript(); return 0; }
 
-    rtt = lua_tointeger(L, -1);
+    l2c_totimeval(L, -1, &tv);
+    rtt = tv.tv_sec * 1000000 + tv.tv_usec;
     lua_pop(L, 1);
-    return (uint32_t)rtt;
+    return rtt;
 }
 
 int LUA_rtt_getbandwidth(struct HEntry *he, uint32_t *bw_tx, uint32_t *bw_rx)
@@ -249,7 +470,8 @@ int LUA_rtt_getbandwidth(struct HEntry *he, uint32_t *bw_tx, uint32_t *bw_rx)
 int LUA_fail_delay(struct RPC2_addrinfo *Addr, RPC2_PacketBuffer *pb, int out)
 {
     char addr[RPC2_ADDRSTRLEN];
-    int rc, color;
+    int rc, delay, color;
+    struct timeval tv;
 
     if (out) rc = setup_function("fail_delay_tx");
     else     rc = setup_function("fail_delay_rx");
@@ -264,8 +486,14 @@ int LUA_fail_delay(struct RPC2_addrinfo *Addr, RPC2_PacketBuffer *pb, int out)
     lua_pushinteger(L, color);
     if (lua_pcall(L, 3, 2, 0)) { badscript(); return 0; }
 
-    if (lua_isnil(L, -2)) rc = -1;	 /* drop packet */
-    else rc = (int)lua_tointeger(L, -2); /* delay packet */
+    if (lua_isnil(L, -2))
+	delay = -1;	 /* drop packet */
+
+    else {
+	l2c_totimeval(L, -2, &tv); /* delay packet */
+	delay = tv.tv_sec * 1000000 + tv.tv_usec;
+	if (delay < 0) delay = 0;
+    }
 
     if (!lua_isnil(L, -1)) { /* not nil, set new color value */
 	color = lua_tointeger(L, -1);
@@ -274,7 +502,7 @@ int LUA_fail_delay(struct RPC2_addrinfo *Addr, RPC2_PacketBuffer *pb, int out)
     lua_pop(L, 2);
 
     htonPktColor(pb);
-    return rc;
+    return delay;
 }
 #endif
 
