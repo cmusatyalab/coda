@@ -149,7 +149,7 @@ static void check_aes_monte_carlo(int verbose)
 	    }
 
 	    if (memcmp(ebuf, etestvector, AES_BLOCK_SIZE) != 0 ||
-	        memcmp(ebuf, etestvector, AES_BLOCK_SIZE) != 0)
+		memcmp(dbuf, dtestvector, AES_BLOCK_SIZE) != 0)
 	    {
 		fprintf(stderr, "AES monte carlo test FAILED\n");
 		exit(-1);
