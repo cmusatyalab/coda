@@ -264,7 +264,7 @@ void rpc2_FreeConn(RPC2_Handle whichConn)
 	RPC2_FreeBuffer(&ce->HeldPacket);
     if (ce->MySl != NULL) {
 	rpc2_DeactivateSle(ce->MySl);
-    	rpc2_FreeSle(&ce->MySl);
+	rpc2_FreeSle(&ce->MySl);
     }
 
     /* Scan the hold queue and purge the request for this connection */
@@ -283,8 +283,8 @@ void rpc2_FreeConn(RPC2_Handle whichConn)
     SetRole(ce, FREE);
 
     /* clear encryption state */
-    secure_setup_encrypt(&ce->sa, NULL, NULL, NULL, 0);
-    secure_setup_decrypt(&ce->sa, NULL, NULL, NULL, 0);
+    secure_setup_encrypt(0, &ce->sa, NULL, NULL, NULL, 0);
+    secure_setup_decrypt(0, &ce->sa, NULL, NULL, NULL, 0);
 
     /* move the conn entry over to the freelist */
     list_del(&ce->connlist);

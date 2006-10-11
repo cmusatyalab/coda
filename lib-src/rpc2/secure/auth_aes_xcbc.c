@@ -29,7 +29,7 @@ struct aes_xcbc_state {
     uint8_t K3[AES_BLOCK_SIZE];
 };
 
-int aes_xcbc_mac_init(void **ctx, const uint8_t *key, size_t len)
+int aes_xcbc_mac_init(uint32_t version, void **ctx, const uint8_t *key, size_t len)
 {
     struct aes_xcbc_state *state;
     uint8_t tmp[AES_BLOCK_SIZE];

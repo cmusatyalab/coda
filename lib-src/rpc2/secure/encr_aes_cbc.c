@@ -21,7 +21,7 @@ Coda are listed in the file CREDITS.
 #include "aes.h"
 #include "grunt.h"
 
-static int encrypt_init(void **ctx, const uint8_t *key, size_t len)
+static int encrypt_init(uint32_t version, void **ctx, const uint8_t *key, size_t len)
 {
     *ctx = malloc(sizeof(aes_encrypt_ctx));
     if (!*ctx) return 0;
@@ -59,7 +59,7 @@ static void encrypt_free(void **ctx)
 }
 
 
-static int decrypt_init(void **ctx, const uint8_t *key, size_t len)
+static int decrypt_init(uint32_t version, void **ctx, const uint8_t *key, size_t len)
 {
     *ctx = malloc(sizeof(aes_decrypt_ctx));
     if (!*ctx) return 0;

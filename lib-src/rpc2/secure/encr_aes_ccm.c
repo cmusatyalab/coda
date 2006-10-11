@@ -34,9 +34,11 @@ struct aes_ccm_ctx {
     uint8_t flag_n_salt[4];
     aes_encrypt_ctx ctx;
     unsigned int icv_len;
+    int broken_counter;
 };
 
-static int init(void **ctx, const uint8_t *key, size_t len, size_t icv_len)
+static int init(uint32_t version, void **ctx, const uint8_t *key, size_t len,
+		size_t icv_len)
 {
     struct aes_ccm_ctx *acc = malloc(sizeof(struct aes_ccm_ctx));
     if (!acc) return 0;
@@ -53,6 +55,18 @@ static int init(void **ctx, const uint8_t *key, size_t len, size_t icv_len)
     else if (len >= bytes(128)) len = 128;
     else goto err_out;
 
+    /* SECURE version 0 incorrectly initialized the counter block. Because it
+     * clears 5 bits of the salt it weakens the strength of the algorithm.
+     *
+     * To fix this issue, whenever a v0 client connects to a newer server it
+     * will force the client to use the slower (but correct) AES-CBC
+     * encryption. However when a new client connects to a v0 server, the
+     * client will not be able to pick the algorithm that is used to encrypt
+     * client-to-server traffic, we will make the server use AES-CBC for
+     * server-to-client traffic. Because the server doesn't know any better,
+     * we have to fall back on the broken init. */
+    acc->broken_counter = (version == 0);
+
     if (aes_encrypt_key(key, len, &acc->ctx) == 0) {
 	*ctx = acc;
 	return 0;
@@ -63,19 +77,19 @@ err_out:
     return -1;
 }
 
-static int init8 (void **ctx, const uint8_t *key, size_t len)
+static int init8 (uint32_t version, void **ctx, const uint8_t *key, size_t len)
 {
-    return init(ctx, key, len, 8);
+    return init(version, ctx, key, len, 8);
 }
 
-static int init12(void **ctx, const uint8_t *key, size_t len)
+static int init12(uint32_t version, void **ctx, const uint8_t *key, size_t len)
 {
-    return init(ctx, key, len, 12);
+    return init(version, ctx, key, len, 12);
 }
 
-static int init16(void **ctx, const uint8_t *key, size_t len)
+static int init16(uint32_t version, void **ctx, const uint8_t *key, size_t len)
 {
-    return init(ctx, key, len, 16);
+    return init(version, ctx, key, len, 16);
 }
 
 
@@ -124,6 +138,12 @@ static int aes_ccm_crypt(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
     int32(CTR)[1] = int32(iv)[0];
     int32(CTR)[2] = int32(iv)[1];
     int32(CTR)[3] = 0;
+
+    if (acc->broken_counter) {
+	CTR[0] = acc->flag_n_salt[0];
+	CTR[3] = acc->flag_n_salt[3] & 0x07;
+    }
+
     /* save the first counter block. we will use that for authentication. */
     aes_encrypt(CTR, S0, &acc->ctx);
 

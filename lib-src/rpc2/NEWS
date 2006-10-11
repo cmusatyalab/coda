@@ -1,18 +1,20 @@
 New in 2.3:
 
+* Endian fixes in the encryption code (Adam Goode)
 * Fix failing SFTP transfer when a duplicate packet arrives.
 * Account for server processing delay in roundtrip time estimate.
 * Rewrote bandwidth/latency estimator to improve stability.
 * Added 'configure --with-lua' to link in an embedded Lua interpreter.
 * Support for Lua scripts to customize bandwidth and roundtrip time estimation.
   Assumes the script can be found as /etc/rpc2.lua or the value of the
-  RPC2_LUA_SCRIPT environment variable. We check about once every 5 seconds if
-  that file has been updated (or removed) and automatically reloads it.
+  RPC2_LUA_SCRIPT environment variable. We check once every 5 seconds if
+  that file has been updated (or removed) and automatically reload it.
   The script is disabled whenever a parse or runtime error is encountered.
 * Example scripts installed in ${prefix}/share/rpc2,
-  rpc2-rtt-adaptive.lua	- current RPC2 estimator, but implemented in Lua.
+  rpc2-rtt-adaptive.lua	- current RPC2 estimator, implemented in Lua.
   rpc2-rtt-fixed.lua	- simple estimator using fixed network parameters.
   rpc2-rtt-vj.lua	- simple latency only estimator.
+  rpc2-fail.lua		- Introduce packet loss and/or delay
 
 New in 2.2:
 

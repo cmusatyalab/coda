@@ -56,8 +56,6 @@ Pittsburgh, PA.
 #include "trace.h"
 #include "cbuf.h"
 
-
-
 /*
 Contains the hard core of the major RPC runtime routines.
 
@@ -117,10 +115,12 @@ static int InvokeSE();
 static void SendOKInit2();
 static int ServerHandShake(struct CEntry *ce, int32_t xrand,
 			   RPC2_EncryptionKey SharedSecret,
-			   size_t keysize, int new_binding);
+			   uint32_t rpc2sec_version, size_t keysize,
+			   int new_binding);
 static RPC2_PacketBuffer *Send2Get3(struct CEntry *ce, RPC2_EncryptionKey key,
 				    int32_t xrand, int32_t *yrand,
-				    size_t keysize, int new_binding);
+				    uint32_t rpc2sec_version, size_t keysize,
+				    int new_binding);
 static long Test3(RPC2_PacketBuffer *pb, struct CEntry *ce, int32_t yrand,
 		  RPC2_EncryptionKey ekey, int new_binding);
 static void Send4AndSave(struct CEntry *ce, int32_t xrand,
@@ -129,7 +129,7 @@ static void RejectBind(struct CEntry *ce, size_t bodysize, RPC2_Integer opcode);
 static RPC2_PacketBuffer *HeldReq(RPC2_RequestFilter *filter, struct CEntry **ce);
 static int GetFilter(RPC2_RequestFilter *inf, RPC2_RequestFilter *outf);
 static long GetNewRequest(IN RPC2_RequestFilter *filter, IN struct timeval *timeout, OUT struct RPC2_PacketBuffer **pb, OUT struct CEntry **ce);
-static long MakeFake(INOUT RPC2_PacketBuffer *pb, IN struct CEntry *ce, RPC2_Integer *AuthenticationType, OUT RPC2_Integer *xrand, OUT RPC2_CountedBS *cident, size_t *keysize);
+static long MakeFake(INOUT RPC2_PacketBuffer *pb, IN struct CEntry *ce, RPC2_Integer *AuthenticationType, OUT RPC2_Integer *xrand, OUT RPC2_CountedBS *cident, OUT uint32_t *rpc2sec_version, OUT size_t *keysize);
 
 FILE *rpc2_logfile;
 FILE *rpc2_tracefile;
@@ -230,7 +230,8 @@ long RPC2_SendResponse(IN RPC2_Handle ConnHandle, IN RPC2_PacketBuffer *Reply)
 }
 
 /* Helpers to set up keys and pack/unpack init2/init3 packets */
-static int setup_init1_key(int (*init)(struct security_association *sa,
+static int setup_init1_key(int (*init)(uint32_t secure_version,
+				       struct security_association *sa,
 				       const struct secure_auth *auth,
 				       const struct secure_encr *encr,
 				       const uint8_t *key, size_t len),
@@ -256,7 +257,7 @@ static int setup_init1_key(int (*init)(struct security_association *sa,
 		      key, sizeof(key));
     if (rc) return -1;
 
-    rc = init(sa, auth, encr, key, sizeof(key));
+    rc = init(0, sa, auth, encr, key, sizeof(key));
     memset(key, 0, sizeof(key));
     return rc;
 }
@@ -264,23 +265,27 @@ static int setup_init1_key(int (*init)(struct security_association *sa,
 static int pack_initX_body(struct security_association *sa,
 			   const struct secure_auth *auth,
 			   const struct secure_encr *encr,
+			   uint32_t rpc2sec_version,
 			   void *packet_body, size_t len)
 {
 	uint32_t *body = (uint32_t *)packet_body;
 
-	body[0] = htonl(0); /* version */
+	if (!auth || !encr) return -1;
+
+	body[0] = htonl(rpc2sec_version); /* version */
 	body[1] = htonl(auth->id);
 	body[2] = htonl(encr->id);
 	secure_random_bytes(&body[3], len);
 
-	return secure_setup_decrypt(sa, auth, encr, (uint8_t *)&body[3], len);
+	return secure_setup_decrypt(rpc2sec_version, sa, auth, encr,
+				    (uint8_t *)&body[3], len);
 }
 
 static int unpack_initX_body(struct CEntry *ce,
 			     struct RPC2_PacketBuffer *pb,
 			     const struct secure_auth **auth,
 			     const struct secure_encr **encr,
-			     size_t *keylen)
+			     uint32_t *rpc2sec_version, size_t *keylen)
 {
     const struct secure_auth *a;
     const struct secure_encr *e;
@@ -300,8 +305,10 @@ static int unpack_initX_body(struct CEntry *ce,
 
     /* lookup authentication and encryption functions */
     version = ntohl(body[0]);
-    if (version != 0)
-	return RPC2_NOTAUTHENTICATED;
+
+    /* Our peer should have switched to the lowest common version. If it hasn't
+     * that is likely a good indication that something is very wrong. */
+    if (version > SECURE_VERSION) return RPC2_NOTAUTHENTICATED;
 
     a = secure_get_auth_byid(ntohl(body[1]));
     e = secure_get_encr_byid(ntohl(body[2]));
@@ -318,12 +325,13 @@ static int unpack_initX_body(struct CEntry *ce,
 	return RPC2_NOTAUTHENTICATED;
 
     /* initialize keys */
-    rc = secure_setup_encrypt(&ce->sa, a, e, (uint8_t *)&body[3], len);
+    rc = secure_setup_encrypt(version, &ce->sa, a, e, (uint8_t *)&body[3], len);
     if (rc) return RPC2_NOTAUTHENTICATED;
 
-    if (auth)   *auth = a;
-    if (encr)   *encr = e;
-    if (keylen) *keylen = len;
+    if (rpc2sec_version) *rpc2sec_version = version;
+    if (auth)	*auth = a;
+    if (encr)	*encr = e;
+    if (keylen)	*keylen = len;
     return RPC2_SUCCESS;
 }
 
@@ -343,6 +351,7 @@ long RPC2_GetRequest(IN RPC2_RequestFilter *Filter,
 	RPC2_CountedBS cident, *clientIdent;
 	RPC2_Integer XRandom;
 	RPC2_EncryptionKey SharedSecret;
+	uint32_t rpc2sec_version = 0;
 	size_t keysize = 0;
 	long rc;
 
@@ -414,7 +423,8 @@ long RPC2_GetRequest(IN RPC2_RequestFilter *Filter,
 
     /* Extract relevant fields from Init1 packet and then make it a fake
      * NEWCONNECTION packet */
-    rc = MakeFake(pb, ce, &XRandom, &AuthenticationType, &cident, &keysize);
+    rc = MakeFake(pb, ce, &XRandom, &AuthenticationType, &cident,
+		  &rpc2sec_version, &keysize);
     if (rc < RPC2_WLIMIT) {DROPIT();}
 
     memset(SharedSecret, 0, sizeof(RPC2_EncryptionKey));
@@ -439,7 +449,8 @@ long RPC2_GetRequest(IN RPC2_RequestFilter *Filter,
     }
 
     /* new bind sequence */
-    if (pb->Header.Flags & RPC2SEC_CAPABLE) {
+    if (pb->Header.Flags & RPC2SEC_CAPABLE)
+    {
 	/* setup xmit key so we can reply with encrypted key material */
 	rc = setup_init1_key(secure_setup_encrypt, &ce->sa, XRandom,
 			     ce->PeerUnique, SharedSecret);
@@ -449,12 +460,17 @@ long RPC2_GetRequest(IN RPC2_RequestFilter *Filter,
 	    DROPIT();
 	}
 
+	/* use the lowest common denominator */
+	if (rpc2sec_version > SECURE_VERSION)
+	    rpc2sec_version = SECURE_VERSION;
+
 	/* why reimplement something that is already working... */
 	/* we just need some minor tweaks for the existing INIT2/INIT3/INIT4
 	 * sequence, but this is should not be a problem, the packets in the
 	 * new handshake are easily recognized by having a non-NULL
 	 * pb->Prefix.sa field */
-	rc = ServerHandShake(ce, XRandom, SharedSecret, keysize, 1);
+	rc = ServerHandShake(ce, XRandom, SharedSecret, rpc2sec_version,
+			     keysize, 1);
 	if (rc != RPC2_SUCCESS)
 	    DROPIT();
     }
@@ -473,7 +489,7 @@ long RPC2_GetRequest(IN RPC2_RequestFilter *Filter,
 	/* It is probably safer to ignore the SessionKey returned by GetKeys. */
 	secure_random_bytes(ce->SessionKey, sizeof(RPC2_EncryptionKey));
 
-	rc = ServerHandShake(ce, XRandom, SharedSecret, 0, 0);
+	rc = ServerHandShake(ce, XRandom, SharedSecret, 0, 0, 0);
 	if (rc != RPC2_SUCCESS)
 	    DROPIT();
     }
@@ -691,6 +707,7 @@ long RPC2_NewBinding(IN RPC2_HostIdent *Host, IN RPC2_PortIdent *Port,
     int new_binding = 0;
     const struct secure_auth *auth = NULL;
     const struct secure_encr *encr = NULL;
+    uint32_t rpc2sec_version = 0;
     size_t keylen = 0;
 
 #define DROPCONN()\
@@ -834,7 +851,7 @@ try_next_addr:
     /* hint for the other side that we support the new encryption layer */
     if (ce->sa.decrypt) {
 	pb->Header.Flags |= RPC2SEC_CAPABLE;
-	ib->RPC2SEC_version = htonl(0);
+	ib->RPC2SEC_version = htonl(SECURE_VERSION);
 	ib->Preferred_Keysize = htonl(RPC2_Preferred_Keysize);
     }
 
@@ -902,7 +919,7 @@ try_next_addr:
     /* If the reply was over a secure connection, we interpret the INIT2 body
      * differently (uint32_t auth, uint32_t encr, uint8_t key[]) */
     if (pb->Prefix.sa) {
-	rc = unpack_initX_body(ce, pb, &auth, &encr, &keylen);
+	rc = unpack_initX_body(ce, pb, &auth, &encr, &rpc2sec_version, &keylen);
 	if (rc != RPC2_SUCCESS) {
 	    DROPCONN();
 	    RPC2_FreeBuffer(&pb);
@@ -919,7 +936,7 @@ try_next_addr:
     else {
 	/* The INIT2 packet came over insecure connection, remove decryption
 	 * context and fall back on the old handshake */
-	secure_setup_decrypt(&ce->sa, NULL, NULL, NULL, 0);
+	secure_setup_decrypt(0, &ce->sa, NULL, NULL, NULL, 0);
 	say(1, RPC2_DebugLevel, "Got INIT2, proceeding with old binding\n");
 	new_binding = 0;
 
@@ -950,7 +967,7 @@ try_next_addr:
 
     ce->PeerHandle = pb->Header.LocalHandle;
     ce->sa.peer_spi = pb->Header.LocalHandle;
-    say(9, RPC2_DebugLevel, "PeerHandle for local %#x is %#x\n", 
+    say(9, RPC2_DebugLevel, "PeerHandle for local %#x is %#x\n",
 	*ConnHandle, ce->PeerHandle);
     RPC2_FreeBuffer(&pb);	/* Release INIT2 packet */
 
@@ -977,7 +994,17 @@ try_next_addr:
 	 * - A rogue server won't care how we encrypt outgoing data, it clearly
 	 *   will be getting any required key material with this INIT3 packet.
 	 */
-	rc = pack_initX_body(&ce->sa, auth, encr, &pb->Body, keylen);
+	/* When we know that the server is trying to use an incorrectly
+	 * initialized AES-CCM counter, we can't do much about that. However
+	 * we can at least force it to use AES-CBC encryption for any packets
+	 * it sends back to us. */
+	if (rpc2sec_version == 0) {
+	    auth = secure_get_auth_byid(SECURE_AUTH_AES_XCBC_96);
+	    encr = secure_get_encr_byid(SECURE_ENCR_AES_CBC);
+	}
+
+	rc = pack_initX_body(&ce->sa, auth, encr, rpc2sec_version,
+			     &pb->Body, keylen);
 	if (rc) {
 	    DROPCONN();
 	    RPC2_FreeBuffer(&pb);
@@ -1305,7 +1332,8 @@ TryAnother:
 
 static long MakeFake(RPC2_PacketBuffer *pb, struct CEntry *ce,
 		     RPC2_Integer *xrand, RPC2_Integer *authenticationtype,
-		     RPC2_CountedBS *cident, size_t *keysize)
+		     RPC2_CountedBS *cident, uint32_t *rpc2sec_version,
+		     size_t *keysize)
 {
     /* Synthesize fake packet after extracting encrypted XRandom and
      * clientident. It is really pretty ugly if you think about it, we
@@ -1334,6 +1362,7 @@ static long MakeFake(RPC2_PacketBuffer *pb, struct CEntry *ce,
 
     *xrand  = ib1->XRandom;		/* Still encrypted */
     *authenticationtype = ntohl(ncb->AuthenticationType);
+    *rpc2sec_version = ntohl(ib1->RPC2SEC_version);
     *keysize = ntohl(ib1->Preferred_Keysize);
 
     cident->SeqLen = ntohl(ncb->ClientIdent.SeqLen);
@@ -1386,7 +1415,8 @@ static void SendOKInit2(IN struct CEntry *ce)
 
 static int ServerHandShake(struct CEntry *ce, int32_t xrand,
 			   RPC2_EncryptionKey SharedSecret,
-			   size_t keysize, int new_binding)
+			   uint32_t rpc2sec_version, size_t keysize,
+			   int new_binding)
 {
     RPC2_PacketBuffer *pb;
     int32_t saveYRandom;
@@ -1399,7 +1429,8 @@ static int ServerHandShake(struct CEntry *ce, int32_t xrand,
     }
 
     /* Send Init2 packet and await Init3 */
-    pb = Send2Get3(ce, SharedSecret, xrand, &saveYRandom, keysize, new_binding);
+    pb = Send2Get3(ce, SharedSecret, xrand, &saveYRandom, rpc2sec_version,
+		   keysize, new_binding);
     if (!pb) return(RPC2_NOTAUTHENTICATED);
 
     /* Validate Init3 */
@@ -1435,7 +1466,8 @@ static void RejectBind(struct CEntry *ce, size_t bodysize, RPC2_Integer opcode)
 
 static RPC2_PacketBuffer *Send2Get3(struct CEntry *ce, RPC2_EncryptionKey key,
 				    int32_t xrand, int32_t *yrand,
-				    size_t keysize, int new_binding)
+				    uint32_t rpc2sec_version, size_t keysize,
+				    int new_binding)
 {
     RPC2_PacketBuffer *pb2, *pb3 = NULL;
     struct Init2Body *ib2;
@@ -1446,8 +1478,13 @@ static RPC2_PacketBuffer *Send2Get3(struct CEntry *ce, RPC2_EncryptionKey key,
     size_t bodylen = sizeof(struct Init2Body);
 
     if (new_binding) {
-	auth = secure_get_auth_byid(SECURE_AUTH_NONE);
-	encr = secure_get_encr_byid(SECURE_ENCR_AES_CCM_8);
+	if (rpc2sec_version == 0) { /* version 0, broken AES-CCM counter */
+	    auth = secure_get_auth_byid(SECURE_AUTH_AES_XCBC_96);
+	    encr = secure_get_encr_byid(SECURE_ENCR_AES_CBC);
+	} else {
+	    auth = secure_get_auth_byid(SECURE_AUTH_NONE);
+	    encr = secure_get_encr_byid(SECURE_ENCR_AES_CCM_8);
+	}
 	if (!auth || !encr) return NULL;
 
 	/* find the longest key that both the client and the server agree on */
@@ -1475,7 +1512,8 @@ static RPC2_PacketBuffer *Send2Get3(struct CEntry *ce, RPC2_EncryptionKey key,
 
     /* and pack the body */
     if (new_binding) {
-	if (pack_initX_body(&ce->sa, auth, encr, &pb2->Body, keysize))
+	if (pack_initX_body(&ce->sa, auth, encr, rpc2sec_version,
+			    &pb2->Body, keysize))
 	{
 	    RPC2_FreeBuffer(&pb2);
 	    return NULL;
@@ -1527,7 +1565,7 @@ static long Test3(RPC2_PacketBuffer *pb, struct CEntry *ce, int32_t yrand,
     struct Init3Body *ib3;
 
     if (new_binding)
-	return unpack_initX_body(ce, pb, NULL, NULL, NULL);
+	return unpack_initX_body(ce, pb, NULL, NULL, NULL, NULL);
 
     if (pb->Prefix.LengthOfPacket < (ssize_t)(sizeof(struct RPC2_PacketHeader) + sizeof(struct Init3Body)))
     {

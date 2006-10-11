@@ -93,7 +93,7 @@ int aes_xcbc_prf_init(void **ctx, const uint8_t *key, size_t len)
 
 	if (len > AES_BLOCK_SIZE) {
 	    /* long input key, use the digest as prf key */
-	    if (aes_xcbc_mac_init(ctx, tmp, AES_BLOCK_SIZE))
+	    if (aes_xcbc_mac_init(0, ctx, tmp, AES_BLOCK_SIZE))
 		return -1;
 	    aes_xcbc_mac_128(*ctx, key, len, tmp);
 	    aes_xcbc_mac_release(ctx);
@@ -104,7 +104,7 @@ int aes_xcbc_prf_init(void **ctx, const uint8_t *key, size_t len)
 	key = tmp;
     }
 
-    rc = aes_xcbc_mac_init(ctx, key, AES_BLOCK_SIZE);
+    rc = aes_xcbc_mac_init(0, ctx, key, AES_BLOCK_SIZE);
     if (len != AES_BLOCK_SIZE)
 	memset(tmp, 0, AES_BLOCK_SIZE);
 
