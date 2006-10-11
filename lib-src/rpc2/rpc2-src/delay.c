@@ -28,15 +28,14 @@ struct DelayEntry {
     struct security_association *sa;
 };
 
-int rpc2_DelayedSend(int delay, int s, struct RPC2_addrinfo *addr,
-		     RPC2_PacketBuffer *pb)
+int rpc2_DelayedSend(int s, struct RPC2_addrinfo *addr, RPC2_PacketBuffer *pb,
+		     struct timeval *tv)
 {
     struct SL_Entry *sl;
-    struct timeval tv;
     struct DelayEntry *de;
 
     /* If delay is too short, just send it */
-    if (delay < RPC2_MINDELAY) return 0;
+    if (tv->tv_sec == 0 && tv->tv_usec < RPC2_MINDELAY) return 0;
 
     sl = rpc2_AllocSle(DELAYED_SEND, NULL);
     if (!sl) return 0; /* allocation failed, just send the packet now */
@@ -54,11 +53,9 @@ int rpc2_DelayedSend(int delay, int s, struct RPC2_addrinfo *addr,
 
     /* enqueue */
     sl->data = de;
-    tv.tv_sec = delay / 1000000;
-    tv.tv_usec = delay % 1000000;
-    say(9, RPC2_DebugLevel, "Delaying packet transmission for %p for %d us\n",
-	de, delay);
-    rpc2_ActivateSle(sl, &tv);
+    say(9,RPC2_DebugLevel,"Delaying packet transmission for %p by %ld.%06lus\n",
+	de, tv->tv_sec, tv->tv_usec);
+    rpc2_ActivateSle(sl, tv);
     return 1;
 }
 
@@ -73,32 +70,28 @@ void rpc2_SendDelayedPacket(struct SL_Entry *sl)
     rpc2_FreeSle(&sl);
 }
 
-int rpc2_DelayedRecv(int delay, RPC2_PacketBuffer *pb)
+int rpc2_DelayedRecv(RPC2_PacketBuffer *pb, struct timeval *tv)
 {
     struct SL_Entry *sl;
-    struct timeval tv;
-
-    tv.tv_sec = delay / 1000000;
-    tv.tv_usec = delay % 1000000;
 
     /* update the time we supposedly 'received' this packet */
-    pb->Prefix.RecvStamp.tv_usec += tv.tv_usec;
+    pb->Prefix.RecvStamp.tv_usec += tv->tv_usec;
     while (pb->Prefix.RecvStamp.tv_usec >= 1000000) {
 	pb->Prefix.RecvStamp.tv_usec -= 1000000;
 	pb->Prefix.RecvStamp.tv_sec++;
     }
-    pb->Prefix.RecvStamp.tv_sec += tv.tv_sec;
+    pb->Prefix.RecvStamp.tv_sec += tv->tv_sec;
 
     /* If delay is too short, just accept it */
-    if (delay < RPC2_MINDELAY) return 0;
+    if (tv->tv_sec == 0 && tv->tv_usec < RPC2_MINDELAY) return 0;
 
     sl = rpc2_AllocSle(DELAYED_RECV, NULL);
     if (!sl) return 0; /* allocation failed, accept the packet now */
 
     sl->data = pb;
-    say(9, RPC2_DebugLevel, "Delaying packet reception for %p for %d us\n",
-	pb, delay);
-    rpc2_ActivateSle(sl, &tv);
+    say(9, RPC2_DebugLevel, "Delaying packet reception for %p by %ld.%06lus\n",
+	pb, tv->tv_sec, tv->tv_usec);
+    rpc2_ActivateSle(sl, tv);
     return 1;
 }
 

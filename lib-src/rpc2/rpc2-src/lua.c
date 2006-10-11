@@ -180,8 +180,8 @@ static int timeval_div(lua_State *L)
 	y = luaL_checkinteger(L, 2);
 	res.tv_usec = ((tv.tv_sec % y) * 1000000 + tv.tv_usec) / y;
 	res.tv_sec = tv.tv_sec / y;
-	while (res.tv_usec < 0)       { res.tv_usec += 1000000; res.tv_sec--; }
-	while (res.tv_usec > 1000000) { res.tv_usec -= 1000000; res.tv_sec++; }
+	while (res.tv_usec < 0)	       { res.tv_usec += 1000000; res.tv_sec--; }
+	while (res.tv_usec >= 1000000) { res.tv_usec -= 1000000; res.tv_sec++; }
 	l2c_pushtimeval(L, &res);
     }
     return 1;
@@ -467,11 +467,11 @@ int LUA_rtt_getbandwidth(struct HEntry *he, uint32_t *bw_tx, uint32_t *bw_rx)
     return 1;
 }
 
-int LUA_fail_delay(struct RPC2_addrinfo *Addr, RPC2_PacketBuffer *pb, int out)
+int LUA_fail_delay(struct RPC2_addrinfo *Addr, RPC2_PacketBuffer *pb, int out,
+		   struct timeval *tv)
 {
     char addr[RPC2_ADDRSTRLEN];
-    int rc, delay, color;
-    struct timeval tv;
+    int rc, color;
 
     if (out) rc = setup_function("fail_delay_tx");
     else     rc = setup_function("fail_delay_rx");
@@ -487,12 +487,11 @@ int LUA_fail_delay(struct RPC2_addrinfo *Addr, RPC2_PacketBuffer *pb, int out)
     if (lua_pcall(L, 3, 2, 0)) { badscript(); return 0; }
 
     if (lua_isnil(L, -2))
-	delay = -1;	 /* drop packet */
+	rc = -1;	 /* drop packet */
 
     else {
-	l2c_totimeval(L, -2, &tv); /* delay packet */
-	delay = tv.tv_sec * 1000000 + tv.tv_usec;
-	if (delay < 0) delay = 0;
+	l2c_totimeval(L, -2, tv); /* delay packet */
+	rc = (tv->tv_sec >= 0);
     }
 
     if (!lua_isnil(L, -1)) { /* not nil, set new color value */
@@ -502,7 +501,7 @@ int LUA_fail_delay(struct RPC2_addrinfo *Addr, RPC2_PacketBuffer *pb, int out)
     lua_pop(L, 2);
 
     htonPktColor(pb);
-    return delay;
+    return rc;
 }
 #endif
 

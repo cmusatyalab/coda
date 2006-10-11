@@ -435,9 +435,6 @@ void rpc2_RetryInterval(struct HEntry *host, struct SL_Entry *sl,
 	rto = rtt_lat + rtt_out + rtt_in + (rttvar << 1);
     }
 
-    /* account for server processing overhead */
-    rto += RPC2_DELACK_DELAY;
-
     if (sl->RetryIndex != 1) {
 	maxrtt = (keepalive->tv_sec * 1000000 + keepalive->tv_usec) >> 1;
 
@@ -448,6 +445,9 @@ void rpc2_RetryInterval(struct HEntry *host, struct SL_Entry *sl,
 	sl->RetryIndex = i;
 	if (maxrtt > rto) rto = maxrtt;
     }
+
+    /* account for server processing overhead */
+    rto += RPC2_DELACK_DELAY;
 
     /* clamp retry estimate */
     /* we shouldn't need a lower bound because we already account for the

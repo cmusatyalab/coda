@@ -207,7 +207,8 @@ static void DispatchPacket(RPC2_PacketBuffer *pb)
 static void rpc2_ProcessPacket(int fd)
 {
     RPC2_PacketBuffer *pb = NULL;
-    int delay;
+    struct timeval tv;
+    int rc;
 
     /* We are guaranteed that there is a packet in the socket
        buffer at this point */
@@ -240,13 +241,13 @@ static void rpc2_ProcessPacket(int fd)
 	return;
     }
 
-    delay = LUA_fail_delay(pb->Prefix.PeerAddr, pb, 0);
-    if (delay == -1) {
+    rc = LUA_fail_delay(pb->Prefix.PeerAddr, pb, 0, &tv);
+    if (rc == -1) {
 	say(9, RPC2_DebugLevel, "Dropping incoming packet\n");
 	RPC2_FreeBuffer(&pb);
 	return;
     }
-    if (delay > 0 && rpc2_DelayedRecv(delay, pb)) { return; } /* delay */
+    if (rc && rpc2_DelayedRecv(pb, &tv)) { return; } /* delay */
 
     DispatchPacket(pb);
 }

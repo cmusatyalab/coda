@@ -704,7 +704,8 @@ int LUA_rtt_getbandwidth(struct HEntry *he, uint32_t *bw_tx, uint32_t *bw_rx);
 /* not sure if we want to allow the estimator to control number of retries
  * and/or overall timeout, so I might not actually use this function... */
 int LUA_rtt_retryinterval(struct HEntry *he, uint32_t n, uint32_t tx, uint32_t rx);
-int LUA_fail_delay(struct RPC2_addrinfo *addr, RPC2_PacketBuffer *pb, int out);
+int LUA_fail_delay(struct RPC2_addrinfo *addr, RPC2_PacketBuffer *pb, int out,
+		   struct timeval *tv);
 #else
 /* do not include Lua interpreter, define empty stubs */
 #define LUA_init()
@@ -714,12 +715,12 @@ int LUA_fail_delay(struct RPC2_addrinfo *addr, RPC2_PacketBuffer *pb, int out);
 #define LUA_rtt_getrto(a,b,c)		0
 #define LUA_rtt_getbandwidth(a,b,c)	0
 #define LUA_rtt_retryinterval(a,b,c)	0
-#define LUA_fail_delay(a,b,c)		0
+#define LUA_fail_delay(a,b,c,d)		0
 #endif
 
-int rpc2_DelayedSend(int delay, int s, struct RPC2_addrinfo *addr,
-		     RPC2_PacketBuffer *pb);
-int rpc2_DelayedRecv(int delay, RPC2_PacketBuffer *pb);
+int rpc2_DelayedSend(int s, struct RPC2_addrinfo *addr, RPC2_PacketBuffer *pb,
+		     struct timeval *delay);
+int rpc2_DelayedRecv(RPC2_PacketBuffer *pb, struct timeval *delay);
 
 void rpc2_SendDelayedPacket(struct SL_Entry *sl);
 RPC2_PacketBuffer *rpc2_RecvDelayedPacket(struct SL_Entry *sl);

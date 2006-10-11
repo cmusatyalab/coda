@@ -75,7 +75,8 @@ void rpc2_XmitPacket(RPC2_PacketBuffer *pb, struct RPC2_addrinfo *addr,
 {
     static int log_limit = 0;
     int whichSocket, n, flags = 0;
-    int delay;
+    struct timeval tv;
+    int rc;
 
     say(1, RPC2_DebugLevel, "rpc2_XmitPacket()\n");
 
@@ -109,13 +110,12 @@ void rpc2_XmitPacket(RPC2_PacketBuffer *pb, struct RPC2_addrinfo *addr,
     rpc2_Sent.Total++;
     rpc2_Sent.Bytes += pb->Prefix.LengthOfPacket;
 
-    delay = LUA_fail_delay(addr, pb, 1);
-    if (delay == -1) {
+    rc = LUA_fail_delay(addr, pb, 1, &tv);
+    if (rc == -1) { /* drop */
 	say(9, RPC2_DebugLevel, "Dropping outgoing packet\n");
 	return;
     }
-    if (delay > 0 && rpc2_DelayedSend(delay, whichSocket, addr, pb))
-	return;
+    if (rc && rpc2_DelayedSend(whichSocket, addr, pb, &tv)) return; /* delay */
 
     if (confirm)
 	flags = msg_confirm;
