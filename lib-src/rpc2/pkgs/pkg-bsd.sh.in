@@ -128,14 +128,11 @@ function MakePLIST () {
     then
 	cat > ${dst} << EOF
 @comment \$NetBSD\$
-lib/libfail.so.@GENERIC_VERSION@
 lib/librpc2.so.@GENERIC_VERSION@
 lib/libse.so.@GENERIC_VERSION@
 EOF
     else
 	cat > ${dst} << EOF
-lib/libfail.so
-lib/libfail.so.@FREEBSD_VERSION@
 lib/librpc2.so
 lib/librpc2.so.@FREEBSD_VERSION@
 lib/libse.so
@@ -144,18 +141,13 @@ EOF
     fi
 
     cat >> ${dst} << EOF
-bin/filcon
 bin/rp2gen
-lib/libfail.a
-lib/libfail.la
 lib/librpc2.a
 lib/librpc2.la
 lib/libse.a
 lib/libse.la
 include/rpc2/errors.h
 include/rpc2/errorsdefs.h
-include/rpc2/fail.h
-include/rpc2/fcon.h
 include/rpc2/multi.h
 include/rpc2/rpc2.h
 include/rpc2/rpc2_addrinfo.h

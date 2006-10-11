@@ -17,24 +17,11 @@ Description: Remote procedure call library, development files
  .
  For more information, check the Coda website http://www.coda.cs.cmu.edu/
 
-Package: rpc2-tools
-Architecture: amd64 arm i386 m68k powerpc sparc
-Depends: ${shlibs:Depends}
-Description: Remote procedure call library - support tools
- RPC2 is a remote procedure call library developed at CMU. It is layered
- on top of UDP sockets and is used by the Coda distributed filesystem
- .
- This package contains filcon, a tool that can be used to manipulate
- connections of programs linked against the libfail library.
- .
- For more information, check the Coda website http://www.coda.cs.cmu.edu/
-
 Package: librpc2-4
 Architecture: amd64 arm i386 m68k powerpc sparc
 Depends: ${shlibs:Depends}
 Provides: librpc24
-Replaces: librpc24
-Recommends: rpc2-tools
+Replaces: librpc24, rpc2-tools
 Description: Remote procedure call library
  RPC2 is a remote procedure call library developed at CMU. It is layered
  on top of UDP sockets and is used by the Coda distributed filesystem
