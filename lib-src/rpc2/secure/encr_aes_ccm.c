@@ -31,10 +31,7 @@ Coda are listed in the file CREDITS.
 #define CCMflags(len) ((((len/2)-1)<<3) | (PARM_L-1))
 
 struct aes_ccm_ctx {
-    union {
-	uint32_t salt;
-	uint8_t flag_n_salt[4];
-    } u;
+    uint8_t flag_n_salt[4];
     aes_encrypt_ctx ctx;
     unsigned int icv_len;
 };
@@ -45,10 +42,10 @@ static int init(void **ctx, const uint8_t *key, size_t len, size_t icv_len)
     if (!acc) return 0;
 
     /* copy salt */
-    acc->u.flag_n_salt[3] = key[--len];
-    acc->u.flag_n_salt[2] = key[--len];
-    acc->u.flag_n_salt[1] = key[--len];
-    acc->u.flag_n_salt[0] = CCMflags(icv_len);
+    acc->flag_n_salt[3] = key[--len];
+    acc->flag_n_salt[2] = key[--len];
+    acc->flag_n_salt[1] = key[--len];
+    acc->flag_n_salt[0] = CCMflags(icv_len);
     acc->icv_len = icv_len;
 
     if      (len >= bytes(256)) len = 256;
@@ -106,18 +103,24 @@ static int aes_ccm_crypt(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
 	len -= acc->icv_len;
     }
 
-    if (aad_len) acc->u.flag_n_salt[0] |= AFLAG;
-    else	 acc->u.flag_n_salt[0] &= ~AFLAG;
+    if (aad_len) acc->flag_n_salt[0] |= AFLAG;
+    else	 acc->flag_n_salt[0] &= ~AFLAG;
 
     /* initialize CMAC (initial seed for authentication) */
-    int32(CMAC)[0] = acc->u.salt;
+    CMAC[0] = acc->flag_n_salt[0];
+    CMAC[1] = acc->flag_n_salt[1];
+    CMAC[2] = acc->flag_n_salt[2];
+    CMAC[3] = acc->flag_n_salt[3];
     int32(CMAC)[1] = int32(iv)[0];
     int32(CMAC)[2] = int32(iv)[1];
     int32(CMAC)[3] = htonl(len);
     aes_encrypt(CMAC, CMAC, &acc->ctx);
 
     /* initialize counter block */
-    int32(CTR)[0] = acc->u.salt & 0x07ffffff;
+    CTR[0] = acc->flag_n_salt[0] & 0x07;
+    CTR[1] = acc->flag_n_salt[1];
+    CTR[2] = acc->flag_n_salt[2];
+    CTR[3] = acc->flag_n_salt[3];
     int32(CTR)[1] = int32(iv)[0];
     int32(CTR)[2] = int32(iv)[1];
     int32(CTR)[3] = 0;
