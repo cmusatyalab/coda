@@ -4,6 +4,7 @@ Version: @VERSION@
 Release: 1
 Source: ftp://ftp.coda.cs.cmu.edu/pub/coda/src/%{name}-%{version}.tar.gz
 License: LGPL
+BuildRequires: lwp-devel lua-devel
 BuildRoot: %{_builddir}/%{name}-%{version}/Root
 Group: Development/Libraries
 %description
@@ -23,7 +24,7 @@ Headers and static libraries for developing programs using the RPC2 library.
 %setup -n %{name}-%{version}
 
 %build
-./configure --prefix=/usr
+./configure --prefix=/usr --with_lua
 make
 
 %install
@@ -48,6 +49,11 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root)
 /usr/lib/librpc2.so.@LINUX_VERSION@
 /usr/lib/libse.so.@LINUX_VERSION@
+%dir /usr/share/rpc2
+/usr/share/rpc2/rpc2-fail.lua
+/usr/share/rpc2/rpc2-rtt-adaptive.lua
+/usr/share/rpc2/rpc2-rtt-fixed.lua
+/usr/share/rpc2/rpc2-rtt-vj.lua
 
 %files devel
 %defattr(-,root,root)
