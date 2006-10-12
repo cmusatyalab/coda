@@ -925,6 +925,16 @@ try_next_addr:
 	    RPC2_FreeBuffer(&pb);
 	    rpc2_Quit(rc);
 	}
+	/* When we know that the server is trying to use an incorrectly
+	 * initialized AES-CCM counter, we can't do much about that. However
+	 * we can at least force it to use AES-CBC encryption for any packets
+	 * it sends back to us. */
+	if (rpc2sec_version == 0) {
+	    auth = secure_get_auth_byid(SECURE_AUTH_AES_XCBC_96);
+	    encr = secure_get_encr_byid(SECURE_ENCR_AES_CBC);
+	    keylen += auth->keysize;
+	}
+
 	new_binding = 1;
     }
     else if (RPC2_secure_only) {
@@ -994,15 +1004,6 @@ try_next_addr:
 	 * - A rogue server won't care how we encrypt outgoing data, it clearly
 	 *   will be getting any required key material with this INIT3 packet.
 	 */
-	/* When we know that the server is trying to use an incorrectly
-	 * initialized AES-CCM counter, we can't do much about that. However
-	 * we can at least force it to use AES-CBC encryption for any packets
-	 * it sends back to us. */
-	if (rpc2sec_version == 0) {
-	    auth = secure_get_auth_byid(SECURE_AUTH_AES_XCBC_96);
-	    encr = secure_get_encr_byid(SECURE_ENCR_AES_CBC);
-	}
-
 	rc = pack_initX_body(&ce->sa, auth, encr, rpc2sec_version,
 			     &pb->Body, keylen);
 	if (rc) {
