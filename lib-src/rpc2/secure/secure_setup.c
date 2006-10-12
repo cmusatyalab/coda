@@ -41,8 +41,7 @@ int secure_setup_encrypt(uint32_t secure_version,
 
     /* intialize new state */
     if (authenticate) {
-	rc = authenticate->auth_init(secure_version, &sa->authenticate_context,
-				     key, len);
+	rc = authenticate->auth_init(&sa->authenticate_context, key, len);
 	if (rc) return -1;
 
 	/* if we have enough key material, keep authentication and decryption
@@ -55,14 +54,21 @@ int secure_setup_encrypt(uint32_t secure_version,
     }
 
     if (encrypt) {
-	rc = encrypt->encrypt_init(secure_version, &sa->encrypt_context,
-				   key, len);
+	rc = encrypt->encrypt_init(&sa->encrypt_context, key, len);
 	if (rc) {
 	    if (authenticate)
 		authenticate->auth_free(&sa->authenticate_context);
 	    return -1;
 	}
+	/* Can't propagate version to the initializer as it breaks the ABI */
+	if (encrypt->id == SECURE_ENCR_AES_CCM_8 ||
+	    encrypt->id == SECURE_ENCR_AES_CCM_12 ||
+	    encrypt->id == SECURE_ENCR_AES_CCM_16)
+	{
+	    aes_ccm_tweak(sa->encrypt_context, secure_version);
+	}
     }
+
 
     sa->authenticate = authenticate;
     sa->encrypt = encrypt;
@@ -90,8 +96,7 @@ int secure_setup_decrypt(uint32_t secure_version,
 
     /* intialize new state */
     if (validate) {
-	rc = validate->auth_init(secure_version, &sa->validate_context,
-				 key, len);
+	rc = validate->auth_init(&sa->validate_context, key, len);
 	if (rc) return -1;
 
 	/* if we have enough key material, keep authentication and decryption
@@ -104,12 +109,18 @@ int secure_setup_decrypt(uint32_t secure_version,
     }
 
     if (decrypt) {
-	rc = decrypt->decrypt_init(secure_version, &sa->decrypt_context,
-				   key, len);
+	rc = decrypt->decrypt_init(&sa->decrypt_context, key, len);
 	if (rc) {
 	    if (validate)
 		validate->auth_free(&sa->validate_context);
 	    return -1;
+	}
+	/* Can't propagate version to the initializer as it breaks the ABI */
+	if (decrypt->id == SECURE_ENCR_AES_CCM_8 ||
+	    decrypt->id == SECURE_ENCR_AES_CCM_12 ||
+	    decrypt->id == SECURE_ENCR_AES_CCM_16)
+	{
+	    aes_ccm_tweak(sa->decrypt_context, secure_version);
 	}
     }
 

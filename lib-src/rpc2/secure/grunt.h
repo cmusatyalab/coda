@@ -50,7 +50,7 @@ int aes_xcbc_prf_init(void **ctx, const uint8_t *key, size_t len);
 #define aes_xcbc_prf_128     aes_xcbc_mac_128
 
 /* auth_aes_xcbc.c */
-int aes_xcbc_mac_init(uint32_t version, void **ctx, const uint8_t *key, size_t len);
+int aes_xcbc_mac_init(void **ctx, const uint8_t *key, size_t len);
 void aes_xcbc_mac_release(void **ctx);
 void aes_xcbc_mac_128(void *ctx, const uint8_t *buf, size_t len, uint8_t *mac);
 
@@ -61,5 +61,9 @@ void secure_random_release(void);
 /* secure_init.c */
 void secure_audit(const char *event, uint32_t spi, uint32_t seq,
 		  const struct sockaddr *src);
+
+/* Sadly we need this because we couldn't pass the version number to the
+ * initializers without breaking the ABI */
+void aes_ccm_tweak(void *ctx, uint32_t version);
 
 #endif /* _GRUNT_H_ */

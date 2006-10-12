@@ -67,13 +67,11 @@ Coda are listed in the file CREDITS.
 struct secure_encr {
     const int id;
     const char *name;
-    int  (*encrypt_init)(uint32_t secure_version, void **ctx,
-			 const uint8_t *key, size_t len);
+    int  (*encrypt_init)(void **ctx, const uint8_t *key, size_t len);
     void (*encrypt_free)(void **ctx);
     int  (*encrypt)(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
 		    uint8_t *iv, const uint8_t *aad, size_t aad_len);
-    int  (*decrypt_init)(uint32_t secure_version, void **ctx,
-			 const uint8_t *key, size_t len);
+    int  (*decrypt_init)(void **ctx, const uint8_t *key, size_t len);
     void (*decrypt_free)(void **ctx);
     int  (*decrypt)(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
 		    const uint8_t *iv, const uint8_t *aad, size_t aad_len);
@@ -92,8 +90,7 @@ struct secure_encr {
 struct secure_auth {
     const int id;
     const char *name;
-    int  (*auth_init)(uint32_t secure_version, void **ctx,
-		      const uint8_t *key, size_t len);
+    int  (*auth_init)(void **ctx, const uint8_t *key, size_t len);
     void (*auth_free)(void **ctx);
     void (*auth)(void *ctx, const uint8_t *in, size_t len, uint8_t *icv);
     const size_t keysize;

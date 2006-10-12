@@ -37,7 +37,7 @@ struct aes_ccm_ctx {
     int broken_counter;
 };
 
-static int init(uint32_t version, void **ctx, const uint8_t *key, size_t len,
+static int init(void **ctx, const uint8_t *key, size_t len,
 		size_t icv_len)
 {
     struct aes_ccm_ctx *acc = malloc(sizeof(struct aes_ccm_ctx));
@@ -55,17 +55,7 @@ static int init(uint32_t version, void **ctx, const uint8_t *key, size_t len,
     else if (len >= bytes(128)) len = 128;
     else goto err_out;
 
-    /* SECURE version 0 incorrectly initialized the counter block. Because it
-     * clears 5 bits of the salt it weakens the strength of the algorithm.
-     *
-     * To fix this issue, whenever a v0 client connects to a newer server it
-     * will force the client to use the slower (but correct) AES-CBC
-     * encryption. However when a new client connects to a v0 server, the
-     * client will not be able to pick the algorithm that is used to encrypt
-     * client-to-server traffic, we will make the server use AES-CBC for
-     * server-to-client traffic. Because the server doesn't know any better,
-     * we have to fall back on the broken init. */
-    acc->broken_counter = (version == 0);
+    acc->broken_counter = 0;
 
     if (aes_encrypt_key(key, len, &acc->ctx) == 0) {
 	*ctx = acc;
@@ -77,19 +67,35 @@ err_out:
     return -1;
 }
 
-static int init8 (uint32_t version, void **ctx, const uint8_t *key, size_t len)
+void aes_ccm_tweak(void *ctx, uint32_t version)
 {
-    return init(version, ctx, key, len, 8);
+    struct aes_ccm_ctx *acc = ctx;
+    /* SECURE version 0 incorrectly initialized the counter block. Because it
+     * clears 5 bits of the salt it weakens the strength of the algorithm.
+     *
+     * To fix this issue, whenever a v0 client connects to a newer server it
+     * will force the client to use the slower (but correct) AES-CBC
+     * encryption. However when a new client connects to a v0 server, the
+     * client will not be able to pick the algorithm that is used to encrypt
+     * client-to-server traffic, we will make the server use AES-CBC for
+     * server-to-client traffic. Because the server doesn't know any better,
+     * we have to fall back on the broken init. */
+    acc->broken_counter = (version == 0);
 }
 
-static int init12(uint32_t version, void **ctx, const uint8_t *key, size_t len)
+static int init8(void **ctx, const uint8_t *key, size_t len)
 {
-    return init(version, ctx, key, len, 12);
+    return init(ctx, key, len, 8);
 }
 
-static int init16(uint32_t version, void **ctx, const uint8_t *key, size_t len)
+static int init12(void **ctx, const uint8_t *key, size_t len)
 {
-    return init(version, ctx, key, len, 16);
+    return init(ctx, key, len, 12);
+}
+
+static int init16(void **ctx, const uint8_t *key, size_t len)
+{
+    return init(ctx, key, len, 16);
 }
 
 
