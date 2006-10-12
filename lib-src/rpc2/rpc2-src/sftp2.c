@@ -97,6 +97,8 @@ void sftp_ExaminePacket(RPC2_PacketBuffer *pb)
     /* check if the packet and the connection use the same security context. */
     if (ce && (ce->sa.decrypt || ce->sa.validate) && &ce->sa != pb->Prefix.sa)
     {
+	say(1, SFTP_DebugLevel,
+	    "Incoming sftp packet with different security association\n");
 	SFTP_FreeBuffer(&pb);
 	return;
     }
@@ -225,24 +227,6 @@ static void ClientPacket(RPC2_PacketBuffer *whichPacket,
     case SFTP_ACK:
 	/* Makes sense only if we are on source side */
 	if (IsSource(sEntry)) {
-	    struct SL_Entry sl;
-	    uint32_t bytes;
-	    /* we need to get some indication of a retry interval, so that
-	     * AckArrived->SendStrategy->CheckWorried() can actually do
-	     * the right thing */
-
-#warning "move to checkworried"
-	    /* estimated size of an sftp data transfer */
-	    bytes = ((sEntry->PacketSize + sizeof(struct RPC2_PacketHeader)) *
-		     sEntry->SendAhead);
-
-	    sl.RetryIndex = 1;
-	    rpc2_RetryInterval(sEntry->HostInfo, &sl, bytes,
-			       sizeof(struct RPC2_PacketHeader),
-			       sEntry->RetryCount, &KeepAlive);
-	    sEntry->RetryInterval = sl.RInterval.tv_sec * 1000 + \
-				    sl.RInterval.tv_usec / 1000;
-
 	    if (sftp_AckArrived(whichPacket, sEntry) < 0) {
 		SFSendNAK(whichPacket); /* NAK this packet */
 		sftp_SetError(sEntry, ERROR);

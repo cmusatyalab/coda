@@ -359,7 +359,8 @@ void RPC2_UpdateEstimates(struct HEntry *host, RPC2_Unsigned elapsed_us,
 			  RPC2_Unsigned InBytes, RPC2_Unsigned OutBytes)
 {
     uint32_t rto, rtt_lat, rtt_out, rtt_in;/* estimated roundtrip time(s) */
-    uint32_t adjustment, rttvar = host->RTTvar >> RPC2_RTTVAR_SHIFT;
+    uint32_t rttvar = host->RTTvar >> RPC2_RTTVAR_SHIFT;
+    int32_t adjustment;
 
     if (!host) return;
 
@@ -405,6 +406,7 @@ void RPC2_UpdateEstimates(struct HEntry *host, RPC2_Unsigned elapsed_us,
     update_bw(&host->BWlo_in, &host->BWhi_in, rtt_in, InBytes);
     update_bw(&host->BWlo_out, &host->BWhi_out, rtt_out, OutBytes);
 
+    if (adjustment < 0) adjustment = -adjustment;
     if (adjustment >= rttvar)
 	 host->RTTvar += adjustment - rttvar;
     else host->RTTvar -= rttvar - adjustment;
@@ -412,39 +414,49 @@ void RPC2_UpdateEstimates(struct HEntry *host, RPC2_Unsigned elapsed_us,
     LUA_rtt_update(host, elapsed_us, OutBytes, InBytes);
 }
 
-void rpc2_RetryInterval(struct HEntry *host, struct SL_Entry *sl,
-			RPC2_Unsigned OutBytes, RPC2_Unsigned InBytes,
-			int maxretry, struct timeval *keepalive)
+uint32_t rpc2_GetRTO(struct HEntry *he, uint32_t outbytes, uint32_t inbytes)
 {
-    uint32_t rto, rtt_lat, rtt_in, rtt_out, maxrtt;
-    int i;
+    uint32_t rto, rtt_lat, rtt_in, rtt_out, rttvar;
 
-    if (!host || !sl) {
-	say(1, RPC2_DebugLevel, "RetryInterval: !host || !sl\n");
-	return;
+    rto = LUA_rtt_getrto(he, outbytes, inbytes);
+    if ((int32_t)rto <= 0) {
+	rttvar = he->RTTvar >> RPC2_RTTVAR_SHIFT;
+	getestimates(he, inbytes, outbytes, &rtt_lat, &rtt_in, &rtt_out);
+	rto = rtt_lat + rtt_out + rtt_in + (rttvar << 1);
+	say(4, RPC2_DebugLevel,
+	    "rpc2_GetRTO: rto %u, lat %u, out %u, in %u, var %u\n",
+	    rto, rtt_lat, rtt_out, rtt_in, rttvar);
+    }
+    return rto;
+}
+
+int rpc2_RetryInterval(struct CEntry *ce, int retry, struct timeval *tv,
+		       RPC2_Unsigned OutBytes, RPC2_Unsigned InBytes)
+{
+    uint32_t rto, maxrtt;
+    int i = 0;
+
+    if (!ce) {
+	say(1, RPC2_DebugLevel, "RetryInterval: !conn\n");
+	return -1;
     }
 
     /* Account for IP/UDP header overhead, see rpc2_UpdateEstimates */
     InBytes += 40; OutBytes += 40;
 
     /* calculate the estimated RTT */
-    rto = LUA_rtt_getrto(host, OutBytes, InBytes);
-    if (rto <= 0) {
-	uint32_t rttvar = host->RTTvar >> RPC2_RTTVAR_SHIFT;
-	getestimates(host, InBytes, OutBytes, &rtt_lat, &rtt_in, &rtt_out);
-	rto = rtt_lat + rtt_out + rtt_in + (rttvar << 1);
-    }
+    rto = rpc2_GetRTO(ce->HostInfo, OutBytes, InBytes);
 
-    if (sl->RetryIndex != 1) {
-	maxrtt = (keepalive->tv_sec * 1000000 + keepalive->tv_usec) >> 1;
+    if (retry) {
+	maxrtt = (ce->KeepAlive.tv_sec * 1000000 + ce->KeepAlive.tv_usec) >> 1;
 
-	for (i = maxretry; i > sl->RetryIndex; i--) {
+	for (i = ce->Retry_N; i > 0; i--) {
+	    if (rto > maxrtt) break;
 	    maxrtt >>= 1;
-	    if (maxrtt < rto) break;
 	}
-	sl->RetryIndex = i;
-	if (maxrtt > rto) rto = maxrtt;
     }
+    if (i + retry > ce->Retry_N) return -1;
+    rto <<= retry;
 
     /* account for server processing overhead */
     rto += RPC2_DELACK_DELAY;
@@ -454,16 +466,17 @@ void rpc2_RetryInterval(struct HEntry *host, struct SL_Entry *sl,
      * server processing delay */
     if (rto > RPC2_MAXRTO) rto = RPC2_MAXRTO;
 
-    sl->RInterval.tv_sec  = rto / 1000000;
-    sl->RInterval.tv_usec = rto % 1000000;
+    tv->tv_sec  = rto / 1000000;
+    tv->tv_usec = rto % 1000000;
 
     if (RPC2_DebugLevel > 1)
     {
 	char addr[RPC2_ADDRSTRLEN];
-	RPC2_formataddrinfo(host->Addr, addr, RPC2_ADDRSTRLEN);
-	fprintf(rpc2_logfile, "RetryInterval: %s %d %lu.%06lu\n",
-	    addr, sl->RetryIndex, sl->RInterval.tv_sec, sl->RInterval.tv_usec);
+	RPC2_formataddrinfo(ce->HostInfo->Addr, addr, RPC2_ADDRSTRLEN);
+	fprintf(rpc2_logfile, "RetryInterval: %s %d %d %ld.%06lu\n",
+		addr, retry, i, tv->tv_sec, tv->tv_usec);
     }
+    return 0;
 }
 
 int RPC2_GetRTT(RPC2_Handle handle, unsigned long *RTT, unsigned long *RTTvar)

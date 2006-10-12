@@ -67,7 +67,6 @@ Pittsburgh, PA.
 long SFTP_PacketSize;
 long SFTP_WindowSize;
 long SFTP_RetryCount;
-long SFTP_RetryInterval;
 long SFTP_EnforceQuota;
 long SFTP_SendAhead;
 long SFTP_AckPoint;
@@ -774,27 +773,41 @@ static int CheckWorried(struct SFTP_Entry *sEntry)
     long i;
     unsigned long now, then;
     RPC2_PacketBuffer *thePacket;
+    struct CEntry *ce;
+    uint32_t queued, rto;
+
+    ce = rpc2_GetConn(sEntry->LocalHandle);
+    if (!ce) {
+	sEntry->SendWorriedLimit = sEntry->SendAckLimit;
+	return 1;
+    }
 
     if (sEntry->SendWorriedLimit < sEntry->SendLastContig)
 	sEntry->SendWorriedLimit = sEntry->SendLastContig;
 
     TVTOTS(&sEntry->LastSS, now);
+    queued = (sEntry->PacketSize + sizeof(struct RPC2_PacketHeader)) *
+	     (sEntry->SendAckLimit - sEntry->SendLastContig);
+
     for (i = sEntry->SendAckLimit; i > sEntry->SendWorriedLimit; i--) {
+	queued -= sEntry->PacketSize + sizeof(struct RPC2_PacketHeader);
 	if (TESTBIT(sEntry->SendTheseBits, i - sEntry->SendLastContig))
 	    continue;
+
+	rto = rpc2_GetRTO(ce->HostInfo,queued,sizeof(struct RPC2_PacketHeader));
 
 	/* check the timestamp and see if a timeout interval has
 	   occurred, if so let's start thinking about retransmitting
 	   the packet */
 	thePacket = sEntry->ThesePackets[PBUFF(i)];
-	if (thePacket) {
-	    then = ntohl(thePacket->Header.TimeStamp);
-	    if ((long)TSDELTA(now, then) > sEntry->RetryInterval) {
-		say(4, SFTP_DebugLevel,
-		    "Worried packet %ld, sent %lu, (%lu msec ago)\n",
-		    i, then, (long)TSDELTA(now, then));
-		break;
-	    }
+	if (!thePacket) continue;
+
+	then = ntohl(thePacket->Header.TimeStamp);
+	if ((long)TSDELTA(now, then) > rto) {
+	    say(4, SFTP_DebugLevel,
+		"Worried packet %ld, sent %lu, (%lu msec ago)\n",
+		i, then, (long)TSDELTA(now, then));
+	    break;
 	}
     }
     sEntry->SendWorriedLimit = i;

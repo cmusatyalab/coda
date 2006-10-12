@@ -442,6 +442,7 @@ static long mrpc_SendPacketsReliably(
     int goodpackets = 0;		/* packets with good connection state */
     PacketCon *pcon;
     unsigned long timestamp;
+    int rc;
 
 #define	EXIT_MRPC_SPR(rc)\
 	{\
@@ -506,17 +507,16 @@ static long mrpc_SendPacketsReliably(
 	mcon[thispacket].ceaddr->reqsize =
 	    mcon[thispacket].req->Prefix.LengthOfPacket;
 
+	slp->RetryIndex = 0;
+	/* XXX we should have the size of the expected reply packet */
+	rc = rpc2_RetryInterval(mcon[thispacket].ceaddr, 0, &slp->RInterval,
+				mcon[thispacket].req->Prefix.LengthOfPacket,
+				sizeof(struct RPC2_PacketHeader));
+	assert(rc == 0);
+	rpc2_ActivateSle(slp, &slp->RInterval);
+
 	rpc2_XmitPacket(mcon[thispacket].req,
 			mcon[thispacket].ceaddr->HostInfo->Addr, 0);
-
-	slp->RetryIndex = 1;
-	rpc2_RetryInterval(mcon[thispacket].ceaddr->HostInfo, slp,
-			   mcon[thispacket].req->Prefix.LengthOfPacket,
-	    /* XXX we should have the size of the expected reply packet,
-	     * somewhere... */ sizeof(struct RPC2_PacketHeader),
-			   mcon[thispacket].ceaddr->Retry_N,
-			   &mcon[thispacket].ceaddr->KeepAlive);
-	rpc2_ActivateSle(slp, &slp->RInterval);
     }
 
     /* don't forget to account for the Timer entry */
@@ -630,12 +630,16 @@ static long mrpc_SendPacketsReliably(
 		case TIMEOUT:
 		    if ((hopeleft = rpc2_CancelRetry(c_entry, slp)))
 			    break;    /* switch, we heard from side effect */
-		    /* 
-		     * check if all retries exhausted, if not check if later
-		     * retries shortened to 0 because of high LOWERLIMIT.
-		     */
-		    if (slp->RetryIndex >= c_entry->Retry_N)
-		    {
+
+		    slp->RetryIndex++;
+		    /* XXX we should have the size of the expected reply
+		     * packet, somewhere.. */
+		    rc = rpc2_RetryInterval(c_entry, slp->RetryIndex,
+					    &slp->RInterval,
+				    mcon[thispacket].req->Prefix.LengthOfPacket,
+					    sizeof(struct RPC2_PacketHeader));
+
+		    if (rc) {
 			say(9, RPC2_DebugLevel, "Request failed on 0x%p\n", c_entry);
 			rpc2_SetConnError(c_entry); /* does signal on ConnHandle also */
 			/* remote site is now declared dead; mark all inactive connections to there likewise */
@@ -656,12 +660,6 @@ static long mrpc_SendPacketsReliably(
 		    }
 		    /* else retry with the next Beta value  for timeout */
 		    hopeleft = 1;
-		    slp->RetryIndex += 1;
-		    rpc2_RetryInterval(c_entry->HostInfo, slp,
-				    mcon[thispacket].req->Prefix.LengthOfPacket,
-		    /* XXX we should have the size of the expected reply
-		     * packet, somewhere... */ sizeof(struct RPC2_PacketHeader),
-				       c_entry->Retry_N, &c_entry->KeepAlive);
 		    rpc2_ActivateSle(slp, &slp->RInterval);
 		    say(9, RPC2_DebugLevel, "Sending retry %d at %ld on %#x (timeout %ld.%06ld)\n", slp->RetryIndex, rpc2_time(), c_entry->UniqueCID, slp->RInterval.tv_sec, slp->RInterval.tv_usec);
 		    mcon[thispacket].req->Header.Flags = htonl((ntohl(mcon[thispacket].req->Header.Flags) | RPC2_RETRY));

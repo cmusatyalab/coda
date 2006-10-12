@@ -355,6 +355,7 @@ long rpc2_SendReliably(struct CEntry *Conn, struct SL_Entry *Sle,
 {
     struct SL_Entry *tlp;
     long hopeleft, finalrc;
+    int rc;
 
     say(1, RPC2_DebugLevel, "rpc2_SendReliably()\n");
 
@@ -368,11 +369,12 @@ long rpc2_SendReliably(struct CEntry *Conn, struct SL_Entry *Sle,
     else tlp = NULL;
 
     Conn->reqsize = Packet->Prefix.LengthOfPacket;
-    Sle->RetryIndex = 1;
-    rpc2_RetryInterval(Conn->HostInfo, Sle, Packet->Prefix.LengthOfPacket,
-	    /* XXX we should have the size of the expected reply packet,
-	    * somewhere... */ sizeof(struct RPC2_PacketHeader),
-		       Conn->Retry_N, &Conn->KeepAlive);
+    Sle->RetryIndex = 0;
+    /* XXX we should have the size of the expected reply packet */
+    rc = rpc2_RetryInterval(Conn, 0, &Sle->RInterval,
+			    Packet->Prefix.LengthOfPacket,
+			    sizeof(struct RPC2_PacketHeader));
+    assert(rc == 0);
 
     /* Do an initial send of the packet */
     say(9, RPC2_DebugLevel, "Sending try at %ld on %#x (timeout %ld.%06ld)\n",
@@ -419,19 +421,16 @@ long rpc2_SendReliably(struct CEntry *Conn, struct SL_Entry *Sle,
 	    case TIMEOUT:
 		if ((hopeleft = rpc2_CancelRetry(Conn, Sle)))
 		    break;      /* switch; we heard from side effect recently */
-		if (Sle->RetryIndex >= Conn->Retry_N)
-		    break;	/* switch; note hopeleft must be 0 */
-		/* else retry with the next Beta value  for timeout */
-		Sle->RetryIndex += 1;
-		rpc2_RetryInterval(Conn->HostInfo, Sle,
-				   Packet->Prefix.LengthOfPacket,
-		    /* XXX we should have the size of the expected reply
-		     * packet, somewhere... */ sizeof(struct RPC2_PacketHeader),
-				   Conn->Retry_N, &Conn->KeepAlive);
 
-		if (Sle->RInterval.tv_sec < 0 || Sle->RInterval.tv_usec < 0)
-		    break;
-		else hopeleft = 1;
+		Sle->RetryIndex += 1;
+		/* XXX we should have the size of the expected reply packet */
+		rc = rpc2_RetryInterval(Conn, Sle->RetryIndex,
+					&Sle->RInterval,
+					Packet->Prefix.LengthOfPacket,
+					sizeof(struct RPC2_PacketHeader));
+		if (rc) break;
+
+		hopeleft = 1;
 		rpc2_ActivateSle(Sle, &Sle->RInterval);
 		say(9, RPC2_DebugLevel,
 		    "Sending retry %d at %ld on %#x (timeout %ld.%06ld)\n",

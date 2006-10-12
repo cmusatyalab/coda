@@ -141,7 +141,7 @@ void SFTP_Activate(initPtr)
 	SFTP_PacketSize = initPtr->PacketSize;
 	SFTP_WindowSize= initPtr->WindowSize;
 	SFTP_RetryCount = initPtr->RetryCount;
-	SFTP_RetryInterval = initPtr->RetryInterval;	/* milliseconds */
+	//SFTP_RetryInterval = initPtr->RetryInterval;	/* milliseconds */
 	SFTP_EnforceQuota = initPtr->EnforceQuota;
 	SFTP_SendAhead = initPtr->SendAhead;
 	SFTP_AckPoint = initPtr->AckPoint;
@@ -687,7 +687,7 @@ static long GetFile(struct SFTP_Entry *sEntry)
      * of the next data packet */
     packetsize = sEntry->PacketSize + sizeof(struct RPC2_PacketHeader);
     while (sEntry->XferState == XferInProgress) {
-	for (i = 1; i <= sEntry->RetryCount; i++) {
+	for (i = 0; i < sEntry->RetryCount; i++) {
 	    pb = AwaitPacket(sEntry, i, packetsize,
 			     sizeof(struct RPC2_PacketHeader));
 
@@ -801,7 +801,7 @@ static long PutFile(struct SFTP_Entry *sEntry)
 	     sEntry->AckPoint);
 
     while (sEntry->XferState == XferInProgress) {
-	for (i = 1; i <= sEntry->RetryCount; i++) {
+	for (i = 0; i < sEntry->RetryCount; i++) {
 	    pb = AwaitPacket(sEntry, i, sizeof(struct RPC2_PacketHeader),bytes);
 
 	    /* Make sure nothing bad happened while we were waiting */
@@ -861,6 +861,8 @@ static RPC2_PacketBuffer *AwaitPacket(struct SFTP_Entry *sEntry, int retry,
     */
 {
     struct SL_Entry *sl;
+    struct CEntry *ce;
+    int rc;
 
     if (LWP_GetRock(SMARTFTP, (void *)&sl) != LWP_SUCCESS)
     {
@@ -868,13 +870,9 @@ static RPC2_PacketBuffer *AwaitPacket(struct SFTP_Entry *sEntry, int retry,
 	assert(LWP_NewRock(SMARTFTP, (char *)sl) == LWP_SUCCESS);
     }
 
-    sl->RetryIndex = retry;
-    rpc2_RetryInterval(sEntry->HostInfo, sl, outbytes, inbytes,
-		       sEntry->RetryCount, &KeepAlive);
-
-#warning "move to checkworried"
-    sEntry->RetryInterval = sl->RInterval.tv_sec * 1000 + \
-			    sl->RInterval.tv_usec / 1000;
+    ce = rpc2_GetConn(sEntry->LocalHandle);
+    rc = rpc2_RetryInterval(ce, retry, &sl->RInterval, outbytes, inbytes);
+    if (rc) { sl->ReturnCode = 0; return NULL; }
 
     sEntry->Sleeper = sl;
     rpc2_ActivateSle(sl, &sl->RInterval);
@@ -1120,7 +1118,6 @@ struct SFTP_Entry *sftp_AllocSEntry(void)
     sfp->SendAhead = SFTP_SendAhead;
     sfp->AckPoint = SFTP_AckPoint;
     sfp->DupThreshold = SFTP_DupThreshold;
-    sfp->RetryInterval = SFTP_RetryInterval;
     sfp->Retransmitting = FALSE;
     sfp->RequestTime = 0;
     CLRTIME(&sfp->LastWord);
