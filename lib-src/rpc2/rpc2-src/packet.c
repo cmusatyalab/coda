@@ -70,6 +70,45 @@ static int msg_confirm = MSG_CONFIRM;
 static long DefaultRetryCount = 6;
 static struct timeval DefaultRetryInterval = {60, 0};
 
+/* Hooks for failure emulation package (libfail)
+
+   Libfail will set these to its predicate routines when initialized.
+   If libfail is not linked in, they remain NULL, and nothing happens.
+   See documentation for libfail for details.
+ */
+
+int (*Fail_SendPredicate)() = NULL,
+    (*Fail_RecvPredicate)() = NULL;
+
+static long FailPacket(int (*predicate)(), RPC2_PacketBuffer *pb,
+			   struct RPC2_addrinfo *addr, int sock)
+{
+    long drop;
+    unsigned char ip1, ip2, ip3, ip4;
+    unsigned char color;
+    struct sockaddr_in *sin;
+    unsigned char *inaddr;
+
+    if (!predicate)
+	return 0;
+
+#warning "fail filters can only handle ipv4 addresses"
+    if (addr->ai_family != PF_INET)
+	return 0;
+
+    sin = (struct sockaddr_in *)addr->ai_addr;
+    inaddr = (unsigned char *)&sin->sin_addr;
+
+    ip1 = inaddr[0]; ip2 = inaddr[1]; ip3 = inaddr[2]; ip4 = inaddr[3];
+
+    ntohPktColor(pb);
+    color = GetPktColor(pb);
+    htonPktColor(pb);
+
+    drop = ((*predicate)(ip1, ip2, ip3, ip4, color, pb, sin, sock) == 0);
+    return drop;
+}
+
 void rpc2_XmitPacket(RPC2_PacketBuffer *pb, struct RPC2_addrinfo *addr,
 		     int confirm)
 {
@@ -109,6 +148,9 @@ void rpc2_XmitPacket(RPC2_PacketBuffer *pb, struct RPC2_addrinfo *addr,
 
     rpc2_Sent.Total++;
     rpc2_Sent.Bytes += pb->Prefix.LengthOfPacket;
+
+    if (FailPacket(Fail_SendPredicate, pb, addr, whichSocket))
+	return;
 
     rc = LUA_fail_delay(addr, pb, 1, &tv);
     if (rc == -1) { /* drop */
@@ -208,6 +250,13 @@ long rpc2_RecvPacket(IN long whichSocket, OUT RPC2_PacketBuffer *whichBuff)
 			   SOCK_DGRAM, IPPROTO_UDP);
 
     TR_RECV();
+
+    if (FailPacket(Fail_RecvPredicate, whichBuff, whichBuff->Prefix.PeerAddr,
+		   whichSocket))
+    {
+	    errno = 0;
+	    return (-1);
+    }
 
     whichBuff->Prefix.LengthOfPacket = rc;
 
