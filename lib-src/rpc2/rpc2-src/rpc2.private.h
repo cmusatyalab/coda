@@ -199,7 +199,6 @@ struct CEntry		/* describes a single RPC connection */
 
     unsigned int TimeStampEcho;
     unsigned int RequestTime;
-    long Retry_N;                       /* Number of retries for this connection. */
     struct timeval KeepAlive;           /* Retry parameter for this connection. */
     struct timeval SaveResponse;        /* 2*KeepAlive, lifetime of saved response packet. */
     RPC2_RequestFilter Filter;		/* Set on the server during binding,
