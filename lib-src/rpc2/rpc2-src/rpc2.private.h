@@ -714,7 +714,7 @@ int LUA_fail_delay(struct RPC2_addrinfo *addr, RPC2_PacketBuffer *pb, int out,
 #define LUA_rtt_update(a,b,c,d)
 #define LUA_rtt_getrto(a,b,c)		0
 #define LUA_rtt_getbandwidth(a,b,c)	0
-#define LUA_rtt_retryinterval(a,b,c)	0
+#define LUA_rtt_retryinterval(a,b,c,d)	0
 #define LUA_fail_delay(a,b,c,d)		0
 #endif
 
