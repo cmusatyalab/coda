@@ -440,7 +440,7 @@ int LUA_rtt_getrto(struct HEntry *he, uint32_t tx, uint32_t rx)
 int LUA_rtt_retryinterval(struct HEntry *he, uint32_t n, uint32_t tx, uint32_t rx)
 {
     struct timeval tv;
-    uint32_t rtt;
+    uint32_t rtt = 0;
 
     if (setup_function("rtt_retryinterval")) return 0;
     if (push_hosttable(he)) return 0;
@@ -449,8 +449,10 @@ int LUA_rtt_retryinterval(struct HEntry *he, uint32_t n, uint32_t tx, uint32_t r
     lua_pushinteger(L, (lua_Integer)rx);
     if (lua_pcall(L, 4, 1, 0)) { badscript(); return 0; }
 
-    l2c_totimeval(L, -1, &tv);
-    rtt = tv.tv_sec * 1000000 + tv.tv_usec;
+    if (!lua_isnil(L, -1)) {
+	l2c_totimeval(L, -1, &tv);
+	rtt = tv.tv_sec * 1000000 + tv.tv_usec;
+    }
     lua_pop(L, 1);
     return rtt;
 }
