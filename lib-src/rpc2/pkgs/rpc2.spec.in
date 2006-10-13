@@ -24,7 +24,7 @@ Headers and static libraries for developing programs using the RPC2 library.
 %setup -n %{name}-%{version}
 
 %build
-./configure --prefix=/usr --with_lua
+./configure --prefix=/usr --with-lua
 make
 
 %install
