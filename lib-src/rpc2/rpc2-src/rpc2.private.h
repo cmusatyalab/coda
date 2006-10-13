@@ -526,7 +526,6 @@ void rpc2_ClearHostLog(struct HEntry *whichHost, NetLogEntryType type);
 
 void RPC2_UpdateEstimates(struct HEntry *whichHost, RPC2_Unsigned ElapsedTime,
 			  RPC2_Unsigned InBytes, RPC2_Unsigned OutBytes);
-uint32_t rpc2_GetRTO(struct HEntry *he, uint32_t outbytes, uint32_t inbytes);
 int rpc2_RetryInterval(struct CEntry *ce, int retry, struct timeval *tv,
 		       RPC2_Unsigned OutBytes, RPC2_Unsigned InBytes);
 

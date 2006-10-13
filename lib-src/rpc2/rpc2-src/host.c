@@ -310,7 +310,7 @@ void rpc2_ClearHostLog(struct HEntry *whichHost, NetLogEntryType type)
 	}
 }
 
-static void getestimates(struct HEntry *host, uint32_t InB, uint32_t OutB,
+static void getestimates(struct HEntry *host, uint32_t outb, uint32_t inb,
 			 uint32_t *rtt_lat, uint32_t *rtt_in, uint32_t *rtt_out)
 {
     uint32_t avgBW;
@@ -318,14 +318,14 @@ static void getestimates(struct HEntry *host, uint32_t InB, uint32_t OutB,
     *rtt_lat = host->RTT >> RPC2_RTT_SHIFT;
 
     avgBW = (host->BWlo_in >> 1) + (host->BWhi_in >> 1);
-    while (InB > 2048) { InB >>= 1; avgBW >>= 1; }
+    while (inb > 2048) { inb >>= 1; avgBW >>= 1; }
     if (!avgBW) avgBW = 1;
-    *rtt_in = (1000000 * InB) / avgBW;
+    *rtt_in = (1000000 * inb) / avgBW;
 
     avgBW = (host->BWlo_out >> 1) + (host->BWhi_out >> 1);
-    while (OutB > 2048) { OutB >>= 1; avgBW >>= 1; }
+    while (outb > 2048) { outb >>= 1; avgBW >>= 1; }
     if (!avgBW) avgBW = 1;
-    *rtt_out = (1000000 * OutB) / avgBW;
+    *rtt_out = (1000000 * outb) / avgBW;
 }
 
 static void update_bw(uint32_t *BWlo, uint32_t *BWhi, uint32_t rtt,
@@ -379,7 +379,7 @@ void RPC2_UpdateEstimates(struct HEntry *host, RPC2_Unsigned elapsed_us,
     InBytes += 40; OutBytes += 40;
     if ((int32_t)elapsed_us < 0) elapsed_us = 0;
 
-    getestimates(host, InBytes, OutBytes, &rtt_lat, &rtt_in, &rtt_out);
+    getestimates(host, OutBytes, InBytes, &rtt_lat, &rtt_in, &rtt_out);
     rto = rtt_lat + rtt_out + rtt_in;
 
     if (RPC2_DebugLevel)
@@ -414,14 +414,14 @@ void RPC2_UpdateEstimates(struct HEntry *host, RPC2_Unsigned elapsed_us,
     LUA_rtt_update(host, elapsed_us, OutBytes, InBytes);
 }
 
-uint32_t rpc2_GetRTO(struct HEntry *he, uint32_t outbytes, uint32_t inbytes)
+static uint32_t rpc2_GetRTO(struct HEntry *he, uint32_t outb, uint32_t inb)
 {
     uint32_t rto, rtt_lat, rtt_in, rtt_out, rttvar;
 
-    rto = LUA_rtt_getrto(he, outbytes, inbytes);
+    rto = LUA_rtt_getrto(he, outb, inb);
     if ((int32_t)rto <= 0) {
 	rttvar = he->RTTvar >> RPC2_RTTVAR_SHIFT;
-	getestimates(he, inbytes, outbytes, &rtt_lat, &rtt_in, &rtt_out);
+	getestimates(he, inb, outb, &rtt_lat, &rtt_in, &rtt_out);
 	rto = rtt_lat + rtt_out + rtt_in + (rttvar << 1);
 	say(4, RPC2_DebugLevel,
 	    "rpc2_GetRTO: rto %u, lat %u, out %u, in %u, var %u\n",

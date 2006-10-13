@@ -775,6 +775,7 @@ static int CheckWorried(struct SFTP_Entry *sEntry)
     RPC2_PacketBuffer *thePacket;
     struct CEntry *ce;
     uint32_t queued, rto;
+    struct timeval tv;
 
     ce = rpc2_GetConn(sEntry->LocalHandle);
     if (!ce) {
@@ -794,7 +795,8 @@ static int CheckWorried(struct SFTP_Entry *sEntry)
 	if (TESTBIT(sEntry->SendTheseBits, i - sEntry->SendLastContig))
 	    continue;
 
-	rto = rpc2_GetRTO(ce->HostInfo,queued,sizeof(struct RPC2_PacketHeader));
+	rpc2_RetryInterval(ce, 0, &tv, queued,sizeof(struct RPC2_PacketHeader));
+	rto = tv.tv_sec * 1000000 + tv.tv_usec;
 
 	/* check the timestamp and see if a timeout interval has
 	   occurred, if so let's start thinking about retransmitting
