@@ -128,8 +128,8 @@ void mkbigfile (int fd, struct stat fsb, char *dirname)
 	}
 	temp  = (fileno == files-1 ? lastfilesize : hunkbytes);
 	while (temp > 0) {
-	    int ret;
-	    int wret;
+	    ssize_t ret;
+	    ssize_t wret;
 	    char buff[8192];   /* XXX fix */
 	    ret = read(fd, buff, (temp > 8192 ? 8192 : temp));
 	    if (ret < 0) {
@@ -153,7 +153,7 @@ void mkbigfile (int fd, struct stat fsb, char *dirname)
     {
 	char data[1024];
 	int chars;
-        int wret;
+        ssize_t wret;
 
 	snprintf (name, MAXPATHLEN, "%s/_Coda_BigFile_", dirname);
 	if (verbose) printf ("Creating %s\n", name);
