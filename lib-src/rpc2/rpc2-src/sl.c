@@ -875,6 +875,7 @@ static void HandleInit1(RPC2_PacketBuffer *pb)
 	    pb->Header.RemoteHandle ^= pb->Header.LocalHandle;
 	    pb->Header.Opcode = RPC2_BUSY;
 	    pb->Header.Lamport = RPC2_LamportTime();
+	    pb->Header.SeqNumber = -1;
 	    pb->Header.BodyLength = 0;
 	    pb->Prefix.LengthOfPacket = sizeof(struct RPC2_PacketHeader);
 
