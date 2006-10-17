@@ -859,33 +859,49 @@ static void HandleInit1(RPC2_PacketBuffer *pb)
 	    return;
 	}
 
+	/* Find a willing LWP in RPC2_GetRequest() */
+	sl = FindRecipient(pb);
+	if (!sl) {
+	    /* no threads are ready, send a busy to the other side so that it
+	     * will back off and try again later */
+	    say(1, RPC2_DebugLevel,
+		"HandleInit1: No available threads, busying peer\n");
+
+	    /* SendBusy(ce, FALSE);
+	     * -- we don't have a CEntry yet, but we can reuse most of the
+	     * INIT1 packet we just got... */
+	    pb->Header.RemoteHandle ^= pb->Header.LocalHandle;
+	    pb->Header.LocalHandle ^= pb->Header.RemoteHandle;
+	    pb->Header.RemoteHandle ^= pb->Header.LocalHandle;
+	    pb->Header.Opcode = RPC2_BUSY;
+	    pb->Header.Lamport = RPC2_LamportTime();
+	    pb->Header.BodyLength = 0;
+	    pb->Prefix.LengthOfPacket = sizeof(struct RPC2_PacketHeader);
+
+	    rpc2_htonp(pb);
+
+	    rpc2_XmitPacket(pb, pb->Prefix.PeerAddr, 1);
+	    RPC2_FreeBuffer(&pb);
+	    return;
+	}
+
 	/* Create a connection entry */
 	ce = MakeConn(pb);
-	if (ce == NULL) {
-		/* Packet must have been bogus in some way */
-		BOGUS(pb, "HandleInit1: MakeConn failed\n");
-		return;
+	if (!ce) {
+	    /* Packet must have been bogus in some way */
+	    BOGUS(pb, "HandleInit1: MakeConn failed\n");
+	    return;
 	}
 
 	/* Now fix packet header so that it has a real RemoteHandle */
 	pb->Header.RemoteHandle = ce->UniqueCID;
 
-	/* we're going to keep this packet around, so try to save some space */
-	pb = ShrinkPacket(pb);
-
-	/* Find a willing LWP in RPC2_GetRequest() */
-	sl = FindRecipient(pb);
-	if (sl != NULL) {
-		assert(sl->MagicNumber == OBJ_SLENTRY);
-		rpc2_DeactivateSle(sl, ARRIVED);
-		sl->data = pb;
-		ce->Filter = sl->Filter; /* struct assignment */
-		ce->Filter.OldOrNew = OLDORNEW;
-		LWP_NoYieldSignal((char *)sl);
-	} else {
-		/* hold for a future RPC2_GetRequest() */
-		rpc2_HoldPacket(pb);
-	}
+	assert(sl->MagicNumber == OBJ_SLENTRY);
+	rpc2_DeactivateSle(sl, ARRIVED);
+	sl->data = pb;
+	ce->Filter = sl->Filter; /* struct assignment */
+	ce->Filter.OldOrNew = OLDORNEW;
+	LWP_NoYieldSignal((char *)sl);
 }
 
 

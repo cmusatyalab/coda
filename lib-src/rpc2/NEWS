@@ -1,3 +1,14 @@
+New in 2.4:
+
+* Instead of queueing incoming INIT1 requests when nobody is ready to accept
+  the new connection, respond with a busy to make the peer wait and try again.
+
+  This is useful when RPC2 is already initialized, but the server is starting
+  up and when a lot of new clients arrive simultaneously, for instance after a
+  network outage. By the time we're ready to accept the connection the client
+  may have already given up and it is pointless to try and send the INIT2
+  response.
+
 New in 2.3:
 
 * Endian fixes in the encryption code (Adam Goode)
