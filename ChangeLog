@@ -1,3 +1,17 @@
+2006-10-19	<jaharkes@cs.cmu.edu>
+	* ======== Release 6.1.2 =========
+	* Use ssize_t for return variable from read(2) and write(2) in
+	  mkcodabf. (Phil Nelson)
+	* Remove unnecessary rpc2/fail.h rpc2/fcon.h includes.
+	* Release parent when an assertion triggers, this avoids locking
+	  out a user during the boot when venus's RVM layout has changed.
+	* Remove unnecessary parent recursion code when a conflict is
+	  detected, this is done by the server now.
+	* Don't return permission denied when we check for file existence.
+	* Account file data when reporting CML size in cfs listvolume output.
+	* Prevent chown on virgin files to prevent reintegration conflict.
+	* Lower number of piggybacked attributes in ValidateAttrs to 15.
+
 2006-09-21	<jaharkes@cs.cmu.edu>
 	* ======== Release 6.1.1 =========
 	* Calculate usable RVM setup parameters instead of hardcoding them.
