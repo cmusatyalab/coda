@@ -146,6 +146,8 @@ void ClientModifyLog::IncGetStats(cmlstats& current, cmlstats& cancelled, int ti
     /* First, compute current statistics. */
     cml_iterator next(*this, CommitOrder);
     cmlent *m;
+    memset(&current, 0, sizeof(current));
+    memset(&cancelled, 0, sizeof(cancelled));
     while ((m = next())) {
 	if (tid != UNSET_TID && m->GetTid() != tid) continue;
 	if (m->opcode == CML_Store_OP) {

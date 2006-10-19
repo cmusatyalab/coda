@@ -834,8 +834,7 @@ void vdb::GetCmlStats(cmlstats& total_current, cmlstats& total_cancelled)
     repvol_iterator next;
     repvol *v;
     while ((v = next())) {
-	cmlstats current;
-	cmlstats cancelled;
+	cmlstats current, cancelled;
 	v->CML.IncGetStats(current, cancelled);
 	total_current += current;
 	total_cancelled += cancelled;
@@ -2458,11 +2457,14 @@ int volent::GetVolStat(VolumeStatus *volstat, RPC2_BoundedBS *Name,
     *conflict = *cml_count = 0;
     *cml_bytes = 0;
     if (IsReplicated()) {
-        repvol *rv = (repvol *)this;
-        rv->CheckLocalSubtree();       /* unset has_local_subtree if possible */
-        *conflict = rv->HasLocalSubtree();
-        *cml_count = rv->GetCML()->count();
-        *cml_bytes = rv->GetCML()->logBytes();
+	cmlstats current, cancelled;
+	repvol *rv = (repvol *)this;
+	rv->CheckLocalSubtree();       /* unset has_local_subtree if possible */
+	*conflict = rv->HasLocalSubtree();
+	rv->GetCML()->IncGetStats(current, cancelled, UNSET_TID);
+	*cml_count = current.store_count + current.other_count;
+	*cml_bytes = (size_t)(current.store_size + current.store_contents_size +
+			      current.other_size);
 	*age = rv->AgeLimit;
 	*hogtime = rv->ReintLimit;
     }

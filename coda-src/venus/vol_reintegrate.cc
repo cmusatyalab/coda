@@ -313,8 +313,7 @@ int repvol::IncReintegrate(int tid)
     long StartBackFetched = BytesBackFetched;
 
     /* Get the NEW CML stats. */
-    cmlstats current;
-    cmlstats cancelled;
+    cmlstats current, cancelled;
     CML.IncGetStats(current, cancelled, tid);	/* get incremental stats */
 
     START_TIMING();
