@@ -75,8 +75,6 @@ extern "C" {
 #include <lwp/timer.h>
 #include <rpc2/rpc2.h>
 #include <rpc2/sftp.h>
-#include <rpc2/fail.h>
-#include <rpc2/fcon.h>
 #include <partition.h>
 #include <util.h>
 #include <rvmlib.h>
@@ -499,12 +497,6 @@ int main(int argc, char *argv[])
 	        "' in the pdb database.");
 	CODA_ASSERT(0 && "check pdb database");
     }
-
- /* Initialize failure package */
-#ifdef USE_FAIL_FILTERS
-    Fail_Initialize("file", 0);
-    Fcon_Init();
-#endif
 
     /* tag main fileserver lwp for volume package */
     pt = (ProgramType *) malloc(sizeof(ProgramType));

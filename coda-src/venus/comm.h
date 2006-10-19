@@ -223,7 +223,6 @@ class srvent : private RefCountedObject {
   friend long VENUS_RevokeWBPermit(RPC2_Handle RPCid, VolumeId Vid);
   friend int FailDisconnect(int, struct in_addr *);
   friend int FailReconnect(int, struct in_addr *);
-  friend int FailSlow(unsigned *);
   friend class userent;
   friend class vproc;
   friend class fsobj;
@@ -362,7 +361,6 @@ void DownServers(int, struct in_addr *, char *, unsigned int *);
 void CheckServerBW(long);
 int FailDisconnect(int, struct in_addr *);
 int FailReconnect(int, struct in_addr *);
-int FailSlow(unsigned *);
 
 /* comm_daemon.c */
 extern void PROD_Init(void);

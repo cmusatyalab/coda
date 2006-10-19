@@ -52,7 +52,6 @@ extern "C" {
 
 #include <rpc2/rpc2.h>
 #include <rpc2/se.h>
-#include <rpc2/fail.h>
 #include <rpc2/errors.h>
 
 extern int Fcon_Init(); 
@@ -96,15 +95,6 @@ int WCStale = UNSET_WCS;	/* seconds */
 
 extern long RPC2_Perror;
 struct CommQueueStruct CommQueue;
-
-#define MAXFILTERS 32
-
-struct FailFilterInfoStruct {
-	unsigned id;
-	unsigned long host;
-	FailFilterSide side;
-	unsigned char used;
-} FailFilterInfo[MAXFILTERS];
 
 olist *srvent::srvtab;
 char srvent::srvtab_sync;
@@ -179,13 +169,6 @@ void CommInit() {
     tv.tv_usec = 0;
     if (RPC2_Init(RPC2_VERSION, 0, &port1, rpc2_retries, &tv) != RPC2_SUCCESS)
 	CHOKE("CommInit: RPC2_Init failed");
-
-#ifdef USE_FAIL_FILTERS
-    /* Failure package initialization. */
-    memset((void *)FailFilterInfo, 0, (int) (MAXFILTERS * sizeof(struct FailFilterInfoStruct)));
-    Fail_Initialize("venus", 0);
-    Fcon_Init();
-#endif
 
     /* Fire up the probe daemon. */
     PROD_Init();
@@ -1305,7 +1288,8 @@ srvent *srv_iterator::operator()() {
 }
 
 
-#ifndef USE_FAIL_FILTERS
+/* hooks in librpc2 that existed for the old libfail functionality. We use
+ * these leftover hooks to implement cfs disconnect and cfs reconnect */
 extern int (*Fail_SendPredicate)(unsigned char ip1, unsigned char ip2,
 				 unsigned char ip3, unsigned char ip4,
 				 unsigned char color, RPC2_PacketBuffer *pb,
@@ -1335,137 +1319,4 @@ int FailReconnect(int nservers, struct in_addr *hostids)
     Fail_SendPredicate = Fail_RecvPredicate = NULL;
     return 0;
 }
-
-int FailSlow(unsigned *speedp)
-{
-    return -1;
-}
-#else
-/* *****  Fail library manipulations ***** */
-
-/* 
- * Simulate "pulling the plug". Insert filters on the
- * send and receive sides of venus.
- */
-int FailDisconnect(int nservers, struct in_addr *hostids)
-{
-    int rc, k = 0;
-    FailFilter filter;
-    FailFilterSide side;
-
-    do {
-	srv_iterator next;
-	srvent *s;
-	while ((s = next()))
-	    if (nservers == 0 || s->host.s_addr == hostids[k].s_addr) {
-		/* we want a pair of filters for server s. */
-
-		struct in_addr addr = s->host;    
-		filter.ip1 = ((unsigned char *)&addr)[0];
-		filter.ip2 = ((unsigned char *)&addr)[1];
-		filter.ip3 = ((unsigned char *)&addr)[2];
-		filter.ip4 = ((unsigned char *)&addr)[3];
-		filter.color = -1;
-		filter.lenmin = 0;
-		filter.lenmax = 65535;
-		filter.factor = 0;
-		filter.speed = 0;
-		filter.latency = 0;
-
-		for (int i = 0; i < 2; i++) {
-		    if (i == 0) side = sendSide;
-		    else side = recvSide;
-
-		    /* 
-		     * do we have this filter already?  Note that this only
-		     * checks the filters inserted from Venus.  To check all
-		     * the filters, we need to use Fail_GetFilters.
-		     */
-		    char gotit = 0;
-		    for (int j = 0; j < MAXFILTERS; j++) 
-			if (FailFilterInfo[j].used && 
-			    htonl(FailFilterInfo[j].host) == s->host.s_addr &&
-			    FailFilterInfo[j].side == side) {
-				gotit = 1;
-				break;
-			}
-
-		    if (!gotit) {  /* insert a new filter */
-			int ix = -1;    
-			for (int j = 0; j < MAXFILTERS; j++) 
-			    if (!FailFilterInfo[j].used) {
-				ix = j;
-				break;
-			    }
-
-			if (ix == -1) { /* no room */
-			    LOG(0, ("FailDisconnect: couldn't insert %s filter for %s, table full!\n", 
-				(side == recvSide)?"recv":"send", s->name));
-			    return(ENOBUFS);
-			}
-
-			if ((rc = Fail_InsertFilter(side, 0, &filter)) < 0) {
-			    LOG(0, ("FailDisconnect: couldn't insert %s filter for %s\n", 
-				(side == recvSide)?"recv":"send", s->name));
-			    return(rc);
-			}
-			LOG(10, ("FailDisconnect: inserted %s filter for %s, id = %d\n", 
-			    (side == recvSide)?"recv":"send", s->name, rc));
-
-			FailFilterInfo[ix].id = filter.id;
-			FailFilterInfo[ix].side = side;
-			FailFilterInfo[ix].host = ntohl(s->host.s_addr);
-			FailFilterInfo[ix].used = 1;
-		    }
-		} 
-	    }
-
-    } while (k++ < nservers-1);
-
-    return(0);
-}
-
-/* 
- * Remove fail filters inserted by VIOC_SLOW or VIOC_DISCONNECT.
- * Filters inserted by other applications (ttyfcon, etc) are not
- * affected, since we don't have their IDs. If there is a problem 
- * removing a filter, we print a message in the log and forget 
- * about it. This allows the user to remove the filter using another
- * tool and not have to deal with leftover state in venus.
- */
-int FailReconnect(int nservers, struct in_addr *hostids)
-{
-    int rc, s = 0;
-
-    do {
-	for (int i = 0; i < MAXFILTERS; i++) 
-	    if (FailFilterInfo[i].used &&
-                (nservers == 0 ||
-                 (htonl(FailFilterInfo[i].host) == hostids[s].s_addr))) {
-                if ((rc = Fail_RemoveFilter(FailFilterInfo[i].side,
-                                            FailFilterInfo[i].id)) < 0) {
-		    LOG(0, ("FailReconnect: couldn't remove %s filter, id = %d\n", 
-			(FailFilterInfo[i].side == sendSide)?"send":"recv", 
-			FailFilterInfo[i].id));
-		} else {
-		    LOG(10, ("FailReconnect: removed %s filter, id = %d\n", 
-			(FailFilterInfo[i].side == sendSide)?"send":"recv", 
-			FailFilterInfo[i].id));
-		    FailFilterInfo[i].used = 0;
-		}
-            }
-    } while (s++ < nservers-1);
-
-    return(0);
-}
-
-/* 
- * Simulate a slow network. Insert filters with the
- * specified speed to all known servers.
- */
-int FailSlow(unsigned *speedp) {
-
-    return(-1);
-}
-#endif
 
