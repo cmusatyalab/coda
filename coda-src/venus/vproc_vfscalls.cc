@@ -451,6 +451,18 @@ void vproc::setattr(struct venus_cnode *cp, struct coda_vattr *vap) {
 		if (f->stat.Owner != (uid_t)vap->va_uid)
 		    { u.u_error = EACCES; goto FreeLocks; }
 #endif
+		/* returning EACCESS seems more correct here, but this actually
+		 * happens often enough to be annoying. Programs often create a
+		 * file, write some data, fchown, fchmod and close it last.
+		 * Getting an EACCESS on the chown can be a little disturbing,
+		 * especially since Coda in most ways really doesn't care about
+		 * ownership, and happily resets it to the 'author' of the file
+		 * when the file is closed... */
+		if (f->IsVirgin()) {
+		    u.u_error = 0; /* EACCESS */
+		    goto FreeLocks;
+		}
+
 		u.u_error = f->Access(PRSFS_ADMINISTER, C_A_F_OK, u.u_uid);
 		if (u.u_error) goto FreeLocks;
 	    }

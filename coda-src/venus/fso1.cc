@@ -65,6 +65,7 @@ extern "C" {
 #include "advice.h"
 #include "adv_monitor.h"
 #include "adv_daemon.h"
+#include "cml.h"
 #include "comm.h"
 #include "fso.h"
 #include "local.h"
@@ -2493,6 +2494,35 @@ void fsobj::GetPath(char *buf, int scope)
     strcat(buf, comp);
 }
 
+/* Virginal state may cause some access checks to be avoided. */
+int fsobj::IsVirgin()
+{
+    int virginal = 0;
+    int i;
+
+    if (vol->IsReplicated()) {
+	for (i = 0; i < VSG_MEMBERS; i++)
+	    if ((&(stat.VV.Versions.Site0))[i] != 0)
+		break;
+	if (i == VSG_MEMBERS) virginal = 1;
+
+	/* If file is dirty, it's really virginal only if there are no stores in the CML! */
+	if (virginal && vol->IsReplicated() && IsFile() && DIRTY(this))
+	{
+	    repvol *rv = (repvol *)vol;
+	    cml_iterator next(rv->CML, CommitOrder, &fid);
+	    cmlent *m;
+	    while ((m = next()))
+		if (m->opcode == CML_Store_OP)
+		    break;
+	    if (m) virginal = 0;
+	}
+    } else {
+	if (stat.DataVersion == 0) virginal = 1;
+    }
+
+    return(virginal);
+}
 
 int fsobj::MakeShadow()
 {
