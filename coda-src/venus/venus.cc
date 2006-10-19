@@ -575,7 +575,7 @@ static void DefaultCmdlineParms()
 
     CODACONF_STR(ASRPolicyFile, "asrpolicy_path", NULL);
 
-    CODACONF_INT(PiggyValidations, "validateattrs", 21);
+    CODACONF_INT(PiggyValidations, "validateattrs", 15);
     {
 	if (PiggyValidations > MAX_PIGGY_VALIDATIONS)
 	    PiggyValidations = MAX_PIGGY_VALIDATIONS;

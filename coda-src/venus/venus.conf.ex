@@ -4,10 +4,10 @@
 
 # venus.conf.ex contains an entry for each configuration statement
 # allowed in venus.conf.  Each statement is explained, and is then
-# presented, commented out, with its default value.  Thus, if this 
+# presented, commented out, with its default value.  Thus, if this
 # file is used as venus.conf, the behavior of venus will be the same
 # as with no config file.  Further, uncommenting any of these
-# statements in a venus.conf should have no effect.  It is suggested  
+# statements in a venus.conf should have no effect.  It is suggested
 # that a venus.conf be created if needed, and that it contain only
 # statements that differ from default values.
 
@@ -170,16 +170,16 @@ mapprivate=1
 # ValidateAttrs RPC2 call. The maximum is 50, however the resulting outgoing
 # packet is around 2900 bytes which will be fragmented by the IP layer. In
 # some cases this IP fragmentation is not wanted (unreliable networks, IPSec,
-# and in IPv6 networks). The default value is set to 21 which approximately
-# results in a 1452 byte packet which should be good for typical ethernet LAN
-# networks.
+# and in IPv6 networks). The default value is set to 15 which brings the
+# packet size down to below the minimum IPv6 MTU.
 #
-# If you are having problems with non-local servers, you might want to lower
-# this number even further to 15 piggybacked validations, the packet size
-# would then be about 1032 bytes. Lower than that is not really useful because
-# at that point many other packets would be larger (f.i. SFTP data packets).
+# The previous default value was 21, resulting in a 1452 byte packet
+# which was nice for typical ethernet LAN networks, but was in some
+# cases causing connectivity problems. Lower than 15 is most likely not
+# really useful. Many other packets would still be larger (f.i. SFTP
+# data packets).
 #
-#validateattrs=21
+#validateattrs=15
 
 #
 # How many seconds between checks whether the servers are still alive. The
