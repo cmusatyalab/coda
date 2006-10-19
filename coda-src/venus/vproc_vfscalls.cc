@@ -89,18 +89,6 @@ extern "C" {
 
 /* ***** VFS Operations  ***** */
 
-void vproc::mount(char *path, void *data) {
-    LOG(1, ("vproc::mount: path = %s\n", path));
-    u.u_error = EOPNOTSUPP;
-}
-
-
-void vproc::unmount() {
-    LOG(1, ("vproc::unmount\n"));
-    u.u_error = EOPNOTSUPP;
-}
-
-
 void vproc::root(struct venus_cnode *vpp) {
     LOG(1, ("vproc::root\n"));
 

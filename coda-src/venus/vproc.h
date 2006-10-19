@@ -219,8 +219,6 @@ class vproc : public olink {
     void End_VFS(int * =0);
 
     /* The vproc interface: mostly matching kernel requests.  */
-    void mount(char *, void *);
-    void unmount();
     void root(struct venus_cnode *);
     void statfs(struct coda_statfs *);
     void sync();
