@@ -25,8 +25,7 @@ TOPOBJ = @TOPOBJ@
 # Need to conditionalize this
 include $(TOPDIR)/Makeconf
 
-VENUS-SCRIPTS = vutil volmunge venus-setup coda-setup-ports \
-    coda-client-logrotate
+VENUS-SCRIPTS = volmunge venus-setup coda-setup-ports
 
 VOL-SCRIPTS	= createvol_rep purgevol_rep bldvldb.sh
 VICE-SCRIPTS	= startserver codastart coda-server-logrotate
@@ -38,7 +37,7 @@ BACKUP-SCRIPTS	= backup.sh tape.pl
 
 CMANPAGES := venus-setup.8 volmunge.8
 SMANPAGES := bldvldb.sh.8 createvol_rep.8 maxgroupid.5 purgevol_rep.8 \
-    startserver.8 vice-setup.8 volumelist.5 vutil.8
+    startserver.8 vice-setup.8 volumelist.5
 
 ifeq ($(SYS),linux)
   # use SYSV style init scripts

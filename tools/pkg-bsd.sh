@@ -171,7 +171,6 @@ EOF
 sbin/sidekick
 sbin/codaconfedit
 sbin/coda-setup-ports
-sbin/coda-client-logrotate
 sbin/venus
 sbin/venus-setup
 sbin/volmunge
@@ -210,6 +209,7 @@ man/man1/spy.1
 man/man8/venus.8
 man/man8/venus-setup.8
 man/man8/volmunge.8
+man/man8/vutil.8
 etc/coda/realms
 etc/coda/venus.conf.ex
 etc/coda/sidekick.intr.ex
@@ -278,7 +278,6 @@ man/man8/updateclnt.8
 man/man8/updatesrv.8
 man/man8/vice-setup.8
 man/man8/volutil.8
-man/man8/vutil.8
 etc/coda/server.conf.ex
 etc/rc.d/rc.vice
 EOF

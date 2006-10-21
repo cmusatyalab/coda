@@ -6,6 +6,7 @@
 
 PATH=/bin:/usr/bin:/sbin:/usr/sbin
 DAEMON=/usr/sbin/venus
+VUTIL=/usr/sbin/vutil
 
 FLAGS="defaults 50"
 
@@ -13,6 +14,7 @@ test -f $DAEMON || exit 0
 
 case "$1" in
   start)
+    $VUTIL --swaplogs
     start-stop-daemon --start --verbose --exec $DAEMON
     ;;
   stop)
@@ -38,6 +40,7 @@ case "$1" in
     start-stop-daemon --stop --verbose --exec $DAEMON
     umount /coda
     sleep 1
+    $VUTIL --swaplogs
     start-stop-daemon --start --verbose --exec $DAEMON
     ;;
   *)

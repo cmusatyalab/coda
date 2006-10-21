@@ -89,6 +89,12 @@ extern "C" {
 /*  *****  parameter defaults.  ***** */
 #define DFLT_VR "/coda"				/* venus root */
 #define DFLT_CD "/usr/coda/venus.cache"		/* cache directory */
+/* the next two are relative to cachedir if they do not start with '/' */
+#define DFLT_PIDFILE "pid"			/* default pid file */
+#define DFLT_CTRLFILE "VENUS_CTRL"		/* default control file */
+
+#define DFLT_LOGFILE "/usr/coda/etc/venus.log"	/* venus log file */
+#define DFLT_ERRLOG  "/usr/coda/etc/console"	/* venus error log */
 
 /* rule of thumb */
 const int BLOCKS_PER_FILE = 24;

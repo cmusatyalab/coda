@@ -490,8 +490,8 @@ static void DefaultCmdlineParms()
     CODACONF_INT(CacheBlocks,	    "cacheblocks",   40000);
     CODACONF_STR(CacheDir,	    "cachedir",      DFLT_CD);
     CODACONF_STR(SpoolDir,	    "checkpointdir", "/usr/coda/spool");
-    CODACONF_STR(VenusLogFile,	    "logfile",	     "/usr/coda/etc/venus.log");
-    CODACONF_STR(consoleFile,	    "errorlog",      "/usr/coda/etc/console");
+    CODACONF_STR(VenusLogFile,	    "logfile",	     DFLT_LOGFILE);
+    CODACONF_STR(consoleFile,	    "errorlog",      DFLT_ERRLOG);
     CODACONF_STR(kernDevice,	    "kerneldevice",  "/dev/cfs0,/dev/coda/0");
     CODACONF_INT(MapPrivate,	    "mapprivate",     0);
     CODACONF_STR(MarinerSocketPath, "marinersocket", "/usr/coda/spool/mariner");
@@ -551,24 +551,20 @@ static void DefaultCmdlineParms()
 	}
     }
 
-    CODACONF_STR(VenusPidFile, "pid_file", NULL);
-    {
-#define PIDFILE "/pid"
-	if (!VenusPidFile) {
-	    VenusPidFile = (char *)malloc(strlen(CacheDir)+strlen(PIDFILE)+1);
-	    strcpy(VenusPidFile, CacheDir);
-	    strcat(VenusPidFile, PIDFILE);
-	}
+    CODACONF_STR(VenusPidFile, "pid_file", DFLT_PIDFILE);
+    if (*VenusPidFile != '/') {
+	char *tmp = (char *)malloc(strlen(CacheDir) + strlen(VenusPidFile) + 2);
+	CODA_ASSERT(tmp);
+	sprintf(tmp, "%s/%s", CacheDir, VenusPidFile);
+	VenusPidFile = tmp;
     }
 
-    CODACONF_STR(VenusControlFile, "run_control_file", NULL);
-    {
-#define CTRLFILE "/VENUS_CTRL"
-	if (!VenusControlFile) {
-	    VenusControlFile=(char*)malloc(strlen(CacheDir)+strlen(CTRLFILE)+1);
-	    strcpy(VenusControlFile, CacheDir);
-	    strcat(VenusControlFile, CTRLFILE);
-	}
+    CODACONF_STR(VenusControlFile, "run_control_file", DFLT_CTRLFILE);
+    if (*VenusControlFile != '/') {
+	char *tmp = (char *)malloc(strlen(CacheDir) + strlen(VenusControlFile) + 2);
+	CODA_ASSERT(tmp);
+	sprintf(tmp, "%s/%s", CacheDir, VenusControlFile);
+	VenusControlFile = tmp;
     }
 
     CODACONF_STR(ASRLauncherFile, "asrlauncher_path", NULL);

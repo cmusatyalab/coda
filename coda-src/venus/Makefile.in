@@ -25,27 +25,30 @@ TOPOBJ = @TOPOBJ@
 
 include $(TOPDIR)/Makeconf
 
-EXECUTABLES = venus
-CSBINS      = venus
+EXECUTABLES = venus vutil
+CSBINS      = venus vutil
 LIBRARIES   =
 HEADERS	    = advice.h hdb.h
 CCONFFILES  = venus.conf.ex realms
-CMANPAGES   = venus.8
+CMANPAGES   = venus.8 vutil.8
 
 CXXFLAGS += -DVENUS -DTIMING -DVENUSDEBUG
 DEPLIBS := $(LIBLKA) $(LIBVV) $(LIBVICEDEP) $(LIBREPIO) $(LIBKERNDEP) \
 	   $(LIBDIRLIB) $(LIBUTIL) $(LIBRWCDB) $(LIBBASE) $(LIBRELAY)
-LIBS := $(DEPLIBS) $(LIBRDSLWP) $(LIBSEG) $(LIBRVMLWP) $(LIBRPC2) $(LIBSE) \
-	$(LIBFAIL) $(LIBLWP) $(LIBSYS) $(LIBKVM) $(LIBDB) $(LIBCRYPTO) \
-	$(LIBMATH) $(LIBS)
+VLIBS := $(DEPLIBS) $(LIBRDSLWP) $(LIBSEG) $(LIBRVMLWP) $(LIBRPC2) $(LIBSE) \
+	 $(LIBFAIL) $(LIBLWP) $(LIBSYS) $(LIBKVM) $(LIBDB) $(LIBCRYPTO) \
+	 $(LIBMATH) $(LIBS)
 
 VOBJS = adv_monitor.o adv_daemon.o binding.o comm.o comm_daemon.o daemon.o fso0.o fso1.o fso_cachefile.o fso_cfscalls0.o fso_cfscalls1.o fso_cfscalls2.o fso_daemon.o fso_dir.o hdb.o hdb_daemon.o local_cml.o local_daemon.o local_fake.o local_fso.o local_subtree.o local_repair.o local_vol.o mariner.o mgrp.o venus.o venuscb.o venusrecov.o venusutil.o venusvol.o vol_daemon.o vol_cml.o vol_reintegrate.o vol_repair.o vol_resolve.o vol_vcb.o vol_COP2.o vproc.o vproc_pathname.o vproc_pioctl.o vproc_vfscalls.o vsg.o worker.o sighand.o spool.o tallyent.o user.o nt_util.o realmdb.o realm.o
 
 
+include $(TOPDIR)/configs/Makerules
+
 venus:  ${VOBJS} $(DEPLIBS)
-	$(CXX) $(LDFLAGS) ${VOBJS} $(LIBS) -o venus
+	$(CXX) $(LDFLAGS) ${VOBJS} $(VLIBS) -o venus
+
+vutil: vutil.o $(LIBBASE)
+	$(CXX) $(LDFLAGS) vutil.o $(LIBBASE) $(LIBS) -o vutil
 
 testtallyent: tallyent.cc tallyent.h
 	$(CXX) $(CXXFLAGS) -DTESTING -o testtallyent ${srcdir}/tallyent.cc ${LIBUTIL}
-
-include $(TOPDIR)/configs/Makerules

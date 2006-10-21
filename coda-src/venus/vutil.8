@@ -1,0 +1,60 @@
+.TH VUTIL 8 "2006-10-21" "Coda 6.1" "Coda Distributed File System"
+.SH NAME
+vutil \- venus utility program
+.SH SYNOPSIS
+.B vutil
+.RB [ \-\-clearstats | \-cs ]
+.RB [ "\-\-debug \fIloglevel\fR" | "\-d \fIloglevel\fR" ]
+.RB [ \-\-shutdown ]
+.RB [ \-\-stats ]
+.RB [ \-\-swaplogs | \-swap ]
+.PP
+.SH DESCRIPTION
+.B vutil
+dynamically alters various parameters of a running Coda client by sending
+signals to the
+.B venus
+process.
+.PP
+.SH OPTIONS
+.TP
+.B \-\-clearstats, \-cs
+Clears internal counters used in statistics reporting.
+.PP
+.TP
+.B \-\-debug \fIloglevel\fB, \-d \fIloglevel\fR
+Sets the debug level to \fIloglevel\fR. Additional arguments can be given to
+set log levels for \fBRPC2\fR and \fBLWP\fR.
+.PP
+.TP
+.B \-\-shutdown
+Shuts Venus down gracefully. Same as sending a \fBSIGTERM\fR signal.
+.PP
+.TP
+.B \-\-stats, \-s
+Causes Venus to dump internal counters and other statistics to its log file.
+.PP
+.TP
+.B \-\-swaplogs, \-swap
+Causes Venus to move its current log file to \fIlog\-file.old\fR and open a
+new \fIlog\-file\fR. Same as sending a \fBSIGHUP\fR signal.
+.PP
+.SH DIAGNOSTICS
+.B vutil
+is using signals to control the Coda client. As a result it has to run as the
+super user or the same user as the
+.B venus
+process.
+.PP
+.SH FILES
+.B vutil
+will read the location of the pid file, control file, and log files from
+\fI/etc/coda/venus.conf\fR.
+.PP
+.SH "SEE ALSO"
+.BR venus (8)
+.PP
+.SH AUTHOR
+Jay Kistler, 1990, Created
+.br
+Jan Harkes, 2006, Updated

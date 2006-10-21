@@ -172,7 +172,6 @@ exit 0
 /usr/sbin/sidekick
 /usr/sbin/codaconfedit
 /usr/sbin/coda-setup-ports
-/usr/sbin/coda-client-logrotate
 /usr/sbin/venus
 /usr/sbin/venus-setup
 /usr/sbin/volmunge
@@ -211,6 +210,7 @@ exit 0
 /usr/share/man/man8/venus.8.gz
 /usr/share/man/man8/venus-setup.8.gz
 /usr/share/man/man8/volmunge.8.gz
+/usr/share/man/man8/vutil.8.gz
 
 %files server
 %defattr(-,root,root)
@@ -268,7 +268,6 @@ exit 0
 /usr/share/man/man8/updatesrv.8.gz
 /usr/share/man/man8/vice-setup.8.gz
 /usr/share/man/man8/volutil.8.gz
-/usr/share/man/man8/vutil.8.gz
 %{initdir}/codasrv.init
 %{initdir}/auth2.init
 %{initdir}/update.init

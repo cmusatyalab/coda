@@ -42,7 +42,7 @@ case "$1" in
 		echo "$pid_file exists, venus already running?."
 	fi
 	[ -d /var/lock/subsys ] && touch /var/lock/subsys/venus.init
-	@sbindir@/coda-client-logrotate
+	@sbindir@/vutil --swaplogs
 	@sbindir@/venus > /dev/null 2>&1
 	echo "done."
     ;;
