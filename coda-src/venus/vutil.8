@@ -36,8 +36,9 @@ Causes Venus to dump internal counters and other statistics to its log file.
 .PP
 .TP
 .B \-\-swaplogs, \-swap
-Causes Venus to move its current log file to \fIlog\-file.old\fR and open a
-new \fIlog\-file\fR. Same as sending a \fBSIGHUP\fR signal.
+Causes Venus to rotate the venus log and error files. Not quite the same as
+sending a \fBSIGHUP\fR signal because vutil performs the log rotation, while
+venus only reopens the files when it receives SIGHUP.
 .PP
 .SH DIAGNOSTICS
 .B vutil

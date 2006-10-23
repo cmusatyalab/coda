@@ -152,7 +152,7 @@ int main(int argc, char **argv)
 
 	/* rotate log, actually venus only closes and reopens the log so
 	 * we'll do the log rotation here. */
-	if (strcmp(arg, "swaplog") == 0 || strcmp(arg, "swap") == 0)
+	if (strcmp(arg, "swaplogs") == 0 || strcmp(arg, "swap") == 0)
 	{
 	    logrotate(log_file);
 	    logrotate(err_file);
