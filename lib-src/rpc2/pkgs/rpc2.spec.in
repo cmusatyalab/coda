@@ -24,7 +24,7 @@ Headers and static libraries for developing programs using the RPC2 library.
 %setup -n %{name}-%{version}
 
 %build
-./configure --prefix=/usr --with-lua
+./configure --prefix=/usr %{?_with_lua}
 make
 
 %install
@@ -49,11 +49,8 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root)
 /usr/lib/librpc2.so.@LINUX_VERSION@
 /usr/lib/libse.so.@LINUX_VERSION@
-%dir /usr/share/rpc2
-/usr/share/rpc2/rpc2-fail.lua
-/usr/share/rpc2/rpc2-rtt-adaptive.lua
-/usr/share/rpc2/rpc2-rtt-fixed.lua
-/usr/share/rpc2/rpc2-rtt-vj.lua
+%{_with_lua: %dir /usr/share/rpc2}
+%{_with_lua: /usr/share/rpc2/*.lua}
 
 %files devel
 %defattr(-,root,root)
