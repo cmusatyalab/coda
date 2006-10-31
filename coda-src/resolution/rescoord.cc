@@ -198,7 +198,10 @@ static int ResolveInc(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV)
 {
     SE_Descriptor sid;
     char *dirbufs[VSG_MEMBERS];
-    int dirlength = MAXPAGES * PAGESIZE + VAclSize(foo);
+    /* When we fetch the directory data and ACL of the root vnode of a
+     * volume, we append two extra integers, min and max volume quota */
+    int quotasize = 2 * sizeof(int);
+    int dirlength = MAXPAGES * PAGESIZE + VAclSize(foo) + quotasize;
     ViceStatus status;
     int DirsEqual = 0;
     ViceVersionVector *newVV = { 0, };
