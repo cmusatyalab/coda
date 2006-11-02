@@ -13,6 +13,7 @@ Coda are listed in the file CREDITS.
 			Additional copyrights
 #*/
 
+#include <netinet/in.h>
 #include <stdio.h>
 #include <string.h>
 #include <syslog.h>
