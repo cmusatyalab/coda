@@ -81,7 +81,7 @@ int pioctl(const char *path, unsigned long com, struct
 /* unpacking macros */
 #ifndef _IOC_NR
 
-#if defined(__NetBSD__)
+#if defined(__NetBSD__) || defined(__FreeBSD__)
 #define _IOC_TYPEMASK	0xff
 #define _IOC_TYPESHIFT	8
 #define _IOC_NRMASK	0xff
