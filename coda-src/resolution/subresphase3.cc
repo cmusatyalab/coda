@@ -201,12 +201,10 @@ long RS_NewShipLogs(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer size,
     }
   Exit:
     // Put Objects back to RVM
-    {
-	//PROBE(tpinfo, P3PUTOBJBEGIN);
-	PutObjects(errorCode, volptr, NO_LOCK, vlist, nblocks, 1);
-	//PROBE(tpinfo, P3PUTOBJEND);
-	
-    }
+    /* Do not pass errorCode, this way we end up committing all updates we
+     * managed to apply even when a later operation in the log failed. */
+    PutObjects(0, volptr, NO_LOCK, vlist, nblocks, 1);
+
     // Return list of inconsistencies to coordinator
     {
 	if (!errorCode)
