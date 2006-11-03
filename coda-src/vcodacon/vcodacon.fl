@@ -14,7 +14,7 @@ decl {monitor Monitor;} {}
 
 Function {} {open
 } {
-  code {/*	$Id: vcodacon.fl,v 1.15 2006-05-24 20:04:40 jaharkes Exp $	*/
+  code {/*	$Id: vcodacon.fl,v 1.15 2006/05/24 20:04:40 jaharkes Exp $	*/
 
 // BLURB gpl
 //

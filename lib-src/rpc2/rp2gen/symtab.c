@@ -53,12 +53,6 @@ extern RPC2_TYPE *rpc2_simple_type();
 extern VAR *make_var();
 ENTRY *find();
 
-/*
- * If this is not prototyped its return value defaults to int which results
- * in bogus results on systems where sizeof(void*) > sizeof(int).
- */
-extern RPC2_TYPE *rpc2_struct_type(VAR **);
-
 /* This module uses external chaining */
 
 #define SYMTAB_SIZE	50
