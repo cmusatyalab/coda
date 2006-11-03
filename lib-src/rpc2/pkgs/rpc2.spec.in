@@ -4,7 +4,8 @@ Version: @VERSION@
 Release: 1
 Source: ftp://ftp.coda.cs.cmu.edu/pub/coda/src/%{name}-%{version}.tar.gz
 License: LGPL
-BuildRequires: lwp-devel lua-devel
+BuildRequires: lwp-devel
+%{?_with_lua: BuildRequires: lua-devel}
 BuildRoot: %{_builddir}/%{name}-%{version}/Root
 Group: Development/Libraries
 %description
@@ -49,8 +50,8 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root)
 /usr/lib/librpc2.so.@LINUX_VERSION@
 /usr/lib/libse.so.@LINUX_VERSION@
-%{_with_lua: %dir /usr/share/rpc2}
-%{_with_lua: /usr/share/rpc2/*.lua}
+%{?_with_lua: %dir /usr/share/rpc2}
+%{?_with_lua: /usr/share/rpc2/*.lua}
 
 %files devel
 %defattr(-,root,root)
