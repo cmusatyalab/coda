@@ -35,6 +35,7 @@ extern "C" {
 #include <config.h>
 #endif
 
+#define _XOPEN_SOURCE 500
 #include <sys/types.h>
 #include <errno.h>
 #include <stdio.h>
@@ -2791,7 +2792,7 @@ int fsobj::LaunchASR(int conflict_type, int object_type) {
     char confstr[4];
     
 	close(pfd[1]);
-    if(setpgrp() < 0) { perror("setpgrp"); exit(EXIT_FAILURE); }
+    if(setpgid(0, 0) < 0) { perror("setpgid"); exit(EXIT_FAILURE); }
     
     sprintf(confstr, "%d", conflict_type);
 
