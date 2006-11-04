@@ -35,7 +35,6 @@ extern "C" {
 #include <config.h>
 #endif
 
-#define _XOPEN_SOURCE 500
 #include <sys/types.h>
 #include <errno.h>
 #include <stdio.h>
