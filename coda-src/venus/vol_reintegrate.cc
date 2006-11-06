@@ -587,6 +587,7 @@ CheckResult:
     case EINCOMPATIBLE:
     default:
 	/* non-retryable failures -- see IncReintegrate for comments */
+	m->flags.failed = 1;
 
 	LOG(0, ("volent::PartialReintegrate: fail code = %d\n", code));
 	CML.print(logFile);
