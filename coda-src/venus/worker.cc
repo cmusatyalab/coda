@@ -352,8 +352,24 @@ void VFSMount()
 	    goto child_done;
 
 #ifdef __BSD44__ /* BSD specific mount */
+	error = -1;
 	/* Issue the VFS mount request. */
-	error = mount("coda", venusRoot, 0, kernDevice);
+
+#ifdef HAVE_NMOUNT
+	{ /* FreeBSD-6.x introduced a new mount syscall */
+	    struct iovec md[6];
+	    md[0].iov_base = (char *)"fstype"; md[0].iov_len = sizeof("fstype");
+	    md[1].iov_base = (char *)"coda";   md[1].iov_len = sizeof("coda");
+	    md[2].iov_base = (char *)"fspath"; md[2].iov_len = sizeof("fspath");
+	    md[3].iov_base = venusRoot;        md[3].iov_len = strlen(venusRoot) + 1;
+	    md[4].iov_base = (char *)"from";   md[4].iov_len = sizeof("from");
+	    md[5].iov_base = kernDevice;       md[5].iov_len = strlen(kernDevice) + 1;
+	    error = nmount(md, 6, 0);
+	}
+#endif
+			
+	if (error < 0)
+	    error = mount("coda", venusRoot, 0, kernDevice);
 	if (error < 0)
 	    error = mount("cfs", venusRoot, 0, kernDevice);
 #if defined(__FreeBSD__) && !defined(__FreeBSD_version)
