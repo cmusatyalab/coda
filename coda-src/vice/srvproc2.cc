@@ -260,6 +260,41 @@ long FS_ViceGetVolumeInfo(RPC2_Handle RPCid, RPC2_String VolName, VolumeInfo *In
     return(errorCode);
 }
 
+/*
+ViceGetVolumeLocation: Used to get the location (host:port) of a volume replica
+*/
+long FS_ViceGetVolumeLocation(RPC2_Handle RPCid, VolumeId Vid,
+			      RPC2_BoundedBS *HostPort)
+{
+    const char *addr;
+    size_t len;
+    int	err = 0;
+
+    SLog(1,"ViceGetVolumeLocation volume = %08x", Vid);
+    HostPort->SeqLen = 0;
+
+    addr = VGetVolumeLocation(Vid);
+    if (!addr) {
+	/* do we need more detailed errors? VNOVOL/ISREPLICATED/EWOULDBENICE? */
+	err = VNOSERVICE;
+	goto errout;
+    }
+
+    len = strlen(addr);
+    if (len >= HostPort->MaxSeqLen) {
+	err = ENAMETOOLONG;
+	goto errout;
+    }
+
+    strcpy((char *)HostPort->SeqBody, addr);
+    HostPort->SeqLen = len;
+
+errout:
+    SLog(2, "ViceGetVolumeLocation: Volume %08x, location %s, err %s",
+	 Vid, addr ? addr : "", ViceErrorMsg(err));
+    return(err);
+}
+
 
 /*
   ViceGetVolumeStatus: Get the status of a particular volume

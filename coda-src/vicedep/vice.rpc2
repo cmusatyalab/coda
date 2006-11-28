@@ -334,6 +334,8 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 24: ViceGetVolumeInfo (IN RPC2_String Vid,
 		       OUT VolumeInfo Info);
 
+26: ViceGetVolumeLocation (IN VolumeId Vid, OUT RPC2_BoundedBS HostPort);
+
 29: ViceCOP2 (IN RPC2_CountedBS COP2BS);
 
 30: ViceResolve	(IN ViceFid Fid);

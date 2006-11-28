@@ -107,6 +107,9 @@ int HInit;		/* Set to 1 when the volid hash table is  initialized */
 char *VSalvageMessage =	  /* Common message used when the volume goes off line */
 "Files in this volume are currently unavailable; call operations";
 
+const char *Server_FQDN[N_SERVERIDS];	/* DNS host name (with optional port) */
+/* something like "codaserverN.foo.bar:2432" */
+
 /*
   VolumeHashTable: Hash table used to store pointers to the Volume structure
  */
@@ -403,11 +406,12 @@ void VInitServerList(char *host)
     }
 
     while (fgets(line, sizeof(line), file) != NULL) {
-        char sname[50];
+        char sname[51];
         unsigned int sid;
+	int i;
 	long netaddress;
 
-	if (sscanf(line, "%s%u", sname, &sid) == 2) {
+	if (sscanf(line, "%50s %u", sname, &sid) == 2) {
 	    if (sid >= N_SERVERIDS) {
 		VLog(0, "Host %s is assigned a bogus server number (%x) in %s. Exit.",
 		     sname, sid, serverList);
@@ -420,10 +424,22 @@ void VInitServerList(char *host)
 		exit(1);
 	    }
 	    /* make sure we don't get duplicate ids */
-	    if (HostAddress[sid]) {
-		VLog(0, "Warning: host %s is using a an already assigned "
-			"server-id (%lu) in %s. Exit", sname, sid, serverList);
+	    if (Server_FQDN[sid]) {
+		VLog(0, "Fatal: unable to map server-id %d to host %s,\n"
+		     "\tas it is already assigned to host %s",
+		     sid, sname, Server_FQDN[sid]);
 		exit(1);
+	    }
+	    Server_FQDN[sid] = strdup(sname);
+
+	    /* strip trailing :NNNN for the legacy code */
+	    for (i = strlen(sname) - 1; i >= 0; i--) {
+		if (sname[i] == ':') {
+		    sname[i] = '\0';
+		    break;
+		}
+		if (sname[i] < '0' || sname[i] > '9')
+		    break;
 	    }
 
 	    struct hostent *hostent = gethostbyname(sname);
@@ -523,6 +539,37 @@ void VGetVolumeInfo(Error *ec, char *key, VolumeInfo *info)
 	    serverList[0] = movedto;
     }
     return;
+}
+
+const char *VGetVolumeLocation(VolumeId vid)
+{
+    struct vldb *vldp;
+    char key[11]; /* sizeof(#MAX_UINT) + 1 */
+    const char *location;
+    int serverid;
+
+    /* sigh, the VLDB is indexed based on the ascii representation of the id */
+    snprintf(key, 10, "%u", vid);
+
+    vldp = VLDBLookup(key);
+    if (!vldp) {
+	VLog(9, "VGetVolumeLocation: VLDBLookup for %08x failed", vid);
+	return NULL; /* VNOVOL */
+    }
+
+    if (vldp->nServers != 1) {
+	VLog(9, "VGetVolumeLocation: %08x seems to be replicated", vid);
+	return NULL; /* VNOVOL (nservers == 0) | ISREPLICATED (nservers > 1) */
+    }
+
+    serverid = vldp->serverNumber[0];
+    /* Maybe at some point we need to some hook when we migrate volumes? */
+    /* serverid = FSYNC_CheckRelocationSite(vid); ?? */
+
+    location = Server_FQDN[serverid];
+
+    VLog(9, "VGetVolumeLocation: %08x located at %s", location);
+    return location;
 }
 
 static void VListVolume(char **buf, unsigned int *buflen,
