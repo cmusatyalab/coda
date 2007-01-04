@@ -1,3 +1,10 @@
+New in 2.5:
+
+* Avoid rp2gen segfault on 64-bit systems. (Vasil Dimov)
+* Forgotten includes broke the FreeBSD build. (Sean Caron)
+* Fix RPM build dependencies. (Adam Goode/Jerry Amundson)
+* Use non-blocking /dev/urandom device to initialize random number generator.
+
 New in 2.4:
 
 * Instead of queueing incoming INIT1 requests when nobody is ready to accept
