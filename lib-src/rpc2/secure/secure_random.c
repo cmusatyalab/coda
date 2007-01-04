@@ -42,6 +42,26 @@ Coda are listed in the file CREDITS.
 #define RND_KEY_BITS 128 /* or 192, 256... */
 #define INITIAL_SEED_LENGTH (AES_BLOCK_SIZE + bytes(RND_KEY_BITS))
 
+/* You can choose to use the '/dev/random' device which blocks until
+ * enough entropy is available. This is more secure, and typically not
+ * an issue for long running processes like venus and codasrv. We only
+ * read between 32 and 48 bytes when the application is starting.
+ *
+ * However it can be a problem for servers that frequenly run
+ * applications like volutil or clog,
+ * - A machine monitoring a large number of Coda server with rpc2ping
+ *   and/or volutil interpreted such stalls as failures.
+ * - During Amanda backups we run volutil several times per backed up
+ *   volume and easily exceed the time the Amanda server waits for a
+ *   reply from the client (Coda server) resulting in failed backups.
+ * - When we authenticate users with pam_coda we run clog on every
+ *   authentication attempt, as a result an ssh scan drains the entropy
+ *   pool. This was very noticeable when using pam-based authentication
+ *   with Apache.
+ */
+/* #define RANDOM_DEVICE "/dev/random" */
+#define RANDOM_DEVICE "/dev/urandom"
+
 static aes_encrypt_ctx context;
 static uint8_t pool[AES_BLOCK_SIZE];
 static uint8_t last[AES_BLOCK_SIZE];
@@ -125,7 +145,7 @@ static void get_initial_seed(uint8_t *ptr, size_t len)
     }
 
     /* try to get the rest from /dev/random */
-    fd = open("/dev/random", O_RDONLY);
+    fd = open(RANDOM_DEVICE, O_RDONLY);
     if (fd != -1) {
 	ssize_t n = read(fd, ptr, len);
 	if (n > 0) {
