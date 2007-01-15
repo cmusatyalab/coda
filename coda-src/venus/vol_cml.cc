@@ -86,6 +86,7 @@ static int RLE_Size(ARG * ...);
 static void RLE_Pack(PARM **, ARG * ...);
 
 int LogOpts = 1;	/* perform log optimizations? */
+int allow_backfetch;	/* allow backfetches during reintegration */
 
 /*  *****  Client Modify Log Basic Routines  *****  */
 
@@ -307,8 +308,15 @@ void ClientModifyLog::GetReintegrateable(int tid, int *nrecs)
     vol->GetBandwidth(&bw);
 
     while ((m = next())) {
+	/* do not pack stores if we want to avoid backfetches */
+	/* this has to be matched by a similar (but inverse) test in
+	 * PartialReintegrate, otherwise we would never be able to
+	 * reintegrate the Store operation */
+	if (!allow_backfetch && m->opcode == CML_Store_OP)
+	    break;
+
 	if (!m->ReintReady())
-	    break;    
+	    break;
 
 	this_time = m->ReintTime(bw);
 
@@ -330,11 +338,11 @@ void ClientModifyLog::GetReintegrateable(int tid, int *nrecs)
 	Recov_EndTrans(MAXFP);
 	if (err) break;
 
-	/* 
+	/*
 	 * don't use the settid call because it is transactional.
 	 * Here the tid is transient.
 	 */
-	m->tid = tid;    
+	m->tid = tid;
 	cur_reintegration_time += this_time;
 
 	/*
@@ -345,12 +353,12 @@ void ClientModifyLog::GetReintegrateable(int tid, int *nrecs)
 	    break;
     }
 
-    LOG(0, ("ClientModifyLog::GetReintegrateable: (%s, %d) %d records, %d msec\n", 
+    LOG(0, ("ClientModifyLog::GetReintegrateable: (%s, %d) %d records, %d msec\n",
 	vol->name, tid, *nrecs, cur_reintegration_time));
 }
 
 
-/* 
+/*
  * check if there is a fat store blocking the head of the log.
  * if there is, mark it with the tid and return a pointer to it.
  * Note with a less pretty interface this could be rolled into
@@ -368,15 +376,18 @@ cmlent *ClientModifyLog::GetFatHead(int tid)
 
     /* The head of the CML must exists, and be a store operation */
     if (!m || m->opcode != CML_Store_OP)
-        return NULL;
-
-    /* get the current bandwidth estimate */
-    vol->GetBandwidth(&bw);
+	return NULL;
 
     /* If we already have a reintegration handle, or if the reintegration time
-     * exceeds the limit, we need to do a partial reintegration of the store. */
-    if (!m->HaveReintegrationHandle() && m->ReintTime(bw) <= vol->ReintLimit)
-	return NULL;
+     * exceeds the limit, we need to do a partial reintegration of the store.
+     * We always partially reintegrate if we want to avoid backfetches. */
+    if (allow_backfetch && !m->HaveReintegrationHandle())
+    {
+	/* get the current bandwidth estimate */
+	vol->GetBandwidth(&bw);
+	if (m->ReintTime(bw) <= vol->ReintLimit)
+	    return NULL;
+    }
 
     /*
      * Don't use the settid call because it is transactional.
@@ -384,7 +395,7 @@ cmlent *ClientModifyLog::GetFatHead(int tid)
      */
     m->tid = tid;
 
-    /* 
+    /*
      * freeze the record to prevent cancellation.  Note that
      * reintegrating --> frozen, but the converse is not true.
      * Records are frozen until the outcome of a reintegration

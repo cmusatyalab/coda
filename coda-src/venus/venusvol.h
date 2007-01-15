@@ -1010,6 +1010,7 @@ class resent : public olink {
 /*  *****  Variables  *****  */
 extern int MLEs;
 extern int LogOpts;
+extern int allow_backfetch;
 extern int vcbbreaks;
 extern char voldaemon_sync;
 extern char VCBEnabled;

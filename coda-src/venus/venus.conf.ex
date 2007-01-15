@@ -215,3 +215,21 @@ mapprivate=1
 #RPC2_timeout=60
 #RPC2_retries=5
 
+#
+# Enable backfetches
+#
+# File data is pushed to the server in small chunks (trickle reintegrate).
+#
+# A backfetch happens when a client reintegrates a store record without
+# pushing the data to the server first. The server needs the data to commit
+# the store and performs a 'backfetch' . This avoids unnecessary data
+# transfers when the client retries an already completed reintegration after
+# an unexpected disconnection. However, the backfetch is done before the
+# reintegration RPC can return and the volume ends up being locked for a
+# longer period on both the client and the server. Also the backfetch uses the
+# callback connection, as a result unrelated changes in other volumes may end
+# up delayed until the backfetch completes if the server needs to send a
+# callback to the currently reintegrating client.
+#
+#allow_backfetch=0
+

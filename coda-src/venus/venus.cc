@@ -495,6 +495,7 @@ static void DefaultCmdlineParms()
     CODACONF_INT(MapPrivate,	    "mapprivate",     0);
     CODACONF_STR(MarinerSocketPath, "marinersocket", "/usr/coda/spool/mariner");
     CODACONF_INT(masquerade_port,   "masquerade_port", 0);
+    CODACONF_INT(allow_backfetch,   "allow_backfetch", 0);
     CODACONF_STR(venusRoot,	    "mountpoint",     DFLT_VR);
     CODACONF_INT(PrimaryUser,	    "primaryuser",    UNSET_PRIMARYUSER);
     CODACONF_STR(realmtab,	    "realmtab",	      "/etc/coda/realms");
@@ -505,6 +506,7 @@ static void DefaultCmdlineParms()
     CODACONF_INT(rpc2_retries,	    "RPC2_retries",   DFLT_RT);
 
     CODACONF_INT(T1Interval,	    "serverprobe",    150);
+
     // used to be 12 minutes
 
 #if defined(__CYGWIN32__)
