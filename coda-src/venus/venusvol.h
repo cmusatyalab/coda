@@ -664,7 +664,6 @@ class volent {
     int IsReadWriteReplica();
     int IsDisconnected() { return (state == Disconnected); }
     int IsWriteDisconnected() { return (state == WriteDisconnected); }
-    int IsWeaklyConnected(void);
     int IsResolving() { return (state == Resolving); }
     int IsLocalRealm() { return (realm == LocalRealm); }
     void GetMountPath(char *, int =1);
@@ -724,7 +723,6 @@ class volrep : public volent {
 
     void DownMember(struct in_addr *host);
     void UpMember(void);
-    int IsWeaklyConnected() { return volserver && volserver->ServerIsWeak(); }
 
     /* Utility routines. */
     void Host(struct in_addr *addr) { *addr = host; }
@@ -801,7 +799,6 @@ class repvol : public volent {
 
     void DownMember(struct in_addr *host);
     void UpMember(void);
-    int IsWeaklyConnected(void);
 
     int Collate_NonMutating(mgrpent *, int);
     int Collate_COP1(mgrpent *, int, ViceVersionVector *);

@@ -2048,7 +2048,10 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet,
         goto Exit;
     }
 
-    if (vol->IsWeaklyConnected() && m->vsg->NHosts() > 1) {
+    /* XXX when we do not use backfetches the CML should be relatively small,
+     * so we can just as well reintegrate to all servers. Or is there still
+     * a point where weak reintegration is worth it? */
+    if (0 /* vol->IsWeaklyConnected() && m->vsg->NHosts() > 1 */) {
 	/* Pick a server and get a connection to it. */
 	int ph_ix; struct in_addr *phost;
         phost = m->GetPrimaryHost(&ph_ix);

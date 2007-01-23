@@ -41,7 +41,6 @@ extern "C" {
 #define MAXEVENTLEN 64
 #define FALSE 0
 #define TRUE 1
-#define MAX_LOGFILE_LINES 1000
 #define MAX_REPLACEMENTLOG_LINES 100
 
 class adv_monitor {
@@ -108,25 +107,7 @@ class adv_monitor {
     int ConnValid() { return (cstate == Valid); }
     int AdviceOutstanding() { return (CheckLock(&userLock) == -1); }
     int skkPgid(int x) { return(x == pgid); }
-    int sameHandle(RPC2_Handle x) { return (x == handle); }
-
-    CacheMissAdvice ReadDisconnectedAdvice(VenusFid *fid,
-					   char *pathname,
-					   int pid)
-    {
-	return FetchFromServers;
-    }
-
-    CacheMissAdvice WeaklyConnectedAdvice(VenusFid *fid,
-					  char *pathname,
-					  int pid, int length,
-					  int estimatedBandwidth,
-					  char *Vfilename)
-    {
-	return FetchFromServers;
-    }
 };
-
 
 extern int ASRresult;
 

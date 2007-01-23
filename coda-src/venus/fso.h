@@ -526,27 +526,6 @@ class fsobj {
     void DemoteHdbBinding(binding *);
     void DetachHdbBindings();
     void DetachHdbBinding(binding *, int =0);
-    int PredetermineFetchState(int, int);
-    void SetFetchAllowed(HoardFetchState new_state)
-        { FetchAllowed = new_state; }
-    int IsFetchAllowed()
-        { if (FetchAllowed == HF_Fetch) 
-              return 1; 
-          else 
-              return 0; 
-        }
-    void SetAskingAllowed(HoardAskState new_state)
-        { AskingAllowed = new_state; }
-    int IsAskingAllowed()
-        { if (AskingAllowed == HA_Ask)
-            return 1;
-          else
-            return 0;
-        }
-
-    /* advice routines */
-    CacheMissAdvice ReadDisconnectedCacheMiss(vproc *, uid_t);
-    CacheMissAdvice WeaklyConnectedCacheMiss(vproc *, uid_t);
 
     /* MLE Linkage. */
     void AttachMleBinding(binding *);
@@ -695,9 +674,6 @@ class fsobj {
     int  MakeShadow();
     void RemoveShadow();
     void CacheReport(int, int);
-
-    int /*(secs)*/ EstimatedFetchCost(int =1);  /* 0 = status; 1 = data (default) */
-    void RecordReplacement(int, int);
 
     void print() { print(stdout); }
     void print(FILE *fp) { fflush(fp); print(fileno(fp)); }

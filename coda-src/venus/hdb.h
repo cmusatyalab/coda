@@ -229,7 +229,6 @@ class hdb {
     /* Helper Routines hdb::Walk */
     void ValidateCacheStatus(vproc *, int *, int *);
     void ListPriorityQueue();
-    int GetSuspectPriority(Volid *, char *, uid_t);
     void WalkPriorityQueue(vproc *, int *, int *);
     int CalculateTotalBytesToFetch();
     void StatusWalk(vproc *, int *, int *);
@@ -240,8 +239,6 @@ class hdb {
     void SetSolicitAdvice(int uid)
         { LOG(0, ("SetSolicitAdvice: uid=%d\n",uid));
 	  SolicitAdvice = uid; }
-    int MakeAdviceRequestFile(char *);
-    void RequestHoardWalkAdvice();
 
     void SetDemandWalkTime();
     long GetDemandWalkTime();

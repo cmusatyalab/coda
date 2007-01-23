@@ -1452,25 +1452,6 @@ void repvol::UpMember(void)
     ResetStats();
 }
 
-int volent::IsWeaklyConnected()
-{
-    return IsReplicated() ?
-	((repvol *)this)->IsWeaklyConnected() :
-	((volrep *)this)->IsWeaklyConnected();
-}
-
-int repvol::IsWeaklyConnected()
-{
-    if (ro_replica)
-	return ro_replica->IsWeaklyConnected();
-
-    for (int i = 0; i < VSG_MEMBERS; i++)
-        if (volreps[i] && volreps[i]->IsWeaklyConnected())
-	    return 1;
-
-    return 0;
-}
-
 int repvol::WriteDisconnect(unsigned int age, unsigned int hogtime)
 {
     Recov_BeginTrans();
@@ -1520,22 +1501,12 @@ void repvol::SetReintegratePending() {
 
 void repvol::ClearReintegratePending() {
     flags.reintegratepending = 0;
-    /* if (SkkEnabled) {
-     *    userent *u = realm->GetUser(CML.owner);
-     *    CODA_ASSERT(u != NULL);
-     *    u->NotifyReintegrationEnabled(name);
-     * } */
 }
 
 
 void repvol::CheckReintegratePending() {
     if (flags.reintegratepending && CML.count() > 0) {
         eprint("Reintegrate %s pending tokens for uid = %d", name, CML.owner);
-	/* if (SkkEnabled) {
-         *    userent *u = realm->GetUser(CML.owner);
-         *    CODA_ASSERT(u != NULL);
-         *    u->NotifyReintegrationPending(name);
-	 * } */
     }
 }
 

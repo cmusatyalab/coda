@@ -23,8 +23,6 @@ listed in the file CREDITS.
 int SkkEnabled = 1;
 int ASRallowed = 1;
 
-double totalFetched = 0;
-double totalToFetch = 0;
 int lastPercentage = 0;
 
 const int AdviceDaemonStackSize = 0x4000; /* 16k */
@@ -32,10 +30,6 @@ const int DFLT_MAXAMSERVERS = 1;
 const int UNSET_MAXAMSERVERS = -1;
 
 int max_daemons = UNSET_MAXAMSERVERS;
-
-int PATIENCE_ALPHA = UNSET_PATIENCE_ALPHA;
-int PATIENCE_BETA = UNSET_PATIENCE_BETA;
-int PATIENCE_GAMMA = UNSET_PATIENCE_GAMMA;
 
 void AdviceInit() {
   RPC2_SubsysIdent sid;
@@ -45,12 +39,6 @@ void AdviceInit() {
   LOG(100, ("E AdviceInit()\n"));
 
   /* Initialize Variables */
-  if (PATIENCE_ALPHA == UNSET_PATIENCE_ALPHA)
-      PATIENCE_ALPHA = DFLT_PATIENCE_ALPHA;
-  if (PATIENCE_BETA == UNSET_PATIENCE_BETA)
-      PATIENCE_BETA = DFLT_PATIENCE_BETA;
-  if (PATIENCE_GAMMA == UNSET_PATIENCE_GAMMA)
-      PATIENCE_GAMMA = DFLT_PATIENCE_GAMMA;
   if (max_daemons == UNSET_MAXAMSERVERS)
     max_daemons = DFLT_MAXAMSERVERS;
 

@@ -45,9 +45,6 @@ extern "C" {
 }
 #endif
 
-#define CAESUCCESS RPC2_SUCCESS /* All other CAE return codes are defined in ../rpc2/errordb.txt */
-#define MAXTASKS 88
-
 extern int SkkEnabled;
 extern int ASRallowed;
 extern int MaxAMServers;
@@ -71,12 +68,5 @@ class adv_daemon : public vproc {
 };
 
 void AdviceInit();
-extern void NotifyUsersOfServerBandwidthEvent(char *, long);
-extern void NotifyUsersOfServerDownEvent(char *);
-extern void NotifyUsersOfServerStrongEvent(char *);
-extern void NotifyUsersOfServerUpEvent(char *);
-extern void NotifyUsersOfServerWeakEvent(char *);
-extern void SwapProgramLogs();
-extern void SwapReplacementLogs();
 
 #endif /* _ADV_DAEMON_H_ */

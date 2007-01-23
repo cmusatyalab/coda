@@ -571,12 +571,6 @@ O_FreeLocks:
 
 		    LOG(0, ("VIOC_REPAIR: repvol::Repair returns %d\n",
 			    u.u_error));
-
-		    /* We don't have the object so can't provide a pathname
-		     * if ((SkkEnabled) && (u.u_error == 0)) {
-		     *   NotifyUsersObjectConsistent("???UNKNOWN???",fid);
-		     * } */
-
 #undef	RepairFile
 #undef	startp
 #undef	RWVols

@@ -269,9 +269,6 @@ void repvol::Reintegrate()
 Done:
     /* reset any errors, 'cause we can't leave errors just laying around */
     v->u.u_error = 0;
-
-    /* Let user know reintegration has completed */
-    /*   if (SkkEnabled) u->NotifyReintegrationCompleted(name); */
 }
 
 

@@ -90,8 +90,6 @@ int sftp_ackpoint = UNSET_AP;
 int sftp_packetsize = UNSET_PS;
 int rpc2_timeflag = UNSET_ST;
 int mrpc2_timeflag = UNSET_MT;
-unsigned long WCThresh = UNSET_WCT;  	/* in Bytes/sec */
-int WCStale = UNSET_WCS;	/* seconds */
 
 extern long RPC2_Perror;
 struct CommQueueStruct CommQueue;
@@ -123,9 +121,6 @@ void CommInit() {
 	srv_MultiStubWork[0].opengate = DFLT_MT;
     else
 	srv_MultiStubWork[0].opengate = mrpc2_timeflag;
-
-    if (WCThresh == UNSET_WCT) WCThresh = DFLT_WCT;
-    if (WCStale == UNSET_WCS) WCStale = DFLT_WCS;
 
     /* Sanity check COPModes. */
     if ( (ASYNCCOP1 && !ASYNCCOP2) ||
@@ -906,9 +901,7 @@ srvent::srvent(struct in_addr *Host, RealmId realm)
     connid = -1;
     Xbinding = 0;
     probeme = 0;
-    isweak = 0;
-    bw     = INIT_BW;
-    bwmax  = INIT_BW;
+    bw = INIT_BW;
     lastobs.tv_sec = lastobs.tv_usec = 0;
     VGAPlusSHA_Supported = 0;  /* default is old-style server */
     refcount = 1;
@@ -1180,15 +1173,15 @@ long srvent::GetBandwidth(unsigned long *Bandwidth)
 {
     long rc = 0;
     unsigned long oldbw = bw;
-    unsigned long bwmin;
+    unsigned long bwmin, bwmax;
 
-    LOG(1, ("srvent::GetBandwidth (%s) lastobs %ld.%06ld\n", 
+    LOG(1, ("srvent::GetBandwidth (%s) lastobs %ld.%06ld\n",
 	      name, lastobs.tv_sec, lastobs.tv_usec));
-    
+
     /* we don't have a real connid if the server is down or "quasi-up" */
-    if (connid <= 0) 
+    if (connid <= 0)
 	return(ETIMEDOUT);
-    
+
     /* retrieve the bandwidth information from RPC2 */
     if ((rc = RPC2_GetBandwidth(connid, &bwmin, &bw, &bwmax)) != RPC2_SUCCESS)
 	return(rc);
@@ -1198,25 +1191,12 @@ long srvent::GetBandwidth(unsigned long *Bandwidth)
     /* update last observation time */
     RPC2_GetLastObs(connid, &lastobs);
 
-    /*
-     * Signal if we've crossed the weakly-connected threshold. Note
-     * that the connection is considered strong until proven otherwise.
-     */
-    if (!isweak && bwmax < WCThresh) {
-	isweak = 1;
-	MarinerLog("connection::weak %s\n", name);
-        adv_mon.ServerConnectionWeak(name);
-    }
-    else if (isweak && bwmin > WCThresh) {
-	isweak = 0;
-	MarinerLog("connection::strong %s\n", name);
-        adv_mon.ServerConnectionStrong(name);
-    }
-
     *Bandwidth = bw;
-    if (bw != oldbw) {
-	MarinerLog("connection::bandwidth %s %d %d %d\n", name,bwmin,bw,bwmax);
-        adv_mon.ServerBandwidthEstimate(name, *Bandwidth);
+    /* only report new bandwidth estimate if it has changed by more than ~10% */
+    if ((bw > (oldbw + oldbw / 8)) || (bw < (oldbw - oldbw / 8)))
+    {
+	MarinerLog("connection::bandwidth %s %d %d %d\n", name, bwmin,bw,bwmax);
+	adv_mon.ServerBandwidthEstimate(name, *Bandwidth);
     }
     LOG(1, ("srvent::GetBandwidth (%s) returns %d bytes/sec\n",
 	      name, *Bandwidth));

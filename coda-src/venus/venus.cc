@@ -370,13 +370,6 @@ static void ParseCmdline(int argc, char **argv)
 		i++, COPModes = atoi(argv[i]);
 	    else if (STREQ(argv[i], "-maxworkers"))  /* number of worker threads */
 		i++, MaxWorkers = atoi(argv[i]);
-	    else if (STREQ(argv[i], "-weakthresh")) {   /* Threshold at which to go to weak mode */
-		WCThresh = atoi(argv[++i]);		/* in Bytes/sec */
-	    }
-	    else if (STREQ(argv[i], "-weakstale")) {   /* When estimates become too old */
-		extern int WCStale;
-		WCStale = atoi(argv[++i]);		/* in seconds */
-	    }
 	    else if (STREQ(argv[i], "-maxcbservers")) 
 		i++, MaxCBServers = atoi(argv[i]);
 	    else if (STREQ(argv[i], "-maxprefetchers")) /* max number of threads */
@@ -421,12 +414,6 @@ static void ParseCmdline(int argc, char **argv)
 		i++, FSO_MWT = atoi(argv[i]);
 	    else if (STREQ(argv[i], "-ssf"))         /* short term scale factor */
 		i++, FSO_SSF = atoi(argv[i]);
-	    else if (STREQ(argv[i], "-alpha"))	     /* patience ALPHA value */
-		i++, PATIENCE_ALPHA = atoi(argv[i]);
-	    else if (STREQ(argv[i], "-beta"))	     /* patience BETA value */
-		i++, PATIENCE_BETA = atoi(argv[i]);
-	    else if (STREQ(argv[i], "-gamma"))	     /* patience GAMMA value */
-		i++, PATIENCE_GAMMA = atoi(argv[i]);
 	    else if (STREQ(argv[i], "-primaryuser")) /* primary user of this machine */
 		i++, PrimaryUser = atoi(argv[i]);
 	    else if (STREQ(argv[i], "-von"))

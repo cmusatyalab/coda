@@ -54,8 +54,6 @@ extern "C" {
 
 /* from venus */
 #include "advice.h"
-#include "adv_monitor.h"
-#include "adv_daemon.h"
 #include "fso.h"
 #include "hdb.h"
 #include "local.h"
@@ -749,40 +747,10 @@ RestartFind:
 	    /* If we want data and we don't have any then fetch new stuff. */
 	    /* we have to re-check FETCHABLE because it may have changed as
 	       a result of the inconsistent object manipulation above. */
-	    if (getdata && FETCHABLE(f) && !f->IsFake() && !HAVEALLDATA(f)) {
-		/* Turn off advice effects for the time being  -Remi
-		   CacheMissAdvice advice = CoerceToMiss; */
-		CacheMissAdvice advice = FetchFromServers;
-
-		if (f->vol->IsWeaklyConnected()) {
-		    char pathname[MAXPATHLEN];
-		    int hoard_priority = 0;
-
-		    if (f->HoardPri > 0)
-			hoard_priority = f->HoardPri;
-		    else {
-			f->GetPath(pathname);
-			hoard_priority = HDB->GetSuspectPriority(MakeVolid(&f->fid), pathname, uid);
-		  }
-
-		  int estimatedCost = f->EstimatedFetchCost();
-		  /* If the fetch will take too long, coerce the request into a miss */
-		  if (f->PredetermineFetchState(estimatedCost, hoard_priority) != 1) {
-			advice = f->WeaklyConnectedCacheMiss(vp, uid);
-			if (advice == CoerceToMiss) {
-			  Put(&f);
-			  LOG(0, ("Weak Miss Coersion:\n\tObject:  %s <%s>\n\tEstimated Fetch Cost:  %d seconds\n\tReturn code:  EFBIG\n",
-					  comp, FID_(key), estimatedCost));
-			  MarinerLog("Weak Miss Coersion on %s <%s>\n",
-						 comp, FID_(key));
-			  return(EFBIG);
-			}
-		  }
-		  /* Otherwise, let fsdb::Get go ahead and fetch the object */
-		}
-		
+	    if (getdata && FETCHABLE(f) && !f->IsFake() && !HAVEALLDATA(f))
+	    {
 		int nblocks = BLOCKS(f);
-		
+
 		/* If we haven't got any data yet, allocate enough for the
 		 * whole file. When we have a partial file, we should
 		 * already have reserved enough blocks. */
@@ -792,28 +760,6 @@ RestartFind:
 			Put(&f);
 			return(code);
 		  }
-		}
-		
-		/* Make cache misses non-transparent. */
-		if (advice == CoerceToMiss)
-		  advice = f->ReadDisconnectedCacheMiss(vp, uid);
-		switch (advice) {
-		case FetchFromServers:
-		  LOG(10, ("The advice was to ReadDiscFetch --> Fetching.\n"));
-		  break;
-		case CoerceToMiss:
-		  LOG(0, ("Read Disconnected Miss Coersion:\n\tObject:  %s <%s>\n\tReturn code:  EFBIG\n", 
-				  comp, FID_(key)));
-		  MarinerLog("Read Disconnected Miss Coersion on %s <%s>\n",
-					 comp, FID_(key));
-		  /* We have to release any previously allocated
-		   * cachespace */
-		  FreeBlocks(-nblocks);
-		  Put(&f);
-		  return(ETIMEDOUT);
-		default:
-		  LOG(0, ("The advice was Unrecognized --> Fetching anyway.\n"));
-		  break;
 		}
 		
 		/* compensate # blocks for the amount we already have.
@@ -1326,8 +1272,6 @@ void fsdb::ReclaimFsos(int priority, int count) {
 	    UpdateCacheStats((f->IsDir() ? &DirDataStats : &FileDataStats),
 			     REPLACE, BLOCKS(f));
 
-        f->RecordReplacement(TRUE, HAVEDATA(f));
-
 	f->Kill();
 	f->GC();
 
@@ -1454,8 +1398,6 @@ void fsdb::ReclaimBlocks(int priority, int nblocks) {
 		   f->GetComp(), f->priority, ufs_blocks);
 	UpdateCacheStats((f->IsDir() ? &DirDataStats : &FileDataStats),
 			 REPLACE, BLOCKS(f));
-
-        f->RecordReplacement(FALSE, TRUE);
 
 	f->DiscardData();
 

@@ -117,8 +117,6 @@ static int MetaNameCtxts = 0;		    /* number of outstanding meta name-ctxts */
 static int MetaExpansions = 0;		    /* number of meta-expansions performed */
 
 
-static int ReceivedAdvice;
-
 extern int SearchForNOreFind;
 
 
@@ -432,219 +430,6 @@ long hdb::GetDemandWalkTime() {
   return(HDB->TimeOfLastDemandWalk);
 }
 
-int hdb::MakeAdviceRequestFile(char *HoardListFileName) {
-    FILE *HoardListFILE;
-
-    HoardListFILE = fopen(HoardListFileName, "w");
-    if (HoardListFILE == NULL) {
-      LOG(0, ("hdb::MakeAdviceRequestFile: failed to open %s (errno=%d)\n", HoardListFileName, errno));
-      return(-1);
-    }
-
-    /* Generate the initial cache state statistics */
-    fprintf(HoardListFILE, "Cache Space Allocated: %d files (%d blocks)\n", 
-	FSDB->MaxFiles, FSDB->MaxBlocks);
-    fprintf(HoardListFILE, "Cache Space Occupied: %d files (%d blocks)\n",
-	(FSDB->htab).count(), FSDB->blocks);
-
-    /* get avg speed of net to servers */
-    /* this should be for only those servers represented in hdb! */
-    unsigned long bw = 0;
-    {
-	unsigned long sum = 0;
-	int nservers = 0; 
-	srv_iterator next;
-	srvent *s;
-	while ((s = next())) {
-	    (void) s->GetBandwidth(&bw);
-	    sum += bw;
-	    nservers++;
-	}
-	if (nservers) bw = sum/nservers;
-    }
-
-    if (bw != 0)
-	fprintf(HoardListFILE, "Speed of Network Connection = %ld Bytes/sec\n",
-		bw);
-    else
-        fprintf(HoardListFILE, "Speed of Network Connection = unknown\n");
-
-    /* Create the list of fsobjs to be sent to the advice monitor */
-    VprocYield();
-  {
-      char ObjWithinVolume[256];
-      bstree_iterator next(*FSDB->prioq, BstDescending);
-      bsnode *b = 0;
-      int estimatedCost;
-      char estimatedCostString[16];
-      int estimatedBlockDiff;
-      int invalid = 0;
-      int valid = 0;
-      int canask = 0;
-      int cannotask = 0;
-      int nonempty = 0;
-      int numIterations = 0;
-
-      while ((b = next())) {
-	numIterations++;
-        fsobj *f = strbase(fsobj, b, prio_handle);
-	CODA_ASSERT(f != NULL);
-
-        if (!HOARDABLE(f) || DATAVALID(f)) { invalid++; continue; }
-
-	valid++;
-
-	estimatedCost = f->EstimatedFetchCost();
-        if (estimatedCost == -1)
-  	    sprintf(estimatedCostString, "??");
-	else
-	    sprintf(estimatedCostString, "%d", estimatedCost);
-
-	/* Calculate the block difference between the old and new data (new-old)*/
-	estimatedBlockDiff = BLOCKS(f) - NBLOCKS(f->cf.Length());
-
-        f->GetPath(ObjWithinVolume, 1);
- 
-	if (f->IsAskingAllowed()) {
-	    canask++;
-    	    switch (f->PredetermineFetchState(estimatedCost, f->HoardPri)) {
-  	        case -1:	
-		    /* Determine object should NOT be fetched. */
-		    f->SetFetchAllowed(HF_DontFetch);
-        	    fprintf(HoardListFILE, "%s & -1 & %s & %d & %s & %d\n", FID_(&f->fid), ObjWithinVolume, f->HoardPri, estimatedCostString, estimatedBlockDiff);
-		    break;
-	        case 0:
-		    /* Cannot determine automatically; give user choice.*/
-                    f->SetFetchAllowed(HF_DontFetch);
-        	    fprintf(HoardListFILE, "%s & 0 & %s & %d & %s & %d\n", FID_(&f->fid), ObjWithinVolume, f->HoardPri, estimatedCostString, estimatedBlockDiff);
-		    nonempty++;
-		    break;
-	        case 1:
-		    /* Determine object should DEFINITELY be fetched. */
-		    f->SetFetchAllowed(HF_Fetch);
-		    fprintf(HoardListFILE, "%s & 1 & %s & %d & %s & %d\n", FID_(&f->fid), ObjWithinVolume, f->HoardPri, estimatedCostString, estimatedBlockDiff);
-		    nonempty++;
-		    break;
- 	        default:
-		    // PredetermineFetchState must be broken
-		    CODA_ASSERT(1 == 0);
-		    break;
-	    }
-
-            /* 
-             * If we are not allowed to ask the user, the user has chosen that this
-             * object should always be fetched or always not be fetched.  Thus, we 
-             * simply go with whatever FetchAllowed is set to and we don't need to
-             * call PredetermineFetchState..
-             */
-        } else { cannotask++; }
-
-	if ((numIterations & 100) == 0) {
-	    LOG(0, ("About to yield (live dangerously)\n"));
-	    VprocYield();
-	    LOG(0, ("Returned from dangerous yield\n"));
-	}
-
-      }
-    VprocYield();
-
-    if (!nonempty) return(-1);
-  }
-    fflush(HoardListFILE);
-    fclose(HoardListFILE);
-
-    return(0);
-}
-
-/* Getting rid of this expensive no-op.   -Remi  */
-#if 0
-void hdb::RequestHoardWalkAdvice() {
-    FILE *HoardAdviceFILE;
-    char HoardAdviceFileName[256];
-    char HoardListFileName[256];
-    userent *u;
-    VenusFid fid;
-    fsobj *g;
-    int rc;
-
-    ReceivedAdvice = 0;
-
-    /* Can only solicit advice if root or authorized user. */ 
-    if (SolicitAdvice != V_UID && !AuthorizedUser(SolicitAdvice)) {
-        LOG(0, ("hdb::RequestHoardWalkAdvice(): (%d) not authorized\n", SolicitAdvice));
-        return;
-    }
-
-    /* Ensure that we can request advice and that the user is running an advice monitor */
-    GetUser(&u, realm, SolicitAdvice);
-    CODA_ASSERT(u != NULL);
-    if (!SkkEnabled) {
-        LOG(200, ("ADMON STATS:  HW Advice NOT enabled.\n"));
-        return;
-    }
-    if (!(u->ConnValid())) {
-        LOG(200, ("ADMON STATS:  HW Advice NOT valid. (uid = %d)\n", SolicitAdvice));
-        return;
-    }
-
-    /* Generate filenames for the list of fsobj and the resulting advice */
-    sprintf(HoardListFileName, "%s%d", HOARDLIST_FILENAME, NumHoardWalkAdvice);
-    sprintf(HoardAdviceFileName, "%s%d", HOARDADVICE_FILENAME, NumHoardWalkAdvice++);
-
-    /* Make the file containing our questions to give the the advice monitor */
-    rc = MakeAdviceRequestFile(HoardListFileName);
-    if (rc == -1) return;
-
-    /* Trigger the advice monitor */
-    u->RequestHoardWalkAdvice(HoardListFileName, HoardAdviceFileName);
-
-    /* Deal with the advice and continue our walk */
-    HoardAdviceFILE = fopen(HoardAdviceFileName, "r");
-    if (HoardAdviceFILE == NULL) {
-        /* What to do if there is no resulting advice? */
-        LOG(0,("RequestHoardWalkAdvice:: No advice!\n"));
-	return;
-    }
-    
-    while (!feof(HoardAdviceFILE)) {
-	int ask_state;
-#warning "hoardadvicefile"
-        fscanf(HoardAdviceFILE, "%lx.%lx.%lx.%lx %d\n", &(fid.Realm), &(fid.Volume), &(fid.Vnode), &(fid.Unique), &ask_state);
-        g = FSDB->Find(&fid);
-        if (g == NULL) 
-            continue;   // The object has appearently disappeared...
-        else {
-            if (ask_state == 2) {
-	      LOG(200, ("RequestHoardWalkAdvice: setting %s to fetch, but don't ask\n", FID_(&fid)));
-                g->SetAskingAllowed(HA_DontAsk);
-                g->SetFetchAllowed(HF_Fetch);
-            } else if (ask_state == 1) {
-	      LOG(200, ("RequestHoardWalkAdvice: setting %s to don't fetch/don't ask\n", FID_(&fid)));
-	      g->SetAskingAllowed(HA_DontAsk);
-	      g->SetFetchAllowed(HF_DontFetch);
-            } else if (ask_state == 0) {
-	      LOG(200, ("RequestHoardWalkAdvice: setting %s to fetch\n", FID_(&fid)));
-	      g->SetFetchAllowed(HF_Fetch);
-            } else if (ask_state == 3) {
-	      LOG(200, ("RequestHoardWalkAdvice: setting %s to don't fetch\n", FID_(&fid)));
-	      g->SetFetchAllowed(HF_DontFetch);
-	    } else {
-	      LOG(0, ("RequestHoardWalkAdvice: Unrecognized result of %d from advice monitor for %s (will fetch anyway)\n", ask_state, FID_(&fid)));
-	      g->SetFetchAllowed(HF_Fetch);
-	    }
-        }
-
-	// This yield is safe.
-	// We are finished using g and depend only upon our input file,
-	// which nobody else is mucking around with.
-	VprocYield();
-    }
-    fclose(HoardAdviceFILE);
-
-    ReceivedAdvice = 1;
-}
-#endif
-
 /* Ensure status is valid for all cached objects. */
 void hdb::ValidateCacheStatus(vproc *vp, int *interrupt_failures, int *statusBytesFetched) {
     int validations = 0;
@@ -744,57 +529,6 @@ void hdb::ListPriorityQueue() {
 	namectxt *n = strbase(namectxt, b, prio_handle);
 	n->print(logFile);
     }
-}
-
-int hdb::GetSuspectPriority(Volid *vid, char *pathname, uid_t uid)
-{
-    char *lastslash;
-    bstree_iterator next(*prioq, BstDescending);
-    bsnode *b;
-
-    LOG(100, ("hdb::GetSuspectPriority: vid = %x.%x, pathname = %s, uid = %d\n",
-	      vid->Realm, vid->Volume, pathname, uid));
-    fflush(logFile);
-
-    /* make a prefix for testing child expansions */
-    char parentpath[CODA_MAXPATHLEN];
-    (void) strncpy(parentpath, pathname, strlen(pathname));
-    lastslash = rindex(parentpath, '/');
-    if (lastslash != 0) *lastslash = '\0';
-
-    while ((b = next())) {
-	namectxt *n = strbase(namectxt, b, prio_handle);
-	if (LogLevel >= 100) { n->print(logFile); fflush(logFile); }
-	if (n->cdir.Realm == vid->Realm &&
-	    n->cdir.Volume == vid->Volume &&
-	    ((n->uid == uid) || (n->uid == ANYUSER_UID))) {
-	    /* First, deal with direct match */
-	    if (STREQ(n->path, pathname)) {
-		fflush(logFile);
-		LOG(100, ("We found a direct match! priority = %d\n", n->priority));
-		return(n->priority);
-	    }
-
-	    /* Second, deal with descendent expansion. */
-	    if (STRNEQ(n->path, pathname, strlen(n->path)) &&
-		n->expand_descendents)
-	    {
-		fflush(logFile);
-		LOG(100, ("We found a descendant match! priority = %d\n", n->priority));
-		return(n->priority);
-	    }
-
-	    /* Finally, deal with children expansion. */
-	    if (STRNEQ(n->path, pathname, strlen(parentpath)) &&
-		n->expand_children)
-	    {
-		fflush(logFile);
-		LOG(100, ("We found a children match! priority = %d\n", n->priority));
-		return(n->priority);
-	    }
-        }
-    }
-    return(0);
 }
 
 /* Walk the priority queue.  Enter clean-up mode upon ENOSPC failure. */
@@ -977,12 +711,6 @@ void hdb::DataWalk(vproc *vp, int TotalBytesToFetch, int BytesFetched) {
 	      TallyAllHDBentries(f->hdb_bindings, blocks, TSavailable);
 	      continue;
 	    }
-	    if ((ReceivedAdvice) && (!f->IsFetchAllowed())) {
-	      LOG(200, ("UNAVAILABLE (fetch not allowed):  fid=<%s> comp=%s priority=%d blocks=%d\n", 
-		      FID_(&f->fid), f->comp, f->priority, blocks));
-	      TallyAllHDBentries(f->hdb_bindings, blocks, TSunavailable);
-	      continue;
-	    }
 
 	    /* Set up uarea. */
 	    vp->u.Init();
@@ -1079,13 +807,6 @@ void hdb::DataWalk(vproc *vp, int TotalBytesToFetch, int BytesFetched) {
 	      LOG(200, ("AVAILABLE:  fid=<%s> comp=%s priority=%d blocks=%d\n", 
 			FID_(&f->fid), f->comp, f->priority, blocks));
 	      TallyAllHDBentries(f->hdb_bindings, blocks, TSavailable);
-	      continue;
-	    }
-
-	    if ((ReceivedAdvice) && (!f->IsFetchAllowed())) {
-	      LOG(200, ("UNAVAILABLE:  fid=<%s> comp=%s priority=%d blocks=%d\n", 
-			FID_(&f->fid), f->comp, f->priority, blocks));
-	      TallyAllHDBentries(f->hdb_bindings, blocks, TSunavailable);
 	      continue;
 	    }
 

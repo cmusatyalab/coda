@@ -81,9 +81,6 @@ extern void ConnPrint(int);
 extern void ServerPrint();
 extern void ServerPrint(FILE *);
 
-extern unsigned long WCThresh;
-
-
 /*  *****  Constants  *****  */
 
 const int DFLT_RT = 5;			    /* rpc2 retries */
@@ -246,9 +243,8 @@ class srvent : private RefCountedObject {
     RPC2_Handle	connid;		/* The callback connid. */
     unsigned Xbinding : 1;	/* 1 --> BINDING, 0 --> NOT_BINDING */
     unsigned probeme : 1;	/* should ProbeD probe this server? */
-    unsigned isweak : 1;	/* is this server considered weak */
+    unsigned unused : 1;
     unsigned long bw;		/* bandwidth estimate, Bytes/sec */
-    unsigned long bwmax;	/* max bandwidth estimate, Bytes/sec */
     struct timeval lastobs;	/* time of most recent estimate */
   
     /* Constructors, destructors, and private utility routines. */
@@ -283,7 +279,6 @@ class srvent : private RefCountedObject {
     void ServerUp(RPC2_Handle);
     int	ServerIsDown() { return(connid == 0); }
     int ServerIsUp() { return(connid != 0); }
-    int ServerIsWeak() { return (connid && isweak); }
     /* quasi-up != up */
 
     const char *Name(void) { return name; }
@@ -375,16 +370,17 @@ extern struct CommQueueStruct CommQueue;
 
 /*
  * The CommQueue summarizes outstanding RPC traffic for all threads.
- * Threads servicing requests for weakly connected volumes defer to 
- * higher priority threads before using the network.  Note that Venus
- * cannot determine the location of a network bottleneck.  Therefore,
- * it conservatively assumes that all high priority requests are 
- * sources of interference.   Synchronization could be finer, currently 
- * all waiters are awakened instead of the highest priority ones. 
+ * Threads servicing requests defer to higher priority threads before
+ * using the network. Note that Venus cannot determine the location of a
+ * network bottleneck. Therefore, it conservatively assumes that all
+ * high priority requests are sources of interference. Synchronization
+ * could be finer, currently all waiters are awakened instead of the
+ * highest priority ones.
  */
+#define COMM_YIELD 1
 #define START_COMMSYNC()\
 {   vproc *vp = VprocSelf();\
-    if (vp->u.u_vol && vp->u.u_vol->IsWeaklyConnected()) {\
+    if (COMM_YIELD) {\
 	int pri = LWP_MAX_PRIORITY;\
 	while (pri > vp->lwpri) {\
 	    if (CommQueue.count[pri]) { /* anyone bigger than me? */\
@@ -393,7 +389,7 @@ extern struct CommQueueStruct CommQueue;
 		START_TIMING();\
 		VprocWait(&CommQueue.sync);\
 		END_TIMING();\
-                LOG(0, ("WAIT OVER, elapsed = %3.1f\n", elapsed));\
+		LOG(0, ("WAIT OVER, elapsed = %3.1f\n", elapsed));\
 		pri = LWP_MAX_PRIORITY;\
 	    } else {\
 		pri--;\
