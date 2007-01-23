@@ -186,7 +186,7 @@ class ClientModifyLog {
     void ClearToBeRepaired(); /* must not be called within transaction! */
     void CancelStores();
 
-    void GetReintegrateable(int, int *);
+    int GetReintegrateable(int, unsigned long *, int *);
     cmlent *GetFatHead(int);
 
     /* Call to set/clear flags for whether it's safe to cancel frozen entries */
@@ -379,7 +379,7 @@ class cmlent {
     int cancelstore();
     int Aged();
     unsigned long ReintTime(unsigned long bw);
-    unsigned long ReintAmount();
+    unsigned long ReintAmount(unsigned long *reint_time);
 
     int Freeze();
     int IsReintegrating();
@@ -392,7 +392,7 @@ class cmlent {
     int DoneSending();
     int GetReintegrationHandle();
     int ValidateReintegrationHandle();
-    int WriteReintegrationHandle();
+    int WriteReintegrationHandle(unsigned long *reint_time);
     int CloseReintegrationHandle(char *, int, ViceVersionVector *);
 
     /* Routines for handling inconsistencies and safeguarding against catastrophe! */
@@ -827,7 +827,7 @@ class repvol : public volent {
     /* Reintegration routines. */
     void Reintegrate();
     int IncReintegrate(int);
-    int PartialReintegrate(int);
+    int PartialReintegrate(int, unsigned long *reint_time);
     void SetReintegratePending();
     void CheckReintegratePending();
     int IsReintegratePending() { return flags.reintegratepending; }

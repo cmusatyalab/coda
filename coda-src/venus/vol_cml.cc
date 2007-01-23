@@ -293,14 +293,16 @@ void cmlent::Thaw()
  * tid. Note the time limit does not apply to ASRs.
  * The routine returns the number of records marked.
  */
-void ClientModifyLog::GetReintegrateable(int tid, int *nrecs)
+int ClientModifyLog::GetReintegrateable(int tid, unsigned long *reint_time,
+					int *nrecs)
 {
     repvol *vol = strbase(repvol, this, CML);
     cmlent *m;
     cml_iterator next(*this, CommitOrder);
-    unsigned long cur_reintegration_time = 0, this_time;
+    unsigned long this_time;
     unsigned long bw; /* bandwidth in bytes/sec */
     int err;
+    int done = 1;
 
     *nrecs = 0;
 
@@ -312,8 +314,10 @@ void ClientModifyLog::GetReintegrateable(int tid, int *nrecs)
 	/* this has to be matched by a similar (but inverse) test in
 	 * PartialReintegrate, otherwise we would never be able to
 	 * reintegrate the Store operation */
-	if (!allow_backfetch && m->opcode == CML_Store_OP)
+	if (!allow_backfetch && m->opcode == CML_Store_OP) {
+	    done = 0;
 	    break;
+	}
 
 	if (!m->ReintReady())
 	    break;
@@ -323,9 +327,9 @@ void ClientModifyLog::GetReintegrateable(int tid, int *nrecs)
 	/* Only limit reintegration time when we are not forcing a
 	 * synchronous reintegration and and we have at least
 	 * one CML entry queued. --JH */
-	if (!vol->flags.sync_reintegrate && *nrecs &&
-	    (this_time + cur_reintegration_time > vol->ReintLimit))
-		break;
+	if (!vol->flags.sync_reintegrate && *nrecs && this_time > *reint_time)
+	    break;
+
 	/*
 	 * freeze the record to prevent cancellation.  Note that
 	 * reintegrating --> frozen, but the converse is not true.
@@ -343,18 +347,20 @@ void ClientModifyLog::GetReintegrateable(int tid, int *nrecs)
 	 * Here the tid is transient.
 	 */
 	m->tid = tid;
-	cur_reintegration_time += this_time;
+	*reint_time -= this_time;
 
 	/*
 	 * By sending records in blocks of 100 CMLentries, we avoid
 	 * overloading the server. JH
 	 */
-	if (++(*nrecs) == 100)
+	if (++(*nrecs) == 100) {
+	    done = 0;
 	    break;
+	}
     }
 
-    LOG(0, ("ClientModifyLog::GetReintegrateable: (%s, %d) %d records, %d msec\n",
-	vol->name, tid, *nrecs, cur_reintegration_time));
+    LOG(0, ("ClientModifyLog::GetReintegrateable: (%s, %d) %d records, %d msec remaining", vol->name, tid, *nrecs, *reint_time));
+    return done;
 }
 
 
@@ -2853,14 +2859,18 @@ Exit:
 }
 
 
-int cmlent::WriteReintegrationHandle()
+int cmlent::WriteReintegrationHandle(unsigned long *reint_time)
 {
     CODA_ASSERT(opcode == CML_Store_OP);
     repvol *vol = strbase(repvol, log, CML);
     int code = 0, fd = -1;
     connent *c = 0;
     fsobj *f = NULL;
-    RPC2_Unsigned length = ReintAmount();
+    RPC2_Unsigned length = ReintAmount(reint_time);
+
+    /* stop reintegration loop if we ran out of available reintegration time */
+    if (length == 0 && u.u_store.Offset != u.u_store.Length)
+	return ERETRY;
 
     /* Acquire a connection. */
     srvent *s = GetServer(&u.u_store.ReintPH, vol->GetRealmId());
@@ -3933,7 +3943,7 @@ unsigned long cmlent::ReintTime(unsigned long bw) {
 }
 
 
-unsigned long cmlent::ReintAmount()
+unsigned long cmlent::ReintAmount(unsigned long *reint_time)
 {
     repvol *vol = strbase(repvol, log, CML);
     unsigned long amount, offset;
@@ -3941,21 +3951,22 @@ unsigned long cmlent::ReintAmount()
 
     CODA_ASSERT(opcode == CML_Store_OP);
 
-    /* 
+    /*
      * try to get a dynamic bw estimate.  If that doesn't
      * work, fall back on the static estimate.
      */
     vol->GetBandwidth(&bw);
+    bw /= 8; /* scaled to reduce overflows */
 
-    if (bw > 0) 
-	amount = vol->ReintLimit/1000 * bw;
-    else
-	amount = u.u_store.Length;
+    //amount = (*reint_time / 1000) * bw;
+    amount = (bw > 0) ? (*reint_time / 125) * bw : u.u_store.Length;
 
     offset = u.u_store.Offset != (unsigned)-1 ? u.u_store.Offset : 0;
     if (offset + amount > u.u_store.Length)
 	amount = u.u_store.Length - offset;
 
+    //*reint_time -= (amount / bw) * 1000;
+    *reint_time -= (bw > 0) ? (amount * 125) / bw : 0;
     return amount;
 }
 

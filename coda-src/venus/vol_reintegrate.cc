@@ -113,6 +113,10 @@ void repvol::Reintegrate()
     CML.CancelStores();
 
     int nrecs, startedrecs, thisTid, code = 0;
+    int stop_loop;
+
+    /* remaining reintegration time (msec) */
+    unsigned long reint_time = ReintLimit;
 
     /* We do the actual reintegration steps in a loop, as we reintegrate in
      * blocks of 100 cmlents. JH */
@@ -125,7 +129,7 @@ void repvol::Reintegrate()
          * step 2. Attempt to do partial reintegration for big stores at
          * the head of the CML.
          */
-	code = PartialReintegrate(thisTid);
+	code = PartialReintegrate(thisTid, &reint_time);
 
         /* PartialReintegrate returns ENOENT when there was no CML entry
          * available for partial reintegration */
@@ -142,7 +146,7 @@ void repvol::Reintegrate()
          * step 3.
          * scan the log, gathering records that are ready to to reintegrate.
          */
-        CML.GetReintegrateable(thisTid, &nrecs);
+        stop_loop = CML.GetReintegrateable(thisTid, &reint_time, &nrecs);
 
         /* nothing to reintegrate? jump out of the loop! */
         if (nrecs == 0) break;
@@ -168,7 +172,7 @@ void repvol::Reintegrate()
      * but we don't want to interfere with trickle reintegration so we test
      * whether a full block has been sent (see also cmlent::GetReintegrateable)
      */
-    } while(code == 0 && ((flags.sync_reintegrate && nrecs) || nrecs == 100));
+    } while (code == 0 && !stop_loop);
 
     flags.reintegrating = 0;
 
@@ -489,7 +493,7 @@ extern struct timeval *VprocRetryBeta;
  * Reintegrate some portion of the store record at the head
  * of the log.
  */
-int repvol::PartialReintegrate(int tid)
+int repvol::PartialReintegrate(int tid, unsigned long *reint_time)
 {
     cmlent *m;
     int code = 0;
@@ -528,8 +532,8 @@ int repvol::PartialReintegrate(int tid)
 
     /* send some file data to the server */
     {
-	while (!m->DoneSending() && (code == 0)) 
-	    code = m->WriteReintegrationHandle();
+	while (!m->DoneSending() && (code == 0))
+	    code = m->WriteReintegrationHandle(reint_time);
 
 	if (code != 0) goto CheckResult;
     }
