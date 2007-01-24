@@ -1095,7 +1095,7 @@ int volent::Enter(int mode, uid_t uid)
 		    /* Continue using the volume if possible. */
 		    /* We might need to do something about fairness here
 		     * eventually! -JJK */
-		    if (rv->GetCML()->Owner()) {
+		    if (rv->GetCML()->Owner() == uid) {
                         if (mutator_count == 0 && rv->GetCML()->count() == 0 &&
                             !rv->IsReintegrating())
 			    { print(logFile); CHOKE("volent::Enter: mutating, CML owner == %d\n", rv->GetCML()->Owner()); }
