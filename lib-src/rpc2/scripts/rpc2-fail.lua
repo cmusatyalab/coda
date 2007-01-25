@@ -17,7 +17,7 @@ function slow(queue)
     local drained = time()
     return function (addr, size, color)
 	-- packet loss
-	if math.random() < loss then return nil end
+	if math.random() < packet_loss then return nil end
 
 	-- bandwidth delay
 	local now = time()

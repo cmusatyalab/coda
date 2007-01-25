@@ -70,6 +70,8 @@ static int print(lua_State *L)
  * By making the following 3 functions non-static, this could also
  * be part of a separate library.
  ********************************************************************/
+#define RPC2_TIMEVAL "RPC2.timeval" /* type identifier */
+
 static int l2c_timeval_init(lua_State *L);
 static int l2c_pushtimeval(lua_State *L, struct timeval *tv);
 static void l2c_totimeval(lua_State *L, int index, struct timeval *tv);
@@ -239,9 +241,24 @@ static int l2c_pushtimeval(lua_State *L, struct timeval *tv)
     struct timeval *ud = lua_newuserdata(L, sizeof(struct timeval));
     ud->tv_sec = tv->tv_sec;
     ud->tv_usec = tv->tv_usec;
-    luaL_getmetatable(L, "RPC2.timeval");
+    luaL_getmetatable(L, RPC2_TIMEVAL);
     lua_setmetatable(L, -2);
     return 1;
+}
+
+/* similar to checkudata, but doesn't raise an error but returns NULL */
+void *l2c_getudata(lua_State *L, int index, char *type)
+{
+    void *p = lua_touserdata(L, index);
+    if (p == NULL || !lua_getmetatable(L, index))
+	return NULL;
+
+    lua_getfield(L, LUA_REGISTRYINDEX, type);
+    if (!lua_rawequal(L, -1, -2))
+	p = NULL;
+
+    lua_pop(L, 2);
+    return p;
 }
 
 static void l2c_totimeval(lua_State *L, int index, struct timeval *tv)
@@ -249,6 +266,7 @@ static void l2c_totimeval(lua_State *L, int index, struct timeval *tv)
     struct timeval *ud;
     lua_Number val;
 
+    tv->tv_sec = tv->tv_usec = 0;
     if (lua_isnumber(L, index)) {
 	val = lua_tonumber(L, index);
 
@@ -256,16 +274,18 @@ static void l2c_totimeval(lua_State *L, int index, struct timeval *tv)
 	val -= tv->tv_sec;
 	tv->tv_usec = (int)floor(1000000 * val);
 	if (tv->tv_usec < 0) { tv->tv_usec += 1000000; tv->tv_sec--; };
-    } else {
-	ud = luaL_checkudata(L, index, "RPC2.timeval");
-	tv->tv_sec = ud->tv_sec;
-	tv->tv_usec = ud->tv_usec;
+    } else if (lua_isuserdata(L, index)) {
+	ud = l2c_getudata(L, index, RPC2_TIMEVAL);
+	if (ud) {
+	    tv->tv_sec = ud->tv_sec;
+	    tv->tv_usec = ud->tv_usec;
+	}
     }
 }
 
 static int l2c_timeval_init(lua_State *L)
 {
-    luaL_newmetatable(L, "RPC2.timeval");
+    luaL_newmetatable(L, RPC2_TIMEVAL);
     luaL_openlib(L, NULL, timeval_m, 0);
     lua_register(L, "time", timeval_new);
     return 1;
@@ -488,15 +508,13 @@ int LUA_fail_delay(struct RPC2_addrinfo *Addr, RPC2_PacketBuffer *pb, int out,
     lua_pushinteger(L, color);
     if (lua_pcall(L, 3, 2, 0)) { badscript(); return 0; }
 
-    if (lua_isnil(L, -2))
-	rc = -1;	 /* drop packet */
-
-    else {
+    if (!lua_isnil(L, -2)) {
 	l2c_totimeval(L, -2, tv); /* delay packet */
 	rc = (tv->tv_sec >= 0);
-    }
+    } else
+	rc = -1;		  /* drop packet */
 
-    if (!lua_isnil(L, -1)) { /* not nil, set new color value */
+    if (lua_isnumber(L, -1)) { /* not nil, set new color value */
 	color = lua_tointeger(L, -1);
 	SetPktColor(pb, color);
     }
