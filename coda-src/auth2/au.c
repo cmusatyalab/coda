@@ -93,7 +93,7 @@ static RPC2_Handle AuthCid;
 int main(int argc, char **argv)
 {
     struct RPC2_addrinfo *srvs = NULL;
-    char *realm;
+    char *realm = NULL;
     int rc;
     char MyViceName[PRS_MAXNAMELEN];
     char MyPassword[100];
