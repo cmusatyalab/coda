@@ -36,11 +36,11 @@ listed in the file CREDITS.
  *    the next state table are: (there are some caveats, which are
  *    discussed prior to the TakeTransition function)
  *
- *    Disconnected	(D)	(|AVSG| == 0) ? D : (res_cnt > 0) ? R : W
+ *    Unreachable	(D)	(|AVSG| == 0) ? D : (res_cnt > 0) ? R : W
  *    Resolving		(R)	(|AVSG| == 0) ? D : (res_cnt > 0) ? R : W
- *    WriteDisconnected (W)     (|AVSG| == 0) ? D : (res_cnt > 0) ? R : W
+ *    Reachable		(W)     (|AVSG| == 0) ? D : (res_cnt > 0) ? R : W
  *
- *    State is initialized to WriteDisconnected at startup.
+ *    State is initialized to Reachable at startup.
  *
  *    In this state, cache misses may be serviced, but modify activity is
  *    recorded in the CML. Resolution must be permitted in logging state
@@ -80,8 +80,8 @@ listed in the file CREDITS.
  *        - the middle layer, CFS, acquires and performs Vice
  *        operations on fsobjs.  A CFS call uses an fsobj if it is
  *        valid.  An object is valid if it has a callback, is
- *        read-only, or if the volume is currently in disconnected
- *        mode (i.e., state = Disconnected).  The CFS call attempts to
+ *        read-only, or if the volume is currently unreachable
+ *        (i.e., state = Unreachable).  The CFS call attempts to
  *        validate the object (by fetching status and/or data) if it
  *        is invalid and the volume is connected.
  *        Mutating operations are recorded on a (per-volume) ModifyLog.
@@ -103,7 +103,7 @@ listed in the file CREDITS.
  *        bounds.
  *
  *
- *    A volume in {Disconnected, WriteDisconnected} state may be entered
+ *    A volume in {Unreachable, Reachable} state may be entered
  *    in either Mutating or Observing mode. There may be only one
  *    mutating user in a volume at a time, although that user may have
  *    multiple mutating threads.  Observers do not conflict with each
@@ -864,7 +864,7 @@ volent::volent(Realm *r, VolumeId volid, const char *volname)
 /* local-repair modification */
 void volent::ResetVolTransients()
 {
-    state = WriteDisconnected;
+    state = Reachable;
     observer_count = 0;
     mutator_count = 0;
     waiter_count = 0;
@@ -1028,7 +1028,7 @@ int volent::Enter(int mode, uid_t uid)
      * only if a request arrives in the next few (5) seconds!
      */
     vproc *vp = VprocSelf();
-    if (VCBEnabled && IsReplicated() && IsWriteDisconnected() &&
+    if (VCBEnabled && IsReplicated() && IsReachable() &&
         ((repvol *)this)->WantCallBack())
     {
         repvol *rv = (repvol *)this;
@@ -1233,9 +1233,9 @@ void volent::Exit(int mode, uid_t uid)
                 !((repvol *)this)->IsReintegrating()) {
 		/* Special-case here. */
                 /* If we just cancelled the last log record for a volume that
-                 * was being kept in Disconnected state due to auth-token
+                 * was being kept in Unreachable state due to auth-token
                  * absence, we need to provoke a transition! */
-		if (IsDisconnected() && !flags.transition_pending)
+		if (IsUnreachable() && !flags.transition_pending)
 		    flags.transition_pending = 1;
 
 		((repvol *)this)->GetCML()->owner = UNSET_UID;
@@ -1296,7 +1296,7 @@ void volent::TakeTransition()
 
     if (!IsReplicated()) {
 	LOG(1, ("volent::TakeTransition %s |AVSG| = %d\n", name, avsgsize));
-	state = (avsgsize == 0) ? Disconnected : WriteDisconnected;
+	state = (avsgsize == 0) ? Unreachable : Reachable;
 	flags.transition_pending = 0;
 	Signal();
 	return;
@@ -1309,12 +1309,12 @@ void volent::TakeTransition()
 	    rv->GetCML()->count(), rv->ResListCount()));
 
     /* Compute next state. */
-    CODA_ASSERT(IsDisconnected() || IsWriteDisconnected() || IsResolving());
+    CODA_ASSERT(IsUnreachable() || IsReachable() || IsResolving());
 
-    nextstate = WriteDisconnected;
-    /* if the AVSG is empty we are disconnected */
+    nextstate = Reachable;
+    /* if the AVSG is empty we are Unreachable */
     if (avsgsize == 0)
-	nextstate = Disconnected;
+	nextstate = Unreachable;
 
     else if (rv->ResListCount())
 	nextstate = Resolving;
@@ -1324,18 +1324,18 @@ void volent::TakeTransition()
      * 1.  If the volume is transitioning _to_ emulating, any reintegations
      *     will not be stopped because of lack of tokens.
      */
-    if (nextstate == Disconnected)
+    if (nextstate == Unreachable)
 	rv->ClearReintegratePending();
 
     /* 2. We refuse to transit to reintegration unless owner has auth tokens.
      * 3. We force "zombie" volumes to emulation state until they are
      *    un-zombied. */
-    if (nextstate == WriteDisconnected && rv->GetCML()->count() > 0)
+    if (nextstate == Reachable && rv->GetCML()->count() > 0)
     {
 	userent *u = rv->realm->GetUser(rv->GetCML()->Owner());
 	if (!u->TokensValid()) {
 	    rv->SetReintegratePending();
-	    nextstate = Disconnected;
+	    nextstate = Unreachable;
 	}
 	PutUser(&u);
     }
@@ -1345,14 +1345,14 @@ void volent::TakeTransition()
     flags.transition_pending = 0;
 
     switch(state) {
-        case WriteDisconnected:
+	case Reachable:
 	    if (rv->IsSync())
 		rv->Reintegrate();
 	    else if (rv->ReadyToReintegrate())
 		::Reintegrate(rv);
-            // Fall through
+	    // Fall through
 
-        case Disconnected:
+	case Unreachable:
 	    Signal();
 	    break;
 
@@ -1406,7 +1406,7 @@ void repvol::DownMember(struct in_addr *host)
 
     ResetStats();
 
-    /* Consider transitioning to Disconnected state. */
+    /* Consider transitioning to Unreachable state. */
     if (AVSGsize() == 0) {
 	flags.transition_pending = 1;
         /* Coherence is now suspect */
@@ -1443,7 +1443,7 @@ void repvol::UpMember(void)
 
     LOG(10, ("repvol::UpMember: vid = %08x\n", vid));
 
-    /* Consider transitting to WriteDisconnected state. */
+    /* Consider transitioning to Reachable state. */
     if (AVSGsize() == 1)
 	flags.transition_pending = 1;
 
@@ -1715,9 +1715,9 @@ repvol::repvol(Realm *r, VolumeId vid, const char *name, volrep *reps[VSG_MEMBER
     flags.replicated = 1;
 
     /* The uniqifiers should also survive shutdowns, f.i. the server
-       remembers the last sid we successfully reintegrated. And in
-       disconnected mode the unique fids map to unique inodes. The
-       1<<19 shift is to avoid collisions with inodes derived from
+       remembers the last sid we successfully reintegrated. And when
+       the volume is unreachable the unique fids map to unique inodes.
+       The 1<<19 shift is to avoid collisions with inodes derived from
        non-local generated fids -- JH */
     FidUnique = 1 << 19;
     SidUnique = 0;
@@ -1926,7 +1926,7 @@ int repvol::AllocFid(ViceDataType Type, VenusFid *target_fid,
     *AllocHost = 0;
 
     /* 
-     * While write-disconnected we usually want to generate a local fid.
+     * While the volume is reachable we usually want to generate a local fid.
      * This defers the latency of contacting the servers for fids until
      * reintegrate time.  However, reintegrators MUST contact the servers
      * for global fids to translate local fids in the CML records being
@@ -1936,11 +1936,11 @@ int repvol::AllocFid(ViceDataType Type, VenusFid *target_fid,
      * a mutator executing during reintegration need not (and should not) 
      * be required to contact the servers.
      */
-    if (IsDisconnected() || (IsWriteDisconnected() && !force)) {
+    if (IsUnreachable() || (IsReachable() && !force)) {
 	*target_fid = GenerateLocalFid(Type);
     }
     else {
-	VOL_ASSERT(this, (IsWriteDisconnected() && force));
+	VOL_ASSERT(this, (IsReachable() && force));
 
 	/* COP2 Piggybacking. */
 	char PiggyData[COP2SIZE];
@@ -2269,8 +2269,8 @@ ViceStoreId repvol::GenerateStoreId()
    by volent::GetVolStat().  When connected, GetVolStat get the type
    from the servers, the code can be {ReadOnly, ReadWrite} ("Backup"
    and "Replicated" are never returned by server
-   (c.f. SetVolumeStatus())).  When disconnected, GetVolStat get the
-   type from volent.
+   (c.f. SetVolumeStatus())).  When the volume is unreachable, GetVolStat
+   gets the type from volent.
    -- Clement
 */
 ViceVolumeType volent::VolStatType(void)
@@ -2311,7 +2311,7 @@ int volent::GetVolStat(VolumeStatus *volstat, RPC2_BoundedBS *Name,
 	*hogtime = rv->ReintLimit;
     }
 
-    if (IsLocalRealm() || IsDisconnected() || local_only) {
+    if (IsLocalRealm() || IsUnreachable() || local_only) {
 	memset(volstat, 0, sizeof(VolumeStatus));
 	volstat->Vid = vid;
 	volstat->Type = VolStatType();	
@@ -2329,7 +2329,7 @@ int volent::GetVolStat(VolumeStatus *volstat, RPC2_BoundedBS *Name,
 	code = 0;
     }
     else {
-	VOL_ASSERT(this, (IsWriteDisconnected()));
+	VOL_ASSERT(this, (IsReachable()));
 
 	if (IsReplicated()) {
 	    /* Acquire an Mgroup. */
@@ -2422,12 +2422,12 @@ int volent::SetVolStat(VolumeStatus *volstat, RPC2_BoundedBS *Name,
 
     int code = 0;
 
-    if (IsDisconnected()) {
+    if (IsUnreachable()) {
 	/* We do not cache this data! */
 	code = ETIMEDOUT;
     }
     else {
-	VOL_ASSERT(this, (IsWriteDisconnected()));  /* let this go in wcc? -lily */
+	VOL_ASSERT(this, (IsReachable()));  /* let this go in wcc? -lily */
 
         /* COP2 Piggybacking. */
 	char PiggyData[COP2SIZE];

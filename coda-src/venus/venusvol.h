@@ -527,8 +527,8 @@ class vdb {
 
 /* A volume is in exactly one of these states. */
 typedef enum {
-    Disconnected = 1,
-    WriteDisconnected,
+    Unreachable = 1,
+    Reachable,
     Resolving,
 } VolumeStateType;
 
@@ -662,8 +662,8 @@ class volent {
     int IsBackup() { return (!flags.replicated && flags.readonly); }
     int IsReplicated() { return flags.replicated; }
     int IsReadWriteReplica();
-    int IsDisconnected() { return (state == Disconnected); }
-    int IsWriteDisconnected() { return (state == WriteDisconnected); }
+    int IsUnreachable() { return (state == Unreachable); }
+    int IsReachable() { return (state == Reachable); }
     int IsResolving() { return (state == Resolving); }
     int IsLocalRealm() { return (realm == LocalRealm); }
     void GetMountPath(char *, int =1);
@@ -1044,8 +1044,8 @@ extern int PathAltered(VenusFid *, char *, ClientModifyLog *, cmlent *);
 }
 
 #define	PRINT_VOLSTATE(state)	((state) == Resolving ? "Resolving" :\
-				 (state) == Disconnected ? "Disconnected" :\
-				 (state) == WriteDisconnected ? "WriteDisconnected":\
+				 (state) == Unreachable ? "Unreachable" :\
+				 (state) == Reachable ? "Reachable":\
 				 "???")
 #define	PRINT_VOLMODE(mode)	((mode) & VM_OBSERVING ? "Observing" :\
 				 (mode) & VM_MUTATING ? "Mutating" :\

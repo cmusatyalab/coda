@@ -411,8 +411,7 @@ int fsobj::Access(int rights, int modes, uid_t uid)
 	return(code);
     }
 
-    disconnected = DISCONNECTED(this) ||
-	(WRITEDISCONNECTED(this) && DIRTY(this));
+    disconnected = UNREACHABLE(this) || (REACHABLE(this) && DIRTY(this));
 
     code = CheckAcRights(uid, rights, !disconnected);
     if (code != ENOENT)
@@ -421,7 +420,7 @@ int fsobj::Access(int rights, int modes, uid_t uid)
     if (disconnected)
 	return rights ? EACCES : 0;
 
-    FSO_ASSERT(this, (WRITEDISCONNECTED(this) && !DIRTY(this)));
+    FSO_ASSERT(this, (REACHABLE(this) && !DIRTY(this)));
 
     /* We must re-fetch status; rights will be returned as a side-effect. */
     /* Promote the lock level if necessary. */

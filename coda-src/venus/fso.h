@@ -745,9 +745,9 @@ void FSOD_ReclaimFSOs(void);
 #define FSO_RELE(f)	    { (f)->refcnt--; }
 
 /* Some useful state predicates. */
-#define DISCONNECTED(f)		((f)->vol->IsDisconnected())
-#define WRITEDISCONNECTED(f)	((f)->vol->IsWriteDisconnected())
-#define RESOLVING(f)		((f)->vol->IsResolving())
+#define UNREACHABLE(f)	((f)->vol->IsUnreachable())
+#define REACHABLE(f)	((f)->vol->IsReachable())
+#define RESOLVING(f)	((f)->vol->IsResolving())
 #define	DIRTY(f)	((f)->flags.dirty)
 #define	HAVESTATUS(f)	((f)->state != FsoRunt || f->IsFake())
 #define	STATUSVALID(f)	((f)->IsValid(RC_STATUS))
@@ -765,7 +765,7 @@ void FSOD_ReclaimFSOs(void);
 #define	ACTIVE(f)	(WRITING(f) || EXECUTING(f))
 #define	BUSY(f)		((f)->refcnt > 0 || EXECUTING(f))
 #define	HOARDABLE(f)	((f)->HoardPri > 0)
-#define	FETCHABLE(f)	(!DYING(f) && WRITEDISCONNECTED(f) && !DIRTY(f) && \
+#define	FETCHABLE(f)	(!DYING(f) && REACHABLE(f) && !DIRTY(f) && \
 			 (!HAVESTATUS(f) || !ACTIVE(f)) && !f->IsLocalObj())
 /* we are replaceable whenever we are linked into FSDB->prioq */
 #define	REPLACEABLE(f)	((f)->prio_handle.tree() != 0)

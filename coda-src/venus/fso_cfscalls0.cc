@@ -191,7 +191,7 @@ int fsobj::Fetch(uid_t uid)
     /* Sanity checks. */
     {
 	/* Better not be disconnected or dirty! */
-	FSO_ASSERT(this, (WRITEDISCONNECTED(this) && !DIRTY(this)));
+	FSO_ASSERT(this, (REACHABLE(this) && !DIRTY(this)));
 
 	/* We never fetch data if we don't already have status. */
 	if (!HAVESTATUS(this))
@@ -546,7 +546,7 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
     /* Sanity checks. */
     {
 	/* Better not be disconnected or dirty! */
-	FSO_ASSERT(this, (WRITEDISCONNECTED(this) && !DIRTY(this)));
+	FSO_ASSERT(this, (REACHABLE(this) && !DIRTY(this)));
     }
 
     int code = 0;
@@ -1371,7 +1371,7 @@ int fsobj::SetACL(RPC2_CountedBS *acl, uid_t uid)
 {
     LOG(10, ("fsobj::SetACL: (%s), uid = %d\n", GetComp(), uid));
 
-    if (!WRITEDISCONNECTED(this))
+    if (!REACHABLE(this))
 	return ETIMEDOUT;
 
     if (IsFake() || IsLocalObj())

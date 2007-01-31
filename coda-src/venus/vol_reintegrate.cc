@@ -293,8 +293,8 @@ int repvol::IncReintegrate(int tid)
 	return 0;
     }
 
-    /* check if volume state is WriteDisconnected or not */
-    if (!IsWriteDisconnected()) return ETIMEDOUT; /* it must be Disconnected */
+    /* check if volume state is Reachable or not */
+    if (!IsReachable()) return ETIMEDOUT; /* we must be Unreachable or Resolving */
 
     int code = 0;
     int done;
@@ -627,7 +627,7 @@ int repvol::ReadyToReintegrate()
      * is Venus-wide, so the check is correct but more conservative than 
      * we would like.
      */
-    if (flags.transition_pending || !IsWriteDisconnected() ||
+    if (flags.transition_pending || !IsReachable() ||
 	CML.count() == 0 || asr_running() || IsReintegrating())
 	return 0;
 

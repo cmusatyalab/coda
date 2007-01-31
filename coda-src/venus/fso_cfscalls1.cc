@@ -714,10 +714,8 @@ int fsobj::SetVV(ViceVersionVector *newvv, uid_t uid)
     int code = 0;
 
     /* This is a connected-mode only routine! */
-    if (!WRITEDISCONNECTED(this))
-	code = ETIMEDOUT;
-
-    FSO_ASSERT(this, WRITEDISCONNECTED(this));
+    if (!REACHABLE(this))
+	return ETIMEDOUT;
 
     /* COP2 Piggybacking. */
     char PiggyData[COP2SIZE];

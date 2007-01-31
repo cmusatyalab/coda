@@ -407,14 +407,14 @@ void vproc::setattr(struct venus_cnode *cp, struct coda_vattr *vap) {
 	if (vap->va_size != 0 && vap->va_size != VA_IGNORE_SIZE)
 	    rcrights |= RC_DATA;
 
-	/* When we are write-disconnected, the setattr would 'dirty' the object
+	/* When the volume is reachable, the setattr would 'dirty' the object
 	 * and block a data fetch until the CML has been reintegrated. To avoid
 	 * having an inaccessible object we have to make sure to fetch the
 	 * data as well. */
 	volent *v = 0;
 	u.u_error = VDB->Get(&v, MakeVolid(&cp->c_fid));
 	if (u.u_error) goto FreeLocks;
-	if (v->IsWriteDisconnected())
+	if (v->IsReachable())
 	    rcrights |= RC_DATA;
 	VDB->Put(&v);
 

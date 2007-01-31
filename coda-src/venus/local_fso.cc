@@ -102,7 +102,7 @@ cmlent *fsobj::FinalCmlent(int tid)
 
 int fsobj::RepairStore()
 {
-    FSO_ASSERT(this, WRITEDISCONNECTED(this));
+    FSO_ASSERT(this, REACHABLE(this));
 
     vproc *vp = VprocSelf();
     Date_t Mtime = Vtime();

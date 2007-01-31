@@ -622,9 +622,9 @@ RestartFind:
 	  return(ERETRY);
 	}
 	
-	/* Cut-out early if volume is disconnected! */
-	if (v->IsDisconnected()) {
-	  LOG(100, ("Volume disconnected and file not cached!\n"));
+	/* Cut-out early if volume is unreachable! */
+	if (v->IsUnreachable()) {
+	  LOG(100, ("Volume unreachable and file not cached!\n"));
 	  VDB->Put(&v);
 	  return(ETIMEDOUT);
 	}
@@ -703,8 +703,8 @@ RestartFind:
 	/*     - the file is being exec'ed (or the VM system refuses to release its pages) */
 	/*     - the file is open for write */
 	/*     - the object has been deleted (it must also be open for read at this point) */
-	/*     - the object's volume is disconnected */
-	/*     - the object's volume is in logging mode and the object is dirty */
+	/*     - the object's volume is unreachable */
+	/*     - the object's volume is reachable, but the object is dirty */
 	if (FETCHABLE(f)) {
 	    f->PromoteLock();
 

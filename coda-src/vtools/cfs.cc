@@ -63,8 +63,8 @@ extern "C" {
 
 /* From venusvol.h.  A volume is in exactly one of these states. */
 typedef enum {
-    Disconnected = 1,
-    WriteDisconnected,
+    Unreachable = 1,
+    Reachable,
     Resolving,
 } VolumeStateType;
 
@@ -1898,7 +1898,7 @@ static void ListVolume(int argc, char *argv[], int opslot)
 	printf("  Reintegration age: %u sec, hogtime %.3f sec\n",
 	       age, hogtime / 1000.0);
 	/* info not avail if disconnected, or if we did a local query */
-	if (conn_state != Disconnected && local_only == 0) {
+	if (conn_state != Unreachable && local_only == 0) {
 	    printf("  Minimum quota is %u,", vs->MinQuota);
 	    if (vs->MaxQuota > 0)
 		printf(" maximum quota is %u\n", vs->MaxQuota);
@@ -2791,24 +2791,23 @@ static int findslot(char *s)
     }
 
 static char *xlate_vvtype(ViceVolumeType vvt)
-    {
-    switch(vvt)
-        {
-        case ReadOnly: return("ReadOnly");
-        case ReadWrite: return("ReadWrite");
-        case Backup: return("Backup");
-        case Replicated: return("Replicated");
-        default: return("????");
-        }
+{
+    switch(vvt) {
+    case ReadOnly:	return("ReadOnly");
+    case ReadWrite:	return("ReadWrite");
+    case Backup:	return("Backup");
+    case Replicated:	return("Replicated");
+    default:		return("????");
     }
+}
 
 static char *print_conn_state(VolumeStateType conn_state)
 {
     switch(conn_state) {
-    case Disconnected:	    return("Disconnected");
-    case WriteDisconnected: return("WriteDisconnected");
-    case Resolving:	    return("Resolving");
-    default:		    return("????");
+    case Unreachable:	return("Unreachable");
+    case Reachable:	return("Reachable");
+    case Resolving:	return("Resolving");
+    default:		return("????");
     }
 }
 

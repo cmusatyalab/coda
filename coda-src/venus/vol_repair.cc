@@ -101,7 +101,7 @@ int repvol::Repair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 {
     LOG(0, ("volent::Repair: fid = %s, file = %s, uid = %d\n",
 	       FID_(RepairFid), RepairFile, uid));
-    if (IsDisconnected())
+    if (IsUnreachable())
 	return ETIMEDOUT;
 
     if (IsResolving())

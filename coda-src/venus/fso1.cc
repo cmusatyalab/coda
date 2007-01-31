@@ -858,10 +858,10 @@ int fsobj::IsValid(int rcrights) {
     if (!haveit) return 0;
 
     /* Replicated objects must be considered valid when we are either
-     * disconnected or write-disconnected and the object is dirty. */
+     * unreachable or reachable and the object is dirty. */
     if (vol->IsReplicated()) {
-	if (vol->IsDisconnected())		       return 1;
-	if (vol->IsWriteDisconnected() && flags.dirty) return 1;
+	if (vol->IsUnreachable())	       return 1;
+	if (vol->IsReachable() && flags.dirty) return 1;
     }
 
     /* Several other reasons that imply this object is valid */
@@ -1005,11 +1005,11 @@ void fsobj::PromoteAcRights(uid_t uid)
 		if (tokensvalid) SpecificUser[i].valid = 1;
 	    }
     } else {
-	/* 
+	/*
 	 * Make sure tokens didn't expire for this user while
 	 * the RPC was in progress. If we set them anyway, and
-	 * he goes disconnected, he may have access to files he 
-	 * otherwise wouldn't have because he lost tokens.
+	 * we lose connectivity to the servers, he may have access
+	 * to files he otherwise wouldn't have because he lost tokens.
 	 */
 	userent *ue = vol->realm->GetUser(uid);
 	int tokensvalid = ue->TokensValid();
@@ -1080,7 +1080,7 @@ void fsobj::MakeDirty() {
     LOG(1, ("fsobj::MakeDirty: (%s)\n", FID_(&fid)));
 
     /* We must have data here */
-    /* Not really, we could have just created this object while disconnected */
+    /* Not really, we could have created this object during a disconnection */
     /* CODA_ASSERT(HAVEALLDATA(this)); */
 
     RVMLIB_REC_OBJECT(flags);
