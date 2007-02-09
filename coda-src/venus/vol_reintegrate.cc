@@ -113,7 +113,7 @@ void repvol::Reintegrate()
     CML.CancelStores();
 
     int nrecs, startedrecs, thisTid, code = 0;
-    int stop_loop;
+    int stop_loop = 0;
 
     /* remaining reintegration time (msec) */
     unsigned long reint_time = ReintLimit;
@@ -125,22 +125,25 @@ void repvol::Reintegrate()
         thisTid = -GetReintId();
         nrecs = 0;
 
-        /*
-         * step 2. Attempt to do partial reintegration for big stores at
-         * the head of the CML.
-         */
+	/*
+	 * step 2. Attempt to do partial reintegration for big stores at
+	 * the head of the CML.
+	 */
 	code = PartialReintegrate(thisTid, &reint_time);
 
-        /* PartialReintegrate returns ENOENT when there was no CML entry
-         * available for partial reintegration */
-        if (code != ENOENT) {
-            eprint("Reintegrate: %s, partial record, result = %s", 
-                   name, VenusRetStr(code));
-            /* done for now */
-            break;
-        }
-        /* clear the errorcode, ENOENT was not a fatal error. */
-        code = 0;
+	if (flags.sync_reintegrate && code == 0)
+	    continue;
+
+	/* PartialReintegrate returns ENOENT when there was no CML entry
+	 * available for partial reintegration */
+	if (code != ENOENT) {
+	    eprint("Reintegrate: %s, partial record, result = %s",
+		   name, VenusRetStr(code));
+	    /* done for now */
+	    break;
+	}
+	/* clear the errorcode, ENOENT was not a fatal error. */
+	code = 0;
 
         /*
          * step 3.
@@ -567,6 +570,7 @@ CheckResult:
 	    LOG(0, ("volent::PartialReintegrate: committed\n"));
 
 	    CML.ClearPending();
+	    code = 0;
 	} else {
 	    /* allow an incompletely sent record to be cancelled. */
 	    CML.CancelPending();

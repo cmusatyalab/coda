@@ -2869,7 +2869,12 @@ int cmlent::WriteReintegrationHandle(unsigned long *reint_time)
     int code = 0, fd = -1;
     connent *c = 0;
     fsobj *f = NULL;
-    RPC2_Unsigned length = ReintAmount(reint_time);
+    RPC2_Unsigned length = u.u_store.Length;
+
+    if (!vol->flags.sync_reintegrate)
+	length = ReintAmount(reint_time);
+    else if (u.u_store.Offset != -1)
+	length -= u.u_store.Offset;
 
     /* stop reintegration loop if we ran out of available reintegration time */
     if (length == 0 && u.u_store.Offset != u.u_store.Length)
