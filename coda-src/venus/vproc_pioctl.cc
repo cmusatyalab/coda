@@ -827,7 +827,7 @@ OI_FreeLocks:
 
 		    /* Volume name. */
                     char name[V_MAXVOLNAMELEN];
-		    unsigned long namelen = strlen(cp) + 1;
+		    unsigned int namelen = strlen(cp) + 1;
 		    if (namelen >= V_MAXVOLNAMELEN) { u.u_error = EINVAL; break; }
 		    strcpy(name, cp);
 
@@ -847,7 +847,7 @@ OI_FreeLocks:
 
 		    /* Offline message for this volume. */
 		    char offlinemsg[256];
-		    unsigned long offlinemsglen = strlen(cp) + 1;
+		    unsigned int offlinemsglen = strlen(cp) + 1;
 		    if (offlinemsglen > 256) { u.u_error = EINVAL; break; }
 		    strcpy(offlinemsg, cp);
 		    RPC2_BoundedBS OfflineMsg;
@@ -858,7 +858,7 @@ OI_FreeLocks:
 
 		    /* Message of the day for this volume. */
 		    char motd[256];
-		    unsigned long motdlen = strlen(cp) + 1;
+		    unsigned int motdlen = strlen(cp) + 1;
 		    if (motdlen >= 256) { u.u_error = EINVAL; break; }
 		    strcpy(motd, cp);
 		    RPC2_BoundedBS MOTD;
@@ -1417,9 +1417,9 @@ OI_FreeLocks:
 		    {
 		    /* Format of data is (len, secret, len, clear) */
 		    char *startp = (char *) data->in;
-#define secretlen ((long *)(startp))
+#define secretlen ((uint32_t *)(startp))
 #define secretp ((SecretToken *)(secretlen + 1))
-#define clearlen ((long *)(secretp + 1))
+#define clearlen ((uint32_t *)(secretp + 1))
 #define clearp ((ClearToken *)(clearlen + 1))
 #define realmp ((char *)(clearp + 1))
 /*
@@ -1449,9 +1449,9 @@ OI_FreeLocks:
 		    {
 		    /* Format of data is (len, secret, len, clear) */
 		    char *startp = (char *) data->out;
-#define secretlen ((long *)(startp))
+#define secretlen ((uint32_t *)(startp))
 #define secretp ((SecretToken *)(secretlen + 1))
-#define clearlen ((long *)(secretp + 1))
+#define clearlen ((uint32_t *)(secretp + 1))
 #define clearp ((ClearToken *)(clearlen + 1))
 #define endp ((char *)(clearp + 1)) 
 		    Realm *realm = REALMDB->GetRealm(data->in);
@@ -1517,8 +1517,8 @@ OI_FreeLocks:
 		    if (u.u_uid != V_UID)
 			{ u.u_error = EACCES; break; }
 
-		    long on;
-		    memcpy(&on, data->in, sizeof(long));
+		    uint32_t on;
+		    memcpy(&on, data->in, sizeof(uint32_t));
 		    on &= 0xff;
 		    if (on) DebugOn(); else DebugOff();
 
