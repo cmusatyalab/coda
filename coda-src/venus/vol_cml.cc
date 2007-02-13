@@ -574,7 +574,7 @@ cmlent::cmlent(ClientModifyLog *Log, time_t Mtime, uid_t Uid, int op, int prepen
 	    u.u_store.Fid = *va_arg(ap, VenusFid *);
 	    u.u_store.Length = va_arg(ap, RPC2_Unsigned);
 	    memset(&u.u_store.RHandle, 0, sizeof(ViceReintHandle));
-	    u.u_store.Offset = (unsigned)-1;
+	    u.u_store.Offset = 0;
 	    u.u_store.ReintPH.s_addr = 0;
 	    u.u_store.ReintPHix = -1;
 	    break;
@@ -2730,7 +2730,7 @@ void cmlent::ClearReintegrationHandle()
     Recov_BeginTrans();
 	RVMLIB_REC_OBJECT(u);
         memset(&u.u_store.RHandle, 0, sizeof(ViceReintHandle));
-	u.u_store.Offset = (unsigned)-1;
+	u.u_store.Offset = 0;
 	u.u_store.ReintPH.s_addr = 0;
 	u.u_store.ReintPHix = -1;
    Recov_EndTrans(MAXFP);
@@ -2805,7 +2805,7 @@ int cmlent::GetReintegrationHandle()
 	Recov_BeginTrans();
 	    RVMLIB_REC_OBJECT(u);
 	    u.u_store.RHandle   = VR;
-	    u.u_store.Offset    = (unsigned)-1;
+	    u.u_store.Offset    = 0;
 	    u.u_store.ReintPH   = phost;
 	    u.u_store.ReintPHix = ph_ix;
 	Recov_EndTrans(MAXFP);
@@ -2825,7 +2825,7 @@ int cmlent::ValidateReintegrationHandle()
     repvol *vol = strbase(repvol, log, CML);
     int code = 0;
     connent *c = 0;
-    RPC2_Unsigned Offset = (unsigned)-1;
+    RPC2_Unsigned Offset = 0;
     
     /* Acquire a connection. */
     srvent *s = GetServer(&u.u_store.ReintPH, vol->GetRealmId());
@@ -2873,12 +2873,10 @@ int cmlent::WriteReintegrationHandle(unsigned long *reint_time)
     int code = 0, fd = -1;
     connent *c = 0;
     fsobj *f = NULL;
-    RPC2_Unsigned length = u.u_store.Length;
+    RPC2_Unsigned length = u.u_store.Length - u.u_store.Offset;
 
     if (!vol->flags.sync_reintegrate)
 	length = ReintAmount(reint_time);
-    else if (u.u_store.Offset != (unsigned)-1)
-	length -= u.u_store.Offset;
 
     /* stop reintegration loop if we ran out of available reintegration time */
     if (length == 0 && u.u_store.Offset != u.u_store.Length)
@@ -2948,9 +2946,7 @@ int cmlent::WriteReintegrationHandle(unsigned long *reint_time)
 
 	Recov_BeginTrans();
 	    RVMLIB_REC_OBJECT(u);
-	    if (u.u_store.Offset == (unsigned)-1)
-	         u.u_store.Offset = length;
-	    else u.u_store.Offset += length;
+	    u.u_store.Offset += length;
 	Recov_EndTrans(MAXFP);
     }
 
@@ -4252,7 +4248,7 @@ unsigned long cmlent::ReintAmount(unsigned long *reint_time)
     //amount = (*reint_time / 1000) * bw;
     amount = (bw > 0) ? (*reint_time / 125) * bw : u.u_store.Length;
 
-    offset = u.u_store.Offset != (unsigned)-1 ? u.u_store.Offset : 0;
+    offset = u.u_store.Offset;
     if (offset + amount > u.u_store.Length)
 	amount = u.u_store.Length - offset;
 
