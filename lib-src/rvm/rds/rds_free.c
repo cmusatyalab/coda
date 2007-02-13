@@ -178,7 +178,7 @@ int rds_fake_free(addr, list)
 	list->size = STARTSIZE;
 	list->table = (char **)malloc(list->size);
 	list->count = 0;
-    } else if ((list->count * 4) == list->size) {
+    } else if ((list->count * sizeof(void *)) == list->size) {
 	list->size *= 2;
 	temp = (char **)malloc(list->size);
 	BCOPY(list->table, temp, list->count * sizeof(char *));
