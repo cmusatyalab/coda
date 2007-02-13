@@ -778,10 +778,11 @@ void reintegrator::main(void)
 
     for (;;) {
 	if (idle) CHOKE("reintegrator::main: signalled but not dispatched!");
-	if (!u.u_vol) CHOKE("reintegrator::main: no volume!");
 
 	/* Do the reintegration. */
-	((repvol *)u.u_vol)->Reintegrate();
+	if (u.u_vol && u.u_vol->IsReplicated())
+	    ((repvol *)u.u_vol)->Reintegrate();
+
 	seq++;
 	idle = 1;
 
