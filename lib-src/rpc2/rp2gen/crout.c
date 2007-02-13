@@ -640,7 +640,7 @@ static void spit_body(PROC *proc, rp2_bool in_parms, rp2_bool out_parms, FILE *w
 		pack(RP2_CLIENT, *parm, "", ptr, where);
     } else {
 	/* Reference _ptr to avoid compiler warning in stub */
-        fprintf (where, "\n    %s = 0; /* This avoids compiler warning */\n", ptr); 
+        fprintf (where, "\n    /* Avoid compiler warnings */\n    %s = 0;\n", ptr);
     }
 
     /* Generate RPC2 call */
@@ -1344,9 +1344,10 @@ static void one_server_proc(PROC *proc, FILE *where)
 		}
 	    }
     } else {
-	/* Refetence _ptr to avoid compiler warning in stub */
-        fprintf (where, "\n    %s = 0; /* This avoids compiler warning */\n", ptr); 
+	/* Reference _ptr and _reqbuffer to avoid compiler warning in stub */
+	    fprintf (where, "\n     /* This avoids compiler warnings */\n    %s = 0;\n    %s = %s;\n", ptr, reqbuffer, reqbuffer);
     }
+    fprintf(where, "    %s = %s;\n", bd, bd);
 
     /* Call the user's routine */
     fprintf(where, "\n    %s = ", code);
@@ -1630,7 +1631,7 @@ static void multi_procs(PROC *head, FILE *where)
 	for(var = proc->formals; *var != NIL; var++, arg++) {
 	    fprintf(where, "\t\t{%s, %s, ", MultiModes[(int32_t)(*var)->mode], MultiTypes[(int32_t)(*var)->type->type->tag]);
 	    pr_size(*var, where, RP2_TRUE, proc->op_number, arg);
-	    fprintf(where, "},\n");
+	    fprintf(where, ", NULL, NULL},\n");
 	}
 	subname = subsystem.subsystem_name;
 	/* RPC2_STRUCT_TAG in C_END definition is bogus */
@@ -1685,6 +1686,8 @@ static void pr_size(VAR *parm, FILE *where, rp2_bool TOP, int32_t proc, int32_t 
 	default:			printf("RP2GEN [can't happen]: impossible type tag: %d\n",
 					       parm->type->type->tag);
     }
+    if (TOP && parm->type->type->tag != RPC2_STRUCT_TAG)
+    	fprintf(where, ", NULL, 0");
 }
 
 
@@ -1709,10 +1712,11 @@ static void do_struct(VAR **fields, int32_t proc, int32_t arg, int32_t level, in
      pr_size(*field, where, RP2_FALSE, proc, arg);
      if((*field)->type->type->tag == RPC2_STRUCT_TAG) {
 	fprintf(where, ", STRUCT_%d_%d_%d_%d, 0", proc, arg, level + 1, ++structs);
-     }
-     fprintf(where, "},\n");
+     } else
+        fprintf(where, ", NULL, 0");
+     fprintf(where, ", NULL, NULL},\n");
    }
-   fprintf(where, "\t\t{%s}\n\t};\n", MultiModes[4]);
+   fprintf(where, "\t\t{%s, 0, 0, NULL, 0, NULL, NULL}\n\t};\n", MultiModes[4]);
  }
 
 static void macro_define(FILE *where)
