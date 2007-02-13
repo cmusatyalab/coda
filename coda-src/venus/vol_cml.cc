@@ -2575,8 +2575,12 @@ void cmlent::pack(PARM **_ptr) {
 
     ViceVersionVector TPVV;
 
-    *((RPC2_Integer *)(*_ptr)++) = htonl(opcode); /* Stick in opcode. */
-    *((Date_t *)(*_ptr)++) = htonl(time);	  /* Stick in modify time. */
+    *(RPC2_Integer *)(*_ptr) = htonl(opcode); /* Stick in opcode. */
+    *_ptr = (PARM *)((char *)*_ptr + sizeof(RPC2_Integer));
+
+    *(Date_t *)(*_ptr) = htonl(time);	  /* Stick in modify time. */
+    *_ptr = (PARM *)((char *)*_ptr + sizeof(Date_t));
+
     switch(opcode) {
 	case CML_Create_OP:
 	    RLE_Pack(_ptr, CML_Create_PTR, MakeViceFid(&u.u_create.PFid),
@@ -2873,7 +2877,7 @@ int cmlent::WriteReintegrationHandle(unsigned long *reint_time)
 
     if (!vol->flags.sync_reintegrate)
 	length = ReintAmount(reint_time);
-    else if (u.u_store.Offset != -1)
+    else if (u.u_store.Offset != (unsigned)-1)
 	length -= u.u_store.Offset;
 
     /* stop reintegration loop if we ran out of available reintegration time */
@@ -3033,83 +3037,362 @@ Exit:
 }
 
 
-/* Compute the size required for a ReintegrationLog Entry. */
-/* Patterned after code in MRPC_MakeMulti(). */
-static int RLE_Size(ARG *ArgTypes ...) 
+/* Estimate how much space we need to pack a CML entry.
+ * the va_arg unpacking is based on code from
+ * rpc2/rpc2-src/multi2.c:MRPC_MakeMulti */
+static int RLE_Size(ARG *args ...)
 {
-    int len = 0;
-    ARG *a_types;
-    unsigned int arg;
-    PARM *args;
-
+    PARM *parms;
+    int i, len = 0;
     va_list ap;
-    va_start(ap, ArgTypes);
-    /*  In GNU C, unions are not passed on the stack. Not even four
-     * byte ones.  If we try to get a PARM from va_arg, GNU C will
-     * treat the four bytes on the stack as a pointer (because unions
-     * are "big"!).  So we mislead it to get the four bytes off the
-     * stack sans dereferencing.  */
 
-    for	(a_types = ArgTypes; a_types->mode != C_END; a_types++)
+    /* variable arguments can be in registers or on the stack and the alignment
+     * may differ based on the native size of the type. In order to more easily
+     * pass them on to other functions we pull them out first. */
+
+    /* allocate an array to hold the arguments */
+    for	(i = 0; args[i].mode != C_END; i++);
+    parms = (PARM *)malloc(i * sizeof(PARM) + 1);
+    CODA_ASSERT(parms != NULL);
+
+    va_start(ap, args);
+    for	(i = 0; args[i].mode != C_END; i++)
     {
-	arg = va_arg(ap, unsigned int);
-	args = (PARM *)&arg;
+        switch (args[i].type) {
+	case RPC2_INTEGER_TAG:
+	    switch (args[i].mode) {
+	    case IN_MODE:
+	        parms[i].integer = va_arg(ap, RPC2_Integer);
+		break;
+	    case OUT_MODE:
+	    case IN_OUT_MODE:
+	        parms[i].integerp = va_arg(ap, RPC2_Integer **);
+	    default:
+		break;
+	    }
+	    break;
+	case RPC2_UNSIGNED_TAG:
+	    switch (args[i].mode) {
+	    case IN_MODE:
+	        parms[i].unsgned = va_arg(ap, RPC2_Unsigned);
+		break;
+	    case OUT_MODE:
+	    case IN_OUT_MODE:
+	        parms[i].unsgnedp = va_arg(ap, RPC2_Unsigned **);
+	    default:
+		break;
+	    }
+	    break;
+	case RPC2_BYTE_TAG:
+	    switch (args[i].mode) {
+	    case IN_MODE:
+	        parms[i].byte = (RPC2_Byte)va_arg(ap, int);
+		break;
+	    case OUT_MODE:
+	    case IN_OUT_MODE:
+	        parms[i].bytep = va_arg(ap, RPC2_Byte **);
+	    default:
+		break;
+	    }
+	    break;
+	case RPC2_STRING_TAG:
+	    switch (args[i].mode) {
+	    case IN_MODE:
+	        parms[i].string = va_arg(ap, RPC2_String);
+		break;
+	    case OUT_MODE:
+	    case IN_OUT_MODE:
+	        parms[i].stringp = va_arg(ap, RPC2_String **);
+	    default:
+		break;
+	    }
+	    break;
+	case RPC2_COUNTEDBS_TAG:
+	    switch (args[i].mode) {
+	    case IN_MODE:
+	        parms[i].cbs = va_arg(ap, RPC2_CountedBS *);
+		break;
+	    case OUT_MODE:
+	    case IN_OUT_MODE:
+	        parms[i].cbsp = va_arg(ap, RPC2_CountedBS **);
+	    default:
+		break;
+	    }
+	    break;
+	case RPC2_BOUNDEDBS_TAG:
+	    switch (args[i].mode) {
+	    case IN_MODE:
+	        parms[i].bbs = va_arg(ap, RPC2_BoundedBS *);
+		break;
+	    case OUT_MODE:
+	    case IN_OUT_MODE:
+	        parms[i].bbsp = va_arg(ap, RPC2_BoundedBS **);
+	    default:
+		break;
+	    }
+	    break;
+	case RPC2_BULKDESCRIPTOR_TAG:
+	    switch (args[i].mode) {
+	    case IN_MODE:
+	    case OUT_MODE:
+	    case IN_OUT_MODE:
+	        parms[i].sedp = va_arg(ap, SE_Descriptor *);
+	    default:
+		break;
+	    }
+	    break;
+	case RPC2_ENCRYPTIONKEY_TAG:
+	    switch (args[i].mode) {
+	    case IN_MODE:
+	        parms[i].key = va_arg(ap, RPC2_EncryptionKey *);
+		break;
+	    case OUT_MODE:
+	    case IN_OUT_MODE:
+	        parms[i].keyp = va_arg(ap, RPC2_EncryptionKey **);
+	    default:
+		break;
+	    }
+	    break;
+	case RPC2_STRUCT_TAG:
+	    switch (args[i].mode) {
+	    case IN_MODE:
+	        parms[i].structp = va_arg(ap, union PARM *);
+		break;
+	    case OUT_MODE:
+	    case IN_OUT_MODE:
+	        parms[i].structpp = va_arg(ap, union PARM **);
+	    default:
+		break;
+	    }
+	    break;
+	case RPC2_ENUM_TAG:
+	    switch (args[i].mode) {
+	    case IN_MODE:
+	        parms[i].integer = va_arg(ap, RPC2_Integer);
+		break;
+	    case OUT_MODE:
+	    case IN_OUT_MODE:
+	        parms[i].integerp = va_arg(ap, RPC2_Integer **);
+	    default:
+		break;
+	    }
+	    break;
+	case RPC2_DOUBLE_TAG:
+	    /* not supported */
+	    break;
+	}
+    }
+    va_end(ap);
 
-	LOG(1000, ("RLE_Size: a_types = [%d %d %d %x], args = (%x %x)\n",
-		   a_types->mode, a_types->type, a_types->size, a_types->field,
-		   *args));
+    for	(i = 0; args[i].mode != C_END; i++)
+    {
+	/* get_len and struct_len expect to be able to twiddle the arg and parm
+	 * pointers when it recurses internally. */
+    	ARG *xarg = &args[i];
+	PARM *xparm = &parms[i];
 
-	if (a_types->mode != IN_MODE && a_types->mode != IN_OUT_MODE)
-	    continue;
-
-        PARM *xargs = args;
-        if (a_types->mode == IN_OUT_MODE)
-            xargs = (PARM *)&args;
-
-        a_types->bound = 0;
-	if (a_types->type == RPC2_STRUCT_TAG)
-	    len += struct_len(&a_types, &xargs);
-	else
-	    len += get_len(&a_types, &xargs, a_types->mode);
+        switch (args[i].mode) {
+	case IN_MODE:
+	case IN_OUT_MODE:
+	    switch (args[i].type) {
+	    case RPC2_STRUCT_TAG:
+	    	len += struct_len(&xarg, &xparm);
+		break;
+	    case RPC2_BULKDESCRIPTOR_TAG:
+	    	args[i].bound = 0;
+		break;
+	    default:
+	    	args[i].bound = 0;
+		len += get_len(&xarg, &xparm, args[i].mode);
+		break;
+	    }
+	    break;
+	case OUT_MODE:
+	    if (args[i].type == RPC2_BOUNDEDBS_TAG)
+	        len += get_len(&xarg, &xparm, args[i].mode);
+	default:
+	    break;
+	}
     }
 
-    va_end(ap);
-    return(len);
+    free(parms);
+    return len;
 }
 
 
-/* Pack a ReintegrationLog Entry. */
-/* Patterned after code in MRPC_MakeMulti(). */
-static void RLE_Pack(PARM **ptr, ARG *ArgTypes ...)
+/* Pack a CML entry. Looks surprisingly similar to RLE_Size, since most of the
+ * code deals with correctly unpacking the va_arg list. */
+static void RLE_Pack(PARM **ptr, ARG *args ...)
 {
-    ARG *a_types;
-    unsigned int arg;
-    PARM *args;
+    PARM *parms;
+    int i;
     va_list ap;
-    va_start(ap, ArgTypes);
 
-    /* see comment about GNU C above. */
-    for	(a_types = ArgTypes; a_types->mode != C_END; a_types++) {
-	arg = va_arg(ap, unsigned int);
-	args = (PARM *)&arg;
-	LOG(1000, ("RLE_Pack: a_types = [%d %d %d %x], ptr = (%x %x %x), args = (%x %x)\n",
-		   a_types->mode, a_types->type, a_types->size, a_types->field,
-		   ptr, *ptr, **ptr, args, *args));
+    /* variable arguments can be in registers or on the stack and the alignment
+     * may differ based on the native size of the type. In order to more easily
+     * pass them on to other functions we pull them out first. */
 
-	if (a_types->mode != IN_MODE && a_types->mode != IN_OUT_MODE)
-	    continue;
+    /* allocate an array to hold the arguments */
+    for	(i = 0; args[i].mode != C_END; i++);
+    parms = (PARM *)malloc(i * sizeof(PARM) + 1);
+    CODA_ASSERT(parms != NULL);
 
-        PARM *xargs = args;
-        if (a_types->mode == IN_OUT_MODE)
-            xargs = (PARM *)&args;
-
-	if (a_types->type == RPC2_STRUCT_TAG)
-	    pack_struct(a_types, &xargs, (PARM **)ptr);
-	else
-	    pack(a_types, &xargs, (PARM **)ptr);
+    va_start(ap, args);
+    for	(i = 0; args[i].mode != C_END; i++)
+    {
+        switch (args[i].type) {
+	case RPC2_INTEGER_TAG:
+	    switch (args[i].mode) {
+	    case IN_MODE:
+	        parms[i].integer = va_arg(ap, RPC2_Integer);
+		break;
+	    case OUT_MODE:
+	    case IN_OUT_MODE:
+	        parms[i].integerp = va_arg(ap, RPC2_Integer **);
+	    default:
+		break;
+	    }
+	    break;
+	case RPC2_UNSIGNED_TAG:
+	    switch (args[i].mode) {
+	    case IN_MODE:
+	        parms[i].unsgned = va_arg(ap, RPC2_Unsigned);
+		break;
+	    case OUT_MODE:
+	    case IN_OUT_MODE:
+	        parms[i].unsgnedp = va_arg(ap, RPC2_Unsigned **);
+	    default:
+		break;
+	    }
+	    break;
+	case RPC2_BYTE_TAG:
+	    switch (args[i].mode) {
+	    case IN_MODE:
+	        parms[i].byte = (RPC2_Byte)va_arg(ap, int);
+		break;
+	    case OUT_MODE:
+	    case IN_OUT_MODE:
+	        parms[i].bytep = va_arg(ap, RPC2_Byte **);
+	    default:
+		break;
+	    }
+	    break;
+	case RPC2_STRING_TAG:
+	    switch (args[i].mode) {
+	    case IN_MODE:
+	        parms[i].string = va_arg(ap, RPC2_String);
+		break;
+	    case OUT_MODE:
+	    case IN_OUT_MODE:
+	        parms[i].stringp = va_arg(ap, RPC2_String **);
+	    default:
+		break;
+	    }
+	    break;
+	case RPC2_COUNTEDBS_TAG:
+	    switch (args[i].mode) {
+	    case IN_MODE:
+	        parms[i].cbs = va_arg(ap, RPC2_CountedBS *);
+		break;
+	    case OUT_MODE:
+	    case IN_OUT_MODE:
+	        parms[i].cbsp = va_arg(ap, RPC2_CountedBS **);
+	    default:
+		break;
+	    }
+	    break;
+	case RPC2_BOUNDEDBS_TAG:
+	    switch (args[i].mode) {
+	    case IN_MODE:
+	        parms[i].bbs = va_arg(ap, RPC2_BoundedBS *);
+		break;
+	    case OUT_MODE:
+	    case IN_OUT_MODE:
+	        parms[i].bbsp = va_arg(ap, RPC2_BoundedBS **);
+	    default:
+		break;
+	    }
+	    break;
+	case RPC2_BULKDESCRIPTOR_TAG:
+	    switch (args[i].mode) {
+	    case IN_MODE:
+	    case OUT_MODE:
+	    case IN_OUT_MODE:
+	        parms[i].sedp = va_arg(ap, SE_Descriptor *);
+	    default:
+		break;
+	    }
+	    break;
+	case RPC2_ENCRYPTIONKEY_TAG:
+	    switch (args[i].mode) {
+	    case IN_MODE:
+	        parms[i].key = va_arg(ap, RPC2_EncryptionKey *);
+		break;
+	    case OUT_MODE:
+	    case IN_OUT_MODE:
+	        parms[i].keyp = va_arg(ap, RPC2_EncryptionKey **);
+	    default:
+		break;
+	    }
+	    break;
+	case RPC2_STRUCT_TAG:
+	    switch (args[i].mode) {
+	    case IN_MODE:
+	        parms[i].structp = va_arg(ap, union PARM *);
+		break;
+	    case OUT_MODE:
+	    case IN_OUT_MODE:
+	        parms[i].structpp = va_arg(ap, union PARM **);
+	    default:
+		break;
+	    }
+	    break;
+	case RPC2_ENUM_TAG:
+	    switch (args[i].mode) {
+	    case IN_MODE:
+	        parms[i].integer = va_arg(ap, RPC2_Integer);
+		break;
+	    case OUT_MODE:
+	    case IN_OUT_MODE:
+	        parms[i].integerp = va_arg(ap, RPC2_Integer **);
+	    default:
+		break;
+	    }
+	    break;
+	case RPC2_DOUBLE_TAG:
+	    /* not supported */
+	    break;
+	}
     }
-
     va_end(ap);
+
+    for	(i = 0; args[i].mode != C_END; i++)
+    {
+	/* pack and pack_struct expect to be able to twiddle the parm pointer
+	 * when they recurse internally. */
+	PARM *xparm = &parms[i];
+
+        switch (args[i].mode) {
+	case IN_MODE:
+	case IN_OUT_MODE:
+	    switch (args[i].type) {
+	    case RPC2_STRUCT_TAG:
+	    	pack_struct(&args[i], &xparm, ptr);
+		break;
+	    case RPC2_BULKDESCRIPTOR_TAG:
+		break;
+	    default:
+		pack(&args[i], &xparm, ptr);
+		break;
+	    }
+	    break;
+	case OUT_MODE:
+	    if (args[i].type == RPC2_BOUNDEDBS_TAG)
+	        pack(&args[i], &xparm, ptr);
+	default:
+	    break;
+	}
+    }
 }
 
 
