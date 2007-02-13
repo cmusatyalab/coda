@@ -574,7 +574,7 @@ cmlent::cmlent(ClientModifyLog *Log, time_t Mtime, uid_t Uid, int op, int prepen
 	    u.u_store.Fid = *va_arg(ap, VenusFid *);
 	    u.u_store.Length = va_arg(ap, RPC2_Unsigned);
 	    memset(&u.u_store.RHandle, 0, sizeof(ViceReintHandle));
-	    u.u_store.Offset = (unsigned long)-1;
+	    u.u_store.Offset = (unsigned)-1;
 	    u.u_store.ReintPH.s_addr = 0;
 	    u.u_store.ReintPHix = -1;
 	    break;
@@ -2726,7 +2726,7 @@ void cmlent::ClearReintegrationHandle()
     Recov_BeginTrans();
 	RVMLIB_REC_OBJECT(u);
         memset(&u.u_store.RHandle, 0, sizeof(ViceReintHandle));
-	u.u_store.Offset = (unsigned long)-1;
+	u.u_store.Offset = (unsigned)-1;
 	u.u_store.ReintPH.s_addr = 0;
 	u.u_store.ReintPHix = -1;
    Recov_EndTrans(MAXFP);
@@ -2801,7 +2801,7 @@ int cmlent::GetReintegrationHandle()
 	Recov_BeginTrans();
 	    RVMLIB_REC_OBJECT(u);
 	    u.u_store.RHandle   = VR;
-	    u.u_store.Offset    = (unsigned long)-1;
+	    u.u_store.Offset    = (unsigned)-1;
 	    u.u_store.ReintPH   = phost;
 	    u.u_store.ReintPHix = ph_ix;
 	Recov_EndTrans(MAXFP);
@@ -2821,7 +2821,7 @@ int cmlent::ValidateReintegrationHandle()
     repvol *vol = strbase(repvol, log, CML);
     int code = 0;
     connent *c = 0;
-    RPC2_Unsigned Offset = (unsigned long)-1;
+    RPC2_Unsigned Offset = (unsigned)-1;
     
     /* Acquire a connection. */
     srvent *s = GetServer(&u.u_store.ReintPH, vol->GetRealmId());

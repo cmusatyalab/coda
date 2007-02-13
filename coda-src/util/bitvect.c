@@ -129,7 +129,8 @@ void Bitv_clear(Bitv b, int n)
 
 int Bitv_getfree(Bitv b)
 {
-    int i, j, loc;
+    int loc;
+    unsigned int i, j;
 
     CODA_ASSERT(b);
 
@@ -154,7 +155,8 @@ int Bitv_getfree(Bitv b)
 
 int Bitv_count(Bitv b) 
 {
-    int i, j, count = 0;
+    int count = 0;
+    unsigned int i, j;
     CODA_ASSERT(b);
     U_rlock(b);
     for (i = 0; i < nwords(b->length) ; i++) 
@@ -168,7 +170,7 @@ int Bitv_count(Bitv b)
 
 void Bitv_print(Bitv b, FILE *fd) 
 {
-    int i;
+    unsigned int i;
     CODA_ASSERT(b);
 
     U_rlock(b);

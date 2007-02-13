@@ -428,9 +428,8 @@ int
 recov_vol_log::ChooseWrapAroundVnode(Volume *vol, int different) 
 {
 
-    if ((!different) && ((long)wrapvn != -1) && ((long)wrapun != -1)) {
-	SLog(0,
-	       "ChooseWrapAroundVnode: returning same vnode 0x%x.%x in vol 0x%x\n", wrapvn, wrapun, V_id(vol));
+    if (!different && (wrapvn != (unsigned)-1) && (wrapun != (unsigned)-1)) {
+	SLog(0, "ChooseWrapAroundVnode: returning same vnode %x.%x in vol %x\n", wrapvn, wrapun, V_id(vol));
 	return(0);
     }
 

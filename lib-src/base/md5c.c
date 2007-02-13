@@ -165,8 +165,7 @@ MD5_Update (context, input, inputLen)
 
 	/* Transform as many times as possible. */
 	if (inputLen >= partLen) {
-		memcpy((void *)&context->buffer[index], (void *)input,
-		    partLen);
+		memcpy(&context->buffer[index], input, partLen);
 		MD5Transform (context->state, context->buffer);
 
 		for (i = partLen; i + 63 < inputLen; i += 64)
@@ -178,8 +177,7 @@ MD5_Update (context, input, inputLen)
 		i = 0;
 
 	/* Buffer remaining input */
-	memcpy ((void *)&context->buffer[index], (void *)&input[i],
-	    inputLen-i);
+	memcpy (&context->buffer[index], &input[i], inputLen-i);
 }
 
 /*

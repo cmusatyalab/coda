@@ -267,8 +267,8 @@ int repair_getfid(char *path, ViceFid *outfid, char *outrealm,
     rc = repair_inconflict(path, outfid, outrealm);
     if (!rc) {
 	if (outvv) {
-	    outvv->StoreId.Host = (u_long)-1; /* indicates VV is undefined */
-	    outvv->StoreId.Uniquifier = (u_long)-1;
+	    outvv->StoreId.Host = (unsigned)-1; /* indicates VV is undefined */
+	    outvv->StoreId.Uniquifier = (unsigned)-1;
 	}
 	return(0);
     }

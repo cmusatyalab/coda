@@ -107,7 +107,7 @@ void pdb_pack(PDB_profile *r, void **data, size_t *size)
 void pdb_unpack(PDB_profile *r, void *data, size_t size)
 {
 	int32_t *tmp = (int32_t *) data;
-	int off, len;
+	unsigned int off, len;
 
 	if(size == 0){
 		r->id = 0;

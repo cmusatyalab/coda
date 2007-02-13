@@ -1503,7 +1503,7 @@ void worker::main(void)
                 if (!fm) fm = new msgent;
                 union inputArgs *dog = (union inputArgs *)fm->msg_buf;
 
-                dog->coda_close.ih.unique = (u_long)-1;
+                dog->coda_close.ih.unique = (unsigned)-1;
                 dog->coda_close.ih.opcode = CODA_CLOSE;
                 dog->coda_close.Fid = saveFid;
                 dog->coda_close.flags = saveFlags;

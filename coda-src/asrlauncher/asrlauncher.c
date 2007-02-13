@@ -444,7 +444,7 @@ int replaceEnvVars(char *string, int maxlen) {
 		  char *src, *dest, *holder;
 		  
 		  /* See if the replacement string will fit in the buffer. */
-		  if((strlen(temp) + strlen(replace)) > maxlen) {
+		  if((strlen(temp) + strlen(replace)) > (unsigned)maxlen) {
 			fprintf(stderr, "ASRLauncher(%d): Replacement does not fit!\n",
 					My_Pid);
 			free(temp);

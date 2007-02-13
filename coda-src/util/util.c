@@ -73,22 +73,6 @@ int DirDebugLevel = 0;		/* Dir package */
 int AL_DebugLevel = 0;		/* ACL package */
 int AuthDebugLevel = 0;		/* Auth package */
 
-int SafeStrCat(char *dest, char *src, int totalspace)
-{
-    if (strlen(dest)+strlen(src) >= totalspace) 
-	    return(-1);
-    strcat(dest,src);
-    return(0);
-}
-
-int SafeStrCpy(char *dest, char *src, int totalspace)
-{
-    if (strlen(src) >= totalspace) return(-1);
-    strcpy(dest,src);
-    return(0);
-}
-
-
 int HashString(char *s, unsigned int size)
 {
 	unsigned int sum;

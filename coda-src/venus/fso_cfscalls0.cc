@@ -1400,8 +1400,8 @@ int fsobj::SetACL(RPC2_CountedBS *acl, uid_t uid)
     /* but we clear these just in case... */
     status.Date = (Date_t)-1;
     status.Owner = (uid_t)-1;
-    status.Mode = (unsigned short)-1;
-    status.Length = (unsigned long)-1;
+    status.Mode = (unsigned)-1;
+    status.Length = (unsigned)-1;
 
     LOG(100,("fsobj::ConnectedSetAcl\n"));
 

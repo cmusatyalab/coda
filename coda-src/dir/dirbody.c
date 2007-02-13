@@ -289,7 +289,7 @@ static struct DirHeader *dir_Extend(struct DirHeader *olddir, int in_rvm)
 struct PageHeader *DIR_Page(struct DirHeader *dirh, int page)
 {
 	CODA_ASSERT(page >= 0);
-	return (struct PageHeader *)((void *)dirh + page * DIR_PAGESIZE);
+	return (struct PageHeader *)((char *)dirh + page * DIR_PAGESIZE);
 
 }
 

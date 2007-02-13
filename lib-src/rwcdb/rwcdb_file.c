@@ -91,7 +91,7 @@ int db_file_mread(struct db_file *f, void **data, const u_int32_t len,
 	f->cache_len = len;
     }
 
-    *data = f->cache + (pos - f->cache_pos);
+    *data = (char *)f->cache + (pos - f->cache_pos);
     return 0;
 }
 
@@ -109,9 +109,9 @@ int db_file_write(struct db_file *f, void *data, u_int32_t len)
 
     /* first fill the rest of the page */
     blob = len < (PAGESIZE - f->pending) ? len : PAGESIZE - f->pending;
-    memcpy(f->cache + f->pending, data, blob);
+    memcpy((char *)f->cache + f->pending, data, blob);
     f->pending += blob;
-    data += blob;
+    data = (char *)data + blob;
     len -= blob;
     f->pos += blob;
 
@@ -127,7 +127,7 @@ int db_file_write(struct db_file *f, void *data, u_int32_t len)
     if (blob) {
 	n = write(f->fd, data, blob);
 	if (n == -1) return -1;
-	data += blob;
+	data = (char *)data + blob;
 	len -= blob;
 	f->pos += blob;
     }

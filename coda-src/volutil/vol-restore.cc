@@ -712,7 +712,7 @@ static int ReadVnodeDiskObject(DumpBuffer_t *buf, VnodeDiskObject *vdop,
 					     *vnodeNumber,
 					     vdop->uniquifier,
 					     vdop->dataVersion);
-	    if (vdop->node.inodeNumber < 0) {
+	    if (vdop->node.inodeNumber == (unsigned)-1) {
 		VLog(0,"Unable to allocate inode for vnode %#x: aborted",
 		     *vnodeNumber);
 		return -1;
@@ -745,7 +745,7 @@ static int ReadVnodeDiskObject(DumpBuffer_t *buf, VnodeDiskObject *vdop,
 					     *vnodeNumber,
 					     vdop->uniquifier,
 					     vdop->dataVersion);
-	    if (vdop->node.inodeNumber < 0) {
+	    if (vdop->node.inodeNumber == (unsigned)-1) {
 		VLog(0, "Unable to allocate inode for vnode %d: aborted",
 		     *vnodeNumber);
 		return -1;

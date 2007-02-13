@@ -60,7 +60,7 @@ void rvmlib_set_thread_data(void *p) {
     if (lwprc != LWP_SUCCESS) 
 	    abort();
 }
-void rvmlib_begin_transaction(restore_mode)
+void rvmlib_begin_transaction(int restore_mode)
 {
     rvm_perthread_t *_rvm_data;
     rvm_return_t _status;

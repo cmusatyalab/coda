@@ -119,7 +119,7 @@ void update_pidfile(char *pidfile)
 #endif
 
     n = snprintf(str, sizeof(str), "%d\n", getpid());
-    assert(n >= 0 && n < sizeof(str));
+    assert(n >= 0 && (unsigned int)n < sizeof(str));
 
     /* write pid to lockfile */
     ftruncate(pidfd, 0);

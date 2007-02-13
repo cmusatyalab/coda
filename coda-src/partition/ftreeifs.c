@@ -291,21 +291,19 @@ f_icreate(struct DiskPartition *dp, u_long volume, u_long vnode, u_long unique,
 	  u_long dataversion)
 {
     struct part_ftree_opts *opts=&(dp->d->ftree);
-    int	fd, rc, pos;
-    Inode i, ino;
-    char	filename[FNAMESIZE];
-    struct
-	i_header header={1, volume, vnode, unique, dataversion, VICEMAGIC};
+    int	fd, rc, pos, i;
+    Inode ino;
+    char filename[FNAMESIZE];
+    struct i_header header={1, volume, vnode, unique, dataversion, VICEMAGIC};
 
     /*  Find an available inode. */
-    i = (Inode) Bitv_getfree(opts->freebm);
+    i = Bitv_getfree(opts->freebm);
     if ( i == -1 ) {
-	eprint("No more free entries in freebitmap of %s\n",
-	       dp->name);
+	eprint("No more free entries in freebitmap of %s\n", dp->name);
 	CODA_ASSERT(0);
     }
 	
-    ino = i+1; /*inode numbers start at 1 */
+    ino = (Inode)i+1; /*inode numbers start at 1 */
     
     f_inotostr(dp, ino, filename);
     if (mkpath(filename, 0700) < 0) {

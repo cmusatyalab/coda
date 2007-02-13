@@ -60,8 +60,6 @@ extern "C" {
 #define FALSE 0
 
 /* Useful functions in libutil.a */
-int SafeStrCat(char *dest, char *src, int totalspace);
-int SafeStrCpy(char *dest, char *src, int totalspace);
 int HashString(char *s, unsigned int size);
 void eprint(char *, ...);
 void fdprint(long afd, char *fmt, ...);
