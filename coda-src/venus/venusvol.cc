@@ -1614,13 +1614,14 @@ volrep::~volrep()
     deallocs++;
 #endif
 
-    PutServer(&volserver);
     /* Remove from hash table. */
     Volid volid;
     volid.Realm = realm->Id();
     volid.Volume = vid;
     if (VDB->volrep_hash.remove(&volid, &handle) != &handle)
 	{ print(logFile); CHOKE("volrep::~volrep: htab remove"); }
+
+    PutServer(&volserver);
 }
 
 void volrep::ResetTransient(void)
