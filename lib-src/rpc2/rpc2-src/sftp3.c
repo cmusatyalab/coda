@@ -188,7 +188,7 @@ int sftp_InitIO(struct SFTP_Entry *sEntry)
 	return(-1);
     }
 
-    if (sftpd->SeekOffset >= 0) {
+    if ((int32_t)sftpd->SeekOffset >= 0) {
 	sEntry->fd_offset = (off_t)sftpd->SeekOffset;
 	(void)lseek(sEntry->openfd, sEntry->fd_offset, SEEK_SET);
     }
