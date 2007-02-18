@@ -1366,8 +1366,8 @@ static long MakeFake(RPC2_PacketBuffer *pb, struct CEntry *ce,
     *rpc2sec_version = ntohl(ib1->RPC2SEC_version);
     *keysize = ntohl(ib1->Preferred_Keysize);
 
-    cident->SeqLen = ntohl(ncb->ClientIdent.SeqLen);
-    cident->SeqBody = (RPC2_ByteSeq) &ncb->ClientIdent.SeqBody;
+    cident->SeqLen = ntohl(ncb->ClientIdent_SeqLen);
+    cident->SeqBody = (RPC2_ByteSeq) &ncb->ClientIdent_SeqBody;
 
     /* check ClientIdent length since we're pointing the cident body back into
      * the received packet buffer */

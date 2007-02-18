@@ -408,7 +408,7 @@ static void ListenerBody(void *arg)
 
 		if (VerboseFlag)
 		    fprintf(stderr, "Newconn: %#x  \"%s\"  at  %s",
-			newcid, (char*)&newconnbody->ClientIdent.SeqBody,
+			newcid, (char*)&newconnbody->ClientIdent_SeqBody,
 			TimeNow());
 
 		RPC2_Enable(newcid);	/* unfreeze the connection */

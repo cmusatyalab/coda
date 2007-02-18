@@ -527,7 +527,8 @@ typedef
 	RPC2_Integer SecurityLevel;
 	RPC2_Integer EncryptionType;
 	RPC2_Integer AuthenticationType;
-	RPC2_CountedBS ClientIdent;
+	RPC2_Unsigned ClientIdent_SeqLen;
+	RPC2_Unsigned ClientIdent_SeqBody;
 	}
     RPC2_NewConnectionBody;
 

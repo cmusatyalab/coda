@@ -482,7 +482,7 @@ long ProcessPacket(RPC2_Handle cIn, RPC2_PacketBuffer *pIn, RPC2_PacketBuffer *p
 	    printf("New connection %#x:   SideEffectType = %u  SecurityLevel = %u  ClientIdent = \"%s\"\n",
 		   cIn, ntohl(newconnbody->SideEffectType),  
 		   ntohl(newconnbody->SecurityLevel), 
-		   (char *)&newconnbody->ClientIdent.SeqBody);
+		   (char *)&newconnbody->ClientIdent_SeqBody);
 	    i = RPC2_SUCCESS;
 	    (void) RPC2_Enable(cIn);
 	    break;
