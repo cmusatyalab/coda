@@ -659,14 +659,16 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 	}
 
 	list_head_init(&r->reint_log);
-	r->opcode = ntohl(*((RPC2_Integer *)_ptr++));
-	r->Mtime = ntohl(*((Date_t *)_ptr++));
 	r->Name[0] = r->Name[1] = NULL;
-
 	for (int i = 0; i < 3; i++) {
 	    r->Fid[i] = NullFid;
 	    r->VV[i] = NullVV;
 	}
+
+	r->opcode = ntohl(*(RPC2_Integer *)_ptr);
+	_ptr = (PARM *)((char *)_ptr + sizeof(RPC2_Integer));
+	r->Mtime = ntohl(*(Date_t *)_ptr);
+	_ptr = (PARM *)((char *)_ptr + sizeof(Date_t));
 
 	SLog(100,  "ValidateReintegrateParms: [B] Op = %d, Mtime = %d",
 		r->opcode, r->Mtime);
