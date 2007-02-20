@@ -1963,7 +1963,7 @@ int GetVolObj(VolumeId Vid, Volume **volptr,
 	    }
 	    V_VolLock(*volptr).IPAddress = LockerAddress;
 	    ObtainWriteLock(&(V_VolLock(*volptr).VolumeLock));
-	    CODA_ASSERT((long)V_VolLock(*volptr).IPAddress == LockerAddress);
+	    CODA_ASSERT(V_VolLock(*volptr).IPAddress == LockerAddress);
 	    if (Enque) {
 		    lqent *lqep = new lqent(Vid);
 		    LockQueueMan->add(lqep);
