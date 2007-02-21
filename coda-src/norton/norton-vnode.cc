@@ -71,7 +71,6 @@ void PrintVnodeDiskObject(VnodeDiskObject *vnode)
 
 void show_vnode(VolumeId volid, Unique_t uniquifier)
 {
-    Error   error;
     VnodeId vnodeindex;
     int     vclass = vSmall;  /* HACK FIX THIS! */
     int	    volindex;
@@ -90,12 +89,10 @@ void show_vnode(VolumeId volid, Unique_t uniquifier)
 	fprintf(stderr, "Unable to get volume 0x%x\n", volid);
 	return;
     }
-	
+
     for (vnodeindex=0; vnodeindex < vol->data.nsmallLists; vnodeindex++) {
-	if (ExtractVnode(&error, volindex, vclass, vnodeindex, uniquifier, vnode) < 0) {
+	if (ExtractVnode(volindex, vclass, vnodeindex, uniquifier, vnode) < 0)
 	    continue;
-	}
-	    
 
 	printf("    vnode number: %08x\tvnode index: %u\n", 2*(vnodeindex+1), vnodeindex);
 	PrintVnodeDiskObject(vnode);
@@ -109,7 +106,6 @@ void show_vnode(VolumeId volid, Unique_t uniquifier)
 
 void show_vnode(VolumeId volid, VnodeId vnum, Unique_t uniquifier)
 {
-    Error   error;
     VnodeId vnodeindex = vnodeIdToBitNumber(vnum);
     int     vclass = vnodeIdToClass(vnum);
     int	    volindex;
@@ -123,7 +119,7 @@ void show_vnode(VolumeId volid, VnodeId vnum, Unique_t uniquifier)
 	return;
     }
 
-    if (ExtractVnode(&error, volindex, vclass, vnodeindex, uniquifier, vnode) < 0) {
+    if (ExtractVnode(volindex, vclass, vnodeindex, uniquifier, vnode) < 0) {
 	fprintf(stderr, "Unable to get vnode 0x%x.0x%x.0x%x\n", volid, vnum,
 		uniquifier);
 	return;
@@ -243,7 +239,7 @@ setcount(int volid, int vnum, int unique, int count)
     int     vclass = vnodeIdToClass(vnum);
     int	    volindex;
     rvm_return_t status;
-    
+
     volindex = GetVolIndex(volid);
     if (volindex < 0) {
 	    fprintf(stderr, "Unable to get volume 0x%x\n", volid);
@@ -251,8 +247,8 @@ setcount(int volid, int vnum, int unique, int count)
     }
 
     rvmlib_begin_transaction(restore);
-	    
-    if (ExtractVnode(&error, volindex, vclass, vnodeindex, unique, vnode) < 0) {
+
+    if (ExtractVnode(volindex, vclass, vnodeindex, unique, vnode) < 0) {
 	fprintf(stderr, "Unable to get vnode 0x%x 0x%x 0x%x\n", volid, vnum,
 		unique);
 	rvmlib_abort(VFAIL);

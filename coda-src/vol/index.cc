@@ -111,17 +111,14 @@ int vindex::IsEmpty(VnodeId offset) {
 /* Get the vnode with the specified id from the vnode array */
 int vindex::get(VnodeId offset, Unique_t u, VnodeDiskObject *buf) {
 
-    Error ec;
-
     bit32 vnodeindex = vnodeIdToBitNumber(offset);
-    return(ExtractVnode(&ec, vol_index, vtype, vnodeindex, u, buf));
+    return ExtractVnode(vol_index, vtype, vnodeindex, u, buf);
 }
 
 /* Get the vnode at the specified offset in the vnode array */
 int vindex::oget(bit32 offset, Unique_t u, VnodeDiskObject *buf) {
 
-    Error ec;
-    return(ExtractVnode(&ec, vol_index, vtype, offset, u, buf));
+    return ExtractVnode(vol_index, vtype, offset, u, buf);
 }
 
 /* Write out the vnode with the specified id to the appropriate */

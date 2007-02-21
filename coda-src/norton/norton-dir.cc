@@ -63,14 +63,12 @@ static int testVnodeExists(VolumeId volid, VnodeId vnum, Unique_t unique)
     VnodeId vnodeindex = vnodeIdToBitNumber(vnum);
     int     vclass = vnodeIdToClass(vnum);
     int     volindex;
-    Error   error;
 
     volindex = GetVolIndex(volid);
     if (volindex < 0) { return 0; }
 
-    if (ExtractVnode(&error, volindex, vclass, vnodeindex, unique, vnode) < 0) {
+    if (ExtractVnode(volindex, vclass, vnodeindex, unique, vnode) < 0)
 	return 0;
-    }
 
     return 1;
 }
@@ -89,16 +87,15 @@ static int printentry(struct DirEntry *de, void *hook)
 	return 0;
 }
 
-PDCEntry SetDirHandle(int volid, int vnum, int unique) 
-{ 
-	PDCEntry dc;
+PDCEntry SetDirHandle(int volid, int vnum, int unique)
+{
+    PDCEntry dc;
     char buf[SIZEOF_LARGEDISKVNODE];
     VnodeDiskObject *vnode = (VnodeDiskObject *)buf;
     VolHead *vol;
     VnodeId vnodeindex = vnodeIdToBitNumber(vnum);
     int     vclass = vnodeIdToClass(vnum);
     int	    volindex;
-    Error   error;
     struct stat status;
 
     CODA_ASSERT(vclass == vLarge);
@@ -122,7 +119,7 @@ PDCEntry SetDirHandle(int volid, int vnum, int unique)
 	perror(buf);
     }
 
-    if (ExtractVnode(&error, volindex, vclass, vnodeindex, unique, vnode) < 0) {
+    if (ExtractVnode(volindex, vclass, vnodeindex, unique, vnode) < 0) {
 	fprintf(stderr, "Unable to get vnode 0x%x.0x%x.0x%x\n", volid, vnum,
 		unique);
 	return 0;
@@ -185,11 +182,11 @@ delete_name(VolumeId volid, VnodeId vnum, Unique_t unique, char *name, int flag)
     PDirHandle pdh;
     PDCEntry dc;
     PDirInode pdi;
-    Error   error;
     rvm_return_t status;
     VnodeId vnodeindex = vnodeIdToBitNumber(vnum);
     int     vclass = vnodeIdToClass(vnum);
     int	    volindex;
+    int	    error;
 
     CODA_ASSERT(vclass == vLarge);
 
@@ -208,8 +205,8 @@ delete_name(VolumeId volid, VnodeId vnum, Unique_t unique, char *name, int flag)
     CODA_ASSERT(pdh);
 
     rvmlib_begin_transaction(restore);
-	    
-    if (ExtractVnode(&error, volindex, vclass, vnodeindex, unique, vnode) < 0) {
+
+    if (ExtractVnode(volindex, vclass, vnodeindex, unique, vnode) < 0) {
 	fprintf(stderr, "Unable to get vnode 0x%x 0x%x 0x%x\n", volid, vnum,
 		unique);
 	rvmlib_abort(VFAIL);
@@ -289,13 +286,13 @@ create_name(VolumeId volid, VnodeId vnum, Unique_t unique, char *name,
     PDCEntry dc;
     PDirInode pdi;
     struct ViceFid vfid;
-    Error   error;
     rvm_return_t status;
     VnodeId vnodeindex = vnodeIdToBitNumber(vnum);
     VnodeId cvnodeindex = vnodeIdToBitNumber(cvnum);
     int     vclass = vnodeIdToClass(vnum);
     int     cvclass = vnodeIdToClass(cvnum);
     int	    volindex;
+    int     error;
 
     CODA_ASSERT(vclass == vLarge);
 
@@ -311,24 +308,23 @@ create_name(VolumeId volid, VnodeId vnum, Unique_t unique, char *name,
 	    return;
     }
     pdh = DC_DC2DH(dc);
-    CODA_ASSERT(pdh);    
+    CODA_ASSERT(pdh);
 
     rvmlib_begin_transaction(restore);
-	    
-    if (ExtractVnode(&error, volindex, vclass, vnodeindex, unique, vnode) < 0) {
+
+    if (ExtractVnode(volindex, vclass, vnodeindex, unique, vnode) < 0) {
 	fprintf(stderr, "Unable to get vnode 0x%x.0x%x.0x%x\n", volid, vnum,
 		unique);
 	rvmlib_abort(VFAIL);
 	return;
     }
 
-    if (ExtractVnode(&error, volindex, cvclass, cvnodeindex, cunique, cvnode) < 0) {
+    if (ExtractVnode(volindex, cvclass, cvnodeindex, cunique, cvnode) < 0) {
 	fprintf(stderr, "Unable to get vnode 0x%x.0x%x.0x%x\n", volid, cvnum,
 		cunique);
 	rvmlib_abort(VFAIL);
 	return;
     }
-
 
     vfid.Vnode = cvnum;
     vfid.Unique = cunique;

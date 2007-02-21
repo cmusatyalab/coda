@@ -38,8 +38,7 @@ extern int VolHeaderByIndex(int index, struct VolumeHeader *header);
 extern void CheckVolData(Error *ec, int volindex);
 extern void CheckSmallVnodeHeader(Error *ec, int volindex);
 extern void CheckLargeVnodeHeader(Error *ec, int volindex);
-extern int ExtractVnode(Error *, int, int, VnodeId, Unique_t, 
-			 VnodeDiskObject *);
+extern int ExtractVnode(int, int, VnodeId, Unique_t, VnodeDiskObject *);
 extern int ReplaceVnode(int, int, VnodeId, Unique_t, VnodeDiskObject *);
 extern void GrowVnodes(VolumeId volid, int vclass, unsigned short newsize);
 extern void NewVolDiskInfo(Error *ec, int volindex, VolumeDiskData *vol);

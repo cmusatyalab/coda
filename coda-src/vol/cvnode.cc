@@ -122,7 +122,7 @@ static void StickOnLruChain(Vnode *vnp, struct VnodeClassInfo *vcp);
  * when there are not many volumes represented), and spread
  * equally amongst vnodes within a single volume.
  */
-int VolumeHashOffset() 
+int VolumeHashOffset()
 {
 	static int nextVolumeHashOffset = 0;
 	/* hashindex Must be power of two in size */
@@ -130,7 +130,7 @@ int VolumeHashOffset()
 #   define hashMask ((1<<hashShift)-1)
 	static byte hashindex[1<<hashShift] = {0,128,64,192,32,160,96,224};
 	int offset;
-	
+
 	LogMsg(9, VolDebugLevel, stdout,  "Entering VolumeHashOffset()");
 	offset = hashindex[nextVolumeHashOffset&hashMask]
 		+ (nextVolumeHashOffset>>hashShift);
@@ -141,16 +141,16 @@ int VolumeHashOffset()
 #define VNODE_HASH(volumeptr,vnodenumber, unq)\
     ((volumeptr->vnodeHashOffset + vnodenumber+unq)&(VNODE_HASH_TABLE_SIZE-1))
 
-/* 
-   Not normally called by general client; called by volume.c 
-   set up the VnodeClassIfno structure and LRU lists. 
+/*
+   Not normally called by general client; called by volume.c
+   set up the VnodeClassIfno structure and LRU lists.
 */
 void VInitVnodes(VnodeClass vclass, int nVnodes)
 {
 	byte *va;
 	struct VnodeClassInfo *vcp = &VnodeClassInfo_Array[vclass];
 
-	SLog(9,  "Entering VInitVnodes(vclass = %d, vnodes = %d)", 
+	SLog(9,  "Entering VInitVnodes(vclass = %d, vnodes = %d)",
 	     vclass, nVnodes);
 
 	/* shouldn't these be set to 0? ***/
@@ -158,7 +158,7 @@ void VInitVnodes(VnodeClass vclass, int nVnodes)
 	vcp->cacheSize = nVnodes;
 	switch(vclass) {
 	case vSmall:
-		SLog(29, "VInitVnodes: VnodeDiskObject = %d, SIZEOF_SMALLVNODE = %d", 
+		SLog(29, "VInitVnodes: VnodeDiskObject = %d, SIZEOF_SMALLVNODE = %d",
 		     sizeof(VnodeDiskObject), SIZEOF_SMALLDISKVNODE);
 		vcp->lruHead = NULL;
 		vcp->residentSize = SIZEOF_SMALLVNODE;
@@ -200,7 +200,7 @@ static void GrowVnLRUCache(VnodeClass vclass, int nVnodes)
 {
 	byte *va;
 	struct VnodeClassInfo *vcp = &VnodeClassInfo_Array[vclass];
-	
+
 	SLog(9, "Entering GrowVnLRUCache(vclass = %d, vnodes = %d)", vclass, nVnodes);
 	va = (byte *) calloc(nVnodes,vcp->residentSize);
 	CODA_ASSERT (va != NULL);
@@ -225,17 +225,16 @@ static void GrowVnLRUCache(VnodeClass vclass, int nVnodes)
 
 
 
-/* 
+/*
    Allocate range->Count "contiguous" fids, starting at <range->Vnode,
-   range->Unique> and continuing with strides of <range->Stride,
-   1>. 
+   range->Unique> and continuing with strides of <range->Stride, 1>.
 */
 int VAllocFid(Volume *vp, VnodeType type, ViceFidRange *range, int stride, int ix)
 {
 	Error ec = 0;
 	int count = range->Count;
-	
-	SLog(9, "VAllocFid: volume = %x, type = %d, count = %d, stride = %d, ix = %d",
+
+	SLog(9, "VAllocFid: volume = %08x, type = %d, count = %d, stride = %d, ix = %d",
 	     V_id(vp), type, count, stride, ix);
 
 	/* Sanity checks. */
@@ -246,11 +245,11 @@ int VAllocFid(Volume *vp, VnodeType type, ViceFidRange *range, int stride, int i
 		pt = (ProgramType *)rock;
 		if (*pt == fileServer && !V_inUse(vp))
 			return(VOFFLINE);
-		
+
 		if (!VolumeWriteable(vp))
 			return(VREADONLY);
 	}
-	
+
 	/* Determine uniquifier base, and increment VM counter beyond end
        of range being allocated. Extend RVM counter by another chunk
        if VM counter has now reached or exceeded it! */
@@ -260,7 +259,7 @@ int VAllocFid(Volume *vp, VnodeType type, ViceFidRange *range, int stride, int i
 		rvm_return_t status;
 		SLog(0, "VAllocFid: volume disk uniquifier being extended");
 		V_uniquifier(vp) = vp->nextVnodeUnique + 200;
-		
+
 		rvmlib_begin_transaction(restore);
 		VUpdateVolume(&ec, vp);
 		rvmlib_end_transaction(flush,  &(status));
@@ -269,7 +268,7 @@ int VAllocFid(Volume *vp, VnodeType type, ViceFidRange *range, int stride, int i
 			SLog(0, "VallocFid: rvm Error %d\n", status);
 			ec = VNOVNODE;
 		}
-		if (ec) 
+		if (ec)
 			return(ec);
 	}
 
@@ -277,15 +276,15 @@ int VAllocFid(Volume *vp, VnodeType type, ViceFidRange *range, int stride, int i
 	VnodeClass vclass = vnodeTypeToClass(type);
 	int BaseBitNumber = VAllocBitmapEntry(&ec, vp, &vp->vnIndex[vclass],
 					      stride, ix, count);
-	if (ec) 
+	if (ec)
 		return(ec);
 	VnodeId BaseVnode = bitNumberToVnodeNumber(BaseBitNumber, vclass);
-	
+
 	/* Complete the range descriptor. */
 	range->Vnode = BaseVnode;
 	range->Unique = BaseUnique;
 	range->Stride = stride * nVNODECLASSES;
-	
+
 	return(0);
 }
 
@@ -294,7 +293,7 @@ int VAllocFid(Volume *vp, VnodeType type, VnodeId vnode, Unique_t unique)
 {
 	Error ec = 0;
 
-	SLog(9, "VAllocFid: fid = (%x.%x.%x)", V_id(vp), vnode, unique);
+	SLog(9, "VAllocFid: fid = (%08x.%x.%x)", V_id(vp), vnode, unique);
 
 	/* Sanity checks. */
 	{
@@ -322,7 +321,7 @@ int VAllocFid(Volume *vp, VnodeType type, VnodeId vnode, Unique_t unique)
 		rvmlib_begin_transaction(restore);
 		VUpdateVolume(&ec, vp);
 		rvmlib_end_transaction(flush, &(camstatus));
-		
+
 		if (ec) return(ec);
 	}
 
@@ -339,18 +338,18 @@ Vnode *VAllocVnode(Error *ec, Volume *vp, VnodeType type, int stride, int ix)
 {
 	*ec = 0;
 
-	SLog(9, "VAllocVnode: volume = %x, type = %d, stride = %d, ix = %d",
+	SLog(9, "VAllocVnode: volume = %08x, type = %d, stride = %d, ix = %d",
 	     V_id(vp), type, stride, ix);
 
 	/* Allocate a fid with the specified characteristics. */
 	ViceFidRange range;
 	range.Count = 1;
 	*ec = VAllocFid(vp, type, &range, stride, ix);
-	if (*ec) 
+	if (*ec)
 		return(NULL);
 	VnodeId vnode = range.Vnode;
 	Unique_t unique = range.Unique;
-	
+
 	return(VAllocVnodeCommon(ec, vp, type, vnode, unique));
 }
 
@@ -358,20 +357,20 @@ Vnode *VAllocVnode(Error *ec, Volume *vp, VnodeType type, int stride, int ix)
 Vnode *VAllocVnode(Error *ec, Volume *vp, VnodeType type, VnodeId vnode, Unique_t unique)
 {
 	*ec = 0;
-	
-	SLog(9, "VAllocVnode: fid = (%x.%x.%x)", V_id(vp), vnode, unique);
-	
+
+	SLog(9, "VAllocVnode: fid = (%08x.%x.%x)", V_id(vp), vnode, unique);
+
 	/* Ensure that the specified fid is allocated. */
 	*ec = VAllocFid(vp, type, vnode, unique);
-	if (*ec) 
+	if (*ec)
 		return(NULL);
 
 	return(VAllocVnodeCommon(ec, vp, type, vnode, unique));
 }
-    
+
 
 static Vnode *VAllocVnodeCommon(Error *ec, Volume *vp, VnodeType type,
-				  VnodeId vnode, Unique_t unique) 
+				VnodeId vnode, Unique_t unique)
 {
 	LogMsg(19, VolDebugLevel, stdout,  "Entering VAllocVnodeCommon: ");
 	VnodeClass vclass = vnodeTypeToClass(type);
@@ -389,16 +388,16 @@ static Vnode *VAllocVnodeCommon(Error *ec, Volume *vp, VnodeType type,
 		GrowVnodes(V_id(vp), vclass, vp->vnIndex[vclass].bitmapSize);
 		rvmlib_end_transaction(flush,  &(camstatus));
 	}
-	
+
 	/* Check that object does not already exist in RVM. */
-	if (ObjectExists(V_volumeindex(vp), vclass, 
+	if (ObjectExists(V_volumeindex(vp), vclass,
 			 vnodeIdToBitNumber(vnode), unique)) {
-		VLog(0, "VAllocVnode: object (%x.%x.%x) found in RVM",
+		VLog(0, "VAllocVnode: object (%08x.%x.%x) found in RVM",
 		       V_id(vp), vnode, unique);
 		*ec = EEXIST;
 		return(NULL);
 	}
-	
+
 	/* Check that object does not already exist in VM. */
 	for (vnp = VnodeHashTable[newHash];
 	     vnp && (vnp->vnodeNumber != vnode ||
@@ -408,12 +407,12 @@ static Vnode *VAllocVnodeCommon(Error *ec, Volume *vp, VnodeType type,
 	     vnp = vnp->hashNext)
 		;
 	if (vnp != NULL) {
-		LogMsg(0, VolDebugLevel, stdout,  "VAllocVnode: object (%x.%x.%x) found in VM",
+		LogMsg(0, VolDebugLevel, stdout,  "VAllocVnode: object (%08x.%x.%x) found in VM",
 		       V_id(vp), vnode, unique);
 		*ec = EEXIST;
 		return(NULL);
 	}
-	
+
 	/* Get vnode off LRU chain and move it to the new hash bucket. */
 	if (vcp->lruHead->lruPrev == vcp->lruHead) {
 		LogMsg(0, VolDebugLevel, stdout,  "VAllocVnode: LRU cache has only one entry - growing cache dynamically");
@@ -421,7 +420,7 @@ static Vnode *VAllocVnodeCommon(Error *ec, Volume *vp, VnodeType type,
 	}
 	vnp = vcp->lruHead->lruPrev;
 	moveHash(vnp, newHash);
-	
+
 	/* Initialize the VM copy of the vnode. */
 	memset(&vnp->disk, 0, sizeof(vnp->disk));
 	memset(&VnSHA(vnp), 0, sizeof(VnSHA(vnp)));
@@ -449,12 +448,12 @@ static Vnode *VAllocVnodeCommon(Error *ec, Volume *vp, VnodeType type,
 	vnp->disk.log = NULL;
 	ObtainWriteLock(&vnp->lock);
 	LWP_CurrentProcess(&vnp->writer);
-	
+
 	vcp->allocs++;
 	LogMsg(19, VolDebugLevel, stdout,  "VAllocVnode: printing vnode %x after allocation:", vnode);
 	if (VolDebugLevel >= 19)
 		PrintVnodeDiskObject(stdout, &vnp->disk, vnode);
-	
+
 	return(vnp);
 }
 
@@ -468,7 +467,7 @@ static Vnode *VAllocVnodeCommon(Error *ec, Volume *vp, VnodeType type,
       vnode.  int ignoreBarren TRUE (non-zero) iff it is ok for barren
       flag to be set in vnode */
 Vnode *VGetVnode(Error *ec, Volume *vp, VnodeId vnodeNumber,
-		  Unique_t unq, int locktype, int ignoreIncon, 
+		 Unique_t unq, int locktype, int ignoreIncon,
 		 int ignoreBarren)
 
 {
@@ -479,13 +478,13 @@ Vnode *VGetVnode(Error *ec, Volume *vp, VnodeId vnodeNumber,
 	ProgramType *pt;
 	char *rock;
 
-	SLog(9, "Entering VGetVnode(vol %x, vnode %lx, lock %d, ignoreIncon %d)",
+	SLog(9, "Entering VGetVnode(vol %08x, vnode %x, lock %d, ignoreIncon %d)",
 	     V_id(vp), vnodeNumber, locktype, ignoreIncon);
 	*ec = 0;
 
 	if (vnodeNumber == 0) {
 		*ec = VNOVNODE;
-		SLog(0, "VGetVnode: Bogus vnodenumber %lx", vnodeNumber);
+		SLog(0, "VGetVnode: Bogus vnodenumber %x", vnodeNumber);
 		return NULL;
 	}
 
@@ -493,7 +492,7 @@ Vnode *VGetVnode(Error *ec, Volume *vp, VnodeId vnodeNumber,
 	pt = (ProgramType *)rock;
 	if (*pt == fileServer && !V_inUse(vp)) {
 		*ec = VOFFLINE;
-		SLog(9, "VGetVnode: volume 0x%x is offline", V_id(vp));
+		SLog(9, "VGetVnode: volume %08x is offline", V_id(vp));
 		return NULL;
 	}
 	vclass = vnodeIdToClass(vnodeNumber);
@@ -502,14 +501,14 @@ Vnode *VGetVnode(Error *ec, Volume *vp, VnodeId vnodeNumber,
 	if ( (locktype == WRITE_LOCK || locktype == TRY_WRITE_LOCK) &&
 	     !VolumeWriteable(vp)) {
 		*ec = VREADONLY;
-		SLog(0, "VGetVnode: attempt to write lock readonly volume %x", 
+		SLog(0, "VGetVnode: attempt to write lock readonly volume %08x",
 		     V_id(vp));
 		return NULL;
 	}
 
 	/* See whether the vnode is in the cache. */
 	newHash = VNODE_HASH(vp, vnodeNumber, unq);
-	SLog(19,  "VGetVnode: newHash = %d, vp = 0x%x, vnodeNumber = %lx Unique = %x",
+	SLog(19, "VGetVnode: newHash = %d, vp = %p, vnodeNumber = %x Unique = %x",
 	     newHash, vp, vnodeNumber, unq);
 	for (vnp = VnodeHashTable[newHash];
 	     vnp && (vnp->vnodeNumber!=vnodeNumber ||
@@ -524,7 +523,7 @@ Vnode *VGetVnode(Error *ec, Volume *vp, VnodeId vnodeNumber,
 		int     n;
 		/* Not in cache; tentatively grab most distantly used
 		   one from the LRU chain */
-		SLog(1,  "VGetVnode: going to rvm for vnode %x.%lx", V_id(vp), vnodeNumber);
+		SLog(1,  "VGetVnode: going to rvm for vnode %08x.%x", V_id(vp), vnodeNumber);
 		vcp->reads++;
 		if (vcp->lruHead == vcp->lruHead->lruPrev) {
 			SLog(0,  "VGetVode: Only 1 entry left in lru cache - growing cache");
@@ -534,7 +533,7 @@ Vnode *VGetVnode(Error *ec, Volume *vp, VnodeId vnodeNumber,
 		if ( vnp->dh ) {
 			SLog(0, "VGetVnode: DROPPING dh of vn %x un %x"
 			     "total count %d, dh_refc: %d\n",
-			     vnp->vnodeNumber, vnp->disk.uniquifier, 
+			     vnp->vnodeNumber, vnp->disk.uniquifier,
 			     DC_Count(vnp->dh), vnp->dh_refc);
 			VN_DropDirHandle(vnp);
 		}
@@ -544,19 +543,19 @@ Vnode *VGetVnode(Error *ec, Volume *vp, VnodeId vnodeNumber,
 		if ((n = v_index.get(vnodeNumber, unq, &vnp->disk)) != 0) {
 			/* Vnode is not allocated */
 			*ec = VNOVNODE;
-			SLog(0, "VGetVnode: vnode %x.%lx is not allocated", 
+			SLog(0, "VGetVnode: vnode %08x.%x is not allocated",
 			     V_id(vp), vnodeNumber);
 			return NULL;
 		}
 		/* Quick check to see that the data is reasonable */
 		if (vnp->disk.type == vNull) {
 			*ec = VNOVNODE;
-			SLog(0, "VGetVnode: vnode %x.%lx not allocated", 
+			SLog(0, "VGetVnode: vnode %08x.%x not allocated",
 			     V_id(vp), vnodeNumber);
 			return NULL;
 		}
 		if (vnp->disk.vnodeMagic != vcp->magic) {
-			SLog(0, "VGetVnode: Bad vnodeMagic, vnode %x.%lx, (%s); volume needs salvage",  
+			SLog(0, "VGetVnode: Bad vnodeMagic, vnode %08x.%x, (%s); volume needs salvage",
 			     V_id(vp), vnodeNumber, V_name(vp));
 			SLog(0, "VGetVnode: magic = %u, LVNODEMAGIC = %u, vcp->magic = %u",
 			     vnp->disk.vnodeMagic, LARGEVNODEMAGIC, vcp->magic);
@@ -579,12 +578,12 @@ Vnode *VGetVnode(Error *ec, Volume *vp, VnodeId vnodeNumber,
 	/* Check for inconsistency */
 	if (IsIncon(vnp->disk.versionvector) && !ignoreIncon) {
 		*ec = EINCONS;
-		return (NULL);	
+		return NULL;
 	}
 	/* Check for barren flag */
 	if (IsBarren(vnp->disk.versionvector) && !ignoreBarren){
 		*ec = EIO;
-		return(NULL);
+		return NULL;
 	}
 
 	if (++vnp->nUsers == 1) {
@@ -595,8 +594,8 @@ Vnode *VGetVnode(Error *ec, Volume *vp, VnodeId vnodeNumber,
 			vcp->lruHead = vcp->lruHead->lruNext;
 		cdn1 = (vnp == vcp->lruHead);
 		cdn2 = (vcp->lruHead == NULL);
-		cdn3 = (cdn1 || cdn2) ; 
-		/* g++ goes haywire here? Why? 
+		cdn3 = (cdn1 || cdn2);
+		/* g++ goes haywire here? Why?
 		   if ( (vnp == vcp->lruHead) || (vcp->lruHead == NULL) ) */
 		if ( cdn3 ) {
 			LogMsg(-1, 0, stdout, "VGetVnode: lru chain addled!");
@@ -608,21 +607,21 @@ Vnode *VGetVnode(Error *ec, Volume *vp, VnodeId vnodeNumber,
 
 	if (locktype == READ_LOCK || locktype == TRY_READ_LOCK) {
 		if (CheckLock(&vnp->lock) == -1) {
-			SLog(1, "VGetVnode (readlock): vnode %x.%u is write locked!",
+			SLog(1, "VGetVnode (readlock): vnode %08x.%x is write locked!",
 			     V_id(vp), vnodeNumber);
 			if (locktype == TRY_READ_LOCK) {
 				*ec = EWOULDBLOCK;
-				return(NULL);
+				return NULL;
 			}
 		}
 		ObtainReadLock(&vnp->lock);
 	} else {
 		if (CheckLock(&vnp->lock) != 0) {
-			SLog(1, "VGetVnode (writelock): vnode %x.%u is not unlocked!",
+			SLog(1, "VGetVnode (writelock): vnode %08x.%x is not unlocked!",
 			     V_id(vp), vnodeNumber);
 			if (locktype == TRY_WRITE_LOCK) {
 				*ec = EWOULDBLOCK;
-				return(NULL);
+				return NULL;
 			}
 		}
 		ObtainWriteLock(&vnp->lock);
@@ -632,20 +631,20 @@ Vnode *VGetVnode(Error *ec, Volume *vp, VnodeId vnodeNumber,
 	/* Check that the vnode hasn't been removed while we were obtaining
 	   the lock */
 	if (vnp->disk.type == vNull) {
-		if (vnp->nUsers-- == 1) 
+		if (vnp->nUsers-- == 1)
 			StickOnLruChain(vnp,vcp);
-		
+
 		if (locktype == READ_LOCK || locktype == TRY_READ_LOCK)
 			ReleaseReadLock(&vnp->lock);
 		else
 			ReleaseWriteLock(&vnp->lock);
 		*ec = VNOVNODE;
-		SLog(0, "VGetVnode: memory vnode was snatched away");
+		SLog(0, "VGetVnode: memory vnode %x was snatched away", vnodeNumber);
 		return NULL;
 	}
 	/* Hack; don't know where this should be */
 	if (*pt == fileServer)
-  		VBumpVolumeUsage(vnp->volumePtr);
+		VBumpVolumeUsage(vnp->volumePtr);
 	return vnp;
 }
 
@@ -658,7 +657,7 @@ void VPutVnode(Error *ec,Vnode *vnp)
 	VnodeClass vclass;
 	struct VnodeClassInfo *vcp;
 
-	SLog(9, "Entering VPutVnode for vnode %u", vnp->vnodeNumber);
+	SLog(9, "Entering VPutVnode for vnode %x", vnp->vnodeNumber);
 	*ec = 0;
 	CODA_ASSERT (vnp->nUsers != 0);
 	vclass = vnodeIdToClass(vnp->vnodeNumber);
@@ -669,17 +668,17 @@ void VPutVnode(Error *ec,Vnode *vnp)
 		PROCESS thisProcess;
 		LWP_CurrentProcess(&thisProcess);
 		if (thisProcess != vnp->writer){
-			SLog(-1, "VPutVnode: Vnode at 0x%x locked by another process!",vnp);
+			SLog(-1, "VPutVnode: Vnode %x locked by another process!", vnp->vnodeNumber);
 			CODA_ASSERT(0);
 		}
-		
+
 		if (vnp->changed || vnp->delete_me) {
 			Volume *vp = vnp->volumePtr;
 			vindex v_index(V_id(vp), vclass, V_device(vp),
 				       vcp->diskSize);
 			long now = FT_ApproxTime();
 			CODA_ASSERT(vnp->cacheCheck == vnp->cacheCheck);
-			if (vnp->delete_me) 
+			if (vnp->delete_me)
 				vnp->disk.type = vNull;	    /*  mark it for deletion */
 			else {
 				vnp->disk.serverModifyTime = (Date_t) now;
@@ -690,20 +689,20 @@ void VPutVnode(Error *ec,Vnode *vnp)
 				CODA_ASSERT(V_needsSalvaged(vp));
 				*ec = VSALVAGE;
 			} else {
-				SLog(9, "VPutVnode: about to write vnode %d, type %d",
+				SLog(9, "VPutVnode: about to write vnode %x, type %d",
 				       vnp->vnodeNumber, vnp->disk.type);
-				if (VnLog(vnp) == NULL && 
+				if (VnLog(vnp) == NULL &&
 				    vnp->disk.type == vDirectory) {
 					/* large vnode - need to allocate the resolution log */
 					if (AllowResolution && V_RVMResOn(vp)) {
-						SLog(9, "VPutVnode: Creating resolution log for (0x%x.%x.%x)\n",
+						SLog(9, "VPutVnode: Creating resolution log for (%08x.%x.%x)\n",
 						     V_id(vp), vnp->vnodeNumber, vnp->disk.uniquifier);
 						CreateResLog(vp, vnp);
 					}
 				}
-				if (v_index.put(vnp->vnodeNumber, 
+				if (v_index.put(vnp->vnodeNumber,
 						vnp->disk.uniquifier, &vnp->disk) != 0) {
-					LogMsg(0, VolDebugLevel, stdout,  "VPutVnode: Couldn't write vnode %x.%u (%s)",
+					LogMsg(0, VolDebugLevel, stdout,  "VPutVnode: Couldn't write vnode %08x.%x (%s)",
 					       V_id(vnp->volumePtr), vnp->vnodeNumber,
 					       V_name(vnp->volumePtr));
 					VForceOffline(vp);
@@ -714,14 +713,13 @@ void VPutVnode(Error *ec,Vnode *vnp)
 				    v_index.IsEmpty(vnp->vnodeNumber))
 					VFreeBitMapEntry(ec, &vp->vnIndex[vclass],
 							 vnodeIdToBitNumber(vnp->vnodeNumber));
-				
 			}
 			vcp->writes++;
 			vnp->changed = 0;
 		}
 	} else { /* Not write locked */
 		if (vnp->changed || vnp->delete_me){
-			SLog(-1, "VPutVnode: Change or delete flag for vnode 0x%x is set but vnode is not write locked!", vnp);
+			SLog(-1, "VPutVnode: Change or delete flag for vnode %x is set but vnode is not write locked!", vnp->vnodeNumber);
 			CODA_ASSERT(0);
 		}
 	}
@@ -745,7 +743,7 @@ void VPutVnode(Error *ec,Vnode *vnp)
  */
 void VFlushVnode(Error *ec, Vnode *vnp) 
 {
-    VLog(0,  "Entering VFlushVnode for vnode 0x%x", vnp->vnodeNumber);
+    VLog(0,  "Entering VFlushVnode for vnode %x", vnp->vnodeNumber);
     *ec = 0;
 
     /* Sanity checks. */
@@ -762,7 +760,7 @@ void VFlushVnode(Error *ec, Vnode *vnp)
     PROCESS thisProcess;
     LWP_CurrentProcess(&thisProcess);
     if (thisProcess != vnp->writer){
-	VLog(-1, "VFlushVnode: Vnode at 0x%x locked by other thread!", 
+	VLog(-1, "VFlushVnode: Vnode %x locked by other thread!",
 	     vnp->vnodeNumber);
 	CODA_ASSERT(0);
     }
@@ -778,7 +776,7 @@ void VFlushVnode(Error *ec, Vnode *vnp)
     CODA_ASSERT(vp->cacheCheck == vnp->cacheCheck);
     vindex v_index(V_id(vp), vclass, V_device(vp), vcp->diskSize);
     /* Re-read the disk part of the vnode if it exists in rvm */
-    if (ObjectExists(V_volumeindex(vp), vclass, 
+    if (ObjectExists(V_volumeindex(vp), vclass,
 		     vnodeIdToBitNumber(vnp->vnodeNumber),
 		     vnp->disk.uniquifier)) {
 	CODA_ASSERT(v_index.get(vnp->vnodeNumber, vnp->disk.uniquifier, &vnp->disk) == 0);
@@ -794,11 +792,11 @@ void VFlushVnode(Error *ec, Vnode *vnp)
 	    VFreeBitMapEntry(ec, &vp->vnIndex[vclass],
 			     vnodeIdToBitNumber(vnp->vnodeNumber));
     }
-	
+
     /* Re-init the in-memory part of the vnode and unlock. */
     vnp->changed = 0;
     vnp->delete_me = 0;
-    if (vnp->nUsers-- == 1) 
+    if (vnp->nUsers-- == 1)
 	StickOnLruChain(vnp, vcp);
 
     ReleaseWriteLock(&vnp->lock);
@@ -811,10 +809,10 @@ static void moveHash(Vnode *vnp, bit32 newHash)
 	Vnode *tvnp;
 	/* Remove it from the old hash chain */
 
-	LogMsg(9, VolDebugLevel, stdout,  "Entering moveHash(vnode %u)", vnp->vnodeNumber);
+	LogMsg(9, VolDebugLevel, stdout, "Entering moveHash(vnode %x)", vnp->vnodeNumber);
 	tvnp = VnodeHashTable[vnp->hashIndex];
 	if (tvnp == vnp) {
-		SLog(9,  "moveHash: setting VnodeHashTable[%d] = 0x%x",
+		SLog(9,  "moveHash: setting VnodeHashTable[%d] = %p",
 		     vnp->hashIndex, vnp->hashNext);
 		VnodeHashTable[vnp->hashIndex] = vnp->hashNext;
 	} else {
@@ -825,7 +823,7 @@ static void moveHash(Vnode *vnp, bit32 newHash)
 	}
 	/* Add it to the new hash chain */
 	vnp->hashNext = VnodeHashTable[newHash];
-	SLog(9, "moveHash: setting VnodeHashTable[%d] = 0x%x", newHash, vnp);
+	SLog(9, "moveHash: setting VnodeHashTable[%d] = %p", newHash, vnp);
 	VnodeHashTable[newHash] = vnp;
 	vnp->hashIndex = newHash;
 }

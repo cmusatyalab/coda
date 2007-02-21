@@ -436,12 +436,12 @@ int AvailVnode(int volindex, int vclass, VnodeId vnodeindex, Unique_t u)
 
     maxid = (SRV_RVM(MaxVolId) & 0x00FFFFFF);
     if (volindex < 0 || volindex > (int)maxid || volindex > MAXVOLS) {
-	LogMsg(0, VolDebugLevel, stdout,  "ExtractVnode: bogus volume index %d", volindex);
+	LogMsg(0, VolDebugLevel, stdout, "ExtractVnode: bogus volume index %d", volindex);
 	return(0);
     }
     if (vclass == vSmall) {
 	if (vnodeindex >= SRV_RVM(VolumeList[volindex]).data.nsmallLists) {
-	    LogMsg(0, VolDebugLevel, stdout,  "ExtractVnode: bogus small vnode index %d", vnodeindex);
+	    LogMsg(0, VolDebugLevel, stdout, "ExtractVnode: bogus small vnode index %d", vnodeindex);
 	    return(0);
 	}
 	vlist = &(SRV_RVM(VolumeList[volindex]).data.smallVnodeLists[vnodeindex]);

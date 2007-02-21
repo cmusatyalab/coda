@@ -4571,11 +4571,11 @@ START_TIMING(PutObjects_Transaction);
 	// for logs that have been truncated/purged deallocated entries in vm
 	// bitmap should be done after transaction commits but here we are
 	// asserting if Transaction end status is not success
-	if (errorCode == 0) 
+	if (errorCode == 0)
 	    FreeVMIndices(volptr, &freed_indices);
 
 	/* Volume Header. */
-        if (!errorCode && UpdateVolume) 
+	if (!errorCode && UpdateVolume)
 	    VUpdateVolume((Error *)&errorCode, volptr);
 
 	/* Volume. */
@@ -4615,7 +4615,7 @@ END_NSC_TIMING(PutObjects_Transaction);
 #endif
 
     /* Post-transaction: handle inodes and clean-up the vlist. */
-START_TIMING(PutObjects_Inodes); 
+START_TIMING(PutObjects_Inodes);
 #ifdef _TIMEPUTOBJS_
 START_NSC_TIMING(PutObjects_Inodes);
 #endif
@@ -4629,8 +4629,11 @@ START_NSC_TIMING(PutObjects_Inodes);
 		if ((count && Yield_PutInodes_Mask) == 0)
 		    PollAndYield();
 		if (errorCode == 0) {
-		    if (v->f_sinode)
+		    if (v->f_sinode) {
+			SLog(3, "PutObjects: dropping old container %d for %s",
+			     v->f_sinode, FID_(&v->fid));
 			CODA_ASSERT(idec((int) device, (int) v->f_sinode, parentId) == 0);
+		    }
 		    if (v->f_tinode) {
 			SLog(3, "PutObjects: truncating (%s, %d, %d)",
 			     FID_(&v->fid), v->f_tinode, v->f_tlength);
@@ -4646,14 +4649,17 @@ START_NSC_TIMING(PutObjects_Inodes);
 		    }
 		}
 		else {
-		    if (v->f_finode)
+		    if (v->f_finode) {
+			SLog(3, "PutObjects: dropping new container %d for %s",
+			     v->f_finode, FID_(&v->fid));
 			CODA_ASSERT(idec((int) device, (int) v->f_finode, parentId) == 0);
+		    }
 		}
 	    }
 	    if (AllowResolution) {
 		/* clean up spooled log record list */
 		rsle *rs;
-		while ((rs = (rsle *)v->rsl.get())) 
+		while ((rs = (rsle *)v->rsl.get()))
 		    delete rs;
 	    }
 	    delete v;

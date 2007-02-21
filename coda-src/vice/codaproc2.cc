@@ -1365,6 +1365,8 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 			goto Exit;
 		    }
 		    /* Perform. */
+		    SLog(9, "CML_Store %s", FID_(&v->fid));
+
 		    if (v->f_finode == 0) {
 			/* First StoreData; record pre-reintegration inode. */
 			v->f_sinode = v->vptr->disk.node.inodeNumber;
@@ -1460,6 +1462,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    }
 
 		    /* Perform. */
+		    SLog(9, "CML_SetAttr %s", FID_(&v->fid));
 #if 0
 		    //if (r->u.u_truncate.Length != v->vptr->disk.length)
 		    //   truncp = 1;
@@ -1553,6 +1556,8 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 			    parent_v->d_reintstale = 1;
 
 			/* Perform. */
+			SLog(9, "CML_Create %s/%s", FID_(&parent_v->fid), FID_(&child_v->fid));
+
 			HandleWeakEquality(volptr, parent_v->vptr, &r->VV[0]);
 			errorCode = PerformCreate(client, VSGVolnum, volptr,
 						  parent_v->vptr,
@@ -1614,6 +1619,8 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 			parent_v->d_reintstale = 1;
 
 		    /* Perform. */
+		    SLog(9, "CML_Remove %s/%s", FID_(&parent_v->fid), FID_(&child_v->fid));
+
 		    int tblocks = 0;
 		    HandleWeakEquality(volptr, parent_v->vptr, &r->VV[0]);
 		    HandleWeakEquality(volptr, child_v->vptr, &r->VV[1]);
@@ -1679,6 +1686,8 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 			parent_v->d_reintstale = 1;
 
 		    /* Perform. */
+		    SLog(9, "CML_Link %s/%s", FID_(&parent_v->fid), FID_(&child_v->fid));
+
 		    HandleWeakEquality(volptr, parent_v->vptr, &r->VV[0]);
 		    HandleWeakEquality(volptr, child_v->vptr, &r->VV[1]);
 		    errorCode = PerformLink(client, VSGVolnum, volptr,
@@ -1758,11 +1767,15 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    if (VV_Cmp(&Vnode_vv(sd_v->vptr), &r->VV[0]) != VV_EQ)
 			sd_v->d_reintstale = 1;
 
-		    if (!SameParent && 
+		    if (!SameParent &&
 			(VV_Cmp(&Vnode_vv(td_v->vptr), &r->VV[1]) != VV_EQ))
 			    td_v->d_reintstale = 1;
 
 		    /* Perform. */
+		    SLog(9, "CML_Rename %s/%s -> %s/%s",
+			 FID_(&sd_v->fid), FID_(&s_v->fid),
+			 FID_(&td_v->fid), TargetExists ? FID_(&t_v->fid):"-");
+
 		    HandleWeakEquality(volptr, sd_v->vptr, &r->VV[0]);
 		    if (!SameParent)
 			HandleWeakEquality(volptr, td_v->vptr, &r->VV[1]);
@@ -1841,6 +1854,8 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 			parent_v->d_reintstale = 1;
 
 		    /* Perform. */
+		    SLog(9, "CML_MakeDir %s/%s", FID_(&parent_v->fid), FID_(&child_v->fid));
+
 		    HandleWeakEquality(volptr, parent_v->vptr, &r->VV[0]);
 		    errorCode = PerformMkdir(client, VSGVolnum, volptr,
 					     parent_v->vptr, child_v->vptr,
@@ -1908,6 +1923,8 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 			parent_v->d_reintstale = 1;
 
 		    /* Perform. */
+		    SLog(9, "CML_RemoveDir %s/%s", FID_(&parent_v->fid), FID_(&child_v->fid));
+
 		    int tblocks = 0;
 		    HandleWeakEquality(volptr, parent_v->vptr, &r->VV[0]);
 		    HandleWeakEquality(volptr, child_v->vptr, &r->VV[1]);
@@ -1966,6 +1983,8 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 			parent_v->d_reintstale = 1;
 
 		    /* Perform. */
+		    SLog(9, "CML_SymLink %s/%s", FID_(&parent_v->fid), FID_(&child_v->fid));
+
 		    CODA_ASSERT(child_v->f_finode == 0);
 		    child_v->f_finode = icreate(V_device(volptr), V_id(volptr),
 					       child_v->vptr->vnodeNumber,

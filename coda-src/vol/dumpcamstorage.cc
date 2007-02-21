@@ -143,7 +143,7 @@ void print_VolData(struct VolumeData *data)
 		while ((l = next())) {
 		    VnodeDiskObject *vdo;
 		    vdo = strbase(VnodeDiskObject, l, nextvn);
-		    printf("\n\t\t\tVNODE%d\n", i);
+		    printf("\n\tVNODE%d\n", i);
 		    print_VnodeDiskObject(vdo);
 		}
 	    }
@@ -164,7 +164,7 @@ void print_VolData(struct VolumeData *data)
 		while((l = next())){
 		    VnodeDiskObject *vdo;
 		    vdo = strbase(VnodeDiskObject, l, nextvn);
-		    printf("\n\t\t\tVNODE%d\n", i);
+		    printf("\n\tVNODE%d\n", i);
 		    print_VnodeDiskObject(vdo);
 		}
 	    }
@@ -178,15 +178,17 @@ void print_VnodeDiskObject(VnodeDiskObject *vnode)
 {
     if (vnode->type == vNull && vnode->linkCount == 0)
 	return;
-    printf("\t\t\ttype = %u\n\t\t\tcloned = %u\n\t\t\tmode = %o\n\t\t\tlinks = %u\n",
+    printf("\ttype = %u\tcloned = %u\tmode = %o\tlinks = %u\n",
 	vnode->type, vnode->cloned, vnode->modeBits, vnode->linkCount);
-    printf("\t\t\tlength = %u\n\t\t\tunique = %08x\n\t\t\tversion = %u\n\t\t\tinode = %p\n",
-	vnode->length, vnode->uniquifier, vnode->dataVersion, vnode->node.dirNode);
-    PrintVersionVector(vnode->versionvector, "\t\t\t");
-    printf("\t\t\tvolindex = %d\n\t\t\tmodtime = %u\n\t\t\tauthor = %u\n\t\t\towner = %u\n\t\t\tparent = %08x.%08x\n",
-	vnode->vol_index, vnode->unixModifyTime, vnode->author, vnode->owner, vnode->vparent, vnode->uparent);
-    printf("\t\t\tmagic = %x\n\t\t\tservermodtime = %u\n",
-	vnode->vnodeMagic, vnode->serverModifyTime);
+    printf("\tlength = %u\tunique = %x\tversion = %u\tinode = %p\n",
+	   vnode->length, vnode->uniquifier, vnode->dataVersion,
+	   vnode->node.dirNode);
+    PrintVersionVector(vnode->versionvector, "\t");
+    printf("\tvolindex = %d\tmodtime = %u\tauthor = %u\towner = %u\n",
+	vnode->vol_index, vnode->unixModifyTime, vnode->author, vnode->owner);
+    printf("\tparent = %x.%x\tmagic = %x\tsrv_mtime = %u\n",
+	   vnode->vparent, vnode->uparent,
+	   vnode->vnodeMagic, vnode->serverModifyTime);
 }
 
 static void PrintVersionVector(vv_t vv, char *indent) {
@@ -297,20 +299,12 @@ void PrintCamVnode(int level, int volindex, int vclass, VnodeId vnodeindex,
 {
     char buf[SIZEOF_LARGEDISKVNODE];
     VnodeDiskObject *vnode = (VnodeDiskObject *)buf;
-    Error ec;
     int rc = 0;
 
     if (level > VolDebugLevel) return;
 
-    rc = ExtractVnode(&ec, volindex, vclass, vnodeindex, unq, vnode);
-    if (ec != 0) {
-	printf("Error %u from ExtractVnode; aborting vnode dump\n", ec);
-	return;
-    }
-    printf("Printing %s vnode %08x, (index %u) from volume %u\n",
-	    ((vclass == vLarge)?"Large":"Small"),
-	    bitNumberToVnodeNumber(vnodeindex,vclass), vnodeindex, volindex);
-    print_VnodeDiskObject(vnode);
+    rc = ExtractVnode(volindex, vclass, vnodeindex, unq, vnode);
+    if (rc) printf("Error from ExtractVnode\n");
 }
 
 void PrintCamDiskData(int level, int volindex, VolumeDiskData *vdisk) {

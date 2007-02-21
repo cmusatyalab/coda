@@ -665,16 +665,13 @@ static int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes,
 	    else {
 		if (!IsBarren(vnode->versionvector)){
 		    if (nodebarrenize) {
-			VLog(0, 
-			       "Vnode (%x.%x.%x) incorrect inode - marking as BARREN",
+			VLog(0, "Vnode (%x.%x.%x) incorrect inode - marking as BARREN",
 			       vsp->header.id, vnodeNumber, vnode->uniquifier);
-			
+
 			SetBarren(vnode->versionvector);
-			
 		    }
 		    else {
-			VLog(0, 
-			       "Vnode 0x%x.%x.%x incorrect inode - Correcting\n",
+			VLog(0, "Vnode 0x%x.%x.%x incorrect inode - Correcting\n",
 			       vsp->header.id, vnodeNumber, vnode->uniquifier);
 			vnode->node.inodeNumber = icreate(fileSysDevice,
 							  vsp->header.parent,
