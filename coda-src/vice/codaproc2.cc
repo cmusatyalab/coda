@@ -2328,7 +2328,8 @@ int AddChild(Volume **volptr, dlist *vlist, ViceFid *Did,
     switch(errorCode) {
 	case 0:
 	    vle = AddVLE(*vlist, &Fid);
-	    vle->d_inodemod = 1;
+	    if (ISDIR(Fid))
+		vle->d_inodemod = 1;
 	    break;
 
 	case ENOENT:
