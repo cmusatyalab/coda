@@ -366,18 +366,18 @@ struct command cmdarray[] =
             NULL
         },
         {"writedisconnect", "wd", WriteDisconnect,
-            "cfs writedisconnect [-age <sec>] [-hogtime <sec>] [<dir> <dir> <dir> ...]",
-            "Set write-disconnection parameters for all volumes, or volumes specified\n(default parameters -age 60 -hogtime 30.0)",
+            "cfs writedisconnect [-age <sec>] [-time <sec>] [<dir> <dir> <dir> ...]",
+            "Set write-disconnection parameters for all volumes, or volumes specified\n(default parameters -age 60 -time 30.0)",
             NULL
         },
         {"adaptive", NULL, Adaptive,
 	    "cfs adaptive [<dir> <dir> <dir> ...]",
-	    "Reintegrate changes quickly, but allow for adaptation to low bandwidth\nalias for 'cfs writedisconnect -age 0 -hogtime 1.0'",
+	    "Reintegrate changes quickly, but allow for adaptation to low bandwidth\nalias for 'cfs writedisconnect -age 0 -time 5.0'",
 	    NULL
         },
         {"strong", NULL, Strong,
 	    "cfs strong [<dir> <dir> <dir> ...]",
-	    "Force synchronous reintegration whenever an operation completes.\nalias for 'cfs writedisconnect -age 0 -hogtime 0'",
+	    "Force synchronous reintegration whenever an operation completes.\nalias for 'cfs writedisconnect -age 0 -time 0'",
 	    NULL
         },
 	{"forcereintegrate", "fr", ForceReintegrate,
@@ -1834,7 +1834,7 @@ static void ListVolume(int argc, char *argv[], int opslot)
     char *volname, *omsg, *motd;
     VolumeStateType conn_state;
     int conflict, cml_count;
-    unsigned int age, hogtime;
+    unsigned int age, time;
     uint64_t cml_bytes;
     char *ptr;
     int local_only = 0;
@@ -1863,7 +1863,7 @@ static void ListVolume(int argc, char *argv[], int opslot)
 
 	/* Get pointers to output fields */
 	/* Format is (status, name, conn_state, conflict,
-	   cml_count, offlinemsg, motd, age, hogtime, cml_bytes) */
+	   cml_count, offlinemsg, motd, age, time, cml_bytes) */
 	ptr = piobuf;		/* invariant: ptr always point to next obj
 				   to be read */
 	vs = (VolumeStatus *)ptr;
@@ -1882,7 +1882,7 @@ static void ListVolume(int argc, char *argv[], int opslot)
 
 	age = *(uint32_t *)ptr;
 	ptr += sizeof(uint32_t);
-	hogtime	= *(uint32_t *)ptr;
+	time = *(uint32_t *)ptr;
 	ptr += sizeof(uint32_t);
 	cml_bytes = *(uint64_t *)ptr;
 	ptr += sizeof(uint64_t);
@@ -1895,8 +1895,8 @@ static void ListVolume(int argc, char *argv[], int opslot)
 	if (*motd) printf("  Message of the day is \"%s\"\n", motd);
 	printf("  Volume type is %s\n", xlate_vvtype(vs->Type));
 	printf("  Connection State is %s\n", print_conn_state(conn_state));
-	printf("  Reintegration age: %u sec, hogtime %.3f sec\n",
-	       age, hogtime / 1000.0);
+	printf("  Reintegration age: %u sec, time %.3f sec\n",
+	       age, time / 1000.0);
 	/* info not avail if disconnected, or if we did a local query */
 	if (conn_state != Unreachable && local_only == 0) {
 	    printf("  Minimum quota is %u,", vs->MinQuota);
@@ -2495,13 +2495,13 @@ static void WaitForever (int argc, char *argv[], int opslot)
     if (rc < 0){ PERROR("VIOC_WAITFOREVER"); exit(-1); }
 }
 
-static void WD(int argc, char *argv[], unsigned int age, unsigned int hogtime)
+static void WD(int argc, char *argv[], unsigned int age, unsigned int time)
 {
     struct ViceIoctl vio;
     int rc, i, w;
 
     ((unsigned int *)piobuf)[0] = age;
-    ((unsigned int *)piobuf)[1] = hogtime;
+    ((unsigned int *)piobuf)[1] = time;
     vio.in = piobuf;
     vio.in_size = 2 * (int) sizeof(unsigned int);
     vio.out = 0;
@@ -2527,32 +2527,33 @@ static void WD(int argc, char *argv[], unsigned int age, unsigned int hogtime)
 
 static void WriteDisconnect(int argc, char *argv[], int opslot)
 {
-    unsigned int age, hogtime;
+    unsigned int age, time;
 
-    age = hogtime = (unsigned int)-1;
+    age = time = (unsigned int)-1;
     while (argc > 2) {
 	if (strcmp(argv[2], "-age") == 0)
 	    age = atoi(argv[3]);
 
-	else if (strcmp(argv[2], "-hogtime") == 0)
-	    hogtime = (unsigned int)(atof(argv[3]) * 1000.0);
+	else if ((strcmp(argv[2], "-time") == 0) ||
+		 (strcmp(argv[2], "-hogtime") == 0))
+	    time = (unsigned int)(atof(argv[3]) * 1000.0);
 
 	else break;
 
 	argv += 2;
 	argc -= 2;
     }
-    /* if age and hogtime are not specified, set default values */
-    if (age == (unsigned int)-1 && hogtime == (unsigned int)-1) {
+    /* if age and time are not specified, set default values */
+    if (age == (unsigned int)-1 && time == (unsigned int)-1) {
 	age = 60; /* seconds */
-	hogtime = 30000; /* milliseconds */
+	time = 30000; /* milliseconds */
     }
-    WD(argc, argv, age, hogtime);
+    WD(argc, argv, age, time);
 }
 
 static void Adaptive(int argc, char *argv[], int opslot)
 {
-    WD(argc, argv, 0, 1000);
+    WD(argc, argv, 0, 5000);
 }
 
 static void Strong(int argc, char *argv[], int opslot)

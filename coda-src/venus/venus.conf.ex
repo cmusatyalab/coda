@@ -233,3 +233,28 @@ mapprivate=1
 #
 #allow_backfetch=0
 
+#
+# Default reintegration parameters
+#
+# These are the default values set for newly instantiated volumes. They can be
+# changed for cached volumes with 'cfs wd -age N -time M'. These settings are
+# persistent across venus restarts.
+#
+# reintegration_age specifies how old a logged change should be before it is
+# eligible for reintegration. A longer time will increase the chance that the
+# operation can be optimized away (create/store/remove -> (none)), but a
+# shorter aging value improves consistency because we push pending changes
+# back faster.
+#
+# reintegration_time defines an upper limit on a reintegration 'cycle'. The
+# actual duration is typically longer since we estimate the time it takes to
+# reintegrate from the amount of bulk (SFTP) data divided by the estimated
+# bandwidth and we don't account for the overhead of the RPC2 calls.
+#
+# Setting reintegration_time to 0 forces the client to use synchronous
+# reintegration mode. It will try to push any pending changes back to the
+# server before returning to the application.
+#
+#reintegration_age=0
+#reintegration_time=5
+

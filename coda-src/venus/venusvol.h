@@ -1012,6 +1012,10 @@ extern int vcbbreaks;
 extern char voldaemon_sync;
 extern char VCBEnabled;
 
+/* reintegration parameters, see venusvol.cc */
+extern int default_reintegration_age;
+extern int default_reintegration_time;
+
 /*  *****  Functions/Procedures  *****  */
 
 /* venusvol.c */

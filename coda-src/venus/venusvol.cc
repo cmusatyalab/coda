@@ -169,6 +169,9 @@ unsigned int repvol::deallocs = 0;
 
 #define ASR_UID 0 /* XXX: To be changed! */
 
+int default_reintegration_age; /* how long a CML entry must exist before reint*/
+int default_reintegration_time; /* how long a reintegration attempt may take */
+
 /* local-repair modification */
 void VolInit(void)
 {
@@ -1710,8 +1713,8 @@ repvol::repvol(Realm *r, VolumeId vid, const char *name, volrep *reps[VSG_MEMBER
     memcpy(volreps, reps, VSG_MEMBERS * sizeof(volrep *));
 
     VVV = NullVV;
-    AgeLimit = 0;      /* seconds */
-    ReintLimit = 1000; /* milliseconds */
+    AgeLimit   = default_reintegration_age;  /* seconds */
+    ReintLimit = default_reintegration_time; /* milliseconds */
     reint_id_gen = 100;
     flags.replicated = 1;
 

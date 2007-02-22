@@ -327,7 +327,7 @@ int ClientModifyLog::GetReintegrateable(int tid, unsigned long *reint_time,
 	/* Only limit reintegration time when we are not forcing a
 	 * synchronous reintegration and and we have at least
 	 * one CML entry queued. --JH */
-	if (!vol->flags.sync_reintegrate && *nrecs && this_time > *reint_time)
+	if (!vol->IsSync() && *nrecs && this_time > *reint_time)
 	    break;
 
 	/*
@@ -2875,7 +2875,7 @@ int cmlent::WriteReintegrationHandle(unsigned long *reint_time)
     fsobj *f = NULL;
     RPC2_Unsigned length = u.u_store.Length - u.u_store.Offset;
 
-    if (!vol->flags.sync_reintegrate)
+    if (!vol->IsSync())
 	length = ReintAmount(reint_time);
 
     /* stop reintegration loop if we ran out of available reintegration time */

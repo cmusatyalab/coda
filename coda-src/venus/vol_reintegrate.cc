@@ -131,7 +131,7 @@ void repvol::Reintegrate()
 	 */
 	code = PartialReintegrate(thisTid, &reint_time);
 
-	if (flags.sync_reintegrate && code == 0)
+	if (code == 0 && IsSync())
 	    continue;
 
 	/* PartialReintegrate returns ENOENT when there was no CML entry

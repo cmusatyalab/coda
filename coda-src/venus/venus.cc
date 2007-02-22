@@ -492,9 +492,11 @@ static void DefaultCmdlineParms()
     CODACONF_INT(rpc2_timeout,	    "RPC2_timeout",   DFLT_TO);
     CODACONF_INT(rpc2_retries,	    "RPC2_retries",   DFLT_RT);
 
-    CODACONF_INT(T1Interval,	    "serverprobe",    150);
+    CODACONF_INT(T1Interval, "serverprobe", 150); // used to be 12 minutes
 
-    // used to be 12 minutes
+    CODACONF_INT(default_reintegration_age,  "reintegration_age",  0);
+    CODACONF_INT(default_reintegration_time, "reintegration_time", 5);
+    default_reintegration_time *= 1000; /* reintegration time is in msec */
 
 #if defined(__CYGWIN32__)
     CODACONF_STR(CachePrefix, "cache_prefix", "/?" "?/C:/cygwin");
