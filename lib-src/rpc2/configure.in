@@ -35,7 +35,7 @@ AC_CHECK_PROG(CP, cp, cp)
 AC_CHECK_PROG(PERL, perl, perl)
 
 dnl pkg-config stuff
-PKG_PROG_PKG_CONFIG()
+PKG_PROG_PKG_CONFIG([0.18.0])
 AC_ARG_WITH(lua, [  --with-lua		  embed Lua interpreter],
   [ PKG_CHECK_EXISTS([lua5.1], [ PKG_CHECK_MODULES([LUA], [lua5.1]) ],
 			       [ PKG_CHECK_MODULES([LUA], [lua]) ])
