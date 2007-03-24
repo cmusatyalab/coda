@@ -520,7 +520,7 @@ int recov_vol_log::AllocViaWrapAround(int *index, int *seqno,
     for (i = 0; i < 32 ; i++) {
 	// chose an object whose log must be wrapped around
 	if (ChooseWrapAroundVnode(volptr, different)) {
-	    SLog(0, "AllocViaWrapAround: No vnodes whose logs can be reused\n");
+	    SLog(0, "AllocViaWrapAround: Volume %08x has no vnodes whose logs can be reused\n", V_id(volptr));
 	    break;
 	}
 	different = 0;
@@ -533,29 +533,22 @@ int recov_vol_log::AllocViaWrapAround(int *index, int *seqno,
 	    if (vlist) {
 		vle *v = FindVLE(*vlist, &fid);
 		if (v) {
-		    SLog(0,
-			   "AllocViaWrapAround: Obj 0x%x.%x is being mod - try again\n",
-			   wrapvn, wrapun);
+		    SLog(0, "AllocViaWrapAround: Obj %08x.%x.%x is being mod - try again\n", V_id(volptr), wrapvn, wrapun);
 		    different = 1;
 		    continue;
 		}
 	    }
 	}
-		    
+
 	if ((errorcode = GetFsObj(&fid, &volptr, &vptr, WRITE_LOCK, NO_LOCK, 1, 1, 0))) {
-	    SLog(0,
-		   "AllocViaWrapAround: Couldnt get object 0x%x.%x\n",
-		   wrapvn, wrapun);
+	    SLog(0, "AllocViaWrapAround: Couldnt get object %08x.%x.%x\n", V_id(volptr), wrapvn, wrapun);
 	    different = 1;
 	    continue;
 	}
-	
 	CODA_ASSERT(vptr);
 	CODA_ASSERT(VnLog(vptr));
 	if (VnLog(vptr)->count() <= 1)  {
-	    SLog(0,
-		   "AllocViaWrapAround: 0x%x.%x has only single vnode on list\n",
-		   wrapvn, wrapun);
+	    SLog(0, "AllocViaWrapAround: %08x.%x.%x has only single vnode on list\n", V_id(volptr), wrapvn, wrapun);
 	    rvmlib_begin_transaction(restore);
 	    Error fileCode = 0;
 	    VPutVnode(&fileCode, vptr);
@@ -567,14 +560,12 @@ int recov_vol_log::AllocViaWrapAround(int *index, int *seqno,
 	    different = 1;
 	    continue;
 	}
-	
+
 	// reclaim the first log entry from this vnode
 	{
 	    // remove this entry from the list
 	    // check the entry has no ptrs for other log records embedded
-	    SLog(0,
-		   "AllocViaWrapAround: Reclaiming first log rec of 0x%x.%x\n\n",
-		   wrapvn, wrapun);
+	    SLog(0, "AllocViaWrapAround: Reclaiming first log rec of %08x.%x.%x\n\n", V_id(volptr), wrapvn, wrapun);
 	    CODA_ASSERT(!rvmlib_in_transaction());
 	    rvmlib_begin_transaction(restore);
 	    recle *le = (recle *)VnLog(vptr)->get();
@@ -609,21 +600,21 @@ int recov_vol_log::AllocViaWrapAround(int *index, int *seqno,
     }
 
     if (*index == -1) {
-	SLog(0, "AllocViaWrapAround: Gave up at %d iterations\n", i);
+	SLog(0, "AllocViaWrapAround: Gave up on volume %08x at %d iterations\n", V_id(volptr), i);
 	return(ENOSPC);
     }
 
     // some index was allocated
     CODA_ASSERT(vm_inuse->Value(*index) == 0);
     vm_inuse->SetIndex(*index);
-    
-    if (max_seqno == rec_max_seqno) 
+
+    if (max_seqno == rec_max_seqno)
 	Increase_rec_max_seqno();	/* transaction executed */
-    
+
     *seqno = ++max_seqno;
     return(0);
 }
-    
+
 
 
 
