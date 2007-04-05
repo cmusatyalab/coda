@@ -1477,6 +1477,7 @@ OI_FreeLocks:
 		    Realm *realm = REALMDB->GetRealm(data->in);
 		    userent *ue = realm->GetUser(u.u_uid);
 		    ue->Invalidate();
+		    FSDB->ResetUser(u.u_uid);
 		    PutUser(&ue);
 		    realm->PutRef();
 

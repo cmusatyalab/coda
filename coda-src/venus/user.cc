@@ -89,7 +89,11 @@ userent *Realm::GetUser(uid_t uid)
 	if (Id() == u->realmid && uid == u->GetUid())
 	    return u;
     }
-    return system_anyuser;
+
+    /* allocate a new user entry */
+    u = new userent(Id(), uid);
+    userent::usertab->insert(&u->tblhandle);
+    return u;
 }
 
 int Realm::NewUserToken(uid_t uid, SecretToken *secretp, ClearToken *clearp)
@@ -98,18 +102,7 @@ int Realm::NewUserToken(uid_t uid, SecretToken *secretp, ClearToken *clearp)
     userent *u;
     int ret;
 
-    if (uid == ANYUSER_UID)
-	return EPERM;
-
     u = GetUser(uid);
-
-    if (u == system_anyuser) {
-	PutUser(&u);
-
-	/* Create a new entry and initialize it. */
-	u = new userent(Id(), uid);
-	userent::usertab->insert(&u->tblhandle);
-    }
 
     ret = u->SetTokens(secretp, clearp);
 
@@ -355,7 +348,7 @@ void userent::Reset()
 {
 LOG(100, ("E userent::Reset()\n"));
     /* Clear the cached access info for the user. */
-    FSDB->ResetUser(uid);
+    // FSDB->ResetUser(uid);
 
     /* Invalidate kernel data for the user. */
     k_Purge(uid);
@@ -569,13 +562,10 @@ int userent::GetWaitForever() {
     return(waitforever);
 }
 
-void userent::SetWaitForever(int state) {
+void userent::SetWaitForever(int state)
+{
     LOG(1, ("userent::SetWaitForever: uid = %d, old_state = %d, new_state = %d\n",
 	     uid, waitforever, state));
-
-    /* Don't allow someone to set the waitforever behaviour for system_anyuser
-     * because it is shared among all anonymous users */
-    if (!tokensvalid) return;
 
     if (state == waitforever) return;
 

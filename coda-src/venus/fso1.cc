@@ -888,26 +888,34 @@ int fsobj::CheckAcRights(uid_t uid, long rights, int connected)
 {
     userent *ue = vol->realm->GetUser(uid);
     long allowed;
+    int can_revalidate = connected && ue->TokensValid();
 
-    if (ue != vol->realm->system_anyuser) {
-	CODA_ASSERT(uid == ue->GetUid());
-	/* Do we have this user's rights in the cache? */
-	for (int i = 0; i < CPSIZE; i++) {
-	    if (SpecificUser[i].inuse && (!connected || SpecificUser[i].valid)
-		&& uid == SpecificUser[i].uid) {
-		allowed = SpecificUser[i].rights;
-		goto exit_found;
-	    }
+    CODA_ASSERT(uid == ue->GetUid());
+
+    /* Do we have this user's rights in the cache? */
+    for (int i = 0; i < CPSIZE; i++) {
+	if (!SpecificUser[i].inuse) continue;
+
+	/* if we can we should revalidate any suspect rights */
+	if (!SpecificUser[i].valid && can_revalidate) continue;
+
+	if (uid == SpecificUser[i].uid) {
+	    allowed = SpecificUser[i].rights;
+	    goto exit_found;
 	}
     }
-    if (ue == vol->realm->system_anyuser || !connected) {
+
+    if (!can_revalidate) {
 	/* Do we have access via System:AnyUser? */
 	if (AnyUser.inuse && (!connected || AnyUser.valid)) {
 	    allowed = AnyUser.rights;
 
-	    /* don't allow mutating operations by non-authenticated users */
-	    if (ue == vol->realm->system_anyuser)
+	    /* As unauthenticated users can never reintegrate (requires tokens)
+	     * it is not a good idea to allow mutating access based on anyuser
+	     * rights if the user doesn't have a valid token. */
+	    if (!ue->TokensValid())
 		allowed &= ~(PRSFS_INSERT | PRSFS_DELETE | PRSFS_WRITE);
+
 	    goto exit_found;
 	}
     }
@@ -927,6 +935,7 @@ exit_found:
 void fsobj::SetAcRights(uid_t uid, long my_rights, long any_rights)
 {
     userent *ue = vol->realm->GetUser(uid);
+    int tokensvalid = ue->TokensValid();
 
     LOG(100, ("fsobj::SetAcRights: (%s), uid = %d, my_rights = %d, any_rights = %d\n",
 	       FID_(&fid), uid, my_rights, any_rights));
@@ -938,14 +947,11 @@ void fsobj::SetAcRights(uid_t uid, long my_rights, long any_rights)
     }
     AnyUser.valid = 1;
 
-    /* Don't record my_rights if we're system_anyuser! */
-    if (ue == vol->realm->system_anyuser) {
-	PutUser(&ue);
-	return;
-    }
-
     CODA_ASSERT(uid == ue->GetUid());
     PutUser(&ue);
+
+    if (!tokensvalid)
+	return;
 
     int i;
     int j = -1;
@@ -993,9 +999,9 @@ void fsobj::PromoteAcRights(uid_t uid)
     if (uid == ANYUSER_UID) {
 	AnyUser.valid = 1;
 
-	/* 
+	/*
 	 * if other users who have rights in the cache also have
-	 * tokens, promote their rights too. 
+	 * tokens, promote their rights too.
 	 */
 	for (int i = 0; i < CPSIZE; i++)
 	    if (SpecificUser[i].inuse && !SpecificUser[i].valid) {

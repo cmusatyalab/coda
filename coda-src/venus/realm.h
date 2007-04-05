@@ -80,7 +80,6 @@ private:
 /*T*/unsigned int refcount;
 /*T*/int generation;
 /*T*/struct RPC2_addrinfo *rootservers;
-/*T*/userent *system_anyuser;
 };
 
 #endif /* _REALM_H_ */

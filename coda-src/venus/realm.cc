@@ -85,8 +85,6 @@ Realm::~Realm(void)
     rvmlib_rec_free(name);
     rvmlib_rec_free(rootvolname);
 
-    delete system_anyuser;
-
     /* kill the fake object that represents our mountlink */
     Fid.Realm = LocalRealm->Id();
     Fid.Volume = FakeRootVolumeId;
@@ -102,7 +100,6 @@ void Realm::ResetTransient(void)
 {
     rootservers = NULL;
     refcount = 0;
-    system_anyuser = new userent(Id(), ANYUSER_UID);
 
     if (rvmlib_in_transaction() && !rec_refcount)
 	delete this;

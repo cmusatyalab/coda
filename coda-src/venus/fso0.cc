@@ -1146,12 +1146,15 @@ int fsdb::CallBackBreak(const VenusFid *fid)
 }
 
 void fsdb::ResetUser(uid_t uid) {
-    /* Demote access rights for the user. */
+    /* Clear access rights for the user. */
     fso_iterator next(NL);
     fsobj *f;
+
+    Recov_BeginTrans();
     while ((f = next()))
 	if (f->IsDir())
-	    f->DemoteAcRights(uid);
+	    f->ClearAcRights(uid);
+    Recov_EndTrans(0);
 }
 
 
