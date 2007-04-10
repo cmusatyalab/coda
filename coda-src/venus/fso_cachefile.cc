@@ -47,6 +47,13 @@ extern "C" {
 #include "fso.h"
 #include "venus.private.h"
 
+#ifndef fdatasync
+#define fdatasync(fd) fsync(fd)
+#endif
+
+/* always useful to have a page of zero's ready */
+static char zeropage[4096];
+
 /*  *****  CacheFile Members  *****  */
 
 /* Pre-allocation routine. */
@@ -240,22 +247,36 @@ void CacheFile::Stat(struct stat *tstat)
 /* MUST be called from within transaction! */
 void CacheFile::Truncate(long newlen)
 {
+    int fd;
+
+    fd = open(name, O_WRONLY | O_BINARY);
+    CODA_ASSERT(fd >= 0 && "fatal error opening container file");
+
+    /* ISR tweak, write zeros to data area before truncation */
+    if (option_openisr && newlen < length) {
+	size_t len = sizeof(zeropage), n = length - newlen;
+
+	lseek(fd, newlen, SEEK_SET);
+
+	while (n) {
+	    if (n < len) len = n;
+	    write(fd, zeropage, len);
+	    n -= len;
+	}
+	/* we have to force these writes to disk, otherwise the following
+	 * truncate would simply drop any unwritten data */
+	fdatasync(fd);
+    }
+
     if (length != newlen) {
 	RVMLIB_REC_OBJECT(*this);
 	length = validdata = newlen;
     }
-#ifndef __CYGWIN32__
-    CODA_ASSERT(::truncate(name, length) == 0);
-#else 
-    {
-	int fd = open(name, O_WRONLY | O_BINARY);
-	if ( fd < 0 ) CODA_ASSERT(0);
-	CODA_ASSERT(::ftruncate(fd, length) == 0);
-	close(fd);
-    }
-#endif
-}
 
+    CODA_ASSERT(::ftruncate(fd, length) == 0);
+
+    close(fd);
+}
 
 /* MUST be called from within transaction! */
 void CacheFile::SetLength(long newlen)

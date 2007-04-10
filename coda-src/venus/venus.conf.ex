@@ -94,14 +94,14 @@ cacheblocks=100000
 # the CML during reintegration. (default is /usr/coda/spool)
 #
 #checkpointdir=/usr/coda/spool
-	
+
 #
 # Where does venus store it's pidfile
 #
 #pid_file=/usr/coda/venus.cache/pid
- 
+
 #
-# What file does vutil use to control venus 
+# What file does vutil use to control venus
 #
 #run_control_file=/usr/coda/venus.cache/VENUS_CTRL
 
@@ -111,11 +111,11 @@ cacheblocks=100000
 #logfile=/usr/coda/etc/venus.log
 
 #
-# Mariner socket, 
+# Mariner socket,
 # On platforms that support unix domain sockets this is the socket that
 # codacon and spy use to talk to venus. On other platforms they will
 # connect to venus through tcp port 2430.
-# 
+#
 #marinersocket=/usr/coda/spool/mariner
 
 #
@@ -188,6 +188,11 @@ mapprivate=1
 # in Linux's netfilter only remembers UDP streams for about 3 minutes, so the
 # default value has been lowered to trigger a probe every 150 seconds.
 #
+# To keep masqueraded ports open in VMWare this needs to be 45 seconds.
+# Alternatively you can configure venus to use a fixed port using the
+# masquerade_port option and set up a static redirection in
+# /etc/vmware/vmnet8/nat/nat.conf
+#
 #serverprobe=150
 
 #
@@ -257,4 +262,12 @@ mapprivate=1
 #
 #reintegration_age=0
 #reintegration_time=5
+
+#
+# Enable tweaks for OpenISR, disabled by default.
+#
+# - overwrite container files with zeros before truncation to reduce the
+# amount of dirty state for suspend.
+#
+# openisr=0
 
