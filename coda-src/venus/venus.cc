@@ -103,7 +103,7 @@ int PiggyValidations;
 pid_t ASRpid;
 VenusFid ASRfid;
 uid_t ASRuid;
-int option_openisr;
+int option_isr;
 
 #if defined(HAVE_SYS_UN_H) && !defined(__CYGWIN32__)
 int mariner_tcp_enable = 0;
@@ -568,9 +568,9 @@ static void DefaultCmdlineParms()
 	    PiggyValidations = MAX_PIGGY_VALIDATIONS;
     }
 
-    /* Should we enable special tweaks for running in an OpenISR VM */
+    /* Should we enable special tweaks for running in a VM */
     /* - Write zeros to container file contents before truncation */
-    CODACONF_INT(option_openisr, "openisr", 0);
+    CODACONF_INT(option_isr, "isr", 0);
 
 #ifdef moremoremore
     char *x = NULL;

@@ -253,7 +253,7 @@ void CacheFile::Truncate(long newlen)
     CODA_ASSERT(fd >= 0 && "fatal error opening container file");
 
     /* ISR tweak, write zeros to data area before truncation */
-    if (option_openisr && newlen < length) {
+    if (option_isr && newlen < length) {
 	size_t len = sizeof(zeropage), n = length - newlen;
 
 	lseek(fd, newlen, SEEK_SET);

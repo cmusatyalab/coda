@@ -264,10 +264,10 @@ mapprivate=1
 #reintegration_time=5
 
 #
-# Enable tweaks for OpenISR, disabled by default.
+# Enable tweaks when running in a virtual machine, disabled by default.
 #
 # - overwrite container files with zeros before truncation to reduce the
-# amount of dirty state for suspend.
+#   amount of dirty state we need to write back during suspend.
 #
-# openisr=0
+#isr=0
 

@@ -364,7 +364,7 @@ extern int   PiggyValidations;
 extern int   T1Interval;
 extern char *ASRLauncherFile;
 extern char *ASRPolicyFile;
-extern int   option_openisr;
+extern int   option_isr;
 
 /* spool.cc */
 extern void MakeUserSpoolDir(char *, uid_t);
