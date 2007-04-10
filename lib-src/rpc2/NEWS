@@ -3,7 +3,14 @@ New in 2.5:
 * Avoid rp2gen segfault on 64-bit systems. (Vasil Dimov)
 * Forgotten includes broke the FreeBSD build. (Sean Caron)
 * Fix RPM build dependencies. (Adam Goode/Jerry Amundson)
+* Add dependency on pkg-config 0.18 or higher (Davor Ocelic)
 * Use non-blocking /dev/urandom device to initialize random number generator.
+* We were not correctly handling returned data values in our Lua bindings.
+* Fix compiler warnings in stub-generated code.
+* Correctly handle negative seek offset in SFTP so that it disables seeking by
+  the rpc2 layers.
+* Fix data alignment for incoming RPC2 connections on 64-bit.
+* Set default binding policy to only allow secure rpc2 connections.
 
 New in 2.4:
 
