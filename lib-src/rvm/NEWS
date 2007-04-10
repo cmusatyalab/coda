@@ -1,3 +1,7 @@
+New in 1.14:
+
+* Avoid overflow in rds_free on 64-bit systems.
+
 New in 1.13:
 
 * Fix rdsinit interactive mode on amd64.
