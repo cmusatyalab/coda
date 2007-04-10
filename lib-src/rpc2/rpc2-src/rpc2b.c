@@ -112,15 +112,10 @@ long RPC2_Init(char *VId,		/* magic version string */
     if (RPC2_Preferred_Keysize > 64)
 	RPC2_Preferred_Keysize /= 8;
 
-    /* Do we accept only secure connections, default is no. This can
-     * be enabled by setting the RPC2SEC_ONLY environment variable.
-     * (and forced as disabled by setting RPC2SEC_ONLY=0/false/no)
-     *
-     * At some point once every client and server is 'expected' to run
-     * rpc2-2.0 or later we can change the default behaviour to accept
-     * only secure connections. */
+    /* Do we accept only secure connections, default is yes. This can be
+     * disabled by setting the RPC2SEC_ONLY to 0, false, no, (nada, forgetit) */
     env = getenv("RPC2SEC_ONLY");
-    RPC2_secure_only = env && memchr("0fFnN", *env, 5) == NULL;
+    RPC2_secure_only = !env || (env && memchr("0fFnN", *env, 5) == NULL);
 
     verbose = (Options && (Options->Flags & RPC2_OPTION_VERBOSE_INIT));
     secure_init(verbose);
