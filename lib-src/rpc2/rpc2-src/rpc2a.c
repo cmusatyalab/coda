@@ -478,6 +478,8 @@ long RPC2_GetRequest(IN RPC2_RequestFilter *Filter,
     /* old bind sequence, authenticated connections, 4-way handshake */
     else if (ce->SecurityLevel != RPC2_OPENKIMONO)
     {
+	say(-1, RPC2_DebugLevel, "Server doesn't support RPC2SEC, using XOR based handshake\n");
+
 	if (!GetKeys || (ce->EncryptionType & EncryptionTypeMask) == 0 ||
 	    MORETHANONEBITSET(ce->EncryptionType))
 	{
@@ -495,8 +497,10 @@ long RPC2_GetRequest(IN RPC2_RequestFilter *Filter,
     }
 
     /* old bind sequence, unauthenticated connections, 2-way handshake */
-    else
+    else {
+	say(-1, RPC2_DebugLevel, "Server doesn't support RPC2SEC, establishing unauthenticated connection\n");
 	SendOKInit2(ce);
+    }
 
     /* Do final processing: we need is RPC2_Enable() */
     SetState(ce, S_AWAITENABLE);
@@ -944,6 +948,7 @@ try_next_addr:
 	rpc2_Quit(RPC2_OLDVERSION);
     }
     else {
+	say(-1, RPC2_DebugLevel, "Client doesn't support RPC2SEC, using old handshake\n");
 	/* The INIT2 packet came over insecure connection, remove decryption
 	 * context and fall back on the old handshake */
 	secure_setup_decrypt(0, &ce->sa, NULL, NULL, NULL, 0);
