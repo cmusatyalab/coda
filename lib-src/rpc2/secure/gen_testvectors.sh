@@ -48,7 +48,7 @@ vectors () {
     keysize=0
     cat $file | sed 's/\r//' | while read key value
     do
-	if [ "$key" == KEYSIZE -a "$value" != "$keysize" ] ; then
+	if [ "$key" = KEYSIZE -a "$value" != "$keysize" ] ; then
 	    I=0
 	    keysize="$value"
 	fi
