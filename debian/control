@@ -3,10 +3,10 @@ Section: net
 Priority: optional
 Maintainer: Jan Harkes <jaharkes@cs.cmu.edu>
 Standards-Version: 3.6.1
-Build-Depends: debhelper (>= 4), g++, liblwp-dev, librpc2-dev (>= 2.0), librvm-dev, rvm-tools, libreadline5-dev, libncurses5-dev, libfltk1.1-dev, flex, bison | byacc, fluid
+Build-Depends: debhelper (>= 4), g++, liblwp-dev, librpc2-dev (>= 2.0), rpc2-tools, librvm-dev, rvm-tools, libreadline5-dev, libncurses5-dev, libfltk1.1-dev, flex, bison | byacc, fluid
 
 Package: coda-client
-Architecture: arm i386 m68k powerpc sparc
+Architecture: amd64 arm i386 m68k powerpc sparc
 Depends: ${shlibs:Depends}
 Pre-Depends: debconf (>= 0.2.17)
 Description: Client for the Coda distributed file system
@@ -19,7 +19,7 @@ Description: Client for the Coda distributed file system
  For more information go to http://www.coda.cs.cmu.edu/
 
 Package: coda-server
-Architecture: arm i386 m68k powerpc sparc
+Architecture: amd64 arm i386 m68k powerpc sparc
 Depends: coda-update, rvm-tools, ${shlibs:Depends}
 Description: Server for the Coda distributed file system
  Coda is an advanced distributed filesystem. It has been developed at CMU
@@ -30,7 +30,7 @@ Description: Server for the Coda distributed file system
  For more information see http://www.coda.cs.cmu.edu/
 
 Package: coda-update
-Architecture: arm i386 m68k powerpc sparc
+Architecture: amd64 arm i386 m68k powerpc sparc
 Depends: ${shlibs:Depends}
 Description: Server for the Coda distributed file system
  Coda is an advanced distributed filesystem. It has been developed at CMU
@@ -42,7 +42,7 @@ Description: Server for the Coda distributed file system
  For more information see http://www.coda.cs.cmu.edu/
 
 Package: coda-backup
-Architecture: arm i386 m68k powerpc sparc
+Architecture: amd64 arm i386 m68k powerpc sparc
 Depends: coda-update, ${shlibs:Depends}
 Description: Backup client for the Coda distributed filesystem
  Coda is an advanced distributed filesystem. It has been developed at CMU
@@ -54,7 +54,7 @@ Description: Backup client for the Coda distributed filesystem
  For more information see http://www.coda.cs.cmu.edu/
 
 Package: coda-vcodacon
-Architecture: arm i386 m68k powerpc sparc
+Architecture: amd64 arm i386 m68k powerpc sparc
 Depends: coda-client, ${shlibs:Depends}
 Description: Graphical console for the Coda distributed filesystem client
  Coda is an advanced distributed filesystem. It has been developed at CMU
