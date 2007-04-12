@@ -5,7 +5,7 @@
 
 set -e
 
-if [ "$1" == "purge" ] ; then
+if [ "$1" = "purge" ] ; then
     echo "Purging Coda client configuration and cache files" >&2
     rm -f /etc/coda/venus.conf
     rm -rf /var/cache/coda /var/lib/coda /var/log/coda
