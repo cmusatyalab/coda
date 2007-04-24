@@ -494,7 +494,6 @@ class vdb {
     void GetDown();
     void FlushCOP2();
     void CheckPoint(unsigned long);
-    void CheckReintegratePending();
     void CheckLocalSubtree();
 
   public:
@@ -541,22 +540,21 @@ struct VolFlags {
       unsigned replicated : 1;  /* is this a replicated vol or a vol replica */
 /* T*/unsigned transition_pending : 1;
 /* T*/unsigned demotion_pending : 1;
-/*R */unsigned unused : 1;
+/*R */unsigned unused1 : 1;
 /*RT*/unsigned allow_asrinvocation : 1; /* asr's allowed in this volume */
 /*RT*/unsigned asr_running : 1; /* only 1 ASR allowed per volume at a time */
 /*R */unsigned has_local_subtree : 1; /* indicating whether this volume contains local subtrees */
-/*RT*/unsigned reintegratepending : 1;	/* are we waiting for tokens? */
+/*RT*/unsigned unused2 : 1;	/* used to be 'reintegration waiting for tokens */
 /*RT*/unsigned reintegrating : 1; /* are we reintegrating now? */
 /*RT*/unsigned repair_mode : 1;	/* 0 --> normal, 1 --> repair */
 /*RT*/unsigned resolve_me: 1;   /* resolve reintegrated objects */
-/*  */unsigned unused1 : 3;
+/*  */unsigned unused3 : 3;
 /*RT*/unsigned sync_reintegrate : 1; /* perform reintegration synchronously*/
-/*  */unsigned unused2 : 2;
+/*  */unsigned unused4 : 2;
 /*V */unsigned readonly : 1;   /* is this a readonly (backup) volume replica */
 /*RT*/unsigned enable_asrinvocation : 1; /* asr's enabled in this volume */
 /*VT*/unsigned available : 1;   /* is the server for this volume online? */
-
-      unsigned reserved : 12;
+      unsigned unused5 : 12;
 };
 
 
@@ -825,10 +823,6 @@ class repvol : public volent {
     void Reintegrate();
     int IncReintegrate(int);
     int PartialReintegrate(int, unsigned long *reint_time);
-    void SetReintegratePending();
-    void CheckReintegratePending();
-    int IsReintegratePending() { return flags.reintegratepending; }
-    void ClearReintegratePending();
     int IsReintegrating() { return flags.reintegrating; }
     int ReadyToReintegrate();
     int GetReintId();                           /*U*/

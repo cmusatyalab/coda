@@ -60,7 +60,6 @@ static const int VolGetDownInterval = 5 * 60;
 static const int COP2CheckInterval = 5;
 static const int COP2Window = 10;
 static const int VolCheckPointInterval = 10 * 60;
-static	const int UserRPMInterval = 15 * 60;  
 static const int LocalSubtreeCheckInterval = 10 * 60;
 static const int VolTrickleReintegrateInterval = 10;
 
@@ -85,7 +84,6 @@ void VolDaemon(void)
     time_t LastGetDown = 0; /* except for GC'ing empty volumes */
     time_t LastCOP2Check = curr_time;
     time_t LastCheckPoint = curr_time;
-    time_t LastRPM = curr_time;
     time_t LastTrickleReintegrate = curr_time;
 
     for (;;) {
@@ -122,17 +120,9 @@ void VolDaemon(void)
 	    /* Propagate updates, if any. */
 	    if (curr_time - LastTrickleReintegrate >= VolTrickleReintegrateInterval) {
 		LastTrickleReintegrate = curr_time;
-		    
+
 		TrickleReintegrate();
 	    }
-
-	    /* Print "reintegrate pending" messages, if necessary. */
-	    if (curr_time - LastRPM >= UserRPMInterval) {
-		LastRPM = curr_time;
-		    
-		VDB->CheckReintegratePending();
-	    }
-
 	}
 
 	END_TIMING();
@@ -247,23 +237,11 @@ void vdb::CheckPoint(unsigned long curr_time)
 }
 
 
-void vdb::CheckReintegratePending()
-{
-    LOG(100, ("vdb::CheckReintegratePending: \n"));
-
-    /* For each volume. */
-    repvol_iterator next;
-    repvol *v;
-    while ((v = next()))
-	v->CheckReintegratePending();
-}
-
-
 /* Note: no longer in class vdb, since VolDaemon isn't (Satya, 5/20/95) */
 void TrickleReintegrate()
 {
     LOG(100, ("TrickleReintegrate(): \n"));
-    
+
     /* For each volume. */
     repvol_iterator next;
     repvol *v;

@@ -639,8 +639,11 @@ int repvol::ReadyToReintegrate()
     tokensvalid = u->TokensValid();
     PutUser(&u);
 
-    if (!tokensvalid)
+    if (!tokensvalid) {
+        MarinerLog("Reintegrate %s pending tokens for uid = %d", name, CML.owner);
+        eprint("Reintegrate %s pending tokens for uid = %d", name, CML.owner);
 	return 0;
+    }
 
     cml_iterator next(CML, CommitOrder);
     cmlent *m;

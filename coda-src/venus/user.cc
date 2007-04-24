@@ -272,10 +272,9 @@ long userent::SetTokens(SecretToken *asecret, ClearToken *aclear)
     repvol_iterator next;
     repvol *v;
     while ((v = next())) {
-	if (v->IsReintegratePending() && v->GetCML()->Owner() == uid) {
+	ClientModifyLog *CML = v->GetCML();
+	if (CML->Owner() == uid && CML->count())
 	    v->flags.transition_pending = 1;
-	    v->ClearReintegratePending();
-	}
     }
 
     return(1);

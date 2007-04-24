@@ -858,7 +858,7 @@ volent::volent(Realm *r, VolumeId volid, const char *volname)
     rvmlib_set_range(name, strlen(volname) + 1);
     strcpy(name, volname);
 
-    flags.reserved = 0;
+    flags.unused1=flags.unused2=flags.unused3=flags.unused4=flags.unused5 = 0;
     flags.has_local_subtree = 0;
     pgid = NO_ASR;
 }
@@ -880,7 +880,6 @@ void volent::ResetVolTransients()
     flags.allow_asrinvocation = 1;  /* user preference, controlled by cfs */
 	flags.enable_asrinvocation = 1; /* whether system is able to launch */
     flags.asr_running = 0;
-    flags.reintegratepending = 0;
     flags.reintegrating = 0;
     flags.repair_mode = 0;		    /* normal mode */
     flags.resolve_me = 0;
@@ -1322,27 +1321,6 @@ void volent::TakeTransition()
     else if (rv->ResListCount())
 	nextstate = Resolving;
 
-    /* Special cases here. */
-    /*
-     * 1.  If the volume is transitioning _to_ emulating, any reintegations
-     *     will not be stopped because of lack of tokens.
-     */
-    if (nextstate == Unreachable)
-	rv->ClearReintegratePending();
-
-    /* 2. We refuse to transit to reintegration unless owner has auth tokens.
-     * 3. We force "zombie" volumes to emulation state until they are
-     *    un-zombied. */
-    if (nextstate == Reachable && rv->GetCML()->count() > 0)
-    {
-	userent *u = rv->realm->GetUser(rv->GetCML()->Owner());
-	if (!u->TokensValid()) {
-	    rv->SetReintegratePending();
-	    nextstate = Unreachable;
-	}
-	PutUser(&u);
-    }
-
     /* Take corresponding action. */
     state = nextstate;
     flags.transition_pending = 0;
@@ -1495,24 +1473,6 @@ int repvol::SyncCache(VenusFid * fid)
 
     return 0;
 }
-
-void repvol::SetReintegratePending() {
-    flags.reintegratepending = 1;
-    CheckReintegratePending();
-}
-
-
-void repvol::ClearReintegratePending() {
-    flags.reintegratepending = 0;
-}
-
-
-void repvol::CheckReintegratePending() {
-    if (flags.reintegratepending && CML.count() > 0) {
-        eprint("Reintegrate %s pending tokens for uid = %d", name, CML.owner);
-    }
-}
-
 
 void volent::Wait()
 {
@@ -2592,8 +2552,7 @@ void repvol::print_repvol(int afd)
 	    AgeLimit, ReintLimit);
     fdprint(afd, "\tasr allowed %d, running %d\n", 
 	    flags.allow_asrinvocation, flags.asr_running);
-    fdprint(afd, "\treintegrate pending %d, reintegrating = %d\n", 
-	    flags.reintegratepending, flags.reintegrating);
+    fdprint(afd, "\treintegrating = %d\n", flags.reintegrating);
     fdprint(afd, "\thas_local_subtree = %d, resolve_me = %d\n", 
 	    flags.has_local_subtree, flags.resolve_me);
 
