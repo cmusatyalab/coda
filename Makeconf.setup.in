@@ -15,8 +15,9 @@
 # 
 
 RELEASE	    = @PACKAGE_VERSION@
-exec_prefix = @exec_prefix@
 prefix      = @prefix@
+datarootdir = @datarootdir@
+exec_prefix = @exec_prefix@
 libdir      = @libdir@
 libexecdir  = $(exec_prefix)/lib/coda
 bindir      = @bindir@
