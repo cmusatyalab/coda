@@ -200,9 +200,9 @@ AC_DEFUN(CODA_TEST_OFFSETOF,
 	    #include <sys/types.h>
 	    #include <stddef.h>
 	    struct b { struct b *C; };
-	    class A { public: A& operator=(const A& x) {}; struct b B; };
+	    class A {public: A& operator=(const A& x){return *this;}; struct b B;};
 	    #define off(type,member) $2]],
-	    [[A *a; if (((char *)&a->B - off(A,B)) != (char *)a) return 1]])],
+	    [[A *a=NULL; if (((char *)&a->B - off(A,B)) != (char *)a) return 1]])],
 	[AC_DEFINE(CODA_OFFSETOF_$1, 1, [offsetof works with $2])
 	 offsetof=yes], [], [true])
     CPPFLAGS="$saved_CPPFLAGS"
