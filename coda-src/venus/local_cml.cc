@@ -403,6 +403,7 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
 	rc = CheckRepair_GetObjects("remove target", &u.u_remove.CFid,
 				    &GlobalObjs[1], &LocalObjs[1],
 				    msg, mcode, rcode);
+	if (rc) break;
 
 	OBJ_ASSERT(this, (LocalObjs[1] == NULL) || DYING(LocalObjs[1]) ||
 		         (LocalObjs[1]->stat.LinkCount > 0));
