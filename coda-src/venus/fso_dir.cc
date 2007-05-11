@@ -115,6 +115,44 @@ int fsobj::dir_Length()
 	return(DH_Length(&data.dir->dh));
 }
 
+/* This is a hack to avoid an endless loop in GNU rm -rf.
+ * When the number of directory entries exceeds some number it seeks back to 0
+ * to unlink any entries that were added during the remove. However because of
+ * Coda's session semantics the directory contents isn't changed until the
+ * filedescriptor is closed and reopened. This function will clear the fileno
+ * and namelen fields for the unlinked directory entry in the container file */
+static void clear_dir_container_entry(CacheFile *cf, const char *name)
+{
+    char buf[4096];
+    struct venus_dirent *vdir;
+    int fd, len = strlen(name);
+    int offset = 0, n = 0;
+
+    if (!cf) return;
+    fd = cf->Open(O_RDWR);
+
+    while (1) {
+	if (offset >= n) {
+	    n = read(fd, buf, sizeof(buf));
+	    if (n <= 0) break;
+	    offset = 0;
+	}
+
+	vdir = (struct venus_dirent *)&buf[offset];
+
+	if (vdir->d_namlen == len && memcmp(vdir->d_name, name, len) == 0)
+	{
+	    /* found matching entry, write it back with zero'd fileno/namlen */
+	    vdir->d_fileno = vdir->d_namlen = 0;
+	    lseek(fd, offset - n, SEEK_CUR);
+	    write(fd, vdir, sizeof(*vdir) - sizeof(vdir->d_name));
+	    break;
+	}
+	offset += vdir->d_reclen;
+    }
+
+    cf->Close(fd);
+}
 
 /* TRANS */
 void fsobj::dir_Delete(const char *Name) 
@@ -134,6 +172,7 @@ void fsobj::dir_Delete(const char *Name)
 	}
 	free(entry);
 
+	clear_dir_container_entry(data.dir->udcf, Name);
 	data.dir->udcfvalid = 0;
 
 	int newlength = dir_Length();
