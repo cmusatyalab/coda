@@ -325,7 +325,7 @@ int fsobj::Access(int rights, int modes, uid_t uid)
     LOG(10, ("fsobj::Access : (%s, %d, %d), uid = %d\n",
 	      GetComp(), rights, modes, uid));
 
-    int code = 0, disconnected;
+    int code = 0, connected;
 
 #define PRSFS_MUTATE (PRSFS_WRITE | PRSFS_DELETE | PRSFS_INSERT | PRSFS_LOCK)
     /* Disallow mutation of backup, rw-replica, and zombie volumes. */
@@ -411,16 +411,13 @@ int fsobj::Access(int rights, int modes, uid_t uid)
 	return(code);
     }
 
-    disconnected = UNREACHABLE(this) || (REACHABLE(this) && DIRTY(this));
-
-    code = CheckAcRights(uid, rights, !disconnected);
+    connected = REACHABLE(this) && !DIRTY(this); /* use FETCHABLE here? */
+    code = CheckAcRights(uid, rights, connected);
     if (code != ENOENT)
 	return code;
 
-    if (disconnected)
-	return rights ? EACCES : 0;
-
-    FSO_ASSERT(this, (REACHABLE(this) && !DIRTY(this)));
+    /* ENOENT should only be returned when we are connected */
+    FSO_ASSERT(this, connected);
 
     /* We must re-fetch status; rights will be returned as a side-effect. */
     /* Promote the lock level if necessary. */
@@ -437,7 +434,7 @@ int fsobj::Access(int rights, int modes, uid_t uid)
 	if (code != 0) return(code);
     }
 
-    code = CheckAcRights(uid, rights, 1);
+    code = CheckAcRights(uid, rights, 0);
     return (code == 0) ? 0 : EACCES;
 }
 

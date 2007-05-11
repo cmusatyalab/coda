@@ -886,7 +886,7 @@ int fsobj::IsValid(int rcrights) {
 int fsobj::CheckAcRights(uid_t uid, long rights, int connected)
 {
     userent *ue = vol->realm->GetUser(uid);
-    long allowed;
+    long allowed = 0;
     int can_revalidate = connected && ue->TokensValid();
 
     CODA_ASSERT(uid == ue->GetUid());
@@ -921,8 +921,14 @@ int fsobj::CheckAcRights(uid_t uid, long rights, int connected)
     PutUser(&ue);
 
     LOG(10, ("fsobj::CheckAcRights: not found, (%s), (%d, %d, %d)\n",
-	      FID_(&fid), uid, rights, connected));
-    return(ENOENT);
+	     FID_(&fid), uid, rights, connected));
+
+    /* if we are not checking specific rights, then we are just checking if the
+     * object exists, but it is still useful to refetch attributes (and
+     * specific user's rights) when we are connected */
+    if (!rights && !connected) return 0;
+
+    return ENOENT;
 
 exit_found:
     PutUser(&ue);
