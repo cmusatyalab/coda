@@ -247,8 +247,7 @@ void fsobj::ResetTransient()
     list_add(&vol_handle, &vol->fso_list);
 
     if (IsLocalObj() && state != FsoRunt)
-	/* set valid RC status for local object */
-	SetRcRights(RC_STATUS | RC_DATA);
+	DisableReplacement();
 }
 
 
@@ -1922,10 +1921,11 @@ int fsobj::Fakeify()
 
 	    UpdateCacheStats(&FSDB->FileDataStats, CREATE, BLOCKS(this));
 
+	    pfid = fakefid;
+
 	    LOG(10, ("fsobj::Fakeify: created realm mountlink %s\n",
 		    data.symlink));
 	}
-	flags.local = 1;
 	goto done;
     }
 
@@ -2001,11 +2001,15 @@ int fsobj::Fakeify()
 
 	    UpdateCacheStats(&FSDB->FileDataStats, CREATE, BLOCKS(this));
 	}
-	flags.local = 1;
 	goto done;
     }
 
+    LOG(0, ("fsobj::Fakeify: don't know how to fakeify %s\n", FID_(&fid)));
+    return ENOENT;
+
 done:
+    flags.local = 1;
+
     DisableReplacement();
     /* notify blocked threads that the fso is ready. */
     Matriculate();

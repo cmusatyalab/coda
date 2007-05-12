@@ -38,6 +38,7 @@ extern "C" {
 #include "user.h"
 #include "parse_realms.h"
 #include "rec_dllist.h"
+#include "fso.h"
 
 
 #define DEFAULT_ROOTVOLNAME "/"
@@ -75,6 +76,8 @@ Realm::~Realm(void)
     VenusFid Fid;
     fsobj *f;
 
+    LOG(100, ("Realm::~Realm %s\n", name));
+
     CODA_ASSERT(!rec_refcount && refcount <= 1);
 
     rec_list_del(&realms);
@@ -82,12 +85,21 @@ Realm::~Realm(void)
 	eprint("Removing realm '%s'", name);
 	ReplaceRootServers();
     }
+
+    /* remove the name entry from /coda */
+    Fid.Realm = LocalRealm->Id();
+    Fid.Volume = FakeRootVolumeId;
+    Fid.Vnode = 1;
+    Fid.Unique = 1;
+
+    f = FSDB->Find(&Fid);
+    if (f && f->dir_Lookup(name, &Fid, CLU_CASE_SENSITIVE) == 0)
+	f->dir_Delete(name);
+
     rvmlib_rec_free(name);
     rvmlib_rec_free(rootvolname);
 
     /* kill the fake object that represents our mountlink */
-    Fid.Realm = LocalRealm->Id();
-    Fid.Volume = FakeRootVolumeId;
     Fid.Vnode = 0xfffffffc;
     Fid.Unique = Id();
 
@@ -231,7 +243,6 @@ retry:
 		fsobj *f;
 
 		eprint("Resolved realm '%s'", name);
-
 		Fid.Realm = LocalRealm->Id();
 		Fid.Volume = FakeRootVolumeId;
 		Fid.Vnode = 1;
@@ -240,7 +251,11 @@ retry:
 		f = FSDB->Find(&Fid);
 		if (f) {
 		    Recov_BeginTrans();
-		    f->Kill();
+
+		    Fid.Vnode = 0xfffffffc;
+		    Fid.Unique = realmid;
+		    f->dir_Create(name, &Fid);
+
 		    Recov_EndTrans(MAXFP);
 		}
 	    }
