@@ -980,7 +980,17 @@ void vproc::rename(struct venus_cnode *spcp, char *name,
 	    if (s_fso->IsMtPt() || s_fso->IsMTLink())
 		{ u.u_error = EINVAL; goto FreeLocks; }
 
-	    if (s_fso->IsDir()) {
+	    /* Lookup only makes sure the status is cached, the rename will
+	     * dirty the object because it changes the parent pointer. We
+	     * cannot fetch data for dirty objects which prevents us from
+	     * accessing it until the rename has been reintegrated, To avoid
+	     * the access problem we either have to allow fetching data for
+	     * dirty objects (hard, because we aren't sure why the object is
+	     * considered dirty and right now a fetch would clobber the cached
+	     * status or we have to make sure we have cached data before the
+	     * object is renamed. */
+	    //if (s_fso->IsDir())
+	    {
 		VenusFid s_fid = s_fso->fid;
 		FSDB->Put(&s_fso);
 
