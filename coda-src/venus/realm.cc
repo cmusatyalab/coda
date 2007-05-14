@@ -249,7 +249,7 @@ retry:
 		Fid.Unique = 1;
 
 		f = FSDB->Find(&Fid);
-		if (f) {
+		if (f && !f->dir_Lookup(name, &Fid, CLU_CASE_SENSITIVE) == 0) {
 		    Recov_BeginTrans();
 
 		    Fid.Vnode = 0xfffffffc;
