@@ -451,6 +451,7 @@ int rpc2_RetryInterval(struct CEntry *ce, int retry, struct timeval *tv,
 
 	if (retry) {
 	    maxrtt = ce->KeepAlive.tv_sec * 1000000 + ce->KeepAlive.tv_usec;
+	    maxrtt >>= 1;
 
 	    for (i = Retry_N; i > 0; i--) {
 		maxrtt >>= 1;
