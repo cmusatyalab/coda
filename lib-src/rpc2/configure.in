@@ -27,7 +27,13 @@ AC_PROG_CPP
 AC_CHECK_PROG(AR, ar, ar)
 export AR
 AM_PROG_LEX
+if test -z "${ac_cv_prog_LEX}" ; then
+    AC_MSG_ERROR([Build requires flex or lex lexical analyzer generator])
+fi
 AC_PROG_YACC
+if test -z "${ac_cv_prog_YACC}" ; then
+    AC_MSG_ERROR([Build requires bison, byacc or yacc parser generator])
+fi
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 AC_PROG_LIBTOOL
