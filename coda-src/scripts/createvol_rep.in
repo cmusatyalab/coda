@@ -49,7 +49,7 @@ fi
 # Parse arguments
 if  [ $# -lt 2 ]; then
 	echo "bad args:  createvol_rep <volname> <server>[/<partition>] [<server>[/<partition>]]* [groupid]"
-	exit
+	exit 1
 fi
 
 # Initialize local variables
@@ -60,6 +60,17 @@ MAXSERVERS=8
 
 # deal with Parameters 
 VOLNAME="$1"
+
+# The maximum volume name length is really 32 characters, but we have to allow
+# for the trailing \0 and we append '.N' to the individual replica names.
+MAXVOLNAMELEN=29
+VOLNAMELENGTH=${#VOLNAME}
+
+if [ "$VOLNAMELENGTH" -gt "$MAXVOLNAMELEN" ]; then
+    echo "Volume name \"$VOLNAME\" too long."
+    echo "  it should be at most $MAXVOLNAMELEN characters"
+    exit 1
+fi
 
 # Hmm, we sometimes need to use the volumename in regular expressions
 # As a result we can't use a lot of special characters, but having at
