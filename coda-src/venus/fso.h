@@ -521,7 +521,7 @@ class fsobj {
     void ComputePriority(int Force=0);
     void EnableReplacement();
     void DisableReplacement();
-    void AttachHdbBinding(binding *);
+    binding *AttachHdbBinding(namectxt *);
     void DemoteHdbBindings();
     void DemoteHdbBinding(binding *);
     void DetachHdbBindings();

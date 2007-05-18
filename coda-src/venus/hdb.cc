@@ -2106,19 +2106,11 @@ void namectxt::CheckComponent(fsobj *f) {
 
     /* We've discovered a new terminal component. */
     if (f) {
-	b = new binding;
-
-	/* Attach binder. */
-	b->binder = this;
-
-	/* Attach bindee. */
-        f->AttachHdbBinding(b);
+	/* Attach new binding. */
+        b = f->AttachHdbBinding(this);
 
 	/* did we get bound successfully? */
-	if (!b->bindee) {
-	    b->binder = NULL;
-	    delete b;
-        } else
+	if (b)
             expansion.append(&b->binder_handle);
     }
 }

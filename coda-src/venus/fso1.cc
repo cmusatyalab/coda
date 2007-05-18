@@ -1587,22 +1587,20 @@ binding *CheckForDuplicates(dlist *hdb_bindings_list, void *binder)
 }
 
 /* Need not be called from within transaction. */
-void fsobj::AttachHdbBinding(binding *b)
+binding *fsobj::AttachHdbBinding(namectxt *binder)
 {
-    binding *dup;
-
-    /* Sanity checks. */
-    if (b->bindee != 0) {
-	print(logFile);
-	b->print(logFile);
-	CHOKE("fsobj::AttachHdbBinding: bindee != 0");
-    }
+    binding *b;
 
     /* Check for duplicates */
-    if ((dup = CheckForDuplicates(hdb_bindings, b->binder))) {
+    if (CheckForDuplicates(hdb_bindings, binder) != NULL) {
 	LOG(100, ("This is a duplicate binding...skip it.\n"));
-        return;
+	return NULL;
     }
+
+    /* Create new binding. */
+    b = new binding;
+    b->binder = binder;
+    b->bindee = this;
 
     if (LogLevel >= 1000) {
 	dprint("fsobj::AttachHdbBinding:\n");
@@ -1613,7 +1611,6 @@ void fsobj::AttachHdbBinding(binding *b)
     if (!hdb_bindings)
 	hdb_bindings = new dlist;
     hdb_bindings->insert(&b->bindee_handle);
-    b->bindee = this;
     b->IncrRefCount();
 
     if (LogLevel >= 10) {
@@ -1626,12 +1623,12 @@ void fsobj::AttachHdbBinding(binding *b)
 	DisableReplacement();
 
     /* Recompute our priority if necessary. */
-    namectxt *nc = (namectxt *)b->binder;
-    if (nc->priority > HoardPri) {
-	HoardPri = nc->priority;
-	HoardVuid = nc->uid;
+    if (binder->priority > HoardPri) {
+	HoardPri = binder->priority;
+	HoardVuid = binder->uid;
 	ComputePriority();
     }
+    return b;
 }
 
 
