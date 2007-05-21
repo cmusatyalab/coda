@@ -37,17 +37,6 @@ Configuring
 Run the ./configure script. The default installation path is /usr/local, but
 this can be modified by using the --prefix option.
 
-Special cross-compilation notes;
-
-Using djgpp on RedHat Linux (dos target). You need the rpms for the djgpp
-cross compiler from the Coda ftp site.
-    $ ./configure --prefix=/usr/djgpp --target=dos
-
-Using cygwin32 on RedHat Linux (win32 target). You need the rpms for the
-cygwin32 cross compiler from the Coda ftp site.
-    $ ./configure --prefix=/usr/djgpp --target=cygwin
-
-
 Building and installing
 -----------------------
 

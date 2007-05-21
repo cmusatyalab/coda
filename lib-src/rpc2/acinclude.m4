@@ -6,32 +6,12 @@ dnl test the cross compilation platform and adjust default settings
 AC_DEFUN([CODA_SETUP_BUILD],
 [AC_SUBST(LIBTOOL_LDFLAGS)
 case ${host_alias} in
-  djgpp | dos )  host_alias=i386-pc-msdos 
-		 dosmmap=false ;;
-  win95 | win98 ) host_alias=i386-pc-msdos
-		  dosmmap=true ;;
   cygwin* | winnt | nt ) host_alias=i386-pc-cygwin ;;
   arm ) host_alias=arm-unknown-linux-gnuelf ;;
 esac
 AC_CANONICAL_HOST
 if test ${cross_compiling} = yes ; then
   case ${host} in
-   i386-pc-msdos )
-    dnl shared libraries don't work here
-    enable_shared=no
-    if ${dosmmap} ; then
-      CC="dos-gcc -bmmap"
-      CXX="dos-gcc -bmmap"
-    else
-      CC="dos-gcc -bw95"
-      CXX="dos-gcc -bw95" 
-    fi
-    AR="dos-ar"
-    RANLIB="true"
-    AS="dos-as"
-    NM="dos-nm"
-    ;;
-
    i386-pc-cygwin )
     dnl -D__CYGWIN32__ should be defined but sometimes isn't (wasn't?)
     CC="gnuwin32gcc -D__CYGWIN32__"

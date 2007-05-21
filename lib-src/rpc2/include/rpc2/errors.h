@@ -37,18 +37,10 @@ Coda are listed in the file CREDITS.
 #ifndef ERRORS_H
 #define ERRORS_H
 
-#include <stdio.h>
 #include <errno.h>
-
-#ifdef DJGPP
-#include "/usr/lib/gcc-lib/i386-go32-msdos/2.7.2.1/include/errno.h"
-#include <sys/socket.h>
-#define ENOTBLK 666
-#endif
-
 #include <rpc2/errorsdefs.h>
 
 /* exported definitions */
-char *cerror(int cerrno); /* like perror */
+const char *cerror(int err); /* like perror */
 
 #endif
