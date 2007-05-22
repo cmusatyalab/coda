@@ -277,7 +277,7 @@ struct Volume {
 				   that stayed around while a volume
 				   was offline */
     short	nUsers;		/* Number of users of this volume header */
-    byte	specialStatus;	/* An error code to return on VGetVolume: the
+    int32_t	specialStatus;	/* An error code to return on VGetVolume: the
 				   volume is unavailable for the reason quoted,
 				   currently VBUSY or VMOVED */
     int32_t	updateTime;	/* Time that this volume was put on the updated

@@ -472,7 +472,7 @@ long UpdateFetch(RPC2_Handle RPCid, RPC2_String FileName,
 
     if (!AccessAllowed((char *)name)) {
         LogMsg(0, SrvDebugLevel, stdout, "Access denied to file %s.", name);
-	rc = CEACCES;
+	rc = EACCES;
 	goto Final;
     }
 

@@ -28,8 +28,6 @@ listed in the file CREDITS.
 #include <vice.h>
 #include <vcrcommon.h>
 
-#define EINCONS  199		/* should go into /usr/cs/include/errno.h */
-
 /* The possible results of a two-way version vector compare. */
 typedef enum {
     VV_EQ  = 0,

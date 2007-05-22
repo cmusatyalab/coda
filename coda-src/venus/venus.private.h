@@ -75,9 +75,9 @@ extern "C" {
 #define	ESYNRESOLVE	155		    /* internal */
 #define	EASYRESOLVE	156		    /* internal */
 #define	ERETRY		157		    /* internal */
-#define	EVOLUME		158		    /* internal */
-/* The next two are internal, but defined in other modules. */
+/* The next three are internal, but defined in other modules. */
 /*
+#define	EVOLUME		158
 #define	EINCOMPATIBLE	198
 #define	EINCONS		199
 */

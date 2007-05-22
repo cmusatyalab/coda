@@ -83,9 +83,6 @@ extern void SwapLog(int ign);
 extern void SwapMalloc();
 extern void ViceTerminate();
 
-
-#define	EINCOMPATIBLE	198	/* Move to inconsist.h! -JJK */
-
 #define VSLEEP(seconds)\
 {\
     struct timeval delay;\
