@@ -22,64 +22,43 @@ Coda are listed in the file CREDITS.
 #include <rpc2/rpc2.h>
 
 /* translate RPC2 error to System Error */
-int RPC2_R2SError(int cerr)
+int RPC2_R2SError(int rpc2_err)
 {
-    int sval;
-    char *ctxt;
-    
-    if ( cerr <= 0 ) 
-	return cerr;
+    int sys_err;
+    if (rpc2_err <= 0) return rpc2_err;
 
-    switch ( cerr ) {
-
-        #include <switchc2s.h>
-
+    switch (rpc2_err) {
+#include <switchc2s.h>
     default:
-	sval=4711;
+	fprintf(stderr, "Unknown translation for rpc2 error %d\n", rpc2_err);
+	sys_err = 4711;
     }
-    if ( sval == 4711 ) {
-      fprintf(stderr, "Unknown R2S error translation sys %d, net %d\n", sval, cerr);
-    }
-    return sval;
+    return sys_err;
 }
 
 /* translate System error to RPC2 error */
-int RPC2_S2RError(int serr)
+int RPC2_S2RError(int sys_err)
 {
-    int cval;
-    char *ctxt;
+    int rpc2_err;
+    if ( sys_err <= 0 ) return sys_err;
 
-    if ( serr < 0 )
-	return serr;
-
-    switch ( serr ) {
-    case 0:
-	cval = 0 ;
-	break; 
-
-        #include <switchs2c.h>
-	
+    switch (sys_err) {
+#include <switchs2c.h>
     default:
-	cval = 4711;
-	ctxt =  "Unknown error!";
+	fprintf(stderr, "Unknown translation for system errno %d\n", sys_err);
+	rpc2_err = 4711;
     }
-    if ( cval == 4711 ) {
-      fprintf(stderr, "Unknown S2R error translation sys %d, net %d\n", serr, cval);
-    }
-    return cval;
+    return rpc2_err;
 }
 
-
-char *cerror(int cerr)
+const char *cerror(int err)
 {
-    char *ctxt;
-    int sval;
+    const char *txt;
 
-    switch ( cerr ) {
-        #include <switchc2s.h>
-	
-    default:
-	ctxt= "Unknown error!";
+    switch (err) {
+#include <switchs2e.h>
+    case 0: txt = "Success"; break;
+    default: txt = "Unknown error!";
     }
-    return ctxt;
+    return txt;
 }

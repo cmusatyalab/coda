@@ -1,75 +1,78 @@
-VREADONLY, EROFS , VREADONLY, /* Attempt to write a read-only volume */
-VDISKFULL, ENOSPC , VDISKFULL, /* Partition is "full", i.e. rougly within  n% of full */
-CEWOULDBLOCK, EAGAIN , EWOULDBLOCK, /* Operation would block */
-VSALVAGE, 101 , VSALVAGE, /* Volume needs salvage */
-VNOVNODE, 102 , VNOVNODE, /* Bad vnode number quoted */
-VNOVOL, 103 , VNOVOL, /* Volume not attached, doesn't exist, not created or not online */
-VVOLEXISTS, 104 , VVOLEXISTS, /* Volume already exists */
-VNOSERVICE, 105 , VNOSERVICE, /* Volume is not in service, obsolete, or somesuch*/
-VOFFLINE, 106 , VOFFLINE, /* Volume is off line*/
-VONLINE, 107 , VONLINE, /* Volume is already on line */
-VBUSY, 110 , VBUSY, /* Volume temporarily unavailable; try again. */
-VMOVED, 111 , VMOVED, /* Volume has moved; do a VGetVolumeInfo */
-VNOSERVER, 112 , VNOSERVER, /* File server lwp is not running */
-VLOGSTALE, 113 , VLOGSTALE, /* CML head already reintegrated successfully */
-VFAIL, 200 , VFAIL, /* Unknown Coda error */
-CAEFAIL, 300, CAEFAIL, /* Unknown error related to the Advice Monitor */
-CAEVERSIONSKEW, 301, CAEVERSIONSKEW, /* Version skew between Venus and the Advice Monitor */
-CAENOSUCHUSER, 302, CAENOSUCHUSER, /* Advice Monitor attempted to connect on behalf of an unknown user */
-CAENOTVALID, 303, CAENOTVALID, /* Advice Monitor attempted to test liveness of a connection that is not valid */
-CAENOASR, 304, CAENOASR, /* Advice Monitor returned the result of an ASR, but not ASR is pending */
-CAEUNEXPECTEDASR, 305, CAEUNEXPECTEDASR, /* Advice Monitor returned the result of the wrong ASR */
-CAEASRINPROGRESS, 306, CAEASRINPROGRESS, /* Venus requested an ASR while another one is in progress */
-CAEADVICEPENDING, 307, CAEADVICEPENDING, /* Advice Monitor requested a NewConnection while a request for advice is pending; try again later */
-CAENOSERVERS, 308, CAENOSERVERS, /* No servers are known to Venus */
-EINCOMPATIBLE, 198, EINCOMPATIBLE, /* Version vectors are incompatible */
-EINCONS, 199, EINCONS, /* File is inconsistent */
-CEPERM, 1 , EPERM, /* Operation not permitted */
-CENOENT, 2 , ENOENT, /* No such file or directory */
-CESRCH, 3 , ESRCH, /* No such process */
-CEINTR, 4 , EINTR, /* Interrupted system call */
-CEIO, 5 , EIO, /* Input/output error */
-CENXIO, 6 , ENXIO, /* Device not configured */
-CE2BIG, 7 , E2BIG, /* Argument list too long */
-CENOEXEC, 8 , ENOEXEC, /* Exec format error */
-CEBADF, 9 , EBADF, /* Bad file descriptor */
-CECHILD, 10 , ECHILD, /* No child processes */
-CEDEADLK, 11 , EDEADLK, /* Resource deadlock avoided */
-CENOMEM, 12 , ENOMEM, /* Cannot allocate memory */
-CEACCES, 13 , EACCES, /* Permission denied */
-CEFAULT, 14 , EFAULT, /* Bad address */
-CENOTBLK, 15, ENOTBLK, /* Not a block device */
-CEBUSY, 16 , EBUSY, /* Device busy */
-CEEXIST, 17 , EEXIST, /* File exists */
-CEXDEV, 18 , EXDEV, /* Cross-device link */
-CENODEV, 19 , ENODEV, /* Operation not supported by device */
-CENOTDIR, 20 , ENOTDIR, /* Not a directory */
-CEISDIR, 21 , EISDIR, /* Is a directory */
-CEINVAL, 22 , EINVAL, /* Invalid argument */
-CENFILE, 23 , ENFILE, /* Too many open files in system */
-CEMFILE, 24 , EMFILE, /* Too many open files */
-CENOTTY, 25 , ENOTTY, /* Inappropriate ioctl for device */
-CETXTBSY, 26 , ETXTBSY, /* Text file busy */
-CEFBIG, 27 , EFBIG, /* File too large */
-CENOSPC, 28 , ENOSPC, /* No space left on device */
-CESPIPE, 29 , ESPIPE, /* Illegal seek */
-CEROFS, 30 , EROFS, /* Read-only file system */
-CEMLINK, 31 , EMLINK, /* Too many links */
-CEPIPE, 32 , EPIPE, /* Broken pipe */
-CEDOM, 33 , EDOM, /* Numerical argument out of domain */
-CERANGE, 34 , ERANGE, /* Result too large */
-CEAGAIN, 35 , EAGAIN, /* Resource temporarily unavailable */
-CEALREADY, 37 , EALREADY, /* Operation already in progress */
-CENOSYS, 38, ENOSYS, /* Function not implemented */
-CEPROTONOSUPPORT, 43 , EPROTONOSUPPORT, /* Protocol not supported */
-CEOPNOTSUPP, 45 , EOPNOTSUPP, /* Operation not supported */
-CENOBUFS, 55 , ENOBUFS, /* No buffer space available */
-CENOTCONN, 57 , ENOTCONN, /* Socket is not connected */
-CESHUTDOWN, 58 , ESHUTDOWN, /* Can't send after socket shutdown */
-CETOOMANYREFS, 59 , ETOOMANYREFS, /* Too many references: can't splice */
-CETIMEDOUT, 60 , ETIMEDOUT, /* Operation timed out */
-CELOOP, 62 , ELOOP, /* Too many levels of symbolic links */
-CENAMETOOLONG, 63 , ENAMETOOLONG, /* File name too long */
-CENOTEMPTY, 66 , ENOTEMPTY, /* Directory not empty */
-CEDQUOT, 69 , EDQUOT, /* Disc quota exceeded */
-CEVOLUME, 158, CEVOLUME, /* Volume error */
+/* Translations for common UNIX errno values */
+#define EPERM		1	/* Operation not permitted */
+#define ENOENT		2	/* No such file or directory */
+#define ESRCH		3	/* No such process */
+#define EINTR		4	/* Interrupted system call */
+#define EIO		5	/* Input/output error */
+#define ENXIO		6	/* Device not configured */
+#define E2BIG		7	/* Argument list too long */
+#define ENOEXEC		8	/* Exec format error */
+#define EBADF		9	/* Bad file descriptor */
+#define ECHILD		10	/* No child processes */
+#define EDEADLK		11	/* Resource deadlock avoided */
+#define ENOMEM		12	/* Cannot allocate memory */
+#define EACCES		13	/* Permission denied */
+#define EFAULT		14	/* Bad address */
+#define ENOTBLK		15	/* Not a block device */
+#define EBUSY		16	/* Device busy */
+#define EEXIST		17	/* File exists */
+#define EXDEV		18	/* Cross-device link */
+#define ENODEV		19	/* Operation not supported by device */
+#define ENOTDIR		20	/* Not a directory */
+#define EISDIR		21	/* Is a directory */
+#define EINVAL		22	/* Invalid argument */
+#define ENFILE		23	/* Too many open files in system */
+#define EMFILE		24	/* Too many open files */
+#define ENOTTY		25	/* Inappropriate ioctl for device */
+#define ETXTBSY		26	/* Text file busy */
+#define EFBIG		27	/* File too large */
+#define ENOSPC		28	/* No space left on device */
+#define ESPIPE		29	/* Illegal seek */
+#define EROFS		30	/* Read-only file system */
+#define EMLINK		31	/* Too many links */
+#define EPIPE		32	/* Broken pipe */
+#define EDOM		33	/* Numerical argument out of domain */
+#define ERANGE		34	/* Result too large */
+#define EAGAIN		35	/* Resource temporarily unavailable */
+#define EALREADY	37	/* Operation already in progress */
+#define ENOSYS		38	/* Function not implemented */
+#define EPROTONOSUPPORT	43	/* Protocol not supported */
+#define EOPNOTSUPP	45	/* Operation not supported */
+#define ENOBUFS		55	/* No buffer space available */
+#define ENOTCONN	57	/* Socket is not connected */
+#define ESHUTDOWN	58	/* Can't send after socket shutdown */
+#define ETOOMANYREFS	59	/* Too many references: can't splice */
+#define ETIMEDOUT	60	/* Operation timed out */
+#define ELOOP		62	/* Too many levels of symbolic links */
+#define ENAMETOOLONG	63	/* File name too long */
+#define ENOTEMPTY	66	/* Directory not empty */
+#define EDQUOT		69	/* Disc quota exceeded */
+
+/* Coda client <-> server specific errors */
+#define VSALVAGE	101	/* Volume needs salvage */
+#define VNOVNODE	102	/* Bad vnode number quoted */
+#define VNOVOL		103	/* Volume does not exist or not online */
+#define VVOLEXISTS	104	/* Volume already exists */
+#define VNOSERVICE	105	/* Volume is not in service */
+#define VOFFLINE	106	/* Volume is off line */
+#define VONLINE		107	/* Volume is already on line */
+#define VBUSY		110	/* Volume temporarily unavailable */
+#define VMOVED		111	/* Volume has moved */
+#define VNOSERVER	112	/* File server lwp is not running */
+#define VLOGSTALE	113	/* CML head previously reintegrated */
+#define EVOLUME		158	/* Volume error */
+#define EINCOMPATIBLE	198	/* Version vectors are incompatible */
+#define EINCONS		199	/* File is inconsistent */
+#define VFAIL		200	/* Unknown Coda error */
+
+/* Advice monitor related errors, we should really not use these anymore */
+// #define CAEFAIL		300	/* Unknown error related to the Advice Monitor */
+// #define CAEVERSIONSKEW	301	/* Version skew between Venus and the Advice Monitor */
+#define CAENOSUCHUSER		302	/* Advice Monitor attempted to connect on behalf of an unknown user */
+#define CAENOTVALID		303	/* Advice Monitor attempted to test liveness of an invalid connection */
+#define CAENOASR		304	/* Advice Monitor returned the result of an ASR, but not ASR is pending */
+#define CAEUNEXPECTEDASR	305	/* Advice Monitor returned the result of the wrong ASR */
+// #define CAEASRINPROGRESS	306	/* Venus requested an ASR while another one is in progress */
+#define CAEADVICEPENDING	307	/* Advice Monitor requested a new connection while a request is pending */
+#define CAENOSERVERS		308	/* No servers are known to Venus */
+

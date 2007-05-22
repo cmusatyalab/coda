@@ -2,6 +2,7 @@ New in 2.6:
 
 * Fail when configure cannot find a usable LEX or YACC binary.
 * Fix RetryInterval calculation, we were waiting twice as long as specified.
+* Make sure RPC2/Coda defined error values do not collide with system errnos.
 
 New in 2.5:
 
