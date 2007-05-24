@@ -59,6 +59,10 @@ extern "C" {
 #include "vproc.h"
 #include "worker.h"
 
+/* Compatibility with rpc2 < 2.6 */
+#ifndef EVOLUME
+#define EVOLUME CEVOLUME
+#endif
 
 olist vproc::tbl;
 int vproc::counter;
