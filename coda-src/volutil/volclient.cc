@@ -1949,6 +1949,7 @@ static void V_InitRPC(int timeout)
 
 static int V_BindToServer(char *fileserver, char *realm, RPC2_Handle *RPCid)
 {
+    static struct secret_state state;
  /* Binds to File Server on volume utility port on behalf of uName.
     Sets RPCid to the value of the connection id.    */
 
@@ -1981,7 +1982,7 @@ static int V_BindToServer(char *fileserver, char *realm, RPC2_Handle *RPCid)
     bparms.EncryptionType = RPC2_XOR;
     bparms.SideEffectType = SMARTFTP;
 
-    if (GetSecret(vice_sharedfile(VolTKFile), secret) == 0)
+    if (GetSecret(vice_sharedfile(VolTKFile), secret, &state) == 0)
     {
 	bparms.AuthenticationType = AUTH_METHOD_VICEKEY;
 	bparms.SharedSecret = &secret;

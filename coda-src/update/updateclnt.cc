@@ -588,6 +588,7 @@ static int CheckFile(char *fileName, int mode)
 
 static void ReConnect()
 {
+    static struct secret_state state = { 0, };
     long     rc;
     RPC2_SubsysIdent ssid;
     RPC2_HostIdent hident;
@@ -626,7 +627,7 @@ static void ReConnect()
     cident.SeqLen = strlen(hostname) + 1;
     bparms.ClientIdent = &cident;
 
-    GetSecret(vice_sharedfile("db/update.tk"), secret);
+    GetSecret(vice_sharedfile("db/update.tk"), secret, &state);
     bparms.SharedSecret = &secret;
 
     rc = RPC2_NewBinding(&hident, &pident, &ssid, &bparms, &con);
@@ -728,6 +729,7 @@ static int U_BindToServer(char *fileserver, RPC2_Handle *RPCid)
  /* Binds to File Server on volume utility port on behalf of uName.
     Sets RPCid to the value of the connection id.    */
 
+    static struct secret_state state = { 0, };
     RPC2_HostIdent hident;
     RPC2_PortIdent pident;
     RPC2_SubsysIdent sident;
@@ -747,7 +749,7 @@ static int U_BindToServer(char *fileserver, RPC2_Handle *RPCid)
     bparms.EncryptionType = RPC2_XOR;
     bparms.SideEffectType = SMARTFTP;
 
-    GetSecret(vice_sharedfile(VolTKFile), secret);
+    GetSecret(vice_sharedfile(VolTKFile), secret, &state);
     bparms.SharedSecret = &secret;
 
     LogMsg(9, SrvDebugLevel, stdout, "V_BindToServer: binding to host %s\n",

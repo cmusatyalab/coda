@@ -201,6 +201,7 @@ static int FetchFile(char *RemoteFileName, char *LocalFileName, int mode)
 
 static void Connect()
 {
+    static struct secret_state state = { 0, };
     long     rc;
     RPC2_SubsysIdent ssid;
     RPC2_HostIdent hident;
@@ -227,7 +228,7 @@ static void Connect()
     cident.SeqLen = strlen(hostname) + 1;
     bparms.ClientIdent = &cident;
 
-    GetSecret(vice_sharedfile("db/update.tk"), secret);
+    GetSecret(vice_sharedfile("db/update.tk"), secret, &state);
     bparms.SharedSecret = &secret;
 
     rc = RPC2_NewBinding(&hident, &pident, &ssid, &bparms, &con);

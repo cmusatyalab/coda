@@ -197,6 +197,7 @@ static long VolGetKey(RPC2_Integer *authtype, RPC2_CountedBS *cid,
 		      RPC2_EncryptionKey sharedsecret,
 		      RPC2_EncryptionKey sessionkey)
 {
+    static struct secret_state state = { 0, };
     /* reject OPENKIMONO connections */
     if (!cid) return -1;
 
@@ -210,7 +211,7 @@ static long VolGetKey(RPC2_Integer *authtype, RPC2_CountedBS *cid,
     case AUTH_METHOD_VICEKEY:
     case AUTH_METHOD_NULL: /* backward compatibility, old volutil clients never
 			      set the AuthenticationType field in BindParms */
-	if (GetSecret(vice_sharedfile(VolTKFile), sharedsecret) == -1)
+	if (GetSecret(vice_sharedfile(VolTKFile), sharedsecret, &state) == -1)
 	    return -1;
 	break;
 

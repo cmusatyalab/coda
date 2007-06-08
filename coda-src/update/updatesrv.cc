@@ -337,12 +337,13 @@ static long Update_GetKeys(RPC2_Integer *authtype, RPC2_CountedBS *cident,
 			   RPC2_EncryptionKey sharedsecret,
 			   RPC2_EncryptionKey sessionkey)
 {
+    static struct secret_state state = { 0, };
     unsigned int i;
 
     /* Block unauthenticated connections */
     if (!cident) return -1;
 
-    if (GetSecret(vice_sharedfile("db/update.tk"), sharedsecret) == -1)
+    if (GetSecret(vice_sharedfile("db/update.tk"), sharedsecret, &state) == -1)
 	return -1;
 
     memset(sessionkey, 0, RPC2_KEYSIZE);

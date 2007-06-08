@@ -1143,6 +1143,7 @@ static void V_BindToServer(char *fileserver, RPC2_Handle *RPCid)
  /* Binds to File Server on volume utility port on behalf of uName.
     Sets RPCid to the value of the connection id.    */
 
+    static struct secret_state state = { 0, };
     RPC2_HostIdent hident;
     RPC2_PortIdent pident;
     RPC2_SubsysIdent sident;
@@ -1163,7 +1164,7 @@ static void V_BindToServer(char *fileserver, RPC2_Handle *RPCid)
     bparms.EncryptionType = RPC2_XOR;
     bparms.SideEffectType = SMARTFTP;
 
-    GetSecret(vice_sharedfile(VolTKFile), secret);
+    GetSecret(vice_sharedfile(VolTKFile), secret, &state);
     bparms.SharedSecret = &secret;
 
     LogMsg(10, Debug, stdout, "V_BindToServer: binding to host %s\n", fileserver);

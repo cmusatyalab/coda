@@ -22,13 +22,20 @@ listed in the file CREDITS.
 extern "C" {
 #endif
 
+#include <sys/types.h>
 #include <rpc2/rpc2.h>
 
 /* Copy the hash of 'secret' into the RPC2 key */
 void HashSecret(unsigned char *secret, int len, RPC2_EncryptionKey key);
 
+/* to avoid having to re-read and re-hash tokens from files... */
+struct secret_state {
+    time_t mtime;
+    off_t  size;
+    RPC2_EncryptionKey key;
+};
 /* Read a tokenfile and return an RPC2 encryption key. */
-int GetSecret(char *tokenfile, RPC2_EncryptionKey key);
+int GetSecret(char *file, RPC2_EncryptionKey key, struct secret_state *state);
 
 /* Fill the RPC2 key with random values (for session keys) */
 void GenerateSecret(RPC2_EncryptionKey key);

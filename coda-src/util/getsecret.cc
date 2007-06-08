@@ -49,25 +49,21 @@ void HashSecret(unsigned char *secret, int len, RPC2_EncryptionKey key)
     memcpy(key, digest, RPC2_KEYSIZE);
 }
 
-int GetSecret(char *tokenfile, RPC2_EncryptionKey key)
+int GetSecret(char *file, RPC2_EncryptionKey key, struct secret_state *state)
 {
     struct stat statbuf;
-    static time_t mtime = 0;
-    static off_t size = 0;
-    static RPC2_Byte cached_key[RPC2_KEYSIZE];
-
     int fd, n;
     unsigned char buf[512];
 
     /* check if the cached key we have is still valid */
-    n = stat(tokenfile, &statbuf);
+    n = stat(file, &statbuf);
     if (n < 0)
 	return -1;
 
-    if (size != statbuf.st_size || mtime != statbuf.st_mtime) {
-	fd = open(tokenfile, O_RDONLY);
+    if (state->size != statbuf.st_size || state->mtime != statbuf.st_mtime) {
+	fd = open(file, O_RDONLY);
 	if (fd < 0) {
-	    LogMsg(0, SrvDebugLevel, stdout, "Could not open %s", tokenfile);
+	    LogMsg(0, SrvDebugLevel, stdout, "Could not open %s", file);
 	    return -1;
 	}
 
@@ -75,19 +71,19 @@ int GetSecret(char *tokenfile, RPC2_EncryptionKey key)
 	memset(buf, 0, 512);
 	n = read(fd, buf, 512);
 	if (n < 0) {
-	    LogMsg(0, SrvDebugLevel, stdout, "Could not read %s", tokenfile);
+	    LogMsg(0, SrvDebugLevel, stdout, "Could not read %s", file);
 	    close(fd);
 	    return -1;
 	}
 	close(fd);
 
-        HashSecret(buf, n, cached_key);
+        HashSecret(buf, n, state->key);
 
 	/* update size & mtime of when we read the cached key */
-	size = statbuf.st_size;
-	mtime = statbuf.st_mtime;
+	state->size = statbuf.st_size;
+	state->mtime = statbuf.st_mtime;
     }
-    memcpy(key, cached_key, RPC2_KEYSIZE);
+    memcpy(key, state->key, RPC2_KEYSIZE);
 
     return 0;
 }
