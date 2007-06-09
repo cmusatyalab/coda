@@ -38,7 +38,7 @@ codasrv - CFS file server
 .SH SYNOPSIS
 
 .Pp
-\fBcodasrv\fP [-d (debug level)] [-rpcdebug rpc2debuglevel] [-p (number of processes)] [-b (buffers)] 
+\fBcodasrv\fP [-d (debug level)] [-rpcdebug rpc2debuglevel] [-p (number of processes)]
 .Pp
 [-l (large vnodes)] [-s (small vnodes)] [-k (stack size)] 
 .Pp
@@ -87,18 +87,6 @@ debugging output \fBcodasrv\fP will generate.
 Sets the number
 of light weight processes that will be used to handle concurrent
 requests.
-.Pp
-.if \n(ll>1 .RE
-.nr ll -1
-.Pp
-.nr ll +1
-.nr t\n(ll 2
-.if \n(ll>1 .RS
-.IP "\fB-b\fP \fIbuffers\fP"
-.nr bi 1
-.Pp
-Sets the number of internal
-buffers used by \fBcodasrv\fP for the dir package.
 .Pp
 .if \n(ll>1 .RE
 .nr ll -1

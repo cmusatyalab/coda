@@ -189,7 +189,6 @@ static int retrycnt = 0;	// default 5, formerly 4, 20, then 6
 static int debuglevel = 0;	// Command line set only.
 static int auth_lwps = 0;	// default 5
 static int server_lwps = 0;	// default 10
-static int buffs = 0;		// default 100, formerly 200
        int stack = 0;		// default 96
 static int cbwait = 0;		// default 240
 static int chk = 0;		// default 30
@@ -336,7 +335,7 @@ int main(int argc, char *argv[])
 
     if(ParseArgs(argc,argv)) {
 	SLog(0, "usage: srv [-d (debug level)] [-p (number of processes)] ");
-	SLog(0, "[-b (buffers)] [-l (large vnodes)] [-s (small vnodes)]");
+	SLog(0, "[-l (large vnodes)] [-s (small vnodes)]");
 	SLog(0, "[-k (stack size)] [-w (call back wait interval)]");
 	SLog(0, "[-r (RPC retry count)] [-o (RPC timeout value)]");
 	SLog(0, "[-c (check interval)] [-t (number of RPC trace buffers)]");
@@ -1370,7 +1369,6 @@ static int ReadConfigFile(void)
     CODACONF_INT(server_lwps,	"lwps",		10);
     if (server_lwps > MAXLWP) server_lwps = MAXLWP;
 
-    CODACONF_INT(buffs,		    "buffs",	    100);
     CODACONF_INT(stack,		    "stack",	    96);
     CODACONF_INT(cbwait,	    "cbwait",	    240);
     CODACONF_INT(chk,		    "chk",	    30);
@@ -1489,9 +1487,6 @@ static int ParseArgs(int argc, char *argv[])
 	else
 	    if (!strcmp(argv[i], "-quicksalvage"))
 		ForceSalvage = 0;
-	else
-	    if (!strcmp(argv[i], "-b"))
-		buffs = atoi(argv[++i]);
 	else
 	    if (!strcmp(argv[i], "-l"))
 		large = atoi(argv[++i]);

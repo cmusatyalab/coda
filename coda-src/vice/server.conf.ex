@@ -103,7 +103,6 @@ allow_sha=1
 #lwps=10
 
 #authenticate=1
-#buffs=100
 #cbwait=240
 #chk=30
 #comparedirreps=1
