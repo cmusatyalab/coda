@@ -584,7 +584,7 @@ static void spit_body(PROC *proc, rp2_bool in_parms, rp2_bool out_parms, FILE *w
     fprintf(where, "    /* START_ELAPSE */\n");
     fprintf(where, "    %s_CallCount[%d].countent++;\n", subsystem.subsystem_name, proc->op_number);
     fprintf(where, "    if (%s_ElapseSwitch) {\n", subsystem.subsystem_name);
-    fprintf(where, "\tgettimeofday(&_timestart, 0);\n\topengate = 1;\n");
+    fprintf(where, "\tgettimeofday(&_timestart, NULL);\n\topengate = 1;\n");
     fprintf(where, "    }\n\n");
 
     /* Compute buffer size */
@@ -640,18 +640,18 @@ static void spit_body(PROC *proc, rp2_bool in_parms, rp2_bool out_parms, FILE *w
 		pack(RP2_CLIENT, *parm, "", ptr, where);
     } else {
 	/* Reference _ptr to avoid compiler warning in stub */
-        fprintf (where, "\n    /* Avoid compiler warnings */\n    %s = 0;\n", ptr);
+        fprintf (where, "\n    /* Avoid compiler warnings */\n    %s = NULL;\n", ptr);
     }
 
     /* Generate RPC2 call */
     fputs("\n    /* Generate RPC2 call */\n", where);
     fprintf(where, "    %s->Header.Opcode = %s;\n", reqbuffer, proc->op_code);
-    fprintf(where, "    %s = 0;\n", rspbuffer);
+    fprintf(where, "    %s = NULL;\n", rspbuffer);
     /* Set up timeout */
     fputs("    ", where);
     set_timeout(proc, where);
     fprintf(where, "    %s = RPC2_MakeRPC(%s, %s, %s, &%s, %s, %s_EnqueueRequest);\n",
-	    rpc2val, cid, reqbuffer, has_bd != NIL ? has_bd : "0", rspbuffer, timeout, subsystem.subsystem_name);
+	    rpc2val, cid, reqbuffer, has_bd != NIL ? has_bd : "NULL", rspbuffer, timeout, subsystem.subsystem_name);
     fprintf(where, "    RPC2_FreeBuffer(&%s);\n", reqbuffer);
     fprintf(where, "    if (%s != RPC2_SUCCESS) {\n\tRPC2_FreeBuffer(&%s);\n\treturn %s;\n    }\n", rpc2val, rspbuffer, rpc2val);
     fprintf(where, "    if (%s->Header.ReturnCode == RPC2_INVALIDOPCODE) {\n\tRPC2_FreeBuffer(&%s);\n\treturn RPC2_INVALIDOPCODE;\n    }\n", rspbuffer, rspbuffer);
@@ -676,19 +676,19 @@ static void spit_body(PROC *proc, rp2_bool in_parms, rp2_bool out_parms, FILE *w
     fprintf(where, "\n");
     fprintf(where, "    /* END_ELAPSE */\n");
     fprintf(where, "    if (opengate) {\n");
-    fprintf(where, "        gettimeofday(&_timeend, 0);\n");
-    fprintf(where, "        %s_CallCount[%d].tsec += _timeend.tv_sec - _timestart.tv_sec;\n", subsystem.subsystem_name, proc->op_number);
-    fprintf(where, "        %s_CallCount[%d].tusec += _timeend.tv_usec - _timestart.tv_usec;\n", subsystem.subsystem_name, proc->op_number);
+    fprintf(where, "	gettimeofday(&_timeend, NULL);\n");
+    fprintf(where, "	%s_CallCount[%d].tsec += _timeend.tv_sec - _timestart.tv_sec;\n", subsystem.subsystem_name, proc->op_number);
+    fprintf(where, "	%s_CallCount[%d].tusec += _timeend.tv_usec - _timestart.tv_usec;\n", subsystem.subsystem_name, proc->op_number);
 
-    fprintf(where, "        if (%s_CallCount[%d].tusec < 0) {\n", subsystem.subsystem_name, proc->op_number);
-    fprintf(where, "            %s_CallCount[%d].tusec += 1000000;\n", subsystem.subsystem_name, proc->op_number);
-    fprintf(where, "            %s_CallCount[%d].tsec--;\n", subsystem.subsystem_name, proc->op_number);
+    fprintf(where, "	if (%s_CallCount[%d].tusec < 0) {\n", subsystem.subsystem_name, proc->op_number);
+    fprintf(where, "	    %s_CallCount[%d].tusec += 1000000;\n", subsystem.subsystem_name, proc->op_number);
+    fprintf(where, "	    %s_CallCount[%d].tsec--;\n", subsystem.subsystem_name, proc->op_number);
 
-    fprintf(where, "        } else if (%s_CallCount[%d].tusec >= 1000000) {\n", subsystem.subsystem_name, proc->op_number);
-    fprintf(where, "            %s_CallCount[%d].tusec -= 1000000;\n", subsystem.subsystem_name, proc->op_number);
-    fprintf(where, "            %s_CallCount[%d].tsec++;\n", subsystem.subsystem_name, proc->op_number);
-    fprintf(where, "        }\n");
-    fprintf(where, "        %s_CallCount[%d].counttime++;\n", subsystem.subsystem_name, proc->op_number);
+    fprintf(where, "	} else if (%s_CallCount[%d].tusec >= 1000000) {\n", subsystem.subsystem_name, proc->op_number);
+    fprintf(where, "	    %s_CallCount[%d].tusec -= 1000000;\n", subsystem.subsystem_name, proc->op_number);
+    fprintf(where, "	    %s_CallCount[%d].tsec++;\n", subsystem.subsystem_name, proc->op_number);
+    fprintf(where, "	}\n");
+    fprintf(where, "	%s_CallCount[%d].counttime++;\n", subsystem.subsystem_name, proc->op_number);
     fprintf(where, "    }\n");
     fprintf(where, "    %s_CallCount[%d].countexit++;\n\n", subsystem.subsystem_name, proc->op_number);
 
@@ -696,7 +696,7 @@ static void spit_body(PROC *proc, rp2_bool in_parms, rp2_bool out_parms, FILE *w
     fprintf(where, "    return %s;\n", code);
 
     if (buffer_checked) {
-        fprintf(where, BUFFEROVERFLOW_END
+	fprintf(where, BUFFEROVERFLOW_END
 		"    RPC2_FreeBuffer(&%s);\n    return RPC2_BADDATA;\n",
 		rspbuffer);
     }
@@ -860,7 +860,7 @@ static checkbuffer(where, what, size)
 static void set_timeout(PROC *proc, FILE *where)
 {
     if (proc->timeout == NIL && !subsystem.timeout != NIL) {
-	fprintf(where, "%s = 0;\n", timeout);
+	fprintf(where, "%s = NULL;\n", timeout);
 	return;
     }
 
@@ -1171,7 +1171,7 @@ static void unpack(WHO who, VAR *parm, char *prefix, char *ptr, FILE *where)
 			    name, select);
 		    fprintf(where, "        %s%sSeqBody = (RPC2_String) malloc(%s%sMaxSeqLen);\n",
 			    name, select, name, select);
-		    fprintf(where, "        if (%s%sSeqBody == 0) return 0;\n", name, select);
+		    fprintf(where, "        if (%s%sSeqBody == NULL) return NULL;\n", name, select);
 		    if (mode != OUT_MODE) {
 			fprintf(where, "        memcpy((char *)%s%sSeqBody, %s, (long)%s%sSeqLen);\n",
 				name, select, ptr, name, select);
@@ -1179,7 +1179,7 @@ static void unpack(WHO who, VAR *parm, char *prefix, char *ptr, FILE *where)
 			    ptr, name, select);
 		    }
 		    fprintf(where, "    } else\n");
-		    fprintf(where, "        %s%sSeqBody = 0;\n\n",
+		    fprintf(where, "        %s%sSeqBody = NULL;\n\n",
 			    name, select);
 	    }
 
@@ -1345,7 +1345,7 @@ static void one_server_proc(PROC *proc, FILE *where)
 	    }
     } else {
 	/* Reference _ptr and _reqbuffer to avoid compiler warning in stub */
-	    fprintf (where, "\n     /* This avoids compiler warnings */\n    %s = 0;\n    %s = %s;\n", ptr, reqbuffer, reqbuffer);
+	    fprintf (where, "\n     /* This avoids compiler warnings */\n    %s = NULL;\n    %s = %s;\n", ptr, reqbuffer, reqbuffer);
     }
     fprintf(where, "    %s = %s;\n", bd, bd);
 
@@ -1390,7 +1390,7 @@ static void one_server_proc(PROC *proc, FILE *where)
     }
     
     fprintf(where, "    %s = RPC2_AllocBuffer(%s, &%s);\n", rpc2val, length, rspbuffer);
-    fprintf(where, "    if (%s != RPC2_SUCCESS) return 0;\n", rpc2val);
+    fprintf(where, "    if (%s != RPC2_SUCCESS) return NULL;\n", rpc2val);
     if ( neterrors ) { 
     fprintf(where, "    %s->Header.ReturnCode = RPC2_S2RError(%s);\n", 
 	    rspbuffer, code);
@@ -1447,7 +1447,7 @@ static void alloc_dynamicarray(VAR *parm, WHO who, FILE *where)
     fprintf(where, "\t%s = (%s *)malloc(sizeof(%s)*(%s));\n",
 	    parm->name, parm->type->name, parm->type->name, 
 	    (mode == IN_MODE) ? parm->array : parm->arraymax);
-    fprintf(where, "\tif (%s == NULL) return 0;\n    }\n", parm->name);
+    fprintf(where, "\tif (%s == NULL) return NULL;\n    }\n", parm->name);
 }
 
 static void free_dynamicarray(VAR *parm, FILE *where)
@@ -1635,7 +1635,7 @@ static void multi_procs(PROC *head, FILE *where)
 	}
 	subname = subsystem.subsystem_name;
 	/* RPC2_STRUCT_TAG in C_END definition is bogus */
-	fprintf(where, "\t\t{%s, RPC2_STRUCT_TAG, 0, 0, 0, &%s_startlog, &%s_endlog}\n", MultiModes[4], subname, subname);
+	fprintf(where, "\t\t{%s, RPC2_STRUCT_TAG, 0, NULL, 0, &%s_startlog, &%s_endlog}\n", MultiModes[4], subname, subname);
 	fprintf(where, "\t};\n");
 	free(args);
 	arg = 1; 	/* reset argument counter */
@@ -1833,7 +1833,7 @@ static void declare_LogFunction(PROC *head, FILE *where)
     fputs(         "    struct timeval timestart;\n", where);
     fprintf(where, "\n    ++%s.countent;\n", array);
     fprintf(where, "    if ( %s_%s[0].opengate ) {\n", subname, "MultiStubWork");
-    fputs(         "        gettimeofday(&timestart, 0);\n", where);
+    fputs(         "        gettimeofday(&timestart, NULL);\n", where);
     fprintf(where, "        %s.tsec = timestart.tv_sec;\n", work);
     fprintf(where, "        %s.tusec = timestart.tv_usec;\n", work);
     fprintf(where, "        %s.opengate = 1;\n", work);
@@ -1854,7 +1854,7 @@ static void declare_LogFunction(PROC *head, FILE *where)
     fputs(         "    if ( istimeouted == 0 ) {\n", where);
     fprintf(where, "        ++%s.countexit;\n", array);
     fprintf(where, "        if ( %s.opengate ) {\n", work);
-    fputs(         "            gettimeofday(&timeend, 0);\n", where);
+    fputs(         "            gettimeofday(&timeend, NULL);\n", where);
     fprintf(where, "            timework = (%s.tusec += (timeend.tv_sec-%s.tsec)*1000000+(timeend.tv_usec-%s.tusec))/1000000;\n", array, work, work);
     fprintf(where, "            %s.tusec -= timework*1000000;\n", array);
     fprintf(where, "            %s.tsec += timework;\n", array);
