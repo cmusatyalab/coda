@@ -136,7 +136,6 @@ static struct timeval  tp;
 static struct timezone tsp;
 
 static char **hostlist;		/* List of hosts to notify of changes. */
-static RPC2_EncryptionKey vkey;	/* Encryption key for bind authentication */
 
 static char *vicedir = NULL;
 static int   nservers = 0;
@@ -694,16 +693,9 @@ static void SetCheck()
 static void U_InitRPC()
 {
     PROCESS mylpid;
-    FILE *tokfile;
     SFTP_Initializer sftpi;
     long rcode;
     RPC2_Options options;
-
-    /* store authentication key */
-    tokfile = fopen(vice_sharedfile(VolTKFile), "r");
-    memset(vkey, 0, RPC2_KEYSIZE);
-    fread(vkey, 1, RPC2_KEYSIZE, tokfile);
-    fclose(tokfile);
 
     CODA_ASSERT(LWP_Init(LWP_VERSION, LWP_MAX_PRIORITY-1, &mylpid) == LWP_SUCCESS);
 
