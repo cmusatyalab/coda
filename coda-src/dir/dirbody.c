@@ -523,7 +523,7 @@ int DIR_Create (struct DirHeader **dh, char *entry, DirFid *fid)
 		return EINVAL;
     
 	/* First check if file already exists. */
-	ep = dir_FindItem(dir, entry, 0, 0, CLU_CASE_SENSITIVE);
+	ep = dir_FindItem(dir, entry, NULL, NULL, CLU_CASE_SENSITIVE);
 	if (ep) {
 		return EEXIST;
 	}
@@ -786,7 +786,7 @@ int DIR_Lookup(struct DirHeader *dir, char *entry, DirFid *fid,
 	if ( !dir ) 
 		return ENOENT;
 
-	de = dir_FindItem(dir, entry, 0, 0, flags);
+	de = dir_FindItem(dir, entry, NULL, NULL, flags);
 	if (de == 0) {
 		return ENOENT;
 	}
@@ -850,7 +850,7 @@ int DIR_Convert (PDirHeader dir, char *file, VolumeId vol, RealmId realm)
 
 #ifdef MMAP_DIR_CONTENTS
 	CODA_ASSERT( ftruncate(fd, len) == 0 );
-	buf = mmap(0, len, PROT_WRITE | PROT_READ, MAP_SHARED, fd, 0);
+	buf = mmap(NULL, len, PROT_WRITE | PROT_READ, MAP_SHARED, fd, 0);
 	CODA_ASSERT(buf != MAP_FAILED);
 #else
 	buf = malloc(len);
@@ -1006,9 +1006,9 @@ int DIR_IsEmpty (struct DirHeader *dhp)
 /* Return a pointer to an entry, given its number. */
 struct DirEntry *dir_GetBlob (struct DirHeader *dir, long blobno)
 {
-	if (!dir || blobno <= 0 || blobno > (EPP * DIR_MAXPAGES)) 
-		return 0;
-	
+	if (!dir || blobno <= 0 || blobno > (EPP * DIR_MAXPAGES))
+		return NULL;
+
 	return (struct DirEntry *)
 		((char *)dir + blobno * sizeof(struct DirBlob));
 }
@@ -1089,8 +1089,8 @@ static struct DirEntry *dir_FindItem (struct DirHeader *dir, char *ename,
 
 	switch (flags) {
 	case CLU_CASE_INSENSITIVE:
-		if (!dir) 
-			return 0;
+		if (!dir)
+			return NULL;
 
 		find.df_ename = ename;
 		find.df_lp = NULL;
@@ -1105,19 +1105,19 @@ static struct DirEntry *dir_FindItem (struct DirHeader *dir, char *ename,
 			return find.df_tp;			
 		}		       			
 
-		return 0;
+		return NULL;
 		break;
 
 	case CLU_CASE_SENSITIVE:
-	
-		if (!dir) 
-			return 0;
-	
+
+		if (!dir)
+			return NULL;
+
 		i = DIR_Hash(ename);
 		blobno = ntohs(dir->dirh_hashTable[i]);
 
 		if (blobno == 0)
-			return 0;
+			return NULL;
 
 		tp = dir_GetBlob(dir,blobno);
 		lp = NULL;
@@ -1135,11 +1135,11 @@ static struct DirEntry *dir_FindItem (struct DirHeader *dir, char *ename,
 
 			/* The end of the line */
 			blobno = ntohs(tp->next);
-			if (blobno == 0) 
-				return 0;
+			if (blobno == 0)
+				return NULL;
 			tp = dir_GetBlob(dir,blobno);
 			if (!tp) 
-				return 0;
+				return NULL;
 		}
 		break;
 	default:
@@ -1147,7 +1147,7 @@ static struct DirEntry *dir_FindItem (struct DirHeader *dir, char *ename,
 		CODA_ASSERT(0);
 	}
 
-	return 0;
+	return NULL;
 }
 
 

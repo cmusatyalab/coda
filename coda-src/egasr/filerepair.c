@@ -60,7 +60,7 @@ int getfid(char *path, ViceFid *outfid, char *outrealm, ViceVersionVector *outvv
     struct ViceIoctl vi;
     char junk[2048];
 
-    vi.in = 0;
+    vi.in = NULL;
     vi.in_size = 0;
     vi.out = junk;
     vi.out_size = (short) sizeof(junk);

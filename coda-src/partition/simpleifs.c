@@ -101,7 +101,7 @@ struct inodeops inodeops_simple = {
 /* static data */
 static mode_t   mode=S_IREAD | S_IWRITE;
 
-static int s_magic()
+static int s_magic(void)
 {
     return VICEMAGIC;
 }

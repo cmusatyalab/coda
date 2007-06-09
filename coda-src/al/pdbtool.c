@@ -814,38 +814,37 @@ void tool_help(int argc, char *argv[])
 
 command_t pdbcmds[] =
 {
-        {"i", tool_byNameOrId, 0, "get info from the database (by name or id)"},
+	{"i", tool_byNameOrId, NULL, "get info from the database (by name or id)"},
 	/* 'n' only for compatibility with pre-5.3 pdbtool */
-	{"n", tool_byNameOrId, 0, "get info from the database (by name or id)"},
-	{"nu", tool_newUser, 0, "create a new user"},
-	{"nui", tool_newUser_Id, 0, "create a new user with id"},
-	{"ng", tool_newGroup, 0, "create a new group"},
-	{"newgroup", tool_newDefGroup, 0, "create a new group"},
-	{"l", tool_lookup, 0, "look up an ID by name"},
-	{"list", tool_list, 0, "list all entries"},
-	{"cu", tool_clone, 0, "clone a user"},
-	{"ag", tool_addtoGroup, 0, "add a group or user to a group"},
-	{"rg", tool_removefromGroup, 0, "remove a group or user from a group"},
-	{"d", tool_delete, 0, "delete a user or a group"},
-	{"cm", tool_compact, 0, "compact the database (RARE)"},
-	{"ci", tool_changeId, 0, "change the Id of a user or group"},
-	{"cn", tool_changeName, 0, "change the Name of a user"},
-	{"u", tool_update, 0, "update an id"},
-	{"ids", tool_get_maxids, 0, "get the database maxids"},
-	{"maxids", tool_maxids, 0, "set the database maxids"},
-	{"ldif_export", tool_ldif_export, 0, "dump the contents of the database in LDIF format"},
-	{"export", tool_export, 0, "dump the contents of the database"},
-	{"import", tool_import, 0, "load the contents of the database"},
-	{"source", tool_source, 0, "read commands from file"},
-	{"help", tool_help, 0, "print help on commands"},
-	{"quit", Parser_exit, 0, "get me out of here"},
-	{"exit", Parser_exit, 0, "get me out of here"},
-	{ 0, 0, 0, NULL }
+	{"n", tool_byNameOrId, NULL, "get info from the database (by name or id)"},
+	{"nu", tool_newUser, NULL, "create a new user"},
+	{"nui", tool_newUser_Id, NULL, "create a new user with id"},
+	{"ng", tool_newGroup, NULL, "create a new group"},
+	{"newgroup", tool_newDefGroup, NULL, "create a new group"},
+	{"l", tool_lookup, NULL, "look up an ID by name"},
+	{"list", tool_list, NULL, "list all entries"},
+	{"cu", tool_clone, NULL, "clone a user"},
+	{"ag", tool_addtoGroup, NULL, "add a group or user to a group"},
+	{"rg", tool_removefromGroup, NULL, "remove a group or user from a group"},
+	{"d", tool_delete, NULL, "delete a user or a group"},
+	{"cm", tool_compact, NULL, "compact the database (RARE)"},
+	{"ci", tool_changeId, NULL, "change the Id of a user or group"},
+	{"cn", tool_changeName, NULL, "change the Name of a user"},
+	{"u", tool_update, NULL, "update an id"},
+	{"ids", tool_get_maxids, NULL, "get the database maxids"},
+	{"maxids", tool_maxids, NULL, "set the database maxids"},
+	{"ldif_export", tool_ldif_export, NULL, "dump the contents of the database in LDIF format"},
+	{"export", tool_export, NULL, "dump the contents of the database"},
+	{"import", tool_import, NULL, "load the contents of the database"},
+	{"source", tool_source, NULL, "read commands from file"},
+	{"help", tool_help, NULL, "print help on commands"},
+	{"quit", Parser_exit, NULL, "get me out of here"},
+	{"exit", Parser_exit, NULL, "get me out of here"},
+	{ NULL, NULL, NULL, NULL }
 };
 
 
-void
-ReadConfigFile()
+void ReadConfigFile(void)
 {
     /* Load server.conf configuration file to get vice dir. */
     codaconf_init("server.conf");

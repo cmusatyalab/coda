@@ -300,7 +300,7 @@ void execute_line(char * line)
 }
 
 /* this is the command execution machine */
-void Parser_commands() 
+void Parser_commands(void)
 {
     char *line,
 	 *s;

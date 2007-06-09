@@ -106,7 +106,7 @@ static void HandleRPCError(int rCode, RPC2_Handle connId);
 static void CheckTokenKey();
 long GetKeys(RPC2_Integer *AuthenticationType, RPC2_CountedBS *cIdent, RPC2_EncryptionKey hKey, RPC2_EncryptionKey sKey);	/* multiplex to other functions */
 
-void LogFailures(RPC2_Integer AuthenticationType, RPC2_CountedBS *cIdent, RPC2_Integer eType, RPC2_HostIdent *pHost, RPC2_PortIdent *pPort);	/* to log authentication failures */
+long LogFailures(RPC2_Integer AuthenticationType, RPC2_CountedBS *cIdent, RPC2_Integer eType, RPC2_HostIdent *pHost, RPC2_PortIdent *pPort);	/* to log authentication failures */
 
 int GetViceId(RPC2_CountedBS *cIdent);	/* must be post-name conversion */
 
@@ -119,8 +119,7 @@ static int DoRedirectLog = 1;	/* set to zero by -r switch on command line */
 struct UserInfo* client[MAXNUMCLIENT];
 int client_idx;
 
-void
-ReadConfigFile()
+void ReadConfigFile(void)
 {
     /* Load configuration file to get vice dir. */
     codaconf_init("server.conf");
@@ -185,8 +184,7 @@ int main(int argc, char **argv)
     while(TRUE) {
 	cid = 0;
 	rc = RPC2_GetRequest(NULL, &cid, &reqbuffer, NULL,
-				(long (*)())GetKeys, RPC2_XOR,
-				(long (*)())LogFailures);
+			     GetKeys, RPC2_XOR, LogFailures);
 	if (rc < RPC2_WLIMIT) {
 		HandleRPCError(rc, cid);
 		continue;
@@ -287,7 +285,7 @@ static void InitGlobals(int argc, char **argv)
 }
 
 
-static void ReopenLog()
+static void ReopenLog(void)
 {
     if (DoRedirectLog)
 	{
@@ -297,7 +295,7 @@ static void ReopenLog()
 }
 
 
-static void InitSignals()
+static void InitSignals(void)
     {
     FILE *file;
     (void) signal(SIGHUP, (void (*)(int))ReopenLog);
@@ -318,14 +316,14 @@ static void InitSignals()
     }
 
 
-static void ResetDebug()
+static void ResetDebug(void)
     {
     AuthDebugLevel = RPC2_DebugLevel = AL_DebugLevel = 0;
     LogMsg(-1, 0, stdout, "Debug levels reset to 0");
     }
 
 
-static void SetDebug()
+static void SetDebug(void)
     {
     if (AuthDebugLevel == 0) AuthDebugLevel = 1;
     else AuthDebugLevel *= 5;
@@ -335,7 +333,7 @@ static void SetDebug()
     }
 
 
-static void Terminate()
+static void Terminate(void)
 {
     int i;
     struct UserInfo *ui;
@@ -357,13 +355,13 @@ static void Terminate()
 }
 
 
-static void CheckSignal()
+static void CheckSignal(void)
     {
     LogMsg(-1, 0, stdout, "Check signal received ...... ignored");
     }
 
 
-static void InitRPC()
+static void InitRPC(void)
     {
     PROCESS mylpid;
     RPC2_Integer rc;
@@ -399,7 +397,7 @@ static void HandleRPCError(int rCode, RPC2_Handle connId)
     }
 
 
-static void CheckTokenKey()
+static void CheckTokenKey(void)
 {
     struct stat statbuf;
     FILE *tf;
@@ -478,7 +476,7 @@ long GetKeys(RPC2_Integer *AuthenticationType, RPC2_CountedBS *cIdent, RPC2_Encr
 }
 
 
-void LogFailures(RPC2_Integer AuthenticationType, RPC2_CountedBS *cIdent,
+long LogFailures(RPC2_Integer AuthenticationType, RPC2_CountedBS *cIdent,
 		 RPC2_Integer eType, RPC2_HostIdent *pHost,
 		 RPC2_PortIdent *pPort)
 {
@@ -496,6 +494,7 @@ void LogFailures(RPC2_Integer AuthenticationType, RPC2_CountedBS *cIdent,
 
     LogMsg(-1, 0, stdout, "Authentication failed for \"%s\" from %s",
 	   name, host);
+    return 0;
 }
 
 
@@ -525,7 +524,7 @@ long S_AuthNewConn(RPC2_Handle cid, RPC2_Integer seType, RPC2_Integer secLevel, 
     ui->ViceId = vid;
     ui->HasQuit = FALSE;
     ui->UserCPS = NULL;
-    ui->LastUsed = time(0);
+    ui->LastUsed = time(NULL);
 
     RPC2_SetPrivatePointer(cid, (char *)ui);
     client[client_idx++] = ui;
@@ -554,7 +553,7 @@ long S_AuthGetTokens(RPC2_Handle cid, EncryptedSecretToken est,
 
     RPC2_GetPrivatePointer(cid, (void *)&ui);
     if (!ui || ui->HasQuit == TRUE) return(AUTH_FAILED);
-    ui->LastUsed = time(0);
+    ui->LastUsed = time(NULL);
 
     CheckTokenKey();
 
@@ -627,7 +626,7 @@ long S_AuthDeleteUser(RPC2_Handle cid, RPC2_Integer viceId)
 	RPC2_GetPrivatePointer(cid, (void *)&ui);
 	if (!ui || ui->HasQuit == TRUE) 
 		return(AUTH_FAILED);
-	ui->LastUsed = time(0);
+	ui->LastUsed = time(NULL);
 	if (!IsAdministrator(ui)) {
 		char buf1[PRS_MAXNAMELEN], buf2[PRS_MAXNAMELEN];
 		LogMsg(-1, 0, stdout, "AuthDeleteUser() attempt on  %s by %s denied", GetVname(viceId, buf1), GetVname(ui->ViceId, buf2));

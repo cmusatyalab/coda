@@ -246,7 +246,7 @@ void DP_SetUsage(struct DiskPartition *dp)
     }
 }
 
-void DP_ResetUsage()
+void DP_ResetUsage(void)
 {
     struct DiskPartition *dp;
     struct dllist_head *tmp;

@@ -90,13 +90,13 @@ struct slot
 
 struct slot Vec[SLOTTYPES][SLOTMAX];
 
-static void Op_1(), Op_2(), Op_3(), Op_4(), Op_5(), Op_6();
+static void Op_1(void), Op_2(void), Op_3(void);
+static void Op_4(void), Op_5(void), Op_6(void);
 static int AskSlot(IN int VecType, IN char *Prompt);
 static int NewSlot(IN int VecType);
 static int GetInputOutput(OUT FILE **infile, OUT FILE **outfile);
 
-void
-ReadConfigFile()
+void ReadConfigFile(void)
 {
     /* Load configuration file to get vice dir. */
     codaconf_init("server.conf");
@@ -183,7 +183,7 @@ int main(int argc, char *argv[])
     return 0;
     }
 
-static void Op_1()		/* Name-Id Translation */
+static void Op_1(void)		/* Name-Id Translation */
     {
     int MinorOp, Id;
     char Name[PRS_MAXNAMELEN];
@@ -224,7 +224,7 @@ static void Op_1()		/* Name-Id Translation */
 			
     }
 
-static void Op_2()		/* Alist: New, Free, Fill, Print, Externalize, hton, ntoh */
+static void Op_2(void)		/* Alist: New, Free, Fill, Print, Externalize, hton, ntoh */
     {
     int MinorOp;
 
@@ -360,7 +360,7 @@ static void Op_2()		/* Alist: New, Free, Fill, Print, Externalize, hton, ntoh */
 	}
     }
 
-static void Op_3()		/* ExternalAlist:   New, Free, Fill, Print, Internalize, hton, ntoh */
+static void Op_3(void)		/* ExternalAlist:   New, Free, Fill, Print, Internalize, hton, ntoh */
     {
     int MinorOp;
     
@@ -482,7 +482,7 @@ static void Op_3()		/* ExternalAlist:   New, Free, Fill, Print, Internalize, hto
 	}
     }
 
-static void Op_4()		/* InternalCPS: New, Free, Get, Print, hton, ntoh */
+static void Op_4(void)		/* InternalCPS: New, Free, Get, Print, hton, ntoh */
     {
     int MinorOp;
 
@@ -588,7 +588,7 @@ static void Op_4()		/* InternalCPS: New, Free, Get, Print, hton, ntoh */
 
     }
 
-static void Op_5()		/* ExternalCPS:  New, Free, Get, Print, hton, ntoh */
+static void Op_5(void)		/* ExternalCPS:  New, Free, Get, Print, hton, ntoh */
     {
     int MinorOp;
 
@@ -663,7 +663,7 @@ static void Op_5()		/* ExternalCPS:  New, Free, Get, Print, hton, ntoh */
 	}
     }
 
-static void Op_6()		/* Miscellaneous:  CheckRights */
+static void Op_6(void)		/* Miscellaneous:  CheckRights */
     {
     int MinorOp;
 

@@ -285,7 +285,7 @@ static void InitRPC(void)
     memset(&options, 0, sizeof(options));
     options.Flags = RPC2_OPTION_IPV6;
 
-    RPC2_Init(RPC2_VERSION, &options, 0, -1, &tv);
+    RPC2_Init(RPC2_VERSION, &options, NULL, -1, &tv);
 }
 
 
@@ -293,7 +293,7 @@ static void DoProbe(struct server *srv)
 {
     int rc;
 
-    srv->probe = time(0);
+    srv->probe = time(NULL);
     if (!srv->cid)
     {
 	RPC2_HostIdent hi;
@@ -310,7 +310,7 @@ static void DoProbe(struct server *srv)
 
 	bparms.SideEffectType = 0;
 	bparms.SecurityLevel = RPC2_OPENKIMONO;
-	bparms.ClientIdent = 0;
+	bparms.ClientIdent = NULL;
 
 	rc = (int) RPC2_NewBinding(&hi, &pi, &si, &bparms, &srv->cid);
 	if (rc == RPC2_SUCCESS)
@@ -346,10 +346,10 @@ static void DoSleep(struct server *srv)
 
     /* Compensate the waiting time for the time it took to do the RPC */
     if (srv->succ == srv->probe)
-	NextProbe.tv_sec = (srv->probe + probeinterval) - time(0);
+	NextProbe.tv_sec = (srv->probe + probeinterval) - time(NULL);
 
     if (NextProbe.tv_sec > 0)
-	IOMGR_Select(0, 0, 0, 0, &NextProbe);  /* sleep */
+	IOMGR_Select(0, NULL, NULL, NULL, &NextProbe);  /* sleep */
 }
 
 static void srvlwp(void *arg)

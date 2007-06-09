@@ -41,7 +41,7 @@ int grow_cache(struct db_file *f, u_int32_t len)
     if (f->cache) free(f->cache);
     f->cache = (char *)malloc(len);
     if (!f->cache) {
-	f->cache = 0;
+	f->cache = NULL;
 	return -1;
     }
     f->cache_len = len;

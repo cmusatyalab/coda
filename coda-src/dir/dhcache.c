@@ -82,7 +82,7 @@ static void dc_Grow(int count)
 }
 
 /* get a free cache entry; clean it up before handing it out */
-static PDCEntry dc_GetFree()
+static PDCEntry dc_GetFree(void)
 {
 	PDCEntry pdce = NULL;
 
@@ -199,7 +199,7 @@ void DC_Drop(PDCEntry pdce)
 	free(pdce);
 }
 
-void DC_HashInit()
+void DC_HashInit(void)
 {
 	int i;
 
@@ -241,7 +241,7 @@ void DC_SetCount(PDCEntry pdce, int count)
 
 
 /* called by ViceMakedir */
-PDCEntry DC_New()
+PDCEntry DC_New(void)
 {
 	PDCEntry pdce;
 

@@ -114,7 +114,7 @@ int U_SetLocalTokens(IN int setPag, IN ClearToken *cToken, IN EncryptedSecretTok
     strncpy(inbuff.realm, realm, MAXHOSTNAMELEN);
 
     buffer.in = (char *)&inbuff;
-    buffer.out = 0;
+    buffer.out = NULL;
     buffer.in_size = sizeof(inbuff);
     buffer.out_size = 0;
 
@@ -165,7 +165,7 @@ int U_DeleteLocalTokens(char *realm)
     struct ViceIoctl buffer;
 
     buffer.in = realm;
-    buffer.out = 0;
+    buffer.out = NULL;
     buffer.in_size = strlen(realm) + 1;
     buffer.out_size = 0;
     pioctl(NULL, _VICEIOCTL(9), &buffer, 0);

@@ -34,7 +34,7 @@ struct Partent_s{
 };
 
 
-Partent Partent_new()
+Partent Partent_new(void)
 {
     Partent T;
     return malloc(sizeof *T);
@@ -70,7 +70,7 @@ char *Partent_hasopt(Partent part, const char *opt)
 	eprint("NULL passed to Partent_hasopt.\n");
         CODA_ASSERT(0);
     }
-    return 0;
+    return NULL;
 }
 
 int Partent_intopt(Partent part, const char *opt, int *value)

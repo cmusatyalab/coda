@@ -357,7 +357,7 @@ int LKParseAndExecute(char *command, char *emsgbuf, int emsgbuflen)
     char dbname[MAXPATHLEN]; 
   };
   int cmdcount = 0; /* number of commands */
-  struct cmd *cmdarray = 0; /* malloc'ed array of commands */
+  struct cmd *cmdarray = NULL; /* malloc'ed array of commands */
   int rc = 0, clearflag = 0;
   int maxoffset, nextoffset, xo; /* indexes into command */
   int i, eleft;
@@ -518,7 +518,7 @@ static struct lkdb *GetlkdbByName(char *name)
     return(NULL);
 }
 
-static void RemoveAll()
+static void RemoveAll(void)
 {
     struct dllist_head *p, *next;
 

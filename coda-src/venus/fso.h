@@ -708,6 +708,8 @@ class fsobj {
     int RepairSymlink(fsobj **, char *, char *, unsigned short, int);
 
     void FetchProgressIndicator(unsigned long offset);
+
+    size_t Size(void) { return stat.Length; }
 };
 
 class fso_iterator : public rec_ohashtab_iterator {

@@ -72,26 +72,26 @@ void dt_bulktest(int arc, char **argv);
 
 command_t dtcmds[] =
 {
-        {"init", dt_init, 0, "make rvm clean"},
-	{"ok", dt_ok, 0, "check a directory"},
-	{"mdir", dt_mdir, 0, "create an empty directory"},
-	{"free", dt_free, 0, "delete directories"},
-	{"bulk", dt_bulktest, 0, "bulk test on directories"},
-	{"create", dt_create, 0, "create a dir entry"},
-	{"list", dt_list, 0, "list a directory"},
-	{"vdir", dt_vdir, 0, "list a venus BSD format directory"},
-	{"rdsfree", dt_rdsfree, 0, "tracer for the rdsfee problem"},
-	{"delete", dt_delete, 0, "delete dirno name (deletes a dir entry)"},
-	{"empty", dt_empty, 0, "delete dirno (test if dir is empty)"},
-	{"length", dt_length, 0, "length dirno (print size in bytes)"},
-	{"compare", dt_compare, 0, "dirno1 dirno1 (compare dirs)"},
-	{"convert", dt_convert, 0, "convert dirno file (convert to BSD format in file)"},
-	{"lookup", dt_lookup, 0, "lookup dirno name (lookup a dir entry)"},
-	{"fidlookup", dt_fidlookup, 0, "fidlookup dirno vnode unique (lookup a dir entry by fid)"},
-	{"hash", dt_hash, 0, "hash name (print hash value of a name)"},
-	{"printchain", dt_printchain, 0, "printchain dirno chainno (print a dirhash chain)"},
-	{"quit", dt_quit, 0, "quit this program"},
-	{ 0, 0, 0, NULL }
+	{"init", dt_init, NULL, "make rvm clean"},
+	{"ok", dt_ok, NULL, "check a directory"},
+	{"mdir", dt_mdir, NULL, "create an empty directory"},
+	{"free", dt_free, NULL, "delete directories"},
+	{"bulk", dt_bulktest, NULL, "bulk test on directories"},
+	{"create", dt_create, NULL, "create a dir entry"},
+	{"list", dt_list, NULL, "list a directory"},
+	{"vdir", dt_vdir, NULL, "list a venus BSD format directory"},
+	{"rdsfree", dt_rdsfree, NULL, "tracer for the rdsfee problem"},
+	{"delete", dt_delete, NULL, "delete dirno name (deletes a dir entry)"},
+	{"empty", dt_empty, NULL, "delete dirno (test if dir is empty)"},
+	{"length", dt_length, NULL, "length dirno (print size in bytes)"},
+	{"compare", dt_compare, NULL, "dirno1 dirno1 (compare dirs)"},
+	{"convert", dt_convert, NULL, "convert dirno file (convert to BSD format in file)"},
+	{"lookup", dt_lookup, NULL, "lookup dirno name (lookup a dir entry)"},
+	{"fidlookup", dt_fidlookup, NULL, "fidlookup dirno vnode unique (lookup a dir entry by fid)"},
+	{"hash", dt_hash, NULL, "hash name (print hash value of a name)"},
+	{"printchain", dt_printchain, NULL, "printchain dirno chainno (print a dirhash chain)"},
+	{"quit", dt_quit, NULL, "quit this program"},
+	{ NULL, NULL, NULL, NULL }
 };
 
 void dt_quit(int argc, char **argv)
@@ -737,7 +737,7 @@ void dt_mdir(int argc, char **argv)
 	}
 }
 
-FILE *file = 0;
+FILE *file = NULL;
 
 void dt_readargs(int argc, char **argv)
 {

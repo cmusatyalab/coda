@@ -164,7 +164,7 @@ long GetKeysFromToken(IN RPC2_Integer *AuthenticationType,
 	return(-1);	/* no valid key did the job */
     }
 
-    now = time(0);
+    now = time(NULL);
     if (now > endtimestamp) {
 	LogMsg(10, SrvDebugLevel, stdout,
 	       "End time stamp %d > time %d for user %d",

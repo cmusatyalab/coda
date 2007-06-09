@@ -29,12 +29,8 @@ listed in the file CREDITS.
 #endif
 
 
-int InitHisto(hg, lolimit, hilimit, bucketcount, ht)
-    struct hgram *hg;
-    double lolimit;
-    double hilimit;
-    int bucketcount;
-    enum htype ht;
+int InitHisto(struct hgram *hg, double lolimit, double hilimit,
+	      int bucketcount, enum htype ht)
     /* Initializes histogram hg. Returns 0 on success, -1 on failure.
        bucketcount is ignored if ht is LOG2 or LOG10  */
     {
@@ -119,8 +115,7 @@ int InitHisto(hg, lolimit, hilimit, bucketcount, ht)
 
 
 
-void ClearHisto(hg)
-     struct hgram *hg;
+void ClearHisto(struct hgram *hg)
     /* Clears histogram hg. */
     {
     int i;
@@ -137,19 +132,14 @@ void ClearHisto(hg)
     }
     
 
-void UpdateHisto(hg, newval)
-     register struct hgram *hg;
-     double newval;
+void UpdateHisto(struct hgram *hg, double newval)
     /* hg -- histogram to be updated
        newval -- value to be entered */
     {
     MUpdateHisto(hg, newval, 1);
     }
 
-void MUpdateHisto(hg,newval,number)
-     register struct hgram *hg;
-     double newval;
-     int number;
+void MUpdateHisto(struct hgram *hg, double newval, int number)
     /* hg -- histogram to be updated
        newval -- value to be entered 
        number -- number of newvals to be entered */
@@ -187,8 +177,7 @@ void MUpdateHisto(hg,newval,number)
     }
 
 
-static double CIFactor(dFreedom)
-     int dFreedom;
+static double CIFactor(int dFreedom)
     /* dFreedom:  no of degrees of freedom; == (NoOfSamples - 1) */
     {
     /* Approximate; errs conservatively; see Law & Kelton, pg 386 */
@@ -203,9 +192,7 @@ static double CIFactor(dFreedom)
     return(lowCI[dFreedom]);
     }
 
-int PrintHisto(outfile, hg)
-     FILE *outfile;
-     register struct hgram *hg;
+int PrintHisto(FILE *outfile, struct hgram *hg)
     {
     double mean, stddev, c90;
     double temp;
@@ -249,13 +236,8 @@ int PrintHisto(outfile, hg)
 
 
 
-int PlotHisto(outfile, hg, graphtitle, xtitle, ytitle, psfileprefix)
-     FILE *outfile;
-     struct hgram *hg;
-     char *graphtitle;
-     char *xtitle;
-     char *ytitle;
-     char *psfileprefix;
+int PlotHisto(FILE *outfile, struct hgram *hg, char *graphtitle, char *xtitle,
+	      char *ytitle, char *psfileprefix)
      
     {
     register int i;

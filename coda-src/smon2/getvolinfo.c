@@ -53,7 +53,7 @@ void Initialize(void)
     memset(&options, 0, sizeof(options));
     options.Flags = RPC2_OPTION_IPV6;
 
-    rc = RPC2_Init(RPC2_VERSION, &options, 0, -1, &tv);
+    rc = RPC2_Init(RPC2_VERSION, &options, NULL, -1, &tv);
     if (rc != LWP_SUCCESS) {
 	printf("RPC_Init() failed\n");
 	exit(-1);
@@ -79,7 +79,7 @@ long Bind(char *host, short port, long subsys, RPC2_Handle *cid)
 
     bindparms.SideEffectType = 0;
     bindparms.SecurityLevel = RPC2_OPENKIMONO;
-    bindparms.ClientIdent = 0;
+    bindparms.ClientIdent = NULL;
 
     return RPC2_NewBinding(&hostid, &portid, &subsysid, &bindparms, cid);
 }

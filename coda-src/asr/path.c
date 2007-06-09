@@ -74,7 +74,7 @@ void path(char *pathname, char *direc, char *file)
   }
   strcpy(direc, pathname);
   maybebase = strtok(direc,"/");
-  while ((tok = strtok(0,"/"))) 
+  while ((tok = strtok(NULL,"/")))
     maybebase = tok;
   strcpy(file, maybebase);
   strcpy(direc, pathname);

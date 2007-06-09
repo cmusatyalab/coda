@@ -45,14 +45,14 @@ void rvmlib_init_threaddata(rvm_perthread_t *rvmptt)
 	}
 }
 
-rvm_perthread_t *rvmlib_thread_data() 
+rvm_perthread_t *rvmlib_thread_data(void)
 {
-	rvm_perthread_t *data = 0;
+	rvm_perthread_t *data = NULL;
 	int lwprc = LWP_GetRock(RVM_THREAD_DATA_ROCK_TAG, (void *)&data);
 	if (lwprc != LWP_SUCCESS)
 	/*RVMLIB_ASSERT("thread_data: LWP_GetRock failed");*/
-		return(0);
-	return(data);
+		return NULL;
+	return data;
 }
 
 void rvmlib_set_thread_data(void *p) {
@@ -137,8 +137,8 @@ void rvmlib_end_transaction(int flush_mode, rvm_return_t *statusp)
 		*(statusp) = _status;
 
 	/* De-initialize the rvm_perthread_t object. */
-	_rvm_data->tid = 0;
-        if (_rvm_data->list.table) 
+	_rvm_data->tid = NULL;
+	if (_rvm_data->list.table)
 		free(_rvm_data->list.table);
 }
 
@@ -164,7 +164,7 @@ void rvmlib_abort(int status)
 	_rvm_data->list.table = NULL;
 	_rvm_data->list.count = 0;
 	_rvm_data->list.size = 0;
-	_rvm_data->tid = 0;
+	_rvm_data->tid = NULL;
 }
 
 void rvmlib_set_range(void *base, unsigned long size)

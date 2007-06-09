@@ -140,8 +140,8 @@ int generate_CodaToken(uint8_t auth2key[AUTH2KEYSIZE], uint32_t viceid,
 
     /* construct the clear token */
     ctoken->ViceId	   = viceid;
-    ctoken->BeginTimestamp = time(0) - 900;
-    ctoken->EndTimestamp   = time(0) + lifetime;
+    ctoken->BeginTimestamp = time(NULL) - 900;
+    ctoken->EndTimestamp   = time(NULL) + lifetime;
     ctoken->AuthHandle	   = -1;
     secure_random_bytes(ctoken->HandShakeKey, sizeof(RPC2_EncryptionKey));
 

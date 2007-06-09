@@ -135,14 +135,14 @@ void PrintTimeStamp(FILE *f)
 	logs[i].yday = t->tm_yday;
     }
 
-    fprintf(f, "%02d:%02d:%02d ", t->tm_hour, t->tm_min, t->tm_sec);    
+    fprintf(f, "%02d:%02d:%02d ", t->tm_hour, t->tm_min, t->tm_sec);
 }
 
-extern void LogMsg(int msglevel, int debuglevel, FILE *fout, char *fmt,  ...)
+void LogMsg(int msglevel, int debuglevel, FILE *fout, char *fmt,  ...)
 {
     va_list ap;
 
-    if (debuglevel < msglevel) 
+    if (debuglevel < msglevel)
 	    return;
 
     PrintTimeStamp(fout);
@@ -247,7 +247,7 @@ int UtilHostEq(const char *name1, const char *name2)
     return ret;
 }
 
-void UtilDetach()
+void UtilDetach(void)
 {
     pid_t child; 
     int rc;

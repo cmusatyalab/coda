@@ -40,8 +40,8 @@ int VerboseFlag = 0;
 int RelativePathFlag = 0; /* iff true use relative paths; else absolute */
 int NumEntries = 0; /* count of entries inserted into database */
 
-char *NewLKDB = 0; /* pathname of lookaside db to be created */
-char *TreeRoot = 0; /* pathname of root of tree to be walked and hashed */
+char *NewLKDB = NULL; /* pathname of lookaside db to be created */
+char *TreeRoot = NULL; /* pathname of root of tree to be walked and hashed */
 
 /* Forward refs */
 int SetDescriptor(struct rwcdb *dbh); 
@@ -207,8 +207,8 @@ int WalkTree(char *troot, char *prefix, struct rwcdb *dbh)
   }
 
   path_argv[0] = troot;
-  path_argv[1] = 0;
-  fth = fts_open(path_argv, FTS_PHYSICAL, 0);
+  path_argv[1] = NULL;
+  fth = fts_open(path_argv, FTS_PHYSICAL, NULL);
   if (!fth) {
     printf("%s: %s\n", troot, strerror(errno));
     return(-1);

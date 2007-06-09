@@ -284,7 +284,7 @@ void AppendPW(int vId, RPC2_EncryptionKey eKey, char *otherInfo, int agentId)
 	}
 	sprintf(bnext, "\t%s", otherInfo);
 	bnext += strlen(otherInfo);
-	cl = time(0);
+	cl = time(NULL);
 	sprintf(bnext, "\t# By %d at %s", agentId, ctime(&cl));
 
 	/* Now lock the file and append the line */
@@ -321,7 +321,7 @@ long PWNewUser(RPC2_Handle cid, RPC2_Integer viceId, RPC2_EncryptionKey initKey,
 	/* make sure it's a system administrator */
 	RPC2_GetPrivatePointer(cid, &u.c);
 	if (!u.p || u.p->HasQuit == TRUE) return(AUTH_FAILED);
-	u.p->LastUsed = time(0);
+	u.p->LastUsed = time(NULL);
 	if (!IsAdministrator(u.p))
 	{
 		char buf1[PRS_MAXNAMELEN], buf2[PRS_MAXNAMELEN];
@@ -353,7 +353,7 @@ long PWDeleteUser(RPC2_Handle cid, RPC2_Integer viceId)
 	RPC2_GetPrivatePointer(cid, &u.c);
 	if (!u.p || u.p->HasQuit == TRUE) 
 		return(AUTH_FAILED);
-	u.p->LastUsed = time(0);
+	u.p->LastUsed = time(NULL);
 	if (!IsAdministrator(u.p))
 	{
 		char buf1[PRS_MAXNAMELEN], buf2[PRS_MAXNAMELEN];
@@ -391,7 +391,7 @@ long PWChangeUser(RPC2_Handle cid, RPC2_Integer viceId, RPC2_EncryptionKey newKe
 	/* make sure it's a system administrator */
 	RPC2_GetPrivatePointer(cid, &u.c);
 	if (!u.p || u.p->HasQuit == TRUE) return(AUTH_FAILED);
-	u.p->LastUsed = time(0);
+	u.p->LastUsed = time(NULL);
 	if (!IsAdministrator(u.p))
 	{
 		char buf1[PRS_MAXNAMELEN], buf2[PRS_MAXNAMELEN];
@@ -440,7 +440,7 @@ long PWChangePasswd(RPC2_Handle cid, RPC2_Integer viceId, RPC2_String Passwd)
 	/* Ensure it's a system administrator or the user himself */
 	RPC2_GetPrivatePointer(cid, &u.c);
 	if (!u.p || u.p->HasQuit == TRUE) return(AUTH_FAILED);
-	u.p->LastUsed = time(0);
+	u.p->LastUsed = time(NULL);
 	if (viceId != u.p->ViceId && !IsAdministrator(u.p))
 	{
 		char buf1[PRS_MAXNAMELEN], buf2[PRS_MAXNAMELEN];

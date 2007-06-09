@@ -93,7 +93,7 @@ struct inodeops inodeops_ftree = {
 static mode_t   mode=S_IREAD | S_IWRITE;
 
 
-static int f_magic()
+static int f_magic(void)
 {
     return VICEMAGIC;
 }
@@ -188,9 +188,9 @@ static int f_init (union PartitionData **data,
     options->width = val;
 
     i=0;
-    do 
+    do {
 	i++;
-    while ( (1<<i) != options->width &&  i<20 );
+    } while ( (1<<i) != options->width &&  i<20 );
 
     if ( i != 10) {
 	options->logwidth = i;
@@ -207,7 +207,7 @@ static int f_init (union PartitionData **data,
 
     rc = stat(resfilename, &buf);
     if ( rc != 0 || !(buf.st_mode & S_IFREG) ) {
-	dev = 0;
+	dev = NULL;
 	eprint("Error in init of partition %s:%s: no resource database.", 
 	       Partent_host(partent), Partent_dir(partent));
 	perror("");
@@ -217,7 +217,7 @@ static int f_init (union PartitionData **data,
     /* open the resource data file */
     options->resource = open(resfilename, O_RDWR);
     if ( options->resource == -1 ) {
-	dev = 0;
+	dev = NULL;
 	eprint("Error opening resource file!\n");
 	perror("");
 	CODA_ASSERT(0);

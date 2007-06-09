@@ -53,7 +53,7 @@ PDirHeader DI_DiToDh(PDirInode pdi)
 }
 
 /* allocate a new directory inode in RVM */
-static PDirInode DI_New()
+static PDirInode DI_New(void)
 {
 	PDirInode newinode;
 	DIR_intrans();

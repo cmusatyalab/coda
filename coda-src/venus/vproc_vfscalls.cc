@@ -464,6 +464,11 @@ void vproc::setattr(struct venus_cnode *cp, struct coda_vattr *vap) {
 	    }
 
 	    /* truncate, ftruncate */
+
+	    /* cancel out resize to existing length */
+	    if (vap->va_size != VA_IGNORE_SIZE && vap->va_size == f->Size())
+		vap->va_size = VA_IGNORE_SIZE;
+
 	    if (vap->va_size != VA_IGNORE_SIZE) {
 		if (!f->IsFile()) {
 		    u.u_error = EISDIR; 

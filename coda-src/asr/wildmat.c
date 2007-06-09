@@ -53,9 +53,9 @@ Star(register char *text, char * p)
 {
     register int	ret;
 
-    do
+    do {
 	ret = DoMatch(text++, p);
-    while (ret == FALSE);
+    } while (ret == FALSE);
     return ret;
 }
 

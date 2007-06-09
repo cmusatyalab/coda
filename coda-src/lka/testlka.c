@@ -86,7 +86,7 @@ int main(int argc, char **argv)
     }
 
     memset(em, 0, emlen); /* null message is default */
-    if (LookAsideAndFillContainer(testsha, cfd, -1, 0, em, emlen)){
+    if (LookAsideAndFillContainer(testsha, cfd, -1, NULL, em, emlen)){
       printf("Found match: %s\n", em);
     }
     else {
