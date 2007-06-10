@@ -29,6 +29,7 @@ extern "C" {
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <time.h>
 #include <fcntl.h>
 #include <util.h>
 #include <unistd.h>
@@ -60,14 +61,15 @@ int GetSecret(char *file, RPC2_EncryptionKey key, struct secret_state *state)
     if (n < 0)
 	return -1;
 
-    if (state->size != statbuf.st_size || state->mtime != statbuf.st_mtime) {
+    if (statbuf.st_mtime != state->mtime && statbuf.st_mtime != time(NULL))
+    {
 	fd = open(file, O_RDONLY);
 	if (fd < 0) {
 	    LogMsg(0, SrvDebugLevel, stdout, "Could not open %s", file);
 	    return -1;
 	}
 
-        /* better be safe than sorry, make sure the buffer is padded with 0 */
+	/* better be safe than sorry, make sure the buffer is padded with 0 */
 	memset(buf, 0, 512);
 	n = read(fd, buf, 512);
 	if (n < 0) {
@@ -77,10 +79,9 @@ int GetSecret(char *file, RPC2_EncryptionKey key, struct secret_state *state)
 	}
 	close(fd);
 
-        HashSecret(buf, n, state->key);
+	HashSecret(buf, n, state->key);
 
 	/* update size & mtime of when we read the cached key */
-	state->size = statbuf.st_size;
 	state->mtime = statbuf.st_mtime;
     }
     memcpy(key, state->key, RPC2_KEYSIZE);

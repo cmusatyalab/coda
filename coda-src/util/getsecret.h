@@ -31,7 +31,6 @@ void HashSecret(unsigned char *secret, int len, RPC2_EncryptionKey key);
 /* to avoid having to re-read and re-hash tokens from files... */
 struct secret_state {
     time_t mtime;
-    off_t  size;
     RPC2_EncryptionKey key;
 };
 /* Read a tokenfile and return an RPC2 encryption key. */
