@@ -910,7 +910,7 @@ class repvol : public volent {
     /* ASR routines */
     int AllowASR(uid_t);
     int DisallowASR(uid_t);
-    int EnableASR(uid_t);
+    void EnableASR(uid_t);
     int DisableASR(uid_t);
     int IsASRAllowed() { return flags.allow_asrinvocation; }
     int IsASREnabled() { return flags.enable_asrinvocation; }

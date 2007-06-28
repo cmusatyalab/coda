@@ -939,17 +939,15 @@ int repvol::LocalRepair(fsobj *f, ViceStatus *status, char *fname, VenusFid *pfi
 }
 
 /* Enable ASR invocation for this volume (as a volume service)  */
-int repvol::EnableASR(uid_t uid)
+void repvol::EnableASR(uid_t uid)
 {
     LOG(100, ("repvol::EnableASR: vol = %x, uid = %d\n", vid, uid));
 
     /* Place volume in "repair mode." */
-    if (flags.enable_asrinvocation != 1) {
-	flags.enable_asrinvocation = 1;
-	(void)k_Purge();  /* we should be able to do this on a volume/user basis! */
-    }
-    
-    return(0);
+    if (IsASREnabled())
+	LOG(0, ("volent::EnableASR: ASR for %x already enabled", vid));
+
+    flags.enable_asrinvocation = 1;
 }
 
 int repvol::DisableASR(uid_t uid)
@@ -959,14 +957,10 @@ int repvol::DisableASR(uid_t uid)
     if (asr_running())
 	return EBUSY;
 
-    if (!IsASREnabled()) {
-	LOG(100, ("volent::DisableASR: ASR for %x already disabled", vid));
-    }
-    else {
-	LOG(0, ("volent::DisableASR: disabling asr for %x\n", vid));
-	flags.enable_asrinvocation = 0; 
-	(void)k_Purge();     /* we should be able to do this on a volume/user basis! */
-    }
+    if (!IsASREnabled())
+	LOG(0, ("volent::DisableASR: ASR for %x already disabled", vid));
+
+    flags.enable_asrinvocation = 0;
 
     return 0;
 }
@@ -977,12 +971,12 @@ int repvol::AllowASR(uid_t uid)
     LOG(100, ("repvol::AllowASR: vol = %x, uid = %d\n", vid, uid));
 
     /* Place volume in "repair mode." */
-    if (flags.allow_asrinvocation != 1) {
-	flags.allow_asrinvocation = 1;
-	(void)k_Purge();  /* we should be able to do this on a volume/user basis! */
-    }
-    
-    return(0);
+    if (IsASRAllowed())
+	LOG(0, ("volent::AllowASR: ASR for %x already allowed", vid));
+
+    flags.allow_asrinvocation = 1;
+
+    return 0;
 }
 
 int repvol::DisallowASR(uid_t uid)
@@ -992,14 +986,10 @@ int repvol::DisallowASR(uid_t uid)
     if (asr_running())
 	return EBUSY;
 
-    if (!IsASRAllowed()) {
-	LOG(100, ("volent::DisallowASR: ASR for %x already disallowed", vid));
-    }
-    else {
-	LOG(0, ("volent::DisallowASR: disallowing asr for %x\n", vid));
-	flags.allow_asrinvocation = 0; 
-	(void)k_Purge();     /* we should be able to do this on a volume/user basis! */
-    }
+    if (!IsASRAllowed())
+	LOG(0, ("volent::DisallowASR: ASR for %x already disallowed", vid));
+
+    flags.allow_asrinvocation = 0;
 
     return 0;
 }
