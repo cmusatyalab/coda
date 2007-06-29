@@ -339,13 +339,16 @@ AC_SUBST(VCODACON)
 AC_SUBST(GUIFLAGS)
 AC_SUBST(GUILIBS)
 AC_DEFUN(CODA_CHECK_FLTK,
-  [if test $target != "i386-pc-cygwin32"; then
-    CODA_FIND_LIB(X11, [], XFlush(), "$LIBS")
-    GUILIBS="-lX11 $LIBS -lm"
-   else
-    GUIFLAGS="-fno-exceptions -mwindows"
-    GUILIBS="-lole32 -luuid -lcomctl32 -lwsock32"
-   fi
+  [case $target in
+   *pc-cygwin*)
+     GUIFLAGS="-fno-exceptions -mwindows"
+     GUILIBS="-lole32 -luuid -lcomctl32 -lwsock32"
+     ;;
+   *)
+     CODA_FIND_LIB(X11, [], XFlush(), "$LIBS")
+     GUILIBS="-lX11 $LIBS -lm"
+     ;;
+   esac
    AC_LANG_SAVE
    AC_LANG_CPLUSPLUS
    CODA_FIND_LIB(fltk, [#include <Fl/Fl.H>], Fl::run(), "$GUILIBS")
