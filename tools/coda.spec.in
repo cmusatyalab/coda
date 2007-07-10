@@ -182,6 +182,7 @@ exit 0
 /usr/bin/ctokens
 /usr/bin/cunlog
 /usr/bin/filerepair
+/usr/bin/gcodacon
 /usr/bin/hoard
 /usr/bin/mkcodabf
 /usr/bin/mklka

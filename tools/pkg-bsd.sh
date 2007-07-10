@@ -182,6 +182,7 @@ bin/cpasswd
 bin/ctokens
 bin/cunlog
 bin/filerepair
+bin/gcodacon
 bin/hoard
 bin/mkcodabf
 bin/mklka

@@ -885,6 +885,8 @@ void volent::ResetVolTransients()
     flags.resolve_me = 0;
     flags.available = 1;
     flags.sync_reintegrate = 0;
+    flags.reint_conflict = 0;
+    flags.unauthenticated = 0;
 
     list_head_init(&fso_list);
 
@@ -956,6 +958,20 @@ int volent::IsReadWriteReplica()
     if (IsReplicated()) return 0;
 
     return (((volrep *)this)->ReplicatedVol() != 0);
+}
+
+void repvol::ReportVolState(void)
+{
+    const char *volstate;
+
+    switch (state) {
+    case Reachable:	volstate = "reachable"; break;
+    case Resolving:	volstate = "resolving"; break;
+    case Unreachable:	volstate = "unreachable"; break;
+    default:		volstate = "unknown"; break;
+    }
+
+    MarinerReportVolState(name, realm->Name(), volstate, CML.count(), &flags);
 }
 
 
@@ -1228,19 +1244,25 @@ void volent::Exit(int mode, uid_t uid)
 
 	    mutator_count--;
 	    shrd_count--;
-            if (IsReplicated())
-                ReleaseReadLock(&((repvol *)this)->CML_lock);
-            if (IsReplicated() && mutator_count == 0 &&
-                ((repvol *)this)->GetCML()->count() == 0 &&
-                !((repvol *)this)->IsReintegrating()) {
-		/* Special-case here. */
-                /* If we just cancelled the last log record for a volume that
-                 * was being kept in Unreachable state due to auth-token
-                 * absence, we need to provoke a transition! */
-		if (IsUnreachable() && !flags.transition_pending)
-		    flags.transition_pending = 1;
 
-		((repvol *)this)->GetCML()->owner = UNSET_UID;
+	    if (IsReplicated()) {
+		repvol *rv = (repvol *)this;
+		int count = rv->GetCML()->count();
+
+		ReleaseReadLock(&((repvol *)this)->CML_lock);
+
+		if (mutator_count == 0 && count == 0 && !rv->IsReintegrating())
+		{
+		    /* Special-case here. */
+		    /* If we just cancelled the last log record for a volume that
+		     * was being kept in Unreachable state due to auth-token
+		     * absence, we need to provoke a transition! */
+		    if (IsUnreachable() && !flags.transition_pending)
+			flags.transition_pending = 1;
+
+		    rv->GetCML()->owner = UNSET_UID;
+		}
+		rv->ReportVolState();
 	    }
 	    break;
 	    }
@@ -1324,6 +1346,7 @@ void volent::TakeTransition()
     /* Take corresponding action. */
     state = nextstate;
     flags.transition_pending = 0;
+    rv->ReportVolState();
 
     switch(state) {
 	case Reachable:

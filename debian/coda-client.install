@@ -10,6 +10,7 @@ debian/tmp/usr/bin/cpasswd
 debian/tmp/usr/bin/ctokens
 debian/tmp/usr/bin/cunlog
 debian/tmp/usr/bin/filerepair
+debian/tmp/usr/bin/gcodacon
 debian/tmp/usr/bin/hoard
 debian/tmp/usr/bin/mkcodabf
 debian/tmp/usr/bin/mklka

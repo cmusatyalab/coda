@@ -49,13 +49,16 @@ const int MWBUFSIZE = 80;
 extern fd_set MarinerMask;
 extern int MarinerMaxFD;
 
-extern void MarinerInit();
-extern void MarinerMux(fd_set *mask);
-extern void MarinerLog(const char *, ...);
-extern void MarinerReport(VenusFid *, uid_t);
-extern void PrintMariners();
-extern void PrintMariners(FILE *);
-extern void PrintMariners(int);
+void MarinerInit(void);
+void MarinerMux(fd_set *mask);
+void MarinerLog(const char *, ...);
+void MarinerReport(VenusFid *, uid_t);
+void MarinerReportVolState(const char *volname, const char *realm,
+			   const char *state, int cml_entries,
+			   const struct VolFlags *vflags);
+void PrintMariners(void);
+void PrintMariners(FILE *);
+void PrintMariners(int);
 
 
 class mariner : public vproc {
@@ -72,6 +75,7 @@ class mariner : public vproc {
     unsigned dying : 1;
     unsigned logging : 1;	    /* for MarinerLog() */
     unsigned reporting : 1;	    /* for MarinerReport() */
+    unsigned want_volstate : 1;	    /* for MarinerReportVolState() */
     uid_t uid;			    /* valid iff reporting = 1 */
     int fd;
     char commbuf[MWBUFSIZE];
@@ -93,6 +97,7 @@ class mariner : public vproc {
 
   public:
     int IsLogging(void)		  { return logging; }
+    int WantVolState(void)	  { return want_volstate; }
     int write(char *buf, int len) { return ::write(fd, buf, len); }
 };
 

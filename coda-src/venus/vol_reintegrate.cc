@@ -104,6 +104,8 @@ void repvol::Reintegrate()
     v->Begin_VFS(&volid, CODA_REINTEGRATE);
     VOL_ASSERT(this, v->u.u_error == 0);
 
+    ReportVolState();
+
     /* lock the CML to prevent a checkpointer from getting confused. */
     ObtainReadLock(&CML_lock);
 
@@ -182,13 +184,13 @@ void repvol::Reintegrate()
      * volume since that might trigger another volume transition */
     flags.sync_reintegrate = 0;
 
-    /* 
+    /*
      * clear CML owner if possible.  If there are still mutators in the volume,
      * the owner must remain set (it is overloaded).  In that case the last
      * mutator will clear the owner on volume exit.
      */
     if (CML.count() == 0 && mutator_count == 0)
-        CML.owner = UNSET_UID;
+	CML.owner = UNSET_UID;
 
     /* if code was non-zero, return EINVAL to End_VFS to force this
        reintegration to inc fail count rather than success count */
@@ -197,6 +199,8 @@ void repvol::Reintegrate()
 
     EnableASR(V_UID);	
     ReleaseReadLock(&CML_lock);
+
+    ReportVolState();
 
     /* Surrender control of the volume. */
     v->End_VFS();
@@ -620,7 +624,10 @@ CheckResult:
 int repvol::ReadyToReintegrate()
 {
     userent *u; 
-    int tokensvalid;
+    cml_iterator next(CML, CommitOrder);
+    cmlent *m;
+    int rc;
+
 
     /* 
      * we're a bit draconian about ASRs.  We want to avoid reintegrating
@@ -630,29 +637,36 @@ int repvol::ReadyToReintegrate()
      * is Venus-wide, so the check is correct but more conservative than 
      * we would like.
      */
-    if (flags.transition_pending || !IsReachable() ||
-	CML.count() == 0 || asr_running() || IsReintegrating())
+    if (IsReintegrating() || !IsReachable() || CML.count() == 0)
 	return 0;
 
     u = realm->GetUser(CML.owner); /* if CML is non-empty, u != 0 */
-    tokensvalid = u->TokensValid();
+    flags.unauthenticated = !u->TokensValid();
     PutUser(&u);
 
-    if (!tokensvalid) {
-        MarinerLog("Reintegrate %s pending tokens for uid = %d", name, CML.owner);
-        eprint("Reintegrate %s pending tokens for uid = %d", name, CML.owner);
+    m = next();
+    if (!m) {
+	LOG(0, ("repvol::ReadyToReintegrate: failed to find head of the CML\n"));
+	// Should we trigger an assertion? This should never happen because
+	// CML.count is non-zero and we are not yet reintegrating.
 	return 0;
     }
 
-    cml_iterator next(CML, CommitOrder);
-    cmlent *m;
+    rc = m->ReintReady();
+    flags.reint_conflict = (rc == EINCONS);
 
-    m = next();
+    if (flags.unauthenticated) {
+	MarinerLog("Reintegrate %s pending tokens for uid = %d\n", name, CML.owner);
+	eprint("Reintegrate %s pending tokens for uid = %d", name, CML.owner);
+    }
 
-    if (m && m->ReintReady())
-	return 1;
+    if (flags.transition_pending || asr_running() || flags.unauthenticated || rc) {
+	ReportVolState();
+	return 0;
+    }
 
-    return 0;
+    /* volume state will be reported when reintegration actually starts */
+    return 1;
 }
 
 
@@ -662,26 +676,26 @@ int cmlent::ReintReady()
     /* check if its repair flag is set */
     if (flags.to_be_repaired || flags.repair_mutation) {
 	LOG(0, ("cmlent::ReintReady: this is a repair related cmlent\n"));
-	return 0;
+	return EINCONS;
     }
 
     if (ContainLocalFid()) {
 	LOG(0, ("cmlent::ReintReady: contains local fid\n"));
 	/* set its to_be_repaired flag */
 	SetRepairFlag();
-	return 0;
+	return EINCONS;
     }
 
     /* check if this record is part of a transaction (IOT, etc.) */
     if (tid > 0) {
 	LOG(0, ("cmlent::ReintReady: transactional cmlent\n"));
-	return 0;
+	return EALREADY;
     }
 
-    if (Aged())
-	return 1;
-
-    LOG(100, ("cmlent::ReintReady: record too young\n"));
+    if (!Aged()) {
+	LOG(100, ("cmlent::ReintReady: record too young\n"));
+	return EAGAIN;
+    }
     return 0;
 }
 

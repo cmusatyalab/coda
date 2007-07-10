@@ -1,0 +1,485 @@
+#!/usr/bin/env python
+#
+#			   Coda File System
+#			      Release 6
+#
+#		Copyright (c) 2007 Carnegie Mellon University
+#
+# This  code  is  distributed "AS IS" without warranty of any kind under
+# the terms of the GNU General Public License Version 2, as shown in the
+# file  LICENSE.  The  technical and financial  contributors to Coda are
+# listed in the file CREDITS.
+#
+#
+# gcodacon - Show the Coda client's volume/reintegration state
+
+import pygtk
+pygtk.require('2.0')
+import gtk, gobject
+import socket, re
+
+dirty_threshold=100 # At what point do we start to worry about pending changes
+
+##########################################################################
+### Icon
+##########################################################################
+ICON_XPM_COLORMAP = {
+' ' : "None",
+'.' : "None",
+'#' : "#000000",
+'$' : "#4E3691",
+'@' : "#754FC6",
+'/' : "#FFFFFF"}
+ICON_XPM_DATA = [
+#static char * icon_xpm[] = {
+#"24 24 6 1",
+#" 	c None",
+#".	c #FF2222",
+#"#	c #000000",
+#"$	c #4E3691",
+#"@	c #754FC6",
+#"/	c #FFFFFF",
+"       ..........       ",
+"      ......@@@...      ",
+"    .....@@@@@@@@...    ",
+"   ....@@@@@@@@@@@...   ",
+"  ....@@@@@@@@$$$$$...  ",
+"  ...$$$$@@@$$$$//#...  ",
+" ....#/$$@$$$/////#.... ",
+".....#//$$$////##/#.....",
+".....#///#///##///#.....",
+".....#///#////////#.....",
+".....#///#////////#.....",
+".....#///#////////#.....",
+".....#///#////////#.....",
+".....#///#////////#.....",
+".....#///#////////#.....",
+".....#///#////////#.....",
+".....#///#////////#.....",
+" ....#///#////////#.... ",
+"  ...#///#////////#...  ",
+"  ...#///#//////##....  ",
+"   ...#//#////##.....   ",
+"    ...#/#/###......    ",
+"      ..###.......      ",
+"       ..........       "
+#};
+]
+
+##########################################################################
+### Define states
+##########################################################################
+# We add states to a global list 'STATES'. Each state contains,
+#	desc    - description of the state (for tooltips and such)
+#	test    - function which is passed # cmls and a list of volume flags
+#		  and should return true if this state is active
+#
+# When picking a volume state we walk the global list in order and return
+# the first where 'test' returns true.
+STATES = []
+class State: # really used as a 'struct' to hold all state specific data
+    def __init__(self, desc, cmap={}, test=None):
+	colormap = ICON_XPM_COLORMAP.copy()
+	colormap.update(cmap)
+	xpm_hdr = ["24 24 6 1"] + map(lambda c: "%s\tc %s" %c, colormap.items())
+	image = gtk.gdk.pixbuf_new_from_xpm_data(xpm_hdr + ICON_XPM_DATA)
+
+	self.desc = desc
+	self.image = image
+	self.test = test
+	STATES.append(self)
+
+##########################################################################
+# Actual states follow
+NO_MARINER = \
+State(desc="Unable to communicate with venus",
+      cmap = { # black circle, no server visible
+	'.' : "#000000",
+	'$' : "#000000",
+	'@' : "#000000",
+	'/' : "#000000"
+      })
+
+State(desc="Need token to reintegrate",
+      test=lambda cmls,flags: cmls and 'unauth' in flags,
+      cmap = { # red circle, yellow server
+	'.' : "#FF2222",
+	'/' : "#FFEA00"
+      })
+
+State(desc="Conflict detected",
+      test=lambda cmls,flags: 'conflict' in flags,
+      cmap = { # red circle, red server
+	'.' : "#FF2222",
+	'/' : "#C40B0B"
+       })
+
+State(desc="Application Specific Resolver active",
+      test=lambda cmls,flags: 'asr' in flags,
+      cmap = { # yellow circle, orange server
+	'.' : "#FFEA00",
+	'/' : "#FFA61B",
+      })
+
+State(desc="Servers unreachable, unable to reintegrate",
+      test=lambda cmls,flags: cmls and 'unreachable' in flags,
+      cmap = { # black circle, orange server
+	'.' : "#000000",
+	'/' : "#FFA61B"
+      })
+
+State(desc="More than %d pending operations" % dirty_threshold,
+      test=lambda cmls,flags: cmls > dirty_threshold and \
+	not 'resolve' in flags and not 'reint' in flags,
+      cmap = { # orange server
+	'/' : "#FFA61B",
+      })
+
+State(desc="Resolving",
+      test=lambda cmls,flags: 'resolve' in flags,
+      cmap = { # orange circle, green server
+	' ' : "None",
+	'.' : "#FFA61B",
+	'/' : "#6EFB6E"
+      })
+
+State(desc="Reintegrating",
+      test=lambda cmls,flags: 'reint' in flags,
+      cmap = { # green circle, green server
+	'.' : "#6EFB6E",
+	'/' : "#6EFB6E"
+      })
+
+UNREACH = \
+State(desc="Servers unreachable",
+      test=lambda cmls,flags: 'unreachable' in flags,
+      cmap = { # black circle
+	'.' : "#000000",
+      })
+
+State(desc="Pending operations",
+      test=lambda cmls,flags: cmls,
+      cmap = { # green server
+	'/' : "#6EFB6E"
+      })
+
+CLEAN = \
+State(desc="No local changes",
+      test=lambda cmls,flags: 1)
+
+##########################################################################
+### Coda specific helper functions
+##########################################################################
+# Read Coda configuration files
+def parse_codaconf(conffile):
+    settings = {}
+    for line in open(conffile):
+	# Skip anything starting with '#', lines should look like <key>=<value>
+	m = re.match("^([^#][^=]+)=(.*)[ \t]*$", line)
+	if not m: continue
+	key, value = m.groups()
+
+	# The value may be quoted, strip balanced quotes
+	m = re.match('^"(.*)"$', value)
+	if m: value = m.group(1)
+
+	settings[key] = value
+    return settings
+
+##########################################################################
+# Base class that handles the connection to venus's mariner port
+class MarinerListener:
+    def __init__(self, use_tcp=0, debug=0):
+	self.use_tcp = use_tcp
+	self.debug = debug
+
+	if not self.use_tcp:
+	    venusconf = parse_codaconf('/etc/coda/venus.conf')
+	    mariner = venusconf.get("marinersocket", "/usr/coda/spool/mariner")
+	    self.addrs = [(socket.AF_UNIX, socket.SOCK_STREAM, 0, 0, mariner)]
+	else:
+	    self.addrs = socket.getaddrinfo(None, 'venus', socket.AF_INET,
+					 socket.SOCK_STREAM, 0)
+	self.__reconnect()
+
+    # callbacks which can be overridden by subclasses
+    def connected(self):	pass
+    def disconnected(self):	pass
+    def data_ready(self, line): pass
+    def data_done(self):	pass
+
+    def __reconnect(self):
+	if self.__connect() == False: return # false == connected
+	self.disconnected()
+	gobject.timeout_add(5000, self.__connect)
+
+    def __connect(self):
+	for host in self.addrs:
+	    try:
+		s = socket.socket(host[0], host[1], host[2])
+		s.connect(host[4])
+		s.send('set:volstate\n')
+		break
+	    except socket.error:
+		continue
+	else:
+	    return True # we end up here if we couldn't connect
+
+	self.connected()
+	gobject.io_add_watch(s, gobject.IO_IN | gobject.IO_ERR | gobject.IO_HUP,
+			     self.__data_ready)
+	return False
+
+    def __data_ready(self, fd, condition):
+	# socket error, maybe venus died?
+	if condition & (gobject.IO_ERR | gobject.IO_HUP):
+	    self.__reconnect()
+	    return False
+
+	self.buf += fd.recv(8192)
+	while self.buf:
+	    try:
+		line, self.buf = self.buf.split('\n', 1)
+	    except ValueError:
+		break
+
+	    if self.debug:
+		print line
+	    self.data_ready(line)
+	self.data_done()
+	return True
+
+##########################################################################
+### Wrappers around GTK objects
+##########################################################################
+# About dialog
+class About(gtk.AboutDialog):
+    def __init__(self):
+	gtk.AboutDialog.__init__(self)
+	self.set_comments("Show the Coda client's volume/reintegration state")
+	self.set_copyright("Copyright (c) 2007 Carnegie Mellon University")
+	self.set_website("http://www.coda.cs.cmu.edu/")
+	self.set_website_label("Coda Distributed File System")
+	self.set_license(' '.join("""\
+    This code is distributed "AS IS" without warranty of any kind under the
+    terms of the GNU General Public License Version 2, as shown in the file
+    LICENSE. The technical and financial contributors to Coda are listed in
+    the file CREDITS.""".split()))
+	self.set_wrap_license(1)
+
+	gtk.AboutDialog.run(self)
+	self.destroy()
+
+##########################################################################
+# wrapper around ListStore to provide transparent State -> state_idx mapping
+class VolumeList(gtk.ListStore):
+    def __init__(self):
+	gtk.ListStore.__init__(self, str, int)
+	self.set_sort_column_id(1, gtk.SORT_ASCENDING)
+
+    def __get(self, volname):
+	for row in self:
+	    if row[0] == volname:
+		return row
+	raise KeyError
+
+    def __setitem__(self, volname, value):
+	try:
+	    self.__get(volname)[1] = value
+	except KeyError:
+	    self.append([volname, value])
+
+    def __getitem__(self, volname):
+	return STATES[self.__get(volname)[1]]
+
+    def __delitem__(self, volname):
+	row = self.__get(volname)
+	del row
+
+    def values(self):
+	return [ STATES(row[1]) for row in self ]
+
+    def update(self, volname, cmls, flags):
+	for idx, state in enumerate(STATES):
+	    if state.test and state.test(cmls, flags):
+		self.__setitem__(volname, idx)
+		break
+
+    def first(self):
+	iter = self.get_iter_first()
+	if not iter: return CLEAN
+	return STATES[self.get_value(iter, 1)]
+
+##########################################################################
+# scrolled treeview widget to present the list of volumes and states
+class VolumeView(gtk.TreeView):
+    def __init__(self, store):
+	gtk.TreeView.__init__(self, store)
+
+	def update_icon(column, cell, store, iter, arg=None):
+	    state = STATES[store.get_value(iter, 1)]
+	    cell.set_property('pixbuf', state.image)
+
+	cell = gtk.CellRendererPixbuf()
+	column = gtk.TreeViewColumn('', cell)
+	column.set_cell_data_func(cell, update_icon)
+	self.append_column(column)
+
+	def update_realm(column, cell, store, iter, arg=None):
+	    volume = store.get_value(iter, 0)
+	    cell.set_property('text', volume.split('@')[1])
+
+	cell = gtk.CellRendererText()
+	column = gtk.TreeViewColumn('Realm', cell)
+	column.set_cell_data_func(cell, update_realm)
+	column.set_resizable(1)
+	self.append_column(column)
+
+	def update_volume(column, cell, store, iter, arg=None):
+	    volume = store.get_value(iter, 0)
+	    cell.set_property('text', volume.split('@')[0])
+
+	cell = gtk.CellRendererText()
+	column = gtk.TreeViewColumn('Volume', cell, text=0)
+	column.set_cell_data_func(cell, update_volume)
+	column.set_resizable(1)
+	self.append_column(column)
+
+	def update_desc(column, cell, store, iter, arg=None):
+	    state = STATES[store.get_value(iter, 1)]
+	    cell.set_property('text', state.desc)
+
+	cell = gtk.CellRendererText()
+	column = gtk.TreeViewColumn('State', cell)
+	column.set_cell_data_func(cell, update_desc)
+	self.append_column(column)
+
+	# search on volume name
+	def search(store, column, key, iter, data=None):
+	    volume = store.get_value(iter, column)
+	    return not key in volume # return false when the row matches
+
+	self.set_search_column(0)
+	self.set_search_equal_func(search)
+
+class App(MarinerListener):
+    def __init__(self, options):
+	self.state = None
+	self.buf = ''
+	self.hide = 0
+
+	self.vols = VolumeList()
+
+	def row_filter(store, iter, app):
+	    if app.hide and STATES[store.get_value(iter, 1)] in [CLEAN,UNREACH]:
+		    return False
+	    return True
+	self.shown = self.vols.filter_new()
+	self.shown.set_visible_func(row_filter, self)
+
+	self.window = gtk.Window()
+	self.window.connect("delete_event", self.delete_event)
+	self.window.set_title('Coda volume/reintegration state')
+	self.window.set_size_request(400, 200)
+
+	self.treeview = VolumeView(self.shown)
+	self.treeview.connect("button_press_event", self.button_event)
+
+	scrolled = gtk.ScrolledWindow()
+	scrolled.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
+	scrolled.add(self.treeview)
+
+	self.window.add(scrolled)
+	self.window.show_all()
+
+	self.menu = gtk.Menu()
+	item = gtk.CheckMenuItem(label="Show only dirty volumes")
+	item.connect("activate", self.toggle_filter)
+	self.menu.append(item)
+	item.show()
+
+	item = gtk.SeparatorMenuItem()
+	self.menu.append(item)
+	item.show()
+
+	item = gtk.ImageMenuItem(stock_id=gtk.STOCK_ABOUT)
+	item.connect("activate", lambda x: About())
+	self.menu.append(item)
+	item.show()
+
+	item = gtk.ImageMenuItem(stock_id=gtk.STOCK_QUIT)
+	item.connect_object("activate", gtk.main_quit, "popup.quit")
+	self.menu.append(item)
+	item.show()
+
+	self.tray = gtk.StatusIcon()
+	self.tray.connect("activate", self.tray_activate)
+	self.tray.connect("popup_menu", lambda icon, button, time:
+			  self.menu.popup(None, None, None, button, time))
+	self.tray.set_visible(1)
+
+	MarinerListener.__init__(self, options.use_tcp, options.debug)
+
+    # MarinerListener callbacks
+    def connected(self):
+	self.tray_set_state(CLEAN)
+
+    def disconnected(self):
+	self.tray_set_state(NO_MARINER)
+
+    def data_ready(self, line):
+	m = re.match('^volstate::(.*) ([^ ]*) (\d+)(.*)$', line)
+	if not m: return
+
+	vol, volstate, cmls, flags = m.groups()
+	flags = flags.split()
+	flags.append(volstate)
+	self.vols.update(vol, int(cmls), flags)
+
+    def data_done(self):
+	sysstate = self.vols.first()
+	self.tray_set_state(sysstate)
+
+    # callbacks for gtk events
+    def toggle_filter(self, widget):
+	self.hide = not self.hide
+	self.shown.refilter()
+	return True
+
+    def button_event(self, widget, event):
+	if event.type == gtk.gdk.BUTTON_PRESS and event.button == 3:
+	    self.menu.popup(None, None, None, event.button, event.time)
+	    return True
+	return False
+
+    def delete_event(self, widget, event=None, user_data=None):
+	widget.hide()
+	return self.tray.is_embedded()
+
+    def tray_set_state(self, state):
+	if self.state == state:
+	    return
+	self.state = state
+	self.tray.set_from_pixbuf(state.image)
+	self.tray.set_tooltip(state.desc)
+
+    def tray_activate(self, *args):
+	#if not self.window.get_property('visible'):
+	if not self.window.is_active():
+	      self.window.present()
+	else: self.window.hide()
+
+if __name__ == '__main__':
+    from optparse import OptionParser
+
+    parser = OptionParser()
+    parser.add_option("-d", "--debug", dest="debug", action="store_true",
+		      help="Show updates as they are received from venus")
+    parser.add_option("-t", "--use-tcp", dest="use_tcp", action="store_true",
+		      help="Use tcp to connect to venus")
+
+    options, args = parser.parse_args()
+
+    app = App(options)
+    gtk.main()
+

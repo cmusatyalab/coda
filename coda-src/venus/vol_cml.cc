@@ -319,7 +319,7 @@ int ClientModifyLog::GetReintegrateable(int tid, unsigned long *reint_time,
 	    break;
 	}
 
-	if (!m->ReintReady())
+	if (m->ReintReady() != 0)
 	    break;
 
 	this_time = m->ReintTime(bw);
@@ -359,7 +359,7 @@ int ClientModifyLog::GetReintegrateable(int tid, unsigned long *reint_time,
 	}
     }
 
-    LOG(0, ("ClientModifyLog::GetReintegrateable: (%s, %d) %d records, %d msec remaining", vol->name, tid, *nrecs, *reint_time));
+    LOG(0, ("ClientModifyLog::GetReintegrateable: (%s, %d) %d records, %d msec remaining\n", vol->name, tid, *nrecs, *reint_time));
     return done;
 }
 

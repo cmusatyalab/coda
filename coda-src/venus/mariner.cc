@@ -69,6 +69,7 @@ extern "C" {
 #include "vproc.h"
 #include "worker.h"
 #include "realmdb.h"
+#include "venusvol.h"
 
 const int MarinerStackSize = 65536;
 const int MaxMariners = 25;
@@ -289,6 +290,33 @@ void MarinerReport(VenusFid *fid, uid_t uid) {
 	}
 }
 
+void MarinerReportVolState(const char *volname, const char *realm,
+			   const char *state, int cml_entries,
+			   const struct VolFlags *vflags)
+{
+    char buf[CODA_MAXNAMLEN+1];
+    mariner_iterator next;
+    mariner *m;
+    int len;
+
+    len = snprintf(buf, CODA_MAXNAMLEN, "volstate::%s@%s %s %d%s%s%s%s%s",
+		   volname, realm, state, cml_entries,
+		   vflags->unauthenticated ? " unauth" : "",
+		   vflags->reint_conflict ? " conflict" : "",
+		   vflags->asr_running ? " asr" : "",
+		   vflags->reintegrating ? " reint" : "",
+		   vflags->transition_pending ? " transition" : "");
+
+    if (len < 0) return;
+    if (len > CODA_MAXNAMLEN)
+	len = CODA_MAXNAMLEN;
+    buf[len] = '\n'; len++;
+
+    while ((m = next()))
+	if (m->WantVolState())
+	    m->write(buf, len);
+}
+
 
 void PrintMariners() {
     PrintMariners(stdout);
@@ -324,6 +352,7 @@ mariner::mariner(int afd) :
     dying = 0;
     logging = 0;
     reporting = 0;
+    want_volstate = 0;
     uid = ANYUSER_UID;
     fd = afd;
     memset(commbuf, 0, MWBUFSIZE);
@@ -447,7 +476,8 @@ void mariner::main(void)
 "Commands are:\n"
 "\thelp, debugon, debugoff, dumpcore, quit, rpc2t\n"
 "\tcop <modes>, set:fetch, clear:fetch, reporton <uid>, reportoff\n"
-"\t, fd <fd>pathstat <pathname>, fidstat <fid>, rpc2stat, print <args>\n");
+"\tset:volstate, clear:volstate, fd <fd>pathstat <pathname>\n"
+"\tfidstat <fid>, rpc2stat, print <args>\n");
 	}
 	else if (STREQ(argv[0], "debugon")) {
 	    DebugOn();
@@ -499,6 +529,12 @@ void mariner::main(void)
 	}
 	else if (STREQ(argv[0], "reportoff")) {
 	    reporting = 0;
+	}
+	else if (STREQ(argv[0], "set:volstate")) {
+	    want_volstate = 1;
+	}
+	else if (STREQ(argv[0], "clear:volstate")) {
+	    want_volstate = 0;
 	}
 	else if (STREQ(argv[0], "fd") && argc == 2) {
 	    struct stat tstat;

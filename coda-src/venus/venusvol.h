@@ -554,7 +554,13 @@ struct VolFlags {
 /*V */unsigned readonly : 1;   /* is this a readonly (backup) volume replica */
 /*RT*/unsigned enable_asrinvocation : 1; /* asr's enabled in this volume */
 /*VT*/unsigned available : 1;   /* is the server for this volume online? */
-      unsigned unused5 : 12;
+      unsigned unused5 : 10;
+      unsigned reint_conflict : 1;  /* set when the head of the CML is marked
+				       as in conflict, should not be used as
+				       authorative information */
+      unsigned unauthenticated : 1; /* set when reintegration fails due to lack
+				       of tokens, should not be used as
+				       authorative information */
 };
 
 
@@ -921,6 +927,7 @@ class repvol : public volent {
     pid_t asr_pgid() { return pgid; }
 
     void print_repvol(int);
+    void ReportVolState(void);
 };
 
 class volent_iterator : public rec_ohashtab_iterator {

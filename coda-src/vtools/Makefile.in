@@ -31,7 +31,7 @@ ifneq ($(SYS),cygwin32)
 EXECUTABLES += cmon $(LOGSCRIPTS)
 endif
 
-CBINS := $(EXECUTABLES)
+CBINS := $(EXECUTABLES) gcodacon
 CSBINS = codaconfedit
 SSBINS = codaconfedit
 EXECUTABLES += codaconfedit
