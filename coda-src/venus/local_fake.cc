@@ -366,6 +366,7 @@ int fsobj::CollapseObject(void)
 	mtlink->DiscardData();
 	mtlink->SetMtLinkContents(&localcache->fid);
 	mtlink->data.symlink[0] = '$';
+	mtlink->stat.VV.Flags |= VV_LOCAL;
 	mod_fso = mtlink;
     } else {
 	mod_fso = mtlink->pfso;
