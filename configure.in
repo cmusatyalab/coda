@@ -63,7 +63,6 @@ MV="${MV} -f"
 RM="${RM} -f"
 
 dnl Checks for libraries.
-AC_SEARCH_LIBS(bcopy, ucb)
 AC_SEARCH_LIBS(bind, socket)
 AC_SEARCH_LIBS(inet_ntoa, nsl)
 AC_SEARCH_LIBS(gethostbyname, resolv)
