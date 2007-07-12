@@ -1176,8 +1176,7 @@ int fsobj::TryToCover(VenusFid *inc_fid, uid_t uid)
 	if (n < 3) {
 	  LOG(0,("fsobj::TryToCover: (%s) -> %s failed parse.\n",
 		 FID_(&fid), data.symlink));
-	  print(logFile);
-	  CHOKE("fsobj::TryToCover: couldn't parse mountlink");
+	  return EINVAL;
 	}
 
 	r->GetRef();
