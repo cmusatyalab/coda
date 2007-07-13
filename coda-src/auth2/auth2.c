@@ -86,6 +86,7 @@ extern "C" {
 
 #include <codaconf.h>
 #include <vice_file.h>
+#include <coda_getservbyname.h>
 #include "codatoken.h"
 
 #define MAXNUMCLIENT 10
@@ -371,15 +372,17 @@ static void InitRPC(void)
     struct timeval tout;
 
     CODA_ASSERT(LWP_Init(LWP_VERSION, LWP_MAX_PRIORITY-1, &mylpid) == LWP_SUCCESS);
-    
+
     tout.tv_sec = 15;
     tout.tv_usec = 0;
 
     memset(&options, 0, sizeof(options));
     options.Flags = RPC2_OPTION_IPV6;
 
-    port.Tag = RPC2_PORTBYNAME;
-    strcpy(port.Value.Name, AUTH_SERVICE);
+    struct servent *s = coda_getservbyname(AUTH_SERVICE, "udp");
+    port.Tag = RPC2_PORTBYINETNUMBER;
+    port.Value.InetPortNumber = s->s_port;
+
     if ((rc = RPC2_Init(RPC2_VERSION, &options, &port, -1, &tout)) != RPC2_SUCCESS) {
 	LogMsg(-1, 0, stdout, "RPC2_Init failed with %s", RPC2_ErrorMsg(rc));
 	exit(-1);

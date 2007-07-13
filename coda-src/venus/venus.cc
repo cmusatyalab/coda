@@ -34,7 +34,7 @@ extern "C" {
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <netdb.h>
+
 #ifdef __cplusplus
 }
 #endif

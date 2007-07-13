@@ -48,7 +48,6 @@ extern "C" {
 #include <sys/file.h>
 #include <sys/time.h>
 #include <stdlib.h>
-#include <netdb.h>
 #include <stdio.h>
 #include "coda_assert.h"
 #include "lwp.h"

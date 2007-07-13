@@ -34,7 +34,6 @@ extern "C" {
 #include <ctype.h>
 #include "coda_assert.h"
 #include <struct.h>
-#include <netdb.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -48,6 +47,7 @@ extern "C" {
 }
 #endif
 
+#include <coda_getservbyname.h>
 #include <util.h>
 #include <srv.h>
 #include "rescomm.private.h"
@@ -421,15 +421,20 @@ int srvent::Connect(RPC2_Handle *cidp, int Force) {
     {
 	/* do the bind */
 	RPC2_HostIdent hid;
+	RPC2_PortIdent pid;
+	RPC2_SubsysIdent ssid;
+	RPC2_BindParms bp;
+	struct servent *s = coda_getservbyname("codasrv", "udp");
+
 	hid.Tag = RPC2_HOSTBYINETADDR;
 	hid.Value.InetAddress.s_addr = htonl(host);
-	RPC2_PortIdent pid;
-	pid.Tag = RPC2_PORTBYNAME;
-	strcpy(pid.Value.Name, "codasrv");
-	RPC2_SubsysIdent ssid;
+
+	pid.Tag = RPC2_PORTBYINETNUMBER;
+	pid.Value.InetPortNumber = s->s_port;
+
 	ssid.Tag = RPC2_SUBSYSBYID;
 	ssid.Value.SubsysId = RESOLUTIONSUBSYSID;
-	RPC2_BindParms bp;
+
 	bp.SecurityLevel = RPC2_OPENKIMONO;
 	bp.EncryptionType = 0;
 	bp.SideEffectType = SMARTFTP;

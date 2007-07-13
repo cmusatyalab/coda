@@ -51,7 +51,9 @@ extern "C" {
 #include "coda_string.h"
 #include <time.h>
 #include <sys/utsname.h>
+#ifdef HAVE_NETDB_H
 #include <netdb.h>
+#endif
 #include <stdarg.h>
 
 #include "util.h"

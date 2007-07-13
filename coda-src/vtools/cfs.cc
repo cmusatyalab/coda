@@ -34,7 +34,9 @@ extern "C" {
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#ifdef HAVE_NETDB_H
 #include <netdb.h>
+#endif
 #include <sys/stat.h>
 #include <sys/param.h>
 #include <sys/types.h>

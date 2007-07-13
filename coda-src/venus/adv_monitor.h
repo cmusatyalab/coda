@@ -29,7 +29,6 @@ listed in the file CREDITS.
 #ifdef __cplusplus
 extern "C" {
 #endif
-#include <netdb.h>
 #include <netinet/in.h>
 #include <rpc2/rpc2.h>
 #include <stdio.h>

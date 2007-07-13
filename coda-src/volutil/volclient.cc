@@ -35,7 +35,6 @@ extern "C" {
 #include <sys/socket.h>
 #include <sys/file.h>
 #include <netinet/in.h>
-#include <netdb.h>
 #include <errno.h>
 #include <ctype.h>
 
@@ -51,7 +50,6 @@ extern "C" {
 #include <rpc2/sftp.h>
 #include <util.h>
 #include <partition.h>
-#include <ports.h>
 #include <vice.h>
 #include <callback.h>
 #include <volutil.h>
@@ -70,6 +68,7 @@ extern "C" {
 #include <codaconf.h>
 #include <vice_file.h>
 #include <getsecret.h>
+#include <coda_getservbyname.h>
 
 static char *vicedir = NULL;
 static int   nservers = 0;
@@ -1961,17 +1960,14 @@ static int V_BindToServer(char *fileserver, char *realm, RPC2_Handle *RPCid)
     EncryptedSecretToken stok;
     RPC2_CountedBS clientident;
     long rcode;
+    struct servent *s = coda_getservbyname("codasrv", "udp");
 
     hident.Tag = RPC2_HOSTBYNAME;
     strcpy(hident.Value.Name, fileserver);
-#ifdef __CYGWIN32__
-	/* XXX -JJK */
-	pident.Tag = RPC2_PORTBYINETNUMBER;
-	pident.Value.InetPortNumber = htons(PORT_codasrv);
-#else
-    pident.Tag = RPC2_PORTBYNAME;
-    strcpy(pident.Value.Name, "codasrv");
-#endif
+
+    pident.Tag = RPC2_PORTBYINETNUMBER;
+    pident.Value.InetPortNumber = s->s_port;
+
     sident.Tag = RPC2_SUBSYSBYID;
     sident.Value.SubsysId = UTIL_SUBSYSID;
 

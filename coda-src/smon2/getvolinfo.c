@@ -28,8 +28,8 @@ listed in the file CREDITS.
 #include <stdlib.h>
 #include <lwp/lwp.h>
 #include <rpc2/rpc2.h>
-#include <ports.h>
 #include <coda_string.h>
+#include <coda_getservbyname.h>
 
 #include "vice.h"
 
@@ -113,9 +113,10 @@ int main(int argc, char *argv[])
         volume = argv[4];
         port = atoi(argv[2]);
     } else {
-        host = argv[1];
-        volume = argv[2];
-        port = PORT_codasrv; /* codasrv portnumber */
+	struct servent *s = coda_getservbyname("codasrv", "udp");
+	host = argv[1];
+	volume = argv[2];
+	port = ntohs(s->s_port);
     }
 
     Initialize();

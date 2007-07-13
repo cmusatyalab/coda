@@ -63,14 +63,12 @@ extern "C" {
 #include <signal.h>
 #include <sys/stat.h>
 #include <netinet/in.h>
-#include <netdb.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include "coda_flock.h"
 #include "codaconf.h"
 
-#include <ports.h>
 #include <lwp/lwp.h>
 #include <lwp/timer.h>
 #include <rpc2/rpc2.h>
@@ -118,6 +116,7 @@ extern void rpc2_simplifyHost(RPC2_HostIdent *, RPC2_PortIdent *);
 #include <vrdb.h>
 #include <rescomm.h>
 #include <lockqueue.h>
+#include <coda_getservbyname.h>
 #include "coppend.h"
 #include "daemonizer.h"
 
@@ -435,14 +434,10 @@ int main(int argc, char *argv[])
     keytime = (int)buff.st_mtime;
     InitServerKeys(KEY1, KEY2);
 
-#ifdef __CYGWIN32__
-    /* XXX -JJK */
+    struct servent *s = coda_getservbyname("codasrv", "udp");
     port1.Tag = RPC2_PORTBYINETNUMBER;
-    port1.Value.InetPortNumber = htons(PORT_codasrv);
-#else
-    port1.Tag = RPC2_PORTBYNAME;
-    strcpy(port1.Value.Name, "codasrv");
-#endif
+    port1.Value.InetPortNumber = s->s_port;
+
     portlist[0] = &port1;
 
     if (srvhost) {
@@ -462,8 +457,11 @@ int main(int argc, char *argv[])
     sei.WindowSize = SrvWindowSize;
     sei.AckPoint = sei.SendAhead = SrvSendAhead;
     sei.EnforceQuota = 1;
+
+    s = coda_getservbyname("codasrv-se", "udp");
     sei.Port.Tag = RPC2_PORTBYINETNUMBER;
-    sei.Port.Value.InetPortNumber = htons(PORT_codasrvse);
+    sei.Port.Value.InetPortNumber = s->s_port;
+
     SFTP_Activate(&sei);
     struct timeval to;
     to.tv_sec = timeout;

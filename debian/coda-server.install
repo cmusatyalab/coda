@@ -9,7 +9,6 @@ debian/tmp/usr/bin/smon2
 debian/tmp/usr/sbin/auth2
 debian/tmp/usr/sbin/bldvldb.sh
 debian/tmp/usr/sbin/coda-server-logrotate
-debian/tmp/usr/sbin/coda-setup-ports
 debian/tmp/usr/sbin/codaconfedit
 debian/tmp/usr/sbin/codadump2tar
 debian/tmp/usr/sbin/codasrv

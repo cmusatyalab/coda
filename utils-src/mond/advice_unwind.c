@@ -58,7 +58,6 @@ extern "C" {
 #include <errno.h>
 #include <netinet/in.h>
 #include <stdlib.h>
-#include <netdb.h>
 #include <signal.h>
 #include <stdio.h>
 #include "coda_string.h"

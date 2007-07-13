@@ -25,6 +25,10 @@ listed in the file CREDITS.
 extern "C" {
 #endif
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <sys/types.h>
 #include <sys/time.h>
 #include <ctype.h>
@@ -32,7 +36,9 @@ extern "C" {
 #include <errno.h>
 #include <sys/stat.h>
 #include <stdio.h>
+#ifdef HAVE_NETDB_H
 #include <netdb.h>
+#endif
 #include <sys/socket.h>
 #include <sys/file.h>
 

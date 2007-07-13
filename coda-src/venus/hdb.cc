@@ -59,7 +59,6 @@ extern "C" {
 #include <pwd.h>
 #include <fcntl.h>
 #include <utmp.h>
-#include <netdb.h>
 
 #include <codadir.h>
 

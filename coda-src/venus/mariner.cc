@@ -44,7 +44,6 @@ extern "C" {
 #endif
 #include <netinet/in.h>
 #include <errno.h>
-#include <netdb.h>
 #include <stdarg.h>
 #include "coda_string.h"
 #include <unistd.h>
@@ -61,10 +60,7 @@ extern "C" {
 #endif
 
 #include <mkpath.h>
-
-#ifndef INADDR_LOOPBACK
-#define INADDR_LOOPBACK 0x7f000001
-#endif
+#include <coda_getaddrinfo.h>
 
 /* from venus */
 #include "fso.h"
@@ -76,8 +72,6 @@ extern "C" {
 
 const int MarinerStackSize = 65536;
 const int MaxMariners = 25;
-const char MarinerService[] = "venus";
-const char MarinerProto[] = "tcp";
 fd_set MarinerMask;
 int MarinerMaxFD = -1;
 
@@ -130,43 +124,50 @@ void MarinerInit() {
 
 Next:
     if (mariner_tcp_enable) {
-	unsigned short marinerport = htonl(2430);
+	struct RPC2_addrinfo hints, *ai = NULL;
+	int rc;
 
-        /* Look up the well-known CODA mariner service. */
-        struct servent *serventp = getservbyname(MarinerService, MarinerProto);
-        if (serventp) marinerport = serventp->s_port;
-	else eprint("mariner service port lookup failed, using tcp:2430");
+	memset(&hints, 0, sizeof(struct RPC2_addrinfo));
+	hints.ai_family   = AF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
 
-        /* Socket at which we rendevous with new mariner clients. */
-        if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-            eprint("MarinerInit: bogus socket (%d)", sock);
-            goto Done;
-        }
+	rc = coda_getaddrinfo(NULL, "venus", &hints, &ai);
+	if (rc) {
+	    eprint("MarinerInit: failed to resolve loopback address");
+	    goto Done;
+	}
 
-        /* Make address reusable. */
-        setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (char *)&opt, sizeof(int));
+	/* Socket at which we rendevous with new mariner clients. */
+	sock = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
+	if (sock < 0) {
+	    eprint("MarinerInit: bogus socket");
+	    RPC2_freeaddrinfo(ai);
+	    goto Done;
+	}
 
-        /* Bind to it. */
-        struct sockaddr_in sin;
-        sin.sin_family = AF_INET;
-        sin.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-        sin.sin_port = marinerport;
-        if (bind(sock, (struct sockaddr *)&sin, (socklen_t) sizeof(sin)) < 0) {
-            eprint("MarinerInit: bind failed (%d)", errno);
-            close(sock);
-            goto Done;
-        }
+	/* Make address reusable. */
+	setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (char *)&opt, sizeof(int));
 
-        /* Listen for requesters. */
-        if (listen(sock, 2) < 0) {
-            eprint("MarinerInit: mariner listen failed (%d)", errno);
-            close(sock);
-            goto Done;
-        }
-        
-        eprint("Mariner: listening on tcp port enabled, "
-               "disable with -noMarinerTcp");
-        mariner::tcp_muxfd = sock;
+	/* Bind to it. */
+	rc = bind(sock, ai->ai_addr, ai->ai_addrlen);
+	RPC2_freeaddrinfo(ai);
+
+	if (rc < 0) {
+	    eprint("MarinerInit: bind failed (%d)", errno);
+	    close(sock);
+	    goto Done;
+	}
+
+	/* Listen for requesters. */
+	if (listen(sock, 2) < 0) {
+	    eprint("MarinerInit: mariner listen failed (%d)", errno);
+	    close(sock);
+	    goto Done;
+	}
+
+	eprint("Mariner: listening on tcp port enabled, "
+	       "disable with -noMarinerTcp");
+	mariner::tcp_muxfd = sock;
     }
 Done:
     /* Allows the MessageMux to distribute incoming messages to us. */

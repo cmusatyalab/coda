@@ -132,6 +132,7 @@ RPC2_Handle contact_venus(const char *hostname) {
     strcpy(hid.Value.Name, hostname);
     portid.Tag = RPC2_PORTBYINETNUMBER;
     portid.Value.InetPortNumber = htons(PORT_venus);
+
     subsysid.Tag = RPC2_SUBSYSBYID;
     subsysid.Value.SubsysId = VA_SUBSYSID; 
 

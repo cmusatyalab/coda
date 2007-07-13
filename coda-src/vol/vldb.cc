@@ -50,7 +50,6 @@ extern "C" {
 #ifdef  __BSD44__
 #include <fstab.h>
 #endif
-#include <netdb.h>
 #include <netinet/in.h>
 #include <unistd.h>
 #include <stdlib.h>

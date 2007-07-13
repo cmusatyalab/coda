@@ -53,9 +53,8 @@ Coda are listed in the file CREDITS.
 #ifdef HAVE_RESOLV_H
 #include <resolv.h>
 #endif
-#ifdef HAVE_NETDB_H
-#include <netdb.h>
-#endif
+
+#include "coda_getservbyname.h"
 
 #ifndef NS_INT32SZ /* NetBSD and RedHat5 */
 #define NS_INT32SZ INT32SZ
@@ -380,12 +379,23 @@ int coda_getaddrinfo(const char *node, const char *service,
 #endif
     }
 
-    /* when not doing SRV record lookup or when SRV lookup failed, we fall back
-     * to a normal lookup */
+    /* when not doing SRV record lookup or when SRV lookup failed,
+     * we fall back to a normal lookup */
     err = RPC2_getaddrinfo(node, service, hints, &srvs);
     if (err == RPC2_EAI_SERVICE) {
-	fprintf(stderr, "Unable to map '%s' to a port, check /etc/services.\n",
-		service);
+	/* try to map service to port number */
+	const char *proto = NULL;
+	struct servent *s;
+
+	if (hints && hints->ai_socktype == SOCK_STREAM) proto = "tcp";
+	if (hints && hints->ai_socktype == SOCK_DGRAM)  proto = "udp";
+	s = coda_getservbyname(service, proto);
+
+	if (s) {
+	    char buf[6];
+	    sprintf(buf, "%d", ntohs(s->s_port));
+	    err = RPC2_getaddrinfo(node, buf, hints, &srvs);
+	}
     }
 
 Exit:
@@ -395,7 +405,6 @@ Exit:
     *res = srvs;
     return err;
 }
-
 
 #ifdef TESTING
 int main(int argc, char **argv)

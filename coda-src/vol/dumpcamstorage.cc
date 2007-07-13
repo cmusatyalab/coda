@@ -37,7 +37,6 @@ extern "C" {
 #ifdef	__BSD44__
 #include <fstab.h>
 #endif
-#include <netdb.h>
 #include <netinet/in.h>
 #include <sys/wait.h>
 #include <setjmp.h>

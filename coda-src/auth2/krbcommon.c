@@ -30,7 +30,6 @@ extern "C" {
 #include <sys/wait.h>
 #include <unistd.h>
 #include <stdio.h>
-#include <netdb.h>
 #include <string.h>
 #include "krbcommon.h"
 

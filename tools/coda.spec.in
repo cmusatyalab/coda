@@ -169,7 +169,6 @@ exit 0
 %{initdir}/venus.init
 /usr/sbin/asrlauncher
 /usr/sbin/codaconfedit
-/usr/sbin/coda-setup-ports
 /usr/sbin/venus
 /usr/sbin/venus-setup
 /usr/sbin/volmunge
@@ -216,7 +215,6 @@ exit 0
 /usr/sbin/auth2
 /usr/sbin/bldvldb.sh
 /usr/sbin/coda-server-logrotate
-/usr/sbin/coda-setup-ports
 /usr/sbin/codaconfedit
 /usr/sbin/codadump2tar
 /usr/sbin/codasrv

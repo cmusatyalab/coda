@@ -36,7 +36,6 @@ extern "C" {
 #endif
 
 #include <netinet/in.h>
-#include <netdb.h>
 #include <rpc2/rpc2.h>
 #include <rvm/rds.h>
 #include <stdio.h>

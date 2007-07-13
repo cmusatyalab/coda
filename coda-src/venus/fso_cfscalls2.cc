@@ -39,8 +39,6 @@ extern "C" {
 #include <unistd.h>
 #include <stdlib.h>
 
-#include <netdb.h>
-
 #include <rpc2/rpc2.h>
 #include <vice.h>
 /* from libal */

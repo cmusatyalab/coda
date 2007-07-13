@@ -39,7 +39,6 @@ extern "C" {
 #include "coda_string.h"
 #include <unistd.h>
 #include <stdlib.h>
-#include <netdb.h>
 #include <fcntl.h>
 
 #include <rpc2/rpc2.h>

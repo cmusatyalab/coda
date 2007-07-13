@@ -35,7 +35,6 @@ extern "C" {
 #include <sys/un.h>
 #endif
 #include <netinet/in.h>
-#include <netdb.h>
 #include <ctype.h>
 #include <errno.h>
 #include "coda_string.h"
@@ -47,11 +46,9 @@ extern "C" {
 #endif
 
 #include <codaconf.h>
+#include <coda_getaddrinfo.h>
 
-const char MarinerService[] = "venus";
-
-
-int Bind(const char *, const char *);
+int Bind(const char *);
 void CheckMariner(FILE *);
 static void TERM(int, int, struct sigcontext *);
 static void usage();
@@ -83,9 +80,9 @@ int main(int argc, char **argv)
     }
 
     /* Bind to Venus and ask it to send us Reports of open files. */
-    int venusSocket = Bind(MarinerService, host);
+    int venusSocket = Bind(host);
     if (venusSocket < 0) {
-	fprintf(stderr, "spy: bind(%s, %s) failed\n", MarinerService, host);
+	fprintf(stderr, "spy: bind(%s) failed\n", host);
 	exit(-1);
     }
     FILE *fp = fdopen(venusSocket, "r");
@@ -108,9 +105,9 @@ int main(int argc, char **argv)
 }
 
 
-int Bind(const char *service, const char *host) {
+int Bind(const char *host)
+{
     int s;
-    char buf[100];
 
 #ifdef HAVE_SYS_UN_H
     if (!use_tcp) {
@@ -134,36 +131,28 @@ int Bind(const char *service, const char *host) {
     } else
 #endif /* !HAVE_SYS_UN_H */
     {
-        struct sockaddr_in sin;
-        struct servent *sp;
-        struct hostent *hp;
+	struct RPC2_addrinfo hints, *p, *ai = NULL;
+	int rc;
 
-        if (host == NULL) {
-            gethostname(buf, sizeof(buf));
-            host = buf;
-        }
-        sp = getservbyname(service, "tcp");
-        if (sp == NULL){
-            return(-1);
-        }
-        hp = gethostbyname(host);
-        if (hp == NULL){
-            return(-1);
-        }
-        memset(&sin, 0, sizeof(sin));
-        memcpy(&sin.sin_addr, hp->h_addr, hp->h_length);
-        sin.sin_family = hp->h_addrtype;
-        sin.sin_port = sp->s_port;
-        if ((s = socket(AF_INET, SOCK_STREAM, 0)) < 0){
-            return(-1);
-        }
-        if (connect(s, (sockaddr *)&sin, sizeof(sin)) < 0) {
-            close(s);
-            return(-1);
-        }
+	memset(&hints, 0, sizeof(struct RPC2_addrinfo));
+	hints.ai_family   = AF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
+
+	rc = coda_getaddrinfo(NULL, "venus", &hints, &ai);
+	if (rc) return -1;
+
+	for (p = ai; p != NULL; p = p->ai_next) {
+	    s = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
+	    if (s < 0) continue;
+
+	    if (connect(s, p->ai_addr, p->ai_addrlen) == 0) break;
+
+	    close(s);
+	    s = -1;
+	}
+	RPC2_freeaddrinfo(ai);
     }
-
-    return(s);
+    return s;
 }
 
 

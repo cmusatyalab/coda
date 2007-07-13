@@ -48,7 +48,6 @@ extern "C" {
 #include <stdio.h>
 #include <sys/param.h>
 #include <sys/file.h>
-#include <netdb.h>
 #include <netinet/in.h>
 #include <errno.h>
 #include <unistd.h>

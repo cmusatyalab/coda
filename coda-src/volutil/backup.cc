@@ -47,7 +47,6 @@ extern "C" {
 #include <unistd.h>
 #include <stdlib.h>
 #include <netinet/in.h>
-#include <netdb.h>
 #include <errno.h>
 #include "coda_string.h"
 
@@ -79,6 +78,7 @@ extern "C" {
 #include <codaconf.h>
 #include <vice_file.h>
 #include <getsecret.h>
+#include <coda_getservbyname.h>
 
 
 static RPC2_EncryptionKey vkey;    /* Encryption key for bind authentication */
@@ -1150,12 +1150,15 @@ static void V_BindToServer(char *fileserver, RPC2_Handle *RPCid)
     RPC2_BindParms bparms;
     RPC2_Handle rpcid;
     RPC2_EncryptionKey secret;
-    long     rc;
+    long rc;
+    struct servent *s = coda_getservbyname("codasrv", "udp");
 
     hident.Tag = RPC2_HOSTBYNAME;
     strcpy(hident.Value.Name, fileserver);
-    pident.Tag = RPC2_PORTBYNAME;
-    strcpy(pident.Value.Name, "codasrv");
+
+    pident.Tag = RPC2_PORTBYINETNUMBER;
+    pident.Value.InetPortNumber = s->s_port;
+
     sident.Tag = RPC2_SUBSYSBYID;
     sident.Value.SubsysId = UTIL_SUBSYSID;
 

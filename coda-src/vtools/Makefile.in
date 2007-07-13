@@ -50,7 +50,7 @@ cmon: cmon.o $(CMON_LIBS)
 	$(CXX) $(LDFLAGS) cmon.o $(CMON_LIBS) $(LIBRPC2) $(LIBSE) $(LIBLWP) $(LIBCOMPAT) $(STD_LIBS) -o cmon
 
 codacon: codacon.o $(LIBBASE)
-	$(CXX) $(LDFLAGS) codacon.o $(LIBBASE) $(LIBCRYPTO) $(LIBS) -o codacon
+	$(CXX) $(LDFLAGS) codacon.o $(LIBBASE) $(LIBRPC2) $(LIBCRYPTO) $(LIBS) -o codacon
 
 codaconfedit: codaconfedit.o $(LIBBASE)
 	$(CXX) $(LDFLAGS) codaconfedit.o $(LIBBASE) $(LIBCRYPTO) $(LIBS) -o codaconfedit
@@ -62,7 +62,7 @@ hoard: hoard.o $(HOARD_LIBS)
 	$(CXX) $(LDFLAGS) hoard.o $(HOARD_LIBS) $(STD_LIBS) -o hoard
 
 spy: spy.o $(LIBBASE)
-	$(CXX) $(LDFLAGS) spy.o $(LIBBASE) $(LIBCRYPTO) $(LIBS) -o spy
+	$(CXX) $(LDFLAGS) spy.o $(LIBBASE) $(LIBRPC2) $(LIBCRYPTO) $(LIBS) -o spy
 
 coda_replay: coda_replay.o
 	$(CXX) $(LDFLAGS) coda_replay.o $(LIBS) -o coda_replay

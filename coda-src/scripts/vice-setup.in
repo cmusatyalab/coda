@@ -304,11 +304,6 @@ for f in auth2.tk.BAK dumplist VLDB VRDB VRList ; do
 done
 
 #
-# adding stuff to /etc/services if needed
-#
-coda-setup-ports
-
-#
 # startup scripts
 #
 case "x`uname`" in

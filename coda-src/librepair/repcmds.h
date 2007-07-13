@@ -30,7 +30,6 @@ extern "C" {
 #include <ctype.h>
 #include <errno.h>
 #include <inodeops.h>
-#include <netdb.h>
 #include <netinet/in.h>
 #include <parser.h>
 #include <rpc2/rpc2.h>

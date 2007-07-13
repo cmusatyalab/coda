@@ -45,7 +45,6 @@ extern "C" {
 #include <unistd.h>
 #include <stdlib.h>
 #include <rpc2/rpc2.h>
-#include <netdb.h>
 
 #include <math.h>
 

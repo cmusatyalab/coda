@@ -42,7 +42,6 @@ extern "C" {
 #include <netinet/in.h>
 #include <errno.h>
 #include <struct.h>
-#include <netdb.h>
 #include <utmp.h>
 #include <pwd.h>
 
@@ -56,7 +55,7 @@ extern "C" {
 }
 #endif
 
-
+#include <coda_getservbyname.h>
 #include "adv_monitor.h"
 #include "comm.h"
 #include "hdb.h"
@@ -401,13 +400,10 @@ int userent::Connect(RPC2_Handle *cid, int *auth, struct in_addr *host)
 	mcid.Tag = RPC2_MGRPBYINETADDR;
 	mcid.Value.InetAddress = *host;
 
+	struct servent *s = coda_getservbyname("codasrv", "udp");
 	RPC2_PortIdent pid;
 	pid.Tag = RPC2_PORTBYINETNUMBER;
-	pid.Value.InetPortNumber = htons(2432);
-
-	struct servent *s = getservbyname("codasrv", "udp");
-	if (s) pid.Value.InetPortNumber = s->s_port;
-	else eprint("getservbyname(codasrv,udp) failed, using 2432/udp");
+	pid.Value.InetPortNumber = s->s_port;
 
 	RPC2_SubsysIdent ssid;
 	ssid.Tag = RPC2_SUBSYSBYID;
@@ -448,13 +444,10 @@ int userent::Connect(RPC2_Handle *cid, int *auth, struct in_addr *host)
 	hid.Tag = RPC2_HOSTBYINETADDR;
 	hid.Value.InetAddress = *host;
 
+	struct servent *s = coda_getservbyname("codasrv", "udp");
 	RPC2_PortIdent pid;
 	pid.Tag = RPC2_PORTBYINETNUMBER;
-	pid.Value.InetPortNumber = htons(2432);
-
-	struct servent *s = getservbyname("codasrv", "udp");
-	if (s) pid.Value.InetPortNumber = s->s_port;
-	else eprint("getservbyname(codasrv,udp) failed, using 2432/udp");
+	pid.Value.InetPortNumber = s->s_port;
 
 	RPC2_SubsysIdent ssid;
 	ssid.Tag = RPC2_SUBSYSBYID;

@@ -57,7 +57,6 @@ extern "C" {
 #include <sys/types.h>
 #include <stdio.h>
 #include <struct.h>
-#include <netdb.h>
 
 #include <rpc2/errors.h>
 

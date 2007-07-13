@@ -57,7 +57,9 @@ extern "C" {
 #ifdef __BSD44__
 #include <fstab.h>
 #endif
+#ifdef HAVE_NETDB_H
 #include <netdb.h>
+#endif
 #include <netinet/in.h>
 #include <sys/wait.h>
 #include "coda_string.h"

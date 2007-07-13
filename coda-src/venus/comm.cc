@@ -43,7 +43,9 @@ extern "C" {
 #endif
 #include <sys/time.h>
 #include <errno.h>
+#ifdef HAVE_NETDB_H
 #include <netdb.h>
+#endif
 #include <stdio.h>
 #include "coda_string.h"
 #include <struct.h>

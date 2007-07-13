@@ -31,7 +31,6 @@ extern "C" {
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <netdb.h>
 #include <netinet/in.h>
 #include <sys/time.h>
 #include <time.h>
@@ -46,7 +45,6 @@ extern "C" {
 #include <curses.h>
 #endif
 
-#include <ports.h>
 #include <lwp/lwp.h>
 #include <lwp/timer.h>
 #include <rpc2/rpc2.h>
@@ -60,6 +58,9 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif
+
+#include <coda_getservbyname.h>
+#include <coda_getaddrinfo.h>
 
 static time_t MonBirthTime; /* when this monitor was born */
 
@@ -199,17 +200,17 @@ static void srvlwp(void *arg)
     RPC2_SubsysIdent si;
     RPC2_Handle cid;
     int rc;
-    
+    struct servent *s = coda_getservbyname("codasrv", "udp");
+
     moi = &srv[slot];
 
     hi.Tag = RPC2_HOSTBYNAME;
     strcpy(hi.Value.Name, moi->srvname);
     pi.Tag = RPC2_PORTBYINETNUMBER;
-    pi.Value.InetPortNumber = htons(PORT_codasrv);
+    pi.Value.InetPortNumber = s->s_port;
     si.Tag = RPC2_SUBSYSBYID;
     si.Value.SubsysId= SUBSYS_SRV;
-    
-    
+
     moi->state = DEAD;
     /* Get this out quick so we don't have to wait for a
        RPC2_NOBINDING to tell the user there is NO BINDING */
@@ -679,9 +680,9 @@ static int ValidServer(char *s)
     hints.ai_socktype = SOCK_DGRAM;
     hints.ai_protocol = IPPROTO_UDP;
 
-    ret = RPC2_getaddrinfo(s, "codasrv", &hints, &res);
+    ret = coda_getaddrinfo(s, "codasrv", &hints, &res);
     RPC2_freeaddrinfo(res);
-    
+
     return (ret == 0);
 }
 

@@ -169,7 +169,6 @@ EOF
     then
 	cat >> ${dst} << EOF
 sbin/codaconfedit
-sbin/coda-setup-ports
 sbin/venus
 sbin/venus-setup
 sbin/volmunge
@@ -248,7 +247,6 @@ sbin/updatesrv
 sbin/vice-killvolumes
 sbin/vice-setup
 sbin/coda-server-logrotate
-sbin/coda-setup-ports
 sbin/vice-setup-rvm
 sbin/vice-setup-scm
 sbin/vice-setup-srvdir

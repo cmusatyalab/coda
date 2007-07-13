@@ -93,6 +93,7 @@ int utimes(const char *, const struct timeval *);
 #include <volutil.h>
 #include <codaconf.h>
 #include <vice_file.h>
+#include <coda_getservbyname.h>
 #include "update.h"
 #include "getsecret.h"
 
@@ -727,11 +728,14 @@ static int U_BindToServer(char *fileserver, RPC2_Handle *RPCid)
     RPC2_SubsysIdent sident;
     RPC2_EncryptionKey secret;
     long rcode;
+    struct servent *s = coda_getservbyname("codasrv", "udp");
 
     hident.Tag = RPC2_HOSTBYNAME;
     strcpy(hident.Value.Name, fileserver);
-    pident.Tag = RPC2_PORTBYNAME;
-    strcpy(pident.Value.Name, "codasrv");
+
+    pident.Tag = RPC2_PORTBYINETNUMBER;
+    pident.Value.InetPortNumber = s->s_port;
+
     sident.Tag = RPC2_SUBSYSBYID;
     sident.Value.SubsysId = UTIL_SUBSYSID;
 

@@ -229,6 +229,3 @@ if [ -f /usr/coda/etc/vstab ] ; then
     echo "the /etc/coda/venus.conf file for configuring the client."
 fi
 
-# Make sure the ports are listed in /etc/services
-@sbindir@/coda-setup-ports
-

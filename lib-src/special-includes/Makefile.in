@@ -30,7 +30,7 @@ TOPOBJ = @TOPOBJ@
 
 include $(TOPDIR)/Makeconf
 
-HEADERS = ports.h voltypes.h inodeops.h coda_string.h coda_wait.h coda_largefile.h
+HEADERS = voltypes.h inodeops.h coda_string.h coda_wait.h coda_largefile.h
 
 include $(TOPDIR)/configs/Makerules
 

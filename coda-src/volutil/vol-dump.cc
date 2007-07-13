@@ -51,7 +51,6 @@ extern "C" {
 #include <sys/stat.h>
 #include <stdio.h>
 #include <sys/file.h>
-#include <netdb.h>
 #include <netinet/in.h>
 
 #include <unistd.h>

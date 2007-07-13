@@ -39,7 +39,6 @@ listed in the file CREDITS.
 #include <sys/socket.h>
 #include <stdio.h>
 #include <unistd.h>
-#include <netdb.h>
 #include <netinet/in.h>
 #include <time.h>
 #include <sys/time.h>
@@ -50,10 +49,10 @@ listed in the file CREDITS.
 #include <lwp/lwp.h>
 #include <lwp/timer.h>
 #include <rpc2/rpc2.h>
-#include <rpc2/rpc2_addrinfo.h>
 #include <rpc2/se.h>
 #include <rpc2/sftp.h>
-#include <ports.h>
+#include <coda_getservbyname.h>
+#include <coda_getaddrinfo.h>
 
 #include "vice.h"
 
@@ -199,15 +198,15 @@ static int ValidServer(char *s)
 {
     struct RPC2_addrinfo hints, *res = NULL;
     int ret;
-    
+
     memset(&hints, 0, sizeof(hints));
     hints.ai_family   = PF_INET;
     hints.ai_socktype = SOCK_DGRAM;
     hints.ai_protocol = IPPROTO_UDP;
 
-    ret = RPC2_getaddrinfo(s, "codasrv", &hints, &res);
+    ret = coda_getaddrinfo(s, "codasrv", &hints, &res);
     RPC2_freeaddrinfo(res);
-    
+
     return (ret == 0);
 }
 
@@ -300,11 +299,14 @@ static void DoProbe(struct server *srv)
 	RPC2_PortIdent pi;
 	RPC2_SubsysIdent si;
 	RPC2_BindParms bparms;
+	struct servent *s = coda_getservbyname("codasrv", "udp");
 
 	hi.Tag = RPC2_HOSTBYNAME;
 	strcpy(hi.Value.Name, srv->srvname);
-	pi.Tag = RPC2_PORTBYNAME;
-	strcpy(pi.Value.Name, "codasrv");
+
+	pi.Tag = RPC2_PORTBYINETNUMBER;
+	pi.Value.InetPortNumber = s->s_port;
+
 	si.Tag = RPC2_SUBSYSBYID;
 	si.Value.SubsysId= SUBSYS_SRV;
 

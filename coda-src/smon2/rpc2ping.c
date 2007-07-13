@@ -29,8 +29,8 @@ listed in the file CREDITS.
 #include <stdlib.h>
 #include <lwp/lwp.h>
 #include <rpc2/rpc2.h>
-#include <ports.h>
 #include <coda_string.h>
+#include <coda_getservbyname.h>
 
 void Initialize(void)
 {
@@ -101,9 +101,10 @@ int main(int argc, char *argv[])
         host = argv[3];
         port = atoi(argv[2]);
     } else {
+	struct servent *s = coda_getservbyname("codasrv", "udp");
         host = argv[1];
-        port = PORT_codasrv; /* codasrv portnumber */
-	subsys = 1001;       /* SUBSYS_SRV */
+        port = ntohs(s->s_port);
+	subsys = 1001; /* SUBSYS_SRV */
     }
 
     Initialize();

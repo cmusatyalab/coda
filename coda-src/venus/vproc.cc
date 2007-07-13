@@ -37,7 +37,6 @@ extern "C" {
 
 #include <unistd.h>
 #include <stdlib.h>
-#include <netdb.h>
 
 #include <math.h>
 #include <lwp/lwp.h>

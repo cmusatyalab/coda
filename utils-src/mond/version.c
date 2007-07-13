@@ -37,7 +37,6 @@ extern "C" {
 #endif __cplusplus
 
 #include <stdlib.h>
-#include <netdb.h>
 #include <stdio.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
