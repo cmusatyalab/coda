@@ -16,6 +16,7 @@ Coda are listed in the file CREDITS.
 #*/
 
 #include <string.h>
+#include <assert.h>
 #include "coda_getservbyname.h"
 
 #define PORT_rpc2portmap 369
@@ -35,7 +36,7 @@ struct servent *coda_getservbyname(const char *name, const char *proto)
 
     /* getservbyname failed, let's see if we happen to know the port number */
 
-    /* Coda doesn't care about these, we have identical tcp and udp numbers */
+    /* Coda doesn't care about these, as we have identical tcp and udp numbers */
     s.s_name = NULL;
     s.s_aliases = NULL;
     s.s_proto = NULL;
@@ -46,7 +47,8 @@ struct servent *coda_getservbyname(const char *name, const char *proto)
     else if (!strcmp(name, "venus-se"))	  s.s_port = htons(PORT_venus_se);
     else if (!strcmp(name, "codasrv"))	  s.s_port = htons(PORT_codasrv);
     else if (!strcmp(name, "codasrv-se")) s.s_port = htons(PORT_codasrv_se);
+    else assert("unknown port");
 
-    return s.s_port ? &s : NULL;
+    return &s;
 }
 

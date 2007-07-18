@@ -129,7 +129,7 @@ static RPC2_Integer operatorUsecs = 0;
 
 static RPC2_Handle con = 0;
 static char host[256];
-static RPC2_Integer port = 2433; /* reuse the unused codasrv-se port -- rl */
+static RPC2_Integer port;
 static int waitinterval = 30;	/* 5 min */
 static int reps = 6;
 
@@ -603,10 +603,10 @@ static void ReConnect()
 	con = 0;
     }
 
-    /* kind of safety net -- rl */
-    if (port == 0) {
-	fprintf(stderr, "Cannot use port '0'; exiting\n");
-	exit(1);
+    if (!port) {
+	/* we use the unused codasrv-se port */
+	struct servent *s = coda_getservbyname("codasrv-se", "udp");
+	port = ntohs(s->s_port);
     }
 
     hident.Tag = RPC2_HOSTBYNAME;

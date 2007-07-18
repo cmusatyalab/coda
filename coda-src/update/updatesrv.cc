@@ -92,6 +92,7 @@ extern void SFTP_Activate (SFTP_Initializer *initPtr);
 #include <util.h>
 #include <vice_file.h>
 #include <codaconf.h>
+#include <coda_getservbyname.h>
 #include "update.h"
 #include "getsecret.h"
 
@@ -183,7 +184,7 @@ int main(int argc, char **argv)
     int rc;
     struct stat statbuf;
     char *miscdir;
-    int port = 2433; /* reuse the unused codasrv-se port -- rl */
+    int port = 0;
 
     /* process the command line arguments */
     for (i = 1; i < argc; i++) {
@@ -208,10 +209,10 @@ int main(int argc, char **argv)
 	}
     }
 
-    /* kind of safety net -- rl */
-    if (port == 0) {
-        fprintf(stderr, "Cannot use port '0'; exiting\n");
-        exit(1);
+    if (!port) {
+	/* use the unused codasrv-se port */
+	struct servent *s = coda_getservbyname("codasrv-se", "udp");
+	port = ntohs(s->s_port);
     }
 
     ReadConfigFile();

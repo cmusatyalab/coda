@@ -56,6 +56,7 @@ extern "C" {
 #include <util.h>
 #include <codaconf.h>
 #include <vice_file.h>
+#include <coda_getservbyname.h>
 #include "update.h"
 #include "getsecret.h"
 
@@ -71,7 +72,7 @@ static char *LocalFileName = NULL, *RemoteFileName = NULL;
 
 static RPC2_Handle con;
 static char host[256];
-static RPC2_Integer port = 2433; /* reuse the unused codasrv-se port -- rl */
+static RPC2_Integer port;
 
 /*static struct timeval  tp;
 static struct timezone tsp; */
@@ -152,8 +153,7 @@ static void ProcessArgs(int argc, char **argv)
 	    exit(-1);
 	}
     }
-    if ( host[0] == '\0' || (!LocalFileName) || (!RemoteFileName)
-      || port == 0 ) {
+    if (host[0] == '\0' || (!LocalFileName) || (!RemoteFileName)) {
         PrintHelp();
         exit(-1);
     }
@@ -209,6 +209,11 @@ static void Connect()
     RPC2_CountedBS cident;
     RPC2_EncryptionKey secret;
     char hostname[64];
+
+    if (!port) {
+	struct servent *s = coda_getservbyname("codasrv-se", "udp");
+	port = ntohs(s->s_port);
+    }
 
     hident.Tag = RPC2_HOSTBYNAME;
     strcpy(hident.Value.Name, host);
