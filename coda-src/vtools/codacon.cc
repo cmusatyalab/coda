@@ -98,7 +98,7 @@ int main(int argc, char *argv[])
 
 int Bind(const char *host)
 {
-    int s;
+    int s = -1;
 
 #ifdef HAVE_SYS_UN_H
     if (!use_tcp) {
