@@ -152,7 +152,6 @@ configs/Makefile
 debian/changelog
 lib-src/Makefile
 lib-src/base/Makefile
-lib-src/kernel-includes/Makefile
 lib-src/special-includes/Makefile
 lib-src/rwcdb/Makefile
 coda-src/Makefile

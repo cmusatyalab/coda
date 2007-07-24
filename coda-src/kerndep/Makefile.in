@@ -25,8 +25,8 @@ TOPOBJ = @TOPOBJ@
 # Need to conditionalize this
 include $(TOPDIR)/Makeconf
 
-LIBRARIES = libkerndep.a 
-HEADERS   = pioctl.h
+LIBRARIES = libkerndep.a
+HEADERS   = coda.h pioctl.h
 
 libkerndep.a:  pioctl.o
 

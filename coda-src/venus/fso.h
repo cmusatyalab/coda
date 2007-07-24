@@ -638,7 +638,7 @@ class fsobj {
     int Close(int writep, uid_t uid);
     int Access(int rights, int modes, uid_t);
     int Lookup(fsobj **, VenusFid *, char *, uid_t, int flags, int GetInconsistent=0);
-// These are defined in lib-src/kernel-includes/coda.h
+// These are defined in coda-src/kerndep/coda.h
 // #define CLU_CASE_SENSITIVE	0x01
 // #define CLU_CASE_INSENSITIVE 0x02
 #define CLU_CASE_MASK		0x03
