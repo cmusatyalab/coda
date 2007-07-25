@@ -139,11 +139,9 @@ AC_SUBST(TOPOBJ)
 AC_SUBST(shortsys)
 
 dnl fts checks
-AC_SUBST(FTSH)
 AC_SUBST(FTSC)
 if test "$ac_cv_header_fts_h" = no ; then
-    FTSH=fts.h
-    FTSC=fts.o
+    FTSC=coda_fts.o
 fi
 
 AC_PROG_MAKE_SET

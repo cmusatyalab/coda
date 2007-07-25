@@ -29,8 +29,16 @@
  *	@(#)fts.h	8.3 (Berkeley) 8/14/94
  */
 
-#ifndef	_FTS_H
-#define	_FTS_H 1
+#ifndef	CODA_FTS_H
+#define	CODA_FTS_H 1
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#ifdef HAVE_FTS_H
+#include <fts.h>
+#else
 
 #include <sys/types.h>
 
@@ -127,4 +135,5 @@ FTSENT	*fts_read (FTS *);
 int	 fts_set (FTS *, FTSENT *, int);
 /* __END_DECLS */
 
-#endif /* fts.h */
+#endif
+#endif /* CODA_FTS_H */

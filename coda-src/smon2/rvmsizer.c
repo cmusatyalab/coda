@@ -20,7 +20,7 @@ listed in the file CREDITS.
 #include <stdlib.h> 
 #include <sys/types.h>  // fts
 #include <sys/stat.h>   // fts
-#include <fts.h>	// fts
+#include <coda_fts.h>	// fts
 #include <string.h>     // strcpy, strcat, strcmp
 #include <errno.h>	// errno
 

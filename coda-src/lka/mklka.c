@@ -29,7 +29,7 @@ listed in the file CREDITS.
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <fts.h>
+#include <coda_fts.h>
 #include <fcntl.h>
 
 #include "lka_private.h"
