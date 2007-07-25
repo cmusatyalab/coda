@@ -1,9 +1,0 @@
-#
-# sets:
-#	variables, libraries for Linux -> NT cross compilation
-
-# definitions for NT
-# Peter Braam
-
-MACHINE_FLAGS  := $(MACHINE_FLAGS) -D__CYGWIN32__ -gstabs
-SHORTSYS      	= cygwin

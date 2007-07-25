@@ -38,6 +38,7 @@ extern "C" {
 #include "tallyent.h"
 
 #ifdef TESTING
+#include <stdlib.h>
 #define LOG(level, stmt)	printf stmt
 #endif /* TESTING */
 

@@ -23,6 +23,7 @@ debian/tmp/usr/sbin/pdbtool
 debian/tmp/usr/sbin/printvrdb
 debian/tmp/usr/sbin/purgevol_rep
 debian/tmp/usr/sbin/startserver
+debian/tmp/usr/sbin/tokentool
 debian/tmp/usr/sbin/vice-setup
 debian/tmp/usr/sbin/vice-setup-rvm
 debian/tmp/usr/sbin/vice-setup-scm

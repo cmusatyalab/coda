@@ -4,7 +4,8 @@ dnl autoconf 2.5 stuff
 AC_PREREQ(2.50)
 AC_INIT(Coda, 6.9.1, [bugs@coda.cs.cmu.edu])
 AC_CONFIG_SRCDIR(coda-src/librepair/resolve.h)
-AC_CONFIG_HEADER(config.h)
+AM_INIT_AUTOMAKE
+AC_CONFIG_HEADERS(config.h)
 
 CONFIG_DATE=`date +"%a, %d %b %Y %T %z"`
 AC_SUBST(CONFIG_DATE, "$CONFIG_DATE", [Date when configure was last run])
@@ -12,16 +13,12 @@ AC_SUBST(CONFIG_DATE, "$CONFIG_DATE", [Date when configure was last run])
 dnl For some reason the default prefix was set to NONE on Solaris.
 AC_PREFIX_DEFAULT(/usr/local)
 
-AC_CONFIG_AUX_DIR(configs)
-dnl Set up the environment for cygwin cross compilation.
-sinclude(configs/coda_cross.m4)
-
 dnl Checks for programs.
 AC_PROG_CC
 AC_PROG_CXX
 
 dnl Load the CODA_ tests.
-sinclude(configs/coda_macros.m4)
+m4_include(configs/coda_macros.m4)
 
 CODA_OPTION_SUBSYS(lwp)
 CODA_OPTION_SUBSYS(rvm)
@@ -31,16 +28,17 @@ CODA_OPTION_LWP_PT
 CODA_PROG_NATIVECC
 
 dnl Now we can derive things like systype/cputype/initdir
-sinclude(configs/codaconf.m4)
+m4_include(configs/codaconf.m4)
 
 AC_PROG_CPP
 AC_PROG_CXXCPP
-AC_PROG_RANLIB
 AC_CHECK_PROG(AR, ar, ar)
 AC_CHECK_PROG(AS, as, as)
 AC_PROG_LEX
 AC_PROG_YACC
 AC_PROG_INSTALL
+AC_PROG_MAKE_SET
+AC_PROG_LIBTOOL
 AC_PROG_AWK
 AC_PATH_PROG(CP, cp, "")
 AC_PATH_PROG(DF, df, "")
@@ -50,10 +48,16 @@ AC_PATH_PROG(MV, mv, "")
 AC_PATH_PROG(PERL, perl, "")
 AC_PATH_PROG(RM, rm, "")
 AC_PATH_PROG(SED, sed, "")
+AC_PATH_PROG(FLUID, fluid, "")
 
 AC_PATH_PROG(RP2GEN, rp2gen, "", [${PATH}:${prefix}/sbin:/usr/sbin:/usr/local/sbin:/usr/pkg/sbin])
 AC_PATH_PROG(RDSINIT, rdsinit, "", [${PATH}:${prefix}/sbin:/usr/sbin:/usr/local/sbin:/usr/pkg/sbin])
 AC_PATH_PROG(RVMUTL, rvmutl, "", [${PATH}:${prefix}/sbin:/usr/sbin:/usr/local/sbin:/usr/pkg/sbin])
+
+AC_ARG_ENABLE(client, [  --enable-client	  build Coda client components],
+    buildclient="$enableval", buildclient="no")
+AC_ARG_ENABLE(server, [  --enable-server	  build Coda server components],
+    buildserver="$enableval", buildserver="no")
 
 CODA_FAIL_IF_MISSING(RP2GEN, "unable to find rp2gen. try --with-lwp option");
 CODA_FAIL_IF_MISSING(RDSINIT, "unable to find rdsinit. try --with-rvm option");
@@ -79,8 +83,8 @@ CODA_REQUIRE_LIB(rvm)
 CODA_REQUIRE_LIB(rpc2)
 
 AC_SUBST(LIBRVM)
-LIBRVM="-lrdslwp -lseg -lrvmlwp"
 AC_SUBST(LIBRPC2)
+LIBRVM="-lrdslwp -lseg -lrvmlwp"
 LIBRPC2="-lrpc2 -lse"
 
 CODA_CHECK_LIBTERMCAP
@@ -88,7 +92,6 @@ CODA_CHECK_LIBCURSES
 CODA_CHECK_READLINE
 CODA_CHECK_FLTK
 
-CODA_CHECK_OPENSSL
 CODA_CHECK_KRB4
 CODA_CHECK_KRB5
 
@@ -123,7 +126,9 @@ AC_CHECK_TYPES([struct in6_addr, struct sockaddr_in6],,,
 dnl Checks for structures.
 
 dnl Checks for compiler characteristics.
+CODA_CC_FEATURE_TEST(Wall, -Wall)
 CODA_CC_FEATURE_TEST(no_exceptions, -fno-exceptions)
+CODA_CXX_FEATURE_TEST(Wall, -Wall)
 CODA_CXX_FEATURE_TEST(no_exceptions, -fno-exceptions)
 CODA_CXX_FEATURE_TEST(check_new, -fcheck-new)
 CODA_CHECK_OFFSETOF
@@ -134,25 +139,28 @@ AC_CHECK_FUNCS(select setenv snprintf statfs strerror strtol)
 AC_FUNC_MMAP
 AC_FUNC_SELECT_ARGTYPES
 CODA_CHECK_FILE_LOCKING
-CODA_RFLAG
 
 dnl Checks for system services.
 
-dnl  Substitute the top of the object directory
-TOPOBJ=`pwd`
-AC_SUBST(TOPOBJ)
 AC_SUBST(shortsys)
 
-dnl fts checks
-AC_SUBST(FTSC)
-if test "$ac_cv_header_fts_h" = no ; then
-    FTSC=coda_fts.o
-fi
+dnl Build conditionals
+AM_CONDITIONAL(BUILD_CLIENT, [test "$buildclient" != no -o "$buildclient" = no -a "$buildserver" = no])
+AM_CONDITIONAL(BUILD_SERVER, [test "$buildserver" != no -o "$buildclient" = no -a "$buildserver" = no])
+AM_CONDITIONAL(BUILD_TESTS, test "$buildclient" = no -a "$buildserver" = no)
+AM_CONDITIONAL(BUILD_BROKEN, /bin/false)
 
-AC_PROG_MAKE_SET
-AC_OUTPUT(Makefile Makeconf.setup coda_config.h
-configs/Makefile
+AM_CONDITIONAL(SYSVINIT, test "$initstyle" = sysv)
+AM_CONDITIONAL(HAVE_FLTK, test "$coda_cv_path_fltk" != none)
+AM_CONDITIONAL(WANT_FTS, test "$ac_cv_header_fts_h" = no)
+AM_CONDITIONAL(WANT_KERBEROS, test -n "$LIBKRB4" -o -n "$LIBKRB5")
+AM_CONDITIONAL(WANT_KRB4, test -n "$LIBKRB4")
+AM_CONDITIONAL(WANT_KRB5, test -n "$LIBKRB5")
+
+AC_OUTPUT(Makefile coda_config.h
+debian/Makefile
 debian/changelog
+tools/Makefile
 lib-src/Makefile
 lib-src/base/Makefile
 lib-src/rwcdb/Makefile
@@ -169,8 +177,10 @@ coda-src/scripts/vice-setup
 coda-src/scripts/vice-setup-rvm
 coda-src/kerndep/Makefile
 coda-src/partition/Makefile
+coda-src/partition/tests/Makefile
 coda-src/dir/Makefile
 coda-src/util/Makefile
+coda-src/util/tests/Makefile
 coda-src/al/Makefile
 coda-src/vicedep/Makefile
 coda-src/auth2/Makefile
@@ -190,10 +200,10 @@ coda-src/asr/Makefile
 coda-src/egasr/Makefile
 coda-src/asrlauncher/Makefile
 coda-src/vcodacon/Makefile
+coda-src/smon2/Makefile
 utils-src/Makefile
+utils-src/mond/Makefile
 utils-src/potemkin/Makefile
 utils-src/potemkin/ds/Makefile
-utils-src/potemkin/potemkin/Makefile
-coda-src/partition/tests/Makefile
-coda-src/util/tests/Makefile
-coda-src/smon2/Makefile)
+utils-src/potemkin/potemkin/Makefile)
+

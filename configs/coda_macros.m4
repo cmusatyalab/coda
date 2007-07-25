@@ -1,4 +1,4 @@
-AC_DEFUN(CODA_CC_FEATURE_TEST,
+AC_DEFUN([CODA_CC_FEATURE_TEST],
   [AC_CACHE_CHECK(whether the C compiler accepts $2, coda_cv_cc_$1,
      coda_saved_CC="$CC" ; CC="$CC $2" ; AC_LANG_SAVE
      AC_LANG_C
@@ -9,7 +9,7 @@ AC_DEFUN(CODA_CC_FEATURE_TEST,
      CC="$CC $2"
    fi])
 
-AC_DEFUN(CODA_CXX_FEATURE_TEST,
+AC_DEFUN([CODA_CXX_FEATURE_TEST],
   [AC_CACHE_CHECK(whether the C++ compiler accepts $2, coda_cv_cxx_$1,
      coda_saved_CXX="$CXX" ; CXX="$CXX $2" ; AC_LANG_SAVE
      AC_LANG_CPLUSPLUS
@@ -21,7 +21,7 @@ AC_DEFUN(CODA_CXX_FEATURE_TEST,
    fi])
 
 AC_SUBST(NATIVECC)
-AC_DEFUN(CODA_PROG_NATIVECC,
+AC_DEFUN([CODA_PROG_NATIVECC],
     if test $cross_compiling = yes ; then
        [AC_MSG_CHECKING([for native C compiler on the build host])
 	AC_CHECK_PROG(NATIVECC, gcc, gcc)
@@ -37,7 +37,7 @@ AC_DEFUN(CODA_PROG_NATIVECC,
 
 dnl Check for typedefs in unusual headers
 dnl Most of this function is identical to AC_CHECK_TYPE in autoconf-2.13
-AC_DEFUN(CODA_CHECK_TYPE,
+AC_DEFUN([CODA_CHECK_TYPE],
 [AC_REQUIRE([AC_HEADER_STDC])dnl
 AC_MSG_CHECKING(for $1)
 AC_CACHE_VAL(ac_cv_type_$1,
@@ -58,14 +58,14 @@ fi
 
 dnl Check which lib provides termcap functionality
 AC_SUBST(LIBTERMCAP)
-AC_DEFUN(CODA_CHECK_LIBTERMCAP,
+AC_DEFUN([CODA_CHECK_LIBTERMCAP],
   AC_CHECK_LIB(termcap, main, [LIBTERMCAP="-ltermcap"],
     [AC_CHECK_LIB(ncurses, tgetent, [LIBTERMCAP="-lncurses"])]))
 
 dnl Check for a curses library, and if it needs termcap
 AC_SUBST(LIBCURSES)
-AC_DEFUN(CODA_CHECK_LIBCURSES,
-  if test $target != "i386-pc-cygwin32" ; then
+AC_DEFUN([CODA_CHECK_LIBCURSES],
+  if test "$target" != "i386-pc-cygwin32" ; then
     AC_CHECK_LIB(ncurses, main, [LIBCURSES="-lncurses"],
 	[AC_CHECK_LIB(curses, main, [LIBCURSES="-lcurses"],
 	    [AC_MSG_ERROR("failed to find curses library")
@@ -86,7 +86,7 @@ AC_DEFUN(CODA_CHECK_LIBCURSES,
 
 
 dnl check wether we have flock or fcntl
-AC_DEFUN(CODA_CHECK_FILE_LOCKING,
+AC_DEFUN([CODA_CHECK_FILE_LOCKING],
   AC_CACHE_CHECK(for file locking by fcntl,
     fu_cv_lib_c_fcntl,
     [AC_TRY_COMPILE([#include <fcntl.h>
@@ -111,24 +111,12 @@ AC_DEFUN(CODA_CHECK_FILE_LOCKING,
 	 AC_MSG_ERROR("failed to find flock or fcntl")
   fi)
 
-dnl check for library providing md5 and sha160 checksumming
-AC_SUBST(LIBCRYPTO)
-AC_DEFUN(CODA_CHECK_OPENSSL,
- [CODA_OPTION_LIBRARY(openssl)
-  AC_ARG_WITH(openssl,
-   [  --with-openssl			Link against openssl library],
-   [AC_CHECK_HEADERS(openssl/md5.h openssl/sha.h)
-    coda_save_LIBS="$LIBS"
-    AC_SEARCH_LIBS(SHA1_Init, crypto, [test "$ac_cv_search_SHA1_Init" = "none required" || LIBCRYPTO="$ac_cv_search_SHA1_Init"])
-    AC_CHECK_FUNCS([MD5_Init SHA1_Init])
-    LIBS="$coda_save_LIBS"])])
-
-AC_DEFUN(CODA_CHECK_LIBCOMERR,
+AC_DEFUN([CODA_CHECK_LIBCOMERR],
  [AC_CHECK_HEADERS(com_err.h)
   AC_SEARCH_LIBS(com_err, com_err, [test "$ac_cv_search_com_err" = "none required" || LIBCOMERR="$ac_cv_search_com_err"])])
 
 AC_SUBST(LIBKRB4)
-AC_DEFUN(CODA_CHECK_KRB4,
+AC_DEFUN([CODA_CHECK_KRB4],
  [CODA_OPTION_LIBRARY(krb4)
   AC_ARG_WITH(krb4,
    [  --with-krb4			Link against kerberos4 libraries],
@@ -144,7 +132,7 @@ AC_DEFUN(CODA_CHECK_KRB4,
     fi])])
 
 AC_SUBST(LIBKRB5)
-AC_DEFUN(CODA_CHECK_KRB5,
+AC_DEFUN([CODA_CHECK_KRB5],
  [CODA_OPTION_LIBRARY(krb5)
   AC_ARG_WITH(krb5,
    [  --with-krb5			Link against kerberos5 libraries],
@@ -189,7 +177,7 @@ dnl ---------------------------------------------
 dnl Test for possible offsetof implementation that doesn't give compile
 dnl warnings or errors
 dnl
-AC_DEFUN(CODA_TEST_OFFSETOF,
+AC_DEFUN([CODA_TEST_OFFSETOF],
    [AC_MSG_CHECKING(offsetof using $2)
     offsetof=no
     AC_LANG_PUSH(C++)
@@ -209,7 +197,7 @@ AC_DEFUN(CODA_TEST_OFFSETOF,
     AC_LANG_POP(C++)
     AC_MSG_RESULT($offsetof)])
 
-AC_DEFUN(CODA_CHECK_OFFSETOF,
+AC_DEFUN([CODA_CHECK_OFFSETOF],
    [CODA_TEST_OFFSETOF(OFFSETOF, [offsetof(type,member)])
     if test "$offsetof" != yes ; then
     CODA_TEST_OFFSETOF(PTR_TO_MEMBER, [((size_t)(&type::member))])
@@ -220,19 +208,16 @@ AC_DEFUN(CODA_CHECK_OFFSETOF,
 dnl ---------------------------------------------
 dnl Accept user defined path leading to libraries and headers.
 
-AC_DEFUN(CODA_OPTION_SUBSYS,
+AC_DEFUN([CODA_OPTION_SUBSYS],
   [AC_ARG_WITH($1,
     [  --with-$1=DIR	$1 was installed in DIR],
     [ pfx="`(cd ${withval} ; pwd)`"
       CPPFLAGS="${CPPFLAGS} -I${pfx}/include"
       LDFLAGS="${LDFLAGS} -L${pfx}/lib"
-      if test x$RFLAG != x ; then
-	LDFLAGS="${LDFLAGS} -R${pfx}/lib"
-      fi
       PATH="${PATH}:${pfx}/bin:${pfx}/sbin"])
     ])
 
-AC_DEFUN(CODA_OPTION_LIBRARY,
+AC_DEFUN([CODA_OPTION_LIBRARY],
   [AC_ARG_WITH($1-includes,
     [  --with-$1-includes=DIR	$1 include files are in DIR],
     [ pfx="`(cd ${withval} ; pwd)`"
@@ -241,24 +226,16 @@ AC_DEFUN(CODA_OPTION_LIBRARY,
     [  --with-$1-libraries=DIR	$1 library files are in DIR],
     [ pfx="`(cd ${withval} ; pwd)`"
       LDFLAGS="${LDFLAGS} -L${pfx}"
-      if test x$RFLAG != x ; then
-	    LDFLAGS="${LDFLAGS} -R${pfx}"
-      fi]) ])
+    ]) ])
 
-dnl AC_DEFUN(CODA_OPTION_CRYPTO,
-dnl   [CODA_OPTION_LIBRARY($1)
-dnl    AC_ARG_WITH($1,
-dnl     [  --with-$1			Link against $1 libraries],
-dnl     [AC_DEFINE(USE_`$1 | $as_tr_cpp`, 1, [Define if you want to use $1 libraries])])])
-
-AC_DEFUN(CODA_OPTION_LWP_PT,
+AC_DEFUN([CODA_OPTION_LWP_PT],
   [AC_ARG_WITH(lwp-pt,
     [  --with-lwp-pt		Link against *experimental* lwp_pt library],
     [with_LWP_PT=${withval}], [with_LWP_PT=no])])
 
 AC_SUBST(LIBLWP)
 AC_SUBST(LIBPTHREAD)
-AC_DEFUN(CODA_CHECK_LWP_PT,
+AC_DEFUN([CODA_CHECK_LWP_PT],
    [if test ${with_LWP_PT}p = nop ; then
      AC_CHECK_LIB(lwp, LWP_Init, [LIBLWP="-llwp"])
     else
@@ -272,7 +249,7 @@ dnl ---------------------------------------------
 dnl Search for an installed library in:
 dnl	 /usr/lib /usr/local/lib /usr/pkg/lib ${prefix}/lib
 
-AC_DEFUN(CODA_FIND_LIB,
+AC_DEFUN([CODA_FIND_LIB],
  [AC_CACHE_CHECK(location of lib$1, coda_cv_path_$1,
   [saved_CFLAGS="${CFLAGS}" ; saved_LDFLAGS="${LDFLAGS}" ; saved_LIBS="${LIBS}"
    coda_cv_path_$1=none ; LIBS="-l$1 $4"
@@ -290,14 +267,11 @@ AC_DEFUN(CODA_FIND_LIB,
     none) ;;
     default) ;;
     *)    CPPFLAGS="-I${coda_cv_path_$1}/include ${CPPFLAGS}"
-          LDFLAGS="${LDFLAGS} -L${coda_cv_path_$1}/lib" 
-	  if test x$RFLAG != x ; then
-            LDFLAGS="${LDFLAGS} -R${coda_cv_path_$1}/lib "
-	  fi
-          ;;
+	  LDFLAGS="${LDFLAGS} -L${coda_cv_path_$1}/lib"
+	  ;;
   esac])
 
-AC_DEFUN(CODA_REQUIRE_LIB,
+AC_DEFUN([CODA_REQUIRE_LIB],
   [if test "${coda_cv_path_$1}" = none ; then
 	AC_MSG_ERROR("Cannot determine the location of lib$1")
    fi])
@@ -305,26 +279,14 @@ AC_DEFUN(CODA_REQUIRE_LIB,
 dnl ---------------------------------------------
 dnl Fail if we haven't been able to find some required component
 dnl
-AC_DEFUN(CODA_FAIL_IF_MISSING, [ test -z "${$1}" && AC_MSG_ERROR($2) ])
-
-AC_DEFUN(CODA_RFLAG,
-  [ dnl put in standard -R flag if needed
-    if test x${RFLAG} != x ; then
-      if test x${libdir} != xNONE ; then
-        LDFLAGS="${LDFLAGS} -R${libdir}"
-      elif test x${prefix} != xNONE ; then
-        LDFLAGS="${LDFLAGS} -R${prefix}/lib"
-      else 
-        LDFLAGS="${LDFLAGS} -R${ac_default_prefix}/lib"
-      fi
-    fi])
+AC_DEFUN([CODA_FAIL_IF_MISSING], [ test -z "${$1}" && AC_MSG_ERROR($2) ])
 
 dnl ---------------------------------------------
 dnl find readline functionality
 dnl also test for new functions introduced by readline 4.2
 
 AC_SUBST(LIBREADLINE)
-AC_DEFUN(CODA_CHECK_READLINE,
+AC_DEFUN([CODA_CHECK_READLINE],
   [CODA_FIND_LIB(readline, [], rl_initialize(), $LIBTERMCAP)
    CODA_REQUIRE_LIB(readline)
    AC_CHECK_LIB(readline, rl_completion_matches,
@@ -335,27 +297,26 @@ dnl -----------------
 dnl Looks for the fltk library
 dnl 
 
-AC_SUBST(VCODACON)
-AC_SUBST(GUIFLAGS)
-AC_SUBST(GUILIBS)
-AC_DEFUN(CODA_CHECK_FLTK,
+AC_SUBST(FLTKFLAGS)
+AC_SUBST(FLTKLIBS)
+AC_DEFUN([CODA_CHECK_FLTK],
   [case $target in
    *pc-cygwin*)
-     GUIFLAGS="-fno-exceptions -mwindows"
-     GUILIBS="-lole32 -luuid -lcomctl32 -lwsock32"
+     FLTKFLAGS="-fno-exceptions -mwindows"
+     FLTKLIBS="-lole32 -luuid -lcomctl32 -lwsock32"
      ;;
    *)
      CODA_FIND_LIB(X11, [], XFlush(), "$LIBS")
-     GUILIBS="-lX11 $LIBS -lm"
+     FLTKLIBS="-lX11 $LIBS -lm"
      ;;
    esac
    AC_LANG_SAVE
    AC_LANG_CPLUSPLUS
-   CODA_FIND_LIB(fltk, [#include <Fl/Fl.H>], Fl::run(), "$GUILIBS")
+   CODA_FIND_LIB(fltk, [#include <Fl/Fl.H>], Fl::run(), "$FLTKLIBS")
    AC_LANG_RESTORE
    AC_MSG_CHECKING([if we can build vcodacon])
    if test "${coda_cv_path_fltk}" != none ; then
-     VCODACON=vcodacon
+     FLTKLIBS="-lfltk $FLTKLIBS"
      AC_MSG_RESULT([ yes])
    else
      AC_MSG_RESULT([ couldn't find suitable libfltk])

@@ -16,9 +16,10 @@ listed in the file CREDITS.
 
 #*/
 
+#include <coda_string.h>
 #include <util.h>
-#include <../partition.h>
-#include <../vicetab.h>
+#include <partition.h>
+#include <vicetab.h>
 extern void  printnames(struct DiskPartition *dp, int low, int step, int high);
 
 int

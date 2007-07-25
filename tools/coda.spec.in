@@ -80,7 +80,6 @@ rm -rf $RPM_BUILD_DIR/obj-%{version}
 mkdir $RPM_BUILD_DIR/obj-%{version}
 cd $RPM_BUILD_DIR/obj-%{version}
 $RPM_BUILD_DIR/coda-%{version}/configure --prefix=/usr '--mandir=${prefix}/share/man'
-#  --with-openssl \
 #  --with-krb4 \
 #  --with-krb5 \
 #  --with-krb4-includes=/usr/kerberos/include/kerberosIV \
@@ -102,8 +101,7 @@ mkdir -p \
 	$RPM_BUILD_ROOT/usr/share/man/man5 \
 	$RPM_BUILD_ROOT/usr/share/man/man8
 
-make prefix=$RPM_BUILD_ROOT/usr client-install
-make prefix=$RPM_BUILD_ROOT/usr server-install
+make prefix=$RPM_BUILD_ROOT/usr install
 
 touch $RPM_BUILD_ROOT/coda/NOT_REALLY_CODA
 

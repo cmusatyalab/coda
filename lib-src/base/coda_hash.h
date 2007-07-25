@@ -29,9 +29,7 @@ extern "C" {
 
 #include <sys/types.h>
 
-#if defined(HAVE_OPENSSL_MD5_H)
-#include <openssl/md5.h>
-#elif defined(HAVE_MD5_H)
+#if defined(HAVE_MD5_H)
 #include <md5.h>
 #else
 
@@ -69,10 +67,6 @@ void MD5_Final(unsigned char [16], MD5_CTX *);
 
 #endif
 
-#if defined(HAVE_OPENSSL_SHA_H)
-#include <openssl/sha.h>
-#else
-
 #define SHA_DIGEST_LENGTH 20
 
 typedef struct SHAContext {
@@ -84,8 +78,6 @@ typedef struct SHAContext {
 void SHA1_Init(SHA_CTX *ctx);
 void SHA1_Update(SHA_CTX *ctx, const unsigned char *buf, unsigned int len);
 void SHA1_Final(unsigned char sha[SHA_DIGEST_LENGTH], SHA_CTX *ctx);
-
-#endif
 
 #ifdef __cplusplus
 }
