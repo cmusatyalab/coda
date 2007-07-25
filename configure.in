@@ -192,5 +192,4 @@ utils-src/potemkin/ds/Makefile
 utils-src/potemkin/potemkin/Makefile
 coda-src/partition/tests/Makefile
 coda-src/util/tests/Makefile
-coda-src/venus/tests/Makefile
 coda-src/smon2/Makefile)
