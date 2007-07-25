@@ -161,6 +161,7 @@ AC_OUTPUT(Makefile coda_config.h
 debian/Makefile
 debian/changelog
 tools/Makefile
+tools/coda.spec
 lib-src/Makefile
 lib-src/base/Makefile
 lib-src/rwcdb/Makefile

@@ -1,14 +1,11 @@
-%define version @VERSION@
-%define release @REL@
-%define debug @DEBUG@
 %define initdir %(if test -d /etc/rc.d/init.d ; then echo /etc/rc.d/init.d ; else echo /etc/init.d ; fi)
 Summary: Coda distributed file system
-Name: coda
-Version: %{version}
-Release: %{release}
-Source: ftp://ftp.coda.cs.cmu.edu/pub/coda/src/coda-%{version}.tar.gz
+Name: @PACKAGE@
+Version: @VERSION@
+Release: 1
+Source: ftp://ftp.coda.cs.cmu.edu/pub/coda/src/%{name}-%{version}.tar.gz
 License: GPL
-BuildRoot: %{_builddir}/coda-build
+BuildRoot: %{_builddir}/%{name}-%{version}/Root
 #BuildRequires: lwp-devel >= 2.0, ncurses-devel, rpc2-devel, rvm-devel, libtermcap-devel, fltk-devel
 Group: Networking/Daemons
 %description
@@ -47,7 +44,7 @@ well as the volume utilities.
 %package vcodacon
 Summary: Coda graphical console
 Group: Networking/Daemons
-Requires: @CODA@-client
+Requires: coda-client
 %description vcodacon
 This package contains vcodacon, a graphical console for the Coda file
 system client.
@@ -71,15 +68,10 @@ system client.
 - Added initscript for venus
 
 %prep
-%setup -n coda-%{version}
+%setup -n %{name}-%{version}
 
 %build
-cd $RPM_BUILD_DIR/coda-%{version}
-[ -x configure ] || ./bootstrap.sh
-rm -rf $RPM_BUILD_DIR/obj-%{version}
-mkdir $RPM_BUILD_DIR/obj-%{version}
-cd $RPM_BUILD_DIR/obj-%{version}
-$RPM_BUILD_DIR/coda-%{version}/configure --prefix=/usr '--mandir=${prefix}/share/man'
+./configure --prefix=/usr '--mandir=${prefix}/share/man'
 #  --with-krb4 \
 #  --with-krb5 \
 #  --with-krb4-includes=/usr/kerberos/include/kerberosIV \
@@ -89,31 +81,17 @@ $RPM_BUILD_DIR/coda-%{version}/configure --prefix=/usr '--mandir=${prefix}/share
 make
 
 %install
-cd $RPM_BUILD_DIR/obj-%{version}
 rm -rf $RPM_BUILD_ROOT
-mkdir -p \
-	$RPM_BUILD_ROOT/coda \
-	$RPM_BUILD_ROOT/dev \
-	$RPM_BUILD_ROOT%{initdir} \
-	$RPM_BUILD_ROOT/usr/coda/etc \
-	$RPM_BUILD_ROOT/usr/coda/venus.cache \
-	$RPM_BUILD_ROOT/usr/share/man/man1 \
-	$RPM_BUILD_ROOT/usr/share/man/man5 \
-	$RPM_BUILD_ROOT/usr/share/man/man8
-
+mkdir -p $RPM_BUILD_ROOT
 make prefix=$RPM_BUILD_ROOT/usr install
 
+mkdir -p $RPM_BUILD_ROOT/coda
+mkdir -p $RPM_BUILD_ROOT/usr/coda/etc
+mkdir -p $RPM_BUILD_ROOT/usr/coda/venus.cache
 touch $RPM_BUILD_ROOT/coda/NOT_REALLY_CODA
-
-
-# for non debuging versions
-if [ X%{debug} != X1 ]; then
-   strip $RPM_BUILD_ROOT/usr/bin/* $RPM_BUILD_ROOT/vice/bin/* $RPM_BUILD_ROOT/usr/sbin/* || :
-fi
 
 %clean
 rm -rf $RPM_BUILD_ROOT
-rm -rf $RPM_BUILD_DIR/obj-%{version}
 
 %pre client
 grep "^coda" /proc/mounts > /dev/null 2>&1
@@ -131,9 +109,9 @@ fi
 if [ ! -e /etc/coda/venus.conf ]; then
 	/usr/sbin/venus-setup "" 100000
 fi
-if [ ! -e /dev/cfs0 ]; then
-	/bin/mknod /dev/cfs0 c 67 0
-fi
+#if [ ! -e /dev/cfs0 ]; then
+#	/bin/mknod /dev/cfs0 c 67 0
+#fi
 /sbin/chkconfig --add venus.init
 
 %preun client
@@ -229,6 +207,7 @@ exit 0
 /usr/sbin/printvrdb
 /usr/sbin/purgevol_rep
 /usr/sbin/startserver
+/usr/sbin/tokentool
 /usr/sbin/updatesrv
 /usr/sbin/updateclnt
 /usr/sbin/updatefetch
