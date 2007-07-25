@@ -25,7 +25,7 @@ TOPOBJ = @TOPOBJ@
 
 include $(TOPDIR)/Makeconf
 
-HEADERS = partition.h  vicetab.h viceinode.h ftreeifs.h simpleifs.h
+HEADERS = partition.h  vicetab.h viceinode.h ftreeifs.h simpleifs.h inodeops.h
 OBJS = vicetab.o partition.o inodeops.o simpleifs.o  ftreeifs.o makeftree.o inoder.o backupifs.o
 LIBOBS = vicetab.o partition.o inodeops.o simpleifs.o ftreeifs.o backupifs.o
 EXECUTABLES = inoder

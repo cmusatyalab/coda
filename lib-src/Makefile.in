@@ -29,6 +29,6 @@ TOPOBJ = @TOPOBJ@
 
 include $(TOPDIR)/Makeconf
 
-SUBDIRS = special-includes base rwcdb
+SUBDIRS = base rwcdb
 
 include $(TOPDIR)/configs/Makerules

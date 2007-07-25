@@ -57,7 +57,7 @@ RP2CLOBJ = $(notdir ${RP2FILES:.rpc2=.client.o})
 RP2SROBJ = $(notdir ${RP2FILES:.rpc2=.server.o})
 RP2MUOBJ = $(notdir ${RP2FILES:.rpc2=.multi.o})
 RP2HEADERS = vcrcommon.h $(notdir ${RP2FILES:.rpc2=.h})
-HEADERS = venusioctl.h srv.h operations.h recov_vollog.h
+HEADERS = venusioctl.h srv.h operations.h recov_vollog.h voltypes.h
 LIBRARIES = libvicedep.a
 
 include $(TOPDIR)/configs/Makerules
