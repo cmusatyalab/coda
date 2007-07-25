@@ -57,7 +57,6 @@ LIBS	  := $(LIBS) $(LIBFIXUP)
 ##############################
 # Library definitions
 ##############################
-LIBMATH	    := -lm
 LIBREADLINE := -lreadline
 
 # -- CODA --

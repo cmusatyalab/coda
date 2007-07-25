@@ -224,7 +224,9 @@ static int f_init (union PartitionData **data,
     }
 
     /* set up a bitmap */
-    filecount = (long)pow(options->width, options->depth);
+    for (filecount = 1, i = 0; i < options->depth; i++)
+	filecount *= options->width;
+
     freemap = Bitv_new(filecount);
     /*    Bitv_print(freemap, stdout); */
     options->freebm = freemap;
