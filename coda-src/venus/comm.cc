@@ -79,8 +79,6 @@ extern void SFTP_Activate (SFTP_Initializer *initPtr);
 #include "venusrecov.h"
 #include "venusvol.h"
 #include "vproc.h"
-#include "adv_monitor.h"
-#include "adv_daemon.h"
 
 int COPModes = 6;	/* ASYNCCOP2 | PIGGYCOP2 */
 char myHostName[MAXHOSTNAMELEN];
@@ -982,7 +980,6 @@ int srvent::Connect(RPC2_Handle *cidp, int *authp, uid_t uid, int Force)
 	/* Not already considered down. */
 	MarinerLog("connection::unreachable %s\n", name);
 	Reset();
-	adv_mon.ServerInaccessible(name);
     }
 
     if (code == ETIMEDOUT && VprocInterrupted()) return(EINTR);
@@ -1078,9 +1075,8 @@ void srvent::ServerError(int *codep)
 	/* Reset if TIMED'out or NAK'ed. */
 	switch (*codep) {
 	    case ETIMEDOUT:
-	        MarinerLog("connection::unreachable %s\n", name);
+		MarinerLog("connection::unreachable %s\n", name);
 		Reset();
-		adv_mon.ServerInaccessible(name);
 		break;
 
 	    case ERETRY:
@@ -1108,8 +1104,7 @@ void srvent::ServerUp(RPC2_Handle newconnid)
 	MarinerLog("connection::up %s\n", name);
 	connid = newconnid;
 	VDB->UpEvent(&host);
-	adv_mon.ServerAccessible(name);
-        break;
+	break;
 
     case -1:
 	/* Initial case.  */
@@ -1198,7 +1193,6 @@ long srvent::GetBandwidth(unsigned long *Bandwidth)
     if ((bw > (oldbw + oldbw / 8)) || (bw < (oldbw - oldbw / 8)))
     {
 	MarinerLog("connection::bandwidth %s %d %d %d\n", name, bwmin,bw,bwmax);
-	adv_mon.ServerBandwidthEstimate(name, *Bandwidth);
     }
     LOG(1, ("srvent::GetBandwidth (%s) returns %d bytes/sec\n",
 	      name, *Bandwidth));

@@ -72,8 +72,6 @@ extern "C" {
 #include <vice.h>
 
 /* from venus */
-#include "adv_daemon.h"
-#include "adv_monitor.h"
 #include "fso.h"
 #include "hdb.h"
 #include "mariner.h"

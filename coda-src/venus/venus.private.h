@@ -85,6 +85,7 @@ extern "C" {
    an ASR was started and it should block */
 #define EASRSTARTED     200
 
+#define ASR_INTERVAL 300
 
 /*  *****  parameter defaults.  ***** */
 #define DFLT_VR "/coda"				/* venus root */

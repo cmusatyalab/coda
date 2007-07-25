@@ -58,7 +58,6 @@ extern int global_kernfd;
 /* interfaces */
 #include <user.h>
 #include <vice.h>
-#include <adv_skk.h>
 
 /* from util */
 #include <bstree.h>

@@ -70,7 +70,6 @@ extern void pack_struct(ARG *, PARM **, PARM **);
 #include <dlist.h>
 
 /* from venus */
-#include "advice.h"
 #include "comm.h"
 #include "fso.h"
 #include "local.h"

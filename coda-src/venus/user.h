@@ -53,7 +53,6 @@ class userent {
   friend void PutUser(userent **);
   friend void UserPrint(int);
   friend class user_iterator;
-  friend class adv_daemon;
   friend class fsdb;
   friend class Realm; /* ~Realm, ResetTransient, GetUser, NewUserToken */
 

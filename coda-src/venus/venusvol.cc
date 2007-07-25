@@ -142,8 +142,6 @@ extern "C" {
 
 /* from venus */
 #include <parse_realms.h>
-#include "adv_daemon.h"
-#include "advice.h"
 #include "comm.h"
 #include "fso.h"
 #include "local.h"

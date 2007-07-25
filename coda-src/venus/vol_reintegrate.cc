@@ -70,7 +70,6 @@ extern "C" {
 #include "venus.private.h"
 #include "venusvol.h"
 #include "vproc.h"
-#include "adv_daemon.h"
 
 
 /* must not be called from within a transaction */

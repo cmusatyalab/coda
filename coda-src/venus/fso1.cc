@@ -64,9 +64,6 @@ extern "C" {
 #include <venusioctl.h>
 
 /* from venus */
-#include "advice.h"
-#include "adv_monitor.h"
-#include "adv_daemon.h"
 #include "cml.h"
 #include "comm.h"
 #include "fso.h"

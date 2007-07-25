@@ -61,8 +61,7 @@ extern "C" {
 #include "venus.private.h"
 #include "venusvol.h"
 #include "vproc.h"
-#include "worker.h" 
-#include "adv_daemon.h"
+#include "worker.h"
 #include "realmdb.h"
 
 

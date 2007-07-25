@@ -50,8 +50,6 @@ extern "C" {
 #include "venusvol.h"
 #include "worker.h"
 #include "fso.h"
-#include "adv_monitor.h"
-#include "adv_daemon.h"
 #include "codaconf.h"
 #include "daemonizer.h"
 
@@ -162,7 +160,6 @@ static void SigControl(int sig)
 
     if (stat(VenusControlFile, &tstat) != 0) {
 	SwapLog();
-	adv_mon.SwapReplacementLog();
         return;
     }
 
@@ -211,10 +208,8 @@ static void SigControl(int sig)
 	LOG(0, ("lwp_debug is now %d.\n", lwp_debug));
     }
 
-    if (STREQ(command, "SWAPLOGS")) {
+    if (STREQ(command, "SWAPLOGS"))
 	SwapLog();
-	adv_mon.SwapReplacementLog();
-    }
 
     if (STREQ(command, "STATSINIT"))
 	StatsInit();

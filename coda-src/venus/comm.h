@@ -43,7 +43,6 @@ extern "C" {
 /* interfaces */
 #include <callback.h>
 #include <vice.h>
-#include <venus_adv.h>
 
 /* from util */
 #include <olist.h>
@@ -211,7 +210,6 @@ class srvent : private RefCountedObject {
   friend void DownServers(char *, unsigned int *);
   friend void DownServers(int, struct in_addr *, char *, unsigned int *);
   friend void ServerPrint(FILE *);
-  friend long S_GetServerInformation(RPC2_Handle, RPC2_Integer, RPC2_Integer *, ServerEnt *);
   friend class srv_iterator;
   friend class connent;
   friend class mgrpent;

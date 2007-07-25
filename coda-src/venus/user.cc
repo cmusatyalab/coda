@@ -56,7 +56,6 @@ extern "C" {
 #endif
 
 #include <coda_getservbyname.h>
-#include "adv_monitor.h"
 #include "comm.h"
 #include "hdb.h"
 #include "mariner.h"
@@ -264,8 +263,6 @@ long userent::SetTokens(SecretToken *asecret, ClearToken *aclear)
     /* Inform the advice monitor that user now has tokens. */
     LOG(100, ("calling TokensAcquired with %d\n",
 	      (clear.EndTimestamp-CLOCK_SKEW)));
-    adv_mon.TokensAcquired((clear.EndTimestamp - CLOCK_SKEW));
-
 
     /* Make dirty volumes "owned" by this user available for reintegration. */
     repvol_iterator next;
@@ -337,7 +334,6 @@ void userent::Invalidate() {
 
     /* Inform the user */
     eprint("Coda token for user %d has been discarded", uid);
-    adv_mon.TokensExpired();
 
     Reset();
 }
@@ -597,7 +593,6 @@ void userent::print(int afd) {
 	end_time[0] = '\0';
     }
 
-    adv_mon.Print(afd);
     fdprint(afd, "Time of last demand hoard walk = %ld\n", DemandHoardWalkTime);
 
     fdprint(afd, "%#08x : uid = %d, wfe = %d, valid = %d, begin = %s, end = %s\n\n",

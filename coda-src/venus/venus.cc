@@ -43,8 +43,6 @@ extern "C" {
 #include <vice.h>
 
 /* from venus */
-#include "advice.h"
-#include "adv_daemon.h"
 #include "comm.h"
 #include "fso.h"
 #include "hdb.h"
@@ -81,6 +79,7 @@ VenusFid rootfid;
 long rootnodeid;
 int CleanShutDown;
 int SearchForNOreFind;  // Look for better detection method for iterrupted hoard walks. mre 1/18/93
+int ASRallowed = 1;
 
 /* Command-line/venus.conf parameters. */
 char *consoleFile;
@@ -201,7 +200,6 @@ int main(int argc, char **argv)
     MarinerInit();  /* set up mariner socket */
     WorkerInit();   /* open kernel device */
     CallBackInit(); /* set up callback subsystem and create callback server threads */
-    AdviceInit();   /* set up AdSrv and start the advice daemon */
 
     /* Get the Root Volume. */
     eprint("Mounting root volume...");
@@ -427,8 +425,6 @@ static void ParseCmdline(int argc, char **argv)
 		mrpc2_timeflag = 0;
 	    else if (STREQ(argv[i], "-SearchForNOreFind"))
 	        SearchForNOreFind = 1;
-	    else if (STREQ(argv[i], "-noskk"))
-	        SkkEnabled = 0;
 	    else if (STREQ(argv[i], "-noasr"))
 	        ASRallowed = 0;
 	    else if (STREQ(argv[i], "-novcb"))

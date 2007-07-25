@@ -52,7 +52,6 @@ extern "C" {
 #include <vcrcommon.h>
 
 /* from venus */
-#include "advice.h"
 #include "fso.h"
 #include "hdb.h"
 #include "local.h"
