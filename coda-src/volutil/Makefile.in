@@ -55,8 +55,8 @@ SMANPAGES := backup.8 backuplogs.5 dumpfile.5 dumplist.5 merge.8 readdump.8 \
 DEPLIBS := ${LIBVOL} ${LIBVV} $(LIBVICEDEP) ${LIBPARTITION} ${LIBUTIL} \
 	${LIBSYSENT} ${LIBBASE}
 
-LIBS := ${DEPLIBS} ${LIBRDSLWP} ${LIBSEG} ${LIBRVMLWP} ${LIBSE} ${LIBRPC2} \
-	${LIBLWP} ${LIBREADLINE} $(LIBTERMCAP) $(LIBCRYPTO) $(LIBS)
+LIBS := ${DEPLIBS} ${LIBRVM} ${LIBRPC2} ${LIBLWP} ${LIBREADLINE} $(LIBTERMCAP) \
+	$(LIBCRYPTO) $(LIBS)
 
 LOCALOBJS = readstuff.o dumpstuff.o vvlist.o
 

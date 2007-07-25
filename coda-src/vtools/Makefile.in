@@ -47,7 +47,7 @@ CXXFLAGS := $(CXXFLAGS) -UVENUS
 include $(TOPDIR)/configs/Makerules
 
 cmon: cmon.o $(CMON_LIBS)
-	$(CXX) $(LDFLAGS) cmon.o $(CMON_LIBS) $(LIBRPC2) $(LIBSE) $(LIBLWP) $(LIBCOMPAT) $(STD_LIBS) -o cmon
+	$(CXX) $(LDFLAGS) cmon.o $(CMON_LIBS) $(LIBRPC2) $(LIBLWP) $(LIBCOMPAT) $(STD_LIBS) -o cmon
 
 codacon: codacon.o $(LIBBASE)
 	$(CXX) $(LDFLAGS) codacon.o $(LIBBASE) $(LIBRPC2) $(LIBCRYPTO) $(LIBS) -o codacon

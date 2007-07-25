@@ -29,7 +29,7 @@ EXECUTABLES = smon2 rpc2ping getvolinfo rvmsizer
 SBINS       = smon2 rpc2ping getvolinfo rvmsizer
 
 DEPLIBS = $(LIBVICEDEP) $(LIBSYS) $(LIBBASE)
-LIBS := $(DEPLIBS) $(LIBRPC2) $(LIBSE) $(LIBLWP) $(LIBCRYPTO) $(LIBS)
+LIBS := $(DEPLIBS) $(LIBRPC2) $(LIBLWP) $(LIBCRYPTO) $(LIBS)
 
 include $(TOPDIR)/configs/Makerules
 

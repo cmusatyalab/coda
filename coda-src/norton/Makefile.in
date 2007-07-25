@@ -44,8 +44,8 @@ DEPLIBS = $(LIBAUTH2)	\
 	$(LIBUTIL) 	\
 	$(LIBBASE)
 
-LIBS := $(DEPLIBS) $(LIBRDSLWP) $(LIBSEG) $(LIBRVMLWP) $(LIBRPC2) $(LIBLWP) \
-	$(LIBREADLINE) $(LIBTERMCAP) $(LIBCRYPTO) $(LIBMATH) $(LIBS)
+LIBS := $(DEPLIBS) $(LIBRVM) $(LIBRPC2) $(LIBLWP) $(LIBREADLINE) $(LIBTERMCAP) \
+	$(LIBCRYPTO) $(LIBMATH) $(LIBS)
 
 common_objects = norton-setup.o commands.o norton-volume.o \
 		 norton-recov.o norton-vnode.o norton-dir.o norton-rds.o dummy.o
