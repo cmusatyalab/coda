@@ -1,8 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-if BUILD_BROKEN
 noinst_PROGRAMS = basic setupvt createmany deletemany scaninodes
-endif
 
 EXTRA_DIST = vicetab
 

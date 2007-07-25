@@ -1,11 +1,9 @@
 ## Process this file with automake to produce Makefile.in
 
 # this code hasn't been built in a very long time
-if BUILD_BROKEN
 noinst_PROGRAMS = mond mondmon parselog grab unwind adviceunwind sqlunlock
 noinst_SCRIPTS = classify_volumes.sh trunclog.sh
 BUILT_SOURCES = db.c
-endif
 
 mond_SOURCES	      = bbuf.c bbuf.h data.c data.h vargs.c vargs.h mond.c \
 			wind.c version.c version.h mondutil.c mondutil.h

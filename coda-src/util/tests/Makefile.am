@@ -1,8 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-if BUILD_BROKEN
 noinst_PROGRAMS = proctest
-endif
 
 proctest_SOURCES = proctest.cc
 

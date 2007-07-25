@@ -147,8 +147,6 @@ AC_SUBST(shortsys)
 dnl Build conditionals
 AM_CONDITIONAL(BUILD_CLIENT, [test "$buildclient" != no -o "$buildclient" = no -a "$buildserver" = no])
 AM_CONDITIONAL(BUILD_SERVER, [test "$buildserver" != no -o "$buildclient" = no -a "$buildserver" = no])
-AM_CONDITIONAL(BUILD_TESTS, test "$buildclient" = no -a "$buildserver" = no)
-AM_CONDITIONAL(BUILD_BROKEN, /bin/false)
 
 AM_CONDITIONAL(SYSVINIT, test "$initstyle" = sysv)
 AM_CONDITIONAL(HAVE_FLTK, test "$coda_cv_path_fltk" != none)
@@ -178,10 +176,8 @@ coda-src/scripts/vice-setup
 coda-src/scripts/vice-setup-rvm
 coda-src/kerndep/Makefile
 coda-src/partition/Makefile
-coda-src/partition/tests/Makefile
 coda-src/dir/Makefile
 coda-src/util/Makefile
-coda-src/util/tests/Makefile
 coda-src/al/Makefile
 coda-src/vicedep/Makefile
 coda-src/auth2/Makefile
@@ -201,10 +197,5 @@ coda-src/asr/Makefile
 coda-src/egasr/Makefile
 coda-src/asrlauncher/Makefile
 coda-src/vcodacon/Makefile
-coda-src/smon2/Makefile
-utils-src/Makefile
-utils-src/mond/Makefile
-utils-src/potemkin/Makefile
-utils-src/potemkin/ds/Makefile
-utils-src/potemkin/potemkin/Makefile)
+coda-src/smon2/Makefile)
 

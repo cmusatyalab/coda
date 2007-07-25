@@ -1,8 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-if BUILD_TESTS
 noinst_LTLIBRARIES= libds.la
-endif
 
 noinst_HEADERS = ds_hash.h ds_list.h ds_log.h ds_rrlist.h ds_safeq.h odytypes.h
 libds_la_SOURCES = ds_hash.c ds_hash.private.h ds_list.c ds_list.private.h \

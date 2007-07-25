@@ -1,7 +1,5 @@
 ## Process this file with automake to produce Makefile.in
 
-SUBDIRS = . tests
-
 noinst_LTLIBRARIES = libutil.la
 
 libutil_la_SOURCES = arrlist.h arrlist.cc bitmap.h bitmap.cc bitvect.h \

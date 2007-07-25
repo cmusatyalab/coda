@@ -5,9 +5,6 @@ noinst_LTLIBRARIES = liblka.la
 if BUILD_CLIENT
 bin_PROGRAMS = mklka
 endif
-if BUILD_TESTS
-noinst_PROGRAMS = testlka
-endif
 
 liblka_la_SOURCES = lka.c lka.h shaprocs.c lka_private.h
 

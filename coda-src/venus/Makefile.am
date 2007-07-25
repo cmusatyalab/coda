@@ -6,10 +6,6 @@ dist_man_MANS = venus.8 vutil.8
 dist_sysconf_DATA = venus.conf.ex realms
 endif
 
-if BUILD_TESTS
-noinst_PROGRAMS = testtallyent
-endif
-
 venus_SOURCES = binding.cc binding.h comm.cc comm.h comm_daemon.cc daemon.cc \
     fso.h fso0.cc fso1.cc fso_cachefile.cc fso_cfscalls0.cc fso_cfscalls1.cc \
     fso_cfscalls2.cc fso_daemon.cc fso_dir.cc hdb.cc hdb.h hdb_daemon.cc \
@@ -23,7 +19,6 @@ venus_SOURCES = binding.cc binding.h comm.cc comm.h comm_daemon.cc daemon.cc \
     tallyent.h user.cc user.h nt_util.cc nt_util.h realmdb.cc realmdb.h \
     realm.cc realm.h rec_dllist.h refcounted.h
 vutil_SOURCES = vutil.cc
-nodist_testtallyent_SOURCES = tallyent.cc
 
 AM_CPPFLAGS = -I$(top_srcdir)/lib-src/base \
 	      -I$(top_srcdir)/coda-src/kerndep \
@@ -52,12 +47,3 @@ venus_LDADD = $(top_builddir)/coda-src/librepair/librepio.la \
 
 vutil_LDADD = $(top_builddir)/lib-src/base/libbase.la
 
-testtallyent_CPPFLAGS = -DTESTING \
-			-I$(top_srcdir)/lib-src/base \
-			-I$(top_srcdir)/coda-src/util \
-			-I$(top_srcdir)/coda-src/vicedep \
-			-I$(top_builddir)/coda-src/vicedep \
-			-I$(top_srcdir)/coda-src/vol
-
-testtallyent_LDADD = $(top_builddir)/coda-src/util/libutil.la \
-		     $(top_builddir)/lib-src/base/libbase.la

@@ -1,8 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-if BUILD_TESTS
 noinst_PROGRAMS = potemkin
-endif
 
 potemkin_SOURCES = potemkin.c potemkin.h
 

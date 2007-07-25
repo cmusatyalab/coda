@@ -1,7 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
 if BUILD_SERVER
-SUBDIRS = . tests
 noinst_LTLIBRARIES = libpartition.la
 sbin_PROGRAMS = inoder
 dist_man_MANS = vicetab.5
