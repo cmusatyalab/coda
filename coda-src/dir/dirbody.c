@@ -35,12 +35,7 @@ extern "C" {
 #include "coda_string.h"
 #include <stdlib.h>
 #include <stdint.h>
-#ifdef __BSD44__
-#include <ufs/ufs/dir.h>
-#undef	DIRSIZ
-#else
-#define DIRBLKSIZ	0x200
-#endif
+#include <dirent.h>
 #include <lwp/lwp.h>
 #include <lwp/lock.h>
 #include <rvmlib.h>
@@ -54,6 +49,10 @@ extern "C" {
 #undef MMAP_DIR_CONTENTS
 #ifdef HAVE_MMAP
 #define MMAP_DIR_CONTENTS 1
+#endif
+
+#ifndef DIRBLKSIZ
+#define DIRBLKSIZ	0x1000
 #endif
 
 /* are we dealing with RVM memory? (yes for Venus, no for Vice)*/
@@ -844,7 +843,7 @@ int DIR_Convert (PDirHeader dir, char *file, VolumeId vol, RealmId realm)
 	   maximum-sized directory entry for each chunk of
 	   directory we write.
 	 */
-#endif /* __BSD44__ */
+#endif
 	len += (len / DIRBLKSIZ + 1) * ((sizeof(struct venus_dirent) + 3) & ~3);
 	len = ((len + (DIRBLKSIZ - 1)) & ~(DIRBLKSIZ - 1));
 

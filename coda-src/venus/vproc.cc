@@ -833,21 +833,21 @@ void VPROC_printvattr(struct coda_vattr *vap)
 	}
 }
 
-long FidToNodeid(VenusFid *fid) 
+long FidToNodeid(VenusFid *fid)
 {
 	if (FID_EQ(fid, &NullFid))
 		CHOKE("FidToNodeid: null fid");
 
-#ifdef __BSD44__
-    /* Venus Root.  Use the mount point's nodeid. */
+#if defined(__FreeBSD__) || defined(__NetBSD__)
+	/* Venus Root.  Use the mount point's nodeid. */
 	if (FID_EQ(fid, &rootfid))
 	    return(rootnodeid);
+#endif
 
 	/* Other volume root.  We need the relevant mount point's fid,
-           but we don't know what that is! */
-#endif
+	   but we don't know what that is! */
 	if (FID_IsVolRoot(fid)) {
-		LOG(0, ("FidToNodeid: called for volume root (%x.%x)!!!\n", 
+		LOG(0, ("FidToNodeid: called for volume root (%x.%x)!!!\n",
 			fid->Realm, fid->Volume));
 	}
 

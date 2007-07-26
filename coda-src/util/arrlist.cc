@@ -24,11 +24,9 @@ extern "C" {
 #include <config.h>
 #endif
 
-#ifdef __BSD44__
 #include <stdlib.h>
-#endif /* __BSD44__ */
-
 #include <stdio.h>
+
 #ifdef __cplusplus
 }
 #endif

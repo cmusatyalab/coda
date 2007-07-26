@@ -16,7 +16,7 @@ listed in the file CREDITS.
 
 */
 
-/*						
+/*
  * asrlauncher.c
  *
  * This file contains all of the code that makes up the ASRLauncher binary.
@@ -36,6 +36,7 @@ listed in the file CREDITS.
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <signal.h>
 
 
 /* Venus includes */

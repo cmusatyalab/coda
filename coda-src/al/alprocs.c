@@ -55,11 +55,6 @@ extern "C" {
 #include <unistd.h>
 #include <stdlib.h>
 
-
-#ifdef __BSD44__
-#define _POSIX_SOURCE
-#endif
-
 #include <errno.h>
 #include <stdarg.h>
 #include <util.h>

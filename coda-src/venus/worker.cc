@@ -80,7 +80,7 @@ extern "C" {
 #endif
 
 /* Darwin uses the same venus-kernel interface as BSD */
-#if defined(__APPLE__) && defined(__MACH__)
+#if defined(__FreeBSD__) || defined(__NetBSD__) || (defined(__APPLE__) && defined(__MACH__))
 #define __BSD44__
 #endif
 

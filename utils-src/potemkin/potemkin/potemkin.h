@@ -39,8 +39,20 @@ typedef struct fid_ent_s {
     char              name[MAXNAMLEN+1];
 } fid_ent_t;
 
-#if defined(__BSD44__) && defined(__i386__)
+#ifdef __NetBSD__
+#ifdef __i386__
 #define SYS_STRING  "i386_nbsd1"
+#else
+#define SYS_STRING  "nbsd"
+#endif
+#endif
+
+#ifdef __FreeBSD__
+#ifdef __i386__
+#define SYS_STRING  "i386_fbsd"
+#else
+#define SYS_STRING  "fbsd"
+#endif
 #endif
 
 #ifdef __linux__

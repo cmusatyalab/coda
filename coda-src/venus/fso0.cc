@@ -127,54 +127,6 @@ void FSOInit() {
 	    }
 	}
 
-	/* Get rid of garbage in cache dir.
-	   The ifdef's are necessary because the directory operations
-	   have changed completely between 4.3BSD and 4.4BSD  (Satya, 8/12/96)
-        */
-#ifdef __BSD44__
-	DIR *dir;
-	struct dirent *entry;
-
-	dir = opendir(".");
-	if (!dir) CHOKE("FSOInit: opendir");
-
-	char *cwd,*abspath,*eos;
-	struct stat statbuf;
-
-	cwd = getwd(NULL);
-	abspath = (char*)malloc(sizeof(char)*MAXPATHLEN);
-	CODA_ASSERT(abspath != NULL);
-
-	abspath = strncpy(abspath, cwd, MAXPATHLEN);
-	abspath = strncat(abspath,"/",2);
-	eos = abspath + strlen(abspath) + 1;
-
-	/* Examine each entry and decide to keep or delete it */
-	while ((entry = readdir(dir)) != NULL)
-	{
-	    *eos = '\0';
-	    /* Don't unlink special files. */
-	    strncpy(eos, entry->d_name, MAXPATHLEN-strlen(cwd));
-	    if (STREQ(entry->d_name, ".") ||
-		STREQ(entry->d_name, "..") ||
-		STREQ(entry->d_name, "lost+found") ||
-		STREQ(abspath, VenusLogFile) ||
-		STREQ(entry->d_name, "pid"))
-		continue;
-
-	    /* Don't unlink cache directories. */
-	    if (stat(entry->d_name, &statbuf) == 0 &&
-		S_ISDIR(statbuf.st_mode))
-		continue;
-
-	    /* Garbage collect everything else. */
-	    ::unlink(entry->d_name);
-	}
-	free(abspath);
-	closedir(dir);
-	free(cwd);
-#endif /* __BSD44__ */
-
 	/* Allocate the fsobj's if requested. */
 	if (InitMetaData) {
 	    /* Do this in a loop to avoid one mongo transaction! */

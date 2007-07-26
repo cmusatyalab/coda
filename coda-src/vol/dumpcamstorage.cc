@@ -34,9 +34,6 @@ extern "C" {
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/file.h>
-#ifdef	__BSD44__
-#include <fstab.h>
-#endif
 #include <netinet/in.h>
 #include <sys/wait.h>
 #include <setjmp.h>

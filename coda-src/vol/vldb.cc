@@ -47,9 +47,6 @@ extern "C" {
 #include <sys/stat.h>
 #include <stdio.h>
 #include <sys/file.h>
-#ifdef  __BSD44__
-#include <fstab.h>
-#endif
 #include <netinet/in.h>
 #include <unistd.h>
 #include <stdlib.h>

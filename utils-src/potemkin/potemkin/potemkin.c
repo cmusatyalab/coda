@@ -499,7 +499,7 @@ Setup() {
    
 #endif
 
-#ifdef __BSD44__
+#if defined(__FreeBSD__) || defined(__NetBSD__)
     CODA_ASSERT (!mount(MOUNT_CFS, MountPt, 0, KernDevice));
 #endif
 #ifdef sun
@@ -518,7 +518,7 @@ Setup() {
 
       lck = lockf(lfd, F_LOCK, 0);
       CODA_ASSERT (lck == 0);
-      
+
       mnttab = fopen(MNTTAB, "a+");
       CODA_ASSERT (mnttab != NULL);
       mt.mnt_special = "CODA";
@@ -606,16 +606,18 @@ fill_vattr(struct stat *sbuf, fid_ent_t *fep, struct coda_vattr *vbuf)
     /*    vbuf->va_fileid = coda_f2i(&(fep->fid)); */
     vbuf->va_size = sbuf->st_size;
     vbuf->va_blocksize = V_BLKSIZE;
-#ifndef __BSD44__
-    vbuf->va_atime.tv_sec = sbuf->st_atime;
-    vbuf->va_mtime.tv_sec = sbuf->st_mtime;
-    vbuf->va_ctime.tv_sec = sbuf->st_ctime;
-#else
+
+#if defined(__FreeBSD__) || defined(__NetBSD__)
     vbuf->va_atime = sbuf->st_atimespec;
     vbuf->va_mtime = sbuf->st_mtimespec;
     vbuf->va_ctime = sbuf->st_ctimespec;
     vbuf->va_flags = sbuf->st_flags;
+#else
+    vbuf->va_atime.tv_sec = sbuf->st_atime;
+    vbuf->va_mtime.tv_sec = sbuf->st_mtime;
+    vbuf->va_ctime.tv_sec = sbuf->st_ctime;
 #endif
+
     vbuf->va_gen = fep->fid.opaque[CFID_UNIQUE];
     vbuf->va_rdev = 0; /* Can't have special devices in /coda */
     vbuf->va_bytes = sbuf->st_size; /* Should this depend on cache/uncache? */

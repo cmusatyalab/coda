@@ -36,10 +36,6 @@ extern "C" {
 #include <sys/types.h>
 #include <netinet/in.h>
 
-#ifdef __BSD44__
-#include <machine/endian.h>
-#endif
-
 #include <unistd.h>
 #include <stdlib.h>
 

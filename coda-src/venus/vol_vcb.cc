@@ -33,9 +33,6 @@ extern "C" {
 #include <unistd.h>
 #include <stdlib.h>
 #include <netinet/in.h>
-#ifdef __BSD44__
-#include <machine/endian.h>
-#endif
 
 #include <rpc2/rpc2.h>
 

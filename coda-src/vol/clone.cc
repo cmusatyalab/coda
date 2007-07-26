@@ -51,9 +51,6 @@ extern "C" {
 #include <sys/stat.h>
 #include <sys/inode.h>
 #include <sys/time.h>
-#ifdef __BSD44__
-#include <fstab.h>
-#endif
 #include <unistd.h>
 #include <stdlib.h>
 #include <lwp.h>

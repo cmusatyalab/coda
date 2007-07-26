@@ -860,7 +860,7 @@ static void SetVolumeStats(ViceStatistics *stats)
 	}
 }
 
-#ifdef __BSD44__
+#if defined(__FreeBSD__) || defined(__NetBSD__)
 
 #ifdef	__NetBSD__
 #define KERNEL "/netbsd"
@@ -1005,7 +1005,7 @@ static void SetSystemStats(ViceStatistics *stats)
     stats->SysTime = (resource.ru_stime.tv_sec * 100 +
 		      resource.ru_stime.tv_usec / 10000);
 
-#ifdef __BSD44__
+#if defined(__FreeBSD__) || defined(__NetBSD__)
     SetSystemStats_bsd44(stats);
 #endif
 #ifdef __linux__

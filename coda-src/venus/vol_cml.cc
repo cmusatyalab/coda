@@ -42,9 +42,6 @@ extern "C" {
 #include <stdlib.h>
 
 #include <netinet/in.h>
-#ifdef __BSD44__
-#include <machine/endian.h>
-#endif
 
 #include <lwp/lock.h>
 #include <rpc2/rpc2.h>
