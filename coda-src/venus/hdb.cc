@@ -1921,7 +1921,7 @@ int MetaExpand(PDirEntry entry, void *hook)
 	while ((d = next())) {
 		namectxt *child = strbase(namectxt, d, child_link);
 
-		char *c = rindex(child->path, '/');
+		char *c = strrchr(child->path, '/');
 		if (c == 0) c = child->path;
 		else c++;
 		if (STREQ(name, c)) {

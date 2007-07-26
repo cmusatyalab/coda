@@ -63,7 +63,7 @@ int repair_isleftmost(char *path, char *realpath, int len, char *msg, int msgsiz
 	/* proceed left to right */
 	while (1) {
 	    /* Lop off next piece */
-	    cdr = index(car, '/');
+	    cdr = strchr(car, '/');
 	    if (!cdr) {
 		/* We're at the end */
 		if (repair_inconflict(car, NULL, NULL) == 0) {

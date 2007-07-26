@@ -915,7 +915,7 @@ static int findclosures(char ***clist)
 
     while ((td = readdir(dirp)) != NULL)
     {
-	if ((char *)index(td->d_name, '@') == NULL) continue;
+	if (strchr(td->d_name, '@') == NULL) continue;
 
 	if (n == 0)
 	{
@@ -948,10 +948,10 @@ static int validateclosurespec(char *name, char *volname, char *volrootpath)
 
     /* Parse the closure spec into a <volname, volume-root path> pair. */
 
-    cp = (char *)rindex(name, '/');
+    cp = strrchr(name, '/');
     if (cp == NULL) cp = name;
     else cp++;
-    ap = (char *)index(cp, '@');
+    ap = strchr(cp, '@');
     if (ap == NULL)
     {
 	printf("malformed closure spec (%s)\n", name);
@@ -1551,7 +1551,7 @@ static int parseacl(char *s, struct acl *a)
     }
     for (i = 0; i < a->pluscount; i++)
     {
-	r = index(c, '\t');
+	r = strchr(c, '\t');
 	if (r == 0) return(-1);
 	*r = 0;
 
@@ -1565,7 +1565,7 @@ static int parseacl(char *s, struct acl *a)
     if (a->minuscount == 0) return(0);
     for (i = 0; i < a->minuscount; i++)
     {
-	r = index(c, '\t');
+	r = strchr(c, '\t');
 	if (r == 0) return(-1);
 	*r = 0;
 	a->minusentries[i].id = (char *)malloc(strlen(c) + 1);
@@ -2019,7 +2019,7 @@ static void LsMount (int argc, char *argv[], int opslot)
 	}
 
 	/* there must be a slash in what myrealpath() returns */
-	s = rindex(path, '/');
+	s = strrchr(path, '/');
 	*s = 0; /* lop off last component */
 	strncpy(tail, s+1, sizeof(tail)); /* and copy it */
 
@@ -2198,7 +2198,7 @@ static void RmMount(int argc, char *argv[], int opslot)
 	    prefix[n] = '\0'; n--;
 	}
 
-	suffix = rindex(prefix, '/');
+	suffix = strrchr(prefix, '/');
 	if (suffix) {
 	    *suffix = 0; /* delimit the prefix */
 	    suffix++;  /* and set the suffix pointer correctly */

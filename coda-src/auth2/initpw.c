@@ -137,7 +137,7 @@ static void parse(char *line, RPC2_EncryptionKey outpw, char **last)
     {
     char *pp;
     int i;
-    pp = (char *)index(line, '\t');
+    pp = strchr(line, '\t');
     if (pp == NULL)
 	{
 	fprintf(stderr, "Bogus line in input file: \"%s\"\n", line);

@@ -75,9 +75,9 @@ FILE *FindResolveFile(char *dname) {
 	    foundresfile = 1;
 	    break;
 	}
-	char *c = rindex(resfname, '/');	// finds the /RESOLVE
+	char *c = strrchr(resfname, '/');	// finds the /RESOLVE
 	*c = '\0';
-	c = rindex(resfname, '/');
+	c = strrchr(resfname, '/');
 	*c = '\0';
     }
     if (foundresfile) {

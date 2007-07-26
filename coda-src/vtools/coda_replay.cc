@@ -404,7 +404,7 @@ void makeprefix(char *name) {
 	register char *cp;
 
 	/* Quick check for existence of directory. */
-	if ((cp = rindex(name, '/')) == 0)
+	if ((cp = strrchr(name, '/')) == 0)
 	    return;
 	*cp = '\0';
 	if (access(name, 0)	== 0) {	/* already exists */

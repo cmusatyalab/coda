@@ -1138,7 +1138,7 @@ static void MetaExpand(olist& Add, char *FullName, int priority, int attributes)
 	      strerror(errno));
     char mtpt[MAXPATHLEN];
     char *cp;
-    if ((cp = rindex(VRPath, '/')) == NULL) cp = mountpoint;
+    if ((cp = strrchr(VRPath, '/')) == NULL) cp = mountpoint;
     strcpy(mtpt, cp + 1);
     ExpandNode(mtpt, vid, realm, NodeName, Add, priority, attributes);
 
@@ -1168,7 +1168,7 @@ static void ExpandNode(char *mtpt, VolumeId vid, char *realm, char *name,
 
 	/* Determine the next component and attempt to cd into it. */
 	{
-	    char *cp = rindex(name, '/');
+	    char *cp = strrchr(name, '/');
 	    if (cp) cp++;
 	    else cp = mtpt;
 	    DEBUG(printf("ExpandNode: chdir(%s)\n", cp););

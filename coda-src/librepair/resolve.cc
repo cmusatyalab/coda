@@ -441,12 +441,12 @@ int NameNameResolve(int first, int last, int nreplicas, resreplica *dirs, struct
     char *lastslash;
 
     strcpy(replicatedname, dirs[sortedArrByName[first]->index].path);
-    lastslash = rindex(replicatedname, '/'); // the trailing /
+    lastslash = strrchr(replicatedname, '/'); // the trailing /
     if (!lastslash) 
 	printf("Couldn't find the parent directory of %s\n", sortedArrByName[first]->name);
     else {
 	*lastslash = '\0';
-	lastslash = rindex(replicatedname, '/'); // the / before the replica name
+	lastslash = strrchr(replicatedname, '/'); // the / before the replica name
 	if (!lastslash)
 	    printf("Couldn't find the parent directory of %s\n", sortedArrByName[first]->name);
 	else {
@@ -709,8 +709,8 @@ int GetParent(char *realm, ViceFid *cfid, ViceFid *dfid, char *dpath, char *chil
     }
 
     /* form the absolute path name of the parent */
-    char *lastcomp = rindex(tmp, '/');
-    char *firstcomp = index(tmp, '/');
+    char *lastcomp = strrchr(tmp, '/');
+    char *firstcomp = strchr(tmp, '/');
     if (lastcomp) *lastcomp = '\0';
 
     strcpy(path, "/coda");

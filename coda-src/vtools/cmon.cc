@@ -337,7 +337,7 @@ static void GetArgs(int argc, char *argv[])
 		exit(-1);
 		}
 	    srv[SrvCount].srvname = argv[next];
-	    c = index(argv[next], ':');
+	    c = strchr(argv[next], ':');
 	    if (c) {
 	        *c = 0; /* so servername is null terminated */
 	    }

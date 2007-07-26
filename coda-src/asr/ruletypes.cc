@@ -143,7 +143,7 @@ void depname_t::print(int fd) {
 
 command_t::command_t(char *name)
 {
-    char *c = rindex(name, '/');
+    char *c = strrchr(name, '/');
     if (c) {
 	*c = '\0';
 	strcpy(cmddname, name);

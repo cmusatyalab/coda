@@ -3799,7 +3799,7 @@ static int WriteLinks(struct DirEntry *de, void * hook)
 		return 0;
 
 	if (vnode == wl_hook->vnode && vunique == wl_hook->vunique) {
-		char *comp = rindex(wl_hook->hdr->dbuf.linkname, '/') + 1;
+		char *comp = strrchr(wl_hook->hdr->dbuf.linkname, '/') + 1;
 		CODA_ASSERT(comp != NULL);
 		if (!STREQ(comp, name)) {
 			/* Use the same hblock, overwriting the name

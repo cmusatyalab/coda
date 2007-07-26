@@ -202,11 +202,11 @@ void BuildPWArray(char *fileBuf)
 
 	while (TRUE)
 	{
-		if (index(nextline, '\t') == NULL) break;
+		if (strchr(nextline, '\t') == NULL) break;
 		thisid = atoi(nextline);
 		if ( thisid < 0 ) 
 			goto nextline;
-		CODA_ASSERT((kk = index(nextline, '\t')) != NULL);
+		CODA_ASSERT((kk = strchr(nextline, '\t')) != NULL);
 		kk++;
 		for (i = 0; i < RPC2_KEYSIZE; i++)
 		{
@@ -233,7 +233,7 @@ void BuildPWArray(char *fileBuf)
 		memcpy(PWArray[thisid], thiskey, RPC2_KEYSIZE);
 		PWCount++;
 	nextline:
-		CODA_ASSERT((nextline = index(nextline, '\n')) != NULL);
+		CODA_ASSERT((nextline = strchr(nextline, '\n')) != NULL);
 		nextline++;	/* safe, since fileBuf is NULL-terminated */
 	}
 }

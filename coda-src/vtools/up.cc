@@ -202,7 +202,7 @@ static Boolean MakeParent(char *file, long owner)
    if (debug) fprintf(stderr,"MakeParent of %s\n",file);
    strcpy(parent, file);
 
-   if ((p = rindex(parent, '/')) == NULL)
+   if ((p = strrchr(parent, '/')) == NULL)
        strcpy(parent, ".");
    else if (p > parent) *p = '\0';
    else p[1] = '\0';

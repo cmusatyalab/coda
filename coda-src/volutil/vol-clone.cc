@@ -255,7 +255,7 @@ long S_VolClone(RPC2_Handle rpcid, RPC2_Unsigned formal_ovolid,
 	char name[V_MAXVOLNAMELEN];
 	strncpy(name, newvolname, V_MAXVOLNAMELEN);
 	char *dot;
-	dot = rindex(name, '.');
+	dot = strrchr(name, '.');
 	if (dot && !strcmp(dot, ".readonly"))
 	    AssignVolumeName(&V_disk(newvp), name, ".readonly");
 	else
