@@ -2123,6 +2123,9 @@ void fsobj::GetVattr(struct coda_vattr *vap)
     /* We don't keep track of atime/ctime, so keep them identical to mtime */
     vap->va_atime = vap->va_ctime = vap->va_mtime;
 
+    if (!HAVEALLDATA(this) || (!DATAVALID(this) && REACHABLE(this)))
+	vap->va_flags = SF_UNCACHED;
+
     VPROC_printvattr(vap);
 }
 

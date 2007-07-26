@@ -236,6 +236,10 @@ static __inline__ ino_t coda_f2i(struct CodaFid *fid)
  */
 enum coda_vtype	{ C_VNON, C_VREG, C_VDIR, C_VBLK, C_VCHR, C_VLNK, C_VSOCK, C_VFIFO, C_VBAD };
 
+/* we set this bit in va_flags if we still have to fetch the file's contents
+ * from the servers */
+#define SF_UNCACHED	0x80000000
+
 struct coda_vattr {
 	long     	va_type;	/* vnode type (for create) */
 	u_short		va_mode;	/* files access mode and type */
