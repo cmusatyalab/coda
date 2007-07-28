@@ -1,5 +1,5 @@
 # data file for the Fltk User Interface Designer (fluid)
-version 1.0104 
+version 1.0108 
 header_name {.h} 
 code_name {.cc}
 decl {\#include "FL/fl_ask.H"} {} 
@@ -14,7 +14,7 @@ decl {monitor Monitor;} {}
 
 Function {} {open
 } {
-  code {/*	$Id: vcodacon.fl,v 1.15 2006-05-24 20:04:40 jaharkes Exp $	*/
+  code {/*	$Id: vcodacon.fl,v 1.16 2007-07-28 00:56:38 phil Exp $	*/
 
 // BLURB gpl
 //
@@ -204,47 +204,47 @@ ConflList->redraw();}
   }
   Fl_Window MainWin {
     label VCodaCon open
-    xywh {725 899 211 80} type Double color 7 resizable visible
+    xywh {454 879 193 80} type Double color 7 resizable visible
   } {
     Fl_Menu_Bar {} {open
       xywh {0 0 50 20} color 7
     } {
-      submenu {} {
+      Submenu {} {
         label Menu open
         xywh {0 0 100 20}
       } {
-        menuitem {} {
+        MenuItem {} {
           label {find realm}
           callback {RealmName->value("");
 FindRealm->show();}
           xywh {0 0 100 20}
         }
-        submenu {} {
+        Submenu {} {
           label Tokens open
           xywh {5 5 100 20}
         } {
-          menuitem {} {
+          MenuItem {} {
             label CLog
             callback {menu_clog();}
             xywh {10 10 100 20}
           }
-          menuitem {} {
+          MenuItem {} {
             label Ctokens
             callback {menu_ctokens();}
             xywh {20 20 100 20}
           }
-          menuitem {} {
+          MenuItem {} {
             label Cunlog
             callback {menu_cunlog();}
             xywh {10 10 100 20}
           }
         }
-        menuitem {} {
+        MenuItem {} {
           label Configure
           callback {Configure->show();}
           xywh {10 10 100 20}
         }
-        menuitem {} {
+        MenuItem {} {
           label Exit
           callback {exit(0);}
           xywh {0 0 100 20}
@@ -254,19 +254,19 @@ FindRealm->show();}
     Fl_Progress {XferProg[0]} {
       label {Text Output}
       callback {XferProg[0]->deactivate();}
-      xywh {0 20 210 20} selection_color 2 align 80 deactivate resizable
+      xywh {0 20 190 20} selection_color 2 align 80 deactivate resizable
       code0 {o->clear_visible_focus();}
     }
     Fl_Progress {XferProg[1]} {
       label {Text Output}
       callback {XferProg[1]->deactivate();}
-      xywh {0 40 210 20} selection_color 2 align 80 deactivate
+      xywh {0 40 190 20} selection_color 2 align 80 deactivate
       code0 {o->clear_visible_focus();}
     }
     Fl_Progress {XferProg[2]} {
       label {Text Output}
       callback {XferProg[3]->deactivate();} selected
-      xywh {0 60 210 20} selection_color 2 align 80 deactivate
+      xywh {0 60 190 20} selection_color 2 align 80 deactivate
       code0 {o->clear_visible_focus();}
     }
     Fl_Button VConn {
@@ -308,21 +308,12 @@ VReint->color(FL_WHITE);}
       tooltip {Reintegrate in progress indicator} xywh {150 0 20 20} color 7
       code0 {o->clear_visible_focus();}
     }
-    Fl_Button VDisConn {
-      label D
-      callback {// Hidden when connected
-// Yellow and visible when disconnecte
-// Which FS loged to the conflict & disconnect log
-Conflicts->show();}
-      tooltip {Disconnected operation} xywh {170 0 20 20} color 7
-      code0 {o->clear_visible_focus();}
-    }
     Fl_Button VConfl {
       label C
       callback {VConfl->color(FL_WHITE);
 VConfl->redraw();
 Conflicts->show();}
-      tooltip {Volume in conflict} xywh {190 0 20 20} color 7
+      tooltip {Volume in conflict} xywh {170 0 20 20} color 7
       code0 {o->clear_visible_focus();}
     }
     Fl_Button VAttr {

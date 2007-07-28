@@ -247,27 +247,12 @@ void monitor::NextLine() {
 	Fl::add_timeout(5, ClearVattr, (void *)NULL);
       }
 
-      else if (strstr(inputline, "Local inconsistent object")) {
+      else if (strstr(inputline, "Local inconsistent object")
+	       || strstr(inputline, "CONFLICT")) {
 	VConfl->color(FL_RED);
 	VConfl->redraw();
 	ConflList->add(inputline,NULL);
 	ConflList->bottomline(ConflList->size());
-      }
-
-      else if (strstr(inputline, "fetch::DisconnectFS")) {
-	if (DisFsCount++ == 0) {
-	  VDisConn->color(FL_YELLOW);
-	  VDisConn->redraw();
-	}
-	ConflList->add(inputline,NULL);
-	ConflList->bottomline(ConflList->size());
-      }
-
-      else if (strstr(inputline, "fetch::disconnectfs done")) {
-	if (--DisFsCount == 0) {
-	  VDisConn->color(FL_WHITE);
-	  VDisConn->redraw();
-	}
       }
 
       else if (strstr(inputline, "pattern to look for")) {
@@ -288,11 +273,12 @@ void monitor::NextLine() {
 void monitor::ForceClose()
 {
   /* need to try to restart it ... */
-
-  Fl::remove_fd(conn.FileNo());
+  if (conn.FileNo() >= 0) {
+    Fl::remove_fd(conn.FileNo());
+    conn.Close();
+  }
 
   printf ("ForceClose closed!\n");
-  conn.Close();
   VConn->color(FL_RED);
   VConn->redraw();
 
