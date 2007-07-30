@@ -3,7 +3,7 @@
 SUBDIRS = lib-src coda-src tools debian
 
 EXTRA_DIST = LICENSE README.BSD README.Solaris README.kerberos README.nt \
-	     bootstrap.sh configure
+	     bootstrap.sh configure configs
 
 distcleancheck_listfiles = \
        find -type f -exec sh -c 'test -f $(srcdir)/{} || echo {}' ';'

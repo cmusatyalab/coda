@@ -15,7 +15,7 @@ libvolutil_la_SOURCES = vol-ancient.cc vol-backup.cc vol-clone.cc \
     vol-setvv.cc vol-setlogparms.cc vol-showvnode.cc vol-timing.cc \
     vol-tracerpc.cc vol-printstats.cc vol-getvolumelist.cc \
     vol-showcallbacks.cc vol-rvmtrunc.cc readstuff.cc vvlist.cc vvlist.h \
-    volutil.private.h
+    volutil.private.h dumpstream.cc dumpstream.h dumpstuff.cc dump.h
 libvolserv_la_SOURCES = volutil.cc
 volutil_SOURCES = volclient.cc
 backup_SOURCES = backup.cc
@@ -39,8 +39,6 @@ AM_CPPFLAGS = -I$(top_srcdir)/lib-src/base \
 	      -I$(top_srcdir)/coda-src/vol \
 	      -I$(top_srcdir)/coda-src/resolution \
 	      -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
-
-libvolutil_la_LIBADD = libdumpstuff.la
 
 volutil_LDADD = $(top_builddir)/coda-src/auth2/libauser.la \
 		$(top_builddir)/coda-src/vicedep/libvolutildep.la \
