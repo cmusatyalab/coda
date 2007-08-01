@@ -155,7 +155,7 @@ void cinclude(char *filename, WHO who, FILE *where)
        on the ".rpc2" file.  This strategy allows the type definitions
        in the ".rpc2" file to be used in many subsystems. */
     strcpy(spitname, filename);
-    s = rindex(spitname, '.');
+    s = strrchr(spitname, '.');
     if (s && strcmp(s, ".rpc2") == 0) strcpy(s, ".h");
     fprintf(where, "#include \"%s\"\n", spitname);
     fprintf(where, "#endif /* %s */\n", ifdefname);
