@@ -64,7 +64,6 @@ rm -rf $RPM_BUILD_ROOT
 /usr/lib/libse.so
 %dir /usr/include/rpc2
 /usr/include/rpc2/errors.h
-/usr/include/rpc2/errorsdefs.h
 /usr/include/rpc2/multi.h
 /usr/include/rpc2/rpc2.h
 /usr/include/rpc2/rpc2_addrinfo.h
