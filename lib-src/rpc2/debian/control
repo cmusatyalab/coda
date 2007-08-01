@@ -22,6 +22,7 @@ Description: Remote procedure call library, development files
 Package: librpc2-5
 Architecture: amd64 arm i386 m68k powerpc sparc
 Depends: ${shlibs:Depends}
+Conflicts: librpc2-4
 Description: Remote procedure call library
  RPC2 is a remote procedure call library developed at CMU. It is layered
  on top of UDP sockets and is used by the Coda distributed filesystem
