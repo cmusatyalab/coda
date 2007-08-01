@@ -37,14 +37,20 @@ echon() {
 # See how we were called.
 case "$1" in
   start)
-	echon "Starting venus: "
+	echon "Starting Coda client components:"
 	if [ -f $pid_file ]; then
 		echo "$pid_file exists, venus already running?."
 	fi
 	[ -d /var/lock/subsys ] && touch /var/lock/subsys/venus.init
+
+	echon " kernel"
+	/sbin/modprobe coda
+	[ -x /sbin/udevsettle ] && /sbin/udevsettle || sleep 5
+
 	@sbindir@/vutil --swaplogs
+	echon " venus"
 	@sbindir@/venus > /dev/null 2>&1
-	echo "done."
+	echo " done."
     ;;
   stop)
 	echon "Shutting down venus: "
