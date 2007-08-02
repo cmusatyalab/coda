@@ -4,7 +4,6 @@
 CVS
 Makefile
 Makefile.in
-README
 autom4te.cache
 aclocal.m4
 coda_config.h
@@ -24,6 +23,7 @@ mkinstalldirs
 rp2gen.stamp
 stamp-h1
 tags
+ylwrap
 *.[ao]
 *.l[ao]
 *.client.c

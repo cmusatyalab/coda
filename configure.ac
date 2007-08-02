@@ -4,7 +4,7 @@ dnl autoconf 2.5 stuff
 AC_PREREQ(2.50)
 AC_INIT(Coda, 6.9.2, [bugs@coda.cs.cmu.edu])
 AC_CONFIG_SRCDIR(coda-src/librepair/resolve.h)
-AM_INIT_AUTOMAKE
+AM_INIT_AUTOMAKE([foreign])
 AC_CONFIG_HEADERS(config.h)
 
 CONFIG_DATE=`date +"%a, %d %b %Y %T %z"`
