@@ -4,6 +4,7 @@ case ${prefix} in
     /usr )
 	# AFAIK nobody has use for /usr/etc, it should simply be /etc.
 	sysconfdir='${prefix}/../etc/coda'
+	sysconfdirx="/etc/coda"
 	initdir='../etc'
 	;;
 
@@ -11,6 +12,7 @@ case ${prefix} in
 	# If '/coda*' is already in the prefix, we don't need to add
 	# a coda subdirectory to the sysconfdir.
 	sysconfdir='${prefix}/etc'
+	sysconfdirx="${prefix}/etc"
 	initdir='etc'
 	;;
 
@@ -18,11 +20,13 @@ case ${prefix} in
 	# Otherwise append '/coda' so that we don't throw our configuration
 	# files all over the place.
 	sysconfdir='${prefix}/etc/coda'
+	sysconfdirx="${prefix}/etc/coda"
 	initdir='etc'
 	;;
 esac
 AC_MSG_RESULT(${sysconfdir})
 AC_SUBST(sysconfdir)
+AC_SUBST(sysconfdirx)
 
 dnl Now the initdir isn't finished yet, we have to figure out where the
 dnl system we're building on wants the init scripts.
