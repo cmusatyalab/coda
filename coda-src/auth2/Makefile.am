@@ -13,6 +13,7 @@ dist_man_MANS += auth2.8 initpw.8 passwd.coda.5
 endif
 
 RPC2_FILES = auth2.rpc2
+include $(top_srcdir)/configs/rpc2_rules.mk
 
 KRBSRC =
 LIBKRB =
@@ -29,19 +30,14 @@ KRBSRC += krbcommon.c krbcommon.h
 endif
 
 noinst_HEADERS		   = auth2.common.h pwdefines.h
-nodist_libauser_la_SOURCES = auth2.client.c
 libauser_la_SOURCES	   = auser.c auser.h avenus.c avenus.h $(KRBSRC)
-nodist_libauth2_la_SOURCES = auth2.server.c
 libauth2_la_SOURCES	   = avice.c avice.h codatoken.c codatoken.h \
 			     pwsupport.c pwsupport.h $(KRBSRC)
 clog_SOURCES		   = clog.c tokenfile.c tokenfile.h
 tokentool_SOURCES	   = tokentool.c tokenfile.c tokenfile.h
-EXTRA_DIST = ${RPC2_FILES}
 
-BUILT_SOURCES = $(nodist_libauser_la_SOURCES) $(nodist_libauth2_la_SOURCES)
-CLEANFILES = ${RPC2_FILES:.rpc2=.h} ${RPC2_FILES:.rpc2=.client.c} \
-	     ${RPC2_FILES:.rpc2=.server.c} ${RPC2_FILES:.rpc2=.multi.c} \
-	     ${RPC2_FILES:.rpc2=.print.c}
+nodist_libauser_la_SOURCES = auth2.client.c auth2.h
+nodist_libauth2_la_SOURCES = auth2.server.c auth2.h
 
 AM_CPPFLAGS = -I$(top_srcdir)/lib-src/base \
 	      -I$(top_srcdir)/coda-src/kerndep \
@@ -63,8 +59,4 @@ LDADD = $(LIBAUSER)
 tokentool_LDADD = $(LIBAUTH2)
 auth2_LDADD = $(LIBAUTH2)
 initpw_LDADD = $(LIBBASE)
-
-SUFFIXES = .rpc2 .client.c .server.c .multi.c
-.rpc2.client.c .rpc2.server.c .rpc2.multi.c .rpc2.print.c .rpc2.h:
-	$(RP2GEN) $<
 
