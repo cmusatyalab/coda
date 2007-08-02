@@ -158,6 +158,7 @@ AM_CONDITIONAL(WANT_KRB4, test -n "$LIBKRB4")
 AM_CONDITIONAL(WANT_KRB5, test -n "$LIBKRB5")
 
 AC_OUTPUT(Makefile coda_config.h
+configs/Makefile
 debian/Makefile
 debian/changelog
 tools/Makefile
