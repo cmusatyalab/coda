@@ -42,7 +42,9 @@ nodist_libauth2_la_SOURCES = auth2.server.c auth2.h
 AM_CPPFLAGS = -I$(top_srcdir)/lib-src/base \
 	      -I$(top_srcdir)/coda-src/kerndep \
 	      -I$(top_srcdir)/coda-src/util \
-	      -I$(top_srcdir)/coda-src/al
+	      -I$(top_srcdir)/coda-src/al \
+	      -DCODAAUTH
+
 
 libauser_la_LIBADD = $(LIBKRB)
 libauth2_la_LIBADD = $(LIBKRB)
