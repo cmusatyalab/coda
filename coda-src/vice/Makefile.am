@@ -47,7 +47,7 @@ codasrv_LDADD = libviceerror.la \
 		$(top_builddir)/coda-src/util/libutil.la \
 		$(top_builddir)/lib-src/rwcdb/librwcdb.la \
 		$(top_builddir)/lib-src/base/libbase.la \
-		$(LIBRVM) $(LIBRPC2) $(LIBLWP)
+		$(LIBRVM) $(LIBRPC2) $(LIBLWP) $(LIBKVM)
 
 printvrdb_LDADD = $(top_builddir)/coda-src/util/libutil.la \
 		  $(top_builddir)/lib-src/base/libbase.la

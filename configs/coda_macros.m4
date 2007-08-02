@@ -296,7 +296,6 @@ AC_DEFUN([CODA_CHECK_READLINE],
 dnl -----------------
 dnl Looks for the fltk library
 dnl 
-
 AC_SUBST(FLTKFLAGS)
 AC_SUBST(FLTKLIBS)
 AC_DEFUN([CODA_CHECK_FLTK],
@@ -321,3 +320,15 @@ AC_DEFUN([CODA_CHECK_FLTK],
    else
      AC_MSG_RESULT([ couldn't find suitable libfltk])
    fi])
+
+
+dnl -----------------
+dnl Looks for the libkvm library (for FreeBSD/NetBSD)
+dnl 
+AC_SUBST(LIBKVM)
+AC_DEFUN([CODA_CHECK_LIBKVM],
+  [CODA_FIND_LIB(kvm, [], kvm_openfiles())
+  if test "${coda_cv_path_kvm}" != none ; then
+    LIBKVM="-lkvm"
+  fi])
+
