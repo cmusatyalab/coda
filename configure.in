@@ -193,6 +193,7 @@ coda-src/repair/Makefile
 coda-src/resolution/Makefile
 coda-src/volutil/Makefile
 coda-src/vtools/Makefile
+coda-src/vtools/gcodacon
 coda-src/vice/Makefile
 coda-src/update/Makefile
 coda-src/norton/Makefile

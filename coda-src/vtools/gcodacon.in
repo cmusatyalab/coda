@@ -16,8 +16,9 @@
 import pygtk
 pygtk.require('2.0')
 import gtk, gobject
-import socket, re
+import os, socket, re
 
+venus_conf=os.path.join('@sysconfdirx@', 'venus.conf')
 dirty_threshold=100 # At what point do we start to worry about pending changes
 
 ##########################################################################
@@ -225,7 +226,7 @@ class MarinerListener:
 	self.debug = debug
 
 	if not self.use_tcp:
-	    venusconf = parse_codaconf('/etc/coda/venus.conf')
+	    venusconf = parse_codaconf(venus_conf)
 	    mariner = venusconf.get("marinersocket", "/usr/coda/spool/mariner")
 	    self.addrs = [(socket.AF_UNIX, socket.SOCK_STREAM, 0, 0, mariner)]
 	else:
