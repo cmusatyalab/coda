@@ -35,7 +35,7 @@ cfs_LDADD = $(top_builddir)/coda-src/vv/libvv.la \
 
 cmon_LDADD = $(top_builddir)/coda-src/vicedep/libvenusdep.la \
 	     $(top_builddir)/lib-src/base/libbase.la \
-	     -lncurses -lrpc2 -lse $(LIBLWP)
+	     $(LIBCURSES) -lrpc2 -lse $(LIBLWP)
 
 hoard_LDADD = $(top_builddir)/coda-src/util/libutil.la \
 	      $(top_builddir)/coda-src/kerndep/libkerndep.la \
