@@ -27,9 +27,6 @@ CODA_OPTION_LWP_PT
 
 CODA_PROG_NATIVECC
 
-dnl Now we can derive things like systype/cputype/initdir
-m4_include(configs/codaconf.m4)
-
 AC_PROG_CPP
 AC_PROG_CXXCPP
 AC_CHECK_PROG(AR, ar, ar)
@@ -40,6 +37,10 @@ AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 AC_PROG_LIBTOOL
 AC_PROG_AWK
+
+dnl Now we can derive things like systype/cputype/initdir
+m4_include(configs/codaconf.m4)
+
 AC_PATH_PROG(CP, cp, "")
 AC_PATH_PROG(DF, df, "")
 AC_PATH_PROG(GREP, grep, "")
