@@ -65,13 +65,12 @@ AC_DEFUN([CODA_CHECK_LIBTERMCAP],
 dnl Check for a curses library, and if it needs termcap
 AC_SUBST(LIBCURSES)
 AC_DEFUN([CODA_CHECK_LIBCURSES],
-  if test "$target" != "i386-pc-cygwin32" ; then
-    AC_CHECK_LIB(ncurses, main, [LIBCURSES="-lncurses"],
+  AC_CHECK_LIB(ncurses, main, [LIBCURSES="-lncurses"],
 	[AC_CHECK_LIB(curses, main, [LIBCURSES="-lcurses"],
 	    [AC_MSG_ERROR("failed to find curses library")
 	    ], $LIBTERMCAP)
 	], $LIBTERMCAP)
-    AC_CACHE_CHECK([if curses library requires -ltermcap],
+  AC_CACHE_CHECK([if curses library requires -ltermcap],
 	coda_cv_curses_needs_termcap,
 	[coda_save_LIBS="$LIBS"
 	LIBS="$LIBCURSES $LIBS"
@@ -79,9 +78,8 @@ AC_DEFUN([CODA_CHECK_LIBCURSES],
 	coda_cv_curses_needs_termcap=no,
 	coda_cv_curses_needs_termcap=yes)
 	LIBS="$coda_save_LIBS"])
-    if test $coda_cv_curses_needs_termcap = yes; then
+  if test $coda_cv_curses_needs_termcap = yes; then
 	LIBCURSES="$LIBCURSES $LIBTERMCAP"
-    fi
   fi)
 
 
@@ -299,8 +297,8 @@ dnl
 AC_SUBST(FLTKFLAGS)
 AC_SUBST(FLTKLIBS)
 AC_DEFUN([CODA_CHECK_FLTK],
-  [case $target in
-   *pc-cygwin*)
+  [case $host_os in
+   cygwin*)
      FLTKFLAGS="-fno-exceptions -mwindows"
      FLTKLIBS="-lole32 -luuid -lcomctl32 -lwsock32"
      ;;
