@@ -15,6 +15,7 @@ EXTRA_DIST = vcodacon.fl
 CLEANFILES = $(BUILT_SOURCES)
 
 AM_CPPFLAGS = -I$(top_srcdir)/lib-src/base -DDEBUG $(FLTKFLAGS)
+AM_LDFLAGS = $(FLTKFLAGS)
 LDADD = $(top_builddir)/lib-src/base/libbase.la $(FLTKLIBS)
 
 vcodacon.cc vcodacon.h: vcodacon.fl
