@@ -268,7 +268,12 @@ class MarinerListener:
 	    self.__reconnect()
 	    return False
 
-	self.buf += fd.recv(8192)
+	data = fd.recv(8192)
+	if not data:
+	    self.__reconnect()
+	    return False
+
+	self.buf += data
 	while self.buf:
 	    try:
 		line, self.buf = self.buf.split('\n', 1)
