@@ -157,15 +157,15 @@ NO_MARINER = \
 State(desc="Unable to communicate with venus",
       cmap = { circle : black, server : black, top : black, topedge : black })
 
-State(desc="Need token to reintegrate",
+State(desc="Need token to reintegrate, %(cmls)d operations pending",
       test=lambda cmls,flags: cmls and 'unauth' in flags,
       cmap = { circle : lred, server : yellow })
 
-State(desc="Conflict detected",
+State(desc="Conflict detected, %(cmls)d operations pending",
       test=lambda cmls,flags: 'conflict' in flags,
       cmap = { circle : lred, server : dred })
 
-State(desc="Application Specific Resolver active",
+State(desc="Application Specific Resolver active, %(cmls)d operations pending",
       test=lambda cmls,flags: 'asr' in flags,
       cmap = { circle : yellow, server : orange })
 
@@ -173,25 +173,25 @@ State(desc="Servers unreachable, unable to reintegrate",
       test=lambda cmls,flags: cmls and 'unreachable' in flags,
       cmap = { circle : black, server : orange })
 
-State(desc="More than %d pending operations" % dirty_threshold,
+State(desc="%(cmls)d pending operations",
       test=lambda cmls,flags: cmls > dirty_threshold and \
 	not 'resolve' in flags and not 'reint' in flags,
       cmap = { circle : transp, server : orange })
 
-State(desc="Resolving",
+State(desc="Resolving, %(cmls)d operations pending",
       test=lambda cmls,flags: 'resolve' in flags,
       cmap = { circle : orange, server : dgreen })
 
-State(desc="Reintegrating",
+State(desc="Reintegrating, %(cmls)d operations remaining",
       test=lambda cmls,flags: 'reint' in flags,
       cmap = { circle : lgreen, server : dgreen })
 
 UNREACH = \
-State(desc="Servers unreachable",
+State(desc="Servers unreachable, %(cmls)d operations pending",
       test=lambda cmls,flags: 'unreachable' in flags,
       cmap = { circle : black, server : white })
 
-State(desc="Pending operations",
+State(desc="%(cmls)d pending operations",
       test=lambda cmls,flags: cmls,
       cmap = { circle : transp, server : dgreen })
 
@@ -311,7 +311,7 @@ class About(gtk.AboutDialog):
 # wrapper around ListStore to provide transparent State -> state_idx mapping
 class VolumeList(gtk.ListStore):
     def __init__(self):
-	gtk.ListStore.__init__(self, str, int)
+	gtk.ListStore.__init__(self, str, int, int)
 	self.set_sort_column_id(1, gtk.SORT_ASCENDING)
 
     def __get(self, volname):
@@ -320,11 +320,13 @@ class VolumeList(gtk.ListStore):
 		return row
 	raise KeyError
 
-    def __setitem__(self, volname, value):
+    def __setitem__(self, volname, state, cmls):
 	try:
-	    self.__get(volname)[1] = value
+	    row = self.__get(volname)
+	    row[1] = state
+	    row[2] = cmls
 	except KeyError:
-	    self.append([volname, value])
+	    self.append([volname, state, cmls])
 
     def __getitem__(self, volname):
 	return STATES[self.__get(volname)[1]]
@@ -339,13 +341,16 @@ class VolumeList(gtk.ListStore):
     def update(self, volname, cmls, flags):
 	for idx, state in enumerate(STATES):
 	    if state.test and state.test(cmls, flags):
-		self.__setitem__(volname, idx)
+		self.__setitem__(volname, idx, cmls)
 		break
 
     def first(self):
 	iter = self.get_iter_first()
 	if not iter: return CLEAN
 	return STATES[self.get_value(iter, 1)]
+
+    def cmls(self):
+	return reduce(lambda x,y:x+y, [ row[2] for row in self ])
 
 ##########################################################################
 # scrolled treeview widget to present the list of volumes and states
@@ -384,7 +389,8 @@ class VolumeView(gtk.TreeView):
 
 	def update_desc(column, cell, store, iter, arg=None):
 	    state = STATES[store.get_value(iter, 1)]
-	    cell.set_property('text', state.desc)
+	    cmls = store.get_value(iter, 2)
+	    cell.set_property('text', state.desc  % {'cmls' : cmls})
 
 	cell = gtk.CellRendererText()
 	column = gtk.TreeViewColumn('State', cell)
@@ -487,8 +493,8 @@ class App(MarinerListener):
 	self.vols.update(vol, int(cmls), flags)
 
     def data_done(self):
-	sysstate = self.vols.first()
-	self.tray_set_state(sysstate)
+	sysstate, cmls = self.vols.first(), self.vols.cmls()
+	self.tray_set_state(sysstate, cmls)
 
     # callbacks for gtk events
     def toggle_filter(self, widget):
@@ -506,12 +512,11 @@ class App(MarinerListener):
 	widget.hide()
 	return self.tray.is_embedded()
 
-    def tray_set_state(self, state):
-	if self.state == state:
-	    return
-	self.state = state
-	self.tray.set_from_pixbuf(state.image)
-	self.tray.set_tooltip(state.desc)
+    def tray_set_state(self, state, cmls=0):
+	if self.state != state:
+	    self.state = state
+	    self.tray.set_from_pixbuf(state.image)
+	self.tray.set_tooltip(state.desc % {'cmls' : cmls})
 
     def tray_activate(self, *args):
 	#if not self.window.get_property('visible'):
