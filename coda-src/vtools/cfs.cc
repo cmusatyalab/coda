@@ -1219,11 +1219,7 @@ static int pioctl_GetFid(char *path, ViceFid *fid, char *realm, ViceVersionVecto
     vio.out = (char *)&out;
     vio.out_size = sizeof(out);
 
-#ifdef __CYGWIN32__
-    rc = pioctl(path, 8972, &vio, 0);
-#else
     rc = pioctl(path, _VICEIOCTL(_VIOC_GETFID), &vio, 0);
-#endif
 
     if (rc < 0) return rc;
 
@@ -1321,12 +1317,8 @@ static int pioctl_SetVV(char *path, ViceVersionVector *vv)
     vio.in_size = sizeof(ViceVersionVector);
     vio.out = 0;
     vio.out_size = 0;
-
-#ifdef __CYGWIN32__
-    rc = pioctl(path, 8974, &vio, 0);
-#else
     rc = pioctl(path, _VICEIOCTL(_VIOC_SETVV), &vio, 0);
-#endif
+
     return rc;
 }
 
