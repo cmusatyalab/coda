@@ -158,15 +158,15 @@ NO_MARINER = \
 State(desc="Unable to communicate with venus",
       cmap = { circle : black, server : black, top : black, topedge : black })
 
-State(desc="Need token to reintegrate, %(cmls)d operations pending",
+State(desc="%(cmls)d operations pending: Need token to reintegrate",
       test=lambda cmls,flags: cmls and 'unauth' in flags,
       cmap = { circle : lred, server : yellow })
 
-State(desc="Conflict detected, %(cmls)d operations pending",
+State(desc="%(cmls)d operations pending: Conflict detected",
       test=lambda cmls,flags: 'conflict' in flags,
       cmap = { circle : lred, server : dred })
 
-State(desc="Application Specific Resolver active, %(cmls)d operations pending",
+State(desc="%(cmls)d operations pending: Application Specific Resolver active",
       test=lambda cmls,flags: 'asr' in flags,
       cmap = { circle : yellow, server : orange })
 
@@ -174,25 +174,25 @@ State(desc="Servers unreachable, unable to reintegrate",
       test=lambda cmls,flags: cmls and 'unreachable' in flags,
       cmap = { circle : black, server : orange })
 
-State(desc="%(cmls)d pending operations",
+State(desc="%(cmls)d operations pending",
       test=lambda cmls,flags: cmls > dirty_threshold and \
 	not 'resolve' in flags and not 'reint' in flags,
       cmap = { circle : transp, server : orange })
 
-State(desc="Resolving, %(cmls)d operations pending",
+State(desc="%(cmls)d operations pending: Resolving",
       test=lambda cmls,flags: 'resolve' in flags,
       cmap = { circle : orange, server : dgreen })
 
-State(desc="Reintegrating, %(cmls)d operations remaining",
+State(desc="%(cmls)d operations pending: Reintegrating",
       test=lambda cmls,flags: 'reint' in flags,
       cmap = { circle : lgreen, server : dgreen })
 
 UNREACH = \
-State(desc="Servers unreachable, %(cmls)d operations pending",
+State(desc="%(cmls)d operations pending: Servers unreachable",
       test=lambda cmls,flags: 'unreachable' in flags,
       cmap = { circle : black, server : white })
 
-State(desc="%(cmls)d pending operations",
+State(desc="%(cmls)d operations pending",
       test=lambda cmls,flags: cmls,
       cmap = { circle : transp, server : dgreen })
 
