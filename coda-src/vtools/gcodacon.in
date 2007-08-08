@@ -15,6 +15,7 @@
 
 import pygtk
 pygtk.require('2.0')
+import pynotify
 import gtk, gobject
 import os, socket, re
 
@@ -461,6 +462,13 @@ class App(MarinerListener):
 			  self.menu.popup(None, None, None, button, time))
 	self.tray.set_visible(1)
 
+        pynotify.init("Coda Status")
+        self.notification = pynotify.Notification("Coda Status",
+                                                  None,
+                                                  None,
+                                                  None)
+        self.notification.attach_to_status_icon(self.tray)
+
 	self.test_idx = 0
 	if options.test:
 	    self.connected()
@@ -517,6 +525,9 @@ class App(MarinerListener):
 	    self.state = state
 	    self.tray.set_from_pixbuf(state.image)
 	self.tray.set_tooltip(state.desc % {'cmls' : cmls})
+	self.notification.update("Coda Status",
+                                 state.desc % {'cmls' : cmls})
+	self.notification.show()
 
     def tray_activate(self, *args):
 	#if not self.window.get_property('visible'):
