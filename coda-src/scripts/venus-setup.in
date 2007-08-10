@@ -192,9 +192,9 @@ if [ $OS = CYGWI ]; then
 
   # setup the drive mapping
 
-  rm -rf $mountpoint  
+  rm -rf /coda
 
-  ln -s /cygdrive/$MOUNTPOINT $mountpoint
+  ln -s /cygdrive/$MOUNTPOINT /coda
 
   @sbindir@/codaconfedit venus.conf mapprivate 0
   @sbindir@/codaconfedit venus.conf mountpoint $MOUNTPOINT:
