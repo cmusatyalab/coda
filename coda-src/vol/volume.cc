@@ -321,10 +321,12 @@ void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage)
 		VLog(0, "Forcing Volume %x Offline", header.id);
 		VForceOffline(vp);
 	    } else {
-		/* initialize the RVM log vm structures */
-		V_VolLog(vp)->ResetTransients(V_id(vp));
-		extern olist ResStatsList;
-		ResStatsList.insert((olink *)V_VolLog(vp)->vmrstats);
+		if (V_type(vp) == readwriteVolume) {
+		    /* initialize the RVM log vm structures */
+		    V_VolLog(vp)->ResetTransients(V_id(vp));
+		    extern olist ResStatsList;
+		    ResStatsList.insert((olink *)V_VolLog(vp)->vmrstats);
+		}
 	    }
 	    VPutVolume(vp);
 	}
