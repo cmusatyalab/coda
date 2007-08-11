@@ -192,14 +192,8 @@ EXIT_MRPC(long code, int HowMany, RPC2_Integer *RCList, MultiCon *mcon)
     /* copy arguments into the return code lists, possibly translating 
        error codes */
     if (RCList) {
-	for (i = 0; i < HowMany; i++ ) {
-	    RPC2_Integer rc;
-	    rc = mcon[i].retcode;
-#ifdef ERRORTR
-	    rc = RPC2_R2SError(rc);
-#endif 
-	    RCList[i] = rc;
-	}
+	for (i = 0; i < HowMany; i++ )
+	    RCList[i] = mcon[i].retcode;
     }
 
     FreeMultiCon(HowMany, mcon);

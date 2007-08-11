@@ -733,6 +733,10 @@ static void HandleCurrentReply(RPC2_PacketBuffer *pb, struct CEntry *ce)
 		return;
 
 	pb = ShrinkPacket(pb);
+
+	/* convert rpc2 error value to system errno */
+	pb->Header.ReturnCode = RPC2_R2SError(pb->Header.ReturnCode);
+
 	rpc2_UpdateRTT(pb, ce);
 	rpc2_Recvd.GoodReplies++;
 	sl = ce->MySl;

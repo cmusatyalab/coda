@@ -195,7 +195,8 @@ long RPC2_SendResponse(IN RPC2_Handle ConnHandle, IN RPC2_PacketBuffer *Reply)
 
     rc = preply->Header.ReturnCode; /* InitPacket clobbers it */
     rpc2_InitPacket(preply, ce, preply->Header.BodyLength);
-    preply->Header.ReturnCode = rc;
+    /* convert system to on the wire error value */
+    preply->Header.ReturnCode = RPC2_S2RError(rc);
     preply->Header.Opcode = RPC2_REPLY;
     preply->Header.SeqNumber = ce->NextSeqNumber-1;
 			/* SocketListener has already updated NextSeqNumber */
