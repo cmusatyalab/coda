@@ -1,3 +1,7 @@
+New in 2.6.1:
+
+* Error values were not correctly translated.
+
 New in 2.6:
 
 * Fail when configure cannot find a usable LEX or YACC binary.
