@@ -15,9 +15,19 @@
 
 import pygtk
 pygtk.require('2.0')
-import pynotify
 import gtk, gobject
 import os, socket, re
+
+try:
+    from pynotify import Notification, init as notify_init, \
+	URGENCY_LOW, URGENCY_NORMAL, URGENCY_CRITICAL
+    if not notify_init("GCodacon"):
+	print "*** failed to initialize pynotify"
+	Notification = None
+except ImportError:
+    print "*** failed to import pynotify"
+    Notification = None
+    URGENCY_LOW, URGENCY_NORMAL, URGENCY_CRITICAL = 0, 1, 2
 
 venus_conf=os.path.join('@sysconfdirx@', 'venus.conf')
 dirty_threshold=100 # At what point do we start to worry about pending changes
@@ -140,13 +150,14 @@ ICON_XPM_DATA = [
 # the first where 'test' returns true.
 STATES = []
 class State: # really used as a 'struct' to hold all state specific data
-    def __init__(self, desc, cmap={}, test=None):
+    def __init__(self, desc, urgency, cmap={}, test=None):
 	colormap = ICON_XPM_COLORMAP.copy()
 	colormap.update(cmap)
 	xpm_hdr = ["64 64 6 1"] + map(lambda c: "%s\tc %s" %c, colormap.items())
 	image = gtk.gdk.pixbuf_new_from_xpm_data(xpm_hdr + ICON_XPM_DATA)
 
 	self.desc = desc
+	self.urgency = urgency
 	self.image = image
 	self.icon = image.scale_simple(24, 24, gtk.gdk.INTERP_HYPER)
 	self.test = test
@@ -156,48 +167,59 @@ class State: # really used as a 'struct' to hold all state specific data
 # Actual states follow
 NO_MARINER = \
 State(desc="Unable to communicate with venus",
+      urgency=URGENCY_CRITICAL,
       cmap = { circle : black, server : black, top : black, topedge : black })
 
-State(desc="%(cmls)d operations pending: Need token to reintegrate",
+State(desc="%(cmls)d operations pending: Not authenticated",
+      urgency=URGENCY_CRITICAL,
       test=lambda cmls,flags: cmls and 'unauth' in flags,
       cmap = { circle : lred, server : yellow })
 
 State(desc="%(cmls)d operations pending: Conflict detected",
+      urgency=URGENCY_CRITICAL,
       test=lambda cmls,flags: 'conflict' in flags,
       cmap = { circle : lred, server : dred })
 
-State(desc="%(cmls)d operations pending: Application Specific Resolver active",
-      test=lambda cmls,flags: 'asr' in flags,
-      cmap = { circle : yellow, server : orange })
-
-State(desc="Servers unreachable, unable to reintegrate",
+State(desc="%(cmls)d operations pending: Servers unreachable",
+      urgency=URGENCY_CRITICAL,
       test=lambda cmls,flags: cmls and 'unreachable' in flags,
       cmap = { circle : black, server : orange })
 
+State(desc="%(cmls)d operations pending: Application Specific Resolver active",
+      urgency=URGENCY_NORMAL,
+      test=lambda cmls,flags: 'asr' in flags,
+      cmap = { circle : yellow, server : orange })
+
 State(desc="%(cmls)d operations pending",
+      urgency=URGENCY_NORMAL,
       test=lambda cmls,flags: cmls > dirty_threshold and \
 	not 'resolve' in flags and not 'reint' in flags,
       cmap = { circle : transp, server : orange })
 
+UNREACH = \
+State(desc="Servers unreachable",
+      urgency=URGENCY_NORMAL,
+      test=lambda cmls,flags: 'unreachable' in flags,
+      cmap = { circle : black, server : white })
+
 State(desc="%(cmls)d operations pending: Resolving",
+      urgency=URGENCY_NORMAL,
       test=lambda cmls,flags: 'resolve' in flags,
       cmap = { circle : orange, server : dgreen })
 
 State(desc="%(cmls)d operations pending: Reintegrating",
+      urgency=URGENCY_LOW,
       test=lambda cmls,flags: 'reint' in flags,
       cmap = { circle : lgreen, server : dgreen })
 
-UNREACH = \
-State(desc="%(cmls)d operations pending: Servers unreachable",
-      test=lambda cmls,flags: 'unreachable' in flags,
-      cmap = { circle : black, server : white })
-
 State(desc="%(cmls)d operations pending",
+      urgency=URGENCY_LOW,
       test=lambda cmls,flags: cmls,
       cmap = { circle : transp, server : dgreen })
 
 CLEAN = \
 State(desc="No local changes",
+      urgency=URGENCY_LOW,
       test=lambda cmls,flags: 1)
 
 ##########################################################################
@@ -406,9 +428,51 @@ class VolumeView(gtk.TreeView):
 	self.set_search_column(0)
 	self.set_search_equal_func(search)
 
+class GlobalState:
+    def __init__(self, window, menu):
+	self.state = None
+	self.window = window
+	self.tray = gtk.StatusIcon()
+	self.tray.connect("activate", self.activate)
+	self.tray.connect("popup_menu", lambda icon, button, time:
+			  menu.popup(None, None, None, button, time))
+	self.tray.set_visible(1)
+
+	if Notification:
+	    self.notification = Notification("Coda Status")
+	    try: self.notification.attach_to_status_icon(self.tray)
+	    except AttributeError: pass
+	else:
+	    self.notification = None
+
+    def set_state(self, state, cmls=0):
+	if self.state != state:
+	    self.state = state
+	    self.tray.set_from_pixbuf(state.image)
+	elif self.cmls == cmls:
+	    return
+
+	self.cmls = cmls
+	self.tray.set_tooltip(state.desc % {'cmls' : cmls})
+
+	if not self.notification: return
+
+	self.notification.update("Coda Status", state.desc % {'cmls' : cmls})
+	self.notification.set_urgency(state.urgency)
+	# catch errors if notification-daemon is not running
+	try: self.notification.show()
+	except gobject.GError: pass
+
+    def activate(self, *args):
+	#if not self.window.get_property('visible'):
+	if not self.window.is_active():
+	      self.window.present()
+	else: self.window.hide()
+	return True
+
+
 class App(MarinerListener):
     def __init__(self, options):
-	self.state = None
 	self.buf = ''
 	self.hide = 0
 
@@ -432,9 +496,9 @@ class App(MarinerListener):
 	scrolled = gtk.ScrolledWindow()
 	scrolled.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
 	scrolled.add(self.treeview)
+	scrolled.show_all()
 
 	self.window.add(scrolled)
-	self.window.show_all()
 
 	self.menu = gtk.Menu()
 	item = gtk.CheckMenuItem(label="Show only dirty volumes")
@@ -456,18 +520,7 @@ class App(MarinerListener):
 	self.menu.append(item)
 	item.show()
 
-	self.tray = gtk.StatusIcon()
-	self.tray.connect("activate", self.tray_activate)
-	self.tray.connect("popup_menu", lambda icon, button, time:
-			  self.menu.popup(None, None, None, button, time))
-	self.tray.set_visible(1)
-
-        pynotify.init("Coda Status")
-        self.notification = pynotify.Notification("Coda Status",
-                                                  None,
-                                                  None,
-                                                  None)
-        self.notification.attach_to_status_icon(self.tray)
+	self.status = GlobalState(self.window, self.menu)
 
 	self.test_idx = 0
 	if options.test:
@@ -476,9 +529,17 @@ class App(MarinerListener):
 	else:
 	    MarinerListener.__init__(self, options.use_tcp, options.debug)
 
+	# allow the statusicon to get embedded into the systray/panel
+	gobject.timeout_add(1000, self.window_show)
+
+    def window_show(self, *args):
+	if not self.status.tray.is_embedded():
+	    self.window.show()
+	return False
+
     def test(self):
 	try:
-	    self.tray_set_state(STATES[self.test_idx])
+	    self.status.set_state(STATES[self.test_idx])
 	    self.test_idx = self.test_idx + 1
 	except IndexError:
 	    self.test_idx = 0
@@ -486,10 +547,10 @@ class App(MarinerListener):
 
     # MarinerListener callbacks
     def connected(self):
-	self.tray_set_state(CLEAN)
+	self.status.set_state(CLEAN)
 
     def disconnected(self):
-	self.tray_set_state(NO_MARINER)
+	self.status.set_state(NO_MARINER)
 
     def data_ready(self, line):
 	m = re.match('^volstate::(.*) ([^ ]*) (\d+)(.*)$', line)
@@ -502,7 +563,7 @@ class App(MarinerListener):
 
     def data_done(self):
 	sysstate, cmls = self.vols.first(), self.vols.cmls()
-	self.tray_set_state(sysstate, cmls)
+	self.status.set_state(sysstate, cmls)
 
     # callbacks for gtk events
     def toggle_filter(self, widget):
@@ -518,22 +579,7 @@ class App(MarinerListener):
 
     def delete_event(self, widget, event=None, user_data=None):
 	widget.hide()
-	return self.tray.is_embedded()
-
-    def tray_set_state(self, state, cmls=0):
-	if self.state != state:
-	    self.state = state
-	    self.tray.set_from_pixbuf(state.image)
-	self.tray.set_tooltip(state.desc % {'cmls' : cmls})
-	self.notification.update("Coda Status",
-                                 state.desc % {'cmls' : cmls})
-	self.notification.show()
-
-    def tray_activate(self, *args):
-	#if not self.window.get_property('visible'):
-	if not self.window.is_active():
-	      self.window.present()
-	else: self.window.hide()
+	return self.status.tray.is_embedded()
 
 if __name__ == '__main__':
     from optparse import OptionParser
@@ -548,6 +594,9 @@ if __name__ == '__main__':
 
     options, args = parser.parse_args()
 
-    app = App(options)
-    gtk.main()
+    try:
+	app = App(options)
+	gtk.main()
+    except KeyboardInterrupt:
+	pass
 
