@@ -414,7 +414,8 @@ void RPC2_UpdateEstimates(struct HEntry *host, RPC2_Unsigned elapsed_us,
     LUA_rtt_update(host, elapsed_us, OutBytes, InBytes);
 }
 
-static uint32_t rpc2_GetRTO(struct HEntry *he, uint32_t outb, uint32_t inb)
+static uint32_t rpc2_GetRTO(struct HEntry *he, uint32_t outb, uint32_t inb,
+			    int sftp)
 {
     uint32_t rto, rtt_lat, rtt_in, rtt_out, rttvar;
 
@@ -431,7 +432,7 @@ static uint32_t rpc2_GetRTO(struct HEntry *he, uint32_t outb, uint32_t inb)
 }
 
 int rpc2_RetryInterval(struct CEntry *ce, int retry, struct timeval *tv,
-		       RPC2_Unsigned OutBytes, RPC2_Unsigned InBytes)
+		       RPC2_Unsigned OutBytes, RPC2_Unsigned InBytes, int sftp)
 {
     uint32_t rto, maxrtt;
     int i = 0;
@@ -447,7 +448,7 @@ int rpc2_RetryInterval(struct CEntry *ce, int retry, struct timeval *tv,
     /* calculate the estimated RTT */
     rto = LUA_rtt_retryinterval(ce->HostInfo, retry, OutBytes, InBytes);
     if (rto == 0) {
-	rto = rpc2_GetRTO(ce->HostInfo, OutBytes, InBytes);
+	rto = rpc2_GetRTO(ce->HostInfo, OutBytes, InBytes, sftp);
 
 	if (retry) {
 	    maxrtt = ce->KeepAlive.tv_sec * 1000000 + ce->KeepAlive.tv_usec;
@@ -464,7 +465,8 @@ int rpc2_RetryInterval(struct CEntry *ce, int retry, struct timeval *tv,
     }
 
     /* account for server processing overhead */
-    rto += RPC2_DELACK_DELAY;
+    if (!sftp)
+	rto += RPC2_DELACK_DELAY;
 
     /* clamp retry estimate */
     /* we shouldn't need a lower bound because we already account for the

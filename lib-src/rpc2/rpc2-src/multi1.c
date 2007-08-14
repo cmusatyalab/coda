@@ -505,7 +505,7 @@ static long mrpc_SendPacketsReliably(
 	/* XXX we should have the size of the expected reply packet */
 	rc = rpc2_RetryInterval(mcon[thispacket].ceaddr, 0, &slp->RInterval,
 				mcon[thispacket].req->Prefix.LengthOfPacket,
-				sizeof(struct RPC2_PacketHeader));
+				sizeof(struct RPC2_PacketHeader), 0);
 	assert(rc == 0);
 	rpc2_ActivateSle(slp, &slp->RInterval);
 
@@ -631,7 +631,7 @@ static long mrpc_SendPacketsReliably(
 		    rc = rpc2_RetryInterval(c_entry, slp->RetryIndex,
 					    &slp->RInterval,
 				    mcon[thispacket].req->Prefix.LengthOfPacket,
-					    sizeof(struct RPC2_PacketHeader));
+					   sizeof(struct RPC2_PacketHeader), 0);
 
 		    if (rc) {
 			say(9, RPC2_DebugLevel, "Request failed on 0x%p\n", c_entry);

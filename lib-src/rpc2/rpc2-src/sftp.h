@@ -439,6 +439,10 @@ extern long SFTP_MaxPackets;
 #define BYFDFILE(s) (s->Value.SmartFTPD.Tag == FILEBYFD)
 
 /* test if we can send an TimeEcho reponse */
+#ifdef VERY_FAST_SERVERS
 #define VALID_TIMEECHO(se) (!(se)->Retransmitting && \
 			     (se)->TimeEcho != 0 && \
 			     (se)->RequestTime != 0)
+#else
+#define VALID_TIMEECHO(se) (!(se)->Retransmitting && (se)->TimeEcho != 0)
+#endif

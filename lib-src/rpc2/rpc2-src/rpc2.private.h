@@ -527,7 +527,7 @@ void rpc2_ClearHostLog(struct HEntry *whichHost, NetLogEntryType type);
 void RPC2_UpdateEstimates(struct HEntry *whichHost, RPC2_Unsigned ElapsedTime,
 			  RPC2_Unsigned InBytes, RPC2_Unsigned OutBytes);
 int rpc2_RetryInterval(struct CEntry *ce, int retry, struct timeval *tv,
-		       RPC2_Unsigned OutBytes, RPC2_Unsigned InBytes);
+		       RPC2_Unsigned OutBytes, RPC2_Unsigned InBytes, int sftp);
 
 /* Multicast group manipulation routines */
 void rpc2_InitMgrp(), rpc2_FreeMgrp(), rpc2_RemoveFromMgrp(), rpc2_DeleteMgrp();

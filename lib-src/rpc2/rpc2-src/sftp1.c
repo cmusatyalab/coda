@@ -122,7 +122,7 @@ void SFTP_SetDefaults(initPtr)
     initPtr->AckPoint = SFTP_DEFSENDAHEAD;    /* same as SendAhead */
     initPtr->EnforceQuota = 0;
     initPtr->DoPiggy = TRUE;
-    initPtr->DupThreshold = 16;
+    initPtr->DupThreshold = 4;
     initPtr->MaxPackets = -1;
     initPtr->Port.Tag = RPC2_PORTBYINETNUMBER;
     initPtr->Port.Value.InetPortNumber = htons(0);
@@ -829,8 +829,7 @@ static long PutFile(struct SFTP_Entry *sEntry)
 	sftp_SetError(sEntry, ERROR);
 	QUIT(sEntry, SE_FAILURE, RPC2_SEFAIL2);
 GotAck:
-	if (i == 1) /* got an ack on the first try. allow RTT updates now */
-	    sEntry->Retransmitting = FALSE;
+	sEntry->Retransmitting = FALSE;
 
 	switch ((int) pb->Header.Opcode) {
 	case SFTP_NAK:
@@ -871,7 +870,7 @@ static RPC2_PacketBuffer *AwaitPacket(struct SFTP_Entry *sEntry, int retry,
     }
 
     ce = rpc2_GetConn(sEntry->LocalHandle);
-    rc = rpc2_RetryInterval(ce, retry, &sl->RInterval, outbytes, inbytes);
+    rc = rpc2_RetryInterval(ce, retry, &sl->RInterval, outbytes, inbytes, 1);
     if (rc) { sl->ReturnCode = 0; return NULL; }
 
     sEntry->Sleeper = sl;
