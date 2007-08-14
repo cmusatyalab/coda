@@ -16,7 +16,10 @@
 import pygtk
 pygtk.require('2.0')
 import gtk, gobject
-import os, socket, re
+import os, socket, re, time
+
+# send no more than 20 updates per second to the notification daemon
+NOTIFICATION_INTERVAL = 0.05
 
 try:
     from pynotify import Notification, init as notify_init, \
@@ -431,6 +434,7 @@ class VolumeView(gtk.TreeView):
 class GlobalState:
     def __init__(self, activate, menu):
 	self.popups = 1
+	self.next_notification = time.time() + NOTIFICATION_INTERVAL
 	self.state = self.tray = self.notification = None
 	if hasattr(gtk, "StatusIcon"):
 	    self.tray = gtk.StatusIcon()
@@ -465,6 +469,10 @@ class GlobalState:
 	    self.tray.set_tooltip(desc)
 
 	if self.notification and self.popups:
+	    now = time.time()
+	    if now < self.next_notification: return
+	    self.next_notification = now + NOTIFICATION_INTERVAL
+
 	    self.notification.update("Coda Status", desc)
 	    self.notification.set_urgency(state.urgency)
 	    # catch errors when notification-daemon is not running
