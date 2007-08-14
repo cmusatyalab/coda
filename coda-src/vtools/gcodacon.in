@@ -356,7 +356,7 @@ class VolumeList(gtk.ListStore):
 
     def __delitem__(self, volname):
 	row = self.__get(volname)
-	del row
+	self.remove(row.iter)
 
     def values(self):
 	return [ STATES(row[1]) for row in self ]
@@ -557,9 +557,12 @@ class App(MarinerListener):
 	if not m: return
 
 	vol, volstate, cmls, flags = m.groups()
-	flags = flags.split()
-	flags.append(volstate)
-	self.vols.update(vol, int(cmls), flags)
+	if volstate != 'deleted':
+	    flags = flags.split()
+	    flags.append(volstate)
+	    self.vols.update(vol, int(cmls), flags)
+	else:
+	    self.vols.__delitem__(vol)
 
     def data_done(self):
 	sysstate, cmls = self.vols.first(), self.vols.cmls()

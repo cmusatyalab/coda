@@ -584,6 +584,8 @@ int vdb::Get(volent **vpp, Realm *prealm, const char *name, fsobj *f)
     char *volname = strdup(name);
     CODA_ASSERT(volname);
 
+    *vpp = 0;
+
     SplitRealmFromName(volname, &realm_name);
 
     if (realm_name) {
@@ -615,8 +617,6 @@ int vdb::Get(volent **vpp, Realm *prealm, const char *name, fsobj *f)
 
     LOG(100, ("vdb::Get: volname = %s@%s\n", volname, realm->Name()));
 
-    *vpp = 0;
-
     VolumeInfo volinfo;
 
     for (;;) {
@@ -647,7 +647,10 @@ int vdb::Get(volent **vpp, Realm *prealm, const char *name, fsobj *f)
     v = Find(realm, volname);
     if (code == ETIMEDOUT) {
 	/* Completely disconnected case. */
-	if (v) goto Exit;
+	if (v) {
+	    *vpp = v;
+	    goto Exit;
+	}
 
 	goto error_exit;
     }
@@ -672,27 +675,24 @@ int vdb::Get(volent **vpp, Realm *prealm, const char *name, fsobj *f)
 	/* Should we flush the old volent? */
 
 	/* Invalidate HDB entries bound to the volname. XXX */
-
-	/* Forget about the old volent for now, it should disappear
-	 * 'gracefully' once all it's FSO's have been recycled. */
-	v->release();
     }
 
     /* Attempt the create will be mostly a noop if the volume already existed,
      * but it will grow or shrink the volume correctly if the volume
      * replication group has changed. */
-    v = Create(realm, &volinfo, volname);
+    *vpp = Create(realm, &volinfo, volname);
 
-    if (!v) {
+    /* Drop the reference on the volume we found earlier. */
+    if (v) v->release();
+
+    if (!*vpp) {
 	LOG(0, ("vdb::Get: Create (%x@%s, %s) failed\n", volinfo.Vid,
 		realm->Name(), volname));
-	*vpp = NULL;
 	code = EIO;
 	goto error_exit;
     }
 
 Exit:
-    *vpp = v;
     code = 0;
 
 error_exit:
@@ -946,8 +946,11 @@ void volent::release(void)
     int intrans = rvmlib_in_transaction();
 
     if (!intrans) Recov_BeginTrans();
-    if (IsReplicated()) delete (repvol *)this;
-    else		delete (volrep *)this;
+    if (IsReplicated()) {
+	MarinerReportVolState(name, realm->Name(), "deleted", 0, &flags);
+	delete (repvol *)this;
+    } else
+	delete (volrep *)this;
     if (!intrans) Recov_EndTrans(MAXFP);
 }
 

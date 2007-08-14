@@ -531,7 +531,13 @@ void mariner::main(void)
 	    reporting = 0;
 	}
 	else if (STREQ(argv[0], "set:volstate")) {
+	    repvol_iterator next;
+	    repvol *v;
+
 	    want_volstate = 1;
+
+	    while ((v = next()))
+		v->ReportVolState();
 	}
 	else if (STREQ(argv[0], "clear:volstate")) {
 	    want_volstate = 0;
