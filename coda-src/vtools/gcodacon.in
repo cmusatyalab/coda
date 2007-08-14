@@ -603,7 +603,9 @@ class App(MarinerListener):
 
     def delete_event(self, widget, event=None, user_data=None):
 	widget.hide()
-	return self.status.is_embedded()
+	if not self.status.is_embedded():
+	    gtk.main_quit()
+	return True
 
     def activate(self, *args):
 	#if not self.window.get_property('visible'):
