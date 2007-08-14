@@ -23,6 +23,7 @@ debian/tmp/usr/bin/xaskuser
 debian/tmp/usr/bin/xfrepair
 debian/tmp/usr/sbin/codaconfedit
 debian/tmp/usr/sbin/venus
+debian/tmp/usr/sbin/venus-setup
 debian/tmp/usr/sbin/volmunge
 debian/tmp/usr/sbin/vutil
 debian/tmp/usr/share/man/man1/au.1
@@ -38,5 +39,6 @@ debian/tmp/usr/share/man/man1/mkcodabf.1
 debian/tmp/usr/share/man/man1/repair.1
 debian/tmp/usr/share/man/man1/spy.1
 debian/tmp/usr/share/man/man8/venus.8
+debian/tmp/usr/share/man/man8/venus-setup.8
 debian/tmp/usr/share/man/man8/volmunge.8
 debian/tmp/usr/share/man/man8/vutil.8

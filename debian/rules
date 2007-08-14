@@ -50,16 +50,17 @@ install-stamp: build-stamp
 	dh_installdirs
 
 	# Add here commands to install the package into debian/tmp.
-	$(MAKE) install prefix=`pwd`/debian/tmp/usr
+	$(MAKE) install prefix="`pwd`/debian/tmp/usr"
 
-	mkdir -p `pwd`/debian/tmp/coda
-	touch `pwd`/debian/tmp/coda/NOT_REALLY_CODA
+	mkdir -p "`pwd`/debian/tmp/coda"
+	touch "`pwd`/debian/tmp/coda/NOT_REALLY_CODA"
 
 	# remove things we really don't need
-	rm -f `pwd`/debian/tmp/etc/init.d/update.init
-	rm -f `pwd`/debian/tmp/etc/init.d/venus.init
-	rm -f `pwd`/debian/tmp/usr/sbin/venus-setup
-	rm -f `pwd`/debian/tmp/usr/share/man/man8/venus-setup.8
+	rm -f "`pwd`/debian/tmp/etc/init.d/update.init"
+	rm -f "`pwd`/debian/tmp/etc/init.d/venus.init"
+
+	echo -e '#!/bin/sh\necho "Starting \"dpkg-reconfigure coda-client\""\ndpkg-reconfigure coda-client' > "`pwd`/debian/tmp/usr/sbin/venus-setup"
+	chmod 755 "`pwd`/debian/tmp/usr/sbin/venus-setup"
 
 	touch install-stamp
 
