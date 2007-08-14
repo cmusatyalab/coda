@@ -429,46 +429,46 @@ class VolumeView(gtk.TreeView):
 	self.set_search_equal_func(search)
 
 class GlobalState:
-    def __init__(self, window, menu):
-	self.state = None
-	self.window = window
-	self.tray = gtk.StatusIcon()
-	self.tray.connect("activate", self.activate)
-	self.tray.connect("popup_menu", lambda icon, button, time:
-			  menu.popup(None, None, None, button, time))
-	self.tray.set_visible(1)
+    def __init__(self, activate, menu):
+	self.popups = 1
+	self.state = self.tray = self.notification = None
+	if hasattr(gtk, "StatusIcon"):
+	    self.tray = gtk.StatusIcon()
+	    self.tray.connect("activate", activate)
+	    self.tray.connect("popup_menu", menu)
+	    self.tray.set_visible(1)
 
 	if Notification:
 	    self.notification = Notification("Coda Status")
-	    try: self.notification.attach_to_status_icon(self.tray)
-	    except AttributeError: pass
-	else:
-	    self.notification = None
+	    if self.tray and hasattr(self.notification,"attach_to_status_icon"):
+		self.notification.attach_to_status_icon(self.tray)
+
+    def is_embedded(self):
+	return self.tray and self.tray.is_embedded()
 
     def set_state(self, state, cmls=0):
+	if not self.tray and not self.notification:
+	    return
+
 	if self.state != state:
 	    self.state = state
-	    self.tray.set_from_pixbuf(state.image)
+	    if self.tray:
+		self.tray.set_from_pixbuf(state.image)
 	elif self.cmls == cmls:
 	    return
 
 	self.cmls = cmls
-	self.tray.set_tooltip(state.desc % {'cmls' : cmls})
+	desc = state.desc % {'cmls' : cmls}
 
-	if not self.notification: return
+	if self.tray:
+	    self.tray.set_tooltip(desc)
 
-	self.notification.update("Coda Status", state.desc % {'cmls' : cmls})
-	self.notification.set_urgency(state.urgency)
-	# catch errors if notification-daemon is not running
-	try: self.notification.show()
-	except gobject.GError: pass
-
-    def activate(self, *args):
-	#if not self.window.get_property('visible'):
-	if not self.window.is_active():
-	      self.window.present()
-	else: self.window.hide()
-	return True
+	if self.notification and self.popups:
+	    self.notification.update("Coda Status", desc)
+	    self.notification.set_urgency(state.urgency)
+	    # catch errors when notification-daemon is not running
+	    try: self.notification.show()
+	    except gobject.GError: pass
 
 
 class App(MarinerListener):
@@ -482,6 +482,7 @@ class App(MarinerListener):
 	    if app.hide and STATES[store.get_value(iter, 1)] in [CLEAN,UNREACH]:
 		    return False
 	    return True
+
 	self.shown = self.vols.filter_new()
 	self.shown.set_visible_func(row_filter, self)
 
@@ -506,6 +507,12 @@ class App(MarinerListener):
 	self.menu.append(item)
 	item.show()
 
+	if Notification:
+	    item = gtk.CheckMenuItem(label="Disable notifications")
+	    item.connect("activate", self.toggle_notifications)
+	    self.menu.append(item)
+	    item.show()
+
 	item = gtk.SeparatorMenuItem()
 	self.menu.append(item)
 	item.show()
@@ -520,7 +527,8 @@ class App(MarinerListener):
 	self.menu.append(item)
 	item.show()
 
-	self.status = GlobalState(self.window, self.menu)
+	self.status = GlobalState(self.activate, lambda icon, button, time:
+				self.menu.popup(None, None, None, button, time))
 
 	self.test_idx = 0
 	if options.test:
@@ -533,7 +541,7 @@ class App(MarinerListener):
 	gobject.timeout_add(1000, self.window_show)
 
     def window_show(self, *args):
-	if not self.status.tray.is_embedded():
+	if not self.status.is_embedded():
 	    self.window.show()
 	return False
 
@@ -574,6 +582,10 @@ class App(MarinerListener):
 	self.shown.refilter()
 	return True
 
+    def toggle_notifications(self, widget):
+	self.status.popups = not self.status.popups
+	return True
+
     def button_event(self, widget, event):
 	if event.type == gtk.gdk.BUTTON_PRESS and event.button == 3:
 	    self.menu.popup(None, None, None, event.button, event.time)
@@ -582,7 +594,15 @@ class App(MarinerListener):
 
     def delete_event(self, widget, event=None, user_data=None):
 	widget.hide()
-	return self.status.tray.is_embedded()
+	return self.status.is_embedded()
+
+    def activate(self, *args):
+	#if not self.window.get_property('visible'):
+	if not self.window.is_active():
+	      self.window.present()
+	else: self.window.hide()
+	return True
+
 
 if __name__ == '__main__':
     from optparse import OptionParser
