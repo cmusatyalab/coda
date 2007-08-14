@@ -436,6 +436,7 @@ class GlobalState:
 	    self.tray = gtk.StatusIcon()
 	    self.tray.connect("activate", activate)
 	    self.tray.connect("popup_menu", menu)
+	    self.set_state(CLEAN, 0)
 	    self.tray.set_visible(1)
 
 	if Notification:
