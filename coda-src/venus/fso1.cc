@@ -616,14 +616,20 @@ void fsobj::Kill(int TellServers)
 	LOG(10, ("fsobj::Kill: (%s)\n", FID_(&fid)));
 
 	DisableReplacement();
-	
-	FSDB->delq->append(&del_handle);
+
 	RVMLIB_REC_OBJECT(state);
 	state = FsoDying;
 
-	/* Inform advice servers of loss of availability of this object */
-	/* NotifyUsersOfKillEvent(hdb_bindings, NBLOCKS(stat.Length)); */
-	Demote();
+	FSDB->delq->append(&del_handle);
+
+	/* Mostly identical to fsobj::Demote, but Demote doesn't work for
+	 * objects that are FsoDying */
+	ClearRcRights();
+	if (IsDir())
+	    DemoteAcRights(ANYUSER_UID);
+
+	DetachHdbBindings();
+	k_Purge(&fid, 1);
 }
 
 
