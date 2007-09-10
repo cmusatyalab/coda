@@ -1,0 +1,10 @@
+# Coda File System client 
+sdesc: "Coda File System Server"
+ldesc: "Coda File System Server package contains programs
+needed to run a Coda server.  This includes vice, the actual
+file server program, and all the utilities that work with vice.
+There is no default configuretion.  After installation, the 
+user must run the vice-setup program to get it ready to run.
+
+category: Net
+requires: cygwin bash perl cygrunsrv tar
