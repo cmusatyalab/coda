@@ -1,0 +1,13 @@
+# Recoverable Virtual Memory
+sdesc: "Recoverable Virtual Memory library"
+ldesc: "Recoverable virtual memory library contains a collection
+of routines to allow a program to build an in-memory data structure
+that is 'backed up' by disk storage.  With a transactional model,
+updates to the data structure are logged and can be recovered 
+if a program crashes.  It also allows a program to load a previously
+built in-memory data structure from disk without having to build it
+again."
+
+curr: 1.14-1
+category: Libs
+requires: lwp
