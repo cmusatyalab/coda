@@ -53,6 +53,7 @@ void HashSecret(unsigned char *secret, int len, RPC2_EncryptionKey key)
 int GetSecret(char *file, RPC2_EncryptionKey key, struct secret_state *state)
 {
     struct stat statbuf;
+    time_t now;
     int fd, n;
     unsigned char buf[512];
 
@@ -61,8 +62,9 @@ int GetSecret(char *file, RPC2_EncryptionKey key, struct secret_state *state)
     if (n < 0)
 	return -1;
 
-    if (statbuf.st_mtime != state->mtime && statbuf.st_mtime != time(NULL))
+    if (statbuf.st_mtime != state->mtime)
     {
+	now = time(NULL);
 	fd = open(file, O_RDONLY);
 	if (fd < 0) {
 	    LogMsg(0, SrvDebugLevel, stdout, "Could not open %s", file);
@@ -81,8 +83,11 @@ int GetSecret(char *file, RPC2_EncryptionKey key, struct secret_state *state)
 
 	HashSecret(buf, n, state->key);
 
-	/* update size & mtime of when we read the cached key */
-	state->mtime = statbuf.st_mtime;
+	/* update mtime after when we read the cached key, but not if the
+	 * change very recent otherwise we could miss a following update
+	 * if it occurs in the same second as well. */
+	if (statbuf.st_mtime != now)
+	    state->mtime = statbuf.st_mtime;
     }
     memcpy(key, state->key, RPC2_KEYSIZE);
 
