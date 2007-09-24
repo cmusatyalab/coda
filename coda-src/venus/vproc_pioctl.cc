@@ -226,7 +226,7 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
 
 			/* Disallow special names. */
 			verifyname(link_name, NAME_NO_DOTS | NAME_NO_CONFLICT);
-                        if (u.u_error) break;
+			if (u.u_error) break;
 
 			/* Verify that parent is a directory. */
 			if (!f->IsDir()) { u.u_error = ENOTDIR; break; }
@@ -284,6 +284,10 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
 					       0644, FSDB->StdPri());
 			if (u.u_error) { break; }
 			/* set vattr fields? */
+
+			/* Send a downcall to the kernel to get rid of any negative
+			 * name cache entries for the newly created object */
+			k_Purge(&fid, 0);
 			break;
 			}
 
@@ -293,8 +297,8 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
 			char *target_name = (char *) data->in;
 
 			/* Disallow deletion of special names. */
-                        verifyname(target_name, NAME_NO_DOTS | NAME_NO_CONFLICT);
-                        if (u.u_error) break;
+			verifyname(target_name, NAME_NO_DOTS | NAME_NO_CONFLICT);
+			if (u.u_error) break;
 
 			/* Verify that parent is a directory. */
 			if (!f->IsDir())
@@ -307,35 +311,37 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
 
 			/* Verify that target is a mount point (either valid or dangling). */
 			if (!target_fso->IsMtPt() && !target_fso->IsMTLink()) {
-                            FSDB->Put(&target_fso);
-                            u.u_error = ENOTDIR;
-                            break;
-                        }
+			    FSDB->Put(&target_fso);
+			    u.u_error = ENOTDIR;
+			    break;
+			}
 
 			/* Verify that we have delete permission for the parent. */
 			u.u_error = f->Access(PRSFS_DELETE, C_A_F_OK, u.u_uid);
 			if (u.u_error) {
-                            FSDB->Put(&target_fso);
-                            break;
-                        }
+			    FSDB->Put(&target_fso);
+			    break;
+			}
 
 			/* We only remove MTLinks, not valid MtPts! */
 			if (target_fso->IsMtPt()) {
 			    Recov_BeginTrans();
-                            fsobj *root_fso = target_fso->u.root;
-                            FSO_ASSERT(target_fso,
-                                       root_fso && root_fso->u.mtpoint == target_fso);
-                            root_fso->UnmountRoot();
-                            target_fso->UncoverMtPt();
-                            Recov_EndTrans(MAXFP);
+			    fsobj *root_fso = target_fso->u.root;
+			    FSO_ASSERT(target_fso,
+				       root_fso && root_fso->u.mtpoint == target_fso);
+			    root_fso->UnmountRoot();
+			    target_fso->UncoverMtPt();
+			    Recov_EndTrans(MAXFP);
 			}
 
 			/* Do the remove. */
 			f->PromoteLock();
 			target_fso->PromoteLock();
 			u.u_error = f->Remove(target_name, target_fso, u.u_uid);
-			k_Purge(&target_fso->fid, 1);
 
+			/* Get rid of anything cached in the kernel relating to
+			 * the removed volume and it's children */
+			k_Purge(&target_fso->fid, 1);
 
 			FSDB->Put(&target_fso);
 			break;
@@ -346,13 +352,13 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
 			fsobj *target_fso = 0;
 			char *target_name = (char *) data->in;
 			int out_size = 0;	/* needed since data->out_size is a short! */
-                        verifyname(target_name, NAME_NO_DOTS);
+			verifyname(target_name, NAME_NO_DOTS);
 
 			/* Verify that parent is a directory. */
 			if (!f->IsDir()) {
-                            u.u_error = ENOTDIR;
-                            break;
-                        }
+			    u.u_error = ENOTDIR;
+			    break;
+			}
 
 			/* Get the target object. */
 			u.u_error = f->Lookup(&target_fso, NULL, target_name,
@@ -375,9 +381,9 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
 							 CODA_MAXPATHLEN,
 							 &out_size, u.u_uid);
 			if (u.u_error) {
-                            FSDB->Put(&target_fso);
-                            break;
-                        }
+			    FSDB->Put(&target_fso);
+			    break;
+			}
 
 			/* Make link a proper string. */
 			data->out_size = out_size;
