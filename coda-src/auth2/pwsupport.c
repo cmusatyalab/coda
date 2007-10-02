@@ -111,7 +111,6 @@ long PWGetKeys(RPC2_CountedBS *cIdent, RPC2_EncryptionKey hKey, RPC2_EncryptionK
 	LogMsg(10, AuthDebugLevel, stdout, "\tvid = %d", vid);
 
 	if (vid < 0) return(-1);
-	if (!IsAUser(vid) || IsADeletedUser(vid)) return(-1);
 
 	if (!stat(PWFile, &statbuff)) {
 		if(PWTime != statbuff.st_mtime)
@@ -120,6 +119,8 @@ long PWGetKeys(RPC2_CountedBS *cIdent, RPC2_EncryptionKey hKey, RPC2_EncryptionK
 		}
 	} else
 		LogMsg(0, AuthDebugLevel, stdout, "Problem statting auth2.pw");
+
+	if (!IsAUser(vid) || IsADeletedUser(vid)) return(-1);
 
 	memcpy(hKey, PWArray[vid], RPC2_KEYSIZE);
 	rpc2_Decrypt((char *)hKey, (char *)hKey, RPC2_KEYSIZE, FileKey, RPC2_XOR);
