@@ -285,9 +285,10 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
 			if (u.u_error) { break; }
 			/* set vattr fields? */
 
-			/* Send a downcall to the kernel to get rid of any negative
-			 * name cache entries for the newly created object */
-			k_Purge(&fid, 0);
+			/* Send a downcall to the kernel to get rid of any
+			 * negative name cache entries for the newly created
+			 * object */
+			k_Purge(fid, 0);
 			break;
 			}
 
