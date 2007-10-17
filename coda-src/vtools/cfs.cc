@@ -369,22 +369,22 @@ struct command cmdarray[] =
         },
         {"writedisconnect", "wd", WriteDisconnect,
             "cfs writedisconnect [-age <sec>] [-time <sec>] [<dir> <dir> <dir> ...]",
-            "Set write-disconnection parameters for all volumes, or volumes specified\n(default parameters -age 60 -time 30.0)",
+            "Set write-disconnection parameters for specified volumes.\n\t\t\t(default parameters -age 60 -time 30.0)",
             NULL
         },
         {"adaptive", NULL, Adaptive,
 	    "cfs adaptive [<dir> <dir> <dir> ...]",
-	    "Reintegrate changes quickly, but allow for adaptation to low bandwidth\nalias for 'cfs writedisconnect -age 0 -time 5.0'",
+	    "Reintegrate quickly, but adapt for low bandwidth.\n\t\t\talias for 'cfs writedisconnect -age 0 -time 5.0'",
 	    NULL
         },
         {"strong", NULL, Strong,
 	    "cfs strong [<dir> <dir> <dir> ...]",
-	    "Force synchronous reintegration whenever an operation completes.\nalias for 'cfs writedisconnect -age 0 -time 0'",
+	    "Force reintegration as each operation completes.\n\t\t\talias for 'cfs writedisconnect -age 0 -time 0'",
 	    NULL
         },
 	{"forcereintegrate", "fr", ForceReintegrate,
 	    "cfs forcereintegrate [<dir> <dir> <dir> ...]",
-	    "Force modifications in all or specified volumes to the server",
+	    "Force modifications in specified volumes to the server",
 	    NULL
 	},
         {"expand", NULL, ExpandObject,
@@ -404,7 +404,7 @@ struct command cmdarray[] =
         },
         {"checklocal", NULL, CheckLocal,
             "cfs checklocal <path>",
-            "Check why the head of a volume's CML failed to reintegrate",
+            "Check why the head of a volume's CML failed reintegration",
             NULL
         },
         {"discardlocal", NULL, DiscardLocal,
