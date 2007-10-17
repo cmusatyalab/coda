@@ -374,7 +374,7 @@ struct command cmdarray[] =
         },
         {"adaptive", NULL, Adaptive,
 	    "cfs adaptive [<dir> <dir> <dir> ...]",
-	    "Reintegrate quickly, but adapt for low bandwidth.\n\t\t\talias for 'cfs writedisconnect -age 0 -time 5.0'",
+	    "Reintegrate quickly, but adapt for low bandwidth.\n\t\t\talias for 'cfs writedisconnect -age 0 -time 15.0'",
 	    NULL
         },
         {"strong", NULL, Strong,
@@ -2547,7 +2547,7 @@ static void WriteDisconnect(int argc, char *argv[], int opslot)
 
 static void Adaptive(int argc, char *argv[], int opslot)
 {
-    WD(argc, argv, 0, 5000);
+    WD(argc, argv, 0, 15000);
 }
 
 static void Strong(int argc, char *argv[], int opslot)

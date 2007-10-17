@@ -261,7 +261,7 @@ mapprivate=1
 # server before returning to the application.
 #
 #reintegration_age=0
-#reintegration_time=5
+#reintegration_time=15
 
 #
 # Enable tweaks when running in a virtual machine, disabled by default.
