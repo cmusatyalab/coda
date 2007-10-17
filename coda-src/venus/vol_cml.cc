@@ -1848,8 +1848,8 @@ int cmlent::cancelstore()
 
 	if (WRITING(f)) {
 	    Recov_BeginTrans();
-		/* shouldn't be reintegrating, so cancel must go through */   
-		CODA_ASSERT(cancel());
+	    /* we could be partial/trickle reintegrating, so cancel may fail */
+	    if (cancel())
 		vol->RestoreObj(&f->fid);
 	    Recov_EndTrans(MAXFP);
 	    cancelled = 1;
