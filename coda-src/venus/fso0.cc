@@ -608,7 +608,7 @@ RestartFind:
   else {
 	/* Object without status must be matriculating now.  Wait for it to complete. */
 	int curr_matriculation_count = matriculation_count;
-	if (!HAVESTATUS(f)) {
+	if (!HAVESTATUS(f) && !f->IsFake()) {
 	  while (curr_matriculation_count == matriculation_count) {
 		LOG(0, ("WAITING(MATRICULATION): count = %d\n", matriculation_count));
 		START_TIMING();
@@ -743,7 +743,7 @@ RestartFind:
 		return(ETIMEDOUT);
 	    }
 
-	    if (!HAVESTATUS(f)) {
+	    if (!HAVESTATUS(f) && !f->IsFake()) {
 		Put(&f);
 		return(ETIMEDOUT);
 	    }

@@ -750,7 +750,7 @@ void FSOD_ReclaimFSOs(void);
 #define REACHABLE(f)	((f)->vol->IsReachable())
 #define RESOLVING(f)	((f)->vol->IsResolving())
 #define	DIRTY(f)	((f)->flags.dirty)
-#define	HAVESTATUS(f)	((f)->state != FsoRunt || f->IsFake())
+#define	HAVESTATUS(f)	((f)->state != FsoRunt)
 #define	STATUSVALID(f)	((f)->IsValid(RC_STATUS))
 #define	HAVEDATA(f)	((f)->data.havedata != 0)
 #define	PARTIALDATA(f)	((f)->IsFile() && (f)->cf.IsPartial())
