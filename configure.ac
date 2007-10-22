@@ -51,6 +51,8 @@ AC_PATH_PROG(RM, rm, "")
 AC_PATH_PROG(SED, sed, "")
 AC_PATH_PROG(FLUID, fluid, "")
 
+AM_PATH_PYTHON
+
 AC_PATH_PROG(RP2GEN, rp2gen, "", [${PATH}:${prefix}/sbin:/usr/sbin:/usr/local/sbin:/usr/pkg/sbin])
 AC_PATH_PROG(RDSINIT, rdsinit, "", [${PATH}:${prefix}/sbin:/usr/sbin:/usr/local/sbin:/usr/pkg/sbin])
 AC_PATH_PROG(RVMUTL, rvmutl, "", [${PATH}:${prefix}/sbin:/usr/sbin:/usr/local/sbin:/usr/pkg/sbin])
