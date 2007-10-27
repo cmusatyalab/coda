@@ -2,8 +2,10 @@
 
 if BUILD_CLIENT
 bin_PROGRAMS = codacon cfs cmon coda_replay hoard spy mkcodabf
-bin_SCRIPTS = gcodacon
 dist_man_MANS = cfs.1 cmon.1 coda_replay.1 hoard.1 spy.1 mkcodabf.1
+if HAVE_PYTHON
+bin_SCRIPTS = gcodacon
+endif
 endif
 sbin_PROGRAMS = codaconfedit
 
@@ -13,8 +15,8 @@ cmon_SOURCES	    = cmon.cc
 coda_replay_SOURCES = coda_replay.cc coda_replay.h
 hoard_SOURCES	    = hoard.cc
 spy_SOURCES	    = spy.cc
-EXTRA_DIST = logbandwidth.in logcmls.in logreintegration.in logprogress.in \
-	     gcodacon
+EXTRA_DIST = logbandwidth.in logcmls.in logreintegration.in logprogress.in
+CLEANFILES = $(bin_SCRIPTS)
 
 AM_CPPFLAGS = -I$(top_srcdir)/lib-src/base \
 	      -I$(top_srcdir)/coda-src/kerndep \

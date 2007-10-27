@@ -51,7 +51,8 @@ AC_PATH_PROG(RM, rm, "")
 AC_PATH_PROG(SED, sed, "")
 AC_PATH_PROG(FLUID, fluid, "")
 
-AM_PATH_PYTHON(,,[/usr/bin/env python])
+AM_PATH_PYTHON(,,[:])
+AM_CONDITIONAL([HAVE_PYTHON], [test "$PYTHON" != :])
 
 AC_PATH_PROG(RP2GEN, rp2gen, "", [${PATH}:${prefix}/sbin:/usr/sbin:/usr/local/sbin:/usr/pkg/sbin])
 AC_PATH_PROG(RDSINIT, rdsinit, "", [${PATH}:${prefix}/sbin:/usr/sbin:/usr/local/sbin:/usr/pkg/sbin])
@@ -159,7 +160,29 @@ AM_CONDITIONAL(WANT_KERBEROS, test -n "$LIBKRB4" -o -n "$LIBKRB5")
 AM_CONDITIONAL(WANT_KRB4, test -n "$LIBKRB4")
 AM_CONDITIONAL(WANT_KRB5, test -n "$LIBKRB5")
 
-AC_OUTPUT(Makefile coda_config.h
+AC_CONFIG_FILES([coda-src/scripts/bldvldb.sh],
+       [chmod +x coda-src/scripts/bldvldb.sh])
+AC_CONFIG_FILES([coda-src/scripts/createvol_rep],
+       [chmod +x coda-src/scripts/createvol_rep])
+AC_CONFIG_FILES([coda-src/scripts/purgevol_rep],
+       [chmod +x coda-src/scripts/purgevol_rep])
+AC_CONFIG_FILES([coda-src/scripts/rc.vice],
+       [chmod +x coda-src/scripts/rc.vice])
+AC_CONFIG_FILES([coda-src/scripts/startserver],
+       [chmod +x coda-src/scripts/startserver])
+AC_CONFIG_FILES([coda-src/scripts/venus.init],
+       [chmod +x coda-src/scripts/venus.init])
+AC_CONFIG_FILES([coda-src/scripts/venus-setup],
+       [chmod +x coda-src/scripts/venus-setup])
+AC_CONFIG_FILES([coda-src/scripts/vice-setup],
+       [chmod +x coda-src/scripts/vice-setup])
+AC_CONFIG_FILES([coda-src/scripts/vice-setup-rvm],
+       [chmod +x coda-src/scripts/vice-setup-rvm])
+AC_CONFIG_FILES([coda-src/vtools/gcodacon],
+       [chmod +x coda-src/vtools/gcodacon])
+AC_CONFIG_FILES([
+Makefile
+coda_config.h
 configs/Makefile
 debian/Makefile
 debian/changelog
@@ -170,15 +193,6 @@ lib-src/base/Makefile
 lib-src/rwcdb/Makefile
 coda-src/Makefile
 coda-src/scripts/Makefile
-coda-src/scripts/bldvldb.sh
-coda-src/scripts/createvol_rep
-coda-src/scripts/purgevol_rep
-coda-src/scripts/rc.vice
-coda-src/scripts/startserver
-coda-src/scripts/venus.init
-coda-src/scripts/venus-setup
-coda-src/scripts/vice-setup
-coda-src/scripts/vice-setup-rvm
 coda-src/kerndep/Makefile
 coda-src/partition/Makefile
 coda-src/dir/Makefile
@@ -195,7 +209,6 @@ coda-src/repair/Makefile
 coda-src/resolution/Makefile
 coda-src/volutil/Makefile
 coda-src/vtools/Makefile
-coda-src/vtools/gcodacon
 coda-src/vice/Makefile
 coda-src/update/Makefile
 coda-src/norton/Makefile
@@ -203,5 +216,6 @@ coda-src/asr/Makefile
 coda-src/egasr/Makefile
 coda-src/asrlauncher/Makefile
 coda-src/vcodacon/Makefile
-coda-src/smon2/Makefile)
+coda-src/smon2/Makefile])
+AC_OUTPUT
 
