@@ -74,13 +74,14 @@ add /coda/usr/jjk/.login   1000
 .fi
 .PP
 Access to the hoard database is restricted in the following ways.
-All hoard commands fail unless the effective-uid is root--the hoard
-program should be made setuid to root to ensure this.  Special permission
-is given to commands where the real-uid is root or that of the
-\fBprimary\fR user, i.e., the user at the console.  Root
-and primary users may add entries and access existing entries without
-restriction.  Other users may not add hoard entries, and they may only
-clear, delete, list, or modify their own entries.
+All hoard commands fail unless the hoard program is executed by the
+user who is identified as the \fBprimary user\fR in the venus.conf
+configuration file. If no primary user is specified, special
+permission is given to the console user who is logged in on the
+local (or first virtual) console. Primary users may add entries and
+access existing entries without restriction. Other users may not add
+hoard entries, and they may only clear, delete, list, or modify
+their own entries.
 .PP
 The command-line options are:
 .TP
