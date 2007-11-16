@@ -68,7 +68,8 @@ Pittsburgh, PA.
 #define  OFF	    0
 #define  READY	    2
 #define  WAITING    3
-#define  MINSTACK   44
+#define  MINSTACK   32768 /* allocate at least 32KB for stacks */
+#define  STACKPAD   4096  /* pad any requested stack size to PAGE_SIZE */
 #ifndef MAX
 #define  MAX(a,b)   ((a) > (b) ? (a) : (b))
 #endif
@@ -456,9 +457,9 @@ int LWP_CreateProcess(void (*ep)(void *), int stacksize, int priority,
 	return LWP_ENOMEM;
 
     if (stacksize < MINSTACK)
-	stacksize = 1024;
+	stacksize = MINSTACK;
     else
-	stacksize = 4 * ((stacksize+3) / 4);
+	stacksize = (stacksize + (STACKPAD-1)) & ~(STACKPAD-1);
 
 #ifndef MMAP_LWP_STACKS
     stackptr = (char *) malloc(stacksize);
