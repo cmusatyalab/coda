@@ -116,13 +116,14 @@ void test(void *arg) { exit(ptr != arg); }
 int main(int argc, char **argv) {
 #ifdef HAVE_UCONTEXT_H
 ucontext_t x;
-void *stack = NULL;
+static void *stack = NULL;
 int arg = 0;
 ptr = &arg;
 getcontext(&x);
 if (stack == NULL) {
-x.uc_stack.ss_sp = stack = malloc(16384);
-x.uc_stack.ss_size = 16384;
+#define SSIZE 32768
+x.uc_stack.ss_sp = stack = malloc(SSIZE);
+x.uc_stack.ss_size = SSIZE;
 makecontext(&x, (void (*)(void))test, 1, &arg);
 setcontext(&x);
 }

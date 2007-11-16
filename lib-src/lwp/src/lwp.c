@@ -97,6 +97,9 @@ struct QUEUE {
 static ucontext_t reaper; /* reaper context, see comments for lwp_Reaper() */
 static ucontext_t tracer; /* context for the for stack tracing thread */
 
+#define REAPER_STACKSIZE 32768
+#define TRACER_STACKSIZE 32768
+
 /* Invariant for runnable queues: The head of each queue points to the
 currently running process if it is in that queue, or it points to the
 next process in that queue that should run. */
@@ -581,16 +584,14 @@ static void lwp_Tracer(void)
 
 static void init_contexts(void)
 {
-#define REAPER_STACKSIZE 8192
     getcontext(&reaper);
     reaper.uc_stack.ss_sp = malloc(REAPER_STACKSIZE);
     reaper.uc_stack.ss_size = REAPER_STACKSIZE;
     makecontext(&reaper, lwp_Reaper, 0);
 
-#define TRACER_STACKSIZE 16384
     getcontext(&tracer);
-    tracer.uc_stack.ss_sp = malloc(REAPER_STACKSIZE);
-    tracer.uc_stack.ss_size = REAPER_STACKSIZE;
+    tracer.uc_stack.ss_sp = malloc(TRACER_STACKSIZE);
+    tracer.uc_stack.ss_size = TRACER_STACKSIZE;
     makecontext(&tracer, lwp_Tracer, 0);
 }
 
