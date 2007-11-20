@@ -291,8 +291,8 @@ struct CacheStats {
 #define CHOKE(me...) choke(__FILE__, __LINE__, ##me)
 
 /*  *****  Declarations for source files without their own headers.  ***** */
-void dprint(char * ...);
-void choke(char *file, int line, char* ...);
+void dprint(const char * ...);
+void choke(const char *file, int line, const char* ...);
 void rds_printer(char * ...);
 void VenusPrint(int, char **);
 void VenusPrint(FILE *, int, char **);
@@ -316,7 +316,7 @@ void MallocPrint(int);
 void StatsInit();
 void SwapLog();
 void ToggleMallocTrace();
-char *lvlstr(LockLevel);
+const char *lvlstr(LockLevel);
 int GetTime(long *, long *);
 time_t Vtime();
 int FAV_Compare(ViceFidAndVV *, ViceFidAndVV *);

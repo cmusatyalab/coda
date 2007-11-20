@@ -170,7 +170,7 @@ long int gethostid(void)
 
 #endif
 
-void fdprint(long afd, char *fmt, ...) 
+void fdprint(long afd, const char *fmt, ...)
 {
     va_list ap;
     char buf[240];
@@ -182,7 +182,7 @@ void fdprint(long afd, char *fmt, ...)
 }
 
 /* message to stderr */
-void eprint(char *fmt, ...) 
+void eprint(const char *fmt, ...)
 {
 	va_list ap;
 	char msg[240];

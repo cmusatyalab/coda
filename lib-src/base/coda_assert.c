@@ -26,7 +26,7 @@ void (*coda_assert_cleanup)() = (void (*)()) 0;
 int   coda_assert_action = CODA_ASSERT_SLEEP;
 
 void
-coda_assert(char *pred, char *file, int line)
+coda_assert(const char *pred, const char *file, int line)
 {
     fprintf(stderr,"Assertion failed: %s, file \"%s\", line %d\n", pred, file, line);
     fflush(stderr);
@@ -61,7 +61,7 @@ coda_assert(char *pred, char *file, int line)
 }
 
 void
-coda_note(char *pred, char *file, int line)
+coda_note(const char *pred, const char *file, int line)
 {
     fprintf(stderr,"Note failed: %s, file \"%s\", line %d\n", pred, file, line);
     fflush(stderr);

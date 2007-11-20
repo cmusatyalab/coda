@@ -34,8 +34,8 @@ extern "C" {
 extern void (*coda_assert_cleanup)(void);
 extern int coda_assert_action;
 
-void coda_assert(char *pred, char *file, int line);
-void coda_note(char *pred, char *file, int line);
+void coda_assert(const char *pred, const char *file, int line);
+void coda_note(const char *pred, const char *file, int line);
 
 #ifdef __cplusplus
 }

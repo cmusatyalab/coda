@@ -61,8 +61,8 @@ extern "C" {
 
 /* Useful functions in libutil.a */
 int HashString(char *s, unsigned int size);
-void eprint(char *, ...);
-void fdprint(long afd, char *fmt, ...);
+void eprint(const char *, ...);
+void fdprint(long afd, const char *fmt, ...);
 
 /* Routine for conditionally printing timestamped log messages */
 extern void LogMsg(int msglevel, int debuglevel, FILE *fout, char *fmt,  ...);

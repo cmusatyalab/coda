@@ -92,7 +92,7 @@ RPCOpStatistics RPCOpStats;
 /* *****  Private variables  ***** */
 
 static int LogInited = 0;
-static char *VFSOpsNameTemplate[NVFSOPS] = {
+static const char *VFSOpsNameTemplate[NVFSOPS] = {
     "No-Op",
     "No-Op",
     "Root",
@@ -140,7 +140,7 @@ static char *VFSOpsNameTemplate[NVFSOPS] = {
 /* *****  util.c  ***** */
 
 /* Print a debugging message to the log file. */
-void dprint(char *fmt ...) {
+void dprint(const char *fmt ...) {
     va_list ap;
 
     if (!LogInited) return;
@@ -173,7 +173,7 @@ void dprint(char *fmt ...) {
 
 
 /* Print an error message and then exit. */
-void choke(char *file, int line, char *fmt ...) {
+void choke(const char *file, int line, const char *fmt ...) {
     static int dying = 0;
 
     if (!dying) {
@@ -739,7 +739,7 @@ void SwapLog()
 }
 
 
-char *lvlstr(LockLevel level)
+const char *lvlstr(LockLevel level)
 {
     switch(level) {
 	case NL:

@@ -310,7 +310,7 @@ static void Recov_CheckParms()
     }
     else /* !InitMetaData */
     {
-        char *failure = NULL;
+        const char *failure = NULL;
 
         /* Specifying log or data size requires a brain-wipe! */
         if (VenusLogDeviceSize != UNSET_VLDS) {
