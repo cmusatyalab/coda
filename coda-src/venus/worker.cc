@@ -112,10 +112,8 @@ olist worker::FreeMsgs;
 olist worker::QueuedMsgs;
 olist worker::ActiveMsgs;
 
-#ifdef VENUSDEBUG
 int msgent::allocs = 0;
 int msgent::deallocs = 0;
-#endif
 
 const int WorkerStackSize = 131072;
 
@@ -155,57 +153,79 @@ msgent *FindMsg(olist& ol, u_long seq) {
 }
 
 
-int MsgRead(msgent *m) 
+msgent::msgent()
 {
-#ifdef __CYGWIN32__
-        DWORD size;  
-        size_t cc = read(worker::muxfd, (char *)&size, sizeof(size)); 
-	CODA_ASSERT(size <= VC_MAXMSGSIZE);
-	cc = read(worker::muxfd, m->msg_buf, (int)size);
-#else
-	size_t cc = read(worker::muxfd, m->msg_buf, (int) (VC_MAXMSGSIZE));
-#endif
-	if (cc < sizeof(struct coda_in_hdr)) 
-		return(-1);
-
-	return(0);
-}
-
-
-size_t MsgWrite(char *buf, int size) 
-{
-#ifdef __CYGWIN32__
-	 return nt_msg_write(buf, size);
-#else 
-	return write(worker::muxfd, buf, size);
-#endif
-}
-
-
-msgent::msgent() 
-{
-#ifdef VENUSDEBUG
     allocs++;
-#endif
 }
 
 
-msgent::~msgent() 
+msgent::~msgent()
 {
-#ifdef VENUSDEBUG
     deallocs++;
-#endif
 }
 
 
-msg_iterator::msg_iterator(olist& ol) : olist_iterator(ol) 
+msg_iterator::msg_iterator(olist& ol) : olist_iterator(ol)
 {
 }
 
 
-msgent *msg_iterator::operator()() 
+msgent *msg_iterator::operator()()
 {
     return((msgent *)olist_iterator::operator()());
+}
+
+msgent *AllocMsgent(void)
+{
+    msgent *m = (msgent *)worker::FreeMsgs.get();
+    if (!m) m = new msgent;
+    m->return_fd = -1;
+    return m;
+}
+
+/* read a msg from the given socket */
+void ReadUpcallMsg(int fd, size_t size)
+{
+    msgent *m = AllocMsgent();
+    ssize_t len;
+
+    CODA_ASSERT(size <= VC_MAXMSGSIZE);
+    len = read(fd, m->msg_buf, size);
+
+    if (len < (ssize_t)sizeof(struct coda_in_hdr))
+    {
+	eprint("Failed to read upcall");
+	worker::FreeMsgs.append(m);
+	return;
+    }
+
+    m->return_fd = fd;
+    DispatchWorker(m);
+}
+
+ssize_t WriteDowncallMsg(int fd, const char *buf, size_t size)
+{
+    if (fd == -1)
+	return size;
+
+    CODA_ASSERT(size <= VC_MAXMSGSIZE);
+    if (fd != worker::muxfd) {
+	char hdr[11];
+	int len;
+	len = sprintf(hdr, "down: %d\n", size);
+	len -= write(fd, hdr, len);
+	CODA_ASSERT(len == 0);
+    }
+#ifdef __CYGWIN32__
+    else
+	return nt_msg_write(buf, size);
+#endif
+    return write(fd, buf, size);
+}
+
+ssize_t MsgWrite(const char *buf, size_t size)
+{
+    return WriteDowncallMsg(worker::muxfd, buf, size);
 }
 
 
@@ -571,7 +591,7 @@ void VFSUnmount()
 
 
 int k_Purge() {
-    size_t size;
+    ssize_t size;
 
     if (KernelFD == -1) return(1);
 
@@ -597,7 +617,7 @@ int k_Purge() {
 
 
 int k_Purge(VenusFid *fid, int severely) {
-    size_t size;
+    ssize_t size;
 
     if (KernelFD == -1) return(1);
 
@@ -627,7 +647,7 @@ int k_Purge(VenusFid *fid, int severely) {
     }	
 
     /* Send the message. */
-    if (MsgWrite((char *)&msg, (int) size) != size) {
+    if (MsgWrite((char *)&msg, size) != size) {
 	retcode = errno;
 	LOG(0, ("k_Purge: %s, message write fails: errno %d\n", 
 	      msg.oh.opcode == CODA_PURGEFID ? "CODA_PURGEFID" :
@@ -651,7 +671,7 @@ int k_Purge(VenusFid *fid, int severely) {
 
 int k_Purge(uid_t uid)
 {
-    size_t size;
+    ssize_t size;
 
     if (KernelFD == -1) return(1);
 
@@ -696,7 +716,8 @@ int k_Replace(VenusFid *fid_1, VenusFid *fid_2) {
     msg.NewFid = *VenusToKernelFid(fid_2);
 	
     /* Send the message. */
-    if (MsgWrite((char *)&msg, sizeof (struct coda_replace_out)) != sizeof (struct coda_replace_out))
+    ssize_t size = sizeof(struct coda_replace_out);
+    if (MsgWrite((char *)&msg, size) != size)
 	CHOKE("k_Replace: message write");
 
     LOG(0, ("k_Replace: returns 0\n"));
@@ -887,21 +908,22 @@ void DispatchWorker(msgent *m) {
     worker::QueuedMsgs.append(m);
 }
 
-
 void WorkerMux(fd_set *mask)
 {
-    /* Get a free buffer and read a message from the kernel into it. */
-    msgent *fm = (msgent *)worker::FreeMsgs.get();
-    if (!fm) fm = new msgent;
-    if (MsgRead(fm) < 0) {
-	eprint("WorkerMux: worker read error");
-	worker::FreeMsgs.append(fm);
-	return;
-    }
+    size_t size = VC_MAXMSGSIZE;
 
-    DispatchWorker(fm);
+#ifdef __CYGWIN32__
+    /* CYGWIN uses a stream oriented socket for kernel messages, there are no
+     * message boundaries and we need to read the size of the message first. */
+    DWORD msg_size;
+    ssize_t len;
+    len = read(worker::muxfd, (char *)&msg_size, sizeof(msg_size));
+    CODA_ASSERT(len == sizeof(msg_size));
+    size = msg_size;
+#endif
+
+    ReadUpcallMsg(worker::muxfd, size);
 }
-
 
 time_t GetWorkerIdleTime() {
     /* Return 0 if any call is in progress. */
@@ -1043,7 +1065,10 @@ void worker::Resign(msgent *msg, int size) {
 }
 
 
-void worker::Return(msgent *msg, size_t size) {
+void worker::Return(msgent *msg, size_t size)
+{
+    size_t cc;
+
     if (returned)
 	CHOKE("worker::Return: already returned!");
 
@@ -1065,22 +1090,24 @@ void worker::Return(msgent *msg, size_t size) {
 #endif
 
     /* There is no reply to an interrupted operation. */
-    if (!interrupted) {
-	size_t cc = MsgWrite(msg->msg_buf, size);
-	int errn = errno;
-	if (cc != size) {
-	    eprint("worker::Return: message write error %d (op = %d, seq = %d), wrote %d of %d bytes\n",
-		   errno, ((union outputArgs*)msg->msg_buf)->oh.opcode,
-		   ((union outputArgs*)msg->msg_buf)->oh.unique, cc, size);  
+    if (interrupted)
+	goto out;
 
-	    /* Guard against a race in which the kernel is signalling us, but we entered this */
-	    /* block before the signal reached us.  In this case the error code from the MsgWrite */
-	    /* will be ESRCH.  No other error code is legitimate. */
-	    if (errn != ESRCH) CHOKE("worker::Return: errno (%d) from MsgWrite", errno);
-	    interrupted = 1;
-	}
+    cc = WriteDowncallMsg(msg->return_fd, msg->msg_buf, size);
+    if (cc != size) {
+	int err = errno;
+	eprint("worker::Return: message write error %d (op = %d, seq = %d), wrote %d of %d bytes\n",
+	       errno, ((union outputArgs*)msg->msg_buf)->oh.opcode,
+	       ((union outputArgs*)msg->msg_buf)->oh.unique, cc, size);
+
+	/* Guard against a race in which the kernel is signalling us, but we
+	 * entered this block before the signal reached us. In this case the
+	 * error code from WriteDowncallMsg will be ESRCH. No other error code
+	 * is legitimate. */
+	if (err != ESRCH) CHOKE("worker::Return: errno (%d) from WriteDowncallMsg",err);
+	interrupted = 1;
     }
-
+out:
     returned = 1;
 }
 
@@ -1499,8 +1526,7 @@ void worker::main(void)
                  * harm done, I guess. But why not just call close directly?
                  * -- DCS */
                 /* Fashion a CLOSE message. */
-                msgent *fm = (msgent *)worker::FreeMsgs.get();
-                if (!fm) fm = new msgent;
+                msgent *fm = AllocMsgent();
                 union inputArgs *dog = (union inputArgs *)fm->msg_buf;
 
                 dog->coda_close.ih.unique = (unsigned)-1;
