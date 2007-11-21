@@ -71,7 +71,6 @@ class mariner : public vproc {
     static int unix_muxfd;
     static int nmariners;
 
-    unsigned DataReady : 1;
     unsigned dying : 1;
     unsigned logging : 1;	    /* for MarinerLog() */
     unsigned reporting : 1;	    /* for MarinerReport() */

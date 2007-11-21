@@ -215,30 +215,6 @@ void MarinerMux(fd_set *mask)
         }
         else new mariner(newfd);
     }
-
-    /* Dispatch mariners which have pending requests, and kill dying mariners. */
-    mariner_iterator next;
-    mariner *m, *n = NULL;
-    while ((m = n ? n : next())) {
-	n = NULL;
-	if (m->dying) {
-	    n = next();
-	    delete m;
-	    continue;
-	}
-	if (FD_ISSET(m->fd, mask)) {
-	    m->DataReady = 1;
-	    if (m->idle) {
-		if (m->Read() < 0) {
-		    n = next();
-		    delete m;
-		    continue;
-		}
-		m->idle = 0;
-		VprocSignal((char *)m);
-	    }
-	}
-    }
 }
 
 
@@ -348,7 +324,6 @@ mariner::mariner(int afd) :
 
     nmariners++;	/* Ought to be a lock protecting this! -JJK */
 
-    DataReady = 0;
     dying = 0;
     logging = 0;
     reporting = 0;
@@ -356,10 +331,6 @@ mariner::mariner(int afd) :
     uid = ANYUSER_UID;
     fd = afd;
     memset(commbuf, 0, MWBUFSIZE);
-
-    FD_SET(fd, &MarinerMask);
-    if (fd > MarinerMaxFD)
-	MarinerMaxFD = fd;
 
     /* Poke main procedure. */
     start_thread();
@@ -383,29 +354,8 @@ mariner::~mariner() {
 
     nmariners--;	/* Ought to be a lock protecting this! -JJK */
 
-    if (fd) {
+    if (fd)
 	::close(fd);
-	FD_CLR(fd, &MarinerMask);
-    }
-}
-
-
-int mariner::Read() {
-    if (!DataReady) CHOKE("mariner::Read: not DataReady!");
-
-    /* Pull the next message out of the socket. */
-    int n = ::read(fd, commbuf, (int)(sizeof(commbuf) - 1));
-    DataReady = 0;
-    if (n <= 0) return(-1);
-
-    /* Erase trailing CR/LF and null-terminate the command. */
-    char lastc = commbuf[--n];
-    if (lastc != '\012' && lastc != '\015') return(-1);
-    while (n > 0 && ((lastc = commbuf[--n]) == '\012' || lastc == '\015'))
-	;
-    commbuf[n + 1] = 0;
-
-    return(0);
 }
 
 
@@ -424,20 +374,47 @@ int mariner::Write(const char *fmt, ...) {
 }
 
 
-void mariner::AwaitRequest() {
+void mariner::AwaitRequest()
+{
+    fd_set fds;
+    unsigned int idx = 0;
+    int n;
+
     idle = 1;
 
-    if (DataReady && !dying) {
-	if (Read() < 0)
-	    dying = 1;
-	else {
-	    idle = 0;
-	    return;
+    while (idx < (sizeof(commbuf) - 1) && !dying)
+    {
+	FD_ZERO(&fds);
+	FD_SET(fd, &fds);
+
+	n = VprocSelect(fd+1, &fds, 0, 0, NULL);
+	if (n < 0) break;
+	if (n == 0 || !FD_ISSET(fd, &fds))
+	    continue;
+
+	n = ::read(fd, &commbuf[idx], 1);
+	if (n < 0 && errno == EAGAIN) continue;
+	if (n <= 0) break;
+
+	if (commbuf[idx] == '\r')
+	    continue;
+
+	if (commbuf[idx] == '\n') {
+	    commbuf[idx] = '\0';
+	    /* end of line seen, return to caller */
+	    goto out;
 	}
+	idx++;
     }
 
-    VprocWait((char *)this);
-    if (dying) CHOKE("mariner::AwaitRequest: signalled while dying!");
+    /* commit suicide */
+    LOG(1, ("mariner committing suicide\n"));
+    delete VprocSelf();
+    CHOKE("Dead mariner walking");
+
+out:
+    idle = 0;
+    return;
 }
 
 
@@ -461,9 +438,6 @@ void mariner::main(void)
     for (;;) {
 	/* Wait for new request. */
 	AwaitRequest();
-
-	/* Sanity check new request. */
-	if (idle) CHOKE("Mariner: signalled but not dispatched!");
 
 	LOG(100, ("mariner::main: cmd = \"%s\"\n", commbuf));
 
