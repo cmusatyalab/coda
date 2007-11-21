@@ -606,7 +606,7 @@ int k_Purge() {
     size = sizeof(struct coda_out_hdr);
     
     /* Send the message. */
-    if (MsgWrite((const char *)&msg, size) != size)
+    if (MsgWrite((char *)&msg, size) != size)
 	    CHOKE("k_Purge: Flush, message write returns %d", errno);
 
     LOG(1, ("k_Purge: Flush, returns 0\n"));
@@ -647,7 +647,7 @@ int k_Purge(VenusFid *fid, int severely) {
     }	
 
     /* Send the message. */
-    if (MsgWrite((const char *)&msg, size) != size) {
+    if (MsgWrite((char *)&msg, size) != size) {
 	retcode = errno;
 	LOG(0, ("k_Purge: %s, message write fails: errno %d\n", 
 	      msg.oh.opcode == CODA_PURGEFID ? "CODA_PURGEFID" :
@@ -689,7 +689,7 @@ int k_Purge(uid_t uid)
     size = sizeof(msg.coda_purgeuser);
 
     /* Send the message. */
-    if (MsgWrite((const char *)&msg, size) != size)
+    if (MsgWrite((char *)&msg, size) != size)
 	CHOKE("k_Purge: PurgeUser, message write");
 
     LOG(1, ("k_Purge: PurgeUser, returns 0\n"));
@@ -717,7 +717,7 @@ int k_Replace(VenusFid *fid_1, VenusFid *fid_2) {
 	
     /* Send the message. */
     ssize_t size = sizeof(struct coda_replace_out);
-    if (MsgWrite((const char *)&msg, size) != size)
+    if (MsgWrite((char *)&msg, size) != size)
 	CHOKE("k_Replace: message write");
 
     LOG(0, ("k_Replace: returns 0\n"));
@@ -1093,7 +1093,7 @@ void worker::Return(msgent *msg, size_t size)
     if (interrupted)
 	goto out;
 
-    cc = WriteDowncallMsg(msg->return_fd, (char *)&msg, size);
+    cc = WriteDowncallMsg(msg->return_fd, msg->msg_buf, size);
     if (cc != size) {
 	int err = errno;
 	eprint("worker::Return: message write error %d (op = %d, seq = %d), wrote %d of %d bytes\n",
