@@ -1,3 +1,11 @@
+New in 2.4:
+
+* Improve cygwin packaging. (Phil Nelson)
+* Avoid infinite loop when a configure test fails. (Christer Bernerus)
+* Increase minimal LWP stack size to 32KB. (Christer Bernerus)
+* Add pkgconfig file.
+* Do not require an executable stack.
+
 New in 2.3:
 
 * LWP builds and passes simple tests on amd64/em64t.
