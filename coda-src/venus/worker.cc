@@ -97,6 +97,7 @@ extern "C" {
 #include "worker.h"
 
 #include "nt_util.h"
+#include "getpeereid.h"
 
 
 extern int venus_relay_addr;
@@ -188,6 +189,9 @@ void ReadUpcallMsg(int fd, size_t size)
 {
     msgent *m = AllocMsgent();
     ssize_t len;
+    uid_t euid = 0;
+    gid_t egid;
+    int rc;
 
     CODA_ASSERT(size <= VC_MAXMSGSIZE);
     len = read(fd, m->msg_buf, size);
@@ -197,6 +201,18 @@ void ReadUpcallMsg(int fd, size_t size)
 	eprint("Failed to read upcall");
 	worker::FreeMsgs.append(m);
 	return;
+    }
+
+    if (fd != worker::muxfd) {
+	rc = getpeereid(fd, &euid, &egid);
+	if (rc) {
+	    eprint("Unable to check peer credentials");
+	    /* disconnect peer? */
+	}
+
+	if (euid != 0) { /* root can already do whatever it wants */
+	    ((union inputArgs *)m->msg_buf)->ih.uid = euid;
+	}
     }
 
     m->return_fd = fd;
