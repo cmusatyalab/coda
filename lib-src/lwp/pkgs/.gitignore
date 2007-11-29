@@ -1,5 +1,3 @@
-lwp-dos.spec
-lwp-nt.spec
+lwp.pc
 lwp.spec
-lwp-win95.spec
 pkg-bsd.sh

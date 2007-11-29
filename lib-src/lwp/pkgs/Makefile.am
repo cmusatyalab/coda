@@ -17,5 +17,8 @@
 #                            none currently
 #*/
 
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = lwp.pc
 MAINTAINERCLEANFILES = Makefile.in
 EXTRA_DIST = lwp.spec
+

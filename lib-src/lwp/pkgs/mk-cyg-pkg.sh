@@ -4,7 +4,7 @@
 CYGWINREV=1
 PKG=lwp
 FLIST="usr/include/lwp/lock.h usr/include/lwp/lwp.h usr/include/lwp/timer.h \
-       usr/lib/liblwp.a usr/lib/liblwp.la"
+       usr/lib/liblwp.a usr/lib/liblwp.la usr/lib/pkgconfig/lwp.pc"
 
 # Sanity checks ...
 

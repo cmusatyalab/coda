@@ -54,6 +54,7 @@ rm -rf $RPM_BUILD_ROOT
 /usr/lib/liblwp.la
 /usr/lib/liblwp.a
 /usr/lib/liblwp.so
+/usr/lib/pkgconfig/lwp.pc
 %dir /usr/include/lwp
 /usr/include/lwp/lock.h
 /usr/include/lwp/lwp.h

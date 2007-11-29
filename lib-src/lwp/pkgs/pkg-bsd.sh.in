@@ -138,6 +138,7 @@ EOF
     cat >> ${dst} << EOF
 lib/liblwp.a
 lib/liblwp.la
+lib/pkgconfig/lwp.pc
 include/lwp/lock.h
 include/lwp/lwp.h
 include/lwp/timer.h
