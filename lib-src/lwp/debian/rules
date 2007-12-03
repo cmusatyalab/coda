@@ -30,7 +30,7 @@ clean:
 	rm -f build-stamp install-stamp
 
 	# Add here commands to clean up after the build process.
-	$(MAKE) distclean
+	[ ! -f Makefile ] || $(MAKE) distclean
 
 	dh_clean
 
