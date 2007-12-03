@@ -30,7 +30,7 @@ clean:
 	rm -f build-stamp install-stamp
 
 	# Add here commands to clean up after the build process.
-	-$(MAKE) distclean
+	$(MAKE) distclean
 
 	dh_clean
 
@@ -55,11 +55,9 @@ binary-arch: build install
 	dh_testdir
 	dh_testroot
 	dh_install
-#	dh_installdebconf	
 	dh_installdocs
 	dh_installexamples
 #	dh_installmanpages
-#	dh_installinfo
 #	dh_undocumented
 	dh_installchangelogs
 	dh_link
