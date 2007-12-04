@@ -79,7 +79,7 @@ Pittsburgh, PA.
 /* simple test, we normally want to mmap our stacks whenever possible, except
  * when we compile venus for Win95 */
 #undef MMAP_LWP_STACKS
-#if defined(HAVE_MMAP) && !defined(DJGPP) 
+#ifdef HAVE_MMAP
 #define MMAP_LWP_STACKS 1
 
 #if defined(__NetBSD__) || defined(__FreeBSD__)
