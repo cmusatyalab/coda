@@ -110,7 +110,7 @@ static void format_addr(const struct sockaddr *sa, char *buf, size_t blen)
 	port = ((struct sockaddr_in *)sa)->sin_port;
 	break;
 
-#if !defined(__CYGWIN__)
+#ifdef PF_INET6
     case PF_INET6:
 	addr = &((struct sockaddr_in6 *)sa)->sin6_addr;
 	port = ((struct sockaddr_in6 *)sa)->sin6_port;
