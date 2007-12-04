@@ -38,18 +38,22 @@ AM_CONDITIONAL(build_pthread, test "$includepthread" != "no" -a "x$LIBPTHREAD" !
 
 dnl Checks for header files.
 AC_CHECK_HEADERS(ucontext.h)
-CODA_CHECK_MAKECONTEXT
 
 dnl Checks for typedefs.
 AC_CHECK_TYPES(register_t)
 AC_CHECK_TYPES(stack_t,,, [#include <signal.h>])
+
+dnl Checks for compiler characteristics
+CODA_CC_FEATURE_TEST(Wall)
 
 dnl Checks for library functions.
 AC_CHECK_FUNCS(sigaltstack)
 AC_FUNC_MMAP
 
 dnl Checks for system services.
+CODA_CHECK_MAKECONTEXT
 
 dnl Generate output files
 AC_CONFIG_FILES(Makefile include/Makefile include/lwp/Makefile src/Makefile src-pt/Makefile pkgs/Makefile pkgs/pkg-bsd.sh pkgs/lwp.pc pkgs/lwp.spec debian/Makefile debian/changelog)
 AC_OUTPUT
+
