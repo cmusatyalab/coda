@@ -178,8 +178,9 @@ ssize_t secure_recvfrom(int s, void *buf, size_t len, int flags,
     n = recvfrom(s, packet, MAXPACKETSIZE, flags | MSG_TRUNC, peer, peerlen);
     if (n < 0) return n;
 
-    /* truncated packets would fail validation either way, drop them early */
-    if (n > MAXPACKETSIZE)
+    /* if we received a truncated packet, but the caller would assume this
+     * packet did not get truncated we have to drop the received packet */
+    if (n > MAXPACKETSIZE && n <= len)
 	goto drop;
 
     /* check if we have valid spi & seq */
@@ -199,6 +200,10 @@ ssize_t secure_recvfrom(int s, void *buf, size_t len, int flags,
      * non-encrypted packets */
     if (spi < 256)
 	goto not_encrypted;
+
+    /* truncated packets will fail validation, drop them */
+    if (n > MAXPACKETSIZE)
+	goto drop;
 
     /* RFC 2406 - IP Encapsulating Security Payload (ESP)
      * Section 3.4.2  Security Association Lookup
