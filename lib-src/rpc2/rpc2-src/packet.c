@@ -235,14 +235,22 @@ long rpc2_RecvPacket(IN long whichSocket, OUT RPC2_PacketBuffer *whichBuff)
     rc = secure_recvfrom(whichSocket, &whichBuff->Header, len, 0,
 			 (struct sockaddr *) &ss, &fromlen,
 			 &whichBuff->Prefix.sa, rpc2_GetSA);
-
-    if (rc < 0 && errno == EAGAIN) {
-	/* the packet might have had a corrupt udp checksum */
-	return -1;
+    if (rc > len) {
+	errno = ENOMEM;
+	rc = -1;
     }
     if (rc < 0) {
-	    say(10, RPC2_DebugLevel, "Error in recvf from: errno = %d\n", errno);
-	    return(-1);
+	switch (errno) {
+	case EAGAIN: /* the packet did not decrypt/validate correctly or may
+			have had a corrupt udp checksum */
+	case ENOMEM: /* received packet was too large */
+	case ENOENT: /* no matching security association found */
+	    break;
+	default:
+	    say(10, RPC2_DebugLevel, "Error in recvfrom: errno = %d\n", errno);
+	    break;
+	}
+	return -1;
     }
 
     whichBuff->Prefix.PeerAddr =
@@ -254,7 +262,7 @@ long rpc2_RecvPacket(IN long whichSocket, OUT RPC2_PacketBuffer *whichBuff)
     if (FailPacket(Fail_RecvPredicate, whichBuff, whichBuff->Prefix.PeerAddr,
 		   whichSocket))
     {
-	    errno = 0;
+	    errno = EAGAIN;
 	    return (-1);
     }
 

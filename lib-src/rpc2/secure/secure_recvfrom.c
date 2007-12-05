@@ -161,6 +161,7 @@ ssize_t secure_recvfrom(int s, void *buf, size_t len, int flags,
     struct security_association *sa = NULL;
     uint32_t spi = 0, seq;
     ssize_t n, estimated_payload;
+    int err;
 
     if (ret_sa) *ret_sa = NULL;
 
@@ -177,6 +178,9 @@ ssize_t secure_recvfrom(int s, void *buf, size_t len, int flags,
 
     n = recvfrom(s, packet, MAXPACKETSIZE, flags | MSG_TRUNC, peer, peerlen);
     if (n < 0) return n;
+
+    /* If we truncated packets because the packet buffer is too small */
+    err = ENOMEM;
 
     /* if we received a truncated packet, but the caller would assume this
      * packet did not get truncated we have to drop the received packet */
@@ -205,6 +209,9 @@ ssize_t secure_recvfrom(int s, void *buf, size_t len, int flags,
     if (n > MAXPACKETSIZE)
 	goto drop;
 
+    /* If we dropped the packet because we could not find a matching SA */
+    err = ENOENT;
+
     /* RFC 2406 - IP Encapsulating Security Payload (ESP)
      * Section 3.4.2  Security Association Lookup
      *   If no valid Security Association exists for this session ... the
@@ -215,6 +222,10 @@ ssize_t secure_recvfrom(int s, void *buf, size_t len, int flags,
 	secure_audit("SA lookup failed", spi, seq, peer);
 	goto drop;
     }
+
+    /* All other errors, drop silently the way the kernel drops incoming
+     * packets when the UDP checksum failed */
+    err = EAGAIN;
 
     /* only check sequence numbers if we can validate the received packet */
     if ((sa->validate->icv_len || sa->decrypt->icv_len) &&
@@ -283,8 +294,7 @@ done:
     return n;
 
 drop:
-    /* treat failures the same as an UDP checksum failures */
-    errno = EAGAIN;
+    errno = err;
     return -1;
 }
 
