@@ -1,55 +1,23 @@
-
 dnl ---------------------------------------------
-dnl translate easy to remember target names into recognizable gnu variants and
-dnl test the cross compilation platform and adjust default settings
-
-AC_DEFUN([CODA_SETUP_BUILD],
-[AC_SUBST(LIBTOOL_LDFLAGS)
-case ${host_alias} in
-  cygwin* | winnt | nt ) host_alias=i386-pc-cygwin ;;
-  arm ) host_alias=arm-unknown-linux-gnuelf ;;
-esac
-AC_CANONICAL_HOST
-if test ${cross_compiling} = yes ; then
-  case ${host} in
-   i386-pc-cygwin )
-    dnl -D__CYGWIN32__ should be defined but sometimes isn't (wasn't?)
-    CC="gnuwin32gcc -D__CYGWIN32__"
-    CXX="gnuwin32g++"
-    AR="gnuwin32ar"
-    RANLIB="gnuwin32ranlib"
-    AS="gnuwin32as"
-    NM="gnuwin32nm"
-    DLLTOOL="gnuwin32dlltool"
-    OBJDUMP="gnuwin32objdump"
-
-    LDFLAGS="-L/usr/gnuwin32/lib"
-
-    dnl We seem to need these to get a dll built
-    libtool_flags="--enable-win32-dll"
-    LIBTOOL_LDFLAGS="-no-undefined"
-    ;;
-   arm-unknown-linux-gnuelf )
-    CROSS_COMPILE="arm-unknown-linuxelf-"
-    ;;
- esac
-fi
-if test "${CROSS_COMPILE}" ; then
-  CC=${CROSS_COMPILE}gcc
-  CXX=${CROSS_COMPILE}g++
-  CPP="${CC} -E"
-  AS=${CROSS_COMPILE}as
-  LD=${CROSS_COMPILE}ld
-  AR=${CROSS_COMPILE}ar
-  RANLIB=${CROSS_COMPILE}ranlib
-  NM=${CROSS_COMPILE}nm
-  OBJDUMP=${CROSS_COMPILE}objdump
-  DLLTOOL=${CROSS_COMPILE}dlltool
-fi])
+dnl Define library version
+dnl
+AC_SUBST(LIBTOOL_VERSION)
+AC_SUBST(MAJOR_VERSION)
+AC_SUBST(LINUX_VERSION)
+AC_SUBST(DLL_VERSION)
+AC_SUBST(FREEBSD_VERSION)
+AC_SUBST(GENERIC_VERSION)
+AC_DEFUN([CODA_LIBRARY_VERSION],
+  [LIBTOOL_VERSION="$2:$1:$3"; major=`expr $2 - $3`
+   MAJOR_VERSION="$major"
+   LINUX_VERSION="$major.$3.$1"
+   DLL_VERSION="$major-$3-$1"
+   FREEBSD_VERSION="$2"
+   GENERIC_VERSION="$2.$1"])
 
 dnl ---------------------------------------------
 dnl Specify paths to the lwp includes and libraries
-
+dnl
 AC_DEFUN([CODA_OPTION_LWP],
  [AC_ARG_WITH(lwp-includes,
     [  --with-lwp-includes     Location of the the lwp include files],
@@ -82,7 +50,6 @@ AC_DEFUN([CODA_CC_FEATURE_TEST],
 dnl ---------------------------------------------
 dnl Search for an installed library in:
 dnl      /usr/lib /usr/local/lib /usr/pkg/lib ${prefix}/lib
-
 AC_DEFUN([CODA_FIND_LIB],
  [AC_CACHE_CHECK(location of lib$1, coda_cv_path_$1,
   [saved_CFLAGS="${CFLAGS}" ; saved_LDFLAGS="${LDFLAGS}" ; saved_LIBS="${LIBS}"
@@ -110,7 +77,7 @@ AC_DEFUN([CODA_FIND_LIB],
 
 dnl ---------------------------------------------
 dnl Find the native C compiler in order to generate a working rp2gen
-
+dnl
 AC_SUBST(NATIVECC)
 AC_DEFUN([CODA_PROG_NATIVECC],
     if test $cross_compiling = yes ; then
@@ -128,7 +95,7 @@ AC_DEFUN([CODA_PROG_NATIVECC],
 
 dnl ---------------------------------------------
 dnl Check which lib provides termcap functionality
-
+dnl
 AC_SUBST(LIBTERMCAP)
 AC_DEFUN([CODA_CHECK_LIBTERMCAP],
  [saved_LIBS=${LIBS} ; LIBS=
@@ -136,26 +103,9 @@ AC_DEFUN([CODA_CHECK_LIBTERMCAP],
   LIBS=${saved_LIBS}])
 
 dnl ---------------------------------------------
-dnl Define library version
-
-AC_SUBST(LIBTOOL_VERSION)
-AC_SUBST(MAJOR_VERSION)
-AC_SUBST(LINUX_VERSION)
-AC_SUBST(DLL_VERSION)
-AC_SUBST(FREEBSD_VERSION)
-AC_SUBST(GENERIC_VERSION)
-AC_DEFUN([CODA_LIBRARY_VERSION],
-  [LIBTOOL_VERSION="$2:$1:$3"; major=`expr $2 - $3`
-   MAJOR_VERSION="$major"
-   LINUX_VERSION="$major.$3.$1"
-   DLL_VERSION="$major-$3-$1"
-   FREEBSD_VERSION="$2"
-   GENERIC_VERSION="$2.$1"])
-
-dnl ---------------------------------------------
 dnl find readline functionality
 dnl also test for new functions introduced by readline 4.2
-
+dnl
 AC_SUBST(LIBREADLINE)
 AC_DEFUN([CODA_CHECK_READLINE],
   [AC_CHECK_LIB(readline, main, [LIBREADLINE=-lreadline], [], [${LIBTERMCAP}])
