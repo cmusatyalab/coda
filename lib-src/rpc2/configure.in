@@ -18,8 +18,6 @@ CODA_LIBRARY_VERSION(1, 9, 4)
 CONFIG_DATE=`date +"%a, %d %b %Y %T %z"`
 AC_SUBST(CONFIG_DATE, "$CONFIG_DATE", [Date when configure was last run])
 
-CODA_OPTION_LWP
-
 dnl Checks for programs.
 AC_PROG_CC
 CODA_PROG_NATIVECC
@@ -42,6 +40,7 @@ AC_CHECK_PROG(PERL, perl, perl)
 
 dnl pkg-config stuff
 PKG_PROG_PKG_CONFIG([0.18.0])
+PKG_CHECK_MODULES([LWP], [lwp])
 AC_ARG_WITH(lua, [  --with-lua		  embed Lua interpreter],
   [ PKG_CHECK_EXISTS([lua5.1], [ PKG_CHECK_MODULES([LUA], [lua5.1]) ],
 			       [ PKG_CHECK_MODULES([LUA], [lua]) ])
@@ -51,25 +50,11 @@ AC_ARG_WITH(lua, [  --with-lua		  embed Lua interpreter],
 AM_CONDITIONAL(LUA, test x$include_lua = xtrue)
 
 dnl Checks for libraries.
-CODA_FIND_LIB(lwp, [#include <lwp/lwp.h>], [LWP_Init(0,0,0)])
 CODA_CHECK_LIBTERMCAP
 CODA_CHECK_READLINE
 AC_SEARCH_LIBS(bind, socket)
 AC_SEARCH_LIBS(inet_ntoa, nsl)
 AC_SEARCH_LIBS(gethostbyname, resolv)
-
-dnl For playing with the _pt version...
-if test ${with_LWP_PT}p = nop ; then
-  AC_CHECK_LIB(lwp, LWP_Init, [LIBLWP="-llwp"],
-               [AC_MSG_ERROR("Could not locate liblwp")])
-else
-  AC_CHECK_LIB(pthread, pthread_create, [LIBPTHREAD="-lpthread"])
-  AC_CHECK_LIB(lwp_pt, LWP_Init, [LIBLWP="-llwp_pt"],
-               [AC_MSG_ERROR("Failed to locate liblwp_pt")], [${LIBPTHREAD}])
-  CPPFLAGS="-D_REENTRANT ${CPPFLAGS}"
-fi
-AC_SUBST(LIBLWP)
-AC_SUBST(LIBPTHREAD)
 
 dnl Checks for header files.
 AC_CHECK_HEADERS(sys/stream.h arpa/inet.h netdb.h)
@@ -90,10 +75,6 @@ AC_FUNC_SELECT_ARGTYPES
 
 dnl Checks for system services.
 AC_C_BIGENDIAN()
-
-if test ${with_LWP_PT}p != nop ; then
-  AC_MSG_WARN(["Building against pthreaded lwp libraries, *experimental*"])
-fi
 
 dnl Generate output files
 AC_CONFIG_FILES(Makefile pkgs/Makefile pkgs/pkg-bsd.sh pkgs/rpc2.spec debian/Makefile debian/changelog include/Makefile include/rpc2/Makefile secure/Makefile rpc2-src/Makefile rp2gen/Makefile scripts/Makefile)
