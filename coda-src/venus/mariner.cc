@@ -215,15 +215,6 @@ void MarinerMux(fd_set *mask)
         }
         else new mariner(newfd);
     }
-
-    /* Kill dying mariners. */
-    mariner_iterator next;
-    mariner *m = NULL, *n = next();
-    while ((m = n) != NULL) {
-	n = next();
-	if (m->dying && m->idle)
-	    delete m;
-    }
 }
 
 
@@ -391,7 +382,8 @@ void mariner::AwaitRequest()
 
     idle = 1;
 
-    do {
+    while (idx < (sizeof(commbuf) - 1) && !dying)
+    {
 	FD_ZERO(&fds);
 	FD_SET(fd, &fds);
 
@@ -413,16 +405,12 @@ void mariner::AwaitRequest()
 	    goto out;
 	}
 	idx++;
-    } while (idx < sizeof(commbuf) - 1);
-
-    dying = 1;
-
-    while(1) { /* wait for our destruction */
-	struct timeval delay;
-	delay.tv_sec = 60;
-	delay.tv_usec = 0;
-	VprocSleep(&delay);
     }
+
+    /* commit suicide */
+    LOG(1, ("mariner committing suicide\n"));
+    delete VprocSelf();
+    CHOKE("Dead mariner walking");
 
 out:
     idle = 0;
