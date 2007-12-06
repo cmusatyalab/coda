@@ -874,7 +874,7 @@ static void Initialize_PCB(PROCESS temp, int priority, char *stack,
     temp->parm = arg;
 
     if (stack) {
-	temp->stackcheck = *(int *)stack;
+	*(int *)stack = temp->stackcheck = 0xBAD57ACC;
 
 	getcontext(&temp->ctx);
 	temp->stack.ss_sp = temp->ctx.uc_stack.ss_sp = stack;
@@ -884,6 +884,8 @@ static void Initialize_PCB(PROCESS temp, int priority, char *stack,
 					another runnable thread */
 	makecontext(&temp->ctx, (void (*)(void))func, 1, arg);
     }
+    else
+	temp->stackcheck = 0;
 
     lwpdebug(0, "Leaving Initialize_PCB\n");
 }
