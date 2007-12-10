@@ -19,8 +19,6 @@ CODA_LIBRARY_VERSION(2, 3, 2)
 CONFIG_DATE=`date +"%a, %d %b %Y %T %z"`
 AC_SUBST(CONFIG_DATE, "$CONFIG_DATE", [Date when configure was last run])
 
-CODA_OPTION_LWP
-
 dnl Checks for programs.
 AC_PROG_CC
 AC_PROG_CPP
@@ -30,23 +28,12 @@ AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 AM_PROG_LIBTOOL
 
+dnl pkg-config stuff
+PKG_PROG_PKG_CONFIG([0.18.0])
+PKG_CHECK_MODULES([LWP], [lwp])
+
 dnl Checks for libraries.
 AC_SEARCH_LIBS(fdatasync, rt)
-
-CODA_FIND_LIB(lwp, [#include <lwp/lwp.h>], [LWP_Init(0,0,0)])
-
-dnl For playing with the _pt version...
-if test ${with_LWP_PT}p = nop ; then
-  AC_CHECK_LIB(lwp, LWP_Init, [LIBLWP="-llwp"],
-               [AC_MSG_ERROR("Could not locate liblwp")])
-else
-  AC_CHECK_LIB(pthread, pthread_create, [LIBPTHREAD="-lpthread"])
-  AC_CHECK_LIB(lwp_pt, LWP_Init, [LIBLWP="-llwp_pt"],
-               [AC_MSG_ERROR("Failed to locate liblwp_pt")], [${LIBPTHREAD}])
-  CPPFLAGS="-D_REENTRANT ${CPPFLAGS}"
-fi
-AC_SUBST(LIBLWP)
-AC_SUBST(LIBPTHREAD)
 
 dnl Checks for header files.
 dnl Checks for typedefs.
@@ -57,10 +44,6 @@ AC_CHECK_FUNCS(strerror fdatasync)
 AC_FUNC_MMAP
 
 dnl Checks for system services.
-
-if test ${with_LWP_PT}p != nop ; then
-  AC_MSG_WARN(["Building against pthreaded lwp libraries, *experimental*"])
-fi
 
 dnl Generate output files
 AC_CONFIG_FILES(Makefile include/Makefile include/rvm/Makefile rvm/Makefile seg/Makefile rds/Makefile tests/Makefile pkgs/Makefile pkgs/pkg-bsd.sh pkgs/rvm.spec debian/Makefile debian/changelog)
