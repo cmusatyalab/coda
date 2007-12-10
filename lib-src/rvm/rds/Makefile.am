@@ -24,16 +24,17 @@ INCLUDES = -I$(top_srcdir)/include $(LWP_CFLAGS)
 librds_la_SOURCES = rds_coalesce.c rds_free.c rds_init.c rds_malloc.c \
     rds_prealloc.c rds_split.c rds_stats.c rds_start.c rds_util.c rds_zap.c \
     rds_maxblock.c rds_private.h
+librds_la_LIBADD = $(top_builddir)/seg/libseg.la $(top_builddir)/rvm/librvm.la
 librds_la_LDFLAGS = -version-info $(LIBTOOL_VERSION) $(LIBTOOL_LDFLAGS)
 
 librdslwp_la_SOURCES = rds_coalesce_lwp.c rds_free_lwp.c rds_init_lwp.c \
     rds_malloc_lwp.c rds_prealloc_lwp.c rds_split_lwp.c rds_stats_lwp.c \
     rds_start_lwp.c rds_util_lwp.c rds_zap_lwp.c rds_maxblock_lwp.c
-librdslwp_la_LIBADD = $(LWP_LIBS)
+librdslwp_la_LIBADD = $(top_builddir)/seg/libseg.la $(top_builddir)/rvm/librvmlwp.la $(LWP_LIBS)
 librdslwp_la_LDFLAGS = -version-info $(LIBTOOL_VERSION) $(LIBTOOL_LDFLAGS)
 
 sbin_PROGRAMS = rdsinit
-rdsinit_LDADD = librds.la $(top_builddir)/seg/libseg.la $(top_builddir)/rvm/librvm.la
+rdsinit_LDADD = librds.la
 
 MAINTAINERCLEANFILES = Makefile.in
 
