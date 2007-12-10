@@ -85,7 +85,7 @@ class mariner : public vproc {
 
     int Read();
     int Write(const char *buf, ...);
-    void AwaitRequest();
+    int AwaitRequest();
     void Resign(int);
     void PathStat(char *);
     void FidStat(VenusFid *);

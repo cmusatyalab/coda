@@ -374,7 +374,7 @@ int mariner::Write(const char *fmt, ...) {
 }
 
 
-void mariner::AwaitRequest()
+int mariner::AwaitRequest()
 {
     fd_set fds;
     unsigned int idx = 0;
@@ -393,8 +393,11 @@ void mariner::AwaitRequest()
 	    continue;
 
 	n = ::read(fd, &commbuf[idx], 1);
-	if (n < 0 && errno == EAGAIN) continue;
-	if (n <= 0) break;
+	if (n < 0 && errno == EAGAIN)
+	    continue;
+
+	if (n <= 0)
+	    return -1;
 
 	if (commbuf[idx] == '\r')
 	    continue;
@@ -402,19 +405,12 @@ void mariner::AwaitRequest()
 	if (commbuf[idx] == '\n') {
 	    commbuf[idx] = '\0';
 	    /* end of line seen, return to caller */
-	    goto out;
+	    break;
 	}
 	idx++;
     }
-
-    /* commit suicide */
-    LOG(1, ("mariner committing suicide\n"));
-    delete VprocSelf();
-    CHOKE("Dead mariner walking");
-
-out:
     idle = 0;
-    return;
+    return 0;
 }
 
 
@@ -437,7 +433,8 @@ void mariner::main(void)
 
     for (;;) {
 	/* Wait for new request. */
-	AwaitRequest();
+	if (AwaitRequest())
+	    break;
 
 	LOG(100, ("mariner::main: cmd = \"%s\"\n", commbuf));
 
