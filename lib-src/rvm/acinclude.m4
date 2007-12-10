@@ -1,71 +1,6 @@
-
-dnl ---------------------------------------------
-dnl translate easy to remember target names into recognizable gnu variants and
-dnl test the cross compilation platform and adjust default settings
-
-AC_DEFUN([CODA_SETUP_BUILD],
-[AC_SUBST(LIBTOOL_LDFLAGS)
-case ${host_alias} in
-  djgpp | win95 | dos )  host_alias=i386-pc-msdos ;;
-  cygwin* | winnt | nt ) host_alias=i386-pc-cygwin ;;
-  arm ) host_alias=arm-unknown-linux-gnuelf ;;
-esac
-AC_CANONICAL_HOST
-if test ${cross_compiling} = yes ; then
-  dnl We have to override some things the configure script tends to
-  dnl get wrong as it tests the build platform feature
-  ac_cv_func_mmap_fixed_mapped=yes
-
-  case ${host} in
-   i386-pc-msdos )
-    dnl shared libraries don't work here
-    enable_shared=no
-    CC="dos-gcc -bmmap"
-    CXX="dos-gcc -bmmap"
-    AR="dos-ar"
-    RANLIB="true"
-    AS="dos-as"
-    NM="dos-nm"
-    ;;
-   i386-pc-cygwin )
-    dnl -D__CYGWIN32__ should be defined but sometimes isn't (wasn't?)
-    CC="gnuwin32gcc -D__CYGWIN32__"
-    CXX="gnuwin32g++"
-    AR="gnuwin32ar"
-    RANLIB="gnuwin32ranlib"
-    AS="gnuwin32as"
-    NM="gnuwin32nm"
-    DLLTOOL="gnuwin32dlltool"
-    OBJDUMP="gnuwin32objdump"
-
-    LDFLAGS="-L/usr/gnuwin32/lib"
-
-    dnl We seem to need these to get a dll built
-    libtool_flags="--enable-win32-dll"
-    LIBTOOL_LDFLAGS="-no-undefined"
-    ;;
-   arm-unknown-linux-gnuelf )
-    CROSS_COMPILE="arm-unknown-linuxelf-"
-    ;;
- esac
-fi
-if test "${CROSS_COMPILE}" ; then
-  CC=${CROSS_COMPILE}gcc
-  CXX=${CROSS_COMPILE}g++
-  CPP="${CC} -E"
-  AS=${CROSS_COMPILE}as
-  LD=${CROSS_COMPILE}ld
-  AR=${CROSS_COMPILE}ar
-  RANLIB=${CROSS_COMPILE}ranlib
-  NM=${CROSS_COMPILE}nm
-  OBJDUMP=${CROSS_COMPILE}objdump
-  DLLTOOL=${CROSS_COMPILE}dlltool
-  ac_cv_func_mmap_fixed_mapped=yes
-fi])
-
 dnl ---------------------------------------------
 dnl Define library version
-
+dnl
 AC_SUBST(LIBTOOL_VERSION)
 AC_SUBST(MAJOR_VERSION)
 AC_SUBST(LINUX_VERSION)
@@ -79,4 +14,21 @@ AC_DEFUN([CODA_LIBRARY_VERSION],
    DLL_VERSION="$major-$3-$1"
    FREEBSD_VERSION="$2"
    GENERIC_VERSION="$2.$1"])
+
+dnl ---------------------------------------------
+dnl Check if the compiler supports specific flags
+dnl
+AC_DEFUN([CODA_CC_FEATURE_TEST],
+  [AC_CACHE_CHECK(whether the C compiler accepts -$1, coda_cv_cc_$1,
+      coda_saved_CFLAGS="$CFLAGS" ; CFLAGS="$CFLAGS -$1" ; AC_LANG_SAVE
+      AC_LANG_C
+      AC_TRY_COMPILE([], [], coda_cv_cc_$1=yes, coda_cv_cc_$1=no)
+      AC_LANG_RESTORE
+      CFLAGS="$coda_saved_CFLAGS")
+  if test $coda_cv_cc_$1 = yes ; then
+      if echo "x $CFLAGS" | grep -qv "$1" ; then
+	  CFLAGS="$CFLAGS -$1"
+      fi
+  fi])
+
 
