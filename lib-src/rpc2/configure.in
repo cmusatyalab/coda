@@ -77,6 +77,6 @@ dnl Checks for system services.
 AC_C_BIGENDIAN()
 
 dnl Generate output files
-AC_CONFIG_FILES(Makefile pkgs/Makefile pkgs/pkg-bsd.sh pkgs/rpc2.spec debian/Makefile debian/changelog include/Makefile include/rpc2/Makefile secure/Makefile rpc2-src/Makefile rp2gen/Makefile scripts/Makefile)
+AC_CONFIG_FILES(Makefile pkgs/Makefile pkgs/pkg-bsd.sh pkgs/rpc2.pc pkgs/rpc2.spec debian/Makefile debian/changelog include/Makefile include/rpc2/Makefile secure/Makefile rpc2-src/Makefile rp2gen/Makefile scripts/Makefile)
 AC_OUTPUT
 

@@ -1,0 +1,12 @@
+prefix=@prefix@
+exec_prefix=@prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: RPC2
+Description: Remote Procedure Call library
+URL: http://www.coda.cs.cmu.edu/
+Version: @VERSION@
+Requires: lwp
+Cflags: -I${includedir}
+Libs: -L${libdir} -lrpc2 -lse

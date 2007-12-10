@@ -7,7 +7,7 @@ FLIST="usr/include/rpc2/errors.h usr/include/rpc2/multi.h \
        usr/include/rpc2/rpc2.h usr/include/rpc2/rpc2_addrinfo.h \
        usr/include/rpc2/se.h usr/include/rpc2/secure.h \
        usr/include/rpc2/sftp.h usr/lib/librpc2.a usr/lib/librpc2.la \
-       usr/lib/libse.a usr/lib/libse.la \
+       usr/lib/libse.a usr/lib/libse.la usr/lib/pkgconfig/rpc2.pc \
        usr/bin/rp2gen.exe"
 
 # Sanity checks ...

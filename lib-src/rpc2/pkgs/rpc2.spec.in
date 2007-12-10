@@ -62,6 +62,7 @@ rm -rf $RPM_BUILD_ROOT
 /usr/lib/libse.a
 /usr/lib/libse.la
 /usr/lib/libse.so
+/usr/lib/pkgconfig/rpc2.pc
 %dir /usr/include/rpc2
 /usr/include/rpc2/errors.h
 /usr/include/rpc2/multi.h
