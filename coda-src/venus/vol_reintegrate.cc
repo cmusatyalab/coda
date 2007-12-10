@@ -672,8 +672,10 @@ int repvol::ReadyToReintegrate()
 /* need not be called from within a transaction */
 int cmlent::ReintReady()
 {
+    repvol *vol = strbase(repvol, log, CML);
+
     /* check if its repair flag is set */
-    if (flags.to_be_repaired || flags.repair_mutation) {
+    if (!vol->IsSync() && IsToBeRepaired()) {
 	LOG(0, ("cmlent::ReintReady: this is a repair related cmlent\n"));
 	return EINCONS;
     }
