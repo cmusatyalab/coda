@@ -1,5 +1,4 @@
 pkg-bsd.sh
-rvm-dos.spec
-rvm-nt.spec
-rvm-win95.spec
+rvmlwp.pc
+rvm.pc
 rvm.spec

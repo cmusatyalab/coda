@@ -45,6 +45,6 @@ AC_FUNC_MMAP
 dnl Checks for system services.
 
 dnl Generate output files
-AC_CONFIG_FILES(Makefile include/Makefile include/rvm/Makefile rvm/Makefile seg/Makefile rds/Makefile tests/Makefile pkgs/Makefile pkgs/pkg-bsd.sh pkgs/rvm.spec debian/Makefile debian/changelog)
+AC_CONFIG_FILES(Makefile include/Makefile include/rvm/Makefile rvm/Makefile seg/Makefile rds/Makefile tests/Makefile pkgs/Makefile pkgs/pkg-bsd.sh pkgs/rvm.pc pkgs/rvmlwp.pc pkgs/rvm.spec debian/Makefile debian/changelog)
 AC_OUTPUT
 

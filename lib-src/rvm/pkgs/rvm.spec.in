@@ -86,6 +86,8 @@ rm -rf $RPM_BUILD_ROOT
 /usr/lib/librdslwp.la
 /usr/lib/librdslwp.a
 /usr/lib/librdslwp.so
+/usr/lib/pkgconfig/rvm.pc
+/usr/lib/pkgconfig/rvmlwp.pc
 %dir /usr/include/rvm
 /usr/include/rvm/rvm.h
 /usr/include/rvm/rvm_statistics.h

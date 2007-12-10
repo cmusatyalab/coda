@@ -9,8 +9,8 @@ FLIST="usr/include/rvm/rds.h usr/include/rvm/rvm.h \
        usr/lib/librdslwp.la usr/lib/librvm.a usr/lib/librvm.la \
        usr/lib/librvmlwp.a usr/lib/librvmlwp.la \
        usr/lib/libseg.a usr/lib/libseg.la \
-       usr/sbin/rdsinit.exe usr/sbin/rvmutl.exe" 
-       
+       usr/lib/pkgconfig/rvm.pc usr/lib/pkgconfig/rvmlwp.pc \
+       usr/sbin/rdsinit.exe usr/sbin/rvmutl.exe"
 
 # Sanity checks ...
 
