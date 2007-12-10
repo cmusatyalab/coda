@@ -737,6 +737,8 @@ static void Free_PCB(PROCESS pid)
 
     lwpdebug(0, "Entered Free_PCB");
 
+    IOMGR_Cancel(pid);
+
     lwpremove(pid, (pid->status==WAITING ?
 		    &blocked :
 		    &runnable[pid->priority]));
