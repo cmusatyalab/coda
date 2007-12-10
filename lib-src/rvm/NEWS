@@ -1,3 +1,8 @@
+New in 1.15:
+
+* Build and packaging updates.
+* Use pkg-config.
+
 New in 1.14:
 
 * Avoid overflow in rds_free on 64-bit systems.
