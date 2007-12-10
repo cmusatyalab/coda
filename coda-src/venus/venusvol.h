@@ -227,7 +227,7 @@ class ClientModifyLog {
 /* local-repair addition */
 struct CmlFlags {
     unsigned to_be_repaired : 1;
-    unsigned repair_mutation : 1;
+    unsigned unused : 1;
     unsigned frozen : 1;			/* do not cancel */
     unsigned cancellation_pending : 1;		/* once unfrozen */
     /*T*/unsigned failed : 1;			/* offending record */
@@ -421,7 +421,6 @@ class cmlent {
     void SetRepairFlag();                                       /*U*/
     void SetRepairMutationFlag();                               /*U*/
     int IsToBeRepaired() { return flags.to_be_repaired; }       /*N*/
-    int IsRepairMutation() { return flags.repair_mutation; }    /*N*/
     int IsExpanded() { return expansions; }                     /*T*/
     void GetVVandFids(ViceVersionVector *[3], VenusFid *[3]);   /*N*/
     void GetAllFids(VenusFid *[3]);    				/*N*/

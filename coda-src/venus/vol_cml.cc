@@ -548,7 +548,6 @@ cmlent::cmlent(ClientModifyLog *Log, time_t Mtime, uid_t Uid, int op, int prepen
     log = Log;
     this->tid = -1;
     flags.to_be_repaired = 0;
-    flags.repair_mutation = 0;
     flags.frozen = 0;
     flags.cancellation_pending = 0;
     flags.prepended = prepend;
@@ -828,7 +827,6 @@ void cmlent::print(int afd) {
 	     pred, (pred == 0 ? 0 : pred->count()),
 	     succ, (succ == 0 ? 0 : succ->count()));
     fdprint(afd, "\t\tto_be_repaired = %d\n", flags.to_be_repaired);
-    fdprint(afd, "\t\trepair_mutation = %d\n", flags.repair_mutation);
     fdprint(afd, "\t\tfrozen = %d, cancel = %d, failed = %d, committed = %d\n", 
 	    flags.frozen, flags.cancellation_pending, flags.failed,
 	    flags.committed);
