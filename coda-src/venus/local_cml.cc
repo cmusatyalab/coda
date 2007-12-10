@@ -58,58 +58,60 @@ extern "C" {
 
 /* Find a consistent server replica to act as our 'global'.
  * All of this is necessary to create these replica objects in fsdb::Get. */
-static int GetGlobalReplica(fsobj **global, VenusFid *fid) {
-  struct in_addr volumehosts[VSG_MEMBERS];
-  VolumeId volumeids[VSG_MEMBERS];
-  volent *vol;
-  repvol *rvol;
-  int rc;
-  VenusFid replicafid = *fid;
-  vproc *vp = VprocSelf();
+static int GetGlobalReplica(fsobj **global, VenusFid *fid)
+{
+    VolumeId volumeids[VSG_MEMBERS];
+    volent *vol;
+    repvol *rvol;
+    int rc;
+    VenusFid replicafid = *fid;
+    vproc *vp = VprocSelf();
 
-  CODA_ASSERT(global);
+    CODA_ASSERT(global);
+    *global = NULL;
 
-  VDB->Get(&vol, MakeVolid(fid));
+    VDB->Get(&vol, MakeVolid(fid));
+    if (!vol) return VNOVOL;
 
-  if(vol && vol->IsReplicated()) {
+    rc = EVOLUME;
+    if (!vol->IsReplicated())
+	goto unlock_out;
+
     rvol = (repvol *)vol;
-    rvol->GetHosts(volumehosts);
     rvol->GetVids(volumeids);
+
     for (int i = 0; i < VSG_MEMBERS; i++) {
-      if (!volumehosts[i].s_addr) continue;
-      srvent *s = FindServer(&volumehosts[i]);
-      CODA_ASSERT(s != NULL);
+	if (!volumeids[i]) continue;
 
-      replicafid.Volume = volumeids[i];
-      rc = FSDB->Get(global, &replicafid, vp->u.u_uid, RC_DATA);
-      if(*global) {
-	if(rc) { /* any error code is no good, even EINCONS */
-	  /* This will probably be an error point when we get to handling
-	   * mixed local/global and server/server conflicts, where EINCONS
-	   * would be an acceptable error return. */
-	  FSDB->Put(global);
-	  continue;
-	}
-	else {
-	  LOG(0, ("CheckRepair_GetObjects: using global (%s) -> %s\n",
-		  FID_(&replicafid), FID_(fid)));
-	  FSDB->Put(global);
-	  break;
-	}
-      }
-      /* otherwise, it didn't work. continue */
+	replicafid.Volume = volumeids[i];
+	rc = FSDB->Get(global, &replicafid, vp->u.u_uid, RC_DATA);
+	if (rc == 0) break;
+
+	/* any error code is no good, even EINCONS */
+	/* This will probably be an error point when we get to handling
+	 * mixed local/global and server/server conflicts, where EINCONS
+	 * would be an acceptable error return. */
+	if (*global)
+	    FSDB->Put(global);
+
+	continue;
     }
-  }
 
-  *global = FSDB->Find(&replicafid);
+    if (*global) {
+	LOG(0, ("CheckRepair_GetObjects: using global %s -> %s\n",
+		FID_(&replicafid), FID_(fid)));
 
-  if(vol)
+	/* XXX this isn't safe, we drop the lock, but don't have some other
+	 * refcount to pin the object down. */
+	FSDB->Put(global);
+	rc = VFAIL;
+	*global = FSDB->Find(&replicafid);
+    }
+
+unlock_out:
     VDB->Put(&vol);
 
-  if(*global)
-    return 0;
-
-  return -1;
+    return (*global) ? 0 : rc;
 }
 
 /* ********** beginning of cmlent methods ********** */
@@ -504,13 +506,15 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
 
 static int DoRepair_GetObjects(VenusFid *fid, fsobj **global, fsobj **local)
 {
+    int rc;
+
     LOG(100, ("cmlent::DoRepair: (%s)\n", FID_(fid)));
 
     *local = FSDB->Find(fid);
-    GetGlobalReplica(global, fid);
+    rc = GetGlobalReplica(global, fid);
+    if (rc) return rc;
 
     CODA_ASSERT((*global) && (*local)); /* bad news at the moment*/
-
     return 0;
 }
 
