@@ -13,3 +13,6 @@ MAINTAINERCLEANFILES = ChangeLog Makefile.in aclocal.m4 compile config.guess \
 dist-hook:
 	if [ -x /afs/cs.cmu.edu ] ; then cp -f /afs/cs.cmu.edu/project/coda-src/cvs/CVSROOT/ChangeLog.lwp $(distdir)/ChangeLog ; fi
 
+distcleancheck_listfiles = \
+       find -type f -exec sh -c 'test -f $(srcdir)/{} || echo {}' ';'
+
