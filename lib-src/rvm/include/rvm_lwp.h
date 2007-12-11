@@ -30,9 +30,7 @@ Coda are listed in the file CREDITS.
 #define BOGUSCODE 	(BOGUS_USE_OF_CTHREADS)  /* force compilation error */
 
 #define RVM_MUTEX			struct Lock
-#define RVM_MUTEX_T			struct Lock *
 #define RVM_CONDITION			char 
-#define RVM_CONDITION_T			char *
 #define	MUTEX_INITIALIZER		{0, 0, 0, 0}
 /* Supported cthread definitions */
 

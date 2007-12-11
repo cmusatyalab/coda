@@ -67,29 +67,16 @@ Coda are listed in the file CREDITS.
  * consistently across the following packages: RVM, RDS, and URT
  */
 
-#ifndef RVM_USELWP                      /* normal: use Cthreads */
-#ifndef RVM_USEPT
+#ifdef RVM_USELWP	 /* special thread support for Coda */
+#include "rvm_lwp.h"
+#elif defined(RVM_USEPT) /* special support for pthreads */
+#include "rvm_pthread.h"
+#else			 /* normal: use Cthreads */
 #include <cthreads.h>
 
 /* define types symbolically to permit use of non-Cthread thread support */
 #define RVM_MUTEX       struct mutex
-#define RVM_MUTEX_T	mutex_t
 #define RVM_CONDITION	struct condition
-#define RVM_CONDITION_T	condition_t
-
-/* macro for testing if a lock is free */
-#define LOCK_FREE(lck) \
-    (mutex_try_lock(&(lck)) ? (mutex_unlock(&(lck)), rvm_true) : rvm_false)
-
-#endif
-#endif
-
-#ifdef RVM_USELWP                       /* special thread support for Coda */
-#include "rvm_lwp.h"
-#endif 
-
-#ifdef RVM_USEPT                       /* special support for pthreads */
-#include "rvm_pthread.h"
 #endif
 
 #define LEAVE_CRITICAL_SECTION	goto end_critical;

@@ -38,10 +38,7 @@ extern int       rvm_join_res;
 #define BOGUSCODE     (BOGUS_USE_OF_PTHREADS)   /* force compilation error */
 
 #define RVM_MUTEX          pthread_mutex_t
-#define RVM_MUTEX_T        pthread_mutex_t *
-
 #define RVM_CONDITION      pthread_cond_t 
-#define RVM_CONDIDITON_T   pthread_cond_t *
 
 /* 
  * Unfortunately, pthread mutexes cannot be initialized statically: they
@@ -164,4 +161,4 @@ extern int rvm_lock_free(pthread_mutex_t *m);
 #define	cthread_set_data(t, x)		BOGUSCODE
 #define	cthread_data(t)			BOGUSCODE
 
-#endif _RVM_PTHREAD_H_
+#endif /* _RVM_PTHREAD_H_ */
