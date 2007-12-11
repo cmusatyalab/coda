@@ -3,7 +3,7 @@ Section: devel
 Priority: optional
 Maintainer: Jan Harkes <jaharkes@cs.cmu.edu>
 Standards-Version: 3.7.2
-Build-Depends: debhelper (>= 4), liblwp-dev
+Build-Depends: debhelper (>= 4), pkg-config, liblwp-dev
 
 Package: librvm-dev
 Architecture: alpha amd64 arm i386 m68k powerpc sparc
