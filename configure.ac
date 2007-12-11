@@ -50,9 +50,7 @@ AC_PATH_PROG(PERL, perl, "")
 AC_PATH_PROG(RM, rm, "")
 AC_PATH_PROG(SED, sed, "")
 AC_PATH_PROG(FLUID, fluid, "")
-
 AM_PATH_PYTHON(,,[:])
-AM_CONDITIONAL([HAVE_PYTHON], [test "$PYTHON" != :])
 
 AC_PATH_PROG(RP2GEN, rp2gen, "", [${PATH}:${prefix}/sbin:/usr/sbin:/usr/local/sbin:/usr/pkg/sbin])
 AC_PATH_PROG(RDSINIT, rdsinit, "", [${PATH}:${prefix}/sbin:/usr/sbin:/usr/local/sbin:/usr/pkg/sbin])
@@ -62,10 +60,12 @@ AC_ARG_ENABLE(client, [  --enable-client	  build Coda client components],
     buildclient="$enableval", buildclient="no")
 AC_ARG_ENABLE(server, [  --enable-server	  build Coda server components],
     buildserver="$enableval", buildserver="no")
+AC_ARG_WITH(vcodacon, [  --with-vcodacon	  build graphical Coda console],
+    buildvcodacon="$enableval", buildvcodacon="no")
 
-CODA_FAIL_IF_MISSING(RP2GEN, "unable to find rp2gen. try --with-lwp option");
-CODA_FAIL_IF_MISSING(RDSINIT, "unable to find rdsinit. try --with-rvm option");
-CODA_FAIL_IF_MISSING(RVMUTL, "unable to find rvmutl. try --with-rvm option");
+CODA_FAIL_IF_MISSING(RP2GEN, "unable to find rp2gen. may need librpc2-dev");
+CODA_FAIL_IF_MISSING(RDSINIT, "unable to find rdsinit. may need rvm-tools");
+CODA_FAIL_IF_MISSING(RVMUTL, "unable to find rvmutl. may need rvm-tools");
 
 MV="${MV} -f"
 RM="${RM} -f"
@@ -79,12 +79,12 @@ AC_SEARCH_LIBS(res_9_init, resolv)
 AC_SEARCH_LIBS(kvm_openfiles, kvm)
 
 CODA_FIND_LIB(lwp, [#include <lwp/lwp.h>], [LWP_Init(0,0,0)])
-CODA_FIND_LIB(rvm, [#include <rvm/rvm.h>], [rvm_initialize(0,0)])
+CODA_FIND_LIB(rvmlwp, [#include <rvm/rvm.h>], [rvm_initialize(0,0)])
 CODA_FIND_LIB(rpc2, [#include <rpc2/rpc2.h>], [RPC2_Init(0,0,0,0,0)], -llwp)
 CODA_CHECK_LWP_PT
 
 CODA_REQUIRE_LIB(lwp)
-CODA_REQUIRE_LIB(rvm)
+CODA_REQUIRE_LIB(rvmlwp)
 CODA_REQUIRE_LIB(rpc2)
 
 AC_SUBST(LIBRVM)
@@ -152,15 +152,21 @@ dnl Checks for system services.
 AC_SUBST(shortsys)
 
 dnl Build conditionals
+if test "$buildvcodacon" != no ; then
+  CODA_FAIL_IF_MISSING(FLUID, "Unable to find fltk-fluid");
+  test "$coda_cv_path_fltk" == none && AC_MSG_ERROR("Unable to find libfltk")
+fi
+AM_CONDITIONAL(BUILD_VCODACON, [test "$buildvcodacon" != no])
+
 AM_CONDITIONAL(BUILD_CLIENT, [test "$buildclient" != no -o "$buildclient" = no -a "$buildserver" = no])
 AM_CONDITIONAL(BUILD_SERVER, [test "$buildserver" != no -o "$buildclient" = no -a "$buildserver" = no])
 
-AM_CONDITIONAL(SYSVINIT, test "$initstyle" = sysv)
-AM_CONDITIONAL(HAVE_FLTK, test "$coda_cv_path_fltk" != none)
-AM_CONDITIONAL(WANT_FTS, test "$ac_cv_header_fts_h" = no)
-AM_CONDITIONAL(WANT_KERBEROS, test -n "$LIBKRB4" -o -n "$LIBKRB5")
-AM_CONDITIONAL(WANT_KRB4, test -n "$LIBKRB4")
-AM_CONDITIONAL(WANT_KRB5, test -n "$LIBKRB5")
+AM_CONDITIONAL([HAVE_PYTHON], [test "$PYTHON" != :])
+AM_CONDITIONAL([SYSVINIT], [test "$initstyle" = sysv])
+AM_CONDITIONAL([WANT_FTS], [test "$ac_cv_header_fts_h" = no])
+AM_CONDITIONAL([WANT_KERBEROS], [test -n "$LIBKRB4" -o -n "$LIBKRB5"])
+AM_CONDITIONAL([WANT_KRB4], [test -n "$LIBKRB4"])
+AM_CONDITIONAL([WANT_KRB5], [test -n "$LIBKRB5"])
 
 AC_CONFIG_FILES([coda-src/scripts/bldvldb.sh],
        [chmod +x coda-src/scripts/bldvldb.sh])

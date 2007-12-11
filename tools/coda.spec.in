@@ -6,7 +6,8 @@ Release: 1
 Source: ftp://ftp.coda.cs.cmu.edu/pub/coda/src/%{name}-%{version}.tar.gz
 License: GPL
 BuildRoot: %{_builddir}/%{name}-%{version}/Root
-#BuildRequires: lwp-devel >= 2.0, ncurses-devel, rpc2-devel, rvm-devel, libtermcap-devel, fltk-devel
+BuildRequires: lwp-devel >= 2.3, rpc2-devel, rvm-devel
+BuildRequires: ncurses-devel, libtermcap-devel %{?_with_vcodacon:, fltk-fluid, fltk-devel}
 Group: Networking/Daemons
 %description
 Source package for the Coda file system.  Three packages are provided by
@@ -41,14 +42,6 @@ Group: Networking/Daemons
 This package contains the backup software for the Coda file system, as
 well as the volume utilities.
 
-%package vcodacon
-Summary: Coda graphical console
-Group: Networking/Daemons
-Requires: coda-client
-%description vcodacon
-This package contains vcodacon, a graphical console for the Coda file
-system client.
-
 %changelog
 * Sun Jan 19 2003 Rafael Jesus Alcantara Perez <rafa@dedalo.ws>
 - Initial attempt for making the RPM packages from CVS with KERBEROS support.
@@ -71,7 +64,7 @@ system client.
 %setup -n %{name}-%{version}
 
 %build
-./configure --prefix=/usr '--mandir=${prefix}/share/man'
+./configure --prefix=/usr '--mandir=${prefix}/share/man' %{?_with_vcodacon}
 #  --with-krb4 \
 #  --with-krb5 \
 #  --with-krb4-includes=/usr/kerberos/include/kerberosIV \
@@ -169,6 +162,7 @@ exit 0
 /usr/bin/spy
 /usr/bin/xaskuser
 /usr/bin/xfrepair
+%{?_with_vcodacon: /usr/bin/vcodacon}
 /usr/share/man/man1/au.1.gz
 /usr/share/man/man1/cfs.1.gz
 /usr/share/man/man1/clog.1.gz
@@ -263,7 +257,3 @@ exit 0
 /usr/share/man/man8/backup.8.gz
 /usr/share/man/man8/merge.8.gz
 /usr/share/man/man8/readdump.8.gz
-
-%files vcodacon
-%defattr(-,root,root)
-/usr/bin/vcodacon

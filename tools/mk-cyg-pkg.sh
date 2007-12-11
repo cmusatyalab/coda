@@ -186,7 +186,7 @@ if $BUILD ; then
 	exit 1
     fi
     
-    if ! ../configure --prefix=/usr --enable-client ; then
+    if ! ../configure --prefix=/usr --enable-client --with-vcodacon ; then
 	echo Could not configure for build.
 	exit 1
     fi

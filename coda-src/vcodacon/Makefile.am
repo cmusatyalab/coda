@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-if HAVE_FLTK
+if BUILD_VCODACON
 if BUILD_CLIENT
 bin_PROGRAMS = vcodacon
 #dist_man1_SMANS = vcodacon.1
