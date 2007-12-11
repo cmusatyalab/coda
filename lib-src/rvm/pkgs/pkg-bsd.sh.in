@@ -94,7 +94,7 @@ EXTRACT_SUFX=	.tar.gz
 MAINTAINER=	coda@cs.cmu.edu
 @NetBSD HOMEPAGE=	http://www.coda.cs.cmu.edu/
 @FreeBSD LIB_DEPENDS=	lwp.2:\${PORTSDIR}/devel/lwp
-@NetBSD DEPENDS=	lwp-1.6:../lwp
+@NetBSD DEPENDS=	lwp-2.4:../lwp
 
 @NetBSD #ONLY_FOR_ARCHS=	arm32 i386 ns32k
 @NetBSD 
@@ -127,22 +127,16 @@ function MakePLIST () {
     then
 	cat > ${dst} << EOF
 @comment \$NetBSD\$
-lib/librvm.so.@GENERIC_VERSION@
 lib/librvmlwp.so.@GENERIC_VERSION@
 lib/libseg.so.@GENERIC_VERSION@
-lib/librds.so.@GENERIC_VERSION@
 lib/librdslwp.so.@GENERIC_VERSION@
 EOF
     else
 	cat > ${dst} << EOF
-lib/librvm.so
-lib/librvm.so.@FREEBSD_VERSION@
 lib/librvmlwp.so
 lib/librvmlwp.so.@FREEBSD_VERSION@
 lib/libseg.so
 lib/libseg.so.@FREEBSD_VERSION@
-lib/librds.so
-lib/librds.so.@FREEBSD_VERSION@
 lib/librdslwp.so
 lib/librdslwp.so.@FREEBSD_VERSION@
 EOF
@@ -151,16 +145,13 @@ EOF
     cat >> ${dst} << EOF
 sbin/rvmutl
 sbin/rdsinit
-lib/librvm.a
-lib/librvm.la
 lib/librvmlwp.a
 lib/librvmlwp.la
 lib/libseg.a
 lib/libseg.la
-lib/librds.a
-lib/librds.la
 lib/librdslwp.a
 lib/librdslwp.la
+lib/pkgconfig/rvmlwp.pc
 include/rvm/rvm.h
 include/rvm/rvm_statistics.h
 include/rvm/rvm_segment.h

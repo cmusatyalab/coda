@@ -12,8 +12,9 @@
 
 rm -rf autom4te.cache
 touch AUTHORS ChangeLog README
-autoheader
-aclocal
-libtoolize --copy --force
-automake --copy --add-missing
-autoconf
+autoreconf --verbose --install --force
+#autoheader
+#aclocal
+#libtoolize --copy --force
+#automake --copy --add-missing
+#autoconf

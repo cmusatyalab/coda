@@ -5,11 +5,10 @@ CYGWINREV=1
 PKG=rvm
 FLIST="usr/include/rvm/rds.h usr/include/rvm/rvm.h \
        usr/include/rvm/rvm_segment.h usr/include/rvm/rvm_statistics.h \
-       usr/lib/librds.a usr/lib/librds.la usr/lib/librdslwp.a \
-       usr/lib/librdslwp.la usr/lib/librvm.a usr/lib/librvm.la \
+       usr/lib/librdslwp.a usr/lib/librdslwp.la \
        usr/lib/librvmlwp.a usr/lib/librvmlwp.la \
        usr/lib/libseg.a usr/lib/libseg.la \
-       usr/lib/pkgconfig/rvm.pc usr/lib/pkgconfig/rvmlwp.pc \
+       usr/lib/pkgconfig/rvmlwp.pc \
        usr/sbin/rdsinit.exe usr/sbin/rvmutl.exe"
 
 # Sanity checks ...

@@ -3,8 +3,9 @@ dnl Process this file with autoconf to produce a configure script
 dnl Initialization
 AC_PREREQ(2.50)
 AC_INIT(rvm, 1.15~rc1)
+AC_CONFIG_AUX_DIR([.])
 AC_CONFIG_SRCDIR(rvm/rvm_private.h)
-AM_INIT_AUTOMAKE
+AM_INIT_AUTOMAKE([foreign])
 AC_CONFIG_HEADERS(config.h)
 
 dnl For library version updates, follow these steps in order.
@@ -17,6 +18,15 @@ CODA_LIBRARY_VERSION(2, 3, 2)
 
 CONFIG_DATE=`date +"%a, %d %b %Y %T %z"`
 AC_SUBST(CONFIG_DATE, "$CONFIG_DATE", [Date when configure was last run])
+
+dnl Build options.
+AC_ARG_ENABLE([librvm],
+  [  --enable-librvm         build non-threaded rvm and rds libraries],
+  [case "${enableval}" in
+    yes) librvm=true ;;
+    no)  librvm=false ;;
+    *)   AC_MSG_ERROR([bad value ${enableval} for --enable-librvm]) ;;
+  esac], [librvm=false])
 
 dnl Checks for programs.
 AC_PROG_CC
@@ -44,7 +54,12 @@ AC_FUNC_MMAP
 
 dnl Checks for system services.
 
+dnl Build conditionals
+AM_CONDITIONAL([want_librvm], [test "$librvm" == true])
+
 dnl Generate output files
-AC_CONFIG_FILES(Makefile include/Makefile include/rvm/Makefile rvm/Makefile seg/Makefile rds/Makefile tests/Makefile pkgs/Makefile pkgs/pkg-bsd.sh pkgs/rvm.pc pkgs/rvmlwp.pc pkgs/rvm.spec debian/Makefile debian/changelog)
+AC_CONFIG_FILES([Makefile include/Makefile include/rvm/Makefile rvm/Makefile
+    seg/Makefile rds/Makefile tests/Makefile pkgs/Makefile pkgs/pkg-bsd.sh
+    pkgs/rvm.pc pkgs/rvmlwp.pc pkgs/rvm.spec debian/Makefile debian/changelog])
 AC_OUTPUT
 

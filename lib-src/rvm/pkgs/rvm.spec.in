@@ -39,15 +39,11 @@ make
 rm -rf $RPM_BUILD_ROOT
 mkdir -p $RPM_BUILD_ROOT
 make prefix=$RPM_BUILD_ROOT/usr install
-chmod 755 $RPM_BUILD_ROOT/usr/lib/librvm.so.@LINUX_VERSION@
 chmod 755 $RPM_BUILD_ROOT/usr/lib/librvmlwp.so.@LINUX_VERSION@
 chmod 755 $RPM_BUILD_ROOT/usr/lib/libseg.so.@LINUX_VERSION@
-chmod 755 $RPM_BUILD_ROOT/usr/lib/librds.so.@LINUX_VERSION@
 chmod 755 $RPM_BUILD_ROOT/usr/lib/librdslwp.so.@LINUX_VERSION@
-rm -f $RPM_BUILD_ROOT/usr/lib/librvm.so.@MAJOR_VERSION@
 rm -f $RPM_BUILD_ROOT/usr/lib/librvmlwp.so.@MAJOR_VERSION@
 rm -f $RPM_BUILD_ROOT/usr/lib/libseg.so.@MAJOR_VERSION@
-rm -f $RPM_BUILD_ROOT/usr/lib/librds.so.@MAJOR_VERSION@
 rm -f $RPM_BUILD_ROOT/usr/lib/librdslwp.so.@MAJOR_VERSION@
 
 %clean
@@ -58,10 +54,8 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root)
-/usr/lib/librvm.so.@LINUX_VERSION@
 /usr/lib/librvmlwp.so.@LINUX_VERSION@
 /usr/lib/libseg.so.@LINUX_VERSION@
-/usr/lib/librds.so.@LINUX_VERSION@
 /usr/lib/librdslwp.so.@LINUX_VERSION@
 
 %files tools
@@ -71,22 +65,15 @@ rm -rf $RPM_BUILD_ROOT
 
 %files devel
 %defattr(-,root,root)
-/usr/lib/librvm.la
-/usr/lib/librvm.a
-/usr/lib/librvm.so
 /usr/lib/librvmlwp.la
 /usr/lib/librvmlwp.a
 /usr/lib/librvmlwp.so
 /usr/lib/libseg.la
 /usr/lib/libseg.a
 /usr/lib/libseg.so
-/usr/lib/librds.la
-/usr/lib/librds.a
-/usr/lib/librds.so
 /usr/lib/librdslwp.la
 /usr/lib/librdslwp.a
 /usr/lib/librdslwp.so
-/usr/lib/pkgconfig/rvm.pc
 /usr/lib/pkgconfig/rvmlwp.pc
 %dir /usr/include/rvm
 /usr/include/rvm/rvm.h
