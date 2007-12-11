@@ -15,11 +15,11 @@ librvm_sources = rvm_init.c rvm_map.c rvm_unmap.c rvm_trans.c \
 
 librvm_la_CPPFLAGS = $(AM_CPPFLAGS)
 librvm_la_SOURCES = $(librvm_sources)
-librvm_la_LDFLAGS = -version-info $(LIBTOOL_VERSION) $(LIBTOOL_LDFLAGS)
+librvm_la_LDFLAGS = $(LIBTOOL_LDFLAGS)
 
 librvmlwp_la_CPPFLAGS = $(AM_CPPFLAGS) -DRVM_USELWP $(LWP_CFLAGS)
 librvmlwp_la_SOURCES = $(librvm_sources)
-librvmlwp_la_LDFLAGS = -version-info $(LIBTOOL_VERSION) $(LIBTOOL_LDFLAGS)
+librvmlwp_la_LDFLAGS = $(LIBTOOL_LDFLAGS)
 librvmlwp_la_LIBADD = $(LWP_LIBS)
 
 EXTRA_DIST = rvm_pthread.c README.log1.4 READ_ME

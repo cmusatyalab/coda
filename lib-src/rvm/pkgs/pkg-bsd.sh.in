@@ -128,15 +128,15 @@ function MakePLIST () {
 	cat > ${dst} << EOF
 @comment \$NetBSD\$
 lib/librvmlwp.so.@GENERIC_VERSION@
-lib/libseg.so.@GENERIC_VERSION@
+lib/libseglwp.so.@GENERIC_VERSION@
 lib/librdslwp.so.@GENERIC_VERSION@
 EOF
     else
 	cat > ${dst} << EOF
 lib/librvmlwp.so
 lib/librvmlwp.so.@FREEBSD_VERSION@
-lib/libseg.so
-lib/libseg.so.@FREEBSD_VERSION@
+lib/libseglwp.so
+lib/libseglwp.so.@FREEBSD_VERSION@
 lib/librdslwp.so
 lib/librdslwp.so.@FREEBSD_VERSION@
 EOF
@@ -147,8 +147,8 @@ sbin/rvmutl
 sbin/rdsinit
 lib/librvmlwp.a
 lib/librvmlwp.la
-lib/libseg.a
-lib/libseg.la
+lib/libseglwp.a
+lib/libseglwp.la
 lib/librdslwp.a
 lib/librdslwp.la
 lib/pkgconfig/rvmlwp.pc

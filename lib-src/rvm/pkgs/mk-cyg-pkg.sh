@@ -7,7 +7,7 @@ FLIST="usr/include/rvm/rds.h usr/include/rvm/rvm.h \
        usr/include/rvm/rvm_segment.h usr/include/rvm/rvm_statistics.h \
        usr/lib/librdslwp.a usr/lib/librdslwp.la \
        usr/lib/librvmlwp.a usr/lib/librvmlwp.la \
-       usr/lib/libseg.a usr/lib/libseg.la \
+       usr/lib/libseglwp.a usr/lib/libseglwp.la \
        usr/lib/pkgconfig/rvmlwp.pc \
        usr/sbin/rdsinit.exe usr/sbin/rvmutl.exe"
 
