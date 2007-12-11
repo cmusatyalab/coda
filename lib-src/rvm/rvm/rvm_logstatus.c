@@ -144,13 +144,7 @@ log_t *find_log(log_dev)
     char            *log_dev;
     {
     log_t           *log;
-#ifdef DJGPP
-    rvm_return_t    retval;
-    char            *log_dev_fullname = make_full_name(log_dev, 0, &retval);
-    assert(log_dev_fullname && retval == RVM_SUCCESS);
-#else
     char            *log_dev_fullname = log_dev;
-#endif
 
     assert(log_dev != NULL);
     CRITICAL(log_root_lock,
@@ -162,10 +156,6 @@ log_t *find_log(log_dev)
         log = NULL;
 found:;
         });
-
-#ifdef DJGPP
-    free(log_dev_fullname);
-#endif
 
     return log;
     }

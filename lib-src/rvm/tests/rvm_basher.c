@@ -885,11 +885,7 @@ rvm_bool_t chk_vm()
 #endif /* VERSION_TEST */
 
     /* open segment file read-only */
-#ifdef DJGPP
     if ((seg_file = fopen(DataFileName,"rb")) == NULL)
-#else
-    if ((seg_file = fopen(DataFileName,"r")) == NULL)
-#endif
         {
         printf("\n? Error opening segment file\n");
         printf("    errno = %d\n",errno);

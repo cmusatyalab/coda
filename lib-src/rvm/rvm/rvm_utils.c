@@ -457,11 +457,7 @@ char *make_full_name(dev_str,dev_name,retval)
     len = strlen(dev_str) + 1;          /* one extra for null terminator */
 
     /* see if working directory must be added to device name */
-#ifndef DJGPP
     if (*dev_str != '/')
-#else
-    if (dev_str[1] != ':')
-#endif
         {
         if (getcwd(wd_name, sizeof(wd_name)) == 0)
             assert(rvm_false);
@@ -486,10 +482,6 @@ char *make_full_name(dev_str,dev_name,retval)
     if (wd_len != 0)
         {
         (void)strcpy(dev_name,wd_name);
-#ifdef DJGPP
-	if (dev_str[0] == '/' || dev_str[0] != '\\')
-	    dev_name[2] = '\0';
-#endif
         dev_name[wd_len] = '/';
         dev_name[wd_len+1] = 0;
         }

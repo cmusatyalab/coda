@@ -39,11 +39,6 @@ listed in the file CREDITS.
 #include <rvmtesting.h>
 #endif
 
-#ifdef DJGPP
-#include <crt0.h>
-int _crt0_startup_flags = _CRT0_FLAG_NEARPTR;
-#endif
-
 /* global variables */
 
 extern rvm_bool_t   rvm_inited;         /* initialization complete flag */
