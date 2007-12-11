@@ -8,12 +8,13 @@
 # automake   - COPYING INSTALL Makefile.in config.guess config.sub install-sh
 #              libtool ltconfig ltmain.sh missing mkinstalldirs stamp-h.in
 # autoconf   - configure
-#
+# (autoreconf does pretty much everything nowadays)
 
 rm -rf autom4te.cache
 touch ChangeLog
-autoheader
-aclocal
-libtoolize --copy --force
-automake --copy --add-missing
-autoconf
+autoreconf --verbose --install --force
+#autoheader
+#aclocal
+#libtoolize --copy --force
+#automake --copy --add-missing
+#autoconf

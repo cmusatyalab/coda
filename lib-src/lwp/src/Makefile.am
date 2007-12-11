@@ -1,33 +1,17 @@
 ## Process this file with automake to produce Makefile.in
 
-# BLURB lgpl
-# 
-#                            Coda File System
-#                               Release 5
-# 
-#           Copyright (c) 1987-1999 Carnegie Mellon University
-#                   Additional copyrights listed below
-# 
-# This  code  is  distributed "AS IS" without warranty of any kind under
-# the  terms of the  GNU  Library General Public Licence  Version 2,  as
-# shown in the file LICENSE. The technical and financial contributors to
-# Coda are listed in the file CREDITS.
-# 
-#                         Additional copyrights
-#                            none currently
-# 
-#*/
-
 lib_LTLIBRARIES = liblwp.la
-INCLUDES = -I$(top_srcdir)/include
+noinst_PROGRAMS = cswitch testlwp testlwp-static tdb rw
+
+AM_CPPFLAGS = -I$(top_srcdir)/include
+LDADD = liblwp.la
+
 liblwp_la_SOURCES = fasttime.c iomgr.c lock.c lwp.c timer.c process.S \
     lwp_ucontext.c lwp_ucontext.h lwp_stacktrace.c lwp_stacktrace.h \
     lwp.private.h
-liblwp_la_CFLAGS = -DLWPDEBUG
+liblwp_la_CPPFLAGS = $(AM_CPPFLAGS) -DLWPDEBUG
 liblwp_la_LDFLAGS = -version-info $(LIBTOOL_VERSION) $(LIBTOOL_LDFLAGS)
 
-noinst_PROGRAMS = cswitch testlwp testlwp-static tdb rw
-LDADD = liblwp.la
 testlwp_static_SOURCES = testlwp.c
 testlwp_static_LDFLAGS = -static
 

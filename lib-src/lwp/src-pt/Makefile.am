@@ -1,23 +1,5 @@
 ## Process this file with automake to produce Makefile.in
 
-# BLURB lgpl
-# 
-#                            Coda File System
-#                               Release 5
-# 
-#           Copyright (c) 1987-1999 Carnegie Mellon University
-#                   Additional copyrights listed below
-# 
-# This  code  is  distributed "AS IS" without warranty of any kind under
-# the  terms of the  GNU  Library General Public Licence  Version 2,  as
-# shown in the file LICENSE. The technical and financial contributors to
-# Coda are listed in the file CREDITS.
-# 
-#                         Additional copyrights
-#                            none currently
-# 
-#*/
-
 VPATH=$(srcdir):$(top_srcdir)/src
 
 if build_pthread
@@ -26,7 +8,9 @@ BUILD_BIN = cswitch_pt testlwp_pt testlwp-static_pt tdb_pt rw_pt
 endif
 
 lib_LTLIBRARIES = $(BUILD_LIB)
-INCLUDES = -I$(top_srcdir)/include -D_REENTRANT
+
+AM_CPPFLAGS = -I$(top_srcdir)/include -D_REENTRANT
+
 liblwp_pt_la_SOURCES = iomgr_pt.c lock_pt.c lwp_pt.c preempt_pt.c \
     lwp.private_pt.h dllist.h
 liblwp_pt_la_LIBADD = fasttime_pt.lo timer_pt.lo
@@ -51,11 +35,11 @@ MAINTAINERCLEANFILES = Makefile.in
 fasttime_pt.lo: fasttime.c
 	$(LTCOMPILE) -c $< && \
 	mv fasttime.lo fasttime_pt.lo
-        
+
 timer_pt.lo: timer.c
 	$(LTCOMPILE) -c $< && \
 	mv timer.lo timer_pt.lo
-        
+
 cswitch_pt.o: cswitch.c
 	$(COMPILE) -c $< && mv cswitch.o cswitch_pt.o
 
