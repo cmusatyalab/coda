@@ -13,3 +13,6 @@ MAINTAINERCLEANFILES = AUTHORS ChangeLog Makefile.in README aclocal.m4 \
 dist-hook:
 	if [ -x /afs/cs.cmu.edu ] ; then cp -f /afs/cs.cmu.edu/project/coda-src/cvs/CVSROOT/ChangeLog.rpc2 $(distdir)/ChangeLog ; fi
 
+distcleancheck_listfiles = \
+       find -type f -exec sh -c 'test -f $(srcdir)/{} || echo {}' ';'
+

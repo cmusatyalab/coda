@@ -23,8 +23,6 @@ dnl Checks for programs.
 AC_PROG_CC
 CODA_PROG_NATIVECC
 AC_PROG_CPP
-AC_CHECK_PROG(AR, ar, ar)
-export AR
 AM_PROG_LEX
 if test -z "${ac_cv_prog_LEX}" ; then
     AC_MSG_ERROR([Build requires flex or lex lexical analyzer generator])
@@ -37,18 +35,17 @@ AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 AC_PROG_LIBTOOL
 AC_CHECK_PROG(CP, cp, cp)
-AC_CHECK_PROG(PERL, perl, perl)
 
 dnl pkg-config stuff
 PKG_PROG_PKG_CONFIG([0.18.0])
 PKG_CHECK_MODULES([LWP], [lwp])
+
 AC_ARG_WITH(lua, [  --with-lua		  embed Lua interpreter],
   [ PKG_CHECK_EXISTS([lua5.1], [ PKG_CHECK_MODULES([LUA], [lua5.1]) ],
 			       [ PKG_CHECK_MODULES([LUA], [lua]) ])
     AC_DEFINE(USE_LUA, 1, [Define this when linking against Lua])
     include_lua=true ],
   [ include_lua=false ])
-AM_CONDITIONAL(LUA, test x$include_lua = xtrue)
 
 dnl Checks for libraries.
 CODA_CHECK_LIBTERMCAP
@@ -77,7 +74,13 @@ AC_FUNC_SELECT_ARGTYPES
 dnl Checks for system services.
 AC_C_BIGENDIAN()
 
+dnl Build options.
+AM_CONDITIONAL(LUA, test x$include_lua = xtrue)
+
 dnl Generate output files
-AC_CONFIG_FILES(Makefile pkgs/Makefile pkgs/pkg-bsd.sh pkgs/rpc2.pc pkgs/rpc2.spec debian/Makefile debian/changelog include/Makefile include/rpc2/Makefile secure/Makefile rpc2-src/Makefile rp2gen/Makefile scripts/Makefile)
+AC_CONFIG_FILES([Makefile pkgs/Makefile pkgs/pkg-bsd.sh pkgs/rpc2.pc
+    pkgs/rpc2.spec debian/Makefile debian/changelog include/Makefile
+    include/rpc2/Makefile secure/Makefile rpc2-src/Makefile rp2gen/Makefile
+    scripts/Makefile])
 AC_OUTPUT
 
