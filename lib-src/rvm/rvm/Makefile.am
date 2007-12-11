@@ -19,22 +19,23 @@
 #*/
 
 lib_LTLIBRARIES = librvm.la librvmlwp.la
-INCLUDES = -I$(top_srcdir)/include $(LWP_CFLAGS)
+sbin_PROGRAMS = rvmutl
 
-librvm_la_SOURCES = rvm_init.c rvm_map.c rvm_unmap.c rvm_trans.c \
+INCLUDES = -I$(top_srcdir)/include $(LWP_CFLAGS)
+LDADD = librvmlwp.la
+
+librvm_sources = rvm_init.c rvm_map.c rvm_unmap.c rvm_trans.c \
     rvm_logstatus.c rvm_logflush.c rvm_logrecovr.c rvm_utils.c rvm_io.c \
     rvm_status.c rvm_debug.c rvm_printers.c rvm_private.h
+
+librvm_la_CFLAGS = $(AM_CFLAGS)
+librvm_la_SOURCES = $(librvm_sources)
 librvm_la_LDFLAGS = -version-info $(LIBTOOL_VERSION) $(LIBTOOL_LDFLAGS)
 
-librvmlwp_la_SOURCES = rvm_init_lwp.c rvm_map_lwp.c rvm_unmap_lwp.c \
-    rvm_trans_lwp.c rvm_logstatus_lwp.c rvm_logflush_lwp.c \
-    rvm_logrecovr_lwp.c rvm_utils_lwp.c rvm_io_lwp.c rvm_status_lwp.c \
-    rvm_debug_lwp.c rvm_printers_lwp.c
-librvmlwp_la_LIBADD = $(LWP_LIBS)
+librvmlwp_la_CPPFLAGS = -DRVM_USELWP
+librvmlwp_la_SOURCES = $(librvm_sources)
 librvmlwp_la_LDFLAGS = -version-info $(LIBTOOL_VERSION) $(LIBTOOL_LDFLAGS)
-
-sbin_PROGRAMS = rvmutl
-rvmutl_LDADD = librvm.la
+librvmlwp_la_LIBADD = $(LWP_LIBS)
 
 EXTRA_DIST = rvm_pthread.c README.log1.4 READ_ME
 MAINTAINERCLEANFILES = Makefile.in
