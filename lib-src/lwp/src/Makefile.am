@@ -7,10 +7,10 @@ AM_CPPFLAGS = -I$(top_srcdir)/include
 LDADD = liblwp.la
 
 liblwp_la_SOURCES = fasttime.c iomgr.c lock.c lwp.c timer.c process.S \
-    lwp_ucontext.c lwp_ucontext.h lwp_stacktrace.c lwp_stacktrace.h \
-    lwp.private.h
+		    lwp_ucontext.c lwp_ucontext.h lwp_stacktrace.c \
+		    lwp_stacktrace.h lwp.private.h
 liblwp_la_CPPFLAGS = $(AM_CPPFLAGS) -DLWPDEBUG
-liblwp_la_LDFLAGS = -version-info $(LIBTOOL_VERSION) $(LIBTOOL_LDFLAGS)
+liblwp_la_LDFLAGS = $(LIBTOOL_LDFLAGS)
 
 testlwp_static_SOURCES = testlwp.c
 testlwp_static_LDFLAGS = -static
