@@ -2,7 +2,7 @@ dnl Process this file with autoconf to produce a configure script.
 
 dnl autoconf 2.5 stuff
 AC_PREREQ(2.50)
-AC_INIT(Coda, 6.9.2, [bugs@coda.cs.cmu.edu])
+AC_INIT(Coda, 6.9.3~rc1, [bugs@coda.cs.cmu.edu])
 AC_CONFIG_SRCDIR(coda-src/librepair/resolve.h)
 AM_INIT_AUTOMAKE([foreign])
 AC_CONFIG_HEADERS(config.h)
@@ -29,8 +29,6 @@ CODA_PROG_NATIVECC
 
 AC_PROG_CPP
 AC_PROG_CXXCPP
-AC_CHECK_PROG(AR, ar, ar)
-AC_CHECK_PROG(AS, as, as)
 AC_PROG_LEX
 AC_PROG_YACC
 AC_PROG_INSTALL
@@ -41,14 +39,7 @@ AC_PROG_AWK
 dnl Now we can derive things like systype/cputype/initdir
 m4_include(configs/codaconf.m4)
 
-AC_PATH_PROG(CP, cp, "")
-AC_PATH_PROG(DF, df, "")
-AC_PATH_PROG(GREP, grep, "")
-AC_PATH_PROG(HOSTNAME, hostname, "")
-AC_PATH_PROG(MV, mv, "")
 AC_PATH_PROG(PERL, perl, "")
-AC_PATH_PROG(RM, rm, "")
-AC_PATH_PROG(SED, sed, "")
 AC_PATH_PROG(FLUID, fluid, "")
 AM_PATH_PYTHON(,,[:])
 
@@ -66,9 +57,6 @@ AC_ARG_WITH(vcodacon, [  --with-vcodacon	  build graphical Coda console],
 CODA_FAIL_IF_MISSING(RP2GEN, "unable to find rp2gen. may need librpc2-dev");
 CODA_FAIL_IF_MISSING(RDSINIT, "unable to find rdsinit. may need rvm-tools");
 CODA_FAIL_IF_MISSING(RVMUTL, "unable to find rvmutl. may need rvm-tools");
-
-MV="${MV} -f"
-RM="${RM} -f"
 
 dnl Checks for libraries.
 AC_SEARCH_LIBS(bind, socket)
