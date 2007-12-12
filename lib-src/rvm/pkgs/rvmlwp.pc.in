@@ -9,5 +9,5 @@ URL: http://www.coda.cs.cmu.edu/
 Version: @VERSION@
 Requires: lwp
 Cflags: -I${includedir}
-Libs: -L${libdir} -lrdslwp -lseg -lrvmlwp
+Libs: -L${libdir} -lrdslwp -lseglwp -lrvmlwp
 
