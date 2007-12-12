@@ -287,13 +287,13 @@ int nt_initialize_ipc (int sock)
     return 1;
 }
 
-int nt_msg_write (char *buf, int size)
+int nt_msg_write (const char *buf, int size)
 {
     int rc;
     DWORD bytesret;
 
     //    eprint ("nt_msg_write: Start\n");
-    rc = DeviceIoControl (kerndev, CODA_FSCTL_ANSWER, buf, size, NULL, 0,
+    rc = DeviceIoControl (kerndev, CODA_FSCTL_ANSWER, (char*)buf, size, NULL, 0,
 			  &bytesret, NULL);
     //    eprint ("nt_msg_write: End\n");
     if (!rc)
