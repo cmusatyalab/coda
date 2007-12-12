@@ -1,7 +1,7 @@
 ## Process this file with automake to produce Makefile.in
 
 lib_LTLIBRARIES = librvmlwp.la
-if want_librvm
+if LIBRVM
 lib_LTLIBRARIES += librvm.la
 endif
 sbin_PROGRAMS = rvmutl

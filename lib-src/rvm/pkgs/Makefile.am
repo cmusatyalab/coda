@@ -2,7 +2,7 @@
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = rvmlwp.pc
-if want_librvm
+if LIBRVM
 pkgconfig_DATA += rvm.pc
 endif
 

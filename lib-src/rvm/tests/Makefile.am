@@ -1,7 +1,7 @@
 ## Process this file with automake to produce Makefile.in
 
 noinst_PROGRAMS = testrvm lwp_basher
-if want_librvm
+if LIBRVM
 noinst_PROGRAMS += rvm_basher
 endif
 

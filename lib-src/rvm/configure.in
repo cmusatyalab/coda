@@ -21,12 +21,8 @@ AC_SUBST(CONFIG_DATE, "$CONFIG_DATE", [Date when configure was last run])
 
 dnl Build options.
 AC_ARG_ENABLE([librvm],
-  [  --enable-librvm         build non-threaded rvm and rds libraries],
-  [case "${enableval}" in
-    yes) librvm=true ;;
-    no)  librvm=false ;;
-    *)   AC_MSG_ERROR([bad value ${enableval} for --enable-librvm]) ;;
-  esac], [librvm=false])
+  [  --enable-librvm	  build non-threaded rvm and rds libraries],
+  [librvm="${enableval}"], [librvm=no])
 
 dnl Checks for programs.
 AC_PROG_CC
@@ -36,7 +32,7 @@ AC_PROG_MAKE_SET
 AM_PROG_LIBTOOL
 
 dnl pkg-config stuff
-PKG_PROG_PKG_CONFIG([0.18.0])
+CODA_PKG_CONFIG
 PKG_CHECK_MODULES([LWP], [lwp])
 
 dnl Checks for libraries.
@@ -55,7 +51,7 @@ AC_FUNC_MMAP
 dnl Checks for system services.
 
 dnl Build conditionals
-AM_CONDITIONAL([want_librvm], [test "$librvm" == true])
+AM_CONDITIONAL([LIBRVM], [test "$librvm" != no])
 
 dnl Generate output files
 AC_CONFIG_FILES([Makefile include/Makefile include/rvm/Makefile rvm/Makefile

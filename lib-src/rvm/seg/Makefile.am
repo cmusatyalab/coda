@@ -1,7 +1,7 @@
 ## Process this file with automake to produce Makefile.in
 
 lib_LTLIBRARIES = libseglwp.la
-if want_librvm
+if LIBRVM
 lib_LTLIBRARIES += libseg.la
 endif
 

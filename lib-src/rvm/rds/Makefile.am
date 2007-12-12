@@ -1,7 +1,7 @@
 ## Process this file with automake to produce Makefile.in
 
 lib_LTLIBRARIES = librdslwp.la
-if want_librvm
+if LIBRVM
 lib_LTLIBRARIES += librds.la
 endif
 sbin_PROGRAMS = rdsinit
