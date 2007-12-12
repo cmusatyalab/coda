@@ -20,7 +20,7 @@ librpc2_la_LIBADD = $(top_builddir)/secure/libsecure.la $(LUA_LIBS) $(LWP_LIBS)
 
 libse_la_SOURCES = sftp1.c sftp2.c sftp3.c sftp4.c sftp5.c sftp6.c
 libse_la_LDFLAGS = $(LIBTOOL_LDFLAGS)
-libse_la_LIBADD = librpc2.la
+libse_la_LIBADD = librpc2.la $(LWP_LIBS)
 
 MAINTAINERCLEANFILES = Makefile.in
 
