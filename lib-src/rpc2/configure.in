@@ -37,9 +37,8 @@ AC_PROG_LIBTOOL
 AC_CHECK_PROG(CP, cp, cp)
 
 dnl pkg-config stuff
-PKG_PROG_PKG_CONFIG([0.18.0])
+CODA_PKG_CONFIG
 PKG_CHECK_MODULES([LWP], [lwp])
-
 AC_ARG_WITH(lua, [  --with-lua		  embed Lua interpreter],
   [ PKG_CHECK_EXISTS([lua5.1], [ PKG_CHECK_MODULES([LUA], [lua5.1]) ],
 			       [ PKG_CHECK_MODULES([LUA], [lua]) ])
