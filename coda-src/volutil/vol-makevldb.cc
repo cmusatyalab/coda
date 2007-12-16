@@ -170,7 +170,7 @@ long S_VolMakeVLDB(RPC2_Handle rpcid, RPC2_String formal_infile)
     head = (struct vldbHeader *) vldb_array;
     head->magic = htonl(VLDB_MAGIC);
     head->hashSize = htonl(vldbHashSize);
-    
+
     fclose(volumelist);
 
     if (haveEntry == 0) {
@@ -189,11 +189,13 @@ long S_VolMakeVLDB(RPC2_Handle rpcid, RPC2_String formal_infile)
     }
     close(fd);
     if (rename(VLDB_TEMP, VLDB_PATH) == -1) {
-	printf("Unable to rename %s to %s; new vldb not created\n", VLDB_TEMP, VLDB_PATH);
+	printf("Unable to rename %s to %s; new vldb not created\n",
+	       VLDB_TEMP, VLDB_PATH);
 	err = 1;
     }
     else
-        printf("VLDB created.  Search lengths: RO %d, RW %d, BK %d.\n", MaxRO, MaxRW, MaxBK);
+	printf("VLDB created.  Search lengths: RO %d, RW %d, BK %d.\n",
+	       MaxRO, MaxRW, MaxBK);
 
     /* tell fileserver to read in new database */
     VCheckVLDB();
@@ -209,7 +211,7 @@ static int Pass(char type)
     unsigned long readwrite;
     int copydate, backupdate, creationdate;
     char line[500];
-    char idname[20]; 
+    char idname[20];
     int nargs;
     int linenumber = 0;
     char **argp;

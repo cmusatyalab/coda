@@ -91,7 +91,7 @@ void recle::InitFromsle(rsle *sl) {
 	    CODA_ASSERT(vle);
 	    rvmlib_set_range(vle, vle->size());
 	    newstore *newst = (newstore *)(&(vle->vfld[0]));
-	    newst->init(sl->u.newst.owner, sl->u.newst.mode, sl->u.newst.author, 
+	    newst->init(sl->u.newst.owner, sl->u.newst.mode, sl->u.newst.author,
 		     sl->u.newst.mtime, sl->u.newst.mask, &sl->u.st.vv);
 	}
 	break;

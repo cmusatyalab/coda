@@ -2163,7 +2163,7 @@ void namectxt::getpath(char *buf) {
 	return;
 }
 
-void namectxt::putmsg(int fd, char *reason, int include_modifier)
+void namectxt::putmsg(int fd, const char *reason, int include_modifier)
 {
     char fullpath[MAXPATHLEN];
     const char *modifier = !include_modifier ? "" :

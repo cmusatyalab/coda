@@ -711,7 +711,7 @@ void VShutdown() {
 		VLog(0, "VShutdown: Taking volume %s(0x%x) offline...",
 		     V_name(vp), V_id(vp));
 	    if (vp)
-	        VOffline(vp, "File server was shut down");
+		VOffline(vp, "File server was shut down");
 	    VLog(0, "... Done");
 	    rvmlib_end_transaction(flush, &(camstatus));
 	    p = p->hashNext;

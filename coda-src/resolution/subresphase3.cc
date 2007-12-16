@@ -991,32 +991,30 @@ static int CheckValidityResOp(rsle *r, int NE,
     return 0;
 }
 
-static int PerformRegularCompOp(int result, rsle *rp, dlist *vlist, dlist *inclist, 
-				 olist *AllLogs, ViceFid *dFid, vle *pv, 
-				 Volume *volptr, VolumeId VSGVolnum, int *nblocks) {
+static int PerformRegularCompOp(int result, rsle *rp, dlist *vlist,
+				dlist *inclist, olist *AllLogs, ViceFid *dFid,
+				vle *pv, Volume *volptr, VolumeId VSGVolnum,
+				int *nblocks)
+{
     int tblocks = 0;
     int errorCode = 0;
-    ViceFid cFid; 
+    ViceFid cFid;
     vle *cv;
     char *name;
     int vntype;
 
     switch (result) {
       case PERFORMOP:
-	SLog(9,  
-	       "PerformRegularCompOp: Going to Perform Op");
-	errorCode = PerformResOp(rp, vlist, AllLogs, pv, 
-				 volptr, VSGVolnum, &tblocks);
+	SLog(9, "PerformRegularCompOp: Going to Perform Op");
+	errorCode = PerformResOp(rp, vlist, AllLogs, pv, volptr, VSGVolnum, &tblocks);
 	break;
       case NULLOP:
-	SLog(9,  
-	       "PerformRegularCompOp: NULL Operation - ignore");
+	SLog(9, "PerformRegularCompOp: NULL Operation - ignore");
 	break;
       case MARKPARENTINC:
-	SLog(9,  
-	       "PerformRegularCompOp: Marking Parent Inc");
+	SLog(9, "PerformRegularCompOp: Marking Parent Inc");
 	MarkObjInc(dFid, pv->vptr);
-	AddILE(*inclist, ".", dFid->Vnode, dFid->Unique, 
+	AddILE(*inclist, ".", dFid->Vnode, dFid->Unique,
 	       dFid->Vnode, dFid->Unique, (long)vDirectory);
 	break;
       case MARKOBJINC:
@@ -1025,42 +1023,39 @@ static int PerformRegularCompOp(int result, rsle *rp, dlist *vlist, dlist *incli
 	cFid.Volume = V_id(volptr);
 	cv = FindVLE(*vlist, &cFid);
 	if (!cv || !cv->vptr) {
-	    SLog(0,  
-		   "MARKOBJINC: couldnt get obj(0x%x.%x)vnode pointer",
+	    SLog(0, "MARKOBJINC: couldnt get obj(0x%x.%x)vnode pointer",
 		   cFid.Vnode, cFid.Unique);
 	    errorCode = EINVAL;
 	}
 	else {
 	    MarkObjInc(&cFid, cv->vptr);
 	    name = ExtractNameFromrsle(rp);
-	    AddILE(*inclist, name, cFid.Vnode, cFid.Unique, 
-		   dFid->Vnode, dFid->Unique, 
+	    AddILE(*inclist, name, cFid.Vnode, cFid.Unique,
+		   dFid->Vnode, dFid->Unique,
 		   (long)(cv->vptr->disk.type));
 	}
 	break;
       case CREATEINCOBJ:
-	// xxx BE CAREFUL WITH CHILD FID AND RENAMES 
-	SLog(9,  "CheckSemPerformRes: Creating Inc Object");
+	// xxx BE CAREFUL WITH CHILD FID AND RENAMES
+	SLog(9, "CheckSemPerformRes: Creating Inc Object");
 	ExtractChildFidFromrsle(rp, &cFid);
 	cFid.Volume = V_id(volptr);
 	name = ExtractNameFromrsle(rp);
 	vntype = ExtractVNTypeFromrsle(rp);
-	errorCode = CreateObjToMarkInc(volptr, dFid, &cFid, name, 
+	errorCode = CreateObjToMarkInc(volptr, dFid, &cFid, name,
 				       vntype, vlist, &tblocks);
 	if (errorCode == 0) {
 	    cv = FindVLE(*vlist, &cFid);
 	    CODA_ASSERT(cv);
 	    CODA_ASSERT(cv->vptr);
 	    MarkObjInc(&cFid, cv->vptr);
-	    AddILE(*inclist, name, cFid.Vnode, cFid.Unique, 
-		   cv->vptr->disk.vparent, 
-		   cv->vptr->disk.uparent,
+	    AddILE(*inclist, name, cFid.Vnode, cFid.Unique,
+		   cv->vptr->disk.vparent, cv->vptr->disk.uparent,
 		   (long)(cv->vptr->disk.type));
 	}
 	break;
       default:
-	SLog(0,  
-	       "Illegal opcode for PerformCompOp\n");
+	SLog(0, "Illegal opcode for PerformCompOp\n");
 	CODA_ASSERT(0);
     }
 
@@ -1068,14 +1063,10 @@ static int PerformRegularCompOp(int result, rsle *rp, dlist *vlist, dlist *incli
     return(errorCode);
 }
 
-
-
-static int PerformResOp(rsle *r, dlist *vlist, olist *AllLogs,
-			 vle *pv, Volume *volptr, VolumeId VSGVolnum, 
-			 int *blocks) {
-    
-    SLog(9,  
-	   "Entering PerformResOp: %s ", PRINTOPCODE(r->opcode));
+static int PerformResOp(rsle *r, dlist *vlist, olist *AllLogs, vle *pv,
+			Volume *volptr, VolumeId VSGVolnum, int *blocks)
+{
+    SLog(9, "Entering PerformResOp: %s ", PRINTOPCODE(r->opcode));
     int errorCode = 0;
     *blocks = 0;
     char *name = ExtractNameFromrsle(r);

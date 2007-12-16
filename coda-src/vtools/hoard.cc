@@ -110,7 +110,7 @@ static void DoDisables(olist&);
 static void MetaExpand(olist&, char *, int, int);
 static void ExpandNode(char *, VolumeId, char *, char *, olist&, int, int);
 static void RenameOutFile(char *, char *);
-static void error(int, char * ...);
+static void error(int, const char * ...);
 static void usage();
 static void parse_error(char *);
 
@@ -534,7 +534,6 @@ next_cmd:
 		verbosity = 0;
 		strcpy(vname, "/dev/tty");
 		vuid = ALL_UIDS;
-		
 
 		/* Verify command. */
 		if (!STREQ(token, "v") && !STREQ(token, "verify")) {
@@ -1264,11 +1263,11 @@ static void RenameOutFile(char *from, char *to) {
 
 	if (!Debug)
 	    unlink(from);
-    }    
+    }
 }
 
 
-static void error(int fatal, char *fmt ...) {
+static void error(int fatal, const char *fmt ...) {
     va_list ap;
 
     char msg[240];

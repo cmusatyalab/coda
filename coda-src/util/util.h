@@ -65,12 +65,12 @@ void eprint(const char *, ...);
 void fdprint(long afd, const char *fmt, ...);
 
 /* Routine for conditionally printing timestamped log messages */
-extern void LogMsg(int msglevel, int debuglevel, FILE *fout, char *fmt,  ...);
-#define VLog(level, format, a...)   LogMsg(level, VolDebugLevel, stdout, format, ## a)
-#define SLog(level, format, a...)   LogMsg(level, SrvDebugLevel, stdout, format, ## a)
-#define DLog(level, format, a...)   LogMsg(level, DirDebugLevel, stdout, format, ## a)
-#define ALog(level, format, a...)   LogMsg(level, VolDebugLevel, stdout, format, ## a)
-#define CLog(level, format, a...)   LogMsg(level, VolDebugLevel, stdout, format, ## a)
+extern void LogMsg(int msglevel, int debuglevel, FILE *fout, const char *fmt, ...);
+#define VLog(level, fmt, a...) LogMsg(level, VolDebugLevel, stdout, fmt, ## a)
+#define SLog(level, fmt, a...) LogMsg(level, SrvDebugLevel, stdout, fmt, ## a)
+#define DLog(level, fmt, a...) LogMsg(level, DirDebugLevel, stdout, fmt, ## a)
+#define ALog(level, fmt, a...) LogMsg(level, VolDebugLevel, stdout, fmt, ## a)
+#define CLog(level, fmt, a...) LogMsg(level, VolDebugLevel, stdout, fmt, ## a)
 
 /* The routine that prints the timestamp */
 extern void PrintTimeStamp(FILE *fout);

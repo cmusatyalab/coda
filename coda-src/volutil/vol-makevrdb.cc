@@ -59,7 +59,7 @@ long S_VolMakeVRDB(RPC2_Handle rpcid, RPC2_String formal_infile) {
     int fd = 0;
 
     LogMsg(9, VolDebugLevel, stdout, "Entering S_VolMakeVRDB; infile %s", infile);
-    
+
     fd = open(VRDB_TEMP, O_TRUNC|O_WRONLY|O_CREAT, 0644);
     if (fd == -1) {
 	LogMsg(0, VolDebugLevel, stdout,
@@ -67,10 +67,10 @@ long S_VolMakeVRDB(RPC2_Handle rpcid, RPC2_String formal_infile) {
 	err = VFAIL;
 	goto Exit;
     }
-    
+
     vrlist = fopen(infile, "r");
     if (vrlist == NULL) {
-	LogMsg(0, VolDebugLevel, stdout, 
+	LogMsg(0, VolDebugLevel, stdout,
 	       "S_VolMakeVRDB: unable to open file %s", infile);
 	err = VFAIL;
 	goto Exit;
@@ -97,7 +97,7 @@ long S_VolMakeVRDB(RPC2_Handle rpcid, RPC2_String formal_infile) {
 	}
 	vre->nServers = servercount;
 	vre->hton();
-	
+
 	if (write(fd, vre, sizeof(struct vrent)) != sizeof(struct vrent)) {
 	    LogMsg(0, VolDebugLevel, stdout, "write error on input line(%d): %s", lineno, line);
 	    LogMsg(0, VolDebugLevel, stdout, "makevrdb aborted");
@@ -105,19 +105,19 @@ long S_VolMakeVRDB(RPC2_Handle rpcid, RPC2_String formal_infile) {
 	    err = VFAIL;
 	    goto Exit;
 	}
-        delete vre;
+	delete vre;
     }
 
     /* Make temporary VRDB permanent. */
     if (rename(VRDB_TEMP, VRDB_PATH) == -1) {
-	LogMsg(0, VolDebugLevel, stdout, 
+	LogMsg(0, VolDebugLevel, stdout,
 	       "Unable to rename %s to %s; new vrdb not created",
 	       VRDB_TEMP, VRDB_PATH);
 	err = 1;
     }
     else
 	LogMsg(0, VolDebugLevel, stdout, "VRDB created, %d entries", lineno);
-    
+
     /* Tell fileserver to read in new database. */
     CheckVRDB();
   Exit:

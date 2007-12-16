@@ -586,14 +586,14 @@ long S_VolNewDump(RPC2_Handle rpcid, RPC2_Unsigned formal_volumeNumber,
 	retcode = VFAIL;
 	goto failure;
     }
-    
+
     VolumeId volnum;
     long unique;
     int ix;
 
     volnum = V_parentId(vp);
     if (ReverseXlateVid(&volnum, &ix)) {
-	unique = (&V_versionvector(vp).Versions.Site0)[ix]; 
+	unique = (&V_versionvector(vp).Versions.Site0)[ix];
     } else {
 	volnum = 0; /* parent volume, nonexistent in the case... */
 	/* Uniquely identify incrementals of non-rep volumes by updateDate */
@@ -716,7 +716,7 @@ long S_VolDumpEstimate(RPC2_Handle rpcid, RPC2_Unsigned formal_volumeNumber,
     rc = VInitVolUtil(volumeUtility);
     if (rc) return rc;
 
-    vp = VGetVolume(&error, volumeNumber);    
+    vp = VGetVolume(&error, volumeNumber);
     if (error) {
 	SLog(0, "Unable to get the volume %x, not dumped", volumeNumber);
 	VDisconnectFS();

@@ -382,7 +382,7 @@ class namectxt {
     void print(int, void * =0);
     void printsuspect(int, int);
     void getpath(char *);
-    void putmsg(int fd, char *reason, int include_modifier);
+    void putmsg(int fd, const char *reason, int include_modifier);
 };
 
 #ifdef	VENUSDEBUG

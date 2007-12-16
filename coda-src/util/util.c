@@ -140,7 +140,7 @@ void PrintTimeStamp(FILE *f)
     fprintf(f, "%02d:%02d:%02d ", t->tm_hour, t->tm_min, t->tm_sec);
 }
 
-void LogMsg(int msglevel, int debuglevel, FILE *fout, char *fmt,  ...)
+void LogMsg(int msglevel, int debuglevel, FILE *fout, const char *fmt,  ...)
 {
     va_list ap;
 

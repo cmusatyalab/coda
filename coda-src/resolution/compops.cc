@@ -54,7 +54,7 @@ static int CmpCompEntries(rsle **, rsle **);
 static int CompareStoreId(ViceStoreId *, ViceStoreId *);
 static int CmpSleEntries(rsle **, rsle **);
 static int IsLater(rsle *a, rsle *b);
-static void PrintArrList(arrlist *, char *);
+static void PrintArrList(arrlist *, const char *);
 static void PrintRemoteLogs(olist **, int );
 static void PrintLogList(olist *);
 
@@ -416,21 +416,19 @@ static int IsLater(rsle *a, rsle *b) {
 }
 
 
-// routines to print out different logs 
+// routines to print out different logs
 // for debugging
-static void PrintArrList(arrlist *a, char *s) 
+static void PrintArrList(arrlist *a, const char *s)
 {
     printf("*** %s Begin *** \n", s);
     arrlist_iterator next(a);
     rsle *r;
     while ((r = (rsle *)next())) {
-	LogMsg(0, SrvDebugLevel, stdout, 
-	       "-----------------\n");
+	LogMsg(0, SrvDebugLevel, stdout, "-----------------\n");
 	r->print();
-	LogMsg(0, SrvDebugLevel, stdout, 
-	       "-----------------\n");
+	LogMsg(0, SrvDebugLevel, stdout, "-----------------\n");
     }
-    printf("*** %s End *** \n", s);    
+    printf("*** %s End *** \n", s);
 }
 
 void PrintCompOps(arrlist *a) {

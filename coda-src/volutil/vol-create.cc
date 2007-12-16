@@ -230,12 +230,12 @@ static int ViceCreateRoot(Volume *vp)
 
     if (AL_NameToId(PRS_ADMINGROUP, &adminid) == -1) {
 	fprintf(stderr, "Cannot find group id for '" PRS_ADMINGROUP
-		        "', check pdb databases!\n");
+		"', check pdb databases!\n");
 	return 0;
     }
     if (AL_NameToId(PRS_ANYUSERGROUP, &anyuserid) == -1) {
 	fprintf(stderr, "Cannot find group id for '" PRS_ANYUSERGROUP
-		        "', check pdb databases!\n");
+		"', check pdb databases!\n");
 	return 0;
     }
 
