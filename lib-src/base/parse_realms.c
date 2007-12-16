@@ -41,7 +41,7 @@ Coda are listed in the file CREDITS.
 #include "codaconf.h"
 #include "parse_realms.h"
 
-void SplitRealmFromName(char *name, char **realm)
+void SplitRealmFromName(char *name, const char **realm)
 {
     /* Here we do the following 'translation' */
     /* "name"     -> keep existing realm */
@@ -83,7 +83,7 @@ static int in_realmtab(const char *name, const char *service,
 {
 #define MAXLINELEN 256
     char line[MAXLINELEN];
-    char *realmtab = NULL;
+    const char *realmtab = NULL;
     int namelen, found = 0;
     FILE *f;
 

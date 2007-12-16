@@ -79,18 +79,15 @@ static struct timezone tsp; */
 
 static char s_hostname[100];
 
-static char *vicedir = NULL;
-static int   nservers = 0;
-
 static void
 ReadConfigFile()
 {
+    const char *vicedir;
+
     /* Load configuration file to get vice dir. */
     codaconf_init("server.conf");
 
-    CODACONF_STR(vicedir, "vicedir", "/vice");
-    CODACONF_INT(nservers, "numservers", 1); 
-
+    vicedir = codaconf_lookup("vicedir", "/vice");
     vice_dir_init(vicedir, 0);
 }
 
@@ -154,18 +151,16 @@ static void ProcessArgs(int argc, char **argv)
 	}
     }
     if (host[0] == '\0' || (!LocalFileName) || (!RemoteFileName)) {
-        PrintHelp();
-        exit(-1);
+	PrintHelp();
+	exit(-1);
     }
 }
 
-static void PrintHelp(){
-	    LogMsg(0, SrvDebugLevel, stdout, 
-		   "usage: updatefetch -h serverhostname");
-	    LogMsg(0, SrvDebugLevel, stdout, 
-		   "-r remotefile -l localfile");
-	    LogMsg(0, SrvDebugLevel, stdout, 
-		   " [-d debuglevel]  [-port serverport]\n");
+static void PrintHelp()
+{
+    LogMsg(0, SrvDebugLevel, stdout, "usage: updatefetch -h serverhostname");
+    LogMsg(0, SrvDebugLevel, stdout, "-r remotefile -l localfile");
+    LogMsg(0, SrvDebugLevel, stdout, " [-d debuglevel]  [-port serverport]\n");
 }
 
 static int FetchFile(char *RemoteFileName, char *LocalFileName, int mode)
@@ -176,7 +171,7 @@ static int FetchFile(char *RemoteFileName, char *LocalFileName, int mode)
     SE_Descriptor sed;
 
     time = 0; /* tell server to just ship the file, without checking on times */
-    
+
     memset(&sed, 0, sizeof(SE_Descriptor));
     sed.Tag = SMARTFTP;
     sed.Value.SmartFTPD.SeekOffset = 0;
@@ -238,7 +233,7 @@ static void Connect()
 
     rc = RPC2_NewBinding(&hident, &pident, &ssid, &bparms, &con);
     if (rc) {
-        LogMsg(0, SrvDebugLevel, stdout, "Bind failed with %s\n", (char *)ViceErrorMsg((int)rc));
+	LogMsg(0, SrvDebugLevel, stdout, "Bind failed with %s\n", (char *)ViceErrorMsg((int)rc));
 	exit (-1);
     }
 }

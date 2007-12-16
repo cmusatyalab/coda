@@ -59,7 +59,7 @@ static int pidfd = -1;
 static int lockfd = -1;
 #endif
 
-void update_pidfile(char *pidfile)
+void update_pidfile(const char *pidfile)
 {
     char str[11]; /* can we assume that pid_t is limited to 32-bit? */
     int rc, n;

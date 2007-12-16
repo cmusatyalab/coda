@@ -44,8 +44,6 @@ extern "C" {
 #include <vice_file.h>
 #include <vcrcommon.h>
 
-char *vicedir = NULL;
-
 /* This is cheating! */
 struct vrent {
     unsigned header : 32;
@@ -63,11 +61,11 @@ struct vrent {
 void
 ReadConfigFile()
 {
+    const char *vicedir;
+
     /* Load configuration file to get vice dir. */
     codaconf_init("server.conf");
-
-    CODACONF_STR(vicedir, "vicedir", "/vice");
-
+    vicedir = codaconf_lookup("vicedir", "/vice");
     vice_dir_init(vicedir, 0);
 }
 

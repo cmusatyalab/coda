@@ -267,7 +267,7 @@ extern const ViceFid NullFid;
 extern const int MaxVols;
 extern int pollandyield;
 extern int probingon;
-extern char *CodaSrvIp;
+extern const char *CodaSrvIp;
 
 #ifdef PERFORMANCE
 thread_t *lwpth;

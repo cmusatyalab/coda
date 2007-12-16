@@ -38,7 +38,7 @@ static char **realmlist = NULL;
 static int  nlist = 0;
 static int  nrealm = 0;
 
-static char *codadir = "/coda";
+static const char *codadir = "/coda";
 
 /* return the index of the name in the realmlist */
 
@@ -51,7 +51,7 @@ int lookup_realm(char *name)
   return -1;
 }
 
-static void add_realm(char *name)
+static void add_realm(const char *name)
 {
   if (nrealm+1 > nlist) {
     // allocate more!
@@ -265,7 +265,7 @@ int do_findRealm (const char *realm)
 
 void MainInit (int *argcp, char ***argvp)
 {
-  char *myrealm;
+  const char *myrealm;
 
   // Initialize the visual tool
   // for (int i=0; i<8; i++) Vol[i]->hide();
@@ -276,7 +276,6 @@ void MainInit (int *argcp, char ***argvp)
 
   codaconf_init("venus.conf");
   myrealm = codaconf_lookup("realm", NULL);
-  if (myrealm) {
-    add_realm(myrealm); 
-  }
+  if (myrealm)
+    add_realm(myrealm);
 }

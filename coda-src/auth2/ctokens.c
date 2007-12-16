@@ -102,7 +102,7 @@ static int GetTokens(const char *realm)
 
 int main(int argc, char *argv[])
 {
-    char *realm = NULL;
+    const char *realm = NULL;
     char *username = NULL;
     int rc = 0;
 
@@ -121,7 +121,7 @@ int main(int argc, char *argv[])
     fprintf(stdout, "Tokens held by the Cache Manager for %s:\n", username);
 
     if (!realm) {
-	char *mountpoint = NULL;
+	const char *mountpoint = NULL;
 	struct dirent *entry;
 	DIR *dir;
 
@@ -132,7 +132,7 @@ int main(int argc, char *argv[])
 #else
 	CODACONF_STR(mountpoint, "mountpoint", "/coda");
 #endif
-	
+
 	dir = opendir(mountpoint);
 	if (!dir) {
 	    perror("Failed to get list of realms");

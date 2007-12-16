@@ -139,7 +139,7 @@ int AllowSHA;			// default 0, whether we calculate SHA checksums
 int comparedirreps;		// default 1 
 int pathtiming;			// default 0 
 int pollandyield;		// default 1 
-char *CodaSrvIp;		// default NULL ('ipaddress' in server.conf)
+const char *CodaSrvIp;		// default NULL ('ipaddress' in server.conf)
 
 /* local */
 static int MapPrivate;		// default 0
@@ -177,8 +177,8 @@ static int ServerNumber = 0;	/* 0 => single server,
 
 /* File server parameters.   Defaults set by ReadConfigFile. */
 
-static char *vicedir;		// default "/vice"
-static char *srvhost;		// default NULL
+static const char *vicedir;	// default "/vice"
+static const char *srvhost;	// default NULL
 
 static int trace = 0;		// default 0 
 static int SrvWindowSize = 0;	// default 32
@@ -202,8 +202,8 @@ static int Statistics;
 /* Camelot/RVM stuff. */
 struct camlib_recoverable_segment *camlibRecoverableSegment;
 
-/*static */char *_Rvm_Log_Device;
-/*static */char *_Rvm_Data_Device;
+/*static */const char *_Rvm_Log_Device;
+/*static */const char *_Rvm_Data_Device;
 /*static */rvm_offset_t _Rvm_DataLength;
 /*static */int _Rvm_Truncate = 0;	// default 0 
 /*static */char *cam_log_file;
@@ -216,7 +216,7 @@ int prottrunc = FALSE;
 /* static */void rds_printer(char *fmt ...);
 
 /* vicetab */
-char *vicetab = NULL;	       /* default db/vicetab */
+const char *vicetab = NULL;	       /* default db/vicetab */
 
 /* PDB stuff. */
 static int pdbtime = 0;
@@ -271,32 +271,31 @@ void zombie(int sig)
 	rvm_options_t curopts;
 	int i;
 	rvm_return_t ret;
-	      
+
 	rvm_init_options(&curopts);
 	ret = rvm_query(&curopts, NULL);
 	if (ret != RVM_SUCCESS)
-	    SLog(0,  "rvm_query returned %s", rvm_return(ret));	
+	    SLog(0, "rvm_query returned %s", rvm_return(ret));
 	else {
-	    SLog(0,  "Uncommitted transactions: %d", curopts.n_uncommit);
-	
+	    SLog(0, "Uncommitted transactions: %d", curopts.n_uncommit);
+
 	    for (i = 0; i < curopts.n_uncommit; i++) {
 		rvm_abort_transaction(&(curopts.tid_array[i]));
-		if (ret != RVM_SUCCESS) 
-		    SLog(0,  "ERROR: abort failed, code: %s", rvm_return(ret));
+		if (ret != RVM_SUCCESS)
+		    SLog(0, "ERROR: abort failed, code: %s", rvm_return(ret));
 	    }
-	    
+
 	    ret = rvm_query(&curopts, NULL);
 	    if (ret != RVM_SUCCESS)
-		SLog(0,  "rvm_query returned %s", rvm_return(ret));	
-	    else 
-		SLog(0,  "Uncommitted transactions: %d", curopts.n_uncommit);
+		 SLog(0, "rvm_query returned %s", rvm_return(ret));
+	    else SLog(0, "Uncommitted transactions: %d", curopts.n_uncommit);
 	}
 	rvm_free_options(&curopts);
 
 	if (DumpVM)
 	    dumpvm(); /* sanity check rvm recovery. */
     }
-    
+
     if (coda_assert_action == CODA_ASSERT_SLEEP) {
 	SLog(0, "Becoming a zombie now ........");
 	SLog(0, "You may use gdb to attach to %d", getpid());
@@ -389,10 +388,10 @@ int main(int argc, char *argv[])
     VInitServerList(srvhost);	/* initialize server info for volume pkg */
 
     switch (RvmType) {
-        case UFS	   :
- 	case RAWIO     	   : SLog(0, "RvmType is Rvm"); break;
-	case VM		   : SLog(0, "RvmType is NoPersistence"); break;
-	case UNSET	   : SLog(0, "No RvmType selected!"); exit(-1);
+    case UFS	:
+    case RAWIO	: SLog(0, "RvmType is Rvm"); break;
+    case VM	: SLog(0, "RvmType is NoPersistence"); break;
+    case UNSET	: SLog(0, "No RvmType selected!"); exit(-1);
     }
 
     /* Initialize the hosttable structure */
@@ -411,10 +410,9 @@ int main(int argc, char *argv[])
 	rvmptt.list.size = 0;
 	rvmlib_init_threaddata(&rvmptt);
 	CODA_ASSERT(rvmlib_thread_data() != 0);
-	SLog(0, 
-	       "Main thread just did a RVM_SET_THREAD_DATA\n");
+	SLog(0, "Main thread just did a RVM_SET_THREAD_DATA\n");
     }
-    InitializeServerRVM("codaserver"); 
+    InitializeServerRVM("codaserver");
 
     /* Trace mallocs and frees in the persistent heap if requested. */
     if (MallocTrace) {	
@@ -874,7 +872,6 @@ static void CheckLWP(void *arg)
     rvmlib_init_threaddata(&rvmptt);
     SLog(0, "CheckLWP just did a rvmlib_set_thread_data()\n");
 
-    
     /* tag lwps as fsUtilities */
     pt = (ProgramType *) malloc(sizeof(ProgramType));
     *pt = fsUtility;
@@ -1016,134 +1013,108 @@ void PrintCounters(FILE *fp)
     SLog(0, "SetRootVolume %d", Counters[SETROOTVOLUME]);
     SLog(0, "GetVolumeStatus %d", Counters[GETVOLUMESTAT]);
     SLog(0, "SetVolumeStatus %d", Counters[SETVOLUMESTAT]);
-    
-    SLog(0, "GetTime %d", Counters[GETTIME]); 
-    SLog(0, "GetStatistics %d", Counters[GETSTATISTICS]); 
-    SLog(0, "GetVolumeInfo %d", Counters[ViceGetVolumeInfo_OP]); 
-    SLog(0, "AllocFids %d", Counters[ALLOCFIDS]); 
-    SLog(0, "COP2 %d", Counters[ViceCOP2_OP]); 
+
+    SLog(0, "GetTime %d", Counters[GETTIME]);
+    SLog(0, "GetStatistics %d", Counters[GETSTATISTICS]);
+    SLog(0, "GetVolumeInfo %d", Counters[ViceGetVolumeInfo_OP]);
+    SLog(0, "AllocFids %d", Counters[ALLOCFIDS]);
+    SLog(0, "COP2 %d", Counters[ViceCOP2_OP]);
     SLog(0, "Resolve %d", Counters[RESOLVE]);
     SLog(0, "Repair %d", Counters[REPAIR]);
     SLog(0, "SetVV %d", Counters[SETVV]);
     SLog(0, "Reintegrate %d", Counters[REINTEGRATE]);
 
-    SLog(0, "OpenReintHandle %d", Counters[ViceOpenReintHandle_OP]); 
-    SLog(0, "QueryReintHandle %d", Counters[ViceQueryReintHandle_OP]); 
-    SLog(0, "SendReintFragment %d", Counters[ViceSendReintFragment_OP]); 
-    SLog(0, "CloseReintHandle %d", Counters[ViceCloseReintHandle_OP]); 
+    SLog(0, "OpenReintHandle %d", Counters[ViceOpenReintHandle_OP]);
+    SLog(0, "QueryReintHandle %d", Counters[ViceQueryReintHandle_OP]);
+    SLog(0, "SendReintFragment %d", Counters[ViceSendReintFragment_OP]);
+    SLog(0, "CloseReintHandle %d", Counters[ViceCloseReintHandle_OP]);
 
     SLog(0, "GetVolVS %d", Counters[GETVOLVS]);
     SLog(0, "ValidateVols %d", Counters[VALIDATEVOLS]);
 
-    SLog(0, "GetAttrPlusSHA %d", Counters[GETATTRPLUSSHA]); 
-    SLog(0, "ValidateAttrsPlusSHA %d", Counters[VALIDATEATTRSPLUSSHA]); 
+    SLog(0, "GetAttrPlusSHA %d", Counters[GETATTRPLUSSHA]);
+    SLog(0, "ValidateAttrsPlusSHA %d", Counters[VALIDATEATTRSPLUSSHA]);
 
     seconds = Counters[FETCHTIME]/1000;
-    if(seconds <= 0) 
+    if(seconds <= 0)
 	seconds = 1;
-    SLog(0,
-	   "Total FetchDatas = %d, bytes transfered = %d, transfer rate = %d bps",
+    SLog(0, "Total FetchDatas = %d, bytes transfered = %d, transfer rate = %d bps",
 	   Counters[FETCHDATAOP], Counters[FETCHDATA],
 	   Counters[FETCHDATA]/seconds);
-    SLog(0,
-	   "Fetched files <%dk = %d; <%dk = %d; <%dk = %d; <%dk = %d; >%dk = %d.",
+    SLog(0, "Fetched files <%dk = %d; <%dk = %d; <%dk = %d; <%dk = %d; >%dk = %d.",
 	   SIZE1 / 1024, Counters[FETCHD1], SIZE2 / 1024,
 	   Counters[FETCHD2], SIZE3 / 1024, Counters[FETCHD3], SIZE4 / 1024,
 	   Counters[FETCHD4], SIZE4 / 1024, Counters[FETCHD5]);
     seconds = Counters[STORETIME]/1000;
-    if(seconds <= 0) 
+    if(seconds <= 0)
 	seconds = 1;
-    SLog(0,
-	   "Total StoreDatas = %d, bytes transfered = %d, transfer rate = %d bps",
+    SLog(0, "Total StoreDatas = %d, bytes transfered = %d, transfer rate = %d bps",
 	   Counters[STOREDATAOP], Counters[STOREDATA],
 	   Counters[STOREDATA]/seconds);
-    SLog(0,
-	   "Stored files <%dk = %d; <%dk = %d; <%dk = %d; <%dk = %d; >%dk = %d.",
+    SLog(0, "Stored files <%dk = %d; <%dk = %d; <%dk = %d; <%dk = %d; >%dk = %d.",
 	   SIZE1 / 1024, Counters[STORED1], SIZE2 / 1024,
 	   Counters[STORED2], SIZE3 / 1024, Counters[STORED3], SIZE4 / 1024,
 	   Counters[STORED4], SIZE4 / 1024, Counters[STORED5]);
     VPrintCacheStats();
     DP_PrintStats(fp);
     DH_PrintStats(fp);
-    SLog(0,
-	   "RPC Total bytes:     sent = %u, received = %u",
+    SLog(0, "RPC Total bytes:     sent = %u, received = %u",
 	   rpc2_Sent.Bytes + rpc2_MSent.Bytes + sftp_Sent.Bytes + sftp_MSent.Bytes,
 	   rpc2_Recvd.Bytes + rpc2_MRecvd.Bytes + sftp_Recvd.Bytes + sftp_MRecvd.Bytes);
-    SLog(0, 
-	   "\tbytes sent: rpc = %d, multirpc = %d, sftp = %d, sftp multicasted = %d",
+    SLog(0, "\tbytes sent: rpc = %d, multirpc = %d, sftp = %d, sftp multicasted = %d",
 	   rpc2_Sent.Bytes, rpc2_MSent.Bytes, sftp_Sent.Bytes, sftp_MSent.Bytes);
-    SLog(0, 
-	   "\tbytes received: rpc = %d, multirpc = %d, sftp = %d, sftp multicasted = %d",
+    SLog(0, "\tbytes received: rpc = %d, multirpc = %d, sftp = %d, sftp multicasted = %d",
 	   rpc2_Recvd.Bytes, rpc2_MRecvd.Bytes, sftp_Recvd.Bytes, sftp_MRecvd.Bytes);
-    SLog(0,
-	   "RPC Total packets:   sent = %d, received = %d",
+    SLog(0, "RPC Total packets:   sent = %d, received = %d",
 	   rpc2_Sent.Total + rpc2_MSent.Total + sftp_Sent.Total + sftp_MSent.Total,
 	   rpc2_Recvd.Total + rpc2_MRecvd.Total + sftp_Recvd.Total + sftp_MRecvd.Total);
-    SLog(0, 
-	   "\tpackets sent: rpc = %d, multirpc = %d, sftp = %d, sftp multicasted = %d",
+    SLog(0, "\tpackets sent: rpc = %d, multirpc = %d, sftp = %d, sftp multicasted = %d",
 	   rpc2_Sent.Total, rpc2_MSent.Total, sftp_Sent.Total, sftp_MSent.Total);
-    SLog(0, 
-	   "\tpackets received: rpc = %d, multirpc = %d, sftp = %d, sftp multicasted = %d",
+    SLog(0, "\tpackets received: rpc = %d, multirpc = %d, sftp = %d, sftp multicasted = %d",
 	   rpc2_Recvd.Total, rpc2_MRecvd.Total, sftp_Recvd.Total, sftp_MRecvd.Total);
-    SLog(0,
-	   "RPC Packets retried = %d, Invalid packets received = %d, Busies sent = %d",
+    SLog(0, "RPC Packets retried = %d, Invalid packets received = %d, Busies sent = %d",
 	   rpc2_Sent.Retries - rpc2_Recvd.GoodBusies,
-	   rpc2_Recvd.Total + rpc2_MRecvd.Total - 
-	        rpc2_Recvd.GoodRequests - rpc2_Recvd.GoodReplies - 
-		rpc2_Recvd.GoodBusies - rpc2_MRecvd.GoodRequests,
+	   rpc2_Recvd.Total + rpc2_MRecvd.Total -
+	   rpc2_Recvd.GoodRequests - rpc2_Recvd.GoodReplies -
+	   rpc2_Recvd.GoodBusies - rpc2_MRecvd.GoodRequests,
 	   rpc2_Sent.Busies);
-    SLog(0,
-	   "RPC Requests %d, Good Requests %d, Replies %d, Busies %d",
-	   rpc2_Recvd.Requests, rpc2_Recvd.GoodRequests, 
+    SLog(0, "RPC Requests %d, Good Requests %d, Replies %d, Busies %d",
+	   rpc2_Recvd.Requests, rpc2_Recvd.GoodRequests,
 	   rpc2_Recvd.GoodReplies, rpc2_Recvd.GoodBusies);
-    SLog(0,
-	   "RPC Counters: CCount %d; Unbinds %d; FConns %d; AConns %d; GCConns %d",
-	   rpc2_ConnCount, rpc2_Unbinds, rpc2_FreeConns, 
+    SLog(0, "RPC Counters: CCount %d; Unbinds %d; FConns %d; AConns %d; GCConns %d",
+	   rpc2_ConnCount, rpc2_Unbinds, rpc2_FreeConns,
 	   rpc2_AllocConns, rpc2_GCConns);
-    SLog(0,
-	   "RPC Creation counts: Conn %d; SL %d; PB Small %d, Med %d, Large %d; SS %d",
+    SLog(0, "RPC Creation counts: Conn %d; SL %d; PB Small %d, Med %d, Large %d; SS %d",
 	   rpc2_ConnCreationCount, rpc2_SLCreationCount, rpc2_PBSmallCreationCount,
 	   rpc2_PBMediumCreationCount, rpc2_PBLargeCreationCount, rpc2_SSCreationCount);
-    SLog(0,
-	   "RPC2 In Use: Conn %d; SS %d",
-	   rpc2_ConnCount, rpc2_SSCount);
-    SLog(0,
-	   "RPC2 PB: InUse %d, Hold %d, Freeze %d, SFree %d, MFree %d, LFree %d", 
+    SLog(0, "RPC2 In Use: Conn %d; SS %d", rpc2_ConnCount, rpc2_SSCount);
+    SLog(0, "RPC2 PB: InUse %d, Hold %d, Freeze %d, SFree %d, MFree %d, LFree %d",
 	   rpc2_PBCount, rpc2_PBHoldCount, rpc2_PBFreezeCount,
 	   rpc2_PBSmallFreeCount, rpc2_PBMediumFreeCount, rpc2_PBLargeFreeCount);
-    SLog(0,
-	   "RPC2 HW:  Freeze %d, Hold %d", rpc2_FreezeHWMark, rpc2_HoldHWMark);
-    SLog(0,
-	   "SFTP:	datas %d, datar %d, acks %d, ackr %d, retries %d, duplicates %d",
+    SLog(0, "RPC2 HW:  Freeze %d, Hold %d", rpc2_FreezeHWMark, rpc2_HoldHWMark);
+    SLog(0, "SFTP:	datas %d, datar %d, acks %d, ackr %d, retries %d, duplicates %d",
 	   sftp_datas, sftp_datar, sftp_acks, sftp_ackr, sftp_retries, sftp_duplicates);
-    SLog(0,
-	   "SFTP:  timeouts %d, windowfulls %d, bogus %d, didpiggy %d",
+    SLog(0, "SFTP:  timeouts %d, windowfulls %d, bogus %d, didpiggy %d",
 	   sftp_timeouts, sftp_windowfulls, sftp_bogus, sftp_didpiggy);
-    SLog(0,
-	   "Total CB entries= %d, blocks = %d; and total file entries = %d, blocks = %d",
+    SLog(0, "Total CB entries= %d, blocks = %d; and total file entries = %d, blocks = %d",
 	   CBEs, CBEBlocks, FEs, FEBlocks);
     /*    ProcSize = sbrk(0) >> 10;*/
-    SLog(0,
-	   "There are currently %d connections in use",
+    SLog(0, "There are currently %d connections in use",
 	   CurrentConnections);
     CLIENT_GetWorkStats(&workstations, &activeworkstations, (unsigned)tpl.tv_sec-15*60);
-    SLog(0,
-	   "There are %d workstations and %d are active (req in < 15 mins)",
+    SLog(0, "There are %d workstations and %d are active (req in < 15 mins)",
 	   workstations, activeworkstations);
     if(!GetEtherStats()) {
-	SLog(0,
-	       "Ether Total bytes: sent = %u, received = %u",
+	SLog(0, "Ether Total bytes: sent = %u, received = %u",
 	       etherBytesWritten, etherBytesRead);
-	SLog(0,
-	       "Ether Packets:     sent = %d, received = %d, errors = %d",
+	SLog(0, "Ether Packets:     sent = %d, received = %d, errors = %d",
 	       etherWrites, etherInterupts, etherRetries);
     }
-    
+
     if (RvmType == RAWIO || RvmType == UFS) {
-	SLog(0,
-	       "Printing RVM statistics\n");
+	SLog(0, "Printing RVM statistics\n");
 	rvm_statistics_t rvmstats;
-        rvm_init_statistics(&rvmstats);
+	rvm_init_statistics(&rvmstats);
 	RVM_STATISTICS(&rvmstats);
 	rvm_print_statistics(&rvmstats, fp);
 	rvm_free_statistics(&rvmstats);
@@ -1295,7 +1266,7 @@ void SwapLog(int ign)
 
     freopen("SrvLog", "a+", stdout);
     freopen("SrvErr", "a+", stderr);
-    
+
     /* Print out time/date, since date info has "scrolled off" */
     TM_GetTimeOfDay(&tp, 0);
     SLog(0, "Coda Vice, version " PACKAGE_VERSION "\tlog started at %s",
@@ -1377,7 +1348,7 @@ static int ReadConfigFile(void)
     /* Server numbers and  Rvm parameters */
     CODACONF_INT(numservers, "numservers", 1);
     if (numservers > 1 && ServerNumber == 0) {
-        SLog(0, "Configuration error, server number 0 with multiple servers");
+	SLog(0, "Configuration error, server number 0 with multiple servers");
 	exit(-1);
     }
     CODACONF_INT(_Rvm_Truncate, "rvmtruncate", 0);
@@ -1403,8 +1374,8 @@ static int ReadConfigFile(void)
 	}
     }
     if (ServerNumber && (srvhost == NULL || *srvhost == 0)) {
-        SLog(0, "Multiple servers specified, must specify hostname.\n");
-        exit(-1);
+	SLog(0, "Multiple servers specified, must specify hostname.\n");
+	exit(-1);
     }
 
     if (datalen != 0) {
@@ -1427,11 +1398,10 @@ static int ReadConfigFile(void)
     CODACONF_INT(nodebarrenize, "nodebarrenize", 0);
     CODACONF_INT(zombify, "zombify", 0);
     if (zombify)
-        coda_assert_action = CODA_ASSERT_SLEEP;
+	coda_assert_action = CODA_ASSERT_SLEEP;
     CODACONF_STR(vicetab, "vicetab", NULL);
-    if (!vicetab) {
-        vicetab = strdup(vice_sharedfile("db/vicetab"));
-    }
+    if (!vicetab)
+	vicetab = vice_sharedfile("db/vicetab");
 
     return 0;
 }
@@ -1579,12 +1549,10 @@ static int ParseArgs(int argc, char *argv[])
 		    SLog(0, "-rvm needs 3 args: LOGDEV DATADEV DATA-LENGTH.");
 		    exit(-1);
 		}
-		
+
 		RvmType = RAWIO;
-		_Rvm_Log_Device = (char *)malloc((unsigned)strlen(argv[++i]) + 1);
-		strcpy(_Rvm_Log_Device, argv[i]);
-		_Rvm_Data_Device = (char *)malloc((unsigned)strlen(argv[++i]) + 1);
-		strcpy(_Rvm_Data_Device, argv[i]);
+		i++; _Rvm_Log_Device = strdup(argv[i]);
+		i++; _Rvm_Data_Device = strdup(argv[i]);
 		if (stat(_Rvm_Log_Device, &buf) != 0) {
 		    perror("Can't open Log Device");
 		    exit(-1);
@@ -1594,9 +1562,9 @@ static int ParseArgs(int argc, char *argv[])
 		    perror("Can't open Data Device");
 		    exit(-1);
 		}
-		_Rvm_DataLength = RVM_MK_OFFSET(0, atoi(argv[++i]));
+		i++; _Rvm_DataLength = RVM_MK_OFFSET(0, atoi(argv[i]));
 	    }
-	else 
+	else
 	    if (!strcmp(argv[i], "-dumpvm")) {
 		DumpVM = 1;
 	    }
@@ -1678,9 +1646,8 @@ static void InitServerKeys(char *fkey1, char *fkey2)
 
     /* one key */
     if ( NoKey1 == 0 && NoKey2 != 0 )
-	SetServerKeys(ptrkey1, NULL);
-    else 
-	SetServerKeys(NULL, ptrkey2);
+	 SetServerKeys(ptrkey1, NULL);
+    else SetServerKeys(NULL, ptrkey2);
 }
 
 
@@ -1692,8 +1659,8 @@ void Die(char *msg)
 
 
 static int DaemonizeSrv(char *pidfile)
-{ 
-    int parent = -1; 
+{
+    int parent = -1;
     struct sigaction sa;
 
     if (SrvDebugLevel == 0)
@@ -1749,51 +1716,48 @@ static void InitializeServerRVM(char *name)
 	camlibRecoverableSegment = (camlib_recoverable_segment *)
 	    malloc(sizeof(struct camlib_recoverable_segment));
        break;                                                               
-	                                                                    
-    case RAWIO :                                                            
-    case UFS : {                                                            
-	rvm_return_t err;						    
-	rvm_options_t *options = rvm_malloc_options();			    
-#ifndef __CYGWIN32__
-	struct rlimit stackLimit;					    
-	stackLimit.rlim_cur = CODA_STACK_LENGTH;			    
-/*	setrlimit(RLIMIT_STACK, &stackLimit);*/	/* Set stack growth limit */ 
-#endif
-	options->log_dev = _Rvm_Log_Device;				    
+
+    case RAWIO :
+    case UFS : {
+	rvm_return_t err;
+	char *tmp;
+	rvm_options_t *options = rvm_malloc_options();
+
+	options->log_dev = tmp = strdup(_Rvm_Log_Device);
 	options->flags = optimizationson;
+
 	if (MapPrivate)
 	  options->flags |= RVM_MAP_PRIVATE;
 	if (prottrunc)
 	    options->truncate = 0;
 	else if (_Rvm_Truncate > 0 && _Rvm_Truncate < 100) {
-	    SLog(0,
-		 "Setting Rvm Truncate threshhold to %d.\n", _Rvm_Truncate); 
+	    SLog(0, "Setting Rvm Truncate threshhold to %d.\n", _Rvm_Truncate);
 	    options->truncate = _Rvm_Truncate;
 	}
 
-        err = RVM_INIT(options);                   /* Start rvm */           
-        if ( err == RVM_ELOG_VERSION_SKEW ) {                                
-            SLog(0, 
-		   "rvm_init failed because of skew RVM-log version."); 
-            SLog(0, "Coda server not started.");                  
-            exit(-1);                                                          
-	} else if (err != RVM_SUCCESS) {                                     
-	    SLog(0, "rvm_init failed %s",rvm_return(err));	    
-            CODA_ASSERT(0);                                                       
-	}                                                                    
-	CODA_ASSERT(_Rvm_Data_Device != NULL);	   /* Load in recoverable mem */ 
-        rds_load_heap(_Rvm_Data_Device, 
-		      _Rvm_DataLength,(char **)&camlibRecoverableSegment, 
-		      (int *)&err);  
-	if (err != RVM_SUCCESS)						    
-	    SLog(0, 
-		   "rds_load_heap error %s",rvm_return(err));	    
-	CODA_ASSERT(err == RVM_SUCCESS);                                         
-        /* Possibly do recovery on data structures, coalesce, etc */	    
-	rvm_free_options(options);					    
-        break;                                                              
-    }                                                                       
-	                                                                    
+	err = RVM_INIT(options);		/* Start rvm */
+	free(tmp);
+	if ( err == RVM_ELOG_VERSION_SKEW ) {
+	    SLog(0, "rvm_init failed because of skew RVM-log version.");
+	    SLog(0, "Coda server not started.");
+	    exit(-1);
+	} else if (err != RVM_SUCCESS) {
+	    SLog(0, "rvm_init failed %s",rvm_return(err));
+	    CODA_ASSERT(0);
+	}
+	CODA_ASSERT(_Rvm_Data_Device != NULL);	/* Load in recoverable mem */
+	tmp = strdup(_Rvm_Data_Device);
+	rds_load_heap(tmp, _Rvm_DataLength, (char **)&camlibRecoverableSegment,
+		      (int *)&err);
+	free(tmp);
+	if (err != RVM_SUCCESS)
+	    SLog(0, "rds_load_heap error %s",rvm_return(err));
+	CODA_ASSERT(err == RVM_SUCCESS);
+	/* Possibly do recovery on data structures, coalesce, etc */
+	rvm_free_options(options);
+	break;
+    }
+
     case UNSET:							    
     default:	                                                            
 	printf("No persistence method selected!n");			    

@@ -97,7 +97,7 @@ class Inet {
     bool TcpOpen (char *host, int port);
 
 #if defined(HAVE_SYS_UN_H) && !defined(WIN32)
-    bool TcpOpen (char *socketpath);
+    bool TcpOpen (const char *socketpath);
 #endif
 
     // Open a tcp server socket.  Return false on failure.

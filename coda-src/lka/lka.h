@@ -30,7 +30,7 @@ int IsZeroSHA(unsigned char sha[SHA_DIGEST_LENGTH]);
 
 /* "core" routines in lka.cc called by venus */
 int LookAsideAndFillContainer(unsigned char sha[SHA_DIGEST_LENGTH], int cfd,
-			      int length, char *venusRoot,
+			      int length, const char *venusRoot,
 			      char *emsg, int emsglen);
 int LKParseAndExecute(char *in, char *out, int len);
 

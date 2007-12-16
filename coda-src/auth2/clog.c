@@ -98,7 +98,7 @@ int main(int argc, char **argv)
     ClearToken		    testCTok;
     char *hostname=NULL;
     char *username=NULL;
-    char *realm = NULL;
+    const char *realm = NULL;
     long rc;
     int i;
     int testing = 0;

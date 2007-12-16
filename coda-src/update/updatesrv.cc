@@ -111,16 +111,15 @@ static char *prefix = NULL;
 static struct timeval  tp;
 static struct timezone tsp;
 
-static char *vicedir = NULL;
-
 void
 ReadConfigFile()
 {
+    const char *vicedir;
+
     /* Load configuration file to get vice dir. */
     codaconf_init("server.conf");
 
-    CODACONF_STR(vicedir, "vicedir", "/vice");
-
+    vicedir = codaconf_lookup("vicedir", "/vice");
     vice_dir_init(vicedir, 0);
 }
 
@@ -161,14 +160,14 @@ InList (char *name)
 
     LogMsg(3, SrvDebugLevel, stdout, "InList Lookup: '%s'", name);
     while (entry) {
-         LogMsg(3, SrvDebugLevel, stdout, "InList strcmp: '%s'", entry->name);
-        if (strcmp(entry->name,name) == 0)
+	LogMsg(3, SrvDebugLevel, stdout, "InList strcmp: '%s'", entry->name);
+	if (strcmp(entry->name,name) == 0)
 	    return 1;
 	entry = entry->next;
     }
     return 0;
 }
-    
+
 int main(int argc, char **argv)
 {
     char    sname[20];
@@ -226,7 +225,7 @@ int main(int argc, char **argv)
 
     rc = chdir(miscdir);
     if ( rc ) {
-        snprintf (errmsg, MAXPATHLEN, "Could not chdir to %s",
+	snprintf (errmsg, MAXPATHLEN, "Could not chdir to %s",
 		  vice_sharedfile("misc"));
 	perror(errmsg);
 	exit(1);
@@ -253,10 +252,10 @@ int main(int argc, char **argv)
 
     LogMsg(0, SrvDebugLevel, stdout, "Update Server working directory %s",
 	   prefix);
-    
+
     file = fopen(vice_sharedfile("misc/updatesrv.pid"), "w");
     if ( !file ) {
-        snprintf (errmsg, MAXPATHLEN, "Error in writing %s",
+	snprintf (errmsg, MAXPATHLEN, "Error in writing %s",
 		  vice_sharedfile("misc/updatesrv.pid"));
 	perror(errmsg);
 	exit(1);
@@ -396,18 +395,18 @@ static void ServerLWP(void *arg)
 	    RPC2_GetPeerInfo(mycid, &peer);
 
 	    if (peer.SecurityLevel == RPC2_OPENKIMONO) {
-                LogMsg(0, SrvDebugLevel, stdout,
-                       "Receiving unauthenticated request %d, "
-                       "update rpc2 library!", myrequest->Header.Opcode);
+		LogMsg(0, SrvDebugLevel, stdout,
+		       "Receiving unauthenticated request %d, "
+		       "update rpc2 library!", myrequest->Header.Opcode);
 		CODA_ASSERT(peer.RemoteHost.Tag == RPC2_HOSTBYADDRINFO);
 		RPC2_freeaddrinfo(peer.RemoteHost.Value.AddrInfo);
-                RPC2_Unbind(mycid);
-                continue;
-            }
+		RPC2_Unbind(mycid);
+		continue;
+	    }
 
-            LogMsg(1, SrvDebugLevel, stdout,"Worker %d received request %d",
-                   lwpid, myrequest->Header.Opcode);
-            rc = update_ExecuteRequest(mycid, myrequest, 0);
+	    LogMsg(1, SrvDebugLevel, stdout,"Worker %d received request %d",
+		   lwpid, myrequest->Header.Opcode);
+	    rc = update_ExecuteRequest(mycid, myrequest, 0);
 
 	    if (rc)
 	    {
@@ -473,7 +472,7 @@ long UpdateFetch(RPC2_Handle RPCid, RPC2_String FileName,
     *NewTime = 0;
 
     if (!AccessAllowed((char *)name)) {
-        LogMsg(0, SrvDebugLevel, stdout, "Access denied to file %s.", name);
+	LogMsg(0, SrvDebugLevel, stdout, "Access denied to file %s.", name);
 	rc = EACCES;
 	goto Final;
     }
@@ -500,7 +499,7 @@ long UpdateFetch(RPC2_Handle RPCid, RPC2_String FileName,
 	strcpy(sid.Value.SmartFTPD.FileInfo.ByName.LocalFileName, name);
 
 	if ((rc = RPC2_InitSideEffect(RPCid, &sid))) {
-	    LogMsg(0, SrvDebugLevel, stdout, 
+	    LogMsg(0, SrvDebugLevel, stdout,
 		   "InitSideEffect failed %s", ViceErrorMsg((int)rc));
 	    if (rc <= RPC2_ELIMIT) {
 		goto Final;
@@ -508,7 +507,7 @@ long UpdateFetch(RPC2_Handle RPCid, RPC2_String FileName,
 	}
 
 	if ((rc = RPC2_CheckSideEffect(RPCid, &sid, SE_AWAITLOCALSTATUS))) {
-	    LogMsg(0, SrvDebugLevel, stdout, 
+	    LogMsg(0, SrvDebugLevel, stdout,
 		   "CheckSideEffect failed %s", ViceErrorMsg((int)rc));
 	    if (rc <= RPC2_ELIMIT) {
 		goto Final;
@@ -520,17 +519,17 @@ Final:
     gettimeofday(&tp, &tsp);
     *CurrentSecs = tp.tv_sec;
     *CurrentUsecs = tp.tv_usec;
-    LogMsg(2, SrvDebugLevel, stdout, 
+    LogMsg(2, SrvDebugLevel, stdout,
 	   "UpdateFetch returns %s newtime is %d at %s",
 	   ViceErrorMsg((int)rc), *NewTime, ctime((time_t*)&tp.tv_sec));
     return(rc);
 }
 
 
-long UpdateNewConnection(RPC2_Handle cid, RPC2_Integer SideEffectType, 
-			 RPC2_Integer SecurityLevel, 
-			 RPC2_Integer EncryptionType, 
-			 RPC2_Integer AuthType, 
+long UpdateNewConnection(RPC2_Handle cid, RPC2_Integer SideEffectType,
+			 RPC2_Integer SecurityLevel,
+			 RPC2_Integer EncryptionType,
+			 RPC2_Integer AuthType,
 			 RPC2_CountedBS *ClientIdent)
 {
     char buf[RPC2_ADDRSTRLEN];

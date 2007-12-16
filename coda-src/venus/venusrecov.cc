@@ -78,9 +78,9 @@ float TransElapsed = 0.0;
 int MapPrivate = 0;
 
 int InitMetaData = UNSET_IMD, InitNewInstance = UNSET_IMD;
-char *VenusLogDevice = NULL;
+const char *VenusLogDevice = NULL;
 unsigned long VenusLogDeviceSize = UNSET_VLDS;
-char *VenusDataDevice = NULL;
+const char *VenusDataDevice = NULL;
 unsigned long VenusDataDeviceSize = UNSET_VDDS;
 int RdsChunkSize = UNSET_RDSCS;
 int RdsNlists = UNSET_RDSNL;
@@ -351,8 +351,11 @@ fail:
 
 static void Recov_InitRVM()
 {
+    rvm_return_t ret;
+    char *logdev = strdup(VenusLogDevice);
+
     rvm_init_options(&Recov_Options);
-    Recov_Options.log_dev = VenusLogDevice;
+    Recov_Options.log_dev = logdev;
     Recov_Options.truncate = 0;
     //Recov_Options.flags = RVM_COALESCE_TRANS;  /* oooh, daring */
     Recov_Options.flags = RVM_ALL_OPTIMIZATIONS;
@@ -364,7 +367,8 @@ static void Recov_InitRVM()
     if (InitMetaData) /* Initialize log. */
     {
         /* Get rid of any old log */
-        truncate(VenusLogDevice, 0); unlink(VenusLogDevice);
+        truncate(VenusLogDevice, 0);
+	unlink(VenusLogDevice);
 
         /* Pass in the correct parameters so that RVM_INIT can create
          * a new logfile */
@@ -392,7 +396,8 @@ static void Recov_InitRVM()
     }
     eprint("%s size is %ld bytes", VenusLogDevice, VenusLogDeviceSize);
 
-    rvm_return_t ret = RVM_INIT(&Recov_Options);
+    ret = RVM_INIT(&Recov_Options);
+    free(logdev);
     if (ret == RVM_ELOG_VERSION_SKEW) {
 	eprint("Recov_InitRVM: RVM_INIT failed, RVM log version skew");
 	eprint("Venus not started");
@@ -407,6 +412,7 @@ static void Recov_InitRDS()
 {
     rvm_return_t ret;
     rvm_length_t devsize;
+    char *datadev;
 
     devsize = RVM_ROUND_LENGTH_DOWN_TO_PAGE_SIZE(VenusDataDeviceSize);
     Recov_RdsAddr = (char *)VM_RVMADDR;
@@ -437,9 +443,11 @@ static void Recov_InitRDS()
     }
 
     eprint("Initializing RVM data...");
-    rds_zap_heap(VenusDataDevice, RVM_LENGTH_TO_OFFSET(devsize),
-                 Recov_RdsAddr, Recov_RvgLength, Recov_RdsLength,
-                 (unsigned long)RdsNlists,(unsigned long)RdsChunkSize,&ret);
+    datadev = strdup(VenusDataDevice);
+    rds_zap_heap(datadev, RVM_LENGTH_TO_OFFSET(devsize),
+		 Recov_RdsAddr, Recov_RvgLength, Recov_RdsLength,
+		 (unsigned long)RdsNlists,(unsigned long)RdsChunkSize,&ret);
+    free(datadev);
     if (ret != SUCCESS) {
         eprint("Recov_InitRDS: rds_zap_heap failed (%s)", rvm_return(ret));
         exit(-1);
@@ -450,10 +458,13 @@ static void Recov_InitRDS()
 static void Recov_LoadRDS()
 {
     rvm_return_t ret;
+    char *datadev;
 
     eprint("Loading RVM data");
-    rds_load_heap(VenusDataDevice, RVM_LENGTH_TO_OFFSET(VenusDataDeviceSize),
-                  &Recov_RvgAddr, &ret);
+    datadev = strdup(VenusDataDevice);
+    rds_load_heap(datadev, RVM_LENGTH_TO_OFFSET(VenusDataDeviceSize),
+		  &Recov_RvgAddr, &ret);
+    free(datadev);
     if (ret != SUCCESS) {
         eprint("Recov_InitRDS: rds_load_heap failed (%s)", rvm_return(ret));
         exit(-1);

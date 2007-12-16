@@ -82,7 +82,7 @@ vuid_t ruid;
 vuid_t euid;
 int Debug = 0;
 int Verbose = 0;
-char *mountpoint = NULL;
+const char *mountpoint = NULL;
 
 
 #define	DEBUG(stmt) { if (Debug) { stmt ; fflush(stdout); } }
@@ -1137,7 +1137,7 @@ static void MetaExpand(olist& Add, char *FullName, int priority, int attributes)
 	error(FATAL, "MetaExpand: chdir(%s/..) failed (%s)", FullName,
 	      strerror(errno));
     char mtpt[MAXPATHLEN];
-    char *cp;
+    const char *cp;
     if ((cp = strrchr(VRPath, '/')) == NULL) cp = mountpoint;
     strcpy(mtpt, cp + 1);
     ExpandNode(mtpt, vid, realm, NodeName, Add, priority, attributes);

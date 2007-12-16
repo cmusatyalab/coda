@@ -131,9 +131,9 @@ extern int MapPrivate;
 
 extern int InitMetaData, InitNewInstance;
 extern rvm_type_t RvmType;
-extern char *VenusLogDevice;
+extern const char *VenusLogDevice;
 extern unsigned long VenusLogDeviceSize;
-extern char *VenusDataDevice;
+extern const char *VenusDataDevice;
 extern unsigned long VenusDataDeviceSize;
 extern int RdsChunkSize;
 extern int RdsNlists;

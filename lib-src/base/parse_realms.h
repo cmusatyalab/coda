@@ -28,7 +28,7 @@ extern "C" {
 /* Given "name@realm", replaced the '@' with '\0' and returns a pointer to the
  * realm part. If the input matches either 'name@' or 'name' it doesn't change
  * the realm (but strips the '@'). */
-void SplitRealmFromName(char *name, char **realm);
+void SplitRealmFromName(char *name, const char **realm);
 
 /* Given a realm name, returns a list of ip-addresses of the realm's root
  * servers. */

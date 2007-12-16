@@ -579,7 +579,7 @@ int vdb::Get(volent **vpp, Realm *prealm, const char *name, fsobj *f)
 {
     int code = 0;
     volent *v = NULL;
-    char *realm_name = NULL;
+    const char *realm_name = NULL;
     Realm *realm;
     char *volname = strdup(name);
     CODA_ASSERT(volname);

@@ -70,8 +70,8 @@ extern "C" {
 #include <getsecret.h>
 #include <coda_getservbyname.h>
 
-static char *vicedir = NULL;
-static int   nservers = 0;
+static const char *vicedir = NULL;
+static int nservers = 0;
 
 /* hack to make argc and argv visible to subroutines */
 static char **this_argp;

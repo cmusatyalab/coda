@@ -450,7 +450,7 @@ static char *print_conn_state(VolumeStateType);
 static int parseacl(char *s, struct acl *a);
 static void translate(char *s, char oldc, char newc);
 static void fillrights(int x, char *s);
-static int getrights(char *s, int *x);
+static int getrights(const char *s, int *x);
 static int getlongest(int argc, char *argv[]);
 static int dirincoda(char *);
 static int brave(int);
@@ -902,7 +902,7 @@ static int findclosures(char ***clist)
   */
     int n = 0;
     int len;
-    char *checkpointdir = NULL;
+    const char *checkpointdir = NULL;
     char spooldir[MAXPATHLEN];
     DIR *dirp;
     struct dirent *td;
@@ -1584,7 +1584,7 @@ static void fillrights(int x, char *s)
     if (x & PRSFS_ADMINISTER) strcat(s, "a");
 }
 
-static int getrights(char *s, int *x)
+static int getrights(const char *s, int *x)
 /* Sets x to rights specified in string s
    Returns 0 on success, -1 if s is bogus */
 {
@@ -1675,7 +1675,7 @@ static void ListCache(int argc, char *argv[], int opslot)
     char *filename = (char *)0;           /* Specified output file. */
 
     const int max_line = 256;
-    char  *venus_file = "/tmp/_Venus_List_Cache"; /* Output file by Venus. */
+    const char *venus_file = "/tmp/_Venus_List_Cache"; /* Output file by Venus. */
 
     struct listcache_in {
 	char fname[23];     /* strlen("/tmp/_Venus_List_Cache")+1 */

@@ -96,9 +96,8 @@ void LoadRVM(char * log_dev, char * data_dev, rvm_offset_t data_len) {
 
     printf("About to call rds_load_heap\n");
     fflush(stdout);
-    rds_load_heap(data_dev, data_len,
-		  (char **)&camlibRecoverableSegment,
-		  (int *)&err); 
+    rds_load_heap(data_dev, data_len, (char **)&camlibRecoverableSegment,
+		  (int *)&err);
     if (err != RVM_SUCCESS) {
 	fprintf(stderr, "rds_load_heap error %s\n", rvm_return(err));
 	exit(1);

@@ -60,7 +60,7 @@ extern "C" {
 
 int main(int argc, char **argv)
 {
-    char *realm = "", *p = NULL;
+    const char *realm = "", *p = NULL;
 
     if (argc == 2) {
 	SplitRealmFromName(argv[1], &p);

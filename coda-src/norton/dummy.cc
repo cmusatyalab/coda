@@ -36,7 +36,7 @@ int AllowResolution = 1;
 int DumpVM = 0;
 int large = 500;
 int small = 500;
-char *CodaSrvIp = NULL;
+const char *CodaSrvIp = NULL;
 
 vv_t NullVV = {{0, 0, 0, 0, 0, 0, 0, 0}, {0, 0}, 0};
 

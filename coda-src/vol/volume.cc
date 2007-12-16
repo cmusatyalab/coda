@@ -103,8 +103,8 @@ int ThisServerId = -1;	/* this server id, as found in  .../db/servers */
 bit32 HostAddress[N_SERVERIDS];	/* Assume host addresses are 32 bits */
 int VInit;		/* Set to 1 when the volume package is initialized */
 int HInit;		/* Set to 1 when the volid hash table is  initialized */
-char *VSalvageMessage =	  /* Common message used when the volume goes off line */
-"Files in this volume are currently unavailable; call operations";
+const char *VSalvageMessage =/* Common message used when volume goes off line */
+    "Files in this volume are currently unavailable; call operations";
 
 const char *Server_FQDN[N_SERVERIDS];	/* DNS host name (with optional port) */
 /* something like "codaserverN.foo.bar:2432" */
@@ -366,7 +366,7 @@ void VDisconnectFS() {
     FSYNC_clientFinis();
 }
 
-void VInitThisHost(char *host)
+void VInitThisHost(const char *host)
 {
     if (ThisHost) free(ThisHost);
 
@@ -383,7 +383,7 @@ void VInitThisHost(char *host)
 
 /* must be called before calling VInitVolumePackage!! */
 /* Find the server id */
-void VInitServerList(char *host) 
+void VInitServerList(const char *host)
 {
     char line[200];
     char *serverList = SERVERLISTPATH;
@@ -405,8 +405,8 @@ void VInitServerList(char *host)
     }
 
     while (fgets(line, sizeof(line), file) != NULL) {
-        char sname[51];
-        unsigned int sid;
+	char sname[51];
+	unsigned int sid;
 	int i;
 	long netaddress;
 
@@ -1165,9 +1165,8 @@ void VPutVolume(Volume *vp)
 		LWP_SignalProcess((char *)VPutVolume);
 	}
     }
-    else 
-	VLog(1, "VPutVolume (%x): NO-OP since vp->nUsers = %d", 
-	     V_id(vp), vp->nUsers + 1);
+    else VLog(1, "VPutVolume (%x): NO-OP since vp->nUsers = %d",
+	      V_id(vp), vp->nUsers + 1);
 }
 
 /* Force the volume offline, set the salvage flag.  No further references to */
@@ -1183,7 +1182,7 @@ void VForceOffline(Volume *vp)
     VLog(0, "Volume %x forced offline:  it needs to be salvaged!", V_id(vp));
     V_inUse(vp) = 0;
     VLog(1, "VForceOffline: setting V_inUse(%x) = 0 and writing out voldiskinfo", V_id(vp));
-    vp->goingOffline = 0;    
+    vp->goingOffline = 0;
     V_needsSalvaged(vp) = 1;
     VUpdateVolume(&error, vp);
     LWP_SignalProcess((char *)VPutVolume);
@@ -1668,7 +1667,7 @@ static void VScanUpdateList()
     /* Be careful with this code, since it works with interleaved calls to AddToVolumeUpdateList */
     for (i = gap = 0; i<nUpdatedVolumes; i++) {
 	VLog(29, "ScanUpdateList: Going to call VGetVolume ");
-        vp = VGetVolume(&error, UpdateList[i-gap] = UpdateList[i]);
+	vp = VGetVolume(&error, UpdateList[i-gap] = UpdateList[i]);
 	VLog(29, "ScanUpdateList: Just returned from VGetVolume");
 	if (error) {
 	    VLog(29, "ScanUpdateList: Error %d in VGetVolume", error);
@@ -1725,20 +1724,20 @@ static int GetVolumeHeader(Volume *vp)
 	Error error;
 	struct volHeader *hd;
 	int old;
-	
+
 	VLog(9, "Entering GetVolumeHeader()");
 	old = (vp->header != 0);
-	
+
 	if (old) {
 		hd = vp->header;
-		/* the joy of list headers Coda style: we are about to 
+		/* the joy of list headers Coda style: we are about to
 		   take hd out of the list */
 		if (volumeLRU == hd)
 			volumeLRU = hd->next;
 		CODA_ASSERT(hd->back == vp);
 	} else {
 		/* not currently in use and least recently used */
-		hd = volumeLRU->prev; 
+		hd = volumeLRU->prev;
 		if (hd->back) {
 			if (hd->diskstuff.inUse) {
 				VLog(1, "storing VolumeDiskInfo (%x) to reclaim cache slot",
@@ -1818,7 +1817,7 @@ void FreeVolumeHeader(Volume *vp)
 /***************************************************/
 /*
   AddVolumeToHashTable: Add the volume (*vp) to the hash table
-  As used, hashid is always the id of the volume.  
+  As used, hashid is always the id of the volume.
 */
 static void AddVolumeToHashTable(Volume *vp, int hashid)
 {
@@ -1877,7 +1876,7 @@ void DeleteVolumeFromHashTable(Volume *vp)
     vp->hashid = 0;
 }
 
-void VPrintCacheStats(FILE *fp) 
+void VPrintCacheStats(FILE *fp)
 {
     struct VnodeClassInfo *vcp;
     vcp = &VnodeClassInfo_Array[vLarge];
@@ -1971,15 +1970,15 @@ int GetVolObj(VolumeId Vid, Volume **volptr,
     default:
 	    CODA_ASSERT(0);
     }
-    
- FreeLocks:
+
+FreeLocks:
     /* make sure the volume hash isn't resized */
     if (errorCode && *volptr) {
 	VPutVolume(*volptr);
 	*volptr = NULL;
     }
     SLog(9, "GetVolObj: returns %d", errorCode);
-    
+
     return(errorCode);
 }
 
@@ -1999,8 +1998,8 @@ void PutVolObj(Volume **volptr, int LockLevel, int Dequeue)
       case VOL_EXCL_LOCK:
 	if (Dequeue) {
 	    lqent *lqep = LockQueueMan->findanddeq(V_id(*volptr));
-	    if (!lqep) 
-		SLog(0, "PutVolObj: Couldn't find entry %x on lock queue", 
+	    if (!lqep)
+		SLog(0, "PutVolObj: Couldn't find entry %x on lock queue",
 			V_id(*volptr));
 	    else {
 		LockQueueMan->remove(lqep);

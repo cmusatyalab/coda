@@ -74,17 +74,17 @@ static void ClearXfer(void *data)
 // Run to start at the beginning of the application
 void monitor::Start(void)
 {
-  char *marinerport;
+  const char *marinerport = NULL;
 
   // printf ("monitor::Start\n");
   if (TheMon == NULL) {
     TheMon = this;
   }
 
-  marinerport = codaconf_lookup("marinersocket", "/usr/coda/spool/mariner");
+  CODACONF_STR(marinerport, "marinersocket", "/usr/coda/spool/mariner");
 
   if (!conn.isOpen()) {
-#if  defined(HAVE_SYS_UN_H) && !defined(WIN32)
+#if defined(HAVE_SYS_UN_H) && !defined(WIN32)
     if (!conn.TcpOpen (marinerport))
 #endif
       if (!conn.TcpOpen ("localhost", CODACONPORT)) {

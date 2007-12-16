@@ -91,7 +91,7 @@ extern "C" {
 
 #define MAXNUMCLIENT 10
 
-static char *vicedir = NULL;
+static const char *vicedir = NULL;
 
 extern int AL_DebugLevel;
 

@@ -33,7 +33,7 @@ static char vicedir[MAXPATHLEN];
 static char serverdir[MAXPATHLEN];
 
 void
-vice_dir_init (char *dirname, int serverno)
+vice_dir_init (const char *dirname, int serverno)
 {
 	strncpy(vicedir, dirname, MAXPATHLEN);
 	strncpy(serverdir, dirname, MAXPATHLEN);

@@ -82,21 +82,21 @@ int SearchForNOreFind;  // Look for better detection method for iterrupted hoard
 int ASRallowed = 1;
 
 /* Command-line/venus.conf parameters. */
-char *consoleFile;
-char *venusRoot;
-char *kernDevice;
-char *realmtab;
-char *CacheDir;
-char *CachePrefix;
+const char *consoleFile;
+const char *venusRoot;
+const char *kernDevice;
+const char *realmtab;
+const char *CacheDir;
+const char *CachePrefix;
 int   CacheBlocks;
 uid_t PrimaryUser = UNSET_PRIMARYUSER;
-char *SpoolDir;
-char *VenusPidFile;
-char *VenusControlFile;
-char *VenusLogFile;
-char *ASRLauncherFile;
-char *ASRPolicyFile;
-char *MarinerSocketPath;
+const char *SpoolDir;
+const char *VenusPidFile;
+const char *VenusControlFile;
+const char *VenusLogFile;
+const char *ASRLauncherFile;
+const char *ASRPolicyFile;
+const char *MarinerSocketPath;
 int masquerade_port;
 int PiggyValidations;
 pid_t ASRpid;

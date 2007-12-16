@@ -83,11 +83,10 @@ int main(int argc, char **argv)
 	int c, pwlen;
 	char oldpw[128], newpw[128];
 	int ok, rc;
-	char *username, *realm;
+	char *username = NULL;
+	const char *realm = NULL;
 	char *host = NULL;
 	struct RPC2_addrinfo *srvs;
-
-	username = realm = NULL;
 
 	if (argc > 1) {
 	    if (strcmp(argv[1], "-h") == 0) {

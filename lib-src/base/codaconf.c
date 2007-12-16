@@ -43,18 +43,17 @@ static char conffile[MAXPATHLEN+1];
 int codaconf_quiet = 0;
 
 /* nobody outside of this file needs to be exposed to these structures. */
-typedef char *string_t;
 typedef struct _item {
     struct _item *next;
-    string_t name;
-    string_t value;
+    char *name;
+    char *value;
 } *item_t;
 
 static item_t codaconf_table = NULL;
 
 /* Add a name=value pair to the codaconf_table. */
 /* The passed name and value strings are copied. */
-static item_t codaconf_add(string_t name, string_t value)
+static item_t codaconf_add(const char *name, const char *value)
 {
     item_t n;
 
@@ -78,7 +77,7 @@ static item_t codaconf_add(string_t name, string_t value)
  * replaced with the new value. If a value is given, the entry is not
  * found, and CONFWRITE is defined, the name=value pair is appended
  * to the last read configuration file. */
-static item_t codaconf_find(string_t name, string_t value, int replace)
+static item_t codaconf_find(const char *name, const char *value, int replace)
 {
     item_t cp;
 #ifdef CONFWRITE
@@ -86,14 +85,14 @@ static item_t codaconf_find(string_t name, string_t value, int replace)
 #endif
 
     for(cp = codaconf_table; cp; cp = cp->next) {
-        if (strcmp(name, cp->name) == 0) {
-            if (replace && value) {
-                free(cp->value);
-                cp->value = strdup(value);
-                assert(cp->value != NULL);
-            }
-            return(cp);
-        }
+	if (strcmp(name, cp->name) == 0) {
+	    if (replace && value) {
+		free(cp->value);
+		cp->value = strdup(value);
+		assert(cp->value != NULL);
+	    }
+	    return(cp);
+	}
     }
 
     if (!value) return(NULL);
@@ -103,14 +102,14 @@ static item_t codaconf_find(string_t name, string_t value, int replace)
      * we are being called from codaconf_lookup (i.e. replace is false) and a
      * default value was given */
     if (!replace) {
-        conf = fopen(conffile, "a");
-        if (conf) {
-            fputs(name, conf);
-            fputs("=\"", conf);
-            fputs(value, conf);
-            fputs("\"\n", conf);
-            fclose(conf);
-        }
+	conf = fopen(conffile, "a");
+	if (conf) {
+	    fputs(name, conf);
+	    fputs("=\"", conf);
+	    fputs(value, conf);
+	    fputs("\"\n", conf);
+	    fclose(conf);
+	}
     }
 #endif
 
@@ -119,7 +118,7 @@ static item_t codaconf_find(string_t name, string_t value, int replace)
 
 /* parse a configuration line */
 static void codaconf_parse_line(char *line, int lineno,
-				string_t *name, string_t *value)
+				char **name, char **value)
 {
     char *eon, *eov, *val;
 
@@ -133,9 +132,9 @@ static void codaconf_parse_line(char *line, int lineno,
     /* find the beginning of the value */
     eon = val = strchr(line, '=');
     if (!eon) {
-        fprintf(stderr, "Configuration error in line %d, "
-		        "missing '='.\n", lineno);
-        return;
+	fprintf(stderr, "Configuration error in line %d, "
+		"missing '='.\n", lineno);
+	return;
     }
 
     /* strip trailing blanks from the name */
@@ -145,9 +144,9 @@ static void codaconf_parse_line(char *line, int lineno,
     /* blanks before the value are an error (for bash, so also for us) */
     val++;
     if (*val == ' ' || *val == '\t') {
-        fprintf(stderr, "Configuration error in line %d, "
-                        "no blanks allowed after the '='.\n", lineno);
-        return;
+	fprintf(stderr, "Configuration error in line %d, "
+		"no blanks allowed after the '='.\n", lineno);
+	return;
     }
     /* sort of handle quoting */
     if (*val == '"' || *val == '\'') val++;
@@ -163,7 +162,7 @@ static void codaconf_parse_line(char *line, int lineno,
 
     eov[1] = '\0';
 
-    /* got all the pointers, now allocate the string_t's */
+    /* got all the pointers, now allocate the strings */
     *name  = strdup(line);
     assert(*name != NULL);
 
@@ -174,40 +173,40 @@ static void codaconf_parse_line(char *line, int lineno,
 /* codaconf_init_one reads (or merges) the name=value tuples from the conffile.
  * If a name is seen multiple times, only the last value is remembered. Empty
  * lines and lines starting with '#' are ignored. */
-int codaconf_init_one(char *cf)
+int codaconf_init_one(const char *cf)
 {
     FILE *conf;
     int lineno = 0;
-    string_t name, value;
+    char *name, *value;
     item_t item;
 
     conf = fopen(cf, "r");
     if (!conf) {
-        if (!codaconf_quiet)
-            fprintf(stderr, "Cannot read configuration file '%s', "
-                    "will use default values.\n", cf);
-        return(-1);
+	if (!codaconf_quiet)
+	    fprintf(stderr, "Cannot read configuration file '%s', "
+		    "will use default values.\n", cf);
+	return(-1);
     }
 
     /* remember the last read configuration file */
     if (cf != conffile)
 	strcpy(conffile, cf);
-    
+
     while(fgets(line, MAXLINELEN, conf)) {
-        lineno++;
-        codaconf_parse_line(line, lineno, &name, &value);
-        if (name == NULL) continue; /* skip comments and blank lines */
-        
-        item = codaconf_find(name, value, 1);
+	lineno++;
+	codaconf_parse_line(line, lineno, &name, &value);
+	if (name == NULL) continue; /* skip comments and blank lines */
+
+	item = codaconf_find(name, value, 1);
 
 #ifdef CONFDEBUG
-        printf("line: %d, name: '%s', value: '%s'", lineno, name, value);
-        if (item)
-            printf("stored-value: '%s'\n", item->value);
-        else
-            printf("not found?\n");
+	printf("line: %d, name: '%s', value: '%s'", lineno, name, value);
+	if (item)
+	    printf("stored-value: '%s'\n", item->value);
+	else
+	    printf("not found?\n");
 #endif
-        free(name); free(value);
+	free(name); free(value);
     }
     fclose(conf);
 
@@ -268,10 +267,10 @@ int codaconf_init(const char *confname)
 }
 
 /* codaconf_lookup returns the value associated with name, or NULL on error. */
-char *codaconf_lookup(char *name, char *defaultvalue)
+const char *codaconf_lookup(const char *name, const char *defaultvalue)
 {
     item_t cp;
-    
+
     cp = codaconf_find(name, defaultvalue, 0);
 
     return cp ? cp->value : NULL;
@@ -283,10 +282,10 @@ void codaconf_free(void)
     item_t cp;
 
     while((cp = codaconf_table) != NULL) {
-        codaconf_table = cp->next;
-        free(cp->name);
-        free(cp->value);
-        free(cp);
+	codaconf_table = cp->next;
+	free(cp->name);
+	free(cp->value);
+	free(cp);
     }
 }
 
@@ -298,10 +297,10 @@ int main(int argc, char *argv[])
     char *var, *val = NULL;
 
     if (argc < 2) {
-        fprintf(stderr, "Usage: %s <conffile>.<confvar> [defaultvalue]\n",
-                argv[0]);
-        fprintf(stderr, "e.g. %s venus.cachesize\n", argv[0]);
-        exit(-1);
+	fprintf(stderr, "Usage: %s <conffile>.<confvar> [defaultvalue]\n",
+		argv[0]);
+	fprintf(stderr, "e.g. %s venus.cachesize\n", argv[0]);
+	exit(-1);
     }
 
     var = strchr(argv[1], '.');

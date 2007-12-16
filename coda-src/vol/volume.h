@@ -371,15 +371,13 @@ extern int VInit;		/* Set to 1 when the volume package is
 				   initialized */
 extern int HInit;		/* Set to 1 when the volid hash table
 				   is initialized */
-extern char *VSalvageMessage;   /* Common message used when the volume
-				   goes off line */
+extern const char *VSalvageMessage; /* Common message used when the volume goes
+				       off line */
 extern int VolDebugLevel;	/* Controls level of debugging information */
-extern char *VSalvageMessage;	/* Canonical message when a volume is forced
-				   offline */
 extern int AllowResolution;	/* global flag to turn on dir. resolution */
 extern void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage);
 extern int VInitVolUtil(ProgramType pt);
-extern void VInitServerList(char *host);
+extern void VInitServerList(const char *host);
 extern int VConnectFS();
 extern void VDisconnectFS();
 extern void VUCloneVolume(Error *, Volume *, Volume *);

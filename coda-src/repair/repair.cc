@@ -23,7 +23,7 @@ int allowclear = 0, session = NOT_IN_SESSION, repair_DebugFlag = 0;
 struct conflict *ConflictObj = NULL;
 char cfix[MAXPATHLEN];
 
-static char *coda_mountpoint;
+static const char *coda_mountpoint;
 
 /* Relax, command parser allows abbreviations of command names */
 command_t list[] = {

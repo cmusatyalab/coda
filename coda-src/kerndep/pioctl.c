@@ -51,9 +51,9 @@ extern "C" {
 }
 #endif
 
-static char *getMountPoint(void)
+static const char *getMountPoint(void)
 {
-    static char *mountPoint = NULL;
+    static const char *mountPoint = NULL;
 
     if (!mountPoint) {
 	codaconf_init("venus.conf");
@@ -64,11 +64,11 @@ static char *getMountPoint(void)
 
 #if defined(__CYGWIN32__) // Windows NT and 2000
 
-int marschalling(void **send_data, const char *prefix, const char *path,
+int marshalling(void **send_data, const char *prefix, const char *path,
 		 struct PioctlData *data){
     int total_size, offset_path, offset_in;
 
-    /* begin marschalling inputbuffer */
+    /* begin marshalling inputbuffer */
     /* total_size: structure data, path, out and in buffer from ViceIoctl */
     total_size  = sizeof(struct PioctlData) + strlen(path) + strlen(prefix)
 	+ 1 + data->vi.in_size; 
@@ -90,7 +90,7 @@ int marschalling(void **send_data, const char *prefix, const char *path,
     /* copy data in send_data buffer */
     memcpy(*send_data, data, sizeof(struct PioctlData));
 
-    /* end marschalling inputbuffer */
+    /* end marshalling inputbuffer */
 
     return total_size;
 }
@@ -105,7 +105,6 @@ int pioctl(const char *path, unsigned long cmd,
     void *send_data;
     int code, res = 0, size;
     DWORD bytesReturned;
-    char *s;
     void *outbuf;
     short newlength;
     int  mPlen;
@@ -174,9 +173,9 @@ int pioctl(const char *path, unsigned long cmd,
     outbuf = malloc (MAX(data.vi.out_size, sizeof(unsigned long)));
     newlength = MAX(data.vi.out_size, sizeof(unsigned long));        
 
-    /* marschalls into send_data. send_data will be allocated.
+    /* marshalls into send_data. send_data will be allocated.
        make sure to free it afterwards */
-    size = marschalling(&send_data, prefix, path, &data); 
+    size = marshalling(&send_data, prefix, path, &data);
 
     /* send_data contains:  PioctlData, path, vi.in
        Returned data comes back through outbuf. */
@@ -270,7 +269,7 @@ int pioctl(const char *path, unsigned long com,
     data.vi = *vidata;
 
     if (!ctlfile) {
-	char *mtpt = getMountPoint();
+	const char *mtpt = getMountPoint();
 	ctlfile = malloc(strlen(mtpt) + strlen(CODA_CONTROL) + 2);
 	sprintf(ctlfile, "%s/%s", mtpt, CODA_CONTROL);
     }

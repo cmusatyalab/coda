@@ -111,23 +111,23 @@ int Bind(const char *host)
 
 #ifdef HAVE_SYS_UN_H
     if (!use_tcp) {
-        struct sockaddr_un s_un;
-        char *MarinerSocketPath;
-        
-        codaconf_init("venus.conf");
-        MarinerSocketPath = codaconf_lookup("marinersocket",
-					    "/usr/coda/spool/mariner"); 
-        memset(&s_un, 0, sizeof(s_un));
-        s_un.sun_family = AF_UNIX;
-        strcpy(s_un.sun_path, MarinerSocketPath);
+	struct sockaddr_un s_un;
+	const char *MarinerSocketPath;
 
-        if ((s = socket(AF_UNIX, SOCK_STREAM, 0)) < 0){
-            return(-1);
-        }
-        if (connect(s, (sockaddr *)&s_un, sizeof(s_un)) < 0) {
-            close(s);
-            return(-1);
-        }
+	codaconf_init("venus.conf");
+	MarinerSocketPath = codaconf_lookup("marinersocket",
+					    "/usr/coda/spool/mariner");
+	memset(&s_un, 0, sizeof(s_un));
+	s_un.sun_family = AF_UNIX;
+	strcpy(s_un.sun_path, MarinerSocketPath);
+
+	if ((s = socket(AF_UNIX, SOCK_STREAM, 0)) < 0){
+	    return(-1);
+	}
+	if (connect(s, (sockaddr *)&s_un, sizeof(s_un)) < 0) {
+	    close(s);
+	    return(-1);
+	}
     } else
 #endif /* !HAVE_SYS_UN_H */
     {

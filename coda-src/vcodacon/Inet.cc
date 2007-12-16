@@ -146,8 +146,8 @@ bool Inet::TcpOpen (char *host, int port)
 }
 
 #if defined(HAVE_SYS_UN_H) && !defined(WIN32)
-// Open a tcp connection to a UNIX file socket 
-bool Inet::TcpOpen (char *SocketPath)
+// Open a tcp connection to a UNIX file socket
+bool Inet::TcpOpen (const char *SocketPath)
 {
   struct sockaddr_un sock;
 

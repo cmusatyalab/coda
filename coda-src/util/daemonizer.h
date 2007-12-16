@@ -30,7 +30,7 @@ extern "C" {
 int daemonize(void);
 
 /* write our pid to pidfile and keep the file locked */
-void update_pidfile(char *pidfile);
+void update_pidfile(const char *pidfile);
 
 /* Let the parent process know that we've succesfully started. */
 void gogogo(int parent_fd);

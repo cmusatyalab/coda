@@ -85,7 +85,7 @@ static void logrotate(const char *log)
 
 int main(int argc, char **argv)
 {
-    char *cache_dir, *pid_file, *ctrl_file, *log_file, *err_file;
+    const char *cache_dir, *pid_file, *ctrl_file, *log_file, *err_file;
 
     unsigned int loglevel, rpc2loglvl, lwploglvl;
     char *arg, ctrl[MAX_CTRL_LEN+1];
@@ -125,11 +125,10 @@ int main(int argc, char **argv)
     /* read venus process id from the pid file */
     fp = fopen(pid_file, "r");
     if (fp) {
-	rc = fscanf(fp, "%d", &tmp);
+	if (fscanf(fp, "%d", &tmp) == 1)
+	    venus_pid = (pid_t)tmp;
 	fclose(fp);
     }
-    if (fp && rc == 1)
-	venus_pid = (pid_t)tmp;
 
     argc--; argv++;
     while(argc--)
@@ -223,6 +222,7 @@ int main(int argc, char **argv)
 
 	/* wait until venus has processed the signal, it will unlink the
 	 * control file when it has read the command. */
+	rc = 0;
 	for (i = 0; i < 60; i++) {
 	    rc = access(ctrl_file, F_OK);
 	    if (rc != 0) break;

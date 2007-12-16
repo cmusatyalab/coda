@@ -428,9 +428,9 @@ void VFSMount()
 	if (!error) {
 	    FILE *fd = setmntent("/etc/mtab", "a");
 	    struct mntent ent;
-	    if (fd) { 
+	    if (fd) {
 		ent.mnt_fsname = "coda";
-		ent.mnt_dir    = venusRoot;
+		ent.mnt_dir    = (char *)venusRoot;
 		ent.mnt_type   = "coda";
 		ent.mnt_opts   = "rw,noatime,nosuid,nodev";
 		ent.mnt_freq   = 0;

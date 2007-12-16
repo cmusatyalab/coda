@@ -152,7 +152,7 @@ typedef struct volinfo {
     repinfo_t *replicas;
 } volinfo_t;
 
-char *vicedir = NULL;
+const char *vicedir = NULL;
 
 
 /* Procedure definitions. */

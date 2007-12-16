@@ -45,8 +45,9 @@ static struct lkdb *GetlkdbByName(char *); /* forward ref */
 static void RemoveAll(); /* forward ref */
 static void ListAll(char *, int); /* forward ref */
 
-int LookAsideAndFillContainer (unsigned char sha[SHA_DIGEST_LENGTH], int cfd, 
-       int expectedlength, char *codaprefix, char *emsgbuf, int emsgbuflen)
+int LookAsideAndFillContainer (unsigned char sha[SHA_DIGEST_LENGTH], int cfd,
+			       int expectedlength, const char *codaprefix,
+			       char *emsgbuf, int emsgbuflen)
 {
 /* LookAsideAndFillContainer() takes the SHA of an object and sees if
    it is able to find its contents via lookaside.  If successful, it 

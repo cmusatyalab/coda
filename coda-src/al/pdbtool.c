@@ -43,7 +43,7 @@ listed in the file CREDITS.
 #include <codaconf.h>
 #include <vice_file.h>
 
-static char *vicedir = NULL;
+static const char *vicedir = NULL;
 
 /* Check if correct number of arguments,Too Few=1,Too Many=2,Just Right=0 */
 int check_args_num(int argc,int n)

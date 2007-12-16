@@ -1450,11 +1450,11 @@ void fsobj::ComputePriority(int Force) {
 		static int initialized = 0;
 		static int RightShift;
 		if (!initialized) {
-#define	log2(x)\
+#define	log_2(x)\
     (ffs(binaryfloor((x) + (x) - 1) - 1))
-		    int LOG_MAXFILES = log2(FSDB->MaxFiles);
-		    int	LOG_SSF = log2(FSDB->ssf);
-		    int LOG_MAX_SPRI = log2(FSO_MAX_SPRI);
+		    int LOG_MAXFILES = log_2(FSDB->MaxFiles);
+		    int	LOG_SSF = log_2(FSDB->ssf);
+		    int LOG_MAX_SPRI = log_2(FSO_MAX_SPRI);
 		    RightShift = (LOG_MAXFILES + LOG_SSF - LOG_MAX_SPRI);
 		    initialized = 1;
 		}
@@ -2637,38 +2637,54 @@ int fsobj::LaunchASR(int conflict_type, int object_type) {
   /* Fork child ASRLauncher and exec() the file in the ASRLaunchFile global. */
   if(pipe(pfd) == -1) { perror("pipe"); exit(EXIT_FAILURE); }
 
-  pid = fork();
-  if(pid == 0) {
+    pid = fork();
+    if(pid == 0) {
+	const char *call;
 	int error;
-    char *arg[6], buf[3];
-    char confstr[4];
-    
+	char *arg[6];
+	char buf[3];
+	char confstr[4];
+
 	close(pfd[1]);
-    if(setpgid(0, 0) < 0) { perror("setpgid"); exit(EXIT_FAILURE); }
-    
-    sprintf(confstr, "%d", conflict_type);
 
-    /* Set up argument array. */
+	error = setpgid(0, 0);
+	if (error < 0) {
+	    call = "setpgid";
+	    goto failure;
+	}
 
-    arg[0] = ASRLauncherFile; /* extracted from venus.conf */
-    arg[1] = path;
-    arg[2] = rootPath;
-    arg[3] = confstr;
-    arg[4] = ASRPolicyFile;   /* extracted from venus.conf */
-    arg[5] = NULL;
+	sprintf(confstr, "%d", conflict_type);
 
-	while((error = read(pfd[0], (void *)buf, 2)) == 0)
-	  continue;
+	/* Set up argument array. */
+	arg[0] = strdup(ASRLauncherFile); /* extracted from venus.conf */
+	arg[1] = path;
+	arg[2] = rootPath;
+	arg[3] = confstr;
+	arg[4] = strdup(ASRPolicyFile);   /* extracted from venus.conf */
+	arg[5] = NULL;
 
-	if(error < 0) { perror("read"); exit(EXIT_FAILURE); }
+	while ((error = read(pfd[0], buf, 2)) == 0)
+	    continue;
+	if (error < 0) {
+	    call="read";
+	    goto failure;
+	}
 
-	if(setuid(uid) < 0) { perror("setuid"); exit(EXIT_FAILURE); }
+	error = setuid(uid);
+	if (error < 0) {
+	    call="setuid";
+	    goto failure;
+	}
 
 	close(pfd[0]);
 
-    if(execve(arg[0], arg, 0) < 0) { perror("exec"); exit(EXIT_FAILURE); }
-  }
-  
+	execve(arg[0], arg, 0);
+	call="execve";
+failure:
+	perror(call);
+	exit(EXIT_FAILURE);
+    }
+
   close(pfd[0]);
 
   /* Restrict access to this volume by process group id. */

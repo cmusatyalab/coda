@@ -9,7 +9,7 @@
 extern "C" {
 #endif
 
-void vice_dir_init (char *dirname, int serverno);
+void vice_dir_init (const char *dirname, int serverno);
 char * vice_file (char *name);
 char * vice_sharedfile (char *name);
 

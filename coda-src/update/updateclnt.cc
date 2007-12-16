@@ -136,9 +136,9 @@ static int reps = 6;
 static struct timeval  tp;
 static struct timezone tsp;
 
-static char **hostlist;		/* List of hosts to notify of changes. */
+static char **hostlist;	/* List of hosts to notify of changes. */
 
-static char *vicedir = NULL;
+static const char *vicedir = NULL;
 static int   nservers = 0;
 
 static RPC2_Unsigned timestamp = 0;  /* last transfered time. */
@@ -242,29 +242,29 @@ int main(int argc, char **argv)
 	if (CheckDir("db", 0644)) {
 	    operatorSecs = 0;  /* if something changed time has elapsed */
 	    for (int i=0; i<nservers; i++) {
-	        if (nservers != 1)
+		if (nservers != 1)
 		    vice_dir_init (vicedir, i+1);
 		/* signal file server to check data bases */
 		file = fopen(vice_file("srv/pid"), "r");
 		if (file == NULL) {
-		    LogMsg(0, SrvDebugLevel, stdout, 
+		    LogMsg(0, SrvDebugLevel, stdout,
 			   "Fopen failed for file %s with %s\n",
 			   vice_file("srv/pid"),
 			   ViceErrorMsg(errno));
 		} else {
 		    RPC2_Handle rpcid;
 		    if (U_BindToServer(hostlist[i], &rpcid) == RPC2_SUCCESS) {
-		        if (VolUpdateDB(rpcid) == RPC2_SUCCESS) {
-			    LogMsg(0, SrvDebugLevel, stdout, 
-			         "Notifying server %s of database updates\n",
-				 hostlist[i]);
+			if (VolUpdateDB(rpcid) == RPC2_SUCCESS) {
+			    LogMsg(0, SrvDebugLevel, stdout,
+				   "Notifying server %s of database updates\n",
+				   hostlist[i]);
 			} else {
-			    LogMsg(0, SrvDebugLevel, stdout, 
+			    LogMsg(0, SrvDebugLevel, stdout,
 				   "VolUpdateDB failed for host %s\n",
 				   hostlist[i]);
 			}
 		    } else {
-		        LogMsg(0, SrvDebugLevel, stdout, 
+			LogMsg(0, SrvDebugLevel, stdout,
 			     "Bind to server %s for database update failed\n",
 			     hostlist[i]);
 		    }
@@ -274,7 +274,7 @@ int main(int argc, char **argv)
 	}
 	if (operatorSecs > 0) {
 	    gettimeofday(&tp, &tsp);
-	    if ((tp.tv_sec < operatorSecs) || 
+	    if ((tp.tv_sec < operatorSecs) ||
 		(tp.tv_sec > (operatorSecs + 2))) {
 		tp.tv_sec = operatorSecs + 1;
 		tp.tv_usec = operatorUsecs;
@@ -310,8 +310,8 @@ static void ProcessArgs(int argc, char **argv)
 		strcpy(host, argv[++i]);
 	else
 	  if (!strcmp(argv[i], "-q")) {
-	        fprintf (stderr, "Old argument -q to update clnt.\n");
-		++i;
+	      fprintf (stderr, "Old argument -q to update clnt.\n");
+	      ++i;
 	  }
 	else
 	    if (!strcmp(argv[i], "-w"))
@@ -320,13 +320,13 @@ static void ProcessArgs(int argc, char **argv)
 	    if (!strcmp(argv[i], "-r"))
 		reps = atoi(argv[++i]);
 	else {
-	    LogMsg(0, SrvDebugLevel, stdout, 
+	    LogMsg(0, SrvDebugLevel, stdout,
 		   "usage: update [-d (debug level)] ");
-	    LogMsg(0, SrvDebugLevel, stdout, 
+	    LogMsg(0, SrvDebugLevel, stdout,
 		   "[-h (update server hostname)] ");
 	    LogMsg(0, SrvDebugLevel, stdout,
 		   "[-port (port of the update server)] ");
-	    LogMsg(0, SrvDebugLevel, stdout, 
+	    LogMsg(0, SrvDebugLevel, stdout,
 		   "[-r (reps of w for long wait time)] [-w (short wait time)]\n");
 	    exit(-1);
 	}
@@ -340,30 +340,29 @@ ReadConfigFile()
     codaconf_init("server.conf");
 
     CODACONF_STR(vicedir, "vicedir", "/vice");
-    CODACONF_INT(nservers, "numservers", 1); 
+    CODACONF_INT(nservers, "numservers", 1);
 
     vice_dir_init(vicedir, 0);
 
     /* Host name list from multiple configs. */
     hostlist = new char*[nservers];
     if (nservers == 1) {
-        hostlist[0] = new char[256];
+	hostlist[0] = new char[256];
 	hostname(hostlist[0]);
     }
     else {
+	const char *host;
 	char confname[80];
-        for (int i = 0; i<nservers; i++) {
-	    hostlist[i] = new char[256];
-	    hostlist[i][0] = '\0';
-	    sprintf (confname, "server_%d.conf", i+1);
+	for (int i = 0; i < nservers; i++) {
+	    sprintf(confname, "server_%d.conf", i+1);
 	    codaconf_init(confname);
-	    CODACONF_STR(hostlist[i],  "hostname",  "");
-	    if (hostlist[i][0] == '\0') {
-	        LogMsg(0, SrvDebugLevel, stdout,
-		       "No host name for server %d.\n",
+	    host = codaconf_lookup("hostname", NULL);
+	    if (host == NULL) {
+		LogMsg(0, SrvDebugLevel, stdout,"No host name for server %d.\n",
 		       i+1);
 		exit(1);
 	    }
+	    hostlist[i] = strdup(host);
 	}
     }
 
@@ -379,10 +378,10 @@ static void CheckLibStructure()
 	mkdir(vice_sharedfile(NULL),0755);
 	mkdir(vice_sharedfile("db"),0755);
 	mkdir(vice_sharedfile("misc"),0755);
-	
+
 	for (int i=1; i<=nservers; i++) {
 	    if (nservers != 1)
-	        vice_dir_init (vicedir, i);
+		vice_dir_init (vicedir, i);
 	    mkdir(vice_file("srv"),0755);
 	    mkdir(vice_file("vol"),0755);
 	    mkdir(vice_file("spool"),0755);
@@ -395,9 +394,9 @@ static void CheckLibStructure()
 	}
 	for (int i=1; i<=nservers; i++) {
 	    if (nservers != 1)
-	        vice_dir_init (vicedir, i);
+		vice_dir_init (vicedir, i);
 	    if ((stat(vice_file("srv"),&lbuf)) && (errno == ENOENT)) {
-	        printf("Creating %s\n",vice_file("srv"));
+		printf("Creating %s\n",vice_file("srv"));
 		mkdir(vice_file("srv"),0755);
 	    }
 	    if ((stat(vice_file("vol"),&lbuf)) && (errno == ENOENT)) {
@@ -429,7 +428,7 @@ static int CheckDir(char *prefix, int mode)
     if ((!(CheckFile(prefix, 0755))) && !CheckAll)
 	return(0);
 
-    LogMsg(1, SrvDebugLevel, stdout, 
+    LogMsg(1, SrvDebugLevel, stdout,
 	   "Directory %s changed, check files\n", prefix);
 
     strcpy(newname, prefix);
@@ -498,7 +497,7 @@ static int CheckFile(char *fileName, int mode)
     long     rc;
     SE_Descriptor sed;
 
-    LogMsg(1, SrvDebugLevel, stdout, "Checking file %s", fileName); 
+    LogMsg(1, SrvDebugLevel, stdout, "Checking file %s", fileName);
 
     if (stat(fileName, &buff)) {
 	time = 0;
@@ -544,11 +543,11 @@ static int CheckFile(char *fileName, int mode)
     }
 
     if (currentsecs > newtime) {
-        operatorSecs = currentsecs;
+	operatorSecs = currentsecs;
 	operatorUsecs = currentusecs;
     }
     else {
-        operatorSecs = 0;
+	operatorSecs = 0;
     }
 
     if ((newtime != 0) && (time != newtime)) {
@@ -632,7 +631,7 @@ static void ReConnect()
 
     rc = RPC2_NewBinding(&hident, &pident, &ssid, &bparms, &con);
     if (rc) {
-	LogMsg(0, SrvDebugLevel, stdout, "Bind failed with %s\n", 
+	LogMsg(0, SrvDebugLevel, stdout, "Bind failed with %s\n",
 	       (char *)ViceErrorMsg((int)rc));
 	return;
     }
