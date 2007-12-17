@@ -3841,11 +3841,11 @@ int cmlent::checkpoint(FILE *fp) {
 		}
 		strcpy(CacheFileName, f->data.file->Name());
 	    }
-	    sprintf(hdr.dbuf.mode, "%6o ", 0644);
-	    sprintf(hdr.dbuf.uid, "%6o ", uid);
-	    sprintf(hdr.dbuf.gid, "%6o ", 65534); /* nogroup/nfsnobody */
-	    sprintf(hdr.dbuf.size, "%11o ", u.u_store.Length);
-	    sprintf(hdr.dbuf.mtime, "%11o ", time);
+	    snprintf(hdr.dbuf.mode, 8, "%6o ", 0644);
+	    snprintf(hdr.dbuf.uid, 8, "%6o ", uid);
+	    snprintf(hdr.dbuf.gid, 8, "%6o ", 65534); /* nogroup/nfsnobody */
+	    snprintf(hdr.dbuf.size, 12, "%11o ", u.u_store.Length);
+	    snprintf(hdr.dbuf.mtime, 12, "%11o ", time);
 	    hdr.dbuf.linkflag = '\0';
 	    if ((code = WriteHeader(fp, hdr)) != 0) break;
 	    if (u.u_store.Length != 0)
@@ -3875,11 +3875,11 @@ int cmlent::checkpoint(FILE *fp) {
 	    {
 	    GetPath(hdr.dbuf.name, &u.u_mkdir.CFid);
 	    strcat(hdr.dbuf.name, "/");
-	    sprintf(hdr.dbuf.mode, "%6o ", 0755);
-	    sprintf(hdr.dbuf.uid, "%6o ", uid);
-	    sprintf(hdr.dbuf.gid, "%6o ", -1);
-	    sprintf(hdr.dbuf.size, "%11o ", 0);
-	    sprintf(hdr.dbuf.mtime, "%11o ", time);
+	    snprintf(hdr.dbuf.mode, 8, "%6o ", 0755);
+	    snprintf(hdr.dbuf.uid, 8, "%6o ", uid);
+	    snprintf(hdr.dbuf.gid, 8, "%6o ", 65534);
+	    snprintf(hdr.dbuf.size, 12, "%11o ", 0);
+	    snprintf(hdr.dbuf.mtime, 12, "%11o ", time);
 	    hdr.dbuf.linkflag = '\0';
 	    if ((code = WriteHeader(fp, hdr)) != 0) break;
 	    }
@@ -3888,11 +3888,11 @@ int cmlent::checkpoint(FILE *fp) {
 	case CML_SymLink_OP:
 	    {
 	    GetPath(hdr.dbuf.name, &u.u_symlink.CFid);
-	    sprintf(hdr.dbuf.mode, "%6o ", 0755);
-	    sprintf(hdr.dbuf.uid, "%6o ", uid);
-	    sprintf(hdr.dbuf.gid, "%6o ", -1);
-	    sprintf(hdr.dbuf.size, "%11o ", 0);
-	    sprintf(hdr.dbuf.mtime, "%11o ", time);
+	    snprintf(hdr.dbuf.mode, 8, "%6o ", 0755);
+	    snprintf(hdr.dbuf.uid, 8, "%6o ", uid);
+	    snprintf(hdr.dbuf.gid, 8, "%6o ", 65534);
+	    snprintf(hdr.dbuf.size, 12, "%11o ", 0);
+	    snprintf(hdr.dbuf.mtime, 12, "%11o ", time);
 	    hdr.dbuf.linkflag = '2';
 	    strcpy(hdr.dbuf.linkname, (char *)Name);
 	    if ((code = WriteHeader(fp, hdr)) != 0) break;
@@ -3931,7 +3931,7 @@ static int WriteHeader(FILE *fp, hblock& hdr) {
     int i = 0;
     for (cp = hdr.dummy; cp < &hdr.dummy[TBLOCK]; cp++)
 	i += *cp;
-    sprintf(hdr.dbuf.chksum, "%6o", i);
+    snprintf(hdr.dbuf.chksum, 8, "%6o", i);
 
     if (fwrite((char *)&hdr, (int) sizeof(hblock), 1, fp) != 1) {
 	LOG(0, ("WriteHeader: fwrite failed (%d)", errno));
