@@ -124,7 +124,8 @@ fsobj::fsobj(int i) : cf(i) {
 
 
 /* MUST be called from within transaction! */
-fsobj::fsobj(VenusFid *key, char *name) : cf() {
+fsobj::fsobj(VenusFid *key, const char *name) : cf()
+{
     LOG(10, ("fsobj::fsobj: fid = (%s), comp = %s\n", FID_(key),
 	     name == NULL ? "(no name)" : name));
 

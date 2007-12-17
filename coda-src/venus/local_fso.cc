@@ -49,7 +49,7 @@ extern "C" {
 #include "worker.h"
 
 /* MUST be called from within a transaction */
-void fsobj::SetComp(char *name)
+void fsobj::SetComp(const char *name)
 {
     RVMLIB_REC_OBJECT(comp);
     if (comp) rvmlib_rec_free(comp);

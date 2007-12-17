@@ -206,7 +206,8 @@ class vproc : public olink {
     unsigned interrupted : 1;
     struct vcbevent *ve;
 
-    vproc(char *, PROCBODY, vproctype, int =VPROC_DEFAULT_STACK_SIZE, int =LWP_NORMAL_PRIORITY);
+    vproc(const char *, PROCBODY, vproctype, int =VPROC_DEFAULT_STACK_SIZE,
+	  int =LWP_NORMAL_PRIORITY);
     vproc(vproc&);		// not supported
     int operator=(vproc&);	// not supported
     virtual ~vproc();

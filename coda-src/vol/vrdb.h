@@ -41,17 +41,15 @@ extern "C" {
 
 #define VRTABHASHSIZE	128
 
-class vrtab;
 class vrtab_iterator;
 class vrent;
-
 
 class vrtab : public ohashtab {
     friend void PrintVRDB();
     char *name;
     ohashtab namehtb;
   public:
-    vrtab(char * ="anonymous vrtab");
+    vrtab(const char *name = "anonymous vrtab");
     ~vrtab();
     void add(vrent *);
     void remove(vrent *);

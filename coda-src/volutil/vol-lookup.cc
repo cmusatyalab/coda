@@ -80,7 +80,9 @@ static FILE * infofile;    // descriptor for info file
 
 struct hostent *gethostent();
 
-char *voltypes[] = {"read/write", "read only", "backup", "unknown type", "unknown type"};
+const char *voltypes[] = {
+    "read/write", "read only", "backup", "unknown type", "unknown type"
+};
 
 /*
   S_VolLookup: Return information for a volume specified 

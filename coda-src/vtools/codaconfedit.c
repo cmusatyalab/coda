@@ -155,7 +155,8 @@ static void copy_template(char *confbase)
 
 int main(int argc, char **argv)
 {
-    char *conffile, *val, *p;
+    char *conffile;
+    const char *p, *val;
     int i, len;
     FAILIF(argc < 2, "Usage: %s <conffile> [<variable> [<value>]]\n", argv[0]);
 

@@ -294,9 +294,9 @@ struct CacheStats {
 void dprint(const char * ...);
 void choke(const char *file, int line, const char* ...);
 void rds_printer(char * ...);
-void VenusPrint(int, char **);
-void VenusPrint(FILE *, int, char **);
-void VenusPrint(int, int, char **);
+void VenusPrint(int argc, const char **argv);
+void VenusPrint(FILE *, int argc, const char **argv);
+void VenusPrint(int, int argc, const char **argv);
 const char *VenusOpStr(int);
 const char *IoctlOpStr(unsigned char nr);
 const char *VenusRetStr(int);

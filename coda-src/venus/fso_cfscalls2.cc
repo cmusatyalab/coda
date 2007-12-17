@@ -580,7 +580,8 @@ int fsobj::Readlink(char *buf, unsigned long len, int *cc, uid_t uid)
     end = ptr + stat.Length;
     out = buf;
     while (ptr != end) {
-	char *subst, *c;
+	const char *subst;
+	char *c;
 	unsigned int tmp_len;
 
 	c = strchr(ptr, '@');

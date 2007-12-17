@@ -264,7 +264,7 @@ static int DeleteVnodes(unsigned int myind, Device dev, VnodeClass vclass)
     rec_smolist **vlist;
     rvm_return_t status = RVM_SUCCESS;
     bit32 *nlists;
-    char *name;
+    const char *name;
 
     CODA_ASSERT(/*(myind >= 0) &&*/ (myind < MAXVOLS) );
     vdata = &(SRV_RVM(VolumeList[myind]).data);    

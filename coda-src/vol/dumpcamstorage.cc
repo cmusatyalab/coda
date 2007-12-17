@@ -63,14 +63,14 @@ extern "C" {
 #include "coda_globals.h"
 
 void print_VolumeDiskData(VolumeDiskData *ddata);
-static void PrintVersionVector(vv_t vv, char *indent);
+static void PrintVersionVector(vv_t vv, const char *indent);
 void print_VnodeDiskObject(VnodeDiskObject *vnode);
 void print_VolData(struct VolumeData *data);
 void print_VolHead(struct VolHead *VolHead, int volindex);
 
 /* These routines should be called from within a transaction */
 
-void dump_storage(int level, char *s)
+void dump_storage(int level, const char *s)
 {
     int i;
 
@@ -187,7 +187,7 @@ void print_VnodeDiskObject(VnodeDiskObject *vnode)
 	   vnode->vnodeMagic, vnode->serverModifyTime);
 }
 
-static void PrintVersionVector(vv_t vv, char *indent) {
+static void PrintVersionVector(vv_t vv, const char *indent) {
 
     fprintf(stdout, "%s", indent);
     FPrintVV(stdout, &vv);

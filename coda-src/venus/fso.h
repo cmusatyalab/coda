@@ -475,7 +475,7 @@ class fsobj {
     void *operator new(size_t); /* dummy to pacify g++ */
     void operator delete(void *);
     fsobj(int);
-    fsobj(VenusFid *, char *);
+    fsobj(VenusFid *, const char *);
     void ResetPersistent();
     void ResetTransient();
     fsobj(fsobj&) { abort(); }                          /* not supported! */
@@ -684,7 +684,7 @@ class fsobj {
 
     /* local-repair additions */
     cmlent *FinalCmlent(int);                                   /*N*/
-    void SetComp(char *);                                       /*U*/
+    void SetComp(const char *);                                 /*U*/
     const char *GetComp(void);
     void SetLocalObj();						/*T*/
     void UnsetLocalObj();					/*T*/
@@ -734,7 +734,7 @@ extern int FSO_SSF;
 extern void FSOInit();
 extern int FSO_PriorityFN(bsnode *, bsnode *);
 extern void UpdateCacheStats(CacheStats *c, enum CacheEvent event, unsigned long blocks);
-extern void PrintCacheStats(char* description, CacheStats *, int);
+extern void PrintCacheStats(const char* description, CacheStats *, int);
 extern void VenusToViceStatus(VenusStat *, ViceStatus *);
 
 /* fso_daemon.c */

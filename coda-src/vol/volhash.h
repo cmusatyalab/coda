@@ -44,17 +44,16 @@ extern "C" {
 #include <olist.h>
 #include <inconsist.h>
 
-class vhashtab;
 class vhash_iterator;
 class hashent;
 
 class vhashtab : public ohashtab {
   friend void InitVolTable(int);
-    char *name;	    /* table name */
+    char *name; /* table name */
     int vols;    /* number of volumes in table */
     int lock;
   public:
-    vhashtab(int size, intptr_t (*hashfn)(void *), char*);
+    vhashtab(int size, intptr_t (*hashfn)(void *), const char *);
     ~vhashtab();
     void Lock(int);
     void Unlock();

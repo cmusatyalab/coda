@@ -245,7 +245,7 @@ int ReplaceVnode(int volindex, int vclass, VnodeId vnodeindex,
     rec_smolist *vlist;
     bit32 *nvnodes;
     unsigned int size;
-    char *name;
+    const char *name;
 
     VLog(9, "Entering ReplaceVnode(%u, %u, %d)", volindex, vclass, vnodeindex);
     PrintCamVnode(19, volindex, vclass, vnodeindex, u);
@@ -324,7 +324,7 @@ static int DeleteVnode(int volindex, int vclass, VnodeId vnodeindex,
     VolumeId maxid = 0;
     rec_smolist *vlist;
     bit32 *nvnodes;
-    char *name;
+    const char *name;
 
     VLog(9, "Entering DeleteVnode(%d, %d, %d)", volindex, vclass, vnodeindex);
     maxid = (SRV_RVM(MaxVolId) & 0x00FFFFFF);

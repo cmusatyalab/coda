@@ -237,26 +237,26 @@ int main(int argc, char **argv)
 	rc = U_Authenticate(srvs, authmethod, username, strlen(username)+1,
 			    &cToken, sToken, verbose, interactive);
 	RPC2_freeaddrinfo(srvs);
-        if (rc != 0) {
-            fprintf (stderr, "Invalid login (%s).\n", RPC2_ErrorMsg(rc));
-            exit (1);
-        }
+	if (rc != 0) {
+	    fprintf (stderr, "Invalid login (%s).\n", RPC2_ErrorMsg(rc));
+	    exit (1);
+	}
     }
 
     if (testing)
 	    printf ("Sending token to venus\n");
 
     if (tofile)
-        WriteTokenToFile(tofile, &cToken, sToken);
+	WriteTokenToFile(tofile, &cToken, sToken);
 
     if(U_SetLocalTokens(0, &cToken, sToken, realm))
 	printf("Local login only, could not contact venus\n");
-    
+
     if (testing) {
 	    printf("Getting tokens back from venus\n");
 	    if (U_GetLocalTokens(&testCTok, testSTok, realm) < 0)
 		    perror("U_GetLocalTokens");
-	    
+
 	    printf("Comparing clear token\n");
 	    if(memcmp(&cToken, &testCTok, sizeof(ClearToken)) != 0) {
 		    printf("Bad ClearToken\n");

@@ -64,16 +64,16 @@ static command_t *find_cmd(char *name, command_t cmds[], char **next);
 static int process(char *s, char **next, command_t *lookup, command_t **result, char **prev);
 static char *command_generator(const char *text, int state);
 static char **command_completion(const char *text, int start, int end);
-static void print_commands(char *str, command_t *table);
+static void print_commands(const char *str, command_t *table);
 
 #if 1
-static char * skipwhitespace(char * s) 
+static char * skipwhitespace(char * s)
 {
     char * t;
     int    len;
-    
+
     len = (int)strlen(s);
-    
+
     for (t = s; t <= s + len && isspace((int)*t); t++);
     return(t);
 }
@@ -214,16 +214,15 @@ static int process(char *s, char ** next, command_t *lookup,
     }
 }
 
-static char * command_generator(const char * text, int state) 
+static char *command_generator(const char *text, int state)
 {
-    static int index,
-	       len;
-    char       *name;
+    static int index, len;
+    const char *name;
 
     /* Do we have a match table? */
-    if (!match_tbl) 
+    if (!match_tbl)
 	return NULL;
-    
+
     /* If this is the first time called on this word, state is 0 */
     if (!state) {
 	index = 0;
@@ -231,12 +230,12 @@ static char * command_generator(const char * text, int state)
     }
 
     /* Return the next name in the command list that paritally matches test */
-    while ( (name = (match_tbl + index)->name) ) {
+    while ((name = (match_tbl + index)->name) != NULL)
+    {
 	index++;
 
-	if (strncasecmp(name, text, len) == 0) {
-	    return(strdup(name));
-	}
+	if (strncasecmp(name, text, len) == 0)
+	    return strdup(name);
     }
 
     /* No more matches */
@@ -244,10 +243,10 @@ static char * command_generator(const char * text, int state)
 }
 
 /* probably called by readline */
-static char **command_completion(const char * text, int start, int end) 
+static char **command_completion(const char *text, int start, int end)
 {
-    command_t 	* table;
-    char	* pos;
+    command_t *table;
+    char *pos;
 
     match_tbl = top_level;
     pos = rl_line_buffer;
@@ -256,7 +255,7 @@ static char **command_completion(const char * text, int start, int end)
 	if (*(pos - 1) == ' ')
 	    match_tbl = table->sub_cmd;
 
-    return(rl_completion_matches(text, command_generator));
+    return rl_completion_matches(text, command_generator);
 }
 
 /* take a string and execute the function or print help */
@@ -310,7 +309,7 @@ void Parser_commands(void)
 
     rl_attempted_completion_function = command_completion;
     rl_completion_entry_function = &command_generator;
-    
+
     while(!done) {
 	line = readline(parser_prompt);
 
@@ -329,7 +328,7 @@ void Parser_commands(void)
 
 
 /* sets the parser prompt */
-void Parser_init(char * prompt, command_t * cmds) 
+void Parser_init(const char *prompt, command_t * cmds)
 {
     done = 0;
     top_level = cmds;
@@ -338,7 +337,7 @@ void Parser_init(char * prompt, command_t * cmds)
 }
 
 /* frees the parser prompt */
-void Parser_exit(int argc, char *argv[]) 
+void Parser_exit(int argc, char *argv[])
 {
     done = 1;
     free(parser_prompt);
@@ -421,10 +420,10 @@ void Parser_help(int argc, char **argv)
  * COMMANDS								 *
  *************************************************************************/ 
 
-
-static void print_commands(char * str, command_t * table) {
-    command_t * cmds;
-    char 	buf[80];
+static void print_commands(const char *str, command_t *table)
+{
+    command_t *cmds;
+    char buf[80];
 
     for (cmds = table; cmds->name; cmds++) {
 	if (cmds->func) {

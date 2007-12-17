@@ -112,7 +112,7 @@ int fsobj::ExpandObject(void)
     /* add an entry for ourselves */
     {
 	fsobj *fakelink;
-	char *name = LOCALCACHE;
+	const char *name = LOCALCACHE;
 
 	if (IsFake() || !HAVEALLDATA(this))
 	  name = LOCALCACHE_HIDDEN;
@@ -200,7 +200,7 @@ int fsobj::ExpandObject(void)
 }
 
 /// Instantiate a new fake directory object
-fsobj *volent::NewFakeDirObj(char *comp)
+fsobj *volent::NewFakeDirObj(const char *comp)
 {
     VenusFid fakefid;
     fsobj *dir;
@@ -226,7 +226,7 @@ fsobj *volent::NewFakeDirObj(char *comp)
 }
 
 /// Instantiate a new fake mountlink object
-fsobj *volent::NewFakeMountLinkObj(VenusFid *fid, char *comp)
+fsobj *volent::NewFakeMountLinkObj(VenusFid *fid, const char *comp)
 {
     VenusFid fakefid;
     fsobj *link;

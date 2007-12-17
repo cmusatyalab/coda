@@ -545,7 +545,7 @@ void mariner::main(void)
 	    Rpc2Stat();
 	}
 	else if (STREQ(argv[0], "print")) {
-	    VenusPrint(fd, argc - 1, &argv[1]);
+	    VenusPrint(fd, argc - 1, (const char **)&argv[1]);
 	}
 	else {
 	    Write("bad mariner command '%-80s'\n", argv[0]);

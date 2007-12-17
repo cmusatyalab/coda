@@ -375,7 +375,7 @@ void PDB_deleteGroup(int32_t id)
 	PDB_db_close(h);
 }
 
-void PDB_lookupByName(char *name, int32_t *id)
+void PDB_lookupByName(const char *name, int32_t *id)
 {
 	PDB_HANDLE h;
 	PDB_profile r;

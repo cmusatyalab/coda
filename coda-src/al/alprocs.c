@@ -403,7 +403,8 @@ int AL_CheckRights(IN AL_AccessList *Alist, IN PRS_InternalCPS *CPS,
    each time.  Synchronization code here guarantees that the .pdb and .pcf
    files are mutually consistent, provided all updaters follow the locking
    discipline.  */
-int AL_Initialize(IN char *Version) {
+int AL_Initialize(IN const char *Version)
+{
 	LogMsg(1,AL_DebugLevel,stdout,"AL_Initialize(%s)", Version);
 	LogMsg(4,AL_DebugLevel,stdout,
 	       "Library version: '%s'\tHeader version: '%s'\t",
@@ -418,7 +419,8 @@ int AL_Initialize(IN char *Version) {
 
 /* Translates the username or groupname defined by Name to Id.
    Returns 0 on success, -1 if translation fails. */
-int AL_NameToId(IN char *Name, OUT int *Id){
+int AL_NameToId(IN const char *Name, OUT int *Id)
+{
 	LogMsg(1, AL_DebugLevel, stdout, "in AL_NameToId(%s)", Name);
 	if(Name == NULL) return -1;
 	PDB_lookupByName(Name, (int32_t *) Id);
@@ -428,7 +430,8 @@ int AL_NameToId(IN char *Name, OUT int *Id){
 
 /* Translates Id and returns the corresponding username or groupname in Name.
    Returns 0 on success, -1 if Id is not translatable. */
-int AL_IdToName(IN int Id, OUT char *Name){
+int AL_IdToName(IN int Id, OUT char *Name)
+{
 	char *tmp;
 	LogMsg(1, AL_DebugLevel, stdout, "in AL_IdToName(%d)", Id);
 	if(Id==0) return -1;

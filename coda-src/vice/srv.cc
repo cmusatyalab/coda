@@ -250,9 +250,9 @@ static void ShutDown();
 
 static int ReadConfigFile(void);
 static int ParseArgs(int, char **);
-static void InitServerKeys(char *, char *);
-static int DaemonizeSrv(char *pidfile);
-static void InitializeServerRVM(char *name);
+static void InitServerKeys(const char *, const char *);
+static int DaemonizeSrv(const char *pidfile);
+static void InitializeServerRVM(const char *name);
 
 #ifdef RVMTESTING
 #include <rvmtesting.h>
@@ -322,7 +322,7 @@ int main(int argc, char *argv[])
     SFTP_Initializer sei;
     ProgramType *pt;
     int parent = -1;
-    char *pidfile;
+    const char *pidfile;
 
     coda_assert_action = CODA_ASSERT_EXIT;
 
@@ -1599,9 +1599,9 @@ static int ParseArgs(int argc, char *argv[])
     return(0);
 }
 
-/* char	* fkey1;	 name of file that contains key1 (normally KEY1) */
-/* char	* fkey2;	 name of file that contains key2 (normally KEY2) */
-static void InitServerKeys(char *fkey1, char *fkey2)
+/* const char * fkey1; name of file that contains key1 (normally KEY1) */
+/* const char * fkey2; name of file that contains key2 (normally KEY2) */
+static void InitServerKeys(const char *fkey1, const char *fkey2)
 {
     FILE                * tf;
     RPC2_EncryptionKey    ptrkey1;
@@ -1658,7 +1658,7 @@ void Die(char *msg)
 }
 
 
-static int DaemonizeSrv(char *pidfile)
+static int DaemonizeSrv(const char *pidfile)
 {
     int parent = -1;
     struct sigaction sa;
@@ -1709,7 +1709,7 @@ static int DaemonizeSrv(char *pidfile)
     return parent;
 }
 
-static void InitializeServerRVM(char *name)
+static void InitializeServerRVM(const char *name)
 {		    
     switch (RvmType) {							    
     case VM :					       	    

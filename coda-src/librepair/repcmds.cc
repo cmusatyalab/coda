@@ -201,7 +201,8 @@ int ClearInc(struct conflict *conf, char *msg, int msgsize)
  * Returns number of conflicts on success, -1 on error and fills in msg if non-NULL
  * Returns -2 if there are name/name conflicts (in which case the caller
  * should DoRepair to fix them and then do CompareDirs again) */
-int CompareDirs(struct conflict *conf, char *fixfile, struct repinfo *inf, char *msg, int msgsize)
+int CompareDirs(struct conflict *conf, const char *fixfile, struct repinfo *inf,
+		char *msg, int msgsize)
 {
     char msgbuf[DEF_BUF];
     char **names;

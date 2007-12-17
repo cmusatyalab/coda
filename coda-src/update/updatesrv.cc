@@ -182,7 +182,7 @@ int main(int argc, char **argv)
     RPC2_Options options;
     int rc;
     struct stat statbuf;
-    char *miscdir;
+    const char *miscdir;
     int port = 0;
 
     /* process the command line arguments */

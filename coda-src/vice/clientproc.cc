@@ -75,7 +75,7 @@ static HostTable hostTable[MAXHOSTTABLEENTRIES];
 
 static void client_GetVenusId(RPC2_Handle, ClientEntry *);
 static void client_RemoveClients(HostTable *);
-static char *client_SLDecode(RPC2_Integer);
+static const char *client_SLDecode(RPC2_Integer);
 static void client_SetUserName(ClientEntry *);
 
 
@@ -408,13 +408,13 @@ static void client_RemoveClients(HostTable *ht)
 }
 
 
-static char *client_SLDecode(RPC2_Integer sl) 
+static const char *client_SLDecode(RPC2_Integer sl) 
 {
-    if(sl == RPC2_OPENKIMONO) return("OpenKimono");
-    if(sl == RPC2_AUTHONLY) return("AuthOnly");
-    if(sl == RPC2_HEADERSONLY) return("HeadersOnly");
-    if(sl == RPC2_SECURE) return("Secure");
-    return("Unknown");
+    if(sl == RPC2_OPENKIMONO)  return "OpenKimono";
+    if(sl == RPC2_AUTHONLY)    return "AuthOnly";
+    if(sl == RPC2_HEADERSONLY) return "HeadersOnly";
+    if(sl == RPC2_SECURE)      return "Secure";
+    return "Unknown";
 }
 
 
@@ -442,7 +442,7 @@ void CLIENT_PrintClients()
 /* Coerce name to System:AnyUser if not properly authenticated. */
 static void client_SetUserName(ClientEntry *client) 
 {
-	char *name;
+	const char *name;
 	if (Authenticate && client->SecurityLevel == RPC2_OPENKIMONO)
 		name = PRS_ANYUSERGROUP;
 	else

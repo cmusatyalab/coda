@@ -175,8 +175,9 @@ long CheckResRetCodes(RPC2_Integer *rc, unsigned long *rh,
 /* implmentation of functions that parse the list of inconsistencies 
  * at end of phase 1 during resolution and create a unique entry list
  */
-ilink *AddILE(dlist &dl, char *name, long vnode, long unique, long pvnode,
-	      long punique, long type) {
+ilink *AddILE(dlist &dl, const char *name, long vnode, long unique, long pvnode,
+	      long punique, long type)
+{
     ilink *il = new ilink(name, vnode, unique, pvnode, punique, type);
     if (dl.IsMember(il)) {
 	delete il;

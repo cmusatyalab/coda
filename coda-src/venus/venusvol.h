@@ -678,8 +678,8 @@ class volent {
     VolumeId GetVolumeId() { return vid; }           /*N*/
     const char *GetName() { return name; }      /*N*/
 
-    fsobj *NewFakeDirObj(char *comp);
-    fsobj *NewFakeMountLinkObj(VenusFid *fid, char *comp);
+    fsobj *NewFakeDirObj(const char *comp);
+    fsobj *NewFakeMountLinkObj(VenusFid *fid, const char *comp);
     int IsRepairVol(void) {
 	return (realm->Id() == LocalRealm->Id() && vid == FakeRepairVolumeId);
     }

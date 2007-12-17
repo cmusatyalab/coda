@@ -211,19 +211,20 @@ void choke(const char *file, int line, const char *fmt ...) {
 }
 
 
-void VenusPrint(int argc, char **argv) {
+void VenusPrint(int argc, const char **argv) {
     VenusPrint(stdout, argc, argv);
 }
 
 
-void VenusPrint(FILE *fp, int argc, char **argv) {
+void VenusPrint(FILE *fp, int argc, const char **argv) {
     fflush(fp);
     VenusPrint(fileno(fp), argc, argv);
 }
 
 
 /* local-repair modification */
-void VenusPrint(int fd, int argc, char **argv) {
+void VenusPrint(int fd, int argc, const char **argv)
+{
     int allp = 0;
     int rusagep = 0;
     int recovp = 0;
@@ -471,7 +472,7 @@ void Terminate() {
 void DumpState() {
     if (!LogInited) return;
 
-    char *argv[1];
+    const char *argv[1];
     argv[0] = "all";
     VenusPrint(logFile, 1, argv);
     fflush(logFile);

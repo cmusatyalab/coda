@@ -229,7 +229,7 @@ void PDB_db_update_maxids(PDB_HANDLE h, int32_t uid, int32_t gid, int mode)
 	CODA_ASSERT(rc == 1);
 }
 
-static char *malloc_name(char *name)
+static char *malloc_name(const char *name)
 {
 	char *namekey;
 	u_int32_t namelen;
@@ -273,7 +273,8 @@ void PDB_db_write(PDB_HANDLE h, int32_t id, char *name, void *data, size_t size)
 }
 
 
-void PDB_db_read(PDB_HANDLE h, int32_t id, char *name, void **data,size_t *size)
+void PDB_db_read(PDB_HANDLE h, int32_t id, const char *name, void **data,
+		 size_t *size)
 {
 	u_int32_t realid, dlen, dpos;
 	int rc;

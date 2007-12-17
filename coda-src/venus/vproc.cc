@@ -358,13 +358,12 @@ void PrintVprocs(int fd) {
     fdprint(fd, "\n");
 }
 
-vproc::vproc(char *n, PROCBODY f, vproctype t, int stksize, int priority)
+vproc::vproc(const char *n, PROCBODY f, vproctype t, int stksize, int priority)
 {
     /* Initialize the data members. LWPid is filled in as a side effect of
      * LWP operations in start_thread. */
     lwpid = NULL;
-    name = new char[strlen(n) + 1];
-    strcpy(name, n);
+    name = strdup(n);
     func = f;
     vpid = counter++;
     memset((void *)&rvm_data, 0, (int) sizeof(rvm_perthread_t));
@@ -456,7 +455,7 @@ vproc::~vproc() {
     if (LWP_DestroyProcess((PROCESS)lwpid) != LWP_SUCCESS)
 	CHOKE("vproc::~vproc: LWP_DestroyProcess failed");
 
-    delete [] name;
+    free(name);
 }
 
 /* local-repair modification */

@@ -1725,20 +1725,21 @@ static void setmaxvol(void)
 
 static void peekpokeerr(void)
 {
-    static	char	*msgs[]={
+    static const char *msgs[] = {
 	/*0*/ "Path to server file not known",
 	/*1*/ "Cannot read symbols from the server file",
 	/*2*/ "Symbol not found in the server file",
 	/*3*/ "Address not in server virtual space",
 	/*4*/ "Memory protection error",
-	/*5*/ "Unaligned integer/pointer reference"};
+	/*5*/ "Unaligned integer/pointer reference"
+    };
     fprintf(stderr, "Couldn't %s at %s: %s\n", this_argp[1], this_argp[2],
 	    (int)rc >= -10040L && rc < (int)(sizeof(msgs)/sizeof(*msgs)-10040L) ?
 	    msgs[10040 + (int) rc] : RPC2_ErrorMsg((int) rc));
     exit (-1);
 }
 
-static void usageerr(char *args)
+static void usageerr(const char *args)
 {
     fprintf(stderr, "Usage: %s %s %s\n", this_argp[0], this_argp[1], args);
     exit(-1);

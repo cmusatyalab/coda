@@ -52,7 +52,6 @@ extern "C" {
 
 void ForceUnlockVol(VolumeId );
 
-class lqman;
 class lq_iterator;
 class lqent;
 
@@ -66,7 +65,7 @@ class lqman {
     int func(void);
 
   public:
-    lqman(char * ="anonymous lqman");
+    lqman(const char *name = "anonymous lqman");
     ~lqman();
     void add(lqent *);
     void remove(lqent *);

@@ -50,7 +50,8 @@ void HashSecret(unsigned char *secret, int len, RPC2_EncryptionKey key)
     memcpy(key, digest, RPC2_KEYSIZE);
 }
 
-int GetSecret(char *file, RPC2_EncryptionKey key, struct secret_state *state)
+int GetSecret(const char *file, RPC2_EncryptionKey key,
+	      struct secret_state *state)
 {
     struct stat statbuf;
     time_t now;

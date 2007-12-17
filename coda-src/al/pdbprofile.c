@@ -96,7 +96,7 @@ void PDB_readProfile(PDB_HANDLE h, int32_t id, PDB_profile *r)
 }
 
 
-void PDB_readProfile_byname(PDB_HANDLE h, char *name, PDB_profile *r)
+void PDB_readProfile_byname(PDB_HANDLE h, const char *name, PDB_profile *r)
 {
 	void  *data;
 	size_t size;

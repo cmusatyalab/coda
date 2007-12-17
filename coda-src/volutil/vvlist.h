@@ -64,6 +64,6 @@ extern int  ValidListVVHeader(FILE *, Volume *, int *);
 extern void DumpListVVHeader(int, Volume *vp, unsigned int dumplevel, int);
 extern void ListVV(int fd, int vnode, VnodeDiskObject *vnp,
 		   unsigned int dumplevel);
-extern void getlistfilename(char *, VolumeId, VolumeId, char *);
+extern void getlistfilename(char *, VolumeId, VolumeId, const char *);
 
 #endif /* _VVLIST_H_ */

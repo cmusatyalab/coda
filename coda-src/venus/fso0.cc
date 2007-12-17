@@ -291,7 +291,8 @@ void UpdateCacheStats(CacheStats *c, enum CacheEvent event, unsigned long blocks
 }
 
 
-void PrintCacheStats(char *description, CacheStats *c, int fd) {
+void PrintCacheStats(const char *description, CacheStats *c, int fd)
+{
     fdprint(fd, "%s ", description);
     for (int i = 0/*HIT*/; i < 10/*REPLACE*/; i++)
 	fdprint(fd, "[%4d : %6d]  ", c->events[i].count, c->events[i].blocks);

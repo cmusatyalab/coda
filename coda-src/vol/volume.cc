@@ -118,7 +118,7 @@ const char *Server_FQDN[N_SERVERIDS];	/* DNS host name (with optional port) */
 #define VOLUME_HASH(volumeId) (volumeId&(VOLUME_HASH_TABLE_SIZE-1))
 static Volume *VolumeHashTable[VOLUME_HASH_TABLE_SIZE];
 
-extern void dump_storage(int level, char *s);
+extern void dump_storage(int level, const char *s);
 extern void VBumpVolumeUsage(Volume *vp);
 extern int VCheckVLDB();
 extern int InSkipVolumeList(VolumeId, VolumeId *, int);
@@ -386,7 +386,7 @@ void VInitThisHost(const char *host)
 void VInitServerList(const char *host)
 {
     char line[200];
-    char *serverList = SERVERLISTPATH;
+    const char *serverList = SERVERLISTPATH;
     FILE *file;
 
     memset(HostAddress, 0, sizeof(bit32) * N_SERVERIDS);
@@ -1192,7 +1192,7 @@ void VForceOffline(Volume *vp)
    the inUse bit turned off.  A copy of the header is maintained in memory,
    however (which is why this is VOffline, not VDetach).
  */
-void VOffline(Volume *vp, char *message)
+void VOffline(Volume *vp, const char *message)
 {
     Error error;
     VolumeId vid = V_id(vp);

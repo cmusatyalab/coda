@@ -131,9 +131,8 @@ struct ilink : public dlink {
     long punique;
     long type;
 
-    ilink(char *c, long vn, long unq, long pvn, long punq, long t) {
-	name = (char *)malloc(strlen(c) + 1);
-	strcpy(name, c);
+    ilink(const char *c, long vn, long unq, long pvn, long punq, long t) {
+	name = strdup(c);
 	vnode = vn;
 	unique = unq;
 	pvnode = pvn;
@@ -157,7 +156,7 @@ extern void ParseIncBSEntry(char **, char **, long *, long *, long *, long *,
 extern void AllocIncBSEntry(RPC2_BoundedBS *, char *, ViceFid *, 
 			    ViceFid *, long);
 extern int CompareIlinkEntry(ilink *, ilink *);
-extern ilink *AddILE(dlist &, char *, long, long, long, long, long);
+extern ilink *AddILE(dlist &, const char *, long, long, long, long, long);
 extern void CleanIncList(dlist *);
 extern void MarkObjInc(ViceFid *, Vnode *);
 extern int CreateObjToMarkInc(Volume *, ViceFid *, ViceFid *, char *, int, dlist *,int*);

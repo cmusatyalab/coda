@@ -68,20 +68,18 @@ void InitVolTable(int size)
 }
 
 /* Constructor for vhashtab */
-vhashtab::vhashtab(int size, intptr_t (*hashfn)(void *), char *n)
+vhashtab::vhashtab(int size, intptr_t (*hashfn)(void *), const char *n)
 : ohashtab(size, hashfn)
 {
     CODA_ASSERT(size > 0);
-    name = new char [strlen(n) + 1];
-    strcpy(name, n);
+    name = strdup(n);
     vols = 0;
-    
     lock = 0;
 }
 
 vhashtab::~vhashtab()
 {
-    if (name) delete [] name;
+    free(name);
 }
 
 void vhashtab::Lock(int level)

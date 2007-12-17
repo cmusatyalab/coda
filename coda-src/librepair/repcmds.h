@@ -99,7 +99,8 @@ struct replica {
 /* Non-interactive repair calls */
 int BeginRepair(char *pathname, struct conflict **conf, char *msg, int msgsize);
 int ClearInc(struct conflict *conf, char *msg, int msgsize);
-int CompareDirs(struct conflict *conf, char *fixfile, struct repinfo *inf, char *msg, int msgsize);
+int CompareDirs(struct conflict *conf, const char *fixfile, struct repinfo *inf,
+		char *msg, int msgsize);
 int DoRepair(struct conflict *conf, char *ufixpath, FILE *res, char *msg, int msgsize);
 int EndRepair(struct conflict *conf, int commit, char *msg, int msgsize);
 int RemoveInc(struct conflict *conf, char *msg, int msgsize);

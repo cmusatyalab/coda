@@ -93,7 +93,7 @@ extern "C" {
 #define DEF_BUF 2048
 
 static char *eatwhite(char *), *eatnonwhite(char *);
-static int acldecode(char *, unsigned int *);
+static int acldecode(const char *, unsigned int *);
 static int growarray(char **arrayaddr, int *arraysize, int elemsize);
 
 #define ewrite(f, b, l) do { if (write(f, b, l) != l) goto err; } while(0);
@@ -538,7 +538,7 @@ static char *eatnonwhite(char *s) {
 }
 
 
-static int acldecode(char *s, unsigned int *r)
+static int acldecode(const char *s, unsigned int *r)
     /*
 	s	input string
 	r	output rights mask
@@ -547,7 +547,7 @@ static int acldecode(char *s, unsigned int *r)
 	Returns 0 on success, -1 if s is bogus in some way
     */
 {
-    register int i, max;
+    int i, max;
 
     if (!strcmp(s, "none")) s = "";
     if (!strcmp(s, "all")) s = "rlidwka";
@@ -576,8 +576,9 @@ static int acldecode(char *s, unsigned int *r)
 }
 
 
-void repair_printline(struct repair *rs, FILE *ff) {
-    char *c;
+void repair_printline(struct repair *rs, FILE *ff)
+{
+    const char *c;
     char quoted_name[3*MAXNAMELEN];
     int i;
     

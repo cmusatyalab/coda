@@ -97,20 +97,20 @@ command_t set_cmds[] = {
 
 
 command_t commands[] = {
-    { "?",		Parser_qhelp, 	0,		  ""},
-    { "delete",	 	0,		del_commands,	  ""},
-    { "create",         0,              create_commands,  ""},
+    { "?",		Parser_qhelp,	0,		  ""},
+    { "delete",		0,		del_commands,	  ""},
+    { "create",		0,		create_commands,  ""},
     { "examine",	examine,	0,		  ""},
     { "exit",		Parser_exit,	0,		  ""},
     { "help",		Parser_qhelp,	0,		  ""},
     { "list",		list_vols,	list_cmds,	  ""},
     { "quit",		Parser_exit,	0,		  ""},
-    { "rename",         0,              rename_cmds,	  ""},
+    { "rename",		0,		rename_cmds,	  ""},
 //  { "salvage",	0,		salvage_commands, ""},
     { "show",		0,		show_cmds,	  ""},
     { "set",		0,		set_cmds,	  ""},
 //  { "truncate",	notyet,		0,		  ""},
-    { "x",		examine, 	0,		  ""},
+    { "x",		examine,	0,		  ""},
     { 0, 0, 0, ""}
 };
 
@@ -216,26 +216,29 @@ long address_ok(vm_address_t addr, vm_size_t sz, vm_prot_t perm)
 #define BYTES_PER_LINE	16
 void examine(int argc, char *argv[])
 {
+    intptr_t baseaddr;
     unsigned int *base, *addr;
     char *buf;
     unsigned int len, i;
-    
+
     if ((argc != 3) ||
-	(Parser_uint(argv[1], (unsigned int *)&base) != 1) ||
+	(Parser_uint(argv[1], (unsigned int *)&baseaddr) != 1) ||
 	(Parser_uint(argv[2], &len) != 1)) {
 	fprintf(stderr, "Usage: examine <addr> <len>\n");
 	return;
     }
+    base = (unsigned int *)baseaddr;
 
-    for (addr = base; addr < base + len; addr += BYTES_PER_LINE/sizeof(int)) {
-	
+    for (addr = base; addr < base + len; addr += BYTES_PER_LINE/sizeof(int))
+    {
 	if (!address_ok((vm_address_t)addr,
 			(vm_size_t)BYTES_PER_LINE/(int)sizeof(int),
-			VM_PROT_READ)) { 
+			VM_PROT_READ))
+	{
 	    printf("ERROR reading address: %p\n", addr);
 	    break;
 	}
-    
+
 	printf("%p: ", addr);
 	for (i = 0; i < BYTES_PER_LINE/sizeof(int); i++) {
 	    printf("  %04x", *(addr + i));
@@ -243,7 +246,7 @@ void examine(int argc, char *argv[])
 
 	printf("  |");
 	for (buf = (char *)addr; buf - (char *)addr < BYTES_PER_LINE; buf++) {
-	    if ((*buf >= (char )32 && *buf <= (char)126) || *buf >= (char)161)  
+	    if ((*buf >= (char )32 && *buf <= (char)126) || *buf >= (char)161)
 		printf("%c", *buf);
 	    else
 		printf(".");
@@ -253,9 +256,10 @@ void examine(int argc, char *argv[])
 }
 
 
-void set_debug(int argc, char *argv[]) {
+void set_debug(int argc, char *argv[])
+{
     unsigned int debug_level;
-    
+
     if ((argc != 3) ||
 	(Parser_uint(argv[2], &debug_level) != 1)) {
 	fprintf(stderr, "Usage: set debug <debug_level>\n");

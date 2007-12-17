@@ -89,19 +89,17 @@ char piobuf[CFS_PIOBUFSIZE];
 typedef void (*PFV3)(int, char **, int);
 
 /* Template of one cfs command */
-struct command
-    {
-    char *opcode;       
-    char *abbreviation; /* NULL ==> no abbreviation */
+struct command {
+    const char *opcode;       
+    const char *abbreviation; /* NULL ==> no abbreviation */
     PFV3 handler;       /* Ptr to proc that can deal with this
-                           The proc is invoked with 3 arguments:
-                                argc, argv and the index in cmdarray[]
-                                of this opcode (-1 if bogus opcode for help)*/
-    char *usetxt;       /* Template specifying arguments to command */
-    char *helptxt;      /* Text explaining what the command does */
-    char *danger;       /* Text explaining dangerous consequences */
-    };
-
+			   The proc is invoked with 3 arguments:
+			   argc, argv and the index in cmdarray[]
+			   of this opcode (-1 if bogus opcode for help)*/
+    const char *usetxt;       /* Template specifying arguments to command */
+    const char *helptxt;      /* Text explaining what the command does */
+    const char *danger;       /* Text explaining dangerous consequences */
+};
 
 /* One handler routine for each opcode */
 static void BeginRepair(int, char**, int);
@@ -445,8 +443,8 @@ enum closure_ops {CLO_EXAMINE, CLO_REPLAY};
 
 /* Type definitions for internal routines */
 static int findslot(char *s);
-static char *xlate_vvtype(ViceVolumeType vvt);
-static char *print_conn_state(VolumeStateType);
+static const char *xlate_vvtype(ViceVolumeType vvt);
+static const char *print_conn_state(VolumeStateType);
 static int parseacl(char *s, struct acl *a);
 static void translate(char *s, char oldc, char newc);
 static void fillrights(int x, char *s);
@@ -593,13 +591,14 @@ static void CheckPointML(int argc, char* argv[], int opslot)
 {
     int rc;
     struct ViceIoctl vio;
-    char *ckpdir, *codadir;
+    const char *codadir;
+    char *ckpdir;
 
     switch(argc)
     {
-    case 2: codadir = "."; ckpdir = 0; break;
+    case 2: codadir = "."; ckpdir = NULL; break;
 
-    case 3: codadir = argv[2]; ckpdir = 0; break;
+    case 3: codadir = argv[2]; ckpdir = NULL; break;
 
     case 4: codadir = argv[2]; ckpdir = argv[3]; break;
 
@@ -2785,7 +2784,7 @@ static int findslot(char *s)
     return(-1);
     }
 
-static char *xlate_vvtype(ViceVolumeType vvt)
+static const char *xlate_vvtype(ViceVolumeType vvt)
 {
     switch(vvt) {
     case ReadOnly:	return("ReadOnly");
@@ -2796,7 +2795,7 @@ static char *xlate_vvtype(ViceVolumeType vvt)
     }
 }
 
-static char *print_conn_state(VolumeStateType conn_state)
+static const char *print_conn_state(VolumeStateType conn_state)
 {
     switch(conn_state) {
     case Unreachable:	return("Unreachable");

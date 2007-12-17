@@ -396,7 +396,7 @@ extern void VFreeBitMapEntry(Error *ec, struct vnodeIndex *index, int bitNumber)
 extern int VolumeNumber(char *name);
 extern char * VolumeExternalName(VolumeId volumeId);
 extern Volume * VAttachVolumeById(Error *ec, char *partition, VolumeId volid, int mode);
-extern void VOffline(Volume *vp, char *message);
+extern void VOffline(Volume *vp, const char *message);
 extern void VForceOffline(Volume *vp);
 extern void VPurgeVolume(Volume *vp);
 extern void VShutdown();

@@ -66,10 +66,9 @@ void LQman_init(void *c)
     lqm->func();
 }
 
-lqman::lqman(char *n)
+lqman::lqman(const char *n)
 {
-    name = new char[strlen(n) + 1];
-    strcpy(name, n);
+    name = strdup(n);
     Lock_Init(&lock);
     
     /* Create the LWP process */
@@ -82,7 +81,7 @@ lqman::lqman(char *n)
 lqman::~lqman()
 {
     LWP_DestroyProcess(pid);
-    delete [] name;
+    free(name);
 }
 
 int lqman::func(void)

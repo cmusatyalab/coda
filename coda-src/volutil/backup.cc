@@ -1054,7 +1054,7 @@ static void VUInitServerList() {
     /* Find the server id */
     char hostname[100];
     char line[200];
-    char *serverList = SERVERLISTPATH;
+    const char *serverList = SERVERLISTPATH;
     FILE *file;
 
     LogMsg(9, Debug, stdout, "Entering VUInitServerList");

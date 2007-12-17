@@ -55,7 +55,8 @@ extern "C" {
  * the backup clone should reflect the state of the parent, not of itself.
  * Groupid is one such field... - dcs 2/19/91
  */
-void getlistfilename(char *filename, VolumeId groupId, VolumeId repId, char *suffix)
+void getlistfilename(char *filename, VolumeId groupId, VolumeId repId,
+		     const char *suffix)
 {
     if (groupId > 0)
 	sprintf(filename, "%s/%x.%x.", vice_sharedfile("backup"),

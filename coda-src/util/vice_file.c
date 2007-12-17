@@ -43,8 +43,8 @@ vice_dir_init (const char *dirname, int serverno)
 	}
 }
 
-static char *
-vice_filepath (char *dir, char *name)
+static const char *
+vice_filepath (const char *dir, const char *name)
 {
 	static char volpath[2][MAXPATHLEN];
 	static int vpidx = 0;
@@ -61,14 +61,14 @@ vice_filepath (char *dir, char *name)
 	return volpath[vpidx];
 }
 
-char *
-vice_file (char *name)
+const char *
+vice_file(const char *name)
 {
 	return vice_filepath(serverdir, name);
 }
 
-char *
-vice_sharedfile (char *name)
+const char *
+vice_sharedfile(const char *name)
 {
 	return vice_filepath(vicedir, name);
 }

@@ -114,7 +114,7 @@ int Rewind(char *args) {
     return 0;
 }
     
-void PrintVersionVector(vv_t *v, char *str) {
+void PrintVersionVector(vv_t *v, const char *str) {
     printf("%s{[", str);
     for (int i = 0; i < VSG_MEMBERS; i++)
 	printf(" %d", (&(v->Versions.Site0))[i]);
@@ -434,7 +434,7 @@ int main(int argc, char **argv) {
 
     if (argc > 1)	/* Use any argument as the default dumpfile. */
 	strncpy(DefaultDumpFile, argv[1], sizeof(DefaultDumpFile));
-    
+
     strcpy(DefaultSize, "Large");
     Parser_init("dump> ", list);
     Parser_commands();

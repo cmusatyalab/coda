@@ -1,18 +1,18 @@
 /* BLURB lgpl
 
-                           Coda File System
-                              Release 6
+			    Coda File System
+				Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
-                  Additional copyrights listed below
+	    Copyright (c) 1987-2003 Carnegie Mellon University
+		    Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
 the  terms of the  GNU  Library General Public Licence  Version 2,  as
 shown in the file LICENSE. The technical and financial contributors to
 Coda are listed in the file CREDITS.
 
-                        Additional copyrights
-                           none currently
+			Additional copyrights
+			    none currently
 
 #*/
 
@@ -23,23 +23,23 @@ Coda are listed in the file CREDITS.
 #define MAXARGS 100
 
 typedef struct cmd {
-    char 	* name;
-    void 	(* func)(int, char **);
-    struct cmd 	* sub_cmd;
-    char *help;
+    const char *name;
+    void	(*func)(int, char **);
+    struct cmd *sub_cmd;
+    const char *help;
 } command_t;
 
 typedef struct argcmd {
-	char    *ac_name;
-	int      (*ac_func)(int, char **);
-	char     *ac_help;
+    const char *ac_name;
+    int		(*ac_func)(int, char **);
+    const char *ac_help;
 } argcmd_t;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-void Parser_init(char *, command_t *);	/* Set prompt and load command list */
-void Parser_commands();			/* Start the command parser */
+void Parser_init(const char *, command_t *); /* Set prompt and load cmd list */
+void Parser_commands(void);		/* Start the command parser */
 void Parser_qhelp(int, char **);	/* Quick help routine */
 void Parser_help(int, char **);		/* Detailed help routine */
 void Parser_exit(int, char **);		/* Shuts down command parser */

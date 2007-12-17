@@ -2280,8 +2280,7 @@ void NewCOP1Update(Volume *volptr, Vnode *vptr,
 
     /* Look up the index of this host. */
     int ix = vre->index(ThisHostAddr);
-    if (ix < 0) 
-	    Die("COP1Update: this host not found!");
+    if (ix < 0) Die("COP1Update: this host not found!");
 
     SLog(2, "COP1Update: Fid = (%x),(%x.%x.%x), StoreId = (%x.%x)",
 	 V_groupId(volptr), V_id(volptr), vptr->vnodeNumber, 
@@ -2320,13 +2319,11 @@ static void COP2Update(Volume *volptr, Vnode *vptr,
 {
     /* Look up the VRDB entry. */
     vrent *vre = VRDB.find(V_groupId(volptr));
-    if (!vre) 
-	    Die("COP2Update: VSG not found!");
+    if (!vre) Die("COP2Update: VSG not found!");
 
     /* Look up the index of this host. */
     int ix = vre->index(ThisHostAddr);
-    if (ix < 0) 
-	    Die("COP2Update: this host not found!");
+    if (ix < 0) Die("COP2Update: this host not found!");
 
     SLog(2,  "COP2Update: Fid = (%x),(%x.%x.%x)",
 	 V_groupId(volptr), V_id(volptr), vptr->vnodeNumber, 

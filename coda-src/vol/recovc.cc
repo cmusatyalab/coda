@@ -57,7 +57,7 @@ extern "C" {
 #include "coda_globals.h"
 #include "volhash.h"
 
-extern void dump_storage(int, char*);
+extern void dump_storage(int, const char*);
 
 unsigned long VMCounter = 0;
 unsigned long startuptime = 0;
@@ -329,7 +329,7 @@ void GrowVnodes(VolumeId volid, int vclass, unsigned short newBMsize)
 {
     rec_smolist *newvlist;
     int myind;
-    char *name;
+    const char *name;
     unsigned int grow;
     unsigned int newsize, size;
 

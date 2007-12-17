@@ -94,9 +94,9 @@ extern int AL_Externalize(AL_AccessList *Alist, AL_ExternalAccessList *Elist);
 extern int AL_Internalize(AL_ExternalAccessList Elist, AL_AccessList **Alist);
 extern int AL_CheckRights(AL_AccessList *Alist, PRS_InternalCPS *CPS,
 			  int *WhichRights);
-extern int AL_Initialize(char *Version);
-extern int AL_NameToId(char *Name,  int *Id);
-extern int AL_IdToName(int Id,  char *Name);
+extern int AL_Initialize(const char *Version);
+extern int AL_NameToId(const char *Name, int *Id);
+extern int AL_IdToName(int Id, char *Name);
 extern int AL_GetInternalCPS(int Id, PRS_InternalCPS **ICPS);
 extern int AL_GetExternalCPS(int Id, PRS_ExternalCPS *ECPS);
 extern int AL_IsAMember(int Id, PRS_InternalCPS *ICPS);

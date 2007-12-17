@@ -61,7 +61,7 @@ static intptr_t nametabHashfn(void *p)
     return(hash);
 }
 
-vrtab::vrtab(char *n) : ohashtab(VRTABHASHSIZE, vrtabHashfn),
+vrtab::vrtab(const char *n) : ohashtab(VRTABHASHSIZE, vrtabHashfn),
     namehtb(VRTABHASHSIZE, nametabHashfn)
 {
     name = strdup(n);

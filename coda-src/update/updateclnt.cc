@@ -108,8 +108,8 @@ extern char *ViceErrorMsg(int errorCode);   /* should be in libutil */
 #define LISTLEN 4096
 
 static void CheckLibStructure();
-static int CheckDir(char *prefix, int mode);
-static int CheckFile(char *fileName, int mode);
+static int CheckDir(const char *prefix, int mode);
+static int CheckFile(const char *fileName, int mode);
 static void ProcessArgs(int argc, char ** argv);
 static void ReadConfigFile();
 static void ReConnect();
@@ -412,7 +412,7 @@ static void CheckLibStructure()
 }
 
 
-static int CheckDir(char *prefix, int mode)
+static int CheckDir(const char *prefix, int mode)
 {
     static char list[LISTLEN],
 	name[256],
@@ -486,7 +486,7 @@ static int CheckDir(char *prefix, int mode)
 
 
 /* fileName is the full pathname */
-static int CheckFile(char *fileName, int mode)
+static int CheckFile(const char *fileName, int mode)
 {
     static char oldname[1024];
     static char tmpname[1024];
