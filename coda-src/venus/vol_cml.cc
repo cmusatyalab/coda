@@ -3843,7 +3843,7 @@ int cmlent::checkpoint(FILE *fp) {
 	    }
 	    sprintf(hdr.dbuf.mode, "%6o ", 0644);
 	    sprintf(hdr.dbuf.uid, "%6o ", uid);
-	    sprintf(hdr.dbuf.gid, "%6o ", -1);
+	    sprintf(hdr.dbuf.gid, "%6o ", 65534); /* nogroup/nfsnobody */
 	    sprintf(hdr.dbuf.size, "%11o ", u.u_store.Length);
 	    sprintf(hdr.dbuf.mtime, "%11o ", time);
 	    hdr.dbuf.linkflag = '\0';
