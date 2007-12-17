@@ -50,7 +50,11 @@ libauser_la_LIBADD = $(LIBKRB)
 libauth2_la_LIBADD = $(LIBKRB)
 
 LIBBASE = $(top_builddir)/lib-src/base/libbase.la $(LIBRPC2) $(LIBLWP)
-LIBAUSER = libauser.la $(top_builddir)/coda-src/kerndep/libkerndep.la $(LIBBASE)
+LIBAUSER = libauser.la \
+	   $(top_builddir)/coda-src/kerndep/libkerndep.la \
+	   $(top_builddir)/coda-src/util/libutil.la \
+	   $(LIBBASE)
+
 LIBAUTH2 = libauth2.la \
 	   $(top_builddir)/coda-src/al/libal.la \
 	   $(top_builddir)/coda-src/util/libutil.la \
