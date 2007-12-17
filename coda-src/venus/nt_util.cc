@@ -158,7 +158,7 @@ nt_do_mounts (void *junk)
     return 0;
 }
 
-void nt_umount (char *drivename)
+void nt_umount (const char *drivename)
 {
     drive = drivename[0];
     mount = 0;
@@ -166,7 +166,7 @@ void nt_umount (char *drivename)
 }
 
 void
-nt_mount (char *drivename)
+nt_mount (const char *drivename)
 {
     HANDLE h;
 

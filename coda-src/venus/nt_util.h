@@ -47,8 +47,8 @@ typedef struct {
 
 // prototypes
 
-void nt_mount (char *drivename);
-void nt_umount (char *drivename);
+void nt_mount (const char *drivename);
+void nt_umount (const char *drivename);
 
 int nt_initialize_ipc (int sock);
 int nt_msg_write (const char *buf, int size);
