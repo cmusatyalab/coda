@@ -1,4 +1,8 @@
+%define opt_with() %{expand:%%global with_%{1} %%{?_with_%{1}:1}%%{?!_with_%{1}:0}}
 %define initdir %(if test -d /etc/rc.d/init.d ; then echo /etc/rc.d/init.d ; else echo /etc/init.d ; fi)
+
+%opt_with vcodacon
+
 Summary: Coda distributed file system
 Name: @PACKAGE@
 Version: @VERSION@
@@ -7,7 +11,10 @@ Source: ftp://ftp.coda.cs.cmu.edu/pub/coda/src/%{name}-%{version}.tar.gz
 License: GPL
 BuildRoot: %{_builddir}/%{name}-%{version}/Root
 BuildRequires: lwp-devel >= 2.3, rpc2-devel, rvm-devel
-BuildRequires: ncurses-devel, libtermcap-devel %{?_with_vcodacon:, fltk-fluid, fltk-devel}
+BuildRequires: ncurses-devel, libtermcap-devel
+%if %{with_vcodacon}
+BuildRequires: fltk-fluid, fltk-devel
+%endif
 Group: Networking/Daemons
 %description
 Source package for the Coda file system.  Three packages are provided by
@@ -42,6 +49,16 @@ Group: Networking/Daemons
 This package contains the backup software for the Coda file system, as
 well as the volume utilities.
 
+%if %{with_vcodacon}
+%package vcodacon
+Summary: Coda graphical console
+Group: Networking/Daemons
+Requires: coda-client
+%description vcodacon
+This package contains vcodacon, a graphical console for the Coda file
+system client.
+%endif
+
 %changelog
 * Sun Jan 19 2003 Rafael Jesus Alcantara Perez <rafa@dedalo.ws>
 - Initial attempt for making the RPM packages from CVS with KERBEROS support.
@@ -64,11 +81,16 @@ well as the volume utilities.
 %setup -n %{name}-%{version}
 
 %build
-./configure --prefix=/usr '--mandir=${prefix}/share/man' %{?_with_vcodacon}
+options=""
+%if %{with_vcodacon}
+options="$options --with-vcodacon"
+%endif
+
+./configure --prefix=/usr '--mandir=${prefix}/share/man' $options
 #  --with-krb4 \
-#  --with-krb5 \
 #  --with-krb4-includes=/usr/kerberos/include/kerberosIV \
 #  --with-krb4-libraries=/usr/kerberos/lib \
+#  --with-krb5 \
 #  --with-krb5-includes=/usr/kerberos/include \
 #  --with-krb5-libraries=/usr/kerberos/lib
 make
@@ -162,7 +184,6 @@ exit 0
 /usr/bin/spy
 /usr/bin/xaskuser
 /usr/bin/xfrepair
-%{?_with_vcodacon: /usr/bin/vcodacon}
 /usr/share/man/man1/au.1.gz
 /usr/share/man/man1/cfs.1.gz
 /usr/share/man/man1/clog.1.gz
@@ -257,3 +278,9 @@ exit 0
 /usr/share/man/man8/backup.8.gz
 /usr/share/man/man8/merge.8.gz
 /usr/share/man/man8/readdump.8.gz
+
+%if %{with_vcodacon}
+%files vcodacon
+%defattr(-,root,root)
+/usr/bin/vcodacon
+%endif
