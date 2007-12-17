@@ -1,5 +1,3 @@
-/* 	$Id: util.cc,v 1.14 2006-05-24 20:04:40 jaharkes Exp $	*/
-
 /* BLURB gpl
  
                             Coda File System

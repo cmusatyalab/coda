@@ -1,5 +1,3 @@
-/* 	$Id: util.h,v 1.6 2006-05-24 20:04:40 jaharkes Exp $	*/
-
 /* BLURB gpl
  
                             Coda File System

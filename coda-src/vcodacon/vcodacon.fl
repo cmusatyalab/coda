@@ -14,8 +14,7 @@ decl {monitor Monitor;} {}
 
 Function {} {open
 } {
-  code {/*	$Id: vcodacon.fl,v 1.16 2007-07-28 00:56:38 phil Exp $	*/
-
+  code {
 // BLURB gpl
 //
 //                           Coda File System

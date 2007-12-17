@@ -1,5 +1,3 @@
-/*	$Id: Inet.h,v 1.3 2006-05-24 20:04:40 jaharkes Exp $	*/
-
 /*
     Copyright (C) 2000 Philip A. Nelson
 
