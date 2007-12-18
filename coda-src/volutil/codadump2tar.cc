@@ -729,9 +729,9 @@ TarRecd::TarRecd()
 
 void TarRecd::Reset()
 {
-  struct posix_header *tblk = &tarblock.header; 
+  struct posix_header *tblk = &tarblock.header;
 
-  /* Initialize header block to clean state 
+  /* Initialize header block to clean state
      Fields are Ascii, with numbers expressed in octal.
      No trailing null except for name fields explicitly stated below.
      Zero-fill initialization guarantees trailing NULL if needed.
@@ -740,7 +740,7 @@ void TarRecd::Reset()
   memset(tarblock.buffer, 0, BLOCKSIZE); /* zerofill */
 
   /* set fields that never change for us */
-  memset(tblk->gid, '0', 8);
+  memset(tblk->gid, '0', 7);
   memcpy(tblk->magic, TMAGIC, TMAGLEN-1); /* trailing NULL */
   memcpy(tblk->version, TVERSION, TVERSLEN);
 
@@ -763,34 +763,28 @@ void TarRecd::GetNameParts(DumpObject *obj, int idx)
 void TarRecd::Format()
 {
   struct posix_header *tblk = &tarblock.header; 
-  char temp[100];  /* temporary to avoid NULLs in TarRecd from sprintf() */
   unsigned int sum; /* for checksum computation */
   int i;
 
-  memcpy(&tblk->typeflag, &tr_type, 1);
-  sprintf(temp,     "%08o",  tr_mode);
-  memcpy(tblk->mode, temp, 8);
-  sprintf(temp,      "%08o",  tr_uid);
-  memcpy(tblk->uid, temp, 8);
-  sprintf(temp,     "%012o", tr_size);  
-  memcpy(tblk->size, temp, 12);
-  sprintf(temp,    "%012o", tr_mtime);
-  memcpy(tblk->mtime, temp, 12);
+  tblk->typeflag = tr_type;
+  snprintf(tblk->mode,   8, "%07o", tr_mode);
+  snprintf(tblk->uid,    8, "%07o", tr_uid);
+  snprintf(tblk->size,  12, "%011o", tr_size);
+  snprintf(tblk->mtime, 12, "%011o", tr_mtime);
 
   /* copy name info; leave NULL in last byte from Reset() */
-  memcpy(tblk->name, tr_name, 99); 
-  memcpy(tblk->linkname, tr_linkname, 99); 
+  memcpy(tblk->name, tr_name, 99);
+  memcpy(tblk->linkname, tr_linkname, 99);
   memcpy(tblk->prefix, tr_prefix, 154);
 
   /* Compute checksum */
   memset(tblk->chksum, ' ', 8);       /* 8 blanks */
 
-  sum = 0; 
-  for (i = 0; i < BLOCKSIZE; i++) {
+  sum = 0;
+  for (i = 0; i < BLOCKSIZE; i++)
     sum += (unsigned int) tarblock.buffer[i];
-  }
-  sprintf(temp, "%08o", sum);
-  memcpy(tblk->chksum, temp, 8);
+
+  snprintf(tblk->chksum, 7, "%06o", sum);
 }
 
 void TarRecd::Output()

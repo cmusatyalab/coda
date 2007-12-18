@@ -3814,7 +3814,8 @@ static int WriteLinks(struct DirEntry *de, void * hook)
 }
 
 
-int cmlent::checkpoint(FILE *fp) {
+int cmlent::checkpoint(FILE *fp)
+{
     int code = 0;
 
     hblock hdr; memset((void *)&hdr, 0, (int) sizeof(hblock));
@@ -3841,12 +3842,12 @@ int cmlent::checkpoint(FILE *fp) {
 		}
 		strcpy(CacheFileName, f->data.file->Name());
 	    }
-	    snprintf(hdr.dbuf.mode, 8, "%6o ", 0644);
-	    snprintf(hdr.dbuf.uid, 8, "%6o ", uid);
-	    snprintf(hdr.dbuf.gid, 8, "%6o ", 65534); /* nogroup/nfsnobody */
-	    snprintf(hdr.dbuf.size, 12, "%11o ", u.u_store.Length);
-	    snprintf(hdr.dbuf.mtime, 12, "%11o ", time);
-	    hdr.dbuf.linkflag = '\0';
+	    snprintf(hdr.dbuf.mode, 8, "%07o", 0644);
+	    snprintf(hdr.dbuf.uid, 8, "%07o", uid);
+	    snprintf(hdr.dbuf.gid, 8, "%07o", 65534); /* nogroup/nfsnobody */
+	    snprintf(hdr.dbuf.size, 12, "%011o", u.u_store.Length);
+	    snprintf(hdr.dbuf.mtime, 12, "%011o", time);
+	    hdr.dbuf.linkflag = '0';
 	    if ((code = WriteHeader(fp, hdr)) != 0) break;
 	    if (u.u_store.Length != 0)
 		if ((code = WriteData(fp, CacheFileName)) != 0) break;
@@ -3875,12 +3876,12 @@ int cmlent::checkpoint(FILE *fp) {
 	    {
 	    GetPath(hdr.dbuf.name, &u.u_mkdir.CFid);
 	    strcat(hdr.dbuf.name, "/");
-	    snprintf(hdr.dbuf.mode, 8, "%6o ", 0755);
-	    snprintf(hdr.dbuf.uid, 8, "%6o ", uid);
-	    snprintf(hdr.dbuf.gid, 8, "%6o ", 65534);
-	    snprintf(hdr.dbuf.size, 12, "%11o ", 0);
-	    snprintf(hdr.dbuf.mtime, 12, "%11o ", time);
-	    hdr.dbuf.linkflag = '\0';
+	    snprintf(hdr.dbuf.mode, 8, "%07o", 0755);
+	    snprintf(hdr.dbuf.uid, 8, "%07o", uid);
+	    snprintf(hdr.dbuf.gid, 8, "%07o", 65534);
+	    snprintf(hdr.dbuf.size, 12, "%011o", 0);
+	    snprintf(hdr.dbuf.mtime, 12, "%011o", time);
+	    hdr.dbuf.linkflag = '5';
 	    if ((code = WriteHeader(fp, hdr)) != 0) break;
 	    }
 	    break;
@@ -3888,18 +3889,18 @@ int cmlent::checkpoint(FILE *fp) {
 	case CML_SymLink_OP:
 	    {
 	    GetPath(hdr.dbuf.name, &u.u_symlink.CFid);
-	    snprintf(hdr.dbuf.mode, 8, "%6o ", 0755);
-	    snprintf(hdr.dbuf.uid, 8, "%6o ", uid);
-	    snprintf(hdr.dbuf.gid, 8, "%6o ", 65534);
-	    snprintf(hdr.dbuf.size, 12, "%11o ", 0);
-	    snprintf(hdr.dbuf.mtime, 12, "%11o ", time);
+	    snprintf(hdr.dbuf.mode, 8, "%07o", 0777);
+	    snprintf(hdr.dbuf.uid, 8, "%07o", uid);
+	    snprintf(hdr.dbuf.gid, 8, "%07o", 65534);
+	    snprintf(hdr.dbuf.size, 12, "%011o", 0);
+	    snprintf(hdr.dbuf.mtime, 12, "%011o", time);
 	    hdr.dbuf.linkflag = '2';
 	    strcpy(hdr.dbuf.linkname, (char *)Name);
 	    if ((code = WriteHeader(fp, hdr)) != 0) break;
 	    }
 	    break;
 
-        case CML_Repair_OP:
+	case CML_Repair_OP:
 	    eprint("Not checkpointing file (%s) that was repaired\n",
 		   FID_(&u.u_repair.Fid));
 	    break;
@@ -3924,16 +3925,20 @@ static void GetPath(char *path, VenusFid *fid, char *lastcomp) {
 }
 
 
-static int WriteHeader(FILE *fp, hblock& hdr) {
+static int WriteHeader(FILE *fp, hblock& hdr)
+{
     char *cp;
-    for (cp = hdr.dbuf.chksum; cp < &hdr.dbuf.chksum[sizeof(hdr.dbuf.chksum)]; cp++)
-	*cp = ' ';
     int i = 0;
+
+    memset(hdr.dbuf.chksum, ' ', sizeof(hdr.dbuf.chksum));
+
     for (cp = hdr.dummy; cp < &hdr.dummy[TBLOCK]; cp++)
 	i += *cp;
-    snprintf(hdr.dbuf.chksum, 8, "%6o", i);
 
-    if (fwrite((char *)&hdr, (int) sizeof(hblock), 1, fp) != 1) {
+    /* checksum is stored as 6 digit octal number followed by nul and space */
+    snprintf(hdr.dbuf.chksum, 7, "%06o", i);
+
+    if (fwrite((char *)&hdr, sizeof(hblock), 1, fp) != 1) {
 	LOG(0, ("WriteHeader: fwrite failed (%d)", errno));
 	return(errno ? errno : ENOSPC);
     }
