@@ -77,7 +77,7 @@ CODA_REQUIRE_LIB(rpc2)
 
 AC_SUBST(LIBRVM)
 AC_SUBST(LIBRPC2)
-LIBRVM="-lrdslwp -lseg -lrvmlwp"
+LIBRVM="-lrdslwp -lseglwp -lrvmlwp"
 LIBRPC2="-lrpc2 -lse"
 
 CODA_CHECK_LIBTERMCAP
