@@ -791,7 +791,7 @@ static int lwp_DispatchProcess(int dummy)
        the guard word at the front of the stack being damaged.
        WARNING!  This code assumes that stacks grow downward. */
     if (lwp_cpptr && lwp_cpptr->stackcheck &&
-        (lwp_cpptr->stackcheck != *(int *)lwp_cpptr->stack.ss_sp ||
+	(lwp_cpptr->stackcheck != *(int *)lwp_cpptr->stack.ss_sp ||
 	 (char *)&dummy < (char *)lwp_cpptr->stack.ss_sp))
     {
 	switch (lwp_overflowAction) {
@@ -876,7 +876,9 @@ static void Initialize_PCB(PROCESS temp, int priority, char *stack,
     temp->parm = arg;
 
     if (stack) {
-	*(int *)stack = temp->stackcheck = 0xBAD57ACC;
+	/* seems to be broken on x86_64 */
+	/* *(int *)stack = temp->stackcheck = 0xBAD57ACC; */
+	temp->stackcheck = 0;
 
 	getcontext(&temp->ctx);
 	temp->stack.ss_sp = temp->ctx.uc_stack.ss_sp = stack;
