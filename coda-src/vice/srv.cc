@@ -1401,7 +1401,7 @@ static int ReadConfigFile(void)
 	coda_assert_action = CODA_ASSERT_SLEEP;
     CODACONF_STR(vicetab, "vicetab", NULL);
     if (!vicetab)
-	vicetab = vice_sharedfile("db/vicetab");
+	vicetab = strdup(vice_sharedfile("db/vicetab"));
 
     return 0;
 }
