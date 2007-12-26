@@ -203,7 +203,7 @@ ConflList->redraw();}
   }
   Fl_Window MainWin {
     label VCodaCon open
-    xywh {454 879 193 80} type Double color 7 resizable visible
+    xywh {1019 750 193 80} type Double color 7 resizable visible
   } {
     Fl_Menu_Bar {} {open
       xywh {0 0 50 20} color 7
@@ -243,6 +243,13 @@ FindRealm->show();}
           callback {Configure->show();}
           xywh {10 10 100 20}
         }
+        MenuItem start_venus {
+          label {Start Venus}
+          callback {int rv = system ("cygrunsrv --start venus");
+if (rv < 0)
+   fl_alert ("System error, venus not started.");} selected
+          xywh {0 0 30 20}
+        }
         MenuItem {} {
           label Exit
           callback {exit(0);}
@@ -264,7 +271,7 @@ FindRealm->show();}
     }
     Fl_Progress {XferProg[2]} {
       label {Text Output}
-      callback {XferProg[3]->deactivate();} selected
+      callback {XferProg[3]->deactivate();}
       xywh {0 60 190 20} selection_color 2 align 80 deactivate
       code0 {o->clear_visible_focus();}
     }
@@ -325,5 +332,8 @@ Conflicts->show();}
 MainInit (&argc, &argv);
 
 // Open mariner port and initialize the monitor
-Monitor.Start();} {}
+Monitor.Start();
+\#ifndef __CYGWIN__
+start_venus->hide();
+\#endif} {}
 } 
