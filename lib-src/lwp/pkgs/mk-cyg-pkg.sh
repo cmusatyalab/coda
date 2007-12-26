@@ -1,10 +1,15 @@
 # Make a cygwin package.
 #
 
+if [ x$FULLMAKE = x ] ; then
+    FULLMAKE=yes
+fi
+
 CYGWINREV=1
 PKG=lwp
 FLIST="usr/include/lwp/lock.h usr/include/lwp/lwp.h usr/include/lwp/timer.h \
-       usr/lib/liblwp.a usr/lib/liblwp.la usr/lib/pkgconfig/lwp.pc"
+       usr/lib/liblwp.a usr/lib/liblwp.la usr/lib/liblwp.dll.a \
+       usr/lib/pkgconfig/lwp.pc usr/bin/cyglwp-2.dll"
 
 # Sanity checks ...
 
@@ -16,7 +21,8 @@ fi
 WD=`pwd`
 
 if [ `basename $WD` != $PKG ] ; then
-   if [ basename `dirname $WD` != $PKG ] ; then
+   DIR=`dirname $WD`
+   if [ `basename $DIR` != $PKG ] ; then
        echo This script must be started in $PKG or $PKG/pkgs
        exit 1
    fi
@@ -29,55 +35,57 @@ if [ `basename $WD` != $PKG ] ; then
 fi
 
 # Get the revision number ...
-function AM_INIT_AUTOMAKE() { \
+function AC_INIT() { \
   REV=$2; \
 }
-eval `grep INIT_AUTOMAKE configure.in | tr "(,)" "   "`
+eval `grep AC_INIT\( configure.in | tr "(,)" "   "`
 if [ x$REV = x ] ; then
     echo Could not get revision number
     exit 1
 fi
 
-echo Building $PKG-$REV cygwin binary and source packages
-
+if [ $FULLMAKE = yes ] ; then
+    echo Building $PKG-$REV cygwin binary and source packages
+    
 # Bootstrap it !
-
-echo Running bootstrap.sh
-if ! ./bootstrap.sh ; then
-  echo "Can't bootstrap.  Stoppped."
-  exit 1
-fi
-
-# Build it ..
-
-if [ ! -d zobj-cygpkg ] ; then 
-    if ! mkdir zobj-cygpkg ; then
-	echo Could not make build directory.
+    
+    echo Running bootstrap.sh
+    if ! ./bootstrap.sh ; then
+	echo "Can't bootstrap.  Stoppped."
 	exit 1
     fi
+    
+# Build it ..
+    
+    if [ ! -d zobj-cygpkg ] ; then 
+	if ! mkdir zobj-cygpkg ; then
+	    echo Could not make build directory.
+	    exit 1
+	fi
+    fi
+    
+    if ! cd zobj-cygpkg ; then
+	echo Could not cd to build directory.
+	exit 1
+    fi
+    
+    if ! ../configure --prefix=/usr ; then
+	echo Could not configure for build.
+	exit 1
+    fi
+    
+    if ! make ; then
+	echo Could not make.
+	exit 1;
+    fi
+    
+    if ! make install ; then
+	echo Could not install.
+	exit 1;
+    fi
+    
+    cd ..
 fi
-
-if ! cd zobj-cygpkg ; then
-    echo Could not cd to build directory.
-    exit 1
-fi
-
-if ! ../configure --prefix=/usr ; then
-    echo Could not configure for build.
-    exit 1
-fi
-
-if ! make ; then
-    echo Could not make.
-    exit 1;
-fi
-
-if ! make install ; then
-    echo Could not install.
-    exit 1;
-fi
-
-cd ..
 
 # strip it!
 
