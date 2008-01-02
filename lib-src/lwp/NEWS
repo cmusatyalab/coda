@@ -5,6 +5,7 @@ New in 2.4:
 * Increase minimal LWP stack size to 32KB. (Christer Bernerus)
 * Add pkgconfig file.
 * Do not require an executable stack.
+* Cancel pending IOMGR requests when a thread dies.
 
 New in 2.3:
 
