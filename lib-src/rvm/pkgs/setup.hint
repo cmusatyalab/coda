@@ -8,5 +8,6 @@ if a program crashes.  It also allows a program to load a previously
 built in-memory data structure from disk without having to build it
 again."
 curr: 1.14-1
+test: 1.15-1
 category: Libs
 requires: lwp
