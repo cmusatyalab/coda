@@ -5,6 +5,7 @@ a 'side effect' feature.  Most visible one is the sftp side effect
 that is used by Coda to transfer files as a side effect of a
 rpc."
 curr: 2.6.1-1
+test: 2.7-1
 category: Libs
 requires: lwp rvm
 
