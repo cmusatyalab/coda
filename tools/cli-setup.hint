@@ -1,5 +1,5 @@
 # Coda File System client 
-sdesc: "Coda File System Client"
+sdesc: "Coda File System Client, http://coda.cs.cmu.edu"
 ldesc: "Coda File System client suite.  It includes venus,
 the user space file system manager which communicates with
 'coda-fsd', the file system driver.  Many file system requests
@@ -9,8 +9,9 @@ maintained by venus.  This package also includes a collection
 of other user-land programs needed to effectively use Coda.
 Installation will provide a default setup with the default 
 realm being coda.cs.cmu.edu.  These defaults may be changed
-after installation."
+after installation.  See http://coda.cs.cmu.edu"
 curr: 6.9.2-1
+test: 6.9.3-1
 category: Net
 requires: cygwin rvm lwp rpc2 bash perl fltk cygrunsrv tar coda-fsd
 external-source: coda-server
