@@ -2,6 +2,8 @@ New in 1.15:
 
 * Build and packaging updates.
 * Use pkg-config.
+* Build a separate version of libseg linked with librvmlwp.
+* Default now only builds the lwp threaded version of all libraries.
 
 New in 1.14:
 
