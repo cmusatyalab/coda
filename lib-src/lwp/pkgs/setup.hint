@@ -2,4 +2,5 @@
 sdesc: "Coda light weight process library"
 ldesc: "Coda light weight process library"
 curr: 2.3-1
+test: 2.4-1
 category: Libs
