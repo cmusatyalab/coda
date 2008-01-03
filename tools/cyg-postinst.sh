@@ -5,8 +5,10 @@ PATH=/bin:/usr/bin:/usr/sbin
 CODACONFPATH=/etc/coda
 export CODACONFPATH
 
-# default set up ...
-venus-setup coda.cs.cmu.edu 250000 n
+# default set up ... assume an existing one means a previous setup
+if ! test -d /etc/coda
+   venus-setup coda.cs.cmu.edu 250000 n
+fi
 
 if ! test -d /usr/coda ; then
   mkdir /usr/coda
