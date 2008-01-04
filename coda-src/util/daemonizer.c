@@ -26,6 +26,7 @@ listed in the file CREDITS.
 #include <sys/select.h>
 #endif
 #include <sys/stat.h>
+#include <sys/param.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
