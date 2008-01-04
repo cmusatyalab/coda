@@ -7,9 +7,9 @@ fi
 
 CYGWINREV=1
 PKG=lwp
-FLIST="usr/include/lwp/lock.h usr/include/lwp/lwp.h usr/include/lwp/timer.h \
-       usr/lib/liblwp.a usr/lib/liblwp.la usr/lib/liblwp.dll.a \
-       usr/lib/pkgconfig/lwp.pc usr/bin/cyglwp-2.dll"
+FLIST="usr/bin/cyglwp-2.dll usr/include/lwp/lock.h usr/include/lwp/lwp.h \
+    usr/include/lwp/timer.h usr/lib/liblwp.a usr/lib/liblwp.la \
+    usr/lib/liblwp.dll.a usr/lib/pkgconfig/lwp.pc"
 
 # Sanity checks ...
 
