@@ -7,14 +7,13 @@ fi
 
 CYGWINREV=1
 PKG=rvm
-FLIST="usr/include/rvm/rds.h usr/include/rvm/rvm.h \
+FLIST="usr/bin/cygrdslwp-1.dll usr/bin/cygrvmlwp-1.dll \
+    usr/bin/cygseglwp-1.dll usr/include/rvm/rds.h usr/include/rvm/rvm.h \
     usr/include/rvm/rvm_segment.h usr/include/rvm/rvm_statistics.h \
     usr/lib/librdslwp.a usr/lib/librdslwp.dll.a usr/lib/librdslwp.la \
     usr/lib/librvmlwp.a usr/lib/librvmlwp.dll.a usr/lib/librvmlwp.la \
     usr/lib/libseglwp.a usr/lib/libseglwp.dll.a usr/lib/libseglwp.la \
-    usr/lib/pkgconfig/rvmlwp.pc \
-    usr/bin/cygrdslwp-1.dll usr/bin/cygrvmlwp-1.dll usr/bin/cygseglwp-1.dll \
-    usr/sbin/rdsinit.exe usr/sbin/rvmutl.exe"
+    usr/lib/pkgconfig/rvmlwp.pc usr/sbin/rdsinit.exe usr/sbin/rvmutl.exe"
 
 # Sanity checks ...
 
