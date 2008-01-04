@@ -7,12 +7,13 @@ fi
 
 CYGWINREV=1
 PKG=rpc2
-FLIST="usr/include/rpc2/errors.h usr/include/rpc2/multi.h \
+FLIST="usr/bin/cygrpc2-5.dll  usr/bin/cygse-5.dll usr/bin/rp2gen.exe \
+    usr/include/rpc2/errors.h usr/include/rpc2/multi.h \
     usr/include/rpc2/rpc2.h usr/include/rpc2/rpc2_addrinfo.h \
     usr/include/rpc2/se.h usr/include/rpc2/secure.h usr/include/rpc2/sftp.h \
     usr/lib/librpc2.a usr/lib/librpc2.dll.a usr/lib/librpc2.la \
     usr/lib/libse.a usr/lib/libse.dll.a usr/lib/libse.la \
-    usr/bin/cygrpc2-5.dll usr/lib/pkgconfig/rpc2.pc usr/bin/rp2gen.exe"
+    usr/lib/pkgconfig/rpc2.pc"
 
 # Sanity checks ...
 
