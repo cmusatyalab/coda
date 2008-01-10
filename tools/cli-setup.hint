@@ -10,8 +10,8 @@ of other user-land programs needed to effectively use Coda.
 Installation will provide a default setup with the default 
 realm being coda.cs.cmu.edu.  These defaults may be changed
 after installation.  See http://coda.cs.cmu.edu"
-curr: 6.9.2-1
-test: 6.9.3-1
+prev: 6.9.2-1
+curr: 6.9.3-1
 category: Base Net
 requires: cygwin rvm lwp rpc2 bash perl fltk cygrunsrv tar coda-fsd
 external-source: coda-server
