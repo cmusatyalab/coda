@@ -215,8 +215,9 @@ void fsobj::ResetTransient()
     HoardPri = 0;
     HoardVuid = HOARD_UID;
     hdb_bindings = 0;
-    FetchAllowed = HF_DontFetch;
-    AskingAllowed = HA_Ask;
+
+    LocalFid_Vnode = 0;
+    LocalFid_Unique = 0;
 
     mle_bindings = 0;
     shadow = 0;

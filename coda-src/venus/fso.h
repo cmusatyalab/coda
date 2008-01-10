@@ -438,9 +438,9 @@ class fsobj {
     /*T*/int HoardPri;				/* max of priorities of binders */
     /*T*/uid_t HoardVuid;			/* uid of that entry */
     /*T*/dlist *hdb_bindings;			/* list of (bindings to) hdbents referencing this object */
-    /*T*/int FetchAllowed;                      /* Allow a hoard walk to fetch object? */
-    /*T*/int AskingAllowed;                     /* Ask user for hoard fetch advice? */
-
+    /*T*/VnodeId  LocalFid_Vnode;		/* Values of the vnode and */
+    /*T*/Unique_t LocalFid_Unique;		/* uniquifier when this object
+						   had a local fid */
 
     /* MLE linkage. */
     /* T */dlist *mle_bindings;			/* list of (bindings to) mlents referencing this object */

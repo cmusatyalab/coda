@@ -388,12 +388,32 @@ void fsdb::operator delete(void *){
 
 fsobj *fsdb::Find(const VenusFid *key)
 {
+    VenusFid OldFid;
+
     fso_iterator next(NL, key);
     fsobj *f;
     while ((f = next()))
-	if (FID_EQ(key, &f->fid)) return(f);
+	if (FID_EQ(key, &f->fid))
+	    return f;
 
-    return(0);
+    /* If we were looking for a local fid, do a full search because we may have
+     * translated it while the upcall was in transit. */
+    OldFid = *key;
+    if (FID_IsDisco(MakeViceFid(&OldFid)))
+    {
+	fso_iterator full_search(NL);
+	while ((f = full_search()))
+	{
+	    OldFid.Vnode = f->LocalFid_Vnode;
+	    OldFid.Unique = f->LocalFid_Unique;
+
+	    if (FID_EQ(key, &OldFid)) {
+		k_Replace(&OldFid, &f->fid);
+		return f;
+	    }
+	}
+    }
+    return 0;
 }
 
 
@@ -1020,43 +1040,56 @@ int fsdb::TranslateFid(VenusFid *OldFid, VenusFid *NewFid)
 			FID_(OldFid)));
 		return(ENOENT);
 	}
-	
+
 	/* Can't handle any case but reintegration. */
 	/* in old versions we would choke too  if (!DIRTY(f)) */
 	if (!HAVESTATUS(f)) {
-		f->print(logFile); 
-		CHOKE("fsdb::TranslateFid: !HAVESTATUS"); 
+		f->print(logFile);
+		CHOKE("fsdb::TranslateFid: !HAVESTATUS");
 	}
 
 	/* Replace the fids in kernel name cache for this object */
 	k_Replace(OldFid, NewFid);
-	
+
 	/* Check that the NewFid is not already known! */
 	fsobj *Newf = Find(NewFid);
 	if (Newf != 0) {
-		f->print(logFile); 
-		Newf->print(logFile); 
-		CHOKE("fsdb::TranslateFid: NewFid found"); 
+		f->print(logFile);
+		Newf->print(logFile);
+		CHOKE("fsdb::TranslateFid: NewFid found");
 	}
-	
+
 	/* Remove OldObject from table. */
-	if (htab.remove(&f->fid, &f->primary_handle) != 
+	if (htab.remove(&f->fid, &f->primary_handle) !=
 	    &f->primary_handle) {
-		f->print(logFile); 
-		CHOKE("fsdb::TranslateFid: old object remove"); 
+		f->print(logFile);
+		CHOKE("fsdb::TranslateFid: old object remove");
 	}
+
+	/* An upcall may already be queued with the old local fid. Or we may
+	 * already be reintegrating before the local fid has been passed back
+	 * to the kernel.
+	 *
+	 * To avoid this race we have to remember the value of OldFid. If it
+	 * was a localfid (reintegration related) it will have the same volume
+	 * id, a special file or directory vnode value, and we only need to
+	 * remember the uniquifier value.
+	 *
+	 * We may need the vnode for repair related objects. */
+	f->LocalFid_Vnode  = OldFid->Vnode;
+	f->LocalFid_Unique = OldFid->Unique;
 
 	/* Change Fid, update dir and reinsert into table. */
 	RVMLIB_REC_OBJECT(f->fid);
 	f->fid = *NewFid;
-	
+
 	/* replace "." and its hardlinks if f is dir */
-	if (f->IsDir() && HAVEALLDATA(f) && !f->IsMtPt()) 
+	if (f->IsDir() && HAVEALLDATA(f) && !f->IsMtPt())
 		f->dir_TranslateFid(OldFid, NewFid);
-	
+
 	/* replace f in the hash table */
 	htab.append(&f->fid, &f->primary_handle);
-	
+
 	/* Update the Parent. */
 	pFid = f->pfid;
 	fsobj *pf = Find(&pFid);
@@ -1065,18 +1098,18 @@ int fsdb::TranslateFid(VenusFid *OldFid, VenusFid *NewFid)
 
 	/* Update the children, if we are a directory. */
 	if (ISDIR(*OldFid) && f->children) {
-            dlist_iterator next(*(f->children));
-            dlink *d;
-            while ((d = next())) { 
-                fsobj *cf = strbase(fsobj, d, child_link);
-                CODA_ASSERT(FID_EQ(&cf->pfid, OldFid));
-                RVMLIB_REC_OBJECT(cf->pfid);
-                cf->pfid = *NewFid;
+	    dlist_iterator next(*(f->children));
+	    dlink *d;
+	    while ((d = next())) {
+		fsobj *cf = strbase(fsobj, d, child_link);
+		CODA_ASSERT(FID_EQ(&cf->pfid, OldFid));
+		RVMLIB_REC_OBJECT(cf->pfid);
+		cf->pfid = *NewFid;
 
-                if (cf->IsDir() && HAVEALLDATA(cf) && !cf->IsMtPt())
-                    cf->dir_TranslateFid(OldFid, NewFid);
-            }
-        }
+		if (cf->IsDir() && HAVEALLDATA(cf) && !cf->IsMtPt())
+		    cf->dir_TranslateFid(OldFid, NewFid);
+	    }
+	}
 	return 0;
 }
 
