@@ -404,7 +404,9 @@ fsobj *fsdb::Find(const VenusFid *key)
 	fso_iterator full_search(NL);
 	while ((f = full_search()))
 	{
-	    OldFid.Vnode = f->LocalFid_Vnode;
+	    OldFid.Realm  = f->fid.Realm;
+	    OldFid.Volume = f->fid.Volume;
+	    OldFid.Vnode  = f->LocalFid_Vnode;
 	    OldFid.Unique = f->LocalFid_Unique;
 
 	    if (FID_EQ(key, &OldFid)) {
