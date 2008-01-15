@@ -21,7 +21,7 @@ librvmlwp_la_SOURCES = $(librvm_sources)
 librvmlwp_la_LDFLAGS = $(LIBTOOL_LDFLAGS)
 librvmlwp_la_LIBADD = $(LWP_LIBS)
 
-rvmutl_CPPFLAGS = $(AM_CPPFLAGS) -DRVM_USELWP
+rvmutl_CPPFLAGS = $(AM_CPPFLAGS) -DRVM_USELWP $(LWP_CFLAGS)
 rvmutl_LDADD = librvmlwp.la
 
 EXTRA_DIST = rvm_pthread.c README.log1.4 READ_ME
