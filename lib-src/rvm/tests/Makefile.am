@@ -13,7 +13,7 @@ testrvm_LDADD = $(top_builddir)/rvm/librvmlwp.la
 rvm_basher_CPPFLAGS = $(AM_CPPFLAGS)
 rvm_basher_LDADD = $(top_builddir)/rds/librds.la
 
-lwp_basher_CPPFLAGS = $(AM_CPPFLAGS) -DRVM_USELWP
+lwp_basher_CPPFLAGS = $(AM_CPPFLAGS) -DRVM_USELWP $(LWP_CFLAGS)
 lwp_basher_SOURCES = rvm_basher.c
 lwp_basher_LDADD = $(top_builddir)/rds/librdslwp.la
 
