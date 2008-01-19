@@ -1015,6 +1015,6 @@ returnto:
 
 #if defined __ELF__ && defined __linux__
     /* indicate that we do not need an executable stack */
-    .section .note.GNU-stack,"",@progbits
+    .section .note.GNU-stack,"",%progbits
 #endif
 
