@@ -1637,7 +1637,7 @@ void repvol::ResetTransient(void)
 
     /* do grab refcounts on the underlying replicas */
     for (int i = 0; i < VSG_MEMBERS; i++)
-        if (volreps[i]) volreps[i]->hold();
+	if (volreps[i]) volreps[i]->hold();
 
     GetHosts(hosts);
     vsg = VSGDB->GetVSG(hosts, GetRealmId());
@@ -1660,7 +1660,7 @@ void repvol::ResetTransient(void)
      * at the servers, but we crashed before we took the fid off of our
      * queue). */
     if (!CleanShutDown &&
-        (FileFids.Count != 0 || DirFids.Count != 0 || SymlinkFids.Count != 0))
+	(FileFids.Count != 0 || DirFids.Count != 0 || SymlinkFids.Count != 0))
     {
 	Recov_BeginTrans();
 	    RVMLIB_REC_OBJECT(FileFids);
@@ -1725,7 +1725,7 @@ repvol::repvol(Realm *r, VolumeId vid, const char *name, volrep *reps[VSG_MEMBER
 repvol::~repvol()
 {
     LOG(10, ("repvol::~repvol: name = %s, volume = %x, type = ReplicatedVolume\n", name, vid));
-    
+
     int i;
 
 #ifdef VENUSDEBUG
@@ -1739,24 +1739,35 @@ repvol::~repvol()
     if (VDB->repvol_hash.remove(&volid, &handle) != &handle)
 	{ print(logFile); CHOKE("repvol::~repvol: htab remove"); }
 
-    /* Unlink from VSG (if applicable). */
+    /* try to flush any pending COP2 and/or pending resolution requests */
+    flags.transition_pending = 1;
+    TakeTransition();
+
+    /* Unlink from volume replicas (if applicable). */
     for (i = 0; i < VSG_MEMBERS; i++)
-        VDB->Put((volent **)&volreps[i]);
+	VDB->Put((volent **)&volreps[i]);
 
     if (ro_replica)
 	VDB->Put((volent **)&ro_replica);
 
+    /* This should never happen. If there are CML entries, there will be
+     * dirty fsobjs, which will have a reference on the repvol preventing
+     * it's destruction */
     if (CML.count() != 0)
-        CHOKE("volent::~volent: CML not empty");
+	CHOKE("repvol::~repvol: CML not empty");
 
+    /* pending resolution requests should all be dequeued by TakeTransition */
     if (res_list->count() != 0)
-        CHOKE("repvol::~repvol: res_list not empty");
+	CHOKE("repvol::~repvol: res_list not empty");
     delete res_list;
 
+    /* We're about to destroy this repvol. If failed to flush the COP2 entries
+     * to the server, we delete any remaining entries. */
+    ClearCOP2();
     if (cop2_list->count() != 0)
-        CHOKE("volent::~volent: cop2_list not empty");
+	CHOKE("repvol::~repvol: cop2_list not empty");
     delete cop2_list;
-    
+
     vsg->Put();
 }
 

@@ -133,8 +133,7 @@ int repvol::COP2(mgrpent *m, ViceStoreId *StoreId, vv_t *UpdateSet,
 int repvol::FlushCOP2(time_t window)
 {
     CODA_ASSERT(!IsLocalRealm());
-    LOG(100, ("repvol::FlushCOP2: vol = %x, window = %d\n",
-	       vid, window));
+    LOG(100, ("repvol::FlushCOP2: vol = %x, window = %d\n", vid, window));
 
     int code = 0;
 
@@ -152,9 +151,9 @@ int repvol::FlushCOP2(time_t window)
 	mgrpent *m = 0;
 	code = GetMgrp(&m, V_UID);
 	if (code) {
-            if (m) m->Put();
-            break;
-        }
+	    if (m) m->Put();
+	    break;
+	}
 
 	/* Get a buffer full of pending COP2 messages. */
 	/* Note that all cop2ents may have vanished due to concurrent */
@@ -166,13 +165,13 @@ int repvol::FlushCOP2(time_t window)
 	GetCOP2(&BS);
 	if (BS.SeqLen == 0) {
 	    LOG(1, ("volent::FlushCOP2: vol = %x, No Entries!\n", vid));
-            if (m) m->Put();
+	    if (m) m->Put();
 	    break;
 	}
 
 	/* Make the call. */
 	code = COP2(m, &BS);
-        if (m) m->Put();
+	if (m) m->Put();
 	if (code != 0) break;
 
 	/* Start over at the head of the list. */
@@ -229,12 +228,12 @@ void repvol::GetCOP2(RPC2_CountedBS *BS)
 	htonvv(&c->updateset, (ViceVersionVector *)&BS->SeqBody[BS->SeqLen]);
 	BS->SeqLen += sizeof(ViceVersionVector);
 
-        LOG(10, ("GetCOP2, %x.%x %d.%d.%d.%d.%d.%d.%d.%d\n",
-                c->sid.Host, c->sid.Uniquifier,
-		c->updateset.Versions.Site0, c->updateset.Versions.Site1,
-	        c->updateset.Versions.Site2, c->updateset.Versions.Site3,
-	        c->updateset.Versions.Site4, c->updateset.Versions.Site5,
-	        c->updateset.Versions.Site6, c->updateset.Versions.Site7));
+	LOG(10, ("GetCOP2, %x.%x %d.%d.%d.%d.%d.%d.%d.%d\n",
+		 c->sid.Host, c->sid.Uniquifier,
+		 c->updateset.Versions.Site0, c->updateset.Versions.Site1,
+		 c->updateset.Versions.Site2, c->updateset.Versions.Site3,
+		 c->updateset.Versions.Site4, c->updateset.Versions.Site5,
+		 c->updateset.Versions.Site6, c->updateset.Versions.Site7));
     }
 
     LOG(100, ("volent::GetCOP2: vol = %x, entries = %d\n",
@@ -286,6 +285,12 @@ void repvol::ClearCOP2(RPC2_CountedBS *BS)
     BS->SeqLen = 0;
 }
 
+void repvol::ClearCOP2(void)
+{
+    cop2ent *c;
+    while ((c = (cop2ent *)cop2_list->get()))
+	delete c;
+}
 
 static const int MaxFreeCOP2ents = 16;
 static dlist freecop2ents;

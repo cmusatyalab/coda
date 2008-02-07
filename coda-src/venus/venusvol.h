@@ -897,6 +897,7 @@ class repvol : public volent {
     cop2ent *FindCOP2(ViceStoreId *);
     void AddCOP2(ViceStoreId *, ViceVersionVector *);
     void ClearCOP2(RPC2_CountedBS *);
+    void ClearCOP2(void);
 
     /* Callback routines */
     int GetVolAttr(uid_t);
