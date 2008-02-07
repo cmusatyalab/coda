@@ -1433,7 +1433,7 @@ int fsobj::SetACL(RPC2_CountedBS *acl, uid_t uid)
 	vv_t UpdateSet;
 
 	Recov_BeginTrans();
-	sid = vp->GenerateStoreId();
+	Recov_GenerateStoreId(&sid);
 	Recov_EndTrans(MAXFP);
 	{
 	    /* Make multiple copies of the IN/OUT and OUT parameters. */

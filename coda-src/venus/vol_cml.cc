@@ -554,8 +554,7 @@ cmlent::cmlent(ClientModifyLog *Log, time_t Mtime, uid_t Uid, int op, int prepen
     if (prepend) log->list.prepend(&handle);
     else	 log->list.append(&handle);
 
-    repvol *vol = strbase(repvol, log, CML);
-    sid = vol->GenerateStoreId();
+    Recov_GenerateStoreId(&sid);
     time = Mtime;
     uid = Uid;
 

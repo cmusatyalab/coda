@@ -80,7 +80,7 @@ const unsigned long DFLT_MAXTS = 256 * 1024;	/* Maximum Truncate Size */
 const unsigned long UNSET_MAXTS = (unsigned long)-1;
 
 const int RecovMagicNumber = 0x8675309;
-const int RecovVersionNumber = 38;	/* Update this when format changes. */
+const int RecovVersionNumber = 39;	/* Update this when format changes. */
 
 /*  *****  Types  *****  */
 /* local-repair modification */
@@ -110,6 +110,7 @@ struct RecovVenusGlobals {
     /* This UUID should be stored in network byte order.
      * "draft-leach-uuids-guids-01.txt". */
     unsigned char recov_UUID[16];
+    unsigned int recov_StoreId;
 
     int validate();
     void print();
@@ -157,6 +158,8 @@ RPC2_String Copy_RPC2_String(RPC2_String&);
 void Free_RPC2_String(RPC2_String&);
 void RECOVD_Init(void);
 void RecovDaemon(void);
+
+void Recov_GenerateStoreId(ViceStoreId *sid);
 
 #define	VALID_REC_PTR(rec_ptr)\
     ((char *)(rec_ptr) >= rvg->recov_HeapAddr &&\

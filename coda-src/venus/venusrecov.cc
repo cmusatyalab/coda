@@ -195,13 +195,21 @@ void RecovVenusGlobals::print(int fd) {
 	    ntohs(*(unsigned short *)&recov_UUID[6]),
 	    recov_UUID[8], recov_UUID[9], recov_UUID[10], recov_UUID[11],
 	    recov_UUID[12], recov_UUID[13], recov_UUID[14], recov_UUID[15]);
+    fdprint(fd, "StoreId = %d\n", recov_StoreId);
 }
 
 static void RecovNewInstance(void)
 {
     /* We need to initialize the random number generator before first use */
     rpc2_InitRandom();
+
+    Recov_BeginTrans();
+    RVMLIB_REC_OBJECT(rvg->recov_UUID);
+    RVMLIB_REC_OBJECT(rvg->recov_StoreId);
+
     VenusGenID = rpc2_NextRandom(NULL);
+    rvg->recov_StoreId = 0;
+    Recov_EndTrans(0);
 }
 
 void RecovInit(void)
@@ -506,17 +514,13 @@ static void Recov_LoadRDS()
         Recov_EndTrans(0);
     }
 
-    if (InitMetaData || InitNewInstance) {
-        Recov_BeginTrans();
-	RVMLIB_REC_OBJECT(VenusGenID);
+    if (InitMetaData || InitNewInstance)
 	RecovNewInstance();
-        Recov_EndTrans(0);
-    }
 
     /* Plumb the heap here? */
-    if (MallocTrace) {	
-        rds_trace_on(logFile);
-        rds_trace_dump_heap();
+    if (MallocTrace) {
+	rds_trace_on(logFile);
+	rds_trace_dump_heap();
     }
 }
 
@@ -740,5 +744,19 @@ void RecovDaemon(void) {
 	/* Bump sequence number. */
 	vp->seq++;
     }
+}
+
+/* MUST be called from within a transaction */
+void Recov_GenerateStoreId(ViceStoreId *sid)
+{
+    /* VenusGenID, is randomly chosen whenever rvm is reinitialized, it
+     * should be a 128-bit UUID (re-generated whenever rvm is reinitialized).
+     * But that would require changing in the venus-vice protocol to either
+     * add this UUID to every operation, or send it once per (volume-)
+     * connection setup with ViceNewConnectFS. -JH */
+    sid->Host = (RPC2_Unsigned)VenusGenID;
+
+    RVMLIB_REC_OBJECT(rvg->recov_StoreId);
+    sid->Uniquifier = rvg->recov_StoreId++;
 }
 

@@ -763,7 +763,6 @@ class repvol : public volent {
 
     unsigned int AgeLimit;		/* min age of log records in SECONDS */
     unsigned int ReintLimit;		/* work limit, in MILLISECONDS */
-    RPC2_Unsigned SidUnique;
     int reint_id_gen;                   /* reintegration id generator */
     /*T*/int cur_reint_tid;             /* tid of reintegration in progress */
     /*T*/int RecordsCancelled;
@@ -822,7 +821,6 @@ class repvol : public volent {
 
     /* Allocation routines. */
     VenusFid GenerateLocalFid(ViceDataType);
-    ViceStoreId GenerateStoreId();
 
     /* Reintegration routines. */
     void Reintegrate();

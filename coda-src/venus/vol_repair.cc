@@ -156,6 +156,7 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
     VenusFid *fidarr = NULL; /* entryFid, mvFid, mvPFid */
     struct listhdr *hlist = NULL, *l = NULL;
     dlist CMLappends;
+    ViceStoreId sid;
 
     memset(ReturnCodes, 0, VSG_MEMBERS * sizeof(int));
     memset(RWVols, 0, VSG_MEMBERS * sizeof(VolumeId));
@@ -207,8 +208,9 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 	      code));
       return code;
     }
+
     Recov_BeginTrans();
-    ViceStoreId sid = GenerateStoreId();
+    Recov_GenerateStoreId(&sid);
     Recov_EndTrans(MAXFP);
 
     mgrpent *m = 0;

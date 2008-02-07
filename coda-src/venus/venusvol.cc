@@ -1708,7 +1708,6 @@ repvol::repvol(Realm *r, VolumeId vid, const char *name, volrep *reps[VSG_MEMBER
        The 1<<19 shift is to avoid collisions with inodes derived from
        non-local generated fids -- JH */
     FidUnique = 1 << 19;
-    SidUnique = 0;
 
     ResetTransient();
 
@@ -2234,24 +2233,6 @@ VenusFid volent::GenerateFakeFid()
     return(fid);
 }
 
-/* MUST be called from within a transaction */
-ViceStoreId repvol::GenerateStoreId()
-{
-    ViceStoreId sid;
-
-    /* VenusGenID, is randomly chosen whenever rvm is reinitialized, it
-     * should be a 128-bit UUID (re-generated whenever rvm is reinitialized).
-     * But that would require changing in the venus-vice protocol to either
-     * add this UUID to every operation, or send it once per (volume-)
-     * connection setup with ViceNewConnectFS. -JH */
-    sid.Host = (RPC2_Unsigned)VenusGenID;
-
-    RVMLIB_REC_OBJECT(SidUnique);
-    sid.Uniquifier = (RPC2_Unsigned)SidUnique++;
-
-    return(sid);
-}
-
 /* Helper routine to help convert code for (int)(_volent.type) to code
    for (ViceVolumeType)(_VolumeStatus.Type).  This conversion is needed
    by volent::GetVolStat().  When connected, GetVolStat get the type
@@ -2430,19 +2411,20 @@ int volent::SetVolStat(VolumeStatus *volstat, RPC2_BoundedBS *Name,
 	    /* Acquire an Mgroup. */
 	    mgrpent *m = 0;
 	    vv_t UpdateSet;
-            repvol *vp = (repvol *)this;
+	    repvol *vp = (repvol *)this;
+	    ViceStoreId sid;
 
 	    Recov_BeginTrans();
-            ViceStoreId sid = vp->GenerateStoreId();
+	    Recov_GenerateStoreId(&sid);
 	    Recov_EndTrans(MAXFP);
 
-  	    code = vp->GetMgrp(&m, uid, (PIGGYCOP2 ? &PiggyBS : 0));
+	    code = vp->GetMgrp(&m, uid, (PIGGYCOP2 ? &PiggyBS : 0));
 	    if (code != 0) goto RepExit;
 
 	    {
 		/* Make multiple copies of the IN/OUT and OUT parameters. */
 		int ph_ix; unsigned long ph;
-                ph = ntohl(m->GetPrimaryHost(&ph_ix)->s_addr);
+		ph = ntohl(m->GetPrimaryHost(&ph_ix)->s_addr);
 
 		if (Name->MaxSeqLen > VENUS_MAXBSLEN ||
 		    msg->MaxSeqLen > VENUS_MAXBSLEN ||
