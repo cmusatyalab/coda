@@ -242,7 +242,6 @@ void VenusPrint(int fd, int argc, const char **argv)
     int hdbp = 0;
     int vmonp = 0;
     int mallocp = 0;
-    int vcbdbp = 0;
 
     /* Parse the argv to see what modules should be printed. */
     for (int i = 0; i < argc; i++) {
@@ -263,7 +262,6 @@ void VenusPrint(int fd, int argc, const char **argv)
 	else if (STREQ(argv[i], "hdb")) hdbp++;
 	else if (STREQ(argv[i], "vmon")) vmonp++;
 	else if (STREQ(argv[i], "malloc")) mallocp++;
-	else if (STREQ(argv[i], "vcbdb")) vcbdbp++;
     }
 
     fdprint(fd, "*****  VenusPrint  *****\n\n");

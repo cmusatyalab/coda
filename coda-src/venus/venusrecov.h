@@ -50,8 +50,6 @@ class fsdb;
 class vdb;
 class RealmDB;
 class hdb;
-class vmselist;
-class vcbdb;
 
 /*  *****  Constants  *****  */
 
