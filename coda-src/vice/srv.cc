@@ -136,6 +136,7 @@ int optimizationson;		// default 0
 int Authenticate;		// default 1
 int AllowResolution;		// default 1, controls directory resolution 
 int AllowSHA;			// default 0, whether we calculate SHA checksums
+int check_reintegration_retry;	// default 1
 int comparedirreps;		// default 1 
 int pathtiming;			// default 0 
 int pollandyield;		// default 1 
@@ -1403,6 +1404,7 @@ static int ReadConfigFile(void)
     if (!vicetab)
 	vicetab = strdup(vice_sharedfile("db/vicetab"));
 
+    CODACONF_INT(check_reintegration_retry, "check_reintegration_retry", 1);
     return 0;
 }
 

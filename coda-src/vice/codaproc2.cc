@@ -1038,7 +1038,7 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
      * uniquifier field from the storeid of the record.  Return it
      * in the index variable; saves a parameter for this special case.
      */
-    if (!list_empty(rlog))
+    if (!list_empty(rlog) && check_reintegration_retry)
     {
 	int i = 0;
 	rle *r = list_entry(rlog->next, struct rle, reint_log);
@@ -1046,7 +1046,7 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 	while (i < (*volptr)->nReintegrators) {
 	    if ((r->sid.Host == (*volptr)->reintegrators[i].Host) &&
 		((long)r->sid.Uniquifier - (long)(*volptr)->reintegrators[i].Uniquifier <= 0)) {
-		SLog(0, "ValidateReintegrateParms: Already seen id %u < %u)",
+		SLog(0, "ValidateReintegrateParms: Already seen id %u < %u",
 		     r->sid.Uniquifier, (*volptr)->reintegrators[i].Uniquifier);
 		errorCode = VLOGSTALE;
 		index = (*volptr)->reintegrators[i].Uniquifier;

@@ -38,3 +38,5 @@ extern void DeleteVenus (HostTable *);
 extern void DeleteFile (ViceFid *);
 extern int InitCallBack ();
 
+extern int check_reintegration_retry;
+

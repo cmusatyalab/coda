@@ -102,6 +102,23 @@ allow_sha=1
 #
 #lwps=10
 
+#
+# Let the server check if it has previously seen a reintegration log
+# entry In this case it will return VLOGSTALE, the can client drop the
+# previously reintegrated operation and continue. If we didn't check the
+# client would have gotten an unnecessary conflict.
+#
+# However there are cases where the retry detection fails. Clients older
+# than Coda-6.9.4 would reset the operation counter when a volume is
+# flushed and reinstated. It can also trigger whenever a client is
+# running in a virtual machine that is reverted back to some older
+# snapshot.
+#
+# The default is to try to detect retried reintegrations.
+#
+#check_reintegration_retry=1
+#
+
 #authenticate=1
 #cbwait=240
 #chk=30
