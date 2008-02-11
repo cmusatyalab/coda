@@ -54,7 +54,9 @@ int getpeereid(int sock, uid_t *euid, gid_t *egid)
 	if (egid) *egid = cred.gid;
     }
 #else
-#error "Need getpeereid(), getpeerucred(), or getsockopt(SO_PEERCRED) support"
+#warning "Need getpeereid(), getpeerucred(), or getsockopt(SO_PEERCRED) support"
+    if (euid) *euid = 65534; /* nobody */
+    if (egid) *egid = 65534; /* nogroup */
 #endif
     return rc;
 }
