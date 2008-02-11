@@ -296,7 +296,7 @@ struct command cmdarray[] =
             "this meddles with the version vector and can trash the object"
         },
         {"mkmount", "mkm", MkMount, 
-            "cfs mkmount <directory> <volume name>",
+            "cfs mkmount <directory> [<volume name>]",
             "Make mount point",
             NULL
         },

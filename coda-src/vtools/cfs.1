@@ -61,7 +61,7 @@ cfs \- Coda File System Interface Program
 \fBcfs lsmount\fR \fB\fIdir\fB\fR [ \fB\fIdir\fB\fR\fI ...\fR ]
 
 
-\fBcfs mkmount\fR \fB\fIdirectory\fB\fR \fB\fIvolumename\fB\fR [ \fB-rw\fR ]
+\fBcfs mkmount\fR \fB\fIdirectory\fB\fR [ \fB\fIvolumename\fB\fR ]
 
 
 \fBcfs purgeml\fR
@@ -212,10 +212,10 @@ to tell what volume a mount point refers to.
 \fBmkmount\fR
 Create a mount point.  Mount \fBvolume name\fR at
 the point in the file system described by
-\fBfilename\fR\&.  If the \fB-rw\fR flag
-is set, never use the corresponding read-only volume for a volume.
-Otherwise, if a read-only volume exists (and the parent is also a
-read-only volume), use the read-only volume.  
+\fBfilename\fR\&. If the \fBvolume name\fR is not specified, venus will try to
+mount a volume named based on the path from the top of the realm to the
+mountpoint. For instance, \fBcfs mkmount /coda/coda.cs.cmu.edu/new\fR will
+attempt to mount a volume named \fB/new\fR.
 
 Abbreviation: \fBmkm\fR
 .TP
