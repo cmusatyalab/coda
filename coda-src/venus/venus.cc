@@ -102,6 +102,7 @@ int PiggyValidations;
 pid_t ASRpid;
 VenusFid ASRfid;
 uid_t ASRuid;
+int detect_reintegration_retry;
 int option_isr;
 
 #if defined(HAVE_SYS_UN_H) && !defined(__CYGWIN32__)
@@ -564,9 +565,15 @@ static void DefaultCmdlineParms()
 	    PiggyValidations = MAX_PIGGY_VALIDATIONS;
     }
 
-    /* Should we enable special tweaks for running in a VM */
-    /* - Write zeros to container file contents before truncation */
+    /* Enable special tweaks for running in a VM
+     * - Write zeros to container file contents before truncation.
+     * - Disable reintegration replay detection. */
     CODACONF_INT(option_isr, "isr", 0);
+
+    CODACONF_INT(detect_reintegration_retry, "detect_reintegration_retry", 1);
+    if (option_isr) {
+	detect_reintegration_retry = 0;
+    }
 
 #ifdef moremoremore
     char *x = NULL;

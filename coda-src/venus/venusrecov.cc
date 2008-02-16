@@ -208,7 +208,9 @@ static void RecovNewInstance(void)
     RVMLIB_REC_OBJECT(rvg->recov_StoreId);
 
     VenusGenID = rpc2_NextRandom(NULL);
-    rvg->recov_StoreId = 0;
+
+    /* server disables replay detection when storeid.uniquifier > INT_MAX */
+    rvg->recov_StoreId = detect_reintegration_retry ? 0 : (INT_MAX+1);
     Recov_EndTrans(0);
 }
 
@@ -467,6 +469,7 @@ static void Recov_LoadRDS()
 {
     rvm_return_t ret;
     char *datadev;
+    int detecting_retries;
 
     eprint("Loading RVM data");
     datadev = strdup(VenusDataDevice);
@@ -514,7 +517,10 @@ static void Recov_LoadRDS()
         Recov_EndTrans(0);
     }
 
-    if (InitMetaData || InitNewInstance)
+    detecting_retries = rvg->recov_StoreId <= INT_MAX;
+    if (InitMetaData || InitNewInstance ||
+        (detect_reintegration_retry && !detecting_retries) || 
+	(!detect_reintegration_retry && detecting_retries))
 	RecovNewInstance();
 
     /* Plumb the heap here? */
@@ -755,8 +761,13 @@ void Recov_GenerateStoreId(ViceStoreId *sid)
      * add this UUID to every operation, or send it once per (volume-)
      * connection setup with ViceNewConnectFS. -JH */
     sid->Host = (RPC2_Unsigned)VenusGenID;
+    sid->Uniquifier = rvg->recov_StoreId;
+
+    /* Avoid overflow past UINT_MAX, server stopped replay detection once
+     * we passed INT_MAX so we stop incrementing */
+    if (rvg->recov_StoreId == UINT_MAX) return;
 
     RVMLIB_REC_OBJECT(rvg->recov_StoreId);
-    sid->Uniquifier = rvg->recov_StoreId++;
+    rvg->recov_StoreId++;
 }
 

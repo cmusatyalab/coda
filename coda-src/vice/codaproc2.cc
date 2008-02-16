@@ -1043,10 +1043,18 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 	int i = 0;
 	rle *r = list_entry(rlog->next, struct rle, reint_log);
 
-	while (i < (*volptr)->nReintegrators) {
+	/* uniquifier	[0, INT_MAX]	    -> replay detection
+	 *		(INT_MAX, UINT_MAX] -> no replay detection
+	 *
+	 * This way a client can disable replay detection by initializing the
+	 * counter to INT_MAX+1, but still be incrementing the uniquifier
+	 * value in case we are talking to older servers. */
+	while (r->sid.Uniquifier <= INT_MAX && i < (*volptr)->nReintegrators)
+	{
 	    if ((r->sid.Host == (*volptr)->reintegrators[i].Host) &&
-		((long)r->sid.Uniquifier - (long)(*volptr)->reintegrators[i].Uniquifier <= 0)) {
-		SLog(0, "ValidateReintegrateParms: Already seen id %u < %u",
+		(r->sid.Uniquifier <= (*volptr)->reintegrators[i].Uniquifier))
+	    {
+		SLog(0, "ValidateReintegrateParms: Already seen id %u <= %u",
 		     r->sid.Uniquifier, (*volptr)->reintegrators[i].Uniquifier);
 		errorCode = VLOGSTALE;
 		index = (*volptr)->reintegrators[i].Uniquifier;
@@ -1061,14 +1069,14 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 	SLog(0, "ValidateReintegrateParms: Handle = (%d,%d,%d)",
 	     RHandle->BirthTime, RHandle->Device, RHandle->Inode);
 
-	/*  Currently, if an RHandle is supplied, the log must consist
-	 * of only one new store record.  (The store record is sent
-	 * only by old Venii.)  Verify that is the case.  */
+	/* Currently, if an RHandle is supplied, the log must consist
+	 * of only one store record. Verify that is the case. */
+	errorCode = EINVAL;
+	if (rlog_len == 1)
         {
-		CODA_ASSERT(rlog_len == 1);
-		
-		struct rle *r = list_entry(rlog->next, struct rle, reint_log);
-		CODA_ASSERT(r->opcode == CML_Store_OP);
+	    struct rle *r = list_entry(rlog->next, struct rle, reint_log);
+	    if (r->opcode == CML_Store_OP)
+		errorCode = 0; 
 	}
     }
 

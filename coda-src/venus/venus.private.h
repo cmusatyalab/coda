@@ -366,6 +366,7 @@ extern int   T1Interval;
 extern const char *ASRLauncherFile;
 extern const char *ASRPolicyFile;
 extern int   option_isr;
+extern int   detect_reintegration_retry;
 
 /* spool.cc */
 extern void MakeUserSpoolDir(char *, uid_t);

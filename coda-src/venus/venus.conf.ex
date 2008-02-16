@@ -264,10 +264,27 @@ mapprivate=1
 #reintegration_time=15
 
 #
+# Should the server detect retried reintegration attempts.
+#
+# Operations are identified by a store identifier value. If we disconnect
+# during a reintegration and retry the same set of operations after
+# reconnection, the server can use the store identifier to detect if any
+# operation have already been applied and avoid conflicts.
+#
+# However this detection only works when the identifiers are in a strict
+# incrementing order, if for any reason we reuse older values the server
+# will incorrectly reject new operations. This can for instance happen
+# reverting a virtual machine to an earlier snapshot.
+#
+#detect_reintegration_retry=1
+
+#
 # Enable tweaks when running in a virtual machine, disabled by default.
 #
 # - overwrite container files with zeros before truncation to reduce the
 #   amount of dirty state we need to write back during suspend.
+# - avoid reintegration replay detection as we may revert back to an older
+#   snapshot after discarding local state and reuse store identifiers.
 #
 #isr=0
 
