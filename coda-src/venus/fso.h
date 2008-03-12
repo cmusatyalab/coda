@@ -290,6 +290,7 @@ class CacheFile {
     int  DecRef();             /* returns refcnt, unlinks if refcnt becomes 0 */
 
     void Stat(struct stat *);
+    void Utimes(const struct timeval times[2]);
     void Truncate(long);
     void SetLength(long);
     void SetValidData(long);

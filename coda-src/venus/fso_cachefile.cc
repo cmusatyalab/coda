@@ -244,6 +244,12 @@ void CacheFile::Stat(struct stat *tstat)
 }
 
 
+void CacheFile::Utimes(const struct timeval times[2])
+{
+    CODA_ASSERT(::utimes(name, times) == 0);
+}
+
+
 /* MUST be called from within transaction! */
 void CacheFile::Truncate(long newlen)
 {

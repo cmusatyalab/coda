@@ -1266,12 +1266,25 @@ void fsobj::LocalSetAttr(Date_t Mtime, unsigned long NewLength,
         stat.Date = Mtime;
 	memset(VenusSHA, 0, SHA_DIGEST_LENGTH);
     }
-    if (NewDate != (Date_t)-1) stat.Date = NewDate;
+    if (NewDate != (Date_t)-1) {
+	stat.Date = NewDate;
+
+	/* if this is an open file, the time will be set to the mtime of the
+	 * container file when the fd is closed. So we also update the mtime
+	 * of the container file so that this will become the mtime (as long
+	 * as there are no further writes). */
+	if (IsFile() && flags.owrite) {
+	    struct timeval times[2];
+	    times[0].tv_sec  = times[1].tv_sec  = NewDate;
+	    times[1].tv_usec = times[1].tv_usec = 0;
+	    data.file->Utimes(times);
+	}
+    }
     if (NewOwner != VA_IGNORE_UID) stat.Owner = NewOwner;
     if (NewMode != VA_IGNORE_MODE) stat.Mode = NewMode;
 
     UpdateCacheStats((IsDir() ? &FSDB->DirAttrStats : &FSDB->FileAttrStats),
-                     WRITE, NBLOCKS(sizeof(fsobj)));
+		     WRITE, NBLOCKS(sizeof(fsobj)));
 }
 
 int fsobj::DisconnectedSetAttr(Date_t Mtime, uid_t uid, unsigned long NewLength,

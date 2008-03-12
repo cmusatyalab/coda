@@ -92,6 +92,7 @@ int fsobj::Open(int writep, int truncp, struct venus_cnode *cp, uid_t uid)
     FSO_HOLD(this);			/* Pin object until close arrives. */
     openers++;
     if (writep) {
+	FSO_ASSERT(this, IsFile());
 	Writers++;
 	if (!flags.owrite) {
 	    Recov_BeginTrans();
@@ -101,15 +102,17 @@ int fsobj::Open(int writep, int truncp, struct venus_cnode *cp, uid_t uid)
 	    flags.owrite = 1;
 	    Recov_EndTrans(DMFP);
 	}
+	/* Do truncate if necessary. */
+	if (truncp) {
+	    struct coda_vattr va;
+	    va_init(&va);
+	    va.va_size = 0;
+	    if ((code = SetAttr(&va, uid)) != 0)
+		goto Exit;
+	}
+	/* set the container file timestamp */
+	data.file->Utimes(NULL);
     }
-
-    /* Do truncate if necessary. */
-    if (truncp && writep) {	/* truncp is acted upon only if writep */
-	struct coda_vattr va; va_init(&va);
-	va.va_size = 0;
-	if ((code = SetAttr(&va, uid)) != 0)
-	    goto Exit;
-   }
 
     /* If object is directory make sure Unix-format contents are valid. */
     if (IsDir()) {
@@ -218,12 +221,10 @@ int fsobj::Sync(uid_t uid)
     unsigned long NewLength;
     Date_t NewDate;
     {
-        struct stat tstat;
-        data.file->Stat(&tstat);
-        if (tstat.st_size == 0) tstat.st_mtime = Vtime();
-
-        NewLength = tstat.st_size;
-        NewDate = tstat.st_mtime;
+	struct stat tstat;
+	data.file->Stat(&tstat);
+	NewLength = tstat.st_size;
+	NewDate = tstat.st_mtime;
     }
     int old_blocks = (int) BLOCKS(this);
     int new_blocks = (int) NBLOCKS(NewLength);
