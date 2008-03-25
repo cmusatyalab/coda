@@ -837,8 +837,8 @@ RestartFind:
 	struct timeval tv;
 	fsobj *realobj;
 
-	LOG(0, ("fsdb::Get:Volume (%u) NOT under repair and IsFake(%s)\n",
-			uid, FID_(&f->fid)));
+	LOG(0, ("fsdb::Get:Volume NOT under repair and IsFake(%s)\n",
+		FID_(&f->fid)));
 
 	/* At this point, we have Fakeify'd the real object, and f is the
 	 * fake object served in its place. Unfortunately, it is not linked
