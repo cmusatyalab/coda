@@ -96,6 +96,21 @@ cacheblocks=100000
 #checkpointdir=/usr/coda/spool
 
 #
+# Checkpoint archive format
+#
+# tar   - old BSD4.3 tar format
+# ustar - POSIX.1 tar format
+# odc	- old POSIX.1 cpio format
+# newc  - new SVR4 cpio format
+#
+# This used to be 'tar', but it has a 100 character path name limit. ustar
+# extends this to 255 characters. The cpio formats do not have such a strict
+# path name limitation, but 'odc' doesn't support 32-bit inode/uid/gid values
+# and 'newc' can only deal with < 4GB files, but Coda has the same limitation.
+#
+#checkpointformat=newc
+
+#
 # Where does venus store it's pidfile
 #
 #pid_file=/usr/coda/venus.cache/pid

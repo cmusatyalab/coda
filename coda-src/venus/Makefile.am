@@ -17,7 +17,7 @@ venus_SOURCES = binding.cc binding.h comm.cc comm.h comm_daemon.cc daemon.cc \
     vproc.cc vproc.h vproc_pathname.cc vproc_pioctl.cc vproc_vfscalls.cc \
     vsg.cc vsg.h worker.cc worker.h sighand.cc sighand.h spool.cc tallyent.cc \
     tallyent.h user.cc user.h nt_util.cc nt_util.h realmdb.cc realmdb.h \
-    realm.cc realm.h rec_dllist.h refcounted.h
+    realm.cc realm.h rec_dllist.h refcounted.h archive.c archive.h
 vutil_SOURCES = vutil.cc
 
 AM_CPPFLAGS = -I$(top_srcdir)/lib-src/base \

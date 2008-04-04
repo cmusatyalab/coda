@@ -35,6 +35,8 @@ extern "C" {
 #include <unistd.h>
 #include <stdlib.h>
 
+#include "archive.h"
+
 #ifdef __cplusplus
 }
 #endif
@@ -91,6 +93,7 @@ const char *CachePrefix;
 int   CacheBlocks;
 uid_t PrimaryUser = UNSET_PRIMARYUSER;
 const char *SpoolDir;
+const char *CheckpointFormat;
 const char *VenusPidFile;
 const char *VenusControlFile;
 const char *VenusLogFile;
@@ -574,6 +577,12 @@ static void DefaultCmdlineParms()
     if (option_isr) {
 	detect_reintegration_retry = 0;
     }
+
+    CODACONF_STR(CheckpointFormat,  "checkpointformat", "newc");
+    if (strcmp(CheckpointFormat, "tar") == 0)	archive_type = TAR_TAR;
+    if (strcmp(CheckpointFormat, "ustar") == 0) archive_type = TAR_USTAR;
+    if (strcmp(CheckpointFormat, "odc") == 0)   archive_type = CPIO_ODC;
+    if (strcmp(CheckpointFormat, "newc") == 0)  archive_type = CPIO_NEWC;
 
 #ifdef moremoremore
     char *x = NULL;

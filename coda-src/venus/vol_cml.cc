@@ -1,18 +1,18 @@
 /* BLURB gpl
 
-                           Coda File System
-                              Release 6
+			    Coda File System
+				Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
-                  Additional copyrights listed below
+	    Copyright (c) 1987-2008 Carnegie Mellon University
+		    Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
 the terms of the GNU General Public Licence Version 2, as shown in the
 file  LICENSE.  The  technical and financial  contributors to Coda are
 listed in the file CREDITS.
 
-                        Additional copyrights
-                           none currently
+			Additional copyrights
+			    none currently
 
 #*/
 
@@ -58,6 +58,8 @@ extern void pack_struct(ARG *, PARM **, PARM **);
 /* interfaces */
 #include <vice.h>	
 #include <cml.h>	
+
+#include "archive.h"
 
 #ifdef __cplusplus
 }
@@ -3387,31 +3389,6 @@ static void RLE_Pack(PARM **ptr, ARG *args ...)
 
 /*  *****  Routines for Handling Inconsistencies and Safeguarding Against Catastrophe  *****  */
 
-/* These definitions are stolen from tar.c. */
-#define	TBLOCK	512
-#define NBLOCK	20
-#define	NAMSIZ	100
-
-union hblock {
-    char dummy[TBLOCK];
-    struct header {
-	char name[NAMSIZ];
-	char mode[8];
-	char uid[8];
-	char gid[8];
-	char size[12];
-	char mtime[12];
-	char chksum[8];
-	char linkflag;
-	char linkname[NAMSIZ];
-    } dbuf;
-};
-
-static void GetPath(char *, VenusFid *, char * =0);
-static int WriteHeader(FILE *, hblock&);
-static int WriteData(FILE *, char *);
-static int WriteTrailer(FILE *);
-
 int PathAltered(VenusFid *cfid, char *suffix, ClientModifyLog *CML, cmlent *starter)
 {
     char buf[MAXPATHLEN];
@@ -3613,6 +3590,158 @@ int repvol::LastMLETime(unsigned long *time)
     return(0);
 }
 
+struct WriteLinksHook {
+    VnodeId vnode;
+    Unique_t vunique;
+    const char *name;
+    ino_t inode;
+    uid_t uid;
+    nlink_t nlink;
+    time_t time;
+    FILE *fp;
+    int code;
+};
+
+static int WriteLinks(struct DirEntry *de, void *arg)
+{
+    VnodeId vnode;
+    Unique_t vunique;
+    char *name = de->name, *comp;
+    size_t prefixlen;
+    char namebuf[CODA_MAXPATHLEN];
+    struct WriteLinksHook *hook = (struct WriteLinksHook *)arg;
+
+    if (hook->code)
+	return 0;
+
+    FID_NFid2Int(&de->fid, &vnode, &vunique);
+    if (vnode != hook->vnode || vunique != hook->vunique)
+	return 0;
+
+    comp = strrchr(hook->name, '/') + 1;
+    CODA_ASSERT(comp != NULL);
+
+    if (!!STREQ(comp, name)) return 0;
+
+    prefixlen = comp - hook->name;
+
+    strncpy(namebuf, hook->name, prefixlen);
+    strcpy(&namebuf[prefixlen], name);
+
+    hook->code = archive_write_entry(hook->fp, hook->inode, 0100644, hook->uid,
+				     hook->nlink, hook->time, 0, namebuf,
+				     hook->name);
+    return 0;
+}
+
+int cmlent::checkpoint(FILE *fp)
+{
+    /* counter to create unique inode numbers in the generated archive file */
+    static int inode = 1;
+    char name[CODA_MAXPATHLEN];
+    size_t linklen;
+    nlink_t nlink;
+    fsobj *f;
+    int err;
+
+    /* make sure our 'inode numbers' stay within in the valid range for cpio
+     * archives */
+    if (archive_type == CPIO_ODC && inode >= 01000000) inode = 1;
+
+    switch(opcode) {
+	case CML_Store_OP:
+	    {
+		/* Only checkpoint LAST store! */
+		cml_iterator next(*(ClientModifyLog *)log, AbortOrder,
+				  &u.u_store.Fid);
+		cmlent *m;
+		while ((m = next()) && m->opcode != CML_Store_OP) /* loop */;
+		CODA_ASSERT(m);
+		if (m != this) break;
+	    }
+
+	    f = FSDB->Find(&u.u_store.Fid);
+	    CODA_ASSERT(f);
+
+	    if (!HAVEALLDATA(f)) {
+		eprint("can't checkpoint (%s), no data", FID_(&u.u_store.Fid));
+		break;
+	    }
+
+	    f->GetPath(name);
+
+	    /* Are we going to add hard-link entries for alternate names? */
+	    nlink = f->pfso ? f->stat.LinkCount : 1;
+
+	    err = archive_write_entry(fp, inode, 0100644, uid, nlink, time,
+				      u.u_store.Length, name, NULL);
+	    if (err) return err;
+
+	    /* write out file contents */
+	    if (u.u_store.Length) {
+		err = archive_write_data(fp, f->data.file->Name());
+		if (err) return err;
+	    }
+
+	    if (nlink > 1) {
+		struct WriteLinksHook hook;
+
+		hook.vnode = f->fid.Vnode;
+		hook.vunique = f->fid.Unique;
+		hook.name = name;
+		hook.inode = inode;
+		hook.uid = uid;
+		hook.time = time;
+		hook.fp = fp;
+		hook.code = 0;
+
+		DH_EnumerateDir(&f->pfso->data.dir->dh, WriteLinks,
+				(void *)&hook);
+
+		if (hook.code) return hook.code;
+	    }
+
+	    inode++;
+	    break;
+
+	case CML_MakeDir_OP:
+	    f = FSDB->Find(&u.u_mkdir.CFid);
+	    CODA_ASSERT(f);
+
+	    f->GetPath(name);
+
+	    err = archive_write_entry(fp, inode, 040755, uid, 1, time, 0, name,
+				      NULL);
+	    if (err) return err;
+
+	    inode++;
+	    break;
+
+	case CML_SymLink_OP:
+	    f = FSDB->Find(&u.u_symlink.CFid);
+	    CODA_ASSERT(f);
+
+	    f->GetPath(name);
+
+	    linklen = strlen((char *)Name);
+
+	    err = archive_write_entry(fp, inode, 0120777, uid, 1, time,
+				      linklen, name, (const char *)Name);
+	    if (err) return err;
+
+	    inode++;
+	    break;
+
+	case CML_Repair_OP:
+	    eprint("Not checkpointing file (%s) that was repaired\n",
+		   FID_(&u.u_repair.Fid));
+	    break;
+
+	default:
+	    break;
+    }
+    return 0;
+}
 
 static void BackupOldFile(const char *name)
 {
@@ -3636,9 +3765,9 @@ int ClientModifyLog::CheckPoint(char *ckpdir)
 
     /* the spool directory name */
     char spoolname[MAXPATHLEN], *volname;
-    
+
     if (ckpdir) strcpy(spoolname, ckpdir);
-    else        MakeUserSpoolDir(spoolname, owner);
+    else	MakeUserSpoolDir(spoolname, owner);
 
     strcat(spoolname, "/");
 
@@ -3656,12 +3785,14 @@ int ClientModifyLog::CheckPoint(char *ckpdir)
 	    *cp = '_';
 
     char ckpname[MAXPATHLEN], lname[MAXPATHLEN];
-    /* append .tar and .cml */
-    (void) strcpy(ckpname, spoolname);
-    (void) strcat(ckpname, ".tar");
+    /* append .tar/.cpio and .cml */
+    strcpy(ckpname, spoolname);
+    if (archive_type == TAR_TAR || archive_type == TAR_USTAR)
+	 strcat(ckpname, ".tar");
+    else strcat(ckpname, ".cpio");
 
-    (void) strcpy(lname, spoolname);
-    (void) strcat(lname, ".cml");
+    strcpy(lname, spoolname);
+    strcat(lname, ".cml");
 
     /* rename the old checkpoint file, if possible */
     BackupOldFile(ckpname);
@@ -3691,25 +3822,24 @@ int ClientModifyLog::CheckPoint(char *ckpdir)
 #endif
    ::fchmod(fileno(ofp), 0600);
 
-    /* 
-     * Iterate through the MLEs (in commit order), checkpointing each in turn. 
+    /*
+     * Iterate through the MLEs (in commit order), checkpointing each in turn.
      * Lock the CML exclusively to prevent changes during checkpoint.  This is
-     * necessary because the thread yields during file write.  If at the time 
-     * there is another thread doing mutations to the volume causing some of the 
-     * elements in the CML being iterated to be canceled, venus will assertion fail.
+     * necessary because the thread yields during file write.  If at the time
+     * there is another thread doing mutations to the volume causing some of
+     * the elements in the CML being iterated to be canceled, venus will
+     * assertion fail.
      */
     ObtainWriteLock(&vol->CML_lock);
-    eprint("Checkpointing %s", vol->name);
-    eprint("to %s", ckpname);
-    eprint("and %s", lname);
+    eprint("Checkpointing %s to %s and %s", vol->name, ckpname, lname);
     cml_iterator next(*this, CommitOrder);
-    cmlent *m;    
+    cmlent *m;
     while ((m = next())) {
 	m->writeops(ofp);
 	if (code) continue;
 	code = m->checkpoint(dfp);
     }
-    if (code != 0) { 
+    if (code) {
 	LOG(0, ("checkpointing of %s to %s failed (%d)",
 		vol->name, ckpname, code));
 	eprint("checkpointing of %s to %s failed (%d)",
@@ -3718,30 +3848,23 @@ int ClientModifyLog::CheckPoint(char *ckpdir)
     ReleaseWriteLock(&vol->CML_lock);
 
     /* Write the trailer block and flush the data. */
-    if (code == 0) {
-	code = WriteTrailer(dfp);
-	if (code == 0)
-	    code = (fflush(dfp) == EOF ? ENOSPC : 0);
-    }
+    if (code == 0)
+	code = archive_write_trailer(dfp);
 
-    /* Close the CKP file.  Unlink in the event of any error. */
-    if (code == 0) {
-	(void)fclose(dfp);
-	(void)fclose(ofp);
-    }
-    else {
-	/* fclose() may return EOF in this case, but it will DEFINITELY close() the file descriptor! */
-	(void)fclose(dfp);
-	(void)fclose(ofp);
+    /* Close the CKP file. */
+    fclose(dfp);
+    fclose(ofp);
 
-	(void)::unlink(ckpname);
-	(void)::unlink(lname);
-
+    /* Unlink in the event of any error. */
+    if (code != 0) {
+	::unlink(ckpname);
+	::unlink(lname);
 	eprint("Couldn't successfully checkpoint %s and %s", ckpname, lname);
     }
 
     return(code);
 }
+
 
 
 /* Invalidate the fsobj's following unsuccessful reintegration. */
@@ -3771,220 +3894,6 @@ void ClientModifyLog::IncAbort(int Tid)
 	}
     Recov_EndTrans(DMFP);
 }
-
-
-struct WriteLinksHook {
-    VnodeId vnode;
-    Unique_t vunique;
-    hblock *hdr;
-    FILE *fp;
-    int code;
-};
-
-
-static int WriteLinks(struct DirEntry *de, void * hook)
-{
-	VnodeId vnode;
-	Unique_t vunique;
-	FID_NFid2Int(&de->fid, &vnode, &vunique);
-
-	char *name = de->name;
-
-	struct WriteLinksHook *wl_hook = (struct WriteLinksHook *)hook;
-
-	if (wl_hook->code) 
-		return 0;
-
-	if (vnode == wl_hook->vnode && vunique == wl_hook->vunique) {
-		char *comp = strrchr(wl_hook->hdr->dbuf.linkname, '/') + 1;
-		CODA_ASSERT(comp != NULL);
-		if (!STREQ(comp, name)) {
-			/* Use the same hblock, overwriting the name
-                           field and stashing the return code. */
-			int prefix_count = comp - wl_hook->hdr->dbuf.linkname;
-			strncpy(wl_hook->hdr->dbuf.name, wl_hook->hdr->dbuf.linkname, 
-				prefix_count);
-			wl_hook->hdr->dbuf.name[prefix_count] = '\0';
-			strcat(wl_hook->hdr->dbuf.name, name);
-			wl_hook->code = WriteHeader(wl_hook->fp, *(wl_hook->hdr));
-		}
-	}
-	return 0;
-}
-
-
-int cmlent::checkpoint(FILE *fp)
-{
-    int code = 0;
-
-    hblock hdr; memset((void *)&hdr, 0, (int) sizeof(hblock));
-    switch(opcode) {
-	case CML_Store_OP:
-	    {
-	    /* Only checkpoint LAST store! */
-	    {
-		cml_iterator next(*(ClientModifyLog *)log, AbortOrder, &u.u_store.Fid);
-		cmlent *m;
-		while ((m = next()) && m->opcode != CML_Store_OP) /* loop */;
-		CODA_ASSERT(m);
-		if (m != this) break;
-	    }
-
-	    GetPath(hdr.dbuf.name, &u.u_store.Fid);
-	    char CacheFileName[CODA_MAXPATHLEN];
-	    {
-		fsobj *f = FSDB->Find(&u.u_store.Fid);
-		CODA_ASSERT(f != 0);
-		if (!HAVEALLDATA(f)) {
-		    eprint("can't checkpoint (%s), no data", hdr.dbuf.name);
-		    break;
-		}
-		strcpy(CacheFileName, f->data.file->Name());
-	    }
-	    snprintf(hdr.dbuf.mode, 8, "%07o", 0644);
-	    snprintf(hdr.dbuf.uid, 8, "%07o", uid);
-	    snprintf(hdr.dbuf.gid, 8, "%07o", 65534); /* nogroup/nfsnobody */
-	    snprintf(hdr.dbuf.size, 12, "%011o", u.u_store.Length);
-	    snprintf(hdr.dbuf.mtime, 12, "%011o", time);
-	    hdr.dbuf.linkflag = '0';
-	    if ((code = WriteHeader(fp, hdr)) != 0) break;
-	    if (u.u_store.Length != 0)
-		if ((code = WriteData(fp, CacheFileName)) != 0) break;
-
-	    /* Make hard-links for other names. */
-	    {
-		fsobj *f = FSDB->Find(&u.u_store.Fid);
-		CODA_ASSERT(f != 0);
-		if (f->stat.LinkCount > 1 && f->pfso != 0) {
-		    hdr.dbuf.linkflag = '1';
-		    strcpy(hdr.dbuf.linkname, hdr.dbuf.name);
-		    struct WriteLinksHook hook;
-		    hook.vnode = f->fid.Vnode;
-		    hook.vunique = f->fid.Unique;
-		    hook.hdr = &hdr;
-		    hook.fp = fp;
-		    hook.code = 0;
-		    DH_EnumerateDir(&f->pfso->data.dir->dh, WriteLinks, (void *)(&hook));
-		    code = hook.code;
-		}
-	    }
-	    }
-	    break;
-
-	case CML_MakeDir_OP:
-	    {
-	    GetPath(hdr.dbuf.name, &u.u_mkdir.CFid);
-	    strcat(hdr.dbuf.name, "/");
-	    snprintf(hdr.dbuf.mode, 8, "%07o", 0755);
-	    snprintf(hdr.dbuf.uid, 8, "%07o", uid);
-	    snprintf(hdr.dbuf.gid, 8, "%07o", 65534);
-	    snprintf(hdr.dbuf.size, 12, "%011o", 0);
-	    snprintf(hdr.dbuf.mtime, 12, "%011o", time);
-	    hdr.dbuf.linkflag = '5';
-	    if ((code = WriteHeader(fp, hdr)) != 0) break;
-	    }
-	    break;
-
-	case CML_SymLink_OP:
-	    {
-	    GetPath(hdr.dbuf.name, &u.u_symlink.CFid);
-	    snprintf(hdr.dbuf.mode, 8, "%07o", 0777);
-	    snprintf(hdr.dbuf.uid, 8, "%07o", uid);
-	    snprintf(hdr.dbuf.gid, 8, "%07o", 65534);
-	    snprintf(hdr.dbuf.size, 12, "%011o", 0);
-	    snprintf(hdr.dbuf.mtime, 12, "%011o", time);
-	    hdr.dbuf.linkflag = '2';
-	    strcpy(hdr.dbuf.linkname, (char *)Name);
-	    if ((code = WriteHeader(fp, hdr)) != 0) break;
-	    }
-	    break;
-
-	case CML_Repair_OP:
-	    eprint("Not checkpointing file (%s) that was repaired\n",
-		   FID_(&u.u_repair.Fid));
-	    break;
-
-	default:
-	    break;
-    }
-
-    return(code);
-}
-
-
-/* MUST be called from within transaction! */
-static void GetPath(char *path, VenusFid *fid, char *lastcomp) {
-    fsobj *f = FSDB->Find(fid);
-    if (!f) CHOKE("GetPath: %s", FID_(fid));
-    char buf[MAXPATHLEN];
-    f->GetPath(buf);
-    if (lastcomp)
-	{ strcat(buf, "/"); strcat(buf, lastcomp); }
-    strcpy(path, buf);
-}
-
-
-static int WriteHeader(FILE *fp, hblock& hdr)
-{
-    char *cp;
-    int i = 0;
-
-    memset(hdr.dbuf.chksum, ' ', sizeof(hdr.dbuf.chksum));
-
-    for (cp = hdr.dummy; cp < &hdr.dummy[TBLOCK]; cp++)
-	i += *cp;
-
-    /* checksum is stored as 6 digit octal number followed by nul and space */
-    snprintf(hdr.dbuf.chksum, 7, "%06o", i);
-
-    if (fwrite((char *)&hdr, sizeof(hblock), 1, fp) != 1) {
-	LOG(0, ("WriteHeader: fwrite failed (%d)", errno));
-	return(errno ? errno : ENOSPC);
-    }
-    return(0);
-}
-
-
-static int WriteData(FILE *wrfp, char *rdfn)
-{
-    VprocYield();		/* Yield at least once per dumped file! */
-
-    FILE *rdfp = fopen(rdfn, "r");
-    if (rdfp == NULL)
-	CHOKE("WriteData:: fopen(%s) failed", rdfn);
-
-    int code = 0;
-    for (int i = 0; ; i++) {
-	if ((i % 32) == 0)
-	    VprocYield();	/* Yield every so often */
-
-	char buf[TBLOCK];
-	int cc = fread(buf, (int) sizeof(char), TBLOCK, rdfp);
-	if (cc < TBLOCK)
-	    memset((char *)buf + cc, 0, TBLOCK - cc);
-	if (fwrite(buf, TBLOCK, 1, wrfp) != 1) {
-	    LOG(0, ("WriteData: (%s) fwrite (%d)", rdfn, errno));
-	    code = (errno ? errno : ENOSPC);
-	    break;
-	}
-	if (cc < TBLOCK) break;
-    }
-    fclose(rdfp);
-    return(code);
-}
-
-
-static int WriteTrailer(FILE *fp) {
-    char buf[TBLOCK];
-    memset((void *)buf, 0, TBLOCK);
-    for (int i = 0; i < 2; i++)
-	if (fwrite(buf, TBLOCK, 1, fp) != 1) {
-	    LOG(0, ("WriteTrailer: fwrite (%d)", errno));
-	    return(errno ? errno : ENOSPC);
-	}
-    return(0);
-}
-
 
 /* MUST be called from within transaction! */
 void cmlent::abort()
