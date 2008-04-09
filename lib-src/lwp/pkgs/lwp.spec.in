@@ -1,62 +1,62 @@
-Summary: LWP thread library
 Name: @PACKAGE@
 Version: @VERSION@
 Release: 1
-Source: ftp://ftp.coda.cs.cmu.edu/pub/coda/src/%{name}-%{version}.tar.gz
-License: LGPL
-Group: Development/Libraries
-BuildRoot: %{_builddir}/%{name}-%{version}/Root
+Summary: LWP userspace threads library
+
+Group: System Environment/Libraries
+License: LGPLv2
+URL: http://www.coda.cs.cmu.edu/
+Source0: ftp://ftp.coda.cs.cmu.edu/pub/coda/src/%{name}-%{version}.tar.gz
+
+BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+BuildRequires: libtool pkgconfig
+
 %description
-The LWP userspace threads library. The LWP threads library is used by the Coda
-distributed filesystem, RVM (a persistent VM library), and RPC2/SFTP (remote
-procedure call library)
+The LWP threads library is used by the Coda distributed filesystem,
+RVM (a persistent VM library), and RPC2/SFTP (remote procedure call
+library)
+
 
 %package devel
-Summary: LWP thread library development files
+Summary: Development files for %{name}
 Group: Development/Libraries
-%description devel
-Headers and static libraries for developing programs using the LWP userspace
-threads library. The LWP threads library is used by the Coda distributed
-filesystem, RVM (a persistent VM library), and RPC2/SFTP (a remote procedure
-call library)
+Requires: %{name} = %{version}-%{release}
 
-%changelog
-* Mon Oct 25 1999 Jan Harkes <jaharkes@cs.cmu.edu>
-- First stab at packaging the lwp library.
+%description devel
+The %{name}-devel package contains libraries and header files for
+developing applications that use %{name}.
+
 
 %prep
-%setup -n %{name}-%{version}
+%setup -q
 
 %build
-export CFLAGS="${CFLAGS} -Wall"
-./configure --prefix=/usr
-make
+%configure --disable-static
+make %{?_smp_mflags}
 
 %install
 rm -rf $RPM_BUILD_ROOT
-mkdir -p $RPM_BUILD_ROOT
-make prefix=$RPM_BUILD_ROOT/usr install
-chmod 755 $RPM_BUILD_ROOT/usr/lib/liblwp.so.@LINUX_VERSION@
-rm -f $RPM_BUILD_ROOT/usr/lib/liblwp.so.@MAJOR_VERSION@
+make install DESTDIR=$RPM_BUILD_ROOT
+find $RPM_BUILD_ROOT -name '*.la' -exec rm -f {} ';'
 
 %clean
 rm -rf $RPM_BUILD_ROOT
 
-%post
-/sbin/ldconfig
+
+%post -p /sbin/ldconfig
+
+%postun -p /sbin/ldconfig
+
 
 %files
-%defattr(-,root,root)
-/usr/lib/liblwp.so.@LINUX_VERSION@
+%defattr(-,root,root,-)
+%doc COPYING AUTHORS README NEWS
+%{_libdir}/*.so.*
+
 
 %files devel
-%defattr(-,root,root)
-/usr/lib/liblwp.la
-/usr/lib/liblwp.a
-/usr/lib/liblwp.so
-/usr/lib/pkgconfig/lwp.pc
-%dir /usr/include/lwp
-/usr/include/lwp/lock.h
-/usr/include/lwp/lwp.h
-/usr/include/lwp/timer.h
+%defattr(-,root,root,-)
+%{_includedir}/lwp
+%{_libdir}/*.so
+%{_libdir}/pkgconfig/*
 
