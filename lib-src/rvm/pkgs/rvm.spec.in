@@ -9,7 +9,7 @@ URL: http://www.coda.cs.cmu.edu/
 Source: ftp://ftp.coda.cs.cmu.edu/pub/coda/src/%{name}-%{version}.tar.gz
 
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
-BuildRequires: libtool lwp-devel pkgconfig
+BuildRequires: autoconf automake libtool pkgconfig lwp-devel
 
 %description
 The RVM persistent recoverable memory library. The RVM library is used by
@@ -38,6 +38,7 @@ developing applications that use %{name}.
 
 %prep
 %setup -q
+autoreconf -f -i
 
 %build
 %configure --disable-static
