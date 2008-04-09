@@ -1,26 +1,25 @@
 /* BLURB gpl
 
-                           Coda File System
-                              Release 5
+			Coda File System
+			    Release 5
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
-                  Additional copyrights listed below
+	    Copyright (c) 1987-2008 Carnegie Mellon University
+		    Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
 the terms of the GNU General Public Licence Version 2, as shown in the
 file  LICENSE.  The  technical and financial  contributors to Coda are
 listed in the file CREDITS.
 
-                        Additional copyrights
-
+			Additional copyrights
 #*/
 
 /*
-                         IBM COPYRIGHT NOTICE
+			IBM COPYRIGHT NOTICE
 
-                          Copyright (C) 1986
-             International Business Machines Corporation
-                         All Rights Reserved
+			Copyright (C) 1986
+	    International Business Machines Corporation
+			All Rights Reserved
 
 This  file  contains  some  code identical to or derived from the 1986
 version of the Andrew File System ("AFS"), which is owned by  the  IBM
@@ -34,7 +33,6 @@ based on Version 2  of  AFS  and  does  not  contain  the features and
 enhancements that are part of  Version 3 of  AFS.  Version 3 of AFS is
 commercially   available   and  supported  by   Transarc  Corporation,
 Pittsburgh, PA.
-
 */
 
 #include <stdlib.h>
@@ -59,15 +57,15 @@ int main(int argc, char **argv)
     PROCESS pid, otherpid;
     register long i,  count, x;
     int j;
-    char *waitarray[2];
+    void *waitarray[2];
     static char c[] = "OtherProcess";
 
-    if (argc < 2) 
+    if (argc < 2)
       {
 	fprintf (stderr, "usage: %s count\n", argv[0]);
 	exit(1);
       }
-    
+
     count = atoi(argv[1]);
 
 

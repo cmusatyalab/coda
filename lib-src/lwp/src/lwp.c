@@ -3,7 +3,7 @@
                            Coda File System
                               Release 5
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2008 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -318,7 +318,7 @@ int LWP_WaitProcess(void *event)
     if (event == NULL) return LWP_EBADEVENT;
     tempev[0] = event;
     tempev[1] = NULL;
-    return LWP_MwaitProcess(1, (char **)tempev);
+    return LWP_MwaitProcess(1, tempev);
 }
 
 static void Exit_LWP()
@@ -328,7 +328,7 @@ static void Exit_LWP()
 
 char *LWP_Name()
 {
-    return(lwp_cpptr->name);    
+    return(lwp_cpptr->name);
 }
 
 int LWP_Index()
@@ -684,7 +684,7 @@ int LWP_Init(int version, int priority, PROCESS *pid)
 
 
 /* wait on m of n events */
-int LWP_MwaitProcess(int wcount, char **evlist)
+int LWP_MwaitProcess(int wcount, void *evlist[])
 {
 	int ecount, i;
 
@@ -820,11 +820,11 @@ static int lwp_DispatchProcess(int dummy)
 		  "no runnable threads found\n");
 
     if (LWP_TraceProcesses > 0)
-	printf("Dispatch %d [PCB at %p] \"%s\"\n", 
-         ++dispatch_count, runnable[i].head, runnable[i].head->name);
+	printf("Dispatch %d [PCB at %p] \"%s\"\n",
+	       ++dispatch_count, runnable[i].head, runnable[i].head->name);
 
     if (old_cpptr)
-        gettimeofday(&old_cpptr->lastReady, NULL);	/* back in queue */
+	gettimeofday(&old_cpptr->lastReady, NULL);	/* back in queue */
 
     lwp_cpptr = runnable[i].head;
     Cont_Sws++; /* number of context switches, for statistics */
@@ -987,16 +987,17 @@ static void Overflow_Complain()
 {
     static const char *msg1 = "LWP: stack overflow in process ";
     static const char *msg2 = "!\n";
-    write (2, msg1, strlen(msg1));
-    write (2, lwp_cpptr->name, strlen(lwp_cpptr->name));
-    write (2, msg2, strlen(msg2));
+    ssize_t n;
+    n = write (2, msg1, strlen(msg1));
+    n = write (2, lwp_cpptr->name, strlen(lwp_cpptr->name));
+    n = write (2, msg2, strlen(msg2));
 }
 
 void PRE_Concurrent(int on) { }
 void PRE_BeginCritical(void) { }
 void PRE_EndCritical(void) { }
 
-/*  The following documents the Assembler interfaces used by old LWP: 
+/*  The following documents the Assembler interfaces used by old LWP:
 
 savecontext(void (*ep)(), struct lwp_context *savearea, char *sp)
 
@@ -1015,5 +1016,4 @@ returnto(struct lwp_context *savearea);
     restore context from a passed savearea
     and return to the restored C frame.
 */
-
 

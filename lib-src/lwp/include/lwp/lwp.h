@@ -1,26 +1,25 @@
 /* BLURB lgpl
 
-                           Coda File System
-                              Release 5
+			    Coda File System
+				Release 5
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
-                  Additional copyrights listed below
+	    Copyright (c) 1987-2008 Carnegie Mellon University
+		    Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
 the  terms of the  GNU  Library General Public Licence  Version 2,  as
 shown in the file LICENSE. The technical and financial contributors to
 Coda are listed in the file CREDITS.
 
-                        Additional copyrights
-
+			Additional copyrights
 #*/
 
 /*
-                         IBM COPYRIGHT NOTICE
+			    IBM COPYRIGHT NOTICE
 
-                          Copyright (C) 1986
-             International Business Machines Corporation
-                         All Rights Reserved
+			    Copyright (C) 1986
+		International Business Machines Corporation
+			    All Rights Reserved
 
 This  file  contains  some  code identical to or derived from the 1986
 version of the Andrew File System ("AFS"), which is owned by  the  IBM
@@ -34,7 +33,6 @@ based on Version 2  of  AFS  and  does  not  contain  the features and
 enhancements that are part of  Version 3 of  AFS.  Version 3 of AFS is
 commercially   available   and  supported  by   Transarc  Corporation,
 Pittsburgh, PA.
-
 */
 
 #ifndef _LWP_LWP_H_
@@ -122,15 +120,15 @@ extern int LWP_DispatchProcess();
 extern int LWP_GetProcessPriority (PROCESS pid, int *priority);
 extern int LWP_INTERNALSIGNAL (void *event, int yield);
 extern int LWP_WaitProcess (void *event);
-extern int LWP_MwaitProcess (int wcount, char *evlist[]);
-extern int LWP_StackUsed (PROCESS pid, int *max, int *used); 
+extern int LWP_MwaitProcess (int wcount, void *evlist[]);
+extern int LWP_StackUsed (PROCESS pid, int *max, int *used);
 extern int LWP_NewRock (int Tag, char *Value);
 extern int LWP_GetRock (int Tag,  char **Value);
 extern char *LWP_Name ();  /* NOTE: returs a char * !! */
 extern int LWP_Index();
 extern int LWP_HighestIndex();
 extern void LWP_UnProtectStacks();	/* only available for newlwp */
-extern void LWP_ProtectStacks();	
+extern void LWP_ProtectStacks();
 
 #define LWP_SignalProcess(event)	LWP_INTERNALSIGNAL(event, 1)
 #define LWP_NoYieldSignal(event)	LWP_INTERNALSIGNAL(event, 0)
@@ -144,8 +142,8 @@ extern int IOMGR_SoftSig (void (*aproc)(void *), char *arock);
 extern int IOMGR_Initialize();
 extern int IOMGR_Finalize();
 extern int IOMGR_Poll();
-extern int IOMGR_Select (int fds, fd_set *readfds, fd_set *writefds, 
-                         fd_set *exceptfds, struct timeval *timeout);
+extern int IOMGR_Select (int fds, fd_set *readfds, fd_set *writefds,
+			 fd_set *exceptfds, struct timeval *timeout);
 extern int IOMGR_Cancel (PROCESS pid);
 extern int IOMGR_Signal (int signo, char *event);
 extern int IOMGR_CancelSignal (int signo);
