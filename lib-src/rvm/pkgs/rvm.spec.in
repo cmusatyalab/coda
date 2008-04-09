@@ -1,83 +1,77 @@
-Summary: RVM library
 Name: @PACKAGE@
 Version: @VERSION@
 Release: 1
+Summary: RVM persistent recoverable memory library
+
+Group: System Environment/Libraries
+License: LGPLv2
+URL: http://www.coda.cs.cmu.edu/
 Source: ftp://ftp.coda.cs.cmu.edu/pub/coda/src/%{name}-%{version}.tar.gz
-License: LGPL
-BuildRoot: %{_builddir}/%{name}-%{version}/Root
-Group: Development/Libraries
+
+BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+BuildRequires: libtool lwp-devel pkgconfig
+
 %description
 The RVM persistent recoverable memory library. The RVM library is used by
 the Coda distributed filesystem.
 
+
 %package tools
+License: GPLv2
 Summary: RVM tools
-Group: Development/Libraries
+Group: System Environment/Libraries
+
 %description tools
 Userspace tools to initialize and manipulate RVM log and data segments.
 The RVM library is used by the Coda distributed filesystem.
 
-%package devel
-Summary: RVM library development files
-Group: Development/Libraries
-%description devel
-Headers and static libraries for developing programs using the RVM library.
-The RVM library is used by the Coda distributed filesystem.
 
-%changelog
-* Tue Oct 26 1999 Jan Harkes <jaharkes@cs.cmu.edu>
-- First stab at packaging the rvm library.
+%package devel
+Summary: Development files for %{name}
+Group: Development/Libraries
+Requires: %{name} = %{version}-%{release}
+
+%description devel
+The %{name}-devel package contains libraries and header files for
+developing applications that use %{name}.
+
 
 %prep
-%setup -n %{name}-%{version}
+%setup -q
 
 %build
-./configure --prefix=/usr
-make
+%configure --disable-static
+make %{_smp_mflags}
 
 %install
 rm -rf $RPM_BUILD_ROOT
-mkdir -p $RPM_BUILD_ROOT
-make prefix=$RPM_BUILD_ROOT/usr install
-chmod 755 $RPM_BUILD_ROOT/usr/lib/librvmlwp.so.@LINUX_VERSION@
-chmod 755 $RPM_BUILD_ROOT/usr/lib/libseglwp.so.@LINUX_VERSION@
-chmod 755 $RPM_BUILD_ROOT/usr/lib/librdslwp.so.@LINUX_VERSION@
-rm -f $RPM_BUILD_ROOT/usr/lib/librvmlwp.so.@MAJOR_VERSION@
-rm -f $RPM_BUILD_ROOT/usr/lib/libseglwp.so.@MAJOR_VERSION@
-rm -f $RPM_BUILD_ROOT/usr/lib/librdslwp.so.@MAJOR_VERSION@
+make install DESTDIR=$RPM_BUILD_ROOT
+find $RPM_BUILD_ROOT -name '*.la' -exec rm -f {} ';'
 
 %clean
 rm -rf $RPM_BUILD_ROOT
 
-%post
-/sbin/ldconfig
+
+%post -p /sbin/ldconfig
+
+%postun -p /sbin/ldconfig
+
 
 %files
-%defattr(-,root,root)
-/usr/lib/librvmlwp.so.@LINUX_VERSION@
-/usr/lib/libseglwp.so.@LINUX_VERSION@
-/usr/lib/librdslwp.so.@LINUX_VERSION@
+%defattr(-,root,root,-)
+%doc COPYING NEWS
+%{_libdir}/*.so.*
+
 
 %files tools
-%defattr(-,root,root)
-/usr/sbin/rvmutl
-/usr/sbin/rdsinit
+%defattr(-,root,root,-)
+%{_sbindir}/rvmutl
+%{_sbindir}/rdsinit
+
 
 %files devel
-%defattr(-,root,root)
-/usr/lib/librvmlwp.la
-/usr/lib/librvmlwp.a
-/usr/lib/librvmlwp.so
-/usr/lib/libseglwp.la
-/usr/lib/libseglwp.a
-/usr/lib/libseglwp.so
-/usr/lib/librdslwp.la
-/usr/lib/librdslwp.a
-/usr/lib/librdslwp.so
-/usr/lib/pkgconfig/rvmlwp.pc
-%dir /usr/include/rvm
-/usr/include/rvm/rvm.h
-/usr/include/rvm/rvm_statistics.h
-/usr/include/rvm/rvm_segment.h
-/usr/include/rvm/rds.h
+%defattr(-,root,root,-)
+%{_includedir}/rvm
+%{_libdir}/*.so
+%{_libdir}/pkgconfig/*
 
