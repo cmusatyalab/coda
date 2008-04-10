@@ -303,8 +303,8 @@ int RPC2_cmpaddrinfo(const struct RPC2_addrinfo *node,
     return 0;
 }
 
-void RPC2_formataddrinfo(const struct RPC2_addrinfo *ai,
-			 char *buf, size_t buflen)
+void rpc2_formataddrinfo(const struct RPC2_addrinfo *ai, char *buf,
+			 size_t buflen, int use_canonname)
 {
     int n, port = 0;
     void *addr = NULL;
@@ -334,7 +334,8 @@ void RPC2_formataddrinfo(const struct RPC2_addrinfo *ai,
 
     /* only use the hostname if it is available and we can comfortably pack
      * it with the port number in the buffer */
-    if (ai->ai_canonname && strlen(ai->ai_canonname) < (buflen - 12))
+    if (use_canonname && ai->ai_canonname &&
+        strlen(ai->ai_canonname) < (buflen - 12))
     {
 	strncpy(buf, ai->ai_canonname, buflen);
 	p = buf;
@@ -352,6 +353,11 @@ void RPC2_formataddrinfo(const struct RPC2_addrinfo *ai,
     buf[buflen] = '\0';
 }
 
+void RPC2_formataddrinfo(const struct RPC2_addrinfo *ai, char *buf,
+			 size_t buflen)
+{
+	rpc2_formataddrinfo(ai, buf, buflen, 1);
+}
 
 /* standard getaddrinfo functionality */
 

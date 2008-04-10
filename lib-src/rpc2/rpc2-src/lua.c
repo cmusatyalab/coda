@@ -331,7 +331,8 @@ static int push_hosttable(struct HEntry *he)
     lua_newtable(L);
 
     /* set host.name = he->Addr */
-    RPC2_formataddrinfo(he->Addr, addr, RPC2_ADDRSTRLEN);
+    rpc2_formataddrinfo(he->Addr, addr, RPC2_ADDRSTRLEN, 0);
+
     lua_pushstring(L, addr);
     lua_setfield(L, -2, "name");
 

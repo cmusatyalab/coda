@@ -618,6 +618,8 @@ void rpc2_printaddrinfo(const struct RPC2_addrinfo *ai, FILE *f);
 void rpc2_splitaddrinfo(RPC2_HostIdent *Host, RPC2_PortIdent *Port,
 			const struct RPC2_addrinfo *ai);
 void rpc2_simplifyHost(RPC2_HostIdent *Host, RPC2_PortIdent *Port);
+void rpc2_formataddrinfo(const struct RPC2_addrinfo *ai, char *buf,
+			 size_t buflen, int use_canonname);
 
 
 /*--------------- Useful definitions that used to be in potpourri.h or util.h ---------------*/
