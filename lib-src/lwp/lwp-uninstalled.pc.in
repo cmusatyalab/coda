@@ -1,0 +1,11 @@
+prefix=@prefix@
+exec_prefix=@prefix@
+libdir=${pcfiledir}/src
+includedir=${pcfiledir}/include
+
+Name: LWP
+Description: Light Weight Processes, userspace thread library
+URL: http://www.coda.cs.cmu.edu/
+Version: @VERSION@
+Cflags: -I${includedir}
+Libs: -L${libdir} -llwp

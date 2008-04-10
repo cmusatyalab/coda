@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-SUBDIRS = lwp
+pkginclude_HEADERS = lwp/lock.h lwp/lwp.h lwp/timer.h
 
 MAINTAINERCLEANFILES = Makefile.in
 
