@@ -548,6 +548,7 @@ void rpc2_ClockTick(void *);
 /* rpc2_SocketListener packet handlers */
 void SL_RegisterHandler(unsigned int proto, void (*func)(RPC2_PacketBuffer *));
 void rpc2_HandlePacket(RPC2_PacketBuffer *pb);
+void RPC2_DispatchProcess(void);
 
 /* Packet timestamp creation */
 unsigned int rpc2_TVTOTS(const struct timeval *tv);
