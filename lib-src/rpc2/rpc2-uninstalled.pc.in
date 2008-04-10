@@ -1,0 +1,14 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=${pcfiledir}/rpc2-src
+includedir=${pcfiledir}/include
+
+RP2GEN=${pcfiledir}/rp2gen/rp2gen
+
+Name: RPC2
+Description: Remote Procedure Call library
+URL: http://www.coda.cs.cmu.edu/
+Version: @VERSION@
+Requires: lwp
+Cflags: -I${includedir}
+Libs: -L${libdir} -lrpc2 -lse
