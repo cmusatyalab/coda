@@ -1,7 +1,12 @@
 prefix=@prefix@
-exec_prefix=@prefix@
-libdir=@libdir@
+exec_prefix=@exec_prefix@
 includedir=@includedir@
+rvmlibdir=@libdir@
+seglibdir=@libdir@
+rdslibdir=@libdir@
+
+RVMUTL=@sbindir@/rvmutl
+RDSINIT=@sbindir@/rdsinit
 
 Name: Recoverable Virtual Memory (lwp build)
 Description: Persistent memory storage library (linked against liblwp)
@@ -9,5 +14,5 @@ URL: http://www.coda.cs.cmu.edu/
 Version: @VERSION@
 Requires: lwp
 Cflags: -I${includedir}
-Libs: -L${libdir} -lrdslwp -lseglwp -lrvmlwp
+Libs: -L${rdslibdir} -lrdslwp -L${seglibdir} -lseglwp -L${rvmlibdir} -lrvmlwp
 

@@ -54,8 +54,8 @@ dnl Build conditionals
 AM_CONDITIONAL([LIBRVM], [test "$librvm" != no])
 
 dnl Generate output files
-AC_CONFIG_FILES([Makefile include/Makefile include/rvm/Makefile rvm/Makefile
-    seg/Makefile rds/Makefile tests/Makefile pkgs/Makefile pkgs/pkg-bsd.sh
-    pkgs/rvm.pc pkgs/rvmlwp.pc pkgs/rvm.spec debian/Makefile debian/changelog])
+AC_CONFIG_FILES([Makefile include/Makefile rvm/Makefile seg/Makefile
+    rds/Makefile tests/Makefile rvm.pc rvm-uninstalled.pc rvmlwp.pc
+    rvmlwp-uninstalled.pc pkgs/pkg-bsd.sh pkgs/rvm.spec debian/changelog])
 AC_OUTPUT
 

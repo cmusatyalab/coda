@@ -1,0 +1,17 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+includedir=@includedir@
+rvmlibdir=@libdir@
+seglibdir=@libdir@
+rdslibdir=@libdir@
+
+RVMUTL=@sbindir@/rvmutl
+RDSINIT=@sbindir@/rdsinit
+
+Name: Recoverable Virtual Memory
+Description: Persistent memory storage library
+URL: http://www.coda.cs.cmu.edu/
+Version: @VERSION@
+Cflags: -I${includedir}
+Libs: -L${rdslibdir} -lrds -L${seglibdir} -lseg -L${rvmlibdir} -lrvm
+
