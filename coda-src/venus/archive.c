@@ -168,10 +168,11 @@ int archive_write_entry(FILE *fp, ino_t inode, mode_t mode, uid_t uid,
 		    "177776"		/* gid, 65534/nogroup/nfsnobody */
 		    "%06o"		/* nlink */
 		    "000000"		/* rdev, only used by chr and blk dev */
-		    "%011llo%06o%011llo%s",/* mtime, namesize, filesize, name */
+		    "%011llo%06o%011llo"/* mtime, namesize, filesize */
+		    "%s%c",		/* name */
 		    (uint32_t)inode, (uint32_t)mode, (uint32_t)uid,
 		    (uint32_t)nlink, (uint64_t)mtime, (uint32_t)namesize,
-		    (uint64_t)filesize, name);
+		    (uint64_t)filesize, name, '\0');
 	if (n == -1) return ENOSPC;
 
 	if (S_ISLNK(mode) && fwrite(linkname, filesize, 1, fp) != 1)
@@ -191,10 +192,10 @@ int archive_write_entry(FILE *fp, ino_t inode, mode_t mode, uid_t uid,
 		    "0000000000000000"	/* rdev_major, rdev_minor */
 		    "%08X"		/* namelen including trailing '\0' */
 		    "00000000"		/* checksum */
-		    "%s",		/* name */
+		    "%s%c",		/* name */
 		    (uint32_t)inode, (uint32_t)mode, (uint32_t)uid,
 		    (uint32_t)nlink, (uint32_t)mtime, (uint32_t)filesize,
-		    (uint32_t)namesize, name);
+		    (uint32_t)namesize, name, '\0');
 	if (n == -1) return ENOSPC;
 
 	err = write_padding(fp, sizeof(uint32_t));
