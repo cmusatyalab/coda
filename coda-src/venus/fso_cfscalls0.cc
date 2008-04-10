@@ -1276,7 +1276,7 @@ void fsobj::LocalSetAttr(Date_t Mtime, unsigned long NewLength,
 	if (IsFile() && flags.owrite) {
 	    struct timeval times[2];
 	    times[0].tv_sec  = times[1].tv_sec  = NewDate;
-	    times[1].tv_usec = times[1].tv_usec = 0;
+	    times[0].tv_usec = times[1].tv_usec = 0;
 	    data.file->Utimes(times);
 	}
     }
