@@ -24,6 +24,10 @@ libtool
 ltmain.sh
 missing
 mkinstalldirs
+rvm-uninstalled.pc
+rvm.pc
+rvmlwp-uninstalled.pc
+rvmlwp.pc
 stamp-h1
 *.o
 *.lo
