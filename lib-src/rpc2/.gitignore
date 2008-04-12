@@ -24,7 +24,10 @@ libtool
 ltmain.sh
 missing
 mkinstalldirs
+rpc2-uninstalled.pc
+rpc2.pc
 stamp-h1
+ylwrap
 *.o
 *.lo
 *.la
