@@ -18,9 +18,11 @@ listed in the file CREDITS.
 #ifndef _AVENUS_H_
 #define _AVENUS_H_
 
-int U_DeleteLocalTokens(char *realm);
-int U_GetLocalTokens(ClearToken *cToken, EncryptedSecretToken sToken, const char *realm);
-int U_SetLocalTokens(int setPag, ClearToken *cToken, EncryptedSecretToken sToken, char *realm);
+int U_DeleteLocalTokens(const char *realm);
+int U_GetLocalTokens(ClearToken *cToken, EncryptedSecretToken sToken,
+		     const char *realm);
+int U_SetLocalTokens(int setPag, ClearToken *cToken,
+		     EncryptedSecretToken sToken, const char *realm);
 
 #endif /* _AVENUS_H_ */
 

@@ -95,7 +95,8 @@ typedef struct {
     auth server.  If setPag is true, a setpag system call is made.
     Returns 0 on success, -1 on failure.  Who knows what setpag did? */
 
-int U_SetLocalTokens(IN int setPag, IN ClearToken *cToken, IN EncryptedSecretToken sToken, IN char *realm)
+int U_SetLocalTokens(IN int setPag, IN ClearToken *cToken,
+		     IN EncryptedSecretToken sToken, IN const char *realm)
 {
     int    rc;
     struct ViceIoctl buffer;
@@ -159,12 +160,12 @@ int U_GetLocalTokens(OUT ClearToken *cToken, OUT EncryptedSecretToken sToken, IN
 }
 
 
-int U_DeleteLocalTokens(char *realm)
+int U_DeleteLocalTokens(const char *realm)
  /* Deletes internal state for viceId.  Returns 0.    */
 {
     struct ViceIoctl buffer;
 
-    buffer.in = realm;
+    buffer.in = (char *)realm;
     buffer.out = NULL;
     buffer.in_size = strlen(realm) + 1;
     buffer.out_size = 0;

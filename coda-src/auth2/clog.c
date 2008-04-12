@@ -249,7 +249,7 @@ int main(int argc, char **argv)
     if (tofile)
 	WriteTokenToFile(tofile, &cToken, sToken);
 
-    if(U_SetLocalTokens(0, &cToken, sToken, realm))
+    if (U_SetLocalTokens(0, &cToken, sToken, realm))
 	printf("Local login only, could not contact venus\n");
 
     if (testing) {
