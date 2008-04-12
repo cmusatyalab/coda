@@ -3478,7 +3478,7 @@ static rvm_bool_t show_log_status(out_stream,err_stream)
         if (!TIME_EQL_ZERO(status->last_write))
             fprintf(out_stream,"null");
         else
-            pr_timeval(out_stream,&status->first_write,rvm_true,NULL);
+            pr_timeval(out_stream,&status->last_write,rvm_true,NULL);
         putc('\n',out_stream);
         fprintf(out_stream,"  first trans. uname:    ");
         if (!TIME_EQL_ZERO(status->first_uname))
