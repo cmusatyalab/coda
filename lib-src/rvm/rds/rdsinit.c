@@ -356,13 +356,13 @@ static int get_valid_parm(argc, argv, pdatalen,
 	       *pdatalen, *pdatalen);
         printf("  starting address of rvm: %#10lx (%10lu)\n",
 	       (unsigned long)*pstatic_addr, (unsigned long)*pstatic_addr);
-        printf("                 heap len: %#10x (%10d)\n",
+        printf("                 heap len: %#10lx (%10ld)\n",
 	       *phlen, *phlen);
-        printf("               static len: %#10x (%10d)\n",
+        printf("               static len: %#10lx (%10ld)\n",
 	       *pslen, *pslen);
-        printf("                   nlists: %#10x (%10d)\n",
+        printf("                   nlists: %#10lx (%10ld)\n",
 	       *pnlists, *pnlists);
-        printf("               chunk size: %#10x (%10d)\n",
+        printf("               chunk size: %#10lx (%10ld)\n",
 	       *pchunksize, *pchunksize);
         printf("Do you agree with these parameters ? (y|n|q) ");
 	fgets(string,80,stdin);

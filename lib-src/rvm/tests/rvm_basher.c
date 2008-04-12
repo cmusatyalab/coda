@@ -590,7 +590,7 @@ void do_trans(block,range_list,do_flush,id)
     int             start,finish,temp,i,j;
     int             n_ranges;
     block_t         *range;
-    char            *save_area;
+    char            *save_area = NULL;
     char            new_val;
     rvm_bool_t      do_abort = rvm_false;
     rvm_tid_t       tid;

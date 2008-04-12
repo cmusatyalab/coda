@@ -776,6 +776,7 @@ rvm_return_t validate_rec_forward(log,synch)
     rvm_offset_t    end_offset;         /* temporary for caluculating end */
     rvm_return_t    retval;
     long            tmp_ptr;
+    rvm_length_t    tmp_len;
 
     /* see if next header is entirely within buffer */
     if ((log_buf->ptr + MAX_HDR_SIZE) > log_buf->r_length)
@@ -821,10 +822,9 @@ rvm_return_t validate_rec_forward(log,synch)
         tmp_ptr = RVM_OFFSET_TO_LENGTH(end_offset);
         if (tmp_ptr != CHOP_TO_LENGTH(tmp_ptr))
             goto no_record;             /* end marker alignment wrong */
-        if ((retval=load_aux_buf(log,&end_offset,sizeof(rec_end_t),
-                                 &tmp_ptr,(rvm_length_t *)&rec_end,
-                                 synch,rvm_false))
-            != RVM_SUCCESS) return retval;
+        retval = load_aux_buf(log, &end_offset, sizeof(rec_end_t),
+			      &tmp_ptr, &tmp_len, synch, rvm_false);
+        if (retval != RVM_SUCCESS) return retval;
         if (tmp_ptr == -1)
             goto no_record;             /* record end not available */
         rec_end = (rec_end_t *)&log_buf->aux_buf[tmp_ptr];
@@ -962,6 +962,7 @@ rvm_return_t validate_rec_reverse(log,synch)
     rec_end_t       *rec_end = NULL;    /* temporary cast for record end */
     rec_hdr_t       *rec_hdr;           /* temporary cast for record header */
     long            tmp_ptr;            /* temporary buffer ptr */
+    rvm_length_t    tmp_len;
     rvm_offset_t    offset;             /* temp for offset calculations */
     rvm_return_t    retval;
 
@@ -1015,9 +1016,9 @@ rvm_return_t validate_rec_reverse(log,synch)
         tmp_ptr = RVM_OFFSET_TO_LENGTH(offset);
         if (tmp_ptr != CHOP_TO_LENGTH(tmp_ptr))
             goto no_record;             /* header alignment wrong */
-        if ((retval=load_aux_buf(log,&offset,MAX_HDR_SIZE,&tmp_ptr,
-                                 (rvm_length_t *)&rec_hdr,synch,rvm_false))
-            != RVM_SUCCESS) return retval;
+        retval = load_aux_buf(log, &offset, MAX_HDR_SIZE, &tmp_ptr, &tmp_len,
+                              synch, rvm_false);
+        if (retval != RVM_SUCCESS) return retval;
         if (tmp_ptr == -1)
             goto no_record;             /* record header not available */
         rec_hdr = (rec_hdr_t *)&log_buf->aux_buf[tmp_ptr];
@@ -1221,7 +1222,7 @@ rvm_return_t locate_tail(log)
     rec_hdr_t       *rec_hdr;           /* current record scanned in buffer */
     long            old_ptr;            /* buffer ptr to last record found */
     struct timeval  save_last_trunc;
-    struct timeval  last_write;         /* last write to log */
+    struct timeval  last_write = status->last_write; /* last write to log */
     rvm_bool_t      save_rvm_utlsw = rvm_utlsw;
     rvm_return_t    retval = RVM_SUCCESS; /* return value */
 
