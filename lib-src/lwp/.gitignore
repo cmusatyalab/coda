@@ -20,6 +20,8 @@ depcomp
 install-sh
 libtool
 ltmain.sh
+lwp-uninstalled.pc
+lwp.pc
 missing
 mkinstalldirs
 stamp-h1
