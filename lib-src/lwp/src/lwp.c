@@ -437,7 +437,8 @@ int LWP_QSignal(PROCESS pid)
     pid->status = READY;
     lwpmove(pid, &blocked, &runnable[pid->priority]);
     lwpdebug(0, "LWP_QSignal: Just inserted %s into runnable queue\n", pid->name);
-    gettimeofday(&pid->lastReady, NULL);
+    if (timerisset(&run_wait_threshold))
+	gettimeofday(&pid->lastReady, NULL);
     return LWP_SUCCESS;	
 }
 
@@ -499,7 +500,9 @@ int LWP_CreateProcess(void (*ep)(void *), int stacksize, int priority,
     Initialize_Stack(stackptr, stacksize);
     Initialize_PCB(temp, priority, stackptr, stacksize, ep, parm, name);
     lwpinsert(temp, &runnable[priority]);
-    gettimeofday(&temp->lastReady, NULL);
+
+    if (timerisset(&run_wait_threshold))
+	gettimeofday(&temp->lastReady, NULL);
 
     LWP_DispatchProcess();
     *pid = temp;
@@ -660,7 +663,10 @@ static int InitializeProcessSupport(int priority, PROCESS *pid)
 	Initialize_PCB(temp, priority, NULL, 0, NULL, NULL, "Main Process");
 	lwpinsert(temp, &runnable[priority]);
 	lwp_cpptr = temp;
-	gettimeofday(&temp->lastReady, NULL);
+
+	if (timerisset(&run_wait_threshold))
+	    gettimeofday(&temp->lastReady, NULL);
+
 	LWP_DispatchProcess();
 	LWPANCHOR.outersp = temp->topstack;
 	if (pid) *pid = temp;
@@ -807,8 +813,12 @@ static int lwp_DispatchProcess(int dummy)
 	}
     }
     /* Move head of current runnable queue forward if current LWP is still in it. */
-    if (lwp_cpptr && lwp_cpptr == runnable[lwp_cpptr->priority].head) 
+    if (lwp_cpptr && lwp_cpptr == runnable[lwp_cpptr->priority].head) {
 	runnable[lwp_cpptr->priority].head = runnable[lwp_cpptr->priority].head -> next;
+	if (timerisset(&run_wait_threshold))
+	    gettimeofday(&lwp_cpptr->lastReady, NULL); /* back in queue */
+    }
+
 
     /* Find highest priority with runnable processes. */
     for (i=MAX_PRIORITIES-1; i>=0; i--)
@@ -822,9 +832,6 @@ static int lwp_DispatchProcess(int dummy)
     if (LWP_TraceProcesses > 0)
 	printf("Dispatch %d [PCB at %p] \"%s\"\n",
 	       ++dispatch_count, runnable[i].head, runnable[i].head->name);
-
-    if (old_cpptr)
-	gettimeofday(&old_cpptr->lastReady, NULL);	/* back in queue */
 
     lwp_cpptr = runnable[i].head;
     Cont_Sws++; /* number of context switches, for statistics */
@@ -919,7 +926,9 @@ static int Internal_Signal(void *event)
                         temp -> status = READY;
                         temp -> wakevent = i+1;
                         lwpmove(temp, &blocked, &runnable[temp->priority]);
-			gettimeofday(&temp->lastReady, NULL);
+
+			if (timerisset(&run_wait_threshold))
+			    gettimeofday(&temp->lastReady, NULL);
                         break;
 		    }
 		}
