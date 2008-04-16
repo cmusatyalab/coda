@@ -68,7 +68,7 @@ struct lwp_pcb {			/* process control block */
   char		*name;			/* ASCII name */
   int		rc;			/* most recent return code */
   char		status;			/* status flags */
-  char		**eventlist;		/* ptr to array of eventids */
+  const void  **eventlist;		/* ptr to array of eventids */
   char		eventlistsize;		/* size of eventlist array */
   int		eventcnt;		/* no. of events currently in eventlist array*/
   int		wakevent;		/* index of eventid causing wakeup */

@@ -310,9 +310,9 @@ int LWP_GetProcessPriority(PROCESS pid, int *priority)
     return 0;
 }
 
-int LWP_WaitProcess(void *event)
+int LWP_WaitProcess(const void *event)
 {
-    void *tempev[2];
+    const void *tempev[2];
 
     lwpdebug(0, "Entered Wait_Process");
     if (event == NULL) return LWP_EBADEVENT;
@@ -690,7 +690,7 @@ int LWP_Init(int version, int priority, PROCESS *pid)
 
 
 /* wait on m of n events */
-int LWP_MwaitProcess(int wcount, void *evlist[])
+int LWP_MwaitProcess(int wcount, const void *evlist[])
 {
 	int ecount, i;
 
@@ -709,9 +709,8 @@ int LWP_MwaitProcess(int wcount, void *evlist[])
 	    return LWP_EBADCOUNT;
 	}
 	if (ecount > lwp_cpptr->eventlistsize) {
-	    lwp_cpptr->eventlist = 
-		(char **)realloc((char *)lwp_cpptr->eventlist, 
-				 ecount*sizeof(char *));
+	    lwp_cpptr->eventlist = realloc(lwp_cpptr->eventlist,
+					   ecount*sizeof(void *));
 	    lwp_cpptr->eventlistsize = ecount;
 	}
 	for (i=0; i<ecount; i++) 
@@ -872,7 +871,7 @@ static void Initialize_PCB(PROCESS temp, int priority, char *stack,
 	temp->name = strdup(name);
 
     temp->status = READY;
-    temp->eventlist = (char **)malloc(EVINITSIZE*sizeof(char *));
+    temp->eventlist = malloc(EVINITSIZE*sizeof(void *));
     temp->eventlistsize = EVINITSIZE;
     temp->priority = priority;
     temp->index = lwp_nextindex++;
@@ -901,7 +900,7 @@ static void Initialize_PCB(PROCESS temp, int priority, char *stack,
     lwpdebug(0, "Leaving Initialize_PCB\n");
 }
 
-static int Internal_Signal(void *event)
+static int Internal_Signal(const void *event)
 {
     int rc = LWP_ENOWAIT;
     int i;
@@ -938,7 +937,7 @@ static int Internal_Signal(void *event)
     return rc;
 }    
 
-int LWP_INTERNALSIGNAL(void *event, int yield)
+int LWP_INTERNALSIGNAL(const void *event, int yield)
 {
     int rc;
     lwpdebug(0, "Entered LWP_SignalProcess");

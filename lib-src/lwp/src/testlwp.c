@@ -57,7 +57,7 @@ int main(int argc, char **argv)
     PROCESS pid, otherpid;
     register long i,  count, x;
     int j;
-    void *waitarray[2];
+    const void *waitarray[2];
     static char c[] = "OtherProcess";
 
     if (argc < 2)
