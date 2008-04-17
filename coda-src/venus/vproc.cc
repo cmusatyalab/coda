@@ -166,7 +166,7 @@ vproc *VprocSelf() {
 }
 
 
-void VprocWait(char *addr) {
+void VprocWait(const void *addr) {
 #ifdef VENUSDEBUG
     {
 	/* Sanity-check: vproc must not context-switch in mid-transaction! */
@@ -183,7 +183,7 @@ void VprocWait(char *addr) {
 }
 
 
-void VprocMwait(int wcount, char **addrs) {
+void VprocMwait(int wcount, const void **addrs) {
 #ifdef VENUSDEBUG
     {
 	/* Sanity-check: vproc must not context-switch in mid-transaction! */
@@ -200,7 +200,7 @@ void VprocMwait(int wcount, char **addrs) {
 }
 
 
-void VprocSignal(char *addr, int yield) {
+void VprocSignal(const void *addr, int yield) {
 #ifdef VENUSDEBUG
     if (yield) {
 	/* Sanity-check: vproc must not context-switch in mid-transaction! */
