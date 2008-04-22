@@ -1,18 +1,18 @@
 /* BLURB lgpl
 
-                           Coda File System
-                              Release 6
+			Coda File System
+			    Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
-                  Additional copyrights listed below
+	Copyright (c) 2007-2008 Carnegie Mellon University
+		Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
 the terms of the GNU General Public Licence Version 2, as shown in the
 file  LICENSE.  The  technical and financial  contributors to Coda are
 listed in the file CREDITS.
 
-                        Additional copyrights
-                           none currently
+		    Additional copyrights
+			none currently
 
 #*/
 
@@ -44,17 +44,17 @@ int getpeereid(int sock, uid_t *euid, gid_t *egid)
 	if (egid) *egid = ucred_getegid(cred);
 	ucred_free(cred);
     }
-#elif defined(SO_PEERCRED)
+#elif 0 // defined(SO_PEERCRED)
     struct ucred cred;
     socklen_t len = sizeof(struct ucred);
 
-    rc = getsockopt(sock,  SOL_SOCKET, SO_PEERCRED, &cred, &len);
+    rc = getsockopt(sock, SOL_SOCKET, SO_PEERCRED, &cred, &len);
     if (rc == 0) {
 	if (euid) *euid = cred.uid;
 	if (egid) *egid = cred.gid;
     }
 #else
-#warning "Need getpeereid(), getpeerucred(), or getsockopt(SO_PEERCRED) support"
+//#warning "Need getpeereid(), getpeerucred(), or getsockopt(SO_PEERCRED) support"
     if (euid) *euid = 65534; /* nobody */
     if (egid) *egid = 65534; /* nogroup */
 #endif
