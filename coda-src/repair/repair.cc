@@ -290,9 +290,10 @@ void rep_CompareDirs(int largc, char **largv) {
 
     msgbuf[0] = '\0';
     ret = CompareDirs(ConflictObj, fixfile, &inf, msgbuf, sizeof(msgbuf));
-    printf(msgbuf);
+    if (msgbuf[0])
+	printf("%s\n", msgbuf);
     if(ret == -1)
-      fprintf(stderr, "comparedirs failed!\n");
+	fprintf(stderr, "comparedirs failed!\n");
 }
 
 void rep_DoRepair(int largc, char **largv) {
