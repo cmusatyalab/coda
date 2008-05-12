@@ -67,7 +67,7 @@ Pittsburgh, PA.
 #include <unistd.h>
 #include "rpc2.private.h"
 #include <rpc2/se.h>
-#include "sftp.h"
+#include <rpc2/sftp.h>
 
 /*----------------------- Local procedure specs  ----------------------*/
 static long GetFile();

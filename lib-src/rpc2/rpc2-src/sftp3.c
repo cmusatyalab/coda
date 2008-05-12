@@ -61,7 +61,7 @@ Pittsburgh, PA.
 #include <unistd.h>
 #include "rpc2.private.h"
 #include <rpc2/se.h>
-#include "sftp.h"
+#include <rpc2/sftp.h>
 
 /* Globals: see sftp.h for descriptions; set by SFTP_Activate(), via SFTP_SetDefaults() */
 long SFTP_PacketSize;

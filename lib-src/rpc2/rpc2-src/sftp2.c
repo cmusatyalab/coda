@@ -57,7 +57,7 @@ Pittsburgh, PA.
 #include <assert.h>
 #include "rpc2.private.h"
 #include <rpc2/se.h>
-#include "sftp.h"
+#include <rpc2/sftp.h>
 
 static void ClientPacket();
 static void ServerPacket();

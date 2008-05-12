@@ -16,8 +16,8 @@ Coda are listed in the file CREDITS.
 
 #*/
 
-#ifndef _DLIST_H_
-#define _DLIST_H_
+#ifndef _DLLIST_H_
+#define _DLLIST_H_
 
 /*
  * doubly linked list implementation -- based on linux 

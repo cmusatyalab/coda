@@ -5,8 +5,8 @@ INCLUDES = -I$(top_builddir)/include -I$(top_srcdir)/include \
     -DRPC2DEBUG -DERRORTR -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
 LDADD = librpc2.la libse.la
 
-pkginclude_HEADERS = sftp.h
-noinst_HEADERS = rpc2.private.h test.h switchc2s.h switchs2c.h switchs2e.h
+noinst_HEADERS = rpc2.private.h dllist.h test.h \
+		 switchc2s.h switchs2c.h switchs2e.h
 lib_LTLIBRARIES = librpc2.la libse.la
 noinst_PROGRAMS = ctest stest rpc2test
 EXTRA_DIST = makeinc.sh errordb.txt fxor.s

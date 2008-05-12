@@ -51,7 +51,7 @@ Pittsburgh, PA.
 #include <string.h>
 #include "rpc2.private.h"
 #include <rpc2/se.h>
-#include "sftp.h"
+#include <rpc2/sftp.h>
 
 /* rightmost bits are ZERO-filled */
 void B_ShiftLeft(unsigned int *bMask, int bShift)

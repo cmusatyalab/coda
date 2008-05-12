@@ -51,7 +51,7 @@ Pittsburgh, PA.
 #include <lwp/timer.h>
 #include <rpc2/rpc2.h>
 #include <rpc2/se.h>
-#include "sftp.h"
+#include <rpc2/sftp.h>
 #include "test.h"
 
 #define SUBSYS_SRV 1001

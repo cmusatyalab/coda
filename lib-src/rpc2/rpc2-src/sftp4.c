@@ -54,7 +54,7 @@ Pittsburgh, PA.
 #include <assert.h>
 #include "rpc2.private.h"
 #include <rpc2/se.h>
-#include "sftp.h"
+#include <rpc2/sftp.h>
 #include "cbuf.h"
 
 #define TRACELEN 1000

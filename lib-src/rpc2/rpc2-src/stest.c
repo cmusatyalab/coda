@@ -53,7 +53,7 @@ Pittsburgh, PA.
 #include <rpc2/rpc2.h>
 #include <rpc2/rpc2_addrinfo.h>
 #include <rpc2/se.h>
-#include "sftp.h"
+#include <rpc2/sftp.h>
 #include "test.h"
 
 #ifndef INET_ADDRSTRLEN

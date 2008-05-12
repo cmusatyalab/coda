@@ -62,7 +62,7 @@ int lwp_nextindex;
 #include <lwp/timer.h>
 #include <rpc2/rpc2.h>
 #include <rpc2/se.h>
-#include "sftp.h"
+#include <rpc2/sftp.h>
 
 #define SUBSYS_SRV 1001
 
