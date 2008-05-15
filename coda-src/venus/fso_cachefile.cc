@@ -141,15 +141,14 @@ void CacheFile::Create(int newlength)
     int tfd;
     struct stat tstat;
     if (mkpath(name, V_MODE | 0100)<0)
-        CHOKE("CacheFile::Create: could not make path for %s", name);
+	CHOKE("CacheFile::Create: could not make path for %s", name);
     if ((tfd = ::open(name, O_RDWR | O_CREAT | O_TRUNC | O_BINARY, V_MODE)) < 0)
 	CHOKE("CacheFile::Create: open failed (%d)", errno);
 
-#ifndef __CYGWIN32__
-    if (::fchown(tfd, (uid_t)V_UID, (gid_t)V_GID) < 0)
-	CHOKE("CacheFile::Create: fchown failed (%d)", errno);
+#ifdef __CYGWIN32__
+    ::chown(name, (uid_t)V_UID, (gid_t)V_GID);
 #else
-    chown(name, (uid_t)V_UID, (gid_t)V_GID);
+    ::fchown(tfd, (uid_t)V_UID, (gid_t)V_GID);
 #endif
     if (::ftruncate(tfd, newlength) < 0)
       CHOKE("CacheFile::Create: ftruncate failed (%d)", errno);
@@ -165,8 +164,8 @@ void CacheFile::Create(int newlength)
 }
 
 
-/* 
- * copies a cache file, data and attributes, to a new one.  
+/*
+ * copies a cache file, data and attributes, to a new one.
  */
 int CacheFile::Copy(CacheFile *destination)
 {
@@ -186,21 +185,18 @@ int CacheFile::Copy(char *destname, int recovering)
     struct stat tstat;
 
     if (mkpath(destname, V_MODE | 0100) < 0) {
-        LOG(0, ("CacheFile::Copy: could not make path for %s\n", name));
+	LOG(0, ("CacheFile::Copy: could not make path for %s\n", name));
 	return -1;
     }
     if ((tfd = ::open(destname, O_RDWR|O_CREAT|O_TRUNC|O_BINARY, V_MODE)) < 0) {
 	LOG(0, ("CacheFile::Copy: open failed (%d)\n", errno));
 	return -1;
     }
-    if (::fchmod(tfd, V_MODE) < 0)
-	CHOKE("CacheFile::Copy: fchmod failed (%d)\n", errno);
+    ::fchmod(tfd, V_MODE);
 #ifdef __CYGWIN32__
-    if (::chown(destname, (uid_t)V_UID, (gid_t)V_GID) < 0)
-	CHOKE("CacheFile::ResetCopy: fchown failed (%d)\n", errno);
+    ::chown(destname, (uid_t)V_UID, (gid_t)V_GID);
 #else
-    if (::fchown(tfd, (uid_t)V_UID, (gid_t)V_GID) < 0)
-	CHOKE("CacheFile::Copy: fchown failed (%d)\n", errno);
+    ::fchown(tfd, (uid_t)V_UID, (gid_t)V_GID);
 #endif
     if ((ffd = ::open(name, O_RDONLY| O_BINARY, V_MODE)) < 0)
 	CHOKE("CacheFile::Copy: source open failed (%d)\n", errno);
