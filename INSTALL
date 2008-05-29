@@ -46,11 +46,8 @@ Building and installing
 # Build the entire tree (libraries, client (venus), server (codasrv)
 $ gmake
 
-# Install the libraries and programs needed to run venus.
-$ gmake client-install
-
-# Install the libraries and programs needed to run codasrv
-$ gmake server-install
+# Install the libraries and programs
+$ gmake install
 
 # Note that one may do both installs with no ill effects, e.g. on a
 # server that is also a client.
