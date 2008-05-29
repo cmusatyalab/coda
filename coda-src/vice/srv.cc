@@ -195,8 +195,10 @@ static int chk = 0;		// default 30
 static int ForceSalvage = 0;	// default 1
 static int SalvageOnShutdown = 0; // default 0 */
 
-static int ViceShutDown = 0;
 static int Statistics;
+
+/* we shut down the server by signalling the main thread */
+PROCESS mainPid;
 
 /* static int ProcSize = 0; */
 
@@ -241,13 +243,12 @@ static void AuthLWP(void *);
 static void ServerLWP(void *);
 static void ResLWP(void *);
 static void CallBackCheckLWP(void *);
-static void CheckLWP(void *);
 
 static void ClearCounters();
 static void FileMsg();
 static void SetDebug(int ign);
 static void ResetDebug(int ign);
-static void ShutDown();
+static void ShutDown(void);
 
 static int ReadConfigFile(void);
 static int ParseArgs(int, char **);
@@ -317,7 +318,7 @@ int main(int argc, char *argv[])
     char    sname[20];
     int     i;
     struct stat buff;
-    PROCESS parentPid, serverPid, resPid, smonPid, resworkerPid;
+    PROCESS serverPid, resPid, smonPid, resworkerPid;
     RPC2_PortIdent port1, *portlist[1];
     RPC2_SubsysIdent server;
     SFTP_Initializer sei;
@@ -399,7 +400,7 @@ int main(int argc, char *argv[])
     CLIENT_InitHostTable();
 
     SLog(0, "Main process doing a LWP_Init()");
-    CODA_ASSERT(LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY,&parentPid)==LWP_SUCCESS);
+    CODA_ASSERT(LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, &mainPid) == LWP_SUCCESS);
 
     /* using rvm - so set the per thread data structure for executing
        transactions */
@@ -521,9 +522,6 @@ int main(int argc, char *argv[])
     CODA_ASSERT(LWP_CreateProcess(CallBackCheckLWP, stack*1024, LWP_NORMAL_PRIORITY,
 				  (void *)&cbwait, "CheckCallBack", &serverPid) == LWP_SUCCESS);
 
-    CODA_ASSERT(LWP_CreateProcess(CheckLWP, stack*1024, LWP_NORMAL_PRIORITY,
-				  (void *)&chk, "Check", &serverPid) == LWP_SUCCESS);
-
     for (i=0; i < auth_lwps; i++) {
 	sprintf(sname, "AuthLWP-%d",i);
 	CODA_ASSERT(LWP_CreateProcess(AuthLWP, stack*1024, LWP_NORMAL_PRIORITY,
@@ -580,7 +578,11 @@ int main(int argc, char *argv[])
 
     gogogo(parent);
 
-    CODA_ASSERT(LWP_WaitProcess((char *)&parentPid) == LWP_SUCCESS);
+    /* wait for shutdown signal */
+    LWP_QWait();
+
+    ShutDown();
+
     exit(0);
 }
 
@@ -602,7 +604,6 @@ static void AuthLWP(void *arg)
     /* Not sure if the connection setup actually uses rvm, but allocate the
      * per thread data structure just in case */
     rvm_perthread_t rvmptt;
-    rvmlib_init_threaddata(&rvmptt);
 
     SLog(0, "Starting AuthLWP-%d", lwpid);
 
@@ -858,56 +859,9 @@ static void CallBackCheckLWP(void *arg)
     }
 }
 
-
-static void CheckLWP(void *arg)
-{
-    struct timeval  time;
-    struct timeval  tpl;
-    struct timezone tspl;
-    ProgramType *pt;
-    rvm_perthread_t rvmptt;
-    char *rock;
-
-    /* using rvm - so set the per thread data structure for executing
-       transactions */
-    rvmlib_init_threaddata(&rvmptt);
-    SLog(0, "CheckLWP just did a rvmlib_set_thread_data()\n");
-
-    /* tag lwps as fsUtilities */
-    pt = (ProgramType *) malloc(sizeof(ProgramType));
-    *pt = fsUtility;
-    CODA_ASSERT(LWP_NewRock(FSTAG, (char *)pt) == LWP_SUCCESS);
-
-
-    SLog(1, "Starting Check process");
-    time.tv_sec = chk;
-    time.tv_usec = 0;
-
-    while (1) {
-	if (IOMGR_Select(0, 0, 0, 0, &time) == 0) {
-	    if(ViceShutDown) {
-		ProgramType *pt, tmp_pt;
-
-		TM_GetTimeOfDay(&tpl, &tspl);
-		SLog(0, "Shutting down the File Server %s",
-		     ctime((const time_t *)&tpl.tv_sec));
-		CODA_ASSERT(LWP_GetRock(FSTAG, &rock) == LWP_SUCCESS);
-		/* masquerade as fileServer lwp */
-		pt = (ProgramType *)rock;
-		tmp_pt = *pt;
-		*pt = fileServer;
-	    	ShutDown();
-		*pt = tmp_pt;
-	    }
-
-	    if(time.tv_sec != chk) time.tv_sec = chk;
-	  }
-    }
-}
-
 static void ShutDown()
 {
-    int     fd;
+    int fd;
 
     PrintCounters(stdout);
 
@@ -918,7 +872,7 @@ static void ShutDown()
 	while (myflock(fvlock, MYFLOCK_UN, MYFLOCK_BL) != 0);
 	SLog(9, "Done");
 	close(fvlock);
-	
+
 	ProgramType *pt, tmppt;
 	char *rock;
 	CODA_ASSERT(LWP_GetRock(FSTAG, &rock) == LWP_SUCCESS);
@@ -935,7 +889,6 @@ static void ShutDown()
     close(fd);
     exit(0);
 }
-
 
 
 
@@ -1250,6 +1203,12 @@ void rds_printer(char *fmt ...)
   va_end(ap);
 }
 
+static void SigTerm(int sig)
+{
+    SLog(0, "SigTerm received, shutting down");
+    LWP_QSignal(mainPid);
+}
+
 /*
  * SwapLog: Reopen the /"vicedir"/srv/SrvLog and SrvErr files. If some other
  * process such as logrotate has moved the old logfile aside we'll start
@@ -1294,8 +1253,8 @@ static void FileMsg()
 */
 void ViceTerminate()
 {
-    ViceShutDown = 1;
     SLog(0, "Shutdown received");
+    LWP_QSignal(mainPid);
 }
 
 
@@ -1684,7 +1643,10 @@ static int DaemonizeSrv(const char *pidfile)
 #endif
     memset(&sa, 0, sizeof(sa));
     sa.sa_flags = SA_RESTART;
-    
+
+    sa.sa_handler = SigTerm;
+    sigaction(SIGTERM, &sa, NULL);
+
     sa.sa_handler = ResetDebug;
     sigaction(SIGUSR2, &sa, NULL);
 
