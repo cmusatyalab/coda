@@ -17,6 +17,9 @@
 # 
 #*/
 
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+
 echon() {
     if [ "`echo -n`" = "-n" ] ; then
         echo "$@"'\c'
@@ -32,7 +35,7 @@ set -e
 # Configuration
 #
 vicedir=/vice
-. "`codaconfedit server.conf`"
+. "`@sbindir@/codaconfedit server.conf`"
 
 # Set up password and group files for Coda
 
@@ -84,7 +87,7 @@ until [ "x$username" != x ]; do
 done
 
 if [ -f prot_users.cdb ] ; then
-  echo "Going to rebuild the protection databases"
+  echo "Going to reinitialize the protection databases"
   echo "moving ${vicedir}/db/prot_users.cdb to ${vicedir}/db/prot_users.cdb.old"
   mv prot_users.cdb prot_users.cdb.old
 fi
@@ -96,12 +99,12 @@ ng System:Administrators $userid
 ng System:AnyUser System
 EOF
 
-pdbtool source pdbsetup
+@sbindir@/pdbtool source pdbsetup
 rm pdbsetup
 
 # make sure we don't make the auth2.pw file world-readable
 ( umask 077
 echo "$userid	changeme	admin user" > passwd.coda
-initpw -k "drseuss " < passwd.coda > auth2.pw
+@sbindir@/initpw -k "drseuss " < passwd.coda > auth2.pw
 rm passwd.coda )
 

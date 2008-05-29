@@ -174,6 +174,12 @@ AC_CONFIG_FILES([coda-src/scripts/vice-setup],
        [chmod +x coda-src/scripts/vice-setup])
 AC_CONFIG_FILES([coda-src/scripts/vice-setup-rvm],
        [chmod +x coda-src/scripts/vice-setup-rvm])
+AC_CONFIG_FILES([coda-src/scripts/vice-setup-scm],
+       [chmod +x coda-src/scripts/vice-setup-scm])
+AC_CONFIG_FILES([coda-src/scripts/vice-setup-srvdir],
+       [chmod +x coda-src/scripts/vice-setup-srvdir])
+AC_CONFIG_FILES([coda-src/scripts/vice-setup-user],
+       [chmod +x coda-src/scripts/vice-setup-user])
 AC_CONFIG_FILES([coda-src/vtools/gcodacon],
        [chmod +x coda-src/vtools/gcodacon])
 AC_CONFIG_FILES([

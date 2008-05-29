@@ -17,6 +17,9 @@
 # 
 #*/
 
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+
 echon() {
     if [ "`echo -n`" = "-n" ] ; then
         echo "$@"'\c'
@@ -33,7 +36,7 @@ set -e 1
 #
 numservers=1
 
-. "`codaconfedit server.conf`"
+. "`@sbindir@/codaconfedit server.conf`"
 
 if [ x${vicedir} = x ] ; then
   vicedir=/vice
@@ -81,7 +84,7 @@ if [ $numservers -eq 1 ]; then
 else 
     n=1;
     while [ $n -le $numservers ]; do
-        . "`codaconfedit server_$n.conf`"
+        . "`@sbindir@/codaconfedit server_$n.conf`"
         id=""
 	until [ "x$id" != x ]; do
 	    echo "Enter an id for server number $n. ($hostname)"
