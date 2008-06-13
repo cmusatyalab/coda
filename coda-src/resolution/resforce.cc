@@ -291,15 +291,14 @@ long RS_DoForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
 	CodaBreakCallBack(0, Fid, VSGVolnum);
     }
 
-    SLog(0,
-	   "RS_DoForceDirOps: Owner just before forcing dir contents is %d",
-	   dirvptr->disk.owner);
+    SLog(0, "RS_DoForceDirOps: Owner just before forcing dir contents is %d",
+	 dirvptr->disk.owner);
     /* do the actual directory ops */
     {
 	SLog(9,  "RS_DoForceDirOps: Going to force directory(%x.%x.%x)",
 		repvolid, dirvptr->vnodeNumber, dirvptr->disk.uniquifier);
 	if ((errorCode = ForceDir(pv, volptr, repvolid, forceList, 
-				 vlist, &deltablocks))) {
+				  vlist, &deltablocks))) {
 	    SLog(0,  "Error %d in ForceDir", errorCode);
 	    *rstatus = EINVAL;
 	    goto FreeLocks;
@@ -566,15 +565,15 @@ static int CheckForceDirSemantics(olist *flist, Volume *volptr, Vnode *dirvptr) 
 /* Forces the ops specified in forceList onto the directory.
  * Adds the newly created vnode pointers to the commitvlist.
  */
-int ForceDir(vle *pv, Volume *volptr, VolumeId repvolid, 
-	     olist *forceList, dlist *vlist, int *deltablocks) 
+static int ForceDir(vle *pv, Volume *volptr, VolumeId repvolid,
+		    olist *forceList, dlist *vlist, int *deltablocks)
 {
-    SLog(9,  "Entering ForceDir(%x.%x.%x)", 
-	    repvolid, pv->vptr->vnodeNumber, pv->vptr->disk.uniquifier);
+    SLog(9,  "Entering ForceDir(%x.%x.%x)",
+	 repvolid, pv->vptr->vnodeNumber, pv->vptr->disk.uniquifier);
     diroplink *p;
     ViceFid parentFid;
     int errorCode = 0;
-    
+
     *deltablocks = 0;
     parentFid.Volume = V_id(volptr);
     parentFid.Vnode = pv->vptr->vnodeNumber;
@@ -591,24 +590,24 @@ int ForceDir(vle *pv, Volume *volptr, VolumeId repvolid,
 	switch(p->op) {
 	  case CreateD:
 	    {
-		    SLog(9,  "ForceDir: CreateD: %x.%x.%x %s",
-			 cFid.Volume, cFid.Vnode, cFid.Unique, p->name);
+		SLog(9,  "ForceDir: CreateD: %x.%x.%x %s",
+		     cFid.Volume, cFid.Vnode, cFid.Unique, p->name);
 		int tblocks = 0;
 		vle *cv = AddVLE(*vlist, &cFid);
 		cv->d_inodemod = 1;
-		if ((errorCode = AllocVnode(&cv->vptr, volptr, 
-					   (ViceDataType)vDirectory, &cFid, 
-					   &parentFid, 0, 1, &tblocks)))
-		    return(errorCode);
+		errorCode = AllocVnode(&cv->vptr, volptr,
+				       (ViceDataType)vDirectory, &cFid,
+				       &parentFid, 0, 1, &tblocks);
+		if (errorCode)
+		    return errorCode;
 		*deltablocks += tblocks;
 		tblocks = 0;
-		
+
 		errorCode = PerformMkdir(0, repvolid, volptr, pv->vptr,
-					 cv->vptr, p->name, time(0), 0666, 0,
+					 cv->vptr, p->name, time(0), 0777, 0,
 					 NULL, &pv->d_cinode, &tblocks);
+
 		*deltablocks += tblocks;
-		CODA_ASSERT(errorCode == 0);
-		
 		cv->vptr->delete_me = 1;
 	    }
 	    break;
@@ -618,18 +617,18 @@ int ForceDir(vle *pv, Volume *volptr, VolumeId repvolid,
 			cFid.Volume, cFid.Vnode, cFid.Unique, p->name);
 		int tblocks = 0;
 		vle *cv = AddVLE(*vlist, &cFid);
-		if ((errorCode = AllocVnode(&cv->vptr, volptr, (ViceDataType)vFile, &cFid,
-					   &parentFid, 0, 1, &tblocks)))
-		    return(errorCode);
+		errorCode = AllocVnode(&cv->vptr, volptr, (ViceDataType)vFile,
+				       &cFid, &parentFid, 0, 1, &tblocks);
+		if (errorCode)
+		    return errorCode;
 		*deltablocks += tblocks;
 		tblocks = 0;
-		
+
 		errorCode = PerformCreate(0, repvolid, volptr, pv->vptr,
 					  cv->vptr, p->name, time(0), 0666, 0,
 					  NULL, &pv->d_cinode, &tblocks);
 		*deltablocks += tblocks;
-		CODA_ASSERT(errorCode == 0);
-		
+
 		/*create the inode */
 		cv->vptr->disk.dataVersion = 1;
 		cv->f_finode = icreate(V_device(volptr), V_id(volptr),
@@ -645,17 +644,17 @@ int ForceDir(vle *pv, Volume *volptr, VolumeId repvolid,
 	  case CreateL:
 	    {
 		SLog(9,  "ForceDir: CreateL: %x.%x.%x %s",
-			cFid.Volume, cFid.Vnode, cFid.Unique, p->name);    
+		     cFid.Volume, cFid.Vnode, cFid.Unique, p->name);
 		int tblocks = 0;
 		vle *cv = FindVLE(*vlist, &cFid);
 		CODA_ASSERT(cv != 0);
 		CODA_ASSERT(cv->vptr != 0);
-		
+
 		CODA_ASSERT(cv->vptr->disk.linkCount > 0);
 		errorCode = PerformLink(0, repvolid, volptr, pv->vptr,
 					cv->vptr, p->name, time(0), 0, NULL,
 					&pv->d_cinode, &tblocks);
-		CODA_ASSERT(errorCode == 0);
+
 		*deltablocks += tblocks;
 	    }
 	    break;
@@ -665,19 +664,20 @@ int ForceDir(vle *pv, Volume *volptr, VolumeId repvolid,
 			cFid.Volume, cFid.Vnode, cFid.Unique, p->name);
 		int tblocks = 0;
 		vle *cv = AddVLE(*vlist, &cFid);
-		if ((errorCode = AllocVnode(&cv->vptr, volptr, (ViceDataType)vSymlink, &cFid, 
-					   &parentFid, 0, 1, &tblocks)))
-		    return(errorCode);
+		errorCode = AllocVnode(&cv->vptr, volptr,
+				       (ViceDataType)vSymlink, &cFid,
+				       &parentFid, 0, 1, &tblocks);
+		if (errorCode)
+		    return errorCode;
 		*deltablocks += tblocks;
 		tblocks = 0;
-		
+
 		errorCode = PerformSymlink(0, repvolid, volptr, pv->vptr,
 					   cv->vptr, p->name, 0, 0, time(0),
-					   0666, 0, NULL, &pv->d_cinode,
+					   0777, 0, NULL, &pv->d_cinode,
 					   &tblocks);
 		*deltablocks += tblocks;
-		CODA_ASSERT(errorCode == 0);
-		
+
 		/*create the inode */
 		cv->vptr->disk.dataVersion = 1;
 		cv->f_finode = icreate(V_device(volptr), V_id(volptr),
@@ -700,7 +700,7 @@ int ForceDir(vle *pv, Volume *volptr, VolumeId repvolid,
 	dlist_iterator next(*vlist);
 	vle *v;
 	if (!errorCode)
-	    while ((v = (vle *)next())) 
+	    while ((v = (vle *)next()))
 		if ((v->vptr->delete_me == 1) &&
 		    (v->vptr->disk.linkCount > 0))
 		    v->vptr->delete_me = 0;
