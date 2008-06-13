@@ -60,7 +60,8 @@ void rvmlib_set_thread_data(void *p) {
     if (lwprc != LWP_SUCCESS) 
 	    abort();
 }
-void rvmlib_begin_transaction(int restore_mode)
+
+void _rvmlib_begin_transaction(int restore_mode, const char file[], int line)
 {
     rvm_perthread_t *_rvm_data;
     rvm_return_t _status;
@@ -73,6 +74,9 @@ void rvmlib_begin_transaction(int restore_mode)
 	    if (_rvm_data == 0) 
 		    RVMLIB_ASSERT("BeginTransaction: _rvm_data = 0");
 	    if (_rvm_data->tid != 0) {
+		    fprintf(stderr, "rvmlib_begin_transacion: "
+			    "transaction already started at %s:%d\n",
+			    _rvm_data->file, _rvm_data->line);
 		    RVMLIB_ASSERT("_rvm_data->tid is non zero during begin transaction");
 	    }
 	    rvm_init_tid(&(_rvm_data->tids));
@@ -80,8 +84,12 @@ void rvmlib_begin_transaction(int restore_mode)
 	    _rvm_data->list.table = NULL;
 	    _rvm_data->list.count = 0;
 	    _rvm_data->list.size = 0;
-	    /* Begin the transaction. */
 
+	    /* track where the transaction was started */
+	    _rvm_data->file = file;
+	    _rvm_data->line = line;
+
+	    /* Begin the transaction. */
 	    _status = rvm_begin_transaction(_rvm_data->tid, restore_mode);
 	    if (_status != RVM_SUCCESS)
 		    CODA_ASSERT(0);
@@ -90,7 +98,7 @@ void rvmlib_begin_transaction(int restore_mode)
 	    _status = RVM_SUCCESS;
 	    break;
     default:
-        CODA_ASSERT(0);
+	    CODA_ASSERT(0);
     }
 }
 

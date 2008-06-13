@@ -60,6 +60,10 @@ typedef struct {
 	rvm_tid_t tids;
 	/*	jmp_buf abort; */
 	intentionList_t list;
+
+	/* where was the transaction started */
+	const char *file;
+	int line;
 } rvm_perthread_t;
 
 
@@ -90,7 +94,9 @@ void rvmlib_init_threaddata(rvm_perthread_t *rvmptt);
 extern void rvmlib_set_thread_data(void *);
 rvm_perthread_t *rvmlib_thread_data(void);
 
-void rvmlib_begin_transaction(int restore_mode);
+#define rvmlib_begin_transaction(restore_mode) \
+    _rvmlib_begin_transaction(restore_mode, __FILE__, __LINE__);
+void _rvmlib_begin_transaction(int restore_mode, const char file[], int line);
 void rvmlib_end_transaction(int flush_mode, rvm_return_t *statusp);
 
 

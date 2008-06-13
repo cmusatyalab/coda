@@ -531,9 +531,9 @@ static void Recov_LoadRDS()
 }
 
 /* Venus transaction handling */
-void Recov_BeginTrans(void)
+void _Recov_BeginTrans(const char file[], int line)
 {
-	rvmlib_begin_transaction(no_restore);
+	_rvmlib_begin_transaction(no_restore, file, line);
 }
 
 void Recov_EndTrans(int time)

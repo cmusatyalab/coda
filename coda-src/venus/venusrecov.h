@@ -146,7 +146,8 @@ extern unsigned long MAXTS;
 
 /*  *****  Functions  *****  */
 
-void Recov_BeginTrans();
+#define Recov_BeginTrans() _Recov_BeginTrans(__FILE__, __LINE__)
+void _Recov_BeginTrans(const char file[], int line);
 void Recov_EndTrans(int);
 void Recov_SetBound(int);
 void RecovInit();
