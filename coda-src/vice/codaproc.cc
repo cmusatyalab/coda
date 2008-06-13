@@ -313,24 +313,24 @@ static long ViceResolveOne(vrent *vre, int reson, ViceFid *Fid, DirFid *HintFid)
 
     for (j = 0; j < VSG_MEMBERS; j++) {
 	    RPC2_Handle Handle = mgrp->rrcc.handles[j];
-	    RPC2_Integer rc; 
+	    RPC2_Integer rc;
 
-	    if ( !mgrp->rrcc.hosts[j] ) 
+	    if ( !mgrp->rrcc.hosts[j] )
 		    continue;
 
 	    rc = Res_LockAndFetch(Handle, Fid, FetchStatus, VVvar_ptrs[j],
 				  rstatusvar_ptrs[j], logsizesvar_ptrs[j]);
 	    mgrp->rrcc.retcodes[j] = rc;
     }
-				    
-    // delete hosts from mgroup where rpc failed 
+
+    // delete hosts from mgroup where rpc failed
     (void)mgrp->CheckResult();
 
-    // delete hosts from mgroup where rpc succeeded but call returned error 
+    // delete hosts from mgroup where rpc succeeded but call returned error
     lockerror = CheckResRetCodes(mgrp->rrcc.retcodes, mgrp->rrcc.hosts, hosts);
     errorCode = mgrp->GetHostSet(hosts);
 
-    // call resolve on object  only if no locking errors 
+    // call resolve on object, only if no locking errors
     if ( errorCode || lockerror )
 	    goto UnlockExit;
 
@@ -348,12 +348,16 @@ static long ViceResolveOne(vrent *vre, int reson, ViceFid *Fid, DirFid *HintFid)
 	    resError = FileResolve(mgrp, Fid, VVvar_ptrs);
     }
 
-    
+
  UnlockExit:
-    // reget the host set - want to unlock wherever we locked volume 
-    vre->GetHosts(hosts);
+    /* reget the host set - want to unlock wherever we locked the volume */
+    /* but we shouldn't unlock if there was a lock error, we might otherwise
+     * unlock a lock we already had taken from another worker thread */
+    if (!lockerror) {
+	vre->GetHosts(hosts);
+    }
     mgrp->GetHostSet(hosts);
-    MRPC_MakeMulti(UnlockVol_OP, UnlockVol_PTR, VSG_MEMBERS, 
+    MRPC_MakeMulti(UnlockVol_OP, UnlockVol_PTR, VSG_MEMBERS,
 		   mgrp->rrcc.handles, mgrp->rrcc.retcodes,
 		   mgrp->rrcc.MIp, 0, 0, Fid->Volume);
 

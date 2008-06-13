@@ -59,7 +59,7 @@ extern "C" {
 
 
 long RS_LockAndFetch(RPC2_Handle RPCid, ViceFid *Fid,
-		     ResFetchType Request, ViceVersionVector *VV, 
+		     ResFetchType Request, ViceVersionVector *VV,
 		     ResStatus *rstatus, RPC2_Integer *logsize)
 {
     int errorcode = 0;
@@ -84,43 +84,44 @@ long RS_LockAndFetch(RPC2_Handle RPCid, ViceFid *Fid,
 	return(EINVAL);
     }
 
-    // translate replicated VolumeId to rw id 
-    if (!XlateVid(&Fid->Volume)){
-	    SLog(0,  "RS_LockAndFetch: Couldnt translate Vid for %s", 
+    // translate replicated VolumeId to rw id
+    if (!XlateVid(&Fid->Volume)) {
+	    SLog(0,  "RS_LockAndFetch: Couldnt translate Vid for %s",
 		 FID_(Fid));
 	    return EINVAL;
     }
 
-    if ((errorcode = GetVolObj(Fid->Volume, &volptr, 
-			      VOL_EXCL_LOCK, 1, 
-			      cip->GetRemoteHost()))) {
+    errorcode = GetVolObj(Fid->Volume, &volptr, VOL_EXCL_LOCK, 1,
+			  cip->GetRemoteHost());
+    if (errorcode) {
 	    SLog(0,  "RS_LockAndFetch: Error %d during GetVolObj for %s",
 		 errorcode, FID_(Fid));
 	    return errorcode;
     }
 
     /* this Vnode is obtained to get at its logs, and then put away */
-    if ((errorcode = GetFsObj(Fid, &volptr, &vptr, 
-			  READ_LOCK, NO_LOCK, 1, 0, 0))){/*ignore incon*/
-	    SLog(0,  "RS_LockAndFetch: GetFsObj for %s returned error %d", 
+    /* ignore inconsistencies */
+    errorcode = GetFsObj(Fid, &volptr, &vptr, READ_LOCK, NO_LOCK, 1, 0, 0);
+    if (errorcode) {
+	    SLog(0,  "RS_LockAndFetch: GetFsObj for %s returned error %d",
 		 FID_(Fid), errorcode);
 	    goto FreeLocks;
     }
 
-    // set out parameter 
+    // set out parameter
     memcpy(VV, &(Vnode_vv(vptr)), sizeof(ViceVersionVector));
     ObtainResStatus(rstatus, &(vptr->disk));
 
-    /* set log size as the volume log size - 
-       that is the max log size a client 
+    /* set log size as the volume log size -
+       that is the max log size a client
        can send in the collect logs phase */
     if (AllowResolution && V_RVMResOn(volptr)) {
-	    // set size to max possible 
-	    // by using rename_rle we hope that all strings will fit 
+	    // set size to max possible
+	    // by using rename_rle we hope that all strings will fit
 	    // in the buffer length being returned.
 	    nentries = V_VolLog(volptr)->size;
 	    CODA_ASSERT(nentries > 0);
-	
+
 	    // *logsize = nentries * (sizeof(recle) + sizeof(rename_rle));
 	    *logsize = nentries * 200;
 	    SLog(39, "RS_LockAndFetch: Returning recov. logsize = %d\n",
@@ -145,14 +146,14 @@ FreeLocks:
 	    /* release the lock */
 	    PutVolObj(&volptr, VOL_EXCL_LOCK, 1);
     else
-            /* no errors, release the volume but keep the look */
+	    /* no errors, release the volume but keep the lock */
 	    PutVolObj(&volptr, NO_LOCK);
 
     return(errorcode);
 }
 
 
-long RS_UnlockVol(RPC2_Handle RPCid, VolumeId Vid) 
+long RS_UnlockVol(RPC2_Handle RPCid, VolumeId Vid)
 {
     Volume *volptr = 0;
     int errorcode = 0;
@@ -162,22 +163,22 @@ long RS_UnlockVol(RPC2_Handle RPCid, VolumeId Vid)
 	SLog(0,  "RS_UnlockVol: Couldnt get conn info");
 	return(EINVAL);
     }
-    
+
     if (!XlateVid(&Vid)){
 	SLog(0,  "RS_UnlockVol: Couldnt XlateVid %x",
 		Vid);
 	return(EINVAL);
     }
-    
+
     /* get volume and check if locked */
-    if ( (errorcode = GetVolObj(Vid, &volptr, 
-			      VOL_NO_LOCK, 0, 0))) {
-	SLog(0,  "RS_UnlockVol: GetVolObj error %d for %x", 
-		errorcode, Vid);
+    errorcode = GetVolObj(Vid, &volptr, VOL_NO_LOCK, 0, 0);
+    if (errorcode) {
+	SLog(0,  "RS_UnlockVol: GetVolObj error %d for %x", errorcode, Vid);
 	return(errorcode);
     }
+
     /* make sure unlocker is locker */
-    if (V_VolLock(volptr).IPAddress && 
+    if (V_VolLock(volptr).IPAddress &&
 	V_VolLock(volptr).IPAddress != cip->GetRemoteHost()){
 	    SLog(0,  "RS_UnlockVol: unlocker != locker for %x", Vid);
 	    VPutVolume(volptr);
@@ -189,7 +190,4 @@ long RS_UnlockVol(RPC2_Handle RPCid, VolumeId Vid)
     PROBE(tpinfo, RESEND);
     return(0);
 }
-
-
-
 
