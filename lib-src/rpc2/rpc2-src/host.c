@@ -422,7 +422,7 @@ static uint32_t rpc2_GetRTO(struct HEntry *he, uint32_t outb, uint32_t inb,
     rto = LUA_rtt_getrto(he, outb, inb);
     if ((int32_t)rto <= 0) {
 	rttvar = he->RTTvar >> RPC2_RTTVAR_SHIFT;
-	getestimates(he, inb, outb, &rtt_lat, &rtt_in, &rtt_out);
+	getestimates(he, outb, inb, &rtt_lat, &rtt_in, &rtt_out);
 	rto = rtt_lat + rtt_out + rtt_in + (rttvar << 1);
 	say(4, RPC2_DebugLevel,
 	    "rpc2_GetRTO: rto %u, lat %u, out %u, in %u, var %u\n",

@@ -688,8 +688,8 @@ static long GetFile(struct SFTP_Entry *sEntry)
     packetsize = sEntry->PacketSize + sizeof(struct RPC2_PacketHeader);
     while (sEntry->XferState == XferInProgress) {
 	for (i = 0; i < sEntry->RetryCount; i++) {
-	    pb = AwaitPacket(sEntry, i, packetsize,
-			     sizeof(struct RPC2_PacketHeader));
+	    pb = AwaitPacket(sEntry, i, sizeof(struct RPC2_PacketHeader),
+			     packetsize);
 
 	    /* Make sure nothing bad happened while we were waiting */
 	    if (sEntry->WhoAmI == ERROR) {
@@ -802,7 +802,7 @@ static long PutFile(struct SFTP_Entry *sEntry)
 
     while (sEntry->XferState == XferInProgress) {
 	for (i = 0; i < sEntry->RetryCount; i++) {
-	    pb = AwaitPacket(sEntry, i, sizeof(struct RPC2_PacketHeader),bytes);
+	    pb = AwaitPacket(sEntry, i, bytes,sizeof(struct RPC2_PacketHeader));
 
 	    /* Make sure nothing bad happened while we were waiting */
 	    if (sEntry->WhoAmI == ERROR) {
