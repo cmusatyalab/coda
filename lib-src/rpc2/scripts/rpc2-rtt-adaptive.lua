@@ -51,6 +51,8 @@ end
 function rtt_update(host, elapsed, bytes_sent, bytes_recv)
     local rto, rtt_lat, rtt_send, rtt_recv, err
 
+    if not elapsed then return end
+
     -- Get current estimates
     rto, rtt_lat, rtt_send, rtt_recv = estimate(host, bytes_sent, bytes_recv)
 
