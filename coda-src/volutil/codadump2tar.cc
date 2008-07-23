@@ -93,6 +93,7 @@ public:
   /* the following are only used by directories */
   unsigned int isdir;
   unsigned int children;
+  unsigned int owner;
   unsigned int dir_mtime;
 
   DumpObject(VnodeId, Unique_t);
@@ -146,6 +147,9 @@ char *RootName;
 int DebugLevel = 0; /* set by "-d xxx" command line switch */
 #define DEBUG_HEAVY  (DebugLevel >= 10)
 #define DEBUG_LIGHT  (DebugLevel > 0 && DebugLevel < 10)
+
+int Verbose = 0; /* set by "-v" command line switch */
+size_t Bytes = 0;
 
 /* Hash table of all objects found in dump */
 ohashtab *DumpTable;
@@ -294,6 +298,10 @@ int main(int argc, char **argv)
   delete DStream;
   TarObj.WriteZeroTrailer();
   fclose(TarFile);
+
+  if (Verbose) {
+      fprintf(stderr, "Total bytes written: %lu\n", (unsigned long)Bytes);
+  }
   exit(0);
 }
 
@@ -340,13 +348,19 @@ void ParseArgs(int argc, char **argv)
       continue;
     }
 
+    /* [ -v ] */
+    if (!strcmp(argv[i], "-v")) {
+      Verbose = 1;
+      continue;
+    }
+
     goto BogusArgs; /* unknown flag */
 
   }
   return; /* done with all args */
 
  BogusArgs:
-    printf("Usage: codadump2tar [-f <dumpfilename>] [-o <tarfilename>] [-d <debuglevel>] [-hp <hashpower>] [-rn <rootname>]\n");
+    printf("Usage: codadump2tar [-v] [-f <dumpfilename>] [-o <tarfilename>] [-d <debuglevel>] [-hp <hashpower>] [-rn <rootname>]\n");
     exit(-1);
 
 }
@@ -413,6 +427,7 @@ int ProcessDirectory()
 
   /* fill in missing pieces */
   CurrentDir->isdir = 1;
+  CurrentDir->owner = (unsigned int) vdo->owner;
   CurrentDir->dir_mtime = (unsigned int) vdo->unixModifyTime;
 
   /* add pointer to this object in list of large vnodes */
@@ -465,13 +480,12 @@ void CreateEmptyDirectories()
        failures when trying to create subdirectories via "tar xvf" of output
        tarball in normal Unix systems.
     */
-       
     TarObj.Reset();
     TarObj.tr_type = DIRTYPE;
     TarObj.tr_mode = 0755;
-    TarObj.tr_uid = 0;
+    TarObj.tr_uid = thisd->owner;
     TarObj.tr_size = 0;
-    TarObj.tr_mtime = (unsigned int) thisd->dir_mtime;
+    TarObj.tr_mtime = thisd->dir_mtime;
     TarObj.GetNameParts(thisd);
 
     /* fill and output this tar record */
@@ -553,6 +567,8 @@ int ProcessFileOrSymlink()
     fprintf(stderr, "ERROR: Couldn't read file content from dump file\n");
     exit(-1);
   }
+
+  Bytes += smallv.length;
 
   /* We are done!  DStream should be at next small vnode (or EOF) */
   return 0;
@@ -785,6 +801,12 @@ void TarRecd::Format()
     sum += (unsigned int) tarblock.buffer[i];
 
   snprintf(tblk->chksum, 7, "%06o", sum);
+
+  if (Verbose) {
+    if (*tr_prefix)
+	 fprintf(stderr, "%s/%s\n", tr_prefix, tr_name);
+    else fprintf(stderr, "%s\n", tr_name);
+  }
 }
 
 void TarRecd::Output()
@@ -796,6 +818,8 @@ void TarRecd::Output()
     perror("tar file output error");
     exit(-1);
     }
+
+  Bytes += BLOCKSIZE;
 }
 
 void TarRecd::WriteZeroTrailer()
