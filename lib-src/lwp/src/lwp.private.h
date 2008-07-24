@@ -77,6 +77,7 @@ struct lwp_pcb {			/* process control block */
   int		priority;		/* dispatching priority */
   PROCESS	misc;			/* for LWP internal use only */
   long		stackcheck;		/* first word of stack for overflow checking */
+  unsigned int	valgrind_stackid;	/* stack identifier from valgrind */
   void		*topstack;		/* stack ptr value during last yield */
   void		(*ep)(void *);		/* initial entry point */
   char		*parm;			/* initial parm for process */

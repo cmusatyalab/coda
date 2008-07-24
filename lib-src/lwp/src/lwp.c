@@ -64,6 +64,8 @@ Pittsburgh, PA.
 #include "lwp_ucontext.h"
 #include "lwp_stacktrace.h"
 
+#include "valgrind.h"
+
 #define  ON	    1
 #define  OFF	    0
 #define  READY	    2
@@ -754,6 +756,9 @@ static void Free_PCB(PROCESS pid)
 
     if (stack->ss_sp) {
 	lwpdebug(0, "HWM stack usage: %d, [PCB at %p]", Stack_Used(stack), pid);
+
+	VALGRIND_STACK_DEREGISTER(pid->valgrind_stackid);
+
 #ifdef MMAP_LWP_STACKS
 	munmap(stack->ss_sp, stack->ss_size);
 #else
@@ -892,6 +897,9 @@ static void Initialize_PCB(PROCESS temp, int priority, char *stack,
 	temp->ctx.uc_link = &reaper; /* whenever a thread exits, we
 					automatically reap it and schedule
 					another runnable thread */
+
+	temp->valgrind_stackid = VALGRIND_STACK_REGISTER(stack, stacksize);
+
 	makecontext(&temp->ctx, (void (*)(void))func, 1, arg);
     }
     else
