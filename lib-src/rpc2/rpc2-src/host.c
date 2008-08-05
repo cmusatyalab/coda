@@ -414,8 +414,7 @@ void RPC2_UpdateEstimates(struct HEntry *host, RPC2_Unsigned elapsed_us,
     LUA_rtt_update(host, elapsed_us, OutBytes, InBytes);
 }
 
-static uint32_t rpc2_GetRTO(struct HEntry *he, uint32_t outb, uint32_t inb,
-			    int sftp)
+static uint32_t rpc2_GetRTO(struct HEntry *he, uint32_t outb, uint32_t inb)
 {
     uint32_t rto, rtt_lat, rtt_in, rtt_out, rttvar;
 
@@ -448,7 +447,7 @@ int rpc2_RetryInterval(struct CEntry *ce, int retry, struct timeval *tv,
     /* calculate the estimated RTT */
     rto = LUA_rtt_retryinterval(ce->HostInfo, retry, OutBytes, InBytes);
     if (rto == 0) {
-	rto = rpc2_GetRTO(ce->HostInfo, OutBytes, InBytes, sftp);
+	rto = rpc2_GetRTO(ce->HostInfo, OutBytes, InBytes);
 
 	if (retry) {
 	    maxrtt = ce->KeepAlive.tv_sec * 1000000 + ce->KeepAlive.tv_usec;
