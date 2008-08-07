@@ -78,7 +78,6 @@ static char **this_argp;
 static int these_args;
 
 static char s_hostname[100];
-static int timeout = 0;
 static RPC2_Handle rpcid;
 static long rc;
 
@@ -152,13 +151,13 @@ void ReadConfigFile(void)
 int main(int argc, char **argv)
 {
     char *realm = NULL;
+    int timeout = 30;	/* Default rpc2 timeout is 30 seconds. */
 
-    /* Set the default timeout and server host */
-    timeout = 30;	/* Default rpc2 timeout is 30 seconds. */
+    /* Set the default server host */
     gethostname(s_hostname, sizeof(s_hostname) -1);
 
     ReadConfigFile();
-	
+
     while (argc > 2 && *argv[1] == '-') { /* All options require an argument. */
 	if (strcmp(argv[1], "-h") == 0) { /* User specified other host. */
 	    struct hostent *hp;
@@ -184,7 +183,7 @@ int main(int argc, char **argv)
     }
 
     if (argc < 2)
-    	goto bad_options;
+	goto bad_options;
 
     CODA_ASSERT(*s_hostname != '\0');
     V_InitRPC(timeout);
@@ -260,7 +259,7 @@ int main(int argc, char **argv)
     else if (strcmp(argv[1], "truncatervmlog") == 0)
 	truncatervmlog();
     else if (strcmp(argv[1], "getmaxvol") == 0)
-        getmaxvol();
+	getmaxvol();
     else if (strcmp(argv[1], "setmaxvol") == 0)
 	setmaxvol();
     else if (strcmp(argv[1], "peek") == 0)
@@ -276,7 +275,7 @@ int main(int argc, char **argv)
     else if (strcmp(argv[1], "pokex") == 0)
 	pokexmem();
     else
-    	goto bad_options;
+	goto bad_options;
 
     return 0;
 
@@ -544,14 +543,14 @@ static void clone(void)
 static void dump(void)
 {
     long rc = 0;
-    RPC2_Unsigned Incremental = 0;
+    RPC2_Integer Incremental = 0;
     int err = 0;
     FILE *outf;
-    
+
     while ((these_args > 2) && *this_argp[2] == '-') {
 	if (strcmp(this_argp[2], "-i") == 0) {
 	    if (these_args > 4) {
-	    	Incremental = (RPC2_Unsigned)atoi(this_argp[3]);
+		Incremental = atoi(this_argp[3]);
 		these_args--; this_argp++;
 	    } else
 		Incremental = 1;
@@ -1939,7 +1938,7 @@ static void V_InitRPC(int timeout)
     memset(&options, 0, sizeof(options));
     options.Flags = RPC2_OPTION_IPV6;
 
-    rcode = RPC2_Init(RPC2_VERSION, &options, NULL, 3, &tout);
+    rcode = RPC2_Init(RPC2_VERSION, &options, NULL, 5, &tout);
     if (rcode != RPC2_SUCCESS) {
 	fprintf(stderr, "RPC2_Init failed with %s\n", RPC2_ErrorMsg((int)rcode));
 	exit(-1);

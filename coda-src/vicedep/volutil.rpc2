@@ -78,7 +78,7 @@ typedef RPC2_Struct {
 
 14: VolDumpEstimate(IN RPC2_Unsigned volid, OUT VolDumpEstimates sizes);
 
-15: VolNewDump(IN RPC2_Unsigned volid, IN OUT RPC2_Unsigned Incremental);
+15: VolNewDump(IN RPC2_Unsigned volid, IN OUT RPC2_Integer Incremental);
 
 16: VolClone(IN RPC2_Unsigned ovolid, IN RPC2_String newvolname, OUT RPC2_Unsigned cloneId);
 

@@ -108,30 +108,16 @@ static int VnodePollPeriod = 32;     /* How many vnodes to dump before polling *
 /* We start off with the guts of the dump code */
 
 static int DumpDumpHeader(DumpBuffer_t *dbuf, Volume *vp,
-			  RPC2_Unsigned Incremental, long unique,
-			  FILE *Ancient)
+			  RPC2_Unsigned Incremental,
+			  int oldunique, int unique)
 {
-    int oldUnique;
-
     DumpDouble(dbuf, D_DUMPHEADER, DUMPBEGINMAGIC, DUMPVERSION);
     DumpInt32(dbuf, 'v', V_id(vp));
     DumpInt32(dbuf, 'p', V_parentId(vp));
     DumpString(dbuf, 'n',V_name(vp));
     DumpInt32(dbuf, 'b', V_copyDate(vp)); /* Date the backup clone was made */
     DumpInt32(dbuf, 'i', Incremental);
-
-    /* Full dumps are w.r.t themselves */
-    oldUnique = unique;
-
-    if (Ancient) {
-	/* Read in the header, hope it doesn't break */
-	if (!ValidListVVHeader(Ancient, vp, &oldUnique)) {
-	    SLog(0, "Dump: Ancient list file has invalid header");
-	    return -1;
-	}
-    }
-
-    return DumpDouble(dbuf, 'I', oldUnique, unique);
+    return DumpDouble(dbuf, 'I', oldunique, unique);
 }
 
 static int DumpVolumeDiskData(DumpBuffer_t *dbuf, VolumeDiskData *vol)
@@ -245,7 +231,7 @@ static int DumpVnodeDiskObject(DumpBuffer_t *dbuf, VnodeDiskObject *v,
     return 0;
 }
 
-static int DumpVnodeIndex(DumpBuffer_t *dbuf, Volume *vp, 
+static int DumpVnodeIndex(DumpBuffer_t *dbuf, Volume *vp,
 			  VnodeClass vclass, RPC2_Unsigned Incremental,
 			  int VVListFd, FILE *Ancient)
 {
@@ -253,7 +239,8 @@ static int DumpVnodeIndex(DumpBuffer_t *dbuf, Volume *vp,
     char buf[SIZEOF_LARGEDISKVNODE];
     VnodeDiskObject *vnode;
     bit32 nLists, nVnodes;
-    
+    const char *vclass_str;
+
     SLog(9, "Entering DumpVnodeIndex()");
 
     vcp = &VnodeClassInfo_Array[vclass];
@@ -262,19 +249,21 @@ static int DumpVnodeIndex(DumpBuffer_t *dbuf, Volume *vp,
 	DumpTag(dbuf, D_LARGEINDEX);
 	nVnodes = SRV_RVM(VolumeList[V_volumeindex(vp)]).data.nlargevnodes;
 	nLists = SRV_RVM(VolumeList[V_volumeindex(vp)]).data.nlargeLists;
+	vclass_str = "large";
     } else {
 	DumpTag(dbuf, D_SMALLINDEX);
 	nVnodes = SRV_RVM(VolumeList[V_volumeindex(vp)]).data.nsmallvnodes;
 	nLists = SRV_RVM(VolumeList[V_volumeindex(vp)]).data.nsmallLists;
+	vclass_str = "small";
     }
     DumpInt32(dbuf, 'v', nVnodes);
     if (DumpInt32(dbuf, 's', nLists) == -1)
 	return -1;
-    
+
     sprintf(buf, "Start of %s list, %u vnodes, %u lists.\n",
-	    ((vclass == vLarge)? "Large" : "Small"), nVnodes, nLists);
+	    vclass_str, nVnodes, nLists);
     if (write(VVListFd, buf, strlen(buf)) != (int)strlen(buf)) {
-	SLog(0, "Write %s Index header didn't succeed.", ((vclass == vLarge)? "Large" : "Small"));
+	SLog(0, "Write %s Index header didn't succeed.", vclass_str);
 	VPutVolume(vp);
 	return -1;
     }
@@ -288,46 +277,47 @@ static int DumpVnodeIndex(DumpBuffer_t *dbuf, Volume *vp,
 
     vindex v_index(V_id(vp), vclass, V_device(vp), vcp->diskSize);
     vindex_iterator vnext(v_index);
-	
+
     if (Incremental) {
-	SLog(9, "Beginning Incremental dump of vnodes.");
-
-	/* Determine how many entries in the list... */
-	if (fgets(buf, LISTLINESIZE, Ancient) == NULL) {
-	    SLog(10, "Dump: fgets indicates error."); /* Abort? */
-	}
-
-	/* Read in enough info from vvlist file to start a vvlist class object. */
 	long nvnodes;
 	int nlists;
 	char Class[7];
-	
-	if (sscanf(buf, "Start of %s list, %ld vnodes, %d lists.\n",
-		   Class, &nvnodes, &nlists)!=3) { 
-	    SLog(0, "Couldn't scan head of %s Index.", 
-		(vclass==vLarge?"Large":"Small"));
-	    VPutVolume(vp);
-	    return -1;
-	}
 
-	CODA_ASSERT(strcmp(Class,((vclass == vLarge)? "Large" : "Small")) == 0);
+	SLog(9, "Beginning Incremental dump of vnodes.");
+
+	do {
+	    /* Determine how many entries in the list... */
+	    if (fgets(buf, LISTLINESIZE, Ancient) == NULL) {
+		SLog(0, "Dump: Failed to find %s list header.", vclass_str);
+		VPutVolume(vp);
+		return -1;
+	    }
+
+	    /* Read in enough info from vvlist file to start a vvlist class
+	     * object. */
+	    if (sscanf(buf, "Start of %s list, %ld vnodes, %d lists.\n",
+		       Class, &nvnodes, &nlists) != 3)
+		continue;
+	}
+	while (strcasecmp(Class, vclass_str) != 0);
+
 	SLog(9, "Ancient clone had %d vnodes, %d lists.", nvnodes, nlists);
 
 	rec_smolist *vnList;
 	vvtable vvlist(Ancient, vclass, nlists);
 
-	if (vclass == vLarge) 
+	if (vclass == vLarge)
 	    vnList = SRV_RVM(VolumeList[V_volumeindex(vp)]).data.largeVnodeLists;
 	else
 	    vnList = SRV_RVM(VolumeList[V_volumeindex(vp)]).data.smallVnodeLists;
 	/* Foreach list, check to see if vnodes on the list were created,
 	 * modified, or deleted.
 	 */
-	
+
 	for (int vnodeIndex = 0; vnodeIndex < (int)nLists; vnodeIndex++) {
 	    rec_smolist_iterator nextVnode(vnList[vnodeIndex]);
 	    rec_smolink *vptr;
-	    
+
 	    while ( (vptr = nextVnode()) ) {	/* While more vnodes */
 		vnode = strbase(VnodeDiskObject, vptr, nextvn);
 		int VnodeNumber = bitNumberToVnodeNumber(vnodeIndex, vclass);
@@ -341,7 +331,7 @@ static int DumpVnodeIndex(DumpBuffer_t *dbuf, Volume *vp,
 		{
 		    if (DumpVnodeDiskObject(dbuf, vnode, VnodeNumber, V_device(vp)) == -1) {
 			SLog(0, 0, stdout, "DumpVnodeDiskObject (%s) failed.",
-			       (vclass == vLarge) ? "large" : "small");
+			     vclass_str);
 			return -1;
 		    }
 		    SLog(9,
@@ -353,21 +343,21 @@ static int DumpVnodeIndex(DumpBuffer_t *dbuf, Volume *vp,
 		/* No matter what, add the vnode to our new list. */
 		ListVV(VVListFd, VnodeNumber, vnode, dumplevel);
 	    }
-	    
+
 	    /* Check for deleted files. If there exists an entry which wasn't
 	     * marked by isModified(), put a delete record for it in the dump.
 	     */
 	    vvent_iterator vvnext(vvlist, vnodeIndex);
 	    vvent *vventry;
-		
-	    while ( (vventry = vvnext()) ) { 
+
+	    while ( (vventry = vvnext()) ) {
 		if (!vventry->isThere) {
 		    /* Note: I could define VnodeNumber in the outer loop and
 		     * seemingly save effort. However, it would be done for every
 		     * list and since only 1 in (repfactor) is non-zero, seems
 		     * like even more of a waste to me.  --- DCS
 		     */
-		    
+
 		    int VnodeNumber = bitNumberToVnodeNumber(vnodeIndex, vclass);
 		    if (DumpDouble(dbuf, D_RMVNODE, VnodeNumber, vventry->unique) == -1) {
 			SLog(0, 0, stdout, "Dump RMVNODE failed, aborting.");
@@ -389,11 +379,10 @@ static int DumpVnodeIndex(DumpBuffer_t *dbuf, Volume *vp,
 	     nVnodes--, count++) {
 	    int VnodeNumber = bitNumberToVnodeNumber(vnodeIndex, vclass);
 	    if (DumpVnodeDiskObject(dbuf, vnode, VnodeNumber, V_device(vp)) == -1) {
-		SLog(0, "DumpVnodeDiskObject (%s) failed.",
-		    (vclass == vLarge) ? "large" : "small");
+		SLog(0, "DumpVnodeDiskObject (%s) failed.", vclass_str);
 		return -1;
 	    }
-	    
+
 	    ListVV(VVListFd, VnodeNumber, vnode, 0);
 	    if ((count % VnodePollPeriod) == 0)
 		PollAndYield();
@@ -401,7 +390,7 @@ static int DumpVnodeIndex(DumpBuffer_t *dbuf, Volume *vp,
 	CODA_ASSERT(vnext(vnode) == -1);
     }
 
-    if (vclass == vLarge) { 	/* Output End of Large Vnode list */
+    if (vclass == vLarge) {	/* Output End of Large Vnode list */
 	    sprintf(buf, "%s", ENDLARGEINDEX);	/* Macro contains a new-line */
 	    if (write(VVListFd, buf, strlen(buf)) != (int)strlen(buf))
 		    SLog(0, "EndLargeIndex write didn't succeed.");
@@ -418,7 +407,7 @@ static unsigned int DumpVnodeDiskObject_estimate(VnodeDiskObject *v)
 
     /* size of the diskobject header */
     size = 109;
-    
+
     if (v->type != vDirectory) {
 	size += 5 + v->length;
     } else {
@@ -437,7 +426,7 @@ static int DumpVnodeIndex_estimate(Volume *vp, VnodeClass vclass,
     char buf[SIZEOF_LARGEDISKVNODE];
     VnodeDiskObject *vnode;
     bit32 nLists, nVnodes;
-    
+
     SLog(9, "Entering DumpVnodeIndex_estimate()");
 
     vcp = &VnodeClassInfo_Array[vclass];
@@ -534,11 +523,11 @@ static int DumpVnodeIndex_estimate(Volume *vp, VnodeClass vclass,
 
 /**************************************************************************/
 /*
-  S_VolNewDump: Dump the contents of the requested volume into a file in a 
+  S_VolNewDump: Dump the contents of the requested volume into a file in a
   host independent manner
 */
-long S_VolNewDump(RPC2_Handle rpcid, RPC2_Unsigned formal_volumeNumber, 
-		  RPC2_Unsigned *Incremental)
+long S_VolNewDump(RPC2_Handle rpcid, RPC2_Unsigned formal_volumeNumber,
+		  RPC2_Integer *Incremental)
 {
     Volume *vp = 0;
     long rc = 0, retcode = 0;
@@ -552,6 +541,7 @@ long S_VolNewDump(RPC2_Handle rpcid, RPC2_Unsigned formal_volumeNumber,
     RPC2_BindParms bparms;
     RPC2_Handle cid;
     RPC2_PeerInfo peerinfo;
+    RPC2_Unsigned SmallIncr, LargeIncr;
     int VVListFd = -1;
     FILE *Ancient = NULL;
 
@@ -562,12 +552,12 @@ long S_VolNewDump(RPC2_Handle rpcid, RPC2_Unsigned formal_volumeNumber,
     CODA_ASSERT(LWP_GetRock(FSTAG, &rock) == LWP_SUCCESS);
     pt = (ProgramType *)rock;
 
-    SLog(9, "S_VolNewDump: conn: %d, volume:  %#x, Inc?: %u", 
+    SLog(9, "S_VolNewDump: conn: %d, volume:  %#x, Inc?: %d",
 	 rpcid, volumeNumber, *Incremental);
     rc = VInitVolUtil(volumeUtility);
     if (rc) return rc;
 
-    vp = VGetVolume(&error, volumeNumber);    
+    vp = VGetVolume(&error, volumeNumber);
     if (error) {
 	SLog(0, "Unable to get the volume %x, not dumped", volumeNumber);
 	VDisconnectFS();
@@ -588,7 +578,7 @@ long S_VolNewDump(RPC2_Handle rpcid, RPC2_Unsigned formal_volumeNumber,
     }
 
     VolumeId volnum;
-    long unique;
+    int oldunique, unique;
     int ix;
 
     volnum = V_parentId(vp);
@@ -599,6 +589,7 @@ long S_VolNewDump(RPC2_Handle rpcid, RPC2_Unsigned formal_volumeNumber,
 	/* Uniquely identify incrementals of non-rep volumes by updateDate */
 	unique = V_updateDate(vp);
     }
+    oldunique = unique;
 
     char VVlistfile[PATH_MAX];
     getlistfilename(VVlistfile, volnum, V_parentId(vp), "newlist");
@@ -613,13 +604,29 @@ long S_VolNewDump(RPC2_Handle rpcid, RPC2_Unsigned formal_volumeNumber,
 
     if (*Incremental) {
 	char listfile[PATH_MAX];
+
 	getlistfilename(listfile, volnum, V_parentId(vp), "ancient");
 
 	Ancient = fopen(listfile, "r");
-	if (Ancient == NULL) {
-	    SLog(0, "S_VolDump: Couldn't open Ancient vvlist %s, will do a full backup instead.", listfile);
+	if (Ancient && !ValidListVVHeader(Ancient, vp, &oldunique)) {
+	    fclose(Ancient);
+	    Ancient = NULL;
+	}
+
+	if (Ancient == NULL)
+	{
+	    SLog(0, "S_VolDump: Couldn't open Ancient vvlist %s, "
+		    "will do a full backup instead.", listfile);
 	    *Incremental = 0;
 	}
+    }
+
+    if (*Incremental < 0) {
+	LargeIncr = 0;
+	SmallIncr = -(*Incremental);
+    } else {
+	LargeIncr = *Incremental;
+	SmallIncr = *Incremental;
     }
 
     /* Set up a connection with the client. */
@@ -638,7 +645,7 @@ long S_VolNewDump(RPC2_Handle rpcid, RPC2_Unsigned formal_volumeNumber,
     bparms.EncryptionType = 0;
     bparms.ClientIdent = NULL;
     bparms.SharedSecret = NULL;
-    
+
     if ((rc = RPC2_NewBinding(&hid, &pid, &sid, &bparms, &cid))!=RPC2_SUCCESS) {
 	SLog(0, "VolDump: Bind to client failed, %s!", RPC2_ErrorMsg((int)rc));
 	retcode = rc;
@@ -648,11 +655,11 @@ long S_VolNewDump(RPC2_Handle rpcid, RPC2_Unsigned formal_volumeNumber,
     dbuf = InitDumpBuf(DumpBuf, (long)DUMPBUFSIZE, V_id(vp), cid);
 
     /* Dump the volume.*/
-    DumpListVVHeader(VVListFd, vp, *Incremental, unique);
-    if ((DumpDumpHeader(dbuf, vp, *Incremental, unique, Ancient) == -1) ||
+    DumpListVVHeader(VVListFd, vp, SmallIncr, unique);
+    if ((DumpDumpHeader(dbuf, vp, SmallIncr, oldunique, unique) == -1) ||
 	(DumpVolumeDiskData(dbuf, &V_disk(vp)) == -1)	      ||
-	(DumpVnodeIndex(dbuf, vp, vLarge, *Incremental, VVListFd, Ancient) == -1) ||
-	(DumpVnodeIndex(dbuf, vp, vSmall, *Incremental, VVListFd, Ancient) == -1) ||
+	(DumpVnodeIndex(dbuf, vp, vLarge, LargeIncr, VVListFd, Ancient) == -1) ||
+	(DumpVnodeIndex(dbuf, vp, vSmall, SmallIncr, VVListFd, Ancient) == -1) ||
 	(DumpEnd(dbuf) == -1)) {
 	SLog(0, "Dump failed due to FlushBuf failure.");
 	retcode = VFAIL;
@@ -666,32 +673,32 @@ failure:
 
     /* zero the pointer, so we won't re-close it */
     Ancient = NULL;
-    
+
     VDisconnectFS();
     VPutVolume(vp);
-    
+
     if (dbuf) {
 	SLog(2, "Dump took %d seconds to dump %d bytes.",
 	     dbuf->secs, dbuf->nbytes);
 	free(dbuf);
     }
-    if (DumpBuf) 
+    if (DumpBuf)
 	    free(DumpBuf);
 
     if (RPC2_Unbind(cid) != RPC2_SUCCESS) {
-	SLog(0, "S_VolNewDump: Can't close binding %s", 
+	SLog(0, "S_VolNewDump: Can't close binding %s",
 	     RPC2_ErrorMsg((int)rc));
     }
-    
+
     if (retcode == 0) {
-	SLog(0, "S_VolNewDump: %s volume dump succeeded",
-	    *Incremental?"Incremental":"");
+	SLog(0, "S_VolNewDump: %svolume dump succeeded",
+	    *Incremental?"Incremental ":"");
 	return 0;
     }
 
     unlink(VVlistfile);
-    SLog(0, "S_VolNewDump: %s volume dump failed with status = %d",
-	*Incremental?"Incremental":"", retcode);
+    SLog(0, "S_VolNewDump: %svolume dump failed with status = %d",
+	*Incremental?"Incremental ":"", retcode);
 
     return retcode;
 }
@@ -739,12 +746,10 @@ long S_VolDumpEstimate(RPC2_Handle rpcid, RPC2_Unsigned formal_volumeNumber,
     getlistfilename(listfile, volnum, V_parentId(vp), "ancient");
 
     Ancient = fopen(listfile, "r");
-    if (Ancient) {
-	if (!ValidListVVHeader(Ancient, vp, &oldUnique)) {
-	    SLog(0, "Dump: Ancient list file has invalid header");
-	    retcode = VFAIL;
-	    goto failure;
-	}
+    if (Ancient && !ValidListVVHeader(Ancient, vp, &oldUnique)) {
+	SLog(0, "Dump: Ancient list file has invalid header");
+	fclose(Ancient);
+	Ancient = NULL;
     }
 
     /* Estimate the size of the volume dump.*/

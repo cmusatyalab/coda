@@ -587,7 +587,7 @@ int dumpVolume(volinfo_t *vol)
     repinfo_t *reps = vol->replicas;
     VolumeId volId = vol->volId;
     long rc;
-    RPC2_Unsigned dumplevel = (vol->flags & DUMPLVL_MASK) >> DUMPLVL_SHFT;
+    RPC2_Integer dumplevel = (vol->flags & DUMPLVL_MASK) >> DUMPLVL_SHFT;
     int ndumped = 0;
 
     for (int i = 0; i < vol->nReplicas; i++) {
