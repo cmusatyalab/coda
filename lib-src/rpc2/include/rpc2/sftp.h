@@ -336,7 +336,6 @@ void sftp_ExaminePacket(RPC2_PacketBuffer *pb);
 /* The transmission parameters below are initial values; actual ones are per-connection */
 extern long SFTP_PacketSize;
 extern long SFTP_WindowSize;
-extern long SFTP_RetryCount;
 extern long SFTP_EnforceQuota;	/* Nonzero to activate ByteQuota in SE_Descriptors */
 extern long SFTP_SendAhead;
 extern long SFTP_AckPoint;

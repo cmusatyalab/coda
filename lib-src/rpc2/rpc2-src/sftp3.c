@@ -66,7 +66,6 @@ Pittsburgh, PA.
 /* Globals: see sftp.h for descriptions; set by SFTP_Activate(), via SFTP_SetDefaults() */
 long SFTP_PacketSize;
 long SFTP_WindowSize;
-long SFTP_RetryCount;
 long SFTP_EnforceQuota;
 long SFTP_SendAhead;
 long SFTP_AckPoint;
@@ -445,7 +444,7 @@ int sftp_WriteStrategy(struct SFTP_Entry *sEntry)
     if (iovlen == 0)
 	return(0);  /* 0-length initial run of packets */
 
-    if (!(bytesnow == sftp_vfwritev(sEntry, iovarray, iovlen))) {
+    if (bytesnow != sftp_vfwritev(sEntry, iovarray, iovlen)) {
 	sftp_SetError(sEntry, DISKERROR);	/* probably disk full */
 	say(1, SFTP_DebugLevel, "WriteStrategy: write failed\n");
 	return(-1);
