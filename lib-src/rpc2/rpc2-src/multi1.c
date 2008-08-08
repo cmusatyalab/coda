@@ -526,7 +526,7 @@ static long mrpc_SendPacketsReliably(
     do {
 	hopeleft = 0;
 	/* wait for SocketListener to tap me on the shoulder */
-	LWP_MwaitProcess(1, (char **)pcon->pending);
+	LWP_MwaitProcess(1, (const void **)pcon->pending);
 
 	if (TimeOut && pcon->pending[HowMany]->ReturnCode == TIMEOUT)
 	    /* Overall timeout expired: clean up state and quit */
