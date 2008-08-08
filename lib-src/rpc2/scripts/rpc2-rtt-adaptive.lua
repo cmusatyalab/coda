@@ -51,7 +51,7 @@ end
 function rtt_update(host, elapsed, bytes_sent, bytes_recv)
     local rto, rtt_lat, rtt_send, rtt_recv, err
 
-    if not elapsed then return end
+    if elapsed == 0 then return end
 
     -- Get current estimates
     rto, rtt_lat, rtt_send, rtt_recv = estimate(host, bytes_sent, bytes_recv)
@@ -100,18 +100,17 @@ end
 
 function rtt_retryinterval(host, attempt, bytes_sent, bytes_recv)
     local rto, timeout, retry
-    if attempt > RPC2_RETRIES then return nil end
+
+    if attempt == -1 then return RPC2_TIMEOUT end
 
     rto = (estimate(host, bytes_sent, bytes_recv))
     if attempt == 0 then return rto end
 
-    timeout, retry = RPC2_TIMEOUT / 2, 0
-    for i = RPC2_RETRIES, 1, -1 do
-	if rto > timeout then retry = i break end
+    timeout = RPC2_TIMEOUT
+    for i = RPC2_RETRIES, attempt, -1 do
+	if rto >= timeout then break end
 	timeout = timeout / 2
     end
-    if retry + attempt > RPC2_RETRIES then return nil end
-    for i = 1, attempt do timeout = timeout * 2 end
     return timeout
 end
 

@@ -447,20 +447,16 @@ int rpc2_RetryInterval(struct CEntry *ce, int retry, struct timeval *tv,
     /* calculate the estimated RTT */
     rto = LUA_rtt_retryinterval(ce->HostInfo, retry, OutBytes, InBytes);
     if (rto == 0) {
+	maxrtt = ce->KeepAlive.tv_sec * 1000000 + ce->KeepAlive.tv_usec;
+	if (retry == -1) return maxrtt;
+
 	rto = rpc2_GetRTO(ce->HostInfo, OutBytes, InBytes);
 
 	if (retry) {
-	    maxrtt = ce->KeepAlive.tv_sec * 1000000 + ce->KeepAlive.tv_usec;
-	    maxrtt >>= 1;
-
-	    for (i = Retry_N; i > 0; i--) {
-		maxrtt >>= 1;
-		if (rto > maxrtt) break;
-	    }
+	    for (i = Retry_N; i >= retry && rto < maxrtt; i--)
+		maxrtt >>=1;
 	    rto = maxrtt;
 	}
-	if (i + retry > Retry_N) return -1;
-	rto <<= retry;
     }
 
     /* account for server processing overhead */
