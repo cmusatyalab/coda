@@ -447,6 +447,7 @@ int sftp_WriteStrategy(struct SFTP_Entry *sEntry)
 
     if (!(bytesnow == sftp_vfwritev(sEntry, iovarray, iovlen))) {
 	sftp_SetError(sEntry, DISKERROR);	/* probably disk full */
+	say(1, SFTP_DebugLevel, "WriteStrategy: write failed\n");
 	return(-1);
     }
 
@@ -738,9 +739,7 @@ int sftp_SendStrategy(struct SFTP_Entry *sEntry)
     {
 	/* Window is closed: try to send any worried packets */
 	sftp_windowfulls++;
-	if (worried && ResendWorried(sEntry) < 0)
-	    return(-1);
-	return 0;
+	return ResendWorried(sEntry);
     }
 
     /* Window is open: be more ambitious */
@@ -775,7 +774,7 @@ static int CheckWorried(struct SFTP_Entry *sEntry)
     struct timeval tv;
 
     ce = rpc2_GetConn(sEntry->LocalHandle);
-    if (!ce) {
+    if (!ce || sEntry->HitEOF) {
 	sEntry->SendWorriedLimit = sEntry->SendAckLimit;
 	return 1;
     }
@@ -843,11 +842,11 @@ static int ResendWorried(struct SFTP_Entry *sEntry)
 		acked = 1;
 	    }
 	    if (i == sEntry->SendLastContig+1)
-	        {/* first packet */
+	    {/* first packet */
 		pb->Header.SEFlags = ntohl(pb->Header.SEFlags);
 		pb->Header.SEFlags |= SFTP_FIRST;
 		pb->Header.SEFlags = htonl(pb->Header.SEFlags);
-	        }
+	    }
 	    pb->Header.Flags |= RPC2_RETRY;
 
 	    sftp_Sent.Datas++;
@@ -870,8 +869,8 @@ static int ResendWorried(struct SFTP_Entry *sEntry)
 #endif
 
 	    say(/*9*/4, SFTP_DebugLevel, "Worried S-%lu [%lu] {%lu}\n",
-		    (unsigned long)ntohl(pb->Header.SeqNumber), 
-		    (unsigned long)ntohl(pb->Header.TimeStamp), 
+		    (unsigned long)ntohl(pb->Header.SeqNumber),
+		    (unsigned long)ntohl(pb->Header.TimeStamp),
 		    (unsigned long)ntohl(pb->Header.TimeEcho));
 	    sftp_XmitPacket(sEntry, pb, 0);
 	}
