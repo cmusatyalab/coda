@@ -461,7 +461,7 @@ int LUA_rtt_getrto(struct HEntry *he, uint32_t tx, uint32_t rx)
 int LUA_rtt_retryinterval(struct HEntry *he, uint32_t n, uint32_t tx, uint32_t rx)
 {
     struct timeval tv;
-    uint32_t rtt = 0;
+    int rtt = -1;
 
     if (setup_function("rtt_retryinterval")) return 0;
     if (push_hosttable(he)) return 0;

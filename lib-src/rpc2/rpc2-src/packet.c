@@ -379,10 +379,8 @@ long rpc2_SendReliably(struct CEntry *Conn, struct SL_Entry *Sle,
     Conn->reqsize = Packet->Prefix.LengthOfPacket;
     Sle->RetryIndex = 0;
     /* XXX we should have the size of the expected reply packet */
-    rc = rpc2_RetryInterval(Conn, 0, &Sle->RInterval,
-			    Packet->Prefix.LengthOfPacket,
-			    sizeof(struct RPC2_PacketHeader), 0);
-    assert(rc == 0);
+    rpc2_RetryInterval(Conn, 0, &Sle->RInterval, Packet->Prefix.LengthOfPacket,
+		       sizeof(struct RPC2_PacketHeader), 0);
 
     /* Do an initial send of the packet */
     say(9, RPC2_DebugLevel, "Sending try at %ld on %#x (timeout %ld.%06ld)\n",

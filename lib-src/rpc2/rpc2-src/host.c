@@ -434,7 +434,7 @@ int rpc2_RetryInterval(struct CEntry *ce, int retry, struct timeval *tv,
 		       RPC2_Unsigned OutBytes, RPC2_Unsigned InBytes, int sftp)
 {
     uint32_t rto, maxrtt;
-    int i = 0;
+    int ret, i = 0;
 
     if (!ce) {
 	say(1, RPC2_DebugLevel, "RetryInterval: !conn\n");
@@ -445,8 +445,13 @@ int rpc2_RetryInterval(struct CEntry *ce, int retry, struct timeval *tv,
     InBytes += 40; OutBytes += 40;
 
     /* calculate the estimated RTT */
-    rto = LUA_rtt_retryinterval(ce->HostInfo, retry, OutBytes, InBytes);
+    ret = LUA_rtt_retryinterval(ce->HostInfo, retry, OutBytes, InBytes);
+    if (ret < 0) return -1;
+
+    rto = ret;
     if (rto == 0) {
+	if (retry > Retry_N) return -1;
+
 	maxrtt = ce->KeepAlive.tv_sec * 1000000 + ce->KeepAlive.tv_usec;
 	if (retry == -1) return maxrtt;
 
@@ -454,7 +459,7 @@ int rpc2_RetryInterval(struct CEntry *ce, int retry, struct timeval *tv,
 
 	if (retry) {
 	    for (i = Retry_N; i >= retry && rto < maxrtt; i--)
-		maxrtt >>=1;
+		maxrtt >>= 1;
 	    rto = maxrtt;
 	}
     }

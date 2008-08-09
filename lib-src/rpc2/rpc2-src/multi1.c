@@ -503,10 +503,9 @@ static long mrpc_SendPacketsReliably(
 
 	slp->RetryIndex = 0;
 	/* XXX we should have the size of the expected reply packet */
-	rc = rpc2_RetryInterval(mcon[thispacket].ceaddr, 0, &slp->RInterval,
-				mcon[thispacket].req->Prefix.LengthOfPacket,
-				sizeof(struct RPC2_PacketHeader), 0);
-	assert(rc == 0);
+	rpc2_RetryInterval(mcon[thispacket].ceaddr, 0, &slp->RInterval,
+			   mcon[thispacket].req->Prefix.LengthOfPacket,
+			   sizeof(struct RPC2_PacketHeader), 0);
 	rpc2_ActivateSle(slp, &slp->RInterval);
 
 	rpc2_XmitPacket(mcon[thispacket].req,
