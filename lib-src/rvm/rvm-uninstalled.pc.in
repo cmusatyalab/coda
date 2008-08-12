@@ -1,6 +1,6 @@
 prefix=@prefix@
 exec_prefix=@exec_prefix@
-includedir=${pcfiledir}/include
+includedir=@abs_top_srcdir@/include
 rvmlibdir=${pcfiledir}/rvm
 seglibdir=${pcfiledir}/seg
 rdslibdir=${pcfiledir}/rds
