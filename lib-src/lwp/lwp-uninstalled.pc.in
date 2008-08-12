@@ -1,7 +1,7 @@
 prefix=@prefix@
 exec_prefix=@prefix@
 libdir=${pcfiledir}/src
-includedir=${pcfiledir}/include
+includedir=@abs_top_srcdir@/include
 
 Name: LWP
 Description: Light Weight Processes, userspace thread library
