@@ -8,7 +8,8 @@ endif
 
 liblka_la_SOURCES = lka.c lka.h shaprocs.c lka_private.h
 
-AM_CPPFLAGS = -I$(top_srcdir)/lib-src/base \
+AM_CPPFLAGS = $(LWP_CFLAGS) \
+	      -I$(top_srcdir)/lib-src/base \
 	      -I$(top_srcdir)/lib-src/rwcdb
 
 LDADD = liblka.la \

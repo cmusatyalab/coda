@@ -7,7 +7,8 @@ endif
 
 repair_SOURCES = repair.cc repair.h
 
-AM_CPPFLAGS = -I$(top_srcdir)/lib-src/base \
+AM_CPPFLAGS = $(RPC2_CFLAGS) \
+	      -I$(top_srcdir)/lib-src/base \
 	      -I$(top_srcdir)/coda-src/kerndep \
 	      -I$(top_srcdir)/coda-src/util \
 	      -I$(top_srcdir)/coda-src/vicedep \

@@ -18,7 +18,8 @@ spy_SOURCES	    = spy.cc
 EXTRA_DIST = logbandwidth.in logcmls.in logreintegration.in logprogress.in
 CLEANFILES = $(bin_SCRIPTS)
 
-AM_CPPFLAGS = -I$(top_srcdir)/lib-src/base \
+AM_CPPFLAGS = $(RPC2_CFLAGS) \
+	      -I$(top_srcdir)/lib-src/base \
 	      -I$(top_srcdir)/coda-src/kerndep \
 	      -I$(top_srcdir)/coda-src/util \
 	      -I$(top_srcdir)/coda-src/vicedep \
@@ -29,7 +30,7 @@ AM_CPPFLAGS = -I$(top_srcdir)/lib-src/base \
 	      -I$(top_srcdir)/coda-src/venus
 
 codacon_LDADD = $(top_builddir)/lib-src/base/libbase.la \
-		$(LIBRPC2) $(LIBLWP)
+		$(RPC2_LIBS)
 
 cfs_LDADD = $(top_builddir)/coda-src/vv/libvv.la \
 	    $(top_builddir)/coda-src/kerndep/libkerndep.la \
@@ -37,14 +38,14 @@ cfs_LDADD = $(top_builddir)/coda-src/vv/libvv.la \
 
 cmon_LDADD = $(top_builddir)/coda-src/vicedep/libvenusdep.la \
 	     $(top_builddir)/lib-src/base/libbase.la \
-	     $(LIBCURSES) -lrpc2 -lse $(LIBLWP)
+	     $(LIBCURSES) $(RPC2_LIBS)
 
 hoard_LDADD = $(top_builddir)/coda-src/util/libutil.la \
 	      $(top_builddir)/coda-src/kerndep/libkerndep.la \
 	      $(top_builddir)/lib-src/base/libbase.la
 
 spy_LDADD = $(top_builddir)/lib-src/base/libbase.la \
-	    -lrpc2 -lse $(LIBLWP)
+	    $(RPC2_LIBS)
 
 codaconfedit_LDADD = $(top_builddir)/lib-src/base/libbase.la
 

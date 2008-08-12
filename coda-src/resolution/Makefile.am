@@ -12,7 +12,8 @@ libres_la_SOURCES = resclient.cc rescoord.cc rescoord.h resforce.cc resforce.h \
     subresphase3.cc subresphase34.cc rename.cc subpreres.cc resstats.cc \
     resstats.h resfile.cc resolution.h
 
-AM_CPPFLAGS = -I$(top_srcdir)/lib-src/base \
+AM_CPPFLAGS = $(RVM_RPC2_CFLAGS) \
+	      -I$(top_srcdir)/lib-src/base \
 	      -I$(top_srcdir)/coda-src/kerndep \
 	      -I$(top_srcdir)/coda-src/util \
 	      -I$(top_srcdir)/coda-src/vicedep \

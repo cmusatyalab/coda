@@ -20,11 +20,6 @@ AC_PROG_CXX
 dnl Load the CODA_ tests.
 m4_include(configs/coda_macros.m4)
 
-CODA_OPTION_SUBSYS(lwp)
-CODA_OPTION_SUBSYS(rvm)
-CODA_OPTION_SUBSYS(rpc2)
-CODA_OPTION_LWP_PT
-
 CODA_PROG_NATIVECC
 
 AC_PROG_CPP
@@ -43,10 +38,6 @@ AC_PATH_PROG(PERL, perl, "")
 AC_PATH_PROG(FLUID, fluid, "")
 AM_PATH_PYTHON(,,[:])
 
-AC_PATH_PROG(RP2GEN, rp2gen, "", [${PATH}:${prefix}/sbin:/usr/sbin:/usr/local/sbin:/usr/pkg/sbin])
-AC_PATH_PROG(RDSINIT, rdsinit, "", [${PATH}:${prefix}/sbin:/usr/sbin:/usr/local/sbin:/usr/pkg/sbin])
-AC_PATH_PROG(RVMUTL, rvmutl, "", [${PATH}:${prefix}/sbin:/usr/sbin:/usr/local/sbin:/usr/pkg/sbin])
-
 AC_ARG_ENABLE(client, [  --enable-client	  build Coda client components],
     buildclient="$enableval", buildclient="no")
 AC_ARG_ENABLE(server, [  --enable-server	  build Coda server components],
@@ -54,9 +45,25 @@ AC_ARG_ENABLE(server, [  --enable-server	  build Coda server components],
 AC_ARG_WITH(vcodacon, [  --with-vcodacon	  build graphical Coda console],
     buildvcodacon="$enableval", buildvcodacon="no")
 
-CODA_FAIL_IF_MISSING(RP2GEN, "unable to find rp2gen. may need librpc2-dev");
-CODA_FAIL_IF_MISSING(RDSINIT, "unable to find rdsinit. may need rvm-tools");
-CODA_FAIL_IF_MISSING(RVMUTL, "unable to find rvmutl. may need rvm-tools");
+dnl Make sure we configure any sub-projects before checking with pkg-config
+AC_CONFIG_SUBDIRS([lib-src/lwp])
+AC_CONFIG_SUBDIRS([lib-src/rpc2])
+AC_CONFIG_SUBDIRS([lib-src/rvm])
+CODA_CONFIG_SUBDIRS
+
+dnl pkg-config stuff
+PKG_CHECK_MODULES([RVM_RPC2], [rvmlwp rpc2])
+PKG_CHECK_MODULES([LWP], [lwp])
+PKG_CHECK_MODULES([RPC2], [rpc2])
+PKG_CHECK_MODULES([RVM], [rvmlwp])
+
+RP2GEN="`pkg-config --variable=RP2GEN rpc2`"
+AC_SUBST(RP2GEN)
+
+RVMUTL="`pkg-config --variable=RVMUTL rvmlwp`"
+RDSINIT="`pkg-config --variable=RDSINIT rvmlwp`"
+AC_SUBST(RVMUTL)
+AC_SUBST(RDSINIT)
 
 dnl Checks for libraries.
 AC_SEARCH_LIBS(bind, socket)
@@ -65,20 +72,6 @@ AC_SEARCH_LIBS(gethostbyname, resolv)
 AC_SEARCH_LIBS(res_search, resolv)
 AC_SEARCH_LIBS(res_9_init, resolv)
 AC_SEARCH_LIBS(kvm_openfiles, kvm)
-
-CODA_FIND_LIB(lwp, [#include <lwp/lwp.h>], [LWP_Init(0,0,0)])
-CODA_FIND_LIB(rvmlwp, [#include <rvm/rvm.h>], [rvm_initialize(0,0)])
-CODA_FIND_LIB(rpc2, [#include <rpc2/rpc2.h>], [RPC2_Init(0,0,0,0,0)], -llwp)
-CODA_CHECK_LWP_PT
-
-CODA_REQUIRE_LIB(lwp)
-CODA_REQUIRE_LIB(rvmlwp)
-CODA_REQUIRE_LIB(rpc2)
-
-AC_SUBST(LIBRVM)
-AC_SUBST(LIBRPC2)
-LIBRVM="-lrdslwp -lseglwp -lrvmlwp"
-LIBRPC2="-lrpc2 -lse"
 
 CODA_CHECK_LIBTERMCAP
 CODA_CHECK_LIBCURSES
@@ -141,7 +134,7 @@ AC_SUBST(shortsys)
 
 dnl Build conditionals
 if test "$buildvcodacon" != no ; then
-  CODA_FAIL_IF_MISSING(FLUID, "Unable to find fltk-fluid");
+  test -z "${FLUID}" && AC_MSG_ERROR("Unable to find fltk-fluid")
   test "$coda_cv_path_fltk" == none && AC_MSG_ERROR("Unable to find libfltk")
 fi
 AM_CONDITIONAL(BUILD_VCODACON, [test "$buildvcodacon" != no])

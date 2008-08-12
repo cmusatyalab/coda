@@ -13,7 +13,8 @@ libvol_la_SOURCES = dirvnode.cc cvnode.cc cvnode.h volume.cc volume.h vutil.cc \
     coda_globals.h voldefs.h volres.h struct.h
 EXTRA_DIST = testvrdb.cc
 
-AM_CPPFLAGS = -I$(top_srcdir)/lib-src/base \
+AM_CPPFLAGS = $(RVM_RPC2_CFLAGS) \
+	      -I$(top_srcdir)/lib-src/base \
 	      -I$(top_srcdir)/coda-src/kerndep \
 	      -I$(top_srcdir)/coda-src/util \
 	      -I$(top_srcdir)/coda-src/vicedep \

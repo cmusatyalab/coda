@@ -22,13 +22,13 @@ CLEANFILES = $(BUILT_SOURCES)
 
 ESQL=$(SCYLLADIR)/bin/esql
 SCYLLADIR=/afs/cs.cmu.edu/misc/scylla/@sys/omega
-AM_CPPFLAGS = -DVERSION_CONTROL -DMOND -I$(SCYLLADIR)/incl
+AM_CPPFLAGS = -DVERSION_CONTROL -DMOND -I$(SCYLLADIR)/incl $(RPC2_CFLAGS)
 
 RPCLIBS= $(LIBRPC2) $(LIBLWP)
 SCYLLALIBS=$(SCYLLADIR)/lib/libsql.a		\
 	$(SCYLLADIR)/lib/libutil.a		\
 	$(SCYLLADIR)/lib/librds.a
-LDADD = $(SCYLLALIBS) $(RPCLIBS)
+LDADD = $(SCYLLALIBS) $(RPC2_LIBS)
 
 db.c: db.ec
 	${ESQL} ${CFLAGS} -e db.ec

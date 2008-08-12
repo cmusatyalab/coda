@@ -16,7 +16,8 @@ nodist_updateclnt_SOURCES = update.client.c update.h
 nodist_updatefetch_SOURCES = update.client.c update.h
 nodist_updatesrv_SOURCES = update.server.c update.h
 
-AM_CPPFLAGS = -I$(top_srcdir)/lib-src/base \
+AM_CPPFLAGS = $(RPC2_CFLAGS) \
+	      -I$(top_srcdir)/lib-src/base \
 	      -I$(top_srcdir)/coda-src/util \
 	      -I$(top_srcdir)/coda-src/vicedep \
 	      -I$(top_builddir)/coda-src/vicedep
@@ -25,5 +26,5 @@ LDADD = $(top_builddir)/coda-src/vice/libviceerror.la \
 	$(top_builddir)/coda-src/vicedep/libvolutildep.la \
 	$(top_builddir)/coda-src/util/libutil.la \
 	$(top_builddir)/lib-src/base/libbase.la \
-	$(LIBRPC2) $(LIBLWP)
+	$(RPC2_LIBS)
 

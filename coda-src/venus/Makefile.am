@@ -20,7 +20,8 @@ venus_SOURCES = binding.cc binding.h comm.cc comm.h comm_daemon.cc daemon.cc \
     realm.cc realm.h rec_dllist.h refcounted.h archive.c archive.h
 vutil_SOURCES = vutil.cc
 
-AM_CPPFLAGS = -I$(top_srcdir)/lib-src/base \
+AM_CPPFLAGS = $(RVM_RPC2_CFLAGS) -DVENUS -DTIMING -DVENUSDEBUG \
+	      -I$(top_srcdir)/lib-src/base \
 	      -I$(top_srcdir)/coda-src/kerndep \
 	      -I$(top_srcdir)/coda-src/util \
 	      -I$(top_srcdir)/coda-src/vicedep \
@@ -32,8 +33,7 @@ AM_CPPFLAGS = -I$(top_srcdir)/lib-src/base \
 	      -I$(top_srcdir)/coda-src/vv \
 	      -I$(top_srcdir)/coda-src/lka \
 	      -I$(top_srcdir)/coda-src/vol \
-	      -I$(top_srcdir)/coda-src/librepair \
-	      -DVENUS -DTIMING -DVENUSDEBUG
+	      -I$(top_srcdir)/coda-src/librepair
 
 venus_LDADD = $(top_builddir)/coda-src/librepair/librepio.la \
 	      $(top_builddir)/coda-src/lka/liblka.la \
@@ -43,7 +43,7 @@ venus_LDADD = $(top_builddir)/coda-src/librepair/librepio.la \
 	      $(top_builddir)/coda-src/util/libutil.la \
 	      $(top_builddir)/lib-src/rwcdb/librwcdb.la \
 	      $(top_builddir)/lib-src/base/libbase.la \
-	      $(LIBRVM) $(LIBRPC2) $(LIBLWP)
+	      $(RVM_RPC2_LIBS)
 
 vutil_LDADD = $(top_builddir)/lib-src/base/libbase.la
 

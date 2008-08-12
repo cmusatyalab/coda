@@ -1,3 +1,18 @@
+dnl Macro to run configure on subprojects before continuing. This way we are
+dnl assured that generated files like uninstalled pkg-config files are
+dnl present. We also extend the pkg-config search path to look in the
+dnl sub-project directories.
+AC_DEFUN([CODA_CONFIG_SUBDIRS],
+  [if test -z "${PKG_CONFIG_PATH}" ; then
+     PKG_CONFIG_PATH="${libdir}/pkgconfig:/usr/local/lib/pkgconfig"
+   fi
+   for dir in ${subdirs} ; do
+     PKG_CONFIG_PATH="${ac_pwd}/${dir}:${PKG_CONFIG_PATH}"
+   done
+   export PKG_CONFIG_PATH
+   _AC_OUTPUT_SUBDIRS()
+   no_recursion=yes])
+
 AC_DEFUN([CODA_CC_FEATURE_TEST],
   [AC_CACHE_CHECK(whether the C compiler accepts $2, coda_cv_cc_$1,
      coda_saved_CC="$CC" ; CC="$CC $2" ; AC_LANG_SAVE
@@ -59,13 +74,13 @@ fi
 dnl Check which lib provides termcap functionality
 AC_SUBST(LIBTERMCAP)
 AC_DEFUN([CODA_CHECK_LIBTERMCAP],
-  AC_CHECK_LIB(termcap, main, [LIBTERMCAP="-ltermcap"],
-    [AC_CHECK_LIB(ncurses, tgetent, [LIBTERMCAP="-lncurses"])]))
+  [AC_CHECK_LIB(termcap, main, [LIBTERMCAP="-ltermcap"],
+    [AC_CHECK_LIB(ncurses, tgetent, [LIBTERMCAP="-lncurses"])])])
 
 dnl Check for a curses library, and if it needs termcap
 AC_SUBST(LIBCURSES)
 AC_DEFUN([CODA_CHECK_LIBCURSES],
-  AC_CHECK_LIB(ncurses, main, [LIBCURSES="-lncurses"],
+  [AC_CHECK_LIB(ncurses, main, [LIBCURSES="-lncurses"],
 	[AC_CHECK_LIB(curses, main, [LIBCURSES="-lcurses"],
 	    [AC_MSG_ERROR("failed to find curses library")
 	    ], $LIBTERMCAP)
@@ -80,12 +95,12 @@ AC_DEFUN([CODA_CHECK_LIBCURSES],
 	LIBS="$coda_save_LIBS"])
   if test $coda_cv_curses_needs_termcap = yes; then
 	LIBCURSES="$LIBCURSES $LIBTERMCAP"
-  fi)
+  fi])
 
 
 dnl check wether we have flock or fcntl
 AC_DEFUN([CODA_CHECK_FILE_LOCKING],
-  AC_CACHE_CHECK(for file locking by fcntl,
+  [AC_CACHE_CHECK(for file locking by fcntl,
     fu_cv_lib_c_fcntl,
     [AC_TRY_COMPILE([#include <fcntl.h>
 #include <stdio.h>], [ int fd; struct flock lk; fcntl(fd, F_SETLK, &lk);],
@@ -107,7 +122,7 @@ AC_DEFUN([CODA_CHECK_FILE_LOCKING],
 
   if test $fu_cv_lib_c_flock = no -a $fu_cv_lib_c_fcntl = no; then
 	 AC_MSG_ERROR("failed to find flock or fcntl")
-  fi)
+  fi])
 
 AC_DEFUN([CODA_CHECK_LIBCOMERR],
  [AC_CHECK_HEADERS(com_err.h)
@@ -203,18 +218,6 @@ AC_DEFUN([CODA_CHECK_OFFSETOF],
     CODA_TEST_OFFSETOF(REINTERPRET_CAST, [((size_t)(&(reinterpret_cast<type*>(__alignof__(type*)))->member)-__alignof__(type*))])
     fi ; fi])
 
-dnl ---------------------------------------------
-dnl Accept user defined path leading to libraries and headers.
-
-AC_DEFUN([CODA_OPTION_SUBSYS],
-  [AC_ARG_WITH($1,
-    [  --with-$1=DIR	$1 was installed in DIR],
-    [ pfx="`(cd ${withval} ; pwd)`"
-      CPPFLAGS="${CPPFLAGS} -I${pfx}/include"
-      LDFLAGS="${LDFLAGS} -L${pfx}/lib"
-      PATH="${PATH}:${pfx}/bin:${pfx}/sbin"])
-    ])
-
 AC_DEFUN([CODA_OPTION_LIBRARY],
   [AC_ARG_WITH($1-includes,
     [  --with-$1-includes=DIR	$1 include files are in DIR],
@@ -226,27 +229,10 @@ AC_DEFUN([CODA_OPTION_LIBRARY],
       LDFLAGS="${LDFLAGS} -L${pfx}"
     ]) ])
 
-AC_DEFUN([CODA_OPTION_LWP_PT],
-  [AC_ARG_WITH(lwp-pt,
-    [  --with-lwp-pt		Link against *experimental* lwp_pt library],
-    [with_LWP_PT=${withval}], [with_LWP_PT=no])])
-
-AC_SUBST(LIBLWP)
-AC_SUBST(LIBPTHREAD)
-AC_DEFUN([CODA_CHECK_LWP_PT],
-   [if test ${with_LWP_PT}p = nop ; then
-     AC_CHECK_LIB(lwp, LWP_Init, [LIBLWP="-llwp"])
-    else
-     AC_CHECK_LIB(pthread, pthread_create, [LIBPTHREAD="-lpthread"])
-     AC_CHECK_LIB(lwp_pt, LWP_Init, [LIBLWP="-llwp_pt"],
-	 [AC_MSG_ERROR("Failed to locate liblwp_pt")], [${LIBPTHREAD}])
-     CPPFLAGS="-D_REENTRANT ${CPPFLAGS}"
-   fi])
-
 dnl ---------------------------------------------
 dnl Search for an installed library in:
 dnl	 /usr/lib /usr/local/lib /usr/pkg/lib ${prefix}/lib
-
+dnl
 AC_DEFUN([CODA_FIND_LIB],
  [AC_CACHE_CHECK(location of lib$1, coda_cv_path_$1,
   [saved_CFLAGS="${CFLAGS}" ; saved_LDFLAGS="${LDFLAGS}" ; saved_LIBS="${LIBS}"
@@ -275,14 +261,9 @@ AC_DEFUN([CODA_REQUIRE_LIB],
    fi])
 
 dnl ---------------------------------------------
-dnl Fail if we haven't been able to find some required component
-dnl
-AC_DEFUN([CODA_FAIL_IF_MISSING], [ test -z "${$1}" && AC_MSG_ERROR($2) ])
-
-dnl ---------------------------------------------
 dnl find readline functionality
 dnl also test for new functions introduced by readline 4.2
-
+dnl
 AC_SUBST(LIBREADLINE)
 AC_DEFUN([CODA_CHECK_READLINE],
   [CODA_FIND_LIB(readline, [], rl_initialize(), $LIBTERMCAP)

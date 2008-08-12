@@ -5,7 +5,8 @@ bin_PROGRAMS = filerepair removeinc
 dist_bin_SCRIPTS = xfrepair xaskuser
 endif
 
-AM_CPPFLAGS = -I$(top_srcdir)/lib-src/base \
+AM_CPPFLAGS = $(RPC2_CFLAGS) \
+	      -I$(top_srcdir)/lib-src/base \
 	      -I$(top_srcdir)/coda-src/kerndep \
 	      -I$(top_srcdir)/coda-src/vicedep \
 	      -I$(top_builddir)/coda-src/vicedep \
@@ -17,5 +18,5 @@ filerepair_LDADD = $(top_builddir)/coda-src/kerndep/libkerndep.la \
 
 removeinc_LDADD = $(top_builddir)/coda-src/dir/libcodadir.la \
 		  $(top_builddir)/coda-src/kerndep/libkerndep.la \
-		   $(top_builddir)/lib-src/base/libbase.la
+		  $(top_builddir)/lib-src/base/libbase.la
 

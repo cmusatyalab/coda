@@ -11,5 +11,5 @@ libutil_la_SOURCES = arrlist.h arrlist.cc bitmap.h bitmap.cc bitvect.h \
     rec_smolist.cc recvarl.h recvarl.cc rvmlib.h rvmlib.c rvmtesting.h \
     rvmtesting.cc util.h util.c vice_file.h vice_file.c vmindex.h vmindex.cc
 
-AM_CPPFLAGS = -I$(top_srcdir)/lib-src/base
+AM_CPPFLAGS = $(RVM_RPC2_CFLAGS) -I$(top_srcdir)/lib-src/base
 

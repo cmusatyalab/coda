@@ -14,5 +14,7 @@ if WANT_FTS
 libbase_la_SOURCES += coda_fts.h coda_fts.c
 endif
 
+AM_CPPFLAGS = $(RPC2_CFLAGS)
+
 EXTRA_DIST = README.parser
 

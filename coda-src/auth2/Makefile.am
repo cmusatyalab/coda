@@ -39,17 +39,17 @@ tokentool_SOURCES	   = tokentool.c tokenfile.c tokenfile.h
 nodist_libauser_la_SOURCES = auth2.client.c auth2.h
 nodist_libauth2_la_SOURCES = auth2.server.c auth2.h
 
-AM_CPPFLAGS = -I$(top_srcdir)/lib-src/base \
+AM_CPPFLAGS = $(RPC2_CFLAGS) -DCODAAUTH \
+	      -I$(top_srcdir)/lib-src/base \
 	      -I$(top_srcdir)/coda-src/kerndep \
 	      -I$(top_srcdir)/coda-src/util \
-	      -I$(top_srcdir)/coda-src/al \
-	      -DCODAAUTH
+	      -I$(top_srcdir)/coda-src/al
 
 
 libauser_la_LIBADD = $(LIBKRB)
 libauth2_la_LIBADD = $(LIBKRB)
 
-LIBBASE = $(top_builddir)/lib-src/base/libbase.la $(LIBRPC2) $(LIBLWP)
+LIBBASE = $(top_builddir)/lib-src/base/libbase.la $(RPC2_LIBS)
 LIBAUSER = libauser.la \
 	   $(top_builddir)/coda-src/kerndep/libkerndep.la \
 	   $(top_builddir)/coda-src/util/libutil.la \

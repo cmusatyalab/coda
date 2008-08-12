@@ -13,7 +13,8 @@ libnorton_la_SOURCES  = norton-setup.cc commands.cc norton-volume.cc \
 norton_SOURCES	      = norton.cc norton.h dummy.cc
 norton_reinit_SOURCES = norton-reinit.cc dummy.cc
 
-AM_CPPFLAGS = -I$(top_srcdir)/lib-src/base \
+AM_CPPFLAGS = $(RVM_RPC2_CFLAGS) \
+	      -I$(top_srcdir)/lib-src/base \
 	      -I$(top_srcdir)/coda-src/kerndep \
 	      -I$(top_srcdir)/coda-src/util \
 	      -I$(top_srcdir)/coda-src/vicedep \
@@ -41,5 +42,5 @@ LDADD = libnorton.la \
 	$(top_builddir)/coda-src/util/libutil.la \
 	$(top_builddir)/lib-src/rwcdb/librwcdb.la \
 	$(top_builddir)/lib-src/base/libbase.la \
-	$(LIBRVM) $(LIBRPC2) $(LIBLWP) $(LIBREADLINE) $(LIBTERMCAP)
+	$(RVM_RPC2_LIBS) $(LIBREADLINE) $(LIBTERMCAP)
 

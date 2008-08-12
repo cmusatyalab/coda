@@ -18,3 +18,4 @@ nodist_libvicedep_la_SOURCES = vcrcommon.h callback.client.c \
     res.server.c vice.server.c voldump.client.c volutil.server.c
 nodist_libvolutildep_la_SOURCES = vcrcommon.h voldump.server.c volutil.client.c
 
+AM_CPPFLAGS = $(RPC2_CFLAGS)

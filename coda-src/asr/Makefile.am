@@ -9,7 +9,8 @@ parser_SOURCES = resolver_parser.y resolver_lexer.l ruletypes.cc ruletypes.h \
 EXTRA_DIST = resolve.eg
 
 AM_YFLAGS = -d
-AM_CPPFLAGS = -I$(top_srcdir)/lib-src/base \
+AM_CPPFLAGS = $(RPC2_CFLAGS) \
+	      -I$(top_srcdir)/lib-src/base \
 	      -I$(top_srcdir)/coda-src/util \
 	      -I$(top_srcdir)/coda-src/kerndep \
 	      -I$(top_srcdir)/coda-src/vicedep \

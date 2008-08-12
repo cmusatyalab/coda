@@ -24,7 +24,8 @@ merge_SOURCES =	merge.cc
 codadump2tar_SOURCES = codadump2tar.cc tar-FromRedHatCD.h
 parserecdump_SOURCES = parserecdump.cc vol-dumprecstore.h
 
-AM_CPPFLAGS = -I$(top_srcdir)/lib-src/base \
+AM_CPPFLAGS = $(RVM_RPC2_CFLAGS) -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 \
+	      -I$(top_srcdir)/lib-src/base \
 	      -I$(top_srcdir)/coda-src/kerndep \
 	      -I$(top_srcdir)/coda-src/util \
 	      -I$(top_srcdir)/coda-src/vicedep \
@@ -37,34 +38,33 @@ AM_CPPFLAGS = -I$(top_srcdir)/lib-src/base \
 	      -I$(top_srcdir)/coda-src/vv \
 	      -I$(top_srcdir)/coda-src/lka \
 	      -I$(top_srcdir)/coda-src/vol \
-	      -I$(top_srcdir)/coda-src/resolution \
-	      -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+	      -I$(top_srcdir)/coda-src/resolution
 
 volutil_LDADD = $(top_builddir)/coda-src/auth2/libauser.la \
 		$(top_builddir)/coda-src/vicedep/libvolutildep.la \
 		$(top_builddir)/coda-src/util/libutil.la \
 		$(top_builddir)/coda-src/kerndep/libkerndep.la \
 		$(top_builddir)/lib-src/base/libbase.la \
-		$(LIBRPC2) $(LIBLWP)
+		$(RPC2_LIBS)
 
 backup_LDADD = $(top_builddir)/coda-src/vol/libvol.la \
 	       $(top_builddir)/coda-src/partition/libpartition.la \
 	       $(top_builddir)/coda-src/vicedep/libvolutildep.la \
 	       $(top_builddir)/coda-src/util/libutil.la \
 	       $(top_builddir)/lib-src/base/libbase.la \
-	       $(LIBRPC2) $(LIBLWP)
+	       $(RPC2_LIBS)
 
 readdump_LDADD = libdumpstuff.la \
 		 $(top_builddir)/coda-src/vicedep/libvicedep.la \
 		 $(top_builddir)/coda-src/util/libutil.la \
 		 $(top_builddir)/lib-src/base/libbase.la \
-		 $(LIBRPC2) $(LIBLWP) $(LIBREADLINE) $(LIBTERMCAP)
+		 $(RPC2_LIBS) $(LIBREADLINE) $(LIBTERMCAP)
 
 merge_LDADD = libdumpstuff.la \
 	      $(top_builddir)/coda-src/vicedep/libvicedep.la \
 	      $(top_builddir)/coda-src/util/libutil.la \
 	      $(top_builddir)/lib-src/base/libbase.la \
-	      $(LIBRPC2) $(LIBLWP)
+	      $(RPC2_LIBS)
 
 codadump2tar_LDADD = libdumpstuff.la \
 		     $(top_builddir)/coda-src/vol/libvol.la \
@@ -73,5 +73,5 @@ codadump2tar_LDADD = libdumpstuff.la \
 		     $(top_builddir)/coda-src/vicedep/libvicedep.la \
 		     $(top_builddir)/coda-src/util/libutil.la \
 		     $(top_builddir)/lib-src/base/libbase.la \
-		     $(LIBRVM) $(LIBRPC2) $(LIBLWP)
+		     $(RVM_RPC2_LIBS)
 
