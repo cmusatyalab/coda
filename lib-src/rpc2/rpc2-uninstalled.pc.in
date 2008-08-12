@@ -1,7 +1,7 @@
 prefix=@prefix@
 exec_prefix=@exec_prefix@
 libdir=${pcfiledir}/rpc2-src
-includedir=${pcfiledir}/include
+includedir=@abs_top_srcdir@/include
 
 RP2GEN=${pcfiledir}/rp2gen/rp2gen
 
