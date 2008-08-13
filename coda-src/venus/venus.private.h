@@ -321,7 +321,7 @@ int GetTime(long *, long *);
 time_t Vtime();
 int FAV_Compare(ViceFidAndVV *, ViceFidAndVV *);
 void DaemonInit();
-void FireAndForget(char *name, void (*f)(void), int interval,
+void FireAndForget(const char *name, void (*f)(void), int interval,
 		   int stacksize=32*1024);
 void RegisterDaemon(unsigned long, char *);
 void DispatchDaemons();

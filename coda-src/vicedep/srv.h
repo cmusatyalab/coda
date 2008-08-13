@@ -275,7 +275,7 @@ thread_array_t thread_list;
 int thread_count;
 #endif
 
-extern void Die(char *);
+extern void Die(const char *);
 
 /* srv.c */
 extern void SetStatus(Vnode *, ViceStatus *, Rights, Rights);

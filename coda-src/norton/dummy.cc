@@ -49,7 +49,7 @@ void PollAndYield() {
     return;
 }
 
-void Die(char *msg) {
+void Die(const char *msg) {
     fprintf(stderr, "%s\n", msg);
     CODA_ASSERT(0);
     return;

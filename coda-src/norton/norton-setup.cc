@@ -55,7 +55,8 @@ int mapprivate = 0;
 
 struct camlib_recoverable_segment *camlibRecoverableSegment;
 
-void LoadRVM(char * log_dev, char * data_dev, rvm_offset_t data_len) {
+void LoadRVM(char * log_dev, char * data_dev, rvm_offset_t data_len)
+{
     rvm_return_t err;
     rvm_options_t * options;
     rvm_perthread_t *rvmptt;
@@ -96,8 +97,7 @@ void LoadRVM(char * log_dev, char * data_dev, rvm_offset_t data_len) {
 
     printf("About to call rds_load_heap\n");
     fflush(stdout);
-    rds_load_heap(data_dev, data_len, (char **)&camlibRecoverableSegment,
-		  (int *)&err);
+    rds_load_heap(data_dev, data_len, (char **)&camlibRecoverableSegment, &err);
     if (err != RVM_SUCCESS) {
 	fprintf(stderr, "rds_load_heap error %s\n", rvm_return(err));
 	exit(1);

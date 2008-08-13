@@ -192,7 +192,7 @@ class verify_entry : public olink {
     hdb_verify_msg msg;
     char tname[MAXPATHLEN];
 
-    verify_entry(char *vname, vuid_t vuid, int verbosity) {
+    verify_entry(const char *vname, vuid_t vuid, int verbosity) {
 	tmpnam(msg.outfile);
 	strcpy(tname, vname);
 	msg.luid = vuid;
@@ -1249,8 +1249,8 @@ static void RenameOutFile(char *from, char *to) {
 	    error(!FATAL, "RenameOutFile: dup2() failed(%s)", strerror(errno));
 	    exit(errno);
 	}
-	char *argv[2]; argv[0] = "cat"; argv[1] = 0;
-	if (execvp("cat", argv) < 0) {
+	char *argv[2]; argv[0] = "cat"; argv[1] = NULL;
+	if (execvp(argv[0], argv) < 0) {
 	    error(!FATAL, "RenameOutFile: execvp(\"cat\") failed(%s)", strerror(errno));
 	    exit(errno);
 	}

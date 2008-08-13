@@ -604,6 +604,7 @@ static void AuthLWP(void *arg)
     /* Not sure if the connection setup actually uses rvm, but allocate the
      * per thread data structure just in case */
     rvm_perthread_t rvmptt;
+    rvmlib_init_threaddata(&rvmptt);
 
     SLog(0, "Starting AuthLWP-%d", lwpid);
 
@@ -1612,7 +1613,7 @@ static void InitServerKeys(const char *fkey1, const char *fkey2)
 }
 
 
-void Die(char *msg)
+void Die(const char *msg)
 {
     SLog(0,"%s",msg);
     CODA_ASSERT(0);

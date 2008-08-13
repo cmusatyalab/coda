@@ -124,7 +124,7 @@ class Daemon : protected vproc {
 public:
     char sync;
 
-    Daemon(char *name, PROCBODY function, int interval, int stacksize);
+    Daemon(const char *name, PROCBODY function, int interval, int stacksize);
     ~Daemon();
 
 private:
@@ -135,7 +135,7 @@ private:
 };
 
 
-Daemon::Daemon(char *name, PROCBODY f, int i, int stacksize) :
+Daemon::Daemon(const char *name, PROCBODY f, int i, int stacksize) :
     vproc(name, NULL, VPT_Daemon, stacksize)
 {
     function = f;
@@ -170,7 +170,7 @@ void Daemon::main(void)
 
 
 /* helper to run trivial daemon threads */
-void FireAndForget(char *name, PROCBODY function, int interval, int stack)
+void FireAndForget(const char *name, PROCBODY function, int interval, int stack)
 {
     Daemon *d = new Daemon(name, function, interval, stack);
     VprocWait(&d->sync);

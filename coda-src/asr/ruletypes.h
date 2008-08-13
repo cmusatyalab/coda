@@ -141,5 +141,5 @@ class rule_t : public olink {
 };
 
 // exportable routines 
-extern void expandstring(char *, char *, char *);
+extern void expandstring(char *, const char *, char *);
 #endif /* _RULETYPES_H_ */

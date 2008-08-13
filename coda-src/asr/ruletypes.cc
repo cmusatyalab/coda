@@ -629,7 +629,7 @@ void arg_t::print(int fd) {
 
 // In string s, replace all instances of pattern by newpattern
 // assume final string fits in MAXPATHLEN and length(s) = MAXPATHLEN
-void expandstring(char *s, char *pattern, char *newpattern) {
+void expandstring(char *s, const char *pattern, char *newpattern) {
     char buff[MAXPATHLEN];
     char *tmps, *buffp;
     int patternlength = (int) strlen(pattern);
