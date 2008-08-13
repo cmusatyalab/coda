@@ -848,7 +848,7 @@ rvm_bool_t in_log_special(addr,special,n)
         }
 
     /* structure specific tests */
-    switch (special->struct_id)
+    switch (special->rec_hdr.struct_id)
         {
       case log_seg_id:
         if (in_heap(addr,(rvm_length_t)special->special.log_seg.name,

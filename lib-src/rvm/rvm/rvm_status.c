@@ -261,10 +261,8 @@ err_exit:;
     return retval;
     }
 /* rvm_statistics */
-rvm_return_t rvm_statistics(version,rvm_statistics)
-    char                *version;       /* ptr to statistics version */
-    rvm_statistics_t    *rvm_statistics; /* ptr to stats record */
-    {
+rvm_return_t rvm_statistics(const char *version, rvm_statistics_t *rvm_statistics)
+{
     log_t               *log;           /* log descriptor */
     log_status_t        *status;        /* log status area descriptor */
     int_tid_t           *tid;           /* transaction ptr */
@@ -402,4 +400,4 @@ rvm_return_t rvm_statistics(version,rvm_statistics)
         });
 
     return RVM_SUCCESS;
-    }
+}

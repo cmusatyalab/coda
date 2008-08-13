@@ -177,11 +177,7 @@ typedef struct
     }
 rvm_statistics_t;
 /* get RVM statistics */
-extern rvm_return_t rvm_statistics(
-    char                *version,       /* pointer to RVM statistics version string */
-    rvm_statistics_t    *statistics     /* address of pointer to statistics
-                                           descriptor] */
-    );
+rvm_return_t rvm_statistics(const char *version, rvm_statistics_t *statistics);
 #define RVM_STATISTICS(statistics) \
     rvm_statistics(RVM_STATISTICS_VERSION,(statistics))
 

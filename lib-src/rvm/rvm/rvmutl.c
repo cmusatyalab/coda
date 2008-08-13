@@ -838,6 +838,14 @@ static void prw_offset(out_stream,offset,base,width)
         }
     }
 
+/* In some places we were using prw_offset(..., (rvm_offset_t *)&tv, 10, NULL);
+ * this is uses the same formatting but avoids the strict aliasing warnings */
+static void prw_timeval(FILE *out_stream, struct timeval *tv)
+{
+    rvm_offset_t offset = { .high = tv->tv_sec, .low = tv->tv_usec };
+    prw_offset(out_stream, &offset, 10, NULL);
+}
+
 /* print compact rvm_offset_t */
 static void prc_offset(out_stream,offset,base,width)
     FILE            *out_stream;        /* target stream */
@@ -2011,11 +2019,11 @@ static void print_rec_end(out_stream,rec_end)
     log_offset = RVM_ADD_LENGTH_TO_OFFSET(log_buf->offset,
                                           log_buf->ptr);
     fprintf(out_stream,"\n  End of record number:%7.1lu   Log Offset:",
-            rec_end->rec_num);
+            rec_end->rec_hdr.rec_num);
     prc_offset(out_stream,&log_offset,10,NULL);
     putc('\n',out_stream);
     fprintf(out_stream,"    Record length: %11.1lu   Back link:  %5.1lu\n",
-            rec_end->rec_length,rec_end->sub_rec_len);
+            rec_end->rec_hdr.rec_length,rec_end->sub_rec_len);
 
     }
 /* modification range printer */
@@ -2041,7 +2049,7 @@ static void print_range(out_stream,nv)
     putc('\n',out_stream);
     fprintf(out_stream,
             "    Record length:       %5.1lu   Back link:  %5.1lu\n",
-            nv->rec_length,nv->sub_rec_len);
+            nv->rec_hdr.rec_length,nv->sub_rec_len);
 
     }
 /* transaction header printer */
@@ -2052,8 +2060,7 @@ static void print_trans_hdr(out_stream,trans_hdr)
 
     /* print transaction header, start/commit times */
     fprintf(out_stream,"  TID:              ");
-    prw_offset(out_stream,(rvm_offset_t *)&trans_hdr->uname,
-               10,NULL);
+    prw_timeval(out_stream, &trans_hdr->uname);
     putc('\n',out_stream);
     fprintf(out_stream,"  Trans start  ");
     if (TRANS_HDR(RESTORE_FLAG))
@@ -2089,7 +2096,7 @@ static void print_trans_hdr(out_stream,trans_hdr)
     fprintf(out_stream,"  Number ranges:      %8.1lu",
             trans_hdr->num_ranges);
     fprintf(out_stream,"   Tot. rec. length:%11.1lu\n\n",
-            trans_hdr->rec_length+sizeof(rec_end_t));
+            trans_hdr->rec_hdr.rec_length+sizeof(rec_end_t));
     }
 /* transaction printer */
 static void print_transaction(out_stream,err_stream,trans_hdr)
@@ -2120,7 +2127,7 @@ static void print_transaction(out_stream,err_stream,trans_hdr)
             }
         nv = (nv_range_t *)&log_buf->buf[log_buf->ptr];
         print_range(out_stream,nv);
-        log_buf->ptr += nv->rec_length;
+        log_buf->ptr += nv->rec_hdr.rec_length;
         }
 
     /* print end marker */
@@ -2421,10 +2428,10 @@ static rvm_bool_t load_rec_hdr(err_stream)
 
     /* see if record header is in buffer */
     rec_end = (rec_end_t *)&log_buf->buf[log_buf->ptr];
-    if (rec_end->struct_id != log_wrap_id)
+    if (rec_end->rec_hdr.struct_id != log_wrap_id)
         {
-        assert(rec_end->struct_id == rec_end_id);
-        tmp_ptr = log_buf->ptr - rec_end->rec_length;
+        assert(rec_end->rec_hdr.struct_id == rec_end_id);
+        tmp_ptr = log_buf->ptr - rec_end->rec_hdr.rec_length;
         if (tmp_ptr < 0)
             {
             /* must load record header */
@@ -2482,10 +2489,10 @@ static rvm_bool_t locate_earliest(out_stream,err_stream)
         offset = RVM_ADD_LENGTH_TO_OFFSET(log_buf->offset,
                                               log_buf->ptr);
         rec_end = (rec_end_t *)(&log_buf->buf[log_buf->ptr]);
-        if (rec_end->struct_id == rec_end_id)
+        if (rec_end->rec_hdr.struct_id == rec_end_id)
             {
             offset = RVM_ADD_LENGTH_TO_OFFSET(offset,
-                                              rec_end->rec_length);
+                                              rec_end->rec_hdr.rec_length);
             if (RVM_OFFSET_EQL(offset,status->log_tail))
                 break;                  /* yes, earliest found */
             }
@@ -2511,9 +2518,9 @@ static rvm_bool_t locate_earliest(out_stream,err_stream)
         }
     /* re-init buffer with earliest record offset */
     rec_end = (rec_end_t *)(&log_buf->buf[log_buf->ptr]);
-    if (rec_end->struct_id != log_wrap_id)
+    if (rec_end->rec_hdr.struct_id != log_wrap_id)
         cur_offset = RVM_SUB_LENGTH_FROM_OFFSET(cur_offset,
-                                              rec_end->rec_length);
+                                              rec_end->rec_hdr.rec_length);
     cur_direction = FORWARD;            /* assume printing is next */
     if ((retval=init_buffer(log,&cur_offset,cur_direction,NO_SYNCH))
         != RVM_SUCCESS)
@@ -3283,13 +3290,13 @@ static rvm_bool_t show_mods(out_stream,err_stream)
             if (err_sw) return rvm_false;
 
             /* print assignments located */
-            fprintf(out_stream,"\nRecord number: %ld",nv->rec_num);
+            fprintf(out_stream,"\nRecord number: %ld",nv->rec_hdr.rec_num);
             fprintf(out_stream," assigns specified values\n\n");
             }
         else
             {
             /* print record number and range */
-            fprintf(out_stream,"\nRecord number: %ld ",nv->rec_num);
+            fprintf(out_stream,"\nRecord number: %ld ",nv->rec_hdr.rec_num);
             fprintf(out_stream,"modifies specified range:\n\n");
             }
 
@@ -3484,15 +3491,13 @@ static rvm_bool_t show_log_status(out_stream,err_stream)
         if (!TIME_EQL_ZERO(status->first_uname))
             fprintf(out_stream,"null");
         else
-            prw_offset(out_stream,
-                       (rvm_offset_t *)&status->first_uname,10,NULL);
+            prw_timeval(out_stream, &status->first_uname);
         putc('\n',out_stream);
         fprintf(out_stream,"  last  trans. uname:    ");
         if (!TIME_EQL_ZERO(status->last_uname))
             fprintf(out_stream,"null");
         else
-            prw_offset(out_stream,
-                       (rvm_offset_t *)&status->last_uname,10,NULL);
+            prw_timeval(out_stream, &status->last_uname);
         putc('\n',out_stream);
         }
 
@@ -3993,10 +3998,10 @@ static rvm_bool_t do_build_seg_dict()
         offset = RVM_ADD_LENGTH_TO_OFFSET(log_buf->offset,
                                               log_buf->ptr);
         rec_end = (rec_end_t *)set_log_position();
-        if (rec_end->struct_id == rec_end_id)
+        if (rec_end->rec_hdr.struct_id == rec_end_id)
             {
             offset = RVM_ADD_LENGTH_TO_OFFSET(offset,
-                                              rec_end->rec_length);
+                                              rec_end->rec_hdr.rec_length);
             if (RVM_OFFSET_EQL(offset,status->log_tail))
                 {
                 no_rec = rvm_true;
@@ -4005,7 +4010,7 @@ static rvm_bool_t do_build_seg_dict()
             }
 
         /* see what was found */
-        switch (rec_end->struct_id)
+        switch (rec_end->rec_hdr.struct_id)
             {
           case log_wrap_id: continue;
           case rec_end_id: break;
@@ -4018,8 +4023,8 @@ static rvm_bool_t do_build_seg_dict()
           default: assert(rvm_false);
             }
         /* have log segment dictionary defintion */
-        if ((retval=load_sub_rec(rec_end->rec_length,REVERSE))
-            != RVM_SUCCESS) goto log_err_exit;
+        retval = load_sub_rec(rec_end->rec_hdr.rec_length, REVERSE);
+        if (retval != RVM_SUCCESS) goto log_err_exit;
         cur_msg = "(obsolete)";
         rec_hdr = set_log_position();
         log_seg = (log_seg_t *)((rvm_length_t)rec_hdr+sizeof(rec_hdr_t));

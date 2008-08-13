@@ -70,16 +70,16 @@ static rvm_bool_t  inited = rvm_false;
  */
 int
 rds_load_heap(DevName, DevLength, static_addr, err)
-     char 	  *DevName;
+     char	  *DevName;
      rvm_offset_t DevLength;
-     char 	  **static_addr; /* Start of region holding statics */
+     char	  **static_addr; /* Start of region holding statics */
      int	  *err;
 {
     rvm_return_t     rvmret;
-    
+
     /* Map in the appropriate structures by calling Rvm_Load_Segment. */
     rvmret = rvm_load_segment(DevName, DevLength, NULL,
-                              &NRegionDefs, &RegionDefs);
+			      &NRegionDefs, &RegionDefs);
     if (rvmret != RVM_SUCCESS) {
 	    printf("Error rvm_load_segment returns %d\n", rvmret);
 	    (*err) = (int) rvmret;

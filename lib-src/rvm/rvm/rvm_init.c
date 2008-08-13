@@ -47,7 +47,7 @@ rvm_bool_t bad_init(void)
 }
 
 /* rvm_initialize */
-rvm_return_t rvm_initialize(char *rvm_version, rvm_options_t *rvm_options)
+rvm_return_t rvm_initialize(const char *rvm_version, rvm_options_t *rvm_options)
 {
     rvm_return_t    retval = RVM_SUCCESS;
 

@@ -601,16 +601,23 @@ typedef long cmp_func_t();
     tree_node_t     *node2;
 */
 /* log records written by commit, and associated with new value records */
+/* generic record header; not actually allocated, but any record header
+   can be cast to this to get its type & length for detailed analysis 
+*/
+typedef struct
+    {
+    struct_id_t     struct_id;          /* type of entry */
+    rvm_length_t    rec_length;         /* record length */
+    struct timeval  timestamp;          /* timestamp of record entry */
+    rvm_length_t    rec_num;            /* record number of entry */
+    }
+rec_hdr_t;
 
 /* transaction record header: trans_hdr_t -- a single copy in the log descriptor
 */
 typedef struct
     {
-    struct_id_t     struct_id;          /* self-identifier */
-    rvm_length_t    rec_length;         /* log record length, displacement to
-                                           end mark */
-    struct timeval  timestamp;          /* timestamp of log entry */
-    rvm_length_t    rec_num;            /* record number of log entry */
+    rec_hdr_t	    rec_hdr;		/* common log record header */
     rvm_length_t    num_ranges;         /* number of ranges in record */
     struct timeval  uname;              /* uname of transaction */
     struct timeval  commit_stamp;       /* timestamp of commit */
@@ -622,11 +629,7 @@ trans_hdr_t;
 /* new value record range header: nv_range_t */
 typedef struct
     {
-    struct_id_t     struct_id;          /* self-identifier */
-    rvm_length_t    rec_length;         /* total nv record length, displacement
-                                           to next nv_range or end mark */
-    struct timeval  timestamp;          /* timestamp of log entry */
-    rvm_length_t    rec_num;            /* record number of entry */
+    rec_hdr_t	    rec_hdr;		/* common log record header */
     rvm_length_t    sub_rec_len;        /* back displacement to previous hdr */
     rvm_length_t    range_num;          /* range number in record */
     rvm_length_t    length;             /* actual modification length */
@@ -663,11 +666,7 @@ typedef struct
     {
     list_entry_t    links;              /* list links and free list struct id */
                                         /* following fields are written in log */
-    struct_id_t     struct_id;          /* special log type id (union tag) */
-    rvm_length_t    rec_length;         /* log record length, displacement to
-                                           end mark */
-    struct timeval  timestamp;          /* timestamp of record entry */
-    rvm_length_t    rec_num;            /* record number of entry */
+    rec_hdr_t	    rec_hdr;		/* common log record header */
     union
         {
         log_seg_t   log_seg;            /* segment mapping marker */
@@ -679,10 +678,7 @@ log_special_t;
 /* log record end marker: rec_end_t -- a single copy in the log descriptor */
 typedef struct
     {
-    struct_id_t     struct_id;          /* self-identifier */
-    rvm_length_t    rec_length;         /* back displacement to record header */
-    struct timeval  timestamp;          /* timestamp of log record */
-    rvm_length_t    rec_num;            /* record number of entry */
+    rec_hdr_t	    rec_hdr;		/* common log record header */
     struct_id_t     rec_type;           /* type of recorded ended */
     rvm_length_t    sub_rec_len;        /* back displacement to previous sub-
                                            record; same as rec_length if none */
@@ -692,25 +688,11 @@ rec_end_t;
 /* log wrap-around marker -- a single copy in the log descriptor */
 typedef struct
     {
-    struct_id_t     struct_id;          /* self-identifier */
-    rvm_length_t    rec_length;         /* own size, so same as log_rec_head_t */
-    struct timeval  timestamp;          /* timestamp of wrap around */
-    rvm_length_t    rec_num;            /* record number of entry */
+    rec_hdr_t	    rec_hdr;		/* common log record header */
     struct_id_t     struct_id2;         /* for scan_wrap_reverse()! */
     }
 log_wrap_t;
 
-/* generic record header; not actually allocated, but any record header
-   can be cast to this to get its type & length for detailed analysis 
-*/
-typedef struct
-    {
-    struct_id_t     struct_id;          /* type of entry */
-    rvm_length_t    rec_length;         /* record length */
-    struct timeval  timestamp;          /* timestamp of record entry */
-    long            rec_num;            /* record number of entry */
-    }
-rec_hdr_t;
 /* device descriptor -- included in log and segment descriptors */
 typedef struct
     {
@@ -1527,7 +1509,7 @@ rvm_return_t enter_seg_dict();          /* [rvm_logrecovr.c] */
 extern
 rvm_return_t def_seg_dict();            /* [rvm_logrecovr.c] */
 /*  log_t           *log;
-    rec_hdr_        *rec_hdr_t;
+    rec_hdr_t       *rec_hdr;
 */
 /* I/O functions */
 

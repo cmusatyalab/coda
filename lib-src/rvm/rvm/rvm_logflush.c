@@ -109,8 +109,8 @@ static rvm_return_t write_log_wrap(log)
     rvm_offset_t    pad_len;
 
     /* set timestamp and record number for wrap */
-    make_uname(&wrap->timestamp);
-    wrap->rec_num = make_rec_num(log);
+    make_uname(&wrap->rec_hdr.timestamp);
+    wrap->rec_hdr.rec_num = make_rec_num(log);
     log->status.tot_wrap++;
 
     /* make iov entry */
@@ -139,7 +139,7 @@ static rvm_return_t write_log_wrap(log)
      */
     has_wrapped = rvm_true;
 #endif /* RVM_LOG_TAIL_SHADOW */
-    return update_log_tail(log,(rec_hdr_t *)wrap);
+    return update_log_tail(log, &wrap->rec_hdr);
     }
 /* setup header for nv log entry */
 static void build_trans_hdr(tid,is_first,is_last)
@@ -152,10 +152,10 @@ static void build_trans_hdr(tid,is_first,is_last)
     device_t        *dev = &log->dev;
 
     /* setup entry header */
-    make_uname(&trans_hdr->timestamp);
-    trans_hdr->rec_num = make_rec_num(log);
+    make_uname(&trans_hdr->rec_hdr.timestamp);
+    trans_hdr->rec_hdr.rec_num = make_rec_num(log);
     trans_hdr->num_ranges = 0;
-    trans_hdr->rec_length = TRANS_SIZE - sizeof(rec_end_t);
+    trans_hdr->rec_hdr.rec_length = TRANS_SIZE - sizeof(rec_end_t);
     trans_hdr->uname = tid->uname;
     trans_hdr->commit_stamp = tid->commit_stamp;
     log->status.last_commit = tid->commit_stamp;
@@ -189,11 +189,11 @@ static void build_rec_end(log,timestamp,rec_num,rec_type,back_link)
     device_t        *dev = &log->dev;
 
     /* setup entry end marker */
-    rec_end->rec_num = rec_num;
+    rec_end->rec_hdr.rec_num = rec_num;
     rec_end->rec_type = rec_type;
-    rec_end->timestamp = *timestamp;
-    rec_end->rec_length = dev->io_length - sizeof(rec_end_t);
-    trans_hdr->rec_length = rec_end->rec_length;
+    rec_end->rec_hdr.timestamp = *timestamp;
+    rec_end->rec_hdr.rec_length = dev->io_length - sizeof(rec_end_t);
+    trans_hdr->rec_hdr.rec_length = rec_end->rec_hdr.rec_length;
     rec_end->sub_rec_len = back_link;
 
     /* enter in iovec */
@@ -214,16 +214,16 @@ static void build_nv_range(log,tid,range)
     /* setup header fields */
     nv_range = &range->nv;
     log->trans_hdr.num_ranges += 1;
-    nv_range->timestamp = log->trans_hdr.timestamp;
+    nv_range->rec_hdr.timestamp = log->trans_hdr.rec_hdr.timestamp;
     nv_range->range_num = log->trans_hdr.num_ranges;
-    nv_range->rec_num = log->trans_hdr.rec_num;
-    nv_range->rec_length = RANGE_SIZE(range);
+    nv_range->rec_hdr.rec_num = log->trans_hdr.rec_hdr.rec_num;
+    nv_range->rec_hdr.rec_length = RANGE_SIZE(range);
     nv_range->chk_sum =
         chk_sum(range->nvaddr+BYTE_SKEW(nv_range->vmaddr),
                 range->nv.length);
-    dev->io_length += nv_range->rec_length; /* accumulate lengths */
+    dev->io_length += nv_range->rec_hdr.rec_length; /* accumulate lengths */
     nv_range->sub_rec_len = tid->back_link;
-    tid->back_link = nv_range->rec_length;
+    tid->back_link = nv_range->rec_hdr.rec_length;
 
     /* setup header i/o */
     dev->iov[dev->iov_cnt].iov_base = nv_range;
@@ -245,7 +245,7 @@ static void build_nv_range(log,tid,range)
     {
 
     /* copy basic data from parent range */
-    new_range->nv.timestamp = range->nv.timestamp;
+    new_range->nv.rec_hdr.timestamp = range->nv.rec_hdr.timestamp;
     new_range->nv.seg_code = range->nv.seg_code;
     new_range->nv.vmaddr = range->nv.vmaddr;
     new_range->nv.offset = range->nv.offset;
@@ -346,8 +346,8 @@ static void build_nv_range(log,tid,range)
         if (write_range(tid,range,&log_free))
             {
             /* insert end marker */
-            build_rec_end(log,&log->trans_hdr.timestamp,
-                          log->trans_hdr.rec_num,
+            build_rec_end(log,&log->trans_hdr.rec_hdr.timestamp,
+                          log->trans_hdr.rec_hdr.rec_num,
                           trans_hdr_id,tid->back_link);
 
             /* write a wrap and restart */
@@ -366,8 +366,8 @@ static void build_nv_range(log,tid,range)
             }
         }
     /* insert end marker */
-    build_rec_end(log,&log->trans_hdr.timestamp,
-                  log->trans_hdr.rec_num,
+    build_rec_end(log,&log->trans_hdr.rec_hdr.timestamp,
+                  log->trans_hdr.rec_hdr.rec_num,
                   trans_hdr_id,tid->back_link);
 
     /* accumulate range savings statistics and initiate i/o */
@@ -392,7 +392,7 @@ static void build_nv_range(log,tid,range)
                     trans_coalesces_vec,trans_coalesces_len);
     if (gather_write_dev(&log->dev,&log->status.log_tail) < 0)
         return RVM_EIO;
-    return update_log_tail(log,(rec_hdr_t *)&log->trans_hdr);
+    return update_log_tail(log, &log->trans_hdr.rec_hdr);
     }
 /* wait for a truncation to free space for log record
    -- assumes dev_lock is held */
@@ -475,23 +475,23 @@ static void build_log_special(log,special)
     rvm_length_t    length;
 
     /* timestamp the entry */
-    make_uname(&special->timestamp);
+    make_uname(&special->rec_hdr.timestamp);
 
     /* check that records are logged in strict FIFO order */
-    assert(TIME_GTR(special->timestamp,log->status.last_write));
+    assert(TIME_GTR(special->rec_hdr.timestamp,log->status.last_write));
 
     /* prepare i/o */
-    special->rec_num = make_rec_num(log);
-    dev->io_length = special->rec_length+sizeof(rec_end_t);
-    dev->iov[dev->iov_cnt].iov_base = &special->struct_id;
+    special->rec_hdr.rec_num = make_rec_num(log);
+    dev->io_length = special->rec_hdr.rec_length+sizeof(rec_end_t);
+    dev->iov[dev->iov_cnt].iov_base = &special->rec_hdr.struct_id;
     dev->iov[dev->iov_cnt++].iov_len = LOG_SPECIAL_SIZE;
 
     /* type-specific build operations */
-    switch (special->struct_id)
+    switch (special->rec_hdr.struct_id)
         {
       case log_seg_id:                  /* copy segment device name */
             {
-            length = special->rec_length-LOG_SPECIAL_SIZE;
+            length = special->rec_hdr.rec_length-LOG_SPECIAL_SIZE;
             dev->iov[dev->iov_cnt].iov_base = special->special.log_seg.name;
             dev->iov[dev->iov_cnt++].iov_len = length;
             break;
@@ -514,7 +514,7 @@ static rvm_return_t log_special(log,special)
     rvm_return_t    retval;             /* return value */
 
     /* see if truncation required to get space */
-    special_size = RVM_MK_OFFSET(0,special->rec_length
+    special_size = RVM_MK_OFFSET(0,special->rec_hdr.rec_length
                   + sizeof(log_wrap_t) + sizeof(rec_end_t));
     if ((retval=wait_for_space(log,&special_size,
                                &max_log_free,&did_wait))
@@ -533,13 +533,13 @@ static rvm_return_t log_special(log,special)
     /* build special entry */
     log->status.n_special++;
     build_log_special(log,special);
-    build_rec_end(log,&special->timestamp,special->rec_num,
-                  special->struct_id,special->rec_length);
+    build_rec_end(log,&special->rec_hdr.timestamp,special->rec_hdr.rec_num,
+                  special->rec_hdr.struct_id,special->rec_hdr.rec_length);
 
     /* do the i/o & update log tail */
-    if (gather_write_dev(&log->dev,&log->status.log_tail) < 0)
+    if (gather_write_dev(&log->dev, &log->status.log_tail) < 0)
         return RVM_EIO;
-    retval = update_log_tail(log,(rec_hdr_t *)&special->struct_id);
+    retval = update_log_tail(log, &special->rec_hdr);
     if (retval != RVM_SUCCESS) return retval;
     
     free_log_special(special);

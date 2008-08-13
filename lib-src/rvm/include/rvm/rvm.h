@@ -362,7 +362,7 @@ extern void rvm_free_region(rvm_region_t *region);
 
 /* RVM initialization: pass version and optional options
    descriptor */
-extern rvm_return_t rvm_initialize(char *version, rvm_options_t *opts);
+extern rvm_return_t rvm_initialize(const char *version, rvm_options_t *opts);
 /* init macro */
 #define RVM_INIT(options) rvm_initialize(RVM_VERSION,(options))
 

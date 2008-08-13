@@ -614,11 +614,11 @@ rvm_bool_t chk_hdr(log,rec_hdr,rec_end,direction)
 
     /* generic record head/end validation */
     if ((rec_end != NULL) &&
-        ((rec_end->struct_id != rec_end_id)
+        ((rec_end->rec_hdr.struct_id != rec_end_id)
         || (rec_hdr->struct_id != rec_end->rec_type)
-        || (rec_hdr->rec_num != rec_end->rec_num)
-        || (rec_hdr->rec_length != rec_end->rec_length)
-        || (!TIME_EQL(rec_hdr->timestamp,rec_end->timestamp))))
+        || (rec_hdr->rec_num != rec_end->rec_hdr.rec_num)
+        || (rec_hdr->rec_length != rec_end->rec_hdr.rec_length)
+        || (!TIME_EQL(rec_hdr->timestamp,rec_end->rec_hdr.timestamp))))
         return rvm_false;
 
     return rvm_true;
@@ -924,7 +924,7 @@ rvm_return_t scan_wrap_reverse(log,synch)
         log_wrap = (log_wrap_t *)&log_buf->buf[tmp_ptr];
         if (log_wrap->struct_id2 == log_wrap_id) 
             {
-		assert( (log_wrap->struct_id==log_wrap_id) || rvm_utlsw );
+		assert( (log_wrap->rec_hdr.struct_id==log_wrap_id) || rvm_utlsw );
 		/* XXXX fix this */ 
 #if 0
 		if (!((log_wrap->struct_id == log_wrap_id) || rvm_utlsw)) {
@@ -986,14 +986,14 @@ rvm_return_t validate_rec_reverse(log,synch)
 
     /* check new end marker */
     rec_end = (rec_end_t *)&log_buf->buf[log_buf->ptr];
-    if (rec_end->struct_id != rec_end_id)
+    if (rec_end->rec_hdr.struct_id != rec_end_id)
         goto no_record;             /* no next record */
     /* see if record will fit in buffer */
-    if ((ROUND_TO_SECTOR_SIZE(rec_end->rec_length+sizeof(rec_end_t))
+    if ((ROUND_TO_SECTOR_SIZE(rec_end->rec_hdr.rec_length+sizeof(rec_end_t))
         + SECTOR_SIZE) <= log_buf->length)
         {
         /* yes, get whole record in buffer */
-        if ((long)(log_buf->ptr - rec_end->rec_length) < 0)
+        if ((long)(log_buf->ptr - rec_end->rec_hdr.rec_length) < 0)
             {
             /* refill buffer (be sure end marker is included) */
             log_buf->ptr += sizeof(rec_end_t);
@@ -1002,14 +1002,14 @@ rvm_return_t validate_rec_reverse(log,synch)
             log_buf->ptr -= sizeof(rec_end_t);
             rec_end = (rec_end_t *)&log_buf->buf[log_buf->ptr];
             }
-        tmp_ptr = log_buf->ptr - rec_end->rec_length;
+        tmp_ptr = log_buf->ptr - rec_end->rec_hdr.rec_length;
         rec_hdr = (rec_hdr_t *)&log_buf->buf[tmp_ptr];
         }
     else
         {
         /* no, save rec_end for validation & get header in aux. buffer */
         offset = RVM_SUB_LENGTH_FROM_OFFSET(log_buf->offset,
-                                            rec_end->rec_length);
+                                            rec_end->rec_hdr.rec_length);
         offset = RVM_ADD_LENGTH_TO_OFFSET(offset,log_buf->ptr);
 
         /* check offset alignment to see if rec_end is trash */
@@ -1182,7 +1182,7 @@ static rvm_return_t set_trans_status(log,rec_hdr)
         if (rec_hdr->struct_id != nv_range_id)
             goto bad_record;            /* invalid record */
         nv = (nv_range_t *)rec_hdr;
-        if (trans_hdr.rec_num != nv->rec_num)
+        if (trans_hdr.rec_hdr.rec_num != nv->rec_hdr.rec_num)
             goto bad_record;            /* wrong transaction */
 
         /* test range's data check sum */
@@ -1675,15 +1675,15 @@ static rvm_return_t do_nv(log,nv)
     assert(log->trunc_thread == cthread_self());
     assert((status->trunc_state & RVM_TRUNC_PHASES)
            == RVM_TRUNC_BUILD_TREE);
-    assert(nv->struct_id == nv_range_id);  /* not a nv range header */
-    assert(TIME_EQL(log_buf->timestamp,nv->timestamp));
+    assert(nv->rec_hdr.struct_id == nv_range_id);  /* not a nv range header */
+    assert(TIME_EQL(log_buf->timestamp,nv->rec_hdr.timestamp));
 
     if (rvm_chk_len != 0)               /* do monitoring */
         {
         offset = RVM_ADD_LENGTH_TO_OFFSET(log_buf->offset,
                                     log_buf->ptr+sizeof(nv_range_t));
-        monitor_vmaddr(nv->vmaddr,nv->length,NULL,&offset,
-                       (rec_hdr_t *)nv,"do_nv: data from log");
+        monitor_vmaddr(nv->vmaddr, nv->length, NULL, &offset,
+                       &nv->rec_hdr, "do_nv: data from log");
         }
 
     if (nv->length == 0) return RVM_SUCCESS; /* ignore null changes */
@@ -1768,8 +1768,8 @@ static rvm_return_t do_trans(log,skip_trans)
 
     /* remember the transaction's timestamp and scan ranges */
     rec_end = (rec_end_t *)&log_buf->buf[log_buf->ptr];
-    assert(rec_end->struct_id == rec_end_id);
-    log_buf->timestamp = rec_end->timestamp;
+    assert(rec_end->rec_hdr.struct_id == rec_end_id);
+    log_buf->timestamp = rec_end->rec_hdr.timestamp;
     DO_FOREVER
         {
         if ((retval=scan_nv_reverse(log,SYNCH)) != RVM_SUCCESS)
@@ -1799,8 +1799,8 @@ static rvm_return_t do_trans(log,skip_trans)
 
     /* sanity checks at the end... */
     trans_hdr = (trans_hdr_t *)rec_hdr;
-    assert(trans_hdr->struct_id == trans_hdr_id);
-    assert(TIME_EQL(trans_hdr->timestamp,log_buf->timestamp));
+    assert(trans_hdr->rec_hdr.struct_id == trans_hdr_id);
+    assert(TIME_EQL(trans_hdr->rec_hdr.timestamp,log_buf->timestamp));
     assert(trans_hdr->num_ranges == num_ranges);
     if (num_ranges != 0) assert(prev_range == 1);
 
@@ -1827,7 +1827,7 @@ static rvm_return_t chk_wrap(log,force_wrap_chk,skip_trans)
     *skip_trans = rvm_false;
     rec_end = (rec_end_t *)&log_buf->buf[log_buf->ptr];
     offset = RVM_ADD_LENGTH_TO_OFFSET(log_buf->offset,log_buf->ptr);
-    offset = RVM_SUB_LENGTH_FROM_OFFSET(offset,rec_end->rec_length);
+    offset = RVM_SUB_LENGTH_FROM_OFFSET(offset,rec_end->rec_hdr.rec_length);
 
     /* check if transaction header is at start of log data area */
     if (!RVM_OFFSET_EQL(offset,status->log_start) && (!force_wrap_chk))
@@ -1850,7 +1850,7 @@ static rvm_return_t chk_wrap(log,force_wrap_chk,skip_trans)
             }
         else
             trans_hdr = (trans_hdr_t *)&log_buf->buf[log_buf->ptr
-                                                -rec_end->rec_length];
+                                                -rec_end->rec_hdr.rec_length];
         }
     else
         /* header is at start of aux_buf or recovery buffer */
@@ -1860,7 +1860,7 @@ static rvm_return_t chk_wrap(log,force_wrap_chk,skip_trans)
             trans_hdr = (trans_hdr_t *)log_buf->buf;
 
     /* check for split transaction */
-    assert(trans_hdr->struct_id == trans_hdr_id);
+    assert(trans_hdr->rec_hdr.struct_id == trans_hdr_id);
     if (TRANS_HDR(FIRST_ENTRY_FLAG)
         && TRANS_HDR(LAST_ENTRY_FLAG))
         return RVM_SUCCESS;             /* not split, nothing more needed */
@@ -1894,8 +1894,8 @@ static rvm_return_t chk_wrap(log,force_wrap_chk,skip_trans)
     /* wrap-around had better be next... */
     assert((long)log_buf->ptr >= 0);
     log_wrap = (log_wrap_t *)&log_buf->buf[log_buf->ptr];
-    assert(log_wrap->struct_id == log_wrap_id);
-    assert(log_wrap->rec_num == (last_trans_hdr.rec_num-1));
+    assert(log_wrap->rec_hdr.struct_id == log_wrap_id);
+    assert(log_wrap->rec_hdr.rec_num == (last_trans_hdr.rec_hdr.rec_num-1));
 
     /* now scan for first record of transaction */
     if ((retval=scan_reverse(log,SYNCH)) != RVM_SUCCESS)
@@ -1905,10 +1905,10 @@ static rvm_return_t chk_wrap(log,force_wrap_chk,skip_trans)
            == RVM_TRUNC_BUILD_TREE);
     assert((long)log_buf->ptr >= 0);
     rec_end = (rec_end_t *)&log_buf->buf[log_buf->ptr];
-    assert(rec_end->struct_id == rec_end_id);
+    assert(rec_end->rec_hdr.struct_id == rec_end_id);
     /* check if the header is the first record of last transaction */
     offset = RVM_ADD_LENGTH_TO_OFFSET(log_buf->offset,log_buf->ptr);
-    offset = RVM_SUB_LENGTH_FROM_OFFSET(offset,rec_end->rec_length);
+    offset = RVM_SUB_LENGTH_FROM_OFFSET(offset,rec_end->rec_hdr.rec_length);
     if (RVM_OFFSET_LSS(offset,log_buf->offset))
         {
         /* header is in aux_buf */
@@ -1925,10 +1925,10 @@ static rvm_return_t chk_wrap(log,force_wrap_chk,skip_trans)
         }
 
     /* sanity checks... */
-    assert(trans_hdr->struct_id == trans_hdr_id);
+    assert(trans_hdr->rec_hdr.struct_id == trans_hdr_id);
     assert(TRANS_HDR(FIRST_ENTRY_FLAG));
     assert(TIME_EQL(trans_hdr->uname,last_trans_hdr.uname));
-    assert(trans_hdr->rec_num == (last_trans_hdr.rec_num-2));
+    assert(trans_hdr->rec_hdr.rec_num == (last_trans_hdr.rec_hdr.rec_num-2));
 
     /* all is well, restore last transaction record */
     log_buf->prev_rec_num = 0;
@@ -2003,7 +2003,7 @@ X(done scan_reverse)
 
         /* check type of end marker, do type-dependent processing */
         rec_end = (rec_end_t *)&log_buf->buf[log_buf->ptr];
-        if (rec_end->struct_id == log_wrap_id)
+        if (rec_end->rec_hdr.struct_id == log_wrap_id)
             {
 X(log_wrap)
             if (!log_buf->split_ok)
@@ -2012,7 +2012,7 @@ X(log_wrap)
         else
             {
 X(else)
-            assert(rec_end->struct_id == rec_end_id);
+            assert(rec_end->rec_hdr.struct_id == rec_end_id);
             switch (rec_end->rec_type)
                 {
               case trans_hdr_id:        /* process transaction */
@@ -2030,10 +2030,10 @@ X( trans_hdr_id: end)
 X( log_seg_id: def_seg_dict)
                 if ((retval=def_seg_dict(log,(rec_hdr_t *)
                     RVM_SUB_LENGTH_FROM_ADDR(rec_end,
-                                        rec_end->rec_length)))
+                                        rec_end->rec_hdr.rec_length)))
                     != RVM_SUCCESS) return retval;
 X( log_seg_id: done)
-                log_buf->ptr -= rec_end->rec_length;
+                log_buf->ptr -= rec_end->rec_hdr.rec_length;
                 break;
               default:  assert(rvm_false); /* trouble, log damage? */
                 }

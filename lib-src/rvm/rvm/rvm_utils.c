@@ -656,11 +656,11 @@ log_t *make_log(log_dev_name,retval)
         log->status.flush_state = 0;
 
         /* init log flush structures */
-        log->trans_hdr.struct_id = trans_hdr_id;
-        log->rec_end.struct_id = rec_end_id;
-        log->log_wrap.struct_id = log_wrap_id;
+        log->trans_hdr.rec_hdr.struct_id = trans_hdr_id;
+        log->rec_end.rec_hdr.struct_id = rec_end_id;
+        log->log_wrap.rec_hdr.struct_id = log_wrap_id;
         log->log_wrap.struct_id2 = log_wrap_id;  /* for scan_wrap_reverse() */
-        log->log_wrap.rec_length = sizeof(log_wrap_t);
+        log->log_wrap.rec_hdr.rec_length = sizeof(log_wrap_t);
 
         /* init recovery buffer and dictionary */
         log_buf = &log->log_buf;
@@ -710,7 +710,7 @@ log_special_t *make_log_special(special_id,length)
     if ((special=(log_special_t *)alloc_list_entry(log_special_id))
         != NULL)
         {
-        special->struct_id = special_id; /* set "real" type */
+        special->rec_hdr.struct_id = special_id; /* set "real" type */
 
         /* buffer allocation */
         if ((length=ROUND_TO_LENGTH(length)) != 0)
@@ -719,7 +719,7 @@ log_special_t *make_log_special(special_id,length)
                 free_list_entry((list_entry_t *)special);
                 return NULL;
                 }
-        special->rec_length = LOG_SPECIAL_SIZE + length;
+        special->rec_hdr.rec_length = LOG_SPECIAL_SIZE + length;
 
         /* type specific initialization */
         switch (special_id)
@@ -739,7 +739,7 @@ log_special_t *make_log_special(special_id,length)
     assert(special->links.struct_id == log_special_id);
 
     /* type specific finalization */
-    switch (special->struct_id)
+    switch (special->rec_hdr.struct_id)
         {
       case log_seg_id:
         if (special->special.log_seg.name != NULL)
@@ -767,7 +767,7 @@ range_t *make_range()
         range->nvaddr = NULL;
         range->data = NULL;
         range->data_len = 0;
-        range->nv.struct_id = nv_range_id;
+        range->nv.rec_hdr.struct_id = nv_range_id;
         range->nv.is_split = rvm_false;
         }
 
@@ -815,7 +815,7 @@ int_tid_t *make_tid(mode)
         ZERO_TIME(tid->commit_stamp);
         tid->flags = rvm_optimizations & RVM_ALL_OPTIMIZATIONS;
         if (mode == restore) tid->flags |= RESTORE_FLAG;
-        tid->split_range.nv.struct_id = nv_range_id;
+        tid->split_range.nv.rec_hdr.struct_id = nv_range_id;
         tid->back_link = sizeof(trans_hdr_t);
         }
 
