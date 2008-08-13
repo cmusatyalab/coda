@@ -659,7 +659,7 @@ RPC2 runtime routines:
 #include "multi.h"
 
 
-extern long RPC2_Init (char *VersionId, RPC2_Options *Options, RPC2_PortIdent *PortList, long RetryCount, struct timeval *KeepAliveInterval);
+extern long RPC2_Init (const char *VersionId, RPC2_Options *Options, RPC2_PortIdent *PortList, long RetryCount, struct timeval *KeepAliveInterval);
 void RPC2_SetLog(FILE *, int);
 extern long RPC2_Export (RPC2_SubsysIdent *Subsys);
 extern long RPC2_DeExport (RPC2_SubsysIdent *Subsys);
@@ -668,7 +668,7 @@ extern long RPC2_DeExport (RPC2_SubsysIdent *Subsys);
 #else
 #define  RPC2_AllocBuffer(x, y)  (rpc2_AllocBuffer((long) (x), y, 0, (long) 0))
 #endif /* NONDEBUG */
-extern long rpc2_AllocBuffer (long MinBodySize, RPC2_PacketBuffer **BufferPtr, char *SrcFile, long SrcLine);
+extern long rpc2_AllocBuffer (long MinBodySize, RPC2_PacketBuffer **BufferPtr, const char *SrcFile, long SrcLine);
 extern long RPC2_FreeBuffer (RPC2_PacketBuffer **Buffer);
 extern long RPC2_SendResponse (RPC2_Handle ConnHandle, RPC2_PacketBuffer *Reply);
 

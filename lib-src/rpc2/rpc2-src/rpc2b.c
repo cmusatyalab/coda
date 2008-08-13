@@ -71,7 +71,7 @@ RPC2_HostIdent rpc2_bindhost = {
     .Tag = RPC2_DUMMYHOST,
 };
 
-long RPC2_Init(char *VId,		/* magic version string */
+long RPC2_Init(const char *VId,		/* magic version string */
 	       RPC2_Options *Options,
 	       RPC2_PortIdent *Port,	/* array of portal ids */
 	       long RetryCount,	   /* max number of retries before breaking conn*/
@@ -334,7 +334,7 @@ static RPC2_PacketBuffer *GetPacket(psize)
    Sets BodyLength field of allocated packet to MinBodySize: you can
    alter this if this is not what you intended */
 long rpc2_AllocBuffer(IN long MinBodySize, OUT RPC2_PacketBuffer **BuffPtr, 
-		      IN char *File, IN long Line)
+		      IN const char *File, IN long Line)
 {
 	long thissize;
 
