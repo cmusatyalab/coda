@@ -110,7 +110,7 @@ next process in that queue that should run. */
 static void lwpremove(PROCESS p, struct QUEUE *q);
 static void lwpinsert(PROCESS p, struct QUEUE *q);
 static void lwpmove(PROCESS p, struct QUEUE *from, struct QUEUE *to);
-static void Initialize_PCB (PROCESS temp, int priority, char *stack, int stacksize, void (*func)(void *), void *arg, char *name);
+static void Initialize_PCB (PROCESS temp, int priority, char *stack, int stacksize, void (*func)(void *), void *arg, const char *name);
 static void Abort_LWP(char *msg);
 static void Exit_LWP();
 static void Free_PCB(PROCESS pid);
@@ -445,7 +445,7 @@ int LWP_QSignal(PROCESS pid)
 }
 
 int LWP_CreateProcess(void (*ep)(void *), int stacksize, int priority,
-		      void *parm, char *name, PROCESS *pid)
+		      void *parm, const char *name, PROCESS *pid)
 {
     PROCESS temp;
     char *stackptr;
@@ -865,9 +865,9 @@ int LWP_DispatchProcess(void)
     return lwp_DispatchProcess(0);
 }
 
-static void Initialize_PCB(PROCESS temp, int priority, char *stack, 
+static void Initialize_PCB(PROCESS temp, int priority, char *stack,
 			   int stacksize, void (*func)(void *), void *arg,
-			   char *name)
+			   const char *name)
 {
     lwpdebug(0, "Entered Initialize_PCB");
     memset(temp, 0, sizeof(struct lwp_pcb));

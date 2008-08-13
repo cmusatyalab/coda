@@ -111,7 +111,7 @@ extern int LWP_QSignal (PROCESS pid);
 extern int LWP_Init (int version, int priority, PROCESS *pid);
 extern int LWP_TerminateProcessSupport();
 extern int LWP_CreateProcess (void (*ep)(void *), int stacksize, int priority,
-			      void *parm, char *name, PROCESS *pid);
+			      void *parm, const char *name, PROCESS *pid);
 extern int LWP_CurrentProcess (PROCESS *pid);
 PROCESS LWP_ThisProcess();
 extern void LWP_SetLog(FILE *, int );
