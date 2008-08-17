@@ -46,9 +46,9 @@ AC_ARG_WITH(vcodacon, [  --with-vcodacon	  build graphical Coda console],
     buildvcodacon="$enableval", buildvcodacon="no")
 
 dnl Make sure we configure any sub-projects before checking with pkg-config
-AC_CONFIG_SUBDIRS([lib-src/lwp])
-AC_CONFIG_SUBDIRS([lib-src/rpc2])
-AC_CONFIG_SUBDIRS([lib-src/rvm])
+test -f "${ac_pwd}/lib-src/lwp/configure.in" && AC_CONFIG_SUBDIRS([lib-src/lwp])
+test -f "${ac_pwd}/lib-src/rpc2/configure.in" && AC_CONFIG_SUBDIRS([lib-src/rpc2])
+test -f "${ac_pwd}/lib-src/rvm/configure.in" && AC_CONFIG_SUBDIRS([lib-src/rvm])
 CODA_CONFIG_SUBDIRS
 
 dnl pkg-config stuff
