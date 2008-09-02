@@ -6,9 +6,11 @@ AC_DEFUN([CODA_CONFIG_SUBDIRS],
   [if test -z "${PKG_CONFIG_PATH}" ; then
      PKG_CONFIG_PATH="${libdir}/pkgconfig:/usr/local/lib/pkgconfig"
    fi
-   for dir in ${subdirs} ; do
-     PKG_CONFIG_PATH="${ac_pwd}/${dir}:${PKG_CONFIG_PATH}"
+   pc_pfx=
+   for subdir in ${subdirs} ; do
+     pc_pfx="${pc_pfx}${ac_pwd}/${subdir}:"
    done
+   PKG_CONFIG_PATH="${pc_pfx}${PKG_CONFIG_PATH}"
    export PKG_CONFIG_PATH
    _AC_OUTPUT_SUBDIRS()
    no_recursion=yes])
