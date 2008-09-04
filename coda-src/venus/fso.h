@@ -189,7 +189,7 @@ class fsdb {
     ~fsdb() { abort(); }
 
     /* Allocation/Deallocation routines. */
-    fsobj *Create(VenusFid *, int, char *comp, VenusFid *parent);
+    fsobj *Create(VenusFid *, int, const char *comp, VenusFid *parent);
     int FreeFsoCount();
     int AllocFso(int, fsobj **);
     int GrabFreeFso(int, fsobj **);
@@ -212,8 +212,9 @@ class fsdb {
   public:
     fsobj *Find(const VenusFid *);
     /* rcode arg added for local repair */
-    int Get(fsobj **fso, VenusFid *fid, uid_t uid, int rights, char *comp=NULL,
-	    VenusFid *parent=NULL, int *rcode=NULL, int GetInconsistent=0);
+    int Get(fsobj **fso, VenusFid *fid, uid_t uid, int rights,
+	    const char *comp=NULL, VenusFid *parent=NULL, int *rcode=NULL,
+	    int GetInconsistent=0);
     void Put(fsobj **);
     void Flush();
     void Flush(Volid *);
@@ -637,7 +638,7 @@ class fsobj {
     void Release(int writep);
     int Close(int writep, uid_t uid);
     int Access(int rights, int modes, uid_t);
-    int Lookup(fsobj **, VenusFid *, char *, uid_t, int flags, int GetInconsistent=0);
+    int Lookup(fsobj **, VenusFid *, const char *, uid_t, int flags, int GetInconsistent=0);
 // These are defined in coda-src/kerndep/coda.h
 // #define CLU_CASE_SENSITIVE	0x01
 // #define CLU_CASE_INSENSITIVE 0x02
@@ -647,7 +648,7 @@ class fsobj {
     int Readlink(char *, unsigned long, int *, uid_t);
 
     /* Miscellaneous utility routines. */
-    int dir_Lookup(char *, VenusFid *, int);
+    int dir_Lookup(const char *, VenusFid *, int);
     int CheckAcRights(uid_t uid, long rights, int connected);
     void GetVattr(struct coda_vattr *);		/* translate attributes to VFS format */
     void GetFid(VenusFid *f) { *f = fid; }

@@ -205,15 +205,15 @@ void fsobj::dir_MakeDir()
 }
 
 
-int fsobj::dir_Lookup(char *Name, VenusFid *Fid, int flags) 
+int fsobj::dir_Lookup(const char *Name, VenusFid *Fid, int flags)
 {
-	if (!HAVEALLDATA(this)) { 
-		print(logFile); 
-		CHOKE("fsobj::dir_Lookup: (%s) no data", Name); 
+	if (!HAVEALLDATA(this)) {
+		print(logFile);
+		CHOKE("fsobj::dir_Lookup: (%s) no data", Name);
 	}
 
 	int code = DH_Lookup(&data.dir->dh, Name, MakeViceFid(Fid), flags);
-	if (code != 0) 
+	if (code != 0)
 		return(code);
 
 	Fid->Realm = fid.Realm;

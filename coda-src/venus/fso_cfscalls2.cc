@@ -441,7 +441,7 @@ int fsobj::Access(int rights, int modes, uid_t uid)
 /* local-repair modification */
 /* inc_fid is an OUT parameter which allows caller to form "fake symlink" if it desires. */
 /* Explicit parameter for TRAVERSE_MTPTS? -JJK */
-int fsobj::Lookup(fsobj **target_fso_addr, VenusFid *inc_fid, char *name, uid_t uid, int flags, int GetInconsistent)
+int fsobj::Lookup(fsobj **target_fso_addr, VenusFid *inc_fid, const char *name, uid_t uid, int flags, int GetInconsistent)
 {
   LOG(10, ("fsobj::Lookup: (%s/%s), uid = %d, GetInconsistent = %d\n", GetComp(), name, uid, GetInconsistent));
 

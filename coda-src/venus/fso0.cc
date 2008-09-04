@@ -422,7 +422,8 @@ fsobj *fsdb::Find(const VenusFid *key)
 /* MUST NOT be called from within transaction! */
 /* Caller MUST guarantee that the volume is cached and stable! */
 /* Should priority be an implicit argument? -JJK */
-fsobj *fsdb::Create(VenusFid *key, int priority, char *comp, VenusFid *parent)
+fsobj *fsdb::Create(VenusFid *key, int priority, const char *comp,
+		    VenusFid *parent)
 {
     fsobj *f = 0;
     int rc = 0;
@@ -493,7 +494,8 @@ fsobj *fsdb::Create(VenusFid *key, int priority, char *comp, VenusFid *parent)
  * poor user can do about it.
  */
 int fsdb::Get(fsobj **f_addr, VenusFid *key, uid_t uid, int rights,
-	      char *comp, VenusFid *parent, int *rcode, int GetInconsistent)
+	      const char *comp, VenusFid *parent, int *rcode,
+	      int GetInconsistent)
 {
     int getdata = (rights & RC_DATA);
     int code = 0;
