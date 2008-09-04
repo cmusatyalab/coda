@@ -186,7 +186,7 @@ void showVolumeDiskData(int largc, char **largv) {
 	printf("reserved1[%d] = %u, ", i, data.reserved1[i]);
     }
     printf("\n\t");
-    for (i = 3; i < 6; i++) {
+    for (i = 3; i < 5; i++) {
 	printf("reserved1[%d] = %u, ", i, data.reserved1[i]);
     }
     printf("\n");
@@ -254,7 +254,7 @@ void showVolumeDiskData(int largc, char **largv) {
 	printf("reserved4[%d] = %u, ", i, data.reserved4[i]);
     }
     printf("\n\t");
-    for (i = 6; i < 8; i++) {
+    for (i = 6; i < 7; i++) {
 	printf("reserved4[%d] = %u, ", i, data.reserved4[i]);
     }
     printf("\n");
