@@ -210,7 +210,8 @@ static void RecovNewInstance(void)
     VenusGenID = rpc2_NextRandom(NULL);
 
     /* server disables replay detection when storeid.uniquifier > INT_MAX */
-    rvg->recov_StoreId = detect_reintegration_retry ? 0 : (INT_MAX+1);
+    rvg->recov_StoreId =
+	detect_reintegration_retry ? 0 : ((unsigned int)INT_MAX+1);
     Recov_EndTrans(0);
 }
 
