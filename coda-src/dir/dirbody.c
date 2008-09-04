@@ -64,7 +64,7 @@ void DIR_Print(PDirHeader, FILE *f);
 static int dir_FindBlobs (struct DirHeader **dh, int nblobs);
 static int dir_AddPage (struct DirHeader **dir);
 static int dir_NameBlobs(const char *);
-static struct DirEntry *dir_FindItem (struct DirHeader *dir, char *ename, 
+static struct DirEntry *dir_FindItem (struct DirHeader *dir, const char *ename,
 				       struct DirEntry **preventry, int *index,
 				       int flags);
 struct DirEntry *dir_GetBlob (struct DirHeader *dir, long blobno);
@@ -78,10 +78,10 @@ static void fid_NFid2Fid(struct DirNFid *nfid, DirFid *fid);
 static void fid_NFidV2Fid(struct DirNFid *, VolumeId, struct ViceFid *);
 
 struct DirFind {
-	char		*df_ename;
+	const char	*df_ename;
 	struct DirEntry *df_tp;
 	struct DirEntry *df_lp;
-	int             df_index;          	
+	int		 df_index;
 };
 
 /* locking policy: DH_ routines lock.  DIR routines may
@@ -520,7 +520,7 @@ int DIR_Create (struct DirHeader **dh, char *entry, DirFid *fid)
 		return ENAMETOOLONG;
 	if ( strlen(entry) == 0 )
 		return EINVAL;
-    
+
 	/* First check if file already exists. */
 	ep = dir_FindItem(dir, entry, NULL, NULL, CLU_CASE_SENSITIVE);
 	if (ep) {
@@ -777,7 +777,7 @@ static void fid_NFidV2Fid(struct DirNFid *dnfid, VolumeId vol, struct ViceFid *f
    return 0 upon success
    return ENOENT upon failure
 */
-int DIR_Lookup(struct DirHeader *dir, char *entry, DirFid *fid,
+int DIR_Lookup(struct DirHeader *dir, const char *entry, DirFid *fid,
 	       int flags)
 {
 	struct DirEntry *de;
@@ -1031,39 +1031,19 @@ int DIR_Hash (const char *string)
 
 /* an EnumerateDir hook to find a DirEntry with case-insensitive match.*/
 /* BUG: index is always set to 0. smarc */
-int dir_FindCaseInsensitive(PDirEntry de, void *hook){
+int dir_FindCaseInsensitive(PDirEntry de, void *hook)
+{
 	struct DirFind *find = (struct DirFind *) hook;
-	char           *p = NULL;
-	char           *name = strdup(find->df_ename);
-	int            length = strlen(name);
-	char           *name2;
-	int            length2;
-	int            rc = 0;
+	int rc = 0;
 
-      	/* lowercase name to look for */
-	for (p = name; p < name + length; p++)
-		if (isupper((int)*p))
-	       		*p += 'a' - 'A';
-
-	name2 = strdup(de->name);
-       	length2 = strlen(name2);
-
-      	/* lowercase name2 */       
-	for (p = name2; p < name2 + length2; p++)
-      	       	if (isupper((int)*p))
-			*p += 'a' - 'A';
-
-	if (!strcmp(name, name2)){
+	if (strcasecmp(find->df_ename, de->name) == 0)
+	{
 		find->df_tp = de;
 		find->df_index = 0; /* BUG no way to find out about index here. smarc */
-		strcpy(find->df_ename, de->name);
 		rc = 1; /* indicate EnumerateDir to stop */
 	}
-	else 
+	else
 		find->df_lp = de;
-		
-	if (name) free(name);
-	if (name2) free(name2);
 
 	return rc;
 }
@@ -1071,16 +1051,16 @@ int dir_FindCaseInsensitive(PDirEntry de, void *hook){
 /* Find a directory entry, given its name.  This entry returns a
    pointer to DirEntry, and a pointer to the previous DirEntry (to aid
    the delete code) in the hash chain.  If no entry is found a null
-   pointer is returned instead. 
+   pointer is returned instead.
 
 BUG: index doesn't work with CLU_CASE_INSENSITIVE so far. smarc
 */
-static struct DirEntry *dir_FindItem (struct DirHeader *dir, char *ename,
+static struct DirEntry *dir_FindItem (struct DirHeader *dir, const char *ename,
 				      struct DirEntry **preventry, int *index,
 				      int flags)
 {
 	int rc = 0;
-	int i;	
+	int i;
 	short blobno;
 	struct DirEntry *tp;
 	struct DirEntry *lp = NULL;	/* page of previous entry in chain */
@@ -1097,12 +1077,15 @@ static struct DirEntry *dir_FindItem (struct DirHeader *dir, char *ename,
 		rc = DIR_EnumerateDir(dir, dir_FindCaseInsensitive, (void *) &find);
 		if (rc){
 			if (preventry)
-		          	*preventry = find.df_lp;
-		       	if (index)
-		       		*index = find.df_index;	
-			strcpy(ename, find.df_tp->name);	       							
-			return find.df_tp;			
-		}		       			
+			    *preventry = find.df_lp;
+			if (index)
+			    *index = find.df_index;
+			/* copying the found name back won't work reliably
+			 * especially because the names we're looking for are
+			 * in several cases const strings */
+			//strcpy(ename, find.df_tp->name);
+			return find.df_tp;
+		}
 
 		return NULL;
 		break;
@@ -1137,7 +1120,7 @@ static struct DirEntry *dir_FindItem (struct DirHeader *dir, char *ename,
 			if (blobno == 0)
 				return NULL;
 			tp = dir_GetBlob(dir,blobno);
-			if (!tp) 
+			if (!tp)
 				return NULL;
 		}
 		break;

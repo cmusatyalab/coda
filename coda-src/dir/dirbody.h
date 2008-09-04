@@ -85,7 +85,7 @@ extern int DirToNetBuf(long *, char *, int, int *);
 void DIR_CpyVol(struct ViceFid *target, struct ViceFid *source);
 int DIR_MakeDir(struct DirHeader **dir, struct DirFid *me, struct DirFid *parent);
 int DIR_LookupByFid(PDirHeader dhp, char *name, struct DirFid *fid);
-int DIR_Lookup(struct DirHeader *dir, char *entry, struct DirFid *fid,
+int DIR_Lookup(struct DirHeader *dir, const char *entry, struct DirFid *fid,
 	       int flags);
 int DIR_EnumerateDir(struct DirHeader *dhp, 
 		     int (*hookproc)(struct DirEntry *de, void *hook), void *hook);

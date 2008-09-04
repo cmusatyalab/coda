@@ -142,7 +142,7 @@ int DH_IsEmpty(PDirHandle dh)
 
 
 /* find fid given the name: called all over */
-int DH_Lookup(PDirHandle dh, char *entry, struct ViceFid *vfid, int flags)
+int DH_Lookup(PDirHandle dh, const char *entry, struct ViceFid *vfid, int flags)
 {
 	int rc;
 	struct DirFid dfid;

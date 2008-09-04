@@ -91,7 +91,7 @@ int DH_Length(PDirHandle dh);
 int DH_Convert(PDirHandle dh, char *file, VolumeId vol, RealmId realm);
 int DH_Create(PDirHandle dh, char *entry, struct ViceFid *vfid);
 int DH_IsEmpty(PDirHandle dh);
-int DH_Lookup(PDirHandle dh, char *entry, struct ViceFid *vfid, int flags);
+int DH_Lookup(PDirHandle dh, const char *entry, struct ViceFid *vfid,int flags);
 char * DH_FindName(PDirHandle dh, struct DirFid *fid, char *name, int len);
 int DH_LookupByFid(PDirHandle dh, char *entry, struct ViceFid *vfid);
 int DH_Delete(PDirHandle dh, char *entry);
