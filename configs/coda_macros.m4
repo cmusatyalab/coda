@@ -127,7 +127,7 @@ AC_DEFUN([CODA_CHECK_FILE_LOCKING],
   fi])
 
 AC_DEFUN([CODA_CHECK_LIBCOMERR],
- [AC_CHECK_HEADERS(com_err.h)
+ [AC_CHECK_HEADERS(et/com_err.h)
   AC_SEARCH_LIBS(com_err, com_err, [test "$ac_cv_search_com_err" = "none required" || LIBCOMERR="$ac_cv_search_com_err"])])
 
 AC_SUBST(LIBKRB4)
@@ -153,7 +153,7 @@ AC_DEFUN([CODA_CHECK_KRB5],
    [  --with-krb5			Link against kerberos5 libraries],
    [CODA_CHECK_LIBCOMERR
     AC_CHECK_HEADERS(krb5.h)
-    if test "$ac_cv_header_krb5_h" = yes -a "$ac_cv_header_com_err_h" = yes;then
+    if test "$ac_cv_header_krb5_h" = yes -a "$ac_cv_header_et_com_err_h" = yes;then
 	coda_save_LIBS="$LIBS"
 	LIBS="$LIBCOMERR $LIBS"
 	dnl is this MIT-krb5 or Heimdal
@@ -184,7 +184,7 @@ AC_DEFUN([CODA_CHECK_KRB5],
 	    LIBKRB5=""
 	fi
     else
-	AC_MSG_WARN([Couldn't find krb5.h and com_err.h headers, not using kerberos 5])
+	AC_MSG_WARN([Couldn't find krb5.h and et/com_err.h headers, not using kerberos 5])
     fi])])
 
 

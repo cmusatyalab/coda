@@ -27,7 +27,7 @@ extern "C" {
 
 #include <stdlib.h>
 #include <krb5.h>
-#include <com_err.h>
+#include <et/com_err.h>
 
 #include <codaconf.h>
 #include <getsecret.h>
