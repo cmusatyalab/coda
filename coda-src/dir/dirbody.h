@@ -89,9 +89,9 @@ int DIR_Lookup(struct DirHeader *dir, const char *entry, struct DirFid *fid,
 	       int flags);
 int DIR_EnumerateDir(struct DirHeader *dhp, 
 		     int (*hookproc)(struct DirEntry *de, void *hook), void *hook);
-int DIR_Create(struct DirHeader **dh, char *entry, struct DirFid *fid);
+int DIR_Create(struct DirHeader **dh, const char *entry, struct DirFid *fid);
 int DIR_Length(struct DirHeader *dir);
-int DIR_Delete(struct DirHeader *dir, char *entry);
+int DIR_Delete(struct DirHeader *dir, const char *entry);
 void DIR_PrintChain(PDirHeader dir, int chain, FILE *f);
 int DIR_Hash (const char *string);
 int DIR_DirOK (PDirHeader pdh);

@@ -98,7 +98,7 @@ static int canonicalize(char *path, VolumeId *vid, char *realm, char *name,
 			char (*srealm)[MAXHOSTNAMELEN+1],
 			char (*spath)[MAXPATHLEN]);
 static char *vol_getwd(VolumeId *vid, char *realm, char *head, char *tail);
-static int  GetVid(VolumeId *, char *, char *);
+static int  GetVid(VolumeId *, char *, const char *);
 static void DoClears(olist&);
 static void DoAdds(olist&);
 static void DoDeletes(olist&);
@@ -921,7 +921,7 @@ static char *vol_getwd(VolumeId *vp, char *realm, char *head, char *tail)
 }
 
 
-static int GetVid(VolumeId *vid, char *realm, char *name)
+static int GetVid(VolumeId *vid, char *realm, const char *name)
 {
 /**/
     DEBUG(printf("Entering GetVid (%s)\n", name););
@@ -1249,7 +1249,7 @@ static void RenameOutFile(char *from, char *to) {
 	    error(!FATAL, "RenameOutFile: dup2() failed(%s)", strerror(errno));
 	    exit(errno);
 	}
-	char *argv[2]; argv[0] = "cat"; argv[1] = NULL;
+	char *argv[2]; argv[0] = (char *)"cat"; argv[1] = NULL;
 	if (execvp(argv[0], argv) < 0) {
 	    error(!FATAL, "RenameOutFile: execvp(\"cat\") failed(%s)", strerror(errno));
 	    exit(errno);

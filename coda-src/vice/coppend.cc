@@ -126,7 +126,7 @@ void cpman_func(void *arg)
     cpm->func(0);
 }
 
-cpman::cpman(char *n): objects(COPHASHSIZE, coppendhashfn)
+cpman::cpman(const char *n): objects(COPHASHSIZE, coppendhashfn)
 {
     name = new char[strlen(n) + 1];
     strcpy(name, n);

@@ -108,7 +108,7 @@ int DH_Convert(PDirHandle dh, char *file, VolumeId vol, RealmId realm)
 }
 
 /* create new entry: called by client and server */
-int DH_Create (PDirHandle dh, char *entry, struct ViceFid *vfid)
+int DH_Create (PDirHandle dh, const char *entry, struct ViceFid *vfid)
 {
 	int rc;
 	struct DirFid dfid;
@@ -177,10 +177,10 @@ int DH_LookupByFid(PDirHandle dh, char *entry, struct ViceFid *vfid)
 }
 
 /* remove an entry from a directory */
-int DH_Delete(PDirHandle dh, char *entry) 
+int DH_Delete(PDirHandle dh, const char *entry)
 {
 	int rc;
-	
+
 	DH_LockW(dh);
 	dh->dh_dirty = 1;
 

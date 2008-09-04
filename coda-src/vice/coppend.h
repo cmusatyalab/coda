@@ -76,7 +76,7 @@ class cpman {
     PROCESS pid;
     ohashtab objects;
 
-    cpman(char * ="anonymous coppendbuster");
+    cpman(const char * ="anonymous coppendbuster");
     ~cpman();
 
     friend void cpman_func(void *);

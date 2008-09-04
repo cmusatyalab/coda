@@ -499,7 +499,7 @@ int DIR_Length (struct DirHeader *dir)
 
 
 /* Create an entry in a directory file.  */
-int DIR_Create (struct DirHeader **dh, char *entry, DirFid *fid)
+int DIR_Create (struct DirHeader **dh, const char *entry, DirFid *fid)
 {
 	int blobs, firstblob;
 	int i;
@@ -562,7 +562,7 @@ int DIR_Create (struct DirHeader **dh, char *entry, DirFid *fid)
    entry descriptors. 
    Return 0 upon success
 */
-int DIR_Delete(struct DirHeader *dir, char *entry)
+int DIR_Delete(struct DirHeader *dir, const char *entry)
 {
 	int nitems, index;
 	struct DirEntry *firstitem;

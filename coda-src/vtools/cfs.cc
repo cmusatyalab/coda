@@ -2036,7 +2036,7 @@ static void MkMount (int argc, char *argv[], int opslot)
 {
     int rc;
     struct ViceIoctl vio;
-    char *dir, *entry, *vol = "";
+    char *dir, *entry, *vol = (char *)"";
     char buf[MAXPATHLEN+2];
 
     switch (argc)
@@ -2050,7 +2050,7 @@ static void MkMount (int argc, char *argv[], int opslot)
     entry = strrchr(dir, '/');
     if (!entry) {
 	entry = dir;
-	dir = ".";
+	dir = (char *)".";
     } else {
 	*entry = '\0';
 	entry++;
@@ -2195,7 +2195,7 @@ static void RmMount(int argc, char *argv[], int opslot)
 	    suffix++;  /* and set the suffix pointer correctly */
 	} else {
 	    suffix = prefix;
-	    prefix = ".";
+	    prefix = (char *)".";
 	}
 
 	/* Then do the pioctl */
