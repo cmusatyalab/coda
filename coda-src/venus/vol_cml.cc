@@ -2682,7 +2682,7 @@ void cmlent::commit(ViceVersionVector *UpdateSet)
 	CODA_ASSERT(f && (f->MagicNumber == FSO_MagicNumber));
 
 
-	if (vol->flags.resolve_me)
+	if (vol->flags.resolve_me && vol->AVSGsize() > 1)
 	    vol->ResSubmit(NULL, &f->fid);
 
 	cmlent *FinalCmlent = f->FinalCmlent(tid);
