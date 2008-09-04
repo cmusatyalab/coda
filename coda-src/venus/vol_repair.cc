@@ -782,7 +782,7 @@ int repvol::DisconnectedRepair(VenusFid *RepairFid, char *RepairFile,
 	    status.Owner = (UserId)se_uid;
 	    status.Mode = (RPC2_Unsigned)tstat.st_mode & 0777;
 	    status.LinkCount = (RPC2_Integer)tstat.st_nlink;
-	    if (tstat.st_mode & S_IFMT != S_IFREG) {
+	    if ((tstat.st_mode & S_IFMT) != S_IFREG) {
 		code = EINVAL;
 		LOG(0, ("DisconnectedRepair: (%s) not a regular file\n",
 			FID_(RepairFid)));

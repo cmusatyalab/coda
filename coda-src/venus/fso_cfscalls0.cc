@@ -727,7 +727,7 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
 		    int numVFlags = 0;
 
 		    for (i = 0; i < VSG_MEMBERS; i++)
-			if (m->rocc.hosts[i].s_addr != 0)
+			if (m->rocc.hosts[i].s_addr != 0) {
 			    if (numVFlags == 0) {
 				/* unset, copy in one response */
 				ARG_UNMARSHALL_BS(VFlagvar, VFlagBS, i);
@@ -740,6 +740,7 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
 				for (int j = 0; j < numPiggyFids; j++)
 				    VFlags[j] &= VFlagvar_bufs[i].SeqBody[j];
 			    }
+			}
 
 		    LOG(10, ("fsobj::GetAttr: ValidateAttrs (%s), %d fids sent, %d checked\n",
 			      GetComp(), numPiggyFids, numVFlags));

@@ -4069,19 +4069,18 @@ void PerformRename(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
 	s_vptr->disk.vparent = td_vptr->vnodeNumber;
 	s_vptr->disk.uparent = td_vptr->disk.uniquifier;
     }
-    if (ReplicatedOp) 
+    if (ReplicatedOp)
 	NewCOP1Update(volptr, s_vptr, StoreId, vsptr);
 
     /* Update target vnode. */
-    if (TargetExists) 
+    if (TargetExists) {
 	if (--t_vptr->disk.linkCount == 0 || t_vptr->disk.type == vDirectory) {
 	    t_vptr->delete_me = 1;
 	    DeleteFile(&TFid);
 	}
-	else 
-	    if (ReplicatedOp) 
-		NewCOP1Update(volptr, t_vptr, StoreId, vsptr);
-
+	else if (ReplicatedOp)
+	    NewCOP1Update(volptr, t_vptr, StoreId, vsptr);
+    }
 
     /* Await COP2 message. */
     if (ReplicatedOp) {

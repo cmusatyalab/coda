@@ -159,7 +159,7 @@ typedef void (*PROC_V_UL)(unsigned long);
 
 /*  *****  Debugging macros.  *****  */
 #ifdef	VENUSDEBUG
-#define	LOG(level, stmt)    if (LogLevel >= (level)) dprint stmt
+#define	LOG(level, stmt) do { if (LogLevel >= (level)) dprint stmt; } while(0)
 #else
 #define	LOG(level, stmt)
 #endif /* !VENUSDEBUG */

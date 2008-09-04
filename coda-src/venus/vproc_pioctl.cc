@@ -1089,11 +1089,12 @@ OI_FreeLocks:
 		      if(localcache->IsFake())
 			code = 2;
 
-		      if(localcache->IsToBeRepaired())
+		      if(localcache->IsToBeRepaired()) {
 			if(code == 2)
 			  code = 3;
 			else
 			  code = 1;
+		      }
 
 		    BEGIN_cleanup:
 		      if(localcache)
