@@ -15,9 +15,12 @@ Coda are listed in the file CREDITS.
 
 #*/
 
+#include <sys/types.h>
 #include <stdlib.h>
 #include <assert.h>
 #include <stdarg.h>
+#include <string.h>
+#include <unistd.h>
 #include "lwp_ucontext.h"
 
 /* if we already have ucontext.h we don't need any of this */

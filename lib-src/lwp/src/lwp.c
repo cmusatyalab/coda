@@ -553,8 +553,8 @@ static void Dump_One_Process(PROCESS pid, FILE *fp)
 	fprintf(fp, "\tlast wakeup event: %d\n", pid->wakevent);
 
     if (stack->ss_sp) {
-	fprintf(fp, "\tstack base: %p, size: %d\n",
-		stack->ss_sp, stack->ss_size);
+	fprintf(fp, "\tstack base: %p, size: %ld\n",
+		stack->ss_sp, (long)stack->ss_size);
 	fprintf(fp, "\tstack usage high water mark: %d\n", Stack_Used(stack));
 	fprintf(fp, "\tstack pointer at last yield: %p\n", pid->topstack);
     }
