@@ -92,7 +92,7 @@ typedef struct arg_info {
 	memset(&name##_bufs, 0, sizeof(type) * howmany);\
 	for (unsigned int name##_local_i = 0; name##_local_i < howmany; name##_local_i++) {\
 	    name##_ptrs[name##_local_i] = &name##_bufs[name##_local_i];\
-	    if (mode == IN_OUT_MODE && &(object) != 0) name##_bufs[name##_local_i] = (object);\
+	    if (mode == IN_OUT_MODE) name##_bufs[name##_local_i] = (object);\
 	}\
     }
 
@@ -117,7 +117,7 @@ typedef struct arg_info {
     {\
 	for (int name##_local_i = 0; name##_local_i < howmany; name##_local_i++) {\
 	    name##_ptrs[name##_local_i] = name##_bufs[name##_local_i];\
-	    if (mode == IN_OUT_MODE && &(object) != 0){\
+	    if (mode == IN_OUT_MODE) {\
 		for (int name##_local_j = 0; name##_local_j < numelts; name##_local_j++)\
 		    name##_bufs[name##_local_i][name##_local_j] = (object)[name##_local_j];\
 	    }\
