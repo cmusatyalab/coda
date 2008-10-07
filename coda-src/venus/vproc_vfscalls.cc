@@ -422,8 +422,10 @@ void vproc::setattr(struct venus_cnode *cp, struct coda_vattr *vap) {
 	u.u_error = FSDB->Get(&f, &cp->c_fid, u.u_uid, rcrights);
 	if (u.u_error) goto FreeLocks;
 
-	/* Symbolic links are immutable. */
-	if (f->IsSymLink() || f->IsMtPt())
+	/* Symbolic links are immutable, but we should allow mtime changes. */
+	if ((f->IsSymLink() || f->IsMtPt()) &&
+	    (vap->va_mode != VA_IGNORE_MODE || vap->va_uid != VA_IGNORE_UID ||
+	     vap->va_size != VA_IGNORE_SIZE))
 	    { u.u_error = EINVAL; goto FreeLocks; }
 
 	/* Permission checks. */
