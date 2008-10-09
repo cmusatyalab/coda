@@ -67,6 +67,9 @@ void secure_init(int verbose)
 
     /* Initialize and test the PRNG */
     secure_random_init(verbose);
+
+    /* Run the PBKDF timing test */
+    secure_pbkdf_init(verbose);
 }
 
 void secure_release(void)

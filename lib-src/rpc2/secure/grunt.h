@@ -66,4 +66,8 @@ void secure_audit(const char *event, uint32_t spi, uint32_t seq,
  * initializers without breaking the ABI */
 void aes_ccm_tweak(void *ctx, uint32_t version);
 
+/* secure_pbkdf.c */
+void secure_pbkdf_init(int verbose);
+
 #endif /* _GRUNT_H_ */
+

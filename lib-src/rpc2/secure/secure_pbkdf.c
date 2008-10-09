@@ -19,8 +19,10 @@ Coda are listed in the file CREDITS.
  * Using AES-XCBC-PRF-128 as the pseudo random function.
  */
 
+#include <sys/time.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #include <rpc2/secure.h>
 #include "aes.h"
@@ -85,5 +87,78 @@ int secure_pbkdf(const uint8_t *password, size_t plen,
     memset(U0, 0, U0len);
     free(U0);
     return 0;
+}
+
+void secure_pbkdf_init(int verbose)
+{
+    struct timeval begin, end;
+    uint8_t password[8], salt[8], key[48];
+    int operations = 0, runlength = verbose ? 1000000 : 100000;
+
+    if (verbose)
+	fprintf(stderr, "Password Based Key Derivation:  ");
+
+    memset(key, 0, sizeof(key));
+    memset(salt, 0, sizeof(salt));
+    memset(password, 0, sizeof(password));
+
+    gettimeofday(&begin, NULL);
+    do {
+	operations++;
+	secure_pbkdf(password, sizeof(password), salt, sizeof(salt),
+		    SECURE_PBKDF_ITERATIONS, key, sizeof(key));
+	gettimeofday(&end, NULL);
+
+	end.tv_sec -= begin.tv_sec;
+	end.tv_usec += 1000000 * end.tv_sec;
+	end.tv_usec -= begin.tv_usec;
+	/* see how many iterations we can run in ~0.1 seconds. */
+    } while (end.tv_usec < runlength);
+
+    operations *= 1000000 / runlength;
+
+    /* How can we possibly do a pass/fail test on this?
+     *
+     * Clearly the security is based on the assumption that there are no
+     * shortcuts in the algorithm, and that someone has to revert to brute
+     * force password guessing.
+     *
+     * Now if we assume that it is probable that someone has a 10x faster
+     * implementation he can do close to 1313 operations per second on a
+     * 3GHz P4 (my machine seems to do 131.3 ops/s) and has ~1000 machines
+     * available and as such divides the keyspace by 2^10.
+     *
+     * If the password only consists of lowercase alpha characters, we have
+     * 40-bits from an 8 character secret. And a full search can be done in
+     * less than 10 days. But then again, lowercase only passwords have been
+     * considered weak for several years now.
+     *
+     * With a random alpha-numeric (mixed case) 8 character password, we have
+     * almost 48 bits and under the same assumptions it would take the attacker
+     * close to 2500 days (a more than 6 years).
+     *
+     * A truly random 8 byte secret (i.e. old Coda tokens) increases the
+     * time it takes to brute force the secret significantly (435,000 years).
+     *
+     * Of course computers are getting faster and cheaper. Maybe a hardware
+     * based implementation is already 100x faster, and someone has enough
+     * money to put a million of those in parallel.
+     *
+     * The best approach is probably to try to make our implementation as
+     * optimized as possible (so someone cannot be a 10-100x faster), and keep
+     * the cost high enough by increasing SECURE_PBKDF_ITERATIONS once in a
+     * while.
+     *
+     * With 10000 iterations,
+     *	600MHz PIII,		20 ops/s
+     *	3.2GHz P4,		133 ops/s
+     *	2.13GHz Core 2 6400,	233 ops/s
+     */
+
+    if (operations > 1000) /* i.e. > 1000 ops/s */
+	fprintf(stderr, "WARNING: Password Based Key Derivation ");
+
+    if (verbose || operations > 1000)
+	fprintf(stderr, "%d ops/s\n", operations);
 }
 

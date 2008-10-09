@@ -456,71 +456,6 @@ static void check_aes_xcbc_prf(int verbose)
 	fprintf(stderr, "PASSED\n");
 }
 
-static void check_pbkdf_timing(int verbose)
-{
-    struct timeval begin, end;
-    uint8_t password[8], salt[8], key[48];
-
-    if (verbose)
-	fprintf(stderr, "Password Based Key Derivation:  ");
-
-    memset(key, 0, sizeof(key));
-    memset(salt, 0, sizeof(salt));
-    memset(password, 0, sizeof(password));
-
-    gettimeofday(&begin, NULL);
-    secure_pbkdf(password, sizeof(password), salt, sizeof(salt),
-		 SECURE_PBKDF_ITERATIONS, key, sizeof(key));
-    gettimeofday(&end, NULL);
-
-    end.tv_sec -= begin.tv_sec;
-    end.tv_usec += 1000000 * end.tv_sec;
-    end.tv_usec -= begin.tv_usec;
-
-    /* How can we possibly do a pass/fail test on this?
-     *
-     * Clearly the security is based on the assumption that there are no
-     * shortcuts in the algorithm, and that someone has to revert to brute
-     * force password guessing.
-     *
-     * Now if we assume that it is probable that someone has a 10x faster
-     * implementation he can do close to 1313 operations per second on a
-     * 3GHz P4 (my machine seems to do 131.3 ops/s) and has ~1000 machines
-     * available and as such divides the keyspace by 2^10.
-     *
-     * If the password only consists of lowercase alpha characters, we have
-     * 40-bits from an 8 character secret. And a full search can be done in
-     * less than 10 days. But then again, lowercase only passwords have been
-     * considered weak for several years now.
-     *
-     * With a random alpha-numeric (mixed case) 8 character password, we have
-     * almost 48 bits and under the same assumptions it would take the attacker
-     * close to 2500 days (a more than 6 years).
-     *
-     * A truly random 8 byte secret (i.e. old Coda tokens) increases the
-     * time it takes to brute force the secret significantly (435,000 years).
-     *
-     * Of course computers are getting faster and cheaper. Maybe a hardware
-     * based implementation is already 100x faster, and someone has enough
-     * money to put a million of those in parallel.
-     *
-     * The best approach is probably to try to make our implementation as
-     * optimized as possible (so someone cannot be a 10-100x faster), and keep
-     * the cost high enough by increasing SECURE_PBKDF_ITERATIONS once in a
-     * while.
-     *
-     * With 10000 iterations,
-     *	600MHz PIII, 20 ops/s
-     *	3.2GHz P4,  133 ops/s
-     */
-
-    if (end.tv_usec <= 1000) /* i.e. >= 1000 ops/s */
-	fprintf(stderr, "WARNING: Password Based Key Derivation ");
-
-    if (verbose || end.tv_usec < 1000)
-	fprintf(stderr, "%.02f ops/s\n", 1000000.0 / end.tv_usec);
-}
-
 void secure_aes_init(int verbose)
 {
     static int initialized = 0;
@@ -539,6 +474,5 @@ void secure_aes_init(int verbose)
     check_aes_variable_key(verbose);
     check_aes_cbc(verbose);
     check_aes_xcbc_prf(verbose);
-    check_pbkdf_timing(verbose);
 }
 
