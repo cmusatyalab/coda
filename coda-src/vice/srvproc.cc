@@ -130,6 +130,9 @@ extern void HandleWeakEquality(Volume *, Vnode *, ViceVersionVector *);
 
 /* *****  Private routines  ***** */
 
+static int GetFsoAndParent(ViceFid *Fid, dlist *vlist, Volume **volptr,
+			   vle **v, vle **av, int lock, int vollock,
+			   int ignoreIncon);
 static int GrabFsObj(ViceFid *, Volume **, Vnode **, int, int, int);
 static int NormalVCmp(int, VnodeType, void *, void *);
 static int StoreVCmp(int, VnodeType, void *, void *);
@@ -206,26 +209,10 @@ START_TIMING(Fetch_Total);
     }
 
     /* Get objects. */
-    {
-	v = AddVLE(*vlist, Fid);
-	if ((errorCode = GetFsObj(Fid, &volptr, &v->vptr, READ_LOCK, 
-				 NO_LOCK, InconOK, 0, 0)))
-	    goto FreeLocks;
-
-	/* This may violate locking protocol! -JJK */
-	if (v->vptr->disk.type == vDirectory) {
-	    av = v;
-	} else {
-	    ViceFid pFid;
-
-	    VN_VN2PFid(v->vptr, volptr, &pFid);
-	    av = AddVLE(*vlist, &pFid);
-	    // We only use the parent node for ACL checks, allow inconsistency
-	    if ((errorCode = GetFsObj(&pFid, &volptr, &av->vptr, READ_LOCK, 
-				     NO_LOCK, 1, 0, 0)))
-		goto FreeLocks;
-	}
-    }
+    errorCode = GetFsoAndParent(Fid, vlist, &volptr, &v, &av,
+				READ_LOCK, NO_LOCK, InconOK);
+    if (errorCode)
+	goto FreeLocks;
 
     /* Check semantics. */
     {
@@ -312,26 +299,10 @@ START_TIMING(GetAttr_Total);
     }
 
     /* Get objects. */
-    {
-	v = AddVLE(*vlist, Fid);
-	if ((errorCode = GetFsObj(Fid, &volptr, &v->vptr, READ_LOCK, 
-				 NO_LOCK, InconOK, 0, 0)))
-	    goto FreeLocks;
-
-	/* This may violate locking protocol! -JJK */
-	if (v->vptr->disk.type == vDirectory) {
-	    av = v;
-	} else {
-	    ViceFid pFid;
-
-	    VN_VN2PFid(v->vptr, volptr, &pFid);
-	    av = AddVLE(*vlist, &pFid);
-	    // We only use the parent node for ACL checks, allow inconsistency
-	    if ((errorCode = GetFsObj(&pFid, &volptr, &av->vptr, 
-				     READ_LOCK, NO_LOCK, 1, 0, 0)))
-		goto FreeLocks;
-	}
-    }
+    errorCode = GetFsoAndParent(Fid, vlist, &volptr, &v, &av,
+				READ_LOCK, NO_LOCK, InconOK);
+    if (errorCode)
+	goto FreeLocks;
 
     /* Check semantics. */
     {
@@ -493,31 +464,10 @@ START_TIMING(ViceValidateAttrs_Total);
         }
 
 	/* Get objects. */
-	{
-	    v = AddVLE(*vlist, &Piggies[i].Fid);
-	    if ((iErrorCode = GetFsObj(&Piggies[i].Fid, &volptr, 
-				      &v->vptr, READ_LOCK, NO_LOCK, 0, 0, 0))) {
-		strcpy(why_failed, "GetFsObj 1");
-		goto InvalidObj;
-	    }
-
-	    /* This may violate locking protocol! -JJK */
-	    if (v->vptr->disk.type == vDirectory) {
-		av = v;
-	    } else {
-		ViceFid pFid;
-		pFid.Volume = Piggies[i].Fid.Volume;
-		pFid.Vnode = v->vptr->disk.vparent;
-		pFid.Unique = v->vptr->disk.uparent;
-		av = AddVLE(*vlist, &pFid);
-		// We only use the parent node for ACL checks, allow inconsistency
-		if ((iErrorCode = GetFsObj(&pFid, &volptr, &av->vptr, 
-					  READ_LOCK, NO_LOCK, 1, 0, 0))) {
-		    strcpy(why_failed, "GetFsObj 2");
-		    goto InvalidObj;
-		}
-	    }
-        }
+	iErrorCode = GetFsoAndParent(&Piggies[i].Fid, vlist, &volptr, &v, &av,
+				     READ_LOCK, NO_LOCK, 0);
+	if (iErrorCode)
+	    goto InvalidObj;
 
 	/* Check semantics. */
 	if ((iErrorCode = CheckGetAttrSemantics(client, &av->vptr, &v->vptr,
@@ -658,21 +608,9 @@ START_TIMING(Store_Total);
     }
 
     /* Get objects. */
-    {
-	v = AddVLE(*vlist, Fid);
-	if ((errorCode = GetFsObj(Fid, &volptr, &v->vptr, WRITE_LOCK, SHARED_LOCK, 0, 0, 0)))
-	    goto FreeLocks;
-
-	/* This may violate locking protocol! -JJK */
-	ViceFid pFid;
-	pFid.Volume = Fid->Volume;
-	pFid.Vnode = v->vptr->disk.vparent;
-	pFid.Unique = v->vptr->disk.uparent;
-	av = AddVLE(*vlist, &pFid);
-	// We only use the parent node for ACL checks, allow inconsistency
-	if ((errorCode = GetFsObj(&pFid, &volptr, &av->vptr, READ_LOCK, NO_LOCK, 1, 0, 0)))
-	    goto FreeLocks;
-    }
+    errorCode = GetFsoAndParent(Fid, vlist, &volptr, &v, &av,
+				WRITE_LOCK, SHARED_LOCK, 0);
+    if (errorCode) goto FreeLocks;
 
     /* Check semantics. */
     {
@@ -764,25 +702,9 @@ START_TIMING(SetAttr_Total);
     }
 
     /* Get objects. */
-    {
-	v = AddVLE(*vlist, Fid);
-	if ((errorCode = GetFsObj(Fid, &volptr, &v->vptr, WRITE_LOCK, SHARED_LOCK, 0, 0, 0)))
-	    goto FreeLocks;
-
-	/* This may violate locking protocol! -JJK */
-	if (v->vptr->disk.type == vDirectory) {
-	    av = v;
-	} else {
-	    ViceFid pFid;
-	    pFid.Volume = Fid->Volume;
-	    pFid.Vnode = v->vptr->disk.vparent;
-	    pFid.Unique = v->vptr->disk.uparent;
-	    av = AddVLE(*vlist, &pFid);
-	    // We only use the parent node for ACL checks, allow inconsistency
-	    if ((errorCode = GetFsObj(&pFid, &volptr, &av->vptr, READ_LOCK, NO_LOCK, 1, 0, 0)))
-		goto FreeLocks;
-	}
-    }
+    errorCode = GetFsoAndParent(Fid, vlist, &volptr, &v, &av,
+				WRITE_LOCK, SHARED_LOCK, 0);
+    if (errorCode) goto FreeLocks;
 
     /* Check semantics. */
     {
@@ -2096,6 +2018,71 @@ static int GrabFsObj(ViceFid *fid, Volume **volptr, Vnode **vptr,
 	}
 	
 	return(0);
+}
+
+/* Get an FSO and it's parent in correct lock order */
+static int GetFsoAndParent(ViceFid *Fid, dlist *vlist, Volume **volptr,
+			   vle **v, vle **av, int lock, int vollock,
+			   int ignoreIncon)
+{
+    ViceFid pFid;
+    Error rc = 0;
+    int err, may_relock, relock;
+
+    *v = AddVLE(*vlist, Fid);
+
+    /* only allow relocking if the vnode is locked here, if we are unable to
+     * relock we may violate locking protocol */
+    may_relock = ((*v)->vptr == NULL);
+    if (!may_relock) {
+	SLog(5, "GetFsoAndParent: not allowed to relock %s", FID_(Fid));
+    }
+
+    err = GetFsObj(Fid, volptr, &(*v)->vptr, lock, vollock, ignoreIncon,
+		   0, 0);
+    if (err) return err;
+
+    if ((*v)->vptr->disk.type == vDirectory) {
+	*av = *v;
+	return 0;
+    }
+
+    VN_VN2PFid((*v)->vptr, *volptr, &pFid);
+get_new_parent:
+    *av = AddVLE(*vlist, &pFid);
+
+    /* If the parent sorts lower we have to relock the file */
+    relock = ((*av)->vptr == NULL) && (FID_Cmp(&pFid, Fid) < 0);
+    if (may_relock && relock) {
+	VPutVnode(&rc, (*v)->vptr);
+	(*v)->vptr = NULL;
+	CODA_ASSERT(rc == 0);
+    } else if (relock) {
+	SLog(5, "GetFsoAndParent: unable to relock %s", FID_(Fid));
+    }
+
+    // We only use the parent node for ACL checks, allow inconsistency
+    err = GetFsObj(&pFid, volptr, &(*av)->vptr, READ_LOCK, NO_LOCK, 1, 0, 0);
+    if (err) return err;
+
+    if (may_relock && relock) {
+	ViceFid new_pFid;
+
+	err = GetFsObj(Fid, volptr, &(*v)->vptr, lock, vollock, ignoreIncon,
+		       0, 0);
+	if (err) return err;
+
+	/* make sure that we haven't been moved to a different directory */
+	VN_VN2PFid((*v)->vptr, *volptr, &new_pFid);
+	if (!FID_EQ(&pFid, &new_pFid))
+	{
+	    VPutVnode(&rc, (*av)->vptr);
+	    (*av)->vptr = NULL;
+	    pFid = new_pFid;
+	    goto get_new_parent;
+	}
+    }
+    return 0;
 }
 
 
