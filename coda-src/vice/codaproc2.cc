@@ -2386,13 +2386,7 @@ static int AddParent(Volume **volptr, dlist *vlist, ViceFid *Fid) {
     int errorCode = 0;
     Vnode *vptr = 0;
 
-    /* Get volptr. */
     /* We assume that volume has already been locked in exclusive mode! */
-    if (*volptr == 0) {
-	int ret = GetVolObj(Fid->Volume, volptr, VOL_NO_LOCK, 0, 0);
-	CODA_ASSERT(ret == 0);
-    }
-
     /* Child must NOT have just been alloc'ed, else this will deadlock! */
     if ((errorCode = GetFsObj(Fid, volptr, &vptr, READ_LOCK, 
 			     VOL_NO_LOCK, 0, 0, 0)))
