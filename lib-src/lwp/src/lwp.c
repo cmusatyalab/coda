@@ -1,26 +1,26 @@
 /* BLURB lgpl
 
-                           Coda File System
-                              Release 5
+			Coda File System
+			    Release 5
 
-          Copyright (c) 1987-2008 Carnegie Mellon University
-                  Additional copyrights listed below
+	Copyright (c) 1987-2008 Carnegie Mellon University
+		Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
 the  terms of the  GNU  Library General Public Licence  Version 2,  as
 shown in the file LICENSE. The technical and financial contributors to
 Coda are listed in the file CREDITS.
 
-                        Additional copyrights
+		    Additional copyrights
 
 #*/
 
 /*
-                         IBM COPYRIGHT NOTICE
+			IBM COPYRIGHT NOTICE
 
-                          Copyright (C) 1986
-             International Business Machines Corporation
-                         All Rights Reserved
+			Copyright (C) 1986
+	    International Business Machines Corporation
+			All Rights Reserved
 
 This  file  contains  some  code identical to or derived from the 1986
 version of the Andrew File System ("AFS"), which is owned by  the  IBM
@@ -96,8 +96,8 @@ struct QUEUE {
     int		count;
 } runnable[MAX_PRIORITIES], blocked;
 
-static ucontext_t reaper; /* reaper context, see comments for lwp_Reaper() */
-static ucontext_t tracer; /* context for the for stack tracing thread */
+static struct lwp_ucontext reaper; /* reaper context, see lwp_Reaper() */
+static struct lwp_ucontext tracer; /* context for the stack tracing thread */
 
 #define REAPER_STACKSIZE 32768
 #define TRACER_STACKSIZE 32768
@@ -514,12 +514,10 @@ int LWP_CreateProcess(void (*ep)(void *), int stacksize, int priority,
 /* The reaper is used to kill the current thread and schedule another
  * runnable thread. This context is called whenever a thread exits and by
  * LWP_DestroyProcess if the current process is destroyed. */
-static void lwp_Reaper(void)
+static void lwp_Reaper(void *arg)
 {
-    /* On FreeBSD we cannot enter a second time into a context that was
-     * created by makecontext. So we save the current state here to get
-     * a safe re-entry point. */
-    getcontext(&reaper);
+    /* Save the current state here to get a safe re-entry point. */
+    lwp_getcontext(&reaper);
     Free_PCB(lwp_cpptr);
     lwp_cpptr = NULL;
     LWP_DispatchProcess();
@@ -564,12 +562,12 @@ static void Dump_One_Process(PROCESS pid, FILE *fp)
     fprintf(fp,"==========================================\n");
 }
 
-static void lwp_Tracer(void)
+static void lwp_Tracer(void *arg)
 {
     int i;
 
     /* See comment in lwp_Reaper() */
-    getcontext(&tracer);
+    lwp_getcontext(&tracer);
     for (i=0; i<MAX_PRIORITIES; i++)
 	for_all_elts(x, runnable[i], {
 		     fprintf(lwp_logfile, "[Priority %d]\n", i);
@@ -584,20 +582,20 @@ static void lwp_Tracer(void)
     fprintf(lwp_logfile, "Trace done\n");
 
     /* jump back to the thread that called us */
-    setcontext(&lwp_cpptr->ctx);
+    lwp_setcontext(&lwp_cpptr->ctx);
 }
 
 static void init_contexts(void)
 {
-    getcontext(&reaper);
+    lwp_getcontext(&reaper);
     reaper.uc_stack.ss_sp = malloc(REAPER_STACKSIZE);
     reaper.uc_stack.ss_size = REAPER_STACKSIZE;
-    makecontext(&reaper, lwp_Reaper, 0);
+    lwp_makecontext(&reaper, lwp_Reaper, NULL);
 
-    getcontext(&tracer);
+    lwp_getcontext(&tracer);
     tracer.uc_stack.ss_sp = malloc(TRACER_STACKSIZE);
     tracer.uc_stack.ss_size = TRACER_STACKSIZE;
-    makecontext(&tracer, lwp_Tracer, 0);
+    lwp_makecontext(&tracer, lwp_Tracer, NULL);
 }
 
 int LWP_DestroyProcess(PROCESS pid)
@@ -607,7 +605,7 @@ int LWP_DestroyProcess(PROCESS pid)
 	    return LWP_EINIT;
 
 	if (lwp_cpptr == pid)
-	    swapcontext(&lwp_cpptr->ctx, &reaper);
+	    lwp_swapcontext(&lwp_cpptr->ctx, &reaper);
 
 	Free_PCB(pid);
 	return LWP_SUCCESS;
@@ -623,7 +621,7 @@ static void lwp_Print_Processes(int dummy)
     lwp_cpptr->topstack = &dummy;
 
     /* switch to the context that dumps the process stacks */
-    swapcontext(&lwp_cpptr->ctx, &tracer);
+    lwp_swapcontext(&lwp_cpptr->ctx, &tracer);
 }
 
 void LWP_Print_Processes(void)
@@ -849,13 +847,13 @@ static int lwp_DispatchProcess(int dummy)
 	CheckRunWaitTime(lwp_cpptr);
 
     if (!old_cpptr) {
-	setcontext(&lwp_cpptr->ctx);
+	lwp_setcontext(&lwp_cpptr->ctx);
 	assert(0); /* we should never get here */
     }
 
     /* If another thread is now runnable, swap context */
     if (lwp_cpptr != old_cpptr)
-	swapcontext(&old_cpptr->ctx, &lwp_cpptr->ctx);
+	lwp_swapcontext(&old_cpptr->ctx, &lwp_cpptr->ctx);
 
     return LWP_SUCCESS;
 }
@@ -891,7 +889,7 @@ static void Initialize_PCB(PROCESS temp, int priority, char *stack,
 	/* *(int *)stack = temp->stackcheck = 0xBAD57ACC; */
 	temp->stackcheck = 0;
 
-	getcontext(&temp->ctx);
+	lwp_getcontext(&temp->ctx);
 	temp->stack.ss_sp = temp->ctx.uc_stack.ss_sp = stack;
 	temp->stack.ss_size = temp->ctx.uc_stack.ss_size = stacksize;
 	temp->ctx.uc_link = &reaper; /* whenever a thread exits, we
@@ -900,7 +898,7 @@ static void Initialize_PCB(PROCESS temp, int priority, char *stack,
 
 	temp->valgrind_stackid = VALGRIND_STACK_REGISTER(stack, stacksize);
 
-	makecontext(&temp->ctx, (void (*)(void))func, 1, arg);
+	lwp_makecontext(&temp->ctx, func, arg);
     }
     else
 	temp->stackcheck = 0;
@@ -1012,24 +1010,4 @@ static void Overflow_Complain()
 void PRE_Concurrent(int on) { }
 void PRE_BeginCritical(void) { }
 void PRE_EndCritical(void) { }
-
-/*  The following documents the Assembler interfaces used by old LWP:
-
-savecontext(void (*ep)(), struct lwp_context *savearea, char *sp)
-
-
-    Stub for Assembler routine that will
-    save the current SP value in the passed
-    context savearea and call the function
-    whose entry point is in ep.  If the sp
-    parameter is NULL, the current stack is
-    used, otherwise sp becomes the new stack
-    pointer.
-
-returnto(struct lwp_context *savearea);
-
-    Stub for Assembler routine that will
-    restore context from a passed savearea
-    and return to the restored C frame.
-*/
 

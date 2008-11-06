@@ -40,9 +40,6 @@ AC_SUBST(LIBPTHREAD)
 AC_CHECK_LIB(pthread, pthread_create, [LIBPTHREAD="-lpthread"])
 AC_CHECK_LIB(posix4, sem_init, [LIBPTHREAD="${LIBPTHREAD} -lposix4"])
 
-dnl Checks for header files.
-AC_CHECK_HEADERS(ucontext.h)
-
 dnl Checks for typedefs.
 AC_CHECK_TYPES(register_t)
 AC_CHECK_TYPES(stack_t,,, [#include <signal.h>])
@@ -53,9 +50,6 @@ CODA_CC_FEATURE_TEST(Wall)
 dnl Checks for library functions.
 AC_CHECK_FUNCS(sigaltstack)
 AC_FUNC_MMAP
-
-dnl Checks for system services.
-CODA_CHECK_MAKECONTEXT
 
 dnl Build conditionals.
 AM_CONDITIONAL(build_pthread, test "$includepthread" != "no" -a "x$LIBPTHREAD" != x)

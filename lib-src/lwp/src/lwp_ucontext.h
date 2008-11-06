@@ -1,18 +1,17 @@
 /* BLURB lgpl
 
-                           Coda File System
-                              Release 5
+			Coda File System
+			    Release 5
 
-          Copyright (c) 2005 Carnegie Mellon University
-                  Additional copyrights listed below
+	Copyright (c) 2005-2008 Carnegie Mellon University
+		Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
 the  terms of the  GNU  Library General Public Licence  Version 2,  as
 shown in the file LICENSE. The technical and financial contributors to
 Coda are listed in the file CREDITS.
 
-                        Additional copyrights
-
+		    Additional copyrights
 #*/
 
 #ifndef LWP_UCONTEXT_H
@@ -22,28 +21,22 @@ Coda are listed in the file CREDITS.
 #include <config.h>
 #endif
 
-#ifdef CODA_USE_UCONTEXT
-#include <ucontext.h>
-
-#else /* !CODA_USE_UCONTEXT */
 #include <setjmp.h>
 #include <signal.h>
 #include "lwp_stacktrace.h"
 
-typedef sigjmp_buf mcontext_t;
-typedef struct lwp_ucontext {
+struct lwp_ucontext {
     struct lwp_ucontext *uc_link;
     sigset_t uc_sigmask;
     stack_t uc_stack;
-    mcontext_t uc_mcontext;
-} ucontext_t;
+    sigjmp_buf uc_mcontext;
+};
 
-void _lwp_initctx(ucontext_t *ucp);
-#define getcontext(ucp) \
-    (_lwp_initctx(ucp), sigsetjmp((ucp)->uc_mcontext, 1), 0)
-int setcontext(const ucontext_t *ucp);
-void makecontext(ucontext_t *ucp, void (*func)(), int argc, ...);
-int swapcontext(ucontext_t *oucp, ucontext_t *ucp);
-#endif /* !CODA_USE_UCONTEXT */
+void lwp_initctx(struct lwp_ucontext *ucp);
+#define lwp_getcontext(ucp) \
+    (lwp_initctx(ucp), sigsetjmp((ucp)->uc_mcontext, 1), 0)
+int lwp_setcontext(const struct lwp_ucontext *ucp);
+void lwp_makecontext(struct lwp_ucontext *ucp, void (*func)(void *), void *arg);
+int lwp_swapcontext(struct lwp_ucontext *oucp, const struct lwp_ucontext *ucp);
 
 #endif /* LWP_UCONTEXT_H */

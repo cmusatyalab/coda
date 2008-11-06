@@ -91,7 +91,7 @@ struct lwp_pcb {			/* process control block */
   struct timeval lastReady;		/* if ready, time placed in the run queue */
 
   stack_t    stack;			/* allocated stack for this thread */
-  ucontext_t ctx;			/* saved context for next dispatch */
+  struct lwp_ucontext ctx;		/* saved context for next dispatch */
   };
 
 extern int lwp_nextindex;                      /* Next lwp index to assign */
