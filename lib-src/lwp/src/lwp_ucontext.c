@@ -27,19 +27,37 @@ Coda are listed in the file CREDITS.
 
 /* most portable alternative is to use sigaltstack */
 #ifdef HAVE_SIGALTSTACK
-static sigjmp_buf parent;
-#define returnto(ctx) siglongjmp(*ctx, 1)
+static JMP_BUF parent;
+#define returnto(ctx) LONGJMP(*ctx)
 #else
+/* otherwise, use the old LWP savecontext/returnto assembly routines
 
-/* otherwise, use the old LWP savecontext/returnto assembly routines */
-struct lwp_context {	/* saved context for dispatcher */
-    char *topstack;	/* ptr to top of process stack */
-    char *returnadd;	/* return address ? */
-    char *ccr;		/* Condition code register */
-};
-static struct lwp_context parent;
+The following documents the Assembler interfaces used by old LWP:
 
-int savecontext (void (*f)(void), struct lwp_context *ctx, char *stack);
+savecontext(void (*ep)(), struct lwp_context *savearea, char *sp)
+
+    Stub for Assembler routine that will
+    save the current SP value in the passed
+    context savearea and call the function
+    whose entry point is in ep.  If the sp
+    parameter is NULL, the current stack is
+    used, otherwise sp becomes the new stack
+    pointer.
+
+returnto(struct lwp_context *savearea);
+
+    Stub for Assembler routine that will
+    restore context from a passed savearea
+    and return to the restored C frame.
+*/
+
+static struct lwp_context {	/* saved context for dispatcher */
+    void *topstack;	/* ptr to top of process stack */
+    void *returnadd;	/* return address ? */
+    void *ccr;		/* Condition code register */
+} parent;
+
+int savecontext (void (*f)(int), struct lwp_context *ctx, char *stack);
 int returnto (struct lwp_context *ctx);
 #endif
 
@@ -58,13 +76,12 @@ static void _thread(int sig)
     struct lwp_ucontext *this = child;
     void (*func)(void *) = child_func;
     void *arg = child_arg;
+
+    /* indicate that we copied all arguments from global state */
     child = NULL;
 
-    if (sigsetjmp(this->uc_mcontext, 0) == 0)
+    if (SETJMP(this->uc_mcontext, 0) == 0)
 	returnto(&parent);
-
-    /* restore signal mask */
-    sigprocmask(SIG_SETMASK, &this->uc_sigmask, NULL);
 
     func(arg);
 
@@ -76,102 +93,76 @@ static void _thread(int sig)
     exit(0);
 }
 
-void lwp_initctx(struct lwp_ucontext *ucp)
+int lwp_getcontext(struct lwp_ucontext *ucp)
 {
-    sigset_t sigempty;
-    sigemptyset(&sigempty);
     memset(ucp, 0, sizeof(*ucp));
-
-    /* save the signal mask of the current thread */
-    sigprocmask(SIG_BLOCK, &sigempty, &ucp->uc_sigmask);
+    SETJMP(ucp->uc_mcontext, 1);
+    return 0;
 }
 
 int lwp_setcontext(const struct lwp_ucontext *ucp)
 {
-    siglongjmp(*(sigjmp_buf *)&ucp->uc_mcontext, 1);
-    assert(0); /* we should never get here */
+    LONGJMP(*(JMP_BUF *)&ucp->uc_mcontext);
+    return -1; /* we shouldn't get here */
 }
 
 int lwp_swapcontext(struct lwp_ucontext *oucp, const struct lwp_ucontext *ucp)
 {
-    if (sigsetjmp(oucp->uc_mcontext, 1) == 0)
-	lwp_setcontext(ucp);
-    return 0;
+    if (SETJMP(oucp->uc_mcontext, 1) != 0)
+	return 0;
+    return lwp_setcontext(ucp);
 }
 
 void lwp_makecontext(struct lwp_ucontext *ucp, void (*func)(void *), void *arg)
 {
-    char *stack = ucp->uc_stack.ss_sp;
-
 #ifdef HAVE_SIGALTSTACK
     struct sigaction action, oldaction;
     sigset_t sigs, oldsigs;
     stack_t oldstack;
+#else
+    char *stack = ucp->uc_stack.ss_sp;
+    assert(stack != NULL);
 #endif
 
-    assert(stack != NULL);
-
+    /* set up state to pass to the new thread */
     child = ucp;
     child_func = func;
     child_arg = arg;
 
 #ifdef HAVE_SIGALTSTACK
+    /* we use a signal to jump onto the new stack */
+    sigfillset(&sigs);
+    sigprocmask(SIG_BLOCK, &sigs, &oldsigs);
+
+    sigaltstack(&ucp->uc_stack, &oldstack);
+
     action.sa_handler = _thread;
     action.sa_flags = SA_ONSTACK;
     sigemptyset(&action.sa_mask);
-
-    sigemptyset(&sigs);
-    sigaddset(&sigs, SIGUSR1);
-
-    /* we use a signal to jump into the new stack */
-    sigprocmask(SIG_BLOCK, &sigs, &oldsigs);
-    sigaltstack(&ucp->uc_stack, &oldstack);
     sigaction(SIGUSR1, &action, &oldaction);
 
+    /* send the signal */
     kill(getpid(), SIGUSR1);
 
-    /* handle the SIGUSR1 signal */
-    sigfillset(&sigs);
+    /* and allow the signal handler to run */
     sigdelset(&sigs, SIGUSR1);
-    if (!sigsetjmp(parent, 1))
+    if (!SETJMP(parent, 0))
 	while (child)
 	    sigsuspend(&sigs);
 
-    /* The new context should be set up, now revert to the old state... */
+    /* The new context should be set up, remove our signal handler */
     sigaltstack(&oldstack, NULL);
     sigaction(SIGUSR1, &oldaction, NULL);
     sigprocmask(SIG_SETMASK, &oldsigs, NULL);
 
 #else /* !HAVE_SIGALTSTACK */
-
+    /* The old lwp technique looks a lot simpler now. However it requires
+     * processor specific assembly which is a PITA */
 #ifndef STACK_GROWS_UP
     stack += (ucp->uc_stack.ss_size-1) & ~(STACK_PAD-1);
 #endif
 
-    /* The old lwp technique looks a lot simpler now doesn't it. However
-     * it requires processor specific assembly which is a PITA */
     savecontext(_thread, &parent, stack);
-
 #endif /* ~HAVE_SIGALTSTACK */
 }
-
-/*  The following documents the Assembler interfaces used by old LWP:
-
-savecontext(void (*ep)(), struct lwp_context *savearea, char *sp)
-
-
-    Stub for Assembler routine that will
-    save the current SP value in the passed
-    context savearea and call the function
-    whose entry point is in ep.  If the sp
-    parameter is NULL, the current stack is
-    used, otherwise sp becomes the new stack
-    pointer.
-
-returnto(struct lwp_context *savearea);
-
-    Stub for Assembler routine that will
-    restore context from a passed savearea
-    and return to the restored C frame.
-*/
 

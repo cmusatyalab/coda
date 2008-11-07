@@ -491,8 +491,9 @@ ENTRY(returnto)
 	char *newsp;
 */
 	
-#ifdef	__linux__
-#include <linux/linkage.h>	
+#ifdef __linux__
+/* #include <linux/linkage.h> */
+#define ENTRY(x) .align 4;  .globl x; x:
 
 #elif	defined(__FreeBSD__) && defined(__ELF__)
 #include <machine/asm.h>
