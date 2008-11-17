@@ -179,7 +179,7 @@ void DoGlobalSetup();
 int ProcessDirectory();
 void DiscoverPathnames();
 void VerifyEverythingNamed();
-void CreateEmptyDirectories();
+void CreateDirectories(int empty);
 int ProcessFileOrSymlink();
 void ProcessHardLinks();
 
@@ -269,9 +269,11 @@ int main(int argc, char **argv)
     }
   }
 
-  /* use LVNlist to add empty directories to the tarfile */
-  if (!ThisHead.Incremental)
-    CreateEmptyDirectories();
+  /* use LVNlist to add directories to the tarfile */
+  /* We only add empty directories if this is a full dump, for incremental
+   * dumps we add all directories as incremental tar dumps also contain all
+   * directories. */
+  CreateDirectories(!ThisHead.Incremental);
 
   /* Get Small Vnodes (i.e. plain files) */
 
@@ -454,7 +456,7 @@ int ProcessDirectory()
   return 0;
 }
 
-void CreateEmptyDirectories()
+void CreateDirectories(int empty)
 {
   /* output tar commands to create skeleton of tree */
 
@@ -463,10 +465,10 @@ void CreateEmptyDirectories()
 
   /* Loop through directories, creating tar record for each */
 
-  for (lvn = 0; lvn < LVNfillcount; lvn++) {
+  for (lvn = 1; lvn < LVNfillcount; lvn++) {
     thisd = LVNlist[lvn]; /* next dump object */
     CODA_ASSERT(thisd->isdir);  /* sheer paranoia */
-    if (thisd->children) continue;
+    if (empty && thisd->children) continue;
 
     if (DEBUG_HEAVY) {
 	char path[CODA_MAXPATHLEN];
