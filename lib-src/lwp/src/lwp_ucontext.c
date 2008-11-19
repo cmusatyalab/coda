@@ -93,13 +93,6 @@ static void _thread(int sig)
     exit(0);
 }
 
-int lwp_getcontext(struct lwp_ucontext *ucp)
-{
-    memset(ucp, 0, sizeof(*ucp));
-    SETJMP(ucp->uc_mcontext, 1);
-    return 0;
-}
-
 int lwp_setcontext(const struct lwp_ucontext *ucp)
 {
     LONGJMP(*(JMP_BUF *)&ucp->uc_mcontext);

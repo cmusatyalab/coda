@@ -41,7 +41,10 @@ struct lwp_ucontext {
     JMP_BUF		 uc_mcontext;
 };
 
-int lwp_getcontext(struct lwp_ucontext *ucp);
+/* SETJMP _has_ to be in a macro, because we can not call LONGJMP when we
+ * unwrap the stack, i.e. return from a 'lwp_getcontext' function. */
+#define lwp_getcontext(ucp) ( memset((ucp), 0, sizeof(struct lwp_ucontext)), \
+			      SETJMP((ucp)->uc_mcontext, 1), 0 )
 int lwp_setcontext(const struct lwp_ucontext *ucp);
 void lwp_makecontext(struct lwp_ucontext *ucp, void (*func)(void *), void *arg);
 int lwp_swapcontext(struct lwp_ucontext *oucp, const struct lwp_ucontext *ucp);
