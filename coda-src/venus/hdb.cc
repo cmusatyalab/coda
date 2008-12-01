@@ -390,15 +390,10 @@ int hdb::List(hdb_list_msg *m, uid_t local_id) {
 
     /* set ownership of file to actual owner */
 #ifndef __CYGWIN32__
-    int err = ::fchown(outfd, local_id, (gid_t) -1);
+    ::fchown(outfd, local_id, (gid_t) -1);
 #else
-    int err = ::chown(m->outfile, local_id, (gid_t) -1);
+    ::chown(m->outfile, local_id, (gid_t) -1);
 #endif
-    if (err) {
-	LOG(1, ("hdb::List: (%s, %d) fchown failed (%d)\n",
-		m->outfile, local_id, errno));
-	return(errno);
-    }
 
     /* Dump the entries. */
     hdb_iterator next(m->luid);

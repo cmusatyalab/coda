@@ -43,12 +43,12 @@ static void ValidateDir(const char *dir, uid_t owner, mode_t mode)
         ::stat(dir, &tstat);
     }
 
-    // ...and it has the correct attributes. 
+    // ...and it has the correct attributes.
     if (tstat.st_uid != owner || tstat.st_gid != V_GID)
-        CODA_ASSERT(::chown(dir, owner, V_GID) == 0);
+	::chown(dir, owner, V_GID);
 
     if ((tstat.st_mode & ~S_IFMT) != mode)
-        CODA_ASSERT(::chmod(dir, mode) == 0);
+	::chmod(dir, mode);
 }
 
 void MakeUserSpoolDir(char *usd, uid_t owner)
