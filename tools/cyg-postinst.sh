@@ -6,7 +6,7 @@ CODACONFPATH=/etc/coda
 export CODACONFPATH
 
 # default set up ... assume an existing one means a previous setup
-if ! test -d /etc/coda
+if ! test -d /etc/coda ; then
    venus-setup coda.cs.cmu.edu 250000 n
 fi
 
