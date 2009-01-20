@@ -87,7 +87,7 @@ AC_CHECK_HEADERS(sys/statvfs.h sys/statfs.h sys/param.h sys/vfs.h fts.h)
 AC_CHECK_HEADERS(sys/types.h sys/time.h sys/select.h sys/socket.h sys/ioccom.h)
 AC_CHECK_HEADERS(arpa/inet.h arpa/nameser.h netinet/in.h sys/un.h osreldate.h)
 AC_CHECK_HEADERS(ncurses/ncurses.h byteswap.h sys/bswap.h sys/endian.h)
-AC_CHECK_HEADERS(ucred.h)
+AC_CHECK_HEADERS(ucred.h execinfo.h)
 
 AC_CHECK_HEADERS(resolv.h, [], [],
 [#ifdef HAVE_NETINET_IN_H
@@ -115,15 +115,17 @@ dnl Checks for structures.
 dnl Checks for compiler characteristics.
 CODA_CC_FEATURE_TEST(Wall, -Wall)
 CODA_CC_FEATURE_TEST(no_exceptions, -fno-exceptions)
+CODA_CC_FEATURE_TEST(rdynamic, -rdynamic)
 CODA_CXX_FEATURE_TEST(Wall, -Wall)
 CODA_CXX_FEATURE_TEST(no_exceptions, -fno-exceptions)
 CODA_CXX_FEATURE_TEST(check_new, -fcheck-new)
+CODA_CXX_FEATURE_TEST(rdynamic, -rdynamic)
 CODA_CHECK_OFFSETOF
 
 dnl Checks for library functions.
 AC_CHECK_FUNCS(inet_aton inet_ntoa res_search pread fseeko nmount)
 AC_CHECK_FUNCS(select setenv snprintf statfs strerror strtol)
-AC_CHECK_FUNCS(getpeereid getpeerucred)
+AC_CHECK_FUNCS(getpeereid getpeerucred backtrace)
 AC_FUNC_MMAP
 AC_FUNC_SELECT_ARGTYPES
 CODA_CHECK_FILE_LOCKING
