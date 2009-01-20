@@ -1223,9 +1223,14 @@ void vproc::rmdir(struct venus_cnode *dcp, char *name)
 	if (target_fso->IsRoot())
 	    { target_fso->print(logFile); CHOKE("vproc::rmdir: target is root"); }
 
-	/* Verify that it is a directory (mount points are an exception). */
-	if (!target_fso->IsDir() || target_fso->IsMtPt())
+	/* Verify that it is a directory */
+	if (!target_fso->IsDir())
 	    { u.u_error = ENOTDIR; goto FreeLocks; }
+
+	/* Mount points have to be removed by an administrator with
+	 * cfs rmmount */
+	if (target_fso->IsMtPt())
+	    { u.u_error = EPERM; goto FreeLocks; }
 
 	/* Must have data for the target. */
 	VenusFid target_fid; target_fid = target_fso->fid;
