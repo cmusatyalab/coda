@@ -2020,24 +2020,15 @@ static int GrabFsObj(ViceFid *fid, Volume **volptr, Vnode **vptr,
 	return(0);
 }
 
-/* Get an FSO and it's parent in correct lock order */
+/* Get an FSO and it's parent (ignores lock order) */
 static int GetFsoAndParent(ViceFid *Fid, dlist *vlist, Volume **volptr,
 			   vle **v, vle **av, int lock, int vollock,
 			   int ignoreIncon)
 {
     ViceFid pFid;
-    Error rc = 0;
-    int err, may_relock, relock;
+    int err, relock;
 
     *v = AddVLE(*vlist, Fid);
-
-    /* only allow relocking if the vnode is not locked already, if we are
-     * unable to relock we may violate locking protocol */
-    may_relock = ((*v)->vptr == NULL &&
-		  lock != WRITE_LOCK && lock != TRY_WRITE_LOCK);
-    if (!may_relock) {
-	SLog(5, "GetFsoAndParent: not allowed to relock %s", FID_(Fid));
-    }
 
     err = GetFsObj(Fid, volptr, &(*v)->vptr, lock, vollock, ignoreIncon, 0, 0);
     if (err) return err;
@@ -2048,16 +2039,15 @@ static int GetFsoAndParent(ViceFid *Fid, dlist *vlist, Volume **volptr,
     }
 
     VN_VN2PFid((*v)->vptr, *volptr, &pFid);
-get_new_parent:
+
     *av = AddVLE(*vlist, &pFid);
 
     /* If the parent sorts lower we have to relock the file */
     relock = ((*av)->vptr == NULL) && (FID_Cmp(&pFid, Fid) < 0);
-    if (may_relock && relock) {
-	VPutVnode(&rc, (*v)->vptr);
-	(*v)->vptr = NULL;
-	CODA_ASSERT(rc == 0);
-    } else if (relock) {
+    if (relock) {
+	/* actually fixing lock ordering is pretty tricky because we
+	 * cannot use VPutVnode as it may try to commit any changes back
+	 * to RVM and we cannot allow that to happen at this point. */
 	SLog(0, "GetFsoAndParent: unable to relock %s", FID_(Fid));
     }
 
@@ -2065,23 +2055,6 @@ get_new_parent:
     err = GetFsObj(&pFid, volptr, &(*av)->vptr, READ_LOCK, NO_LOCK, 1, 0, 0);
     if (err) return err;
 
-    if (may_relock && relock) {
-	ViceFid new_pFid;
-
-	err = GetFsObj(Fid, volptr, &(*v)->vptr, lock, vollock, ignoreIncon,
-		       0, 0);
-	if (err) return err;
-
-	/* make sure that we haven't been moved to a different directory */
-	VN_VN2PFid((*v)->vptr, *volptr, &new_pFid);
-	if (!FID_EQ(&pFid, &new_pFid))
-	{
-	    VPutVnode(&rc, (*av)->vptr);
-	    (*av)->vptr = NULL;
-	    pFid = new_pFid;
-	    goto get_new_parent;
-	}
-    }
     return 0;
 }
 
