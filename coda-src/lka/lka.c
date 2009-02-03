@@ -117,32 +117,36 @@ int LookAsideAndFillContainer (unsigned char sha[SHA_DIGEST_LENGTH], int cfd,
   close(hfd);
 
   if (err < 0) {
-    snprintf(emsgbuf, emsgbuflen, "CopyAndComputeSHA(%s): %s", 
-	     hitpathname, strerror(errno));
-    return(0); /* weird failure during copy */
+      snprintf(emsgbuf, emsgbuflen, "CopyAndComputeSHA(%s): %s",
+	       hitpathname, strerror(errno));
+      goto fail_out; /* weird failure during copy */
   }
 
   if (memcmp(cshabuf, sha, SHA_DIGEST_LENGTH)) {
       snprintf(emsgbuf, emsgbuflen, "%s: mismatch on SHA verification",
 	       hitpathname);
       dbp->shafails++;
-      return(0);    
+      goto fail_out; /* sha1 mismatch */
   }
 
   if (expectedlength >= 0) { /* verify length if specified */
     struct stat cfstat;
     if (fstat(cfd, &cfstat) < 0) {
       snprintf(emsgbuf, emsgbuflen, "lookaside: stat %s", strerror(errno));
-      return(0);
+      goto fail_out; /* weird failure when checking container file */
     }
     if (cfstat.st_size != expectedlength) {
-      snprintf(emsgbuf, emsgbuflen, "lookaside: length mismatch (%ld instead of %d)", 
+      snprintf(emsgbuf, emsgbuflen, "lookaside: length mismatch (%ld instead of %d)",
 	       cfstat.st_size, expectedlength);
-      return(0);
+      goto fail_out; /* length mismatch */
     }
   }
 
   return(1); /* Success! */
+
+fail_out:
+  ftruncate(cfd, 0);
+  return(0);
 }
 
 int lkdb_BindDB(struct lkdb *dbp, char *dbpathname, char *emsgbuf, int emsgbuflen)
