@@ -3,7 +3,7 @@ Section: net
 Priority: optional
 Maintainer: Jan Harkes <jaharkes@cs.cmu.edu>
 Standards-Version: 3.6.1
-Build-Depends: debhelper (>= 4), g++, liblwp-dev (>= 2.5), librpc2-dev (>= 2.8), librvm-dev (>= 1.16), rvm-tools, libreadline5-dev, libncurses5-dev, libfltk1.1-dev, flex, bison | byacc, fluid, pkg-config, python2.5-minimal | python2.4-minimal
+Build-Depends: debhelper (>= 4), g++, liblwp-dev (>= 2.5), librpc2-dev (>= 2.8), librvm-dev (>= 1.16), rvm-tools, libreadline5-dev, libncurses5-dev, libfltk1.1-dev, flex, bison | byacc, fluid, pkg-config, python2.5-minimal | python2.4-minimal, automake
 
 Package: coda-client
 Architecture: amd64 arm i386 m68k powerpc sparc
