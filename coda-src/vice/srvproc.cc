@@ -2031,15 +2031,15 @@ static int GetFsoAndParent(ViceFid *Fid, dlist *vlist, Volume **volptr,
 
     *v = AddVLE(*vlist, Fid);
 
-    /* only allow relocking if the vnode is locked here, if we are unable to
-     * relock we may violate locking protocol */
-    may_relock = ((*v)->vptr == NULL);
+    /* only allow relocking if the vnode is not locked already, if we are
+     * unable to relock we may violate locking protocol */
+    may_relock = ((*v)->vptr == NULL &&
+		  lock != WRITE_LOCK && lock != TRY_WRITE_LOCK);
     if (!may_relock) {
 	SLog(5, "GetFsoAndParent: not allowed to relock %s", FID_(Fid));
     }
 
-    err = GetFsObj(Fid, volptr, &(*v)->vptr, lock, vollock, ignoreIncon,
-		   0, 0);
+    err = GetFsObj(Fid, volptr, &(*v)->vptr, lock, vollock, ignoreIncon, 0, 0);
     if (err) return err;
 
     if ((*v)->vptr->disk.type == vDirectory) {
@@ -2058,7 +2058,7 @@ get_new_parent:
 	(*v)->vptr = NULL;
 	CODA_ASSERT(rc == 0);
     } else if (relock) {
-	SLog(5, "GetFsoAndParent: unable to relock %s", FID_(Fid));
+	SLog(0, "GetFsoAndParent: unable to relock %s", FID_(Fid));
     }
 
     // We only use the parent node for ACL checks, allow inconsistency
