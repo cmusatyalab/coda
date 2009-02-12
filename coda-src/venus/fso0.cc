@@ -1352,9 +1352,9 @@ int fsdb::AllocBlocks(int priority, int nblocks) {
 
 /* Needn't be called from within transaction. */
 int fsdb::GrabFreeBlocks(int priority, int nblocks) {
-    int free_blocks = FreeBlockCount();
-    if ((free_blocks - nblocks) >= FreeBlockMargin ||
-	 (free_blocks - nblocks) >= 0 && priority >= MarginPri()) {
+    int remaining_blocks = FreeBlockCount() - nblocks;
+    if (remaining_blocks >= FreeBlockMargin ||
+	(remaining_blocks >= 0 && priority >= MarginPri())) {
 	ChangeDiskUsage(nblocks);
 	return(1);
     }
