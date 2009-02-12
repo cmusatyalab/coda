@@ -2026,7 +2026,7 @@ static int GetFsoAndParent(ViceFid *Fid, dlist *vlist, Volume **volptr,
 			   int ignoreIncon)
 {
     ViceFid pFid;
-    int err, relock;
+    int err;
 
     *v = AddVLE(*vlist, Fid);
 
@@ -2041,15 +2041,6 @@ static int GetFsoAndParent(ViceFid *Fid, dlist *vlist, Volume **volptr,
     VN_VN2PFid((*v)->vptr, *volptr, &pFid);
 
     *av = AddVLE(*vlist, &pFid);
-
-    /* If the parent sorts lower we have to relock the file */
-    relock = ((*av)->vptr == NULL) && (FID_Cmp(&pFid, Fid) < 0);
-    if (relock) {
-	/* actually fixing lock ordering is pretty tricky because we
-	 * cannot use VPutVnode as it may try to commit any changes back
-	 * to RVM and we cannot allow that to happen at this point. */
-	SLog(0, "GetFsoAndParent: unable to relock %s", FID_(Fid));
-    }
 
     // We only use the parent node for ACL checks, allow inconsistency
     err = GetFsObj(&pFid, volptr, &(*av)->vptr, READ_LOCK, NO_LOCK, 1, 0, 0);
