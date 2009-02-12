@@ -291,8 +291,6 @@ static void Usage(char *argv0)
 " -maxworkers <n>\t\t# of worker threads\n"
 " -maxcbservers <n>\t\t# of callback server threads\n"
 " -maxprefetchers <n>\t\t# of threads servicing prefetch ioctl\n"
-" -weakthresh <n>\t\tstrong/weak threshold (bytes/sec)\n"
-" -weakstale <n>\t\t\twhen estimates become too old (seconds)\n"
 " -retries <n>\t\t\t# of rpc2 retries\n"
 " -timeout <n>\t\t\trpc2 timeout\n"
 " -ws <n>\t\t\tsftp window size\n"
