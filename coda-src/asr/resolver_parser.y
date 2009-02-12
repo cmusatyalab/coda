@@ -54,7 +54,7 @@ extern olist	rules;
 rule_t	*crule;		// current rule 
 command_t *ccmd = NULL;
 int debug = 0;
-int yyerror(char *s);
+int yyerror(const char *s);
 
 /* This file defines the syntax of the rule language used to specify an ASR 
    in a ResolveFile. Some macros understood by the language:
@@ -174,7 +174,7 @@ index		: INTEGER
 
 %%
 
-int yyerror(char *s)
+int yyerror(const char *s)
 {
    fprintf(stderr, "Syntax error in line %d token = %s context = %d\n",
 	   yylineno, yytext, context);
