@@ -765,7 +765,7 @@ void FSOD_ReclaimFSOs(void);
 #define	READING(f)	(((f)->openers - (f)->Writers) > 0)
 #define	WRITING(f)	((f)->Writers > 0)
 #define	EXECUTING(f)	(EXECUTABLE(f) && READING(f) && !k_Purge(&(f)->fid))
-#define	ACTIVE(f)	(WRITING(f) || EXECUTING(f))
+#define	ACTIVE(f)	(WRITING(f) || READING(f)) // was EXECUTING(f)
 #define	BUSY(f)		((f)->refcnt > 0 || EXECUTING(f))
 #define	HOARDABLE(f)	((f)->HoardPri > 0)
 #define	FETCHABLE(f)	(!DYING(f) && REACHABLE(f) && !DIRTY(f) && \
