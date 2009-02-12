@@ -437,8 +437,8 @@ static int lockReplicas(volinfo_t *vol)
 {
     long rc = 0;
     repinfo_t *reps = vol->replicas;
-    
-    for (char i = 0; i < vol->nReplicas; i++) {
+
+    for (int i = 0; i < vol->nReplicas; i++) {
 	if (Hosts[reps[i].serverNum].rpcid != BADCONNECTION) {
 	    rc = VolLock(Hosts[reps[i].serverNum].rpcid, reps[i].repvolId, &reps[i].vvv);
 	    if (rc != RPC2_SUCCESS) {
@@ -447,17 +447,17 @@ static int lockReplicas(volinfo_t *vol)
 		       vol->volId, reps[i].repvolId, RPC2_ErrorMsg((int)rc));
 
 		if (rc < RPC2_FLIMIT) /* Connection has been nixed by RPC2 */
-		    Hosts[reps[i].serverNum].rpcid = BADCONNECTION; 
+		    Hosts[reps[i].serverNum].rpcid = BADCONNECTION;
 
 		/* If a call fails, we should clear the flags, since LOCKING
 		 * is the first stage. However, we can continue with the backup
 		 * since optimistically the quorum for backup is 1.
 		 */
-		reps[i].flags = 0;     
+		reps[i].flags = 0;
 	    } else
 		/* Set this flag to force retry of all other operations */
-		reps[i].flags = LOCKED;	
-	}	
+		reps[i].flags = LOCKED;
+	}
     }
     return 0;
 }
@@ -471,8 +471,8 @@ static void unlockReplicas(volinfo_t *vol)
 {
     long rc;
     repinfo_t *reps = vol->replicas;
-    
-    for (char i = 0; i < vol->nReplicas; i++) {
+
+    for (int i = 0; i < vol->nReplicas; i++) {
 	/* Try to unlock all replicas, whether we think they're locked or not. */
 	if (Hosts[reps[i].serverNum].rpcid != BADCONNECTION) {
 	    rc= VolUnlock(Hosts[reps[i].serverNum].rpcid, reps[i].repvolId);
@@ -481,12 +481,11 @@ static void unlockReplicas(volinfo_t *vol)
 		       vol->volId, reps[i].repvolId, RPC2_ErrorMsg((int)rc));
 		LogMsg(0, 0, stdout, "VolUnlock failed, connection %d",
 		       Hosts[reps[i].serverNum].rpcid);
-		       
+
 		if (rc < RPC2_FLIMIT)	/* Connection has been nixed by RPC2 */
 		    Hosts[reps[i].serverNum].rpcid = BADCONNECTION;
 	    } else
 		reps[i].flags &= ~LOCKED;
-	    
 	}
     }
 }
@@ -502,14 +501,13 @@ static int backup(volinfo_t *vol) {
     repinfo_t *reps = vol->replicas;
     long rc;
     int count = 0;
-    
+
     LogMsg(0, 0, stdout, "%x: cloning ", volId);
 
-    if (lockReplicas(vol) != 0) 		/* Lock all the replicas */
+    if (lockReplicas(vol) != 0)		/* Lock all the replicas */
 	return -1;
 
-    for (char i = 0; i < vol->nReplicas; i++) {
-
+    for (int i = 0; i < vol->nReplicas; i++) {
 	/* Only clone a replica if it was locked and its server is up. */
 	if ((Hosts[reps[i].serverNum].rpcid != BADCONNECTION) && ISLOCKED(reps[i].flags)) {
 	    rc = VolMakeBackups(Hosts[reps[i].serverNum].rpcid,
@@ -520,7 +518,7 @@ static int backup(volinfo_t *vol) {
 		       reps[i].repvolId, RPC2_ErrorMsg((int)rc));
 
 		if (rc < RPC2_FLIMIT) /* Connection has been nixed by RPC2 */
-		    Hosts[reps[i].serverNum].rpcid = BADCONNECTION; 
+		    Hosts[reps[i].serverNum].rpcid = BADCONNECTION;
 
 		/* I think we can safely continue if some replica(s) fails.
 		 * The worst that happens is that some extra clones are done.
@@ -531,13 +529,12 @@ static int backup(volinfo_t *vol) {
 		count++;
 		reps[i].flags |= CLONED;
 	    }
-	} 
+	}
      }
 
     /* Don't need to unlock anymore, S_VolBackup does it as a side-effect.
      *  unlockReplicas(vol);
      */
-    
     vol->nCloned = count;			/* Store # of successful clones */
     CODA_ASSERT(count <= vol->nReplicas);
     return 0;
