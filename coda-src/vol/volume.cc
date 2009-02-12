@@ -1928,7 +1928,7 @@ Error VAdjustDiskUsage(Volume *vp, int blocks)
 }
 
 int GetVolObj(VolumeId Vid, Volume **volptr,
-	      int LockLevel, int Enque, int LockerAddress)
+	      int LockLevel, int Enque, unsigned LockerAddress)
 {
     int errorCode = 0;
 

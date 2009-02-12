@@ -284,7 +284,7 @@ extern int GetFsObj(ViceFid *, Volume **, Vnode **, int, int, int , int, int);
 extern int SystemUser(ClientEntry *);
 extern int AdjustDiskUsage(Volume *, int);
 extern void ChangeDiskUsage(Volume *, int);
-extern int GetVolObj(VolumeId, Volume **, int, int =0, int =0);
+extern int GetVolObj(VolumeId, Volume **, int, int =0, unsigned =0);
 extern void PutVolObj(Volume **, int, int =0);
 extern int CheckDiskUsage(Volume *, int );
 extern void PrintCounters(FILE *fp =stdout);

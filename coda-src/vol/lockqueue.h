@@ -84,7 +84,7 @@ class lq_iterator : public dlist_iterator {
 
 class lqent : public dlink{
   friend class lqman;
-  friend int GetVolObj(VolumeId, Volume **, int, int, int);
+  friend int GetVolObj(VolumeId, Volume **, int, int, unsigned);
   friend void PutVolObj(Volume **, int, int);
   friend long ViceLockVol(RPC2_Handle, VolumeId, UserId *, RPC2_Unsigned *);
   friend long ViceUnlockVol(RPC2_Handle, VolumeId);

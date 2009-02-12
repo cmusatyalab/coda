@@ -446,7 +446,7 @@ Error VAdjustDiskUsage(Volume *vp, int blocks);
 Error VCheckDiskUsage(Volume *vp, int blocks);
 void PutVolObj(Volume **volptr, int LockLevel, int Dequeue);
 int GetVolObj(VolumeId Vid, Volume **volptr, 
-	      int LockLevel, int Enque, int LockerAddress);
+	      int LockLevel, int Enque, unsigned LockerAddress);
 
 
 #endif /* VOLUME_INCLUDED */
