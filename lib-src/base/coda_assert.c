@@ -35,21 +35,20 @@ int   coda_assert_action = CODA_ASSERT_SLEEP;
 void
 coda_assert(const char *pred, const char *file, int line)
 {
+    fprintf(stderr,"Assertion failed: %s, file \"%s\", line %d\n",
+	    pred, file, line);
+    fflush(stderr);
+
 #ifdef HAVE_BACKTRACE
 #define BT_BUF_SIZE 64
     void *bt_buf[BT_BUF_SIZE];
     int nptrs;
 
-    fprintf(stderr,"Assertion failed: %s\n***BackTrace***\n", pred);
+    fprintf(stderr,"***BackTrace***\n");
     fflush(stderr);
 
     nptrs = backtrace(bt_buf, BT_BUF_SIZE);
     backtrace_symbols_fd(bt_buf, nptrs, STDERR_FILENO);
-
-#else
-    fprintf(stderr,"Assertion failed: %s, file \"%s\", line %d\n",
-	    pred, file, line);
-    fflush(stderr);
 #endif
 
     if (coda_assert_cleanup) (coda_assert_cleanup)();
