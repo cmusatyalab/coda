@@ -315,7 +315,7 @@ void zombie(int sig)
 
 int main(int argc, char *argv[])
 {
-    char    sname[20];
+    char    sname[15];
     int     i;
     struct stat buff;
     PROCESS serverPid, resPid, smonPid, resworkerPid;
@@ -323,7 +323,7 @@ int main(int argc, char *argv[])
     RPC2_SubsysIdent server;
     SFTP_Initializer sei;
     ProgramType *pt;
-    int parent = -1;
+    int parent = -1, n, rc;
     const char *pidfile;
 
     coda_assert_action = CODA_ASSERT_EXIT;
@@ -522,33 +522,38 @@ int main(int argc, char *argv[])
     CODA_ASSERT(LWP_CreateProcess(CallBackCheckLWP, stack*1024, LWP_NORMAL_PRIORITY,
 				  (void *)&cbwait, "CheckCallBack", &serverPid) == LWP_SUCCESS);
 
-    for (i=0; i < auth_lwps; i++) {
-	sprintf(sname, "AuthLWP-%d",i);
-	CODA_ASSERT(LWP_CreateProcess(AuthLWP, stack*1024, LWP_NORMAL_PRIORITY,
-				      (void *)&i, sname, &serverPid) == LWP_SUCCESS);
+    for (i = 0; i < auth_lwps; i++) {
+	n = snprintf(sname, sizeof(sname), "AuthLWP-%d",i);
+	CODA_ASSERT(n >= 0 && n < (int)sizeof(sname));
+	rc = LWP_CreateProcess(AuthLWP, stack*1024, LWP_NORMAL_PRIORITY,
+			       (void *)&i, sname, &serverPid);
+	CODA_ASSERT(rc == LWP_SUCCESS);
     }
-    for (i=0; i < server_lwps; i++) {
-	sprintf(sname, "ServerLWP-%d",i);
-	CODA_ASSERT(LWP_CreateProcess(ServerLWP, stack*1024, LWP_NORMAL_PRIORITY,
-				      (void *)&i, sname, &serverPid) == LWP_SUCCESS);
+    for (i = 0; i < server_lwps; i++) {
+	n = snprintf(sname, sizeof(sname), "ServerLWP-%d", i);
+	CODA_ASSERT(n >= 0 && n < (int)sizeof(sname));
+	rc = LWP_CreateProcess(ServerLWP, stack*1024, LWP_NORMAL_PRIORITY,
+			       (void *)&i, sname, &serverPid);
+	CODA_ASSERT(rc == LWP_SUCCESS);
     }
 
     /* set up resolution threads */
     for (i = 0; i < 2; i++){
-	sprintf(sname, "ResLWP-%d", i);
-	CODA_ASSERT(LWP_CreateProcess(ResLWP, stack*1024,
-				      LWP_NORMAL_PRIORITY, (void *)&i,
-				      sname, &resPid) == LWP_SUCCESS);
+	n = snprintf(sname, sizeof(sname), "ResLWP-%d", i);
+	CODA_ASSERT(n >= 0 && n < (int)sizeof(sname));
+	rc = LWP_CreateProcess(ResLWP, stack*1024, LWP_NORMAL_PRIORITY,
+			       (void *)&i, sname, &resPid);
+	CODA_ASSERT(rc == LWP_SUCCESS);
     }
-    sprintf(sname, "ResCheckSrvrLWP");
-    CODA_ASSERT(LWP_CreateProcess(ResCheckServerLWP, stack*1024,
-				  LWP_NORMAL_PRIORITY, (void *)&i,
-				  sname, &resPid) == LWP_SUCCESS);
 
-    sprintf(sname, "ResCheckSrvrLWP_worker");
-    CODA_ASSERT(LWP_CreateProcess(ResCheckServerLWP_worker, stack*1024,
-				  LWP_NORMAL_PRIORITY, (void *)&i,
-				  sname, &resworkerPid) == LWP_SUCCESS);
+    rc = LWP_CreateProcess(ResCheckServerLWP, stack*1024, LWP_NORMAL_PRIORITY, NULL,
+			   "ResCheckSrvrLWP", &resPid);
+    CODA_ASSERT(rc == LWP_SUCCESS);
+
+    rc = LWP_CreateProcess(ResCheckServerLWP_worker, stack*1024, LWP_NORMAL_PRIORITY,
+			   NULL, "ResCheckSrvrLWP_worker", &resworkerPid);
+    CODA_ASSERT(rc == LWP_SUCCESS);
+
     /* Set up volume utility subsystem (spawns 2 lwps) */
     SLog(29, "fileserver: calling InitvolUtil");
     extern void InitVolUtil(int stacksize);
@@ -557,10 +562,10 @@ int main(int argc, char *argv[])
     SLog(29, "fileserver: returning from InitvolUtil");
 
     extern void SmonDaemon(void *);
-    sprintf(sname, "SmonDaemon");
-    CODA_ASSERT(LWP_CreateProcess(SmonDaemon, stack*1024,
-				  LWP_NORMAL_PRIORITY, (void *)&smonPid,
-				  sname, &smonPid) == LWP_SUCCESS);
+    rc = LWP_CreateProcess(SmonDaemon, stack*1024, LWP_NORMAL_PRIORITY,
+			   (void *)&smonPid, "SmonDaemoh", &smonPid);
+    CODA_ASSERT(rc == LWP_SUCCESS);
+
 #ifdef PERFORMANCE
 #ifndef OLDLWP
     /* initialize global array of thread_t for timing - Puneet */
