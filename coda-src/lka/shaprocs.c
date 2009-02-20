@@ -60,7 +60,7 @@ int CopyAndComputeViceSHA(int infd, int outfd,
     /* ComputeViceSHA() takes an open file and returns its SHA value
        in a Vice SHA structure. If outfd is not -1, we copy the while
        computing the SHA.
-       Returns 1 on success, and 0 on any kind of failure  */
+       Returns 0 on success, and -1 on any kind of failure  */
 
     int bytes_out, bytes_in = 0;
     int i = 0;
