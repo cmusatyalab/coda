@@ -2,7 +2,7 @@ dnl Process this file with autoconf to produce a configure script.
 
 dnl autoconf 2.5 stuff
 AC_PREREQ(2.50)
-AC_INIT(Coda, 6.9.4, [bugs@coda.cs.cmu.edu])
+AC_INIT(Coda, 6.9.5~rc1, [bugs@coda.cs.cmu.edu])
 AC_CONFIG_SRCDIR(coda-src/librepair/resolve.h)
 AM_INIT_AUTOMAKE([foreign])
 AC_CONFIG_HEADERS(config.h)
@@ -53,8 +53,8 @@ CODA_CONFIG_SUBDIRS
 
 dnl pkg-config stuff
 PKG_CHECK_MODULES([RVM_RPC2], [rvmlwp rpc2])
-PKG_CHECK_MODULES([LWP], [lwp])
-PKG_CHECK_MODULES([RPC2], [rpc2])
+PKG_CHECK_MODULES([LWP], [lwp >= 2.5])
+PKG_CHECK_MODULES([RPC2], [rpc2 >= 2.8])
 PKG_CHECK_MODULES([RVM], [rvmlwp])
 
 RP2GEN="`pkg-config --variable=RP2GEN rpc2`"
