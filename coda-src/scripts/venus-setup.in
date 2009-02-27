@@ -173,18 +173,21 @@ if [ X$OS = XLinux ] ; then
 	fi
     fi
     # static /dev
-    if [ -f /etc/modules.conf ] ; then
-	MODULES=/etc/modules.conf
-    else
-	MODULES=/etc/conf.modules
-    fi
-    if ! contains $MODULES coda ; then
-	echo "=> Adding aliases to $MODULES so that modprobe can"
-	echo "   handle autoloading of the Coda kernel module when"
-	echo "   /dev/cfs0 is accessed"
-	echo >> $MODULES
-	echo 'alias char-major-67 coda' >> $MODULES
-	echo 'alias /dev/coda coda' >> $MODULES
+    if /sbin/modinfo -V | grep modutils > /dev/null || [ -z $(/sbin/modinfo -F alias coda) ] ; then
+	# kernel module does not encode an alias for us
+	if [ -f /etc/modules.conf ] ; then
+	    MODULES=/etc/modules.conf
+	else
+	    MODULES=/etc/conf.modules
+	fi
+	if ! contains $MODULES coda ; then
+	    echo "=> Adding aliases to $MODULES so that modprobe can"
+	    echo "   handle autoloading of the Coda kernel module when"
+	    echo "   /dev/cfs0 is accessed"
+	    echo >> $MODULES
+	    echo 'alias char-major-67 coda' >> $MODULES
+	    echo 'alias /dev/coda coda' >> $MODULES
+	fi
     fi
 fi
 
