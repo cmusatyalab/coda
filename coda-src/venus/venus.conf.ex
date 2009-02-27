@@ -58,6 +58,7 @@ cacheblocks=100000
 # (default is /usr/coda/etc/console).
 #
 #errorlog=/usr/coda/etc/console
+errorlog=/var/log/coda/venus.err
 
 #
 # What is the uid of the primary user of this system. The primary user
@@ -81,12 +82,15 @@ cacheblocks=100000
 #
 #rvm_log=/usr/coda/LOG
 #rvm_data=/usr/coda/DATA
+rvm_log=/var/lib/coda/LOG
+rvm_data=/var/lib/coda/DATA
 
 #
 # Where should venus keep it's pool of cached files.
 # (default is /usr/coda/venus.cache)
 #
 #cachedir=/usr/coda/venus.cache
+cachedir=/var/lib/coda/cache
 
 #
 # Where should venus store snapshots of the modification logs. This is
@@ -94,6 +98,7 @@ cacheblocks=100000
 # the CML during reintegration. (default is /usr/coda/spool)
 #
 #checkpointdir=/usr/coda/spool
+checkpointdir=/var/lib/coda/spool
 
 #
 # Checkpoint archive format
@@ -114,16 +119,19 @@ cacheblocks=100000
 # Where does venus store it's pidfile
 #
 #pid_file=/usr/coda/venus.cache/pid
+pid_file=/var/run/coda-client.pid
 
 #
 # What file does vutil use to control venus
 #
 #run_control_file=/usr/coda/venus.cache/VENUS_CTRL
+run_control_file=/var/run/coda-client.ctrl
 
 #
 # Venus log file
 #
 #logfile=/usr/coda/etc/venus.log
+logfile=/var/log/coda/venus.log
 
 #
 # Mariner socket,
@@ -132,6 +140,7 @@ cacheblocks=100000
 # connect to venus through tcp port 2430.
 #
 #marinersocket=/usr/coda/spool/mariner
+marinersocket=/var/run/coda-client.mariner
 
 #
 # Dont use RVM,
@@ -169,7 +178,7 @@ mapprivate=1
 #
 # Masquerade port, if non-zero, bind the client to the specified port.
 # When masquerade_port=0, an arbitrary port is used.
-# 
+#
 #masquerade_port=0
 
 #

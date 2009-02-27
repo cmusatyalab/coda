@@ -8,28 +8,14 @@ set -e
 . /usr/share/debconf/confmodule
 
 if [ ! -f /etc/coda/venus.conf ] ; then
-    # Adjust paths etc.
-    codaconfedit venus.conf logfile /var/log/coda/venus.log >&2
-    codaconfedit venus.conf errorlog /var/log/coda/venus.err >&2
-    codaconfedit venus.conf rvm_log /var/lib/coda/LOG >&2
-    codaconfedit venus.conf rvm_data /var/lib/coda/DATA >&2
-    # Coda won't like it if the cachedir is emptied, so /var/cache is
-    # not usable. /var/lib is more appropriate.
-    codaconfedit venus.conf cachedir /var/lib/coda/cache >&2
-    # Similarily with the spool directory, it should be in /var/tmp
-    codaconfedit venus.conf checkpointdir /var/lib/coda/spool >&2
-    codaconfedit venus.conf pid_file /var/run/coda-client.pid >&2
-    codaconfedit venus.conf run_control_file /var/run/coda-client.ctrl >&2
-    codaconfedit venus.conf marinersocket /var/run/coda-client.mariner >&2
-
     # first time? we need to initialize RVM on startup.
     touch /var/lib/coda/cache/INIT
-fi
 
-db_get coda/realm
-codaconfedit venus.conf realm "$RET" >&2
-db_get coda/cachesize
-codaconfedit venus.conf cacheblocks "$RET" >&2
+    db_get coda/realm
+    codaconfedit venus.conf realm "$RET" >&2
+    db_get coda/cachesize
+    codaconfedit venus.conf cacheblocks "$RET" >&2
+fi
 
 #DEBHELPER#
 
