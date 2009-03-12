@@ -319,42 +319,31 @@ int RPC2_SetTimeout(RPC2_Handle whichConn, struct timeval timeout)
 
 long rpc2_CancelRetry(struct CEntry *Conn, struct SL_Entry *Sle)
 {
-    /* 
-     * see if we've heard anything from a side effect
-     * since we've been asleep. If so, pretend we got
-     * a keepalive at that time, and activate a SLE 
-     * with a timeout of beta_0 after that time.
-     */
-    struct timeval now, lastword;
+    /* see if we've heard anything from a side effect while we slept. */
+    struct timeval silence, lastword;
 
     say(1, RPC2_DebugLevel, "rpc2_CancelRetry()\n");
 
     if (Conn->SEProcs && Conn->SEProcs->SE_GetSideEffectTime &&
 	(Conn->SEProcs->SE_GetSideEffectTime(Conn->UniqueCID, &lastword) == RPC2_SUCCESS) &&
-	TIMERISSET(&lastword)) {  /* don't bother unless we've actually heard */
-	FT_GetTimeOfDay(&now, (struct timezone *)0);
-	SUBTIME(&now, &lastword);
+	TIMERISSET(&lastword)) /* don't bother unless we've actually heard */
+    {
+	FT_GetTimeOfDay(&silence, NULL);
+	SUBTIME(&silence, &lastword);
 	say(9, RPC2_DebugLevel,
 	    "Heard from side effect on %#x %ld.%06ld ago, retry interval was %ld.%06ld\n",
-	     Conn->UniqueCID, now.tv_sec, now.tv_usec,
+	     Conn->UniqueCID, silence.tv_sec, silence.tv_usec,
 	     Sle->RInterval.tv_sec, Sle->RInterval.tv_usec);
-	if (CMPTIME(&now, &Sle->RInterval, <)) {
-	    Sle->RInterval.tv_sec  = Conn->KeepAlive.tv_sec / 3;
-	    Sle->RInterval.tv_usec = Conn->KeepAlive.tv_usec / 3;
-	    SUBTIME(&Sle->RInterval, &now);
 
-	    say(/*9*/4, RPC2_DebugLevel,
-		"Supressing retry %d at %ld on %#x, new timeout = %ld.%06ld\n",
-		 Sle->RetryIndex, rpc2_time(), Conn->UniqueCID,
-		 Sle->RInterval.tv_sec, Sle->RInterval.tv_usec);
+	if (CMPTIME(&silence, &Sle->RInterval, <)) {
+	    say(/*9*/4, RPC2_DebugLevel, "Supressing retry %d at %ld on %#x",
+		 Sle->RetryIndex, rpc2_time(), Conn->UniqueCID);
 
 	    rpc2_Sent.Cancelled++;
-	    Sle->RetryIndex = 0;
-	    rpc2_ActivateSle(Sle, &Sle->RInterval);
-	    return(1);
+	    return 1;
 	}
     }
-    return(0);
+    return 0;
 }
 
 
@@ -425,10 +414,12 @@ long rpc2_SendReliably(struct CEntry *Conn, struct SL_Entry *Sle,
 		break;	/* switch */
 
 	    case TIMEOUT:
-		if ((hopeleft = rpc2_CancelRetry(Conn, Sle)))
-		    break;      /* switch; we heard from side effect recently */
+		if (rpc2_CancelRetry(Conn, Sle))
+		    /* retryindex -1 -> keepalive timeout */
+		    Sle->RetryIndex = -1;
+		else
+		    Sle->RetryIndex += 1;
 
-		Sle->RetryIndex += 1;
 		/* XXX we should have the size of the expected reply packet */
 		rc = rpc2_RetryInterval(Conn, Sle->RetryIndex,
 					&Sle->RInterval,
@@ -438,6 +429,8 @@ long rpc2_SendReliably(struct CEntry *Conn, struct SL_Entry *Sle,
 
 		hopeleft = 1;
 		rpc2_ActivateSle(Sle, &Sle->RInterval);
+		if (Sle->RetryIndex < 0) break;
+
 		say(9, RPC2_DebugLevel,
 		    "Sending retry %d at %ld on %#x (timeout %ld.%06ld)\n",
 		     Sle->RetryIndex, rpc2_time(), Conn->UniqueCID,

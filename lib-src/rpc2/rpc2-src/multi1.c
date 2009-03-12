@@ -427,8 +427,8 @@ static long mrpc_SendPacketsReliably(
     struct timeval *TimeOut)		/* client specified timeout */
 {
     struct SL_Entry *slp;
-    RPC2_PacketBuffer *preply;  /* RPC2 Response buffers */
-    struct CEntry *c_entry;
+    RPC2_PacketBuffer *req, *preply;  /* RPC2 Response buffers */
+    struct CEntry *ce;
     long finalrc, secode = 0;
     long thispacket, hopeleft, i;
     int packets = 1; 			/* packet counter for LWP yield */
@@ -461,9 +461,8 @@ static long mrpc_SendPacketsReliably(
 	    }
 */
 
-    if (TimeOut) {	    /* create a time bomb */
-	/* allocate timer entry */
-	slp = pcon->pending[HowMany] = rpc2_AllocSle(OTHER, NULL);  
+    if (TimeOut) { /* create a time bomb */
+	slp = pcon->pending[goodpackets++] = rpc2_AllocSle(OTHER, NULL);
 	rpc2_ActivateSle(slp, TimeOut);
     }
 
@@ -477,8 +476,10 @@ static long mrpc_SendPacketsReliably(
     {
 	/* initialize permuted index array */
 	pcon->indexlist[thispacket] = thispacket;
-	
+
+	ce = mcon[thispacket].ceaddr;
 	slp = mcon[thispacket].sle;
+	req = mcon[thispacket].req;
 
 	if (!slp) /* something is wrong with connection - don't send packet */
 	{
@@ -497,24 +498,19 @@ static long mrpc_SendPacketsReliably(
 	    timestamp = rpc2_MakeTimeStamp();
 	}
 
-	mcon[thispacket].req->Header.TimeStamp = htonl(timestamp);
-	mcon[thispacket].ceaddr->reqsize =
-	    mcon[thispacket].req->Prefix.LengthOfPacket;
+	req->Header.TimeStamp = htonl(timestamp);
+	ce->reqsize = req->Prefix.LengthOfPacket;
 
 	slp->RetryIndex = 0;
 	/* XXX we should have the size of the expected reply packet */
-	rpc2_RetryInterval(mcon[thispacket].ceaddr, 0, &slp->RInterval,
-			   mcon[thispacket].req->Prefix.LengthOfPacket,
+	rpc2_RetryInterval(ce, 0, &slp->RInterval,
+			   req->Prefix.LengthOfPacket,
 			   sizeof(struct RPC2_PacketHeader), 0);
 	rpc2_ActivateSle(slp, &slp->RInterval);
 
-	rpc2_XmitPacket(mcon[thispacket].req,
-			mcon[thispacket].ceaddr->HostInfo->Addr, 0);
+	rpc2_XmitPacket(req, ce->HostInfo->Addr, 0);
     }
-
-    /* don't forget to account for the Timer entry */
-    if (TimeOut)
-	goodpackets++;
+    pcon->pending[goodpackets] = NULL;
 
     if (busy == HowMany)
 	EXIT_MRPC_SPR(RPC2_FAIL)		    /* no packets were sent */
@@ -527,7 +523,7 @@ static long mrpc_SendPacketsReliably(
 	/* wait for SocketListener to tap me on the shoulder */
 	LWP_MwaitProcess(1, (const void **)pcon->pending);
 
-	if (TimeOut && pcon->pending[HowMany]->ReturnCode == TIMEOUT)
+	if (TimeOut && pcon->pending[0]->ReturnCode == TIMEOUT)
 	    /* Overall timeout expired: clean up state and quit */
 	    EXIT_MRPC_SPR(RPC2_TIMEOUT)
 
@@ -535,137 +531,113 @@ static long mrpc_SendPacketsReliably(
 	for(i = 0; i < pcon->indexlen; i++)
 	{
 	    thispacket = pcon->indexlist[i];
-	    c_entry = mcon[thispacket].ceaddr;
+	    ce = mcon[thispacket].ceaddr;
 	    slp = mcon[thispacket].sle;
+	    req = mcon[thispacket].req;
+	    preply = NULL;
+
 	    switch(slp->ReturnCode)
-		{
+	    {
 		case WAITING:
 		    hopeleft = 1;	/* someday we will be told about this packet */
-		    break;		/* switch */
+		    continue; /* not yet done with this connection */
 
 		case ARRIVED:
 		    /* know this hasn't yet been processd */
-		    say(9, RPC2_DebugLevel, "Request reliably sent on 0x%p\n", c_entry);
-		    /* remove current connection from future examination */
-		    i = exchange(pcon, i);
+		    say(9, RPC2_DebugLevel, "Request reliably sent on %p\n", ce);
 
 		    /* At this point the final reply has been received;
 		       SocketListener has already decrypted it. */
 		    preply = (RPC2_PacketBuffer *)slp->data;
 		    mcon[thispacket].retcode = preply->Header.ReturnCode;
-
-		    /* Do preliminary side effect processing: */
-		    /* Notify side effect routine, if any */
-		    if (GOODSEDLE(thispacket) && c_entry->SEProcs != NULL &&
-			c_entry->SEProcs->SE_MultiRPC2 != NULL)
-			secode = (*c_entry->SEProcs->SE_MultiRPC2)
-			    (ConnHandleList[thispacket],
-			     &(SDescList[thispacket]), preply);
-		    if (secode < RPC2_FLIMIT)
-		    {
-			rpc2_SetConnError(c_entry);
-			finalrc = RPC2_FAIL;
-			if ((*UnpackMulti)(HowMany, ConnHandleList, ArgInfo, preply, RPC2_SEFAIL2, thispacket) == -1)
-			    /* enough responses, return */
-			    EXIT_MRPC_SPR(finalrc)
-			else
-			    /* continue waiting for responses */
-			    break;
-		    }
-		    /* return code may be LWP_SUCCESS or LWP_ENOWAIT */
-/*		    LWP_NoYieldSignal((char *)c_entry);*/
-		    /* Continue side effect processing: */
-		    if (GOODSEDLE(thispacket) && (secode != RPC2_SUCCESS ||
-			SDescList[thispacket].LocalStatus == SE_FAILURE ||
-			SDescList[thispacket].RemoteStatus == SE_FAILURE))
-		    {
-			finalrc = RPC2_FAIL;
-			if ((*UnpackMulti)(HowMany, ConnHandleList, ArgInfo, preply, RPC2_SEFAIL1, thispacket) == -1)
-			    /* enough responses, return */
-			    EXIT_MRPC_SPR(finalrc)
-			else
-			    /* continue waiting for responses */
-			    break;
-			}
-		    /* RPC2_SUCCESS if ARRIVED and SE's are OK */
-		    if ((*UnpackMulti)(HowMany, ConnHandleList, ArgInfo, preply, RPC2_SUCCESS, thispacket) == -1)
-			/* enough responses, return */
-			EXIT_MRPC_SPR(finalrc)
-		    else
-			/* continue waiting for responses */
-			break;
+		    break; /* done with this connection */
 
 		case KEPTALIVE:
-		    hopeleft = 1;
-		    slp->RetryIndex = 0;
-		    slp->RInterval.tv_sec  = c_entry->KeepAlive.tv_sec / 3;
-		    slp->RInterval.tv_usec = c_entry->KeepAlive.tv_usec / 3;
-		    rpc2_ActivateSle(slp, &slp->RInterval);
-		    break;	/* switch */
-
-		case NAKED:	/* explicitly NAK'ed this time or earlier */
-		    say(9, RPC2_DebugLevel, "Request NAK'ed on 0x%p\n", c_entry);
-		    rpc2_SetConnError(c_entry);	    /* does signal on ConnHandle also */
-		    i = exchange(pcon, i);
-		    finalrc = RPC2_FAIL;
-		    mcon[thispacket].retcode = RPC2_NAKED;
-		    /* call side-effect routine, and ignore result */
-		    if (GOODSEDLE(thispacket) &&
-			 c_entry->SEProcs != NULL && c_entry->SEProcs->SE_MultiRPC2 != NULL)
-			(*c_entry->SEProcs->SE_MultiRPC2)(ConnHandleList[thispacket], &(SDescList[thispacket]), NULL);
-		    if ((*UnpackMulti)(HowMany, ConnHandleList, ArgInfo, NULL, RPC2_NAKED, thispacket) == -1)
-			/* enough responses, return */
-			EXIT_MRPC_SPR(finalrc)
-		    else
-			/* continue waiting for responses */
-			break;
-
 		case TIMEOUT:
-		    if ((hopeleft = rpc2_CancelRetry(c_entry, slp)))
-			    break;    /* switch, we heard from side effect */
+		    if (slp->ReturnCode == KEPTALIVE || rpc2_CancelRetry(ce, slp))
+			/* retryindex -1 -> keepalive timeout */
+			slp->RetryIndex = -1;
+		    else
+			slp->RetryIndex += 1;
 
-		    slp->RetryIndex++;
 		    /* XXX we should have the size of the expected reply
 		     * packet, somewhere.. */
-		    rc = rpc2_RetryInterval(c_entry, slp->RetryIndex,
-					    &slp->RInterval,
-				    mcon[thispacket].req->Prefix.LengthOfPacket,
-					   sizeof(struct RPC2_PacketHeader), 0);
+		    rc = rpc2_RetryInterval(ce, slp->RetryIndex, &slp->RInterval,
+					    req->Prefix.LengthOfPacket,
+					    sizeof(struct RPC2_PacketHeader), 0);
 
 		    if (rc) {
-			say(9, RPC2_DebugLevel, "Request failed on 0x%p\n", c_entry);
-			rpc2_SetConnError(c_entry); /* does signal on ConnHandle also */
-			/* remote site is now declared dead; mark all inactive connections to there likewise */
-			i = exchange(pcon, i);
+			say(9, RPC2_DebugLevel, "Request failed on %p\n", ce);
+			rpc2_SetConnError(ce); /* does signal on ConnHandle */
 			finalrc = RPC2_FAIL;
 			mcon[thispacket].retcode = RPC2_DEAD;
-
-			/* call side-effect routine, and ignore result */
-			if (GOODSEDLE(thispacket) && c_entry->SEProcs != NULL && c_entry->SEProcs->SE_MultiRPC2 != NULL)
-			    (*c_entry->SEProcs->SE_MultiRPC2)(ConnHandleList[thispacket], &(SDescList[thispacket]), NULL);
-
-			if ((*UnpackMulti)(HowMany, ConnHandleList, ArgInfo, NULL, RPC2_DEAD, thispacket) == -1)
-			    /* enough responses, return */
-			    EXIT_MRPC_SPR(finalrc)
-			else
-			    /* continue waiting for responses */
-			    break;
+			break; /* done with this connection */
 		    }
+
 		    /* else retry with the next Beta value  for timeout */
 		    hopeleft = 1;
 		    rpc2_ActivateSle(slp, &slp->RInterval);
-		    say(9, RPC2_DebugLevel, "Sending retry %d at %ld on %#x (timeout %ld.%06ld)\n", slp->RetryIndex, rpc2_time(), c_entry->UniqueCID, slp->RInterval.tv_sec, slp->RInterval.tv_usec);
-		    mcon[thispacket].req->Header.Flags = htonl((ntohl(mcon[thispacket].req->Header.Flags) | RPC2_RETRY));
-		    mcon[thispacket].req->Header.TimeStamp = htonl(rpc2_MakeTimeStamp());
-		    rpc2_Sent.Retries += 1;	/* RPC retries are currently NOT multicasted! -JJK */
-		    rpc2_XmitPacket(mcon[thispacket].req,
-				    c_entry->HostInfo->Addr, 0);
-		    break;	/* switch */
+
+		    /* timeout? need to retransmit*/
+		    if (slp->RetryIndex >= 0) {
+			say(9, RPC2_DebugLevel,
+			    "Sending retry %d at %ld on %#x (timeout %ld.%06ld)\n",
+			    slp->RetryIndex, rpc2_time(), ce->UniqueCID,
+			    slp->RInterval.tv_sec, slp->RInterval.tv_usec);
+
+			req->Header.Flags =
+			    htonl((ntohl(req->Header.Flags) | RPC2_RETRY));
+			req->Header.TimeStamp = htonl(rpc2_MakeTimeStamp());
+
+			rpc2_Sent.Retries += 1;
+			rpc2_XmitPacket(req, ce->HostInfo->Addr, 0);
+		    }
+		    continue; /* not yet done with this connection */
+
+		case NAKED:	/* explicitly NAK'ed this time or earlier */
+		    say(9, RPC2_DebugLevel, "Request NAK'ed on %p\n", ce);
+		    rpc2_SetConnError(ce);
+		    finalrc = RPC2_FAIL;
+		    mcon[thispacket].retcode = RPC2_NAKED;
+		    break; /* done with this connection */
 
 		default:    /* abort */
 		    /* BUSY ReturnCode should never go into switch */
-		    assert(FALSE);
+		    // assert(FALSE);
+		    rpc2_SetConnError(ce);
+		    finalrc = RPC2_FAIL;
+		    mcon[thispacket].retcode = RPC2_DEAD;
+		    break; /* done with this connection */
+	    }
+
+	    /* done with this connection, move it to the end of the list */
+	    i = exchange(pcon, i);
+
+	    if (GOODSEDLE(thispacket) && ce->SEProcs && ce->SEProcs->SE_MultiRPC2)
+	    {
+		secode = (*ce->SEProcs->SE_MultiRPC2)
+		    (ConnHandleList[thispacket], &SDescList[thispacket], preply);
+
+		if (mcon[thispacket].retcode == RPC2_SUCCESS)
+		{
+		    if(secode < RPC2_FLIMIT)
+		    {
+			rpc2_SetConnError(ce);
+			finalrc = RPC2_FAIL;
+			mcon[thispacket].retcode = RPC2_SEFAIL2;
+		    }
+		    else if (SDescList[thispacket].LocalStatus == SE_FAILURE ||
+			     SDescList[thispacket].RemoteStatus == SE_FAILURE)
+		    {
+			finalrc = RPC2_FAIL;
+			mcon[thispacket].retcode = RPC2_SEFAIL1;
+		    }
 		}
+	    }
+
+	    if ((*UnpackMulti)(HowMany, ConnHandleList, ArgInfo, preply,
+			       mcon[thispacket].retcode, thispacket) == -1)
+		EXIT_MRPC_SPR(finalrc) /* enough responses, return */
 	}
     } while (hopeleft);
 
@@ -739,7 +711,7 @@ static void MSend_Cleanup(int HowMany, MultiCon *mcon,
     }
 
     if (Timeout) {
-	slp = pcon->pending[HowMany]; /* Tag assumed to be TIMEENTRY */
+	slp = pcon->pending[0]; /* Tag assumed to be TIMEENTRY */
 	if (slp->ReturnCode == WAITING)
 	{
 	    /* delete  time bomb if it has not fired  */
