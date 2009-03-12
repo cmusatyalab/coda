@@ -544,7 +544,8 @@ static long mrpc_SendPacketsReliably(
 
 		case ARRIVED:
 		    /* know this hasn't yet been processd */
-		    say(9, RPC2_DebugLevel, "Request reliably sent on %p\n", ce);
+		    say(9, RPC2_DebugLevel, "Request reliably sent on %#x\n",
+			ce->UniqueCID);
 
 		    /* At this point the final reply has been received;
 		       SocketListener has already decrypted it. */
@@ -556,7 +557,8 @@ static long mrpc_SendPacketsReliably(
 		case TIMEOUT:
 		    if (slp->ReturnCode == KEPTALIVE || rpc2_CancelRetry(ce, slp)) {
 			/* retryindex -1 -> keepalive timeout */
-			say(9, RPC2_DebugLevel, "Keepalive for request on %p\n", ce);
+			say(9, RPC2_DebugLevel, "Keepalive for request on %#x\n",
+			    ce->UniqueCID);
 			slp->RetryIndex = -1;
 		    } else
 			slp->RetryIndex += 1;
@@ -568,7 +570,8 @@ static long mrpc_SendPacketsReliably(
 					    sizeof(struct RPC2_PacketHeader), 0);
 
 		    if (rc) {
-			say(9, RPC2_DebugLevel, "Request failed on %p\n", ce);
+			say(9, RPC2_DebugLevel, "Request failed on %#x\n",
+			    ce->UniqueCID);
 			rpc2_SetConnError(ce); /* does signal on ConnHandle */
 			finalrc = RPC2_FAIL;
 			mcon[thispacket].retcode = RPC2_DEAD;
@@ -596,7 +599,7 @@ static long mrpc_SendPacketsReliably(
 		    continue; /* not yet done with this connection */
 
 		case NAKED:	/* explicitly NAK'ed this time or earlier */
-		    say(9, RPC2_DebugLevel, "Request NAK'ed on %p\n", ce);
+		    say(9, RPC2_DebugLevel, "Request NAK'ed on %#x\n", ce->UniqueCID);
 		    rpc2_SetConnError(ce);
 		    finalrc = RPC2_FAIL;
 		    mcon[thispacket].retcode = RPC2_NAKED;
@@ -605,6 +608,7 @@ static long mrpc_SendPacketsReliably(
 		default:    /* abort */
 		    /* BUSY ReturnCode should never go into switch */
 		    // assert(FALSE);
+		    say(9, RPC2_DebugLevel, "Request aborted on %#x\n", ce->UniqueCID);
 		    rpc2_SetConnError(ce);
 		    finalrc = RPC2_FAIL;
 		    mcon[thispacket].retcode = RPC2_DEAD;
