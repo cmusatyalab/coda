@@ -421,8 +421,10 @@ void BreakCallBack(HostTable *client, ViceFid *afid) {
 
     /* assuming no multicast in call below (MCast parameter NULL) */
     if (nhosts > 0) {
+	/* make sure we abort long running callback break attempts */
+	struct timeval tout = { 60, 0 };
 	MRPC_MakeMulti(CallBack_OP, CallBack_PTR, nhosts, cidlist, rclist,
-		       NULL, NULL, NULL, afid);
+		       NULL, NULL, &tout, afid);
 
 	for (int i = 0, nhosts = 0; i < nhents; i++) {
 	    if (!helist[i]) continue;
