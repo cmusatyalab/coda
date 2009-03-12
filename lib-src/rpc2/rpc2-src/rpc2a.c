@@ -1114,6 +1114,7 @@ BindOver:
     }
 
     SetState(ce, C_THINK);
+    LWP_NoYieldSignal(ce);
 
     say(9, RPC2_DebugLevel, "Bind complete for %#x\n", *ConnHandle);
     rpc2_Quit(RPC2_SUCCESS);

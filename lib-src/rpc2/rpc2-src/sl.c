@@ -971,20 +971,14 @@ static void HandleInit2(RPC2_PacketBuffer *pb, struct CEntry *ce)
 	sl = ce->MySl;
 	sl->data = pb;
 
-	/* we're only done if we have an old-style anonymous binding */
-	if (!pb->Prefix.sa && ce->SecurityLevel == RPC2_OPENKIMONO)
-	    SetState(ce, C_THINK);
-	else
-	    SetState(ce, C_AWAITINIT4);
+	SetState(ce, C_AWAITINIT4);
 
 	rpc2_DeactivateSle(sl, ARRIVED);
 	LWP_NoYieldSignal((char *)sl);
 }
 
-static void HandleInit4(pb, ce)
-    RPC2_PacketBuffer *pb;
-    struct CEntry *ce;
-    {
+static void HandleInit4(RPC2_PacketBuffer *pb, struct CEntry *ce)
+{
     struct SL_Entry *sl;
 
     say(1, RPC2_DebugLevel, "HandleInit4()\n");
@@ -998,10 +992,13 @@ static void HandleInit4(pb, ce)
     sl = ce->MySl;
     sl->data = pb;
 
-    SetState(ce, C_THINK);
+    /* really C_THINK, but we don't want this connection to get used
+     * until we're really sure all setup is complete. */
+    SetState(ce, C_AWAITREPLY);
+
     rpc2_DeactivateSle(sl, ARRIVED);
     LWP_NoYieldSignal((char *)sl);
-    }
+}
 
 
 static void HandleInit3(RPC2_PacketBuffer *pb, struct CEntry *ce)
