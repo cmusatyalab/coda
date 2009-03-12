@@ -405,11 +405,11 @@ void BreakCallBack(HostTable *client, ViceFid *afid) {
     qsort(helist, nhents, sizeof(HostTable *), order_helist);
 
     for (int i = 0; i < nhents; i++) {
-	ObtainReadLock(&helist[i]->lock);
+	ObtainWriteLock(&helist[i]->lock);
 
 	/* Recheck! The callback connection might have been destroyed */
 	if (!helist[i]->id) {
-	    ReleaseReadLock(&helist[i]->lock);
+	    ReleaseWriteLock(&helist[i]->lock);
 	    helist[i] = NULL;
 	}
 	else
@@ -433,12 +433,12 @@ void BreakCallBack(HostTable *client, ViceFid *afid) {
 	    /* if a file callback, delete any volume callbacks */
 	    if (!aVCB)  DeleteCallBack(helist[i], &vFid);
 
-	    /* let go of the lock */
-	    ReleaseReadLock(&helist[i]->lock);
-
 	    /* recursively calls DeleteVenus */
 	    if (rclist[nhosts] < RPC2_ELIMIT)  
 		CLIENT_CleanUpHost(helist[i]);
+
+	    /* let go of the lock */
+	    ReleaseWriteLock(&helist[i]->lock);
 
 	    nhosts++;
 	}

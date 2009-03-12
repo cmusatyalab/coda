@@ -203,7 +203,10 @@ static void client_GetVenusId(RPC2_Handle RPCid, ClientEntry *client)
 	    if (memcmp(&hostTable[i].host, &peer.RemoteHost.Value.InetAddress,
 		       sizeof(struct in_addr)) == 0 &&
 		hostTable[i].port == peer.RemotePort.Value.InetPortNumber)
+	    {
+		ObtainWriteLock(&hostTable[i].lock);
 		goto GotIt;
+	    }
 
 	    if (old == -1 || hostTable[i].LastCall < oldest) {
 		old = i;
@@ -212,6 +215,8 @@ static void client_GetVenusId(RPC2_Handle RPCid, ClientEntry *client)
 	}
 
 	/* PANIC, hosttable full, kill the oldest client */
+	ObtainWriteLock(&hostTable[old].lock);
+
 	CLIENT_CleanUpHost(&hostTable[old]);
 	i = old;
 
@@ -228,7 +233,6 @@ GotIt:
 	client->VenusId = &hostTable[i];
 
 	/* Link this client entry into the chain for the host. */
-	ObtainWriteLock(&hostTable[i].lock);
 	list_add(&client->Clients, &hostTable[i].Clients);
 	ReleaseWriteLock(&hostTable[i].lock);
 }
@@ -265,8 +269,6 @@ int CLIENT_MakeCallBackConn(ClientEntry *Client)
 
     CODA_ASSERT(Client);
     HostEntry = Client->VenusId;
-
-    ObtainWriteLock(&HostEntry->lock);
 
     /* Check if another thread already set up the connection while we were
      * waiting for the lock, if so we're done quickly. */
@@ -305,10 +307,6 @@ int CLIENT_MakeCallBackConn(ClientEntry *Client)
     }
 
 exit_makecallbackconn:
-    ReleaseWriteLock(&HostEntry->lock);
-    
-    /* CLIENT_CleanUpHost will re-obtain the exclusive lock on the HostEntry
-     * before destroying any connections */
     if (errorCode <= RPC2_ELIMIT)
 	CLIENT_CleanUpHost(HostEntry);
 
@@ -333,14 +331,12 @@ void CLIENT_CallBackCheck()
     for (i = 0; i < MAXHOSTTABLEENTRIES; i++) {
 	if (hostTable[i].id) {
 	    if (hostTable[i].LastCall < checktime) {
-		ObtainReadLock(&hostTable[i].lock);
+		ObtainWriteLock(&hostTable[i].lock);
 		/* recheck, the connection may have been destroyed while
 		 * waiting for the lock */
 		if (hostTable[i].id)
 		     rc = CallBack(hostTable[i].id, (ViceFid *)&NullFid);
 		else rc = RPC2_ABANDONED;
-
-		ReleaseReadLock(&hostTable[i].lock);
 
 		if (rc <= RPC2_ELIMIT) {
 		    SLog(0, "Callback failed %s for ws %s:%d",
@@ -349,6 +345,7 @@ void CLIENT_CallBackCheck()
 
 		    CLIENT_CleanUpHost(&hostTable[i]);
 		}
+		ReleaseWriteLock(&hostTable[i].lock);
 	    }
 	} else {
 	    /* Clean up client structures that never obtained a callback
@@ -373,7 +370,6 @@ void CLIENT_CleanUpHost(HostTable *ht)
 {
     SLog(1, "Cleaning up a HostTable for %s.%d",
 	 inet_ntoa(ht->host), ntohs(ht->port));
-    ObtainWriteLock(&ht->lock);
 
     client_RemoveClients(ht);	/* remove any connections for this Venus */
     DeleteVenus(ht);		/* remove all callback entries	*/
@@ -384,11 +380,10 @@ void CLIENT_CleanUpHost(HostTable *ht)
     }
     ht->host.s_addr = INADDR_ANY;
     ht->port = 0;
-
-    ReleaseWriteLock(&ht->lock);
 }
 
 
+/* This needs to be called with ht->lock taken!! */
 static void client_RemoveClients(HostTable *ht) 
 {
     dllist_head *head, *curr, *next;

@@ -2052,12 +2052,13 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 
     /* Make sure we don't get killed by accident */
     he = client->VenusId;
-    ObtainReadLock(&he->lock);
     if (!he || he->id == 0) {
 	errorCode = RPC2_FAIL;	/* ??? -JJK */
 	index = -1;
-	goto LockExit;
+	goto Exit;
     }
+
+    ObtainWriteLock(&he->lock);
 
     /* Now do bulk transfers. */
     {
@@ -2099,12 +2100,9 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
                 }
 
                 if ( errorCode < RPC2_ELIMIT ) {
-                    /* We have to release the lock, because
-                     * CLIENT_CleanUpHost wants to grab an exclusive lock */
-                    ReleaseReadLock(&he->lock);
                     CLIENT_CleanUpHost(he);
                     index = -1;
-                    goto Exit;
+                    goto LockExit;
                 }
 
                 if (errorCode) {
@@ -2130,9 +2128,8 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 	}
     }
 
-    /* If we still have the hosttable entry locked, release it now */
 LockExit:
-    ReleaseReadLock(&he->lock);
+    ReleaseWriteLock(&he->lock);
 
 Exit:
     if (Index)  

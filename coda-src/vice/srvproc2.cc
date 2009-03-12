@@ -163,8 +163,11 @@ long FS_TokenExpired(RPC2_Handle RPCid)
     errorCode = RPC2_GetPrivatePointer(RPCid, &rock);
     client = (ClientEntry *)rock;
 
-    if (!errorCode && client)
+    if (!errorCode && client) {
+	ObtainWriteLock(&client->VenusId->lock);
 	CLIENT_CleanUpHost(client->VenusId);
+	ReleaseWriteLock(&client->VenusId->lock);
+    }
 
     return(RPC2_NAKED);
 }
@@ -670,16 +673,13 @@ long FS_ViceGetTime(RPC2_Handle RPCid, RPC2_Unsigned *seconds,
 		}
 	    }
 
-	    ReleaseWriteLock(&client->VenusId->lock);
-	    /* we don't need the lock here anymore, because MakeCallBackConn
-	     * does it's own locking */
-
 	    if (!client->VenusId->id && !client->DoUnbind) {
 		SLog(0, "GetTime: Building callback conn to %s:%d.",
 		     inet_ntoa(client->VenusId->host),
 		     ntohs(client->VenusId->port));
 		errorCode = CLIENT_MakeCallBackConn(client);
 	    }
+	    ReleaseWriteLock(&client->VenusId->lock);
 	}
 
 	SLog(2, "GetTime returns %d, %d, errorCode %d", 
@@ -1040,14 +1040,13 @@ long FS_ViceNewConnectFS(RPC2_Handle RPCid, RPC2_Unsigned ViceVersion,
 	return(RPC2_FAIL);
     }
 
+    ObtainWriteLock(&client->VenusId->lock);
+
     if (ViceVersion != VICE_VERSION) {
 	CLIENT_CleanUpHost(client->VenusId);
+	ReleaseWriteLock(&client->VenusId->lock);
 	return(RPC2_FAIL);
     }
-
-    /* we need a lock, because we cannot do concurrent RPC2 calls on the same
-     * connection */
-    ObtainWriteLock(&client->VenusId->lock);
 
     /* attempt to send a callback message to this host */
     if (client->VenusId->id != 0) {
@@ -1059,10 +1058,6 @@ long FS_ViceNewConnectFS(RPC2_Handle RPCid, RPC2_Unsigned ViceVersion,
 	}
     }			
 
-    ReleaseWriteLock(&client->VenusId->lock);
-    /* we don't need the lock here anymore, because MakeCallBackConn
-     * does it's own locking */
-
     /* set up a callback channel if there isn't one for this host */
     if (client->VenusId->id == 0) {
 	SLog(0, "Building callback conn.");
@@ -1071,6 +1066,8 @@ long FS_ViceNewConnectFS(RPC2_Handle RPCid, RPC2_Unsigned ViceVersion,
 
     if (errorCode)
 	CLIENT_CleanUpHost(client->VenusId);
+
+    ReleaseWriteLock(&client->VenusId->lock);
 
     SLog(2, "FS_ViceNewConnectFS returns %s", ViceErrorMsg((int) errorCode));
     
