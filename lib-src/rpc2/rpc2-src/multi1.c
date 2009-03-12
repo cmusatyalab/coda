@@ -554,10 +554,11 @@ static long mrpc_SendPacketsReliably(
 
 		case KEPTALIVE:
 		case TIMEOUT:
-		    if (slp->ReturnCode == KEPTALIVE || rpc2_CancelRetry(ce, slp))
+		    if (slp->ReturnCode == KEPTALIVE || rpc2_CancelRetry(ce, slp)) {
 			/* retryindex -1 -> keepalive timeout */
+			say(9, RPC2_DebugLevel, "Keepalive for request on %p\n", ce);
 			slp->RetryIndex = -1;
-		    else
+		    } else
 			slp->RetryIndex += 1;
 
 		    /* XXX we should have the size of the expected reply

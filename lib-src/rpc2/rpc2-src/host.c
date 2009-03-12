@@ -453,15 +453,16 @@ int rpc2_RetryInterval(struct CEntry *ce, int retry, struct timeval *tv,
 	if (retry > Retry_N) return -1;
 
 	maxrtt = ce->KeepAlive.tv_sec * 1000000 + ce->KeepAlive.tv_usec;
-	if (retry < 0) return maxrtt >> 1;
+	if (retry >= 0) {
+	    rto = rpc2_GetRTO(ce->HostInfo, OutBytes, InBytes);
 
-	rto = rpc2_GetRTO(ce->HostInfo, OutBytes, InBytes);
-
-	if (retry) {
-	    for (i = Retry_N; i >= retry && rto < maxrtt; i--)
-		maxrtt >>= 1;
-	    rto = maxrtt;
-	}
+	    if (retry) {
+		for (i = Retry_N; i >= retry && rto < maxrtt; i--)
+		    maxrtt >>= 1;
+		rto = maxrtt;
+	    }
+	} else /* keepalive */
+	    rto = maxrtt >> 2;
     }
 
     /* account for server processing overhead */
