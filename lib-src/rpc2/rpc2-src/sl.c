@@ -532,7 +532,8 @@ static void DecodePacket(RPC2_PacketBuffer *pb, struct CEntry *ce)
 		if (TestState(ce, SERVER, S_AWAITENABLE))
 		{
 			say(1, RPC2_DebugLevel, "Connection not enabled\n");
-			BOGUS(pb, "DecodePacket(INITMC): connection not enabled\n");
+			//BOGUS(pb, "DecodePacket(INITMC): connection not enabled\n");
+			SendBusy(ce, TRUE);
 			return;
 		}
 
@@ -564,7 +565,8 @@ static void DecodePacket(RPC2_PacketBuffer *pb, struct CEntry *ce)
 	default: {
 		if (TestState(ce, SERVER, S_AWAITENABLE)) {
 			say(1, RPC2_DebugLevel, "Connection not enabled\n");
-			BOGUS(pb, "DecodePacket: connection not enabled\n");
+			//BOGUS(pb, "DecodePacket: connection not enabled\n");
+			SendBusy(ce, TRUE);
 			return;
 		}
 
