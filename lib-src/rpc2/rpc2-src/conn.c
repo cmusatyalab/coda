@@ -223,7 +223,7 @@ struct CEntry *rpc2_AllocConn(struct RPC2_addrinfo *addr)
     ce->SideEffectPtr = NULL;
     ce->Color = 0;
 
-    ce->KeepAlive = KeepAlive;
+    ce->TimeBomb = KeepAlive;
     ce->SaveResponse.tv_usec = (2 * KeepAlive.tv_usec) % 1000000;
     ce->SaveResponse.tv_sec = (2 * KeepAlive.tv_usec) / 1000000;
     ce->SaveResponse.tv_sec += 2 * KeepAlive.tv_sec;

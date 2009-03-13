@@ -98,19 +98,25 @@ function rtt_getrto(host, bytes_sent, bytes_recv)
     return rtt + host.RTTvar / 2
 end
 
+-- build array of precalculated timeout/retry values
+-- initialized with keepalive
+T = { [-1] = RPC2_TIMEOUT / 4, [0] = 0 }
+
+-- calculate desired timeout for each successive retry
+t = RPC2_TIMEOUT
+for i = RPC2_RETRIES, 1, -1 do
+    t = t / 2
+    T[i] = t
+end
+
 function rtt_retryinterval(host, attempt, bytes_sent, bytes_recv)
     local rto, timeout, retry
 
-    if attempt == -1 then return RPC2_TIMEOUT end
-
     rto = (estimate(host, bytes_sent, bytes_recv))
-    if attempt == 0 then return rto end
+    retry = T[attempt]
 
-    timeout = RPC2_TIMEOUT
-    for i = RPC2_RETRIES, attempt, -1 do
-	if rto >= timeout then break end
-	timeout = timeout / 2
-    end
-    return timeout
+    if retry and retry < rto then return rto end
+
+    return retry
 end
 

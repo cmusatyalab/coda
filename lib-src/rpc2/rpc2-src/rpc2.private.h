@@ -199,7 +199,8 @@ struct CEntry		/* describes a single RPC connection */
 
     unsigned int TimeStampEcho;
     unsigned int RequestTime;
-    struct timeval KeepAlive;           /* Retry parameter for this connection. */
+    struct timeval TimeBomb;		/* Time limit for some rpc2 requests on
+					   this connection. */
     struct timeval SaveResponse;        /* 2*KeepAlive, lifetime of saved response packet. */
     RPC2_RequestFilter Filter;		/* Set on the server during binding,
 					   filter incoming requests so that the
@@ -473,6 +474,7 @@ extern PROCESS rpc2_SocketListenerPID;	/* used in IOMGR_Cancel() calls */
 extern unsigned long rpc2_LamportClock;
 extern long Retry_N;
 extern struct timeval KeepAlive;
+extern uint32_t *rpc2_RTTvals;
 
 /* List manipulation routines */
 void rpc2_Replenish();

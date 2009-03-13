@@ -241,8 +241,8 @@ void rpc2_PrintCEntry(struct CEntry *cPtr, FILE *tFile)
     fprintf(tFile, "\n\tUniqueCID = %#x  NextSeqNumber = %d  PeerHandle = %#x\n\tPrivatePtr = %p  SideEffectPtr = %p\n",
     	cPtr->UniqueCID, cPtr->NextSeqNumber, cPtr->PeerHandle, cPtr->PrivatePtr, cPtr->SideEffectPtr);
 
-    fprintf(tFile, "\tKeepAlive = %ld.%0ld  (timeout)\n",
-	    cPtr->KeepAlive.tv_sec, cPtr->KeepAlive.tv_usec);
+    fprintf(tFile, "\tTimeBomb = %ld.%0ld  (timeout)\n",
+	    cPtr->TimeBomb.tv_sec, cPtr->TimeBomb.tv_usec);
 
     fprintf(tFile, "\tHeldPacket = %p  PeerUnique = %d\n",
     	cPtr->HeldPacket, cPtr->PeerUnique);

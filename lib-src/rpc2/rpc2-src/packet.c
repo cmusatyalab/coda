@@ -301,11 +301,28 @@ long rpc2_InitRetry(IN long HowManyRetries, IN struct timeval *Beta0)
 		/*  HowManyRetries" should be less than 30; -1 for default */
 		/*  Beta0: NULL for default */
 {
-    if (HowManyRetries >= 30) return(-1); /* avoid overflow with 32-bit integers */
+    uint32_t maxrtt;
+    int i;
+
+    if (HowManyRetries > 15) HowManyRetries = 15;
     Retry_N = (HowManyRetries >= 0) ? HowManyRetries : DefaultRetryCount;
     KeepAlive = Beta0 ? *Beta0 : DefaultRetryInterval;
 
-    return(0);
+    /* precalculate desired retransmission delay values */
+    maxrtt = (KeepAlive.tv_sec * 1000000 + KeepAlive.tv_usec) >> 1;
+
+    rpc2_RTTvals = (uint32_t *)calloc(Retry_N + 2, sizeof(uint32_t));
+    assert(rpc2_RTTvals);
+
+    /* initialize keepalive value */
+    rpc2_RTTvals[Retry_N+1] = maxrtt >> 1;
+
+    /* precalculate remaining RTT values */
+    for (i = Retry_N; i > 0; i--) {
+	maxrtt >>= 1;
+	rpc2_RTTvals[i] = maxrtt;
+    }
+    return 0;
 }
 
 
@@ -313,7 +330,7 @@ int RPC2_SetTimeout(RPC2_Handle whichConn, struct timeval timeout)
 {
     struct CEntry *Conn = rpc2_GetConn(whichConn);
     if (!Conn) return RPC2_NOCONNECTION;
-    Conn->KeepAlive = timeout;
+    Conn->TimeBomb = timeout;
     return RPC2_SUCCESS;
 }
 
@@ -406,15 +423,9 @@ long rpc2_SendReliably(struct CEntry *Conn, struct SL_Entry *Sle,
 		break;		/* switch */
 
 	    case KEPTALIVE:
-		hopeleft = 1;
-		Sle->RetryIndex = 0;
-		Sle->RInterval.tv_sec  = Conn->KeepAlive.tv_sec / 3;
-		Sle->RInterval.tv_usec = Conn->KeepAlive.tv_usec / 3;
-		rpc2_ActivateSle(Sle, &Sle->RInterval);
-		break;	/* switch */
-
 	    case TIMEOUT:
-		if (rpc2_CancelRetry(Conn, Sle))
+		if (Sle->ReturnCode == KEPTALIVE ||
+		    rpc2_CancelRetry(Conn, Sle))
 		    /* retryindex -1 -> keepalive timeout */
 		    Sle->RetryIndex = -1;
 		else

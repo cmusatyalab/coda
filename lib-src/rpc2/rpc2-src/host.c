@@ -94,9 +94,9 @@ static struct HEntry **HostHashTable;	/* malloc'ed hash table static size */
 
 void rpc2_InitHost()
 {
-	HostHashTable = (struct HEntry **)malloc(HOSTHASHBUCKETS*sizeof(struct HEntry *));
-	assert(HostHashTable != 0);
-	memset(HostHashTable, 0, HOSTHASHBUCKETS*sizeof(struct HEntry *));	
+    HostHashTable = (struct HEntry **)calloc(HOSTHASHBUCKETS,
+					     sizeof(struct HEntry *));
+    assert(HostHashTable);
 }
 
 /* Returns pointer to the host entry corresponding to addr. Addr should point
@@ -433,7 +433,7 @@ static uint32_t rpc2_GetRTO(struct HEntry *he, uint32_t outb, uint32_t inb)
 int rpc2_RetryInterval(struct CEntry *ce, int retry, struct timeval *tv,
 		       RPC2_Unsigned OutBytes, RPC2_Unsigned InBytes, int sftp)
 {
-    uint32_t rto, maxrtt;
+    uint32_t rto;
     int ret, i = 0;
 
     if (!ce) {
@@ -452,17 +452,14 @@ int rpc2_RetryInterval(struct CEntry *ce, int retry, struct timeval *tv,
     if (rto == 0) {
 	if (retry > Retry_N) return -1;
 
-	maxrtt = ce->KeepAlive.tv_sec * 1000000 + ce->KeepAlive.tv_usec;
-	if (retry >= 0) {
-	    rto = rpc2_GetRTO(ce->HostInfo, OutBytes, InBytes);
+	rto = rpc2_GetRTO(ce->HostInfo, OutBytes, InBytes);
 
-	    if (retry) {
-		for (i = Retry_N; i >= retry && rto < maxrtt; i--)
-		    maxrtt >>= 1;
-		rto = maxrtt;
-	    }
-	} else /* keepalive */
-	    rto = maxrtt >> 2;
+	/* negative retry values imply keepalive */
+	if (retry < 0)
+	    retry = Retry_N + 1;
+
+	if (rpc2_RTTvals && rto < rpc2_RTTvals[retry])
+	    rto = rpc2_RTTvals[retry];
     }
 
     /* account for server processing overhead */

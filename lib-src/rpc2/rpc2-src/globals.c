@@ -67,6 +67,7 @@ PROCESS rpc2_SocketListenerPID=NULL;
 
 long Retry_N;			/* total number of retries -- see packet.c */
 struct timeval KeepAlive;	/* keepalive timeout */
+uint32_t *rpc2_RTTvals;		/* precomputed retry timeout values */
 long rpc2_Bandwidth = 10485760; /* bandwidth hint supplied externally */
 
 /* Doubly-linked lists and counts */

@@ -879,7 +879,7 @@ try_next_addr:
     say(9, RPC2_DebugLevel, "Sending INIT1 packet on %#x\n", *ConnHandle);
     /* create call entry */
     sl = rpc2_AllocSle(OTHER, ce);
-    rpc2_SendReliably(ce, sl, pb, &ce->KeepAlive);
+    rpc2_SendReliably(ce, sl, pb, &ce->TimeBomb);
 
     switch(sl->ReturnCode)
 	{
@@ -1031,7 +1031,7 @@ try_next_addr:
 
     /* create call entry */
     sl = rpc2_AllocSle(OTHER, ce);
-    rpc2_SendReliably(ce, sl, pb, &ce->KeepAlive);
+    rpc2_SendReliably(ce, sl, pb, &ce->TimeBomb);
 
     switch(sl->ReturnCode)
 	{
@@ -1543,7 +1543,7 @@ static RPC2_PacketBuffer *Send2Get3(struct CEntry *ce, RPC2_EncryptionKey key,
     /* Send Init2 packet and await Init3 packet */
     SetState(ce, S_AWAITINIT3);
     sl = rpc2_AllocSle(OTHER, ce);
-    rpc2_SendReliably(ce, sl, pb2, &ce->KeepAlive);
+    rpc2_SendReliably(ce, sl, pb2, &ce->TimeBomb);
 
     switch(sl->ReturnCode)
 	{
