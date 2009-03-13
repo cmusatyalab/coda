@@ -1,3 +1,20 @@
+New in 2.9:
+
+* Send busy responses on new but not yet enabled connections.
+* Make sure we wake up threads waiting for binding to complete.
+* Clean up mrpc2_SendReliably, it sometimes exited too early and ignored the
+  overall timebomb timer.
+* Precompute retransmission intervals.
+
+New in 2.8:
+
+* Simplified retransmission interval calculation.
+* Do not wait for the full RPC2 timeout when receiving a busy response.
+* Unify rpc2 & sftp retransmission counters.
+* Fixed client-to-server sftp transfer failures.
+* PBKDF check would trigger unnecessary warnings depending on clock
+  granularity.
+
 New in 2.7:
 
 * Build improvements, use pkgconfig.
