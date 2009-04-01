@@ -434,7 +434,8 @@ class VolumeView(gtk.TreeView):
 class GlobalState:
     def __init__(self, activate, menu, enable_popups):
 	self.popups = enable_popups
-	self.next_notification = time.time() + NOTIFICATION_INTERVAL
+	self.next_time = 0
+	self.next_message = self.next_urgency = None
 	self.state = self.tray = self.notification = None
 	if hasattr(gtk, "StatusIcon"):
 	    self.tray = gtk.StatusIcon()
@@ -470,15 +471,25 @@ class GlobalState:
 
 	if self.notification and self.popups:
 	    now = time.time()
-	    if now < self.next_notification: return
-	    self.next_notification = now + NOTIFICATION_INTERVAL
+	    notify_queued = self.next_message is not None
+	    self.next_message = desc
+	    self.next_urgency = state.urgency
+	    if notify_queued: return
+	    elif now < self.next_time:
+		gobject.timeout_add(int((self.next_time - now) * 1000),
+					self.__show_notification)
+	    else:
+	        self.__show_notification()
 
-	    self.notification.update("Coda Status", desc)
-	    self.notification.set_urgency(state.urgency)
-	    # catch errors when notification-daemon is not running
-	    try: self.notification.show()
-	    except gobject.GError: pass
-
+    def __show_notification(self):
+	self.notification.update("Coda Status", self.next_message)
+	self.notification.set_urgency(self.next_urgency)
+	self.next_message = self.next_urgency = None
+	self.next_time = time.time() + NOTIFICATION_INTERVAL
+	# catch errors when notification-daemon is not running
+	try: self.notification.show()
+	except gobject.GError: pass
+	return False
 
 class App(MarinerListener):
     def __init__(self, options):
