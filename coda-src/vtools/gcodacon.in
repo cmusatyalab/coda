@@ -509,7 +509,8 @@ class App(MarinerListener):
 	self.window = gtk.Window()
 	self.window.connect("delete_event", self.delete_event)
 	self.window.set_title('Coda volume/reintegration state')
-	self.window.set_size_request(400, 200)
+	self.window.set_size_request(400, -1)
+	self.window.set_default_size(-1, 200)
 
 	self.treeview = VolumeView(self.shown)
 	self.treeview.connect("button_press_event", self.button_event)
