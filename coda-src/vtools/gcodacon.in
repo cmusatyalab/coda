@@ -432,8 +432,8 @@ class VolumeView(gtk.TreeView):
 	self.set_search_equal_func(search)
 
 class GlobalState:
-    def __init__(self, activate, menu):
-	self.popups = 1
+    def __init__(self, activate, menu, enable_popups):
+	self.popups = enable_popups
 	self.next_notification = time.time() + NOTIFICATION_INTERVAL
 	self.state = self.tray = self.notification = None
 	if hasattr(gtk, "StatusIcon"):
@@ -518,6 +518,7 @@ class App(MarinerListener):
 
 	if Notification:
 	    item = gtk.CheckMenuItem(label="Disable notifications")
+	    item.set_active(not options.enable_popups)
 	    item.connect("activate", self.toggle_notifications)
 	    self.menu.append(item)
 	    item.show()
@@ -537,7 +538,8 @@ class App(MarinerListener):
 	item.show()
 
 	self.status = GlobalState(self.activate, lambda icon, button, time:
-				self.menu.popup(None, None, None, button, time))
+				self.menu.popup(None, None, None, button, time),
+				options.enable_popups)
 
 	self.test_idx = 0
 	if options.test:
@@ -621,6 +623,9 @@ if __name__ == '__main__':
     parser = OptionParser()
     parser.add_option("-d", "--debug", dest="debug", action="store_true",
 		      help="Show updates as they are received from venus")
+    parser.add_option("-N", "--no-notify", dest="enable_popups",
+		      default=True, action="store_false",
+		      help="Disable notification popups by default")
     parser.add_option("-t", "--use-tcp", dest="use_tcp", action="store_true",
 		      help="Use tcp to connect to venus")
     parser.add_option("--test", dest="test", action="store_true",
