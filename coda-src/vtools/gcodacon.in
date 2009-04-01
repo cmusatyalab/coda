@@ -494,7 +494,7 @@ class GlobalState:
 class App(MarinerListener):
     def __init__(self, options):
 	self.buf = ''
-	self.hide = 0
+	self.hide = options.dirty_only
 
 	self.vols = VolumeList()
 
@@ -524,6 +524,7 @@ class App(MarinerListener):
 
 	self.menu = gtk.Menu()
 	item = gtk.CheckMenuItem(label="Show only dirty volumes")
+	item.set_active(self.hide)
 	item.connect("activate", self.toggle_filter)
 	self.menu.append(item)
 	item.show()
@@ -638,6 +639,9 @@ if __name__ == '__main__':
     parser.add_option("-N", "--no-notify", dest="enable_popups",
 		      default=True, action="store_false",
 		      help="Disable notification popups by default")
+    parser.add_option("-o", "--only-dirty", dest="dirty_only",
+		      default=False, action="store_true",
+		      help="Show only dirty volumes in status window by default")
     parser.add_option("-t", "--use-tcp", dest="use_tcp", action="store_true",
 		      help="Use tcp to connect to venus")
     parser.add_option("--test", dest="test", action="store_true",
