@@ -636,9 +636,8 @@ if __name__ == '__main__':
     parser = OptionParser()
     parser.add_option("-d", "--debug", dest="debug", action="store_true",
 		      help="Show updates as they are received from venus")
-    parser.add_option("-N", "--no-notify", dest="enable_popups",
-		      default=True, action="store_false",
-		      help="Disable notification popups by default")
+    parser.add_option("-n", "--notify", dest="enable_popups", action="store_true",
+		      help="Enable notification popups by default")
     parser.add_option("-o", "--only-dirty", dest="dirty_only",
 		      default=False, action="store_true",
 		      help="Show only dirty volumes in status window by default")
