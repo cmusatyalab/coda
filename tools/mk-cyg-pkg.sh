@@ -139,7 +139,8 @@ fi
 WD=`pwd`
 
 if [ `basename $WD` != $PKG ] ; then
-   if [ basename `dirname $WD` != $PKG ] ; then
+   DIR=`dirname $WD`
+   if [ `basename $DIR` != $PKG ] ; then
        echo This script must be started in $PKG or $PKG/tools
        exit 1
    fi
