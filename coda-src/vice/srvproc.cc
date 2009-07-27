@@ -210,7 +210,7 @@ START_TIMING(Fetch_Total);
 
     /* Get objects. */
     errorCode = GetFsoAndParent(Fid, vlist, &volptr, &v, &av,
-				READ_LOCK, VOL_SHARED_LOCK, InconOK);
+				READ_LOCK, NO_LOCK, InconOK);
     if (errorCode)
 	goto FreeLocks;
 
@@ -240,7 +240,7 @@ START_TIMING(Fetch_Total);
 FreeLocks:
     /* Put objects. */
     {
-	PutObjects(errorCode, volptr, VOL_SHARED_LOCK, vlist, 0, 0);
+	PutObjects(errorCode, volptr, NO_LOCK, vlist, 0, 0);
     }
 
     SLog(2, "ViceFetch returns %s", ViceErrorMsg(errorCode));
@@ -300,7 +300,7 @@ START_TIMING(GetAttr_Total);
 
     /* Get objects. */
     errorCode = GetFsoAndParent(Fid, vlist, &volptr, &v, &av,
-				READ_LOCK, VOL_SHARED_LOCK, InconOK);
+				READ_LOCK, NO_LOCK, InconOK);
     if (errorCode)
 	goto FreeLocks;
 
@@ -371,7 +371,7 @@ SkipSHA:;
 FreeLocks:
     /* Put objects. */
     {
-	PutObjects(errorCode, volptr, VOL_SHARED_LOCK, vlist, 0, 0);
+	PutObjects(errorCode, volptr, NO_LOCK, vlist, 0, 0);
     }
 
     SLog(2, "ViceGetAttrPlusSHA returns %s", ViceErrorMsg(errorCode));
@@ -465,7 +465,7 @@ START_TIMING(ViceValidateAttrs_Total);
 
 	/* Get objects. */
 	iErrorCode = GetFsoAndParent(&Piggies[i].Fid, vlist, &volptr, &v, &av,
-				     READ_LOCK, VOL_SHARED_LOCK, 0);
+				     READ_LOCK, NO_LOCK, 0);
 	if (iErrorCode)
 	    goto InvalidObj;
 
@@ -503,7 +503,7 @@ InvalidObj:
 
     /* Put objects. */
     {
-	PutObjects(iErrorCode, volptr, VOL_SHARED_LOCK, vlist, 0, 0);
+	PutObjects(iErrorCode, volptr, NO_LOCK, vlist, 0, 0);
     }
 
 Exit:
@@ -543,7 +543,7 @@ START_TIMING(GetACL_Total);
     /* Get objects. */
     {
 	v = AddVLE(*vlist, Fid);
-	if ((errorCode = GetFsObj(Fid, &volptr, &v->vptr, READ_LOCK, VOL_SHARED_LOCK, InconOK, 0, 0)))
+	if ((errorCode = GetFsObj(Fid, &volptr, &v->vptr, READ_LOCK, NO_LOCK, InconOK, 0, 0)))
 	    goto FreeLocks;
     }
 
@@ -566,7 +566,7 @@ FreeLocks:
     {
 	if (eACL) AL_FreeExternalAlist((AL_ExternalAccessList *)&eACL);
 
-	PutObjects(errorCode, volptr, VOL_SHARED_LOCK, vlist, 0, 0);
+	PutObjects(errorCode, volptr, NO_LOCK, vlist, 0, 0);
     }
 
     SLog(2, "ViceGetACL returns %s", ViceErrorMsg(errorCode));
@@ -609,7 +609,7 @@ START_TIMING(Store_Total);
 
     /* Get objects. */
     errorCode = GetFsoAndParent(Fid, vlist, &volptr, &v, &av,
-				WRITE_LOCK, VOL_SHARED_LOCK, 0);
+				WRITE_LOCK, SHARED_LOCK, 0);
     if (errorCode) goto FreeLocks;
 
     /* Check semantics. */
@@ -661,7 +661,7 @@ FreeLocks:
 	    }
 	}
 
-	PutObjects(errorCode, volptr, VOL_SHARED_LOCK, vlist, deltablocks, 1);
+	PutObjects(errorCode, volptr, SHARED_LOCK, vlist, deltablocks, 1);
     }
 
     SLog(2, "ViceStore returns %s", ViceErrorMsg(errorCode));
@@ -703,7 +703,7 @@ START_TIMING(SetAttr_Total);
 
     /* Get objects. */
     errorCode = GetFsoAndParent(Fid, vlist, &volptr, &v, &av,
-				WRITE_LOCK, VOL_SHARED_LOCK, 0);
+				WRITE_LOCK, SHARED_LOCK, 0);
     if (errorCode) goto FreeLocks;
 
     /* Check semantics. */
@@ -782,7 +782,7 @@ FreeLocks:
 	    }
 	}
 
-	PutObjects(errorCode, volptr, VOL_SHARED_LOCK, vlist, deltablocks, 1);
+	PutObjects(errorCode, volptr, SHARED_LOCK, vlist, deltablocks, 1);
     }
 
     SLog(2, "ViceSetAttr returns %s", ViceErrorMsg(errorCode));
@@ -825,7 +825,7 @@ START_TIMING(SetACL_Total);
     /* Get objects. */
     {
 	v = AddVLE(*vlist, Fid);
-	if ((errorCode = GetFsObj(Fid, &volptr, &v->vptr, WRITE_LOCK, VOL_SHARED_LOCK, 0, 0, 0)))
+	if ((errorCode = GetFsObj(Fid, &volptr, &v->vptr, WRITE_LOCK, SHARED_LOCK, 0, 0, 0)))
 	    goto FreeLocks;
     }
 
@@ -868,7 +868,7 @@ FreeLocks:
 	    }
 	}
 
-	PutObjects(errorCode, volptr, VOL_SHARED_LOCK, vlist, 0, 1);
+	PutObjects(errorCode, volptr, SHARED_LOCK, vlist, 0, 1);
     }
 
     SLog(2, "ViceSetACL returns %s", ViceErrorMsg(errorCode));
@@ -939,7 +939,7 @@ START_TIMING(Create_Total);
 	pv = AddVLE(*vlist, Did);
 	pv->d_inodemod = 1;
 	if ((errorCode = GetFsObj(Did, &volptr, &pv->vptr,
-				 WRITE_LOCK, VOL_SHARED_LOCK, 0, 0,
+				 WRITE_LOCK, SHARED_LOCK, 0, 0,
 				 pv->d_inodemod)))
 	    goto FreeLocks;
 
@@ -1011,7 +1011,7 @@ START_TIMING(Create_Total);
 	    }
 	}
 
-	PutObjects(errorCode, volptr, VOL_SHARED_LOCK, vlist, deltablocks, 1);
+	PutObjects(errorCode, volptr, SHARED_LOCK, vlist, deltablocks, 1);
     }
 
     SLog(2, "ViceCreate returns %s", ViceErrorMsg(errorCode));
@@ -1061,7 +1061,7 @@ long FS_ViceVRemove(RPC2_Handle RPCid, ViceFid *Did, RPC2_String Name,
 	pv = AddVLE(*vlist, Did);
 	pv->d_inodemod = 1;
 	if ((errorCode = GetFsObj(Did, &volptr, &pv->vptr,
-				 WRITE_LOCK, VOL_SHARED_LOCK, 0, 0,
+				 WRITE_LOCK, SHARED_LOCK, 0, 0,
 				 pv->d_inodemod)))
 		goto FreeLocks;
 
@@ -1077,7 +1077,7 @@ long FS_ViceVRemove(RPC2_Handle RPCid, ViceFid *Did, RPC2_String Name,
 	FID_CpyVol(&Fid, Did);
 	cv = AddVLE(*vlist, &Fid);
 	if ((errorCode = GetFsObj(&Fid, &volptr, &cv->vptr,
-				 WRITE_LOCK, VOL_SHARED_LOCK, 0, 0, 0)))
+				 WRITE_LOCK, SHARED_LOCK, 0, 0, 0)))
 	    goto FreeLocks;
     }
 
@@ -1136,7 +1136,7 @@ FreeLocks:
 	    }
 	}
 
-	PutObjects(errorCode, volptr, VOL_SHARED_LOCK, vlist, deltablocks, 1);
+	PutObjects(errorCode, volptr, SHARED_LOCK, vlist, deltablocks, 1);
     }
 
     SLog(2, "ViceRemove returns %s", ViceErrorMsg(errorCode));
@@ -1200,14 +1200,14 @@ START_TIMING(Link_Total);
 	pv = AddVLE(*vlist, Did);
 	pv->d_inodemod = 1;
 	if ((errorCode = GetFsObj(Did, &volptr, &pv->vptr,
-				 WRITE_LOCK, VOL_SHARED_LOCK, 0, 0,
+				 WRITE_LOCK, SHARED_LOCK, 0, 0,
 				 pv->d_inodemod)))
 	    goto FreeLocks;
 
 	/* This may violate locking protocol! -JJK */
 	cv = AddVLE(*vlist, Fid);
 	if ((errorCode = GetFsObj(Fid, &volptr, &cv->vptr,
-				 WRITE_LOCK, VOL_SHARED_LOCK, 0, 0, 0)))
+				 WRITE_LOCK, SHARED_LOCK, 0, 0, 0)))
 	    goto FreeLocks;
     }
 
@@ -1257,7 +1257,7 @@ FreeLocks:
 	    }
 	}
 
-	PutObjects(errorCode, volptr, VOL_SHARED_LOCK, vlist, deltablocks, 1);
+	PutObjects(errorCode, volptr, SHARED_LOCK, vlist, deltablocks, 1);
     }
 
     SLog(2, "ViceLink returns %s", ViceErrorMsg(errorCode));
@@ -1327,7 +1327,7 @@ START_TIMING(Rename_Total);
 	spv = AddVLE(*vlist, OldDid);
 	spv->d_inodemod = 1;
 	if ((errorCode = GetFsObj(OldDid, &volptr, &spv->vptr,
-				 WRITE_LOCK, VOL_SHARED_LOCK, 0, 0,
+				 WRITE_LOCK, SHARED_LOCK, 0, 0,
 				 spv->d_inodemod)))
 	    goto FreeLocks;
 	sdh = DC_DC2DH(spv->vptr->dh);
@@ -1340,7 +1340,7 @@ START_TIMING(Rename_Total);
 	    tpv = AddVLE(*vlist, NewDid);
 	    tpv->d_inodemod = 1;
 	    errorCode = GetFsObj(NewDid, &volptr, &tpv->vptr,
-				 WRITE_LOCK, VOL_SHARED_LOCK, 0, 0,
+				 WRITE_LOCK, SHARED_LOCK, 0, 0,
 				 tpv->d_inodemod);
 	    if (errorCode) {
 		    VN_PutDirHandle(spv->vptr);
@@ -1364,7 +1364,7 @@ START_TIMING(Rename_Total);
 	if ( ISDIR(SrcFid) )
 		sv->d_inodemod = 1;
 	if ((errorCode = GetFsObj(&SrcFid, &volptr, &sv->vptr,
-				 WRITE_LOCK, VOL_SHARED_LOCK, 0, 0,
+				 WRITE_LOCK, SHARED_LOCK, 0, 0,
 				 sv->d_inodemod)))
 	    goto FreeLocks;
 
@@ -1386,7 +1386,8 @@ START_TIMING(Rename_Total);
 		if ( ISDIR(TgtFid) )
 			tv->d_inodemod = 1;
 		if ((errorCode = GetFsObj(&TgtFid, &volptr, &tv->vptr,
-					 WRITE_LOCK, VOL_SHARED_LOCK, 0, 0,
+					 WRITE_LOCK,
+					 SHARED_LOCK, 0, 0,
 					 tv->d_inodemod)))
 			goto FreeLocks;
 	}
@@ -1457,7 +1458,7 @@ FreeLocks:
 	    }
 	}
 
-	PutObjects(errorCode, volptr, VOL_SHARED_LOCK, vlist, deltablocks, 1);
+	PutObjects(errorCode, volptr, SHARED_LOCK, vlist, deltablocks, 1);
     }
 
     SLog(2, "ViceRename returns %s", ViceErrorMsg(errorCode));
@@ -1522,7 +1523,7 @@ START_TIMING(MakeDir_Total);
 	pv = AddVLE(*vlist, Did);
 	pv->d_inodemod = 1;
 	errorCode = GetFsObj(Did, &volptr, &pv->vptr,
-			     WRITE_LOCK, VOL_SHARED_LOCK, 0, 0,
+			     WRITE_LOCK, SHARED_LOCK, 0, 0,
 			     pv->d_inodemod);
 	if (errorCode)
 	    goto FreeLocks;
@@ -1613,7 +1614,7 @@ FreeLocks:
 	}
 	if ( errorCode == 0 )
 		CODA_ASSERT(DC_Dirty(cv->vptr->dh));
-	PutObjects(errorCode, volptr, VOL_SHARED_LOCK, vlist, deltablocks, 1);
+	PutObjects(errorCode, volptr, SHARED_LOCK, vlist, deltablocks, 1);
     }
 
     SLog(2, "ViceMakeDir returns %s", ViceErrorMsg(errorCode));
@@ -1665,7 +1666,7 @@ START_TIMING(RemoveDir_Total);
 	pv = AddVLE(*vlist, Did);
 	pv->d_inodemod = 1;
 	if ((errorCode = GetFsObj(Did, &volptr, &pv->vptr,
-				 WRITE_LOCK, VOL_SHARED_LOCK, 0, 0,
+				 WRITE_LOCK, SHARED_LOCK, 0, 0,
 				 pv->d_inodemod)))
 	    goto FreeLocks;
 
@@ -1683,7 +1684,7 @@ START_TIMING(RemoveDir_Total);
 	cv = AddVLE(*vlist, &ChildDid);
 	cv->d_inodemod = 1;
 	if ((errorCode = GetFsObj(&ChildDid, &volptr, &cv->vptr,
-				 WRITE_LOCK, VOL_SHARED_LOCK, 0, 0,
+				 WRITE_LOCK, SHARED_LOCK, 0, 0,
 				 cv->d_inodemod))) {
 		VN_PutDirHandle(pv->vptr);
 		goto FreeLocks;
@@ -1743,7 +1744,7 @@ FreeLocks:
 	    }
 	}
 
-	PutObjects(errorCode, volptr, VOL_SHARED_LOCK, vlist, deltablocks, 1);
+	PutObjects(errorCode, volptr, SHARED_LOCK, vlist, deltablocks, 1);
     }
 
     SLog(2, "ViceRemoveDir returns %s", ViceErrorMsg(errorCode));
@@ -1815,7 +1816,7 @@ START_TIMING(SymLink_Total);
 	pv = AddVLE(*vlist, Did);
 	pv->d_inodemod = 1;
 	if ((errorCode = GetFsObj(Did, &volptr, &pv->vptr,
-				 WRITE_LOCK, VOL_SHARED_LOCK, 0, 0,
+				 WRITE_LOCK, SHARED_LOCK, 0, 0,
 				 pv->d_inodemod)))
 	    goto FreeLocks;
 
@@ -1892,7 +1893,7 @@ FreeLocks:
 	    }
 	}
 
-	PutObjects(errorCode, volptr, VOL_SHARED_LOCK, vlist, deltablocks, 1);
+	PutObjects(errorCode, volptr, SHARED_LOCK, vlist, deltablocks, 1);
     }
 
     SLog(2, "ViceSymLink returns %s", ViceErrorMsg(errorCode));
@@ -2360,7 +2361,7 @@ START_TIMING(AllocVnode_Total);
       : EMPTYSYMLINKBLOCKS;
     if (ReplicatedOp) {
 	if (AllocHost == ThisHostAddr) {
-	    if ((errorCode = GetFsObj(Fid, &volptr, vptr, WRITE_LOCK, VOL_SHARED_LOCK, 0, 0, 0)))
+	    if ((errorCode = GetFsObj(Fid, &volptr, vptr, WRITE_LOCK, SHARED_LOCK, 0, 0, 0)))
 		goto FreeLocks;
 	}
 	else {

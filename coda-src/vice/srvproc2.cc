@@ -354,8 +354,8 @@ long FS_ViceGetVolumeStatus(RPC2_Handle RPCid, VolumeId vid, VolumeStatus *statu
     vfid.Unique = 1;
 
     // get the root vnode even if it is inconsistent
-    if ((errorCode = GetFsObj(&vfid, &volptr, &vptr, READ_LOCK, VOL_NO_LOCK,
-			      1, 0, 0))) {
+    if ((errorCode = GetFsObj(&vfid, &volptr, &vptr,
+			     READ_LOCK, VOL_NO_LOCK, 1, 0, 0))) {
 	goto Final;
     }
 
@@ -433,7 +433,7 @@ long FS_ViceSetVolumeStatus(RPC2_Handle RPCid, VolumeId vid, VolumeStatus *statu
     int		aCLSize;
     int		rights;
     int		anyrights;
-    int oldquota = -1;       /* Old quota if it was changed */
+    int oldquota = -1;               /* Old quota if it was changed */
     int ReplicatedOp;
     vle *v = 0;
     dlist *vlist = new dlist((CFN)VLECmp);
@@ -477,13 +477,20 @@ long FS_ViceSetVolumeStatus(RPC2_Handle RPCid, VolumeId vid, VolumeStatus *statu
 	goto Final;
     }
 
+
     vfid.Volume = vid;
     vfid.Vnode = ROOTVNODE;
     vfid.Unique = 1;
 
+    if ((errorCode = GetVolObj(vid, &volptr, VOL_EXCL_LOCK, 0, 1 /* check this */))) {
+	SLog(0, "Error locking volume in ViceSetVolumeStatus: %s", ViceErrorMsg((int) errorCode));
+	goto Final ;
+    }
+
+
     v = AddVLE(*vlist, &vfid);
-    if ((errorCode = GetFsObj(&vfid, &volptr, &v->vptr,
-			      READ_LOCK, VOL_EXCL_LOCK, 0, 0, 0))) {
+    if ((errorCode = GetFsObj(&vfid, &volptr, &v->vptr, READ_LOCK,
+			     VOL_NO_LOCK, 0, 0, 0))) {
 	goto Final;
     }
 
@@ -506,7 +513,7 @@ long FS_ViceSetVolumeStatus(RPC2_Handle RPCid, VolumeId vid, VolumeStatus *statu
 	V_minquota(volptr) = (int) status->MinQuota;
 
     if(status->MaxQuota > -1) {
-	oldquota = V_maxquota(volptr);
+        oldquota = V_maxquota(volptr);
 	PerformSetQuota(client, VSGVolnum, volptr, v->vptr, &vfid,
 			(int)status->MaxQuota, ReplicatedOp, StoreId);
     }
@@ -533,7 +540,7 @@ long FS_ViceSetVolumeStatus(RPC2_Handle RPCid, VolumeId vid, VolumeStatus *statu
  Final:
 
     if (!errorCode)
-	SetVolumeStatus(status, name, offlineMsg, motd, volptr);
+        SetVolumeStatus(status, name, offlineMsg, motd, volptr);
 
     PutObjects((int) errorCode, volptr, VOL_EXCL_LOCK, vlist, 0, 1, TRUE);
 

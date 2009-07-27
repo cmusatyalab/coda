@@ -453,7 +453,7 @@ long FS_ViceSetVV(RPC2_Handle cid, ViceFid *Fid, ViceVersionVector *VV, RPC2_Cou
     if (!client) return EINVAL;
     if ((PiggyBS->SeqLen > 0) && (errorCode = FS_ViceCOP2(cid, PiggyBS)))
 	goto FreeLocks;
-    if ((errorCode = GetFsObj(Fid, &volptr, &vptr, WRITE_LOCK, VOL_SHARED_LOCK, 1, 0, 0))){
+    if ((errorCode = GetFsObj(Fid, &volptr, &vptr, WRITE_LOCK, NO_LOCK, 1, 0, 0))){
 	SLog(0,  "ViceSetVV: Error %d in GetFsObj", errorCode);
 	goto FreeLocks;
     }
@@ -476,7 +476,7 @@ FreeLocks:
 	   CODA_ASSERT(fileCode == 0);
        }
        if (volptr)
-	   PutVolObj(&volptr, VOL_SHARED_LOCK);
+	   PutVolObj(&volptr, NO_LOCK);
     rvmlib_end_transaction(flush, &(camstatus));       
     if (camstatus){
 	SLog(0,  "ViceSetVV: Error during transaction");
@@ -536,7 +536,7 @@ long FS_ViceRepair(RPC2_Handle cid, ViceFid *Fid, ViceStatus *status,
 	if ( ISDIR(*Fid) )
 		ov->d_inodemod = 1;
 	errorCode = GetFsObj(Fid, &volptr, &ov->vptr,
-			     READ_LOCK, VOL_SHARED_LOCK,
+			     READ_LOCK, SHARED_LOCK,
 			     1, 0, ov->d_inodemod);
 	if ( errorCode )
 		goto FreeLocks;
@@ -665,7 +665,7 @@ long FS_ViceRepair(RPC2_Handle cid, ViceFid *Fid, ViceStatus *status,
 
 FreeLocks:
     if (myRepairList) free(myRepairList);
-    PutObjects(errorCode, volptr, VOL_SHARED_LOCK, vlist, deltablocks, 1);
+    PutObjects(errorCode, volptr, SHARED_LOCK, vlist, deltablocks, 1);
 
     return(errorCode);
 }
@@ -1762,12 +1762,12 @@ static int GetRepairObjects(Volume *volptr, vle *ov, dlist *vlist,
 	while ((v = (vle *)next())) {
 	    SLog(10,  "GetRepairObjects: acquiring (%s)", FID_(&v->fid));
 	    if ((errorCode = GetFsObj(&v->fid, &volptr, &v->vptr,
-				     WRITE_LOCK, VOL_SHARED_LOCK, 1, 0,
+				     WRITE_LOCK, SHARED_LOCK, 1, 0,
 				     v->d_inodemod)))
 		return(errorCode);
 	}
     }
-    
+
     return(errorCode);
 }
 
@@ -1786,7 +1786,7 @@ int GetSubTree(ViceFid *fid, Volume *volptr, dlist *vlist) {
     /* get root vnode */
     {
 	if ((errorCode = GetFsObj(fid, &volptr, &vptr,
-				 READ_LOCK, VOL_NO_LOCK, 1, 0, 1)) )
+				 READ_LOCK, NO_LOCK, 1, 0, 1)) )
 	    goto Exit;
 
 	CODA_ASSERT(vptr->disk.type == vDirectory);
@@ -2145,9 +2145,10 @@ START_TIMING(COP2_Total);
 	/* Ignore inconsistency flag - this is necessary since  */
 	/* ViceRepair no longer clears the flag and COP2 might be */
 	/* called before the flag is cleared by the user */
+	/* No need to lock the volume, because this doesnt change the file structure */
 	for (i = 0; i < nfids; i++) {
 	    errorCode = GetFsObj(&cpe->fids[i], &volptr, &vptrs[i], WRITE_LOCK,
-				 VOL_SHARED_LOCK, 1, 1, 0);
+				 NO_LOCK, 1, 1, 0);
 	    /* Don't complain about vnodes that were deleted by COP1 */
 	    if (errorCode == VNOVNODE)
 		errorCode = 0;
@@ -2177,7 +2178,7 @@ START_TIMING(COP2_Transaction);
 	}
 
     /* Put the volume. */
-    PutVolObj(&volptr, VOL_SHARED_LOCK);
+    PutVolObj(&volptr, NO_LOCK);
     rvmlib_end_transaction(flush, &(status));
 END_TIMING(COP2_Transaction);
 
