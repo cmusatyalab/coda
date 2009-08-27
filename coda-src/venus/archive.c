@@ -221,7 +221,7 @@ int archive_write_data(FILE *fp, const char *container)
 	n = read(in, buf, sizeof(buf));
 	if (n == -1) return EIO;
 
-	if (fwrite(buf, n, 1, fp) != 1)
+	if (n && fwrite(buf, n, 1, fp) != 1)
 	    return ENOSPC;
 
 	if ((size_t)n < sizeof(buf)) break;
