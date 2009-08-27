@@ -112,9 +112,8 @@ void VolDaemon(void)
 
 	    /* Checkpoint modify logs if necessary. */
 	    if (curr_time - LastCheckPoint >= VolCheckPointInterval) {
-		LastCheckPoint = curr_time;
-
 		VDB->CheckPoint(curr_time);  /* loss of symmetry. sigh. */
+		LastCheckPoint = curr_time;
 	    }
 
 	    /* Propagate updates, if any. */
