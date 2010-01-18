@@ -2946,7 +2946,7 @@ int cmlent::WriteReintegrationHandle(unsigned long *reint_time)
     }
 
  Exit:
-    if (f) f->shadow->Close(fd);
+    if (fd != -1) f->shadow->Close(fd);
 
     PutConn(&c);
     LOG(0, ("cmlent::WriteReintegrateHandle: (%s), %d bytes, returns %s, new offset %d\n",
