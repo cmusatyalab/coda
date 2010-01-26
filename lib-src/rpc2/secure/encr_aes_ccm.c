@@ -285,7 +285,7 @@ struct secure_encr secure_ENCR_AES_CCM_12 = {
 
 struct secure_encr secure_ENCR_AES_CCM_16 = {
     .id	          = SECURE_ENCR_AES_CCM_16,
-    .name         = "ENCR-AES-CCM-12",
+    .name         = "ENCR-AES-CCM-16",
     .encrypt_init = init16,
     .encrypt_free = release,
     .encrypt      = encrypt,
