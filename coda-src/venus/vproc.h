@@ -275,7 +275,6 @@ extern void VprocInit();
 extern void Rtry_Wait();
 extern void Rtry_Signal();
 extern vproc *FindVproc(int);
-extern void VprocPreamble(struct Lock *);
 extern vproc *VprocSelf();
 extern void VprocWait(const void *);
 extern void VprocMwait(int, const void **);

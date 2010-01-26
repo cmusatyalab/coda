@@ -122,7 +122,8 @@ void VprocPreamble(void *arg)
 
     /* This lock is released by start_thread, as soon as the initialization has
      * finalized (aka. this->lwpid has been set */
-    ObtainWriteLock(init_lock);  /* we never have to give it up. */
+    if (init_lock)
+	ObtainWriteLock(init_lock);  /* we never have to give it up. */
 
     /* VPROC rock permits mapping back to vproc object. */
     PROCESS x;
@@ -149,6 +150,8 @@ void VprocPreamble(void *arg)
      * from vproc. Others should pass a function pointer to indicate the entry
      * point when initializing a new vproc */
     vp->main();
+    if (init_lock)
+	delete vp;
 }
 
 
@@ -420,7 +423,7 @@ void vproc::start_thread(void)
 	    CHOKE("VprocInit: IOMGR_Initialize failed (%d)", iomgrrc);
 
 	initialized = 1;
-	VprocPreamble((void *)&init_lock);
+	VprocPreamble(NULL);
     }
 }
 
