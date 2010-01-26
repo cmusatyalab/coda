@@ -530,8 +530,8 @@ class App(MarinerListener):
 	item.show()
 
 	if Notification:
-	    item = gtk.CheckMenuItem(label="Disable notifications")
-	    item.set_active(not options.enable_popups)
+	    item = gtk.CheckMenuItem(label="Enable notifications")
+	    item.set_active(not not options.enable_popups)
 	    item.connect("activate", self.toggle_notifications)
 	    self.menu.append(item)
 	    item.show()
