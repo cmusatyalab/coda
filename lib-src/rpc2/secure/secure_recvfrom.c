@@ -129,7 +129,7 @@ static ssize_t packet_decryption(struct security_association *sa,
 
     len = sa->decrypt->decrypt(sa->decrypt_context, in, out, len, iv,
 			       aad, 2 * sizeof(uint32_t));
-    if (len < 0)
+    if (len < 2)
 	return -1;
 
     /* we don't use next_header (yet) */
