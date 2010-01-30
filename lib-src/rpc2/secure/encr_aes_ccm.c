@@ -112,10 +112,10 @@ static int aes_ccm_crypt(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
 			 size_t aad_len, int encrypt)
 {
     struct aes_ccm_ctx *acc = (struct aes_ccm_ctx *)ctx;
-    int i, n, nblocks;
+    int i, n, step, nblocks, partial;
     uint8_t CMAC[AES_BLOCK_SIZE], CTR[AES_BLOCK_SIZE], S0[AES_BLOCK_SIZE];
     uint8_t tmp[AES_BLOCK_SIZE], *p;
-    const uint8_t *end = tmp + AES_BLOCK_SIZE, *src;
+    const uint8_t *end = tmp + AES_BLOCK_SIZE;
 
     if (!encrypt) {
 	if (len < acc->icv_len)
@@ -191,6 +191,7 @@ static int aes_ccm_crypt(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
     }
 
     nblocks = (len + AES_BLOCK_SIZE - 1) / AES_BLOCK_SIZE;
+    step = AES_BLOCK_SIZE;
     while (nblocks--)
     {
 	/* increment counter */
@@ -200,31 +201,38 @@ static int aes_ccm_crypt(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
 	/* get the next keystream block */
 	aes_encrypt(CTR, tmp, &acc->ctx);
 
-	/* we don't need the counter block anymore, so re-use it so we can zero
-	 * pad the last partial input block to the full block size */
-	if (!nblocks && len % AES_BLOCK_SIZE) {
-	    memset(CTR, 0, AES_BLOCK_SIZE);
-	    memcpy(CTR, in, len % AES_BLOCK_SIZE);
-	    src = CTR;
-	} else
-	    src = in;
+	partial = !nblocks && len % AES_BLOCK_SIZE;
+	if (!partial) {
+	    /* Checksum the plaintext before we encrypt */
+	    if (encrypt) xor128(CMAC, in);
 
-	/* Checksum the plaintext before we encrypt */
-	if (encrypt)
-	    xor128(CMAC, src);
+	    if (out != in)
+		memcpy(out, in, step);
+	    xor128(out, tmp);
 
-	if (out != src)
-	    memcpy(out, src, AES_BLOCK_SIZE);
-	xor128(out, tmp);
+	    /* Checksum the plaintext after decryption */
+	    if (!encrypt) xor128(CMAC, out);
+	} else {
+	    /* partial last block, use the counter block, which we no longer
+	     * need, as a scratch buffer */
+	    step = len % AES_BLOCK_SIZE;
+	    memcpy(CTR, in, step);
+	    if (encrypt) {
+		memset(CTR + step, 0, AES_BLOCK_SIZE - step);
+		xor128(CMAC, CTR);
+	    }
 
-	/* Checksum the plaintext after decryption */
-	if (!encrypt)
-	    xor128(CMAC, out);
+	    xor128(CTR, tmp); /* encryption/decryption step */
+	    memcpy(out, CTR, step); /* copy result to output */
 
+	    /* clear tail and checksum decrypted data */
+	    if (!encrypt) {
+		memset(CTR + step, 0, AES_BLOCK_SIZE - step);
+		xor128(CMAC, CTR);
+	    }
+	}
 	aes_encrypt(CMAC, CMAC, &acc->ctx);
-
-	in  += AES_BLOCK_SIZE;
-	out += AES_BLOCK_SIZE;
+	in += step; out += step;
     }
 
     /* finalize the ICV calculation */
