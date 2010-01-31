@@ -41,7 +41,7 @@ static int init(void **ctx, const uint8_t *key, size_t len,
 		size_t icv_len)
 {
     struct aes_ccm_ctx *acc = malloc(sizeof(struct aes_ccm_ctx));
-    if (!acc) return 0;
+    if (!acc) return -1;
 
     /* copy salt */
     acc->flag_n_salt[3] = key[--len];
@@ -119,7 +119,7 @@ static int aes_ccm_crypt(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
 
     if (!encrypt) {
 	if (len < acc->icv_len)
-	    return 0;
+	    return -1;
 	len -= acc->icv_len;
     }
 
@@ -242,7 +242,7 @@ static int aes_ccm_crypt(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
 	len += acc->icv_len;
     }
     else if (memcmp(in, CMAC, acc->icv_len) != 0)
-	return 0;
+	return -1;
 
     return len;
 }

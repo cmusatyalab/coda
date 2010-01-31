@@ -24,7 +24,7 @@ Coda are listed in the file CREDITS.
 static int encrypt_init(void **ctx, const uint8_t *key, size_t len)
 {
     *ctx = malloc(sizeof(aes_encrypt_ctx));
-    if (!*ctx) return 0;
+    if (!*ctx) return -1;
 
     if      (len >= bytes(256)) len = 256;
     else if (len >= bytes(192)) len = 192;
@@ -62,7 +62,7 @@ static void encrypt_free(void **ctx)
 static int decrypt_init(void **ctx, const uint8_t *key, size_t len)
 {
     *ctx = malloc(sizeof(aes_decrypt_ctx));
-    if (!*ctx) return 0;
+    if (!*ctx) return -1;
 
     if      (len >= bytes(256)) len = 256;
     else if (len >= bytes(192)) len = 192;
