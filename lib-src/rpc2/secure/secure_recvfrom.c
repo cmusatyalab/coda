@@ -188,9 +188,9 @@ ssize_t secure_recvfrom(int s, void *buf, size_t len, int flags,
 	goto drop;
 
     /* check if we have valid spi & seq */
-    if (n >= (int)(2 * sizeof(uint32_t))) {
-	spi = ntohl(((uint32_t *)packet)[0]);
-	seq = ntohl(((uint32_t *)packet)[1]);
+    if (n >= 8) {
+	spi = (packet[0]<<24) | (packet[1]<<16) | (packet[2]<<8) | packet[3];
+	seq = (packet[4]<<24) | (packet[5]<<16) | (packet[6]<<8) | packet[7];
     }
 
     /* RFC 2406 - IP Encapsulating Security Payload (ESP)

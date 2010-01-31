@@ -26,11 +26,10 @@ Coda are listed in the file CREDITS.
 
 #define bytes(bits)	((bits)/8)
 #define int32(x)	((uint32_t *)(x))
+#define int64(x)	((uint64_t *)(x))
 #define xor128(out, in)	do { \
-	int32(out)[0] ^= int32(in)[0]; \
-	int32(out)[1] ^= int32(in)[1]; \
-	int32(out)[2] ^= int32(in)[2]; \
-	int32(out)[3] ^= int32(in)[3]; \
+	int64(out)[0] ^= int64(in)[0]; \
+	int64(out)[1] ^= int64(in)[1]; \
     } while(0)
 #define dump128(prefix, b) \
     fprintf(stderr, "%c %08x%08x%08x%08x\n", prefix, \
