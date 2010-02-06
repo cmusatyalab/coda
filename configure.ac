@@ -31,7 +31,7 @@ AC_PROG_MAKE_SET
 AC_PROG_LIBTOOL
 AC_PROG_AWK
 
-dnl Now we can derive things like systype/cputype/initdir
+dnl Now we can derive things like systype/cputype
 m4_include(configs/codaconf.m4)
 
 AC_PATH_PROG(PERL, perl, "")
@@ -145,7 +145,6 @@ AM_CONDITIONAL(BUILD_CLIENT, [test "$buildclient" != no -o "$buildclient" = no -
 AM_CONDITIONAL(BUILD_SERVER, [test "$buildserver" != no -o "$buildclient" = no -a "$buildserver" = no])
 
 AM_CONDITIONAL([HAVE_PYTHON], [test "$PYTHON" != :])
-AM_CONDITIONAL([SYSVINIT], [test "$initstyle" = sysv])
 AM_CONDITIONAL([WANT_FTS], [test "$ac_cv_header_fts_h" = no])
 AM_CONDITIONAL([WANT_KERBEROS], [test -n "$LIBKRB4" -o -n "$LIBKRB5"])
 AM_CONDITIONAL([WANT_KRB4], [test -n "$LIBKRB4"])
@@ -157,12 +156,8 @@ AC_CONFIG_FILES([coda-src/scripts/createvol_rep],
        [chmod +x coda-src/scripts/createvol_rep])
 AC_CONFIG_FILES([coda-src/scripts/purgevol_rep],
        [chmod +x coda-src/scripts/purgevol_rep])
-AC_CONFIG_FILES([coda-src/scripts/rc.vice],
-       [chmod +x coda-src/scripts/rc.vice])
 AC_CONFIG_FILES([coda-src/scripts/startserver],
        [chmod +x coda-src/scripts/startserver])
-AC_CONFIG_FILES([coda-src/scripts/venus.init],
-       [chmod +x coda-src/scripts/venus.init])
 AC_CONFIG_FILES([coda-src/scripts/venus-setup],
        [chmod +x coda-src/scripts/venus-setup])
 AC_CONFIG_FILES([coda-src/scripts/vice-setup],

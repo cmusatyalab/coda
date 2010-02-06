@@ -5,7 +5,6 @@ case ${prefix} in
 	# AFAIK nobody has use for /usr/etc, it should simply be /etc.
 	sysconfdir='${prefix}/../etc/coda'
 	sysconfdirx="/etc/coda"
-	initdir='../etc'
 	;;
 
     */coda* )
@@ -13,7 +12,6 @@ case ${prefix} in
 	# a coda subdirectory to the sysconfdir.
 	sysconfdir='${prefix}/etc'
 	sysconfdirx="${prefix}/etc"
-	initdir='etc'
 	;;
 
     * )
@@ -21,45 +19,11 @@ case ${prefix} in
 	# files all over the place.
 	sysconfdir='${prefix}/etc/coda'
 	sysconfdirx="${prefix}/etc/coda"
-	initdir='etc'
 	;;
 esac
 AC_MSG_RESULT(${sysconfdir})
 AC_SUBST(sysconfdir)
 AC_SUBST(sysconfdirx)
-
-dnl Now the initdir isn't finished yet, we have to figure out where the
-dnl system we're building on wants the init scripts.
-
-AC_MSG_CHECKING(init script location)
-if test $cross_compiling = yes ; then
-    # probably WinXX, existing ${initdir} should be fine.
-    AC_MSG_RESULT(cross compiling, using ${initdir})
-
-elif test -d ${prefix}/${initdir}/init.d -a ! -h ${prefix}/${initdir}/init.d ; then
-    # probably Debian or Solaris, or other SysV standard setup.
-    AC_MSG_RESULT(standard SysV)
-    initdir='${prefix}'/${initdir}/init.d
-    initstyle=sysv
-
-elif test -d ${prefix}/${initdir}/rc.d/init.d ; then
-    # probably RedHat-x.x's SysV derived setup.
-    AC_MSG_RESULT(RedHat)
-    initdir='${prefix}'/${initdir}/rc.d/init.d
-    initstyle=sysv
-
-elif test -d ${prefix}/${initdir}/rc.d ; then
-    # probably FreeBSD or NetBSD's BSD-style init-scripts.
-    AC_MSG_RESULT(BSD style)
-    initdir='${prefix}'/${initdir}/rc.d
-    initstyle=bsd
-
-else
-    AC_MSG_RESULT([unknown, installing BSD scripts in ${initdir}])
-    initdir='${prefix}'/${initdir}
-    initstyle=bsd
-fi
-AC_SUBST(initdir)
 
 dnl      --------  Adding a new system ----------
 dnl Figure out what the GNU canonical name of your target is by
