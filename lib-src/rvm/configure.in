@@ -22,7 +22,13 @@ AC_SUBST(CONFIG_DATE, "$CONFIG_DATE", [Date when configure was last run])
 dnl Build options.
 AC_ARG_ENABLE([librvm],
   [  --enable-librvm	  build non-threaded rvm and rds libraries],
-  [librvm="${enableval}"], [librvm=no])
+  [librvm="${enableval}"], [librvm="no"])
+AC_ARG_ENABLE([librvmlwp],
+  [  --enable-librvmlwp	  build LWP threaded rvm and rds libraries],
+  [librvmlwp="${enableval}"], [librvmlwp="yes"])
+AC_ARG_ENABLE([librvmpt],
+  [  --enable-librvmpt	  build pthread threaded rvm and rds libraries],
+  [librvmpt="${enableval}"], [librvmpt="no"])
 
 dnl Checks for programs.
 AC_PROG_CC
@@ -32,8 +38,10 @@ AC_PROG_MAKE_SET
 AM_PROG_LIBTOOL
 
 dnl pkg-config stuff
+if test $librvmlwp != "no" ; then
 CODA_PKG_CONFIG
 PKG_CHECK_MODULES([LWP], [lwp])
+fi
 
 dnl Checks for libraries.
 AC_SEARCH_LIBS(fdatasync, rt)
@@ -52,6 +60,8 @@ dnl Checks for system services.
 
 dnl Build conditionals
 AM_CONDITIONAL([LIBRVM], [test "$librvm" != no])
+AM_CONDITIONAL([LIBRVMLWP], [test "$librvmlwp" != no])
+AM_CONDITIONAL([LIBRVMPT], [test "$librvmpt" != no])
 
 dnl Generate output files
 AC_CONFIG_FILES([Makefile include/Makefile rvm/Makefile seg/Makefile

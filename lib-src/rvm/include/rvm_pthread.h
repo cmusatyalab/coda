@@ -27,7 +27,7 @@ Coda are listed in the file CREDITS.
 extern pthread_t rvm_pthreadid;
 
 /* used in pthread_join */
-extern pthread_addr_t *rvm_ptstat;
+extern void *rvm_ptstat;
 extern int       rvm_join_res;
 
 #ifndef MACRO_BEGIN
@@ -64,11 +64,10 @@ extern int       rvm_join_res;
 
 #define cthread_t                    pthread_t *
 
-#define cthread_fork(fname, arg)     (pthread_create(&rvm_pthreadid,       \
-					 	     pthread_attr_default, \
-						     (fname),              \
-						     (arg)),               \
-                                      &rvm_pthreadid)
+#define cthread_fork(fname, arg)     (pthread_create(&rvm_pthreadid, NULL, \
+						     (void *(*)(void*))(fname),\
+						     (arg)), \
+				      &rvm_pthreadid)
 
 /* 
  * Returns either NULL or the address of the pthread_status block.
@@ -80,11 +79,11 @@ extern int       rvm_join_res;
                                          pthread_join(*(t),&rvm_ptstat),  \
                                       (rvm_join_res) ? NULL : rvm_ptstat)
 
-#define cthread_init()               (0)
+#define cthread_init()               do {} while(0)
 
-#define cthread_exit(retval)         (pthread_exit((pthread_addr_t)(retval)))
+#define cthread_exit(retval)         (pthread_exit((void *)(retval)))
 
-#define cthread_yield()              (pthread_yield())
+#define cthread_yield()              do {} while(0)
 
 #define condition_wait(c,m)          (pthread_cond_wait((c),(m)))
 
@@ -95,11 +94,9 @@ extern int       rvm_join_res;
 /* This is defined just as in rvm_lwp.h, but is almost surely a bug */
 #define condition_clear(c)           /* nop */
 
-#define condition_init(c)            (pthread_cond_init((c),                  \
-							pthread_attr_default))
+#define condition_init(c)            (pthread_cond_init((c), NULL))
 
-#define mutex_init(m)                (pthread_mutex_init((m),                 \
-							 pthread_attr_default))
+#define mutex_init(m)                (pthread_mutex_init((m), NULL))
 
 /* 
  * cthreads.h on mach machines defines this exactly this way.  I have

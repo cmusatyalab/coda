@@ -1,12 +1,25 @@
 ## Process this file with automake to produce Makefile.in
 
-lib_LTLIBRARIES = librvmlwp.la
-if LIBRVM
-lib_LTLIBRARIES += librvm.la
-endif
+lib_LTLIBRARIES =
 sbin_PROGRAMS = rvmutl
 
 AM_CPPFLAGS = -I$(top_srcdir)/include
+
+if LIBRVM
+lib_LTLIBRARIES += librvm.la
+rvmutl_CPPFLAGS = $(AM_CPPFLAGS)
+rvmutl_LDADD = librvm.la
+endif
+if LIBRVMLWP
+lib_LTLIBRARIES += librvmlwp.la
+rvmutl_CPPFLAGS = $(AM_CPPFLAGS) -DRVM_USELWP $(LWP_CFLAGS)
+rvmutl_LDADD = librvmlwp.la $(LWP_LIBS)
+endif
+if LIBRVMPT
+lib_LTLIBRARIES += librvmpt.la
+rvmutl_CPPFLAGS = $(AM_CPPFLAGS) -DRVM_USEPT -pthread
+rvmutl_LDADD = librvmpt.la -lpthread
+endif
 
 librvm_sources = rvm_init.c rvm_map.c rvm_unmap.c rvm_trans.c \
     rvm_logstatus.c rvm_logflush.c rvm_logrecovr.c rvm_utils.c rvm_io.c \
@@ -14,16 +27,16 @@ librvm_sources = rvm_init.c rvm_map.c rvm_unmap.c rvm_trans.c \
 
 librvm_la_CPPFLAGS = $(AM_CPPFLAGS)
 librvm_la_SOURCES = $(librvm_sources)
-librvm_la_LDFLAGS = $(LIBTOOL_LDFLAGS)
 
 librvmlwp_la_CPPFLAGS = $(AM_CPPFLAGS) -DRVM_USELWP $(LWP_CFLAGS)
 librvmlwp_la_SOURCES = $(librvm_sources)
-librvmlwp_la_LDFLAGS = $(LIBTOOL_LDFLAGS)
 librvmlwp_la_LIBADD = $(LWP_LIBS)
 
-rvmutl_CPPFLAGS = $(AM_CPPFLAGS) -DRVM_USELWP $(LWP_CFLAGS)
-rvmutl_LDADD = librvmlwp.la
+librvmpt_la_CPPFLAGS = $(AM_CPPFLAGS) -DRVM_USEPT -pthread
+librvmpt_la_SOURCES = $(librvm_sources) rvm_pthread.c
+librvmpt_la_LDFLAGS = -pthread
+librvmpt_la_LIBADD = -lpthread
 
-EXTRA_DIST = rvm_pthread.c README.log1.4 READ_ME
+EXTRA_DIST = README.log1.4 READ_ME
 MAINTAINERCLEANFILES = Makefile.in
 

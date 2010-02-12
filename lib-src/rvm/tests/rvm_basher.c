@@ -1951,7 +1951,7 @@ int main(argc, argv)
 #ifdef HAS_PLUMBER
     SetMallocCheckLevel(chk_alloc);
 #endif
-#else /* !RVM_USELWP */
+#elif !defined(RVM_USEPT)
     if (nthreads > 1) {
 	fprintf(stderr, "Nonthreaded basher, ignoring request for multiple threads\n");
 	nthreads = 1;
