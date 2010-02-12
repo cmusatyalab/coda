@@ -1,0 +1,202 @@
+.if n .ds Q \&"
+.if t .ds Q ``
+.if n .ds U \&"
+.if t .ds U ''
+.TH "rdsinit" 1-RDSINIT 
+.tr \&
+.nr bi 0
+.nr ll 0
+.nr el 0
+.de DS
+..
+.de DE
+..
+.de Pp
+.ie \\n(ll>0 \{\
+.ie \\n(bi=1 \{\
+.nr bi 0
+.if \\n(t\\n(ll=0 \{.IP \\(bu\}
+.if \\n(t\\n(ll=1 \{.IP \\n+(e\\n(el.\}
+.\}
+.el .sp 
+.\}
+.el \{\
+.ie \\nh=1 \{\
+.LP
+.nr h 0
+.\}
+.el .PP 
+.\}
+..
+NAME 
+.Pp
+rdsinit - RDS heap initialization utility
+.Pp
+SYNOPSIS
+.Pp
+.Pp
+\fBrdsinit\fP \fIlog\fP \fIdata_seg\fP
+.Pp
+\fBrdsinit\fP \fIlog\fP \fIdata_seg\fP \fIdatalen\fP \fIsaddr\fP
+\fIhlen\fP \fIslen\fP \fInl\fP \fIchunk\fP
+.Pp
+\fBrdsinit\fP \fI-f\fP \fIlog\fP \fIdata_seg\fP \fIdatalen\fP \fIsaddr\fP
+\fIhlen\fP \fIslen\fP \fInl\fP \fIchunk\fP 
+.Pp
+.Pp
+DESCRIPTION
+.Pp
+\f(CRrdsinit\fP is a utility that constructs an initialized RDS heap in an
+RVM segment.  It is intended to create a structure that can be loaded
+by \f(CRrds_load_heap\fP\&.
+.Pp
+There are three different ways of using rdsinit.  General users are
+expected to use first two interactive modes, where users may supply
+parameters for the rds heap interactively or on command line
+arguments.  However, in both cases, users will be asked interactively
+to confirm their choice of parameters before rdsinit goes ahead to
+make any permanent change.  These are the preferred modes of using
+rdsinit.  Script writers, however, may prefer to supply all the
+parameters on the command line and \fIno\fP confirmation required for
+those parameters.  This is accomodate in the third mode where an
+additional switch of -f (firm) is supplied on the command line.
+.Pp
+In any case, two command-line parameters are always
+required: \f(CRlog\fP and \f(CRdata_seg\fP\&.  The former is the name of the
+RVM log, which must have previously been initialized by
+\f(CRrvmutl\fP; the latter is the name of the data segment that will
+be initialized with an RDS heap.  If either is missing, a command line
+error is printed.  If the log has not been initialized, an RVM error
+will result.  A short message indicating RVM initialization succeeded
+is then printed.  Both the log and data segment can be regular files or
+raw partitions.
+.Pp
+After the name of log and data segment, there are six other numeric
+parameters required.  They are summarized here and will be
+explained one by one in the following paragraphs:
+.Pp
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "datalen"
+.nr bi 1
+.Pp
+Length of data segment
+.IP "saddr"
+.nr bi 1
+.Pp
+Starting address of rvm
+.IP "hlen"
+.nr bi 1
+.Pp
+Heap region length
+.IP "slen"
+.nr bi 1
+.Pp
+Static region length
+.IP "nl"
+.nr bi 1
+.Pp
+Number of lists of free block
+.IP "chunk"
+.nr bi 1
+.Pp
+Chunk size
+.if \n(ll>1 .RE
+.nr ll -1
+.Pp
+While entering these six numeric parameters, either on command line on
+via the interactive prompt, users may use numeric number in
+hexadecimal, decimal or even octal notation.  Hexadecimal numbers are
+preceeded by \f(CROx\fP, decimal numbers are preceeded by nothing and
+octal numbers are preceded by \f(CR0\fP\&.
+.Pp
+Special note for long time rdsinit user: the old rdsinit automatically
+assumed \f(CRsaddr\fP, \f(CRhlen\fP and \f(CRslen\fP parameters supplied on
+command lines are in hexidecimal and \fIdid not\fP require the prefix
+\f(CR0x\fP\&.  \fIThis is no longer true with this version of rdsinit.\fP
+.Pp
+Users specify the length of the data segment with the parameter
+\fIdatalen\fP\&.  Again, old version of rdsinit did not require this
+parameter if the data segment was a regular file and it existed
+already at the time of running rdsinit.  This special case is
+eliminated: \fIlength of data segment must to be supplied in all
+circumstances.\fP
+.Pp
+Starting address of rvm, or \fIsaddr\fP, is where heap and static
+region will be mapped into virtual memory.  Heap region is located
+right at the starting address, while static region is located at
+starting address plus heap region length.  Users may need to have some
+knowledges of the overall layout of the virtual memory use by the
+system before they can make the right choice of starting address.  For
+example, the starting address of rvm must be much larger than the
+largest possible break point of your application, and it should not be
+in conflict other uses of virtual memory (such as use by shared
+libraries).  It must also be on a page boundary.  In CMU, we use
+0x20000000 (536870912) with Linux and BSD44, or 0x70000000 (1879048192)
+with Mach.  It is possible to choose other values, but you have to
+choose them carefully.
+.Pp
+Length of regions of heap and static are specified by the parameter
+\fIhlen\fP and \fIslen\fP respectively.  They both must be integral
+multiple of pagesize of the system.  Also, the combined length of the
+two regions must be smaller than the length of data segment minus one
+extra page.
+.Pp
+Note that the above three parameters: saddr, hlen, slen, are
+permanent.  They can't be changed without re-initizing (and
+brain-wiping) the data segment.
+.Pp
+The next two parameters: \fInl\fP and \fIchunk\fP are related to
+underlying structure of management of the heap.  RDS uses the Quick
+Fit method for heap allocation.  In this method, free blocks are
+maintained by a number of free lists, each list for one particular
+size of free blocks.  Specifically, there will be \f(CRnl\fP free lists,
+and each of them will have free blocks of size \f(CR1..nl\fP chunk
+respectively.
+.Pp
+Chunk size must be integral multiple of \f(CRsizeof(char *)\fP, and be at
+least \f(CRRDS_MIN_CHUNK_SIZE\fP\&.  Number of lists must be at least
+\f(CRRDS_MIN_FREE_LISTS\fP\&.      For example, a reasonable choice is to have
+100 free list with chunk size 32 bytes.
+.Pp
+Once all the parameters are chosen, rdsinit will ask user for
+confirmation before it goes ahead and make permanent change on the log
+and data segment.  Note in the following example that those numerical
+arguments are presented in both hexidecimal and decimal (in bracket).
+It is safe to quit at this point and no permanent changes will be made.
+.DS
+.sp 
+.ft RR
+.nf
+The following parameters are chosen:
+   length of data segment:    0xf5000 (   1003520)
+  starting address of rvm: 0x20000000 ( 536870912)
+                 heap len:    0xf0000 (    983040)
+               static len:     0x4000 (     16384)
+                   nlists:       0x64 (       100)
+               chunk size:       0x20 (        32)
+Do you agree with these parameters ? (y|n|q) y
+.DE
+.fi 
+.ec
+.ft P
+.sp
+.Pp
+If user supplied the -f (firm) switch on command line, this last
+confirmation will not show up.
+.Pp
+.Pp
+SEE ALSO
+.Pp
+\f(CRrds_init_heap (3)\fP, \f(CRrds_load_heap (3)\fP, \f(CRrds_zap_heap (3)\fP,
+\f(CRrvm_create_segment (3)\fP, \f(CRrvm_load_segment (3)\fP, \f(CRrvmutl (1)\fP
+.Pp
+.Pp
+AUTHOR
+.Pp
+David C. Steere, created man page 
+.Pp
+Yui W. Lee, modified (Sept 1997)
+.Pp
+.Pp

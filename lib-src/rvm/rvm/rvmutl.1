@@ -1,0 +1,693 @@
+.if n .ds Q \&"
+.if t .ds Q ``
+.if n .ds U \&"
+.if t .ds U ''
+.TH "rvmutl" 1-rvmutl 
+.tr \&
+.nr bi 0
+.nr ll 0
+.nr el 0
+.de DS
+..
+.de DE
+..
+.de Pp
+.ie \\n(ll>0 \{\
+.ie \\n(bi=1 \{\
+.nr bi 0
+.if \\n(t\\n(ll=0 \{.IP \\(bu\}
+.if \\n(t\\n(ll=1 \{.IP \\n+(e\\n(el.\}
+.\}
+.el .sp 
+.\}
+.el \{\
+.ie \\nh=1 \{\
+.LP
+.nr h 0
+.\}
+.el .PP 
+.\}
+..
+NAME
+.Pp
+rvmutl -- maintenance utility for RVM log
+.Pp
+SYNOPSIS
+.Pp
+\fBrvmutl\fP \fIlog\fP
+.Pp
+\fBrvmutl\fP
+.Pp
+.Pp
+DESCRIPTION
+.Pp
+The program \f(CRrvmutl\fP is the maintenance
+utility for RVM log.  Its priniciple features are log creation and
+maintenance, but there are also status and statistic display commands,
+as well as printing commands for log records.  There is also a search
+facility for modifications to segments.  You may find rvmutl a great
+debugging tools.
+.Pp
+The are two ways to use \f(CRrvmutl\fP: You may supply the
+name of the RVM log on the command line, or you do not supply the name
+on command line but specify the log within \f(CRrvmutl\fP (see below).
+.Pp
+\f(CRrvmutl\fP prompts for commands with a * (asterisk) prompt.  Most
+commands have one or more parameters, which are separated by one or
+more spaces.  Some commands have abbreviations, these will be
+specified in the command section.
+.Pp
+For example, to examine the status of a RVM log (called logfile in the
+example), you can do
+.Pp
+.DS
+.sp 
+.ft RR
+.nf
+> rvmutl
+* open_log logfile
+* status
+
+Status of log:           /home/clement/linuxobj8/rvm-src/tests/logfile
+
+  log created on:        Tue Nov  4 1997 17:31:10.244793
+  log created with:      RVM Interface Version 1.3  7 Mar 1994
+  (more display omitted ...)
+* quit
+.DE
+.fi 
+.ec
+.ft P
+.sp
+.Pp
+As another example, suppose you want to create a RVM log device on the
+partition /dev/hdc7, of size 1 Megabyte, you can do
+.Pp
+.DS
+.sp 
+.ft RR
+.nf
+> rvmutl
+* i /dev/hdc7 1M
+* quit
+.DE
+.fi 
+.ec
+.ft P
+.sp
+.Pp
+Note that in the preceding example, we use the abbreviation \&"i\&" for
+the command \&"init_log\&", and we can use the unit \&"M\&" to stand for
+Megabyte. 
+.Pp
+I/O REDIRECTION
+.Pp
+You can redirect input and output as in typical Unix shells.  For
+example, the following command will have all display redirected to the
+file allrec:
+.DS
+.sp 
+.ft RR
+.nf
+* show all > allrec
+* 
+.DE
+.fi 
+.ec
+.ft P
+.sp
+.Pp
+COMMANDS
+.Pp
+In the following, I will detail all the available commands:
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fBall_spec\fP "
+.nr bi 1
+.Pp
+Show all special log records.  Special log records
+are those non-transaction records, such as wrap-around marker and
+segment dictionary entry.
+.Pp
+.IP "\fBbuild_seg_dict\fP [\fBall\fP] [\fBclear\fP] "
+.nr bi 1
+.Pp
+
+.IP "\fBseg_dict\fP [\fBall\fP] [\fBclear\fP]"
+.nr bi 1
+.Pp
+
+Build the segment dictionary by scanning
+through the log.  Segment dictionary is a in-memory structure that
+maps segment code to segment file.  Segment code is used in each
+transaction range as a short hand of the segment file involved. If
+the \fBall\fP option is specified, the whole log will be scanned,
+otherwise the scanning will stop when one segment dictionary entry is
+found.  If the \fBclear\fP option is specified, the segment dictionary
+will be cleared before starting the scanning process.
+.Pp
+.IP "\fBclose_log\fP"
+.nr bi 1
+.Pp
+Close the log file.
+.IP "\fBcopy_log\fP"
+.nr bi 1
+.Pp
+This provide a handy way to copy an existing log to another file or
+partition.  Since rvm logs start on different offset, depending on
+whether they are files or partitions, using stock Unix commands such as
+cp or dd sometimes is not as nice as using this command.  Some meta
+data (such as name of log) in the log status area in the destination
+log will also be updated to reflect new meta data after log copying.
+.Pp
+.IP "\fBearliest\fP"
+.nr bi 1
+.Pp
+Show the earliest transaction record in the log.
+.Pp
+.IP "\fBinit_log\fP [\fIlog\fP [\fIlength\fP]]"
+.nr bi 1
+.Pp
+Initialize a log if it does not exist, or re-initialize it if it does
+exist.  The log will have the name \fIlog\fP and the length of data
+area will be \fIlength\fP\&.  The actual size of the log file or
+partition will be slightly bigger because: 1.  there is a log status
+area (of size 3 sectors); and 2.  for log used on raw partition, there
+will be an offset (of 16 sectors) to jump off possible disklabel of
+the partition.
+.Pp
+The \fIlength\fP parameter is specified as an integer, optionally
+followed by a single character size code.  The following size codes
+are defined: \fBK\fP or \fBk\fP for kilobytes, \fBM\fP or \fBm\fP for
+megabytes, \fBS\fP or \fBs\fP for sectors (512 bytes), \fBP\fP or \fBp\fP
+for pages (which have system dependent sizes) and \fBB\fP or \fBb\fP for
+bytes (default).
+.Pp
+If either parameter is not specified, \fBinit_log\fP will prompt for
+the missing information.
+.Pp
+RVM maintains the log continuously after creation.  If you are going
+to re-initialize an existing log, make sure the log is empty before the
+re-initialization, otherwise, the transaction records in the log would
+be lost (i.e., they would not be applied to the data segment).  You
+can apply all transaction records to the data segments and empty the
+log (also known as truncate in this manual) by the \fBrecover\fP
+command.  You can use the command \fBstatus\fP to check whether a log
+is empty.
+.IP "\fBfind_earliest\fP"
+.nr bi 1
+.Pp
+Print the offset of the earliest transaction record in the log.
+.Pp
+.IP "\fBfind_tail\fP"
+.nr bi 1
+.Pp
+Print the offset of the tail of the log.
+.Pp
+.IP "\fBhead\fP"
+.nr bi 1
+.Pp
+Print the transaction record at the head of log.  (Note that there
+could be even earlier than the head record -- smaller record number
+and smaller time stamp.  They are considered truncated from the log
+and can be overwritten upon them freely.  They are still on the log
+just because it happens that rvm has not yet overwritten on them, and
+they may be useful for debugging. The command
+\fBearliest\fP prints the earliest record.)
+.Pp
+.IP "\fBlog\fP [\fIlog\fP] [\fBno_tail\fP] [\fBno_update\fP \(br \fBupdate\fP] "
+.nr bi 1
+.Pp
+.IP "\fBopen_log\fP [\fIlog\fP] [\fBno_tail\fP] [\fBno_update\fP \(br \fBupdate\fP] "
+.nr bi 1
+.Pp
+Open the rvm log named \fIlog\fP\&.  You must open a log before you can
+use most of the rest commands.  The optional \fBno_tail\fP switch turns
+of the search of tail of the log (for example, when the log tail is
+corrupted).  The optional \fBno_update\fP and \fBupdate\fP switch
+controls whether update will be made on the log and segment (they turn
+on the rvm internal global variable \f(CRrvm_no_update\fP).
+.Pp
+.IP "\fBn\fP [\fInum\fP] "
+.nr bi 1
+.Pp
+.IP "\fBnext\fP [\fInum\fP] "
+.nr bi 1
+.Pp
+Print the next \fInum\fP records.  If the optional argument \fInum\fP is
+not specified, then the next one record will be printed.
+.Pp
+.IP "\fBns\fP [\fInum\fP] "
+.nr bi 1
+.Pp
+.IP "\fBnext_sub_rec\fP [\fInum\fP] "
+.nr bi 1
+.Pp
+Print the next \fInum\fP sub-records.  Sub-records are the individual
+ranges of a transaction.  If the optional argument \fInum\fP is
+not specified, then the next one sub-record will be printed.
+.Pp
+.IP "\fBp\fP "
+.nr bi 1
+.Pp
+.IP "\fBpeek\fP [\fIfile\fP] \fIoffset\fP / [\fIcsf\fP]
+Peek on (or dump) the content of \fIfile\fP\&.  You must specify the
+argument \fIfile\fP when you first peek or poke on a file, afterward you can
+omit the argument and rvmutl will continue using the current file.
+The argument \fIoffset\fP determines from where
+the dump should start.  The argument \fIcsf\fP determines how the dump
+should be done, it comprises of three components: \fIc\fP, \fIs\fP and
+\fIf\fP; each of them represents the count, size, and format
+respectively. \fIc\fP is an integer and determines how many units, with
+size specified by \fIs\fP, should be dumped, and \fIf\fP specifies what 
+is the dump format."
+.nr bi 1
+.Pp
+In the following two examples, the first command dumps, from offset 0,
+eight bytes in hexadecimal format; the second command dumps two
+long integers in decimal format.  Note that how the same file
+content can be dumped into different format.
+.DS
+.sp 
+.ft RR
+.nf
+* peek 0 / 8xb
+00000000000: 0x18 0000 0000 0000 0x23 0x17 0x14 0x63
+* peek 0 / 2dl
+00000000000:           24   1662261027
+.DE
+.fi 
+.ec
+.ft P
+.sp
+.Pp
+There are seven different possible sizes: \fBb\fP for byte, \fBl\fP for
+long, \fBs\fP for short, \fBO\fP for offset (two long integers
+representing the high and low order bits respectively), \fBf\fP for
+float, \fBD\fP for double and \fBt\fP for time value.
+.Pp
+There are nine different possible formats: \fBc\fP for character,
+\fBd\fP for decimal, \fBo\fP for octal, \fBx\fP for hexidecimal, \fBu\fP
+for unsigned, \fBf\fP for float, \fBD\fP for double, \fBO\fP for offset
+(two long integers representing the high and low order bits
+respectively) and \fBt\fP for time value.
+.Pp
+You may omit the arguments \fIc\fP, \fIs\fP and \fIf\fP, and
+rvmutl will use the defaults, which are 1, d (decimal) and l (long)
+respectively, for the three arguments respectively.
+.Pp
+.IP "\fBpoke\fP [\fIfile\fP] \fIoffset\fP / \fIcs\fP = \fIval\fP [\fIval\fP ... ]"
+.nr bi 1
+.Pp
+Poke on (modify) the content of \fIfile\fP\&.  You must specify the
+argument \fIfile\fP when you first peek or poke on a file, afterward
+you can omit the argument and rvmutl will continue using the current
+file.  The argument \fIoffset\fP determines from where the modification
+should start.  The argument \fIcs\fP determines how the modifications should be
+done, it comprises of two components: \fIc\fP and \fIs\fP;
+each of them represents the count and size respectively.
+\fIc\fP is an integer and determines how many units, as specified by
+\fIs\fP, should be modified.
+.Pp
+Examples:
+.DS
+.sp 
+.ft RR
+.nf
+* poke 512 / 4db = 25
+* peek 512 / 8db
+       512:  25  25  25  25   0   0   0   0
+
+* poke 512 / 2xl = 25
+* peek 512 / 8db
+       512:  25   0   0   0  25   0   0   0
+
+* poke 512 / 2b = 0x26 0x27
+* peek 512 / 8db
+       512:  38  39  38  39  25   0   0   0
+
+* poke 512 / b = \&"abcde\&"
+* peek 512 / 8db
+       512:  97  98  99 100 101   0   0   0
+.DE
+.fi 
+.ec
+.ft P
+.sp
+
+Note that in the second example, the character \fBx\fP, which indicates
+hexidecimal format in peek, is sliently ignored.  To enter a
+hexidecimal number, you should us prefix '0x' as in the third
+example.   Note also that how a pattern is repeated by using the
+argument \fIc\fP in first and third example.
+.Pp
+There are seven different possible sizes: \fBb\fP for byte, \fBl\fP for
+long, \fBs\fP for short, \fBO\fP for offset (two long integers
+representing the high and low order bits respectively), \fBf\fP for
+float, \fBD\fP for double and \fBt\fP for time value.
+.Pp
+You can also enter string by using the double-quote mark (\(rq), as in
+the last example.
+.Pp
+.IP "\fBpr\fP [\fInum\fP] "
+.nr bi 1
+.Pp
+.IP "\fBprev\fP [\fInum\fP] "
+.nr bi 1
+.Pp
+Print the previous \fInum\fP records.  If the optional argument\fInum\fP
+is not specified, then the previous one record will be printed.
+.Pp
+.IP "\fBps\fP [\fInum\fP] "
+.nr bi 1
+.Pp
+.IP "\fBprev_sub_rec\fP [\fInum\fP] "
+.nr bi 1
+.Pp
+Print the previous \fInum\fP sub-records.  Sub-records are the individual
+ranges of a transaction.  If the optional argument \fInum\fP is
+not specified, then the previous one sub-record will be printed.
+.Pp
+.IP "\fBquit\fP"
+.nr bi 1
+.Pp
+Quit rvmutl.
+.Pp
+.IP "\fBread_status\fP"
+.nr bi 1
+.Pp
+Re-read the log status from on-disk log device (file or partition) to
+in-memory structure (\f(CRstatus\fP).  Note that the command \fBstatus\fP
+show the content of the in-memory structure, but not the on-disk
+device.   If you have made changes to the on-disk device, you may want
+to re-read them into the memory.
+.Pp
+.IP "\fBmonitor\fP [\fBclear\fP] [\fBno_update\fP \(br \fBupdate\fP]"
+.nr bi 1
+.Pp
+You can specify memory ranges to be monitored by this command.  When a
+memory range is monitored, there will be message printed out whenever
+there are modification within the range (E.g. in \fBrecover\fP).  The
+switch \fBclear\fP will clear all the monitor previous set.  The switch
+\fBno_update\fP and \fBupdate\fP carry the usual meaning
+(c.f. \fBopen_log\fP).  You will be asked, interactively, for the
+addresses and formats for the ranges you want to monitor, you should
+use the syntax similar to \fBpoke\fP\&.  The following example shows
+how to use \fBmonitor\fP, \fBshow monitor\fP, as well as how
+\fBrecover\fP prints out the modification.
+.DS
+.sp 
+.ft RR
+.nf
+* open_log log3
+* monitor update
+  More ranges (y or n [n])? y
+
+  Enter list of addresses/format, terminate with null line
+:  0x200d7550/1l
+: 
+* show monitor
+
+Range    Address/format     Length
+   1    0x200d7550/1dl          4
+
+* recover
+do_nv: data from log record 2101, range 52
+  monitored range 1, 0x200d7550, length 4 matched by
+  modified range 0x200d7550, length 4
+  0x200d7550:    537286660
+
+change_tree_insert: inserting entire range
+  monitored range 1, 0x200d7550, length 4 matched by
+  modified range 0x200d7550, length 4
+  0x200d7550:    537286660
+
+
+do_nv: data from log record 2101, range 51
+  monitored range 1, 0x200d7550, length 4 matched by
+  modified range 0x200ced40, length 8367
+  0x200d7550:            0
+
+change_tree_insert: inserting entire range
+  monitored range 1, 0x200d7550, length 4 matched by
+  modified range 0x200ced40, length 8367
+  0x200d7550:            0
+
+do_nv: data from log record 2101, range 50
+  monitored range 1, 0x200d7550, length 4 matched by
+  modified range 0x200cdcc4, length 16
+  0x200d7550:            0
+
+change_tree_insert: inserting entire range
+  monitored range 1, 0x200d7550, length 4 matched by
+  modified range 0x200cdcc4, length 16
+.DE
+.fi 
+.ec
+.ft P
+.sp
+.Pp
+.Pp
+.IP "\fBrecover\fP [\fBclear\fP] [\fBfile\fP] [\fBno_update\fP \(br \fBupdate\fP]"
+.nr bi 1
+.Pp
+Truncate the log.  Truncation means applying the transaction records,
+that were logged on the log, to the data segment, and then reclaiming the
+space on the log used by those records.
+.Pp
+.IP "\fBset\fP [\fBseg_dict\fP] \fIfield\fP \(br \fIaddr\fP = \fIval\fP"
+.nr bi 1
+.Pp
+Set \fIfield\fP (or memeory locateion at \fIaddr\fP) to \fIval\fP\&.  There
+are five fields that you can set: \fBhead\fP, \fBtail\fP,
+\fBprev_head\fP, \fBprev_tail\fP and \fBlog_start\fP\&.  (You can use
+\fBprev head\fP and \fBprev tail\fP to represent \fBprev_head\fP and
+\fBprev_tail\fP respectively.)  Only the in-memory structure of the
+field is changed by this command, you can use \fBwrite_status\fP to
+write the in-memory structure (status area) to disk.
+.Pp
+.IP "\fBs\fP "
+.nr bi 1
+.Pp
+.IP "\fBshow\fP "
+.nr bi 1
+.Pp
+.Pp
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fBall\fP all records"
+.nr bi 1
+.Pp
+.IP "\fBall_records\fP all records"
+.nr bi 1
+.Pp
+.IP "\fBearliest\fP earliest record"
+.nr bi 1
+.Pp
+.IP "\fBhead\fP record at head of log"
+.nr bi 1
+.Pp
+.IP "\fBmods\fP \fIof\fP \fB/\fP \fIcs\fP [= \fIval\fP] "
+.nr bi 1
+.Pp
+.IP "\fBmodificationss\fP \fIof\fP \fB/\fP \fIcs\fP [= \fIval\fP] "
+.nr bi 1
+.Pp
+E.g.
+.DS
+.sp 
+.ft RR
+.nf
+* show mods 0x2000005c / 8b
+
+Record number: 40756 modifies specified range:
+
+  Modification range:        1   Log offset:    224664
+    VM address:     0x2000005c   Length:        52
+    Segment code:            1   Offset:      4188
+    Record length:         108   Back link:     48
+
+  0x2000005c:  74 -107   0   0   0   0   0   0
+
+* show mods 0x2000005c / 1b = 74
+
+Record number: 40756 assigns specified values
+
+  Modification range:        1   Log offset:    224664
+    VM address:     0x2000005c   Length:        52
+    Segment code:            1   Offset:      4188
+    Record length:         108   Back link:     48
+
+  0x2000005c:  74
+
+* show mods 0x2000005c / 1b = 75
+  -- no more records
+.DE
+.fi 
+.ec
+.ft P
+.sp
+.IP "\fBmonitor\fP all the range being monitored. "
+.nr bi 1
+.Pp
+.IP "\fBnext\fP next record "
+.nr bi 1
+.Pp
+.IP "\fBnext_sub_rec\fP next subrecord "
+.nr bi 1
+.Pp
+.IP "\fBns\fP next subrecord "
+.nr bi 1
+.Pp
+.IP "\fInum\fP by record number "
+.nr bi 1
+.Pp
+.IP "\fBprev\fP previous record "
+.nr bi 1
+.Pp
+.IP "\fBprevious\fP previous record "
+.nr bi 1
+.Pp
+.IP "\fBps\fP previous subrecord "
+.nr bi 1
+.Pp
+.IP "\fBprev_sub_rec\fP previous subrecord "
+.nr bi 1
+.Pp
+.IP "\fBrec_number\fP \fInum\fP by record number "
+.nr bi 1
+.Pp
+.IP "\fBremaining\fP all remaining records "
+.nr bi 1
+.Pp
+.IP "\fBseg_dict\fP segment dictionary "
+.nr bi 1
+.Pp
+.IP "\fBseg_dictionary\fP segment dictionary "
+.nr bi 1
+.Pp
+.IP "\fBstatistics\fP statistics of rvm activities "
+.nr bi 1
+.Pp
+.IP "\fBstatus\fP status area of the log "
+.nr bi 1
+.Pp
+.IP "\fBlog_status\fP status area of the log "
+.nr bi 1
+.Pp
+.IP "\fBsr\fP current subrecord "
+.nr bi 1
+.Pp
+.IP "\fBsub_rec\fP currect subrecord "
+.nr bi 1
+.Pp
+.IP "\fBtail\fP tail record "
+.nr bi 1
+.Pp
+.IP "\fBtimestamp\fP by record timestamp (note: no effect)"
+.nr bi 1
+.Pp
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+.Pp
+.IP "\fBsizeof\fP \fIstruct\fP \(br \fBall\fP "
+.nr bi 1
+.Pp
+Show the size of a the give structure \fIstruct\fP, or size of all
+structure.  The unit is byte.  The following structure can be shown:
+\fBcondition\fP, \fBdevice_t\fP (\fBdev\fP), \fBdev_region_t\fP,
+\fBFLUSH_BUF_LEN\fP, \fBfree_page_t\fP, \fBMAXPATHLEN\fP, \fBint\fP,
+\fBlist_entry_t\fP, \fBlog_t\fP (\fBlog\fP), \fBlog_buf_t\fP,
+\fBLOG_DEV_STATUS_SIZE\fP, \fBlog_dev_status_t\fP, \fBlog_seg_t\fP,
+\fBLOG_SPECIAL_IOV_MAX\fP, \fBLOG_SPECIAL_SIZE\fP, \fBlog_special_t\fP,
+\fBlog_status_t\fP (\fBstatus\fP), \fBlog_wrap_t\fP, \fBlong\fP,
+\fBMAX_READ_LEN\fP, \fBmem_region_t\fP, 
+\fBMIN_NV_RANGE_SIZE\fP, \fBMIN_FLUSH_BUF_LEN\fP,
+\fBMIN_RECOVERY_BUF_LEN\fP, \fBMIN_TRANS_SIZE\fP, \fBmutex\fP,
+\fBNUM_CACHE_TYPES\fP, \fBNV_LOCAL_MAX\fP, \fBnv_range_t\fP (\fBnv\fP),
+\fBNV_RANGE_OVERHEAD\fP, \fBpage_size\fP, \fBrange_t\fP, \fBrec_end_t\fP,
+\fBrec_hdr_t\fP, \fBRECOVERY_BUF_LEN\fP, \fBregion_t\fP,
+\fBrvm_length_t\fP, \fBrvm_offset_t\fP, \fBrvm_options_t\fP,
+\fBrvm_region_t\fP, \fBrvm_tid_t\fP, \fBrw_lock_t\fP (\fBrw_lock\fP), 
+\fBrw_lock_mode_t\fP, \fBseg_t\fP, \fBstruct_id_t\fP, \fBint_tid_t\fP,
+\fBtimeval\fP, \fBtrans_hdr_t\fP, \fBTRANS_SIZE\fP, \fBtree_links_t\fP,
+\fBtree_node_t\fP, \fBTRUNCATE\fP, \fBulong\fP, \fBunsigned\fP\&.
+.Pp
+.IP "\fBstatus\fP "
+.nr bi 1
+.Pp
+.IP "\fBlog_status\fP "
+.nr bi 1
+.Pp
+Show the log status area, which is the meta data about the log
+(include head offset, tail offset, space used by records, total log
+size, first record number, last record number, log creation time, last
+truncation time etc).
+.Pp
+.IP "\fBsr\fP "
+.nr bi 1
+.Pp
+.IP "\fBsub_rec\fP "
+.nr bi 1
+.Pp
+Show the current subrecord.
+.Pp
+.IP "\fBstatistics\fP "
+.nr bi 1
+.Pp
+Show the statistics of rvm activities.
+.Pp
+.IP "\fBtail\fP "
+.nr bi 1
+.Pp
+Show the transaction record at the tail of log.
+.Pp
+.IP "\fBupdate\fP "
+.nr bi 1
+.Pp
+Turn on update (i.e. set to false the rvm-internal global variable
+\f(CRrvm_no_update\fP\&.) Update will not be made on the
+log and segment.
+.Pp
+.IP "\fBno_update\fP "
+.nr bi 1
+.Pp
+Turn off update (i.e. set to true the rvm-internal global variable
+\f(CRrvm_no_update\fP\&.)  Update will be made on the log and segment.
+.Pp
+.IP "\fBwrite_status\fP "
+.nr bi 1
+.Pp
+Write out the in-memory log status structure to the log status block
+on disk.
+.if \n(ll>1 .RE
+.nr ll -1
+.Pp
+.Pp
+BUGS
+.Pp
+The command \fBfind_hole\fP is not yet documented.
+.Pp
+Peeking using the format or size of time value (\fBt\fP) does not work.
+.Pp
+The way to poke an offset value is not yet documented.
+.Pp
+\fBsizeof\fP of some structs (e.g. \fBcondition\fP, \fBint\fP) wrongly
+displays the page size rather than the size of the structure.
+.Pp
+The use of \fBno_update\fP does not quite work.  Rvmutl easily crashes
+when the switch is used.
+.Pp
+The exact semantic of \fBreplay\fP command is not documented, and the
+command itself crashes quite easily.
+.Pp
+The use of \fBseg_dict\fP in \fBset\fP is not yet documented.
+.Pp
+The command \fBshow timestamp\fP has no effect.
+.Pp
+AUTHOR
+.Pp
+Yui Wah LEE completely rewrote this man page (Nov. 1997)

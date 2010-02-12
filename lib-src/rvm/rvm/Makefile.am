@@ -2,6 +2,7 @@
 
 lib_LTLIBRARIES =
 sbin_PROGRAMS = rvmutl
+dist_man_MANS = rvmutl.1
 
 AM_CPPFLAGS = -I$(top_srcdir)/include
 

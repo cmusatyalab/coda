@@ -2,6 +2,7 @@
 
 lib_LTLIBRARIES =
 sbin_PROGRAMS = rdsinit
+dist_man_MANS = rdsinit.1
 
 AM_CPPFLAGS = -I$(top_srcdir)/include
 
