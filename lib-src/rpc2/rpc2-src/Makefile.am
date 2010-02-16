@@ -3,7 +3,7 @@
 INCLUDES = -I$(top_builddir)/include -I$(top_srcdir)/include \
     $(LUA_CFLAGS) $(LWP_CFLAGS) \
     -DRPC2DEBUG -DERRORTR -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
-LDADD = librpc2.la libse.la
+LDADD = librpc2.la libse.la $(LWP_LIBS)
 
 noinst_HEADERS = rpc2.private.h dllist.h test.h \
 		 switchc2s.h switchs2c.h switchs2e.h
