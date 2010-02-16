@@ -551,8 +551,8 @@ class App(MarinerListener):
 	item.show()
 
 	self.status = GlobalState(self.activate, lambda icon, button, time:
-				self.menu.popup(None, None, None, button, time),
-				options.enable_popups)
+		self.menu.popup(None, None, gtk.status_icon_position_menu,
+				button, time, icon), options.enable_popups)
 
 	self.test_idx = 0
 	if options.test:
