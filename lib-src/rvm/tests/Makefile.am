@@ -31,12 +31,12 @@ lwp_basher_LDADD = $(top_builddir)/rds/librdslwp.la \
 		   $(top_builddir)/rvm/librvmlwp.la \
 		   $(LWP_LIBS)
 
-pt_basher_CPPFLAGS = $(AM_CPPFLAGS) -DRVM_USEPT -pthread
+pt_basher_CPPFLAGS = $(AM_CPPFLAGS) -DRVM_USEPT $(PTHREAD_CFLAGS)
 pt_basher_SOURCES = rvm_basher.c
 pt_basher_LDADD = $(top_builddir)/rds/librdspt.la \
 		  $(top_builddir)/seg/libsegpt.la \
 		  $(top_builddir)/rvm/librvmpt.la \
-		  -lpthread
+		  $(PTHREAD_LIBS)
 
 EXTRA_DIST = README basher_parms map_chk_file map_data_file \
     t1_chk_file t3_chk_file t5_chk_file test_data_file

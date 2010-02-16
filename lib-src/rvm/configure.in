@@ -42,6 +42,9 @@ if test $librvmlwp != "no" ; then
 CODA_PKG_CONFIG
 PKG_CHECK_MODULES([LWP], [lwp])
 fi
+if test $librvmpt != "no" ; then
+CODA_PTHREAD_FLAGS
+fi
 
 dnl Checks for libraries.
 AC_SEARCH_LIBS(fdatasync, rt)

@@ -9,17 +9,20 @@ AM_CPPFLAGS = -I$(top_srcdir)/include
 if LIBRVM
 lib_LTLIBRARIES += librds.la
 rdsinit_CPPFLAGS = $(AM_CPPFLAGS)
-rdsinit_LDADD = librds.la $(top_builddir)/seg/libseg.la $(top_builddir)/rvm/librvm.la
+rdsinit_LDADD = librds.la $(top_builddir)/seg/libseg.la \
+	$(top_builddir)/rvm/librvm.la
 endif
 if LIBRVMLWP
 lib_LTLIBRARIES += librdslwp.la
 rdsinit_CPPFLAGS = $(AM_CPPFLAGS) -DRVM_USELWP $(LWP_CFLAGS)
-rdsinit_LDADD = librdslwp.la $(top_builddir)/seg/libseglwp.la $(top_builddir)/rvm/librvmlwp.la $(LWP_LIBS)
+rdsinit_LDADD = librdslwp.la $(top_builddir)/seg/libseglwp.la \
+	$(top_builddir)/rvm/librvmlwp.la $(LWP_LIBS)
 endif
 if LIBRVMPT
 lib_LTLIBRARIES += librdspt.la
-rdsinit_CPPFLAGS = $(AM_CPPFLAGS) -DRVM_USEPT -pthread
-rdsinit_LDADD = librdspt.la $(top_builddir)/seg/libsegpt.la $(top_builddir)/rvm/librvmpt.la -lpthread
+rdsinit_CPPFLAGS = $(AM_CPPFLAGS) -DRVM_USEPT $(PTHREAD_CFLAGS)
+rdsinit_LDADD = librdspt.la $(top_builddir)/seg/libsegpt.la \
+	$(top_builddir)/rvm/librvmpt.la $(PTHREAD_LIBS)
 endif
 
 librds_sources = rds_coalesce.c rds_free.c rds_init.c rds_malloc.c \
@@ -32,11 +35,13 @@ librds_la_LIBADD = $(top_builddir)/seg/libseg.la $(top_builddir)/rvm/librvm.la
 
 librdslwp_la_CPPFLAGS = $(AM_CPPFLAGS) -DRVM_USELWP $(LWP_CFLAGS)
 librdslwp_la_SOURCES = $(librds_sources)
-librdslwp_la_LIBADD = $(top_builddir)/seg/libseglwp.la $(top_builddir)/rvm/librvmlwp.la $(LWP_LIBS)
+librdslwp_la_LIBADD = $(top_builddir)/seg/libseglwp.la \
+	$(top_builddir)/rvm/librvmlwp.la $(LWP_LIBS)
 
-librdspt_la_CPPFLAGS = $(AM_CPPFLAGS) -DRVM_USEPT -pthread
+librdspt_la_CPPFLAGS = $(AM_CPPFLAGS) -DRVM_USEPT $(PTHREAD_CFLAGS)
 librdspt_la_SOURCES = $(librds_sources)
-librdspt_la_LIBADD = $(top_builddir)/seg/libsegpt.la $(top_builddir)/rvm/librvmpt.la -lpthread
+librdspt_la_LIBADD = $(top_builddir)/seg/libsegpt.la \
+	$(top_builddir)/rvm/librvmpt.la $(PTHREAD_LIBS)
 
 MAINTAINERCLEANFILES = Makefile.in
 

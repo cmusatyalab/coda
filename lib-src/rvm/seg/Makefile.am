@@ -28,9 +28,9 @@ libseglwp_la_CPPFLAGS = $(AM_CPPFLAGS) -DUSE_RVMLWP $(LWP_CFLAGS)
 libseglwp_la_SOURCES = $(libseg_sources)
 libseglwp_la_LIBADD = $(top_builddir)/rvm/librvmlwp.la $(LWP_LIBS)
 
-libsegpt_la_CPPFLAGS = $(AM_CPPFLAGS) -DUSE_RVMPT -pthread
+libsegpt_la_CPPFLAGS = $(AM_CPPFLAGS) -DUSE_RVMPT $(PTHREAD_CFLAGS)
 libsegpt_la_SOURCES = $(libseg_sources)
-libsegpt_la_LIBADD = $(top_builddir)/rvm/librvmpt.la -lpthread
+libsegpt_la_LIBADD = $(top_builddir)/rvm/librvmpt.la $(PTHREAD_LIBS)
 
 MAINTAINERCLEANFILES = Makefile.in
 
