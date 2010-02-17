@@ -242,7 +242,7 @@ static int setup_init1_key(int (*init)(uint32_t secure_version,
 {
     const struct secure_auth *auth;
     const struct secure_encr *encr;
-    uint8_t salt[8];
+    uint32_t salt[2];
     uint8_t key[48]; /* 256-bits for encryption + 128-bits for authentication */
     int rc;
 
@@ -250,11 +250,11 @@ static int setup_init1_key(int (*init)(uint32_t secure_version,
     encr = secure_get_encr_byid(SECURE_ENCR_AES_CBC);
     if (!auth || !encr) return -1;
 
-    ((int32_t *)salt)[0] = xrandom;
-    ((int32_t *)salt)[1] = htonl(unique);
+    salt[0] = xrandom;
+    salt[1] = htonl(unique);
 
     rc = secure_pbkdf(secret, sizeof(RPC2_EncryptionKey),
-		      salt, sizeof(salt), SECURE_PBKDF_ITERATIONS,
+		      (uint8_t *)salt, sizeof(salt), SECURE_PBKDF_ITERATIONS,
 		      key, sizeof(key));
     if (rc) return -1;
 
