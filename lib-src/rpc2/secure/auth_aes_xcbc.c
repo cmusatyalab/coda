@@ -64,8 +64,8 @@ void aes_xcbc_mac_release(void **ctx)
     struct aes_xcbc_state *state = *ctx;
     if (!*ctx) return;
     memset(&state->C1, 0, sizeof(aes_encrypt_ctx));
-    memset(&state->K2, 0, AES_BLOCK_SIZE);
-    memset(&state->K3, 0, AES_BLOCK_SIZE);
+    memset(state->K2, 0, AES_BLOCK_SIZE);
+    memset(state->K3, 0, AES_BLOCK_SIZE);
     free(state);
     *ctx = NULL;
 }
@@ -87,7 +87,7 @@ void aes_xcbc_mac_128(void *ctx, const uint8_t *buf, size_t len, uint8_t *mac)
 
     if (len == AES_BLOCK_SIZE) {
 	xor128(mac, buf);
-	xor128(mac, &state->K2);
+	xor128(mac, state->K2);
     } else {
 	memcpy(tmp, buf, len);
 	tmp[len++] = 0x80;
@@ -95,7 +95,7 @@ void aes_xcbc_mac_128(void *ctx, const uint8_t *buf, size_t len, uint8_t *mac)
 	    memset(tmp + len, 0, AES_BLOCK_SIZE - len);
 
 	xor128(mac, tmp);
-	xor128(mac, &state->K3);
+	xor128(mac, state->K3);
     }
     aes_encrypt(mac, mac, &state->C1);
 }
