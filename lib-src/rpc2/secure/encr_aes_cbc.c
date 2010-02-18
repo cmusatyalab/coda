@@ -45,9 +45,10 @@ static int encrypt(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
 {
     /* CBC mode encryption requires an unpredictable IV, so we encrypt the
      * passed IV block (which is a counter) once. */
-    aes_encrypt(iv, iv, ctx);
+    aes_encrypt((uint64_t *)iv, (uint64_t *)iv, ctx);
 
-    return aes_cbc_encrypt(in, out, len, iv, ctx);
+    return aes_cbc_encrypt((uint64_t *)in, (uint64_t *)out, len,
+			   (uint64_t *)iv, ctx);
 }
 
 static void encrypt_free(void **ctx)
@@ -81,7 +82,8 @@ err_out:
 static int decrypt(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
 		   const uint8_t *iv, const uint8_t *aad, size_t aad_len)
 {
-    return aes_cbc_decrypt(in, out, len, iv, ctx);
+    return aes_cbc_decrypt((uint64_t *)in, (uint64_t *)out, len,
+			   (uint64_t *)iv, ctx);
 }
 
 static void decrypt_free(void **ctx)

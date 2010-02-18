@@ -63,8 +63,8 @@ Coda are listed in the file CREDITS.
 #define RANDOM_DEVICE "/dev/urandom"
 
 static aes_encrypt_ctx context;
-static uint8_t pool[AES_BLOCK_SIZE];
-static uint8_t last[AES_BLOCK_SIZE];
+static aes_block pool;
+static aes_block last;
 static uint32_t counter;
 
 static void prng_get_bytes(uint8_t *random, size_t len);
@@ -73,7 +73,7 @@ static void prng_init(const uint8_t s[INITIAL_SEED_LENGTH])
 {
     uint8_t tmp[AES_BLOCK_SIZE];
 
-    memcpy(pool, s, AES_BLOCK_SIZE);
+    memcpy(pool, s, sizeof(aes_block));
     aes_encrypt_key(s + AES_BLOCK_SIZE, RND_KEY_BITS, &context);
 
     /* discard the first block of random data */
@@ -90,38 +90,43 @@ static void prng_free(void)
 
 static void prng_get_bytes(uint8_t *random, size_t len)
 {
-    uint8_t tmp[AES_BLOCK_SIZE], *I, *prev = last;
-    struct {
-	struct timeval tv;
-	uint32_t uninitialized_stack_value;
-	uint32_t counter;
+    aes_block tmp;
+    uint64_t *randomp, *prev = last;
+    union {
+	struct {
+	    struct timeval tv;
+	    uint32_t uninitialized_stack_value;
+	    uint32_t counter;
+	} state;
+	aes_block I;
     } init;
     int nblocks = (len + AES_BLOCK_SIZE - 1) / AES_BLOCK_SIZE;
 
     /* Mix some entropy into the pool */
-    gettimeofday(&init.tv, NULL);
-    init.counter = counter++;
-    I = (uint8_t *)&init;
-    aes_encrypt(I, I, &context);
+    gettimeofday(&init.state.tv, NULL);
+    init.state.counter = counter++;
+    aes_encrypt(init.I, init.I, &context);
 
     while (nblocks--) {
-	xor128(pool, I);
+	xor128(pool, init.I);
 
 	if (!nblocks && len != AES_BLOCK_SIZE) {
-	    aes_encrypt(pool, tmp, &context);
-	    memcpy(random, tmp, len);
-	    random = tmp;
-	} else
-	    aes_encrypt(pool, random, &context);
+	    randomp = tmp;
+	    aes_encrypt(pool, randomp, &context);
+	    memcpy(random, randomp, len);
+	} else {
+	    randomp = (uint64_t *)random;
+	    aes_encrypt(pool, randomp, &context);
+	}
 
 	/* reseed the pool, mix in the random value */
-	xor128(I, random);
-	aes_encrypt(I, pool, &context);
+	xor128(init.I, randomp);
+	aes_encrypt(init.I, pool, &context);
 
 	/* we must never return consecutive identical blocks */
-	assert(memcmp(prev, random, AES_BLOCK_SIZE) != 0);
+	assert(memcmp(prev, randomp, AES_BLOCK_SIZE) != 0);
 
-	prev = random;
+	prev = randomp;
 	random += AES_BLOCK_SIZE;
 	len -= AES_BLOCK_SIZE;
     }

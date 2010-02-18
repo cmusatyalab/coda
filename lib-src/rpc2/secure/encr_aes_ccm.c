@@ -113,9 +113,10 @@ static int aes_ccm_crypt(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
 {
     struct aes_ccm_ctx *acc = (struct aes_ccm_ctx *)ctx;
     int i, n, step, nblocks, partial;
-    uint8_t CMAC[AES_BLOCK_SIZE], CTR[AES_BLOCK_SIZE], S0[AES_BLOCK_SIZE];
-    uint8_t tmp[AES_BLOCK_SIZE], *p;
-    const uint8_t *end = tmp + AES_BLOCK_SIZE;
+    uint8_t CMAC[AES_BLOCK_SIZE], CTR[AES_BLOCK_SIZE];
+    aes_block S0, tmp;
+    uint8_t *p = (uint8_t *)tmp;
+    const uint8_t *end = p + sizeof(aes_block);
 
     if (!encrypt) {
 	if (len < acc->icv_len)
@@ -134,7 +135,7 @@ static int aes_ccm_crypt(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
     int32(CMAC)[1] = int32(iv)[0];
     int32(CMAC)[2] = int32(iv)[1];
     int32(CMAC)[3] = htonl(len);
-    aes_encrypt(CMAC, CMAC, &acc->ctx);
+    aes_encrypt((uint64_t *)CMAC, (uint64_t *)CMAC, &acc->ctx);
 
     /* initialize counter block */
     CTR[0] = acc->flag_n_salt[0] & 0x07;
@@ -151,13 +152,12 @@ static int aes_ccm_crypt(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
     }
 
     /* save the first counter block. we will use that for authentication. */
-    aes_encrypt(CTR, S0, &acc->ctx);
+    aes_encrypt((uint64_t *)CTR, S0, &acc->ctx);
 
     /* authenticate the header (spi and sequence number values) */
     /* ugly that this CCM header is not aligned on a 4-byte boundary
      * we have to copy everything byte-by-byte */
 
-    p = tmp;
     /* length of authenticated data */
 #if 0 /* don't know if something like htonll actually exists */
     if (aad_len >= UINT_MAX) {
@@ -184,59 +184,59 @@ static int aes_ccm_crypt(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
 	memcpy(p, aad, n); p += n;
 	if (p < end) memset(p, 0, end - p);
 
-	xor128(CMAC, tmp);
-	aes_encrypt(CMAC, CMAC, &acc->ctx);
+	xor128((uint64_t *)CMAC, tmp);
+	aes_encrypt((uint64_t *)CMAC, (uint64_t *)CMAC, &acc->ctx);
 
-	aad += n; aad_len -= n; p = tmp;
+	aad += n; aad_len -= n; p = (uint8_t *)tmp;
     }
 
-    nblocks = (len + AES_BLOCK_SIZE - 1) / AES_BLOCK_SIZE;
-    step = AES_BLOCK_SIZE;
+    nblocks = (len + sizeof(aes_block) - 1) / sizeof(aes_block);
+    step = sizeof(aes_block);
     while (nblocks--)
     {
 	/* increment counter */
-	for (i = AES_BLOCK_SIZE-1; i >=0; i--)
+	for (i = sizeof(aes_block)-1; i >=0; i--)
 	    if (++CTR[i] != 0) break;
 
 	/* get the next keystream block */
-	aes_encrypt(CTR, tmp, &acc->ctx);
+	aes_encrypt((uint64_t *)CTR, tmp, &acc->ctx);
 
-	partial = !nblocks && len % AES_BLOCK_SIZE;
+	partial = !nblocks && len % sizeof(aes_block);
 	if (!partial) {
 	    /* Checksum the plaintext before we encrypt */
-	    if (encrypt) xor128(CMAC, in);
+	    if (encrypt) xor128((uint64_t *)CMAC, (uint64_t *)in);
 
 	    if (out != in)
 		memcpy(out, in, step);
-	    xor128(out, tmp);
+	    xor128((uint64_t *)out, tmp);
 
 	    /* Checksum the plaintext after decryption */
-	    if (!encrypt) xor128(CMAC, out);
+	    if (!encrypt) xor128((uint64_t *)CMAC, (uint64_t *)out);
 	} else {
 	    /* partial last block, use the counter block, which we no longer
 	     * need, as a scratch buffer */
-	    step = len % AES_BLOCK_SIZE;
+	    step = len % sizeof(aes_block);
 	    memcpy(CTR, in, step);
 	    if (encrypt) {
-		memset(CTR + step, 0, AES_BLOCK_SIZE - step);
-		xor128(CMAC, CTR);
+		memset(CTR + step, 0, sizeof(aes_block) - step);
+		xor128((uint64_t *)CMAC, (uint64_t *)CTR);
 	    }
 
-	    xor128(CTR, tmp); /* encryption/decryption step */
+	    xor128((uint64_t *)CTR, tmp); /* encryption/decryption step*/
 	    memcpy(out, CTR, step); /* copy result to output */
 
 	    /* clear tail and checksum decrypted data */
 	    if (!encrypt) {
-		memset(CTR + step, 0, AES_BLOCK_SIZE - step);
-		xor128(CMAC, CTR);
+		memset(CTR + step, 0, sizeof(aes_block) - step);
+		xor128((uint64_t *)CMAC, (uint64_t *)CTR);
 	    }
 	}
-	aes_encrypt(CMAC, CMAC, &acc->ctx);
+	aes_encrypt((uint64_t *)CMAC, (uint64_t *)CMAC, &acc->ctx);
 	in += step; out += step;
     }
 
     /* finalize the ICV calculation */
-    xor128(CMAC, S0);
+    xor128((uint64_t *)CMAC, S0);
     if (encrypt) {
 	memcpy(out, CMAC, acc->icv_len);
 	len += acc->icv_len;

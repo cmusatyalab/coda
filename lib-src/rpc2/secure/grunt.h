@@ -26,23 +26,24 @@ Coda are listed in the file CREDITS.
 
 #define bytes(bits)	((bits)/8)
 #define int32(x)	((uint32_t *)(x))
-#define int64(x)	((uint64_t *)(x))
-#define xor128(out, in)	do { \
-	int64(out)[0] ^= int64(in)[0]; \
-	int64(out)[1] ^= int64(in)[1]; \
-    } while(0)
 #define dump128(prefix, b) \
     fprintf(stderr, "%c %08x%08x%08x%08x\n", prefix, \
 	    htonl(int32(b)[0]), htonl(int32(b)[1]), \
 	    htonl(int32(b)[2]), htonl(int32(b)[3]))
 
+static inline void xor128(aes_block out, const aes_block in)
+{
+    out[0] ^= in[0];
+    out[1] ^= in[1];
+}
+
 /* private functions */
 /* secure_aes.c */
 void secure_aes_init(int verbose);
-int aes_cbc_encrypt(const uint8_t *in, uint8_t *out, size_t len,
-		    const uint8_t *iv, aes_encrypt_ctx *ctx);
-int aes_cbc_decrypt(const uint8_t *in, uint8_t *out, size_t len,
-		    const uint8_t *iv, aes_decrypt_ctx *ctx);
+int aes_cbc_encrypt(const uint64_t *in, uint64_t *out, size_t len,
+		    const aes_block iv, aes_encrypt_ctx *ctx);
+int aes_cbc_decrypt(const uint64_t *in, uint64_t *out, size_t len,
+		    const aes_block iv, aes_decrypt_ctx *ctx);
 
 int aes_xcbc_prf_init(void **ctx, const uint8_t *key, size_t len);
 #define aes_xcbc_prf_release aes_xcbc_mac_release
@@ -51,7 +52,7 @@ int aes_xcbc_prf_init(void **ctx, const uint8_t *key, size_t len);
 /* auth_aes_xcbc.c */
 int aes_xcbc_mac_init(void **ctx, const uint8_t *key, size_t len);
 void aes_xcbc_mac_release(void **ctx);
-void aes_xcbc_mac_128(void *ctx, const uint8_t *buf, size_t len, uint8_t *mac);
+void aes_xcbc_mac_128(void *ctx, const uint8_t *buf, size_t len, aes_block mac);
 
 /* secure_random.c */
 void secure_random_init(int verbose);

@@ -25,14 +25,14 @@ Coda are listed in the file CREDITS.
 
 struct aes_xcbc_state {
     aes_encrypt_ctx C1;
-    uint8_t K2[AES_BLOCK_SIZE];
-    uint8_t K3[AES_BLOCK_SIZE];
+    aes_block K2;
+    aes_block K3;
 };
 
 int aes_xcbc_mac_init(void **ctx, const uint8_t *key, size_t len)
 {
     struct aes_xcbc_state *state;
-    uint8_t tmp[AES_BLOCK_SIZE];
+    aes_block tmp;
     aes_encrypt_ctx c;
 
     if (len < KEYSIZE) return -1;
@@ -42,17 +42,17 @@ int aes_xcbc_mac_init(void **ctx, const uint8_t *key, size_t len)
 
     aes_encrypt_key(key, KEYSIZE * 8, &c);
 
-    memset(tmp, 0x01, AES_BLOCK_SIZE);
+    memset(tmp, 0x01, sizeof(aes_block));
     aes_encrypt(tmp, tmp, &c);
-    aes_encrypt_key(tmp, AES_BLOCK_SIZE * 8, &state->C1);
+    aes_encrypt_key((uint8_t *)tmp, sizeof(aes_block) * 8, &state->C1);
 
-    memset(tmp, 0x02, AES_BLOCK_SIZE);
+    memset(tmp, 0x02, sizeof(aes_block));
     aes_encrypt(tmp, state->K2, &c);
 
-    memset(tmp, 0x03, AES_BLOCK_SIZE);
+    memset(tmp, 0x03, sizeof(aes_block));
     aes_encrypt(tmp, state->K3, &c);
 
-    memset(tmp, 0, AES_BLOCK_SIZE);
+    memset(tmp, 0, sizeof(aes_block));
     memset(&c, 0, sizeof(aes_encrypt_ctx));
 
     *ctx = state;
@@ -64,35 +64,35 @@ void aes_xcbc_mac_release(void **ctx)
     struct aes_xcbc_state *state = *ctx;
     if (!*ctx) return;
     memset(&state->C1, 0, sizeof(aes_encrypt_ctx));
-    memset(state->K2, 0, AES_BLOCK_SIZE);
-    memset(state->K3, 0, AES_BLOCK_SIZE);
+    memset(state->K2, 0, sizeof(aes_block));
+    memset(state->K3, 0, sizeof(aes_block));
     free(state);
     *ctx = NULL;
 }
 
-void aes_xcbc_mac_128(void *ctx, const uint8_t *buf, size_t len, uint8_t *mac)
+void aes_xcbc_mac_128(void *ctx, const uint8_t *buf, size_t len, aes_block mac)
 {
     struct aes_xcbc_state *state = ctx;
-    uint8_t tmp[AES_BLOCK_SIZE];
-    size_t nblocks = (len + AES_BLOCK_SIZE - 1) / AES_BLOCK_SIZE;
+    size_t nblocks = (len + sizeof(aes_block) - 1) / sizeof(aes_block);
+    aes_block tmp;
 
-    memset(mac, 0, AES_BLOCK_SIZE);
+    memset(mac, 0, sizeof(aes_block));
 
     while(nblocks-- > 1) {
-	xor128(mac, buf);
+	xor128(mac, (uint64_t *)buf);
 	aes_encrypt(mac, mac, &state->C1);
-	buf += AES_BLOCK_SIZE;
-	len -= AES_BLOCK_SIZE;
+	buf += sizeof(aes_block);
+	len -= sizeof(aes_block);
     }
 
-    if (len == AES_BLOCK_SIZE) {
-	xor128(mac, buf);
+    if (len == sizeof(aes_block)) {
+	xor128(mac, (uint64_t *)buf);
 	xor128(mac, state->K2);
     } else {
 	memcpy(tmp, buf, len);
-	tmp[len++] = 0x80;
-	if (len != AES_BLOCK_SIZE)
-	    memset(tmp + len, 0, AES_BLOCK_SIZE - len);
+	((uint8_t *)tmp)[len++] = 0x80;
+	if (len != sizeof(aes_block))
+	    memset((uint8_t *)tmp + len, 0, sizeof(aes_block) - len);
 
 	xor128(mac, tmp);
 	xor128(mac, state->K3);
@@ -103,7 +103,7 @@ void aes_xcbc_mac_128(void *ctx, const uint8_t *buf, size_t len, uint8_t *mac)
 static void aes_xcbc_mac_96(void *ctx, const uint8_t *buf, size_t len,
 			    uint8_t *icv)
 {
-    uint8_t mac[AES_BLOCK_SIZE];
+    aes_block mac;
     aes_xcbc_mac_128(ctx, buf, len, mac);
     memcpy(icv, mac, ICV_LEN);
 }

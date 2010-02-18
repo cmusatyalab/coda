@@ -24,6 +24,8 @@ Coda are listed in the file CREDITS.
 #define AES_MAXROUNDS	MAXNR
 #define AES_BLOCK_SIZE  16
 
+typedef uint64_t aes_block[AES_BLOCK_SIZE/sizeof(uint64_t)];
+
 typedef struct {
     uint32_t context[4*(AES_MAXROUNDS+1)];
     uint32_t rounds;
@@ -48,19 +50,19 @@ static inline int aes_decrypt_key(const uint8_t *key, int keylen,
     return 0;
 }
 
-static inline int aes_encrypt(const uint8_t in[AES_BLOCK_SIZE],
-			       uint8_t out[AES_BLOCK_SIZE],
-			       const aes_encrypt_ctx *ctx)
+static inline int aes_encrypt(const aes_block in, aes_block out,
+			      const aes_encrypt_ctx *ctx)
 {
-    rijndaelEncrypt(ctx->context, ctx->rounds, in, out);
+    rijndaelEncrypt(ctx->context, ctx->rounds,
+		    (uint8_t *)in, (uint8_t *)out);
     return 0;
 }
 
-static inline int aes_decrypt(const uint8_t in[AES_BLOCK_SIZE],
-			       uint8_t out[AES_BLOCK_SIZE],
-			       const aes_decrypt_ctx *ctx)
+static inline int aes_decrypt(const aes_block in, aes_block out,
+			      const aes_decrypt_ctx *ctx)
 {
-    rijndaelDecrypt(ctx->context, ctx->rounds, in, out);
+    rijndaelDecrypt(ctx->context, ctx->rounds,
+		    (const uint8_t *)in, (uint8_t *)out);
     return 0;
 }
 
