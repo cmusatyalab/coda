@@ -846,12 +846,12 @@ static rvm_return_t queue_tid(tid)
 
     if (init_unames() != 0)             /* update uname generator */
         return RVM_EIO;
-    make_uname(&tid->commit_stamp);     /* record commit timestamp */
     flush_flag = (rvm_bool_t)TID(FLUSH_FLAG); /* save flush flag */
 
     /* queue tid for flush */
     CRITICAL(log->flush_list_lock,      /* begin flush_list_lock crit sec */
         {
+	make_uname(&tid->commit_stamp);     /* record commit timestamp */
         /* test for transaction coalesce */
         if (TID(RVM_COALESCE_TRANS))
             {
