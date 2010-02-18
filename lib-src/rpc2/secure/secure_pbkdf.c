@@ -29,7 +29,7 @@ Coda are listed in the file CREDITS.
 #include "grunt.h"
 
 static void F(void *ctx, uint8_t *U0, size_t U0len, uint32_t i,
-	      size_t iterations, aes_block prv)
+	      size_t iterations, aes_block *prv)
 {
     aes_block UN;
     size_t n;
@@ -37,12 +37,12 @@ static void F(void *ctx, uint8_t *U0, size_t U0len, uint32_t i,
     i = htonl(i);
     memcpy(U0 + U0len - sizeof(uint32_t), &i, sizeof(uint32_t));
 
-    aes_xcbc_prf_128(ctx, U0, U0len, UN);
-    memcpy(prv, UN, AES_BLOCK_SIZE);
+    aes_xcbc_prf_128(ctx, U0, U0len, &UN);
+    memcpy(prv->u8, UN.u8, AES_BLOCK_SIZE);
 
     for (n = 1; n < iterations; n++) {
-	aes_xcbc_prf_128(ctx, (uint8_t *)UN, sizeof(aes_block), UN);
-	xor128(prv, UN);
+	aes_xcbc_prf_128(ctx, UN.u8, sizeof(aes_block), &UN);
+	xor128(prv, &UN);
     }
 }
 
@@ -73,15 +73,15 @@ int secure_pbkdf(const uint8_t *password, size_t plen,
 	memcpy(U0, salt, slen);
 
     for (i = 1; i <= nblocks; i++) {
-	F(ctx, U0, U0len, i, iterations, (uint64_t *)key);
+	F(ctx, U0, U0len, i, iterations, (aes_block *)key);
 	key += AES_BLOCK_SIZE;
 	keylen -= AES_BLOCK_SIZE;
     }
     if (keylen) {
 	aes_block tmp;
-	F(ctx, U0, U0len, i, iterations, tmp);
-	memcpy(key, tmp, keylen);
-	memset(tmp, 0, AES_BLOCK_SIZE);
+	F(ctx, U0, U0len, i, iterations, &tmp);
+	memcpy(key, tmp.u8, keylen);
+	memset(tmp.u8, 0, sizeof(aes_block));
     }
     aes_xcbc_prf_release(&ctx);
     memset(U0, 0, U0len);

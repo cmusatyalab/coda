@@ -34,43 +34,36 @@ Coda are listed in the file CREDITS.
  * - Does not modify iv.
  * - Minimizes data copies.
  */
-int aes_cbc_encrypt(const uint64_t *in, uint64_t *out, size_t len,
-		    const aes_block iv, aes_encrypt_ctx *ctx)
+int aes_cbc_encrypt(const aes_block *in, aes_block *out, size_t nblocks,
+		    const aes_block *iv, aes_encrypt_ctx *ctx)
 {
-    const uint64_t *ivp = iv;
-    int blocks = len / sizeof(aes_block);
-    assert((len % sizeof(aes_block)) == 0);
-
-    while (blocks--)
+    int i;
+    for (i = 0; i < nblocks; i++)
     {
-	out[0] = in[0] ^ ivp[0];
-	out[1] = in[1] ^ ivp[1];
+	out[i].u64[0] = in[i].u64[0] ^ iv->u64[0];
+	out[i].u64[1] = in[i].u64[1] ^ iv->u64[1];
 
-	aes_encrypt(out, out, ctx);
+	aes_encrypt(&out[i], &out[i], ctx);
 
-	ivp = out;
-	in = &in[2]; out = &out[2];
+	iv = &out[i];
     }
-    return len;
+    return nblocks;
 }
 
-int aes_cbc_decrypt(const uint64_t *in, uint64_t *out, size_t len,
-		    const aes_block iv, aes_decrypt_ctx *ctx)
+int aes_cbc_decrypt(const aes_block *in, aes_block *out, size_t nblocks,
+		    const aes_block *iv, aes_decrypt_ctx *ctx)
 {
-    int blocks = (len / sizeof(aes_block)) - 1;
-    assert((len % sizeof(aes_block)) == 0);
-
     /* go backwards from the end to avoid an extra copy on every iteration */
-    while (blocks)
+    int i;
+    for (i = nblocks-1; i > 0; i--)
     {
-	aes_decrypt(&in[blocks*2], &out[blocks*2], ctx);
-	xor128(&out[blocks*2], &in[(blocks-1)*2]);
-	blocks--;
+	aes_decrypt(&in[i], &out[i], ctx);
+	xor128(&out[i], &in[i-1]);
     }
-    aes_decrypt(in, out, ctx);
-    xor128(out, iv);
+    aes_decrypt(&in[0], &out[0], ctx);
+    xor128(&out[0], iv);
 
-    return len;
+    return nblocks;
 }
 
 /* AES-based pseudo random function
@@ -84,24 +77,24 @@ int aes_xcbc_prf_init(void **ctx, const uint8_t *key, size_t len)
     int rc;
 
     if (len != sizeof(aes_block)) {
-	memset(tmp, 0, sizeof(aes_block));
+	memset(tmp.u8, 0, sizeof(aes_block));
 
 	if (len > sizeof(aes_block)) {
 	    /* long input key, use the digest as prf key */
-	    if (aes_xcbc_mac_init(ctx, (uint8_t *)tmp, sizeof(aes_block)))
+	    if (aes_xcbc_mac_init(ctx, tmp.u8, sizeof(aes_block)))
 		return -1;
-	    aes_xcbc_mac_128(*ctx, key, len, tmp);
+	    aes_xcbc_mac_128(*ctx, key, len, &tmp);
 	    aes_xcbc_mac_release(ctx);
 	} else
 	    /* short input key, use zero padded key as prf key */
-	    memcpy(tmp, key, len);
+	    memcpy(tmp.u8, key, len);
 
-	key = (uint8_t *)tmp;
+	key = tmp.u8;
     }
 
     rc = aes_xcbc_mac_init(ctx, key, sizeof(aes_block));
     if (len != sizeof(aes_block))
-	memset(tmp, 0, sizeof(aes_block));
+	memset(tmp.u8, 0, sizeof(aes_block));
 
     return rc;
 }
@@ -128,24 +121,24 @@ static void check_aes_monte_carlo(int verbose)
     for (k = 0; k < 3; k++) {
 	if (verbose)
 	    fprintf(stderr, "AES%d monte carlo test:        ", keysize[k]);
-	memset(ekey, 0, bytes(256)); memset(ebuf, 0, AES_BLOCK_SIZE);
-	memset(dkey, 0, bytes(256)); memset(dbuf, 0, AES_BLOCK_SIZE);
+	memset(ekey, 0, bytes(256)); memset(ebuf.u8, 0, AES_BLOCK_SIZE);
+	memset(dkey, 0, bytes(256)); memset(dbuf.u8, 0, AES_BLOCK_SIZE);
 
 	for (i = 0; i < runs; i++) {
 	    aes_encrypt_key(ekey, keysize[k], &ectx);
 	    aes_decrypt_key(dkey, keysize[k], &dctx);
 
 	    for (j = 0; j < 10000; j++) {
-		aes_encrypt(ebuf, ebuf, &ectx);
-		aes_decrypt(dbuf, dbuf, &dctx);
+		aes_encrypt(&ebuf, &ebuf, &ectx);
+		aes_decrypt(&dbuf, &dbuf, &dctx);
 		if (j == 9998) {
-		    memcpy(elast, ebuf, AES_BLOCK_SIZE);
-		    memcpy(dlast, dbuf, AES_BLOCK_SIZE);
+		    memcpy(elast.u8, ebuf.u8, AES_BLOCK_SIZE);
+		    memcpy(dlast.u8, dbuf.u8, AES_BLOCK_SIZE);
 		}
 	    }
 
-	    if (memcmp(ebuf, etestvector, AES_BLOCK_SIZE) != 0 ||
-		memcmp(dbuf, dtestvector, AES_BLOCK_SIZE) != 0)
+	    if (memcmp(ebuf.u8, etestvector, AES_BLOCK_SIZE) != 0 ||
+		memcmp(dbuf.u8, dtestvector, AES_BLOCK_SIZE) != 0)
 	    {
 		fprintf(stderr, "AES monte carlo test FAILED\n");
 		exit(-1);
@@ -156,14 +149,14 @@ static void check_aes_monte_carlo(int verbose)
 	    dp = (uint64_t *)dkey;
 	    switch(keysize[k]) {
 	    case 256:
-		*(ep++) ^= elast[0];
-		*(dp++) ^= dlast[0];
+		*(ep++) ^= elast.u64[0];
+		*(dp++) ^= dlast.u64[0];
 	    case 192:
-		*(ep++) ^= elast[1];
-		*(dp++) ^= dlast[1];
+		*(ep++) ^= elast.u64[1];
+		*(dp++) ^= dlast.u64[1];
 	    default:
-		xor128(ep, ebuf);
-		xor128(dp, dbuf);
+		xor128((aes_block *)ep, &ebuf);
+		xor128((aes_block *)dp, &dbuf);
 	    }
 	    etestvector += AES_BLOCK_SIZE;
 	    dtestvector += AES_BLOCK_SIZE;
@@ -206,21 +199,21 @@ static void check_aes_variable_text(int verbose)
 	if (verbose)
 	    fprintf(stderr, "AES%d variable plaintext test: ", keysize[k]);
 	memset(key, 0, bytes(256));
-	memset(text, 0, sizeof(aes_block));
-	text[0] = 0x80;
+	memset(text.u8, 0, sizeof(aes_block));
+	text.u8[0] = 0x80;
 
 	aes_encrypt_key(key, keysize[k], &ctx);
 	for (i = 0; i < runs; i++) {
-	    aes_encrypt(text, buf, &ctx);
+	    aes_encrypt(&text, &buf, &ctx);
 
-	    if (memcmp(buf, testvector, sizeof(aes_block)) != 0)
+	    if (memcmp(buf.u8, testvector, sizeof(aes_block)) != 0)
 	    {
 		fprintf(stderr, "AES variable plaintext test FAILED\n");
 		exit(-1);
 	    }
 	    testvector += sizeof(aes_block);
 
-	    shift_right((uint8_t *)text, sizeof(aes_block));
+	    shift_right(text.u8, sizeof(aes_block));
 	}
 	if (verbose)
 	    fprintf(stderr, "PASSED\n");
@@ -249,21 +242,21 @@ static void check_aes_variable_key(int verbose)
 	if (verbose)
 	    fprintf(stderr, "AES%d variable key test:       ", keysize[k]);
 	memset(key, 0, bytes(256));
-	memset(text, 0, sizeof(aes_block));
+	memset(text.u8, 0, sizeof(aes_block));
 	key[0] = 0x80;
 
 	for (i = 0; i < runs; i++) {
 	    aes_encrypt_key(key, keysize[k], &ctx);
-	    aes_encrypt(text, buf, &ctx);
+	    aes_encrypt(&text, &buf, &ctx);
 
-	    if (memcmp(buf, testvector, sizeof(aes_block)) != 0)
+	    if (memcmp(buf.u8, testvector, sizeof(aes_block)) != 0)
 	    {
 		fprintf(stderr, "AES variable key tests FAILED\n");
 		exit(-1);
 	    }
 	    testvector += sizeof(aes_block);
 
-	    if (shift_right(key, keysize[k]/8))
+	    if (shift_right(key, bytes(keysize[k])))
 		break;
 	}
 	if (verbose)
@@ -356,21 +349,21 @@ static const uint8_t aes_cbc256_ct[] =
     "\xb2\xeb\x05\xe2\xc3\x9b\xe9\xfc\xda\x6c\x19\x07\x8c\x6a\x9d\x1b";
 
 static int check_aes_cbc_vector(const uint8_t *key, size_t keylen,
-				const uint8_t *iv, const uint8_t *pt,
-				const uint8_t *ct, size_t len)
+				const aes_block *iv, const uint8_t *pt,
+				const uint8_t *ct, size_t nblocks)
 {
     aes_encrypt_ctx ectx;
     aes_decrypt_ctx dctx;
-    uint8_t buf[4*sizeof(aes_block)];
+    aes_block buf[4];
 
     aes_encrypt_key(key, keylen, &ectx);
-    aes_cbc_encrypt((uint64_t *)pt, (uint64_t *)buf, len, (uint64_t *)iv,&ectx);
-    if (memcmp(buf, ct, len) != 0)
+    aes_cbc_encrypt((aes_block *)pt, buf, nblocks, iv, &ectx);
+    if (memcmp(buf[0].u8, ct, nblocks * sizeof(aes_block)) != 0)
 	return 1;
 
     aes_decrypt_key(key, keylen, &dctx);
-    aes_cbc_decrypt((uint64_t *)buf, (uint64_t *)buf, len,(uint64_t *)iv,&dctx);
-    if (memcmp(buf, pt, len) != 0)
+    aes_cbc_decrypt(buf, buf, nblocks, iv, &dctx);
+    if (memcmp(buf[0].u8, pt, nblocks * sizeof(aes_block)) != 0)
 	return 1;
 
     return 0;
@@ -378,30 +371,30 @@ static int check_aes_cbc_vector(const uint8_t *key, size_t keylen,
 
 static void check_aes_cbc(int verbose)
 {
-    uint8_t iv[sizeof(aes_block)];
+    aes_block iv;
     int i, rc = 0;
 
     if (verbose)
 	fprintf(stderr, "AES-CBC test vectors:           ");
 
     /* RFC 3602 AES-CBC test vectors */
-    rc += check_aes_cbc_vector(aes_cbc_key1, 128, aes_cbc_iv1,
-			       aes_cbc_pt1, aes_cbc_ct1, AES_BLOCK_SIZE);
-    rc += check_aes_cbc_vector(aes_cbc_key2, 128, aes_cbc_iv2,
-			       aes_cbc_pt2, aes_cbc_ct2, 2*AES_BLOCK_SIZE);
-    rc += check_aes_cbc_vector(aes_cbc_key3, 128, aes_cbc_iv3,
-			       aes_cbc_pt3, aes_cbc_ct3, 3*AES_BLOCK_SIZE);
-    rc += check_aes_cbc_vector(aes_cbc_key4, 128, aes_cbc_iv4,
-			       aes_cbc_pt4, aes_cbc_ct4, 4*AES_BLOCK_SIZE);
+    rc += check_aes_cbc_vector(aes_cbc_key1, 128, (aes_block *)aes_cbc_iv1,
+			       aes_cbc_pt1, aes_cbc_ct1, 1);
+    rc += check_aes_cbc_vector(aes_cbc_key2, 128, (aes_block *)aes_cbc_iv2,
+			       aes_cbc_pt2, aes_cbc_ct2, 2);
+    rc += check_aes_cbc_vector(aes_cbc_key3, 128, (aes_block *)aes_cbc_iv3,
+			       aes_cbc_pt3, aes_cbc_ct3, 3);
+    rc += check_aes_cbc_vector(aes_cbc_key4, 128, (aes_block *)aes_cbc_iv4,
+			       aes_cbc_pt4, aes_cbc_ct4, 4);
 
     /* NIST AES-CBC test vectors */
-    for (i = 0; i < sizeof(aes_block); i++) iv[i] = i;
-    rc += check_aes_cbc_vector(aes_cbc128_key, 128, iv,
-			       aes_cbc128_pt, aes_cbc128_ct, 4*AES_BLOCK_SIZE);
-    rc += check_aes_cbc_vector(aes_cbc192_key, 192, iv,
-			       aes_cbc192_pt, aes_cbc192_ct, 4*AES_BLOCK_SIZE);
-    rc += check_aes_cbc_vector(aes_cbc256_key, 256, iv,
-			       aes_cbc256_pt, aes_cbc256_ct, 4*AES_BLOCK_SIZE);
+    for (i = 0; i < sizeof(aes_block); i++) iv.u8[i] = i;
+    rc += check_aes_cbc_vector(aes_cbc128_key, 128, &iv,
+			       aes_cbc128_pt, aes_cbc128_ct, 4);
+    rc += check_aes_cbc_vector(aes_cbc192_key, 192, &iv,
+			       aes_cbc192_pt, aes_cbc192_ct, 4);
+    rc += check_aes_cbc_vector(aes_cbc256_key, 256, &iv,
+			       aes_cbc256_pt, aes_cbc256_ct, 4);
     if (rc) {
 	fprintf(stderr, "AES-CBC test vectors FAILED\n");
 	exit(-1);
@@ -430,21 +423,21 @@ static void check_aes_xcbc_prf(int verbose)
 
     PRV = "\x47\xf5\x1b\x45\x64\x96\x62\x15\xb8\x98\x5c\x63\x05\x5e\xd3\x08";
     aes_xcbc_prf_init(&ctx, key, 16);
-    aes_xcbc_prf_128(ctx, input, 20, output);
+    aes_xcbc_prf_128(ctx, input, 20, &output);
     aes_xcbc_prf_release(&ctx);
-    rc = (memcmp(output, PRV, sizeof(aes_block)) != 0);
+    rc = (memcmp(output.u8, PRV, sizeof(aes_block)) != 0);
 
     PRV = "\x0f\xa0\x87\xaf\x7d\x86\x6e\x76\x53\x43\x4e\x60\x2f\xdd\xe8\x35";
     aes_xcbc_prf_init(&ctx, key, 10);
-    aes_xcbc_prf_128(ctx, input, 20, output);
+    aes_xcbc_prf_128(ctx, input, 20, &output);
     aes_xcbc_prf_release(&ctx);
-    rc += (memcmp(output, PRV, sizeof(aes_block)) != 0);
+    rc += (memcmp(output.u8, PRV, sizeof(aes_block)) != 0);
 
     PRV = "\x8c\xd3\xc9\x3a\xe5\x98\xa9\x80\x30\x06\xff\xb6\x7c\x40\xe9\xe4";
     aes_xcbc_prf_init(&ctx, key, 18);
-    aes_xcbc_prf_128(ctx, input, 20, output);
+    aes_xcbc_prf_128(ctx, input, 20, &output);
     aes_xcbc_prf_release(&ctx);
-    rc += (memcmp(output, PRV, sizeof(aes_block)) != 0);
+    rc += (memcmp(output.u8, PRV, sizeof(aes_block)) != 0);
 
     if (rc) {
 	fprintf(stderr, "AES-XCBC-PRF-128 test vectors FAILED\n");

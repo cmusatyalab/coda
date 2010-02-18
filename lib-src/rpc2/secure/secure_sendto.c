@@ -38,7 +38,7 @@ ssize_t secure_sendto(int s, const void *buf, size_t len, int flags,
     if (!sa || (!sa->encrypt && !sa->authenticate)) {
 	/* make sure the other side will not mistake this as encrypted */
 	if (len >= 2 * sizeof(uint32_t) &&
-	    ntohl(*int32(buf)) >= 256)
+	    ntohl(*((uint32_t *)buf)) >= 256)
 	{
 	    errno = EINVAL;
 	    return -1;
@@ -72,8 +72,8 @@ ssize_t secure_sendto(int s, const void *buf, size_t len, int flags,
 
     /* pack the header */
     aad = out;
-    int32(aad)[0] = htonl(sa->peer_spi);
-    int32(aad)[1] = htonl(sa->peer_seq);
+    ((uint32_t *)aad)[0] = htonl(sa->peer_spi);
+    ((uint32_t *)aad)[1] = htonl(sa->peer_seq);
     iv = aad + 2 * sizeof(uint32_t);
 
     /* increment and copy iv */

@@ -71,67 +71,57 @@ static void prng_get_bytes(uint8_t *random, size_t len);
 
 static void prng_init(const uint8_t s[INITIAL_SEED_LENGTH])
 {
-    uint8_t tmp[AES_BLOCK_SIZE];
+    aes_block tmp;
 
-    memcpy(pool, s, sizeof(aes_block));
+    memcpy(pool.u8, s, sizeof(aes_block));
     aes_encrypt_key(s + AES_BLOCK_SIZE, RND_KEY_BITS, &context);
 
     /* discard the first block of random data */
-    prng_get_bytes(tmp, AES_BLOCK_SIZE);
+    prng_get_bytes(tmp.u8, sizeof(aes_block));
 }
 
 static void prng_free(void)
 {
     memset(&context, 0, sizeof(aes_encrypt_ctx));
-    memset(pool, 0, AES_BLOCK_SIZE);
-    memset(last, 0, AES_BLOCK_SIZE);
+    memset(pool.u8, 0, sizeof(aes_block));
+    memset(last.u8, 0, sizeof(aes_block));
     counter = 0;
 }
 
 static void prng_get_bytes(uint8_t *random, size_t len)
 {
-    aes_block tmp;
-    uint64_t *randomp, *prev = last;
-    union {
-	struct {
-	    struct timeval tv;
-	    uint32_t uninitialized_stack_value;
-	    uint32_t counter;
-	} state;
-	aes_block I;
-    } init;
-    int nblocks = (len + AES_BLOCK_SIZE - 1) / AES_BLOCK_SIZE;
+    aes_block I, *prev = &last;
+    aes_block tmp, *out = (aes_block *)random;
+    int nblocks = (len + sizeof(aes_block) - 1) / sizeof(aes_block);
 
     /* Mix some entropy into the pool */
-    gettimeofday(&init.state.tv, NULL);
-    init.state.counter = counter++;
-    aes_encrypt(init.I, init.I, &context);
+    gettimeofday((struct timeval *)&I.u64[0], NULL);
+    I.u32[3] = counter++;
+    aes_encrypt(&I, &I, &context);
 
-    while (nblocks--) {
-	xor128(pool, init.I);
+    len %= sizeof(aes_block);
+    while (nblocks--)
+    {
+	xor128(&pool, &I);
 
-	if (!nblocks && len != AES_BLOCK_SIZE) {
-	    randomp = tmp;
-	    aes_encrypt(pool, randomp, &context);
-	    memcpy(random, randomp, len);
-	} else {
-	    randomp = (uint64_t *)random;
-	    aes_encrypt(pool, randomp, &context);
-	}
+	if (!nblocks && len) {
+	    aes_encrypt(&pool, &tmp, &context);
+	    memcpy(out->u8, tmp.u8, len);
+	    out = &tmp;
+	} else
+	    aes_encrypt(&pool, out, &context);
 
 	/* reseed the pool, mix in the random value */
-	xor128(init.I, randomp);
-	aes_encrypt(init.I, pool, &context);
+	xor128(&I, out);
+	aes_encrypt(&I, &pool, &context);
 
 	/* we must never return consecutive identical blocks */
-	assert(memcmp(prev, randomp, AES_BLOCK_SIZE) != 0);
+	assert(memcmp(prev->u8, out->u8, sizeof(aes_block)) != 0);
 
-	prev = randomp;
-	random += AES_BLOCK_SIZE;
-	len -= AES_BLOCK_SIZE;
+	prev = out++;
     }
-    if (prev != last)
-	memcpy(last, prev, AES_BLOCK_SIZE);
+    if (prev != &last)
+	memcpy(last.u8, prev->u8, sizeof(aes_block));
 }
 
 /* we need to find between 32 and 48 bytes of entropy to seed our PRNG
