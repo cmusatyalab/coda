@@ -1,3 +1,8 @@
+New in 2.10:
+
+* AES-CCM-16 was incorrectly named AES-CCM-12.
+* AES-CCM checksum validation always failed when the final block was partial.
+
 New in 2.9:
 
 * Send busy responses on new but not yet enabled connections.
