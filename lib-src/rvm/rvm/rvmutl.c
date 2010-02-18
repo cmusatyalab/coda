@@ -2281,30 +2281,25 @@ static void print_cur_sub_rec(out_stream,err_stream)
 
     }
 /* log status header printer */
-static void print_log_hdr(out_stream,err_stream)
-    FILE            *out_stream;        /* output stream */
-    FILE            *err_stream;        /* error stream */
-    {
+static void print_log_hdr(FILE *out_stream, FILE *err_stream)
+{
+    log_dev_status_t *log_dev_status = (log_dev_status_t *)status_io;
 
-    fprintf(out_stream,"Status of log:           %s\n\n",
+    fprintf(out_stream,"Status of log:\t%s\n\n",
             log_dev->name);
-    fprintf(out_stream,"  log created on:        ");
+    fprintf(out_stream,"  log created on:\t");
     pr_timeval(out_stream,&status->status_init,rvm_true,NULL);
     putc('\n',out_stream);
-    fprintf(out_stream,"  log created with:      %s\n",
-           ((log_dev_status_t *)status_io)->version);
-    fprintf(out_stream,"                         %s\n",
-           ((log_dev_status_t *)status_io)->log_version);
-    fprintf(out_stream,"                         %s\n",
-           ((log_dev_status_t *)status_io)->statistics_version);
-    fprintf(out_stream,"  status last written:   ");
+    fprintf(out_stream,"  log created with:\t%s\n", log_dev_status->version);
+    fprintf(out_stream,"\t\t\t%s\n", log_dev_status->log_version);
+    fprintf(out_stream,"\t\t\t%s\n", log_dev_status->statistics_version);
+    fprintf(out_stream,"  status last written:\t");
     pr_timeval(out_stream,&status->status_write,rvm_true,NULL);
     putc('\n',out_stream);
-    fprintf(out_stream,"  last truncation:       ");
+    fprintf(out_stream,"  last truncation:\t");
     pr_timeval(out_stream,&status->last_trunc,rvm_true,NULL);
     fprintf(out_stream,"\n\n");
-
-    }
+}
 /* log segment dictionary printer */
 static void print_seg_dict(out_stream,err_stream,entry_num)
     FILE            *out_stream;        /* output stream */
@@ -4132,7 +4127,8 @@ static rvm_length_t get_dev_length(dev_name)
 #endif
 /* init_log command support */
 static rvm_bool_t do_init_log()
-    {
+{
+    log_dev_status_t *log_dev_status = (log_dev_status_t *)status_io;
     rvm_length_t    log_len;            /* length of log file/device */
     rvm_offset_t    offset;             /* offset temporary */
     long            *buf;               /* log init buffer */
@@ -4218,13 +4214,12 @@ static rvm_bool_t do_init_log()
     page_free((char *)buf,log_buf->length);
 
     /* leave version string in local status i/o area for status printing */
-    (void)strcpy(((log_dev_status_t *)status_io)->version,
-                 RVM_VERSION);
+    strcpy(log_dev_status->version, RVM_VERSION);
 
     /* enter log in log list */
     enter_log(log);
     return rvm_true;
-    }
+}
 /* log status area primatives */
 static rvm_bool_t find_tail(out_stream,err_stream)
     FILE            *out_stream;
@@ -4678,7 +4673,8 @@ static str_name_entry_t open_key_vec[MAX_OPEN_KEYS] =
                     };
 
 static rvm_bool_t do_open_log()
-    {
+{
+    log_dev_status_t *log_dev_status = (log_dev_status_t *)status_io;
     rvm_return_t    retval;             /* rvm return code */
     char            *cmd_save;          /* cmd line postion save */
     char            str_name_buf[STR_NAME_LEN+1]; /* name buffer */
@@ -4728,10 +4724,9 @@ file_name:
           case RVM_EVERSION_SKEW:
                 {
                 fprintf(stderr,"? Version skew\n");
-                printf("\n  Log built with:  %s\n",
-                       ((log_dev_status_t *)status_io)->version);
+                printf("\n  Log built with:  %s\n", log_dev_status->version);
                 printf("  rvmutl built with: %s\n",RVM_VERSION);
-                if (! get_ans("Do you want to continue anyway",rvm_false))
+                if (! get_ans("Do you want to continue anyway", rvm_false))
                     return do_quit();
                 printf("\nWARNING: due to version skew, ");
 		printf("rvmutl may not work correctly.\n");
@@ -4789,7 +4784,7 @@ file_name:
         return find_tail(stdout,stderr);
 
     return rvm_true;
-    }
+}
 /* close log command support */
 static rvm_bool_t do_close_log()
     {
