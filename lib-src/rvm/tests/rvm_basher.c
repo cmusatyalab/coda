@@ -96,7 +96,9 @@ extern void clear_free_lists();
     }
 
 #undef CRITICAL
-#define CRITICAL(lock,body) {mutex_lock(&lock); {body;} mutex_unlock(&lock);}
+#define CRITICAL(lock,body) do { \
+    mutex_lock(&lock); { body } mutex_unlock(&lock); \
+} while(0)
 
 typedef struct list_entry_s
     {
@@ -133,8 +135,9 @@ int		    nthreads = 0;       /* Number of threads */
 cthread_t	    *threads;           /* thread handles vector */
 int                 *last;              /* last operation of thread */
 rvm_bool_t          Terminate = rvm_false; /* thread exit switch */
-RVM_MUTEX           print_lock;         /* syncronize worker start msgs */
+RVM_MUTEX           init_lock;          /* syncronize worker start */
 RVM_MUTEX           thread_lock = MUTEX_INITIALIZER; /* lock for thread exit code */
+RVM_CONDITION	    init_cv;		/* signal thread start completion */
 RVM_CONDITION       thread_exit_code;   /* code to signal termination to main */
 
 RVM_MUTEX           chk_lock = MUTEX_INITIALIZER; /* segment checker variables */
@@ -1074,8 +1077,11 @@ void monitor()
 void worker(void *idp)
 {
     int id = *(int *)idp;
-    CRITICAL(print_lock,
-             printf("Worker thread %d running...\n\n",id));
+
+    CRITICAL(init_lock,
+	printf("Worker thread %d running...\n\n",id);
+	condition_signal(&init_cv); /* wake up main thread */
+    );
 
     while (!Terminate)
         {
@@ -1692,7 +1698,8 @@ int main(argc, argv)
     show_brk = rvm_false;
     do_private_map = rvm_false;
     blk_cnt = 0;
-    mutex_init(&print_lock);
+    mutex_init(&init_lock);
+    condition_init(&init_cv);
     mutex_init(&alloc_list_lock);
     init_list_head(&alloc_list);
     mutex_init(&chk_lock);
@@ -2049,10 +2056,11 @@ int main(argc, argv)
     else
         {
         for (i = 0; i < nthreads; i++)
-            {
-            last[i] = 0;
-            threads[i] = cthread_fork(worker, &i);
-            }
+	    CRITICAL(init_lock,
+		last[i] = 0;
+		threads[i] = cthread_fork(worker, &i);
+		condition_wait(&init_cv, &init_lock);
+	    );
 
         /* wait for all threads to terminate */
         CRITICAL(thread_lock, {
