@@ -237,8 +237,11 @@ static void WorkerBody(void *arg)
 		
 	    case 2: /* square the input integer */
 		{
-		long x = ntohl(*(long *)(InBuff->Body));
-		*(long *)(OutBuff->Body) = htonl(x*x);
+		uint32_t *ip = (uint32_t *)InBuff->Body;
+		uint32_t *op = (uint32_t *)OutBuff->Body;
+		uint32_t x = ntohl(*ip);
+
+		*op = htonl(x * x);
 		OutBuff->Header.ReturnCode = RPC2_SUCCESS;
 		OutBuff->Header.BodyLength = sizeof(RPC2_Integer);
 		break;
@@ -246,9 +249,11 @@ static void WorkerBody(void *arg)
 	    
 	    case 3: /* cube the input integer */
 		{
-		long x = ntohl(*(long *)(InBuff->Body));
+		uint32_t *ip = (uint32_t *)InBuff->Body;
+		uint32_t *op = (uint32_t *)OutBuff->Body;
+		uint32_t x = ntohl(*ip);
 
-		*(long *)(OutBuff->Body) = htonl(x*x*x);
+		*op = htonl(x*x*x);
 		OutBuff->Header.ReturnCode = RPC2_SUCCESS;
 		OutBuff->Header.BodyLength = sizeof(RPC2_Integer);
 		break;
@@ -493,19 +498,21 @@ static void ClientBody(void *arg)
 
 	    case 2: /* square the input integer */
 	    {
-		int32_t x = (int32_t)random() % 100;
+		uint32_t *op = (uint32_t *)request->Body;
+		uint32_t x = (uint32_t)random() % 100;
 
-		*(int32_t *)(request->Body) = htonl(x);
-		request->Header.BodyLength = sizeof(int32_t);
+		op[0] = htonl(x);
+		request->Header.BodyLength = sizeof(uint32_t);
 
 		MakeTimedCall(NULL);
 		if (retcode == RPC2_SUCCESS)
 		    {
-		    if (VerboseFlag)
-			fprintf(stderr, " %s says square of %d is %u (%ld msecs)\n",
+		    if (VerboseFlag) {
+			uint32_t *ip = (uint32_t *)reply->Body;
+			fprintf(stderr, " %s says square of %u is %u (%ld msecs)\n",
 				ConnVector[thisconn].RemoteHost.Value.Name, x,
-				(uint32_t)ntohl(*(uint32_t *)reply->Body),
-				rpctime);
+				ntohl(ip[0]), rpctime);
+		    }
 		    break;
 		    }
 		else HandleRPCFailure(thisconn, retcode, ntohl(request->Header.Opcode));
@@ -514,19 +521,21 @@ static void ClientBody(void *arg)
 
 	    case 3: /* cube the input integer */
 	    {
-		int32_t x = (int32_t)random() % 100;
+		uint32_t *op = (uint32_t *)request->Body;
+		uint32_t x = (uint32_t)random() % 100;
 
-		*(int32_t *)(request->Body) = htonl(x);
-		request->Header.BodyLength = sizeof(int32_t);
+		op[0] = htonl(x);
+		request->Header.BodyLength = sizeof(uint32_t);
 
 		MakeTimedCall(NULL);
 		if (retcode == RPC2_SUCCESS)
 		    {
-		    if (VerboseFlag)
+		    if (VerboseFlag) {
+			uint32_t *ip = (uint32_t *)reply->Body;
 			fprintf(stderr, "%s says cube of %d is %u (%ld msecs)\n",
 				ConnVector[thisconn].RemoteHost.Value.Name, x,
-				(uint32_t)ntohl(*(uint32_t *)reply->Body),
-				rpctime);
+				ntohl(ip[0]), rpctime);
+		    }
 		    break;
 		    }
 		else HandleRPCFailure(thisconn, retcode, ntohl(request->Header.Opcode));

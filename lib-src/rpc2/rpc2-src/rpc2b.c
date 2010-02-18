@@ -859,7 +859,14 @@ long RPC2_ClearNetInfo(IN Conn)
 long rpc2_CreateIPSocket(int af, int *svar, struct RPC2_addrinfo *addr,
 			 short *Port)
 {
-    struct sockaddr_storage bindaddr;
+    union {
+	struct sockaddr	 	s;
+	struct sockaddr_storage sstorage;
+	struct sockaddr_in	sin;
+#if defined(PF_INET6)
+	struct sockaddr_in6	sin6;
+#endif
+    } bindaddr;
     socklen_t blen;
     int err = RPC2_FAIL;
     int flags, rc;
@@ -939,11 +946,11 @@ long rpc2_CreateIPSocket(int af, int *svar, struct RPC2_addrinfo *addr,
 
         switch (addr->ai_family) {
 	case PF_INET:
-	    port = ((struct sockaddr_in *)&bindaddr)->sin_port;
+	    port = bindaddr.sin.sin_port;
 	    break;
 #if defined(PF_INET6)
         case PF_INET6:
-	    port = ((struct sockaddr_in6 *)&bindaddr)->sin6_port;
+	    port = bindaddr.sin6.sin6_port;
             break;
 #endif
         default:

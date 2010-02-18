@@ -362,13 +362,15 @@ long ProcessPacket(RPC2_Handle cIn, RPC2_PacketBuffer *pIn, RPC2_PacketBuffer *p
 
 	    if (opcode == (long) STOREFILE) sed.Value.SmartFTPD.TransmissionDirection = CLIENTTOSERVER;
 	    else sed.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
-	    replylen = ntohl(*((unsigned long *)(pIn->Body)));
-	    sed.Value.SmartFTPD.SeekOffset = ntohl(*((unsigned long *)(pIn->Body + sizeof(long))));
+	    uint32_t *u32_body = (uint32_t *)pIn->Body;
+	    replylen = ntohl(u32_body[0]);
+	    sed.Value.SmartFTPD.SeekOffset = ntohl(u32_body[1]);
 	    printf("SeekOffset = %ld\n", sed.Value.SmartFTPD.SeekOffset);
-	    sed.Value.SmartFTPD.ByteQuota = ntohl(*((unsigned long *)(pIn->Body + 2*sizeof(long))));
+	    sed.Value.SmartFTPD.ByteQuota = ntohl(u32_body[2]);
 	    printf("ByteQuota = %ld\n", sed.Value.SmartFTPD.ByteQuota);
 	    sed.Value.SmartFTPD.hashmark = *(pIn->Body+3*sizeof(long));
-	    (void) strcpy((char *)sed.Value.SmartFTPD.FileInfo.ByName.LocalFileName, (char *)pIn->Body+1+3*sizeof(long));
+	    strcpy((char *)sed.Value.SmartFTPD.FileInfo.ByName.LocalFileName,
+		   (char *)pIn->Body+1+3*sizeof(long));
 
 	    if (strcmp(sed.Value.SmartFTPD.FileInfo.ByName.LocalFileName, "-") == 0)
 		{
