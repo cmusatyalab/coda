@@ -83,27 +83,23 @@ static long make_rec_num(log)
     return log->status.next_rec_num++;
     }
 /* allocate variable sized pad buffer */
-static void make_pad_buf(dev,length)
-    device_t        *dev;               /* device descriptor */
-    long            length;             /* entries needed */
-    {
-
+static void make_pad_buf(device_t *dev, long length)
+{
     assert((length >= 0) && (length < SECTOR_SIZE));
 
     /* see if must reallocate */
     if (length > dev->pad_buf_len)
-        {
-        dev->pad_buf = REALLOC(dev->pad_buf,length);
-        assert(dev->pad_buf != NULL);
-        (void)memset(&dev->pad_buf[dev->pad_buf_len],-1,
-                     length-dev->pad_buf_len);
-        dev->pad_buf_len = length;
-        }
-    }
-/* setup wrap marker i/o */
-static rvm_return_t write_log_wrap(log)
-    log_t           *log;
     {
+	dev->pad_buf = REALLOC(dev->pad_buf,length);
+	assert(dev->pad_buf != NULL);
+	(void)memset(&dev->pad_buf[dev->pad_buf_len],-1,
+		     length-dev->pad_buf_len);
+	dev->pad_buf_len = length;
+    }
+}
+/* setup wrap marker i/o */
+static rvm_return_t write_log_wrap(log_t *log)
+{
     device_t        *dev = &log->dev;
     log_wrap_t      *wrap = &log->log_wrap;
     rvm_offset_t    pad_len;
@@ -140,7 +136,7 @@ static rvm_return_t write_log_wrap(log)
     has_wrapped = rvm_true;
 #endif /* RVM_LOG_TAIL_SHADOW */
     return update_log_tail(log, &wrap->rec_hdr);
-    }
+}
 /* setup header for nv log entry */
 static void build_trans_hdr(tid,is_first,is_last)
     int_tid_t       *tid;
@@ -272,11 +268,9 @@ static void build_nv_range(log,tid,range)
     assert(BYTE_SKEW(range->nvaddr) == 0);
     assert(BYTE_SKEW(RVM_OFFSET_TO_LENGTH(range->nv.offset)) == 0);
     }
-static rvm_bool_t write_range(tid,range,log_free)
-    int_tid_t       *tid;               /* transaction descriptor */
-    range_t         *range;             /* range descriptor */
-    rvm_offset_t    *log_free;          /* ptr to length of log tail area */
-    {
+static rvm_bool_t write_range(int_tid_t *tid, range_t *range,
+				rvm_offset_t *log_free)
+{
     log_t           *log = tid->log;    /* log descriptor */
     rvm_offset_t    avail;              /* log space available */
 
@@ -288,8 +282,9 @@ static void build_nv_range(log,tid,range)
     avail = RVM_SUB_LENGTH_FROM_OFFSET(*log_free,
                     ((long)log->dev.io_length+sizeof(log_wrap_t)));
     assert(RVM_OFFSET_GTR(*log_free,avail)); /* underflow!! */
+
     if (RANGE_SIZE(range) > RVM_OFFSET_TO_LENGTH(avail))
-        {
+    {
         /* no, see if there's enough useful */
         if (RVM_OFFSET_TO_LENGTH(avail) < MIN_NV_RANGE_SIZE)
             return rvm_true;            /* no, wrap around first */
@@ -299,7 +294,7 @@ static void build_nv_range(log,tid,range)
                     RVM_OFFSET_TO_LENGTH(avail)-NV_RANGE_OVERHEAD);
         build_nv_range(log,tid,&tid->split_range);
         return rvm_true;                /* now wrap around */
-        }
+    }
 
     /* enter nv_range header & new values */
     build_nv_range(log,tid,range);
@@ -310,10 +305,9 @@ static void build_nv_range(log,tid,range)
             range->region->n_uncommit--);
 
     return rvm_false;
-    }
-static rvm_return_t write_tid(tid)
-    int_tid_t       *tid;               /* transaction descriptor */
-    {
+}
+static rvm_return_t write_tid(int_tid_t *tid)
+{
     log_t           *log = tid->log;    /* log descriptor */
     log_status_t    *status = &log->status; /* status block descriptor */
     range_t         *range;             /* range ptr */
@@ -331,20 +325,20 @@ static void build_nv_range(log,tid,range)
     /* see if must wrap before logging tid */
     log_tail_sngl_w(log,&log_free);
     if (RVM_OFFSET_TO_LENGTH(log_free) < MIN_TRANS_SIZE)
-        {
+    {
         if ((retval=write_log_wrap(log)) != RVM_SUCCESS)
             return retval;
         log_tail_sngl_w(log,&log_free);
-        }
+    }
 
     /* output transaction header */
     build_trans_hdr(tid,rvm_true,rvm_true);
 
     /* build log records */
     FOR_NODES_OF(tid->range_tree,range_t,range)
-        {
+    {
         if (write_range(tid,range,&log_free))
-            {
+	{
             /* insert end marker */
             build_rec_end(log,&log->trans_hdr.rec_hdr.timestamp,
                           log->trans_hdr.rec_hdr.rec_num,
@@ -363,9 +357,9 @@ static void build_nv_range(log,tid,range)
             /* process remainder of range */
             if (write_range(tid,range,&log_free))
                 assert(rvm_false);
-            }
-        }
-    /* insert end marker */
+	}
+    }
+    /* insert end marker */
     build_rec_end(log,&log->trans_hdr.rec_hdr.timestamp,
                   log->trans_hdr.rec_hdr.rec_num,
                   trans_hdr_id,tid->back_link);
@@ -393,7 +387,7 @@ static void build_nv_range(log,tid,range)
     if (gather_write_dev(&log->dev,&log->status.log_tail) < 0)
         return RVM_EIO;
     return update_log_tail(log, &log->trans_hdr.rec_hdr);
-    }
+}
 /* wait for a truncation to free space for log record
    -- assumes dev_lock is held */
 static rvm_return_t wait_for_space(log,space_needed,log_free,did_wait)
@@ -426,10 +420,9 @@ static rvm_return_t wait_for_space(log,space_needed,log_free,did_wait)
     return retval;
     }
 /* compute log entry size; truncate if necessary */
-static rvm_return_t log_tid(log,tid)
-    log_t           *log;               /* log descriptor */
-    int_tid_t       *tid;               /* tid to log */
-    {
+static rvm_return_t log_tid(log_t *log, int_tid_t *tid)
+{
+    rvm_offset_t    log_needed;
     rvm_offset_t    log_free;           /* log size temp, debug only */
     rvm_bool_t      did_wait;           /* debug only */
     rvm_return_t    retval;             /* return value */
@@ -438,15 +431,16 @@ static rvm_return_t log_tid(log,tid)
     (void)initiate_truncation(log,cur_log_percent(log,&tid->log_size));
 
     CRITICAL(log->dev_lock,             /* begin dev_lock crit sec */
-        {
+    {
         /* flush any immediate stream records */
         if ((retval=flush_log_special(log)) != RVM_SUCCESS)
             goto err_exit;
 
         /* wait if truncation required to get space */
-        retval = wait_for_space(log,&tid->log_size,
-                                &log_free,&did_wait);
-        if (retval != RVM_SUCCESS) goto err_exit;
+	log_needed = RVM_ADD_LENGTH_TO_OFFSET(tid->log_size,
+				    sizeof(log_wrap_t) + sizeof(rec_end_t));
+	retval = wait_for_space(log, &log_needed, &log_free, &did_wait);
+	if (retval != RVM_SUCCESS) goto err_exit;
 
         /* transfer tid to log device */
         if ((retval=write_tid(tid)) != RVM_SUCCESS)
@@ -457,7 +451,7 @@ static rvm_return_t log_tid(log,tid)
         if (TIME_EQL_ZERO(log->status.first_uname))
             log->status.first_uname = tid->uname;
 err_exit:;
-        });                             /* end dev_lock crit sec */
+    });                             /* end dev_lock crit sec */
     if (retval != RVM_SUCCESS) return retval;
 
     /* scrap tid */
@@ -465,14 +459,12 @@ err_exit:;
         CRITICAL(log->flush_list_lock,free_tid(tid));
 
     return retval;
-    }
+}
 /* set up special log entry i/o */
-static void build_log_special(log,special)
-    log_t           *log;               /* log descriptor */
-    log_special_t   *special;           /* special log entry */
-    {
-    device_t        *dev = &log->dev;   /* log device descriptor */
-    rvm_length_t    length;
+static void build_log_special(log_t *log, log_special_t *special)
+{
+    device_t *dev = &log->dev;	/* log device descriptor */
+    rvm_length_t length;
 
     /* timestamp the entry */
     make_uname(&special->rec_hdr.timestamp);
@@ -488,25 +480,22 @@ static void build_log_special(log,special)
 
     /* type-specific build operations */
     switch (special->rec_hdr.struct_id)
-        {
-      case log_seg_id:                  /* copy segment device name */
-            {
-            length = special->rec_hdr.rec_length-LOG_SPECIAL_SIZE;
-            dev->iov[dev->iov_cnt].iov_base = special->special.log_seg.name;
-            dev->iov[dev->iov_cnt++].iov_len = length;
-            break;
-            }
-       default:         assert(rvm_false); /* unknown record type */
-         }
+    {
+    case log_seg_id:                  /* copy segment device name */
+	length = special->rec_hdr.rec_length-LOG_SPECIAL_SIZE;
+	dev->iov[dev->iov_cnt].iov_base = special->special.log_seg.name;
+	dev->iov[dev->iov_cnt++].iov_len = length;
+	break;
 
-    assert(dev->iov_cnt <= dev->iov_length);
+    default:
+	assert(rvm_false); /* unknown record type */
     }
+    assert(dev->iov_cnt <= dev->iov_length);
+}
 /* insure space available in log; truncate if necessary, and initiate
    i/o for special log entries; */
-static rvm_return_t log_special(log,special)
-    log_t           *log;               /* log descriptor */
-    log_special_t   *special;           /* special entry descriptor */
-    {
+static rvm_return_t log_special(log_t *log, log_special_t *special)
+{
     rvm_offset_t    max_log_free;       /* log size temp, debug only */
     rvm_bool_t      did_wait;           /* debug only */
     rvm_offset_t    log_free;           /* size calculation temp */
@@ -545,7 +534,7 @@ static rvm_return_t log_special(log,special)
     free_log_special(special);
 
     return RVM_SUCCESS;
-    }
+}
 /* log immediate records flush -- log device locked by caller */
 rvm_return_t flush_log_special(log)
     log_t           *log;
@@ -634,20 +623,20 @@ err_exit:;
 
     /* terminate timing */
     if (retval == RVM_SUCCESS)
-        {
-        kretval= gettimeofday(&end_time,(struct timezone *)NULL);
-        if (kretval != 0) return RVM_EIO;
-        end_time = sub_times(&end_time,&start_time);
-        log->status.flush_time = add_times(&log->status.flush_time,
-                                           &end_time);
-        end_time.tv_usec = end_time.tv_usec/1000;
-        end_time.tv_usec += end_time.tv_sec*1000;
-        log->status.last_flush_time = end_time.tv_usec;
-        enter_histogram(end_time.tv_usec,log->status.flush_times,
-                        flush_times_vec,flush_times_len);
-        }
-    return retval;
+    {
+	kretval= gettimeofday(&end_time,(struct timezone *)NULL);
+	if (kretval != 0) return RVM_EIO;
+	end_time = sub_times(&end_time,&start_time);
+	log->status.flush_time = add_times(&log->status.flush_time,
+					&end_time);
+	end_time.tv_usec = end_time.tv_usec/1000;
+	end_time.tv_usec += end_time.tv_sec*1000;
+	log->status.last_flush_time = end_time.tv_usec;
+	enter_histogram(end_time.tv_usec,log->status.flush_times,
+			flush_times_vec,flush_times_len);
     }
+    return retval;
+}
 /* exported flush routine */
 rvm_return_t rvm_flush()
     {
