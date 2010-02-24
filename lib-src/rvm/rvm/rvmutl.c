@@ -985,6 +985,7 @@ static void pr_memory(out_stream,err_stream,addr,count,
     /* figure out width */
     switch (num_format & ALL_SIZES)
         {
+      case char_sw:
       case byte_sw:
         val = addr[i]; width = 3;
         if (num_format & (unsigned long)unsigned_sw)
@@ -1004,7 +1005,7 @@ static void pr_memory(out_stream,err_stream,addr,count,
           default: base = 10;
             }
         break;
-      case double_sw: case float_sw: case char_sw:
+      case double_sw: case float_sw:
         break;
       default:          assert(rvm_false);
         }
@@ -1582,7 +1583,7 @@ static rvm_bool_t do_peek()
     FILE            *err_stream;        /* error output stream */
     rvm_offset_t    offset;             /* initial offset in file */
     rvm_offset_t    pr_offset;          /* printing copy of offset (pr_range) */
-    int             base;               /* radix of offset */
+    int             base=0;             /* radix of offset */
     rvm_bool_t      no_err = rvm_true;
 
     /* see if redirection wanted */
