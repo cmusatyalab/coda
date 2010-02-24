@@ -959,15 +959,13 @@ void log_tail_length(log,tail_length)
 
     }
 /* determine length of log tail area usable in single write */
-void log_tail_sngl_w(log,tail_length)
-    log_t           *log;               /* log descriptor */
-    rvm_offset_t    *tail_length;       /* length [out] */
-    {
+void log_tail_sngl_w(log_t *log, rvm_offset_t *tail_length)
+{
     log_status_t    *status = &log->status; /* status area descriptor */
 
     /* determine effective head */
     if (!RVM_OFFSET_EQL_ZERO(status->prev_log_head))
-        *tail_length=CHOP_OFFSET_TO_SECTOR_SIZE(status->prev_log_head);
+        *tail_length = CHOP_OFFSET_TO_SECTOR_SIZE(status->prev_log_head);
     else                            /* no previous epoch */
         *tail_length = CHOP_OFFSET_TO_SECTOR_SIZE(status->log_head);
 
@@ -980,7 +978,7 @@ void log_tail_sngl_w(log,tail_length)
     /* subtract current current tail & verify log ptrs */
     *tail_length = RVM_SUB_OFFSETS(*tail_length,status->log_tail);
     assert(chk_tail(log));
-    }
+}
 /* determine length of log currently in use */
 void cur_log_length(log,length)
     log_t           *log;               /* log descriptor */

@@ -952,8 +952,9 @@ rvm_return_t rvm_abort_transaction(rvm_tid)
     /* restore virtual memory */
     restore_ov(tid);
 
-    log->status.n_abort++;              /* count transactions aborted 
-                                           (may not be exact since not locked) */
+    CRITICAL(log->dev_lock, {
+	log->status.n_abort++;              /* count transactions aborted */
+    });
 
     rvm_tid->tid = NULL;
     free_tid(tid);                      /* free transaction descriptor */
@@ -977,17 +978,18 @@ rvm_return_t rvm_end_transaction(rvm_tid,mode)
 
     /* remove tid from log's tid_list */
     log = tid->log;
-    CRITICAL(log->tid_list_lock,        /* begin tid_list_lock crit section */
-        {                               /* unlink tid from log's tid_list*/
-        (void)move_list_entry(&log->tid_list,NULL,&tid->links);
+    CRITICAL(log->dev_lock,		/* begin dev_lock crit section */
+    {                          
+	CRITICAL(log->tid_list_lock,	/* unlink tid from log's tid_list*/
+		 move_list_entry(&log->tid_list,NULL,&tid->links));
         if (mode == flush)              /* record flush mode and count */
-            {
+	{
             tid->flags |= FLUSH_FLAG;
             log->status.n_flush_commit++;
-            }
+	}
         else
             log->status.n_no_flush_commit++;
-        });                             /* end tid_list_lock crit section */
+    });					/* end tid_list_lock crit section */
     tid->commit_stamp.tv_sec = 1;       /* temporary mark */
     rw_unlock(&tid->tid_lock,w);        /* end tid_lock crit section */
 
