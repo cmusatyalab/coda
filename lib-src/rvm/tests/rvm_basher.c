@@ -78,7 +78,6 @@ extern long NRegionDefs;
 extern rvm_bool_t rds_testsw;                 /* special test mode switch */
 
 extern void clear_free_lists();
-/* CODA_ASSERT that preserves stack */
 #ifdef CODA_ASSERT
 #undef CODA_ASSERT
 #endif
@@ -86,11 +85,9 @@ extern void clear_free_lists();
     { \
     if (!(ex)) \
         { \
-        long _i_ = 0; \
         fprintf(stderr,"ASSERTion failed: file \"%s\", line %d\n", \
                 __FILE__, __LINE__); \
         fflush(stderr); \
-         _i_ = *(long *)_i_; \
         abort(); \
          } \
     }
