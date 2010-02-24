@@ -2101,7 +2101,7 @@ static rvm_return_t disk_merge(log,node,preload)
     {
     log_status_t    *status = &log->status; /* status descriptor */
     log_buf_t       *log_buf = &log->log_buf; /* log buffer descriptor */
-    rvm_length_t    data_len;           /* actual nv data length read */
+    rvm_length_t    data_len=0;         /* actual nv data length read */
     rvm_length_t    buf_ptr;            /* log buffer ptr */
     rvm_length_t    aux_ptr;            /* aux buffer ptr
                                            (compensates for sector alignment) */
