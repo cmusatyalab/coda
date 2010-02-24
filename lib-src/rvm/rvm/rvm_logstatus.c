@@ -338,7 +338,6 @@ rvm_return_t open_log(dev_name,log_ptr,status_buf,rvm_options)
     log_t           *log;               /* log descriptor ptr */
     log_buf_t       *log_buf;           /* log buffer descriptor ptr */
     device_t        *dev;               /* device descriptor ptr */
-    log_status_t    *status;            /* log status descriptor */
     rvm_length_t    flags = O_RDWR;     /* device open flags */
     rvm_options_t   local_options;      /* local options record */
     rvm_return_t    retval;
@@ -347,7 +346,6 @@ rvm_return_t open_log(dev_name,log_ptr,status_buf,rvm_options)
     if ((log = make_log(dev_name,&retval)) == NULL)
         goto err_exit2;
     dev = &log->dev;
-    status = &log->status;
     log_buf = &log->log_buf;
 
     /* allocate recovery buffers */

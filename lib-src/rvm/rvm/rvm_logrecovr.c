@@ -715,14 +715,14 @@ rvm_return_t scan_nv_reverse(log,synch)
     {
     log_buf_t       *log_buf = &log->log_buf; /* log buffer descriptor */
     rec_hdr_t       *rec_hdr;           /* temporary cast for record header */
-    long            len;                /* back displacement to prev. hdr */
+    long            len=0;                /* back displacement to prev. hdr */
     rvm_offset_t    offset;             /* offset calculation temp */
     rvm_return_t    retval;             /* return value */
 
     /* get new header position */
     rec_hdr = (rec_hdr_t *)&log_buf->buf[log_buf->ptr];
     switch (rec_hdr->struct_id)
-        {
+    {
       case rec_end_id:
         len = ((rec_end_t *)rec_hdr)->sub_rec_len;
         break;
@@ -732,9 +732,8 @@ rvm_return_t scan_nv_reverse(log,synch)
         break;
 
       default:
-	len = 0;
         assert(rvm_false);               /* trouble -- log damage? */
-        }
+    }
 
     /* see if new header is entirely within buffer */
     if ((log_buf->ptr-len) < 0)
@@ -1957,8 +1956,6 @@ static rvm_return_t build_tree(log)
     rvm_length_t    trans_cnt = 0;      /* transactions processed */
     rvm_bool_t      force_wrap_chk = rvm_false; /* true if suspect bad wrap */
     rvm_bool_t      skip_trans;         /* true if bad wrap trans to be skipped */
-    rvm_offset_t    last_buf;           /* debug only... */
-    long            last_ptr;           /* debug only... */
 
     assert(log->trunc_thread == cthread_self());
     assert(((status->trunc_state & RVM_TRUNC_PHASES) == RVM_TRUNC_FIND_TAIL)
@@ -1976,6 +1973,7 @@ X(init_buf)
         retval = init_buffer(log,&status->log_start, FORWARD,SYNCH);
     else
         retval = init_buffer(log,&status->prev_log_tail, REVERSE,SYNCH);
+    assert(retval == RVM_SUCCESS);
     assert(log->trunc_thread == cthread_self());
 X(done_init_buf)
     /* scan in reverse from tail to find records for uncommitted changes */
@@ -1985,8 +1983,6 @@ X(done_init_buf)
     while (!RVM_OFFSET_EQL(tail,status->prev_log_head))
         {
 X(start loop)
-        last_buf = log_buf->offset;
-        last_ptr = log_buf->ptr;
         if ((retval=scan_reverse(log,SYNCH)) != RVM_SUCCESS)
             return retval;
 X(done scan_reverse)

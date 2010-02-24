@@ -511,9 +511,8 @@ rvm_bool_t chk_mem_node(node)
     return retval;
     }
 /* validate dev_region node */
-rvm_bool_t chk_dev_node(node)
-    dev_region_t    *node;
-    {
+rvm_bool_t chk_dev_node(dev_region_t *node)
+{
     rvm_bool_t      retval = rvm_true;
     /* check validity of nv buffer ptrs */
     if (!((node->nv_ptr == NULL) && (node->nv_buf == NULL)))
@@ -541,13 +540,11 @@ rvm_bool_t chk_dev_node(node)
         retval = rvm_false;
         }
 
-    return rvm_true;
-    }
+    return retval;
+}
 /* check validity of tree node */
-rvm_bool_t chk_node(node,struct_id)
-    tree_node_t     *node;
-    struct_id_t     struct_id;          /* type of free list to check */
-    {
+rvm_bool_t chk_node(tree_node_t *node, struct_id_t struct_id)
+{
     rvm_bool_t      retval = rvm_true;
 
     /* basic structure checks */
@@ -574,16 +571,16 @@ rvm_bool_t chk_node(node,struct_id)
     switch (struct_id)
         {
       case mem_region_id:
-        retval = chk_mem_node((mem_region_t *)node);
+        retval = chk_mem_node((mem_region_t *)node) && retval;
         break;
       case dev_region_id:
-        retval = chk_dev_node((dev_region_t *)node);
+        retval = chk_dev_node((dev_region_t *)node) && retval;
         break;
       default:      assert(rvm_false);
         }
 
     return retval;
-    }
+}
 /* search mem_region tree node */
 rvm_bool_t search_mem_region(addr,node)
     rvm_length_t    addr;               /* address to search for */
