@@ -173,7 +173,9 @@ static rvm_return_t fork_daemon(log)
 	daemon->truncate = 0;
         daemon->state = rvm_idle;
         mutex_init(&daemon->lock);
+	mutex_lock(&daemon->lock);
         daemon->thread = cthread_fork(log_daemon, log);
+	mutex_unlock(&daemon->lock);
         if (daemon->thread == (cthread_t)NULL)
             return RVM_ELOG;
         }

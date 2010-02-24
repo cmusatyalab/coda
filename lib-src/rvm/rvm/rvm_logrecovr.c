@@ -1785,9 +1785,8 @@ static rvm_return_t do_trans(log,skip_trans)
 
         /* check order and process the range */
         assert(rec_hdr->struct_id == nv_range_id);
-        if (prev_range !=0)
-            assert(((nv_range_t *)rec_hdr)->range_num
-                   == (prev_range-1));
+        if (prev_range != 0)
+            assert(((nv_range_t *)rec_hdr)->range_num == (prev_range-1));
         if (!skip_trans)
             if ((retval=do_nv(log,(nv_range_t *)rec_hdr))
                 != RVM_SUCCESS) return retval;
@@ -1973,13 +1972,10 @@ X(reset_hdr)
 X(clear_aux)
     clear_aux_buf(log);
 X(init_buf)
-    if (RVM_OFFSET_EQL(status->prev_log_tail,
-                       status->log_start))
-        retval = init_buffer(log,&status->log_start,
-                             FORWARD,SYNCH);
+    if (RVM_OFFSET_EQL(status->prev_log_tail, status->log_start))
+        retval = init_buffer(log,&status->log_start, FORWARD,SYNCH);
     else
-        retval = init_buffer(log,&status->prev_log_tail,
-                             REVERSE,SYNCH);
+        retval = init_buffer(log,&status->prev_log_tail, REVERSE,SYNCH);
     assert(log->trunc_thread == cthread_self());
 X(done_init_buf)
     /* scan in reverse from tail to find records for uncommitted changes */
@@ -2746,7 +2742,7 @@ err_exit:
         });                             /* end truncation lock crit sec */
 
     return retval;
-    }
+}
 #undef X
 
 
@@ -2866,11 +2862,6 @@ void log_daemon(void *arg)
     daemon_state_t  state;              /* daemon state code */
     rvm_return_t    retval;
 
-    /* must assign thread id here since LWP transfers to 
-       created thread before returning to caller */
-    if (daemon->thread == (cthread_t)NULL)
-        daemon->thread = cthread_self();
-    
 #ifdef RVM_USELWP
     PRE_Concurrent(1);
 #endif
