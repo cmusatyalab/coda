@@ -2657,10 +2657,12 @@ err_exit1:;
 	    /* signal `initiate_truncation' that the first part is done */
 	    if (is_daemon)
 		{
+		mutex_lock(&daemon->lock);
 		assert(log->daemon.thread == cthread_self());
 		assert(daemon->state == truncating);
 		assert((status->trunc_state & RVM_ASYNC_TRUNCATE) != 0);
 		condition_signal(&daemon->flush_flag);
+		mutex_unlock(&daemon->lock);
 		}
             });                         /* end dev_lock crit sec */
 
