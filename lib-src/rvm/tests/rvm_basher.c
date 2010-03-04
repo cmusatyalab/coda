@@ -113,7 +113,6 @@ list_entry_t;
 typedef struct
     {
     list_entry_t    links;              /* allocated list links */
-    RVM_MUTEX       lock;               /* lock for access to data area */
     int             size;               /* usable size of block */
     rvm_length_t    chksum;             /* block checksum */
     char            *ptr;               /* ptr to rds allocated space */
@@ -451,7 +450,6 @@ void do_malloc(id)
     /* pick a size and allocate a block in recoverable heap */
     block = (block_t *)malloc(sizeof(block_t));
     init_list_ent(&block->links);
-    mutex_init(&block->lock);
     block->size = random() % max_block_size;
     if (block->size == 0) block->size = 1;
     block->ptr = rds_malloc(block->size, 0, &err);
@@ -523,8 +521,7 @@ void do_free(id)
         (void)move_list_ent(&alloc_list,NULL,(list_entry_t *)block);
         });                             /* end alloc list crit sec */
 
-    /* wait for possible modifications to complete and check sum */
-    CRITICAL(block->lock,{});
+    /* check sum */
     test_chk_sum(block);
 
     /* free the selected block */
@@ -541,7 +538,6 @@ void do_free(id)
         }
 
     /* deallocate list entry */
-    mutex_clear(&block->lock);
     free(block);
     }
 /* rvm_chk_range test */
@@ -703,10 +699,9 @@ void do_modify(id)
     CRITICAL(alloc_list_lock,           /* begin alloc list crit sec */
         {
         if ((block=pick_random()) != NULL)
-            /* all changes must be in crit sec so block doesn't get free'd */
-            mutex_lock(&block->lock);   /* begin block crit sec */
+	    /* unlink the block */
+	    (void)move_list_ent(&alloc_list,NULL,(list_entry_t *)block);
         });                             /* end alloc list crit sec */
-    cthread_yield();                    /* give free a chance to block... */
     if (block == NULL) return;          /* exit if list empty */
     test_chk_sum(block);                /* test for damage  */
 
@@ -737,7 +732,11 @@ void do_modify(id)
         range = (block_t *)move_list_ent(&range_list,NULL,NULL);
         free(range);
         }
-    mutex_unlock(&block->lock);         /* end block crit sec */
+    /* put the block back on the allocated list */
+    CRITICAL(alloc_list_lock,           /* begin alloc list crit sec */
+        {
+        (void)move_list_ent(NULL,&alloc_list,(list_entry_t *)block);
+        });                             /* end alloc list crit sec */
     }
 /* region checker for chk_vm */
 rvm_bool_t chk_region(seg_file,region)
@@ -858,14 +857,14 @@ rvm_bool_t chk_vm()
     if ((retval=RVM_STATISTICS(stats)) != RVM_SUCCESS)
         {
         printf("\n?  rvm_statistics failed, code: %s\n",
-               rvm_return(ret));
+               rvm_return(retval));
         CODA_ASSERT(rvm_false);
         }
 #if ((RVM_MAJOR_VERSION >= 2) && (RVM_MINOR_VERSION >= 0))
     if ((retval=RVM_QUERY(query,NULL)) != RVM_SUCCESS)
         {
         printf("\n?  rvm_query failed, code: %s\n",
-               rvm_return(ret));
+               rvm_return(retval));
         CODA_ASSERT(rvm_false);
         }
 #endif /* VERSION_TEST */
