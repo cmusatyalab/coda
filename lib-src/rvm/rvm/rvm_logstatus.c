@@ -162,26 +162,24 @@ found:;
 /* log daemon control */
 
 /* create daemon */
-static rvm_return_t fork_daemon(log) 
-    log_t           *log;
-   {
-    log_daemon_t    *daemon = &log->daemon; /* truncation daemon descriptor */
+static rvm_return_t fork_daemon(log_t *log) 
+{
+    log_daemon_t *daemon = &log->daemon; /* truncation daemon descriptor */
 
     /* create daemon thread */
     if (daemon->thread == (cthread_t)NULL)
-        {
+    {
+	mutex_lock(&daemon->lock);
 	daemon->truncate = 0;
         daemon->state = rvm_idle;
-        mutex_init(&daemon->lock);
-	mutex_lock(&daemon->lock);
         daemon->thread = cthread_fork(log_daemon, log);
 	mutex_unlock(&daemon->lock);
+
         if (daemon->thread == (cthread_t)NULL)
             return RVM_ELOG;
-        }
-
-    return RVM_SUCCESS;
     }
+    return RVM_SUCCESS;
+}
 
 /* terminate daemon */
 static rvm_return_t join_daemon(log)
