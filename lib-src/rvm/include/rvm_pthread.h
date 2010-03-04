@@ -97,12 +97,7 @@ extern int       rvm_join_res;
 #define condition_init(c)            (pthread_cond_init((c), NULL))
 
 #define mutex_init(m)                (pthread_mutex_init((m), NULL))
-
-/* 
- * cthreads.h on mach machines defines this exactly this way.  I have
- * no idea why
- */
-#define mutex_clear(m)                /* nop */
+#define mutex_clear(m)               (pthread_mutex_destroy(m), NULL)
 
 /* This doesn't work for some reason... */
 /*
