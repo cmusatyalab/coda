@@ -4930,15 +4930,15 @@ err_exit:
     bool_ret = rvm_false;
 sig_exit:
     /* get clean status block since replay may have changed things */
-    if (log != NULL)
-        if ((retval=read_log_status(log,status_io)) != RVM_SUCCESS)
-            {
-            pr_rvm_error(stderr,retval,READ_STATUS_STR);
-            bool_ret = rvm_false;
-            }
+    if (log && (retval=read_log_status(log,status_io)) != RVM_SUCCESS)
+    {
+	pr_rvm_error(stderr,retval,READ_STATUS_STR);
+	bool_ret = rvm_false;
+    }
 exit:
     close_monitor();
-    log->trunc_thread = cthread_self();
+    if (log)
+	log->trunc_thread = cthread_self();
     return bool_ret;
     }
 /* scan record number and locate */
@@ -5118,6 +5118,7 @@ static rvm_bool_t do_copy_log()
     /* get name of source log file or device */
     if (default_log == NULL)
         if (!do_open_log()) return rvm_false;
+    assert(default_log != NULL);
 
     /* get name of destination file/device */
     DO_FOREVER
