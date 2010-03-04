@@ -79,13 +79,10 @@ Coda are listed in the file CREDITS.
 #define RVM_CONDITION	struct condition
 #endif
 
-#define LEAVE_CRITICAL_SECTION	goto end_critical;
-#define CRITICAL(body) do {		   \
-                 mutex_lock(&heap_lock);   \
-                 body;			   \
-		 goto end_critical; /* avoid compiler warning */ \
-end_critical:    mutex_unlock(&heap_lock); \
-} while (0);
+#define START_CRITICAL	mutex_lock(&heap_lock)
+#define LEAVE_CRITICAL_SECTION	goto end_critical
+#define END_CRITICAL	goto end_critical; \
+    end_critical:	mutex_unlock(&heap_lock)
 
 /* Guards detect if the block structure had been illegally overwritten.
  * One is placed after the size, and before user's data. The other is placed

@@ -96,14 +96,16 @@ rds_prealloc(size, nblocks, tid, err)
      */
 
     for (i = 0; i < nblocks; i++) {
-	CRITICAL({
+	START_CRITICAL;
+	{
 	    /* Get a block */	
 	    bp = split(size, atid, err); 
 	    if (bp != NULL) { 
 		/* Add the block to the appropriate list. */
 		put_block(bp, atid, err);
 	    }
-	});
+	}
+	END_CRITICAL;
 
 	if (*err != SUCCESS) {
 	    if (tid == NULL) {

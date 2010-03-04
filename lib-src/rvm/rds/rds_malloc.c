@@ -19,7 +19,7 @@ Coda are listed in the file CREDITS.
 
 #include <stdio.h>
 #include "rds_private.h"
-    
+
               /************** NOTE: ***************/
 /* we create our own transactions in the following routines, even
  * though there is a tid in the interface. This might result in unreferenced
@@ -73,7 +73,8 @@ rds_malloc(size, tid, err)
     
 
     *err = SUCCESS; 		/* Initialize the error value */
-    CRITICAL({
+    START_CRITICAL;
+    {
 	/* Update stats */
 	rvmret = rvm_set_range(atid, &RDS_STATS, sizeof(rds_stats_t));
 	if (rvmret != RVM_SUCCESS) {
@@ -122,7 +123,8 @@ rds_malloc(size, tid, err)
 	    (*err) =(int) rvm_end_transaction(atid, no_flush);
 	    rvm_free_tid(atid);
 	}
-    });
+    }
+    END_CRITICAL;
 
     if (*err != SUCCESS) return NULL;
 

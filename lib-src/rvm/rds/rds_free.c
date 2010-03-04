@@ -96,7 +96,8 @@ rds_free(addr, tid, err)
 	atid = tid;
 
     *err = SUCCESS; 		/* Initialize the error value */
-    CRITICAL({
+    START_CRITICAL;
+    {
 	/* Update statistics */
 	rvmret = rvm_set_range(atid, &RDS_STATS, sizeof(rds_stats_t));
 	if (rvmret != RVM_SUCCESS) {
@@ -136,7 +137,8 @@ rds_free(addr, tid, err)
 		(*err) = (int)rvmret;
 	    }
 	}
-    });
+    }
+    END_CRITICAL;
 	
     return 0;
 }
@@ -207,7 +209,8 @@ int rds_do_free(list, mode)
     RDS_LOG("rdstrace: start do_free\n");
 
     err = SUCCESS; 		/* Initialize the error value */
-    CRITICAL({
+    START_CRITICAL;
+    {
 	/* Only need to set the range once. To be safe, doing in critical...*/
 	rvmret = rvm_set_range(tid, &RDS_STATS, sizeof(rds_stats_t));
 	if (rvmret != RVM_SUCCESS) {
@@ -252,7 +255,8 @@ int rds_do_free(list, mode)
 	} else {
 	    rvmret = rvm_end_transaction(tid, mode);
 	}
-    });
+    }
+    END_CRITICAL;
 	
     rvm_free_tid(tid);
     free(list->table);

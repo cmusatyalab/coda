@@ -69,11 +69,13 @@ rds_clear_stats(err)
 	return -1;
     }    
 
-    CRITICAL({
+    START_CRITICAL;
+    {
 	rvmret = rvm_set_range(atid, &RDS_STATS, sizeof(rds_stats_t));
 	if (rvmret == RVM_SUCCESS) 
 	    BZERO(&RDS_STATS, sizeof(rds_stats_t));
-    });
+    }
+    END_CRITICAL;
 
     if (rvmret != RVM_SUCCESS) {
 	rvm_abort_transaction(atid);
@@ -201,11 +203,11 @@ void rds_trace_dump_free_lists()
   RDS_LOG("rdstrace: stop dump_free_lists\n");
 }
 
-int
-rds_trace_dump_heap ()
+int rds_trace_dump_heap(void)
 {
-  assert(HEAP_INIT);
-    CRITICAL({
+    assert(HEAP_INIT);
+    START_CRITICAL;
+    {
       RDS_LOG("rdstrace: start heap_dump\n");
       RDS_LOG("rdstrace: version_string %s\n", RDS_VERSION_STAMP);
       RDS_LOG("rdstrace: heaplength %ld\n", RDS_HEAPLENGTH);
@@ -215,6 +217,7 @@ rds_trace_dump_heap ()
       RDS_LOG("rdstrace: maxlist %ld\n", RDS_MAXLIST);
       rds_trace_dump_free_lists();
       RDS_LOG("rdstrace: stop heap_dump\n");
-    });
-  return 0;
+    }
+    END_CRITICAL;
+    return 0;
 }

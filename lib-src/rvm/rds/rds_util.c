@@ -127,7 +127,8 @@ print_heap()
     if (!HEAP_INIT)	/* Make sure RecoverableHeapStartAddress is inited */
 	return -1;
 
-    CRITICAL({
+    START_CRITICAL;
+    {
 	printf("Heap starts at %lx, uses %ld sized chunks, and use %ld of %ld lists\n",
 	       (long)RecoverableHeapStartAddress, RDS_CHUNK_SIZE, 
 	       RDS_MAXLIST, RDS_NLISTS);
@@ -163,7 +164,8 @@ print_heap()
 		fbp = fbp->next;
 	    }
 	}
-    });
+    }
+    END_CRITICAL;
     
     printf("Sum of sizes of objects in free lists is %d.\n", total_size);
     return 0;
