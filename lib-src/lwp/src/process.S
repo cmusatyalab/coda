@@ -735,7 +735,11 @@ ENTRY(savecontext)
 	movs	r2, r2
 	movne	sp, r2
 	@ call function ...
+#if defined(__ARM_ARCH_2__) || defined(__ARM_ARCH_3__) || defined(__ARM_ARCH_3M__) || defined(__ARM_ARCH_4__)
 	mov	pc, r0
+#else
+	bx	r0
+#endif
 
 /*	should never get here ... */
 /*	bl	EXT(abort) */
