@@ -20,6 +20,10 @@ Coda are listed in the file CREDITS.
 #include <stdarg.h>
 #include <string.h>
 #include <unistd.h>
+
+/* avoid breaking longjmp stack switching */
+#undef _FORTIFY_SOURCE
+#define _FORTIFY_SOURCE 0
 #include "lwp_ucontext.h"
 
 /* Some architectures have a stack that grows up instead of down */
