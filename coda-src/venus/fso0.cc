@@ -709,6 +709,13 @@ RestartFind:
 			     path, FID_(key));
 		} /* s/s conflict objs fall through if(GetInconsistent) */
 
+		if (code) {
+		    /* wakeup threads that may still be stuck waiting for
+		     * matriculation of this object */
+		    matriculation_count++;
+		    VprocSignal(&matriculation_sync);
+		}
+
 		if (code && !(code == EINCONS && GetInconsistent)) {
 		    if (code == EINCONS)
 			LOG(0, ("fsdb::Get: EINCONS after GetAttr\n"));
