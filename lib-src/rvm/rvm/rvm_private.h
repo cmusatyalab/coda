@@ -1235,10 +1235,6 @@ void free_tid();                        /* [rvm_utils.c] */
 /*  register int_tid_t  *tid; */
 
 extern
-int_tid_t *get_tid();                   /* [rvm_trans.c] */
-/*  rvm_tid_t *rvm_tid; */
-
-extern
 mem_region_t *make_mem_region();        /* [rvm_utils.c] */
 
 extern

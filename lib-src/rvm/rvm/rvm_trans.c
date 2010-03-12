@@ -51,9 +51,8 @@ rvm_return_t bad_tid(rvm_tid)
     }
 
 /* tid lookup and checker */
-int_tid_t *get_tid(rvm_tid)
-    rvm_tid_t           *rvm_tid;
-    {
+static int_tid_t *get_tid(rvm_tid_t *rvm_tid)
+{
     int_tid_t           *tid;
 
     /* sanity checks */
@@ -73,8 +72,9 @@ int_tid_t *get_tid(rvm_tid)
         });
 
     return NULL;
-    }
-/* reallocate tid x_ranges vector if necessary */
+}
+
+/* reallocate tid x_ranges vector if necessary */
 static rvm_bool_t alloc_x_ranges(tid,len)
     int_tid_t       *tid;
     int             len;
