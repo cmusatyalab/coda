@@ -15,7 +15,16 @@ Description: LWP thread library
  distributed filesystem, RVM (a persistent VM library), and RPC2/SFTP (a
  remote procedure call library)
 
+Package: liblwp2-dbg
+Architecture: any
+Section: debug
+Priority: extra
+Depends: liblwp2 (= ${binary:Version}), ${misc:Depends}
+Description: LWP thread library debug symbols
+ Debug symbols for the LWP userspace threads library.
+
 Package: liblwp2
+Section: libs
 Architecture: alpha amd64 arm i386 m68k powerpc sparc
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Homepage: http://www.coda.cs.cmu.edu/
