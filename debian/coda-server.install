@@ -1,6 +1,4 @@
 debian/tmp/etc/coda/server.conf.ex
-debian/tmp/etc/init.d/codasrv.init
-debian/tmp/etc/init.d/auth2.init
 debian/tmp/usr/bin/getvolinfo
 debian/tmp/usr/bin/reinit
 debian/tmp/usr/bin/rpc2ping

@@ -1,59 +1,119 @@
 #!/bin/sh
 #
-# Written by Miquel van Smoorenburg <miquels@cistron.nl>.
-# Modified for Debian GNU/Linux by Ian Murdock <imurdock@gnu.org>.
-# Modified for Debian by Christoph Lameter <clameter@debian.org>
+# coda-client
+#
+# chkconfig: 345 97 01
+# description: The Coda file system client.
 
-PATH=/bin:/usr/bin:/sbin:/usr/sbin
-DAEMON=/usr/sbin/venus
-MODPROBE=/sbin/modprobe
-UDEVSETTLE=/sbin/udevsettle
-SLEEP=/bin/sleep
-VUTIL=/usr/sbin/vutil
+### BEGIN INIT INFO
+# Provides:	     coda-client
+# Required-Start:    $local_fs $time
+# Required-Stop:     $local_fs
+# Should-Start:      $network $named
+# Should-Stop:
+# Default-Start:     3 4 5
+# Default-Stop:	     0 1 6
+# Short-Description: Start the Coda file system client.
+### END INIT INFO
 
-FLAGS="defaults 50"
+. /lib/lsb/init-functions
 
-test -f $DAEMON || exit 0
+subsys=coda-client
+
+exec=/usr/sbin/venus
+prog=venus
+pid_file=/var/run/coda-client.pid
+config=/etc/coda/venus.conf
+
+lockfile=/var/lock/subsys/$subsys
+
+[ -e /etc/sysconfig/$subsys ] && . /etc/sysconfig/$subsys
+
+# coda-client specific settings
+mountpoint=/coda
+[ -x /usr/sbin/codaconfedit ] && . `/usr/sbin/codaconfedit venus.conf`
+
+
+start () {
+    [ -x $exec ] || exit 5
+    [ -f $config ] || exit 6
+    echo -n $"Starting $subsys:"
+    echo -n " kernel"
+    /sbin/modprobe coda
+    /sbin/udevadm settle
+
+    echo -n " $prog"
+    /usr/sbin/vutil --swaplogs >/dev/null 2>&1 || true
+    start_daemon -p $pid_file $exec 2>&1 >/dev/null
+    retval=$?
+
+    [ $retval -eq 0 ] && log_success_msg || log_failure_msg
+    [ $retval -eq 0 -a -d /var/lock/subsys ] && touch $lockfile
+    return $retval
+}
+
+stop () {
+    echo -n $"Stopping $subsys:"
+    echo -n " unmounting $mountpoint"
+    umount $mountpoint >/dev/null 2>&1
+    retval=$?
+
+    if [ $retval -eq 0 ] ; then
+        echo -n " $prog"
+	killproc -p $pid_file $prog
+	retval=$?
+    fi
+
+    [ $retval -eq 0 ] && log_success_msg || log_failure_msg
+    [ $retval -eq 0 -a -d /var/lock/subsys ] && rm -f $lockfile
+    return $retval
+}
+
+restart() {
+    stop
+    start
+}
+
+checkstatus() {
+    pidofproc -p $pid_file $prog >/dev/null 2>&1
+}
 
 case "$1" in
-  start)
-    echo -n "Starting Coda client components:"
-    echo -n " kernel" ; $MODPROBE coda
-    [ -x $UDEVSETTLE ] && $UDEVSETTLE || $SLEEP 5
-    $VUTIL --swaplogs
-    echo -n " venus" ; start-stop-daemon --start --quiet --exec $DAEMON
-    echo "."
-    ;;
-  stop)
-    start-stop-daemon --stop --verbose --exec $DAEMON
-    umount /coda
-    ;;
-  #reload)
-    #
-    # If the daemon can reload its config files on the fly
-    # for example by sending it SIGHUP, do it here.
-    #
-    # If the daemon responds to changes in its config file
-    # directly anyway, make this a do-nothing entry.
-    #
-    # start-stop-daemon --stop --signal 1 --verbose --exec $DAEMON
-    # ;;
-  restart|force-reload)
-  #
-  # If the "reload" option is implemented, move the "force-reload"
-  # option to the "reload" entry above. If not, "force-reload" is
-  # just the same as "restart".
-  #
-    start-stop-daemon --stop --verbose --exec $DAEMON
-    umount /coda
-    sleep 1
-    $VUTIL --swaplogs
-    start-stop-daemon --start --verbose --exec $DAEMON
-    ;;
-  *)
-    echo "Usage: /etc/init.d/coda-client {start|stop|restart|force-reload}"
-    exit 1
-    ;;
+    start)
+	checkstatus && exit 0
+	$1
+	;;
+    stop)
+	checkstatus || exit 0
+	$1
+	;;
+    hardstop)
+	stop
+	;;
+    restart)
+	restart
+	;;
+    condrestart|try-restart)
+	checkstatus || exit 0
+	restart
+	;;
+    reload|force-reload)
+	echo $"$1 not available"
+	exit 3
+	;;
+    status)
+	checkstatus
+	retval=$?
+	if [ $retval -eq 0 ] ; then
+	    echo "$prog is running"
+	else
+	    echo "$prog is not running"
+	fi
+	exit $retval
+	;;
+    *)
+	echo $"Usage: $0 {start|stop|status|restart|condrestart|try-restart|reload|force-reload|hardstop}"
+	exit 2
 esac
+exit $?
 
-exit 0

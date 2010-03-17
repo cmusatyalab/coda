@@ -1,7 +1,0 @@
-#!/bin/sh
-set -e
-if [ "$1" = "purge" ] ; then
-    update-rc.d auth2.init remove >/dev/null
-    update-rc.d codasrv.init remove >/dev/null
-fi
-

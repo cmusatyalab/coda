@@ -56,10 +56,7 @@ install-stamp: build-stamp
 	mkdir -p "`pwd`/debian/tmp/coda"
 	touch "`pwd`/debian/tmp/coda/NOT_REALLY_CODA"
 
-	# remove things we really don't need
-	rm -f "`pwd`/debian/tmp/etc/init.d/update.init"
-	rm -f "`pwd`/debian/tmp/etc/init.d/venus.init"
-
+	# Change venus-setup to run dpkg-reconfigure
 	echo -e '#!/bin/sh\necho "Starting \"dpkg-reconfigure coda-client\""\ndpkg-reconfigure coda-client' > "`pwd`/debian/tmp/usr/sbin/venus-setup"
 	chmod 755 "`pwd`/debian/tmp/usr/sbin/venus-setup"
 
@@ -78,7 +75,7 @@ binary-arch: build install
 	dh_install
 	dh_installdebconf
 	dh_installdocs
-	dh_installinit --update-rcd-params="defaults 60"
+	dh_installinit
 #	dh_installman
 #	dh_installmodules
 	dh_installchangelogs

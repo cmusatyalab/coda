@@ -1,1 +1,4 @@
 changelog
+files
+*.debhelper
+*.substvars

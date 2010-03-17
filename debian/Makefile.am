@@ -6,12 +6,12 @@ EXTRA_DIST = changelog compat control copyright rules watch \
     coda-client.install coda-client.modprobe coda-client.modules \
     coda-client.postinst coda-client.postrm coda-client.preinst \
     coda-client.templates \
-    coda-server.dirs coda-server.docs coda-server.install coda-server.postinst \
-    coda-server.postrm coda-server.prerm \
+    coda-server.dirs coda-server.docs coda-server.init.d coda-server.install \
     coda-update.init.d coda-update.install \
     coda-vcodacon.install
 
 # make sure make distclean doesn't remove the changelog file
 CONFIG_CLEAN_FILES =
+CLEANFILES = files *.substvars *.debhelper
 MAINTAINERCLEANFILES = changelog
 
