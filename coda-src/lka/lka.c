@@ -296,7 +296,7 @@ int lkdb_GetFilenameFromSHA(struct lkdb *dbp,
   /* Add absolute prefix to hitpathname, if necessary */
   if (prefix != '/') {
       prefix_len = strlen(dbp->dblocation);
-      strcpy(hitpath, dbp->dblocation); /* copy prefix */
+      strncpy(hitpath, dbp->dblocation, hitpathlen); /* copy prefix */
   }
 
   if (prefix_len + dlen >= hitpathlen) {
