@@ -1,3 +1,17 @@
+New in 2.6:
+
+ * Fix fortify failure whenever a new thread is started.
+ * ARM thumb2 assembly fix.
+
+New in 2.5:
+
+ * Fix ARM/ARMEL build failure (Riku Voipio)
+ * Packaging/build fixes.
+ * Add valgrind markers for LWP stacks.
+ * Avoid using the libc ucontext.h macros.
+ * Improve context switch times and reduce unnecessary gettimeofday syscalls.
+ * Don't call setjmp in a function to avoid stack corruption when we return.
+
 New in 2.4:
 
 * Improve cygwin packaging. (Phil Nelson)

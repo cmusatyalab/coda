@@ -1,14 +1,14 @@
 Source: lwp
-Section: devel
+Section: libdevel
 Priority: optional
 Maintainer: Jan Harkes <jaharkes@cs.cmu.edu>
-Standards-Version: 3.7.2
-Build-Depends: debhelper (>= 4)
+Standards-Version: 3.8.4
+Build-Depends: debhelper (>= 7)
 XS-Vcs-Browser: http://www.coda.cs.cmu.edu/cgi-bin/gitweb.cgi?p=lwp.git
 
 Package: liblwp-dev
 Architecture: alpha amd64 arm i386 m68k powerpc sparc
-Depends: liblwp2 (= ${binary:Version})
+Depends: liblwp2 (= ${binary:Version}), ${misc:Depends}
 Description: LWP thread library
  Headers and static libraries for developing programs using the LWP
  userspace threads library. The LWP threads library is used by the Coda
@@ -17,10 +17,9 @@ Description: LWP thread library
 
 Package: liblwp2
 Architecture: alpha amd64 arm i386 m68k powerpc sparc
-Depends: ${shlibs:Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Homepage: http://www.coda.cs.cmu.edu/
 Description: LWP thread library
  The LWP userspace threads library. The LWP threads library is used by the
  Coda distributed filesystem, RVM (a persistent VM library), and RPC2/SFTP
  (a remote procedure call library)
- .
- Homepage: http://www.coda.cs.cmu.edu/
