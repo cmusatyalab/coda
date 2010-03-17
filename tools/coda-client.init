@@ -25,6 +25,8 @@ prog=venus
 pid_file=/var/run/coda-client.pid
 config=/etc/coda/venus.conf
 
+lockfile=/var/lock/subsys/$subsys
+
 [ -e /etc/sysconfig/$subsys ] && . /etc/sysconfig/$subsys
 
 # coda-client specific settings
