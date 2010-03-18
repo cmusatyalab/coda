@@ -783,8 +783,6 @@ class repvol : public volent {
     /*T*/int VCBHits;			/* # references hitting this callback */
     ViceVersionVector VVV;              /* (maximal) volume version vector */
 
-    /*T*/PermitStatus VPStatus;   /* do we have a volume permit? */
-
     repvol(Realm *r, VolumeId vid, const char *name,
 	   volrep *reps[VSG_MEMBERS]);
     ~repvol();
