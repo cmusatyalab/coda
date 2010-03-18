@@ -876,7 +876,7 @@ void volent::ResetVolTransients()
     flags.transition_pending = 1;
     flags.demotion_pending = 0;
     flags.allow_asrinvocation = 1;  /* user preference, controlled by cfs */
-	flags.enable_asrinvocation = 1; /* whether system is able to launch */
+    flags.enable_asrinvocation = 1; /* whether system is able to launch */
     flags.asr_running = 0;
     flags.reintegrating = 0;
     flags.repair_mode = 0;		    /* normal mode */
@@ -1380,10 +1380,6 @@ void volrep::DownMember(struct in_addr *host)
     flags.transition_pending = 1;
     flags.available = 0;
 	
-    /* Coherence is now suspect for all objects in read-write volumes. */
-    if (!IsBackup())
-        flags.demotion_pending = 1;
-
     /* if we are a volume replica notify our replicated parent */
     if (IsReadWriteReplica()) {
 	Volid volid;
@@ -1412,11 +1408,8 @@ void repvol::DownMember(struct in_addr *host)
     ResetStats();
 
     /* Consider transitioning to Unreachable state. */
-    if (AVSGsize() == 0) {
+    if (AVSGsize() == 0)
 	flags.transition_pending = 1;
-        /* Coherence is now suspect */
-        flags.demotion_pending = 1;
-    }
 }
 
 void volrep::UpMember(void)
@@ -1424,6 +1417,10 @@ void volrep::UpMember(void)
     LOG(10, ("volrep::UpMember: vid = %08x\n", vid));
     flags.transition_pending = 1;
     flags.available = 1;
+
+    /* Coherence is now suspect for all objects in read/write volumes. */
+    if (!IsBackup())
+	flags.demotion_pending = 1;
 
     /* if we are a volume replica notify our replicated parent */
     if (IsReadWriteReplica()) {
