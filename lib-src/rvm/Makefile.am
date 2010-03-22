@@ -14,7 +14,7 @@ EXTRA_DIST = bootstrap.sh configure \
     pkgs/rvm.spec pkgs/mk-cyg-pkg.sh pkgs/setup.hint \
     debian/changelog debian/compat debian/control debian/copyright debian/dirs \
     debian/librvm1.install debian/librvm-dev.install debian/librvm-dev.docs \
-    debian/rules debian/rvm-tools.install debian/watch
+    debian/rules debian/rvm-tools.install
 
 MAINTAINERCLEANFILES = AUTHORS ChangeLog Makefile.in README compile \
     config.guess config.h.in config.sub configure install-sh libtool \

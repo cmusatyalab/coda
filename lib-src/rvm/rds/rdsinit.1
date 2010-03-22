@@ -2,7 +2,7 @@
 .if t .ds Q ``
 .if n .ds U \&"
 .if t .ds U ''
-.TH "rdsinit" 1-RDSINIT 
+.TH "rdsinit" 1
 .tr \&
 .nr bi 0
 .nr ll 0
@@ -28,13 +28,9 @@
 .el .PP 
 .\}
 ..
-NAME 
-.Pp
-rdsinit - RDS heap initialization utility
-.Pp
-SYNOPSIS
-.Pp
-.Pp
+.SH "NAME"
+rdsinit \- RDS heap initialization utility
+.SH "SYNOPSIS"
 \fBrdsinit\fP \fIlog\fP \fIdata_seg\fP
 .Pp
 \fBrdsinit\fP \fIlog\fP \fIdata_seg\fP \fIdatalen\fP \fIsaddr\fP
@@ -42,10 +38,7 @@ SYNOPSIS
 .Pp
 \fBrdsinit\fP \fI-f\fP \fIlog\fP \fIdata_seg\fP \fIdatalen\fP \fIsaddr\fP
 \fIhlen\fP \fIslen\fP \fInl\fP \fIchunk\fP 
-.Pp
-.Pp
-DESCRIPTION
-.Pp
+.SH "DESCRIPTION"
 \f(CRrdsinit\fP is a utility that constructs an initialized RDS heap in an
 RVM segment.  It is intended to create a structure that can be loaded
 by \f(CRrds_load_heap\fP\&.
@@ -185,18 +178,10 @@ Do you agree with these parameters ? (y|n|q) y
 .Pp
 If user supplied the -f (firm) switch on command line, this last
 confirmation will not show up.
-.Pp
-.Pp
-SEE ALSO
-.Pp
+.SH "SEE ALSO"
 \f(CRrds_init_heap (3)\fP, \f(CRrds_load_heap (3)\fP, \f(CRrds_zap_heap (3)\fP,
 \f(CRrvm_create_segment (3)\fP, \f(CRrvm_load_segment (3)\fP, \f(CRrvmutl (1)\fP
-.Pp
-.Pp
-AUTHOR
-.Pp
+.SH "AUTHOR"
 David C. Steere, created man page 
 .Pp
 Yui W. Lee, modified (Sept 1997)
-.Pp
-.Pp

@@ -1,13 +1,14 @@
 Source: rvm
-Section: devel
+Section: libdevel
 Priority: optional
 Maintainer: Jan Harkes <jaharkes@cs.cmu.edu>
-Standards-Version: 3.7.2
-Build-Depends: debhelper (>= 4), pkg-config, liblwp-dev
+Standards-Version: 3.8.4
+Build-Depends: debhelper (>= 7), pkg-config, liblwp-dev
+XS-Vcs-Browser: http://www.coda.cs.cmu.edu/cgi-bin/gitweb.cgi?p=rvm.git
 
 Package: librvm-dev
 Architecture: alpha amd64 arm i386 m68k powerpc sparc
-Depends: librvm1 (= ${binary:Version})
+Depends: librvm1 (= ${binary:Version}), ${misc:Depends}
 Description: Recoverable Virtual Memory, development files
  Recoverable Virtual Memory provides easy to use persistent storage
  with transactional properties for applications. It was developed at
@@ -15,12 +16,20 @@ Description: Recoverable Virtual Memory, development files
  .
  This package contains the headers and libraries required to build
  applications that use RVM.
- .
- For more information see http://www.coda.cs.cmu.edu/
+
+Package: librvm1-dbg
+Section: debug
+Architecture: alpha amd64 arm i386 m68k powerpc sparc
+Priority: extra
+Depends: librvm1 (=${binary:Version}), ${misc:Depends}
+Description: Recoverable Virtual Memory debug symbols
+ Debug symbols for the Recoverable Virtual Memory library.
 
 Package: librvm1
+Section: libs
 Architecture: alpha amd64 arm i386 m68k powerpc sparc
-Depends: ${shlibs:Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Homepage: http://www.coda.cs.cmu.edu/
 Suggests: rvm-tools
 Description: Recoverable Virtual Memory
  Recoverable Virtual Memory provides easy to use persistent storage
@@ -29,12 +38,11 @@ Description: Recoverable Virtual Memory
  .
  This package contains the runtime libraries required to run applications
  that use RVM.
- .
- For more information see http://www.coda.cs.cmu.edu/
 
 Package: rvm-tools
+Section: utils
 Architecture: alpha amd64 arm i386 m68k powerpc sparc
-Depends: librvm1
+Depends: librvm1, ${shlibs:Depends}, ${misc:Depends}
 Description: Recoverable Virtual Memory, support tools
  Recoverable Virtual Memory provides easy to use persistent storage
  with transactional properties for applications. It was developed at
@@ -43,6 +51,4 @@ Description: Recoverable Virtual Memory, support tools
  This package contains the runtime libraries required to initialize and
  manage RVM files. Some application already know how to initialize rvm
  segments themselves and do not need these additional tools.
- .
- For more information see http://www.coda.cs.cmu.edu/
 

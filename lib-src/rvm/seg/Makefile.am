@@ -22,14 +22,17 @@ libseg_sources = rvm_segutil.c rvm_loadseg.c rvm_createseg.c rvm_releaseseg.c \
 # librvmpt.
 libseg_la_CPPFLAGS = $(AM_CPPFLAGS)
 libseg_la_SOURCES = $(libseg_sources)
+libseg_la_LDFLAGS = $(LIBTOOL_LDFLAGS)
 libseg_la_LIBADD = $(top_builddir)/rvm/librvm.la
 
 libseglwp_la_CPPFLAGS = $(AM_CPPFLAGS) -DUSE_RVMLWP $(LWP_CFLAGS)
 libseglwp_la_SOURCES = $(libseg_sources)
+libseglwp_la_LDFLAGS = $(LIBTOOL_LDFLAGS)
 libseglwp_la_LIBADD = $(top_builddir)/rvm/librvmlwp.la $(LWP_LIBS)
 
 libsegpt_la_CPPFLAGS = $(AM_CPPFLAGS) -DUSE_RVMPT $(PTHREAD_CFLAGS)
 libsegpt_la_SOURCES = $(libseg_sources)
+libsegpt_la_LDFLAGS = $(LIBTOOL_LDFLAGS)
 libsegpt_la_LIBADD = $(top_builddir)/rvm/librvmpt.la $(PTHREAD_LIBS)
 
 MAINTAINERCLEANFILES = Makefile.in

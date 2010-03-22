@@ -1,3 +1,14 @@
+New in 1.17:
+
+* Add rvmutl/rdsinit man pages.
+* Make sure we can build with pthread support.
+* Fix several concurrent threading issues.
+
+New in 1.16:
+
+* More pkg config updates, allow building against uninstalled libs.
+* strict-aliasing fixes.
+
 New in 1.15:
 
 * Build and packaging updates.

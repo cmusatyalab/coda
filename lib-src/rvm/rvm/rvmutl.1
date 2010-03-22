@@ -2,7 +2,7 @@
 .if t .ds Q ``
 .if n .ds U \&"
 .if t .ds U ''
-.TH "rvmutl" 1-rvmutl 
+.TH "rvmutl" 1
 .tr \&
 .nr bi 0
 .nr ll 0
@@ -28,19 +28,13 @@
 .el .PP 
 .\}
 ..
-NAME
-.Pp
-rvmutl -- maintenance utility for RVM log
-.Pp
-SYNOPSIS
-.Pp
+.SH "NAME"
+rvmutl \- maintenance utility for RVM log
+.SH "SYNOPSIS"
 \fBrvmutl\fP \fIlog\fP
 .Pp
 \fBrvmutl\fP
-.Pp
-.Pp
-DESCRIPTION
-.Pp
+.SH "DESCRIPTION"
 The program \f(CRrvmutl\fP is the maintenance
 utility for RVM log.  Its priniciple features are log creation and
 maintenance, but there are also status and statistic display commands,
@@ -99,9 +93,7 @@ partition /dev/hdc7, of size 1 Megabyte, you can do
 Note that in the preceding example, we use the abbreviation \&"i\&" for
 the command \&"init_log\&", and we can use the unit \&"M\&" to stand for
 Megabyte. 
-.Pp
-I/O REDIRECTION
-.Pp
+.SH "I/O REDIRECTION"
 You can redirect input and output as in typical Unix shells.  For
 example, the following command will have all display redirected to the
 file allrec:
@@ -116,9 +108,7 @@ file allrec:
 .ec
 .ft P
 .sp
-.Pp
-COMMANDS
-.Pp
+.SH "COMMANDS"
 In the following, I will detail all the available commands:
 .nr ll +1
 .nr t\n(ll 2
@@ -665,10 +655,7 @@ Write out the in-memory log status structure to the log status block
 on disk.
 .if \n(ll>1 .RE
 .nr ll -1
-.Pp
-.Pp
-BUGS
-.Pp
+.SH "BUGS"
 The command \fBfind_hole\fP is not yet documented.
 .Pp
 Peeking using the format or size of time value (\fBt\fP) does not work.
@@ -687,7 +674,5 @@ command itself crashes quite easily.
 The use of \fBseg_dict\fP in \fBset\fP is not yet documented.
 .Pp
 The command \fBshow timestamp\fP has no effect.
-.Pp
-AUTHOR
-.Pp
+.SH "AUTHOR"
 Yui Wah LEE completely rewrote this man page (Nov. 1997)
