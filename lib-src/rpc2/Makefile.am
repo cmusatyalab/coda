@@ -11,7 +11,7 @@ EXTRA_DIST = README.ipv6 bootstrap.sh configure \
     pkgs/rpc2.spec pkgs/mk-cyg-pkg.sh pkgs/setup.hint \
     debian/changelog debian/compat debian/control debian/copyright debian/dirs \
     debian/librpc2-5.docs debian/librpc2-5.install debian/librpc2-dev.docs \
-    debian/librpc2-dev.install debian/rules debian/watch
+    debian/librpc2-dev.install debian/rules
 
 MAINTAINERCLEANFILES = AUTHORS ChangeLog Makefile.in README aclocal.m4 \
     compile config.guess config.h.in config.sub configure install-sh libtool \

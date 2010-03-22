@@ -9,9 +9,6 @@ export DH_ALWAYS_EXCLUDE=CVS
 DEB_BUILD_GNU_TYPE := $(shell dpkg-architecture -qDEB_BUILD_GNU_TYPE )
 DEB_HOST_GNU_TYPE  := $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE )
 
-# As we're not yet 'stable' we default to building unstripped binaries.
-export DEB_BUILD_OPTIONS=nostrip
-
 build: build-stamp
 build-stamp:
 	dh_testdir
@@ -24,18 +21,14 @@ build-stamp:
 
 clean:
 	dh_testdir
-	rm -f build-stamp install-stamp
-
-	# Add here commands to clean up after the build process.
-	-$(MAKE) distclean
-
+	dh_auto_clean
 	dh_clean
 
 install: install-stamp
 install-stamp: build-stamp
 	dh_testdir
 	dh_testroot
-	dh_clean -k
+	dh_prep
 	dh_installdirs
 
 	# Add here commands to install the package into debian/tmp.
@@ -61,7 +54,7 @@ binary-arch: build install
 #	dh_undocumented
 	dh_installchangelogs
 	dh_link
-	dh_strip
+	dh_strip --dbg-package=librpc2-5-dbg
 	dh_compress
 	dh_fixperms
 	# You may want to make some executables suid here.
