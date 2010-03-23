@@ -86,14 +86,16 @@ void fsobj::dir_Create(const char *Name, VenusFid *Fid)
 		CHOKE("fsobj::dir_Create: (%s, %s) no data", Name, FID_(Fid)); 
 	}
 
-	int oldlength = dir_Length();
+	int rc, oldlength = dir_Length();
 
 	/* XXX we need to strdup, because the dirops don't accept const char */
 	char *entry = strdup(Name);
 	CODA_ASSERT(entry);
-	if (DH_Create(&data.dir->dh, entry, MakeViceFid(Fid)) != 0) { 
-		print(logFile); CHOKE("fsobj::dir_Create: (%s, %s) Create failed!", 
-				      Name, FID_(Fid)); 
+	rc = DH_Create(&data.dir->dh, entry, MakeViceFid(Fid));
+	if (rc) {
+		print(logFile);
+		CHOKE("fsobj::dir_Create: (%s, %s) Create failed %d!",
+		      Name, FID_(Fid), rc);
 	}
 	free(entry);
 
