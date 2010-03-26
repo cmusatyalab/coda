@@ -7,9 +7,9 @@
 
 ### BEGIN INIT INFO
 # Provides:	     coda-server
-# Required-Start:    $local_fs $network $named $time coda-update
-# Required-Stop:     $local_fs $network $named $time coda-update
-# Default-Start:     3 4 5
+# Required-Start:    $local_fs $network $named $time $remote_fs coda-update
+# Required-Stop:     $local_fs $network $named $time $remote_fs coda-update
+# Default-Start:     2 3 4 5
 # Default-Stop:	     0 1 6
 # Short-Description: Start the Coda file system server daemons
 ### END INIT INFO

@@ -7,13 +7,11 @@
 
 ### BEGIN INIT INFO
 # Provides:	     coda-update
-# Required-Start:    $local_fs $network $named $time
-# Required-Stop:     $local_fs $network $named $time
-# Default-Start:     3 4 5
+# Required-Start:    $local_fs $network $named $time $remote_fs
+# Required-Stop:     $local_fs $network $named $time $remote_fs
+# Default-Start:     2 3 4 5
 # Default-Stop:	     0 1 6
 # Short-Description: Start the Coda update daemons.
-# Description:	     Coda update daemons synchronize state between Coda
-# 		     file system servers within a Coda realm
 ### END INIT INFO
 
 . /lib/lsb/init-functions

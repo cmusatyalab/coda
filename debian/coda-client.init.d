@@ -11,7 +11,7 @@
 # Required-Stop:     $local_fs
 # Should-Start:      $network $named
 # Should-Stop:
-# Default-Start:     3 4 5
+# Default-Start:     2 3 4 5
 # Default-Stop:	     0 1 6
 # Short-Description: Start the Coda file system client.
 ### END INIT INFO
