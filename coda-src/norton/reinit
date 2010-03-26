@@ -213,7 +213,7 @@ fi
 
 echo ""
 echo "Running rdsinit"
-rdsinit $logdev $datadev <<__EOF__
+rdsinit $logdev $datadev << __EOF__
 $datalen
 $rvmstart
 $heaplen
@@ -233,7 +233,7 @@ norton-reinit -rvm $logdev $datadev $datalen -load $dumpfile
 if [ $? != 0 ]; then
   echo "norton-reinit failed, exitting"
   cleanup; exit 1
-endif
+fi
 
 cleanup
 exit 0
