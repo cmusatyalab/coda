@@ -2,67 +2,67 @@ Source: coda
 Section: net
 Priority: optional
 Maintainer: Jan Harkes <jaharkes@cs.cmu.edu>
-Standards-Version: 3.6.1
-Build-Depends: debhelper (>= 4), g++, liblwp-dev (>= 2.5), librpc2-dev (>= 2.8), librvm-dev (>= 1.16), rvm-tools, libreadline5-dev, libncurses5-dev, libfltk1.1-dev, flex, bison | byacc, fluid, pkg-config, python2.5-minimal | python2.4-minimal, automake
+Standards-Version: 3.8.4
+Build-Depends: debhelper (>= 7), liblwp-dev (>= 2.5), librpc2-dev (>= 2.8), librvm-dev (>= 1.16), rvm-tools, libreadline-dev, libncurses5-dev, libfltk1.1-dev, flex, bison | byacc, fluid, pkg-config, python2.5-minimal | python2.4-minimal, automake
+
+Package: coda-dbg
+Section: debug
+Architecture: amd64 arm i386 m68k powerpc sparc
+Priority: extra
+Depends: coda-client (= ${binary:Version}) | coda-server (= ${binary:Version}) | coda-update (= ${binary:Version}) | coda-backup (= ${binary:Version}) | coda-vcodacon (= ${binary:Version}),${shlibs:Depends}, ${misc:Depends}
+Description: Coda distributed file system debug symbols
+ Debug symbols for the Coda distributed file system packages.
 
 Package: coda-client
 Architecture: amd64 arm i386 m68k powerpc sparc
-Depends: ${shlibs:Depends}
-Suggests: python-gtk2
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Suggests: python, python-gtk2
 Pre-Depends: debconf (>= 0.2.17)
+Homepage: http://www.coda.cs.cmu.edu/
 Description: Client for the Coda distributed file system
  Coda is an advanced distributed filesystem. It has been developed at CMU
  by the systems group of M. Satyanarayanan in the SCS department.
  .
  This package provides the userspace binaries to run a Coda client. You might
  also need to recompile a linux kernel to include a kernel module for Coda.
- .
- For more information go to http://www.coda.cs.cmu.edu/
 
 Package: coda-server
 Architecture: amd64 arm i386 m68k powerpc sparc
-Depends: coda-update, rvm-tools, ${shlibs:Depends}
+Depends: coda-update, rvm-tools, ${shlibs:Depends}, ${misc:Depends}
+Homepage: http://www.coda.cs.cmu.edu/
 Description: Server for the Coda distributed file system
  Coda is an advanced distributed filesystem. It has been developed at CMU
  by the systems group of M. Satyanarayanan in the SCS department.
  .
  This package provides the binaries to set up a Coda server.
- .
- For more information see http://www.coda.cs.cmu.edu/
 
 Package: coda-update
 Architecture: amd64 arm i386 m68k powerpc sparc
-Depends: ${shlibs:Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Server for the Coda distributed file system
  Coda is an advanced distributed filesystem. It has been developed at CMU
  by the systems group of M. Satyanarayanan in the SCS department.
  .
  This package provides the update daemons needed on both the Coda servers and
  the Coda backup client.
- .
- For more information see http://www.coda.cs.cmu.edu/
 
 Package: coda-backup
 Architecture: amd64 arm i386 m68k powerpc sparc
-Depends: coda-update, ${shlibs:Depends}
+Depends: coda-update, ${shlibs:Depends}, ${misc:Depends}
 Description: Backup client for the Coda distributed filesystem
  Coda is an advanced distributed filesystem. It has been developed at CMU
  by the systems group of M. Satyanarayanan in the SCS department.
  .
  This package provides the binaries to set up a backup client to back up Coda
  servers.
- .
- For more information see http://www.coda.cs.cmu.edu/
 
 Package: coda-vcodacon
 Architecture: amd64 arm i386 m68k powerpc sparc
-Depends: coda-client, ${shlibs:Depends}
+Depends: coda-client, ${shlibs:Depends}, ${misc:Depends}
 Description: Graphical console for the Coda distributed filesystem client
  Coda is an advanced distributed filesystem. It has been developed at CMU
  by the systems group of M. Satyanarayanan in the SCS department.
  .
  This package provides vcodacon, a graphical console to monitor the activity
  of the Coda client.
- .
- For more information see http://www.coda.cs.cmu.edu/
 

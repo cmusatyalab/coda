@@ -1,14 +1,14 @@
 Template: coda/realm
 Type: string
-Description: Default realm for authentication
- This options tells the Coda client what our default realm is. This is
+Description: Default realm for authentication:
+ This options tells the Coda client what the default realm is. This is
  really only used for convenience by 'clog' and allows a user to type 
  'clog <username>' instead of 'clog <username>@<realmname>'.
 
 Template: coda/cachesize
 Type: string
 Default: 100000
-Description: Amount of diskspace used for caching.
+Description: Amount of diskspace used for caching:
  Coda uses on disk caching of files. This reduces network traffic and also
  allows the Coda client to provide cached files when there is no network
  connectivity available.
@@ -27,6 +27,6 @@ Description: Amount of diskspace used for caching.
 Template: coda/cfs0
 Type: note
 Description: /dev/cfs0 missing
- You do not yet have /dev/cfs0. I will try to create it for you. If that
+ You do not yet have /dev/cfs0. Trying to create it for you. If this
  fails use 'mknod /dev/cfs0 c 67 0' to create the device by hand.
 

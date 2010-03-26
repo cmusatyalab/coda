@@ -1,18 +1,19 @@
-This package was debianized by Jan Harkes <jaharkes@motet.coda.cs.cmu.edu> on
+This package was debianized by Jan Harkes <jaharkes@coda.cs.cmu.edu> on
 Thu, 23 Mar 2000 04:32:59 -0500.
 
 It was downloaded from ftp://ftp.coda.cs.cmu.edu/pub/coda/src
 
-Upstream Author(s): Coda development group
+Upstream Author(s): Coda development group <coda@cs.cmu.edu>
 
-Copyright:
+Copyright (c) 1986	International Business Machines Corporation
+Copyright (c) 1987-2010	Carnegie Mellon University
 
-Coda is released under the GPL license, see /usr/share/common-licenses/GPL.
+Coda is released under the GPLv2 license, see /usr/share/common-licenses/GPL-2.
 Some parts are released under the LGPL, see /usr/share/common-licenses/LGPL-2.
 For more detail see /usr/share/doc/coda-client/LICENSE.
 
 Coda is distributed under the terms of the GNU General Public License,
-/usr/share/common-licenses/GPL.  Certain modules of Coda that may be useful
+/usr/share/common-licenses/GPL-2.  Certain modules of Coda that may be useful
 independently as libraries are distributed under the terms of the less
 restrictive GNU Library General Public License version 2,
 /usr/share/common-licenses/LGPL-2. The copyright notice at the beginning of
