@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-EXTRA_DIST = changelog compat control copyright rules watch \
+EXTRA_DIST = changelog compat control copyright rules \
     coda-backup.dirs coda-backup.install \
     coda-client.config coda-client.dirs coda-client.docs coda-client.init.d \
     coda-client.install coda-client.modprobe coda-client.modules \
