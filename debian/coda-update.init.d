@@ -44,7 +44,7 @@ start () {
     if [ "`cat /vice/hostname`" = "`cat /vice/db/scm`" ] ; then
 	echo -n " $prog1"
 	if ! pidofproc -p $pid_file1 $prog1 >/dev/null 2>&1 ; then
-	    start_daemon -p $pidfile1 $exec1
+	    start_daemon -p $pid_file1 $exec1
 	    retval1=$?
 	    allret=$retval1
 	    anyret=$retval1
@@ -53,7 +53,7 @@ start () {
 
     echo -n " $prog2"
     if ! pidofproc -p $pid_file2 $prog2 >/dev/null 2>&1 ; then
-	start_daemon -p $pidfile2 $exec2 -h "`cat /vice/db/scm`"
+	start_daemon -p $pid_file2 $exec2 -h "`cat /vice/db/scm`"
 	retval2=$?
     fi
 
@@ -69,11 +69,11 @@ stop () {
     echo -n $"Stopping $subsys:"
 
     echo -n " $prog1"
-    killproc -p $pidfile1 $exec1
+    killproc -p $pid_file1 $exec1
     retval1=$?
 
     echo -n " $prog2"
-    killproc -p $pidfile2 $exec2
+    killproc -p $pid_file2 $exec2
     retval2=$?
 
     [ $retval1 -eq 0 ] && allret=$retval2 || allret=$retval1
