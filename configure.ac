@@ -3,15 +3,17 @@ dnl Process this file with autoconf to produce a configure script.
 dnl autoconf 2.5 stuff
 AC_PREREQ(2.50)
 AC_INIT(Coda, 6.9.5, [bugs@coda.cs.cmu.edu])
-AC_CONFIG_SRCDIR(coda-src/librepair/resolve.h)
+AC_CONFIG_AUX_DIR([.])
+AC_CONFIG_MACRO_DIR([m4])
+AC_CONFIG_SRCDIR([coda-src/librepair/resolve.h])
 AM_INIT_AUTOMAKE([foreign])
-AC_CONFIG_HEADERS(config.h)
+AC_CONFIG_HEADERS([config.h])
 
 CONFIG_DATE=`date +"%a, %d %b %Y %T %z"`
 AC_SUBST(CONFIG_DATE, "$CONFIG_DATE", [Date when configure was last run])
 
 dnl For some reason the default prefix was set to NONE on Solaris.
-AC_PREFIX_DEFAULT(/usr/local)
+AC_PREFIX_DEFAULT([/usr/local])
 
 dnl Checks for programs.
 AC_PROG_CC
@@ -19,8 +21,6 @@ AC_PROG_CXX
 
 dnl Load the CODA_ tests.
 m4_include(configs/coda_macros.m4)
-
-CODA_PROG_NATIVECC
 
 AC_PROG_CPP
 AC_PROG_CXXCPP
@@ -104,8 +104,7 @@ AC_CHECK_HEADERS(sys/mount.h, [], [],
 dnl Checks for typedefs.
 AC_CHECK_TYPE(int32_t, int)
 AC_CHECK_TYPE(u_int32_t, unsigned int)
-CODA_CHECK_TYPE(socklen_t, int, sys/socket.h)
-AC_CHECK_TYPES([struct in6_addr, struct sockaddr_in6],,,
+AC_CHECK_TYPES([socklen_t, struct in6_addr, struct sockaddr_in6],,,
 	       [#include <sys/types.h>
 		#include <sys/socket.h>
 		#include <netinet/in.h>])
@@ -113,13 +112,13 @@ AC_CHECK_TYPES([struct in6_addr, struct sockaddr_in6],,,
 dnl Checks for structures.
 
 dnl Checks for compiler characteristics.
-CODA_CC_FEATURE_TEST(Wall, -Wall)
-CODA_CC_FEATURE_TEST(no_exceptions, -fno-exceptions)
-CODA_CC_FEATURE_TEST(rdynamic, -rdynamic)
-CODA_CXX_FEATURE_TEST(Wall, -Wall)
-CODA_CXX_FEATURE_TEST(no_exceptions, -fno-exceptions)
-CODA_CXX_FEATURE_TEST(check_new, -fcheck-new)
-CODA_CXX_FEATURE_TEST(rdynamic, -rdynamic)
+CODA_CC_FEATURE_TEST([Wall], wall)
+CODA_CC_FEATURE_TEST([fno-exceptions], fnoexceptions)
+CODA_CC_FEATURE_TEST([rdynamic], rdynamic)
+CODA_CXX_FEATURE_TEST([Wall], wall)
+CODA_CXX_FEATURE_TEST([fno-exceptions], fnoexceptions)
+CODA_CXX_FEATURE_TEST([fcheck-new], fchecknew)
+CODA_CXX_FEATURE_TEST([rdynamic], rdynamic)
 CODA_CHECK_OFFSETOF
 
 dnl Checks for library functions.

@@ -71,6 +71,10 @@ extern "C" {
 #include "realmdb.h"
 #include "venusvol.h"
 
+#ifndef HAVE_SOCKLEN_T
+typedef int socklen_t;
+#endif
+
 const int MarinerStackSize = 65536;
 const int MaxMariners = 25;
 fd_set MarinerMask;

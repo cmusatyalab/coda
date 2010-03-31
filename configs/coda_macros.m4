@@ -15,70 +15,6 @@ AC_DEFUN([CODA_CONFIG_SUBDIRS],
    _AC_OUTPUT_SUBDIRS()
    no_recursion=yes])
 
-AC_DEFUN([CODA_CC_FEATURE_TEST],
-  [AC_CACHE_CHECK(whether the C compiler accepts $2, coda_cv_cc_$1,
-     coda_saved_CC="$CC" ; CC="$CC $2" ; AC_LANG_SAVE
-     AC_LANG_C
-     AC_TRY_COMPILE([], [], coda_cv_cc_$1=yes, coda_cv_cc_$1=no)
-     AC_LANG_RESTORE
-     CC="$coda_saved_CC")
-   if test $coda_cv_cc_$1 = yes; then
-     CC="$CC $2"
-   fi])
-
-AC_DEFUN([CODA_CXX_FEATURE_TEST],
-  [AC_CACHE_CHECK(whether the C++ compiler accepts $2, coda_cv_cxx_$1,
-     coda_saved_CXX="$CXX" ; CXX="$CXX $2" ; AC_LANG_SAVE
-     AC_LANG_CPLUSPLUS
-     AC_TRY_COMPILE([], [], coda_cv_cxx_$1=yes, coda_cv_cxx_$1=no)
-     AC_LANG_RESTORE
-     CXX="$coda_saved_CXX")
-   if test $coda_cv_cxx_$1 = yes; then
-     CXX="$CXX $2"
-   fi])
-
-AC_SUBST(NATIVECC)
-AC_DEFUN([CODA_PROG_NATIVECC],
-    if test $cross_compiling = yes ; then
-       [AC_MSG_CHECKING([for native C compiler on the build host])
-	AC_CHECK_PROG(NATIVECC, gcc, gcc)
-	if test -z "$NATIVECC" ; then
-	    AC_CHECK_PROG(NATIVECC, cc, cc, , , /usr/ucb/cc)
-	fi
-	test -z "$NATIVECC" && AC_MSG_ERROR([no acceptable cc found in \$PATH])
-	AC_MSG_RESULT([	found.])
-	dnl Just assume it works.]
-    else
-	NATIVECC=${CC}
-    fi)
-
-dnl Check for typedefs in unusual headers
-dnl Most of this function is identical to AC_CHECK_TYPE in autoconf-2.13
-AC_DEFUN([CODA_CHECK_TYPE],
-[AC_REQUIRE([AC_HEADER_STDC])dnl
-AC_MSG_CHECKING(for $1)
-AC_CACHE_VAL(ac_cv_type_$1,
-[AC_EGREP_CPP(dnl
-changequote(<<,>>)dnl
-<<(^|[^a-zA-Z_0-9])$1[^a-zA-Z_0-9]>>dnl
-changequote([,]), [#include <sys/types.h>
-#if STDC_HEADERS
-#include <stdlib.h>
-#include <stddef.h>
-#endif
-#include <$3>], ac_cv_type_$1=yes, ac_cv_type_$1=no)])dnl
-AC_MSG_RESULT($ac_cv_type_$1)
-if test $ac_cv_type_$1 = no; then
-  AC_DEFINE($1, $2, [Definition for $1 if the type is missing])
-fi
-])
-
-dnl Check which lib provides termcap functionality
-AC_SUBST(LIBTERMCAP)
-AC_DEFUN([CODA_CHECK_LIBTERMCAP],
-  [AC_CHECK_LIB(termcap, main, [LIBTERMCAP="-ltermcap"],
-    [AC_CHECK_LIB(ncurses, tgetent, [LIBTERMCAP="-lncurses"])])])
-
 dnl Check for a curses library, and if it needs termcap
 AC_SUBST(LIBCURSES)
 AC_DEFUN([CODA_CHECK_LIBCURSES],
@@ -188,38 +124,6 @@ AC_DEFUN([CODA_CHECK_KRB5],
     fi])])
 
 
-dnl ---------------------------------------------
-dnl Test for possible offsetof implementation that doesn't give compile
-dnl warnings or errors
-dnl
-AC_DEFUN([CODA_TEST_OFFSETOF],
-   [AC_MSG_CHECKING(offsetof using $2)
-    offsetof=no
-    AC_LANG_PUSH(C++)
-    saved_CPPFLAGS="$CPPFLAGS"
-    CPPFLAGS="$CPPFLAGS -Werror"
-    AC_RUN_IFELSE([
-	AC_LANG_PROGRAM([[
-	    #include <sys/types.h>
-	    #include <stddef.h>
-	    struct b { struct b *C; };
-	    class A {public: A& operator=(const A& x){return *this;}; struct b B;};
-	    #define off(type,member) $2]],
-	    [[A *a=NULL; if (((char *)&a->B - off(A,B)) != (char *)a) return 1]])],
-	[AC_DEFINE(CODA_OFFSETOF_$1, 1, [offsetof works with $2])
-	 offsetof=yes], [], [true])
-    CPPFLAGS="$saved_CPPFLAGS"
-    AC_LANG_POP(C++)
-    AC_MSG_RESULT($offsetof)])
-
-AC_DEFUN([CODA_CHECK_OFFSETOF],
-   [CODA_TEST_OFFSETOF(OFFSETOF, [offsetof(type,member)])
-    if test "$offsetof" != yes ; then
-    CODA_TEST_OFFSETOF(PTR_TO_MEMBER, [((size_t)(&type::member))])
-    if test "$offsetof" != yes ; then
-    CODA_TEST_OFFSETOF(REINTERPRET_CAST, [((size_t)(&(reinterpret_cast<type*>(__alignof__(type*)))->member)-__alignof__(type*))])
-    fi ; fi])
-
 AC_DEFUN([CODA_OPTION_LIBRARY],
   [AC_ARG_WITH($1-includes,
     [  --with-$1-includes=DIR	$1 include files are in DIR],
@@ -256,23 +160,6 @@ AC_DEFUN([CODA_FIND_LIB],
 	  LDFLAGS="${LDFLAGS} -L${coda_cv_path_$1}/lib"
 	  ;;
   esac])
-
-AC_DEFUN([CODA_REQUIRE_LIB],
-  [if test "${coda_cv_path_$1}" = none ; then
-	AC_MSG_ERROR("Cannot determine the location of lib$1")
-   fi])
-
-dnl ---------------------------------------------
-dnl find readline functionality
-dnl also test for new functions introduced by readline 4.2
-dnl
-AC_SUBST(LIBREADLINE)
-AC_DEFUN([CODA_CHECK_READLINE],
-  [CODA_FIND_LIB(readline, [], rl_initialize(), $LIBTERMCAP)
-   CODA_REQUIRE_LIB(readline)
-   AC_CHECK_LIB(readline, rl_completion_matches,
-     [AC_DEFINE(HAVE_RL_COMPLETION_MATCHES, 1, [Define if you have readline 4.2 or later])], [], $LIBTERMCAP)
-   LIBREADLINE=-lreadline])
 
 dnl -----------------
 dnl Looks for the fltk library
