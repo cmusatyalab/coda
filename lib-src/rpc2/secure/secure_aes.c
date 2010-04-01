@@ -141,7 +141,7 @@ static void check_aes_monte_carlo(int verbose)
 		memcmp(dbuf.u8, dtestvector, AES_BLOCK_SIZE) != 0)
 	    {
 		fprintf(stderr, "AES monte carlo test FAILED\n");
-		exit(-1);
+		abort();
 	    }
 
 	    /* XOR last keysize bits of the ciphertext with the key */
@@ -209,7 +209,7 @@ static void check_aes_variable_text(int verbose)
 	    if (memcmp(buf.u8, testvector, sizeof(aes_block)) != 0)
 	    {
 		fprintf(stderr, "AES variable plaintext test FAILED\n");
-		exit(-1);
+		abort();
 	    }
 	    testvector += sizeof(aes_block);
 
@@ -252,7 +252,7 @@ static void check_aes_variable_key(int verbose)
 	    if (memcmp(buf.u8, testvector, sizeof(aes_block)) != 0)
 	    {
 		fprintf(stderr, "AES variable key tests FAILED\n");
-		exit(-1);
+		abort();
 	    }
 	    testvector += sizeof(aes_block);
 
@@ -397,7 +397,7 @@ static void check_aes_cbc(int verbose)
 			       aes_cbc256_pt, aes_cbc256_ct, 4);
     if (rc) {
 	fprintf(stderr, "AES-CBC test vectors FAILED\n");
-	exit(-1);
+	abort();
     }
 
     if (verbose)
@@ -441,7 +441,7 @@ static void check_aes_xcbc_prf(int verbose)
 
     if (rc) {
 	fprintf(stderr, "AES-XCBC-PRF-128 test vectors FAILED\n");
-	exit(-1);
+	abort();
     }
 
     if (verbose)

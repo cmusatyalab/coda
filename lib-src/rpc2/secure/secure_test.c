@@ -21,6 +21,6 @@ int main(int argc, char **argv)
 {
     secure_init(1);
     secure_release();
-    exit(0);
+    return EXIT_SUCCESS;
 }
 

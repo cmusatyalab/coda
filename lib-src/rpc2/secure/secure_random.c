@@ -336,7 +336,7 @@ static void check_random(int verbose)
 		fail ? "FAILED" : "PASSED");
 
     if (failed)
-	exit(-1);
+	abort();
 }
 
 /* initialization only called from secure_init */
