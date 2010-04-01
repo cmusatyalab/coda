@@ -912,19 +912,7 @@ long rpc2_CreateIPSocket(int af, int *svar, struct RPC2_addrinfo *addr,
 	 * (possibly indefinitely). */
 	flags = fcntl(*svar, F_GETFL, 0);
 	fcntl(*svar, F_SETFL, flags | O_NONBLOCK);
-#if 0
-	rc = setsockopt(*svar, SOL_SOCKET, SO_SNDBUF, &blen, sizeof(blen));
-	if ( rc ) {
-		perror("setsockopt: ");
-		exit(1);
-	}
 
-	rc = setsockopt(*svar, SOL_SOCKET, SO_RCVBUF, &blen, sizeof(blen));
-	if ( rc ) {
-		perror("setsockopt: ");
-		exit(1);
-	}
-#endif
 	/* Now bind the socket */
 	if (bind(*svar, addr->ai_addr, addr->ai_addrlen) < 0) {
 	    err = (errno == EADDRINUSE) ? RPC2_DUPLICATESERVER : RPC2_BADSERVER;
