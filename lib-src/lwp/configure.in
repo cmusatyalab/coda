@@ -4,9 +4,10 @@ dnl Initialization
 AC_PREREQ(2.50)
 AC_INIT(lwp, 2.6)
 AC_CONFIG_AUX_DIR([.])
-AC_CONFIG_SRCDIR(src/lwp.c)
+AC_CONFIG_MACRO_DIR([m4])
+AC_CONFIG_SRCDIR([src/lwp.c])
 AM_INIT_AUTOMAKE([foreign])
-AC_CONFIG_HEADERS(config.h)
+AC_CONFIG_HEADERS([config.h])
 
 dnl For library version updates, follow these steps in order.
 dnl - when any library source has changed, increment first
