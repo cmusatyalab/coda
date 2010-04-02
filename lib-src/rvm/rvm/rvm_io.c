@@ -105,7 +105,7 @@ static long chk_seek(device_t *dev, rvm_offset_t *offset)
         if (!RVM_OFFSET_EQL(dev->last_position,*offset)) {
             retval = lseek((int)dev->handle,
                            (off_t)RVM_OFFSET_TO_LENGTH(*offset),
-                           L_SET);
+                           SEEK_SET);
             if (retval >= 0)
                 dev->last_position = *offset;
 	    else {
