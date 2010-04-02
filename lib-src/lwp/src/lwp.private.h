@@ -49,10 +49,6 @@ Pittsburgh, PA.
 #include <stdio.h>
 #include "lwp_ucontext.h"
 
-#ifndef HAVE_REGISTER_T
-typedef int register_t;
-#endif
-
 /* Initial size of eventlist in a PCB; grows dynamically  */ 
 #define EVINITSIZE  5
 
