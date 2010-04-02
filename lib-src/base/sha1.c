@@ -35,7 +35,7 @@
 #define SHA1_DIGEST_SIZE	20
 #define SHA1_HMAC_BLOCK_SIZE	64
 
-static inline u_int32_t rol(u_int32_t value, u_int32_t bits)
+static inline uint32_t rol(uint32_t value, uint32_t bits)
 {
 	return (((value) << (bits)) | ((value) >> (32 - (bits))));
 }
@@ -58,14 +58,14 @@ static inline u_int32_t rol(u_int32_t value, u_int32_t bits)
 #define R4(v,w,x,y,z,i) z+=(w^x^y)+blk(i)+0xCA62C1D6+rol(v,5);w=rol(w,30);
 
 /* Hash a single 512-bit block. This is the core of the algorithm. */
-static void sha1_transform(u_int32_t *state, const unsigned char *in)
+static void sha1_transform(uint32_t *state, const unsigned char *in)
 {
-	u_int32_t a, b, c, d, e;
-	u_int32_t block32[16];
+	uint32_t a, b, c, d, e;
+	uint32_t block32[16];
 
 	/* convert/copy data to workspace */
-	for (a = 0; a < sizeof(block32)/sizeof(u_int32_t); a++)
-	  block32[a] = ntohl(((const u_int32_t *)in)[a]);
+	for (a = 0; a < sizeof(block32)/sizeof(uint32_t); a++)
+	  block32[a] = ntohl(((const uint32_t *)in)[a]);
 
 	/* Copy context->state[] to working vars */
 	a = state[0];
@@ -140,7 +140,7 @@ void SHA1_Update(SHA_CTX *sctx, const unsigned char *data, unsigned int len)
 /* Add padding and return the message digest. */
 void SHA1_Final(unsigned char out[SHA_DIGEST_LENGTH], SHA_CTX *sctx)
 {
-	u_int32_t i, j, index, padlen, t;
+	uint32_t i, j, index, padlen, t;
 	unsigned char bits[8] = { 0, };
 	static const unsigned char padding[64] = { 0x80, };
 
@@ -164,7 +164,7 @@ void SHA1_Final(unsigned char out[SHA_DIGEST_LENGTH], SHA_CTX *sctx)
 
 	/* Store state in digest */
 	for (i = j = 0; i < 5; i++, j += 4) {
-		u_int32_t t2 = sctx->state[i];
+		uint32_t t2 = sctx->state[i];
 		out[j+3] = t2 & 0xff; t2>>=8;
 		out[j+2] = t2 & 0xff; t2>>=8;
 		out[j+1] = t2 & 0xff; t2>>=8;

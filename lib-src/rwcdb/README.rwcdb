@@ -31,8 +31,8 @@ Newly introducted functions and semantics are,
     kept in the rwcdb handle, you can only use one iterator per handle.
     However there is no interference with any other rwcdb operations.
 
-  int rwcdb_insert(struct rwcdb *c, const char *k, const u_int32_t klen);
-		   const char *d, const u_int32_t dlen);
+  int rwcdb_insert(struct rwcdb *c, const char *k, const uint32_t klen);
+		   const char *d, const uint32_t dlen);
 
     Adds an entry to the in-memory list of pending modifications. This
     replaces any existing entry with the same key. When the database is
@@ -40,7 +40,7 @@ Newly introducted functions and semantics are,
     new version of the database file (see also rwcdb_sync). Returns -1
     on errors, and 1 when successful.
 
-  int rwcdb_delete(struct rwcdb *c, const char *k, const u_int32_t klen);
+  int rwcdb_delete(struct rwcdb *c, const char *k, const uint32_t klen);
 
     Adds an entry for the specified key with NULL data to the list of
     pending modifications. This is a 'negative' entry and during

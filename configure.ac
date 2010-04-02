@@ -102,8 +102,10 @@ AC_CHECK_HEADERS(sys/mount.h, [], [],
 ])
 
 dnl Checks for typedefs.
-AC_CHECK_TYPE(int32_t, int)
-AC_CHECK_TYPE(u_int32_t, unsigned int)
+AC_TYPE_INT32_T
+AC_TYPE_UINT8_T
+AC_TYPE_UINT16_T
+AC_TYPE_UINT32_T
 AC_CHECK_TYPES([socklen_t, struct in6_addr, struct sockaddr_in6],,,
 	       [#include <sys/types.h>
 		#include <sys/socket.h>

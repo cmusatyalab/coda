@@ -28,6 +28,7 @@ extern "C" {
 #endif
 
 #include <sys/types.h>
+#include <stdint.h>
 
 #if defined(HAVE_MD5_H)
 #include <md5.h>
@@ -56,8 +57,8 @@ documentation and/or software.
  */
 
 typedef struct MD5Context {
-    u_int32_t state[4];   /* state (ABCD) */
-    u_int32_t count[2];   /* number of bits, modulo 2^64 (lsb first) */
+    uint32_t state[4];   /* state (ABCD) */
+    uint32_t count[2];   /* number of bits, modulo 2^64 (lsb first) */
     unsigned char buffer[64];     /* input buffer */
 } MD5_CTX;
 
@@ -70,8 +71,8 @@ void MD5_Final(unsigned char [16], MD5_CTX *);
 #define SHA_DIGEST_LENGTH 20
 
 typedef struct SHAContext {
-    u_int32_t count;
-    u_int32_t state[5];
+    uint32_t count;
+    uint32_t state[5];
     unsigned char buffer[64];
 } SHA_CTX;
 

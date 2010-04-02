@@ -76,10 +76,10 @@ static void checkdb(struct rwcdb *c)
 
 struct wrentry {
     struct dllist_head list;
-    u_int32_t hash;
-    u_int32_t pos;
-    u_int32_t klen;
-    u_int32_t dlen;
+    uint32_t hash;
+    uint32_t pos;
+    uint32_t klen;
+    uint32_t dlen;
 };
 
 /* behind the struct wrentry is a variable length area that contains key/data */
@@ -87,8 +87,8 @@ struct wrentry {
 #define wkey(w) (wbuf(w) + 8)
 #define wdata(w) (wbuf(w) + 8 + (w)->klen)
 
-static struct wrentry *alloc_wrentry(const u_int32_t klen, const u_int32_t dlen,
-                                     const u_int32_t hash)
+static struct wrentry *alloc_wrentry(const uint32_t klen, const uint32_t dlen,
+                                     const uint32_t hash)
 {
     struct wrentry *w;
 
@@ -109,12 +109,12 @@ static void free_wrentry(struct wrentry *w)
 
 
 static struct wrentry *ispending(struct rwcdb *c, const char *k,
-                                 const u_int32_t klen, const u_int32_t hash,
-                                 u_int32_t *index)
+                                 const uint32_t klen, const uint32_t hash,
+                                 uint32_t *index)
 {
     struct dllist_head *p;
     struct wrentry *w;
-    u_int32_t i, idx = 0;
+    uint32_t i, idx = 0;
 
     list_for_each(p, c->removed)
     {
@@ -146,10 +146,10 @@ static struct wrentry *ispending(struct rwcdb *c, const char *k,
     return NULL;
 }
 
-static struct wrentry *fromhash(struct rwcdb *c, u_int32_t index)
+static struct wrentry *fromhash(struct rwcdb *c, uint32_t index)
 {
     struct dllist_head *p;
-    u_int32_t i;
+    uint32_t i;
 
     for (i = 0; i < 256; i++) {
         if (index >= c->hlens[i]) {
@@ -169,7 +169,7 @@ static void discard_pending_updates(struct rwcdb *c)
 {
     struct dllist_head *p;
     struct wrentry *w;
-    u_int32_t i;
+    uint32_t i;
 
     /* discard left-over in-memory modifications */
     for (i = 0; i < 256; i++) {
@@ -184,16 +184,16 @@ static void discard_pending_updates(struct rwcdb *c)
         p = p->next;
         free_wrentry(w);
     }
-    memset(c->hlens, 0, 256 * sizeof(u_int32_t));
+    memset(c->hlens, 0, 256 * sizeof(uint32_t));
 }
 
 /*=====================================================================*/
 /* The cdb hash function is "h = ((h << 5) + h) ^ c", with a starting
  * hash of 5381 */
 
-static u_int32_t cdb_hash(const char *k, const u_int32_t klen)
+static uint32_t cdb_hash(const char *k, const uint32_t klen)
 {
-    u_int32_t i, hash = 5381;
+    uint32_t i, hash = 5381;
 
     for (i = 0; i < klen; i++)
         hash = ((hash << 5) + hash) ^ ((unsigned char)k[i]);
@@ -206,7 +206,7 @@ static u_int32_t cdb_hash(const char *k, const u_int32_t klen)
 
 int rwcdb_init(struct rwcdb *c, const char *file, const int mode)
 {
-    u_int32_t i, n;
+    uint32_t i, n;
     
     n = strlen(file) + 1;
     if (n > MAXPATHLEN - 5) return -1;
@@ -259,9 +259,9 @@ int rwcdb_free(struct rwcdb *c)
     return 1;
 }
 
-int rwcdb_find(struct rwcdb *c, const char *k, const u_int32_t klen)
+int rwcdb_find(struct rwcdb *c, const char *k, const uint32_t klen)
 {
-    u_int32_t loop, hash, hash2, hpos, hlen, pos, keylen, cur_pos, dlen;
+    uint32_t loop, hash, hash2, hpos, hlen, pos, keylen, cur_pos, dlen;
     struct wrentry *w;
     void *buf;
 
@@ -329,12 +329,12 @@ int rwcdb_find(struct rwcdb *c, const char *k, const u_int32_t klen)
     return 0;
 }
 
-int rwcdb_insert(struct rwcdb *c, const char *k, const u_int32_t klen,
-                  const char *d, const u_int32_t dlen)
+int rwcdb_insert(struct rwcdb *c, const char *k, const uint32_t klen,
+                  const char *d, const uint32_t dlen)
 {
     struct wrentry *w, *old;
-    u_int32_t hash, slot;
-    static u_int32_t warned = 0;
+    uint32_t hash, slot;
+    static uint32_t warned = 0;
 
     if (c->readonly) {
 	if (!warned++)
@@ -368,7 +368,7 @@ int rwcdb_insert(struct rwcdb *c, const char *k, const u_int32_t klen,
     return 1;
 }
 
-int rwcdb_delete(struct rwcdb *c, const char *k, const u_int32_t klen)
+int rwcdb_delete(struct rwcdb *c, const char *k, const uint32_t klen)
 {
     if (rwcdb_find(c, k, klen) != 1) return 0;
     return rwcdb_insert(c, k, klen, NULL, 0);
@@ -376,7 +376,7 @@ int rwcdb_delete(struct rwcdb *c, const char *k, const u_int32_t klen)
 
 int rwcdb_next(struct rwcdb *c, int init)
 {
-    u_int32_t klen, dlen, hash;
+    uint32_t klen, dlen, hash;
     void *buf;
 
     if (init) c->index = 2048;
@@ -421,8 +421,8 @@ read_failed:
     return -1;
 }
 
-int rwcdb_read(struct rwcdb *c, char *d, const u_int32_t dlen,
-               const u_int32_t dpos)
+int rwcdb_read(struct rwcdb *c, char *d, const uint32_t dlen,
+               const uint32_t dpos)
 {
     struct wrentry *w;
     void *buf;
@@ -442,8 +442,8 @@ int rwcdb_read(struct rwcdb *c, char *d, const u_int32_t dlen,
     return 0;
 }
 
-int rwcdb_readkey(struct rwcdb *c, char *k, const u_int32_t klen,
-                  const u_int32_t dpos)
+int rwcdb_readkey(struct rwcdb *c, char *k, const uint32_t klen,
+                  const uint32_t dpos)
 {
     struct wrentry *w;
     void *buf;
@@ -508,7 +508,7 @@ static int dump_records(struct rwcdb *c, struct dllist_head *old)
 
 static int write_hashchains(struct rwcdb *c)
 {
-    u_int32_t i, slot, hoffs[256], len, maxlen, totallen;
+    uint32_t i, slot, hoffs[256], len, maxlen, totallen;
     struct wrentry *w;
     struct dllist_head *p;
     struct rwcdb_tuple *h;
@@ -567,7 +567,7 @@ write_failed:
 
 int rwcdb_sync(struct rwcdb *c)
 {
-    u_int32_t i;
+    uint32_t i;
     struct dllist_head *p, rewrites;
     struct wrentry *w;
     char newname[MAXPATHLEN];

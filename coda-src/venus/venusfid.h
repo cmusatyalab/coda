@@ -85,7 +85,7 @@ inline char *FID_(const VenusFid *fid)
     return buf[i];
 }
 
-inline void MakeVenusFid(VenusFid *vf, const u_int32_t realm, const ViceFid *fid)
+inline void MakeVenusFid(VenusFid *vf, const uint32_t realm, const ViceFid *fid)
 {
     vf->Realm  = realm;
     vf->Volume = fid->Volume;

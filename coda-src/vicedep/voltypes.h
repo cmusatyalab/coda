@@ -53,9 +53,9 @@ Pittsburgh, PA.
 #include <rpc2/rpc2.h>
 #include <stdint.h>
 
-typedef u_int32_t bit32;	/* Unsigned, 32 bits */
-typedef u_int16_t bit16;	/* Unsigned, 16 bits */
-typedef u_int8_t  byte;		/* Unsigned, 8 bits */
+typedef uint32_t bit32;	/* Unsigned, 32 bits */
+typedef uint16_t bit16;	/* Unsigned, 16 bits */
+typedef uint8_t  byte;	/* Unsigned, 8 bits */
 
 typedef bit32	Device;		/* Unix device number */
 typedef bit32	Inode;		/* Unix inode number */

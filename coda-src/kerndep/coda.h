@@ -59,12 +59,11 @@ Mellon the rights to redistribute these changes without encumbrance.
 #ifndef _CODA_HEADER_
 #define _CODA_HEADER_
 
-
-
 /* Catch new _KERNEL defn for NetBSD and __CYGWIN32__ */
 #if defined(__NetBSD__) || (defined(__CYGWIN32__) && !defined(KERNEL))
 #include <sys/types.h>
 #endif 
+#include <stdint.h>
 
 #ifndef CODA_MAXSYMLINKS
 #define CODA_MAXSYMLINKS 10
@@ -73,7 +72,6 @@ Mellon the rights to redistribute these changes without encumbrance.
 #ifdef __CYGWIN32__
 #ifdef KERNEL
 typedef unsigned long u_long;
-typedef unsigned int u_int;
 typedef unsigned short u_short;
 typedef u_long ino_t;
 typedef u_long dev_t;
@@ -132,15 +130,15 @@ typedef unsigned long long u_quad_t;
 #ifndef __BIT_TYPES_DEFINED__
 #define __BIT_TYPES_DEFINED__
 typedef signed char	      int8_t;
-typedef unsigned char	    u_int8_t;
+typedef unsigned char	     uint8_t;
 typedef short		     int16_t;
-typedef unsigned short	   u_int16_t;
+typedef unsigned short	    uint16_t;
 typedef int		     int32_t;
-typedef unsigned int	   u_int32_t;
+typedef unsigned int	    uint32_t;
 #endif
 
-typedef u_int32_t cuid_t;
-typedef u_int32_t cgid_t;
+typedef uint32_t cuid_t;
+typedef uint32_t cgid_t;
 
 /*
  * Cfs constants
@@ -217,7 +215,7 @@ struct venus_dirent {
 #endif
 
 struct CodaFid {
-    u_int32_t opaque[4];
+    uint32_t opaque[4];
 }; 
 
 
@@ -327,8 +325,8 @@ struct coda_statfs {
  *        Venus <-> Coda  RPC arguments
  */
 struct coda_in_hdr {
-    u_int32_t opcode;
-    u_int32_t unique;	    /* Keep multiple outstanding msgs distinct */
+    uint32_t opcode;
+    uint32_t unique;	    /* Keep multiple outstanding msgs distinct */
     pid_t pid;
     pid_t pgid;
     cuid_t uid;
@@ -336,9 +334,9 @@ struct coda_in_hdr {
 
 /* Really important that opcode and unique are 1st two fields! */
 struct coda_out_hdr {
-    u_int32_t opcode;
-    u_int32_t unique;	
-    u_int32_t result;
+    uint32_t opcode;
+    uint32_t unique;
+    uint32_t result;
 };
 
 /* coda_root: NO_IN */
@@ -773,8 +771,8 @@ union coda_downcalls {
 #define PIOCPARM_MASK 0x0000ffff
 struct ViceIoctl {
         caddr_t   in, out;	/* Data to be transferred in, or out */
-        u_int16_t in_size;	/* Size of input buffer <= 2K */
-        u_int16_t out_size;	/* Maximum size of output buffer, <= 2K */
+        uint16_t in_size;	/* Size of input buffer <= 2K */
+        uint16_t out_size;	/* Maximum size of output buffer, <= 2K */
 };
 
 struct PioctlData {

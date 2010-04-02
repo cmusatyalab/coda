@@ -32,7 +32,7 @@ Coda are listed in the file CREDITS.
 /*=====================================================================*/
 /* scratch buffer */
 
-int grow_cache(struct db_file *f, u_int32_t len)
+int grow_cache(struct db_file *f, uint32_t len)
 {
     f->cache_pos = f->len;
     if (f->cache_len >= len)
@@ -48,7 +48,7 @@ int grow_cache(struct db_file *f, u_int32_t len)
     return 0;
 }
 
-int cached(struct db_file *f, u_int32_t len, u_int32_t pos)
+int cached(struct db_file *f, uint32_t len, uint32_t pos)
 {
     return (pos >= f->cache_pos && pos + len <= f->cache_pos + f->cache_len);
 }
@@ -56,15 +56,15 @@ int cached(struct db_file *f, u_int32_t len, u_int32_t pos)
 /*=====================================================================*/
 /* fileio */
 
-int db_file_seek(struct db_file *f, const u_int32_t pos)
+int db_file_seek(struct db_file *f, const uint32_t pos)
 {
     if (lseek(f->fd, pos, SEEK_SET) != pos) return -1;
     f->pos = pos;
     return 0;
 }
 
-int db_file_mread(struct db_file *f, void **data, const u_int32_t len,
-		  const u_int32_t pos)
+int db_file_mread(struct db_file *f, void **data, const uint32_t len,
+		  const uint32_t pos)
 {
     ssize_t n;
 
@@ -97,10 +97,10 @@ int db_file_mread(struct db_file *f, void **data, const u_int32_t len,
 
 #define PAGESIZE (4 * 1024)
 
-int db_file_write(struct db_file *f, void *data, u_int32_t len)
+int db_file_write(struct db_file *f, void *data, uint32_t len)
 {
     ssize_t n;
-    u_int32_t blob;
+    uint32_t blob;
 
     if (!len) return 0;
 
@@ -156,7 +156,7 @@ int db_file_flush(struct db_file *f)
     return 0;
 }
 
-int readints(struct db_file *f, u_int32_t *a, u_int32_t *b, u_int32_t pos)
+int readints(struct db_file *f, uint32_t *a, uint32_t *b, uint32_t pos)
 {
     void *buf;
 
@@ -170,7 +170,7 @@ int readints(struct db_file *f, u_int32_t *a, u_int32_t *b, u_int32_t pos)
 int db_file_open(struct db_file *f, const char *name, const int mode)
 {
     struct stat sb;
-    u_int32_t dummy;
+    uint32_t dummy;
 
     f->pos = 0;
     f->eod = 2048;

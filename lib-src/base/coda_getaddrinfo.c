@@ -71,14 +71,14 @@ Coda are listed in the file CREDITS.
 #ifdef PF_INET6
 #ifndef HAVE_STRUCT_IN6_ADDR
 struct in6_addr {
-    u_int8_t u6_addr[16];
+    uint8_t u6_addr[16];
 };
 #endif
 #ifndef HAVE_STRUCT_SOCKADDR_IN6
 struct sockaddr_in6 {
-    u_int16_t sin6_family;
-    u_int16_t sin6_port;
-    u_int32_t sin6_flowinfo;
+    uint16_t sin6_family;
+    uint16_t sin6_port;
+    uint32_t sin6_flowinfo;
     struct in6_addr sin6_addr;
 };
 #endif
@@ -112,7 +112,7 @@ static int DN_SHORT(unsigned char *msg, int mlen, unsigned char **ptr, int *dest
 {
     if (*ptr + NS_INT16SZ > msg + mlen)
 	return -1;
-    *dest = ntohs(*(u_int16_t *)*ptr);
+    *dest = ntohs(*(uint16_t *)*ptr);
     *ptr += NS_INT16SZ;
     return 0;
 }
@@ -121,7 +121,7 @@ static int DN_INT(unsigned char *msg, int mlen, unsigned char **ptr, int *dest)
 {
     if (*ptr + NS_INT32SZ > msg + mlen)
 	return -1;
-    *dest = ntohl(*(u_int32_t *)*ptr);
+    *dest = ntohl(*(uint32_t *)*ptr);
     *ptr += NS_INT32SZ;
     return 0;
 }

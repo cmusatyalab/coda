@@ -25,12 +25,12 @@ struct rwcdb {
     char *file;
     struct db_file rf, wf;
     unsigned readonly : 1;
-    u_int32_t hash, klen, dlen, dpos;
+    uint32_t hash, klen, dlen, dpos;
     struct wrentry *pending;
     char *tmpbuf;
-    u_int32_t tmplen;
-    u_int32_t index;
-    u_int32_t hlens[256];
+    uint32_t tmplen;
+    uint32_t index;
+    uint32_t hlens[256];
     struct dllist_head removed;
     struct dllist_head added[256];
 };
@@ -38,20 +38,20 @@ struct rwcdb {
 
 int rwcdb_init(struct rwcdb *c, const char *file, const int mode);
 int rwcdb_free(struct rwcdb *c);
-int rwcdb_find(struct rwcdb *c, const char *k, const u_int32_t klen);
+int rwcdb_find(struct rwcdb *c, const char *k, const uint32_t klen);
 #define rwcdb_datalen(c) ((c)->dlen)
 #define rwcdb_datapos(c) ((c)->dpos)
-int rwcdb_read(struct rwcdb *c, char *d, const u_int32_t dlen,
-               const u_int32_t dpos);
+int rwcdb_read(struct rwcdb *c, char *d, const uint32_t dlen,
+               const uint32_t dpos);
 
 int rwcdb_next(struct rwcdb *c, int init);
 #define rwcdb_keylen(c)  ((c)->klen)
-int rwcdb_readkey(struct rwcdb *c, char *k, const u_int32_t klen,
-                  const u_int32_t dpos);
+int rwcdb_readkey(struct rwcdb *c, char *k, const uint32_t klen,
+                  const uint32_t dpos);
 
-int rwcdb_insert(struct rwcdb *c, const char *k, const u_int32_t klen,
-                  const char *d, const u_int32_t dlen);
-int rwcdb_delete(struct rwcdb *c, const char *k, const u_int32_t klen);
+int rwcdb_insert(struct rwcdb *c, const char *k, const uint32_t klen,
+                  const char *d, const uint32_t dlen);
+int rwcdb_delete(struct rwcdb *c, const char *k, const uint32_t klen);
 
 int rwcdb_sync(struct rwcdb *c);
 

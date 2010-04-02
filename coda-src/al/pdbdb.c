@@ -65,7 +65,7 @@ struct PDB_HANDLE_S {
  * ... Sigh. At least let's make the conversions easier:
  */
  
-#define H2DB_ID(x)      (htonl((u_int32_t) x))
+#define H2DB_ID(x)      (htonl((uint32_t) x))
 #define DB2H_ID(x)      ((int32_t)ntohl(x))
 
 static PDB_HANDLE pdb_handle = NULL;
@@ -138,7 +138,7 @@ int PDB_db_nextkey(PDB_HANDLE h, int *id)
 #define R_FIRST		0
 #define R_NEXT		1
 	static int which = R_FIRST;
-	u_int32_t uid, klen, dpos;
+	uint32_t uid, klen, dpos;
 	int rc;
 
 next:
@@ -153,7 +153,7 @@ next:
 	klen = rwcdb_keylen(&h->main);
 	dpos = rwcdb_datapos(&h->main);
 
-        if ( klen != sizeof(u_int32_t) )
+        if ( klen != sizeof(uint32_t) )
 	    goto next;
 
 	rc = rwcdb_readkey(&h->main, (char *)&uid, klen, dpos);
@@ -182,7 +182,7 @@ void PDB_db_release(void)
 void PDB_db_maxids(PDB_HANDLE h, int32_t *uid, int32_t *gid)
 {
 	char zero = 0;
-	u_int32_t ids[2], dlen, dpos;
+	uint32_t ids[2], dlen, dpos;
         int rc;
 
 	*uid = 0; 
@@ -194,7 +194,7 @@ void PDB_db_maxids(PDB_HANDLE h, int32_t *uid, int32_t *gid)
 	dlen = rwcdb_datalen(&h->main);
 	dpos = rwcdb_datapos(&h->main);
 
-	CODA_ASSERT(dlen == 2 * sizeof(u_int32_t));
+	CODA_ASSERT(dlen == 2 * sizeof(uint32_t));
 
 	rc = rwcdb_read(&h->main, (char *)&ids, dlen, dpos);
 	CODA_ASSERT(rc != -1);
@@ -209,7 +209,7 @@ void PDB_db_update_maxids(PDB_HANDLE h, int32_t uid, int32_t gid, int mode)
 	int rc;
 	char zero = 0;
 	int32_t olduid, oldgid;
-	u_int32_t ids[2];
+	uint32_t ids[2];
 	
 	CODA_ASSERT(uid >= 0 && gid <= 0);
 
@@ -225,14 +225,14 @@ void PDB_db_update_maxids(PDB_HANDLE h, int32_t uid, int32_t gid, int mode)
 	else ids[1] = H2DB_ID(oldgid);
 
         rc = rwcdb_insert(&h->main, &zero, 0,
-			  (char *)&ids, 2 * sizeof(u_int32_t));
+			  (char *)&ids, 2 * sizeof(uint32_t));
 	CODA_ASSERT(rc == 1);
 }
 
 static char *malloc_name(const char *name)
 {
 	char *namekey;
-	u_int32_t namelen;
+	uint32_t namelen;
 
 	namelen = strlen("NAME") + strlen(name) + 1;
 	namekey = malloc(namelen);
@@ -246,7 +246,7 @@ static char *malloc_name(const char *name)
 
 void PDB_db_write(PDB_HANDLE h, int32_t id, char *name, void *data, size_t size)
 {
-	u_int32_t netid;
+	uint32_t netid;
 	char *namekey;
 	int rc;
 
@@ -276,7 +276,7 @@ void PDB_db_write(PDB_HANDLE h, int32_t id, char *name, void *data, size_t size)
 void PDB_db_read(PDB_HANDLE h, int32_t id, const char *name, void **data,
 		 size_t *size)
 {
-	u_int32_t realid, dlen, dpos;
+	uint32_t realid, dlen, dpos;
 	int rc;
 
 	*data = NULL;
@@ -291,18 +291,18 @@ void PDB_db_read(PDB_HANDLE h, int32_t id, const char *name, void **data,
 		if (rc != 1) return;
 
 		dlen = rwcdb_datalen(&h->main);
-		if (dlen != sizeof(u_int32_t)) return;
+		if (dlen != sizeof(uint32_t)) return;
 
 		dpos = rwcdb_datapos(&h->main);
                 if (rwcdb_read(&h->main, (char *)&realid, dlen, dpos) == -1)
 		    return;
 	}
 		
-	rc = rwcdb_find(&h->main, (char *)&realid, sizeof(u_int32_t));
+	rc = rwcdb_find(&h->main, (char *)&realid, sizeof(uint32_t));
 	if (rc != 1) return;
 
 	dlen = rwcdb_datalen(&h->main);
-	if (dlen == sizeof(u_int32_t))
+	if (dlen == sizeof(uint32_t))
 	    return;
 
 	*data = malloc(dlen);
@@ -321,9 +321,9 @@ void PDB_db_read(PDB_HANDLE h, int32_t id, const char *name, void **data,
 
 void PDB_db_delete(PDB_HANDLE h, int32_t id, char *name)
 {
-	u_int32_t realid = H2DB_ID(id);
+	uint32_t realid = H2DB_ID(id);
 
-	rwcdb_delete(&h->main, (char *)&realid, sizeof(u_int32_t));
+	rwcdb_delete(&h->main, (char *)&realid, sizeof(uint32_t));
 
 	PDB_db_delete_xfer(h, name);
 }

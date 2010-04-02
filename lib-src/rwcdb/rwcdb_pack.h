@@ -19,6 +19,7 @@ Coda are listed in the file CREDITS.
 
 #include <config.h>
 #include <sys/types.h>
+#include <stdint.h>
 
 /* really bad hack, but this should work for 'most' systems :) */
 #ifndef __BYTE_ORDER
@@ -52,18 +53,18 @@ Coda are listed in the file CREDITS.
 /* stuff for packing/unpacking db values */
 
 struct rwcdb_tuple {
-    u_int32_t a;
-    u_int32_t b;
+    uint32_t a;
+    uint32_t b;
 };
 
-static __inline__ void packints(char *buf, const u_int32_t a, const u_int32_t b)
+static __inline__ void packints(char *buf, const uint32_t a, const uint32_t b)
 {
     struct rwcdb_tuple *p = (struct rwcdb_tuple *)buf;
     p->a = SWAP_OUT(a);
     p->b = SWAP_OUT(b);
 }
 
-static __inline__ void unpackints(char *buf, u_int32_t *a, u_int32_t *b)
+static __inline__ void unpackints(char *buf, uint32_t *a, uint32_t *b)
 {
     struct rwcdb_tuple *p = (struct rwcdb_tuple *)buf;
     *a = SWAP_IN(p->a);
