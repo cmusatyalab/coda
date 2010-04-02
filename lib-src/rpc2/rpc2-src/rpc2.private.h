@@ -643,7 +643,7 @@ char *rpc2_timestring();
 			fprintf(rpc2_logfile, ## how);(void) fflush(rpc2_logfile);}\
     } while(0);
 #else 
-#define say(when, what, how)	
+#define say(when, what, how...)
 #endif
 
 #ifndef TRUE
