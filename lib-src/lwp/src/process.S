@@ -41,7 +41,7 @@ Pittsburgh, PA.
 #include <config.h>
 #endif
 
-#if !defined(CODA_USE_UCONTEXT) && !defined(HAVE_SIGALTSTACK)
+#if !defined(HAVE_SIGALTSTACK)
 
 #define __ASSEMBLY__ 1
 
@@ -1016,7 +1016,7 @@ returnto:
 
 #endif /* DEC Alpha */
 
-#endif /* !defined(HAVE_UCONTEXT_H) && !defined(HAVE_SIGALTSTACK) */
+#endif /* !defined(HAVE_SIGALTSTACK) */
 
 #if defined __ELF__ && defined __linux__
     /* indicate that we do not need an executable stack */
