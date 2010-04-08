@@ -99,7 +99,7 @@ struct inodeops inodeops_simple = {
 
 
 /* static data */
-static mode_t   mode=S_IREAD | S_IWRITE;
+static mode_t mode = S_IRUSR | S_IWUSR;
 
 static int s_magic(void)
 {

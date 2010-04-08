@@ -90,7 +90,7 @@ struct inodeops inodeops_ftree = {
 };
 
 
-static mode_t   mode=S_IREAD | S_IWRITE;
+static mode_t mode = S_IRUSR | S_IWUSR;
 
 
 static int f_magic(void)

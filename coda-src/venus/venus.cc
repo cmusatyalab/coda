@@ -616,7 +616,7 @@ static void CheckInitFile() {
         int initFD;
 
 	/* If not and it should be, create it. */
-        initFD = open(initPath, O_CREAT, S_IREAD);
+        initFD = open(initPath, O_CREAT, S_IRUSR);
         if (initFD) {
 	    write(initFD, initPath, strlen(initPath));
             close(initFD);
