@@ -30,6 +30,7 @@ extern "C" {
 #include <stdio.h>
 #include <sys/param.h>
 #include <time.h>
+#include <netdb.h>
 
 #ifdef __cplusplus
 }
