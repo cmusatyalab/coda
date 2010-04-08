@@ -59,62 +59,29 @@ Mellon the rights to redistribute these changes without encumbrance.
 #ifndef _CODA_HEADER_
 #define _CODA_HEADER_
 
-/* Catch new _KERNEL defn for NetBSD and __CYGWIN32__ */
-#if defined(__NetBSD__) || (defined(__CYGWIN32__) && !defined(KERNEL))
 #include <sys/types.h>
-#endif 
+#include <sys/time.h>
 #include <stdint.h>
-
-#ifndef CODA_MAXSYMLINKS
-#define CODA_MAXSYMLINKS 10
-#endif
 
 #ifdef __CYGWIN32__
 #ifdef KERNEL
 typedef unsigned long u_long;
-typedef unsigned short u_short;
 typedef u_long ino_t;
 typedef u_long dev_t;
 typedef void * caddr_t;
-#ifdef DOS
-typedef unsigned __int64 u_quad_t;
-#else 
-typedef unsigned long long u_quad_t;
 #endif
-
-#define inline
 
 struct timespec {
         long       ts_sec;
         long       ts_nsec;
 };
-#else  /* __CYGWIN32__ but not KERNEL */
-#include <sys/time.h>
-typedef unsigned long long u_quad_t;
-#endif /* !KERNEL */
 #endif /* !__CYGWIN32__ */
 
 
 #if defined(__linux__)
-#define cdev_t u_quad_t
-#ifndef __KERNEL__
-#if !defined(_UQUAD_T_) && (!defined(__GLIBC__) || __GLIBC__ < 2)
-#define _UQUAD_T_ 1
-typedef unsigned long long u_quad_t;
-#endif
-#else /*__KERNEL__ */
-typedef unsigned long long u_quad_t;
-#endif /* __KERNEL__ */
+typedef uint64_t cdev_t;
 #else
-#define cdev_t dev_t
-#endif
-
-/* Solaris Definitions */
-#if defined(sun)
-#include <sys/types.h>
-#include <sys/time.h>
-typedef unsigned long long u_quad_t;
-#undef __BIT_TYPES_DEFINED__
+typedef dev_t cdev_t;
 #endif
 
 /* Mac OS X / Darwin */
@@ -240,12 +207,12 @@ enum coda_vtype	{ C_VNON, C_VREG, C_VDIR, C_VBLK, C_VCHR, C_VLNK, C_VSOCK, C_VFI
 
 struct coda_vattr {
 	long     	va_type;	/* vnode type (for create) */
-	u_short		va_mode;	/* files access mode and type */
+	uint16_t	va_mode;	/* files access mode and type */
 	short		va_nlink;	/* number of references to file */
 	cuid_t		va_uid;		/* owner user id */
 	cgid_t		va_gid;		/* owner group id */
 	long		va_fileid;	/* file id */
-	u_quad_t	va_size;	/* file size in bytes */
+	uint64_t	va_size;	/* file size in bytes */
 	long		va_blocksize;	/* blocksize preferred for i/o */
 	struct timespec	va_atime;	/* time of last access */
 	struct timespec	va_mtime;	/* time of last modification */
@@ -253,8 +220,8 @@ struct coda_vattr {
 	u_long		va_gen;		/* generation number of file */
 	u_long		va_flags;	/* flags defined for file */
 	cdev_t	        va_rdev;	/* device special file represents */
-	u_quad_t	va_bytes;	/* bytes of disk space held by file */
-	u_quad_t	va_filerev;	/* file modification number */
+	uint64_t	va_bytes;	/* bytes of disk space held by file */
+	uint64_t	va_filerev;	/* file modification number */
 };
 
 #endif 
