@@ -50,7 +50,6 @@ int lwp_nextindex;
 #include <sys/types.h>
 #include <sys/time.h>
 #include <time.h>
-#include <sys/signal.h>
 #include <sys/stat.h>
 #include <sys/file.h>
 #include <netinet/in.h>
