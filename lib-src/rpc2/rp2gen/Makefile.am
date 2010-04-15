@@ -1,9 +1,14 @@
 ## Process this file with automake to produce Makefile.in
 
 CCLD=$(NATIVECC)
-EXEEXT=
+#EXEEXT=
 AM_YFLAGS= -d
-INCLUDES = -I$(top_builddir)/include -I$(top_srcdir)/include -I$(srcdir) -I.
+INCLUDES= -I$(top_builddir)/include -I$(top_srcdir)/include -I$(srcdir) -I.
+
+# override any cross compilation target flags
+CFLAGS=-Wall
+LDFLAGS=
+LIBS=
 
 .c.o:
 	$(NATIVECC) $(INCLUDES) -c $<
