@@ -99,7 +99,7 @@ unsigned long MAXTS = UNSET_MAXTS;
 
 #if defined(NetBSD1_3) || defined(__NetBSD_Version__) || defined(__OpenBSD__) \
  || defined(__linux__) || defined(__CYGWIN32__) || defined(__FreeBSD_version)  \
- || (defined(__APPLE__) && defined(__MACH__))
+ || (defined(__APPLE__) && defined(__MACH__)) || defined(ANDROID)
 static const char *VM_RVMADDR = (char *)0x50000000;
 
 /* Pretty much every platform seems to be able to handle 0x50000000 as the RVM
@@ -378,7 +378,6 @@ static void Recov_InitRVM()
     if (InitMetaData) /* Initialize log. */
     {
         /* Get rid of any old log */
-        truncate(VenusLogDevice, 0);
 	unlink(VenusLogDevice);
 
         /* Pass in the correct parameters so that RVM_INIT can create
