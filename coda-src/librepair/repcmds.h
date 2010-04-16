@@ -43,6 +43,7 @@ extern "C" {
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <netdb.h>
 
 #include <auth2.h>
 #include <avenus.h>
@@ -92,7 +93,7 @@ struct replica {
     ViceVersionVector VV;
     char realmname[HOSTNAMLEN];   /* realm name of this object */
     char srvname[HOSTNAMLEN]; /* XXX: name of server on which this replica is located? */
-    char compname[MAXNAMLEN]; /* component name corresponding to this rw id */
+    char compname[NAME_MAX]; /* component name corresponding to this rw id */
     struct replica *next;     /* next replica ptr */
 };
 

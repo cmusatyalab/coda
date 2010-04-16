@@ -42,6 +42,7 @@ extern "C" {
 #include <unistd.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <netdb.h>
 #include <inodeops.h>
 
 #ifdef __cplusplus

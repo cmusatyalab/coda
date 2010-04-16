@@ -68,6 +68,7 @@ extern "C" {
 #include <unistd.h>
 #include <stdlib.h>
 #include <fcntl.h>
+#include <netdb.h>
 
 #ifdef __cplusplus
 }
