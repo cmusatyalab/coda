@@ -42,6 +42,8 @@ AC_ARG_ENABLE(client, [  --enable-client	  build Coda client components],
     buildclient="$enableval", buildclient="no")
 AC_ARG_ENABLE(server, [  --enable-server	  build Coda server components],
     buildserver="$enableval", buildserver="no")
+AC_ARG_ENABLE(venus, [  --enable-client-only	  build only Coda client],
+    buildvenus="$enableval", buildvenus="no")
 AC_ARG_WITH(vcodacon, [  --with-vcodacon	  build graphical Coda console],
     buildvcodacon="$enableval", buildvcodacon="no")
 
@@ -85,21 +87,22 @@ dnl Checks for header files.
 AC_CHECK_HEADERS(search.h sys/resource.h sys/stream.h ncurses.h netdb.h)
 AC_CHECK_HEADERS(sys/statvfs.h sys/statfs.h sys/param.h sys/vfs.h fts.h)
 AC_CHECK_HEADERS(sys/types.h sys/time.h sys/select.h sys/socket.h sys/ioccom.h)
-AC_CHECK_HEADERS(arpa/inet.h arpa/nameser.h netinet/in.h sys/un.h osreldate.h)
+AC_CHECK_HEADERS(arpa/inet.h arpa/nameser.h netinet/in.h osreldate.h)
 AC_CHECK_HEADERS(ncurses/ncurses.h byteswap.h sys/bswap.h sys/endian.h)
 AC_CHECK_HEADERS(ucred.h execinfo.h)
 
-AC_CHECK_HEADERS(resolv.h, [], [],
-[#ifdef HAVE_NETINET_IN_H
-#include <sys/types.h>
-#include <netinet/in.h>
+AC_CHECK_HEADERS(sys/un.h resolv.h, [], [],
+[#include <sys/types.h>
+#ifdef HAVE_SYS_SOCKET_H
+#include <sys/socket.h>
 #endif
-])
+#ifdef HAVE_NETINET_IN_H
+#include <netinet/in.h>
+#endif])
 AC_CHECK_HEADERS(sys/mount.h, [], [],
 [#if HAVE_SYS_PARAM_H
 #include <sys/param.h>
-#endif
-])
+#endif])
 
 dnl Checks for typedefs.
 AC_TYPE_INT32_T
@@ -110,6 +113,7 @@ AC_CHECK_TYPES([socklen_t, struct in6_addr, struct sockaddr_in6],,,
 	       [#include <sys/types.h>
 		#include <sys/socket.h>
 		#include <netinet/in.h>])
+AC_CHECK_TYPES([ns_type, ns_class],,, [#include <arpa/nameser.h>])
 
 dnl Checks for structures.
 
@@ -142,8 +146,13 @@ if test "$buildvcodacon" != no ; then
 fi
 AM_CONDITIONAL(BUILD_VCODACON, [test "$buildvcodacon" != no])
 
-AM_CONDITIONAL(BUILD_CLIENT, [test "$buildclient" != no -o "$buildclient" = no -a "$buildserver" = no])
-AM_CONDITIONAL(BUILD_SERVER, [test "$buildserver" != no -o "$buildclient" = no -a "$buildserver" = no])
+if test "$buildclient" = no -a "$buildserver" = no -a "$buildvenus" = no ; then
+  buildclient = yes
+  buildserver = yes
+fi
+AM_CONDITIONAL(BUILD_CLIENT, [test "$buildclient" != no])
+AM_CONDITIONAL(BUILD_SERVER, [test "$buildserver" != no])
+AM_CONDITIONAL(BUILD_VENUS, [test "$buildclient" != no -o "$buildvenus" != no])
 
 AM_CONDITIONAL([HAVE_PYTHON], [test "$PYTHON" != :])
 AM_CONDITIONAL([WANT_FTS], [test "$ac_cv_header_fts_h" = no])
