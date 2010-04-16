@@ -16,10 +16,6 @@ Coda are listed in the file CREDITS.
 
 #*/
 
-#ifdef __cplusplus
-extern "C" {
-#endif /* __cplusplus */
-
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -34,10 +30,6 @@ extern "C" {
 
 #include <readline/readline.h>
 #include <readline/history.h>
-
-#ifdef __cplusplus
-}
-#endif /* __cplusplus */
 
 #ifndef HAVE_RL_COMPLETION_MATCHES
 /* compatibility for readline libs < v4.2 */
