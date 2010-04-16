@@ -15,6 +15,16 @@ Coda are listed in the file CREDITS.
 			    none currently
 #*/
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#ifdef HAVE_ARPA_INET_H
+#include <arpa/inet.h>
+#endif
+#ifdef HAVE_SYS_ENDIAN_H
+#include <sys/endian.h>
+#endif
 #include <string.h>
 #include <assert.h>
 #include "coda_getservbyname.h"
