@@ -20,7 +20,7 @@ AC_SUBST(LIBCURSES)
 AC_DEFUN([CODA_CHECK_LIBCURSES],
   [AC_CHECK_LIB(ncurses, main, [LIBCURSES="-lncurses"],
 	[AC_CHECK_LIB(curses, main, [LIBCURSES="-lcurses"],
-	    [AC_MSG_ERROR("failed to find curses library")
+	    [AC_MSG_WARN("failed to find curses library")
 	    ], $LIBTERMCAP)
 	], $LIBTERMCAP)
   AC_CACHE_CHECK([if curses library requires -ltermcap],
