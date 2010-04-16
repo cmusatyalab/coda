@@ -339,11 +339,11 @@ struct venus_cnode {
 #define VA_IGNORE_NLINK		((short)-1)
 #define VA_IGNORE_BLOCKSIZE	((long)-1)
 #define VA_IGNORE_RDEV		((cdev_t)-1)
-#define VA_IGNORE_STORAGE	((u_quad_t) -1)
+#define VA_IGNORE_STORAGE	((uint64_t) -1)
 #define VA_IGNORE_MODE		((u_short)-1)
 #define VA_IGNORE_UID		((uid_t) -1)
 #define VA_IGNORE_GID		((gid_t) -1)
-#define VA_IGNORE_SIZE		((u_quad_t)-1) 
+#define VA_IGNORE_SIZE		((uint64_t)-1)
 #define VA_IGNORE_TIME1		((time_t)-1)
 #define VA_IGNORE_FLAGS		((u_long)-1)
 

@@ -2120,7 +2120,7 @@ void fsobj::GetVattr(struct coda_vattr *vap)
     }
     else
     {
-	vap->va_size = (u_quad_t) stat.Length;
+	vap->va_size = (uint64_t)stat.Length;
 	vap->va_mtime.tv_sec = (time_t)stat.Date;
 	vap->va_mtime.tv_nsec = 0;
     }
