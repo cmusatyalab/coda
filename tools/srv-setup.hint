@@ -5,7 +5,6 @@ needed to run a Coda server.  This includes vice, the actual
 file server program, and all the utilities that work with vice.
 There is no default configuretion.  After installation, the 
 user must run the vice-setup program to get it ready to run."
-prev: 6.9.2-1
-curr: 6.9.3-1
+curr: 6.9.5-1
 category: Net
 requires: cygwin lwp rvm rpc2 bash perl cygrunsrv tar

@@ -9,7 +9,7 @@ else
   BUILD=false
 fi
 
-CYGWINREV=1
+CYGWINREV=2
 PKG=coda
 CLILIST="
     etc/coda/realms
@@ -62,7 +62,6 @@ CLILIST="
 
 SRVLIST="
     etc/coda/server.conf.ex
-    etc/rc.vice
     usr/bin/getvolinfo.exe
     usr/bin/reinit
     usr/bin/rpc2ping.exe
@@ -128,6 +127,8 @@ SRVLIST="
     usr/share/man/man8/vice-setup.8
     usr/share/man/man8/volutil.8
 "
+
+# etc/rc.vice
 
 # Sanity checks ...
 
