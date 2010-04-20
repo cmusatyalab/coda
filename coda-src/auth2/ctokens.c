@@ -128,7 +128,11 @@ int main(int argc, char *argv[])
 	codaconf_init("venus.conf");
 
 #ifdef __CYGWIN__
-	CODACONF_STR(mountpoint, "mountpoint", "N:");
+	char *winmount = NULL;
+	char cygwinmount[15];
+	CODACONF_STR(winmount, "mountpoint", "N:");
+	snprintf(cygwinmount,15,"/cygdrive/%c", winmount[0]);
+	mountpoint = cygwinmount;
 #else
 	CODACONF_STR(mountpoint, "mountpoint", "/coda");
 #endif
