@@ -1,6 +1,5 @@
 # Coda File System light weight process library
 sdesc: "Coda light weight process library"
 ldesc: "Coda light weight process library"
-prev: 2.3-1
-curr: 2.4-1
+curr: 2.6-1
 category: Libs
