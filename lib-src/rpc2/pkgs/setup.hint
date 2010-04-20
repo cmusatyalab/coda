@@ -4,8 +4,7 @@ ldesc: "Yet another remote procedure call package.  This one has
 a 'side effect' feature.  Most visible one is the sftp side effect
 that is used by Coda to transfer files as a side effect of a
 rpc."
-prev: 2.6.1-1
-curr: 2.7-1
+curr: 2.10-1
 category: Libs
 requires: lwp rvm
 
