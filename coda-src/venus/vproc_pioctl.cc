@@ -225,7 +225,8 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
 			*arg = '\0'; arg++;
 
 			/* Disallow special names. */
-			verifyname(link_name, NAME_NO_DOTS | NAME_NO_CONFLICT);
+			verifyname(link_name, NAME_NO_DOTS | NAME_NO_CONFLICT |
+				   NAME_NO_EXPANSION);
 			if (u.u_error) break;
 
 			/* Verify that parent is a directory. */

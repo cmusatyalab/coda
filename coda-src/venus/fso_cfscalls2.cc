@@ -48,8 +48,6 @@ extern "C" {
 }
 #endif
 
-#include <coda_config.h>
-
 /* from venus */
 #include "comm.h"
 #include "fso.h"
@@ -443,7 +441,7 @@ int fsobj::Access(int rights, int modes, uid_t uid)
 /* Explicit parameter for TRAVERSE_MTPTS? -JJK */
 int fsobj::Lookup(fsobj **target_fso_addr, VenusFid *inc_fid, const char *name, uid_t uid, int flags, int GetInconsistent)
 {
-  LOG(10, ("fsobj::Lookup: (%s/%s), uid = %d, GetInconsistent = %d\n", GetComp(), name, uid, GetInconsistent));
+    LOG(10, ("fsobj::Lookup: (%s/%s), uid = %d, GetInconsistent = %d\n", GetComp(), name, uid, GetInconsistent));
 
     /* We're screwed if (name == "." or ".."). -JJK */
     CODA_ASSERT(!STREQ(name, ".") && !STREQ(name, ".."));
@@ -456,14 +454,31 @@ int fsobj::Lookup(fsobj **target_fso_addr, VenusFid *inc_fid, const char *name, 
     fsobj *target_fso = 0;
     VenusFid target_fid;
 
+    vproc *v = VprocSelf();
+    const char *subst = NULL;
+    char *expand = NULL;
+
     /* Map name --> fid. */
     {
 	/* Verify that we have lookup permission. */
 	/* Access will never return EINCONS here as we are a directory and
 	 * will not recurse up to our parent. */
 	code = Access(PRSFS_LOOKUP, C_A_F_OK, uid);
-	if (code)
-	    return(code);
+	if (code) return(code);
+
+	/* Check for @cpu/@sys expansion. */
+	subst = v->expansion(name);
+	if (subst)
+	{
+	    size_t len = strlen(name) - 4;
+	    size_t slen = strlen(subst);
+
+	    expand = (char *)malloc(len + slen + 1);
+	    strncpy(expand, name, len);
+	    strcpy(expand + len, subst);
+	    expand[len+slen] = '\0';
+	    name = expand;
+	}
 
 	/* Lookup the target object. */
 	{
@@ -472,14 +487,16 @@ int fsobj::Lookup(fsobj **target_fso_addr, VenusFid *inc_fid, const char *name, 
 	    if (code) {
 		if (vol->GetRealmId() != LocalRealm->Id() ||
 		    vol->GetVolumeId() != FakeRootVolumeId)
-		    return code;
+		    goto done;
 
 		/* regular lookup failed, but if we are in the fake root
 		 * volume, we can try to check for a new realm */
 
 		// don't even bother to follow lookups of dangling symlinks
-		if (name[0] == '#' || name[0] == '@')
-		    return ENOENT;
+		if (name[0] == '#' || name[0] == '@') {
+		    code = ENOENT;
+		    goto done;
+		}
 
 		// Try to get and mount the realm.
 		realm = REALMDB->GetRealm(name);
@@ -553,6 +570,8 @@ done:
 	realm->PutRef();
 	realm = NULL;
     }
+    if (expand)
+	free(expand);
 
     return(code);
 }
@@ -576,55 +595,10 @@ int fsobj::Readlink(char *buf, unsigned long len, int *cc, uid_t uid)
     }
 
     /* Fill in the buffer. */
-    char *ptr, *end, *out;
-    ptr = data.symlink;
-    end = ptr + stat.Length;
-    out = buf;
-    while (ptr != end) {
-	const char *subst;
-	char *c;
-	unsigned int tmp_len;
-
-	c = strchr(ptr, '@');
-	if (!c || end < c + 4) c = end;
-
-	/* copy everything up to this point */
-	tmp_len = c - ptr;
-
-	if (tmp_len >= len)
-	    tmp_len = len-1;
-	if (tmp_len) {
-	    memcpy(out, ptr, tmp_len);
-	    out += tmp_len;
-	    len -= tmp_len;
-	}
-
-	ptr = c + 4;
-	if (ptr > end) break;
-
-	subst = c;
-	tmp_len = 4;
-	if (strncmp(&c[1], "cpu", 3) == 0) {
-	     subst = CPUTYPE;
-	     tmp_len = strlen(CPUTYPE);
-	}
-	else if (strncmp(&c[1], "sys", 3) == 0) {
-	     subst = SYSTYPE;
-	     tmp_len = strlen(SYSTYPE);
-	}
-
-	if (tmp_len >= len)
-	    tmp_len = len-1;
-	if (tmp_len) {
-	    memcpy(out, subst, tmp_len);
-	    out += tmp_len;
-	    len -= tmp_len;
-	}
-    }
-    *out = '\0';
-    *cc = out - buf;
+    memcpy(buf, data.symlink, stat.Length);
+    buf[stat.Length] = '\0';
+    *cc = stat.Length;
 
     LOG(100, ("fsobj::Readlink: contents = %s\n", buf));
-
     return(0);
 }

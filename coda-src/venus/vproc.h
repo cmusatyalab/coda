@@ -249,9 +249,11 @@ class vproc : public olink {
     /* Pathname translation. */
     int namev(char *, int, struct venus_cnode *);
     void GetPath(VenusFid *, char *, int *, int =1);
+    const char *expansion(const char *path);
     void verifyname(char *name, int flags);
 #define NAME_NO_DOTS      1 /* don't allow '.', '..', '/' */
 #define NAME_NO_CONFLICT  2 /* don't allow @XXXXXXXX.YYYYYYYY.ZZZZZZZZ */
+#define NAME_NO_EXPANSION 4 /* don't allow @cpu / @sys */
 
     void GetStamp(char *);
     void print();

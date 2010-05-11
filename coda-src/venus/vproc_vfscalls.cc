@@ -667,8 +667,8 @@ void vproc::create(struct venus_cnode *dcp, char *name, struct coda_vattr *vap,
     int truncp = (vap->va_size == 0);
     int exclp = excl;
 
-    /* don't allow '.', '..', '/' or conflict namesor */
-    verifyname(name, NAME_NO_DOTS | NAME_NO_CONFLICT);
+    /* don't allow '.', '..', '/', conflict names, or @xxx expansions */
+    verifyname(name, NAME_NO_DOTS | NAME_NO_CONFLICT | NAME_NO_EXPANSION);
     if (u.u_error) return;
 
     for (;;) {
@@ -822,8 +822,8 @@ void vproc::link(struct venus_cnode *scp, struct venus_cnode *dcp,
     fsobj *source_fso = 0;
     fsobj *target_fso = 0;
 
-    /* don't allow '.', '..', '/' or conflict names */
-    verifyname(toname, NAME_NO_DOTS | NAME_NO_CONFLICT);
+    /* don't allow '.', '..', '/', conflict names, or @xxx expansions */
+    verifyname(toname, NAME_NO_DOTS | NAME_NO_CONFLICT | NAME_NO_EXPANSION);
     if (u.u_error) return;
 
     /* verify that the target parent is a directory */
@@ -925,8 +925,8 @@ void vproc::rename(struct venus_cnode *spcp, char *name,
     verifyname(name, NAME_NO_DOTS);
     if (u.u_error) return;
 
-    /* don't allow '.', '..', '/' or conflict names */
-    verifyname(toname, NAME_NO_DOTS | NAME_NO_CONFLICT);
+    /* don't allow '.', '..', '/', conflict names, or @xxx expansions */
+    verifyname(toname, NAME_NO_DOTS | NAME_NO_CONFLICT | NAME_NO_EXPANSION);
     if (u.u_error) return;
 
     /* Ensure that objects are in the same volume. */
@@ -1142,8 +1142,8 @@ void vproc::mkdir(struct venus_cnode *dcp, char *name,
     fsobj *parent_fso = 0;
     fsobj *target_fso = 0;
 
-    /* don't allow '.', '..', '/' or conflict names */
-    verifyname(name, NAME_NO_DOTS | NAME_NO_CONFLICT);
+    /* don't allow '.', '..', '/', conflict names, or @xxx expansions */
+    verifyname(name, NAME_NO_DOTS | NAME_NO_CONFLICT | NAME_NO_EXPANSION);
     if (u.u_error) return;
 
     for (;;) {
@@ -1278,8 +1278,8 @@ void vproc::symlink(struct venus_cnode *dcp, char *contents,
     fsobj *parent_fso = 0;
     fsobj *target_fso = 0;
 
-    /* don't allow '.', '..', '/' or conflict names */
-    verifyname(name, NAME_NO_DOTS | NAME_NO_CONFLICT);
+    /* don't allow '.', '..', '/', conflict names, or expansions */
+    verifyname(name, NAME_NO_DOTS | NAME_NO_CONFLICT | NAME_NO_EXPANSION);
     if (u.u_error) return;
 
     for (;;) {

@@ -40,6 +40,8 @@ extern "C" {
 }
 #endif
 
+#include <coda_config.h>
+
 /* interfaces */
 #include <vice.h>
 
@@ -385,6 +387,23 @@ Exit:
     LOG(1, ("vproc::GetPath: returns %s (%s)\n", VenusRetStr(u.u_error), out));
 }
 
+const char *vproc::expansion(const char *path)
+{
+    size_t len = strlen(path);
+
+    if (len < 4 || path[len-4] != '@')
+	return NULL;
+
+    if (STREQ(&path[len-3], "cpu"))
+	return CPUTYPE;
+
+    if (STREQ(&path[len-3], "sys"))
+	return SYSTYPE;
+
+    return NULL;
+}
+
+
 void vproc::verifyname(char *name, int flags)
 {
     int length;
@@ -409,5 +428,13 @@ void vproc::verifyname(char *name, int flags)
 	u.u_error = EINVAL;
 	return;
     }
+
+    /* Disallow names ending in @sys or @cpu. */
+    if ((flags & NAME_NO_EXPANSION) && expansion(name) != NULL)
+    {
+	u.u_error = EINVAL;
+	return;
+    }
+
     return;
 }
