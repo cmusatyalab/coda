@@ -4,13 +4,13 @@ sbin_PROGRAMS =
 dist_man_MANS =
 
 if BUILD_CLIENT
-sbin_PROGRAMS = vutil
-dist_man_MANS = vutil.8
+sbin_PROGRAMS += vutil
+dist_man_MANS += vutil.8
 endif
 
 if BUILD_VENUS
-sbin_PROGRAMS = venus
-dist_man_MANS = venus.8
+sbin_PROGRAMS += venus
+dist_man_MANS += venus.8
 dist_sysconf_DATA = venus.conf.ex realms
 endif
 

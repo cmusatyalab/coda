@@ -147,8 +147,8 @@ fi
 AM_CONDITIONAL(BUILD_VCODACON, [test "$buildvcodacon" != no])
 
 if test "$buildclient" = no -a "$buildserver" = no -a "$buildvenus" = no ; then
-  buildclient = yes
-  buildserver = yes
+  buildclient=yes
+  buildserver=yes
 fi
 AM_CONDITIONAL(BUILD_CLIENT, [test "$buildclient" != no])
 AM_CONDITIONAL(BUILD_SERVER, [test "$buildserver" != no])
