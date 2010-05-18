@@ -44,7 +44,7 @@ AC_ARG_ENABLE(server, [  --enable-server	  build Coda server components],
     buildserver="$enableval", buildserver="no")
 AC_ARG_ENABLE(venus, [  --enable-client-only	  build only Coda client],
     buildvenus="$enableval", buildvenus="no")
-AC_ARG_WITH(vcodacon, [  --with-vcodacon	  build graphical Coda console],
+AC_ARG_ENABLE(vcodacon, [  --enable-vcodacon	  build graphical Coda console],
     buildvcodacon="$enableval", buildvcodacon="no")
 
 dnl Make sure we configure any sub-projects before checking with pkg-config
