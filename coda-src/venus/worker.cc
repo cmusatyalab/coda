@@ -403,11 +403,19 @@ void VFSMount()
 	    error = nmount(md, 6, 0);
 	}
 #endif
-			
+
+#if defined(__NetBSD__) && __NetBSD_Version__ >= 499002400   /* 4.99.24 */
+	if (error < 0)
+	    error = mount("coda", venusRoot, 0, (void *)kernDevice, 256);
+	if (error < 0)
+	    error = mount("cfs", venusRoot, 0, (void *)kernDevice, 256);
+#else
 	if (error < 0)
 	    error = mount("coda", venusRoot, 0, kernDevice);
 	if (error < 0)
 	    error = mount("cfs", venusRoot, 0, kernDevice);
+#endif
+
 #if defined(__FreeBSD__) && !defined(__FreeBSD_version)
 #define MOUNT_CFS 19
 	if (error < 0)
@@ -492,7 +500,7 @@ child_done:
 	  mnttab = fopen(MNTTAB, "a+");
 	  if (mnttab != NULL) {
 	    mt.mnt_special = "CODA";
-	    mt.mnt_mountp = venusRoot;
+	    mt.mnt_mountp = (char *)venusRoot;
 	    mt.mnt_fstype = "CODA";
 	    mt.mnt_mntopts = "rw";
 	    mt.mnt_time = tm;
