@@ -142,7 +142,7 @@ AC_SUBST(shortsys)
 dnl Build conditionals
 if test "$buildvcodacon" != no ; then
   test -z "${FLUID}" && AC_MSG_ERROR("Unable to find fltk-fluid")
-  test "$coda_cv_path_fltk" == none && AC_MSG_ERROR("Unable to find libfltk")
+  test "$coda_cv_path_fltk" = none && AC_MSG_ERROR("Unable to find libfltk")
 fi
 AM_CONDITIONAL(BUILD_VCODACON, [test "$buildvcodacon" != no])
 
