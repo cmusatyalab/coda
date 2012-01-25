@@ -211,7 +211,7 @@ struct coda_vattr {
 	short		va_nlink;	/* number of references to file */
 	cuid_t		va_uid;		/* owner user id */
 	cgid_t		va_gid;		/* owner group id */
-	long		va_fileid;	/* file id */
+	unsigned long	va_fileid;	/* file id */
 	uint64_t	va_size;	/* file size in bytes */
 	long		va_blocksize;	/* blocksize preferred for i/o */
 	struct timespec	va_atime;	/* time of last access */
