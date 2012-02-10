@@ -24,10 +24,10 @@ AC_DEFUN([CODA_TEST_OFFSETOF],
     AC_MSG_RESULT($offsetof)])
 
 AC_DEFUN([CODA_CHECK_OFFSETOF],
-   [CODA_TEST_OFFSETOF(OFFSETOF, [offsetof(type,member)])
+   [CODA_TEST_OFFSETOF(REINTERPRET_CAST, [((size_t)(&(reinterpret_cast<type*>(__alignof__(type*)))->member)-__alignof__(type*))])
     if test "$offsetof" != yes ; then
     CODA_TEST_OFFSETOF(PTR_TO_MEMBER, [((size_t)(&type::member))])
     if test "$offsetof" != yes ; then
-    CODA_TEST_OFFSETOF(REINTERPRET_CAST, [((size_t)(&(reinterpret_cast<type*>(__alignof__(type*)))->member)-__alignof__(type*))])
+    CODA_TEST_OFFSETOF(OFFSETOF, [offsetof(type,member)])
     fi ; fi])
 
