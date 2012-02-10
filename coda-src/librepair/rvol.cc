@@ -43,7 +43,7 @@ int repair_newrep(char *pathname, struct conflict **conf, char *msg, int msgsize
     }
 
     if (repair_isleftmost(pathname, reppath, MAXPATHLEN, msg, msgsize) < 0) {
-	strerr(msg, msgsize, "pathname not leftmost");
+	//strerr(msg, msgsize, "pathname not leftmost");
 	return(-1);
     }
 

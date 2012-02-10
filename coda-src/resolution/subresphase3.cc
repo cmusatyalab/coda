@@ -776,7 +776,9 @@ static int CheckValidityResOp(rsle *r, int NE,
       case RES_Create_OP:
 	if (!NE) {
 	    if (OE) {
-		CODA_ASSERT(0);	/* site participated in create cant get create again */
+		//CODA_ASSERT(0);	/* site participated in create cant get create again */
+		/* Yet we're seeing this, maybe after failed reintegration? */
+		return(MARKPARENTINC);
 	    }
 	    else  // !OE 
 		return(PERFORMOP);
