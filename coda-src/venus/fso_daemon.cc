@@ -115,8 +115,7 @@ void FSODaemon(void) {
 	}
 
 	END_TIMING();
-	LOG(10, ("FSODaemon: elapsed = %3.1f (%3.1f, %3.1f)\n",
-		 elapsed, elapsed_ru_utime, elapsed_ru_stime));
+	LOG(10, ("FSODaemon: elapsed = %3.1f\n", elapsed));
 
 	/* Bump sequence number. */
 	vp->seq++;
@@ -145,8 +144,8 @@ void fsdb::RecomputePriorities(int Force) {
 	f->ComputePriority(Force);
     }
     END_TIMING();
-    LOG(100, ("fsdb::RecomputePriorities: recomputes = %d, elapsed = %3.1f (%3.1f, %3.1f)\n",
-	       recomputes, elapsed, elapsed_ru_utime, elapsed_ru_stime));
+    LOG(100, ("fsdb::RecomputePriorities: recomputes = %d, elapsed = %3.1f\n",
+	       recomputes, elapsed));
 }
 
 
@@ -180,8 +179,8 @@ void fsdb::GarbageCollect() {
 	}
 
 	END_TIMING();
-	LOG(100, ("fsdb::GarbageCollect: busy = %d, gced = %d, elapsed = %3.1f (%3.1f, %3.1f)\n",
-		  busy, gced, elapsed, elapsed_ru_utime, elapsed_ru_stime));
+	LOG(100, ("fsdb::GarbageCollect: busy = %d, gced = %d, elapsed = %3.1f\n",
+		  busy, gced, elapsed));
     }
 }
 
@@ -203,8 +202,7 @@ void fsdb::GetDown() {
     if (BlocksNeeded > 0)
 	ReclaimBlocks(MarginPri(), BlocksNeeded);
     END_TIMING();
-    LOG(100, ("fsdb::GetDown: elapsed = %3.1f (%3.1f, %3.1f)\n",
-	       elapsed, elapsed_ru_utime, elapsed_ru_stime));
+    LOG(100, ("fsdb::GetDown: elapsed = %3.1f\n", elapsed));
 
     if (FreeFsoCount() < 0 || FreeBlockCount() < 0)
 	eprint("Cache Overflow: (%d, %d)", FreeFsoCount(), FreeBlockCount());

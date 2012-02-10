@@ -126,8 +126,7 @@ LOG(0, ("HDBDaemon just woke up\n"));
 	HDBD_HandleRequests();
 
 	END_TIMING();
-	LOG(10, ("HDBDaemon: elapsed = %3.1f (%3.1f, %3.1f)\n",
-		 elapsed, elapsed_ru_utime, elapsed_ru_stime));
+	LOG(10, ("HDBDaemon: elapsed = %3.1f\n", elapsed));
 
 	/* Bump sequence number. */
 	vp->seq++;

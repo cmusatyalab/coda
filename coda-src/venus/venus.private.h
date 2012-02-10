@@ -220,28 +220,16 @@ enum LockLevel { NL, RD, SH, WR };
 #define	START_TIMING()\
     struct timeval StartTV, EndTV;\
     gettimeofday(&StartTV, 0);
-/*
-    struct rusage StartRU, EndRU;\
-    getrusage(RUSAGE_SELF, &StartRU);
-*/
 
 #define END_TIMING()\
     gettimeofday(&EndTV, 0);\
-    float elapsed, elapsed_ru_utime, elapsed_ru_stime; \
-    elapsed = SubTimes(&EndTV, &StartTV); \
-    elapsed_ru_utime = elapsed_ru_stime = 0.0;
-/*
-    getrusage(RUSAGE_SELF, &EndRU); \
-    elapsed_ru_utime = SubTimes(&(EndRU.ru_utime), &(StartRU.ru_utime)); \
-    elapsed_ru_stime = SubTimes(&(EndRU.ru_stime), &(StartRU.ru_stime));
-*/
+    float elapsed;\
+    elapsed = SubTimes(&EndTV, &StartTV);
 #else
 #define	SubTimes(end, start) (0.0)
 #define START_TIMING()
 #define END_TIMING()\
-    float elapsed = 0.0;\
-    float elapsed_ru_utime = 0.0;\
-    float elapsed_ru_stime = 0.0;
+    float elapsed = 0.0;
 #endif /* !TIMING */
 
 
