@@ -1466,7 +1466,9 @@ void clear_tree_root(root)
         root->traverse_len = 0;
         }
     }
-/* balance checker */
+
+#ifdef UNUSED_FUNCTIONS
+/* balance checker */
 static int get_depth(node,n_nodes)
     tree_node_t     *node;
     long            *n_nodes;
@@ -1490,7 +1492,6 @@ static int get_depth(node,n_nodes)
         return lss_depth;
     }
 
-#ifdef UNUSED_FUNCTIONS
 /* Guaranteed to return 0, for now */
 static int chk_balance(tree)
     tree_root_t     *tree;              /* ptr to root of tree */
