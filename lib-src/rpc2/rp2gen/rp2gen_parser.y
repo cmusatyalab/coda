@@ -475,7 +475,7 @@ formal_list		: formal array_spec_var ',' formal_list
 					    if ($2 != NIL) {
 					        if ($1->type->type->tag != RPC2_STRUCT_TAG) {
 						    printf("RP2GEN: array type unimplemented: %s\n",
-						           $1 /* Is this a char *?*/);
+						           $1->name);
 						    exit(1);
 					        } 
 					        formal_list.formals[formal_list.counter++] = $2;

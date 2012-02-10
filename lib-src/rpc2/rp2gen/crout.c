@@ -1578,7 +1578,7 @@ static print_dump(head, where)
 
      /* Add default arm */
     fputs("\tdefault:\n", where);
-    fprintf(where, "\t\tprintf(\"%d\",opcode);\n","%s");
+    fputs("\t\tprintf(\"%d\",opcode);\n", where);
     /* Close off case */
     fputs("    }\n", where);
     /* Close off routine */
