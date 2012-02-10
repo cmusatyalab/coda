@@ -310,7 +310,6 @@ void rpc2_PrintHostIdent(RPC2_HostIdent *hPtr, FILE *tFile)
         switch (hPtr->Tag)
         {
         case RPC2_HOSTBYADDRINFO:
-        case RPC2_MGRPBYADDRINFO:
 	    rpc2_printaddrinfo(hPtr->Value.AddrInfo, tFile);
 	    break;	
 
@@ -319,7 +318,6 @@ void rpc2_PrintHostIdent(RPC2_HostIdent *hPtr, FILE *tFile)
 	    fprintf(tFile, "Host.InetAddr = %s", addr);
 	    break;	
 
-        case RPC2_MGRPBYNAME:
         case RPC2_HOSTBYNAME:
             fprintf(tFile, "Host.Name = \"%s\"", hPtr->Value.Name);
             break;
