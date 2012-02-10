@@ -1001,10 +1001,9 @@ static void Overflow_Complain()
 {
     static const char *msg1 = "LWP: stack overflow in process ";
     static const char *msg2 = "!\n";
-    ssize_t n;
-    n = write (2, msg1, strlen(msg1));
-    n = write (2, lwp_cpptr->name, strlen(lwp_cpptr->name));
-    n = write (2, msg2, strlen(msg2));
+    (void)write(STDERR_FILENO, msg1, strlen(msg1));
+    (void)write(STDERR_FILENO, lwp_cpptr->name, strlen(lwp_cpptr->name));
+    (void)write(STDERR_FILENO, msg2, strlen(msg2));
 }
 
 void PRE_Concurrent(int on) { }
