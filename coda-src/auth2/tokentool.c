@@ -40,7 +40,7 @@ static int read_int(char *question)
     while (1) {
         if (feof(stdin)) exit(-1);
 
-	fprintf(stdout, question);
+	fputs(question, stdout);
 	fflush(stdout);
 
 	fgets(input_str, 80, stdin);
@@ -48,7 +48,7 @@ static int read_int(char *question)
 	if (input_str[0] >= '0' && input_str[0] <= '9')
 	    break;
 
-	fprintf(stdout, "*** Not a number?");
+	fputs("*** Not a number?", stdout);
 	continue;
     }
     return atoi(input_str);
@@ -61,7 +61,7 @@ static float read_float(char *question)
     while (1) {
         if (feof(stdin)) exit(-1);
 
-	fprintf(stdout, question);
+	fputs(question, stdout);
 	fflush(stdout);
 
 	fgets(input_str, 80, stdin);
@@ -69,7 +69,7 @@ static float read_float(char *question)
 	if (input_str[0] >= '0' && input_str[0] <= '9')
 	    break;
 
-	fprintf(stdout, "*** Not a number?");
+	fputs("*** Not a number?", stdout);
 	continue;
     }
     return atof(input_str);
@@ -80,7 +80,7 @@ char *read_string(char *question)
     char *resp = (char *)malloc(80+1);
 
     memset(resp, 0, 80);
-    fprintf(stdout, question);
+    fputs(question, stdout);
     fflush(stdout);
     fgets(resp, 80, stdin);
     fflush(stdin);

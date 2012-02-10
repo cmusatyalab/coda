@@ -197,10 +197,10 @@ void eprint(const char *fmt, ...)
 
 	/* Write to stderr & stdout*/
 	PrintTimeStamp(stdout); 
-	fprintf(stdout, msg); 
+	fputs(msg, stdout);
 	fflush(stdout);
 	PrintTimeStamp(stderr);
-	fprintf(stderr, msg);
+	fputs(msg, stderr);
 	fflush(stderr);
 }
 
