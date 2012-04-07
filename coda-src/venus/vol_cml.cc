@@ -2149,7 +2149,7 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet,
 	ARG_MARSHALL(OUT_MODE, CallBackStatus, VCBStatusvar, VCBStatus, VSG_MEMBERS);
 	ARG_MARSHALL(OUT_MODE, RPC2_Integer, Indexvar, Index, VSG_MEMBERS);
 	ARG_MARSHALL(OUT_MODE, RPC2_Integer, NumStaleDirsvar, NumStaleDirs, VSG_MEMBERS);
-	ARG_MARSHALL_ARRAY(OUT_MODE, ViceFid, StaleDirsvar, 0, MaxStaleDirs, StaleDirs, VSG_MEMBERS);
+	ARG_MARSHALL_ARRAY(OUT_MODE, ViceFid, StaleDirsvar, 0, MAXSTALEDIRS, StaleDirs, VSG_MEMBERS);
 
 	/* Make the RPC call. */
 	MarinerLog("store::Reintegrate %s, (%d, %d)\n", 
