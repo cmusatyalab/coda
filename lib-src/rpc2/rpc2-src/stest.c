@@ -94,7 +94,7 @@ long VMCurrFileSize; /* number of useful bytes in VMFileBuf */
 char *VMFileBuf;    /* for FILEINVM transfers */
 
 int main(argc, argv)
-    long argc;
+    int argc;
     char *argv[];
 {
     SFTP_Initializer sftpi;
