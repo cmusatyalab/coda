@@ -517,9 +517,11 @@ int mgrpent::CheckNonMutating(int acode)
     };
     static int nErrorMasks = (int) (sizeof(ErrorMasks) / sizeof(int));
     int mask = ErrorMasks[0];
-    for (i = 0; i < nErrorMasks; i++, mask = ErrorMasks[i])
+    for (i = 0; i < nErrorMasks; i++) {
+        mask = ErrorMasks[i];
 	if (Unanimity(&code, rocc.hosts, rocc.retcodes, mask))
 	    { if (code == 0) code = EASYRESOLVE; return(code); }
+    }
 
     /* We never achieved consensus. */
     /* Force a synchronous resolve. */
@@ -594,9 +596,11 @@ int mgrpent::CheckCOP1(int acode, vv_t *UpdateSet, int TranslateEincompatible)
     };
     static int nErrorMasks = (int) (sizeof(ErrorMasks) / sizeof(int));
     int mask = ErrorMasks[0];
-    for (i = 0; i < nErrorMasks; i++, mask = ErrorMasks[i])
+    for (i = 0; i < nErrorMasks; i++) {
+        mask = ErrorMasks[i];
 	if (Unanimity(&code, rocc.hosts, rocc.retcodes, mask))
 	    { if (code == 0) code = EASYRESOLVE; return(code); }
+    }
 
     /* We never achieved consensus. */
     /* Return ASYRESOLVE if operation succeeded at any host. */
