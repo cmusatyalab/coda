@@ -33,7 +33,7 @@ lockfile=/var/lock/subsys/$subsys
 
 start () {
     [ -x $exec1 -a -x $exec2 ] || exit 5
-    [ -f $config ] || exit 6
+    [ -f $config ] || exit 0
 
     echo -n $"Starting $subsys:"
     retval1=0
