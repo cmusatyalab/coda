@@ -77,11 +77,6 @@ vrtab::~vrtab() {
 void vrtab::add(vrent *vre) {
   ohashtab::insert((void *)(intptr_t)vre->volnum, vre);
   namehtb.insert(vre->key, &vre->namehtblink);
-
-#ifdef MULTICAST
-    if (vre->index(ThisHostAddr) != -1) 
-	JoinedVSGs.join(vre->addr);
-#endif
 }
 
 
@@ -184,7 +179,8 @@ int vrtab::dump(int afd)
     return 0;
 }
 
-void CheckVRDB() {
+void CheckVRDB()
+{
     int VRDB_fd = open(VRDB_PATH, O_RDONLY, 0);
     if (VRDB_fd < 0) {
 	LogMsg(0, VolDebugLevel, stdout, "CheckVRDB: could not open VRDB");
@@ -192,9 +188,6 @@ void CheckVRDB() {
     }
 
     VRDB.clear();
-#ifdef MULTICAST
-    JoinedVSGs.UnMark();
-#endif
 
     /* Build the new VRDB. */
     vrent vre;
@@ -204,11 +197,6 @@ void CheckVRDB() {
     }
 
     close(VRDB_fd);
-
-#ifdef MULTICAST
-    JoinedVSGs.GarbageCollect();
-#endif
-
 }
 
 int DumpVRDB(int outfd)
