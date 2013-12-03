@@ -784,7 +784,7 @@ Volume *
 VAttachVolumeById(Error *ec, char *partition, VolumeId volid, int mode)
 {
 	Volume *vp;
-	int rc,listVolume = 0;
+	int rc, listVolume = 0;
 	struct VolumeHeader header;
 	struct DiskPartition *dp;
 	char name[V_MAXVOLNAMELEN];
@@ -792,7 +792,8 @@ VAttachVolumeById(Error *ec, char *partition, VolumeId volid, int mode)
 	char *rock;
 
 	VLog(9, "Entering VAttachVolumeById() for volume %x", volid);
-	CODA_ASSERT(LWP_GetRock(FSTAG, &rock) == LWP_SUCCESS);
+	rc = LWP_GetRock(FSTAG, &rock);
+	CODA_ASSERT(rc == LWP_SUCCESS);
 	pt = (ProgramType *)rock;
 
 	dp = DP_Get(partition);
@@ -1827,8 +1828,8 @@ static void AddVolumeToHashTable(Volume *vp, int hashid)
 					V_id(vp), hashid);
 
     /* Do some sanity checking before performing insert. */
-    if (hashid != (long)V_id(vp)) {
-	VLog(0, "VolHashTable: hashid %x != V_id(vp).", hashid, V_id(vp));
+    if ((unsigned)hashid != V_id(vp)) {
+	VLog(0, "VolHashTable: hashid %x != V_id(vp) %x.", hashid, V_id(vp));
 	CODA_ASSERT(0);
     }
 
