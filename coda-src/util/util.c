@@ -46,6 +46,7 @@ extern "C" {
 #endif
 
 #include <stdio.h>
+#include <stdarg.h>
 #include <ctype.h>
 #include <math.h>
 #include "coda_string.h"
@@ -185,23 +186,20 @@ void fdprint(long afd, const char *fmt, ...)
 void eprint(const char *fmt, ...)
 {
 	va_list ap;
-	char msg[240];
-	char *cp = msg;
 
 	/* Construct message in buffer and add newline */
 	va_start(ap, fmt);
-	vsnprintf(cp, 239, (const char *)fmt, ap); /* leave 1 char for the "\n" */
-	va_end(ap);
-	cp += strlen(cp);
-	strcat(cp, "\n");
 
 	/* Write to stderr & stdout*/
 	PrintTimeStamp(stdout); 
-	fputs(msg, stdout);
+        vfprintf(stdout, fmt, ap);
+        printf(stdout, '\n');
 	fflush(stdout);
 	PrintTimeStamp(stderr);
-	fputs(msg, stderr);
+        vfprintf(stderr, fmt, ap);
+        printf(stderr, '\n');
 	fflush(stderr);
+        va_end(ap);
 }
 
 
