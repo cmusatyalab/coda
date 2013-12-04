@@ -99,7 +99,7 @@ if [ $? -ne 0 ]; then
 fi
 
 if [ x$VOLNAME = "x`awk ' $1 ~ /^'${_VOLNAME}'$/  {print $1}' ${vicedir}/db/VRList.new`" ]; then
-	echo "Volume $VOLNAME already exists in ${vicedir}/db/VRList"
+	echo "Volume $VOLNAME already exists in VRDB"
 	exit 1
 fi
 

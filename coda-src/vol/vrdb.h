@@ -96,7 +96,7 @@ class vrent : public olink {
 };
 
 extern vrtab VRDB;
-extern void CheckVRDB();
+extern int CheckVRDB(const char *vrlist_file=NULL);
 extern int DumpVRDB(int outfd);
 extern int XlateVid(VolumeId *, int * = NULL, int * = NULL);
 extern int ReverseXlateVid(VolumeId *, int * = NULL);

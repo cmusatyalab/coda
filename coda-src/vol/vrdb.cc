@@ -184,18 +184,23 @@ int vrtab::dump(int afd)
     return 0;
 }
 
-void CheckVRDB()
+int CheckVRDB(const char *vrlist_file)
 {
-    FILE *VRList = fopen(VRLIST_PATH, "r");
+    const char *vrlist_path = vrlist_file ? vrlist_file : VRLIST_PATH;
+    FILE *VRList = fopen(vrlist_path, "r");
     if (!VRList) {
-	LogMsg(0, VolDebugLevel, stdout, "CheckVRDB: could not open '%s'", VRLIST_PATH);
-	return;
+	VLog(0, "CheckVRDB: could not open '%s'", vrlist_path);
+	return -1;
     }
 
-    VRDB.clear();
+    bool dry_run = (vrlist_file != NULL);
+
+    if (!dry_run)
+        VRDB.clear();
 
     char line[1024];
     int lineno = 0;
+    int nvols = 0;
 
     /* Build the new VRDB. */
     while (fgets(line, sizeof(line), VRList) != NULL) {
@@ -213,8 +218,7 @@ void CheckVRDB()
         if (strlen(token) >= V_MAXVOLNAMELEN) {
             errormsg = "volume name too long";
 parse_error:
-	    LogMsg(0, VolDebugLevel, stdout, "CheckVRDB: %s line %d: %s",
-                   VRLIST_PATH, lineno, errormsg);
+	    VLog(0, "CheckVRDB: %s line %d: %s", VRLIST_PATH, lineno, errormsg);
             delete vre;
             continue;
         }
@@ -256,10 +260,20 @@ parse_error:
             goto parse_error;
         }
 
-	VRDB.add(vre);
+        VLog(10, "CheckVRBD: adding entry for %x", vre->volnum);
+        if (!dry_run)
+            VRDB.add(vre);
+        nvols++;
     }
-
     fclose(VRList);
+
+    VLog(0, "CheckVRBD: loaded information about %d replicated volumes", nvols);
+
+    int parse_errors = lineno - nvols;
+    if (parse_errors)
+        VLog(0, "CheckVRDB: Failed to parse %d VRList entries", parse_errors);
+
+    return parse_errors;
 }
 
 int DumpVRDB(int outfd)

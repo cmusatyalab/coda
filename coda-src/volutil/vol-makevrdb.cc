@@ -119,7 +119,7 @@ long S_VolMakeVRDB(RPC2_Handle rpcid, RPC2_String formal_infile) {
 	LogMsg(0, VolDebugLevel, stdout, "VRDB created, %d entries", lineno);
 
     /* Tell fileserver to read in new database. */
-    CheckVRDB();
+    err = err || CheckVRDB(infile);
   Exit:
     if (vrlist) fclose(vrlist);
     if (fd > 0) close(fd);
