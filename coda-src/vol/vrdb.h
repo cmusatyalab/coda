@@ -38,6 +38,7 @@ extern "C" {
 
 #define VRDB_PATH  vice_sharedfile("db/VRDB")
 #define VRDB_TEMP  vice_sharedfile("db/VRDB.new")
+#define VRLIST_PATH  vice_sharedfile("db/VRList")
 
 #define VRTABHASHSIZE	128
 

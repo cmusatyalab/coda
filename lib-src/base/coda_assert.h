@@ -27,6 +27,9 @@ Coda are listed in the file CREDITS.
 #define CODA_ASSERT_ABORT	3
 #define CODA_ASSERT_CORE	3
 
+/* useful for compile time assertions "sizeof(foo) >= sizeof(bar)" */
+#define CODA_STATIC_ASSERT(expr, msg) typedef char coda_static_assert[(!!(expr))-1]
+
 #ifdef __cplusplus
 extern "C" {
 #endif
