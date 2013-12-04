@@ -43,7 +43,6 @@ main(int argc, char **argv)
 {
     char myname[256];
     int rc, dev;
-    int depth, width;
     struct DiskPartition *dp;
 
     if ( argc < 4 ) {
@@ -60,8 +59,6 @@ main(int argc, char **argv)
 	exit(1);
     }
 
-    depth = dp->d->ftree.depth;
-    width = dp->d->ftree.width;
     dev = dp->device;
     
     if ( strcmp(argv[3], "icreate") == 0 ){

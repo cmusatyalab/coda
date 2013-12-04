@@ -327,8 +327,7 @@ int VAllocFid(Volume *vp, VnodeType type, VnodeId vnode, Unique_t unique)
 
 	/* Set the proper bit in the bitmap. */
 	VnodeClass vclass = vnodeTypeToClass(type);
-	int bitNumber;
-	bitNumber = VAllocBitmapEntry(&ec, vp, &vp->vnIndex[vclass], vnode);
+	VAllocBitmapEntry(&ec, vp, &vp->vnIndex[vclass], vnode);
 
 	return ec;
 
