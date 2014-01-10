@@ -25,3 +25,4 @@ LDADD = $(top_builddir)/coda-src/util/libutil.la \
 resolver_parser.o: resolver_parser.c
 	$(CXXCOMPILE) -c -o $@ $<
 
+resolver_lexer.l: resolver_parser.h
