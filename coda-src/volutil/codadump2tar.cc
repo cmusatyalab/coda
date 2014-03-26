@@ -463,7 +463,7 @@ void CreateDirectories()
 
   /* Loop through directories, creating tar record for each */
 
-  for (lvn = 1; lvn < LVNfillcount; lvn++) {
+  for (lvn = 0; lvn < LVNfillcount; lvn++) {
     thisd = LVNlist[lvn]; /* next dump object */
     CODA_ASSERT(thisd->isdir);  /* sheer paranoia */
 
