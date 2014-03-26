@@ -800,7 +800,7 @@ void TarRecd::Format()
 
   sum = 0;
   for (i = 0; i < BLOCKSIZE; i++)
-    sum += (unsigned int) tarblock.buffer[i];
+    sum += (unsigned char) tarblock.buffer[i];
 
   snprintf(tblk->chksum, 7, "%06o", sum);
 
