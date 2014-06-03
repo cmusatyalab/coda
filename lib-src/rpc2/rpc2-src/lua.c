@@ -209,7 +209,7 @@ static int timeval_tonumber(lua_State *L)
     return 1;
 }
 
-static const struct luaL_reg timeval_m [] = {
+static const struct luaL_Reg timeval_m [] = {
     { "__eq", timeval_eq },
     { "__le", timeval_le },
     { "__lt", timeval_lt },
