@@ -160,7 +160,7 @@ static int DumpVnodeDiskObject(DumpBuffer_t *dbuf, VnodeDiskObject *v,
 			       int vnodeNumber, Device device)
 {
     int fd;
-    int i;
+    int i, rc;
     SLog(9, "Dumping vnode number %x", vnodeNumber);
     if (!v || v->type == vNull) {
 	return DumpTag(dbuf, D_NULLVNODE);
@@ -192,11 +192,13 @@ static int DumpVnodeDiskObject(DumpBuffer_t *dbuf, VnodeDiskObject *v,
 		       v->node.inodeNumber, vnodeNumber);
 		DumpTag(dbuf, D_BADINODE);
 	    } else {
-		if (DumpFile(dbuf, D_FILEDATA, fd, vnodeNumber) == -1) {
+                rc = DumpFile(dbuf, D_FILEDATA, fd, vnodeNumber);
+                close(fd);
+
+		if (rc == -1) {
 		    SLog(0, "Dump: DumpFile failed.");
 		    return -1;
 		}
-		close(fd);
 	    }
 	} else {
 	    SLog(0, 0, stdout,
