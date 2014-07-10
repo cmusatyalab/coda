@@ -242,34 +242,26 @@ int main(int argc, char **argv)
 	if (CheckDir("db", 0644)) {
 	    operatorSecs = 0;  /* if something changed time has elapsed */
 	    for (int i=0; i<nservers; i++) {
+		RPC2_Handle rpcid;
 		if (nservers != 1)
 		    vice_dir_init (vicedir, i+1);
 		/* signal file server to check data bases */
-		file = fopen(vice_file("srv/pid"), "r");
-		if (file == NULL) {
-		    LogMsg(0, SrvDebugLevel, stdout,
-			   "Fopen failed for file %s with %s\n",
-			   vice_file("srv/pid"),
-			   ViceErrorMsg(errno));
-		} else {
-		    RPC2_Handle rpcid;
-		    if (U_BindToServer(hostlist[i], &rpcid) == RPC2_SUCCESS) {
-			if (VolUpdateDB(rpcid) == RPC2_SUCCESS) {
-			    LogMsg(0, SrvDebugLevel, stdout,
-				   "Notifying server %s of database updates\n",
-				   hostlist[i]);
-			} else {
-			    LogMsg(0, SrvDebugLevel, stdout,
-				   "VolUpdateDB failed for host %s\n",
-				   hostlist[i]);
-			}
+		if (U_BindToServer(hostlist[i], &rpcid) == RPC2_SUCCESS) {
+		    if (VolUpdateDB(rpcid) == RPC2_SUCCESS) {
+			LogMsg(0, SrvDebugLevel, stdout,
+			    "Notifying server %s of database updates\n",
+			    hostlist[i]);
 		    } else {
 			LogMsg(0, SrvDebugLevel, stdout,
-			     "Bind to server %s for database update failed\n",
-			     hostlist[i]);
-		    }
-		    RPC2_Unbind(rpcid);
+			    "VolUpdateDB failed for host %s\n",
+			    hostlist[i]);
+		   }
+		} else {
+		    LogMsg(0, SrvDebugLevel, stdout,
+			 "Bind to server %s for database update failed\n",
+			 hostlist[i]);
 		}
+		RPC2_Unbind(rpcid);
 	    }
 	}
 	if (operatorSecs > 0) {
