@@ -122,7 +122,7 @@ int main(argc, argv)
 	       maxLWPs, MAXLWPS);
 	exit(-1);
     }
-    HandleRequests((void *)numLWPs);
+    HandleRequests((void *)(intptr_t)numLWPs);
     numLWPs++;
     
     return 0; /* make compiler happy */
@@ -169,7 +169,7 @@ void HandleRequests(void *arg)
 	if ((--availableLWPs <= 0) &&
 	    (numLWPs < maxLWPs)) {
 	    i = LWP_CreateProcess(HandleRequests, STESTSTACK, LWP_NORMAL_PRIORITY,
-				  (void *)numLWPs, "server", &pids[numLWPs]);
+				  (void *)(intptr_t)numLWPs, "server", &pids[numLWPs]);
 	    assert(i == LWP_SUCCESS);
 	    printf("New LWP %d (%p)\n", numLWPs, pids[numLWPs]);
 	    numLWPs++;
