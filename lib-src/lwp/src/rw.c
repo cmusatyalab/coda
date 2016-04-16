@@ -173,13 +173,14 @@ int asleep;	/* Number of processes sleeping -- used for
 
 static void read_process(void *arg)
 {
-    int id = *(int *)arg;
+    struct timeval tv = *(struct timeval *)arg;
+    struct timeval sleep;
+    int id = tv.tv_sec;
+    tv.tv_sec = 0;
 
     printf("\t[Reader %d]\n", id);
 
    for (;;) {
-        int i;
-
 	/* Wait until there is something in the queue */
 	asleep++;
 	ObtainReadLock(&q->lock);
@@ -189,10 +190,9 @@ static void read_process(void *arg)
 	    ObtainReadLock(&q->lock);
 	}
 	asleep--;
-	for (i=0; i<10000; i++) {
-	    struct timeval sleep = { 0, 0 };
-	    select(0, NULL, NULL, NULL, &sleep);
-	}
+
+	sleep = tv;
+	select(0, NULL, NULL, NULL, &sleep);
 
 	printf("[%d: %s]\n", id, myremove(q));
 
@@ -262,8 +262,10 @@ int main(int argc, char **argv)
     /* Now create readers */
     printf("[Creating Readers...\n");
     readers = (PROCESS *) calloc((unsigned)nreaders, (unsigned)(sizeof(PROCESS)));
-    for (i=0; i<nreaders; i++)
-	LWP_CreateProcess(read_process, STACK_SIZE, 0, &i, "Reader", &readers[i]);
+    for (i=0; i<nreaders; i++) {
+	tv.tv_sec = i; /* piggy back thread-id in tv struct */
+	LWP_CreateProcess(read_process, STACK_SIZE, 0, &tv, "Reader", &readers[i]);
+    }
     printf("done]\n");
 
     printf("\t[Creating Writer...\n");
