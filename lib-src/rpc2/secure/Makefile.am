@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-INCLUDES = -I$(top_srcdir)/include -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+AM_CPPFLAGS = -I$(top_srcdir)/include -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
 LDADD = libsecure.la
 
 noinst_LTLIBRARIES = libsecure.la

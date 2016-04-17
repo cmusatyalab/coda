@@ -3,7 +3,7 @@
 CCLD=$(NATIVECC)
 #EXEEXT=
 AM_YFLAGS= -d
-INCLUDES= -I$(top_builddir)/include -I$(top_srcdir)/include -I$(srcdir) -I.
+AM_CPPFLAGS= -I$(top_builddir)/include -I$(top_srcdir)/include -I$(srcdir) -I.
 
 # override any cross compilation target flags
 CFLAGS=-Wall
@@ -11,7 +11,7 @@ LDFLAGS=
 LIBS=
 
 .c.o:
-	$(NATIVECC) $(INCLUDES) -c $<
+	$(NATIVECC) $(AM_CPPFLAGS) -c $<
 
 bin_PROGRAMS = rp2gen
 
