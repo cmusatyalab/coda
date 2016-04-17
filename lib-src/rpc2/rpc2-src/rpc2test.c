@@ -916,14 +916,14 @@ static void GetVar(long *gVar, char *gPrompt)
 {
     char LineBuf[100];
 
-    if (isatty(fileno(stdin))) printf(gPrompt);
+    if (isatty(fileno(stdin))) printf("%s", gPrompt);
     fgets(LineBuf, sizeof(LineBuf), stdin); *gVar = atoi(LineBuf);
     if (!isatty(fileno(stdin))) printf( "%s%ld\n", gPrompt, *gVar);
 }
 
 static void GetStringVar(char *gSVar, char *gPrompt)
 {
-    if (isatty(fileno(stdin))) printf(gPrompt);
+    if (isatty(fileno(stdin))) printf("%s", gPrompt);
     fgets(gSVar, sizeof(gSVar), stdin);
     *(gSVar + strlen(gSVar)) = 0;
     if (!isatty(fileno(stdin))) printf( "%s%s\n", gPrompt, gSVar);
