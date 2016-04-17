@@ -2477,9 +2477,6 @@ void cmlent::thread() {
 int cmlent::size() 
 {
     int len = 0;
-    RPC2_CountedBS DummyCBS;
-    DummyCBS.SeqLen = 0;
-    DummyCBS.SeqBody = 0;
 
     len	+= (int) sizeof(RPC2_Integer);	/* Leave room for opcode. */
     len	+= (int) sizeof(Date_t);		/* Leave room for modify time. */
@@ -2975,7 +2972,6 @@ int cmlent::CloseReintegrationHandle(char *buf, int bufsize,
     sei->FileInfo.ByAddr.vmfile.SeqLen = bufsize;
     sei->FileInfo.ByAddr.vmfile.SeqBody = (RPC2_ByteSeq)buf;
 
-    long cbtemp; cbtemp = cbbreaks;
     RPC2_Integer VS = 0;
     CallBackStatus VCBStatus = NoCallBack;
 

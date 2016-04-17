@@ -56,7 +56,7 @@ extern int wildmat(char *text, char *pattern);
    Returns -1 after printing error msg on failures. */
 int getfid(char *path, ViceFid *outfid, char *outrealm, ViceVersionVector *outvv)
 {
-    int rc, saveerrno;
+    int rc;
     struct ViceIoctl vi;
     char junk[2048];
 
@@ -67,7 +67,6 @@ int getfid(char *path, ViceFid *outfid, char *outrealm, ViceVersionVector *outvv
     memset(junk, 0, (int) sizeof(junk));
 
     rc = pioctl(path, _VICEIOCTL(_VIOC_GETFID), &vi, 0);
-    saveerrno = errno;
 
     /* Easy: no conflicts */
     if (!rc) {

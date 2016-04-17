@@ -1350,7 +1350,6 @@ void fsobj::MountRoot(fsobj *mtpt_fso) {
 /* MUST be called from within transaction! */
 /* Call with object write-locked. */
 void fsobj::UnmountRoot() {
-  fsobj *mtpoint;
     if (!IsRoot())
 	{ print(logFile); CHOKE("fsobj::UnmountRoot: mvstat != ROOT"); }
     if (!u.mtpoint)
@@ -1362,8 +1361,7 @@ void fsobj::UnmountRoot() {
     RVMLIB_REC_OBJECT(*this);
 
     /* Exit old state (ROOT, with link). */
-    mtpoint = u.mtpoint;
-    u.mtpoint = 0;
+    u.mtpoint = NULL;
     k_Purge(&fid);
 
     /* Enter new state (ROOT, without link). */

@@ -784,7 +784,7 @@ Volume *
 VAttachVolumeById(Error *ec, char *partition, VolumeId volid, int mode)
 {
 	Volume *vp;
-	int rc, listVolume = 0;
+	int rc;
 	struct VolumeHeader header;
 	struct DiskPartition *dp;
 	char name[V_MAXVOLNAMELEN];
@@ -818,9 +818,7 @@ VAttachVolumeById(Error *ec, char *partition, VolumeId volid, int mode)
 				return vp;
 			}
 			VDetachVolume(ec, vp);
-			listVolume = 0;	    
-		} else
-			listVolume = 1;
+		}
 	}
 	*ec = 0;
     

@@ -107,7 +107,6 @@ long S_VolCreate(RPC2_Handle rpcid, RPC2_String formal_partition,
 	Volume *vp = NULL;
 	rvm_return_t status = RVM_SUCCESS;    /* transaction status variable */
 	int rc = 0;
-	int volidx;
 	ProgramType *pt;
 	int resflag = repvol ? RVMRES : 0;
         int rvmlogsize = 4096; /* when resolution is enabled, default to 4k
@@ -192,7 +191,7 @@ long S_VolCreate(RPC2_Handle rpcid, RPC2_String formal_partition,
 
 	V_destroyMe(vp) = V_needsSalvaged(vp) = 0;
 	V_linkcount(vp) = 1;
-	volidx = V_volumeindex(vp);
+	V_volumeindex(vp);
 	VUpdateVolume(&error, vp);
 	VDetachVolume(&error, vp);	/* Allow file server to grab it */
 	CODA_ASSERT(error == 0);

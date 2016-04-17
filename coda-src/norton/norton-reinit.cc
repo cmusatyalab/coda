@@ -893,7 +893,6 @@ int main(int argc, char * argv[])
     char *rvm_data;
     int  data_len;
     int  ok = 0;
-    rvm_return_t 	err;
     VolumeId *skipvols = NULL;
     int       nskipvols = 0;
     
@@ -926,11 +925,11 @@ int main(int argc, char * argv[])
     if (!strcmp(argv[5], "-dump")) {
 	NortonInit(rvm_log, rvm_data, data_len);
 	ok = dump_server_state(argv[6], skipvols, nskipvols);
-	err = rvm_terminate();
+	rvm_terminate();
     } else if (!strcmp(argv[5], "-load")) {
 	NortonInit(rvm_log, rvm_data, data_len);
 	ok = load_server_state(argv[6], skipvols, nskipvols);
-	err = rvm_terminate();
+	rvm_terminate();
     } else
 	usage(argv[0]);
 

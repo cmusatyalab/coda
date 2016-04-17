@@ -584,8 +584,8 @@ O_FreeLocks:
 #undef	ReturnCodes
 #undef	endp
 		    if (entered) v->Exit(volmode, u.u_uid);
-		    float elapsed = 0.0;
 #ifdef TIMING
+		    float elapsed = 0.0;
 
 		    gettimeofday(&u.u_tv2, 0);
 		    elapsed = SubTimes(&(u.u_tv2), &(u.u_tv1));
@@ -1304,8 +1304,8 @@ OI_FreeLocks:
 
 	    V_FreeLocks:
 	      if (entered) v->Exit(volmode, u.u_uid);
-	      float elapsed = 0.0;
 #ifdef TIMING
+	      float elapsed = 0.0;
 
 	      gettimeofday(&u.u_tv2, 0);
 	      elapsed = SubTimes(&(u.u_tv2), &(u.u_tv1));

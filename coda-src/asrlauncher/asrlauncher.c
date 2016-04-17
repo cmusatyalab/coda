@@ -334,14 +334,13 @@ int checkRulesFile(char *pathname) {
  */
 
 int replaceEnvVars(char *string, int maxlen) {
-  int len;
   char *trav;
   char *temp;
 
   if((string == NULL) || maxlen <= 0 )
     return -1;
 
-  len = strlen(string);
+  //len = strlen(string);
 
   /* Allocate temporary buffer to perform copies into. */
   temp = (char *) malloc((maxlen)*sizeof(char));

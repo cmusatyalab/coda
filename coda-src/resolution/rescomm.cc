@@ -188,7 +188,6 @@ int res_mgrpent::CreateMember(unsigned long host)
 void res_mgrpent::KillMember(unsigned long host, int forcibly) {
     LogMsg(20, SrvDebugLevel, stdout,  "res_mgrpent::KillMember(%x, %d)",
 	   host, forcibly);
-    int code = 0;
     int i;
     
     if (host == 0) return;
@@ -202,7 +201,7 @@ void res_mgrpent::KillMember(unsigned long host, int forcibly) {
 	    // might add primary host stuff here 
 	    // code = RPC2_RemoveFromMgrp(McastInfo.Mgroup,
 	    //rrcc.handles[i]); 
-	    code = RPC2_Unbind(rrcc.handles[i]);
+	    RPC2_Unbind(rrcc.handles[i]);
 	    rrcc.HowMany--;
 	    rrcc.handles[i] = 0;
 	    rrcc.hosts[i] = 0;
@@ -701,10 +700,7 @@ void ResCheckServerLWP(void *arg)
 /* LWP to check if servers are alive */
 void ResCheckServerLWP_worker(void *arg) 
 {
-    struct timeval delay;
     LogMsg(1, SrvDebugLevel, stdout,  "Starting RecCheckServerLWP_worker");
-    delay.tv_sec = 120;
-    delay.tv_usec = 0;
 
     srvent *s;
     while(1) {

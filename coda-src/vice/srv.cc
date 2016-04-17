@@ -319,7 +319,7 @@ int main(int argc, char *argv[])
     int     i;
     struct stat buff;
     PROCESS serverPid, resPid, smonPid, resworkerPid;
-    RPC2_PortIdent port1, *portlist[1];
+    RPC2_PortIdent port1;
     RPC2_SubsysIdent server;
     SFTP_Initializer sei;
     ProgramType *pt;
@@ -437,8 +437,6 @@ int main(int argc, char *argv[])
     struct servent *s = coda_getservbyname("codasrv", "udp");
     port1.Tag = RPC2_PORTBYINETNUMBER;
     port1.Value.InetPortNumber = s->s_port;
-
-    portlist[0] = &port1;
 
     if (srvhost) {
 	struct in_addr ip;

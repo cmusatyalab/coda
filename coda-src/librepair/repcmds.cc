@@ -446,12 +446,10 @@ int RemoveInc(struct conflict *conf, char *msg, int msgsize)
     ViceFid fixfid;
     char fixrealm[MAXHOSTNAMELEN];
     vv_t fixvv;
-    char *user = NULL, *rights = NULL, *owner = NULL, *mode = NULL, **names;
+    char **names;
     int nreplicas, rc, i, fd = 0;
     struct listhdr *repairlist = NULL;
     resreplica *dirs = NULL;
-
-    user = rights = owner = mode = NULL;
 
     if (conf == NULL) {
       strerr(msg, msgsize, "NULL conf");

@@ -270,7 +270,7 @@ static void SigMounted(int sig)
 
 static void SigASR(int sig)
 {
-  int pid, child_pid, status, options;
+  int child_pid, status, options;
   repvol *v;
 
 
@@ -285,7 +285,6 @@ static void SigASR(int sig)
   LOG(0, ("Signal Handler(ASR): ASRpid:%d, ASRfid:%s\n", 
 		  ASRpid, FID_(&ASRfid)));
 
-  pid = getpid();
   status = options = 0;
 
   child_pid = waitpid(ASRpid, &status, WNOHANG);

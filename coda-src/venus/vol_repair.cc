@@ -214,7 +214,6 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
     Recov_EndTrans(MAXFP);
 
     mgrpent *m = 0;
-    int asy_resolve = 0;
 
     /* Acquire an Mgroup. */
     code = GetMgrp(&m, uid);
@@ -450,7 +449,7 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 	/* Collate responses from individual servers and decide what to do next. */
 	/* Valid return codes are: {0, EINTR, ETIMEDOUT, ESYNRESOLVE, ERETRY}. */
 	code = Collate_COP1(m, code, &UpdateSet);
-	if (code == EASYRESOLVE) { asy_resolve = 1; code = 0; }
+	if (code == EASYRESOLVE) { code = 0; }
 	MULTI_RECORD_STATS(ViceRepair_OP);
 	if (code != 0 && code != ESYNRESOLVE) {
 	  LOG(0, ("repvol::Repair: (%s) Collate_COP1 failed: %d!\n",
