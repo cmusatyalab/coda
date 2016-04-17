@@ -1219,7 +1219,6 @@ rvm_return_t locate_tail(log)
     rvm_offset_t    temp_tail;          /* tail offset temp */
     rvm_length_t    last_rec_num = 0;   /* record number of tail record */
     rec_hdr_t       *rec_hdr;           /* current record scanned in buffer */
-    long            old_ptr;            /* buffer ptr to last record found */
     struct timeval  save_last_trunc;
     struct timeval  last_write = status->last_write; /* last write to log */
     rvm_bool_t      save_rvm_utlsw = rvm_utlsw;
@@ -1307,7 +1306,6 @@ rvm_return_t locate_tail(log)
                 }
             if (rec_hdr->struct_id == log_wrap_id)
                 status->wrap_time = rec_hdr->timestamp;
-            old_ptr = log_buf->ptr;
             if ((retval=scan_forward(log,NO_SYNCH)) != RVM_SUCCESS)
                 goto err_exit;
             assert(log->trunc_thread == cthread_self());
