@@ -1277,8 +1277,7 @@ static void error(int fatal, const char *fmt ...) {
     vsprintf(msg, fmt, ap);
     va_end(ap);
 
-    fprintf(stderr, msg);
-    fprintf(stderr, "\n");
+    fprintf(stderr, "%s\n", msg);
 
     if (fatal)
 	exit(-1);

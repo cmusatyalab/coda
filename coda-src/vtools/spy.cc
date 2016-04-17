@@ -170,7 +170,7 @@ void CheckMariner(FILE *fp) {
 	    *fillptr++ = '\n';
 	    *fillptr = '\0';
 
-	    printf(buf);
+	    printf("%s", buf);
 
 	    fillptr = buf;
 	}
