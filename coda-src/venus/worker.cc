@@ -228,7 +228,7 @@ ssize_t WriteDowncallMsg(int fd, const char *buf, size_t size)
     if (fd != worker::muxfd) {
 	char hdr[11];
 	int len;
-	len = sprintf(hdr, "down: %d\n", size);
+	len = sprintf(hdr, "down: %lu\n", size);
 	len -= write(fd, hdr, len);
 	CODA_ASSERT(len == 0);
     }

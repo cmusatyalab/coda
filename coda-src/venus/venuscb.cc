@@ -161,9 +161,9 @@ void callbackserver::main(void)
 	}
 
 /*DEBUG*/
-	LOG(100, ("CBPKT: %x %x %x %x\n",
-		  ((long *)(packet->Body))[0], ((long *)(packet->Body))[1],
-		  ((long *)(packet->Body))[2], ((long *)(packet->Body))[3]));
+        unsigned int *body = (unsigned int *)packet->Body;
+	LOG(100, ("CBPKT: %x %x %x %x\n", body[0], body[1], body[2], body[3]));
+
 	code = cb_ExecuteRequest(handle, packet, 0);
 	if (code <= RPC2_WLIMIT)
 	    LOG(1, ("callbackserver::main: ExecuteRequest -> %s\n",

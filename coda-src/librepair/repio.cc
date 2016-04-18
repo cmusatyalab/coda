@@ -201,7 +201,7 @@ int repair_getdfile(char *fname, int infd, int *replicaCount, struct listhdr **r
 
     *replicaList = (struct listhdr *) calloc(*replicaCount, sizeof(struct listhdr));
     if (*replicaList == NULL) {
-      sprintf(errmsg, "repair_getdfile: replicaList allocation failed!\n\telements= %x\tx= %d\tsizeof(struct listhdr)= %d\n", *replicaCount, x, sizeof(struct listhdr));
+      sprintf(errmsg, "repair_getdfile: replicaList allocation failed!\n\telements= %x\tx= %d\tsizeof(struct listhdr)= %lu\n", *replicaCount, x, sizeof(struct listhdr));
       goto ERR;
     }
 
@@ -231,7 +231,7 @@ int repair_getdfile(char *fname, int infd, int *replicaCount, struct listhdr **r
 	    r = (struct repair *) calloc((*replicaList)[i].repairCount,
 					 sizeof(struct repair));
 	    if (!r) {
-	      sprintf(errmsg, "repair_getdfile: repair calloc failed!\n\tcount = %d\tsize = %d\n\n", (*replicaList)[i].repairCount, sizeof(struct repair));
+	      sprintf(errmsg, "repair_getdfile: repair calloc failed!\n\tcount = %d\tsize = %lu\n\n", (*replicaList)[i].repairCount, sizeof(struct repair));
 	      goto ERR;
 	    }
 	    (*replicaList)[i].repairList = r;

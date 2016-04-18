@@ -641,8 +641,8 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    LOG(100, ("cmlent::DoRepair: do chmod on %s and %s\n",
 		      FID_(&GObj->fid), FID_(&LObj->fid)));
 	    unsigned short NewMode = LObj->stat.Mode;		/* use local new mode */
-	    code = LObj->RepairSetAttr((unsigned long)-1, (unsigned long)-1,
-				       (unsigned short)-1, NewMode,
+	    code = LObj->RepairSetAttr((unsigned long)-1, (Date_t)-1,
+				       (uid_t)-1, NewMode,
 				       (RPC2_CountedBS *)NULL);
 	    LObj->GetPath(LocalPath, 1);
 	    if (code == 0) {
@@ -665,7 +665,7 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    LOG(100, ("cmlent::DoRepair: do chown on %s and %s\n",
 		      FID_(&GObj->fid), FID_(&LObj->fid)));
 	    uid_t NewOwner = LObj->stat.Owner; 		/* use local new owner */
-	    code = LObj->RepairSetAttr((unsigned long)-1, (unsigned long)-1,
+	    code = LObj->RepairSetAttr((unsigned long)-1, (Date_t)-1,
 				       NewOwner, (unsigned short)-1,
 				       (RPC2_CountedBS *)NULL);
 	    LObj->GetPath(LocalPath, 1);
