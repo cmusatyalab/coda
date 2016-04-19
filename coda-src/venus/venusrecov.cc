@@ -145,7 +145,7 @@ static void Recov_GetStatistics();
     (CacheFiles / 256) * sizeof(repvol) +\
     (CacheFiles / 512) * sizeof(volrep) +\
     HDBEs * (sizeof(hdbent) + 128) +\
-    128 * 1024)
+    64 * 1024 * 1024)
 
 
 /*  *****  Recovery Module  *****  */
