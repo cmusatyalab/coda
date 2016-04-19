@@ -1,0 +1,11 @@
+[Unit]
+Description=Coda Update Master Server
+ConditionPathExists=/vice/db/scm
+
+[Service]
+Type=forking
+PIDFile=/vice/misc/updatesrv.pid
+ExecStart=/usr/sbin/updatesrv
+
+[Install]
+WantedBy=multi-user.target

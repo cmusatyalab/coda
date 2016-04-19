@@ -1,0 +1,11 @@
+[Unit]
+Description=Coda Update Slave Server
+ConditionPathExists=/vice/db/scm
+
+[Service]
+Type=forking
+PIDFile=/vice/misc/updateclnt.pid
+ExecStart=/usr/sbin/updateclnt
+
+[Install]
+WantedBy=multi-user.target

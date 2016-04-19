@@ -1,0 +1,11 @@
+[Unit]
+Description=Coda Slave Authentication Server
+ConditionPathExists=/vice/db/auth2.tk
+
+[Service]
+Type=forking
+PIDFile=/vice/auth2/pid
+ExecStart=/usr/sbin/auth2 -chk
+
+[Install]
+WantedBy=multi-user.target

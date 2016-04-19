@@ -83,6 +83,8 @@ CODA_CHECK_FLTK
 CODA_CHECK_KRB4
 CODA_CHECK_KRB5
 
+SYSTEMD_CHECKS
+
 dnl Checks for header files.
 AC_CHECK_HEADERS(search.h sys/resource.h sys/stream.h ncurses.h netdb.h)
 AC_CHECK_HEADERS(sys/statvfs.h sys/statfs.h sys/param.h sys/vfs.h fts.h)

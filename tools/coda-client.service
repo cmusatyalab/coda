@@ -1,0 +1,12 @@
+[Unit]
+Description=Coda Cache Manager
+
+[Service]
+Type=forking
+PIDFile=/run/coda-client.pid
+ExecStartPre=/usr/sbin/vutil --swaplogs
+ExecStart=/usr/sbin/venus
+ExecStopPost=/bin/umount /coda
+
+[Install]
+WantedBy=multi-user.target
