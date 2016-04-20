@@ -250,6 +250,7 @@ ssize_t secure_recvfrom(int s, void *buf, size_t len, int flags,
 	 *   invalid
 	 */
 	uint8_t tmp_icv[MAXICVLEN];
+        size_t icv_len;
 
 	/* icv must be aligned on a 32-bit boundary */
 	if (n & 3) {
@@ -261,7 +262,8 @@ ssize_t secure_recvfrom(int s, void *buf, size_t len, int flags,
 
 	/* Perform the ICV computation */
 	sa->validate->auth(sa->validate_context, packet, n, tmp_icv);
-	if (memcmp(packet + n, tmp_icv, sa->validate->icv_len) != 0) {
+        icv_len = sa->validate->icv_len;
+	if (!secure_compare(packet + n, icv_len, tmp_icv, icv_len)) {
 	    secure_audit("ICV check failed", spi, seq, peer);
 	    goto drop;
 	}

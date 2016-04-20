@@ -151,3 +151,28 @@ void secure_audit(const char *event, uint32_t spi, uint32_t seq,
     syslog(LOG_AUTHPRIV | LOG_NOTICE, "%s: spi %x, seq %d, src %s\n",
 	   event, spi, seq, src_buf);
 }
+
+/* Constant time comparison, returns true when both buffers are identical */
+int secure_compare(const void *user_data, size_t user_len,
+                    const void *secret, size_t secret_len)
+{
+    volatile const char *cmp, *to = secret;
+    size_t i;
+    int different;
+
+    /* Make sure we always compare 'secret_len' bytes */
+    if (user_len == secret_len) {
+        cmp = user_data;
+        different = 0;
+    }
+    if (user_len != secret_len) {
+        cmp = to;
+        different = 1;
+    }
+
+    for (i = 0; i < secret_len; i++) {
+        different |= cmp[i] ^ to[i];
+    }
+
+    return (different == 0);
+}

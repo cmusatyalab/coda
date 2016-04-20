@@ -187,5 +187,9 @@ ssize_t secure_recvfrom(int s, void *buf, size_t len, int flags,
 			struct security_association **sa,
 			struct security_association *(*GETSA)(uint32_t spi));
 
+/* time-constant comparison */
+int secure_compare(const void *user_data, size_t user_len,
+                   const void *secret, size_t secret_len);
+
 #endif /* _RPC2_SECURE_H_ */
 
