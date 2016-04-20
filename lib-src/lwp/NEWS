@@ -1,3 +1,7 @@
+New in 2.7:
+
+ * Correctly fix fortify failure.
+
 New in 2.6:
 
  * Fix fortify failure whenever a new thread is started.

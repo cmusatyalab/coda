@@ -1,3 +1,12 @@
+New in 2.11:
+
+* Call abort() when AES or RNG tests fail.
+* Fixes for build and test programs.
+* Removed some unused and unreachable code.
+* Use constant time comparison for received packet integrity check.
+* Clang build fix. (Martin Petrov)
+* Lua-5.2 fix. (Tom Callaway)
+
 New in 2.10:
 
 * AES-CCM-16 was incorrectly named AES-CCM-12.

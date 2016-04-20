@@ -1,3 +1,7 @@
+New in 1.18:
+
+* Removed some unused code.
+
 New in 1.17:
 
 * Add rvmutl/rdsinit man pages.
