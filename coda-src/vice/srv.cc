@@ -181,10 +181,10 @@ static int ServerNumber = 0;	/* 0 => single server,
 static const char *vicedir;	// default "/vice"
 static const char *srvhost;	// default NULL
 
-static int trace = 0;		// default 0
+static int trace = 0;		// default 0 
 static int SrvWindowSize = 0;	// default 32
 static int SrvSendAhead = 0;	// default 8
-static int timeout = 0;		// default 30, formerly 15, 30, then 60, and back to 30
+static int timeout = 0;		// default 60, formerly 15, 30, then 60
 static int retrycnt = 0;	// default 5, formerly 4, 20, then 6
 static int debuglevel = 0;	// Command line set only.
 static int auth_lwps = 0;	// default 5
@@ -1296,7 +1296,7 @@ static int ReadConfigFile(void)
     CODACONF_INT(trace,		"trace",	0);
     CODACONF_INT(SrvWindowSize,	"windowsize",	32);
     CODACONF_INT(SrvSendAhead,	"sendahead",	8);
-    CODACONF_INT(timeout,	"timeout",	30);
+    CODACONF_INT(timeout,	"timeout",	60);
     CODACONF_INT(retrycnt,	"retrycnt",	5);
     CODACONF_INT(auth_lwps,	"auth_lwps",	5);
     CODACONF_INT(server_lwps,	"lwps",		10);
