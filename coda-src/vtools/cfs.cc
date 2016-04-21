@@ -1662,6 +1662,31 @@ static void GetMountPoint(int argc, char *argv[], int opslot)
     }
 }
 
+
+/* copy all data from the named file to outfd */
+static void copyout(const char *filename, int outfd)
+{
+    char buffer[CFS_PIOBUFSIZE];
+    ssize_t n, bytes_written;
+    int src_fd;
+
+    src_fd = open(filename, O_RDONLY);
+    if (src_fd == -1) {
+        fprintf(stderr, "Failed to open %s for reading\n", filename);
+        return;
+    }
+
+    if (outfd == -1) {
+        outfd = STDOUT_FILENO;
+    }
+
+    while ((n = read(src_fd, buffer, CFS_PIOBUFSIZE)) > 0) {
+        bytes_written = write(outfd, buffer, n);
+        CODA_ASSERT(bytes_written == n);
+    }
+    close(src_fd);
+}
+
 static void ListCache(int argc, char *argv[], int opslot)
 {
     int i, rc = 0;
@@ -1669,22 +1694,15 @@ static void ListCache(int argc, char *argv[], int opslot)
     int long_format = 0;          /* If == 1, list in a long format. */
     unsigned int valid = 0;       /* list the following fsobjs, if
 1: only valid, 2: only non-valid, 3: all */
-    int file_specified = 0;       /* If == 0, list result to stdout. */
     int vol_specified = 0;        /* If == 0, all volumes cache status are listed. */
-    char *filename = (char *)0;           /* Specified output file. */
-
-    const int max_line = 256;
-    const char *venus_file = "/tmp/_Venus_List_Cache"; /* Output file by Venus. */
+    char *filename = NULL;        /* Specified output file. */
 
     struct listcache_in {
-	char fname[23];     /* strlen("/tmp/_Venus_List_Cache")+1 */
-	int  first_volume;  /* if 1, Venus will unlink the file specified fname. */
-	int  long_format;   /* = long_format */
-	int  valid;         /* = valid */
+	uint8_t  long_format;   /* = long_format */
+	uint8_t  valid;         /* = valid */
     } data;
 
     struct ViceIoctl vio;
-    char buf[max_line];
 
     /* Parse command line arguments. */
     if (argc < 2) {
@@ -1693,7 +1711,6 @@ static void ListCache(int argc, char *argv[], int opslot)
     }
     int argi = 0;                     /* Index for argv. */
     if (argc < 3) {
-	file_specified = 0;
 	vol_specified = 0;
 	long_format = 0;
 	valid = 3;          /* all fsobjs to be listed. */
@@ -1701,7 +1718,6 @@ static void ListCache(int argc, char *argv[], int opslot)
 	for (argi = 2; (argi < argc) && (argv[argi][0] == '-'); argi++) {
 	    if (strcmp(argv[argi], "-f") == 0 || strcmp(argv[argi], "-file") == 0) {
 		if ( (argi + 1) < argc ) {
-		    file_specified = 1;
 		    filename = argv[++argi];
 		} else {                /* filename is not specified as argv[argi+1]. */
 		    printf("Usage: %s\n", cmdarray[opslot].usetxt);
@@ -1729,17 +1745,27 @@ static void ListCache(int argc, char *argv[], int opslot)
 
     /* for Debug */
     /*
-       printf("file = %s, file_specified = %d, vol_specified = %d,\
+       printf("file = %s, vol_specified = %d,\
        long? = %d, valid? = %d\n",
-       filename, file_specified, vol_specified, long_format, valid);
+       filename, vol_specified, long_format, valid);
      */
+
+    /* List Cache Status. */
+    int dst_fd = -1;
+    if (filename) {
+	dst_fd = open(filename, O_CREAT|O_WRONLY|O_EXCL, 0600);
+	if (dst_fd == -1) {
+	    printf("Cannot create file: %s\n", filename);
+	    exit(-1);
+	}
+    }
 
     if (vol_specified) {
 	/* Volumes are specified. List cache for those volumes. */
 	for (i = argi; i < argc; i++) {
 	    /* Set up parms to pioctl */
 	    VolumeId vol_id;
-	    char mtptpath[MAXPATHLEN];
+	    char mtptpath[MAXPATHLEN], *path;
 	    if ( sscanf(argv[i], "%x", (unsigned int *)&vol_id) == 1 ) {
 		vio.in = (char *)&vol_id;
 		vio.in_size = (int) sizeof(VolumeId);
@@ -1749,12 +1775,18 @@ static void ListCache(int argc, char *argv[], int opslot)
 
 		/* Do the pioctl getting mount point pathname */
 		rc = pioctl(NULL, _VICEIOCTL(_VIOC_GET_MT_PT), &vio, 1);
-		if (rc < 0) { PERROR("Failed in GetMountPoint."); exit(-1); }
+		if (rc < 0) {
+                    PERROR("Failed in GetMountPoint.");
+                    if (dst_fd != -1)
+                        close(dst_fd);
+                    exit(-1);
+                }
 		strcpy(mtptpath, piobuf);
-	    }
+                path = mtptpath;
+	    } else {
+                path = argv[i];
+            }
 
-	    strcpy(data.fname, venus_file);
-	    data.first_volume = ((i == argi) ? 1 : 0);
 	    data.long_format = long_format;
 	    data.valid = valid;
 	    vio.in = (char *)&data;
@@ -1764,17 +1796,22 @@ static void ListCache(int argc, char *argv[], int opslot)
 	    memset(piobuf, 0, CFS_PIOBUFSIZE);
 
 	    /* Do the pioctl */
-	    if (vol_id)       /* VolumeId is specified. */
-		rc = pioctl(mtptpath, _VICEIOCTL(_VIOC_LISTCACHE_VOLUME), &vio, 1);
-	    else              /* Mount point pathname is specified. */
-		rc = pioctl(argv[i], _VICEIOCTL(_VIOC_LISTCACHE_VOLUME), &vio, 1);
-	    if (rc < 0) { PERROR(argv[i]); exit(-1); }
+            rc = pioctl(path, _VICEIOCTL(_VIOC_LISTCACHE_VOLUME), &vio, 1);
+            if (rc < 0) {
+                PERROR("Failed in ListCache.");
+                if (dst_fd != -1)
+                    close(dst_fd);
+                exit(-1);
+            }
+
+            if (vio.out_size) {
+                copyout(vio.out, dst_fd);
+                unlink(vio.out);
+            }
 	}
     } else {
 	/* No volumes are specified. List all cache volumes. */
 	/* Set up parms to pioctl */
-	strcpy(data.fname, venus_file);
-	data.first_volume = 1;
 	data.long_format = long_format;
 	data.valid = valid;
 	vio.in = (char *)&data;
@@ -1783,37 +1820,24 @@ static void ListCache(int argc, char *argv[], int opslot)
 	vio.out_size = CFS_PIOBUFSIZE;
 	vio.out = piobuf;
 	memset(piobuf, 0, CFS_PIOBUFSIZE);
+
 	/* Do the pioctl */
 	rc = pioctl(NULL, _VICEIOCTL(_VIOC_LISTCACHE), &vio, 1);
-	if (rc < 0) { PERROR("Failed in ListCache."); exit(-1); }
+        if (rc < 0) {
+            PERROR("Failed in ListCache.");
+            if (dst_fd != -1)
+                close(dst_fd);
+            exit(-1);
+        }
+
+        if (vio.out_size) {
+            copyout(vio.out, dst_fd);
+            unlink(vio.out);
+        }
     }
 
-    /* List Cache Status.
-     * cat the contens of venus_file to stdout or a specified file.
-     */
-    FILE *src_fp;
-    FILE *dest_fp = stdout;
-    if (file_specified) {
-	dest_fp = fopen(filename, "w");
-	if (!dest_fp) {
-	    printf("Cannot open file: %s\n", filename);
-	    exit(-1);
-	}
-    }
-    src_fp = fopen(venus_file, "r");
-    if (!src_fp) {
-	printf("Cannot open file: %s\n", filename);
-	if (file_specified)
-	    fclose(dest_fp);
-	exit(-1);
-    }
-
-    while (rc != EOF && fgets(buf, max_line, src_fp) != NULL )
-	rc = fputs(buf, dest_fp);
-
-    fclose(src_fp);
-    if (file_specified)
-	fclose(dest_fp);
+    if (dst_fd != -1)
+	close(dst_fd);
     if (rc == EOF)
 	exit(-1);
 }

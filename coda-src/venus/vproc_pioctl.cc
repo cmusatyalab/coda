@@ -64,7 +64,6 @@ extern "C" {
 #include "worker.h"
 #include "realmdb.h"
 
-
 /* local-repair modification */
 void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
 {
@@ -692,11 +691,12 @@ OI_FreeLocks:
 	            {
 		      /* List cache status */
 		      struct listcache_in {
-			char fname[23];		/* "/tmp/_Venus_List_Cache" */
-			int  first_volume;
-			int  long_format;
-			int  valid;
+			uint8_t  long_format;
+			uint8_t  valid;
 		      } *data_in;
+                      char listcache_temp[] = "/tmp/listcache-XXXXXX";
+		      FILE *temp_fp;
+                      int temp_fd;
 
 		      /* Check whether specified volume is a mount point */
 		      fsobj *f = FSDB->Find(fid);
@@ -713,24 +713,31 @@ OI_FreeLocks:
 
 		      /* Do ListCache */
 		      data_in = (struct listcache_in *)data->in;
-		      char *venus_file = data_in->fname;
-		      FILE *fp;
-		      if (data_in->first_volume)
-			fp = fopen(venus_file, "w+");
-		      else
-			fp = fopen(venus_file, "a+");
-		      if (fp == NULL) {
-			MarinerLog("Cannot open file: %s\n", venus_file);
-			u.u_error = errno;
-			break;
-		      }
-		      v->ListCache(fp, data_in->long_format, data_in->valid);
-		      fflush(fp);
-		      fclose(fp);
-		      if ( chmod(venus_file, 00666) < 0 ) {
-			MarinerLog("Cannot chmod file: %s\n", venus_file);
-			u.u_error = errno;
-		      }
+                      temp_fd = mkstemp(listcache_temp);
+                      if (temp_fd == -1) {
+                          LOG(0, ("Failed to create temporary file: %s\n", listcache_temp));
+                          u.u_error = errno;
+                          break;
+                      }
+                      temp_fp = fdopen(temp_fd, "w");
+                      CODA_ASSERT(temp_fp != NULL);
+
+		      v->ListCache(temp_fp, data_in->long_format, data_in->valid);
+                      fflush(temp_fp);
+
+#ifdef __CYGWIN32__
+                      if (chown(listcache_temp, u.u_uid, -1) == -1)
+#else
+                      if (fchown(temp_fd, u.u_uid, -1) == -1)
+#endif
+                      {
+                          LOG(0, ("Cannot chown file: %s\n", listcache_temp));
+                          u.u_error = errno;
+                      }
+		      fclose(temp_fp);
+
+                      data->out_size = strlen(listcache_temp)+1;
+		      strcpy(data->out, listcache_temp);
 		      break;
 		    }
 		    
@@ -1273,26 +1280,48 @@ OI_FreeLocks:
 */
 		case REP_CMD_LIST:
 		  {
-		    /* list local mutations belonging to this session */
-		    char fpath[CODA_MAXPATHLEN];
-		    int dummy;
+		    if(!v->IsReplicated()) {
+                        u.u_error = EOPNOTSUPP;
+                        break;
+                    }
 
-		    sscanf((char *) data->in, "%d %s", &dummy, fpath);
+                    /* list local mutations belonging to this session */
+                    char listlocal_temp[] = "/tmp/listlocal-XXXXXX";
+                    int count;
+		    FILE *temp_fp;
+                    int temp_fd;
 
-		    u.u_error = EOPNOTSUPP;
-		    if(v->IsReplicated()) {
-		      FILE *fp = fopen(fpath, "w");
-		      u.u_error = EINVAL; /* EBADF even though not a fd? */
-		      if (fp) {
-			ClientModifyLog *cml = ((repvol *)v)->GetCML();
-			CODA_ASSERT(cml);
-			int count = cml->ListCML(fp);
-			fprintf(fp, "%d entries total in the modify log for volume %s\n", count, v->GetName());
-			fflush(fp);
-			fclose(fp);
-			u.u_error = 0;
-		      }
-		    }
+                    temp_fd = mkstemp(listlocal_temp);
+                    if (temp_fd == -1) {
+                        LOG(0, ("Failed to create temporary file: %s\n", listlocal_temp));
+                        u.u_error = errno;
+                        break;
+                    }
+                    temp_fp = fdopen(temp_fd, "w");
+                    CODA_ASSERT(temp_fp != NULL);
+
+                    ClientModifyLog *cml = ((repvol *)v)->GetCML();
+                    CODA_ASSERT(cml);
+
+                    u.u_error = 0;
+                    count = cml->ListCML(temp_fp);
+                    fprintf(temp_fp, "%d entries total in the modify log for volume %s\n",
+                            count, v->GetName());
+                    fflush(temp_fp);
+
+#ifdef __CYGWIN32__
+                    if (chown(listlocal_temp, u.u_uid, -1) == -1)
+#else
+                    if (fchown(temp_fd, u.u_uid, -1) == -1)
+#endif
+                    {
+                        LOG(0, ("Cannot chown file: %s\n", listlocal_temp));
+                        u.u_error = errno;
+                    }
+                    fclose(temp_fp);
+
+                    data->out_size = strlen(listlocal_temp)+1;
+                    strcpy(data->out, listlocal_temp);
 		    break;
 		  }
 		default:
@@ -1360,32 +1389,40 @@ OI_FreeLocks:
 	            {
 		      /* List cache status */
 		      struct listcache_in {
- 			char fname[23];		/* "/tmp/_Venus_List_Cache" */
-			int  first_volume;
-			int  long_format;
-			int  valid;
+			uint8_t  long_format;
+			uint8_t  valid;
 		      } *data_in;
+                      char listcache_temp[] = "/tmp/listcache-XXXXXX";
+		      FILE *temp_fp;
+                      int temp_fd;
 
+		      /* Do ListCache */
 		      data_in = (struct listcache_in *)data->in;
-		      char *venus_file = data_in->fname;
+                      temp_fd = mkstemp(listcache_temp);
+                      if (temp_fd == -1) {
+                          LOG(0, ("Failed to create temporary file: %s\n", listcache_temp));
+                          u.u_error = errno;
+                          break;
+                      }
+                      temp_fp = fdopen(temp_fd, "w");
+                      CODA_ASSERT(temp_fp != NULL);
 
-		      FILE *fp;
-		      if (data_in->first_volume)
-			fp = fopen(venus_file, "w+");
-		      else
-			fp = fopen(venus_file, "a+");
-		      if (fp == NULL) {
-			MarinerLog("Cannot open file: %s\n", venus_file);
-			u.u_error = errno;
-			break;
-		      }
-		      VDB->ListCache(fp, data_in->long_format, data_in->valid);
-		      fflush(fp);
-		      fclose(fp);
-		      if ( chmod(venus_file, 00666) < 0 ) {
-			MarinerLog("Cannot chmod file: %s\n", venus_file);
-			u.u_error = errno;
-		      }
+		      VDB->ListCache(temp_fp, data_in->long_format, data_in->valid);
+                      fflush(temp_fp);
+
+#ifdef __CYGWIN32__
+                      if (chown(listcache_temp, u.u_uid, -1) == -1)
+#else
+                      if (fchown(temp_fd, u.u_uid, -1) == -1)
+#endif
+                      {
+                          LOG(0, ("Cannot chown file: %s\n", listcache_temp));
+                          u.u_error = errno;
+                      }
+		      fclose(temp_fp);
+
+                      data->out_size = strlen(listcache_temp)+1;
+		      strcpy(data->out, listcache_temp);
 		      break;
 		    }
 		case _VIOC_GET_MT_PT:
