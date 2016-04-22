@@ -154,7 +154,7 @@ void InitPW(int firsttime)
 	   in PWArray.  Frees existing storage coor to PWArray.
 	*/
 	if (PWFile == NULL)
-	        PWFile  = strdup(vice_sharedfile("db/auth2.pw"));
+	        PWFile = strdup(vice_config_path("db/auth2.pw"));
 	if ((fd = open(PWFile, O_RDONLY, 0)) < 0
 		|| myflock(fd, MYFLOCK_SH, MYFLOCK_BL) < 0	/* locking is superstitious */
 		|| fstat(fd, &stbuf))

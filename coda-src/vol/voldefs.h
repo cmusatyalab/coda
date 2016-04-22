@@ -58,10 +58,10 @@ Pittsburgh, PA.
 #define VFORMAT "V%010u"
 
 /* Pathname for the maximum volume id ever created by this server */
-#define MAXVOLIDPATH	vice_file("vol/maxvolid")
+#define MAXVOLIDPATH	vice_config_path("vol/maxvolid")
 
 /* Pathname for server id definitions--the server id is used to allocate volume numbers */
-#define SERVERLISTPATH	vice_sharedfile("db/servers")
+#define SERVERLISTPATH	vice_config_path("db/servers")
 
 /* Values for connect parameter to VInitVolumePackage */
 #define CONNECT_FS	1

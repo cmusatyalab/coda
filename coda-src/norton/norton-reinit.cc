@@ -679,7 +679,7 @@ static int load_server_state(char *dump_file, VolumeId *skipvols, int nskipvols)
     }
 
     /* First thing, initiliaze the global server state */
-    DP_Init(vice_sharedfile("db/vicetab"), hostname(myname));
+    DP_Init(vice_config_path("db/vicetab"), hostname(myname));
     coda_init();
     
     if (!ReadGlobalState(dump_fd)) {
@@ -910,7 +910,7 @@ int main(int argc, char * argv[])
 	data_len = atoi(argv[4]);
     }
 
-    vice_dir_init("/vice", 0);
+    vice_dir_init("/vice");
 
     if (argc > 8) {
 	if (strcmp(argv[7], "skip")) {

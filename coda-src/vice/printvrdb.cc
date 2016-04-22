@@ -55,8 +55,8 @@ struct vrent {
     unsigned long addr;
 };
 
-#define VRDB_PATH vice_sharedfile("db/VRDB")
-#define VRDB_TEMP vice_sharedfile("db/VRDB.new")
+#define VRDB_PATH vice_config_path("db/VRDB")
+#define VRDB_TEMP vice_config_path("db/VRDB.new")
 
 void
 ReadConfigFile()
@@ -66,7 +66,7 @@ ReadConfigFile()
     /* Load configuration file to get vice dir. */
     codaconf_init("server.conf");
     vicedir = codaconf_lookup("vicedir", "/vice");
-    vice_dir_init(vicedir, 0);
+    vice_dir_init(vicedir);
 }
 
 

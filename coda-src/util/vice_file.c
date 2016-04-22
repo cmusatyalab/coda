@@ -30,17 +30,11 @@ listed in the file CREDITS.
 #include "vice_file.h"
 
 static char vicedir[MAXPATHLEN];
-static char serverdir[MAXPATHLEN];
 
 void
-vice_dir_init (const char *dirname, int serverno)
+vice_dir_init (const char *dirname)
 {
 	strncpy(vicedir, dirname, MAXPATHLEN);
-	strncpy(serverdir, dirname, MAXPATHLEN);
-	if (serverno) {
-	    int len = strlen(dirname);
-	    snprintf(&serverdir[len], MAXPATHLEN - len, "/server_%d", serverno);
-	}
 }
 
 static const char *
@@ -62,14 +56,7 @@ vice_filepath (const char *dir, const char *name)
 }
 
 const char *
-vice_file(const char *name)
-{
-	return vice_filepath(serverdir, name);
-}
-
-const char *
-vice_sharedfile(const char *name)
+vice_config_path(const char *name)
 {
 	return vice_filepath(vicedir, name);
 }
-

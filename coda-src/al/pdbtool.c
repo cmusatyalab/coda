@@ -851,7 +851,7 @@ void ReadConfigFile(void)
 
     CODACONF_STR(vicedir, "vicedir", "/vice");
 
-    vice_dir_init(vicedir, 0);
+    vice_dir_init(vicedir);
 }
 
 int main(int argc, char **argv)

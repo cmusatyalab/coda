@@ -171,9 +171,9 @@ int VInitVolUtil(ProgramType pt)
 	fvlock = -1;
 
 	VLog(9, "Entering VInitVolUtil");
-	fslock = open(vice_file("fs.lock"), O_CREAT|O_RDWR, 0666);
+	fslock = open(vice_config_path("fs.lock"), O_CREAT|O_RDWR, 0666);
 	CODA_ASSERT(fslock >= 0);
-	fvlock = open (vice_file("volutil.lock"), O_CREAT|O_RDWR, 0666);
+	fvlock = open(vice_config_path("volutil.lock"), O_CREAT|O_RDWR, 0666);
 	CODA_ASSERT(fvlock >= 0);
 
 	if (pt != salvager) {
@@ -306,7 +306,7 @@ void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage)
 	    (*(vp?&nAttached:&nUnattached))++;
 	    if (error == VOFFLINE)
 		VLog(0, "Volume %x stays offline (%s/%s exists)", 
-		     header.id, vice_file("offline"), 
+		     header.id, vice_config_path("offline"), 
 		     VolumeExternalName(header.id));
 
 	    if (!vp)

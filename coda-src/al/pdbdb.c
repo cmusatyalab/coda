@@ -48,7 +48,7 @@ listed in the file CREDITS.
 
 #include <vice_file.h>
 
-#define PDB_MAIN vice_sharedfile("db/prot_users.cdb")
+#define PDB_MAIN vice_config_path("db/prot_users.cdb")
 
 struct PDB_HANDLE_S {
 	struct rwcdb main;

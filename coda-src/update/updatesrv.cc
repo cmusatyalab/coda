@@ -120,7 +120,7 @@ ReadConfigFile()
     codaconf_init("server.conf");
 
     vicedir = codaconf_lookup("vicedir", "/vice");
-    vice_dir_init(vicedir, 0);
+    vice_dir_init(vicedir);
 }
 
 struct flist {
@@ -137,7 +137,7 @@ ReadExportList()
     char   rdline[MAXPATHLEN];
     flist *entry;
 
-    exportf = fopen (vice_sharedfile("db/files.export"), "r");
+    exportf = fopen(vice_config_path("db/files.export"), "r");
     if (!exportf) {
 	checknames = 0;
 	return;
@@ -217,7 +217,7 @@ int main(int argc, char **argv)
     ReadConfigFile();
     ReadExportList();
 
-    miscdir = vice_sharedfile("misc");
+    miscdir = vice_config_path("misc");
     if (stat(miscdir, &statbuf) == -1 && errno == ENOENT) {
 	fprintf(stderr, "creating missing directory '%s'\n", miscdir);
 	mkdir(miscdir, 0755);
@@ -226,7 +226,7 @@ int main(int argc, char **argv)
     rc = chdir(miscdir);
     if ( rc ) {
 	snprintf (errmsg, MAXPATHLEN, "Could not chdir to %s",
-		  vice_sharedfile("misc"));
+		  vice_config_path("misc"));
 	perror(errmsg);
 	exit(1);
     }
@@ -242,7 +242,7 @@ int main(int argc, char **argv)
     fprintf(stderr, "Updatesrv started!\n");
 
     if (!prefix)
-      prefix = strdup(vice_sharedfile(NULL));
+      prefix = strdup(vice_config_path(NULL));
 
     if (chdir(prefix)) {
 	snprintf (errmsg, MAXPATHLEN, "Could not chdir to %s", prefix);
@@ -253,10 +253,10 @@ int main(int argc, char **argv)
     LogMsg(0, SrvDebugLevel, stdout, "Update Server working directory %s",
 	   prefix);
 
-    file = fopen(vice_sharedfile("misc/updatesrv.pid"), "w");
+    file = fopen(vice_config_path("misc/updatesrv.pid"), "w");
     if ( !file ) {
 	snprintf (errmsg, MAXPATHLEN, "Error in writing %s",
-		  vice_sharedfile("misc/updatesrv.pid"));
+		  vice_config_path("misc/updatesrv.pid"));
 	perror(errmsg);
 	exit(1);
     }
@@ -343,7 +343,7 @@ static long Update_GetKeys(RPC2_Integer *authtype, RPC2_CountedBS *cident,
     /* Block unauthenticated connections */
     if (!cident) return -1;
 
-    if (GetSecret(vice_sharedfile("db/update.tk"), sharedsecret, &state) == -1)
+    if (GetSecret(vice_config_path("db/update.tk"), sharedsecret, &state) == -1)
 	return -1;
 
     memset(sessionkey, 0, RPC2_KEYSIZE);

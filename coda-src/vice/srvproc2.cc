@@ -202,7 +202,7 @@ static const char *GetROOTVOLUME(void)
     static char rootvolume[V_MAXVOLNAMELEN];
     int fd, len;
 
-    fd = open(vice_sharedfile("db/ROOTVOLUME"), O_RDONLY);
+    fd = open(vice_config_path("db/ROOTVOLUME"), O_RDONLY);
     if (fd < 0)
 	return NULL;
 
@@ -604,7 +604,7 @@ long FS_ViceSetRootVolume(RPC2_Handle RPCid, RPC2_String volume)
 	goto exit;
     }
 
-    fd = open(vice_sharedfile("db/ROOTVOLUME.new"), O_WRONLY|O_CREAT|O_EXCL, 0644);
+    fd = open(vice_config_path("db/ROOTVOLUME.new"), O_WRONLY|O_CREAT|O_EXCL, 0644);
     if (fd < 0) {
 	errorCode = errno;
 	SLog(0, "SetRootVolume failed to open ROOTVOLUME.new");
@@ -620,8 +620,8 @@ long FS_ViceSetRootVolume(RPC2_Handle RPCid, RPC2_String volume)
 	goto exit;
     }
 
-    rc = rename(vice_sharedfile("db/ROOTVOLUME.new"),
-		vice_sharedfile("db/ROOTVOLUME"));
+    rc = rename(vice_config_path("db/ROOTVOLUME.new"),
+		vice_config_path("db/ROOTVOLUME"));
     if (rc == -1) {
 	errorCode = errno;
 	SLog(0, "SetRootVolume failed to rename ROOTVOLUME.new");

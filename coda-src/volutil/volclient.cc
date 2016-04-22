@@ -144,7 +144,7 @@ void ReadConfigFile(void)
     CODACONF_STR(vicedir, "vicedir", "/vice");
     CODACONF_INT(nservers, "numservers", 1); 
 
-    vice_dir_init(vicedir, 0);
+    vice_dir_init(vicedir);
 }
 
 
@@ -1978,7 +1978,7 @@ static int V_BindToServer(char *fileserver, char *realm, RPC2_Handle *RPCid)
     bparms.EncryptionType = RPC2_XOR;
     bparms.SideEffectType = SMARTFTP;
 
-    if (GetSecret(vice_sharedfile(VolTKFile), secret, &state) == 0)
+    if (GetSecret(vice_config_path(VolTKFile), secret, &state) == 0)
     {
 	bparms.AuthenticationType = AUTH_METHOD_VICEKEY;
 	bparms.SharedSecret = &secret;

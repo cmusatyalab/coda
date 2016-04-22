@@ -88,7 +88,7 @@ ReadConfigFile()
     codaconf_init("server.conf");
 
     vicedir = codaconf_lookup("vicedir", "/vice");
-    vice_dir_init(vicedir, 0);
+    vice_dir_init(vicedir);
 }
 
 int main(int argc, char **argv)
@@ -228,7 +228,7 @@ static void Connect()
     cident.SeqLen = strlen(hostname) + 1;
     bparms.ClientIdent = &cident;
 
-    GetSecret(vice_sharedfile("db/update.tk"), secret, &state);
+    GetSecret(vice_config_path("db/update.tk"), secret, &state);
     bparms.SharedSecret = &secret;
 
     rc = RPC2_NewBinding(&hident, &pident, &ssid, &bparms, &con);

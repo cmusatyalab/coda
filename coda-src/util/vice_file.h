@@ -9,9 +9,8 @@
 extern "C" {
 #endif
 
-void vice_dir_init(const char *dirname, int serverno);
-const char *vice_file(const char *name);
-const char *vice_sharedfile(const char *name);
+void vice_dir_init(const char *dirname);
+const char *vice_config_path(const char *name);
 
 #ifdef __cplusplus
 }

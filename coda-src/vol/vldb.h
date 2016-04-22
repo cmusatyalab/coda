@@ -85,9 +85,9 @@ struct vldbHeader {
 
 #include <vice_file.h>
 
-#define VLDB_PATH 	vice_sharedfile("db/VLDB")
-#define VLDB_TEMP 	vice_sharedfile("db/VLDB.new")
-#define BACKUPLIST_PATH vice_file("vol/BackupList")
+#define VLDB_PATH 	vice_config_path("db/VLDB")
+#define VLDB_TEMP 	vice_config_path("db/VLDB.new")
+#define BACKUPLIST_PATH vice_config_path("vol/BackupList")
 
 extern struct vldb *VLDBLookup(char *key);
 extern int VLDBPrint();

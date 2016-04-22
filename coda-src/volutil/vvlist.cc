@@ -59,10 +59,10 @@ void getlistfilename(char *filename, VolumeId groupId, VolumeId repId,
 		     const char *suffix)
 {
     if (groupId > 0)
-	sprintf(filename, "%s/%x.%x.", vice_sharedfile("backup"),
+	sprintf(filename, "%s/%x.%x.", vice_config_path("backup"),
 		groupId, repId);
     else
-	sprintf(filename, "%s/%x.", vice_sharedfile("backup"), repId);
+	sprintf(filename, "%s/%x.", vice_config_path("backup"), repId);
 	
     strcat(filename, suffix);
 }

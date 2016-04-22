@@ -127,7 +127,7 @@ void ReadConfigFile(void)
 
     CODACONF_STR(vicedir, "vicedir", "/vice");
 
-    vice_dir_init(vicedir, 0);
+    vice_dir_init(vicedir);
 }
 
 
@@ -140,11 +140,11 @@ int main(int argc, char **argv)
 
     ReadConfigFile();
 
-    Auth2TKFile = strdup(vice_sharedfile("db/auth2.tk"));
-    rc = chdir(vice_sharedfile("auth2"));
+    Auth2TKFile = strdup(vice_config_path("db/auth2.tk"));
+    rc = chdir(vice_config_path("auth2"));
     if ( rc ) {
 	    snprintf (errmsg, MAXPATHLEN, "Error: cannot chdir to %s",
-		      vice_sharedfile("auth2"));
+		      vice_config_path("auth2"));
 	    perror(errmsg);
 	    exit(1);
     }

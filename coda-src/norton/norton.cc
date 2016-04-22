@@ -44,14 +44,9 @@ int main(int argc, char * argv[])
     rvm_return_t err;
     mapprivate = 0;
     char *exename = argv[0];
-    int ServerNumber = 0;
 
     argc--; argv++;
     while (argc > 3) {
-	if (strcmp(argv[0], "-n") == 0) {
-	    argc--; argv++;
-	    ServerNumber = atoi(argv[0]);
-	}
 	if (strcmp(argv[0],"-mapprivate") == 0) {
 	    mapprivate = 1;
 	}
@@ -63,7 +58,7 @@ int main(int argc, char * argv[])
 	exit(1);
     }
 
-    vice_dir_init("/vice", ServerNumber);
+    vice_dir_init("/vice");
     NortonInit(argv[0], argv[1], atoi(argv[2]));
     
     InitParsing();

@@ -174,7 +174,7 @@ ReadConfigFile()
 
     CODACONF_STR(vicedir, "vicedir", "/vice");
 
-    vice_dir_init(vicedir, 0);
+    vice_dir_init(vicedir);
 }
 
 
@@ -795,7 +795,7 @@ int main(int argc, char **argv) {
     VUInitServerList();
 
     /* initialize the partitions */
-    DP_Init(vice_sharedfile("db/vicetab"), ThisHost);
+    DP_Init(vice_config_path("db/vicetab"), ThisHost);
 
     /* change the name */
     if ( PreparePartitionEntries() != 0 ) {
@@ -1107,10 +1107,10 @@ static void V_InitRPC()
     long rc;
 
     /* store authentication key */
-    tokfile = fopen(vice_sharedfile(VolTKFile), "r");
+    tokfile = fopen(vice_config_path(VolTKFile), "r");
     if (!tokfile) {
 	char estring[80];
-	sprintf(estring, "Tokenfile %s", vice_sharedfile(VolTKFile));
+	sprintf(estring, "Tokenfile %s", vice_config_path(VolTKFile));
 	perror(estring);
 	exit(-1);
     }
@@ -1164,7 +1164,7 @@ static void V_BindToServer(char *fileserver, RPC2_Handle *RPCid)
     bparms.EncryptionType = RPC2_XOR;
     bparms.SideEffectType = SMARTFTP;
 
-    GetSecret(vice_sharedfile(VolTKFile), secret, &state);
+    GetSecret(vice_config_path(VolTKFile), secret, &state);
     bparms.SharedSecret = &secret;
 
     LogMsg(10, Debug, stdout, "V_BindToServer: binding to host %s\n", fileserver);

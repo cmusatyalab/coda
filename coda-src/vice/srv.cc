@@ -173,9 +173,6 @@ int thread_count;
 
 /* *****  Private variables  ***** */
 
-static int ServerNumber = 0;	/* 0 => single server,
-				   1,2,3 => number in multi server */
-
 /* File server parameters.   Defaults set by ReadConfigFile. */
 
 static const char *vicedir;	// default "/vice"
@@ -223,12 +220,12 @@ const char *vicetab = NULL;	       /* default db/vicetab */
 
 /* PDB stuff. */
 static int pdbtime = 0;
-#define CODADB vice_sharedfile("db/prot_users.db")
+#define CODADB vice_config_path("db/prot_users.db")
 
 /* Token stuff. */
 static int keytime = 0;
-#define KEY1 vice_sharedfile("db/auth2.tk")
-#define KEY2 vice_sharedfile("db/auth2.tk.BAK")
+#define KEY1 vice_config_path("db/auth2.tk")
+#define KEY2 vice_config_path("db/auth2.tk.BAK")
 
 /* (Worker) LWP statistics.  Currently unused. */
 #define MAXLWP 16
@@ -352,11 +349,11 @@ int main(int argc, char *argv[])
 
     (void)ReadConfigFile();
 
-    pidfile = vice_file("srv/pid");
+    pidfile = vice_config_path("srv/pid");
     parent = DaemonizeSrv(pidfile);
 
-    if(chdir(vice_file("srv"))) {
-	SLog(0, "could not cd to %s - exiting", vice_file("srv"));
+    if(chdir(vice_config_path("srv"))) {
+	SLog(0, "could not cd to %s - exiting", vice_config_path("srv"));
 	exit(-1);
     }
 
@@ -871,7 +868,7 @@ static void ShutDown()
 
     if (SalvageOnShutdown) {
 	SLog(9, "Unlocking volutil lock...");
-	int fvlock = open(vice_file("volutil.lock"), O_CREAT|O_RDWR, 0666);
+	int fvlock = open(vice_config_path("volutil.lock"), O_CREAT|O_RDWR, 0666);
 	CODA_ASSERT(fvlock >= 0);
 	while (myflock(fvlock, MYFLOCK_UN, MYFLOCK_BL) != 0);
 	SLog(9, "Done");
@@ -1223,8 +1220,8 @@ void SwapLog(int ign)
     struct timeval tp;
 
     /* Need to chdir() again, since salvage may have put me elsewhere */
-    if(chdir(vice_file("srv"))) {
-	SLog(0, "Could not cd to %s; not swapping logs", vice_file("srv"));
+    if(chdir(vice_config_path("srv"))) {
+	SLog(0, "Could not cd to %s; not swapping logs", vice_config_path("srv"));
 	return;
     }
 
@@ -1264,18 +1261,11 @@ void ViceTerminate()
 
 static int ReadConfigFile(void)
 {
-    char confname[80];
     int  datalen = 0;
-    int  multconf;
     int  zombify = 0;
-    int  numservers = 0;
 
     /* Load configuration file. */
     codaconf_init("server.conf");
-
-    /* Load server specific configuration file */
-    sprintf (confname, "server_%d.conf", ServerNumber);
-    multconf = codaconf_init(confname);
 
     /* srv.cc defined values ... */
     CODACONF_INT(Authenticate,	  "authenticate", 1); 
@@ -1291,7 +1281,7 @@ static int ReadConfigFile(void)
     CODACONF_INT(small, "small", 500);
 
     CODACONF_STR(vicedir, "vicedir", "/vice");
-    vice_dir_init(vicedir, ServerNumber);
+    vice_dir_init(vicedir);
 
     CODACONF_INT(trace,		"trace",	0);
     CODACONF_INT(SrvWindowSize,	"windowsize",	32);
@@ -1309,37 +1299,14 @@ static int ReadConfigFile(void)
     CODACONF_INT(SalvageOnShutdown, "salvageonshutdown", 0);
     CODACONF_INT(DumpVM,	    "dumpvm",	    0);
 
-    /* Server numbers and  Rvm parameters */
-    CODACONF_INT(numservers, "numservers", 1);
-    if (numservers > 1 && ServerNumber == 0) {
-	SLog(0, "Configuration error, server number 0 with multiple servers");
-	exit(-1);
-    }
+    /* Rvm parameters */
     CODACONF_INT(_Rvm_Truncate, "rvmtruncate", 0);
 
     if (RvmType == UNSET) {
-	if (ServerNumber == 0 || multconf == 0) {
-	    CODACONF_STR(_Rvm_Log_Device,  "rvm_log", "");
-	    CODACONF_STR(_Rvm_Data_Device, "rvm_data", "");
-	    CODACONF_INT(datalen,	   "rvm_data_length", 0);
-	    CODACONF_STR(srvhost,	   "hostname", NULL);
-	} else {
-	    sprintf(confname, "rvm_log_%d", ServerNumber);
-	    CODACONF_STR(_Rvm_Log_Device, confname, "");
-
-	    sprintf(confname, "rvm_data_%d", ServerNumber);
-	    CODACONF_STR(_Rvm_Data_Device, confname, "");
-
-	    sprintf(confname, "rvm_data_length_%d", ServerNumber);
-	    CODACONF_INT(datalen, confname, 0);
-
-	    sprintf(confname, "hostname_%d", ServerNumber);
-	    CODACONF_STR(srvhost, confname, NULL);
-	}
-    }
-    if (ServerNumber && (srvhost == NULL || *srvhost == 0)) {
-	SLog(0, "Multiple servers specified, must specify hostname.\n");
-	exit(-1);
+        CODACONF_STR(_Rvm_Log_Device,  "rvm_log", "");
+        CODACONF_STR(_Rvm_Data_Device, "rvm_data", "");
+        CODACONF_INT(datalen,	   "rvm_data_length", 0);
+        CODACONF_STR(srvhost,	   "hostname", NULL);
     }
 
     if (datalen != 0) {
@@ -1365,7 +1332,7 @@ static int ReadConfigFile(void)
 	coda_assert_action = CODA_ASSERT_SLEEP;
     CODACONF_STR(vicetab, "vicetab", NULL);
     if (!vicetab)
-	vicetab = strdup(vice_sharedfile("db/vicetab"));
+	vicetab = strdup(vice_config_path("db/vicetab"));
 
     CODACONF_INT(check_reintegration_retry, "check_reintegration_retry", 1);
     return 0;
@@ -1554,9 +1521,6 @@ static int ParseArgs(int argc, char *argv[])
 	    if (!strcmp(argv[i], "-mapprivate")) {
 		MapPrivate = 1;
 	    }
-	else
-	    if (!strcmp(argv[i], "-n"))
-		ServerNumber = atoi(argv[++i]);
 	else {
 	    return(-1);
 	}

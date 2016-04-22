@@ -36,8 +36,8 @@ extern "C" {
 
 #include <vice_file.h>
 
-#define VRDB_PATH  vice_sharedfile("db/VRDB")
-#define VRDB_TEMP  vice_sharedfile("db/VRDB.new")
+#define VRDB_PATH   vice_config_path("db/VRDB")
+#define VRDB_TEMP   vice_config_path("db/VRDB.new")
 
 #define VRTABHASHSIZE	128
 

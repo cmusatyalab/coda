@@ -128,7 +128,7 @@ static RPC2_Integer operatorSecs = 0;
 static RPC2_Integer operatorUsecs = 0;
 
 static RPC2_Handle con = 0;
-static char host[256];
+static char Host[HOST_NAME_MAX];
 static RPC2_Integer port;
 static int waitinterval = 30;	/* 5 min */
 static int reps = 6;
@@ -136,10 +136,7 @@ static int reps = 6;
 static struct timeval  tp;
 static struct timezone tsp;
 
-static char **hostlist;	/* List of hosts to notify of changes. */
-
 static const char *vicedir = NULL;
-static int   nservers = 0;
 
 static RPC2_Unsigned timestamp = 0;  /* last transfered time. */
 
@@ -151,7 +148,7 @@ int main(int argc, char **argv)
     int     len;
     char    errmsg[MAXPATHLEN];
     
-    *host = '\0';
+    *Host = '\0';
 
     ProcessArgs(argc, argv);
 
@@ -159,29 +156,29 @@ int main(int argc, char **argv)
 
     /* Check if host has been set.  If not, try to read it out of
        vice_sharefile("db/scm").  */
-    if ( host[0] == '\0' ) {
-        file = fopen (vice_sharedfile("db/scm"), "r");
-	if (!file || !fgets(host, 256, file)) {
+    if ( *Host == '\0' ) {
+        file = fopen (vice_config_path("db/scm"), "r");
+	if (!file || !fgets(Host, HOST_NAME_MAX, file)) {
 	    LogMsg(0, SrvDebugLevel, stdout, "No host given!\n");
 	    if (file)
 	        fclose(file);
 	    exit(-1);
 	}
 	fclose(file);
-	if (host[strlen(host)-1] == '\n')
-	    host[strlen(host)-1] = '\0';
+	if (Host[strlen(Host)-1] == '\n')
+	    Host[strlen(Host)-1] = '\0';
     }
 
     LogMsg(1, SrvDebugLevel, stdout, "Using host '%s' for updatesrv.\n",
-	   host);
+	   Host);
 
     CheckLibStructure();
 
     LogMsg(2, SrvDebugLevel, stdout, "Changing to directory %s.\n",
-	   vice_sharedfile(NULL));
-    rc = chdir(vice_sharedfile(NULL));
+	   vice_config_path(NULL));
+    rc = chdir(vice_config_path(NULL));
     if ( rc ) {
-        snprintf(errmsg, MAXPATHLEN, "Cannot cd to %s", vice_sharedfile(NULL));
+        snprintf(errmsg, MAXPATHLEN, "Cannot cd to %s", vice_config_path(NULL));
 	perror(errmsg);
 	exit(1);
     }
@@ -204,13 +201,13 @@ int main(int argc, char **argv)
 	strcpy(argv[0], UPDATENAME);
     }
 
-    freopen(vice_sharedfile("misc/UpdateClntLog"), "a+", stdout);
-    freopen(vice_sharedfile("misc/UpdateClntLog"), "a+", stderr);
+    freopen(vice_config_path("misc/UpdateClntLog"), "a+", stdout);
+    freopen(vice_config_path("misc/UpdateClntLog"), "a+", stderr);
 
-    file = fopen(vice_sharedfile("misc/updateclnt.pid"), "w");
+    file = fopen(vice_config_path("misc/updateclnt.pid"), "w");
     if (!file) {
         snprintf (errmsg, MAXPATHLEN, "Could not open %s",
-		  vice_sharedfile("misc/updateclnt.pid"));
+		  vice_config_path("misc/updateclnt.pid"));
 	perror (errmsg);
 	exit(-1);
     }
@@ -241,28 +238,25 @@ int main(int argc, char **argv)
 	/* Checking "db" relative to updatesrv working directory. */
 	if (CheckDir("db", 0644)) {
 	    operatorSecs = 0;  /* if something changed time has elapsed */
-	    for (int i=0; i<nservers; i++) {
-		RPC2_Handle rpcid;
-		if (nservers != 1)
-		    vice_dir_init (vicedir, i+1);
-		/* signal file server to check data bases */
-		if (U_BindToServer(hostlist[i], &rpcid) == RPC2_SUCCESS) {
-		    if (VolUpdateDB(rpcid) == RPC2_SUCCESS) {
-			LogMsg(0, SrvDebugLevel, stdout,
-			    "Notifying server %s of database updates\n",
-			    hostlist[i]);
-		    } else {
-			LogMsg(0, SrvDebugLevel, stdout,
-			    "VolUpdateDB failed for host %s\n",
-			    hostlist[i]);
-		   }
-		} else {
-		    LogMsg(0, SrvDebugLevel, stdout,
-			 "Bind to server %s for database update failed\n",
-			 hostlist[i]);
-		}
-		RPC2_Unbind(rpcid);
-	    }
+
+            RPC2_Handle rpcid;
+            /* signal file server to check data bases */
+            if (U_BindToServer(Host, &rpcid) == RPC2_SUCCESS) {
+                if (VolUpdateDB(rpcid) == RPC2_SUCCESS) {
+                    LogMsg(0, SrvDebugLevel, stdout,
+                        "Notifying server %s of database updates\n",
+                        Host);
+                } else {
+                    LogMsg(0, SrvDebugLevel, stdout,
+                        "VolUpdateDB failed for host %s\n",
+                        Host);
+               }
+            } else {
+                LogMsg(0, SrvDebugLevel, stdout,
+                     "Bind to server %s for database update failed\n",
+                     Host);
+            }
+            RPC2_Unbind(rpcid);
 	}
 	if (operatorSecs > 0) {
 	    gettimeofday(&tp, &tsp);
@@ -299,7 +293,7 @@ static void ProcessArgs(int argc, char **argv)
 		port = atoi(argv[++i]);
 	else
 	    if (!strcmp(argv[i], "-h"))
-		strcpy(host, argv[++i]);
+		strcpy(Host, argv[++i]);
 	else
 	  if (!strcmp(argv[i], "-q")) {
 	      fprintf (stderr, "Old argument -q to update clnt.\n");
@@ -332,75 +326,31 @@ ReadConfigFile()
     codaconf_init("server.conf");
 
     CODACONF_STR(vicedir, "vicedir", "/vice");
-    CODACONF_INT(nservers, "numservers", 1);
 
-    vice_dir_init(vicedir, 0);
+    vice_dir_init(vicedir);
 
     /* Host name list from multiple configs. */
-    hostlist = new char*[nservers];
-    if (nservers == 1) {
-	hostlist[0] = new char[256];
-	hostname(hostlist[0]);
-    }
-    else {
-	const char *host;
-	char confname[80];
-	for (int i = 0; i < nservers; i++) {
-	    sprintf(confname, "server_%d.conf", i+1);
-	    codaconf_init(confname);
-	    host = codaconf_lookup("hostname", NULL);
-	    if (host == NULL) {
-		LogMsg(0, SrvDebugLevel, stdout,"No host name for server %d.\n",
-		       i+1);
-		exit(1);
-	    }
-	    hostlist[i] = strdup(host);
-	}
-    }
+    hostname(Host);
+}
 
-    /*    for (int i = 0; i<nservers; i++) printf ("hostlist[%d] is %s\n", i, hostlist[i]); */
+
+static void mkdir_ifnotexists(const char *component)
+{
+    const char *path = vice_config_path(component);
+    if (access(path, F_OK) == -1 && errno == ENOENT) {
+        printf("Creating %s\n", path);
+        mkdir(path, 0755);
+    }
 }
 
 static void CheckLibStructure()
 {
-    struct stat lbuf;
-
-    if((stat(vice_sharedfile(NULL),&lbuf)) && (errno == ENOENT)) {
-	printf("Creating %s structure\n", vice_sharedfile(NULL));
-	mkdir(vice_sharedfile(NULL),0755);
-	mkdir(vice_sharedfile("db"),0755);
-	mkdir(vice_sharedfile("misc"),0755);
-
-	for (int i=1; i<=nservers; i++) {
-	    if (nservers != 1)
-		vice_dir_init (vicedir, i);
-	    mkdir(vice_file("srv"),0755);
-	    mkdir(vice_file("vol"),0755);
-	    mkdir(vice_file("spool"),0755);
-	}
-    }
-    else {
-	if((stat(vice_sharedfile("db"),&lbuf)) && (errno == ENOENT)) {
-	    printf("Creating %s\n", vice_sharedfile("db"));
-	    mkdir(vice_sharedfile("db"),0755);
-	}
-	for (int i=1; i<=nservers; i++) {
-	    if (nservers != 1)
-		vice_dir_init (vicedir, i);
-	    if ((stat(vice_file("srv"),&lbuf)) && (errno == ENOENT)) {
-		printf("Creating %s\n",vice_file("srv"));
-		mkdir(vice_file("srv"),0755);
-	    }
-	    if ((stat(vice_file("vol"),&lbuf)) && (errno == ENOENT)) {
-	      printf("Creating %s\n",vice_file("vol"));
-	      mkdir(vice_file("vol"),0755);
-	    }
-	    if ((stat(vice_file("spool"),&lbuf)) && (errno == ENOENT)) {
-	      printf("Creating %s\n",vice_file("spool"));
-	      mkdir(vice_file("spool"),0755);
-	    }
-	}
-    }
+    mkdir_ifnotexists(NULL);
+    mkdir_ifnotexists("misc");
+    mkdir_ifnotexists("db");
+    mkdir_ifnotexists("srv");
+    mkdir_ifnotexists("vol");
+    mkdir_ifnotexists("spool");
 }
 
 
@@ -586,7 +536,7 @@ static void ReConnect()
     RPC2_PortIdent pident;
     RPC2_CountedBS cident;
     RPC2_EncryptionKey secret;
-    char hostname[64];
+    char hostname[HOST_NAME_MAX];
 
     if (con) {
 	LogMsg(0, SrvDebugLevel, stdout, "Unbinding\n");
@@ -601,7 +551,7 @@ static void ReConnect()
     }
 
     hident.Tag = RPC2_HOSTBYNAME;
-    strcpy(hident.Value.Name, host);
+    strcpy(hident.Value.Name, Host);
     pident.Tag = RPC2_PORTBYINETNUMBER;
     pident.Value.InetPortNumber = htons(port);
     ssid.Tag = RPC2_SUBSYSBYID;
@@ -613,12 +563,13 @@ static void ReConnect()
     bparms.EncryptionType = RPC2_XOR;
     bparms.SideEffectType = SMARTFTP;
 
-    gethostname(hostname, 63); hostname[63] = '\0';
+    gethostname(hostname, HOST_NAME_MAX-1);
+    hostname[HOST_NAME_MAX-1] = '\0';
     cident.SeqBody = (RPC2_ByteSeq)&hostname;
     cident.SeqLen = strlen(hostname) + 1;
     bparms.ClientIdent = &cident;
 
-    GetSecret(vice_sharedfile("db/update.tk"), secret, &state);
+    GetSecret(vice_config_path("db/update.tk"), secret, &state);
     bparms.SharedSecret = &secret;
 
     rc = RPC2_NewBinding(&hident, &pident, &ssid, &bparms, &con);
@@ -736,7 +687,7 @@ static int U_BindToServer(char *fileserver, RPC2_Handle *RPCid)
     bparms.EncryptionType = RPC2_XOR;
     bparms.SideEffectType = SMARTFTP;
 
-    GetSecret(vice_sharedfile(VolTKFile), secret, &state);
+    GetSecret(vice_config_path(VolTKFile), secret, &state);
     bparms.SharedSecret = &secret;
 
     LogMsg(9, SrvDebugLevel, stdout, "V_BindToServer: binding to host %s\n",

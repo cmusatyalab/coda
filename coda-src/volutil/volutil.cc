@@ -211,7 +211,7 @@ static long VolGetKey(RPC2_Integer *authtype, RPC2_CountedBS *cid,
     case AUTH_METHOD_VICEKEY:
     case AUTH_METHOD_NULL: /* backward compatibility, old volutil clients never
 			      set the AuthenticationType field in BindParms */
-	if (GetSecret(vice_sharedfile(VolTKFile), sharedsecret, &state) == -1)
+	if (GetSecret(vice_config_path(VolTKFile), sharedsecret, &state) == -1)
 	    return -1;
 	break;
 
