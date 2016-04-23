@@ -80,7 +80,6 @@ AM_CONDITIONAL(LUA, test x$include_lua = xtrue)
 
 dnl Generate output files
 AC_CONFIG_FILES([Makefile include/Makefile secure/Makefile rpc2-src/Makefile
-    rp2gen/Makefile scripts/Makefile rpc2.pc rpc2-uninstalled.pc
-    pkgs/pkg-bsd.sh pkgs/rpc2.spec debian/changelog])
+    rp2gen/Makefile scripts/Makefile rpc2.pc rpc2-uninstalled.pc])
 AC_OUTPUT
 
