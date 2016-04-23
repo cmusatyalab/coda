@@ -1,15 +1,3 @@
-RedHat Linux 
-------------
-
-Run the perl script:
-
-build-coda-rpm.pl --rel=release --version=cvs-version  {--debug} {--kerberos} {--snapshot} < coda.spec.in
-
-Make the appropriate tar ball
-(/usr/src/redhat/SOURCES/coda-"cvs-version".tgz) and run the rpm
-command as printed out by the script.
-
-
 Windows 95 and Windows NT
 -------------------------
 

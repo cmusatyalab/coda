@@ -186,10 +186,7 @@ AC_CONFIG_FILES([
 Makefile
 coda_config.h
 configs/Makefile
-debian/Makefile
-debian/changelog
 tools/Makefile
-tools/coda.spec
 lib-src/Makefile
 lib-src/base/Makefile
 lib-src/rwcdb/Makefile

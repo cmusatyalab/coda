@@ -1,7 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-DIST_SUBDIRS = configs lib-src coda-src debian tools
-SUBDIRS = ${subdirs} ${DIST_SUBDIRS}
+SUBDIRS = ${subdirs} configs lib-src coda-src tools
 
 ACLOCAL_AMFLAGS = -I m4
 

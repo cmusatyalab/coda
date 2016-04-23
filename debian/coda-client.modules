@@ -1,3 +1,0 @@
-# Coda's character device and devfs path.
-alias char-major-67 coda
-alias /dev/coda*    coda
