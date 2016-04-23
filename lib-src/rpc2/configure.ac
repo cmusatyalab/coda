@@ -44,6 +44,7 @@ AC_ARG_WITH(lua, [  --with-lua		  embed Lua interpreter],
   [ PKG_CHECK_EXISTS([lua5.1], [ PKG_CHECK_MODULES([LUA], [lua5.1]) ],
 			       [ PKG_CHECK_MODULES([LUA], [lua]) ])
     AC_DEFINE(USE_LUA, 1, [Define this when linking against Lua])
+    AC_SUBST(LUA_LIBADD, -lm, [Lua binding depends on libm])
     include_lua=true ],
   [ include_lua=false ])
 
