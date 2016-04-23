@@ -57,6 +57,6 @@ AM_CONDITIONAL(build_pthread, test "$includepthread" != "no" -a "x$LIBPTHREAD" !
 
 dnl Generate output files
 AC_CONFIG_FILES([Makefile include/Makefile src/Makefile src-pt/Makefile
-    lwp.pc lwp-uninstalled.pc pkgs/pkg-bsd.sh pkgs/lwp.spec debian/changelog])
+    lwp.pc lwp-uninstalled.pc])
 AC_OUTPUT
 
