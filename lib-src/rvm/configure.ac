@@ -70,6 +70,6 @@ AM_CONDITIONAL([LIBRVMPT], [test "$librvmpt" != no])
 dnl Generate output files
 AC_CONFIG_FILES([Makefile include/Makefile rvm/Makefile seg/Makefile
     rds/Makefile tests/Makefile rvm.pc rvm-uninstalled.pc rvmlwp.pc
-    rvmlwp-uninstalled.pc pkgs/pkg-bsd.sh pkgs/rvm.spec debian/changelog])
+    rvmlwp-uninstalled.pc])
 AC_OUTPUT
 
