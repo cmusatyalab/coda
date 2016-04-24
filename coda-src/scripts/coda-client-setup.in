@@ -5,7 +5,7 @@
 # Peter J. Braam, Dec 1996
 # included suggestions from Elliot Lee, may 1997.
 #
-# Usage: venus-setup default-realm-name cachesize-in-kb
+# Usage: coda-client-setup default-realm-name cachesize-in-kb
 #
 # the script will verify that the necessary directories and /etc/services
 # are present.
@@ -60,7 +60,7 @@ conf="`@sbindir@/codaconfedit venus.conf`"
 #if [ $restart = 1 ] ; then
 #    echo "We just created an initial configuration file /etc/coda/venus.conf"
 #    echo "You might want to look it over and modify some of the default paths"
-#    echo "Rerun 'venus-setup $SERVERS $CACHESIZE' if you're happy"
+#    echo "Rerun 'coda-client-setup $REALM $CACHESIZE' if you're happy"
 #    exit
 #fi
 

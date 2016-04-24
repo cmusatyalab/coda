@@ -168,8 +168,8 @@ AC_CONFIG_FILES([coda-src/scripts/purgevol_rep],
        [chmod +x coda-src/scripts/purgevol_rep])
 AC_CONFIG_FILES([coda-src/scripts/startserver],
        [chmod +x coda-src/scripts/startserver])
-AC_CONFIG_FILES([coda-src/scripts/venus-setup],
-       [chmod +x coda-src/scripts/venus-setup])
+AC_CONFIG_FILES([coda-src/scripts/coda-client-setup],
+       [chmod +x coda-src/scripts/coda-client-setup])
 AC_CONFIG_FILES([coda-src/scripts/vice-setup],
        [chmod +x coda-src/scripts/vice-setup])
 AC_CONFIG_FILES([coda-src/scripts/vice-setup-rvm],

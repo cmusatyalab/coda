@@ -1,0 +1,102 @@
+.if n .ds Q \&"
+.if t .ds Q ``
+.if n .ds U \&"
+.if t .ds U ''
+.TH "coda-client-setup" 8
+.tr \&
+.nr bi 0
+.nr ll 0
+.nr el 0
+.de DS
+..
+.de DE
+..
+.de Pp
+.ie \\n(ll>0 \{\
+.ie \\n(bi=1 \{\
+.nr bi 0
+.if \\n(t\\n(ll=0 \{.IP \\(bu\}
+.if \\n(t\\n(ll=1 \{.IP \\n+(e\\n(el.\}
+.\}
+.el .sp 
+.\}
+.el \{\
+.ie \\nh=1 \{\
+.LP
+.nr h 0
+.\}
+.el .PP 
+.\}
+..
+.SH NAME  
+coda-client-setup \- setup a Coda client (venus)
+
+.SH SYNOPSIS
+
+.Pp
+\fBcoda-client-setup\fP [default.realm.name] [cachesize in kb]
+.Pp
+.Pp
+.SH DESCRIPTION
+
+.Pp
+The \fBcoda-client-setup\fP command takes a default Coda realm name
+and a cache size given in kilobytes.
+\fBcoda-client-setup\fP then performs the following operations:
+.nr ll +1
+.nr t\n(ll 0
+.if \n(ll>1 .RS
+.nr bi 1
+.Pp
+Creates any missing directories, for example the \fI/coda\fP mount point.
+.nr bi 1
+.Pp
+Creates \fI/etc/coda/venus.conf\fP and sets the cache size given on the 
+command line.
+.nr bi 1
+.Pp
+Creates \fI/dev/cfs0\fP if not already present.
+.if \n(ll>1 .RE
+.nr ll -1
+.Pp
+.SH EXAMPLE
+
+.Pp
+.Pp
+.DS
+.sp 
+.ft RR
+.nf
+
+coda-client-setup testserver.coda.cs.cmu.edu 100000
+.DE
+.fi 
+.ec
+.ft P
+.sp
+
+Sets up, \fI/etc/coda/venus.conf\fP, so that Coda will as a default
+authenticate against the \fItestserver.coda.cs.cmu.edu\fP realm and
+configures \fIvenus\fP with a 100MB cache.
+.Pp
+.SH BUGS
+
+.Pp
+The [cachesize in kb] option to coda-client-setup is not very smart.  In
+fact, it is quite dumb.  No abbreviations are allowed after the
+number and the number is taken literally to be kilobytes.
+.Pp
+.SH SEE ALSO
+
+.Pp
+venus (8)
+.Pp
+
+Coda Manual: ``Installing A Coda Client''
+.Pp
+.Pp
+.SH AUTHOR
+
+.Pp
+Henry M. Pierce, 1998, created
+.Pp
