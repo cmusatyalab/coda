@@ -170,7 +170,7 @@ EOF
 	cat >> ${dst} << EOF
 sbin/codaconfedit
 sbin/venus
-sbin/venus-setup
+sbin/coda-client-setup
 sbin/volmunge
 sbin/vutil
 bin/au
@@ -206,7 +206,7 @@ man/man1/mkcodabf.1
 man/man1/repair.1
 man/man1/spy.1
 man/man8/venus.8
-man/man8/venus-setup.8
+man/man8/coda-client-setup.8
 man/man8/volmunge.8
 man/man8/vutil.8
 etc/coda/realms

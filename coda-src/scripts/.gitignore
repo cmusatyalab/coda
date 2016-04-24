@@ -1,10 +1,10 @@
 bldvldb.sh
+coda-client-setup
 createvol_rep
 purgevol_rep
 rc.vice
 startserver
 venus.init
-venus-setup
 vice-setup
 vice-setup-rvm
 vice-setup-scm

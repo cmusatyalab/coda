@@ -38,7 +38,7 @@ CLILIST="
     usr/bin/xfrepair
     usr/sbin/asrlauncher.exe
     usr/sbin/codaconfedit.exe
-    usr/sbin/venus-setup
+    usr/sbin/coda-client-setup
     usr/sbin/venus.exe
     usr/sbin/volmunge
     usr/sbin/vutil.exe
