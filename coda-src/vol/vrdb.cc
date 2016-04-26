@@ -27,7 +27,6 @@ extern "C" {
 #include <stdio.h>
 #include <sys/types.h>
 #include "coda_string.h"
-#include "coda_assert.h"
 #include <unistd.h>
 #include <stdlib.h>
 #include <netinet/in.h>
@@ -43,10 +42,6 @@ extern "C" {
 #include <srv.h>
 #include <util.h>
 #include "vrdb.h"
-
-
-// make sure a volume name can fit within the vrent::key field
-CODA_STATIC_ASSERT(sizeof(vrent::key) > V_MAXVOLNAMELEN, "vrent::key size cannot fit a volume name");
 
 vrtab VRDB("VRDB");
 
@@ -184,96 +179,24 @@ int vrtab::dump(int afd)
     return 0;
 }
 
-int CheckVRDB(const char *vrlist_file)
+void CheckVRDB()
 {
-    const char *vrlist_path = vrlist_file ? vrlist_file : VRLIST_PATH;
-    FILE *VRList = fopen(vrlist_path, "r");
-    if (!VRList) {
-	VLog(0, "CheckVRDB: could not open '%s'", vrlist_path);
-	return -1;
+    int VRDB_fd = open(VRDB_PATH, O_RDONLY, 0);
+    if (VRDB_fd < 0) {
+	LogMsg(0, VolDebugLevel, stdout, "CheckVRDB: could not open VRDB");
+	return;
     }
 
-    bool dry_run = (vrlist_file != NULL);
-
-    if (!dry_run)
-        VRDB.clear();
-
-    char line[1024];
-    int lineno = 0;
-    int nvols = 0;
+    VRDB.clear();
 
     /* Build the new VRDB. */
-    while (fgets(line, sizeof(line), VRList) != NULL) {
-        const char *errormsg;
-        char *token;
-        int n;
-	vrent *vre = new vrent();
-	CODA_ASSERT(vre);
-
-	lineno++;
-
-        token = strtok(line, " \t");
-        if (!token) continue;
-
-        if (strlen(token) >= V_MAXVOLNAMELEN) {
-            errormsg = "volume name too long";
-parse_error:
-	    VLog(0, "CheckVRDB: %s line %d: %s", VRLIST_PATH, lineno, errormsg);
-            delete vre;
-            continue;
-        }
-
-        strcpy(vre->key, token);
-
-        token = strtok(NULL, " \t");
-        if (!token) {
-            errormsg = "missing replicated volume id";
-            goto parse_error;
-        }
-
-        vre->volnum = strtol(token, NULL, 16);
-        if ((vre->volnum >> 24) != 0x7f) {
-            errormsg = "incorrect replicated volume id, expecting 7f......";
-            goto parse_error;
-        }
-
-        token = strtok(NULL, " \t");
-        if (!token) {
-            errormsg = "missing server count value";
-            goto parse_error;
-        }
-
-        vre->nServers = strtol(token, NULL, 10);
-        if (vre->nServers < 1 || vre->nServers > 8) {
-            errormsg = "unexpected server count value, expecting 1 <= N <= 8";
-            goto parse_error;
-        }
-
-        for (n = 0; n < 8; n++) {
-            token = strtok(NULL, " \t");
-            if (!token) break;
-
-            vre->ServerVolnum[n] = strtol(token, NULL, 16);
-        }
-        if (n < vre->nServers) {
-            errormsg = "read fewer than expected replica volume ids";
-            goto parse_error;
-        }
-
-        VLog(10, "CheckVRBD: adding entry for %x", vre->volnum);
-        if (!dry_run)
-            VRDB.add(vre);
-        nvols++;
+    vrent vre;
+    while (read(VRDB_fd, &vre, sizeof(vrent)) == sizeof(vrent)) {
+        vre.ntoh();
+	VRDB.add(new vrent(vre));
     }
-    fclose(VRList);
 
-    VLog(0, "CheckVRBD: loaded information about %d replicated volumes", nvols);
-
-    int parse_errors = lineno - nvols;
-    if (parse_errors)
-        VLog(0, "CheckVRDB: Failed to parse %d VRList entries", parse_errors);
-
-    return parse_errors;
+    close(VRDB_fd);
 }
 
 int DumpVRDB(int outfd)

@@ -49,7 +49,7 @@ is required when the server manages more than one data partition. Finally an
 replicated \fI<volume-id>\fP\& can be specified.
 .Pp
 \fBcreatevol_rep\fP first checks in  \fI/vice/vol/AllVolumes\fP and 
-\fI/vice/db/VRList\fP to see if the volume name already exists.  If not,
+\fI/vice/vol/VRList\fP to see if the volume name already exists.  If not, 
 it uses the \fIvolutil create_rep\fP command to create the volume at each of 
 the replication sites.  It then rebuilds the Volume Location Data Base (VLDB)
 and the Volume Replication Data Base (VRDB).
@@ -61,7 +61,7 @@ by adding 1 to it.
 .Pp
 After the replicas are created at each replication site, a new VLDB is built
 automatically using \fIbldvldb.sh\fP(8), and the Volume Replication
-List in \fI/vice/db/VRList\fP is updated.  The VRList contains one line for
+List in \fI/vice/vol/VRList\fP is updated.  The VRList contains one line for 
 each replicated volume.  Each line specifies the replicated volume name, 
 replicated volume id, number of replication sites, and the local volume id at
 each replication site.  This file is now used to create a new Volume
@@ -114,7 +114,7 @@ replication site to see if the volume was created.
 .nr ll +1
 .nr t\n(ll 2
 .if \n(ll>1 .RS
-.IP "\fI/vice/db/VRList\fP"
+.IP "\fI/vice/vol/VRList\fP"
 .nr bi 1
 .Pp
 contains information on replicated volumes 
