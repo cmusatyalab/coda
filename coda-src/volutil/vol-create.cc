@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -225,15 +225,10 @@ static int ViceCreateRoot(Volume *vp)
     char buf3[sizeof(Vnode)];
     Vnode *vn = (Vnode *)buf3;
     vindex v_index(V_id(vp), vLarge, V_device(vp), SIZEOF_LARGEDISKVNODE);
-    int adminid, anyuserid, adminindex;
+    int adminid;
 
     if (AL_NameToId(PRS_ADMINGROUP, &adminid) == -1) {
 	fprintf(stderr, "Cannot find group id for '" PRS_ADMINGROUP
-		"', check pdb databases!\n");
-	return 0;
-    }
-    if (AL_NameToId(PRS_ANYUSERGROUP, &anyuserid) == -1) {
-	fprintf(stderr, "Cannot find group id for '" PRS_ANYUSERGROUP
 		"', check pdb databases!\n");
 	return 0;
     }
@@ -251,23 +246,19 @@ static int ViceCreateRoot(Volume *vp)
     /* set up the physical directory */
     CODA_ASSERT(!(DH_MakeDir(dir, &did, &did)));
 
-    /* build a two entry ACL that gives all rights to System:Administrators
-     * and read-lookup rights to System:AnyUser */
+    /* build an ACL that gives all rights to System:Administrators */
     ACL = VVnodeDiskACL(vnode);
     ACL->MySize = sizeof(AL_AccessList);
     ACL->Version = AL_ALISTVERSION;
-    ACL->TotalNoOfEntries = 2;
-    ACL->PlusEntriesInUse = 2;
+    ACL->TotalNoOfEntries = 1;
+    ACL->PlusEntriesInUse = 1;
     ACL->MinusEntriesInUse = 0;
 
-    /* ACL's are assumed to be going from lower to higher id number. This
-     * makes the AL_CheckRights function more efficient. However, we now have
-     * to insert the admin and anyuser ACL's in the correct order. */
-    adminindex = adminid < anyuserid ? 0 : 1;
-    ACL->ActualEntries[adminindex].Id = adminid;
-    ACL->ActualEntries[adminindex].Rights = PRSFS_ALL;
-    ACL->ActualEntries[1 - adminindex].Id = anyuserid;
-    ACL->ActualEntries[1 - adminindex].Rights = PRSFS_READ | PRSFS_LOOKUP;
+    /* ACL's are assumed to be going from lower to higher id number.
+     * This makes the AL_CheckRights function more efficient.
+     * Luckily, we only have to insert one admin ACL. */
+    ACL->ActualEntries[0].Id = adminid;
+    ACL->ActualEntries[0].Rights = PRSFS_ALL;
 
     /* set up vnode info */
     vnode->type = vDirectory;
