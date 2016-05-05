@@ -3,7 +3,7 @@
 			Coda File System
 			    Release 6
 
-	  Copyright (c) 2005-2006 Carnegie Mellon University
+	  Copyright (c) 2005-2016 Carnegie Mellon University
 		  Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
