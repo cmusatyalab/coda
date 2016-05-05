@@ -39,6 +39,7 @@ extern "C" {
 #include <unistd.h>
 #include <fcntl.h>
 #include "coda_flock.h"
+#include <rpc2/secure.h>
 
 #ifdef __cplusplus
 }
@@ -461,16 +462,18 @@ long PWChangePasswd(RPC2_Handle cid, RPC2_Integer viceId, RPC2_String Passwd)
 int IsAUser(int viceId)
 {
 	if (viceId < 0 || viceId >= PWLen) return (FALSE);  
-	if (memcmp(PWArray[viceId], NullKey, RPC2_KEYSIZE) == 0) return (FALSE);
-	return(TRUE);
+	if (secure_compare(PWArray[viceId], RPC2_KEYSIZE, NullKey, RPC2_KEYSIZE))
+            return FALSE;
+	return TRUE;
 }
 
 /* Returns TRUE iff viceId corr to a deleted Vice user(==> key of all 1's) */
 int IsADeletedUser(int viceId)
 {
 	if (viceId < 0 || viceId >= PWLen) return (FALSE);
-	if (memcmp(PWArray[viceId], DeleteKey, RPC2_KEYSIZE) == 0) return (TRUE);
-	return(FALSE);
+	if (secure_compare(PWArray[viceId], RPC2_KEYSIZE, DeleteKey, RPC2_KEYSIZE))
+            return TRUE;
+	return FALSE;
 }
 
 /* Returns TRUE iff the CPS corr to pU is that of a system administrator.
@@ -488,10 +491,16 @@ int IsAdministrator(struct UserInfo *pU)
 int BogusKey(RPC2_EncryptionKey x)
 {
 	RPC2_EncryptionKey temp;
+        int nul, del;
+
 	rpc2_Encrypt((char *)x, (char *)temp, RPC2_KEYSIZE, FileKey, RPC2_XOR);
-	if (memcmp(temp, NullKey, RPC2_KEYSIZE) == 0) return(TRUE);
-	if (memcmp(temp, DeleteKey, RPC2_KEYSIZE) == 0) return(TRUE);
-	return(FALSE);
+        nul = secure_compare(temp, RPC2_KEYSIZE, NullKey, RPC2_KEYSIZE);
+        del = secure_compare(temp, RPC2_KEYSIZE, DeleteKey, RPC2_KEYSIZE);
+
+        if (nul | del)
+            return TRUE;
+        else
+            return FALSE;
 }
 
 /* given an id, get a name */
