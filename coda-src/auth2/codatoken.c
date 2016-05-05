@@ -90,7 +90,7 @@ static int validate_Secret(const struct secure_encr *decr, void *decr_ctx,
 
     /* validate checksum */
     auth->auth(auth_ctx, token, len, icv);
-    if (memcmp(token + len, icv, 8) != 0) return -1;
+    if (secure_compare(token + len, 8, icv, 8) == 0) return -1;
 
     /* decrypt */
     len -= decr->iv_len;
@@ -163,7 +163,7 @@ int generate_CodaToken(uint8_t auth2key[AUTH2KEYSIZE], uint32_t viceid,
     estokenlen = sizeof(EncryptedSecretToken);
     generate_Secret(encr, encr_ctx, auth, auth_ctx,
 		    ctoken->HandShakeKey, sizeof(RPC2_EncryptionKey),
-		    identity, strlen((char *)identity), ctoken->EndTimestamp,
+		    identity, idlen, ctoken->EndTimestamp,
 		    (uint8_t *)estoken, &estokenlen);
 
     /* release encryption/authentication contexts */
