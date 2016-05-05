@@ -89,7 +89,7 @@ static int Naptime = 30;	   /* Sleep period for PollLWP */
 struct hostinfo {
     bit32	address;  /* Assume host IP addresses are 32 bits */
     RPC2_Handle rpcid;	  /* should be -1 if connection is dead. */
-    char	name[36];
+    char	name[HOST_NAME_MAX+1];
 } Hosts[N_SERVERIDS];
 
 #define BADCONNECTION	(RPC2_Handle) -1
@@ -1049,7 +1049,7 @@ int main(int argc, char **argv) {
    my needs. */
 static void VUInitServerList() {
     /* Find the server id */
-    char hostname[100];
+    char hostname[HOST_NAME_MAX+1];
     char line[200];
     const char *serverList = SERVERLISTPATH;
     FILE *file;
@@ -1063,9 +1063,9 @@ static void VUInitServerList() {
 	       "VUInitServerList: unable to read file %s; aborted", serverList);
 	exit(1);
     }
-    gethostname(hostname, sizeof(hostname)-1);
-    ThisHost = (char *) malloc((int)strlen(hostname)+1);
-    strcpy(ThisHost, hostname);
+    gethostname(hostname, HOST_NAME_MAX);
+    ThisHost = strdup(hostname);
+
     while (fgets(line, sizeof(line), file) != NULL) {
         char sname[50];
 	struct hostent *hostent;
@@ -1086,12 +1086,13 @@ static void VUInitServerList() {
 		CODA_ASSERT(hostent->h_length == 4);
 		memcpy(&netaddress, hostent->h_addr, 4);
 		HostAddress[sid] = Hosts[sid].address = ntohl(netaddress);
-		strncpy(Hosts[sid].name, hostent->h_name, 100);
+		strncpy(Hosts[sid].name, hostent->h_name, HOST_NAME_MAX);
+		Hosts[sid].name[HOST_NAME_MAX] = '\0';
 	    }
 	}
     }
     if (ThisServerId == -1) {
-	LogMsg(0, Debug, stdout, "Warning: the hostname of this server (%s) is not listed in %s", ThisHost, serverList);
+	LogMsg(0, Debug, stdout, "Warning: the hostname of this server (%s) is not listed in %s", hostname, serverList);
     }
     fclose(file);
 }
