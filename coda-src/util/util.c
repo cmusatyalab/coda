@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -195,6 +195,9 @@ void eprint(const char *fmt, ...)
         vfprintf(stdout, fmt, ap);
         printf(stdout, '\n');
 	fflush(stdout);
+        va_end(ap);
+
+	va_start(ap, fmt);
 	PrintTimeStamp(stderr);
         vfprintf(stderr, fmt, ap);
         printf(stderr, '\n');
