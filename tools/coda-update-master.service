@@ -9,3 +9,4 @@ ExecStart=/usr/sbin/updatesrv
 
 [Install]
 WantedBy=multi-user.target
+Alias=coda-update.service
