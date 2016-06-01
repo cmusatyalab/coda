@@ -1,4 +1,4 @@
-# Coda Distributed File System
+# Coda Distributed File System [![Build Status](https://travis-ci.org/cmusatyalab/coda.svg?branch=master)](https://travis-ci.org/cmusatyalab/coda)
 
 Coda is an advanced networked filesystem. It has been developed at CMU since
 1987 by the systems group of [M. Satyanarayanan](http://www.cs.cmu.edu/~satya)
