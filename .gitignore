@@ -1,7 +1,7 @@
 .cvsignore
 .deps
 .dotest
-CVS
+.libs
 Makefile
 Makefile.in
 autom4te.cache
