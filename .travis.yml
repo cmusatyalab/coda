@@ -1,0 +1,9 @@
+language: c
+dist: trusty
+before_script:
+- wget -qO- http://coda.cs.cmu.edu/coda/jaharkes.key | sudo apt-key add -
+- echo -e "deb http://coda.cs.cmu.edu/coda trusty main\ndeb-src http://coda.cs.cmu.edu/coda trusty main" | sudo tee /etc/apt/sources.list.d/coda.list
+- sudo apt-get update
+- sudo apt-get build-dep --yes coda
+script:
+- ./bootstrap.sh && ./configure && make -j16 && make -j16 check && sudo make install
