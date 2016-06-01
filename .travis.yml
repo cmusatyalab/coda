@@ -1,9 +1,22 @@
+sudo: false
+
 language: c
-dist: trusty
+cache: ccache
+
+addons:
+  apt:
+    packages:
+    - libreadline-dev
+    - libncurses5-dev
+    - liblua5.1-0-dev
+    - flex
+    - bison
+    - pkg-config
+    - python
+    - automake
+
 before_script:
-- wget -qO- http://coda.cs.cmu.edu/coda/jaharkes.key | sudo apt-key add -
-- echo -e "deb http://coda.cs.cmu.edu/coda trusty main\ndeb-src http://coda.cs.cmu.edu/coda trusty main" | sudo tee /etc/apt/sources.list.d/coda.list
-- sudo apt-get update
-- sudo apt-get build-dep --yes coda
+  - ./bootstrap
+  - ./configure --prefix=/usr --with-lua
 script:
-- ./bootstrap.sh && ./configure && make -j16 && make -j16 check && sudo make install
+  - make -j2 distcheck
