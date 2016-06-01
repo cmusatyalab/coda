@@ -62,6 +62,16 @@ until [ "x$userid" != x ]; do
  	    echo "Nothing cannot be a Coda administrator"
 	    continue
  	fi
+
+        # test if $userid is an integer, a portable looking solution from
+        # https://stackoverflow.com/questions/806906/how-do-i-test-if-a-variable-is-a-number-in-bash
+        if [ "$userid" -eq "$userid" ] 2>/dev/null; then
+            ;
+        else
+            echo "UID should be an integer value"
+            userid=
+            continue
+        fi
   
  	if [ "x$userid" = x0 -o "x$userid" = x1 ]; then
  	    echo "Choose a user ID other than 0 or 1"
