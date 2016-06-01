@@ -16,7 +16,7 @@ addons:
     - automake
 
 before_script:
-  - ./bootstrap
+  - ./bootstrap.sh
   - ./configure --prefix=/usr --with-lua
 script:
   - make -j2 distcheck
