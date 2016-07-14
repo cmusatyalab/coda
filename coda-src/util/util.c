@@ -193,14 +193,14 @@ void eprint(const char *fmt, ...)
 	/* Write to stderr & stdout*/
 	PrintTimeStamp(stdout); 
         vfprintf(stdout, fmt, ap);
-        printf(stdout, '\n');
+        fprintf(stdout, "\n");
 	fflush(stdout);
         va_end(ap);
 
 	va_start(ap, fmt);
 	PrintTimeStamp(stderr);
         vfprintf(stderr, fmt, ap);
-        printf(stderr, '\n');
+        fprintf(stderr, "\n");
 	fflush(stderr);
         va_end(ap);
 }
