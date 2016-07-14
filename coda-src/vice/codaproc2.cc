@@ -190,7 +190,7 @@ struct rle {
  */
 
 static int ValidateReintegrateParms(RPC2_Handle, VolumeId *, Volume **, 
-				    ClientEntry **, int, struct dllist_head *, 
+				    ClientEntry **, unsigned int, struct dllist_head *,
 				    RPC2_Integer *, ViceReintHandle *);
 static int GetReintegrateObjects(ClientEntry *, struct dllist_head *, dlist *,
 				 int *, RPC2_Integer *);
@@ -550,7 +550,7 @@ long FS_ViceCloseReintHandle(RPC2_Handle RPCid, VolumeId Vid,
  */
 static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 				    Volume **volptr, ClientEntry **client,
-				    int rlen, struct dllist_head *rlog,
+				    unsigned int rlen, struct dllist_head *rlog,
 				    RPC2_Integer *Index,
 				    ViceReintHandle *RHandle) 
 {
@@ -628,7 +628,14 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 	    goto Exit;
 	}
 
-	SLog(1, "Reintegrate transferred %d bytes.", sid.Value.SmartFTPD.BytesTransferred);
+        unsigned long bytes = sid.Value.SmartFTPD.BytesTransferred;
+	SLog(1, "Reintegrate transferred %d bytes.", bytes);
+        if (bytes != rlen) {
+	    SLog(0,  "ValidateReintegrateParms: size mismatch on CML transfer (got %d, expected %d)",
+                 bytes, rlen);
+            index = -1;
+            goto Exit;
+        }
     }
 
     OldName = new char[MAXNAMELEN+1];
