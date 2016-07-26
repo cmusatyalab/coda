@@ -60,8 +60,8 @@ struct subsystem subsystem;	/* Holds global subsystem information */
 char *server_prefix, *client_prefix;
 
 FILE *file;
-FILE *cfile = NULL, *sfile = NULL, *hfile = NULL, *mfile = NULL, *pfile = NULL;
-char *cfile_name, *sfile_name, *hfile_name, *mfile_name, *pfile_name;
+FILE *cfile = NULL, *sfile = NULL, *hfile = NULL, *mfile = NULL, *pfile = NULL, *libfile = NULL;
+char *cfile_name, *sfile_name, *hfile_name, *mfile_name, *pfile_name, *libfile_name;;
 char *file_name;
 char define_name[MAXPATHLEN]; /* value of __XXX__ */
 
@@ -146,6 +146,11 @@ int main(int argc, char *argv[])
     if(mfile) {
       fclose(mfile);
       mfile = NULL;
+    }
+
+    if (libfile) {
+        fclose(libfile);
+        libfile = NULL;
     }
 
     exit(0);
@@ -283,6 +288,22 @@ static int32_t SetupFiles()
     pfile = fopen(pfile_name, "w");
     if (pfile == NIL) {perror(pfile_name); exit(-1);}
 
+    char upper_path[256];
+    realpath("../rpc2-src/", upper_path);
+    libfile_name = concat(upper_path, "helper.c");
+    libfile = fopen(libfile_name, "r");
+    if (libfile == NIL) {
+        libfile = fopen(libfile_name, "a+");
+        if (libfile == NIL) {perror(libfile_name); exit(-1);}
+        header(libfile, h_includes[(int32_t) clanguage]);
+    } else {
+        fclose(libfile);
+        libfile = fopen(libfile_name, "a+");
+        if (libfile == NIL) {perror(libfile_name); exit(-1);}
+    }
+
+
+
     free(base);
 
     return -1;
@@ -393,6 +414,7 @@ void spit_type(type)
 	exit(1);
     }
     (*lang_struct[(int32_t) clanguage].type)(type, RP2_CLIENT, hfile);		/* Types always go to .h file */
+    print_struct_func(type->type, libfile, type->name, RP2_CLIENT);
 }
 
 void spit_include(filename)

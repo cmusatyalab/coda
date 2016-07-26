@@ -196,6 +196,112 @@ static rp2_bool legal_struct_fields[] = {
 	/* RPC2_Enum */		RP2_TRUE,
 	/* RPC2_Double */		RP2_TRUE
 };
+void print_struct_func(RPC2_TYPE *t, FILE *where, char *name, WHO who) {
+    if (t->tag != RPC2_STRUCT_TAG)
+        return;
+    fprintf(where, "int pack_struct_%s (char** new_ptr, char* _EOB, %s var, RPC_Integer who) {\n", name, name);
+
+    VAR **v;
+    fputs("    int rc = 0;\n", where);
+	for (v=t->fields.struct_fields; *v!=NIL; v++) {
+        if (!legal_struct_fields[(int32_t) (*v)->type->type->tag]) {
+			printf("RP2GEN: illegal type for RPC2_Struct field: %s\n", (*v)->name);
+			exit(1);
+		}
+		fputs("    ", where);
+		print_var_in_func("var.", *v, where, who);
+	}
+    fputs("}\n", where);
+}
+void print_var_in_func(char* prefix, VAR* var, FILE *where, WHO who) {
+    extern char* concat();
+    char* name, *select, *suffix;
+    MODE mode;
+    char _iterate[] = "_iterate";
+
+    name = concat(prefix, var->name);
+    select = ((who == RP2_CLIENT && mode != NO_MODE) ? "->" : ".");
+    suffix = concat3elem("[", _iterate, "]");
+    switch(var->type->type->tag) {
+        	case RPC2_INTEGER_TAG:
+                fprintf(where, "    rc = pack_int(new_ptr, _EOB, %s);\n", name);
+                fputs("    if (rc < 0) return -1;\n", where);
+                break;
+        	case RPC2_UNSIGNED_TAG:
+                fprintf(where, "    rc = pack_unsigned(new_ptr, _EOB, %s);\n", name);
+                fputs("    if (rc < 0) return -1;\n", where);
+                break;
+        	case RPC2_BYTE_TAG:
+                if (var->type->bound != NIL) {
+                    fprintf(where, "    rc = pack_bound_bytes(new_ptr, _EOB, (char*)%s, %s);\n", name, var->type->bound);
+                    fputs("    if (rc < 0) return -1;\n", where);
+                } else {
+                    fputs("    rc = pack_unbound_bytes(new_ptr, _EOB, *", where);
+                    if (who == RP2_CLIENT && mode == IN_OUT_MODE)
+                        fputs("*", where);
+                    fprintf(where, "%s);\n", name);
+                    fputs("    if (rc < 0) return -1;\n", where);
+                }
+                break;
+        	case RPC2_STRING_TAG:
+                fprintf(where, "    rc = pack_string(new_ptr, _EOB, (char*)%s);\n", name);
+                fputs("    if (rc < 0) return -1;\n", where);
+                break;
+        	case RPC2_COUNTEDBS_TAG:
+                fprintf(where, "    rc = pack_countedbs(new_ptr, _EOB, (char*)%s%sSeqBody, %s%sSeqLen);\n", name, select, name,select);
+                fputs("    if (rc < 0) return -1;\n", where);
+                break;
+        	case RPC2_BOUNDEDBS_TAG:
+                fprintf(where, "    rc = pack_boundedbs(new_ptr, _EOB, (char*)%s%sSeqBody, %s%sMaxSeqLen, %s%sSeqLen);\n", name, select, name,select, name, select);
+                fputs("    if (rc < 0) return -1;\n", where);
+                break;
+        	case RPC2_BULKDESCRIPTOR_TAG:
+                break;
+        	case RPC2_ENCRYPTIONKEY_TAG:
+                fprintf(where, "    rc = pack_encryptionKey(new_ptr, _EOB, (char*)%s);\n", name);
+                fputs("    if (rc < 0) return -1;\n", where);
+                break;
+
+        	case RPC2_DOUBLE_TAG:
+                fputs("    rc = pack_double(new_ptr, _EOB, ", where);
+                if (who == RP2_CLIENT && mode == IN_OUT_MODE)
+                    fputs('*', where);
+                fprintf(where, "%s);\n", name);
+                fputs("    if (rc < 0) return -1;\n", where);
+                break;
+        	case RPC2_STRUCT_TAG: {
+        		    VAR **field;
+                    char *newprefix;
+
+                    if (var->array != NIL) {
+                        fprintf(where, "\n     for(%s = 0; %s < ", _iterate, _iterate);
+                        for_limit(var, who, where);
+                        fprintf(where, "; %s ++) {\n", _iterate);
+
+                        newprefix = (who == RP2_SERVER ? concat3elem(prefix, var->name, suffix)
+                                : concat3elem(prefix, var->name, suffix));
+                    } else {
+                        newprefix = (who == RP2_SERVER ? concat(prefix, var->name)
+                                : concat(prefix, var->name));
+                    }
+                    fprintf(where, "rc = pack_struct_%s(new_ptr, %s, _EOB, %d);\n", var->type->name, newprefix, who);
+                    fputs("    if (rc < 0) return -1;\n", where);
+                    free(prefix);
+                    if (var->array != NIL)
+                        fputs("    }\n\n", where);
+                }
+        		break;
+            case RPC2_ENUM_TAG:
+                fprintf(where, "    rc = pack_int(new_ptr, _EOB, %s);\n", name);
+                fputs("    if (rc < 0) return -1;\n", where);
+                break;
+            default:
+                printf("RP2GEN: Unrecognized tag: %d\n", var->type->type->tag);
+        		exit(1);
+
+    }
+
+}
 
 static void print_type(RPC2_TYPE *t, FILE *where, char *name)
 /* used to label struct typedefs */
