@@ -2,7 +2,7 @@
 *     File Name           :     pack_helper.h
 *     Created By          :     sil@andrew.cmu.edu
 *     Creation Date       :     [2016-07-23 14:48]
-*     Last Modified       :     [2016-07-23 18:10]
+*     Last Modified       :     [2016-07-26 13:48]
 *     Description         :
 **********************************************************************************/
 #ifndef _PACK_HELPER_
@@ -31,7 +31,7 @@ static void inline unpack_double(char* ptr, RPC2_Double* value) {
     *value = *(RPC2_Double *)ptr;
 }
 
-static void inline unpack_bound_bytes(unsigned char* new_ptr, char* old_ptr, long len) {
+static void inline unpack_bound_bytes(unsigned char* new_ptr, char* old_ptr, RPC2_Unsigned len) {
     memcpy(new_ptr, old_ptr, len);
 }
 
@@ -40,7 +40,7 @@ static void inline unpack_unbound_bytes(unsigned char* new_ptr, RPC2_Byte value)
 }
 
 static int inline unpack_string(unsigned char** new_ptr, char** old_ptr, char* eob, int mode) {
-    RPC2_Integer length = 1 + ntohl(*(RPC2_Integer *)(*old_ptr));
+    RPC2_Unsigned length = 1 + ntohl(*(RPC2_Integer *)(*old_ptr));
     *old_ptr += 4;
     if (*old_ptr + _PAD(length) > eob)
         return PACKUNPACK_OVERFLOW;
