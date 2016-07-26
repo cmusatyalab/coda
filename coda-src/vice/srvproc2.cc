@@ -778,8 +778,7 @@ static void SetViceStats(ViceStatistics *stats)
     if(seconds <= 0) seconds = 1;
     stats->FetchDataRate = Counters[FETCHDATA]/seconds;
 
-    stats->TotalStores = Counters[SETATTR]+Counters[SETACL]+Counters[STORE];
-    stats->StoreDatas = Counters[STORE];
+    stats->TotalStores = Counters[SETACL];
     stats->StoredBytes = Counters[STOREDATA];
     seconds = Counters[STORETIME]/1000;
     if(seconds <= 0) seconds = 1;

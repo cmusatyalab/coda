@@ -952,20 +952,10 @@ void PrintCounters(FILE *fp)
     SLog(0, "GetAttr %d", Counters[GETATTR]);
     SLog(0, "GetAcl %d", Counters[GETACL]);
     SLog(0, "Fetch %d", Counters[FETCH]);
-    SLog(0, "SetAttr %d", Counters[SETATTR]);
     SLog(0, "SetAcl %d", Counters[SETACL]);
-    SLog(0, "Store %d", Counters[STORE]);
     SLog(0, "ValidateAttrs %d", Counters[VALIDATEATTRS]);
 
-    SLog(0, "Remove %d", Counters[REMOVE]);
-    SLog(0, "Create %d", Counters[CREATE]);
-    SLog(0, "Rename %d", Counters[RENAME]);
-    SLog(0, "SymLink %d", Counters[SYMLINK]);
-    SLog(0, "Link %d", Counters[LINK]);
-    SLog(0, "MakeDir %d", Counters[MAKEDIR]);
-    SLog(0, "RemoveDir %d", Counters[REMOVEDIR]);
     SLog(0, "GetRootVolume %d", Counters[GETROOTVOLUME]);
-    SLog(0, "SetRootVolume %d", Counters[SETROOTVOLUME]);
     SLog(0, "GetVolumeStatus %d", Counters[GETVOLUMESTAT]);
     SLog(0, "SetVolumeStatus %d", Counters[SETVOLUMESTAT]);
 

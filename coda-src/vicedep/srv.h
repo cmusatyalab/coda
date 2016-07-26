@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -153,21 +153,11 @@ typedef struct ClientEntry {
 #define GETATTRPLUSSHA ViceGetAttrPlusSHA_OP
 #define GETACL ViceGetACL_OP
 #define FETCH ViceFetch_OP
-#define SETATTR ViceSetAttr_OP
 #define SETACL ViceSetACL_OP
-#define STORE ViceStore_OP
-#define REMOVE ViceVRemove_OP
-#define CREATE ViceVCreate_OP
-#define RENAME ViceVRename_OP
-#define SYMLINK ViceVSymLink_OP
-#define LINK ViceVLink_OP
-#define MAKEDIR ViceVMakeDir_OP
-#define REMOVEDIR ViceVRemoveDir_OP
 #define REMOVECALLBACK ViceRemoveCallBack_OP
 #define SETLOCK ViceSetLock_OP
 #define RELEASELOCK ViceReleaseLock_OP
 #define GETROOTVOLUME ViceGetRootVolume_OP
-#define SETROOTVOLUME ViceSetRootVolume_OP
 #define GETVOLUMESTAT ViceGetVolumeStatus_OP
 #define SETVOLUMESTAT ViceSetVolumeStatus_OP
 #define GETTIME ViceGetTime_OP

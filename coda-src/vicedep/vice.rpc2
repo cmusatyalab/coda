@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -88,7 +88,7 @@ typedef RPC2_Struct
 	RPC2_Unsigned	FetchedBytes;
 	RPC2_Unsigned	FetchDataRate;
 	RPC2_Unsigned	TotalStores;
-	RPC2_Unsigned	StoreDatas;
+	RPC2_Unsigned	Obsolete3;
 	RPC2_Unsigned	StoredBytes;
 	RPC2_Unsigned	StoreDataRate;
 	RPC2_Unsigned	TotalRPCBytesSent;
@@ -269,7 +269,7 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 		 IN RPC2_CountedBS PiggyCOP2,
 		 IN OUT SE_Descriptor BD);
 
-4: ViceSetAttr (IN ViceFid Fid,
+/* 4: ViceSetAttr (IN ViceFid Fid,
 		IN OUT ViceStatus Status,
 		IN RPC2_Integer Mask,
 		IN RPC2_Unsigned PrimaryHost,
@@ -278,6 +278,7 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 		OUT RPC2_Integer NewVS,
 		OUT CallBackStatus VCBStatus,
 		IN RPC2_CountedBS PiggyCOP2);
+*/
 
 5: ViceSetACL (IN ViceFid Fid,
 	       IN RPC2_CountedBS AccessList,
@@ -289,7 +290,7 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 	       OUT CallBackStatus VCBStatus,
 	       IN RPC2_CountedBS PiggyCOP2);
 
-6: ViceStore (IN ViceFid Fid,
+/* 6: ViceStore (IN ViceFid Fid,
 	      IN OUT ViceStatus Status,
 	      IN RPC2_Integer Length,
 	      IN RPC2_Unsigned PrimaryHost,
@@ -299,10 +300,11 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 	      OUT CallBackStatus VCBStatus,
 	      IN RPC2_CountedBS PiggyCOP2,
 	      IN OUT SE_Descriptor BD);
+*/
 
 15: ViceGetRootVolume (IN OUT RPC2_BoundedBS Volume);
 
-16: ViceSetRootVolume (IN RPC2_String Volume);
+/* 16: ViceSetRootVolume (IN RPC2_String Volume); */
 
 17: ViceGetVolumeStatus (IN VolumeId Vid,
 			 OUT VolumeStatus Status,
@@ -376,7 +378,7 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 		      IN OUT RPC2_BoundedBS VFlagBS);
 
 /* new update calls */
-45: ViceVRemove	(IN ViceFid Did,
+/* 45: ViceVRemove	(IN ViceFid Did,
 		 IN RPC2_String Name,
 		 IN OUT ViceStatus DirStatus,
 		 IN OUT ViceStatus Status,
@@ -385,9 +387,9 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 		 IN RPC2_CountedBS OldVS,
 		 OUT RPC2_Integer NewVS,
 		 OUT CallBackStatus VCBStatus,
-		 IN RPC2_CountedBS PiggyCOP2);
+		 IN RPC2_CountedBS PiggyCOP2); */
 
-46: ViceVCreate	(IN ViceFid Did,
+/* 46: ViceVCreate	(IN ViceFid Did,
 		 IN ViceFid BidFid,
 		 IN RPC2_String Name,
 		 IN OUT ViceStatus Status,
@@ -398,9 +400,9 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 		 IN RPC2_CountedBS OldVS,
 		 OUT RPC2_Integer NewVS,
 		 OUT CallBackStatus VCBStatus,
-		 IN RPC2_CountedBS PiggyCOP2);
+		 IN RPC2_CountedBS PiggyCOP2); */
 		 
-47: ViceVRename	(IN ViceFid OldDid,
+/* 47: ViceVRename	(IN ViceFid OldDid,
 		 IN RPC2_String OldName,
 		 IN ViceFid NewDid,
 		 IN RPC2_String NewName,
@@ -413,9 +415,9 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 		 IN RPC2_CountedBS OldVS,
 		 OUT RPC2_Integer NewVS,
 		 OUT CallBackStatus VCBStatus,
-		 IN RPC2_CountedBS PiggyCOP2);
+		 IN RPC2_CountedBS PiggyCOP2); */
 
-48: ViceVSymLink (IN ViceFid Did,
+/* 48: ViceVSymLink (IN ViceFid Did,
 		  IN RPC2_String OldName,
 		  IN RPC2_String NewName,
 		  IN OUT ViceFid Fid,
@@ -426,9 +428,9 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 		  IN RPC2_CountedBS OldVS,
 		  OUT RPC2_Integer NewVS,
 		  OUT CallBackStatus VCBStatus,
-		  IN RPC2_CountedBS PiggyCOP2);
+		  IN RPC2_CountedBS PiggyCOP2); */
 
-49: ViceVLink (IN ViceFid Did,
+/* 49: ViceVLink (IN ViceFid Did,
 	       IN RPC2_String Name,
 	       IN ViceFid Fid,
 	       IN OUT ViceStatus Status,
@@ -438,9 +440,9 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 	       IN RPC2_CountedBS OldVS,
 	       OUT RPC2_Integer NewVS,
 	       OUT CallBackStatus VCBStatus,
-	       IN RPC2_CountedBS PiggyCOP2);
+	       IN RPC2_CountedBS PiggyCOP2); */
 
-50: ViceVMakeDir (IN ViceFid Did,
+/* 50: ViceVMakeDir (IN ViceFid Did,
 		  IN RPC2_String Name,
 		  IN OUT ViceStatus Status,
 		  IN OUT ViceFid NewDid,
@@ -450,9 +452,9 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 		  IN RPC2_CountedBS OldVS,
 		  OUT RPC2_Integer NewVS,
 		  OUT CallBackStatus VCBStatus,
-		  IN RPC2_CountedBS PiggyCOP2);
+		  IN RPC2_CountedBS PiggyCOP2); */
 		 
-51: ViceVRemoveDir (IN ViceFid Did,
+/* 51: ViceVRemoveDir (IN ViceFid Did,
 		    IN RPC2_String Name,
 		    IN OUT ViceStatus Status,
 		    IN OUT ViceStatus TgtStatus,
@@ -461,7 +463,7 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 		    IN RPC2_CountedBS OldVS,
 		    OUT RPC2_Integer NewVS,
 		    OUT CallBackStatus VCBStatus,
-		    IN RPC2_CountedBS PiggyCOP2);
+		    IN RPC2_CountedBS PiggyCOP2); */
 
 55: ViceOpenReintHandle	(IN ViceFid Fid,
 			 OUT ViceReintHandle RHandle);

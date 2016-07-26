@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -156,10 +156,10 @@ static void RRDUpdate(struct server *s)
     printf("update %s.rrd %u:%u:", s->srvname,
            s->vs.CurrentTime, s->vs.CurrentConnections);
 
-    printf("%u:%u:%u:%u:%u:%u:%u:%u:%u:",
+    printf("%u:%u:%u:%u:%u:%u:0:%u:%u:",
            s->vs.TotalViceCalls, s->vs.TotalFetches, s->vs.FetchDatas,
            s->vs.FetchedBytes, s->vs.FetchDataRate, s->vs.TotalStores,
-           s->vs.StoreDatas, s->vs.StoredBytes, s->vs.StoreDataRate);
+           s->vs.StoredBytes, s->vs.StoreDataRate);
 
     printf("%u:%u:%u:%u:%u:%u:",
            s->vs.TotalRPCBytesSent, s->vs.TotalRPCBytesReceived,
