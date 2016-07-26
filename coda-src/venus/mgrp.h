@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -59,9 +59,6 @@ class RepOpCommCtxt {
     ~RepOpCommCtxt() {}
 
     int AnyReturned(int code);
-    int AllReplicasSupportSHA(void); /* non-zero (true) iff all up replicas
-					support ViceGetAttrPlusSHA() */
-
 
     void print(FILE *f) { fprintf(f, "%p : HowMany = %d\n", this, (int)HowMany); }
     void print() { print(stdout); }

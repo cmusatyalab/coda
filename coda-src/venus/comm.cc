@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -903,7 +903,6 @@ srvent::srvent(struct in_addr *Host, RealmId realm)
     probeme = 0;
     bw = INIT_BW;
     lastobs.tv_sec = lastobs.tv_usec = 0;
-    VGAPlusSHA_Supported = 0;  /* default is old-style server */
     refcount = 1;
 
 #ifdef	VENUSDEBUG

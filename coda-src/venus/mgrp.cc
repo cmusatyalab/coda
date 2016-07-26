@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -151,23 +151,6 @@ int RepOpCommCtxt::AnyReturned(int code)
 
     return(0);
 }
-
-int RepOpCommCtxt::AllReplicasSupportSHA(void)
-{
-    /* Returns nonzero if all active replicas support SHA, zero otherwise */
-
-    LOG(100, ("RepOpCommCtxt::AllReplicasSupportSHA(): %p\n", this));
-
-    for (int i = 0; i < VSG_MEMBERS; i++) {
-	srvent *s;
-
-	if (!hosts[i].s_addr) continue;
-	s = FindServer(&hosts[i]);
-	if (!s || !s->VGAPlusSHA_Supported) return (0); 
-    }
-    return(1); /* every active host supports SHA! */
-}
-
 
 mgrpent::mgrpent(vsgent *VSG, uid_t Uid, RPC2_Handle mid, int authflag)
 {

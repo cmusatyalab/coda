@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -257,13 +257,6 @@ class srvent : private RefCountedObject {
     static int allocs;
     static int deallocs;
 #endif
-
-/* VGAPlusSHA_Supported is for temporary use, during transition from use of
-   ViceGetAttr() to ViceGetAttrPlusSHA(); distinguishes old-style servers
-   from new-style ones; allows Venus to remember status of server discovered
-   on ConnectFS(). Eliminate once support for old servers can go  (Satya, 12/02) */
-
-    unsigned VGAPlusSHA_Supported:1;  /* does server export ViceGetAttrPlusSHA()? */
 
     int GetConn(connent **c, uid_t uid, int force =0);
 

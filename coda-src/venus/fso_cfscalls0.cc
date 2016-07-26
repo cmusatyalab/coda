@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2008 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -672,51 +672,25 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
 		ARG_MARSHALL_BS(IN_OUT_MODE, RPC2_BoundedBS, VFlagvar, VFlagBS,
 				VSG_MEMBERS, MAX_PIGGY_VALIDATIONS);
 
-		/* make the RPC: use ViceValidateAttrs() (obsolete) or
-                     ViceValidateAttrsPlusSHA() (preferred) */
+		/* make the RPC */
+		sprintf(val_prel_str, "fetch::ValidateAttrsPlusSHA %%s(%s) [%d]\n", FID_(&fid), numPiggyFids);
+		CFSOP_PRELUDE(val_prel_str, comp, fid);
+		MULTI_START_MESSAGE(ViceValidateAttrsPlusSHA_OP);
+		code = (int) MRPC_MakeMulti(ViceValidateAttrsPlusSHA_OP,
+		      		    ViceValidateAttrsPlusSHA_PTR,
+		      		    VSG_MEMBERS,
+		      		    m->rocc.handles, m->rocc.retcodes,
+		      		    m->rocc.MIp, 0, 0, ph,
+		      		    MakeViceFid(&fid),
+		      		    statusvar_ptrs, myshavar_ptrs,
+		      		    numPiggyFids, FAVs,
+		      		    VFlagvar_ptrs, &PiggyBS);
+		MULTI_END_MESSAGE(ViceValidateAttrsPlusSHA_OP);
+		CFSOP_POSTLUDE("fetch::ValidateAttrsPlusSHA done\n");
 
-		/* Get rid of ViceValidateAttrs() branch below when all servers 
-		     have been upgraded to handle ViceValidateAttrsPlusSHA() (Satya 1/03) */
-
-		if (m->rocc.AllReplicasSupportSHA()) {
-		  sprintf(val_prel_str, "fetch::ValidateAttrsPlusSHA %%s(%s) [%d]\n", FID_(&fid), numPiggyFids);
-		  CFSOP_PRELUDE(val_prel_str, comp, fid);
-		  MULTI_START_MESSAGE(ViceValidateAttrsPlusSHA_OP);
-		  code = (int) MRPC_MakeMulti(ViceValidateAttrsPlusSHA_OP,
-					    ViceValidateAttrsPlusSHA_PTR,
-					    VSG_MEMBERS,
-					    m->rocc.handles, m->rocc.retcodes,
-					    m->rocc.MIp, 0, 0, ph,
-					    MakeViceFid(&fid),
-					    statusvar_ptrs, myshavar_ptrs,
-					    numPiggyFids, FAVs,
-					    VFlagvar_ptrs, &PiggyBS);
-		  MULTI_END_MESSAGE(ViceValidateAttrsPlusSHA_OP);
-		  CFSOP_POSTLUDE("fetch::ValidateAttrsPlusSHA done\n");
-
-		  /* Collate */
-		  code = vp->Collate_NonMutating(m, code);
-		  MULTI_RECORD_STATS(ViceValidateAttrsPlusSHA_OP);
-		}
-		else {
-		  sprintf(val_prel_str, "fetch::ValidateAttrs %%s [%d]\n", numPiggyFids);
-		  CFSOP_PRELUDE(val_prel_str, comp, fid);
-
-		  MULTI_START_MESSAGE(ViceValidateAttrs_OP);
-		  code = (int) MRPC_MakeMulti(ViceValidateAttrs_OP,
-					    ViceValidateAttrs_PTR, VSG_MEMBERS,
-					    m->rocc.handles, m->rocc.retcodes,
-					    m->rocc.MIp, 0, 0, ph,
-					    MakeViceFid(&fid), statusvar_ptrs,
-					    numPiggyFids, FAVs, VFlagvar_ptrs,
-					    &PiggyBS);
-		  MULTI_END_MESSAGE(ViceValidateAttrs_OP);
-		  CFSOP_POSTLUDE("fetch::ValidateAttrs done\n");
-
-		  /* Collate */
-		  code = vp->Collate_NonMutating(m, code);
-		  MULTI_RECORD_STATS(ViceValidateAttrs_OP);
-		}
+		/* Collate */
+		code = vp->Collate_NonMutating(m, code);
+		MULTI_RECORD_STATS(ViceValidateAttrsPlusSHA_OP);
 
 		if (code == EASYRESOLVE) { asy_resolve = 1; code = 0; }
 		else if (code == 0 || code == ERETRY) {
@@ -851,51 +825,23 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
 		    code = vp->Collate_NonMutating(m, code);
 		    MULTI_RECORD_STATS(ViceGetACL_OP);
 		} else {
+		  /* get attributes from replicated servers */
+		  LOG(1, ("fsobj::GetAttr: ViceGetAttrPlusSHA(0x%x.%x.%x)\n", fid.Volume, fid.Vnode, fid.Unique));
+		  MULTI_START_MESSAGE(ViceGetAttrPlusSHA_OP);
+		  code = (int)MRPC_MakeMulti(ViceGetAttrPlusSHA_OP,
+		      		       ViceGetAttrPlusSHA_PTR,
+		      		       VSG_MEMBERS, m->rocc.handles,
+		      		       m->rocc.retcodes, m->rocc.MIp,
+		      		       0, 0, MakeViceFid(&fid), inconok,
+		      		       statusvar_ptrs, myshavar_ptrs,
+		      		       ph, &PiggyBS);
+		  MULTI_END_MESSAGE(ViceGetAttrPlusSHA_OP);
+		  CFSOP_POSTLUDE(post_str);
 
-		  /* get attributes from replicated servers; decide to use
-                     ViceGetAttr() (obsolete) or
-                     ViceGetAttrPlusSHA() (preferred) */
-
-
-		  /* Get rid of ViceGetAttr() branch below when all servers 
-		     have been upgraded to handle ViceGetAttrPlusSHA() (Satya 1/03) */
-
-		  if (m->rocc.AllReplicasSupportSHA()) {
-
-		    LOG(1, ("fsobj::GetAttr: ViceGetAttrPlusSHA(0x%x.%x.%x)\n", fid.Volume, fid.Vnode, fid.Unique));
-		    MULTI_START_MESSAGE(ViceGetAttrPlusSHA_OP);
-		    code = (int)MRPC_MakeMulti(ViceGetAttrPlusSHA_OP,
-					       ViceGetAttrPlusSHA_PTR,
-					       VSG_MEMBERS, m->rocc.handles,
-					       m->rocc.retcodes, m->rocc.MIp,
-					       0, 0, MakeViceFid(&fid), inconok,
-					       statusvar_ptrs, myshavar_ptrs,
-					       ph, &PiggyBS);
-		    MULTI_END_MESSAGE(ViceGetAttrPlusSHA_OP);
-		    CFSOP_POSTLUDE(post_str);
-
-		    /* Collate responses from individual servers and decide
-		     * what to do next. */
-		    code = vp->Collate_NonMutating(m, code);
-		    MULTI_RECORD_STATS(ViceGetAttrPlusSHA_OP);
-		  }
-		  else {
-		    LOG(1, ("fsobj::GetAttr: ViceGetAttr()\n"));
-		    MULTI_START_MESSAGE(ViceGetAttr_OP);
-		    code = (int)MRPC_MakeMulti(ViceGetAttr_OP, ViceGetAttr_PTR,
-					       VSG_MEMBERS, m->rocc.handles,
-					       m->rocc.retcodes, m->rocc.MIp,
-					       0, 0, MakeViceFid(&fid), inconok,
-					       statusvar_ptrs, ph, &PiggyBS);
-		    MULTI_END_MESSAGE(ViceGetAttr_OP);
-		    CFSOP_POSTLUDE(post_str);
-
-		    /* Collate responses from individual servers and decide
-		     * what to do next. */
-		    code = vp->Collate_NonMutating(m, code);
-		    MULTI_RECORD_STATS(ViceGetAttr_OP);
-		  }
-
+		  /* Collate responses from individual servers and decide
+		   * what to do next. */
+		  code = vp->Collate_NonMutating(m, code);
+		  MULTI_RECORD_STATS(ViceGetAttrPlusSHA_OP);
 		}
 
 		if (code == EASYRESOLVE) { asy_resolve = 1; code = 0; }
@@ -1086,15 +1032,18 @@ RepExit:
 	    code = vp->Collate(c, code);
 	    UNI_RECORD_STATS(ViceGetACL_OP);
 	} else {
-	    UNI_START_MESSAGE(ViceGetAttr_OP);
-	    code = (int)ViceGetAttr(c->connid, MakeViceFid(&fid), inconok,
-				    &status, 0, &PiggyBS);
-	    UNI_END_MESSAGE(ViceGetAttr_OP);
+            RPC2_BoundedBS SHAval;
+            SHAval.MaxSeqLen = SHAval.SeqLen = 0;
+
+	    UNI_START_MESSAGE(ViceGetAttrPlusSHA_OP);
+	    code = (int)ViceGetAttrPlusSHA(c->connid, MakeViceFid(&fid), inconok,
+				    &status, &SHAval, 0, &PiggyBS);
+	    UNI_END_MESSAGE(ViceGetAttrPlusSHA_OP);
 	    CFSOP_POSTLUDE(post_str);
 
 	    /* Examine the return code to decide what to do next. */
 	    code = vp->Collate(c, code);
-	    UNI_RECORD_STATS(ViceGetAttr_OP);
+	    UNI_RECORD_STATS(ViceGetAttrPlusSHA_OP);
 	}
 	if (code != 0) goto NonRepExit;
 
