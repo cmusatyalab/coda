@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -92,14 +92,14 @@ extern int CloneVnode(Volume *, Volume *, int, rec_smolist *,
 /* Temp check for debugging. */
 void checklists(int vol_index)
 {
-	unsigned int i;
+    unsigned int i;
     bit32 nlists = SRV_RVM(VolumeList[vol_index]).data.nsmallLists;
-    int *lists = (int *)SRV_RVM(VolumeList[vol_index]).data.smallVnodeLists;
+    int **lists = (int **)SRV_RVM(VolumeList[vol_index]).data.smallVnodeLists;
 
     for (i = 0; i < nlists; i++) {
 	/* Make sure any lists that are single elements are circular */
 	if (lists[i])
-	    CODA_ASSERT(*((int *)lists[i]));
+	    CODA_ASSERT(*lists[i]);
     }
 }
 
