@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 2003 Carnegie Mellon University
+          Copyright (c) 2003-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -286,7 +286,7 @@ int rwcdb_find(struct rwcdb *c, const char *k, const uint32_t klen)
      * position is the starting position of the hash table. The length is the
      * number of slots in the hash table. */
     cur_pos = (hash & 0xff) << 3;
-    if (readints(&c->rf, &hpos, &hlen, cur_pos))
+    if (db_readints(&c->rf, &hpos, &hlen, cur_pos))
         return -1;
 
     /* micro-optimization? */
@@ -298,7 +298,7 @@ int rwcdb_find(struct rwcdb *c, const char *k, const uint32_t klen)
         /* Each hash table slot states a hash value and a byte position. If
          * the byte position is 0, the slot is empty. Otherwise, the slot
          * points to a record whose key has that hash value. */
-        if (readints(&c->rf, &hash2, &pos, cur_pos))
+        if (db_readints(&c->rf, &hash2, &pos, cur_pos))
             return -1;
 
         if (pos == 0) return 0;
@@ -311,7 +311,7 @@ int rwcdb_find(struct rwcdb *c, const char *k, const uint32_t klen)
 
         /* Records are stored sequentially, without special alignment. A
          * record states a key length, a data length, the key, and the data. */
-        if (readints(&c->rf, &keylen, &dlen, pos))
+        if (db_readints(&c->rf, &keylen, &dlen, pos))
             return -1;
 
         if (klen != keylen) continue;
@@ -384,7 +384,7 @@ int rwcdb_next(struct rwcdb *c, int init)
 again:
     /* reading from disk? */
     if (c->index < c->rf.eod) {
-        if (readints(&c->rf, &klen, &dlen, c->index))
+        if (db_readints(&c->rf, &klen, &dlen, c->index))
             goto read_failed;
 
         if (db_file_mread(&c->rf, &buf, klen + dlen, c->rf.pos))

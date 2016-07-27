@@ -2,7 +2,7 @@
 			   Coda File System
 			      Release 6
 
-	  Copyright (c) 2003 Carnegie Mellon University
+	  Copyright (c) 2003-2016 Carnegie Mellon University
 		  Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -32,7 +32,7 @@ Coda are listed in the file CREDITS.
 /*=====================================================================*/
 /* scratch buffer */
 
-int grow_cache(struct db_file *f, uint32_t len)
+static int grow_cache(struct db_file *f, uint32_t len)
 {
     f->cache_pos = f->len;
     if (f->cache_len >= len)
@@ -48,7 +48,7 @@ int grow_cache(struct db_file *f, uint32_t len)
     return 0;
 }
 
-int cached(struct db_file *f, uint32_t len, uint32_t pos)
+static int cached(struct db_file *f, uint32_t len, uint32_t pos)
 {
     return (pos >= f->cache_pos && pos + len <= f->cache_pos + f->cache_len);
 }
@@ -156,7 +156,7 @@ int db_file_flush(struct db_file *f)
     return 0;
 }
 
-int readints(struct db_file *f, uint32_t *a, uint32_t *b, uint32_t pos)
+int db_readints(struct db_file *f, uint32_t *a, uint32_t *b, uint32_t pos)
 {
     void *buf;
 
@@ -188,7 +188,7 @@ int db_file_open(struct db_file *f, const char *name, const int mode)
     f->len = f->cache_pos = sb.st_size;
 
     if (f->len)
-	(void)readints(f, &f->eod, &dummy, 0);
+	(void)db_readints(f, &f->eod, &dummy, 0);
 
     return 0;
 }

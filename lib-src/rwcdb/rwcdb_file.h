@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 2003 Carnegie Mellon University
+          Copyright (c) 2003-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -36,8 +36,6 @@ int db_file_mread(struct db_file *f, void **data, const uint32_t len,
 		  const uint32_t pos);
 int db_file_write(struct db_file *f, void *data, uint32_t len);
 int db_file_flush(struct db_file *f);
-int readints(struct db_file *f, uint32_t *a, uint32_t *b, uint32_t pos);
-int grow_cache(struct db_file *f, uint32_t len);
-int cached(struct db_file *f, uint32_t len, uint32_t pos);
+int db_readints(struct db_file *f, uint32_t *a, uint32_t *b, uint32_t pos);
 
 #endif /* _RWCDB_FILE_H_ */
