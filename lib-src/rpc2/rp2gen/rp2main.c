@@ -289,8 +289,8 @@ static int32_t SetupFiles()
     if (pfile == NIL) {perror(pfile_name); exit(-1);}
 
     char upper_path[256];
-    realpath("../rpc2-src/", upper_path);
-    libfile_name = concat(upper_path, "helper.c");
+    realpath("../../lib-src/rpc2/rpc2-src/", upper_path);
+    libfile_name = concat(upper_path, "/helper.c");
     libfile = fopen(libfile_name, "r");
     if (libfile == NIL) {
         libfile = fopen(libfile_name, "a+");
