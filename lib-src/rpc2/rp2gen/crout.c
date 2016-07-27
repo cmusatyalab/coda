@@ -286,7 +286,7 @@ void print_var_in_func(char* prefix, VAR* var, FILE *where, WHO who) {
                     }
                     fprintf(where, "rc = pack_struct_%s(new_ptr, %s, _EOB, %d);\n", var->type->name, newprefix, who);
                     fputs("    if (rc < 0) return -1;\n", where);
-                    free(prefix);
+                    free(newprefix);
                     if (var->array != NIL)
                         fputs("    }\n\n", where);
                 }
