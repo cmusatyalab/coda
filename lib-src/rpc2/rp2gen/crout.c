@@ -97,8 +97,9 @@ static void declare_CallCount(PROC *head, FILE *where);
 static void declare_MultiCall(PROC *head, FILE *where);
 static void declare_LogFunction(PROC *head, FILE *where);
 static void print_stubpredefined(FILE *where);
-static void preprocess_pack_struct(WHO who, VAR *parm, char *prefix, char *ptr, FILE *where);
-static void preprocess_unpack_struct(WHO who, VAR *parm, char *prefix, char *ptr, FILE *where);
+static void print_callcountentry_func(FILE* where);
+static void print_multicallentry_func(FILE* where);
+static void print_multistubwork_func(FILE* where);
 
 extern char *concat(), *concat3elem(), *server_prefix, *client_prefix;;
 extern rp2_bool testing;
@@ -196,10 +197,11 @@ static rp2_bool legal_struct_fields[] = {
 	/* RPC2_Enum */		RP2_TRUE,
 	/* RPC2_Double */		RP2_TRUE
 };
-void print_struct_func(RPC2_TYPE *t, FILE *where, char *name, WHO who) {
+void print_struct_func(RPC2_TYPE *t, FILE *where, FILE *hfile, char *name, WHO who) {
     if (t->tag != RPC2_STRUCT_TAG)
         return;
-    fprintf(where, "int pack_struct_%s (char** new_ptr, char* _EOB, %s var, RPC_Integer who) {\n", name, name);
+    fprintf(where, "int pack_struct_%s (char** new_ptr, %s var, char* _EOB, RPC2_Integer who) {\n", name, name);
+    fprintf(hfile, "int pack_struct_%s (char** new_ptr, %s var, char* _EOB, RPC2_Integer who);\n", name, name);
 
     VAR **v;
     fputs("    int rc = 0;\n", where);
@@ -211,8 +213,10 @@ void print_struct_func(RPC2_TYPE *t, FILE *where, char *name, WHO who) {
 		fputs("    ", where);
 		print_pack_var("var.", *v, where, who);
 	}
+    fputs("    return 0;\n", where);
     fputs("}\n", where);
-    fprintf(where, "int unpack_struct_%s (%s* new_ptr, char** old_ptr, char* _EOB, RPC_Integer who) {\n", name, name);
+    fprintf(where, "int unpack_struct_%s (%s* new_ptr, char** old_ptr, char* _EOB, RPC2_Integer who) {\n", name, name);
+    fprintf(hfile, "int unpack_struct_%s (%s* new_ptr, char** old_ptr, char* _EOB, RPC2_Integer who);\n", name, name);
 
     fputs("    int rc = 0;\n", where);
 	for (v=t->fields.struct_fields; *v!=NIL; v++) {
@@ -223,6 +227,7 @@ void print_struct_func(RPC2_TYPE *t, FILE *where, char *name, WHO who) {
 		fputs("    ", where);
 		print_unpack_var("(*new_ptr).", *v, where, who);
 	}
+    fputs("    return 0;\n", where);
     fputs("}\n", where);
 }
 void print_unpack_var(char* prefix, VAR* var, FILE *where, WHO who) {
@@ -246,10 +251,10 @@ void print_unpack_var(char* prefix, VAR* var, FILE *where, WHO who) {
                 break;
         	case RPC2_BYTE_TAG:
                 if (var->type->bound != NIL) {
-                    fprintf(where, "    rc = unpack_bound_bytes((char*)%s, old_ptr, _EOB, %s);\n", name, var->type->bound);
+                    fprintf(where, "    rc = unpack_bound_bytes((unsigned char*)%s, old_ptr, _EOB, %s);\n", name, var->type->bound);
                     fputs("    if (rc < 0) return -1;\n", where);
                 } else {
-                    fputs("    rc = unpack_unbound_bytes(&((RPC2_Byte)", where);
+                    fputs("    rc = unpack_unbound_bytes((unsigned char*)(&", where);
                     if (who == RP2_CLIENT && mode == IN_OUT_MODE)
                         fputs("*", where);
                     fprintf(where, "%s), old_ptr, _EOB);\n", name);
@@ -278,7 +283,7 @@ void print_unpack_var(char* prefix, VAR* var, FILE *where, WHO who) {
         	case RPC2_DOUBLE_TAG:
                 fputs("    rc = unpack_double((RPC2_Double *)&(", where);
                 if (who == RP2_CLIENT && mode == IN_OUT_MODE)
-                    fputs('*', where);
+                    fputs("*", where);
                 fprintf(where, "%s), old_ptr, _EOB);\n", name);
                 fputs("    if (rc < 0) return -1;\n", where);
                 break;
@@ -291,13 +296,13 @@ void print_unpack_var(char* prefix, VAR* var, FILE *where, WHO who) {
                         for_limit(var, who, where);
                         fprintf(where, "; %s ++) {\n", _iterate);
 
-                        newprefix = (who == RP2_SERVER ? concat3elem(prefix, var->name, suffix)
-                                : concat3elem(prefix, var->name, suffix));
+                        newprefix = (who == RP2_SERVER ? concat("&", concat3elem(prefix, var->name, suffix))
+                            : (mode == NO_MODE? concat("&", concat3elem(prefix, var->name, suffix)) : concat("&", concat3elem(prefix, var->name, suffix))));
                     } else {
-                        newprefix = (who == RP2_SERVER ? concat(prefix, var->name)
-                                : concat(prefix, var->name));
+                            newprefix = (who == RP2_SERVER ? concat3elem("&", prefix, var->name)
+                                        : (mode == NO_MODE? concat3elem("&", prefix, var->name) : concat(prefix, var->name)));
                     }
-                    fprintf(where, "rc = unpack_struct_%s(&(%s), old_ptr,  _EOB, %d);\n", var->type->name, newprefix, who);
+                    fprintf(where, "rc = unpack_struct_%s(%s, old_ptr,  _EOB, %d);\n", var->type->name, newprefix, who);
                     fputs("    if (rc < 0) return -1;\n", where);
                     free(newprefix);
                     if (var->array != NIL)
@@ -337,7 +342,7 @@ void print_pack_var(char* prefix, VAR* var, FILE *where, WHO who) {
                 break;
         	case RPC2_BYTE_TAG:
                 if (var->type->bound != NIL) {
-                    fprintf(where, "    rc = pack_bound_bytes(new_ptr, (char*)%s, _EOB);\n", name, var->type->bound);
+                    fprintf(where, "    rc = pack_bound_bytes(new_ptr, (char*)%s, _EOB, %s);\n", name, var->type->bound);
                     fputs("    if (rc < 0) return -1;\n", where);
                 } else {
                     fputs("    rc = pack_unbound_bytes(new_ptr, ", where);
@@ -369,7 +374,7 @@ void print_pack_var(char* prefix, VAR* var, FILE *where, WHO who) {
         	case RPC2_DOUBLE_TAG:
                 fputs("    rc = pack_double(new_ptr, ", where);
                 if (who == RP2_CLIENT && mode == IN_OUT_MODE)
-                    fputs('*', where);
+                    fputs("*", where);
                 fprintf(where, "%s, _EOB);\n", name);
                 fputs("    if (rc < 0) return -1;\n", where);
                 break;
@@ -383,10 +388,10 @@ void print_pack_var(char* prefix, VAR* var, FILE *where, WHO who) {
                         fprintf(where, "; %s ++) {\n", _iterate);
 
                         newprefix = (who == RP2_SERVER ? concat3elem(prefix, var->name, suffix)
-                                : concat3elem(prefix, var->name, suffix));
+                            : (mode == NO_MODE? concat3elem(prefix, var->name, suffix) : concat("", concat3elem(prefix, var->name, suffix))));
                     } else {
-                        newprefix = (who == RP2_SERVER ? concat(prefix, var->name)
-                                : concat(prefix, var->name));
+                            newprefix = (who == RP2_SERVER ? concat(prefix, var->name)
+                                        : (mode == NO_MODE? concat(prefix, var->name) : concat("*", concat(prefix, var->name))));
                     }
                     fprintf(where, "rc = pack_struct_%s(new_ptr, %s, _EOB, %d);\n", var->type->name, newprefix, who);
                     fputs("    if (rc < 0) return -1;\n", where);
@@ -396,7 +401,7 @@ void print_pack_var(char* prefix, VAR* var, FILE *where, WHO who) {
                 }
         		break;
             case RPC2_ENUM_TAG:
-                fprintf(where, "    rc = pack_int(new_ptr, _EOB, %s);\n", name);
+                fprintf(where, "    rc = pack_int(new_ptr, %s, _EOB);\n", name);
                 fputs("    if (rc < 0) return -1;\n", where);
                 break;
             default:
@@ -610,8 +615,6 @@ static void locals(FILE *where)
     fprintf(where, "    char *%s;\n", ptr);
     fprintf(where, "    long %s, %s, %s;\n", length, rpc2val, code);
     fprintf(where, "    RPC2_PacketBuffer *%s = NULL;\n", rspbuffer);
-    fputs("    char *startPtr;\n", where);
-    fputs("    int idx;\n", where);
     fputs("    int rc;\n", where);
 }
 
@@ -1163,10 +1166,10 @@ static void pack(WHO who, VAR *parm, char *prefix, char *ptr, FILE *where)
 		    fprintf(where, "; %s++) {\n", iterate);
 
             newprefix = (who == RP2_SERVER ? concat3elem(prefix, parm->name, suffix)
-                        : concat3elem(prefix, parm->name, suffix));
+                        : (mode == NO_MODE? concat3elem(prefix, parm->name, suffix) : concat("", concat3elem(prefix, parm->name, suffix))));
     } else {
             newprefix = (who == RP2_SERVER ? concat(prefix, parm->name)
-                        : concat(prefix, parm->name));
+                        : (mode == NO_MODE? concat(prefix, parm->name) : concat("*", concat(prefix, parm->name))));
     }
     //for (field=parm->type->type->fields.struct_fields; *field!=NIL; field++) {
         //preprocess_pack_struct(who, *field, newprefix, ptr, where);
@@ -1283,17 +1286,15 @@ static void unpack(WHO who, VAR *parm, char *prefix, char *ptr, FILE *where)
 		    fprintf(where, "    for(%s = 0; %s < ", iterate, iterate);
 		    for_limit(parm, who, where);
 		    fprintf(where, "; %s++) {\n", iterate);
-            newprefix = (who == RP2_SERVER ? concat3elem(prefix, var->name, suffix)
-                        : concat3elem(prefix, var->name, suffix));
-    } else {
-            newprefix = (who == RP2_SERVER ? concat(prefix, var->name)
-                        : concat(prefix, var->name));
-    }
-    fprintf(where, "    rc = unpack_struct_%s(&(%s), &(%s), _EOB, %d);\n", parm->type->name, newprefix, ptr, who);
+            newprefix = (who == RP2_SERVER ? concat("&", concat3elem(prefix, parm->name, suffix))
+                : (mode == NO_MODE? concat("&", concat3elem(prefix, parm->name, suffix)) : concat("&", concat3elem(prefix, parm->name, suffix))));
+        } else {
+                newprefix = (who == RP2_SERVER ? concat3elem("&", prefix, parm->name)
+                            : (mode == NO_MODE? concat3elem("&", prefix, parm->name) : concat(prefix, parm->name)));
+        }
+    fprintf(where, "rc = unpack_struct_%s(%s, &_ptr,  _EOB, %d);\n", parm->type->name, newprefix, who);
     fputs("  if (rc < 0) goto bufferoverflow;\n", where);
 
-	    //for (field=parm->type->type->fields.struct_fields; *field!=NIL; field++)
-         //   preprocess_unpack_struct(who, *field, newprefix, ptr, where);
 	    free(newprefix);
 
 	    if (parm->array !=NIL)
@@ -1976,6 +1977,13 @@ static void print_stubpredefined(FILE *where)
 	    for (; ep<sp ; ep++)
 	        fprintf(where, "    %s %s;\n", ep->type, ep->name);
 	    fprintf(where, "} %s;\n", sp->name);
+        if (strcmp(callcountname, sp->name) == 0) {
+            print_callcountentry_func(where);
+        } else if (strcmp(multicallname, sp->name) == 0) {
+            print_multicallentry_func(where);
+        } else {
+            print_multistubwork_func(where);
+        }
 	    ep++;
 	}
     }
@@ -1987,244 +1995,97 @@ static void print_stubpredefined(FILE *where)
 	exit(-1);
     }
 }
-static void preprocess_unpack_struct(WHO who, VAR *parm, char *prefix, char *ptr, FILE *where) {
-    extern char *concat();
-    char *name, *select, *suffix;
-    MODE mode;
+static void print_callcountentry_func(FILE* where) {
+    fputs("static inline int pack_struct_CallCountEntry(char** new_ptr, CallCountEntry var, char* _EOB, RPC2_Integer who) {\n", where);
+    fputs("    int rc = 0;\n", where);
+    fputs("    rc = pack_string(new_ptr, (char*)var.name);\n", where);
+    fputs("    if (rc < 0) return -1;\n", where);
+    fputs("    rc = pack_int(new_ptr, var.countent, _EOB);\n", where);
+    fputs("    if (rc < 0) return -1;\n", where);
+    fputs("    rc = pack_int(new_ptr, var.countexit, _EOB);\n", where);
+    fputs("    if (rc < 0) return -1;\n", where);
+    fputs("    rc = pack_int(new_ptr, var.tsec, _EOB);\n", where);
+    fputs("    if (rc < 0) return -1;\n", where);
+    fputs("    rc = pack_int(new_ptr, var.tusec, _EOB);\n", where);
+    fputs("    if (rc < 0) return -1;\n", where);
+    fputs("    rc = pack_int(new_ptr, var.counttime, _EOB);\n",where);
+    fputs("    if (rc < 0) return -1;\n", where);
+    fputs("    return 0;\n", where);
+    fputs("}\n", where);
 
-    name = concat(prefix, parm->name);
-    mode = parm -> mode;
+    fputs("static inline int unpack_struct_CallCountEntry(CallCountEntry* new_ptr, char** old_ptr, char* _EOB, RPC2_Integer who) {\n", where);
+    fputs("    int rc = 0;\n", where);
+    fputs("    rc = unpack_string((unsigned char**)&((*new_ptr).name), old_ptr, _EOB, 0);\n", where);
+    fputs("    if (rc < 0) return -1;                                                \n", where);
+    fputs("    rc = unpack_int((RPC2_Integer *)&(*new_ptr).countent, old_ptr, _EOB); \n", where);
+    fputs("    if (rc < 0) return -1;                                                \n", where);
+    fputs("    rc = unpack_int((RPC2_Integer *)&(*new_ptr).countexit, old_ptr, _EOB);\n", where);
+    fputs("    if (rc < 0) return -1;                                                \n", where);
+    fputs("    rc = unpack_int((RPC2_Integer *)&(*new_ptr).tsec, old_ptr, _EOB);     \n", where);
+    fputs("    if (rc < 0) return -1;                                                \n", where);
+    fputs("    rc = unpack_int((RPC2_Integer *)&(*new_ptr).tusec, old_ptr, _EOB);    \n", where);
+    fputs("    if (rc < 0) return -1;                                                \n", where);
+    fputs("    rc = unpack_int((RPC2_Integer *)&(*new_ptr).counttime, old_ptr, _EOB);\n", where);
+    fputs("    if (rc < 0) return -1;\n", where);
+    fputs("    return 0;\n", where);
+    fputs("}\n", where);
 
-    select = ((who == RP2_CLIENT && mode != NO_MODE) ? "->" : ".");
-    suffix = concat3elem("[", iterate, "]");
-    switch (parm->type->type->tag) {
-    case RPC2_INTEGER_TAG:
-	        fprintf(where, ", RPC2_INTEGER_TAG, (char*)&( ");
-         if (who == RP2_CLIENT && mode == IN_OUT_MODE)
-            fputs('*', where);
-         fprintf(where, "%s) - startPtr", name);
-	    break;
-    case RPC2_UNSIGNED_TAG:
-	        fprintf(where, ", RPC2_UNSIGNED_TAG, (char*)&(", name);
-         if (who == RP2_CLIENT && mode == IN_OUT_MODE)
-            fputs('*', where);
-         fprintf(where, "%s) - startPtr", name);
-	    break;
-    case RPC2_BYTE_TAG:
-	    if (parm->type->bound != NIL) {
-		    fprintf(where, ", RPC2_BYTE_TAG, (char*)%s - startPtr, (long)%s",name, parm->type->bound);
-	    }
-	    else {
-		    fprintf(where, ", RPC2_BYTE_TAG, (char*)&(");
-            if (who == RP2_CLIENT && mode == IN_OUT_MODE)
-                fputs('*', where);
-            fprintf(where, "%s) - startPtr, 0", name);
-	    }
-	    break;
-    case RPC2_ENUM_TAG:
-		fprintf(where, ", RPC2_ENUM_TAG, (char*)&(");
-        if (who == RP2_CLIENT && mode == IN_OUT_MODE)
-            fputs('*', where);
-        fprintf(where, "%s) - startPtr", name);
-	    break;
-    case RPC2_DOUBLE_TAG:
-		fprintf(where, ", RPC2_DOUBLE_TAG, (char*)&(");
-        if (who == RP2_CLIENT && mode == IN_OUT_MODE)
-            fputs('*', where);
-        fprintf(where, "%s) - startPtr", name);
-
-	    break;
-    case RPC2_STRING_TAG:
-		fprintf(where, ", RPC2_STRING_TAG");
-	       fprintf(where, ", (char**)&(%s) - &startPtr, %d", name, who);
-	    break;
-    case RPC2_COUNTEDBS_TAG:
-        if (who == RP2_SERVER) {
-            fprintf(where, ", RPC2_COUNTEDBS_TAG, &(%s.SeqBody) - &startPtr, &(%s.SeqLen) - startPtr, %d", name, name, who);
-        } else {
-		    fprintf(where, ", RPC2_COUNTEDBS_TAG, &(%s%sSeqBody) - &startPtr, &(%s%sSeqLen) - startPtr, %d", name, select, name, select, who);
-
-        }
-	    break;
-    case RPC2_BOUNDEDBS_TAG:
-		fprintf(where, ", RPC2_BOUNDEDBS_TAG, &(%s%sSeqBody) - &startPtr, &(%s%sSeqLen) - startPtr, &(%s%sMaxSeqLen) - startPtr, %d, %d",
-                name, select, name, select, name, select, who, mode);
-
-	    break;
-
-    case RPC2_STRUCT_TAG:		{
-    //if (struct_end > 0) {
-        fprintf(where, ")\n");//end non-struct processing
-     //   struct_end --;
-    //}
-	    VAR **field;
-	    char *newprefix;
-
-	    /* Dynamic arrays are taken care of here. */
-	    /* If parm->array isn't NULL, this struct is used as DYNArray. */
-	    if (parm->array !=NIL) {
-		    if (who == RP2_CLIENT) {
-			fprintf(where, "    if (");
-			for_limit(parm, who, where);
-			fprintf(where, " > ");
-			fprintf(where, "%s)\n" BUFFEROVERFLOW, parm->arraymax);
-		    }
-		    fprintf(where, "    for(%s = 0; %s < ", iterate, iterate);
-		    for_limit(parm, who, where);
-		    fprintf(where, "; %s++) {\n", iterate);
-		    newprefix = (who == RP2_SERVER
-				 ? concat(concat3elem(prefix, parm->name, suffix), ".")
-				 : field_name2(parm, prefix, suffix));
-	    } else {
-		    newprefix = (who == RP2_SERVER
-				 ? concat(prefix, concat(parm->name, "."))
-				 : field_name(parm, prefix));
-	    }
-     fprintf(where, "\n    UNPACK_STRUCT(%d", buffer_cnt ++);
-     struct_end ++;
-	    for (field=parm->type->type->fields.struct_fields; *field!=NIL; field++)
-            preprocess_unpack_struct(who, *field, newprefix, ptr, where);
-
-    //if (struct_end > 0) {
-     //   fprintf(where, ")\n");
-      //  struct_end --;
-    //}
-	    free(newprefix);
-	    if (parm->array !=NIL)
-		    fputs("    }\n\n", where);
-    }
-    break;
-    case RPC2_ENCRYPTIONKEY_TAG:	{
-		fprintf(where, ", RPC2_ENCRYPTIONKEY_TAG, (char *)%s - startPtr", name);
-    }
-    break;
-
-    case RPC2_BULKDESCRIPTOR_TAG:	break;
-    default:			printf("RP2GEN [can't happen]: unknown type tag: %d\n",
-				       parm->type->type->tag);
-    abort();
-    }
-    free(name);
-    free(suffix);
 }
-static void preprocess_pack_struct(WHO who, VAR *parm, char *prefix, char *ptr, FILE *where) {
-    extern char *concat();
-    char *name, *select, *suffix;
-    MODE mode;
+static void print_multicallentry_func(FILE* where) {
+    fputs("static inline int pack_struct_MultiCallEntry(char** new_ptr, MultiCallEntry var, char* _EOB, RPC2_Integer who) {\n", where);
+    fputs("    int rc = 0;                                                                                                 \n", where);
+    fputs("    rc = pack_string(new_ptr, (char*)var.name);                                                                 \n", where);
+    fputs("    if (rc < 0) return -1;                                                                                      \n", where);
+    fputs("    rc = pack_int(new_ptr, var.countent, _EOB);                                                                 \n", where);
+    fputs("    if (rc < 0) return -1;                                                                                      \n", where);
+    fputs("    rc = pack_int(new_ptr, var.countexit, _EOB);                                                                \n", where);
+    fputs("    if (rc < 0) return -1;                                                                                      \n", where);
+    fputs("    rc = pack_int(new_ptr, var.tsec, _EOB);                                                                     \n", where);
+    fputs("    if (rc < 0) return -1;                                                                                      \n", where);
+    fputs("    rc = pack_int(new_ptr, var.tusec, _EOB);                                                                    \n", where);
+    fputs("    if (rc < 0) return -1;                                                                                      \n", where);
+    fputs("    rc = pack_int(new_ptr, var.counttime, _EOB);                                                                \n", where);
+    fputs("    if (rc < 0) return -1;                                                                                      \n", where);
+    fputs("    return 0;                                                                                                   \n", where);
+    fputs("}                                                                                                               \n", where);
+    fputs("static inline int unpack_struct_MultiCallEntry(MultiCallEntry* new_ptr, char** old_ptr, char* _EOB, RPC2_Integer who) {\n", where);
+    fputs("    int rc = 0;                                                                                                 \n", where);
+    fputs("    rc = unpack_string((unsigned char**)&((*new_ptr).name), old_ptr, _EOB, 0);                                  \n", where);
+    fputs("    if (rc < 0) return -1;                                                                                      \n", where);
+    fputs("    rc = unpack_int((RPC2_Integer *)&(*new_ptr).countent, old_ptr, _EOB);                                       \n", where);
+    fputs("    if (rc < 0) return -1;                                                                                      \n", where);
+    fputs("    rc = unpack_int((RPC2_Integer *)&(*new_ptr).countexit, old_ptr, _EOB);                                      \n", where);
+    fputs("    if (rc < 0) return -1;                                                                                      \n", where);
+    fputs("    rc = unpack_int((RPC2_Integer *)&(*new_ptr).tsec, old_ptr, _EOB);                                           \n", where);
+    fputs("    if (rc < 0) return -1;                                                                                      \n", where);
+    fputs("    rc = unpack_int((RPC2_Integer *)&(*new_ptr).tusec, old_ptr, _EOB);                                          \n", where);
+    fputs("    if (rc < 0) return -1;                                                                                      \n", where);
+    fputs("    rc = unpack_int((RPC2_Integer *)&(*new_ptr).counttime, old_ptr, _EOB);                                      \n", where);
+    fputs("    if (rc < 0) return -1;                                                                                      \n", where);
+    fputs("    return 0;                                                                                                   \n", where);
+    fputs("}                                                                                                               \n", where);
+}
+static void print_multistubwork_func(FILE* where) {
+    fputs("static inline int pack_struct_MultiStubWork(char** new_ptr, MultiStubWork var, char* _EOB, RPC2_Integer who) {\n", where);
+    fputs("    int rc = 0;                                                                                               \n", where);
+    fputs("    rc = pack_int(new_ptr, var.opengate, _EOB);                                                               \n", where);
+    fputs("    if (rc < 0) return -1;                                                                                    \n", where);
+    fputs("    rc = pack_int(new_ptr, var.tsec, _EOB);                                                                   \n", where);
+    fputs("    if (rc < 0) return -1;                                                                                    \n", where);
+    fputs("    rc = pack_int(new_ptr, var.tusec, _EOB);                                                                  \n", where);
+    fputs("    if (rc < 0) return -1;                                                                                    \n", where);
+    fputs("    return 0;                                                                                                 \n", where);
+    fputs("}                                                                                                             \n", where);
+    fputs("static inline int unpack_struct_MultiStubWork(MultiStubWork* new_ptr, char** old_ptr, char* _EOB, RPC2_Integer who) {\n", where);
+    fputs("    int rc = 0;                                                                                               \n", where);
+    fputs("    rc = unpack_int((RPC2_Integer *)&(*new_ptr).opengate, old_ptr, _EOB);                                     \n", where);
+    fputs("    if (rc < 0) return -1;                                                                                    \n", where);
+    fputs("    rc = unpack_int((RPC2_Integer *)&(*new_ptr).tsec, old_ptr, _EOB);                                         \n", where);
+    fputs("    if (rc < 0) return -1;                                                                                    \n", where);
+    fputs("    rc = unpack_int((RPC2_Integer *)&(*new_ptr).tusec, old_ptr, _EOB);                                        \n", where);
+    fputs("    if (rc < 0) return -1;                                                                                    \n", where);
+    fputs("    return 0;                                                                                                 \n", where);
+    fputs("}                                                                                                             \n", where);
 
-    name = concat(prefix, parm->name);
-    mode = parm -> mode;
-
-    select = ((who == RP2_CLIENT && mode != NO_MODE) ? "->" : ".");
-    suffix = concat3elem("[", iterate, "]");
-    switch (parm->type->type->tag) {
-    case RPC2_INTEGER_TAG:
-	        fprintf(where, ", RPC2_INTEGER_TAG,");
-         if (who == RP2_CLIENT && mode == IN_OUT_MODE)
-            fputs('*', where);
-         fprintf(where, "%s", name);
-	    break;
-    case RPC2_UNSIGNED_TAG:
-	        fprintf(where, ", RPC2_UNSIGNED_TAG, ", name);
-         if (who == RP2_CLIENT && mode == IN_OUT_MODE)
-            fputs('*', where);
-         fprintf(where, "%s", name);
-	    break;
-    case RPC2_BYTE_TAG:
-	    if (parm->type->bound != NIL) {
-		    fprintf(where, ", RPC2_BYTE_TAG, (char*)%s - startPtr, (long)%s",name, parm->type->bound);
-	    }
-	    else {
-		    fprintf(where, ", RPC2_BYTE_TAG, ");
-            if (who == RP2_CLIENT && mode == IN_OUT_MODE)
-                fputs('*', where);
-            fprintf(where, "%s, 0", name);
-	    }
-	    break;
-    case RPC2_ENUM_TAG:
-		fprintf(where, ", RPC2_ENUM_TAG, ");
-        if (who == RP2_CLIENT && mode == IN_OUT_MODE)
-            fputs('*', where);
-        fprintf(where, "%s", name);
-	    break;
-    case RPC2_DOUBLE_TAG:
-		fprintf(where, ", RPC2_DOUBLE_TAG, ");
-        if (who == RP2_CLIENT && mode == IN_OUT_MODE)
-            fputs('*', where);
-        fprintf(where, "%s", name);
-
-	    break;
-    case RPC2_STRING_TAG:
-		fprintf(where, ", RPC2_STRING_TAG");
-	       fprintf(where, ", (char *)%s - startPtr", name);
-	    break;
-    case RPC2_COUNTEDBS_TAG:
-		fprintf(where, ", RPC2_COUNTEDBS_TAG, (char *)%s%sSeqBody - startPtr", name, select);
-        fprintf(where, ", %s%sSeqLen", name, select);
-	    break;
-    case RPC2_BOUNDEDBS_TAG:
-		fprintf(where, ", RPC2_BOUNDEDBS_TAG, (char *)%s%sSeqBody - startPtr", name, select);
-	    if (who == RP2_CLIENT && mode != IN_MODE || who == RP2_SERVER)
-            fprintf(where, ", %s%sMaxSeqLen", name, select);
-	    else fputs(", 0", where);
-
-	    if ((who == RP2_CLIENT && mode != OUT_MODE) ||
-		(who == RP2_SERVER && mode != IN_MODE))
-	    {
-            fprintf(where, ", %s%sSeqLen", name, select);
-	    }
-	    else fputs(", 0", where);
-
-	    break;
-
-    case RPC2_STRUCT_TAG:		{
-    //if (struct_end > 0) {
-        fprintf(where, ")\n");//end non-struct processing
-     //   struct_end --;
-    //}
-	    VAR **field;
-	    char *newprefix;
-
-	    /* Dynamic arrays are taken care of here. */
-	    /* If parm->array isn't NULL, this struct is used as DYNArray. */
-        if (parm->array == NIL) {
-		    newprefix = (who == RP2_SERVER
-				 ? concat(prefix, concat(parm->name, "."))
-				 : field_name(parm, prefix));
-        } else {
-		    fprintf(where, "\n    for(%s = 0; %s < ", iterate, iterate);
-		    for_limit(parm, who, where);
-		    fprintf(where, "; %s++) {\n", iterate);
-
-		    newprefix = (who == RP2_SERVER
-				 ? concat(concat3elem(prefix, parm->name, suffix), ".")
-				 : field_name2(parm, prefix, suffix));
-        }
-     fprintf(where, "\n    PACK_STRUCT(%d", buffer_cnt ++);
-     struct_end ++;
-	    for (field=parm->type->type->fields.struct_fields; *field!=NIL; field++)
-            preprocess_pack_struct(who, *field, newprefix, ptr, where);
-
-    //if (struct_end > 0) {
-     //   fprintf(where, ")\n");
-      //  struct_end --;
-    //}
-	    free(newprefix);
-	    if (parm->array !=NIL)
-		    fputs("    }\n\n", where);
-    }
-    break;
-    case RPC2_ENCRYPTIONKEY_TAG:	{
-		fprintf(where, ", RPC2_ENCRYPTIONKEY_TAG, (char *)%s - startPtr", name);
-    }
-    break;
-
-    case RPC2_BULKDESCRIPTOR_TAG:	break;
-    default:			printf("RP2GEN [can't happen]: unknown type tag: %d\n",
-				       parm->type->type->tag);
-    abort();
-    }
-    free(name);
-    free(suffix);
 }
 

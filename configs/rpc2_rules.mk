@@ -8,7 +8,7 @@
 
 _RP2GEN_GENERATED = ${RPC2_FILES:.rpc2=.h} ${RPC2_FILES:.rpc2=.client.c} \
 		    ${RPC2_FILES:.rpc2=.server.c} ${RPC2_FILES:.rpc2=.multi.c} \
-		    ${RPC2_FILES:.rpc2=.print.c}
+			${RPC2_FILES:.rpc2=.print.c} ${RPC2_FILES:.rpc2=.helper.c}
 
 BUILT_SOURCES = ${RPC2_FILES:.rpc2=.h}
 CLEANFILES = ${_RP2GEN_GENERATED} rp2gen.tmp rp2gen.stamp

@@ -289,21 +289,11 @@ static int32_t SetupFiles()
     if (pfile == NIL) {perror(pfile_name); exit(-1);}
 
     char upper_path[MAXPATHLEN];
-    realpath("../../lib-src/rpc2/rpc2-src/", upper_path);
-    //libfile_name = concat(base, ".helper.c");
-    //libfile_name = concat("/", libfile_name);
-    //libfile_name = concat(upper_path, libfile_name);
-    libfile_name = concat(upper_path, "/helper.c");
-    libfile = fopen(libfile_name, "r");
-    if (libfile == NIL) {
-        libfile = fopen(libfile_name, "a+");
-        if (libfile == NIL) {perror(libfile_name); exit(-1);}
-        header(libfile, h_includes[(int32_t) clanguage]);
-    } else {
-        fclose(libfile);
-        libfile = fopen(libfile_name, "a+");
-        if (libfile == NIL) {perror(libfile_name); exit(-1);}
-    }
+    libfile_name = concat(base, ".helper.c");
+    libfile = fopen(libfile_name, "a+");
+    if (libfile == NIL) {perror(libfile_name); exit(-1);}
+    header(libfile, h_includes[(int32_t) clanguage]);
+    fprintf(libfile, "#include \"%s\"\n", hfile_name);
 
 
 
@@ -417,7 +407,7 @@ void spit_type(type)
 	exit(1);
     }
     (*lang_struct[(int32_t) clanguage].type)(type, RP2_CLIENT, hfile);		/* Types always go to .h file */
-    print_struct_func(type->type, libfile, type->name, RP2_CLIENT);
+    print_struct_func(type->type, libfile, hfile, type->name, RP2_CLIENT);
 }
 
 void spit_include(filename)
