@@ -3,7 +3,7 @@
 			Coda File System
 			    Release 5
 
-	    Copyright (c) 1987-2008 Carnegie Mellon University
+	    Copyright (c) 1987-2016 Carnegie Mellon University
 		    Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -43,13 +43,13 @@ Pittsburgh, PA.
 
 #include <lwp/lwp.h>
 
-void procA(void *dummy);
-void procB(void *dummy);
-void procC(void *dummy);
+static void procA(void *dummy);
+static void procB(void *dummy);
+static void procC(void *dummy);
 int tdb(int e);
 
-void count();
-void count2();
+static void count();
+static void count2();
 int Global;
 char	c, d;
 PROCESS	A_pid, B_pid, C_pid;
@@ -72,7 +72,7 @@ int main(int argc, char **argv)
     exit(0);
 }
 
-void procA(void *dummy)
+static void procA(void *dummy)
 {
     int    i;
     struct timeval t;
@@ -110,7 +110,7 @@ void procA(void *dummy)
     }
 }
 
-void procB(void *dummy)
+static void procB(void *dummy)
 {
     while(1)
     {
@@ -128,7 +128,7 @@ void procB(void *dummy)
 	}
     }
 
-void procC(void *dummy)
+static void procC(void *dummy)
 {
     int i;
     while(1)
@@ -154,12 +154,12 @@ void procC(void *dummy)
     }
 }
 
-void count()
+static void count()
 {
     count2();
 }
 
-void count2()
+static void count2()
 {
     int i;
     for (i = 0; i < 10000; i++)getpid();

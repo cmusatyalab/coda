@@ -3,7 +3,7 @@
                            Coda File System
                               Release 5
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -23,7 +23,7 @@ listed in the file CREDITS.
 
 #include <lwp/lwp.h>
 
-void OtherProcess(void *arg)
+static void OtherProcess(void *arg)
 {
     PROCESS parent = (PROCESS)arg;
     for(;;)

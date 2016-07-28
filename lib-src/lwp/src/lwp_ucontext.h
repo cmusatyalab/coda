@@ -3,7 +3,7 @@
 			Coda File System
 			    Release 5
 
-	Copyright (c) 2005-2008 Carnegie Mellon University
+	Copyright (c) 2005-2016 Carnegie Mellon University
 		Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -44,7 +44,7 @@ struct lwp_ucontext {
 /* SETJMP _has_ to be in a macro, because we can not call LONGJMP when we
  * unwrap the stack, i.e. return from a 'lwp_getcontext' function. */
 #define lwp_getcontext(ucp) ( memset((ucp), 0, sizeof(struct lwp_ucontext)), \
-			      SETJMP((ucp)->uc_mcontext, 1), 0 )
+			      SETJMP((ucp)->uc_mcontext, 1) )
 int lwp_setcontext(const struct lwp_ucontext *ucp);
 void lwp_makecontext(struct lwp_ucontext *ucp, void (*func)(void *), void *arg);
 int lwp_swapcontext(struct lwp_ucontext *oucp, const struct lwp_ucontext *ucp);
