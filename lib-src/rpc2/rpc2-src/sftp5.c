@@ -3,7 +3,7 @@
                            Coda File System
                               Release 5
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -95,6 +95,7 @@ void B_ShiftLeft(unsigned int *bMask, int bShift)
 
 
 /* leftmost bits are ONE-filled */
+#ifdef UNUSED
 void B_ShiftRight(unsigned int *bMask, int bShift)
 {
     /*  The bit string is made up of an integral number of integer parts. (assumption)
@@ -131,7 +132,7 @@ void B_ShiftRight(unsigned int *bMask, int bShift)
 	*current-- = 0xFFFFFFFF;
 	}
 }
-
+#endif
 
 void B_Assign(unsigned int *dest, unsigned int *src)
 {
@@ -152,14 +153,4 @@ void B_CopyFromPacket(RPC2_PacketBuffer *whichPacket, unsigned int *bMask)
     bMask[0] = (unsigned) whichPacket->Header.BitMask0;
     bMask[1] = (unsigned) whichPacket->Header.BitMask1;
 }
-
-
-void B_And(arg1, arg2)	    /* *arg1 = *arg1 & *arg2 */
-    unsigned int    *arg1, *arg2;
-    {
-    int	i;
-
-    for (i = 0; i < BITMASKWIDTH; i++, arg1++, arg2++)
-	*arg1 = (*arg1 & *arg2);
-    }
 

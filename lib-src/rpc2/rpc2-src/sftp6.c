@@ -3,7 +3,7 @@
                            Coda File System
                               Release 5
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -66,12 +66,6 @@ Pittsburgh, PA.
 #include <rpc2/se.h>
 #include <rpc2/sftp.h>
 
-
-/* sftp5.c */
-extern void B_ShiftLeft();
-extern void B_ShiftRight();
-extern void B_Assign();
-extern void B_And();
 
 static void MC_AppendParmsToPacket(struct SFTP_Entry *mse,
 				   struct SFTP_Entry *sse,

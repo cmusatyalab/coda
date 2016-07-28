@@ -4,7 +4,7 @@
                            Coda File System
                               Release 5
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -51,7 +51,7 @@ extern FILE *file, *hfile;
 extern char *file_name;
 int line;
 
-rp2_bool included();
+static rp2_bool included();
 static void include();
 static void ConsumeComment(void);
 static void IncludeVerbatim(void);
@@ -287,7 +287,7 @@ static struct {
 \**********************************************/
 
 
-rp2_bool included()
+static rp2_bool included()
 {
     return include_stack.include_top > 0;
 }

@@ -3,7 +3,7 @@
                            Coda File System
                               Release 5
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -79,7 +79,7 @@ static RPC2_Handle	LastMgrpidAllocated;
 #define	LISTENERALLOCSIZE   8		    /* malloc/realloc granularity */
 
 /* try to grab the low-order 8 bits, assuming all are stored big endian */
-int HASHMGRP(struct RPC2_addrinfo *ai, int id)
+static int HASHMGRP(struct RPC2_addrinfo *ai, int id)
 {
     int lsb = 0;
     switch(ai->ai_family) {

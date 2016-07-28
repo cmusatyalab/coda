@@ -3,7 +3,7 @@
                            Coda File System
                               Release 5
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -64,12 +64,12 @@ extern int fake;
 #include "rpc2.private.h"
 #endif
 
-void DoBinding(RPC2_Handle *cid);
-void PrintHelp(void);
-void PrintStats(void);
-void ClearStats(void);
-void GetPort(    RPC2_PortIdent *p);
-void GetWho(RPC2_CountedBS *w, long s, RPC2_EncryptionKey e);
+static void DoBinding(RPC2_Handle *cid);
+static void PrintHelp(void);
+static void PrintStats(void);
+static void ClearStats(void);
+static void GetPort(RPC2_PortIdent *p);
+static void GetWho(RPC2_CountedBS *w, long s, RPC2_EncryptionKey e);
 
 extern struct SStats rpc2_Sent;
 extern struct RStats rpc2_Recvd;
@@ -99,7 +99,7 @@ struct timeval start, middle;
 FILE *BW_f;
 
 int bwi = 0;
-void bwcb(void *userp, unsigned int offset)
+static void bwcb(void *userp, unsigned int offset)
 {
 	bwi++;
 	gettimeofday(&middle, (struct timezone *)0);
@@ -519,7 +519,7 @@ Finish:
 
 
 
-void PrintStats()
+static void PrintStats()
 {
     printf("RPC2:\n");
     printf("Packets Sent = %lu\tPacket Retries = %lu (of %lu)\tPackets Received = %lu\n",
@@ -547,29 +547,20 @@ void PrintStats()
     printf("Busies Received = %lu\t\tBytes Received = %lu\n",
 	   sftp_Recvd.Busies, sftp_Recvd.Bytes);
     (void) fflush(stdout);
-    }
+}
 
 
-void ClearStats()
-    {
+static void ClearStats()
+{
     memset(&rpc2_Sent, 0, sizeof(struct SStats));
     memset(&rpc2_Recvd, 0, sizeof(struct RStats));
     memset(&sftp_Sent, 0, sizeof(struct sftpStats));
     memset(&sftp_Recvd, 0, sizeof(struct sftpStats));
-    }
-
-
-
-void GetHost(RPC2_HostIdent *h)
-{
-    h->Tag = RPC2_HOSTBYNAME;
-    if (!qflag) printf("Host name? ");
-    (void) fscanf(ifd, "%s", h->Value.Name);
-    if (!qflag && fflag) printf(" %s\n", h->Value.Name);
 }
 
-void GetPort(    RPC2_PortIdent *p)
-    {
+
+static void GetPort(RPC2_PortIdent *p)
+{
     long i;
 
     p->Tag = RPC2_PORTBYINETNUMBER;
@@ -580,7 +571,8 @@ void GetPort(    RPC2_PortIdent *p)
     p->Value.InetPortNumber = htons(p->Value.InetPortNumber);
     }
 
-void GetWho(RPC2_CountedBS *w, long s, RPC2_EncryptionKey e)
+
+static void GetWho(RPC2_CountedBS *w, long s, RPC2_EncryptionKey e)
 {
     if (s != RPC2_OPENKIMONO)
 	{
@@ -602,7 +594,7 @@ void GetWho(RPC2_CountedBS *w, long s, RPC2_EncryptionKey e)
     }
 
 
-void PrintHelp(void)
+static void PrintHelp(void)
 {
     int i, n;
     n = sizeof(Opnames)/sizeof(char *);
@@ -612,7 +604,7 @@ void PrintHelp(void)
 }
 
 
-void DoBinding(RPC2_Handle *cid)
+static void DoBinding(RPC2_Handle *cid)
 {
     RPC2_HostIdent hid;
     RPC2_PortIdent sid;

@@ -3,7 +3,7 @@
 			Coda File System
 			    Release 6
 
-	    Copyright (c) 1987-2008 Carnegie Mellon University
+	    Copyright (c) 1987-2016 Carnegie Mellon University
 		    Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -65,7 +65,7 @@ Pittsburgh, PA.
 
 #define HOSTHASHBUCKETS 64
 /* try to grab the low-order bits, assuming all are stored big endian */
-int HASHHOST(struct RPC2_addrinfo *ai)
+static int HASHHOST(struct RPC2_addrinfo *ai)
 {
     int lsb = 0;
     switch(ai->ai_family) {

@@ -3,7 +3,7 @@
                            Coda File System
                               Release 5
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -76,13 +76,13 @@ long MRPC_UnpackMulti(int HowMany, RPC2_Handle ConnHandleList[],
 int  get_len(ARG **a_types, PARM **args, MODE mode);
 void pack(ARG *a_types, PARM **args, unsigned char **_ptr);
 void pack_struct(ARG *a_types, PARM **args, unsigned char **ptr);
-int  get_arraylen_pack(ARG *a_types, PARM *args);
-void incr_struct_byte(ARG *a_types, PARM **args);
-int new_unpack(ARG *a_types, PARM **args, unsigned char **_ptr, char *_end,
+static int  get_arraylen_pack(ARG *a_types, PARM *args);
+static void incr_struct_byte(ARG *a_types, PARM **args);
+static int new_unpack(ARG *a_types, PARM **args, unsigned char **_ptr, char *_end,
 	       long offset);
 int unpack_struct(ARG *a_types, PARM **args, unsigned char **_ptr, char *_end,
 		  long offset);
-void byte_pad(PARM **args);
+static void byte_pad(PARM **args);
 
 /*
     ServerOp	RP2Gen generated op code 
@@ -772,7 +772,7 @@ int get_len(ARG **a_types, PARM **args, MODE mode)
 /* Returns an array size. It is assumed that an array size of an array is declared 
  * in front of array declaration.
  */
-int get_arraylen_pack(ARG *a_types, PARM *args)
+static int get_arraylen_pack(ARG *a_types, PARM *args)
 {
     int arraysize;
     switch(a_types->type) {
@@ -791,7 +791,7 @@ int get_arraylen_pack(ARG *a_types, PARM *args)
     /*NOTREACHED*/
 }
 
-int get_arraylen_unpack(ARG *a_types, unsigned char *ptr)
+static int get_arraylen_unpack(ARG *a_types, unsigned char *ptr)
 {
     switch(a_types->type) {
         case RPC2_INTEGER_TAG:
@@ -816,7 +816,7 @@ int unpack(ARG *a_types, PARM *args, unsigned char **_ptr, char *_end, long offs
     return new_unpack(a_types, &args, _ptr, _end, offset);
 }
 
-int new_unpack(ARG *a_types, PARM **args, unsigned char **_ptr, char *_end, long offset)
+static int new_unpack(ARG *a_types, PARM **args, unsigned char **_ptr, char *_end, long offset)
 {
     int32_t _length, _maxlength;
     RPC2_BoundedBS *bbsbodyp;
@@ -1002,7 +1002,7 @@ int unpack_struct(ARG *a_types, PARM **args, unsigned char **_ptr, char *_end,
 }
 
 /* This should only be called for structure fields, never for top level arguments */
-void incr_struct_byte(ARG *a_types, PARM **args)
+static void incr_struct_byte(ARG *a_types, PARM **args)
   {
 	*(char **)args += (a_types->bound) ? (a_types->bound) : 1;
 	if (a_types[1].type == RPC2_BYTE_TAG) return;
@@ -1010,7 +1010,7 @@ void incr_struct_byte(ARG *a_types, PARM **args)
   }
 
 
-void byte_pad(PARM **args)
+static void byte_pad(PARM **args)
 {
 #ifdef sun
     *(char **)args = (char *)_PADWORD((long) *args);

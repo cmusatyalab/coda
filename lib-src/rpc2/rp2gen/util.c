@@ -3,7 +3,7 @@
                            Coda File System
                               Release 5
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -45,7 +45,6 @@ Pittsburgh, PA.
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include <time.h>
 #include "rp2.h"
 
 void no_storage(char *proc)
@@ -121,22 +120,6 @@ RPC2_TYPE *rpc2_simple_type(tag)
     if (type == NIL) no_storage("rpc2_simple_type");
     type -> tag = tag;
     return type;
-}
-
-void print_var(VAR *v)
-{
-    switch (v->mode) {
-	case NO_MODE:		break;
-	case IN_MODE:		printf("IN ");
-				break;
-	case OUT_MODE:		printf("OUT ");
-				break;
-	case IN_OUT_MODE:	printf("IN OUT ");
-				break;
-	default:		printf("RP2GEN [can't happen]: impossible mode for variable: %d\n", v->mode);
-				abort();
-    }
-    printf("%s %s", v->type->name, v->name);
 }
 
 VAR *make_var(char *name, MODE mode, ENTRY *type)
@@ -276,13 +259,5 @@ char *coda_rp2_basename(name)
     memcpy(base, l+1, len);
     base[len] = '\0';
     return base;
-}
-
-char *date()
-{
-    long clock;
-
-    clock = time(NULL);
-    return ctime(&clock);
 }
 

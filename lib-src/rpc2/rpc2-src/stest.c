@@ -68,15 +68,15 @@ extern long SFTP_DebugLevel;
 static char ShortText[200];
 static char LongText[3000];
 
-long FindKey();	/* To obtain keys from ClientIdent */
-long NoteAuthFailure();	/* To note authentication failures */
+static long FindKey();	/* To obtain keys from ClientIdent */
+static long NoteAuthFailure();	/* To note authentication failures */
 static void PrintHostIdent(), PrintPortIdent();
-void GetParms(long argc, char *argv[], SFTP_Initializer *sftpI);
-void FillStrings(void);
-void InitRPC(void);
-long WhatHappened(long X, char *Y);
-long ProcessPacket(RPC2_Handle cIn, RPC2_PacketBuffer *pIn, RPC2_PacketBuffer *pOut);
-void PrintStats(void);
+static void GetParms(long argc, char *argv[], SFTP_Initializer *sftpI);
+static void FillStrings(void);
+static void InitRPC(void);
+static long WhatHappened(long X, char *Y);
+static long ProcessPacket(RPC2_Handle cIn, RPC2_PacketBuffer *pIn, RPC2_PacketBuffer *pOut);
+static void PrintStats(void);
 
 #define DEFAULTLWPS	1	/* The default number of LWPs */
 #define MAXLWPS		32	/* The maximum number of LWPs */
@@ -84,7 +84,7 @@ int numLWPs = 0;		/* Number of LWPs created */
 int availableLWPs = 0;		/* Number of LWPs serving requests */
 int maxLWPs = MAXLWPS;		/* Max number of LWPs to create */
 PROCESS pids[MAXLWPS] = { NULL }; /* Pid of each LWP */
-void HandleRequests(void *);		/* Routine to serve requests */
+static void HandleRequests(void *);		/* Routine to serve requests */
 
 long VerboseFlag;
 RPC2_PortIdent ThisPort;
@@ -131,7 +131,7 @@ int main(argc, argv)
 /*
  * Routine to server requests.
  */
-void HandleRequests(void *arg)
+static void HandleRequests(void *arg)
 {
     RPC2_PacketBuffer *InBuff, *OutBuff;
 #if REQFILTER
@@ -184,7 +184,7 @@ void HandleRequests(void *arg)
     }
 }
 
-long FindKey(authenticationtype, ClientIdent, IdentKey, SessionKey)
+static long FindKey(authenticationtype, ClientIdent, IdentKey, SessionKey)
     RPC2_Integer authenticationtype;
     RPC2_CountedBS *ClientIdent;
     RPC2_EncryptionKey IdentKey;
@@ -222,7 +222,7 @@ long FindKey(authenticationtype, ClientIdent, IdentKey, SessionKey)
     }
 
 
-long NoteAuthFailure(authenticationtype, cIdent, eType, pHost, pPort)
+static long NoteAuthFailure(authenticationtype, cIdent, eType, pHost, pPort)
   RPC2_Integer authenticationtype;
     RPC2_CountedBS *cIdent;
     RPC2_Integer eType;
@@ -289,14 +289,14 @@ static void PrintPortIdent(pPtr, tFile)
 
 
 
-long WhatHappened(long X, char *Y)
+static long WhatHappened(long X, char *Y)
 {
     if(VerboseFlag ||  X) printf("%s: %s (%ld)\n", Y, RPC2_ErrorMsg(X), X);
     return(X);
 }
 
 
-long ProcessPacket(RPC2_Handle cIn, RPC2_PacketBuffer *pIn, RPC2_PacketBuffer *pOut)
+static long ProcessPacket(RPC2_Handle cIn, RPC2_PacketBuffer *pIn, RPC2_PacketBuffer *pOut)
 {
     int *iptr;
     long i, opcode, replylen;
@@ -504,7 +504,7 @@ long ProcessPacket(RPC2_Handle cIn, RPC2_PacketBuffer *pIn, RPC2_PacketBuffer *p
 }
 
 
-void GetParms(long argc, char *argv[], SFTP_Initializer *sftpI)
+static void GetParms(long argc, char *argv[], SFTP_Initializer *sftpI)
 {
     int i;
     for (i = 1; i < argc; i++)
@@ -534,7 +534,7 @@ void GetParms(long argc, char *argv[], SFTP_Initializer *sftpI)
 }
 
 
-void FillStrings(void)
+static void FillStrings(void)
 {
     int i, j;
     for (i = 'a'; i < 'z'+1; i++)
@@ -549,7 +549,7 @@ void FillStrings(void)
 }
 
 
-void InitRPC(void)
+static void InitRPC(void)
 {
     RPC2_PortIdent *pp;
     RPC2_SubsysIdent subsysid;
@@ -568,7 +568,7 @@ void InitRPC(void)
 }
 
 
-void PrintStats(void)
+static void PrintStats(void)
 {
     printf("RPC2:\n");
     printf("Packets Sent = %lu\tPacket Retries = %lu (of %lu)\tPackets Received = %lu\n",

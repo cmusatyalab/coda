@@ -3,7 +3,7 @@
                            Coda File System
                               Release 5
 
-          Copyright (c) 1987-2008 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -94,13 +94,12 @@ static int sftp_vfreadv(struct SFTP_Entry *se, struct iovec iovarray[], long how
 
 /* sftp5.c */
 void B_ShiftLeft(unsigned int *bMask, int bShift);
-void B_ShiftRight(unsigned int *bMask, int bShift);
 void B_Assign(unsigned int *dest, unsigned int *src);
 void B_CopyToPacket(unsigned int *bMask, RPC2_PacketBuffer *whichPacket);
 void B_CopyFromPacket(RPC2_PacketBuffer *whichPacket, unsigned int *bMask);
 
 #ifdef RPC2DEBUG
-void PrintDb(struct SFTP_Entry *se, RPC2_PacketBuffer *pb);
+static void PrintDb(struct SFTP_Entry *se, RPC2_PacketBuffer *pb);
 #define BOGOSITY(se, pb)  (fprintf(rpc2_tracefile, "SFTP bogosity:  file %s, line %d\n", __FILE__, __LINE__), PrintDb(se, pb))
 #else 
 #define BOGOSITY(se, pb)
@@ -1261,7 +1260,7 @@ void sftp_InitPacket(RPC2_PacketBuffer *pb, struct SFTP_Entry *sfe,
 
 
 #ifdef RPC2DEBUG
-void PrintDb(struct SFTP_Entry *se, RPC2_PacketBuffer *pb)
+static void PrintDb(struct SFTP_Entry *se, RPC2_PacketBuffer *pb)
 {
     fprintf(rpc2_tracefile, "SFTP_Entry:\n");
     fprintf(rpc2_tracefile, "\tMagic = %ld  WhoAmI = %d  LocalHandle = %#x  GotParms = %d  SentParms = %d\n",

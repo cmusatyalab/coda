@@ -3,7 +3,7 @@
                            Coda File System
                               Release 5
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -90,7 +90,7 @@ static void FreeMultiCon(int HowMany, MultiCon *mcon);
 static long mrpc_SendPacketsReliably();
 static PacketCon *InitPacketCon(int HowMany);
 static void FreePacketCon(PacketCon *pcon);
-long exchange(PacketCon *pcon, int cur_ind);
+static long exchange(PacketCon *pcon, int cur_ind);
 static void MSend_Cleanup(int HowMany, MultiCon *mcon,
 			  SE_Descriptor SDescList[],
 			  struct timeval *Timeout, PacketCon *pcon);
@@ -680,7 +680,7 @@ void FreePacketCon(PacketCon *pcon)
 /* exchange two elements of the socket listener element array */
 /* returns value for loop counter: decrements it iff elements */
 /* are physically exchanged */
-long exchange(PacketCon *pcon, int cur_ind)
+static long exchange(PacketCon *pcon, int cur_ind)
 {
     long tmp;
 

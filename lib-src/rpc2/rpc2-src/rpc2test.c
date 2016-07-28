@@ -142,14 +142,14 @@ char TestDir[256];
 
 static long ClientsReady;  /* How many clients are ready; will be signalled by main() to start real action  */
 
-char *TimeNow(void)
+static char *TimeNow(void)
 {
     time_t t = mytime();
     return(ctime(&t));
 }
 
 
-char *MakeName(char *leaf)
+static char *MakeName(char *leaf)
 {
     static char buf[200];
 

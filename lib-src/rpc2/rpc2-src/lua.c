@@ -3,7 +3,7 @@
 			   Coda File System
 			      Release 6
 
-	    Copyright (c) 2006-2008 Carnegie Mellon University
+	    Copyright (c) 2006-2016 Carnegie Mellon University
 		  Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -247,7 +247,7 @@ static int l2c_pushtimeval(lua_State *L, struct timeval *tv)
 }
 
 /* similar to checkudata, but doesn't raise an error but returns NULL */
-void *l2c_getudata(lua_State *L, int index, char *type)
+static void *l2c_getudata(lua_State *L, int index, char *type)
 {
     void *p = lua_touserdata(L, index);
     if (p == NULL || !lua_getmetatable(L, index))
