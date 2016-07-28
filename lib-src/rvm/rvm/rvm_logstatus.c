@@ -3,7 +3,7 @@
                            Coda File System
                               Release 5
 
-          Copyright (c) 1987-2010 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -140,7 +140,7 @@ void enter_log(log)
     }
 
 /* find an existing log -- returns descriptor ptr or NULL */
-log_t *find_log(log_dev)
+static log_t *find_log(log_dev)
     char            *log_dev;
     {
     log_t           *log;

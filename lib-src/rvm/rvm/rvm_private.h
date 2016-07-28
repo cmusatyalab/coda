@@ -3,7 +3,7 @@
                            Coda File System
                               Release 5
 
-          Copyright (c) 1987-2010 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -1137,8 +1137,6 @@ typedef struct rvm_page_entry {
 
 rvm_bool_t rvm_register_page(char *vmaddr, rvm_length_t length);
 rvm_bool_t rvm_unregister_page(char *vmaddr, rvm_length_t length);
-rvm_bool_t mem_chk(char *vmaddr, rvm_length_t length);
-rvm_page_entry_t *find_page_entry(char *vmaddr);
 /* list management functions */
 
 extern
@@ -1151,11 +1149,6 @@ list_entry_t *move_list_entry();        /* [rvm_utils.c] */
 /*  register list_entry_t *fromptr;
     register list_entry_t *toptr;
     register list_entry_t *cell;
-*/
-extern
-void insert_list_entry();               /* [rvm_utils.c] */
-/*  register list_entry_t *entry;
-    register list_entry_t *new_entry;
 */
 extern
 list_entry_t *alloc_list_entry();        /* [rvm_utils.c] */
@@ -1257,10 +1250,6 @@ void enter_log();                       /* [rvm_logstatus.c] */
 /*  log_t           *log; */
 
 extern
-log_t *find_log();                      /* [rvm_logstatus.c] */
-/*  char            *log_dev; */
-
-extern
 rvm_return_t open_log();                /* [rvm_logstatus.c] */
 /*  char            *dev_name;
     log_t           **log_ptr;
@@ -1336,10 +1325,6 @@ rvm_return_t queue_special();           /* [rvm_logflush.c] */
     log_special_t   *special;
 */
 extern
-rvm_return_t flush_log_special();       /* [rvm_logflush.c] */
-/*  log_t           *log; */
-
-extern
 rvm_return_t flush_log();               /* [rvm_logflush.c] */
 /*  log_t           *log;
     long            *count;
@@ -1374,10 +1359,6 @@ void reset_hdr_chks();                  /* [rvm_logrecovr.c] */
 /*  log_t           *log; */
 
 extern
-rvm_bool_t chk_hdr_type();              /* [rvm_logrecovr.c] */
-/*  rec_hdr_t       *rec_hdr; */
-
-extern
 rvm_bool_t chk_hdr_currency();          /* [rvm_logrecovr.c] */
 /*  log_t           *log;
     rec_hdr_t       *rec_hdr;
@@ -1389,23 +1370,11 @@ rvm_bool_t chk_hdr_sequence();          /* [rvm_logrecovr.c] */
     rvm_bool_t      direction;
 */
 extern
-rvm_bool_t chk_hdr();                   /* [rvm_logrecovr.c] */
-/*  log_t           *log;
-    rec_hdr_t       *rec_hdr;
-    rec_end_t       *rec_end;
-    rvm_bool_t      direction;
-*/
-extern
 rvm_bool_t validate_hdr();              /* [rvm_logrecovr.c] */
 /*  log_t           *log;
     rec_hdr_t       *rec_hdr;
     rec_end_t       *rec_end;
     rvm_bool_t      direction;
-*/
-extern
-rvm_return_t validate_rec_forward();    /* [rvm_logrecovr.c] */
-/*  log_t           *log;
-    rvm_bool_t      synch;
 */
 extern
 rvm_return_t validate_rec_reverse();    /* [rvm_logrecovr.c] */
@@ -1424,11 +1393,6 @@ rvm_return_t scan_reverse();            /* [rvm_logrecovr.c] */
 */
 extern
 rvm_return_t scan_nv_forward();         /* [rvm_logrecovr.c] */
-/*  log_t           *log;
-    rvm_bool_t      synch;
-*/
-extern
-rvm_return_t scan_nv_reverse();         /* [rvm_logrecovr.c] */
 /*  log_t           *log;
     rvm_bool_t      synch;
 */
@@ -1459,15 +1423,6 @@ void log_daemon();                      /* [rvm_logrecovr.c] */
 /*  log_t           *log; */
 
 extern
-rvm_return_t change_tree_insert();      /* [rvm_logrecovr.c] */
-/*  seg_dict_t      *seg_dict;
-    dev_region_t    *node;
-*/
-extern
-rvm_return_t apply_mods();              /* [rvm_logrecovr.c] */
-/*  log_t           *log; */
-
-extern
 rvm_return_t alloc_log_buf();           /* [rvm_logrecovr.c] */
 /*  log_t           *log; */
 
@@ -1481,18 +1436,13 @@ void init_map_roots(void);
 rvm_return_t bad_region(rvm_region_t *rvm_region);
 char *page_alloc(rvm_length_t len);
 void page_free(char *vmaddr, rvm_length_t length);
-long open_seg_dev(seg_t *seg, rvm_offset_t *dev_length);
-long close_seg_dev(seg_t *seg);
 rvm_return_t close_all_segs(void);
 seg_t *seg_lookup(char *dev_name, rvm_return_t *retval);
-rvm_return_t define_seg(log_t *log, seg_t *seg);
 rvm_return_t define_all_segs(log_t *log);
 long dev_partial_include(rvm_offset_t *base1, rvm_offset_t *end1, rvm_offset_t *base2, rvm_offset_t *end2);
 long dev_total_include(rvm_offset_t *base1, rvm_offset_t *end1, rvm_offset_t *base2, rvm_offset_t *end2);
-long mem_partial_include(tree_node_t *tnode1, tree_node_t *tnode2);
 long mem_total_include(tree_node_t *tnode1, tree_node_t *tnode2);
 region_t *find_whole_range(char *dest, rvm_length_t length, rw_lock_mode_t mode);
-region_t *find_partial_range(char *dest, rvm_length_t length, long *code);
 rvm_return_t rvm_map(rvm_region_t *rvm_region, rvm_options_t *rvm_options);
 
 
@@ -1567,15 +1517,6 @@ void init_rw_lock();
 extern
 void init_tree_root();                  /* [rvm_utils.c] */
 /*  tree_root_t     *root; */
-
-extern
-void clear_tree_root();                 /* [rvm_utils.c] */
-/*  tree_root_t     *root; */
-
-extern                                  /* [rvm_utils.c] */
-void rw_lock_clear();                     
-/*  rw_lock_t       *rwl; */
-/* Binary Tree Functions */
 
 extern
 tree_node_t *tree_lookup();             /* [rvm_utils.c] */
@@ -1679,12 +1620,6 @@ extern
 rvm_length_t chk_sum();                 /* rvm_utils.c */
 /*  char            *nvaddr;
     rvm_length_t    len;
-*/
-extern
-rvm_length_t zero_pad_word();           /* rvm_utils.c */
-/*  rvm_length_t    word;
-    char            *addr;
-    rvm_bool_t      leading;
 */
 extern
 void src_aligned_bcopy();               /* rvm_utils.c */

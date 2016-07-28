@@ -3,7 +3,7 @@
                            Coda File System
                               Release 5
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -56,7 +56,7 @@ long                tid_bits[NUM_TIDS] = {T1,T2,T3,T4,T5};
 
 
 /* get boolean answer */
-rvm_bool_t get_ans(prompt,sense)
+static rvm_bool_t get_ans(prompt,sense)
     char            *prompt;            /* prompt string */
     rvm_bool_t      sense;              /* false if default is 'no' */
     {
@@ -82,7 +82,7 @@ rvm_bool_t get_ans(prompt,sense)
             }
         }
     }
-rvm_bool_t chk_file(filename,region)
+static rvm_bool_t chk_file(filename,region)
     char            *filename;
     rvm_region_t    *region;
     {
@@ -141,7 +141,7 @@ rvm_bool_t get_ans(prompt,sense)
     return rvm_true;
     }
 /* copy file */
-rvm_bool_t copy_file(file1,file2)
+static rvm_bool_t copy_file(file1,file2)
     char                *file1;         /* source file */
     char                *file2;         /* destination file */
     {
@@ -182,7 +182,7 @@ rvm_bool_t copy_file(file1,file2)
     return rvm_false;
     }
 /* initialization tests */
-rvm_bool_t test_initialization(options)
+static rvm_bool_t test_initialization(options)
     rvm_options_t       *options;
     {
     rvm_return_t        retval;
@@ -209,7 +209,7 @@ rvm_bool_t test_initialization(options)
     return rvm_false;
     }
 /* termination tests */
-rvm_bool_t test_termination()
+static rvm_bool_t test_termination()
     {
     rvm_return_t        retval;
 
@@ -233,7 +233,7 @@ rvm_bool_t test_termination()
     return rvm_false;
     }
 /* bad TID tests */
-rvm_bool_t bad_TID_tests(tid)
+static rvm_bool_t bad_TID_tests(tid)
     rvm_tid_t           *tid;
     {
     rvm_return_t        retval;         /* rvm return code */
@@ -260,7 +260,7 @@ rvm_bool_t bad_TID_tests(tid)
     return rvm_false;
     }
 /* basic transaction start-up tests */
-rvm_bool_t start_trans_tests(tid1,tid2,tid3,tid4,tid5)
+static rvm_bool_t start_trans_tests(tid1,tid2,tid3,tid4,tid5)
     rvm_tid_t           *tid1,*tid2,*tid3,*tid4,*tid5;
     {
     rvm_return_t        retval;         /* rvm return code */
@@ -313,7 +313,7 @@ rvm_bool_t start_trans_tests(tid1,tid2,tid3,tid4,tid5)
     return rvm_false;
     }
 /* test null transaction */
-rvm_bool_t test_null_trans(tid)
+static rvm_bool_t test_null_trans(tid)
     rvm_tid_t           *tid;
     {
     rvm_return_t        retval;         /* rvm return code */
@@ -344,7 +344,7 @@ rvm_bool_t test_null_trans(tid)
         return rvm_true;
     }
 /* single range commit test */
-rvm_bool_t test_single_range_commit(tid)
+static rvm_bool_t test_single_range_commit(tid)
     rvm_tid_t       *tid;
     {
     rvm_return_t    retval;             /* rvm return code */
@@ -382,7 +382,7 @@ rvm_bool_t test_single_range_commit(tid)
     return rvm_false;
     }
 /* commit a transaction with several ranges */
-rvm_bool_t test_multi_range_commit(tid)
+static rvm_bool_t test_multi_range_commit(tid)
     rvm_tid_t           *tid;
     {
     rvm_return_t        retval;         /* rvm return code */
@@ -440,7 +440,7 @@ rvm_bool_t test_multi_range_commit(tid)
     return rvm_false;
     }
 /* test multi-range transaction with abort */
-rvm_bool_t test_multi_range_abort(tid)
+static rvm_bool_t test_multi_range_abort(tid)
     rvm_tid_t           *tid;
     {
     rvm_return_t        retval;         /* rvm return code */
@@ -498,7 +498,7 @@ rvm_bool_t test_multi_range_abort(tid)
     return rvm_false;
     }
 /* test complex multi-range transaction */
-rvm_bool_t test_complex_range_commit(tid)
+static rvm_bool_t test_complex_range_commit(tid)
     rvm_tid_t           *tid;
     {
     rvm_return_t        retval;         /* rvm return code */

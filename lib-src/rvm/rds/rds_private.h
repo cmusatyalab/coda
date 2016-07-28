@@ -3,7 +3,7 @@
                            Coda File System
                               Release 5
 
-          Copyright (c) 1987-2010 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -166,8 +166,6 @@ extern FILE *rds_tracing_file;
 /********************
  * Definitions of worker functions.
  */
-extern int enqueue();
-extern free_block_t *dequeue();
 extern int print_heap();
 extern free_block_t *split();
 extern free_block_t *get_block();
@@ -176,7 +174,6 @@ extern int put_block();
 /*********************
  * Definitions of util functions
  */
-free_block_t *dequeue();
 int           rm_from_list();
 
 /***********************

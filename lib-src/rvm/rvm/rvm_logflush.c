@@ -3,7 +3,7 @@
                            Coda File System
                               Release 5
 
-          Copyright (c) 1987-2010 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -46,6 +46,10 @@ rvm_length_t        trans_elims_vec[trans_elims_len] =
                                         {trans_elims_dist};
 rvm_length_t        trans_coalesces_vec[trans_coalesces_len] =
                                         {trans_coalesces_dist};
+
+/* forward decl */
+static rvm_return_t flush_log_special(log_t *log);
+
 /* allocate variable sized log i/o vector */
 static rvm_return_t make_iov(log,length)
     log_t           *log;               /* log descriptor */
@@ -536,9 +540,8 @@ static rvm_return_t log_special(log_t *log, log_special_t *special)
     return RVM_SUCCESS;
 }
 /* log immediate records flush -- log device locked by caller */
-rvm_return_t flush_log_special(log)
-    log_t           *log;
-    {
+static rvm_return_t flush_log_special(log_t *log)
+{
     log_special_t   *special;           /* special record to log */
     rvm_return_t    retval = RVM_SUCCESS;
 
@@ -560,7 +563,7 @@ rvm_return_t flush_log_special(log)
         }
 
     return retval;
-    }
+}
 /* internal log flush */
 rvm_return_t flush_log(log,count)
     log_t           *log;

@@ -3,7 +3,7 @@
                            Coda File System
                               Release 5
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -30,10 +30,6 @@ Coda are listed in the file CREDITS.
 
 extern char *sys_errlist[];
 extern int sys_nerr;
-
-void PollAndYield()
-{
-}
 
 main(argc, argv)
      int  argc;

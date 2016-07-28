@@ -3,7 +3,7 @@
                            Coda File System
                               Release 5
 
-          Copyright (c) 1987-2010 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -24,22 +24,10 @@ Coda are listed in the file CREDITS.
 #define ZERO 0
 #endif
 
-int
-enqueue(list, block, tid, err)
-     free_list_t  *list;
-     free_block_t *block;
-     rvm_tid_t    *tid;
-     int	  *err;
-{
-    assert(0);
-    return -1;
-}
-
 /*
  * Dequeue a memory object from the front of a list, return the memory object.
  */
-
-free_block_t *
+static free_block_t *
 dequeue(list, tid, err)
      free_list_t  *list;
      rvm_tid_t    *tid;

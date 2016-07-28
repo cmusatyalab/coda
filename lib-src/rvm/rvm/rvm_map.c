@@ -3,7 +3,7 @@
                            Coda File System
                               Release 5
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -76,6 +76,9 @@ static long         seg_code = 1;       /* segment short names */
 static RVM_MUTEX    seg_code_lock;      /* lock for short names generator */
 list_entry_t        page_list;          /* list of usable pages */
 RVM_MUTEX           page_list_lock;     /* lock for usable page list */
+
+/* forward decl */
+static rvm_page_entry_t *find_page_entry(char *vmaddr);
 
 /* basic page, segment lists and region tree initialization */
 void init_map_roots()
@@ -315,7 +318,7 @@ rvm_bool_t rvm_unregister_page(char *vmaddr, rvm_length_t length)
  *                    us to support both rvm_unregister_page and
  *                    chk_mem, which need slightly different things.
  */
-rvm_page_entry_t *find_page_entry(char *vmaddr)
+static rvm_page_entry_t *find_page_entry(char *vmaddr)
 {
     rvm_page_entry_t *bookmark;
 
@@ -404,7 +407,7 @@ void page_free(vmaddr, length)
  *            this means either that it is on the list,
  *            or it is wholly contained by one or more list entries.
  */
-rvm_bool_t mem_chk(char *vmaddr, rvm_length_t length)
+static rvm_bool_t mem_chk(char *vmaddr, rvm_length_t length)
 {
     rvm_page_entry_t *entry;
     char *start = vmaddr;
@@ -445,7 +448,7 @@ static long make_seg_code()
 }
 
 /* open segment device and set device characteristics */
-long open_seg_dev(seg,dev_length)
+static long open_seg_dev(seg,dev_length)
     seg_t           *seg;               /* segment descriptor */
     rvm_offset_t    *dev_length;        /* optional device length */
     {
@@ -461,7 +464,7 @@ long open_seg_dev(seg,dev_length)
     return retval;
     }
 
-long close_seg_dev(seg)
+static long close_seg_dev(seg)
     seg_t           *seg;               /* segment descriptor */
     {
 
@@ -520,7 +523,7 @@ seg_t *seg_lookup(dev_name,retval)
     }
 
 /* enter segment short name definition in log */
-rvm_return_t define_seg(log,seg)
+static rvm_return_t define_seg(log,seg)
     log_t           *log;               /* log descriptor */
     seg_t           *seg;               /* segment descriptor */
     {
@@ -643,7 +646,7 @@ long dev_total_include(base1,end1,base2,end2)
     }
 
 /* vm range conflict comparator */
-long mem_partial_include(tnode1,tnode2)
+static long mem_partial_include(tnode1,tnode2)
     tree_node_t     *tnode1;            /* range1 */
     tree_node_t     *tnode2;            /* range2 */
     {
@@ -724,42 +727,6 @@ region_t *find_whole_range(dest,length,mode)
     
     return region;
     }
-/* find and lock a region record if vm range is at least partially
-   within a single mapped region; return code for inclusion
-*/
-region_t *find_partial_range(dest,length,code)
-    char            *dest;
-    rvm_length_t    length;
-    long            *code;
-    {
-    mem_region_t    range;              /* dummy node for lookup */
-    mem_region_t    *node;              /* ptr to node found */
-    region_t        *region = NULL;     /* ptr to region for found node */
-
-    range.vmaddr = dest;
-    range.length = length;
-    range.links.node.struct_id = mem_region_id;
-
-    RW_CRITICAL(region_tree_lock,r,     /* begin region_tree_lock crit sect */
-        {
-        node = (mem_region_t *)tree_lookup(&region_tree,
-                                          (tree_node_t *)&range,
-                                          mem_partial_include);
-        if (node != NULL)
-            {
-            region = node->region;
-            assert(region != NULL);
-
-            /* begin region_lock crit sect (ended by caller) */
-            rw_lock(&region->region_lock,r);
-            *code = mem_total_include((tree_node_t *)&range,
-                                      (tree_node_t *)node);
-            }
-        });                             /* end region_tree_lock crit sect */
-    
-    return region;
-    }
-
 /* apply mapping options, compute region size, and round to page size */
 static rvm_return_t round_region(rvm_region,seg)
     rvm_region_t    *rvm_region;        /* user region specs [in/out] */

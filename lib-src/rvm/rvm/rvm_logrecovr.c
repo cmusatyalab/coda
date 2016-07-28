@@ -306,7 +306,7 @@ static rvm_return_t refill_buffer(log,direction,synch)
     return init_buffer(log,&offset,direction,synch);
     }
 /* compare buf & shadow buf from gdb */
-#ifdef SPECIAL_DEBUG
+#ifdef DEBUG_GDB
 int log_buf_cmp(disp)
     int             disp;
     {
@@ -356,7 +356,6 @@ int disk_buf_cmp(buf,disp)
 
     return -1;
     }
-#endif /* SPECIAL_DEBUG */
 /* locate byte in buffer via gdb */
 int find_byte(chr,buf,disp,max_len)
     char            chr;
@@ -400,6 +399,7 @@ int find_buf_word(wrd,disp)
 
     return find_word(wrd, (rvm_length_t *)log_buf->buf,disp,log_buf->r_length);
     }
+#endif /* DEBUG_GDB */
 /* load log auxillary buffer */
 rvm_return_t load_aux_buf(log,log_offset,length,aux_ptr,
                                  data_len,synch,pre_load)
@@ -518,7 +518,7 @@ void clear_aux_buf(log)
     log_buf->aux_rlength = 0;
     }
 /* record header type validation */
-rvm_bool_t chk_hdr_type(rec_hdr)
+static rvm_bool_t chk_hdr_type(rec_hdr)
     rec_hdr_t       *rec_hdr;           /* generic record header */
     {
     switch (rec_hdr->struct_id)
@@ -589,7 +589,7 @@ rvm_bool_t chk_hdr_sequence(log,rec_hdr,direction)
     return rvm_true;
     }
 /* record header validation */
-rvm_bool_t chk_hdr(log,rec_hdr,rec_end,direction)
+static rvm_bool_t chk_hdr(log,rec_hdr,rec_end,direction)
     log_t           *log;               /* log descriptor */
     rec_hdr_t       *rec_hdr;           /* generic record header */
     rec_end_t       *rec_end;           /* generic record end marker */
@@ -709,7 +709,7 @@ rvm_return_t scan_nv_forward(log,synch)
     }
 /* get previous new value range by reverse scan of transaction record
    ptr points to previous range header; exits with range in buffer */
-rvm_return_t scan_nv_reverse(log,synch)
+static rvm_return_t scan_nv_reverse(log,synch)
     log_t          *log;                /* log descriptor */
     rvm_bool_t      synch;              /* true ==> synchronization required */
     {
@@ -765,7 +765,7 @@ rvm_return_t scan_nv_reverse(log,synch)
     return RVM_SUCCESS;
     }
 /* validate record in buffer in forward scan */
-rvm_return_t validate_rec_forward(log,synch)
+static rvm_return_t validate_rec_forward(log,synch)
     log_t           *log;               /* log descriptor */
     rvm_bool_t      synch;              /* true ==> synchronization required */
     {
@@ -1483,7 +1483,7 @@ rvm_return_t def_seg_dict(log,rec_hdr)
     return RVM_SUCCESS;
     }
 /* change tree comparator for tree_insert */
-long cmp_partial_include(node1,node2)
+static long cmp_partial_include(node1,node2)
     dev_region_t    *node1;
     dev_region_t    *node2;
     {
@@ -1502,7 +1502,7 @@ static void set_node_length(node)
     node->length = RVM_OFFSET_TO_LENGTH(offset_temp);
 
     }
-rvm_return_t change_tree_insert(seg_dict,node)
+static rvm_return_t change_tree_insert(seg_dict,node)
     seg_dict_t      *seg_dict;          /* seg_dict for this nv */
     dev_region_t    *node;              /* change tree node for this nv */
     {
@@ -2409,7 +2409,7 @@ err_exit:
     return retval;
     }
 /* Recovery: phase 3 -- apply modifications to segments */
-rvm_return_t apply_mods(log)
+static rvm_return_t apply_mods(log)
     log_t           *log;               /* log descriptor */
     {
     log_status_t    *status = &log->status; /* status descriptor */

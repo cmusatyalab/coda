@@ -3,7 +3,7 @@
                            Coda File System
                               Release 5
 
-          Copyright (c) 1987-2010 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -52,12 +52,14 @@ extern list_entry_t     log_root;       /* log list */
 /* locals */
 
 /* structure names & sizes for debug support */
+#ifdef DEBUG_GDB
 static char             *type_names[NUM_TYPES]
                             = {TYPE_NAMES};
 static rvm_length_t     type_sizes[NUM_TYPES]
                             = {CACHE_TYPE_SIZES,OTHER_TYPE_SIZES};
 #define SIZE(id)        (type_sizes[ID_INDEX(id)])
 #define NAME(id)        (type_names[ID_INDEX(id)])
+
 /* address is in a structure */
 #define IN_STRUCT(x,s,id) \
                         (((x) >= (rvm_length_t)(s)) && \
@@ -68,6 +70,7 @@ static rvm_length_t     type_sizes[NUM_TYPES]
 
 #define ADDR_INVALID_OR_NULL(x) \
                         (ADDR_INVALID(x) || ((x) == NULL))
+#endif /* DEBUG_GDB */
 
 /* empty routine to force loading of this module when referenced by a program
    can also be used as a break point when a condition must be calculated */
@@ -77,6 +80,8 @@ void rvm_debug(val)
     if (val != 0)
         printf("\nAt rvm_debug: %ld (%lx)\n",val,val);
     }
+
+#ifdef DEBUG_GDB
 /* power of 2 table -- must be extended for machines with address
      spaces greater than 32 bits */
 #define NUM_TWOS        30
@@ -1240,3 +1245,4 @@ void on_list(hdr,addr)
 
     printf("Entry not on list\n");
     }
+#endif /* DEBUG_GDB */

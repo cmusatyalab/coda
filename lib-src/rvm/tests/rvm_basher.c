@@ -3,7 +3,7 @@
                            Coda File System
                               Release 5
 
-          Copyright (c) 1987-2010 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -77,7 +77,6 @@ extern rvm_region_def_t *RegionDefs;    /* hooks to rds */
 extern long NRegionDefs;
 extern rvm_bool_t rds_testsw;                 /* special test mode switch */
 
-extern void clear_free_lists();
 #ifdef CODA_ASSERT
 #undef CODA_ASSERT
 #endif
@@ -263,7 +262,7 @@ str_name_entry_t;
 /* list maintainance functions */
 
 /* list header initializer */
-void init_list_head(whichlist)
+static void init_list_head(whichlist)
     list_entry_t    *whichlist;         /* pointer to list header */
     {
     whichlist->nextentry = whichlist;   /* pointers are to self now */
@@ -273,7 +272,7 @@ void init_list_head(whichlist)
     }
 
 /* list entry initializer */
-void init_list_ent(entry)
+static void init_list_ent(entry)
     list_entry_t    *entry;
     {
     entry->nextentry = NULL;
@@ -282,7 +281,7 @@ void init_list_ent(entry)
     entry->is_header = rvm_false;
     }
 /* list entry mover */
-list_entry_t *move_list_ent(fromptr, toptr, victim)
+static list_entry_t *move_list_ent(fromptr, toptr, victim)
     register list_entry_t *fromptr;     /* from list header */
     register list_entry_t *toptr;       /* to list header */
     register list_entry_t *victim;      /* pointer to entry to be moved */
@@ -345,7 +344,7 @@ list_entry_t *move_list_ent(fromptr, toptr, victim)
 #define BYTE_SKEW(len)       ((rvm_length_t)(len) & ~LENGTH_MASK)
 
 /* zero-pad unused bytes of word */
-rvm_length_t zero_pad(word,addr,leading)
+static rvm_length_t zero_pad(word,addr,leading)
     rvm_length_t    word;               /* value to be zero-padded */
     char            *addr;              /* address of 1st/last byte */
     rvm_bool_t      leading;            /* true if leading bytes are zeroed */
@@ -369,7 +368,7 @@ rvm_length_t zero_pad(word,addr,leading)
     }
 /* checksum function: forms checksum of arbitrarily aligned range
    by copying preceeding, trailing bytes to make length 0 mod length size */
-rvm_length_t check_sum(nvaddr,len)
+static rvm_length_t check_sum(nvaddr,len)
     char            *nvaddr;            /* address of 1st byte */
     rvm_length_t    len;                /* byte count */
     {
@@ -397,7 +396,7 @@ rvm_length_t check_sum(nvaddr,len)
     return chk_sum;
     }
 /* test block check sum */
-rvm_bool_t test_chk_sum(block)
+static rvm_bool_t test_chk_sum(block)
     block_t         *block;
     {
     rvm_length_t    chksum;
@@ -413,7 +412,7 @@ rvm_bool_t test_chk_sum(block)
     return rvm_true;
     }
 /* pick random block from alloc list */
-block_t *pick_random()
+static block_t *pick_random()
     {
     block_t         *block;             /* allocated block descriptor */
     int             i;
@@ -439,7 +438,7 @@ block_t *pick_random()
     return block;
     }
 /* allocator */
-void do_malloc(id)
+static void do_malloc(id)
     int             id;                 /* thread id */
     {
     rvm_tid_t       tid;                /* transaction identifier */
@@ -501,7 +500,7 @@ void do_malloc(id)
 
     }
 /* deallocator function */
-void do_free(id)
+static void do_free(id)
     int             id;                 /* thread id */
     {
     int             err;                /* rds error return */
@@ -541,7 +540,7 @@ void do_free(id)
     free(block);
     }
 /* rvm_chk_range test */
-void test_chk_range(tid,addr,len,id)
+static void test_chk_range(tid,addr,len,id)
     rvm_tid_t       *tid;
     char            *addr;
     rvm_length_t    len;
@@ -577,7 +576,7 @@ void test_chk_range(tid,addr,len,id)
 #endif /* VERSION_TEST */
     }
 /* block modifier transaction */
-void do_trans(block,range_list,do_flush,id)
+static void do_trans(block,range_list,do_flush,id)
     block_t         *block;             /* block descriptor */
     block_t         *range_list;        /* list of modification ranges */
     rvm_bool_t      do_flush;
@@ -686,7 +685,7 @@ void do_trans(block,range_list,do_flush,id)
         }
     }
 /* block modifier */
-void do_modify(id)
+static void do_modify(id)
     int             id;                 /* thread id */
     {
     int             n_trans;            /* number of transactions per block */
@@ -739,7 +738,7 @@ void do_modify(id)
         });                             /* end alloc list crit sec */
     }
 /* region checker for chk_vm */
-rvm_bool_t chk_region(seg_file,region)
+static rvm_bool_t chk_region(seg_file,region)
     FILE            *seg_file;
     int             region;             /* index of region */
     {
@@ -792,7 +791,7 @@ rvm_bool_t chk_region(seg_file,region)
     return rvm_true;
     }
 /* vm <==> disk comparator */
-rvm_bool_t chk_vm()
+static rvm_bool_t chk_vm()
     {
     rvm_return_t    ret;
     FILE            *seg_file;
@@ -920,7 +919,8 @@ rvm_bool_t chk_vm()
 #endif /* VERSION_TEST */
     return rvm_true;
     }
-rvm_bool_t chk_time()
+
+static rvm_bool_t chk_time()
     {
     struct timeval  time;
 
@@ -939,8 +939,9 @@ rvm_bool_t chk_time()
     init_time = time;                   /* update loop start time */
     return rvm_true;
     }
+
 /* moby range test */
-rvm_bool_t chk_moby()
+static rvm_bool_t chk_moby()
     {
     rvm_length_t    length;             /* range length */
     char            *start;             /* starting offset for range */
@@ -1023,7 +1024,7 @@ rvm_bool_t chk_moby()
     return rvm_true;
     }
 /* test monitor */
-void monitor()
+static void monitor()
     {
     
     mutex_lock(&chk_lock);              /* begin chk_lock crit sec */
@@ -1070,7 +1071,7 @@ void monitor()
     return;
     }
 /* testing thread function */
-void worker(void *idp)
+static void worker(void *idp)
 {
     int id = *(int *)idp;
 
@@ -1255,7 +1256,7 @@ static char *read_prompt_line(prompt,null_ok)
 
 /* display test parameters */
 
-void show_test_parms()
+static void show_test_parms()
     {
     int             priority;
 
@@ -1361,7 +1362,7 @@ void show_test_parms()
     printf("\n");
     }
 /* get data file name and size */
-void set_data_file()
+static void set_data_file()
     {
     int                 len;
     struct stat 	sbuf;
@@ -1424,7 +1425,7 @@ void set_data_file()
         }
     }
 /* get log file name */
-void set_log_file()
+static void set_log_file()
     {
     int             len;
 
@@ -1557,6 +1558,7 @@ static void setup_plumber_file()
 #endif /* RVM_USELWP */
     }
 
+#ifdef DEBUG_GDB
 /* call function (to be used from GDB) */
 void call_plumber()
     {
@@ -1573,8 +1575,9 @@ void call_plumber()
     printf("?  Plumber not available with Cthreads\n");
 #endif /* RVM_USELWP */
     }
+#endif /* DEBUG_GDB */
 /* print break point and limit */
-void show_break()
+static void show_break()
     {
     rvm_length_t    cur_brk;
 #ifdef RLIMIT_DATA

@@ -3,7 +3,7 @@
                            Coda File System
                               Release 5
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -70,6 +70,10 @@ long cache_type_sizes[NUM_CACHE_TYPES] = {CACHE_TYPE_SIZES};
 #ifndef ZERO
 #define ZERO 0
 #endif
+
+/* forward decls */
+static void clear_tree_root(tree_root_t *root);
+static void rw_lock_clear(rw_lock_t *rwl);
 
 /* initialization lock & flag */
 /* cannot be statically allocated if using pthreads */
@@ -175,41 +179,6 @@ list_entry_t *move_list_entry(fromptr, toptr, victim)
 
     return victim;
     }
-/* list insertion routine */
-void insert_list_entry(entry,new_entry)
-    register list_entry_t *entry;       /* existing list entry */
-    register list_entry_t *new_entry;   /* entry to insert after entry */
-    {
-    list_entry_t        *list_hdr;      /* header of target list */
-
-    /* basic sanity checks */
-    assert(!new_entry->is_hdr);
-    assert(new_entry->struct_id == entry->struct_id);
-
-    /* discover header of target list */
-    if (entry->is_hdr)
-        list_hdr = entry;
-    else
-        list_hdr = entry->list.name;
-
-    /* further sanity checks */
-    assert(list_hdr != NULL);
-    assert(list_hdr->is_hdr);
-    assert(new_entry->struct_id == list_hdr->struct_id);
-
-    /* remove list_entry from any list it might be on */
-    if (new_entry->list.name)
-        (void)move_list_entry(NULL, NULL, new_entry);
-
-    /* do insertion into target list */
-    new_entry->list.name = list_hdr;
-    new_entry->nextentry = entry->nextentry;
-    entry->nextentry = new_entry;
-    new_entry->preventry = entry;
-    new_entry->nextentry->preventry = new_entry;
-    list_hdr->list.length++;
-
-    }
 /* internal types free lists support */
 
 /* initialization -- call once at initialization
@@ -295,6 +264,7 @@ static void free_list_entry(cell)
             kill_list_entry(cell);
         });                             /* end free_list_lock crit sec */
     }
+#ifdef UNUSED
 /* clear free lists */
 void clear_free_list(id)
     struct_id_t     id;                 /* type of free list */
@@ -318,6 +288,7 @@ void clear_free_lists()
     for (i = 0; i < ID_INDEX(struct_last_cache_id); i++)
         clear_free_list(INDEX_ID(i));
     }
+#endif
 /* unique name generator */
 /* Cannot be statically allocated in pthreads */
 static RVM_MUTEX     uname_lock = MUTEX_INITIALIZER;
@@ -1190,7 +1161,7 @@ char *rvm_type(id)
 /* Byte-aligned checksum and move functions */
 
 /* zero-pad unused bytes of word */
-rvm_length_t zero_pad_word(word,addr,leading)
+static rvm_length_t zero_pad_word(word,addr,leading)
     rvm_length_t    word;               /* value to be zero-padded */
     char            *addr;              /* address of 1st/last byte */
     rvm_bool_t      leading;            /* true if leading bytes are zeroed */
@@ -1283,10 +1254,8 @@ void init_rw_lock(rwl)
     }
 
 /* rw_lock finalizer */
-void rw_lock_clear(rwl)
-    rw_lock_t   *rwl;
-    {
-
+static void rw_lock_clear(rw_lock_t *rwl)
+{
     assert(LOCK_FREE(rwl->mutex));
     assert(LIST_EMPTY(rwl->queue));
     assert(rwl->read_cnt == 0);
@@ -1294,7 +1263,7 @@ void rw_lock_clear(rwl)
     assert(rwl->lock_mode == f);
 
     mutex_clear(&rwl->mutex);
-    }
+}
 void rw_lock(rwl,mode)
     rw_lock_t       *rwl;               /* ptr to rw_lock structure */
     rw_lock_mode_t  mode;               /* r or w */
@@ -1454,10 +1423,8 @@ void init_tree_root(root)
     }
 
 /* tree root finalizer */
-void clear_tree_root(root)
-    tree_root_t     *root;
-    {
-
+static void clear_tree_root(tree_root_t *root)
+{
     assert(root->struct_id == tree_root_id);
     if (root->traverse != NULL)
         {
@@ -1465,7 +1432,7 @@ void clear_tree_root(root)
         root->traverse = NULL;
         root->traverse_len = 0;
         }
-    }
+}
 
 #ifdef UNUSED_FUNCTIONS
 /* balance checker */

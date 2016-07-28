@@ -3,7 +3,7 @@
                            Coda File System
                               Release 5
 
-          Copyright (c) 1987-2010 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -240,8 +240,8 @@ str_name_entry_t;
 #define KEY_WORD_STR        "key word"
 
 /* internal forward declarations */
-extern rvm_bool_t do_quit();
-extern rvm_bool_t chk_sigint();
+static rvm_bool_t do_quit();
+static rvm_bool_t chk_sigint();
 static long lookup_str_name();
 
 #ifndef ZERO
@@ -1140,7 +1140,7 @@ static rvm_bool_t pr_data_range(out_stream,err_stream,indent,line_width,
     return rvm_true;
     }
 /* get boolean answer */
-rvm_bool_t get_ans(prompt,sense)
+static rvm_bool_t get_ans(prompt,sense)
     char            *prompt;            /* prompt string */
     rvm_bool_t      sense;              /* false if default is 'no' */
     {
@@ -5282,7 +5282,7 @@ exit:
     return cmd_retval;
     }
 /* quit, update, no_update command and signal support */
-rvm_bool_t do_quit()
+static rvm_bool_t do_quit()
     {
     int             err = 0;
 
@@ -5324,7 +5324,7 @@ static void sigint_handler()
     stop_sw = rvm_true;
     }
 
-rvm_bool_t chk_sigint(out_stream)
+static rvm_bool_t chk_sigint(out_stream)
     FILE            *out_stream;
     {
     if ((out_stream != NULL) && stop_sw)
