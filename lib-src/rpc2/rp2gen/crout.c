@@ -1162,18 +1162,17 @@ static void pack(WHO who, VAR *parm, char *prefix, char *ptr, FILE *where)
 		    for_limit(parm, who, where);
 		    fprintf(where, "; %s++) {\n", iterate);
 
-            newprefix = (who == RP2_SERVER ? concat3elem(prefix, var->name, suffix)
-                        : concat3elem(prefix, var->name, suffix));
+            newprefix = (who == RP2_SERVER ? concat3elem(prefix, parm->name, suffix)
+                        : concat3elem(prefix, parm->name, suffix));
     } else {
-            newprefix = (who == RP2_SERVER ? concat(prefix, var->name)
-                        : concat(prefix, var->name));
+            newprefix = (who == RP2_SERVER ? concat(prefix, parm->name)
+                        : concat(prefix, parm->name));
     }
     //for (field=parm->type->type->fields.struct_fields; *field!=NIL; field++) {
         //preprocess_pack_struct(who, *field, newprefix, ptr, where);
         fprintf(where, "    rc = pack_struct_%s(&%s, %s, _EOB, %d);\n", parm->type->name, ptr, newprefix, who);
         fputs("  if (rc < 0) goto bufferoverflow;\n", where);
-    }
-	    free(newprefix);
+	        free(newprefix);
 	    if (parm->array !=NIL)
 		    fputs("    }\n\n", where);
     }
