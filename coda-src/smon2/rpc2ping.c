@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -32,7 +32,7 @@ listed in the file CREDITS.
 #include <coda_string.h>
 #include <coda_getservbyname.h>
 
-void Initialize(void)
+static void Initialize(void)
 {
     RPC2_Options options;
     PROCESS pid;
@@ -59,7 +59,7 @@ void Initialize(void)
     }
 }
 
-long Bind(char *host, short port, long subsys, RPC2_Handle *cid)
+static long Bind(char *host, short port, long subsys, RPC2_Handle *cid)
 {
     RPC2_HostIdent   hostid;
     RPC2_PortIdent   portid;

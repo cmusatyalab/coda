@@ -29,7 +29,7 @@ long filesperdir = 100;
 int dirdigits = 2;
 int verbose = 0;
 
-void mkbigfile (int fd, struct stat fsb, char *dirname)
+static void mkbigfile (int fd, struct stat fsb, char *dirname)
 {
     long levels;		/* Number of directory levels */
     long files;		/* Total number of files */
@@ -176,7 +176,7 @@ void mkbigfile (int fd, struct stat fsb, char *dirname)
     }
 }
 
-void usage(char *prog)
+static void usage(char *prog)
 {
     fprintf (stderr,
 	     "usage: %s [-f files_per_dir] [-s size] [-v]"

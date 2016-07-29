@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -49,9 +49,9 @@ extern "C" {
 
 #define MARINERBUFSIZE 1000
 
-int Bind(const char *);
-void CheckMariner(FILE *);
-void CheckTheMariner(char *);
+static int Bind(const char *);
+static void CheckMariner(FILE *);
+static void CheckTheMariner(char *);
 
 int use_tcp = 0;
 
@@ -96,7 +96,7 @@ int main(int argc, char *argv[])
 }
 
 
-int Bind(const char *host)
+static int Bind(const char *host)
 {
     int s = -1;
 
@@ -147,7 +147,8 @@ int Bind(const char *host)
 }
 
 
-void CheckMariner(FILE *fp) {
+static void CheckMariner(FILE *fp)
+{
     static char buf[MARINERBUFSIZE];
     static char *fillptr = buf;
     register int c;
@@ -179,7 +180,7 @@ void CheckMariner(FILE *fp) {
 }
 
 
-void CheckTheMariner(char *buf)
+static void CheckTheMariner(char *buf)
 {
     char *string, *prefix = NULL;
 

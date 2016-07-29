@@ -60,11 +60,11 @@ int IsAdministrator(struct UserInfo *pU);
 
 char *GetVname(int id, char *s);
 void InitPW(int firsttime);
-int BogusKey(RPC2_EncryptionKey x);
-void BuildPWArray(char *fileBuf);
-void EnlargePW(int newSize);
 int IsAUser(int viceId);
-int IsADeletedUser(int viceId);
+static int BogusKey(RPC2_EncryptionKey x);
+static void BuildPWArray(char *fileBuf);
+static void EnlargePW(int newSize);
+static int IsADeletedUser(int viceId);
 
 char DefKey[RPC2_KEYSIZE] = {'\144','\162','\163','\145','\165','\163','\163','\040'};
 RPC2_EncryptionKey FileKey;     /* unsigned char causes initialization probs */
@@ -187,7 +187,7 @@ void InitPW(int firsttime)
 	free(fbuf);
 }
 
-void BuildPWArray(char *fileBuf)
+static void BuildPWArray(char *fileBuf)
 {
 	/* fileBuf: pointer to in-core contents of PWFile
 	   parses the file buffer and builds up PWArray; sets PWLen and
@@ -240,7 +240,7 @@ void BuildPWArray(char *fileBuf)
 	}
 }
 
-void EnlargePW(int newSize)
+static void EnlargePW(int newSize)
 {
 	/* Makes PWArray capable of holding at least newSize entries */
 	if (newSize < PWLen) return;	/* turkey! */
@@ -253,7 +253,7 @@ void EnlargePW(int newSize)
 	PWLen = newSize;
 }
 
-void AppendPW(int vId, RPC2_EncryptionKey eKey, char *otherInfo, int agentId)
+static void AppendPW(int vId, RPC2_EncryptionKey eKey, char *otherInfo, int agentId)
 {
 	/* eKey:	not yet encrypted with FileKey!!
 	   Appends a line to the PWFile for user whose ViceId is vID.
@@ -468,7 +468,7 @@ int IsAUser(int viceId)
 }
 
 /* Returns TRUE iff viceId corr to a deleted Vice user(==> key of all 1's) */
-int IsADeletedUser(int viceId)
+static int IsADeletedUser(int viceId)
 {
 	if (viceId < 0 || viceId >= PWLen) return (FALSE);
 	if (secure_compare(PWArray[viceId], RPC2_KEYSIZE, DeleteKey, RPC2_KEYSIZE))
@@ -488,7 +488,7 @@ int IsAdministrator(struct UserInfo *pU)
 
 /* Returns TRUE iff x would result in NullKey or DeleteKey when encrypted with
    FileKey.  FALSE otherwise */
-int BogusKey(RPC2_EncryptionKey x)
+static int BogusKey(RPC2_EncryptionKey x)
 {
 	RPC2_EncryptionKey temp;
         int nul, del;

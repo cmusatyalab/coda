@@ -48,8 +48,8 @@ extern "C" {
 #include <codaconf.h>
 #include <coda_getaddrinfo.h>
 
-int Bind(const char *);
-void CheckMariner(FILE *);
+static int Bind(const char *);
+static void CheckMariner(FILE *);
 static void TERM(int, int, struct sigcontext *);
 static void usage();
 
@@ -105,7 +105,7 @@ int main(int argc, char **argv)
 }
 
 
-int Bind(const char *host)
+static int Bind(const char *host)
 {
     int s = -1;
 
@@ -156,7 +156,8 @@ int Bind(const char *host)
 }
 
 
-void CheckMariner(FILE *fp) {
+static void CheckMariner(FILE *fp)
+{
     static char buf[MAXPATHLEN];
     static char *fillptr = buf;
     register int c;

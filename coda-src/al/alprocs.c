@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -77,7 +77,7 @@ int AL_MaxExtEntries = AL_MAXEXTENTRIES; /* Checked on AL_Internalize()
 /* qsort() comparison routines */
 int CmpPlus(AL_AccessEntry *a, AL_AccessEntry *b);
 int CmpMinus(AL_AccessEntry *a, AL_AccessEntry *b);
-int CmpInt(int *a, int *b);
+static int CmpInt(int *a, int *b);
 
 /* Creates an access list capable of holding at least MinNoOfEntries entries.
    Returns 0 on success; aborts if we run out of memory. */
@@ -545,7 +545,7 @@ int CmpMinus(AL_AccessEntry *a, AL_AccessEntry *b){
 	return(1);
 }
 
-int CmpInt(int *x, int *y){
+static int CmpInt(int *x, int *y){
 	if (*x < *y) return (-1);
 	if (*x == *y) return (0);
 	return (1);

@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -39,16 +39,6 @@ struct lkdb {
     int shafails; /* how many hits failed sha verification */
 };
   
-int lkdb_BindDB(struct lkdb *dbp, char *dbpathame, char *emgs, int emsglen);
-int lkdb_GetFilenameFromSHA(struct lkdb *dbp,
-			    unsigned char sha[SHA_DIGEST_LENGTH],
-			    char *hitname, int hitnamelen,
-			    char *emsg, int emsglen);
-
-/* Constructor and destructor */
-struct lkdb *new_lkdb(void);
-void delete_lkdb(struct lkdb *dbp);
-
 /* First part of descriptor record is always the version string;
    Update the version number as code evolves */
 #define LKA_VERSION_STRING "Coda LookAside Database, Version 1.1"

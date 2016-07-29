@@ -6,7 +6,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -67,7 +67,6 @@ void PDB_createGroup(char *name, int32_t owner, int32_t *newGroupId);
 void PDB_deleteGroup(int32_t groupId);
 void PDB_lookupByName(const char *name, int32_t *id);
 void PDB_lookupById(int32_t id, char **name);
-int PDB_nameInUse(char *name);
 void PDB_changeId(int32_t oldid, int32_t newid);
 
 /* fix known problems in PDB profiles created by older versions of pdbtool */

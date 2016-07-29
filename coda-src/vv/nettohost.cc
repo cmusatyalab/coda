@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -15,11 +15,6 @@ listed in the file CREDITS.
                            none currently
 
 #*/
-
-
-
-
-
 
 /*
  *
@@ -41,22 +36,6 @@ extern "C" {
 #include <vice.h>
 #include "inconsist.h"
 #include "nettohost.h"
-
-void 
-htonfid(ViceFid *hfid, ViceFid *nfid) 
-{
-    nfid->Volume = htonl(hfid->Volume);
-    nfid->Vnode = htonl(hfid->Vnode);
-    nfid->Unique = htonl(hfid->Unique);
-}
-
-void 
-ntohfid(ViceFid *nfid, ViceFid *hfid) 
-{
-    hfid->Volume = ntohl(nfid->Volume);
-    hfid->Vnode = ntohl(nfid->Vnode);
-    hfid->Unique = ntohl(nfid->Unique);
-}
 
 void
 ntohsid(ViceStoreId *insid, ViceStoreId *outsid)

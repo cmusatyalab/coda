@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -44,6 +44,12 @@ static INIT_LIST_HEAD(lkdbchain);
 static struct lkdb *GetlkdbByName(char *); /* forward ref */
 static void RemoveAll(); /* forward ref */
 static void ListAll(char *, int); /* forward ref */
+
+static int lkdb_GetFilenameFromSHA(struct lkdb *dbp,
+			    unsigned char sha[SHA_DIGEST_LENGTH],
+			    char *hitname, int hitnamelen,
+			    char *emsg, int emsglen);
+
 
 int LookAsideAndFillContainer (unsigned char sha[SHA_DIGEST_LENGTH], int cfd,
 			       int expectedlength, const char *codaprefix,
@@ -149,7 +155,7 @@ fail_out:
   return(0);
 }
 
-int lkdb_BindDB(struct lkdb *dbp, char *dbpathname, char *emsgbuf, int emsgbuflen)
+static int lkdb_BindDB(struct lkdb *dbp, char *dbpathname, char *emsgbuf, int emsgbuflen)
 {
   /* Associates the db at dbpathname with this lkdb structure; typically
      called only once per lkdb, immediately after creation.
@@ -255,7 +261,7 @@ err:
   return(0);
 }
 
-int lkdb_GetFilenameFromSHA(struct lkdb *dbp,
+static int lkdb_GetFilenameFromSHA(struct lkdb *dbp,
 			    unsigned char sha[SHA_DIGEST_LENGTH],
 			    char *hitpath, int hitpathlen,
 			    char *emsgbuf, int emsgbuflen)
@@ -315,7 +321,7 @@ int lkdb_GetFilenameFromSHA(struct lkdb *dbp,
 }
 
 
-struct lkdb *new_lkdb(void)
+static struct lkdb *new_lkdb(void)
 {
     struct lkdb *dbp;
     dbp = malloc(sizeof(*dbp)); 
@@ -327,7 +333,7 @@ struct lkdb *new_lkdb(void)
     return dbp;
 }
 
-void delete_lkdb(struct lkdb *dbp)
+static void delete_lkdb(struct lkdb *dbp)
 {
     if (!dbp) return;
 

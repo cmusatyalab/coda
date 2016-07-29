@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -43,6 +43,8 @@ listed in the file CREDITS.
 #include <coda_assert.h>
 #include "pdb.h"
 #include "prs.h"
+
+static int pdb_nameInUse(char *name);
 
 void PDB_addToGroup(int32_t id, int32_t groupId)
 {
@@ -162,7 +164,7 @@ void PDB_createUser(char *name, int32_t *newId)
 	CODA_ASSERT(name && (name[0] != '\0') && newId);
    
 	/* MAKE SURE NO USER WITH THAT NAME ALREADY EXISTS */
-	CODA_ASSERT(PDB_nameInUse(name) == 0);
+	CODA_ASSERT(pdb_nameInUse(name) == 0);
 
 	h=PDB_db_open(O_RDWR);
 	
@@ -202,7 +204,7 @@ void PDB_cloneUser(char *name, int32_t cloneid, int32_t *newId)
 	CODA_ASSERT(name && (name[0] != '\0') && newId && (cloneid != 0));
    
 	/* MAKE SURE NO USER WITH THAT NAME ALREADY EXISTS */
-	CODA_ASSERT(PDB_nameInUse(name) == 0);
+	CODA_ASSERT(pdb_nameInUse(name) == 0);
 
 	h=PDB_db_open(O_RDWR);
 
@@ -282,7 +284,7 @@ void PDB_createGroup(char *name, int32_t owner, int32_t *newGroupId)
 		    && PDB_ISUSER(owner));
    
 	/* MAKE SURE NO GROUP WITH THAT NAME ALREADY EXISTS */
-	CODA_ASSERT(PDB_nameInUse(name) == 0);
+	CODA_ASSERT(pdb_nameInUse(name) == 0);
 
 	h=PDB_db_open(O_RDWR);
 
@@ -408,7 +410,7 @@ void PDB_lookupById(int32_t id, char **name)
 }
 
 
-int PDB_nameInUse(char *name)
+static int pdb_nameInUse(char *name)
 {
 	PDB_HANDLE h;
 	void *r;

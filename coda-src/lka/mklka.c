@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -44,8 +44,8 @@ char *NewLKDB = NULL; /* pathname of lookaside db to be created */
 char *TreeRoot = NULL; /* pathname of root of tree to be walked and hashed */
 
 /* Forward refs */
-int SetDescriptor(struct rwcdb *dbh); 
-int WalkTree(char *troot, char *prefix, struct rwcdb *dbh);
+static int SetDescriptor(struct rwcdb *dbh); 
+static int WalkTree(char *troot, char *prefix, struct rwcdb *dbh);
 
 /* dummy function for ComputeViceSHA */
 int LWP_DispatchProcess(void) { return 0; }
@@ -141,7 +141,7 @@ err:
   return(-1);
 }
 
-int SetDescriptor(struct rwcdb *dbh)
+static int SetDescriptor(struct rwcdb *dbh)
 {
   /* Inserts (or replaces) a descriptor record (i.e. key value of 0) into
      open lookaside database specified by dbhandle;
@@ -174,7 +174,7 @@ int SetDescriptor(struct rwcdb *dbh)
 }
 
 
-int WalkTree(char *troot, char *prefix, struct rwcdb *dbh)
+static int WalkTree(char *troot, char *prefix, struct rwcdb *dbh)
 {
   /* Traverse tree at troot and insert a record into database
      dbhandle for each (plain) file.  The key of the record is the

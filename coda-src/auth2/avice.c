@@ -66,65 +66,6 @@ static int key1valid, key2valid;
 static uint8_t auth2key1[AUTH2KEYSIZE];
 static uint8_t auth2key2[AUTH2KEYSIZE];
 
-/*  Wrapper function when multiple authentication type support was added;
-    fits new calling parameters.  We only allow by-token authentication to
-    vice
-*/
-
-long GetKeys(RPC2_Integer *AuthenticationType, RPC2_CountedBS *cIdent, RPC2_EncryptionKey hKey, RPC2_EncryptionKey sKey)
-
-{
-	switch (*AuthenticationType)
-	{
-		case	AUTH_METHOD_NULL:
-			/* we don't like this */
-				return -1;
-#ifdef PWCODADB
-		case	AUTH_METHOD_CODAUSERNAME:
-#ifdef VICEPWCODADB
-/* to support direct login to the Vice server, you will need to link in
-   libpwsupport, and define both of these.  Note that Vice was NOT designed
-   to have direct password support, and it has not been tested.  Further
-   more this may be a disaster, as libpwsupport requires some init functions
-   to be called that are currently not called by Vice.
-
-                   !!!!! DO NOT ENABLE VICEPWCODADB !!!!!
-*/
-
-			/* use coda password database */
-			return PWGetKeys(cIdent, hKey, sKey);
-
-#else	/* VICEPWCODADB */
-
-			/* we don't like this either */
-				return -1;
-
-#endif	/* VICEPWCODADB */
-#endif	/* PWCODADB */
-
-		case	AUTH_METHOD_CODATOKENS:
-			/* this is a good way to auth to Vice */
-				return GetKeysFromToken(AuthenticationType, cIdent, hKey, sKey);
-
-		case	AUTH_METHOD_PK:
-			/* just a reserved constant, thanks */
-				return -1;
-
-		case	AUTH_METHOD_KERBEROS4:
-			/* do not ever allow this -- does not provide a VID
-			   mapping */
-				return -1;
-
-		case	AUTH_METHOD_KERBEROS5:
-			/* ditto */
-				return -1;
-
-		default:
-			/* unknown auth type */
-				return -1;
-	}
-}
-
 /*  Use a pointer to this routine in RPC2_GetRequest().  Derives hKey
     and sKey from ClientIdent using one or the other of the global
     server keys to decrypt the secret token in cIdent.  Returns 0 if
