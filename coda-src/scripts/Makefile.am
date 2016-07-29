@@ -11,8 +11,8 @@ endif
 if BUILD_SERVER
 sbin_SCRIPTS += bldvldb.sh createvol_rep purgevol_rep startserver vice-setup \
 		vice-setup-rvm
-dist_sbin_SCRIPTS += backup.sh codastart coda-server-logrotate \
-		     partial-reinit.sh tape.pl vice-killvolumes vice-setup-scm \
+dist_sbin_SCRIPTS += codastart coda-server-logrotate \
+		     partial-reinit.sh vice-killvolumes vice-setup-scm \
 		     vice-setup-srvdir vice-setup-user
 dist_man_MANS += bldvldb.sh.8 createvol_rep.8 maxgroupid.5 purgevol_rep.8 \
 		 startserver.8 vice-setup.8 volumelist.5

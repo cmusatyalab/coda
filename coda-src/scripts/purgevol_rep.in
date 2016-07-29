@@ -90,8 +90,10 @@ if [ $dryrun = 0 ] ; then
   REPVOLID=`grep $REPVOLNAME ${vicedir}/db/VRList | cut -d ' ' -f2`
 
   # Delete the entry from the backup list.
-  awk ' $1 !~ /^'$REPVOLID'$/ { print } ' ${vicedir}/db/dumplist >${vicedir}/db/dumplist.tmp
-  mv ${vicedir}/db/dumplist.tmp ${vicedir}/db/dumplist
+  if [ -e ${vicedir}/db/dumplist ] ; then
+      awk ' $1 !~ /^'$REPVOLID'$/ { print } ' ${vicedir}/db/dumplist >${vicedir}/db/dumplist.tmp
+      mv ${vicedir}/db/dumplist.tmp ${vicedir}/db/dumplist
+  fi
 
   # Delete the entry for the volume from the VRList
   awk ' $1 !~ /^'$REPVOLNAME'$/ { print } ' ${vicedir}/db/VRList >${vicedir}/db/VRList.tmp

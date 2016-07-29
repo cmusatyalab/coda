@@ -267,7 +267,6 @@ auth2.pw
 auth2.tk
 auth2.tk.BAK
 auth2.lock
-dumplist
 files
 prot_users.cdb
 servers
@@ -284,7 +283,7 @@ EOF
 fi
 
 # add a couple of empty files to avoid updateclnt problems
-for f in auth2.tk.BAK dumplist VLDB VRDB VRList ; do
+for f in auth2.tk.BAK VLDB VRDB VRList ; do
     if [ ! -f "${vicedir}/db/$f" ]; then
 	touch "${vicedir}/db/$f"
     fi

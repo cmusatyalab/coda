@@ -1,6 +1,4 @@
-backup
 codadump2tar
-merge
-parserecdump
-readdump
+codamergedump
+codareaddump
 volutil

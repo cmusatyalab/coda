@@ -2,9 +2,8 @@
 
 if BUILD_SERVER
 noinst_LTLIBRARIES = libvolutil.la libvolserv.la libdumpstuff.la
-sbin_PROGRAMS = volutil parserecdump backup readdump merge codadump2tar
-dist_man_MANS = backup.8 backuplogs.5 dumpfile.5 dumplist.5 merge.8 readdump.8 \
-		volutil.8
+sbin_PROGRAMS = volutil codareaddump codamergedump codadump2tar
+dist_man_MANS = codadumpfile.5 codamergedump.8 codareaddump.8 volutil.8
 endif
 
 libdumpstuff_la_SOURCES = dumpstream.cc dumpstream.h dumpstuff.cc dump.h
@@ -18,11 +17,9 @@ libvolutil_la_SOURCES = vol-ancient.cc vol-backup.cc vol-clone.cc \
     volutil.private.h dumpstream.cc dumpstream.h dumpstuff.cc dump.h
 libvolserv_la_SOURCES = volutil.cc
 volutil_SOURCES = volclient.cc
-backup_SOURCES = backup.cc
-readdump_SOURCES = readdump.cc
-merge_SOURCES =	merge.cc
+codareaddump_SOURCES = codareaddump.cc
+codamergedump_SOURCES =	codamergedump.cc
 codadump2tar_SOURCES = codadump2tar.cc tar-FromRedHatCD.h
-parserecdump_SOURCES = parserecdump.cc vol-dumprecstore.h
 
 AM_CPPFLAGS = $(RVM_RPC2_CFLAGS) -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 \
 	      -I$(top_srcdir)/lib-src/base \
@@ -47,20 +44,13 @@ volutil_LDADD = $(top_builddir)/coda-src/auth2/libauser.la \
 		$(top_builddir)/lib-src/base/libbase.la \
 		$(RPC2_LIBS)
 
-backup_LDADD = $(top_builddir)/coda-src/vol/libvol.la \
-	       $(top_builddir)/coda-src/partition/libpartition.la \
-	       $(top_builddir)/coda-src/vicedep/libvolutildep.la \
-	       $(top_builddir)/coda-src/util/libutil.la \
-	       $(top_builddir)/lib-src/base/libbase.la \
-	       $(RPC2_LIBS)
-
-readdump_LDADD = libdumpstuff.la \
+codareaddump_LDADD = libdumpstuff.la \
 		 $(top_builddir)/coda-src/vicedep/libvicedep.la \
 		 $(top_builddir)/coda-src/util/libutil.la \
 		 $(top_builddir)/lib-src/base/libbase.la \
 		 $(RPC2_LIBS) $(LIBREADLINE) $(LIBTERMCAP)
 
-merge_LDADD = libdumpstuff.la \
+codamergedump_LDADD = libdumpstuff.la \
 	      $(top_builddir)/coda-src/vicedep/libvicedep.la \
 	      $(top_builddir)/coda-src/util/libutil.la \
 	      $(top_builddir)/lib-src/base/libbase.la \
