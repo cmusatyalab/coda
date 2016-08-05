@@ -407,7 +407,7 @@ void spit_type(type)
 	exit(1);
     }
     (*lang_struct[(int32_t) clanguage].type)(type, RP2_CLIENT, hfile);		/* Types always go to .h file */
-    print_struct_func(type->type, libfile, hfile, type->name, RP2_CLIENT);
+    print_struct_func(type->type, libfile, hfile, type->name);
 }
 
 void spit_include(filename)

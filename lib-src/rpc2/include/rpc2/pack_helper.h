@@ -11,7 +11,6 @@ the  terms of the  GNU  Library General Public Licence  Version 2,  as
 shown in the file LICENSE. The technical and financial contributors to
 Coda are listed in the file CREDITS.
 
-                        Additional copyrights
 
 #*/
 
@@ -43,7 +42,7 @@ int unpack_bound_bytes(BUFFER *buf, unsigned char *ptr, RPC2_Unsigned len);
 
 int unpack_unbound_bytes(BUFFER *buf, unsigned char *ptr);
 
-int unpack_string(BUFFER *buf, unsigned char **ptr, int mode);
+int unpack_string(BUFFER *buf, unsigned char **ptr, int who);
 
 int unpack_countedbs(BUFFER *buf, unsigned char **ptr, RPC2_Unsigned *len_ptr,
         int mode);

@@ -11,8 +11,6 @@ the  terms of the  GNU  Library General Public Licence  Version 2,  as
 shown in the file LICENSE. The technical and financial contributors to
 Coda are listed in the file CREDITS.
 
-                        Additional copyrights
-
 #*/
 
 
@@ -70,7 +68,7 @@ int unpack_unbound_bytes(BUFFER *buf, unsigned char *ptr)
 }
 
 
-int unpack_string(BUFFER *buf, unsigned char **ptr, int mode)
+int unpack_string(BUFFER *buf, unsigned char **ptr, int who)
 {
     if (buf->buffer + 4 > buf->eob)
         return -1;
@@ -81,10 +79,10 @@ int unpack_string(BUFFER *buf, unsigned char **ptr, int mode)
         return -1;
     if (*(buf->buffer + length - 1) != '\0')
         return -1;
-	/* If RPC2_String is the element of RPC2_Struct, mode should be NO_MODE. */
+    /* If RPC2_String is the element of RPC2_Struct, mode should be NO_MODE. */
 	/* So mode should not be examined here. */
 	/* if (mode == IN_OUT_MODE && who == RP2_CLIENT) { */
-    if (mode == STUBCLIENT) {
+    if (who == STUBCLIENT) {
 		/* Just copy characters back */
         memcpy(*ptr, buf->buffer, length);
         *ptr[length] = '\0';
@@ -235,7 +233,7 @@ int pack_unbound_bytes(BUFFER *buf, RPC2_Byte value)
 
 int pack_string(BUFFER *buf, char *ptr)
 {
-    int length = strlen(old_ptr);
+    int length = strlen(ptr);
     if (buf->buffer + 4 > buf->eob)
         return -1;
     *(RPC2_Integer *)(buf->buffer) = length;
@@ -300,7 +298,7 @@ int pack_struct_CallCountEntry(BUFFER *buf, CallCountEntry *ptr, RPC2_Integer wh
         return -1;
     if (pack_int(buf, ptr->tusec))
         return -1;
-    if (pack_int(buf, ptr->counttime);
+    if (pack_int(buf, ptr->counttime));
         return -1;
     return 0;
 }
@@ -336,7 +334,7 @@ int pack_struct_MultiCallEntry(BUFFER *buf, MultiCallEntry *ptr, RPC2_Integer wh
         return -1;
     if (pack_int(buf, ptr->tusec))
         return -1;
-    if (pack_int(buf, ptr->counttime);
+    if (pack_int(buf, ptr->counttime))
         return -1;
     return 0;
 }

@@ -95,6 +95,9 @@ static void declare_CallCount(PROC *head, FILE *where);
 static void declare_MultiCall(PROC *head, FILE *where);
 static void declare_LogFunction(PROC *head, FILE *where);
 static void print_stubpredefined(FILE *where);
+void print_struct_func(RPC2_TYPE *t, FILE *where, FILE *hfile, char *name);
+void print_pack_var(char* prefix, VAR* var, FILE *where);
+void print_unpack_var(char* prefix, VAR* var, FILE *where);
 
 extern char *concat(), *concat3elem(), *server_prefix, *client_prefix;;
 extern rp2_bool testing;
@@ -192,7 +195,7 @@ static rp2_bool legal_struct_fields[] = {
 	/* RPC2_Enum */		RP2_TRUE,
 	/* RPC2_Double */		RP2_TRUE
 };
-void print_struct_func(RPC2_TYPE *t, FILE *where, FILE *hfile, char *name, WHO who) {
+void print_struct_func(RPC2_TYPE *t, FILE *where, FILE *hfile, char *name) {
     if (t->tag != RPC2_STRUCT_TAG)
         return;
     fprintf(where, "int pack_struct_%s (BUFFER *buf, %s *ptr, RPC2_Integer who) {\n", name, name);
@@ -204,8 +207,7 @@ void print_struct_func(RPC2_TYPE *t, FILE *where, FILE *hfile, char *name, WHO w
 			printf("RP2GEN: illegal type for RPC2_Struct field: %s\n", (*v)->name);
 			exit(1);
 		}
-		fputs("    ", where);
-		print_pack_var("ptr->", *v, where, who);
+		print_pack_var("ptr->", *v, where);
 	}
     fputs("    return 0;\n", where);
     fputs("}\n", where);
@@ -217,20 +219,18 @@ void print_struct_func(RPC2_TYPE *t, FILE *where, FILE *hfile, char *name, WHO w
 			printf("RP2GEN: illegal type for RPC2_Struct field: %s\n", (*v)->name);
 			exit(1);
 		}
-		fputs("    ", where);
-		print_unpack_var("ptr->", *v, where, who);
+		print_unpack_var("ptr->", *v, where);
 	}
     fputs("    return 0;\n", where);
     fputs("}\n", where);
 }
-void print_unpack_var(char* prefix, VAR* var, FILE *where, WHO who) {
+void print_unpack_var(char* prefix, VAR* var, FILE *where) {
     extern char* concat();
     char* name, *select, *suffix;
     MODE mode;
     char _iterate[] = "_iterate";
 
     name = concat(prefix, var->name);
-    select = ((who == RP2_CLIENT && mode != NO_MODE) ? "->" : ".");
     suffix = concat3elem("[", _iterate, "]");
     mode = var->mode;
     switch(var->type->type->tag) {
@@ -256,15 +256,15 @@ void print_unpack_var(char* prefix, VAR* var, FILE *where, WHO who) {
                 }
                 break;
         	case RPC2_STRING_TAG:
-                fprintf(where, "    if (unpack_string(buf, (unsigned char **)&(%s),  %d))\n", name, mode);
+                fprintf(where, "    if (unpack_string(buf, (unsigned char **)&(%s), who))\n", name);
                 fputs("        return -1;\n", where);
                 break;
         	case RPC2_COUNTEDBS_TAG:
-                fprintf(where, "    if (unpack_countedbs(buf, (unsigned char **)&(%s%sSeqBody), &(%s%sSeqLen), %d, %d))\n", name, select, name,select, who, mode);
+                fprintf(where, "    if (unpack_countedbs(buf, (unsigned char **)&(%s%sSeqBody), &(%s%sSeqLen), who, %d))\n", name, select, name,select, mode);
                 fputs("        return -1;\n", where);
                 break;
         	case RPC2_BOUNDEDBS_TAG:
-                fprintf(where, "    if (unpack_boundedbs(buf, (unsigned char **)&(%s%sSeqBody), &(%s%sMaxSeqLen), &(%s%sSeqLen), %d, %d))\n", name, select, name,select, name, select, who, mode);
+                fprintf(where, "    if (unpack_boundedbs(buf, (unsigned char **)&(%s%sSeqBody), &(%s%sMaxSeqLen), &(%s%sSeqLen), who, %d))\n", name, select, name,select, name, select, mode);
                 fputs("        return -1;\n", where);
                 break;
         	case RPC2_BULKDESCRIPTOR_TAG:
@@ -288,18 +288,13 @@ void print_unpack_var(char* prefix, VAR* var, FILE *where, WHO who) {
 
                     if (var->array != NIL) {
                         fprintf(where, "\n     for(%s = 0; %s < ", _iterate, _iterate);
-                        for_limit(var, who, where);
-                        fprintf(where, "; %s ++) {\n", _iterate);
+                        fprintf(where, "*%s; %s ++) {\n", var->array, _iterate);
 
-                        //newprefix = (who == RP2_SERVER ? concat("&", concat3elem(prefix, var->name, suffix))
-                        //   : (mode == NO_MODE? concat("&", concat3elem(prefix, var->name, suffix)) : concat("&", concat3elem(prefix, var->name, suffix))));
                         newprefix = concat("&", concat3elem(prefix, var->name, suffix));
                     } else {
-                        //newprefix = (who == RP2_SERVER ? concat3elem("&", prefix, var->name)
-                        //                : (mode == NO_MODE? concat3elem("&", prefix, var->name) : concat(prefix, var->name)));
                         newprefix = concat3elem("&", prefix, var->name);
                     }
-                    fprintf(where, "    if (unpack_struct_%s(buf, %s, %d))\n", var->type->name, newprefix, who);
+                    fprintf(where, "    if (unpack_struct_%s(buf, %s, who))\n", var->type->name, newprefix);
                     fputs("        return -1;\n", where);
                     free(newprefix);
                     if (var->array != NIL)
@@ -318,14 +313,14 @@ void print_unpack_var(char* prefix, VAR* var, FILE *where, WHO who) {
 
 }
 
-void print_pack_var(char* prefix, VAR* var, FILE *where, WHO who) {
+void print_pack_var(char* prefix, VAR* var, FILE *where) {
     extern char* concat();
     char* name, *select, *suffix;
     MODE mode;
     char _iterate[] = "_iterate";
 
     name = concat(prefix, var->name);
-    select = ((who == RP2_CLIENT && mode != NO_MODE) ? "->" : ".");
+    select = ".";
     suffix = concat3elem("[", _iterate, "]");
     mode = var->mode;
     switch(var->type->type->tag) {
@@ -383,18 +378,13 @@ void print_pack_var(char* prefix, VAR* var, FILE *where, WHO who) {
 
                     if (var->array != NIL) {
                         fprintf(where, "\n     for(%s = 0; %s < ", _iterate, _iterate);
-                        for_limit(var, who, where);
-                        fprintf(where, "; %s ++) {\n", _iterate);
+                        fprintf(where, "*%s; %s ++) {\n", var->array, _iterate);
 
-                        //newprefix = (who == RP2_SERVER ? concat3elem(prefix, var->name, suffix)
-                        //    : (mode == NO_MODE? concat3elem(prefix, var->name, suffix) : concat("", concat3elem(prefix, var->name, suffix))));
                         newprefix = concat("&", concat3elem(prefix, var->name, suffix));
                     } else {
-                        //newprefix = (who == RP2_SERVER ? concat(prefix, var->name)
-                        //                : (mode == NO_MODE? concat(prefix, var->name) : concat("*", concat(prefix, var->name))));
                         newprefix = concat3elem("&", prefix, var->name);
                     }
-                    fprintf(where, "    if (pack_struct_%s(buf, %s, %d))\n", var->type->name, newprefix, who);
+                    fprintf(where, "    if (pack_struct_%s(buf, %s, who))\n", var->type->name, newprefix);
                     fputs("        return -1;\n", where);
                     free(newprefix);
                     if (var->array != NIL)
@@ -617,8 +607,8 @@ static void locals(FILE *where)
     fprintf(where, "    char *%s;\n", ptr);
     fprintf(where, "    long %s, %s, %s;\n", length, rpc2val, code);
     fprintf(where, "    RPC2_PacketBuffer *%s = NULL;\n", rspbuffer);
-    fputs("    BUFFER data_buf;\n");
-    fputs("    BUFFER *buf = data_buf;\n");
+    fputs("    BUFFER data_buf;\n", where);
+    fputs("    BUFFER *bufptr = &data_buf;\n", where);
 }
 
 static void common(FILE *where)
@@ -857,8 +847,8 @@ static void spit_body(PROC *proc, rp2_bool in_parms, rp2_bool out_parms, FILE *w
     if (in_parms) {
 	/* Now, do the packing */
 	fprintf(where, "\n    /* Pack arguments */\n    %s = (char *)%s->Body;\n", ptr, reqbuffer);
-    fprintf(where, "\n    buf->buffer = %s;\n", ptr);
-    fputs("    buf->eob = _EOB;\n", where);
+    fprintf(where, "\n    bufptr->buffer = %s;\n", ptr);
+    fputs("    bufptr->eob = _EOB;\n", where);
 	for (parm=proc->formals; *parm!=NIL; parm++)
 	    if ((*parm)->mode != OUT_MODE ||
 		(*parm)->type->type->tag == RPC2_BOUNDEDBS_TAG)
@@ -885,8 +875,8 @@ static void spit_body(PROC *proc, rp2_bool in_parms, rp2_bool out_parms, FILE *w
     if (out_parms) {
 	fprintf(where, "\n    /* Unpack arguments */\n    %s = (char *)%s->Body;\n", ptr, rspbuffer);
 	fprintf(where,"     _EOB = (char *)%s + %s->Prefix.LengthOfPacket + \n\t\t\tsizeof(struct RPC2_PacketBufferPrefix);\n", rspbuffer, rspbuffer);
-    fprintf(where, "\n    buf->buffer = %s;\n", ptr);
-    fputs("    buf->eob = _EOB;\n", where);
+    fprintf(where, "\n    bufptr->buffer = %s;\n", ptr);
+    fputs("    bufptr->eob = _EOB;\n", where);
 	for (parm=proc->formals; *parm!=NIL; parm++)
 	    if ((*parm)->mode != IN_MODE) unpack(RP2_CLIENT, *parm, "", ptr, where);
     }
@@ -922,13 +912,12 @@ static void spit_body(PROC *proc, rp2_bool in_parms, rp2_bool out_parms, FILE *w
     /* Quit */
     fprintf(where, "    return %s;\n", code);
 
-    //if (buffer_checked) {
-    /* bufferoverflow label here no matter whether the buffer is checked */
+    if (buffer_checked) {
 	fprintf(where, BUFFEROVERFLOW_END
 		"    RPC2_FreeBuffer(&%s);\n    return RPC2_BADDATA;\n",
 		rspbuffer);
-    //}
-    //buffer_checked = 0;
+    }
+    buffer_checked = 0;
 
     /* Close off routine */
     fputs("}\n", where);
@@ -1115,57 +1104,66 @@ static void pack(WHO who, VAR *parm, char *prefix, char *ptr, FILE *where)
     suffix = concat3elem("[", iterate, "]");
     switch (parm->type->type->tag) {
     case RPC2_INTEGER_TAG:
-	    fputs("    if (pack_int(buf, ", where);
+     buffer_checked = 1;
+	    fputs("    if (pack_int(bufptr, ", where);
 	    if (who == RP2_CLIENT && mode == IN_OUT_MODE) fputc('*', where);
 	    fprintf(where, "%s))\n", name);
      fputs("        goto bufferoverflow;\n", where);
 	    break;
     case RPC2_UNSIGNED_TAG:
-	    fputs("    if (pack_unsigned(buf, ", where);
+     buffer_checked = 1;
+	    fputs("    if (pack_unsigned(bufptr, ", where);
 	    if (who == RP2_CLIENT && mode == IN_OUT_MODE) fputc('*', where);
 	    fprintf(where, "%s))\n", name);
      fputs("        goto bufferoverflow;\n", where);
 	    break;
     case RPC2_BYTE_TAG:
+     buffer_checked = 1;
 	    if (parm->type->bound != NIL) {
-		    fprintf(where, "    if (pack_bound_bytes(buf, (char *)%s, (long)%s))\n", name, parm->type->bound);
+		    fprintf(where, "    if (pack_bound_bytes(bufptr, (char *)%s, (long)%s))\n", name, parm->type->bound);
             fputs("        goto bufferoverflow;\n", where);
 	    }
 	    else {
-		    fputs("    if (pack_unbound_bytes(buf, ", where);
+		    fputs("    if (pack_unbound_bytes(bufptr, ", where);
 		    if (who == RP2_CLIENT && mode == IN_OUT_MODE) fputc('*', where);
 		    fprintf(where, "%s))\n", name);
             fputs("        goto bufferoverflow;\n", where);
 	    }
 	    break;
     case RPC2_ENUM_TAG:
-	    fputs("    if (pack_int(buf, (RPC2_Integer) ", where);
+     buffer_checked = 1;
+	    fputs("    if (pack_int(bufptr, (RPC2_Integer) ", where);
 	    if (who == RP2_CLIENT && mode == IN_OUT_MODE) fputc('*', where);
 	    fprintf(where, "%s))\n", name);
      fputs("        goto bufferoverflow;\n", where);
 	    break;
     case RPC2_DOUBLE_TAG:
-	    fputs("    if (pack_double(buf, ", where);
+     buffer_checked = 1;
+	    fputs("    if (pack_double(bufptr, ", where);
 	    if (who == RP2_CLIENT && mode == IN_OUT_MODE) fputc('*', where);
 	    fprintf(where, "%s))\n", name);
      fputs("        goto bufferoverflow;\n", where);
 	    break;
     case RPC2_STRING_TAG:
-     fprintf(where, "    if (pack_string(buf, (char *)%s))\n", name);
+     buffer_checked = 1;
+     fprintf(where, "    if (pack_string(bufptr, (char *)%s))\n", name);
      fputs("        goto bufferoverflow;\n", where);
 	    break;
     case RPC2_COUNTEDBS_TAG:
-        fprintf(where, "    if (pack_countedbs(buf, (char *)%s%sSeqBody, %s%sSeqLen))\n", name, select, name, select);
+        buffer_checked = 1;
+        fprintf(where, "    if (pack_countedbs(bufptr, (char *)%s%sSeqBody, %s%sSeqLen))\n", name, select, name, select);
         fputs("        goto bufferoverflow;\n", where);
 	    break;
     case RPC2_BOUNDEDBS_TAG:
-        fprintf(where, "    if (pack_boundedbs(buf, (char *)%s%sSeqBody, %s%sMaxSeqLen, %s%sSeqLen))\n", ptr, name, select, name, select, name, select);
+        buffer_checked = 1;
+        fprintf(where, "    if (pack_boundedbs(bufptr, (char *)%s%sSeqBody, %s%sMaxSeqLen, %s%sSeqLen))\n", name, select, name, select, name, select);
         fputs("        goto bufferoverflow;\n", where);
 	    break;
 
     case RPC2_STRUCT_TAG:		{
 	    VAR **field;
 	    char *newprefix;
+     buffer_checked = 1;
 
 	    /* Dynamic arrays are taken care of here. */
 	    /* If parm->array isn't NULL, this struct is used as DYNArray. */
@@ -1174,13 +1172,14 @@ static void pack(WHO who, VAR *parm, char *prefix, char *ptr, FILE *where)
 		    for_limit(parm, who, where);
 		    fprintf(where, "; %s++) {\n", iterate);
 
-            newprefix = (who == RP2_SERVER ? concat3elem(prefix, parm->name, suffix)
-                        : (mode == NO_MODE? concat3elem(prefix, parm->name, suffix) : concat("", concat3elem(prefix, parm->name, suffix))));
+            newprefix = concat3elem(prefix, parm->name, suffix);
+            newprefix = concat("&", newprefix);
         } else {
-            newprefix = (who == RP2_SERVER ? concat(prefix, parm->name)
-                        : (mode == NO_MODE? concat(prefix, parm->name) : concat("*", concat(prefix, parm->name))));
+            newprefix = concat(prefix, parm->name);
+            if (!(who == RP2_CLIENT && mode != NO_MODE))
+                newprefix = concat("&", newprefix);
         }
-        fprintf(where, "    if (pack_struct_%s(buf, &%s, %d))\n", parm->type->name, ptr, newprefix, who);
+        fprintf(where, "    if (pack_struct_%s(bufptr, %s, %d))\n", parm->type->name, newprefix, who);
         fputs("        goto bufferoverflow;\n", where);
 	        free(newprefix);
 	    if (parm->array !=NIL)
@@ -1188,7 +1187,8 @@ static void pack(WHO who, VAR *parm, char *prefix, char *ptr, FILE *where)
     }
     break;
     case RPC2_ENCRYPTIONKEY_TAG:	{
-         fprintf(where, " if (pack_encryptionKey(buf, (char *)%s))\n", name);
+         buffer_checked = 1;
+         fprintf(where, " if (pack_encryptionKey(bufptr, (char *)%s))\n", name);
          fputs("        goto bufferoverflow;\n", where);
     }
     break;
@@ -1214,60 +1214,68 @@ static void unpack(WHO who, VAR *parm, char *prefix, char *ptr, FILE *where)
     suffix = concat3elem("[", iterate, "]");
     switch (parm->type->type->tag) {
     case RPC2_INTEGER_TAG:
-	    fputs("    if (unpack_int(buf, ", where);
-	    if (mode != NO_MODE && who == RP2_CLIENT) fputc('*', where);
-	    fprintf(where, "&(%s)))\n", name);
+     buffer_checked = 1;
+	    fputs("    if (unpack_int(bufptr, ", where);
+	    if (!(mode != NO_MODE && who == RP2_CLIENT)) fputc('&', where);
+	    fprintf(where, "%s))\n", name);
      fputs("        goto bufferoverflow;\n", where);
 	    break;
     case RPC2_UNSIGNED_TAG:
-	    fputs("    if (unpack_unsigned(buf, ", where);
-	    if (mode != NO_MODE && who == RP2_CLIENT) fputc('*', where);
+     buffer_checked = 1;
+	    fputs("    if (unpack_unsigned(bufptr, ", where);
+	    if (!(mode != NO_MODE && who == RP2_CLIENT)) fputc('&', where);
 	    fprintf(where, "%s))\n", name);
      fputs("        goto bufferoverflow;\n", where);
 	    break;
     case RPC2_BYTE_TAG:
+     buffer_checked = 1;
 	    if (parm->type->bound != NIL) {
 		    fputs("    ", where);
-		    fprintf(where, "if (unpack_bound_bytes(buf, (unsigned char *)%s, %s))\n",
+		    fprintf(where, "if (unpack_bound_bytes(bufptr, (unsigned char *)%s, %s))\n",
 			    name, parm->type->bound);
             fputs("        goto bufferoverflow;\n", where);
 	    }
 	    else {
-	           fputs("    if (unpack_unbound_bytes(buf, ", where);
+	           fputs("    if (unpack_unbound_bytes(bufptr, ", where);
 		    if (mode != NO_MODE && who == RP2_CLIENT) fputc('*', where);
 		    fprintf(where, "(unsigned char *)&(%s)))\n", name);
             fputs("        goto bufferoverflow;\n", where);
 	    }
 		break;
     case RPC2_ENUM_TAG:
-	    fputs("    if (unpack_int(buf, (RPC2_Integer *)&(", where);
-	    if (mode != NO_MODE && who == RP2_CLIENT) fputc('*', where);
-	    fprintf(where, "%s)))\n", name);
+     buffer_checked = 1;
+	    fputs("    if (unpack_int(bufptr, (RPC2_Integer *)", where);
+	    if (!(mode != NO_MODE && who == RP2_CLIENT)) fputc('&', where);
+	    fprintf(where, "%s))\n", name);
      fputs("        goto bufferoverflow;\n", where);
 	    break;
     case RPC2_DOUBLE_TAG:
-	    fputs("    if (unpack_double(buf, (RPC2_Double *)&(", where);
-	    if (mode != NO_MODE && who == RP2_CLIENT) fputc('*', where);
-	    fprintf(where, "%s)))\n", name);
+     buffer_checked = 1;
+	    fputs("    if (unpack_double(bufptr, (RPC2_Double *)", where);
+	    if (!(mode != NO_MODE && who == RP2_CLIENT)) fputc('&', where);
+	    fprintf(where, "%s))\n", name);
      fputs("        goto bufferoverflow;\n", where);
 	    break;
     case RPC2_STRING_TAG:		/* 1st get length */
-     fprintf(where, "    if (unpack_string(buf, (unsigned char **)&(%s), %d))\n", name, who);
+     buffer_checked = 1;
+     fprintf(where, "    if (unpack_string(bufptr, (unsigned char **)&(%s), %d))\n", name, who);
      fputs("        goto bufferoverflow;\n", where);
 	    break;
 	case RPC2_COUNTEDBS_TAG:
+        buffer_checked = 1;
 		if (who == RP2_SERVER) {
 			/* Special hack */
-            fprintf(where, "    if (unpack_countedbs(buf, (unsigned char **)&(%s.SeqBody), &(%s.SeqLen), %d))\n", name, name, who);
+            fprintf(where, "    if (unpack_countedbs(bufptr, (unsigned char **)&(%s.SeqBody), &(%s.SeqLen), %d))\n", name, name, who);
             fputs("        goto bufferoverflow;\n", where);
 			break;
 		}
-        fprintf(where, "    if (unpack_countedbs(buf, (unsigned char **)&(%s%sSeqBody) , &(%s%sSeqLen), %d))\n", name, select, name, select, who);
+        fprintf(where, "    if (unpack_countedbs(bufptr, (unsigned char **)&(%s%sSeqBody) , &(%s%sSeqLen), %d))\n", name, select, name, select, who);
         fputs("        goto bufferoverflow;\n", where);
 		break;
     case RPC2_BOUNDEDBS_TAG:
-        fprintf(where, "    if (unpack_boundedbs(buf, (unsigned char **)&(%s%sSeqBody), &(%s%sSeqLen), &(%s%sMaxSeqLen), \
-         %d, %d))\n", name, select, ptr, name, select, name, select, who, mode);
+        buffer_checked = 1;
+        fprintf(where, "    if (unpack_boundedbs(bufptr, (unsigned char **)&(%s%sSeqBody), &(%s%sSeqLen), &(%s%sMaxSeqLen), \
+         %d, %d))\n", name, select, name, select, name, select, who, mode);
         fputs("        goto bufferoverflow;\n", where);
 		break;
 
@@ -1275,6 +1283,7 @@ static void unpack(WHO who, VAR *parm, char *prefix, char *ptr, FILE *where)
     case RPC2_STRUCT_TAG:		{
 	    VAR **field;
 	    char *newprefix;
+     buffer_checked = 1;
 
 	    /* Dynamic arrays are taken care of here. */
 	    /* If parm->array isn't NULL, this struct is used as DYNArray. */
@@ -1288,13 +1297,13 @@ static void unpack(WHO who, VAR *parm, char *prefix, char *ptr, FILE *where)
 		    fprintf(where, "    for(%s = 0; %s < ", iterate, iterate);
 		    for_limit(parm, who, where);
 		    fprintf(where, "; %s++) {\n", iterate);
-            newprefix = (who == RP2_SERVER ? concat("&", concat3elem(prefix, parm->name, suffix))
-                : (mode == NO_MODE? concat("&", concat3elem(prefix, parm->name, suffix)) : concat("&", concat3elem(prefix, parm->name, suffix))));
+            newprefix = concat("&", concat3elem(prefix, parm->name, suffix));
         } else {
-                newprefix = (who == RP2_SERVER ? concat3elem("&", prefix, parm->name)
-                            : (mode == NO_MODE? concat3elem("&", prefix, parm->name) : concat(prefix, parm->name)));
+                newprefix = concat(prefix, parm->name);
+                if (!(mode != NO_MODE && who == RP2_CLIENT))
+                    newprefix = concat("&", newprefix);
         }
-        fprintf(where, "    if (unpack_struct_%s(buf, %s, %d))\n", parm->type->name, newprefix, who);
+        fprintf(where, "    if (unpack_struct_%s(bufptr, %s, %d))\n", parm->type->name, newprefix, who);
         fputs("        goto bufferoverflow;\n", where);
 
 	    free(newprefix);
@@ -1304,7 +1313,8 @@ static void unpack(WHO who, VAR *parm, char *prefix, char *ptr, FILE *where)
     }
     break;
     case RPC2_ENCRYPTIONKEY_TAG: {
-	        fprintf(where, "    if (unpack_encryptionKey(buf, (char *)%s))\n", name);
+         buffer_checked = 1;
+	        fprintf(where, "    if (unpack_encryptionKey(bufptr, (char *)%s))\n", name);
          fputs("        goto bufferoverflow;\n", where);
     }
     break;
@@ -1402,6 +1412,7 @@ static void one_server_proc(PROC *proc, FILE *where)
     /* note end of buffer */
     if (in_parms || out_parms) {
         fputs("    char *_EOB;\n", where);
+    }
 
     if (array_parms) {
         fprintf(where, "    long %s;\n", iterate);
@@ -1412,8 +1423,8 @@ static void one_server_proc(PROC *proc, FILE *where)
 	fputs("\n    /* Unpack parameters */\n", where);
 	fprintf(where, "    %s = (char *)%s->Body;\n", ptr, reqbuffer);
 	fprintf(where,"     _EOB = (char *)%s + %s->Prefix.LengthOfPacket + \n\t\t\tsizeof(struct RPC2_PacketBufferPrefix);\n", reqbuffer, reqbuffer);
-    fprintf(where, "\n    buf->buffer = %s;\n", ptr);
-    fputs("    buf->eob = _EOB;\n", where);
+    fprintf(where, "\n    bufptr->buffer = %s;\n", ptr);
+    fputs("    bufptr->eob = _EOB;\n", where);
 	for (formals=proc->formals; *formals!=NIL; formals++)
 	    if ((*formals)->type->type->tag != RPC2_BULKDESCRIPTOR_TAG) {
 	        /* As DYNArray always has IN mode parameter,
@@ -1487,30 +1498,29 @@ static void one_server_proc(PROC *proc, FILE *where)
 	fprintf(where, "    %s = (char *)%s->Body;\n", ptr, rspbuffer);
 	fprintf(where, "    _EOB = (char *)%s + %s->Prefix.BufferSize;\n",
 		rspbuffer, rspbuffer);
+    fprintf(where, "\n    bufptr->buffer = %s;\n", ptr);
+    fputs("    bufptr->eob = _EOB;\n", where);
     }
-    fprintf(where, "\n    buf->buffer = %s;\n", ptr);
-    fputs("    buf->eob = _EOB;\n", where);
 
     for (formals=proc->formals; *formals!=NIL; formals++) {
-	TYPE_TAG tag;
-	tag = (*formals)->type->type->tag;
-	if (tag != RPC2_BULKDESCRIPTOR_TAG) {
-	    if ((*formals)->mode != IN_MODE) {
-	        pack(RP2_SERVER, *formals, "", ptr, where);
-	    }
-	    if ((*formals)->array != NIL) {
-	        free_dynamicarray(*formals, where);
-	    }
+        TYPE_TAG tag;
+        tag = (*formals)->type->type->tag;
+        if (tag != RPC2_BULKDESCRIPTOR_TAG) {
+            if ((*formals)->mode != IN_MODE) {
+                pack(RP2_SERVER, *formals, "", ptr, where);
+	           }
+            if ((*formals)->array != NIL) {
+	               free_dynamicarray(*formals, where);
+	           }
         }
-	if (tag == RPC2_BOUNDEDBS_TAG) free_boundedbs(*formals, where);
+        if (tag == RPC2_BOUNDEDBS_TAG) free_boundedbs(*formals, where);
     }
 
     fprintf(where, "    return %s;\n", rspbuffer);
 
-    //if (buffer_checked)
-    /* bufferoverflow label here no matter whether the buffer is checked */
-    fprintf(where, BUFFEROVERFLOW_END "    return NULL;\n");
-    //buffer_checked = 0;
+    if (buffer_checked)
+        fprintf(where, BUFFEROVERFLOW_END "    return NULL;\n");
+    buffer_checked = 0;
 
     /* Close routine */
     fputs("}\n", where);
