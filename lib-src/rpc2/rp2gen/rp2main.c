@@ -50,6 +50,7 @@ int32_t yydebug;
 static int32_t SetupFiles();
 static void badargs(void);
 
+extern void print_struct_func(RPC2_TYPE *t, FILE *where, FILE *hfile, char *name);
 extern char *coda_rp2_basename(char * name);
 extern rp2_bool include2(char *name, char *proc);
 

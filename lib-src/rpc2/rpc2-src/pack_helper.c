@@ -60,120 +60,115 @@ int unpack_bound_bytes(BUFFER *buf, unsigned char *ptr, RPC2_Unsigned len)
 
 int unpack_unbound_bytes(BUFFER *buf, unsigned char *ptr)
 {
-    if (buf->buffer + 4 > buf->eob)
+    if (buf->buffer + 1 > buf->eob)
         return -1;
     *(RPC2_Byte *)ptr = *(RPC2_Byte *)(buf->buffer);
-    buf->buffer += 4;
+    buf->buffer += _PAD(1);
     return 0;
 }
 
 
-int unpack_string(BUFFER *buf, unsigned char **ptr, int who)
+int unpack_string(BUFFER *buf, unsigned char **ptr)
 {
-    if (buf->buffer + 4 > buf->eob)
+    RPC2_Unsigned length = 0;
+    if (unpack_unsigned(buf, &length))
         return -1;
-
-    RPC2_Unsigned length = 1 + ntohl(*(RPC2_Integer *)(buf->buffer));
-    (buf->buffer) += 4;
-    if (buf->buffer + _PAD(length) > buf->eob)
+    if (buf->buffer + length > buf->eob)
         return -1;
     if (*(buf->buffer + length - 1) != '\0')
         return -1;
     /* If RPC2_String is the element of RPC2_Struct, mode should be NO_MODE. */
 	/* So mode should not be examined here. */
 	/* if (mode == IN_OUT_MODE && who == RP2_CLIENT) { */
-    if (who == STUBCLIENT) {
-		/* Just copy characters back */
+    assert(buf->who != RP2_CLIENT);
+    /* it's very dangerous to do memcpy in client mode */
+    /* if (who == RP2_CLIENT) {
         memcpy(*ptr, buf->buffer, length);
         *ptr[length] = '\0';
-    } else {
-		/* After the above condition check, the following never occurs.. */
-		/* if (mode != NO_MODE && who == RP2_CLIENT) fputc('*', where); */
-        *ptr = (RPC2_String)(buf->buffer);
-    }
+    */
+    *ptr = (RPC2_String)(buf->buffer);
     buf->buffer += _PAD(length);
     return 0;
 }
 
 
-int unpack_countedbs(BUFFER *buf, unsigned char **ptr, RPC2_Unsigned *len_ptr,
-        int who)
+int unpack_countedbs(BUFFER *buf, RPC2_CountedBS *ptr)
 {
-    if (buf->buffer + 4 > buf->eob)
+    RPC2_Unsigned tmp_len = 0;
+    if (unpack_unsigned(buf, &tmp_len))
         return -1;
-    if (who == STUBSERVER) {
-		/* Special hack */
-        *len_ptr = ntohl(*(RPC2_Integer *)(buf->buffer));
-        (buf->buffer) += 4;
-        if (buf->buffer + _PAD(*len_ptr) > buf->eob)
+    if (buf->who == RP2_SERVER) {
+	/* Special hack */
+        ptr->SeqLen = tmp_len;
+        if (buf->buffer + ptr->SeqLen > buf->eob)
             return -1;
-        *ptr = (RPC2_Byte *)(buf->buffer);
-        buf->buffer += _PAD(*len_ptr);
-        return 0;
+        ptr->SeqBody = (RPC2_Byte *)(buf->buffer);
     } else {
-        *len_ptr = ntohl(*(RPC2_Integer*)(buf->buffer));
-        buf->buffer += 4;
-        if (buf->buffer + _PAD(*len_ptr) > buf->eob)
+        if (buf->buffer + tmp_len > buf->eob)
             return -1;
-		/*    bug fix. Should update SeqLen and use select. M.K. */
-		/*   fprintf(where, "
-		    memcpy((char *)%s->SeqBody, %s, (int32_t)%s);\n", */
-        memcpy(*ptr, buf->buffer, *len_ptr);
-		/*				inc(ptr, length, where); */
-        buf->buffer += _PAD(*len_ptr);
-        return 0;
+	/*    bug fix. Should update SeqLen and use select. M.K. */
+	/*   fprintf(where, "
+	memcpy((char *)%s->SeqBody, %s, (int32_t)%s);\n", */
+        /* although currently it's not possible to unpack countedbs in client, */
+        /* there is a unused function in cml.rpc2 doing such operation */
+        assert(tmp_len <= ptr->SeqLen);
+        ptr->SeqLen = tmp_len;
+        memcpy(ptr->SeqBody, buf->buffer, ptr->SeqLen);
+	/*				inc(ptr, length, where); */
     }
+    buf->buffer += _PAD(ptr->SeqLen);
+    return 0;
 }
 
 
-int unpack_boundedbs(BUFFER *buf, unsigned char **ptr, RPC2_Unsigned *len_ptr,
-        RPC2_Unsigned *max_len_ptr, int who, int mode)
+int unpack_boundedbs(BUFFER *buf, MODE mode, RPC2_BoundedBS *ptr)
 {
-    if (buf->buffer + 8 > buf->eob)
-        return -1;
-    if (who == STUBSERVER && mode != STUBIN) {
-        *max_len_ptr = ntohl(*(RPC2_Unsigned *)(buf->buffer));
+    if (buf->who == RP2_SERVER && mode != IN_MODE) {
+        if (unpack_unsigned(buf, &ptr->MaxSeqLen))
+            return -1;
+    } else {
+        buf->buffer += 4; /* Skip maximum length */
     }
-    buf->buffer += 4; /* Skip maximum length */
-    if ((who == STUBCLIENT && mode != STUBIN) ||
-            (who == STUBSERVER && mode != STUBOUT)) {
-        *len_ptr = ntohl(*(RPC2_Unsigned *)(buf->buffer));
-    } else if (who == STUBSERVER)
-        *len_ptr = 0;
-    buf->buffer += 4; /* skip packed sequence length */
-    if (who == STUBSERVER && mode == STUBIN)
-        *max_len_ptr = *len_ptr;
+    if ((buf->who == RP2_CLIENT && mode != IN_MODE) ||
+            (buf->who == RP2_SERVER && mode != OUT_MODE)) {
+        if (unpack_unsigned(buf, &ptr->SeqLen))
+            return -1;
+    } else if (buf->who == RP2_SERVER) {
+        ptr->SeqLen = 0;
+        buf->buffer += 4; /* skip packed sequence length */
+    }
+    if (buf->who == RP2_SERVER && mode == IN_MODE)
+        ptr->MaxSeqLen = ptr->SeqLen;
     else {
-        if (*len_ptr > *max_len_ptr)
+        if (ptr->SeqLen > ptr->MaxSeqLen)
             return -1;
     }
 
-    if (buf->buffer + _PAD(*len_ptr) > buf->eob)
+    if (buf->buffer + ptr->SeqLen > buf->eob)
         return -1;
-    if (who == STUBCLIENT) {
-        if (mode != STUBIN) {
-            memcpy((*ptr), buf->buffer, *len_ptr);
-            buf->buffer += _PAD(*len_ptr);
+    if (buf->who == RP2_CLIENT) {
+        if (mode != IN_MODE) {
+            memcpy(ptr->SeqBody, buf->buffer, ptr->SeqLen);
+            buf->buffer += _PAD(ptr->SeqLen);
         }
     } else {
-        if (*max_len_ptr != 0) {
-            *ptr = (RPC2_String)malloc(*max_len_ptr);
-            if (*ptr == NULL)
+        if (ptr->MaxSeqLen != 0) {
+            ptr->SeqBody = (RPC2_String)malloc(ptr->MaxSeqLen);
+            if (ptr->SeqBody == NULL)
                 return -1;
-            memcpy((*ptr), buf->buffer, *len_ptr);
-            buf->buffer += _PAD(*len_ptr);
+            memcpy(ptr->SeqBody, buf->buffer, ptr->SeqLen);
+            buf->buffer += _PAD(ptr->SeqLen);
         } else {
-            *ptr = NULL;
+            ptr->SeqBody = NULL;
         }
     }
     return 0;
-
 }
 
 
 int unpack_encryptionKey(BUFFER *buf, char *ptr)
 {
-    if (buf->buffer + _PAD(RPC2_KEYSIZE) > buf->eob)
+    if (buf->buffer + RPC2_KEYSIZE > buf->eob)
         return -1;
     memcpy(ptr, buf->buffer, RPC2_KEYSIZE);
     buf->buffer += _PAD(RPC2_KEYSIZE);
@@ -223,10 +218,10 @@ int pack_bound_bytes(BUFFER *buf, char *ptr, long len)
 
 int pack_unbound_bytes(BUFFER *buf, RPC2_Byte value)
 {
-    if (buf->buffer + 4 > buf->eob)
+    if (buf->buffer + 1 > buf->eob)
         return -1;
     *(RPC2_Byte *)(buf->buffer) = value;
-    buf->buffer += 4;
+    buf->buffer += _PAD(1);
     return 0;
 }
 
@@ -234,51 +229,48 @@ int pack_unbound_bytes(BUFFER *buf, RPC2_Byte value)
 int pack_string(BUFFER *buf, char *ptr)
 {
     int length = strlen(ptr);
-    if (buf->buffer + 4 > buf->eob)
+    if (pack_int(buf, length))
         return -1;
-    *(RPC2_Integer *)(buf->buffer) = length;
-    if (buf->buffer + 4 + _PAD(length + 1) > buf->eob)
+    if (buf->buffer + length + 1 > buf->eob)
         return -1;
-    strcpy(buf->buffer + 4, ptr);
-    *(buf->buffer + 4 + length) = '\0';
-    buf->buffer += 4 + _PAD(length + 1);
+    strcpy(buf->buffer, ptr);
+    *(buf->buffer + length) = '\0';
+    buf->buffer += _PAD(length + 1);
     return 0;
 }
 
 
-int pack_countedbs(BUFFER *buf, char *ptr, RPC2_Unsigned len)
+int pack_countedbs(BUFFER *buf, RPC2_CountedBS *ptr)
 {
-    if (buf->buffer + 4 > buf->eob)
+    if (pack_unsigned(buf, ptr->SeqLen))
         return -1;
-    *(RPC2_Unsigned *)(buf->buffer) = htonl(len);
-    buf->buffer += 4;
-    if (buf->buffer + _PAD(len) > buf->eob)
+    if (buf->buffer + ptr->SeqLen > buf->eob)
         return -1;
-    memcpy(buf->buffer, ptr, len);
-    buf->buffer += _PAD(len);
+    memcpy(buf->buffer, ptr->SeqBody, ptr->SeqLen);
+    buf->buffer += _PAD(ptr->SeqLen);
     return 0;
 }
 
 
-int pack_boundedbs(BUFFER *buf, char *ptr, RPC2_Unsigned maxLen, RPC2_Unsigned len)
+int pack_boundedbs(BUFFER *buf, RPC2_BoundedBS *ptr)
 {
-    if (buf->buffer + 8 + _PAD(len) > buf->eob)
+    if (pack_unsigned(buf, ptr->MaxSeqLen))
         return -1;
-    *(RPC2_Unsigned *)(buf->buffer) = htonl(maxLen);
-    if (len == 0)
-        *(RPC2_Unsigned *)(buf->buffer + 4) = 0;
-    else {
-      *(RPC2_Unsigned *)(buf->buffer + 4) = htonl(len);
-      memcpy(buf->buffer + 8, ptr, len);
+    if (pack_unsigned(buf, ptr->SeqLen))
+        return -1;
+    if (ptr->SeqLen != 0) {
+        if (buf->buffer + ptr->SeqLen > buf->eob)
+            return -1;
+        memcpy(buf->buffer, ptr->SeqBody, ptr->SeqLen);
     }
-    buf->buffer += 8 + _PAD(len);
+    buf->buffer += _PAD(ptr->SeqLen);
     return 0;
 }
 
 
 int pack_encryptionKey(BUFFER *buf, char *ptr)
 {
-    if (buf->buffer + _PAD(RPC2_KEYSIZE) > buf->eob)
+    if (buf->buffer + RPC2_KEYSIZE > buf->eob)
         return -1;
     memcpy(buf->buffer, ptr, RPC2_KEYSIZE);
     buf->buffer += _PAD(RPC2_KEYSIZE);
@@ -286,7 +278,7 @@ int pack_encryptionKey(BUFFER *buf, char *ptr)
 }
 
 
-int pack_struct_CallCountEntry(BUFFER *buf, CallCountEntry *ptr, RPC2_Integer who)
+int pack_struct_CallCountEntry(BUFFER *buf, CallCountEntry *ptr)
 {
     if (pack_string(buf, (char *)ptr->name))
         return -1;
@@ -304,25 +296,25 @@ int pack_struct_CallCountEntry(BUFFER *buf, CallCountEntry *ptr, RPC2_Integer wh
 }
 
 
-int unpack_struct_CallCountEntry(BUFFER *buf, CallCountEntry *ptr, RPC2_Integer who)
+int unpack_struct_CallCountEntry(BUFFER *buf, CallCountEntry *ptr)
 {
-    if (unpack_string(buf, &(ptr->name), 0))
+    if (unpack_string(buf, &(ptr->name)))
         return -1;
-    if (unpack_int(buf, (RPC2_Integer *)&(ptr->countent)))
+    if (unpack_int(buf, &(ptr->countent)))
         return -1;
-    if (unpack_int(buf, (RPC2_Integer *)&(ptr->countexit)))
+    if (unpack_int(buf, &(ptr->countexit)))
         return -1;
-    if (unpack_int(buf, (RPC2_Integer *)&(ptr->tsec)))
+    if (unpack_int(buf, &(ptr->tsec)))
         return -1;
-    if (unpack_int(buf, (RPC2_Integer *)&(ptr->tusec)))
+    if (unpack_int(buf, &(ptr->tusec)))
         return -1;
-    if (unpack_int(buf, (RPC2_Integer *)&(ptr->counttime)))
+    if (unpack_int(buf, &(ptr->counttime)))
         return -1;
     return 0;
 }
 
 
-int pack_struct_MultiCallEntry(BUFFER *buf, MultiCallEntry *ptr, RPC2_Integer who)
+int pack_struct_MultiCallEntry(BUFFER *buf, MultiCallEntry *ptr)
 {
     if (pack_string(buf, (char *)ptr->name))
         return -1;
@@ -340,25 +332,25 @@ int pack_struct_MultiCallEntry(BUFFER *buf, MultiCallEntry *ptr, RPC2_Integer wh
 }
 
 
-int unpack_struct_MultiCallEntry(BUFFER *buf, MultiCallEntry *ptr, RPC2_Integer who)
+int unpack_struct_MultiCallEntry(BUFFER *buf, MultiCallEntry *ptr)
 {
-    if (unpack_string(buf, &(ptr->name), 0))
+    if (unpack_string(buf, &(ptr->name)))
         return -1;
-    if (unpack_int(buf, (RPC2_Integer *)&(ptr->countent)))
+    if (unpack_int(buf, &(ptr->countent)))
         return -1;
-    if (unpack_int(buf, (RPC2_Integer *)&(ptr->countexit)))
+    if (unpack_int(buf, &(ptr->countexit)))
         return -1;
-    if (unpack_int(buf, (RPC2_Integer *)&(ptr->tsec)))
+    if (unpack_int(buf, &(ptr->tsec)))
         return -1;
-    if (unpack_int(buf, (RPC2_Integer *)&(ptr->tusec)))
+    if (unpack_int(buf, &(ptr->tusec)))
         return -1;
-    if (unpack_int(buf, (RPC2_Integer *)&(ptr->counttime)))
+    if (unpack_int(buf, &(ptr->counttime)))
         return -1;
     return 0;
 }
 
 
-int pack_struct_MultiStubWork(BUFFER *buf, MultiStubWork *ptr, RPC2_Integer who)
+int pack_struct_MultiStubWork(BUFFER *buf, MultiStubWork *ptr)
 {
     if (pack_int(buf, ptr->opengate))
         return -1;
@@ -370,13 +362,13 @@ int pack_struct_MultiStubWork(BUFFER *buf, MultiStubWork *ptr, RPC2_Integer who)
 }
 
 
-int unpack_struct_MultiStubWork(BUFFER *buf, MultiStubWork *ptr, RPC2_Integer who)
+int unpack_struct_MultiStubWork(BUFFER *buf, MultiStubWork *ptr)
 {
-    if (unpack_int(buf, (RPC2_Integer *)&(ptr->opengate)))
+    if (unpack_int(buf, &(ptr->opengate)))
         return -1;
-    if (unpack_int(buf, (RPC2_Integer *)&(ptr->tsec)))
+    if (unpack_int(buf, &(ptr->tsec)))
         return -1;
-    if (unpack_int(buf, (RPC2_Integer *)&(ptr->tusec)))
+    if (unpack_int(buf, &(ptr->tusec)))
         return -1;
     return 0;
 }

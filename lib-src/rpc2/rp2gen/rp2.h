@@ -116,14 +116,13 @@ typedef struct proc {
 /* Language values are specified for use in array */
 typedef enum{ NONE=0, C=1, PASCAL=2, F77=3 } LANGUAGE;
 
-typedef enum{ RP2_CLIENT=0, RP2_SERVER=1, RP2_MULTI=2, RP2_DUMP=3} WHO;
 
 typedef struct stubelem {
     char        *type;
     char        *name;
 }  STUBELEM;
 
-/* 
+/*
  * crout needs to know whether to spit out ansi paste tokens, or
  * traditional ones.
  */
