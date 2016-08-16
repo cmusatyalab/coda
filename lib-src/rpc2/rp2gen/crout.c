@@ -63,7 +63,7 @@ static int buffer_checked = 0;
 static void dump_procs(PROC *head, FILE *where);
 static void print_type(RPC2_TYPE *t, FILE *where, char *name);
 static void print_var(VAR *v, FILE *where);
-static void locals(FILE *where);
+static void locals(FILE *where, const char *who);
 static void common(FILE *where);
 static void client_procs(PROC *head, FILE *where);
 static void one_client_proc(PROC *proc, FILE *where);
@@ -77,8 +77,8 @@ static void print_size(WHO who, VAR *parm, char *prefix, FILE *where);
 static void inc(char *what, char *by, FILE *where);
 static void inc4(char *what, FILE *where);
 static void set_timeout(PROC *proc, FILE *where);
-static void pack(WHO who, VAR *parm, char *prefix, char *ptr, FILE *where);
-static void unpack(WHO who, VAR *parm, char *prefix, char *ptr, FILE *where);
+static void pack(WHO who, VAR *parm, char *prefix, FILE *where);
+static void unpack(WHO who, VAR *parm, char *prefix, FILE *where);
 static void server_procs(PROC *head, FILE *where);
 static void check_new_connection(PROC *proc);
 static void one_server_proc(PROC *proc, FILE *where);
@@ -199,7 +199,7 @@ static rp2_bool legal_struct_fields[] = {
 void print_struct_func(RPC2_TYPE *t, FILE *where, FILE *hfile, char *name) {
     if (t->tag != RPC2_STRUCT_TAG)
         return;
-    fprintf(where, "int pack_struct_%s (BUFFER *buf, %s *ptr) {\n", name, name);
+    fprintf(where, "\nint pack_struct_%s (BUFFER *buf, %s *ptr)\n{\n", name, name);
     fprintf(hfile, "int pack_struct_%s (BUFFER *buf, %s *ptr);\n", name, name);
 
     VAR **v;
@@ -211,7 +211,7 @@ void print_struct_func(RPC2_TYPE *t, FILE *where, FILE *hfile, char *name) {
         print_pack_var("ptr->", *v, where);
     }
     fprintf(where, "    return 0;\n}\n");
-    fprintf(where, "int unpack_struct_%s (BUFFER *buf, %s *ptr) {\n", name, name);
+    fprintf(where, "\nint unpack_struct_%s (BUFFER *buf, %s *ptr)\n{\n", name, name);
     fprintf(hfile, "int unpack_struct_%s (BUFFER *buf, %s *ptr);\n", name, name);
 
     for (v=t->fields.struct_fields; *v!=NIL; v++) {
@@ -575,7 +575,6 @@ cproc(head, who, where)
     }
 }
 
-static char ptr[] = "_ptr";
 static char length[] = "_length";
 static char reqbuffer[] = "_reqbuffer";
 static char rspbuffer[] = "_rspbuffer";
@@ -591,12 +590,11 @@ static char timestart[] = "_timestart";
 static char timeend[] = "_timeend";
 
 
-static void locals(FILE *where)
+static void locals(FILE *where, const char *who)
 {
-    fprintf(where, "    char *%s;\n", ptr);
     fprintf(where, "    long %s, %s, %s;\n", length, rpc2val, code);
     fprintf(where, "    RPC2_PacketBuffer *%s = NULL;\n", rspbuffer);
-    fprintf(where, "    BUFFER data_buf;\n");
+    fprintf(where, "    BUFFER data_buf = { .who = %s };\n", who);
     fprintf(where, "    BUFFER *bufptr = &data_buf;\n");
 }
 
@@ -761,7 +759,8 @@ static void spit_body(PROC *proc, rp2_bool in_parms, rp2_bool out_parms, FILE *w
 
     /* Declare locals */
     fprintf(where, "{\n");
-    locals(where);
+    locals(where, "RP2_CLIENT");
+
     /* client specific local variables */
     array_parms = RP2_FALSE;
     for (parm=proc->formals; *parm!=NIL; parm++) {
@@ -778,7 +777,6 @@ static void spit_body(PROC *proc, rp2_bool in_parms, rp2_bool out_parms, FILE *w
     else fprintf(where, "    struct timeval %s, *%s;\n", timeoutval, timeout);
 
     /* note end of buffer */
-    fprintf(where, "    char *_EOB;\n");
     fprintf(where, "    int opengate = 0;\n");
 
     /* Generate code for START_ELAPSE */
@@ -829,29 +827,26 @@ static void spit_body(PROC *proc, rp2_bool in_parms, rp2_bool out_parms, FILE *w
     /* Get large enough buffer */
     fprintf(where, "    %s = RPC2_AllocBuffer(%s, &%s);\n", rpc2val, length, reqbuffer);
     fprintf(where, "    if (%s != RPC2_SUCCESS) return %s;\n", rpc2val, rpc2val);
-    fprintf(where, "    _EOB = (char *)%s + %s->Prefix.BufferSize;\n",
-	    reqbuffer, reqbuffer);
 
 
-    if (in_parms) {
 	/* Now, do the packing */
-	fprintf(where, "\n    /* Pack arguments */\n    %s = (char *)%s->Body;\n", ptr, reqbuffer);
-        fprintf(where, "\n    bufptr->buffer = %s;\n", ptr);
-        fprintf(where, "    bufptr->eob = _EOB;\n");
-        fprintf(where, "    bufptr->who = %d;\n", RP2_CLIENT);
+       fprintf(where, "\n    /* Pack arguments */\n");
+        fprintf(where, "    bufptr->buffer = (char *)%s->Body;\n", reqbuffer);
+        fprintf(where, "    bufptr->eob = (char *)%s + %s->Prefix.BufferSize;\n", reqbuffer, reqbuffer);
+    if (in_parms) {
+       fprintf(where, "\n    %s = %s;\n\n", rspbuffer, reqbuffer);
+
 	for (parm=proc->formals; *parm!=NIL; parm++)
 	    if ((*parm)->mode != OUT_MODE ||
 		(*parm)->type->type->tag == RPC2_BOUNDEDBS_TAG)
-		pack(RP2_CLIENT, *parm, "", ptr, where);
-    } else {
-	/* Reference _ptr to avoid compiler warning in stub */
-        fprintf (where, "\n    /* Avoid compiler warnings */\n    %s = NULL;\n", ptr);
+               pack(RP2_CLIENT, *parm, "", where);
+
+        fprintf(where, "\n    %s = NULL;\n", rspbuffer);
     }
 
     /* Generate RPC2 call */
     fprintf(where, "\n    /* Generate RPC2 call */\n");
     fprintf(where, "    %s->Header.Opcode = %s;\n", reqbuffer, proc->op_code);
-    fprintf(where, "    %s = NULL;\n", rspbuffer);
     /* Set up timeout */
     fprintf(where, "    ");
     set_timeout(proc, where);
@@ -862,14 +857,12 @@ static void spit_body(PROC *proc, rp2_bool in_parms, rp2_bool out_parms, FILE *w
     fprintf(where, "    if (%s->Header.ReturnCode == RPC2_INVALIDOPCODE) {\n\tRPC2_FreeBuffer(&%s);\n\treturn RPC2_INVALIDOPCODE;\n    }\n", rspbuffer, rspbuffer);
 
     /* Unpack arguments */
+       fprintf(where, "\n    /* Unpack arguments */\n");
+        fprintf(where, "    bufptr->buffer = (char *)%s->Body;\n", rspbuffer);
+        fprintf(where, "    bufptr->eob = (char *)%s + %s->Prefix.LengthOfPacket + \n\t\t\tsizeof(struct RPC2_PacketBufferPrefix);\n", rspbuffer, rspbuffer);
     if (out_parms) {
-	fprintf(where, "\n    /* Unpack arguments */\n    %s = (char *)%s->Body;\n", ptr, rspbuffer);
-	fprintf(where,"     _EOB = (char *)%s + %s->Prefix.LengthOfPacket + \n\t\t\tsizeof(struct RPC2_PacketBufferPrefix);\n", rspbuffer, rspbuffer);
-        fprintf(where, "\n    bufptr->buffer = %s;\n", ptr);
-        fprintf(where, "    bufptr->eob = _EOB;\n");
-        fprintf(where, "    bufptr->who = %d;\n", RP2_CLIENT);
 	for (parm=proc->formals; *parm!=NIL; parm++)
-	    if ((*parm)->mode != IN_MODE) unpack(RP2_CLIENT, *parm, "", ptr, where);
+           if ((*parm)->mode != IN_MODE) unpack(RP2_CLIENT, *parm, "", where);
     }
     /* Optionally translate OS independent errors back */
     if ( neterrors  ) {
@@ -1058,16 +1051,6 @@ static inc8(what, where)
     fprintf(where, "    %s += 8;\n", what);
 }
 
-static checkbuffer(where, what, size)
-    char *what;
-    FILE *where;
-    int32_t size;
-{
-	fprintf(where, "    if ( (char *)%s + %d > _EOB)\n" BUFFEROVERFLOW,
-		what, size);
-        buffer_checked = 1;
-}
-
 static void set_timeout(PROC *proc, FILE *where)
 {
     if (proc->timeout == NIL && !subsystem.timeout != NIL) {
@@ -1085,7 +1068,7 @@ static void set_timeout(PROC *proc, FILE *where)
     fprintf(where, "; %s.tv_usec = 0; %s = &%s;\n", timeoutval, timeout, timeoutval);
 }
 
-static void pack(WHO who, VAR *parm, char *prefix, char *ptr, FILE *where)
+static void pack(WHO who, VAR *parm, char *prefix, FILE *where)
 {
     extern char *concat();
     char *name, *select, *suffix;
@@ -1206,7 +1189,7 @@ static void pack(WHO who, VAR *parm, char *prefix, char *ptr, FILE *where)
     free(suffix);
 }
 
-static void unpack(WHO who, VAR *parm, char *prefix, char *ptr, FILE *where)
+static void unpack(WHO who, VAR *parm, char *prefix, FILE *where)
  {
     char *name, *select, *suffix;
     MODE mode;
@@ -1267,6 +1250,10 @@ static void unpack(WHO who, VAR *parm, char *prefix, char *ptr, FILE *where)
 	    break;
     case RPC2_COUNTEDBS_TAG:
             buffer_checked = 1;
+            if (who == RP2_CLIENT && mode != IN_MODE) {
+                fprintf(stderr, "Client should not unpack countedbs!\n");
+                abort();
+            }
             if (who == RP2_SERVER) {
                 /* Special hack */
                 fprintf(where, "    if (unpack_countedbs(bufptr, &(%s)))\n", name);
@@ -1380,7 +1367,6 @@ static void check_new_connection(PROC *proc)
 
 static void one_server_proc(PROC *proc, FILE *where)
 {
-    static char ptr[] = "_ptr";
     VAR **formals;
     rp2_bool first, in_parms, out_parms, array_parms;
 
@@ -1398,7 +1384,7 @@ static void one_server_proc(PROC *proc, FILE *where)
     fprintf(where, "{\n");
 
     /* declare locals */
-    locals(where);
+    locals(where, "RP2_SERVER");
 
     /* Declare parms */
     in_parms = RP2_FALSE;
@@ -1422,23 +1408,16 @@ static void one_server_proc(PROC *proc, FILE *where)
 	    in_parms = RP2_TRUE;
     }
 
-    /* note end of buffer */
-    if (in_parms || out_parms) {
-        fprintf(where, "    char *_EOB;\n");
-    }
-
     if (array_parms) {
         fprintf(where, "    long %s;\n", iterate);
     }
 
+    fprintf(where, "\n    /* Unpack parameters */\n");
+    fprintf(where, "    bufptr->buffer = (char *)%s->Body;\n", reqbuffer);
+    fprintf(where, "    bufptr->eob = (char *)%s + %s->Prefix.LengthOfPacket + \n\t\t\tsizeof(struct RPC2_PacketBufferPrefix);\n", reqbuffer, reqbuffer);
+
     if (in_parms) {
-	/* Unpack parameters */
-        fprintf(where, "\n    /* Unpack parameters */\n");
-	fprintf(where, "    %s = (char *)%s->Body;\n", ptr, reqbuffer);
-	fprintf(where,"     _EOB = (char *)%s + %s->Prefix.LengthOfPacket + \n\t\t\tsizeof(struct RPC2_PacketBufferPrefix);\n", reqbuffer, reqbuffer);
-        fprintf(where, "\n    bufptr->buffer = %s;\n", ptr);
-        fprintf(where, "    bufptr->eob = _EOB;\n");
-        fprintf(where, "    bufptr->who = %d;\n", RP2_SERVER);
+        fprintf(where, "\n    %s = %s;\n", rspbuffer, reqbuffer);
 	for (formals=proc->formals; *formals!=NIL; formals++)
 	    if ((*formals)->type->type->tag != RPC2_BULKDESCRIPTOR_TAG) {
 	        /* As DYNArray always has IN mode parameter,
@@ -1449,12 +1428,10 @@ static void one_server_proc(PROC *proc, FILE *where)
 		}
 	        if ((*formals)->mode != OUT_MODE ||
 		    (*formals)->type->type->tag == RPC2_BOUNDEDBS_TAG) {
-		    unpack(RP2_SERVER, *formals, "", ptr, where);
+                   unpack(RP2_SERVER, *formals, "", where);
 		}
 	    }
-    } else {
-	/* Reference _ptr and _reqbuffer to avoid compiler warning in stub */
-	    fprintf (where, "\n     /* This avoids compiler warnings */\n    %s = NULL;\n    %s = %s;\n", ptr, reqbuffer, reqbuffer);
+        fprintf(where, "\n    %s = NULL;\n", rspbuffer);
     }
     fprintf(where, "    %s = %s;\n", bd, bd);
 
@@ -1506,23 +1483,18 @@ static void one_server_proc(PROC *proc, FILE *where)
     } else {
     fprintf(where, "    %s->Header.ReturnCode = %s;\n", rspbuffer, code);
     }
-    if (out_parms) {
-	/* Pack return parameters */
-        fprintf(where, "\n    /* Pack return parameters */\n");
-	fprintf(where, "    %s = (char *)%s->Body;\n", ptr, rspbuffer);
-	fprintf(where, "    _EOB = (char *)%s + %s->Prefix.BufferSize;\n",
-		rspbuffer, rspbuffer);
-        fprintf(where, "\n    bufptr->buffer = %s;\n", ptr);
-        fprintf(where, "    bufptr->eob = _EOB;\n");
-        fprintf(where, "    bufptr->who = %d;\n", RP2_SERVER);
-    }
+
+    /* Pack return parameters */
+    fprintf(where, "\n    /* Pack return parameters */\n");
+    fprintf(where, "    bufptr->buffer = (char *)%s->Body;\n", rspbuffer);
+    fprintf(where, "    bufptr->eob = (char *)%s + %s->Prefix.BufferSize;\n", rspbuffer, rspbuffer);
 
     for (formals=proc->formals; *formals!=NIL; formals++) {
 	TYPE_TAG tag;
 	tag = (*formals)->type->type->tag;
 	if (tag != RPC2_BULKDESCRIPTOR_TAG) {
 	    if ((*formals)->mode != IN_MODE) {
-	        pack(RP2_SERVER, *formals, "", ptr, where);
+               pack(RP2_SERVER, *formals, "", where);
 	    }
 	    if ((*formals)->array != NIL) {
 	        free_dynamicarray(*formals, where);

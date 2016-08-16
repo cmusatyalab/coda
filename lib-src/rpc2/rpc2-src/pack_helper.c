@@ -94,28 +94,11 @@ int unpack_string(BUFFER *buf, unsigned char **ptr)
 
 int unpack_countedbs(BUFFER *buf, RPC2_CountedBS *ptr)
 {
-    RPC2_Unsigned tmp_len = 0;
-    if (unpack_unsigned(buf, &tmp_len))
+    if (unpack_unsigned(buf, &ptr->SeqLen))
         return -1;
-    if (buf->who == RP2_SERVER) {
-	/* Special hack */
-        ptr->SeqLen = tmp_len;
-        if (buf->buffer + ptr->SeqLen > buf->eob)
-            return -1;
-        ptr->SeqBody = (RPC2_Byte *)(buf->buffer);
-    } else {
-        if (buf->buffer + tmp_len > buf->eob)
-            return -1;
-	/*    bug fix. Should update SeqLen and use select. M.K. */
-	/*   fprintf(where, "
-	memcpy((char *)%s->SeqBody, %s, (int32_t)%s);\n", */
-        /* although currently it's not possible to unpack countedbs in client, */
-        /* there is a unused function in cml.rpc2 doing such operation */
-        assert(tmp_len <= ptr->SeqLen);
-        ptr->SeqLen = tmp_len;
-        memcpy(ptr->SeqBody, buf->buffer, ptr->SeqLen);
-	/*				inc(ptr, length, where); */
-    }
+    if (buf->buffer + ptr->SeqLen > buf->eob)
+        return -1;
+    ptr->SeqBody = (RPC2_Byte *)(buf->buffer);
     buf->buffer += _PAD(ptr->SeqLen);
     return 0;
 }

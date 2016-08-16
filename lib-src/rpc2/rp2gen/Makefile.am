@@ -16,7 +16,7 @@ LIBS=
 bin_PROGRAMS = rp2gen
 
 rp2gen_SOURCES = rp2main.c rp2gen_parser.y rp2gen_lexer.l symtab.c crout.c \
-    util.c rp2.h rp2gen_parser.h $(top_srcdir)/rpc2-src/pack_helper.c
+    util.c rp2.h rp2gen_parser.h
 
 CLEANFILES = rp2gen_parser.c rp2gen_parser.h rp2gen_lexer.c
 MAINTAINERCLEANFILES = Makefile.in
