@@ -36,14 +36,6 @@ Subsystem "cml";
 
 #include "vcrcommon.rpc2"
 
-typedef RPC2_Enum
-{
-	StoreNeither = 0,
-	StoreData = 1,
-	StoreStatus = 2,
-	StoreStatusData = 3
-}	OLDCML_StoreType;
-
 1: CML_Create	(IN ViceFid Did,
 		 IN ViceVersionVector pVV,
 		 IN RPC2_String Name,
@@ -68,71 +60,13 @@ typedef RPC2_Enum
 		 IN ViceVersionVector sVV,
 		 IN ViceStoreId StoreId);
 
-4: OLDCML_Remove(IN ViceFid Did,
-		 IN RPC2_String Name,
-		 IN OUT ViceStatus DirStatus,
-		 IN OUT ViceStatus Status,
-		 IN RPC2_Unsigned PrimaryHost,
-		 IN ViceStoreId StoreId,
-		 IN RPC2_CountedBS PiggyCOP2);
-
-5: OLDCML_Create(IN ViceFid Did,
-		 IN ViceFid BidFid,
-		 IN RPC2_String Name,
-		 IN OUT ViceStatus Status,
-		 IN OUT ViceFid Fid,
-		 IN OUT ViceStatus DirStatus,
-		 IN RPC2_Unsigned PrimaryHost,
-		 IN ViceStoreId StoreId,
-		 IN RPC2_CountedBS PiggyCOP2);
-		 
-6: OLDCML_Rename(IN ViceFid OldDid,
-		 IN RPC2_String OldName,
-		 IN ViceFid NewDid,
-		 IN RPC2_String NewName,
-		 IN OUT ViceStatus OldDirStatus,
-		 IN OUT ViceStatus NewDirStatus,
-		 IN OUT ViceStatus SrcStatus,
-		 IN OUT ViceStatus TgtStatus,
-		 IN RPC2_Unsigned PrimaryHost,
-		 IN ViceStoreId StoreId,
-		 IN RPC2_CountedBS PiggyCOP2);
-
-7: OLDCML_SymLink(IN ViceFid Did,
-		 IN RPC2_String Content,
-		 IN RPC2_String Name,
-		 IN OUT ViceFid Fid,
-		 IN OUT ViceStatus Status,
-		 IN OUT ViceStatus DirStatus,
-		 IN RPC2_Unsigned PrimaryHost,
-		 IN ViceStoreId StoreId,
-		 IN RPC2_CountedBS PiggyCOP2);
-
-8: OLDCML_Link	(IN ViceFid Did,
-		 IN RPC2_String Name,
-		 IN ViceFid Fid,
-		 IN OUT ViceStatus Status,
-		 IN OUT ViceStatus DirStatus,
-		 IN RPC2_Unsigned PrimaryHost,
-		 IN ViceStoreId StoreId,
-		 IN RPC2_CountedBS PiggyCOP2);
-
-9: OLDCML_MakeDir(IN ViceFid Did,
-		  IN RPC2_String Name,
-		  IN OUT ViceStatus Status,
-		  IN OUT ViceFid NewDid,
-		  IN OUT ViceStatus DirStatus,
-		  IN RPC2_Unsigned PrimaryHost,
-		  IN ViceStoreId StoreId,
-		  IN RPC2_CountedBS PiggyCOP2);
-
-10: OLDCML_RemoveDir(IN ViceFid Did,
-		     IN RPC2_String Name,
-		     IN OUT ViceStatus Status,
-		     IN OUT ViceStatus TgtStatus,
-		     IN RPC2_Unsigned PrimaryHost,
-		     IN ViceStoreId StoreId,
-		     IN RPC2_CountedBS PiggyCOP2);
+/* 4: OLDCML_Remove */
+/* 5: OLDCML_Create */
+/* 6: OLDCML_Rename */
+/* 7: OLDCML_SymLink */
+/* 8: OLDCML_Link */
+/* 9: OLDCML_MakeDir */
+/* 10: OLDCML_RemoveDir */
 
 11: CML_Store	(IN ViceFid Fid,
 		 IN ViceVersionVector VV,
@@ -202,19 +136,5 @@ typedef RPC2_Enum
 		IN ViceVersionVector VV,
 		IN ViceStoreId StoreId);
 
-33: OLDCML_Repair(IN ViceFid Fid,
-		  IN OUT ViceStatus status, 
-		  IN ViceStoreId StoreId,
-		  IN OUT SE_Descriptor BD);
-
-52: OLDCML_NewStore(IN ViceFid Fid,
-		    IN OLDCML_StoreType Request,
-		    IN OUT RPC2_CountedBS AccessList,
-		    IN OUT ViceStatus Status,
-		    IN RPC2_Integer Length,
-		    IN RPC2_Integer Mask,
-		    IN RPC2_Unsigned PrimaryHost,
-		    IN ViceStoreId StoreId,
-		    IN RPC2_CountedBS PiggyCOP2,
-		    IN OUT SE_Descriptor BD);
-
+/* 33: OLDCML_Repair */
+/* 52: OLDCML_NewStore */
