@@ -271,18 +271,15 @@ typedef uint32_t RPC2_Unsigned;     /* 32-bits.*/
 
 typedef uint8_t RPC2_Byte;      /*A single 8-bit byte.*/
 
-typedef
-    double RPC2_Double;      /*A single 8-bit byte.*/
+typedef double RPC2_Double;      /*A single 64-bit float.*/
 
-typedef
-    RPC2_Byte *RPC2_ByteSeq;
+typedef RPC2_Byte *RPC2_ByteSeq;
 /* A contiguous sequence of bytes. In the C implementation this is a
 pointer.  RPC2Gen knows how to allocate and transform the pointer
 values on transmission.  Beware if you are not dealing via RPC2Gen.
 May be differently represented in other languages.  */
 
-typedef
-    RPC2_ByteSeq RPC2_String; /*no nulls except last byte*/
+typedef RPC2_ByteSeq RPC2_String; /*no nulls except last byte*/
 /* A null-terminated sequence of characters.  Identical to the C
 language string definition.  */
 

@@ -17,7 +17,9 @@ Coda are listed in the file CREDITS.
 #include <rpc2/pack_helper.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
+#define _PAD(n)((((n)-1) | 3) + 1)
 
 int unpack_int(BUFFER *buf, RPC2_Integer *ptr)
 {
@@ -49,7 +51,7 @@ int unpack_double(BUFFER *buf, RPC2_Double *ptr)
 }
 
 
-int unpack_bound_bytes(BUFFER *buf, unsigned char *ptr, RPC2_Unsigned len)
+int unpack_bytes(BUFFER *buf, RPC2_ByteSeq ptr, RPC2_Unsigned len)
 {
     if (buf->buffer + len > buf->eob)
         return -1;
@@ -58,7 +60,7 @@ int unpack_bound_bytes(BUFFER *buf, unsigned char *ptr, RPC2_Unsigned len)
     return 0;
 }
 
-int unpack_unbound_bytes(BUFFER *buf, unsigned char *ptr)
+int unpack_byte(BUFFER *buf, RPC2_Byte *ptr)
 {
     if (buf->buffer + 1 > buf->eob)
         return -1;
@@ -68,7 +70,7 @@ int unpack_unbound_bytes(BUFFER *buf, unsigned char *ptr)
 }
 
 
-int unpack_string(BUFFER *buf, unsigned char **ptr)
+int unpack_string(BUFFER *buf, RPC2_String *ptr)
 {
     RPC2_Unsigned length = 0;
     if (unpack_unsigned(buf, &length))
@@ -189,17 +191,17 @@ int pack_double(BUFFER *buf, RPC2_Double value)
 }
 
 
-int pack_bound_bytes(BUFFER *buf, char *ptr, long len)
+int pack_bytes(BUFFER *buf, RPC2_ByteSeq value, RPC2_Unsigned len)
 {
     if (buf->buffer + len > buf->eob)
         return -1;
-    memcpy(buf->buffer, ptr, len);
+    memcpy(buf->buffer, value, len);
     buf->buffer += _PAD(len);
     return 0;
 }
 
 
-int pack_unbound_bytes(BUFFER *buf, RPC2_Byte value)
+int pack_byte(BUFFER *buf, RPC2_Byte value)
 {
     if (buf->buffer + 1 > buf->eob)
         return -1;
@@ -209,14 +211,14 @@ int pack_unbound_bytes(BUFFER *buf, RPC2_Byte value)
 }
 
 
-int pack_string(BUFFER *buf, char *ptr)
+int pack_string(BUFFER *buf, RPC2_String ptr)
 {
-    int length = strlen(ptr);
+    int length = strlen((const char *)ptr);
     if (pack_int(buf, length))
         return -1;
     if (buf->buffer + length + 1 > buf->eob)
         return -1;
-    strcpy(buf->buffer, ptr);
+    strcpy(buf->buffer, (const char *)ptr);
     *(buf->buffer + length) = '\0';
     buf->buffer += _PAD(length + 1);
     return 0;
@@ -263,7 +265,7 @@ int pack_encryptionKey(BUFFER *buf, char *ptr)
 
 int pack_struct_CallCountEntry(BUFFER *buf, CallCountEntry *ptr)
 {
-    if (pack_string(buf, (char *)ptr->name))
+    if (pack_string(buf, ptr->name))
         return -1;
     if (pack_int(buf, ptr->countent))
         return -1;
@@ -299,7 +301,7 @@ int unpack_struct_CallCountEntry(BUFFER *buf, CallCountEntry *ptr)
 
 int pack_struct_MultiCallEntry(BUFFER *buf, MultiCallEntry *ptr)
 {
-    if (pack_string(buf, (char *)ptr->name))
+    if (pack_string(buf, ptr->name))
         return -1;
     if (pack_int(buf, ptr->countent))
         return -1;

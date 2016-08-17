@@ -33,6 +33,7 @@ ylwrap
 *.[ao]
 *.l[ao]
 *.client.c
+*.helper.c
 *.multi.c
 *.print.c
 *.server.c
