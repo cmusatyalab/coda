@@ -72,6 +72,7 @@ AC_SEARCH_LIBS(bind, socket)
 AC_SEARCH_LIBS(inet_ntoa, nsl)
 AC_SEARCH_LIBS(gethostbyname, resolv)
 AC_SEARCH_LIBS(res_search, resolv)
+AC_SEARCH_LIBS(__res_search, resolv)
 AC_SEARCH_LIBS(res_9_init, resolv)
 AC_SEARCH_LIBS(kvm_openfiles, kvm)
 
@@ -132,7 +133,7 @@ CODA_CHECK_OFFSETOF
 dnl Checks for library functions.
 AC_CHECK_FUNCS(inet_aton inet_ntoa res_search pread fseeko nmount)
 AC_CHECK_FUNCS(select setenv snprintf statfs strerror strtol)
-AC_CHECK_FUNCS(getpeereid getpeerucred backtrace)
+AC_CHECK_FUNCS(getpeereid getpeerucred backtrace __res_search)
 AC_FUNC_MMAP
 AC_FUNC_SELECT_ARGTYPES
 CODA_CHECK_FILE_LOCKING

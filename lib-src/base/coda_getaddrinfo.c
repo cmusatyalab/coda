@@ -86,7 +86,7 @@ struct sockaddr_in6 {
 
 #include "coda_getaddrinfo.h"
 
-#if defined(HAVE_RES_SEARCH) && defined(HAVE_NS_TYPE)
+#if (defined(HAVE_RES_SEARCH) || defined(HAVE___RES_SEARCH)) && defined(HAVE_NS_TYPE)
 static char *srvdomainname(const char *node, const char *service,
 			   const char *proto)
 {
@@ -320,7 +320,7 @@ int coda_getaddrinfo(const char *node, const char *service,
     int err = RPC2_EAI_FAIL;
 
     if (!initialized) {
-#if defined(HAVE_RES_SEARCH) && defined(HAVE_NS_TYPE)
+#if (defined(HAVE_RES_SEARCH) || defined(HAVE___RES_SEARCH)) && defined(HAVE_NS_TYPE)
 	/* assuming that if we have res_search, we'll have res_init and
 	 * _res.options and so on */
 	res_init();
@@ -366,7 +366,7 @@ int coda_getaddrinfo(const char *node, const char *service,
 	    return RPC2_EAI_BADFLAGS;
 #endif
 
-#if defined(HAVE_RES_SEARCH) && defined(HAVE_NS_TYPE)
+#if (defined(HAVE_RES_SEARCH) || defined(HAVE___RES_SEARCH)) && defined(HAVE_NS_TYPE)
 	/* try to find SRV records */
 	err = do_srv_lookup(node, service, hints, &srvs);
 	if (err == RPC2_EAI_NONAME) /* found a SRV record with a '.' target? */
