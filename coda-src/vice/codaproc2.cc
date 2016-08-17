@@ -563,7 +563,7 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 	char *rfile = NULL;
 	PARM *_ptr = 0;
 	char *_end;
-	int index;
+	int index = -1;
 	char *OldName = NULL;
 	char *NewName = NULL;
 	int rlog_len = 0;
@@ -575,7 +575,6 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 		SLog(0, "ValidateReintegrateParms: failed to translate VSG %x",
 		     VSGVolnum);
 		errorCode = EINVAL;
-		index = -1;
 		goto Exit;
 	}
 	SLog(2, "ValidateReintegrateParms: %x --> %x", VSGVolnum, *Vid);
@@ -584,13 +583,11 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 	if((errorCode = RPC2_GetPrivatePointer(RPCid, (char **)client)) 
 	   != RPC2_SUCCESS) {
 		SLog(0, "ValidateReintegrateParms: no private pointer for RPCid %x", RPCid);
-		index = -1;
 		goto Exit;
 	}
 	if(!*client) {
 		SLog(0,  "ValidateReintegrateParms: NULL private pointer for RPCid %x", RPCid);
 		errorCode = EINVAL;
-		index = -1;
 		goto Exit;
 	}
     SLog(2,  "ValidateReintegrateParms: %s %s.%d",
@@ -617,14 +614,12 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 
 	if((errorCode = RPC2_InitSideEffect(RPCid, &sid)) <= RPC2_ELIMIT) {
 	    SLog(0,  "ValidateReintegrateParms: Init_SE failed (%d)", errorCode);
-	    index = -1;
 	    goto Exit;
 	}
 
 	if ((errorCode = RPC2_CheckSideEffect(RPCid, &sid, SE_AWAITLOCALSTATUS)) <= RPC2_ELIMIT) {
 	    SLog(0,  "ValidateReintegrateParms: Check_SE failed (%d)", errorCode);
 	    if (errorCode == RPC2_SEFAIL1) errorCode = EIO;
-	    index = -1;
 	    goto Exit;
 	}
 
@@ -633,25 +628,24 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
         if (bytes != rlen) {
 	    SLog(0,  "ValidateReintegrateParms: size mismatch on CML transfer (got %d, expected %d)",
                  bytes, rlen);
-            index = -1;
             goto Exit;
         }
     }
 
+    /* the typical error is ENOMEM */
+    errorCode = ENOMEM;
+
     OldName = new char[MAXNAMELEN+1];
+    if (!OldName) goto Exit;
+
     NewName = new char[MAXNAMELEN+1];
-    if (!OldName || !NewName) {
-	    errorCode = ENOMEM;
-	    index = -1;
-	    goto Exit;
-    }
+    if (!NewName) goto Exit;
 
     /* Allocate/unpack entries and append them to the RL. */
     _end = rfile + rlen;
     for (_ptr = (PARM *)rfile, index = 0; (char *)_ptr < _end; index++) {
 	struct rle *r = (struct rle *)malloc(sizeof(struct rle));
 	if (!r) {
-	    errorCode = ENOMEM;
 	    goto Exit;
 	}
 
@@ -678,7 +672,6 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 
 		r->Name[0] = strdup(NewName);
 		if (!r->Name[0]) {
-		    errorCode = ENOMEM;
 		    goto Exit;
 		}
                 break;
@@ -689,7 +682,6 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 
 		r->Name[0] = strdup(NewName);
 		if (!r->Name[0]) {
-		    errorCode = ENOMEM;
 		    goto Exit;
 		}
 		break;
@@ -701,7 +693,6 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 
 		r->Name[0] = strdup(NewName);
 		if (!r->Name[0]) {
-		    errorCode = ENOMEM;
 		    goto Exit;
 		}
 		break;
@@ -716,7 +707,6 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 
 		r->Name[0] = strdup(NewName);
 		if (!r->Name[0]) {
-		    errorCode = ENOMEM;
 		    goto Exit;
 		}
 
@@ -724,22 +714,8 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 		if (!r->Name[1]) {
 		    free(r->Name[0]);
 		    r->Name[0] = NULL;
-		    errorCode = ENOMEM;
 		    goto Exit;
 		}
-		break;
-
-	    case CML_BrokenRemove_OP:
-		RLE_Unpack(&_ptr, _end, CML_BrokenRemove_PTR, &r->Fid[0],
-			   &r->VV[0], OldName, &r->VV[1], &r->sid);
-
-		memset(&r->VV[0], 0, sizeof(ViceVersionVector));
-		r->Name[0] = strdup(OldName);
-		if (!r->Name[0]) {
-		    errorCode = ENOMEM;
-		    goto Exit;
-		}
-                r->opcode = CML_Remove_OP;
 		break;
 
 	    case CML_Remove_OP:
@@ -748,7 +724,6 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 
 		r->Name[0] = strdup(OldName);
 		if (!r->Name[0]) {
-		    errorCode = ENOMEM;
 		    goto Exit;
 		}
 		break;
@@ -759,7 +734,6 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 
 		r->Name[0] = strdup(OldName);
 		if (!r->Name[0]) {
-		    errorCode = ENOMEM;
 		    goto Exit;
 		}
 		break;
@@ -795,7 +769,6 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 
 		r->Name[0] = strdup(OldName);
 		if (!r->Name[0]) {
-		    errorCode = ENOMEM;
 		    goto Exit;
 		}
 
@@ -803,7 +776,6 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 		if (!r->Name[1]) {
 		    free(r->Name[0]);
 		    r->Name[0] = NULL;
-		    errorCode = ENOMEM;
 		    goto Exit;
 		}
 		break;

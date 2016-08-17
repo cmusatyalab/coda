@@ -18,10 +18,7 @@ Coda are listed in the file CREDITS.
 
 /* 
  * Here we define the operations and arguments of operations that are packed
- * into the CML. At the moment (Coda version 5.2) the client uses the OLDCML_*
- * operations, which are protocol compatible with the obsoleted pre-5.2 Vice*
- * operations. However, in the near future the servers should start supporting
- * the more efficiently packed CML_* operations.
+ * into the CML.
  * 
  * btw. we only use the generated header file.
  */
@@ -44,12 +41,7 @@ Subsystem "cml";
 		 IN ViceFid Fid,
 		 IN ViceStoreId StoreId);
 
-2: CML_BrokenRemove (IN ViceFid Did,
-		 IN RPC2_String pVV,
-		 IN ViceVersionVector Name,
-		 IN ViceVersionVector VV,
-		 IN ViceStoreId StoreId);
-
+/* 2: CML_BrokenRemove */
 		 
 3: CML_Rename	(IN ViceFid OldDid,
 		 IN ViceVersionVector spVV,
