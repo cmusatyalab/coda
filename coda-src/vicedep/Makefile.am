@@ -11,7 +11,7 @@ RPC2_FILES = callback.rpc2 cml.rpc2 mond.rpc2 res.rpc2 vcrcommon.rpc2 \
 include $(top_srcdir)/configs/rpc2_rules.mk
 EXTRA_DIST += mond.rpc2.new
 
-nodist_libvenusdep_la_SOURCES = vcrcommon.h callback.server.c cml.multi.c \
+nodist_libvenusdep_la_SOURCES = vcrcommon.h callback.server.c cml.client.c \
     vice.client.c vice.multi.c callback.helper.c cml.helper.c vice.helper.c vcrcommon.helper.c
 nodist_libvicedep_la_SOURCES = vcrcommon.h volutil.h callback.client.c \
     callback.multi.c cml.multi.c mond.client.c res.client.c res.multi.c \

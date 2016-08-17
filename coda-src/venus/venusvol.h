@@ -374,7 +374,7 @@ class cmlent {
     void translatefid(VenusFid *, VenusFid *);
     void thread();
     int size();
-    void pack(PARM **);
+    void pack(BUFFER *);
     void commit(ViceVersionVector *);
     int cancelstore();
     int Aged();

@@ -47,14 +47,11 @@ extern "C" {
 #include <rpc2/rpc2.h>
 #include <rpc2/se.h>
 #include <rpc2/multi.h>
+#include <rpc2/pack_helper.h>
 
 /* from dir */
 #include <codadir.h>
 
-extern int get_len(ARG **, PARM **, MODE);
-extern int struct_len(ARG **, PARM **);
-extern void pack(ARG *, PARM **, PARM **);
-extern void pack_struct(ARG *, PARM **, PARM **);
 /* interfaces */
 #include <vice.h>	
 #include <cml.h>	
@@ -79,9 +76,6 @@ extern void pack_struct(ARG *, PARM **, PARM **);
 #include "venusvol.h"
 #include "vproc.h"
 #include "worker.h"
-
-static int RLE_Size(ARG * ...);
-static void RLE_Pack(PARM **, ARG * ...);
 
 int LogOpts = 1;	/* perform log optimizations? */
 int allow_backfetch;	/* allow backfetches during reintegration */
@@ -1965,16 +1959,18 @@ void ClientModifyLog::IncPack(char **bufp, int *bufsizep, int tid)
     repvol *vol = strbase(repvol, this, CML);
     LOG(1, ("ClientModifyLog::IncPack: (%s) and tid = %d\n", vol->name, tid));
 
+    BUFFER buffer = {};
+    buffer.who = RP2_CLIENT;
+
     /* Compute size of buffer needed. */
     {
-	int len = 0;
 	cml_iterator next(*this, CommitOrder);
 	cmlent *mle;
-	while ((mle = next()))
-	  if (mle->GetTid() == tid)
-	    len += mle->size();
+        while ((mle = next()))
+            if (mle->GetTid() == tid)
+                mle->pack(&buffer);
 
-	*bufsizep = len;
+	*bufsizep = (intptr_t)buffer.buffer;
     }
 
     /* Allocate such a buffer. */
@@ -1982,12 +1978,14 @@ void ClientModifyLog::IncPack(char **bufp, int *bufsizep, int tid)
 
     /* Pack according to commit order. */
     {
-	PARM *_ptr = (PARM *)*bufp;
+        buffer.buffer = *bufp;
+        buffer.eob = *bufp + *bufsizep;
+
 	cml_iterator next(*this, CommitOrder);
-	cmlent *m;
-	while ((m = next()))
-	  if (m->GetTid() == tid)
-	    m->pack(&_ptr);
+	cmlent *mle;
+	while ((mle = next()))
+            if (mle->GetTid() == tid)
+                mle->pack(&buffer);
     }
 
     LOG(0, ("ClientModifyLog::IncPack: (%s)\n", vol->name));
@@ -2473,177 +2471,91 @@ void cmlent::thread() {
 }
 
 
-/* local-repair modification */
-/* Computes amount of space a record will require when packed 
-   into an RPC buffer. */
-int cmlent::size() 
-{
-    int len = 0;
+int cmlent::size() {
+    BUFFER buffer = {};
+    buffer.who = RP2_CLIENT;
 
-    len	+= (int) sizeof(RPC2_Integer);	/* Leave room for opcode. */
-    len	+= (int) sizeof(Date_t);		/* Leave room for modify time. */
-    switch(opcode) {
-	case CML_Create_OP:
-	    len += RLE_Size(CML_Create_PTR, MakeViceFid(&u.u_create.PFid),
-			    &u.u_create.PVV, Name, (vuid_t)uid, u.u_create.Mode,
-			    MakeViceFid(&u.u_create.CFid), &sid);
-	    break;
-
-	case CML_Link_OP:
-	    len += RLE_Size(CML_Link_PTR, MakeViceFid(&u.u_link.PFid),
-			    &u.u_link.PVV, Name, MakeViceFid(&u.u_link.CFid),
-			    &u.u_link.CVV, &sid);
-	    break;
-
-	case CML_MakeDir_OP:
-	    len += RLE_Size(CML_MakeDir_PTR, MakeViceFid(&u.u_mkdir.PFid),
-			    &u.u_mkdir.PVV, Name, MakeViceFid(&u.u_mkdir.CFid),
-			    (vuid_t)uid, u.u_mkdir.Mode, &sid);
-	    break;
-
-	case CML_SymLink_OP:
-	    len += RLE_Size(CML_SymLink_PTR, MakeViceFid(&u.u_symlink.PFid),
-			    &u.u_symlink.PVV, NewName, Name,
-			    MakeViceFid(&u.u_symlink.CFid), (vuid_t)uid,
-			    u.u_symlink.Mode, &sid);
-	    break;
-
-	case CML_Remove_OP:
-	    len += RLE_Size(CML_Remove_PTR, MakeViceFid(&u.u_remove.PFid),
-			    &u.u_remove.PVV, Name, &u.u_remove.CVV, &sid);
-	    break;
-
-	case CML_RemoveDir_OP:
-	    len += RLE_Size(CML_RemoveDir_PTR, MakeViceFid(&u.u_rmdir.PFid),
-			    &u.u_rmdir.PVV, Name, &u.u_rmdir.CVV, &sid);
-	    break;
-
-	case CML_Store_OP:
-	    len += RLE_Size(CML_Store_PTR, MakeViceFid(&u.u_store.Fid),
-			    &u.u_store.VV, u.u_store.Length, &sid);
-	    break;
-
-	case CML_Utimes_OP:
-	    len += RLE_Size(CML_Utimes_PTR, MakeViceFid(&u.u_utimes.Fid),
-			    &u.u_utimes.VV, u.u_utimes.Date, &sid);
-	    break;
-
-	case CML_Chown_OP:
-	    len += RLE_Size(CML_Chown_PTR, MakeViceFid(&u.u_chown.Fid),
-			    &u.u_chown.VV, (vuid_t)u.u_chown.Owner, &sid);
-	    break;
-
-	case CML_Chmod_OP:
-	    len += RLE_Size(CML_Chmod_PTR, MakeViceFid(&u.u_chmod.Fid),
-			    &u.u_chmod.VV, u.u_chmod.Mode, &sid);
-	    break;
-
-	case CML_Rename_OP:
-	    len += RLE_Size(CML_Rename_PTR, MakeViceFid(&u.u_rename.SPFid),
-			    &u.u_rename.SPVV, Name,
-			    MakeViceFid(&u.u_rename.TPFid), &NullVV, NewName,
-			    &u.u_rename.SVV, &sid);
-	    break;
-
-	case CML_Repair_OP:
-	    len += RLE_Size(CML_Repair_PTR, MakeViceFid(&u.u_repair.Fid),
-			    u.u_repair.Length, u.u_repair.Date,
-			    (vuid_t)u.u_repair.Owner, (vuid_t)u.u_repair.Owner,
-			    u.u_repair.Mode, &sid);
-	    break;
-
-	default:
-	    CHOKE("cmlent::size: bogus opcode (%d)", opcode);
-    }
-
-    return(len);
+    pack(&buffer);
+    return (intptr_t)buffer.buffer;
 }
-
 
 /* local-repair modification */
 /* Pack this record into an RPC buffer for transmission to the server. */
-void cmlent::pack(PARM **_ptr) {
-    /* We MUST recompute the size here since the MRPC size-computing routines */
-    /* modify static variables which are used in packing (i.e., XXX_PTR)! */
-    (void)size();
-
+void cmlent::pack(BUFFER *bufptr) {
     ViceVersionVector TPVV;
 
-    *(RPC2_Integer *)(*_ptr) = htonl(opcode); /* Stick in opcode. */
-    *_ptr = (PARM *)((char *)*_ptr + sizeof(RPC2_Integer));
-
-    *(Date_t *)(*_ptr) = htonl(time);	  /* Stick in modify time. */
-    *_ptr = (PARM *)((char *)*_ptr + sizeof(Date_t));
+    pack_integer(bufptr, opcode); /* Stick in opcode. */
+    pack_unsigned(bufptr, time); /* Stick in modify time. */
 
     switch(opcode) {
 	case CML_Create_OP:
-	    RLE_Pack(_ptr, CML_Create_PTR, MakeViceFid(&u.u_create.PFid),
-		     &u.u_create.PVV, Name, (vuid_t)uid, u.u_create.Mode,
-		     MakeViceFid(&u.u_create.CFid), &sid);
+            pack_CML_Create_request(bufptr, MakeViceFid(&u.u_create.PFid),
+                    &u.u_create.PVV, Name, (vuid_t)uid, u.u_create.Mode,
+                    MakeViceFid(&u.u_create.CFid), &sid);
 	    break;
 
 	case CML_Link_OP:
-	    RLE_Pack(_ptr, CML_Link_PTR, MakeViceFid(&u.u_link.PFid),
-		     &u.u_link.PVV, Name, MakeViceFid(&u.u_link.CFid),
-		     &u.u_link.CVV, &sid);
+            pack_CML_Link_request(bufptr, MakeViceFid(&u.u_link.PFid),
+                    &u.u_link.PVV, Name, MakeViceFid(&u.u_link.CFid),
+                    &u.u_link.CVV, &sid);
 	    break;
 
 	case CML_MakeDir_OP:
-	    RLE_Pack(_ptr, CML_MakeDir_PTR, MakeViceFid(&u.u_mkdir.PFid),
-		     &u.u_mkdir.PVV, Name, MakeViceFid(&u.u_mkdir.CFid),
-		     (vuid_t)uid, u.u_mkdir.Mode, &sid);
+            pack_CML_MakeDir_request(bufptr, MakeViceFid(&u.u_mkdir.PFid),
+                    &u.u_mkdir.PVV, Name, MakeViceFid(&u.u_mkdir.CFid),
+                    (vuid_t)uid, u.u_mkdir.Mode, &sid);
 	    break;
 
 	case CML_SymLink_OP:
-	    RLE_Pack(_ptr, CML_SymLink_PTR, MakeViceFid(&u.u_symlink.PFid),
-		     &u.u_symlink.PVV, NewName, Name,
-		     MakeViceFid(&u.u_symlink.CFid), (vuid_t)uid,
-		     u.u_symlink.Mode, &sid);
+            pack_CML_SymLink_request(bufptr, MakeViceFid(&u.u_symlink.PFid),
+                    &u.u_symlink.PVV, NewName, Name,
+                    MakeViceFid(&u.u_symlink.CFid), (vuid_t)uid,
+                    u.u_symlink.Mode, &sid);
 	    break;
 
 	case CML_Remove_OP:
-	    RLE_Pack(_ptr, CML_Remove_PTR, MakeViceFid(&u.u_remove.PFid),
-		     &u.u_remove.PVV, Name, &u.u_remove.CVV, &sid);
+            pack_CML_Remove_request(bufptr, MakeViceFid(&u.u_remove.PFid),
+                    &u.u_remove.PVV, Name, &u.u_remove.CVV, &sid);
 	    break;
 
 	case CML_RemoveDir_OP:
-	    RLE_Pack(_ptr, CML_RemoveDir_PTR, MakeViceFid(&u.u_rmdir.PFid),
-		     &u.u_rmdir.PVV, Name, &u.u_rmdir.CVV, &sid);
+            pack_CML_RemoveDir_request(bufptr, MakeViceFid(&u.u_rmdir.PFid),
+                    &u.u_rmdir.PVV, Name, &u.u_rmdir.CVV, &sid);
 	    break;
 
 	case CML_Store_OP:
-	    RLE_Pack(_ptr, CML_Store_PTR, MakeViceFid(&u.u_store.Fid),
-		     &u.u_store.VV, u.u_store.Length, &sid);
+            pack_CML_Store_request(bufptr, MakeViceFid(&u.u_store.Fid),
+                    &u.u_store.VV, u.u_store.Length, &sid);
 	    break;
 
 	case CML_Utimes_OP:
-	    RLE_Pack(_ptr, CML_Utimes_PTR, MakeViceFid(&u.u_utimes.Fid),
-		     &u.u_utimes.VV, u.u_utimes.Date, &sid);
+            pack_CML_Utimes_request(bufptr, MakeViceFid(&u.u_utimes.Fid),
+                    &u.u_utimes.VV, u.u_utimes.Date, &sid);
 	    break;
 
 	case CML_Chown_OP:
-	    RLE_Pack(_ptr, CML_Chown_PTR, MakeViceFid(&u.u_chown.Fid),
-		     &u.u_chown.VV, (vuid_t)u.u_chown.Owner, &sid);
+            pack_CML_Chown_request(bufptr, MakeViceFid(&u.u_chown.Fid),
+                    &u.u_chown.VV, (vuid_t)u.u_chown.Owner, &sid);
 	    break;
 
 	case CML_Chmod_OP:
-	    RLE_Pack(_ptr, CML_Chmod_PTR, MakeViceFid(&u.u_chmod.Fid),
-		     &u.u_chmod.VV, u.u_chmod.Mode, &sid);
+            pack_CML_Chmod_request(bufptr, MakeViceFid(&u.u_chmod.Fid),
+                    &u.u_chmod.VV, u.u_chmod.Mode, &sid);
 	    break;
 
 	case CML_Rename_OP:
 	    TPVV = FID_EQ(&u.u_rename.SPFid, &u.u_rename.TPFid) ?
 		u.u_rename.SPVV : u.u_rename.TPVV;
-	    RLE_Pack(_ptr, CML_Rename_PTR, MakeViceFid(&u.u_rename.SPFid),
-		     &u.u_rename.SPVV, Name, MakeViceFid(&u.u_rename.TPFid),
-		     &TPVV, NewName, &u.u_rename.SVV, &sid);
+            pack_CML_Rename_request(bufptr, MakeViceFid(&u.u_rename.SPFid),
+                    &u.u_rename.SPVV, Name, MakeViceFid(&u.u_rename.TPFid),
+                    &TPVV, NewName, &u.u_rename.SVV, &sid);
 	    break;
 
 	case CML_Repair_OP:
-	    RLE_Pack(_ptr, CML_Repair_PTR, MakeViceFid(&u.u_repair.Fid),
-		     u.u_repair.Length, u.u_repair.Date,
-		     (vuid_t)u.u_repair.Owner, (vuid_t)u.u_repair.Owner,
-		     u.u_repair.Mode, &sid);
+            pack_CML_Repair_request(bufptr, MakeViceFid(&u.u_repair.Fid),
+                    u.u_repair.Length, u.u_repair.Date,
+                    (vuid_t)u.u_repair.Owner, (vuid_t)u.u_repair.Owner,
+                    u.u_repair.Mode, &sid);
 	    break;
 
 	default:
@@ -3029,365 +2941,6 @@ Exit:
     LOG(0, ("cmlent::CloseReintegrationHandle: (%s), %d bytes, returns %s\n", 
 	    vol->name, bufsize, VenusRetStr(code)));
     return(code);
-}
-
-
-/* Estimate how much space we need to pack a CML entry.
- * the va_arg unpacking is based on code from
- * rpc2/rpc2-src/multi2.c:MRPC_MakeMulti */
-static int RLE_Size(ARG *args ...)
-{
-    PARM *parms;
-    int i, len = 0;
-    va_list ap;
-
-    /* variable arguments can be in registers or on the stack and the alignment
-     * may differ based on the native size of the type. In order to more easily
-     * pass them on to other functions we pull them out first. */
-
-    /* allocate an array to hold the arguments */
-    for	(i = 0; args[i].mode != C_END; i++);
-    parms = (PARM *)malloc(i * sizeof(PARM) + 1);
-    CODA_ASSERT(parms != NULL);
-
-    va_start(ap, args);
-    for	(i = 0; args[i].mode != C_END; i++)
-    {
-        switch (args[i].type) {
-	case RPC2_INTEGER_TAG:
-	    switch (args[i].mode) {
-	    case IN_MODE:
-	        parms[i].integer = va_arg(ap, RPC2_Integer);
-		break;
-	    case OUT_MODE:
-	    case IN_OUT_MODE:
-	        parms[i].integerp = va_arg(ap, RPC2_Integer **);
-	    default:
-		break;
-	    }
-	    break;
-	case RPC2_UNSIGNED_TAG:
-	    switch (args[i].mode) {
-	    case IN_MODE:
-	        parms[i].unsgned = va_arg(ap, RPC2_Unsigned);
-		break;
-	    case OUT_MODE:
-	    case IN_OUT_MODE:
-	        parms[i].unsgnedp = va_arg(ap, RPC2_Unsigned **);
-	    default:
-		break;
-	    }
-	    break;
-	case RPC2_BYTE_TAG:
-	    switch (args[i].mode) {
-	    case IN_MODE:
-	        parms[i].byte = (RPC2_Byte)va_arg(ap, int);
-		break;
-	    case OUT_MODE:
-	    case IN_OUT_MODE:
-	        parms[i].bytep = va_arg(ap, RPC2_Byte **);
-	    default:
-		break;
-	    }
-	    break;
-	case RPC2_STRING_TAG:
-	    switch (args[i].mode) {
-	    case IN_MODE:
-	        parms[i].string = va_arg(ap, RPC2_String);
-		break;
-	    case OUT_MODE:
-	    case IN_OUT_MODE:
-	        parms[i].stringp = va_arg(ap, RPC2_String **);
-	    default:
-		break;
-	    }
-	    break;
-	case RPC2_COUNTEDBS_TAG:
-	    switch (args[i].mode) {
-	    case IN_MODE:
-	        parms[i].cbs = va_arg(ap, RPC2_CountedBS *);
-		break;
-	    case OUT_MODE:
-	    case IN_OUT_MODE:
-	        parms[i].cbsp = va_arg(ap, RPC2_CountedBS **);
-	    default:
-		break;
-	    }
-	    break;
-	case RPC2_BOUNDEDBS_TAG:
-	    switch (args[i].mode) {
-	    case IN_MODE:
-	        parms[i].bbs = va_arg(ap, RPC2_BoundedBS *);
-		break;
-	    case OUT_MODE:
-	    case IN_OUT_MODE:
-	        parms[i].bbsp = va_arg(ap, RPC2_BoundedBS **);
-	    default:
-		break;
-	    }
-	    break;
-	case RPC2_BULKDESCRIPTOR_TAG:
-	    switch (args[i].mode) {
-	    case IN_MODE:
-	    case OUT_MODE:
-	    case IN_OUT_MODE:
-	        parms[i].sedp = va_arg(ap, SE_Descriptor *);
-	    default:
-		break;
-	    }
-	    break;
-	case RPC2_ENCRYPTIONKEY_TAG:
-	    switch (args[i].mode) {
-	    case IN_MODE:
-	        parms[i].key = va_arg(ap, RPC2_EncryptionKey *);
-		break;
-	    case OUT_MODE:
-	    case IN_OUT_MODE:
-	        parms[i].keyp = va_arg(ap, RPC2_EncryptionKey **);
-	    default:
-		break;
-	    }
-	    break;
-	case RPC2_STRUCT_TAG:
-	    switch (args[i].mode) {
-	    case IN_MODE:
-	        parms[i].structp = va_arg(ap, union PARM *);
-		break;
-	    case OUT_MODE:
-	    case IN_OUT_MODE:
-	        parms[i].structpp = va_arg(ap, union PARM **);
-	    default:
-		break;
-	    }
-	    break;
-	case RPC2_ENUM_TAG:
-	    switch (args[i].mode) {
-	    case IN_MODE:
-	        parms[i].integer = va_arg(ap, RPC2_Integer);
-		break;
-	    case OUT_MODE:
-	    case IN_OUT_MODE:
-	        parms[i].integerp = va_arg(ap, RPC2_Integer **);
-	    default:
-		break;
-	    }
-	    break;
-	case RPC2_DOUBLE_TAG:
-	    /* not supported */
-	    break;
-	}
-    }
-    va_end(ap);
-
-    for	(i = 0; args[i].mode != C_END; i++)
-    {
-	/* get_len and struct_len expect to be able to twiddle the arg and parm
-	 * pointers when it recurses internally. */
-    	ARG *xarg = &args[i];
-	PARM *xparm = &parms[i];
-
-        switch (args[i].mode) {
-	case IN_MODE:
-	case IN_OUT_MODE:
-	    switch (args[i].type) {
-	    case RPC2_STRUCT_TAG:
-	    	len += struct_len(&xarg, &xparm);
-		break;
-	    case RPC2_BULKDESCRIPTOR_TAG:
-	    	args[i].bound = 0;
-		break;
-	    default:
-	    	args[i].bound = 0;
-		len += get_len(&xarg, &xparm, args[i].mode);
-		break;
-	    }
-	    break;
-	case OUT_MODE:
-	    if (args[i].type == RPC2_BOUNDEDBS_TAG)
-	        len += get_len(&xarg, &xparm, args[i].mode);
-	default:
-	    break;
-	}
-    }
-
-    free(parms);
-    return len;
-}
-
-
-/* Pack a CML entry. Looks surprisingly similar to RLE_Size, since most of the
- * code deals with correctly unpacking the va_arg list. */
-static void RLE_Pack(PARM **ptr, ARG *args ...)
-{
-    PARM *parms;
-    int i;
-    va_list ap;
-
-    /* variable arguments can be in registers or on the stack and the alignment
-     * may differ based on the native size of the type. In order to more easily
-     * pass them on to other functions we pull them out first. */
-
-    /* allocate an array to hold the arguments */
-    for	(i = 0; args[i].mode != C_END; i++);
-    parms = (PARM *)malloc(i * sizeof(PARM) + 1);
-    CODA_ASSERT(parms != NULL);
-
-    va_start(ap, args);
-    for	(i = 0; args[i].mode != C_END; i++)
-    {
-        switch (args[i].type) {
-	case RPC2_INTEGER_TAG:
-	    switch (args[i].mode) {
-	    case IN_MODE:
-	        parms[i].integer = va_arg(ap, RPC2_Integer);
-		break;
-	    case OUT_MODE:
-	    case IN_OUT_MODE:
-	        parms[i].integerp = va_arg(ap, RPC2_Integer **);
-	    default:
-		break;
-	    }
-	    break;
-	case RPC2_UNSIGNED_TAG:
-	    switch (args[i].mode) {
-	    case IN_MODE:
-	        parms[i].unsgned = va_arg(ap, RPC2_Unsigned);
-		break;
-	    case OUT_MODE:
-	    case IN_OUT_MODE:
-	        parms[i].unsgnedp = va_arg(ap, RPC2_Unsigned **);
-	    default:
-		break;
-	    }
-	    break;
-	case RPC2_BYTE_TAG:
-	    switch (args[i].mode) {
-	    case IN_MODE:
-	        parms[i].byte = (RPC2_Byte)va_arg(ap, int);
-		break;
-	    case OUT_MODE:
-	    case IN_OUT_MODE:
-	        parms[i].bytep = va_arg(ap, RPC2_Byte **);
-	    default:
-		break;
-	    }
-	    break;
-	case RPC2_STRING_TAG:
-	    switch (args[i].mode) {
-	    case IN_MODE:
-	        parms[i].string = va_arg(ap, RPC2_String);
-		break;
-	    case OUT_MODE:
-	    case IN_OUT_MODE:
-	        parms[i].stringp = va_arg(ap, RPC2_String **);
-	    default:
-		break;
-	    }
-	    break;
-	case RPC2_COUNTEDBS_TAG:
-	    switch (args[i].mode) {
-	    case IN_MODE:
-	        parms[i].cbs = va_arg(ap, RPC2_CountedBS *);
-		break;
-	    case OUT_MODE:
-	    case IN_OUT_MODE:
-	        parms[i].cbsp = va_arg(ap, RPC2_CountedBS **);
-	    default:
-		break;
-	    }
-	    break;
-	case RPC2_BOUNDEDBS_TAG:
-	    switch (args[i].mode) {
-	    case IN_MODE:
-	        parms[i].bbs = va_arg(ap, RPC2_BoundedBS *);
-		break;
-	    case OUT_MODE:
-	    case IN_OUT_MODE:
-	        parms[i].bbsp = va_arg(ap, RPC2_BoundedBS **);
-	    default:
-		break;
-	    }
-	    break;
-	case RPC2_BULKDESCRIPTOR_TAG:
-	    switch (args[i].mode) {
-	    case IN_MODE:
-	    case OUT_MODE:
-	    case IN_OUT_MODE:
-	        parms[i].sedp = va_arg(ap, SE_Descriptor *);
-	    default:
-		break;
-	    }
-	    break;
-	case RPC2_ENCRYPTIONKEY_TAG:
-	    switch (args[i].mode) {
-	    case IN_MODE:
-	        parms[i].key = va_arg(ap, RPC2_EncryptionKey *);
-		break;
-	    case OUT_MODE:
-	    case IN_OUT_MODE:
-	        parms[i].keyp = va_arg(ap, RPC2_EncryptionKey **);
-	    default:
-		break;
-	    }
-	    break;
-	case RPC2_STRUCT_TAG:
-	    switch (args[i].mode) {
-	    case IN_MODE:
-	        parms[i].structp = va_arg(ap, union PARM *);
-		break;
-	    case OUT_MODE:
-	    case IN_OUT_MODE:
-	        parms[i].structpp = va_arg(ap, union PARM **);
-	    default:
-		break;
-	    }
-	    break;
-	case RPC2_ENUM_TAG:
-	    switch (args[i].mode) {
-	    case IN_MODE:
-	        parms[i].integer = va_arg(ap, RPC2_Integer);
-		break;
-	    case OUT_MODE:
-	    case IN_OUT_MODE:
-	        parms[i].integerp = va_arg(ap, RPC2_Integer **);
-	    default:
-		break;
-	    }
-	    break;
-	case RPC2_DOUBLE_TAG:
-	    /* not supported */
-	    break;
-	}
-    }
-    va_end(ap);
-
-    for	(i = 0; args[i].mode != C_END; i++)
-    {
-	/* pack and pack_struct expect to be able to twiddle the parm pointer
-	 * when they recurse internally. */
-	PARM *xparm = &parms[i];
-
-        switch (args[i].mode) {
-	case IN_MODE:
-	case IN_OUT_MODE:
-	    switch (args[i].type) {
-	    case RPC2_STRUCT_TAG:
-	    	pack_struct(&args[i], &xparm, ptr);
-		break;
-	    case RPC2_BULKDESCRIPTOR_TAG:
-		break;
-	    default:
-		pack(&args[i], &xparm, ptr);
-		break;
-	    }
-	    break;
-	case OUT_MODE:
-	    if (args[i].type == RPC2_BOUNDEDBS_TAG)
-	        pack(&args[i], &xparm, ptr);
-	default:
-	    break;
-	}
-    }
 }
 
 
