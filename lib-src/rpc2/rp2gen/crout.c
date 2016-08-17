@@ -54,7 +54,6 @@ Pittsburgh, PA.
 #include "rp2.h"
 
 
-#define _PAD(n)((((n)-1) | 3) + 1)
 #define BUFFEROVERFLOW  "\tgoto bufferoverflow;\n"
 #define BUFFEROVERFLOW_END  "\nbufferoverflow:\n    fprintf(stderr,\"%%s:%%d Buffer overflow in (un)marshalling !\\n\",__FILE__,__LINE__);\n"
 
@@ -74,8 +73,6 @@ static char *field_name(VAR *parm, char *prefix);
 static char *field_name2(VAR *parm, char *prefix, char *suffix);
 static void array_print_size(WHO who, VAR *parm, char *prefix, FILE *where);
 static void print_size(WHO who, VAR *parm, char *prefix, FILE *where);
-static void inc(char *what, char *by, FILE *where);
-static void inc4(char *what, FILE *where);
 static void set_timeout(PROC *proc, FILE *where);
 static void pack(WHO who, VAR *parm, char *prefix, FILE *where);
 static void unpack(WHO who, VAR *parm, char *prefix, FILE *where);
@@ -1032,23 +1029,6 @@ static void print_size(WHO who, VAR *parm, char *prefix, FILE *where)
 					       parm->type->type->tag);
     }
     free(name);
-}
-
-static void inc(char *what, char *by, FILE *where)
-{
-    fprintf(where, "    %s += _PAD(%s);\n", what, by);
-}
-
-static void inc4(char *what, FILE *where)
-{
-    fprintf(where, "    %s += 4;\n", what);
-}
-
-static inc8(what, where)
-    char *what;
-    FILE *where;
-{
-    fprintf(where, "    %s += 8;\n", what);
 }
 
 static void set_timeout(PROC *proc, FILE *where)
