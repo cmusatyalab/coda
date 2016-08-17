@@ -172,15 +172,6 @@ typedef RPC2_Struct
 	RPC2_Unsigned	BirthTime;
 }	SmonViceId;
 
-typedef RPC2_Struct
-{
-	RPC2_String	name;
-	RPC2_Integer	countent;
-	RPC2_Integer	countexit;
-	RPC2_Integer	tsec;
-	RPC2_Integer	tusec;
-	RPC2_Integer	counttime;
-}	CallCountEntry;
 
 typedef RPC2_Struct
 {

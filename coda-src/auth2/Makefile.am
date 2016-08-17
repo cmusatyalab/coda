@@ -36,8 +36,8 @@ libauth2_la_SOURCES	   = avice.c avice.h codatoken.c codatoken.h \
 clog_SOURCES		   = clog.c tokenfile.c tokenfile.h
 tokentool_SOURCES	   = tokentool.c tokenfile.c tokenfile.h
 
-nodist_libauser_la_SOURCES = auth2.client.c auth2.h
-nodist_libauth2_la_SOURCES = auth2.server.c auth2.h
+nodist_libauser_la_SOURCES = auth2.client.c auth2.helper.c auth2.h
+nodist_libauth2_la_SOURCES = auth2.server.c auth2.helper.c auth2.h
 
 AM_CPPFLAGS = $(RPC2_CFLAGS) -DCODAAUTH \
 	      -I$(top_srcdir)/lib-src/base \

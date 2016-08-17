@@ -50,6 +50,7 @@ int32_t yydebug;
 static int32_t SetupFiles();
 static void badargs(void);
 
+extern void print_struct_func(RPC2_TYPE *t, FILE *where, FILE *hfile, char *name);
 extern char *coda_rp2_basename(char * name);
 extern rp2_bool include2(char *name, char *proc);
 
@@ -60,8 +61,8 @@ struct subsystem subsystem;	/* Holds global subsystem information */
 char *server_prefix, *client_prefix;
 
 FILE *file;
-FILE *cfile = NULL, *sfile = NULL, *hfile = NULL, *mfile = NULL, *pfile = NULL;
-char *cfile_name, *sfile_name, *hfile_name, *mfile_name, *pfile_name;
+FILE *cfile = NULL, *sfile = NULL, *hfile = NULL, *mfile = NULL, *pfile = NULL, *libfile = NULL;
+char *cfile_name, *sfile_name, *hfile_name, *mfile_name, *pfile_name, *libfile_name;;
 char *file_name;
 char define_name[MAXPATHLEN]; /* value of __XXX__ */
 
@@ -86,7 +87,7 @@ static char *server_includes[] = {
 
 static char *h_includes[] = {
 	/* NONE */	"Can't happen",
-	/* C */		"#ifdef __cplusplus\nextern \"C\" {\n#endif\n#include <rpc2/rpc2.h>\n#include <rpc2/se.h>\n#include <rpc2/errors.h>\n#ifdef __cplusplus\n}\n#endif\n",
+	/* C */		"#ifdef __cplusplus\nextern \"C\" {\n#endif\n#include <rpc2/rpc2.h>\n#include <rpc2/se.h>\n#include <rpc2/errors.h>\n#include <rpc2/pack_helper.h>\n#ifdef __cplusplus\n}\n#endif\n",
 	/* PASCAL */	"Can't happen",
 	/* F77 */	"Can't happen"
 };
@@ -102,10 +103,10 @@ rp2_bool testing;
 rp2_bool strictproto = 1;
 rp2_bool cplusplus = 0;
 rp2_bool tcpdump = 0;
-rp2_bool ansi; 
+rp2_bool ansi;
 rp2_bool neterrors;
 
-char **cpatharray;  /* array of strings indicating search paths for 
+char **cpatharray;  /* array of strings indicating search paths for
                   included files (defined by -I flag) */
 int32_t  cpathcnt; /* no of elements in cpath, initially 0 */
 
@@ -148,6 +149,11 @@ int main(int argc, char *argv[])
       mfile = NULL;
     }
 
+    if (libfile) {
+        fclose(libfile);
+        libfile = NULL;
+    }
+
     exit(0);
 }
 
@@ -165,7 +171,7 @@ static int32_t GetArgs(argc, argv)
     /* Wire-in client, server and multi languages to be C.
        Should be settable on command line when other languages are
        supported */
-    clanguage = C;  
+    clanguage = C;
     slanguage = C;
     mlanguage = C;
     pfile_name = NULL;
@@ -265,8 +271,8 @@ static int32_t SetupFiles()
     header(sfile, server_includes[(int32_t) slanguage]);
     fprintf(sfile, "#include \"%s\"\n", hfile_name);
 
-    if ( cplusplus ) { 
-            if (mfile_name == NIL) mfile_name = concat(base, ".multi.cc"); 
+    if ( cplusplus ) {
+            if (mfile_name == NIL) mfile_name = concat(base, ".multi.cc");
     } else {
             if (mfile_name == NIL) mfile_name = concat(base, ".multi.c");
     }
@@ -275,13 +281,22 @@ static int32_t SetupFiles()
     header(mfile, multi_includes[(int32_t) mlanguage]);
     fprintf(mfile, "#include \"%s\"\n", hfile_name);
 
-    if ( cplusplus ) { 
-            if (pfile_name == NIL) pfile_name = concat(base, ".print.cc"); 
+    if ( cplusplus ) {
+            if (pfile_name == NIL) pfile_name = concat(base, ".print.cc");
     } else {
             if (pfile_name == NIL) pfile_name = concat(base, ".print.c");
     }
     pfile = fopen(pfile_name, "w");
     if (pfile == NIL) {perror(pfile_name); exit(-1);}
+
+    char upper_path[MAXPATHLEN];
+    libfile_name = concat(base, ".helper.c");
+    libfile = fopen(libfile_name, "a+");
+    if (libfile == NIL) {perror(libfile_name); exit(-1);}
+    header(libfile, h_includes[(int32_t) clanguage]);
+    fprintf(libfile, "#include \"%s\"\n", hfile_name);
+
+
 
     free(base);
 
@@ -380,7 +395,7 @@ static void no_support(type, who, where)
     WHO who;
     FILE *where;
 {
-    printf("RP2GEN: no language support for %s\n", 
+    printf("RP2GEN: no language support for %s\n",
 	   lang_struct[(int32_t) clanguage].name);
     exit(1);
 }
@@ -393,6 +408,7 @@ void spit_type(type)
 	exit(1);
     }
     (*lang_struct[(int32_t) clanguage].type)(type, RP2_CLIENT, hfile);		/* Types always go to .h file */
+    print_struct_func(type->type, libfile, hfile, type->name);
 }
 
 void spit_include(filename)
@@ -454,7 +470,7 @@ static int32_t do_procs()
     if (HeaderOnlyFlag)
 	    {if(mfile) { fclose(mfile); mfile = NULL; } unlink(mfile_name);}
     else (*lang_struct[(int32_t) mlanguage].proc)(head, RP2_MULTI, mfile);
-    
+
     if (HeaderOnlyFlag)
 	    {if(pfile) { fclose(pfile); pfile = NULL; } unlink(pfile_name); }
     else (*lang_struct[(int32_t) slanguage].proc)(head, RP2_DUMP, pfile);

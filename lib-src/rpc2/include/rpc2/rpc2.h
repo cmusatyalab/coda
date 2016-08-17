@@ -45,7 +45,7 @@ Pittsburgh, PA.
 #endif
 
 #include <stdio.h>
-#include <sys/time.h>  
+#include <sys/time.h>
 #include <netinet/in.h>
 
 #ifdef HAVE_ARPA_INET_H
@@ -96,12 +96,12 @@ to be modified.  */
 #define RPC2_XOR 2
 #define RPC2_ENCRYPTIONTYPES (RPC2_DES | RPC2_XOR)
 				/* union of all supported types */
-#define RPC2_KEYSIZE 8   /*Size in bytes of the encryption keys */ 
+#define RPC2_KEYSIZE 8   /*Size in bytes of the encryption keys */
 
 /*
 RPC procedure return codes:
 
-These may also  occur in the RPC2_ReturnCode field of reply headers: 
+These may also  occur in the RPC2_ReturnCode field of reply headers:
 Values of 0 and below in those fields are reserved for RPC stub use.
 Codes greater than 0  are  assigned  and managed by subsystems.
 
@@ -186,7 +186,7 @@ Fatal Errors
 
 /*
 Universal opcode values:  opcode values equal to or less than 0 are reserved.  Values greater than 0
-are  usable by mutual agreement between clients and servers.  
+are  usable by mutual agreement between clients and servers.
 */
 #define RPC2_INIT1OPENKIMONO	-2	/* Begin a new connection with security level RPC2_OPENKIMONO */
 #define RPC2_INIT1AUTHONLY 	-3	/* Begin a new connection with security level RPC2_AUTHONLY */
@@ -213,7 +213,7 @@ System Limits
 
 typedef	enum {RPC2_HOSTBYNAME = 39, RPC2_HOSTBYINETADDR = 17,
 	      RPC2_HOSTBYADDRINFO = 6, RPC2_DUMMYHOST=88888} HostTag;
-typedef	enum {RPC2_PORTBYINETNUMBER = 53, RPC2_PORTBYNAME = 64, 
+typedef	enum {RPC2_PORTBYINETNUMBER = 53, RPC2_PORTBYNAME = 64,
 	      RPC2_DUMMYPORT = 99999} PortTag;
 typedef enum {RPC2_SUBSYSBYID = 71, RPC2_SUBSYSBYNAME = 84,
 	      RPC2_DUMMYSUBSYS = 44444} SubsysTag;
@@ -328,7 +328,7 @@ typedef RPC2_Integer RPC2_Handle;	/* NOT a small integer!!! */
 
 /* Values for the Tag field of the following structures are defined above */
 typedef
-    struct 
+    struct
     	{
 	HostTag Tag;
 	union
@@ -342,7 +342,7 @@ typedef
     RPC2_HostIdent;
 
 typedef
-    struct 
+    struct
     	{
 	PortTag Tag;
 	union
@@ -355,7 +355,7 @@ typedef
     RPC2_PortIdent;
 
 typedef
-    struct 
+    struct
     	{
 	SubsysTag Tag;
 	union
@@ -403,7 +403,7 @@ management routines --- use them!  */
 
 typedef struct RPC2_PacketBuffer {
     struct RPC2_PacketBufferPrefix {
-/* 
+/*
  * NOTE: The Prefix is only used by the runtime system on the local machine.
  *	 Neither clients nor servers ever deal with it.
  *	 It is never transmitted.
@@ -475,7 +475,7 @@ typedef struct RPC2_PacketBuffer {
 	RPC2_Integer  BindTime;     /* Used to send the bind time to server.
 				       Temporary, i hope. */
     } Header;
-    
+
     RPC2_Byte Body[1]; /* Arbitrary length body. For requests: IN and INOUT
 			  parameters; For replies: OUT and INOUT parameters;
 			  Header.BodyLength gives the length of this field */
@@ -513,10 +513,10 @@ typedef
 	    ConnOrSubsys;
 	}
     RPC2_RequestFilter;		/* Type of Filter parameter in RPC2_GetRequest() */
-    
+
 
 /*
-The following data structure is the body of the packet synthesised by the runtime system on a 
+The following data structure is the body of the packet synthesised by the runtime system on a
 new connection, and returned as the result of an RPC2_GetRequest().
 */
 typedef
@@ -533,8 +533,8 @@ typedef
 
 
 /* Structure for passing various initialization options to RPC2_Init() */
-typedef 
-    struct 
+typedef
+    struct
         {
 	    RPC2_Byte	Flags;
 	}
@@ -560,6 +560,7 @@ typedef
 
  /* enums used both in original RPC and for MultiRPC (was in rp2.h) */
 
+typedef enum{ RP2_CLIENT=0, RP2_SERVER=1, RP2_MULTI=2, RP2_DUMP=3} WHO;
 typedef enum{ NO_MODE=0, IN_MODE=1, OUT_MODE=2, IN_OUT_MODE=3, C_END=4 } MODE;
 
 typedef enum{ RPC2_INTEGER_TAG=0,	RPC2_UNSIGNED_TAG=1,	RPC2_BYTE_TAG=2,
@@ -603,15 +604,15 @@ typedef
 #define RPC2_MAXLOGLENGTH  32
 #define RPC2_MAXQUANTUM  ((unsigned)-1)
 
-/* 
+/*
  * Information is exported via a log consisting of timestamped
  * variable-length records.  The log entries reflect either
- * static estimates or actual measurements of the network.  All 
+ * static estimates or actual measurements of the network.  All
  * connections to a service are coalesced in one log, but the
  * entries contain the connection ID so they may be demultiplexed
  * if desired.
  */
-typedef enum {RPC2_UNSET_NLE = 0, RPC2_MEASURED_NLE = 1, 
+typedef enum {RPC2_UNSET_NLE = 0, RPC2_MEASURED_NLE = 1,
 		  RPC2_STATIC_NLE = 2} NetLogTag;
 
 typedef enum {RPC2_MEASUREMENT = 0, SE_MEASUREMENT = 1} NetLogEntryType;
@@ -620,13 +621,13 @@ typedef
     struct
         {
 	struct timeval TimeStamp;	/* time of log entry */
-	NetLogTag Tag;			/* what kind of entry am I? */    
-	union 			       
+	NetLogTag Tag;			/* what kind of entry am I? */
+	union
 	    {
 	    struct Measured_NLE			/* a measurement */
 	        {
 		RPC2_Handle Conn;		/* connection measured */
-		RPC2_Unsigned Bytes;		/* data bytes involved */    
+		RPC2_Unsigned Bytes;		/* data bytes involved */
 		RPC2_Unsigned ElapsedTime;	/* in msec */
 		}
 	        Measured;			/* RPC and SFTP use this */
@@ -651,6 +652,33 @@ typedef
         }
     RPC2_NetLog;
 
+/* STUB predefined struct */
+typedef struct {
+    RPC2_String name;
+    RPC2_Integer countent;
+    RPC2_Integer countexit;
+    RPC2_Integer tsec;
+    RPC2_Integer tusec;
+    RPC2_Integer counttime;
+} CallCountEntry;
+
+
+typedef struct {
+    RPC2_String name;
+    RPC2_Integer countent;
+    RPC2_Integer countexit;
+    RPC2_Integer tsec;
+    RPC2_Integer tusec;
+    RPC2_Integer counttime;
+    RPC2_Integer counthost;
+} MultiCallEntry;
+
+
+typedef struct {
+    RPC2_Integer opengate;
+    RPC2_Integer tsec;
+    RPC2_Integer tusec;
+} MultiStubWork;
 
 /*
 RPC2 runtime routines:
@@ -701,7 +729,7 @@ typedef long RPC2_UnpackMulti_func(int HowMany,
 extern long RPC2_MultiRPC (int HowMany, RPC2_Handle ConnHandleList[],
 			   RPC2_Integer RCList[], RPC2_Multicast *MCast,
 			   RPC2_PacketBuffer *Request,
-			   SE_Descriptor SDescList[], RPC2_UnpackMulti_func *, 
+			   SE_Descriptor SDescList[], RPC2_UnpackMulti_func *,
 			   ARG_INFO *ArgInfo, struct timeval *BreathOfLife);
 
 extern long RPC2_NewBinding (RPC2_HostIdent *Host, RPC2_PortIdent *Port,

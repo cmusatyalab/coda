@@ -14,7 +14,7 @@ EXTRA_DIST = makeinc.sh errordb.txt fxor.s
 librpc2_la_SOURCES = rpc2a.c rpc2b.c sl.c packet.c secure.c globals.c se.c \
     lists.c ct.c debug.c conn.c cbuf.c ffs.c host.c multi1.c multi2.c \
     multi3.c mkcall.c errors.c cbuf.h trace.h dllist.c rpc2_addrinfo.c \
-    compat.c lua.c delay.c
+    compat.c lua.c delay.c pack_helper.c
 librpc2_la_LDFLAGS = $(LIBTOOL_LDFLAGS)
 librpc2_la_LIBADD = $(top_builddir)/secure/libsecure.la $(LWP_LIBS) \
     $(LUA_LIBS) $(LUA_LIBADD)
