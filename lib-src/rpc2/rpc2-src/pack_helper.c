@@ -26,7 +26,7 @@ Coda are listed in the file CREDITS.
  * that is generous because we try to avoid ip/ipv6 fragmentation */
 #define ALLOC_MAX 65507
 
-int pack_int(BUFFER *buf,  RPC2_Integer value)
+int pack_integer(BUFFER *buf,  RPC2_Integer value)
 {
     if (buf->eob) {
         if (buf->buffer + 4 > buf->eob)
@@ -37,7 +37,7 @@ int pack_int(BUFFER *buf,  RPC2_Integer value)
     return 0;
 }
 
-int unpack_int(BUFFER *buf, RPC2_Integer *ptr)
+int unpack_integer(BUFFER *buf, RPC2_Integer *ptr)
 {
     if (buf->buffer + 4 > buf->eob)
         return -1;
@@ -135,7 +135,7 @@ int pack_string(BUFFER *buf, RPC2_String ptr)
 {
     int length = strlen((const char *)ptr);
 
-    if (pack_int(buf, length))
+    if (pack_integer(buf, length))
         return -1;
 
     if (buf->eob) {
@@ -287,15 +287,15 @@ int pack_struct_CallCountEntry(BUFFER *buf, CallCountEntry *ptr)
 {
     if (pack_string(buf, ptr->name))
         return -1;
-    if (pack_int(buf, ptr->countent))
+    if (pack_integer(buf, ptr->countent))
         return -1;
-    if (pack_int(buf, ptr->countexit))
+    if (pack_integer(buf, ptr->countexit))
         return -1;
-    if (pack_int(buf, ptr->tsec))
+    if (pack_integer(buf, ptr->tsec))
         return -1;
-    if (pack_int(buf, ptr->tusec))
+    if (pack_integer(buf, ptr->tusec))
         return -1;
-    if (pack_int(buf, ptr->counttime));
+    if (pack_integer(buf, ptr->counttime));
         return -1;
     return 0;
 }
@@ -305,15 +305,15 @@ int unpack_struct_CallCountEntry(BUFFER *buf, CallCountEntry *ptr)
 {
     if (unpack_string(buf, &(ptr->name)))
         return -1;
-    if (unpack_int(buf, &(ptr->countent)))
+    if (unpack_integer(buf, &(ptr->countent)))
         return -1;
-    if (unpack_int(buf, &(ptr->countexit)))
+    if (unpack_integer(buf, &(ptr->countexit)))
         return -1;
-    if (unpack_int(buf, &(ptr->tsec)))
+    if (unpack_integer(buf, &(ptr->tsec)))
         return -1;
-    if (unpack_int(buf, &(ptr->tusec)))
+    if (unpack_integer(buf, &(ptr->tusec)))
         return -1;
-    if (unpack_int(buf, &(ptr->counttime)))
+    if (unpack_integer(buf, &(ptr->counttime)))
         return -1;
     return 0;
 }
@@ -323,15 +323,15 @@ int pack_struct_MultiCallEntry(BUFFER *buf, MultiCallEntry *ptr)
 {
     if (pack_string(buf, ptr->name))
         return -1;
-    if (pack_int(buf, ptr->countent))
+    if (pack_integer(buf, ptr->countent))
         return -1;
-    if (pack_int(buf, ptr->countexit))
+    if (pack_integer(buf, ptr->countexit))
         return -1;
-    if (pack_int(buf, ptr->tsec))
+    if (pack_integer(buf, ptr->tsec))
         return -1;
-    if (pack_int(buf, ptr->tusec))
+    if (pack_integer(buf, ptr->tusec))
         return -1;
-    if (pack_int(buf, ptr->counttime))
+    if (pack_integer(buf, ptr->counttime))
         return -1;
     return 0;
 }
@@ -341,15 +341,15 @@ int unpack_struct_MultiCallEntry(BUFFER *buf, MultiCallEntry *ptr)
 {
     if (unpack_string(buf, &(ptr->name)))
         return -1;
-    if (unpack_int(buf, &(ptr->countent)))
+    if (unpack_integer(buf, &(ptr->countent)))
         return -1;
-    if (unpack_int(buf, &(ptr->countexit)))
+    if (unpack_integer(buf, &(ptr->countexit)))
         return -1;
-    if (unpack_int(buf, &(ptr->tsec)))
+    if (unpack_integer(buf, &(ptr->tsec)))
         return -1;
-    if (unpack_int(buf, &(ptr->tusec)))
+    if (unpack_integer(buf, &(ptr->tusec)))
         return -1;
-    if (unpack_int(buf, &(ptr->counttime)))
+    if (unpack_integer(buf, &(ptr->counttime)))
         return -1;
     return 0;
 }
@@ -357,11 +357,11 @@ int unpack_struct_MultiCallEntry(BUFFER *buf, MultiCallEntry *ptr)
 
 int pack_struct_MultiStubWork(BUFFER *buf, MultiStubWork *ptr)
 {
-    if (pack_int(buf, ptr->opengate))
+    if (pack_integer(buf, ptr->opengate))
         return -1;
-    if (pack_int(buf, ptr->tsec))
+    if (pack_integer(buf, ptr->tsec))
         return -1;
-    if (pack_int(buf, ptr->tusec))
+    if (pack_integer(buf, ptr->tusec))
         return -1;
     return 0;
 }
@@ -369,11 +369,11 @@ int pack_struct_MultiStubWork(BUFFER *buf, MultiStubWork *ptr)
 
 int unpack_struct_MultiStubWork(BUFFER *buf, MultiStubWork *ptr)
 {
-    if (unpack_int(buf, &(ptr->opengate)))
+    if (unpack_integer(buf, &(ptr->opengate)))
         return -1;
-    if (unpack_int(buf, &(ptr->tsec)))
+    if (unpack_integer(buf, &(ptr->tsec)))
         return -1;
-    if (unpack_int(buf, &(ptr->tusec)))
+    if (unpack_integer(buf, &(ptr->tusec)))
         return -1;
     return 0;
 }

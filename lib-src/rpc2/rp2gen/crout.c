@@ -231,7 +231,7 @@ void print_unpack_var(char* prefix, VAR* var, FILE *where) {
     mode = var->mode;
     switch(var->type->type->tag) {
             case RPC2_INTEGER_TAG:
-                    fprintf(where, "    if (unpack_int(buf, &(%s)))\n", name);
+                    fprintf(where, "    if (unpack_integer(buf, &(%s)))\n", name);
                     fprintf(where, "        return -1;\n");
                     break;
             case RPC2_UNSIGNED_TAG:
@@ -294,7 +294,7 @@ void print_unpack_var(char* prefix, VAR* var, FILE *where) {
             }
             break;
             case RPC2_ENUM_TAG:
-                    fprintf(where, "    if (unpack_int(buf, (RPC2_Integer *)&%s))\n", name);
+                    fprintf(where, "    if (unpack_integer(buf, (RPC2_Integer *)&%s))\n", name);
                     fprintf(where, "        return -1;\n");
                     break;
             default:
@@ -316,7 +316,7 @@ void print_pack_var(char* prefix, VAR* var, FILE *where) {
     mode = var->mode;
     switch(var->type->type->tag) {
             case RPC2_INTEGER_TAG:
-                    fprintf(where, "    if (pack_int(buf, %s))\n", name);
+                    fprintf(where, "    if (pack_integer(buf, %s))\n", name);
                     fprintf(where, "        return -1;\n");
                     break;
             case RPC2_UNSIGNED_TAG:
@@ -379,7 +379,7 @@ void print_pack_var(char* prefix, VAR* var, FILE *where) {
                 }
         	break;
             case RPC2_ENUM_TAG:
-                fprintf(where, "    if (pack_int(buf, %s))\n", name);
+                fprintf(where, "    if (pack_integer(buf, %s))\n", name);
                 fprintf(where, "        return -1;\n");
                 break;
             default:
@@ -1062,7 +1062,7 @@ static void pack(WHO who, VAR *parm, char *prefix, FILE *where)
     switch (parm->type->type->tag) {
     case RPC2_INTEGER_TAG:
             buffer_checked = 1;
-            fprintf(where, "    if (pack_int(bufptr, ");
+            fprintf(where, "    if (pack_integer(bufptr, ");
             if (who == RP2_CLIENT && mode == IN_OUT_MODE) fprintf(where, "*");
             fprintf(where, "%s))\n", name);
             fprintf(where, "        goto bufferoverflow;\n");
@@ -1089,7 +1089,7 @@ static void pack(WHO who, VAR *parm, char *prefix, FILE *where)
 	    break;
     case RPC2_ENUM_TAG:
             buffer_checked = 1;
-            fprintf(where, "    if (pack_int(bufptr, (RPC2_Integer) ");
+            fprintf(where, "    if (pack_integer(bufptr, (RPC2_Integer) ");
             if (who == RP2_CLIENT && mode == IN_OUT_MODE) fprintf(where, "*");
             fprintf(where, "%s))\n", name);
             fprintf(where, "        goto bufferoverflow;\n");
@@ -1182,7 +1182,7 @@ static void unpack(WHO who, VAR *parm, char *prefix, FILE *where)
     switch (parm->type->type->tag) {
     case RPC2_INTEGER_TAG:
             buffer_checked = 1;
-            fprintf(where, "    if (unpack_int(bufptr, ");
+            fprintf(where, "    if (unpack_integer(bufptr, ");
             if (!(mode != NO_MODE && who == RP2_CLIENT)) fprintf(where, "&");
             fprintf(where, "%s))\n", name);
             fprintf(where, "        goto bufferoverflow;\n");
@@ -1211,7 +1211,7 @@ static void unpack(WHO who, VAR *parm, char *prefix, FILE *where)
             break;
     case RPC2_ENUM_TAG:
             buffer_checked = 1;
-            fprintf(where, "    if (unpack_int(bufptr, (RPC2_Integer *)");
+            fprintf(where, "    if (unpack_integer(bufptr, (RPC2_Integer *)");
             if (!(mode != NO_MODE && who == RP2_CLIENT)) fprintf(where, "&");
             fprintf(where, "%s))\n", name);
             fprintf(where, "        goto bufferoverflow;\n");

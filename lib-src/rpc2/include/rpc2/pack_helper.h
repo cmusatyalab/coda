@@ -27,7 +27,7 @@ typedef struct {
 
 
 
-int unpack_int(BUFFER *buf, RPC2_Integer *ptr);
+int unpack_integer(BUFFER *buf, RPC2_Integer *ptr);
 
 int unpack_unsigned(BUFFER *buf, RPC2_Unsigned *ptr);
 
@@ -51,7 +51,7 @@ int unpack_struct_MultiCallEntry(BUFFER *buf, MultiCallEntry *ptr);
 
 int unpack_struct_MultiStubWork(BUFFER *buf, MultiStubWork *ptr);
 
-int pack_int(BUFFER *buf, RPC2_Integer value);
+int pack_integer(BUFFER *buf, RPC2_Integer value);
 
 int pack_unsigned(BUFFER *buf, RPC2_Unsigned value);
 
