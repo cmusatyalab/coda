@@ -243,7 +243,7 @@ static int get_valid_parm(argc, argv, pdatalen,
 			   pnlists,pchunksize,firm)
      int          argc;
      char         **argv;
-     long         *pdatalen;
+     rvm_length_t  *pdatalen;
      char         **pstatic_addr;
      unsigned long *phlen;
      unsigned long *pslen;
@@ -383,12 +383,12 @@ int main(argc, argv)
 {
     rvm_options_t       *options;       /* options descriptor ptr */
     rvm_return_t	ret;
-    int err, fd, i;
+    int err, fd;
     char *static_addr=NULL, buf[4096];
     char *logName, *dataName;
     unsigned long slen=0, hlen=0, nlists=0, chunksize=0;
     rvm_offset_t DataLen;
-    long         datalen=0;
+    rvm_length_t i, datalen = 0;
     int firm=0, opt_unknown=0;
     int c, arg_used=0;
 

@@ -39,8 +39,9 @@ rds_init_heap(base, length, chunk_size, nlists, tid, err)
 {
     heap_header_t *hdrp = (heap_header_t *)base;
     free_block_t *fbp;
-    int i, remaining_space;
-    unsigned long heap_hdr_len;
+    int i;
+    rvm_length_t remaining_space;
+    rvm_length_t heap_hdr_len;
     rvm_return_t rvmret;
     guard_t *addr;
     
