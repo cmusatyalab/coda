@@ -68,11 +68,12 @@ extern "C" {
 /* From Vol package. */
 #define	ThisHostAddr		((unsigned long)(HostAddress[ThisServerId]))
 #define	VolToHostAddr(volnum)	((unsigned long)(HostAddress[(volnum) >> 24]))
+#define	VolToServerId(volnum)	((uint8_t)((volnum) >> 24))
 
 #define ISDIR(fid)  ((fid).Vnode & 1)
 
 extern bit32 HostAddress[];
-extern int ThisServerId;
+extern uint8_t ThisServerId;
 extern long rvm_no_yield; 
 
 extern void VAdjustDiskUsage(Error *, Volume *, int);

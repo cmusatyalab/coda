@@ -210,9 +210,8 @@ int XlateVid(VolumeId *vidp, int *count, int *pos)
     vrent *vre = VRDB.find(*vidp);
     if (!vre) return(0);
 
-    int ix;
-
-    if ((ix = vre->index(ThisHostAddr)) == -1) return(0);
+    int ix = vre->index();
+    if (ix == -1) return(0);
 
 
     *vidp = vre->ServerVolnum[ix];
@@ -265,13 +264,26 @@ void vrent::GetHosts(unsigned long *Hosts) {
 }
 
 
-int vrent::index(unsigned long hostaddr) {
+int vrent::index_by_hostaddr(unsigned long hostaddr) {
     for (int i = 0; i < nServers; i++)
 	if (hostaddr == VolToHostAddr(ServerVolnum[i])) return(i);
 
     return(-1);
 }
 
+int vrent::index_by_serverid(uint8_t serverid)
+{
+    for (int i = 0; i < nServers; i++)
+	if (serverid == VolToServerId(ServerVolnum[i]))
+            return(i);
+
+    return(-1);
+}
+
+int vrent::index(void)
+{
+    return index_by_serverid(ThisServerId);
+}
 
 
 void vrent::GetCheckVV(vv_t *VV)

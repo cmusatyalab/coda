@@ -82,7 +82,9 @@ class vrent : public olink {
 
 //  public:
     void GetHosts(unsigned long *);
-    int index(unsigned long);
+    int index_by_hostaddr(unsigned long);
+    int index_by_serverid(uint8_t serverid);
+    int index(void);               /* get the replica index for this server */
     void GetCheckVV(vv_t *);
     int GetVolumeInfo(VolumeInfo *);
     void hton();

@@ -148,7 +148,7 @@ long S_VolSetVV(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
     vre = VRDB.find(V_groupId(vp));    /* Look up the VRDB entry. */
     if (!vre) Die("S_VolSetVV: VSG not found!");
 
-    ix = vre->index(ThisHostAddr);	    /* Look up the index of this host. */
+    ix = vre->index();	    /* Look up the index of this host. */
     if (ix < 0) Die("S_VolSetVV: this host not found!");
 
     /* Fashion an UpdateSet using just ThisHost. */

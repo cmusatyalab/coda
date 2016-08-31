@@ -99,7 +99,7 @@ extern int HashLookup(VolumeId);
 
 /* Exported Variables */
 char *ThisHost;		/* This machine's hostname */
-int ThisServerId = -1;	/* this server id, as found in  .../db/servers */
+uint8_t ThisServerId;	/* this server id, as found in  .../db/servers */
 bit32 HostAddress[N_SERVERIDS];	/* Assume host addresses are 32 bits */
 int VInit;		/* Set to 1 when the volume package is initialized */
 int HInit;		/* Set to 1 when the volid hash table is  initialized */
@@ -378,7 +378,7 @@ void VInitThisHost(const char *host)
     else
 	strncpy(ThisHost, host, MAXHOSTNAMELEN);
 
-    ThisServerId = -1;
+    ThisServerId = 0;
 }
 
 /* must be called before calling VInitVolumePackage!! */
@@ -472,10 +472,10 @@ void VInitServerList(const char *host)
 	    HostAddress[sid] = ntohl(netaddress);
 
 	    if (UtilHostEq(ThisHost, sname))
-		ThisServerId = sid;
+		ThisServerId = (uint8_t)sid;
 	}
     }
-    if (ThisServerId == -1) {
+    if (!ThisServerId) {
 	VLog(0, "Hostname of this server (%s) is not listed in %s. Exiting.", ThisHost, serverList);
 	exit(1);
     }

@@ -147,7 +147,7 @@ long RS_InstallVV(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
     {
 	vre = VRDB.find(V_groupId(volptr));
 	CODA_ASSERT(vre);
-	ix = vre->index(ThisHostAddr);
+	ix = vre->index();
 	CODA_ASSERT(ix >= 0);
     }
     

@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -364,7 +364,7 @@ struct volHeader {
 #define V_VolLog(vp)		((vp)->header->diskstuff.log)
 
 extern char *ThisHost;		/* This machine's hostname */
-extern int ThisServerId;	/* this server id, as found in
+extern uint8_t ThisServerId;	/* this server id, as found in
 				   /vice/db/servers */
 extern bit32 HostAddress[];	/* Assume host addresses are 32 bits */
 extern int VInit;		/* Set to 1 when the volume package is
