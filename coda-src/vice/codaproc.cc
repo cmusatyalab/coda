@@ -2334,10 +2334,9 @@ static void COP2Update(Volume *volptr, Vnode *vptr,
     /* if the result was success everywhere, truncate the log */
     int i;
     if (vptr->disk.type == vDirectory) {
-	unsigned long Hosts[VSG_MEMBERS];
 	vv_t checkvv;
-	vre->GetHosts(Hosts);
-	vre->HostListToVV(Hosts, &checkvv);
+	vre->GetCheckVV(&checkvv);
+
 	for (i = 0; i < VSG_MEMBERS; i++) 
 	    if (((&(checkvv.Versions.Site0))[i]) ^ 
 		((&(UpdateSet->Versions.Site0))[i])) {

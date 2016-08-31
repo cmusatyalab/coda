@@ -83,7 +83,7 @@ class vrent : public olink {
 //  public:
     void GetHosts(unsigned long *);
     int index(unsigned long);
-    void HostListToVV(unsigned long *, vv_t *);
+    void GetCheckVV(vv_t *);
     int GetVolumeInfo(VolumeInfo *);
     void hton();
     void ntoh();

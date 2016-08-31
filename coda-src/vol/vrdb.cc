@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -273,14 +273,16 @@ int vrent::index(unsigned long hostaddr) {
 }
 
 
-void vrent::HostListToVV(unsigned long *Hosts, vv_t *VV) {
+
+void vrent::GetCheckVV(vv_t *VV)
+{
     memset((void *)VV, 0, sizeof(vv_t));
-    for (int i = 0; i < VSG_MEMBERS; i++)
-	if (Hosts[i]) {
-	    int ix = index(Hosts[i]);
-	    CODA_ASSERT(ix != -1);
-	    (&(VV->Versions.Site0))[ix] = 1;
-	}
+
+    for (int i = 0; i < nServers; i++) {
+        uint8_t serverid = VolToServerId(ServerVolnum[i]);
+        if (serverid)
+            (&(VV->Versions.Site0))[i] = 1;
+    }
 }
 
 

@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -167,12 +167,10 @@ long RS_InstallVV(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
     /* truncate log if success everywhere in phase 1 */
     {
 	SLog(9, "InstallVV: Going to check if truncate log possible");
-	unsigned long Hosts[VSG_MEMBERS];
 	int i = 0;
 	vv_t checkvv;
+	vre->GetCheckVV(&checkvv);
 
-	vre->GetHosts(Hosts);
-	vre->HostListToVV(Hosts, &checkvv);
 	for (i = 0; i < VSG_MEMBERS; i++) 
 	    if (((&(checkvv.Versions.Site0))[i]) ^ 
 		((&(VV->Versions.Site0))[i]))
