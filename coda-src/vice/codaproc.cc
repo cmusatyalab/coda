@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2008 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -504,7 +504,6 @@ long FS_ViceRepair(RPC2_Handle cid, ViceFid *Fid, ViceStatus *status,
     dlist *vlist = new dlist((CFN)VLECmp);
     vle *ov = 0;
     VolumeId VSGVolnum = Fid->Volume;	
-    int volindex = -1;
     int FRep;
     int myRepairCount = 0;
     struct repair *myRepairList = 0;
@@ -541,7 +540,6 @@ long FS_ViceRepair(RPC2_Handle cid, ViceFid *Fid, ViceStatus *status,
 	if ( errorCode )
 		goto FreeLocks;
 
-	volindex = V_volumeindex(volptr);
 	if (ov->vptr->disk.type == vFile ||
 	    ov->vptr->disk.type == vSymlink)
 	    FRep = TRUE;
