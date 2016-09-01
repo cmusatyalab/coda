@@ -1068,11 +1068,10 @@ int ValidateParms(RPC2_Handle RPCid, ClientEntry **client, int *ReplicatedOp,
 
 
 int AllocVnode(Vnode **vptr, Volume *volptr, ViceDataType vtype, ViceFid *Fid,
-		ViceFid *pFid, UserId ClientId, RPC2_Unsigned AllocHost, int *blocks) 
+		ViceFid *pFid, UserId ClientId, int *blocks)
 {
     int errorCode = 0;
     Error fileCode = 0;
-    int ReplicatedOp = (AllocHost != 0);
     *vptr = 0;
     *blocks = 0;
 
@@ -1081,8 +1080,7 @@ START_TIMING(AllocVnode_Total);
 	 FID_(Fid), vtype, FID_(pFid), ClientId);
 
     /* Validate parameters. */
-    if (ReplicatedOp)
-	CODA_ASSERT(V_id(volptr) == Fid->Volume);
+    CODA_ASSERT(V_id(volptr) == Fid->Volume);
     CODA_ASSERT(V_id(volptr) == pFid->Volume);
     CODA_ASSERT(vtype == vFile || vtype == vDirectory || vtype == vSymlink);
 
@@ -1092,36 +1090,15 @@ START_TIMING(AllocVnode_Total);
       : (vtype == vDirectory)
       ? EMPTYDIRBLOCKS
       : EMPTYSYMLINKBLOCKS;
-    if (ReplicatedOp) {
-	if (AllocHost == ThisHostAddr) {
-	    if ((errorCode = GetFsObj(Fid, &volptr, vptr, WRITE_LOCK, SHARED_LOCK, 0, 0, 0)))
-		goto FreeLocks;
-	}
-	else {
-	    if ((errorCode = AdjustDiskUsage(volptr, tblocks)))
-		goto FreeLocks;
-	    *blocks = tblocks;
 
-	    *vptr = VAllocVnode((Error *)&errorCode, volptr,
-				vtype, Fid->Vnode, Fid->Unique);
-	    if (errorCode != 0)
-		goto FreeLocks;
-	}
-    }
-    else {
-	if ((errorCode = AdjustDiskUsage(volptr, tblocks)))
-	    goto FreeLocks;
-	*blocks = tblocks;
+    if ((errorCode = AdjustDiskUsage(volptr, tblocks)))
+        goto FreeLocks;
+    *blocks = tblocks;
 
-	*vptr = VAllocVnode((Error *)&errorCode, volptr, vtype);
-	if (errorCode != 0)
-	    goto FreeLocks;
-
-	/* Set up Fid from the new vnode. */
-	Fid->Volume = V_id(volptr);
-	Fid->Vnode = (*vptr)->vnodeNumber;
-	Fid->Unique = (*vptr)->disk.uniquifier;
-    }
+    *vptr = VAllocVnode((Error *)&errorCode, volptr,
+                        vtype, Fid->Vnode, Fid->Unique);
+    if (errorCode != 0)
+        goto FreeLocks;
 
     /* Initialize the new vnode. */
     (*vptr)->disk.node.dirNode = NEWVNODEINODE;

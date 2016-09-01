@@ -1305,7 +1305,7 @@ static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 		/* create the vnode */
 		vle *cv = AddVLE(*vlist, &cFid);
 		if ((errorCode = AllocVnode(&cv->vptr, volptr, (ViceDataType)vFile, &cFid,
-					   &(ov->fid), client->Id, 1, &tblocks)))
+					   &(ov->fid), client->Id, &tblocks)))
 		    return(errorCode);
 
 		*deltablocks += tblocks;
@@ -1340,7 +1340,7 @@ static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 		/* allocate the vnode */
 		vle *cv = AddVLE(*vlist, &cFid);
 		if ((errorCode = AllocVnode(&cv->vptr, volptr, (ViceDataType)vDirectory, &cFid,
-					   &(ov->fid), client->Id, 1, &tblocks)))
+					   &(ov->fid), client->Id, &tblocks)))
 		    return(errorCode);		
 		*deltablocks += tblocks;
 		tblocks = 0;
@@ -1365,7 +1365,7 @@ static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 		/* create the vnode */
 		vle *cv = AddVLE(*vlist, &cFid);
 		if ((errorCode = AllocVnode(&cv->vptr, volptr, (ViceDataType)vSymlink, &cFid,
-					   &(ov->fid), client->Id, 1, &tblocks)))
+					   &(ov->fid), client->Id, &tblocks)))
 		    return(errorCode);
 		*deltablocks += tblocks;
 		tblocks = 0;

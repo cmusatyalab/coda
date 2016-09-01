@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -24,7 +24,7 @@ typedef int (*VCP)(int, VnodeType, void *, void *);
 extern int ValidateParms(RPC2_Handle, ClientEntry **, int *ReplicatedOp,
 			 VolumeId *, RPC2_CountedBS *, int *Nservers);
 extern int AllocVnode(Vnode **, Volume *, ViceDataType,
-		       ViceFid *, ViceFid *, UserId, RPC2_Unsigned, int *);
+		       ViceFid *, ViceFid *, UserId, int *);
 extern int CheckFetchSemantics(ClientEntry *, Vnode **, Vnode **,
 				Volume **, Rights *, Rights *);
 extern int CheckGetAttrSemantics(ClientEntry *, Vnode **, Vnode **,

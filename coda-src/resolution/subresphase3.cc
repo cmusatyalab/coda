@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -1151,8 +1151,7 @@ static int PerformResOp(rsle *r, dlist *vlist, olist *AllLogs, vle *pv,
 	    vle *cv = AddVLE(*vlist, &cFid);
 	    CODA_ASSERT(cv->vptr == 0);
 	    if ((errorCode = AllocVnode(&cv->vptr, volptr, (ViceDataType)vFile, &cFid,
-				       &pv->fid, r->u.create.owner,
-				       1, blocks))) {
+				       &pv->fid, r->u.create.owner, blocks))) {
 		SLog(0,  "PerformResOP: Error %d in AllocVnode",
 			errorCode);
 		return(errorCode);
@@ -1190,8 +1189,7 @@ static int PerformResOp(rsle *r, dlist *vlist, olist *AllLogs, vle *pv,
 	    vle *cv = AddVLE(*vlist, &cFid);
 	    CODA_ASSERT(cv->vptr == 0);
 	    if ((errorCode = AllocVnode(&cv->vptr, volptr, (ViceDataType)vSymlink, &cFid,
-				       &pv->fid, r->u.slink.owner,
-				       1, blocks))) {
+				       &pv->fid, r->u.slink.owner, blocks))) {
 		SLog(0,  "PerformResOP: Error %d in AllocVnode(symlink)",
 			errorCode);
 		return(errorCode);
@@ -1258,9 +1256,7 @@ static int PerformResOp(rsle *r, dlist *vlist, olist *AllLogs, vle *pv,
 	    Vnode *cvptr = 0;
 	    /* allocate the vnode */
 	    if ((errorCode = AllocVnode(&cvptr, volptr, (ViceDataType)vDirectory,
-				       &cFid, &pv->fid, 
-				       r->u.mkdir.owner,
-				       1, blocks))) {
+				       &cFid, &pv->fid, r->u.mkdir.owner, blocks))) {
 		SLog(0,  "PerformResOP: Error %d in AllocV(mkdir)",
 			errorCode);
 		return(errorCode);

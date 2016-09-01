@@ -381,7 +381,7 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid,
 	    long errorCode = 0;
 	    if ((errorCode = AllocVnode(&cvptr, vp, (ViceDataType)vntype,
 				       cFid, dFid, pv->vptr->disk.owner,
-				       1, &tblocks))) {
+				       &tblocks))) {
 		SLog(0,  "CreateIncObj: Error %d in AllocVnode",
 			errorCode);
 		return(errorCode);

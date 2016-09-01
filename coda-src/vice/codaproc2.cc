@@ -2069,7 +2069,7 @@ static int AllocReintegrateVnode(Volume **volptr, dlist *vlist,
 
     /* Allocate/Retrieve the vnode. */
     if ((errorCode = AllocVnode(&vptr, *volptr, Type, cFid,
-				pFid, ClientId, 1, blocks)))
+				pFid, ClientId, blocks)))
 	goto Exit;
 
     /* Create a new vle for this vnode and add it to the vlist. */
