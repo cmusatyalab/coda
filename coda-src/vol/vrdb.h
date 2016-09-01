@@ -81,8 +81,8 @@ class vrent : public olink {
     ~vrent();
 
 //  public:
-    void GetHosts(unsigned long *);
-    int index_by_hostaddr(unsigned long);
+    void GetHosts(unsigned long *) __attribute__((deprecated("Prevents multihomed")));
+    int index_by_hostaddr(unsigned long) __attribute__((deprecated("Prevents multihomed")));
     int index_by_serverid(uint8_t serverid);
     int index(void);               /* get the replica index for this server */
     void GetCheckVV(vv_t *);

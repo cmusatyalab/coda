@@ -72,7 +72,7 @@ extern "C" {
 
 #define ISDIR(fid)  ((fid).Vnode & 1)
 
-extern bit32 HostAddress[];
+extern bit32 HostAddress[] __attribute__ ((deprecated ("Prevents having multihomed servers")));
 extern uint8_t ThisServerId;
 extern long rvm_no_yield; 
 
