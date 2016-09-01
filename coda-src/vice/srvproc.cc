@@ -231,9 +231,7 @@ START_TIMING(Fetch_Total);
 	SetStatus(v->vptr, Status, rights, anyrights);
 
 	if(VolumeWriteable(volptr))
-	    /* Until CVVV probes? -JJK */
-	    if (1/*!ReplicatedOp || PrimaryHost == ThisHostAddr*/) 
-		Status->CallBack = CodaAddCallBack(client->VenusId, Fid, VSGVolnum);
+            Status->CallBack = CodaAddCallBack(client->VenusId, Fid, VSGVolnum);
     }
 
 FreeLocks:
@@ -253,13 +251,13 @@ END_TIMING(Fetch_Total);
  ViceGetAttr: Fetch the attributes for a file/directory
 */
 long FS_ViceGetAttr(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Unsigned InconOK,
-		    ViceStatus *Status, RPC2_Unsigned PrimaryHost,
+		    ViceStatus *Status, RPC2_Unsigned Unused,
 		    RPC2_CountedBS *PiggyBS)
 {
   long rc;
 
   rc = FS_ViceGetAttrPlusSHA(RPCid, Fid, InconOK, Status, NULL,
-			     PrimaryHost, PiggyBS);
+			     Unused, PiggyBS);
   return(rc);
 }
 
@@ -273,7 +271,7 @@ long FS_ViceGetAttr(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Unsigned InconOK,
 
 long FS_ViceGetAttrPlusSHA(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Unsigned InconOK,
 		    ViceStatus *Status, RPC2_BoundedBS *MySHA,
-		    RPC2_Unsigned PrimaryHost,RPC2_CountedBS *PiggyBS)
+		    RPC2_Unsigned Unused, RPC2_CountedBS *PiggyBS)
 {
     int errorCode = 0;		/* return code to caller */
     Volume *volptr = 0;		/* pointer to the volume */
@@ -317,10 +315,7 @@ START_TIMING(GetAttr_Total);
 	SetStatus(v->vptr, Status, rights, anyrights);
 
 	if(VolumeWriteable(volptr))
-	    /* Until CVVV probes? -JJK */
-	    if (1/*!ReplicatedOp || PrimaryHost == ThisHostAddr*/) 
-		Status->CallBack = CodaAddCallBack(client->VenusId, Fid, 
-						   VSGVolnum);
+            Status->CallBack = CodaAddCallBack(client->VenusId, Fid, VSGVolnum);
     }
 
     /* Obtain SHA if requested.  For now, we simplify the code by
@@ -381,14 +376,14 @@ END_TIMING(GetAttr_Total);
 
 /* Obsolete version of ViceValidateAttrsPlusSHA() */
 
-long FS_ViceValidateAttrs(RPC2_Handle RPCid, RPC2_Unsigned PrimaryHost,
+long FS_ViceValidateAttrs(RPC2_Handle RPCid, RPC2_Unsigned Unused,
 		       ViceFid *PrimaryFid, ViceStatus *Status, 
 		       RPC2_Integer NumPiggyFids, ViceFidAndVV Piggies[],
 		       RPC2_BoundedBS *VFlagBS, RPC2_CountedBS *PiggyBS)
 {
   long rc;
 
-  rc = FS_ViceValidateAttrsPlusSHA(RPCid, PrimaryHost, PrimaryFid, Status, NULL,
+  rc = FS_ViceValidateAttrsPlusSHA(RPCid, Unused, PrimaryFid, Status, NULL,
 				   NumPiggyFids, Piggies,VFlagBS, PiggyBS);
   return(rc);
 
@@ -402,7 +397,7 @@ long FS_ViceValidateAttrs(RPC2_Handle RPCid, RPC2_Unsigned PrimaryHost,
 /*
   ViceValidateAttrsPlusSHA: A batched version of GetAttrPlusSHA
 */
-long FS_ViceValidateAttrsPlusSHA(RPC2_Handle RPCid, RPC2_Unsigned PrimaryHost,
+long FS_ViceValidateAttrsPlusSHA(RPC2_Handle RPCid, RPC2_Unsigned Unused,
 			  ViceFid *PrimaryFid, ViceStatus *Status, 
         		  RPC2_BoundedBS *MySHA,
 			  RPC2_Integer NumPiggyFids, ViceFidAndVV Piggies[],
@@ -432,7 +427,7 @@ START_TIMING(ViceValidateAttrs_Total);
     /* Do a real getattr for primary fid. */
     {
 	if ((errorCode = FS_ViceGetAttrPlusSHA(RPCid, PrimaryFid, 0, Status,
-					       MySHA, PrimaryHost, PiggyBS)))
+					       MySHA, Unused, PiggyBS)))
 		goto Exit;
     }
  	
@@ -478,17 +473,14 @@ START_TIMING(ViceValidateAttrs_Total);
 	/* Do it. */
 	if (VV_Cmp(&Piggies[i].VV, &v->vptr->disk.versionvector) == VV_EQ) {
 	    /* this is a writeable volume, o.w. we wouldn't be in this call */
-	    /* Until CVVV probes? -JJK */
-	    if (1/*!ReplicatedOp || PrimaryHost == ThisHostAddr*/) {
-		/* 
-		 * we really should differentiate between 
-		 * valid with no callback and invalid. that
-		 * doesn't matter too much with this call, 
-		 * because getting a callback is refetching.
-		 */
-		VFlagBS->SeqBody[i] = (RPC2_Byte)
-		    CodaAddCallBack(client->VenusId, &Piggies[i].Fid, VSGVolnum);
-	    }
+            /*
+             * we really should differentiate between
+             * valid with no callback and invalid. that
+             * doesn't matter too much with this call,
+             * because getting a callback is refetching.
+             */
+            VFlagBS->SeqBody[i] = (RPC2_Byte)
+                CodaAddCallBack(client->VenusId, &Piggies[i].Fid, VSGVolnum);
 
 	    SLog(8, "ViceValidateAttrs: %s ok", FID_(&Piggies[i].Fid));
 	    continue;
@@ -517,7 +509,7 @@ END_TIMING(ViceValidateAttrs_Total);
 */
 long FS_ViceGetACL(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Unsigned InconOK,
 		   RPC2_BoundedBS *AccessList, ViceStatus *Status,
-		   RPC2_Unsigned PrimaryHost, RPC2_CountedBS *PiggyBS)
+		   RPC2_Unsigned Unused, RPC2_CountedBS *PiggyBS)
 {
     int errorCode = 0;		/* return code to caller */
     Volume *volptr = 0;		/* pointer to the volume */
@@ -580,9 +572,8 @@ END_TIMING(GetACL_Total);
   END_HTML
 */
 long FS_ViceSetACL(RPC2_Handle RPCid, ViceFid *Fid, RPC2_CountedBS *AccessList,
-		 ViceStatus *Status, RPC2_Unsigned PrimaryHost,
-		 ViceStoreId *StoreId, 
-		 RPC2_CountedBS *OldVS, RPC2_Integer *NewVS, 
+		 ViceStatus *Status, RPC2_Unsigned Unused, ViceStoreId *StoreId,
+		 RPC2_CountedBS *OldVS, RPC2_Integer *NewVS,
 		 CallBackStatus *VCBStatus, RPC2_CountedBS *PiggyBS)
 {
     int errorCode = 0;		/* return code for caller */

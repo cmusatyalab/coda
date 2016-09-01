@@ -250,14 +250,14 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 1: ViceGetAttr	(IN ViceFid Fid,
 		 IN RPC2_Unsigned InconOK,
 		 OUT ViceStatus Status,
-		 IN RPC2_Unsigned PrimaryHost,
+		 IN RPC2_Unsigned Unused,
 		 IN RPC2_CountedBS PiggyCOP2);
 
 2: ViceGetACL	(IN ViceFid Fid,
 		 IN RPC2_Unsigned InconOK,
 		 IN OUT RPC2_BoundedBS AccessList,
 		 OUT ViceStatus Status,
-		 IN RPC2_Unsigned PrimaryHost,
+		 IN RPC2_Unsigned Unused,
 		 IN RPC2_CountedBS PiggyCOP2);
 
 3: ViceFetch	(IN ViceFid Fid,
@@ -269,56 +269,37 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 		 IN RPC2_CountedBS PiggyCOP2,
 		 IN OUT SE_Descriptor BD);
 
-/* 4: ViceSetAttr (IN ViceFid Fid,
-		IN OUT ViceStatus Status,
-		IN RPC2_Integer Mask,
-		IN RPC2_Unsigned PrimaryHost,
-		IN ViceStoreId StoreId,
-		IN RPC2_CountedBS OldVS,
-		OUT RPC2_Integer NewVS,
-		OUT CallBackStatus VCBStatus,
-		IN RPC2_CountedBS PiggyCOP2);
-*/
+/* 4: ViceSetAttr */
 
 5: ViceSetACL (IN ViceFid Fid,
 	       IN RPC2_CountedBS AccessList,
 	       IN OUT ViceStatus Status,
-	       IN RPC2_Unsigned PrimaryHost,
+	       IN RPC2_Unsigned Unused,
 	       IN ViceStoreId StoreId,
 	       IN RPC2_CountedBS OldVS,
 	       OUT RPC2_Integer NewVS,
 	       OUT CallBackStatus VCBStatus,
 	       IN RPC2_CountedBS PiggyCOP2);
 
-/* 6: ViceStore (IN ViceFid Fid,
-	      IN OUT ViceStatus Status,
-	      IN RPC2_Integer Length,
-	      IN RPC2_Unsigned PrimaryHost,
-	      IN ViceStoreId StoreId,
-	      IN RPC2_CountedBS OldVS,
-	      OUT RPC2_Integer NewVS,
-	      OUT CallBackStatus VCBStatus,
-	      IN RPC2_CountedBS PiggyCOP2,
-	      IN OUT SE_Descriptor BD);
-*/
+/* 6: ViceStore */
 
 15: ViceGetRootVolume (IN OUT RPC2_BoundedBS Volume);
 
-/* 16: ViceSetRootVolume (IN RPC2_String Volume); */
+/* 16: ViceSetRootVolume */
 
 17: ViceGetVolumeStatus (IN VolumeId Vid,
 			 OUT VolumeStatus Status,
 			 IN OUT RPC2_BoundedBS Name,
 			 IN OUT RPC2_BoundedBS OfflineMsg,
 			 IN OUT RPC2_BoundedBS MOTD,
-			 IN RPC2_Unsigned PrimaryHost);
+			 IN RPC2_Unsigned IsReplicated);
 
 18: ViceSetVolumeStatus (IN VolumeId Vid,
 			 IN OUT VolumeStatus Status,
 			 IN OUT RPC2_BoundedBS Name,
 			 IN OUT RPC2_BoundedBS OfflineMsg,
 			 IN OUT RPC2_BoundedBS MOTD,
-			 IN RPC2_Unsigned PrimaryHost,
+			 IN RPC2_Unsigned Unused,
 			 IN ViceStoreId StoreId,
 			 IN RPC2_CountedBS PiggyCOP2);
 	
@@ -359,7 +340,7 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 
 /* Obsolete: replace with ViceValidateAttrsPlusSHA() (Satya, 12/02) */
 
-38: ViceValidateAttrs (IN RPC2_Unsigned PrimaryHost,
+38: ViceValidateAttrs (IN RPC2_Unsigned Unused,
 		       IN ViceFid PrimaryFid,
 		       IN OUT ViceStatus PrimaryStatus,
 		       IN ViceFidAndVV Piggies[], 
@@ -377,93 +358,13 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 		      IN RPC2_CountedBS VS,
 		      IN OUT RPC2_BoundedBS VFlagBS);
 
-/* new update calls */
-/* 45: ViceVRemove	(IN ViceFid Did,
-		 IN RPC2_String Name,
-		 IN OUT ViceStatus DirStatus,
-		 IN OUT ViceStatus Status,
-		 IN RPC2_Unsigned PrimaryHost,
-		 IN ViceStoreId StoreId,
-		 IN RPC2_CountedBS OldVS,
-		 OUT RPC2_Integer NewVS,
-		 OUT CallBackStatus VCBStatus,
-		 IN RPC2_CountedBS PiggyCOP2); */
-
-/* 46: ViceVCreate	(IN ViceFid Did,
-		 IN ViceFid BidFid,
-		 IN RPC2_String Name,
-		 IN OUT ViceStatus Status,
-		 IN OUT ViceFid Fid,
-		 IN OUT ViceStatus DirStatus,
-		 IN RPC2_Unsigned PrimaryHost,
-		 IN ViceStoreId StoreId,
-		 IN RPC2_CountedBS OldVS,
-		 OUT RPC2_Integer NewVS,
-		 OUT CallBackStatus VCBStatus,
-		 IN RPC2_CountedBS PiggyCOP2); */
-		 
-/* 47: ViceVRename	(IN ViceFid OldDid,
-		 IN RPC2_String OldName,
-		 IN ViceFid NewDid,
-		 IN RPC2_String NewName,
-		 IN OUT ViceStatus OldDirStatus,
-		 IN OUT ViceStatus NewDirStatus,
-		 IN OUT ViceStatus SrcStatus,
-		 IN OUT ViceStatus TgtStatus,
-		 IN RPC2_Unsigned PrimaryHost,
-		 IN ViceStoreId StoreId,
-		 IN RPC2_CountedBS OldVS,
-		 OUT RPC2_Integer NewVS,
-		 OUT CallBackStatus VCBStatus,
-		 IN RPC2_CountedBS PiggyCOP2); */
-
-/* 48: ViceVSymLink (IN ViceFid Did,
-		  IN RPC2_String OldName,
-		  IN RPC2_String NewName,
-		  IN OUT ViceFid Fid,
-		  IN OUT ViceStatus Status,
-		  IN OUT ViceStatus DirStatus,
-		  IN RPC2_Unsigned PrimaryHost,
-		  IN ViceStoreId StoreId,
-		  IN RPC2_CountedBS OldVS,
-		  OUT RPC2_Integer NewVS,
-		  OUT CallBackStatus VCBStatus,
-		  IN RPC2_CountedBS PiggyCOP2); */
-
-/* 49: ViceVLink (IN ViceFid Did,
-	       IN RPC2_String Name,
-	       IN ViceFid Fid,
-	       IN OUT ViceStatus Status,
-	       IN OUT ViceStatus DirStatus,
-	       IN RPC2_Unsigned PrimaryHost,
-	       IN ViceStoreId StoreId,
-	       IN RPC2_CountedBS OldVS,
-	       OUT RPC2_Integer NewVS,
-	       OUT CallBackStatus VCBStatus,
-	       IN RPC2_CountedBS PiggyCOP2); */
-
-/* 50: ViceVMakeDir (IN ViceFid Did,
-		  IN RPC2_String Name,
-		  IN OUT ViceStatus Status,
-		  IN OUT ViceFid NewDid,
-		  IN OUT ViceStatus DirStatus,
-		  IN RPC2_Unsigned PrimaryHost,
-		  IN ViceStoreId StoreId,
-		  IN RPC2_CountedBS OldVS,
-		  OUT RPC2_Integer NewVS,
-		  OUT CallBackStatus VCBStatus,
-		  IN RPC2_CountedBS PiggyCOP2); */
-		 
-/* 51: ViceVRemoveDir (IN ViceFid Did,
-		    IN RPC2_String Name,
-		    IN OUT ViceStatus Status,
-		    IN OUT ViceStatus TgtStatus,
-		    IN RPC2_Unsigned PrimaryHost,
-		    IN ViceStoreId StoreId,
-		    IN RPC2_CountedBS OldVS,
-		    OUT RPC2_Integer NewVS,
-		    OUT CallBackStatus VCBStatus,
-		    IN RPC2_CountedBS PiggyCOP2); */
+/* 45: ViceVRemove */
+/* 46: ViceVCreate */
+/* 47: ViceVRename */
+/* 48: ViceVSymLink */
+/* 49: ViceVLink */
+/* 50: ViceVMakeDir */
+/* 51: ViceVRemoveDir */
 
 55: ViceOpenReintHandle	(IN ViceFid Fid,
 			 OUT ViceReintHandle RHandle);
@@ -520,13 +421,13 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 		 IN RPC2_Unsigned InconOK,
 		 OUT ViceStatus Status,
 		 OUT RPC2_BoundedBS SHAval,
-		 IN RPC2_Unsigned PrimaryHost,
+		 IN RPC2_Unsigned Unused,
 		 IN RPC2_CountedBS PiggyCOP2);
 
 
 /* Same comments as for ViceGetAttrPlusSHA() above */
 
-64: ViceValidateAttrsPlusSHA (IN RPC2_Unsigned PrimaryHost,
+64: ViceValidateAttrsPlusSHA (IN RPC2_Unsigned Unused,
 		       IN ViceFid PrimaryFid,
 		       IN OUT ViceStatus PrimaryStatus,
 		       OUT RPC2_BoundedBS SHAval,

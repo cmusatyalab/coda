@@ -301,7 +301,9 @@ errout:
 /*
   ViceGetVolumeStatus: Get the status of a particular volume
 */
-long FS_ViceGetVolumeStatus(RPC2_Handle RPCid, VolumeId vid, VolumeStatus *status, RPC2_BoundedBS *name, RPC2_BoundedBS *offlineMsg, RPC2_BoundedBS *motd, RPC2_Unsigned PrimaryHost)
+long FS_ViceGetVolumeStatus(RPC2_Handle RPCid, VolumeId vid,
+        VolumeStatus *status, RPC2_BoundedBS *name, RPC2_BoundedBS *offlineMsg,
+        RPC2_BoundedBS *motd, RPC2_Unsigned IsReplicated)
 {
     Vnode * vptr;		/* vnode of the new file */
     ViceFid vfid;		/* fid of new file */
@@ -329,15 +331,15 @@ long FS_ViceGetVolumeStatus(RPC2_Handle RPCid, VolumeId vid, VolumeStatus *statu
 
     if (XlateVid(&vid)) {
 	SLog(1, "XlateVid: %u --> %u", VSGVolnum, vid);
-	if (PrimaryHost == 0) {
-	    SLog(0, "Translated VSG but PrimaryHost == 0");
+	if (IsReplicated == 0) {
+	    SLog(0, "Translated VSG but IsReplicated == 0");
 	    errorCode =	EINVAL;	    /* ??? -JJK */
 	    goto Final;
 	}
     }
     else {
-	if (PrimaryHost != 0) {
-	    SLog(0, "Failed to translate VSG but PrimaryHost != 0");
+	if (IsReplicated != 0) {
+	    SLog(0, "Failed to translate VSG but IsReplicated != 0");
 	    errorCode =	EINVAL;	    /* ??? -JJK */
 	    goto Final;
 	}
@@ -422,7 +424,10 @@ void PerformSetQuota(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr, Vn
   <a name="ViceSetVolumeStatus"><strong>Set the status(e.g. quota) for a volume </strong></a>
   END_HTML
 */
-long FS_ViceSetVolumeStatus(RPC2_Handle RPCid, VolumeId vid, VolumeStatus *status, RPC2_BoundedBS *name, RPC2_BoundedBS *offlineMsg, RPC2_BoundedBS *motd, RPC2_Unsigned PrimaryHost, ViceStoreId *StoreId, RPC2_CountedBS *PiggyCOP2)
+long FS_ViceSetVolumeStatus(RPC2_Handle RPCid, VolumeId vid,
+        VolumeStatus *status, RPC2_BoundedBS *name, RPC2_BoundedBS *offlineMsg,
+        RPC2_BoundedBS *motd, RPC2_Unsigned Unused, ViceStoreId *StoreId,
+        RPC2_CountedBS *PiggyCOP2)
 {
     ViceFid vfid;		/* fid of new file */
     long   errorCode;		/* error code */
