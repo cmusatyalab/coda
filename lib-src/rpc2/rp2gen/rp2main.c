@@ -291,7 +291,7 @@ static int32_t SetupFiles()
 
     char upper_path[MAXPATHLEN];
     libfile_name = concat(base, ".helper.c");
-    libfile = fopen(libfile_name, "a+");
+    libfile = fopen(libfile_name, "w");
     if (libfile == NIL) {perror(libfile_name); exit(-1);}
     header(libfile, h_includes[(int32_t) clanguage]);
     fprintf(libfile, "#include \"%s\"\n", hfile_name);
