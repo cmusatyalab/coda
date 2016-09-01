@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -88,8 +88,10 @@ NewConnection	(IN RPC2_Integer SideEffectType,
 
 5: MarkInc     	(IN ViceFid Fid);
 
+/* OldPrimaryHost was compared agains ThisHostAddr until 6.9.8 but is
+ * unused since then. */
 6: FetchFile	(IN ViceFid Fid, 
-		 IN RPC2_Unsigned PrimaryHost,
+		 IN RPC2_Unsigned OldPrimaryHost,
 		 OUT ResStatus Status,
 		 IN OUT SE_Descriptor BD);
 

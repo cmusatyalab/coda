@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -221,8 +221,8 @@ EndFileResolve:
 }
 
 /* fetch status and data for given fid */
-long RS_FetchFile(RPC2_Handle RPCid, ViceFid *Fid, 
-		  RPC2_Unsigned PrimaryHost, ResStatus *Status, 
+long RS_FetchFile(RPC2_Handle RPCid, ViceFid *Fid,
+		  RPC2_Unsigned Unused, ResStatus *Status,
 		  SE_Descriptor *BD)
 {
     SE_Descriptor sid;
@@ -232,11 +232,8 @@ long RS_FetchFile(RPC2_Handle RPCid, ViceFid *Fid,
     Inode tmpinode = 0;
     int fd = -1;
 
-    SLog(9,  "RS_FetchFile(%x.%x.%x %x)", Fid->Volume,
-	     Fid->Vnode, Fid->Unique, PrimaryHost);
+    SLog(9, "RS_FetchFile(%x.%x.%x)", Fid->Volume, Fid->Vnode, Fid->Unique);
 
-    SLog(9,  "RS_FetchFile ThisHostAddr = %x", ThisHostAddr);
-    if (PrimaryHost != ThisHostAddr) return 0;
     CODA_ASSERT(!ISDIR(*Fid));
     if (!XlateVid(&Fid->Volume)) {
 	SLog(0,  "RS_FetchFile: Couldnt xlate vid %x", Fid->Volume);
