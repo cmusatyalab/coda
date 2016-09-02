@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -95,7 +95,7 @@ extern int ReadString(DumpBuffer_t *, char *to, int max);
 extern int ReadByteString(DumpBuffer_t *, char *to, int size);
 extern int ReadDumpHeader(DumpBuffer_t *, struct DumpHeader *hp);
 extern int ReadVolumeDiskData(DumpBuffer_t *, VolumeDiskData *vol);
-extern int ReadVV(DumpBuffer_t *, vv_t *vv);
+extern int ReadVV(DumpBuffer_t *, ViceVersionVector *vv);
 extern int ReadFile(DumpBuffer_t *, FILE *);
 extern int EndOfDump(DumpBuffer_t *);
 

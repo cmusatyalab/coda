@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -49,7 +49,6 @@ extern VnodeDiskObject *FindVnode(rec_smolist *, Unique_t);
 extern int ActiveVnodes(int volindex, int vclass);
 extern int AllocatedVnodes(int volindex, int vclass);
 extern int AvailVnode(int volindex, int vclass, VnodeId vnodeindex, Unique_t =0);
-extern void InitVV(vv_t *vv);
 extern int GetVolType(Error *ec, VolumeId volid);
 extern void GetVolPartition(Error *, VolumeId, int, char *);
 extern void SetupVolCache();

@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -63,7 +63,6 @@ extern "C" {
 #include "coda_globals.h"
 
 void print_VolumeDiskData(VolumeDiskData *ddata);
-static void PrintVersionVector(vv_t vv, const char *indent);
 void print_VnodeDiskObject(VnodeDiskObject *vnode);
 void print_VolData(struct VolumeData *data);
 void print_VolHead(struct VolHead *VolHead, int volindex);
@@ -179,18 +178,12 @@ void print_VnodeDiskObject(VnodeDiskObject *vnode)
     printf("\tlength = %u\tunique = %x\tversion = %u\tinode = %p\n",
 	   vnode->length, vnode->uniquifier, vnode->dataVersion,
 	   vnode->node.dirNode);
-    PrintVersionVector(vnode->versionvector, "\t");
+    printf("\t"); FPrintVV(stdout, &vnode->versionvector);
     printf("\tvolindex = %d\tmodtime = %u\tauthor = %u\towner = %u\n",
 	vnode->vol_index, vnode->unixModifyTime, vnode->author, vnode->owner);
     printf("\tparent = %x.%x\tmagic = %x\tsrv_mtime = %u\n",
 	   vnode->vparent, vnode->uparent,
 	   vnode->vnodeMagic, vnode->serverModifyTime);
-}
-
-static void PrintVersionVector(vv_t vv, const char *indent) {
-
-    fprintf(stdout, "%s", indent);
-    FPrintVV(stdout, &vv);
 }
 
 void print_VolumeDiskData(VolumeDiskData *ddata)
@@ -207,7 +200,7 @@ void print_VolumeDiskData(VolumeDiskData *ddata)
 	    ddata->parentId, ddata->groupId, ddata->cloneId, ddata->backupId, ddata->restoredFromId);
 	printf("\t\t\tneedsCallback = %u\n\t\t\tdestroyMe = %u\n\t\t\tdontSalvage = %u\n\t\t\treserveb3 = %u\n",
 	    ddata->needsCallback, ddata->destroyMe, ddata->dontSalvage, ddata->reserveb3);
-	PrintVersionVector(ddata->versionvector, "\t\t\t");
+        printf("\t\t\t"); FPrintVV(stdout, &ddata->versionvector);
     }
     printf("\t\t\t");
     for (i = 0; i < 3; i++) {

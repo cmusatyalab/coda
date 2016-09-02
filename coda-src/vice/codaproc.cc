@@ -2334,7 +2334,7 @@ static void COP2Update(Volume *volptr, Vnode *vptr,
     /* if the result was success everywhere, truncate the log */
     int i;
     if (vptr->disk.type == vDirectory) {
-	vv_t checkvv;
+	ViceVersionVector checkvv;
 	vre->GetCheckVV(&checkvv);
 
 	for (i = 0; i < VSG_MEMBERS; i++) 

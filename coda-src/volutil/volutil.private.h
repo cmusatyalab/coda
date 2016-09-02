@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -53,6 +53,6 @@ Pittsburgh, PA.
 #define VOLUTIL_ABORT	1	/* do not restart this job */
 
 
-void PrintVersionVector(FILE *outfile, vv_t vv);
+void PrintVersionVector(FILE *outfile, ViceVersionVector vv);
 
 #endif /* _VOLUTIL_PRIVATE_H_ */

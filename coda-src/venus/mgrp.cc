@@ -524,7 +524,7 @@ int mgrpent::CheckNonMutating(int acode)
 
    OUT parameter, UpdateSet, indicates which sites call succeeded at.
 */
-int mgrpent::CheckCOP1(int acode, vv_t *UpdateSet, int TranslateEincompatible)
+int mgrpent::CheckCOP1(int acode, ViceVersionVector *UpdateSet, int TranslateEincompatible)
 {
     LOG(100, ("mgrpent::CheckCOP1: acode = %d\n\t\thosts = [%#x %#x %#x %#x %#x %#x %#x %#x],\n\t\tretcodes = [%d %d %d %d %d %d %d %d]\n",
 	       acode, rocc.hosts[0], rocc.hosts[1], rocc.hosts[2], rocc.hosts[3],
@@ -596,7 +596,7 @@ int mgrpent::CheckCOP1(int acode, vv_t *UpdateSet, int TranslateEincompatible)
 
 /* This is identical to mgrpent::CheckCOP1(), EXCEPT that we want to treat */
 /* EINCOMPATIBLE results as non-maskable rather that translating them to ERETRY. */
-int mgrpent::CheckReintegrate(int acode, vv_t *UpdateSet)
+int mgrpent::CheckReintegrate(int acode, ViceVersionVector *UpdateSet)
 {
     int ret = CheckCOP1(acode, UpdateSet, 0);
 
@@ -616,7 +616,7 @@ int mgrpent::CheckReintegrate(int acode, vv_t *UpdateSet)
 	ESYNRESOLVE	Version check failed
 	EASYRESOLVE	!EqReq and check yielded Dom/Sub
 */
-int mgrpent::RVVCheck(vv_t **RVVs, int EqReq)
+int mgrpent::RVVCheck(ViceVersionVector **RVVs, int EqReq)
 {
     /* Construct the array so that only valid VVs are checked. */
     for (int j = 0; j < VSG_MEMBERS; j++)
@@ -642,7 +642,7 @@ int mgrpent::RVVCheck(vv_t **RVVs, int EqReq)
                        rocc.retcodes[idx] == 0 && \
                        (RVVs == 0 || RVVs[idx] != 0))
 
-int mgrpent::PickDH(vv_t **RVVs)
+int mgrpent::PickDH(ViceVersionVector **RVVs)
 {
     int i, chosen = 0;
     srvent *s;
@@ -671,7 +671,7 @@ int mgrpent::PickDH(vv_t **RVVs)
 /* If there are multiple hosts in the dominant set, prefer the primary host. */
 /* The caller may specify that the PH must be dominant. */
 /* Returns {0, ERETRY}. */
-int mgrpent::DHCheck(vv_t **RVVs, int ph_ix, int *dh_ixp, int PHReq)
+int mgrpent::DHCheck(ViceVersionVector **RVVs, int ph_ix, int *dh_ixp, int PHReq)
 {
     *dh_ixp = -1;
 

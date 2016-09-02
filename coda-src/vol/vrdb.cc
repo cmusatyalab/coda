@@ -286,9 +286,9 @@ int vrent::index(void)
 }
 
 
-void vrent::GetCheckVV(vv_t *VV)
+void vrent::GetCheckVV(ViceVersionVector *VV)
 {
-    memset((void *)VV, 0, sizeof(vv_t));
+    memset((void *)VV, 0, sizeof(ViceVersionVector));
 
     for (int i = 0; i < nServers; i++) {
         uint8_t serverid = VolToServerId(ServerVolnum[i]);

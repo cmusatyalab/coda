@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2008 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -288,7 +288,7 @@ void VenusPrint(int, int argc, const char **argv);
 const char *VenusOpStr(int);
 const char *IoctlOpStr(unsigned char nr);
 const char *VenusRetStr(int);
-void VVPrint(FILE *, vv_t **);
+void VVPrint(FILE *, ViceVersionVector **);
 int binaryfloor(int);
 void LogInit();
 void DebugOn();
@@ -321,7 +321,7 @@ extern long int SFTP_DebugLevel;
 extern long int RPC2_Trace;
 extern int MallocTrace;
 extern const VenusFid NullFid;
-extern const vv_t NullVV;
+extern const ViceVersionVector NullVV;
 extern VFSStatistics VFSStats;
 extern RPCOpStatistics RPCOpStats;
 extern struct timeval DaemonExpiry;

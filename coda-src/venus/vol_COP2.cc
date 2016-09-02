@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2008 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -104,7 +104,7 @@ int repvol::COP2(mgrpent *m, RPC2_CountedBS *PiggyBS)
 
 
 /* Send a single UpdateSet. */
-int repvol::COP2(mgrpent *m, ViceStoreId *StoreId, vv_t *UpdateSet,
+int repvol::COP2(mgrpent *m, ViceStoreId *StoreId, ViceVersionVector *UpdateSet,
                  int donotpiggy)
 {
     RPC2_CountedBS PiggyBS;

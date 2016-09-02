@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -38,7 +38,7 @@ int large = 500;
 int small = 500;
 const char *CodaSrvIp = NULL;
 
-vv_t NullVV = {{0, 0, 0, 0, 0, 0, 0, 0}, {0, 0}, 0};
+ViceVersionVector NullVV = {{0, 0, 0, 0, 0, 0, 0, 0}, {0, 0}, 0};
 
 void PollAndYield() {
     dlist dl;

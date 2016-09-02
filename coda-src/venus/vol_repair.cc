@@ -226,12 +226,12 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
     LOG(0, ("repvol::Repair: (%s) attempting COP1!\n", FID_(RepairFid)));
 
     /* The COP1 call. */
-    vv_t UpdateSet;
+    ViceVersionVector UpdateSet;
     {
 	/* Compute template VV. */
-	vv_t tvv = NullVV;
-	vv_t *RepairVVs[VSG_MEMBERS];
-	memset((void *)RepairVVs, 0, VSG_MEMBERS * (int)sizeof(vv_t *));
+	ViceVersionVector tvv = NullVV;
+	ViceVersionVector *RepairVVs[VSG_MEMBERS];
+	memset((void *)RepairVVs, 0, VSG_MEMBERS * (int)sizeof(ViceVersionVector *));
 	for (i = 0; i < VSG_MEMBERS; i++)
 	    if (volreps[i]) {
 		fsobj *f = 0;
@@ -304,8 +304,8 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 	    fprintf(logFile, "\tAU = %d, OW = %d, CB = %d, MA = %x, AA = %x, MO = %o\n",
 		    status.Author, status.Owner, status.CallBack,
 		    (int)status.MyAccess, (int)status.AnyAccess, status.Mode);
-	    vv_t *tvvs[VSG_MEMBERS];
-	    memset((void *)tvvs, 0, VSG_MEMBERS * (int)sizeof(vv_t *));
+	    ViceVersionVector *tvvs[VSG_MEMBERS];
+	    memset((void *)tvvs, 0, VSG_MEMBERS * (int)sizeof(ViceVersionVector *));
 	    tvvs[0] = &status.VV;
 	    VVPrint(logFile, tvvs);
 	    fflush(logFile);
@@ -729,9 +729,9 @@ int repvol::DisconnectedRepair(VenusFid *RepairFid, char *RepairFile,
     /* prepare to fake the call */
     {
 	/* Compute template VV. */
-	vv_t tvv = NullVV;
-	vv_t *RepairVVs[VSG_MEMBERS];
-        memset(RepairVVs, 0, VSG_MEMBERS * sizeof(vv_t *));
+	ViceVersionVector tvv = NullVV;
+	ViceVersionVector *RepairVVs[VSG_MEMBERS];
+        memset(RepairVVs, 0, VSG_MEMBERS * sizeof(ViceVersionVector *));
 
 	for (int i = 0; i < VSG_MEMBERS; i++)
 	    if (volreps[i]) {

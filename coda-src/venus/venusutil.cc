@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2008 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -84,7 +84,7 @@ FILE *logFile;
 int LogLevel = 0;
 int MallocTrace = 0;
 const VenusFid NullFid = {0, 0, 0, 0};
-const vv_t NullVV = {{0, 0, 0, 0, 0, 0, 0, 0}, {0, 0}, 0};
+const ViceVersionVector NullVV = {{0, 0, 0, 0, 0, 0, 0, 0}, {0, 0}, 0};
 VFSStatistics VFSStats;
 RPCOpStatistics RPCOpStats;
 
@@ -418,7 +418,7 @@ const char *VenusRetStr(int retcode) {
 }
 
 
-void VVPrint(FILE *fp, vv_t **vvp) {
+void VVPrint(FILE *fp, ViceVersionVector **vvp) {
     for (int i = 0; i < VSG_MEMBERS; i++)
 	if (vvp[i]) {
 	    fprintf(fp, "\t\t%d: ", i);

@@ -45,6 +45,7 @@ volutil_LDADD = $(top_builddir)/coda-src/auth2/libauser.la \
 		$(RPC2_LIBS)
 
 codareaddump_LDADD = libdumpstuff.la \
+		 $(top_builddir)/coda-src/vv/libvv.la \
 		 $(top_builddir)/coda-src/vicedep/libvicedep.la \
 		 $(top_builddir)/coda-src/util/libutil.la \
 		 $(top_builddir)/lib-src/base/libbase.la \

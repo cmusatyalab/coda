@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -22,9 +22,14 @@ listed in the file CREDITS.
  *
  */
 
-#ifndef _INCON_
-#define _INCON_
+#ifndef _INCONSIST_H_
+#define _INCONSIST_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include <stdio.h>
 #include <vice.h>
 #include <vcrcommon.h>
 
@@ -57,40 +62,27 @@ typedef enum {
 
 /* Used to be in vice/codaproc2.c */
 #define	SID_EQ(a, b)	((a).Host == (b).Host && (a).Uniquifier == (b).Uniquifier)
+
 extern const ViceStoreId NullSid;
 
 
-/* Unique tag for store identification; hostid + unique counter (per host) */
-typedef ViceStoreId storeid_t;
+VV_Cmp_Result VV_Cmp (const ViceVersionVector *, const ViceVersionVector *);
+VV_Cmp_Result VV_Cmp_IgnoreInc (const ViceVersionVector *, const ViceVersionVector *);
+int VV_Check (int *, ViceVersionVector **, int);
+int VV_Check_IgnoreInc (int *, ViceVersionVector **, int);
+int IsRunt (ViceVersionVector *);
 
+void AddVVs (ViceVersionVector *, ViceVersionVector *);
+void SubVVs (ViceVersionVector *, ViceVersionVector *);
+void InitVV (ViceVersionVector *);
+void InvalidateVV (ViceVersionVector *);
+void GetMaxVV (ViceVersionVector *, ViceVersionVector **, int);
 
-/* Preliminary version vector structure */
-typedef ViceVersionVector vv_t;
-
-
-extern VV_Cmp_Result VV_Cmp (const vv_t *, const vv_t *);
-extern VV_Cmp_Result VV_Cmp_IgnoreInc (const vv_t *, const vv_t *);
-extern int VV_Check (int *, vv_t **, int);
-extern int VV_Check_IgnoreInc (int *, vv_t **, int);
-extern int IsRunt (vv_t *);
-
-extern void AddVVs (vv_t *, vv_t *);
-extern void SubVVs (vv_t *, vv_t *);
-extern void InitVV (vv_t *);
-extern void InvalidateVV (vv_t *);
-extern void GetMaxVV (vv_t *, vv_t **, int);
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#include <stdio.h>
+void SPrintVV(char *buf, size_t len, ViceVersionVector *);
+void FPrintVV(FILE *, ViceVersionVector *);
 
 #ifdef __cplusplus
 }
 #endif
 
-void SPrintVV(char *buf, size_t len, ViceVersionVector *);
-void FPrintVV(FILE *, ViceVersionVector *);
-
-#endif /* _INCON_ */
+#endif /* _INCONSIST_H_ */

@@ -88,7 +88,7 @@ int main(int argc, char **argv) {
     int rc;
     ViceFid fixfid;
     char fixrealm[MAXHOSTNAMELEN];
-    vv_t fixvv;
+    ViceVersionVector fixvv;
     char fixpath[MAXPATHLEN];
     struct ViceIoctl vioc;
     char space[2048];

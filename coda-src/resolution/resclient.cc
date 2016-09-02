@@ -168,7 +168,7 @@ long RS_InstallVV(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
     {
 	SLog(9, "InstallVV: Going to check if truncate log possible");
 	int i = 0;
-	vv_t checkvv;
+	ViceVersionVector checkvv;
 	vre->GetCheckVV(&checkvv);
 
 	for (i = 0; i < VSG_MEMBERS; i++) 

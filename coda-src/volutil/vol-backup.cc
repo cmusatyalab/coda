@@ -238,7 +238,7 @@ long S_VolMakeBackups(RPC2_Handle rpcid, VolumeId originalId,
 
 	/* Put the RW's VVV in the backupvp so vol-dump can create an ordering of dumps. */
 	memcpy(&V_versionvector(backupvp), &V_versionvector(originalvp),
-	       sizeof(vv_t));
+	       sizeof(ViceVersionVector));
 	
 	*backupId = V_backupId(originalvp);
     }

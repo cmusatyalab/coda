@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -114,7 +114,7 @@ typedef struct VnodeDiskObjectStruct {
 	PDirInode dirNode;     /* pointer to RVM copy of the directory data. */
     } node;
     /* version vector is updated atomically with the data */
-    vv_t	  versionvector;/* CODA file version vector for this vnode */
+    ViceVersionVector versionvector;/* CODA file version vector for this vnode */
     int		  vol_index;	/* index of vnode's volume in recoverable volume array */
     Date_t	  unixModifyTime;/* set by user */
     UserId	  author;	/* Userid of the last user storing the file */

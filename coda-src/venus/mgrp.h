@@ -115,11 +115,11 @@ class mgrpent : private RefCountedObject {
 
     void CheckResult();
     int CheckNonMutating(int);
-    int CheckCOP1(int, vv_t *, int =1);
-    int CheckReintegrate(int, vv_t *);
-    int RVVCheck(vv_t **, int);
-    int DHCheck(vv_t **, int, int *,  int =0);
-    int PickDH(vv_t **RVVs);
+    int CheckCOP1(int, ViceVersionVector *, int =1);
+    int CheckReintegrate(int, ViceVersionVector *);
+    int RVVCheck(ViceVersionVector **, int);
+    int DHCheck(ViceVersionVector **, int, int *,  int =0);
+    int PickDH(ViceVersionVector **RVVs);
     struct in_addr *GetPrimaryHost(int *ph_ixp=NULL);
 
     void print(FILE *f) {     

@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -258,7 +258,7 @@ int ReadByteString(DumpBuffer_t *buf, char *to, int size)
     return TRUE;
 }
 
-int ReadVV(DumpBuffer_t *buf, vv_t *vv)
+int ReadVV(DumpBuffer_t *buf, ViceVersionVector *vv)
 {
     int tag;
     while ((tag = ReadTag(buf)) > D_MAX && tag) {

@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -42,6 +42,7 @@ extern "C" {
 }
 #endif
 
+#include <inconsist.h>
 #include <util.h>
 #include <voltypes.h>
 #include <vcrcommon.h>
@@ -114,12 +115,10 @@ int Rewind(char *args) {
     return 0;
 }
     
-void PrintVersionVector(vv_t *v, const char *str) {
-    printf("%s{[", str);
-    for (int i = 0; i < VSG_MEMBERS; i++)
-	printf(" %d", (&(v->Versions.Site0))[i]);
-    printf(" ] [ %x %x ] [ %#x ]}\n",
-	     v->StoreId.Host, v->StoreId.Uniquifier, v->Flags);
+void PrintVersionVector(ViceVersionVector *v, const char *prefix) {
+    printf("%s{", prefix);
+    FPrintVV(stdout, v);
+    printf("}\n");
 }    
 
 void showHeader(int largc, char **largv)

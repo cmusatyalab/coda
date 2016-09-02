@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2008 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -2418,7 +2418,7 @@ int volent::SetVolStat(VolumeStatus *volstat, RPC2_BoundedBS *Name,
 	if (IsReplicated()) {
 	    /* Acquire an Mgroup. */
 	    mgrpent *m = 0;
-	    vv_t UpdateSet;
+	    ViceVersionVector UpdateSet;
 	    repvol *vp = (repvol *)this;
 	    ViceStoreId sid;
 

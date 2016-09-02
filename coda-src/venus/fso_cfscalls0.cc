@@ -354,7 +354,7 @@ int fsobj::Fetch(uid_t uid)
 		vp->ClearCOP2(&PiggyBS);
 
 	    /* Collect the OUT VVs in an array so that they can be checked. */
-	    vv_t *vv_ptrs[VSG_MEMBERS];
+	    ViceVersionVector *vv_ptrs[VSG_MEMBERS];
 	    for (int j = 0; j < VSG_MEMBERS; j++)
 		vv_ptrs[j] = &((statusvar_ptrs[j])->VV);
 
@@ -855,7 +855,7 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
 		vp->ClearCOP2(&PiggyBS);
 
 	    /* Collect the OUT VVs in an array so that they can be checked. */
-	    vv_t *vv_ptrs[VSG_MEMBERS];
+	    ViceVersionVector *vv_ptrs[VSG_MEMBERS];
 	    for (int j = 0; j < VSG_MEMBERS; j++)
 		vv_ptrs[j] = &((statusvar_ptrs[j])->VV);
 
@@ -1393,7 +1393,7 @@ int fsobj::SetACL(RPC2_CountedBS *acl, uid_t uid)
 
 	/* The COP1 call. */
 	long cbtemp; cbtemp = cbbreaks;
-	vv_t UpdateSet;
+	ViceVersionVector UpdateSet;
 
 	Recov_BeginTrans();
 	Recov_GenerateStoreId(&sid);

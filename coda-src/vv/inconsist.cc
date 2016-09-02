@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -45,10 +45,10 @@ extern "C" {
 /* From vice/codaproc2.c */
 const ViceStoreId NullSid = { 0, 0 };
 
-static int VV_BruteForceCheck(int *, vv_t **, int, int);
-static int VV_Check_Real(int *, vv_t **, int, int);
+static int VV_BruteForceCheck(int *, ViceVersionVector **, int, int);
+static int VV_Check_Real(int *, ViceVersionVector **, int, int);
 
-VV_Cmp_Result VV_Cmp_IgnoreInc(const vv_t *a, const vv_t *b)
+VV_Cmp_Result VV_Cmp_IgnoreInc(const ViceVersionVector *a, const ViceVersionVector *b)
 {
 
     VV_Cmp_Result res = VV_EQ;
@@ -68,7 +68,7 @@ VV_Cmp_Result VV_Cmp_IgnoreInc(const vv_t *a, const vv_t *b)
     return(res);
 }
 
-VV_Cmp_Result VV_Cmp(const vv_t *a, const vv_t *b)
+VV_Cmp_Result VV_Cmp(const ViceVersionVector *a, const ViceVersionVector *b)
 {
     if (IsIncon(*a) || IsIncon(*b))
 	return(VV_INC);
@@ -77,18 +77,18 @@ VV_Cmp_Result VV_Cmp(const vv_t *a, const vv_t *b)
 
 
 
-int VV_Check(int *HowMany, vv_t **vvp, int EqReq) 
+int VV_Check(int *HowMany, ViceVersionVector **vvp, int EqReq)
 {
     return(VV_Check_Real(HowMany, vvp, EqReq, 0)); 
 }
 
-int VV_Check_IgnoreInc(int *HowMany, vv_t **vvp, int EqReq) 
+int VV_Check_IgnoreInc(int *HowMany, ViceVersionVector **vvp, int EqReq)
 {
     return(VV_Check_Real(HowMany, vvp, EqReq, 1)); 
 }
 
 
-static int VV_Check_Real(int *HowMany, vv_t **vvp, int EqReq, int IgnoreInc)
+static int VV_Check_Real(int *HowMany, ViceVersionVector **vvp, int EqReq, int IgnoreInc)
 {
 /* If IgnoreInc is set, uses VV_Cmp_IgnoreInc() for comparison;
    else uses VV_Cmp()
@@ -158,7 +158,7 @@ static int VV_Check_Real(int *HowMany, vv_t **vvp, int EqReq, int IgnoreInc)
 
 /* I can't decide whether this is ever necessary! -JJK */
 /* A less efficient algorithm, but it can deal with inconsistencies amongst submissive vectors. */
-static int VV_BruteForceCheck(int *HowMany, vv_t **vvp, int EqReq, int IgnoreInc) {
+static int VV_BruteForceCheck(int *HowMany, ViceVersionVector **vvp, int EqReq, int IgnoreInc) {
     /* If IgnoreInc is set, uses VV_Cmp_IgnoreInc() for comparison;
 	else uses VV_Cmp()
     */
@@ -214,7 +214,7 @@ outer_continue:
 
 /* v = x */
 /*
-void InitVV(vv_t *v, long x) {
+void InitVV(ViceVersionVector *v, long x) {
     for (int i = 0; i < VSG_MEMBERS; i++)
 	(&(v->Versions.Site0))[i] = x;
     v->StoreId.Host = 0;
@@ -225,21 +225,21 @@ void InitVV(vv_t *v, long x) {
 
 
 /* v1 = v1 + v2 */
-void AddVVs(vv_t *v1, vv_t *v2) {
+void AddVVs(ViceVersionVector *v1, ViceVersionVector *v2) {
     for (int i = 0; i < VSG_MEMBERS; i++)
 	(&(v1->Versions.Site0))[i] += (&(v2->Versions.Site0))[i];
 }
 
 
 /* v1 = v1 - v2 */
-void SubVVs(vv_t *v1, vv_t*v2) {
+void SubVVs(ViceVersionVector *v1, ViceVersionVector *v2) {
     for (int i = 0; i < VSG_MEMBERS; i++)
 	(&(v1->Versions.Site0))[i] -= (&(v2->Versions.Site0))[i];
 }
 
 
 /* v = 0 */
-void InitVV(vv_t *v) {
+void InitVV(ViceVersionVector *v) {
     for (int i = 0; i < VSG_MEMBERS; i++)
 	(&(v->Versions.Site0))[i] = 0;
     v->StoreId.Host = 0;
@@ -247,7 +247,7 @@ void InitVV(vv_t *v) {
     v->Flags = 0;
 }
 
-int IsRunt(vv_t *v) {
+int IsRunt(ViceVersionVector *v) {
     for (int i = 0; i < VSG_MEMBERS; i++)
 	if ((&(v->Versions.Site0))[i])
 	    return(0);
@@ -257,7 +257,7 @@ int IsRunt(vv_t *v) {
 }
 
 /* v = -1 */
-void InvalidateVV(vv_t *v) {
+void InvalidateVV(ViceVersionVector *v) {
     for (int i = 0; i < VSG_MEMBERS; i++)
 	(&(v->Versions.Site0))[i] = -1;
     v->StoreId.Host = (unsigned) -1;
@@ -268,7 +268,7 @@ void InvalidateVV(vv_t *v) {
 /* newvv[i] = max(vvgroup[][i]); storeid is got from dominant index */
 /* domindex == -1 --> weakly equal group; pick any storeid */
 /* domindex == -2 --> don't set storeid, let it be zero */
-void GetMaxVV(vv_t *newvv, vv_t **vvgroup, int domindex)
+void GetMaxVV(ViceVersionVector *newvv, ViceVersionVector **vvgroup, int domindex)
 {
     int i, j;
     memset(newvv, 0, sizeof(ViceVersionVector));

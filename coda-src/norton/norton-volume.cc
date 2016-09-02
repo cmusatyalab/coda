@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -54,18 +54,6 @@ static char * date(time_t date, char *result)
 }
 
 
-void PrintVV(vv_t *vv) {
-    int i;
-    
-    printf("[");
-    for (i = 0; i < VSG_MEMBERS; i++)
-        printf(" %d", (&(vv->Versions.Site0))[i]);
-    printf(" ] [ %x %x ] [ %#x ]\n",
-             vv->StoreId.Host, vv->StoreId.Uniquifier, vv->Flags);
-}
-
-
-
 void print_volume(VolHead * vol) {
     printf("    Id: %08x  \tName: %s \tParent: %08x\n",
 	   vol->header.id,
@@ -75,7 +63,7 @@ void print_volume(VolHead * vol) {
 	   vol->data.volumeInfo->groupId,
 	   vol->data.volumeInfo->partition);
     printf("    Version Vector: ");
-    PrintVV(&vol->data.volumeInfo->versionvector);
+    FPrintVV(stdout, &vol->data.volumeInfo->versionvector);
     printf("\n    \t\tNumber vnodes	Number Lists	Lists\n");
     printf("    \t\t-------------	------------	----------\n");
     printf("    small\t%13u\t%12u\t%p\n",
@@ -114,7 +102,7 @@ void print_volume_details(VolHead *vol)
 	   vol->data.volumeInfo->restoredFromId);
     printf("    destroyMe: %d\tdontSalvage: %d\n",
 	   vol->data.volumeInfo->destroyMe, vol->data.volumeInfo->dontSalvage);
-//    PrintVV(vol->data.volumeInfo->versionvector);
+//    FPrintVV(stdout, &vol->data.volumeInfo->versionvector);
     printf("    needsCallback: %s\tResOn: %s\n",
 	   vol->data.volumeInfo->needsCallback ? "TRUE" : "FALSE",
 	   vol->data.volumeInfo->ResOn ? "TRUE" : "FALSE");

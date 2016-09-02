@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -59,7 +59,7 @@ void PrintVnodeDiskObject(VnodeDiskObject *vnode)
 	   vnode->length, vnode->uniquifier, vnode->dataVersion,
 	   vnode->node.dirNode); 
     printf("    vv = ");
-    PrintVV(&vnode->versionvector);
+    FPrintVV(stdout, &vnode->versionvector);
     printf("    volindex = %d\tmodtime = %u\tauthor = %u\towner = %u\n",
 	vnode->vol_index, vnode->unixModifyTime, vnode->author, vnode->owner);
     printf("    parent = %08x.%08x\tmagic = %x\n    servermodtime = %u\n",

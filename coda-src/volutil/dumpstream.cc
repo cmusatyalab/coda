@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -111,7 +111,7 @@ int GetString(FILE *stream, char *to, unsigned int max)
     return TRUE;
 }
 
-int GetByteString(FILE *stream, register byte *to, register int size)
+int GetByteString(FILE *stream, byte *to, int size)
 {
     while (size--)
 	*to++ = fgetc(stream);
@@ -122,7 +122,7 @@ int GetByteString(FILE *stream, register byte *to, register int size)
     return TRUE;
 }
 
-int GetVV(FILE *stream, register vv_t *vv)
+int GetVV(FILE *stream, ViceVersionVector *vv)
 {
     int tag;
     while ((tag = fgetc(stream)) > D_MAX && tag) {

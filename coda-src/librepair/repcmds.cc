@@ -122,7 +122,7 @@ int ClearInc(struct conflict *conf, char *msg, int msgsize)
 {
     char msgbuf[DEF_BUF];
     ViceFid confFid, Fid[MAXHOSTS];
-    vv_t vv[MAXHOSTS];
+    ViceVersionVector vv[MAXHOSTS];
     struct ViceIoctl vioc;
     int rc, i, nreplicas;
     struct repinfo inf;
@@ -168,7 +168,7 @@ int ClearInc(struct conflict *conf, char *msg, int msgsize)
 	for (i = 0; i < nreplicas; i++) {
 	    ClearIncon(vv[i]);
 	    vioc.in = (char *)&vv[i];
-	    vioc.in_size = sizeof(vv_t);
+	    vioc.in_size = sizeof(ViceVersionVector);
 	    vioc.out = NULL;
 	    vioc.out_size = 0;
 	    rc = pioctl(names[i], _VICEIOCTL(_VIOC_SETVV), &vioc, 0);
@@ -444,7 +444,7 @@ int RemoveInc(struct conflict *conf, char *msg, int msgsize)
     char msgbuf[DEF_BUF], tmppath[MAXPATHLEN];
     ViceFid fixfid;
     char fixrealm[MAXHOSTNAMELEN];
-    vv_t fixvv;
+    ViceVersionVector fixvv;
     char **names;
     int nreplicas, rc, i, fd = 0;
     struct listhdr *repairlist = NULL;
@@ -645,8 +645,8 @@ int compareStatus(int nreplicas, resreplica *dirs) {
 int compareVV(int nreplicas, char **names, struct conflict *conf)
 {
     char msgbuf[DEF_BUF];
-    vv_t vv[MAXHOSTS];
-    vv_t *vvp[MAXHOSTS];
+    ViceVersionVector vv[MAXHOSTS];
+    ViceVersionVector *vvp[MAXHOSTS];
     int nhosts = 0;
     int i;
     int HowMany = 0;

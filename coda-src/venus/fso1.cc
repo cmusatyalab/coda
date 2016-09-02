@@ -679,7 +679,7 @@ int fsobj::Flush() {
 /* MUST be called from within transaction! */
 /* Call with object write-locked. */
 /* Called as result of {GetAttr, ValidateAttr, GetData, ValidateData}. */
-void fsobj::UpdateStatus(ViceStatus *vstat, vv_t *UpdateSet, uid_t uid)
+void fsobj::UpdateStatus(ViceStatus *vstat, ViceVersionVector *UpdateSet, uid_t uid)
 {
     int isrunt = !HAVESTATUS(this);
 
@@ -783,7 +783,7 @@ int fsobj::StatusEq(ViceStatus *vstat)
 
 /* MUST be called from within transaction! */
 /* Call with object write-locked. */
-void fsobj::ReplaceStatus(ViceStatus *vstat, vv_t *UpdateSet)
+void fsobj::ReplaceStatus(ViceStatus *vstat, ViceVersionVector *UpdateSet)
 {
     RVMLIB_REC_OBJECT(stat);
 
