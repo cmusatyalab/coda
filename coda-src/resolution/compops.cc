@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -258,7 +258,7 @@ static arrlist *MergeRemoteOps(arrlist *rmtops, int nsites) {
     {
 	mergedops = new arrlist;
 	ViceStoreId prevstoreid;
-	prevstoreid.Host = prevstoreid.Uniquifier = 0;
+	prevstoreid.HostId = prevstoreid.Uniquifier = 0;
 	arrlist_iterator next(&allops);
 	rsle *r;
 	while ((r = (rsle *)next()) )
@@ -373,8 +373,8 @@ static rsle *LatestCommonPoint(arrlist *a, arrlist *b) {
 }
 
 static int CompareStoreId(ViceStoreId *a, ViceStoreId *b) {
-    if (a->Host < b->Host) return(-1);
-    else if (a->Host > b->Host) return(1);
+    if (a->HostId < b->HostId) return(-1);
+    else if (a->HostId > b->HostId) return(1);
     else if (a->Uniquifier < b->Uniquifier) return(-1);
     else if (a->Uniquifier > b->Uniquifier) return(1);
     else return(0);

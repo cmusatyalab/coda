@@ -857,7 +857,7 @@ void HandleWeakEquality(Volume *volptr, Vnode *vptr, ViceVersionVector *vv) {
     ViceVersionVector *vva = &Vnode_vv(vptr);
     ViceVersionVector *vvb = vv;
 
-    if ((vva->StoreId.Host == vvb->StoreId.Host &&
+    if ((vva->StoreId.HostId == vvb->StoreId.HostId &&
 	  vva->StoreId.Uniquifier == vvb->StoreId.Uniquifier) &&
 	 (VV_Cmp(vva, vvb) != VV_EQ)) {
 	/* Derive "difference vector" and apply it to both vnode and volume vectors. */

@@ -760,7 +760,7 @@ void Recov_GenerateStoreId(ViceStoreId *sid)
      * But that would require changing in the venus-vice protocol to either
      * add this UUID to every operation, or send it once per (volume-)
      * connection setup with ViceNewConnectFS. -JH */
-    sid->Host = (RPC2_Unsigned)VenusGenID;
+    sid->HostId = (RPC2_Unsigned)VenusGenID;
     sid->Uniquifier = rvg->recov_StoreId;
 
     /* Avoid overflow past UINT_MAX, server stopped replay detection once

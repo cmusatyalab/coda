@@ -839,7 +839,7 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 	 * value in case we are talking to older servers. */
 	while (r->sid.Uniquifier <= INT_MAX && i < (*volptr)->nReintegrators)
 	{
-	    if ((r->sid.Host == (*volptr)->reintegrators[i].Host) &&
+	    if ((r->sid.HostId == (*volptr)->reintegrators[i].HostId) &&
 		(r->sid.Uniquifier <= (*volptr)->reintegrators[i].Uniquifier))
 	    {
 		SLog(0, "ValidateReintegrateParms: Already seen id %u <= %u",
@@ -2021,7 +2021,7 @@ START_TIMING(Reintegrate_PutObjects);
 
 	    /* replace the entry for this client if one exists */
 	    for (i = 0; i < volptr->nReintegrators; i++)
-		if (volptr->reintegrators[i].Host == sid.Host)
+		if (volptr->reintegrators[i].HostId == sid.HostId)
 		    break;
 
 	    /* no entry for this client, make one */
@@ -2235,7 +2235,7 @@ static void ReintPrelimCOP(vle *v, const ViceStoreId *OldSid,
        stamped with unique Sid at end! */
     if (v->vptr->disk.type == vDirectory && !SID_EQ(*current, *OldSid)) {
 	SLog(10,  "ReintPrelimCOP: %s needsres (sid %x.%x != oldsid %x.%x)", FID_(&v->fid),
-	     current->Host, current->Uniquifier, OldSid->Host, OldSid->Uniquifier);
+	     current->HostId, current->Uniquifier, OldSid->HostId, OldSid->Uniquifier);
 	v->d_needsres = 1;
     }
 

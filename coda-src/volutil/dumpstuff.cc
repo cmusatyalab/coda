@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -295,7 +295,7 @@ int DumpVV(DumpBuffer_t *buf, char tag, struct ViceVersionVector *vv)
     DumpInt32(buf, '5', vv->Versions.Site5);
     DumpInt32(buf, '6', vv->Versions.Site6);
     DumpInt32(buf, '7', vv->Versions.Site7);
-    DumpInt32(buf, 's', vv->StoreId.Host);
+    DumpInt32(buf, 's', vv->StoreId.HostId);
     DumpInt32(buf, 'u', vv->StoreId.Uniquifier);
     DumpInt32(buf, 'f', vv->Flags);
     return DumpTag(buf, (char)D_ENDVV);

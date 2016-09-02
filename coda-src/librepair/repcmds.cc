@@ -543,12 +543,12 @@ int RemoveInc(struct conflict *conf, char *msg, int msgsize)
 int isLocal(resreplica *dir) {
     int i;
 
-    /* local dirs get entry vnodes and storeID's of 0xffff */
+    /* local dirs get entry vnodes and storeID's of 0xffffffff */
     for (i = dir->entry1; i < (dir->entry1 + dir->nentries); i++) {
-	if (~(direntriesarr[i].fid.Vnode) || ~(direntriesarr[i].VV.StoreId.Host))
+	if (~(direntriesarr[i].fid.Vnode) || ~(direntriesarr[i].VV.StoreId.HostId))
 	    return(0);
     }
-    if (~(dir->fid.Vnode)) return(0);   /* and vnode is 0xffff */
+    if (~(dir->fid.Vnode)) return(0);   /* and vnode is 0xffffffff */
     if (dir->al != NULL) return(0); /* and NULL acl's */
     return(1);
 }

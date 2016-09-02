@@ -217,7 +217,7 @@ outer_continue:
 void InitVV(ViceVersionVector *v, long x) {
     for (int i = 0; i < VSG_MEMBERS; i++)
 	(&(v->Versions.Site0))[i] = x;
-    v->StoreId.Host = 0;
+    v->StoreId.HostId = 0;
     v->StoreId.Uniquifier = 0;
     v->Flags = 0;
 }
@@ -242,7 +242,7 @@ void SubVVs(ViceVersionVector *v1, ViceVersionVector *v2) {
 void InitVV(ViceVersionVector *v) {
     for (int i = 0; i < VSG_MEMBERS; i++)
 	(&(v->Versions.Site0))[i] = 0;
-    v->StoreId.Host = 0;
+    v->StoreId.HostId = 0;
     v->StoreId.Uniquifier = 0;
     v->Flags = 0;
 }
@@ -251,7 +251,7 @@ int IsRunt(ViceVersionVector *v) {
     for (int i = 0; i < VSG_MEMBERS; i++)
 	if ((&(v->Versions.Site0))[i])
 	    return(0);
-    if (v->StoreId.Host || v->StoreId.Uniquifier || (v->Flags && !IsIncon(*v)))
+    if (v->StoreId.HostId || v->StoreId.Uniquifier || (v->Flags && !IsIncon(*v)))
 	return(0);
     return(1);
 }
@@ -260,7 +260,7 @@ int IsRunt(ViceVersionVector *v) {
 void InvalidateVV(ViceVersionVector *v) {
     for (int i = 0; i < VSG_MEMBERS; i++)
 	(&(v->Versions.Site0))[i] = -1;
-    v->StoreId.Host = (unsigned) -1;
+    v->StoreId.HostId = (unsigned) -1; /* indicates VV is undefined */
     v->StoreId.Uniquifier = (unsigned) -1;
     v->Flags = 0;	    /* must be 0, otherwise IsIncon() is fooled */
 }
@@ -310,7 +310,7 @@ void SPrintVV(char *buf, size_t len, ViceVersionVector *v)
 		 v->Versions.Site2, v->Versions.Site3,
 		 v->Versions.Site4, v->Versions.Site5,
 		 v->Versions.Site6, v->Versions.Site7,
-		 v->StoreId.Host, v->StoreId.Uniquifier,
+		 v->StoreId.HostId, v->StoreId.Uniquifier,
 		 v->Flags);
     assert(n >= 0 && (size_t)n < len);
     buf[len-1] = '\0';

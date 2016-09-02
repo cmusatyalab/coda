@@ -92,10 +92,8 @@ extern void ViceTerminate();
     IOMGR_Select(0, 0, 0, 0, &delay);\
 }
 
-#define	STREQ(a, b) (strcmp((a), (b)) == 0)
+#define	STREQ(a, b)     (strcmp((a), (b)) == 0)
 #define	STRNEQ(a, b, n) (strncmp((a), (b), (n)) == 0)
-
-#define	SID_EQ(a, b)	((a).Host == (b).Host && (a).Uniquifier == (b).Uniquifier)
 
 #define	SetAccessList(vptr, ACL, ACLSize)\
 {\

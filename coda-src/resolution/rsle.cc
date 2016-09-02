@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -61,7 +61,7 @@ rsle::rsle(ViceStoreId *sid, VnodeId dvnode, Unique_t dunique, int op, int ind, 
 rsle::rsle() {
     index = -1;
     seqno = -1;
-    storeid.Host = 0;
+    storeid.HostId = 0;
     storeid.Uniquifier = 0;
     dvn = (unsigned)-1;
     du = (unsigned)-1;
@@ -479,7 +479,7 @@ void rsle::print(int fd) {
     char buf[512];
     sprintf(buf, 
 	    "index %d seqno %d stid %x.%x\nDir (%08x.%08x)\nopcode %s\n",
-	    index, seqno, storeid.Host, storeid.Uniquifier, dvn, du, 
+	    index, seqno, storeid.HostId, storeid.Uniquifier, dvn, du,
 	    PRINTOPCODE(opcode));
     write(fd, buf, strlen(buf));
     switch (opcode) {

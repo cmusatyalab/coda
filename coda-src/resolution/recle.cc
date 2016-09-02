@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -281,7 +281,7 @@ void recle::print(FILE *fp) {
 void recle::print(int fd) {
     char buf[512];
     sprintf(buf, "    **Server: %x StoreId: %x.%x \n", 
-	    serverid, storeid.Host, storeid.Uniquifier);
+	    serverid, storeid.HostId, storeid.Uniquifier);
     write(fd, buf, (int) strlen(buf));
 
     sprintf(buf, "    Directory(%08x.%08x)\n    Opcode: %s \n",

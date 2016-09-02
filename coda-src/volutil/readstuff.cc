@@ -296,7 +296,7 @@ int ReadVV(DumpBuffer_t *buf, ViceVersionVector *vv)
 		    return FALSE;
 		break;
 	    case 's':
-		if (!ReadInt32(buf, (unsigned int *)&vv->StoreId.Host))
+		if (!ReadInt32(buf, (unsigned int *)&vv->StoreId.HostId))
 		    return FALSE;
 		break;
 	    case 'u':

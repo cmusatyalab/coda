@@ -125,7 +125,7 @@ void ListVV(int fd, int vnode, VnodeDiskObject *vnp, unsigned int dumplevel)
 		    vv->Versions.Site2,     vv->Versions.Site3, 
 		    vv->Versions.Site4,     vv->Versions.Site5, 
 		    vv->Versions.Site6,     vv->Versions.Site7, 
-		    vv->StoreId.Host,       vv->StoreId.Uniquifier,
+		    vv->StoreId.HostId,     vv->StoreId.Uniquifier,
 		    dumplevel);
 
     if (write(fd, buffer, strlen(buffer)) != (int)strlen(buffer))
@@ -163,7 +163,7 @@ vvtable::vvtable(FILE *Ancient, VnodeClass vclass, int listsize)
 		    vnum, unique, vvStoreIdHost, vvStoreIdUniquifier);
 		vvent *tmp = (vvent *)malloc(sizeof(vvent));
 		CODA_ASSERT(tmp != NULL);
-		tmp->StoreId.Host = vvStoreIdHost;
+		tmp->StoreId.HostId = vvStoreIdHost;
 		tmp->StoreId.Uniquifier = vvStoreIdUniquifier;
 		tmp->unique = unique;
 		tmp->isThere = 0;
@@ -226,7 +226,7 @@ int vvtable::IsModified(int vnodeIndex, long unique, ViceStoreId *StoreId,
 	     * level incremental, it must have been modified since some lower
 	     * level backup. Whatever this level was, we have to include the
 	     * modification in this backup as well -JH */
-	    if ((eptr->StoreId.Host == StoreId->Host) &&
+	    if ((eptr->StoreId.HostId == StoreId->HostId) &&
 		(eptr->StoreId.Uniquifier == StoreId->Uniquifier) &&
 		(eptr->dumplevel < current_dumplevel))
 	    {

@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -113,7 +113,19 @@ extern unsigned long VMCounter;
 extern unsigned long startuptime;
 
 void AllocStoreId(ViceStoreId *s) {
-    s->Host = ThisHostAddr;
+    /* This used to use the host IP address, but that isn't actually
+     * needed. StoreIds are only ever compared against other StoreIds
+     * mostly for equality. They are never checked against ThisHostAddr.
+     *
+     * Clients will choose a random 32-bit value to set them to. The
+     * main requirement is to try and avoid using the same in two places
+     * because uniquifiers are allocated sequentially.
+     *
+     * To avoid collisions the hostid should probably be much larger
+     * than a 32-bit value, such as a 128-bit UUID. However anyone can
+     * see the hostid and predict the uniquifier values so a malicious
+     * actor can force collisions on the storeid anyway. */
+    s->HostId = ThisServerId;
     s->Uniquifier = startuptime + VMCounter;
     VMCounter++;
 }

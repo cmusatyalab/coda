@@ -160,7 +160,7 @@ int GetVV(FILE *stream, ViceVersionVector *vv)
 		    return FALSE;
 		break;
 	    case 's':
-		if (!GetInt32(stream, (unsigned int *)&vv->StoreId.Host))
+		if (!GetInt32(stream, (unsigned int *)&vv->StoreId.HostId))
 		    return FALSE;
 		break;
 	    case 'u':

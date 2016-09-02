@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -267,7 +267,7 @@ int repair_getfid(char *path, ViceFid *outfid, char *outrealm,
     rc = repair_inconflict(path, outfid, outrealm);
     if (!rc) {
 	if (outvv) {
-	    outvv->StoreId.Host = (unsigned)-1; /* indicates VV is undefined */
+	    outvv->StoreId.HostId = (unsigned)-1; /* indicates VV is undefined */
 	    outvv->StoreId.Uniquifier = (unsigned)-1;
 	}
 	return(0);

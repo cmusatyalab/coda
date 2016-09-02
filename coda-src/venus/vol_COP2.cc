@@ -229,7 +229,7 @@ void repvol::GetCOP2(RPC2_CountedBS *BS)
 	BS->SeqLen += sizeof(ViceVersionVector);
 
 	LOG(10, ("GetCOP2, %x.%x %d.%d.%d.%d.%d.%d.%d.%d\n",
-		 c->sid.Host, c->sid.Uniquifier,
+		 c->sid.HostId, c->sid.Uniquifier,
 		 c->updateset.Versions.Site0, c->updateset.Versions.Site1,
 		 c->updateset.Versions.Site2, c->updateset.Versions.Site3,
 		 c->updateset.Versions.Site4, c->updateset.Versions.Site5,
@@ -246,8 +246,8 @@ cop2ent *repvol::FindCOP2(ViceStoreId *StoreId)
     dlist_iterator next(*cop2_list);
     cop2ent *c;
     while ((c = (cop2ent *)next()))
-	if (StoreId->Host == c->sid.Host &&
-	    StoreId->Uniquifier == c->sid.Uniquifier)
+	if (StoreId->HostId == c->sid.HostId &&
+            StoreId->Uniquifier == c->sid.Uniquifier)
 	    return(c);
 
     return(0);
@@ -367,5 +367,5 @@ void cop2ent::print(FILE *fp) {
 
 void cop2ent::print(int fd) {
     fdprint(fd, "sid = (%x.%x), vv = [], time = %d\n",
-	     sid.Host, sid.Uniquifier, time);
+	     sid.HostId, sid.Uniquifier, time);
 }

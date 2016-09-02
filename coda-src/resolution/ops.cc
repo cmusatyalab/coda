@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -178,7 +178,7 @@ void link_rle::print(int fd) {
 	    cvv.Versions.Site2, cvv.Versions.Site3, 
 	    cvv.Versions.Site4, cvv.Versions.Site5,
 	    cvv.Versions.Site6, cvv.Versions.Site7, 
-	    cvv.StoreId.Host, cvv.StoreId.Uniquifier, 
+	    cvv.StoreId.HostId, cvv.StoreId.Uniquifier,
 	    cvv.Flags);
     write(fd, buf, (int)strlen(buf));
 }
@@ -218,7 +218,7 @@ void rm_rle::print(int fd) {
 	    cvv.Versions.Site2, cvv.Versions.Site3, 
 	    cvv.Versions.Site4, cvv.Versions.Site5,
 	    cvv.Versions.Site6, cvv.Versions.Site7, 
-	    cvv.StoreId.Host, cvv.StoreId.Uniquifier, 
+	    cvv.StoreId.HostId, cvv.StoreId.Uniquifier,
 	    cvv.Flags);
     write(fd, buf, (int)strlen(buf));
 }
@@ -239,7 +239,7 @@ void rmdir_rle::print(int fd) {
 	   "rmdir_rle::print name %s vnode %08x.%08x\n",
 	   name, cvnode, cunique);
     sprintf(buf, "    %s [%08x.%08x] del storeid [%x.%x]\n", 
-	    &name[0], cvnode, cunique, csid.Host, csid.Uniquifier);
+	    &name[0], cvnode, cunique, csid.HostId, csid.Uniquifier);
     write(fd, buf, (int)strlen(buf));
 }
 
@@ -278,7 +278,7 @@ void rename_rle::print(int fd) {
 	    svv.Versions.Site2, svv.Versions.Site3, 
 	    svv.Versions.Site4, svv.Versions.Site5,
 	    svv.Versions.Site6, svv.Versions.Site7, 
-	    svv.StoreId.Host, svv.StoreId.Uniquifier, 
+	    svv.StoreId.HostId, svv.StoreId.Uniquifier,
 	    svv.Flags, (char *)oldname + newname_offset);
     write(fd, buf, (int)strlen(buf));
     if (tvnode && tunique) {
@@ -288,7 +288,7 @@ void rename_rle::print(int fd) {
 		tvv.Versions.Site2, tvv.Versions.Site3, 
 		tvv.Versions.Site4, tvv.Versions.Site5,
 		tvv.Versions.Site6, tvv.Versions.Site7, 
-		tvv.StoreId.Host, tvv.StoreId.Uniquifier, 
+		tvv.StoreId.HostId, tvv.StoreId.Uniquifier,
 		tvv.Flags);
 	write(fd, buf, (int)strlen(buf));
     }
@@ -327,7 +327,7 @@ void CreateRootLog(Volume *vol, Vnode *vptr) {
     CODA_ASSERT((V_VolLog(vol)->AllocRecord(&index, &seqno)) == 0);
     
     ViceStoreId stid;
-    stid.Host = Vnode_vv(vptr).StoreId.Host;
+    stid.HostId = Vnode_vv(vptr).StoreId.HostId;
     stid.Uniquifier  = Vnode_vv(vptr).StoreId.Uniquifier;
     rsle sl(&stid, vptr->vnodeNumber, vptr->disk.uniquifier, 
 	    RES_MakeDir_OP, index, seqno);

@@ -60,8 +60,7 @@ typedef enum {
 #define SetCOP2Pending(vv)  ((vv).Flags |= VV_COP2PENDING)
 #define ClearCOP2Pending(vv) ((vv).Flags &= ~VV_COP2PENDING)
 
-/* Used to be in vice/codaproc2.c */
-#define	SID_EQ(a, b)	((a).Host == (b).Host && (a).Uniquifier == (b).Uniquifier)
+#define SID_EQ(a, b)     ((a).HostId == (b).HostId && (a).Uniquifier == (b).Uniquifier)
 
 extern const ViceStoreId NullSid;
 

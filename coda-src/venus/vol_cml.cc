@@ -676,7 +676,7 @@ cmlent::cmlent(ClientModifyLog *Log, time_t Mtime, uid_t Uid, int op, int prepen
 	log->bytesHighWater = log->bytes;
 
     LOG(1, ("cmlent::cmlent: tid = (%x.%d), uid = %d, op = %s\n",
-	    sid.Host, sid.Uniquifier, uid, PRINT_MLETYPE(op)));
+	    sid.HostId, sid.Uniquifier, uid, PRINT_MLETYPE(op)));
 }
 
 
@@ -760,7 +760,7 @@ void cmlent::ResetTransient()
 /* MUST be called from within transaction! */
 cmlent::~cmlent() {
     LOG(1, ("cmlent::~cmlent: tid = (%x.%d), uid = %d, op = %s\n",
-	     sid.Host, sid.Uniquifier, uid, PRINT_MLETYPE(opcode)));
+	     sid.HostId, sid.Uniquifier, uid, PRINT_MLETYPE(opcode)));
 
     RVMLIB_REC_OBJECT(*this);
     long thisBytes = bytes();
@@ -817,13 +817,13 @@ long cmlent::bytes()
 	(vv).Versions.Site2, (vv).Versions.Site3,\
 	(vv).Versions.Site4, (vv).Versions.Site5,\
 	(vv).Versions.Site6, (vv).Versions.Site7,\
-	(vv).StoreId.Host, (vv).StoreId.Uniquifier, (vv).Flags);
+	(vv).StoreId.HostId, (vv).StoreId.Uniquifier, (vv).Flags);
 
 
 /* local-repair modification */
 void cmlent::print(int afd) {
     fdprint(afd, "\t%s : sid = (%x.%d), time = %d, uid = %d tid = %d bytes = %d\n",
-	     PRINT_MLETYPE(opcode), sid.Host, sid.Uniquifier, time, uid, tid, bytes());
+	     PRINT_MLETYPE(opcode), sid.HostId, sid.Uniquifier, time, uid, tid, bytes());
     fdprint(afd, "\t\tpred = (%x, %d), succ = (%x, %d)\n",
 	     pred, (pred == 0 ? 0 : pred->count()),
 	     succ, (succ == 0 ? 0 : succ->count()));
@@ -2700,7 +2700,7 @@ void cmlent::commit(ViceVersionVector *UpdateSet)
     }
     if (1 /* FinalMutationForAnyObject */) {
 	LOG(10, ("cmlent::commit: Add COP2 with sid = 0x%x.%x\n",
-		 sid.Host, sid.Uniquifier));	
+		 sid.HostId, sid.Uniquifier));
 	vol->AddCOP2(&sid, UpdateSet);
     }
 

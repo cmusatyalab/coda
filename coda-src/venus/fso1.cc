@@ -161,7 +161,7 @@ void fsobj::ResetPersistent()
     stat.Length = 0;
     stat.DataVersion = 0;
     stat.VV = NullVV;
-    stat.VV.StoreId.Host = NO_HOST;
+    stat.VV.StoreId.HostId = NO_HOST;
     stat.Date = (Date_t)-1;
     stat.Author = ANYUSER_UID;
     stat.Owner = ANYUSER_UID;
@@ -2377,11 +2377,11 @@ void fsobj::print(int fdes) {
 	     PrintFsoState(state), stat.Length, stat.DataVersion,
 	     stat.Date, stat.Owner, stat.Mode, stat.LinkCount,
 	     PrintVnodeType(stat.VnodeType), RcRights);
-    fdprint(fdes, "\tVV = {[");
-    for (int i = 0; i < VSG_MEMBERS; i++)
-	fdprint(fdes, " %d", (&(stat.VV.Versions.Site0))[i]);
-    fdprint(fdes, " ] [ %#x %d ] [ %#x ]}\n",
-	     stat.VV.StoreId.Host, stat.VV.StoreId.Uniquifier, stat.VV.Flags);
+    {
+        char fid[256];
+        SPrintVV(fid, 256, &stat.VV);
+        fdprint(fdes, "\tVV = {%s}\n", fid);
+    }
     if (IsDir()) {
 	fdprint(fdes, "\tac rights = { [%x %x%x]",
 		AnyUser.rights, AnyUser.inuse, AnyUser.valid);

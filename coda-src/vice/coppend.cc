@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -108,7 +108,7 @@ void cpent::print(int fd) {
     char buf[80];
 
     sprintf(buf, "StoreId = (%x.%x), time = %ld, deqing = %d\n",
-	     StoreId.Host, StoreId.Uniquifier, time, deqing);
+	     StoreId.HostId, StoreId.Uniquifier, time, deqing);
 
     write(fd, buf, (int)strlen(buf));
 
@@ -117,7 +117,7 @@ void cpent::print(int fd) {
 intptr_t coppendhashfn(void *a)
 {
     ViceStoreId *sid = (ViceStoreId *)a;
-    return (sid->Host + sid->Uniquifier);
+    return (sid->HostId + sid->Uniquifier);
 }
 
 void cpman_func(void *arg)
@@ -152,7 +152,7 @@ void cpman::func(int parm)
 	if (cpe && (cpe->time + CPTIMEOUT <= currtime) && !cpe->deqing) {
 	    if (SrvDebugLevel >= 1) {
 		LogMsg(1, SrvDebugLevel, stdout,  "StoreId = (%x.%x)",
-			cpe->StoreId.Host, cpe->StoreId.Uniquifier);
+			cpe->StoreId.HostId, cpe->StoreId.Uniquifier);
 		for (int i = 0; i < MAXFIDS; i++)
 		    if (!FID_EQ(&cpe->fids[i], &NullFid))
 			LogMsg(1, SrvDebugLevel, stdout,  ", fids[%d] = %s",
@@ -178,7 +178,7 @@ void cpman::func(int parm)
 void cpman::add(cpent *cpe) {
     ObtainWriteLock(&lock);
     LogMsg(9, SrvDebugLevel, stdout,  "StoreId = (0x%x.%x)", 
-	    cpe->StoreId.Host, cpe->StoreId.Uniquifier);	
+	    cpe->StoreId.HostId, cpe->StoreId.Uniquifier);
     for (int i = 0; i < MAXFIDS; i++) 
 	    if (!FID_EQ(&cpe->fids[i], &NullFid))
 		    LogMsg(9, SrvDebugLevel, stdout,  ", fids[%d] = %s",
@@ -203,7 +203,7 @@ cpent *cpman::find(ViceStoreId *StoreId) {
     ohashtab_iterator next(objects, StoreId);
     cpent *cpe;
     while((cpe = (cpent *)next()))
-	if (cpe->StoreId.Host == StoreId->Host &&
+	if (cpe->StoreId.HostId == StoreId->HostId &&
 	    cpe->StoreId.Uniquifier == StoreId->Uniquifier) {
 	    ReleaseReadLock(&lock);
 	    return(cpe);
@@ -237,7 +237,7 @@ cpent *cpman::findanddeq(ViceStoreId *StoreId) {
     cpent *cpe;
 
     while ((cpe = (cpent *)next()) )
-	if (cpe->StoreId.Host == StoreId->Host &&
+	if (cpe->StoreId.HostId == StoreId->HostId &&
 	    cpe->StoreId.Uniquifier == StoreId->Uniquifier)
 	    break;
     if (!cpe) {

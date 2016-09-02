@@ -40,14 +40,14 @@ extern "C" {
 void
 ntohsid(ViceStoreId *insid, ViceStoreId *outsid)
 {
-  outsid->Host = ntohl(insid->Host);
+  outsid->HostId = ntohl(insid->HostId);
   outsid->Uniquifier = ntohl(insid->Uniquifier);
 }
 
 void
 htonsid(ViceStoreId *insid, ViceStoreId *outsid)
 {
-  outsid->Host = htonl(insid->Host);
+  outsid->HostId = htonl(insid->HostId);
   outsid->Uniquifier = htonl(insid->Uniquifier);
 }
 

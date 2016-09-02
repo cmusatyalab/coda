@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -49,6 +49,7 @@ extern "C" {
 }
 #endif
 
+#include <inconsist.h>
 #include <venusioctl.h>
 #include <vice.h>
 #include <parser.h>
@@ -463,13 +464,12 @@ int NameNameResolve(int first, int last, int nreplicas, resreplica *dirs, struct
     }
     
     for (i = first; i < last; i++) {
+        char fid[256];
 	resdir_entry *rde = sortedArrByName[i];
-	printf("%s%s\n\tFid: (%08x.%08x) VV:(%d %d %d %d %d %d %d %d)(%x.%x)\n",
+        SPrintVV(fid, 256, &rde->VV);
+	printf("%s%s\n\tFid: (%08x.%08x) VV: %s\n",
 	       dirs[rde->index].path, sortedArrByName[i]->name,
-	       rde->fid.Vnode, rde->fid.Unique, rde->VV.Versions.Site0,
-	       rde->VV.Versions.Site1, rde->VV.Versions.Site2, rde->VV.Versions.Site3,
-	       rde->VV.Versions.Site4, rde->VV.Versions.Site5, rde->VV.Versions.Site6,
-	       rde->VV.Versions.Site7, rde->VV.StoreId.Host, rde->VV.StoreId.Uniquifier);
+	       rde->fid.Vnode, rde->fid.Unique, fid);
     }
     int answers[MAXHOSTS];
     char nnpath[MAXPATHLEN], fixedpath[MAXPATHLEN], lnpath[MAXPATHLEN];

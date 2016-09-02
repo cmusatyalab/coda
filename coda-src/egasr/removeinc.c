@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -98,7 +98,8 @@ int IsObjInc(char *name, ViceFid *fid, char *realm)
     if (!ISDIR(out.fid) && (statbuf.st_mode & S_IFDIR))
 	return(1);
 
-    if (out.vv.StoreId.Host == -1) 
+    /* indicates VV is undefined */
+    if (out.vv.StoreId.HostId == (unsigned)-1)
 	return(1);
 
     return(0);

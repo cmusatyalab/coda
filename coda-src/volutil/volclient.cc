@@ -1209,7 +1209,7 @@ static void setvv(void)
     vv.Versions.Site6 = (bit32) atoi(this_argp[11]);
     vv.Versions.Site7 = (bit32) atoi(this_argp[12]);
     
-    vv.StoreId.Host = atol(this_argp[13]);
+    vv.StoreId.HostId = atol(this_argp[13]);
     vv.StoreId.Uniquifier = atol(this_argp[14]);
     vv.Flags = atol(this_argp[15]);
     

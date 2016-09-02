@@ -2129,7 +2129,7 @@ START_TIMING(COP2_Total);
 
 
     SLog(1, "InternalCOP2, StoreId = (%x.%x), UpdateSet = []",
-	     StoreId->Host, StoreId->Uniquifier);
+	     StoreId->HostId, StoreId->Uniquifier);
 
     /* Dequeue the cop pending entry and sort the fids. */
     cpe = CopPendingMan->findanddeq(StoreId);
@@ -2286,7 +2286,7 @@ void NewCOP1Update(Volume *volptr, Vnode *vptr,
 
     SLog(2, "COP1Update: Fid = (%x),(%x.%x.%x), StoreId = (%x.%x)",
 	 V_groupId(volptr), V_id(volptr), vptr->vnodeNumber, 
-	 vptr->disk.uniquifier, StoreId->Host, StoreId->Uniquifier);
+	 vptr->disk.uniquifier, StoreId->HostId, StoreId->Uniquifier);
 
     /* If a volume version stamp was sent in, and if it matches, update it. */
     if (vsptr) {
