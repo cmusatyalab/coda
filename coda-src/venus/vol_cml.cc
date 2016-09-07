@@ -1605,10 +1605,12 @@ int cmlent::cancel()
     if (LogLevel >= 10) print(logFile);
 
     /* Parameters for possible utimes to be done AFTER cancelling this record. */
-    int DoUtimes = 0;
-    uid_t UtimesVuid;
-    VenusFid UtimesFid;
-    Date_t UtimesMtime;
+    struct {
+        int      DoUtimes;
+        uid_t    Vuid;
+        VenusFid Fid;
+        Date_t   Mtime;
+    } Utimes __attribute__((unused)) = { 0 };
 
     switch(opcode) {
 	case CML_Store_OP:
@@ -1684,10 +1686,10 @@ int cmlent::cancel()
 	    cmlent *m = ((ClientModifyLog *)log)->UtimesWriter(&u.u_create.PFid);
 	    CODA_ASSERT(m != 0);
 	    if (m != this) {
-		DoUtimes = 1;
-		UtimesVuid = uid;
-		UtimesFid = u.u_create.PFid;
-		UtimesMtime = time;
+		Utimes.DoUtimes = 1;
+		Utimes.Vuid = uid;
+		Utimes.Fid = u.u_create.PFid;
+		Utimes.Mtime = time;
 	    }
 	    }
 	    break;
@@ -1697,10 +1699,10 @@ int cmlent::cancel()
 	    cmlent *m = ((ClientModifyLog *)log)->UtimesWriter(&u.u_remove.PFid);
 	    CODA_ASSERT(m != 0);
 	    if (m != this) {
-		DoUtimes = 1;
-		UtimesVuid = uid;
-		UtimesFid = u.u_remove.PFid;
-		UtimesMtime = time;
+		Utimes.DoUtimes = 1;
+		Utimes.Vuid = uid;
+		Utimes.Fid = u.u_remove.PFid;
+		Utimes.Mtime = time;
 	    }
 	    }
 	    break;
@@ -1710,10 +1712,10 @@ int cmlent::cancel()
 	    cmlent *m = ((ClientModifyLog *)log)->UtimesWriter(&u.u_link.PFid);
 	    CODA_ASSERT(m != 0);
 	    if (m != this) {
-		DoUtimes = 1;
-		UtimesVuid = uid;
-		UtimesFid = u.u_link.PFid;
-		UtimesMtime = time;
+		Utimes.DoUtimes = 1;
+		Utimes.Vuid = uid;
+		Utimes.Fid = u.u_link.PFid;
+		Utimes.Mtime = time;
 	    }
 	    }
 	    break;
@@ -1723,10 +1725,10 @@ int cmlent::cancel()
 	    cmlent *m = ((ClientModifyLog *)log)->UtimesWriter(&u.u_rename.SPFid);
 	    CODA_ASSERT(m != 0);
 	    if (m != this) {
-		DoUtimes = 1;
-		UtimesVuid = uid;
-		UtimesFid = u.u_rename.SPFid;
-		UtimesMtime = time;
+		Utimes.DoUtimes = 1;
+		Utimes.Vuid = uid;
+		Utimes.Fid = u.u_rename.SPFid;
+		Utimes.Mtime = time;
 	    }
 
 	    if (!FID_EQ(&u.u_rename.SPFid, &u.u_rename.TPFid)) {
@@ -1780,10 +1782,10 @@ int cmlent::cancel()
 	    cmlent *m = ((ClientModifyLog *)log)->UtimesWriter(&u.u_rmdir.PFid);
 	    CODA_ASSERT(m != 0);
 	    if (m != this) {
-		DoUtimes = 1;
-		UtimesVuid = uid;
-		UtimesFid = u.u_rmdir.PFid;
-		UtimesMtime = time;
+		Utimes.DoUtimes = 1;
+		Utimes.Vuid = uid;
+		Utimes.Fid = u.u_rmdir.PFid;
+		Utimes.Mtime = time;
 	    }
 	    }
 	    break;
@@ -1793,10 +1795,10 @@ int cmlent::cancel()
 	    cmlent *m = ((ClientModifyLog *)log)->UtimesWriter(&u.u_symlink.PFid);
 	    CODA_ASSERT(m != 0);
 	    if (m != this) {
-		DoUtimes = 1;
-		UtimesVuid = uid;
-		UtimesFid = u.u_symlink.PFid;
-		UtimesMtime = time;
+		Utimes.DoUtimes = 1;
+		Utimes.Vuid = uid;
+		Utimes.Fid = u.u_symlink.PFid;
+		Utimes.Mtime = time;
 	    }
 	    }
 	    break;
@@ -1821,8 +1823,8 @@ int cmlent::cancel()
     delete this;
 
 #if 0
-    if (DoUtimes) {
-	int code = vol->LogUtimes(UtimesMtime, UtimesVuid, &UtimesFid, UtimesMtime);
+    if (Utimes.DoUtimes) {
+	int code = vol->LogUtimes(Utimes.Mtime, Utimes.Vuid, &Utimes.Fid, Utimes.Mtime);
 	CODA_ASSERT(code == 0);
         vol->RecordsCancelled--;
     }

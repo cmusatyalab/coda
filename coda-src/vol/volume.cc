@@ -1425,12 +1425,7 @@ void VFreeBitMapEntry(Error *ec, struct vnodeIndex *index, int bitNumber)
 /* Write out volume disk data; force off line on failure */
 void VUpdateVolume(Error *ec, Volume *vp)
 {
-	ProgramType *pt;
-	char *rock;
-
 	VLog(9, "Entering VUpdateVolume() for volume %x", V_id(vp));
-	CODA_ASSERT(LWP_GetRock(FSTAG, &rock) == LWP_SUCCESS);
-	pt = (ProgramType *)rock;
 	*ec = 0;
 
 	WriteVolumeHeader(ec, vp);
@@ -1462,15 +1457,11 @@ void PrintVolumesInHashTable()
 void FreeVolume(Volume *vp)
 {
 	int i;
-	ProgramType *pt;
-	char *rock;
 
 	VLog(9, "Entering FreeVolume for volume %x", V_id(vp));
-	CODA_ASSERT(LWP_GetRock(FSTAG, &rock) == LWP_SUCCESS);
-	pt = (ProgramType *)rock;
 	if (!vp)
 		return;
-	for (i = 0; i<nVNODECLASSES; i++)
+	for (i = 0; i < nVNODECLASSES; i++)
 		if (vp->vnIndex[i].bitmap)
 			free(vp->vnIndex[i].bitmap);
 	FreeVolumeHeader(vp);

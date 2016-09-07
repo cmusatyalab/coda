@@ -401,7 +401,7 @@ static void ListenerBody(void *arg)
 	if (i != RPC2_SUCCESS)
 	    {
 	    printf("Listener error: ");
-	    WhatHappened(i);
+	    (void)WhatHappened(i);
 	    }
 
 	switch(InBuff->Header.Opcode)

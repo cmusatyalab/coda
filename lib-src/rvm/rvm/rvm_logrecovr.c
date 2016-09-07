@@ -2856,7 +2856,7 @@ void log_daemon(void *arg)
     log_t           *log = arg;               /* log descriptor */
     log_daemon_t    *daemon = &log->daemon; /* deamon control descriptor */
     daemon_state_t  state;              /* daemon state code */
-    rvm_return_t    retval;
+    rvm_return_t    retval __attribute__((unused));
 
 #ifdef RVM_USELWP
     PRE_Concurrent(1);

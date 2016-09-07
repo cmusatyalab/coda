@@ -3899,7 +3899,7 @@ VALGRIND_PRINTF_BACKTRACE(const char *format, ...)
 /* Unmark the piece of memory associated with a stack id as being a
    stack. */
 #define VALGRIND_STACK_DEREGISTER(id)                             \
-   {unsigned int _qzz_res;                                        \
+   {unsigned int _qzz_res __attribute__ ((unused));                                        \
     VALGRIND_DO_CLIENT_REQUEST(_qzz_res, 0,                       \
                                VG_USERREQ__STACK_DEREGISTER,      \
                                id, 0, 0, 0, 0);                   \

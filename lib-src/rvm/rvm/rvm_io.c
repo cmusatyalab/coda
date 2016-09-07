@@ -3,7 +3,7 @@
                            Coda File System
                               Release 5
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -438,7 +438,7 @@ static long gather_write_partition(dev,offset,wrt_len)
     long            bytes_left;           /* num. bytes left in wrt_buf */
     struct iovec   *iov = dev->iov;      /* i/o vector */
 
-    rvm_bool_t      did_wrap = rvm_false; /* debug use only */
+    rvm_bool_t      did_wrap __attribute__((unused)) = rvm_false; /* debug use only */
     rvm_offset_t    temp;
     rvm_length_t    len;
 

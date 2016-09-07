@@ -1,8 +1,9 @@
 /* BLURB lgpl
-			Coda File System
-			    Release 6
 
-	    Copyright (c) 2006 Carnegie Mellon University
+			   Coda File System
+			      Release 6
+
+          Copyright (c) 2006-2016 Carnegie Mellon University
 		  Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -128,14 +129,17 @@ static void check_aes_monte_carlo(int verbose)
 	    aes_encrypt_key(ekey, keysize[k], &ectx);
 	    aes_decrypt_key(dkey, keysize[k], &dctx);
 
-	    for (j = 0; j < 10000; j++) {
+	    for (j = 0; j < 9999; j++) {
 		aes_encrypt(&ebuf, &ebuf, &ectx);
 		aes_decrypt(&dbuf, &dbuf, &dctx);
-		if (j == 9998) {
-		    memcpy(elast.u8, ebuf.u8, AES_BLOCK_SIZE);
-		    memcpy(dlast.u8, dbuf.u8, AES_BLOCK_SIZE);
-		}
 	    }
+
+            memcpy(elast.u8, ebuf.u8, AES_BLOCK_SIZE);
+            memcpy(dlast.u8, dbuf.u8, AES_BLOCK_SIZE);
+
+            /* and encrypt/decrypt once more to hit 10000 */
+            aes_encrypt(&ebuf, &ebuf, &ectx);
+            aes_decrypt(&dbuf, &dbuf, &dctx);
 
 	    if (memcmp(ebuf.u8, etestvector, AES_BLOCK_SIZE) != 0 ||
 		memcmp(dbuf.u8, dtestvector, AES_BLOCK_SIZE) != 0)

@@ -4309,7 +4309,7 @@ static rvm_bool_t do_show_all_spec()
 static rvm_bool_t do_find_hole()
 {
     rvm_return_t retval;
-    rec_hdr_t   *rec_hdr;
+    rec_hdr_t   *rec_hdr __attribute__((unused));
 
     if (no_log()) return rvm_false;
 

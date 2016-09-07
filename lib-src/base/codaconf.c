@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -178,7 +178,7 @@ int codaconf_init_one(const char *cf)
     FILE *conf;
     int lineno = 0;
     char *name, *value;
-    item_t item;
+    item_t item __attribute__((unused));
 
     conf = fopen(cf, "r");
     if (!conf) {

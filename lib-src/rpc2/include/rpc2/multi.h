@@ -3,7 +3,7 @@
                            Coda File System
                               Release 5
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -86,7 +86,7 @@ typedef struct arg_info {
    Coda-specific (Satya, 5/23/95) */
 
 #define ARG_MARSHALL(mode, type, name, object, howmany)\
-    type *name##_ptrs[howmany];\
+    type *name##_ptrs[howmany] __attribute__((unused));\
     type name##_bufs[howmany];\
     {\
 	memset(&name##_bufs, 0, sizeof(type) * howmany);\

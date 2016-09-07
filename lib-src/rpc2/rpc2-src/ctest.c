@@ -381,7 +381,7 @@ int main(int arg, char **argv)
 
 		if (tt != RPC2_SUCCESS)
 		    {
-		    WhatHappened(tt, "MakeRPC");
+		    (void)WhatHappened(tt, "MakeRPC");
 		    continue;
 		    }
 		tt = Buff2->Header.ReturnCode;
@@ -442,7 +442,7 @@ int main(int arg, char **argv)
 #endif
 		if (tt != RPC2_SUCCESS)
 		    {
-		    WhatHappened(tt, "MakeRPC");
+		    (void)WhatHappened(tt, "MakeRPC");
 		    continue;
 		    }
 		FT_GetTimeOfDay(&t2, NULL);
@@ -479,7 +479,7 @@ int main(int arg, char **argv)
 
 
 	    case REBIND:
-		WhatHappened(RPC2_Unbind(cid), "Unbind");
+		(void)WhatHappened(RPC2_Unbind(cid), "Unbind");
                 DoBinding(&cid);
 		continue;
 	    }
