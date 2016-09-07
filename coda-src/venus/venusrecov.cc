@@ -190,11 +190,14 @@ void RecovVenusGlobals::print(int fd) {
 	     recov_HeapAddr, recov_HeapLength);
 
     fdprint(fd, "UUID = %08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x\n",
-	    ntohl(*(unsigned int *)&recov_UUID[0]),
-	    ntohs(*(unsigned short *)&recov_UUID[4]),
-	    ntohs(*(unsigned short *)&recov_UUID[6]),
-	    recov_UUID[8], recov_UUID[9], recov_UUID[10], recov_UUID[11],
-	    recov_UUID[12], recov_UUID[13], recov_UUID[14], recov_UUID[15]);
+	    ntohl(recov_UUID.fields.time_low),
+	    ntohs(recov_UUID.fields.time_mid),
+	    ntohs(recov_UUID.fields.time_hi_version),
+	    recov_UUID.fields.clock_seq_hi_variant,
+	    recov_UUID.fields.clock_seq_low,
+	    recov_UUID.fields.node[0], recov_UUID.fields.node[1],
+	    recov_UUID.fields.node[2], recov_UUID.fields.node[3],
+	    recov_UUID.fields.node[4], recov_UUID.fields.node[5]);
     fdprint(fd, "StoreId = %d\n", recov_StoreId);
 }
 

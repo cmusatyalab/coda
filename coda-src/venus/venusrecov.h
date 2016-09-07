@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2008 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -105,11 +105,21 @@ struct RecovVenusGlobals {
      * we cannot use a timestamp, or the local ip/ether-address. This calls
      * for a UUID, but using that will require modifications to the RPC2
      * protocol. So for now a random integer is used. */
-#define VenusGenID (*(unsigned int*)&rvg->recov_UUID)
+#define VenusGenID (rvg->recov_UUID.fields.time_low)
 
     /* This UUID should be stored in network byte order.
      * "draft-leach-uuids-guids-01.txt". */
-    unsigned char recov_UUID[16];
+    union {
+        unsigned char bytes[16];
+        struct {
+            unsigned int   time_low;
+            unsigned short time_mid;
+            unsigned short time_hi_version;
+            unsigned char  clock_seq_hi_variant;
+            unsigned char  clock_seq_low;
+            unsigned char  node[6];
+        } fields;
+    } recov_UUID;
     unsigned int recov_StoreId;
 
     int validate();
