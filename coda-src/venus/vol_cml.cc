@@ -2669,7 +2669,13 @@ void cmlent::commit(ViceVersionVector *UpdateSet)
      * mutation should be checked only within the bound of a single unit
      * (identified by cmlent::tid) -luqi
      */
-    int FinalMutationForAnyObject = 0;
+    /* Interesting, in the git history this seems to have piggybacked on an
+     * RPC2 removal commit (db328a2d60389a57ff12bb20eff14c6961468083), but it
+     * looks like it was related to some effort to make sure we correctly
+     * resolved any pending conflicts. I feel like the original code was
+     * probably doing something right, so I am not going to leave this unused
+     * variable around and just squelch the compiler warnings for now. -JH */
+    int FinalMutationForAnyObject __attribute__((unused)) = 0;
 
     dlist_iterator next(*fid_bindings);
     dlink *d;
