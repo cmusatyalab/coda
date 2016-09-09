@@ -64,6 +64,7 @@ extern "C" {
 #include <vice.h>
 #include <cvnode.h>
 #include <auth2.h>
+#include <deprecations.h>
 
 /* From Vol package. */
 #define	ThisHostAddr		((unsigned long)(HostAddress[ThisServerId]))
@@ -72,7 +73,7 @@ extern "C" {
 
 #define ISDIR(fid)  ((fid).Vnode & 1)
 
-extern bit32 HostAddress[] __attribute__ ((deprecated ("Prevents having multihomed servers")));
+extern bit32 HostAddress[] WARN_SINGLE_HOMING;
 extern uint8_t ThisServerId;
 extern long rvm_no_yield; 
 

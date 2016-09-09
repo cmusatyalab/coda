@@ -35,6 +35,7 @@ extern "C" {
 #include <inconsist.h>
 
 #include <vice_file.h>
+#include <deprecations.h>
 
 #define VRDB_PATH   vice_config_path("db/VRDB")
 #define VRDB_TEMP   vice_config_path("db/VRDB.new")
@@ -81,8 +82,8 @@ class vrent : public olink {
     ~vrent();
 
 //  public:
-    void GetHosts(unsigned long *) __attribute__((deprecated("Prevents multihomed")));
-    int index_by_hostaddr(unsigned long) __attribute__((deprecated("Prevents multihomed")));
+    void GetHosts(unsigned long *) WARN_SINGLE_HOMING;
+    int index_by_hostaddr(unsigned long) WARN_SINGLE_HOMING;
     int index_by_serverid(uint8_t serverid);
     int index(void);               /* get the replica index for this server */
     void GetCheckVV(ViceVersionVector *);
