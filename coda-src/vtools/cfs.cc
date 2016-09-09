@@ -1323,15 +1323,13 @@ static int pioctl_SetVV(char *path, ViceVersionVector *vv)
 
 static void ExpandObject(int argc, char *argv[], int opslot)
 {
-    int i, w;
+    int i;
 
     if (argc < 3)
     {
 	printf("Usage: %s\n", cmdarray[opslot].usetxt);
 	exit(-1);
     }
-
-    w = getlongest(argc, argv);
 
     for (i = 2; i < argc; i++)
     {
@@ -1345,15 +1343,13 @@ static void ExpandObject(int argc, char *argv[], int opslot)
 
 static void CollapseObject(int argc, char *argv[], int opslot)
 {
-    int i, w;
+    int i;
 
     if (argc < 3)
     {
 	printf("Usage: %s\n", cmdarray[opslot].usetxt);
 	exit(-1);
     }
-
-    w = getlongest(argc, argv);
 
     for (i = 2; i < argc; i++)
     {
@@ -1367,7 +1363,7 @@ static void CollapseObject(int argc, char *argv[], int opslot)
 
 static void MarkFidIncon(int argc, char *argv[], int opslot)
 {
-    int i, w;
+    int i;
     ViceVersionVector vv;
 
     if (argc < 3)
@@ -1375,8 +1371,6 @@ static void MarkFidIncon(int argc, char *argv[], int opslot)
 	printf("Usage: %s\n", cmdarray[opslot].usetxt);
 	exit(-1);
     }
-
-    w = getlongest(argc, argv);
 
     for (i = 2; i < argc; i++)
     {
@@ -2582,7 +2576,7 @@ static void Strong(int argc, char *argv[], int opslot)
 static void ForceReintegrate(int argc, char *argv[], int opslot)
 {
     int i = 2, rc, w;
-    VolumeStatus *vs;
+    //VolumeStatus *vs;
     struct ViceIoctl vio;
     char *volname;
     int conflict;
@@ -2627,7 +2621,7 @@ static void ForceReintegrate(int argc, char *argv[], int opslot)
 	/* (status, name, conn_state, conflict, cml_count, offlinemsg, motd) */
 	ptr = piobuf;		/* invariant: ptr always point to next obj
 				   to be read */
-	vs = (VolumeStatus *)ptr;
+	//vs = (VolumeStatus *)ptr;
 	ptr += sizeof(VolumeStatus);
 	volname = ptr;
 	ptr += strlen(volname)+1;
