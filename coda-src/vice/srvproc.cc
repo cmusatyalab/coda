@@ -2511,6 +2511,8 @@ void PerformSetACL(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
     AL_AccessList *aCL = 0;
     int aCLSize = 0;
     SetAccessList(vptr, aCL, aCLSize);
+
+    CODA_ASSERT(aCLSize >= newACL->MySize);
     memcpy(aCL, newACL, newACL->MySize);
 
     if (ReplicatedOp) {
@@ -2903,6 +2905,7 @@ static int Perform_CLMS(ClientEntry *client, VolumeId VSGVolnum,
 		int newACLSize = 0;
 		SetAccessList(vptr, newACL, newACLSize);
 
+                CODA_ASSERT(newACLSize >= aCLSize);
 		memcpy(newACL, aCL, aCLSize);
 	    }
 	    break;
