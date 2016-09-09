@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 2004-2008 Carnegie Mellon University
+          Copyright (c) 2004-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -414,7 +414,7 @@ int ProcessDirectory()
 
   if (DEBUG_HEAVY) {
     fprintf(stderr, "\nNext Vnode: deleted = %d    offset = %lld\n",
-	    deleted, offset);
+	    deleted, (long long)offset);
     PrintVnodeDiskObject(stderr, vdo, vn);
   } 
 
@@ -515,7 +515,7 @@ int ProcessFileOrSymlink()
 
   if (DEBUG_HEAVY) {
     fprintf(stderr, "\nNext Vnode: deleted = %d    offset = %lld\n",
-	    deleted, offset);
+	    deleted, (long long)offset);
     PrintVnodeDiskObject(stderr, &smallv, vn);
   } 
 

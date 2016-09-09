@@ -1,10 +1,10 @@
 /* BLURB gpl
 
-			    Coda File System
-				Release 6
+                           Coda File System
+                              Release 6
 
-		Copyright (c) 2008 Carnegie Mellon University
-		    Additional copyrights listed below
+	  Copyright (c) 2008-2016 Carnegie Mellon University
+                  Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
 the terms of the GNU General Public Licence Version 2, as shown in the
@@ -116,8 +116,8 @@ int archive_write_entry(FILE *fp, ino_t inode, mode_t mode, uid_t uid,
 	sprintf(tar.hdr.groupid, "%07o", 65534);
 
 	if (S_ISLNK(mode)) filesize = 0;
-	sprintf(tar.hdr.filesize, "%011llo", (uint64_t)filesize);
-	sprintf(tar.hdr.timestamp, "%011llo", (uint64_t)mtime);
+	sprintf(tar.hdr.filesize, "%011llo", (unsigned long long)filesize);
+	sprintf(tar.hdr.timestamp, "%011llo", (unsigned long long)mtime);
 	memset(&tar.hdr.checksum, ' ', sizeof(tar.hdr.checksum));
 
 	if (S_ISREG(mode) && linkname) /* hard link */
@@ -171,8 +171,8 @@ int archive_write_entry(FILE *fp, ino_t inode, mode_t mode, uid_t uid,
 		    "%011llo%06o%011llo"/* mtime, namesize, filesize */
 		    "%s%c",		/* name */
 		    (uint32_t)inode, (uint32_t)mode, (uint32_t)uid,
-		    (uint32_t)nlink, (uint64_t)mtime, (uint32_t)namesize,
-		    (uint64_t)filesize, name, '\0');
+		    (uint32_t)nlink, (unsigned long long)mtime, (uint32_t)namesize,
+		    (unsigned long long)filesize, name, '\0');
 	if (n == -1) return ENOSPC;
 
 	if (S_ISLNK(mode) && fwrite(linkname, filesize, 1, fp) != 1)

@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2008 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -337,7 +337,7 @@ struct venus_cnode {
    ignored.  Used mostly in vproc::setattr() */
 
 #define	VA_IGNORE_FSID		((long)-1)
-#define	VA_IGNORE_ID		((long)-1)
+#define	VA_IGNORE_ID		((unsigned long)-1)
 #define VA_IGNORE_NLINK		((short)-1)
 #define VA_IGNORE_BLOCKSIZE	((long)-1)
 #define VA_IGNORE_RDEV		((cdev_t)-1)

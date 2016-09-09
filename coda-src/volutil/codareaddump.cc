@@ -367,11 +367,11 @@ void skipVnodes(int largc, char **largv) {
     }
 
     if (del) {
-	printf("Vnode %08x at offset %lld was deleted.\n", vnum, offset);
+	printf("Vnode %08x at offset %lld was deleted.\n", vnum, (long long)offset);
 	return;
     }
     
-    printf("Vnode %08x is at offset %lld in the dump.\n", vnum, offset);
+    printf("Vnode %08x is at offset %lld in the dump.\n", vnum, (long long)offset);
     if (vnode->type == vNull && vnode->linkCount == 0)
 	return;
     printf("\ttype = %u\n\tcloned = %u\n\tmode = %o\n\tlinks = %u\n",
@@ -405,11 +405,11 @@ void showVnodeDiskObject(int largc, char **largv)
     }
 
     if (del) {
-	printf("Vnode %08x at offset %lld was deleted.\n", vnum, offset);
+	printf("Vnode %08x at offset %lld was deleted.\n", vnum, (long long)offset);
 	return;
     }
     
-    printf("Vnode %08x is at offset %lld in the dump.\n", vnum, offset);
+    printf("Vnode %08x is at offset %lld in the dump.\n", vnum, (long long)offset);
     if (vnode->type == vNull && vnode->linkCount == 0)
 	return;
     printf("\ttype = %u\n\tcloned = %u\n\tmode = %o\n\tlinks = %u\n",

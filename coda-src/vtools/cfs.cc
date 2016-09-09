@@ -1927,7 +1927,8 @@ static void ListVolume(int argc, char *argv[], int opslot)
 	if (conflict)
 	    printf("  *** There are pending conflicts in this volume ***\n");
 	if (cml_count)
-	    printf("  There are %d CML entries pending for reintegration (%llu bytes)\n", cml_count, cml_bytes);
+	    printf("  There are %d CML entries pending for reintegration (%llu bytes)\n",
+                   cml_count, (unsigned long long)cml_bytes);
 	printf("\n");
     }
 }
