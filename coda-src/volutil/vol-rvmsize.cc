@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -56,12 +56,6 @@ long S_VolRVMSize(RPC2_Handle rpcid, VolumeId VolID, RVMSize_data *data) {
     struct VolumeData *voldata;
     int status = 0;
     long size = 0;
-    ProgramType *pt;
-    char *rock;
-
-    LogMsg(9, VolDebugLevel, stdout, "Checking lwp rock in S_VolRVMSize");
-    CODA_ASSERT(LWP_GetRock(FSTAG, &rock) == LWP_SUCCESS);
-    pt = (ProgramType *)rock;
 
     LogMsg(9, VolDebugLevel, stdout, "Entering VolRVMSize()");
     VInitVolUtil(volumeUtility);

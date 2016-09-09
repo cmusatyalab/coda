@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -93,17 +93,11 @@ long S_VolShowVnode(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
     SE_Descriptor sed;
     rvm_return_t status = RVM_SUCCESS;
     long rc = 0;
-    ProgramType *pt;
     VolumeId tmpvolid;
     time_t timestamp;
 
     /* To keep C++ 2.0 happy */
     VolumeId volid = (VolumeId)formal_volid;
-    char *rock;
-
-    VLog(9, "Checking lwp rock in S_VolShowVnode");
-    CODA_ASSERT(LWP_GetRock(FSTAG, &rock) == LWP_SUCCESS);
-    pt = (ProgramType *)rock;
 
     VLog(9, "Entering VolShowVnode(%d, 0x%x, 0x%x)", rpcid, volid, vnodeid);
 

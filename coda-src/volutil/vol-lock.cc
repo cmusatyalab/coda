@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -59,13 +59,9 @@ extern "C" {
 */
 long S_VolLock(RPC2_Handle rpcid, VolumeId Vid, ViceVersionVector *VolVV) {
     Volume *volptr = 0;
-    ProgramType *pt;
     Error error;
     int rc = 0;
-    char *rock;
     
-    CODA_ASSERT(LWP_GetRock(FSTAG, &rock) == LWP_SUCCESS);
-    pt = (ProgramType *)rock;
     LogMsg(2, VolDebugLevel, stdout, "Entering S_VolLock: rpcid = %d, Volume = %x", rpcid, Vid);
 
     rc = VInitVolUtil(volumeUtility);
@@ -118,13 +114,9 @@ long S_VolLock(RPC2_Handle rpcid, VolumeId Vid, ViceVersionVector *VolVV) {
 */
 long S_VolUnlock(RPC2_Handle rpcid, VolumeId Vid) {
     Volume *volptr = 0;
-    ProgramType *pt;
     int rc = 0;
     Error error;
-    char *rock;
 
-    CODA_ASSERT(LWP_GetRock(FSTAG, &rock) == LWP_SUCCESS);
-    pt = (ProgramType *)rock;
     LogMsg(2, VolDebugLevel, stdout, "Entering S_VolUnlock: rpcid = %d, Volume = %x", rpcid, Vid);
 
     rc = VInitVolUtil(volumeUtility);

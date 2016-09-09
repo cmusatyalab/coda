@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -72,14 +72,9 @@ long S_NewVolMarkAsAncient(RPC2_Handle rpcid, VolumeId backupId)
 
 long S_VolMarkAsAncient(RPC2_Handle rpcid, VolumeId groupId, VolumeId repId)
 {
-    ProgramType *pt;
     int rc = 0;
     char *errstr;
-    char *rock;
     
-    CODA_ASSERT(LWP_GetRock(FSTAG, &rock) == LWP_SUCCESS);
-    pt = (ProgramType *)rock;
-
     LogMsg(9, VolDebugLevel, stdout, "Entering S_VolMarkAsAncient: rpcid = %d, groupId = %x, repId = %x",
 	rpcid, groupId, repId);
 

@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -94,15 +94,11 @@ long int S_VolLookup(RPC2_Handle rpcid, RPC2_String formal_vol, SE_Descriptor *f
     int status = 0;
     long rc = 0;
     SE_Descriptor sed;
-    ProgramType *pt;
 
     /* To keep C++ 2.0 happy */
     char *vol = (char *)formal_vol;
-    char *rock;
 
     LogMsg(9, VolDebugLevel, stdout, "Entering S_VolLookup(%u, %s)", rpcid, vol);
-    CODA_ASSERT(LWP_GetRock(FSTAG, &rock) == LWP_SUCCESS);
-    pt = (ProgramType *)rock;
 
     VInitVolUtil(volumeUtility);
 

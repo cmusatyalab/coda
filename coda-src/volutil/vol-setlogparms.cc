@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -60,17 +60,12 @@ long S_VolSetLogParms(RPC2_Handle rpcid, VolumeId Vid, RPC2_Integer OnFlag,
 {
     Volume *volptr = 0;
     Error error;
-    ProgramType *pt;
     int rc = 0;
     rvm_return_t status = RVM_SUCCESS;
-    char *rock;
 
     VLog(9, "Entering S_VolSetLogParms: rpcid = %d, Volume = %x", 
 	 rpcid, Vid);
     
-    CODA_ASSERT(LWP_GetRock(FSTAG, &rock) == LWP_SUCCESS);
-    pt = (ProgramType *)rock;
-
     rc = VInitVolUtil(volumeUtility);
     if (rc != 0){
 	    return rc;

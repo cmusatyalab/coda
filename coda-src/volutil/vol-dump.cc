@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2008 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -534,7 +534,6 @@ long S_VolNewDump(RPC2_Handle rpcid, RPC2_Unsigned formal_volumeNumber,
     Volume *vp = 0;
     long rc = 0, retcode = 0;
     Error error;
-    ProgramType *pt;
     DumpBuffer_t *dbuf = NULL;
     char *DumpBuf = 0;
     RPC2_HostIdent hid;
@@ -549,10 +548,6 @@ long S_VolNewDump(RPC2_Handle rpcid, RPC2_Unsigned formal_volumeNumber,
 
     /* To keep C++ 2.0 happy */
     VolumeId volumeNumber = (VolumeId)formal_volumeNumber;
-    char *rock;
-
-    CODA_ASSERT(LWP_GetRock(FSTAG, &rock) == LWP_SUCCESS);
-    pt = (ProgramType *)rock;
 
     SLog(9, "S_VolNewDump: conn: %d, volume:  %#x, Inc?: %d",
 	 rpcid, volumeNumber, *Incremental);

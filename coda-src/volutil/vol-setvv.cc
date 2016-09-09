@@ -76,18 +76,12 @@ long S_VolSetVV(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
     Error error;
     rvm_return_t status = RVM_SUCCESS;
     long rc = 0;
-    ProgramType *pt;
     ViceFid fid; 
     int ix;
     vrent *vre;
     /* To keep C++ 2.0 happy */
     VolumeId volid = (VolumeId)formal_volid;
     ViceVersionVector UpdateSet;
-    char *rock;
-
-    VLog(9, "Checking lwp rock in S_VolSetVV");
-    CODA_ASSERT(LWP_GetRock(FSTAG, &rock) == LWP_SUCCESS);
-    pt = (ProgramType *)rock;
 
     VLog(9, "Entering VolSetVV(%d, %u, %u)", rpcid, volid, vnodeid);
     VolumeId tmpvolid = volid;

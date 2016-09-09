@@ -107,7 +107,6 @@ long S_VolCreate(RPC2_Handle rpcid, RPC2_String formal_partition,
 	Volume *vp = NULL;
 	rvm_return_t status = RVM_SUCCESS;    /* transaction status variable */
 	int rc = 0;
-	ProgramType *pt;
 	int resflag = repvol ? RVMRES : 0;
         int rvmlogsize = 4096; /* when resolution is enabled, default to 4k
                                   log entries */
@@ -115,12 +114,8 @@ long S_VolCreate(RPC2_Handle rpcid, RPC2_String formal_partition,
 	/* To keep C++ 2.0 happy */
 	char *partition = (char *)formal_partition;
 	char *volname = (char *)formal_volname;    
-	char *rock;
 
 	error = 0;
-
-	CODA_ASSERT(LWP_GetRock(FSTAG, &rock) == LWP_SUCCESS);
-	pt = (ProgramType *)rock;
 
 	VLog(9, "Entering S_VolCreate: rpcid = %d, partition = %s," 
 	     "volname = %s, volumeid = %x, repvol = %d, grpid = %x",

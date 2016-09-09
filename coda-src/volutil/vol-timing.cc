@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -55,13 +55,10 @@ static FILE * timingfile;
 */
 long S_VolTiming(RPC2_Handle rpcid, RPC2_Integer OnFlag, SE_Descriptor *formal_sed) {
     SE_Descriptor sed;
-    ProgramType *pt;
     int rc = 0;
-    char *rock;
     
     LogMsg(9, VolDebugLevel, stdout, "Entering S_VolTiming: OnFlag = %d", OnFlag);
-    CODA_ASSERT(LWP_GetRock(FSTAG, &rock) == LWP_SUCCESS);
-    pt = (ProgramType *)rock;
+
     VInitVolUtil(volumeUtility);
     if (OnFlag) {
 	probingon = 1;

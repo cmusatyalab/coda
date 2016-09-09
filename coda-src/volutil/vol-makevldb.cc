@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -134,17 +134,12 @@ long S_VolMakeVLDB(RPC2_Handle rpcid, RPC2_String formal_infile)
     int fd;
     int MaxRO, MaxBK, MaxRW;
     int err = 0;
-    ProgramType *pt;
 
     /* To keep C++ 2.0 happy */
     char *infile = (char *)formal_infile;
-    char *rock;
 
     LogMsg(9, VolDebugLevel, stdout, "Entering S_VolMakeVLDB; infile %s", infile);
     InitAddEntry();
-
-    CODA_ASSERT(LWP_GetRock(FSTAG, &rock) == LWP_SUCCESS);
-    pt = (ProgramType *)rock;
 
     volumelist = fopen(infile, "r");
     if (volumelist == NULL) {

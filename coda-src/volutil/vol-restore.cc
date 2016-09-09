@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -111,7 +111,6 @@ long S_VolRestore(RPC2_Handle rpcid, RPC2_String formal_partition,
 {
     int status = 0;
     long rc = 0;
-    ProgramType *pt;
     DumpBuffer_t *dbuf;
     char *DumpBuf;
     RPC2_HostIdent hid;
@@ -125,11 +124,7 @@ long S_VolRestore(RPC2_Handle rpcid, RPC2_String formal_partition,
     char *partition = (char *)formal_partition;
     char *volname = (char *)formal_volname;
     VolumeId *volid = (VolumeId *)formal_volid;
-    char *rock;
     
-    CODA_ASSERT(LWP_GetRock(FSTAG, &rock) == LWP_SUCCESS);
-    pt = (ProgramType *)rock;
-
     VLog(9, "Entering S_VolRestore for %x--%s, partition %s", *volid, volname,
 	partition);
 

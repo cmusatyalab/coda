@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2016 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -97,15 +97,11 @@ long int S_VolInfo(RPC2_Handle rpcid, RPC2_String formal_volkey, RPC2_Integer du
     int status = 0;	    // transaction status variable
     long rc = 0;
     SE_Descriptor sed;
-    ProgramType *pt;
     VolumeId volid;
 
     /* To keep C++ 2.0 happy */
     char *volkey = (char *)formal_volkey;
-    char *rock;
     
-    CODA_ASSERT(LWP_GetRock(FSTAG, &rock) == LWP_SUCCESS);
-    pt = (ProgramType *)rock;
     VLog(9, "Entering S_VolInfo(%u, %s, %d)", rpcid, volkey, dumpall);
 
     VInitVolUtil(volumeUtility);
