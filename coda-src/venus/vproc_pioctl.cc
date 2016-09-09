@@ -584,10 +584,7 @@ O_FreeLocks:
 #undef	endp
 		    if (entered) v->Exit(volmode, u.u_uid);
 #ifdef TIMING
-		    float elapsed = 0.0;
-
 		    gettimeofday(&u.u_tv2, 0);
-		    elapsed = SubTimes(&(u.u_tv2), &(u.u_tv1));
 #endif
 
 		    VDB->Put(&v);
@@ -1334,10 +1331,7 @@ OI_FreeLocks:
 	    V_FreeLocks:
 	      if (entered) v->Exit(volmode, u.u_uid);
 #ifdef TIMING
-	      float elapsed = 0.0;
-
 	      gettimeofday(&u.u_tv2, 0);
-	      elapsed = SubTimes(&(u.u_tv2), &(u.u_tv1));
 #endif
 	      VDB->Put(&v);
 	    if (u.u_error == ERETRY)
