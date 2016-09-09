@@ -147,8 +147,10 @@ was reached. */
 msgent *FindMsg(olist& ol, u_long seq) {
     msg_iterator next(ol);
     msgent *m;
-    while ((m = next()))
-	if (((union inputArgs *)m->msg_buf)->ih.unique == seq) return(m);
+    while ((m = next())) {
+        union inputArgs *inp = (union inputArgs *)m->msg_buf;
+	if (inp->ih.unique == seq) return(m);
+    }
 
     return(0);
 }
@@ -211,7 +213,8 @@ void ReadUpcallMsg(int fd, size_t size)
 	}
 
 	if (euid != 0) { /* root can already do whatever it wants */
-	    ((union inputArgs *)m->msg_buf)->ih.uid = euid;
+            union inputArgs *inp = (union inputArgs *)m->msg_buf;
+	    inp->ih.uid = euid;
 	}
     }
 
@@ -1047,7 +1050,8 @@ void worker::AwaitRequest() {
 	LOG(1000, ("worker::AwaitRequest: dequeuing message\n"));
 	ActiveMsgs.append(m);
 	msg = m;
-	opcode = (int) ((union inputArgs *)m->msg_buf)->ih.opcode;
+        union inputArgs *inp = (union inputArgs *)m->msg_buf;
+	opcode = inp->ih.opcode;
 	idle = 0;
 	return;
     }
@@ -1059,8 +1063,9 @@ void worker::AwaitRequest() {
 /* Called by workers after completing a service request. */
 void worker::Resign(msgent *msg, int size) {
     if (returned) {
-	const char *opstr = VenusOpStr((int) ((union outputArgs*)msg->msg_buf)->oh.opcode);
-	const char *retstr = VenusRetStr((int) ((union outputArgs *)msg->msg_buf)->oh.result);
+        union outputArgs *outp = (union outputArgs *)msg->msg_buf;
+	const char *opstr = VenusOpStr(outp->oh.opcode);
+	const char *retstr = VenusRetStr(outp->oh.result);
 	
 #ifdef TIMING
 	float elapsed;
@@ -1072,8 +1077,9 @@ void worker::Resign(msgent *msg, int size) {
 #endif
     }
     else {
-	if (((union outputArgs *)msg->msg_buf)->oh.result == EINCONS) {
-/*	    ((union outputArgs *)msg->msg_buf)->oh.result = ENOENT;*/
+        union outputArgs *outp = (union outputArgs *)msg->msg_buf;
+	if (outp->oh.result == EINCONS) {
+/*	    outp->oh.result = ENOENT;*/
 	    CHOKE("worker::Resign: result == EINCONS");
 	}
 
@@ -1096,8 +1102,9 @@ void worker::Return(msgent *msg, size_t size)
     if (returned)
 	CHOKE("worker::Return: already returned!");
 
-    const char *opstr = VenusOpStr((int) ((union outputArgs*)msg->msg_buf)->oh.opcode);
-    const char *retstr = VenusRetStr((int) ((union outputArgs*)msg->msg_buf)->oh.result);
+    union outputArgs *outp = (union outputArgs *)msg->msg_buf;
+    const char *opstr = VenusOpStr(outp->oh.opcode);
+    const char *retstr = VenusRetStr(outp->oh.result);
 
 #ifdef	TIMING
     float elapsed;
@@ -1120,9 +1127,9 @@ void worker::Return(msgent *msg, size_t size)
     cc = WriteDowncallMsg(msg->return_fd, msg->msg_buf, size);
     if (cc != size) {
 	int err = errno;
+        union outputArgs *outp = (union outputArgs *)msg->msg_buf;
 	eprint("worker::Return: message write error %d (op = %d, seq = %d), wrote %d of %d bytes\n",
-	       errno, ((union outputArgs*)msg->msg_buf)->oh.opcode,
-	       ((union outputArgs*)msg->msg_buf)->oh.unique, cc, size);
+	       errno, outp->oh.opcode, outp->oh.unique, cc, size);
 
 	/* Guard against a race in which the kernel is signalling us, but we
 	 * entered this block before the signal reached us. In this case the
@@ -1136,7 +1143,8 @@ out:
 }
 
 void worker::Return(int code) {
-    ((union outputArgs*)msg->msg_buf)->oh.result = code; 
+    union outputArgs *outp = (union outputArgs *)msg->msg_buf;
+    outp->oh.result = code;
     Return(msg, (int)sizeof (struct coda_out_hdr));
 }
 
