@@ -406,7 +406,7 @@ struct command cmdarray[] =
             NULL
         },
         {"discardlocal", NULL, DiscardLocal,
-            "cfs discardlocal [-force] [-all] <path>",
+            "cfs discardlocal [-all] <path>",
             "Discard the inconsistent head record of a volume's CML",
             NULL
         },
@@ -2720,11 +2720,10 @@ static void PreserveLocal(int argc, char *argv[], int opslot)
 
 static void DiscardLocal(int argc, char *argv[], int opslot)
     {
-    int rc, force;
+    int rc;
     unsigned char ioctl;
     char *codadir;
 
-    force = 0;
     switch(argc)
         {
         case 3:
@@ -2737,22 +2736,6 @@ static void DiscardLocal(int argc, char *argv[], int opslot)
 	    ioctl = REP_CMD_DISCARD_ALL;
 	    codadir = argv[3];
 	    break;
-	  }
-	  if(!strcmp(argv[2], "-force")) {
-	    force = 1;
-	    ioctl = REP_CMD_DISCARD;
-	    codadir = argv[3];
-	    break;
-	  }
-
-	case 5:
-	  if(!strcmp(argv[2], "-all") || !strcmp(argv[3], "-all")) {
-	    if(!strcmp(argv[2], "-force") || !strcmp(argv[3], "-force")) {
-	      force = 1;
-	      ioctl = REP_CMD_DISCARD_ALL;
-	      codadir = argv[4];
-	      break;
-	    }
 	  }
 
         default:
