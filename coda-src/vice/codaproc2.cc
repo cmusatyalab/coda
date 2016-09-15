@@ -332,21 +332,12 @@ long FS_ViceQueryReintHandle(RPC2_Handle RPCid, VolumeId Vid,
 			     ViceReintHandle *RHandle, RPC2_Unsigned *Length)
 {
     int errorCode = 0;
-    ClientEntry *client = 0;
     int fd = -1;
     struct stat status;
-    char *rock;
 
     SLog(0/*1*/, "ViceQueryReintHandle for volume %x", Vid);
 
     *Length = (RPC2_Unsigned)-1;
-
-    /* Map RPC handle to client structure. */
-    if ((errorCode = (int) RPC2_GetPrivatePointer(RPCid, &rock)) != RPC2_SUCCESS) {
-	SLog(0, "ViceQueryReintHandle: GetPrivatePointer failed (%d)", errorCode);
-	goto Exit;
-    }
-    client = (ClientEntry *)rock;
 
     if ( (errorCode = ValidateRHandle(Vid, RHandle)) )
 	goto Exit;

@@ -1051,7 +1051,7 @@ static void set_timeout(PROC *proc, FILE *where)
 static void pack(WHO who, VAR *parm, char *prefix, FILE *where)
 {
     extern char *concat();
-    char *name, *select, *suffix;
+    char *name, *suffix;
     MODE mode;
 
     name = concat(prefix, parm->name);
@@ -1614,15 +1614,9 @@ static void execute(PROC *head, FILE *where)
 }
 
 /* spit out code to pretty print packets in tcpdump */
-static print_dump(head, where)
-    PROC *head;
-    FILE *where;
+static void print_dump(PROC *head, FILE *where)
 {
-#if	__GNUC__ < 2
-    extern int32_t strlen();
-#endif
     extern char *copy();
-    int32_t sawnewconn;
 
     fprintf(where, "\nint %s_PrintOpcode(int opcode, int subsysid) {\n",
 	    subsystem.subsystem_name);
@@ -1631,7 +1625,6 @@ static print_dump(head, where)
     fprintf(where, "/*    Subsystem : %s */\n",subsystem.subsystem_name);
     fprintf(where, "\n    printf(\"%s:\");\n",subsystem.subsystem_name);
     fprintf(where, "\n    switch (opcode) {\n");
-    sawnewconn = 0;
 
     /* Do case arms */
     for (; head!=NIL; head=head->thread) {

@@ -441,7 +441,7 @@ opcode_number		: NUMBER ':'
 
 formal_list		: formal array_spec_var ',' formal_list
 					{
-					    register VAR *maxvarp;
+					    VAR *maxvarp;
 					    if (formal_list.counter >= MAX_FORMALS) {
 						printf("RP2GEN: too many formals: %d\n", MAX_FORMALS);
 						exit(1);
@@ -469,7 +469,7 @@ formal_list		: formal array_spec_var ',' formal_list
 					}
 			| formal array_spec_var
 					{
-					    register VAR *maxvarp;
+					    VAR *maxvarp;
 					    formal_list.formals[0] = $1;
 					    formal_list.counter = 1;
 					    if ($2 != NIL) {

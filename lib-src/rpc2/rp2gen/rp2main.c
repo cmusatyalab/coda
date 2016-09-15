@@ -289,7 +289,6 @@ static int32_t SetupFiles()
     pfile = fopen(pfile_name, "w");
     if (pfile == NIL) {perror(pfile_name); exit(-1);}
 
-    char upper_path[MAXPATHLEN];
     libfile_name = concat(base, ".helper.c");
     libfile = fopen(libfile_name, "w");
     if (libfile == NIL) {perror(libfile_name); exit(-1);}
