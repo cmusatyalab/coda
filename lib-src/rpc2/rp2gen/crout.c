@@ -765,7 +765,7 @@ static void spit_body(PROC *proc, rp2_bool in_parms, rp2_bool out_parms, FILE *w
 	    array_parms = RP2_TRUE;
     }
     if (array_parms)
-        fprintf(where, "    long %s;\n", iterate);
+        fprintf(where, "    unsigned int %s;\n", iterate);
     fprintf(where, "    struct timeval %s, %s;\n", timestart, timeend);
     /* Packet Buffer */
     fprintf(where, "    RPC2_PacketBuffer *%s = NULL;\n", reqbuffer);
@@ -1389,7 +1389,7 @@ static void one_server_proc(PROC *proc, FILE *where)
     }
 
     if (array_parms) {
-        fprintf(where, "    long %s;\n", iterate);
+        fprintf(where, "    unsigned int %s;\n", iterate);
     }
 
     fprintf(where, "\n    /* Unpack parameters */\n");

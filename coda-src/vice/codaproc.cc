@@ -2541,7 +2541,7 @@ void SetVSStatus(ClientEntry *client, Volume *volptr, RPC2_Integer *NewVS,
   a callback was established for it.</strong></a> 
   END_HTML
 */
-long FS_ViceValidateVols(RPC2_Handle cid, RPC2_Integer numVids,
+long FS_ViceValidateVols(RPC2_Handle cid, RPC2_Unsigned numVids,
 			 ViceVolumeIdStruct Vids[], RPC2_CountedBS *VSBS,
 			 RPC2_BoundedBS *VFlagBS)
 {
@@ -2569,7 +2569,7 @@ long FS_ViceValidateVols(RPC2_Handle cid, RPC2_Integer numVids,
 
     /* check the piggybacked volumes */
 
-    for (int i = 0; i < numVids; i++) {
+    for (unsigned int i = 0; i < numVids; i++) {
 	int error, index, ix, count;
 	Volume *volptr;
 	VolumeId rwVid;

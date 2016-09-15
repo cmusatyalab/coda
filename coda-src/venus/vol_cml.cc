@@ -2032,8 +2032,8 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet,
 
     RPC2_Integer Index = UNSET_INDEX;
     ViceFid StaleDirs[MAXSTALEDIRS];
-    RPC2_Integer MaxStaleDirs = MAXSTALEDIRS;
-    RPC2_Integer NumStaleDirs = 0;
+    RPC2_Unsigned MaxStaleDirs = MAXSTALEDIRS;
+    RPC2_Unsigned NumStaleDirs = 0;
 
     /* Acquire an Mgroup. */
     code = vol->GetMgrp(&m, owner, (PIGGYCOP2 ? &PiggyBS : 0));
@@ -2121,7 +2121,7 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet,
 	if (NumStaleDirs == MaxStaleDirs)
 	    vol->ClearCallBack();
 
-	for (int d = 0; d < NumStaleDirs; d++) {
+	for (unsigned int d = 0; d < NumStaleDirs; d++) {
 	    VenusFid StaleDir;
 	    MakeVenusFid(&StaleDir, vol->GetRealmId(), &StaleDirs[d]);
 	    LOG(0, ("ClientModifyLog::COP1: stale dir %s\n",
@@ -2243,7 +2243,7 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet,
 		    vol->ClearCallBack();
 
 		/* purge them off.  fsobj::Kill is idempotent. */
-		for (int d = 0; d < NumStaleDirs; d++) {
+		for (unsigned int d = 0; d < NumStaleDirs; d++) {
 		    VenusFid StaleDir;
 		    MakeVenusFid(&StaleDir, vol->GetRealmId(), &StaleDirs[d]);
 		    LOG(0, ("ClientModifyLog::COP1: stale dir %s\n", 

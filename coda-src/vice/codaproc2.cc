@@ -197,10 +197,10 @@ static int GetReintegrateObjects(ClientEntry *, struct dllist_head *, dlist *,
 static int CheckSemanticsAndPerform(ClientEntry *, VolumeId, VolumeId,
 				    struct dllist_head *, dlist *, int *,
 				    RPC2_Integer *);
-static void PutReintegrateObjects(int, Volume *, struct dllist_head *, dlist *, 
-				  int, RPC2_Integer, ClientEntry *, 
-				  RPC2_Integer, RPC2_Integer *, ViceFid *, 
-				  RPC2_CountedBS *, RPC2_Integer *, 
+static void PutReintegrateObjects(int, Volume *, struct dllist_head *, dlist *,
+				  int, RPC2_Integer, ClientEntry *,
+				  RPC2_Unsigned, RPC2_Unsigned *, ViceFid *,
+				  RPC2_CountedBS *, RPC2_Integer *,
 				  CallBackStatus *);
 
 static int AllocReintegrateVnode(Volume **, dlist *, ViceFid *, ViceFid *,
@@ -219,7 +219,7 @@ static int ValidateRHandle(VolumeId, ViceReintHandle *);
 */
 long FS_ViceReintegrate(RPC2_Handle RPCid, VolumeId Vid, RPC2_Integer LogSize,
 		     RPC2_Integer *Index, RPC2_Integer OutOfOrder,
-		     RPC2_Integer MaxDirs, RPC2_Integer *NumDirs,
+		     RPC2_Unsigned MaxDirs, RPC2_Unsigned *NumDirs,
 		     ViceFid StaleDirs[], RPC2_CountedBS *OldVS,
 		     RPC2_Integer *NewVS, CallBackStatus *VCBStatus,
 		     RPC2_CountedBS *PiggyBS, SE_Descriptor *BD) 
@@ -1933,7 +1933,7 @@ static void PutReintegrateObjects(int errorCode, Volume *volptr,
 				  struct dllist_head *rlog, 
 				  dlist *vlist, int blocks,
 				  RPC2_Integer OutOfOrder, ClientEntry *client, 
-				  RPC2_Integer MaxDirs, RPC2_Integer *NumDirs,
+				  RPC2_Unsigned MaxDirs, RPC2_Unsigned *NumDirs,
 				  ViceFid *StaleDirs, RPC2_CountedBS *OldVS, 
 				  RPC2_Integer *NewVS, 
 				  CallBackStatus *VCBStatus) 

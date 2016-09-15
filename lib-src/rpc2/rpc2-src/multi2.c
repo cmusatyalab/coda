@@ -76,7 +76,7 @@ long MRPC_UnpackMulti(int HowMany, RPC2_Handle ConnHandleList[],
 int  get_len(ARG **a_types, PARM **args, MODE mode);
 void pack(ARG *a_types, PARM **args, unsigned char **_ptr);
 void pack_struct(ARG *a_types, PARM **args, unsigned char **ptr);
-static int  get_arraylen_pack(ARG *a_types, PARM *args);
+static unsigned int  get_arraylen_pack(ARG *a_types, PARM *args);
 static void incr_struct_byte(ARG *a_types, PARM **args);
 static int new_unpack(ARG *a_types, PARM **args, unsigned char **_ptr, char *_end,
 	       long offset);
@@ -772,15 +772,15 @@ int get_len(ARG **a_types, PARM **args, MODE mode)
 /* Returns an array size. It is assumed that an array size of an array is declared 
  * in front of array declaration.
  */
-static int get_arraylen_pack(ARG *a_types, PARM *args)
+static unsigned int get_arraylen_pack(ARG *a_types, PARM *args)
 {
     int arraysize;
     switch(a_types->type) {
-        case RPC2_INTEGER_TAG:
+        case RPC2_UNSIGNED_TAG:
                         if (a_types->mode == IN_OUT_MODE)
-			    arraysize = **args->integerp;
+			    arraysize = **args->unsgnedp;
 			else
-			    arraysize = args->integer;
+			    arraysize = args->unsgned;
 			return arraysize;
 			/*NOTREACHED*/
 			break;
@@ -791,10 +791,10 @@ static int get_arraylen_pack(ARG *a_types, PARM *args)
     /*NOTREACHED*/
 }
 
-static int get_arraylen_unpack(ARG *a_types, unsigned char *ptr)
+static unsigned int get_arraylen_unpack(ARG *a_types, unsigned char *ptr)
 {
     switch(a_types->type) {
-        case RPC2_INTEGER_TAG:
+        case RPC2_UNSIGNED_TAG:
 			return ntohl(*(uint32_t *)ptr);
 			/*NOTREACHED*/
 			break;

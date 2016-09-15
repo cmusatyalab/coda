@@ -412,7 +412,7 @@ array_spec		: '[' DefinedNumber ']'
 
 array_spec_var		: '[' ']'
 					{
-					    $$ = make_var(NIL, NO_MODE, find("RPC2_Integer"));
+					    $$ = make_var(NIL, NO_MODE, find("RPC2_Unsigned"));
 					}
 			| empty
 					{ $$ = NIL; }
@@ -460,7 +460,7 @@ formal_list		: formal array_spec_var ',' formal_list
 						$1->array = $2->name = createsize($1->name);
 						$2->mode = $1->mode;
 						if ($1->mode != IN_MODE) { 
-						    maxvarp = make_var(NIL, NO_MODE, find("RPC2_Integer"));
+						    maxvarp = make_var(NIL, NO_MODE, find("RPC2_Unsigned"));
 						    $1->arraymax = maxvarp->name = createmaxsize($1->name);
 						    maxvarp->mode = IN_MODE;
 						    formal_list.formals[formal_list.counter++] = maxvarp;
@@ -482,7 +482,7 @@ formal_list		: formal array_spec_var ',' formal_list
 						$1->array = $2->name = createsize($1->name);
 						$2->mode = $1->mode;
 						if ($1->mode != IN_MODE) { 
-						    maxvarp = make_var(NIL, NO_MODE, find("RPC2_Integer"));
+						    maxvarp = make_var(NIL, NO_MODE, find("RPC2_Unsigned"));
 						    $1->arraymax = maxvarp->name = createmaxsize($1->name);
 						    maxvarp->mode = IN_MODE;
 						    formal_list.formals[formal_list.counter++] = maxvarp;

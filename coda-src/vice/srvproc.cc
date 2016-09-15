@@ -378,7 +378,7 @@ END_TIMING(GetAttr_Total);
 
 long FS_ViceValidateAttrs(RPC2_Handle RPCid, RPC2_Unsigned Unused,
 		       ViceFid *PrimaryFid, ViceStatus *Status, 
-		       RPC2_Integer NumPiggyFids, ViceFidAndVV Piggies[],
+		       RPC2_Unsigned NumPiggyFids, ViceFidAndVV Piggies[],
 		       RPC2_BoundedBS *VFlagBS, RPC2_CountedBS *PiggyBS)
 {
   long rc;
@@ -400,7 +400,7 @@ long FS_ViceValidateAttrs(RPC2_Handle RPCid, RPC2_Unsigned Unused,
 long FS_ViceValidateAttrsPlusSHA(RPC2_Handle RPCid, RPC2_Unsigned Unused,
 			  ViceFid *PrimaryFid, ViceStatus *Status, 
         		  RPC2_BoundedBS *MySHA,
-			  RPC2_Integer NumPiggyFids, ViceFidAndVV Piggies[],
+			  RPC2_Unsigned NumPiggyFids, ViceFidAndVV Piggies[],
 			  RPC2_BoundedBS *VFlagBS, RPC2_CountedBS *PiggyBS)
 {
     long errorCode = 0;		/* return code to caller */
@@ -414,7 +414,7 @@ long FS_ViceValidateAttrsPlusSHA(RPC2_Handle RPCid, RPC2_Unsigned Unused,
     vle *v = 0;
     vle *av = 0;
     int iErrorCode = 0;
-    int i;
+    unsigned int i;
     char why_failed[25] = "";
 
 START_TIMING(ViceValidateAttrs_Total);
