@@ -14,10 +14,10 @@ BUILT_SOURCES = ${RPC2_FILES:.rpc2=.h}
 CLEANFILES = ${_RP2GEN_GENERATED} rp2gen.tmp rp2gen.stamp
 EXTRA_DIST = ${RPC2_FILES}
 
-rp2gen.stamp: ${RPC2_FILES}
+rp2gen.stamp: ${RPC2_FILES} ${RP2GEN}
 	@rm -f rp2gen.tmp
 	@touch rp2gen.tmp
-	@for file in $? ; do \
+	@for file in ${RPC2_FILES} ; do \
 	    echo "Generating RPC2 stubs for $$file" ; \
 	    $(RP2GEN) -I $(srcdir) $$file ; done
 	@mv -f rp2gen.tmp rp2gen.stamp
