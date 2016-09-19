@@ -131,6 +131,22 @@ char *MultiTypes[] = {	"RPC2_INTEGER_TAG",
 			"RPC2_DOUBLE_TAG"
 };
 
+
+static char length[] = "_length";
+static char reqbuffer[] = "_reqbuffer";
+static char rspbuffer[] = "_rspbuffer";
+static char rpc2val[] = "_rpc2val";
+static char rpc2tmpval[] = "_rpc2tmpval";
+static char bd[] = "_bd";
+static char cid[] = "_cid";
+static char timeoutval[] = "_timeoutval";
+static char timeout[] = "_timeout";
+static char code[] = "_code";
+static char iterate[] = "_iterate";
+static char timestart[] = "_timestart";
+static char timeend[] = "_timeend";
+
+
 void cinclude(char *filename, WHO who, FILE *where)
 {
     char ifdefname[MAXPATHLEN+1], spitname[MAXPATHLEN+1];
@@ -224,14 +240,17 @@ void print_unpack_var(char* prefix, VAR* var, FILE *where) {
     extern char* concat();
     char* name, *suffix;
     MODE mode;
-    char _iterate[] = "_iterate";
 
     name = concat(prefix, var->name);
-    suffix = concat3elem("[", _iterate, "]");
+    suffix = concat3elem("[", iterate, "]");
     mode = var->mode;
     switch(var->type->type->tag) {
             case RPC2_INTEGER_TAG:
                     fprintf(where, "    if (unpack_integer(buf, &(%s)))\n", name);
+                    fprintf(where, "        return -1;\n");
+                    break;
+            case RPC2_ENUM_TAG:
+                    fprintf(where, "    if (unpack_integer(buf, (RPC2_Integer *)&(%s)))\n", name);
                     fprintf(where, "        return -1;\n");
                     break;
             case RPC2_UNSIGNED_TAG:
@@ -244,9 +263,6 @@ void print_unpack_var(char* prefix, VAR* var, FILE *where) {
                         fprintf(where, "        return -1;\n");
                     } else {
                         fprintf(where, "    if (unpack_byte(buf, &(%s)))\n",name);
-                        /* in struct, the following condition is not possible */
-                        //if (who == RP2_CLIENT && mode == IN_OUT_MODE)
-                        //    fputs("*", where);
                         fprintf(where, "        return -1;\n");
                     }
                     break;
@@ -270,18 +286,14 @@ void print_unpack_var(char* prefix, VAR* var, FILE *where) {
                     break;
             case RPC2_DOUBLE_TAG:
                     fprintf(where, "    if (unpack_double(buf, &(%s)))\n", name);
-                    /* in struct, the following condition is not possible */
-                    //if (who == RP2_CLIENT && mode == IN_OUT_MODE)
-                    //    fputs("*", where);
                     fprintf(where, "        return -1;\n");
                     break;
             case RPC2_STRUCT_TAG: {
-                    VAR **field;
                     char *newprefix;
 
-                    if (var->array != NIL) {
-                        fprintf(where, "\n     for(%s = 0; %s < ", _iterate, _iterate);
-                        fprintf(where, "*%s; %s ++) {\n", var->array, _iterate);
+                    if (var->array) {
+                        fprintf(where, "\n  for(unsigned int %s = 0; %s < *%s; %s++) {\n",
+                                iterate, iterate, var->array, iterate);
                         newprefix = concat3elem(prefix, var->name, suffix);
                     } else {
                         newprefix = concat(prefix, var->name);
@@ -289,14 +301,10 @@ void print_unpack_var(char* prefix, VAR* var, FILE *where) {
                     fprintf(where, "    if (unpack_struct_%s(buf, &%s))\n", var->type->name, newprefix);
                     fprintf(where, "        return -1;\n");
                     free(newprefix);
-                    if (var->array != NIL)
-                        fprintf(where, "    }\n\n");
+                    if (var->array)
+                        fprintf(where, "  }\n\n");
             }
             break;
-            case RPC2_ENUM_TAG:
-                    fprintf(where, "    if (unpack_integer(buf, (RPC2_Integer *)&%s))\n", name);
-                    fprintf(where, "        return -1;\n");
-                    break;
             default:
                     printf("RP2GEN: Unrecognized tag: %d\n", var->type->type->tag);
                     exit(1);
@@ -308,14 +316,12 @@ void print_unpack_var(char* prefix, VAR* var, FILE *where) {
 void print_pack_var(char* prefix, VAR* var, FILE *where) {
     extern char* concat();
     char* name, *suffix;
-    MODE mode;
-    char _iterate[] = "_iterate";
 
     name = concat(prefix, var->name);
-    suffix = concat3elem("[", _iterate, "]");
-    mode = var->mode;
+    suffix = concat3elem("[", iterate, "]");
     switch(var->type->type->tag) {
             case RPC2_INTEGER_TAG:
+            case RPC2_ENUM_TAG:
                     fprintf(where, "    if (pack_integer(buf, %s))\n", name);
                     fprintf(where, "        return -1;\n");
                     break;
@@ -329,9 +335,6 @@ void print_pack_var(char* prefix, VAR* var, FILE *where) {
                         fprintf(where, "        return -1;\n");
                     } else {
                         fprintf(where, "    if (pack_byte(buf, %s))\n", name);
-                        /* in struct, the following condition is not possible */
-                        //if (who == RP2_CLIENT && mode == IN_OUT_MODE)
-                        //    fputs("*", where);
                         fprintf(where, "        return -1;\n");
                     }
                     break;
@@ -355,18 +358,14 @@ void print_pack_var(char* prefix, VAR* var, FILE *where) {
                     break;
             case RPC2_DOUBLE_TAG:
                     fprintf(where, "    if (pack_double(buf, %s))\n", name);
-                    /* in struct, the following condition is not possible */
-                    //if (who == RP2_CLIENT && mode == IN_OUT_MODE)
-                    //    fputs("*", where);
                     fprintf(where, "        return -1;\n");
                     break;
             case RPC2_STRUCT_TAG: {
-                    VAR **field;
                     char *newprefix;
 
-                    if (var->array != NIL) {
-                        fprintf(where, "\n     for(%s = 0; %s < ", _iterate, _iterate);
-                        fprintf(where, "*%s; %s ++) {\n", var->array, _iterate);
+                    if (var->array) {
+                        fprintf(where, "\n  for(unsigned int %s = 0; %s < *%s; %s++)\n  {",
+                                iterate, iterate, var->array, iterate);
                         newprefix = concat3elem(prefix, var->name, suffix);
                     } else {
                         newprefix = concat(prefix, var->name);
@@ -374,14 +373,10 @@ void print_pack_var(char* prefix, VAR* var, FILE *where) {
                     fprintf(where, "    if (pack_struct_%s(buf, &%s))\n", var->type->name, newprefix);
                     fprintf(where, "        return -1;\n");
                     free(newprefix);
-                    if (var->array != NIL)
-                        fprintf(where, "    }\n\n");
+                    if (var->array)
+                        fprintf(where, "  }\n\n");
                 }
         	break;
-            case RPC2_ENUM_TAG:
-                fprintf(where, "    if (pack_integer(buf, %s))\n", name);
-                fprintf(where, "        return -1;\n");
-                break;
             default:
                 printf("RP2GEN: Unrecognized tag: %d\n", var->type->type->tag);
                 exit(1);
@@ -553,10 +548,7 @@ void copcodes(PROC *head, WHO who, FILE *where)
 
 }
 
-cproc(head, who, where)
-    PROC *head;
-    WHO who;
-    FILE *where;
+void cproc(PROC *head, WHO who, FILE *where)
 {
 	switch (who) {
 	case RP2_CLIENT: client_procs(head, where);
@@ -572,19 +564,6 @@ cproc(head, who, where)
     }
 }
 
-static char length[] = "_length";
-static char reqbuffer[] = "_reqbuffer";
-static char rspbuffer[] = "_rspbuffer";
-static char rpc2val[] = "_rpc2val";
-static char rpc2tmpval[] = "_rpc2tmpval";
-static char bd[] = "_bd";
-static char cid[] = "_cid";
-static char timeoutval[] = "_timeoutval";
-static char timeout[] = "_timeout";
-static char code[] = "_code";
-static char iterate[] = "_iterate";
-static char timestart[] = "_timestart";
-static char timeend[] = "_timeend";
 
 
 static void locals(FILE *where, WHO who)
@@ -619,8 +598,10 @@ static void client_procs(PROC *head, FILE *where)
 					 */
     //print_inlineFunction(where);
     /* Now, generate procs */
-    for (; head!=NIL; head=head->thread)
-	if (!head->new_connection) one_client_proc(head, where);
+    for (; head!=NIL; head=head->thread) {
+	if (!head->new_connection)
+            one_client_proc(head, where);
+    }
 }
 
 static void one_client_proc(PROC *proc, FILE *where)
@@ -629,7 +610,7 @@ static void one_client_proc(PROC *proc, FILE *where)
     rp2_bool in_parms, out_parms;
 
     /* Output name */
-    fprintf(where, "\nlong ");
+    fprintf(where, "long ");
     if (client_prefix != NIL) fprintf(where, "%s_", client_prefix);
 
     fprintf(where, "%s(RPC2_Handle %s", proc->name, cid);
@@ -714,10 +695,10 @@ static void spit_parm(VAR *parm, WHO who, FILE *where, rp2_bool header)
 
     if (header) {
         fprintf(where, "%s", parm->name);
-        if (parm->array != NIL)
+        if (parm->array)
             fprintf(where, "[]");
     } else {
-        if (parm->array != NIL)
+        if (parm->array)
             if (who == RP2_SERVER)
                 fprintf(where, "*%s = NULL;\n", parm->name);
             else
@@ -842,7 +823,7 @@ static void spit_body(PROC *proc, rp2_bool in_parms, rp2_bool out_parms, FILE *w
     }
 
     /* Generate RPC2 call */
-    fprintf(where, "\n    /* Generate RPC2 call */\n");
+    fprintf(where, "    /* Generate RPC2 call */\n");
     fprintf(where, "    %s->Header.Opcode = %s;\n", reqbuffer, proc->op_code);
     /* Set up timeout */
     fprintf(where, "    ");
@@ -868,10 +849,9 @@ static void spit_body(PROC *proc, rp2_bool in_parms, rp2_bool out_parms, FILE *w
         fprintf(where, "    %s = %s->Header.ReturnCode;\n", code, rspbuffer);
     }
     /* Throw away response buffer */
-    fprintf(where, "    RPC2_FreeBuffer(&%s);\n", rspbuffer);
+    fprintf(where, "    RPC2_FreeBuffer(&%s);\n\n", rspbuffer);
 
     /* Generate code for END_ELAPSE */
-    fprintf(where, "\n");
     fprintf(where, "    /* END_ELAPSE */\n");
     fprintf(where, "    if (opengate) {\n");
     fprintf(where, "	gettimeofday(&_timeend, NULL);\n");
@@ -1123,15 +1103,14 @@ static void pack(WHO who, VAR *parm, char *prefix, FILE *where)
             fprintf(where, "        goto bufferoverflow;\n");
 	    break;
     case RPC2_STRUCT_TAG:       {
-            VAR **field;
 	    char *newprefix;
             char *tmp = NULL;
             buffer_checked = 1;
 
 	    /* Dynamic arrays are taken care of here. */
 	    /* If parm->array isn't NULL, this struct is used as DYNArray. */
-	    if (parm->array !=NIL) {
-                fprintf(where, "\n    for(%s = 0; %s < ", iterate, iterate);
+	    if (parm->array) {
+                fprintf(where, "\n  for(%s = 0; %s < ", iterate, iterate);
                 for_limit(parm, who, where);
                 fprintf(where, "; %s++) {\n", iterate);
 
@@ -1149,8 +1128,8 @@ static void pack(WHO who, VAR *parm, char *prefix, FILE *where)
             free(newprefix);
             if (tmp)
                 free(tmp);
-            if (parm->array !=NIL)
-                fprintf(where, "    }\n\n");
+            if (parm->array)
+                fprintf(where, "  }\n\n");
     }
     break;
     case RPC2_ENCRYPTIONKEY_TAG:{
@@ -1256,21 +1235,20 @@ static void unpack(WHO who, VAR *parm, char *prefix, FILE *where)
 
     case RPC2_BULKDESCRIPTOR_TAG:	break;
     case RPC2_STRUCT_TAG:       {
-	    VAR **field;
 	    char *newprefix;
             char *tmp = NULL;
             buffer_checked = 1;
 
 	    /* Dynamic arrays are taken care of here. */
 	    /* If parm->array isn't NULL, this struct is used as DYNArray. */
-	    if (parm->array !=NIL) {
+	    if (parm->array) {
                 if (who == RP2_CLIENT) {
                     fprintf(where, "    if (");
                     for_limit(parm, who, where);
                     fprintf(where, " > ");
                     fprintf(where, "%s)\n" BUFFEROVERFLOW, parm->arraymax);
                 }
-                fprintf(where, "    for(%s = 0; %s < ", iterate, iterate);
+                fprintf(where, "  for(%s = 0; %s < ", iterate, iterate);
                 for_limit(parm, who, where);
 		fprintf(where, "; %s++) {\n", iterate);
                 tmp = concat3elem(prefix, parm->name, suffix);
@@ -1288,8 +1266,8 @@ static void unpack(WHO who, VAR *parm, char *prefix, FILE *where)
 	    free(newprefix);
             if (tmp)
                     free(tmp);
-	    if (parm->array !=NIL)
-                    fprintf(where, "    }\n\n");
+	    if (parm->array)
+                    fprintf(where, "  }\n");
     }
     break;
     case RPC2_ENCRYPTIONKEY_TAG: {
@@ -1315,9 +1293,9 @@ static void server_procs(PROC *head, FILE *where)
     version_check(where);
     WhatAmIDoing = INSERVERS;
 
-
     /* Generate server unpacking routines */
-    for (proc=head; proc!=NIL; proc=proc->thread) one_server_proc(proc, where);
+    for (proc=head; proc!=NIL; proc=proc->thread)
+        one_server_proc(proc, where);
 
     /* Generate ExecuteRequest routine */
     execute(head, where);
@@ -1351,11 +1329,12 @@ static void one_server_proc(PROC *proc, FILE *where)
     rp2_bool first, in_parms, out_parms, array_parms;
 
     /* If NEW CONNECTION proc, check parameters */
-    if (proc->new_connection) check_new_connection(proc);
+    if (proc->new_connection)
+        check_new_connection(proc);
 
     /* Generate header */
-    fprintf(where, "\nstatic RPC2_PacketBuffer *_");
-    if (server_prefix != NIL) fprintf(where, "%s_", server_prefix);
+    fprintf(where, "static RPC2_PacketBuffer *_");
+    if (server_prefix) fprintf(where, "%s_", server_prefix);
     fprintf(where, "%s(RPC2_Handle %s, RPC2_PacketBuffer *%s, ",
 	    proc->name, cid, reqbuffer);
     fprintf(where, "SE_Descriptor *%s)\n", bd);
@@ -1732,7 +1711,7 @@ static void pr_size(VAR *parm, FILE *where, rp2_bool TOP, int32_t proc, int32_t 
                                         else fprintf(where, "0");
 					if (TOP) {
                                             fprintf(where, ", STRUCT_%d_%d_1_1", proc, arg);
-                                            if (parm->array != NIL)
+                                            if (parm->array)
                                                 fprintf(where, ", 1");
                                             else
                                                 fprintf(where, ", 0");
@@ -1792,17 +1771,17 @@ static void version_check(FILE *where)
     fprintf(where, "CAUTION_______________________________________!!!");
     fprintf(where, "VERSION_IS_INCONSISTENT_WITH_HEADER_FILE______!!!");
     fprintf(where, "PLEASE_CHECK_YOUR_FILE_VERSION________________;");
-    fprintf(where, "\n#endif\n");
+    fprintf(where, "\n#endif\n\n");
 }
 
 
 static void declare_CallCount(PROC *head, FILE *where)
 {
    int i, last_op = -1;
-   fprintf(where, "\nlong %s_ElapseSwitch = 0;\n", subsystem.subsystem_name);
-   fprintf(where, "\nlong %s_EnqueueRequest = 1;\n", subsystem.subsystem_name);
+   fprintf(where, "long %s_ElapseSwitch = 0;\n", subsystem.subsystem_name);
+   fprintf(where, "long %s_EnqueueRequest = 1;\n\n", subsystem.subsystem_name);
 
-   fprintf(where, "\nCallCountEntry %s_CallCount[] = {\n", subsystem.subsystem_name);
+   fprintf(where, "CallCountEntry %s_CallCount[] = {\n", subsystem.subsystem_name);
 
    for ( ; head!=NIL; ) {
        if (!head->new_connection) {
@@ -1822,7 +1801,7 @@ static void declare_CallCount(PROC *head, FILE *where)
 	   head = head->thread;
    }
 
-   fprintf(where, "\n};\n");
+   fprintf(where, "\n};\n\n");
 
 }
 
@@ -1831,7 +1810,7 @@ static void declare_MultiCall(PROC *head, FILE *where)
    PROC *threads;
    int   i, last_op = -1;
 
-   fprintf(where, "\nMultiCallEntry %s_MultiCall[] = {\n", subsystem.subsystem_name);
+   fprintf(where, "MultiCallEntry %s_MultiCall[] = {\n", subsystem.subsystem_name);
    for (threads = head ; threads!=NIL; ) {
        if (!threads->new_connection) {
 
@@ -1849,9 +1828,9 @@ static void declare_MultiCall(PROC *head, FILE *where)
        } else
 	   threads = threads->thread;
    }
-   fprintf(where, "\n};\n");
+   fprintf(where, "\n};\n\n");
 
-   fprintf(where, "\nMultiStubWork %s_MultiStubWork[] = {\n", subsystem.subsystem_name);
+   fprintf(where, "MultiStubWork %s_MultiStubWork[] = {\n", subsystem.subsystem_name);
    last_op = -1;
    for (threads = head ; threads!=NIL; ) {
        if (!threads->new_connection) {
@@ -1869,8 +1848,7 @@ static void declare_MultiCall(PROC *head, FILE *where)
        } else
 	   threads = threads->thread;
    }
-   fprintf(where, "\n};\n");
-
+   fprintf(where, "\n};\n\n");
 }
 
 static void declare_LogFunction(PROC *head, FILE *where)
