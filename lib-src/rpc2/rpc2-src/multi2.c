@@ -140,6 +140,7 @@ long MRPC_MakeMulti (int ServerOp, ARG ArgTypes[], RPC2_Integer HowMany,
 		    break;              /* 0: end   of case RPC2_INTEGER_TAG */
 	    case RPC2_UNSIGNED_TAG: /* 1: begin of case RPC_UNSIGNED_TAG */
 		    switch (a_types->mode) {
+		    case MAX_BOUND:
 		    case IN_MODE:
 			    va_array[i].unsgned = va_arg(ap, RPC2_Unsigned);
 			    break;
@@ -272,6 +273,7 @@ long MRPC_MakeMulti (int ServerOp, ARG ArgTypes[], RPC2_Integer HowMany,
 		    break;
 	    case C_END:
 		    break;
+	    case MAX_BOUND:
 	    case IN_MODE:
 	    case IN_OUT_MODE:
 		    switch(a_types->type) {
@@ -666,6 +668,7 @@ long MRPC_UnpackMulti(int HowMany, RPC2_Handle ConnHandleList[],
 	  rpcval = rspbuffer->Header.ReturnCode;
 	  for(a_types = ArgInfo->ArgTypes, args = ArgInfo->Args; a_types->mode != C_END; a_types++) {
 	    switch(a_types->mode){
+		case MAX_BOUND:
 		case IN_MODE:
 		    args++;
 		    break;

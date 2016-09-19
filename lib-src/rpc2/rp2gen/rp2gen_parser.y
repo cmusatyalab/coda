@@ -462,7 +462,7 @@ formal_list		: formal array_spec_var ',' formal_list
 						if ($1->mode != IN_MODE) { 
 						    maxvarp = make_var(NIL, NO_MODE, find("RPC2_Unsigned"));
 						    $1->arraymax = maxvarp->name = createmaxsize($1->name);
-						    maxvarp->mode = IN_MODE;
+						    maxvarp->mode = MAX_BOUND;
 						    formal_list.formals[formal_list.counter++] = maxvarp;
 						}
 					    }
