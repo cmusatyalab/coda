@@ -1479,17 +1479,15 @@ static void free_boundedbs(VAR *parm, FILE *where)
 
 static void alloc_dynamicarray(VAR *parm, WHO who, FILE *where)
 {
-    MODE mode;
+    const char *array = (parm->mode == IN_MODE) ? parm->array : parm->arraymax;
 
-    mode = parm -> mode;
     /* parm->arraymax is used without any modification.                 *
      * it is valid, because this routine is used only in RP2_SERVER case,   *
      * and in RP2_SERVER case, no * is needed.                              */
-    fprintf(where, "    if (%s > 0) {\n", (mode == IN_MODE)
-	                                  ? parm->array : parm->arraymax);
-    fprintf(where, "\t%s = (%s *)malloc(sizeof(%s)*(%s));\n",
-	    parm->name, parm->type->name, parm->type->name,
-	    (mode == IN_MODE) ? parm->array : parm->arraymax);
+    fprintf(where, "    if (%s) {\n", array);
+    fprintf(where, "\tsize_t _size = sizeof(%s)*(%s);\n", parm->type->name, array);
+    fprintf(where, "\tif (_size > RPC2_MAXPACKETSIZE) return NULL;\n");
+    fprintf(where, "\t%s = (%s *)malloc(_size);\n", parm->name, parm->type->name);
     fprintf(where, "\tif (%s == NULL) return NULL;\n    }\n", parm->name);
 }
 
