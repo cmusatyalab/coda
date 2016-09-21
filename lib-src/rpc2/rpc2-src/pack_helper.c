@@ -133,9 +133,9 @@ int unpack_byte(BUFFER *buf, RPC2_Byte *ptr)
 
 int pack_string(BUFFER *buf, RPC2_String ptr)
 {
-    int length = strlen((const char *)ptr);
+    unsigned int length = strlen((const char *)ptr);
 
-    if (pack_integer(buf, length))
+    if (pack_unsigned(buf, length))
         return -1;
 
     if (buf->eob) {
@@ -150,12 +150,13 @@ int pack_string(BUFFER *buf, RPC2_String ptr)
 
 int unpack_string(BUFFER *buf, RPC2_String *ptr)
 {
-    RPC2_Unsigned length = 0;
+    unsigned int length = 0;
+
     if (unpack_unsigned(buf, &length))
         return -1;
     if (buf->buffer + length > buf->eob)
         return -1;
-    if (*(buf->buffer + length - 1) != '\0')
+    if (*(buf->buffer + length) != '\0')
         return -1;
     /* If RPC2_String is the element of RPC2_Struct, mode should be NO_MODE. */
 	/* So mode should not be examined here. */
@@ -167,7 +168,7 @@ int unpack_string(BUFFER *buf, RPC2_String *ptr)
         *ptr[length] = '\0';
     */
     *ptr = (RPC2_String)(buf->buffer);
-    buf->buffer += _PAD(length);
+    buf->buffer += _PAD(length + 1);
     return 0;
 }
 

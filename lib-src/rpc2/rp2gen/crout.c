@@ -1572,12 +1572,12 @@ static void execute(PROC *head, FILE *where)
 	fprintf(where, "\tcase %s:\n\t\t", head->op_code);
 	fprintf(where, "%s = _", rspbuffer);
 	if (server_prefix != NIL) fprintf(where, "%s_", server_prefix);
-	fprintf(where, "%s(%s, %s, %s);\n\t\t", head->name, cid, reqbuffer, bd);
+	fprintf(where, "%s(%s, %s, %s);\n", head->name, cid, reqbuffer, bd);
 	if (!head->new_connection) {
             fprintf(where, "\t\tbreak;\n");
 	} else {
 	    sawnewconn = 1;
-	    fprintf(where, "RPC2_FreeBuffer(&%s);\n", reqbuffer);
+	    fprintf(where, "\t\tRPC2_FreeBuffer(&%s);\n", reqbuffer);
 	    fprintf(where, "\t\tRPC2_FreeBuffer(&%s);\n", rspbuffer);
 	    fprintf(where, "\t\treturn RPC2_Enable(%s);\n", cid);
 	}
