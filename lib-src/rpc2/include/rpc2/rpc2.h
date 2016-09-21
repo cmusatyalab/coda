@@ -557,7 +557,7 @@ typedef
 
  /* enums used both in original RPC and for MultiRPC (was in rp2.h) */
 
-typedef enum{ RP2_CLIENT=0, RP2_SERVER=1, RP2_MULTI=2, RP2_DUMP=3} WHO;
+typedef enum{ RP2_CLIENT=0, RP2_SERVER=1, RP2_MULTI=2, RP2_DUMP=3, RP2_HELPER=4 } WHO;
 typedef enum{ NO_MODE=0, IN_MODE=1, OUT_MODE=2, IN_OUT_MODE=3, C_END=4, MAX_BOUND=5 } MODE;
 
 typedef enum{ RPC2_INTEGER_TAG=0,	RPC2_UNSIGNED_TAG=1,	RPC2_BYTE_TAG=2,

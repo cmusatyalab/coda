@@ -12,9 +12,9 @@ updateclnt_SOURCES = updateclnt.cc
 updatefetch_SOURCES = updatefetch.cc
 updatesrv_SOURCES = updatesrv.cc
 
-nodist_updateclnt_SOURCES = update.client.c update.h
-nodist_updatefetch_SOURCES = update.client.c update.h
-nodist_updatesrv_SOURCES = update.server.c update.h
+nodist_updateclnt_SOURCES = update.client.c update.helper.c update.h
+nodist_updatefetch_SOURCES = update.client.c update.helper.c update.h
+nodist_updatesrv_SOURCES = update.server.c update.helper.c update.h
 
 AM_CPPFLAGS = $(RPC2_CFLAGS) \
 	      -I$(top_srcdir)/lib-src/base \
