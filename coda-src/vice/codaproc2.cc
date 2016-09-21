@@ -98,22 +98,6 @@ const int Yield_RLDealloc_Mask = (Yield_RLDealloc_Period - 1);
 extern void PollAndYield();
 
 
-/*  *****  Gross stuff for packing/unpacking RPC arguments  *****  */
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#include <rpc2/multi.h>
-extern void unpack(ARG *, PARM *, PARM **, char *_end, long);
-extern void unpack_struct(ARG *, PARM **, PARM **, char *_end, long);
-
-#ifdef __cplusplus
-}
-#endif
-
-static void RLE_Unpack(PARM **, char *_end, ARG * ...);
-
-
 /*  *****  Reintegration Log  *****  */
 
 struct rle {
@@ -545,46 +529,46 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 				    RPC2_Integer *Index,
 				    ViceReintHandle *RHandle) 
 {
-	START_TIMING(Reintegrate_ValidateParms);
-	SLog(10, "ValidateReintegrateParms: RPCid = %d, *Vid = %x", 
-	     RPCid, *Vid);
+    START_TIMING(Reintegrate_ValidateParms);
+    SLog(10, "ValidateReintegrateParms: RPCid = %d, *Vid = %x", RPCid, *Vid);
 
-	int errorCode = 0;
-	*volptr = 0;
-	char *rfile = NULL;
-	PARM *_ptr = 0;
-	char *_end;
-	int index = -1;
-	char *OldName = NULL;
-	char *NewName = NULL;
-	int rlog_len = 0;
+    int errorCode = 0;
+    *volptr = 0;
 
-	/* Translate the volume. */
-	VolumeId VSGVolnum = *Vid;
-	int count, ix;
-	if (!XlateVid(Vid, &count, &ix)) {
-		SLog(0, "ValidateReintegrateParms: failed to translate VSG %x",
-		     VSGVolnum);
-		errorCode = EINVAL;
-		goto Exit;
-	}
-	SLog(2, "ValidateReintegrateParms: %x --> %x", VSGVolnum, *Vid);
+    char *rfile = NULL;
+    int index = -1;
+    unsigned char *OldName;
+    unsigned char *NewName;
+    int rlog_len = 0;
 
-	/* Get the client entry. */
-	if((errorCode = RPC2_GetPrivatePointer(RPCid, (char **)client)) 
-	   != RPC2_SUCCESS) {
-		SLog(0, "ValidateReintegrateParms: no private pointer for RPCid %x", RPCid);
-		goto Exit;
-	}
-	if(!*client) {
-		SLog(0,  "ValidateReintegrateParms: NULL private pointer for RPCid %x", RPCid);
-		errorCode = EINVAL;
-		goto Exit;
-	}
+    BUFFER buffer = {};
+    buffer.who = RP2_SERVER;
+
+    /* Translate the volume. */
+    VolumeId VSGVolnum = *Vid;
+    int count, ix;
+    if (!XlateVid(Vid, &count, &ix)) {
+            SLog(0, "ValidateReintegrateParms: failed to translate VSG %x",
+                 VSGVolnum);
+            errorCode = EINVAL;
+            goto Exit;
+    }
+    SLog(2, "ValidateReintegrateParms: %x --> %x", VSGVolnum, *Vid);
+
+    /* Get the client entry. */
+    errorCode = RPC2_GetPrivatePointer(RPCid, (char **)client);
+    if (errorCode != RPC2_SUCCESS) {
+        SLog(0, "ValidateReintegrateParms: no private pointer for RPCid %x", RPCid);
+        goto Exit;
+    }
+    if (!*client) {
+        SLog(0,  "ValidateReintegrateParms: NULL private pointer for RPCid %x", RPCid);
+        errorCode = EINVAL;
+        goto Exit;
+    }
     SLog(2,  "ValidateReintegrateParms: %s %s.%d",
 	     (*client)->UserName, inet_ntoa((*client)->VenusId->host),
 	     ntohs((*client)->VenusId->port));
-
 
     /* Fetch over the client's reintegrate log, and read it into memory. */
     {
@@ -614,31 +598,21 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 	    goto Exit;
 	}
 
-        unsigned long bytes = sid.Value.SmartFTPD.BytesTransferred;
-	SLog(1, "Reintegrate transferred %d bytes.", bytes);
-        if (bytes != rlen) {
-	    SLog(0,  "ValidateReintegrateParms: size mismatch on CML transfer (got %d, expected %d)",
-                 bytes, rlen);
-            goto Exit;
-        }
+        rlen = sid.Value.SmartFTPD.BytesTransferred;
+	SLog(1, "Reintegrate transferred %d bytes.", rlen);
     }
 
     /* the typical error is ENOMEM */
     errorCode = ENOMEM;
 
-    OldName = new char[MAXNAMELEN+1];
-    if (!OldName) goto Exit;
-
-    NewName = new char[MAXNAMELEN+1];
-    if (!NewName) goto Exit;
-
     /* Allocate/unpack entries and append them to the RL. */
-    _end = rfile + rlen;
-    for (_ptr = (PARM *)rfile, index = 0; (char *)_ptr < _end; index++) {
+    buffer.buffer = rfile;
+    buffer.eob = rfile + rlen;
+
+    for (index = 0; buffer.buffer < buffer.eob; index++) {
 	struct rle *r = (struct rle *)malloc(sizeof(struct rle));
-	if (!r) {
+	if (!r)
 	    goto Exit;
-	}
 
 	list_head_init(&r->reint_log);
 	r->Name[0] = r->Name[1] = NULL;
@@ -647,134 +621,142 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 	    r->VV[i] = NullVV;
 	}
 
-	r->opcode = ntohl(*(RPC2_Integer *)_ptr);
-	_ptr = (PARM *)((char *)_ptr + sizeof(RPC2_Integer));
-	r->Mtime = ntohl(*(Date_t *)_ptr);
-	_ptr = (PARM *)((char *)_ptr + sizeof(Date_t));
+        if (unpack_integer(&buffer, &r->opcode) ||
+            unpack_unsigned(&buffer, &r->Mtime))
+            goto Exit;
 
 	SLog(100,  "ValidateReintegrateParms: [B] Op = %d, Mtime = %d",
 		r->opcode, r->Mtime);
 
 	switch(r->opcode) {
-	    case CML_Create_OP:
-		RLE_Unpack(&_ptr, _end, CML_Create_PTR, &r->Fid[0], &r->VV,
-			   NewName, &r->u.u_create.Owner,
-			   &r->u.u_create.Mode, &r->Fid[1], &r->sid);
+        case CML_Create_OP:
+            if (unpack_CML_Create_request(&buffer, &r->Fid[0], &r->VV[0], &NewName,
+                        &r->u.u_create.Owner, &r->u.u_create.Mode, &r->Fid[1],
+                        &r->sid))
+                goto Exit;
 
-		r->Name[0] = strdup(NewName);
-		if (!r->Name[0]) {
-		    goto Exit;
-		}
-                break;
+            r->Name[0] = strdup((const char *)NewName);
+            if (!r->Name[0])
+                goto Exit;
 
-	    case CML_Link_OP:
-		RLE_Unpack(&_ptr, _end, CML_Link_PTR, &r->Fid[0], &r->VV[0],
-			   NewName, &r->Fid[1], &r->VV[1], &r->sid);
+            break;
 
-		r->Name[0] = strdup(NewName);
-		if (!r->Name[0]) {
-		    goto Exit;
-		}
-		break;
+        case CML_Link_OP:
+            if (unpack_CML_Link_request(&buffer, &r->Fid[0], &r->VV[0],
+                        &NewName, &r->Fid[1], &r->VV[1], &r->sid))
+                goto Exit;
 
-	    case CML_MakeDir_OP:
-		RLE_Unpack(&_ptr, _end, CML_MakeDir_PTR, &r->Fid[0], &r->VV[0],
-			   NewName, &r->Fid[1], &r->u.u_mkdir.Owner,
-                           &r->u.u_mkdir.Mode, &r->sid);
+            r->Name[0] = strdup((const char *)NewName);
+            if (!r->Name[0])
+                goto Exit;
 
-		r->Name[0] = strdup(NewName);
-		if (!r->Name[0]) {
-		    goto Exit;
-		}
-		break;
+            break;
 
-	    case CML_SymLink_OP:
-		RLE_Unpack(&_ptr, _end, CML_SymLink_PTR, &r->Fid[0],
-                           &r->VV[0], NewName, OldName, &r->Fid[1],
-                           &r->u.u_symlink.Owner, &r->u.u_symlink.Mode,
-                           &r->sid);
+        case CML_MakeDir_OP:
+            if (unpack_CML_MakeDir_request(&buffer, &r->Fid[0], &r->VV[0],
+                        &NewName, &r->Fid[1], &r->u.u_mkdir.Owner,
+                        &r->u.u_mkdir.Mode, &r->sid))
+                goto Exit;
 
-		// NewName contains link name, OldName contains link content
+            r->Name[0] = strdup((const char *)NewName);
+            if (!r->Name[0])
+                goto Exit;
 
-		r->Name[0] = strdup(NewName);
-		if (!r->Name[0]) {
-		    goto Exit;
-		}
+            break;
 
-		r->Name[1] = strdup(OldName);
-		if (!r->Name[1]) {
-		    free(r->Name[0]);
-		    r->Name[0] = NULL;
-		    goto Exit;
-		}
-		break;
+        case CML_SymLink_OP:
+            if (unpack_CML_SymLink_request(&buffer, &r->Fid[0], &r->VV[0],
+                        &NewName, &OldName, &r->Fid[1], &r->u.u_symlink.Owner,
+                        &r->u.u_symlink.Mode, &r->sid))
+                goto Exit;
 
-	    case CML_Remove_OP:
-		RLE_Unpack(&_ptr, _end, CML_Remove_PTR, &r->Fid[0],
-			   &r->VV[0], OldName, &r->VV[1], &r->sid);
+            // NewName contains link name, OldName contains link content
+            r->Name[0] = strdup((const char *)NewName);
+            if (!r->Name[0])
+                goto Exit;
 
-		r->Name[0] = strdup(OldName);
-		if (!r->Name[0]) {
-		    goto Exit;
-		}
-		break;
+            r->Name[1] = strdup((const char *)OldName);
+            if (!r->Name[1]) {
+                free(r->Name[0]);
+                r->Name[0] = NULL;
+                goto Exit;
+            }
+            break;
 
-	    case CML_RemoveDir_OP:
-		RLE_Unpack(&_ptr, _end, CML_RemoveDir_PTR, &r->Fid[0], &r->VV[0],
-			   OldName, &r->VV[1], &r->sid);
+        case CML_Remove_OP:
+            if (unpack_CML_Remove_request(&buffer, &r->Fid[0], &r->VV[0],
+                        &OldName, &r->VV[1], &r->sid))
+                goto Exit;
 
-		r->Name[0] = strdup(OldName);
-		if (!r->Name[0]) {
-		    goto Exit;
-		}
-		break;
+            r->Name[0] = strdup((const char *)OldName);
+            if (!r->Name[0])
+                goto Exit;
 
-	    case CML_Store_OP:
-		RLE_Unpack(&_ptr, _end, CML_Store_PTR, &r->Fid[0],
-			   &r->VV[0], &r->u.u_store.Length,
-			   &r->sid);
-		r->u.u_store.UntranslatedFid = r->Fid[0];
-		r->u.u_store.Inode = RHandle ? RHandle->Inode : 0;
-		break;
+            break;
 
-	    case CML_Utimes_OP:
-		RLE_Unpack(&_ptr, _end, CML_Utimes_PTR, &r->Fid[0], &r->VV[0],
-			   &r->u.u_utimes.Date, &r->sid);
-		break;
+        case CML_RemoveDir_OP:
+            if (unpack_CML_RemoveDir_request(&buffer, &r->Fid[0], &r->VV[0],
+                        &OldName, &r->VV[1], &r->sid))
+                goto Exit;
 
-	    case CML_Chmod_OP:
-		RLE_Unpack(&_ptr, _end, CML_Chmod_PTR, &r->Fid[0], &r->VV[0],
-			   &r->u.u_chmod.Mode, &r->sid);
-		break;
+            r->Name[0] = strdup((const char *)OldName);
+            if (!r->Name[0])
+                goto Exit;
 
-	    case CML_Chown_OP:
-		RLE_Unpack(&_ptr, _end, CML_Chown_PTR, &r->Fid[0], &r->VV[0],
-			   &r->u.u_chown.Owner, &r->sid);
-		break;
+            break;
 
-	    case CML_Rename_OP:
-                RLE_Unpack(&_ptr, _end, CML_Rename_PTR,
-			   &r->Fid[0], &r->VV[0], OldName,
-                           &r->Fid[1], &r->VV[1], NewName,
-			   &r->VV[2], &r->sid);
+        case CML_Store_OP:
+            if (unpack_CML_Store_request(&buffer, &r->Fid[0], &r->VV[0],
+                        &r->u.u_store.Length, &r->sid))
+                goto Exit;
 
-		r->Name[0] = strdup(OldName);
-		if (!r->Name[0]) {
-		    goto Exit;
-		}
+            r->u.u_store.UntranslatedFid = r->Fid[0];
+            r->u.u_store.Inode = RHandle ? RHandle->Inode : 0;
+            break;
 
-		r->Name[1] = strdup(NewName);
-		if (!r->Name[1]) {
-		    free(r->Name[0]);
-		    r->Name[0] = NULL;
-		    goto Exit;
-		}
-		break;
+        case CML_Utimes_OP:
+            if (unpack_CML_Utimes_request(&buffer, &r->Fid[0], &r->VV[0],
+                        &r->u.u_utimes.Date, &r->sid))
+                goto Exit;
 
-	    default:
-		SLog(0,  "ValidateReintegrateParms: bogus opcode (%d)", r->opcode);
-		errorCode = EINVAL;
-		goto Exit;
+            break;
+
+        case CML_Chmod_OP:
+            if (unpack_CML_Chmod_request(&buffer, &r->Fid[0], &r->VV[0],
+                        &r->u.u_chmod.Mode, &r->sid))
+                goto Exit;
+
+            break;
+
+        case CML_Chown_OP:
+            if (unpack_CML_Chown_request(&buffer, &r->Fid[0], &r->VV[0],
+                        &r->u.u_chown.Owner, &r->sid))
+                goto Exit;
+
+            break;
+
+        case CML_Rename_OP:
+            if (unpack_CML_Rename_request(&buffer, &r->Fid[0], &r->VV[0],
+                        &OldName, &r->Fid[1], &r->VV[1], &NewName, &r->VV[2],
+                        &r->sid))
+                goto Exit;
+
+            r->Name[0] = strdup((const char *)OldName);
+            if (!r->Name[0])
+                goto Exit;
+
+            r->Name[1] = strdup((const char *)NewName);
+            if (!r->Name[1]) {
+                free(r->Name[0]);
+                r->Name[0] = NULL;
+                goto Exit;
+            }
+            break;
+
+        default:
+            SLog(0,  "ValidateReintegrateParms: bogus opcode (%d)", r->opcode);
+            errorCode = EINVAL;
+            goto Exit;
 	}
 
 	SLog(100,  "ValidateReintegrateParms: [E] Op = %d, Mtime = %d",
@@ -864,9 +846,6 @@ Exit:
     if (Index) *Index = (RPC2_Integer) index;
     SLog(10,  "ValidateReintegrateParms: returning %s", ViceErrorMsg(errorCode));
 END_TIMING(Reintegrate_ValidateParms);
-
-    if (OldName) delete [] OldName;
-    if (NewName) delete [] NewName;
 
     return(errorCode);
 }
@@ -2266,60 +2245,6 @@ static void ReintFinalCOP(vle *v, Volume *volptr, RPC2_Integer *VS)
 	else {
 	    AddPairToCopPendingTable(FinalSid, &v->fid);
 	}
-}
-
-
-/*  *****  Gross stuff for packing/unpacking RPC arguments  *****  */
-
-/* Unpack a ReintegrationLog Entry. */
-/* Patterned after code in MRPC_MakeMulti(). */
-static void RLE_Unpack(PARM **ptr, char *_end, ARG *ArgTypes ...) 
-{
-	SLog(100,  "RLE_Unpack: ptr = %x, ArgTypes = %x", ptr, ArgTypes);
-	
-	va_list ap;
-	va_start(ap, ArgTypes);
-	for (ARG *a_types = ArgTypes; a_types->mode != C_END; a_types++) {
-		PARM *args = (va_arg(ap, PARM*));
-		if (a_types->mode != IN_MODE && a_types->mode != IN_OUT_MODE)
-			continue;
-		
-/*
-  SLog(100,  "\ta_types = [%d %d %d %x], ptr = (%x %x %x), args = %x ",
-  a_types->mode, a_types->type, a_types->size, a_types->field,
-  ptr, *ptr, **ptr, args);
-*/
-		
-		/* Extra level of indirection, since unpack routines are from MRPC. */
-		/* something with va_args needed this.. clean this up later!!
-		   -- Troy <hozer@drgw.net> */
-		PARM *tmp = (PARM *)&args;
-		PARM *xargs = (PARM *)&tmp;
-		
-		/*
-		  if (a_types->type == RPC2_COUNTEDBS_TAG) {
-		  SLog(100,  "\t&xargs->cbsp[0]->SeqLen = %x, * = %d, ntohl((*_ptr)->integer) = %d",
-		  &(xargs->cbsp[0]->SeqLen), xargs->cbsp[0]->SeqLen, ntohl((*(ptr))->integer));
-		  SLog(100,  "\t&xargs->cbsp[0]->SeqBody = %x, * = %x, (*_ptr) = %x",
-		  &(xargs->cbsp[0]->SeqBody), xargs->cbsp[0]->SeqBody, *(ptr + 1));
-		  }
-		*/
-		
-		if (a_types->type == RPC2_STRUCT_TAG) {
-			PARM *str = (PARM *)xargs->structpp[0];
-			unpack_struct(a_types, &str, (PARM **)ptr, _end, 0);
-		}
-		else {
-			if (a_types->type == RPC2_STRING_TAG)
-				/* Temporary!  Fix an "extra dereference" bug in unpack!  -JJK */
-				unpack(a_types, (PARM *)&xargs, (PARM **)ptr, _end, 0);
-			else
-				unpack(a_types, xargs, (PARM **)ptr, _end, 0);
-		}
-	}
-	
-	va_end(ap);
-	SLog(100,  "RLE_Unpack: returning");
 }
 
 

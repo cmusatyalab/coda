@@ -14,11 +14,11 @@ EXTRA_DIST += mond.rpc2.new
 nodist_libvenusdep_la_SOURCES = vcrcommon.h callback.server.c cml.client.c \
     vice.client.c vice.multi.c callback.helper.c cml.helper.c vice.helper.c vcrcommon.helper.c
 nodist_libvicedep_la_SOURCES = vcrcommon.h volutil.h callback.client.c \
-    callback.multi.c cml.multi.c mond.client.c res.client.c res.multi.c \
+    callback.multi.c mond.client.c res.client.c res.multi.c \
     res.server.c vice.server.c voldump.client.c volutil.server.c callback.helper.c \
-	cml.helper.c mond.helper.c res.helper.c vice.helper.c voldump.helper.c vcrcommon.helper.c volutil.helper.c
+    cml.helper.c mond.helper.c res.helper.c vice.helper.c voldump.helper.c vcrcommon.helper.c volutil.helper.c
 nodist_libvolutildep_la_SOURCES = vcrcommon.h volutil.h voldump.server.c volutil.client.c voldump.helper.c \
-								  volutil.helper.c vcrcommon.helper.c
+    volutil.helper.c vcrcommon.helper.c
 
 AM_CPPFLAGS = $(RPC2_CFLAGS)
 
