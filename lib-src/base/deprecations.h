@@ -26,7 +26,7 @@ Coda are listed in the file CREDITS.
  * Ideally these can be either 'optimized away' or switched to using the
  * server/port names (Server_FQDN array).
  */
-#define WARN_SINGLE_HOMING __attribute__ ((deprecated ("Prevents having multihomed servers")))
+#define WARN_SINGLE_HOMING //__attribute__ ((deprecated ("Prevents having multihomed servers")))
 
 #endif  /* _CODA_DEPRECATIONS_H_ */
 
