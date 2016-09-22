@@ -107,7 +107,7 @@ void recov_vol_log::ResetTransients(VolumeId vid)
 {
     /* allocate bitmap first */
     vm_inuse = new bitmap(admin_limit, 0);
-    CODA_ASSERT(vm_inuse);
+    CODA_ASSERT(!admin_limit || vm_inuse);
     
     *vm_inuse = recov_inuse;
     nused = vm_inuse->Count();
