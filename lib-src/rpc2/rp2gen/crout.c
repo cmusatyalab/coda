@@ -858,7 +858,8 @@ static void helper_procs(PROC *proc, FILE *where)
         has_parms(proc, &in_parms, &out_parms);
 
         if (in_parms) {
-            spit_pack_request(proc, where, RP2_FALSE);
+            if (!proc->new_connection)
+                spit_pack_request(proc, where, RP2_FALSE);
             spit_unpack_request(proc, where, RP2_FALSE);
         }
         if (out_parms) {
