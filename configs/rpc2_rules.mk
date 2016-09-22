@@ -19,7 +19,7 @@ rp2gen.stamp: ${RPC2_FILES} ${RP2GEN}
 	@touch rp2gen.tmp
 	@for file in ${RPC2_FILES} ; do \
 	    echo "Generating RPC2 stubs for $$file" ; \
-	    $(RP2GEN) -I $(srcdir) $$file ; done
+	    $(RP2GEN) -I $(srcdir) $(srcdir)/$$file ; done
 	@mv -f rp2gen.tmp rp2gen.stamp
 
 ${_RP2GEN_GENERATED}: rp2gen.stamp
