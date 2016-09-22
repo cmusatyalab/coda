@@ -78,15 +78,11 @@ static void free_dynamicarray(VAR *parm, FILE *where);
 static void pass_parm(VAR *parm, FILE *where);
 static void execute(PROC *head, FILE *where);
 static void multi_procs(PROC *head, FILE *where);
-static void pr_size(VAR *parm, FILE *where, rp2_bool TOP, int32_t proc, int32_t arg);
-static void do_struct(VAR **fields, int32_t proc, int32_t arg, int32_t level, int32_t cur_struct, FILE *where);
 static void macro_define(FILE *where);
 static void version_check(FILE *where);
 static void declare_CallCount(PROC *head, FILE *where);
 static void declare_MultiCall(PROC *head, FILE *where);
 static void declare_LogFunction(PROC *head, FILE *where);
-/* the stubpredefined structs have been moved to rpc2/rpc2.h */
-//static void print_stubpredefined(FILE *where);
 void print_struct_func(RPC2_TYPE *t, FILE *where, FILE *hfile, char *name);
 void print_pack_var(char* prefix, VAR* var, FILE *where);
 void print_unpack_var(char* prefix, VAR* var, FILE *where);
@@ -295,8 +291,8 @@ void print_unpack_var(char* prefix, VAR* var, FILE *where)
                     free(newprefix);
                     if (var->array)
                         fprintf(where, "  }\n\n");
-            }
-            break;
+                    }
+                    break;
             default:
                     printf("RP2GEN: Unrecognized tag: %d\n", var->type->type->tag);
                     exit(1);
@@ -368,8 +364,8 @@ void print_pack_var(char* prefix, VAR* var, FILE *where)
                     free(newprefix);
                     if (var->array)
                         fprintf(where, "  }\n\n");
-                }
-        	break;
+                    }
+                    break;
             default:
                 printf("RP2GEN: Unrecognized tag: %d\n", var->type->type->tag);
                 exit(1);
@@ -448,9 +444,6 @@ void copcodes(PROC *head, WHO who, FILE *where)
 	}\
 
     macro_define(where);
-
-    /* the  stubpredefined structs are all already defined in rpc2.h */
-    //print_stubpredefined(where);
 
     fprintf(where, "\n/* Op codes and definitions */\n\n");
 
@@ -1637,53 +1630,6 @@ static void dump_procs(PROC *head, FILE *where)
 }
 
 
-static void multi_procs(PROC *head, FILE *where)
-{
-    PROC *proc;     /* temp for iteration to create arg descriptors */
-    VAR **var;
-    char *args;
-    char *subname;
-    int32_t arg = 1;	     /* argument number in order of appearance */
-
-
-    /* Preliminary stuff */
-    common(where);
-    version_check(where);
-    WhatAmIDoing = NEITHER;
-
-    declare_MultiCall(head, where);	/* user transparent log structure
-					   int *_ElapseSwitch;
-					   *_CallCount[]
-					 */
-    declare_LogFunction(head, where);
-
-    /* Generate argument descriptors for MakeMulti call */
-    for(proc =  head; proc != NIL; proc = proc->thread) {
-	args = concat(proc->name, "_ARGS");
-
-	/* recursively write out any structure arguments */
-	for(var = proc->formals; *var != NIL; var++, arg++) {
-	    if ((*var)->type->type->tag == RPC2_STRUCT_TAG)
-	       do_struct((*var)->type->type->fields.struct_fields,
-                         proc->op_number, arg, 1, 1, where);
-	}
-	arg = 1;	/* reset argument counter */
-	fprintf(where, "\nARG\t%s[] = {\n", args);
-	for(var = proc->formals; *var != NIL; var++, arg++) {
-	    fprintf(where, "\t\t{%s, %s, ", MultiModes[(int32_t)(*var)->mode], MultiTypes[(int32_t)(*var)->type->type->tag]);
-	    pr_size(*var, where, RP2_TRUE, proc->op_number, arg);
-	    fprintf(where, ", NULL, NULL},\n");
-	}
-	subname = subsystem.subsystem_name;
-	/* RPC2_STRUCT_TAG in C_END definition is bogus */
-	fprintf(where, "\t\t{%s, RPC2_STRUCT_TAG, 0, NULL, 0, &%s_startlog, &%s_endlog}\n", MultiModes[4], subname, subname);
-	fprintf(where, "\t};\n");
-	free(args);
-	arg = 1; 	/* reset argument counter */
-    }
-}
-
-
 static void pr_size(VAR *parm, FILE *where, rp2_bool TOP, int32_t proc, int32_t arg)
 {
     switch (parm->type->type->tag) {
@@ -1733,7 +1679,7 @@ static void pr_size(VAR *parm, FILE *where, rp2_bool TOP, int32_t proc, int32_t 
 
 
 static void do_struct(VAR **fields, int32_t proc, int32_t arg, int32_t level, int32_t cur_struct, FILE *where)
- {
+{
    VAR **field;
    int32_t structs = 0;
 
@@ -1749,16 +1695,63 @@ static void do_struct(VAR **fields, int32_t proc, int32_t arg, int32_t level, in
 
    fprintf(where, "\nstatic ARG\tSTRUCT_%d_%d_%d_%d[] = {\n", proc, arg, level, cur_struct);
    for(field = fields; *field != NIL; field++) {
-     fprintf(where, "\t\t{%s, %s, ", MultiModes[0], MultiTypes[(int32_t)(*field)->type->type->tag]);
-     pr_size(*field, where, RP2_FALSE, proc, arg);
-     if((*field)->type->type->tag == RPC2_STRUCT_TAG) {
-	fprintf(where, ", STRUCT_%d_%d_%d_%d, 0", proc, arg, level + 1, ++structs);
-     } else
-        fprintf(where, ", NULL, 0");
-     fprintf(where, ", NULL, NULL},\n");
+       fprintf(where, "\t\t{%s, %s, ", MultiModes[0], MultiTypes[(int32_t)(*field)->type->type->tag]);
+       pr_size(*field, where, RP2_FALSE, proc, arg);
+       if((*field)->type->type->tag == RPC2_STRUCT_TAG) {
+           fprintf(where, ", STRUCT_%d_%d_%d_%d, 0", proc, arg, level + 1, ++structs);
+       } else
+           fprintf(where, ", NULL, 0");
+       fprintf(where, ", NULL, NULL},\n");
    }
    fprintf(where, "\t\t{%s, 0, 0, NULL, 0, NULL, NULL}\n\t};\n", MultiModes[4]);
- }
+}
+
+
+static void multi_procs(PROC *head, FILE *where)
+{
+    PROC *proc;     /* temp for iteration to create arg descriptors */
+    VAR **var;
+    char *args;
+    char *subname;
+    int32_t arg = 1;	     /* argument number in order of appearance */
+
+
+    /* Preliminary stuff */
+    common(where);
+    version_check(where);
+    WhatAmIDoing = NEITHER;
+
+    declare_MultiCall(head, where);	/* user transparent log structure
+					   int *_ElapseSwitch;
+					   *_CallCount[]
+					 */
+    declare_LogFunction(head, where);
+
+    /* Generate argument descriptors for MakeMulti call */
+    for(proc =  head; proc != NIL; proc = proc->thread) {
+	args = concat(proc->name, "_ARGS");
+
+	/* recursively write out any structure arguments */
+	for(var = proc->formals; *var != NIL; var++, arg++) {
+	    if ((*var)->type->type->tag == RPC2_STRUCT_TAG)
+	       do_struct((*var)->type->type->fields.struct_fields,
+                         proc->op_number, arg, 1, 1, where);
+	}
+	arg = 1;	/* reset argument counter */
+	fprintf(where, "\nARG\t%s[] = {\n", args);
+	for(var = proc->formals; *var != NIL; var++, arg++) {
+	    fprintf(where, "\t\t{%s, %s, ", MultiModes[(int32_t)(*var)->mode], MultiTypes[(int32_t)(*var)->type->type->tag]);
+	    pr_size(*var, where, RP2_TRUE, proc->op_number, arg);
+	    fprintf(where, ", NULL, NULL},\n");
+	}
+	subname = subsystem.subsystem_name;
+	/* RPC2_STRUCT_TAG in C_END definition is bogus */
+	fprintf(where, "\t\t{%s, RPC2_STRUCT_TAG, 0, NULL, 0, &%s_startlog, &%s_endlog}\n", MultiModes[4], subname, subname);
+	fprintf(where, "\t};\n");
+	free(args);
+	arg = 1; 	/* reset argument counter */
+    }
+}
 
 static void macro_define(FILE *where)
 {
