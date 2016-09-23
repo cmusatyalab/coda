@@ -113,9 +113,6 @@ TBD
 Although the source of LWP, RPC2, and RVM has been merged back into the main
 Coda repository, we are still trying to keep them mostly independent. This
 means that they retain their own build infrastructure and library versioning.
-As a result we will not accept any patches or commits that touch paths in one
-or more of the support libraries and the main Coda sources at the same time,
-unless absolutely necessary.
 
 When updating supporting library sources make sure to properly follow the
 libtool library versioning guidelines. The version info is set using the
