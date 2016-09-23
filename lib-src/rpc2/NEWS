@@ -1,3 +1,13 @@
+New in 2.12:
+
+* Vastly improved readability of the stub generated code with faster
+  compilation and smaller object sizes.
+  - Add pack/unpack functions for basic types.    (Si Lao)
+  - Generating pack/unpack functions for structs. (Si Lao)
+  - Generating pack/unpack functions for request and response packets.
+* Fixed unbounded memory allocation when sending array of structs.
+* Removed dead code, fixed compile warnings.
+
 New in 2.11:
 
 * Call abort() when AES or RNG tests fail.

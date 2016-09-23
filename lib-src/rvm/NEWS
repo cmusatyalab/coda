@@ -1,3 +1,8 @@
+New in 1.19:
+
+* Fixed initialization for >2GB RVM segments. (Rune)
+* Removed some more dead code, fixed compile warnings.
+
 New in 1.18:
 
 * Removed some unused code.
