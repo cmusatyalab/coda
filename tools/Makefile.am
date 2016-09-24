@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-dist_noinst_SCRIPTS = make-split-dist.sh maketags pkg-bsd.sh
+dist_noinst_SCRIPTS = make-split-dist.sh maketags pkg-bsd.sh find_unused_symbols.py
 
 if HAVE_SYSTEMD
 dist_systemdsystemunit_DATA = coda-client.service coda-server.service \
