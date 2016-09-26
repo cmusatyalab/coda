@@ -182,7 +182,7 @@ extern void PollAndYield();
 */
 long FS_ViceFetch(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
 		  RPC2_Unsigned InconOK, ViceStatus *Status,
-		  RPC2_Unsigned PrimaryHost, RPC2_Unsigned Offset,
+		  RPC2_Unsigned OldPrimaryHost, RPC2_Unsigned Offset,
 		  RPC2_CountedBS *PiggyBS, SE_Descriptor *BD)
 {
     int errorCode = 0;		/* return code to caller */
@@ -222,10 +222,10 @@ START_TIMING(Fetch_Total);
 
     /* Perform operation. */
     {
-	if (!ReplicatedOp || PrimaryHost == ThisHostAddr)
-	    if ((errorCode = FetchBulkTransfer(RPCid, client, volptr, v->vptr,
-					      Offset, VV)))
-		goto FreeLocks;
+        if ((errorCode = FetchBulkTransfer(RPCid, client, volptr, v->vptr,
+                                          Offset, VV)))
+            goto FreeLocks;
+
 	PerformFetch(client, volptr, v->vptr);
 
 	SetStatus(v->vptr, Status, rights, anyrights);
@@ -2215,8 +2215,16 @@ int FetchBulkTransfer(RPC2_Handle RPCid, ClientEntry *client,
 		break;
 	}
 	if((errorCode = (int) RPC2_InitSideEffect(RPCid, &sid)) <= RPC2_ELIMIT) {
-	    SLog(0, "FetchBulkTransfer: InitSE failed (%d), %s",
-		 errorCode, FID_(&Fid));
+            /* if we were called as part of a MultiRPC and the caller set
+             * OMIT_SE on the SE_Descriptor of our connection, then the
+             * parameters would not have been piggybacked and SFTP_InitSE will
+             * fail with RPC2_SEFAIL2 */
+            if (errorCode == RPC2_SEFAIL2) {
+                errorCode = 0;
+            } else {
+                SLog(0, "FetchBulkTransfer: InitSE failed (%d), %s",
+                     errorCode, FID_(&Fid));
+            }
 	    goto Exit;
 	}
 
