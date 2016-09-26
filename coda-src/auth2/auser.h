@@ -25,16 +25,10 @@ listed in the file CREDITS.
 #ifndef _AUSER_INCLUDED
 #define _AUSER_INCLUDED 1
 
-
-typedef enum AuthMethod {
-	AUTH_CODA, AUTH_KERBEROS4, AUTH_KERBEROS5
-} AuthMethod_t;
-
-int U_GetAuthMethod(const char *arg, RPC2_Integer *type);
 void U_HostToNetClearToken(ClearToken *cToken);
 void U_NetToHostClearToken(ClearToken *cToken);
 
-int U_Authenticate(struct RPC2_addrinfo *srvs, const int AuthenticationType,
+int U_Authenticate(struct RPC2_addrinfo *srvs,
 		   const char *uName, const int uNamelen,
 		   ClearToken *cToken, EncryptedSecretToken sToken, 
 		   const int verbose, const int interactive);
@@ -43,7 +37,7 @@ int U_Authenticate(struct RPC2_addrinfo *srvs, const int AuthenticationType,
   * uName to newPasswd if myName is the same as uName or a system
   * administrator. MyPasswd is used to validate myName. */
 int U_ChangePassword(struct RPC2_addrinfo *srvs, const char *uName,
-		     const char *newPasswd, const int AuthenticationType,
+		     const char *newPasswd,
 		     const char *myName, const int myNamelen,
                      const char *myPasswd, const int myPasswdlen);
 
@@ -56,7 +50,6 @@ struct RPC2_addrinfo *U_GetAuthServers(const char *realm, const char *host);
 /* Binds to Auth Server on behalf of uName using uPasswd as password.
    Sets RPCid to the value of the connection id.    */
 int U_BindToServer(struct RPC2_addrinfo *srvs,
-		   const RPC2_Integer AuthenticationType, 
 		   const char *uName, const int uNamelen,
 		   const char *uPasswd, const int uPasswdlen,
 		   RPC2_Handle *RPCid, const int interactive);

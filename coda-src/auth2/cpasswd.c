@@ -191,7 +191,7 @@ tryagain:
 		exit(1);
 	}
 	srvs = U_GetAuthServers(realm, host);
-	rc = U_ChangePassword (srvs, username, newpw, AUTH_METHOD_CODAUSERNAME, username, strlen(username)+1, oldpw, strlen(oldpw)+1);
+	rc = U_ChangePassword(srvs, username, newpw, username, strlen(username)+1, oldpw, strlen(oldpw)+1);
 	RPC2_freeaddrinfo(srvs);
 
 	switch(rc) {

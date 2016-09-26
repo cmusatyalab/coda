@@ -4,13 +4,13 @@
 clog \- Authenticate to the Coda distributed file system
 .SH SYNOPSIS
 
-\fBclog\fR [ \fB-pipe\fR ] [ \fB-test\fR ] [ \fB-host \fIhostname\fB\fR ] [ \fB-coda | -kerberos4 | -kerberos5\fR ] [ \fB-tofile \fIfile\fB\fR ] [ \fB-fromfile \fIfile\fB\fR ] \fB[username][@realm]\fR
+\fBclog\fR [ \fB-pipe\fR ] [ \fB-test\fR ] [ \fB-host \fIhostname\fB\fR ] [ \fB-tofile \fIfile\fB\fR ] [ \fB-fromfile \fIfile\fB\fR ] \fB[username][@realm]\fR
 
 .SH "DESCRIPTION"
 .PP
 This command enables users to get tokens to use for authenticated
-communication with a Coda File System.  The given name and a password or
-kerberos token are passed to an \fBAuthentication
+communication with a Coda File System.  The given name and a password
+are passed to an \fBAuthentication
 Server\fR\&. The \fBAuthentication Server\fR returns
 a set of tokens encoding the chosen identity if the password is correct.
 \fBclog\fR passes these tokens to the
@@ -32,10 +32,6 @@ Test the clog-venus token passing code.
 \fB-host\fR
 Specify the host where the authentication server is
 running.
-.TP
-\fB-coda | -kerberos4 | -kerberos5\fR
-Authentication mechanism, use kerberos tickets or coda
-password to identify yourself to the authentication server.
 .TP
 \fB-tofile\fR
 After obtaining a token from the authentication server,

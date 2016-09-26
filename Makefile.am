@@ -4,7 +4,7 @@ SUBDIRS = ${subdirs} configs lib-src coda-src tools
 
 ACLOCAL_AMFLAGS = -I m4
 
-EXTRA_DIST = LICENSE README.BSD README.Solaris README.kerberos README.nt \
+EXTRA_DIST = LICENSE README.BSD README.Solaris README.nt \
 	     bootstrap.sh configure README.md
 
 distcleancheck_listfiles = \

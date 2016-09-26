@@ -81,9 +81,6 @@ CODA_CHECK_LIBCURSES
 CODA_CHECK_READLINE
 CODA_CHECK_FLTK
 
-CODA_CHECK_KRB4
-CODA_CHECK_KRB5
-
 SYSTEMD_CHECKS
 
 dnl Checks for header files.
@@ -159,9 +156,6 @@ AM_CONDITIONAL(BUILD_VENUS, [test "$buildclient" != no -o "$buildvenus" != no])
 
 AM_CONDITIONAL([HAVE_PYTHON], [test "$PYTHON" != :])
 AM_CONDITIONAL([WANT_FTS], [test "$ac_cv_header_fts_h" = no])
-AM_CONDITIONAL([WANT_KERBEROS], [test -n "$LIBKRB4" -o -n "$LIBKRB5"])
-AM_CONDITIONAL([WANT_KRB4], [test -n "$LIBKRB4"])
-AM_CONDITIONAL([WANT_KRB5], [test -n "$LIBKRB5"])
 
 AC_CONFIG_FILES([coda-src/scripts/bldvldb.sh],
        [chmod +x coda-src/scripts/bldvldb.sh])
