@@ -565,14 +565,13 @@ struct VolFlags {
 
 /* Descriptor for a range of pre-allocated fids. */
 struct FidRange : public ViceFidRange {
-    unsigned long AllocHost;			/* shouldn't be needed! -JJK */
+    unsigned long Unused;			/* was unused AllocHost */
 
     FidRange() {
 	Vnode = 0;
 	this->Unique = 0;
 	Stride = 0;
 	Count = 0;
-	AllocHost = 0;
     }
 };
 
@@ -806,7 +805,7 @@ class repvol : public volent {
     int Collate_COP2(mgrpent *, int);
 
     /* Allocation routines. */
-    int AllocFid(ViceDataType, VenusFid *, RPC2_Unsigned *, uid_t, int = 0);
+    int AllocFid(ViceDataType, VenusFid *, uid_t, int = 0);
 
     /* Utility routines. */
     void GetHosts(struct in_addr hosts[VSG_MEMBERS]);

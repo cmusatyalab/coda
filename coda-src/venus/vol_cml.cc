@@ -2309,7 +2309,7 @@ int cmlent::realloc()
     VenusFid OldFid;
     VenusFid NewFid;
     ViceDataType type;
-    RPC2_Unsigned AllocHost;
+
     switch(opcode) {
 	case CML_Create_OP:
 	    if (!FID_IsLocalFile(MakeViceFid(&u.u_create.CFid)))
@@ -2336,7 +2336,7 @@ int cmlent::realloc()
 	    goto Exit;
     }
 
-    code = vol->AllocFid(type, &NewFid, &AllocHost, uid, 1);
+    code = vol->AllocFid(type, &NewFid, uid, 1);
     if (code == 0) {
 	    Recov_BeginTrans();
 	    vol->FidsRealloced++;

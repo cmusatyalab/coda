@@ -404,7 +404,6 @@ int fsobj::DisconnectedMkdir(Date_t Mtime, uid_t uid, fsobj **t_fso_addr,
     int code = 0;
     fsobj *target_fso = 0;
     VenusFid target_fid;
-    RPC2_Unsigned AllocHost = 0;
     repvol *rv;
 
     if (!vol->IsReplicated()) {
@@ -415,7 +414,7 @@ int fsobj::DisconnectedMkdir(Date_t Mtime, uid_t uid, fsobj **t_fso_addr,
 
     /* Allocate a fid for the new object. */
     /* if we time out, return so we will try again with a local fid. */
-    code = rv->AllocFid(Directory, &target_fid, &AllocHost, uid);
+    code = rv->AllocFid(Directory, &target_fid, uid);
     if (code != 0) goto Exit;
 
     /* Allocate the fsobj. */
@@ -617,7 +616,6 @@ int fsobj::DisconnectedSymlink(Date_t Mtime, uid_t uid, fsobj **t_fso_addr,
     int code = 0;
     fsobj *target_fso = 0;
     VenusFid target_fid = NullFid;
-    RPC2_Unsigned AllocHost = 0;
     repvol *rv;
 
     if (!vol->IsReplicated()) {
@@ -628,7 +626,7 @@ int fsobj::DisconnectedSymlink(Date_t Mtime, uid_t uid, fsobj **t_fso_addr,
     
     /* Allocate a fid for the new object. */
     /* if we time out, return so we will try again with a local fid. */
-    code = rv->AllocFid(SymbolicLink, &target_fid, &AllocHost, uid);
+    code = rv->AllocFid(SymbolicLink, &target_fid, uid);
     if (code != 0) goto Exit;
 
     /* Allocate the fsobj. */

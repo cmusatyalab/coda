@@ -1872,8 +1872,7 @@ void repvol::GetBandwidth(unsigned long *bw)
     if (*bw == 0) *bw = INIT_BW;
 }
 
-int repvol::AllocFid(ViceDataType Type, VenusFid *target_fid,
-		      RPC2_Unsigned *AllocHost, uid_t uid, int force)
+int repvol::AllocFid(ViceDataType Type, VenusFid *target_fid, uid_t uid, int force)
 {
     LOG(10, ("repvol::AllocFid: (%x, %d), uid = %d\n", vid, Type, uid));
 
@@ -1903,7 +1902,6 @@ int repvol::AllocFid(ViceDataType Type, VenusFid *target_fid,
 	    target_fid->Volume = vid;
 	    target_fid->Vnode = Fids->Vnode;
 	    target_fid->Unique = Fids->Unique;
-	    *AllocHost = Fids->AllocHost;
 
 	    Recov_BeginTrans();
 		   RVMLIB_REC_OBJECT(*Fids);
@@ -1918,7 +1916,6 @@ int repvol::AllocFid(ViceDataType Type, VenusFid *target_fid,
     }
 
     int code = 0;
-    *AllocHost = 0;
 
     /* 
      * While the volume is reachable we usually want to generate a local fid.
@@ -2017,13 +2014,11 @@ int repvol::AllocFid(ViceDataType Type, VenusFid *target_fid,
 		    Fids->Unique = NewFids.Unique;
 		    Fids->Stride = NewFids.Stride;
 		    Fids->Count = NewFids.Count;
-		    Fids->AllocHost = /*ph*/(unsigned long)-1;
-		       
+
 		    target_fid->Realm = realm->Id();
 		    target_fid->Volume = vid;
 		    target_fid->Vnode = Fids->Vnode;
 		    target_fid->Unique = Fids->Unique;
-		    *AllocHost = Fids->AllocHost;
 
 		    Fids->Vnode += Fids->Stride;
 		    Fids->Unique++;
