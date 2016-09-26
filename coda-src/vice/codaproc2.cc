@@ -786,7 +786,7 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 
     /* Acquire the volume in exclusive mode. */
     {
-	if ((errorCode = GetVolObj(*Vid, volptr, VOL_EXCL_LOCK, 0, ThisHostAddr))) {
+	if ((errorCode = GetVolObj(*Vid, volptr, VOL_EXCL_LOCK, 0, -1))) {
 	    index = -1;
 	    goto Exit;
 	}
