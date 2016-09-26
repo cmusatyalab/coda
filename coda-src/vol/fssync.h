@@ -42,6 +42,8 @@ Pittsburgh, PA.
 #ifndef _FSSYNC_H_
 #define _FSSYNC_H_ 1
 
+#include "deprecations.h"
+
 /* FSYNC commands */
 #define FSYNC_ON		1 /* Volume online */
 #define FSYNC_OFF		2 /* Volume offline */
@@ -68,6 +70,6 @@ extern void FSYNC_fsInit();
 extern int FSYNC_clientInit();
 extern void FSYNC_clientFinis();
 extern int FSYNC_askfs(VolumeId volume, int com, int reason);
-extern unsigned int FSYNC_CheckRelocationSite(VolumeId volumeId);
+extern unsigned int FSYNC_CheckRelocationSite(VolumeId volumeId) WARN_SINGLE_HOMING;
 
 #endif /* _FSSYNC_H_ */

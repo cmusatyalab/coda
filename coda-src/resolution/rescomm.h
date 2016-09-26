@@ -41,6 +41,8 @@ extern "C" {
 #include "resutil.h"
 #include "resolution.h"
 
+#include "deprecations.h"
+
 /* forward declarations */
 class res_mgrpent;
 class srvent;
@@ -193,7 +195,7 @@ class conninfo {
     ~conninfo();
 
   public:
-    unsigned long GetRemoteHost();
+    unsigned long GetRemoteHost() WARN_SINGLE_HOMING;
     int	GetSecLevel();
     unsigned short GetRemotePort();
 };
