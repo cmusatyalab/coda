@@ -43,7 +43,7 @@ int unpack_countedbs(BUFFER *buf, RPC2_CountedBS *ptr);
 
 int unpack_boundedbs(BUFFER *buf, MODE mode, RPC2_BoundedBS *ptr);
 
-int unpack_encryptionKey(BUFFER *buf, char *ptr);
+int unpack_encryptionKey(BUFFER *buf, RPC2_EncryptionKey key);
 
 int unpack_struct_CallCountEntry(BUFFER *buf, CallCountEntry *ptr);
 
@@ -67,7 +67,7 @@ int pack_countedbs(BUFFER *buf, RPC2_CountedBS *ptr);
 
 int pack_boundedbs(BUFFER *buf, RPC2_BoundedBS *ptr);
 
-int pack_encryptionKey(BUFFER *buf, char *ptr);
+int pack_encryptionKey(BUFFER *buf, RPC2_EncryptionKey key);
 
 int pack_struct_CallCountEntry(BUFFER *buf, CallCountEntry *ptr);
 

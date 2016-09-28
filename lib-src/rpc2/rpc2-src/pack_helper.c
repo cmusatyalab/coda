@@ -263,22 +263,22 @@ int unpack_boundedbs(BUFFER *buf, MODE mode, RPC2_BoundedBS *ptr)
 }
 
 
-int pack_encryptionKey(BUFFER *buf, char *ptr)
+int pack_encryptionKey(BUFFER *buf, RPC2_EncryptionKey key)
 {
     if (buf->eob) {
         if (buf->buffer + RPC2_KEYSIZE > buf->eob)
             return -1;
-        memcpy(buf->buffer, ptr, RPC2_KEYSIZE);
+        memcpy(buf->buffer, key, RPC2_KEYSIZE);
     }
     buf->buffer += _PAD(RPC2_KEYSIZE);
     return 0;
 }
 
-int unpack_encryptionKey(BUFFER *buf, char *ptr)
+int unpack_encryptionKey(BUFFER *buf, RPC2_EncryptionKey key)
 {
     if (buf->buffer + RPC2_KEYSIZE > buf->eob)
         return -1;
-    memcpy(ptr, buf->buffer, RPC2_KEYSIZE);
+    memcpy(key, buf->buffer, RPC2_KEYSIZE);
     buf->buffer += _PAD(RPC2_KEYSIZE);
     return 0;
 }

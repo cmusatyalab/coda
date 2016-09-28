@@ -269,7 +269,7 @@ void print_unpack_var(char* prefix, VAR* var, FILE *where)
             case RPC2_BULKDESCRIPTOR_TAG:
                     break;
             case RPC2_ENCRYPTIONKEY_TAG:
-                    fprintf(where, "    if (unpack_encryptionKey(buf, (char *)%s))\n", name);
+                    fprintf(where, "    if (unpack_encryptionKey(buf, %s))\n", name);
                     fprintf(where, "        return -1;\n");
                     break;
             case RPC2_DOUBLE_TAG:
@@ -342,7 +342,7 @@ void print_pack_var(char* prefix, VAR* var, FILE *where)
             case RPC2_BULKDESCRIPTOR_TAG:
                     break;
             case RPC2_ENCRYPTIONKEY_TAG:
-                    fprintf(where, "    if (pack_encryptionKey(buf, (char *)%s))\n", name);
+                    fprintf(where, "    if (pack_encryptionKey(buf, %s))\n", name);
                     fprintf(where, "        return -1;\n");
                     break;
             case RPC2_DOUBLE_TAG:
@@ -1201,7 +1201,7 @@ static void pack(WHO who, VAR *parm, char *prefix, FILE *where)
     }
     break;
     case RPC2_ENCRYPTIONKEY_TAG:{
-            fprintf(where, "    if (pack_encryptionKey(bufptr, (char *)%s))\n", name);
+            fprintf(where, "    if (pack_encryptionKey(bufptr, %s))\n", name);
             fprintf(where, "        return -1;\n");
     }
     break;
