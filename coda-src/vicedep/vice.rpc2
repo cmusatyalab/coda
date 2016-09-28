@@ -335,7 +335,11 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 	       IN ViceVersionVector VV,
 	       IN RPC2_CountedBS PiggyCOP2);
 
-37: ViceAllocFids (IN VolumeId Vid,
+36: ViceAllocFids (IN VolumeId Vid,
+		   IN ViceDataType Type,
+		   IN OUT ViceFidRange Range);
+
+37: OldViceAllocFids (IN VolumeId Vid,
 		   IN ViceDataType Type,
 		   IN OUT ViceFidRange Range,
 		   IN RPC2_Unsigned AllocHost,

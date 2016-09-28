@@ -1970,14 +1970,14 @@ int repvol::AllocFid(ViceDataType Type, VenusFid *target_fid, uid_t uid, int for
 
 		/* Make the RPC call. */
 		MarinerLog("store::AllocFids %s\n", name);
-		UNI_START_MESSAGE(ViceAllocFids_OP);
-		code = ViceAllocFids(c->connid, vid, Type, &NewFids, ph, &PiggyBS);
-		UNI_END_MESSAGE(ViceAllocFids_OP);
+		UNI_START_MESSAGE(OldViceAllocFids_OP);
+		code = OldViceAllocFids(c->connid, vid, Type, &NewFids, ph, &PiggyBS);
+		UNI_END_MESSAGE(OldViceAllocFids_OP);
 		MarinerLog("store::allocfids done\n");
 
 		/* Examine the returncode to decide what to do next. */
 		code = Collate(c, code);
-		UNI_RECORD_STATS(ViceAllocFids_OP);
+		UNI_RECORD_STATS(OldViceAllocFids_OP);
 
 		if (code != 0) goto Exit;
 

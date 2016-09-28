@@ -159,8 +159,8 @@ const int MaxFidAlloc = 32;
   ViceAllocFids: Allocated a range of fids
 */
 long FS_ViceAllocFids(RPC2_Handle cid, VolumeId Vid,
-		    ViceDataType Type, ViceFidRange *Range,
-		    RPC2_Unsigned AllocHost, RPC2_CountedBS *PiggyBS) {
+		      ViceDataType Type, ViceFidRange *Range)
+{
     long errorCode = 0;
     VolumeId VSGVolnum = Vid;
     Volume *volptr = 0;
@@ -169,14 +169,11 @@ long FS_ViceAllocFids(RPC2_Handle cid, VolumeId Vid,
     char *rock;
 
 START_TIMING(AllocFids_Total);
-    SLog(1,  "ViceAllocFids: Vid = %x, Type = %d, Count = %d, AllocHost = %x",
-	     Vid, Type, Range->Count, AllocHost);
+    SLog(1,  "ViceAllocFids: Vid = %x, Type = %d, Count = %d",
+	     Vid, Type, Range->Count);
 
     /* Validate parameters. */
     {
-	if ((PiggyBS->SeqLen > 0) && (errorCode = FS_ViceCOP2(cid, PiggyBS)))
-	    goto FreeLocks;
-
 	/* Retrieve the client handle. */
 	if ((errorCode = RPC2_GetPrivatePointer(cid, &rock)) != RPC2_SUCCESS)
 	    goto FreeLocks;
@@ -207,29 +204,23 @@ START_TIMING(AllocFids_Total);
 	}
     }
 
-    /* Only AllocHost actually allocates the fids. */
-    if (ThisHostAddr == AllocHost) {
-	/* Get the volume. */
-	if ((errorCode = GetVolObj(Vid, &volptr, VOL_NO_LOCK, 0, 0))) {
-	    SLog(0,  "ViceAllocFids: GetVolObj error %s", ViceErrorMsg((int) errorCode));
-	    goto FreeLocks;
-	}
-
-	/* Allocate a contiguous range of fids. */
-	if (Range->Count > MaxFidAlloc)
-	    Range->Count = MaxFidAlloc;
-	
-	/* Always allocating fids using a stride of VSG_MEMBERS. This way we
-	 * can potentially grow or shrink the replication group without
-	 * affecting previously issued fids which are being used by
-	 * disconnected clients --JH */
-	if ((errorCode = VAllocFid(volptr, Type, Range, stride, ix))) {
-	    SLog(0,  "ViceAllocFids: VAllocVnodes error %s", ViceErrorMsg((int) errorCode));
-	    goto FreeLocks;
-	}
+    /* Get the volume. */
+    if ((errorCode = GetVolObj(Vid, &volptr, VOL_NO_LOCK, 0, 0))) {
+        SLog(0,  "ViceAllocFids: GetVolObj error %s", ViceErrorMsg((int) errorCode));
+        goto FreeLocks;
     }
-    else {
-	Range->Count = 0;
+
+    /* Allocate a contiguous range of fids. */
+    if (Range->Count > MaxFidAlloc)
+        Range->Count = MaxFidAlloc;
+
+    /* Always allocating fids using a stride of VSG_MEMBERS. This way we
+     * can potentially grow or shrink the replication group without
+     * affecting previously issued fids which are being used by
+     * disconnected clients --JH */
+    if ((errorCode = VAllocFid(volptr, Type, Range, stride, ix))) {
+        SLog(0,  "ViceAllocFids: VAllocVnodes error %s", ViceErrorMsg((int) errorCode));
+        goto FreeLocks;
     }
 
 FreeLocks:
@@ -238,6 +229,34 @@ FreeLocks:
     SLog(2,  "ViceAllocFids returns %s (count = %d)",
 	     ViceErrorMsg((int) errorCode), Range->Count);
 END_TIMING(AllocFids_Total);
+    return(errorCode);
+}
+
+
+long FS_OldViceAllocFids(RPC2_Handle cid, VolumeId Vid,
+		         ViceDataType Type, ViceFidRange *Range,
+		         RPC2_Unsigned AllocHost, RPC2_CountedBS *PiggyBS)
+{
+    long errorCode = 0;
+
+    SLog(1,  "OldViceAllocFids: Vid = %x, Type = %d, Count = %d, AllocHost = %x",
+	     Vid, Type, Range->Count, AllocHost);
+
+    /* Validate parameters. */
+    if ((PiggyBS->SeqLen > 0) && (errorCode = FS_ViceCOP2(cid, PiggyBS)))
+        goto FreeLocks;
+
+    /* Only AllocHost actually allocates the fids. */
+    if (ThisHostAddr == AllocHost) {
+        errorCode = FS_ViceAllocFids(cid, Vid, Type, Range);
+    }
+    else {
+	Range->Count = 0;
+    }
+
+FreeLocks:
+    SLog(2,  "OldViceAllocFids returns %s (count = %d)",
+	     ViceErrorMsg((int) errorCode), Range->Count);
     return(errorCode);
 }
 
