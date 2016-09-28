@@ -150,7 +150,7 @@ int unpack_string(BUFFER *buf, RPC2_String *ptr)
 
     if (unpack_unsigned(buf, &length))
         return -1;
-    if (buf->buffer + length > buf->eob)
+    if ((buf->buffer + length + 1) > buf->eob)
         return -1;
     if (*(buf->buffer + length) != '\0')
         return -1;
