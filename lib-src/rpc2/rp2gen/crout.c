@@ -773,7 +773,7 @@ static void spit_pack_response(PROC *proc, FILE *where, rp2_bool header)
 
     for (parm = proc->formals; *parm; parm++) {
         if ((*parm)->type->type->tag != RPC2_BULKDESCRIPTOR_TAG) {
-            if ((*parm)->mode != IN_MODE)
+            if ((*parm)->mode != IN_MODE && (*parm)->mode != MAX_BOUND)
                pack(RP2_SERVER, *parm, "", where);
         }
     }
@@ -1178,6 +1178,12 @@ static void pack(WHO who, VAR *parm, char *prefix, FILE *where)
 	    /* Dynamic arrays are taken care of here. */
 	    /* If parm->array isn't NULL, this struct is used as DYNArray. */
 	    if (parm->array) {
+                if (who == RP2_SERVER) {
+                    fprintf(where, "\n    if (");
+                    for_limit(parm, who, RP2_TRUE, where);
+                    fprintf(where, " > %s)\n", parm->arraymax);
+                    fprintf(where, "        return -1;");
+                }
                 fprintf(where, "\n  for(%s = 0; %s < ", iterate, iterate);
                 for_limit(parm, who, RP2_TRUE, where);
                 fprintf(where, "; %s++) {\n", iterate);
