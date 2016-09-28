@@ -29,7 +29,7 @@ int pack_integer(BUFFER *buf,  RPC2_Integer value)
             return -1;
         *(RPC2_Integer *)(buf->buffer) = htonl(value);
     }
-    buf->buffer += 4;
+    buf->buffer += _PAD(4);
     return 0;
 }
 
@@ -38,7 +38,7 @@ int unpack_integer(BUFFER *buf, RPC2_Integer *ptr)
     if (buf->buffer + 4 > buf->eob)
         return -1;
     *ptr = ntohl(*(RPC2_Integer *)(buf->buffer));
-    buf->buffer += 4;
+    buf->buffer += _PAD(4);
     return 0;
 }
 
@@ -50,7 +50,7 @@ int pack_unsigned(BUFFER *buf, RPC2_Unsigned value)
             return -1;
         *(RPC2_Unsigned *)(buf->buffer) = htonl(value);
     }
-    buf->buffer += 4;
+    buf->buffer += _PAD(4);
     return 0;
 }
 
@@ -59,7 +59,7 @@ int unpack_unsigned(BUFFER *buf, RPC2_Unsigned *ptr)
     if (buf->buffer + 4 > buf->eob)
         return -1;
     *ptr = ntohl(*(RPC2_Unsigned*)(buf->buffer));
-    buf->buffer += 4;
+    buf->buffer += _PAD(4);
     return 0;
 }
 
@@ -71,7 +71,7 @@ int pack_double(BUFFER *buf, RPC2_Double value)
             return -1;
         *(RPC2_Double *)(buf->buffer) = value;
     }
-    buf->buffer += 8;
+    buf->buffer += _PAD(8);
     return 0;
 }
 
@@ -80,7 +80,7 @@ int unpack_double(BUFFER *buf, RPC2_Double *ptr)
     if (buf->buffer + 8 > buf->eob)
         return -1;
     *ptr = *(RPC2_Double *)(buf->buffer);
-    buf->buffer += 8;
+    buf->buffer += _PAD(8);
     return 0;
 }
 
@@ -190,8 +190,8 @@ int unpack_countedbs(BUFFER *buf, RPC2_CountedBS *ptr)
 
     if (buf->buffer + ptr->SeqLen > buf->eob)
         return -1;
-    ptr->SeqBody = (RPC2_Byte *)(buf->buffer);
 
+    ptr->SeqBody = (RPC2_Byte *)(buf->buffer);
     buf->buffer += _PAD(ptr->SeqLen);
     return 0;
 }
