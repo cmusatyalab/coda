@@ -21,10 +21,6 @@ Coda are listed in the file CREDITS.
 
 #define _PAD(n)((((n)-1) | 3) + 1)
 
-/* because every RPC2 message is sent as a UDP packet we should never
- * need to allocate more than a UDP packet size's worth of data and even
- * that is generous because we try to avoid ip/ipv6 fragmentation */
-#define ALLOC_MAX 65507
 
 int pack_integer(BUFFER *buf,  RPC2_Integer value)
 {
@@ -249,7 +245,7 @@ int unpack_boundedbs(BUFFER *buf, MODE mode, RPC2_BoundedBS *ptr)
         return -1;
 
     if (buf->who == RP2_SERVER) {
-        if (ptr->MaxSeqLen > ALLOC_MAX)
+        if (ptr->MaxSeqLen > RPC2_MAXPACKETSIZE)
             return -1;
 
         ptr->SeqBody = calloc(1, ptr->MaxSeqLen);
