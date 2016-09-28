@@ -9,10 +9,11 @@ pkgconfig_DATA = rpc2.pc
 
 EXTRA_DIST = README.ipv6 bootstrap.sh configure
 
+TESTS = tox.test
+
 MAINTAINERCLEANFILES = AUTHORS Makefile.in README aclocal.m4 \
     compile config.guess config.h.in config.sub configure install-sh libtool \
     ltconfig ltmain.sh missing mkinstalldirs stamp-h.in
 
 distcleancheck_listfiles = \
        find -type f -exec sh -c 'test -f $(srcdir)/{} || echo {}' ';'
-

@@ -1,6 +1,9 @@
+.cache
 .cvsignore
 .deps
 .libs
+.tox
+__pycache__
 AUTHORS
 CVS
 ChangeLog
@@ -32,8 +35,11 @@ mkinstalldirs
 rpc2-uninstalled.pc
 rpc2.pc
 stamp-h1
+test-driver
+test-suite.log
 ylwrap
 *.o
 *.lo
 *.la
 *.orig
+*.pyc
