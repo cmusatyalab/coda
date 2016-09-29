@@ -1,3 +1,9 @@
+New in 2.13:
+
+* Fixed incorrect packing of an array in an RPC reponse.
+* Check the unpack buffer is large enough for a trailing \0 after strings.
+* Limit max boundedbs allocation on the server to RPC2_MAXPACKETSIZE.
+
 New in 2.12:
 
 * Vastly improved readability of the stub generated code with faster
