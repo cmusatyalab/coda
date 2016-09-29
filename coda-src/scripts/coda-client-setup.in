@@ -65,15 +65,15 @@ conf="`@sbindir@/codaconfedit venus.conf`"
 #fi
 
 # default paths
-errorlog=/usr/coda/etc/console
-cachedir=/usr/coda/venus.cache
-checkpointdir=/usr/coda/spool
-logfile=/usr/coda/etc/venus.log
-marinersocket=/usr/coda/spool/mariner
-pid_file=/usr/coda/venus.cache/pid
-run_control_file=/usr/coda/venus.cache/VENUS_CTRL
-rvm_log=/usr/coda/LOG
-rvm_data=/usr/coda/DATA
+errorlog=/var/log/coda/venus.err
+cachedir=/var/lib/coda/cache
+checkpointdir=/var/lib/coda/spool
+logfile=/var/log/coda/venus.log
+marinersocket=/var/run/coda-client.mariner
+pid_file=/var/run/coda-client.pid
+run_control_file=/var/run/coda-client.ctrl
+rvm_log=/var/lib/coda/LOG
+rvm_data=/var/lib/coda/DATA
 mountpoint=/coda
 
 # override with user defined paths
@@ -161,34 +161,6 @@ if [ X$OS = XLinux ] ; then
 	echo "== Loading coda kernel module."
 	/sbin/modprobe coda && sleep 5
     fi
-    # devfs managed /dev
-    if [ -d /etc/devfs ] ; then
-	if ! contains /etc/devfs/devices cfs0 ; then
-	    echo "=> Adding 'cfs0' to /etc/devfs/devices so that devfs creates"
-	    echo "   an entry for /dev/cfs0 so that the Coda kernel module"
-	    echo "   can be autoloaded when the /dev/cfs0 or /dev/coda/0"
-	    echo "   device is accessed"
-	    echo "cfs0 c 67 0 root root 0200" >> /etc/devfs/devices
-	    /etc/init.d/devfsd restart
-	fi
-    fi
-    # static /dev
-    if /sbin/modinfo -V | grep modutils > /dev/null || [ -z $(/sbin/modinfo -F alias coda) ] ; then
-	# kernel module does not encode an alias for us
-	if [ -f /etc/modules.conf ] ; then
-	    MODULES=/etc/modules.conf
-	else
-	    MODULES=/etc/conf.modules
-	fi
-	if ! contains $MODULES coda ; then
-	    echo "=> Adding aliases to $MODULES so that modprobe can"
-	    echo "   handle autoloading of the Coda kernel module when"
-	    echo "   /dev/cfs0 is accessed"
-	    echo >> $MODULES
-	    echo 'alias char-major-67 coda' >> $MODULES
-	    echo 'alias /dev/coda coda' >> $MODULES
-	fi
-    fi
 fi
 
 if [ $OS = CYGWI ]; then
@@ -226,9 +198,4 @@ fi
 
 # next run will always initialize
 touch $cachedir/INIT
-
-if [ -f /usr/coda/etc/vstab ] ; then
-    echo "To avoid confusion, remove /usr/coda/etc/vstab, we have switched to"
-    echo "the /etc/coda/venus.conf file for configuring the client."
-fi
 
