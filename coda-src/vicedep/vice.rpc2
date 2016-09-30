@@ -313,7 +313,7 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 
 21: TokenExpired ();
 
-22: ViceGetOldStatistics (IN OUT ViceStatistics Statistics);
+/* 22: ViceGetOldStatistics (IN OUT ViceStatistics Statistics); */
 
 23: ViceGetStatistics (OUT ViceStatistics Statistics);
 

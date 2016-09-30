@@ -61,7 +61,6 @@ struct server
     PROCESS pid; /* process id of lwp for this server */
     char *srvname;
     RPC2_Handle cid;
-    int  old;
     long binds;  /* since starting of monitor */
     long probe;  /* time when server was last probed */
     long succ;   /* time of last successful probe */
@@ -324,18 +323,9 @@ static void DoProbe(struct server *srv)
     if (!srv->cid)
 	return;
 
-    /* Keeping backward compatibility is a crime to humanity, but kind
-     * of useful when you want to log data from both the 5.2.x and the
-     * 5.3.x servers, at least the structure is still the same... */
-retry:
-    if (srv->old) rc = (int) ViceGetOldStatistics(srv->cid, &srv->vs);
-    else          rc = (int) ViceGetStatistics(srv->cid, &srv->vs);
+    rc = (int) ViceGetStatistics(srv->cid, &srv->vs);
 
     if (rc != RPC2_SUCCESS) {
-	if (rc == RPC2_INVALIDOPCODE && !srv->old) {
-	    srv->old = 1;
-	    goto retry; /* retry the sample */
-	}
 	RPC2_Unbind(srv->cid);
 	srv->cid = 0;
     } else
@@ -358,7 +348,6 @@ static void srvlwp(void *arg)
 {
     int slot = *(int *)arg;
     srv[slot].cid = 0;
-    srv[slot].old = 0;
 
     while (1)
     {

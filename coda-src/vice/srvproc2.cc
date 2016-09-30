@@ -172,11 +172,6 @@ long FS_TokenExpired(RPC2_Handle RPCid)
     return(RPC2_NAKED);
 }
 
-long FS_ViceGetOldStatistics(RPC2_Handle RPCid, ViceStatistics *Statistics)
-{
-    return(FS_ViceGetStatistics(RPCid, Statistics));
-}
-
 /* ViceGetStatistics: Used by filestats to get general file server statistics */
 long FS_ViceGetStatistics(RPC2_Handle RPCid, ViceStatistics *Statistics)
 {
