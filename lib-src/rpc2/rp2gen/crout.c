@@ -269,7 +269,7 @@ void print_unpack_var(char* prefix, VAR* var, FILE *where)
             case RPC2_BULKDESCRIPTOR_TAG:
                     break;
             case RPC2_ENCRYPTIONKEY_TAG:
-                    fprintf(where, "    if (unpack_encryptionKey(buf, (char *)%s))\n", name);
+                    fprintf(where, "    if (unpack_encryptionKey(buf, %s))\n", name);
                     fprintf(where, "        return -1;\n");
                     break;
             case RPC2_DOUBLE_TAG:
@@ -342,7 +342,7 @@ void print_pack_var(char* prefix, VAR* var, FILE *where)
             case RPC2_BULKDESCRIPTOR_TAG:
                     break;
             case RPC2_ENCRYPTIONKEY_TAG:
-                    fprintf(where, "    if (pack_encryptionKey(buf, (char *)%s))\n", name);
+                    fprintf(where, "    if (pack_encryptionKey(buf, %s))\n", name);
                     fprintf(where, "        return -1;\n");
                     break;
             case RPC2_DOUBLE_TAG:
@@ -773,7 +773,7 @@ static void spit_pack_response(PROC *proc, FILE *where, rp2_bool header)
 
     for (parm = proc->formals; *parm; parm++) {
         if ((*parm)->type->type->tag != RPC2_BULKDESCRIPTOR_TAG) {
-            if ((*parm)->mode != IN_MODE)
+            if ((*parm)->mode != IN_MODE && (*parm)->mode != MAX_BOUND)
                pack(RP2_SERVER, *parm, "", where);
         }
     }
@@ -1178,6 +1178,12 @@ static void pack(WHO who, VAR *parm, char *prefix, FILE *where)
 	    /* Dynamic arrays are taken care of here. */
 	    /* If parm->array isn't NULL, this struct is used as DYNArray. */
 	    if (parm->array) {
+                if (who == RP2_SERVER) {
+                    fprintf(where, "\n    if (");
+                    for_limit(parm, who, RP2_TRUE, where);
+                    fprintf(where, " > %s)\n", parm->arraymax);
+                    fprintf(where, "        return -1;");
+                }
                 fprintf(where, "\n  for(%s = 0; %s < ", iterate, iterate);
                 for_limit(parm, who, RP2_TRUE, where);
                 fprintf(where, "; %s++) {\n", iterate);
@@ -1201,7 +1207,7 @@ static void pack(WHO who, VAR *parm, char *prefix, FILE *where)
     }
     break;
     case RPC2_ENCRYPTIONKEY_TAG:{
-            fprintf(where, "    if (pack_encryptionKey(bufptr, (char *)%s))\n", name);
+            fprintf(where, "    if (pack_encryptionKey(bufptr, %s))\n", name);
             fprintf(where, "        return -1;\n");
     }
     break;

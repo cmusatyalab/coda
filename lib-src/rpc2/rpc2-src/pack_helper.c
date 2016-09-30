@@ -21,10 +21,6 @@ Coda are listed in the file CREDITS.
 
 #define _PAD(n)((((n)-1) | 3) + 1)
 
-/* because every RPC2 message is sent as a UDP packet we should never
- * need to allocate more than a UDP packet size's worth of data and even
- * that is generous because we try to avoid ip/ipv6 fragmentation */
-#define ALLOC_MAX 65507
 
 int pack_integer(BUFFER *buf,  RPC2_Integer value)
 {
@@ -33,7 +29,7 @@ int pack_integer(BUFFER *buf,  RPC2_Integer value)
             return -1;
         *(RPC2_Integer *)(buf->buffer) = htonl(value);
     }
-    buf->buffer += 4;
+    buf->buffer += _PAD(4);
     return 0;
 }
 
@@ -42,7 +38,7 @@ int unpack_integer(BUFFER *buf, RPC2_Integer *ptr)
     if (buf->buffer + 4 > buf->eob)
         return -1;
     *ptr = ntohl(*(RPC2_Integer *)(buf->buffer));
-    buf->buffer += 4;
+    buf->buffer += _PAD(4);
     return 0;
 }
 
@@ -54,7 +50,7 @@ int pack_unsigned(BUFFER *buf, RPC2_Unsigned value)
             return -1;
         *(RPC2_Unsigned *)(buf->buffer) = htonl(value);
     }
-    buf->buffer += 4;
+    buf->buffer += _PAD(4);
     return 0;
 }
 
@@ -63,7 +59,7 @@ int unpack_unsigned(BUFFER *buf, RPC2_Unsigned *ptr)
     if (buf->buffer + 4 > buf->eob)
         return -1;
     *ptr = ntohl(*(RPC2_Unsigned*)(buf->buffer));
-    buf->buffer += 4;
+    buf->buffer += _PAD(4);
     return 0;
 }
 
@@ -75,7 +71,7 @@ int pack_double(BUFFER *buf, RPC2_Double value)
             return -1;
         *(RPC2_Double *)(buf->buffer) = value;
     }
-    buf->buffer += 8;
+    buf->buffer += _PAD(8);
     return 0;
 }
 
@@ -84,7 +80,7 @@ int unpack_double(BUFFER *buf, RPC2_Double *ptr)
     if (buf->buffer + 8 > buf->eob)
         return -1;
     *ptr = *(RPC2_Double *)(buf->buffer);
-    buf->buffer += 8;
+    buf->buffer += _PAD(8);
     return 0;
 }
 
@@ -154,7 +150,7 @@ int unpack_string(BUFFER *buf, RPC2_String *ptr)
 
     if (unpack_unsigned(buf, &length))
         return -1;
-    if (buf->buffer + length > buf->eob)
+    if ((buf->buffer + length + 1) > buf->eob)
         return -1;
     if (*(buf->buffer + length) != '\0')
         return -1;
@@ -194,8 +190,8 @@ int unpack_countedbs(BUFFER *buf, RPC2_CountedBS *ptr)
 
     if (buf->buffer + ptr->SeqLen > buf->eob)
         return -1;
-    ptr->SeqBody = (RPC2_Byte *)(buf->buffer);
 
+    ptr->SeqBody = (RPC2_Byte *)(buf->buffer);
     buf->buffer += _PAD(ptr->SeqLen);
     return 0;
 }
@@ -249,7 +245,7 @@ int unpack_boundedbs(BUFFER *buf, MODE mode, RPC2_BoundedBS *ptr)
         return -1;
 
     if (buf->who == RP2_SERVER) {
-        if (ptr->MaxSeqLen > ALLOC_MAX)
+        if (ptr->MaxSeqLen > RPC2_MAXPACKETSIZE)
             return -1;
 
         ptr->SeqBody = calloc(1, ptr->MaxSeqLen);
@@ -263,22 +259,22 @@ int unpack_boundedbs(BUFFER *buf, MODE mode, RPC2_BoundedBS *ptr)
 }
 
 
-int pack_encryptionKey(BUFFER *buf, char *ptr)
+int pack_encryptionKey(BUFFER *buf, RPC2_EncryptionKey key)
 {
     if (buf->eob) {
         if (buf->buffer + RPC2_KEYSIZE > buf->eob)
             return -1;
-        memcpy(buf->buffer, ptr, RPC2_KEYSIZE);
+        memcpy(buf->buffer, key, RPC2_KEYSIZE);
     }
     buf->buffer += _PAD(RPC2_KEYSIZE);
     return 0;
 }
 
-int unpack_encryptionKey(BUFFER *buf, char *ptr)
+int unpack_encryptionKey(BUFFER *buf, RPC2_EncryptionKey key)
 {
     if (buf->buffer + RPC2_KEYSIZE > buf->eob)
         return -1;
-    memcpy(ptr, buf->buffer, RPC2_KEYSIZE);
+    memcpy(key, buf->buffer, RPC2_KEYSIZE);
     buf->buffer += _PAD(RPC2_KEYSIZE);
     return 0;
 }
