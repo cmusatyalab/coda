@@ -1274,7 +1274,7 @@ static void error(int fatal, const char *fmt ...) {
 
     /* Copy the message. */
     va_start(ap, fmt);
-    vsprintf(msg, fmt, ap);
+    vsnprintf(msg, 240, fmt, ap);
     va_end(ap);
 
     fprintf(stderr, "%s\n", msg);
