@@ -66,7 +66,7 @@ until [ "x$userid" != x ]; do
         # test if $userid is an integer, a portable looking solution from
         # https://stackoverflow.com/questions/806906/how-do-i-test-if-a-variable-is-a-number-in-bash
         if [ "$userid" -eq "$userid" ] 2>/dev/null; then
-            ;
+            echo "nop" > /dev/null
         else
             echo "UID should be an integer value"
             userid=
