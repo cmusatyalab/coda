@@ -101,7 +101,7 @@ void U_NetToHostClearToken(ClearToken *cToken)
 
 /* Talks to an authentication server and obtains tokens on behalf of user uName.
    Gets back the viceId and clear and secretTokens for this user    */
-int U_Authenticate(struct RPC2_addrinfo *srvs, const int AuthenticationType,
+int U_Authenticate(struct RPC2_addrinfo *srvs,
 		   const char *uName, const int uNamelen,
 		   OUT ClearToken *cToken, 
 		   OUT EncryptedSecretToken sToken, 
@@ -112,50 +112,23 @@ int U_Authenticate(struct RPC2_addrinfo *srvs, const int AuthenticationType,
 	int             bound = 0;
 	char            passwd[128];
 	int		secretlen;
+        size_t          len;
 
 	memset(passwd, 0, sizeof(passwd));
 
-	switch(AuthenticationType) {
-	case AUTH_METHOD_CODAUSERNAME:
-		if (!interactive) {
-			fgets(passwd, sizeof(passwd), stdin);
-			rc = strlen(passwd);
-			if ( passwd[rc-1] == '\n' )
-				passwd[rc-1] = 0;
-		} else {
-			strncpy (passwd, getpass ("Password: "), 
-				 sizeof(passwd)-1);
-			passwd[sizeof(passwd)-1] ='\0';
-		}
-
-		rc = 0;
-		break;
-#ifdef HAVE_KRB4
-	case AUTH_METHOD_KERBEROS4:
-		Krb4ClientInit();
-		/* actual secret recovery is done in U_BindToServer */
-		break;
-#endif
-#ifdef HAVE_KRB5
-	case AUTH_METHOD_KERBEROS5:
-		rc = Krb5ClientInit();
-		if ( rc != 0 ) {
-			fprintf(stderr, "Cannot initialize KRB5\n");
-			exit(1);
-		}
-		/* actual secret recovery is done in U_BindToServer */
-		break;
-#endif
-	default:
-		fprintf(stderr, "Unsupported authentication type\n");
-		exit(1);
-	}
-			
-	if (rc)
-		return rc;
+        if (!interactive) {
+                fgets(passwd, sizeof(passwd), stdin);
+                len = strlen(passwd);
+                if ( passwd[len-1] == '\n' )
+                        passwd[len-1] = 0;
+        } else {
+                strncpy (passwd, getpass ("Password: "),
+                         sizeof(passwd)-1);
+                passwd[sizeof(passwd)-1] ='\0';
+        }
 
 	secretlen = strlen(passwd);
-	rc = U_BindToServer(srvs, AuthenticationType, uName, uNamelen,
+	rc = U_BindToServer(srvs, uName, uNamelen,
 			    passwd, secretlen, &RPCid, interactive);
 	if(rc == 0) {
 		bound = 1;
@@ -176,7 +149,7 @@ int U_Authenticate(struct RPC2_addrinfo *srvs, const int AuthenticationType,
   * uName to newPasswd if myName is the same as uName or a system
   * administrator. MyPasswd is used to validate myName. */
 int U_ChangePassword(struct RPC2_addrinfo *srvs, const char *uName,
-		     const char *newPasswd, const int AuthenticationType,
+		     const char *newPasswd,
 		     const char *myName, const int myNamelen,
 		     const char *myPasswd, const int myPasswdlen)
 {
@@ -185,12 +158,7 @@ int U_ChangePassword(struct RPC2_addrinfo *srvs, const char *uName,
     RPC2_Handle RPCid;
     RPC2_EncryptionKey ek;
 
-    if (AuthenticationType != AUTH_METHOD_CODAUSERNAME) {
-	fprintf(stderr, "Cannot change kerberos passwords with auth2 tools\n");
-	exit(-1);
-    }
-
-    if(!(rc = U_BindToServer(srvs, AuthenticationType, myName, myNamelen,
+    if(!(rc = U_BindToServer(srvs, myName, myNamelen,
 			     myPasswd, myPasswdlen, &RPCid, 0)))
     {
 	memset ((char *)ek, 0, RPC2_KEYSIZE);
@@ -251,8 +219,7 @@ static struct RPC2_addrinfo *GetAuthServers(const char *realm)
     return res;
 }
 
-static int TryBinding(const RPC2_Integer AuthenticationType,
-		      const char *viceName, const int viceNamelen,
+static int TryBinding(const char *viceName, const int viceNamelen,
 		      const char *vicePasswd, const int vicePasswdlen,
 		      const struct RPC2_addrinfo *AuthHost, RPC2_Handle *RPCid)
 {
@@ -282,7 +249,7 @@ static int TryBinding(const RPC2_Integer AuthenticationType,
     bp.SecurityLevel = RPC2_SECURE;
     bp.EncryptionType = RPC2_XOR;
     bp.SideEffectType = 0;
-    bp.AuthenticationType = AuthenticationType;
+    bp.AuthenticationType = AUTH_METHOD_CODAUSERNAME;
     bp.ClientIdent = &cident;
     bp.SharedSecret = &hkey;
 
@@ -314,7 +281,6 @@ struct RPC2_addrinfo *U_GetAuthServers(const char *realm, const char *host)
 /* Binds to Auth Server on behalf of uName using uPasswd as password.
    Sets RPCid to the value of the connection id.    */
 int U_BindToServer(struct RPC2_addrinfo *srvs,
-		   const RPC2_Integer AuthenticationType, 
 		   const char *uName, const int uNamelen,
 		   const char *uPasswd, const int uPasswdlen,
 		   RPC2_Handle *RPCid, const int interactive)
@@ -330,35 +296,8 @@ int U_BindToServer(struct RPC2_addrinfo *srvs,
 	     * RPC2_NewBinding. */
 	    AuthHost = *p;
 	    AuthHost.ai_next = NULL;
-#ifdef HAVE_KRB5
-	    /* Get host secret for next host */
-	    /* Either I did this right, or I broke multiple servers badly
-	     * --Troy
-	     */
-	    if (AuthenticationType == AUTH_METHOD_KERBEROS5) {
-		/* should this be error checked ?*/
-		if (Krb5GetSecret(AuthHost.ai_canonname, &uName, &uNamelen,
-				  &uPasswd, &uPasswdlen, interactive))
-		{
-		    fprintf(stderr, "Failed to get secret for %s\n", AuthHost.ai_canonname);
-		    continue;
-		}
-	    }
-#endif
-#ifdef HAVE_KRB4
-	    /* Copied Troy's success or mistake :) -JH */
-	    if (AuthenticationType == AUTH_METHOD_KERBEROS4) {
-		if (Krb4GetSecret(AuthHost.ai_canonname, &uName, &uNamelen,
-				   &uPasswd, &uPasswdlen, interactive))
-		{
-		    fprintf(stderr, "Failed to get secret from %s\n",
-			    AuthHost.ai_canonname);
-		    continue;
-		}
-	    }
-#endif
-	    bound = TryBinding(AuthenticationType, uName, uNamelen, 
-			       uPasswd, uPasswdlen, &AuthHost, RPCid);
+
+	    bound = TryBinding(uName, uNamelen, uPasswd, uPasswdlen, &AuthHost, RPCid);
 
 	    /* break when we are successful or a server rejects our secret */
 	    if (bound == 0 || bound == RPC2_NOTAUTHENTICATED)
@@ -375,20 +314,3 @@ char *U_Error(const int rc)
 	return((char *)U_AuthErrorMsg(rc));
 }
 
-/* sets type only if correct flag is found */
-int U_GetAuthMethod(const char *arg, RPC2_Integer *type)
-{
-	if ( strcmp(arg, "-coda") == 0 ) {
-		*type =  AUTH_METHOD_CODAUSERNAME;
-		return 1;
-	}
-	if ( strcmp(arg, "-kerberos4") == 0 ) {
-		*type =  AUTH_METHOD_KERBEROS4;
-		return 1;
-	}
-	if ( strcmp(arg, "-kerberos5") == 0 ) {
-		*type =  AUTH_METHOD_KERBEROS5;
-		return 1;
-	}
-	return 0 ;
-}

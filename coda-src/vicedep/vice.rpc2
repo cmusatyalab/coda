@@ -260,11 +260,14 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 		 IN RPC2_Unsigned Unused,
 		 IN RPC2_CountedBS PiggyCOP2);
 
+/* OldPrimaryHost was compared to ThisHostAddr until coda-6.9.9, but now we are
+ * using the fact that non-primaries will have been set to OMITSE and do not
+ * piggyback side-effect parameters on the request. */
 3: ViceFetch	(IN ViceFid Fid,
 		 IN ViceVersionVector VV,
 		 IN RPC2_Unsigned InconOK,
 		 OUT ViceStatus Status,
-		 IN RPC2_Unsigned PrimaryHost,
+		 IN RPC2_Unsigned OldPrimaryHost,
 		 IN RPC2_Unsigned Offset,
 		 IN RPC2_CountedBS PiggyCOP2,
 		 IN OUT SE_Descriptor BD);
@@ -310,7 +313,7 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 
 21: TokenExpired ();
 
-22: ViceGetOldStatistics (IN OUT ViceStatistics Statistics);
+/* 22: ViceGetOldStatistics (IN OUT ViceStatistics Statistics); */
 
 23: ViceGetStatistics (OUT ViceStatistics Statistics);
 
@@ -332,7 +335,11 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 	       IN ViceVersionVector VV,
 	       IN RPC2_CountedBS PiggyCOP2);
 
-37: ViceAllocFids (IN VolumeId Vid,
+36: ViceAllocFids (IN VolumeId Vid,
+		   IN ViceDataType Type,
+		   IN OUT ViceFidRange Range);
+
+37: OldViceAllocFids (IN VolumeId Vid,
 		   IN ViceDataType Type,
 		   IN OUT ViceFidRange Range,
 		   IN RPC2_Unsigned AllocHost,

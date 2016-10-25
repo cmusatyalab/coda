@@ -123,7 +123,7 @@ int main(int argc, char **argv)
     CODACONF_STR(realm, "realm", NULL);
 
     srvs = U_GetAuthServers(realm, host);
-    rc = U_BindToServer(srvs, AUTH_METHOD_CODAUSERNAME, MyViceName, strlen(MyViceName)+1, MyPassword, strlen(MyPassword), &AuthCid, 1);
+    rc = U_BindToServer(srvs, MyViceName, strlen(MyViceName)+1, MyPassword, strlen(MyPassword), &AuthCid, 1);
     RPC2_freeaddrinfo(srvs);
 
     printf("RPC2_Bind() --> %s\n", RPC2_ErrorMsg(rc));

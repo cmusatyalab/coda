@@ -82,7 +82,6 @@ void printusage(void)
 {
 		    fprintf(stderr,
                             "Usage clog [-q] [-test] [-host authserver]"
-                            "\t[-kerberos4 | -kerberos5 | -coda]\n"
                             "\t[-tofile <file>] [-fromfile <file>]\n"
 			    "\t[-as username] [Coda username][@realm]\n");
 }
@@ -90,7 +89,6 @@ void printusage(void)
 int main(int argc, char **argv)
 {
     EncryptedSecretToken    sToken;
-    RPC2_Integer            authmethod = AUTH_METHOD_CODAUSERNAME;
     int                     verbose = 1;
     int                     interactive = 1;
     ClearToken		    cToken;
@@ -106,30 +104,15 @@ int main(int argc, char **argv)
     char *fromfile = NULL;
     char *runas = NULL;
 
-/* Make intelligent default decisions, depending on how we were built..
-		-- Troy <hozer@drgw.net> */
-#ifdef HAVE_KRB4
-    authmethod = AUTH_METHOD_KERBEROS4;
-#endif
-#ifdef HAVE_KRB5
-    authmethod = AUTH_METHOD_KERBEROS5;
-#endif 
-
     i = 1;
     while (i < argc) {
-	    if (U_GetAuthMethod(argv[i], &authmethod)) {
-		    i++;
-		    continue;
-	    } else if ( strcmp(argv[i], "-?") == 0 ||
-                        strcmp(argv[i], "-h") == 0 ||
-                        strcmp(argv[i], "--help") == 0 ) {
+	    if ( strcmp(argv[i], "-?") == 0 ||
+                 strcmp(argv[i], "-h") == 0 ||
+                 strcmp(argv[i], "--help") == 0 ) {
 		    printusage();
 		    exit(0);
 	    } else if ( strcmp(argv[i], "-test") == 0 ) {
 		    testing =1;
-		    i++;
-	    } else if ( strcmp(argv[i], "-nokinit") == 0 ) {
-		    interactive = 0;
 		    i++;
 	    }  else if ( strcmp(argv[i], "-q") == 0 ) {
 		    verbose = 0;
@@ -234,7 +217,7 @@ int main(int argc, char **argv)
         ReadTokenFromFile(fromfile, &cToken, sToken);
     } else {
 	struct RPC2_addrinfo *srvs = U_GetAuthServers(realm, hostname);
-	rc = U_Authenticate(srvs, authmethod, username, strlen(username)+1,
+	rc = U_Authenticate(srvs, username, strlen(username)+1,
 			    &cToken, sToken, verbose, interactive);
 	RPC2_freeaddrinfo(srvs);
 	if (rc != 0) {

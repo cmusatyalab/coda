@@ -1320,7 +1320,7 @@ static void unpack(WHO who, VAR *parm, char *prefix, FILE *where)
     }
     break;
     case RPC2_ENCRYPTIONKEY_TAG: {
-            fprintf(where, "    if (unpack_encryptionKey(bufptr, (char *)%s))\n", name);
+            fprintf(where, "    if (unpack_encryptionKey(bufptr, *%s))\n", name);
             fprintf(where, "        return -1;\n");
     }
     break;

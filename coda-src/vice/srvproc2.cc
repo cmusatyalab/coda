@@ -172,11 +172,6 @@ long FS_TokenExpired(RPC2_Handle RPCid)
     return(RPC2_NAKED);
 }
 
-long FS_ViceGetOldStatistics(RPC2_Handle RPCid, ViceStatistics *Statistics)
-{
-    return(FS_ViceGetStatistics(RPCid, Statistics));
-}
-
 /* ViceGetStatistics: Used by filestats to get general file server statistics */
 long FS_ViceGetStatistics(RPC2_Handle RPCid, ViceStatistics *Statistics)
 {
@@ -487,7 +482,7 @@ long FS_ViceSetVolumeStatus(RPC2_Handle RPCid, VolumeId vid,
     vfid.Vnode = ROOTVNODE;
     vfid.Unique = 1;
 
-    if ((errorCode = GetVolObj(vid, &volptr, VOL_EXCL_LOCK, 0, 1 /* check this */))) {
+    if ((errorCode = GetVolObj(vid, &volptr, VOL_EXCL_LOCK, 0, -1))) {
 	SLog(0, "Error locking volume in ViceSetVolumeStatus: %s", ViceErrorMsg((int) errorCode));
 	goto Final ;
     }

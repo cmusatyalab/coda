@@ -1872,8 +1872,7 @@ void repvol::GetBandwidth(unsigned long *bw)
     if (*bw == 0) *bw = INIT_BW;
 }
 
-int repvol::AllocFid(ViceDataType Type, VenusFid *target_fid,
-		      RPC2_Unsigned *AllocHost, uid_t uid, int force)
+int repvol::AllocFid(ViceDataType Type, VenusFid *target_fid, uid_t uid, int force)
 {
     LOG(10, ("repvol::AllocFid: (%x, %d), uid = %d\n", vid, Type, uid));
 
@@ -1903,7 +1902,6 @@ int repvol::AllocFid(ViceDataType Type, VenusFid *target_fid,
 	    target_fid->Volume = vid;
 	    target_fid->Vnode = Fids->Vnode;
 	    target_fid->Unique = Fids->Unique;
-	    *AllocHost = Fids->AllocHost;
 
 	    Recov_BeginTrans();
 		   RVMLIB_REC_OBJECT(*Fids);
@@ -1918,7 +1916,6 @@ int repvol::AllocFid(ViceDataType Type, VenusFid *target_fid,
     }
 
     int code = 0;
-    *AllocHost = 0;
 
     /* 
      * While the volume is reachable we usually want to generate a local fid.
@@ -1937,57 +1934,52 @@ int repvol::AllocFid(ViceDataType Type, VenusFid *target_fid,
     else {
 	VOL_ASSERT(this, (IsReachable() && force));
 
-	/* COP2 Piggybacking. */
-	char PiggyData[COP2SIZE];
-	RPC2_CountedBS PiggyBS;
-	PiggyBS.SeqLen = 0;
-	PiggyBS.SeqBody = (RPC2_ByteSeq)PiggyData;
+        /* We only want to alloc from a single replica, so we can't rely on
+         * piggybacking the COP2, but as allocation of fids is not affected
+         * by (lack of) a COP2 update we don't really mind if it fails. */
+        (void)FlushCOP2();
 
-	{
-	    /* Acquire an Mgroup. */
-	    mgrpent *m = 0;
-	    code = GetMgrp(&m, uid, (PIGGYCOP2 ? &PiggyBS : 0));
+        mgrpent *m = 0;
+        connent *c = 0;
+
+        /* Get an Mgroup. */
+        code = GetMgrp(&m, V_UID);
+        if (code != 0) goto Exit;
+
+        {
+	    /* Pick a host and get a connection to it. */
+	    struct in_addr *phost = m->GetPrimaryHost();
+	    CODA_ASSERT(phost->s_addr != 0);
+	    srvent *s = GetServer(phost, GetRealmId());
+	    code = s->GetConn(&c, ANYUSER_UID);
+	    PutServer(&s);
 	    if (code != 0) goto Exit;
 
 	    /* The Remote AllocFid call. */
 	    {
+                /* primaryhost arg for back compatibility sake */
+		unsigned long ph = ntohl(phost->s_addr);
+                RPC2_CountedBS PiggyBS;
+                PiggyBS.SeqLen = 0;
+
 		ViceFidRange NewFids;
 		NewFids.Vnode = 0;
 		NewFids.Unique = 0;
 		NewFids.Stride = 0;
 		NewFids.Count = 32;
 
-		/* Make multiple copies of the IN/OUT and OUT parameters. */
-		int ph_ix; unsigned long ph;
-                ph = ntohl(m->GetPrimaryHost(&ph_ix)->s_addr);
-
-		ARG_MARSHALL(IN_OUT_MODE, ViceFidRange, NewFidsvar, NewFids, VSG_MEMBERS);
-
 		/* Make the RPC call. */
 		MarinerLog("store::AllocFids %s\n", name);
-		MULTI_START_MESSAGE(ViceAllocFids_OP);
-		code = (int) MRPC_MakeMulti(ViceAllocFids_OP, ViceAllocFids_PTR,
-				      VSG_MEMBERS, m->rocc.handles,
-				      m->rocc.retcodes, m->rocc.MIp, 0, 0,
-				      vid, Type, NewFidsvar_ptrs, ph, &PiggyBS);
-		MULTI_END_MESSAGE(ViceAllocFids_OP);
+		UNI_START_MESSAGE(OldViceAllocFids_OP);
+		code = OldViceAllocFids(c->connid, vid, Type, &NewFids, ph, &PiggyBS);
+		UNI_END_MESSAGE(OldViceAllocFids_OP);
 		MarinerLog("store::allocfids done\n");
 
-		/* Collate responses from individual servers and decide what to do next. */
-		code = Collate_NonMutating(m, code);
-		MULTI_RECORD_STATS(ViceAllocFids_OP);
-		if (code == EASYRESOLVE) code = 0;
-		if (code != 0) goto Exit;
+		/* Examine the returncode to decide what to do next. */
+		code = Collate(c, code);
+		UNI_RECORD_STATS(OldViceAllocFids_OP);
 
-		/* Finalize COP2 Piggybacking. */
-		if (PIGGYCOP2)
-		    ClearCOP2(&PiggyBS);
-
-		/* Manually compute the OUT parameters from the mgrpent::AllocFids() call! -JJK */
-		int dh_ix = -1;
-		code = m->DHCheck(0, ph_ix, &dh_ix, 1);
 		if (code != 0) goto Exit;
-		ARG_UNMARSHALL(NewFidsvar, NewFids, dh_ix);
 
 		if (NewFids.Count <= 0)
 		    { code = EINVAL; goto Exit; }
@@ -2017,23 +2009,21 @@ int repvol::AllocFid(ViceDataType Type, VenusFid *target_fid,
 		    Fids->Unique = NewFids.Unique;
 		    Fids->Stride = NewFids.Stride;
 		    Fids->Count = NewFids.Count;
-		    Fids->AllocHost = /*ph*/(unsigned long)-1;
-		       
+
 		    target_fid->Realm = realm->Id();
 		    target_fid->Volume = vid;
 		    target_fid->Vnode = Fids->Vnode;
 		    target_fid->Unique = Fids->Unique;
-		    *AllocHost = Fids->AllocHost;
 
 		    Fids->Vnode += Fids->Stride;
 		    Fids->Unique++;
 		    Fids->Count--;
 		Recov_EndTrans(MAXFP);
 	    }
-
-Exit:
-	    if (m) m->Put();
 	}
+Exit:
+        PutConn(&c);
+        if (m) m->Put();
     }
 
     if (code == 0)

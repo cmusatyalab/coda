@@ -102,7 +102,6 @@ int FSYNC_clientInit();
 void FSYNC_clientFinis();
 int FSYNC_askfs(VolumeId volume, int com, int reason);
 void FSYNC_fsInit();
-unsigned int FSYNC_CheckRelocationSite(VolumeId volumeId);
 
 static void FSYNC_sync(void *arg);
 static void FSYNC_SetRelocationSite(VolumeId volumeId, int server);

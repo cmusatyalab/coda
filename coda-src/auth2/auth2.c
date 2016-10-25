@@ -79,10 +79,8 @@ extern "C" {
 #include "auth2.h"
 #include "auth2.common.h"
 
-#ifdef CODAAUTH
 #include "pwdefines.h"
 #include "pwsupport.h"
-#endif	/* CODAAUTH */
 
 #include <codaconf.h>
 #include <vice_file.h>
@@ -165,18 +163,8 @@ int main(int argc, char **argv)
 	exit(-1);
     }
 
-#ifdef CODAAUTH
     InitPW(PWFIRSTTIME);
-#endif
 
-#ifdef HAVE_KRB4
-    Krb4ServerInit();
-#endif
-
-#ifdef HAVE_KRB5
-    Krb5ServerInit();
-#endif
-    
     LogMsg(-1, 0, stdout, "Server successfully started");
 	
     client_idx=0;
@@ -245,13 +233,11 @@ static void InitGlobals(int argc, char **argv)
 	    continue;
 	    }
 
-#ifdef CODAAUTH
 	if (strcmp(argv[i], "-p") == 0 && i < argc - 1)
 	    {
 	    PWFile = argv[++i];
 	    continue;
 	    }
-#endif	/* PWDCODADB */
 
 	if (strcmp(argv[i], "-tk") == 0 && i < argc - 1)
 	    {
@@ -259,7 +245,6 @@ static void InitGlobals(int argc, char **argv)
 	    continue;
 	    }
 	    
-#ifdef CODAAUTH
 	if (strcmp(argv[i], "-fk") == 0 && i < argc - 1)
 	    {
 	    strncpy((char *)FileKey, argv[++i], RPC2_KEYSIZE);
@@ -267,17 +252,9 @@ static void InitGlobals(int argc, char **argv)
                                    passwords in PWFile */
 	    continue;
 	    }
-#endif	/* CODAAUTH */
 
 	fprintf(stderr, "Usage: auth2 [-r] [-chk] [-x debuglevel] ");
-
-#ifdef CODAAUTH
-	fprintf(stderr, "[-p pwfile] [-fk filekey] ");
-#endif	/* CODAAUTH */
-
-	fprintf(stderr, "[-tk tokenkey] ");
-
-	fprintf(stderr, "\n");
+	fprintf(stderr, "[-p pwfile] [-fk filekey] [-tk tokenkey]\n");
 
 	exit(-1);
     }    
@@ -438,25 +415,15 @@ long GetKeys(RPC2_Integer *AuthenticationType, RPC2_CountedBS *cIdent, RPC2_Encr
 	{
 		case	AUTH_METHOD_NULL:
 		case	AUTH_METHOD_CODATOKENS:
+		case	AUTH_METHOD_KERBEROS4:
+		case	AUTH_METHOD_KERBEROS5:
 		case	AUTH_METHOD_PK:
 			/* we don't like this */
 				return -1;
-#ifdef CODAAUTH
 		case	AUTH_METHOD_CODAUSERNAME:
 			/* use coda password database */
 				returnval = PWGetKeys(cIdent, hKey, sKey);
 				break;
-#endif
-#ifdef HAVE_KRB4
-		case	AUTH_METHOD_KERBEROS4:
-				returnval = Krb4Validate(cIdent, hKey, sKey);
-				break;
-#endif
-#ifdef HAVE_KRB5
-		case	AUTH_METHOD_KERBEROS5:
-				returnval = Krb5Validate(cIdent, hKey, sKey);
-				break;
-#endif
 		default:
 			/* unrecognized auth type */
 				return -1;
@@ -593,24 +560,13 @@ long S_AuthChangePasswd (RPC2_Handle cid, RPC2_Integer viceId,
     if(CheckOnly)
 	return(AUTH_READONLY);
 
-#ifdef CODAAUTH
-	return PWChangePasswd(cid, viceId, Passwd);
-#else	/* CODAAUTH */
-	return (AUTH_FAILED);
-#endif	/* !CODAAUTH */
-
+    return PWChangePasswd(cid, viceId, Passwd);
 }
 
 
 long S_AuthNewUser(RPC2_Handle cid, RPC2_Integer viceId, RPC2_EncryptionKey initKey, RPC2_String otherInfo)
 {
-
-#ifdef CODAAUTH
         return PWNewUser(cid, viceId, initKey, otherInfo);
-#else   /* CODAAUTH */
-        return (AUTH_FAILED);
-#endif  /* !CODAAUTH */
-
 }
 
 extern int IsAdministrator(struct UserInfo *pU);
@@ -638,24 +594,13 @@ long S_AuthDeleteUser(RPC2_Handle cid, RPC2_Integer viceId)
 	if (!IsAUser(viceId)) 
 		return(AUTH_FAILED);
 	
-    /* make the change */
-#ifdef CODAAUTH
+        /* make the change */
         return PWDeleteUser(cid, viceId);
-#else   /* CODAAUTH */
-        return (AUTH_FAILED);
-#endif  /* !CODAAUTH */
-
 }
 
 long S_AuthChangeUser(RPC2_Handle cid, RPC2_Integer viceId, RPC2_EncryptionKey newKey, RPC2_String otherInfo)
 {
-
-#ifdef CODAAUTH
         return PWChangeUser(cid, viceId, newKey, otherInfo);
-#else   /* CODAAUTH */
-        return (AUTH_FAILED);
-#endif  /* !CODAAUTH */
-
 }
 
 long S_AuthNameToId(RPC2_Handle cid, RPC2_String sUser, RPC2_Integer *sId)
