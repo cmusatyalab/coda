@@ -1,4 +1,5 @@
-#!/bin/sh
+#!/bin/sh -e
+
 if [ "`cat /vice/hostname`" = "`cat /vice/db/scm`" ]
 then
     updatesrv &

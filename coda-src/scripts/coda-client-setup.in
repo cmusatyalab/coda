@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh -e
 #
 # Coda client installation script
 # Made for Linux coda-client rpm distribution 
