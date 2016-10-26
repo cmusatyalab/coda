@@ -3,8 +3,10 @@
 dist_noinst_SCRIPTS = make-split-dist.sh maketags pkg-bsd.sh find_unused_symbols.py
 
 if HAVE_SYSTEMD
+dist_modulesload_DATA =
 dist_systemdsystemunit_DATA =
 if BUILD_CLIENT
+dist_modulesload_DATA += coda.conf
 dist_systemdsystemunit_DATA += coda-client.service
 endif
 if BUILD_SERVER
