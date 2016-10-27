@@ -65,8 +65,8 @@ int mount_done;
 void SigInit(void)
 {
     /* Establish/Join our own process group to avoid extraneous signals. */
-  if (setpgid(0, 0) < 0)
-    eprint("SigInit: setpgid failed (%d)", errno);
+    if (setpgid(0, 0) < 0)
+        eprint("SigInit: setpgid failed (%d)", errno);
 
     /* set up the signal handlers */
     struct sigaction sa;

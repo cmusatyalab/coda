@@ -860,17 +860,17 @@ static void prc_offset(out_stream,offset,base,width)
                  base,width);
     }
 /* print "true" or "false" */
-static void pr_bool(out_stream,b,width)
-    FILE            *out_stream;        /* target stream */
-    rvm_bool_t      b;                  /* rvm_bool_t value */
-    int             *width;             /* printed width [out] */
-    {
+/* out_stream - target stream */
+/* b          - rvm_bool_t value */
+/* width      - printed width [out] */
+static void pr_bool(FILE *out_stream, rvm_bool_t b, int *width)
+{
     if (b)
         fprintf(out_stream," true");
     else
         fprintf(out_stream,"false");
-        if (width != NULL) *width += 5;
-    }
+    if (width != NULL) *width += 5;
+}
 
 /* print printable characters, C escapes, octal otherwise */
 static void pr_char(out_stream,c,width)
@@ -956,15 +956,16 @@ static void pr_rvm_error(err_stream,errcode,msg)
 
     }
 /* formatted memory printer */
-static void pr_memory(out_stream,err_stream,addr,count,
-                      tot_size,tot_width)
-    FILE            *out_stream;        /* target stream */
-    FILE            *err_stream;        /* target error stream */
-    char            *addr;              /* location of data */
-    rvm_length_t    count;              /* repeat count */
-    rvm_length_t    *tot_size;          /* size of memory item [out] */
-    int             *tot_width;         /* print width [out] */
-    {
+/* out_stream - target stream */
+/* err_stream - target error stream */
+/* addr       - location of data */
+/* count      - repeat count */
+/* tot_size   - size of memory item [out] */
+/* tot_width  - print width [out] */
+static void pr_memory(FILE *out_stream, FILE *err_stream,
+                      char *addr, rvm_length_t count,
+                      rvm_length_t *tot_size, int *tot_width)
+{
     unsigned long   format;
     long            i = 0;              /* memory offset */
     long            val=0;              /* integer value */
@@ -973,48 +974,57 @@ static void pr_memory(out_stream,err_stream,addr,count,
     int             width;              /* print width */
 
     /* get format and size for data; check alignment */
-    format = (num_format & ALL_FORMATS)
-        & ~(unsigned long)unsigned_sw;
+    format = (num_format & ALL_FORMATS) & ~(unsigned long)unsigned_sw;
     size = num_format_size(num_format);
     if (!num_format_align(num_format,addr))
-        {
+    {
         bad_format_align(err_stream,num_format);
         return;
-        }
+    }
 
     /* figure out width */
     switch (num_format & ALL_SIZES)
-        {
+    {
       case char_sw:
       case byte_sw:
         val = addr[i]; width = 3;
         if (num_format & (unsigned long)unsigned_sw)
-            val = val & 0377; break;
+            val = val & 0377;
+        break;
       case short_sw:
         val = *((short *)&addr[i]); width = 5;
         if (num_format & (unsigned long)unsigned_sw)
-            val = val & 0177777; break;
+            val = val & 0177777;
+        break;
       case long_sw:
-        val = *((long *)&addr[i]); width = 12; break;
+        val = *((long *)&addr[i]); width = 12;
+        break;
       case offset_sw:
         switch (num_format & (unsigned long)hex_sw
                 & (unsigned long)octal_sw)
-            {
-          case octal_sw: base = 8; break;
-          case hex_sw: base = 16; break;
-          default: base = 10;
-            }
-        break;
-      case double_sw: case float_sw:
-        break;
-      default:          assert(rvm_false);
+        {
+          case octal_sw:
+            base = 8;
+            break;
+          case hex_sw:
+            base = 16;
+            break;
+          default:
+            base = 10;
         }
+        break;
+      case double_sw:
+      case float_sw:
+        break;
+      default:
+        assert(rvm_false);
+    }
 
     /* print with requested format */
     while (count-- > 0)
-        {
+    {
         switch (format)
-            {                           /* determine format and print */
+        {                           /* determine format and print */
           case dec_sw:
             if (num_format & (unsigned long)unsigned_sw)
                 fprintf(out_stream,"%*lu",width,val);
@@ -1053,17 +1063,17 @@ static void pr_memory(out_stream,err_stream,addr,count,
                        rvm_true,&width);
             break;
           default: assert(rvm_false);
-            }
-        if ((count != 0) && (format != (unsigned long)char_sw))
-            {
-            fprintf(out_stream," ");    /* print sperating space if not done */
+        }
+        if ((count != 0) && (format != (unsigned long)char_sw))
+        {
+            fprintf(out_stream," ");    /* print separating space if not done */
             (*tot_width)++;
-            }
+        }
         /* tally size and width processed */
         i += size; *tot_size += size;
         *tot_width += width;
-        }
     }
+}
 /* offset range printer ,*/
 static rvm_bool_t pr_data_range(out_stream,err_stream,indent,line_width,
                           offset,pr_offset,base,count,chk_buffer,
