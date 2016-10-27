@@ -73,21 +73,23 @@ static rvm_length_t     last_tree_apply_time;
 #define NODES_PER_YIELD 1000000
 static rvm_length_t num_nodes = NODES_PER_YIELD;
 /* test if modification range will change monitored addresses */
-static void monitor_vmaddr(nv_addr,nv_len,nv_data,nv_offset,rec_hdr,msg)
-    char            *nv_addr;           /* vm address */
-    rvm_length_t    nv_len;             /* length of vm range */
-    char            *nv_data;           /* nv data in vm */
-    rvm_offset_t    *nv_offset;         /* offset of data in log */
-    rec_hdr_t       *rec_hdr;           /* ptr to record header if not null */
-    char            *msg;               /* invocation message */
-    {
+/* nv_addr   - vm address */
+/* nv_len    - length of vm range */
+/* nv_data   - nv data in vm */
+/* nv_offset - offset of data in log */
+/* rec_hdr   - ptr to record header if not null */
+/* msg       - invocation message */
+static void monitor_vmaddr(char *nv_addr, rvm_length_t nv_len,
+                           char *nv_data, rvm_offset_t *nv_offset,
+                           rec_hdr_t *rec_hdr, char *msg)
+{
     rvm_length_t    last_chk_addr;
     rvm_length_t    last_nv_addr;
     rvm_length_t    i;
 
     /* check monitored ranges for specified range */
     for (i=0; i < rvm_chk_len; i++)
-        {
+    {
         if (rvm_chk_sigint != NULL)
             if ((*rvm_chk_sigint)(NULL)) return; /* test for interrupt */
 
@@ -101,7 +103,7 @@ static void monitor_vmaddr(nv_addr,nv_len,nv_data,nv_offset,rec_hdr,msg)
              && ((rvm_length_t)rvm_chk_vec[i].vmaddr < last_nv_addr))
             ||  ((last_chk_addr > (rvm_length_t)nv_addr)
              && (last_chk_addr < last_nv_addr))
-            )
+            ) {
 
             /* found modification, call print support */
             if (nv_data != NULL)        /* check bytes offset */
@@ -110,9 +112,10 @@ static void monitor_vmaddr(nv_addr,nv_len,nv_data,nv_offset,rec_hdr,msg)
             (*rvm_monitor)((rvm_length_t)nv_addr,nv_len,nv_data,
                            nv_offset,rec_hdr,i,msg);
         }
+    }
 
     return;
-    }
+}
 /* allocate log recovery buffers */
 char                *tst_buf;           /* debug temp */
 rvm_return_t alloc_log_buf(log)
