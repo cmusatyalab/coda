@@ -292,7 +292,7 @@ int pack_struct_CallCountEntry(BUFFER *buf, CallCountEntry *ptr)
         return -1;
     if (pack_integer(buf, ptr->tusec))
         return -1;
-    if (pack_integer(buf, ptr->counttime));
+    if (pack_integer(buf, ptr->counttime))
         return -1;
     return 0;
 }
