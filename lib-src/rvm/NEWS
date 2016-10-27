@@ -1,3 +1,9 @@
+New in 1.20:
+
+* Fixed some misleading indentation.
+* A monitored memory region would always trigger a callback even when
+  the change was outside of the region.
+
 New in 1.19:
 
 * Fixed initialization for >2GB RVM segments. (Rune)

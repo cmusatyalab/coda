@@ -1,3 +1,8 @@
+New in 2.14:
+
+* Remove unnecessary cast when packing RPC2_EncryptionKey.
+* Fix for packing of struct CallCountEntry.
+
 New in 2.13:
 
 * Fixed incorrect packing of an array in an RPC reponse.

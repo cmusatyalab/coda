@@ -2,7 +2,7 @@ dnl Process this file with autoconf to produce a configure script
 
 dnl Initialization
 AC_PREREQ(2.50)
-AC_INIT(rvm, 1.19)
+AC_INIT(rvm, 1.20)
 AC_CONFIG_AUX_DIR([.])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_SRCDIR([rvm/rvm_private.h])
@@ -15,7 +15,7 @@ dnl - when interfaces were added, removed, or changed, increment
 dnl   second and set first to 0
 dnl - if any interfaces were added, increment third
 dnl - if any interfaces were removed, set third to 0
-CODA_LIBRARY_VERSION(6, 3, 2)
+CODA_LIBRARY_VERSION(7, 3, 2)
 
 CONFIG_DATE=`date +"%a, %d %b %Y %T %z"`
 AC_SUBST(CONFIG_DATE, "$CONFIG_DATE", [Date when configure was last run])
