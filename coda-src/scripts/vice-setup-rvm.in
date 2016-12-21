@@ -52,7 +52,6 @@ if [ "x${conf}" != x/dev/null ] ; then
   haveconf=1
 else
   haveconf=0
-  numservers=1
 fi
 
 # test on Solaris doesn't have a -e flag :-(
@@ -91,11 +90,6 @@ echo
 echo WARNING: these choices are not easy to change once you are up and running.
 echo
 
-if [ $numservers -gt 1 ]; then
-  echo For multiple servers on the same machine, you will need to specify a log
-  echo partition and a metadata partition for each server you plan to run.
-fi
-
 yesno=""
 until [ "x$yesno" != x ]; do
    echon "Are you ready to set up RVM? [yes/no] "
@@ -109,198 +103,160 @@ else
 fi
 
 #
-# Do the following for each server ...
+# we need a size and partition for the log.
 #
+log=""
+until [ "x$log" != x ]; do
+    echon "What will be your log file (or partition)? "
+    read log
+done
 
-n=1
-while [ $n -le $numservers ]; do
-
-    if [ $numservers -gt 1 ]; then
-	conf="`@sbindir@/codaconfedit server_$n.conf`"
-	if [ "x$conf" != x/dev/null ]; then
-	    . $conf
-	fi
-	if [ x$hostname != x ]; then
-	    echo "Configuring for server $n ($hostname)."
-	else
-	    echo "No initial server_$n.conf found, something went wrong with vice-setup?"
-	    exit 1
-
-#	    echo "Configuring for server $n."
-#	    hostname=""
-#	    while [ x$hostname = x ]; do
-#		echon "What is the hostname for server $n? "
-#		read hostname
-#	    done
-#	    echo > $conf << EOF
-#hostname="$hostname"
-##rvm_log=""
-##rvm_data=""
-##rvm_data_length=""
-##mapprivate=""
-#EOF
-	fi
-    fi
-
-    #
-    # we need a size and partition for the log.
-    #
-    log=""
-    until [ "x$log" != x ]; do
-	echon "What will be your log file (or partition)? "
-	read log
-    done
-
-    logsize=""
-    until [ "x$logsize" != x ]; do
-	echo
-	echo "The log size must be smaller than the available space in the log"
-	echo "partition. A smaller log will be quicker to commit, but the log"
-	echo "needs to be large enough to handle the largest transaction. A"
-	echo "larger log also allows for better optimizations. We recommend"
-	echo "to keep the log under 30M log size, many people have successfully"
-	echo "used as little as 2M, and 20M has worked well with our servers."
-	echon "What is your log size? (enter as e.g. '20M') "
-	read logsize
-	echo
-    done
-
-    data=""
-    until [ x$data != x ]; do
-	echon "Where is your data file (or partition)? "
-	read data
-    done
-
-    datasize=""
-    until [ x$datasize != x ]; do
-	echo
-	echo  "The amount of RVM we need to store the metadata for a given"
-	echo  "amount file space can vary enormously. If your typical data set"
-	echo  "consists of many small files, you definitely need more RVM, but"
-	echo  "if you tend to store large files (mp3s, videos or image data)"
-	echo  "we don't need all that much RVM."
-	echo
-	echo  "Here are some random samples,"
-	echo  "  mp3 files     ~0.08MB RVM per GB."
-	echo  "  jpeg images   ~0.50MB RVM per GB."
-	echo  "  email folders ~37.8MB RVM per GB (maildir, 1 file per message)"
-	echo  "  netbsd-pkgsrc  ~180MB RVM per GB (large tree but not much data)"
-	echo
-	echo  "To get a more precize number for your dataset there is a small"
-	echo  "tool (rvmsizer) which can reasonably predict the amount of RVM"
-	echo  "data we need for a file tree."
-	echo
-	echo  "Remember that RVM data will have to be mmapped or loaded"
-	echo  "into memory, so if anything fails with an error like"
-	echo  "RVM_EINTERNAL you might have to add more swap space."
-	echo
-	echo "What is the size of you data file (or partition)"
-	echon "[32M, 64M, 128M, 256M, 512M, 768M, 1G]: "
-	read datasize
-
-	case $datasize in
-	    32[mM] | 64[mM] | 128[mM] | 256[mM] )
-		;;
-	    512[mM] | 768[mM] | 1[gG] )
-		echo
-		echo "!!!!!!!!!!!!!!"
-		echo Your size is an experimental size.  Be warned!
-		echo You may want to run with private mapping for RVM.
-		echo
-		;;
-	    * )
-		echo "You have selected an unsupported size and this script"
-		echo "will not setup your RVM with this size.  Are you sure"
-		echon "you want this size?  (yes/no) "
-		yesno=
-		read yesno
-		if [ x$yesno != xyes ]; then
-		    datasize=""
-		fi
-		;;
-	esac
-    done
-
-    log=`fullname $log`
-    data=`fullname $data`
-
-    # strip non-digit characters
-    datasize="`echo "$datasize" | sed -n 's/\([0-9]*\).*/\1/p'`"
-    # Assume values <= 4 are in gigabytes, else we assume megabytes
-    [ "$datasize" -le 4 ] && datasize="`expr "$datasize" \* 1024`"
-
+logsize=""
+until [ "x$logsize" != x ]; do
     echo
-    echo --------------------------------------------------------
-    echo WARNING: DATA and LOG  partitions are about to be wiped.
-    echo --------------------------------------------------------
+    echo "The log size must be smaller than the available space in the log"
+    echo "partition. A smaller log will be quicker to commit, but the log"
+    echo "needs to be large enough to handle the largest transaction. A"
+    echo "larger log also allows for better optimizations. We recommend"
+    echo "to keep the log under 30M log size, many people have successfully"
+    echo "used as little as 2M, and 20M has worked well with our servers."
+    echon "What is your log size? (enter as e.g. '20M') "
+    read logsize
     echo
-    echo "  --- log area: $log, size $logsize."
-    echo "  --- data area: $data, size $datasize MB."
-    echo
-    answer=""
-    until [ "x$answer" != x ]; do
-	echon "Proceed, and wipe out old data? [y/n] "
-	answer=n
-	read answer
-    done
-    if [ "x$answer" = xn -o "x$answer" = xno -o "x$answer" = xN -o \
-	"x$answer" = xNo ]; then
-	exit 1
-    fi
+done
 
+data=""
+until [ x$data != x ]; do
+    echon "Where is your data file (or partition)? "
+    read data
+done
+
+datasize=""
+until [ x$datasize != x ]; do
     echo
-    @RVMUTL@ > /dev/null  << EOF
+    echo  "The amount of RVM we need to store the metadata for a given"
+    echo  "amount file space can vary enormously. If your typical data set"
+    echo  "consists of many small files, you definitely need more RVM, but"
+    echo  "if you tend to store large files (mp3s, videos or image data)"
+    echo  "we don't need all that much RVM."
+    echo
+    echo  "Here are some random samples,"
+    echo  "  mp3 files     ~0.08MB RVM per GB."
+    echo  "  jpeg images   ~0.50MB RVM per GB."
+    echo  "  email folders ~37.8MB RVM per GB (maildir, 1 file per message)"
+    echo  "  netbsd-pkgsrc  ~180MB RVM per GB (large tree but not much data)"
+    echo
+    echo  "To get a more precize number for your dataset there is a small"
+    echo  "tool (rvmsizer) which can reasonably predict the amount of RVM"
+    echo  "data we need for a file tree."
+    echo
+    echo  "Remember that RVM data will have to be mmapped or loaded"
+    echo  "into memory, so if anything fails with an error like"
+    echo  "RVM_EINTERNAL you might have to add more swap space."
+    echo
+    echo "What is the size of you data file (or partition)"
+    echon "[32M, 64M, 128M, 256M, 512M, 768M, 1G]: "
+    read datasize
+
+    case $datasize in
+        32[mM] | 64[mM] | 128[mM] | 256[mM] )
+            ;;
+        512[mM] | 768[mM] | 1[gG] )
+            echo
+            echo "!!!!!!!!!!!!!!"
+            echo Your size is an experimental size.  Be warned!
+            echo You may want to run with private mapping for RVM.
+            echo
+            ;;
+        * )
+            echo "You have selected an unsupported size and this script"
+            echo "will not setup your RVM with this size.  Are you sure"
+            echon "you want this size?  (yes/no) "
+            yesno=
+            read yesno
+            if [ x$yesno != xyes ]; then
+                datasize=""
+            fi
+            ;;
+    esac
+done
+
+log=`fullname $log`
+data=`fullname $data`
+
+# strip non-digit characters
+datasize="`echo "$datasize" | sed -n 's/\([0-9]*\).*/\1/p'`"
+# Assume values <= 4 are in gigabytes, else we assume megabytes
+[ "$datasize" -le 4 ] && datasize="`expr "$datasize" \* 1024`"
+
+echo
+echo --------------------------------------------------------
+echo WARNING: DATA and LOG  partitions are about to be wiped.
+echo --------------------------------------------------------
+echo
+echo "  --- log area: $log, size $logsize."
+echo "  --- data area: $data, size $datasize MB."
+echo
+answer=""
+until [ "x$answer" != x ]; do
+    echon "Proceed, and wipe out old data? [y/n] "
+    answer=n
+    read answer
+done
+if [ "x$answer" = xn -o "x$answer" = xno -o "x$answer" = xN -o \
+    "x$answer" = xNo ]; then
+    exit 1
+fi
+
+echo
+@RVMUTL@ > /dev/null  << EOF
 i $log $logsize
 q
 EOF
 
-    echo
-    if [ $? != 0 ]; then
-	echo Error in rvmutl. Exiting.
-	exit 1
-    fi
+echo
+if [ $? != 0 ]; then
+    echo Error in rvmutl. Exiting.
+    exit 1
+fi
 
-    echo LOG file has been initialized!
+echo LOG file has been initialized!
 
-    echo
+echo
 
-    # Convert requested RVM data size to bytes
-    dsparm="`expr "$datasize" \* 1048576`"
-    staticsize=1048576 # reserve 1MB for a static allocation area
-    rvmreserve=65536   # reserve 64K for RVM overhead (we need pagesize() bytes)
+# Convert requested RVM data size to bytes
+dsparm="`expr "$datasize" \* 1048576`"
+staticsize=1048576 # reserve 1MB for a static allocation area
+rvmreserve=65536   # reserve 64K for RVM overhead (we need pagesize() bytes)
 
-    # Use the remaining space for the dynamic heap
-    heapsize="`expr "$dsparm" - "$staticsize" - "$rvmreserve"`"
+# Use the remaining space for the dynamic heap
+heapsize="`expr "$dsparm" - "$staticsize" - "$rvmreserve"`"
 
-    # various other parameters
-    rvmstart=0x50000000
-    nlists=80
-    chunk=64
+# various other parameters
+rvmstart=0x50000000
+nlists=80
+chunk=64
 
-    parms="$dsparm $rvmstart $heapsize $staticsize $nlists $chunk"
+parms="$dsparm $rvmstart $heapsize $staticsize $nlists $chunk"
 
-    if [ $haveconf = 1 ] ; then
-	conffile="`basename $conf`"
-	@sbindir@/codaconfedit $conffile rvm_log $log
-	@sbindir@/codaconfedit $conffile rvm_data $data
-	@sbindir@/codaconfedit $conffile rvm_data_length $dsparm
-    else
-	echo "-rvm $log $data $dsparm" >> ${vicedir}/srv.conf
-    fi
+if [ $haveconf = 1 ] ; then
+    conffile="`basename $conf`"
+    @sbindir@/codaconfedit $conffile rvm_log $log
+    @sbindir@/codaconfedit $conffile rvm_data $data
+    @sbindir@/codaconfedit $conffile rvm_data_length $dsparm
+else
+    echo "-rvm $log $data $dsparm" >> ${vicedir}/srv.conf
+fi
 
-    echo
-    echo "Rdsinit will initialize data and log."
-    echo "This takes a while."
-    @RDSINIT@ -f $log $data $parms
+echo
+echo "Rdsinit will initialize data and log."
+echo "This takes a while."
+@RDSINIT@ -f $log $data $parms
 
-    if [ $? != 0 ]; then
-	echo Error in rdsinit. Exiting.
-	exit 1
-    fi
-
-    n=`expr $n + 1`
-    echo
-done
+if [ $? != 0 ]; then
+    echo Error in rdsinit. Exiting.
+    exit 1
+fi
 
 echo RVM setup is done!
 echo

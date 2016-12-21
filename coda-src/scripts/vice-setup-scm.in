@@ -34,8 +34,6 @@ set -e 1
 #
 # Configuration
 #
-numservers=1
-
 . "`@sbindir@/codaconfedit server.conf`"
 
 if [ x${vicedir} = x ] ; then
@@ -71,32 +69,15 @@ fi
 
 cd ${vicedir}/db
 
-if [ $numservers -eq 1 ]; then
-    id=""
-    until [ "x$id" != x ]; do
-	echo "Enter an id for the SCM server. (hostname $hn)"
-	echo "The serverid is a unique number between 0 and 255."
-	echo "You should avoid 0, 127, and 255."
-	echon "serverid: "
-	read id
-    done
-    echo "$hn		$id" >> servers
-else 
-    n=1;
-    while [ $n -le $numservers ]; do
-        . "`@sbindir@/codaconfedit server_$n.conf`"
-        id=""
-	until [ "x$id" != x ]; do
-	    echo "Enter an id for server number $n. ($hostname)"
-	    echo "The serverid is a unique number between 0 and 255."
-	    echo "You should avoid 0, 127, and 255."
-	    echon "serverid: "
-	    read id
-	done
-	echo "$hostname		$id" >> servers
-	n=`expr $n + 1`
-    done
-fi  
+id=""
+until [ "x$id" != x ]; do
+    echo "Enter an id for the SCM server. (hostname $hn)"
+    echo "The serverid is a unique number between 0 and 255."
+    echo "You should avoid 0, 127, and 255."
+    echon "serverid: "
+    read id
+done
+echo "$hn		$id" >> servers
 echo done!
 
 #

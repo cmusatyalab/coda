@@ -71,7 +71,6 @@ extern "C" {
 #include <coda_getservbyname.h>
 
 static const char *vicedir = NULL;
-static int nservers = 0;
 
 /* hack to make argc and argv visible to subroutines */
 static char **this_argp;
@@ -142,7 +141,6 @@ void ReadConfigFile(void)
     codaconf_init("server.conf");
 
     CODACONF_STR(vicedir, "vicedir", "/vice");
-    CODACONF_INT(nservers, "numservers", 1); 
 
     vice_dir_init(vicedir);
 }

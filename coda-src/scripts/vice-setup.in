@@ -30,19 +30,9 @@ echon() {
 #
 # arguments
 #
-if [ $# = 2 ] ; then
-    if [ x$1 != x-n -o x$2 != x`expr $2 + 0 2>/dev/null` ] ; then
-	echo "Usage: $0 [-n number-of-server-processes]"
-	exit 1
-    fi
-    numservers=$2
-else
-    if [ $# != 0 ] ; then
-	echo "Usage: $0 [-n number-of-server-processes]"
-	exit 1
-    else
-	numservers=1
-    fi
+if [ $# != 0 ] ; then
+    echo "Usage: $0"
+    exit 1
 fi
 
 #
@@ -106,20 +96,6 @@ fi
 conf_directory="`dirname $conf_template`"
 conf="${conf_directory}/`basename $conf_template .ex`"
 
-echon "Do you want the file $conf created? [yes] "
-yesno=""
-read yesno
-if [ x$yesno = x -o x$yesno = xyes -o x$yesno = xy ] ; then
-    mkconf=1
-    mkdir -p "$conf_directory" 2>/dev/null
-else
-    mkconf=0
-    if [ $numservers != 1 ]; then
-	echo "This script can not setup multiple servers without using $conf."
-	exit 1
-    fi
-fi
-
 echon "What is the root directory for your coda server(s)? [/vice] "
 vicedir=""
 read vicedir
@@ -128,50 +104,19 @@ if [ "x$vicedir" = x ] ; then
     vicedir=/vice
 fi
 
-if [ $mkconf = 1 ] ; then
-    @sbindir@/codaconfedit server.conf vicedir $vicedir
-    @sbindir@/codaconfedit server.conf numservers $numservers
-fi
+@sbindir@/codaconfedit server.conf vicedir $vicedir
+#
+# server.conf standard
+#
+@sbindir@/codaconfedit server.conf rvmtruncate 5
+@sbindir@/codaconfedit server.conf trace 100
+
 
 echo "Setting up $vicedir."
 
-for i in auth2 backup db misc vol/remote ; do
+for i in auth2 backup db misc vol/remote srv ; do
     mkdir -p "${vicedir}/$i"
 done
-
-if [ $numservers = 1 ]; then
-    mkdir -p ${vicedir}/srv
-else
-    n=1
-    while [ $n -le $numservers ]; do
-
-	sconf="${conf_directory}/server_$n.conf"
-	dir="${vicedir}/server_$n"
-
-	echo
-	hostname=""
-	while [ x$hostname = x ]; do
-	    echon "Hostname for server $n: "
-	    read hostname
-	done
-
-	cat > $sconf << EOF
-hostname="${hostname}"
-#rvm_log=""
-#rvm_data=""
-#rvm_data_length=""
-#mapprivate=""
-EOF
-
-	echo Creating $dir and subdirectories.
-	mkdir "$dir"
-	for i in backup srv vol ; do
-	    mkdir -p $dir/$i
-	done
-
-	n=`expr $n + 1`
-    done
-fi
 
 echo Directories under $vicedir are set up.
 echo
@@ -318,14 +263,6 @@ esac
 echo $hn > ${vicedir}/hostname
 
 #
-# server.conf standard
-#
-if [ $mkconf = 1 ] ; then
-    @sbindir@/codaconfedit server.conf rvmtruncate 5
-    @sbindir@/codaconfedit server.conf trace 100
-fi
-
-#
 # end of common setup area, now specialize to scm or non scm
 #
 if [ $isscm = Y ]; then
@@ -364,19 +301,8 @@ if [ $isscm = Y ]; then
     [ "$start" ] && @sbindir@/updatesrv
     echo " - Coda update client (updateclnt -h $hn)"
     [ "$start" ] && @sbindir@/updateclnt -h $hn
-
-    if [ $numservers = 1 ]; then
-	echo " - Coda file server (startserver)"
-	[ "$start" ] && @sbindir@/startserver
-    else
-	echo " - Coda file servers:"
-	n=1
-	while [ $n -le $numservers ]; do
-	    echo "   startserver -n $n"
-	    [ "$start" ] && @sbindir@/startserver -n $n
-	    n=`expr $n + 1`
-	done
-    fi
+    echo " - Coda file server (startserver)"
+    [ "$start" ] && ( @sbindir@/startserver || echo "Failed to start the Coda server" )
     echo
 
     if [ "$start" ] ; then
@@ -435,14 +361,5 @@ echo "your first replicated volume."
 #echo
 #echon "Now you can "
 #echo
-#if [ $numservers = 1 ]; then
-#    echo " start the fileserver: startserver &"
-#else
-#    echo " start your fileservers as:
-#    n=1
-#    while [ $n -le $numservers ]; do
-#	echo "    startserver -n $n &"
-#	n=`expr $n + 1`
-#    done
-#fi
+#echo " start the fileserver: startserver &"
 
