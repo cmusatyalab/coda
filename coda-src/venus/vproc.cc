@@ -571,14 +571,19 @@ wait_for_reintegration:
 
 	/* the redzone and yellow zone thresholds are pretty arbitrary at the
 	 * moment. I am guessing that the number of worker threads might be a
-	 * useful metric for redzoning on CML entries. */
+	 * useful metric for redzoning on CML entries. 
+         * Explicit CML length checks added by Satya (2016-12-28).  
+         * TODO:  make CML length limits settable via cfs command
+         */
 	redzone = !free_fsos ||
 		  free_mles <= MaxWorkers ||
-		  free_blocks <= (CacheBlocks >> 4); /* ~94% cache dirty */
+		  free_blocks <= (CacheBlocks >> 4) /* ~94% cache dirty */ ||
+                  (u.u_vol->IsReplicated() && (((repvol *)u.u_vol)->LengthOfCML() >= 5000)); /* Explicit CML length check: Satya, 2016-12-28 */
 	yellowz = !redzone &&
 		  (free_fsos <= MaxWorkers ||
 		   free_mles <= (MLEs>>3) || /* ~88% CMLs used */
-		   free_blocks <= (CacheBlocks >> 2)); /* ~75% cache dirty */
+		   free_blocks <= (CacheBlocks >> 2)) /* ~75% cache dirty */ ||
+                  (u.u_vol->IsReplicated() && (((repvol *)u.u_vol)->LengthOfCML() >= 3000)); /* Explicit CML length check: Satya, 2016-12-28 */
 
 	if (yellowz) MarinerLog("progress::Yellow zone, slowing down writer\n");
 	else if (redzone) MarinerLog("progress::Red zone, stalling writer\n");

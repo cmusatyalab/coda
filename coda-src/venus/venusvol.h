@@ -815,6 +815,7 @@ class repvol : public volent {
     void SetStagingServer(struct in_addr *srvr);
     void Reconfigure(void);
     int IsSync(void) { return (flags.sync_reintegrate || ReintLimit == 0); }
+    long LengthOfCML() { return(CML.entries); }
 
     /* Allocation routines. */
     VenusFid GenerateLocalFid(ViceDataType);
