@@ -396,6 +396,7 @@ const char *IoctlOpStr(unsigned char nr)
 	case _VIOC_UNLOADKERNEL:	return("Unload Kernel");
 	case _VIOC_EXPANDOBJECT:	return("Expand object");
 	case _VIOC_COLLAPSEOBJECT:	return("Collapse object");
+        case _VIOC_ZLIMIT:              return("Set red/yellow zone limits");
 
 	default:	snprintf(buf, 4, "%d", (unsigned int)nr);
 			return(buf);

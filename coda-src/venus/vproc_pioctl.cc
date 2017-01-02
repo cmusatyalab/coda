@@ -1367,6 +1367,7 @@ OI_FreeLocks:
 	case _VIOC_SYNCCACHE_ALL:
 	case _VIOC_UNLOADKERNEL:
 	case _VIOC_LOOKASIDE:
+        case _VIOC_ZLIMIT:
 	    {
 	    switch(nr) {
                 case _VIOC_LOOKASIDE:
@@ -1781,6 +1782,20 @@ OI_FreeLocks:
 		    u.u_error = VDB->SyncCache();
 		    break;
 		    }
+
+		case _VIOC_ZLIMIT:
+		    {
+		    char *startp = (char *) data->in;
+#define rzlimit ((int *)(startp))
+#define yzlimit ((int *)(rzlimit + 1))
+		    redzone_limit = *rzlimit;
+		    yellowzone_limit = *yzlimit;
+		    u.u_error = 0;
+#undef rzlimit
+#undef yzlimit
+		    break;
+		    }
+
 		}
 	    }
 	    if (u.u_error == ERETRY)

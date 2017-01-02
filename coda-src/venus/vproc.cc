@@ -562,7 +562,7 @@ void vproc::Begin_VFS(Volid *volid, int vfsop, int volmode)
     {
 	struct timeval delay = { 1, 0 };
 	int free_fsos, free_mles, free_blocks;
-	int yellowz, redzone;
+	int inyellowzone, inredzone;
 
 wait_for_reintegration:
 	free_fsos   = FSDB->FreeFsoCount();
@@ -573,27 +573,26 @@ wait_for_reintegration:
 	 * moment. I am guessing that the number of worker threads might be a
 	 * useful metric for redzoning on CML entries. 
          * Explicit CML length checks added by Satya (2016-12-28).  
-         * TODO:  make CML length limits settable via cfs command
          */
-	redzone = !free_fsos ||
+	inredzone = !free_fsos ||
 		  free_mles <= MaxWorkers ||
 		  free_blocks <= (CacheBlocks >> 4) /* ~94% cache dirty */ ||
-                  (u.u_vol->IsReplicated() && (((repvol *)u.u_vol)->LengthOfCML() >= 5000)); /* Explicit CML length check: Satya, 2016-12-28 */
-	yellowz = !redzone &&
+         	  (u.u_vol->IsReplicated() && (redzone_limit > 0) && (((repvol *)u.u_vol)->LengthOfCML() >= redzone_limit)); 
+	inyellowzone = !inredzone &&
 		  (free_fsos <= MaxWorkers ||
-		   free_mles <= (MLEs>>3) || /* ~88% CMLs used */
-		   free_blocks <= (CacheBlocks >> 2)) /* ~75% cache dirty */ ||
-                  (u.u_vol->IsReplicated() && (((repvol *)u.u_vol)->LengthOfCML() >= 3000)); /* Explicit CML length check: Satya, 2016-12-28 */
+		  free_mles <= (MLEs>>3) || /* ~88% CMLs used */
+		  free_blocks <= (CacheBlocks >> 2)) /* ~75% cache dirty */ ||
+	          (u.u_vol->IsReplicated() && (yellowzone_limit > 0) && (((repvol *)u.u_vol)->LengthOfCML() >= yellowzone_limit));
 
-	if (yellowz) MarinerLog("progress::Yellow zone, slowing down writer\n");
-	else if (redzone) MarinerLog("progress::Red zone, stalling writer\n");
+	if (inyellowzone) MarinerLog("progress::Yellow zone, slowing down writer\n");
+	else if (inredzone) MarinerLog("progress::Red zone, stalling writer\n");
 
-	if (yellowz || redzone) {
+	if (inyellowzone || inredzone) {
 	    FSOD_ReclaimFSOs(); /* wake up fso daemon and let it reclaim fsos */
 	    VprocSleep(&delay);
 	}
 
-	if (redzone)
+	if (inredzone)
 	    goto wait_for_reintegration;
     }
 
