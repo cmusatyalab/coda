@@ -425,8 +425,9 @@ void VInitServerList(const char *host)
 	    /* make sure we don't get duplicate ids */
 	    if (Server_FQDN[sid]) {
 		VLog(0, "Fatal: unable to map server-id %d to host %s,\n"
-		     "\tas it is already assigned to host %s",
-		     sid, sname, Server_FQDN[sid]);
+		     "\tas it is already assigned to host %s (reading \n"
+		     "\tfrom file %s)",
+		     sid, sname, Server_FQDN[sid], serverList);
 		exit(1);
 	    }
 	    Server_FQDN[sid] = strdup(sname);
