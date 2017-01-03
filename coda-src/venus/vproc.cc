@@ -562,12 +562,14 @@ void vproc::Begin_VFS(Volid *volid, int vfsop, int volmode)
     {
 	struct timeval delay = { 1, 0 };
 	int free_fsos, free_mles, free_blocks;
+	long cml_length;
 	int inyellowzone, inredzone;
 
 wait_for_reintegration:
 	free_fsos   = FSDB->FreeFsoCount();
 	free_mles   = VDB->FreeMLECount();
 	free_blocks = CacheBlocks - FSDB->DirtyBlockCount();
+	cml_length  = ((repvol *)u.u_vol)->LengthOfCML();
 
 	/* the redzone and yellow zone thresholds are pretty arbitrary at the
 	 * moment. I am guessing that the number of worker threads might be a
@@ -577,12 +579,12 @@ wait_for_reintegration:
 	inredzone = !free_fsos ||
 		  free_mles <= MaxWorkers ||
 		  free_blocks <= (CacheBlocks >> 4) /* ~94% cache dirty */ ||
-         	  (u.u_vol->IsReplicated() && (redzone_limit > 0) && (((repvol *)u.u_vol)->LengthOfCML() >= redzone_limit)); 
+		  (redzone_limit > 0 && cml_length >= redzone_limit);
 	inyellowzone = !inredzone &&
 		  (free_fsos <= MaxWorkers ||
 		  free_mles <= (MLEs>>3) || /* ~88% CMLs used */
 		  free_blocks <= (CacheBlocks >> 2)) /* ~75% cache dirty */ ||
-	          (u.u_vol->IsReplicated() && (yellowzone_limit > 0) && (((repvol *)u.u_vol)->LengthOfCML() >= yellowzone_limit));
+		  (yellowzone_limit > 0 && cml_length >= yellowzone_limit);
 
 	if (inyellowzone) MarinerLog("progress::Yellow zone, slowing down writer\n");
 	else if (inredzone) MarinerLog("progress::Red zone, stalling writer\n");
