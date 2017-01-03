@@ -40,9 +40,20 @@ struct servent *coda_getservbyname(const char *name, const char *proto)
 {
     static struct servent s;
     struct servent *ps;
+    int service_defined;
 
     ps = getservbyname(name, proto);
-    if (ps) return ps;
+    service_defined = ((ps != 0) && (ps->s_port != 0));
+    if (service_defined) {
+      printf("getservbyname(%s, %s) --> port = %d\n", name, proto, ntohs(ps->s_port));
+      return ps;
+    }
+    else {
+      if (!ps) printf("getservbyname(%s, %s) --> failed\n", name, proto);
+      else printf("getservbyname(%s, %s) --> s_port is 0\n", name, proto);
+    }
+
+
 
     /* getservbyname failed, let's see if we happen to know the port number */
 

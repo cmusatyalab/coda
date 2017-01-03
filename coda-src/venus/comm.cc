@@ -55,6 +55,7 @@ extern "C" {
 #include <rpc2/rpc2.h>
 #include <rpc2/se.h>
 #include <rpc2/errors.h>
+#include <rpc2/fakeudp.h>
 
 extern int Fcon_Init(); 
 extern void SFTP_SetDefaults (SFTP_Initializer *initPtr);
@@ -108,6 +109,19 @@ int srvent::deallocs = 0;
 
 
 void CommInit() {
+
+  if (enable_codatunnel) {
+    int rc;
+    /* masquerade_port is the UDP portnum specified via venus.conf */
+    rc = fakeudp_fork_codatunneld(masquerade_port, 1);
+    perror("CommInit: fakeudp_fork_codatunneld failed"); fflush(stdout);
+    if (rc < 0){
+      perror("fakeudp_fork_codatunneld: "); /* hopefully errno still meaningful */
+      exit(-1);
+    }
+    printf("CommInit: forked codatunnel successfully\n"); fflush(stdout);
+  }
+	 
     /* Initialize unset command-line parameters. */
     if (sftp_windowsize == UNSET_WS) sftp_windowsize = DFLT_WS;
     if (sftp_sendahead == UNSET_SA) sftp_sendahead = DFLT_SA;

@@ -20,6 +20,7 @@ Coda are listed in the file CREDITS.
 #include <assert.h>
 
 #include <rpc2/secure.h>
+#include <rpc2/fakeudp.h>
 #include "grunt.h"
 
 /* RFC 2406 - IP Encapsulating Security Payload (ESP)
@@ -176,7 +177,7 @@ ssize_t secure_recvfrom(int s, void *buf, size_t len, int flags,
 	peerlen = &fromlen;
     }
 
-    n = recvfrom(s, packet, MAXPACKETSIZE, flags | MSG_TRUNC, peer, peerlen);
+    n = fakeudp_recvfrom(s, packet, MAXPACKETSIZE, flags | MSG_TRUNC, peer, peerlen);
     if (n < 0) return n;
 
     /* If we truncated packets because the packet buffer is too small */

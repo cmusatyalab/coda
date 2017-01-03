@@ -16,7 +16,8 @@ librpc2_la_SOURCES = rpc2a.c rpc2b.c sl.c packet.c secure.c globals.c se.c \
     multi3.c mkcall.c errors.c cbuf.h trace.h dllist.c rpc2_addrinfo.c \
     compat.c lua.c delay.c pack_helper.c
 librpc2_la_LDFLAGS = $(LIBTOOL_LDFLAGS)
-librpc2_la_LIBADD = $(top_builddir)/secure/libsecure.la $(LWP_LIBS) \
+librpc2_la_LIBADD = $(top_builddir)/secure/libsecure.la \
+    $(top_builddir)/codatunnel/libfakeudp.la $(LWP_LIBS) \
     $(LUA_LIBS) $(LUA_LIBADD)
 
 libse_la_SOURCES = sftp1.c sftp2.c sftp3.c sftp4.c sftp5.c sftp6.c

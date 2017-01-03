@@ -34,6 +34,7 @@ extern "C" {
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <rpc2/fakeudp.h>
 
 #include "archive.h"
 
@@ -117,6 +118,9 @@ int mariner_tcp_enable = 1;
 /* Global red and yellow zone limits on CML length; default is infinite */
 int redzone_limit = -1, yellowzone_limit = -1;
 
+/* TCP bind port for use in codatunnel daemon */
+int codatunnel_tcpbindport = -1;
+
 /* *****  Private constants  ***** */
 
 struct timeval DaemonExpiry = {TIMERINTERVAL, 0};
@@ -145,6 +149,7 @@ int main(int argc, char **argv)
     coda_assert_action = CODA_ASSERT_SLEEP;
     coda_assert_cleanup = VFSUnmount;
 
+    fakeudp_saved_argv = argv; /* save for use in codatunneld */
     ParseCmdline(argc, argv);
     DefaultCmdlineParms();   /* read /etc/coda/venus.conf */
 
@@ -216,7 +221,9 @@ int main(int argc, char **argv)
     UnsetInitFile();
     eprint("Venus starting...");
 
-    freopen("/dev/null", "w", stdout);
+    /* DEBUG    freopen("/dev/null", "w", stdout); */
+
+    /* DEBUG */   freopen("/tmp/venus.stdout", "w", stdout);
 
     /* Act as message-multiplexor/daemon-dispatcher. */
     for (;;) {
@@ -454,6 +461,14 @@ static void ParseCmdline(int argc, char **argv)
 	    /* Private mapping ... */
 	    else if (STREQ(argv[i], "-mapprivate"))
 		MapPrivate = true;
+	    else if (STREQ(argv[i], "-codatunnel")){
+	      enable_codatunnel = true;
+	      eprint("codatunnel enabled");
+	    }
+	    else if (STREQ(argv[i], "-tcpbindport")) {
+	      i++; codatunnel_tcpbindport = atoi(argv[i]);
+	    }
+
 	    else {
 		eprint("bad command line option %-4s", argv[i]);
 		done = -1;

@@ -73,6 +73,7 @@ extern "C" {
 #include <lwp/timer.h>
 #include <rpc2/rpc2.h>
 #include <rpc2/sftp.h>
+#include <rpc2/fakeudp.h>
 #include <partition.h>
 #include <util.h>
 #include <rvmlib.h>
@@ -234,6 +235,7 @@ static int StackUsed[MAXLWP];
 static int StackAllocated[MAXLWP];
 static ClientEntry *CurrentClient[MAXLWP];
 
+
 /* *****  Private routines  ***** */
 
 static void AuthLWP(void *);
@@ -330,6 +332,9 @@ int main(int argc, char *argv[])
 	exit(-1);
     }
 
+    fakeudp_saved_argv = argv; /* save for use in codatunneld */
+
+
     if(ParseArgs(argc,argv)) {
 	SLog(0, "usage: srv [-d (debug level)] [-p (number of processes)] ");
 	SLog(0, "[-l (large vnodes)] [-s (small vnodes)]");
@@ -343,6 +348,7 @@ int main(int argc, char *argv[])
 	SLog(0, "[-nodebarrenize] [-dir workdir] [-srvhost host]");
 	SLog(0, " [-rvmopt] [-usenscclock]");
 	SLog(0, " [-mapprivate] [-zombify]");
+	SLog(0, " [-codatunnel]");
 
 	exit(-1);
     }
@@ -396,10 +402,38 @@ int main(int argc, char *argv[])
     /* Initialize the hosttable structure */
     CLIENT_InitHostTable();
 
+    /* Fork the Coda tunnel for fakeudp, if requested */
+
+    if (enable_codatunnel) {
+      int rc;
+      short port1;
+      struct servent *s;
+
+      s = 0; port1 = 0;
+      s = coda_getservbyname("codasrv", "udp");
+      if (!s) {
+	perror("coda_getservbyname(codasrv, udp)");
+	exit(-1);
+      }
+      else {
+	port1 = ntohs(s->s_port);
+	/* DEBUG */ printf("udplegacyportnum = %d\n", port1);
+      }
+
+     
+      /* DEBUG */    printf("About to call fakeudp_fork_codatunneld()");
+      rc = fakeudp_fork_codatunneld(port1, 0);
+      if (rc < 0){
+	perror("fakeudp_fork_codatunneld: "); /* hopefully errno still meaningful */
+	exit(-1);
+      }
+      printf("Main server process: forked codatunnel successfully\n"); fflush(stdout);
+    }
+
     SLog(0, "Main process doing a LWP_Init()");
     CODA_ASSERT(LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, &mainPid) == LWP_SUCCESS);
 
-    /* using rvm - so set the per thread data structure for executing
+     /* using rvm - so set the per thread data structure for executing
        transactions */
     rvm_perthread_t rvmptt;
     if (RvmType == RAWIO || RvmType == UFS) {
@@ -1511,6 +1545,10 @@ static int ParseArgs(int argc, char *argv[])
 	    if (!strcmp(argv[i], "-mapprivate")) {
 		MapPrivate = 1;
 	    }
+        else if (!strcmp(argv[i], "-codatunnel")){
+	      enable_codatunnel = true;
+	      eprint("codatunnel enabled");
+	}
 	else {
 	    return(-1);
 	}
