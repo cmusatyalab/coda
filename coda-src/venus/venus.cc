@@ -114,6 +114,9 @@ int mariner_tcp_enable = 0;
 int mariner_tcp_enable = 1;
 #endif
 
+/* Global red and yellow zone limits on CML length; default is infinite */
+int redzone_limit = -1, yellowzone_limit = -1;
+
 /* *****  Private constants  ***** */
 
 struct timeval DaemonExpiry = {TIMERINTERVAL, 0};

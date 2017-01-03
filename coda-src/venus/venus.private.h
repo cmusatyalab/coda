@@ -355,6 +355,7 @@ extern const char *ASRLauncherFile;
 extern const char *ASRPolicyFile;
 extern int   option_isr;
 extern int   detect_reintegration_retry;
+extern int   redzone_limit, yellowzone_limit;
 
 /* spool.cc */
 extern void MakeUserSpoolDir(char *, uid_t);

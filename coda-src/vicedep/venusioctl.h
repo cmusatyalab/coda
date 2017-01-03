@@ -215,6 +215,8 @@ extern "C" {
 
 #define _VIOC_UNLOADKERNEL       (CFS_IOCTL_BASE + 53) /* Unload kernel module, only Win9x so far */
 
+#define _VIOC_ZLIMIT             (CFS_IOCTL_BASE + 54) /* Set red & yellow zone limits (Satya, 2017-01-02) */
+
 /* we really can't/shouldn't go beyond 255 (CFS_IOCTL_BASE + 63) because the nr
  * component in an ioctl is only an 8-bit value.
  * The following ioctls probably ended up either clobbering the ioctl number,

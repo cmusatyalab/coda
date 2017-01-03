@@ -150,6 +150,7 @@ static void ListLocal(int, char**, int);
 static void CheckLocal(int, char**, int);
 static void PreserveLocal(int, char**, int);
 static void DiscardLocal(int, char**, int);
+static void ZoneLimit(int, char**, int);
 
 static void At_SYS(int, char **, int);
 static void At_CPU(int, char **, int);
@@ -415,6 +416,11 @@ struct command cmdarray[] =
             "Preserve the inconsistent head record of a volume's CML",
             NULL
         },
+	{"zonelimit", "zl", ZoneLimit,
+	 "cfs zonelimit <redzone limit>  <yellowzone limit>  (-1 for no limit)",
+	 "Set red and yellow CML limits for all volumes (-1 means no limit)",
+	 NULL
+	},
     };
 
 /* Number of commands in cmdarray */
@@ -2760,6 +2766,47 @@ static void CheckLocal(int argc, char *argv[], int opslot)
     rc = repair_pioctl(codadir, REP_CMD_CHECK, 1);
     if (rc) { PERROR("VIOC_REP_CMD(REP_CMD_CHECK)"); exit(-1); }
     }
+
+static void ZoneLimit(int argc, char *argv[], int opslot) {
+  /* Currently, we only allow dynamic setting of CML length values for 
+     red zone and yellow zone limits.   The other limits (e.g. cache space) 
+     remain hardwired in vproc.cc.  If the need ever arises, perhaps 
+     those should also be settable?  (Satya, 2017-01-02)
+  */
+    int rzlimit, yzlimit;
+    struct ViceIoctl vio;
+    int rc;
+
+    yzlimit = rzlimit = -1;  /* default is infinite CML length */
+
+    /* First get the new red and yellow zone values */
+    switch (argc) {
+        case 4: 
+	  rzlimit = atoi(argv[2]); 
+	  yzlimit = atoi(argv[3]); 
+	  break;
+
+        default:
+            printf("Usage: %s\n", cmdarray[opslot].usetxt);
+            exit(-1);
+    }
+
+    /* Now make the pioctl */
+
+    ((int *)piobuf)[0] = rzlimit;
+    ((int *)piobuf)[1] = yzlimit;
+    vio.in = piobuf;
+    vio.in_size = 2 * (int) sizeof(int);
+    vio.out = 0;
+    vio.out_size = 0;
+
+    rc = pioctl(NULL, _VICEIOCTL(_VIOC_ZLIMIT), &vio, 0);
+    if (rc < 0) { PERROR("VIOC_ZLIMIT"); exit(-1); }
+    else {printf("Zone limits set:  red = %d  yellow = %d\n", rzlimit, yzlimit);}
+}  
+
+
+
 
 static void At_SYS(int argc, char *argv[], int opslot)
 {
