@@ -400,14 +400,27 @@ static void Recov_InitRVM()
                    VenusLogDevice, errno);
             exit(-1);
         }
+
         VenusLogDeviceSize = tstat.st_size;
+        if (VenusLogDeviceSize == 0) {
+            eprint("Recov_InitRVM: Unexpected empty RVM log (%s) found",
+                   VenusLogDevice);
+            exit(-1);
+        }
 
         if (stat(VenusDataDevice, &tstat) < 0)
             CHOKE("ValidateDevice: stat of (%s) failed (%d)",
                   VenusDataDevice, errno);
+
         VenusDataDeviceSize = tstat.st_size;
+        if (VenusDataDeviceSize == 0) {
+            eprint("Recov_InitRVM: Unexpected empty RVM data (%s) found",
+                   VenusDataDevice);
+            exit(-1);
+        }
     }
     eprint("%s size is %ld bytes", VenusLogDevice, VenusLogDeviceSize);
+    eprint("%s size is %ld bytes", VenusDataDevice, VenusDataDeviceSize);
 
     ret = RVM_INIT(&Recov_Options);
     free(logdev);
@@ -501,7 +514,7 @@ static void Recov_LoadRDS()
         /* Sanity check RVG fields. */
         if (rvg->recov_HeapAddr   != Recov_RdsAddr ||
             rvg->recov_HeapLength != Recov_RdsLength)
-            CHOKE("Recov_LoadRDS: heap mismatch (%x, %x) vs (%x, %x)",
+            CHOKE("Recov_LoadRDS: heap mismatch (%p, %lx) vs (%p, %lx)",
                   rvg->recov_HeapAddr, rvg->recov_HeapLength,
                   Recov_RdsAddr, Recov_RdsLength);
         if (!rvg->validate()) {
