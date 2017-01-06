@@ -151,7 +151,7 @@ int main(int arg, char **argv)
 		if ((ifd = fopen(argv[1], "r")) == NULL) {
 			printf("ctest: can not open script file \"%s\"\n", argv[1]);
 			perror("fopen");
-			exit(1);
+			exit(EXIT_FAILURE);
 		} else {
 			fflag++;
 		}
@@ -194,7 +194,7 @@ int main(int arg, char **argv)
 
 	if(WhatHappened(RPC2_Init(RPC2_VERSION, (RPC2_Options *)NULL, 
 				  (RPC2_PortIdent *)NULL, -1, (struct timeval *)NULL), "Init") != RPC2_SUCCESS)
-	exit(-1);
+	exit(EXIT_FAILURE);
 
     lwp_stackUseEnabled = 0;
 
@@ -652,6 +652,6 @@ static void DoBinding(RPC2_Handle *cid)
 
     if (WhatHappened(RPC2_NewBinding(&hid, &sid, &ssid, &bparms, cid),
             "NewBinding") < RPC2_ELIMIT)
-	exit(-1);
+	exit(EXIT_FAILURE);
 
     }

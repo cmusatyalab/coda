@@ -118,12 +118,12 @@ int main(int argc, char *argv[])
 	if (strcmp(argv[i], "-x") == 0 && i < argc -1)
 	    {AL_DebugLevel = atoi(argv[++i]); continue;}
 	printf("Usage: altest  [-x debuglevel]\n");
-	exit(-1);
+	exit(EXIT_FAILURE);
 	}    
 	    
     i = 0;
     if (AL_Initialize(AL_VERSION) < 0)
-	{printf("Initialize failed\n."); exit(-1);}
+	{printf("Initialize failed\n."); exit(EXIT_FAILURE);}
     else printf("AL_Initialize-->%d\n", ++i);
     
     DoMore = TRUE;

@@ -43,7 +43,7 @@ static void Initialize(void)
     rc = LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, &pid);
     if (rc != LWP_SUCCESS) {
 	printf("LWP_Init() failed\n");
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
 
     tv.tv_sec = 15;
@@ -55,7 +55,7 @@ static void Initialize(void)
     rc = RPC2_Init(RPC2_VERSION, &options, NULL, -1, &tv);
     if (rc != LWP_SUCCESS) {
 	printf("RPC_Init() failed\n");
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
 }
 
@@ -116,14 +116,14 @@ int main(int argc, char *argv[])
     if (rc != RPC2_SUCCESS) {
         printf("RPC2 connection to %s:%d failed with %s.\n",
                host, port, RPC2_ErrorMsg(rc));
-        exit(2);
+        exit(EXIT_FAILURE);
     }
     
     printf("RPC2 connection to %s:%d successful.\n", host, port);
-    exit(0);
+    exit(EXIT_SUCCESS);
 
 badargs:
     printf("Usage %s [-p port] hostname\n", argv[0]);
-    exit(-1);
+    exit(EXIT_FAILURE);
 }
 

@@ -57,7 +57,7 @@ static void mkbigfile (int fd, struct stat fsb, char *dirname)
     if (levels > 2) {
 	fprintf (stderr, "Input file too big, increase hunk size "
 		 "or files per directory.\n"); 
-	exit(1);
+	exit(EXIT_FAILURE);
     }
 
     /* Build the dir structure */
@@ -70,7 +70,7 @@ static void mkbigfile (int fd, struct stat fsb, char *dirname)
 	    if (mkdir (name, 0777) < 0) {
 		fprintf (stderr, "Could not create %s: %s\n", name,
 			 strerror(errno));
-		exit(1);
+		exit(EXIT_FAILURE);
 	    }
 	}
 	break;
@@ -84,7 +84,7 @@ static void mkbigfile (int fd, struct stat fsb, char *dirname)
 		if (mkdir (name, 0777) < 0) {
 		    fprintf (stderr, "Could not create %s: %s\n", name,
 			     strerror(errno));
-		    exit(1);
+		    exit(EXIT_FAILURE);
 		}
 	    }
 	    snprintf (name, MAXPATHLEN, "%s/%0*ld/%0*ld", dirname,
@@ -93,7 +93,7 @@ static void mkbigfile (int fd, struct stat fsb, char *dirname)
 	    if (mkdir (name, 0777) < 0) {
 		fprintf (stderr, "Could not create %s: %s\n", name,
 			 strerror(errno));
-		exit(1);
+		exit(EXIT_FAILURE);
 	    }
 	}
 	break;
@@ -124,7 +124,7 @@ static void mkbigfile (int fd, struct stat fsb, char *dirname)
 	if (hfd < 0) {
 	    fprintf (stderr, "Could not create %s: %s\n", name,
 		     strerror(errno));
-	    exit(1);
+	    exit(EXIT_FAILURE);
 	}
 	temp  = (fileno == files-1 ? lastfilesize : hunkbytes);
 	while (temp > 0) {
@@ -135,12 +135,12 @@ static void mkbigfile (int fd, struct stat fsb, char *dirname)
 	    if (ret < 0) {
 		fprintf (stderr, "Source file read problem: %s\n",
 			 strerror(errno));
-		exit(1);
+		exit(EXIT_FAILURE);
 	    }
 	    wret = write (hfd, buff, ret);
 	    if (wret != ret) {
 		fprintf (stderr, "Write problem: unwritten data\n");
-		exit(1);
+		exit(EXIT_FAILURE);
 	    }
 	    temp -= ret;
 	}
@@ -161,7 +161,7 @@ static void mkbigfile (int fd, struct stat fsb, char *dirname)
 	if (fd < 0) {
 	    fprintf (stderr, "Could not create %s: %s\n", name,
 		     strerror(errno));
-	    exit(1);
+	    exit(EXIT_FAILURE);
 	}
         chars = snprintf (data, 1024, "CDBGFL00 %lld %ld %ld %ld\n",
 			  (long long)fsb.st_size, hunksize,
@@ -170,7 +170,7 @@ static void mkbigfile (int fd, struct stat fsb, char *dirname)
 	if (wret != chars) {
 	    fprintf (stderr, "Write problems on %s: %s\n", name,
 		     strerror(errno));
-	    exit(1);
+	    exit(EXIT_FAILURE);
 	}
 	close(fd);
     }
@@ -182,7 +182,7 @@ static void usage(char *prog)
 	     "usage: %s [-f files_per_dir] [-s size] [-v]"
 	     " file new_big_file\n",
 	     prog);
-    exit(1);
+    exit(EXIT_FAILURE);
 }
 
 int main (int argc, char **argv)
@@ -203,12 +203,12 @@ int main (int argc, char **argv)
 	    filesperdir = atoi(optarg);
 	    if (filesperdir > 1000) {
 		fprintf (stderr, "%s: Too many files per directory.\n", prog);
-		exit(1);
+		exit(EXIT_FAILURE);
 	    }
 	    if (filesperdir < 8) {
 		fprintf (stderr, "%s: Files per directory must be 8 or larger.\n",
 			 prog);
-		exit(1);
+		exit(EXIT_FAILURE);
 	    }
 	    dirdigits = 1;
 	    for (temp = (filesperdir - 1)/10; temp > 0; temp /= 10)
@@ -218,7 +218,7 @@ int main (int argc, char **argv)
 	    hunksize = atoi(optarg);
 	    if (hunksize < 1) {
 		fprintf (stderr, "%s: Hunk size must be 1 or larger.\n", prog);
-		exit(1);
+		exit(EXIT_FAILURE);
 	    }
 	    hunkbytes = megabyte * hunksize;
 	    break;
@@ -242,19 +242,19 @@ int main (int argc, char **argv)
     if (err < 0) {
 	fprintf (stderr, "%s: %s: %s\n", prog, argv[0],
 		 strerror(errno));
-	exit(1);
+	exit(EXIT_FAILURE);
     }
 
     if ((fsb.st_mode & S_IFREG) != S_IFREG) {
 	fprintf (stderr, "%s: %s: Must be a regular file.\n", prog,
 		 argv[0]);
-	exit(1);
+	exit(EXIT_FAILURE);
     }
 
     if (fsb.st_size < hunkbytes) {
 	fprintf (stderr, "%s: %s: File too small, needs only one hunk.\n",
 		 prog, argv[0]);
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 
     /* Big file information */
@@ -262,12 +262,12 @@ int main (int argc, char **argv)
     if (err >= 0) {
 	fprintf (stderr, "%s: %s: Must not exist.\n", prog,
                  argv[1]);
-        exit(1);
+        exit(EXIT_FAILURE);
     }
     if (err < 0 && errno != ENOENT) {
 	fprintf (stderr, "%s: %s: %s.\n", prog, argv[1],
 		 strerror(errno));
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 
     /* Time to create the big file. */
@@ -276,7 +276,7 @@ int main (int argc, char **argv)
     if (ffd < 0) {
 	fprintf (stderr, "%s: %s: %s\n", prog, argv[0],
 		 strerror(errno));
-	exit(1);
+	exit(EXIT_FAILURE);
     }
 
     if (verbose) printf ("creating directory %s\n", argv[1]);
@@ -284,7 +284,7 @@ int main (int argc, char **argv)
     if (err < 0) {
 	fprintf (stderr, "%s: %s: %s\n", prog, argv[1],
 		 strerror(errno));
-	exit(1);
+	exit(EXIT_FAILURE);
     }
 
     mkbigfile (ffd, fsb, argv[1]);

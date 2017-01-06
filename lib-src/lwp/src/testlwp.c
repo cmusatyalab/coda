@@ -63,7 +63,7 @@ int main(int argc, char **argv)
     if (argc < 2)
       {
 	fprintf (stderr, "usage: %s count\n", argv[0]);
-	exit(1);
+	exit(EXIT_FAILURE);
       }
 
     count = atoi(argv[1]);
@@ -97,5 +97,5 @@ int main(int argc, char **argv)
     }
 
     LWP_TerminateProcessSupport();
-    exit(0);
+    exit(EXIT_SUCCESS);
 }

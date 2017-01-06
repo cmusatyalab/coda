@@ -112,7 +112,7 @@ void main(int argc, char **argv)
 
    /* now read each line of the CopyList */
    Copy(file1, file2, !oneLevel, 0, strip);
-   exit(0);
+   exit(EXIT_SUCCESS);
 }
 
 
@@ -165,18 +165,18 @@ static void ScanArgs(int argc, char **argv)
                 preserveDate = false;
                 break;
 
-default: 
-fprintf(stderr, "Unknown option %c\n", *cp);
-fprintf(stderr, "usage: updfiles [foo.upd]\n");
-exit(1);
-}
-argc--, argv++;
-}
+            default:
+                fprintf(stderr, "Unknown option %c\n", *cp);
+                fprintf(stderr, "usage: updfiles [foo.upd]\n");
+                exit(EXIT_FAILURE);
+        }
+        argc--, argv++;
+    }
 
     if (argc != 2)
     {
         fprintf(stderr, "usage: mvs <flags> from to\n");
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 
     strcpy(file1, argv[0]);

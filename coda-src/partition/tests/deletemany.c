@@ -35,7 +35,7 @@ main(int argc, char **argv)
     
     if ( argc != 4 ) {
 	printf("Usage %s dir first last.\n", argv[0]);
-	exit(1);
+	exit(EXIT_FAILURE);
     }
 
     dp = VGetPartition(argv[1]);
@@ -49,7 +49,7 @@ main(int argc, char **argv)
 	testcreate = idec(devno, i, 0);
 	printf("idec returning %d for inode %ld\n", testcreate, i);
 	if ( testcreate != 0 )
-	exit(1);
+	exit(EXIT_FAILURE);
     }
     
     return rc;

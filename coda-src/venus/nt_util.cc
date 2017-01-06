@@ -91,7 +91,7 @@ nt_do_mounts (void *junk)
 	if (mount) {
 	    eprint ("DDD failed, mount failed.  Killing venus.");
 	    kill(getpid(), SIGKILL);
-	    exit(1);
+	    exit(EXIT_FAILURE);
 	} else {
 	    eprint ("DDD failed, umount failed.");
 	    return 1;
@@ -106,7 +106,7 @@ nt_do_mounts (void *junk)
 	if (mount) {
 	    eprint ("CreateFile failed, mount failed.  Killing venus.");
 	    kill(getpid(), SIGKILL);
-	    exit(1); 
+	    exit(EXIT_FAILURE);
 	} else { 
 	    eprint ("CreateFile failed, umount failed.");
 	    return 1;
@@ -129,7 +129,7 @@ nt_do_mounts (void *junk)
 	    eprint ("Mount failed.  Killing venus.  (Error %d)",
 		    GetLastError());
 	    kill(getpid(), SIGKILL);
-	    exit(1);
+	    exit(EXIT_FAILURE);
 	} else {
 	    eprint ("Umount failed. (Not a problem on startup.)");
 	    return 1;
@@ -179,7 +179,7 @@ nt_mount (const char *drivename)
     if (!h) {
 	eprint ("CreateThread failed.  Mount unsuccessful.  Killing venus.");
 	kill(getpid(), SIGKILL);
-	exit(1); 
+	exit(EXIT_FAILURE);
     }
 
     CloseHandle (h);
@@ -205,7 +205,7 @@ listen_kernel (void *junk)
     if ( rc == 0 ) {
 	eprint ("DDD failed, listen_kernel failed.");
 	kill(getpid(), SIGKILL);
-	exit(1); 
+	exit(EXIT_FAILURE);
     }
 
     h = CreateFile ("\\\\.\\codadev", GENERIC_READ | GENERIC_WRITE,
@@ -215,7 +215,7 @@ listen_kernel (void *junk)
     if (h == INVALID_HANDLE_VALUE) {
 	eprint ("CreateFile failed, listen_kernel failed.");
 	kill(getpid(), SIGKILL);
-	exit(1); 
+	exit(EXIT_FAILURE);
     } 
 
     while (1) {

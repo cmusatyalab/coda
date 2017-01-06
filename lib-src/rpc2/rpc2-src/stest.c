@@ -120,7 +120,7 @@ int main(argc, argv)
 	(maxLWPs > MAXLWPS)) {
 	printf("Bad max number of LWPs (%d), must be between 1 and %d\n",
 	       maxLWPs, MAXLWPS);
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
     HandleRequests((void *)(intptr_t)numLWPs);
     numLWPs++;
@@ -159,7 +159,7 @@ static void HandleRequests(void *arg)
 				 FindKey, (long)RPC2_XOR,
 				 NoteAuthFailure)) != RPC2_SUCCESS) {
 	    (void) WhatHappened(i, "GetRequest");
-	    exit(-1);
+	    exit(EXIT_FAILURE);
 	}
 
 	/*
@@ -528,7 +528,7 @@ static void GetParms(long argc, char *argv[], SFTP_Initializer *sftpI)
     
 
 	printf("Usage: stest [-x debuglevel] [-sx sftpdebuglevel]  [-l maxlwps] [-v verboseflag] [-p port]\n");
-	exit(-1);
+	exit(EXIT_FAILURE);
 	}    
 	        
 }
@@ -559,7 +559,7 @@ static void InitRPC(void)
 
     if (WhatHappened(RPC2_Init(RPC2_VERSION, (RPC2_Options *)NULL, pp,
 		      (long) 6, (struct timeval *)NULL), "Init") != RPC2_SUCCESS)
-	exit(-1);
+	exit(EXIT_FAILURE);
     PrintPortIdent(&rpc2_LocalPort, (FILE *)NULL);
     printf("\n\n");
     subsysid.Tag = RPC2_SUBSYSBYID;

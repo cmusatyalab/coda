@@ -204,7 +204,7 @@ int main(int argc, char **argv)
 		    argv[i]);
 	    fprintf(stderr, "Usage: updatesrv [-p prefix] [-port port]"
 		    " [-d (debug level)] [-l (number of lwps)]\n");
-	    exit(1);
+	    exit(EXIT_FAILURE);
 	}
     }
 
@@ -228,7 +228,7 @@ int main(int argc, char **argv)
 	snprintf (errmsg, MAXPATHLEN, "Could not chdir to %s",
 		  vice_config_path("misc"));
 	perror(errmsg);
-	exit(1);
+	exit(EXIT_FAILURE);
     }
 
     UtilDetach();
@@ -247,7 +247,7 @@ int main(int argc, char **argv)
     if (chdir(prefix)) {
 	snprintf (errmsg, MAXPATHLEN, "Could not chdir to %s", prefix);
 	perror (errmsg);
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
 
     LogMsg(0, SrvDebugLevel, stdout, "Update Server working directory %s",
@@ -258,7 +258,7 @@ int main(int argc, char **argv)
 	snprintf (errmsg, MAXPATHLEN, "Error in writing %s",
 		  vice_config_path("misc/updatesrv.pid"));
 	perror(errmsg);
-	exit(1);
+	exit(EXIT_FAILURE);
     }
     fprintf(file, "%d", getpid());
     fclose(file);
@@ -330,7 +330,7 @@ static void ResetDebug()
 static void Terminate()
 {
     LogMsg(0, SrvDebugLevel, stdout, "Exiting updateclnt");
-    exit(0);
+    exit(EXIT_SUCCESS);
 }
 
 static long Update_GetKeys(RPC2_Integer *authtype, RPC2_CountedBS *cident,

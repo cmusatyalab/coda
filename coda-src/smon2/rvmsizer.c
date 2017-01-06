@@ -205,11 +205,11 @@ int main (int argc, char **argv)
     if (argc == 0) {
 usage:
 	printf("Usage: %s [--] dir\n", exe);
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
 
     scantree(argv);
 
-    exit(0);
+    exit(EXIT_SUCCESS);
 }
 

@@ -428,7 +428,7 @@ void showVnodeDiskObject(int largc, char **largv)
 int main(int argc, char **argv) {
     if (argc > 2) {
 	printf("Usage: %s <dumpfile>\n", argv[0]);
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
 
     if (argc > 1)	/* Use any argument as the default dumpfile. */

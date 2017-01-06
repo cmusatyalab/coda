@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
 	dir = opendir(mountpoint);
 	if (!dir) {
 	    perror("Failed to get list of realms");
-	    exit(-1);
+	    exit(EXIT_FAILURE);
 	}
 
 	while ((entry = readdir(dir)) != NULL)

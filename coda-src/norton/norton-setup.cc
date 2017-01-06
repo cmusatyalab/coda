@@ -64,12 +64,12 @@ void LoadRVM(char * log_dev, char * data_dev, rvm_offset_t data_len)
 
     if (stat(log_dev, &buf)) {
 	perror("Reading log device");
-	exit(1);
+	exit(EXIT_FAILURE);
     }
 
     if (stat(data_dev, &buf)) {
 	perror("Reading data device");
-	exit(1);
+	exit(EXIT_FAILURE);
     }
 
     /* Set the per-thread data structure, don't ever free this. */
@@ -92,7 +92,7 @@ void LoadRVM(char * log_dev, char * data_dev, rvm_offset_t data_len)
     fflush(stdout);
     if ((err = RVM_INIT(options)) != RVM_SUCCESS) {
 	fprintf(stderr, "rvm_init failed %s\n", rvm_return(err));
-	exit(1);
+	exit(EXIT_FAILURE);
     }
 
     printf("About to call rds_load_heap\n");
@@ -100,7 +100,7 @@ void LoadRVM(char * log_dev, char * data_dev, rvm_offset_t data_len)
     rds_load_heap(data_dev, data_len, (char **)&camlibRecoverableSegment, &err);
     if (err != RVM_SUCCESS) {
 	fprintf(stderr, "rds_load_heap error %s\n", rvm_return(err));
-	exit(1);
+	exit(EXIT_FAILURE);
     }
 
     rvm_free_options(options);
@@ -116,14 +116,14 @@ void InitLWP() {
     ret = LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, &pid);
     if (ret != LWP_SUCCESS) {
 	fprintf(stderr, "LWP_Init failed!\n");
-	exit(1);
+	exit(EXIT_FAILURE);
     }
 
     /* Initialize IOMGR!  BAH!  LWP_Init should do this! */
     ret = IOMGR_Initialize();
     if (ret != LWP_SUCCESS) {
 	fprintf(stderr, "IOMGR_Initialize failed!  Return = %d\n", ret);
-	exit(1);
+	exit(EXIT_FAILURE);
     }
 }
 
@@ -160,7 +160,7 @@ void NortonInit(char *log_dev, char *data_dev, int data_len) {
     if (stat("/vice/srv/pid", &buf) == 0) {
 	fprintf(stderr, "ERROR: A file server is already running!\n");
 	fprintf(stderr, "       Shut it down before running 'norton'\n");
-	exit(1);
+	exit(EXIT_FAILURE);
     }
 
     InitLWP();
@@ -173,7 +173,7 @@ void NortonInit(char *log_dev, char *data_dev, int data_len) {
     pt = salvager;
     if (LWP_NewRock(FSTAG, (char *)&pt) != LWP_SUCCESS) {
 	fprintf(stderr, "Can't set program type!\n");
-	exit(1);
+	exit(EXIT_FAILURE);
     }
     
     NortonInitVolPackage();

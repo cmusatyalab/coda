@@ -56,7 +56,7 @@ main (argc, argv)
         }
     else
         {printf("usage is: test <ofid> <optional new fid>\n");
-        exit(1);
+        exit(EXIT_FAILURE);
         }
     code = DirOK(&ofid);
     printf("DirOK returned %d.\n");

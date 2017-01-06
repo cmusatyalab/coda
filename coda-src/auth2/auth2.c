@@ -144,7 +144,7 @@ int main(int argc, char **argv)
 	    snprintf (errmsg, MAXPATHLEN, "Error: cannot chdir to %s",
 		      vice_config_path("auth2"));
 	    perror(errmsg);
-	    exit(1);
+	    exit(EXIT_FAILURE);
     }
     InitGlobals(argc, argv);
     if ( ! AuthDebugLevel ) 
@@ -160,7 +160,7 @@ int main(int argc, char **argv)
 
     if ((rc = AL_Initialize(AL_VERSION)) != 0) {
 	LogMsg(-1, 0, stdout, "AL_Initialize failed with %d", rc);
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
 
     InitPW(PWFIRSTTIME);
@@ -256,7 +256,7 @@ static void InitGlobals(int argc, char **argv)
 	fprintf(stderr, "Usage: auth2 [-r] [-chk] [-x debuglevel] ");
 	fprintf(stderr, "[-p pwfile] [-fk filekey] [-tk tokenkey]\n");
 
-	exit(-1);
+	exit(EXIT_FAILURE);
     }    
 
     CheckTokenKey();
@@ -287,7 +287,7 @@ static void InitSignals(void)
     if ((file = fopen("pid","w")) == NULL)
 	{
 	perror("pid");
-	exit(-1);
+	exit(EXIT_FAILURE);
 	}
     fprintf(file,"%d",(int) getpid());
     fclose(file);
@@ -329,7 +329,7 @@ static void Terminate(void)
     }
 
     LogMsg(-1, 0, stdout, "Terminate signal received .......quitting");
-    exit(0);
+    exit(EXIT_SUCCESS);
 }
 
 
@@ -362,7 +362,7 @@ static void InitRPC(void)
 
     if ((rc = RPC2_Init(RPC2_VERSION, &options, &port, -1, &tout)) != RPC2_SUCCESS) {
 	LogMsg(-1, 0, stdout, "RPC2_Init failed with %s", RPC2_ErrorMsg(rc));
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
     subsysid.Tag = RPC2_SUBSYSBYID;
     subsysid.Value.SubsysId = AUTH_SUBSYSID;
@@ -387,14 +387,14 @@ static void CheckTokenKey(void)
     if(stat(Auth2TKFile, &statbuf))
     {
 	perror("stat failed for token key file");
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
     if(TokenTime != statbuf.st_mtime)
     {
 	if ((tf = fopen(Auth2TKFile, "r")) == NULL)
 	{
 	    perror(Auth2TKFile);
-	    exit(-1);
+	    exit(EXIT_FAILURE);
 	}
 	memset(TokenKey, 0, RPC2_KEYSIZE);
 	fread(TokenKey, 1, RPC2_KEYSIZE, tf);

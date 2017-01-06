@@ -75,7 +75,7 @@ void ReadTokenFromFile(char *filename, ClearToken *cToken,
     f = fopen(filename, "r");
     if (!f) {
         fprintf(stderr, "Failed to open %s.\n", filename);
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
 
     /* skip the first line */
@@ -86,7 +86,7 @@ void ReadTokenFromFile(char *filename, ClearToken *cToken,
     if (len != sizeof(ClearToken) + sizeof(EncryptedSecretToken)) {
         fprintf(stderr, "Corrupted token file?\n");
         free(buf);
-        exit(-1);
+        exit(EXIT_FAILURE);
     }
     memcpy((char *)cToken, buf, sizeof(ClearToken));
     memcpy(sToken, buf + sizeof(ClearToken), sizeof(EncryptedSecretToken));

@@ -166,7 +166,7 @@ int main(int argc, char **argv)
     // get file name 
     if (ParseArgs(argc, argv, incdname, incfname)) {
 	fprintf(stderr, "Error in Parsing args\n");
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
     yyparse();
 #ifdef TIMING
@@ -190,7 +190,7 @@ int main(int argc, char **argv)
 	// enable repair 
 	if (r->enablerepair()) {
 	    fprintf(stderr, "Couldn't do the begin repair\n");
-	    exit(-1);
+	    exit(EXIT_FAILURE);
 	}
 	    
 	// invoke commands
@@ -219,5 +219,5 @@ int main(int argc, char **argv)
     }
 #endif /* TIMING */
     
-    exit(0);
+    exit(EXIT_SUCCESS);
 }

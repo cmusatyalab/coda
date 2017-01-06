@@ -190,7 +190,7 @@ void U_InitRPC()
     if ( rc != RPC2_SUCCESS ) {
 	    fprintf(stderr, "Cannot initialize RPC2 (error %d). ! Exiting.\n",
 		    rc);
-	    exit(1);
+	    exit(EXIT_FAILURE);
     }
 }
 

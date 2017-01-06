@@ -95,18 +95,18 @@ int main(int argc, char **argv) {
 
     if (argc != 3) {
 	fprintf(stderr, "Usage: %s <inc-file-name> <merged-file-name>\n", argv[0]);
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
 
     /*  make sure repair file exists  */
     rc = stat(argv[2], &statbuf);
     if (rc != 0) {
 	fprintf(stderr, "Couldn't find %s(errno = %d)\n", argv[2], errno);
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
     if (!(statbuf.st_mode & S_IFREG)) {
 	fprintf(stderr, "File %s cannot be used for repair\n", argv[2]);
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
 
     if (!getfid(argv[2], &fixfid, fixrealm, &fixvv))
@@ -122,10 +122,10 @@ int main(int argc, char **argv) {
     rc = pioctl(argv[1], _VICEIOCTL(_VIOC_REPAIR), &vioc, 0);
     if (rc < 0 && errno != ETOOMANYREFS) {
 	fprintf(stderr, "Error %d for repair\n", errno);
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
 	
     if (stat(argv[1], &statbuf)) 
-	exit(-1);
-    exit(0);
+	exit(EXIT_FAILURE);
+    exit(EXIT_SUCCESS);
 }

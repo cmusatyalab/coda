@@ -92,7 +92,7 @@ int main(int argc, char *argv[])
 
 		case 's':
 		    fprintf(stderr, "%s: s option is deprecated\n", EXE);
-		    exit(-1);
+		    exit(EXIT_FAILURE);
 		    sflag++;
 		    break;
 
@@ -118,7 +118,7 @@ int main(int argc, char *argv[])
 	    if (freopen(argv[2], "r", stdin) == NULL) {
 		fprintf(stderr, "%s: couldn't open %s for reading\n",
 			EXE, argv[2]);
-		exit(-1);
+		exit(EXIT_FAILURE);
 	    }
 	}
     }
@@ -131,7 +131,7 @@ int main(int argc, char *argv[])
 
 	    if (!ValidateHeader(hdr)) {
 		fprintf(stderr, "%s: failed header validation\n", EXE);
-		exit(-1);
+		exit(EXIT_FAILURE);
 	    }
 
 	    HandleRecord(hdr);
@@ -221,7 +221,7 @@ int ValidateHeader(hblock& hdr)
 
 	default:
 	    fprintf(stderr, "%s: bogus linkflag %c\n", EXE, hdr.dbuf.linkflag);
-	    exit(-1);
+	    exit(EXIT_FAILURE);
     }
     
     uint32_t chksum1, chksum2;
@@ -264,7 +264,7 @@ void HandleRecord(hblock& hdr)
 	    if (rflag && freopen(hdr.dbuf.name, "w+", stdout) == NULL) {
 		fprintf(stderr, "%s: could not create %s\n",
 			EXE, hdr.dbuf.name);
-		if (hflag) exit(-1);
+		if (hflag) exit(EXIT_FAILURE);
 		break;
 	    }
 	    for (; size > 0; size -= TBLOCK) {
@@ -274,7 +274,7 @@ void HandleRecord(hblock& hdr)
 	    }
 	    if (rflag && fclose(stdout) == EOF) {
 		fprintf(stderr, "%s: could not close %s\n", EXE, hdr.dbuf.name);
-		exit(-1);
+		exit(EXIT_FAILURE);
 	    }
 
 	    setmode(hdr.dbuf.name, mode & 07777);
@@ -295,7 +295,7 @@ void HandleRecord(hblock& hdr)
 		fprintf(stderr, "%s: can't link %s to %s: ",
 			EXE, hdr.dbuf.name, hdr.dbuf.linkname);
 		perror("");
-		if (hflag) exit(-1);
+		if (hflag) exit(EXIT_FAILURE);
 	    }
 	    break;
 	    }
@@ -311,7 +311,7 @@ void HandleRecord(hblock& hdr)
 		fprintf(stderr, "%s: can't symbolic link %s to %s: ",
 			EXE, hdr.dbuf.name, hdr.dbuf.linkname);
 		perror("");
-		if (hflag) exit(-1);
+		if (hflag) exit(EXIT_FAILURE);
 	    }
 	    break;
 	    }
@@ -333,7 +333,7 @@ void HandleRecord(hblock& hdr)
 			    EXE, hdr.dbuf.name);
 		    perror("");
 		}
-		if (hflag) exit(-1);
+		if (hflag) exit(EXIT_FAILURE);
 	    }
 	    break;
 	    }
@@ -346,7 +346,7 @@ void HandleRecord(hblock& hdr)
 			    EXE, hdr.dbuf.linkname, hdr.dbuf.name);
 		    perror("");
 		}
-		if (hflag) exit(-1);
+		if (hflag) exit(EXIT_FAILURE);
 	    }
 	    break;
 	    }
@@ -359,7 +359,7 @@ void HandleRecord(hblock& hdr)
 			    EXE, hdr.dbuf.name);
 		    perror("");
 		}
-		if (hflag) exit(-1);
+		if (hflag) exit(EXIT_FAILURE);
 	    }
 	    break;
 	    }
@@ -372,14 +372,14 @@ void HandleRecord(hblock& hdr)
 			    EXE, hdr.dbuf.name);
 		    perror("");
 		}
-		if (hflag) exit(-1);
+		if (hflag) exit(EXIT_FAILURE);
 	    }
 	    break;
 	    }
 
 	default:
 	    fprintf(stderr, "%s: bogus linkflag %c\n", EXE, hdr.dbuf.linkflag);
-	    exit(-1);
+	    exit(EXIT_FAILURE);
     }
 }
 
@@ -423,7 +423,7 @@ void makeprefix(char *name) {
 		if (mkdir(name, 0777) < 0) {
 		    if (vflag || hflag)
 			perror(name);
-		    if (hflag) exit(-1);
+		    if (hflag) exit(EXIT_FAILURE);
 		    *cp = '/';
 		    return;
 		}
@@ -440,7 +440,7 @@ void setmode(char *path, int mode) {
 	    fprintf(stderr, "%s: can't set mode on %s: ", EXE, path);
 	    perror("");
 	}
-	if (hflag) exit(-1);
+	if (hflag) exit(EXIT_FAILURE);
     }
 }
 
@@ -451,7 +451,7 @@ void setowner(char *path, int uid, int gid) {
 	    fprintf(stderr, "%s: can't set owner on %s: ", EXE, path);
 	    perror("");
 	}
-	if (hflag) exit(-1);
+	if (hflag) exit(EXIT_FAILURE);
     }
 }
 
@@ -469,7 +469,7 @@ void setlength(char *path, off_t size) {
 	    fprintf(stderr, "%s: can't set length on %s: ", EXE, path);
 	    perror("");
 	}
-	if (hflag) exit(-1);
+	if (hflag) exit(EXIT_FAILURE);
     }
 #ifdef __CYGWIN32__
     close(fd);
@@ -488,7 +488,7 @@ void settimes(char *path, time_t mt) {
 		fprintf(stderr, "%s: can't set time on %s: ", EXE, path);
 		perror("");
 	    }
-	    if (hflag) exit(-1);
+	    if (hflag) exit(EXIT_FAILURE);
 	}
     }
 }
@@ -497,7 +497,7 @@ void settimes(char *path, time_t mt) {
 void readblock(hblock& blk) {
     if (fread((char *)&blk, sizeof(hblock), 1, stdin) != 1) {
 	fprintf(stderr, "%s: fread failed\n", EXE);
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
 }
 
@@ -505,12 +505,12 @@ void readblock(hblock& blk) {
 void writeblock(hblock& blk) {
     if (rflag && fwrite((char *)&blk, sizeof(hblock), 1, stdout) != 1) {
 	fprintf(stderr, "%s: fwrite failed\n", EXE);
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
 }
 
 void usage(void)
 {
     fprintf(stderr, "Usage: %s [rstvh] [filename]\n", EXE);
-    exit(-1);
+    exit(EXIT_FAILURE);
 }

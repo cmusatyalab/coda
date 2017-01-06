@@ -133,7 +133,7 @@ main (int argc, char *argv[])
     if (TestAndLock()) {
 	fprintf(stderr,
 		"Another unwind running or abandoned, please check\n");
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
     ParseArgs(argc, argv);
     InitSignals();
@@ -145,7 +145,7 @@ main (int argc, char *argv[])
     if (InitDB(DataBaseName)) {
 	RemoveLock();
 	fprintf(stderr,"Could not connect to database %s",DataBaseName);
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
     GetFilesAndSpool();
     RemoveLock();
@@ -192,7 +192,7 @@ static void ParseArgs(int argc, char *argv[])
 	printf("              [-pre dataPrefix] [-d logLevel]\n");
 	printf("              [-R | -r] [-L | -l]\n");
 	RemoveLock();
-	exit(1000);
+	exit(EXIT_FAILURE);
     }
 }
 
@@ -719,7 +719,7 @@ static void InitLog() {
 /*    LogFile = stdout; */
     if (LogFile == NULL) {
 	fprintf(stderr, "LOGFILE (%s) initialization failed\n", LOGNAME);
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
 
     struct timeval now;

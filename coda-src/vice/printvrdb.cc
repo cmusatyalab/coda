@@ -78,7 +78,7 @@ int main(int argc, char *argv[]) {
     fd = open(VRDB_PATH, O_RDONLY, 0);
     if (fd < 0) {
 	printf("printvrdb:  Unable to open %s; aborted\n", VRDB_PATH);
-	exit(1);
+	exit(EXIT_FAILURE);
     }
 
     struct vrent vre;
@@ -94,5 +94,5 @@ int main(int argc, char *argv[]) {
 
     close(fd);
 
-    exit(0);
+    exit(EXIT_SUCCESS);
 }

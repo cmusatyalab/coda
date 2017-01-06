@@ -127,7 +127,7 @@ int main(int argc, char **argv)
     RPC2_freeaddrinfo(srvs);
 
     printf("RPC2_Bind() --> %s\n", RPC2_ErrorMsg(rc));
-    if (rc < RPC2_ELIMIT) exit(-1);
+    if (rc < RPC2_ELIMIT) exit(EXIT_FAILURE);
 
     if (ChangePasswordFlag) {
 	char buf[100];
@@ -265,7 +265,7 @@ static void SetGlobals(int argc, char **argv)
 	    return;
 
 	printf("Usage: au [-x] [-h host] [-p portal]  {cp,cu,nu,du}\n");
-	exit(-1);
+	exit(EXIT_FAILURE);
 }
 
 

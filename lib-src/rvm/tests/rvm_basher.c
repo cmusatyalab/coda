@@ -1101,7 +1101,7 @@ static void worker(void *idp)
     /* signal termination */
     if (--nthreads == 0)
         condition_signal(&thread_exit_code);
-    cthread_exit(0);
+    cthread_exit(EXIT_SUCCESS);
     return;
     }
 /* string name lookup: accepts minimum substring for match */
@@ -1242,7 +1242,7 @@ static char *read_prompt_line(prompt,null_ok)
                 if (feof(para_file))
                     {
                     printf("\n?  Error: EOF reported from parameter file !!\n");
-                    exit(1);
+                    exit(EXIT_FAILURE);
                     }
                 return NULL;            /* error */
                 }
@@ -1608,7 +1608,7 @@ static void show_break()
            RVM_ROUND_LENGTH_UP_TO_PAGE_SIZE(cur_brk+5*RVM_PAGE_SIZE));
     printf("Maximum data segment length: 0x%lx\n\n",rlp.rlim_max);
 #endif
-    exit(0);
+    exit(EXIT_SUCCESS);
     }
 /* command dispatch */
 #define MAX_CMDS   50                   /* maximum number of commands */
@@ -1680,7 +1680,7 @@ int main(argc, argv)
       para_file = fopen(argv[1], "r");
       if (! para_file) {
 	fprintf(stderr, "open parameter files failed. Basher not started\n");
-	exit(-1);
+	exit(EXIT_FAILURE);
       }
     } else {
       para_file = stdin;
@@ -1849,7 +1849,7 @@ int main(argc, argv)
             set_priority();
             continue;
           case QUIT_KEY:                /* exit program */
-            exit(0);
+            exit(EXIT_SUCCESS);
           case OPT_KEY:                 /* set optimization flags */
             set_flags();
             continue;
@@ -1949,7 +1949,7 @@ int main(argc, argv)
     if (RVM_OFFSET_TO_LENGTH(DataLen) < max_moby_size)
       {
 	fprintf (stderr, "Basher: Maximum big modification range size too big.\n");
-	exit(-1);
+	exit(EXIT_FAILURE);
       }
 
     /* set LWP options */
@@ -1993,7 +1993,7 @@ int main(argc, argv)
     if  (ret != RVM_SUCCESS)
         {
 	printf("? rvm_initialize failed, code: %s\n",rvm_return(ret));
-        exit(-1);
+        exit(EXIT_FAILURE);
         }
     else
 	printf("rvm_initialize succeeded.\n");

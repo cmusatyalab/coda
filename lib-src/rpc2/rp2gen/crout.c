@@ -205,7 +205,7 @@ void print_struct_func(RPC2_TYPE *t, FILE *where, FILE *hfile, char *name)
     for (v=t->fields.struct_fields; *v!=NIL; v++) {
         if (!legal_struct_fields[(int32_t) (*v)->type->type->tag]) {
             printf("RP2GEN: illegal type for RPC2_Struct field: %s\n", (*v)->name);
-            exit(1);
+            exit(EXIT_FAILURE);
         }
         print_pack_var("ptr->", *v, where);
     }
@@ -216,7 +216,7 @@ void print_struct_func(RPC2_TYPE *t, FILE *where, FILE *hfile, char *name)
     for (v=t->fields.struct_fields; *v!=NIL; v++) {
         if (!legal_struct_fields[(int32_t) (*v)->type->type->tag]) {
             printf("RP2GEN: illegal type for RPC2_Struct field: %s\n", (*v)->name);
-            exit(1);
+            exit(EXIT_FAILURE);
         }
         print_unpack_var("ptr->", *v, where);
     }
@@ -295,7 +295,7 @@ void print_unpack_var(char* prefix, VAR* var, FILE *where)
                     break;
             default:
                     printf("RP2GEN: Unrecognized tag: %d\n", var->type->type->tag);
-                    exit(1);
+                    exit(EXIT_FAILURE);
     }
     free(suffix);
     free(name);
@@ -368,7 +368,7 @@ void print_pack_var(char* prefix, VAR* var, FILE *where)
                     break;
             default:
                 printf("RP2GEN: Unrecognized tag: %d\n", var->type->type->tag);
-                exit(1);
+                exit(EXIT_FAILURE);
     }
     free(suffix);
     free(name);
@@ -394,7 +394,7 @@ static void print_type(RPC2_TYPE *t, FILE *where, char *name)
 					    for (v=t->fields.struct_fields; *v!=NIL; v++) {
 						if (!legal_struct_fields[(int32_t) (*v)->type->type->tag]) {
 						    printf("RP2GEN: illegal type for RPC2_Struct field: %s\n", (*v)->name);
-						    exit(1);
+						    exit(EXIT_FAILURE);
 						}
                                                 fprintf(where, "    ");
 						print_var(*v, where);
@@ -419,7 +419,7 @@ static void print_type(RPC2_TYPE *t, FILE *where, char *name)
 					break;
 
 	default:			printf("RP2GEN: Unrecognized tag: %d\n", t->tag);
-					exit(1);
+					exit(EXIT_FAILURE);
     }
 }
 
@@ -909,7 +909,7 @@ static void spit_parm(VAR *parm, WHO who, FILE *where, rp2_bool header)
             case -2:	puts("RP2GEN [can't happen]: impossible MODE for variable");
 			abort();
             case -1:	printf("RP2GEN: usage & type combination illegal for parameter %s\n", parm->name);
-			exit(1);
+			exit(EXIT_FAILURE);
             case 2:	fprintf(where, "*");
             case 1:	if (parm->array == NULL) fprintf(where, "*");
             case 0:	break;
@@ -971,9 +971,9 @@ static void for_limit(VAR *parm, WHO who, rp2_bool pack, FILE *where)
             case -2:	puts("RP2GEN [can't happen]: impossible MODE for variable");
 			abort();
             case -1:	printf("RP2GEN: usage & type combination illegal for array suffix %s\n", parm->array);
-			exit(1);
+			exit(EXIT_FAILURE);
             case 2:	printf("RP2GEN: [can't happen]: array suffix %s\n", parm->array);
-			exit(1);
+			exit(EXIT_FAILURE);
             case 1:	fprintf(where, "*");
             case 0:	fprintf(where, "%s", parm->array);
 	                break;
@@ -1367,7 +1367,7 @@ static void check_new_connection(PROC *proc)
 	formals[3]->type->type->tag != RPC2_INTEGER_TAG || /* AuthType */
 	formals[4]->type->type->tag != RPC2_COUNTEDBS_TAG) { /* ClientIdent */
 	puts("RP2GEN: bad parameters for NEW_CONNECTION procedure");
-	exit(1);
+	exit(EXIT_FAILURE);
     }
 }
 

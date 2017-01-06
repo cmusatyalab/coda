@@ -300,13 +300,13 @@ int main(int argc, char *argv[])
 	fprintf(stderr, "Usage: %s <conffile>.<confvar> [defaultvalue]\n",
 		argv[0]);
 	fprintf(stderr, "e.g. %s venus.cachesize\n", argv[0]);
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
 
     var = strchr(argv[1], '.');
     if (!var) {
         fprintf(stderr, "Didn't find the '.' separator\n");
-        exit(-1);
+        exit(EXIT_FAILURE);
     }
     *(var++) = '\0';
     
@@ -323,12 +323,12 @@ int main(int argc, char *argv[])
 
     if (!val) {
         fprintf(stderr, "Couldn't find a value for '%s'\n", var);
-        exit(-2);
+        exit(EXIT_FAILURE);
     }
     
     fputs(val, stdout);
     fputc('\n', stdout);
     
-    exit(0);
+    exit(EXIT_SUCCESS);
 }
 #endif

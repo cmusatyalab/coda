@@ -207,7 +207,7 @@ void bbuf::bbuf_error(char *string, int err)
     cerr << string << " unrecognized error code\n";
     break;
   }
-  exit(-1);
+  exit(EXIT_FAILURE);
 */
 }
 

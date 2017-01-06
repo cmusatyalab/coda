@@ -55,7 +55,7 @@ int main(int argc, char * argv[])
     
     if (argc != 3) {
 	usage(exename);
-	exit(1);
+	exit(EXIT_FAILURE);
     }
 
     vice_dir_init("/vice");

@@ -96,7 +96,7 @@ command_t dtcmds[] =
 
 void dt_quit(int argc, char **argv)
 {
-	exit(0);
+	exit(EXIT_SUCCESS);
 }
 
 
@@ -743,24 +743,24 @@ void dt_readargs(int argc, char **argv)
 {
 	if (argc != 3 && argc != 4 ) {
 		printf("Usage %s log data [file]\n", argv[0]);
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	if ( access(argv[1], W_OK)  ) {
 		perror("LOG file access: ");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	if ( access(argv[2], W_OK) ) {
 		perror("DATA file access: ");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	if ( argc == 4 ) {
 		file = fopen(argv[3], "r");
 		if ( !file ) {
 			perror("Error opening file");
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 	}
 }
@@ -776,7 +776,7 @@ struct dirdata *dt_initrvm(char *log, char *data)
 
 	if ( stat(data, &buf) ) {
 		perror("Statting data file");
-		exit(2);
+		exit(EXIT_FAILURE);
 	}
 	size = buf.st_size;
 	length = RVM_MK_OFFSET(0, size);
@@ -788,7 +788,7 @@ struct dirdata *dt_initrvm(char *log, char *data)
 
 	if ( err != RVM_SUCCESS ) {
 		printf("error in RVM_INIT %s\n", rvm_return(err));
-		exit(2);
+		exit(EXIT_FAILURE);
 	}
 
         rds_load_heap(data, length, &rdsheap, &err);  

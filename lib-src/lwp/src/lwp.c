@@ -325,7 +325,7 @@ int LWP_WaitProcess(const void *event)
 
 static void Exit_LWP()
 {
-    exit (-1);
+    exit(EXIT_FAILURE);
 }
 
 char *LWP_Name()
@@ -683,7 +683,7 @@ int LWP_Init(int version, int priority, PROCESS *pid)
     lwp_logfile = stderr;
     if (version != LWP_VERSION) {
 	    fprintf(stderr, "**** FATAL ERROR: LWP VERSION MISMATCH ****\n");
-	    exit(-1);
+	    exit(EXIT_FAILURE);
     }
     return(InitializeProcessSupport(priority, pid));    
 }

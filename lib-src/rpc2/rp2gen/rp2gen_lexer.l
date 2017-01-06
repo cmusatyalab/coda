@@ -101,7 +101,7 @@ static void unput(char c)
 
     if (unput_stack.unput_top >= MAX_UNPUT_CHARS) {
 	printf("Too many UNPUT's: %d\n", MAX_UNPUT_CHARS);
-	exit(1);
+	exit(EXIT_FAILURE);
     }
 
     unput_stack.unput_chars[unput_stack.unput_top++] = c;
@@ -179,7 +179,7 @@ SPACE		[ \t\014]
 [A-Za-z_][A-Za-z0-9_$-]*		{
 				  if (yytext[0] == '_') {
 				      printf("RP2GEN: identifier name may not begin with '_' %s\n", yytext);
-				      exit(1);
+				      exit(EXIT_FAILURE);
 				  }
 				  yylval.u_string = copy(yytext);
 				  RETURN(IDENTIFIER);
@@ -354,7 +354,7 @@ static void include()
 	}
 	if (i >= MAXPATHLEN) {
 	    puts("ERROR: include file name too long");
-	    exit(-1);
+	    exit(EXIT_FAILURE);
 	}
 	name[i++] = c;
 	c = input();
@@ -366,7 +366,7 @@ static void include()
     /* See if too many include files */
     if (include_stack.include_top == MAX_INCLUDE_FILES-1) {
 	printf("ERROR: include file %s  nested too deep\n", name);
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
 
     /* Find the included file using the search list */
@@ -392,7 +392,7 @@ static void include()
     if (!foundit)
 	{
 	printf("ERROR: can't find include file %s\n", name);
-	exit(-1);
+	exit(EXIT_FAILURE);
 	}
 
     /* Include the file now and in the generated header  */
@@ -419,7 +419,7 @@ int yywrap()
 void yyerror(char *s)
 {
     printf("FATAL ERROR, line %d: %s\n", line, s);
-    exit(1);
+    exit(EXIT_FAILURE);
 }
 
 void yywarn(char *s)

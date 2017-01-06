@@ -27,7 +27,7 @@ listed in the file CREDITS.
 
 #define MAXLINELEN 256
 #define FAILIF(cond, what...) do { \
-	if (cond) { fprintf(stderr, ## what); exit(-1); } \
+	if (cond) { fprintf(stderr, ## what); exit(EXIT_FAILURE); } \
     } while(0)
 
 static void write_val(FILE *outf, int argc, char **argv)
@@ -165,10 +165,10 @@ int main(int argc, char **argv)
     if (argc < 3) {
 	if (!conffile) {
 	    fprintf(stdout, "/dev/null\n");
-	    exit(-1);
+	    exit(EXIT_FAILURE);
 	}
 	fprintf(stdout, "%s\n", conffile);
-	exit(0);
+	exit(EXIT_SUCCESS);
     }
 
     /* Hmm, should we really copy the template file on lookups as well. On one
@@ -188,7 +188,7 @@ int main(int argc, char **argv)
 	FAILIF(!val, "Variable '%s' not found in '%s'\n", argv[2], conffile);
 
 	fprintf(stdout, "%s\n", val);
-	exit(0);
+	exit(EXIT_SUCCESS);
     }
 
     /* argc >= 4 */
@@ -204,11 +204,11 @@ int main(int argc, char **argv)
 	    p++;
 	}
 	if (i == argc-1 && *p == '\0')
-	    exit(0);
+	    exit(EXIT_SUCCESS);
     }
 
     do_rewrite(conffile, argc, argv);
 
-    exit(0);
+    exit(EXIT_SUCCESS);
 }
 

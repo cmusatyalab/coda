@@ -789,7 +789,7 @@ static unsigned int get_arraylen_pack(ARG *a_types, PARM *args)
 			break;
         default:
 			say(0, RPC2_DebugLevel, "MakeMulti: cannot pack array size\n");
-			exit(-1);
+			exit(EXIT_FAILURE);
     }
     /*NOTREACHED*/
 }
@@ -803,7 +803,7 @@ static unsigned int get_arraylen_unpack(ARG *a_types, unsigned char *ptr)
 			break;
         default:
 			say(0, RPC2_DebugLevel, "MakeMulti: cannot unpack array size\n");
-			exit(-1);
+			exit(EXIT_FAILURE);
     }
     /*NOTREACHED*/
 }

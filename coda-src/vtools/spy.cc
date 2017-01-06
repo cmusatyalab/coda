@@ -83,7 +83,7 @@ int main(int argc, char **argv)
     int venusSocket = Bind(host);
     if (venusSocket < 0) {
 	fprintf(stderr, "spy: bind(%s) failed\n", host);
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
     FILE *fp = fdopen(venusSocket, "r");
     char buf[32];
@@ -94,7 +94,7 @@ int main(int argc, char **argv)
     ssize_t len = strlen(buf);
     if (write(venusSocket, buf, len) != len) {
 	fprintf(stderr, "spy: reporton command failed (%d)\n", errno);
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
 
     /* Flush output on termination. */
@@ -182,11 +182,11 @@ static void CheckMariner(FILE *fp)
 static void TERM(int sig, int code, struct sigcontext *contextPtr) {
     fflush(stdout);
     fflush(stderr);
-    exit(0);
+    exit(EXIT_SUCCESS);
 }
 
 
 void usage() {
     fprintf(stderr, "usage: spy [-tcp] [-host host] [-uid uid]\n");
-    exit(-1);
+    exit(EXIT_FAILURE);
 }

@@ -50,7 +50,7 @@ void main (int argc, char **argv)
     if (argc < 5) {
 	printf("There must be atleast 2 directories to resolve \n");
 	printf("Usage: resolve <number of dirs> <replicatedVolumeNumber> <dir1> <dir2> ...\n");
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
     
     nreplicas = atoi(argv[1]);

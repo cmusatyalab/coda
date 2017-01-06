@@ -271,7 +271,7 @@ void testKernDevice()
 	    eprint("Probably another Venus is running! open failed for %s, exiting",
 		   kernDevice);
 	    free(str);
-	    exit(-1);
+	    exit(EXIT_FAILURE);
 	}
 
 	CODA_ASSERT(q);
@@ -289,14 +289,14 @@ void testKernDevice()
 	if (write(fd, (const void *)&msg, sizeof(struct coda_out_hdr))
 		  != sizeof(struct coda_out_hdr)) {
 		eprint("Write for flush failed (%d), exiting", errno);
-		exit(-1);
+		exit(EXIT_FAILURE);
 	}
 
 	/* Close the kernel device. */
 	if (close(fd) < 0) {
 	    eprint("close of %s failed (%d), exiting",
 		   kernDevice, errno);
-	    exit(-1);
+	    exit(EXIT_FAILURE);
 	}
 #endif
 }
@@ -323,14 +323,14 @@ void VFSMount()
 	case EBUSY:
 	default:
 	    eprint("unmount(%s) failed (%d), exiting", venusRoot, errno);
-	    exit(-1);
+	    exit(EXIT_FAILURE);
     }
 
     /* Deduce rootnodeid. */
     struct stat tstat;
     if (::stat(venusRoot, &tstat) < 0) {
 	eprint("stat(%s) failed (%d), exiting", venusRoot, errno);
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
     rootnodeid = tstat.st_ino;
 #endif /* __BSD44__ */
@@ -368,7 +368,7 @@ void VFSMount()
 		kill(getpid(), SIGUSR1);
 		return;
 	    }
-	    exit(-1);
+	    exit(EXIT_FAILURE);
 	}
     }
 #endif /* __linux__ */
@@ -463,7 +463,7 @@ void VFSMount()
 
 child_done:
 	WorkerCloseMuxfd();
-	exit(error < 0 ? 1 : 0);
+	exit(error < 0 ? EXIT_FAILURE : EXIT_SUCCESS);
     }
 
     /* we just wait around to reap the first child */
@@ -480,7 +480,7 @@ child_done:
       if (error) {
 	if (errno != EINVAL) {
 	    eprint("unmount(%s) failed (%d), exiting", venusRoot, errno);
-	    exit(-1);
+	    exit(EXIT_FAILURE);
 	}
       } else
 	eprint("unmount(%s) succeeded, continuing", venusRoot);
@@ -765,19 +765,19 @@ void WorkerInit()
         if (MaxPrefetchers > MaxWorkers) { /* whoa */
             eprint("WorkerInit: MaxPrefetchers %d, MaxWorkers only %d!",
                   MaxPrefetchers, MaxWorkers);
-            exit(-1);
+            exit(EXIT_FAILURE);
         }
 
 #ifdef __CYGWIN32__
     int sd[2];
     if (socketpair(AF_LOCAL, SOCK_STREAM, 0, sd)) {
 	    eprint("WorkerInit: socketpair() returns %d", errno);
-	    exit(-1);
+	    exit(EXIT_FAILURE);
     }
     worker::muxfd = sd[0];
     if (!nt_initialize_ipc (sd[1])) {
             dprint("WorkerInit: nt_initialize_ipc failed.\n");
-            exit (-1);
+            exit(EXIT_FAILURE);
     }
     dprint("WorkerInit: muxfd = %d\n", worker::muxfd);
 #else 
@@ -785,13 +785,13 @@ void WorkerInit()
     worker::muxfd = ::open(kernDevice, O_RDWR, 0);
     if (worker::muxfd == -1) {
         eprint("WorkerInit: open %s failed", kernDevice);
-        exit(-1);
+        exit(EXIT_FAILURE);
     }
 #endif
 
     if (worker::muxfd >= NFDS) {
         eprint("WorkerInit: worker::muxfd >= %d!", NFDS);
-        exit(-1);
+        exit(EXIT_FAILURE);
     }
 
 #if defined(__BSD44__) || defined(__linux__)
@@ -804,7 +804,7 @@ void WorkerInit()
         default:
             eprint("WorkerInit: Version Skew with kernel! Get a newer kernel!");
             eprint("WorkerInit: Kernel version is %d\n.", kernel_version);
-            exit(-1);
+            exit(EXIT_FAILURE);
         }
     } else {
         eprint("Kernel version ioctl failed.");
@@ -1280,7 +1280,7 @@ void worker::main(void)
                     fflush(logFile);
                     fflush(stderr);
                     
-                    exit(0);	
+                    exit(EXIT_SUCCESS);
 		}
 			
 		if (nr == _VIOCPREFETCH)

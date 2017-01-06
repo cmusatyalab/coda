@@ -124,7 +124,7 @@ main (int argc, char *argv[])
     if (TestAndLock()) {
 	fprintf(stderr,
 		"Another unwind running or abandoned, please check\n");
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
     ParseArgs(argc, argv);
 
@@ -139,7 +139,7 @@ main (int argc, char *argv[])
     if (InitDB(DataBaseName)) {
 	RemoveLock();
 	fprintf(stderr,"Could not connect to database %s",DataBaseName);
-	exit(-1);
+	exit(EXIT_FAILURE);
    }
     LogMsg(100,LogLevel,LogFile,"Enter ProcessEachUser");
     ProcessEachUser();
@@ -182,7 +182,7 @@ static void ParseArgs(int argc, char *argv[])
 	printf("usage: myunwind [-db database] [-wd workingDir]\n");
 	printf("              [-d logLevel] [-R | -r] [-L | -l]\n");
 	RemoveLock();
-	exit(1000);
+	exit(EXIT_FAILURE);
     }
 }
 
@@ -278,7 +278,7 @@ static void InitLog() {
     LogFile = fopen(LogFilePath, "a"); 
     if (LogFile == NULL) {
 	fprintf(stderr, "LOGFILE (%s) initialization failed\n", LOGNAME);
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
 
     struct timeval now;
@@ -379,7 +379,7 @@ static void ProcessEachDataDirectory(char *userDataDir)
 	    GetFilesAndSpool(currentDataSubdir);
 	    if (chdir("..") != 0) {
 		LogMsg(0,LogLevel,LogFile, "Could not cd to .. (errno=%d)",errno);
-		exit(-1);
+		exit(EXIT_FAILURE);
 	    }
 	} else {
 	    switch (errno) {

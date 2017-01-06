@@ -476,13 +476,13 @@ int main(int argc, char *argv[])
     /* found it! */
     if (cmdarray[slot].danger) {
     	if (!brave(slot))
-	    exit(0);
+	    exit(EXIT_SUCCESS);
     }
 
     /* invoke the handler */
     ((PFV3)cmdarray[slot].handler)(argc, argv, slot);
 
-    exit(0);
+    exit(EXIT_SUCCESS);
 fail:
     /* Opcode bogus or nonexistent */
     printf("Bogus or missing opcode: type \"cfs help\" for list\n");

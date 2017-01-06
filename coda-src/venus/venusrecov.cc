@@ -286,7 +286,7 @@ static void Recov_CheckParms()
     switch(RvmType) {
     case RAWIO:
         eprint("RAWIO not yet supported");
-        exit(-1);
+        exit(EXIT_FAILURE);
         break;
     case VM:
         InitMetaData = 1; /* VM RvmType forces a brain-wipe! */
@@ -311,12 +311,12 @@ static void Recov_CheckParms()
         if (VenusLogDeviceSize < MIN_VLDS) {
             eprint("log segment too small (%#x); minimum %#x",
                    VenusLogDeviceSize, MIN_VLDS);
-            exit(-1);
+            exit(EXIT_FAILURE);
         }
         if (VenusDataDeviceSize < MAX(RecovBytesNeeded, MIN_VDDS)) {
             eprint("data segment too small (%#x); minimum %#x",
                    VenusDataDeviceSize, MAX(RecovBytesNeeded, MIN_VDDS));
-            exit(-1);
+            exit(EXIT_FAILURE);
         }
 
         LOG(0, ("RecovDataSizes: Log = %#x, Data = %#x\n",
@@ -344,7 +344,7 @@ static void Recov_CheckParms()
             failure = "RDS nlists";
 fail:
             eprint("setting %s requires InitMetaData", failure);
-            exit(-1);
+            exit(EXIT_FAILURE);
         }
     }
 
@@ -398,14 +398,14 @@ static void Recov_InitRVM()
         if (stat(VenusLogDevice, &tstat) < 0) {
             eprint("Recov_InitRVM: stat of (%s) failed (%d)",
                    VenusLogDevice, errno);
-            exit(-1);
+            exit(EXIT_FAILURE);
         }
 
         VenusLogDeviceSize = tstat.st_size;
         if (VenusLogDeviceSize == 0) {
             eprint("Recov_InitRVM: Unexpected empty RVM log (%s) found",
                    VenusLogDevice);
-            exit(-1);
+            exit(EXIT_FAILURE);
         }
 
         if (stat(VenusDataDevice, &tstat) < 0)
@@ -416,7 +416,7 @@ static void Recov_InitRVM()
         if (VenusDataDeviceSize == 0) {
             eprint("Recov_InitRVM: Unexpected empty RVM data (%s) found",
                    VenusDataDevice);
-            exit(-1);
+            exit(EXIT_FAILURE);
         }
     }
     eprint("%s size is %ld bytes", VenusLogDevice, VenusLogDeviceSize);
@@ -427,10 +427,10 @@ static void Recov_InitRVM()
     if (ret == RVM_ELOG_VERSION_SKEW) {
 	eprint("Recov_InitRVM: RVM_INIT failed, RVM log version skew");
 	eprint("Venus not started");
-	exit(-1);
+	exit(EXIT_FAILURE);
     } else if (ret != RVM_SUCCESS) {
 	eprint("Recov_InitRVM: RVM_INIT failed (%s)", rvm_return(ret));
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
 }
 
@@ -455,17 +455,17 @@ static void Recov_InitRDS()
     if (fd < 0) {
         eprint("Recov_InitRVM: create of %s failed (%d)",
                VenusDataDevice, errno);
-        exit(-1);
+        exit(EXIT_FAILURE);
     }
     if (ftruncate(fd, VenusDataDeviceSize) < 0) {
         eprint("Recov_InitRVM: growing %s failed (%d)",
                VenusDataDevice, errno);
-        exit(-1);
+        exit(EXIT_FAILURE);
     }
     if (close(fd) < 0) {
         eprint("Recov_InitRVM: close of %s failed (%d)",
                VenusDataDevice, errno);
-        exit(-1);
+        exit(EXIT_FAILURE);
     }
 
     eprint("Initializing RVM data...");
@@ -476,7 +476,7 @@ static void Recov_InitRDS()
     free(datadev);
     if (ret != SUCCESS) {
         eprint("Recov_InitRDS: rds_zap_heap failed (%s)", rvm_return(ret));
-        exit(-1);
+        exit(EXIT_FAILURE);
     }
     eprint("...done");
 }
@@ -494,7 +494,7 @@ static void Recov_LoadRDS()
     free(datadev);
     if (ret != SUCCESS) {
         eprint("Recov_InitRDS: rds_load_heap failed (%s)", rvm_return(ret));
-        exit(-1);
+        exit(EXIT_FAILURE);
     }
     rvg = (RecovVenusGlobals *)Recov_RvgAddr;
 

@@ -233,7 +233,7 @@ static void GetArgs(int argc, char *argv[])
 
     if (usage) {
 	fprintf(stderr, "Usage: %s [-1] [-t probeinterval] server [server]* | rrdtool -\n", argv[0]);
-	exit(0);
+	exit(EXIT_SUCCESS);
     }
 
     memset(srv, 0, sizeof(struct server) * MAXSRV);
@@ -242,14 +242,14 @@ static void GetArgs(int argc, char *argv[])
 	if (SrvCount >= MAXSRV) {
 	    fprintf(stderr, "Too many servers: should be %d or less\n",
 		    MAXSRV);
-	    exit(-1);
+	    exit(EXIT_FAILURE);
 	}
 
 	srv[SrvCount].srvname = argv[next];
 	if (!ValidServer(srv[SrvCount].srvname)) {
 	    fprintf(stderr, "%s is not a valid server\n",
 		    srv[SrvCount].srvname);
-	    exit(-1);
+	    exit(EXIT_FAILURE);
 	}
 
 	SrvCount++;
@@ -257,7 +257,7 @@ static void GetArgs(int argc, char *argv[])
 
     if (!SrvCount) {
 	fprintf(stderr, "no servers specified\n");
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
 }
 
@@ -272,7 +272,7 @@ static void InitRPC(void)
     rc = LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, &parent);
     if (rc != LWP_SUCCESS) {
 	fprintf(stderr, "LWP_Init() failed\n");
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
 
     SFTP_SetDefaults(&sei);
@@ -392,6 +392,6 @@ int main(int argc, char *argv[])
     while (SrvCount)
 	LWP_QWait();
 
-    exit(0);
+    exit(EXIT_SUCCESS);
 }
 

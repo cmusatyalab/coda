@@ -210,7 +210,7 @@ int main(int argc, char **argv)
   rc = DStream->getDumpHeader(&ThisHead);
   if (!rc){
     fprintf(stderr, "Can't get dump header, giving up\n");
-    exit(-1);
+    exit(EXIT_FAILURE);
   }
   if (DEBUG_HEAVY) PrintDumpHeader(stderr, &ThisHead);
 
@@ -218,7 +218,7 @@ int main(int argc, char **argv)
   rc = DStream->getVolDiskData(&ThisVDD);
   if (rc){
     fprintf(stderr, "Can't get VolumeDiskData, giving up\n");
-    exit(-1);
+    exit(EXIT_FAILURE);
   }
   if (DEBUG_HEAVY) PrintVolumeDiskData(stderr, &ThisVDD);
   if (DEBUG_HEAVY) fprintf(stderr, "\n\n");
@@ -233,7 +233,7 @@ int main(int argc, char **argv)
   rc = DStream->getVnodeIndex(vLarge, &vLargeCount, &vLargeSize);
   if (rc < 0) {
     fprintf(stderr, "Can't get large vnode index, giving up\n");
-    exit(-1);
+    exit(EXIT_FAILURE);
   }
   if (DEBUG_HEAVY) {
     fprintf(stderr, "vLargeCount = %ld    vLargeSize = %ld\n", 
@@ -302,7 +302,7 @@ int main(int argc, char **argv)
   if (Verbose) {
       fprintf(stderr, "Total bytes written: %lu\n", (unsigned long)Bytes);
   }
-  exit(0);
+  exit(EXIT_SUCCESS);
 }
 
 
@@ -361,7 +361,7 @@ void ParseArgs(int argc, char **argv)
 
  BogusArgs:
     printf("Usage: codadump2tar [-v] [-f <dumpfilename>] [-o <tarfilename>] [-d <debuglevel>] [-hp <hashpower>] [-rn <rootname>]\n");
-    exit(-1);
+    exit(EXIT_FAILURE);
 
 }
 
@@ -373,14 +373,14 @@ void DoGlobalSetup()
   DumpTable = new ohashtab((2 << (HashPower-1)), LowBits);
   if (!DumpTable) {
     fprintf(stderr, "Can't create DumpTable\n");
-    exit(-1);
+    exit(EXIT_FAILURE);
   }
 
   /* create input  stream */
   DStream = new dumpstream(DumpFileName);
   if (!DStream->isopen()) {
     fprintf(stderr, "Can't create new dumpstream '%s'\n", DumpFileName);
-    exit(-1);
+    exit(EXIT_FAILURE);
   }
 
   /* create output tar file */
@@ -388,7 +388,7 @@ void DoGlobalSetup()
     TarFile = fopen(TarFileName, "w");
     if (!TarFile) {
       perror(TarFileName);
-      exit(-1);
+      exit(EXIT_FAILURE);
     }
   }
 }
@@ -437,7 +437,7 @@ int ProcessDirectory()
   PDirInode nextdir;
   if (DStream->readDirectory(&nextdir) < 0) {
     fprintf(stderr, "read of directory pages failed\n");
-    exit(-1);
+    exit(EXIT_FAILURE);
   }
 
   /* Convert DirInode to DirPage format */
@@ -542,7 +542,7 @@ int ProcessFileOrSymlink()
     rc = DStream->CopyBytesToMemory(buff, smallv.length);
     if (rc < 0) {
       fprintf(stderr, "ERROR: Couldn't get sym link from dump file\n");
-      exit(-1);
+      exit(EXIT_FAILURE);
     }
     memcpy(TarObj.tr_linkname, buff, (smallv.length < 100) ? smallv.length : 99);
 
@@ -564,7 +564,7 @@ int ProcessFileOrSymlink()
   rc = DStream->CopyBytesToFile(TarFile, smallv.length);
   if (rc < 0) {
     fprintf(stderr, "ERROR: Couldn't read file content from dump file\n");
-    exit(-1);
+    exit(EXIT_FAILURE);
   }
 
   Bytes += smallv.length;
@@ -815,7 +815,7 @@ void TarRecd::Output()
   rc = fwrite(&tarblock, BLOCKSIZE, 1, TarFile);
   if(rc != 1) {
     perror("tar file output error");
-    exit(-1);
+    exit(EXIT_FAILURE);
     }
 
   Bytes += BLOCKSIZE;

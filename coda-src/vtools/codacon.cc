@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
         if (strcmp(*argv, "-tcp") == 0) use_tcp = 1;
         else if (host) {
             fprintf(stderr, "Bad args: %s [-tcp] [host]\n", argv[0]);
-            exit(-1);
+            exit(EXIT_FAILURE);
         }
         else host = *argv;
     }

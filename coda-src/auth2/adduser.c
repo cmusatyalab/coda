@@ -114,7 +114,7 @@ int main(int argc, char **argv)
     if (!auid || !apw || !filenm) {
 	printf("usage: newuser -f filename authuserid authpasswd\n");
 	fflush(stdout);
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
  /* Bind to auth server using auid and apw */
 
@@ -125,28 +125,28 @@ int main(int argc, char **argv)
     if(rc != AUTH_SUCCESS) {
 	printf("Bind to Auth Server failed %s\n",U_Error(rc));
 	fflush(stdout);
-	exit(-2);
+	exit(EXIT_FAILURE);
     }
 
  /* open input file and read it into area malloc */
     if(stat(filenm, &buff)) {
 	printf("Could not stat %s because %d\n",filenm, errno);
 	fflush(stdout);
-	exit(-3);
+	exit(EXIT_FAILURE);
     }
     area = (char *)malloc(buff.st_size+1);
     fd = open(filenm, O_RDONLY, 0);
     if(fd <= 0) {
 	printf("Could not open %s because %d\n",filenm, errno);
 	fflush(stdout);
-	exit(-4);
+	exit(EXIT_FAILURE);
     }
     rc = read(fd, area, buff.st_size);
     if(rc != buff.st_size) {
 	printf("Could nor read %s got %d bytes instead of %d, error = %d\n",
 		filenm, rc, buff.st_size, errno);
 	fflush(stdout);
-	exit(-5);
+	exit(EXIT_FAILURE);
     }
     close(fd);
     *(area+buff.st_size+1) = '\0';

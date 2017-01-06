@@ -60,7 +60,7 @@ void main(int argc, char **argv)
 
     if (pioctl(argv[1], VIOC_GETFID, &vi, 0) != 0) {
 	perror("pioctl:GETFID");
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
 
     printf("FID = (%s@%s)\n", FID_(&out.fid), out.realm);
@@ -70,5 +70,5 @@ void main(int argc, char **argv)
     printf(" ] [ %#x %d ] [ %#x ]}\n",
 	     out.vv.StoreId.Host, out.vv.StoreId.Uniquifier, out.vv.Flags);
 
-    exit(0);
+    exit(EXIT_SUCCESS);
 }

@@ -117,26 +117,26 @@ int main(int argc, char **argv)
 
     if (argc != 2) {
 	fprintf(stderr, "Usage: %s <inc-file-name>\n", argv[0]);
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
     
     /* make sure object is inconsistent */
     if (!IsObjInc(argv[1], &fid, realm)) {
 	fprintf(stderr, "%s isn't inconsistent\n", argv[1]);
-	exit(0);
+	exit(EXIT_SUCCESS);
     }
     
     /* get fid and make sure it is a file */
     if (ISDIR(fid) && !FID_IsLocalDir(&fid)) {
 	fprintf(stderr, "%s is a directory - must be removed manually\n", argv[1]);
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
 
     /* create an empty file /tmp/REPAIR.XXXXXX */
     strcpy(tmpfname, "/tmp/RMINC.XXXXXX");
     if ((fd = mkstemp(tmpfname)) < 0) {
 	fprintf(stderr, "Couldn't create /tmp file\n");
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
     close(fd);
 
@@ -150,14 +150,14 @@ int main(int argc, char **argv)
     if (rc < 0 && errno != ETOOMANYREFS) {
 	fprintf(stderr, "Error %d for repair\n", errno);
 	unlink(tmpfname);
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
     unlink(tmpfname);
 
     /* remove the repaired file */
     if (unlink(argv[1])) {
 	fprintf(stderr, "Couldn't remove %s\n", argv[1]);
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
-    exit(0);
+    exit(EXIT_SUCCESS);
 }

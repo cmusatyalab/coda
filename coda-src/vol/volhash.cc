@@ -102,7 +102,7 @@ void vhashtab::remove(hashent *vol)
 {
     if (!vol) {
 	LogMsg(0, VolDebugLevel, stdout, "hashtab::remove called on null entry!");
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
 
     ohashtab::remove((void *)(intptr_t)vol->id, vol);

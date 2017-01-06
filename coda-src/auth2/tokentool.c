@@ -38,7 +38,7 @@ static int read_int(char *question)
     char input_str[80+1];
 
     while (1) {
-        if (feof(stdin)) exit(-1);
+        if (feof(stdin)) exit(EXIT_FAILURE);
 
 	fputs(question, stdout);
 	fflush(stdout);
@@ -59,7 +59,7 @@ static float read_float(char *question)
     char input_str[80+1];
 
     while (1) {
-        if (feof(stdin)) exit(-1);
+        if (feof(stdin)) exit(EXIT_FAILURE);
 
 	fputs(question, stdout);
 	fflush(stdout);
@@ -111,7 +111,7 @@ int main(int argc, char **argv)
     if (filename[0] == '\0') {
 	free(tokenkey);
 	free(filename);
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
 
     /* truncate the shared secret */

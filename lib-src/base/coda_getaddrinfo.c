@@ -437,7 +437,7 @@ int main(int argc, char **argv)
     }
     RPC2_freeaddrinfo(res);
 
-    exit(0);
+    exit(EXIT_SUCCESS);
 }
 #endif
 

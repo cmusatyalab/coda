@@ -92,7 +92,7 @@ int main(int argc, char **argv)
 	    if (strcmp(argv[1], "-h") == 0) {
 	        if (argc < 3) {
 		    printf("Usage: %s [-h SCM-host-name] [coda-user-name][@realm]\n", argv[0]);
-    		    exit(1);
+                    exit(EXIT_FAILURE);
  	        }
 
 	        host = argv[2];
@@ -126,20 +126,20 @@ int main(int argc, char **argv)
 	if (!username || !realm) {
 	    fprintf (stderr, "Can't figure out your username or realm.\n");
 	    fprintf (stderr, "Try \"cpasswd user[@realm]\"\n");
-	    exit (1);
+	    exit(EXIT_FAILURE);
 	}
 
 	/* Make sure our arrays don't overflow. */
 	if (strlen(username) > 20) {
 	    fprintf(stderr, "User name is invalid.\n");
-	    exit(1);
+	    exit(EXIT_FAILURE);
 	}
 
 	printf("Changing password for %s@%s\n", username, realm);
 /*
 	if (U_InitRPC() != 0) {
 		fprintf(stderr, "Internal error: RPC or vstab problems.\n");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 */
 	U_InitRPC();
@@ -150,7 +150,7 @@ tryagain:
 	pwlen = strlen(newpw);
 	if (pwlen == 0) {
 		printf("Password unchanged.\n");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	/*
@@ -188,7 +188,7 @@ tryagain:
 
 	if (strcmp(newpw, getpass("Retype new password: ")) != 0) {
 		printf("Mismatch - password unchanged.\n");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 	srvs = U_GetAuthServers(realm, host);
 	rc = U_ChangePassword(srvs, username, newpw, username, strlen(username)+1, oldpw, strlen(oldpw)+1);
@@ -220,5 +220,5 @@ tryagain:
 		printf("Authentication Failed: %s\n", RPC2_ErrorMsg(rc));
 	}
 	fflush(stdout);
-	exit(0);
+	exit(EXIT_SUCCESS);
 }

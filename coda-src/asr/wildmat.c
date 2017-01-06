@@ -144,7 +144,7 @@ main()
 	    printf("Enter text:  ");
 	    (void)fflush(stdout);
 	    if (gets(text) == NULL)
-		exit(0);
+		exit(EXIT_SUCCESS);
 	    if (text[0] == '\0')
 		/* Blank line; go back and get a new pattern. */
 		break;
@@ -152,7 +152,7 @@ main()
 	}
     }
 
-    exit(0);
+    exit(EXIT_SUCCESS);
     /* NOTREACHED */
 }
 #endif	/* TEST */

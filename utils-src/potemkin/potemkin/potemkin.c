@@ -310,7 +310,7 @@ void
 usage() {
     fprintf(stderr,"Usage: potemkin [-kd <kern device>] [-rd <root>]\n");
     fprintf(stderr,"                [-ts <tab size>] [-mp <mount point>]\n");
-    exit(-1);
+    exit(EXIT_FAILURE);
 }
 
 void
@@ -423,7 +423,7 @@ Setup() {
     rc = bind(KernFD, (struct sockaddr *)&addr, sizeof(addr));
     if ( rc != 0 ) {
 	    printf("Bind returns %d\n", rc);
-	    exit(1);
+	    exit(EXIT_FAILURE);
     }
 #else 
     KernFD = open(KernDevice, O_RDWR, 0);
@@ -488,7 +488,7 @@ Setup() {
 		  kill(parent, SIGUSR1);
 		}
     child_done:
-		exit(error < 0 ? 1 : 0);
+		exit(error < 0 ? EXIT_FAILURE : EXIT_SUCCESS);
    }
 	
     /* we just wait around to reap the first child */
@@ -2394,7 +2394,7 @@ Service()
 
 	    } else {
 		perror("select'ing");
-		exit(-1);
+		exit(EXIT_FAILURE);
 	    }
 	}
 

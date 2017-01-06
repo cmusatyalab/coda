@@ -252,7 +252,7 @@ static rvm_bool_t bad_TID_tests(tid)
         {
         printf("\n? Error invalid TID not detected, retval = %s\n",
                rvm_return(retval));
-        exit(1);
+        exit(EXIT_FAILURE);
         }
 
     printf("    Bad TID's properly detected\n");
@@ -609,7 +609,7 @@ int main(int argc, char **argv)
         if (test_initialization(NULL))
             {
             printf("\n? Error in initialization tests\n");
-            exit(1);
+            exit(EXIT_FAILURE);
             }
 
         /* create a log file and run with it */
@@ -620,13 +620,13 @@ int main(int argc, char **argv)
             {
             printf("\n? Error in log initialization, retval = %s\n",
                    rvm_return(retval));
-            exit(1);
+            exit(EXIT_FAILURE);
             }
         if ((retval=rvm_set_options(options)) != RVM_SUCCESS)
             {
             printf("\n? Error in setting options, retval = %s\n",
                    rvm_return(retval));
-            exit(1);
+            exit(EXIT_FAILURE);
             }
 
         }
@@ -636,7 +636,7 @@ int main(int argc, char **argv)
         if (test_initialization(options))
             {
             printf("\n? Error in initialization tests\n");
-            exit(1);
+            exit(EXIT_FAILURE);
             }
         }
 
@@ -645,7 +645,7 @@ int main(int argc, char **argv)
         if (copy_file(MAP_DATA_FILE,TEST_DATA_FILE))
             {
             printf("\n? Error in creating test files\n");
-            exit(1);
+            exit(EXIT_FAILURE);
             }
     /* map first region, RVM to allocate space */
     region = rvm_malloc_region();
@@ -663,7 +663,7 @@ int main(int argc, char **argv)
     if ((retval=rvm_map(region,NULL)) != RVM_SUCCESS)
         {
         printf("?rvm_map failed, code: %s\n",rvm_return(retval));
-        exit(1);
+        exit(EXIT_FAILURE);
         }
 
     printf("\nPost-map region descriptor:\n");
@@ -685,15 +685,15 @@ int main(int argc, char **argv)
             printf("\n?  Recovery did not restore data correctly\n");
         else
             printf("\n? Error map test failed\n");
-        exit(1);
+        exit(EXIT_FAILURE);
         }
-    if (in_recovery) exit(0);
+    if (in_recovery) exit(EXIT_SUCCESS);
     /* bad tid tests */
     tids[0] = t1 = rvm_malloc_tid();
     if (bad_TID_tests(t1))
         {
         printf("\n? Error in invalid tid tests\n");
-        exit(1);
+        exit(EXIT_FAILURE);
         }
 
     /* transaction start tests */
@@ -704,39 +704,39 @@ int main(int argc, char **argv)
     if (start_trans_tests(t1,t2,t3,t4,t5))
         {
         printf("\n? Error in invalid tid tests\n");
-        exit(1);
+        exit(EXIT_FAILURE);
         }
 
     /* test null transaction */
     if (test_null_trans(t2))
         {
         printf("\n? Error in null transaction tests\n");
-        exit(1);
+        exit(EXIT_FAILURE);
         }
 
     /* single range w/ commit test */
     if (test_single_range_commit(t1))
         {
-        exit(1);
+        exit(EXIT_FAILURE);
         }
 
     /* try multi-range transaction */
     if (test_multi_range_commit(t3))
         {
-        exit(1);
+        exit(EXIT_FAILURE);
         }
 
     /* try multi-range transaction with abort */
     if (test_multi_range_abort(t4))
         {
-        exit(1);
+        exit(EXIT_FAILURE);
         }
 
     /* try complex multi-range transaction -- tests all forms of
        shadowed changes */
     if (test_complex_range_commit(t5))
         {
-        exit(1);
+        exit(EXIT_FAILURE);
         }
     /* truncation test */
     if (get_ans("Do truncation",rvm_true))
@@ -745,27 +745,27 @@ int main(int argc, char **argv)
             {
             printf("?rvm_truncate failed, code: %s\n",
                    rvm_return(retval));
-            exit(1);
+            exit(EXIT_FAILURE);
             }
         
         /* compare mapped region to segment file */
         if (!chk_file(TEST_DATA_FILE,region))
             {
             printf("?  Error in truncation write-back to segment file\n");
-            exit(1);
+            exit(EXIT_FAILURE);
             }
         }
     else
         {
         ans = get_ans("Crash",rvm_false);
-        if (ans) exit(-1);
+        if (ans) exit(EXIT_FAILURE);
         }
     /* unmap the region */
     if ((retval = rvm_unmap(region)) != RVM_SUCCESS)
         {
         printf("\n? Error in rvm_unmap, retval = %s\n",
                rvm_return(retval));
-        exit(1);
+        exit(EXIT_FAILURE);
         }
     printf("\nUnmap completed correctly\n");
 
@@ -782,7 +782,7 @@ int main(int argc, char **argv)
     if (test_termination())
         {
         printf("\n? Error in termination tests\n");
-        exit(1);
+        exit(EXIT_FAILURE);
         }
 
     printf("\nAll tests finished correctly!\n");

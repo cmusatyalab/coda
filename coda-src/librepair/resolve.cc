@@ -293,7 +293,7 @@ static int nextindex()
 	direntriesarr = (resdir_entry *)realloc(direntriesarr, (direntriesarrsize + GROWSIZE) * sizeof(resdir_entry));
 	if (!direntriesarr){
 	    perror("realloc");
-	    exit(-1);
+	    exit(EXIT_FAILURE);
 	}
 	direntriesarrsize += GROWSIZE;
     }

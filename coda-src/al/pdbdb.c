@@ -83,7 +83,7 @@ PDB_HANDLE PDB_db_open(int mode)
 	    rc = rwcdb_init(&pdb_handle->main, PDB_MAIN, mode);
 	    if (rc) {
 		fprintf(stderr, "Error opening %s database\n", PDB_MAIN);
-		exit(1);
+		exit(EXIT_FAILURE);
 	    }
 	    pdb_handle->open_rw = (mode != O_RDONLY);
 	    goto done;
@@ -104,7 +104,7 @@ PDB_HANDLE PDB_db_open(int mode)
 	    if (rc) {
 		fprintf(stderr, "Error reopening %s database as readwrite\n",
 			PDB_MAIN);
-		exit(1);
+		exit(EXIT_FAILURE);
 	    }
 	    pdb_handle->open_rw = 1;
 	    goto done;

@@ -34,7 +34,7 @@ main(int argc, char **argv)
     
     if ( argc != 3 ) {
 	printf("Usage %s dir count.\n", argv[0]);
-	exit(1);
+	exit(EXIT_FAILURE);
     }
 
     dp = VGetPartition(argv[1]);
@@ -46,7 +46,7 @@ main(int argc, char **argv)
     for ( i=1 ; i <= count ; i++ ) {
 	testcreate = icreate(devno, i, i+1, i+2, i+3, i+4);
 	if ( testcreate == 0 )
-	exit(1);
+	exit(EXIT_FAILURE);
     }
     
     return 0;

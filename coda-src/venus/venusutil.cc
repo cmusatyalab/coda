@@ -155,7 +155,7 @@ void dprint(const char *fmt ...) {
     int this_seq;
     if (sscanf(msg, "[ %*c(%d) : %d : %*02d:%*02d:%*02d ] ", &this_vpid, &this_seq) != 2) {
 	fprintf(stderr, "Choking in dprint\n");
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
     if ((this_vpid != last_vpid || this_seq != last_seq) && (this_vpid != -1)) {
 	fprintf(logFile, "\n");
@@ -440,7 +440,7 @@ void LogInit()
 {
     logFile = fopen(VenusLogFile, "a+");
     if (logFile == NULL)
-	{ eprint("LogInit failed"); exit(-1); }
+	{ eprint("LogInit failed"); exit(EXIT_FAILURE); }
     LogInited = 1;
     LOG(0, ("Coda Venus, version " PACKAGE_VERSION "\n"));
 

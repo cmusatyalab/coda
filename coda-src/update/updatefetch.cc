@@ -147,12 +147,12 @@ static void ProcessArgs(int argc, char **argv)
                 port = atoi(argv[++i]);
 	else {
 	    PrintHelp();
-	    exit(-1);
+	    exit(EXIT_FAILURE);
 	}
     }
     if (host[0] == '\0' || (!LocalFileName) || (!RemoteFileName)) {
 	PrintHelp();
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
 }
 
@@ -234,7 +234,7 @@ static void Connect()
     rc = RPC2_NewBinding(&hident, &pident, &ssid, &bparms, &con);
     if (rc) {
 	LogMsg(0, SrvDebugLevel, stdout, "Bind failed with %s\n", (char *)ViceErrorMsg((int)rc));
-	exit (-1);
+	exit(EXIT_FAILURE);
     }
 }
 
@@ -262,7 +262,7 @@ static void U_InitRPC()
     rcode = RPC2_Init(RPC2_VERSION, &options, NULL, -1, 0);
     if (rcode != RPC2_SUCCESS) {
 	LogMsg(0, SrvDebugLevel, stdout, "RPC2_Init failed with %s\n", RPC2_ErrorMsg((int)rcode));
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
 }
 

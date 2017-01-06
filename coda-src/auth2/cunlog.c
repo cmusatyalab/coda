@@ -72,5 +72,5 @@ int main(int argc, char **argv)
     CODACONF_STR(realm, "realm", NULL);
 
     U_DeleteLocalTokens(realm);
-    exit(0);
+    exit(EXIT_SUCCESS);
 }

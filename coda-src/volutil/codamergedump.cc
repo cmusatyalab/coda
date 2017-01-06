@@ -79,7 +79,7 @@ int main(int argc, char **argv)
     
     if (argc < 4) {
 	LogMsg(0, VolDebugLevel, stderr, "Usage: %s <outfile> <full dump> <incremental dump>", argv[0]);
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
 
     if (strcmp(argv[1], "-d") == 0) {
@@ -96,12 +96,12 @@ int main(int argc, char **argv)
 
     if (fdump.getDumpHeader(&fdumphead) == 0) {
 	LogMsg(0, VolDebugLevel, stderr, "Error -- DumpHeader of %s is not valid.\n", argv[2]);
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
     
     if (idump.getDumpHeader(&idumphead) == 0) {
 	LogMsg(0, VolDebugLevel, stderr, "Error -- DumpHeader of %s is not valid.\n", argv[3]);
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
     
     /* Need to do something about the version -- perhaps in getDumpHeader? */
@@ -113,31 +113,31 @@ int main(int argc, char **argv)
 		fdumphead.volumeId, fdumphead.volumeName);
 	LogMsg(0, VolDebugLevel, stderr, "%s: Volume id = %x, Volume name = %s", argv[3],
 		idumphead.volumeId, idumphead.volumeName);
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
 
     if (fdumphead.Incremental) {
 	LogMsg(0, VolDebugLevel, stderr, "Error -- trying to merge onto incremental dump!");
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
 
     if (!idumphead.Incremental) {
 	LogMsg(0, VolDebugLevel, stderr, "Error -- trying to merge from a full dump!");
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
 
 #if 0
     /* The incremental was taken w.r.t the full if the next test succeeds: */ 
     if (idumphead.oldest != fdumphead.latest) {
 	LogMsg(0, VolDebugLevel, stderr, "Error -- %s is not with respect to %s!", argv[3], argv[2]);
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
 #endif
 
     DumpFd = open(argv[1], O_WRONLY | O_CREAT | O_EXCL, 00644);
     if (DumpFd <= 0) {
 	perror("output file");
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
 
     char *DumpBuf = (char *)malloc(DUMPBUFSIZE);
@@ -160,21 +160,21 @@ int main(int argc, char **argv)
 
     vtable LTable;
     if (fdump.getVnodeIndex(vLarge, &LTable.nvnodes, &LTable.nslots) == -1) 
-	exit(-1); /* Already printed out an error */
+	exit(EXIT_FAILURE); /* Already printed out an error */
     
     BuildTable(&fdump, &LTable);
     ModifyTable(&idump, vLarge, &LTable);
 
     vtable STable;
     if (fdump.getVnodeIndex(vSmall, &STable.nvnodes, &STable.nslots) == -1)
-	exit(-1); /* Already printed out the error */
+	exit(EXIT_FAILURE); /* Already printed out the error */
 
     BuildTable(&fdump, &STable);
     ModifyTable(&idump, vSmall, &STable);
 
     if (fdump.EndOfDump()) {
 	LogMsg(0, VolDebugLevel, stderr, "Full dump %s has improper postamble.", argv[2]);
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
 
     if (idump.EndOfDump()) {
@@ -214,7 +214,7 @@ static void BuildTable(dumpstream *dump, vtable *table)
 	int deleted;
 	if (dump->getNextVnode(vdo, &vnodeNumber, &deleted, &offset) == -1) {
 	    LogMsg(0, VolDebugLevel, stderr, "ERROR -- Failed to get a vnode!");
-	    exit(-1);
+	    exit(EXIT_FAILURE);
 	}
 
 	CODA_ASSERT(deleted == 0); /* Can't have deleted vnode in full dump */
@@ -247,11 +247,11 @@ static void ModifyTable(dumpstream *dump, VnodeClass vclass, vtable *Table)
     VnodeId vnodeNumber;
 
     if (dump->getVnodeIndex(vclass, &nvnodes, &nslots) == -1) 
-	exit(-1); /* Already printed out an error */
+	exit(EXIT_FAILURE); /* Already printed out an error */
 
     if (Table->nslots > nslots) {
 	LogMsg(0, VolDebugLevel, stderr, "ERROR -- full has more vnode slots than incremental!");
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
 
     if (nslots > Table->nslots) { /* "Grow" Vnode Array */
@@ -270,7 +270,7 @@ static void ModifyTable(dumpstream *dump, VnodeClass vclass, vtable *Table)
 	CODA_ASSERT(vnum >= 0);
 	if (vnum > Table->nslots){
 	    LogMsg(0, VolDebugLevel, stderr, "vnum %d > nslots %d!", vnum, nslots);
-	    exit(-1);
+	    exit(EXIT_FAILURE);
 	}
 	
 	if (deleted) {
@@ -342,7 +342,7 @@ static void WriteTable(DumpBuffer_t *buf, vtable *table, VnodeClass vclass)
 	    if ((ptr->dump)->getVnode(vnum, ptr->unique, ptr->offset, vdo)== -1){
 		LogMsg(0, VolDebugLevel, stderr, "Couldn't get Vnode %d 2nd time, offset %x.",
 			vnum, ptr->offset);
-		exit(-1);
+		exit(EXIT_FAILURE);
 	    }
 
 	    WriteVnodeDiskObject(buf, vdo, vnum);	/* Write out the Vnode */

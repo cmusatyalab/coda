@@ -107,6 +107,15 @@ VenusFid ASRfid;
 uid_t ASRuid;
 int detect_reintegration_retry;
 int option_isr;
+/* exit codes (http://refspecs.linuxbase.org/LSB_3.1.1/LSB-Core-generic/LSB-Core-generic/iniscrptact.html) */
+// EXIT_SUCCESS             0   /* stdlib.h - success */
+// EXIT_FAILURE             1   /* stdlib.h - generic or unspecified error */
+#define EXIT_INVALID_ARG    2   /* invalid or excess argument(s) */
+#define EXIT_UNIMPLEMENTED  3   /* unimplemented feature */
+#define EXIT_PRIVILEGE_ERR  4   /* user had insufficient privilege */
+#define EXIT_UNINSTALLED    5   /* program is not installed */
+#define EXIT_UNCONFIGURED   6   /* program is not configured */
+#define EXIT_NOT_RUNNING    7   /* program is not running */
 
 #if defined(HAVE_SYS_UN_H) && !defined(__CYGWIN32__)
 int mariner_tcp_enable = 0;
@@ -267,7 +276,7 @@ int main(int argc, char **argv)
     return 0;
 #endif
 
-    exit(0);
+    exit(EXIT_SUCCESS);
 }
 
 static void Usage(char *argv0)
@@ -460,7 +469,7 @@ static void ParseCmdline(int argc, char **argv)
 	    }
 	}
     }
-    if (done) exit(done < 0 ? 1 : 0);
+    if (done) exit(done < 0 ? EXIT_INVALID_ARG : EXIT_SUCCESS);
 }
 
 
@@ -518,7 +527,7 @@ static void DefaultCmdlineParms()
 
 	if (CacheFiles < MIN_CF) {
 	    eprint("Cannot start: minimum number of cache files is %d", MIN_CF);
-	    exit(-1); 
+	    exit(EXIT_UNCONFIGURED);
 	}
     }
 
@@ -528,7 +537,7 @@ static void DefaultCmdlineParms()
 
 	if (MLEs < MIN_MLE) {
 	    eprint("Cannot start: minimum number of cml entries is %d",MIN_MLE);
-	    exit(-1); 
+	    exit(EXIT_UNCONFIGURED);
 	}
     }
 
@@ -539,7 +548,7 @@ static void DefaultCmdlineParms()
 	if (HDBEs < MIN_HDBE) {
 	    eprint("Cannot start: minimum number of hoard entries is %d",
 		   MIN_HDBE);
-	    exit(-1); 
+	    exit(EXIT_UNCONFIGURED);
 	}
     }
 
@@ -592,15 +601,22 @@ static void DefaultCmdlineParms()
 #endif
 }
 
-
 static void CdToCacheDir() {
-    if (chdir(CacheDir) < 0) {
-	if (errno != ENOENT)
-	    { perror("CacheDir chdir"); exit(-1); }
-	if (mkdir(CacheDir, 0700) < 0)
-	    { perror("CacheDir mkdir"); exit(-1); }
-	if (chdir(CacheDir) < 0)
-	    { perror("CacheDir chdir"); exit(-1); }
+    if (chdir(CacheDir) == 0)
+        return;
+
+    if (errno != ENOENT) {
+        perror("CacheDir chdir");
+        exit(EXIT_FAILURE);
+    }
+
+    if (mkdir(CacheDir, 0700)) {
+        perror("CacheDir mkdir");
+        exit(EXIT_FAILURE);
+    }
+    if (chdir(CacheDir)) {
+        perror("CacheDir chdir");
+        exit(EXIT_FAILURE);
     }
 }
 
@@ -639,12 +655,16 @@ static void SetRlimits() {
 #ifndef __CYGWIN32__
     /* Set DATA segment limit to maximum allowable. */
     struct rlimit rl;
-    if (getrlimit(RLIMIT_DATA, &rl) < 0)
-	{ perror("getrlimit"); exit(-1); }
+    if (getrlimit(RLIMIT_DATA, &rl) < 0) {
+        perror("getrlimit");
+        exit(EXIT_FAILURE);
+    }
 
     rl.rlim_cur = rl.rlim_max;
-    if (setrlimit(RLIMIT_DATA, &rl) < 0)
-	{ perror("setrlimit"); exit(-1); }
+    if (setrlimit(RLIMIT_DATA, &rl) < 0) {
+        perror("setrlimit");
+        exit(EXIT_FAILURE);
+    }
 #endif
 }
 

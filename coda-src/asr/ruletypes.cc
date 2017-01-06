@@ -94,7 +94,7 @@ void objname_t::GetPrefix(char *name, char *prefix) {
     if (c == NULL) {
 	DEBUG((stderr, "Wildcard matched but couldn't find common prefix (%s %s)\n",   
 	       name, fname));
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
     *c = '\0';
     DEBUG((stdout, "Common suffix is %s\n",  c + 1));
@@ -275,7 +275,7 @@ int command_t::execute() {
     }
     if (execv(name, argv)) {
       fprintf(stderr, "error during execing \n");
-      exit(-1);
+      exit(EXIT_FAILURE);
     }
     return 0; /* NOT REACHED - make-compiler-happy */
 }

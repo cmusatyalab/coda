@@ -401,7 +401,7 @@ void VInitServerList(const char *host)
     file = fopen(serverList, "r");
     if (file == NULL) {
 	VLog(0, "VInitServerList: unable to read file %s; aborted", serverList);
-	exit(1);
+	exit(EXIT_FAILURE);
     }
 
     while (fgets(line, sizeof(line), file) != NULL) {
@@ -414,13 +414,13 @@ void VInitServerList(const char *host)
 	    if (sid >= N_SERVERIDS) {
 		VLog(0, "Host %s is assigned a bogus server number (%x) in %s. Exit.",
 		     sname, sid, serverList);
-		exit(1);
+		exit(EXIT_FAILURE);
 	    }
 	    /* catch several `special cased' host-id's */
 	    if (sid == 0 || sid == 127 || sid == 255) {
 		VLog(0, "Warning: host %s is using a reserved server number (%lu) in %s. Exit",
 		       sname, sid, serverList);
-		exit(1);
+		exit(EXIT_FAILURE);
 	    }
 	    /* make sure we don't get duplicate ids */
 	    if (Server_FQDN[sid]) {
@@ -428,7 +428,7 @@ void VInitServerList(const char *host)
 		     "\tas it is already assigned to host %s (reading \n"
 		     "\tfrom file %s)",
 		     sid, sname, Server_FQDN[sid], serverList);
-		exit(1);
+		exit(EXIT_FAILURE);
 	    }
 	    Server_FQDN[sid] = strdup(sname);
 
@@ -447,7 +447,7 @@ void VInitServerList(const char *host)
 		!hostent->h_addr)
 	    {
 		VLog(0, "Host %s (listed in %s) cannot be resolved (to an IPv4 address). Exiting.", sname, serverList);
-		exit(1);
+		exit(EXIT_FAILURE);
 	    }
 
 	    /* check whether we got an address in the 127.x.x.x range */
@@ -458,13 +458,13 @@ void VInitServerList(const char *host)
 			 "This address is not routeable. Please set a routeable address\n"
 			 "for this server by adding a ipaddress=\"xxx.xxx.xxx.xxx\" option\n"
 			 "to server.conf",	sname, inet_ntoa(*(struct in_addr *)hostent->h_addr));
-		    exit(1);
+		    exit(EXIT_FAILURE);
 		}
 		struct in_addr ipaddr;
 		if (!inet_aton(CodaSrvIp, &ipaddr)) {
 		    VLog(0, "ERROR: failed to parse %s as an ip-address",
 			 CodaSrvIp);
-		    exit(1);
+		    exit(EXIT_FAILURE);
 		}
 		memcpy(&netaddress, &ipaddr, sizeof(struct in_addr));
 	    } else
@@ -478,7 +478,7 @@ void VInitServerList(const char *host)
     }
     if (!ThisServerId) {
 	VLog(0, "Hostname of this server (%s) is not listed in %s. Exiting.", ThisHost, serverList);
-	exit(1);
+	exit(EXIT_FAILURE);
     }
     fclose(file);
 }

@@ -96,7 +96,7 @@ void main(int argc, char **argv)
     
     int VLDB_fd = open(VLDB_PATH, O_RDONLY, 0);
     if (VLDB_fd == -1) 
-	exit(-1);
+	exit(EXIT_FAILURE);
 
     int size = 8;			/* Current size of VLDB array */
     int nentries = 0;			/* Number of valid records in VLDB */
@@ -109,7 +109,7 @@ void main(int argc, char **argv)
 	n = read(VLDB_fd, (char *)buffer, sizeof(buffer));
 	if (n < 0) {
 	    printf("VLDBPrint: read failed for VLDB\n");
-	    exit(-1);
+	    exit(EXIT_FAILURE);
 	}
 	if (n==0)
 	    break;

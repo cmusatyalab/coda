@@ -260,7 +260,7 @@ static void SigExit(int sig)
     VFSUnmount();
     fflush(logFile);
     fflush(stderr);
-    exit(0);
+    exit(EXIT_SUCCESS);
 }
 
 static void SigMounted(int sig)

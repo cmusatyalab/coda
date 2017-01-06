@@ -59,7 +59,7 @@ void BuildVRDB() {
     vrlist = fopen(infile, "r");
     if (vrlist == NULL) {
 	printf("MakeVRDB: unable to open file %s\n", infile);
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
     int fd = open(vice_sharedfile("db/VRDB"), O_CREAT | O_TRUNC | O_WRONLY,
 		  0644);
@@ -78,7 +78,7 @@ void BuildVRDB() {
 		   &vre.addr) != 12) {
 	    printf("Bad input line(%d): %s\n", lineno, line);
 	    printf("makevrdb aborted\n");
-	    exit(-1);
+	    exit(EXIT_FAILURE);
 	}
 	vre.nServers = servercount;
 	vre.hton();
@@ -86,7 +86,7 @@ void BuildVRDB() {
 	if (write(fd, &vre, sizeof(struct vrent)) != sizeof(struct vrent)) {
 	    printf("write error on input line(%d): %s\n", lineno, line);
 	    printf("makevrdb aborted\n");
-	    exit(-1);
+	    exit(EXIT_FAILURE);
 	}
     }
     close(fd);

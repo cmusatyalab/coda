@@ -752,7 +752,7 @@ static void MakeFiles(void)
 	{
 	fname[i] = (char *)malloc(1+strlen(MakeName(fsize[i])));
 	strcpy(fname[i], MakeName(fsize[i]));
-	if (mkfile(fname[i], atoi(fsize[i])) < 0) exit(-1);
+	if (mkfile(fname[i], atoi(fsize[i])) < 0) exit(EXIT_FAILURE);
 	}
 
     SysFiles = fname;
@@ -852,11 +852,11 @@ static void InitRPC(void)
     if (rc != RPC2_SUCCESS)
 	{
 	printf("RPC2_Init() --> %s\n", RPC2_ErrorMsg(rc));
-	exit(-1);
+	exit(EXIT_FAILURE);
 	}
 
     if (RPC2_Trace && (RPC2_InitTraceBuffer(TBSIZE) != RPC2_SUCCESS))
-	exit(-1);
+	exit(EXIT_FAILURE);
 
     SubsysId.Tag = RPC2_SUBSYSBYID;
     SubsysId.Value.SubsysId = SUBSYS_SRV;
@@ -1006,7 +1006,7 @@ void DumpAndQuit(int opcode) /* of failing call; 0 if not an RPC call */
 	if (opcode == 5 || opcode == 6)
 	    sftp_DumpTrace(MakeName("sftp.trace"));
 	}
-    exit(-1);
+    exit(EXIT_FAILURE);
 }
 
 
@@ -1021,7 +1021,7 @@ void mktee(char *logfile)
     if (pipe(filedes) < 0)
 	{
 	perror("pipe");
-	exit(-1);
+	exit(EXIT_FAILURE);
 	}
 
     fflush(stdout);
@@ -1031,7 +1031,7 @@ void mktee(char *logfile)
     if (pid < 0)
 	{
 	perror("fork");
-	exit(-1);
+	exit(EXIT_FAILURE);
 	}
 
     if (pid > 0)
@@ -1051,7 +1051,7 @@ void mktee(char *logfile)
 	teeargs[2] = 0;
 	execve("/usr/bin/tee",teeargs, 0);
 	perror("execve");   /* should never get here */
-	exit(-1);
+	exit(EXIT_FAILURE);
 	}
 }
 

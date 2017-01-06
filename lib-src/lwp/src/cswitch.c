@@ -75,5 +75,5 @@ int main(int argc, char **argv)
     }
 
     LWP_TerminateProcessSupport();
-    exit(0);
+    exit(EXIT_SUCCESS);
 }

@@ -50,7 +50,7 @@ Pittsburgh, PA.
 void no_storage(char *proc)
 {
     printf("[RP2GEN: Out of storage in routine %s]\n", proc);
-    exit(1);
+    exit(EXIT_FAILURE);
 }
 
 char *copy(char *s)
@@ -193,7 +193,7 @@ PROC *check_proc(proc)
 	if ((*formals)->type->type->tag == RPC2_BULKDESCRIPTOR_TAG) {
 	    if (proc->bd != NIL) {
 		printf("RP2GEN: too many bulk descriptors to proc: %s\n", proc->name);
-		exit(1);
+		exit(EXIT_FAILURE);
 	    } else {
 		if ((*formals)->mode != IN_OUT_MODE)
 		    printf("RP2GEN: usage for RPC2_BulkDescriptor must be IN OUT: %s\n", (*formals)->name);
@@ -252,7 +252,7 @@ char *coda_rp2_basename(name)
     len = r - l - 1;
     if (len <= 0) {
 	printf("RP2GEN: illegal filename: \"%s\"\n", name);
-	exit(1);
+	exit(EXIT_FAILURE);
     }
     base = malloc(len+1);
     if (base == NIL) no_storage("basename");

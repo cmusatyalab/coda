@@ -305,7 +305,7 @@ typedef			: TYPEDEF rpc2_type IDENTIFIER array_spec ';'
 					    if ($2->bound != NIL && $2->type->tag != RPC2_BYTE_TAG) {
 						printf("RP2GEN: array type unimplemented: %s\n",
 						       $3);
-						exit(1);
+						exit(EXIT_FAILURE);
 					    }
 					    enter($2);
 					    if ($1) spit_type($2);
@@ -325,7 +325,7 @@ type_name		: IDENTIFIER
 					    $$ = find($1);
 					    if ($$ == NIL) {
 						printf("RP2GEN: can't find type: %s\n", $1);
-						exit(1);
+						exit(EXIT_FAILURE);
 					    }
 					}
 			;
@@ -338,7 +338,7 @@ field_list		: field field_list
 					{
 					    if (var_list.counter >= MAX_VARS) {
 						printf("RP2GEN: too many fields: %d\n", MAX_VARS);
-						exit(1);
+						exit(EXIT_FAILURE);
 					    }
 					    var_list.vars[var_list.counter++] = $1;
 					}
@@ -370,7 +370,7 @@ identifier_list2	: IDENTIFIER ',' identifier_list2
 					{
 					    if (id_list.counter >= MAX_IDS) {
 						printf("RP2GEN: too many identifiers in list: %d\n", MAX_IDS);
-						exit(1);
+						exit(EXIT_FAILURE);
 					    }
 					    id_list.ids[id_list.counter++] = $1;
 					}
@@ -389,7 +389,7 @@ enum_val_list		: enum_val ',' enum_val_list
 					{
 					    if (enum_list.counter >= MAX_ENUMS) {
 						printf("RP2GEN: too many enum values: %d\n", MAX_ENUMS);
-						exit(1);
+						exit(EXIT_FAILURE);
 					    }
 					    enum_list.enums[enum_list.counter++] = $1;
 					}
@@ -424,7 +424,7 @@ procedure_description	: opcode_number IDENTIFIER '(' formal_list ')' timeout_ove
                                                 $1 = next_opnum;
                                             if ($1 < next_opnum) {
                                               printf("RP2GEN: Opcode numbers must be always increasing\n");
-                                              exit(1);
+                                              exit(EXIT_FAILURE);
                                             }
                                             next_opnum = $1 + 1;
                                           }
@@ -444,17 +444,17 @@ formal_list		: formal array_spec_var ',' formal_list
 					    VAR *maxvarp;
 					    if (formal_list.counter >= MAX_FORMALS) {
 						printf("RP2GEN: too many formals: %d\n", MAX_FORMALS);
-						exit(1);
+						exit(EXIT_FAILURE);
 					    }
 					    formal_list.formals[formal_list.counter++] = $1;
 					    if ($2 != NIL) {
 						if (formal_list.counter >= MAX_FORMALS) {
 						    printf("RP2GEN: too many formals: %d\n", MAX_FORMALS);
-						    exit(1);
+						    exit(EXIT_FAILURE);
 						}
 					        if ($1->type->type->tag != RPC2_STRUCT_TAG) {
 						    printf("RP2GEN: array type unimplemented: %s\n", $1->name);
-						    exit(1);
+						    exit(EXIT_FAILURE);
 					        } 
 					        formal_list.formals[formal_list.counter++] = $2;
 						$1->array = $2->name = createsize($1->name);
@@ -476,7 +476,7 @@ formal_list		: formal array_spec_var ',' formal_list
 					        if ($1->type->type->tag != RPC2_STRUCT_TAG) {
 						    printf("RP2GEN: array type unimplemented: %s\n",
 						           $1->name);
-						    exit(1);
+						    exit(EXIT_FAILURE);
 					        } 
 					        formal_list.formals[formal_list.counter++] = $2;
 						$1->array = $2->name = createsize($1->name);

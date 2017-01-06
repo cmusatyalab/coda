@@ -137,7 +137,7 @@ int coda_init()
 
     if (ThisServerId == -1) {
 	VLog(0, "ThisServerId is uninitialized!!! Exiting.");
-	exit(1);
+	exit(EXIT_FAILURE);
     }
 
     /* the VMCounter constant is used for generating strictly incrementing

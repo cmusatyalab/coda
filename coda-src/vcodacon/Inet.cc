@@ -73,7 +73,7 @@ Inet::Inet() {
 #if defined(WIN32)
   if (!didinit) {
 	  if (WSAStartup (1<<1, &windata) != 0) {
-		  exit(0);
+		  exit(EXIT_SUCCESS);
 	  }
     didinit = true;
   }

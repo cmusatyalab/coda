@@ -59,12 +59,12 @@ int main(int argc, char **argv)
     if ((argc > 1) && (strcmp(argv[1], "-remove") == 0)) {
 	if (argc != 3) {
 	    fprintf(stderr, "Usage:  %s [-remove <pathname>]\n", argv[0]);
-	    exit(1);
+	    exit(EXIT_FAILURE);
 	}
 	else {
 	    if ((BeginRepair(argv[2], &conf, msgbuf, sizeof(msgbuf))) < 0) {
 		fprintf(stderr, "%s\nError beginning repair\n", msgbuf);
-		exit(1);
+		exit(EXIT_FAILURE);
 	    }
 
 	    if (conf->local) {
@@ -81,7 +81,7 @@ int main(int argc, char **argv)
 	    Parser_exit(0, NULL);
 	    execlp("rm", "rm", "-Rf", argv[2], (char *)NULL);
 	    fprintf(stderr, "\nError removing %s: %s\n", argv[2], strerror(errno));
-	    exit(1);
+	    exit(EXIT_FAILURE);
 	}
     }
 
@@ -105,7 +105,7 @@ int main(int argc, char **argv)
     } 
     else {
 	fprintf(stderr, "Usage: %s { object fixfile }\n", argv[0]);
-	exit(1);
+	exit(EXIT_FAILURE);
     }
 }
 
@@ -119,7 +119,7 @@ void GetArgs(int argc, char *argv[]) {
 	    allowclear = 1;
 	else {
 	    printf("Usage: repair [-d]\n");
-	    exit(-1);
+	    exit(EXIT_FAILURE);
 	}
     }
 }
@@ -324,12 +324,12 @@ void rep_EndRepair(int largc, char **largv) {
     case DIRECTORY_SESSION:
       if (EndRepair(ConflictObj, commit, msgbuf, sizeof(msgbuf)) < 0) {
 	fprintf(stderr, "%s\nError ending repair session\n", msgbuf);
-	exit(2);
+	exit(EXIT_FAILURE);
       }
       break;
     default:
       fprintf(stderr, "Unknown session type\n");
-      exit(1);
+      exit(EXIT_FAILURE);
       break;
     }
     session = NOT_IN_SESSION;
@@ -385,7 +385,7 @@ void rep_RemoveInc(int largc, char **largv) {
     else
       printf("Repair successful.\n");
   }
-  exit(2);
+  exit(EXIT_FAILURE);
 }
 
 void rep_ReplaceInc(int largc, char **largv)
@@ -440,7 +440,7 @@ void rep_ReplaceInc(int largc, char **largv)
 
     if ((rc = EndRepair(ConflictObj, 0, msgbuf, sizeof(msgbuf))) < 0) {
 	fprintf(stderr, "%s\nError ending repair session.\n", msgbuf);
-	exit(2);
+	exit(EXIT_FAILURE);
     }
 
     if ((dorep(ConflictObj, fixpath, NULL, 0) < 0) && (errno != ETOOMANYREFS)){
@@ -450,5 +450,5 @@ void rep_ReplaceInc(int largc, char **largv)
 	fprintf(stderr, "Repair successful.\n");
     }
 
-    exit(2);
+    exit(EXIT_FAILURE);
 }

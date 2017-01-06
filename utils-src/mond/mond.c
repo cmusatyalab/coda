@@ -216,7 +216,7 @@ void UtilityLWP(char *p)
 		if (pid == 0) {
 		    if (execv(UNWINDOBJ,args)) {
 			fprintf(stderr,"Couldn't start up unwind...GACK!");
-			exit(-1);
+			exit(EXIT_FAILURE);
 		    }
 		}
 	    } else {
@@ -777,7 +777,7 @@ static void ParseArgs(int argc, char *argv[]) {
 	    printf("usage: mond [[-wd workingdir] [-mondp port number] [-d debuglevel]\n");
 	    printf("             [-b buffersize] [-l listeners] [-w lowWaterMark]\n");
 	    printf("             [-ui utility interval] [-nospool] [-r|-R]\n");
-	    exit(1000);
+	    exit(EXIT_FAILURE);
 	}
     }
 }

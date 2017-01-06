@@ -69,7 +69,7 @@ int main(int argc, char **argv)
     LWP_CreateProcess(procC, 8192, LWP_NORMAL_PRIORITY, NULL, "procC", &C_pid);
     printf("Main thread returned from creating procC  \n");
     LWP_WaitProcess(&b);
-    exit(0);
+    exit(EXIT_SUCCESS);
 }
 
 static void procA(void *dummy)

@@ -162,7 +162,7 @@ int main(int argc, char **argv)
 	    LogMsg(0, SrvDebugLevel, stdout, "No host given!\n");
 	    if (file)
 	        fclose(file);
-	    exit(-1);
+	    exit(EXIT_FAILURE);
 	}
 	fclose(file);
 	if (Host[strlen(Host)-1] == '\n')
@@ -180,7 +180,7 @@ int main(int argc, char **argv)
     if ( rc ) {
         snprintf(errmsg, MAXPATHLEN, "Cannot cd to %s", vice_config_path(NULL));
 	perror(errmsg);
-	exit(1);
+	exit(EXIT_FAILURE);
     }
 
     UtilDetach();
@@ -209,7 +209,7 @@ int main(int argc, char **argv)
         snprintf (errmsg, MAXPATHLEN, "Could not open %s",
 		  vice_config_path("misc/updateclnt.pid"));
 	perror (errmsg);
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
     fprintf(file, "%d", getpid());
     fclose(file);
@@ -314,7 +314,7 @@ static void ProcessArgs(int argc, char **argv)
 		   "[-port (port of the update server)] ");
 	    LogMsg(0, SrvDebugLevel, stdout,
 		   "[-r (reps of w for long wait time)] [-w (short wait time)]\n");
-	    exit(-1);
+	    exit(EXIT_FAILURE);
 	}
     }
 }
@@ -605,7 +605,7 @@ static void ResetDebug()
 static void Terminate()
 {
     LogMsg(0, SrvDebugLevel, stdout, "Exiting updateclnt\n");
-    exit(0);
+    exit(EXIT_SUCCESS);
 }
 
 
@@ -655,7 +655,7 @@ static void U_InitRPC()
     rcode = RPC2_Init(RPC2_VERSION, &options, NULL, -1, 0);
     if (rcode != RPC2_SUCCESS) {
 	LogMsg(0, SrvDebugLevel, stdout, "RPC2_Init failed with %s\n", RPC2_ErrorMsg((int)rcode));
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
 }
 
@@ -700,7 +700,7 @@ static int U_BindToServer(char *fileserver, RPC2_Handle *RPCid)
     else {
 	LogMsg(0, SrvDebugLevel, stdout, "RPC2_NewBinding to server %s failed with %s\n",
 				fileserver, RPC2_ErrorMsg((int)rcode));
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
 }
 

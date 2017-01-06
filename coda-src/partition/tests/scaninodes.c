@@ -35,7 +35,7 @@ main(int argc, char **argv)
     
     if ( argc != 2 ) {
 	printf("Usage %s dir.\n", argv[1]);
-	exit(1);
+	exit(EXIT_FAILURE);
     }
 
     dp = VGetPartition(argv[1]);

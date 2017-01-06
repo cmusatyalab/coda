@@ -327,7 +327,7 @@ int main(int argc, char *argv[])
 
     if (!CHECKSIZE_SMALLVNODE) {
 	SLog(0, "SERIOUS ERROR: Small vnode size is incorrect, aborting.\n");
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
 
     if(ParseArgs(argc,argv)) {
@@ -344,7 +344,7 @@ int main(int argc, char *argv[])
 	SLog(0, " [-rvmopt] [-usenscclock]");
 	SLog(0, " [-mapprivate] [-zombify]");
 
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
 
     (void)ReadConfigFile();
@@ -354,7 +354,7 @@ int main(int argc, char *argv[])
 
     if(chdir(vice_config_path("srv"))) {
 	SLog(0, "could not cd to %s - exiting", vice_config_path("srv"));
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
 
     unlink("NEWSRV");
@@ -390,7 +390,7 @@ int main(int argc, char *argv[])
     case UFS	:
     case RAWIO	: SLog(0, "RvmType is Rvm"); break;
     case VM	: SLog(0, "RvmType is NoPersistence"); break;
-    case UNSET	: SLog(0, "No RvmType selected!"); exit(-1);
+    case UNSET	: SLog(0, "No RvmType selected!"); exit(EXIT_FAILURE);
     }
 
     /* Initialize the hosttable structure */
@@ -583,7 +583,7 @@ int main(int argc, char *argv[])
 
     ShutDown();
 
-    exit(0);
+    exit(EXIT_SUCCESS);
 }
 
 #define BADCLIENT 1000
@@ -888,7 +888,7 @@ static void ShutDown()
 
     fd = open("SHUTDOWN",O_CREAT|O_WRONLY, 0666);
     close(fd);
-    exit(0);
+    exit(EXIT_SUCCESS);
 }
 
 
@@ -1305,11 +1305,11 @@ static int ReadConfigFile(void)
 	/* Checks ... */
 	if (_Rvm_Log_Device == NULL || *_Rvm_Log_Device == 0) {
 	    SLog(0, "Must specify a RVM log file/device\n");
-	    exit(-1);
+	    exit(EXIT_FAILURE);
 	}
 	if (_Rvm_Data_Device == NULL || *_Rvm_Data_Device == 0) {
 	    SLog(0, "Must specify a RVM data file/device\n");
-	    exit(-1);
+	    exit(EXIT_FAILURE);
 	}
     }
 
@@ -1444,7 +1444,7 @@ static int ParseArgs(int argc, char *argv[])
 	    if (!strcmp(argv[i], "-nc")){
 		if (RvmType != UNSET) {
 		    SLog(0, "Multiple Persistence methods selected.\n");
-		    exit(-1);
+		    exit(EXIT_FAILURE);
 		}
 		RvmType = VM;
 		if (i < argc - 1) cam_log_file = argv[++i];
@@ -1453,23 +1453,23 @@ static int ParseArgs(int argc, char *argv[])
 	    if (!strcmp(argv[i], "-cam")) {
 		if (RvmType != UNSET) {
 		    SLog(0, "Multiple Persistence methods selected.\n");
-		    exit(-1);
+		    exit(EXIT_FAILURE);
 		}
 		SLog(0, "Camelot not supported any more\n");
-		exit(-1);
+		exit(EXIT_FAILURE);
 	    }
 	else
 	    if (!strcmp(argv[i], "-rvm")) {
 		struct stat buf;
 		if (RvmType != UNSET) {
 		    SLog(0, "Multiple Persistence methods selected.");
-		    exit(-1);
+		    exit(EXIT_FAILURE);
 		}
 
 		if (i + 4 > argc) {	/* Need three more arguments here */
 		    eprint("-rvm needs 3 args: LOGDEV DATADEV DATA-LENGTH.\n");
 		    SLog(0, "-rvm needs 3 args: LOGDEV DATADEV DATA-LENGTH.");
-		    exit(-1);
+		    exit(EXIT_FAILURE);
 		}
 
 		RvmType = RAWIO;
@@ -1477,12 +1477,12 @@ static int ParseArgs(int argc, char *argv[])
 		i++; _Rvm_Data_Device = strdup(argv[i]);
 		if (stat(_Rvm_Log_Device, &buf) != 0) {
 		    perror("Can't open Log Device");
-		    exit(-1);
+		    exit(EXIT_FAILURE);
 		}
 
 		if (stat(_Rvm_Data_Device, &buf) != 0) {
 		    perror("Can't open Data Device");
-		    exit(-1);
+		    exit(EXIT_FAILURE);
 		}
 		i++; _Rvm_DataLength = RVM_MK_OFFSET(0, atoi(argv[i]));
 	    }
@@ -1591,11 +1591,11 @@ static int DaemonizeSrv(const char *pidfile)
     {
 	struct rlimit rl;
 	if (getrlimit(RLIMIT_DATA, &rl) < 0) {
-	    perror("getrlimit"); exit(-1);
+	    perror("getrlimit"); exit(EXIT_FAILURE);
 	}
 	rl.rlim_cur = rl.rlim_max;
 	if (setrlimit(RLIMIT_DATA, &rl) < 0) {
-	    perror("setrlimit"); exit(-1); 
+	    perror("setrlimit"); exit(EXIT_FAILURE);
 	}
     }
 #endif
@@ -1662,7 +1662,7 @@ static void InitializeServerRVM(const char *name)
 	if ( err == RVM_ELOG_VERSION_SKEW ) {
 	    SLog(0, "rvm_init failed because of skew RVM-log version.");
 	    SLog(0, "Coda server not started.");
-	    exit(-1);
+	    exit(EXIT_FAILURE);
 	} else if (err != RVM_SUCCESS) {
 	    SLog(0, "rvm_init failed %s",rvm_return(err));
 	    CODA_ASSERT(0);
@@ -1683,6 +1683,6 @@ static void InitializeServerRVM(const char *name)
     case UNSET:							    
     default:	                                                            
 	printf("No persistence method selected!n");			    
-	exit(-1); /* No persistence method selected, so die */		    
+	exit(EXIT_FAILURE); /* No persistence method selected, so die */
     }
 }

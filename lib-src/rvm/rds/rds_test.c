@@ -47,7 +47,7 @@ main(argc, argv)
     
     if (argc < 3) {
 	printf("Usage: %s log-device data-device\n",argv[0]);
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
     
     options = rvm_malloc_options();
@@ -56,7 +56,7 @@ main(argc, argv)
     
     if (stat(DataDev, &sbuf) < 0) {
 	printf("%s\n", errno < sys_nerr? sys_errlist[errno]: "Cannot stat");
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
 
     switch (sbuf.st_mode & S_IFMT) {
@@ -65,7 +65,7 @@ main(argc, argv)
       case S_IFLNK:
       case S_IFBLK: 
 	printf("Illegal file type!\n");
-	exit(-1);
+	exit(EXIT_FAILURE);
 
       case S_IFCHR:
 	printf("Enter the length of the device %s: ", DataDev);
@@ -138,7 +138,7 @@ main(argc, argv)
 	  }
 	      
 	  case 'q' :
-		exit(0);
+		exit(EXIT_SUCCESS);
 
 	  case 'Q' : { /* Query RVM */
 	      rvm_options_t *curopts;

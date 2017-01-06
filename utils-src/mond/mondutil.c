@@ -205,7 +205,7 @@ static void QuitSignal() {
     LogMsg(0,LogLevel,LogFile, "***** Terminating");
     Data_Done();
     Log_Done();
-    exit(0);
+    exit(EXIT_SUCCESS);
 }
 
 static void TermSignal() {
@@ -273,7 +273,7 @@ void Log_Init() {
     LogFile = fopen(LogFileName, "a");
     if (LogFile == NULL) {
 	fprintf(stderr, "LOGFILE (%s) initialization failed\n", LogFileName);
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
 
     struct timeval now;
@@ -342,7 +342,7 @@ void BrainSurgeon()
     Data_Done();
     Log_Done();
     RestoreSignals();
-    exit(0);
+    exit(EXIT_SUCCESS);
 }
 
 void PrintPinged(RPC2_Handle cid)

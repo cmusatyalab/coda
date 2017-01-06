@@ -161,7 +161,7 @@ int main(int argc, char *argv[])
         libfile = NULL;
     }
 
-    exit(0);
+    exit(EXIT_SUCCESS);
 }
 
 static int32_t GetArgs(argc, argv)
@@ -245,7 +245,7 @@ static int32_t SetupFiles()
 
     /* Set up files */
     if (file_name == NIL) badargs();
-    if (!include2(file_name, "INPUT")) exit(1);
+    if (!include2(file_name, "INPUT")) exit(EXIT_FAILURE);
 
     /* Get base name of input file */
     base = coda_rp2_basename(file_name);
@@ -253,7 +253,7 @@ static int32_t SetupFiles()
 
     if (hfile_name == NIL) hfile_name = concat(base, ".h");
     hfile = fopen(hfile_name, "w");
-    if (hfile == NIL) {perror(hfile_name); exit(-1);}
+    if (hfile == NIL) {perror(hfile_name); exit(EXIT_FAILURE);}
     /* Special include hack for .h file */
     h_hack_begin(hfile, hfile_name);
     header(hfile, h_includes[(int32_t) clanguage]);
@@ -264,7 +264,7 @@ static int32_t SetupFiles()
             if (cfile_name == NIL) cfile_name = concat(base, ".client.c");
     }
     cfile = fopen(cfile_name, "w");
-    if (cfile == NIL) {perror(cfile_name); exit(-1);}
+    if (cfile == NIL) {perror(cfile_name); exit(EXIT_FAILURE);}
     header(cfile, client_includes[(int32_t) clanguage]);
     fprintf(cfile, "#include \"%s\"\n\n", hfile_name);
 
@@ -274,7 +274,7 @@ static int32_t SetupFiles()
             if (sfile_name == NIL) sfile_name = concat(base, ".server.c");
     }
     sfile = fopen(sfile_name, "w");
-    if (sfile == NIL) {perror(sfile_name); exit(-1);}
+    if (sfile == NIL) {perror(sfile_name); exit(EXIT_FAILURE);}
     header(sfile, server_includes[(int32_t) slanguage]);
     fprintf(sfile, "#include \"%s\"\n\n", hfile_name);
 
@@ -284,7 +284,7 @@ static int32_t SetupFiles()
             if (mfile_name == NIL) mfile_name = concat(base, ".multi.c");
     }
     mfile = fopen(mfile_name, "w");
-    if (mfile == NIL) {perror(mfile_name); exit(-1);}
+    if (mfile == NIL) {perror(mfile_name); exit(EXIT_FAILURE);}
     header(mfile, multi_includes[(int32_t) mlanguage]);
     fprintf(mfile, "#include \"%s\"\n\n", hfile_name);
 
@@ -294,11 +294,11 @@ static int32_t SetupFiles()
             if (pfile_name == NIL) pfile_name = concat(base, ".print.c");
     }
     pfile = fopen(pfile_name, "w");
-    if (pfile == NIL) {perror(pfile_name); exit(-1);}
+    if (pfile == NIL) {perror(pfile_name); exit(EXIT_FAILURE);}
 
     libfile_name = concat(base, ".helper.c");
     libfile = fopen(libfile_name, "w");
-    if (libfile == NIL) {perror(libfile_name); exit(-1);}
+    if (libfile == NIL) {perror(libfile_name); exit(EXIT_FAILURE);}
     header(libfile, helper_includes[(int32_t) clanguage]);
     fprintf(libfile, "#include \"%s\"\n\n", hfile_name);
 
@@ -312,7 +312,7 @@ static void badargs(void)
     printf("Usage: rp2gen [-neterrors,-n] [-I incldir] [-s srvstub] [-c clntstub]\n");
     printf("              [-h header] [-m multistub] [-p printstub] \n");
     printf("              [-t tcpdump prettyprint]   file\n");
-    exit(-1);
+    exit(EXIT_FAILURE);
 }
 
 static char uc(char c)
@@ -395,7 +395,7 @@ static void no_support(type, who, where)
 {
     printf("RP2GEN: no language support for %s\n",
 	   lang_struct[(int32_t) clanguage].name);
-    exit(1);
+    exit(EXIT_FAILURE);
 }
 
 void spit_type(type)
@@ -403,7 +403,7 @@ void spit_type(type)
 {
     if (clanguage != slanguage || clanguage != mlanguage) {
 	puts("RP2GEN: warning, SPIT_TYPE does not support multiple languages");
-	exit(1);
+	exit(EXIT_FAILURE);
     }
     (*lang_struct[(int32_t) clanguage].type)(type, RP2_CLIENT, hfile);		/* Types always go to .h file */
 
@@ -415,7 +415,7 @@ void spit_include(filename)
 {
     if (clanguage != slanguage || clanguage != mlanguage) {
 	puts("RP2GEN: warning, SPIT_INCLUDE does not support multiple languages");
-	exit(1);
+	exit(EXIT_FAILURE);
     }
     (*lang_struct[(int32_t) clanguage].include)(filename, RP2_CLIENT, hfile);
 }
@@ -425,7 +425,7 @@ void spit_define(id, value)
 {
     if (clanguage != slanguage || clanguage != mlanguage) {
 	puts("RP2GEN: warning, SPIT_DEFINE does not support multiple languages");
-	exit(1);
+	exit(EXIT_FAILURE);
     }
     (*lang_struct[(int32_t) clanguage].define)(id, value, RP2_CLIENT, hfile);
 }
@@ -446,7 +446,7 @@ static int32_t do_procs()
 	if (proc->new_connection) {
 	    if (seen_new_connection) {
 		puts("RP2GEN: too many NEW_CONNECTION procedures specified");
-		exit(1);
+		exit(EXIT_FAILURE);
 	    } else
 		seen_new_connection = RP2_TRUE;
 	}

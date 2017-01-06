@@ -480,7 +480,7 @@ static void GetServerNames() {
     file = fopen(serverList, "r");
     if (file == NULL) {
 	printf("Unable to read file %s; aborted\n", serverList);
-	exit(1);
+	exit(EXIT_FAILURE);
     }
     while (fgets(line, sizeof(line), file) != NULL) {
         char sname[50];

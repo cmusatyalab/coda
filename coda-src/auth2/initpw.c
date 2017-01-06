@@ -98,7 +98,7 @@ int main(int argc, char **argv)
 	    continue;
 	    }
 	printf("Usage: initpw [-x debuglevel] [-k key]\n");
-	exit(-1);
+	exit(EXIT_FAILURE);
 	}    
 
 /* Reads lines from stdin of the form:

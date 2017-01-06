@@ -409,7 +409,7 @@ int main(argc, argv)
 	    
     if ((argc !=3 && argc !=9) || opt_unknown) {
 	print_msg(usage);
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
 
     logName = argv[1];
@@ -422,13 +422,13 @@ int main(argc, argv)
     ret = RVM_INIT(options);
     if  (ret != RVM_SUCCESS) {
 	printf("?  rvm_initialize failed, code: %s\n",rvm_return(ret));
-	exit(-1);
+	exit(EXIT_FAILURE);
     } else
 	printf("rvm_initialize succeeded.\n");
 
     if (setjmp(jmpbuf_quit) != 0) {
         printf("rdsinit quit.  No permanent change is made\n");
-        exit(-1);
+        exit(EXIT_FAILURE);
     }
 
     ret = get_valid_parm(argc, argv, &datalen,
@@ -437,7 +437,7 @@ int main(argc, argv)
     if (ret < 0) {
 	printf("? invalid rdsinit parameters\n");
         printf("rdsinit quit.  No permanent change is made\n");
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
 
     {
@@ -445,14 +445,14 @@ int main(argc, argv)
     	if (chunksize < minchunksize) {
 	    printf("? chucksize should be at least %d bytes\n", minchunksize);
 	    printf("rdsinit quit.  No permanent change is made\n");
-	    exit(-1);
+	    exit(EXIT_FAILURE);
 	}
     }
 
     fd = open(dataName, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 00644);
     if (fd < 0) {
 	printf("?  Couldn't truncate %s.\n", dataName);
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
 
     printf("Going to initialize data file to zero, could take awhile.\n");
@@ -461,7 +461,7 @@ int main(argc, argv)
     for (i = 0; i < datalen; i+= 4096) {
 	if (write(fd, buf, 4096) != 4096) {
 	    printf("?  Couldn't write to %s.\n", dataName);
-	    exit(-1);
+	    exit(EXIT_FAILURE);
 	}
     }
     printf("done.\n");
@@ -481,14 +481,14 @@ int main(argc, argv)
                    rvm_return(err));
         else
             printf("?  ERROR: rds_zap_heap, code: %d\n", err);
-        exit(-1);
+        exit(EXIT_FAILURE);
         }
 
     ret = rvm_terminate();
     if (ret != RVM_SUCCESS)
         {
 	printf("\n? Error in rvm_terminate, ret = %s\n", rvm_return(ret));
-        exit(-1);
+        exit(EXIT_FAILURE);
         }
     else
 	printf("rvm_terminate succeeded.\n");

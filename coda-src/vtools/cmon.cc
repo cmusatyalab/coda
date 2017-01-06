@@ -140,7 +140,7 @@ void
 cleanup_and_go(int ignored)
 {
     endwin();
-    exit(0);
+    exit(EXIT_SUCCESS);
 }
 
 int main(int argc, char *argv[])
@@ -161,13 +161,13 @@ int main(int argc, char *argv[])
     dbg = fopen("/tmp/cmon_dbg", "w");
     if (dbg == NULL) {
 	fprintf(stderr, "cmon can not open /tmp/cmon_dbg\n");
-	exit(1);
+	exit(EXIT_FAILURE);
     }
 #else
     dbg = fopen("/dev/null", "w");
     if (dbg == NULL) {
 	fprintf(stderr, "cmon can not open /dev/null\n");
-	exit(1);
+	exit(EXIT_FAILURE);
     }
 #endif
 
@@ -278,7 +278,7 @@ static void kbdlwp(void *arg)
 	if (rc < 0)
 	    {
 	    if (errno == EINTR) continue; /* signal occurred */
-	    else {perror("select"); exit(-1);}
+	    else {perror("select"); exit(EXIT_FAILURE);}
 	    }
 	c = getchar();
 	
@@ -334,7 +334,7 @@ static void GetArgs(int argc, char *argv[])
 	    if (!(SrvCount < MAXSRV))
 		{
 		printf("Too many servers: should be %d or less\n", MAXSRV);
-		exit(-1);
+		exit(EXIT_FAILURE);
 		}
 	    srv[SrvCount].srvname = argv[next];
 	    c = strchr(argv[next], ':');
@@ -344,7 +344,7 @@ static void GetArgs(int argc, char *argv[])
 	    if (!ValidServer(srv[SrvCount].srvname))
 		{
 		printf("%s is not a valid server\n", srv[SrvCount].srvname);
-		exit(-1);
+		exit(EXIT_FAILURE);
 		}
 	    if (c) {
 	        c++;
@@ -376,8 +376,10 @@ static void InitRPC()
 
     /* Init RPC2 */
     rc = LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, &pid);
-    if (rc != LWP_SUCCESS) 
-    	{printf("LWP_Init() failed\n"); exit(-1);}
+    if (rc != LWP_SUCCESS) {
+        printf("LWP_Init() failed\n");
+        exit(EXIT_FAILURE);
+    }
 
     SFTP_SetDefaults(&sei);
     SFTP_Activate(&sei);

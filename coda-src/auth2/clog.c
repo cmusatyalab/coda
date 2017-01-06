@@ -110,7 +110,7 @@ int main(int argc, char **argv)
                  strcmp(argv[i], "-h") == 0 ||
                  strcmp(argv[i], "--help") == 0 ) {
 		    printusage();
-		    exit(0);
+		    exit(EXIT_SUCCESS);
 	    } else if ( strcmp(argv[i], "-test") == 0 ) {
 		    testing =1;
 		    i++;
@@ -127,7 +127,7 @@ int main(int argc, char **argv)
 		    if (i >= argc) {
 			    fprintf(stderr, "Missing file to write token to\n");
 			    printusage();
-			    exit(1);
+			    exit(EXIT_FAILURE);
 		    }
                     tofile = argv[i++];
 	    }  else if ( strcmp(argv[i], "-fromfile") == 0 ) {
@@ -135,7 +135,7 @@ int main(int argc, char **argv)
 		    if (i >= argc) {
 			    fprintf(stderr,"Missing file to read token from\n");
 			    printusage();
-			    exit(1);
+			    exit(EXIT_FAILURE);
 		    }
                     fromfile = argv[i++];
 	    } else if ( strncmp(argv[i], "-h", 2) == 0) {
@@ -143,7 +143,7 @@ int main(int argc, char **argv)
 		    if (i >= argc) {
 			    fprintf(stderr, "Missing host\n");
 			    printusage();
-			    exit(1);
+			    exit(EXIT_FAILURE);
 		    }
 		    hostname = argv[i];
 		    i++;
@@ -152,7 +152,7 @@ int main(int argc, char **argv)
 		    if (i >= argc) {
 			    fprintf(stderr, "Missing -as username\n");
 			    printusage();
-			    exit(1);
+			    exit(EXIT_FAILURE);
 		    }
 		    runas = argv[i];
 		    i++;
@@ -168,7 +168,7 @@ int main(int argc, char **argv)
 	    else {
 		    fprintf(stderr, "Wrong argument: %s\n", argv[i]);
 		    printusage();
-		    exit(1);
+		    exit(EXIT_FAILURE);
 	    }
 
     }
@@ -200,7 +200,7 @@ int main(int argc, char **argv)
     if (!username || !realm) {
 	    fprintf (stderr, "Can't figure out your username or realm.\n");
 	    fprintf (stderr, "Try \"clog user[@realm]\"\n");
-	    exit (1);
+	    exit(EXIT_FAILURE);
     }
 
     if (!isatty(0)) {
@@ -222,7 +222,7 @@ int main(int argc, char **argv)
 	RPC2_freeaddrinfo(srvs);
 	if (rc != 0) {
 	    fprintf (stderr, "Invalid login (%s).\n", RPC2_ErrorMsg(rc));
-	    exit (1);
+	    exit(EXIT_FAILURE);
 	}
     }
 

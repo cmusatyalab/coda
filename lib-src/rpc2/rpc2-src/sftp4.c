@@ -197,7 +197,7 @@ void sftp_DumpTrace(char *fName)
     if ((dumpfile = fopen(fName, "w")) == NULL)
 	{
 	perror(fName);
-	exit(-1);
+	exit(EXIT_FAILURE);
 	}
     fprintf(dumpfile, "%20s", "");
     fprintf(dumpfile, "%6s  %6s    %8s    %8s  %6s             %8s    %8s    %8s  %4s\n\n",

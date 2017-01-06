@@ -4130,7 +4130,7 @@ static rvm_length_t get_dev_length(dev_name)
 
     log_len = 0;
     printf("? device lookup not yet implemented: %s\n",dev_name);
-    exit(1);
+    exit(EXIT_FAILURE);
 
     return log_len;
     }
@@ -4158,7 +4158,7 @@ static rvm_bool_t do_init_log()
     if ((log = make_log(dev_str,&retval)) == NULL)
         {                               /* can't make descriptor */
         pr_rvm_error(stderr,retval,"while building log descriptor\n");
-        exit(1);
+        exit(EXIT_FAILURE);
         }
     log_dev = &log->dev;
     status = &log->status;
@@ -4168,12 +4168,12 @@ static rvm_bool_t do_init_log()
     if (open_dev(log_dev,O_WRONLY | O_CREAT | O_TRUNC,mode) != 0)
         {
         perror("? cannot open file/device");
-        exit(1);
+        exit(EXIT_FAILURE);
         }
     if (set_dev_char(log_dev,NULL) < 0)
         {
         perror("? cannot get file/device characteristics");
-        exit(1);
+        exit(EXIT_FAILURE);
         }
 
     /* get location of log status area and set total length of log */
@@ -4187,7 +4187,7 @@ static rvm_bool_t do_init_log()
     if ((retval=init_log_status(log)) !=  RVM_SUCCESS)
         {
         perror("? could not initialize log status area");
-        exit(1);
+        exit(EXIT_FAILURE);
         }
 
     /* init buffer for clearing data area of log */
@@ -4195,7 +4195,7 @@ static rvm_bool_t do_init_log()
     if ((buf=(long *)page_alloc(log_buf->length)) == NULL)
         {
         fprintf(stderr,"?  Could not allocate space to init log\n");
-        exit(1);
+        exit(EXIT_FAILURE);
         }
     for (i=0;i<((log_buf->length)/sizeof(long));i++)
         buf[i] = -1;
@@ -4212,14 +4212,14 @@ static rvm_bool_t do_init_log()
         if (write_dev(log_dev,&offset,buf,wrt_len,NO_SYNCH) < 0)
             {
             perror("? could not initialize log data area");
-                exit(1);
+                exit(EXIT_FAILURE);
             }
         offset = RVM_ADD_LENGTH_TO_OFFSET(offset,wrt_len);
         }
     if (sync_dev(log_dev) < 0)
         {
         perror("? could not initialize log data area");
-        exit(1);
+        exit(EXIT_FAILURE);
         }
     page_free((char *)buf,log_buf->length);
 
@@ -5313,8 +5313,8 @@ static rvm_bool_t do_quit()
 
     /* close open segments */
 
-    if (err != 0) exit(1);
-    else exit(0);
+    if (err != 0) exit(EXIT_FAILURE);
+    else exit(EXIT_SUCCESS);
     return rvm_true;
     }
 
@@ -5544,14 +5544,14 @@ static void do_cmd_switches(argc,argv)
             else
                 {
                 fprintf(stderr,"\n?  '-':  switch not found\n");
-                exit(1);
+                exit(EXIT_FAILURE);
                 }
             }
         else args++;
 
         /* lookup switch */
         sw_index = lookup_str_name(sw,cmd_sw_vec,"switch");
-        if (sw_index == (long)UNKNOWN) exit(1); /* error */
+        if (sw_index == (long)UNKNOWN) exit(EXIT_FAILURE); /* error */
 
         /* invoke processing function */
         (void)(cmd_sw_vec[sw_index].func)(argc,argv);
@@ -5584,7 +5584,7 @@ int
         {
         fprintf(stderr,"? rvm_initialize failed, code: %s\n",
                 rvm_return(retval));
-        exit(1);
+        exit(EXIT_FAILURE);
         }
 
     /* remaining initialization */
@@ -5595,7 +5595,7 @@ int
     if (peekpoke.buf == NULL)
         {
         fprintf(stderr,"? internal buffer allocation failed\n");
-        exit(1);
+        exit(EXIT_FAILURE);
         }
 
     /* read log file/device name from command line */

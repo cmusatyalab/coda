@@ -212,7 +212,7 @@ dumpstream::dumpstream(char *filename)
     stream = fopen(filename, "r");
     if (stream == NULL) {
 	LogMsg(0, VolDebugLevel, stderr, "Can't open dump file %s", filename);
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
     strncpy(name, filename, (sizeof(name)-1));
   }
@@ -459,7 +459,7 @@ int dumpstream::getVnodeIndex(VnodeClass Type, long *nVnodes, long *listsize)
 	    break;
 	  default:
 	    LogMsg(0, VolDebugLevel, stderr, "Unexpected field of Vnode found in %s.", name);
-	    exit(-1);
+	    exit(EXIT_FAILURE);
 	}
     }
     CODA_ASSERT(*listsize > 0);

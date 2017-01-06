@@ -180,7 +180,7 @@ int LWP_Init (int version, int priority, PROCESS *ret)
 
     if (version != LWP_VERSION) {
 	fprintf(stderr, "**** FATAL ERROR: LWP VERSION MISMATCH ****\n");
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
 
     if (lwp_inited)

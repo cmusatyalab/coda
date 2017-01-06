@@ -69,7 +69,7 @@ coda_assert(const char *pred, const char *file, int line)
     case CODA_ASSERT_EXIT:
 	fprintf(stderr, "EXITING! Bye!\n");
 	fflush(stderr);
-	exit(77);
+	exit(150);
 	break;
 
     case CODA_ASSERT_ABORT:

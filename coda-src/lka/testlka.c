@@ -49,13 +49,13 @@ int main(int argc, char **argv)
   case 2:
     rc = LKParseAndExecute(argv[1], em, emlen);
     if (em[0]) printf(em); /* hopefully useful msg */
-    if (!rc) exit(-1); 
+    if (!rc) exit(EXIT_FAILURE);
     break;
 
   default:
     printf ("Usage: testlka <quoted command string for cfs lka>\n");
     printf ("       testlka then prompts interactively\n");
-    exit(0);
+    exit(EXIT_SUCCESS);
   }
 
   while (1) {
@@ -82,7 +82,7 @@ int main(int argc, char **argv)
     cfd = mkstemp(container);
     if (cfd < 0) {
 	printf("Can't create %s: %s\n", container, strerror(errno));
-	exit(-1);
+	exit(EXIT_FAILURE);
     }
 
     memset(em, 0, emlen); /* null message is default */
@@ -98,7 +98,7 @@ int main(int argc, char **argv)
   }
 
 Quit:
-  exit(0);
+  exit(EXIT_SUCCESS);
 }
 
 

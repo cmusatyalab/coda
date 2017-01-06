@@ -70,14 +70,14 @@ void update_pidfile(const char *pidfile)
     pidfd = open(pidfile, O_WRONLY | O_CREAT, 0640);
     if (pidfd < 0) {
 	fprintf(stderr, "Can't open pidfile \"%s\"\n", pidfile);
-	exit(1);
+	exit(EXIT_FAILURE);
     }
 
     rc = myflock(pidfd, MYFLOCK_EX, MYFLOCK_NB);
     if (rc < 0) {
 	fprintf(stderr, "Can't lock pidfile \"%s\", am I already running?\n",
 		pidfile);
-	exit(1);
+	exit(EXIT_FAILURE);
     }
 
 #else
@@ -92,7 +92,7 @@ void update_pidfile(const char *pidfile)
 
     if ((namelen+4) > MAXPATHLEN) {
       fprintf(stderr, "pid file name too long.\n");
-      exit(1);
+      exit(EXIT_FAILURE);
     }
 
     n = snprintf (lockname, MAXPATHLEN, "%s.lk", pidfile);
@@ -101,20 +101,20 @@ void update_pidfile(const char *pidfile)
     lockfd = open(lockname, O_WRONLY | O_CREAT, 0640);
     if (lockfd < 0) {
 	fprintf(stderr, "Can't open lock file \"%s\"\n", lockname);
-	exit(1);
+	exit(EXIT_FAILURE);
     }
 
     rc = myflock(lockfd, MYFLOCK_EX, MYFLOCK_NB);
     if (rc < 0) {
 	fprintf(stderr, "Can't lock lock file \"%s\", am I already running?\n",
 		lockname);
-	exit(1);
+	exit(EXIT_FAILURE);
     }
 
     pidfd = open(pidfile, O_WRONLY | O_CREAT, 0640);
     if (pidfd < 0) {
 	fprintf(stderr, "Can't open pidfile \"%s\"\n", pidfile);
-	exit(1);
+	exit(EXIT_FAILURE);
     }
 
 #endif
@@ -127,7 +127,7 @@ void update_pidfile(const char *pidfile)
     rc = write(pidfd, str, n);
     if (rc != n) {
 	fprintf(stderr, "Can't update pidfile \"%s\"\n", pidfile);
-	exit(1);
+	exit(EXIT_FAILURE);
     }
 
 #if !defined(__CYGWIN32__)
@@ -149,7 +149,7 @@ int daemonize(void)
     rc = pipe(fds);
     if (rc) {
 	fprintf(stderr, "daemonize: failed to create pipe\n");
-	exit(1);
+	exit(EXIT_FAILURE);
     }
 
     /* fork into background */
@@ -175,7 +175,7 @@ int daemonize(void)
     /* second part of the double fork */
     pid = fork();
     if (pid != 0)
-	exit(0);
+	exit(EXIT_SUCCESS);
 
     /* close almost all filedescriptors (except for the pipe to the parent). */
     for (fd = 3; fd < FD_SETSIZE; fd++)
@@ -198,7 +198,7 @@ void gogogo(int parent_fd)
     /* write anything as long as it isn't \0 */
     if (write(parent_fd, "1", 1) != 1) {
 	/* something must have gone wrong with the parent */
-	exit(1);
+	exit(EXIT_FAILURE);
     }
 
     close(parent_fd);
@@ -218,6 +218,6 @@ int main(int argc, char **argv)
 	sleep(30);
     }
 
-    exit(0);
+    exit(EXIT_SUCCESS);
 }
 #endif

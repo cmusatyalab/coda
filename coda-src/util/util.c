@@ -259,17 +259,17 @@ void UtilDetach(void)
     
     if ( child < 0 ) { 
 	fprintf(stderr, "Cannot fork: exiting.\n");
-	exit(1);
+	exit(EXIT_FAILURE);
     }
 
     if ( child != 0 ) /* parent */
-	exit(0); 
+	exit(EXIT_SUCCESS);
 
     rc = setsid();
 
     if ( rc < 0 ) {
 	fprintf(stderr, "Error detaching from terminal.\n");
-	exit(1);
+	exit(EXIT_FAILURE);
     }
 
 }

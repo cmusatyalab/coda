@@ -898,12 +898,12 @@ int main(int argc, char * argv[])
     
     if (argc < 7) {
 	usage(argv[0]);
-	exit(1);
+	exit(EXIT_FAILURE);
     }
     
     if (strcmp(argv[1], "-rvm")) {
 	usage(argv[0]);
-	exit(1);
+	exit(EXIT_FAILURE);
     } else {
 	rvm_log  = argv[2];
 	rvm_data = argv[3];
@@ -915,7 +915,7 @@ int main(int argc, char * argv[])
     if (argc > 8) {
 	if (strcmp(argv[7], "skip")) {
 	    usage(argv[0]);
-	    exit(1);
+	    exit(EXIT_FAILURE);
 	}
 	nskipvols = argc - 8;
 	skipvols = (VolumeId *)malloc(nskipvols * sizeof(VolumeId));
@@ -934,6 +934,6 @@ int main(int argc, char * argv[])
 	usage(argv[0]);
 
     if (skipvols) free(skipvols);
-    exit(ok ? 0 : 1);
+    exit(ok ? EXIT_SUCCESS : EXIT_FAILURE);
 }
 

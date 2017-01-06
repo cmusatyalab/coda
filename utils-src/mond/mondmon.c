@@ -76,7 +76,7 @@ main(int argc, char *argv[])
     LogMsg(0,0,stdout,"Mondmon: log started, pid = %d",getpid());
     CheckSyntax(argc,argv);
     if (argc < 1)
-	exit(-1);
+	exit(EXIT_FAILURE);
     (void) signal(SIGTERM, (void (*)(int))ShutDown);
     (void) signal(SIGPIPE, (void (*)(int))Continue);
     (void) signal(SIGTSTP, (void (*)(int))Pause);
@@ -101,7 +101,7 @@ main(int argc, char *argv[])
 	} else {
 	    if (execve("/usr/mond/bin/mond",argv,0)) {
 		LogMsg(0,0,stdout,"Monmon: execve mond failed");
-		exit(0);
+		exit(EXIT_SUCCESS);
 	    }
 	}
 	if (notfirst) {
@@ -155,7 +155,7 @@ void CheckSyntax(int argc, char *argv[])
 	    printf("usage: mondmon [[-wd workingdir] [-mondp port number] [-d debuglevel]\n");
 	    printf("                [-b buffersize] [-l listeners] [-w lowWaterMark]\n");
 	    printf("                [-ui utility interval]\n");
-	    exit(1000);
+	    exit(EXIT_FAILURE);
 	}
     }
 }

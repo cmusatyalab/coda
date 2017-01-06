@@ -38,14 +38,14 @@ main(int argc, char **argv)
     testcreate = icreate(devno, 0, 0, 0, 0, 0);
     printf("icreate returned: %d\n", testcreate);
     if ( testcreate == 0 )
-	exit(1);
+	exit(EXIT_FAILURE);
     
     fd = iopen(devno, testcreate, O_RDONLY);
     printf("iopen returned: %d\n", fd);
     if ( fd != -1 ) 
 	close(fd);
     else 
-	exit(2);
+	exit(EXIT_FAILURE);
 
     count = iwrite(devno, testcreate, 0, 0, buff, strlen(buff));
     printf("iwrite returned %d (of %d)\n", count, strlen(buff));
@@ -56,14 +56,14 @@ main(int argc, char **argv)
     testcreate = icreate(devno, 0, 0, 0, 0, 0);
     printf("icreate returned: %d\n", testcreate);
     if ( testcreate == 0 )
-	exit(1);
+	exit(EXIT_FAILURE);
     
     fd = iopen(devno, testcreate, O_RDONLY);
     printf("iopen returned: %d\n", fd);
     if ( fd != -1 ) 
 	close(fd);
     else 
-	exit(2);
+	exit(EXIT_FAILURE);
 
     count = iwrite(devno, testcreate, 0, 0, buff, strlen(buff));
     printf("iwrite returned %d (of %d)\n", count, strlen(buff));

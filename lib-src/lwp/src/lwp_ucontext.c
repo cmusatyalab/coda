@@ -95,7 +95,7 @@ static void _thread(int sig)
 
     /* this 'thread' now exits. But we don't know which other context we
      * should jump to... */
-    exit(0);
+    exit(EXIT_SUCCESS);
 }
 
 int lwp_setcontext(const struct lwp_ucontext *ucp)

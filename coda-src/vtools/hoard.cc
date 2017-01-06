@@ -239,7 +239,7 @@ int main(int argc, char *argv[])
     DoVerifies(Verify);
     DoEnables(Enable);
     DoDisables(Disable);
-    exit(0);
+    exit(EXIT_SUCCESS);
 }
 
 static FILE *ParseCommandLine(int argc, char **argv) {
@@ -1226,7 +1226,7 @@ static void RenameOutFile(char *from, char *to) {
 	if (infd < 0) {
 	    error(!FATAL, "RenameOutFile: open(%s) failed(%s)", from,
 		  strerror(errno));
-	    exit(errno);
+	    exit(EXIT_FAILURE);
 	}
 
 	/* Open the target file. */
@@ -1234,25 +1234,25 @@ static void RenameOutFile(char *from, char *to) {
 	if (setreuid(ruid, ruid) < 0) {
 	    error(!FATAL, "RenameOutFile: setreuid(%d, %d) failed(%s)", ruid,
 		  ruid, strerror(errno));
-	    exit(errno);
+	    exit(EXIT_FAILURE);
 	}
 #endif
 	int outfd = open(to, (O_TRUNC | O_CREAT | O_WRONLY | O_BINARY), 0666);
 	if (outfd < 0) {
 	    error(!FATAL, "RenameOutFile: open(%s) failed(%s)", to,
 		  strerror(errno));
-	    exit(errno);
+	    exit(EXIT_FAILURE);
 	}
 
 	/* Set-up stdin and stdout and invoke "cat". */
 	if (dup2(infd, 0) < 0 || dup2(outfd, 1) < 0) {
 	    error(!FATAL, "RenameOutFile: dup2() failed(%s)", strerror(errno));
-	    exit(errno);
+	    exit(EXIT_FAILURE);
 	}
 	char *argv[2]; argv[0] = (char *)"cat"; argv[1] = NULL;
 	if (execvp(argv[0], argv) < 0) {
 	    error(!FATAL, "RenameOutFile: execvp(\"cat\") failed(%s)", strerror(errno));
-	    exit(errno);
+	    exit(EXIT_FAILURE);
 	}
     }
     else {
@@ -1280,7 +1280,7 @@ static void error(int fatal, const char *fmt ...) {
     fprintf(stderr, "%s\n", msg);
 
     if (fatal)
-	exit(-1);
+	exit(EXIT_FAILURE);
 }
 
 

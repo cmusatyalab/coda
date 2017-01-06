@@ -136,7 +136,7 @@ void repair_finish(struct conflict *conf)
 
     if (conf == NULL) {
 	printf("Error:  trying to free null conflict\n");
-	exit(2);
+	exit(EXIT_FAILURE);
     }
     while ((rwv = conf->head) != NULL) {
 	conf->head = rwv->next;

@@ -49,7 +49,7 @@ main(argc, argv)
   dirp = opendir(argv[1]);
   if (dirp == NULL) {
     perror("opendir");
-    exit(-1);
+    exit(EXIT_FAILURE);
   }
   for (dp = readdir(dirp); dp != NULL; dp = readdir(dirp))
     printf("inode_number = %d; rec_len = %d; namelen = %d; name = %s \n\n", dp->d_ino, dp->d_reclen, dp->d_namlen, dp->d_name);
