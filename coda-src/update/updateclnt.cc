@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2017 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -128,7 +128,8 @@ static RPC2_Integer operatorSecs = 0;
 static RPC2_Integer operatorUsecs = 0;
 
 static RPC2_Handle con = 0;
-static char Host[HOST_NAME_MAX];
+static char UpdateSrvHost[HOST_NAME_MAX];
+static char CodaSrvHost[HOST_NAME_MAX];
 static RPC2_Integer port;
 static int waitinterval = 30;	/* 5 min */
 static int reps = 6;
@@ -148,7 +149,7 @@ int main(int argc, char **argv)
     int     len;
     char    errmsg[MAXPATHLEN];
     
-    *Host = '\0';
+    *UpdateSrvHost = '\0';
 
     ProcessArgs(argc, argv);
 
@@ -156,21 +157,21 @@ int main(int argc, char **argv)
 
     /* Check if host has been set.  If not, try to read it out of
        vice_sharefile("db/scm").  */
-    if ( *Host == '\0' ) {
+    if ( *UpdateSrvHost == '\0' ) {
         file = fopen (vice_config_path("db/scm"), "r");
-	if (!file || !fgets(Host, HOST_NAME_MAX, file)) {
+	if (!file || !fgets(UpdateSrvHost, HOST_NAME_MAX, file)) {
 	    LogMsg(0, SrvDebugLevel, stdout, "No host given!\n");
 	    if (file)
 	        fclose(file);
 	    exit(EXIT_FAILURE);
 	}
 	fclose(file);
-	if (Host[strlen(Host)-1] == '\n')
-	    Host[strlen(Host)-1] = '\0';
+	if (UpdateSrvHost[strlen(UpdateSrvHost)-1] == '\n')
+	    UpdateSrvHost[strlen(UpdateSrvHost)-1] = '\0';
     }
 
     LogMsg(1, SrvDebugLevel, stdout, "Using host '%s' for updatesrv.\n",
-	   Host);
+	   UpdateSrvHost);
 
     CheckLibStructure();
 
@@ -241,20 +242,20 @@ int main(int argc, char **argv)
 
             RPC2_Handle rpcid;
             /* signal file server to check data bases */
-            if (U_BindToServer(Host, &rpcid) == RPC2_SUCCESS) {
+            if (U_BindToServer(CodaSrvHost, &rpcid) == RPC2_SUCCESS) {
                 if (VolUpdateDB(rpcid) == RPC2_SUCCESS) {
                     LogMsg(0, SrvDebugLevel, stdout,
                         "Notifying server %s of database updates\n",
-                        Host);
+                        CodaSrvHost);
                 } else {
                     LogMsg(0, SrvDebugLevel, stdout,
                         "VolUpdateDB failed for host %s\n",
-                        Host);
+                        CodaSrvHost);
                }
             } else {
                 LogMsg(0, SrvDebugLevel, stdout,
                      "Bind to server %s for database update failed\n",
-                     Host);
+                     CodaSrvHost);
             }
             RPC2_Unbind(rpcid);
 	}
@@ -293,7 +294,7 @@ static void ProcessArgs(int argc, char **argv)
 		port = atoi(argv[++i]);
 	else
 	    if (!strcmp(argv[i], "-h"))
-		strcpy(Host, argv[++i]);
+		strcpy(UpdateSrvHost, argv[++i]);
 	else
 	  if (!strcmp(argv[i], "-q")) {
 	      fprintf (stderr, "Old argument -q to update clnt.\n");
@@ -330,7 +331,7 @@ ReadConfigFile()
     vice_dir_init(vicedir);
 
     /* Host name list from multiple configs. */
-    hostname(Host);
+    hostname(CodaSrvHost);
 }
 
 
@@ -551,7 +552,7 @@ static void ReConnect()
     }
 
     hident.Tag = RPC2_HOSTBYNAME;
-    strcpy(hident.Value.Name, Host);
+    strcpy(hident.Value.Name, UpdateSrvHost);
     pident.Tag = RPC2_PORTBYINETNUMBER;
     pident.Value.InetPortNumber = htons(port);
     ssid.Tag = RPC2_SUBSYSBYID;
