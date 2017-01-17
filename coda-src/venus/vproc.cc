@@ -582,9 +582,9 @@ wait_for_reintegration:
 		  (redzone_limit > 0 && cml_length >= redzone_limit);
 	inyellowzone = !inredzone &&
 		  (free_fsos <= MaxWorkers ||
-		  free_mles <= (MLEs>>3) || /* ~88% CMLs used */
-		  free_blocks <= (CacheBlocks >> 2)) /* ~75% cache dirty */ ||
-		  (yellowzone_limit > 0 && cml_length >= yellowzone_limit);
+		   free_mles <= (MLEs>>3) || /* ~88% CMLs used */
+		   free_blocks <= (CacheBlocks >> 2) /* ~75% cache dirty */ ||
+		   (yellowzone_limit > 0 && cml_length >= yellowzone_limit));
 
 	if (inyellowzone) MarinerLog("progress::Yellow zone, slowing down writer\n");
 	else if (inredzone) MarinerLog("progress::Red zone, stalling writer\n");
