@@ -135,7 +135,7 @@ long int S_VolPurge(RPC2_Handle rpcid, RPC2_Unsigned formal_purgeId,
 	VLog(0, "The name you specified (%s) does not match the internal name "
 	     "(%s) for volume %x; not purged", purgeName, V_name(vp), purgeId);
 	VPutVolume(vp);
-	status = VNOVOL;
+	rc = VNOVOL;
 	goto exit;
     }
 
