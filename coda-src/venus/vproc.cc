@@ -578,16 +578,15 @@ wait_for_reintegration:
          */
 	inredzone = !free_fsos ||
 		  free_mles <= MaxWorkers ||
-		  free_blocks <= (CacheBlocks >> 4) /* ~94% cache dirty */ ||
+		  free_blocks <= (CacheBlocks >> 4) || /* ~94% cache dirty */
 		  (redzone_limit > 0 && cml_length >= redzone_limit);
-	inyellowzone = !inredzone &&
-		  (free_fsos <= MaxWorkers ||
+	inyellowzone = free_fsos <= MaxWorkers ||
 		   free_mles <= (MLEs>>3) || /* ~88% CMLs used */
-		   free_blocks <= (CacheBlocks >> 2) /* ~75% cache dirty */ ||
-		   (yellowzone_limit > 0 && cml_length >= yellowzone_limit));
+		   free_blocks <= (CacheBlocks >> 2) || /* ~75% cache dirty */
+		   (yellowzone_limit > 0 && cml_length >= yellowzone_limit);
 
-	if (inyellowzone) MarinerLog("progress::Yellow zone, slowing down writer\n");
-	else if (inredzone) MarinerLog("progress::Red zone, stalling writer\n");
+	if (inredzone) MarinerLog("progress::Red zone, stalling writer\n");
+	else if (inyellowzone) MarinerLog("progress::Yellow zone, slowing down writer\n");
 
 	if (inyellowzone || inredzone) {
 	    FSOD_ReclaimFSOs(); /* wake up fso daemon and let it reclaim fsos */
