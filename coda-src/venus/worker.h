@@ -105,7 +105,7 @@ class worker : public vproc {
   friend time_t GetWorkerIdleTime();
   friend void PrintWorkers(int);
   friend int WorkerCloseMuxfd(void);
-  friend void VFSMount();
+  friend void VFSMount(int notify_systemd);
   friend class vproc;
   friend class fsobj;
 
@@ -155,7 +155,7 @@ extern int k_Purge();
 extern int k_Purge(VenusFid *, int =0);
 extern int k_Purge(uid_t);
 extern int k_Replace(VenusFid *, VenusFid *);
-extern void VFSMount();
+extern void VFSMount(int notify_systemd);
 extern void VFSUnmount();
 extern void WorkerInit();
 extern worker *FindWorker(u_long);

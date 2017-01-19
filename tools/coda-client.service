@@ -2,11 +2,10 @@
 Description=Coda Cache Manager
 
 [Service]
-Type=forking
-PIDFile=/run/coda-client.pid
+Type=notify
 ExecStartPre=/usr/sbin/vutil --swaplogs
-ExecStart=/usr/sbin/venus
-ExecStopPost=/bin/umount /coda
+ExecStart=/usr/sbin/venus --systemd
+ExecStop=/bin/umount /coda
 
 [Install]
 WantedBy=multi-user.target

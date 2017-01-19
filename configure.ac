@@ -58,6 +58,8 @@ PKG_CHECK_MODULES([RVM_RPC2], [rvmlwp rpc2])
 PKG_CHECK_MODULES([LWP], [lwp >= 2.5])
 PKG_CHECK_MODULES([RPC2], [rpc2 >= 2.13])
 PKG_CHECK_MODULES([RVM], [rvmlwp])
+PKG_CHECK_MODULES([LIBSYSTEMD], [libsystemd],
+    [AC_DEFINE([HAVE_LIBSYSTEMD], [1], [Use libsystemd])], [:])
 
 RP2GEN="`pkg-config --variable=RP2GEN rpc2`"
 AC_SUBST(RP2GEN)

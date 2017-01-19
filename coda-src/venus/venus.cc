@@ -107,6 +107,8 @@ VenusFid ASRfid;
 uid_t ASRuid;
 int detect_reintegration_retry;
 int option_isr;
+int resistance_is_futile; // run as a new-style systemd daemon
+
 /* exit codes (http://refspecs.linuxbase.org/LSB_3.1.1/LSB-Core-generic/LSB-Core-generic/iniscrptact.html) */
 // EXIT_SUCCESS             0   /* stdlib.h - success */
 // EXIT_FAILURE             1   /* stdlib.h - generic or unspecified error */
@@ -157,16 +159,19 @@ int main(int argc, char **argv)
     ParseCmdline(argc, argv);
     DefaultCmdlineParms();   /* read /etc/coda/venus.conf */
 
-    // Cygwin runs as a service and doesn't need to daemonize.
+    /* systemd doesn't want us to fork, doesn't need a pid-file, and expects
+     * our log output to go to stderr */
+    if (!resistance_is_futile) {
+        // Cygwin runs as a service and doesn't need to daemonize.
 #ifndef __CYGWIN__
-    if (LogLevel == 0)
-	parent_fd = daemonize();
+        if (LogLevel == 0)
+            parent_fd = daemonize();
 #endif
+        update_pidfile(VenusPidFile);
 
-    update_pidfile(VenusPidFile);
-
-    /* open the console file and print vital info */
-    freopen(consoleFile, "a+", stderr);
+        /* open the console file and print vital info */
+        freopen(consoleFile, "a+", stderr);
+    }
     eprint("Coda Venus, version " PACKAGE_VERSION);
 
     CdToCacheDir(); 
@@ -220,7 +225,7 @@ int main(int argc, char **argv)
     /* Get the Root Volume. */
     eprint("Mounting root volume...");
 
-    VFSMount();
+    VFSMount(resistance_is_futile);
 
     UnsetInitFile();
     eprint("Venus starting...");
@@ -336,7 +341,8 @@ static void Usage(char *argv0)
 " -MarinerTcp\t\t\tenable mariner tcp port\n"
 " -noMarinerTcp\t\t\tdisable mariner tcp port\n"
 " -allow-reattach\t\tallow reattach to already mounted tree\n"
-" -relay <addr>\t\t\trelay socket address (windows only)\n\n"
+" -relay <addr>\t\t\trelay socket address (windows only)\n"
+" --systemd\t\t\trun as 'new-style' daemon under systemd\n\n"
 "For more information see http://www.coda.cs.cmu.edu/\n"
 "Report bugs to <bugs@coda.cs.cmu.edu>.\n", argv0);
 }
@@ -463,6 +469,8 @@ static void ParseCmdline(int argc, char **argv)
 	    /* Private mapping ... */
 	    else if (STREQ(argv[i], "-mapprivate"))
 		MapPrivate = true;
+	    else if (STREQ(argv[i], "--systemd"))
+		resistance_is_futile = true;
 	    else {
 		eprint("bad command line option %-4s", argv[i]);
 		done = -1;

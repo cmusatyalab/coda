@@ -75,6 +75,10 @@ extern "C" {
 #include <windows.h>
 #endif
 
+#ifdef HAVE_LIBSYSTEMD
+#include <systemd/sd-daemon.h>
+#endif
+
 #ifdef __cplusplus
 }
 #endif
@@ -301,7 +305,7 @@ void testKernDevice()
 #endif
 }
 
-void VFSMount()
+void VFSMount(int notify_systemd)
 {
     /* Linux (and NetBSD) Coda filesystems are mounted through forking since
      * they need venus.
@@ -459,6 +463,11 @@ void VFSMount()
 	} else {
 	    eprint("%s now mounted.", venusRoot);
 	    kill(parent, SIGUSR1);
+
+#ifdef HAVE_LIBSYSTEMD
+            if (notify_systemd)
+                sd_pid_notify(parent, 0, "READY=1");
+#endif
 	}
 
 child_done:
