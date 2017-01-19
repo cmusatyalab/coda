@@ -1,12 +1,12 @@
 [Unit]
 Description=Coda File Server
-ConditionPathExists=/etc/coda/server.conf
+ConditionPathExists=@SYSCONFDIR@/server.conf
 ConditionPathExists=!/vice/srv/CRASH
 
 [Service]
 Type=forking
 PIDFile=/vice/srv/pid
-ExecStart=/usr/sbin/startserver
+ExecStart=@SBINDIR@/startserver
 
 [Install]
 WantedBy=multi-user.target

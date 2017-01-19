@@ -5,7 +5,7 @@ ConditionPathExists=/vice/db/scm
 [Service]
 Type=forking
 PIDFile=/vice/misc/updateclnt.pid
-ExecStart=/usr/sbin/updateclnt
+ExecStart=@SBINDIR@/updateclnt
 
 [Install]
 WantedBy=multi-user.target
