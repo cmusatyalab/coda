@@ -222,7 +222,7 @@ START_TIMING(Fetch_Total);
 
     /* Perform operation. */
     {
-	if (!ReplicatedOp || PrimaryHost == ThisHostAddr)
+	if (!ReplicatedOp || !PrimaryHost || PrimaryHost == ThisHostAddr)
 	    if ((errorCode = FetchBulkTransfer(RPCid, client, volptr, v->vptr,
 					      Offset, VV)))
 		goto FreeLocks;
