@@ -197,7 +197,7 @@ int fsobj::Fetch(uid_t uid)
 	if (!HAVESTATUS(this))
 	    { print(logFile); CHOKE("fsobj::Fetch: !HAVESTATUS"); }
 
-	/* We never fetch data if we already have some. */
+	/* We never fetch data if we already have the file. */
 	if (HAVEALLDATA(this))
 	    { print(logFile); CHOKE("fsobj::Fetch: HAVEALLDATA"); }
     }
@@ -301,45 +301,49 @@ int fsobj::Fetch(uid_t uid)
 
     if (vol->IsReplicated()) {
         mgrpent *m = 0;
-	int asy_resolve = 0;
+        connent *c = 0;
         repvol *vp = (repvol *)vol;
 
 	/* Acquire an Mgroup. */
-	code = vp->GetMgrp(&m, uid, (PIGGYCOP2 ? &PiggyBS : 0));
+        code = vp->GetMgrp(&m, uid, (PIGGYCOP2 ? &PiggyBS : 0));
 	if (code != 0) goto RepExit;
+
+        /* We do not piggy the COP2 entries in PiggyBS when we intentionally
+         * talk to only a single server when performing weak reintegration or
+         * when fetching file data.
+         * We can do an explicit COP2 call here to ship the PiggyBS array.  Or
+         * simply ignore them and they will eventually be sent automatically or
+         * piggied on the next multirpc. --JH */
+        if (PiggyBS.SeqLen) {
+            code = vp->COP2(m, &PiggyBS);
+            PiggyBS.SeqLen = 0;
+        }
 
 	/* The COP:Fetch call. */
 	{
 	    /* Make multiple copies of the IN/OUT and OUT parameters. */
-	    int ph_ix; unsigned long ph;
-            ph = ntohl(m->GetPrimaryHost(&ph_ix)->s_addr);
+            int ph_ix;
+            struct in_addr *phost;
+            unsigned long ph;
 
-	    ARG_MARSHALL(OUT_MODE, ViceStatus, statusvar, status, VSG_MEMBERS);
-	    ARG_MARSHALL(IN_OUT_MODE, SE_Descriptor, sedvar, *sed, VSG_MEMBERS);
-	    {
-		/* Omit Side-Effect for all hosts EXCEPT the primary. */
-		for (int j = 0; j < VSG_MEMBERS; j++)
-		    if (j != ph_ix) sedvar_bufs[j].Tag = OMITSE;
-	    }
+            phost = m->GetPrimaryHost(&ph_ix);
+            ph = ntohl(phost->s_addr);
 
-	    /* Make the RPC call. */
-	    CFSOP_PRELUDE(prel_str, comp, fid);
-	    MULTI_START_MESSAGE(ViceFetch_OP);
-	    code = (int) MRPC_MakeMulti(ViceFetch_OP, ViceFetch_PTR,
-				  VSG_MEMBERS, m->rocc.handles,
-				  m->rocc.retcodes, m->rocc.MIp, 0, 0,
-				  MakeViceFid(&fid), &stat.VV, inconok,
-				  statusvar_ptrs, ph, offset, &PiggyBS,
-				  sedvar_bufs);
-	    MULTI_END_MESSAGE(ViceFetch_OP);
+            srvent *s = GetServer(phost, vol->GetRealmId());
+            code = s->GetConn(&c, uid);
+            PutServer(&s);
+            if (code != 0) goto RepExit;
 
-	    CFSOP_POSTLUDE("fetch::fetch done\n");
+            CFSOP_PRELUDE(prel_str, comp, fid);
+            UNI_START_MESSAGE(ViceFetch_OP);
+            code = ViceFetch(c->connid, MakeViceFid(&fid), &stat.VV, inconok,
+                             &status, ph, offset, &PiggyBS, sed);
+            UNI_END_MESSAGE(ViceFetch_OP);
+            CFSOP_POSTLUDE("fetch::fetch done\n");
 
-	    /* Collate responses from individual servers and decide what to do
-	     * next. */
-	    code = vp->Collate_NonMutating(m, code);
-	    MULTI_RECORD_STATS(ViceFetch_OP);
-	    if (code == EASYRESOLVE) { asy_resolve = 1; code = 0; }
+	    /* Examine the return code to decide what to do next. */
+	    code = vp->Collate(c, code);
+	    UNI_RECORD_STATS(ViceFetch_OP);
 
 	    if (IsFile()) {
 		Recov_BeginTrans();
@@ -349,37 +353,12 @@ int fsobj::Fetch(uid_t uid)
 
 	    if (code != 0) goto RepExit;
 
-	    /* Finalize COP2 Piggybacking. */
-	    if (PIGGYCOP2)
-		vp->ClearCOP2(&PiggyBS);
-
-	    /* Collect the OUT VVs in an array so that they can be checked. */
-	    ViceVersionVector *vv_ptrs[VSG_MEMBERS];
-	    for (int j = 0; j < VSG_MEMBERS; j++)
-		vv_ptrs[j] = &((statusvar_ptrs[j])->VV);
-
-	    /* Check the version vectors for consistency. */
-	    code = m->RVVCheck(vv_ptrs, (int) ISDIR(fid));
-	    if (code == EASYRESOLVE) { asy_resolve = 1; code = 0; }
-	    if (code != 0) goto RepExit;
-
-	    /* Compute the dominant host set.  The index of a dominant host is
-	     * returned as a side-effect. */
-	    int dh_ix; dh_ix = -1;
-	    code = m->DHCheck(vv_ptrs, ph_ix, &dh_ix, 1);
-
-	    if (code != 0) goto RepExit;
-
-	    /* Manually compute the OUT parameters from the mgrpent::Fetch() call! -JJK */
-	    /* we get the status from the dominant host, and validate it
-	     * against the amount of data transferred from the primary host */
-	    ARG_UNMARSHALL(statusvar, status, dh_ix);
 	    {
-		unsigned long bytes = (unsigned long)sedvar_bufs[ph_ix].Value.SmartFTPD.BytesTransferred;
-		LOG(10, ("(Multi)ViceFetch: fetched %d bytes\n", bytes));
+		unsigned long bytes = (unsigned long)sed->Value.SmartFTPD.BytesTransferred;
+		LOG(10, ("(Multi)ViceFetch: fetched %lu bytes\n", bytes));
 		if ((offset + bytes) != status.Length) {
 		    // print(logFile);
-		    LOG(0, ("fsobj::Fetch: bytes mismatch (%d, %d)",
+		    LOG(0, ("fsobj::Fetch: fetched file length mismatch (%lu, %lu)",
 			    offset + bytes, status.Length));
 		    code = ERETRY;
 		}
@@ -413,11 +392,10 @@ int fsobj::Fetch(uid_t uid)
 	Recov_EndTrans(CMFP);
 
 RepExit:
+        if (c) PutConn(&c);
 	if (m) m->Put(); 
 	switch(code) {
 	case 0:
-	    if (asy_resolve)
-		vp->ResSubmit(0, &fid);
 	    break;
 
 	case ETIMEDOUT:
@@ -457,12 +435,12 @@ RepExit:
 	if (code != 0) goto NonRepExit;
 
 	{
-	    long bytes = sed->Value.SmartFTPD.BytesTransferred;
-	    LOG(10, ("ViceFetch: fetched %d bytes\n", bytes));
-	    if (bytes != ((long)status.Length - offset)) {
+	    unsigned long bytes = sed->Value.SmartFTPD.BytesTransferred;
+	    LOG(10, ("ViceFetch: fetched %lu bytes\n", bytes));
+	    if ((offset + bytes) != status.Length) {
 		//print(logFile);
-		LOG(0, ("fsobj::Fetch: bytes mismatch (%d, %d)",
-		        bytes, (status.Length - offset)));
+		LOG(0, ("fsobj::Fetch: fetch file size mismatch (%lu, %lu)",
+		        offset + bytes, status.Length));
 		code = ERETRY;
 	    }
 	}
