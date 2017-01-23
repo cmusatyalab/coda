@@ -1,3 +1,7 @@
+New in 2.15:
+
+* Use stdlib defined exit codes.
+
 New in 2.14:
 
 * Remove unnecessary cast when packing RPC2_EncryptionKey.

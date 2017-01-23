@@ -1,3 +1,7 @@
+New in 2.9:
+
+ * Use stdlib defined exit codes.
+
 New in 2.8:
 
  * Cosmetic cleanups, fixed some compile warnings, removed dead code.
