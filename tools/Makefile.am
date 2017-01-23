@@ -18,8 +18,8 @@ endif
 
 %.service: $(srcdir)/%.tmpl $(srcdir)/Makefile.am $(top_builddir)/config.status
 	$(SED) \
-		-e "s|\@SBINDIR\@|$(realpath @sbindir@)|g" \
-		-e "s|\@SYSCONFDIR\@|$(realpath @sysconfdir@)|g" \
+		-e "s|\@SBINDIR\@|$(readlink -m @sbindir@)|g" \
+		-e "s|\@SYSCONFDIR\@|$(readlink -m @sysconfdir@)|g" \
 		$< > $@
 
 CLEANFILES = coda-client.service coda-server.service \
