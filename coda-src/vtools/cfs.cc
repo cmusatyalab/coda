@@ -674,21 +674,20 @@ static int simple_pioctl(char *path, unsigned char opcode, int follow)
 static int repair_pioctl(char *path, unsigned char opcode, int follow)
 {
     struct ViceIoctl vio;
-    char buf[6], space[2048];
+    char piobuf[CFS_PIOBUFSIZE];
     int rc;
 
-    sprintf(buf, "%d", opcode);
+    sprintf(piobuf, "%d", opcode);
 
-    vio.in = buf;
-    vio.in_size = (short) strlen(buf) + 1;
-    vio.out = space;
-    vio.out_size = 0;
-
+    vio.in = piobuf;
+    vio.in_size = (short) strlen(piobuf) + 1;
+    vio.out = piobuf;
+    vio.out_size = CFS_PIOBUFSIZE;
 
     rc = pioctl(path, _VICEIOCTL(_VIOC_REP_CMD), &vio, follow);
 
-    if(vio.out_size)
-      printf("%s", vio.out);
+    if (vio.out_size)
+        printf("%s", vio.out);
 
     return rc;
 }
