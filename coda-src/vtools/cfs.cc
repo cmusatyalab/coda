@@ -2648,8 +2648,8 @@ static void ForceReintegrate(int argc, char *argv[], int opslot)
 
 static void ListLocal(int argc, char *argv[], int opslot)
     {
-      int  rc, fd, n;
-      char *codadir, buf[CFS_PIOBUFSIZE], filename[MAXPATHLEN];
+      int  rc;
+      char *codadir, piobuf[CFS_PIOBUFSIZE];
       struct ViceIoctl vio;
 
       switch(argc)
@@ -2661,29 +2661,23 @@ static void ListLocal(int argc, char *argv[], int opslot)
 	  exit(-1);
         }
 
-      strcpy(filename, "/tmp/listlocal.XXXXXX");
-      fd = mkstemp(filename);
-      if(fd < 0) { PERROR("VIOC_REP_CMD(REP_CMD_LIST)"); exit(-1); }
+      sprintf(piobuf, "%d", REP_CMD_LIST);
 
-      sprintf(buf, "%d %s", REP_CMD_LIST, filename);
-
-      vio.in = buf;
-      vio.in_size = (short) strlen(buf) + 1;
-      vio.out = 0;
-      vio.out_size = 0;
+      vio.in = piobuf;
+      vio.in_size = (short) strlen(piobuf) + 1;
+      vio.out = piobuf;
+      vio.out_size = CFS_PIOBUFSIZE;
 
       rc = pioctl(codadir, _VICEIOCTL(_VIOC_REP_CMD), &vio, 0);
       if (rc) {
 	PERROR("VIOC_REP_CMD(REP_CMD_LIST)");
 	exit(-1);
       }
-      else {
-	while((n = read(fd, buf, CFS_PIOBUFSIZE)) > 0)
-	  write(1, buf, n);
+        
+      if (vio.out_size) {
+          copyout(vio.out, STDOUT_FILENO);
+          unlink(vio.out);
       }
-
-      close(fd);
-      unlink(filename);
     }
 
 
