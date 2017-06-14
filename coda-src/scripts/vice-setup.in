@@ -295,12 +295,12 @@ if [ $isscm = Y ]; then
     fi
 
     set -e
-    echo " - Coda authentication server (auth2 &)"
-    [ "$start" ] && @sbindir@/auth2 &
+    echo " - Coda authentication server (auth2)"
+    [ "$start" ] && @sbindir@/auth2
     echo " - Coda update server (updatesrv)"
     [ "$start" ] && @sbindir@/updatesrv
-    echo " - Coda update client (updateclnt -h $hn)"
-    [ "$start" ] && @sbindir@/updateclnt -h $hn
+    echo " - Coda update client (updateclnt)"
+    [ "$start" ] && @sbindir@/updateclnt
     echo " - Coda file server (startserver)"
     [ "$start" ] && ( @sbindir@/startserver || echo "Failed to start the Coda server" )
     echo
@@ -344,17 +344,18 @@ echo "You have set up " `cat ${vicedir}/hostname`
 echo "Your SCM is $scm"
 echo "Other config files will be fetched from the SCM by updateclnt."
 echo
-echo "To finish your server setup you should"
+echo "To finish your server setup you should start the update and"
+echo "authentication daemons:"
 echo
-echo " start updateclnt as:  updateclnt -h $scm "
-echo " start the auth2 server as: auth2 -chk"
+echo "      updateclnt"
+echo "      auth2"
 echo
 echo "After that, there is still some configuration needed on the SCM before"
 echo "this server can be started."
 echo
 echo "An entry for this host is needed in /vice/db/servers"
 echo "Then all servers need to be shut down and restarted, as they need to"
-echo "know about the new server."
+echo "learn about the existence of the new server."
 echo "After all that it _should_ be ok to start the new server and create"
 echo "your first replicated volume."
 #echo " On the SCM ($scm) run: new_server $hn"

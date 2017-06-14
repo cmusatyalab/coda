@@ -10,8 +10,7 @@ dist_modulesload_DATA += coda.conf
 systemdsystemunit_DATA += coda-client.service
 endif
 if BUILD_SERVER
-systemdsystemunit_DATA += coda-server.service \
-        auth2-master.service auth2-slave.service \
+systemdsystemunit_DATA += coda-server.service coda-auth2.service \
         coda-update-master.service coda-update-slave.service
 endif
 endif
@@ -22,14 +21,12 @@ endif
 		-e "s|\@SYSCONFDIR\@|@sysconfdir@|g" \
 		$< > $@
 
-CLEANFILES = coda-client.service coda-server.service \
-	     auth2-master.service auth2-slave.service \
+CLEANFILES = coda-client.service coda-server.service coda-auth2.service \
 	     coda-update-master.service coda-update-slave.service
 EXTRA_DIST = coda-server-nt-50x.wse coda-server-nt-52x.wse PACKAGING.README \
 	     pkg-readme windows-socket-extension.wse \
 	     coda-client.init coda-server.init coda-update.init \
-	     coda-client.tmpl coda-server.tmpl \
-	     auth2-master.tmpl auth2-slave.tmpl \
+	     coda-client.tmpl coda-server.tmpl coda-auth2.tmpl \
 	     coda-update-master.tmpl coda-update-slave.tmpl
 
 CONFIG_CLEAN_FILES =

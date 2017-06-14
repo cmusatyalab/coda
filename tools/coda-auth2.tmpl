@@ -1,11 +1,11 @@
 [Unit]
-Description=Coda Slave Authentication Server
+Description=Coda Authentication Server
 ConditionPathExists=/vice/db/auth2.tk
 
 [Service]
 Type=forking
 PIDFile=/vice/auth2/pid
-ExecStart=@SBINDIR@/auth2 -chk
+ExecStart=@SBINDIR@/auth2
 
 [Install]
 WantedBy=multi-user.target

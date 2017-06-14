@@ -202,6 +202,50 @@ int main(int argc, char **argv)
 }
 
 
+static int readoneline(const char *file, char *buf, size_t size)
+{
+    FILE *f;
+    size_t len;
+
+    /* read first line from file
+     * fail if the file cannot be opened or is empty */
+    f = fopen(file, "r");
+    if (f == NULL || fgets(buf, size, f) == NULL) {
+        return -1;
+    }
+    fclose(f);
+
+    /* strip trailing newline */
+    len = strlen(buf);
+    if (buf[len] == '\n')
+        buf[len] = '\0';
+
+    return 0;
+}
+
+
+/* check if the contents of /vice/db/scm matches /vice/hostname */
+static int IsSCM(void)
+{
+    const char *path;
+    char scm[HOST_NAME_MAX+1], host[HOST_NAME_MAX+1];
+
+    path = vice_config_path("db/scm");
+    if (readoneline(path, scm, sizeof(scm))) {
+        fprintf(stderr, "Unable to read '%s'\n", path);
+        exit(EXIT_FAILURE);
+    }
+
+    path = vice_config_path("hostname");
+    if (readoneline(path, host, sizeof(host))) {
+        fprintf(stderr, "Unable to read '%s'\n", path);
+        exit(EXIT_FAILURE);
+    }
+
+    return strcmp(scm, host) == 0;
+}
+
+
 static void InitGlobals(int argc, char **argv)
     /* Set globals from command line args */
 {
@@ -259,9 +303,13 @@ static void InitGlobals(int argc, char **argv)
 	exit(EXIT_FAILURE);
     }    
 
+    if (!CheckOnly && !IsSCM()) {
+        fprintf(stderr, "Looks like we are not SCM, switching to read-only mode.\n");
+        CheckOnly = 1;
+    }
+
     CheckTokenKey();
 }
-
 
 static void ReopenLog(void)
 {
