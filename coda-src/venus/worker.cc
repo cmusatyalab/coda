@@ -1246,7 +1246,7 @@ void worker::main(void)
 		struct ViceIoctl data;
                 int cmd = in->coda_ioctl.cmd;
 		unsigned char type = _IOC_TYPE(cmd);
-		unsigned char nr = _IOC_NR(cmd);
+		unsigned long nr = _IOC_NR(cmd);
 
 		data.in = (char *)in + (intptr_t)in->coda_ioctl.data;
 		data.in_size = 0;
