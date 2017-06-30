@@ -42,7 +42,9 @@ extern "C" {
 #include <netinet/in.h>
 #include <errno.h>
 #include <struct.h>
+#ifndef __FreeBSD__
 #include <utmp.h>
+#endif
 #include <pwd.h>
 
 #include <rpc2/rpc2.h>
@@ -167,7 +169,7 @@ int AuthorizedUser(uid_t thisUser)
 
 int ConsoleUser(uid_t user)
 {
-#ifdef __CYGWIN32__
+#if defined(__CYGWIN32__) || defined(__FreeBSD__)
     return(1);
 
 #elif defined(__linux__)
