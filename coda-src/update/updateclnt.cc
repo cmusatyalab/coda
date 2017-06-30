@@ -82,6 +82,11 @@ extern "C" {
 #include <vice.h>
 #include <util.h>
 
+#ifdef __FreeBSD__
+#include <limits.h>
+#define	HOST_NAME_MAX _POSIX_HOST_NAME_MAX
+#endif
+
 #ifdef sun
 int utimes(const char *, const struct timeval *);
 #endif
