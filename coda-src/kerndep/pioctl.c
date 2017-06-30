@@ -230,7 +230,7 @@ int pioctl(const char *path, unsigned long cmd,
 #else /* linux and BSD */
 
 
-static int _pioctl(const char *path, int cmd, void *data)
+static int _pioctl(const char *path, unsigned long cmd, void *data)
 {
     int code, fd;
 
