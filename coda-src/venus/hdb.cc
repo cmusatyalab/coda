@@ -58,7 +58,9 @@ extern "C" {
 #include <stdlib.h>
 #include <pwd.h>
 #include <fcntl.h>
+#ifndef __FreeBSD__
 #include <utmp.h>
+#endif
 
 #include <codadir.h>
 
