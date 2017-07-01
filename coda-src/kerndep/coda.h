@@ -161,7 +161,7 @@ struct venus_dirent {
 	uint8_t		d_pad0;
 	uint16_t	d_namlen;		/* length of string in d_name */
 	uint16_t	d_pad1;
-	char		d_name[255 + 1];	/* name must be no longer than this */
+	char		d_name[CODA_MAXNAMLEN + 1];	/* name must be no longer than this */
 };
 #else
 struct venus_dirent {
