@@ -7,6 +7,7 @@ PIDFile=/run/coda-client.pid
 ExecStartPre=@SBINDIR@/vutil --swaplogs
 ExecStart=@SBINDIR@/venus
 ExecStopPost=/bin/umount /coda
+TimeoutSec=300
 
 [Install]
 WantedBy=multi-user.target

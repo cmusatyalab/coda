@@ -7,6 +7,7 @@ ConditionPathExists=!/vice/srv/CRASH
 Type=forking
 PIDFile=/vice/srv/pid
 ExecStart=@SBINDIR@/startserver
+TimeoutSec=300
 
 [Install]
 WantedBy=multi-user.target
