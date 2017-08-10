@@ -988,8 +988,6 @@ void hdb::ResetUser(uid_t uid) {
 
 
 void hdb::print(int fd, int SummaryOnly) {
-    if (this == 0) return;
-
     fdprint(fd, "HDB:\n");
     fdprint(fd, "counts = [%d, %d, %d], namectxts = [%d, %d, %d, %d] [%d, %d]\n",
 	     MaxHDBEs, htab.count(), freelist.count(),

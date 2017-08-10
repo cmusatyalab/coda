@@ -1439,8 +1439,6 @@ void fsdb::ChangeDiskUsage(int delta_blocks) {
 }
 
 void fsdb::print(int fd, int SummaryOnly) {
-    if (this == 0) return;
-
     fdprint(fd, "FSDB: magic = %d, data version = %d\n",
 	     MagicNumber, DataVersion);
     fdprint(fd, "Files = (%d, %d, %d), Blocks = (%d, %d, %d)\n",
