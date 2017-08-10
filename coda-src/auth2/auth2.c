@@ -68,6 +68,11 @@ extern "C" {
 #include <rpc2/rpc2.h>
 #include <rpc2/rpc2_addrinfo.h>
 
+#ifdef __FreeBSD__
+#include <limits.h>
+#define	HOST_NAME_MAX _POSIX_HOST_NAME_MAX
+#endif
+
 #ifdef __cplusplus
 }
 #endif
@@ -222,7 +227,6 @@ static int readoneline(const char *file, char *buf, size_t size)
 
     return 0;
 }
-
 
 /* check if the contents of /vice/db/scm matches /vice/hostname */
 static int IsSCM(void)

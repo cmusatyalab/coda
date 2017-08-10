@@ -230,7 +230,7 @@ int pioctl(const char *path, unsigned long cmd,
 #else /* linux and BSD */
 
 
-static int _pioctl(const char *path, int cmd, void *data)
+static int _pioctl(const char *path, unsigned long cmd, void *data)
 {
     int code, fd;
 
@@ -257,7 +257,7 @@ int pioctl(const char *path, unsigned long com,
     /* Must change the size field of the command to match 
        that of the new structure. */
     unsigned long cmd = (com & ~(PIOCPARM_MASK << 16)); /* mask out size  */
-    int	size = ((com >> 16) & PIOCPARM_MASK) + sizeof(char *) + sizeof(int);
+    unsigned long size = ((com >> 16) & PIOCPARM_MASK) + sizeof(char *) + sizeof(int);
 
     cmd	|= (size & PIOCPARM_MASK) << 16;  /* or in corrected size */
 
