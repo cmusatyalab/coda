@@ -3,7 +3,7 @@
                            Coda File System
                               Release 5
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2017 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -64,7 +64,7 @@ Pittsburgh, PA.
 #include <rpc2/secure.h>
 #include "rpc2.private.h"
 #include <rpc2/se.h>
-#include <rpc2/fakeudp.h>
+#include "codatunnel/wrapper.h"
 #include "trace.h"
 #include "cbuf.h"
 
@@ -873,6 +873,14 @@ long rpc2_CreateIPSocket(int af, int *svar, struct RPC2_addrinfo *addr,
     int flags, rc;
     unsigned short port = 0, *sa_port;
 
+    /* If codatunnel is enabled, it is responsible for binding.
+     * just return the local socketpair endpoint. */
+    *svar = codatunnel_socket();
+    if (*svar != -1) {
+        if (Port) *Port = 0;
+        return RPC2_SUCCESS;
+    }
+
     if (Port && *Port != 0)
 	port = *Port;
 
@@ -902,7 +910,7 @@ long rpc2_CreateIPSocket(int af, int *svar, struct RPC2_addrinfo *addr,
 	    *sa_port = port;
 
 	/* Allocate socket */
-	*svar = fakeudp_socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol);
+	*svar = socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol);
 	if (*svar < 0) {
 	    err = RPC2_FAIL;
 	    continue;
@@ -911,61 +919,40 @@ long rpc2_CreateIPSocket(int af, int *svar, struct RPC2_addrinfo *addr,
 	/* make sure the socket is non-blocking, corrupt udp checksums can
 	 * cause a packet drop by recvmsg and it would end up blocking
 	 * (possibly indefinitely). */
-	flags = fakeudp_fcntl(*svar, F_GETFL, 0);
-	fakeudp_fcntl(*svar, F_SETFL, flags | O_NONBLOCK);
-#if 0
-	rc = fakeudp_setsockopt(*svar, SOL_SOCKET, SO_SNDBUF, &blen, sizeof(blen));
-	if ( rc ) {
-		perror("setsockopt: ");
-		exit(1);
+	flags = fcntl(*svar, F_GETFL, 0);
+	fcntl(*svar, F_SETFL, flags | O_NONBLOCK);
+
+	/* Now bind the socket */
+	if (bind(*svar, addr->ai_addr, addr->ai_addrlen) < 0) {
+	    err = (errno == EADDRINUSE) ? RPC2_DUPLICATESERVER : RPC2_BADSERVER;
+	    close(*svar);
+	    *svar = -1;
+	    continue;
 	}
 
-	rc = fakeudp_setsockopt(*svar, SOL_SOCKET, SO_RCVBUF, &blen, sizeof(blen));
-	if ( rc ) {
-		perror("setsockopt: ");
-		exit(1);
+	/* Retrieve fully resolved socket address so we can check which port we
+	 * actually got bound to */
+	blen = sizeof(bindaddr);
+	rc = getsockname(*svar, (struct sockaddr *)&bindaddr, &blen);
+	if (rc < 0) {
+	    err = RPC2_FAIL;
+	    close(*svar);
+	    *svar = -1;
+	    continue;
 	}
+
+        switch (addr->ai_family) {
+	case PF_INET:
+	    port = bindaddr.sin.sin_port;
+	    break;
+#if defined(PF_INET6)
+        case PF_INET6:
+	    port = bindaddr.sin6.sin6_port;
+            break;
 #endif
-
-	/* Now bind the socket, unless using codatunnel */
-	if (!enable_codatunnel){
-	  /* original code */
-	  if (fakeudp_bind(*svar, addr->ai_addr, addr->ai_addrlen) < 0) {
-	      err = (errno == EADDRINUSE) ? RPC2_DUPLICATESERVER : RPC2_BADSERVER;
-	      close(*svar);
-	      *svar = -1;
-	      continue;
-	  }
-
-	  /* Retrieve fully resolved socket address so we can check which port we
-	   * actually got bound to */
-	  blen = sizeof(bindaddr);
-	  rc = fakeudp_getsockname(*svar, (struct sockaddr *)&bindaddr, &blen);
-	  if (rc < 0) {
-	      err = RPC2_FAIL;
-	      close(*svar);
-	      *svar = -1;
-	      continue;
-	  }
-
-	  switch (addr->ai_family) {
-	  case PF_INET:
-	      port = bindaddr.sin.sin_port;
-	      break;
-  #if defined(PF_INET6)
-	  case PF_INET6:
-	      port = bindaddr.sin6.sin6_port;
-	      break;
-  #endif
-	  default:
-	      break;
-	  }
-	}
-	else {
-	    /* special handling when codatunnel is being used */
-	    port = 0;  /* trust that code in codatunneld has done its binding right */
-	}
-
+        default:
+	    break;
+        }
 	if (Port)
 	    *Port = port;
 
@@ -1020,24 +1007,5 @@ void rpc2_UpdateRTT(RPC2_PacketBuffer *pb, struct CEntry *ceaddr)
     entry.Value.Measured.ElapsedTime = obs;
     entry.Value.Measured.Conn = ceaddr->UniqueCID;
     (void) rpc2_AppendHostLog(ceaddr->HostInfo, &entry, RPC2_MEASUREMENT);
-}
-
-/* 
-   A terrible piece of programming below but the lesser of two evils.   The fakeudp code
-   for codatunnel needs to know whether a packet is a retransmission.  We don't want
-   the fakeudp code to have any LWP/RPC2 dependencies (e.g. need to include .h files).
-   This is one of only two pieces of knowledge it needs from the LWP/RPC2 world (the other
-   is the value of MAXPACKETSIZE).  We manually define the function prototype below in
-   fakeudp.c.  
-(Satya, 2017-01-04)
-*/
-
-int fakeudp_isretry (void *p) {
-  RPC2_PacketBuffer *q;
-  int rc;
-
-  q = (RPC2_PacketBuffer *) p; 
-  rc = ntohl(q->Header.Flags) | RPC2_RETRY;
-  return(rc);
 }
 

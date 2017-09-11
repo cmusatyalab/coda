@@ -3,7 +3,7 @@
 			Coda File System
 			    Release 5
 
-	    Copyright (c) 1987-1999 Carnegie Mellon University
+	    Copyright (c) 1987-2017 Carnegie Mellon University
 		Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -51,6 +51,7 @@ Pittsburgh, PA.
 #include "rpc2.private.h"
 #include <rpc2/se.h>
 #include <rpc2/secure.h>
+#include "codatunnel/wrapper.h" /* for CODATUNNEL_ISRETRY_HINT */
 #include "cbuf.h"
 #include "trace.h"
 
@@ -162,6 +163,11 @@ void rpc2_XmitPacket(RPC2_PacketBuffer *pb, struct RPC2_addrinfo *addr,
     if (confirm)
 	flags = msg_confirm;
 
+    /* Last chance before we encrypt to see if this was a retry.
+     * Pass this knowledge along as a hint for the lower layers. */
+    if (ntohl(pb->Header.Flags) & RPC2_RETRY)
+        flags |= CODATUNNEL_ISRETRY_HINT;
+
     n = secure_sendto(whichSocket, &pb->Header,
 		      pb->Prefix.LengthOfPacket, flags,
 		      addr->ai_addr, addr->ai_addrlen, pb->Prefix.sa);
@@ -246,6 +252,10 @@ long rpc2_RecvPacket(IN long whichSocket, OUT RPC2_PacketBuffer *whichBuff)
 	case ENOMEM: /* received packet was too large */
 	case ENOENT: /* no matching security association found */
 	    break;
+        case EBADF: /* network socket got shut down (codatunnel died?) */
+	    say(-1, RPC2_DebugLevel, "Network socket closed, running disconnnected\n");
+            rpc2_v4RequestSocket = rpc2_v6RequestSocket = -1;
+            break;
 	default:
 	    say(10, RPC2_DebugLevel, "Error in recvfrom: errno = %d\n", errno);
 	    break;

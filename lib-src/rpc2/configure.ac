@@ -2,7 +2,7 @@ dnl Process this file with autoconf to produce a configure script
 
 dnl Initialization
 AC_PREREQ(2.50)
-AC_INIT(rpc2, 2.14)
+AC_INIT(rpc2, 2.15)
 AC_CONFIG_AUX_DIR([.])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_SRCDIR([rpc2-src/rpc2.private.h])
@@ -15,7 +15,7 @@ dnl - when interfaces were added/removed changed, increment second and set
 dnl   first to 0
 dnl - if any interfaces were added, increment third
 dnl - if any interfaces were removed, set third to 0
-CODA_LIBRARY_VERSION(2, 11, 6)
+CODA_LIBRARY_VERSION(0, 12, 7)
 
 CONFIG_DATE=`date +"%a, %d %b %Y %T %z"`
 AC_SUBST(CONFIG_DATE, "$CONFIG_DATE", [Date when configure was last run])
@@ -69,7 +69,7 @@ CODA_CC_FEATURE_TEST(Wall)
 
 dnl Checks for library functions.
 AC_CHECK_FUNCS(ffs iopen getaddrinfo gai_strerror getipnodebyname)
-AC_CHECK_FUNCS(inet_aton inet_ntoa inet_pton inet_ntop)
+AC_CHECK_FUNCS(inet_aton inet_ntoa inet_pton inet_ntop setproctitle prctl)
 AC_FUNC_SELECT_ARGTYPES
 
 dnl Checks for system services.

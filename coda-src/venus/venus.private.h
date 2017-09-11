@@ -356,7 +356,6 @@ extern const char *ASRPolicyFile;
 extern int   option_isr;
 extern int   detect_reintegration_retry;
 extern int   redzone_limit, yellowzone_limit;
-extern int   codatunnel_tcpbindport;
 
 /* spool.cc */
 extern void MakeUserSpoolDir(char *, uid_t);

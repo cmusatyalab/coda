@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2008 Carnegie Mellon University
+          Copyright (c) 1987-2017 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -34,7 +34,7 @@ extern "C" {
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <rpc2/fakeudp.h>
+#include <rpc2/codatunnel.h>
 
 #include "archive.h"
 
@@ -118,8 +118,7 @@ int mariner_tcp_enable = 1;
 /* Global red and yellow zone limits on CML length; default is infinite */
 int redzone_limit = -1, yellowzone_limit = -1;
 
-/* TCP bind port for use in codatunnel daemon */
-int codatunnel_tcpbindport = -1;
+static int codatunnel_enabled;
 
 /* *****  Private constants  ***** */
 
@@ -149,7 +148,6 @@ int main(int argc, char **argv)
     coda_assert_action = CODA_ASSERT_SLEEP;
     coda_assert_cleanup = VFSUnmount;
 
-    fakeudp_saved_argv = argv; /* save for use in codatunneld */
     ParseCmdline(argc, argv);
     DefaultCmdlineParms();   /* read /etc/coda/venus.conf */
 
@@ -182,6 +180,17 @@ int main(int argc, char **argv)
 
     /* test mismatch with kernel before doing real work */
     testKernDevice();
+
+    if (codatunnel_enabled) {
+        int rc;
+        /* masquerade_port is the UDP portnum specified via venus.conf */
+        rc = codatunnel_fork(argc, argv, masquerade_port, 1);
+        if (rc < 0){
+            perror("codatunnel_fork: ");
+            exit(-1);
+        }
+        printf("codatunneld started\n");
+    }
 
     /* 
      * VprocInit MUST precede LogInit. Log messages are stamped
@@ -221,9 +230,7 @@ int main(int argc, char **argv)
     UnsetInitFile();
     eprint("Venus starting...");
 
-    /* DEBUG    freopen("/dev/null", "w", stdout); */
-
-    /* DEBUG */   freopen("/tmp/venus.stdout", "w", stdout);
+    // DEBUG freopen("/dev/null", "w", stdout);
 
     /* Act as message-multiplexor/daemon-dispatcher. */
     for (;;) {
@@ -462,13 +469,9 @@ static void ParseCmdline(int argc, char **argv)
 	    else if (STREQ(argv[i], "-mapprivate"))
 		MapPrivate = true;
 	    else if (STREQ(argv[i], "-codatunnel")){
-	      enable_codatunnel = true;
+	      codatunnel_enabled = true;
 	      eprint("codatunnel enabled");
 	    }
-	    else if (STREQ(argv[i], "-tcpbindport")) {
-	      i++; codatunnel_tcpbindport = atoi(argv[i]);
-	    }
-
 	    else {
 		eprint("bad command line option %-4s", argv[i]);
 		done = -1;

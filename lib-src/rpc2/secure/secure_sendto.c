@@ -2,7 +2,7 @@
 			Coda File System
 			    Release 6
 
-	  Copyright (c) 2005-2006 Carnegie Mellon University
+	  Copyright (c) 2005-2017 Carnegie Mellon University
 		  Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -23,7 +23,7 @@ Coda are listed in the file CREDITS.
 #include <assert.h>
 
 #include <rpc2/secure.h>
-#include<rpc2/fakeudp.h>
+#include "codatunnel/wrapper.h"
 #include "grunt.h"
 
 ssize_t secure_sendto(int s, const void *buf, size_t len, int flags,
@@ -122,7 +122,7 @@ ssize_t secure_sendto(int s, const void *buf, size_t len, int flags,
 
 send_packet:
     padding = n - len;
-    n = fakeudp_sendto(s, buf, n, flags, to, tolen);
+    n = codatunnel_sendto(s, buf, n, flags, to, tolen);
 #ifdef __linux__
     if (n == -1 && errno == ECONNREFUSED)
     {
@@ -133,7 +133,7 @@ send_packet:
 	 * We retry the send, because the failing host was possibly
 	 * not the one we tried to send to this time. --JH
 	 */
-	n = fakeudp_sendto(s, buf, n, 0, to, tolen);
+	n = codatunnel_sendto(s, buf, n, 0, to, tolen);
     }
 #endif
     n -= padding;

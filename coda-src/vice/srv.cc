@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2017 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -73,7 +73,7 @@ extern "C" {
 #include <lwp/timer.h>
 #include <rpc2/rpc2.h>
 #include <rpc2/sftp.h>
-#include <rpc2/fakeudp.h>
+#include <rpc2/codatunnel.h>
 #include <partition.h>
 #include <util.h>
 #include <rvmlib.h>
@@ -145,6 +145,7 @@ const char *CodaSrvIp;		// default NULL ('ipaddress' in server.conf)
 
 /* local */
 static int MapPrivate;		// default 0
+static int codatunnel_enabled;  // default 0
 
 /* imported */
 extern rvm_length_t rvm_test;
@@ -332,9 +333,6 @@ int main(int argc, char *argv[])
 	exit(-1);
     }
 
-    fakeudp_saved_argv = argv; /* save for use in codatunneld */
-
-
     if(ParseArgs(argc,argv)) {
 	SLog(0, "usage: srv [-d (debug level)] [-p (number of processes)] ");
 	SLog(0, "[-l (large vnodes)] [-s (small vnodes)]");
@@ -402,32 +400,25 @@ int main(int argc, char *argv[])
     /* Initialize the hosttable structure */
     CLIENT_InitHostTable();
 
-    /* Fork the Coda tunnel for fakeudp, if requested */
+    /* Fork the Coda tunnel daemon for codatunnel, if requested */
+    if (codatunnel_enabled) {
+        struct servent *s;
+        short port1;
+        int rc;
 
-    if (enable_codatunnel) {
-      int rc;
-      short port1;
-      struct servent *s;
+        s = coda_getservbyname("codasrv", "udp");
+        if (!s) {
+            perror("coda_getservbyname(codasrv, udp)");
+            exit(-1);
+        }
+        port1 = ntohs(s->s_port);
 
-      s = 0; port1 = 0;
-      s = coda_getservbyname("codasrv", "udp");
-      if (!s) {
-	perror("coda_getservbyname(codasrv, udp)");
-	exit(-1);
-      }
-      else {
-	port1 = ntohs(s->s_port);
-	/* DEBUG */ printf("udplegacyportnum = %d\n", port1);
-      }
-
-     
-      /* DEBUG */    printf("About to call fakeudp_fork_codatunneld()");
-      rc = fakeudp_fork_codatunneld(port1, 0);
-      if (rc < 0){
-	perror("fakeudp_fork_codatunneld: "); /* hopefully errno still meaningful */
-	exit(-1);
-      }
-      printf("Main server process: forked codatunnel successfully\n"); fflush(stdout);
+        rc = codatunnel_fork(argc, argv, port1, 0);
+        if (rc < 0){
+            perror("codatunnel_fork: "); /* hopefully errno still meaningful */
+            exit(-1);
+        }
+        printf("Main server process: forked codatunnel successfully\n");
     }
 
     SLog(0, "Main process doing a LWP_Init()");
@@ -1546,7 +1537,7 @@ static int ParseArgs(int argc, char *argv[])
 		MapPrivate = 1;
 	    }
         else if (!strcmp(argv[i], "-codatunnel")){
-	      enable_codatunnel = true;
+	      codatunnel_enabled = true;
 	      eprint("codatunnel enabled");
 	}
 	else {

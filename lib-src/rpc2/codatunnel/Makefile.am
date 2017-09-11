@@ -1,14 +1,10 @@
 ## Process this file with automake to produce Makefile.in
 
-AM_CPPFLAGS = -I$(top_srcdir)/include $(LWP_CFLAGS)
-LDADD = libfakeudp.la $(LWP_LIBS)
+AM_CPPFLAGS = -I$(top_srcdir)/include
 
-noinst_LTLIBRARIES = libfakeudp.la
+noinst_LTLIBRARIES = libcodatunnel.la
 
-
-libfakeudp_la_SOURCES = codatunneld.c fakeudp.c 
-#libfakeudp_la_LDFLAGS = $(LIBTOOL_LDFLAGS)
-libfakeudp_la_LIBADD = $(LWP_LIBS)
+libcodatunnel_la_SOURCES = codatunneld.c codatunnel.c codatunnel.private.h wrapper.h
 
 MAINTAINERCLEANFILES = Makefile.in
 
