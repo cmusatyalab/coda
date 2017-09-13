@@ -18,7 +18,7 @@ Coda are listed in the file CREDITS.
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <netinet/in.h>
+#include <uv.h>
 
 #include "codatunnel.private.h"
 
@@ -31,232 +31,189 @@ Coda are listed in the file CREDITS.
    compatibility with legacy servers and clients.
 */
 
-/* fd and port number of single net-facing bidirectional socket
-   for legacy servers and clients */
-static int netfacing_udp_fd;
-static short netfacing_udp_portnum;
 
-/* fd of single net-facing TCP bind (i.e., rendezvous) socket;
-   only relevant when (initiate_tcp_flag == 0) */
-static int netfacing_tcp_bind_fd = -1;  /* TCP portnum same as UDP portnum */
+static socklen_t sockaddr_len(const struct sockaddr *addr)
+{
+    if (addr->sa_family == AF_INET)
+        return sizeof(struct sockaddr_in);
 
-/* Set of file descriptors to wait on */
-static fd_set BigFDList;
-static int BigFDList_Highest;  /* one larger than highest fd in BigFDList */
+    if (addr->sa_family == AF_INET6)
+        return sizeof(struct sockaddr_in6);
 
-/* forward refs to local functions */
-static void InitializeNetFacingSockets(int codatunnel_sockfd);
-static void DoWork(int codatunnel_sockfd) __attribute__((noreturn));
-static void HandleFDException(int);
-static void HandleOutgoingUDP(int codatunnel_sockfd);
-static void HandleIncomingUDP(int codatunnel_sockfd);
-static void HandleNewTCPconnect();
-static void HandleIncomingTCP(int);
+    return 0;
+}
+
+
+static void alloc_cb(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf)
+{
+    *buf = uv_buf_init(malloc(suggested_size), suggested_size);
+}
+
+
+typedef struct {
+    uv_udp_send_t req;
+    uv_buf_t msg[2];
+    struct codatunnel_packet packet;
+} udp_send_req_t;
+
+static void udp_sent_cb(uv_udp_send_t *arg, int status)
+{
+    udp_send_req_t *req = (udp_send_req_t *)arg;
+    free(req->msg[1].base);
+    free(req);
+}
+
+
+static void recv_codatunnel_cb(uv_udp_t *codatunnel, ssize_t nread,
+                               const uv_buf_t *buf,
+                               const struct sockaddr *addr,
+                               unsigned flags)
+{
+    uv_udp_t *udpsocket = codatunnel->data;
+    struct codatunnel_packet *p = (struct codatunnel_packet *)buf->base;
+    udp_send_req_t *req;
+    static unsigned empties;
+
+    DEBUG("packet received from codatunnel nread=%ld buf=%p addr=%p flags=%u\n",
+           nread, buf ? buf->base : NULL, addr, flags);
+
+    if (nread == 0) {
+        /* empty packet received, we normally get this after we've drained any
+         * pending data from the socket after a wakeup. But we also see these
+         * when the other end of a socketpair was closed. Differentiate by
+         * counting how many successive empties we get. --JH */
+        if (++empties >= 3) {
+            DEBUG("codatunnel closed\n");
+            uv_stop(codatunnel->loop);
+            uv_close((uv_handle_t *)codatunnel, NULL);
+        }
+        free(buf->base);
+        return;
+    }
+    empties = 0;
+
+    if (nread == -1) {
+        /* We shouldn't see read errors on the codatunnel socketpair. --JH */
+        uv_close((uv_handle_t *)codatunnel, NULL);
+        free(buf->base);
+        return;
+    }
+    if (nread < sizeof(struct codatunnel_packet)) {
+        DEBUG("short packet received from codatunnel\n");
+        free(buf->base);
+        return;
+    }
+
+    req = malloc(sizeof(udp_send_req_t));
+    /* data to send is what follows the codatunnel packet header */
+    req->msg[0] = uv_buf_init(buf->base + sizeof(struct codatunnel_packet),
+                              nread - sizeof(struct codatunnel_packet));
+
+    /* move buffer from reader to writer, we won't actually send msg[1] but
+     * this way the buffer will get properly freed in `udp_sent_cb` */
+    req->msg[1] = uv_buf_init(buf->base, nread);
+    /* buf->base = NULL; buf->len = 0; */
+
+    /* forward packet to the remote host */
+    uv_udp_send((uv_udp_send_t *)req, udpsocket, req->msg, 1,
+                (struct sockaddr *)&p->addr, udp_sent_cb);
+}
+
+
+static void recv_udpsocket_cb(uv_udp_t *udpsocket, ssize_t nread,
+                              const uv_buf_t *buf,
+                              const struct sockaddr *addr,
+                              unsigned flags)
+{
+    uv_udp_t *codatunnel = udpsocket->data;
+    udp_send_req_t *req;
+    struct sockaddr_in peer = {
+        .sin_family = AF_INET,
+    };
+
+    DEBUG("packet received from udpsocket nread=%ld buf=%p addr=%p flags=%u\n",
+          nread, buf ? buf->base : NULL, addr, flags);
+
+    if (nread == -1) {
+        uv_close((uv_handle_t *)udpsocket, NULL);
+        free(buf->base);
+        return;
+    }
+
+    if (nread == 0) {
+        free(buf->base);
+        return;
+    }
+
+    req = malloc(sizeof(udp_send_req_t));
+    req->msg[0] = uv_buf_init((char *)&req->packet,
+                              sizeof(struct codatunnel_packet));
+    req->packet.addrlen = sockaddr_len(addr);
+    memcpy(&req->packet.addr, addr, req->packet.addrlen);
+    req->packet.msglen = nread;
+
+    /* move buffer from reader to writer */
+    req->msg[1] = uv_buf_init(buf->base, nread);
+    /* buf->base = NULL; buf->len = 0; */
+
+    /* forward packet to venus/codasrv */
+    uv_udp_send((uv_udp_send_t *)req, codatunnel, req->msg, 2,
+                (struct sockaddr *)&peer, udp_sent_cb);
+}
 
 
 /* main routine of coda tunnel daemon */
-void codatunneld(int codatunnel_sockfd, short udp_bindport)
+void codatunneld(int codatunnel_sockfd,
+                 const char *tcp_bindaddr,
+                 const char *udp_bindaddr,
+                 const char *bind_service)
 {
+    uv_loop_t *loop;
+    uv_udp_t codatunnel, udpsocket;
+    uv_getaddrinfo_t gai_req;
+    const struct addrinfo *ai, gai_hints = {
+        .ai_family = AF_UNSPEC,
+        .ai_socktype = SOCK_DGRAM,
+        .ai_flags = AI_PASSIVE,
+    };
+
     fprintf(stderr, "codatunneld: starting\n");
 
-    netfacing_udp_portnum = udp_bindport;
-    InitializeNetFacingSockets(codatunnel_sockfd);
-    DoWork(codatunnel_sockfd);
-}
+    /* make sure that writing to closed pipes doesn't kill us */
+    signal(SIGPIPE, SIG_IGN);
 
+    loop = uv_default_loop();
 
-void InitializeNetFacingSockets(int codatunnel_sockfd)
-{
-    int rc;
-    struct sockaddr_in saddr;
+    /* bind codatunnel_sockfd */
+    uv_udp_init(loop, &codatunnel);
+    uv_udp_open(&codatunnel, codatunnel_sockfd);
 
-    /* First create the single UDP socket for legacy clients & servers
-       Do this even if netfacing_udp_portnum is zero, because that means
-       "use any port"
-       */
+    /* resolve the requested udp bind address */
+    const char *node = (udp_bindaddr && *udp_bindaddr) ? udp_bindaddr : NULL;
+    const char *service = bind_service ? bind_service : "0";
+    uv_getaddrinfo(loop, &gai_req, NULL, node, service, &gai_hints);
 
-    netfacing_udp_fd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (netfacing_udp_fd < 0){
-        perror("socket: ");
-        exit(-1);
+    /* try to bind to any of the resolved addresses */
+    uv_udp_init(loop, &udpsocket);
+    for (ai = gai_req.addrinfo; ai != NULL; ai = ai->ai_next) {
+        if (uv_udp_bind(&udpsocket, ai->ai_addr, 0) == 0)
+            break;
     }
-    DEBUG("netfacing_udp_fd = %d\n", netfacing_udp_fd);
+    uv_freeaddrinfo(gai_req.addrinfo);
 
-    memset(&saddr, 0, sizeof(saddr));
-    saddr.sin_family = AF_INET;
-    saddr.sin_addr.s_addr = htonl(INADDR_ANY);
-    saddr.sin_port = htons(netfacing_udp_portnum);
+    /* link connections */
+    codatunnel.data = &udpsocket;
+    udpsocket.data = &codatunnel;
 
-    DEBUG("netfacing_udp_portnum = %d\n", netfacing_udp_portnum);
-    rc = bind(netfacing_udp_fd, (struct sockaddr *)&saddr, sizeof(saddr));
-    if (rc < 0){
-        perror("bind: ");
-        exit(-1);
-    }
-    DEBUG("bind succeeded\n");
+    uv_udp_recv_start(&codatunnel, alloc_cb, recv_codatunnel_cb);
+    uv_udp_recv_start(&udpsocket, alloc_cb, recv_udpsocket_cb);
 
+    /* run until the codatunnel connection closes */
+    uv_run(loop, UV_RUN_DEFAULT);
 
-    netfacing_tcp_bind_fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (netfacing_tcp_bind_fd < 0){
-        perror("socket: ");
-        exit(-1);
-    }
-    DEBUG("netfacing_tcp_bind_fd = %d\n", netfacing_tcp_bind_fd);
-
-    memset(&saddr, 0, sizeof(saddr));
-    saddr.sin_family = AF_INET;
-    saddr.sin_addr.s_addr = htonl(INADDR_ANY);
-    saddr.sin_port = htons(netfacing_udp_portnum);
-    rc = bind(netfacing_tcp_bind_fd, (struct sockaddr *)&saddr, sizeof(saddr));
-    if (rc < 0){
-        perror("bind: ");
-        exit(-1);
-    }
-    DEBUG("bind succeeded\n");
-
-    DEBUG("About to set global bit mask\n");
-
-    /* Initialize the global bit mask and find highest fd for select()
-       Note that we don't listen on codatunnel_pipefd; it is only for signals
-       */
-    FD_ZERO(&BigFDList);
-    FD_SET(codatunnel_sockfd, &BigFDList);
-    BigFDList_Highest = codatunnel_sockfd + 1;
-
-    FD_SET(netfacing_udp_fd, &BigFDList);
-    if (BigFDList_Highest <= netfacing_udp_fd)
-        BigFDList_Highest = netfacing_udp_fd + 1;
-
-    /* DEBUG:  FD_SET(netfacing_tcp_bind_fd, &BigFDList);  */
-    if (BigFDList_Highest <= netfacing_tcp_bind_fd)
-        BigFDList_Highest = netfacing_tcp_bind_fd + 1;
-
-    DEBUG("codatunnel: BigFDList_Highest = %d\n", BigFDList_Highest);
+    /* cleanup any remaining open handles */
+    uv_walk(loop, (uv_walk_cb)uv_close, NULL);
+    uv_run(loop, UV_RUN_DEFAULT);
+    uv_loop_close(loop);
+    exit(0);
 }
-
-
-void DoWork(int codatunnel_sockfd)
-{
-    int i, rc;
-    fd_set readlist, exceptlist;
-
-    while (1) /* main work loop, non-terminating */
-    {
-        readlist = BigFDList;
-        exceptlist = BigFDList;
-
-        rc = select(BigFDList_Highest, &readlist, 0, &exceptlist, 0);
-        if (rc < 0)
-            continue;
-
-        /* first deal with all the exceptions */
-        for (i = 0; i < BigFDList_Highest; i++)
-        {
-            if (!FD_ISSET(i, &exceptlist)) continue;
-            HandleFDException(i);
-        }
-
-        /* then deal with fds with incoming data */
-        for (i = 0; i < BigFDList_Highest; i++)
-        {
-            if (!FD_ISSET(i, &readlist)) continue;
-
-            /* fd i has data for me */
-            if (i == codatunnel_sockfd) {
-                HandleOutgoingUDP(codatunnel_sockfd);
-                continue;
-            }
-
-            if (i == netfacing_udp_fd) {
-                HandleIncomingUDP(codatunnel_sockfd);
-                continue;
-            }
-
-            if (i == netfacing_tcp_bind_fd) {
-                HandleNewTCPconnect();
-                continue;
-            }
-
-            /* if we get here, it must be an incoming TCP packet */
-            HandleIncomingTCP(i);
-        }
-    }
-}
-
-
-void HandleFDException(int whichfd)
-{
-    DEBUG("HandleFDExecption(%d)\n", whichfd);
-}
-
-void HandleOutgoingUDP(int codatunnel_sockfd)
-{
-    int rc;
-    struct codatunnel_packet p;
-    char buf[CODATUNNEL_MAXPACKETSIZE];
-    struct iovec iov[2];
-    struct msghdr msg = {
-        .msg_iov = iov,
-        .msg_iovlen = 2,
-    };
-    size_t buflen;
-
-    iov[0].iov_base = &p;
-    iov[0].iov_len = sizeof(struct codatunnel_packet);
-    iov[1].iov_base = buf;
-    iov[1].iov_len = CODATUNNEL_MAXPACKETSIZE;
-
-    rc = recvmsg(codatunnel_sockfd, &msg, 0);
-
-    /* EOF - parent closed the socket */
-    if (rc == 0) exit(0);
-
-    if (rc < sizeof(struct codatunnel_packet))
-        return; /* error return */
-
-    buflen = rc - sizeof(struct codatunnel_packet);
-
-    /* send it out on the network */
-    sendto(netfacing_udp_fd, buf, buflen, 0,
-           (struct sockaddr *)&p.addr, p.addrlen);
-}
-
-void HandleIncomingUDP(int codatunnel_sockfd)
-{
-    int rc;
-    struct codatunnel_packet p = {
-        .addrlen = sizeof(struct sockaddr_storage),
-    };
-    char buf[CODATUNNEL_MAXPACKETSIZE];
-    struct iovec iov[2];
-    struct msghdr msg = {
-        .msg_iov = iov,
-        .msg_iovlen = 2,
-    };
-
-    rc = recvfrom(netfacing_udp_fd, buf, CODATUNNEL_MAXPACKETSIZE, 0,
-                  (struct sockaddr *)&p.addr, &p.addrlen);
-
-    if (rc < 0) return; /* error return */
-
-    p.msglen = rc;
-
-    iov[0].iov_base = &p;
-    iov[0].iov_len = sizeof(struct codatunnel_packet);
-    iov[1].iov_base = buf;
-    iov[1].iov_len = p.msglen;
-
-    /* send it to the host */
-    sendmsg(codatunnel_sockfd, &msg, 0);
-}
-
-void HandleNewTCPconnect()
-{
-    DEBUG("HandleNewTCPconnect()\n");
-}
-
-void HandleIncomingTCP(int whichfd)
-{
-    DEBUG("HandleIncomingTCP()\n");
-}
-

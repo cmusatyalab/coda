@@ -402,18 +402,12 @@ int main(int argc, char *argv[])
 
     /* Fork the Coda tunnel daemon for codatunnel, if requested */
     if (codatunnel_enabled) {
-        struct servent *s;
-        short port1;
-        int rc;
-
-        s = coda_getservbyname("codasrv", "udp");
-        if (!s) {
-            perror("coda_getservbyname(codasrv, udp)");
-            exit(-1);
+        /* format a suitable bindaddr string */
+        const char *bindaddr = "0.0.0.0";
+        if (srvhost) {
+            bindaddr = CodaSrvIp ? CodaSrvIp : srvhost;
         }
-        port1 = ntohs(s->s_port);
-
-        rc = codatunnel_fork(argc, argv, port1, 0);
+        int rc = codatunnel_fork(argc, argv, bindaddr, bindaddr, "codasrv");
         if (rc < 0){
             perror("codatunnel_fork: "); /* hopefully errno still meaningful */
             exit(-1);

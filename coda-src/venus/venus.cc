@@ -184,7 +184,9 @@ int main(int argc, char **argv)
     if (codatunnel_enabled) {
         int rc;
         /* masquerade_port is the UDP portnum specified via venus.conf */
-        rc = codatunnel_fork(argc, argv, masquerade_port, 1);
+        char service[6];
+        sprintf(service, "%hu", masquerade_port);
+        rc = codatunnel_fork(argc, argv, NULL, "0.0.0.0", service);
         if (rc < 0){
             perror("codatunnel_fork: ");
             exit(-1);

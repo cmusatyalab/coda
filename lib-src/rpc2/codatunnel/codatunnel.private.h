@@ -37,7 +37,10 @@ Coda are listed in the file CREDITS.
 */
 
 /* the actual tunnel daemon (defined in codatunneld.c) */
-void codatunneld(int codatunnel_sockfd, short udp_bindport)
+void codatunneld(int codatunnel_sockfd,
+                 const char *tcp_bindaddr,
+                 const char *udp_bindaddr,
+                 const char *bind_service)
     __attribute__((noreturn));
 
 

@@ -19,6 +19,8 @@ Coda are listed in the file CREDITS.
 #define _CODATUNNEL_H_
 
 int codatunnel_fork(int argc, char **argv,
-                    short udplegacyportnum, int initiateflag);
+                    const char *tcp_bindaddr,
+                    const char *udp_bindaddr,
+                    const char *bind_service);
 
 #endif /* _CODATUNNEL_H_ */

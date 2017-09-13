@@ -40,6 +40,7 @@ AC_CHECK_PROG(CP, cp, cp)
 dnl pkg-config stuff
 CODA_PKG_CONFIG
 PKG_CHECK_MODULES([LWP], [lwp])
+PKG_CHECK_MODULES([LIBUV], [libuv >= 1.4.0])
 AC_ARG_WITH(lua, [  --with-lua		  embed Lua interpreter],
   [ PKG_CHECK_EXISTS([lua5.1], [ PKG_CHECK_MODULES([LUA], [lua5.1]) ],
 			       [ PKG_CHECK_MODULES([LUA], [lua]) ])
@@ -69,7 +70,7 @@ CODA_CC_FEATURE_TEST(Wall)
 
 dnl Checks for library functions.
 AC_CHECK_FUNCS(ffs iopen getaddrinfo gai_strerror getipnodebyname)
-AC_CHECK_FUNCS(inet_aton inet_ntoa inet_pton inet_ntop setproctitle prctl)
+AC_CHECK_FUNCS(inet_aton inet_ntoa inet_pton inet_ntop)
 AC_FUNC_SELECT_ARGTYPES
 
 dnl Checks for system services.

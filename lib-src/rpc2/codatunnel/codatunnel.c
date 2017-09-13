@@ -15,18 +15,10 @@ Coda are listed in the file CREDITS.
 
 #*/
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-#include <errno.h>
-
-#if HAVE_PRCTL
-#include <sys/prctl.h>
-#endif
+#include <uv.h>
 
 #include <rpc2/codatunnel.h>
 #include "codatunnel.private.h"
@@ -61,7 +53,9 @@ static int codatunnel_enable_codatunnel = 0; /* non zero to enable tunneling */
 static int codatunnel_vside_sockfd = -1;  /* v2t: venus to tunnel */
 
 int codatunnel_fork(int argc, char **argv,
-                    short udplegacyportnum, int initiatetcpflag)
+                    const char *tcp_bindaddr,
+                    const char *udp_bindaddr,
+                    const char *bind_service)
 {
     /*
        Create the Coda tunnel process.  Returns 0 on success, -1 on error.
@@ -75,7 +69,8 @@ int codatunnel_fork(int argc, char **argv,
     */
     int rc, sockfd[2];
 
-    DEBUG("codatunnel_fork(%d, %d)\n", udplegacyportnum, initiatetcpflag);
+    DEBUG("codatunnel_fork(\"%s:%s\", \"%s:%s\")\n",
+          tcp_bindaddr, bind_service, udp_bindaddr, bind_service);
 
     /* codatunnel is enabled when the daemon process is forked */
     codatunnel_enable_codatunnel = 1;
@@ -111,15 +106,13 @@ int codatunnel_fork(int argc, char **argv,
 
 
     /* if possible, rename child's command line for "ps ax" */
-#ifdef HAVE_SETPROCTITLE
-    setproctitle("codatunneld");
-#elif defined(HAVE_PRCTL) && defined(PR_SET_NAME)
-    /* can only set 16 characters, but that is enough */
-    prctl(PR_SET_NAME, "codatunneld", 0, 0, 0);
-#endif
+    if (argc) {
+        uv_setup_args(argc, argv);
+        uv_set_process_title("codatunneld");
+    }
 
     /* launch the tunnel and never return */
-    codatunneld(sockfd[1], udplegacyportnum);
+    codatunneld(sockfd[1], tcp_bindaddr, udp_bindaddr, bind_service);
     __builtin_unreachable(); /* should never reach here */
 }
 
