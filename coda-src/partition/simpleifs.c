@@ -108,13 +108,13 @@ static int s_magic(void)
 
 static void inotostr(struct DiskPartition *dp, Inode ino, char *filename)
 {
-    sprintf(filename,"%s/%u", dp->name, ino);
+    sprintf(filename, "%s/%u", dp->name, ino);
 }
 
 
 static void inotores(struct DiskPartition *dp, Inode ino, char *filename)
 {
-        sprintf(filename,"%s/.%u", dp->name, ino);
+    sprintf(filename, "%s/.%u", dp->name, ino);
 }
 
 
@@ -158,7 +158,7 @@ s_init (union PartitionData **data, Partent partent, Device *dev)
 
 static int s_iopen(struct DiskPartition *dp, Inode inode_number,int flag)
 {
-    char	filename[FNAMESIZE];
+    char filename[FNAMESIZE];
     int	fd;
 
 	/* Attempt open. */

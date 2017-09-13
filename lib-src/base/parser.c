@@ -198,7 +198,7 @@ static int process(char *s, char ** next, command_t *lookup,
     if ( (*result)->func ) {
 	return CMD_COMPLETE;
     } else {
-	if ( *next == '\0' ) {
+	if ( *next && **next == '\0' ) {
 	    return CMD_INCOMPLETE;
 	} else {
 	    return process(*next, next, (*result)->sub_cmd, result, prev);

@@ -802,8 +802,6 @@ void vdb::GetCmlStats(cmlstats& total_current, cmlstats& total_cancelled)
 
 void vdb::print(int fd, int SummaryOnly)
 {
-    if (this == 0) return;
-
     fdprint(fd, "VDB:\n");
     fdprint(fd, "volrep count = %d, repvol count = %d, mlefl count = %d\n",
             volrep_hash.count(), repvol_hash.count(), mlefreelist.count());

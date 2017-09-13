@@ -219,8 +219,6 @@ rec_olink *rec_olist_iterator::operator()() {
 
 rec_olink::rec_olink() {
     /* There is never any point in calling "new rec_olink"! */
-    if (this == 0) abort();
-
     Init();
 }
 

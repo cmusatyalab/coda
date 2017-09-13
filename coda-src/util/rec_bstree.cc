@@ -428,8 +428,6 @@ void rec_bstree::print(int fd) {
 
 rec_bsnode::rec_bsnode() {
     /* There is never any point in calling "new rec_bsnode"! */
-    if (this == 0) abort();
-
     Init();
 }
 

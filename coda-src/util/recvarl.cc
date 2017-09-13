@@ -88,6 +88,5 @@ void *recvarl::end() {
 
 /* not sure if this will work */
 void recvarl::destroy() {
-    CODA_ASSERT(this);
     rvmlib_rec_free(this);
 }
