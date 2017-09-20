@@ -9,6 +9,7 @@ addons:
     - libreadline-dev
     - libncurses5-dev
     - liblua5.1-0-dev
+    - libuv1-dev
     - flex
     - bison
     - pkg-config
