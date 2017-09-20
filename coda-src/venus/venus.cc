@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2008 Carnegie Mellon University
+          Copyright (c) 1987-2017 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -34,6 +34,7 @@ extern "C" {
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <rpc2/codatunnel.h>
 
 #include "archive.h"
 
@@ -126,6 +127,8 @@ int mariner_tcp_enable = 1;
 /* Global red and yellow zone limits on CML length; default is infinite */
 int redzone_limit = -1, yellowzone_limit = -1;
 
+static int codatunnel_enabled;
+
 /* *****  Private constants  ***** */
 
 struct timeval DaemonExpiry = {TIMERINTERVAL, 0};
@@ -187,6 +190,19 @@ int main(int argc, char **argv)
     /* test mismatch with kernel before doing real work */
     testKernDevice();
 
+    if (codatunnel_enabled) {
+        int rc;
+        /* masquerade_port is the UDP portnum specified via venus.conf */
+        char service[6];
+        sprintf(service, "%hu", masquerade_port);
+        rc = codatunnel_fork(argc, argv, NULL, "0.0.0.0", service);
+        if (rc < 0){
+            perror("codatunnel_fork: ");
+            exit(-1);
+        }
+        printf("codatunneld started\n");
+    }
+
     /* 
      * VprocInit MUST precede LogInit. Log messages are stamped
      * with the id of the vproc that writes them, so log messages
@@ -225,7 +241,7 @@ int main(int argc, char **argv)
     UnsetInitFile();
     eprint("Venus starting...");
 
-    freopen("/dev/null", "w", stdout);
+    // DEBUG freopen("/dev/null", "w", stdout);
 
     /* Act as message-multiplexor/daemon-dispatcher. */
     for (;;) {
@@ -463,6 +479,10 @@ static void ParseCmdline(int argc, char **argv)
 	    /* Private mapping ... */
 	    else if (STREQ(argv[i], "-mapprivate"))
 		MapPrivate = true;
+	    else if (STREQ(argv[i], "-codatunnel")){
+	      codatunnel_enabled = true;
+	      eprint("codatunnel enabled");
+	    }
 	    else {
 		eprint("bad command line option %-4s", argv[i]);
 		done = -1;

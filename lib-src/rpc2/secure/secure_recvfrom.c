@@ -2,7 +2,7 @@
 			Coda File System
 			    Release 6
 
-	  Copyright (c) 2005-2016 Carnegie Mellon University
+	  Copyright (c) 2005-2017 Carnegie Mellon University
 		  Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -20,6 +20,7 @@ Coda are listed in the file CREDITS.
 #include <assert.h>
 
 #include <rpc2/secure.h>
+#include "codatunnel/wrapper.h"
 #include "grunt.h"
 
 /* RFC 2406 - IP Encapsulating Security Payload (ESP)
@@ -176,7 +177,8 @@ ssize_t secure_recvfrom(int s, void *buf, size_t len, int flags,
 	peerlen = &fromlen;
     }
 
-    n = recvfrom(s, packet, MAXPACKETSIZE, flags | MSG_TRUNC, peer, peerlen);
+    n = codatunnel_recvfrom(s, packet, MAXPACKETSIZE, flags | MSG_TRUNC,
+                            peer, peerlen);
     if (n < 0) return n;
 
     /* If we truncated packets because the packet buffer is too small */

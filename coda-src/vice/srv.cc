@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2017 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -73,6 +73,7 @@ extern "C" {
 #include <lwp/timer.h>
 #include <rpc2/rpc2.h>
 #include <rpc2/sftp.h>
+#include <rpc2/codatunnel.h>
 #include <partition.h>
 #include <util.h>
 #include <rvmlib.h>
@@ -144,6 +145,7 @@ const char *CodaSrvIp;		// default NULL ('ipaddress' in server.conf)
 
 /* local */
 static int MapPrivate;		// default 0
+static int codatunnel_enabled;  // default 0
 
 /* imported */
 extern rvm_length_t rvm_test;
@@ -233,6 +235,7 @@ static RPC2_Integer LastOp[MAXLWP];
 static int StackUsed[MAXLWP];
 static int StackAllocated[MAXLWP];
 static ClientEntry *CurrentClient[MAXLWP];
+
 
 /* *****  Private routines  ***** */
 
@@ -343,6 +346,7 @@ int main(int argc, char *argv[])
 	SLog(0, "[-nodebarrenize] [-dir workdir] [-srvhost host]");
 	SLog(0, " [-rvmopt] [-usenscclock]");
 	SLog(0, " [-mapprivate] [-zombify]");
+	SLog(0, " [-codatunnel]");
 
 	exit(EXIT_FAILURE);
     }
@@ -396,10 +400,25 @@ int main(int argc, char *argv[])
     /* Initialize the hosttable structure */
     CLIENT_InitHostTable();
 
+    /* Fork the Coda tunnel daemon for codatunnel, if requested */
+    if (codatunnel_enabled) {
+        /* format a suitable bindaddr string */
+        const char *bindaddr = "0.0.0.0";
+        if (srvhost) {
+            bindaddr = CodaSrvIp ? CodaSrvIp : srvhost;
+        }
+        int rc = codatunnel_fork(argc, argv, bindaddr, bindaddr, "codasrv");
+        if (rc < 0){
+            perror("codatunnel_fork: "); /* hopefully errno still meaningful */
+            exit(-1);
+        }
+        printf("Main server process: forked codatunnel successfully\n");
+    }
+
     SLog(0, "Main process doing a LWP_Init()");
     CODA_ASSERT(LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, &mainPid) == LWP_SUCCESS);
 
-    /* using rvm - so set the per thread data structure for executing
+     /* using rvm - so set the per thread data structure for executing
        transactions */
     rvm_perthread_t rvmptt;
     if (RvmType == RAWIO || RvmType == UFS) {
@@ -1511,6 +1530,10 @@ static int ParseArgs(int argc, char *argv[])
 	    if (!strcmp(argv[i], "-mapprivate")) {
 		MapPrivate = 1;
 	    }
+        else if (!strcmp(argv[i], "-codatunnel")){
+	      codatunnel_enabled = true;
+	      eprint("codatunnel enabled");
+	}
 	else {
 	    return(-1);
 	}

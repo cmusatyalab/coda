@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-SUBDIRS = include secure rpc2-src rp2gen scripts
+SUBDIRS = include secure codatunnel rpc2-src rp2gen scripts
 
 ACLOCAL_AMFLAGS = -I m4
 

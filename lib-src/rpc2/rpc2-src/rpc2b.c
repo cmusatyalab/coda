@@ -3,7 +3,7 @@
                            Coda File System
                               Release 5
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2017 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -64,6 +64,7 @@ Pittsburgh, PA.
 #include <rpc2/secure.h>
 #include "rpc2.private.h"
 #include <rpc2/se.h>
+#include "codatunnel/wrapper.h"
 #include "trace.h"
 #include "cbuf.h"
 
@@ -871,6 +872,14 @@ long rpc2_CreateIPSocket(int af, int *svar, struct RPC2_addrinfo *addr,
     int err = RPC2_FAIL;
     int flags, rc;
     unsigned short port = 0, *sa_port;
+
+    /* If codatunnel is enabled, it is responsible for binding.
+     * just return the local socketpair endpoint. */
+    *svar = codatunnel_socket();
+    if (*svar != -1) {
+        if (Port) *Port = 0;
+        return RPC2_SUCCESS;
+    }
 
     if (Port && *Port != 0)
 	port = *Port;

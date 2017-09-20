@@ -15,7 +15,7 @@ dnl - when interfaces were added/removed changed, increment second and set
 dnl   first to 0
 dnl - if any interfaces were added, increment third
 dnl - if any interfaces were removed, set third to 0
-CODA_LIBRARY_VERSION(3, 11, 6)
+CODA_LIBRARY_VERSION(0, 12, 7)
 
 CONFIG_DATE=`date +"%a, %d %b %Y %T %z"`
 AC_SUBST(CONFIG_DATE, "$CONFIG_DATE", [Date when configure was last run])
@@ -40,6 +40,7 @@ AC_CHECK_PROG(CP, cp, cp)
 dnl pkg-config stuff
 CODA_PKG_CONFIG
 PKG_CHECK_MODULES([LWP], [lwp])
+PKG_CHECK_MODULES([LIBUV], [libuv >= 1.4.0])
 AC_ARG_WITH(lua, [  --with-lua		  embed Lua interpreter],
   [ PKG_CHECK_EXISTS([lua5.1], [ PKG_CHECK_MODULES([LUA], [lua5.1]) ],
 			       [ PKG_CHECK_MODULES([LUA], [lua]) ])
@@ -80,6 +81,6 @@ AM_CONDITIONAL(LUA, test x$include_lua = xtrue)
 
 dnl Generate output files
 AC_CONFIG_FILES([Makefile include/Makefile secure/Makefile rpc2-src/Makefile
-    rp2gen/Makefile scripts/Makefile rpc2.pc rpc2-uninstalled.pc])
+    rp2gen/Makefile codatunnel/Makefile scripts/Makefile rpc2.pc rpc2-uninstalled.pc])
 AC_OUTPUT
 
