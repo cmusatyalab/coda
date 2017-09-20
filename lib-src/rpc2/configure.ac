@@ -40,14 +40,27 @@ AC_CHECK_PROG(CP, cp, cp)
 dnl pkg-config stuff
 CODA_PKG_CONFIG
 PKG_CHECK_MODULES([LWP], [lwp])
-PKG_CHECK_MODULES([LIBUV], [libuv >= 1.4.0])
-AC_ARG_WITH(lua, [  --with-lua		  embed Lua interpreter],
-  [ PKG_CHECK_EXISTS([lua5.1], [ PKG_CHECK_MODULES([LUA], [lua5.1]) ],
+
+AC_ARG_WITH([libuv],
+    [AS_HELP_STRING([--without-libuv],
+      [disable support for codatunneld])],
+    [],
+    [with_libuv=yes])
+AS_IF([test "x$with_libuv" != "xno"],
+  [PKG_CHECK_EXISTS([libuv >= 1.4.0],
+     [PKG_CHECK_MODULES([LIBUV], [libuv])
+      AC_DEFINE(USE_CODATUNNEL, 1, [Define this when linking against libuv])],
+     [AC_MSG_FAILURE(
+        [LIBUV not found, cannot build codatunneld (use --without-libuv to disable)])])])
+
+AC_ARG_WITH(lua,
+  [AS_HELP_STRING([--with-lua], [embed Lua interpreter])],
+  [PKG_CHECK_EXISTS([lua5.1], [ PKG_CHECK_MODULES([LUA], [lua5.1]) ],
 			       [ PKG_CHECK_MODULES([LUA], [lua]) ])
-    AC_DEFINE(USE_LUA, 1, [Define this when linking against Lua])
-    AC_SUBST(LUA_LIBADD, -lm, [Lua binding depends on libm])
-    include_lua=true ],
-  [ include_lua=false ])
+   AC_DEFINE(USE_LUA, 1, [Define this when linking against Lua])
+   AC_SUBST(LUA_LIBADD, -lm, [Lua binding depends on libm])
+   include_lua=true ],
+  [include_lua=false ])
 
 dnl Checks for libraries.
 CODA_CHECK_LIBTERMCAP
@@ -77,6 +90,7 @@ dnl Checks for system services.
 AC_C_BIGENDIAN()
 
 dnl Build options.
+AM_CONDITIONAL(CODATUNNEL, test x$with_libuv != xno)
 AM_CONDITIONAL(LUA, test x$include_lua = xtrue)
 
 dnl Generate output files

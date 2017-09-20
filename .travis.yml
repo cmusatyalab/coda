@@ -9,7 +9,6 @@ addons:
     - libreadline-dev
     - libncurses5-dev
     - liblua5.1-0-dev
-    - libuv1-dev
     - flex
     - bison
     - pkg-config
@@ -18,6 +17,6 @@ addons:
 
 before_script:
   - ./bootstrap.sh
-  - ./configure --prefix=/usr --with-lua
+  - ./configure --prefix=/usr --with-lua --without-libuv
 script:
   - make -j2 distcheck
