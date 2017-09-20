@@ -19,4 +19,4 @@ before_script:
   - ./bootstrap.sh
   - ./configure --prefix=/usr --with-lua --without-libuv
 script:
-  - make -j2 distcheck
+  - DISTCHECK_CONFIGURE_FLAGS=--without-libuv make -j2 distcheck
