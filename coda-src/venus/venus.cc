@@ -352,7 +352,8 @@ static void Usage(char *argv0)
 " -MarinerTcp\t\t\tenable mariner tcp port\n"
 " -noMarinerTcp\t\t\tdisable mariner tcp port\n"
 " -allow-reattach\t\tallow reattach to already mounted tree\n"
-" -relay <addr>\t\t\trelay socket address (windows only)\n\n"
+" -relay <addr>\t\t\trelay socket address (windows only)\n"
+" -codatunnel\t\t\tenable codatunneld helper\n\n"
 "For more information see http://www.coda.cs.cmu.edu/\n"
 "Report bugs to <bugs@coda.cs.cmu.edu>.\n", argv0);
 }
@@ -602,6 +603,9 @@ static void DefaultCmdlineParms()
      * - Write zeros to container file contents before truncation.
      * - Disable reintegration replay detection. */
     CODACONF_INT(option_isr, "isr", 0);
+
+    /* Enable client-server communication helper process */
+    CODACONF_INT(codatunnel_enabled, "codatunnel", 0);
 
     CODACONF_INT(detect_reintegration_retry, "detect_reintegration_retry", 1);
     if (option_isr) {

@@ -296,3 +296,7 @@ mapprivate=1
 #
 #isr=0
 
+#
+# Fork a helper process to handle client-server communication.
+#
+#codatunnel=0

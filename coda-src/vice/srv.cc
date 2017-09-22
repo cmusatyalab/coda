@@ -1344,6 +1344,7 @@ static int ReadConfigFile(void)
 	vicetab = strdup(vice_config_path("db/vicetab"));
 
     CODACONF_INT(check_reintegration_retry, "check_reintegration_retry", 1);
+    CODACONF_INT(codatunnel_enabled, "codatunnel", 0);
     return 0;
 }
 

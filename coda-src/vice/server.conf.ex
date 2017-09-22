@@ -92,7 +92,12 @@ allow_sha=1
 # The default is to try to detect retried reintegrations.
 #
 #check_reintegration_retry=1
+
 #
+# Fork a helper process to handle client-server communication.
+#
+#codatunnel=0
+
 
 #authenticate=1
 #cbwait=240
