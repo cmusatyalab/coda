@@ -44,14 +44,13 @@ PKG_CHECK_MODULES([LWP], [lwp])
 AC_ARG_WITH([libuv],
     [AS_HELP_STRING([--without-libuv],
       [disable support for codatunneld])],
-    [],
-    [with_libuv=yes])
+    [], [with_libuv=yes])
 AS_IF([test "x$with_libuv" != "xno"],
   [PKG_CHECK_EXISTS([libuv >= 1.4.0],
      [PKG_CHECK_MODULES([LIBUV], [libuv])
       AC_DEFINE(USE_CODATUNNEL, 1, [Define this when linking against libuv])],
-     [AC_MSG_FAILURE(
-        [LIBUV not found, cannot build codatunneld (use --without-libuv to disable)])])])
+     [AC_MSG_WARN([LIBUV not found, disabling codatunneld build])
+      with_libuv=no])])
 
 AC_ARG_WITH(lua,
   [AS_HELP_STRING([--with-lua], [embed Lua interpreter])],
