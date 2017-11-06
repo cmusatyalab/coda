@@ -20,6 +20,9 @@ Coda are listed in the file CREDITS.
 #include <rpc2/codatunnel.h>
 #include "wrapper.h"
 
+/* If codatunnel is not configured, this file provides no-op routines
+   to keep the linker happy */
+
 /* stubs to make codatunnel related code a noop */
 int codatunnel_fork(int argc, char **argv,
                     const char *tcp_bindaddr,

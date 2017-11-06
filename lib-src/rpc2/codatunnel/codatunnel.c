@@ -24,33 +24,13 @@ Coda are listed in the file CREDITS.
 #include "codatunnel.private.h"
 #include "wrapper.h"
 
-/*
-   This code has to be linkable into two incompatible worlds:
-   the LWP/RPC2 world of Venus & codasrv, and the pthreads/SSL/TLS
-   world of codatunneld.  Notice that other than codatunnel.h, there
-   are no dependencies on LWP or RPC2 header files.
-
-   This code layers UDP socket primitives on top of TCP connections.
-   Maintains a single TCP connection for each (host, port) pair
-   All UDP packets to/from that (host, port) pair are sent/recvd on this connection.
-   All RPC2 connections to/from that (host,port are multiplexed on this connection.
-   Minimal changes to rest of the RPC2 code.
-   Discards all packets with "RETRY" bit set.
-
-   Possible negative consequences:
-   (a) serializes all transmissions to each (host,port) pair
-       (but no guarantee that such serialization wasn't happening before)
-   (b) SFTP becomes a stop and wait protocol for each 8-packet window
-       (since RETRY flag triggered sendahead)
-
-   (Satya, 2017-01-04)
-*/
 
 /* global flag below controls whether codatunnel is used */
 static int codatunnel_enable_codatunnel = 0; /* non zero to enable tunneling */
 
 /* fd in parent of open hfsocket */
 static int codatunnel_vside_sockfd = -1;  /* v2t: venus to tunnel */
+
 
 int codatunnel_fork(int argc, char **argv,
                     const char *tcp_bindaddr,
@@ -59,13 +39,23 @@ int codatunnel_fork(int argc, char **argv,
 {
     /*
        Create the Coda tunnel process.  Returns 0 on success, -1 on error.
-       Invoked before RPC2_Init() by venus (on client) or codasrv (on server).
+       Invoked before RPC2_Init() by the Coda client or server.
 
-       udplegacyportnum = UDP port number for talking to legacy clients and servers
-       Note that this same port number is used for the socket that is as the TCP
-       bind port for incoming TCP connections (rendezvous).  The kernel correctly
-       separates UDP and TCP packets.
-       initiatetcpflag = whether to initiate TCP connections  (1 = yes, 0 = no)
+       tcp_bindaddr is the IP address to be used to bind the TCP listen
+       socket to.  This parameter should be NULL on the client as it is
+       is expected to initiate new TCP connections.  On the server this
+       can be set to "" (empty string) to bind to the wildcard address.
+
+       udp_bindaddr is the IP address to be used to bind the UDP listen
+       socket for communicating with legacy clients and servers that are
+       not using codatunnel.  This can be set to "" (empty string) to
+       bind to the wildcard address.
+
+       bind_service is the port number to use; on the Coda client, this
+       may be the value of the variable "masquerade_port" or NULL to
+       bind to any available port.  On Coda servers, this is usually
+       specified as "codasrv" which is specified as an IANA reserved
+       port number in /etc/services.
     */
     int rc, sockfd[2];
 
@@ -87,7 +77,7 @@ int codatunnel_fork(int argc, char **argv,
     codatunnel_vside_sockfd = sockfd[0];
 
 
-    /* fork and exec codatunneld */
+    /* fork, and then invoke codatunneld */
     rc = fork();
     if (rc < 0) {
         perror("codatunnel_fork: fork() failed: ");

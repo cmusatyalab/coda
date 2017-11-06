@@ -25,10 +25,26 @@ Coda are listed in the file CREDITS.
 /*
    Daemon that does the relaying of packets to/from net and localhost.
    Created via fork() by Venus or codasrv.
+
    Uses single Unix domain socket to talk to Venus or codasrv on
-   localhost, and one TCP-tunnelled socket to talk to each distinct
-   remote codasrv or Venus.  Also has one UDP socket for upward
+   localhost, and one TCP-tunneled socket to talk to each distinct
+   remote Coda server or client.  Also has one UDP socket for backward
    compatibility with legacy servers and clients.
+
+   This code layers UDP socket primitives on top of TCP connections.
+   Maintains a single TCP connection for each (host, port) pair
+   All UDP packets to/from that (host, port) pair are sent/recvd on this connection.
+   All RPC2 connections to/from that (host,port are multiplexed on this connection.
+   Minimal changes to rest of the RPC2 code.
+   Discards all packets with "RETRY" bit set.
+
+   Possible negative consequences:
+   (a) serializes all transmissions to each (host,port) pair
+       (but no guarantee that such serialization wasn't happening before)
+   (b) SFTP becomes a stop and wait protocol for each 8-packet window
+       (since RETRY flag triggered sendahead)
+
+   (Satya, 2017-01-04)
 */
 
 
@@ -160,7 +176,6 @@ static void recv_udpsocket_cb(uv_udp_t *udpsocket, ssize_t nread,
     uv_udp_send((uv_udp_send_t *)req, codatunnel, req->msg, 2,
                 (struct sockaddr *)&peer, udp_sent_cb);
 }
-
 
 /* main routine of coda tunnel daemon */
 void codatunneld(int codatunnel_sockfd,
