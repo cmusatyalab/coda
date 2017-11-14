@@ -63,6 +63,9 @@ static socklen_t sockaddr_len(const struct sockaddr *addr)
 static void alloc_cb(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf)
 {
     *buf = uv_buf_init(malloc(suggested_size), suggested_size);
+
+    /* gracefully handle allocation failures on libuv < 1.10.0 */
+    if (buf->base == NULL) buf->len = 0;
 }
 
 
