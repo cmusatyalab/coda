@@ -96,6 +96,9 @@ static void recv_codatunnel_cb(uv_udp_t *codatunnel, ssize_t nread,
     DEBUG("packet received from codatunnel nread=%ld buf=%p addr=%p flags=%u\n",
            nread, buf ? buf->base : NULL, addr, flags);
 
+    if (nread == UV_ENOBUFS)
+        return;
+
     if (nread == 0) {
         /* empty packet received, we normally get this after we've drained any
          * pending data from the socket after a wakeup. But we also see these
@@ -111,8 +114,10 @@ static void recv_codatunnel_cb(uv_udp_t *codatunnel, ssize_t nread,
     }
     empties = 0;
 
-    if (nread == -1) {
-        /* We shouldn't see read errors on the codatunnel socketpair. --JH */
+    if (nread < 0) {
+        /* We shouldn't see read errors on the codatunnel socketpair. -JH */
+        /* if we close the socketpair endpoint, we might just as well stop */
+        uv_stop(codatunnel->loop);
         uv_close((uv_handle_t *)codatunnel, NULL);
         free(buf->base);
         return;
@@ -153,7 +158,13 @@ static void recv_udpsocket_cb(uv_udp_t *udpsocket, ssize_t nread,
     DEBUG("packet received from udpsocket nread=%ld buf=%p addr=%p flags=%u\n",
           nread, buf ? buf->base : NULL, addr, flags);
 
-    if (nread == -1) {
+    if (nread == UV_ENOBUFS)
+        return;
+
+    if (nread < 0) {
+        /* I believe recoverable errors should be handled by libuv. -JH */
+        /* if we close the udp listen socket, we might just as well stop */
+        uv_stop(udpsocket->loop);
         uv_close((uv_handle_t *)udpsocket, NULL);
         free(buf->base);
         return;
