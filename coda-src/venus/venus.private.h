@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2018 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -313,6 +313,9 @@ void FireAndForget(const char *name, void (*f)(void), int interval,
 		   int stacksize=32*1024);
 void RegisterDaemon(unsigned long, char *);
 void DispatchDaemons();
+
+/* Helper to add a file descriptor with callback to main select loop. */
+void MUX_add_callback(int fd, void (*cb)(int fd, void *udata), void *udata);
 
 extern FILE *logFile;
 extern int LogLevel;

@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2018 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -46,11 +46,8 @@ extern "C" {
 
 const int MWBUFSIZE = 80;
 
-extern fd_set MarinerMask;
-extern int MarinerMaxFD;
-
 void MarinerInit(void);
-void MarinerMux(fd_set *mask);
+void MarinerMux(int fd, void *udata);
 void MarinerLog(const char *, ...);
 void MarinerReport(VenusFid *, uid_t);
 void MarinerReportVolState(const char *volname, const char *realm,
@@ -63,7 +60,7 @@ void PrintMariners(int);
 
 class mariner : public vproc {
   friend void MarinerInit();
-  friend void MarinerMux(fd_set *mask);
+  friend void MarinerMux(int fd, void *udata);
   friend void MarinerReport(VenusFid *, uid_t);
   friend void PrintMariners(int);
 

@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2018 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -72,7 +72,6 @@ class msgent : public olink {
   friend int k_Purge(uid_t);
   friend int k_Replace(VenusFid *, VenusFid *);
   friend class fsobj;
-  friend void WorkerMux(fd_set *mask);
 
     char msg_buf[VC_MAXMSGSIZE];
     int return_fd;
@@ -101,7 +100,7 @@ class worker : public vproc {
   friend void ReadUpcallMsg(int fd, size_t size);
   friend ssize_t WriteDowncallMsg(int fd, const char *buf, size_t size);
   friend ssize_t MsgWrite(const char *msg, size_t size);
-  friend void WorkerMux(fd_set *mask);
+  friend void WorkerMux(int fd, void *udata);
   friend time_t GetWorkerIdleTime();
   friend void PrintWorkers(int);
   friend int WorkerCloseMuxfd(void);
@@ -133,6 +132,8 @@ class worker : public vproc {
     void Return(msgent *, size_t);
     void Return(int);
 
+    static int isReady() { return (muxfd != -1); }
+
   protected:
     virtual void main(void);
 };
@@ -147,8 +148,6 @@ class worker_iterator : public vproc_iterator {
 
 extern int MaxWorkers;
 extern int MaxPrefetchers;
-extern int KernelFD;
-
 
 extern msgent *FindMsg(olist&, u_long);
 extern int k_Purge();
@@ -161,7 +160,7 @@ extern void WorkerInit();
 extern worker *FindWorker(u_long);
 extern worker *GetIdleWorker();
 extern void DispatchWorker(msgent *);
-extern void WorkerMux(fd_set *mask);
+extern void WorkerMux(int fd, void *udata);
 extern time_t GetWorkerIdleTime(void);
 extern void PrintWorkers();
 extern void PrintWorkers(FILE *);

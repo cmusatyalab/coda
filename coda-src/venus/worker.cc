@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2018 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -105,7 +105,7 @@ extern int venus_relay_addr;
 #define	C_INCON	0x2
 
 /* static class members */
-int worker::muxfd;
+int worker::muxfd = -1;
 int worker::nworkers;
 int worker::nprefetchers;
 time_t worker::lastresign;
@@ -120,7 +120,6 @@ const int WorkerStackSize = 131072;
 
 int MaxWorkers = UNSET_MAXWORKERS;
 int MaxPrefetchers = UNSET_MAXWORKERS;
-int KernelFD = -1;	/* subsystem is uninitialized until fd is not -1 */
 int kernel_version = 0;
 static int Mounted = 0;
 
@@ -620,7 +619,7 @@ void VFSUnmount()
 int k_Purge() {
     ssize_t size;
 
-    if (KernelFD == -1) return(1);
+    if (!worker::isReady()) return(1);
 
     LOG(1, ("k_Purge: Flush\n"));
 
@@ -646,7 +645,7 @@ int k_Purge() {
 int k_Purge(VenusFid *fid, int severely) {
     ssize_t size;
 
-    if (KernelFD == -1) return(1);
+    if (!worker::isReady()) return(1);
 
     LOG(100, ("k_Purge: fid = (%s), severely = %d\n", FID_(fid), severely));
 
@@ -700,7 +699,7 @@ int k_Purge(uid_t uid)
 {
     ssize_t size;
 
-    if (KernelFD == -1) return(1);
+    if (!worker::isReady()) return(1);
 
     LOG(1, ("k_Purge: uid = %d\n", uid));
 
@@ -726,7 +725,7 @@ int k_Purge(uid_t uid)
 }
 
 int k_Replace(VenusFid *fid_1, VenusFid *fid_2) {
-    if (KernelFD == -1) return(1);
+    if (!worker::isReady()) return(1);
 
     if (!fid_1 || !fid_2)
 	CHOKE("k_Replace: nil fids");
@@ -814,12 +813,12 @@ void WorkerInit()
     /* Flush kernel cache(s). */
     k_Purge();
 
-    /* Allows the MessageMux to distribute incoming messages to us. */
-    KernelFD = worker::muxfd;
-
     worker::nworkers = 0;
     worker::nprefetchers = 0;
     worker::lastresign = Vtime();
+
+    /* Allows the MessageMux to distribute incoming messages to us. */
+    MUX_add_callback(worker::muxfd, WorkerMux, NULL);
 }
 
 
@@ -827,7 +826,7 @@ int WorkerCloseMuxfd(void)
 {
     int ret = 0;
 
-    if (KernelFD)
+    if (worker::muxfd != -1)
 	ret = close(worker::muxfd);
 
     /* just in case we still have a parent process waiting for us we don't want
@@ -835,7 +834,7 @@ int WorkerCloseMuxfd(void)
     if (parent_fd != -1)
 	close(parent_fd);
 
-    worker::muxfd = KernelFD = parent_fd = -1;
+    worker::muxfd = parent_fd = -1;
 
     return ret;
 }
@@ -935,7 +934,7 @@ void DispatchWorker(msgent *m) {
     worker::QueuedMsgs.append(m);
 }
 
-void WorkerMux(fd_set *mask)
+void WorkerMux(int fd, void *udata)
 {
     size_t size = VC_MAXMSGSIZE;
 
@@ -944,12 +943,12 @@ void WorkerMux(fd_set *mask)
      * message boundaries and we need to read the size of the message first. */
     DWORD msg_size;
     ssize_t len;
-    len = read(worker::muxfd, (char *)&msg_size, sizeof(msg_size));
+    len = read(fd, (char *)&msg_size, sizeof(msg_size));
     CODA_ASSERT(len == sizeof(msg_size));
     size = msg_size;
 #endif
 
-    ReadUpcallMsg(worker::muxfd, size);
+    ReadUpcallMsg(fd, size);
 }
 
 time_t GetWorkerIdleTime() {

@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2018 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -77,9 +77,6 @@ typedef int socklen_t;
 
 const int MarinerStackSize = 65536;
 const int MaxMariners = 25;
-fd_set MarinerMask;
-int MarinerMaxFD = -1;
-
 
 int mariner::tcp_muxfd = -1;
 int mariner::unix_muxfd = -1;
@@ -88,7 +85,6 @@ int mariner::nmariners;
 void MarinerInit() {
     int sock, opt = 1; 
 
-    FD_ZERO(&MarinerMask);
     mariner::nmariners = 0;
 
 #ifdef HAVE_SYS_UN_H
@@ -175,38 +171,24 @@ Next:
 	mariner::tcp_muxfd = sock;
     }
 Done:
-    /* Allows the MessageMux to distribute incoming messages to us. */
+    /* Allow the MessageMux to distribute incoming messages to us. */
     if (mariner::tcp_muxfd != -1)
-	FD_SET(mariner::tcp_muxfd, &MarinerMask);
-    if (mariner::tcp_muxfd > MarinerMaxFD)
-	MarinerMaxFD = mariner::tcp_muxfd;
+        MUX_add_callback(mariner::tcp_muxfd, MarinerMux, NULL);
 
     if (mariner::unix_muxfd != -1)
-	FD_SET(mariner::unix_muxfd, &MarinerMask);
-    if (mariner::unix_muxfd > MarinerMaxFD)
-	MarinerMaxFD = mariner::unix_muxfd;
+        MUX_add_callback(mariner::unix_muxfd, MarinerMux, NULL);
 }
 
 
-void MarinerMux(fd_set *mask)
+void MarinerMux(int fd, void *udata)
 {
     int newfd = -1;
+    struct sockaddr_storage sa;
+    socklen_t salen = sizeof(sa);
 
-    LOG(100, ("MarinerMux: mask = %#08x\n", mask));
+    LOG(100, ("MarinerMux: fd = %d\n", fd));
 
-    /* Handle any new "Mariner Connect" requests. */
-    if (mariner::tcp_muxfd != -1 && FD_ISSET(mariner::tcp_muxfd, mask)) {
-        struct sockaddr_in sin;
-        socklen_t sinlen = sizeof(struct sockaddr_in);
-	newfd = ::accept(mariner::tcp_muxfd, (sockaddr *)&sin, &sinlen);
-    }
-#ifdef HAVE_SYS_UN_H
-    else if (mariner::unix_muxfd != -1 && FD_ISSET(mariner::unix_muxfd, mask)) {
-        struct sockaddr_un s_un;
-        socklen_t sunlen = sizeof(struct sockaddr_un);
-	newfd = ::accept(mariner::unix_muxfd, (sockaddr *)&s_un, &sunlen);
-    }
-#endif
+    newfd = ::accept(fd, (sockaddr *)&sa, &salen);
 
     if (newfd >= NFDS)
         ::close(newfd);
@@ -339,8 +321,6 @@ mariner::mariner(int afd) :
     /* Poke main procedure. */
     start_thread();
 }
-
-
 
 
 /* 
