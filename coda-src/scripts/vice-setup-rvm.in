@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh -e
 # BLURB gpl
 #
 #			    Coda File System
