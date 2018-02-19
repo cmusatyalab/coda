@@ -788,11 +788,6 @@ void WorkerInit()
     }
 #endif
 
-    if (worker::muxfd >= NFDS) {
-        eprint("WorkerInit: worker::muxfd >= %d!", NFDS);
-        exit(EXIT_FAILURE);
-    }
-
 #if defined(__BSD44__) || defined(__linux__)
     if (::ioctl(worker::muxfd, CIOC_KERNEL_VERSION, &kernel_version) >= 0 ) {
         switch (kernel_version) {

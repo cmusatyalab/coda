@@ -113,7 +113,6 @@ const int FREE_FACTOR = 16;
 
 
 /*  *****  Manifest constants for Venus.  *****  */
-const int NFDS = 32;	/* IOMGR-enforced limit!  Kernel may allocate fds numbered higher than this! */
 #ifdef __CYGWIN32__
 extern uid_t V_UID;    /* UID that the venus process runs under. */
 #else

@@ -189,18 +189,25 @@ void MarinerMux(int fd, void *udata)
     LOG(100, ("MarinerMux: fd = %d\n", fd));
 
     newfd = ::accept(fd, (sockaddr *)&sa, &salen);
-
-    if (newfd >= NFDS)
-        ::close(newfd);
-    else if (mariner::nmariners >= MaxMariners)
-        ::close(newfd);
-    else if (newfd >= 0) {
-        if (::fcntl(newfd, F_SETFL, O_NONBLOCK) < 0) {
-            eprint("MarinerMux: fcntl failed (%d)", errno);
-            ::close(newfd);
-        }
-        else new mariner(newfd);
+    if (newfd < 0) {
+        eprint("MarinerMux: accept failed (%s)", strerror(errno));
+        return;
     }
+
+    if (mariner::nmariners >= MaxMariners) {
+        eprint("MarinerMux: client connection limit exceeded");
+        ::close(newfd);
+        return;
+    }
+
+    if (::fcntl(newfd, F_SETFL, O_NONBLOCK) < 0) {
+        eprint("MarinerMux: failed to set socket to non-blocking (%s)",
+               strerror(errno));
+        ::close(newfd);
+        return;
+    }
+
+    new mariner(newfd);
 }
 
 
