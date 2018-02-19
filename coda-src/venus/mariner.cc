@@ -78,12 +78,10 @@ typedef int socklen_t;
 const int MarinerStackSize = 65536;
 const int MaxMariners = 25;
 
-int mariner::tcp_muxfd = -1;
-int mariner::unix_muxfd = -1;
 int mariner::nmariners;
 
 void MarinerInit() {
-    int sock, opt = 1; 
+    int sock, rc, opt = 1;
 
     mariner::nmariners = 0;
 
@@ -99,14 +97,16 @@ void MarinerInit() {
     s_un.sun_family = AF_UNIX;
     strcpy(s_un.sun_path, MarinerSocketPath);
 
-    if ((sock = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
+    sock = socket(AF_UNIX, SOCK_STREAM, 0);
+    if (sock < 0) {
         eprint("MarinerInit: socket creation failed", errno);
         goto Next;
     }
 
     setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (char *)&opt, sizeof(int));
     
-    if (bind(sock, (struct sockaddr *)&s_un, (socklen_t) sizeof(s_un)) < 0) {
+    rc = bind(sock, (struct sockaddr *)&s_un, (socklen_t) sizeof(s_un));
+    if (rc < 0) {
         eprint("MarinerInit: socket bind failed", errno);
         close(sock);
         goto Next;
@@ -120,73 +120,72 @@ void MarinerInit() {
         close(sock);
         goto Next;
     }
-    mariner::unix_muxfd = sock;
+    MUX_add_callback(sock, MarinerMux, NULL);
 #endif /* HAVE_SYS_UN_H */
 
 Next:
-    if (mariner_tcp_enable) {
-	struct RPC2_addrinfo hints, *ai = NULL;
-	int rc;
+    if (!mariner_tcp_enable)
+        return;
 
-	memset(&hints, 0, sizeof(struct RPC2_addrinfo));
-	hints.ai_family   = AF_UNSPEC;
-	hints.ai_socktype = SOCK_STREAM;
+    struct RPC2_addrinfo hints, *result = NULL, *ai;
+    int warned = 0;
 
-	rc = coda_getaddrinfo(NULL, "venus", &hints, &ai);
-	if (rc) {
-	    eprint("MarinerInit: failed to resolve loopback address");
-	    goto Done;
-	}
+    memset(&hints, 0, sizeof(struct RPC2_addrinfo));
+    hints.ai_family   = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
 
-	/* Socket at which we rendevous with new mariner clients. */
-	sock = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
+    rc = coda_getaddrinfo(NULL, "venus", &hints, &result);
+    if (rc) {
+        eprint("MarinerInit: failed to resolve loopback address");
+        return;
+    }
+
+    /* try to bind all returned addresses */
+    for (ai = result; ai != NULL; ai = ai->ai_next)
+    {
+	/* Socket at which we rendevous with new clients. */
+	sock = ::socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
 	if (sock < 0) {
-	    eprint("MarinerInit: bogus socket");
-	    RPC2_freeaddrinfo(ai);
-	    goto Done;
+	    eprint("MarinerInit: failed to create socket");
+            continue;
 	}
 
 	/* Make address reusable. */
-	setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (char *)&opt, sizeof(int));
+	::setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (char *)&opt, sizeof(int));
 
 	/* Bind to it. */
-	rc = bind(sock, ai->ai_addr, ai->ai_addrlen);
-	RPC2_freeaddrinfo(ai);
-
+	rc = ::bind(sock, ai->ai_addr, ai->ai_addrlen);
 	if (rc < 0) {
 	    eprint("MarinerInit: bind failed (%d)", errno);
-	    close(sock);
-	    goto Done;
+	    ::close(sock);
+            continue;
 	}
 
 	/* Listen for requesters. */
-	if (listen(sock, 2) < 0) {
+	rc = listen(sock, 2);
+	if (rc < 0) {
 	    eprint("MarinerInit: mariner listen failed (%d)", errno);
-	    close(sock);
-	    goto Done;
+	    ::close(sock);
+            continue;
 	}
 
-	eprint("Mariner: listening on tcp port enabled, "
-	       "disable with -noMarinerTcp");
-	mariner::tcp_muxfd = sock;
+        if (!warned++)
+            eprint("MarinerInit: listening on tcp port enabled, "
+                   "disable with -noMarinerTcp");
+        MUX_add_callback(sock, MarinerMux, NULL);
     }
-Done:
-    /* Allow the MessageMux to distribute incoming messages to us. */
-    if (mariner::tcp_muxfd != -1)
-        MUX_add_callback(mariner::tcp_muxfd, MarinerMux, NULL);
-
-    if (mariner::unix_muxfd != -1)
-        MUX_add_callback(mariner::unix_muxfd, MarinerMux, NULL);
+    RPC2_freeaddrinfo(result);
 }
 
 
 void MarinerMux(int fd, void *udata)
 {
-    int newfd = -1;
+    int newfd = -1, rc, flags;
     struct sockaddr_storage sa;
     socklen_t salen = sizeof(sa);
+    char host[NI_MAXHOST], port[NI_MAXSERV];
 
-    LOG(100, ("MarinerMux: fd = %d\n", fd));
+    LOG(100, ("MarinerMux: fd = %d", fd));
 
     newfd = ::accept(fd, (sockaddr *)&sa, &salen);
     if (newfd < 0) {
@@ -194,18 +193,22 @@ void MarinerMux(int fd, void *udata)
         return;
     }
 
+    rc = getnameinfo((struct sockaddr *)&sa, salen,
+                     host, sizeof(host), port, sizeof(port),
+                     NI_NUMERICHOST | NI_NUMERICSERV);
+    LOG(0, ("MarinerMux: new client connection from [%s]:%s",
+            rc ? "resolve failed" : host, rc ? "" : port));
+
     if (mariner::nmariners >= MaxMariners) {
         eprint("MarinerMux: client connection limit exceeded");
         ::close(newfd);
         return;
     }
 
-    if (::fcntl(newfd, F_SETFL, O_NONBLOCK) < 0) {
-        eprint("MarinerMux: failed to set socket to non-blocking (%s)",
-               strerror(errno));
-        ::close(newfd);
-        return;
-    }
+    /* set socket to non-blocking */
+    flags = ::fcntl(newfd, F_GETFL, 0);
+    if (flags != -1)
+        ::fcntl(newfd, F_SETFL, flags | O_NONBLOCK);
 
     new mariner(newfd);
 }
@@ -299,9 +302,8 @@ void PrintMariners(FILE *fp) {
 
 
 void PrintMariners(int fd) {
-    fdprint(fd, "%#08x : %-16s : unix_muxfd = %d, tcp_muxfd = %d, "
-            "nmariners = %d\n", &mariner::tbl, "Mariners",
-            mariner::unix_muxfd, mariner::tcp_muxfd, mariner::nmariners);
+    fdprint(fd, "%#08x : %-16s : nmariners = %d\n",
+            &mariner::tbl, "Mariners", mariner::nmariners);
 
     mariner_iterator next;
     mariner *m;
@@ -344,9 +346,7 @@ mariner::~mariner() {
     LOG(100, ("mariner::~mariner: %-16s : lwpid = %d\n", name, lwpid));
 
     nmariners--;	/* Ought to be a lock protecting this! -JJK */
-
-    if (fd)
-	::close(fd);
+    ::close(fd);
 }
 
 

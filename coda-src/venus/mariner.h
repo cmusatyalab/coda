@@ -64,8 +64,6 @@ class mariner : public vproc {
   friend void MarinerReport(VenusFid *, uid_t);
   friend void PrintMariners(int);
 
-    static int tcp_muxfd;
-    static int unix_muxfd;
     static int nmariners;
 
     unsigned dying : 1;
