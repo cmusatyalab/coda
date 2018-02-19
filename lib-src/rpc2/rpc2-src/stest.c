@@ -470,7 +470,8 @@ static long ProcessPacket(RPC2_Handle cIn, RPC2_PacketBuffer *pIn, RPC2_PacketBu
 	    VMMaxFileSize = (int) ntohl((unsigned long)*iptr);
 	    printf("New VM file buffer size = %ld\n ", VMMaxFileSize);
 	    if (VMFileBuf) free(VMFileBuf);
-	    assert(VMFileBuf = (char *)malloc((unsigned)VMMaxFileSize));
+	    VMFileBuf = (char *)malloc((unsigned)VMMaxFileSize);
+	    assert(VMFileBuf != NULL);
 	    pOut->Header.ReturnCode = RPC2_SUCCESS;
 	    pOut->Header.BodyLength = 0;
 	    i = WhatHappened(RPC2_SendResponse(cIn, pOut), "SendResponse");

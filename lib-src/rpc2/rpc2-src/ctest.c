@@ -245,7 +245,8 @@ int main(int arg, char **argv)
 		(void) fscanf(ifd, "%ld", &VMMaxFileSize);
 		if (!qflag && fflag) printf(" %ld\n", VMMaxFileSize);
 		if (VMFileBuf) free(VMFileBuf);
-		assert(VMFileBuf = (char *)malloc((unsigned)VMMaxFileSize));
+		VMFileBuf = (char *)malloc((unsigned)VMMaxFileSize);
+		assert(VMFileBuf != NULL);
 		break;
 		
 	    case SETREMOTEVMFILESIZE:
