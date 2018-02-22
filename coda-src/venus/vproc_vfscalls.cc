@@ -108,11 +108,11 @@ void vproc::statfs(struct coda_statfs *sfs) {
 }
 
 
-void vproc::vget(struct venus_cnode *vpp, struct cfid *cfidp, int what)
+void vproc::vget(struct venus_cnode *vpp, VenusFid *vfid, int what)
 {
-    LOG(1, ("vproc::vget: fid = %s, nc = %x\n", FID_(&cfidp->cfid_fid),
-	    u.u_nc));
+    LOG(1, ("vproc::vget: fid = %s, nc = %x\n", FID_(vfid), u.u_nc));
 
+    VenusFid fid = *vfid;
     fsobj *f = 0;
 
     if (u.u_nc && LogLevel >= 100)
@@ -123,22 +123,22 @@ void vproc::vget(struct venus_cnode *vpp, struct cfid *cfidp, int what)
     {
 	worker *w = (worker *)this;
 	union outputArgs *out = (union outputArgs *)w->msg->msg_buf;
-	out->coda_vget.Fid = *VenusToKernelFid(&cfidp->cfid_fid);
+	out->coda_vget.Fid = *VenusToKernelFid(&fid);
 	out->coda_vget.vtype = CDT_UNKNOWN;
 	w->Return(w->msg, sizeof(struct coda_vget_out));
     }
 
     for (;;) {
-	Begin_VFS(&cfidp->cfid_fid, CODA_VGET);
+	Begin_VFS(&fid, CODA_VGET);
 	if (u.u_error) break;
 
-	u.u_error = FSDB->Get(&f, &cfidp->cfid_fid, u.u_uid, what);
+	u.u_error = FSDB->Get(&f, &fid, u.u_uid, what);
 	if (u.u_error) {
 	    if (u.u_error == EINCONS) {
 		u.u_error = 0;
 
 		/* Set OUT parameter according to "fake" vnode. */
-		MAKE_CNODE2(*vpp, cfidp->cfid_fid, C_VLNK);
+		MAKE_CNODE2(*vpp, fid, C_VLNK);
 		vpp->c_flags |= C_INCON;
 	    }
 

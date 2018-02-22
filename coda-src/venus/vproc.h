@@ -94,13 +94,6 @@ const int RETRY_LIMIT = 10;
 
 
 /* *****  Exported types  ***** */
-struct cfid {
-    u_short     cfid_len;
-    u_short     cfid_fill;
-    VenusFid     cfid_fid;
-};
-
-
 
 /* local-repair modification */
 enum vproctype {    VPT_Main,
@@ -223,7 +216,7 @@ class vproc : public olink {
     void root(struct venus_cnode *);
     void statfs(struct coda_statfs *);
     void sync();
-    void vget(struct venus_cnode *, struct cfid *, int what=RC_STATUS);
+    void vget(struct venus_cnode *, VenusFid *, int what=RC_STATUS);
     void open(struct venus_cnode *, int);
     void close(struct venus_cnode *, int);
     void ioctl(struct venus_cnode *, unsigned char nr, struct ViceIoctl *, int);
@@ -243,8 +236,6 @@ class vproc : public olink {
     void symlink(struct venus_cnode *, char *, struct coda_vattr *, char *);
     void readlink(struct venus_cnode *, struct coda_string *);
     void fsync(struct venus_cnode *);
-    void inactive(struct venus_cnode *);
-    void fid(struct venus_cnode *, struct cfid	**);
 
     /* Pathname translation. */
     int namev(char *, int, struct venus_cnode *);

@@ -1496,10 +1496,9 @@ void worker::main(void)
 	    case CODA_VGET:
 		{
 		LOG(100, ("CODA_VGET: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
-		struct cfid fid;
-		fid.cfid_len = (unsigned short)sizeof(VenusFid);
-		KernelToVenusFid(&fid.cfid_fid, &in->coda_vget.Fid);
-		vget(&vtarget, &fid, RC_DATA);
+                VenusFid vfid;
+		KernelToVenusFid(&vfid, &in->coda_vget.Fid);
+		vget(&vtarget, &vfid, RC_DATA);
 
 		if (u.u_error == 0) {
 		    out->coda_vget.Fid = *VenusToKernelFid(&vtarget.c_fid);

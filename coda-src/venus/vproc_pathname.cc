@@ -97,10 +97,7 @@ int vproc::namev(char *path, int flags, struct venus_cnode *vpp) {
 
     /* Initialize the parent (i.e., the root of the expansion). */
     {
-	struct cfid fid;
-	fid.cfid_len = sizeof(VenusFid);
-	fid.cfid_fid = u.u_cdir;
-	vget(&pvp, &fid);
+	vget(&pvp, &u.u_cdir);
 	if (u.u_error) goto Exit;
 
 	/* Skip over leading slashes. */
@@ -234,10 +231,7 @@ int vproc::namev(char *path, int flags, struct venus_cnode *vpp) {
 		    comp[0] = '\0';
 
 		    /* Release the parent and reset it to the VenusRoot. */
-		    struct cfid fid;
-		    fid.cfid_len = sizeof(VenusFid);
-		    fid.cfid_fid = rootfid;
-		    vget(&pvp, &fid);
+		    vget(&pvp, &rootfid);
 		    if (u.u_error) goto Exit;
 		}
 		else if (linkdata[0] == '/') {
