@@ -257,8 +257,7 @@ void MarinerReport(VenusFid *fid, uid_t uid) {
 		}
 		first = 0;
 	    }
-
-	    ::write(m->fd, (buf), len);
+	    m->write(buf, len);
 	}
 }
 
@@ -327,6 +326,8 @@ mariner::mariner(int afd) :
     fd = afd;
     memset(commbuf, 0, MWBUFSIZE);
 
+    Lock_Init(&write_lock);
+
     /* Poke main procedure. */
     start_thread();
 }
@@ -350,6 +351,80 @@ mariner::~mariner() {
 }
 
 
+/* non-blocking read all 'len' bytes */
+ssize_t mariner::read_until_done(void *buf, size_t len)
+{
+    unsigned char *ptr = (unsigned char *)buf;
+    size_t bytes_read = 0;
+    fd_set fds;
+    ssize_t n;
+
+    while (bytes_read < len)
+    {
+        n = ::read(fd, ptr + bytes_read, len - bytes_read);
+        if (n < 0 && errno != EAGAIN)
+            return -1;
+
+        if (n > 0) {
+            bytes_read += n;
+            if (bytes_read >= len) {
+                assert(bytes_read == len);
+                break;
+            }
+        }
+
+        /* wait for more */
+        FD_ZERO(&fds);
+        FD_SET(fd, &fds);
+        n = ::IOMGR_Select(fd+1, &fds, NULL, NULL, NULL);
+        if (n < 0)
+            return -1;
+    }
+    return bytes_read;
+}
+
+
+/* non-blocking write everything in the buffer */
+ssize_t mariner::write_until_done(const void *buf, size_t len)
+{
+    unsigned char *ptr = (unsigned char *)buf;
+    size_t bytes_written = 0;
+    fd_set fds;
+    ssize_t n;
+
+    ObtainWriteLock(&write_lock);
+
+    while (bytes_written < len)
+    {
+        n = ::write(fd, ptr + bytes_written, len - bytes_written);
+        if (n < 0 && errno != EAGAIN)
+            goto err_out;
+
+        if (n > 0) {
+            bytes_written += n;
+            if (bytes_written >= len) {
+                assert(bytes_written == len);
+                break;
+            }
+        }
+
+        /* wait until the fd becomes writeable again */
+        FD_ZERO(&fds);
+        FD_SET(fd, &fds);
+        n = IOMGR_Select(fd+1, NULL, &fds, NULL, NULL);
+        if (n < 0)
+            goto err_out;
+    }
+
+    ReleaseWriteLock(&write_lock);
+    return bytes_written;
+
+err_out:
+    ReleaseWriteLock(&write_lock);
+    return -1;
+}
+
+
 /* Duplicates fdprint(). */
 int mariner::Write(const char *fmt, ...) {
     va_list ap;
@@ -359,15 +434,13 @@ int mariner::Write(const char *fmt, ...) {
     vsnprintf(buf, 180, fmt, ap);
     va_end(ap);
 
-    int len = (int)strlen(buf);
-    int n = ::write(fd, buf, len);
-    return(n != len ? -1 : 0);
+    int len = strlen(buf);
+    return write_until_done(buf, len);
 }
 
 
 int mariner::AwaitRequest()
 {
-    fd_set fds;
     unsigned int idx = 0;
     int n;
 
@@ -375,18 +448,7 @@ int mariner::AwaitRequest()
 
     while (idx < (sizeof(commbuf) - 1) && !dying)
     {
-	FD_ZERO(&fds);
-	FD_SET(fd, &fds);
-
-	n = VprocSelect(fd+1, &fds, 0, 0, NULL);
-	if (n < 0) break;
-	if (n == 0 || !FD_ISSET(fd, &fds))
-	    continue;
-
-	n = ::read(fd, &commbuf[idx], 1);
-	if (n < 0 && errno == EAGAIN)
-	    continue;
-
+        n = read_until_done(&commbuf[idx], 1);
 	if (n <= 0)
 	    return -1;
 

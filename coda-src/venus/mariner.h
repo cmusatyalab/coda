@@ -65,6 +65,7 @@ class mariner : public vproc {
   friend void PrintMariners(int);
 
     static int nmariners;
+    struct Lock write_lock;
 
     unsigned dying : 1;
     unsigned logging : 1;	    /* for MarinerLog() */
@@ -77,6 +78,10 @@ class mariner : public vproc {
     mariner(int);
     int operator=(mariner&);    /* not supported! */
     virtual ~mariner();
+
+    /* LWP-aware non-blocking read/write functions */
+    ssize_t read_until_done(void *buf, size_t len);
+    ssize_t write_until_done(const void *buf, size_t len);
 
     int Read();
     int Write(const char *buf, ...);
@@ -92,7 +97,7 @@ class mariner : public vproc {
   public:
     int IsLogging(void)		  { return logging; }
     int WantVolState(void)	  { return want_volstate; }
-    int write(char *buf, int len) { return ::write(fd, buf, len); }
+    int write(char *buf, int len) { return write_until_done(buf, len); }
 };
 
 
