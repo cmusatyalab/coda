@@ -2215,6 +2215,10 @@ void fsobj::GetPath(char *buf, int scope)
 	}
 
 	if (IsVenusRoot()) {
+            if (scope == PATH_COMPONENT) {
+                strcpy(buf, "/");
+                return;
+            }
   	    LOG(100, ("fsobj::GetPath (%s): venusRoot.\n", FID_(&fid)));
 	    strcpy(buf, venusRoot);
 	    return;
@@ -2228,6 +2232,11 @@ void fsobj::GetPath(char *buf, int scope)
 
 	u.mtpoint->GetPath(buf, scope);
 	return;
+    }
+
+    if (scope == PATH_COMPONENT) {
+        strcpy(buf, comp);
+        return;
     }
 
     if (!pfso && !FID_EQ(&pfid, &NullFid)) {

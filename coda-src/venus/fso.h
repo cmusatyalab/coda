@@ -657,6 +657,7 @@ class fsobj {
 #define PATH_VOLUME 0
 #define PATH_FULL   1
 #define PATH_REALM  2
+#define PATH_COMPONENT 3
     void GetPath(char *, int scope=PATH_VOLUME);
 
     ViceVersionVector *VV() { return(&stat.VV); }
