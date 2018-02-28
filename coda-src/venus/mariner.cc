@@ -442,7 +442,7 @@ int mariner::Write(const char *fmt, ...) {
 int mariner::AwaitRequest()
 {
     unsigned int idx = 0;
-    int n;
+    ssize_t n;
 
     idle = 1;
 
@@ -461,11 +461,39 @@ int mariner::AwaitRequest()
 	    break;
 	}
 	idx++;
+
+        /* check for 9PFS Tversion request magic */
+        /* we really only want to do this for the first 19 bytes of a new
+         * connection, and the '\r' stripping and early exit of the loop when a
+         * '\n' is found can mangle the incoming 9pfs Tversion message. */
+        if (idx == 19)
+        {
+            // @ offset 1, message len < 256, opcode Tversion, tag NOTAG
+            const unsigned char magic1[] = "\0\0\0d\377\377";
+            // @ offset 12, version len < 256, version string "9P2000..."
+            const unsigned char magic12[] = "\09P2000";
+
+            if (memcmp(&commbuf[1], magic1, sizeof(magic1)) == 0 &&
+                memcmp(&commbuf[12], magic12, sizeof(magic12)) == 0)
+            {
+                /* make sure we don't send any 'normal' mariner output */
+                logging = reporting = want_volstate = 0;
+
+                uint32_t reqlen = ((unsigned char *)commbuf)[0];
+                /* read rest of the request */
+                n = read_until_done(&commbuf[19], reqlen - 19);
+                if (n < 0)
+                    return -1;
+
+                /* when the 9pfs main loop is done, we want to also clear the
+                 * mariner main loop */
+                return -1;
+            }
+        }
     }
     idle = 0;
     return 0;
 }
-
 
 void mariner::Resign(int code) {
     /* Nothing necessary here. */
