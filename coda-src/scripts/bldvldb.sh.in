@@ -22,44 +22,36 @@
 #
 prefix=@prefix@
 exec_prefix=@exec_prefix@
-conf="`@sbindir@/codaconfedit server.conf`"
-if [ -f ${conf} ] ; then
-  . ${conf}
+conf=$("@sbindir@/codaconfedit" server.conf)
+if [ -f "$conf" ] ; then
+  . "$conf"
 fi
 
-if [ x${vicedir} = x ] ; then
+if [ "$vicedir" = "" ] ; then
   vicedir=/vice
 fi
 
-THISHOST=`hostname | tr A-Z a-z`
-REMOTE=${vicedir}/vol/remote
-
-PATH=/sbin:/usr/sbin:$PATH
-export PATH
-cd ${vicedir}/vol/remote
+REMOTE="$vicedir/vol/remote"
+cd "$REMOTE" || exit
 SERVERS=""
 
 # Get the list of volumes from 
 #  - all servers (if argc = 1)
 #  - the listed servers (if argc > 1) 
 
-if [ $#  = 0 ]; then
-	SERVERS=`awk '{ print $1 }' ${vicedir}/db/servers`
-else
-    for i in $* ; do
-        NEWSERVER=`awk '{ print $1 }' ${vicedir}/db/servers | grep $i `
-	SERVERS="$NEWSERVER $SERVERS"
-    done
-fi
+for i in "${@:-}" ; do
+    SERVER=$(awk "/$i/ { print \$1 }" "$vicedir/db/servers")
+    SERVERS="$SERVER $SERVERS"
+done
 
 echo "Fetching volume lists from servers:"
 
 for server in $SERVERS
 do 
-    ${prefix}/sbin/volutil -h ${server} getvolumelist ${REMOTE}/${server}.list.new
+    "$prefix/sbin/volutil" -h "$server" getvolumelist "$REMOTE/$server.list.new"
 
-    if [ -r ${REMOTE}/${server}.list.new ]; then
-        mv ${REMOTE}/${server}.list.new ${REMOTE}/${server}.list
+    if [ -r "$REMOTE/$server.list.new" ]; then
+        mv "$REMOTE/$server.list.new" "$REMOTE/$server.list"
 	echo " $server - success"
     else 
 	echo " $server - FAILED, check if coda server is running"
@@ -67,7 +59,7 @@ do
 done
 
 # Make on big list called composite
-cat ${REMOTE}/*.list> ${vicedir}/vol/BigVolumeList
+cat "$REMOTE/*.list" > "$vicedir/vol/BigVolumeList"
 
 # Make a new vldb from the list
-${prefix}/sbin/volutil makevldb  ${vicedir}/vol/BigVolumeList
+"$prefix/sbin/volutil" makevldb "$vicedir/vol/BigVolumeList"

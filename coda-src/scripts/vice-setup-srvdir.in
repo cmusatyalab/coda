@@ -21,7 +21,7 @@ prefix=@prefix@
 exec_prefix=@exec_prefix@
 
 echon() {
-    if [ "`echo -n`" = "-n" ] ; then
+    if [ "$(echo -n)" = "-n" ] ; then
         echo "$@"'\c'
     else
         echo -n "$@"
@@ -32,18 +32,18 @@ echon() {
 # Configuration
 #
 vicedir=/vice
-. "`@sbindir@/codaconfedit server.conf`"
+. "$("@sbindir@/codaconfedit" server.conf)"
 
-if [ x$hn = x ] ; then
-  if [ `uname -s` != Linux ] ; then
+if [ "$hn" = "" ] ; then
+  if [ "$(uname -s)" != Linux ] ; then
     domain=""
-    while [ x$domain = x ] ; do
-      echo -n "What is the domain name for your servers? "
-      read domain
+    while [ "$domain" = "" ] ; do
+      echon "What is the domain name for your servers? "
+      read -r domain
     done
-    hn=`hostname -s`.$domain
+    hn=$(hostname -s).$domain
   else
-    hn=`hostname -f`
+    hn=$(hostname -f)
   fi
 fi
 
@@ -64,18 +64,18 @@ echo
 
 echon 'Where shall we store your file data [/vicepa]? '
 srvdir=
-read srvdir
+read -r srvdir
 
-if [ "x$srvdir" = x ]; then
+if [ "$srvdir" = "" ]; then
     srvdir=/vicepa
 fi
 
 # Create the directory if needed.  (Symlink is OK.)
 
-if [ -d "$srvdir" -o -h "$srvdir" ]; then
+if [ -d "$srvdir" ] || [ -h "$srvdir" ]; then
     if [ -f "$srvdir/FTREEDB" ]; then
     echo "An FTREEDB exists in $srvdir.  Clean up first and rerun $0"
-    echo "You may also want to clean up ${vicedir}/db/vicetab"
+    echo "You may also want to clean up $vicedir/db/vicetab"
     exit 1
     fi
 else
@@ -89,38 +89,44 @@ fi
 touch "$srvdir/FTREEDB"
 
 yesno=""
-until [ "x$yesno" != x ]; do
+while [ "$yesno" = "" ]; do
     echon "Shall I set up a vicetab entry for $srvdir (y/n) "
-    read yesno
+    read -r yesno
+
+    case "$(echo "$yesno" | tr '[:upper:]' '[:lower:]')" in
+    y|yes) vicetab=Y ;;
+    n|no)  vicetab=N ;;
+    *) yesno="" ; echo "Please answer yes or no." ;;
+    esac 
 done
-if [ "x$yesno" = xy -o "x$yesno" = xyes -o "x$yesno" = xY ]; then
-    grep $srvdir ${vicedir}/db/vicetab >/dev/null 2>&1
+if [ "$vicetab" = Y ] ; then
+    grep "$srvdir" "$vicedir/db/vicetab" >/dev/null 2>&1
     if [ $? = 0 ]; then
-        echo "$srvdir already in ${vicedir}/db/vicetab. Please clean up first."
+        echo "$srvdir already in $vicedir/db/vicetab. Please clean up first."
         exit 1
     fi
     
     size=""
-    until [ "x$size" != x ]; do
+    until [ "$size" != "" ]; do
         echo "Select the maximum number of files for the server."
         echo "[256K, 1M, 2M, 16M]: "
-        read size
+        read -r size
         case "$size" in
             256[kK] )
                 echo "$hn   $srvdir   ftree   width=64,depth=3" \
-                     >> ${vicedir}/db/vicetab
+                     >> "$vicedir/db/vicetab"
                 ;;
             1[mM] )
                 echo "$hn   $srvdir   ftree   width=32,depth=4" \
-                     >> ${vicedir}/db/vicetab
+                     >> "$vicedir/db/vicetab"
                 ;;
             2[mM] )
                 echo "$hn   $srvdir   ftree   width=128,depth=3" \
-                    >> ${vicedir}/db/vicetab
+                    >> "$vicedir/db/vicetab"
                 ;;
             16[mM] )
                 echo "$hn   $srvdir   ftree   width=256,depth=3" \
-                    >> ${vicedir}/db/vicetab
+                    >> "$vicedir/db/vicetab"
                 ;;
             * )
                 echo "Choose from one of the listed values."
@@ -135,7 +141,7 @@ else
     echo  "Read vicetab(5) for set up info."
     echo
     echo  "Press return to continue"
-    read ok
+    read -r
 fi
 
 echo

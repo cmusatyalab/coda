@@ -15,33 +15,32 @@
 prefix=@prefix@
 exec_prefix=@exec_prefix@
 
-OS=`uname -s | cut -c1-5`
+OS=$(uname -s | cut -c1-5)
 
-if [ $OS = CYGWI ] ; then
+if [ "$OS" = CYGWI ] ; then
     if [ $# != 3 ]; then
 	echo "Usage: $0 default-realm-name cachesize-in-kb drive-letter"
 	exit 1
     fi
 else
-    if [ $# != 1 -a $# != 2 ]; then
+    if [ $# != 1 ] && [ $# != 2 ]; then
 	echo "Usage: $0 default-realm-name [cachesize-in-kb]"
 	exit 1
     fi
 fi
 
 REALM=$1
-if [ x$2 != x ] ; then
+if [ "$2" != "" ] ; then
     CACHESIZE=$2
 else
     CACHESIZE=100000
 fi
-if [ x$3 != x ] ; then
-    MOUNTPOINT=`echo $3 | cut -c1`
-    if [ $MOUNTPOINT \< A -o $MOUNTPOINT \> z -o \
-         \( $MOUNTPOINT \> Z -a $MOUNTPOINT \< a \) ] ; then
-	echo "Drive letter must be a letter!"
-	exit 1;
-    fi
+if [ "$3" != "" ] ; then
+    MOUNTPOINT=$(echo "$3" | cut -c1)
+    case "$MOUNTPOINT" in
+    [A-Za-z]) ;;
+    *) echo "Drive letter must be a letter!" ; exit 1 ;;
+    esac
 fi
 
 #
@@ -52,10 +51,10 @@ fi
 #restart=0
 #[ ! -f /etc/coda/venus.conf ] && restart=1
 
-[ "$REALM" ] && @sbindir@/codaconfedit venus.conf realm $REALM
-@sbindir@/codaconfedit venus.conf cacheblocks $CACHESIZE
+[ "$REALM" ] && @sbindir@/codaconfedit venus.conf realm "$REALM"
+@sbindir@/codaconfedit venus.conf cacheblocks "$CACHESIZE"
 
-conf="`@sbindir@/codaconfedit venus.conf`"
+conf=$(@sbindir@/codaconfedit venus.conf)
 
 #if [ $restart = 1 ] ; then
 #    echo "We just created an initial configuration file /etc/coda/venus.conf"
@@ -77,66 +76,66 @@ rvm_data=/var/lib/coda/DATA
 mountpoint=/coda
 
 # override with user defined paths
-if [ x${conf} != x/dev/null ] ; then
-    . ${conf}
+if [ "${conf}" != /dev/null ] ; then
+    . "${conf}"
 fi
 
 #
 # we need to make sure we have the following directories so that venus can
 # create the files that live in them.
 #
-errlogdir=`dirname $errorlog`
-logfiledir=`dirname $logfile`
-marinersocketdir=`dirname $marinersocket`
-pid_filedir=`dirname $pid_file`
-run_control_file_dir=`dirname $run_control_file`
-rvm_logdir=`dirname $rvm_log`
-rvm_datadir=`dirname $rvm_data`
+errlogdir=$(dirname $errorlog)
+logfiledir=$(dirname $logfile)
+marinersocketdir=$(dirname $marinersocket)
+pid_filedir=$(dirname $pid_file)
+run_control_file_dir=$(dirname $run_control_file)
+rvm_logdir=$(dirname $rvm_log)
+rvm_datadir=$(dirname $rvm_data)
 
 # Darn, mkdir -p -m 700 /path/to/new/dir only sets the mode of the last
 # created directory correctly. The following function sets the mode of all
 # newly created directories.
 makedir () {
   [ "$2" = "" ] && return
-  while [ ! -d $2 ] ; do
-    dir=$2
+  while [ ! -d "$2" ] ; do
+    dir="$2"
     # find first existing parent
-    while [ "$dir" != "" -a ! -d $dir ] ; do
-	newdir=`basename $dir`
-	dir=`dirname $dir`
+    while [ "$dir" != "" ] && [ ! -d "$dir" ] ; do
+	newdir=$(basename "$dir")
+	dir=$(dirname "$dir")
     done
     echo "=> Creating $dir/$newdir, mode $1"
-    if ! mkdir $dir/$newdir ; then
+    if ! mkdir "$dir/$newdir" ; then
         echo "  Could not make \"$dir/$newdir\".  Aborting...."
         exit 1
     fi
-    if [ $dir = / ] ; then
+    if [ "$dir" = / ] ; then
         dir=
     fi
-    chmod $1 $dir/$newdir
+    chmod "$1" "$dir/$newdir"
   done
 }
 
-makedir 755 $checkpointdir
-makedir 755 $marinersocketdir
-makedir 700 $cachedir
-makedir 700 $errorlogdir
-makedir 700 $logfiledir
-makedir 700 $pid_filedir
-makedir 700 $run_control_file_dir
-makedir 700 $rvm_logdir
-makedir 700 $rvm_datadir
+makedir 755 "$checkpointdir"
+makedir 755 "$marinersocketdir"
+makedir 700 "$cachedir"
+makedir 700 "$errlogdir"
+makedir 700 "$logfiledir"
+makedir 700 "$pid_filedir"
+makedir 700 "$run_control_file_dir"
+makedir 700 "$rvm_logdir"
+makedir 700 "$rvm_datadir"
 
 contains () {
 	grep "$2" "$1" > /dev/null 2>&1
 }
 
 # tell the kernel about the new module 
-if [ X$OS = XLinux ] ; then
+if [ "$OS" = "Linux" ] ; then
     # make sure the module dependencies are current
     /sbin/depmod -a
     # udev managed /dev
-    if [ -d /dev/.udevdb -o -f /dev/.udev.tdb ] ; then
+    if [ -d /dev/.udevdb ] || [ -f /dev/.udev.tdb ] ; then
 	# udev relies on modules being autoloaded because their hardware got
 	# detected. But since there is no hardware for the Coda kernel module
 	# we have to make sure it is loaded automatically at boot
@@ -163,17 +162,17 @@ if [ X$OS = XLinux ] ; then
     fi
 fi
 
-if [ $OS = CYGWI ]; then
+if [ "$OS" = CYGWI ]; then
 
   # setup the drive mapping
 
   rm -rf /coda
 
-  ln -s /cygdrive/$MOUNTPOINT /coda
+  ln -s "/cygdrive/$MOUNTPOINT" /coda
 
   @sbindir@/codaconfedit venus.conf mapprivate 0
-  @sbindir@/codaconfedit venus.conf mountpoint $MOUNTPOINT:
-  @sbindir@/codaconfedit venus.conf cache_prefix /??/`mount | grep ' / ' | cut -d' ' -f1 | tr \\\\\\\\ /`
+  @sbindir@/codaconfedit venus.conf mountpoint "$MOUNTPOINT:"
+  @sbindir@/codaconfedit venus.conf cache_prefix "/??/$(mount | grep ' / ' | cut -d' ' -f1 | tr \\\\\\\\ /)"
 
 else
 
@@ -186,12 +185,12 @@ else
   fi
 
   # make the psdev, on udev and devfs systems the device should exist by now
-  if [ ! -c /dev/cfs0 -a ! -c /dev/coda/0 ] ; then
+  if [ ! -c /dev/cfs0 ] && [ ! -c /dev/coda/0 ] ; then
     if [ ! -x /dev/MAKEDEV ] ; then
       echo 'You need a character device for the Coda kernel module'
       echo 'On *BSD systems you probably have to run "mknod /dev/cfs0 c 93 0"'
     else
-      ( cd /dev ; ./MAKEDEV cfs )
+      ( cd /dev || exit ; ./MAKEDEV cfs )
     fi
   fi
 fi

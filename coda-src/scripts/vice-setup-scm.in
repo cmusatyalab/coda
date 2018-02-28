@@ -21,7 +21,7 @@ prefix=@prefix@
 exec_prefix=@exec_prefix@
 
 echon() {
-    if [ "`echo -n`" = "-n" ] ; then
+    if [ "$(echo -n)" = "-n" ] ; then
         echo "$@"'\c'
     else
         echo -n "$@"
@@ -29,19 +29,19 @@ echon() {
 }
 
 # exit if errors
-set -e 1
+set -e
 
 #
 # Configuration
 #
-. "`@sbindir@/codaconfedit server.conf`"
+. "$("@sbindir@/codaconfedit" server.conf)"
 
-if [ x${vicedir} = x ] ; then
+if [ "$vicedir" = "" ] ; then
   vicedir=/vice
 fi
 
 # current first maximum replicated volume id (0x7f000000)
-echo 2130706432 > ${vicedir}/db/maxgroupid
+echo 2130706432 > "$vicedir/db/maxgroupid"
 
 #
 # setting up servers file
@@ -54,28 +54,28 @@ echo Setting up servers file.
 # making hostname
 #
 
-if [ x$hn = x ] ; then
-  if [ `uname -s` != Linux ] ; then
+if [ "$hn" = "" ] ; then
+  if [ "$(uname -s)" != Linux ] ; then
     domain=""
-    while [ x$domain = x ] ; do
-      echo -n "What is the domain name for your servers? "
-      read domain
+    while [ "$domain" = "" ] ; do
+      echon "What is the domain name for your servers? "
+      read -r domain
     done
-    hn=`hostname -s`.$domain
+    hn=$(hostname -s).$domain
   else
-    hn=`hostname -f`
+    hn=$(hostname -f)
   fi
 fi
 
-cd ${vicedir}/db
+cd "$vicedir/db" || exit
 
 id=""
-until [ "x$id" != x ]; do
+while [ "$id" = "" ]; do
     echo "Enter an id for the SCM server. (hostname $hn)"
     echo "The serverid is a unique number between 0 and 255."
     echo "You should avoid 0, 127, and 255."
     echon "serverid: "
-    read id
+    read -r id
 done
 echo "$hn		$id" >> servers
 echo done!
@@ -83,8 +83,5 @@ echo done!
 #
 #  this is the scm so put hostname in ${vicedir}/db/scm
 #
-echo $hn > ${vicedir}/db/scm
+echo "$hn" > "$vicedir/db/scm"
 
-#
-# Add information for other servers on this machine
-#

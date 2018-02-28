@@ -20,7 +20,7 @@ prefix=@prefix@
 exec_prefix=@exec_prefix@
 
 echon() {
-    if [ "`echo -n`" = "-n" ] ; then
+    if [ "$(echo -n)" = "-n" ] ; then
 	echo "$@"'\c'
     else
 	echo -n "$@"
@@ -42,40 +42,38 @@ fi
 echo "Welcome to the Coda Server Setup script!"
 echo
 
-if [ `uname -s` != Linux ] ; then
+if [ "$(uname -s)" != Linux ] ; then
     domain=""
-    while [ x$domain = x ] ; do
-	echo -n "What is the domain name for your servers? "
-	read domain
+    while [ "$domain" = "" ] ; do
+	echon "What is the domain name for your servers? "
+	read -r domain
     done
-    hn=`hostname -s`.$domain
+    hn=$(hostname -s).$domain
     export domain
 else
-    hn=`hostname -f`
+    hn=$(hostname -f)
 fi
 export hn
 
 #
 # initial information
 #
-conf="`@sbindir@/codaconfedit server.conf`"
-if [ "x$conf" != x/dev/null ] ; then
+conf="$(@sbindir@/codaconfedit server.conf)"
+if [ "$conf" != /dev/null ] ; then
     yesno=""
     echo "You already have a file $conf!"
-    echo "Continueing will remove that file."
-    while [ x$yesno = x ]; do
+    echo "Continuing will remove that file."
+    while [ "$yesno" = "" ]; do
 	echon "Do you want to continue? [yes/no] "
-	read yesno
-	if [ x$yesno = xno -o x$yesno = xNO ] ; then
-	    echo "Not configuring a coda server!"
-	    exit 1
-	fi
-	if [ x$yesno != xyes -a x$yesno != xYES ] ; then
-	    yesno=""
-	    echo "Please answer yes or no."
-	fi
+	read -r yesno
+
+        case "$(echo "$yesno" | tr '[:upper:]' '[:lower:]')" in
+        y|yes) ;;
+        n|no) echo "Not configuring a coda server!" ; exit 1 ;;
+        *) yesno="" ; echo "Please answer yes or no." ;;
+	esac
     done
-    if ! rm $conf ; then
+    if ! rm "$conf" ; then
 	echo "Could not remove $conf.  Exiting."
 	exit 1
     fi
@@ -88,28 +86,28 @@ echo 'Setting up config files for a coda server.'
 
 # figure out where the server.conf template, and thus the new server.conf
 # file are located.
-conf_template="`@sbindir@/codaconfedit server.conf.ex`"
-if [ "x$conf_template" = x/dev/null ] ; then
+conf_template="$("@sbindir@/codaconfedit" server.conf.ex)"
+if [ "$conf_template" = /dev/null ] ; then
     echo "Could not find the server.conf.ex template file"
     exit 1
 fi
-conf_directory="`dirname $conf_template`"
-conf="${conf_directory}/`basename $conf_template .ex`"
+conf_directory=$(dirname "$conf_template")
+conf="$conf_directory/$(basename "$conf_template" .ex)"
 
 echon "What is the root directory for your coda server(s)? [/vice] "
 vicedir=""
-read vicedir
+read -r vicedir
 
-if [ "x$vicedir" = x ] ; then
+if [ "$vicedir" = "" ] ; then
     vicedir=/vice
 fi
 
-@sbindir@/codaconfedit server.conf vicedir $vicedir
+"@sbindir@/codaconfedit" server.conf vicedir "$vicedir"
 #
 # server.conf standard
 #
-@sbindir@/codaconfedit server.conf rvmtruncate 5
-@sbindir@/codaconfedit server.conf trace 100
+"@sbindir@/codaconfedit" server.conf rvmtruncate 5
+"@sbindir@/codaconfedit" server.conf trace 100
 
 
 echo "Setting up $vicedir."
@@ -118,38 +116,40 @@ for i in auth2 backup db misc vol/remote srv ; do
     mkdir -p "${vicedir}/$i"
 done
 
-echo Directories under $vicedir are set up.
+echo "Directories under $vicedir are set up."
 echo
 
 #
 # Setup .../db
 #
-cd ${vicedir}/db
+cd "$vicedir/db" || exit
 
 #
 # Ask about scm and tokens....
 #
-isscm=N
 yesno=""
-until [ "x$yesno" != x ]; do
-   echon 'Is this the master server, aka the SCM machine? (y/n) '
-   read yesno
-done
-if [ "x$yesno" = xy -o "x$yesno" = xyes -o "x$yesno" = xY ]; then
-   isscm=Y
-fi
+while [ "$yesno" = "" ]; do
+    echon 'Is this the master server, aka the SCM machine? (y/n) '
+    read -r yesno
 
-if [ $isscm = N ]; then
-    until [ "x$scmhost" != x ]; do
+    case "$(echo "$yesno" | tr '[:upper:]' '[:lower:]')" in
+    y|yes) isscm=Y ;;
+    n|no)  isscm=N ;;
+    *) yesno="" ; echo "Please answer yes or no." ;;
+    esac
+done
+
+if [ "$isscm" = N ]; then
+    until [ "$scmhost" != "" ]; do
 	echon "Enter the hostname of the SCM machine : "
-	read scmhost
+	read -r scmhost
     done
-    echo $scmhost > scm
+    echo "$scmhost" > scm
 
     token=""
-    until [ "x$token" != x ]; do
+    until [ "$token" != "" ]; do
 	echon "Enter the update token that matches SCM $scmhost: "
-	read token
+	read -r token
     done
 
     rm -f update.tk
@@ -157,7 +157,7 @@ if [ $isscm = N ]; then
     chmod 600 update.tk
     echo "$token" >> update.tk
 
-    if ! @sbindir@/updatefetch -h $scmhost -r db/servers -l servers ; then
+    if ! "@sbindir@/updatefetch" -h "$scmhost" -r db/servers -l servers ; then
 	echo "Could not contact SCM."
 	echo "Check whether the updatesrv process is running on the SCM."
 	exit 1
@@ -166,7 +166,7 @@ if [ $isscm = N ]; then
     echo "Fetching needed files from SCM $scmhost."
     for which in auth2.pw auth2.tk auth2.lock prot_users.cdb volutil.tk files
     do
-	if ! @sbindir@/updatefetch -h $scmhost -r db/$which -l $which ; then
+	if ! "@sbindir@/updatefetch" -h "$scmhost" -r "db/$which" -l "$which" ; then
 	    echo "Could not fetch $which from SCM.  Make sure SCM is setup"
 	    echo "correctly and then rerun $0."
 	    exit 1
@@ -175,7 +175,7 @@ if [ $isscm = N ]; then
     # non critical files
     for which in ROOTVOLUME
     do
-	@sbindir@/updatefetch -h $scmhost -r db/$which -l $which 2>/dev/null || true
+	"@sbindir@/updatefetch" -h "$scmhost" -r "db/$which" -l "$which" 2>/dev/null || true
     done
     echo "Done."
 
@@ -186,16 +186,16 @@ else
 
     for which in update auth2 volutil; do
 	token=""
-	until [ "x$token" != x ]; do
+	until [ "$token" != "" ]; do
 	    echo "The following token must be identical on all servers."
 	    echon "Enter a random token for $which authentication : "
-	    read token
+	    read -r token
 	done
 
-	rm -f $which.tk
-	touch $which.tk
-	chmod 600 $which.tk
-	echo "$token" >> $which.tk
+	rm -f "$which.tk"
+	touch "$which.tk"
+	chmod 600 "$which.tk"
+	echo "$token" >> "$which.tk"
     done
     echo tokens done!
 
@@ -207,7 +207,7 @@ else
 
     echo
     echo Setting up the file list for update client
-    cat > ${vicedir}/db/files <<EOF
+    cat > "${vicedir}/db/files" <<EOF
 auth2.pw
 auth2.tk
 auth2.tk.BAK
@@ -237,72 +237,78 @@ done
 #
 # startup scripts
 #
-case "x`uname`" in
-  x*BSD)
+case "$(uname)" in
+  *BSD)
     yesno=""
-    until [ x$yesno != x ]; do
+    while [ "$yesno" = "" ]; do
 	echon 'Do you want to start the server at boot time? (y/n) '
-	read yesno
+	read -r yesno
+
+        case "$(echo "$yesno" | tr '[:upper:]' '[:lower:]')" in
+        y|yes)
+            touch ${vicedir}/srv/STARTFROMBOOT
+            grep "@prefix@/etc/rc.vice" /etc/rc.local > /dev/null 2>&1
+            if [ $? != 0 ]; then
+                echo "if [ -x \"@prefix@/etc/rc.vice\" ]; then \"@prefix@/etc/rc.vice\" start ; fi" >> /etc/rc.local
+            fi
+            echo "Startup scripts now installed."
+            ;;
+        n|no)
+            echo "You will have to start your coda server by hand."
+            ;;
+        *) yesno="" ; echo "Please answer yes or no." ;;
+        esac
     done
-    if [ "x$yesno" = xy  -o  "x$yesno" = xyes -o "x$yesno" = xY ]; then
-	touch ${vicedir}/srv/STARTFROMBOOT
-	grep "@prefix@/etc/rc.vice" /etc/rc.local > /dev/null 2>&1
-	if [ $? != 0 ]; then
-	    echo "if [ -x @prefix@/etc/rc.vice ]; then @prefix@/etc/rc.vice start ; fi" >> /etc/rc.local
-	fi
-	echo "Startup scripts now installed."
-    else
-	echo "You will have to start your coda server by hand."
-    fi
     ;;
 esac
 
 #
 # ${vicedir}/hostname
 #
-echo $hn > ${vicedir}/hostname
+echo "$hn" > "$vicedir/hostname"
 
 #
 # end of common setup area, now specialize to scm or non scm
 #
-if [ $isscm = Y ]; then
+if [ "$isscm" = Y ]; then
     echo  "Now installing files specific to the SCM..."
     # files.export ...
-    echo "db" >  ${vicedir}/db/files.export
-    for n in `cat ${vicedir}/db/files` ; do
-      echo "db/$n" >>  ${vicedir}/db/files.export
-    done
-    if ! ( @sbindir@/vice-setup-scm && @sbindir@/vice-setup-user && \
-	   @sbindir@/vice-setup-rvm && @sbindir@/vice-setup-srvdir ) ; then
+    echo "db" > "$vicedir/db/files.export"
+    while read -r n ; do
+      echo "db/$n" >>  "$vicedir/db/files.export"
+    done < "$vicedir/db/files" 
+    if ! ( "@sbindir@/vice-setup-scm" && "@sbindir@/vice-setup-user" && \
+	   "@sbindir@/vice-setup-rvm" && "@sbindir@/vice-setup-srvdir" ) ; then
 	echo "Your coda server is not completely setup.  You will need"
 	echo "set it up by hand or fix the problems and rerun $0."
 	exit 1
     fi
-    DP=`cat ${vicedir}/db/vicetab | awk '{print $2}' | head -n 1`
+    DP=$(awk '{print $2}' "$vicedir/db/vicetab" | head -n 1)
     echo "Congratulations: your configuration is ready..."
     echo
 
     start=""
     yesno=""
-    until [ "x$yesno" != x ]; do
+    while [ "$yesno" = "" ]; do
 	echon 'Shall I try to get things started? (y/n) '
-	read yesno
+	read -r yesno
+
+        case "$(echo "$yesno" | tr '[:upper:]' '[:lower:]')" in
+        y|yes) start=Y ;;
+        n|no) echo "Here is what you would have to execute to get things up and running" ;;
+        *) yesno="" ; echo "Please answer yes or no." ;;
+        esac
     done
-    if [ "x$yesno" = xy -o "x$yesno" = xyes -o "x$yesno" = xY ]; then
-	start=Y
-    else
-	echo "Here is what you would have to do to get things up and running"
-    fi
 
     set -e
-    echo " - Coda authentication server (auth2)"
-    [ "$start" ] && @sbindir@/auth2
-    echo " - Coda update server (updatesrv)"
-    [ "$start" ] && @sbindir@/updatesrv
-    echo " - Coda update client (updateclnt)"
-    [ "$start" ] && @sbindir@/updateclnt
-    echo " - Coda file server (startserver)"
-    [ "$start" ] && ( @sbindir@/startserver || echo "Failed to start the Coda server" )
+    echo " auth2        - Coda authentication server"
+    [ "$start" ] && "@sbindir@/auth2"
+    echo " updatesrv    - Coda update server"
+    [ "$start" ] && "@sbindir@/updatesrv"
+    echo " updateclnt   - Coda update client"
+    [ "$start" ] && "@sbindir@/updateclnt"
+    echo " startserver  - Coda file server"
+    [ "$start" ] && ( "@sbindir@/startserver" || echo "Failed to start the Coda server" )
     echo
 
     if [ "$start" ] ; then
@@ -311,15 +317,15 @@ if [ $isscm = Y ]; then
 	echo "Now I'll try to create an initial root volume"
     fi
 
-    echo " - createvol_rep / ${hn}${DP}"
-    [ "$start" ] && @sbindir@/createvol_rep / ${hn}${DP}
+    echo " createvol_rep / $hn$DP   - create initial root volume"
+    [ "$start" ] && "@sbindir@/createvol_rep" / "$hn$DP"
 
     if [ "$start" ] ; then
 	echo
 	echo "That seems to have worked..."
 	echo "If you have a working Coda client you should now be able to"
 	echo "access the new Coda realm"
-	echo " - cfs lv /coda/${hn}/"
+	echo " - cfs lv /coda/$hn/"
     fi
     echo
     echo "enjoy Coda."
@@ -333,14 +339,14 @@ fi
 #
 echo  "Now installing things specific to non-SCM machines..."
 
-if ! ( @sbindir@/vice-setup-rvm && @sbindir@/vice-setup-srvdir ) ;  then
+if ! ( "@sbindir@/vice-setup-rvm" && "@sbindir@/vice-setup-srvdir" ) ;  then
     echo "Your coda server is not completely setup.  You will need"
     echo "set it up by hand or fix the problems and rerun $0."
     exit 1
 fi
 
-scm=`cat ${vicedir}/db/scm`
-echo "You have set up " `cat ${vicedir}/hostname`
+scm=$(cat $vicedir/db/scm)
+echo "You have set up $(cat "$vicedir/hostname")"
 echo "Your SCM is $scm"
 echo "Other config files will be fetched from the SCM by updateclnt."
 echo

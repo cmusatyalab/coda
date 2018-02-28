@@ -20,29 +20,22 @@
 prefix=@prefix@
 exec_prefix=@exec_prefix@
 
-echon() {
-    if [ "`echo -n`" ] ; then
-        echo "$@"\c
-    else
-        echo -n "$@"
-    fi
-}
-
-PATH=$PATH:${prefix}/sbin
+PATH=$PATH:$prefix/sbin
 export PATH
 
 # load the server configuration file
 vicedir=/vice
-. "`@sbindir@/codaconfedit server.conf`"
+. "$(@sbindir@/codaconfedit server.conf)"
 
-if [ ! -f ${vicedir}/hostname -o ! -f ${vicedir}/db/scm ] ; then
+if [ ! -f "$vicedir/hostname" ] || [ ! -f "$vicedir/db/scm" ] ; then
    echo "Coda server configuration error.  Could not find needed files."
    exit 1
 fi
 
 # Ensure that this is the SCM
-if [ `cat ${vicedir}/hostname` != `cat ${vicedir}/db/scm` ]; then
-	echo "This must be run from the scm (`cat ${vicedir}/db/scm`)"
+scm=$(cat "$vicedir/db/scm")
+if [ "$(cat "$vicedir/hostname")" != "$scm" ]; then
+	echo "This must be run from the scm ($scm)"
 	exit 1
 fi
 
@@ -54,7 +47,6 @@ fi
 
 # Initialize local variables
 SERVERS=
-PARTITIONS=
 NSERVERS=0
 MAXSERVERS=8
 
@@ -75,48 +67,48 @@ fi
 # Hmm, we sometimes need to use the volumename in regular expressions
 # As a result we can't use a lot of special characters, but having at
 # least '/' would be nice.
-_VOLNAME=`echo ${VOLNAME} | sed 's&/&\\\/&g'`
+_VOLNAME=$(echo "$VOLNAME" | sed 's&/&\\\/&g')
 
 #
 # Create these files if they don't already exist.
 
 # VRList was moved from vice/vol to vice/db in Coda 5.3.11
-if [ ! -f "${vicedir}/db/VRList" -a -f "${vicedir}/vol/VRList" ] ; then
-  echo "Moving ${vicedir}/vol/VRList to ${vicedir}/db"
-  cp "${vicedir}/vol/VRList" "${vicedir}/db/VRList" && rm ${vicedir}/vol/VRList
+if [ ! -f "$vicedir/db/VRList" ] && [ -f "$vicedir/vol/VRList" ] ; then
+  echo "Moving $vicedir/vol/VRList to $vicedir/db"
+  cp "$vicedir/vol/VRList" "$vicedir/db/VRList" && rm $vicedir/vol/VRList
   # Need to replicate VRList and maxgroupid too
-  echo VRList >> "${vicedir}/db/files"
-  echo maxgroupid >> "${vicedir}/db/files"
+  echo VRList >> "$vicedir/db/files"
+  echo maxgroupid >> "$vicedir/db/files"
 fi
-touch "${vicedir}/db/VRList"
+touch "$vicedir/db/VRList"
 
 # Dump the VRDB from RVM into a temporary VRList list
-rm -f "${vicedir}/db/VRList.new"
-volutil -h `cat ${vicedir}/db/scm` dumpvrdb "${vicedir}/db/VRList.new" 2>/dev/null
+rm -f "$vicedir/db/VRList.new"
+volutil -h "$scm" dumpvrdb "$vicedir/db/VRList.new" 2>/dev/null
 if [ $? -ne 0 ]; then
-    echo "Failed to dump the current VRDB into ${vicedir}/db/VRList.new"
+    echo "Failed to dump the current VRDB into $vicedir/db/VRList.new"
     exit 1
 fi
 
-if [ x$VOLNAME = "x`awk ' $1 ~ /^'${_VOLNAME}'$/  {print $1}' ${vicedir}/db/VRList.new`" ]; then
-	echo "Volume $VOLNAME already exists in ${vicedir}/db/VRList"
+if [ "$VOLNAME" = "$(awk "\$1 ~ /^${_VOLNAME}\$/ { print \$1 }" "$vicedir/db/VRList.new")" ]; then
+	echo "Volume $VOLNAME already exists in $vicedir/db/VRList"
 	exit 1
 fi
 
 while [ $# -gt 1 ]; do
 	shift
-	PRE=`echo $1 | sed 's/\(..\).*/\1/'`
-	if [ "$PRE" = "7f" -o "$PRE" = "7F" ] ; then
+	PRE=$(echo "$1" | sed 's/\(..\).*/\1/')
+	if [ "$PRE" = "7f" ] || [ "$PRE" = "7F" ] ; then
 	    GROUPID="$1"
 	    break
 	fi
-	SERVER="`echo "$1" | sed 's/\([^\/]*\).*/\1/'`"
-	PART="`echo "$1" | sed 's/[^\/]*\(.*\)/\1/'`"
+	SERVER=$(echo "$1" | sed 's/\([^\/]*\).*/\1/')
+	PART=$(echo "$1" | sed 's/[^\/]*\(.*\)/\1/')
 
 	# Validate the server
-	grep $SERVER ${vicedir}/db/servers > /dev/null 
+	grep "$SERVER" "$vicedir/db/servers" > /dev/null 
 	if [ $? -ne 0 ];  then
-		echo Server $SERVER not in servers file
+		echo "Server $SERVER not in servers file"
 		exit 1
 	fi
 
@@ -136,49 +128,49 @@ while [ $# -gt 1 ]; do
 	fi
 
 	grep "^P" "/tmp/vollist.$$" | sed 's/^P\(.*\) H.*/\1/' > "/tmp/part.$$"
-	np=`cat "/tmp/part.$$" | wc -w`
-	if [ $np -eq 0 ]; then
-	    echo Found no partitions for server $SERVER.
+	np=$(wc -w "/tmp/part.$$")
+	if [ "$np" -eq 0 ]; then
+	    echo "Found no partitions for server $SERVER."
 	    exit 1
 	fi 
         if [ -z "$PART" ]; then
-	    if [ $np -gt 1 ]; then
-		echo Found 2 or more partitions for server $SERVER.   You
-		echo must specify a partition.
+	    if [ "$np" -gt 1 ]; then
+		echo "Found 2 or more partitions for server $SERVER."
+                echo "You must specify a partition."
 		exit 1
 	    fi
-	    PART="`cat /tmp/part.$$`"
+	    PART=$(cat "/tmp/part.$$")
 	fi
 	grep "^$PART\$" "/tmp/part.$$" >/dev/null
 	if [ $? -ne 0 ] ; then
-	    echo Partition $PART not found on server $SERVER.
-	    exit 1;
+	    echo "Partition $PART not found on server $SERVER."
+	    exit 1
 	fi
 	rm -f "/tmp/vollist.$$" "/tmp/part.$$"
 
-	NSERVERS=`expr $NSERVERS + 1`
+	NSERVERS=$((NSERVERS + 1))
 	SERVERS="$SERVERS $SERVER"
 	PARTS="$PARTS $PART"
 done
 
-if [ $NSERVERS -eq 0 -o $NSERVERS -gt $MAXSERVERS ]; then
-	echo Specify 1 - $MAXSERVERS servers
-	exit 1
+if [ $NSERVERS -eq 0 ] || [ $NSERVERS -gt $MAXSERVERS ]; then
+    echo "Specify 1 - $MAXSERVERS servers"
+    exit 1
 fi 
 
 # Allocate a new groupid if necessary
 if  [ -z "$GROUPID" ]; then
 # New location for maxgroupid -- move it.
-        if  [ -f ${vicedir}/vol/maxgroupid ]; then
-		mv ${vicedir}/vol/maxgroupid ${vicedir}/db/maxgroupid
+        if  [ -f "$vicedir/vol/maxgroupid" ]; then
+		mv "$vicedir/vol/maxgroupid" "$vicedir/db/maxgroupid"
 	fi
-	if  [ -f ${vicedir}/db/maxgroupid ]; then
-		MAXGROUPID=`cat ${vicedir}/db/maxgroupid`
-		GROUPID=`printf %x $MAXGROUPID`
-		MAXGROUPID=`expr $MAXGROUPID + 1`
-		echo $MAXGROUPID > ${vicedir}/db/maxgroupid
+	if  [ -f $vicedir/db/maxgroupid ]; then
+		MAXGROUPID=$(cat "$vicedir/db/maxgroupid")
+		GROUPID=$(printf %x "$MAXGROUPID")
+		MAXGROUPID=$((MAXGROUPID + 1))
+		echo "$MAXGROUPID" > "$vicedir/db/maxgroupid"
 	else
-		echo ${vicedir}/db/maxgroupid not found
+		echo "$vicedir/db/maxgroupid not found"
 		exit 1
 	fi
 fi
@@ -196,23 +188,23 @@ for SERVER in $SERVERS ; do
 	PARTS=${PARTS#* }
 
 	echo "creating volume $VOLNAME.$N on $SERVER (partition $PART)" 
-	volutil -h $SERVER create_rep $PART $VOLNAME.$N $GROUPID > "/tmp/out.$$"
+	volutil -h "$SERVER" create_rep "$PART" "$VOLNAME.$N" "$GROUPID" > "/tmp/out.$$"
 	if [ $? -ne 0 ]; then 
 		echo "Failure to make volume on $SERVER!. Abort.".
 		exit 1
 	fi
 
 	# grab the volume number.
-	volnum=`cut -d' ' -f2 "/tmp/out.$$"`
+	volnum=$(cut -d' ' -f2 "/tmp/out.$$")
 	ENTRY="$ENTRY $volnum"
-	N=`expr $N + 1`
+	N=$((N + 1))
 done
 rm -f "/tmp/out.$$"
 
 # HACK, disable resolution on singly replicated volumes. The server should
 # really be doing this.
 if [ $NSERVERS -eq 1 ] ; then
-    volutil -h $SERVERS setlogparms $volnum reson 0
+    volutil -h "$SERVERS" setlogparms "$volnum" reson 0
 fi
 
 # Rebuild the VLDB
@@ -223,20 +215,20 @@ bldvldb.sh $SERVERS
 # add nulentries
 while [ $N -lt 8 ] ; do
         ENTRY="$ENTRY 0"
-	N=`expr $N + 1`
+	N=$((N + 1))
 done
 
-echo "<echo $ENTRY >> ${vicedir}/db/VRList.new>"
-echo $ENTRY >> ${vicedir}/db/VRList.new
-volutil makevrdb ${vicedir}/db/VRList.new
+echo "<echo $ENTRY >> $vicedir/db/VRList.new>"
+echo "$ENTRY" >> "$vicedir/db/VRList.new"
+volutil makevrdb "$vicedir/db/VRList.new"
 
 if [ $? -ne 0 ]; then
-    echo "Failed to create a new VRDB file from ${vicedir}/db/VRList.new"
+    echo "Failed to create a new VRDB file from $vicedir/db/VRList.new"
     exit 1
 fi
 
 # All seemed to have gone well. Make a backup of the old VRList and move the
 # new VRList in it's place.
-mv ${vicedir}/db/VRList ${vicedir}/db/VRList.old
-mv ${vicedir}/db/VRList.new ${vicedir}/db/VRList
+mv $vicedir/db/VRList $vicedir/db/VRList.old
+mv $vicedir/db/VRList.new $vicedir/db/VRList
 

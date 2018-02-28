@@ -18,7 +18,7 @@
 #*/
 
 echon() {
-    if [ "`echo -n`" = "-n" ] ; then
+    if [ "$(echo -n)" = "-n" ] ; then
 	echo "$@"'\c'
     else
 	echo -n "$@"
@@ -26,7 +26,7 @@ echon() {
 }
 
 fullname() {
-    ( cd `dirname $1` ; echo `pwd`/`basename $1` )
+    ( cd "$(dirname "$1")" ; echo "$(pwd)/$(basename "$1")" )
 }
 
 # exit if errors
@@ -46,18 +46,16 @@ vicedir=/vice
 
 prefix=@prefix@
 exec_prefix=@exec_prefix@
-conf="`@sbindir@/codaconfedit server.conf`"
-if [ "x${conf}" != x/dev/null ] ; then
-  . ${conf}
+conf="$("@sbindir@/codaconfedit" server.conf)"
+if [ "$conf" != /dev/null ] ; then
+  . "$conf"
   haveconf=1
 else
   haveconf=0
 fi
 
-# test on Solaris doesn't have a -e flag :-(
-# if [ -e ${vicedir}/srv.conf ]; then
-if [ -f ${vicedir}/srv.conf ]; then
-   grep '^\-rvm ' ${vicedir}/srv.conf
+if [ -f "$vicedir/srv.conf" ]; then
+   grep '^\-rvm ' "$vicedir/srv.conf"
    if [ $? = 0 ]; then
        echo "You already have rvm parameters in srv.conf."
        echo "Remove these first."
@@ -91,28 +89,28 @@ echo WARNING: these choices are not easy to change once you are up and running.
 echo
 
 yesno=""
-until [ "x$yesno" != x ]; do
-   echon "Are you ready to set up RVM? [yes/no] "
-   read yesno
+while [ "$yesno" = "" ]; do
+    echon "Are you ready to set up RVM? [yes/no] "
+    read -r yesno
+
+    case "$(echo "$yesno" | tr '[:upper:]' '[:lower:]')" in
+    y|yes) ;;
+    n|no) echo "Run vice-setup-rvm when you are ready!" ; exit 1 ;;
+    *) yesno="" ; echo "Please answer yes or no." ;;
+    esac
 done
-if [ "x$yesno" = xyes -o "x$yesno" = xy -o "x$yesno" = xy ]; then
-    echo ""
-else
-    echo "Run vice-setup-rvm when you are ready!"
-    exit 1
-fi
 
 #
 # we need a size and partition for the log.
 #
 log=""
-until [ "x$log" != x ]; do
+until [ "$log" != "" ]; do
     echon "What will be your log file (or partition)? "
-    read log
+    read -r log
 done
 
 logsize=""
-until [ "x$logsize" != x ]; do
+until [ "$logsize" != "" ]; do
     echo
     echo "The log size must be smaller than the available space in the log"
     echo "partition. A smaller log will be quicker to commit, but the log"
@@ -121,18 +119,18 @@ until [ "x$logsize" != x ]; do
     echo "to keep the log under 30M log size, many people have successfully"
     echo "used as little as 2M, and 20M has worked well with our servers."
     echon "What is your log size? (enter as e.g. '20M') "
-    read logsize
+    read -r logsize
     echo
 done
 
 data=""
-until [ x$data != x ]; do
+until [ "$data" != "" ]; do
     echon "Where is your data file (or partition)? "
-    read data
+    read -r data
 done
 
 datasize=""
-until [ x$datasize != x ]; do
+until [ "$datasize" != "" ]; do
     echo
     echo  "The amount of RVM we need to store the metadata for a given"
     echo  "amount file space can vary enormously. If your typical data set"
@@ -156,7 +154,7 @@ until [ x$datasize != x ]; do
     echo
     echo "What is the size of you data file (or partition)"
     echon "[32M, 64M, 128M, 256M, 512M, 768M, 1G]: "
-    read datasize
+    read -r datasize
 
     case $datasize in
         32[mM] | 64[mM] | 128[mM] | 256[mM] )
@@ -169,25 +167,31 @@ until [ x$datasize != x ]; do
             echo
             ;;
         * )
-            echo "You have selected an unsupported size and this script"
-            echo "will not setup your RVM with this size.  Are you sure"
-            echon "you want this size?  (yes/no) "
             yesno=
-            read yesno
-            if [ x$yesno != xyes ]; then
-                datasize=""
-            fi
+            while [ "$yesno" = "" ] ; do
+                echo
+                echo "You have selected an unsupported size and this script"
+                echo "will not setup your RVM with this size.  Are you sure"
+                echon "you want this size?  (yes/no) "
+                read -r yesno
+
+                case "$(echo "$yesno" | tr '[:upper:]' '[:lower:]')" in
+                y|yes) ;;
+                n|no) datasize="" ;;
+                *) yesno="" ; echo "Please answer yes or no." ;;
+                esac
+            done
             ;;
     esac
 done
 
-log=`fullname $log`
-data=`fullname $data`
+log=$(fullname "$log")
+data=$(fullname "$data")
 
 # strip non-digit characters
-datasize="`echo "$datasize" | sed -n 's/\([0-9]*\).*/\1/p'`"
+datasize="$(echo "$datasize" | sed -n 's/\([0-9]*\).*/\1/p')"
 # Assume values <= 4 are in gigabytes, else we assume megabytes
-[ "$datasize" -le 4 ] && datasize="`expr "$datasize" \* 1024`"
+[ "$datasize" -le 4 ] && datasize=$((datasize * 1024))
 
 echo
 echo --------------------------------------------------------
@@ -197,19 +201,20 @@ echo
 echo "  --- log area: $log, size $logsize."
 echo "  --- data area: $data, size $datasize MB."
 echo
-answer=""
-until [ "x$answer" != x ]; do
+yesno=""
+while [ "$yesno" = "" ]; do
     echon "Proceed, and wipe out old data? [y/n] "
-    answer=n
-    read answer
+    read -r yesno
+
+    case "$(echo "$yesno" | tr '[:upper:]' '[:lower:]')" in
+    y|yes) ;;
+    n|no) exit 1 ;;
+    *) yesno="" ; echo "Please answer yes or no." ;;
+    esac
 done
-if [ "x$answer" = xn -o "x$answer" = xno -o "x$answer" = xN -o \
-    "x$answer" = xNo ]; then
-    exit 1
-fi
 
 echo
-@RVMUTL@ > /dev/null  << EOF
+"@RVMUTL@" > /dev/null  << EOF
 i $log $logsize
 q
 EOF
@@ -225,33 +230,31 @@ echo LOG file has been initialized!
 echo
 
 # Convert requested RVM data size to bytes
-dsparm="`expr "$datasize" \* 1048576`"
+dsparm=$((datasize * 1048576))
 staticsize=1048576 # reserve 1MB for a static allocation area
 rvmreserve=65536   # reserve 64K for RVM overhead (we need pagesize() bytes)
 
 # Use the remaining space for the dynamic heap
-heapsize="`expr "$dsparm" - "$staticsize" - "$rvmreserve"`"
+heapsize=$((dsparm - staticsize - rvmreserve))
 
 # various other parameters
 rvmstart=0x50000000
 nlists=80
 chunk=64
 
-parms="$dsparm $rvmstart $heapsize $staticsize $nlists $chunk"
-
 if [ $haveconf = 1 ] ; then
-    conffile="`basename $conf`"
-    @sbindir@/codaconfedit $conffile rvm_log $log
-    @sbindir@/codaconfedit $conffile rvm_data $data
-    @sbindir@/codaconfedit $conffile rvm_data_length $dsparm
+    conffile="$(basename "$conf")"
+    "@sbindir@/codaconfedit" "$conffile" rvm_log "$log"
+    "@sbindir@/codaconfedit" "$conffile" rvm_data "$data"
+    "@sbindir@/codaconfedit" "$conffile" rvm_data_length "$dsparm"
 else
-    echo "-rvm $log $data $dsparm" >> ${vicedir}/srv.conf
+    echo "\-rvm $log $data $dsparm" >> "$vicedir/srv.conf"
 fi
 
 echo
 echo "Rdsinit will initialize data and log."
 echo "This takes a while."
-@RDSINIT@ -f $log $data $parms
+"@RDSINIT@" -f "$log" "$data" $dsparm $rvmstart $heapsize $staticsize $nlists $chunk
 
 if [ $? != 0 ]; then
     echo Error in rdsinit. Exiting.

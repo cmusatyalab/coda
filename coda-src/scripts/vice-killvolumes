@@ -18,7 +18,7 @@
 #*/
 
 echon() {
-    if [ "`echo -n`" ] ; then
+    if [ "$(echo -n)" ] ; then
         echo "$@"\c
     else
         echo -n "$@"
@@ -27,13 +27,13 @@ echon() {
 
 echo This will permanently remove all Coda volumes from your system.
 echon 'This is useful for a clean start. Proceed? [Y/n]: '
+read -r yesno 
 
-read answer 
-
-if [  x$answer = xn -o x$answer = xno -o x$answer = xN -o x$answer = xNo ]; then
-    echo No harm done.
-    exit 1    
-fi
+case "$(echo "$yesno" | tr '[:upper:]' '[:lower:]')" in
+   y|yes) ;;
+   n|no) echo No harm done. ;  exit 1 ;;
+   *) ;;
+esac
 
 rm -f /vice/db/VRDB /vice/db/VLDB 
 rm -f /vice/vol/RWList /vice/vol/AllVolumes /vice/vol/VolumeList /vice/db/VRList

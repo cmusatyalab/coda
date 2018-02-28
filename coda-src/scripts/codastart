@@ -1,11 +1,11 @@
 #!/bin/sh
-if [ "`cat /vice/hostname`" = "`cat /vice/db/scm`" ]
+if [ "$(cat /vice/hostname)" = "$(cat /vice/db/scm)" ]
 then
     updatesrv &
     auth2 &
 else
     auth2 -chk &
 fi
-updateclnt -h `grep '' /vice/db/scm` &
+updateclnt -h "$(cat /vice/db/scm)" &
 startserver
 
