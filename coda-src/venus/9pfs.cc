@@ -33,6 +33,9 @@ extern "C" {
 #include "9pfs.h"
 
 
+#define DEBUG(...) do { fprintf(stderr, __VA_ARGS__); fflush(stderr); } while(0)
+
+
 static int pack_le8(unsigned char **buf, size_t *len, uint8_t value)
 {
     if (*len < 1) return -1;
@@ -286,6 +289,7 @@ int mariner::handle_9pfs_request(size_t read)
         unpack_le16(&buf, &len, &tag))
         return -1;
 
+    DEBUG("9pfs: got request length %u, type %u, tag %x", reqlen, opcode, tag);
 
     if (reqlen < P9_MIN_MSGSIZE)
         return -1;
@@ -300,9 +304,49 @@ int mariner::handle_9pfs_request(size_t read)
     if (read_until_done(&commbuf[read], len) != (ssize_t)len)
         return -1;
 
-    LOG(0, ("MarinerMux: got 9pfs request type %u, tag %x", opcode, tag));
 
-    return send_9pfs_Rerror(tag, "Operation not supported");
+    switch (opcode)
+    {
+    case Tversion: {
+        uint32_t msize;
+        char *remote_version;
+        const char *version;
+
+        if (unpack_le32(&buf, &len, &msize) ||
+            unpack_string(&buf, &len, &remote_version))
+            return -1;
+        DEBUG("9pfs: Tversion msize %d, version %s\n", msize, remote_version);
+
+        max_9pfs_msize = (msize < MWBUFSIZE) ? msize : MWBUFSIZE;
+
+        if (strncmp(remote_version, "9P2000", 6) == 0)
+            version = "9P2000";
+        else
+            version = "unknown";
+        free(remote_version);
+
+        /* abort all existing I/O, clunk all fids */
+        //conn->del_fids();
+        //conn->attach_root = ...
+
+        /* send_Rversion */
+        DEBUG("9pfs: Rversion msize %lu, version %s\n", max_9pfs_msize, version);
+
+        buf = (unsigned char *)commbuf; len = max_9pfs_msize;
+        if (pack_header(&buf, &len, Rversion, tag) ||
+            pack_le32(&buf, &len, max_9pfs_msize) ||
+            pack_string(&buf, &len, version))
+        {
+            send_9pfs_Rerror(tag, "Message too long");
+            return -1;
+        }
+        break;
+    }
+
+    default:
+        return send_9pfs_Rerror(tag, "Operation not supported");
+    }
+    return send_9pfs_response(max_9pfs_msize - len);
 }
 
 
