@@ -392,6 +392,9 @@ ssize_t mariner::write_until_done(const void *buf, size_t len)
     fd_set fds;
     ssize_t n;
 
+    if (len == 0)
+        return 0;
+
     ObtainWriteLock(&write_lock);
 
     while (bytes_written < len)
@@ -468,24 +471,46 @@ int mariner::AwaitRequest()
          * '\n' is found can mangle the incoming 9pfs Tversion message. */
         if (idx == 19)
         {
-            // @ offset 1, message len < 256, opcode Tversion, tag NOTAG
-            const unsigned char magic1[] = "\0\0\0d\377\377";
-            // @ offset 12, version len < 256, version string "9P2000..."
+            // @ offset 1, assume message len < 256, opcode Tversion, tag NOTAG
+            const unsigned char magic1[] = "\0\0\0d"; // \377\377";
+            // @ offset 12, assume version len < 256, version string "9P2000"
             const unsigned char magic12[] = "\09P2000";
 
             if (memcmp(&commbuf[1], magic1, sizeof(magic1)) == 0 &&
                 memcmp(&commbuf[12], magic12, sizeof(magic12)) == 0)
             {
-                /* make sure we don't send any 'normal' mariner output */
+                /* make sure we no longer send any normal mariner output */
                 logging = reporting = want_volstate = 0;
 
-                uint32_t reqlen = ((unsigned char *)commbuf)[0];
-                /* read rest of the request */
-                n = read_until_done(&commbuf[19], reqlen - 19);
-                if (n < 0)
-                    return -1;
+                /* loop reading 9pfs requests from the socket */
+                do {
+                    uint32_t reqlen =
+                        ((uint32_t)((unsigned char *)commbuf)[0] << 0) |
+                        ((uint32_t)((unsigned char *)commbuf)[1] << 8) |
+                        ((uint32_t)((unsigned char *)commbuf)[2] << 16) |
+                        ((uint32_t)((unsigned char *)commbuf)[3] << 24);
 
-                /* when the 9pfs main loop is done, we want to also clear the
+                    if (reqlen > max_9pfs_msize) {
+                        uint16_t tag =
+                            ((uint16_t)((unsigned char *)commbuf)[5] << 0) |
+                            ((uint16_t)((unsigned char *)commbuf)[6] << 8);
+                        send_9pfs_Rerror(tag, "Message too long");
+                        break;
+                    }
+
+                    /* read the rest of the request */
+                    if (read_until_done(&commbuf[idx], reqlen - idx) < 0)
+                        break;
+
+                    if (handle_9pfs_request())
+                        break;
+
+                    /* get ready for the next request read the 9pfs header */
+                    idx = 7;
+                }
+                while (read_until_done(commbuf, 7) == 7);
+
+                /* when the 9pfs main loop is done, we want to also exit the
                  * mariner main loop */
                 return -1;
             }

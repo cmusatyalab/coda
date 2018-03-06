@@ -44,7 +44,7 @@ extern "C" {
 #include "vproc.h"
 
 
-const int MWBUFSIZE = 80;
+const int MWBUFSIZE = 8192;
 
 void MarinerInit(void);
 void MarinerMux(int fd, void *udata);
@@ -74,6 +74,7 @@ class mariner : public vproc {
     uid_t uid;			    /* valid iff reporting = 1 */
     int fd;
     char commbuf[MWBUFSIZE];
+    size_t max_9pfs_msize = MWBUFSIZE; /* negotiated by Tversion/Rversion */
 
     mariner(int);
     int operator=(mariner&);    /* not supported! */
@@ -90,6 +91,10 @@ class mariner : public vproc {
     void PathStat(char *);
     void FidStat(VenusFid *);
     void Rpc2Stat();
+
+    int handle_9pfs_request(void);
+    int send_9pfs_response(size_t msglen);
+    int send_9pfs_Rerror(uint16_t tag, const char *error);
 
   protected:
     virtual void main(void);
