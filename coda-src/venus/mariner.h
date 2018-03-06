@@ -92,7 +92,7 @@ class mariner : public vproc {
     void FidStat(VenusFid *);
     void Rpc2Stat();
 
-    int handle_9pfs_request(void);
+    int handle_9pfs_request(size_t reqlen);
     int send_9pfs_response(size_t msglen);
     int send_9pfs_Rerror(uint16_t tag, const char *error);
 

@@ -484,28 +484,10 @@ int mariner::AwaitRequest()
 
                 /* loop reading 9pfs requests from the socket */
                 do {
-                    uint32_t reqlen =
-                        ((uint32_t)((unsigned char *)commbuf)[0] << 0) |
-                        ((uint32_t)((unsigned char *)commbuf)[1] << 8) |
-                        ((uint32_t)((unsigned char *)commbuf)[2] << 16) |
-                        ((uint32_t)((unsigned char *)commbuf)[3] << 24);
-
-                    if (reqlen > max_9pfs_msize) {
-                        uint16_t tag =
-                            ((uint16_t)((unsigned char *)commbuf)[5] << 0) |
-                            ((uint16_t)((unsigned char *)commbuf)[6] << 8);
-                        send_9pfs_Rerror(tag, "Message too long");
-                        break;
-                    }
-
-                    /* read the rest of the request */
-                    if (read_until_done(&commbuf[idx], reqlen - idx) < 0)
+                    if (handle_9pfs_request(idx))
                         break;
 
-                    if (handle_9pfs_request())
-                        break;
-
-                    /* get ready for the next request read the 9pfs header */
+                    /* get next request, read the 9pfs header */
                     idx = 7;
                 }
                 while (read_until_done(commbuf, 7) == 7);

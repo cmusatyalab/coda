@@ -272,20 +272,32 @@ static int pack_header(unsigned char **buf, size_t *len,
 }
 
 
-int mariner::handle_9pfs_request(void)
+int mariner::handle_9pfs_request(size_t read)
 {
     unsigned char *buf = (unsigned char *)commbuf;
-    size_t len = 4;
+    size_t len = read;
 
     uint32_t reqlen;
     uint8_t  opcode;
     uint16_t tag;
 
-    /* we already got the length */
-    unpack_le32(&buf, &len, &reqlen);
-    len = reqlen - 4;
+    if (unpack_le32(&buf, &len, &reqlen) ||
+        unpack_le8(&buf, &len, &opcode) ||
+        unpack_le16(&buf, &len, &tag))
+        return -1;
 
-    if (unpack_le8(&buf, &len, &opcode) || unpack_le16(&buf, &len, &tag))
+
+    if (reqlen < P9_MIN_MSGSIZE)
+        return -1;
+
+    if (reqlen > max_9pfs_msize) {
+        send_9pfs_Rerror(tag, "Message too long");
+        return -1;
+    }
+
+    /* read the rest of the request */
+    len = reqlen - read;
+    if (read_until_done(&commbuf[read], len) != (ssize_t)len)
         return -1;
 
     LOG(0, ("MarinerMux: got 9pfs request type %u, tag %x", opcode, tag));
