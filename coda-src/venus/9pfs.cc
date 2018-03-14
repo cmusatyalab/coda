@@ -139,12 +139,15 @@ static int pack_blob(unsigned char **buf, size_t *len,
 }
 
 /* Important! Sort of like an 'unpack_blob', but returns a reference to the
- * blob in the original buffer so a copy may need to be made. */
+ * blob in the original buffer so a copy can be made. */
 static int get_blob_ref(unsigned char **buf, size_t *len,
-                        unsigned char **result, size_t size)
+                        unsigned char **result, size_t *result_len,
+                        size_t size)
 {
     if (*len < size) return -1;
     *result = *buf;
+    if (result_len)
+        *result_len = *len;
     (*buf) += size; (*len) -= size;
     return 0;
 }
@@ -167,16 +170,17 @@ static int unpack_string(unsigned char **buf, size_t *len, char **result)
     unsigned char *blob;
 
     if (unpack_le16(buf, len, &size) ||
-        get_blob_ref(buf, len, &blob, size))
+        get_blob_ref(buf, len, &blob, NULL, size))
         return -1;
 
-    *result = strndup((char *)blob, size);
+    *result = ::strndup((char *)blob, size);
     if (*result == NULL)
         return -1;
 
     /* Check there is no embedded NULL character in the received string */
-    if (strlen(*result) != (size_t)size) {
-        free(*result);
+    if (::strlen(*result) != (size_t)size)
+    {
+        ::free(*result);
         return -1;
     }
     return 0;
@@ -204,13 +208,13 @@ static int unpack_qid(unsigned char **buf, size_t *len, struct P9_qid *qid)
 
 static int pack_stat(unsigned char **buf, size_t *len, struct P9_stat *stat)
 {
-    unsigned char *start_of_stat;
-    size_t stashed_length = *len;
+    unsigned char *stashed_buf = NULL;
+    size_t stashed_len = 0;
 
     /* get backpointer to beginning of the stat output so we can,
      * - fix up the length information after packing everything.
      * - rollback iff we run out of buffer space. */
-    if (get_blob_ref(buf, len, &start_of_stat, 2) ||
+    if (get_blob_ref(buf, len, &stashed_buf, &stashed_len, 2) ||
         pack_le16(buf, len, stat->type) ||
         pack_le32(buf, len, stat->dev) ||
         pack_qid(buf, len, &stat->qid) ||
@@ -223,13 +227,13 @@ static int pack_stat(unsigned char **buf, size_t *len, struct P9_stat *stat)
         pack_string(buf, len, stat->gid) ||
         pack_string(buf, len, stat->muid))
     {
-        *buf = start_of_stat;
-        *len = stashed_length;
+        *buf = stashed_buf;
+        *len = stashed_len;
         return -1;
     }
     size_t tmplen = 2;
-    size_t stat_size = stashed_length - *len - 2;
-    pack_le16(&start_of_stat, &tmplen, stat_size);
+    size_t stat_size = stashed_len - *len - 2;
+    pack_le16(&stashed_buf, &tmplen, stat_size);
     return 0;
 }
 
@@ -253,10 +257,10 @@ static int unpack_stat(unsigned char **buf, size_t *len, struct P9_stat *stat)
         unpack_string(buf, len, &stat->muid) ||
         size != (stashed_length - *len - 2))
     {
-        free(stat->muid);
-        free(stat->gid);
-        free(stat->uid);
-        free(stat->name);
+        ::free(stat->muid);
+        ::free(stat->gid);
+        ::free(stat->uid);
+        ::free(stat->name);
         return -1;
     }
     return 0;
@@ -289,7 +293,7 @@ int mariner::handle_9pfs_request(size_t read)
         unpack_le16(&buf, &len, &tag))
         return -1;
 
-    DEBUG("9pfs: got request length %u, type %u, tag %x", reqlen, opcode, tag);
+    DEBUG("9pfs: got request length %u, type %u, tag %x\n", reqlen, opcode, tag);
 
     if (reqlen < P9_MIN_MSGSIZE)
         return -1;
