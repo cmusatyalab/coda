@@ -24,6 +24,8 @@ extern "C" {
 #include <config.h>
 #endif
 
+#include <assert.h>
+
 #ifdef __cplusplus
 }
 #endif
@@ -187,7 +189,8 @@ static int unpack_string(unsigned char **buf, size_t *len, char **result)
 }
 
 
-static int pack_qid(unsigned char **buf, size_t *len, const struct P9_qid *qid)
+static int pack_qid(unsigned char **buf, size_t *len,
+                    const struct plan9_qid *qid)
 {
     if (pack_le8(buf, len, qid->type) ||
         pack_le32(buf, len, qid->version) ||
@@ -196,7 +199,8 @@ static int pack_qid(unsigned char **buf, size_t *len, const struct P9_qid *qid)
     return 0;
 }
 
-static int unpack_qid(unsigned char **buf, size_t *len, struct P9_qid *qid)
+static int unpack_qid(unsigned char **buf, size_t *len,
+                      struct plan9_qid *qid)
 {
     if (unpack_le8(buf, len, &qid->type) ||
         unpack_le32(buf, len, &qid->version) ||
@@ -206,7 +210,8 @@ static int unpack_qid(unsigned char **buf, size_t *len, struct P9_qid *qid)
 }
 
 
-static int pack_stat(unsigned char **buf, size_t *len, struct P9_stat *stat)
+static int pack_stat(unsigned char **buf, size_t *len,
+                     const struct plan9_stat *stat)
 {
     unsigned char *stashed_buf = NULL;
     size_t stashed_len = 0;
@@ -237,7 +242,8 @@ static int pack_stat(unsigned char **buf, size_t *len, struct P9_stat *stat)
     return 0;
 }
 
-static int unpack_stat(unsigned char **buf, size_t *len, struct P9_stat *stat)
+static int unpack_stat(unsigned char **buf, size_t *len,
+                       struct plan9_stat *stat)
 {
     size_t stashed_length = *len;
     uint16_t size;
@@ -266,10 +272,22 @@ static int unpack_stat(unsigned char **buf, size_t *len, struct P9_stat *stat)
     return 0;
 }
 
-static int pack_header(unsigned char **buf, size_t *len,
-                       uint8_t type, uint16_t tag)
+
+plan9server::plan9server(mariner *m)
 {
-    uint32_t msglen = P9_MIN_MSGSIZE; /* we will fix this value when sending the message */
+    conn = m;
+}
+
+plan9server::~plan9server()
+{
+}
+
+
+int plan9server::pack_header(unsigned char **buf, size_t *len,
+                             uint8_t type, uint16_t tag)
+{
+    /* we will fix this value when sending the message */
+    uint32_t msglen = PLAN9_MIN_MSGSIZE;
 
     if (pack_le32(buf, len, msglen) ||
         pack_le8(buf, len, type) ||
@@ -279,9 +297,58 @@ static int pack_header(unsigned char **buf, size_t *len,
 }
 
 
-int mariner::handle_9pfs_request(size_t read)
+int plan9server::send_response(unsigned char *buf, size_t len)
 {
-    unsigned char *buf = (unsigned char *)commbuf;
+    /* fix up response length */
+    unsigned char *tmpbuf = buf;
+    size_t tmplen = 4;
+    pack_le32(&tmpbuf, &tmplen, len);
+
+    /* send response */
+    if (conn->write_until_done(buf, len) != (ssize_t)len)
+        return -1;
+    return 0;
+}
+
+
+int plan9server::send_error(uint16_t tag, const char *error)
+{
+    unsigned char *buf;
+    size_t len;
+
+    DEBUG("9pfs: Rerror[%x] %s\n", tag, error);
+
+    buf = buffer; len = max_msize;
+    if (pack_header(&buf, &len, Rerror, tag) ||
+        pack_string(&buf, &len, error))
+        return -1;
+
+    return send_response(buffer, max_msize - len);
+}
+
+
+void plan9server::main_loop(unsigned char *initial_buffer, size_t len)
+{
+    if (initial_buffer)
+        memcpy(buffer, initial_buffer, len);
+
+    while (1)
+    {
+        if (handle_request(buffer, len))
+            break;
+
+        /* get next request, anticipate we can read the 9pfs header */
+        len = PLAN9_MIN_MSGSIZE;
+        if (conn->read_until_done(buffer, len) != (ssize_t)len)
+            break;
+    }
+}
+
+
+
+int plan9server::handle_request(unsigned char *buf, size_t read)
+{
+    unsigned char *unread = &buf[read];
     size_t len = read;
 
     uint32_t reqlen;
@@ -295,87 +362,63 @@ int mariner::handle_9pfs_request(size_t read)
 
     DEBUG("9pfs: got request length %u, type %u, tag %x\n", reqlen, opcode, tag);
 
-    if (reqlen < P9_MIN_MSGSIZE)
+    if (reqlen < read)
         return -1;
 
-    if (reqlen > max_9pfs_msize) {
-        send_9pfs_Rerror(tag, "Message too long");
+    if (reqlen > max_msize) {
+        send_error(tag, "Message too long");
         return -1;
     }
 
     /* read the rest of the request */
     len = reqlen - read;
-    if (read_until_done(&commbuf[read], len) != (ssize_t)len)
+    if (conn->read_until_done(unread, len) != (ssize_t)len)
         return -1;
 
-
+    len = reqlen - PLAN9_MIN_MSGSIZE;
     switch (opcode)
     {
-    case Tversion: {
-        uint32_t msize;
-        char *remote_version;
-        const char *version;
-
-        if (unpack_le32(&buf, &len, &msize) ||
-            unpack_string(&buf, &len, &remote_version))
-            return -1;
-        DEBUG("9pfs: Tversion msize %d, version %s\n", msize, remote_version);
-
-        max_9pfs_msize = (msize < MWBUFSIZE) ? msize : MWBUFSIZE;
-
-        if (strncmp(remote_version, "9P2000", 6) == 0)
-            version = "9P2000";
-        else
-            version = "unknown";
-        free(remote_version);
-
-        /* abort all existing I/O, clunk all fids */
-        //conn->del_fids();
-        //conn->attach_root = ...
-
-        /* send_Rversion */
-        DEBUG("9pfs: Rversion msize %lu, version %s\n", max_9pfs_msize, version);
-
-        buf = (unsigned char *)commbuf; len = max_9pfs_msize;
-        if (pack_header(&buf, &len, Rversion, tag) ||
-            pack_le32(&buf, &len, max_9pfs_msize) ||
-            pack_string(&buf, &len, version))
-        {
-            send_9pfs_Rerror(tag, "Message too long");
-            return -1;
-        }
-        break;
+    case Tversion:  return recv_version(buf, len, tag);
+    default:        return send_error(tag, "Operation not supported");
     }
-
-    default:
-        return send_9pfs_Rerror(tag, "Operation not supported");
-    }
-    return send_9pfs_response(max_9pfs_msize - len);
-}
-
-
-int mariner::send_9pfs_Rerror(uint16_t tag, const char *error)
-{
-    unsigned char *buf = (unsigned char *)commbuf;
-    size_t len = max_9pfs_msize;
-
-    if (pack_header(&buf, &len, Rerror, tag) ||
-        pack_string(&buf, &len, error))
-        return -1;
-
-    return send_9pfs_response(max_9pfs_msize - len);
-}
-
-
-int mariner::send_9pfs_response(size_t msglen)
-{
-    /* fix up response length */
-    unsigned char *tmpbuf = (unsigned char *)commbuf;
-    size_t tmplen = 4;
-    pack_le32(&tmpbuf, &tmplen, msglen);
-
-    /* send response */
-    if (write_until_done(commbuf, msglen) != (ssize_t)msglen)
-        return -1;
     return 0;
+}
+
+
+int plan9server::recv_version(unsigned char *buf, size_t len, uint16_t tag)
+{
+    uint32_t msize;
+    char *remote_version;
+    const char *version;
+
+    if (unpack_le32(&buf, &len, &msize) ||
+        unpack_string(&buf, &len, &remote_version))
+        return -1;
+
+    DEBUG("9pfs: Tversion[%x] msize %d, version %s\n",
+          tag, msize, remote_version);
+
+    max_msize = (msize < PLAN9_BUFSIZE) ? msize : PLAN9_BUFSIZE;
+
+    if (::strncmp(remote_version, "9P2000", 6) == 0)
+        version = "9P2000";
+    else
+        version = "unknown";
+    ::free(remote_version);
+
+    /* abort all existing I/O, clunk all fids */
+
+    /* send_Rversion */
+    DEBUG("9pfs: Rversion[%x] msize %lu, version %s\n",
+          tag, max_msize, version);
+
+    buf = buffer; len = max_msize;
+    if (pack_header(&buf, &len, Rversion, tag) ||
+        pack_le32(&buf, &len, max_msize) ||
+        pack_string(&buf, &len, version))
+    {
+        send_error(tag, "Message too long");
+        return -1;
+    }
+    return send_response(buffer, max_msize - len);
 }

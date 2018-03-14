@@ -38,11 +38,12 @@ const unsigned char plan9_magic1[] = "\0\0\0d"; // \377\377";
 // @ offset 12, assume version len < 256, version string "9P2000"
 const unsigned char plan9_magic12[] = "\09P2000";
 
+
 /* Every message starts with a four byte message size which includes the size
  * field itself, a one byte message type and a two byte identifying tag. The
  * following tries to document the various messages in the 9P protocol, as
  * seen in http://man.cat-v.org/plan_9/5/intro */
-enum P9_message_types {
+enum plan9_message_types {
     /* Negotiate protocol version */
     Tversion = 100, /* tag[2] msize[4] s[2] version[s] */
     Rversion,       /* tag[2] msize[4] s[2] version[s] */
@@ -87,37 +88,37 @@ enum P9_message_types {
     Rwstat,         /* tag[2] */
 };
 
-#define P9_NOTAG ((uint16_t)~0) /* version message should use 'NOTAG' */
-#define P9_NOFID ((uint32_t)~0) /* attach without auth uses 'NOFID' for 'afid' */
-#define P9_MAX_NWNAME 16        /* max elements in walk message */
+#define PLAN9_NOTAG ((uint16_t)~0) /* version message should use 'NOTAG' */
+#define PLAN9_NOFID ((uint32_t)~0) /* noauth attach uses 'NOFID' for 'afid' */
+#define PLAN9_MAX_NWNAME 16        /* max elements in walk message */
 
 /* size of 9pfs message header */
-#define P9_MIN_MSGSIZE (sizeof(uint32_t) + sizeof(uint8_t) + sizeof(uint16_t))
+#define PLAN9_MIN_MSGSIZE (sizeof(uint32_t)+sizeof(uint8_t)+sizeof(uint16_t))
 
-#define P9_QTDIR     0x80
-#define P9_QTAUTH    0x08
-#define P9_QTSYMLINK 0x02
-#define P9_QTFILE    0x00
+#define PLAN9_QTDIR     0x80
+#define PLAN9_QTAUTH    0x08
+#define PLAN9_QTSYMLINK 0x02
+#define PLAN9_QTFILE    0x00
 
-#define P9_OREAD   0x00
-#define P9_OWRITE  0x01
-#define P9_ORDWR   0x02
-#define P9_OEXEC   0x03
-#define P9_OTRUNC  0x10
-#define P9_ORCLOSE 0x40
+#define PLAN9_OREAD   0x00
+#define PLAN9_OWRITE  0x01
+#define PLAN9_ORDWR   0x02
+#define PLAN9_OEXEC   0x03
+#define PLAN9_OTRUNC  0x10
+#define PLAN9_ORCLOSE 0x40
 
 
-struct P9_qid {
+struct plan9_qid {
     uint8_t type;
     uint32_t version;
     uint64_t path;
 };
 
-struct P9_stat {
+struct plan9_stat {
     //uint16_t size; // we compute this as needed
     uint16_t type;
     uint32_t dev;
-    struct P9_qid qid;
+    struct plan9_qid qid;
     uint32_t mode;
     uint32_t atime;
     uint32_t mtime;
@@ -131,5 +132,30 @@ struct P9_stat {
 #ifdef __cplusplus
 }
 #endif
+
+#include <mariner.h>
+
+#define PLAN9_BUFSIZE 8192
+
+class plan9server {
+    mariner *conn;
+
+    unsigned char buffer[PLAN9_BUFSIZE];
+    size_t max_msize = PLAN9_BUFSIZE; /* negotiated by Tversion/Rversion */
+
+    int pack_header(unsigned char **buf, size_t *bufspace,
+                    uint8_t type, uint16_t tag);
+    int send_response(unsigned char *buf, size_t len);
+    int send_error(uint16_t tag, const char *error);
+
+    int handle_request(unsigned char *buf, size_t len);
+    int recv_version(unsigned char *buf, size_t len, uint16_t tag);
+
+public:
+    plan9server(mariner *conn);
+    ~plan9server();
+
+    void main_loop(unsigned char *initial_buffer = NULL, size_t len = 0);
+};
 
 #endif /* _VENUS_9PFS_H_ */

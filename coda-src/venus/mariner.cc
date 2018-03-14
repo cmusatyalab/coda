@@ -482,15 +482,11 @@ int mariner::AwaitRequest()
                 /* make sure we no longer send any normal mariner output */
                 logging = reporting = want_volstate = 0;
 
-                /* loop reading 9pfs requests from the socket */
-                do {
-                    if (handle_9pfs_request(idx))
-                        break;
+                LOG(0, ("Found 9pfs version magic\n"));
 
-                    /* get next request, read the 9pfs header */
-                    idx = 7;
-                }
-                while (read_until_done(commbuf, 7) == 7);
+                plan9server *srv = new plan9server(this);
+                srv->main_loop((unsigned char *)commbuf, idx);
+                delete srv;
 
                 /* when the 9pfs main loop is done, we want to also exit the
                  * mariner main loop */
