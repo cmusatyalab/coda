@@ -133,6 +133,7 @@ struct plan9_stat {
 }
 #endif
 
+#include <dlist.h>
 #include <mariner.h>
 
 #define PLAN9_BUFSIZE 8192
@@ -143,6 +144,9 @@ class plan9server {
     unsigned char buffer[PLAN9_BUFSIZE];
     size_t max_msize = PLAN9_BUFSIZE; /* negotiated by Tversion/Rversion */
 
+    char *plan9_username = NULL;
+    dlist fids;
+
     int pack_header(unsigned char **buf, size_t *bufspace,
                     uint8_t type, uint16_t tag);
     int send_response(unsigned char *buf, size_t len);
@@ -150,7 +154,18 @@ class plan9server {
 
     int handle_request(unsigned char *buf, size_t len);
     int recv_version(unsigned char *buf, size_t len, uint16_t tag);
+    int recv_attach(unsigned char *buf, size_t len, uint16_t tag);
+    int recv_walk(unsigned char *buf, size_t len, uint16_t tag);
+    int recv_clunk(unsigned char *buf, size_t len, uint16_t tag);
+    int recv_stat(unsigned char *buf, size_t len, uint16_t tag);
 
+    struct fidmap *find_fid(uint32_t fid);
+    struct fidmap *add_fid(uint32_t fid, struct venus_cnode *cnode);
+    int del_fid(uint32_t fid);
+    void del_fids(void);
+
+    int plan9_stat(struct venus_cnode *cnode, struct plan9_stat *stat,
+                   const char *name = NULL);
 public:
     plan9server(mariner *conn);
     ~plan9server();

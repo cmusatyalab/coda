@@ -25,17 +25,29 @@ extern "C" {
 #endif
 
 #include <assert.h>
+#include <fcntl.h>
+#include <struct.h>
 
 #ifdef __cplusplus
 }
 #endif
 
+#include "fso.h"
 #include "mariner.h"
 #include "venus.private.h"
 #include "9pfs.h"
+#include "SpookyV2.h"
 
 
 #define DEBUG(...) do { fprintf(stderr, __VA_ARGS__); fflush(stderr); } while(0)
+
+
+struct fidmap {
+    dlink link;
+    uint32_t p9fid;
+    struct venus_cnode cnode;
+    int open_flags;
+};
 
 
 static int pack_le8(unsigned char **buf, size_t *len, uint8_t value)
@@ -273,6 +285,28 @@ static int unpack_stat(unsigned char **buf, size_t *len,
 }
 
 
+static void cnode2qid(struct venus_cnode *cnode, struct plan9_qid *qid)
+{
+    fsobj *f;
+
+    qid->type = (cnode->c_type == C_VDIR) ? PLAN9_QTDIR :
+                (cnode->c_type == C_VLNK) ? PLAN9_QTSYMLINK :
+                (cnode->c_type == C_VREG) ? PLAN9_QTFILE :
+                // PLAN9_QTFILE is defined as 0
+                0;
+
+    qid->path = SpookyHash::Hash64(&cnode->c_fid, sizeof(VenusFid), 0);
+
+    qid->version = 0;
+    f = FSDB->Find(&cnode->c_fid);
+    if (f) {
+        ViceVersionVector *vv = f->VV();
+        for (int i = 0; i < VSG_MEMBERS; i++)
+            qid->version += (&vv->Versions.Site0)[i];
+    }
+}
+
+
 plan9server::plan9server(mariner *m)
 {
     conn = m;
@@ -379,6 +413,10 @@ int plan9server::handle_request(unsigned char *buf, size_t read)
     switch (opcode)
     {
     case Tversion:  return recv_version(buf, len, tag);
+    case Tattach:   return recv_attach(buf, len, tag);
+    case Twalk:     return recv_walk(buf, len, tag);
+    case Tclunk:    return recv_clunk(buf, len, tag);
+    case Tstat:     return recv_stat(buf, len, tag);
     default:        return send_error(tag, "Operation not supported");
     }
     return 0;
@@ -407,6 +445,7 @@ int plan9server::recv_version(unsigned char *buf, size_t len, uint16_t tag)
     ::free(remote_version);
 
     /* abort all existing I/O, clunk all fids */
+    del_fids();
 
     /* send_Rversion */
     DEBUG("9pfs: Rversion[%x] msize %lu, version %s\n",
@@ -421,4 +460,341 @@ int plan9server::recv_version(unsigned char *buf, size_t len, uint16_t tag)
         return -1;
     }
     return send_response(buffer, max_msize - len);
+}
+
+
+int plan9server::recv_attach(unsigned char *buf, size_t len, uint16_t tag)
+{
+    uint32_t fid;
+    uint32_t afid;
+    char *uname;
+    char *aname;
+
+    if (unpack_le32(&buf, &len, &fid) ||
+        unpack_le32(&buf, &len, &afid) ||
+        unpack_string(&buf, &len, &uname))
+        return -1;
+    if (unpack_string(&buf, &len, &aname))
+    {
+        ::free(uname);
+        return -1;
+    }
+
+    DEBUG("9pfs: Tattach[%x] fid %u, afid %u, uname %s, aname %s\n",
+          tag, fid, afid, uname, aname);
+
+    if (find_fid(fid)) {
+        ::free(uname);
+        ::free(aname);
+        return send_error(tag, "fid already in use");
+    }
+
+    struct venus_cnode cnode;
+    struct plan9_qid qid;
+
+    conn->root(&cnode);
+
+    if (add_fid(fid, &cnode) == NULL)
+    {
+        ::free(uname);
+        ::free(aname);
+        return send_error(tag, "failed to allocate new fid");
+    }
+
+    ::free(plan9_username);
+    plan9_username = uname;
+    cnode2qid(&cnode, &qid);
+    ::free(aname);
+
+    /* send_Rattach */
+    DEBUG("9pfs: Rattach[%x] qid %x.%x.%lx\n",
+          tag, qid.type, qid.version, qid.path);
+
+    buf = buffer; len = max_msize;
+    if (pack_header(&buf, &len, Rattach, tag) ||
+        pack_qid(&buf, &len, &qid))
+    {
+        send_error(tag, "Message too long");
+        return -1;
+    }
+    return send_response(buffer, max_msize - len);
+}
+
+
+int plan9server::recv_walk(unsigned char *buf, size_t len, uint16_t tag)
+{
+    uint32_t fid;
+    uint32_t newfid;
+    uint16_t nwname;
+
+    if (unpack_le32(&buf, &len, &fid) ||
+        unpack_le32(&buf, &len, &newfid) ||
+        unpack_le16(&buf, &len, &nwname))
+        return -1;
+
+    if (nwname > PLAN9_MAX_NWNAME)
+    {
+        send_error(tag, "Argument list too long");
+        return -1;
+    }
+
+    DEBUG("9pfs: Twalk[%x] fid %u, newfid %u, nwname %u\n",
+          tag, fid, newfid, nwname);
+
+    struct fidmap *fm;
+    struct venus_cnode current, child;
+    int i;
+    char *wname;
+    uint16_t nwqid;
+    struct plan9_qid wqid[PLAN9_MAX_NWNAME];
+
+    fm = find_fid(fid);
+    if (!fm) {
+        return send_error(tag, "fid unknown or out of range");
+    }
+    current = fm->cnode;
+
+    for (i = 0; i < nwname; i++) {
+        if (unpack_string(&buf, &len, &wname))
+            return -1;
+
+        DEBUG("9pfs: Twalk[%x] wname[%u] = '%s'\n", tag, i, wname);
+
+        /* do not go up when we're at the root of the mounted subtree */
+        if (strcmp(wname, "..") != 0 || true) /* || make sure current != root of mounted tree */
+        {
+            conn->lookup(&current, wname, &child,
+                         CLU_CASE_SENSITIVE | CLU_TRAVERSE_MTPT);
+
+            if (conn->u.u_error) {
+                ::free(wname);
+                break;
+            }
+            current = child;
+        }
+
+        ::free(wname);
+        cnode2qid(&current, &wqid[i]);
+    }
+    /* report lookup errors only for the first path element */
+    if (i == 0 && conn->u.u_error) {
+        const char *errstr = VenusRetStr(conn->u.u_error);
+        return send_error(tag, errstr);
+    }
+    nwqid = i;
+
+    /* only if nwqid == nwname do we set newfid */
+    if (nwqid == nwname) {
+        if (fid == newfid)
+            del_fid(fid);
+
+        else if (find_fid(newfid))
+            return send_error(tag, "fid already in use");
+
+        add_fid(newfid, &current);
+    }
+
+    /* send_Rwalk */
+    DEBUG("9pfs: Rwalk[%x] nwqid %u\n", tag, nwqid);
+
+    buf = buffer; len = max_msize;
+    if (pack_header(&buf, &len, Rwalk, tag) ||
+        pack_le16(&buf, &len, nwqid))
+    {
+        send_error(tag, "Message too long");
+        return -1;
+    }
+    for (i = 0; i < nwqid; i++)
+    {
+        DEBUG("9pfs: Rwalk[%x] wqid[%u] %x.%x.%lx\n",
+              tag, i, wqid[i].type, wqid[i].version, wqid[i].path);
+        if (pack_qid(&buf, &len, &wqid[i]))
+        {
+            send_error(tag, "Message too long");
+            return -1;
+        }
+    }
+    return send_response(buffer, max_msize - len);
+}
+
+
+int plan9server::recv_clunk(unsigned char *buf, size_t len, uint16_t tag)
+{
+    uint32_t fid;
+    int rc;
+
+    if (unpack_le32(&buf, &len, &fid))
+        return -1;
+
+    DEBUG("9pfs: Tclunk[%x] fid %u\n", tag, fid);
+
+    rc = del_fid(fid);
+    if (rc)
+        return send_error(tag, "fid unknown or out of range");
+
+    /* send_Rclunk */
+    DEBUG("9pfs: Rclunk[%x]\n", tag);
+
+    buf = buffer; len = max_msize;
+    rc = pack_header(&buf, &len, Rclunk, tag);
+    assert(rc == 0); /* only sending header, should never be truncated */
+    return send_response(buffer, max_msize - len);
+}
+
+
+int plan9server::recv_stat(unsigned char *buf, size_t len, uint16_t tag)
+{
+    uint32_t fid;
+
+    if (unpack_le32(&buf, &len, &fid))
+        return -1;
+
+    DEBUG("9pfs: Tstat[%x] fid %u\n", tag, fid);
+
+    struct fidmap *fm;
+    struct plan9_stat stat;
+    int rc;
+
+    fm = find_fid(fid);
+    if (!fm)
+        return send_error(tag, "fid unknown or out of range");
+
+    rc = plan9_stat(&fm->cnode, &stat);
+    if (rc) {
+        const char *strerr = VenusRetStr(conn->u.u_error);
+        ::free(stat.name);
+        return send_error(tag, strerr);
+    }
+
+    /* send_Rstat */
+    DEBUG("9pfs: Rstat[%x]\n", tag);
+
+    unsigned char *stashed_buf = NULL;
+    size_t stashed_len = 0;
+
+    buf = buffer; len = max_msize;
+    if (pack_header(&buf, &len, Rstat, tag) ||
+        get_blob_ref(&buf, &len, &stashed_buf, &stashed_len, 2) ||
+        pack_stat(&buf, &len, &stat))
+    {
+        ::free(stat.name);
+        send_error(tag, "Message too long");
+        return -1;
+    }
+    ::free(stat.name);
+
+    size_t tmplen = 2;
+    pack_le16(&stashed_buf, &tmplen, stashed_len - len - 2);
+    return send_response(buffer, max_msize - len);
+}
+
+
+int plan9server::plan9_stat(struct venus_cnode *cnode, struct plan9_stat *stat,
+                            const char *name)
+{
+    struct coda_vattr attr;
+    char buf[NAME_MAX] = "???";
+
+    /* Coda's getattr doesn't return the path component because it supports
+     * hardlinks so there may be multiple valid names for the same file. 9pfs
+     * doesn't handle hardlinks so each file can maintain a unique name. Coda
+     * does track the last name used to lookup the object, so return that. */
+    if (!name) {
+        fsobj *f = FSDB->Find(&cnode->c_fid);
+        if (f) f->GetPath(buf, PATH_COMPONENT);
+        name = buf;
+    }
+
+    /* first fill in a mostly ok stat block, in case getattr fails */
+    stat->type = 0;
+    stat->dev = 0;
+    cnode2qid(cnode, &stat->qid);
+    stat->mode = (stat->qid.type << 24);
+    stat->atime = 0;
+    stat->mtime = 0;
+    stat->length = 0;
+    stat->name = strdup(name);
+    stat->uid = plan9_username;
+    stat->gid = plan9_username;
+    stat->muid = plan9_username;
+
+    conn->getattr(cnode, &attr);
+
+    /* check for getattr errors if we're not called from filldir */
+    if (conn->u.u_error)
+        return -1;
+
+    stat->mode |= (attr.va_mode & (S_IRWXU|S_IRWXG|S_IRWXO));
+    stat->atime = attr.va_atime.tv_sec;
+    stat->mtime = attr.va_mtime.tv_sec;
+    stat->length = (stat->qid.type == PLAN9_QTDIR) ? 0 : attr.va_size;
+    return 0;
+}
+
+
+struct fidmap *plan9server::find_fid(uint32_t fid)
+{
+    dlist_iterator next(fids);
+    dlink *cur;
+
+    while ((cur = next()))
+    {
+        struct fidmap *fm = strbase(struct fidmap, cur, link);
+        if (fm->p9fid == fid)
+            return fm;
+    }
+    return NULL;
+}
+
+
+struct fidmap *plan9server::add_fid(uint32_t fid, struct venus_cnode *cnode)
+{
+    struct fidmap *fm = new struct fidmap;
+    if (!fm) return NULL;
+
+    fm->p9fid = fid;
+    fm->cnode = *cnode;
+    fm->open_flags = 0;
+    fids.prepend(&fm->link);
+
+    return fm;
+}
+
+int plan9server::del_fid(uint32_t fid)
+{
+    dlist_iterator next(fids);
+    dlink *cur = next();
+
+    while (cur)
+    {
+        struct fidmap *fm = strbase(fidmap, cur, link);
+        cur = next();
+
+        if (fm->p9fid != fid)
+            continue;
+
+        fids.remove(&fm->link);
+
+        if (fm->open_flags && fm->cnode.c_type != C_VLNK)
+            conn->close(&fm->cnode, fm->open_flags);
+
+        delete fm;
+        return 0;
+    }
+    return -1;
+}
+
+void plan9server::del_fids(void)
+{
+    dlist_iterator next(fids);
+    dlink *cur = next();
+
+    while (cur)
+    {
+        struct fidmap *fm = strbase(fidmap, cur, link);
+        cur = next();
+
+        fids.remove(&fm->link);
+        delete fm;
+    }
 }

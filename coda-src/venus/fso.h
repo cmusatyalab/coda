@@ -394,6 +394,7 @@ class fsobj {
   friend class mgrpent;
   friend class hdb;
   friend class Realm; /* ~Realm */
+  friend class plan9server;
   friend void RecoverPathName(char *, VenusFid *, ClientModifyLog *, cmlent *);
 
     int MagicNumber;
