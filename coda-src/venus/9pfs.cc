@@ -310,6 +310,7 @@ static void cnode2qid(struct venus_cnode *cnode, struct plan9_qid *qid)
 plan9server::plan9server(mariner *m)
 {
     conn = m;
+    attach_root.c_fid = NullFid;
 }
 
 plan9server::~plan9server()
@@ -414,6 +415,7 @@ int plan9server::handle_request(unsigned char *buf, size_t read)
     {
     case Tversion:  return recv_version(buf, len, tag);
     case Tattach:   return recv_attach(buf, len, tag);
+    case Tflush:    return recv_flush(buf, len, tag);
     case Twalk:     return recv_walk(buf, len, tag);
     case Topen:     return recv_open(buf, len, tag);
     case Tread:     return recv_read(buf, len, tag);
@@ -448,6 +450,7 @@ int plan9server::recv_version(unsigned char *buf, size_t len, uint16_t tag)
 
     /* abort all existing I/O, clunk all fids */
     del_fids();
+    attach_root.c_fid = NullFid;
 
     /* send_Rversion */
     DEBUG("9pfs: Rversion[%x] msize %lu, version %s\n",
@@ -485,6 +488,13 @@ int plan9server::recv_attach(unsigned char *buf, size_t len, uint16_t tag)
     DEBUG("9pfs: Tattach[%x] fid %u, afid %u, uname %s, aname %s\n",
           tag, fid, afid, uname, aname);
 
+    if (!FID_EQ(&attach_root.c_fid, &NullFid))
+    {
+        ::free(uname);
+        ::free(aname);
+        return send_error(tag, "already attached");
+    }
+
     if (find_fid(fid)) {
         ::free(uname);
         ::free(aname);
@@ -505,6 +515,7 @@ int plan9server::recv_attach(unsigned char *buf, size_t len, uint16_t tag)
 
     ::free(plan9_username);
     plan9_username = uname;
+    attach_root = cnode;
     cnode2qid(&cnode, &qid);
     ::free(aname);
 
@@ -519,6 +530,28 @@ int plan9server::recv_attach(unsigned char *buf, size_t len, uint16_t tag)
         send_error(tag, "Message too long");
         return -1;
     }
+    return send_response(buffer, max_msize - len);
+}
+
+
+int plan9server::recv_flush(unsigned char *buf, size_t len, uint16_t tag)
+{
+    uint16_t oldtag;
+    int rc;
+
+    if (unpack_le16(&buf, &len, &oldtag))
+        return -1;
+
+    DEBUG("9pfs: Tflush[%x] oldtag %x\n", tag, oldtag);
+
+    /* abort any outstanding request tagged with 'oldtag' */
+
+    /* send_Rflush */
+    DEBUG("9pfs: Rflush[%x]\n", tag);
+
+    buf = buffer; len = max_msize;
+    rc = pack_header(&buf, &len, Rflush, tag);
+    assert(rc == 0);
     return send_response(buffer, max_msize - len);
 }
 
@@ -562,8 +595,10 @@ int plan9server::recv_walk(unsigned char *buf, size_t len, uint16_t tag)
 
         DEBUG("9pfs: Twalk[%x] wname[%u] = '%s'\n", tag, i, wname);
 
-        /* do not go up when we're at the root of the mounted subtree */
-        if (strcmp(wname, "..") != 0 || true) /* || make sure current != root of mounted tree */
+        /* do not go up any further when we have reached the root of the
+         * mounted subtree */
+        if (strcmp(wname, "..") != 0 ||
+            !FID_EQ(&current.c_fid, &attach_root.c_fid))
         {
             conn->lookup(&current, wname, &child,
                          CLU_CASE_SENSITIVE | CLU_TRAVERSE_MTPT);

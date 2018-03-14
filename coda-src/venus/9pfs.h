@@ -145,6 +145,7 @@ class plan9server {
     size_t max_msize = PLAN9_BUFSIZE; /* negotiated by Tversion/Rversion */
 
     char *plan9_username = NULL;
+    struct venus_cnode attach_root;
     dlist fids;
 
     int pack_header(unsigned char **buf, size_t *bufspace,
@@ -155,6 +156,7 @@ class plan9server {
     int handle_request(unsigned char *buf, size_t len);
     int recv_version(unsigned char *buf, size_t len, uint16_t tag);
     int recv_attach(unsigned char *buf, size_t len, uint16_t tag);
+    int recv_flush(unsigned char *buf, size_t len, uint16_t tag);
     int recv_walk(unsigned char *buf, size_t len, uint16_t tag);
     int recv_open(unsigned char *buf, size_t len, uint16_t tag);
     int recv_read(unsigned char *buf, size_t len, uint16_t tag);
