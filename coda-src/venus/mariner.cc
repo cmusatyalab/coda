@@ -185,7 +185,7 @@ void MarinerMux(int fd, void *udata)
     socklen_t salen = sizeof(sa);
     char host[NI_MAXHOST], port[NI_MAXSERV];
 
-    LOG(100, ("MarinerMux: fd = %d", fd));
+    LOG(100, ("MarinerMux: fd = %d\n", fd));
 
     newfd = ::accept(fd, (sockaddr *)&sa, &salen);
     if (newfd < 0) {
@@ -196,8 +196,11 @@ void MarinerMux(int fd, void *udata)
     rc = getnameinfo((struct sockaddr *)&sa, salen,
                      host, sizeof(host), port, sizeof(port),
                      NI_NUMERICHOST | NI_NUMERICSERV);
-    LOG(0, ("MarinerMux: new client connection from [%s]:%s",
-            rc ? "resolve failed" : host, rc ? "" : port));
+
+    int broken_port = sa.ss_family == AF_UNIX;
+    LOG(0, ("MarinerMux: new client connection from [%s]:%s\n",
+            rc ? "resolve failed" : host,
+            (rc || broken_port) ? "unknown" : port));
 
     if (mariner::nmariners >= MaxMariners) {
         eprint("MarinerMux: client connection limit exceeded");
@@ -347,6 +350,7 @@ mariner::~mariner() {
     LOG(100, ("mariner::~mariner: %-16s : lwpid = %d\n", name, lwpid));
 
     nmariners--;	/* Ought to be a lock protecting this! -JJK */
+    ::shutdown(fd, SHUT_RDWR);
     ::close(fd);
 }
 
