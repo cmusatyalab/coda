@@ -30,6 +30,14 @@ extern "C" {
 
 #include <stdint.h>
 
+
+/* Magic to detect an incoming Tversion request message */
+#define PLAN9_MAGIC_LEN 19
+// @ offset 1, assume message len < 256, opcode Tversion, tag NOTAG
+const unsigned char plan9_magic1[] = "\0\0\0d"; // \377\377";
+// @ offset 12, assume version len < 256, version string "9P2000"
+const unsigned char plan9_magic12[] = "\09P2000";
+
 /* Every message starts with a four byte message size which includes the size
  * field itself, a one byte message type and a two byte identifying tag. The
  * following tries to document the various messages in the 9P protocol, as

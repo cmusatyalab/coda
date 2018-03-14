@@ -70,6 +70,7 @@ extern "C" {
 #include "worker.h"
 #include "realmdb.h"
 #include "venusvol.h"
+#include "9pfs.h"
 
 #ifndef HAVE_SOCKLEN_T
 typedef int socklen_t;
@@ -473,15 +474,10 @@ int mariner::AwaitRequest()
         /* we really only want to do this for the first 19 bytes of a new
          * connection, and the '\r' stripping and early exit of the loop when a
          * '\n' is found can mangle the incoming 9pfs Tversion message. */
-        if (idx == 19)
+        if (idx == PLAN9_MAGIC_LEN)
         {
-            // @ offset 1, assume message len < 256, opcode Tversion, tag NOTAG
-            const unsigned char magic1[] = "\0\0\0d"; // \377\377";
-            // @ offset 12, assume version len < 256, version string "9P2000"
-            const unsigned char magic12[] = "\09P2000";
-
-            if (memcmp(&commbuf[1], magic1, sizeof(magic1)) == 0 &&
-                memcmp(&commbuf[12], magic12, sizeof(magic12)) == 0)
+            if (memcmp(&commbuf[1], plan9_magic1, sizeof(plan9_magic1)-1) == 0 &&
+                memcmp(&commbuf[12], plan9_magic12, sizeof(plan9_magic12)-1) == 0)
             {
                 /* make sure we no longer send any normal mariner output */
                 logging = reporting = want_volstate = 0;
