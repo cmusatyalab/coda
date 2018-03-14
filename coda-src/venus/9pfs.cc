@@ -414,13 +414,18 @@ int plan9server::handle_request(unsigned char *buf, size_t read)
     switch (opcode)
     {
     case Tversion:  return recv_version(buf, len, tag);
+    case Tauth:     return recv_auth(buf, len, tag);
     case Tattach:   return recv_attach(buf, len, tag);
     case Tflush:    return recv_flush(buf, len, tag);
     case Twalk:     return recv_walk(buf, len, tag);
     case Topen:     return recv_open(buf, len, tag);
+    case Tcreate:   return recv_create(buf, len, tag);
     case Tread:     return recv_read(buf, len, tag);
+    case Twrite:    return recv_write(buf, len, tag);
     case Tclunk:    return recv_clunk(buf, len, tag);
+    case Tremove:   return recv_remove(buf, len, tag);
     case Tstat:     return recv_stat(buf, len, tag);
+    case Twstat:    return recv_wstat(buf, len, tag);
     default:        return send_error(tag, "Operation not supported");
     }
     return 0;
@@ -465,6 +470,43 @@ int plan9server::recv_version(unsigned char *buf, size_t len, uint16_t tag)
         return -1;
     }
     return send_response(buffer, max_msize - len);
+}
+
+
+int plan9server::recv_auth(unsigned char *buf, size_t len, uint16_t tag)
+{
+    uint32_t afid;
+    char *uname;
+    char *aname;
+
+    if (unpack_le32(&buf, &len, &afid) ||
+        unpack_string(&buf, &len, &uname))
+        return -1;
+    if (unpack_string(&buf, &len, &aname)) {
+        ::free(uname);
+        return -1;
+    }
+
+    DEBUG("9pfs: Tauth[%x] afid %u, uname %s, aname %s\n",
+          tag, afid, uname, aname);
+
+    ::free(uname);
+    ::free(aname);
+#if 0
+    /* send_Rauth */
+    DEBUG("9pfs: Rauth[%x] aqid %x.%x.%lx\n",
+          tag, aqid->type, aqid->version, aqid->path);
+
+    buf = buffer; len = max_msize;
+    if (pack_header(&buf, &len, Rauth) ||
+        pack_qid(&buf, &len, aqid))
+    {
+        send_error(tag, "Message too long");
+        return -1;
+    }
+    return send_response(buffer, max_msize - len);
+#endif
+    return send_error(tag, "Operation not supported");
 }
 
 
@@ -746,6 +788,47 @@ int plan9server::recv_open(unsigned char *buf, size_t len, uint16_t tag)
 }
 
 
+int plan9server::recv_create(unsigned char *buf, size_t len, uint16_t tag)
+{
+    uint32_t fid;
+    char *name;
+    uint32_t perm;
+    uint8_t mode;
+
+    if (unpack_le32(&buf, &len, &fid) ||
+        unpack_string(&buf, &len, &name))
+        return -1;
+    if (unpack_le32(&buf, &len, &perm) ||
+        unpack_le8(&buf, &len, &mode))
+    {
+        free(name);
+        return -1;
+    }
+
+    DEBUG("9pfs: Tcreate[%x] fid %u, name %s, perm %u, mode %u\n",
+          tag, fid, name, perm, mode);
+
+#if 0
+    uint32_t iounit = 4096;
+
+    /* send_Rcreate */
+    DEBUG("9pfs: Rcreate[%x] qid %x.%x.%lx, iounit %u\n",
+          tag, qid.type, qid.version, qid.path, iounit);
+
+    buf = buffer; len = max_msize;
+    if (pack_header(&buf, &len, Rcreate, tag) ||
+        pack_qid(&buf, &len, qid) ||
+        pack_le32(&buf, &len, iounit))
+    {
+        send_error(tag, "Message too long");
+        return -1;
+    }
+    return send_response(buffer, max_msize - len);
+#endif
+    return send_error(tag, "Operation not supported");
+}
+
+
 int plan9server::recv_read(unsigned char *buf, size_t len, uint16_t tag)
 {
     uint32_t fid;
@@ -796,6 +879,41 @@ int plan9server::recv_read(unsigned char *buf, size_t len, uint16_t tag)
 }
 
 
+int plan9server::recv_write(unsigned char *buf, size_t len, uint16_t tag)
+{
+    uint32_t fid;
+    uint64_t offset;
+    uint32_t count;
+
+    if (unpack_le32(&buf, &len, &fid) ||
+        unpack_le64(&buf, &len, &offset) ||
+        unpack_le32(&buf, &len, &count))
+        return -1;
+
+    DEBUG("9pfs: Twrite[%x] fid %u, offset %lu, count %u\n",
+          tag, fid, offset, count);
+
+    if (len < count)
+        return -1;
+    //data = ptr;
+
+#if 0
+    /* send_Rwrite */
+    DEBUG("9pfs: Rwrite[%x] %lu\n", tag, count);
+
+    buf = buffer; len = max_msize;
+    if (pack_header(&buf, &len, Rwrite, tag) ||
+        pack_le32(&buf, &len, count))
+    {
+        send_error(tag, "Message too long");
+        return -1;
+    }
+    return send_response(buffer, max_msize - len);
+#endif
+    return send_error(tag, "Operation not supported");
+}
+
+
 int plan9server::recv_clunk(unsigned char *buf, size_t len, uint16_t tag)
 {
     uint32_t fid;
@@ -817,6 +935,28 @@ int plan9server::recv_clunk(unsigned char *buf, size_t len, uint16_t tag)
     rc = pack_header(&buf, &len, Rclunk, tag);
     assert(rc == 0); /* only sending header, should never be truncated */
     return send_response(buffer, max_msize - len);
+}
+
+
+int plan9server::recv_remove(unsigned char *buf, size_t len, uint16_t tag)
+{
+    uint32_t fid;
+
+    if (unpack_le32(&buf, &len, &fid))
+        return -1;
+
+    DEBUG("9pfs: Tremove[%x] fid %u\n", tag, fid);
+
+#if 0
+    /* send_Rremove */
+    DEBUG("9pfs: Rremove[%x]\n", tag);
+
+    buf = buffer; len = max_msize;
+    rc = pack_header(&buf, &len, Rremove, tag);
+    assert(rc == 0);
+    send_response(buffer, max_msize - len);
+#endif
+    return send_error(tag, "Operation not supported");
 }
 
 
@@ -864,6 +1004,36 @@ int plan9server::recv_stat(unsigned char *buf, size_t len, uint16_t tag)
     size_t tmplen = 2;
     pack_le16(&stashed_buf, &tmplen, stashed_len - len - 2);
     return send_response(buffer, max_msize - len);
+}
+
+
+int plan9server::recv_wstat(unsigned char *buf, size_t len, uint16_t tag)
+{
+    uint32_t fid;
+    uint16_t statlen;
+    struct plan9_stat stat;
+
+    if (unpack_le32(&buf, &len, &fid) ||
+        unpack_le16(&buf, &len, &statlen) ||
+        unpack_stat(&buf, &len, &stat))
+        return -1;
+
+    DEBUG("9pfs: Twstat[%x] fid %u, statlen %u\n", tag, fid, statlen);
+
+    ::free(stat.muid);
+    ::free(stat.gid);
+    ::free(stat.uid);
+    ::free(stat.name);
+#if 0
+    /* send_Rwstat */
+    DEBUG("9pfs: Rwstat[%x]\n", tag);
+
+    buf = buffer; len = max_msize;
+    rc = pack_header(&buf, &len, Rwstat, tag);
+    assert(rc == 0);
+    return send_response(buffer, max_msize - len);
+#endif
+    return send_error(tag, "Operation not supported");
 }
 
 

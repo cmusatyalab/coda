@@ -155,13 +155,18 @@ class plan9server {
 
     int handle_request(unsigned char *buf, size_t len);
     int recv_version(unsigned char *buf, size_t len, uint16_t tag);
+    int recv_auth(unsigned char *buf, size_t len, uint16_t tag);
     int recv_attach(unsigned char *buf, size_t len, uint16_t tag);
     int recv_flush(unsigned char *buf, size_t len, uint16_t tag);
     int recv_walk(unsigned char *buf, size_t len, uint16_t tag);
     int recv_open(unsigned char *buf, size_t len, uint16_t tag);
+    int recv_create(unsigned char *buf, size_t len, uint16_t tag);
     int recv_read(unsigned char *buf, size_t len, uint16_t tag);
+    int recv_write(unsigned char *buf, size_t len, uint16_t tag);
     int recv_clunk(unsigned char *buf, size_t len, uint16_t tag);
+    int recv_remove(unsigned char *buf, size_t len, uint16_t tag);
     int recv_stat(unsigned char *buf, size_t len, uint16_t tag);
+    int recv_wstat(unsigned char *buf, size_t len, uint16_t tag);
 
     struct fidmap *find_fid(uint32_t fid);
     struct fidmap *add_fid(uint32_t fid, struct venus_cnode *cnode);
