@@ -415,6 +415,8 @@ int plan9server::handle_request(unsigned char *buf, size_t read)
     case Tversion:  return recv_version(buf, len, tag);
     case Tattach:   return recv_attach(buf, len, tag);
     case Twalk:     return recv_walk(buf, len, tag);
+    case Topen:     return recv_open(buf, len, tag);
+    case Tread:     return recv_read(buf, len, tag);
     case Tclunk:    return recv_clunk(buf, len, tag);
     case Tstat:     return recv_stat(buf, len, tag);
     default:        return send_error(tag, "Operation not supported");
@@ -618,6 +620,147 @@ int plan9server::recv_walk(unsigned char *buf, size_t len, uint16_t tag)
 }
 
 
+int plan9server::recv_open(unsigned char *buf, size_t len, uint16_t tag)
+{
+    uint32_t fid;
+    uint8_t mode;
+
+    if (unpack_le32(&buf, &len, &fid) ||
+        unpack_le8(&buf, &len, &mode))
+        return -1;
+
+    DEBUG("9pfs: Topen[%x] fid %u, mode %u\n", tag, fid, mode);
+
+    struct fidmap *fm;
+    int flags;
+
+    fm = find_fid(fid);
+    if (!fm) {
+        return send_error(tag, "fid unknown or out of range");
+    }
+    if (fm->open_flags) {
+        return send_error(tag, "file already open for I/O");
+    }
+
+    /* OTRUNC and ORCLOSE are create only flags, the rest should be 0 */
+    if (mode & ~0x3) {
+        return send_error(tag, "Invalid argument");
+    }
+    switch (mode & 0x3) {
+    case PLAN9_OREAD:
+    case PLAN9_OEXEC:
+        flags = C_O_READ;
+        break;
+    case PLAN9_OWRITE:
+        flags = C_O_WRITE;
+        break;
+    case PLAN9_ORDWR:
+        flags = C_O_READ | C_O_WRITE;
+        break;
+    }
+
+    /* for now only allow read access */
+    if (flags & C_O_WRITE) { /* || cnode->c_type != C_REG */
+        return send_error(tag, "file is read only");
+    }
+
+    /* vget and open yield, so we may lose fidmap, but we need to make sure we
+     * can close opened cnodes if the fidmap was removed while we yielded. */
+    struct venus_cnode cnode = fm->cnode;
+    struct plan9_qid qid;
+
+    if (cnode.c_type == C_VLNK) {
+        struct venus_cnode tmp;
+        conn->vget(&tmp, &cnode.c_fid, RC_STATUS|RC_DATA);
+    }
+    else {
+        conn->open(&cnode, flags);
+    }
+    if (conn->u.u_error) {
+        const char *errstr = VenusRetStr(conn->u.u_error);
+        return send_error(tag, errstr);
+    }
+
+    /* open yields, reobtain fidmap reference */
+    fm = find_fid(fid);
+    if (!fm) {
+        if (cnode.c_type != C_VLNK)
+            conn->close(&cnode, flags);
+        return send_error(tag, "fid unknown or out of range");
+    }
+    fm->open_flags = flags;
+
+    cnode2qid(&cnode, &qid);
+
+    uint32_t iounit = 4096;
+
+    /* send_Ropen */
+    DEBUG("9pfs: Ropen[%x] qid %x.%x.%lx, iounit %u\n",
+          tag, qid.type, qid.version, qid.path, iounit);
+
+    buf = buffer; len = max_msize;
+    if (pack_header(&buf, &len, Ropen, tag) ||
+        pack_qid(&buf, &len, &qid) ||
+        pack_le32(&buf, &len, iounit))
+    {
+        send_error(tag, "Message too long");
+        return -1;
+    }
+    send_response(buffer, max_msize - len);
+    return 0;
+}
+
+
+int plan9server::recv_read(unsigned char *buf, size_t len, uint16_t tag)
+{
+    uint32_t fid;
+    uint64_t offset;
+    uint32_t count;
+
+    if (unpack_le32(&buf, &len, &fid) ||
+        unpack_le64(&buf, &len, &offset) ||
+        unpack_le32(&buf, &len, &count))
+        return -1;
+
+    DEBUG("9pfs: Tread[%x] fid %u, offset %lu, count %u\n",
+          tag, fid, offset, count);
+
+    struct fidmap *fm = find_fid(fid);
+    if (!fm)
+        return send_error(tag, "fid unknown or out of range");
+
+    if (!(fm->open_flags & C_O_READ))
+        return send_error(tag, "Bad file descriptor");
+
+    /* send_Rread */
+    unsigned char *tmpbuf;
+    buf = buffer; len = max_msize;
+    if (pack_header(&buf, &len, Rread, tag) ||
+        get_blob_ref(&buf, &len, &tmpbuf, NULL, 4))
+    {
+        send_error(tag, "Message too long");
+        return -1;
+    }
+
+    if (count > len)
+        count = len;
+
+    ssize_t n = plan9_read(&fm->cnode, buf, count, offset);
+    if (n < 0) {
+        const char *strerr = VenusRetStr(conn->u.u_error);
+        return send_error(tag, strerr);
+    }
+
+    /* fix up the actual size of the blob, and send */
+    size_t tmplen = 4;
+    pack_le32(&tmpbuf, &tmplen, n);
+
+    DEBUG("9pfs: Rread[%x] %ld\n", tag, n);
+    len -= n;
+    return send_response(buffer, max_msize - len);
+}
+
+
 int plan9server::recv_clunk(unsigned char *buf, size_t len, uint16_t tag)
 {
     uint32_t fid;
@@ -686,6 +829,119 @@ int plan9server::recv_stat(unsigned char *buf, size_t len, uint16_t tag)
     size_t tmplen = 2;
     pack_le16(&stashed_buf, &tmplen, stashed_len - len - 2);
     return send_response(buffer, max_msize - len);
+}
+
+
+struct filldir_args {
+    plan9server *srv;
+    unsigned char *buf;
+    size_t count;
+    size_t offset;
+    struct venus_cnode cnode;
+};
+
+static int filldir(struct DirEntry *de, void *hook)
+{
+    struct filldir_args *args = (struct filldir_args *)hook;
+    if (strcmp(de->name, ".") == 0 || strcmp(de->name, "..") == 0)
+        return 0;
+    return args->srv->pack_dirent(&args->buf, &args->count, &args->offset,
+                                  &args->cnode, de->name);
+}
+
+int plan9server::pack_dirent(unsigned char **buf, size_t *len, size_t *offset,
+                             struct venus_cnode *parent, const char *name)
+{
+    struct venus_cnode child;
+    struct plan9_stat stat;
+    int rc;
+
+    conn->lookup(parent, name, &child, CLU_CASE_SENSITIVE | CLU_TRAVERSE_MTPT);
+    if (conn->u.u_error == ETIMEDOUT)
+        conn->lookup(parent, name, &child, CLU_CASE_SENSITIVE);
+
+    if (conn->u.u_error)
+        return conn->u.u_error;
+
+    plan9_stat(&child, &stat, name);
+
+    /* at first we iterate through already returned entries */
+    if (*offset) {
+        /* if there is an offset, we're guaranteed to be at the start of the
+         * buffer. So there is 'room' for scratch space there. */
+        unsigned char *scratch = *buf;
+        rc = pack_stat(&scratch, offset, &stat);
+        ::free(stat.name);
+        if (rc) {
+            /* was this a case of (offset < stat_length)? */
+            /* -> i.e. 'bad offset in directory read' */
+            return ESPIPE;
+        }
+        return 0;
+    }
+
+    /* and finally we pack until we cannot fit any more entries */
+    rc = pack_stat(buf, len, &stat);
+    ::free(stat.name);
+    if (rc) /* failed to pack this entry. stop enumerating. */
+        return ENOBUFS;
+    return 0;
+}
+
+
+ssize_t plan9server::plan9_read(struct venus_cnode *cnode, unsigned char *buf,
+                                size_t count, size_t offset)
+{
+    fsobj *f;
+    int fd;
+    ssize_t n = 0;
+
+    if (cnode->c_type == C_VREG)
+    {
+        f = FSDB->Find(&cnode->c_fid);
+        assert(f); /* open file should have a reference */
+
+        fd = f->data.file->Open(O_RDONLY);
+        if (fd < 0) {
+            conn->u.u_error = EIO;
+            return -1;
+        }
+
+        n = ::pread(fd, buf, count, offset);
+        if (n < 0)
+            conn->u.u_error = errno;
+
+        f->data.file->Close(fd);
+    }
+    else if (cnode->c_type == C_VDIR)
+    {
+        f = FSDB->Find(&cnode->c_fid);
+        assert(f); /* open directory should have a reference */
+
+        int rc;
+        struct filldir_args args;
+        args.srv = this;
+        args.offset = offset;
+        args.buf = buf;
+        args.count = count;
+        args.cnode = *cnode;
+
+        rc = ::DH_EnumerateDir(&f->data.dir->dh, filldir, &args);
+        if (rc && rc != ENOBUFS) {
+            conn->u.u_error = rc;
+            return -1;
+        }
+        n = count - args.count;
+    }
+    else if (cnode->c_type == C_VLNK && offset == 0) {
+        struct coda_string cstring;
+        cstring.cs_buf = (char *)buf;
+        cstring.cs_maxlen = count;
+
+        conn->readlink(cnode, &cstring);
+        n = cstring.cs_len;
+    }
+    return n;
 }
 
 

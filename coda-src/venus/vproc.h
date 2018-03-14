@@ -224,7 +224,7 @@ class vproc : public olink {
     void getattr(struct venus_cnode *, struct coda_vattr *);
     void setattr(struct venus_cnode *, struct coda_vattr *);
     void access(struct venus_cnode *, int);
-    void lookup(struct venus_cnode *, char *, struct venus_cnode *, int);
+    void lookup(struct venus_cnode *, const char *, struct venus_cnode *, int);
     void create(struct venus_cnode *, char *, struct coda_vattr *, int, 
 		int, struct venus_cnode *);
     void remove(struct venus_cnode *, char *);

@@ -156,6 +156,8 @@ class plan9server {
     int recv_version(unsigned char *buf, size_t len, uint16_t tag);
     int recv_attach(unsigned char *buf, size_t len, uint16_t tag);
     int recv_walk(unsigned char *buf, size_t len, uint16_t tag);
+    int recv_open(unsigned char *buf, size_t len, uint16_t tag);
+    int recv_read(unsigned char *buf, size_t len, uint16_t tag);
     int recv_clunk(unsigned char *buf, size_t len, uint16_t tag);
     int recv_stat(unsigned char *buf, size_t len, uint16_t tag);
 
@@ -166,11 +168,15 @@ class plan9server {
 
     int plan9_stat(struct venus_cnode *cnode, struct plan9_stat *stat,
                    const char *name = NULL);
+    ssize_t plan9_read(struct venus_cnode *cnode, unsigned char *buf,
+                       size_t count, size_t offset);
 public:
     plan9server(mariner *conn);
     ~plan9server();
 
     void main_loop(unsigned char *initial_buffer = NULL, size_t len = 0);
+    int pack_dirent(unsigned char **buf, size_t *len, size_t *offset,
+                    struct venus_cnode *parent, const char *name);
 };
 
 #endif /* _VENUS_9PFS_H_ */

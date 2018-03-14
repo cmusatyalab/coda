@@ -569,12 +569,12 @@ FreeLocks:
 }
 
 
-void vproc::lookup(struct venus_cnode *dcp, char *name, 
-		   struct venus_cnode *cp, int flags) 
+void vproc::lookup(struct venus_cnode *dcp, const char *name,
+		   struct venus_cnode *cp, int flags)
 {
 
     LOG(1, ("vproc::lookup: fid = %s, name = %s, nc = %x\n",
-	     FID_(&dcp->c_fid),name, u.u_nc));
+	     FID_(&dcp->c_fid), name, u.u_nc));
 
     fsobj *parent_fso = 0;
     fsobj *target_fso = 0;
