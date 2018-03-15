@@ -32,7 +32,7 @@ extern "C" {
 
 
 /* Magic to detect an incoming Tversion request message */
-#define PLAN9_MAGIC_LEN 19
+#define P9_MAGIC_LEN 19
 // @ offset 1, assume message len < 256, opcode Tversion, tag NOTAG
 const unsigned char plan9_magic1[] = "\0\0\0d"; // \377\377";
 // @ offset 12, assume version len < 256, version string "9P2000"
@@ -88,24 +88,24 @@ enum plan9_message_types {
     Rwstat,         /* tag[2] */
 };
 
-#define PLAN9_NOTAG ((uint16_t)~0) /* version message should use 'NOTAG' */
-#define PLAN9_NOFID ((uint32_t)~0) /* noauth attach uses 'NOFID' for 'afid' */
-#define PLAN9_MAX_NWNAME 16        /* max elements in walk message */
+#define P9_NOTAG ((uint16_t)~0) /* version message should use 'NOTAG' */
+#define P9_NOFID ((uint32_t)~0) /* noauth attach uses 'NOFID' for 'afid' */
+#define P9_MAX_NWNAME 16        /* max elements in walk message */
 
 /* size of 9pfs message header */
-#define PLAN9_MIN_MSGSIZE (sizeof(uint32_t)+sizeof(uint8_t)+sizeof(uint16_t))
+#define P9_MIN_MSGSIZE (sizeof(uint32_t)+sizeof(uint8_t)+sizeof(uint16_t))
 
-#define PLAN9_QTDIR     0x80
-#define PLAN9_QTAUTH    0x08
-#define PLAN9_QTSYMLINK 0x02
-#define PLAN9_QTFILE    0x00
+#define P9_QTDIR     0x80
+#define P9_QTAUTH    0x08
+#define P9_QTSYMLINK 0x02
+#define P9_QTFILE    0x00
 
-#define PLAN9_OREAD   0x00
-#define PLAN9_OWRITE  0x01
-#define PLAN9_ORDWR   0x02
-#define PLAN9_OEXEC   0x03
-#define PLAN9_OTRUNC  0x10
-#define PLAN9_ORCLOSE 0x40
+#define P9_OREAD   0x00
+#define P9_OWRITE  0x01
+#define P9_ORDWR   0x02
+#define P9_OEXEC   0x03
+#define P9_OTRUNC  0x10
+#define P9_ORCLOSE 0x40
 
 
 struct plan9_qid {
@@ -136,13 +136,13 @@ struct plan9_stat {
 #include <dlist.h>
 #include <mariner.h>
 
-#define PLAN9_BUFSIZE 8192
+#define P9_BUFSIZE 8192
 
 class plan9server {
     mariner *conn;
 
-    unsigned char buffer[PLAN9_BUFSIZE];
-    size_t max_msize = PLAN9_BUFSIZE; /* negotiated by Tversion/Rversion */
+    unsigned char buffer[P9_BUFSIZE];
+    size_t max_msize = P9_BUFSIZE; /* negotiated by Tversion/Rversion */
 
     char *plan9_username = NULL;
     struct venus_cnode attach_root;

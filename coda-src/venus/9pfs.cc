@@ -289,10 +289,10 @@ static void cnode2qid(struct venus_cnode *cnode, struct plan9_qid *qid)
 {
     fsobj *f;
 
-    qid->type = (cnode->c_type == C_VDIR) ? PLAN9_QTDIR :
-                (cnode->c_type == C_VLNK) ? PLAN9_QTSYMLINK :
-                (cnode->c_type == C_VREG) ? PLAN9_QTFILE :
-                // PLAN9_QTFILE is defined as 0
+    qid->type = (cnode->c_type == C_VDIR) ? P9_QTDIR :
+                (cnode->c_type == C_VLNK) ? P9_QTSYMLINK :
+                (cnode->c_type == C_VREG) ? P9_QTFILE :
+                // P9_QTFILE is defined as 0
                 0;
 
     qid->path = SpookyHash::Hash64(&cnode->c_fid, sizeof(VenusFid), 0);
@@ -322,7 +322,7 @@ int plan9server::pack_header(unsigned char **buf, size_t *len,
                              uint8_t type, uint16_t tag)
 {
     /* we will fix this value when sending the message */
-    uint32_t msglen = PLAN9_MIN_MSGSIZE;
+    uint32_t msglen = P9_MIN_MSGSIZE;
 
     if (pack_le32(buf, len, msglen) ||
         pack_le8(buf, len, type) ||
@@ -373,7 +373,7 @@ void plan9server::main_loop(unsigned char *initial_buffer, size_t len)
             break;
 
         /* get next request, anticipate we can read the 9pfs header */
-        len = PLAN9_MIN_MSGSIZE;
+        len = P9_MIN_MSGSIZE;
         if (conn->read_until_done(buffer, len) != (ssize_t)len)
             break;
     }
@@ -410,7 +410,7 @@ int plan9server::handle_request(unsigned char *buf, size_t read)
     if (conn->read_until_done(unread, len) != (ssize_t)len)
         return -1;
 
-    len = reqlen - PLAN9_MIN_MSGSIZE;
+    len = reqlen - P9_MIN_MSGSIZE;
     switch (opcode)
     {
     case Tversion:  return recv_version(buf, len, tag);
@@ -445,7 +445,7 @@ int plan9server::recv_version(unsigned char *buf, size_t len, uint16_t tag)
     DEBUG("9pfs: Tversion[%x] msize %d, version %s\n",
           tag, msize, remote_version);
 
-    max_msize = (msize < PLAN9_BUFSIZE) ? msize : PLAN9_BUFSIZE;
+    max_msize = (msize < P9_BUFSIZE) ? msize : P9_BUFSIZE;
 
     if (::strncmp(remote_version, "9P2000", 6) == 0)
         version = "9P2000";
@@ -609,7 +609,7 @@ int plan9server::recv_walk(unsigned char *buf, size_t len, uint16_t tag)
         unpack_le16(&buf, &len, &nwname))
         return -1;
 
-    if (nwname > PLAN9_MAX_NWNAME)
+    if (nwname > P9_MAX_NWNAME)
     {
         send_error(tag, "Argument list too long");
         return -1;
@@ -623,7 +623,7 @@ int plan9server::recv_walk(unsigned char *buf, size_t len, uint16_t tag)
     int i;
     char *wname;
     uint16_t nwqid;
-    struct plan9_qid wqid[PLAN9_MAX_NWNAME];
+    struct plan9_qid wqid[P9_MAX_NWNAME];
 
     fm = find_fid(fid);
     if (!fm) {
@@ -724,14 +724,14 @@ int plan9server::recv_open(unsigned char *buf, size_t len, uint16_t tag)
         return send_error(tag, "Invalid argument");
     }
     switch (mode & 0x3) {
-    case PLAN9_OREAD:
-    case PLAN9_OEXEC:
+    case P9_OREAD:
+    case P9_OEXEC:
         flags = C_O_READ;
         break;
-    case PLAN9_OWRITE:
+    case P9_OWRITE:
         flags = C_O_WRITE;
         break;
-    case PLAN9_ORDWR:
+    case P9_ORDWR:
         flags = C_O_READ | C_O_WRITE;
         break;
     }
@@ -1188,7 +1188,7 @@ int plan9server::plan9_stat(struct venus_cnode *cnode, struct plan9_stat *stat,
     stat->mode |= (attr.va_mode & (S_IRWXU|S_IRWXG|S_IRWXO));
     stat->atime = attr.va_atime.tv_sec;
     stat->mtime = attr.va_mtime.tv_sec;
-    stat->length = (stat->qid.type == PLAN9_QTDIR) ? 0 : attr.va_size;
+    stat->length = (stat->qid.type == P9_QTDIR) ? 0 : attr.va_size;
     return 0;
 }
 
