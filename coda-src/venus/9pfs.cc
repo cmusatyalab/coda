@@ -42,11 +42,19 @@ extern "C" {
 #define DEBUG(...) do { fprintf(stderr, __VA_ARGS__); fflush(stderr); } while(0)
 
 
+struct attachment {
+    uint32_t refcount;
+    struct venus_cnode cnode;
+    const char *uname;
+    const char *aname;
+};
+
 struct fidmap {
     dlink link;
     uint32_t fid;
     struct venus_cnode cnode;
     int open_flags;
+    struct attachment *root;
 };
 
 
@@ -310,7 +318,6 @@ static void cnode2qid(struct venus_cnode *cnode, struct plan9_qid *qid)
 plan9server::plan9server(mariner *m)
 {
     conn = m;
-    attach_root.c_fid = NullFid;
 }
 
 plan9server::~plan9server()
@@ -455,7 +462,6 @@ int plan9server::recv_version(unsigned char *buf, size_t len, uint16_t tag)
 
     /* abort all existing I/O, clunk all fids */
     del_fid(P9_NOFID);
-    attach_root.c_fid = NullFid;
 
     /* send_Rversion */
     DEBUG("9pfs: Rversion[%x] msize %lu, version %s\n",
@@ -530,36 +536,28 @@ int plan9server::recv_attach(unsigned char *buf, size_t len, uint16_t tag)
     DEBUG("9pfs: Tattach[%x] fid %u, afid %u, uname %s, aname %s\n",
           tag, fid, afid, uname, aname);
 
-    if (!FID_EQ(&attach_root.c_fid, &NullFid))
-    {
-        ::free(uname);
-        ::free(aname);
-        return send_error(tag, "already attached");
-    }
-
     if (find_fid(fid)) {
         ::free(uname);
         ::free(aname);
         return send_error(tag, "fid already in use");
     }
 
-    struct venus_cnode cnode;
+    struct attachment *root = new struct attachment;
     struct plan9_qid qid;
 
-    conn->root(&cnode);
+    root->refcount = 0;
+    conn->root(&root->cnode);
+    root->uname = uname;
+    root->aname = aname;
 
-    if (add_fid(fid, &cnode) == NULL)
-    {
-        ::free(uname);
-        ::free(aname);
+    if (add_fid(fid, &root->cnode, root) == NULL) {
+        ::free((void *)root->uname);
+        ::free((void *)root->aname);
+        delete root;
         return send_error(tag, "failed to allocate new fid");
     }
 
-    ::free(plan9_username);
-    plan9_username = uname;
-    attach_root = cnode;
-    cnode2qid(&cnode, &qid);
-    ::free(aname);
+    cnode2qid(&root->cnode, &qid);
 
     /* send_Rattach */
     DEBUG("9pfs: Rattach[%x] qid %x.%x.%lx\n",
@@ -640,7 +638,7 @@ int plan9server::recv_walk(unsigned char *buf, size_t len, uint16_t tag)
         /* do not go up any further when we have reached the root of the
          * mounted subtree */
         if (strcmp(wname, "..") != 0 ||
-            !FID_EQ(&current.c_fid, &attach_root.c_fid))
+            !FID_EQ(&current.c_fid, &fm->root->cnode.c_fid))
         {
             conn->lookup(&current, wname, &child,
                          CLU_CASE_SENSITIVE | CLU_TRAVERSE_MTPT);
@@ -670,7 +668,7 @@ int plan9server::recv_walk(unsigned char *buf, size_t len, uint16_t tag)
         else if (find_fid(newfid))
             return send_error(tag, "fid already in use");
 
-        add_fid(newfid, &current);
+        add_fid(newfid, &current, fm->root);
     }
 
     /* send_Rwalk */
@@ -863,7 +861,7 @@ int plan9server::recv_read(unsigned char *buf, size_t len, uint16_t tag)
     if (count > len)
         count = len;
 
-    ssize_t n = plan9_read(&fm->cnode, buf, count, offset);
+    ssize_t n = plan9_read(fm, buf, count, offset);
     if (n < 0) {
         const char *strerr = VenusRetStr(conn->u.u_error);
         return send_error(tag, strerr);
@@ -977,7 +975,7 @@ int plan9server::recv_stat(unsigned char *buf, size_t len, uint16_t tag)
     if (!fm)
         return send_error(tag, "fid unknown or out of range");
 
-    rc = plan9_stat(&fm->cnode, &stat);
+    rc = plan9_stat(&fm->cnode, fm->root->uname, &stat);
     if (rc) {
         const char *strerr = VenusRetStr(conn->u.u_error);
         ::free(stat.name);
@@ -1042,7 +1040,8 @@ struct filldir_args {
     unsigned char *buf;
     size_t count;
     size_t offset;
-    struct venus_cnode cnode;
+    struct venus_cnode parent;
+    const char *username;
 };
 
 static int filldir(struct DirEntry *de, void *hook)
@@ -1051,24 +1050,22 @@ static int filldir(struct DirEntry *de, void *hook)
     if (strcmp(de->name, ".") == 0 || strcmp(de->name, "..") == 0)
         return 0;
     return args->srv->pack_dirent(&args->buf, &args->count, &args->offset,
-                                  &args->cnode, de->name);
+                                  &args->parent, args->username, de->name);
 }
 
 int plan9server::pack_dirent(unsigned char **buf, size_t *len, size_t *offset,
-                             struct venus_cnode *parent, const char *name)
+                             struct venus_cnode *parent, const char *username,
+                             const char *name)
 {
     struct venus_cnode child;
     struct plan9_stat stat;
     int rc;
 
     conn->lookup(parent, name, &child, CLU_CASE_SENSITIVE | CLU_TRAVERSE_MTPT);
-    if (conn->u.u_error == ETIMEDOUT)
-        conn->lookup(parent, name, &child, CLU_CASE_SENSITIVE);
-
     if (conn->u.u_error)
         return conn->u.u_error;
 
-    plan9_stat(&child, &stat, name);
+    plan9_stat(&child, username, &stat, name);
 
     /* at first we iterate through already returned entries */
     if (*offset) {
@@ -1094,16 +1091,16 @@ int plan9server::pack_dirent(unsigned char **buf, size_t *len, size_t *offset,
 }
 
 
-ssize_t plan9server::plan9_read(struct venus_cnode *cnode, unsigned char *buf,
+ssize_t plan9server::plan9_read(struct fidmap *fm, unsigned char *buf,
                                 size_t count, size_t offset)
 {
     fsobj *f;
     int fd;
     ssize_t n = 0;
 
-    if (cnode->c_type == C_VREG)
+    if (fm->cnode.c_type == C_VREG)
     {
-        f = FSDB->Find(&cnode->c_fid);
+        f = FSDB->Find(&fm->cnode.c_fid);
         assert(f); /* open file should have a reference */
 
         fd = f->data.file->Open(O_RDONLY);
@@ -1118,9 +1115,9 @@ ssize_t plan9server::plan9_read(struct venus_cnode *cnode, unsigned char *buf,
 
         f->data.file->Close(fd);
     }
-    else if (cnode->c_type == C_VDIR)
+    else if (fm->cnode.c_type == C_VDIR)
     {
-        f = FSDB->Find(&cnode->c_fid);
+        f = FSDB->Find(&fm->cnode.c_fid);
         assert(f); /* open directory should have a reference */
 
         int rc;
@@ -1129,7 +1126,12 @@ ssize_t plan9server::plan9_read(struct venus_cnode *cnode, unsigned char *buf,
         args.offset = offset;
         args.buf = buf;
         args.count = count;
-        args.cnode = *cnode;
+        args.parent = fm->cnode;
+
+        // when we allow concurrency we should bump the refcount on root
+        // and handle cleanup when enumeratedir returns
+        struct attachment *root = fm->root;
+        args.username = root->uname;
 
         rc = ::DH_EnumerateDir(&f->data.dir->dh, filldir, &args);
         if (rc && rc != ENOBUFS) {
@@ -1138,20 +1140,20 @@ ssize_t plan9server::plan9_read(struct venus_cnode *cnode, unsigned char *buf,
         }
         n = count - args.count;
     }
-    else if (cnode->c_type == C_VLNK && offset == 0) {
+    else if (fm->cnode.c_type == C_VLNK && offset == 0) {
         struct coda_string cstring;
         cstring.cs_buf = (char *)buf;
         cstring.cs_maxlen = count;
 
-        conn->readlink(cnode, &cstring);
+        conn->readlink(&fm->cnode, &cstring);
         n = cstring.cs_len;
     }
     return n;
 }
 
 
-int plan9server::plan9_stat(struct venus_cnode *cnode, struct plan9_stat *stat,
-                            const char *name)
+int plan9server::plan9_stat(struct venus_cnode *cnode, const char *username,
+                            struct plan9_stat *stat, const char *name)
 {
     struct coda_vattr attr;
     char buf[NAME_MAX] = "???";
@@ -1175,9 +1177,9 @@ int plan9server::plan9_stat(struct venus_cnode *cnode, struct plan9_stat *stat,
     stat->mtime = 0;
     stat->length = 0;
     stat->name = strdup(name);
-    stat->uid = plan9_username;
-    stat->gid = plan9_username;
-    stat->muid = plan9_username;
+    stat->uid = (char *)username;
+    stat->gid = (char *)username;
+    stat->muid = (char *)username;
 
     conn->getattr(cnode, &attr);
 
@@ -1208,14 +1210,17 @@ struct fidmap *plan9server::find_fid(uint32_t fid)
 }
 
 
-struct fidmap *plan9server::add_fid(uint32_t fid, struct venus_cnode *cnode)
+struct fidmap *plan9server::add_fid(uint32_t fid, struct venus_cnode *cnode,
+                                    struct attachment *root)
 {
     struct fidmap *fm = new struct fidmap;
     if (!fm) return NULL;
 
+    root->refcount++;
     fm->fid = fid;
     fm->cnode = *cnode;
     fm->open_flags = 0;
+    fm->root = root;
     fids.prepend(&fm->link);
 
     return fm;
@@ -1235,10 +1240,14 @@ int plan9server::del_fid(uint32_t fid)
             continue;
 
         fids.remove(&fm->link);
-
         if (fm->open_flags && fm->cnode.c_type != C_VLNK)
             conn->close(&fm->cnode, fm->open_flags);
 
+        if (--fm->root->refcount == 0) {
+            ::free((void *)fm->root->uname);
+            ::free((void *)fm->root->aname);
+            delete fm->root;
+        }
         delete fm;
 
         if (fid != P9_NOFID)

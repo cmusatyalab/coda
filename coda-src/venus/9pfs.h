@@ -140,13 +140,10 @@ struct plan9_stat {
 
 class plan9server {
     mariner *conn;
+    dlist fids;
 
     unsigned char buffer[P9_BUFSIZE];
     size_t max_msize = P9_BUFSIZE; /* negotiated by Tversion/Rversion */
-
-    char *plan9_username = NULL;
-    struct venus_cnode attach_root;
-    dlist fids;
 
     int pack_header(unsigned char **buf, size_t *bufspace,
                     uint8_t type, uint16_t tag);
@@ -169,12 +166,13 @@ class plan9server {
     int recv_wstat(unsigned char *buf, size_t len, uint16_t tag);
 
     struct fidmap *find_fid(uint32_t fid);
-    struct fidmap *add_fid(uint32_t fid, struct venus_cnode *cnode);
+    struct fidmap *add_fid(uint32_t fid, struct venus_cnode *cnode,
+                           struct attachment *root);
     int del_fid(uint32_t fid);
 
-    int plan9_stat(struct venus_cnode *cnode, struct plan9_stat *stat,
-                   const char *name = NULL);
-    ssize_t plan9_read(struct venus_cnode *cnode, unsigned char *buf,
+    int plan9_stat(struct venus_cnode *cnode, const char *username,
+                   struct plan9_stat *stat, const char *name = NULL);
+    ssize_t plan9_read(struct fidmap *fm, unsigned char *buf,
                        size_t count, size_t offset);
 public:
     plan9server(mariner *conn);
@@ -182,7 +180,8 @@ public:
 
     void main_loop(unsigned char *initial_buffer = NULL, size_t len = 0);
     int pack_dirent(unsigned char **buf, size_t *len, size_t *offset,
-                    struct venus_cnode *parent, const char *name);
+                    struct venus_cnode *parent, const char *username,
+                    const char *name);
 };
 
 #endif /* _VENUS_9PFS_H_ */
