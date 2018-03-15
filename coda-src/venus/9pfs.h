@@ -171,7 +171,6 @@ class plan9server {
     struct fidmap *find_fid(uint32_t fid);
     struct fidmap *add_fid(uint32_t fid, struct venus_cnode *cnode);
     int del_fid(uint32_t fid);
-    void del_fids(void);
 
     int plan9_stat(struct venus_cnode *cnode, struct plan9_stat *stat,
                    const char *name = NULL);

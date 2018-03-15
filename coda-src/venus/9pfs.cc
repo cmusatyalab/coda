@@ -44,7 +44,7 @@ extern "C" {
 
 struct fidmap {
     dlink link;
-    uint32_t p9fid;
+    uint32_t fid;
     struct venus_cnode cnode;
     int open_flags;
 };
@@ -454,7 +454,7 @@ int plan9server::recv_version(unsigned char *buf, size_t len, uint16_t tag)
     ::free(remote_version);
 
     /* abort all existing I/O, clunk all fids */
-    del_fids();
+    del_fid(P9_NOFID);
     attach_root.c_fid = NullFid;
 
     /* send_Rversion */
@@ -1201,7 +1201,7 @@ struct fidmap *plan9server::find_fid(uint32_t fid)
     while ((cur = next()))
     {
         struct fidmap *fm = strbase(struct fidmap, cur, link);
-        if (fm->p9fid == fid)
+        if (fm->fid == fid)
             return fm;
     }
     return NULL;
@@ -1213,7 +1213,7 @@ struct fidmap *plan9server::add_fid(uint32_t fid, struct venus_cnode *cnode)
     struct fidmap *fm = new struct fidmap;
     if (!fm) return NULL;
 
-    fm->p9fid = fid;
+    fm->fid = fid;
     fm->cnode = *cnode;
     fm->open_flags = 0;
     fids.prepend(&fm->link);
@@ -1231,7 +1231,7 @@ int plan9server::del_fid(uint32_t fid)
         struct fidmap *fm = strbase(fidmap, cur, link);
         cur = next();
 
-        if (fm->p9fid != fid)
+        if (fid != P9_NOFID && fid != fm->fid)
             continue;
 
         fids.remove(&fm->link);
@@ -1240,22 +1240,9 @@ int plan9server::del_fid(uint32_t fid)
             conn->close(&fm->cnode, fm->open_flags);
 
         delete fm;
-        return 0;
+
+        if (fid != P9_NOFID)
+            return 0;
     }
-    return -1;
-}
-
-void plan9server::del_fids(void)
-{
-    dlist_iterator next(fids);
-    dlink *cur = next();
-
-    while (cur)
-    {
-        struct fidmap *fm = strbase(fidmap, cur, link);
-        cur = next();
-
-        fids.remove(&fm->link);
-        delete fm;
-    }
+    return (fid == P9_NOFID) ? 0 : -1;
 }
