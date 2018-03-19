@@ -734,15 +734,22 @@ int plan9server::recv_open(unsigned char *buf, size_t len, uint16_t tag)
         break;
     }
 
-    /* for now only allow read access */
-    if (flags & C_O_WRITE) { /* || cnode->c_type != C_REG */
-        return send_error(tag, "file is read only");
-    }
-
     /* vget and open yield, so we may lose fidmap, but we need to make sure we
      * can close opened cnodes if the fidmap was removed while we yielded. */
     struct venus_cnode cnode = fm->cnode;
     struct plan9_qid qid;
+
+    if (flags & C_O_WRITE) {
+        switch (cnode.c_type) {
+        case C_VREG:
+            break;
+        case C_VDIR: /* EISDIR */
+            return send_error(tag, "can't open directory for writing");
+        case C_VLNK: /* EINVAL */
+        default:
+            return send_error(tag, "file is read only");
+        }
+    }
 
     if (cnode.c_type == C_VLNK) {
         struct venus_cnode tmp;
@@ -893,22 +900,46 @@ int plan9server::recv_write(unsigned char *buf, size_t len, uint16_t tag)
 
     if (len < count)
         return -1;
-    //data = ptr;
 
-#if 0
+    struct fidmap *fm = find_fid(fid);
+    if (!fm)
+        return send_error(tag, "fid unknown or out of range");
+
+    if (!(fm->open_flags & C_O_WRITE) ||
+        fm->cnode.c_type != C_VREG)
+        return send_error(tag, "Bad file descriptor");
+
+    fsobj *f;
+    int fd;
+    ssize_t n;
+
+    f = FSDB->Find(&fm->cnode.c_fid);
+    assert(f); /* open file should have a reference */
+
+    fd = f->data.file->Open(O_WRONLY);
+    if (fd < 0)
+        return send_error(tag, "I/O error");
+
+    n = ::pwrite(fd, buf, count, offset);
+
+    f->data.file->Close(fd);
+
+    if (n < 0) {
+        const char *strerr = VenusRetStr(conn->u.u_error);
+        return send_error(tag, strerr);
+    }
+
     /* send_Rwrite */
-    DEBUG("9pfs: Rwrite[%x] %lu\n", tag, count);
+    DEBUG("9pfs: Rwrite[%x] %lu\n", tag, n);
 
     buf = buffer; len = max_msize;
     if (pack_header(&buf, &len, Rwrite, tag) ||
-        pack_le32(&buf, &len, count))
+        pack_le32(&buf, &len, n))
     {
         send_error(tag, "Message too long");
         return -1;
     }
     return send_response(buffer, max_msize - len);
-#endif
-    return send_error(tag, "Operation not supported");
 }
 
 
