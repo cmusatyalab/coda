@@ -145,7 +145,8 @@ const char *CodaSrvIp;		// default NULL ('ipaddress' in server.conf)
 
 /* local */
 static int MapPrivate;		// default 0
-static int codatunnel_enabled;  // default 0
+static int codatunnel_enabled = 0;
+static int codatunnel_onlytcp = 0;
 
 /* imported */
 extern rvm_length_t rvm_test;
@@ -346,7 +347,7 @@ int main(int argc, char *argv[])
 	SLog(0, "[-nodebarrenize] [-dir workdir] [-srvhost host]");
 	SLog(0, " [-rvmopt] [-usenscclock]");
 	SLog(0, " [-mapprivate] [-zombify]");
-	SLog(0, " [-codatunnel]");
+	SLog(0, " [-codatunnel] [-onlytcp]");
 
 	exit(EXIT_FAILURE);
     }
@@ -407,7 +408,7 @@ int main(int argc, char *argv[])
         if (srvhost) {
             bindaddr = CodaSrvIp ? CodaSrvIp : srvhost;
         }
-        int rc = codatunnel_fork(argc, argv, bindaddr, bindaddr, "codasrv");
+        int rc = codatunnel_fork(argc, argv, bindaddr, bindaddr, "codasrv", codatunnel_onlytcp);
         if (rc < 0){
             perror("codatunnel_fork: "); /* hopefully errno still meaningful */
             exit(-1);
@@ -1345,6 +1346,7 @@ static int ReadConfigFile(void)
 
     CODACONF_INT(check_reintegration_retry, "check_reintegration_retry", 1);
     CODACONF_INT(codatunnel_enabled, "codatunnel", 0);
+    CODACONF_INT(codatunnel_onlytcp, "onlytcp", 0);
     return 0;
 }
 
@@ -1534,6 +1536,10 @@ static int ParseArgs(int argc, char *argv[])
         else if (!strcmp(argv[i], "-codatunnel")){
 	      codatunnel_enabled = true;
 	      eprint("codatunnel enabled");
+	}
+        else if (!strcmp(argv[i], "-onlytcp")){
+	      codatunnel_onlytcp = true;
+	      eprint("codatunnel_onlytcp set");
 	}
 	else {
 	    return(-1);

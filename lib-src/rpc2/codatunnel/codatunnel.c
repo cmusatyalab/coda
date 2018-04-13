@@ -35,7 +35,8 @@ static int codatunnel_vside_sockfd = -1;  /* v2t: venus to tunnel */
 int codatunnel_fork(int argc, char **argv,
                     const char *tcp_bindaddr,
                     const char *udp_bindaddr,
-                    const char *bind_service)
+                    const char *bind_service,
+		    int onlytcp)
 {
     /*
        Create the Coda tunnel process.  Returns 0 on success, -1 on error.
@@ -56,11 +57,13 @@ int codatunnel_fork(int argc, char **argv,
        bind to any available port.  On Coda servers, this is usually
        specified as "codasrv" which is specified as an IANA reserved
        port number in /etc/services.
+
+       onlytcp is a flag.  If non-zero it suppresses use of UDP as fallback.
     */
     int rc, sockfd[2];
 
-    DEBUG("codatunnel_fork(\"%s:%s\", \"%s:%s\")\n",
-          tcp_bindaddr, bind_service, udp_bindaddr, bind_service);
+    DEBUG("codatunnel_fork(\"%s:%s\", \"%s:%s\", %d)\n",
+          tcp_bindaddr, bind_service, udp_bindaddr, bind_service, onlytcp);
 
     /* codatunnel is enabled when the daemon process is forked */
     codatunnel_enable_codatunnel = 1;
@@ -102,7 +105,7 @@ int codatunnel_fork(int argc, char **argv,
     }
 
     /* launch the tunnel and never return */
-    codatunneld(sockfd[1], tcp_bindaddr, udp_bindaddr, bind_service);
+    codatunneld(sockfd[1], tcp_bindaddr, udp_bindaddr, bind_service, onlytcp);
     __builtin_unreachable(); /* should never reach here */
 }
 
@@ -117,7 +120,7 @@ ssize_t codatunnel_sendto(int sockfd, const void *buf, size_t len, int flags,
                           const struct sockaddr *addr, socklen_t addrlen)
 {
     int rc;
-    struct codatunnel_packet p;
+    ctp_t p;
     struct iovec iov[2];
     struct msghdr msg = {
         .msg_iov = iov,
@@ -125,23 +128,26 @@ ssize_t codatunnel_sendto(int sockfd, const void *buf, size_t len, int flags,
     };
 
     if (!codatunnel_enable_codatunnel) {
-        return sendto(sockfd, buf, len, flags & ~CODATUNNEL_ISRETRY_HINT,
+        return sendto(sockfd, buf, len, 
+		      flags & ~CODATUNNEL_ISRETRY_HINT & ~CODATUNNEL_ISINIT1_HINT,
                       addr, addrlen);
     }
 
     /* construct the codatunnel packet */
+    strncpy(p.magic, "magic01", 8);
     memcpy(&p.addr, addr, addrlen);
     p.addrlen = addrlen;
-    p.is_retry = flags & CODATUNNEL_ISRETRY_HINT;
+    p.is_retry = (flags & CODATUNNEL_ISRETRY_HINT) ? 1 : 0;
+    p.is_init1 = (flags & CODATUNNEL_ISINIT1_HINT) ? 1 : 0;
     p.msglen = len;
 
     iov[0].iov_base = &p;
-    iov[0].iov_len = sizeof(struct codatunnel_packet);
+    iov[0].iov_len = sizeof(ctp_t);
     iov[1].iov_base = (void *)buf;
     iov[1].iov_len = len;
 
-    DEBUG("sending packet to codatunneld size=%ld\n",
-          sizeof(struct codatunnel_packet) + len);
+    /*    DEBUG("sending packet to codatunneld size=%ld\n",
+          sizeof(ctp_t) + len); */
 
     /* then send it to codatunneld */
     rc = sendmsg(sockfd, &msg, 0);
@@ -150,7 +156,7 @@ ssize_t codatunnel_sendto(int sockfd, const void *buf, size_t len, int flags,
         return rc;
 
     /* adjust returned value for size of packet header */
-    rc -= sizeof(struct codatunnel_packet);
+    rc -= sizeof(ctp_t);
     if (rc < 0) {
         errno = ENOBUFS;
         return -1;
@@ -163,7 +169,7 @@ ssize_t codatunnel_recvfrom(int sockfd, void *buf, size_t len, int flags,
                             struct sockaddr *from, socklen_t *fromlen)
 {
     int rc;
-    struct codatunnel_packet p;
+    ctp_t p;
     struct iovec iov[2];
     struct msghdr msg = {
         .msg_iov = iov,
@@ -175,7 +181,7 @@ ssize_t codatunnel_recvfrom(int sockfd, void *buf, size_t len, int flags,
     }
 
     iov[0].iov_base = &p;
-    iov[0].iov_len = sizeof(struct codatunnel_packet);
+    iov[0].iov_len = sizeof(ctp_t);
     iov[1].iov_base = buf;
     iov[1].iov_len = len;
 
@@ -183,6 +189,10 @@ ssize_t codatunnel_recvfrom(int sockfd, void *buf, size_t len, int flags,
     rc = recvmsg(sockfd, &msg, 0);
 
     DEBUG("received packet from codatunneld size=%d\n", rc);
+    DEBUG("is_retry = %u  is_init1 = %u  msglen = %lu  from = %s\n",
+	  p.is_retry, p.is_init1, p.msglen, show_sockaddr(&p.addr));
+    /*    hexdump("ctp_t", &p, sizeof(ctp_t));
+	  hexdump("packet bytes", buf, ((len < 64) ? len : 64)); */
 
     if (rc < 0)
         return rc; /* error */
@@ -199,7 +209,7 @@ ssize_t codatunnel_recvfrom(int sockfd, void *buf, size_t len, int flags,
     *fromlen = p.addrlen;
 
     /* make sure we received enough data to read the packet header */
-    rc -= sizeof(struct codatunnel_packet);
+    rc -= sizeof(ctp_t);
     if (rc < 0) {
         /* this should not happen, codatunneld probably crashed */
         errno = EBADF;

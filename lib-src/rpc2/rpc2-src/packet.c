@@ -51,7 +51,7 @@ Pittsburgh, PA.
 #include "rpc2.private.h"
 #include <rpc2/se.h>
 #include <rpc2/secure.h>
-#include "codatunnel/wrapper.h" /* for CODATUNNEL_ISRETRY_HINT */
+#include "codatunnel/wrapper.h" /* for CODATUNNEL_{ISRETRY,INIT1}_HINT */
 #include "cbuf.h"
 #include "trace.h"
 
@@ -163,10 +163,33 @@ void rpc2_XmitPacket(RPC2_PacketBuffer *pb, struct RPC2_addrinfo *addr,
     if (confirm)
 	flags = msg_confirm;
 
+
     /* Last chance before we encrypt to see if this was a retry.
+     * Also if this is an Init1 opcode.
      * Pass this knowledge along as a hint for the lower layers. */
-    if (ntohl(pb->Header.Flags) & RPC2_RETRY)
-        flags |= CODATUNNEL_ISRETRY_HINT;
+
+    if (ntohl(pb->Header.ProtoVersion) == RPC2_PROTOVERSION) {
+      /* we have an RPC2 packet, not an SFTP packet */
+
+      /* First test if RETRY flag should be set.
+	 Eventually, when SFTP bug is fixed, we should move this test
+	 outside the if statement; all retries, whether RPC2
+	 or SFTP, should be dropped by codatunnel; right now SFTP
+	 retries are NOT being dropped because RETRY bit is not set
+	 for them
+      */
+        if (ntohl(pb->Header.Flags) & RPC2_RETRY)
+	  flags |= CODATUNNEL_ISRETRY_HINT;  
+
+	/* Now test if INIT1 flag should be set */
+	int  thisop = ntohl(pb->Header.Opcode);
+
+	if ( (thisop == RPC2_INIT1OPENKIMONO) ||
+	     (thisop == RPC2_INIT1AUTHONLY) ||
+	     (thisop == RPC2_INIT1HEADERSONLY) ||
+	     (thisop == RPC2_INIT1SECURE))
+	  flags |= CODATUNNEL_ISINIT1_HINT; 
+    }
 
     n = secure_sendto(whichSocket, &pb->Header,
 		      pb->Prefix.LengthOfPacket, flags,

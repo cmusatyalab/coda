@@ -5,7 +5,7 @@ AM_CPPFLAGS = -I$(top_srcdir)/include $(LIBUV_CFLAGS)
 noinst_LTLIBRARIES = libcodatunnel.la
 
 if CODATUNNEL
-CODATUNNEL_SOURCES = codatunnel.c codatunneld.c codatunnel.private.h
+CODATUNNEL_SOURCES = codatunnel.c codatunneld.c codatunnel.private.h remotedest.c
 else
 CODATUNNEL_SOURCES = codatunnel.stub.c
 endif
