@@ -170,7 +170,7 @@ class plan9server {
                            struct attachment *root);
     int del_fid(uint32_t fid);
 
-    int plan9_stat(struct venus_cnode *cnode, const char *username,
+    int plan9_stat(struct venus_cnode *cnode, struct attachment *root,
                    struct plan9_stat *stat, const char *name = NULL);
     ssize_t plan9_read(struct fidmap *fm, unsigned char *buf,
                        size_t count, size_t offset);
@@ -180,7 +180,7 @@ public:
 
     void main_loop(unsigned char *initial_buffer = NULL, size_t len = 0);
     int pack_dirent(unsigned char **buf, size_t *len, size_t *offset,
-                    struct venus_cnode *parent, const char *username,
+                    struct venus_cnode *parent, struct attachment *root,
                     const char *name);
 };
 

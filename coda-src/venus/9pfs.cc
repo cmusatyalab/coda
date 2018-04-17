@@ -24,8 +24,11 @@ extern "C" {
 #include <config.h>
 #endif
 
+#include <sys/types.h>
 #include <assert.h>
 #include <fcntl.h>
+#include <pwd.h>
+#include <unistd.h>
 #include <struct.h>
 
 #ifdef __cplusplus
@@ -47,6 +50,7 @@ struct attachment {
     struct venus_cnode cnode;
     const char *uname;
     const char *aname;
+    uid_t userid;
 };
 
 struct fidmap {
@@ -315,9 +319,45 @@ static void cnode2qid(struct venus_cnode *cnode, struct plan9_qid *qid)
 }
 
 
+static uid_t getuserid(const char *username)
+{
+    struct passwd pwd, *res = NULL;
+    char *buf;
+    ssize_t bufsize;
+
+    bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
+    if (bufsize == -1)
+        bufsize = 16384;
+
+    buf = (char *)malloc(bufsize);
+    assert(buf != NULL);
+
+    getpwnam_r(username, &pwd, buf, bufsize, &res);
+    if (res) {
+        free(buf);
+        return res->pw_uid;
+    }
+
+    /* fall back to nobody */
+    getpwnam_r("nobody", &pwd, buf, bufsize, &res);
+    if (res) {
+        free(buf);
+        return res->pw_uid;
+    }
+
+    free(buf);
+    return (uid_t)-2;
+}
+
+
 plan9server::plan9server(mariner *m)
 {
     conn = m;
+
+    /* initialize request context */
+    m->u.Init();
+    m->u.u_priority = FSDB->StdPri();
+    m->u.u_flags = (FOLLOW_SYMLINKS | TRAVERSE_MTPTS | REFERENCE);
 }
 
 plan9server::~plan9server()
@@ -546,9 +586,12 @@ int plan9server::recv_attach(unsigned char *buf, size_t len, uint16_t tag)
     struct plan9_qid qid;
 
     root->refcount = 0;
-    conn->root(&root->cnode);
     root->uname = uname;
     root->aname = aname;
+    root->userid = getuserid(uname);
+
+    conn->u.u_uid = root->userid;
+    conn->root(&root->cnode);
 
     if (add_fid(fid, &root->cnode, root) == NULL) {
         ::free((void *)root->uname);
@@ -640,6 +683,7 @@ int plan9server::recv_walk(unsigned char *buf, size_t len, uint16_t tag)
         if (strcmp(wname, "..") != 0 ||
             !FID_EQ(&current.c_fid, &fm->root->cnode.c_fid))
         {
+            conn->u.u_uid = fm->root->userid;
             conn->lookup(&current, wname, &child,
                          CLU_CASE_SENSITIVE | CLU_TRAVERSE_MTPT);
 
@@ -653,6 +697,15 @@ int plan9server::recv_walk(unsigned char *buf, size_t len, uint16_t tag)
         ::free(wname);
         cnode2qid(&current, &wqid[i]);
     }
+    /* if we errored out of the loop, discard remaining path elements */
+    for (; i < nwname; i++) {
+        if (unpack_string(&buf, &len, &wname))
+            return -1;
+
+        DEBUG("9pfs: Twalk[%x] discarding after error wname[%u] = '%s'\n",
+              tag, i, wname);
+    }
+
     /* report lookup errors only for the first path element */
     if (i == 0 && conn->u.u_error) {
         const char *errstr = VenusRetStr(conn->u.u_error);
@@ -685,6 +738,7 @@ int plan9server::recv_walk(unsigned char *buf, size_t len, uint16_t tag)
     {
         DEBUG("9pfs: Rwalk[%x] wqid[%u] %x.%x.%lx\n",
               tag, i, wqid[i].type, wqid[i].version, wqid[i].path);
+
         if (pack_qid(&buf, &len, &wqid[i]))
         {
             send_error(tag, "Message too long");
@@ -710,17 +764,16 @@ int plan9server::recv_open(unsigned char *buf, size_t len, uint16_t tag)
     int flags;
 
     fm = find_fid(fid);
-    if (!fm) {
+    if (!fm)
         return send_error(tag, "fid unknown or out of range");
-    }
-    if (fm->open_flags) {
-        return send_error(tag, "file already open for I/O");
-    }
 
-    /* OTRUNC and ORCLOSE are create only flags, the rest should be 0 */
-    if (mode & ~0x3) {
+    if (fm->open_flags)
+        return send_error(tag, "file already open for I/O");
+
+    /* We're not handling ORCLOSE yet, the rest should be 0 */
+    if (mode & ~0x13)
         return send_error(tag, "Invalid argument");
-    }
+
     switch (mode & 0x3) {
     case P9_OREAD:
     case P9_OEXEC:
@@ -733,13 +786,15 @@ int plan9server::recv_open(unsigned char *buf, size_t len, uint16_t tag)
         flags = C_O_READ | C_O_WRITE;
         break;
     }
+    if (mode & P9_OTRUNC)
+        flags |= C_O_TRUNC;
 
     /* vget and open yield, so we may lose fidmap, but we need to make sure we
      * can close opened cnodes if the fidmap was removed while we yielded. */
     struct venus_cnode cnode = fm->cnode;
     struct plan9_qid qid;
 
-    if (flags & C_O_WRITE) {
+    if (flags & (C_O_WRITE | C_O_TRUNC)) {
         switch (cnode.c_type) {
         case C_VREG:
             break;
@@ -751,6 +806,7 @@ int plan9server::recv_open(unsigned char *buf, size_t len, uint16_t tag)
         }
     }
 
+    conn->u.u_uid = fm->root->userid;
     if (cnode.c_type == C_VLNK) {
         struct venus_cnode tmp;
         conn->vget(&tmp, &cnode.c_fid, RC_STATUS|RC_DATA);
@@ -813,7 +869,67 @@ int plan9server::recv_create(unsigned char *buf, size_t len, uint16_t tag)
     DEBUG("9pfs: Tcreate[%x] fid %u, name %s, perm %u, mode %u\n",
           tag, fid, name, perm, mode);
 
-#if 0
+    struct fidmap *fm;
+    struct coda_vattr va = { 0 };
+    int excl = 0;
+    int flags;
+
+    va.va_size = 0;
+    va.va_mode = perm & 0777;
+
+    fm = find_fid(fid);
+    if (!fm)
+        return send_error(tag, "fid unknown or out of range");
+
+    if (fm->open_flags)
+        return send_error(tag, "file already open for I/O");
+
+    /* we can only create in a directory */
+    if (fm->cnode.c_type != C_VDIR)
+        return send_error(tag, "Not a directory");
+
+    /* We're not handling ORCLOSE yet and the rest should be 0 */
+    if (mode & ~0x13)
+        return send_error(tag, "Invalid argument");
+
+    switch (mode & 0x3) {
+    case P9_OREAD:
+    case P9_OEXEC:
+        flags = C_M_READ;
+        break;
+    case P9_OWRITE:
+        flags = C_M_WRITE;
+        break;
+    case P9_ORDWR:
+        flags = C_M_READ | C_M_WRITE;
+        break;
+    }
+    if (mode & P9_OTRUNC)
+        flags |= C_O_TRUNC;
+
+    struct venus_cnode child;
+    struct plan9_qid qid;
+
+    conn->u.u_uid = fm->root->userid;
+    conn->create(&fm->cnode, name, &va, excl, flags, &child);
+
+    if (conn->u.u_error) {
+        const char *errstr = VenusRetStr(conn->u.u_error);
+        return send_error(tag, errstr);
+    }
+
+    /* create yields, reobtain fidmap reference */
+    fm = find_fid(fid);
+    if (!fm) {
+        conn->close(&child, flags);
+        return send_error(tag, "fid unknown or out of range");
+    }
+    /* fid is replaced by the newly created file/directory */
+    fm->cnode = child;
+    fm->open_flags = flags;
+
+    cnode2qid(&child, &qid);
+
     uint32_t iounit = 4096;
 
     /* send_Rcreate */
@@ -822,15 +938,13 @@ int plan9server::recv_create(unsigned char *buf, size_t len, uint16_t tag)
 
     buf = buffer; len = max_msize;
     if (pack_header(&buf, &len, Rcreate, tag) ||
-        pack_qid(&buf, &len, qid) ||
+        pack_qid(&buf, &len, &qid) ||
         pack_le32(&buf, &len, iounit))
     {
         send_error(tag, "Message too long");
         return -1;
     }
     return send_response(buffer, max_msize - len);
-#endif
-    return send_error(tag, "Operation not supported");
 }
 
 
@@ -1006,7 +1120,7 @@ int plan9server::recv_stat(unsigned char *buf, size_t len, uint16_t tag)
     if (!fm)
         return send_error(tag, "fid unknown or out of range");
 
-    rc = plan9_stat(&fm->cnode, fm->root->uname, &stat);
+    rc = plan9_stat(&fm->cnode, fm->root, &stat);
     if (rc) {
         const char *strerr = VenusRetStr(conn->u.u_error);
         ::free(stat.name);
@@ -1072,7 +1186,7 @@ struct filldir_args {
     size_t count;
     size_t offset;
     struct venus_cnode parent;
-    const char *username;
+    struct attachment *root;
 };
 
 static int filldir(struct DirEntry *de, void *hook)
@@ -1081,22 +1195,23 @@ static int filldir(struct DirEntry *de, void *hook)
     if (strcmp(de->name, ".") == 0 || strcmp(de->name, "..") == 0)
         return 0;
     return args->srv->pack_dirent(&args->buf, &args->count, &args->offset,
-                                  &args->parent, args->username, de->name);
+                                  &args->parent, args->root, de->name);
 }
 
 int plan9server::pack_dirent(unsigned char **buf, size_t *len, size_t *offset,
-                             struct venus_cnode *parent, const char *username,
-                             const char *name)
+                             struct venus_cnode *parent,
+                             struct attachment *root, const char *name)
 {
     struct venus_cnode child;
     struct plan9_stat stat;
     int rc;
 
+    conn->u.u_uid = root->userid;
     conn->lookup(parent, name, &child, CLU_CASE_SENSITIVE | CLU_TRAVERSE_MTPT);
     if (conn->u.u_error)
         return conn->u.u_error;
 
-    plan9_stat(&child, username, &stat, name);
+    plan9_stat(&child, root, &stat, name);
 
     /* at first we iterate through already returned entries */
     if (*offset) {
@@ -1141,8 +1256,10 @@ ssize_t plan9server::plan9_read(struct fidmap *fm, unsigned char *buf,
         }
 
         n = ::pread(fd, buf, count, offset);
-        if (n < 0)
+        if (n < 0) {
             conn->u.u_error = errno;
+            n = -1;
+        }
 
         f->data.file->Close(fd);
     }
@@ -1161,8 +1278,7 @@ ssize_t plan9server::plan9_read(struct fidmap *fm, unsigned char *buf,
 
         // when we allow concurrency we should bump the refcount on root
         // and handle cleanup when enumeratedir returns
-        struct attachment *root = fm->root;
-        args.username = root->uname;
+        args.root = fm->root;
 
         rc = ::DH_EnumerateDir(&f->data.dir->dh, filldir, &args);
         if (rc && rc != ENOBUFS) {
@@ -1176,14 +1292,16 @@ ssize_t plan9server::plan9_read(struct fidmap *fm, unsigned char *buf,
         cstring.cs_buf = (char *)buf;
         cstring.cs_maxlen = count;
 
+        conn->u.u_uid = fm->root->userid;
         conn->readlink(&fm->cnode, &cstring);
-        n = cstring.cs_len;
+
+        n = conn->u.u_error ? -1 : cstring.cs_len;
     }
     return n;
 }
 
 
-int plan9server::plan9_stat(struct venus_cnode *cnode, const char *username,
+int plan9server::plan9_stat(struct venus_cnode *cnode, struct attachment *root,
                             struct plan9_stat *stat, const char *name)
 {
     struct coda_vattr attr;
@@ -1208,10 +1326,11 @@ int plan9server::plan9_stat(struct venus_cnode *cnode, const char *username,
     stat->mtime = 0;
     stat->length = 0;
     stat->name = strdup(name);
-    stat->uid = (char *)username;
-    stat->gid = (char *)username;
-    stat->muid = (char *)username;
+    stat->uid = (char *)root->uname;
+    stat->gid = (char *)root->uname;
+    stat->muid = (char *)root->uname;
 
+    conn->u.u_uid = root->userid;
     conn->getattr(cnode, &attr);
 
     /* check for getattr errors if we're not called from filldir */
@@ -1271,8 +1390,10 @@ int plan9server::del_fid(uint32_t fid)
             continue;
 
         fids.remove(&fm->link);
-        if (fm->open_flags && fm->cnode.c_type != C_VLNK)
+        if (fm->open_flags && fm->cnode.c_type != C_VLNK) {
+            conn->u.u_uid = fm->root->userid;
             conn->close(&fm->cnode, fm->open_flags);
+        }
 
         if (--fm->root->refcount == 0) {
             ::free((void *)fm->root->uname);

@@ -379,7 +379,7 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
 
 			/* Retrieve the link contents from the cache. */
 			u.u_error = target_fso->Readlink((char *)data->out,
-							 CODA_MAXPATHLEN,
+							 CODA_MAXPATHLEN-1,
 							 &out_size, u.u_uid);
 			if (u.u_error) {
 			    FSDB->Put(&target_fso);
@@ -388,7 +388,7 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
 
 			/* Make link a proper string. */
 			data->out_size = out_size;
-			((char *)data->out) [data->out_size] = 0;
+			((char *)data->out) [data->out_size] = '\0';
 			(data->out_size)++;
 
 			FSDB->Put(&target_fso);

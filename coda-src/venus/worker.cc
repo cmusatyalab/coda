@@ -1424,7 +1424,7 @@ void worker::main(void)
 		MAKE_CNODE(vtarget, in->coda_readlink.Fid, 0);
 		struct coda_string string;
 		string.cs_buf = (char *)out + sizeof(struct coda_readlink_out);
-		string.cs_maxlen = CODA_MAXPATHLEN;
+		string.cs_maxlen = CODA_MAXPATHLEN - 1;
 		readlink(&vtarget, &string);
 
 		if (u.u_error == 0)
