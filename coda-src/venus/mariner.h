@@ -63,6 +63,7 @@ class mariner : public vproc {
   friend void MarinerMux(int fd, void *udata);
   friend void MarinerReport(VenusFid *, uid_t);
   friend void PrintMariners(int);
+  friend class plan9server;
 
     static int nmariners;
     struct Lock write_lock;

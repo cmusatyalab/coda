@@ -123,6 +123,7 @@ int mariner_tcp_enable = 0;
 #else
 int mariner_tcp_enable = 1;
 #endif
+int plan9server_enabled;
 
 /* Global red and yellow zone limits on CML length; default is infinite */
 int redzone_limit = -1, yellowzone_limit = -1;
@@ -425,7 +426,8 @@ static void Usage(char *argv0)
 " -noMarinerTcp\t\t\tdisable mariner tcp port\n"
 " -allow-reattach\t\tallow reattach to already mounted tree\n"
 " -relay <addr>\t\t\trelay socket address (windows only)\n"
-" -codatunnel\t\t\tenable codatunneld helper\n\n"
+" -codatunnel\t\t\tenable codatunneld helper\n"
+" -9pfs\t\t\tenable embedded 9pfs server (experimental, INSECURE!)\n\n"
 "For more information see http://www.coda.cs.cmu.edu/\n"
 "Report bugs to <bugs@coda.cs.cmu.edu>.\n", argv0);
 }
@@ -552,13 +554,17 @@ static void ParseCmdline(int argc, char **argv)
 	    /* Private mapping ... */
 	    else if (STREQ(argv[i], "-mapprivate"))
 		MapPrivate = true;
-	    else if (STREQ(argv[i], "-codatunnel")){
-	      codatunnel_enabled = true;
-	      eprint("codatunnel enabled");
+	    else if (STREQ(argv[i], "-codatunnel")) {
+                codatunnel_enabled = true;
+                eprint("codatunnel enabled");
 	    }
-	    else if (STREQ(argv[i], "-onlytcp")){
-	      codatunnel_onlytcp = true;
-	      eprint("codatunnel_onlytcp set");
+	    else if (STREQ(argv[i], "-onlytcp")) {
+                codatunnel_onlytcp = true;
+                eprint("codatunnel_onlytcp set");
+            }
+	    else if (STREQ(argv[i], "-9pfs")) {
+                plan9server_enabled = true;
+                eprint("9pfs enabled");
 	    }
 	    else {
 		eprint("bad command line option %-4s", argv[i]);

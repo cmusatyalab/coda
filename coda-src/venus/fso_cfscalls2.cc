@@ -589,16 +589,18 @@ int fsobj::Readlink(char *buf, unsigned long len, int *cc, uid_t uid)
     if (!IsSymLink() && !IsMtPt())
 	  return(EINVAL);
 
-    if (stat.Length > len - 1) {
+    if (stat.Length > len) {
 	  eprint("readlink: contents > bufsize");
 	  return(EINVAL);
     }
 
     /* Fill in the buffer. */
     memcpy(buf, data.symlink, stat.Length);
-    buf[stat.Length] = '\0';
     *cc = stat.Length;
 
+    /* hacky, assume buf has enough space for an extra '\0' even though we
+     * are not supposed to return it, but we need it to log the content. */
+    buf[stat.Length] = '\0';
     LOG(100, ("fsobj::Readlink: contents = %s\n", buf));
     return(0);
 }

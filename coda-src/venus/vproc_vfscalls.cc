@@ -569,12 +569,12 @@ FreeLocks:
 }
 
 
-void vproc::lookup(struct venus_cnode *dcp, char *name, 
-		   struct venus_cnode *cp, int flags) 
+void vproc::lookup(struct venus_cnode *dcp, const char *name,
+		   struct venus_cnode *cp, int flags)
 {
 
     LOG(1, ("vproc::lookup: fid = %s, name = %s, nc = %x\n",
-	     FID_(&dcp->c_fid),name, u.u_nc));
+	     FID_(&dcp->c_fid), name, u.u_nc));
 
     fsobj *parent_fso = 0;
     fsobj *target_fso = 0;
@@ -1337,6 +1337,7 @@ void vproc::readlink(struct venus_cnode *cp, struct coda_string *string)
 
     if (len > CODA_MAXPATHLEN)
 	len = CODA_MAXPATHLEN;
+    CODA_ASSERT(len > 0);
 
     fsobj *f = 0;
 
@@ -1365,9 +1366,9 @@ void vproc::readlink(struct venus_cnode *cp, struct coda_string *string)
 */
 
 	/* Retrieve the link contents from the cache. */
-	u.u_error = f->Readlink(buf, len, &string->cs_len, u.u_uid);
+	u.u_error = f->Readlink(buf, len-1, &string->cs_len, u.u_uid);
 	if (u.u_error) 
-		goto FreeLocks;
+            goto FreeLocks;
 
 FreeLocks:
 	FSDB->Put(&f);
@@ -1389,6 +1390,7 @@ FreeLocks:
 	string->cs_len = 28 + strlen(realm->Name());
 	realm->PutRef();
 	CODA_ASSERT(len == string->cs_len);
+        /* remove trailing '\0' */ len--;
     }
 }
 

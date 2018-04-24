@@ -70,6 +70,7 @@ extern "C" {
 #include "worker.h"
 #include "realmdb.h"
 #include "venusvol.h"
+#include "9pfs.h"
 
 #ifndef HAVE_SOCKLEN_T
 typedef int socklen_t;
@@ -80,7 +81,8 @@ const int MaxMariners = 25;
 
 int mariner::nmariners;
 
-void MarinerInit() {
+void MarinerInit()
+{
     int sock, rc, opt = 1;
 
     mariner::nmariners = 0;
@@ -185,7 +187,7 @@ void MarinerMux(int fd, void *udata)
     socklen_t salen = sizeof(sa);
     char host[NI_MAXHOST], port[NI_MAXSERV];
 
-    LOG(100, ("MarinerMux: fd = %d", fd));
+    LOG(100, ("MarinerMux: fd = %d\n", fd));
 
     newfd = ::accept(fd, (sockaddr *)&sa, &salen);
     if (newfd < 0) {
@@ -196,8 +198,11 @@ void MarinerMux(int fd, void *udata)
     rc = getnameinfo((struct sockaddr *)&sa, salen,
                      host, sizeof(host), port, sizeof(port),
                      NI_NUMERICHOST | NI_NUMERICSERV);
-    LOG(0, ("MarinerMux: new client connection from [%s]:%s",
-            rc ? "resolve failed" : host, rc ? "" : port));
+
+    int broken_port = sa.ss_family == AF_UNIX;
+    LOG(0, ("MarinerMux: new client connection from [%s]:%s\n",
+            rc ? "resolve failed" : host,
+            (rc || broken_port) ? "unknown" : port));
 
     if (mariner::nmariners >= MaxMariners) {
         eprint("MarinerMux: client connection limit exceeded");
@@ -347,6 +352,7 @@ mariner::~mariner() {
     LOG(100, ("mariner::~mariner: %-16s : lwpid = %d\n", name, lwpid));
 
     nmariners--;	/* Ought to be a lock protecting this! -JJK */
+    ::shutdown(fd, SHUT_RDWR);
     ::close(fd);
 }
 
@@ -391,6 +397,9 @@ ssize_t mariner::write_until_done(const void *buf, size_t len)
     size_t bytes_written = 0;
     fd_set fds;
     ssize_t n;
+
+    if (len == 0)
+        return 0;
 
     ObtainWriteLock(&write_lock);
 
@@ -442,7 +451,7 @@ int mariner::Write(const char *fmt, ...) {
 int mariner::AwaitRequest()
 {
     unsigned int idx = 0;
-    int n;
+    ssize_t n;
 
     idle = 1;
 
@@ -461,11 +470,34 @@ int mariner::AwaitRequest()
 	    break;
 	}
 	idx++;
+
+        /* check for 9PFS Tversion request magic */
+        /* we really only want to do this for the first 19 bytes of a new
+         * connection, and the '\r' stripping and early exit of the loop when a
+         * '\n' is found can mangle the incoming 9pfs Tversion message. */
+        if (plan9server_enabled && idx == P9_MAGIC_LEN)
+        {
+            if (memcmp(&commbuf[1], plan9_magic1, sizeof(plan9_magic1)-1) == 0 &&
+                memcmp(&commbuf[12], plan9_magic12, sizeof(plan9_magic12)-1) == 0)
+            {
+                /* make sure we no longer send any normal mariner output */
+                logging = reporting = want_volstate = 0;
+
+                LOG(0, ("Found 9pfs version magic\n"));
+
+                plan9server *srv = new plan9server(this);
+                srv->main_loop((unsigned char *)commbuf, idx);
+                delete srv;
+
+                /* when the 9pfs main loop is done, we want to also exit the
+                 * mariner main loop */
+                return -1;
+            }
+        }
     }
     idle = 0;
     return 0;
 }
-
 
 void mariner::Resign(int code) {
     /* Nothing necessary here. */

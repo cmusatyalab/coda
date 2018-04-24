@@ -186,7 +186,7 @@ int vproc::namev(char *path, int flags, struct venus_cnode *vpp) {
 
 		/* Get the link contents. */
 		char linkdata[CODA_MAXPATHLEN];
-		int linklen = CODA_MAXPATHLEN;
+		int linklen = CODA_MAXPATHLEN - 1; /* -1 for trailing \0 */
 		struct coda_string string;
 		string.cs_buf = linkdata;
 		string.cs_maxlen = linklen;
@@ -203,7 +203,7 @@ int vproc::namev(char *path, int flags, struct venus_cnode *vpp) {
 		}
 
 		/* Append the trailing part of the original pathname. */
-		if (linklen + plen > CODA_MAXPATHLEN) {
+		if (linklen + plen >= CODA_MAXPATHLEN) {
 		    u.u_error = ENAMETOOLONG;
 		    goto Exit;
 		}
