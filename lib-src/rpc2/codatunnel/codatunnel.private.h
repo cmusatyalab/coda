@@ -103,7 +103,6 @@ dest_t *getdest(const struct sockaddr_storage *x, socklen_t xlen);
 dest_t *createdest(const struct sockaddr_storage *x, socklen_t xlen);
 
 /* Helper/debugging functions */
-char *show_sockaddr(const struct sockaddr_storage *s);
 void hexdump(char *, void *, int);
 
 #endif /* _CODATUNNEL_PRIVATE_H_ */

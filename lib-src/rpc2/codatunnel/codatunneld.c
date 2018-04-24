@@ -211,11 +211,9 @@ static void recv_codatunnel_cb(uv_udp_t *codatunnel, ssize_t nread,
     ctp_t *p = (ctp_t *)buf->base;
 
     dest_t *d = getdest(&p->addr, p->addrlen);
-    DEBUG("%s\n", show_sockaddr((struct sockaddr *)&p->addr));
 
-    if (!d) {/* new destination */
+    if (!d) /* new destination */
         d = createdest(&p->addr, p->addrlen);
-    }
 
     /* what do we do with packet p for destination d? */
 
@@ -444,8 +442,8 @@ static void recv_tcp_cb (uv_stream_t *tcphandle, ssize_t nread, const uv_buf_t *
             d->ntoh_done = 1;
         }
 
-        DEBUG("is_retry = %u  is_init1 = %u  msglen = %lu  addrlen = %u  addr = %s\n",
-              p->is_retry, p->is_init1, p->msglen, p->addrlen, show_sockaddr(&p->addr));
+        DEBUG("is_retry = %u  is_init1 = %u  msglen = %lu\n",
+              p->is_retry, p->is_init1, p->msglen);
 
         if (p->msglen > (MAXRECEIVE - sizeof(ctp_t))) {
             /* we can't handle this monster */
@@ -586,11 +584,11 @@ static void tcp_newconnection_cb (uv_stream_t *bindhandle, int status)
     peerlen = sizeof(peeraddr);
     rc = uv_tcp_getpeername(clienthandle, (struct sockaddr *)&peeraddr, &peerlen);
     DEBUG("uv_tcp_getpeername() --> %d\n", rc);
-    DEBUG("%s\n", show_sockaddr((struct sockaddr *)&peeraddr));
     if (rc < 0) {
         DEBUG("uv_tcp_getpeername() --> %s\n", uv_strerror(rc));
         return;
     }
+
     d = getdest(&peeraddr, sizeof(peeraddr));
     if (!d) {/* new destination */
         d = createdest(&peeraddr, sizeof(peeraddr));
@@ -702,16 +700,6 @@ void codatunneld(int codatunnel_sockfd,
     uv_run(codatunnel_main_loop, UV_RUN_DEFAULT);
     uv_loop_close(codatunnel_main_loop);
     exit(0);
-}
-
-
-char *show_sockaddr(struct sockaddr_storage *s)
-{/* assumes IPv4 */
-    static char buf[100]; /* thread unsafe */
-    struct sockaddr_in *sin = (struct sockaddr_in *)s;
-    unsigned char *ip = (unsigned char *)&sin->sin_addr.s_addr;
-    sprintf(buf, "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
-    return(buf);
 }
 
 
