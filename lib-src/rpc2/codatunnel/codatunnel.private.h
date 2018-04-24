@@ -23,13 +23,20 @@ Coda are listed in the file CREDITS.
 #include <assert.h>
 #include <sys/time.h>
 
-#if 1
-#define DEBUG(...) do {struct timeval tt; gettimeofday(&tt, 0); printf("%ld:%ld %s:%d ", tt.tv_sec, tt.tv_usec, __FUNCTION__, __LINE__); printf(__VA_ARGS__); fflush(stdout); } while(0)
+#if 0
+#define DEBUG(...) do { \
+    struct timeval tt; gettimeofday(&tt, 0); \
+    printf("%ld:%ld %s:%d ", tt.tv_sec, tt.tv_usec, __FUNCTION__, __LINE__); \
+    printf(__VA_ARGS__); fflush(stdout); \
+} while(0)
 #else
 #define DEBUG(...)
 #endif
 
-#define ERROR(...) do {fprintf(stderr, "%s:%d ", __FUNCTION__, __LINE__); fprintf(stderr, __VA_ARGS__); fflush(stderr); } while(0)
+#define ERROR(...) do { \
+    fprintf(stderr, "%s:%d ", __FUNCTION__, __LINE__); \
+    fprintf(stderr, __VA_ARGS__); fflush(stderr); \
+} while(0)
 
 
 /* the actual tunnel daemon (defined in codatunneld.c) */
@@ -78,7 +85,7 @@ typedef struct remotedest {
   int nextbyte; /* index in received_packet[] into which next byte will be read;
 		   needed because multiple read calls may be needed to obtain a
 		   complete UDP packet that has been tunneled in TCP */
-  int ntoh_done; /* whether ntohl() has already been done on 
+  int ntoh_done; /* whether ntohl() has already been done on
 		    the header of this packet */
   char *received_packet;  /* malloced array of size MAXRECEIVE; initial
 			     malloc when TCPACTIVE is set; after that a
