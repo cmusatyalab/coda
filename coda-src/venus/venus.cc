@@ -707,23 +707,43 @@ static void DefaultCmdlineParms()
 #endif
 }
 
-static void CdToCacheDir() {
-    if (chdir(CacheDir) == 0)
-        return;
 
-    if (errno != ENOENT) {
-        perror("CacheDir chdir");
-        exit(EXIT_FAILURE);
-    }
+static const char CACHEDIR_TAG[] =
+"Signature: 8a477f597d28d172789f06886806bc55\n"
+"# This file is a cache directory tag created by the Coda client (venus).\n"
+"# For information about cache directory tags, see:\n"
+"#   http://www.brynosaurus.com/cachedir/";
 
-    if (mkdir(CacheDir, 0700)) {
-        perror("CacheDir mkdir");
-        exit(EXIT_FAILURE);
+static void CdToCacheDir()
+{
+    struct stat statbuf;
+    int fd;
+
+    if (stat(CacheDir, &statbuf) != 0)
+    {
+        if (errno != ENOENT) {
+            perror("CacheDir stat");
+            exit(EXIT_FAILURE);
+        }
+
+        if (mkdir(CacheDir, 0700)) {
+            perror("CacheDir mkdir");
+            exit(EXIT_FAILURE);
+        }
     }
     if (chdir(CacheDir)) {
         perror("CacheDir chdir");
         exit(EXIT_FAILURE);
     }
+
+    /* create CACHEDIR.TAG as hint for backup programs */
+    if (stat("CACHEDIR.TAG", &statbuf) == 0)
+        return;
+
+    fd = open("CACHEDIR.TAG", O_CREAT | O_WRONLY | O_EXCL | O_NOFOLLOW, 0444);
+    if (fd == -1) return;
+    write(fd, CACHEDIR_TAG, sizeof(CACHEDIR_TAG)-1);
+    close(fd);
 }
 
 static void CheckInitFile() {
