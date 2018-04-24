@@ -81,7 +81,8 @@ const int MaxMariners = 25;
 
 int mariner::nmariners;
 
-void MarinerInit() {
+void MarinerInit()
+{
     int sock, rc, opt = 1;
 
     mariner::nmariners = 0;
@@ -474,7 +475,7 @@ int mariner::AwaitRequest()
         /* we really only want to do this for the first 19 bytes of a new
          * connection, and the '\r' stripping and early exit of the loop when a
          * '\n' is found can mangle the incoming 9pfs Tversion message. */
-        if (idx == P9_MAGIC_LEN)
+        if (plan9server_enabled && idx == P9_MAGIC_LEN)
         {
             if (memcmp(&commbuf[1], plan9_magic1, sizeof(plan9_magic1)-1) == 0 &&
                 memcmp(&commbuf[12], plan9_magic12, sizeof(plan9_magic12)-1) == 0)
