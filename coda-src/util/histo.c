@@ -23,11 +23,6 @@ listed in the file CREDITS.
 #include "coda_assert.h"
 #include "histo.h"
 
-/* Math.h doesn't define HUGE appropriately for suns... */
-#ifdef __CYGWIN32__
-#define HUGE 1.701411733192644270e38
-#endif
-
 
 int InitHisto(struct hgram *hg, double lolimit, double hilimit,
 	      int bucketcount, enum htype ht)
@@ -69,8 +64,8 @@ int InitHisto(struct hgram *hg, double lolimit, double hilimit,
 	}
 	
     
-    hg->oflow.hival = HUGE;
-    hg->uflow.loval = -HUGE;
+    hg->oflow.hival = HUGE_VAL;
+    hg->uflow.loval = -HUGE_VAL;
 
     hg->buckets = (struct histo *) calloc(hg->maxb, sizeof(struct histo));
     if (!hg->buckets) return(-1); /* calloc() failed */
