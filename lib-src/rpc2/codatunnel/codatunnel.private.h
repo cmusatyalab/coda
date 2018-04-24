@@ -89,20 +89,14 @@ typedef struct remotedest {
 } dest_t;
 
 /* Stuff for destination management */
-extern void initdest();
-extern dest_t *getdest(struct sockaddr_storage *, socklen_t);  /* return pointer to matching destination or NULL */
-extern dest_t *createdest(struct sockaddr_storage *, socklen_t); /* create new entry for specified destination */
-
-
-/* Global that indicates whether I am a server */
-extern int codatunnel_I_am_server;
-
-/* Global that indicates whether UDP fallback is used */
-extern int codatunnel_onlytcp;
+void initdest(void);
+/* return pointer to matching destination or NULL */
+dest_t *getdest(struct sockaddr_storage *, socklen_t);
+/* create new entry for specified destination */
+dest_t *createdest(struct sockaddr_storage *, socklen_t);
 
 /* Helper/debugging functions */
-extern char *show_sockaddr(struct sockaddr_storage *s);
-extern void hexdump (char *, void *, int);
-
+char *show_sockaddr(struct sockaddr_storage *s);
+void hexdump(char *, void *, int);
 
 #endif /* _CODATUNNEL_PRIVATE_H_ */

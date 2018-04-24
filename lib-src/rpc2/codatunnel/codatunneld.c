@@ -54,9 +54,9 @@ Coda are listed in the file CREDITS.
 #include "codatunnel.private.h"
 
 /* Global variables within codatunnel daemon */
-int codatunnel_I_am_server = 0;    /* only clients initiate; only servers accept */
+static int codatunnel_I_am_server = 0; /* only clients initiate; only servers accept */
+static int codatunnel_onlytcp = 0;    /* whether to use UDP fallback; default is yes */
 
-int codatunnel_onlytcp = 0;    /* whether to use UDP fallback; default is yes */
 static uv_loop_t *codatunnel_main_loop = 0;
 static uv_udp_t codatunnel;  /* facing Venus or CodaSrv */
 static uv_udp_t udpsocket;   /* facing the network */
