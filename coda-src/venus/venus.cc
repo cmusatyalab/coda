@@ -128,6 +128,7 @@ int mariner_tcp_enable = 1;
 int redzone_limit = -1, yellowzone_limit = -1;
 
 static int codatunnel_enabled;
+static int codatunnel_onlytcp;
 
 /* *****  Private constants  ***** */
 
@@ -278,7 +279,7 @@ int main(int argc, char **argv)
         /* masquerade_port is the UDP portnum specified via venus.conf */
         char service[6];
         sprintf(service, "%hu", masquerade_port);
-        rc = codatunnel_fork(argc, argv, NULL, "0.0.0.0", service);
+        rc = codatunnel_fork(argc, argv, NULL, "0.0.0.0", service, codatunnel_onlytcp);
         if (rc < 0){
             perror("codatunnel_fork: ");
             exit(-1);
@@ -554,6 +555,10 @@ static void ParseCmdline(int argc, char **argv)
 	    else if (STREQ(argv[i], "-codatunnel")){
 	      codatunnel_enabled = true;
 	      eprint("codatunnel enabled");
+	    }
+	    else if (STREQ(argv[i], "-onlytcp")){
+	      codatunnel_onlytcp = true;
+	      eprint("codatunnel_onlytcp set");
 	    }
 	    else {
 		eprint("bad command line option %-4s", argv[i]);
