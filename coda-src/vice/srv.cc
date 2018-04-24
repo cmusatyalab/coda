@@ -145,8 +145,8 @@ const char *CodaSrvIp;		// default NULL ('ipaddress' in server.conf)
 
 /* local */
 static int MapPrivate;		// default 0
-static int codatunnel_enabled = 0;
-static int codatunnel_onlytcp = 0;
+static int codatunnel_enabled;  // default 0
+static int codatunnel_onlytcp;  // default 0
 
 /* imported */
 extern rvm_length_t rvm_test;

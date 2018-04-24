@@ -127,8 +127,8 @@ int mariner_tcp_enable = 1;
 /* Global red and yellow zone limits on CML length; default is infinite */
 int redzone_limit = -1, yellowzone_limit = -1;
 
-static int codatunnel_enabled = 0;
-static int codatunnel_onlytcp = 0;
+static int codatunnel_enabled;
+static int codatunnel_onlytcp;
 
 /* *****  Private constants  ***** */
 
