@@ -98,12 +98,12 @@ typedef struct remotedest {
 /* Stuff for destination management */
 void initdest(void);
 /* return pointer to matching destination or NULL */
-dest_t *getdest(struct sockaddr_storage *, socklen_t);
+dest_t *getdest(const struct sockaddr_storage *x, socklen_t xlen);
 /* create new entry for specified destination */
-dest_t *createdest(struct sockaddr_storage *, socklen_t);
+dest_t *createdest(const struct sockaddr_storage *x, socklen_t xlen);
 
 /* Helper/debugging functions */
-char *show_sockaddr(struct sockaddr_storage *s);
+char *show_sockaddr(const struct sockaddr_storage *s);
 void hexdump(char *, void *, int);
 
 #endif /* _CODATUNNEL_PRIVATE_H_ */

@@ -34,7 +34,7 @@ int ndests = 0; /* how many entries allocated in destarray */
 
 void cleardest(dest_t *d)
 {
-    bzero(&d->destaddr, sizeof (struct sockaddr_storage));
+    memset(&d->destaddr, 0, sizeof(struct sockaddr_storage));
     d->state = TCPBROKEN;
     d->tcphandle = 0;
     d->received_packet = 0; /* null pointer */
@@ -52,31 +52,54 @@ void initdestarray()
 
     ndests = 0;
 
-    for (int i = 0; i < MAXDEST; i++) {
+    for (int i = 0; i < MAXDEST; i++)
         cleardest(&destarray[i]);
-    }
 }
 
-dest_t *getdest(struct sockaddr_storage *x, socklen_t xlen)
+static int sockaddr_equal(const struct sockaddr_storage *a,
+                          const struct sockaddr_storage *b,
+                          socklen_t len)
+{
+    if (a->ss_family != b->ss_family)
+        return 0;
+
+    switch(a->ss_family) {
+    case AF_INET: {
+        struct sockaddr_in *a_in = (struct sockaddr_in *)a;
+        struct sockaddr_in *b_in = (struct sockaddr_in *)b;
+
+        return (a_in->sin_port == b_in->sin_port &&
+                a_in->sin_addr.s_addr == b_in->sin_addr.s_addr);
+    }
+    case AF_INET6: {
+        struct sockaddr_in6 *a_in6 = (struct sockaddr_in6 *)a;
+        struct sockaddr_in6 *b_in6 = (struct sockaddr_in6 *)b;
+
+        return (a_in6->sin6_port == b_in6->sin6_port &&
+                memcmp(&a_in6->sin6_addr, &b_in6->sin6_addr,
+                       sizeof(struct in6_addr)) == 0);
+    }
+    default:
+        return memcmp(a, b, len) == 0;
+    }
+    return 0;
+}
+
+dest_t *getdest(const struct sockaddr_storage *x, socklen_t xlen)
 {
     /* returns pointer to structure in destarray[] if x is a known destination;
        returns NULL otherwise
        xlen says how many bytes of *x to compare; rest is don't care
     */
-    /*  DEBUG("sockaddr: %p  socklen: %d   %s\n", x, xlen, show_sockaddr(x));*/
     for (int i = 0; i < ndests; i++) {
         dest_t *d = &destarray[i];
-        if (!memcmp(&d->destaddr, x, xlen))
-        {
-            /*	DEBUG("entry found --> %d  %p %s\n", i, d,
-                show_sockaddr(&d->destaddr)); */
-            return (d);
-        }
+        if (sockaddr_equal(&d->destaddr, x, xlen))
+            return d;
     }
-    return (0);  /* dest a not found */
+    return NULL;  /* dest a not found */
 }
 
-dest_t *createdest(struct sockaddr_storage *x, socklen_t xlen)
+dest_t *createdest(const struct sockaddr_storage *x, socklen_t xlen)
 {
     /* assumes that x refers to a destination that
        doesn't already exist in destarray[];
