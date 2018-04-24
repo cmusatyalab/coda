@@ -179,7 +179,7 @@ void rpc2_XmitPacket(RPC2_PacketBuffer *pb, struct RPC2_addrinfo *addr,
 	 for them
       */
         if (ntohl(pb->Header.Flags) & RPC2_RETRY)
-	  flags |= CODATUNNEL_ISRETRY_HINT;  
+	  flags |= CODATUNNEL_ISRETRY_HINT;
 
 	/* Now test if INIT1 flag should be set */
 	int  thisop = ntohl(pb->Header.Opcode);
@@ -188,7 +188,7 @@ void rpc2_XmitPacket(RPC2_PacketBuffer *pb, struct RPC2_addrinfo *addr,
 	     (thisop == RPC2_INIT1AUTHONLY) ||
 	     (thisop == RPC2_INIT1HEADERSONLY) ||
 	     (thisop == RPC2_INIT1SECURE))
-	  flags |= CODATUNNEL_ISINIT1_HINT; 
+	  flags |= CODATUNNEL_ISINIT1_HINT;
     }
 
     n = secure_sendto(whichSocket, &pb->Header,

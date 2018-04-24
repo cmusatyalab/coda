@@ -128,8 +128,7 @@ ssize_t codatunnel_sendto(int sockfd, const void *buf, size_t len, int flags,
     };
 
     if (!codatunnel_enable_codatunnel) {
-        return sendto(sockfd, buf, len, 
-		      flags & ~CODATUNNEL_ISRETRY_HINT & ~CODATUNNEL_ISINIT1_HINT,
+        return sendto(sockfd, buf, len, flags & ~CODATUNNEL_HINTS,
                       addr, addrlen);
     }
 
