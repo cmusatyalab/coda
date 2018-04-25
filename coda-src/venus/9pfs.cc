@@ -1338,7 +1338,7 @@ int plan9server::plan9_stat(struct venus_cnode *cnode, struct attachment *root,
         return -1;
 
     //stat->mode |= (attr.va_mode & (S_IRWXU|S_IRWXG|S_IRWXO));
-    stat->mode = (stat->qid.type == P9_QTDIR) ? 0777 : 0666;
+    stat->mode |= (stat->qid.type == P9_QTDIR) ? 0777 : 0666;
     stat->atime = attr.va_atime.tv_sec;
     stat->mtime = attr.va_mtime.tv_sec;
     stat->length = (stat->qid.type == P9_QTDIR) ? 0 : attr.va_size;
