@@ -27,7 +27,8 @@ Coda are listed in the file CREDITS.
 int codatunnel_fork(int argc, char **argv,
                     const char *tcp_bindaddr,
                     const char *udp_bindaddr,
-                    const char *bind_service)
+                    const char *bind_service,
+		    int onlytcp)
 {
     return -1;
 }
