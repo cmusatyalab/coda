@@ -1,3 +1,13 @@
+New in 2.17:
+
+* Extend codatunneld to support TCP tunneled connections between client
+  and server.
+
+New in 2.16:
+
+* Introduce libuv-based codatunneld helper process to handle the actual
+  sending and receiving of RPC2 and SFTP packets.
+
 New in 2.15:
 
 * Use stdlib defined exit codes.
