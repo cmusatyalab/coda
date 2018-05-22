@@ -209,9 +209,6 @@ struct camlib_recoverable_segment *camlibRecoverableSegment;
 /*static */const char *_Rvm_Data_Device;
 /*static */rvm_offset_t _Rvm_DataLength;
 /*static */int _Rvm_Truncate = 0;	// default 0 
-/*static */char *cam_log_file;
-/*static */int camlog_fd;
-/*static */char camlog_record[SIZEOF_LARGEDISKVNODE + 8 + sizeof(VolumeDiskData)];
 /* static */ char *_DEBUG_p;
 /*static */int DumpVM = 0;
 int prottrunc = FALSE;
@@ -342,7 +339,7 @@ int main(int argc, char *argv[])
 	SLog(0, "[-c (check interval)] [-t (number of RPC trace buffers)]");
 	SLog(0, "[-noauth] [-forcesalvage] [-quicksalvage]");
 	SLog(0, "[-cp (connections in process)] [-cm (connections max)");
-	SLog(0, "[-cam] [-nc] [-rvm logdevice datadevice length] [-nores] [-trunc percent]");
+	SLog(0, "[-nc] [-rvm logdevice datadevice length] [-nores] [-trunc percent]");
 	SLog(0, " [-nocmp] [-nopy] [-dumpvm] [-nosalvageonshutdown] [-mondhost hostname] [-mondport portnumber]");
 	SLog(0, "[-nodebarrenize] [-dir workdir] [-srvhost host]");
 	SLog(0, " [-rvmopt] [-usenscclock]");
@@ -382,12 +379,6 @@ int main(int argc, char *argv[])
     InitHisto(&PutObjects_Transaction_hg, (double)0, (double)50000, 500, LINEAR);
     InitHisto(&PutObjects_TransactionEnd_hg, (double)0, (double)50000, 500, LINEAR);
 #endif /* _TIMECALLS_ */
-
-    /* open the file where records are written at end of transaction */
-    if (cam_log_file){
-	camlog_fd = open(cam_log_file, O_RDWR | O_TRUNC | O_CREAT, 0777);
-	if (camlog_fd < 0) perror("Error opening cam_log_file\n");
-    }
 
     VInitServerList(srvhost);	/* initialize server info for volume pkg */
 
@@ -1469,7 +1460,6 @@ static int ParseArgs(int argc, char *argv[])
 		    exit(EXIT_FAILURE);
 		}
 		RvmType = VM;
-		if (i < argc - 1) cam_log_file = argv[++i];
 	    }
 	else
 	    if (!strcmp(argv[i], "-cam")) {
