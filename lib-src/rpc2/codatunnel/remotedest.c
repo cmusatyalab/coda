@@ -49,10 +49,11 @@ void initdestarray()
     the destaddr fields are completely zeroed for memcmp()
     comparisons in later getdest() calls; otherwise padding
     in structures may cause trouble */
+    int i;
 
     ndests = 0;
 
-    for (int i = 0; i < MAXDEST; i++)
+    for (i = 0; i < MAXDEST; i++)
         cleardest(&destarray[i]);
 }
 
@@ -91,7 +92,9 @@ dest_t *getdest(const struct sockaddr_storage *x, socklen_t xlen)
        returns NULL otherwise
        xlen says how many bytes of *x to compare; rest is don't care
     */
-    for (int i = 0; i < ndests; i++) {
+    int i;
+
+    for (i = 0; i < ndests; i++) {
         dest_t *d = &destarray[i];
         if (sockaddr_equal(&d->destaddr, x, xlen))
             return d;
