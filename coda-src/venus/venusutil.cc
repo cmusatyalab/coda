@@ -733,7 +733,8 @@ void SwapLog()
     gettimeofday(&now, 0);
 
     freopen(VenusLogFile, "a+", logFile);
-    freopen(consoleFile, "a+", stderr);
+    if (!nofork) /* only redirect stderr when daemonizing */
+        freopen(consoleFile, "a+", stderr);
 
     LOG(0, ("New Logfile started at %s", ctime((time_t *)&now.tv_sec)));
 }

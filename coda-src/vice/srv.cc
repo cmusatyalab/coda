@@ -147,6 +147,7 @@ const char *CodaSrvIp;		// default NULL ('ipaddress' in server.conf)
 static int MapPrivate;		// default 0
 static int codatunnel_enabled;  // default 0
 static int codatunnel_onlytcp;  // default 0
+static int nofork;              // default 0
 
 /* imported */
 extern rvm_length_t rvm_test;
@@ -344,7 +345,7 @@ int main(int argc, char *argv[])
 	SLog(0, "[-nodebarrenize] [-dir workdir] [-srvhost host]");
 	SLog(0, " [-rvmopt] [-usenscclock]");
 	SLog(0, " [-mapprivate] [-zombify]");
-	SLog(0, " [-codatunnel] [-onlytcp]");
+	SLog(0, " [-codatunnel] [-onlytcp] [-nofork]");
 
 	exit(EXIT_FAILURE);
     }
@@ -1227,7 +1228,8 @@ void SwapLog(int ign)
     }
 
     freopen("SrvLog", "a+", stdout);
-    freopen("SrvErr", "a+", stderr);
+    if (!nofork) /* leave stderr alone when we're not daemonized */
+        freopen("SrvErr", "a+", stderr);
 
     /* Print out time/date, since date info has "scrolled off" */
     TM_GetTimeOfDay(&tp, 0);
@@ -1338,6 +1340,7 @@ static int ReadConfigFile(void)
     CODACONF_INT(check_reintegration_retry, "check_reintegration_retry", 1);
     CODACONF_INT(codatunnel_enabled, "codatunnel", 0);
     CODACONF_INT(codatunnel_onlytcp, "onlytcp", 0);
+    CODACONF_INT(nofork, "nofork", 0);
     return 0;
 }
 
@@ -1523,16 +1526,19 @@ static int ParseArgs(int argc, char *argv[])
 	    if (!strcmp(argv[i], "-mapprivate")) {
 		MapPrivate = 1;
 	    }
-        else if (!strcmp(argv[i], "-codatunnel")){
-	      codatunnel_enabled = true;
-	      eprint("codatunnel enabled");
+        else if (!strcmp(argv[i], "-codatunnel")) {
+            codatunnel_enabled = true;
+            eprint("codatunnel enabled");
 	}
-        else if (!strcmp(argv[i], "-onlytcp")){
-	      codatunnel_onlytcp = true;
-	      eprint("codatunnel_onlytcp set");
+        else if (!strcmp(argv[i], "-onlytcp")) {
+            codatunnel_onlytcp = true;
+            eprint("codatunnel_onlytcp set");
+	}
+        else if (!strcmp(argv[i], "-nofork")) {
+            nofork = true;
 	}
 	else {
-	    return(-1);
+            return(-1);
 	}
     }
     return(0);
@@ -1602,7 +1608,7 @@ static int DaemonizeSrv(const char *pidfile)
     int parent = -1;
     struct sigaction sa;
 
-    if (SrvDebugLevel == 0)
+    if (!nofork && SrvDebugLevel == 0)
 	parent = daemonize();
     update_pidfile(pidfile);
 

@@ -350,6 +350,7 @@ extern const char *consoleFile;
 extern const char *MarinerSocketPath;
 extern int   mariner_tcp_enable;
 extern int   plan9server_enabled;
+extern int   nofork;
 extern int   allow_reattach;
 extern int   masquerade_port;
 extern int   PiggyValidations;
