@@ -143,7 +143,7 @@ class plan9server {
     dlist fids;
 
     unsigned char buffer[P9_BUFSIZE];
-    size_t max_msize = P9_BUFSIZE; /* negotiated by Tversion/Rversion */
+    size_t max_msize;                   /* negotiated by Tversion/Rversion */
 
     int pack_header(unsigned char **buf, size_t *bufspace,
                     uint8_t type, uint16_t tag);

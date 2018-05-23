@@ -353,6 +353,7 @@ static uid_t getuserid(const char *username)
 plan9server::plan9server(mariner *m)
 {
     conn = m;
+    max_msize = P9_BUFSIZE;
 
     /* initialize request context */
     m->u.Init();
