@@ -253,6 +253,7 @@ static int ReadConfigFile(void);
 static int ParseArgs(int, char **);
 static void InitServerKeys(const char *, const char *);
 static int DaemonizeSrv(const char *pidfile);
+static void SetupRLimitAndSignals(void);
 static void InitializeServerRVM(const char *name);
 
 #ifdef RVMTESTING
@@ -364,6 +365,23 @@ int main(int argc, char *argv[])
 
     SwapLog(0);
 
+    /* Fork the Coda tunnel daemon for codatunnel, if requested */
+    if (codatunnel_enabled) {
+        /* format a suitable bindaddr string */
+        const char *bindaddr = "0.0.0.0";
+        if (srvhost) {
+            bindaddr = CodaSrvIp ? CodaSrvIp : srvhost;
+        }
+        int rc = codatunnel_fork(argc, argv, bindaddr, bindaddr, "codasrv", codatunnel_onlytcp);
+        if (rc < 0){
+            perror("codatunnel_fork: "); /* hopefully errno still meaningful */
+            exit(EXIT_FAILURE);
+        }
+        printf("Main server process: forked codatunnel successfully\n");
+    }
+
+    SetupRLimitAndSignals();
+
     /* CamHistoInit(); */	
     /* Initialize CamHisto package */
 #ifdef _TIMECALLS_
@@ -392,21 +410,6 @@ int main(int argc, char *argv[])
 
     /* Initialize the hosttable structure */
     CLIENT_InitHostTable();
-
-    /* Fork the Coda tunnel daemon for codatunnel, if requested */
-    if (codatunnel_enabled) {
-        /* format a suitable bindaddr string */
-        const char *bindaddr = "0.0.0.0";
-        if (srvhost) {
-            bindaddr = CodaSrvIp ? CodaSrvIp : srvhost;
-        }
-        int rc = codatunnel_fork(argc, argv, bindaddr, bindaddr, "codasrv", codatunnel_onlytcp);
-        if (rc < 0){
-            perror("codatunnel_fork: "); /* hopefully errno still meaningful */
-            exit(-1);
-        }
-        printf("Main server process: forked codatunnel successfully\n");
-    }
 
     SLog(0, "Main process doing a LWP_Init()");
     CODA_ASSERT(LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, &mainPid) == LWP_SUCCESS);
@@ -1209,7 +1212,7 @@ void rds_printer(char *fmt ...)
 static void SigTerm(int sig)
 {
     SLog(0, "SigTerm received, shutting down");
-    LWP_QSignal(mainPid);
+    ViceTerminate();
 }
 
 /*
@@ -1258,7 +1261,8 @@ static void FileMsg()
 void ViceTerminate()
 {
     SLog(0, "Shutdown received");
-    LWP_QSignal(mainPid);
+    if (mainPid)
+        LWP_QSignal(mainPid);
 }
 
 
@@ -1606,11 +1610,17 @@ void Die(const char *msg)
 static int DaemonizeSrv(const char *pidfile)
 {
     int parent = -1;
-    struct sigaction sa;
 
     if (!nofork && SrvDebugLevel == 0)
 	parent = daemonize();
     update_pidfile(pidfile);
+
+    return parent;
+}
+
+static void SetupRLimitAndSignals(void)
+{
+    struct sigaction sa;
 
    /* Set DATA segment limit to maximum allowable. */
 #ifndef __CYGWIN32__
@@ -1653,8 +1663,6 @@ static int DaemonizeSrv(const char *pidfile)
     sa.sa_handler = my_sigBus; /* Defined in util/rvmtesting.c */
 #endif
     sigaction(SIGBUS, &sa, NULL);
-
-    return parent;
 }
 
 static void InitializeServerRVM(const char *name)

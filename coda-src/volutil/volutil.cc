@@ -56,11 +56,8 @@ extern "C" {
 #include <vutil.h>
 #include <getsecret.h>
 #include <auth2.h>
+#include <srv.h>
 
-extern void ViceTerminate();
-extern void ViceUpdateDB();
-extern void SwapLog(int ign);
-extern void SwapMalloc();
 extern long int volUtil_ExecuteRequest(RPC2_Handle, RPC2_PacketBuffer*, SE_Descriptor*);
 
 static void InitServer();
