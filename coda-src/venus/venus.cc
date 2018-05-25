@@ -328,7 +328,7 @@ int main(int argc, char **argv)
     UnsetInitFile();
     eprint("Venus starting...");
 
-    // DEBUG freopen("/dev/null", "w", stdout);
+    freopen("/dev/null", "w", stdout);
 
     /* Act as message-multiplexor/daemon-dispatcher. */
     for (;;) {
