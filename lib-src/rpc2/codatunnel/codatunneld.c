@@ -163,6 +163,18 @@ static void minicb3(uv_udp_send_t *arg, int status)
 }
 
 
+/* Upcall handler for uv_close() */
+static void minicb4(uv_handle_t *handle)
+{
+  dest_t *d;
+  if (handle->data) {
+    d = handle->data;
+    cleardest(d); /* make slot FREE again */
+  }
+
+}
+
+
 static void recv_codatunnel_cb(uv_udp_t *codatunnel, ssize_t nread,
                                const uv_buf_t *buf,
                                const struct sockaddr *addr,

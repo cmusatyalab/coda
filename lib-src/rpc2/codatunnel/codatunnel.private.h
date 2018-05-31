@@ -72,9 +72,20 @@ typedef struct codatunnel_packet {
       approach is fine for initial implementation; get it working
       first, and then fix later */
 
+  /* Transitions alwasy:  FREE --> TAKEN --> (optionally) --> TCPACTIVE --> TCPBROKEN --> FREE */
+
+enum deststate {/* NEW: 2018-5-29 */
+  FREE=0, /* this entry is not allocated */
+  ALLOCATED=1,  /* entry allocated, but TCP is not active; UDP works */
+  TCPACTIVE = 2, /* entry allocated, and its tcphandle is good */
+  TCPBROKEN = 3 /* this entry used to be TCPACTIVE; now broken, and will
+		     entry will eventually become FREE */
+};
+
 typedef struct remotedest {
   struct sockaddr_storage destaddr;
-  enum {TCPBROKEN = 0, TCPACTIVE = 1} state;
+
+  enum deststate state;
 /* All destinations are assumed to be capable of becoming TCPACTIVE;
    TCPBROKEN ouuld mean TCP is not supported, or destination unreachable;
    Setting TCPACTIVE should be a commit point:  all fields below

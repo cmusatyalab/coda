@@ -35,7 +35,7 @@ int ndests = 0; /* how many entries allocated in destarray */
 void cleardest(dest_t *d)
 {
     memset(&d->destaddr, 0, sizeof(struct sockaddr_storage));
-    d->state = TCPBROKEN;
+    d->state = FREE;
     d->tcphandle = 0;
     d->received_packet = 0; /* null pointer */
     d->nextbyte = 0;
@@ -96,7 +96,7 @@ dest_t *getdest(const struct sockaddr_storage *x, socklen_t xlen)
 
     for (i = 0; i < ndests; i++) {
         dest_t *d = &destarray[i];
-        if (sockaddr_equal(&d->destaddr, x, xlen))
+        if ((d->state != FREE) && sockaddr_equal(&d->destaddr, x, xlen))
             return d;
     }
     return NULL;  /* dest a not found */
@@ -110,14 +110,18 @@ dest_t *createdest(const struct sockaddr_storage *x, socklen_t xlen)
        xlen says how many bytes of *x to use in comparisons
     */
 
-    /*  DEBUG("sockaddr: %p  socklen: %d\n", x, xlen); */
-    /* Gross hack for now; nicer error handling needed; eventually
-       this should be a dynamically allocated structure that can grow */
-    assert(ndests < MAXDEST);
+  int i;
 
-    int i = ndests++; /* allocate an entry for this destination */
-    dest_t *d = &destarray[i];
-    cleardest(d);
-    memcpy(&d->destaddr, x, xlen);
-    return(d);
+  for (i = 0; i < MAXDEST; i++) 
+    {if (destarray[i].state == FREE) break;}
+
+ /* Gross hack for now; nicer error handling needed; eventually
+   this should be a dynamically allocated structure that can grow */
+  assert(i < MAXDEST);
+
+  dest_t *d = &destarray[i];
+  cleardest(d);
+  destarray[i].state = ALLOCATED;
+  memcpy(&d->destaddr, x, xlen);
+  return(d);
 }
