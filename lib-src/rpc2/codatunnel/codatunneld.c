@@ -96,6 +96,7 @@ static void tcp_connect_cb(uv_connect_t *, int);
 static void recv_udpsocket_cb(uv_udp_t *, ssize_t, const uv_buf_t *,
                               const struct sockaddr *, unsigned);
 static void tcp_newconnection_cb(uv_stream_t *, int);
+static void minicb4(uv_handle_t *);
 
 
 static socklen_t sockaddr_len(const struct sockaddr *addr)
@@ -142,8 +143,7 @@ static void minicb2(uv_write_t *arg, int status)
         DEBUG("tcp connection error: %s after %d packets\n",
               uv_strerror(status), d->packets_sent);
         d->state = TCPBROKEN;
-        free(d->tcphandle);
-        d->tcphandle = 0;
+	uv_close((uv_handle_t *)d->tcphandle, minicb4);
     }
     else {
         d->packets_sent++;   /* one more was sent out! */
@@ -163,7 +163,7 @@ static void minicb3(uv_udp_send_t *arg, int status)
 }
 
 
-/* Upcall handler for uv_close() */
+/* Upcall handler for uv_close() on TCP handles */
 static void minicb4(uv_handle_t *handle)
 {
   dest_t *d;
@@ -462,7 +462,7 @@ static void recv_tcp_cb (uv_stream_t *tcphandle, ssize_t nread, const uv_buf_t *
             /* we can't handle this monster */
             DEBUG("Monster packet of size %lu, giving up\n", p->msglen);
             d->state = TCPBROKEN;
-            uv_close((uv_handle_t *)d->tcphandle, NULL);
+            uv_close((uv_handle_t *)d->tcphandle, minicb4);
             free(buf->base);
             free(d->tcphandle);
             d->tcphandle = 0;
