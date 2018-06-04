@@ -409,7 +409,7 @@ static void recv_tcp_cb (uv_stream_t *tcphandle, ssize_t nread, const uv_buf_t *
        in the dest_t data structure.
     */
     DEBUG("buf->base = %p    buf->len = %lu\n", buf->base, buf->len);
-    hexdump ("buf->base", buf->base, 64);  /* just print first 64 bytes */
+    /* hexdump ("buf->base", buf->base, 64);  */
 
     int bytesleft = nread;
     DEBUG("bytesleft = %d\n", bytesleft);
