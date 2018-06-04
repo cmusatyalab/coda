@@ -169,9 +169,10 @@ static void minicb4(uv_handle_t *handle)
   dest_t *d;
   if (handle->data) {
     d = handle->data;
+    if(d->received_packet) {free(d->received_packet);} /* memory leak otherwise */
     cleardest(d); /* make slot FREE again */
   }
-
+  free(handle);
 }
 
 
@@ -248,8 +249,10 @@ static void recv_codatunnel_cb(uv_udp_t *codatunnel, ssize_t nread,
         return;
     }
 
-    /*
-       UDP fallback: always forward UDP packets if TCPBROKEN; RPC2
+    /* Two possibile states for destination d: ALLOCATED or TCPBROKEN;
+       In either case just UDP
+
+       UDP fallback: always forward UDP packets if TCPACTIVE is not true; RPC2
        duplicate elimination at higher level will drop as needed for
        at-most-once semantics; if TCPACTIVE happens later for this
        destination, early packets will be sent by UDP, but later ones
@@ -373,10 +376,8 @@ static void recv_tcp_cb (uv_stream_t *tcphandle, ssize_t nread, const uv_buf_t *
     if (nread < 0) {
         DEBUG("recv_tcp_cb() --> %s\n", uv_strerror(nread));
         d->state = TCPBROKEN;
-        uv_close((uv_handle_t *)d->tcphandle, NULL);
         free(buf->base);
-        free(d->tcphandle);
-        d->tcphandle = 0;
+        uv_close((uv_handle_t *)d->tcphandle, minicb4);
         return;
     }
 
