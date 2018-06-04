@@ -28,9 +28,9 @@ Coda are listed in the file CREDITS.
    data structure
 */
 
-#define MAXDEST 100   /* should be plenty for early debugging */
-dest_t destarray[MAXDEST];
-int ndests = 0; /* how many entries allocated in destarray */
+#define DESTARRAY_SIZE 100   /* should be plenty for early debugging */
+dest_t destarray[DESTARRAY_SIZE]; /* only 0..hilimit-1 are in use */
+int hilimit = 0; /* one plus highest index in use in destarray */
 
 void cleardest(dest_t *d)
 {
@@ -51,9 +51,9 @@ void initdestarray()
     in structures may cause trouble */
     int i;
 
-    ndests = 0;
+    hilimit = 0;
 
-    for (i = 0; i < MAXDEST; i++)
+    for (i = 0; i < DESTARRAY_SIZE; i++)
         cleardest(&destarray[i]);
 }
 
@@ -94,12 +94,13 @@ dest_t *getdest(const struct sockaddr_storage *x, socklen_t xlen)
     */
     int i;
 
-    for (i = 0; i < ndests; i++) {
+
+    for (i = 0; i < hilimit; i++) {
         dest_t *d = &destarray[i];
         if ((d->state != FREE) && sockaddr_equal(&d->destaddr, x, xlen))
             return d;
     }
-    return NULL;  /* dest a not found */
+    return(NULL);  /* dest not found */
 }
 
 dest_t *createdest(const struct sockaddr_storage *x, socklen_t xlen)
@@ -112,12 +113,16 @@ dest_t *createdest(const struct sockaddr_storage *x, socklen_t xlen)
 
   int i;
 
-  for (i = 0; i < MAXDEST; i++) 
+
+  for (i = 0; i < hilimit; i++) 
     {if (destarray[i].state == FREE) break;}
 
- /* Gross hack for now; nicer error handling needed; eventually
-   this should be a dynamically allocated structure that can grow */
-  assert(i < MAXDEST);
+  if (i == hilimit) {
+    hilimit++; /* advance highwatermark */
+    /* Gross hack for now; nicer error handling needed; eventually
+       this should be a dynamically allocated structure that can grow */
+    assert(hilimit < DESTARRAY_SIZE);
+  }
 
   dest_t *d = &destarray[i];
   cleardest(d);

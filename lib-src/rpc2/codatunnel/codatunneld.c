@@ -645,6 +645,8 @@ void codatunneld(int codatunnel_sockfd,
     /* make sure that writing to closed pipes doesn't kill us */
     signal(SIGPIPE, SIG_IGN);
 
+    initdestarray(); /* do this before any IP addresses are encountered */
+
     codatunnel_main_loop = uv_default_loop();
 
     /* bind codatunnel_sockfd */
