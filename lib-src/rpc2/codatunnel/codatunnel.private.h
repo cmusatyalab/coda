@@ -72,14 +72,14 @@ typedef struct codatunnel_packet {
       approach is fine for initial implementation; get it working
       first, and then fix later */
 
-  /* Transitions always:  FREE --> ALLOCATED --> (optionally)TCPATTEMPTING --> TCPACTIVE --> TCPBROKEN --> FREE */
+  /* Transitions always:  FREE --> ALLOCATED --> (optionally)TCPATTEMPTING --> TCPACTIVE --> TCPCLOSING --> FREE */
 
 enum deststate {/* NEW: 2018-5-29 */
   FREE = 0, /* this entry is not allocated */
   ALLOCATED = 1,  /* entry allocated, but TCP is not active; UDP works */
   TCPATTEMPTING = 2,  /* entry allocated, tcp connect is being attempted; UDP works */
   TCPACTIVE = 3, /* entry allocated, and its tcphandle is good */
-  TCPBROKEN = 4 /* this entry used to be TCPACTIVE; now broken, and waiting
+  TCPCLOSING = 4 /* this entry used to be TCPACTIVE; now closing, and waiting
 		   to become FREE */
 
 };
@@ -112,6 +112,7 @@ void cleardest(dest_t *);
 void initdestarray();
 dest_t *getdest(const struct sockaddr_storage *, socklen_t);
 dest_t *createdest(const struct sockaddr_storage *, socklen_t);
+void free_dest(dest_t *d);
 
 /* Helper/debugging functions */
 void hexdump(char *, void *, int);

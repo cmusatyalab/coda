@@ -130,3 +130,21 @@ dest_t *createdest(const struct sockaddr_storage *x, socklen_t xlen)
 
     return d;
 }
+
+
+static void _free_dest_cb(uv_handle_t *handle)
+{
+    dest_t *d = handle->data;
+    free(d->received_packet);
+    cleardest(d); /* make slot FREE again */
+}
+
+/* Release resources allocated for the specified dest_t */
+void free_dest(dest_t *d)
+{
+    if (d->state == TCPCLOSING)
+        return;
+
+    d->state = TCPCLOSING;
+    uv_close((uv_handle_t *)d->tcphandle, _free_dest_cb);
+}
