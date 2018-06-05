@@ -1,3 +1,8 @@
+New in 2.18/2.19:
+
+* Recycling unused remote destination entries.
+* UDP-only clients don't use up a remote destination slots on the server.
+
 New in 2.17:
 
 * Extend codatunneld to support TCP tunneled connections between client
