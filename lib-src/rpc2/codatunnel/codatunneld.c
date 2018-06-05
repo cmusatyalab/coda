@@ -166,13 +166,15 @@ static void minicb3(uv_udp_send_t *arg, int status)
 /* Upcall handler for uv_close() on TCP handles */
 static void minicb4(uv_handle_t *handle)
 {
-  dest_t *d;
-  if (handle->data) {
-    d = handle->data;
-    if(d->received_packet) {free(d->received_packet);} /* memory leak otherwise */
-    cleardest(d); /* make slot FREE again */
-  }
-  free(handle);
+    dest_t *d;
+    if (handle->data) {
+        d = handle->data;
+        if (d->received_packet) {
+            free(d->received_packet); /* memory leak otherwise */
+        }
+        cleardest(d); /* make slot FREE again */
+    }
+    free(handle);
 }
 
 
@@ -265,12 +267,13 @@ static void recv_codatunnel_cb(uv_udp_t *codatunnel, ssize_t nread,
        do this only once per INIT1 (avoiding retries) to avoid TCP SYN flood;
        Only clients should attempt this, because of NAT firewalls */
     if (p->is_init1  && (!p->is_retry) && (!codatunnel_I_am_server)) {
-      if (!d) /* new destination */
-        {d = createdest(&p->addr, p->addrlen);}
-      if(d->state == ALLOCATED){
-	d->state = TCPATTEMPTING;
-        try_creating_tcp_connection(d);
-      }
+        if (!d) /* new destination */
+            d = createdest(&p->addr, p->addrlen);
+
+        if(d->state == ALLOCATED){
+            d->state = TCPATTEMPTING;
+            try_creating_tcp_connection(d);
+        }
     }
 }
 
@@ -347,13 +350,13 @@ static void tcp_connect_cb(uv_connect_t *req, int status)
         DEBUG("uv_read_start() --> %d\n", rc);
     }
     else {/*  connection attempt failed */
-      d->state = ALLOCATED;
+        d->state = ALLOCATED;
     }
     free(req);
 }
 
 
-static void  try_creating_tcp_connection(dest_t *d)
+static void try_creating_tcp_connection(dest_t *d)
 {
     uv_connect_t *req;
 

@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 2017 Carnegie Mellon University
+          Copyright (c) 2017-2018 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -36,8 +36,8 @@ void cleardest(dest_t *d)
 {
     memset(&d->destaddr, 0, sizeof(struct sockaddr_storage));
     d->state = FREE;
-    d->tcphandle = 0;
-    d->received_packet = 0; /* null pointer */
+    d->tcphandle = NULL;
+    d->received_packet = NULL;
     d->nextbyte = 0;
     d->ntoh_done = 0;
     d->packets_sent = 0;
@@ -94,13 +94,12 @@ dest_t *getdest(const struct sockaddr_storage *x, socklen_t xlen)
     */
     int i;
 
-
     for (i = 0; i < hilimit; i++) {
         dest_t *d = &destarray[i];
         if ((d->state != FREE) && sockaddr_equal(&d->destaddr, x, xlen))
             return d;
     }
-    return(NULL);  /* dest not found */
+    return NULL;  /* dest not found */
 }
 
 dest_t *createdest(const struct sockaddr_storage *x, socklen_t xlen)
@@ -110,23 +109,24 @@ dest_t *createdest(const struct sockaddr_storage *x, socklen_t xlen)
        creates a new entry for x and returns pointer to it
        xlen says how many bytes of *x to use in comparisons
     */
+    int i;
 
-  int i;
+    for (i = 0; i < hilimit; i++) {
+        if (destarray[i].state == FREE)
+            break;
+    }
 
+    if (i == hilimit) {
+        hilimit++; /* advance highwatermark */
+        /* Gross hack for now; nicer error handling needed; eventually
+           this should be a dynamically allocated structure that can grow */
+        assert(hilimit < DESTARRAY_SIZE);
+    }
 
-  for (i = 0; i < hilimit; i++) 
-    {if (destarray[i].state == FREE) break;}
+    dest_t *d = &destarray[i];
+    cleardest(d);
+    d->state = ALLOCATED;
+    memcpy(&d->destaddr, x, xlen);
 
-  if (i == hilimit) {
-    hilimit++; /* advance highwatermark */
-    /* Gross hack for now; nicer error handling needed; eventually
-       this should be a dynamically allocated structure that can grow */
-    assert(hilimit < DESTARRAY_SIZE);
-  }
-
-  dest_t *d = &destarray[i];
-  cleardest(d);
-  destarray[i].state = ALLOCATED;
-  memcpy(&d->destaddr, x, xlen);
-  return(d);
+    return d;
 }
