@@ -72,13 +72,14 @@ typedef struct codatunnel_packet {
       approach is fine for initial implementation; get it working
       first, and then fix later */
 
-  /* Transitions alwasy:  FREE --> ALLOCATED --> (optionally) --> TCPACTIVE --> TCPBROKEN --> FREE */
+  /* Transitions always:  FREE --> ALLOCATED --> (optionally)TCPATTEMPTING --> TCPACTIVE --> TCPBROKEN --> FREE */
 
 enum deststate {/* NEW: 2018-5-29 */
-  FREE=0, /* this entry is not allocated */
-  ALLOCATED=1,  /* entry allocated, but TCP is not active; UDP works */
-  TCPACTIVE = 2, /* entry allocated, and its tcphandle is good */
-  TCPBROKEN = 3 /* this entry used to be TCPACTIVE; now broken, and waiting
+  FREE = 0, /* this entry is not allocated */
+  ALLOCATED = 1,  /* entry allocated, but TCP is not active; UDP works */
+  TCPATTEMPTING = 2,  /* entry allocated, tcp connect is being attempted; UDP works */
+  TCPACTIVE = 3, /* entry allocated, and its tcphandle is good */
+  TCPBROKEN = 4 /* this entry used to be TCPACTIVE; now broken, and waiting
 		   to become FREE */
 
 };

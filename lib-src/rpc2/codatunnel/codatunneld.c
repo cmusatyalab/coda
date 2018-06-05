@@ -225,12 +225,9 @@ static void recv_codatunnel_cb(uv_udp_t *codatunnel, ssize_t nread,
 
     dest_t *d = getdest(&p->addr, p->addrlen);
 
-    if (!d) /* new destination */
-        d = createdest(&p->addr, p->addrlen);
-
     /* what do we do with packet p for destination d? */
 
-    if (d->state == TCPACTIVE) {
+    if (d && d->state == TCPACTIVE) {
         DEBUG("d->state == TCPACTIVE\n");
 
         if (p->is_retry && (d->packets_sent > 0)) {
@@ -268,7 +265,12 @@ static void recv_codatunnel_cb(uv_udp_t *codatunnel, ssize_t nread,
        do this only once per INIT1 (avoiding retries) to avoid TCP SYN flood;
        Only clients should attempt this, because of NAT firewalls */
     if (p->is_init1  && (!p->is_retry) && (!codatunnel_I_am_server)) {
+      if (!d) /* new destination */
+        {d = createdest(&p->addr, p->addrlen);}
+      if(d->state == ALLOCATED){
+	d->state = TCPATTEMPTING;
         try_creating_tcp_connection(d);
+      }
     }
 }
 
@@ -344,8 +346,9 @@ static void tcp_connect_cb(uv_connect_t *req, int status)
         int rc = uv_read_start((uv_stream_t *)d->tcphandle, alloc_cb, recv_tcp_cb);
         DEBUG("uv_read_start() --> %d\n", rc);
     }
-    /* else connection attempt failed: do nothing */
-
+    else {/*  connection attempt failed */
+      d->state = ALLOCATED;
+    }
     free(req);
 }
 
