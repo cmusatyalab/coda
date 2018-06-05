@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 2017 Carnegie Mellon University
+          Copyright (c) 2017-2018 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -72,11 +72,23 @@ typedef struct codatunnel_packet {
       approach is fine for initial implementation; get it working
       first, and then fix later */
 
+  /* Transitions always:  FREE --> ALLOCATED --> (optionally)TCPATTEMPTING --> TCPACTIVE --> TCPBROKEN --> FREE */
+
+enum deststate {/* NEW: 2018-5-29 */
+  FREE = 0, /* this entry is not allocated */
+  ALLOCATED = 1,  /* entry allocated, but TCP is not active; UDP works */
+  TCPATTEMPTING = 2,  /* entry allocated, tcp connect is being attempted; UDP works */
+  TCPACTIVE = 3, /* entry allocated, and its tcphandle is good */
+  TCPBROKEN = 4 /* this entry used to be TCPACTIVE; now broken, and waiting
+		   to become FREE */
+
+};
+
 typedef struct remotedest {
   struct sockaddr_storage destaddr;
-  enum {TCPBROKEN = 0, TCPACTIVE = 1} state;
+
+  enum deststate state;
 /* All destinations are assumed to be capable of becoming TCPACTIVE;
-   TCPBROKEN ouuld mean TCP is not supported, or destination unreachable;
    Setting TCPACTIVE should be a commit point:  all fields below
    should have been set before that happens, to avoid race conditions */
 
@@ -96,13 +108,13 @@ typedef struct remotedest {
 } dest_t;
 
 /* Stuff for destination management */
-void initdest(void);
-/* return pointer to matching destination or NULL */
-dest_t *getdest(const struct sockaddr_storage *x, socklen_t xlen);
-/* create new entry for specified destination */
-dest_t *createdest(const struct sockaddr_storage *x, socklen_t xlen);
+void cleardest(dest_t *);
+void initdestarray();
+dest_t *getdest(const struct sockaddr_storage *, socklen_t);
+dest_t *createdest(const struct sockaddr_storage *, socklen_t);
 
 /* Helper/debugging functions */
 void hexdump(char *, void *, int);
+void printsockaddr(const struct sockaddr_storage *, socklen_t);
 
 #endif /* _CODATUNNEL_PRIVATE_H_ */

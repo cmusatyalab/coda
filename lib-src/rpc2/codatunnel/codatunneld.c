@@ -96,6 +96,7 @@ static void tcp_connect_cb(uv_connect_t *, int);
 static void recv_udpsocket_cb(uv_udp_t *, ssize_t, const uv_buf_t *,
                               const struct sockaddr *, unsigned);
 static void tcp_newconnection_cb(uv_stream_t *, int);
+static void minicb4(uv_handle_t *);
 
 
 static socklen_t sockaddr_len(const struct sockaddr *addr)
@@ -142,8 +143,7 @@ static void minicb2(uv_write_t *arg, int status)
         DEBUG("tcp connection error: %s after %d packets\n",
               uv_strerror(status), d->packets_sent);
         d->state = TCPBROKEN;
-        free(d->tcphandle);
-        d->tcphandle = 0;
+	uv_close((uv_handle_t *)d->tcphandle, minicb4);
     }
     else {
         d->packets_sent++;   /* one more was sent out! */
@@ -160,6 +160,21 @@ static void minicb3(uv_udp_send_t *arg, int status)
 
     free(req->msg.base);
     free(req);
+}
+
+
+/* Upcall handler for uv_close() on TCP handles */
+static void minicb4(uv_handle_t *handle)
+{
+    dest_t *d;
+    if (handle->data) {
+        d = handle->data;
+        if (d->received_packet) {
+            free(d->received_packet); /* memory leak otherwise */
+        }
+        cleardest(d); /* make slot FREE again */
+    }
+    free(handle);
 }
 
 
@@ -212,12 +227,9 @@ static void recv_codatunnel_cb(uv_udp_t *codatunnel, ssize_t nread,
 
     dest_t *d = getdest(&p->addr, p->addrlen);
 
-    if (!d) /* new destination */
-        d = createdest(&p->addr, p->addrlen);
-
     /* what do we do with packet p for destination d? */
 
-    if (d->state == TCPACTIVE) {
+    if (d && d->state == TCPACTIVE) {
         DEBUG("d->state == TCPACTIVE\n");
 
         if (p->is_retry && (d->packets_sent > 0)) {
@@ -236,8 +248,10 @@ static void recv_codatunnel_cb(uv_udp_t *codatunnel, ssize_t nread,
         return;
     }
 
-    /*
-       UDP fallback: always forward UDP packets if TCPBROKEN; RPC2
+    /* Two possibile states for destination d: ALLOCATED or TCPBROKEN;
+       In either case just UDP
+
+       UDP fallback: always forward UDP packets if TCPACTIVE is not true; RPC2
        duplicate elimination at higher level will drop as needed for
        at-most-once semantics; if TCPACTIVE happens later for this
        destination, early packets will be sent by UDP, but later ones
@@ -253,7 +267,13 @@ static void recv_codatunnel_cb(uv_udp_t *codatunnel, ssize_t nread,
        do this only once per INIT1 (avoiding retries) to avoid TCP SYN flood;
        Only clients should attempt this, because of NAT firewalls */
     if (p->is_init1  && (!p->is_retry) && (!codatunnel_I_am_server)) {
-        try_creating_tcp_connection(d);
+        if (!d) /* new destination */
+            d = createdest(&p->addr, p->addrlen);
+
+        if(d->state == ALLOCATED){
+            d->state = TCPATTEMPTING;
+            try_creating_tcp_connection(d);
+        }
     }
 }
 
@@ -329,13 +349,14 @@ static void tcp_connect_cb(uv_connect_t *req, int status)
         int rc = uv_read_start((uv_stream_t *)d->tcphandle, alloc_cb, recv_tcp_cb);
         DEBUG("uv_read_start() --> %d\n", rc);
     }
-    /* else connection attempt failed: do nothing */
-
+    else {/*  connection attempt failed */
+        d->state = ALLOCATED;
+    }
     free(req);
 }
 
 
-static void  try_creating_tcp_connection(dest_t *d)
+static void try_creating_tcp_connection(dest_t *d)
 {
     uv_connect_t *req;
 
@@ -361,10 +382,8 @@ static void recv_tcp_cb (uv_stream_t *tcphandle, ssize_t nread, const uv_buf_t *
     if (nread < 0) {
         DEBUG("recv_tcp_cb() --> %s\n", uv_strerror(nread));
         d->state = TCPBROKEN;
-        uv_close((uv_handle_t *)d->tcphandle, NULL);
         free(buf->base);
-        free(d->tcphandle);
-        d->tcphandle = 0;
+        uv_close((uv_handle_t *)d->tcphandle, minicb4);
         return;
     }
 
@@ -396,7 +415,7 @@ static void recv_tcp_cb (uv_stream_t *tcphandle, ssize_t nread, const uv_buf_t *
        in the dest_t data structure.
     */
     DEBUG("buf->base = %p    buf->len = %lu\n", buf->base, buf->len);
-    hexdump ("buf->base", buf->base, 64);  /* just print first 64 bytes */
+    /* hexdump ("buf->base", buf->base, 64);  */
 
     int bytesleft = nread;
     DEBUG("bytesleft = %d\n", bytesleft);
@@ -449,7 +468,7 @@ static void recv_tcp_cb (uv_stream_t *tcphandle, ssize_t nread, const uv_buf_t *
             /* we can't handle this monster */
             DEBUG("Monster packet of size %lu, giving up\n", p->msglen);
             d->state = TCPBROKEN;
-            uv_close((uv_handle_t *)d->tcphandle, NULL);
+            uv_close((uv_handle_t *)d->tcphandle, minicb4);
             free(buf->base);
             free(d->tcphandle);
             d->tcphandle = 0;
@@ -631,6 +650,8 @@ void codatunneld(int codatunnel_sockfd,
 
     /* make sure that writing to closed pipes doesn't kill us */
     signal(SIGPIPE, SIG_IGN);
+
+    initdestarray(); /* do this before any IP addresses are encountered */
 
     codatunnel_main_loop = uv_default_loop();
 

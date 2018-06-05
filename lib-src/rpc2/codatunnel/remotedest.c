@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 2017 Carnegie Mellon University
+          Copyright (c) 2017-2018 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -28,16 +28,16 @@ Coda are listed in the file CREDITS.
    data structure
 */
 
-#define MAXDEST 100   /* should be plenty for early debugging */
-dest_t destarray[MAXDEST];
-int ndests = 0; /* how many entries allocated in destarray */
+#define DESTARRAY_SIZE 100   /* should be plenty for early debugging */
+dest_t destarray[DESTARRAY_SIZE]; /* only 0..hilimit-1 are in use */
+int hilimit = 0; /* one plus highest index in use in destarray */
 
 void cleardest(dest_t *d)
 {
     memset(&d->destaddr, 0, sizeof(struct sockaddr_storage));
-    d->state = TCPBROKEN;
-    d->tcphandle = 0;
-    d->received_packet = 0; /* null pointer */
+    d->state = FREE;
+    d->tcphandle = NULL;
+    d->received_packet = NULL;
     d->nextbyte = 0;
     d->ntoh_done = 0;
     d->packets_sent = 0;
@@ -51,9 +51,9 @@ void initdestarray()
     in structures may cause trouble */
     int i;
 
-    ndests = 0;
+    hilimit = 0;
 
-    for (i = 0; i < MAXDEST; i++)
+    for (i = 0; i < DESTARRAY_SIZE; i++)
         cleardest(&destarray[i]);
 }
 
@@ -94,12 +94,12 @@ dest_t *getdest(const struct sockaddr_storage *x, socklen_t xlen)
     */
     int i;
 
-    for (i = 0; i < ndests; i++) {
+    for (i = 0; i < hilimit; i++) {
         dest_t *d = &destarray[i];
-        if (sockaddr_equal(&d->destaddr, x, xlen))
+        if ((d->state != FREE) && sockaddr_equal(&d->destaddr, x, xlen))
             return d;
     }
-    return NULL;  /* dest a not found */
+    return NULL;  /* dest not found */
 }
 
 dest_t *createdest(const struct sockaddr_storage *x, socklen_t xlen)
@@ -109,15 +109,24 @@ dest_t *createdest(const struct sockaddr_storage *x, socklen_t xlen)
        creates a new entry for x and returns pointer to it
        xlen says how many bytes of *x to use in comparisons
     */
+    int i;
 
-    /*  DEBUG("sockaddr: %p  socklen: %d\n", x, xlen); */
-    /* Gross hack for now; nicer error handling needed; eventually
-       this should be a dynamically allocated structure that can grow */
-    assert(ndests < MAXDEST);
+    for (i = 0; i < hilimit; i++) {
+        if (destarray[i].state == FREE)
+            break;
+    }
 
-    int i = ndests++; /* allocate an entry for this destination */
+    if (i == hilimit) {
+        hilimit++; /* advance highwatermark */
+        /* Gross hack for now; nicer error handling needed; eventually
+           this should be a dynamically allocated structure that can grow */
+        assert(hilimit < DESTARRAY_SIZE);
+    }
+
     dest_t *d = &destarray[i];
     cleardest(d);
+    d->state = ALLOCATED;
     memcpy(&d->destaddr, x, xlen);
-    return(d);
+
+    return d;
 }
