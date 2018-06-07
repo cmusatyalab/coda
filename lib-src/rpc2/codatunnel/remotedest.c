@@ -69,12 +69,18 @@ static int sockaddr_equal(const struct sockaddr_storage *a,
         struct sockaddr_in *a_in = (struct sockaddr_in *)a;
         struct sockaddr_in *b_in = (struct sockaddr_in *)b;
 
+        if (len < sizeof(struct sockaddr_in))
+            return 0;
+
         return (a_in->sin_port == b_in->sin_port &&
                 a_in->sin_addr.s_addr == b_in->sin_addr.s_addr);
     }
     case AF_INET6: {
         struct sockaddr_in6 *a_in6 = (struct sockaddr_in6 *)a;
         struct sockaddr_in6 *b_in6 = (struct sockaddr_in6 *)b;
+
+        if (len < sizeof(struct sockaddr_in6))
+            return 0;
 
         return (a_in6->sin6_port == b_in6->sin6_port &&
                 memcmp(&a_in6->sin6_addr, &b_in6->sin6_addr,

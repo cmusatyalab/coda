@@ -60,7 +60,7 @@ static int codatunnel_onlytcp = 0;    /* whether to use UDP fallback; default is
 static uv_loop_t *codatunnel_main_loop = 0;
 static uv_udp_t codatunnel;  /* facing Venus or CodaSrv */
 static uv_udp_t udpsocket;   /* facing the network */
-static uv_tcp_t tcpbindsocket;   /* facing the network */
+static uv_tcp_t tcplistener;   /* facing the network, only on servers */
 
 /* Useful data structures for minicbs; these minicbs do little real work
    and are mainly used to free malloc'ed data structures after transmission;
@@ -86,9 +86,9 @@ typedef struct {
 
 /* forward refs for workhorse functions; many are cb functions */
 static void recv_codatunnel_cb(uv_udp_t *, ssize_t, const uv_buf_t *,
-                               const struct sockaddr *, unsigned);
-static void send_to_udp_dest(dest_t *, uv_udp_t *, ssize_t, const uv_buf_t *,
-                               const struct sockaddr *, unsigned);
+                               const struct sockaddr *saddr, socklen_t slen);
+static void send_to_udp_dest(uv_udp_t *, ssize_t, const uv_buf_t *,
+                             const struct sockaddr *saddr, socklen_t slen);
 static void send_to_tcp_dest(dest_t *, ssize_t, const uv_buf_t *);
 static void try_creating_tcp_connection (dest_t *);
 static void recv_tcp_cb (uv_stream_t *, ssize_t, const uv_buf_t *);
@@ -244,7 +244,7 @@ static void recv_codatunnel_cb(uv_udp_t *codatunnel, ssize_t nread,
        traveled (Satya, 1/20/2018)
     */
     if (!codatunnel_onlytcp)
-        send_to_udp_dest(d, codatunnel, nread, buf, addr, flags); /* free buf only in cascaded cb */
+        send_to_udp_dest(codatunnel, nread, buf, addr, flags); /* free buf only in cascaded cb */
 
     /* Try to establish a new TCP connection for future use;
        do this only once per INIT1 (avoiding retries) to avoid TCP SYN flood;
@@ -261,10 +261,10 @@ static void recv_codatunnel_cb(uv_udp_t *codatunnel, ssize_t nread,
 }
 
 
-static void send_to_udp_dest(dest_t *d, uv_udp_t *codatunnel, ssize_t nread,
-                               const uv_buf_t *buf,
-                               const struct sockaddr *addr,
-                               unsigned flags)
+static void send_to_udp_dest(uv_udp_t *codatunnel, ssize_t nread,
+                             const uv_buf_t *buf,
+                             const struct sockaddr *addr,
+                             unsigned flags)
 {
     /* Somewhat complicated structure is to avoid data copy of payload */
 
@@ -329,6 +329,9 @@ static void tcp_connect_cb(uv_connect_t *req, int status)
         d->ntoh_done = 0;
         d->state = TCPACTIVE; /* commit point */
 
+        /* disable Nagle */
+        uv_tcp_nodelay(d->tcphandle, 1);
+
         int rc = uv_read_start((uv_stream_t *)d->tcphandle, alloc_cb, recv_tcp_cb);
         DEBUG("uv_read_start() --> %d\n", rc);
     }
@@ -347,6 +350,8 @@ static void try_creating_tcp_connection(dest_t *d)
     d->tcphandle = malloc(sizeof(uv_tcp_t));
     uv_tcp_init(codatunnel_main_loop, d->tcphandle);
     req = malloc(sizeof(uv_connect_t));
+    assert(req != NULL);
+
     req->data = d;  /* so we can identify dest in upcall */
     int rc = uv_tcp_connect(req, d->tcphandle, (struct sockaddr *)(&d->destaddr),
                             tcp_connect_cb);
@@ -354,7 +359,7 @@ static void try_creating_tcp_connection(dest_t *d)
 }
 
 
-static void recv_tcp_cb (uv_stream_t *tcphandle, ssize_t nread, const uv_buf_t *buf)
+static void recv_tcp_cb(uv_stream_t *tcphandle, ssize_t nread, const uv_buf_t *buf)
 {
     DEBUG("recv_tcp_cb (%p, %d, %p)\n", tcphandle, (int) nread, buf);
 
@@ -491,7 +496,7 @@ static void recv_tcp_cb (uv_stream_t *tcphandle, ssize_t nread, const uv_buf_t *
            and venus/codasrv all ignore this so just use this as dummy value */
 
         uv_udp_send((uv_udp_send_t *)req, &codatunnel, &req->msg, 1,
-                (struct sockaddr *)&d->destaddr, minicb3);
+                    (struct sockaddr *)&d->destaddr, minicb3);
 
         /* Now prepare for read of a new packet */
         d->received_packet = malloc(MAXRECEIVE);
@@ -504,7 +509,6 @@ static void recv_tcp_cb (uv_stream_t *tcphandle, ssize_t nread, const uv_buf_t *
     /* We have now consumed all the bytes associated with this upcall */
     free(buf->base);
 }
-
 
 
 static void recv_udpsocket_cb(uv_udp_t *udpsocket, ssize_t nread,
@@ -600,6 +604,9 @@ static void tcp_newconnection_cb (uv_stream_t *bindhandle, int status)
     /* all other fields of *d set by cleardest() in createdest() */
     d->state = TCPACTIVE; /* commit point */
 
+    /* disable Nagle */
+    uv_tcp_nodelay(d->tcphandle, 1);
+
     /* now start receiving data on this TCP connection */
     DEBUG("About to call uv_read_start()\n");
     rc = uv_read_start((uv_stream_t *)d->tcphandle, alloc_cb, recv_tcp_cb);
@@ -624,7 +631,6 @@ void codatunneld(int codatunnel_sockfd,
     fprintf(stderr, "codatunneld: starting\n");
 
     if (tcp_bindaddr) codatunnel_I_am_server = 1; /* remember who I am */
-
     if (onlytcp) codatunnel_onlytcp = 1; /* no UDP fallback */
 
     /* make sure that writing to closed pipes doesn't kill us */
@@ -673,13 +679,13 @@ void codatunneld(int codatunnel_sockfd,
         /* service was already set earlier */
 
 
-        uv_tcp_init(codatunnel_main_loop, &tcpbindsocket);
+        uv_tcp_init(codatunnel_main_loop, &tcplistener);
 
         /* try to bind to any of the resolved addresses */
         uv_getaddrinfo(codatunnel_main_loop, &gai_req, NULL, tcp_bindaddr,
                 service, &gai_hints2);
         for (ai = gai_req.addrinfo; ai != NULL; ai = ai->ai_next) {
-            if (uv_tcp_bind(&tcpbindsocket, ai->ai_addr, 0) == 0)
+            if (uv_tcp_bind(&tcplistener, ai->ai_addr, 0) == 0)
                 break;
         }
         if (!ai) {
@@ -689,7 +695,7 @@ void codatunneld(int codatunnel_sockfd,
         else uv_freeaddrinfo(gai_req.addrinfo);
 
         /* start listening for connect() attempts */
-        uv_listen((uv_stream_t *)&tcpbindsocket, 10, tcp_newconnection_cb);
+        uv_listen((uv_stream_t *)&tcplistener, 10, tcp_newconnection_cb);
     }
 
     /* run until the codatunnel connection closes */
