@@ -1,3 +1,8 @@
+New in 2.20
+
+* Fix incompatibility between 32-bit and 64-bit systems when forwarding
+  packets through tcp tunnels.
+
 New in 2.18/2.19:
 
 * Recycling unused remote destination entries.
