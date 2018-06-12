@@ -35,6 +35,7 @@ int hilimit = 0; /* one plus highest index in use in destarray */
 void cleardest(dest_t *d)
 {
     memset(&d->destaddr, 0, sizeof(struct sockaddr_storage));
+    d->destlen = 0;
     d->state = FREE;
     d->tcphandle = NULL;
     d->received_packet = NULL;
@@ -102,7 +103,8 @@ dest_t *getdest(const struct sockaddr_storage *x, socklen_t xlen)
 
     for (i = 0; i < hilimit; i++) {
         dest_t *d = &destarray[i];
-        if ((d->state != FREE) && sockaddr_equal(&d->destaddr, x, xlen))
+        if (d->state != FREE && d->destlen == xlen &&
+            sockaddr_equal(&d->destaddr, x, xlen))
             return d;
     }
     return NULL;  /* dest not found */
@@ -133,6 +135,7 @@ dest_t *createdest(const struct sockaddr_storage *x, socklen_t xlen)
     cleardest(d);
     d->state = ALLOCATED;
     memcpy(&d->destaddr, x, xlen);
+    d->destlen = xlen;
 
     return d;
 }

@@ -188,8 +188,8 @@ ssize_t codatunnel_recvfrom(int sockfd, void *buf, size_t len, int flags,
     rc = recvmsg(sockfd, &msg, 0);
 
     DEBUG("received packet from codatunneld size=%d\n", rc);
-    DEBUG("is_retry = %u  is_init1 = %u  msglen = %lu  from = %s\n",
-	  p.is_retry, p.is_init1, p.msglen, show_sockaddr(&p.addr));
+    DEBUG("is_retry = %u  is_init1 = %u  msglen = %u\n",
+	  p.is_retry, p.is_init1, p.msglen);
     /*    hexdump("ctp_t", &p, sizeof(ctp_t));
 	  hexdump("packet bytes", buf, ((len < 64) ? len : 64)); */
 

@@ -290,7 +290,7 @@ static void send_to_tcp_dest(dest_t *d, ssize_t nread, const uv_buf_t *buf)
 {
     minicb2_req_t *req; /* req can't be local because of use in callback */
 
-    DEBUG("send_to_tcp_dest(%p, %d, %p)\n", d, nread, buf);
+    DEBUG("send_to_tcp_dest(%p, %ld, %p)\n", d, nread, buf);
 
     req = malloc(sizeof(minicb2_req_t));
     req->dest = d;
@@ -298,14 +298,14 @@ static void send_to_tcp_dest(dest_t *d, ssize_t nread, const uv_buf_t *buf)
 
     /* Convert ctp_d fields to network order */
     ctp_t *p = (ctp_t *)buf->base;
-    DEBUG("is_retry = %u is_init1 = %u  msglen = %lu\n",
+    DEBUG("is_retry = %u is_init1 = %u  msglen = %u\n",
           p->is_retry, p->is_init1, p->msglen);
 
     p->is_retry = htonl(p->is_retry);
     p->is_init1 = htonl(p->is_init1);
     p->msglen = htonl(p->msglen);
-    /* ignoring addrlen for now; perhaps already in network order? */
-
+    /* ignoring addr and addrlen; will be clobbered by dest_t->destaddr and
+     * dest_t->destlen on the other side of the tunnel */
 
     /* forward packet to the remote host */
     DEBUG("Going to do uv_write(%p, %p, %p,...)\n",
@@ -444,16 +444,15 @@ static void recv_tcp_cb(uv_stream_t *tcphandle, ssize_t nread, const uv_buf_t *b
             p->is_retry = ntohl(p->is_retry);
             p->is_init1 = ntohl(p->is_init1);
             p->msglen = ntohl(p->msglen);
-            /* ignoring p->addrlen for now; perhaps already in network order? */
             d->ntoh_done = 1;
         }
 
-        DEBUG("is_retry = %u  is_init1 = %u  msglen = %lu\n",
+        DEBUG("is_retry = %u  is_init1 = %u  msglen = %u\n",
               p->is_retry, p->is_init1, p->msglen);
 
         if (p->msglen > (MAXRECEIVE - sizeof(ctp_t))) {
             /* we can't handle this monster */
-            DEBUG("Monster packet of size %lu, giving up\n", p->msglen);
+            DEBUG("Monster packet of size %u, giving up\n", p->msglen);
             free(buf->base);
             free_dest(d);
             return;
@@ -484,9 +483,9 @@ static void recv_tcp_cb(uv_stream_t *tcphandle, ssize_t nread, const uv_buf_t *b
         DEBUG("Full packet assembled, handing off\n");
 
         /* Replace recipient address with sender's address, so that
-           recvfrom() can provide the "from" address.
-           I assume that addrlen doesn't change; should we check this? */
+           recvfrom() can provide the "from" address. */
         memcpy(&p->addr, &d->destaddr, sizeof(struct sockaddr_storage));
+        p->addrlen = d->destlen;
 
         minicb3_req_t *req =  (minicb3_req_t *) malloc(sizeof(minicb3_req_t));
         req->msg = uv_buf_init(d->received_packet, (sizeof(ctp_t) + p->msglen)); /* to send */

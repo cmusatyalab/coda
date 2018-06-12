@@ -59,9 +59,9 @@ typedef struct codatunnel_packet {
   char magic[8];
   uint32_t is_retry;                 /* 1 if this is a resend, 0 otherwise */
   uint32_t is_init1;                 /* 1 if this is an Init1 opcode,0 otherwise */
-  size_t msglen;                /* actual number of bytes in the packet */
+  uint32_t msglen;                /* actual number of bytes in the packet */
+  uint32_t addrlen;            /* verbatim from sendto() or recvfrom () */
   struct sockaddr_storage addr; /* verbatim from sendto() or recvfrom () */
-  socklen_t addrlen;            /* verbatim from sendto() or recvfrom () */
 } ctp_t;
 
 #define MAXRECEIVE (4500+sizeof(ctp_t))
@@ -86,6 +86,7 @@ enum deststate {/* NEW: 2018-5-29 */
 
 typedef struct remotedest {
   struct sockaddr_storage destaddr;
+  socklen_t destlen;
 
   enum deststate state;
 /* All destinations are assumed to be capable of becoming TCPACTIVE;
@@ -104,7 +105,6 @@ typedef struct remotedest {
 			     new malloc is done for each received
 			     packet; free() happens in
 			     uv_udp_sent_cb() */
-
 } dest_t;
 
 /* Stuff for destination management */
