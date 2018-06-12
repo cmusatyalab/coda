@@ -1,3 +1,8 @@
+New in 2.21
+
+* Fix for passing wrong peer address length when accepting new TCP tunnel
+  connection.
+
 New in 2.20
 
 * Fix incompatibility between 32-bit and 64-bit systems when forwarding
