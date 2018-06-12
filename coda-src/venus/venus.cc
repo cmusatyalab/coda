@@ -564,6 +564,7 @@ static void ParseCmdline(int argc, char **argv)
 	    }
 	    else if (STREQ(argv[i], "-onlytcp")) {
                 codatunnel_onlytcp = true;
+                codatunnel_enabled = true;
                 eprint("codatunnel_onlytcp set");
             }
 	    else if (STREQ(argv[i], "-9pfs")) {
@@ -695,6 +696,9 @@ static void DefaultCmdlineParms()
 
     /* Enable client-server communication helper process */
     CODACONF_INT(codatunnel_enabled, "codatunnel", 0);
+    CODACONF_INT(codatunnel_onlytcp, "onlytcp", 0);
+    if (codatunnel_onlytcp)
+        codatunnel_enabled = 1;
 
     CODACONF_INT(detect_reintegration_retry, "detect_reintegration_retry", 1);
     if (option_isr) {
