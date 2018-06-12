@@ -26,8 +26,8 @@ Coda are listed in the file CREDITS.
 #if 0
 #define DEBUG(...) do { \
     struct timeval tt; gettimeofday(&tt, 0); \
-    printf("%ld:%ld %s:%d ", tt.tv_sec, tt.tv_usec, __FUNCTION__, __LINE__); \
-    printf(__VA_ARGS__); fflush(stdout); \
+    fprintf(stderr, "%ld:%ld %s:%d ", tt.tv_sec, tt.tv_usec, __FUNCTION__, __LINE__); \
+    fprintf(stderr, __VA_ARGS__); \
 } while(0)
 #else
 #define DEBUG(...)
@@ -35,7 +35,7 @@ Coda are listed in the file CREDITS.
 
 #define ERROR(...) do { \
     fprintf(stderr, "%s:%d ", __FUNCTION__, __LINE__); \
-    fprintf(stderr, __VA_ARGS__); fflush(stderr); \
+    fprintf(stderr, __VA_ARGS__); \
 } while(0)
 
 
