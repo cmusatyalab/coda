@@ -590,9 +590,9 @@ static void tcp_newconnection_cb (uv_stream_t *bindhandle, int status)
         return;
     }
 
-    d = getdest(&peeraddr, sizeof(peeraddr));
+    d = getdest(&peeraddr, peerlen);
     if (!d) {/* new destination */
-        d = createdest(&peeraddr, sizeof(peeraddr));
+        d = createdest(&peeraddr, peerlen);
     }
 
     /* Bind this TCP handle and dest */
