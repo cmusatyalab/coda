@@ -698,14 +698,6 @@ int plan9server::recv_walk(unsigned char *buf, size_t len, uint16_t tag)
         ::free(wname);
         cnode2qid(&current, &wqid[i]);
     }
-    /* if we errored out of the loop, discard remaining path elements */
-    for (; i < nwname; i++) {
-        if (unpack_string(&buf, &len, &wname))
-            return -1;
-
-        DEBUG("9pfs: Twalk[%x] discarding after error wname[%u] = '%s'\n",
-              tag, i, wname);
-    }
 
     /* report lookup errors only for the first path element */
     if (i == 0 && conn->u.u_error) {
