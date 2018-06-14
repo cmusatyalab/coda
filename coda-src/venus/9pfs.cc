@@ -354,11 +354,6 @@ plan9server::plan9server(mariner *m)
 {
     conn = m;
     max_msize = P9_BUFSIZE;
-
-    /* initialize request context */
-    m->u.Init();
-    m->u.u_priority = FSDB->StdPri();
-    m->u.u_flags = (FOLLOW_SYMLINKS | TRAVERSE_MTPTS | REFERENCE);
 }
 
 plan9server::~plan9server()
@@ -457,6 +452,11 @@ int plan9server::handle_request(unsigned char *buf, size_t read)
     len = reqlen - read;
     if (conn->read_until_done(unread, len) != (ssize_t)len)
         return -1;
+
+    /* initialize request context */
+    conn->u.Init();
+    conn->u.u_priority = FSDB->StdPri();
+    conn->u.u_flags = (FOLLOW_SYMLINKS | TRAVERSE_MTPTS | REFERENCE);
 
     len = reqlen - P9_MIN_MSGSIZE;
     switch (opcode)
