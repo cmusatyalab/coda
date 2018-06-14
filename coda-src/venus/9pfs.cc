@@ -888,13 +888,13 @@ int plan9server::recv_create(unsigned char *buf, size_t len, uint16_t tag)
     switch (mode & 0x3) {
     case P9_OREAD:
     case P9_OEXEC:
-        flags = C_M_READ;
+        flags = C_O_READ;
         break;
     case P9_OWRITE:
-        flags = C_M_WRITE;
+        flags = C_O_WRITE;
         break;
     case P9_ORDWR:
-        flags = C_M_READ | C_M_WRITE;
+        flags = C_O_READ | C_O_WRITE;
         break;
     }
     if (mode & P9_OTRUNC)
@@ -904,7 +904,14 @@ int plan9server::recv_create(unsigned char *buf, size_t len, uint16_t tag)
     struct plan9_qid qid;
 
     conn->u.u_uid = fm->root->userid;
-    conn->create(&fm->cnode, name, &va, excl, flags, &child);
+    conn->create(&fm->cnode, name, &va, excl, perm, &child);
+
+    if (conn->u.u_error) {
+        const char *errstr = VenusRetStr(conn->u.u_error);
+        return send_error(tag, errstr);
+    }
+
+    conn->open(&child, flags);
 
     if (conn->u.u_error) {
         const char *errstr = VenusRetStr(conn->u.u_error);
