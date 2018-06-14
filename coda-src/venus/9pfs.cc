@@ -707,6 +707,7 @@ int plan9server::recv_walk(unsigned char *buf, size_t len, uint16_t tag)
 
         DEBUG("9pfs: Twalk[%x] discarding after error wname[%u] = '%s'\n",
               tag, i, wname);
+        ::free(wname);
     }
 
     /* report lookup errors only for the first path element 
