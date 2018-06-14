@@ -1148,6 +1148,7 @@ int plan9server::recv_wstat(unsigned char *buf, size_t len, uint16_t tag)
     uint32_t fid;
     uint16_t statlen;
     struct plan9_stat stat;
+    int rc;
 
     if (unpack_le32(&buf, &len, &fid) ||
         unpack_le16(&buf, &len, &statlen) ||
@@ -1160,7 +1161,7 @@ int plan9server::recv_wstat(unsigned char *buf, size_t len, uint16_t tag)
     ::free(stat.gid);
     ::free(stat.uid);
     ::free(stat.name);
-#if 0
+
     /* send_Rwstat */
     DEBUG("9pfs: Rwstat[%x]\n", tag);
 
@@ -1168,8 +1169,6 @@ int plan9server::recv_wstat(unsigned char *buf, size_t len, uint16_t tag)
     rc = pack_header(&buf, &len, Rwstat, tag);
     assert(rc == 0);
     return send_response(buffer, max_msize - len);
-#endif
-    return send_error(tag, "Operation not supported");
 }
 
 
