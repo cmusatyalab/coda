@@ -188,13 +188,21 @@ ssize_t codatunnel_recvfrom(int sockfd, void *buf, size_t len, int flags,
     rc = recvmsg(sockfd, &msg, 0);
 
     DEBUG("received packet from codatunneld size=%d\n", rc);
+
+    if (rc < 0)
+        return rc; /* error */
+
+    /* make sure we received enough data to read the packet header */
+    if (rc < sizeof(ctp_t)) {
+        DEBUG("did not receive enough for packet header\n");
+        errno = EBADF;
+        return -1;
+    }
+
     DEBUG("is_retry = %u  is_init1 = %u  msglen = %u\n",
 	  p.is_retry, p.is_init1, p.msglen);
     /*    hexdump("ctp_t", &p, sizeof(ctp_t));
 	  hexdump("packet bytes", buf, ((len < 64) ? len : 64)); */
-
-    if (rc < 0)
-        return rc; /* error */
 
     /* were the buffers we passed large enough? */
     if ((msg.msg_flags & MSG_TRUNC) || (*fromlen < p.addrlen))
@@ -207,12 +215,8 @@ ssize_t codatunnel_recvfrom(int sockfd, void *buf, size_t len, int flags,
     memcpy(from, &p.addr, p.addrlen);
     *fromlen = p.addrlen;
 
-    /* make sure we received enough data to read the packet header */
     rc -= sizeof(ctp_t);
-    if (rc < 0) {
-        /* this should not happen, codatunneld probably crashed */
-        errno = EBADF;
-        return -1;
-    }
+    assert(rc >= 0);
+    //assert(rc == p.msglen); /* I think this should hold true -JH */
     return rc;
 }
