@@ -690,6 +690,8 @@ int plan9server::recv_walk(unsigned char *buf, size_t len, uint16_t tag)
 
             if (conn->u.u_error) {
                 ::free(wname);
+                /* avoid unpacking one string too much when discarding later */
+                i++;
                 break;
             }
             current = child;
@@ -705,10 +707,17 @@ int plan9server::recv_walk(unsigned char *buf, size_t len, uint16_t tag)
 
         DEBUG("9pfs: Twalk[%x] discarding after error wname[%u] = '%s'\n",
               tag, i, wname);
+        ::free(wname);
     }
 
-    /* report lookup errors only for the first path element */
-    if (i == 0 && conn->u.u_error) {
+    /* report lookup errors only for the first path element 
+       if (i == 0 && conn->u.u_error) { */
+    /* I don't understand the original intention here. 
+       In the case where nwname == 0, we would be checking 
+       u.u_error without having performed the lookup operation, 
+       so actually picking up the error from a prior operation. 
+       (AS) */
+    if (nwname > 0 && conn->u.u_error) {
         const char *errstr = VenusRetStr(conn->u.u_error);
         return send_error(tag, errstr);
     }
@@ -1156,6 +1165,7 @@ int plan9server::recv_wstat(unsigned char *buf, size_t len, uint16_t tag)
     uint32_t fid;
     uint16_t statlen;
     struct plan9_stat stat;
+    int rc;
 
     if (unpack_le32(&buf, &len, &fid) ||
         unpack_le16(&buf, &len, &statlen) ||
@@ -1168,7 +1178,7 @@ int plan9server::recv_wstat(unsigned char *buf, size_t len, uint16_t tag)
     ::free(stat.gid);
     ::free(stat.uid);
     ::free(stat.name);
-#if 0
+
     /* send_Rwstat */
     DEBUG("9pfs: Rwstat[%x]\n", tag);
 
@@ -1176,8 +1186,6 @@ int plan9server::recv_wstat(unsigned char *buf, size_t len, uint16_t tag)
     rc = pack_header(&buf, &len, Rwstat, tag);
     assert(rc == 0);
     return send_response(buffer, max_msize - len);
-#endif
-    return send_error(tag, "Operation not supported");
 }
 
 
