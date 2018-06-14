@@ -59,7 +59,7 @@ do
 done
 
 # Make on big list called composite
-cat "$REMOTE/*.list" > "$vicedir/vol/BigVolumeList"
+cat "$REMOTE"/*.list > "$vicedir/vol/BigVolumeList"
 
 # Make a new vldb from the list
 "$prefix/sbin/volutil" makevldb "$vicedir/vol/BigVolumeList"

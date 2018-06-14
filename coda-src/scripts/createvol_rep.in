@@ -128,7 +128,7 @@ while [ $# -gt 1 ]; do
 	fi
 
 	grep "^P" "/tmp/vollist.$$" | sed 's/^P\(.*\) H.*/\1/' > "/tmp/part.$$"
-	np=$(wc -w "/tmp/part.$$")
+	np=$(cat "/tmp/part.$$" | wc -w)
 	if [ "$np" -eq 0 ]; then
 	    echo "Found no partitions for server $SERVER."
 	    exit 1
