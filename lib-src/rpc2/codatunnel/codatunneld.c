@@ -253,7 +253,15 @@ static void send_to_udp_dest(uv_udp_t *codatunnel, ssize_t nread,
 
     ctp_t *p = (ctp_t *)buf->base;
     minicb_udp_req_t *req;
+    int rc;
+
     req = malloc(sizeof(*req));
+    if (!req) {
+        /* unable to allocate, free buffer and let RPC2 retry */
+        ERROR("malloc() failed\n");
+        free(buf->base);
+        return;
+    }
 
     /* data to send is what follows the codatunnel packet header */
     req->msg[0] = uv_buf_init(buf->base + sizeof(ctp_t),
@@ -263,8 +271,15 @@ static void send_to_udp_dest(uv_udp_t *codatunnel, ssize_t nread,
     req->req.data = buf->base;
 
     /* forward packet to the remote host */
-    uv_udp_send((uv_udp_send_t *)req, &udpsocket, req->msg, 1,
+    rc = uv_udp_send((uv_udp_send_t *)req, &udpsocket, req->msg, 1,
                      (struct sockaddr *)&p->addr, minicb_udp);
+    if (rc) {
+        /* unable to forward packet to udp destination.
+         * free buffers and continue, the RPC2 layer will retry. */
+        ERROR("uv_udp_send(): rc = %d\n", rc);
+        free(req);
+        free(buf->base);
+    }
 }
 
 
@@ -276,6 +291,14 @@ static void send_to_tcp_dest(dest_t *d, ssize_t nread, const uv_buf_t *buf)
     DEBUG("send_to_tcp_dest(%p, %ld, %p)\n", d, nread, buf);
 
     req = malloc(sizeof(*req));
+    if (!req) {
+        /* unable to allocate, free buffer and trigger a disconnection because
+         * we have no other way to force a retry. */
+        ERROR("malloc() failed\n");
+        free(buf->base);
+        free_dest(d);
+        return;
+    }
     req->dest = d;
     req->msg = uv_buf_init(buf->base, nread); /* no stripping; send entire codatunnel packet */
 
@@ -293,7 +316,14 @@ static void send_to_tcp_dest(dest_t *d, ssize_t nread, const uv_buf_t *buf)
     /* forward packet to the remote host */
     DEBUG("Going to do uv_write(%p, %p, %p,...)\n", req, d->tcphandle, &req->msg);
     rc = uv_write((uv_write_t *)req, (uv_stream_t *)d->tcphandle, &req->msg, 1, minicb_tcp);
-    DEBUG("uv_write(): rc = %d\n", rc);
+    if (rc) {
+        /* unable to send on tcp connection, free buffer and trigger a
+         * disconnection because we have no other way to force a retry. */
+        ERROR("uv_write(): rc = %d\n", rc);
+        free(buf->base);
+        free(req);
+        free_dest(d);
+    }
 }
 
 static void tcp_connect_cb(uv_connect_t *req, int status)
@@ -476,6 +506,14 @@ static void recv_tcp_cb(uv_stream_t *tcphandle, ssize_t nread, const uv_buf_t *b
         int rc;
 
         req = malloc(sizeof(*req));
+        if (!req) {
+            /* unable to allocate, free buffers and trigger a disconnection
+             * because we have no other way to force a retry. */
+            ERROR("malloc() failed\n");
+            free(buf->base);
+            free_dest(d);
+            return;
+        }
         req->msg[0] = uv_buf_init(d->received_packet, sizeof(ctp_t) + p->msglen); /* to send */
 
         /* make sure the buffer is released when the send completes */
@@ -484,6 +522,16 @@ static void recv_tcp_cb(uv_stream_t *tcphandle, ssize_t nread, const uv_buf_t *b
         /* forward packet to venus/codasrv */
         rc = uv_udp_send((uv_udp_send_t *)req, &codatunnel, req->msg, 1,
                          (struct sockaddr *)&dummy_peer, minicb_udp);
+        if (rc) {
+            /* unable to forward packet from tcp connection to venus/codasrv.
+             * free buffers and trigger a disconnection */
+            ERROR("uv_udp_send(): rc = %d\n", rc);
+            free(req);
+            free(buf->base);
+            free_dest(d); /* will free d->received_packet */
+            return;
+        }
+
         /* Now prepare for read of a new packet */
         d->received_packet = malloc(MAXRECEIVE);
         memset(d->received_packet, 0, MAXRECEIVE);
@@ -506,6 +554,7 @@ static void recv_udpsocket_cb(uv_udp_t *udpsocket, ssize_t nread,
     struct sockaddr_in dummy_peer = {
         .sin_family = AF_INET,
     };
+    int rc;
 
     DEBUG("packet received from udpsocket nread=%ld buf=%p addr=%p flags=%u\n",
           nread, buf ? buf->base : NULL, addr, flags);
@@ -528,6 +577,14 @@ static void recv_udpsocket_cb(uv_udp_t *udpsocket, ssize_t nread,
     }
 
     req = malloc(sizeof(*req));
+    if (!req) {
+        /* unable to allocate, free buffers and continue, the other side will
+         * assume the packet was dropped and retry in a bit */
+        ERROR("malloc() failed\n");
+        free(buf->base);
+        return;
+    }
+
     req->msg[0] = uv_buf_init((char *)&req->ctp, sizeof(ctp_t));
     req->ctp.addrlen = sockaddr_len(addr);
     memcpy(&req->ctp.addr, addr, req->ctp.addrlen);
@@ -541,8 +598,16 @@ static void recv_udpsocket_cb(uv_udp_t *udpsocket, ssize_t nread,
     req->req.data = buf->base;
 
     /* forward packet to venus/codasrv */
-    uv_udp_send((uv_udp_send_t *)req, &codatunnel, req->msg, 2,
+    rc = uv_udp_send((uv_udp_send_t *)req, &codatunnel, req->msg, 2,
                      (struct sockaddr *)&dummy_peer, minicb_udp);
+    if (rc) {
+        /* unable to forward packet from udp socket to venus/codasrv.
+         * free buffers and continue, the other side will assume the packet
+         * was dropped and retry in a bit */
+        ERROR("uv_udp_send(): rc = %d\n", rc);
+        free(req);
+        free(buf->base);
+    }
 }
 
 static void tcp_newconnection_cb (uv_stream_t *bindhandle, int status)
