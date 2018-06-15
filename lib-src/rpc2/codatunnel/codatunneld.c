@@ -62,26 +62,19 @@ static uv_udp_t codatunnel;  /* facing Venus or CodaSrv */
 static uv_udp_t udpsocket;   /* facing the network */
 static uv_tcp_t tcplistener;   /* facing the network, only on servers */
 
-/* Useful data structures for minicbs; these minicbs do little real work
-   and are mainly used to free malloc'ed data structures after transmission;
-   original naming scheme was confusing, so these are simply numbered 1, 2, 3, etc.*/
+/* Useful data structures for callbacks; these minicbs do little real work
+ * and are mainly used to free malloc'ed data structures after transmission */
 typedef struct {
   uv_udp_send_t req;
   uv_buf_t msg[2];
   ctp_t ctp;
-} minicb1_req_t;  /* used to be udp_send_req_t */
+} minicb_udp_req_t;  /* used to be udp_send_req_t */
 
 typedef struct {
   uv_write_t req;
   uv_buf_t msg;
   dest_t *dest;
-} minicb2_req_t;  /* used to be tcp_send_req_t */
-
-typedef struct {
-  uv_udp_send_t req;
-  uv_buf_t msg;
-  dest_t *dest;
-} minicb3_req_t;
+} minicb_tcp_req_t;  /* used to be tcp_send_req_t */
 
 
 /* forward refs for workhorse functions; many are cb functions */
@@ -121,22 +114,21 @@ static void alloc_cb(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf)
 
 /* All the minicb()s are gathered here in one place */
 
-static void minicb1(uv_udp_send_t *arg, int status)
+static void minicb_udp(uv_udp_send_t *arg, int status)
 /* used to be udp_sent_cb() */
 {
-    /*  DEBUG("minicb1(%p, %d)\n", arg, status); */
-    minicb1_req_t *req = (minicb1_req_t *)arg;
-    free(req->msg[1].base);
-    free(req);
+    DEBUG("minicb_udp(%p, %p, %d)\n", arg, arg->data, status);
+    free(arg->data);
+    free(arg);
 }
 
-static void minicb2(uv_write_t *arg, int status)
+static void minicb_tcp(uv_write_t *arg, int status)
 /* used to tcp_send_req() */
 {
-    minicb2_req_t *req = (minicb2_req_t *) arg;
+    minicb_tcp_req_t *req = (minicb_tcp_req_t *)arg;
     dest_t *d = req->dest;
 
-    DEBUG("minicb2(%p, %d)\n", arg, status);
+    DEBUG("minicb_tcp(%p, %d)\n", arg, status);
 
     if (status != 0) {
         DEBUG("tcp connection error: %s after %d packets\n",
@@ -146,15 +138,6 @@ static void minicb2(uv_write_t *arg, int status)
     else {
         d->packets_sent++;   /* one more was sent out! */
     }
-
-    free(req->msg.base);
-    free(req);
-}
-
-static void minicb3(uv_udp_send_t *arg, int status)
-{
-    minicb3_req_t *req = (minicb3_req_t *) arg;
-    DEBUG("minicb3(%p, %d)\n", arg, status);
 
     free(req->msg.base);
     free(req);
@@ -269,30 +252,30 @@ static void send_to_udp_dest(uv_udp_t *codatunnel, ssize_t nread,
     /* Somewhat complicated structure is to avoid data copy of payload */
 
     ctp_t *p = (ctp_t *)buf->base;
-    minicb1_req_t *req;
+    minicb_udp_req_t *req;
+    req = malloc(sizeof(*req));
 
-    req = malloc(sizeof(minicb1_req_t));
     /* data to send is what follows the codatunnel packet header */
     req->msg[0] = uv_buf_init(buf->base + sizeof(ctp_t),
                               nread - sizeof(ctp_t));
 
-    /* move buffer from reader to writer, we won't actually send msg[1] but
-     * this way the buffer will get properly freed in `minicb1` */
-    req->msg[1] = uv_buf_init(buf->base, nread);
+    /* make sure the buffer is released when the send completes */
+    req->req.data = buf->base;
 
     /* forward packet to the remote host */
     uv_udp_send((uv_udp_send_t *)req, &udpsocket, req->msg, 1,
-                (struct sockaddr *)&p->addr, minicb1);
+                     (struct sockaddr *)&p->addr, minicb_udp);
 }
 
 
 static void send_to_tcp_dest(dest_t *d, ssize_t nread, const uv_buf_t *buf)
 {
-    minicb2_req_t *req; /* req can't be local because of use in callback */
+    minicb_tcp_req_t *req; /* req can't be local because of use in callback */
+    int rc;
 
     DEBUG("send_to_tcp_dest(%p, %ld, %p)\n", d, nread, buf);
 
-    req = malloc(sizeof(minicb2_req_t));
+    req = malloc(sizeof(*req));
     req->dest = d;
     req->msg = uv_buf_init(buf->base, nread); /* no stripping; send entire codatunnel packet */
 
@@ -308,9 +291,8 @@ static void send_to_tcp_dest(dest_t *d, ssize_t nread, const uv_buf_t *buf)
      * dest_t->destlen on the other side of the tunnel */
 
     /* forward packet to the remote host */
-    DEBUG("Going to do uv_write(%p, %p, %p,...)\n",
-          req, d->tcphandle,  &req->msg);
-    int rc = uv_write((uv_write_t *)req, (uv_stream_t *)d->tcphandle,  &req->msg, 1, minicb2);
+    DEBUG("Going to do uv_write(%p, %p, %p,...)\n", req, d->tcphandle, &req->msg);
+    rc = uv_write((uv_write_t *)req, (uv_stream_t *)d->tcphandle, &req->msg, 1, minicb_tcp);
     DEBUG("uv_write(): rc = %d\n", rc);
 }
 
@@ -487,16 +469,21 @@ static void recv_tcp_cb(uv_stream_t *tcphandle, ssize_t nread, const uv_buf_t *b
         memcpy(&p->addr, &d->destaddr, sizeof(struct sockaddr_storage));
         p->addrlen = d->destlen;
 
-        minicb3_req_t *req =  (minicb3_req_t *) malloc(sizeof(minicb3_req_t));
-        req->msg = uv_buf_init(d->received_packet, (sizeof(ctp_t) + p->msglen)); /* to send */
-        /* forward packet to venus/codasrv; note that d->destaddr in
-           uv_udp_send() below is really a "fake addr"; this is the source
-           UDP addr rather than dest of this UDP packet; but codatunnel
-           and venus/codasrv all ignore this so just use this as dummy value */
+        minicb_udp_req_t *req;
+        struct sockaddr_in dummy_peer = {
+            .sin_family = AF_INET,
+        };
+        int rc;
 
-        uv_udp_send((uv_udp_send_t *)req, &codatunnel, &req->msg, 1,
-                    (struct sockaddr *)&d->destaddr, minicb3);
+        req = malloc(sizeof(*req));
+        req->msg[0] = uv_buf_init(d->received_packet, sizeof(ctp_t) + p->msglen); /* to send */
 
+        /* make sure the buffer is released when the send completes */
+        req->req.data = d->received_packet;
+
+        /* forward packet to venus/codasrv */
+        rc = uv_udp_send((uv_udp_send_t *)req, &codatunnel, req->msg, 1,
+                         (struct sockaddr *)&dummy_peer, minicb_udp);
         /* Now prepare for read of a new packet */
         d->received_packet = malloc(MAXRECEIVE);
         memset(d->received_packet, 0, MAXRECEIVE);
@@ -515,8 +502,8 @@ static void recv_udpsocket_cb(uv_udp_t *udpsocket, ssize_t nread,
                               const struct sockaddr *addr,
                               unsigned flags)
 {
-    minicb1_req_t *req;
-    struct sockaddr_in peer = {
+    minicb_udp_req_t *req;
+    struct sockaddr_in dummy_peer = {
         .sin_family = AF_INET,
     };
 
@@ -540,7 +527,7 @@ static void recv_udpsocket_cb(uv_udp_t *udpsocket, ssize_t nread,
         return;
     }
 
-    req = malloc(sizeof(minicb1_req_t));
+    req = malloc(sizeof(*req));
     req->msg[0] = uv_buf_init((char *)&req->ctp, sizeof(ctp_t));
     req->ctp.addrlen = sockaddr_len(addr);
     memcpy(&req->ctp.addr, addr, req->ctp.addrlen);
@@ -550,9 +537,12 @@ static void recv_udpsocket_cb(uv_udp_t *udpsocket, ssize_t nread,
     /* move buffer from reader to writer */
     req->msg[1] = uv_buf_init(buf->base, nread);
 
+    /* make sure the buffer is released when the send completes */
+    req->req.data = buf->base;
+
     /* forward packet to venus/codasrv */
     uv_udp_send((uv_udp_send_t *)req, &codatunnel, req->msg, 2,
-                (struct sockaddr *)&peer, minicb1);
+                     (struct sockaddr *)&dummy_peer, minicb_udp);
 }
 
 static void tcp_newconnection_cb (uv_stream_t *bindhandle, int status)
