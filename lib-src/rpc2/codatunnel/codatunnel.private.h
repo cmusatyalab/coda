@@ -35,7 +35,7 @@ Coda are listed in the file CREDITS.
 
 #define ERROR(...) do { \
     fprintf(stderr, "%s:%d ", __FUNCTION__, __LINE__); \
-    fprintf(stderr, __VA_ARGS__); \
+    fprintf(stderr, __VA_ARGS__); fflush(stderr); \
 } while(0)
 
 
