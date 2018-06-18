@@ -60,19 +60,18 @@ static int codatunnel_onlytcp = 0;    /* whether to use UDP fallback; default is
 static uv_loop_t *codatunnel_main_loop = 0;
 static uv_udp_t codatunnel;  /* facing Venus or CodaSrv */
 static uv_udp_t udpsocket;   /* facing the network */
-static uv_tcp_t tcplistener;   /* facing the network, only on servers */
+static uv_tcp_t tcplistener; /* facing the network, only on servers */
+
 
 /* Useful data structures for callbacks; these minicbs do little real work
  * and are mainly used to free malloc'ed data structures after transmission */
 typedef struct {
   uv_udp_send_t req;
-  uv_buf_t msg[2];
   ctp_t ctp;
 } minicb_udp_req_t;  /* used to be udp_send_req_t */
 
 typedef struct {
   uv_write_t req;
-  uv_buf_t msg;
   dest_t *dest;
 } minicb_tcp_req_t;  /* used to be tcp_send_req_t */
 
@@ -80,7 +79,7 @@ typedef struct {
 /* forward refs for workhorse functions; many are cb functions */
 static void recv_codatunnel_cb(uv_udp_t *, ssize_t, const uv_buf_t *,
                                const struct sockaddr *saddr, socklen_t slen);
-static void send_to_udp_dest(uv_udp_t *, ssize_t, const uv_buf_t *,
+static void send_to_udp_dest(ssize_t, const uv_buf_t *,
                              const struct sockaddr *saddr, socklen_t slen);
 static void send_to_tcp_dest(dest_t *, ssize_t, const uv_buf_t *);
 static void try_creating_tcp_connection (dest_t *);
@@ -128,7 +127,7 @@ static void minicb_tcp(uv_write_t *arg, int status)
     minicb_tcp_req_t *req = (minicb_tcp_req_t *)arg;
     dest_t *d = req->dest;
 
-    DEBUG("minicb_tcp(%p, %d)\n", arg, status);
+    DEBUG("minicb_tcp(%p, %p, %d)\n", arg, arg->data, status);
 
     if (status != 0) {
         DEBUG("tcp connection error: %s after %d packets\n",
@@ -139,8 +138,8 @@ static void minicb_tcp(uv_write_t *arg, int status)
         d->packets_sent++;   /* one more was sent out! */
     }
 
-    free(req->msg.base);
-    free(req);
+    free(arg->data);
+    free(arg);
 }
 
 
@@ -227,12 +226,12 @@ static void recv_codatunnel_cb(uv_udp_t *codatunnel, ssize_t nread,
        traveled (Satya, 1/20/2018)
     */
     if (!codatunnel_onlytcp)
-        send_to_udp_dest(codatunnel, nread, buf, addr, flags); /* free buf only in cascaded cb */
+        send_to_udp_dest(nread, buf, addr, flags); /* free buf only in cascaded cb */
 
     /* Try to establish a new TCP connection for future use;
        do this only once per INIT1 (avoiding retries) to avoid TCP SYN flood;
        Only clients should attempt this, because of NAT firewalls */
-    if (p->is_init1  && (!p->is_retry) && (!codatunnel_I_am_server)) {
+    if (p->is_init1 && !p->is_retry && !codatunnel_I_am_server) {
         if (!d) /* new destination */
             d = createdest(&p->addr, p->addrlen);
 
@@ -244,15 +243,14 @@ static void recv_codatunnel_cb(uv_udp_t *codatunnel, ssize_t nread,
 }
 
 
-static void send_to_udp_dest(uv_udp_t *codatunnel, ssize_t nread,
-                             const uv_buf_t *buf,
-                             const struct sockaddr *addr,
-                             unsigned flags)
+static void send_to_udp_dest(ssize_t nread, const uv_buf_t *buf,
+                             const struct sockaddr *addr, unsigned flags)
 {
     /* Somewhat complicated structure is to avoid data copy of payload */
 
     ctp_t *p = (ctp_t *)buf->base;
     minicb_udp_req_t *req;
+    uv_buf_t msg;
     int rc;
 
     req = malloc(sizeof(*req));
@@ -264,14 +262,13 @@ static void send_to_udp_dest(uv_udp_t *codatunnel, ssize_t nread,
     }
 
     /* data to send is what follows the codatunnel packet header */
-    req->msg[0] = uv_buf_init(buf->base + sizeof(ctp_t),
-                              nread - sizeof(ctp_t));
+    msg = uv_buf_init(buf->base + sizeof(ctp_t), nread - sizeof(ctp_t));
 
     /* make sure the buffer is released when the send completes */
     req->req.data = buf->base;
 
     /* forward packet to the remote host */
-    rc = uv_udp_send((uv_udp_send_t *)req, &udpsocket, req->msg, 1,
+    rc = uv_udp_send((uv_udp_send_t *)req, &udpsocket, &msg, 1,
                      (struct sockaddr *)&p->addr, minicb_udp);
     if (rc) {
         /* unable to forward packet to udp destination.
@@ -286,6 +283,7 @@ static void send_to_udp_dest(uv_udp_t *codatunnel, ssize_t nread,
 static void send_to_tcp_dest(dest_t *d, ssize_t nread, const uv_buf_t *buf)
 {
     minicb_tcp_req_t *req; /* req can't be local because of use in callback */
+    uv_buf_t msg;
     int rc;
 
     DEBUG("send_to_tcp_dest(%p, %ld, %p)\n", d, nread, buf);
@@ -300,11 +298,11 @@ static void send_to_tcp_dest(dest_t *d, ssize_t nread, const uv_buf_t *buf)
         return;
     }
     req->dest = d;
-    req->msg = uv_buf_init(buf->base, nread); /* no stripping; send entire codatunnel packet */
+    msg = uv_buf_init(buf->base, nread); /* no stripping; send entire codatunnel packet */
 
     /* Convert ctp_d fields to network order */
     ctp_t *p = (ctp_t *)buf->base;
-    DEBUG("is_retry = %u is_init1 = %u  msglen = %u\n",
+    DEBUG("is_retry = %u  is_init1 = %u  msglen = %u\n",
           p->is_retry, p->is_init1, p->msglen);
 
     p->is_retry = htonl(p->is_retry);
@@ -313,9 +311,12 @@ static void send_to_tcp_dest(dest_t *d, ssize_t nread, const uv_buf_t *buf)
     /* ignoring addr and addrlen; will be clobbered by dest_t->destaddr and
      * dest_t->destlen on the other side of the tunnel */
 
+    /* make sure the buffer is released when the send completes */
+    req->req.data = buf->base;
+
     /* forward packet to the remote host */
-    DEBUG("Going to do uv_write(%p, %p, %p,...)\n", req, d->tcphandle, &req->msg);
-    rc = uv_write((uv_write_t *)req, (uv_stream_t *)d->tcphandle, &req->msg, 1, minicb_tcp);
+    DEBUG("Going to do uv_write(%p, %p, %p,...)\n", req, req->req.data, d->tcphandle);
+    rc = uv_write((uv_write_t *)req, (uv_stream_t *)d->tcphandle, &msg, 1, minicb_tcp);
     if (rc) {
         /* unable to send on tcp connection, free buffer and trigger a
          * disconnection because we have no other way to force a retry. */
@@ -413,7 +414,7 @@ static void recv_tcp_cb(uv_stream_t *tcphandle, ssize_t nread, const uv_buf_t *b
        be consumed in this upcall; any future work has to be set up
        in the dest_t data structure.
     */
-    DEBUG("buf->base = %p    buf->len = %lu\n", buf->base, buf->len);
+    DEBUG("buf->base = %p  buf->len = %lu\n", buf->base, buf->len);
     /* hexdump ("buf->base", buf->base, 64);  */
 
     int bytesleft = nread;
@@ -500,6 +501,7 @@ static void recv_tcp_cb(uv_stream_t *tcphandle, ssize_t nread, const uv_buf_t *b
         p->addrlen = d->destlen;
 
         minicb_udp_req_t *req;
+        uv_buf_t msg;
         struct sockaddr_in dummy_peer = {
             .sin_family = AF_INET,
         };
@@ -514,13 +516,13 @@ static void recv_tcp_cb(uv_stream_t *tcphandle, ssize_t nread, const uv_buf_t *b
             free_dest(d);
             return;
         }
-        req->msg[0] = uv_buf_init(d->received_packet, sizeof(ctp_t) + p->msglen); /* to send */
+        msg = uv_buf_init(d->received_packet, sizeof(ctp_t) + p->msglen); /* to send */
 
         /* make sure the buffer is released when the send completes */
         req->req.data = d->received_packet;
 
         /* forward packet to venus/codasrv */
-        rc = uv_udp_send((uv_udp_send_t *)req, &codatunnel, req->msg, 1,
+        rc = uv_udp_send((uv_udp_send_t *)req, &codatunnel, &msg, 1,
                          (struct sockaddr *)&dummy_peer, minicb_udp);
         if (rc) {
             /* unable to forward packet from tcp connection to venus/codasrv.
@@ -551,6 +553,7 @@ static void recv_udpsocket_cb(uv_udp_t *udpsocket, ssize_t nread,
                               unsigned flags)
 {
     minicb_udp_req_t *req;
+    uv_buf_t msg[2];
     struct sockaddr_in dummy_peer = {
         .sin_family = AF_INET,
     };
@@ -585,20 +588,20 @@ static void recv_udpsocket_cb(uv_udp_t *udpsocket, ssize_t nread,
         return;
     }
 
-    req->msg[0] = uv_buf_init((char *)&req->ctp, sizeof(ctp_t));
+    msg[0] = uv_buf_init((char *)&req->ctp, sizeof(ctp_t));
     req->ctp.addrlen = sockaddr_len(addr);
     memcpy(&req->ctp.addr, addr, req->ctp.addrlen);
     req->ctp.msglen = nread;
     strncpy(req->ctp.magic, "magic01", 8);
 
     /* move buffer from reader to writer */
-    req->msg[1] = uv_buf_init(buf->base, nread);
+    msg[1] = uv_buf_init(buf->base, nread);
 
     /* make sure the buffer is released when the send completes */
     req->req.data = buf->base;
 
     /* forward packet to venus/codasrv */
-    rc = uv_udp_send((uv_udp_send_t *)req, &codatunnel, req->msg, 2,
+    rc = uv_udp_send((uv_udp_send_t *)req, &codatunnel, msg, 2,
                      (struct sockaddr *)&dummy_peer, minicb_udp);
     if (rc) {
         /* unable to forward packet from udp socket to venus/codasrv.
