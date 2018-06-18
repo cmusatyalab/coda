@@ -117,6 +117,7 @@ static void minicb_udp(uv_udp_send_t *arg, int status)
 /* used to be udp_sent_cb() */
 {
     DEBUG("minicb_udp(%p, %p, %d)\n", arg, arg->data, status);
+    DEBUG("arg.handle.send_queue_count = %lu\n", arg->handle->send_queue_count);
     free(arg->data);
     free(arg);
 }
@@ -270,6 +271,7 @@ static void send_to_udp_dest(ssize_t nread, const uv_buf_t *buf,
     /* forward packet to the remote host */
     rc = uv_udp_send((uv_udp_send_t *)req, &udpsocket, &msg, 1,
                      (struct sockaddr *)&p->addr, minicb_udp);
+    DEBUG("udpsocket.send_queue_count = %lu\n", udpsocket.send_queue_count);
     if (rc) {
         /* unable to forward packet to udp destination.
          * free buffers and continue, the RPC2 layer will retry. */
@@ -524,6 +526,7 @@ static void recv_tcp_cb(uv_stream_t *tcphandle, ssize_t nread, const uv_buf_t *b
         /* forward packet to venus/codasrv */
         rc = uv_udp_send((uv_udp_send_t *)req, &codatunnel, &msg, 1,
                          (struct sockaddr *)&dummy_peer, minicb_udp);
+        DEBUG("codatunnel.send_queue_count = %lu\n", codatunnel.send_queue_count);
         if (rc) {
             /* unable to forward packet from tcp connection to venus/codasrv.
              * free buffers and trigger a disconnection */
@@ -603,6 +606,7 @@ static void recv_udpsocket_cb(uv_udp_t *udpsocket, ssize_t nread,
     /* forward packet to venus/codasrv */
     rc = uv_udp_send((uv_udp_send_t *)req, &codatunnel, msg, 2,
                      (struct sockaddr *)&dummy_peer, minicb_udp);
+    DEBUG("codatunnel.send_queue_count = %lu\n", codatunnel.send_queue_count);
     if (rc) {
         /* unable to forward packet from udp socket to venus/codasrv.
          * free buffers and continue, the other side will assume the packet
