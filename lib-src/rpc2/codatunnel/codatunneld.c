@@ -104,7 +104,7 @@ static socklen_t sockaddr_len(const struct sockaddr *addr)
 
 static void alloc_cb(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf)
 {
-    *buf = uv_buf_init(malloc(suggested_size), suggested_size);
+    *buf = uv_buf_init(calloc(1, suggested_size), suggested_size);
 
     /* gracefully handle allocation failures on libuv < 1.10.0 */
     if (buf->base == NULL) buf->len = 0;
@@ -337,8 +337,7 @@ static void tcp_connect_cb(uv_connect_t *req, int status)
     if (status == 0) {/* connection successful */
         DEBUG("tcp_connect_cb(%p, %d) --> %p\n", d, status, d->tcphandle);
         (d->tcphandle)->data = d; /* point back, for use in upcalls */
-        d->received_packet = malloc(MAXRECEIVE);  /* freed in uv_udp_sent_cb() */
-        memset(d->received_packet, 0, MAXRECEIVE);
+        d->received_packet = calloc(1, MAXRECEIVE);  /* freed in uv_udp_sent_cb() */
         d->nextbyte = 0;
         d->packets_sent = 0;
         d->ntoh_done = 0;
@@ -460,17 +459,25 @@ static void recv_tcp_cb(uv_stream_t *tcphandle, ssize_t nread, const uv_buf_t *b
             p->is_init1 = ntohl(p->is_init1);
             p->msglen = ntohl(p->msglen);
             d->ntoh_done = 1;
-        }
 
-        DEBUG("is_retry = %u  is_init1 = %u  msglen = %u\n",
-              p->is_retry, p->is_init1, p->msglen);
+            if (strncmp(p->magic, "magic01", 8) != 0)
+            {
+                DEBUG("Bad packet header, giving up\n");
+                free(buf->base);
+                free_dest(d);
+                return;
+            }
 
-        if (p->msglen > (MAXRECEIVE - sizeof(ctp_t))) {
-            /* we can't handle this monster */
-            DEBUG("Monster packet of size %u, giving up\n", p->msglen);
-            free(buf->base);
-            free_dest(d);
-            return;
+            DEBUG("is_retry = %u  is_init1 = %u  msglen = %u\n",
+                  p->is_retry, p->is_init1, p->msglen);
+
+            if (p->msglen > (MAXRECEIVE - sizeof(ctp_t)) || p->msglen == 0) {
+                /* we can't handle this monster */
+                DEBUG("Monster packet of size %u, giving up\n", p->msglen);
+                free(buf->base);
+                free_dest(d);
+                return;
+            }
         }
 
         needed = p->msglen - (d->nextbyte - sizeof(ctp_t));
@@ -538,8 +545,7 @@ static void recv_tcp_cb(uv_stream_t *tcphandle, ssize_t nread, const uv_buf_t *b
         }
 
         /* Now prepare for read of a new packet */
-        d->received_packet = malloc(MAXRECEIVE);
-        memset(d->received_packet, 0, MAXRECEIVE);
+        d->received_packet = calloc(1, MAXRECEIVE);
         d->nextbyte = 0;
         d->ntoh_done = 0;
 
@@ -595,6 +601,7 @@ static void recv_udpsocket_cb(uv_udp_t *udpsocket, ssize_t nread,
     req->ctp.addrlen = sockaddr_len(addr);
     memcpy(&req->ctp.addr, addr, req->ctp.addrlen);
     req->ctp.msglen = nread;
+    req->ctp.is_retry = req->ctp.is_init1 = 0;
     strncpy(req->ctp.magic, "magic01", 8);
 
     /* move buffer from reader to writer */
