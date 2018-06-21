@@ -107,6 +107,8 @@ enum plan9_message_types {
 #define P9_OTRUNC  0x10
 #define P9_ORCLOSE 0x40
 
+#define P9_DMDIR   0x80000000  /* permission bit indicating a directory */ 
+
 
 struct plan9_qid {
     uint8_t type;

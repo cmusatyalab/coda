@@ -859,7 +859,7 @@ int plan9server::recv_create(unsigned char *buf, size_t len, uint16_t tag)
         return -1;
     }
 
-    DEBUG("9pfs: Tcreate[%x] fid %u, name %s, perm %u, mode %u\n",
+    DEBUG("9pfs: Tcreate[%x] fid %u, name %s, perm %o, mode %u\n",
           tag, fid, name, perm, mode);
 
     struct fidmap *fm;
@@ -906,7 +906,15 @@ int plan9server::recv_create(unsigned char *buf, size_t len, uint16_t tag)
     struct plan9_qid qid;
 
     conn->u.u_uid = fm->root->userid;
-    conn->create(&fm->cnode, name, &va, excl, flags, &child);
+
+    if (perm & P9_DMDIR) {
+      /* create a directory */
+      conn->mkdir(&fm->cnode, name, &va, &child);
+    }
+    else {
+      /* create a regular file */ 
+      conn->create(&fm->cnode, name, &va, excl, flags, &child);
+    }
 
     if (conn->u.u_error) {
         const char *errstr = VenusRetStr(conn->u.u_error);
