@@ -72,6 +72,7 @@ Pittsburgh, PA.
 /*----------------------- Local procedure specs  ----------------------*/
 static long GetFile();
 static long PutFile();
+static RPC2_PacketBuffer *sftp_DequeuePacket(struct SFTP_Entry *sEntry);
 static RPC2_PacketBuffer *AwaitPacket(struct SFTP_Entry *sEntry, int retry,
 				      int outbytes, int inbytes);
 static long MakeBigEnough();
@@ -85,6 +86,10 @@ static long MakeBigEnough();
 	    }
 
 #define QUIT(se, RC1, RC2) do {\
+    while (se->RecvQueue) {\
+        RPC2_PacketBuffer *pb = sftp_DequeuePacket(se);\
+        SFTP_FreeBuffer(&pb);\
+    }\
     se->SDesc->LocalStatus = RC1;\
     sftp_vfclose(se);\
     se->SDesc = NULL;\
@@ -843,6 +848,15 @@ GotAck:
 }
 
 
+static RPC2_PacketBuffer *sftp_DequeuePacket(struct SFTP_Entry *sEntry)
+{
+    RPC2_PacketBuffer *victim = sEntry->RecvQueue;
+    if (victim)
+        rpc2_MoveEntry(&sEntry->RecvQueue, &rpc2_PBList, victim,
+                       &sEntry->RecvQueueLen, &rpc2_PBCount);
+    return victim;
+}
+
 static RPC2_PacketBuffer *AwaitPacket(struct SFTP_Entry *sEntry, int retry,
 				      int outbytes, int inbytes)
     /* Awaits for a packet on sEntry
@@ -853,6 +867,10 @@ static RPC2_PacketBuffer *AwaitPacket(struct SFTP_Entry *sEntry, int retry,
     struct CEntry *ce;
     int rc;
 
+    /* Check if there is something already queued up */
+    if (sEntry->RecvQueue)
+        return sftp_DequeuePacket(sEntry);
+
     if (LWP_GetRock(SMARTFTP, (void *)&sl) != LWP_SUCCESS)
     {
 	sl = rpc2_AllocSle(OTHER, NULL);
@@ -861,21 +879,16 @@ static RPC2_PacketBuffer *AwaitPacket(struct SFTP_Entry *sEntry, int retry,
 
     ce = rpc2_GetConn(sEntry->LocalHandle);
     rc = rpc2_RetryInterval(ce, retry, &sl->RInterval, outbytes, inbytes, 1);
-    if (rc) { sl->ReturnCode = 0; return NULL; }
+    if (rc) { sl->ReturnCode = 0; return NULL; /* TIMEOUT */ }
 
     sEntry->Sleeper = sl;
     rpc2_ActivateSle(sl, &sl->RInterval);
     LWP_WaitProcess((char *)sl);
 
-    switch(sl->ReturnCode)
-	{
-	case TIMEOUT:	sl->ReturnCode = 0; return(NULL);
-	case ARRIVED:	sl->ReturnCode = 0; return((RPC2_PacketBuffer *)sl->data);
-	default: assert(FALSE);
-	}
-    /*NOTREACHED*/
-    assert(0);
-    return NULL;
+    assert(sl->ReturnCode == TIMEOUT || sl->ReturnCode == ARRIVED);
+
+    sl->ReturnCode = 0;
+    return sftp_DequeuePacket(sEntry);
 }
 
 /*---------------------- Piggybacking routines -------------------------*/
@@ -1108,6 +1121,8 @@ struct SFTP_Entry *sftp_AllocSEntry(void)
     sfp->DupThreshold = SFTP_DupThreshold;
     sfp->Retransmitting = FALSE;
     sfp->RequestTime = 0;
+    sfp->RecvQueue = NULL;
+    sfp->RecvQueueLen = 0;
     CLRTIME(&sfp->LastWord);
     return(sfp);
     }

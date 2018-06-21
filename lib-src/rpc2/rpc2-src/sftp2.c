@@ -197,18 +197,25 @@ static void ServerPacket(RPC2_PacketBuffer *whichPacket,
      * if no LWP yields control while its SLSlot state is TIMEOUT.  There
      * could be serious hard-to-find bugs if this assumption is violated. */
 
+    if (sEntry->XferState != XferInProgress) {
+        fprintf(stderr, "No active SFTP transfer, dropping incoming packet\n");
+        BOGUS(whichPacket);
+        return;
+    }
+
+    /* queue packet */
+    rpc2_MoveEntry(&rpc2_PBList, &sEntry->RecvQueue, whichPacket,
+                   &rpc2_PBCount, &sEntry->RecvQueueLen);
+
     sl = sEntry->Sleeper;
     if (!sl || (sl->ReturnCode != WAITING && sl->ReturnCode != TIMEOUT))
-    {/* no one expects this packet; toss it out; NAK'ing may have race hazards */
-	if (whichPacket) {
-	    fprintf(stderr, "No waiters, dropped incoming sftp packet\n");
-	    BOGUS(whichPacket);
-	}
+    {
+        /* no one is actively waiting for this packet, it should get picked
+         * up from the queue when the SideEffect thread is done processing */
 	return;
     }
     sEntry->Sleeper = NULL;	/* no longer anyone waiting for a packet */
     rpc2_DeactivateSle(sl, ARRIVED);
-    sl->data = whichPacket;
     LWP_SignalProcess((char *)sl);
 }
 
@@ -220,10 +227,6 @@ static void ClientPacket(RPC2_PacketBuffer *whichPacket,
 
     switch ((int) whichPacket->Header.Opcode)
     {
-    case SFTP_NAK:
-	assert(FALSE);  /* should have been dealt with in sftp_ExaminePacket()*/
-	break;
-
     case SFTP_ACK:
 	/* Makes sense only if we are on source side */
 	if (IsSource(sEntry)) {
@@ -265,6 +268,7 @@ static void ClientPacket(RPC2_PacketBuffer *whichPacket,
 	}
 	break;
 
+    case SFTP_NAK: /* should have been dealt with in sftp_ExaminePacket()*/
     default:
 	BOGUS(whichPacket);
 	break;
