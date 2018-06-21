@@ -191,7 +191,26 @@ static void recv_codatunnel_cb(uv_udp_t *codatunnel, ssize_t nread,
 
     ctp_t *p = (ctp_t *)buf->base;
 
+    if (nread != (sizeof(ctp_t) + p->msglen)) {
+        DEBUG("incomplete packet received from codatunnel\n");
+        free(buf->base);
+        return;
+    }
+
     dest_t *d = getdest(&p->addr, p->addrlen);
+
+    /* Try to establish a new TCP connection for future use;
+       do this only once per INIT1 (avoiding retries) to avoid TCP SYN flood;
+       Only clients should attempt this, because of NAT firewalls */
+    if (p->is_init1 && !p->is_retry && !codatunnel_I_am_server) {
+        if (!d) /* new destination */
+            d = createdest(&p->addr, p->addrlen);
+
+        if (d->state == ALLOCATED) {
+            d->state = TCPATTEMPTING;
+            try_creating_tcp_connection(d);
+        }
+    }
 
     /* what do we do with packet p for destination d? */
 
@@ -228,19 +247,6 @@ static void recv_codatunnel_cb(uv_udp_t *codatunnel, ssize_t nread,
     */
     if (!codatunnel_onlytcp)
         send_to_udp_dest(nread, buf, addr, flags); /* free buf only in cascaded cb */
-
-    /* Try to establish a new TCP connection for future use;
-       do this only once per INIT1 (avoiding retries) to avoid TCP SYN flood;
-       Only clients should attempt this, because of NAT firewalls */
-    if (p->is_init1 && !p->is_retry && !codatunnel_I_am_server) {
-        if (!d) /* new destination */
-            d = createdest(&p->addr, p->addrlen);
-
-        if(d->state == ALLOCATED){
-            d->state = TCPATTEMPTING;
-            try_creating_tcp_connection(d);
-        }
-    }
 }
 
 
