@@ -98,7 +98,7 @@ static socklen_t sockaddr_len(const struct sockaddr *addr)
     if (addr->sa_family == AF_INET6)
         return sizeof(struct sockaddr_in6);
 
-    return 0;
+    return sizeof(struct sockaddr_storage);
 }
 
 
