@@ -323,8 +323,8 @@ static void send_to_tcp_dest(dest_t *d, ssize_t nread, const uv_buf_t *buf)
         /* unable to send on tcp connection, free buffer and trigger a
          * disconnection because we have no other way to force a retry. */
         ERROR("uv_write(): rc = %d\n", rc);
-        free(buf->base);
         free(req);
+        free(buf->base);
         free_dest(d);
     }
 }
@@ -334,9 +334,9 @@ static void tcp_connect_cb(uv_connect_t *req, int status)
     DEBUG("tcp_connect_cb(%p, %d)\n", req, status);
     dest_t *d = req->data;
 
-    if (status == 0) {/* connection successful */
+    if (status == 0) { /* connection successful */
         DEBUG("tcp_connect_cb(%p, %d) --> %p\n", d, status, d->tcphandle);
-        (d->tcphandle)->data = d; /* point back, for use in upcalls */
+        d->tcphandle->data = d; /* point back, for use in upcalls */
         d->received_packet = calloc(1, MAXRECEIVE);  /* freed in uv_udp_sent_cb() */
         d->nextbyte = 0;
         d->packets_sent = 0;
@@ -349,7 +349,7 @@ static void tcp_connect_cb(uv_connect_t *req, int status)
         int rc = uv_read_start((uv_stream_t *)d->tcphandle, alloc_cb, recv_tcp_cb);
         DEBUG("uv_read_start() --> %d\n", rc);
     }
-    else {/*  connection attempt failed */
+    else { /* connection attempt failed */
         d->state = ALLOCATED;
         free(d->tcphandle);
         d->tcphandle = NULL;
@@ -365,11 +365,12 @@ static void try_creating_tcp_connection(dest_t *d)
     DEBUG("try_creating_tcp_connection(%p)\n", d);
     d->tcphandle = malloc(sizeof(uv_tcp_t));
     uv_tcp_init(codatunnel_main_loop, d->tcphandle);
+
     req = malloc(sizeof(uv_connect_t));
     assert(req != NULL);
 
     req->data = d;  /* so we can identify dest in upcall */
-    int rc = uv_tcp_connect(req, d->tcphandle, (struct sockaddr *)(&d->destaddr),
+    int rc = uv_tcp_connect(req, d->tcphandle, (struct sockaddr *)&d->destaddr,
                             tcp_connect_cb);
     DEBUG("uv_tcp_connect --> %d\n", rc);
 }
@@ -709,8 +710,8 @@ void codatunneld(int codatunnel_sockfd,
     /* resolve the requested udp bind address */
     const char *node = (udp_bindaddr && *udp_bindaddr) ? udp_bindaddr : NULL;
     const char *service = bind_service ? bind_service : "0";
-    rc = uv_getaddrinfo(codatunnel_main_loop, &gai_req, NULL, node,
-			service, &gai_hints);
+    rc = uv_getaddrinfo(codatunnel_main_loop, &gai_req, NULL,
+                        node, service, &gai_hints);
     if (rc < 0) {
         ERROR("uv_getaddrinfo() --> %s\n", uv_strerror(rc));
         exit(-1);
@@ -744,8 +745,8 @@ void codatunneld(int codatunnel_sockfd,
         uv_tcp_init(codatunnel_main_loop, &tcplistener);
 
         /* try to bind to any of the resolved addresses */
-        uv_getaddrinfo(codatunnel_main_loop, &gai_req, NULL, tcp_bindaddr,
-                service, &gai_hints2);
+        uv_getaddrinfo(codatunnel_main_loop, &gai_req, NULL,
+                       tcp_bindaddr, service, &gai_hints2);
         for (ai = gai_req.addrinfo; ai != NULL; ai = ai->ai_next) {
             if (uv_tcp_bind(&tcplistener, ai->ai_addr, 0) == 0)
                 break;
