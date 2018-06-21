@@ -1993,11 +1993,11 @@ int fsobj::Fakeify()
 	    realmname = real_obj->vol->realm->Name();
 
 	    /* Write out the link contents. */
-	    /* "@XXXXXXXX.YYYYYYYY.ZZZZZZZZ@RRRRRRRRR." */
+	    /* "@XXXXXXXX.YYYYYYYY.ZZZZZZZZ@RRRRRRRRR" */
 	    stat.Length = 29 + strlen(realmname);
-	    data.symlink = (char *)rvmlib_rec_malloc(stat.Length+1);
-	    rvmlib_set_range(data.symlink, stat.Length+1);
-	    sprintf(data.symlink, "@%08x.%08x.%08x@%s.",
+	    data.symlink = (char *)rvmlib_rec_malloc(stat.Length);
+	    rvmlib_set_range(data.symlink, stat.Length);
+	    sprintf(data.symlink, "@%08x.%08x.%08x@%s",
 		    LinkFid.Volume, LinkFid.Vnode, LinkFid.Unique, realmname);
 
 	    LOG(10, ("fsobj::Fakeify: making %s a symlink %s\n",

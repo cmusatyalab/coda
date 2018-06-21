@@ -336,8 +336,12 @@ FreeLocks:
 	vap->va_gid = V_GID;
 	vap->va_nlink = 1;
 
-	/* @XXXXXXXX.YYYYYYYY.ZZZZZZZZ. */
-	vap->va_size = 29;
+	/* @XXXXXXXX.YYYYYYYY.ZZZZZZZZ@REALM */
+	Realm *realm = REALMDB->GetRealm(cp->c_fid.Realm);
+	CODA_ASSERT(realm);
+	vap->va_size = 29 + strlen(realm->Name());
+        realm->PutRef();
+
 	vap->va_blocksize = V_BLKSIZE;
 	vap->va_fileid = FidToNodeid(&cp->c_fid);
 	vap->va_mtime.tv_sec = Vtime();
@@ -1387,10 +1391,9 @@ FreeLocks:
 	CODA_ASSERT(realm);
 	len = snprintf(buf, len, "@%08x.%08x.%08x@%s", cp->c_fid.Volume,
 		       cp->c_fid.Vnode, cp->c_fid.Unique, realm->Name());
-	string->cs_len = 28 + strlen(realm->Name());
+	string->cs_len = 29 + strlen(realm->Name());
 	realm->PutRef();
-	CODA_ASSERT(len == string->cs_len);
-        /* remove trailing '\0' */ len--;
+	CODA_ASSERT((len+1) == string->cs_len);
     }
 }
 
