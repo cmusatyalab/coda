@@ -351,6 +351,8 @@ static void tcp_connect_cb(uv_connect_t *req, int status)
     }
     else {/*  connection attempt failed */
         d->state = ALLOCATED;
+        free(d->tcphandle);
+        d->tcphandle = NULL;
     }
     free(req);
 }
