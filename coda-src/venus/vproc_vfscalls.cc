@@ -656,19 +656,24 @@ FreeLocks:
 
 
 void vproc::create(struct venus_cnode *dcp, char *name, struct coda_vattr *vap,
-		   int excl, int mode, struct venus_cnode *cp) 
+		   int excl, int flags, struct venus_cnode *cp)
 {
 
-    LOG(1, ("vproc::create: fid = %s, name = %s, excl = %d, mode = %d\n",
-	     FID_(&dcp->c_fid), name, excl, mode));
+    LOG(1, ("vproc::create: fid = %s, name = %s, excl = %d, flags = %d\n",
+	     FID_(&dcp->c_fid), name, excl, flags));
 
     fsobj *parent_fso = 0;
     fsobj *target_fso = 0;
 
     /* Expand the flags into some useful predicates. */
-    int readp = (mode & C_M_READ) != 0;
-    int writep = (mode & C_M_WRITE) != 0;
-    int truncp = (vap->va_size == 0);
+    /* The bit-wise tests against C_M_READ/C_M_WRITE octal permission bits make
+     * absolutely no sense, but... the kernel modules have been passing the
+     * permission bits instead of open flags and so we are sort of stuck with
+     * it now.  Adding 'proper' tests against open bits, luckily they don't
+     * really overlap (all that much) except for C_O_EXCL */
+    int readp = (flags & C_O_READ) || ((flags & C_M_READ) != 0);
+    int writep = (flags & C_O_WRITE) || ((flags & C_M_WRITE) != 0);
+    int truncp = (flags & C_O_TRUNC) || (vap->va_size == 0);
     int exclp = excl;
 
     /* don't allow '.', '..', '/', conflict names, or @xxx expansions */

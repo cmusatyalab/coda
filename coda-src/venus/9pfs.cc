@@ -897,14 +897,16 @@ int plan9server::recv_create(unsigned char *buf, size_t len, uint16_t tag)
         flags = C_O_READ | C_O_WRITE;
         break;
     }
-    if (mode & P9_OTRUNC)
+    if (mode & P9_OTRUNC) {
         flags |= C_O_TRUNC;
+        va.va_size = 0; /* traditionally this is how Coda indicated truncate */
+    }
 
     struct venus_cnode child;
     struct plan9_qid qid;
 
     conn->u.u_uid = fm->root->userid;
-    conn->create(&fm->cnode, name, &va, excl, perm, &child);
+    conn->create(&fm->cnode, name, &va, excl, flags, &child);
 
     if (conn->u.u_error) {
         const char *errstr = VenusRetStr(conn->u.u_error);
