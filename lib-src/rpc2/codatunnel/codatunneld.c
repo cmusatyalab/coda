@@ -421,39 +421,34 @@ static void recv_tcp_cb(uv_stream_t *tcphandle, ssize_t nread, const uv_buf_t *b
     /* hexdump ("buf->base", buf->base, 64);  */
 
     int bytesleft = nread;
-    DEBUG("bytesleft = %d\n", bytesleft);
     do { /* each iteration does one memcpy() from src to tgt */
         DEBUG("bytesleft = %d  nextbyte = %d  ntoh_done = %d\n",
-                bytesleft, d->nextbyte, d->ntoh_done);
+              bytesleft, d->nextbyte, d->ntoh_done);
         char *tgt = &((d->received_packet)[d->nextbyte]);
         char *src = (char *) &((buf->base)[nread-bytesleft]);
-        int needed;
+        int needed, msgsize;
 
         if (d->nextbyte < sizeof(ctp_t)) {
             /* CASE 1: we don't even have a full ctp_t yet */
             needed = sizeof(ctp_t) - d->nextbyte;
 
-            if (needed <= bytesleft) {
-                memcpy(tgt, src, needed);
-                d->nextbyte += needed;
-                bytesleft -= needed;
-            }
-            else {
-                memcpy(tgt, src, bytesleft);
-                d->nextbyte += bytesleft;
-                bytesleft = 0; /* all consumed and need more */
-            }
-            continue; /* outer do{} loop; */
+            if (bytesleft < needed)
+                needed = bytesleft;
+
+            memcpy(tgt, src, needed);
+            d->nextbyte += needed;
+            bytesleft -= needed;
+            continue; /* back to the outer loop; */
         }
 
         /* CASE 2 (else part): If we reach here, we have
            a complete ctp_t at the head of d->received_packet */
 
-        ctp_t *p = (ctp_t *) d->received_packet;
+        ctp_t *p = (ctp_t *)d->received_packet;
 
         /* Convert fields to host order; but only do it once; we may
            encounter this ctp_t many times if a big packet is fragmented into
-           tiny pieces and we have to do many tcp_recv_cb() operations to
+           tiny pieces and we have to do many recv_tcp_cb() operations to
            reassemble it
         */
         if (d->ntoh_done == 0) {
@@ -472,32 +467,29 @@ static void recv_tcp_cb(uv_stream_t *tcphandle, ssize_t nread, const uv_buf_t *b
 
             DEBUG("is_retry = %u  is_init1 = %u  msglen = %u\n",
                   p->is_retry, p->is_init1, p->msglen);
-
-            if (p->msglen > (MAXRECEIVE - sizeof(ctp_t)) || p->msglen == 0) {
-                /* we can't handle this monster */
-                DEBUG("Monster packet of size %u, giving up\n", p->msglen);
-                free(buf->base);
-                free_dest(d);
-                return;
-            }
         }
 
-        needed = p->msglen - (d->nextbyte - sizeof(ctp_t));
+        msgsize = sizeof(ctp_t) + p->msglen;
+        if (msgsize > MAXRECEIVE || p->msglen == 0) {
+            /* we can't handle this packet (too big, or too small) */
+            DEBUG("Packet of size %u, giving up\n", p->msglen);
+            free(buf->base);
+            free_dest(d);
+            return;
+        }
+
+        needed = msgsize - d->nextbyte;
         DEBUG("needed = %d\n", needed);
 
-        if (needed <= bytesleft) {
-            memcpy(tgt, src, needed);
-            d->nextbyte += needed;
-            bytesleft -= needed;
-        }
-        else {
-            memcpy(tgt, src, bytesleft);
-            d->nextbyte += bytesleft;
-            bytesleft = 0; /* all consumed and need more */
-        }
+        if (bytesleft < needed)
+            needed = bytesleft;
+
+        memcpy(tgt, src, needed);
+        d->nextbyte += needed;
+        bytesleft -= needed;
 
         /* Check whether we have a complete packet to handoff now */
-        needed = p->msglen -(d->nextbyte - sizeof(ctp_t));
+        needed = msgsize - d->nextbyte;
         DEBUG("Complete packet check, needed = %d\n", needed);
 
         if (needed > 0) continue; /* not complete yet */
@@ -508,7 +500,7 @@ static void recv_tcp_cb(uv_stream_t *tcphandle, ssize_t nread, const uv_buf_t *b
 
         /* Replace recipient address with sender's address, so that
            recvfrom() can provide the "from" address. */
-        memcpy(&p->addr, &d->destaddr, sizeof(struct sockaddr_storage));
+        memcpy(&p->addr, &d->destaddr, d->destlen);
         p->addrlen = d->destlen;
 
         minicb_udp_req_t *req;
@@ -527,7 +519,7 @@ static void recv_tcp_cb(uv_stream_t *tcphandle, ssize_t nread, const uv_buf_t *b
             free_dest(d);
             return;
         }
-        msg = uv_buf_init(d->received_packet, sizeof(ctp_t) + p->msglen); /* to send */
+        msg = uv_buf_init(d->received_packet, msgsize); /* to send */
 
         /* make sure the buffer is released when the send completes */
         req->req.data = d->received_packet;
