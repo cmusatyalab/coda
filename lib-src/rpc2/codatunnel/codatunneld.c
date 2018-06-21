@@ -98,7 +98,7 @@ static socklen_t sockaddr_len(const struct sockaddr *addr)
     if (addr->sa_family == AF_INET6)
         return sizeof(struct sockaddr_in6);
 
-    return 0;
+    return sizeof(struct sockaddr_storage);
 }
 
 
@@ -191,7 +191,26 @@ static void recv_codatunnel_cb(uv_udp_t *codatunnel, ssize_t nread,
 
     ctp_t *p = (ctp_t *)buf->base;
 
+    if (nread != (sizeof(ctp_t) + p->msglen)) {
+        DEBUG("incomplete packet received from codatunnel\n");
+        free(buf->base);
+        return;
+    }
+
     dest_t *d = getdest(&p->addr, p->addrlen);
+
+    /* Try to establish a new TCP connection for future use;
+       do this only once per INIT1 (avoiding retries) to avoid TCP SYN flood;
+       Only clients should attempt this, because of NAT firewalls */
+    if (p->is_init1 && !p->is_retry && !codatunnel_I_am_server) {
+        if (!d) /* new destination */
+            d = createdest(&p->addr, p->addrlen);
+
+        if (d->state == ALLOCATED) {
+            d->state = TCPATTEMPTING;
+            try_creating_tcp_connection(d);
+        }
+    }
 
     /* what do we do with packet p for destination d? */
 
@@ -228,19 +247,6 @@ static void recv_codatunnel_cb(uv_udp_t *codatunnel, ssize_t nread,
     */
     if (!codatunnel_onlytcp)
         send_to_udp_dest(nread, buf, addr, flags); /* free buf only in cascaded cb */
-
-    /* Try to establish a new TCP connection for future use;
-       do this only once per INIT1 (avoiding retries) to avoid TCP SYN flood;
-       Only clients should attempt this, because of NAT firewalls */
-    if (p->is_init1 && !p->is_retry && !codatunnel_I_am_server) {
-        if (!d) /* new destination */
-            d = createdest(&p->addr, p->addrlen);
-
-        if(d->state == ALLOCATED){
-            d->state = TCPATTEMPTING;
-            try_creating_tcp_connection(d);
-        }
-    }
 }
 
 
@@ -323,8 +329,8 @@ static void send_to_tcp_dest(dest_t *d, ssize_t nread, const uv_buf_t *buf)
         /* unable to send on tcp connection, free buffer and trigger a
          * disconnection because we have no other way to force a retry. */
         ERROR("uv_write(): rc = %d\n", rc);
-        free(buf->base);
         free(req);
+        free(buf->base);
         free_dest(d);
     }
 }
@@ -334,9 +340,9 @@ static void tcp_connect_cb(uv_connect_t *req, int status)
     DEBUG("tcp_connect_cb(%p, %d)\n", req, status);
     dest_t *d = req->data;
 
-    if (status == 0) {/* connection successful */
+    if (status == 0) { /* connection successful */
         DEBUG("tcp_connect_cb(%p, %d) --> %p\n", d, status, d->tcphandle);
-        (d->tcphandle)->data = d; /* point back, for use in upcalls */
+        d->tcphandle->data = d; /* point back, for use in upcalls */
         d->received_packet = calloc(1, MAXRECEIVE);  /* freed in uv_udp_sent_cb() */
         d->nextbyte = 0;
         d->packets_sent = 0;
@@ -349,8 +355,10 @@ static void tcp_connect_cb(uv_connect_t *req, int status)
         int rc = uv_read_start((uv_stream_t *)d->tcphandle, alloc_cb, recv_tcp_cb);
         DEBUG("uv_read_start() --> %d\n", rc);
     }
-    else {/*  connection attempt failed */
+    else { /* connection attempt failed */
         d->state = ALLOCATED;
+        free(d->tcphandle);
+        d->tcphandle = NULL;
     }
     free(req);
 }
@@ -363,11 +371,12 @@ static void try_creating_tcp_connection(dest_t *d)
     DEBUG("try_creating_tcp_connection(%p)\n", d);
     d->tcphandle = malloc(sizeof(uv_tcp_t));
     uv_tcp_init(codatunnel_main_loop, d->tcphandle);
+
     req = malloc(sizeof(uv_connect_t));
     assert(req != NULL);
 
     req->data = d;  /* so we can identify dest in upcall */
-    int rc = uv_tcp_connect(req, d->tcphandle, (struct sockaddr *)(&d->destaddr),
+    int rc = uv_tcp_connect(req, d->tcphandle, (struct sockaddr *)&d->destaddr,
                             tcp_connect_cb);
     DEBUG("uv_tcp_connect --> %d\n", rc);
 }
@@ -419,39 +428,34 @@ static void recv_tcp_cb(uv_stream_t *tcphandle, ssize_t nread, const uv_buf_t *b
     /* hexdump ("buf->base", buf->base, 64);  */
 
     int bytesleft = nread;
-    DEBUG("bytesleft = %d\n", bytesleft);
     do { /* each iteration does one memcpy() from src to tgt */
         DEBUG("bytesleft = %d  nextbyte = %d  ntoh_done = %d\n",
-                bytesleft, d->nextbyte, d->ntoh_done);
+              bytesleft, d->nextbyte, d->ntoh_done);
         char *tgt = &((d->received_packet)[d->nextbyte]);
         char *src = (char *) &((buf->base)[nread-bytesleft]);
-        int needed;
+        int needed, msgsize;
 
         if (d->nextbyte < sizeof(ctp_t)) {
             /* CASE 1: we don't even have a full ctp_t yet */
             needed = sizeof(ctp_t) - d->nextbyte;
 
-            if (needed <= bytesleft) {
-                memcpy(tgt, src, needed);
-                d->nextbyte += needed;
-                bytesleft -= needed;
-            }
-            else {
-                memcpy(tgt, src, bytesleft);
-                d->nextbyte += bytesleft;
-                bytesleft = 0; /* all consumed and need more */
-            }
-            continue; /* outer do{} loop; */
+            if (bytesleft < needed)
+                needed = bytesleft;
+
+            memcpy(tgt, src, needed);
+            d->nextbyte += needed;
+            bytesleft -= needed;
+            continue; /* back to the outer loop; */
         }
 
         /* CASE 2 (else part): If we reach here, we have
            a complete ctp_t at the head of d->received_packet */
 
-        ctp_t *p = (ctp_t *) d->received_packet;
+        ctp_t *p = (ctp_t *)d->received_packet;
 
         /* Convert fields to host order; but only do it once; we may
            encounter this ctp_t many times if a big packet is fragmented into
-           tiny pieces and we have to do many tcp_recv_cb() operations to
+           tiny pieces and we have to do many recv_tcp_cb() operations to
            reassemble it
         */
         if (d->ntoh_done == 0) {
@@ -470,32 +474,29 @@ static void recv_tcp_cb(uv_stream_t *tcphandle, ssize_t nread, const uv_buf_t *b
 
             DEBUG("is_retry = %u  is_init1 = %u  msglen = %u\n",
                   p->is_retry, p->is_init1, p->msglen);
-
-            if (p->msglen > (MAXRECEIVE - sizeof(ctp_t)) || p->msglen == 0) {
-                /* we can't handle this monster */
-                DEBUG("Monster packet of size %u, giving up\n", p->msglen);
-                free(buf->base);
-                free_dest(d);
-                return;
-            }
         }
 
-        needed = p->msglen - (d->nextbyte - sizeof(ctp_t));
+        msgsize = sizeof(ctp_t) + p->msglen;
+        if (msgsize > MAXRECEIVE || p->msglen == 0) {
+            /* we can't handle this packet (too big, or too small) */
+            DEBUG("Packet of size %u, giving up\n", p->msglen);
+            free(buf->base);
+            free_dest(d);
+            return;
+        }
+
+        needed = msgsize - d->nextbyte;
         DEBUG("needed = %d\n", needed);
 
-        if (needed <= bytesleft) {
-            memcpy(tgt, src, needed);
-            d->nextbyte += needed;
-            bytesleft -= needed;
-        }
-        else {
-            memcpy(tgt, src, bytesleft);
-            d->nextbyte += bytesleft;
-            bytesleft = 0; /* all consumed and need more */
-        }
+        if (bytesleft < needed)
+            needed = bytesleft;
+
+        memcpy(tgt, src, needed);
+        d->nextbyte += needed;
+        bytesleft -= needed;
 
         /* Check whether we have a complete packet to handoff now */
-        needed = p->msglen -(d->nextbyte - sizeof(ctp_t));
+        needed = msgsize - d->nextbyte;
         DEBUG("Complete packet check, needed = %d\n", needed);
 
         if (needed > 0) continue; /* not complete yet */
@@ -506,7 +507,7 @@ static void recv_tcp_cb(uv_stream_t *tcphandle, ssize_t nread, const uv_buf_t *b
 
         /* Replace recipient address with sender's address, so that
            recvfrom() can provide the "from" address. */
-        memcpy(&p->addr, &d->destaddr, sizeof(struct sockaddr_storage));
+        memcpy(&p->addr, &d->destaddr, d->destlen);
         p->addrlen = d->destlen;
 
         minicb_udp_req_t *req;
@@ -525,7 +526,7 @@ static void recv_tcp_cb(uv_stream_t *tcphandle, ssize_t nread, const uv_buf_t *b
             free_dest(d);
             return;
         }
-        msg = uv_buf_init(d->received_packet, sizeof(ctp_t) + p->msglen); /* to send */
+        msg = uv_buf_init(d->received_packet, msgsize); /* to send */
 
         /* make sure the buffer is released when the send completes */
         req->req.data = d->received_packet;
@@ -715,8 +716,8 @@ void codatunneld(int codatunnel_sockfd,
     /* resolve the requested udp bind address */
     const char *node = (udp_bindaddr && *udp_bindaddr) ? udp_bindaddr : NULL;
     const char *service = bind_service ? bind_service : "0";
-    rc = uv_getaddrinfo(codatunnel_main_loop, &gai_req, NULL, node,
-			service, &gai_hints);
+    rc = uv_getaddrinfo(codatunnel_main_loop, &gai_req, NULL,
+                        node, service, &gai_hints);
     if (rc < 0) {
         ERROR("uv_getaddrinfo() --> %s\n", uv_strerror(rc));
         exit(-1);
@@ -750,8 +751,8 @@ void codatunneld(int codatunnel_sockfd,
         uv_tcp_init(codatunnel_main_loop, &tcplistener);
 
         /* try to bind to any of the resolved addresses */
-        uv_getaddrinfo(codatunnel_main_loop, &gai_req, NULL, tcp_bindaddr,
-                service, &gai_hints2);
+        uv_getaddrinfo(codatunnel_main_loop, &gai_req, NULL,
+                       tcp_bindaddr, service, &gai_hints2);
         for (ai = gai_req.addrinfo; ai != NULL; ai = ai->ai_next) {
             if (uv_tcp_bind(&tcplistener, ai->ai_addr, 0) == 0)
                 break;

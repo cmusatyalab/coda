@@ -145,6 +145,7 @@ static void _free_dest_cb(uv_handle_t *handle)
 {
     dest_t *d = handle->data;
     free(d->received_packet);
+    free(d->tcphandle);
     cleardest(d); /* make slot FREE again */
 }
 
