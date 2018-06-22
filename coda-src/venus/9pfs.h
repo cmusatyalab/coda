@@ -168,8 +168,8 @@ class plan9server {
     int recv_wstat(unsigned char *buf, size_t len, uint16_t tag);
 
     struct fidmap *find_fid(uint32_t fid);
-    struct fidmap *add_fid(uint32_t fid, struct venus_cnode *cnode,
-                           struct attachment *root);
+    struct fidmap *add_fid(uint32_t fid, struct fidmap * parent_fm,
+                          struct venus_cnode *cnode, struct attachment *root);
     int del_fid(uint32_t fid);
 
     int plan9_stat(struct venus_cnode *cnode, struct attachment *root,
