@@ -56,6 +56,7 @@ struct attachment {
 struct fidmap {
     dlink link;
     uint32_t fid;
+    struct fidmap * parent_fm;
     struct venus_cnode cnode;
     int open_flags;
     struct attachment *root;
@@ -594,7 +595,7 @@ int plan9server::recv_attach(unsigned char *buf, size_t len, uint16_t tag)
     conn->u.u_uid = root->userid;
     conn->root(&root->cnode);
 
-    if (add_fid(fid, &root->cnode, root) == NULL) {
+    if (add_fid(fid, NULL, &root->cnode, root) == NULL) {
         ::free((void *)root->uname);
         ::free((void *)root->aname);
         delete root;
@@ -714,7 +715,7 @@ int plan9server::recv_walk(unsigned char *buf, size_t len, uint16_t tag)
         else if (find_fid(newfid))
             return send_error(tag, "fid already in use");
 
-        add_fid(newfid, &current, fm->root);
+        add_fid(newfid, fm, &current, fm->root);
     }
 
     /* send_Rwalk */
@@ -859,7 +860,7 @@ int plan9server::recv_create(unsigned char *buf, size_t len, uint16_t tag)
         return -1;
     }
 
-    DEBUG("9pfs: Tcreate[%x] fid %u, name %s, perm %u, mode %u\n",
+    DEBUG("9pfs: Tcreate[%x] fid %u, name %s, perm %o, mode %u\n",
           tag, fid, name, perm, mode);
 
     struct fidmap *fm;
@@ -906,7 +907,15 @@ int plan9server::recv_create(unsigned char *buf, size_t len, uint16_t tag)
     struct plan9_qid qid;
 
     conn->u.u_uid = fm->root->userid;
-    conn->create(&fm->cnode, name, &va, excl, flags, &child);
+
+    if (perm & P9_DMDIR) {
+      /* create a directory */
+      conn->mkdir(&fm->cnode, name, &va, &child);
+    }
+    else {
+      /* create a regular file */ 
+      conn->create(&fm->cnode, name, &va, excl, flags, &child);
+    }
 
     if (conn->u.u_error) {
         const char *errstr = VenusRetStr(conn->u.u_error);
@@ -1086,22 +1095,66 @@ int plan9server::recv_clunk(unsigned char *buf, size_t len, uint16_t tag)
 int plan9server::recv_remove(unsigned char *buf, size_t len, uint16_t tag)
 {
     uint32_t fid;
+    int rc;
 
     if (unpack_le32(&buf, &len, &fid))
         return -1;
 
     DEBUG("9pfs: Tremove[%x] fid %u\n", tag, fid);
 
-#if 0
+    struct fidmap *fm = find_fid(fid);
+    if (!fm)
+        return send_error(tag, "fid unknown or out of range");
+
+    /* find the filename */
+    char name[NAME_MAX] = "???";
+    /* Coda supports hardlinks so there may be multiple valid names for the
+     * same file. 9pfs doesn't handle hardlinks so each file can maintain
+     * a unique name. Coda does track the last name used to lookup the object,
+     * so return that. */
+    fsobj *f = FSDB->Find(&fm->cnode.c_fid);
+        if (f) f->GetPath(name, PATH_COMPONENT);
+
+    /* Find the parent directory cnode
+     * We need to move back up the tree to get past the possible P9 fids
+     * that are duplicates of the current file.
+     */
+    struct fidmap * parent_fm;
+    while(fm != NULL) {
+      parent_fm = fm->parent_fm;
+      /* check that we aren't trying to remove the root */
+      if (parent_fm == NULL)
+        return send_error(tag, "tried to remove root");
+      /* if we found a parent, break out of the loop */
+      if (!FID_EQ(&parent_fm->cnode.c_fid, &fm->cnode.c_fid )) break;
+      else fm = parent_fm;
+    }
+
+    struct venus_cnode parent_cnode = parent_fm->cnode;
+
+    /* dir name for DEBUG only */
+    char dirname[NAME_MAX] = "???";
+    f = FSDB->Find(&parent_fm->cnode.c_fid);
+        if (f) f->GetPath(dirname, PATH_COMPONENT);
+    DEBUG("removing file %s from dir %s\n", name, dirname);
+
+    conn->remove(&parent_cnode, name);
+    if (conn->u.u_error) {
+      const char *strerr = VenusRetStr(conn->u.u_error);
+      return send_error(tag, strerr);
+    }
+
+    rc = del_fid(fid);
+    if (rc)
+        return send_error(tag, "fid unknown or out of range");
+
     /* send_Rremove */
     DEBUG("9pfs: Rremove[%x]\n", tag);
 
     buf = buffer; len = max_msize;
     rc = pack_header(&buf, &len, Rremove, tag);
     assert(rc == 0);
-    send_response(buffer, max_msize - len);
-#endif
-    return send_error(tag, "Operation not supported");
+    return send_response(buffer, max_msize - len);
 }
 
 
@@ -1362,14 +1415,15 @@ struct fidmap *plan9server::find_fid(uint32_t fid)
 }
 
 
-struct fidmap *plan9server::add_fid(uint32_t fid, struct venus_cnode *cnode,
-                                    struct attachment *root)
+struct fidmap *plan9server::add_fid(uint32_t fid, struct fidmap * parent_fm,
+                            struct venus_cnode *cnode, struct attachment *root)
 {
     struct fidmap *fm = new struct fidmap;
     if (!fm) return NULL;
 
     root->refcount++;
     fm->fid = fid;
+    fm->parent_fm = parent_fm;
     fm->cnode = *cnode;
     fm->open_flags = 0;
     fm->root = root;

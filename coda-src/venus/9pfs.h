@@ -107,6 +107,8 @@ enum plan9_message_types {
 #define P9_OTRUNC  0x10
 #define P9_ORCLOSE 0x40
 
+#define P9_DMDIR   0x80000000  /* permission bit indicating a directory */ 
+
 
 struct plan9_qid {
     uint8_t type;
@@ -166,8 +168,8 @@ class plan9server {
     int recv_wstat(unsigned char *buf, size_t len, uint16_t tag);
 
     struct fidmap *find_fid(uint32_t fid);
-    struct fidmap *add_fid(uint32_t fid, struct venus_cnode *cnode,
-                           struct attachment *root);
+    struct fidmap *add_fid(uint32_t fid, struct fidmap * parent_fm,
+                          struct venus_cnode *cnode, struct attachment *root);
     int del_fid(uint32_t fid);
 
     int plan9_stat(struct venus_cnode *cnode, struct attachment *root,
