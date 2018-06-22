@@ -1119,26 +1119,29 @@ int plan9server::recv_remove(unsigned char *buf, size_t len, uint16_t tag)
      * We need to move back up the tree to get past the possible P9 fids
      * that are duplicates of the current file.
      */
-    struct fidmap * parent_fm;
-    while(fm != NULL) {
-      parent_fm = fm->parent_fm;
+    struct fidmap * parent_fm, *current;
+    current = fm;
+    while(current != NULL) {
+      parent_fm = current->parent_fm;
       /* check that we aren't trying to remove the root */
       if (parent_fm == NULL)
         return send_error(tag, "tried to remove root");
       /* if we found a parent, break out of the loop */
       if (!FID_EQ(&parent_fm->cnode.c_fid, &fm->cnode.c_fid )) break;
-      else fm = parent_fm;
+      else current = parent_fm;
     }
 
     struct venus_cnode parent_cnode = parent_fm->cnode;
 
-    /* dir name for DEBUG only */
-    char dirname[NAME_MAX] = "???";
-    f = FSDB->Find(&parent_fm->cnode.c_fid);
-        if (f) f->GetPath(dirname, PATH_COMPONENT);
-    DEBUG("removing file %s from dir %s\n", name, dirname);
-
-    conn->remove(&parent_cnode, name);
+    conn->u.u_uid = fm->root->userid;
+    if (fm->cnode.c_type == C_VDIR) {
+      /* remove a directory */
+      conn->rmdir(&parent_cnode, name);
+    }
+    else {
+      /* remove a regular file */
+      conn->remove(&parent_cnode, name);
+    }
     if (conn->u.u_error) {
       const char *strerr = VenusRetStr(conn->u.u_error);
       return send_error(tag, strerr);
