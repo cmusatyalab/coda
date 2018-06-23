@@ -95,19 +95,24 @@ enum plan9_message_types {
 /* size of 9pfs message header */
 #define P9_MIN_MSGSIZE (sizeof(uint32_t)+sizeof(uint8_t)+sizeof(uint16_t))
 
-#define P9_QTDIR     0x80
+/* File types for use in Plan9 qid
+ * and as higher 8 bits of mode field in Plan9 stat
+ */
+#define P9_QTDIR     0x80  /* directory */
 #define P9_QTAUTH    0x08
 #define P9_QTSYMLINK 0x02
-#define P9_QTFILE    0x00
+#define P9_QTFILE    0x00  /* regular file */
+#define P9_DMAPPEND  0x40  /* append-only file */
+#define P9_DMEXCL    0x20  /* exclusive use file */
+#define P9_DMTMP     0x04  /* temporary file */
 
+/* Plan9 open/create flags */
 #define P9_OREAD   0x00
 #define P9_OWRITE  0x01
 #define P9_ORDWR   0x02
 #define P9_OEXEC   0x03
 #define P9_OTRUNC  0x10
 #define P9_ORCLOSE 0x40
-
-#define P9_DMDIR   0x80000000  /* permission bit indicating a directory */ 
 
 
 struct plan9_qid {
@@ -130,6 +135,22 @@ struct plan9_stat {
     char *gid;
     char *muid;
 };
+
+/* Plan9 stat "don't touch" values for writing stat */
+#define P9_DONT_TOUCH_TYPE      ((uint16_t)(-1))
+#define P9_DONT_TOUCH_DEV       ((uint32_t)(-1))
+#define P9_DONT_TOUCH_QID_TYPE  ((uint8_t)(-1))
+#define P9_DONT_TOUCH_QID_VERS  ((uint32_t)(-1))
+#define P9_DONT_TOUCH_QID_PATH  ((uint64_t)(-1))
+#define P9_DONT_TOUCH_MODE      ((uint32_t)(-1))
+#define P9_DONT_TOUCH_ATIME     ((uint32_t)(-1))
+#define P9_DONT_TOUCH_MTIME     ((uint32_t)(-1))
+#define P9_DONT_TOUCH_LENGTH    ((uint64_t)(-1))
+#define P9_DONT_TOUCH_NAME      ""
+#define P9_DONT_TOUCH_UID       ""
+#define P9_DONT_TOUCH_GID       ""
+#define P9_DONT_TOUCH_MUID      ""
+
 
 #ifdef __cplusplus
 }

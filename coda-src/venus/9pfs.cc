@@ -908,12 +908,12 @@ int plan9server::recv_create(unsigned char *buf, size_t len, uint16_t tag)
 
     conn->u.u_uid = fm->root->userid;
 
-    if (perm & P9_DMDIR) {
+    if (perm & (P9_QTDIR << 24)) {
       /* create a directory */
       conn->mkdir(&fm->cnode, name, &va, &child);
     }
     else {
-      /* create a regular file */ 
+      /* create a regular file */
       conn->create(&fm->cnode, name, &va, excl, flags, &child);
     }
 
@@ -1208,30 +1208,169 @@ int plan9server::recv_stat(unsigned char *buf, size_t len, uint16_t tag)
 }
 
 
+/*
+ * @Unimplemented:
+ *      setting gid 
+ *      atomicity
+ */
 int plan9server::recv_wstat(unsigned char *buf, size_t len, uint16_t tag)
 {
     uint32_t fid;
     uint16_t statlen;
     struct plan9_stat stat;
-    int rc;
+    struct coda_vattr attr;
+    const char *strerr = NULL;
 
     if (unpack_le32(&buf, &len, &fid) ||
         unpack_le16(&buf, &len, &statlen) ||
         unpack_stat(&buf, &len, &stat))
         return -1;
+    /* unpacked fields are freed before returning, at Send_Rwstat: */
 
     DEBUG("9pfs: Twstat[%x] fid %u, statlen %u\n", tag, fid, statlen);
 
+    DEBUG("\
+           type:         %u (should be UINT16_MAX)\n \
+           dev:          %u (should be UINT32_MAX)\n \
+           qid.type:     %u (should be UINT8_MAX)\n \
+           qid.version:  %u (should be UINT32_MAX)\n \
+           qid.path:     %u (should be UINT64_MAX)\n \
+           mode:         %o \n \
+           atime:        %u \n \
+           mtime:        %u \n \
+           length:       %u \n \
+           name:        '%s'\n \
+           uid:         '%s'(should be empty string)\n \
+           gid:         '%s' \n \
+           muid:        '%s' \n",
+          stat.type, stat.dev, stat.qid.type, stat.qid.version,stat.qid.path,
+          stat.mode, stat.atime, stat.mtime, stat.length, stat.name, stat.uid,
+          stat.gid, stat.muid
+         );
+
+    struct fidmap *fm;
+    fm = find_fid(fid);
+    if (!fm) {
+      strerr = "fid unknown or out of range";
+      goto Send_Rwstat;
+    }
+
+    /* modifications allowed for wstat:
+      struct plan9_stat {
+          uint16_t          type;    - illegal
+          uint32_t          dev;     - illegal
+          struct plan9_qid  qid;     - illegal
+          uint32_t          mode;    - allowed by owner or group leader,
+          uint32_t          atime;   - auto                     except dir bit
+          uint32_t          mtime;   - allowed by owner or group leader
+          uint64_t          length;  - allowed if write perm, not for dirs
+          char *            name;    - allowed if write perm on parent dir
+          char *            uid;     - illegal
+          char *            gid;     - Unimplemented - allowed by owner or
+          char *            muid;    - auto      or group leader, if in new gid
+      };
+    */
+
+    /* check for illegal modifcations */
+    if ( stat.type != P9_DONT_TOUCH_TYPE
+      || stat.dev != P9_DONT_TOUCH_DEV
+      || stat.qid.type != P9_DONT_TOUCH_QID_TYPE
+      || stat.qid.version != P9_DONT_TOUCH_QID_VERS
+      || stat.qid.path != P9_DONT_TOUCH_QID_PATH
+      || strcmp(stat.uid, P9_DONT_TOUCH_UID) != 0
+      ) {
+        strerr = "Twstat tried to modify stat field illegally";
+        goto Send_Rwstat;
+      }
+
+
+    /* retrieve the current file attributes from Venus */
+    conn->u.u_uid = fm->root->userid;
+    conn->getattr(&fm->cnode, &attr);
+    if (conn->u.u_error) {
+      strerr = VenusRetStr(conn->u.u_error);
+      goto Send_Rwstat;
+    }
+
+    /* if wstat involves a rename */
+    if (strcmp(stat.name, P9_DONT_TOUCH_NAME) != 0) {
+      /* get current name */
+      char name[NAME_MAX] = "???";
+      fsobj *f = FSDB->Find(&fm->cnode.c_fid);
+          if (f) f->GetPath(name, PATH_COMPONENT);
+      /* attempt rename */
+      conn->u.u_uid = fm->root->userid;
+      conn->rename(&fm->cnode, name, &fm->cnode, stat.name);
+      if (conn->u.u_error) {
+        strerr = VenusRetStr(conn->u.u_error);
+        goto Send_Rwstat;
+      }
+    }
+
+    /* Update attr with the new stats to be written.
+     * If all wstat fields were "don't touch", then according to 9P protocol,
+     * the server can interpret this wstat as a request to guarantee that
+     * the contents of the associated file are committed to stable storage
+     * before the Rwstat message is returned (i.e. "make the state of the
+     * file exactly what it claims to be.""), which we do by confirming at
+     * least the uid in the setattr() call.
+     */
+
+    /* must be set to IGNORE or will trigger error in vproc::setattr() */
+    attr.va_fileid = VA_IGNORE_ID;
+    attr.va_nlink = VA_IGNORE_NLINK;
+    attr.va_blocksize = VA_IGNORE_BLOCKSIZE;
+    attr.va_flags = VA_IGNORE_FLAGS;
+    attr.va_rdev = VA_IGNORE_RDEV;
+    attr.va_bytes = VA_IGNORE_STORAGE;
+
+    /* vproc::setattr() requires at least one of the following to be set */
+    attr.va_uid = attr.va_uid;  /* keep/affirm this value */
+    attr.va_mode = (stat.mode == P9_DONT_TOUCH_MODE) ?
+                VA_IGNORE_MODE : stat.mode & 0777;
+    attr.va_size = (stat.length == P9_DONT_TOUCH_LENGTH) ?
+               VA_IGNORE_SIZE : stat.length;	  /* does this work? */
+    attr.va_gid = (strcmp(stat.gid, P9_DONT_TOUCH_GID) == 0) ?
+               VA_IGNORE_GID : VA_IGNORE_GID;	  /* Unimplemented */
+    attr.va_mtime.tv_sec = (stat.mtime == P9_DONT_TOUCH_MTIME) ?
+                VA_IGNORE_TIME1 : stat.mtime;
+                                    /* rest of va_mtime is kept as-is */
+
+    /* vproc::setattr() doesn't document what to do with the remaining
+     * so we just keep/affirm them as they are:
+     *     attr.va_atime
+     *     attr.va_ctime
+     *     attr.va_gen
+     *     attr.va_type
+     *     attr.va_filerev
+     */
+
+    /* attempt setattr */
+    conn->u.u_uid = fm->root->userid;
+    conn->setattr(&fm->cnode, &attr);
+    if (conn->u.u_error) {
+      /* Unimplemented: 9p Wstat is supposed to be an all-or-nothing operation,
+       * so we should really revert a previous rename if it was successful.
+       */
+      strerr = VenusRetStr(conn->u.u_error);
+      goto Send_Rwstat;
+    }
+
+
+Send_Rwstat:
     ::free(stat.muid);
     ::free(stat.gid);
     ::free(stat.uid);
     ::free(stat.name);
 
+    if (strerr != NULL)
+      return send_error(tag, strerr);
+
     /* send_Rwstat */
     DEBUG("9pfs: Rwstat[%x]\n", tag);
 
     buf = buffer; len = max_msize;
-    rc = pack_header(&buf, &len, Rwstat, tag);
+    int rc = pack_header(&buf, &len, Rwstat, tag);
     assert(rc == 0);
     return send_response(buffer, max_msize - len);
 }
