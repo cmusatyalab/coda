@@ -86,7 +86,7 @@ struct sftpStats sftp_Recvd, sftp_MRecvd;
 static int CheckWorried(struct SFTP_Entry *sEntry);
 static int ResendWorried(struct SFTP_Entry *sEntry);
 static int SendSendAhead(struct SFTP_Entry *sEntry);
-static int SendFirstUnacked(struct SFTP_Entry *sEntry);
+static int SendFirstUnacked(struct SFTP_Entry *sEntry, int winopen);
 static int WinIsOpen(struct SFTP_Entry *sEntry);
 static void sftp_SendAck(struct SFTP_Entry *sEntry);
 static int sftp_vfwritev(struct SFTP_Entry *se, struct iovec *iovarray, long howMany);
@@ -298,8 +298,16 @@ int sftp_DataArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
 	sEntry->DupsSinceAck++;
 	sftp_Recvd.DataRetries++;
 
-	if (((pBuff->Header.Flags & SFTP_ACKME) && sEntry->WhoAmI == SFCLIENT)
-	    || sEntry->DupsSinceAck > sEntry->DupThreshold)
+        /* If we are the (passive) server side of the transfer, and we get
+         * either an ACKME or have seen too many retransmitted data packets,
+         * we assume our ACKs may have gotten lost. Send an ACK back so that
+         * the sender may advance its window.
+         * If we are the server we only want to respond with an ACK if we
+         * were able to advance the window, we will timeout and retransmit
+         * an ACK if necessary. -JH */
+	if (sEntry->WhoAmI == SFSERVER &&
+            ((pBuff->Header.Flags & SFTP_ACKME) ||
+             sEntry->DupsSinceAck > sEntry->DupThreshold))
 	{
 	    sftp_SendAck(sEntry);
 	    /* we need write here 'cause we may not flush buffers otherwise */
@@ -371,8 +379,9 @@ int sftp_DataArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
     /* we haven't sent an ack for a while, but did see a lot of data packets
      * flying by? Send a gratitious ack reply */
     if ((pBuff->Header.Flags & SFTP_ACKME) ||
-	(sEntry->RecvSinceAck >= sEntry->WindowSize)) {
-
+	(sEntry->WhoAmI == SFSERVER &&
+         sEntry->RecvSinceAck >= sEntry->WindowSize))
+    {
 	sftp_SendAck(sEntry);
 
 	/* WriteStrategy may modify RecvLastContig and RecvTheseBits */
@@ -735,9 +744,9 @@ int sftp_SendStrategy(struct SFTP_Entry *sEntry)
      * SendLastContig+1.  */
     if (!winopen)
     {
-	/* Window is closed: try to send any worried packets */
+	/* Window is closed: try to send the oldest worried packet */
 	sftp_windowfulls++;
-	return ResendWorried(sEntry);
+	return SendFirstUnacked(sEntry, 0);
     }
 
     /* Window is open: be more ambitious */
@@ -747,7 +756,7 @@ int sftp_SendStrategy(struct SFTP_Entry *sEntry)
 	 * unacknowledged packet in the worried set. If that doesn't fix
 	 * it, we will hit the end of the send window, and start sending
 	 * the complete worried set anyways. -JH */
-	if (worried && SendFirstUnacked(sEntry) < 0)
+	if (worried && SendFirstUnacked(sEntry, 1) < 0)
 	    return(-1);
 
 	return SendSendAhead(sEntry); /* may close window */
@@ -877,7 +886,7 @@ static int ResendWorried(struct SFTP_Entry *sEntry)
     return(0);
 }
 
-static int SendFirstUnacked(struct SFTP_Entry *sEntry)
+static int SendFirstUnacked(struct SFTP_Entry *sEntry, int winopen)
 {
     /* Note: it's better to resend the first unacked rather than last
        unacked, because it will narrow the window faster than the
@@ -891,8 +900,12 @@ static int SendFirstUnacked(struct SFTP_Entry *sEntry)
 
     /* Resend it */
     pb->Header.Flags = ntohl(pb->Header.Flags);
-    if (pb->Header.Flags & SFTP_ACKME) sftp_ackslost++;
-    pb->Header.Flags &= ~(SFTP_ACKME);
+    if (winopen) { /* expecting to send more to advance the window */
+        if (pb->Header.Flags & SFTP_ACKME) sftp_ackslost++;
+        pb->Header.Flags &= ~(SFTP_ACKME);
+    } else { /* resending only a single packet (to reduce queueing) */
+        pb->Header.Flags |= SFTP_ACKME;
+    }
     pb->Header.Flags |= RPC2_RETRY;
     pb->Header.SEFlags = ntohl(pb->Header.SEFlags);
     pb->Header.SEFlags |= SFTP_FIRST;
