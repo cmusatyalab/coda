@@ -558,6 +558,13 @@ int sftp_AckArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
     if (prun < 0)   /* Out-of-sequence Ack, probably */
 	return(0);
 
+    /* duplicate ack arrived, if we are the active side of the connection
+     * this means we were too eager and sent unnecessary duplicate data.
+     * Don't make things worse, we already sent data when we got the ack
+     * the first time. */
+    if (prun == 0 && sEntry->WhoAmI == SFCLIENT)
+        return 0;
+
     if (prun > sEntry->SendMostRecent - sEntry->SendLastContig)
 	{ BOGOSITY(sEntry, pBuff); return(-1); }
 
