@@ -1,3 +1,17 @@
+New in 2.22
+
+* In SFTP (the bulk/file transport layer for RPC2), packets that didn't
+  arrive when they were expected were assumed to be lost and retransmitted.
+  These retransmissions were too agressive for a non-lossy link, such as the
+  reliable, ordered delivery we get from a TCP tunnel. A few retransmissions
+  early in a transfer added up to sending data packets multiple times during
+  a fetch operation, and could even lead to an exponential increase when
+  pushing to the server. Now we strategically ignore specific (duplicate)
+  acknowledgements to avoid falling into these degenerate cases.
+* Improve error checking and handling of allocation failures in codatunneld.
+* Queue received SFTP packets between the socket listener and the server LWP
+  that drives the transfer to avoid unnecessary dropping of received packets.
+
 New in 2.21
 
 * Fix for passing wrong peer address length when accepting new TCP tunnel
