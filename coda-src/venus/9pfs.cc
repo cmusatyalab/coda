@@ -1199,6 +1199,7 @@ int plan9server::recv_wstat(unsigned char *buf, size_t len, uint16_t tag)
     struct plan9_stat stat;
     struct coda_vattr attr;
     const char *strerr = NULL;
+    int rc;
 
     if (unpack_le32(&buf, &len, &fid) ||
         unpack_le16(&buf, &len, &statlen) ||
@@ -1207,7 +1208,6 @@ int plan9server::recv_wstat(unsigned char *buf, size_t len, uint16_t tag)
     /* unpacked fields are freed before returning, at Send_Rwstat: */
 
     DEBUG("9pfs: Twstat[%x] fid %u, statlen %u\n", tag, fid, statlen);
-
     DEBUG("\
            type:         %u (should be UINT16_MAX)\n \
            dev:          %u (should be UINT32_MAX)\n \
@@ -1230,8 +1230,8 @@ int plan9server::recv_wstat(unsigned char *buf, size_t len, uint16_t tag)
     struct fidmap *fm;
     fm = find_fid(fid);
     if (!fm) {
-      strerr = "fid unknown or out of range";
-      goto Send_Rwstat;
+        strerr = "fid unknown or out of range";
+        goto err_out;
     }
 
     /* modifications allowed for wstat:
@@ -1257,18 +1257,19 @@ int plan9server::recv_wstat(unsigned char *buf, size_t len, uint16_t tag)
       || stat.qid.version != P9_DONT_TOUCH_QID_VERS
       || stat.qid.path != P9_DONT_TOUCH_QID_PATH
       || strcmp(stat.uid, P9_DONT_TOUCH_UID) != 0
-      ) {
+      )
+    {
         strerr = "Twstat tried to modify stat field illegally";
-        goto Send_Rwstat;
-      }
+        goto err_out;
+    }
 
 
     /* retrieve the current file attributes from Venus */
     conn->u.u_uid = fm->root->userid;
     conn->getattr(&fm->cnode, &attr);
     if (conn->u.u_error) {
-      strerr = VenusRetStr(conn->u.u_error);
-      goto Send_Rwstat;
+        strerr = VenusRetStr(conn->u.u_error);
+        goto err_out;
     }
 
     /* if wstat involves a rename */
@@ -1276,17 +1277,20 @@ int plan9server::recv_wstat(unsigned char *buf, size_t len, uint16_t tag)
       /* get current name */
       char name[NAME_MAX];
       cnode_getname(&fm->cnode, name);
+
       /* Find the parent directory cnode */
       struct venus_cnode parent_cnode;
-      if (cnode_getparent(&fm->cnode, &parent_cnode) < 0)
-          return send_error(tag, "tried to rename the mountpoint");
+      if (cnode_getparent(&fm->cnode, &parent_cnode) < 0) {
+          strerr = "tried to rename the mountpoint";
+          goto err_out;
+      }
 
       /* attempt rename */
       conn->u.u_uid = fm->root->userid;
       conn->rename(&parent_cnode, name,&parent_cnode, stat.name);
       if (conn->u.u_error) {
-        strerr = VenusRetStr(conn->u.u_error);
-        goto Send_Rwstat;
+          strerr = VenusRetStr(conn->u.u_error);
+          goto err_out;
       }
       DEBUG("renamed %s to %s\n", name, stat.name);
     }
@@ -1333,27 +1337,29 @@ int plan9server::recv_wstat(unsigned char *buf, size_t len, uint16_t tag)
     conn->u.u_uid = fm->root->userid;
     conn->setattr(&fm->cnode, &attr);
     if (conn->u.u_error) {
-      strerr = VenusRetStr(conn->u.u_error);
-      goto Send_Rwstat;
+        strerr = VenusRetStr(conn->u.u_error);
+        goto err_out;
     }
 
-
-Send_Rwstat:
     ::free(stat.muid);
     ::free(stat.gid);
     ::free(stat.uid);
     ::free(stat.name);
 
-    if (strerr != NULL)
-      return send_error(tag, strerr);
-
     /* send_Rwstat */
     DEBUG("9pfs: Rwstat[%x]\n", tag);
 
     buf = buffer; len = max_msize;
-    int rc = pack_header(&buf, &len, Rwstat, tag);
+    rc = pack_header(&buf, &len, Rwstat, tag);
     assert(rc == 0);
     return send_response(buffer, max_msize - len);
+
+err_out:
+    ::free(stat.muid);
+    ::free(stat.gid);
+    ::free(stat.uid);
+    ::free(stat.name);
+    return send_error(tag, strerr);
 }
 
 
