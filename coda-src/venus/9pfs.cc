@@ -1555,6 +1555,38 @@ int plan9server::plan9_stat(struct venus_cnode *cnode, struct attachment *root,
 }
 
 
+/*
+ * Obtains the file or directory name given a cnode, and places it in the
+ * location pointed to by name.
+ * Coda's getattr doesn't return the path component because it supports
+ * hardlinks so there may be multiple valid names for the same file.
+ * 9pfs doesn't handle hardlinks so each file can maintain a unique name.
+ * Coda does track the last name used to lookup the object, so return that.
+ */
+int plan9server::cnode_name(struct venus_cnode *cnode, const char *name)
+{
+  char buf[NAME_MAX] = "???";
+  fsobj *f = FSDB->Find(&cnode->c_fid);
+  if (f) f->GetPath(buf, PATH_COMPONENT);
+  name = buf;
+  return 0;
+}
+
+
+/*
+ * Given a cnode, constructs the parent directory cnode in the cnode struct
+ * pointed to by parent.
+ */
+int plan9server::cnode_parent(struct venus_cnode *cnode,
+                              struct venus_cnode *parent)
+{
+  fsobj *f = FSDB->Find(&cnode->c_fid);
+  assert(f);
+  MAKE_CNODE2(*parent, f->pfid, C_VDIR);
+  return 0;
+}
+
+
 struct fidmap *plan9server::find_fid(uint32_t fid)
 {
     dlist_iterator next(fids);
