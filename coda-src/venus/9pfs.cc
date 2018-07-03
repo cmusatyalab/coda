@@ -56,7 +56,6 @@ struct attachment {
 struct fidmap {
     dlink link;
     uint32_t fid;
-    struct fidmap * parent_fm;
     struct venus_cnode cnode;
     int open_flags;
     struct attachment *root;
@@ -595,7 +594,7 @@ int plan9server::recv_attach(unsigned char *buf, size_t len, uint16_t tag)
     conn->u.u_uid = root->userid;
     conn->root(&root->cnode);
 
-    if (add_fid(fid, NULL, &root->cnode, root) == NULL) {
+    if (add_fid(fid, &root->cnode, root) == NULL) {
         ::free((void *)root->uname);
         ::free((void *)root->aname);
         delete root;
@@ -715,7 +714,7 @@ int plan9server::recv_walk(unsigned char *buf, size_t len, uint16_t tag)
         else if (find_fid(newfid))
             return send_error(tag, "fid already in use");
 
-        add_fid(newfid, fm, &current, fm->root);
+        add_fid(newfid, &current, fm->root);
     }
 
     /* send_Rwalk */
@@ -1115,23 +1114,10 @@ int plan9server::recv_remove(unsigned char *buf, size_t len, uint16_t tag)
     fsobj *f = FSDB->Find(&fm->cnode.c_fid);
         if (f) f->GetPath(name, PATH_COMPONENT);
 
-    /* Find the parent directory cnode
-     * We need to move back up the tree to get past the possible P9 fids
-     * that are duplicates of the current file.
-     */
-    struct fidmap * parent_fm, *current;
-    current = fm;
-    while(current != NULL) {
-      parent_fm = current->parent_fm;
-      /* check that we aren't trying to remove the root */
-      if (parent_fm == NULL)
-        return send_error(tag, "tried to remove root");
-      /* if we found a parent, break out of the loop */
-      if (!FID_EQ(&parent_fm->cnode.c_fid, &fm->cnode.c_fid )) break;
-      else current = parent_fm;
-    }
-
-    struct venus_cnode parent_cnode = parent_fm->cnode;
+    /* Find the parent directory cnode */
+    struct venus_cnode parent_cnode;
+    if (cnode_parent(&fm->cnode, &parent_cnode) < 0)
+        return send_error(tag, "tried to remove the mountpoint");
 
     conn->u.u_uid = fm->root->userid;
     if (fm->cnode.c_type == C_VDIR) {
@@ -1296,22 +1282,10 @@ int plan9server::recv_wstat(unsigned char *buf, size_t len, uint16_t tag)
       char name[NAME_MAX] = "???";
       fsobj *f = FSDB->Find(&fm->cnode.c_fid);
           if (f) f->GetPath(name, PATH_COMPONENT);
-      /* Find the parent directory cnode
-       * We need to move back up the tree to get past the possible P9 fids
-       * that are duplicates of the current file.
-       */
-      struct fidmap * parent_fm, *current;
-      current = fm;
-      while(current != NULL) {
-        parent_fm = current->parent_fm;
-        /* check that we aren't trying to remove the root */
-        if (parent_fm == NULL)
-          return send_error(tag, "tried to remove root");
-        /* if we found a parent, break out of the loop */
-        if (!FID_EQ(&parent_fm->cnode.c_fid, &fm->cnode.c_fid )) break;
-        else current = parent_fm;
-      }
-      struct venus_cnode parent_cnode = parent_fm->cnode;
+      /* Find the parent directory cnode */
+      struct venus_cnode parent_cnode;
+      if (cnode_parent(&fm->cnode, &parent_cnode) < 0)
+          return send_error(tag, "tried to rename the mountpoint");
 
       /* attempt rename */
       conn->u.u_uid = fm->root->userid;
@@ -1582,6 +1556,7 @@ int plan9server::cnode_parent(struct venus_cnode *cnode,
 {
   fsobj *f = FSDB->Find(&cnode->c_fid);
   assert(f);
+  if (f->IsMtPt()) return -1;  /* cnode was the mount point */
   MAKE_CNODE2(*parent, f->pfid, C_VDIR);
   return 0;
 }
@@ -1602,15 +1577,14 @@ struct fidmap *plan9server::find_fid(uint32_t fid)
 }
 
 
-struct fidmap *plan9server::add_fid(uint32_t fid, struct fidmap * parent_fm,
-                            struct venus_cnode *cnode, struct attachment *root)
+struct fidmap *plan9server::add_fid(uint32_t fid, struct venus_cnode *cnode,
+                                    struct attachment *root)
 {
     struct fidmap *fm = new struct fidmap;
     if (!fm) return NULL;
 
     root->refcount++;
     fm->fid = fid;
-    fm->parent_fm = parent_fm;
     fm->cnode = *cnode;
     fm->open_flags = 0;
     fm->root = root;
