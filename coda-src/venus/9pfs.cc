@@ -56,7 +56,6 @@ struct attachment {
 struct fidmap {
     dlink link;
     uint32_t fid;
-    struct fidmap * parent_fm;
     struct venus_cnode cnode;
     int open_flags;
     struct attachment *root;
@@ -595,7 +594,7 @@ int plan9server::recv_attach(unsigned char *buf, size_t len, uint16_t tag)
     conn->u.u_uid = root->userid;
     conn->root(&root->cnode);
 
-    if (add_fid(fid, NULL, &root->cnode, root) == NULL) {
+    if (add_fid(fid, &root->cnode, root) == NULL) {
         ::free((void *)root->uname);
         ::free((void *)root->aname);
         delete root;
@@ -715,7 +714,7 @@ int plan9server::recv_walk(unsigned char *buf, size_t len, uint16_t tag)
         else if (find_fid(newfid))
             return send_error(tag, "fid already in use");
 
-        add_fid(newfid, fm, &current, fm->root);
+        add_fid(newfid, &current, fm->root);
     }
 
     /* send_Rwalk */
@@ -908,12 +907,12 @@ int plan9server::recv_create(unsigned char *buf, size_t len, uint16_t tag)
 
     conn->u.u_uid = fm->root->userid;
 
-    if (perm & P9_DMDIR) {
+    if (perm & (P9_QTDIR << 24)) {
       /* create a directory */
       conn->mkdir(&fm->cnode, name, &va, &child);
     }
     else {
-      /* create a regular file */ 
+      /* create a regular file */
       conn->create(&fm->cnode, name, &va, excl, flags, &child);
     }
 
@@ -1107,31 +1106,13 @@ int plan9server::recv_remove(unsigned char *buf, size_t len, uint16_t tag)
         return send_error(tag, "fid unknown or out of range");
 
     /* find the filename */
-    char name[NAME_MAX] = "???";
-    /* Coda supports hardlinks so there may be multiple valid names for the
-     * same file. 9pfs doesn't handle hardlinks so each file can maintain
-     * a unique name. Coda does track the last name used to lookup the object,
-     * so return that. */
-    fsobj *f = FSDB->Find(&fm->cnode.c_fid);
-        if (f) f->GetPath(name, PATH_COMPONENT);
+    char name[NAME_MAX];
+    cnode_getname(&fm->cnode, name);
 
-    /* Find the parent directory cnode
-     * We need to move back up the tree to get past the possible P9 fids
-     * that are duplicates of the current file.
-     */
-    struct fidmap * parent_fm, *current;
-    current = fm;
-    while(current != NULL) {
-      parent_fm = current->parent_fm;
-      /* check that we aren't trying to remove the root */
-      if (parent_fm == NULL)
-        return send_error(tag, "tried to remove root");
-      /* if we found a parent, break out of the loop */
-      if (!FID_EQ(&parent_fm->cnode.c_fid, &fm->cnode.c_fid )) break;
-      else current = parent_fm;
-    }
-
-    struct venus_cnode parent_cnode = parent_fm->cnode;
+    /* Find the parent directory cnode */
+    struct venus_cnode parent_cnode;
+    if (cnode_getparent(&fm->cnode, &parent_cnode) < 0)
+        return send_error(tag, "tried to remove the mountpoint");
 
     conn->u.u_uid = fm->root->userid;
     if (fm->cnode.c_type == C_VDIR) {
@@ -1208,30 +1189,169 @@ int plan9server::recv_stat(unsigned char *buf, size_t len, uint16_t tag)
 }
 
 
+/*
+ * @Unimplemented: setting gid
+ */
 int plan9server::recv_wstat(unsigned char *buf, size_t len, uint16_t tag)
 {
     uint32_t fid;
     uint16_t statlen;
     struct plan9_stat stat;
-    int rc;
+    struct coda_vattr attr;
+    const char *strerr = NULL;
 
     if (unpack_le32(&buf, &len, &fid) ||
         unpack_le16(&buf, &len, &statlen) ||
         unpack_stat(&buf, &len, &stat))
         return -1;
+    /* unpacked fields are freed before returning, at Send_Rwstat: */
 
     DEBUG("9pfs: Twstat[%x] fid %u, statlen %u\n", tag, fid, statlen);
 
+    DEBUG("\
+           type:         %u (should be UINT16_MAX)\n \
+           dev:          %u (should be UINT32_MAX)\n \
+           qid.type:     %u (should be UINT8_MAX)\n \
+           qid.version:  %u (should be UINT32_MAX)\n \
+           qid.path:     %lu (should be UINT64_MAX)\n \
+           mode:         %o \n \
+           atime:        %u \n \
+           mtime:        %u \n \
+           length:       %lu \n \
+           name:        '%s'\n \
+           uid:         '%s'(should be empty string)\n \
+           gid:         '%s' \n \
+           muid:        '%s' \n",
+          stat.type, stat.dev, stat.qid.type, stat.qid.version,stat.qid.path,
+          stat.mode, stat.atime, stat.mtime, stat.length, stat.name, stat.uid,
+          stat.gid, stat.muid
+         );
+
+    struct fidmap *fm;
+    fm = find_fid(fid);
+    if (!fm) {
+      strerr = "fid unknown or out of range";
+      goto Send_Rwstat;
+    }
+
+    /* modifications allowed for wstat:
+      struct plan9_stat {
+          uint16_t          type;    - illegal
+          uint32_t          dev;     - illegal
+          struct plan9_qid  qid;     - illegal
+          uint32_t          mode;    - allowed by owner or group leader,
+          uint32_t          atime;   - auto                     except dir bit
+          uint32_t          mtime;   - allowed by owner or group leader
+          uint64_t          length;  - allowed if write perm, not for dirs
+          char *            name;    - allowed if write perm on parent dir
+          char *            uid;     - illegal
+          char *            gid;     - Unimplemented - allowed by owner or
+          char *            muid;    - auto      or group leader, if in new gid
+      };
+    */
+
+    /* check for illegal modifcations */
+    if ( stat.type != P9_DONT_TOUCH_TYPE
+      || stat.dev != P9_DONT_TOUCH_DEV
+      || stat.qid.type != P9_DONT_TOUCH_QID_TYPE
+      || stat.qid.version != P9_DONT_TOUCH_QID_VERS
+      || stat.qid.path != P9_DONT_TOUCH_QID_PATH
+      || strcmp(stat.uid, P9_DONT_TOUCH_UID) != 0
+      ) {
+        strerr = "Twstat tried to modify stat field illegally";
+        goto Send_Rwstat;
+      }
+
+
+    /* retrieve the current file attributes from Venus */
+    conn->u.u_uid = fm->root->userid;
+    conn->getattr(&fm->cnode, &attr);
+    if (conn->u.u_error) {
+      strerr = VenusRetStr(conn->u.u_error);
+      goto Send_Rwstat;
+    }
+
+    /* if wstat involves a rename */
+    if (strcmp(stat.name, P9_DONT_TOUCH_NAME) != 0) {
+      /* get current name */
+      char name[NAME_MAX];
+      cnode_getname(&fm->cnode, name);
+      /* Find the parent directory cnode */
+      struct venus_cnode parent_cnode;
+      if (cnode_getparent(&fm->cnode, &parent_cnode) < 0)
+          return send_error(tag, "tried to rename the mountpoint");
+
+      /* attempt rename */
+      conn->u.u_uid = fm->root->userid;
+      conn->rename(&parent_cnode, name,&parent_cnode, stat.name);
+      if (conn->u.u_error) {
+        strerr = VenusRetStr(conn->u.u_error);
+        goto Send_Rwstat;
+      }
+      DEBUG("renamed %s to %s\n", name, stat.name);
+    }
+
+    /* Update attr with the new stats to be written.
+     * If all wstat fields were "don't touch", then according to 9P protocol,
+     * the server can interpret this wstat as a request to guarantee that
+     * the contents of the associated file are committed to stable storage
+     * before the Rwstat message is returned (i.e. "make the state of the
+     * file exactly what it claims to be.""), which we do by confirming at
+     * least the uid in the setattr() call.
+     */
+
+    /* must be set to IGNORE or will trigger error in vproc::setattr() */
+    attr.va_fileid = VA_IGNORE_ID;
+    attr.va_nlink = VA_IGNORE_NLINK;
+    attr.va_blocksize = VA_IGNORE_BLOCKSIZE;
+    attr.va_flags = VA_IGNORE_FLAGS;
+    attr.va_rdev = VA_IGNORE_RDEV;
+    attr.va_bytes = VA_IGNORE_STORAGE;
+
+    /* vproc::setattr() requires at least one of the following to be set */
+    attr.va_uid = attr.va_uid;  /* keep/affirm this value */
+    attr.va_mode = (stat.mode == P9_DONT_TOUCH_MODE) ?
+                VA_IGNORE_MODE : stat.mode & 0777;
+    attr.va_size = (stat.length == P9_DONT_TOUCH_LENGTH) ?
+               VA_IGNORE_SIZE : stat.length;	  /* does this work? */
+    attr.va_gid = (strcmp(stat.gid, P9_DONT_TOUCH_GID) == 0) ?
+               VA_IGNORE_GID : VA_IGNORE_GID;	  /* Unimplemented */
+    attr.va_mtime.tv_sec = (stat.mtime == P9_DONT_TOUCH_MTIME) ?
+                VA_IGNORE_TIME1 : stat.mtime;
+                                    /* rest of va_mtime is kept as-is */
+
+    /* vproc::setattr() doesn't document what to do with the remaining
+     * so we just keep/affirm them as they are:
+     *     attr.va_atime
+     *     attr.va_ctime
+     *     attr.va_gen
+     *     attr.va_type
+     *     attr.va_filerev
+     */
+
+    /* attempt setattr */
+    conn->u.u_uid = fm->root->userid;
+    conn->setattr(&fm->cnode, &attr);
+    if (conn->u.u_error) {
+      strerr = VenusRetStr(conn->u.u_error);
+      goto Send_Rwstat;
+    }
+
+
+Send_Rwstat:
     ::free(stat.muid);
     ::free(stat.gid);
     ::free(stat.uid);
     ::free(stat.name);
 
+    if (strerr != NULL)
+      return send_error(tag, strerr);
+
     /* send_Rwstat */
     DEBUG("9pfs: Rwstat[%x]\n", tag);
 
     buf = buffer; len = max_msize;
-    rc = pack_header(&buf, &len, Rwstat, tag);
+    int rc = pack_header(&buf, &len, Rwstat, tag);
     assert(rc == 0);
     return send_response(buffer, max_msize - len);
 }
@@ -1362,16 +1482,11 @@ int plan9server::plan9_stat(struct venus_cnode *cnode, struct attachment *root,
                             struct plan9_stat *stat, const char *name)
 {
     struct coda_vattr attr;
-    char buf[NAME_MAX] = "???";
 
-    /* Coda's getattr doesn't return the path component because it supports
-     * hardlinks so there may be multiple valid names for the same file. 9pfs
-     * doesn't handle hardlinks so each file can maintain a unique name. Coda
-     * does track the last name used to lookup the object, so return that. */
     if (!name) {
-        fsobj *f = FSDB->Find(&cnode->c_fid);
-        if (f) f->GetPath(buf, PATH_COMPONENT);
-        name = buf;
+      char buf[NAME_MAX];
+      cnode_getname(cnode, buf);
+      name = buf;
     }
 
     /* first fill in a mostly ok stat block, in case getattr fails */
@@ -1395,11 +1510,45 @@ int plan9server::plan9_stat(struct venus_cnode *cnode, struct attachment *root,
         return -1;
 
     //stat->mode |= (attr.va_mode & (S_IRWXU|S_IRWXG|S_IRWXO));
-    stat->mode |= (stat->qid.type == P9_QTDIR) ? 0777 : 0666;
+    stat->mode |= (stat->qid.type == P9_QTDIR || attr.va_mode & S_IXUSR) ?
+                  0777 : 0666;
     stat->atime = attr.va_atime.tv_sec;
     stat->mtime = attr.va_mtime.tv_sec;
     stat->length = (stat->qid.type == P9_QTDIR) ? 0 : attr.va_size;
     return 0;
+}
+
+
+/*
+ * Obtains the file or directory name given a cnode, and places it in the
+ * location pointed to by name.
+ * Coda's getattr doesn't return the path component because it supports
+ * hardlinks so there may be multiple valid names for the same file.
+ * 9pfs doesn't handle hardlinks so each file can maintain a unique name.
+ * Coda does track the last name used to lookup the object, so return that.
+ */
+int plan9server::cnode_getname(struct venus_cnode *cnode, char *name)
+{
+  char buf[NAME_MAX] = "???";
+  fsobj *f = FSDB->Find(&cnode->c_fid);
+  if (f) f->GetPath(buf, PATH_COMPONENT);
+  strcpy(name,buf);
+  return 0;
+}
+
+
+/*
+ * Given a cnode, constructs the parent directory cnode in the cnode struct
+ * pointed to by parent.
+ */
+int plan9server::cnode_getparent(struct venus_cnode *cnode,
+                              struct venus_cnode *parent)
+{
+  fsobj *f = FSDB->Find(&cnode->c_fid);
+  assert(f);
+  if (f->IsMtPt()) return -1;  /* cnode was the mount point */
+  MAKE_CNODE2(*parent, f->pfid, C_VDIR);
+  return 0;
 }
 
 
@@ -1418,15 +1567,14 @@ struct fidmap *plan9server::find_fid(uint32_t fid)
 }
 
 
-struct fidmap *plan9server::add_fid(uint32_t fid, struct fidmap * parent_fm,
-                            struct venus_cnode *cnode, struct attachment *root)
+struct fidmap *plan9server::add_fid(uint32_t fid, struct venus_cnode *cnode,
+                                    struct attachment *root)
 {
     struct fidmap *fm = new struct fidmap;
     if (!fm) return NULL;
 
     root->refcount++;
     fm->fid = fid;
-    fm->parent_fm = parent_fm;
     fm->cnode = *cnode;
     fm->open_flags = 0;
     fm->root = root;
