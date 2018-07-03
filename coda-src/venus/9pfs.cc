@@ -1209,9 +1209,7 @@ int plan9server::recv_stat(unsigned char *buf, size_t len, uint16_t tag)
 
 
 /*
- * @Unimplemented:
- *      setting gid 
- *      atomicity
+ * @Unimplemented: setting gid
  */
 int plan9server::recv_wstat(unsigned char *buf, size_t len, uint16_t tag)
 {
@@ -1298,13 +1296,31 @@ int plan9server::recv_wstat(unsigned char *buf, size_t len, uint16_t tag)
       char name[NAME_MAX] = "???";
       fsobj *f = FSDB->Find(&fm->cnode.c_fid);
           if (f) f->GetPath(name, PATH_COMPONENT);
+      /* Find the parent directory cnode
+       * We need to move back up the tree to get past the possible P9 fids
+       * that are duplicates of the current file.
+       */
+      struct fidmap * parent_fm, *current;
+      current = fm;
+      while(current != NULL) {
+        parent_fm = current->parent_fm;
+        /* check that we aren't trying to remove the root */
+        if (parent_fm == NULL)
+          return send_error(tag, "tried to remove root");
+        /* if we found a parent, break out of the loop */
+        if (!FID_EQ(&parent_fm->cnode.c_fid, &fm->cnode.c_fid )) break;
+        else current = parent_fm;
+      }
+      struct venus_cnode parent_cnode = parent_fm->cnode;
+
       /* attempt rename */
       conn->u.u_uid = fm->root->userid;
-      conn->rename(&fm->cnode, name, &fm->cnode, stat.name);
+      conn->rename(&parent_cnode, name,&parent_cnode, stat.name);
       if (conn->u.u_error) {
         strerr = VenusRetStr(conn->u.u_error);
         goto Send_Rwstat;
       }
+      DEBUG("renamed %s to %s\n", name, stat.name);
     }
 
     /* Update attr with the new stats to be written.
@@ -1349,9 +1365,6 @@ int plan9server::recv_wstat(unsigned char *buf, size_t len, uint16_t tag)
     conn->u.u_uid = fm->root->userid;
     conn->setattr(&fm->cnode, &attr);
     if (conn->u.u_error) {
-      /* Unimplemented: 9p Wstat is supposed to be an all-or-nothing operation,
-       * so we should really revert a previous rename if it was successful.
-       */
       strerr = VenusRetStr(conn->u.u_error);
       goto Send_Rwstat;
     }
