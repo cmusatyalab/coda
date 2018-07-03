@@ -1106,17 +1106,12 @@ int plan9server::recv_remove(unsigned char *buf, size_t len, uint16_t tag)
         return send_error(tag, "fid unknown or out of range");
 
     /* find the filename */
-    char name[NAME_MAX] = "???";
-    /* Coda supports hardlinks so there may be multiple valid names for the
-     * same file. 9pfs doesn't handle hardlinks so each file can maintain
-     * a unique name. Coda does track the last name used to lookup the object,
-     * so return that. */
-    fsobj *f = FSDB->Find(&fm->cnode.c_fid);
-        if (f) f->GetPath(name, PATH_COMPONENT);
+    char name[NAME_MAX];
+    cnode_getname(&fm->cnode, name);
 
     /* Find the parent directory cnode */
     struct venus_cnode parent_cnode;
-    if (cnode_parent(&fm->cnode, &parent_cnode) < 0)
+    if (cnode_getparent(&fm->cnode, &parent_cnode) < 0)
         return send_error(tag, "tried to remove the mountpoint");
 
     conn->u.u_uid = fm->root->userid;
@@ -1218,11 +1213,11 @@ int plan9server::recv_wstat(unsigned char *buf, size_t len, uint16_t tag)
            dev:          %u (should be UINT32_MAX)\n \
            qid.type:     %u (should be UINT8_MAX)\n \
            qid.version:  %u (should be UINT32_MAX)\n \
-           qid.path:     %u (should be UINT64_MAX)\n \
+           qid.path:     %lu (should be UINT64_MAX)\n \
            mode:         %o \n \
            atime:        %u \n \
            mtime:        %u \n \
-           length:       %u \n \
+           length:       %lu \n \
            name:        '%s'\n \
            uid:         '%s'(should be empty string)\n \
            gid:         '%s' \n \
@@ -1279,12 +1274,11 @@ int plan9server::recv_wstat(unsigned char *buf, size_t len, uint16_t tag)
     /* if wstat involves a rename */
     if (strcmp(stat.name, P9_DONT_TOUCH_NAME) != 0) {
       /* get current name */
-      char name[NAME_MAX] = "???";
-      fsobj *f = FSDB->Find(&fm->cnode.c_fid);
-          if (f) f->GetPath(name, PATH_COMPONENT);
+      char name[NAME_MAX];
+      cnode_getname(&fm->cnode, name);
       /* Find the parent directory cnode */
       struct venus_cnode parent_cnode;
-      if (cnode_parent(&fm->cnode, &parent_cnode) < 0)
+      if (cnode_getparent(&fm->cnode, &parent_cnode) < 0)
           return send_error(tag, "tried to rename the mountpoint");
 
       /* attempt rename */
@@ -1488,16 +1482,11 @@ int plan9server::plan9_stat(struct venus_cnode *cnode, struct attachment *root,
                             struct plan9_stat *stat, const char *name)
 {
     struct coda_vattr attr;
-    char buf[NAME_MAX] = "???";
 
-    /* Coda's getattr doesn't return the path component because it supports
-     * hardlinks so there may be multiple valid names for the same file. 9pfs
-     * doesn't handle hardlinks so each file can maintain a unique name. Coda
-     * does track the last name used to lookup the object, so return that. */
     if (!name) {
-        fsobj *f = FSDB->Find(&cnode->c_fid);
-        if (f) f->GetPath(buf, PATH_COMPONENT);
-        name = buf;
+      char buf[NAME_MAX];
+      cnode_getname(cnode, buf);
+      name = buf;
     }
 
     /* first fill in a mostly ok stat block, in case getattr fails */
@@ -1537,12 +1526,12 @@ int plan9server::plan9_stat(struct venus_cnode *cnode, struct attachment *root,
  * 9pfs doesn't handle hardlinks so each file can maintain a unique name.
  * Coda does track the last name used to lookup the object, so return that.
  */
-int plan9server::cnode_name(struct venus_cnode *cnode, const char *name)
+int plan9server::cnode_getname(struct venus_cnode *cnode, char *name)
 {
   char buf[NAME_MAX] = "???";
   fsobj *f = FSDB->Find(&cnode->c_fid);
   if (f) f->GetPath(buf, PATH_COMPONENT);
-  name = buf;
+  strcpy(name,buf);
   return 0;
 }
 
@@ -1551,7 +1540,7 @@ int plan9server::cnode_name(struct venus_cnode *cnode, const char *name)
  * Given a cnode, constructs the parent directory cnode in the cnode struct
  * pointed to by parent.
  */
-int plan9server::cnode_parent(struct venus_cnode *cnode,
+int plan9server::cnode_getparent(struct venus_cnode *cnode,
                               struct venus_cnode *parent)
 {
   fsobj *f = FSDB->Find(&cnode->c_fid);
