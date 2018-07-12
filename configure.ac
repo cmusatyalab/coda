@@ -131,7 +131,11 @@ dnl Checks for library functions.
 AC_CHECK_FUNCS(inet_aton inet_ntoa res_search pread fseeko nmount)
 AC_CHECK_FUNCS(select setenv snprintf statfs strerror strtol)
 AC_CHECK_FUNCS(getpeereid getpeerucred backtrace __res_search)
-AC_FUNC_MMAP
+
+dnl AC_FUNC_MMAP checks if mmap exists and works, but that fails
+dnl when we run configure on file systems that do not support mmap
+AC_CHECK_FUNCS(mmap)
+
 AC_FUNC_SELECT_ARGTYPES
 CODA_CHECK_FILE_LOCKING
 

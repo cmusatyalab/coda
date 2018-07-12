@@ -50,7 +50,11 @@ CODA_CC_FEATURE_TEST(Wall)
 
 dnl Checks for library functions.
 AC_CHECK_FUNCS(sigaltstack)
-AC_FUNC_MMAP
+
+dnl AC_FUNC_MMAP checks if mmap exists and works, but that fails
+dnl when we run configure on file systems that do not support mmap
+AC_CHECK_FUNCS(mmap)
+
 
 dnl Build conditionals.
 AM_CONDITIONAL(build_pthread, test "$includepthread" != "no" -a "x$LIBPTHREAD" != x)
