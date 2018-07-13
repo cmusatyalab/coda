@@ -290,6 +290,9 @@ struct coda_statfs {
 #define CODA_NCALLS 37
 
 #define DOWNCALL(opcode) (opcode >= CODA_REPLACE && opcode <= CODA_PURGEFID)
+#define UPCALL(opcode) (opcode >= CODA_ROOT && \
+                        opcode <= CODA_NCALLS && \
+                        !DOWNCALL(opcode))
 
 #define VC_MAXDATASIZE	    8192
 #define VC_MAXMSGSIZE      sizeof(union inputArgs)+sizeof(union outputArgs) +\

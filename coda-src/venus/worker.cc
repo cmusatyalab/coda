@@ -1142,391 +1142,506 @@ void worker::Return(int code) {
     Return(msg, (int)sizeof (struct coda_out_hdr));
 }
 
-void worker::main(void)
+inline void worker::op_coda_access(union inputArgs *in, union outputArgs *out,
+  int *msg_size)
+{
+    struct venus_cnode vtarget;
+
+    LOG(100, ("CODA_ACCESS: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
+    MAKE_CNODE(vtarget, in->coda_access.Fid, 0);
+    access(&vtarget, in->coda_access.flags);
+}
+
+inline void worker::op_coda_close(union inputArgs *in, union outputArgs *out,
+  int *msg_size)
+{
+    struct venus_cnode vtarget;
+
+    LOG(100, ("CODA_CLOSE: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
+    MAKE_CNODE(vtarget, in->coda_close.Fid, 0);
+    close(&vtarget, in->coda_close.flags);
+}
+
+inline void worker::op_coda_create(union inputArgs *in, union outputArgs *out,
+  int *msg_size)
+{
+    struct venus_cnode vtarget;
+    struct venus_cnode vparent;
+
+    LOG(100, ("CODA_CREATE: u.u_pid = %d u.u_pgid = %d\n", u.u_pid,u.u_pgid));
+    MAKE_CNODE(vparent, in->coda_create.Fid, 0);
+    create(&vparent, (char *)in + (int)in->coda_create.name,
+         &in->coda_create.attr, in->coda_create.excl,
+         in->coda_create.mode, &vtarget);
+
+    if (u.u_error == 0) {
+        out->coda_create.Fid = *VenusToKernelFid(&vtarget.c_fid);
+        out->coda_create.attr = in->coda_create.attr;
+        *msg_size = (int)sizeof (struct coda_create_out);
+    }
+}
+
+inline void worker::op_coda_fsync(union inputArgs *in, union outputArgs *out,
+  int *msg_size)
+{
+    struct venus_cnode vtarget;
+
+    LOG(100, ("CODA_FSYNC: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
+    MAKE_CNODE(vtarget, in->coda_fsync.Fid, 0);
+}
+
+inline void worker::op_coda_getattr(union inputArgs *in, union outputArgs *out,
+  int *msg_size) {
+    struct venus_cnode vtarget;
+
+    LOG(100, ("CODA_GETATTR: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
+    MAKE_CNODE(vtarget, in->coda_getattr.Fid, 0);
+    va_init(&out->coda_getattr.attr);
+    getattr(&vtarget, &out->coda_getattr.attr);
+    *msg_size = sizeof(struct coda_getattr_out);
+}
+
+inline void worker::op_coda_ioctl(union inputArgs *in, union outputArgs *out,
+  int *msg_size)
+{
+    struct venus_cnode vtarget;
+    char outbuf[VC_MAXDATASIZE];
+    struct ViceIoctl data;
+    int cmd = in->coda_ioctl.cmd;
+    unsigned char type = _IOC_TYPE(cmd);
+    unsigned long nr = _IOC_NR(cmd);
+
+    data.in = (char *)in + (intptr_t)in->coda_ioctl.data;
+    data.in_size = 0;
+    data.out = outbuf;	/* Can't risk overcopying. Sigh. -dcs */
+    data.out_size =	0;
+
+    LOG(100, ("CODA_IOCTL: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
+
+    if (type != 'V') {
+        u.u_error = EOPNOTSUPP;
+        out->coda_ioctl.data = (char *)sizeof(struct coda_ioctl_out);
+        out->coda_ioctl.len = 0;
+        *msg_size = sizeof(struct coda_ioctl_out);
+        return;
+    }
+
+    if (nr == _VIOC_UNLOADKERNEL) {
+        out->oh.result = 0;
+        out->coda_ioctl.data =
+        (char *)sizeof(struct coda_ioctl_out);
+        out->coda_ioctl.len = 0;
+        /* we have to Resign here because we will exit before
+         * leaving the switch */
+        Resign(msg, sizeof(struct coda_ioctl_out));
+
+        LOG(0, ("TERM: Venus exiting\n"));
+        RecovFlush(1);
+        RecovTerminate();
+        VFSUnmount();
+        fflush(logFile);
+        fflush(stderr);
+
+        exit(EXIT_SUCCESS);
+    }
+
+    if (nr == _VIOCPREFETCH)
+        worker::nprefetchers++;
+
+    MAKE_CNODE(vtarget, in->coda_ioctl.Fid, 0);
+    data.in_size = in->coda_ioctl.len;
+
+    ioctl(&vtarget, nr, &data, in->coda_ioctl.rwflag);
+
+    out->coda_ioctl.len = data.out_size;
+    out->coda_ioctl.data = (char *)(sizeof (struct coda_ioctl_out));
+    memcpy((char *)out + (intptr_t)out->coda_ioctl.data, data.out,
+    data.out_size);
+
+    if (nr == _VIOCPREFETCH)
+        worker::nprefetchers--;
+
+    *msg_size = sizeof (struct coda_ioctl_out) + data.out_size;
+}
+
+inline void worker::op_coda_link(union inputArgs *in, union outputArgs *out,
+  int *msg_size)
 {
     struct venus_cnode vparent;
     struct venus_cnode vtarget;
+
+    LOG(100, ("CODA_LINK: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
+    /* target = linked object, parent = destination directory */
+    MAKE_CNODE(vtarget, in->coda_link.sourceFid, 0);
+    MAKE_CNODE(vparent, in->coda_link.destFid, 0);
+    link(&vtarget, &vparent, (char *)in + (int)in->coda_link.tname);
+}
+
+inline void worker::op_coda_lookup(union inputArgs *in, union outputArgs *out,
+  int *msg_size)
+{
+    struct venus_cnode vtarget;
+    struct venus_cnode vparent;
+
+    LOG(100, ("CODA_LOOKUP: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
+
+    MAKE_CNODE(vparent, in->coda_lookup.Fid, 0);
+    lookup(&vparent, (char *)in + (int)in->coda_lookup.name, &vtarget,
+         (int)in->coda_lookup.flags);
+
+    if (u.u_error == 0) {
+        out->coda_lookup.Fid = *VenusToKernelFid(&vtarget.c_fid);
+        out->coda_lookup.vtype = vtarget.c_type;
+        if (vtarget.c_type == C_VLNK && vtarget.c_flags & C_INCON)
+          out->coda_lookup.vtype |= CODA_NOCACHE;
+        *msg_size = sizeof (struct coda_lookup_out);
+    }
+}
+
+inline void worker::op_coda_mkdir(union inputArgs *in, union outputArgs *out,
+  int *msg_size)
+{
+    struct venus_cnode vparent;
+    struct venus_cnode vtarget;
+
+    LOG(100, ("CODA_MKDIR: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
+    MAKE_CNODE(vparent, in->coda_mkdir.Fid, 0);
+    mkdir(&vparent, (char *)in + (int)in->coda_mkdir.name,
+        &in->coda_mkdir.attr, &vtarget);
+
+    if (u.u_error == 0) {
+        out->coda_mkdir.Fid = *VenusToKernelFid(&vtarget.c_fid);
+        out->coda_mkdir.attr = in->coda_mkdir.attr;
+        *msg_size = sizeof (struct coda_mkdir_out);
+    }
+}
+
+inline void worker::op_coda_open(union inputArgs *in, union outputArgs *out,
+  int *msg_size, CodaFid *saveFid, int *saveFlags)
+{
+    struct venus_cnode vtarget;
+
+    LOG(100, ("CODA_OPEN: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
+
+    /* Remember some info for dealing with interrupted open calls */
+    *saveFid = in->coda_open.Fid;
+    *saveFlags = in->coda_open.flags;
+
+    MAKE_CNODE(vtarget, in->coda_open.Fid, 0);
+    open(&vtarget, in->coda_open.flags);
+
+    if (u.u_error == 0) {
+        struct stat tstat;
+        MarinerReport(&vtarget.c_fid, u.u_uid);
+        vtarget.c_cf->Stat(&tstat);
+        out->coda_open.dev = tstat.st_dev;
+        out->coda_open.inode = tstat.st_ino;
+        *msg_size = sizeof (struct coda_open_out);
+    }
+}
+
+inline void worker::op_coda_open_by_fd(union inputArgs *in,
+  union outputArgs *out, int *msg_size, int *openfd, CodaFid *saveFid,
+  int *saveFlags, struct venus_cnode *vtarget)
+{
+
+    LOG(100, ("CODA_OPEN_BY_FD: u.u_pid = %d u.u_pgid = %d\n",
+            u.u_pid, u.u_pgid));
+    /* Remember some info for dealing with interrupted open calls */
+    *saveFid = in->coda_open_by_fd.Fid;
+    *saveFlags = in->coda_open_by_fd.flags;
+
+    MAKE_CNODE(*vtarget, in->coda_open_by_fd.Fid, 0);
+    open(vtarget, in->coda_open_by_fd.flags);
+
+    if (u.u_error == 0) {
+        int flags = (in->coda_open_by_fd.flags & C_O_WRITE) ?
+        O_RDWR : O_RDONLY;
+
+        MarinerReport(&vtarget->c_fid, u.u_uid);
+        *openfd = vtarget->c_cf->Open(flags);
+        out->coda_open_by_fd.fd = *openfd;
+        LOG(10, ("CODA_OPEN_BY_FD: fd = %d\n", *openfd));
+        *msg_size = sizeof (struct coda_open_by_fd_out);
+    }
+}
+
+inline void worker::op_coda_open_by_path(union inputArgs *in,
+  union outputArgs *out, int *msg_size, CodaFid *saveFid, int *saveFlags)
+{
+    struct venus_cnode vtarget;
+
+    LOG(100, ("CODA_OPEN_BY_PATH: u.u_pid = %d u.u_pgid = %d\n", u.u_pid,
+    u.u_pgid));
+
+#ifdef __CYGWIN32__
+    char *slash;
+#endif
+
+    /* Remember some info for dealing with interrupted open calls */
+    *saveFid = in->coda_open_by_path.Fid;
+    *saveFlags = in->coda_open_by_path.flags;
+
+    MAKE_CNODE(vtarget, in->coda_open_by_path.Fid, 0);
+
+    open(&vtarget, in->coda_open_by_path.flags);
+
+    if (u.u_error == 0) {
+        MarinerReport(&vtarget.c_fid, u.u_uid);
+
+        char *begin = (char *)(&out->coda_open_by_path.path + 1);
+        out->coda_open_by_path.path = begin - (char *)out;
+        sprintf(begin, "%s%s/%s", CachePrefix, CacheDir,
+                vtarget.c_cf->Name());
+
+#ifdef __CYGWIN32__
+        slash = begin;
+        for (slash = begin ; *slash ; slash++ ) {
+            if ( *slash == '/' )
+                *slash='\\';
+        }
+#endif
+        *msg_size = sizeof (struct coda_open_by_path_out) +
+            strlen(begin) + 1;
+        LOG(100, ("CODA_OPEN_BY_PATH: returning '%s', size=%d\n", begin,
+                  *msg_size));
+    }
+}
+
+inline void worker::op_coda_readlink(union inputArgs *in,
+  union outputArgs *out, int *msg_size)
+{
+    struct venus_cnode vtarget;
+
+    LOG(100, ("CODA_READLINK: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
+    MAKE_CNODE(vtarget, in->coda_readlink.Fid, 0);
+    struct coda_string string;
+    string.cs_buf = (char *)out + sizeof(struct coda_readlink_out);
+    string.cs_maxlen = CODA_MAXPATHLEN - 1;
+    readlink(&vtarget, &string);
+
+    if (u.u_error == 0)
+        MarinerReport(&(vtarget.c_fid), u.u_uid);
+
+    out->coda_readlink.count = string.cs_len;
+    /* readlink.data is an offset, with the wrong type .. sorry */
+    out->coda_readlink.data = (char *)(sizeof (struct coda_readlink_out));
+
+    *msg_size = sizeof(struct coda_readlink_out) + out->coda_readlink.count;
+}
+
+inline void worker::op_coda_remove(union inputArgs *in, union outputArgs *out,
+  int *msg_size)
+{
+    struct venus_cnode vparent;
+
+    LOG(100, ("CODA_REMOVE: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
+    MAKE_CNODE(vparent, in->coda_remove.Fid, 0);
+    remove(&vparent, (char *)in + (int)in->coda_remove.name);
+}
+
+inline void worker::op_coda_rename(union inputArgs *in, union outputArgs *out,
+  int *msg_size)
+{
+    struct venus_cnode vparent;
+    struct venus_cnode vtarget;
+
+    LOG(100, ("CODA_RENAME: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
+              /* parent = source directory, target = destination directory */
+    MAKE_CNODE(vparent, in->coda_rename.sourceFid, 0);
+    MAKE_CNODE(vtarget, in->coda_rename.destFid, 0);
+    rename(&vparent, (char *)in + (int)in->coda_rename.srcname,
+         &vtarget, (char *)in + (int)in->coda_rename.destname);
+}
+
+inline void worker::op_coda_rmdir(union inputArgs *in, union outputArgs *out,
+  int *msg_size)
+{
+    struct venus_cnode vparent;
+
+    LOG(100, ("CODA_RMDIR: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
+    MAKE_CNODE(vparent, in->coda_rmdir.Fid, 0);
+    rmdir(&vparent, (char *)in + (int)in->coda_rmdir.name);
+}
+
+inline void worker::op_coda_root(union inputArgs *in, union outputArgs *out,
+  int *msg_size)
+{
+    struct venus_cnode vtarget;
+
+    root(&vtarget);
+
+    if (u.u_error == 0) {
+        out->coda_root.Fid = *VenusToKernelFid(&vtarget.c_fid);
+        *msg_size = sizeof (struct coda_root_out);
+    }
+}
+
+inline void worker::op_coda_setattr(union inputArgs *in, union outputArgs *out,
+  int *msg_size)
+{
+    struct venus_cnode vtarget;
+
+    LOG(100, ("CODA_SETATTR: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
+    MAKE_CNODE(vtarget, in->coda_setattr.Fid, 0);
+    setattr(&vtarget, &in->coda_setattr.attr);
+}
+
+inline void worker::op_coda_symlink(union inputArgs *in, union outputArgs *out,
+  int *msg_size)
+{
+    struct venus_cnode vtarget;
+
+    LOG(100, ("CODA_SYMLINK: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
+
+    MAKE_CNODE(vtarget, in->coda_symlink.Fid, 0);
+             symlink(&vtarget, (char *)in + (int)in->coda_symlink.srcname,
+             &in->coda_symlink.attr, (char *)in + (int)in->coda_symlink.tname);
+}
+
+inline void worker::op_coda_vget(union inputArgs *in, union outputArgs *out,
+  int *msg_size)
+{
+    struct venus_cnode vtarget;
+
+    LOG(100, ("CODA_VGET: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
+              VenusFid vfid;
+    KernelToVenusFid(&vfid, &in->coda_vget.Fid);
+    vget(&vtarget, &vfid, RC_DATA);
+
+    if (u.u_error == 0) {
+        out->coda_vget.Fid = *VenusToKernelFid(&vtarget.c_fid);
+        out->coda_vget.vtype = vtarget.c_type;
+        if (vtarget.c_type == C_VLNK && vtarget.c_flags & C_INCON)
+            out->coda_vget.vtype |= CODA_NOCACHE;
+        *msg_size = sizeof (struct coda_vget_out);
+    }
+}
+
+inline void worker::op_coda_statfs(union inputArgs *in, union outputArgs *out,
+  int *msg_size)
+{
+    LOG(100, ("CODA_STATFS: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
+    statfs(&(out->coda_statfs.stat));
+
+    if (u.u_error == 0) {
+        *msg_size = sizeof (struct coda_statfs_out);
+    }
+}
+
+void worker::main(void)
+{
+    struct venus_cnode vtarget;
     CodaFid saveFid;
     int     saveFlags = 0;
-    int     opcode;
-    int     size;
-    int     openfd;
+    int     opcode = 0;
+    int     size = 0;
+    int     openfd = -1;
 
     for (;;) {
-	openfd = -1;
+        openfd = -1;
 
-	/* Wait for new request. */
-	AwaitRequest();
+        /* Wait for new request. */
+        AwaitRequest();
 
-	/* Sanity check new request. */
-	if (idle) CHOKE("Worker: signalled but not dispatched!");
-	if (!msg) CHOKE("Worker: no message!");
+        /* Sanity check new request. */
+        if (idle) CHOKE("Worker: signalled but not dispatched!");
+        if (!msg) CHOKE("Worker: no message!");
 
-	union inputArgs *in = (union inputArgs *)msg->msg_buf;
-	union outputArgs *out = (union outputArgs *)msg->msg_buf;
-	
+        union inputArgs *in = (union inputArgs *)msg->msg_buf;
+        union outputArgs *out = (union outputArgs *)msg->msg_buf;
+
         /* we reinitialize these on every loop */
         size = sizeof(struct coda_out_hdr);
-	interrupted = 0;
-	returned = 0;
-	StoreFid = NullFid;
+        interrupted = 0;
+        returned = 0;
+        StoreFid = NullFid;
 
-	/* Fill in the user-specific context. */
-	u.Init();
-	u.u_priority = FSDB->StdPri();
-	u.u_flags = (FOLLOW_SYMLINKS | TRAVERSE_MTPTS | REFERENCE);
+        /* Fill in the user-specific context. */
+        u.Init();
+        u.u_priority = FSDB->StdPri();
+        u.u_flags = (FOLLOW_SYMLINKS | TRAVERSE_MTPTS | REFERENCE);
 
-	/* GOTTA BE ME */
-	u.u_uid  = (in)->ih.uid;
-	u.u_pid  = (in)->ih.pid;
-	u.u_pgid = (in)->ih.pgid;
+        /* GOTTA BE ME */
+        u.u_uid  = (in)->ih.uid;
+        u.u_pid  = (in)->ih.pid;
+        u.u_pgid = (in)->ih.pgid;
 
         opcode = in->ih.opcode;
-	/* This switch corresponds to the kernel trap handler. */
-	switch (opcode) {
-	    case CODA_ACCESS:
-		{
-		LOG(100, ("CODA_ACCESS: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
-		MAKE_CNODE(vtarget, in->coda_access.Fid, 0);
-		access(&vtarget, in->coda_access.flags);
-		break;
-		}
 
-	    case CODA_CLOSE:
-		{
-		LOG(100, ("CODA_CLOSE: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
-		MAKE_CNODE(vtarget, in->coda_close.Fid, 0);
-		close(&vtarget, in->coda_close.flags);
-		break;
-		}
-
-	  case CODA_CREATE:
-		{
-		LOG(100, ("CODA_CREATE: u.u_pid = %d u.u_pgid = %d\n", u.u_pid,u.u_pgid));
-		MAKE_CNODE(vparent, in->coda_create.Fid, 0);
-		create(&vparent, (char *)in + (int)in->coda_create.name,
-		       &in->coda_create.attr, in->coda_create.excl,
-		       in->coda_create.mode, &vtarget);
-
-		if (u.u_error == 0) {
-		    out->coda_create.Fid = *VenusToKernelFid(&vtarget.c_fid);
-		    out->coda_create.attr = in->coda_create.attr;
-		    size = (int)sizeof (struct coda_create_out);
-		}
-		break;
-		}
-
-	    case CODA_FSYNC:	
-		{
-		LOG(100, ("CODA_FSYNC: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
-		MAKE_CNODE(vtarget, in->coda_fsync.Fid, 0);
-		//fsync(&vtarget);
-		break;
-		}
-
-	    case CODA_GETATTR:
-		{
-		LOG(100, ("CODA_GETATTR: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
-		MAKE_CNODE(vtarget, in->coda_getattr.Fid, 0);
-		va_init(&out->coda_getattr.attr);
-		getattr(&vtarget, &out->coda_getattr.attr);
-                size = sizeof(struct coda_getattr_out);
-		break;
-		}
-
-	    case CODA_IOCTL:
-		{
-		char outbuf[VC_MAXDATASIZE];
-		struct ViceIoctl data;
-                int cmd = in->coda_ioctl.cmd;
-		unsigned char type = _IOC_TYPE(cmd);
-		unsigned long nr = _IOC_NR(cmd);
-
-		data.in = (char *)in + (intptr_t)in->coda_ioctl.data;
-		data.in_size = 0;
-		data.out = outbuf;	/* Can't risk overcopying. Sigh. -dcs */
-		data.out_size =	0;
-
-		LOG(100, ("CODA_IOCTL: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
-
-		if (type != 'V') {
-		    u.u_error = EOPNOTSUPP;
-		    out->coda_ioctl.data =
-			(char *)sizeof(struct coda_ioctl_out); 
-                    out->coda_ioctl.len = 0;		
-		    size = sizeof(struct coda_ioctl_out);
-		    break;
-		}
-
-		if (nr == _VIOC_UNLOADKERNEL) {
-                    out->oh.result = 0;
-		    out->coda_ioctl.data =
-			(char *)sizeof(struct coda_ioctl_out); 
-                    out->coda_ioctl.len = 0;		
-                    /* we have to Resign here because we will exit before
-                     * leaving the switch */
-                    Resign(msg, sizeof(struct coda_ioctl_out));
-
-                    LOG(0, ("TERM: Venus exiting\n"));
-                    RecovFlush(1);
-                    RecovTerminate();
-                    VFSUnmount();
-                    fflush(logFile);
-                    fflush(stderr);
-                    
-                    exit(EXIT_SUCCESS);
-		}
-			
-		if (nr == _VIOCPREFETCH)
-		    worker::nprefetchers++;
-
-		MAKE_CNODE(vtarget, in->coda_ioctl.Fid, 0);
-		data.in_size = in->coda_ioctl.len;
-
-		ioctl(&vtarget, nr, &data, in->coda_ioctl.rwflag);
-
-		out->coda_ioctl.len = data.out_size;
-		out->coda_ioctl.data = (char *)(sizeof (struct coda_ioctl_out));
-		memcpy((char *)out + (intptr_t)out->coda_ioctl.data, data.out, data.out_size);
-		if (nr == _VIOCPREFETCH)
-		    worker::nprefetchers--;
-
-		size = sizeof (struct coda_ioctl_out) + data.out_size;
-		break;
-		}
-
-	    case CODA_LINK:
-		{
-		LOG(100, ("CODA_LINK: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
-                /* target = linked object, parent = destination directory */
-		MAKE_CNODE(vtarget, in->coda_link.sourceFid, 0);
-		MAKE_CNODE(vparent, in->coda_link.destFid, 0);
-		link(&vtarget, &vparent, (char *)in + (int)in->coda_link.tname);
-		break;
-		}
-
-	    case CODA_LOOKUP:
-		{
-		LOG(100, ("CODA_LOOKUP: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
-
-		MAKE_CNODE(vparent, in->coda_lookup.Fid, 0);
-		lookup(&vparent, (char *)in + (int)in->coda_lookup.name, &vtarget, (int)in->coda_lookup.flags);
-
-		if (u.u_error == 0) {
-		    out->coda_lookup.Fid = *VenusToKernelFid(&vtarget.c_fid);
-		    out->coda_lookup.vtype = vtarget.c_type;
-		    if (vtarget.c_type == C_VLNK && vtarget.c_flags & C_INCON)
-			    out->coda_lookup.vtype |= CODA_NOCACHE;
-		    size = sizeof (struct coda_lookup_out);
-		}
-		break;
-		}
-
-	    case CODA_MKDIR:
-		{
-		LOG(100, ("CODA_MKDIR: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
-		MAKE_CNODE(vparent, in->coda_mkdir.Fid, 0);
-		mkdir(&vparent, (char *)in + (int)in->coda_mkdir.name,
-                      &in->coda_mkdir.attr, &vtarget);
-
-		if (u.u_error == 0) {
-		    out->coda_mkdir.Fid = *VenusToKernelFid(&vtarget.c_fid);
-		    out->coda_mkdir.attr = in->coda_mkdir.attr;
-		    size = sizeof (struct coda_mkdir_out);
-		}
-		break;
-		}
-
-	    case CODA_OPEN:
-		{
-		LOG(100, ("CODA_OPEN: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid)); 
-                /* Remember some info for dealing with interrupted open calls */
-                saveFid = in->coda_open.Fid;
-                saveFlags = in->coda_open.flags;
-		
-		MAKE_CNODE(vtarget, in->coda_open.Fid, 0);
-		open(&vtarget, in->coda_open.flags);
-		
-		if (u.u_error == 0) {
-		    struct stat tstat;
-		    MarinerReport(&vtarget.c_fid, u.u_uid);
-		    vtarget.c_cf->Stat(&tstat);
-		    out->coda_open.dev = tstat.st_dev;
-		    out->coda_open.inode = tstat.st_ino;
-		    size = sizeof (struct coda_open_out);
-		}
-		break;
-		}
-
-	    case CODA_OPEN_BY_FD:
-		{
-                LOG(100, ("CODA_OPEN_BY_FD: u.u_pid = %d u.u_pgid = %d\n",
-                          u.u_pid, u.u_pgid));
-                /* Remember some info for dealing with interrupted open calls */
-                saveFid = in->coda_open_by_fd.Fid;
-                saveFlags = in->coda_open_by_fd.flags;
-		
-		MAKE_CNODE(vtarget, in->coda_open_by_fd.Fid, 0);
-		open(&vtarget, in->coda_open_by_fd.flags);
-		
-		if (u.u_error == 0) {
-		    int flags = (in->coda_open_by_fd.flags & C_O_WRITE) ?
-			O_RDWR : O_RDONLY;
-
-		    MarinerReport(&vtarget.c_fid, u.u_uid);
-		    openfd = vtarget.c_cf->Open(flags);
-		    out->coda_open_by_fd.fd = openfd;
-                    LOG(10, ("CODA_OPEN_BY_FD: fd = %d\n", openfd));
-		    size = sizeof (struct coda_open_by_fd_out);
-		}
-		break;
-		}
-
-	    case CODA_OPEN_BY_PATH:
-		{
-		LOG(100, ("CODA_OPEN_BY_PATH: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid)); 
-#ifdef __CYGWIN32__
-		char *slash;
-#endif
-                /* Remember some info for dealing with interrupted open calls */
-		saveFid = in->coda_open_by_path.Fid;
-		saveFlags = in->coda_open_by_path.flags;
-		
-		MAKE_CNODE(vtarget, in->coda_open_by_path.Fid, 0);
-
-		open(&vtarget, in->coda_open_by_path.flags);
-		
-		if (u.u_error == 0) {
-		    MarinerReport(&vtarget.c_fid, u.u_uid);
-
-                    char *begin = (char *)(&out->coda_open_by_path.path + 1);
-                    out->coda_open_by_path.path = begin - (char *)out;
-                    sprintf(begin, "%s%s/%s", CachePrefix, CacheDir, 
-                            vtarget.c_cf->Name());
-#ifdef __CYGWIN32__
-                    slash = begin;
-                    for (slash = begin ; *slash ; slash++ ) {
-                        if ( *slash == '/' ) 
-                            *slash='\\';
-                    }
-#endif
-                    size = sizeof (struct coda_open_by_path_out) + 
-                        strlen(begin) + 1;
-                    LOG(100, ("CODA_OPEN_BY_PATH: returning '%s', size=%d\n",
-			      begin, size));
-		}
-		break;
-		}
-
-	    case CODA_READLINK: 
-		{
-		LOG(100, ("CODA_READLINK: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
-		MAKE_CNODE(vtarget, in->coda_readlink.Fid, 0);
-		struct coda_string string;
-		string.cs_buf = (char *)out + sizeof(struct coda_readlink_out);
-		string.cs_maxlen = CODA_MAXPATHLEN - 1;
-		readlink(&vtarget, &string);
-
-		if (u.u_error == 0)
-		    MarinerReport(&(vtarget.c_fid), u.u_uid);
-
-		out->coda_readlink.count = string.cs_len;
-		/* readlink.data is an offset, with the wrong type .. sorry */
-		out->coda_readlink.data = (char *)(sizeof (struct coda_readlink_out));
-
-		size = sizeof(struct coda_readlink_out) + out->coda_readlink.count;
-		break;
-		}
-
-	    case CODA_REMOVE:
-		{
-		LOG(100, ("CODA_REMOVE: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
-		MAKE_CNODE(vparent, in->coda_remove.Fid, 0);
-		remove(&vparent, (char *)in + (int)in->coda_remove.name);
-		break;
-		}
-
-	    case CODA_RENAME:
-		{
-		LOG(100, ("CODA_RENAME: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
-                /* parent = source directory, target = destination directory */
-		MAKE_CNODE(vparent, in->coda_rename.sourceFid, 0);
-		MAKE_CNODE(vtarget, in->coda_rename.destFid, 0);
-		rename(&vparent, (char *)in + (int)in->coda_rename.srcname,
-		       &vtarget, (char *)in + (int)in->coda_rename.destname);
-		break;
-		}
-
-	    case CODA_RMDIR:
-		{
-		LOG(100, ("CODA_RMDIR: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
-		MAKE_CNODE(vparent, in->coda_rmdir.Fid, 0);
-		rmdir(&vparent, (char *)in + (int)in->coda_rmdir.name);
-		break;
-		}
-
-	    case CODA_ROOT:
-		{
-		root(&vtarget);
-
-		if (u.u_error == 0) {
-		    out->coda_root.Fid = *VenusToKernelFid(&vtarget.c_fid);
-		    size = sizeof (struct coda_root_out);
-		}
-		break;
-		}
-
-	    case CODA_SETATTR:
-		{
-		LOG(100, ("CODA_SETATTR: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
-		MAKE_CNODE(vtarget, in->coda_setattr.Fid, 0);
-		setattr(&vtarget, &in->coda_setattr.attr);
-		break;
-		}
-
-	    case CODA_SYMLINK:
-		{
-		LOG(100, ("CODA_SYMLINK: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
-
-		MAKE_CNODE(vtarget, in->coda_symlink.Fid, 0);
-                symlink(&vtarget, (char *)in + (int)in->coda_symlink.srcname, &in->coda_symlink.attr, (char *)in + (int)in->coda_symlink.tname);
-		break;
-		}
-
-	    case CODA_VGET:
-		{
-		LOG(100, ("CODA_VGET: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
-                VenusFid vfid;
-		KernelToVenusFid(&vfid, &in->coda_vget.Fid);
-		vget(&vtarget, &vfid, RC_DATA);
-
-		if (u.u_error == 0) {
-		    out->coda_vget.Fid = *VenusToKernelFid(&vtarget.c_fid);
-		    out->coda_vget.vtype = vtarget.c_type;
-		    if (vtarget.c_type == C_VLNK && vtarget.c_flags & C_INCON)
-                        out->coda_vget.vtype |= CODA_NOCACHE;
-		    size = sizeof (struct coda_vget_out);
-		}
-		break;
-                }
-
-	    case CODA_STATFS:
-		{
-		statfs(&(out->coda_statfs.stat));
-		if (u.u_error == 0)
-		    size = sizeof (struct coda_statfs_out);
-		break;
-		}
-
-	    default:	 /* Toned this down a bit, used to be a choke -- DCS */
-		{	/* But make sure someone sees it! */
-		eprint("worker::main Got a bogus opcode %d", in->ih.opcode);
-		dprint("worker::main Got a bogus opcode %d\n", in->ih.opcode);
-		MarinerLog("worker::main Got a bogus opcode %d\n", in->ih.opcode);
-		u.u_error = EOPNOTSUPP;
-                break;
-		}
-	}
+        /* This switch corresponds to the kernel trap handler. */
+        switch (opcode) {
+        case CODA_ACCESS:
+            op_coda_access(in, out, &size);
+            break;
+        case CODA_CLOSE:
+            op_coda_close(in, out, &size);
+            break;
+        case CODA_CREATE:
+            op_coda_create(in, out, &size);
+            break;
+        case CODA_FSYNC:
+            op_coda_fsync(in, out, &size);
+            break;
+        case CODA_GETATTR:
+            op_coda_getattr(in, out, &size);
+            break;
+        case CODA_IOCTL:
+            op_coda_ioctl(in, out, &size);
+            break;
+        case CODA_LINK:
+            op_coda_link(in, out, &size);
+            break;
+        case CODA_LOOKUP:
+            op_coda_lookup(in, out, &size);
+            break;
+        case CODA_MKDIR:
+            op_coda_mkdir(in, out, &size);
+            break;
+        case CODA_OPEN:
+            op_coda_open(in, out, &size, &saveFid, &saveFlags);
+            break;
+        case CODA_OPEN_BY_FD:
+            op_coda_open_by_fd(in, out, &size, &openfd, &saveFid, &saveFlags, &vtarget);
+            break;
+        case CODA_OPEN_BY_PATH:
+            op_coda_open_by_path(in, out, &size, &saveFid, &saveFlags);
+            break;
+        case CODA_READLINK:
+            op_coda_readlink(in, out, &size);
+            break;
+        case CODA_REMOVE:
+            op_coda_remove(in, out, &size);
+            break;
+        case CODA_RENAME:
+            op_coda_rename(in, out, &size);
+            break;
+        case CODA_RMDIR:
+            op_coda_rmdir(in, out, &size);
+            break;
+        case CODA_ROOT:
+            op_coda_root(in, out, &size);
+            break;
+        case CODA_SETATTR:
+            op_coda_setattr(in, out, &size);
+            break;
+        case CODA_SYMLINK:
+            op_coda_symlink(in, out, &size);
+            break;
+        case CODA_VGET:
+            op_coda_vget(in, out, &size);
+            break;
+        case CODA_STATFS:
+            op_coda_statfs(in, out, &size);
+            break;
+        default:	 /* Toned this down a bit, used to be a choke -- DCS */
+            /* But make sure someone sees it! */
+            eprint("worker::main Got a bogus opcode %d", in->ih.opcode);
+            dprint("worker::main Got a bogus opcode %d\n", in->ih.opcode);
+            MarinerLog("worker::main Got a bogus opcode %d\n", in->ih.opcode);
+            u.u_error = EOPNOTSUPP;
+            break;
+        }
 
         out->oh.result = u.u_error;
         Resign(msg, size);
