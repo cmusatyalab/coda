@@ -55,4 +55,3 @@ venus_LDADD = $(top_builddir)/coda-src/librepair/librepio.la \
 	      $(RVM_RPC2_LIBS)
 
 vutil_LDADD = $(top_builddir)/lib-src/base/libbase.la
-

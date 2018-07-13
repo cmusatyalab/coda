@@ -167,4 +167,3 @@ extern void PrintWorkers(FILE *);
 extern void PrintWorkers(int);
 
 #endif /* _VENUS_WORKER_H_ */
-

@@ -249,7 +249,7 @@ ssize_t MsgWrite(const char *buf, size_t size)
 
 /* test if we can open the kernel device and purge the cache,
    BSD systems like to purge that cache */
-void testKernDevice() 
+void testKernDevice()
 {
 #ifdef __CYGWIN32__
 	return;
@@ -260,7 +260,7 @@ void testKernDevice()
 
 	for(p = strtok(p, ","); p && fd == -1; p = strtok(NULL, ",")) {
 	    fd = ::open(p, O_RDWR, 0);
-	    if (fd >= 0) 
+	    if (fd >= 0)
 		q = p;
 	}
 
@@ -347,7 +347,7 @@ void VFSMount()
     islinux20 = strncmp(un.release, "2.0.", 4) == 0 ? 1 : 0;
 
     fd = setmntent("/etc/mtab", "r");
-    if (fd) { 
+    if (fd) {
 	while (1) {
 	    ent = getmntent(fd);
 	    if (!ent) break;
@@ -377,7 +377,7 @@ void VFSMount()
     if (child == 0) {
 	pid_t parent;
 	int error = 0;
-	
+
 	parent = getppid();
 
 	/* Use a double fork to avoid having to reap zombie processes
@@ -498,7 +498,7 @@ child_done:
 
 	lck = lockf(lfd, F_LOCK, 0);
 	if (lck == 0) {
-	
+
 	  mnttab = fopen(MNTTAB, "a+");
 	  if (mnttab != NULL) {
 	    mt.mnt_special = "CODA";
@@ -507,9 +507,9 @@ child_done:
 	    mt.mnt_mntopts = "rw";
 	    mt.mnt_time = tm;
 	    sprintf (tm, "%d", time(0));
-	    
+
 	    putmntent(mnttab,&mt);
-	    
+
 	    fclose(mnttab);
 	  } else
 	    eprint ("Could not update /etc/mnttab.");
@@ -577,7 +577,7 @@ void VFSUnmount()
 
 	lck = lockf(lfd, F_LOCK, 0);
 	if (lck == 0) {
-	
+
 	  mnttab = fopen(MNTTAB, "r+");
 	  if (mnttab != NULL) {
 	    newtab = fopen("/etc/newmnttab", "w+");
@@ -626,11 +626,11 @@ int k_Purge() {
     /* Construct a purge message. */
     union outputArgs msg;
     memset(&msg, 0, sizeof(msg));
-    
+
     msg.oh.opcode = CODA_FLUSH;
     msg.oh.unique = 0;
     size = sizeof(struct coda_out_hdr);
-    
+
     /* Send the message. */
     if (MsgWrite((char *)&msg, size) != size)
 	    CHOKE("k_Purge: Flush, message write returns %d", errno);
@@ -670,18 +670,18 @@ int k_Purge(VenusFid *fid, int severely) {
 	msg.coda_zapfile.oh.unique = 0;
 	msg.coda_zapfile.Fid = *VenusToKernelFid(fid);
 	size = sizeof(msg.coda_zapfile);
-    }	
+    }
 
     /* Send the message. */
     if (MsgWrite((char *)&msg, size) != size) {
 	retcode = errno;
-	LOG(0, ("k_Purge: %s, message write fails: errno %d\n", 
+	LOG(0, ("k_Purge: %s, message write fails: errno %d\n",
 	      msg.oh.opcode == CODA_PURGEFID ? "CODA_PURGEFID" :
 	      msg.oh.opcode == CODA_ZAPFILE ? "CODA_ZAPFILE" : "CODA_ZAPDIR",
 	      retcode));
     }
 
-    LOG(100, ("k_Purge: %s, returns %d\n", 
+    LOG(100, ("k_Purge: %s, returns %d\n",
 	      msg.oh.opcode == CODA_PURGEFID ? "CODA_PURGEFID" :
 	      msg.oh.opcode == CODA_ZAPFILE ? "CODA_ZAPFILE" : "CODA_ZAPDIR", retcode));
     if (retcode == 0) {
@@ -730,7 +730,7 @@ int k_Replace(VenusFid *fid_1, VenusFid *fid_2) {
     if (!fid_1 || !fid_2)
 	CHOKE("k_Replace: nil fids");
 
-    LOG(0, ("k_Replace: VenusFid (%s) with VenusFid (%s) in mini-cache\n", 
+    LOG(0, ("k_Replace: VenusFid (%s) with VenusFid (%s) in mini-cache\n",
 	    FID_(fid_1), FID_(fid_2)));
 
     /* Message prefix. */
@@ -740,7 +740,7 @@ int k_Replace(VenusFid *fid_1, VenusFid *fid_2) {
 
     msg.OldFid = *VenusToKernelFid(fid_1);
     msg.NewFid = *VenusToKernelFid(fid_2);
-	
+
     /* Send the message. */
     ssize_t size = sizeof(struct coda_replace_out);
     if (MsgWrite((char *)&msg, size) != size)
@@ -779,7 +779,7 @@ void WorkerInit()
             exit(EXIT_FAILURE);
     }
     dprint("WorkerInit: muxfd = %d\n", worker::muxfd);
-#else 
+#else
     /* Open the communications channel. */
     worker::muxfd = ::open(kernDevice, O_RDWR, 0);
     if (worker::muxfd == -1) {
@@ -861,7 +861,7 @@ worker *GetIdleWorker() {
 int IsAPrefetch(msgent *m) {
     /* determines if a message is a prefetch request */
     union inputArgs *in = (union inputArgs *)m->msg_buf;
-    
+
     if (in->ih.opcode != CODA_IOCTL)
 	return(0);
 
@@ -871,7 +871,7 @@ int IsAPrefetch(msgent *m) {
 void DispatchWorker(msgent *m) {
     /* We filter out signals (i.e., interrupts) before passing messages on to workers. */
     union inputArgs *in = (union inputArgs *)m->msg_buf;
-    
+
     if (in->ih.opcode == CODA_SIGNAL) {
 	eprint("DispatchWorker: signal received (seq = %d)", in->ih.unique);
 
@@ -900,16 +900,16 @@ void DispatchWorker(msgent *m) {
 	return;
     }
 
-    /* 
+    /*
      * Limit the number of workers handling prefetches. There should be
      * a separate (lower priority) queue for these requests. -- lily
      */
     if (IsAPrefetch(m)) {
 	if (worker::nprefetchers >= MaxPrefetchers) {
-	    LOG(1, ("DispatchWorker: queuing prefetch (%d workers, %d prefetching)\n", 
+	    LOG(1, ("DispatchWorker: queuing prefetch (%d workers, %d prefetching)\n",
 	        worker::nworkers, worker::nprefetchers));
             worker::QueuedMsgs.append(m);
-	    return;    
+	    return;
 	}
     }
 
@@ -990,13 +990,13 @@ worker::worker() : vproc("Worker", NULL, VPT_Worker, WorkerStackSize)
     StoreFid = NullFid;
     msg = 0;
     opcode = 0;
-    
+
     /* Poke main procedure. */
     start_thread();
 }
 
 
-/* 
+/*
  * we don't support assignments to objects of this type.
  * bomb in an obvious way if it inadvertently happens.
  */
@@ -1027,7 +1027,7 @@ void worker::AwaitRequest() {
     /* limit the number of workers handling prefetches. see DispatchWorker. */
     if (m && IsAPrefetch(m) && worker::nprefetchers >= MaxPrefetchers) {
 	/* re-queue and look for a non-prefetch message */
-	LOG(1, ("worker::AwaitRequest: requeueing prefetch (%d workers, %d prefetching)\n", 
+	LOG(1, ("worker::AwaitRequest: requeueing prefetch (%d workers, %d prefetching)\n",
 	    worker::nworkers, worker::nprefetchers));
 	QueuedMsgs.append(m);
 	for (int i = 0; i < QueuedMsgs.count(); i++) {
@@ -1060,7 +1060,7 @@ void worker::Resign(msgent *msg, int size) {
         union outputArgs *outp = (union outputArgs *)msg->msg_buf;
 	const char *opstr = VenusOpStr(outp->oh.opcode);
 	const char *retstr = VenusRetStr(outp->oh.result);
-	
+
 #ifdef TIMING
 	float elapsed;
 	elapsed = SubTimes(&(u.u_tv2), &(u.u_tv1));
@@ -1084,7 +1084,7 @@ void worker::Resign(msgent *msg, int size) {
     FreeMsgs.append(msg);
     msg = NULL;
     opcode = 0;
-    
+
     lastresign = Vtime();
 }
 
@@ -1531,19 +1531,17 @@ void worker::main(void)
         out->oh.result = u.u_error;
         Resign(msg, size);
 
-	/* extra case added to deal with dangling references to a collapse */
+        /* extra case added to deal with dangling references to a collapse */
         if (opcode == CODA_OPEN_BY_FD && openfd != -1)
-	    vtarget.c_cf->Close(openfd);
+            vtarget.c_cf->Close(openfd);
 
-        if (opcode == CODA_OPEN ||
-            opcode == CODA_OPEN_BY_FD ||
-            opcode == CODA_OPEN_BY_PATH)
-        {
+        if (opcode == CODA_OPEN || opcode == CODA_OPEN_BY_FD ||
+            opcode == CODA_OPEN_BY_PATH) {
             /* If open was aborted by user we must abort our OPEN too
-             *  (if it was successful). */
+            *  (if it was successful). */
             if (interrupted && u.u_error == 0) {
-		VenusFid fid;
-		KernelToVenusFid(&fid, &saveFid);
+                VenusFid fid;
+                KernelToVenusFid(&fid, &saveFid);
                 eprint("worker::main: aborting open (%s)", &fid);
 
                 /* NOTE: This may be bogus. It will definately cause a
@@ -1566,12 +1564,9 @@ void worker::main(void)
     }
 }
 
-
 worker_iterator::worker_iterator() : vproc_iterator(VPT_Worker) {
 }
-
 
 worker *worker_iterator::operator()() {
     return((worker *)vproc_iterator::operator()());
 }
-
