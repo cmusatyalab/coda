@@ -121,6 +121,51 @@ class worker : public vproc {
     int opcode;
     VenusFid StoreFid;
 
+    inline void op_coda_access(union inputArgs *in, union outputArgs *out,
+        int *msg_size);
+    inline void op_coda_close(union inputArgs *in, union outputArgs *out,
+        int *msg_size);
+    inline void op_coda_create(union inputArgs *in, union outputArgs *out,
+        int *msg_size);
+    inline void op_coda_fsync(union inputArgs *in, union outputArgs *out,
+        int *msg_size);
+    inline void op_coda_getattr(union inputArgs *in, union outputArgs *out,
+        int *msg_size);
+    inline void op_coda_ioctl(union inputArgs *in, union outputArgs *out,
+        int *msg_size);
+    inline void op_coda_link(union inputArgs *in, union outputArgs *out,
+        int *msg_size);
+    inline void op_coda_lookup(union inputArgs *in, union outputArgs *out,
+        int *msg_size);
+    inline void op_coda_mkdir(union inputArgs *in, union outputArgs *out,
+        int *msg_size);
+    inline void op_coda_open(union inputArgs *in, union outputArgs *out,
+        int *msg_size, CodaFid *saveFid, int *saveFlags);
+    inline void op_coda_open_by_fd(union inputArgs *in, union outputArgs *out,
+        int *msg_size, int *openfd, CodaFid *saveFid, int *saveFlags,
+        struct venus_cnode *vtarget);
+    inline void op_coda_open_by_path(union inputArgs *in,
+        union outputArgs *out, int *msg_size, CodaFid *saveFid,
+        int *saveFlags);
+    inline void op_coda_readlink(union inputArgs *in, union outputArgs *out,
+        int *msg_size);
+    inline void op_coda_remove(union inputArgs *in, union outputArgs *out,
+        int *msg_size);
+    inline void op_coda_rename(union inputArgs *in, union outputArgs *out,
+        int *msg_size);
+    inline void op_coda_rmdir(union inputArgs *in, union outputArgs *out,
+        int *msg_size);
+    inline void op_coda_root(union inputArgs *in, union outputArgs *out,
+        int *msg_size);
+    inline void op_coda_setattr(union inputArgs *in, union outputArgs *out,
+        int *msg_size);
+    inline void op_coda_symlink(union inputArgs *in, union outputArgs *out,
+        int *msg_size);
+    inline void op_coda_vget(union inputArgs *in, union outputArgs *out,
+        int *msg_size);
+    inline void op_coda_statfs(union inputArgs *in, union outputArgs *out,
+        int *msg_size);
+
   public:
     worker();
     worker(worker&);	    /* not supported! */
@@ -167,4 +212,3 @@ extern void PrintWorkers(FILE *);
 extern void PrintWorkers(int);
 
 #endif /* _VENUS_WORKER_H_ */
-
