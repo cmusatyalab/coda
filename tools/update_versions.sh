@@ -22,16 +22,23 @@ checkver () {
 
   # the configure.ac version should match the tagged version
   if [ "$CONFVER" != "$RELEASE" ] ; then
-    echo "$SUBSYS: configure.ac version does not match git tag"
+    echo "$SUBSYS: configure.ac version ($CONFVER) does not match git tag ($RELEASE)"
     [ "$TAGGED_SUBSYS" = "$SUBSYS" ] && exit 1
   fi
 
   # are there changes since the last release tag?
-  if [ -n "$(git diff $SUBSYS-$RELEASE $SUBDIR)" ]
+  if [ -z "$(git diff $SUBSYS-$RELEASE -- $SUBDIR)" ]
   then
-    echo "$SUBSYS: untagged version $VERSION"
-    [ "$TAGGED_SUBSYS" = "coda" ] && exit 1
+    VERSION=$RELEASE
   fi
+
+  # are there uncommitted changes
+  if [ -n "$(git diff HEAD -- $SUBDIR)" ] ; then
+    VERSION=$VERSION-dirty
+  fi
+
+  echo "$SUBSYS-$VERSION"
+  sed -i "s/$ACINIT_RE/\1$VERSION\3/" $SUBDIR/configure.ac
 }
 
 checkver coda .
