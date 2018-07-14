@@ -493,11 +493,16 @@ int LWP_CreateProcess(void (*ep)(void *), int stacksize, int priority,
     pagesize = getpagesize();
     lwp_stackbase += ((stacksize/pagesize) + 2) * pagesize;
 #endif
-    if (!stackptr)
+    if (!stackptr) {
+        free(temp);
 	return LWP_ENOMEM;
+    }
 
-    if (priority < 0 || priority >= MAX_PRIORITIES)
+    if (priority < 0 || priority >= MAX_PRIORITIES) {
+        munmap(stackptr, stacksize);
+        free(temp);
 	return LWP_EBADPRI;
+    }
 
     Initialize_Stack(stackptr, stacksize);
     Initialize_PCB(temp, priority, stackptr, stacksize, ep, parm, name);

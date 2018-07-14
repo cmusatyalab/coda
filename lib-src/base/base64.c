@@ -121,6 +121,8 @@ void main(int argc, char **argv)
 
     puts(inbuf);
     putchar('\n');
+
+    free(inbuf);
 }
 #endif
 

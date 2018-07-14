@@ -366,7 +366,8 @@ int RPC2_getaddrinfo(const char *node, const char *service,
 		     struct RPC2_addrinfo **res)
 {
 #ifdef TESTING
-    fprintf(stderr, "Doing A record lookup for %s %s\n", node, service);
+    fprintf(stderr, "Doing A record lookup for %s %s\n",
+            node ? node : "(null)", service ? service : "(null)");
 #endif
 
 #ifdef HAVE_GETADDRINFO

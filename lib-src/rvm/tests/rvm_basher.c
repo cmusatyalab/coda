@@ -997,7 +997,10 @@ static rvm_bool_t chk_moby()
         }
 
     /* check the results and restore the test range contents */
-    if (chk_vm() == rvm_false) return rvm_false;
+    if (chk_vm() == rvm_false) {
+        free(vm_save);
+        return rvm_false;
+    }
     printf("\n  Restoring original data\n");
     if ((ret=rvm_begin_transaction(&tid,no_restore))
         != RVM_SUCCESS)

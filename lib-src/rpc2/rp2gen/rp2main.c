@@ -43,6 +43,7 @@ Pittsburgh, PA.
 #include <sys/param.h>
 #include <time.h>
 #include <unistd.h>
+#include <assert.h>
 #include "rp2.h"
 
 int32_t yydebug;
@@ -227,6 +228,7 @@ static int32_t GetArgs(argc, argv)
 	    if (++i >= argc) badargs();
 	    if (cpathcnt == 0) cpatharray = (char **)malloc(sizeof(char *));
 	    else cpatharray = (char **)realloc(cpatharray, (cpathcnt+1)*sizeof(char *));
+            assert(cpatharray != NULL);
 	    cpatharray[cpathcnt] = argv[i];
 	    cpathcnt++;
 	    continue;

@@ -410,7 +410,6 @@ Exit:
 int main(int argc, char **argv)
 {
     struct RPC2_addrinfo *res = NULL, *p;
-    struct sockaddr_in *sin;
     int err;
 
     struct RPC2_addrinfo hints;
@@ -430,8 +429,8 @@ int main(int argc, char **argv)
 	       p->ai_flags, p->ai_family, p->ai_socktype, p->ai_protocol);
 
 	RPC2_formataddrinfo(p, buf, sizeof(*buf));
-	printf("addrlen %d sin_family %d addr %s\n",
-	       p->ai_addrlen, sin->sin_family, buf);
+	printf("addrlen %d addrfamily %d addr %s\n",
+	       p->ai_addrlen, p->ai_family, buf);
 	printf("ai_canonname %s\n", p->ai_canonname);
 	printf("ai_priority %d ai_weight %d\n", p->ai_priority, p->ai_weight);
     }

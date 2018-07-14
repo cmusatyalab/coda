@@ -103,6 +103,7 @@ static rvm_bool_t get_ans(prompt,sense)
     if (test_data == NULL)
         {
         printf("\n? Could not allocate test_data buffer\n");
+        fclose(F);
         return rvm_false;
         }
     for (i=0; i<region->length; i++)
@@ -112,6 +113,8 @@ static rvm_bool_t get_ans(prompt,sense)
             {
             printf("\n? EOF encountered while reading %s; i = %ld\n",
                    filename,i);
+            free(test_data);
+            fclose(F);
             return rvm_false;
             }
         test_data[i] = c;
@@ -125,9 +128,12 @@ static rvm_bool_t get_ans(prompt,sense)
             printf("\n? Error: mapped data doesn't match %s:\n",filename);
             printf("         map_data[%ld] = 0%o\n",i,map_data[i]);
             printf("         %s[%ld] = 0%o\n",filename,i,test_data[i]);
+            free(test_data);
+            fclose(F);
             return rvm_false;
             }
         }
+    free(test_data);
 
     if (fclose(F))
         {
@@ -135,7 +141,6 @@ static rvm_bool_t get_ans(prompt,sense)
         printf("    errno = %d\n",errno);
         return rvm_false;
         }
-    free(test_data);
 
     printf("\n  Mapped data agrees with %s\n",filename);
     return rvm_true;
