@@ -105,6 +105,12 @@ void vproc::statfs(struct coda_statfs *sfs) {
     sfs->f_bavail  = FSDB->FreeBlockCount() - FSDB->FreeBlockMargin;
     sfs->f_files   = CacheFiles;
     sfs->f_ffree   = FSDB->FreeFsoCount();
+
+    /* Compensate block size since Cacheblocks is in 1K-Blocks and
+     * coda's Kernel module handles 4K-Blocks */
+    sfs->f_blocks  /= 4;
+    sfs->f_bfree   /= 4;
+    sfs->f_bavail  /= 4;
 }
 
 
