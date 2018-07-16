@@ -91,7 +91,7 @@ const char *kernDevice;
 const char *realmtab;
 const char *CacheDir;
 const char *CachePrefix;
-int   CacheBlocks;
+uint64_t    CacheBlocks;
 uid_t PrimaryUser = UNSET_PRIMARYUSER;
 const char *SpoolDir;
 const char *CheckpointFormat;
@@ -153,6 +153,16 @@ struct in_addr venus_relay_addr = { INADDR_LOOPBACK };
 
 /* socket connecting us back to our parent */
 int parent_fd = -1;
+
+/* Bytes units convertion */
+static const char * KBYTES_UNIT[] = { "KB", "kb", "Kb", "kB" };
+static const int KBYTE_UNIT_SCALE = 1;
+static const char * MBYTES_UNIT[] = { "MB", "mb", "Mb", "mB" };
+static const int MBYTE_UNIT_SCALE = 1024 * KBYTE_UNIT_SCALE;
+static const char * GBYTES_UNIT[] = { "GB", "gb", "Gb", "gB" };
+static const int GBYTE_UNIT_SCALE = 1024 * MBYTE_UNIT_SCALE;
+static const char * TBYTES_UNIT[] = { "TB", "tb", "Tb", "tB" };
+static const int TBYTE_UNIT_SCALE = 1024 * GBYTE_UNIT_SCALE;
 
 
 /* Some helpers to add fd/callbacks to the inner select loop */
@@ -234,6 +244,50 @@ void MUX_add_callback(int fd, void (*cb)(int fd, void *udata), void *udata)
 
     cbe->next = _MUX_CBEs;
     _MUX_CBEs = cbe;
+}
+
+/*
+ * Parse cachesize value and converts into amount of 1K-Blocks 
+ */
+static uint64_t ParseCacheSize(const char * CacheSize)
+{
+    const char * units = NULL;
+    int scale_factor = 1;
+    char CacheSizeWOUnits[256];
+    size_t cachesize_len = 0;
+    uint64_t cachesize = 0;
+
+    /* Locate the units and determine the scale factor */
+    for (int i = 0; i < 4; i++) {
+        if (units = strstr(CacheSize, MBYTES_UNIT[i])) {
+            scale_factor = MBYTE_UNIT_SCALE;
+            break;
+        }
+
+        if (units = strstr(CacheSize, GBYTES_UNIT[i])) {
+            scale_factor = GBYTE_UNIT_SCALE;
+            break;
+        }
+
+        if (units = strstr(CacheSize, TBYTES_UNIT[i])) {
+            scale_factor = TBYTE_UNIT_SCALE;
+            break;
+        }
+    }
+
+    /* Strip the units from string */
+    if (units) {
+        cachesize_len = (size_t)((units - CacheSize) / sizeof(char));
+        strncpy(CacheSizeWOUnits, CacheSize, cachesize_len);
+        CacheSizeWOUnits[cachesize_len] = 0;  // Make it null-terminated
+    } else {
+        snprintf(CacheSizeWOUnits, sizeof(CacheSizeWOUnits), CacheSize);
+    }
+
+    /* Scale the value */
+    cachesize = scale_factor * atof(CacheSizeWOUnits);
+
+    return cachesize;
 }
 
 
@@ -382,7 +436,7 @@ static void Usage(char *argv0)
 " -rpcdebug <n>\t\t\trpc2 debug level\n"
 " -lwpdebug <n>\t\t\tlwp debug level\n"
 " -cf <n>\t\t\t# of cache files\n"
-" -c <n>\t\t\t\tcache size in KB\n"
+" -c <n>[KB|MB|GB|TB]\t\t\t\tcache size in the given units (e.g. 10MB)\n"
 " -mles <n>\t\t\t# of CML entries\n"
 " -hdbes <n>\t\t\t# of hoard database entries\n"
 " -rdstrace\t\t\tenable RDS heap tracing\n"
@@ -458,7 +512,7 @@ static void ParseCmdline(int argc, char **argv)
 	    else if (STREQ(argv[i], "-cf"))   /* number of cache files */
 		i++, CacheFiles = atoi(argv[i]);
 	    else if (STREQ(argv[i], "-c"))    /* cache block size */
-		i++, CacheBlocks = atoi(argv[i]);  
+		i++, CacheBlocks = ParseCacheSize(argv[i]);  
 	    else if (STREQ(argv[i], "-hdbes")) /* hoard DB entries */
 		i++, HDBEs = atoi(argv[i]);
 	    else if (STREQ(argv[i], "-d"))     /* debugging */
@@ -591,11 +645,28 @@ static void ParseCmdline(int argc, char **argv)
 static void DefaultCmdlineParms()
 {
     int DontUseRVM = 0;
+    const char *CacheSize;
 
     /* Load the "venus.conf" configuration file */
     codaconf_init("venus.conf");
 
-    CODACONF_INT(CacheBlocks,	    "cacheblocks",   40000);
+    CODACONF_INT(CacheFiles, "cachefiles", 85);
+    if (CacheFiles < MIN_CF) {
+        eprint("Cannot start: minimum number of cache files is %d", MIN_CF);
+        exit(EXIT_UNCONFIGURED);
+    }
+
+    if (!CacheBlocks) {
+        CODACONF_STR(CacheSize, "cachesize", MIN_CS);
+        CacheBlocks = ParseCacheSize(CacheSize);
+    }
+
+    /* In case of user missconfiguration */
+    if (CacheBlocks < MIN_CB) {
+        eprint("Cannot start: minimum cache size is %s", "2MB");
+        exit(EXIT_UNCONFIGURED);
+    }
+    
     CODACONF_STR(CacheDir,	    "cachedir",      DFLT_CD);
     CODACONF_STR(SpoolDir,	    "checkpointdir", "/usr/coda/spool");
     CODACONF_STR(VenusLogFile,	    "logfile",	     DFLT_LOGFILE);
@@ -630,16 +701,6 @@ static void DefaultCmdlineParms()
     {
 	if (DontUseRVM)
 	    RvmType = VM;
-    }
-
-    CODACONF_INT(CacheFiles, "cachefiles", 0);
-    {
-	if (!CacheFiles) CacheFiles = CacheBlocks / BLOCKS_PER_FILE;
-
-	if (CacheFiles < MIN_CF) {
-	    eprint("Cannot start: minimum number of cache files is %d", MIN_CF);
-	    exit(EXIT_UNCONFIGURED);
-	}
     }
 
     CODACONF_INT(MLEs, "cml_entries", 0);
@@ -804,4 +865,3 @@ static void SetRlimits() {
     }
 #endif
 }
-
