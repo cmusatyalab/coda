@@ -34,6 +34,7 @@ extern "C" {
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <math.h> 
 #include <rpc2/codatunnel.h>
 
 #include "archive.h"
@@ -637,6 +638,25 @@ static void ParseCmdline(int argc, char **argv)
     if (done) exit(done < 0 ? EXIT_INVALID_ARG : EXIT_SUCCESS);
 }
 
+/* 
+ * Use an adjusted logarithmic function experimentally linearlized around
+ * the following points;
+ * 2MB -> 85 cache files 
+ * 100MB -> 4166 cache files 
+ * 200MB -> 8333 cache files 
+ * With the logarithmic function the following values are obtained 
+ * 2MB -> 98 cache files 
+ * 100MB -> 4412 cache files 
+ * 200MB -> 8142 cache files 
+ */
+static uint64_t CalculateCacheFiles(uint64_t CacheBlocks)
+{
+    static const int y_scale = 24200;
+    static const double x_scale_down = 500000;
+
+    return (uint64_t) y_scale * log(CacheBlocks / x_scale_down + 1);
+}
+
 
 /* Initialize "general" unset command-line parameters to user specified values
  * or hard-wired defaults. */
@@ -650,12 +670,6 @@ static void DefaultCmdlineParms()
     /* Load the "venus.conf" configuration file */
     codaconf_init("venus.conf");
 
-    CODACONF_INT(CacheFiles, "cachefiles", 85);
-    if (CacheFiles < MIN_CF) {
-        eprint("Cannot start: minimum number of cache files is %d", MIN_CF);
-        exit(EXIT_UNCONFIGURED);
-    }
-
     if (!CacheBlocks) {
         CODACONF_STR(CacheSize, "cachesize", MIN_CS);
         CacheBlocks = ParseCacheSize(CacheSize);
@@ -664,6 +678,13 @@ static void DefaultCmdlineParms()
     /* In case of user missconfiguration */
     if (CacheBlocks < MIN_CB) {
         eprint("Cannot start: minimum cache size is %s", "2MB");
+        exit(EXIT_UNCONFIGURED);
+    }
+
+    CODACONF_INT(CacheFiles, "cachefiles", CalculateCacheFiles(CacheBlocks));
+    if (CacheFiles < MIN_CF) {
+        eprint("Cannot start: minimum number of cache files is %d", CalculateCacheFiles(CacheBlocks));
+        eprint("Cannot start: minimum number of cache files is %d", MIN_CF);
         exit(EXIT_UNCONFIGURED);
     }
     
