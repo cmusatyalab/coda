@@ -1123,14 +1123,13 @@ int plan9server::recv_remove(unsigned char *buf, size_t len, uint16_t tag)
       /* remove a regular file */
       conn->remove(&parent_cnode, name);
     }
+    /* 9p clunks the file, whether the actual server remove succeeded or not */
+    del_fid(fid);
+
     if (conn->u.u_error) {
       const char *strerr = VenusRetStr(conn->u.u_error);
       return send_error(tag, strerr);
     }
-
-    rc = del_fid(fid);
-    if (rc)
-        return send_error(tag, "fid unknown or out of range");
 
     /* send_Rremove */
     DEBUG("9pfs: Rremove[%x]\n", tag);
