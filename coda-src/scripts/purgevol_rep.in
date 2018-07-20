@@ -59,21 +59,20 @@ then
     exit 1
 fi
 
-NSERVERS=$(echo "$volinfo" | sed 's/.* ServerCount \([^ ]*\) .*/\1/')
+NSERVERS=$(echo $volinfo | sed 's/.* ServerCount \([^ ]*\) .*/\1/')
 
 N=0
 while [ $N -ne "$NSERVERS" ]
 do
-  REP=$(echo "$volinfo" | sed 's/.* Replica'$N' id \([^,]*\),.*/\1/')
-  SRV=$(echo "$volinfo" | sed 's/.* Server'$N' \([^ ]*\) .*/\1/')
+  REP=$(echo $volinfo | sed 's/.* Replica'$N' id 0*\([^,]*\),.*/\1/')
+  SRV=$(echo $volinfo | sed 's/.* Server'$N' \([^ ]*\) .*/\1/')
     
   volumelist=$(volutil -h "$SRV" getvolumelist 2>/dev/null)
-  volumes=$(echo "$volumelist" | awk "\$8 ~/^W$REP\$/ { print \$2 }")
+  volumes=$(echo "$volumelist" | grep " W$REP " | cut -d' ' -f2 | cut -c2-)
 
-  for vid in $volumes
+  for volid in $volumes
   do
-    volid=$(echo "$vid" | cut -c2-)
-    volname=$(echo "$volumelist" | grep "I$volid" | cut -d' ' -f1 | cut -c2-)
+    volname=$(echo "$volumelist" | grep " I$volid " | cut -d' ' -f1 | cut -c2-)
 
     if [ $dryrun = 0 ] ; then
       echo "Purging $volname ($volid) from $SRV"
