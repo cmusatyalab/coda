@@ -176,13 +176,26 @@ extern void PollAndYield();
  ***************************************************
  */
 
+ /*
+   ViceFetch: Fetch a file or directory
+ */
+ long FS_ViceFetch(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
+ 		  RPC2_Unsigned InconOK, ViceStatus *Status,
+ 		  RPC2_Unsigned PrimaryHost, RPC2_Unsigned Offset,
+ 		  RPC2_CountedBS *PiggyBS, SE_Descriptor *BD)
+{
+	
+	return FS_ViceFetchPartial(RPCid, Fid, VV, InconOK, Status, PrimaryHost, 
+	                    Offset, -1, PiggyBS, BD);
+}
 
 /*
-  ViceFetch: Fetch a file or directory
+  ViceFetchPartial: Partially Fetch a file. Directories are fetched 
+                    as with ViceFetch.
 */
-long FS_ViceFetch(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
+long FS_ViceFetchPartial(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
 		  RPC2_Unsigned InconOK, ViceStatus *Status,
-		  RPC2_Unsigned PrimaryHost, RPC2_Unsigned Offset,
+		  RPC2_Unsigned PrimaryHost, RPC2_Unsigned Offset, RPC2_Unsigned Count,
 		  RPC2_CountedBS *PiggyBS, SE_Descriptor *BD)
 {
     int errorCode = 0;		/* return code to caller */
@@ -197,8 +210,13 @@ long FS_ViceFetch(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
     vle *av;
 
 START_TIMING(Fetch_Total);
-    SLog(1, "ViceFetch: Fid = %s, Repair = %d", FID_(Fid), InconOK);
 
+	if (Count < 0) {
+		SLog(1, "ViceFetch: Fid = %s, Repair = %d", FID_(Fid), InconOK);
+	} else {
+		SLog(1, "ViceFetch: Fid = %s, Repair = %d, Pos = %d, Count = %d", 
+		     FID_(Fid), InconOK, Offset, Count);
+	}
   
     /* Validate parameters. */
     {
@@ -224,7 +242,7 @@ START_TIMING(Fetch_Total);
     {
 	if (!ReplicatedOp || !PrimaryHost || PrimaryHost == ThisHostAddr)
 	    if ((errorCode = FetchBulkTransfer(RPCid, client, volptr, v->vptr,
-					      Offset, VV)))
+					      Offset, Count, VV)))
 		goto FreeLocks;
 	PerformFetch(client, volptr, v->vptr);
 
@@ -2120,7 +2138,8 @@ void PerformFetch(ClientEntry *client, Volume *volptr, Vnode *vptr) {
 
 
 int FetchBulkTransfer(RPC2_Handle RPCid, ClientEntry *client, 
-		      Volume *volptr, Vnode *vptr, RPC2_Unsigned Offset,
+		      Volume *volptr, Vnode *vptr, RPC2_Unsigned Offset, 
+			  RPC2_Unsigned Count,
 		      ViceVersionVector *VV)
 {
     int errorCode = 0;
@@ -2168,7 +2187,7 @@ int FetchBulkTransfer(RPC2_Handle RPCid, ClientEntry *client,
 	sid.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
 	sid.Value.SmartFTPD.SeekOffset = Offset;
 	sid.Value.SmartFTPD.hashmark = (SrvDebugLevel > 2 ? '#' : '\0');
-	sid.Value.SmartFTPD.ByteQuota = -1;
+	sid.Value.SmartFTPD.ByteQuota = Count;
 	if (vptr->disk.type != vDirectory) {
 	    if (vptr->disk.node.inodeNumber) {
 		fd = iopen(V_device(volptr), vptr->disk.node.inodeNumber, O_RDONLY);
@@ -3329,4 +3348,3 @@ END_NSC_TIMING(PutObjects_Inodes);
 
     SLog(10, "PutObjects: returning %s", ViceErrorMsg(0));
 }
-
