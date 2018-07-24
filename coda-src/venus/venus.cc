@@ -156,13 +156,13 @@ struct in_addr venus_relay_addr = { INADDR_LOOPBACK };
 int parent_fd = -1;
 
 /* Bytes units convertion */
-static const char * KBYTES_UNIT[] = { "KB", "kb", "Kb", "kB" };
+static const char * KBYTES_UNIT[] = { "KB", "kb", "Kb", "kB", "K", "k"};
 static const int KBYTE_UNIT_SCALE = 1;
-static const char * MBYTES_UNIT[] = { "MB", "mb", "Mb", "mB" };
+static const char * MBYTES_UNIT[] = { "MB", "mb", "Mb", "mB", "M", "m"};
 static const int MBYTE_UNIT_SCALE = 1024 * KBYTE_UNIT_SCALE;
-static const char * GBYTES_UNIT[] = { "GB", "gb", "Gb", "gB" };
+static const char * GBYTES_UNIT[] = { "GB", "gb", "Gb", "gB", "G", "g"};
 static const int GBYTE_UNIT_SCALE = 1024 * MBYTE_UNIT_SCALE;
-static const char * TBYTES_UNIT[] = { "TB", "tb", "Tb", "tB" };
+static const char * TBYTES_UNIT[] = { "TB", "tb", "Tb", "tB", "T", "t"};
 static const int TBYTE_UNIT_SCALE = 1024 * GBYTE_UNIT_SCALE;
 
 
@@ -259,7 +259,12 @@ static uint64_t ParseCacheSize(const char * CacheSize)
     uint64_t cachesize = 0;
 
     /* Locate the units and determine the scale factor */
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 6; i++) {
+        if (units = strstr(CacheSize, KBYTES_UNIT[i])) {
+            scale_factor = KBYTE_UNIT_SCALE;
+            break;
+        }
+        
         if (units = strstr(CacheSize, MBYTES_UNIT[i])) {
             scale_factor = MBYTE_UNIT_SCALE;
             break;
