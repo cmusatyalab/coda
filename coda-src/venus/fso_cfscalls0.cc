@@ -279,7 +279,7 @@ int fsobj::Fetch(uid_t uid, uint64_t pos, int64_t count)
 
     GotThisData = 0;
     if (IsFile()) {
-        offset = cf.ValidData();  // FIXME This has to change to consencutive
+        offset = cf.ConsecutiveValidData();
         len = -1;
     }
 

@@ -140,7 +140,8 @@ class CacheFile {
 
     char *Name()         { return(name); }
     long Length()        { return(length); }
-    long ValidData(void) { return(validdata); }
+    uint64_t ValidData(void) { return(validdata); }
+    uint64_t ConsecutiveValidData(void);
     int  IsPartial(void) { return(length != validdata); }
 
     void print() { print (stdout); }
