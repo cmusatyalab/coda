@@ -357,8 +357,12 @@ class fsobj {
     /* General status. */
     enum FsoState state;			/* {FsoRunt, FsoNormal, FsoDying} */
     VenusStat stat;
-    /*T*/long GotThisData;			/* used during fetch to keep
-						   track of where we are */
+    uint64_t GotThisDataStart; /* used during fetch to keep 
+                                  track of where we are. Signalling the start 
+                                  point of the current fetch segment */
+    uint64_t GotThisDataEnd; /* used during fetch to keep track of where 
+                                we are. Signalling the end of the current 
+                                fetch segment */
     /*T*/int RcRights;				/* replica control rights */
     AcRights AnyUser;				/* access control rights: any user */
     AcRights SpecificUser[CPSIZE];		/* access control rights: specific users */

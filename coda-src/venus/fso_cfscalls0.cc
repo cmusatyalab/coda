@@ -74,24 +74,24 @@ static void FetchProgressIndicator_stub(void *up, unsigned int offset)
 
 void fsobj::FetchProgressIndicator(unsigned long offset)
 {
-    unsigned long last;
-    unsigned long curr;
-    
-    if (stat.Length > 100000) {
-        last = GotThisData / (stat.Length / 100) ; 
-	curr = offset / (stat.Length / 100) ;
-    } else if (stat.Length > 0) {
-        last = 100 * GotThisData / stat.Length ; 
-	curr = 100 * offset / stat.Length ;
+    static uint64_t last = 0;
+    uint64_t curr;
+    uint64_t total_data = GotThisDataEnd - GotThisDataStart;
+    uint64_t curr_data = offset - GotThisDataStart;
+
+    if (total_data != 0) {
+        curr = (100.0f * curr_data) / total_data;
     } else {
 	last = 0;
 	curr = 100;
     }
 
     if (last != curr) {
-        MarinerLog("progress::fetching (%s) %lu%% (%lu/%lu) %d\n", GetComp(), curr, cf.ValidData(), stat.Length);
+        MarinerLog("progress::fetching (%s) %lu%% (%luBs/%luBs) [%lu - %lu]\n",
+                   GetComp(), curr, curr_data, total_data, GotThisDataStart,
+                   GotThisDataEnd);
     }
-	   
+
     last = curr;
 }
 
@@ -240,10 +240,10 @@ int fsobj::Fetch(uid_t uid, uint64_t pos, int64_t count)
     int fd = -1;
     int code = 0;
     
-
-    LOG(10, ("fsobj::Fetch: (%s), uid = %d\n", GetComp(), uid));
-
     CODA_ASSERT(!IsLocalObj() && !IsFake());
+    
+    LOG(10, ("fsobj::Fetch: (%s), uid = %d\n",
+             GetComp(), uid));
 
     /* Sanity checks. */
     {
@@ -283,13 +283,8 @@ int fsobj::Fetch(uid_t uid, uint64_t pos, int64_t count)
         len = -1;
     }
 
-    /* If reading out-of-bound read missing file part */
-    if (pos + count > Size()) {
-        len = -1;
-    }
-
-    LOG(10, ("fsobj::Fetch: (%s), uid = %d, Range [%d - %d]\n",
-             GetComp(), uid, offset, len));
+    GotThisDataStart = offset;
+    GotThisDataEnd = len > 0 ? offset + len : Size();
 
     /* C++ 3.0 whines if the following decls moved closer to use  -- Satya */
     {
@@ -403,7 +398,6 @@ int fsobj::Fetch(uid_t uid, uint64_t pos, int64_t count)
         /* Fetch the file from the server */
         code = FetchFileRPC(c, &status, ph, offset, len, &PiggyBS, sed);
         if (code != 0) goto RepExit;
-
 
 	    {
             unsigned long bytes = (unsigned long)sed->Value.SmartFTPD.BytesTransferred;
