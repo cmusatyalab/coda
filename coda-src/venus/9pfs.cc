@@ -475,7 +475,8 @@ int plan9server::handle_request(unsigned char *buf, size_t read)
         unpack_le16(&buf, &len, &tag))
         return -1;
 
-    DEBUG("9pfs: got request length %u, type %u, tag %x\n", reqlen, opcode, tag);
+    DEBUG("\n9pfs: got request length %u, type %u, tag %x\n", reqlen, opcode,
+                                                                        tag);
 
     if (reqlen < read)
         return -1;
@@ -1307,23 +1308,12 @@ int plan9server::recv_wstat(unsigned char *buf, size_t len, uint16_t tag)
 
     DEBUG("9pfs: Twstat[%x] fid %u, statlen %u\n", tag, fid, statlen);
     DEBUG("\
-           type:         %u (should be UINT16_MAX)\n \
-           dev:          %u (should be UINT32_MAX)\n \
-           qid.type:     %u (should be UINT8_MAX)\n \
-           qid.version:  %u (should be UINT32_MAX)\n \
-           qid.path:     %lu (should be UINT64_MAX)\n \
-           mode:         %o \n \
-           atime:        %u \n \
-           mtime:        %u \n \
-           length:       %lu \n \
-           name:        '%s'\n \
-           uid:         '%s'(should be empty string)\n \
-           gid:         '%s' \n \
-           muid:        '%s' \n",
-          stat.type, stat.dev, stat.qid.type, stat.qid.version,stat.qid.path,
-          stat.mode, stat.atime, stat.mtime, stat.length, stat.name, stat.uid,
-          stat.gid, stat.muid
-         );
+      mode:         %o \n \
+      atime:        %d \n \
+      mtime:        %d \n \
+      length:       %d \n \
+      name:         %s \n ",
+      stat.mode, (int)stat.atime, (int)stat.mtime, (int)stat.length, stat.name);
 
     struct fidmap *fm;
     fm = find_fid(fid);
