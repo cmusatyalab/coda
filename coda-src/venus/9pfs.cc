@@ -354,6 +354,7 @@ plan9server::plan9server(mariner *m)
 {
     conn = m;
     max_msize = P9_BUFSIZE;
+    protocol = P9_PROTO_UNKNOWN;
 }
 
 plan9server::~plan9server()
@@ -495,10 +496,19 @@ int plan9server::recv_version(unsigned char *buf, size_t len, uint16_t tag)
 
     max_msize = (msize < P9_BUFSIZE) ? msize : P9_BUFSIZE;
 
-    if (::strncmp(remote_version, "9P2000", 6) == 0)
+    if (::strncmp(remote_version, "9P2000.", 7) == 0) {
+        //9P2000.L Linux extensions not yet supported: degrade to 9P2000.u
+        version = "9P2000.u";
+        protocol = P9_PROTO_DOTU;
+      }
+    else if (::strncmp(remote_version, "9P2000", 6) == 0) {
         version = "9P2000";
-    else
+        protocol = P9_PROTO_2000;
+      }
+    else {
         version = "unknown";
+        protocol = P9_PROTO_UNKNOWN;
+      }
     ::free(remote_version);
 
     /* abort all existing I/O, clunk all fids */

@@ -88,6 +88,12 @@ enum plan9_message_types {
     Rwstat,         /* tag[2] */
 };
 
+/* Plan9 protocol version */
+#define	P9_PROTO_UNKNOWN 0x00
+#define	P9_PROTO_2000    0x01  /* 9P2000 Legacy protocol */
+#define	P9_PROTO_DOTU    0x02  /* 9P2000.u Unix Extensions */
+#define	P9_PROTO_DOTL    0x04  /* 9P2000.L Linux Extensions */
+
 #define P9_NOTAG ((uint16_t)~0) /* version message should use 'NOTAG' */
 #define P9_NOFID ((uint32_t)~0) /* noauth attach uses 'NOFID' for 'afid' */
 #define P9_MAX_NWNAME 16        /* max elements in walk message */
@@ -167,6 +173,7 @@ class plan9server {
 
     unsigned char buffer[P9_BUFSIZE];
     size_t max_msize;                   /* negotiated by Tversion/Rversion */
+    int protocol;                       /* negotiated by Tversion/Rversion */
 
     int pack_header(unsigned char **buf, size_t *bufspace,
                     uint8_t type, uint16_t tag);
