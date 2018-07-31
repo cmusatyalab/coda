@@ -55,7 +55,8 @@ enum plan9_message_types {
     Rattach,        /* tag[2] qid[13] */
     /* Return an error */
     Terror,         /* illegal */
-    Rerror =   107, /* tag[2] s[2] ename[s] */
+    Rerror =   107, /* legacy:    tag[2] s[2] ename[s] */
+                    /* 9P2000.u:  tag[2] s[2] ename[s] errno[4] */
     /* Abort a message */
     Tflush =   108, /* tag[2] oldtag[2] */
     Rflush,         /* tag[2] */
@@ -178,7 +179,7 @@ class plan9server {
     int pack_header(unsigned char **buf, size_t *bufspace,
                     uint8_t type, uint16_t tag);
     int send_response(unsigned char *buf, size_t len);
-    int send_error(uint16_t tag, const char *error);
+    int send_error(uint16_t tag, const char *error, int errcode);
 
     int handle_request(unsigned char *buf, size_t len);
     int recv_version(unsigned char *buf, size_t len, uint16_t tag);

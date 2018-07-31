@@ -390,17 +390,26 @@ int plan9server::send_response(unsigned char *buf, size_t len)
 }
 
 
-int plan9server::send_error(uint16_t tag, const char *error)
+/* Error messages formats:
+ * 9P2000:    Rerror[tag]   err_string
+ * 9P2000.u:  Rerror[tag]   err_string  errno
+ * 9P2000.L:  Rlerror[tag]  errno
+ */
+int plan9server::send_error(uint16_t tag, const char *error, int errcode)
 {
     unsigned char *buf;
     size_t len;
 
-    DEBUG("9pfs: Rerror[%x] %s\n", tag, error);
+    DEBUG("9pfs: Rerror[%x] '%s', errno: %d\n", tag, error, errcode);
 
     buf = buffer; len = max_msize;
     if (pack_header(&buf, &len, Rerror, tag) ||
         pack_string(&buf, &len, error))
         return -1;
+    if (protocol == P9_PROTO_DOTU) {
+      if (pack_le32(&buf, &len, (uint32_t)errcode))
+          return -1;
+    }
 
     return send_response(buffer, max_msize - len);
 }
@@ -445,7 +454,7 @@ int plan9server::handle_request(unsigned char *buf, size_t read)
         return -1;
 
     if (reqlen > max_msize) {
-        send_error(tag, "Message too long");
+        send_error(tag, "Message too long", EMSGSIZE);
         return -1;
     }
 
@@ -475,7 +484,7 @@ int plan9server::handle_request(unsigned char *buf, size_t read)
     case Tremove:   return recv_remove(buf, len, tag);
     case Tstat:     return recv_stat(buf, len, tag);
     case Twstat:    return recv_wstat(buf, len, tag);
-    default:        return send_error(tag, "Operation not supported");
+    default:        return send_error(tag, "Operation not supported", EBADRQC);
     }
     return 0;
 }
@@ -523,7 +532,7 @@ int plan9server::recv_version(unsigned char *buf, size_t len, uint16_t tag)
         pack_le32(&buf, &len, max_msize) ||
         pack_string(&buf, &len, version))
     {
-        send_error(tag, "Message too long");
+        send_error(tag, "Message too long", EMSGSIZE);
         return -1;
     }
     return send_response(buffer, max_msize - len);
@@ -563,7 +572,7 @@ int plan9server::recv_auth(unsigned char *buf, size_t len, uint16_t tag)
     }
     return send_response(buffer, max_msize - len);
 #endif
-    return send_error(tag, "Operation not supported");
+    return send_error(tag, "Operation not supported", EBADRQC);
 }
 
 
@@ -590,7 +599,7 @@ int plan9server::recv_attach(unsigned char *buf, size_t len, uint16_t tag)
     if (find_fid(fid)) {
         ::free(uname);
         ::free(aname);
-        return send_error(tag, "fid already in use");
+        return send_error(tag, "fid already in use", EBADF);
     }
 
     struct attachment *root = new struct attachment;
@@ -605,10 +614,11 @@ int plan9server::recv_attach(unsigned char *buf, size_t len, uint16_t tag)
     conn->root(&root->cnode);
 
     if (add_fid(fid, &root->cnode, root) == NULL) {
+        int errcode = errno;
         ::free((void *)root->uname);
         ::free((void *)root->aname);
         delete root;
-        return send_error(tag, "failed to allocate new fid");
+        return send_error(tag, "failed to allocate new fid", errcode);
     }
 
     cnode2qid(&root->cnode, &qid);
@@ -621,7 +631,7 @@ int plan9server::recv_attach(unsigned char *buf, size_t len, uint16_t tag)
     if (pack_header(&buf, &len, Rattach, tag) ||
         pack_qid(&buf, &len, &qid))
     {
-        send_error(tag, "Message too long");
+        send_error(tag, "Message too long", EMSGSIZE);
         return -1;
     }
     return send_response(buffer, max_msize - len);
@@ -663,7 +673,7 @@ int plan9server::recv_walk(unsigned char *buf, size_t len, uint16_t tag)
 
     if (nwname > P9_MAX_NWNAME)
     {
-        send_error(tag, "Argument list too long");
+        send_error(tag, "Argument list too long", E2BIG);
         return -1;
     }
 
@@ -679,7 +689,7 @@ int plan9server::recv_walk(unsigned char *buf, size_t len, uint16_t tag)
 
     fm = find_fid(fid);
     if (!fm) {
-        return send_error(tag, "fid unknown or out of range");
+        return send_error(tag, "fid unknown or out of range", EBADF);
     }
     current = fm->cnode;
 
@@ -711,8 +721,9 @@ int plan9server::recv_walk(unsigned char *buf, size_t len, uint16_t tag)
 
     /* report lookup errors only for the first path element */
     if (i == 0 && conn->u.u_error) {
-        const char *errstr = VenusRetStr(conn->u.u_error);
-        return send_error(tag, errstr);
+        int errcode = conn->u.u_error;
+        const char *errstr = VenusRetStr(errcode);
+        return send_error(tag, errstr, errcode);
     }
     nwqid = i;
 
@@ -722,7 +733,7 @@ int plan9server::recv_walk(unsigned char *buf, size_t len, uint16_t tag)
             del_fid(fid);
 
         else if (find_fid(newfid))
-            return send_error(tag, "fid already in use");
+            return send_error(tag, "fid already in use", EBADF);
 
         add_fid(newfid, &current, fm->root);
     }
@@ -734,7 +745,7 @@ int plan9server::recv_walk(unsigned char *buf, size_t len, uint16_t tag)
     if (pack_header(&buf, &len, Rwalk, tag) ||
         pack_le16(&buf, &len, nwqid))
     {
-        send_error(tag, "Message too long");
+        send_error(tag, "Message too long", EMSGSIZE);
         return -1;
     }
     for (i = 0; i < nwqid; i++)
@@ -744,7 +755,7 @@ int plan9server::recv_walk(unsigned char *buf, size_t len, uint16_t tag)
 
         if (pack_qid(&buf, &len, &wqid[i]))
         {
-            send_error(tag, "Message too long");
+            send_error(tag, "Message too long", EMSGSIZE);
             return -1;
         }
     }
@@ -768,14 +779,14 @@ int plan9server::recv_open(unsigned char *buf, size_t len, uint16_t tag)
 
     fm = find_fid(fid);
     if (!fm)
-        return send_error(tag, "fid unknown or out of range");
+        return send_error(tag, "fid unknown or out of range", EBADF);
 
     if (fm->open_flags)
-        return send_error(tag, "file already open for I/O");
+        return send_error(tag, "file already open for I/O", EIO);
 
     /* We're not handling ORCLOSE yet, the rest should be 0 */
     if (mode & ~0x13)
-        return send_error(tag, "Invalid argument");
+        return send_error(tag, "Invalid argument", EINVAL);
 
     switch (mode & 0x3) {
     case P9_OREAD:
@@ -801,11 +812,11 @@ int plan9server::recv_open(unsigned char *buf, size_t len, uint16_t tag)
         switch (cnode.c_type) {
         case C_VREG:
             break;
-        case C_VDIR: /* EISDIR */
-            return send_error(tag, "can't open directory for writing");
-        case C_VLNK: /* EINVAL */
+        case C_VDIR:
+            return send_error(tag, "can't open directory for writing", EISDIR);
+        case C_VLNK:
         default:
-            return send_error(tag, "file is read only");
+            return send_error(tag, "file is read only", EINVAL);
         }
     }
 
@@ -818,8 +829,9 @@ int plan9server::recv_open(unsigned char *buf, size_t len, uint16_t tag)
         conn->open(&cnode, flags);
     }
     if (conn->u.u_error) {
-        const char *errstr = VenusRetStr(conn->u.u_error);
-        return send_error(tag, errstr);
+        int errcode = conn->u.u_error;
+        const char *errstr = VenusRetStr(errcode);
+        return send_error(tag, errstr, errcode);
     }
 
     /* open yields, reobtain fidmap reference */
@@ -827,7 +839,7 @@ int plan9server::recv_open(unsigned char *buf, size_t len, uint16_t tag)
     if (!fm) {
         if (cnode.c_type != C_VLNK)
             conn->close(&cnode, flags);
-        return send_error(tag, "fid unknown or out of range");
+        return send_error(tag, "fid unknown or out of range", EBADF);
     }
     fm->open_flags = flags;
 
@@ -844,7 +856,7 @@ int plan9server::recv_open(unsigned char *buf, size_t len, uint16_t tag)
         pack_qid(&buf, &len, &qid) ||
         pack_le32(&buf, &len, iounit))
     {
-        send_error(tag, "Message too long");
+        send_error(tag, "Message too long", EMSGSIZE);
         return -1;
     }
     send_response(buffer, max_msize - len);
@@ -882,18 +894,18 @@ int plan9server::recv_create(unsigned char *buf, size_t len, uint16_t tag)
 
     fm = find_fid(fid);
     if (!fm)
-        return send_error(tag, "fid unknown or out of range");
+        return send_error(tag, "fid unknown or out of range", EBADF);
 
     if (fm->open_flags)
-        return send_error(tag, "file already open for I/O");
+        return send_error(tag, "file already open for I/O", EIO);
 
     /* we can only create in a directory */
     if (fm->cnode.c_type != C_VDIR)
-        return send_error(tag, "Not a directory");
+        return send_error(tag, "Not a directory", ENOTDIR);
 
     /* We're not handling ORCLOSE yet and the rest should be 0 */
     if (mode & ~0x13)
-        return send_error(tag, "Invalid argument");
+        return send_error(tag, "Invalid argument", EINVAL);
 
     switch (mode & 0x3) {
     case P9_OREAD:
@@ -927,22 +939,24 @@ int plan9server::recv_create(unsigned char *buf, size_t len, uint16_t tag)
     }
 
     if (conn->u.u_error) {
-        const char *errstr = VenusRetStr(conn->u.u_error);
-        return send_error(tag, errstr);
+        int errcode = conn->u.u_error;
+        const char *errstr = VenusRetStr(errcode);
+        return send_error(tag, errstr, errcode);
     }
 
     conn->open(&child, flags);
 
     if (conn->u.u_error) {
-        const char *errstr = VenusRetStr(conn->u.u_error);
-        return send_error(tag, errstr);
+        int errcode = conn->u.u_error;
+        const char *errstr = VenusRetStr(errcode);
+        return send_error(tag, errstr, errcode);
     }
 
     /* create yields, reobtain fidmap reference */
     fm = find_fid(fid);
     if (!fm) {
         conn->close(&child, flags);
-        return send_error(tag, "fid unknown or out of range");
+        return send_error(tag, "fid unknown or out of range", EBADF);
     }
     /* fid is replaced by the newly created file/directory */
     fm->cnode = child;
@@ -961,7 +975,7 @@ int plan9server::recv_create(unsigned char *buf, size_t len, uint16_t tag)
         pack_qid(&buf, &len, &qid) ||
         pack_le32(&buf, &len, iounit))
     {
-        send_error(tag, "Message too long");
+        send_error(tag, "Message too long", EMSGSIZE);
         return -1;
     }
     return send_response(buffer, max_msize - len);
@@ -984,10 +998,10 @@ int plan9server::recv_read(unsigned char *buf, size_t len, uint16_t tag)
 
     struct fidmap *fm = find_fid(fid);
     if (!fm)
-        return send_error(tag, "fid unknown or out of range");
+        return send_error(tag, "fid unknown or out of range", EBADF);
 
     if (!(fm->open_flags & C_O_READ))
-        return send_error(tag, "Bad file descriptor");
+        return send_error(tag, "Bad file descriptor", EBADF);
 
     /* send_Rread */
     unsigned char *tmpbuf;
@@ -995,7 +1009,7 @@ int plan9server::recv_read(unsigned char *buf, size_t len, uint16_t tag)
     if (pack_header(&buf, &len, Rread, tag) ||
         get_blob_ref(&buf, &len, &tmpbuf, NULL, 4))
     {
-        send_error(tag, "Message too long");
+        send_error(tag, "Message too long", EMSGSIZE);
         return -1;
     }
 
@@ -1004,8 +1018,9 @@ int plan9server::recv_read(unsigned char *buf, size_t len, uint16_t tag)
 
     ssize_t n = plan9_read(fm, buf, count, offset);
     if (n < 0) {
-        const char *strerr = VenusRetStr(conn->u.u_error);
-        return send_error(tag, strerr);
+        int errcode = conn->u.u_error;
+        const char *errstr = VenusRetStr(errcode);
+        return send_error(tag, errstr, errcode);
     }
 
     /* fix up the actual size of the blob, and send */
@@ -1037,11 +1052,11 @@ int plan9server::recv_write(unsigned char *buf, size_t len, uint16_t tag)
 
     struct fidmap *fm = find_fid(fid);
     if (!fm)
-        return send_error(tag, "fid unknown or out of range");
+        return send_error(tag, "fid unknown or out of range", EBADF);
 
     if (!(fm->open_flags & C_O_WRITE) ||
         fm->cnode.c_type != C_VREG)
-        return send_error(tag, "Bad file descriptor");
+        return send_error(tag, "Bad file descriptor", EBADF);
 
     fsobj *f;
     int fd;
@@ -1052,15 +1067,16 @@ int plan9server::recv_write(unsigned char *buf, size_t len, uint16_t tag)
 
     fd = f->data.file->Open(O_WRONLY);
     if (fd < 0)
-        return send_error(tag, "I/O error");
+        return send_error(tag, "I/O error", EIO);
 
     n = ::pwrite(fd, buf, count, offset);
 
     f->data.file->Close(fd);
 
     if (n < 0) {
-        const char *strerr = VenusRetStr(conn->u.u_error);
-        return send_error(tag, strerr);
+        int errcode = conn->u.u_error;
+        const char *errstr = VenusRetStr(errcode);
+        return send_error(tag, errstr, errcode);
     }
 
     /* send_Rwrite */
@@ -1070,7 +1086,7 @@ int plan9server::recv_write(unsigned char *buf, size_t len, uint16_t tag)
     if (pack_header(&buf, &len, Rwrite, tag) ||
         pack_le32(&buf, &len, n))
     {
-        send_error(tag, "Message too long");
+        send_error(tag, "Message too long", EMSGSIZE);
         return -1;
     }
     return send_response(buffer, max_msize - len);
@@ -1089,7 +1105,7 @@ int plan9server::recv_clunk(unsigned char *buf, size_t len, uint16_t tag)
 
     rc = del_fid(fid);
     if (rc)
-        return send_error(tag, "fid unknown or out of range");
+        return send_error(tag, "fid unknown or out of range", EBADF);
 
     /* send_Rclunk */
     DEBUG("9pfs: Rclunk[%x]\n", tag);
@@ -1113,7 +1129,7 @@ int plan9server::recv_remove(unsigned char *buf, size_t len, uint16_t tag)
 
     struct fidmap *fm = find_fid(fid);
     if (!fm)
-        return send_error(tag, "fid unknown or out of range");
+        return send_error(tag, "fid unknown or out of range", EBADF);
 
     /* find the filename */
     char name[NAME_MAX];
@@ -1122,7 +1138,7 @@ int plan9server::recv_remove(unsigned char *buf, size_t len, uint16_t tag)
     /* Find the parent directory cnode */
     struct venus_cnode parent_cnode;
     if (cnode_getparent(&fm->cnode, &parent_cnode) < 0)
-        return send_error(tag, "tried to remove the mountpoint");
+        return send_error(tag, "tried to remove the mountpoint", EBUSY);
 
     conn->u.u_uid = fm->root->userid;
     if (fm->cnode.c_type == C_VDIR) {
@@ -1137,8 +1153,9 @@ int plan9server::recv_remove(unsigned char *buf, size_t len, uint16_t tag)
     del_fid(fid);
 
     if (conn->u.u_error) {
-      const char *strerr = VenusRetStr(conn->u.u_error);
-      return send_error(tag, strerr);
+        int errcode = conn->u.u_error;
+        const char *errstr = VenusRetStr(errcode);
+        return send_error(tag, errstr, errcode);
     }
 
     /* send_Rremove */
@@ -1166,13 +1183,14 @@ int plan9server::recv_stat(unsigned char *buf, size_t len, uint16_t tag)
 
     fm = find_fid(fid);
     if (!fm)
-        return send_error(tag, "fid unknown or out of range");
+        return send_error(tag, "fid unknown or out of range", EBADF);
 
     rc = plan9_stat(&fm->cnode, fm->root, &stat);
     if (rc) {
-        const char *strerr = VenusRetStr(conn->u.u_error);
-        ::free(stat.name);
-        return send_error(tag, strerr);
+      int errcode = conn->u.u_error;
+      const char *errstr = VenusRetStr(errcode);
+      ::free(stat.name);
+      return send_error(tag, errstr, errcode);
     }
 
     /* send_Rstat */
@@ -1187,7 +1205,7 @@ int plan9server::recv_stat(unsigned char *buf, size_t len, uint16_t tag)
         pack_stat(&buf, &len, &stat))
     {
         ::free(stat.name);
-        send_error(tag, "Message too long");
+        send_error(tag, "Message too long", EMSGSIZE);
         return -1;
     }
     ::free(stat.name);
@@ -1207,6 +1225,7 @@ int plan9server::recv_wstat(unsigned char *buf, size_t len, uint16_t tag)
     uint16_t statlen;
     struct plan9_stat stat;
     struct coda_vattr attr;
+    int errcode = 0;
     const char *strerr = NULL;
     int rc;
 
@@ -1239,6 +1258,7 @@ int plan9server::recv_wstat(unsigned char *buf, size_t len, uint16_t tag)
     struct fidmap *fm;
     fm = find_fid(fid);
     if (!fm) {
+        errcode = EBADF;
         strerr = "fid unknown or out of range";
         goto err_out;
     }
@@ -1268,6 +1288,7 @@ int plan9server::recv_wstat(unsigned char *buf, size_t len, uint16_t tag)
       || strcmp(stat.uid, P9_DONT_TOUCH_UID) != 0
       )
     {
+        errcode = EINVAL;
         strerr = "Twstat tried to modify stat field illegally";
         goto err_out;
     }
@@ -1277,7 +1298,8 @@ int plan9server::recv_wstat(unsigned char *buf, size_t len, uint16_t tag)
     conn->u.u_uid = fm->root->userid;
     conn->getattr(&fm->cnode, &attr);
     if (conn->u.u_error) {
-        strerr = VenusRetStr(conn->u.u_error);
+        errcode = conn->u.u_error;
+        strerr = VenusRetStr(errcode);
         goto err_out;
     }
 
@@ -1290,6 +1312,7 @@ int plan9server::recv_wstat(unsigned char *buf, size_t len, uint16_t tag)
       /* Find the parent directory cnode */
       struct venus_cnode parent_cnode;
       if (cnode_getparent(&fm->cnode, &parent_cnode) < 0) {
+          errcode = EINVAL;
           strerr = "tried to rename the mountpoint";
           goto err_out;
       }
@@ -1298,7 +1321,8 @@ int plan9server::recv_wstat(unsigned char *buf, size_t len, uint16_t tag)
       conn->u.u_uid = fm->root->userid;
       conn->rename(&parent_cnode, name,&parent_cnode, stat.name);
       if (conn->u.u_error) {
-          strerr = VenusRetStr(conn->u.u_error);
+          errcode = conn->u.u_error;
+          strerr = VenusRetStr(errcode);
           goto err_out;
       }
       DEBUG("renamed %s to %s\n", name, stat.name);
@@ -1345,7 +1369,8 @@ int plan9server::recv_wstat(unsigned char *buf, size_t len, uint16_t tag)
     conn->u.u_uid = fm->root->userid;
     conn->setattr(&fm->cnode, &attr);
     if (conn->u.u_error) {
-        strerr = VenusRetStr(conn->u.u_error);
+        errcode = conn->u.u_error;
+        strerr = VenusRetStr(errcode);
         goto err_out;
     }
 
@@ -1367,7 +1392,7 @@ err_out:
     ::free(stat.gid);
     ::free(stat.uid);
     ::free(stat.name);
-    return send_error(tag, strerr);
+    return send_error(tag, strerr, errcode);
 }
 
 
