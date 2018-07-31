@@ -28,6 +28,7 @@ listed in the file CREDITS.
 extern "C" {
 #endif
 
+#include <sys/types.h>
 #include <stdint.h>
 
 
@@ -72,7 +73,8 @@ enum plan9_message_types {
     Topen =    112, /* tag[2] fid[4] mode[1] */
     Ropen,          /* tag[2] qid[13] iounit[4] */
     /* Prepare a handle for a new file */
-    Tcreate =  114, /* tag[2] fid[4] name[s] perm[4] mode[1] */
+    Tcreate =  114, /* legacy:   tag[2] fid[4] name[s] perm[4] mode[1] */
+                    /* 9P2000.u: tag[2] fid[4] name[s] perm[4] mode[1] extension[s] */
     Rcreate,        /* tag[2] qid[13] iounit[4] */
     /* Read from file handle */
     Tread =    116, /* tag[2] fid[4] offset[8] count[4] */
@@ -107,16 +109,31 @@ enum plan9_message_types {
 /* size of 9pfs message header */
 #define P9_MIN_MSGSIZE (sizeof(uint32_t)+sizeof(uint8_t)+sizeof(uint16_t))
 
-/* File types for use in Plan9 qid
- * and as higher 8 bits of mode field in Plan9 stat
- */
-#define P9_QTDIR     0x80  /* directory */
-#define P9_QTAUTH    0x08
-#define P9_QTSYMLINK 0x02
-#define P9_QTFILE    0x00  /* regular file */
-#define P9_DMAPPEND  0x40  /* append-only file */
-#define P9_DMEXCL    0x20  /* exclusive use file */
-#define P9_DMTMP     0x04  /* temporary file */
+/* 9P permission mode filetype bits */
+#define  P9_DMDIR             0x80000000
+#define  P9_DMAPPEND          0x40000000  /* unsupported */
+#define  P9_DMEXCL            0x20000000  /* unsupported */
+#define  P9_DMMOUNT           0x10000000  /* unsupported */
+#define  P9_DMAUTH            0x08000000
+#define  P9_DMTMP             0x04000000  /* unsupported */
+#define  P9_DMSYMLINK         0x02000000
+  /* 9P2000.u extensions */
+#define  P9_DMDEVICE          0x00800000  /* unsupported */
+#define  P9_DMNAMEDPIPE       0x00200000  /* unsupported */
+#define  P9_DMSOCKET          0x00100000  /* unsupported */
+#define  P9_DMSETUID          0x00080000  /* unsupported */
+#define  P9_DMSETGID          0x00040000  /* unsupported */
+
+/* 9P qid.types = higher byte of permission modes */
+#define  P9_QTDIR             0x80
+#define  P9_QTAPPEND          0x40  /* unsupported */
+#define  P9_QTEXCL            0x20  /* unsupported */
+#define  P9_QTMOUNT           0x10  /* unsupported */
+#define  P9_QTAUTH            0x08
+#define  P9_QTTMP 	          0x04  /* unsupported */
+#define  P9_QTSYMLINK         0x02
+#define  P9_QTFILE            0x00
+
 
 /* Plan9 open/create flags */
 #define P9_OREAD   0x00
@@ -146,6 +163,11 @@ struct plan9_stat {
     char *uid;
     char *gid;
     char *muid;
+    // fields for 9p2000.u extensions:
+    char *extension;	/* data about special files (links, devices, pipes,...) */
+  	uid_t n_uid;		  /* numeric IDs */
+  	gid_t n_gid;
+  	uid_t n_muid;
 };
 
 /* Plan9 stat "don't touch" values for writing stat */
@@ -162,7 +184,11 @@ struct plan9_stat {
 #define P9_DONT_TOUCH_UID       ""
 #define P9_DONT_TOUCH_GID       ""
 #define P9_DONT_TOUCH_MUID      ""
-
+// fields for 9p2000.u extensions:
+#define P9_DONT_TOUCH_EXTENSION ""
+#define P9_DONT_TOUCH_NUID      ((uint32_t)(-1))
+#define P9_DONT_TOUCH_NGID      ((uint32_t)(-1))
+#define P9_DONT_TOUCH_NMUID     ((uint32_t)(-1))
 
 #ifdef __cplusplus
 }

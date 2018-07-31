@@ -235,7 +235,7 @@ static int unpack_qid(unsigned char **buf, size_t *len,
 
 
 static int pack_stat(unsigned char **buf, size_t *len,
-                     const struct plan9_stat *stat)
+                     const struct plan9_stat *stat, int proto)
 {
     unsigned char *stashed_buf = NULL;
     size_t stashed_len = 0;
@@ -255,23 +255,36 @@ static int pack_stat(unsigned char **buf, size_t *len,
         pack_string(buf, len, stat->uid) ||
         pack_string(buf, len, stat->gid) ||
         pack_string(buf, len, stat->muid))
-    {
-        *buf = stashed_buf;
-        *len = stashed_len;
-        return -1;
+      goto pack_stat_err_out;
+
+    if (proto == P9_PROTO_DOTU)
+    { // 9P2000.u fields
+      if (pack_string(buf, len, stat->extension) ||
+          pack_le32(buf, len, stat->n_uid) ||
+          pack_le32(buf, len, stat->n_gid) ||
+          pack_le32(buf, len, stat->n_muid))
+        goto pack_stat_err_out;
     }
-    size_t tmplen = 2;
-    size_t stat_size = stashed_len - *len - 2;
+
+    size_t tmplen;
+    size_t stat_size;
+    tmplen = 2;
+    stat_size = stashed_len - *len - 2;
     pack_le16(&stashed_buf, &tmplen, stat_size);
     return 0;
+
+  pack_stat_err_out:
+    *buf = stashed_buf;
+    *len = stashed_len;
+    return -1;
 }
 
 static int unpack_stat(unsigned char **buf, size_t *len,
-                       struct plan9_stat *stat)
+                       struct plan9_stat *stat, int proto)
 {
     size_t stashed_length = *len;
     uint16_t size;
-    stat->name = stat->uid = stat->gid = stat->muid = NULL;
+    stat->name = stat->uid = stat->gid = stat->muid = stat->extension = NULL;
 
     if (unpack_le16(buf, len, &size) ||
         unpack_le16(buf, len, &stat->type) ||
@@ -284,16 +297,30 @@ static int unpack_stat(unsigned char **buf, size_t *len,
         unpack_string(buf, len, &stat->name) ||
         unpack_string(buf, len, &stat->uid) ||
         unpack_string(buf, len, &stat->gid) ||
-        unpack_string(buf, len, &stat->muid) ||
-        size != (stashed_length - *len - 2))
-    {
-        ::free(stat->muid);
-        ::free(stat->gid);
-        ::free(stat->uid);
-        ::free(stat->name);
-        return -1;
+        unpack_string(buf, len, &stat->muid))
+      goto unpack_stat_err_out;
+
+    if (proto == P9_PROTO_DOTU)
+    {// 9P2000.u fields
+      if (unpack_string(buf, len, &stat->extension) ||
+          unpack_le32(buf, len, &stat->n_uid) ||
+          unpack_le32(buf, len, &stat->n_gid) ||
+          unpack_le32(buf, len, &stat->n_muid))
+        goto unpack_stat_err_out;
     }
+
+    if (size != (stashed_length - *len - 2))
+      goto unpack_stat_err_out;
+
     return 0;
+
+  unpack_stat_err_out:
+    ::free(stat->extension);
+    ::free(stat->muid);
+    ::free(stat->gid);
+    ::free(stat->uid);
+    ::free(stat->name);
+    return -1;
 }
 
 
@@ -886,6 +913,7 @@ int plan9server::recv_create(unsigned char *buf, size_t len, uint16_t tag)
     char *name;
     uint32_t perm;
     uint8_t mode;
+    char *extension = (char *)"";
 
     if (unpack_le32(&buf, &len, &fid) ||
         unpack_string(&buf, &len, &name))
@@ -896,9 +924,14 @@ int plan9server::recv_create(unsigned char *buf, size_t len, uint16_t tag)
         free(name);
         return -1;
     }
+    if (protocol == P9_PROTO_DOTU && unpack_string(&buf, &len, &extension))
+    {
+        free(name);
+        return -1;
+    }
 
-    DEBUG("9pfs: Tcreate[%x] fid %u, name %s, perm %o, mode %u\n",
-          tag, fid, name, perm, mode);
+    DEBUG("9pfs: Tcreate[%x] fid %u, name %s, perm %o, mode %u, extension %s\n",
+          tag, fid, name, perm, mode, extension);
 
     struct fidmap *fm;
     struct coda_vattr va = { 0 };
@@ -945,9 +978,15 @@ int plan9server::recv_create(unsigned char *buf, size_t len, uint16_t tag)
 
     conn->u.u_uid = fm->root->userid;
 
-    if (perm & (P9_QTDIR << 24)) {
+    if (perm & P9_DMDIR) {
       /* create a directory */
       conn->mkdir(&fm->cnode, name, &va, &child);
+    }
+    else if (perm & P9_DMSYMLINK) {
+      /* create a symlink */
+      conn->symlink(&fm->cnode, extension, &va, name);
+      conn->lookup(&fm->cnode, name, &child,
+                   CLU_CASE_SENSITIVE | CLU_TRAVERSE_MTPT);
     }
     else {
       /* create a regular file */
@@ -960,7 +999,8 @@ int plan9server::recv_create(unsigned char *buf, size_t len, uint16_t tag)
         return send_error(tag, errstr, errcode);
     }
 
-    conn->open(&child, flags);
+    if (child.c_type != C_VLNK)
+        conn->open(&child, flags);
 
     if (conn->u.u_error) {
         int errcode = conn->u.u_error;
@@ -971,10 +1011,11 @@ int plan9server::recv_create(unsigned char *buf, size_t len, uint16_t tag)
     /* create yields, reobtain fidmap reference */
     fm = find_fid(fid);
     if (!fm) {
-        conn->close(&child, flags);
+        if (child.c_type != C_VLNK)
+            conn->close(&child, flags);
         return send_error(tag, "fid unknown or out of range", EBADF);
     }
-    /* fid is replaced by the newly created file/directory */
+    /* fid is replaced by the newly created file/directory/symlink */
     fm->cnode = child;
     fm->open_flags = flags;
 
@@ -1211,6 +1252,19 @@ int plan9server::recv_stat(unsigned char *buf, size_t len, uint16_t tag)
 
     /* send_Rstat */
     DEBUG("9pfs: Rstat[%x]\n", tag);
+    DEBUG("\
+      mode: %o  length:  %lu name: '%s' \n \
+      qid[type.ver.path]: %x.%x.%lx \n \
+      extension: '%s' \n \
+      uid: %s  gid: %s  muid: %s \n \
+      n_uid: %d  n_gid: %d  n_muid: %d\n \
+      atime: %u  mtime: %u \n ",
+      stat.mode, stat.length, stat.name,
+      stat.qid.type, stat.qid.version, stat.qid.path,
+      stat.extension,
+      stat.uid, stat.gid, stat.muid,
+      stat.n_uid, stat.n_gid, stat.n_muid,
+      stat.atime, stat.mtime);
 
     unsigned char *stashed_buf = NULL;
     size_t stashed_len = 0;
@@ -1218,7 +1272,7 @@ int plan9server::recv_stat(unsigned char *buf, size_t len, uint16_t tag)
     buf = buffer; len = max_msize;
     if (pack_header(&buf, &len, Rstat, tag) ||
         get_blob_ref(&buf, &len, &stashed_buf, &stashed_len, 2) ||
-        pack_stat(&buf, &len, &stat))
+        pack_stat(&buf, &len, &stat, protocol))
     {
         ::free(stat.name);
         send_error(tag, "Message too long", EMSGSIZE);
@@ -1247,7 +1301,7 @@ int plan9server::recv_wstat(unsigned char *buf, size_t len, uint16_t tag)
 
     if (unpack_le32(&buf, &len, &fid) ||
         unpack_le16(&buf, &len, &statlen) ||
-        unpack_stat(&buf, &len, &stat))
+        unpack_stat(&buf, &len, &stat, protocol))
         return -1;
     /* unpacked fields are freed before returning, at Send_Rwstat: */
 
@@ -1292,6 +1346,11 @@ int plan9server::recv_wstat(unsigned char *buf, size_t len, uint16_t tag)
           char *            uid;     - illegal
           char *            gid;     - Unimplemented - allowed by owner or
           char *            muid;    - auto      or group leader, if in new gid
+
+          char *      extensions;    - illegal?
+          uid_t             n_uid;   - illegal
+          uid_t             n_gid;   - Unimplemented (see gid)
+          uid_t             n_muid;  - auto
       };
     */
 
@@ -1307,6 +1366,16 @@ int plan9server::recv_wstat(unsigned char *buf, size_t len, uint16_t tag)
         errcode = EINVAL;
         strerr = "Twstat tried to modify stat field illegally";
         goto err_out;
+    }
+
+    if (protocol == P9_PROTO_DOTU) {
+      if (strcmp(stat.extension, P9_DONT_TOUCH_EXTENSION) != 0
+        || stat.n_uid != P9_DONT_TOUCH_NUID)
+      {
+          errcode = EINVAL;
+          strerr = "Twstat tried to modify stat field illegally";
+          goto err_out;
+      }
     }
 
 
@@ -1394,6 +1463,8 @@ int plan9server::recv_wstat(unsigned char *buf, size_t len, uint16_t tag)
     ::free(stat.gid);
     ::free(stat.uid);
     ::free(stat.name);
+    if (protocol == P9_PROTO_DOTU)
+        ::free(stat.extension);
 
     /* send_Rwstat */
     DEBUG("9pfs: Rwstat[%x]\n", tag);
@@ -1408,6 +1479,8 @@ err_out:
     ::free(stat.gid);
     ::free(stat.uid);
     ::free(stat.name);
+    if (protocol == P9_PROTO_DOTU) 
+        ::free(stat.extension);
     return send_error(tag, strerr, errcode);
 }
 
@@ -1450,7 +1523,7 @@ int plan9server::pack_dirent(unsigned char **buf, size_t *len, size_t *offset,
         /* if there is an offset, we're guaranteed to be at the start of the
          * buffer. So there is 'room' for scratch space there. */
         unsigned char *scratch = *buf;
-        rc = pack_stat(&scratch, offset, &stat);
+        rc = pack_stat(&scratch, offset, &stat, protocol);
         ::free(stat.name);
         if (rc) {
             /* was this a case of (offset < stat_length)? */
@@ -1461,7 +1534,7 @@ int plan9server::pack_dirent(unsigned char **buf, size_t *len, size_t *offset,
     }
 
     /* and finally we pack until we cannot fit any more entries */
-    rc = pack_stat(buf, len, &stat);
+    rc = pack_stat(buf, len, &stat, protocol);
     ::free(stat.name);
     if (rc) /* failed to pack this entry. stop enumerating. */
         return ENOBUFS;
@@ -1556,6 +1629,11 @@ int plan9server::plan9_stat(struct venus_cnode *cnode, struct attachment *root,
     stat->uid = (char *)root->uname;
     stat->gid = (char *)root->uname;
     stat->muid = (char *)root->uname;
+    // 9P2000.u  extensions
+    stat->extension = (char*)"";
+    stat->n_uid = root->userid;
+    stat->n_gid = root->userid;
+    stat->n_muid = root->userid;
 
     conn->u.u_uid = root->userid;
     conn->getattr(cnode, &attr);
@@ -1568,6 +1646,19 @@ int plan9server::plan9_stat(struct venus_cnode *cnode, struct attachment *root,
     stat->atime = attr.va_atime.tv_sec;
     stat->mtime = attr.va_mtime.tv_sec;
     stat->length = (stat->qid.type == P9_QTDIR) ? 0 : attr.va_size;
+
+    if (stat->qid.type == P9_QTSYMLINK) {
+      char target_string[PATH_MAX + 1];
+      struct coda_string cstring;
+      cstring.cs_buf = target_string;
+      cstring.cs_maxlen = PATH_MAX;
+      conn->u.u_uid = root->userid;
+      conn->readlink(cnode, &cstring);
+      if (conn->u.u_error)
+          return -1;
+      stat->extension = strdup(cstring.cs_buf);
+    }
+
     return 0;
 }
 
