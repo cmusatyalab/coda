@@ -1311,20 +1311,19 @@ int plan9server::recv_wstat(unsigned char *buf, size_t len, uint16_t tag)
     attr.va_rdev = VA_IGNORE_RDEV;
     attr.va_bytes = VA_IGNORE_STORAGE;
 
-    /* vproc::setattr() requires at least one of the following to be set */
-    attr.va_uid = attr.va_uid;  /* keep/affirm this value */
+    /* vproc::setattr() can set the following 4 attributes */
+    attr.va_uid = VA_IGNORE_UID;	   /* Cannot be modified through wstat */
     attr.va_mode = (stat.mode == P9_DONT_TOUCH_MODE) ?
                 VA_IGNORE_MODE : stat.mode & 0777;
     attr.va_size = (stat.length == P9_DONT_TOUCH_LENGTH) ?
                VA_IGNORE_SIZE : stat.length;	  /* does this work? */
-    attr.va_gid = (strcmp(stat.gid, P9_DONT_TOUCH_GID) == 0) ?
-               VA_IGNORE_GID : VA_IGNORE_GID;	  /* Unimplemented */
     attr.va_mtime.tv_sec = (stat.mtime == P9_DONT_TOUCH_MTIME) ?
                 VA_IGNORE_TIME1 : stat.mtime;
                                     /* rest of va_mtime is kept as-is */
 
     /* vproc::setattr() doesn't document what to do with the remaining
      * so we just keep/affirm them as they are:
+     *     attr.va_gid
      *     attr.va_atime
      *     attr.va_ctime
      *     attr.va_gen
