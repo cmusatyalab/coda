@@ -544,6 +544,7 @@ int plan9server::recv_auth(unsigned char *buf, size_t len, uint16_t tag)
     uint32_t afid;
     char *uname;
     char *aname;
+    uid_t uid = ~0;
 
     if (unpack_le32(&buf, &len, &afid) ||
         unpack_string(&buf, &len, &uname))
@@ -552,9 +553,16 @@ int plan9server::recv_auth(unsigned char *buf, size_t len, uint16_t tag)
         ::free(uname);
         return -1;
     }
+    if (protocol == P9_PROTO_DOTU) {
+      if (unpack_le32(&buf, &len, &uid)) {
+        ::free(uname);
+        ::free(aname);
+        return -1;
+      }
+    }
 
-    DEBUG("9pfs: Tauth[%x] afid %u, uname %s, aname %s\n",
-          tag, afid, uname, aname);
+    DEBUG("9pfs: Tauth[%x] afid %u, uname %s, aname %s, uid %d\n",
+          tag, afid, uname, aname, uid);
 
     ::free(uname);
     ::free(aname);
@@ -582,6 +590,7 @@ int plan9server::recv_attach(unsigned char *buf, size_t len, uint16_t tag)
     uint32_t afid;
     char *uname;
     char *aname;
+    uid_t uid = ~0;  // default for legacy protocol
 
     if (unpack_le32(&buf, &len, &fid) ||
         unpack_le32(&buf, &len, &afid) ||
@@ -592,9 +601,16 @@ int plan9server::recv_attach(unsigned char *buf, size_t len, uint16_t tag)
         ::free(uname);
         return -1;
     }
+    if (protocol == P9_PROTO_DOTU) {
+      if (unpack_le32(&buf, &len, &uid)) {
+        ::free(uname);
+        ::free(aname);
+        return -1;
+      }
+    }
 
-    DEBUG("9pfs: Tattach[%x] fid %u, afid %u, uname %s, aname %s\n",
-          tag, fid, afid, uname, aname);
+    DEBUG("9pfs: Tattach[%x] fid %u, afid %u, uname %s, aname %s, uid %d\n",
+          tag, fid, afid, uname, aname, uid);
 
     if (find_fid(fid)) {
         ::free(uname);
@@ -608,7 +624,7 @@ int plan9server::recv_attach(unsigned char *buf, size_t len, uint16_t tag)
     root->refcount = 0;
     root->uname = uname;
     root->aname = aname;
-    root->userid = getuserid(uname);
+    root->userid = uid == (uid_t)~0 ? getuserid(uname) : uid ;
 
     conn->u.u_uid = root->userid;
     conn->root(&root->cnode);

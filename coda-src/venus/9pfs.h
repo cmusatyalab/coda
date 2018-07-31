@@ -48,10 +48,15 @@ enum plan9_message_types {
     Tversion = 100, /* tag[2] msize[4] s[2] version[s] */
     Rversion,       /* tag[2] msize[4] s[2] version[s] */
     /* Authenticate */
-    Tauth =    102, /* tag[2] afid[4] s[2] uname[s] s[2] aname[s] */
+    Tauth =    102, /* legacy:   tag[2] afid[4] s[2] uname[s] s[2] aname[s] */
+                    /* 9p2000.u: tag[2] afid[4] s[2] uname[s] s[2] aname[s]
+                                                                  n_uname[4] */
     Rauth,          /* tag[2] aqid[13] */
     /* Establish a connection */
-    Tattach =  104, /* tag[2] fid[4] afid[4] s[2] uname[s] s[2] aname[s] */
+    Tattach =  104, /* legacy:   tag[2] fid[4] afid[4] s[2] uname[s]
+                                                     s[2] aname[s] */
+                    /* 9p2000.u: tag[2] fid[4] afid[4] s[2] uname[s]
+                                                     s[2] aname[s] n_uname[4] */
     Rattach,        /* tag[2] qid[13] */
     /* Return an error */
     Terror,         /* illegal */
