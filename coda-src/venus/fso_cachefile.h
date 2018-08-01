@@ -134,7 +134,7 @@ class CacheFile {
     void Stat(struct stat *);
     void Utimes(const struct timeval times[2]);
     void Truncate(long);
-    void SetLength(long);
+    void SetLength(uint64_t len);
     void SetValidData(uint64_t len);
     void SetValidData(uint64_t start, int64_t len);
 
