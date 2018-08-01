@@ -223,7 +223,7 @@ int fsobj::FetchFileRPC(connent * con, ViceStatus * status,
 
     if (IsFile()) {
         Recov_BeginTrans();
-        cf.SetValidData(GotThisData);
+        cf.SetValidData(offset, len);
         Recov_EndTrans(CMFP);
     }
 
@@ -241,9 +241,6 @@ int fsobj::Fetch(uid_t uid, uint64_t pos, int64_t count)
     int code = 0;
     
     CODA_ASSERT(!IsLocalObj() && !IsFake());
-    
-    LOG(10, ("fsobj::Fetch: (%s), uid = %d\n",
-             GetComp(), uid));
 
     /* Sanity checks. */
     {

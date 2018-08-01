@@ -293,7 +293,7 @@ void CacheFile::Truncate(long newlen)
 /* MUST be called from within transaction! */
 void CacheFile::SetLength(long newlen)
 {
-    LOG(0, ("Cachefile::SetLength %d\n", newlen));
+    LOG(60, ("Cachefile::SetLength %d\n", newlen));
 
     if (length != newlen) {
         RVMLIB_REC_OBJECT(*this);
@@ -321,9 +321,6 @@ void CacheFile::SetValidData(uint64_t start, int64_t len)
     if (len < 0) {
         end_b = bytes_to_blocks_ceil(length);
     }
-    
-    LOG(0, ("Cachefile::SetValidData Range [%d - %d]\n", start, start + len - 1));
-    LOG(0, ("Cachefile::SetValidData Block Range [%d - %d]/%d (%d)\n", start_b, end_b - 1, cached_chuncks->Size(), length));
 
     RVMLIB_REC_OBJECT(validdata);
 
@@ -343,11 +340,12 @@ void CacheFile::SetValidData(uint64_t start, int64_t len)
         /* Add a full block */
         newvaliddata += BYTES_BLOCK_SIZE;
     }
-    
+
     validdata += newvaliddata;
 
-    LOG(0, ("Cachefile::SetValidData newvaliddata %d, validdata %d\n", newvaliddata, validdata));
-    LOG(0, ("Cachefile::SetValidData fetchedblocks %d, totalblocks %d\n", cached_chuncks->Count(), length_b));
+    LOG(60, ("CacheFile::SetValidData: { validdata: %d }\n", validdata));
+    LOG(60, ("CacheFile::SetValidData: { fetchedblocks: %d, totalblocks: %d }\n",
+            cached_chuncks->Count(), length_b));
 }
 
 void CacheFile::print(int fdes)
