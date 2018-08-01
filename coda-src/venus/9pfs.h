@@ -141,7 +141,10 @@ enum plan9_message_types {
 #define P9_ORDWR   0x02
 #define P9_OEXEC   0x03
 #define P9_OTRUNC  0x10
-#define P9_ORCLOSE 0x40
+#define P9_OREXEC  0x20   /* unsupported */
+#define P9_ORCLOSE 0x40   /* unsupported */
+#define P9_OAPPEND 0x80
+#define P9_OEXCL   0x1000 /* unsupported */
 
 
 struct plan9_qid {

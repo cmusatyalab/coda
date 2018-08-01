@@ -816,7 +816,7 @@ int plan9server::recv_open(unsigned char *buf, size_t len, uint16_t tag)
         unpack_le8(&buf, &len, &mode))
         return -1;
 
-    DEBUG("9pfs: Topen[%x] fid %u, mode %u\n", tag, fid, mode);
+    DEBUG("9pfs: Topen[%x] fid %u, mode 0x%x\n", tag, fid, mode);
 
     struct fidmap *fm;
     int flags;
@@ -828,8 +828,8 @@ int plan9server::recv_open(unsigned char *buf, size_t len, uint16_t tag)
     if (fm->open_flags)
         return send_error(tag, "file already open for I/O", EIO);
 
-    /* We're not handling ORCLOSE yet, the rest should be 0 */
-    if (mode & ~0x13)
+    /* We're not handling ORCLOSE, OEXEC, OEXCL yet and the rest should be 0 */
+    if (mode & ~0x93)
         return send_error(tag, "Invalid argument", EINVAL);
 
     switch (mode & 0x3) {
@@ -931,7 +931,7 @@ int plan9server::recv_create(unsigned char *buf, size_t len, uint16_t tag)
         return -1;
     }
 
-    DEBUG("9pfs: Tcreate[%x] fid %u, name %s, perm %o, mode %u, extension %s\n",
+    DEBUG("9pfs: Tcreate[%x] fid %u, name %s, perm %o, mode 0x%x, extension %s\n",
           tag, fid, name, perm, mode, extension);
 
     struct fidmap *fm;
@@ -953,8 +953,8 @@ int plan9server::recv_create(unsigned char *buf, size_t len, uint16_t tag)
     if (fm->cnode.c_type != C_VDIR)
         return send_error(tag, "Not a directory", ENOTDIR);
 
-    /* We're not handling ORCLOSE yet and the rest should be 0 */
-    if (mode & ~0x13)
+    /* We're not handling ORCLOSE, OEXEC, OEXCL yet and the rest should be 0 */
+    if (mode & ~0x93)
         return send_error(tag, "Invalid argument", EINVAL);
 
     switch (mode & 0x3) {
