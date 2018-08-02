@@ -863,9 +863,21 @@ void vproc::link(struct venus_cnode *scp, struct venus_cnode *dcp,
 	Begin_VFS(&dcp->c_fid, CODA_LINK);
 	if (u.u_error) break;
 
+	/* When the volume is reachable, the link operation would 'dirty' the source
+	 * fsobj and block a data fetch until the CML has been reintegrated. To avoid
+	 * having an inaccessible object we have to make sure to fetch the
+	 * data as well. */
+        int src_rcrights = RC_STATUS;
+	volent *v = 0;
+	u.u_error = VDB->Get(&v, MakeVolid(&scp->c_fid));
+	if (u.u_error) goto FreeLocks;
+	if (v->IsReachable())
+	    src_rcrights |= RC_DATA;
+	VDB->Put(&v);
+
         /* Get the source and target objects in correct lock order */
         if (FID_LT(scp->c_fid, dcp->c_fid)) {
-            u.u_error = FSDB->Get(&source_fso, &scp->c_fid, u.u_uid, RC_STATUS);
+            u.u_error = FSDB->Get(&source_fso, &scp->c_fid, u.u_uid, src_rcrights);
             if (u.u_error) goto FreeLocks;
 
             u.u_error = FSDB->Get(&parent_fso, &dcp->c_fid, u.u_uid, RC_DATA);
@@ -874,7 +886,7 @@ void vproc::link(struct venus_cnode *scp, struct venus_cnode *dcp,
             u.u_error = FSDB->Get(&parent_fso, &dcp->c_fid, u.u_uid, RC_DATA);
             if (u.u_error) goto FreeLocks;
 
-            u.u_error = FSDB->Get(&source_fso, &scp->c_fid, u.u_uid, RC_STATUS);
+            u.u_error = FSDB->Get(&source_fso, &scp->c_fid, u.u_uid, src_rcrights);
             if (u.u_error) goto FreeLocks;
         }
 
