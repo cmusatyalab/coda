@@ -1479,7 +1479,6 @@ void vproc::read(struct venus_cnode * node, uint64_t pos, int64_t count)
     if (pos > f->Size()) {
         u.u_error = EIO;
         return;
-
     }
     
     End_VFS(NULL);

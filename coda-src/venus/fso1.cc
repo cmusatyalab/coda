@@ -76,6 +76,7 @@ extern "C" {
 #include "vproc.h"
 #include "worker.h"
 #include "realmdb.h"
+#include "mgrp.h"
 
 
 static int NullRcRights = 0;
@@ -2391,6 +2392,84 @@ void fsobj::CacheReport(int fd, int level) {
 		cf->CacheReport(fd, level + 1);
 	}
     }
+}
+
+void fsobj::UpdateVastroFlag(uid_t uid)
+{
+    int ph_ix = 0;
+    struct in_addr *phost = NULL;
+    srvent *s = NULL;
+    mgrpent *m = NULL;
+    connent *c = NULL;
+    int code = 0;
+    repvol *rv = NULL;
+    volrep *vr = NULL;
+    
+    if (GetKernelModuleVersion() < 5) {
+        flags.vastro = 0x0;
+        return;
+    }
+    
+    /* Limit the VASTRO flagging to first opener only*/
+    if (openers > 0) {
+        return;
+    }
+    
+    /* Only files might be VASTROS */
+    if (!IsFile()) {
+        flags.vastro = 0x0;
+        return;
+    }
+    
+    if (!REACHABLE(this)) {
+        LOG(0, ("fsobj::UpdateVastroFlag: %s is unreachable\n", GetComp()));
+        return;
+    }
+
+    /* Check if server supports partial fetching */
+    rv = (repvol *)vol;
+    vr = (volrep *)vol;
+
+    if (vol->IsReplicated()) {
+
+        /* Acquire an Mgroup. */
+        code = rv->GetMgrp(&m, uid, 0);
+        if (code != 0) {
+            goto PutAll;
+        }
+
+        /* Get the server */
+        phost = m->GetPrimaryHost(&ph_ix);
+        CODA_ASSERT(phost);
+        s = GetServer(phost, vol->GetRealmId());
+        CODA_ASSERT(s);
+
+        if (!s->fetchpartial_support) {
+            flags.vastro = 0x0;
+            goto PutAll;
+        }
+
+    } else {
+
+        /* Acquire a Connection. */
+    	code = vr->GetConn(&c, uid);
+    	if (code != 0) goto PutAll;
+
+        s = c->srv;
+
+        if (!s->fetchpartial_support) {
+            flags.vastro = 0x0;
+            goto PutAll;
+        }
+
+    }
+
+    flags.vastro = Size() >= (WholeFileMaxSize * 1024) ? 0x1 : 0x0;
+
+PutAll:
+    if (s) PutServer(&s);
+    if (c) PutConn(&c);
+    if (m) m->Put();
 }
 
 /* local-repair modification */

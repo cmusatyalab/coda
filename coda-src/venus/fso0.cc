@@ -64,6 +64,7 @@ extern "C" {
 #include "worker.h"
 
 int CacheFiles = 0;
+uint64_t WholeFileMaxSize = 0;
 int FSO_SWT = UNSET_SWT;
 int FSO_MWT = UNSET_MWT;
 int FSO_SSF = UNSET_SSF;
@@ -509,7 +510,8 @@ int fsdb::Get(fsobj **f_addr, VenusFid *key, uid_t uid, int rights,
      *  NotifyUserOfProgramAccess(uid, vp->u.u_pid, vp->u.u_pgid, key); */
 
     /* Volume state synchronization. */
-    /* If a thread is already "in" one volume, we must switch contexts before entering another. */
+    /* If a thread is already "in" one volume, we must switch contexts 
+     * before entering another. */
     if (vp->u.u_vol &&
 	!(vp->u.u_vol->GetRealmId() == key->Realm &&
 	  vp->u.u_vol->GetVolumeId() == key->Volume))
@@ -726,6 +728,8 @@ RestartFind:
 		    return(code);
 		}
 	   }
+       
+       f->UpdateVastroFlag(uid);
 
 	    /* If we want data and we don't have any then fetch new stuff. */
 	    /* we have to re-check FETCHABLE because it may have changed as

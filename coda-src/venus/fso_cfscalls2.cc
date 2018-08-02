@@ -206,6 +206,8 @@ int fsobj::Open(int writep, int truncp, struct venus_cnode *cp, uid_t uid)
 
     if (IsSymLink())
 	return ELOOP;
+    
+    UpdateVastroFlag(uid);
 
     /*  write lock the object if we might diddle it below.  Disabling
      * replacement and bumping reference counts are performed

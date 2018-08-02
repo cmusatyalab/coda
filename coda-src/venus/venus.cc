@@ -543,6 +543,7 @@ static void Usage(char *argv0)
 " -9pfs\t\t\tenable embedded 9pfs server (experimental, INSECURE!)\n"
 " -no-codafs\t\t\tdo not automatically mount /coda\n"
 " -nofork\t\t\tdo not daemonize the process\n\n"
+" -wfmax\t\t\tmaximum file size to allow whole-file caching\n\n"
 "For more information see http://www.coda.cs.cmu.edu/\n"
 "Report bugs to <bugs@coda.cs.cmu.edu>.\n", argv0);
 }
@@ -698,6 +699,9 @@ static void ParseCmdline(int argc, char **argv)
 	    else if (STREQ(argv[i], "-nofork")) {
                 nofork = true;
 	    }
+        else if (STREQ(argv[i], "-wfmax")) {
+            i++, WholeFileMaxSize = ParseSizeWithUnits(argv[i]);
+        }	
         else if (STREQ(argv[i], "-ccbs")) {
             i++, ParseCacheChunkBlockSize(argv[i]);
         }
@@ -739,6 +743,7 @@ static void DefaultCmdlineParms()
     int DontUseRVM = 0;
     const char *CacheSize = NULL;
     const char *TmpCacheChunkBlockSize = NULL;
+    const char *TmpWFMax = NULL;
 
     /* Load the "venus.conf" configuration file */
     codaconf_init("venus.conf");
@@ -773,6 +778,11 @@ static void DefaultCmdlineParms()
         ParseCacheChunkBlockSize(TmpCacheChunkBlockSize);
     }
         
+    if (!WholeFileMaxSize) {
+        CODACONF_STR(TmpWFMax, "wholefilemaxsize", "50MB");
+        WholeFileMaxSize = ParseSizeWithUnits(TmpWFMax);
+    }
+    
     CODACONF_STR(CacheDir,	    "cachedir",      DFLT_CD);
     CODACONF_STR(SpoolDir,	    "checkpointdir", "/usr/coda/spool");
     CODACONF_STR(VenusLogFile,	    "logfile",	     DFLT_LOGFILE);

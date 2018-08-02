@@ -34,7 +34,6 @@ class fsdb;
 class fsobj;
 class fso_iterator;
 class connent;
-
 class cmlent;	    /* we have compiler troubles if volume.h is included! */
 
 #ifdef __cplusplus
@@ -287,7 +286,8 @@ struct FsoFlags {
     /*T*/unsigned fetching : 1;			/* fetch in progress? */
     unsigned expanded : 1;			/* are we an expanded object */
     unsigned modified : 1;			/* modified for expansion? */
-    unsigned padding : 8;
+    unsigned vastro : 1;             /* is the file vastro?  */
+    unsigned padding : 7;
 };
 
 enum MountStatus {  NORMAL,
@@ -420,6 +420,7 @@ class fsobj {
 
     // for asr invocation
     /*T*/long lastresolved;			// time when object was last resolved
+    
 
     /* Constructors, destructors. */
     void *operator new(size_t, fso_alloc_t, int); /* for allocation from freelist */
@@ -569,6 +570,7 @@ class fsobj {
     int OpenPioctlFile(void);
     
     inline bool CompareVersion(ViceStatus * vstat, VenusStat * stat = NULL);
+    void UpdateVastroFlag(uid_t uid);
 
   public:
     /* The public CFS interface (Vice portion). */
@@ -688,6 +690,7 @@ class fso_iterator : public rec_ohashtab_iterator {
 /*  *****  Variables  ***** */
 
 extern int CacheFiles;
+extern uint64_t WholeFileMaxSize;
 extern int FSO_SWT;
 extern int FSO_MWT;
 extern int FSO_SSF;
@@ -731,8 +734,10 @@ void FSOD_ReclaimFSOs(void);
 #define	ACTIVE(f)	(WRITING(f) || READING(f)) // was EXECUTING(f)
 #define	BUSY(f)		((f)->refcnt > 0 || EXECUTING(f))
 #define	HOARDABLE(f)	((f)->HoardPri > 0)
+#define	ISVASTRO(f)	((f)->flags.vastro)
 #define	FETCHABLE(f)	(!DYING(f) && REACHABLE(f) && !DIRTY(f) && \
-			 (!HAVESTATUS(f) || !ACTIVE(f)) && !f->IsLocalObj())
+			 (!HAVESTATUS(f) || !WRITING(f) || \
+             ISVASTRO(f)) && !f->IsLocalObj())
 /* we are replaceable whenever we are linked into FSDB->prioq */
 #define	REPLACEABLE(f)	((f)->prio_handle.tree() != 0)
 #define	GCABLE(f)	(DYING(f) && !DIRTY(f) && !BUSY(f))
