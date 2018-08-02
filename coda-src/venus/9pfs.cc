@@ -908,6 +908,8 @@ int plan9server::recv_open(unsigned char *buf, size_t len, uint16_t tag)
 }
 
 
+/* TODO fix leaking name and extension on error return paths
+*/
 int plan9server::recv_create(unsigned char *buf, size_t len, uint16_t tag)
 {
     uint32_t fid;
@@ -989,6 +991,15 @@ int plan9server::recv_create(unsigned char *buf, size_t len, uint16_t tag)
       conn->lookup(&fm->cnode, name, &child,
                    CLU_CASE_SENSITIVE | CLU_TRAVERSE_MTPT);
     }
+    else if (perm & P9_DMLINK) {
+      /* create a hardlink */
+      uint32_t src_fid = strtol(extension, NULL, 10); //undocumented in 9P
+      struct fidmap * src_fm = find_fid(src_fid);     //fidmap of link src
+      if (!src_fm)
+          return send_error(tag, "source fid unknown or out of range", EBADF);
+      conn->link(&src_fm->cnode, &fm->cnode, name);
+      child = src_fm->cnode;
+    }
     else {
       /* create a regular file */
       conn->create(&fm->cnode, name, &va, excl, flags, &child);
@@ -1016,7 +1027,7 @@ int plan9server::recv_create(unsigned char *buf, size_t len, uint16_t tag)
             conn->close(&child, flags);
         return send_error(tag, "fid unknown or out of range", EBADF);
     }
-    /* fid is replaced by the newly created file/directory/symlink */
+    /* fid is replaced by the newly created file/directory/link */
     fm->cnode = child;
     fm->open_flags = flags;
 

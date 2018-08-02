@@ -116,13 +116,15 @@ enum plan9_message_types {
 #define  P9_DMMOUNT           0x10000000  /* unsupported */
 #define  P9_DMAUTH            0x08000000
 #define  P9_DMTMP             0x04000000  /* unsupported */
-#define  P9_DMSYMLINK         0x02000000
   /* 9P2000.u extensions */
+#define  P9_DMSYMLINK         0x02000000
+#define  P9_DMLINK            0x01000000
 #define  P9_DMDEVICE          0x00800000  /* unsupported */
 #define  P9_DMNAMEDPIPE       0x00200000  /* unsupported */
 #define  P9_DMSOCKET          0x00100000  /* unsupported */
 #define  P9_DMSETUID          0x00080000  /* unsupported */
 #define  P9_DMSETGID          0x00040000  /* unsupported */
+#define  P9_DMSETVTX          0x00010000  /* unsupported */
 
 /* 9P qid.types = higher byte of permission modes */
 #define  P9_QTDIR             0x80
@@ -132,6 +134,7 @@ enum plan9_message_types {
 #define  P9_QTAUTH            0x08
 #define  P9_QTTMP 	          0x04  /* unsupported */
 #define  P9_QTSYMLINK         0x02
+#define  P9_QTLINK            0x01
 #define  P9_QTFILE            0x00
 
 
