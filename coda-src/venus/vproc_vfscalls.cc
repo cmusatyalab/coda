@@ -837,6 +837,8 @@ void vproc::link(struct venus_cnode *scp, struct venus_cnode *dcp,
     fsobj *source_fso = 0;
     fsobj *target_fso = 0;
 
+    int src_rcrights;
+
     /* don't allow '.', '..', '/', conflict names, or @xxx expansions */
     verifyname(toname, NAME_NO_DOTS | NAME_NO_CONFLICT | NAME_NO_EXPANSION);
     if (u.u_error) return;
@@ -863,20 +865,32 @@ void vproc::link(struct venus_cnode *scp, struct venus_cnode *dcp,
 	Begin_VFS(&dcp->c_fid, CODA_LINK);
 	if (u.u_error) break;
 
-        /* Get the source and target objects in correct lock order */
-        if (FID_LT(scp->c_fid, dcp->c_fid)) {
-            u.u_error = FSDB->Get(&source_fso, &scp->c_fid, u.u_uid, RC_STATUS);
-            if (u.u_error) goto FreeLocks;
+	/* When the volume is reachable, the link operation would 'dirty' the source
+	 * fsobj and block a data fetch until the CML has been reintegrated. To avoid
+	 * having an inaccessible object we have to make sure to fetch the
+	 * data as well. */
+  src_rcrights = RC_STATUS;
+	volent *v = 0;
+	u.u_error = VDB->Get(&v, MakeVolid(&scp->c_fid));
+	if (u.u_error) goto FreeLocks;
+	if (v->IsReachable())
+	    src_rcrights |= RC_DATA;
+	VDB->Put(&v);
 
-            u.u_error = FSDB->Get(&parent_fso, &dcp->c_fid, u.u_uid, RC_DATA);
-            if (u.u_error) goto FreeLocks;
-        } else {
-            u.u_error = FSDB->Get(&parent_fso, &dcp->c_fid, u.u_uid, RC_DATA);
-            if (u.u_error) goto FreeLocks;
+  /* Get the source and target objects in correct lock order */
+  if (FID_LT(scp->c_fid, dcp->c_fid)) {
+      u.u_error = FSDB->Get(&source_fso, &scp->c_fid, u.u_uid, src_rcrights);
+      if (u.u_error) goto FreeLocks;
 
-            u.u_error = FSDB->Get(&source_fso, &scp->c_fid, u.u_uid, RC_STATUS);
-            if (u.u_error) goto FreeLocks;
-        }
+      u.u_error = FSDB->Get(&parent_fso, &dcp->c_fid, u.u_uid, RC_DATA);
+      if (u.u_error) goto FreeLocks;
+  } else {
+      u.u_error = FSDB->Get(&parent_fso, &dcp->c_fid, u.u_uid, RC_DATA);
+      if (u.u_error) goto FreeLocks;
+
+      u.u_error = FSDB->Get(&source_fso, &scp->c_fid, u.u_uid, src_rcrights);
+      if (u.u_error) goto FreeLocks;
+  }
 
 	/* Verify that the target doesn't exist. */
 	u.u_error = parent_fso->Lookup(&target_fso, NULL, toname, u.u_uid,
