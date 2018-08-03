@@ -1123,14 +1123,13 @@ int plan9server::recv_remove(unsigned char *buf, size_t len, uint16_t tag)
       /* remove a regular file */
       conn->remove(&parent_cnode, name);
     }
+    /* 9p clunks the file, whether the actual server remove succeeded or not */
+    del_fid(fid);
+
     if (conn->u.u_error) {
       const char *strerr = VenusRetStr(conn->u.u_error);
       return send_error(tag, strerr);
     }
-
-    rc = del_fid(fid);
-    if (rc)
-        return send_error(tag, "fid unknown or out of range");
 
     /* send_Rremove */
     DEBUG("9pfs: Rremove[%x]\n", tag);
@@ -1312,20 +1311,19 @@ int plan9server::recv_wstat(unsigned char *buf, size_t len, uint16_t tag)
     attr.va_rdev = VA_IGNORE_RDEV;
     attr.va_bytes = VA_IGNORE_STORAGE;
 
-    /* vproc::setattr() requires at least one of the following to be set */
-    attr.va_uid = attr.va_uid;  /* keep/affirm this value */
+    /* vproc::setattr() can set the following 4 attributes */
+    attr.va_uid = VA_IGNORE_UID;	   /* Cannot be modified through wstat */
     attr.va_mode = (stat.mode == P9_DONT_TOUCH_MODE) ?
                 VA_IGNORE_MODE : stat.mode & 0777;
     attr.va_size = (stat.length == P9_DONT_TOUCH_LENGTH) ?
                VA_IGNORE_SIZE : stat.length;	  /* does this work? */
-    attr.va_gid = (strcmp(stat.gid, P9_DONT_TOUCH_GID) == 0) ?
-               VA_IGNORE_GID : VA_IGNORE_GID;	  /* Unimplemented */
     attr.va_mtime.tv_sec = (stat.mtime == P9_DONT_TOUCH_MTIME) ?
                 VA_IGNORE_TIME1 : stat.mtime;
                                     /* rest of va_mtime is kept as-is */
 
     /* vproc::setattr() doesn't document what to do with the remaining
      * so we just keep/affirm them as they are:
+     *     attr.va_gid
      *     attr.va_atime
      *     attr.va_ctime
      *     attr.va_gen
@@ -1515,9 +1513,7 @@ int plan9server::plan9_stat(struct venus_cnode *cnode, struct attachment *root,
     if (conn->u.u_error)
         return -1;
 
-    //stat->mode |= (attr.va_mode & (S_IRWXU|S_IRWXG|S_IRWXO));
-    stat->mode |= (stat->qid.type == P9_QTDIR || attr.va_mode & S_IXUSR) ?
-                  0777 : 0666;
+    stat->mode |= (attr.va_mode & (S_IRWXU|S_IRWXG|S_IRWXO));
     stat->atime = attr.va_atime.tv_sec;
     stat->mtime = attr.va_mtime.tv_sec;
     stat->length = (stat->qid.type == P9_QTDIR) ? 0 : attr.va_size;
