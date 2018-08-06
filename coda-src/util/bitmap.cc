@@ -47,6 +47,8 @@ extern "C" {
 #include "bitmap.h"
 extern char* hex(long, int =0);
 
+#define BITMAP_MIN_SIZE 8
+
 void *bitmap::operator new(size_t size, int recable) {
     bitmap *x;
 
@@ -86,12 +88,17 @@ bitmap::bitmap(int inputmapsize, int recable) {
     if (malloced != BITMAP_VIANEW) malloced = BITMAP_NOTVIANEW; /* infer I must be on the stack */
     /* From this point on, malloced is definitely defined */
 
+    /* To prevent zero sized bitmaps */
+    if (inputmapsize < BITMAP_MIN_SIZE) {
+        inputmapsize = BITMAP_MIN_SIZE;
+    }
+    
     recoverable = recable;
     if (recoverable)
-	rvmlib_set_range(this, sizeof(bitmap));
+        rvmlib_set_range(this, sizeof(bitmap));
 
-    while (!(inputmapsize & 7)) 
-	inputmapsize++;			/* must be a multiple of 8 */
+    while (inputmapsize & 7) 
+	   inputmapsize++;			/* must be a multiple of 8 */
     if (inputmapsize > 0) {
 	mapsize = inputmapsize >> 3;
 	if (recoverable) {
@@ -138,35 +145,55 @@ bitmap::~bitmap() {
     }
 }
 
-void bitmap::Grow(int newsize) {
-    if (newsize < (mapsize << 3)) return;
-    while (!(newsize & 7)) 
-	newsize++;		/* must be a multiple of 8 */
+void bitmap::Resize(int newsize) {
+    if (newsize < 8) {
+        Resize(8);
+        return;
+    }
+    
+    while (newsize & 7)
+        newsize++; /* must be a multiple of 8 */
 
     int newmapsize = newsize >> 3;
     char *newmap;
+
     if (recoverable) {
-	newmap = (char *)rvmlib_rec_malloc(newmapsize);
-	CODA_ASSERT(newmap);
-	rvmlib_set_range(newmap, newmapsize);
+        newmap = (char *)rvmlib_rec_malloc(newmapsize);
+        CODA_ASSERT(newmap);
+        rvmlib_set_range(newmap, newmapsize);
+    } else {
+        newmap = new char[newmapsize];
+        CODA_ASSERT(newmap);
     }
-    else {
-	newmap = new char[newmapsize];
-	CODA_ASSERT(newmap);
-    }
+
     memset(newmap, 0, newmapsize);
+
     if (map) {
-	CODA_ASSERT(mapsize > 0);
-	memcpy(newmap, map, mapsize);
-	if (recoverable)
-	    rvmlib_rec_free(map);
-	else
-	    delete[] map;
+        CODA_ASSERT(mapsize > 0);
+
+        /* If it's growing */
+        if (newmapsize < mapsize) {
+            memcpy(newmap, map, newmapsize);
+        } else { /* If it's shrinking */
+            memcpy(newmap, map, mapsize);
+        }
+
+        if (recoverable)
+            rvmlib_rec_free(map);
+        else
+            delete[] map;
     }
-    if (recoverable) 
-	rvmlib_set_range(this, sizeof(bitmap));
+
+    if (recoverable)
+        rvmlib_set_range(this, sizeof(bitmap));
+
     mapsize = newmapsize;
     map = newmap;
+}
+
+void bitmap::Grow(int newsize) {
+    if (newsize < (mapsize << 3)) return;
+    Resize(newsize);
 }
 
 int bitmap::GetFreeIndex()

@@ -54,6 +54,7 @@ class bitmap {
     void operator delete(void *);
     bitmap(int = 0, int = 0);
     ~bitmap();
+    void Resize(int);		/* resize the index to a new size */
     void Grow(int);		/* grow the index to a new size */
     int GetFreeIndex();		/* get an index that is not in use and mark it */
     void FreeIndex(int);	/* free a particular index */
