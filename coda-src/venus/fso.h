@@ -33,6 +33,7 @@ listed in the file CREDITS.
 class fsdb;
 class fsobj;
 class fso_iterator;
+class connent;
 
 class cmlent;	    /* we have compiler troubles if volume.h is included! */
 
@@ -615,10 +616,13 @@ class fsobj {
 			     char *, unsigned short, int, int prepend=0);
     int GetContainerFD(void);
     int LookAside(void);
+    int FetchFileRPC(connent * con, ViceStatus * status, uint64_t offset,
+                  int64_t len, RPC2_CountedBS * PiggyBS, SE_Descriptor * sed);
 
   public:
     /* The public CFS interface (Vice portion). */
     int Fetch(uid_t);
+    int Fetch(uid_t uid, uint64_t pos, int64_t count);
     int GetAttr(uid_t, RPC2_BoundedBS * =0);
     int GetACL(RPC2_BoundedBS *, uid_t);
     int Store(unsigned long, Date_t, uid_t);
