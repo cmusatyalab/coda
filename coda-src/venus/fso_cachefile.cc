@@ -43,8 +43,12 @@ extern "C" {
 #include <mkpath.h>
 #include <copyfile.h>
 
+/* from util */
+#include <rvmlib.h>
+
 /* from venus */
-#include "fso.h"
+#include "fso_cachefile.h"
+#include "venusrecov.h"
 #include "venus.private.h"
 
 #ifndef fdatasync

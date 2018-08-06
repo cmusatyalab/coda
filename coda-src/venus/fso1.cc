@@ -2758,4 +2758,3 @@ fsobj *fso_iterator::operator()() {
 	}
     }
 }
-
