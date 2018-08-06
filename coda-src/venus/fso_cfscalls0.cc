@@ -88,10 +88,11 @@ void fsobj::FetchProgressIndicator(unsigned long offset)
 	curr = 100;
     }
 
-    if (last != curr)
-	MarinerLog("progress::fetching (%s) %lu%%\n", GetComp(), curr);
-
-    GotThisData = (unsigned long)offset;
+    if (last != curr) {
+        MarinerLog("progress::fetching (%s) %lu%% (%lu/%lu) %d\n", GetComp(), curr, cf.ValidData(), stat.Length);
+    }
+	   
+    last = curr;
 }
 
 /* MUST be called from within a transaction */
@@ -277,6 +278,18 @@ int fsobj::Fetch(uid_t uid, uint64_t pos, int64_t count)
     int64_t len = -1;
 
     GotThisData = 0;
+    if (IsFile()) {
+        offset = cf.ValidData();  // FIXME This has to change to consencutive
+        len = -1;
+    }
+
+    /* If reading out-of-bound read missing file part */
+    if (pos + count > Size()) {
+        len = -1;
+    }
+
+    LOG(10, ("fsobj::Fetch: (%s), uid = %d, Range [%d - %d]\n",
+             GetComp(), uid, offset, len));
 
     /* C++ 3.0 whines if the following decls moved closer to use  -- Satya */
     {
@@ -375,21 +388,22 @@ int fsobj::Fetch(uid_t uid, uint64_t pos, int64_t count)
 	/* The COP:Fetch call. */
 	{
 	    /* Make multiple copies of the IN/OUT and OUT parameters. */
-            int ph_ix;
-            struct in_addr *phost;
-            unsigned long ph;
+        int ph_ix;
+        struct in_addr *phost;
+        unsigned long ph;
 
-            phost = m->GetPrimaryHost(&ph_ix);
-            ph = ntohl(phost->s_addr);
+        phost = m->GetPrimaryHost(&ph_ix);
+        ph = ntohl(phost->s_addr);
 
-            srvent *s = GetServer(phost, vol->GetRealmId());
-            code = s->GetConn(&c, uid);
-            PutServer(&s);
-            if (code != 0) goto RepExit;
+        srvent *s = GetServer(phost, vol->GetRealmId());
+        code = s->GetConn(&c, uid);
+        PutServer(&s);
+        if (code != 0) goto RepExit;
 
         /* Fetch the file from the server */
         code = FetchFileRPC(c, &status, ph, offset, len, &PiggyBS, sed);
         if (code != 0) goto RepExit;
+
 
 	    {
             unsigned long bytes = (unsigned long)sed->Value.SmartFTPD.BytesTransferred;
