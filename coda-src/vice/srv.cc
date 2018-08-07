@@ -195,6 +195,7 @@ static int cbwait = 0;		// default 240
 static int chk = 0;		// default 30
 static int ForceSalvage = 0;	// default 1
 static int SalvageOnShutdown = 0; // default 0 */
+static int datalen = 0;
 
 static int Statistics;
 
@@ -308,8 +309,45 @@ void zombie(int sig)
 }
 
 
+static void SetupRVM()
+{
+    struct stat buf;
 
+    if (RvmType != UNSET) return;
 
+    if (datalen != 0) {
+        _Rvm_DataLength = RVM_MK_OFFSET(0, datalen);
+        RvmType = RAWIO;
+    }
+
+    /* Checks ... */
+    if (_Rvm_Log_Device == NULL || *_Rvm_Log_Device == 0) {
+        SLog(0, "Must specify a RVM log file/device\n");
+        exit(EXIT_FAILURE);
+    }
+    if (_Rvm_Data_Device == NULL || *_Rvm_Data_Device == 0) {
+        SLog(0, "Must specify a RVM data file/device\n");
+        exit(EXIT_FAILURE);
+    }
+
+    if (stat(_Rvm_Log_Device, &buf) != 0) {
+        perror("Can't open Log Device");
+        exit(EXIT_FAILURE);
+    }
+
+    if (stat(_Rvm_Data_Device, &buf) != 0) {
+        perror("Can't open Data Device");
+        exit(EXIT_FAILURE);
+    }
+}
+
+static inline void SetDebugLevel(int debug_level)
+{
+    if (debug_level) printf("Setting debuglevel to %d\n", debug_level);
+    SrvDebugLevel = debug_level;
+    AL_DebugLevel = SrvDebugLevel/10;
+    DirDebugLevel = SrvDebugLevel;
+}
 
 /* The real stuff! */
 
@@ -333,7 +371,9 @@ int main(int argc, char *argv[])
 	exit(EXIT_FAILURE);
     }
 
-    if(ParseArgs(argc,argv)) {
+    (void)ReadConfigFile();
+	
+	if(ParseArgs(argc,argv)) {
 	SLog(0, "usage: srv [-d (debug level)] [-p (number of processes)] ");
 	SLog(0, "[-l (large vnodes)] [-s (small vnodes)]");
 	SLog(0, "[-k (stack size)] [-w (call back wait interval)]");
@@ -350,8 +390,11 @@ int main(int argc, char *argv[])
 
 	exit(EXIT_FAILURE);
     }
+	
 
-    (void)ReadConfigFile();
+    SetDebugLevel(debuglevel);
+
+    SetupRVM();
 
     pidfile = vice_config_path("srv/pid");
     parent = DaemonizeSrv(pidfile);
@@ -1265,10 +1308,8 @@ void ViceTerminate()
         LWP_QSignal(mainPid);
 }
 
-
 static int ReadConfigFile(void)
 {
-    int  datalen = 0;
     int  zombify = 0;
 
     /* Load configuration file. */
@@ -1308,27 +1349,10 @@ static int ReadConfigFile(void)
 
     /* Rvm parameters */
     CODACONF_INT(_Rvm_Truncate, "rvmtruncate", 0);
-
-    if (RvmType == UNSET) {
-        CODACONF_STR(_Rvm_Log_Device,  "rvm_log", "");
-        CODACONF_STR(_Rvm_Data_Device, "rvm_data", "");
-        CODACONF_INT(datalen,	   "rvm_data_length", 0);
-        CODACONF_STR(srvhost,	   "hostname", NULL);
-    }
-
-    if (datalen != 0) {
-        _Rvm_DataLength = RVM_MK_OFFSET(0, datalen);
-	RvmType = RAWIO;
-	/* Checks ... */
-	if (_Rvm_Log_Device == NULL || *_Rvm_Log_Device == 0) {
-	    SLog(0, "Must specify a RVM log file/device\n");
-	    exit(EXIT_FAILURE);
-	}
-	if (_Rvm_Data_Device == NULL || *_Rvm_Data_Device == 0) {
-	    SLog(0, "Must specify a RVM data file/device\n");
-	    exit(EXIT_FAILURE);
-	}
-    }
+    CODACONF_STR(_Rvm_Log_Device,  "rvm_log", "");
+    CODACONF_STR(_Rvm_Data_Device, "rvm_data", "");
+    CODACONF_INT(datalen,	   "rvm_data_length", 0);
+    CODACONF_STR(srvhost,	   "hostname", NULL);
 
     /* Other command line parameters ... */
     extern int nodebarrenize;
@@ -1355,11 +1379,7 @@ static int ParseArgs(int argc, char *argv[])
 
     for (i = 1; i < argc; i++) {
 	if (!strcmp(argv[i], "-d")) {
-	    debuglevel = atoi(argv[++i]);
-	    printf("Setting debuglevel to %d\n", debuglevel);
-	    SrvDebugLevel = debuglevel;
-	    AL_DebugLevel = SrvDebugLevel/10;
-	    DirDebugLevel = SrvDebugLevel;
+	    debuglevel = atoi(argv[++i]);	    
 	}
 	else 
 	    if (!strcmp(argv[i], "-zombify"))
@@ -1479,7 +1499,6 @@ static int ParseArgs(int argc, char *argv[])
 	    }
 	else
 	    if (!strcmp(argv[i], "-rvm")) {
-		struct stat buf;
 		if (RvmType != UNSET) {
 		    SLog(0, "Multiple Persistence methods selected.");
 		    exit(EXIT_FAILURE);
@@ -1491,19 +1510,9 @@ static int ParseArgs(int argc, char *argv[])
 		    exit(EXIT_FAILURE);
 		}
 
-		RvmType = RAWIO;
 		i++; _Rvm_Log_Device = strdup(argv[i]);
 		i++; _Rvm_Data_Device = strdup(argv[i]);
-		if (stat(_Rvm_Log_Device, &buf) != 0) {
-		    perror("Can't open Log Device");
-		    exit(EXIT_FAILURE);
-		}
-
-		if (stat(_Rvm_Data_Device, &buf) != 0) {
-		    perror("Can't open Data Device");
-		    exit(EXIT_FAILURE);
-		}
-		i++; _Rvm_DataLength = RVM_MK_OFFSET(0, atoi(argv[i]));
+		i++; datalen = atoi(argv[i]);
 	    }
 	else
 	    if (!strcmp(argv[i], "-dumpvm")) {
