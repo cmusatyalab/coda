@@ -68,6 +68,7 @@ extern "C" {
 #include <unistd.h>
 #include "coda_flock.h"
 #include "codaconf.h"
+#include "codaenv.h"
 
 #include <lwp/lwp.h>
 #include <lwp/timer.h>
@@ -251,6 +252,7 @@ static void ResetDebug(int ign);
 static void ShutDown(void);
 
 static int ReadConfigFile(void);
+static void ParseEnvVars(void);
 static int ParseArgs(int, char **);
 static void InitServerKeys(const char *, const char *);
 static int DaemonizeSrv(const char *pidfile);
@@ -390,7 +392,8 @@ int main(int argc, char *argv[])
 
 	exit(EXIT_FAILURE);
     }
-	
+
+    ParseEnvVars();
 
     SetDebugLevel(debuglevel);
 
@@ -1306,6 +1309,81 @@ void ViceTerminate()
     SLog(0, "Shutdown received");
     if (mainPid)
         LWP_QSignal(mainPid);
+}
+
+static bool check_rvm_envs()
+{
+    if (!codaenv_find("rvm_log")) return false;
+    if (!codaenv_find("rvm_data")) return false;
+    if (!codaenv_find("rvm_data_length")) return false;
+
+    return true;
+}
+
+static void ParseEnvVars(void)
+{
+    int  zombify = 0;
+
+    CodaSrvIp = codaenv_str("ipaddress", CodaSrvIp);
+
+    if (RvmType == UNSET || check_rvm_envs()) {
+        _Rvm_Log_Device = codaenv_str("rvm_log", _Rvm_Log_Device);
+        _Rvm_Data_Device = codaenv_str("rvm_data", _Rvm_Data_Device);
+        datalen = codaenv_int("rvm_data_length", datalen);
+    }
+
+    srvhost = codaenv_str("hostname", srvhost);
+
+    debuglevel = codaenv_int("debuglevel", debuglevel);
+
+    Authenticate = codaenv_int("authenticate", Authenticate);
+    AllowResolution = codaenv_int("resolution", AllowResolution);
+    AllowSHA = codaenv_int("allow_sha", AllowSHA);
+    comparedirreps = codaenv_int("comparedirreps", comparedirreps);
+    pollandyield = codaenv_int("pollandyield", pollandyield);
+    pathtiming = codaenv_int("pathtiming", pathtiming);
+    MapPrivate = codaenv_int("mapprivate", pathtiming);
+
+    large = codaenv_int("large", large);
+    small = codaenv_int("small", small);
+
+    vicedir = codaenv_str("vicedir", vicedir);
+
+    trace = codaenv_int("trace", trace);
+    SrvWindowSize = codaenv_int("windowsize", SrvWindowSize);
+    SrvSendAhead = codaenv_int("sendahead", SrvSendAhead);
+    timeout = codaenv_int("timeout", timeout);
+    retrycnt = codaenv_int("retrycnt", retrycnt);
+    auth_lwps = codaenv_int("auth_lwps", auth_lwps);
+    server_lwps = codaenv_int("lwps", server_lwps);
+    if (server_lwps > MAXLWP) server_lwps = MAXLWP;
+
+    stack = codaenv_int("stack", stack);
+    cbwait = codaenv_int("cbwait", cbwait);
+    chk = codaenv_int("chk", chk);
+    ForceSalvage = codaenv_int("forcesalvage", ForceSalvage);
+    SalvageOnShutdown = codaenv_int("salvageonshutdown", SalvageOnShutdown);
+    DumpVM = codaenv_int("dumpvm", DumpVM);
+
+    /* Rvm parameters */
+    _Rvm_Truncate = codaenv_int("rvmtruncate", _Rvm_Truncate);
+
+    /* Other command line parameters ... */
+    extern int nodebarrenize;
+
+    nodebarrenize = codaenv_int("nodebarrenize", nodebarrenize);
+    zombify = codaenv_int("zombify", zombify);
+    if (zombify)
+        coda_assert_action = CODA_ASSERT_SLEEP;
+    vicetab = codaenv_str("vicetab", vicetab);
+    if (!vicetab)
+    vicetab = strdup(vice_config_path("db/vicetab"));
+
+    check_reintegration_retry = codaenv_int("check_reintegration_retry",
+                                            check_reintegration_retry);
+    codatunnel_enabled = codaenv_int("codatunnel", codatunnel_enabled);
+    codatunnel_onlytcp = codaenv_int("onlytcp", codatunnel_onlytcp);
+    nofork = codaenv_int("nofork", nofork);
 }
 
 static int ReadConfigFile(void)
