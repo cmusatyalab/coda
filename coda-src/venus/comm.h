@@ -242,6 +242,7 @@ class srvent : private RefCountedObject {
     unsigned Xbinding : 1;	/* 1 --> BINDING, 0 --> NOT_BINDING */
     unsigned probeme : 1;	/* should ProbeD probe this server? */
     unsigned unused : 1;
+    unsigned fetchpartial_support : 1;
     unsigned long bw;		/* bandwidth estimate, Bytes/sec */
     struct timeval lastobs;	/* time of most recent estimate */
   
@@ -503,4 +504,3 @@ extern struct CommQueueStruct CommQueue;
 #define VENUS_MAXBSLEN 1024   /* For use in ARG_MARSHALL_BS */
 
 #endif /* _VENUS_COMM_H_ */
-
