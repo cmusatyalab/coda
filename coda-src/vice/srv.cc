@@ -68,6 +68,7 @@ extern "C" {
 #include <unistd.h>
 #include "coda_flock.h"
 #include "codaconf.h"
+#include "codaenv.h"
 
 #include <lwp/lwp.h>
 #include <lwp/timer.h>
@@ -195,6 +196,7 @@ static int cbwait = 0;		// default 240
 static int chk = 0;		// default 30
 static int ForceSalvage = 0;	// default 1
 static int SalvageOnShutdown = 0; // default 0 */
+static int datalen = 0;
 
 static int Statistics;
 
@@ -250,6 +252,7 @@ static void ResetDebug(int ign);
 static void ShutDown(void);
 
 static int ReadConfigFile(void);
+static void ParseEnvVars(void);
 static int ParseArgs(int, char **);
 static void InitServerKeys(const char *, const char *);
 static int DaemonizeSrv(const char *pidfile);
@@ -308,8 +311,45 @@ void zombie(int sig)
 }
 
 
+static void SetupRVM()
+{
+    struct stat buf;
 
+    if (RvmType != UNSET) return;
 
+    if (datalen != 0) {
+        _Rvm_DataLength = RVM_MK_OFFSET(0, datalen);
+        RvmType = RAWIO;
+    }
+
+    /* Checks ... */
+    if (_Rvm_Log_Device == NULL || *_Rvm_Log_Device == 0) {
+        SLog(0, "Must specify a RVM log file/device\n");
+        exit(EXIT_FAILURE);
+    }
+    if (_Rvm_Data_Device == NULL || *_Rvm_Data_Device == 0) {
+        SLog(0, "Must specify a RVM data file/device\n");
+        exit(EXIT_FAILURE);
+    }
+
+    if (stat(_Rvm_Log_Device, &buf) != 0) {
+        perror("Can't open Log Device");
+        exit(EXIT_FAILURE);
+    }
+
+    if (stat(_Rvm_Data_Device, &buf) != 0) {
+        perror("Can't open Data Device");
+        exit(EXIT_FAILURE);
+    }
+}
+
+static inline void SetDebugLevel(int debug_level)
+{
+    if (debug_level) printf("Setting debuglevel to %d\n", debug_level);
+    SrvDebugLevel = debug_level;
+    AL_DebugLevel = SrvDebugLevel/10;
+    DirDebugLevel = SrvDebugLevel;
+}
 
 /* The real stuff! */
 
@@ -333,7 +373,9 @@ int main(int argc, char *argv[])
 	exit(EXIT_FAILURE);
     }
 
-    if(ParseArgs(argc,argv)) {
+    (void)ReadConfigFile();
+	
+	if(ParseArgs(argc,argv)) {
 	SLog(0, "usage: srv [-d (debug level)] [-p (number of processes)] ");
 	SLog(0, "[-l (large vnodes)] [-s (small vnodes)]");
 	SLog(0, "[-k (stack size)] [-w (call back wait interval)]");
@@ -351,7 +393,11 @@ int main(int argc, char *argv[])
 	exit(EXIT_FAILURE);
     }
 
-    (void)ReadConfigFile();
+    ParseEnvVars();
+
+    SetDebugLevel(debuglevel);
+
+    SetupRVM();
 
     pidfile = vice_config_path("srv/pid");
     parent = DaemonizeSrv(pidfile);
@@ -1265,10 +1311,83 @@ void ViceTerminate()
         LWP_QSignal(mainPid);
 }
 
+static bool check_rvm_envs()
+{
+    if (!codaenv_find("rvm_log")) return false;
+    if (!codaenv_find("rvm_data")) return false;
+    if (!codaenv_find("rvm_data_length")) return false;
+
+    return true;
+}
+
+static void ParseEnvVars(void)
+{
+    int  zombify = 0;
+
+    CodaSrvIp = codaenv_str("ipaddress", CodaSrvIp);
+
+    if (RvmType == UNSET || check_rvm_envs()) {
+        _Rvm_Log_Device = codaenv_str("rvm_log", _Rvm_Log_Device);
+        _Rvm_Data_Device = codaenv_str("rvm_data", _Rvm_Data_Device);
+        datalen = codaenv_int("rvm_data_length", datalen);
+    }
+
+    srvhost = codaenv_str("hostname", srvhost);
+
+    debuglevel = codaenv_int("debuglevel", debuglevel);
+
+    Authenticate = codaenv_int("authenticate", Authenticate);
+    AllowResolution = codaenv_int("resolution", AllowResolution);
+    AllowSHA = codaenv_int("allow_sha", AllowSHA);
+    comparedirreps = codaenv_int("comparedirreps", comparedirreps);
+    pollandyield = codaenv_int("pollandyield", pollandyield);
+    pathtiming = codaenv_int("pathtiming", pathtiming);
+    MapPrivate = codaenv_int("mapprivate", pathtiming);
+
+    large = codaenv_int("large", large);
+    small = codaenv_int("small", small);
+
+    vicedir = codaenv_str("vicedir", vicedir);
+
+    trace = codaenv_int("trace", trace);
+    SrvWindowSize = codaenv_int("windowsize", SrvWindowSize);
+    SrvSendAhead = codaenv_int("sendahead", SrvSendAhead);
+    timeout = codaenv_int("timeout", timeout);
+    retrycnt = codaenv_int("retrycnt", retrycnt);
+    auth_lwps = codaenv_int("auth_lwps", auth_lwps);
+    server_lwps = codaenv_int("lwps", server_lwps);
+    if (server_lwps > MAXLWP) server_lwps = MAXLWP;
+
+    stack = codaenv_int("stack", stack);
+    cbwait = codaenv_int("cbwait", cbwait);
+    chk = codaenv_int("chk", chk);
+    ForceSalvage = codaenv_int("forcesalvage", ForceSalvage);
+    SalvageOnShutdown = codaenv_int("salvageonshutdown", SalvageOnShutdown);
+    DumpVM = codaenv_int("dumpvm", DumpVM);
+
+    /* Rvm parameters */
+    _Rvm_Truncate = codaenv_int("rvmtruncate", _Rvm_Truncate);
+
+    /* Other command line parameters ... */
+    extern int nodebarrenize;
+
+    nodebarrenize = codaenv_int("nodebarrenize", nodebarrenize);
+    zombify = codaenv_int("zombify", zombify);
+    if (zombify)
+        coda_assert_action = CODA_ASSERT_SLEEP;
+    vicetab = codaenv_str("vicetab", vicetab);
+    if (!vicetab)
+    vicetab = strdup(vice_config_path("db/vicetab"));
+
+    check_reintegration_retry = codaenv_int("check_reintegration_retry",
+                                            check_reintegration_retry);
+    codatunnel_enabled = codaenv_int("codatunnel", codatunnel_enabled);
+    codatunnel_onlytcp = codaenv_int("onlytcp", codatunnel_onlytcp);
+    nofork = codaenv_int("nofork", nofork);
+}
 
 static int ReadConfigFile(void)
 {
-    int  datalen = 0;
     int  zombify = 0;
 
     /* Load configuration file. */
@@ -1308,27 +1427,10 @@ static int ReadConfigFile(void)
 
     /* Rvm parameters */
     CODACONF_INT(_Rvm_Truncate, "rvmtruncate", 0);
-
-    if (RvmType == UNSET) {
-        CODACONF_STR(_Rvm_Log_Device,  "rvm_log", "");
-        CODACONF_STR(_Rvm_Data_Device, "rvm_data", "");
-        CODACONF_INT(datalen,	   "rvm_data_length", 0);
-        CODACONF_STR(srvhost,	   "hostname", NULL);
-    }
-
-    if (datalen != 0) {
-        _Rvm_DataLength = RVM_MK_OFFSET(0, datalen);
-	RvmType = RAWIO;
-	/* Checks ... */
-	if (_Rvm_Log_Device == NULL || *_Rvm_Log_Device == 0) {
-	    SLog(0, "Must specify a RVM log file/device\n");
-	    exit(EXIT_FAILURE);
-	}
-	if (_Rvm_Data_Device == NULL || *_Rvm_Data_Device == 0) {
-	    SLog(0, "Must specify a RVM data file/device\n");
-	    exit(EXIT_FAILURE);
-	}
-    }
+    CODACONF_STR(_Rvm_Log_Device,  "rvm_log", "");
+    CODACONF_STR(_Rvm_Data_Device, "rvm_data", "");
+    CODACONF_INT(datalen,	   "rvm_data_length", 0);
+    CODACONF_STR(srvhost,	   "hostname", NULL);
 
     /* Other command line parameters ... */
     extern int nodebarrenize;
@@ -1355,11 +1457,7 @@ static int ParseArgs(int argc, char *argv[])
 
     for (i = 1; i < argc; i++) {
 	if (!strcmp(argv[i], "-d")) {
-	    debuglevel = atoi(argv[++i]);
-	    printf("Setting debuglevel to %d\n", debuglevel);
-	    SrvDebugLevel = debuglevel;
-	    AL_DebugLevel = SrvDebugLevel/10;
-	    DirDebugLevel = SrvDebugLevel;
+	    debuglevel = atoi(argv[++i]);	    
 	}
 	else 
 	    if (!strcmp(argv[i], "-zombify"))
@@ -1479,7 +1577,6 @@ static int ParseArgs(int argc, char *argv[])
 	    }
 	else
 	    if (!strcmp(argv[i], "-rvm")) {
-		struct stat buf;
 		if (RvmType != UNSET) {
 		    SLog(0, "Multiple Persistence methods selected.");
 		    exit(EXIT_FAILURE);
@@ -1491,19 +1588,9 @@ static int ParseArgs(int argc, char *argv[])
 		    exit(EXIT_FAILURE);
 		}
 
-		RvmType = RAWIO;
 		i++; _Rvm_Log_Device = strdup(argv[i]);
 		i++; _Rvm_Data_Device = strdup(argv[i]);
-		if (stat(_Rvm_Log_Device, &buf) != 0) {
-		    perror("Can't open Log Device");
-		    exit(EXIT_FAILURE);
-		}
-
-		if (stat(_Rvm_Data_Device, &buf) != 0) {
-		    perror("Can't open Data Device");
-		    exit(EXIT_FAILURE);
-		}
-		i++; _Rvm_DataLength = RVM_MK_OFFSET(0, atoi(argv[i]));
+		i++; datalen = atoi(argv[i]);
 	    }
 	else
 	    if (!strcmp(argv[i], "-dumpvm")) {
