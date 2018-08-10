@@ -293,7 +293,7 @@ void CacheFile::Truncate(long newlen)
 /* MUST be called from within transaction! */
 void CacheFile::SetLength(uint64_t newlen)
 {
-    uint64_t length_b_f = bytes_to_blocks_floor(length); /* Floor length in blocks */
+    uint64_t length_b = bytes_to_blocks_ceil(length); /* Floor length in blocks */
     
     if (length != newlen) {
         RVMLIB_REC_OBJECT(*this);
@@ -301,9 +301,8 @@ void CacheFile::SetLength(uint64_t newlen)
         validdata = cached_chuncks->Count() * BYTES_BLOCK_SIZE;
 
         /* In case the the last block is set */
-        if (cached_chuncks->Value(bytes_to_blocks_ceil(length) - 1)) {
-            validdata -= BYTES_BLOCK_SIZE;
-            validdata += length - (length_b_f << BITS_BLOCK_SIZE);
+        if (cached_chuncks->Value(length_b - 1)) {
+            validdata -= (length_b << BITS_BLOCK_SIZE) - length;
         }
         
         cached_chuncks->Resize(bytes_to_blocks_ceil(newlen));
@@ -329,7 +328,11 @@ void CacheFile::SetValidData(uint64_t start, int64_t len)
     uint64_t length_b = bytes_to_blocks_ceil(length); /* Ceil length in blocks */
     
     if (len < 0) {
-        end_b = bytes_to_blocks_ceil(length);
+        end_b = length_b;
+    }
+    
+    if (end_b > length_b) {
+        end_b = length_b;
     }
 
     RVMLIB_REC_OBJECT(validdata);
@@ -340,15 +343,15 @@ void CacheFile::SetValidData(uint64_t start, int64_t len)
         }
 
         cached_chuncks->SetIndex(i);
-
-        /* The last block might not be full */
-        if ((i + 1 == length_b) && (length_b != length_b_f)) {
-            newvaliddata += length - (length_b_f << BITS_BLOCK_SIZE);
-            continue;
-        }
-
+        
         /* Add a full block */
         newvaliddata += BYTES_BLOCK_SIZE;
+
+        /* The last block might not be full */
+        if (i + 1 == length_b) {
+            newvaliddata -= (length_b << BITS_BLOCK_SIZE) - length;
+            continue;
+        }
     }
 
     validdata += newvaliddata;
