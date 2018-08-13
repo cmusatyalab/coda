@@ -71,7 +71,7 @@ CacheFile::CacheFile(int i)
     length = validdata = 0;
     refcnt = 1;
     numopens = 0;
-    cached_chuncks = new bitmap(1, 0);
+    cached_chuncks = new (1) bitmap(1, 1);
     /* Container reset will be done by eventually by FSOInit()! */
     LOG(100, ("CacheFile::CacheFile(%d): %s (this=0x%x)\n", i, name, this));
 }
@@ -82,7 +82,7 @@ CacheFile::CacheFile()
     CODA_ASSERT(length == 0);
     refcnt = 1;
     numopens = 0;
-    cached_chuncks = new bitmap(1, 0);
+    cached_chuncks = new (1) bitmap(1, 1);
 }
 
 
