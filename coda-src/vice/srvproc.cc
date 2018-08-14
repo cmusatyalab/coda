@@ -2139,7 +2139,7 @@ void PerformFetch(ClientEntry *client, Volume *volptr, Vnode *vptr) {
 
 int FetchBulkTransfer(RPC2_Handle RPCid, ClientEntry *client, 
 		      Volume *volptr, Vnode *vptr, RPC2_Unsigned Offset, 
-			  RPC2_Unsigned Count,
+			  RPC2_Integer Count,
 		      ViceVersionVector *VV)
 {
     int errorCode = 0;
@@ -2152,6 +2152,7 @@ int FetchBulkTransfer(RPC2_Handle RPCid, ClientEntry *client,
     PDirHeader buf = 0;
     int size = 0;
     int fd = -1;
+    int64_t bytes_to_transfer = 0;
 
     {
 	/* When we are continueing a trickle/interrupted fetch, the version
@@ -2246,14 +2247,23 @@ int FetchBulkTransfer(RPC2_Handle RPCid, ClientEntry *client,
 	    goto Exit;
 	}
 
-	/* compensate Length for the data we skipped because of the requested
-	 * Offset */
-	Length -= Offset;
+	    
+    if (Count < 0 || (Offset + Count) > Length) { /* Transfer till the EOF */
+        /* compensate Length for the data we skipped because of the requested
+    	 * Offset */
+        bytes_to_transfer = Length - Offset;
+    } else {
+        bytes_to_transfer = Count;
+    }
+    
+    if (bytes_to_transfer > Length) {
+        bytes_to_transfer = Length;
+    }
 
 	RPC2_Integer len = sid.Value.SmartFTPD.BytesTransferred;
-	if (len != Length) {
-	    SLog(0, "FetchBulkTransfer: length discrepancy (%d : %d), %s, %s %s.%d",
-		 Length, len, FID_(&Fid),
+	if (len != bytes_to_transfer) {
+	    SLog(0, "FetchBulkTransfer: length discrepancy (%d : %d, %d), %s, %s %s.%d",
+		 Length, len, bytes_to_transfer, FID_(&Fid),
 		 client->UserName, inet_ntoa(client->VenusId->host),
 		 ntohs(client->VenusId->port));
 	    errorCode = EINVAL;
@@ -2265,20 +2275,20 @@ int FetchBulkTransfer(RPC2_Handle RPCid, ClientEntry *client,
 	Counters[FETCHDATAOP]++;
 	Counters[FETCHTIME] += (int) (((StopTime.tv_sec - StartTime.tv_sec) * 1000) +
 	  ((StopTime.tv_usec - StartTime.tv_usec) / 1000));
-	Counters[FETCHDATA] += (int) Length;
-	if (Length < SIZE1)
+	Counters[FETCHDATA] += (int) bytes_to_transfer;
+	if (bytes_to_transfer < SIZE1)
 	    Counters[FETCHD1]++;
-	else if (Length < SIZE2)
+	else if (bytes_to_transfer < SIZE2)
 	    Counters[FETCHD2]++;
-	else if (Length < SIZE3)
+	else if (bytes_to_transfer < SIZE3)
 	    Counters[FETCHD3]++;
-	else if (Length < SIZE4)
+	else if (bytes_to_transfer < SIZE4)
 	    Counters[FETCHD4]++;
 	else
 	    Counters[FETCHD5]++;
 
 	SLog(2, "FetchBulkTransfer: transferred %d bytes %s",
-	     Length, FID_(&Fid));
+	     bytes_to_transfer, FID_(&Fid));
     }
 
 Exit:
