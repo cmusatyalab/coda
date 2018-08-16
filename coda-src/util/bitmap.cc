@@ -145,17 +145,16 @@ bitmap::~bitmap() {
     }
 }
 
-void bitmap::Resize(int newsize) {
-    if (newsize < 8) {
-        Resize(8);
-        return;
-    }
-    
+void bitmap::Resize(int newsize) {    
     while (newsize & 7)
         newsize++; /* must be a multiple of 8 */
 
     int newmapsize = newsize >> 3;
     char *newmap;
+    
+    if (!newmapsize) {
+        newmapsize++;
+    }
 
     if (recoverable) {
         newmap = (char *)rvmlib_rec_malloc(newmapsize);
@@ -171,11 +170,14 @@ void bitmap::Resize(int newsize) {
     if (map) {
         CODA_ASSERT(mapsize > 0);
 
-        /* If it's growing */
-        if (newmapsize < mapsize) {
-            memcpy(newmap, map, newmapsize);
-        } else { /* If it's shrinking */
-            memcpy(newmap, map, mapsize);
+        /* If zero size leave clean */
+        if (newsize) {
+            /* If it's growing */
+            if (newmapsize < mapsize) {
+                memcpy(newmap, map, newmapsize);
+            } else { /* If it's shrinking */
+                memcpy(newmap, map, mapsize);
+            }    
         }
 
         if (recoverable)
