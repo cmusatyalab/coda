@@ -222,28 +222,29 @@ int bitmap::GetFreeIndex()
     return(-1);		/* no free slot */
 }
 
-void bitmap::SetIndex(int index) {
+void bitmap::SetValue(int index, int value) { 
     int offset = index >> 3;	/* the byte offset into bitmap */
     int bitoffset = index & 7;
+    int mask = (1 << (7 - bitoffset));
     CODA_ASSERT(offset < mapsize);
 
     if (recoverable) rvmlib_set_range(&map[offset], sizeof(char));
 
     /* make sure bit is not set */
-    if ((~map[offset]) & (1 << (7-bitoffset))) 
-	map[offset] |= (1 << (7 - bitoffset));
+    if (value) {
+        map[offset] |= mask;
+    } else  {
+        map[offset] &= ~mask;
+    }
+    
+}
+
+void bitmap::SetIndex(int index) {
+    SetValue(index, 1);
 }
 
 void bitmap::FreeIndex(int index) {
-    int offset = index >> 3;	/* the byte offset into bitmap */
-    int bitoffset = index & 7;
-    CODA_ASSERT(offset < mapsize);
-
-    if (recoverable) rvmlib_set_range(&map[offset], sizeof(char));
-
-    /* make sure bit is set */
-    if (map[offset] & (1 << (7-bitoffset)))
-	map[offset] &= ~(1 << (7 - bitoffset));
+    SetValue(index, 0);
 }
 
 int bitmap::Value(int index) {

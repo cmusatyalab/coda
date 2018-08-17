@@ -47,7 +47,8 @@ class bitmap {
     unsigned malloced:8;	/* was bitmap allocated via new? */
     int mapsize;		/* 1/8 size of array of elements */
     char *map;			/* bitmap showing status of the elements */
-
+    
+    inline void SetValue(int index, int value);
 
   public:
     void *operator new (size_t, int = 0);
