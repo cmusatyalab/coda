@@ -239,12 +239,50 @@ void bitmap::SetValue(int index, int value) {
     
 }
 
+void bitmap::SetRangeValue(int start, int len, int value) {
+    int bit_end = start + len;
+    int byte_start = start;
+    int byte_end = bit_end;
+    
+    byte_start = (byte_start + 0x7) & ~0x7;
+    byte_end = byte_end & ~0x7;
+    
+    if (byte_start >= byte_end) {
+        for (int i = start; i < bit_end; i++) {
+            SetValue(i, value);
+        }
+        return;
+    }
+    
+    byte_start = byte_start >> 3;
+    byte_end = byte_end >> 3;
+    
+    memset(&map[byte_start], value, byte_end - byte_start);
+    
+    for (int i = start; i < byte_start << 3; i++) {
+        SetValue(i, value);
+    }
+    
+    for (int i = byte_end << 3; i < bit_end; i++) {
+        SetValue(i, value);
+    }    
+    
+}
+
 void bitmap::SetIndex(int index) {
     SetValue(index, 1);
 }
 
+void bitmap::SetRange(int start, int len) {
+    SetRangeValue(start, len, 1);
+}
+
 void bitmap::FreeIndex(int index) {
     SetValue(index, 0);
+}
+
+void bitmap::FreeRange(int start, int len) {
+    SetRangeValue(start, len, 0);
 }
 
 int bitmap::Value(int index) {

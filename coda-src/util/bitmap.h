@@ -49,6 +49,7 @@ class bitmap {
     char *map;			/* bitmap showing status of the elements */
     
     inline void SetValue(int index, int value);
+    void SetRangeValue(int start, int len, int value);
 
   public:
     void *operator new (size_t, int = 0);
@@ -59,7 +60,9 @@ class bitmap {
     void Grow(int);		/* grow the index to a new size */
     int GetFreeIndex();		/* get an index that is not in use and mark it */
     void FreeIndex(int);	/* free a particular index */
+    void FreeRange(int start, int len);
     void SetIndex(int);		/* mark a particular index as being used */
+    void SetRange(int start, int len);
     int Value(int);		/* get the value at a particular index */
     int Count();		/* count the number of 1's in the bitmap */
     int Size();			// how many entries in bitmap 
