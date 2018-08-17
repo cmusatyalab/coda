@@ -111,6 +111,7 @@ class CacheFile {
     bitmap *cached_chuncks;
 
     int ValidContainer();
+    int UpdateValidData();
 
  public:
     CacheFile(int);

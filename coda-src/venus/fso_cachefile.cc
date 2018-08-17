@@ -71,7 +71,7 @@ CacheFile::CacheFile(int i)
     length = validdata = 0;
     refcnt = 1;
     numopens = 0;
-    cached_chuncks = new (1) bitmap(1, 1);
+    cached_chuncks = new (1) bitmap(LARGEST_BITMAP_SIZE, 1);
     /* Container reset will be done by eventually by FSOInit()! */
     LOG(100, ("CacheFile::CacheFile(%d): %s (this=0x%x)\n", i, name, this));
 }
@@ -82,7 +82,7 @@ CacheFile::CacheFile()
     CODA_ASSERT(length == 0);
     refcnt = 1;
     numopens = 0;
-    cached_chuncks = new (1) bitmap(1, 1);
+    cached_chuncks = new (1) bitmap(LARGEST_BITMAP_SIZE, 1);
 }
 
 
@@ -168,7 +168,6 @@ void CacheFile::Create(int newlength)
     length = newlength;
     refcnt = 1;
     numopens = 0;
-    cached_chuncks->Grow(bytes_to_blocks_ceil(length));
 }
 
 
@@ -285,32 +284,48 @@ void CacheFile::Truncate(long newlen)
     }
 
     if (length != newlen) {
-	RVMLIB_REC_OBJECT(*this);
-	length = validdata = newlen;
+    	RVMLIB_REC_OBJECT(*this);
+        
+        if (newlen < length) {
+            cached_chuncks->FreeRange(bytes_to_blocks_floor(newlen), 
+                bytes_to_blocks_ceil(length - newlen));
+        } 
+        
+        length = newlen;
+        
+        UpdateValidData();
     }
 
     CODA_ASSERT(::ftruncate(fd, length) == 0);
-    cached_chuncks->Resize(bytes_to_blocks_ceil(length));
 
     close(fd);
 }
 
-/* MUST be called from within transaction! */
-void CacheFile::SetLength(uint64_t newlen)
-{
+/* Update the valid data*/
+int CacheFile::UpdateValidData() {
     uint64_t length_b = bytes_to_blocks_ceil(length); /* Floor length in blocks */
     
+    validdata = cached_chuncks->Count() * BYTES_BLOCK_SIZE;
+
+    /* In case the the last block is set */
+    if (cached_chuncks->Value(length_b - 1)) {
+        validdata -= (length_b << BITS_BLOCK_SIZE) - length;
+    }
+}
+
+/* MUST be called from within transaction! */
+void CacheFile::SetLength(uint64_t newlen)
+{    
     if (length != newlen) {
         RVMLIB_REC_OBJECT(*this);
 
-        validdata = cached_chuncks->Count() * BYTES_BLOCK_SIZE;
-
-        /* In case the the last block is set */
-        if (cached_chuncks->Value(length_b - 1)) {
-            validdata -= (length_b << BITS_BLOCK_SIZE) - length;
-        }
+        UpdateValidData();
         
-        cached_chuncks->Resize(bytes_to_blocks_ceil(newlen));
+        if (newlen < length) {
+            cached_chuncks->FreeRange(bytes_to_blocks_floor(newlen), 
+                bytes_to_blocks_ceil(length - newlen));
+        } 
+        
         length = newlen;
     }
     
