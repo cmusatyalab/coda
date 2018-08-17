@@ -80,9 +80,11 @@ extern int global_kernfd;
 
 #define CACHEFILENAMELEN 12
 
-#define BYTES_BLOCK_SIZE 4096
+#define BYTES_BLOCK_SIZE 32768
 #define BYTES_BLOCK_SIZE_MAX (BYTES_BLOCK_SIZE - 1)
-#define BITS_BLOCK_SIZE 12 /* 4096 = 2^12 */
+#define BITS_BLOCK_SIZE 15 /* 32768 = 2^15 */
+#define LARGEST_SUPPORTED_FILE_SIZE (2^32)
+#define LARGEST_BITMAP_SIZE 131072 /* 2^32 / BYTES_BLOCK_SIZE */
 
 static inline uint64_t bytes_to_blocks_floor(uint64_t bytes) {
     return bytes >> BITS_BLOCK_SIZE;
