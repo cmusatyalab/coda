@@ -180,12 +180,7 @@ int CacheFile::Copy(CacheFile *destination)
 
     destination->length = length;
     destination->validdata = validdata;
-    
-    if (!destination->cached_chuncks) {
-        destination->cached_chuncks = new (1) bitmap(1, 1);
-    }
-    
-    destination->cached_chuncks = cached_chuncks;
+    *(destination->cached_chuncks) = *cached_chuncks;
     return 0;
 }
 
