@@ -85,7 +85,7 @@ class userent {
     void CheckTokenExpiry();
     void Invalidate();
     void Reset();
-    int CheckVastroSupport(RPC2_Handle *cid, srvent *sv, int * retry_cnt);
+    int CheckFetchPartialSupport(RPC2_Handle *cid, srvent *sv, int * retry_cnt);
     int Connect(RPC2_Handle *, int *, struct in_addr *);
     int GetWaitForever();
     void SetWaitForever(int);

@@ -369,13 +369,18 @@ LOG(100, ("After HDB::ResetUser in userent::Reset\n"));
 LOG(100, ("L userent::Reset()\n"));
 }
 
-int userent::CheckVastroSupport(RPC2_Handle *cid, srvent *sv, int * retry_cnt)
+int userent::CheckFetchPartialSupport(RPC2_Handle *cid, srvent *sv, int * retry_cnt)
 {
     int inconok = 0;
     uint64_t offset = 0;
     int64_t len = -1;
     VenusFid fid = NullFid;
     int code = 0;
+    
+    /* If it's known don't get it again */
+    if (sv->fetchpartial_support) {
+        return 0;
+    }
 
     /* VersionVector */
     ViceVersionVector vv;
@@ -415,19 +420,19 @@ int userent::CheckVastroSupport(RPC2_Handle *cid, srvent *sv, int * retry_cnt)
     code = ViceFetchPartial(*cid, MakeViceFid(&fid), &vv,
                      inconok, &status, 0, offset, len, &PiggyBS, sed);
     UNI_END_MESSAGE(ViceFetchPartial_OP);
-    MarinerLog("userent::CheckVastroSupport: ViceFetchPartial test returned %d\n", code);
+    MarinerLog("userent::CheckFetchPartialSupport: ViceFetchPartial test returned %d\n", code);
     UNI_RECORD_STATS(ViceFetchPartial_OP);
 
     /* No doubt */
     if (code == RPC2_INVALIDOPCODE) {
-        LOG(100, ("userent::CheckVastroSupport: ViceFetchPartial Operation Not supported"));
+        LOG(100, ("userent::CheckFetchPartialSupport: ViceFetchPartial Operation Not supported\n"));
         sv->fetchpartial_support = 0;
         return 0;
     }
 
     /* If it's not clear retry */
     if (code < 0) {
-        LOG(100, ("userent::CheckVastroSupport: ViceFetchPartial retrying"));
+        LOG(100, ("userent::CheckFetchPartialSupport: ViceFetchPartial retrying\n"));
         if (--*retry_cnt) return ERETRY;
         return code;
     }
@@ -435,10 +440,10 @@ int userent::CheckVastroSupport(RPC2_Handle *cid, srvent *sv, int * retry_cnt)
     /* Only EINVAL confirms presence of ViceFetchPartial().
        Conservatively interpret all other server return codes as nonexistence */
     if (code == EINVAL) {
-        LOG(100, ("userent::CheckVastroSupport: ViceFetchPartial Supported"));
+        LOG(100, ("userent::CheckFetchPartialSupport: ViceFetchPartial Supported\n"));
         sv->fetchpartial_support = 1;
     } else {
-        LOG(100, ("userent::CheckVastroSupport: ViceFetchPartial Operation Not supported"));
+        LOG(100, ("userent::CheckFetchPartialSupport: ViceFetchPartial Operation Not supported\n"));
         sv->fetchpartial_support = 0;
     }
 
@@ -570,7 +575,7 @@ RetryConnect:
 	UNI_RECORD_STATS(ViceNewConnectFS_OP);
 	LOG(1, ("userent::Connect: NewConnectFS -> %d\n", code));
 
-    support_test_code = CheckVastroSupport(cid, sv, &retry_cnt);
+    support_test_code = CheckFetchPartialSupport(cid, sv, &retry_cnt);
 
     /* Check of retry */
     if (support_test_code == ERETRY) {
