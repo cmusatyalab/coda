@@ -80,27 +80,69 @@ extern int global_kernfd;
 
 #define CACHEFILENAMELEN 12
 
-#define BYTES_BLOCK_SIZE 32768
-#define BYTES_BLOCK_SIZE_MAX (BYTES_BLOCK_SIZE - 1)
-#define BITS_BLOCK_SIZE 15 /* 32768 = 2^15 */
+
+#define CBLOCK_BITS_SIZE 15 /* 32768 = 2^15 */
+#define CBLOCK_SIZE (1 << 15)
+#define CBLOCK_SIZE_MAX (CBLOCK_SIZE - 1)
+
 #define LARGEST_SUPPORTED_FILE_SIZE (2^32)
-#define LARGEST_BITMAP_SIZE 131072 /* 2^32 / BYTES_BLOCK_SIZE */
+#define LARGEST_BITMAP_SIZE 131072 /* 2^32 / CBLOCK_SIZE */
 
-static inline uint64_t bytes_to_blocks_floor(uint64_t bytes) {
-    return bytes >> BITS_BLOCK_SIZE;
+static inline uint64_t cblocks_to_bytes(uint64_t cblocks) {
+    return cblocks << CBLOCK_BITS_SIZE;
 }
 
-static inline uint64_t bytes_to_blocks_ceil(uint64_t bytes) {
-    return bytes_to_blocks_floor(bytes + BYTES_BLOCK_SIZE_MAX);
+static inline uint64_t bytes_to_cblocks(uint64_t bytes) {
+    return bytes >> CBLOCK_BITS_SIZE;
 }
 
-static inline uint64_t bytes_round_up_block_size(uint64_t bytes) {
-    return bytes_to_blocks_ceil(bytes) << BITS_BLOCK_SIZE;
+static inline uint64_t bytes_to_cblocks_floor(uint64_t bytes) {
+    return bytes_to_cblocks(bytes);
 }
 
-static inline uint64_t bytes_round_down_block_size(uint64_t bytes) {
-    return bytes_to_blocks_floor(bytes) << BITS_BLOCK_SIZE;
+static inline uint64_t bytes_to_cblocks_ceil(uint64_t bytes) {
+    return bytes_to_cblocks(bytes + CBLOCK_SIZE_MAX);
 }
+
+static inline uint64_t align_to_cblock_ceil(uint64_t bytes)
+{
+    return (bytes + CBLOCK_SIZE_MAX) & ~CBLOCK_SIZE_MAX;
+}
+
+static inline uint64_t align_to_cblock_floor(uint64_t bytes)
+{
+    return (bytes & ~CBLOCK_SIZE_MAX);
+}
+
+static inline uint64_t cblock_start(uint64_t b_pos)
+{
+    return bytes_to_cblocks_floor(b_pos);
+}
+
+static inline uint64_t cblock_end(uint64_t b_pos, int64_t b_count)
+{
+    return bytes_to_cblocks_ceil(b_pos + b_count);
+}
+
+static inline uint64_t cblock_length(uint64_t b_pos, int64_t b_count)
+{
+    return cblock_end(b_pos, b_count) - cblock_start(b_pos);
+}
+
+static inline uint64_t pos_align_to_cblock(uint64_t b_pos)
+{
+    return (b_pos & ~CBLOCK_SIZE_MAX);
+}
+
+static inline uint64_t length_align_to_cblock(uint64_t b_pos, int64_t b_count)
+{
+    return cblocks_to_bytes(cblock_length(b_pos, b_count));
+}
+
+#define FS_BLOCKS_SIZE_MAX    (4095)
+#define FS_BLOCKS_SIZE_MASK   (~FS_BLOCKS_SIZE_MAX)
+#define FS_BLOCKS_ALIGN(size) ((size + FS_BLOCKS_SIZE_MAX) & \ 
+                               FS_BLOCKS_SIZE_MASK)
 
 class CacheFile {
     long length;

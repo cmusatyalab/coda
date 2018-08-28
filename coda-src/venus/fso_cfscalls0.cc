@@ -313,7 +313,6 @@ int fsobj::Fetch(uid_t uid, uint64_t pos, int64_t count)
     uint64_t offset = IsFile() ? cf.ValidData() : 0;
     int64_t len = -1;
 
-    GotThisData = 0;
     if (IsFile()) {
         offset = cf.ConsecutiveValidData();
         len = -1;

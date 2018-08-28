@@ -282,8 +282,8 @@ void CacheFile::Truncate(long newlen)
     	RVMLIB_REC_OBJECT(*this);
         
         if (newlen < length) {
-            cached_chuncks->FreeRange(bytes_to_blocks_floor(newlen), 
-                bytes_to_blocks_ceil(length - newlen));
+            cached_chuncks->FreeRange(bytes_to_cblocks_floor(newlen), 
+                bytes_to_cblocks_ceil(length - newlen));
         } 
         
         length = newlen;
@@ -298,13 +298,13 @@ void CacheFile::Truncate(long newlen)
 
 /* Update the valid data*/
 int CacheFile::UpdateValidData() {
-    uint64_t length_b = bytes_to_blocks_ceil(length); /* Floor length in blocks */
+    uint64_t length_cb = bytes_to_cblocks_ceil(length); /* Floor length in blocks */
     
-    validdata = cached_chuncks->Count() * BYTES_BLOCK_SIZE;
+    validdata = cblocks_to_bytes(cached_chuncks->Count());
 
     /* In case the the last block is set */
-    if (cached_chuncks->Value(length_b - 1)) {
-        validdata -= (length_b << BITS_BLOCK_SIZE) - length;
+    if (cached_chuncks->Value(length_cb - 1)) {
+        validdata -= cblocks_to_bytes(length_cb) - length;
     }
 }
 
@@ -314,12 +314,12 @@ void CacheFile::SetLength(uint64_t newlen)
     if (length != newlen) {
         RVMLIB_REC_OBJECT(*this);
 
-        UpdateValidData();
-        
         if (newlen < length) {
-            cached_chuncks->FreeRange(bytes_to_blocks_floor(newlen), 
-                bytes_to_blocks_ceil(length - newlen));
-        } 
+            cached_chuncks->FreeRange(bytes_to_cblocks_floor(newlen), 
+                bytes_to_cblocks_ceil(length - newlen));
+        }
+        
+        UpdateValidData();
         
         length = newlen;
     }
@@ -336,23 +336,22 @@ void CacheFile::SetValidData(uint64_t len)
 /* MUST be called from within transaction! */
 void CacheFile::SetValidData(uint64_t start, int64_t len)
 {
-    uint64_t start_b = bytes_to_blocks_floor(start);
-    uint64_t end_b = bytes_to_blocks_ceil(start + len);
+    uint64_t start_cb = cblock_start(start);
+    uint64_t end_cb = cblock_end(start, len);
     uint64_t newvaliddata = 0;
-    uint64_t length_b_f = bytes_to_blocks_floor(length); /* Floor length in blocks */
-    uint64_t length_b = bytes_to_blocks_ceil(length); /* Ceil length in blocks */
+    uint64_t length_cb = bytes_to_cblocks_ceil(length);
     
     if (len < 0) {
-        end_b = length_b;
+        end_cb = length_cb;
     }
     
-    if (end_b > length_b) {
-        end_b = length_b;
+    if (end_cb > length_cb) {
+        end_cb = length_cb;
     }
 
     RVMLIB_REC_OBJECT(validdata);
 
-    for (uint64_t i = start_b; i < end_b; i++) {
+    for (uint64_t i = start_cb; i < end_cb; i++) {
         if (cached_chuncks->Value(i)) {
             continue;
         }
@@ -360,11 +359,11 @@ void CacheFile::SetValidData(uint64_t start, int64_t len)
         cached_chuncks->SetIndex(i);
         
         /* Add a full block */
-        newvaliddata += BYTES_BLOCK_SIZE;
+        newvaliddata += CBLOCK_SIZE;
 
         /* The last block might not be full */
-        if (i + 1 == length_b) {
-            newvaliddata -= (length_b << BITS_BLOCK_SIZE) - length;
+        if (i + 1 == length_cb) {
+            newvaliddata -= cblocks_to_bytes(length_cb) - length;
             continue;
         }
     }
@@ -373,7 +372,7 @@ void CacheFile::SetValidData(uint64_t start, int64_t len)
 
     LOG(60, ("CacheFile::SetValidData: { validdata: %d }\n", validdata));
     LOG(60, ("CacheFile::SetValidData: { fetchedblocks: %d, totalblocks: %d }\n",
-            cached_chuncks->Count(), length_b));
+            cached_chuncks->Count(), length_cb));
 }
 
 void CacheFile::print(int fdes)
@@ -425,7 +424,7 @@ uint64_t CacheFile::ConsecutiveValidData(void)
 {
     /* Use the start of the first hole */
     uint64_t start = 0;
-    uint64_t length_ccb = bytes_to_ccblocks_ceil(length);  // Ceil length in blocks
+    uint64_t length_ccb = bytes_to_cblocks_ceil(length);  // Ceil length in blocks
 
     /* Find the first 0 in the bitmap */
     for (start = 0; start < length_ccb; start++) {
