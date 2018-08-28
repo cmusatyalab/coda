@@ -63,6 +63,7 @@ class bitmap {
     void FreeRange(int start, int len);
     void SetIndex(int);		/* mark a particular index as being used */
     void SetRange(int start, int len);
+    void CopyRange(int start, int len, bitmap& b);
     int Value(int);		/* get the value at a particular index */
     int Count();		/* count the number of 1's in the bitmap */
     int Size();			// how many entries in bitmap 

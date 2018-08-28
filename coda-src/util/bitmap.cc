@@ -239,8 +239,38 @@ void bitmap::SetValue(int index, int value) {
     
 }
 
+void bitmap::CopyRange(int start, int len, bitmap& b) {
+    int bit_end = len < 0 ? mapsize - 1 : start + len;
+    int byte_start = start;
+    int byte_end = bit_end;
+    
+    byte_start = (byte_start + 0x7) & ~0x7;
+    byte_end = byte_end & ~0x7;
+    
+    if (byte_start >= byte_end) {
+        for (int i = start; i < bit_end; i++) {
+            SetValue(i, Value(i));
+        }
+        return;
+    }
+    
+    byte_start = byte_start >> 3;
+    byte_end = byte_end >> 3;
+    
+    memcpy(&b.map[byte_start], &map[byte_start], byte_end - byte_start);
+    
+    for (int i = start; i < byte_start << 3; i++) {
+        b.SetValue(i, Value(i));
+    }
+    
+    for (int i = byte_end << 3; i < bit_end; i++) {
+        b.SetValue(i, Value(i));
+    }    
+    
+}
+
 void bitmap::SetRangeValue(int start, int len, int value) {
-    int bit_end = start + len;
+    int bit_end = len < 0 ? mapsize - 1 : start + len;
     int byte_start = start;
     int byte_end = bit_end;
     
