@@ -62,16 +62,18 @@ static char zeropage[4096];
 
 /* Pre-allocation routine. */
 /* MUST be called from within transaction! */
-CacheFile::CacheFile(int i)
+CacheFile::CacheFile(int i, int recoverable)
 {
     /* Assume caller has done RVMLIB_REC_OBJECT! */
     /* RVMLIB_REC_OBJECT(*this); */
     sprintf(name, "%02X/%02X/%02X/%02X",
 	    (i>>24) & 0xff, (i>>16) & 0xff, (i>>8) & 0xff, i & 0xff);
+            
     length = validdata = 0;
     refcnt = 1;
     numopens = 0;
-    cached_chuncks = new (1) bitmap(LARGEST_BITMAP_SIZE, 1);
+    this->recoverable = recoverable;
+    cached_chuncks = new (recoverable) bitmap(LARGEST_BITMAP_SIZE, recoverable);
     /* Container reset will be done by eventually by FSOInit()! */
     LOG(100, ("CacheFile::CacheFile(%d): %s (this=0x%x)\n", i, name, this));
 }
@@ -82,7 +84,8 @@ CacheFile::CacheFile()
     CODA_ASSERT(length == 0);
     refcnt = 1;
     numopens = 0;
-    cached_chuncks = new (1) bitmap(LARGEST_BITMAP_SIZE, 1);
+    this->recoverable = 1;
+    cached_chuncks = new (recoverable) bitmap(LARGEST_BITMAP_SIZE, recoverable);
 }
 
 
@@ -279,15 +282,15 @@ void CacheFile::Truncate(long newlen)
     }
 
     if (length != newlen) {
-    	RVMLIB_REC_OBJECT(*this);
-        
+        if (recoverable) RVMLIB_REC_OBJECT(*this);
+
         if (newlen < length) {
             cached_chuncks->FreeRange(bytes_to_cblocks_floor(newlen), 
                 bytes_to_cblocks_ceil(length - newlen));
         } 
-        
+
         length = newlen;
-        
+
         UpdateValidData();
     }
 
@@ -299,7 +302,7 @@ void CacheFile::Truncate(long newlen)
 /* Update the valid data*/
 int CacheFile::UpdateValidData() {
     uint64_t length_cb = bytes_to_cblocks_ceil(length); /* Floor length in blocks */
-    
+
     validdata = cblocks_to_bytes(cached_chuncks->Count());
 
     /* In case the the last block is set */
@@ -312,18 +315,18 @@ int CacheFile::UpdateValidData() {
 void CacheFile::SetLength(uint64_t newlen)
 {    
     if (length != newlen) {
-        RVMLIB_REC_OBJECT(*this);
+        if (recoverable) RVMLIB_REC_OBJECT(*this);
 
         if (newlen < length) {
             cached_chuncks->FreeRange(bytes_to_cblocks_floor(newlen), 
                 bytes_to_cblocks_ceil(length - newlen));
         }
-        
+
         UpdateValidData();
-        
+
         length = newlen;
     }
-    
+
     LOG(60, ("CacheFile::SetLength: New Length: %d, Validata %d\n", newlen, validdata));
 }
 
@@ -340,16 +343,16 @@ void CacheFile::SetValidData(uint64_t start, int64_t len)
     uint64_t end_cb = cblock_end(start, len);
     uint64_t newvaliddata = 0;
     uint64_t length_cb = bytes_to_cblocks_ceil(length);
-    
+
     if (len < 0) {
         end_cb = length_cb;
     }
-    
+
     if (end_cb > length_cb) {
         end_cb = length_cb;
     }
 
-    RVMLIB_REC_OBJECT(validdata);
+    if (recoverable) RVMLIB_REC_OBJECT(validdata);
 
     for (uint64_t i = start_cb; i < end_cb; i++) {
         if (cached_chuncks->Value(i)) {
@@ -357,7 +360,7 @@ void CacheFile::SetValidData(uint64_t start, int64_t len)
         }
 
         cached_chuncks->SetIndex(i);
-        
+
         /* Add a full block */
         newvaliddata += CBLOCK_SIZE;
 

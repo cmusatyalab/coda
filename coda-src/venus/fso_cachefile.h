@@ -151,12 +151,13 @@ class CacheFile {
     char name[CACHEFILENAMELEN];		/* "xx/xx/xx/xx" */
     int numopens;
     bitmap *cached_chuncks;
+    int recoverable;
 
     int ValidContainer();
     int UpdateValidData();
 
  public:
-    CacheFile(int);
+    CacheFile(int i, int recoverable = 1);
     CacheFile();
     ~CacheFile();
 
