@@ -74,6 +74,7 @@ CacheFile::CacheFile(int i, int recoverable)
     numopens = 0;
     this->recoverable = recoverable;
     cached_chuncks = new (recoverable) bitmap(LARGEST_BITMAP_SIZE, recoverable);
+    Lock_Init(&rw_lock);
     /* Container reset will be done by eventually by FSOInit()! */
     LOG(100, ("CacheFile::CacheFile(%d): %s (this=0x%x)\n", i, name, this));
 }
@@ -85,6 +86,7 @@ CacheFile::CacheFile()
     refcnt = 1;
     numopens = 0;
     this->recoverable = 1;
+    Lock_Init(&rw_lock);
     cached_chuncks = new (recoverable) bitmap(LARGEST_BITMAP_SIZE, recoverable);
 }
 
@@ -183,7 +185,11 @@ int CacheFile::Copy(CacheFile *destination)
 
     destination->length = length;
     destination->validdata = validdata;
+    ObtainReadLock(&rw_lock);
+    ObtainWriteLock(&destination->rw_lock);
     *(destination->cached_chuncks) = *cached_chuncks;
+    ReleaseWriteLock(&destination->rw_lock);
+    ReleaseReadLock(&rw_lock);
     return 0;
 }
 
@@ -283,10 +289,16 @@ void CacheFile::Truncate(long newlen)
 
     if (length != newlen) {
         if (recoverable) RVMLIB_REC_OBJECT(*this);
+    
+        
 
         if (newlen < length) {
+            ObtainWriteLock(&rw_lock);
+            
             cached_chuncks->FreeRange(bytes_to_cblocks_floor(newlen), 
                 bytes_to_cblocks_ceil(length - newlen));
+                
+            ReleaseWriteLock(&rw_lock);
         } 
 
         length = newlen;
@@ -302,6 +314,8 @@ void CacheFile::Truncate(long newlen)
 /* Update the valid data*/
 int CacheFile::UpdateValidData() {
     uint64_t length_cb = bytes_to_cblocks_ceil(length); /* Floor length in blocks */
+    
+    ObtainReadLock(&rw_lock);
 
     validdata = cblocks_to_bytes(cached_chuncks->Count());
 
@@ -309,6 +323,8 @@ int CacheFile::UpdateValidData() {
     if (cached_chuncks->Value(length_cb - 1)) {
         validdata -= cblocks_to_bytes(length_cb) - length;
     }
+    
+    ReleaseReadLock(&rw_lock);
 }
 
 /* MUST be called from within transaction! */
@@ -318,8 +334,12 @@ void CacheFile::SetLength(uint64_t newlen)
         if (recoverable) RVMLIB_REC_OBJECT(*this);
 
         if (newlen < length) {
+            ObtainWriteLock(&rw_lock);
+            
             cached_chuncks->FreeRange(bytes_to_cblocks_floor(newlen), 
                 bytes_to_cblocks_ceil(length - newlen));
+                
+            ReleaseWriteLock(&rw_lock);
         }
 
         UpdateValidData();
@@ -353,6 +373,8 @@ void CacheFile::SetValidData(uint64_t start, int64_t len)
     }
 
     if (recoverable) RVMLIB_REC_OBJECT(validdata);
+    
+    ObtainWriteLock(&rw_lock);
 
     for (uint64_t i = start_cb; i < end_cb; i++) {
         if (cached_chuncks->Value(i)) {
@@ -370,6 +392,8 @@ void CacheFile::SetValidData(uint64_t start, int64_t len)
             continue;
         }
     }
+    
+    ReleaseWriteLock(&rw_lock);
 
     validdata += newvaliddata;
 

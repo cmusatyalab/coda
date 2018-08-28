@@ -56,6 +56,7 @@ extern int global_kernfd;
 
 /* from lka */
 // #include <lka.h>
+#include <lwp/lock.h>
 
 /* from venus */
 
@@ -152,6 +153,7 @@ class CacheFile {
     int numopens;
     bitmap *cached_chuncks;
     int recoverable;
+    Lock rw_lock;
 
     int ValidContainer();
     int UpdateValidData();
