@@ -1820,7 +1820,7 @@ void fsobj::DiscardData() {
 	    {
 	    /* stat.Length() might have been changed, only data.file->Length()
 	     * can be trusted */
-	    FSDB->FreeBlocks(NBLOCKS(data.file->Length()));
+	    FSDB->FreeBlocks(NBLOCKS(data.file->ValidData()));
 	    data.file->Truncate(0);
 	    data.file = 0;
 	    }
