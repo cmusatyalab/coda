@@ -252,32 +252,32 @@ void MUX_add_callback(int fd, void (*cb)(int fd, void *udata), void *udata)
 /*
  * Parse size value and converts into amount of 1K-Blocks 
  */
-static unsigned int ParseSizeWithUnits(const char * CacheSize)
+static unsigned int ParseSizeWithUnits(const char * SizeWUnits)
 {
     const char * units = NULL;
     int scale_factor = 1;
-    char CacheSizeWOUnits[256];
-    size_t cachesize_len = 0;
-    unsigned int cachesize = 0;
+    char SizeWOUnits[256];
+    size_t size_len = 0;
+    unsigned int size_int = 0;
 
     /* Locate the units and determine the scale factor */
     for (int i = 0; i < 6; i++) {
-        if ((units = strstr(CacheSize, KBYTES_UNIT[i]))) {
+        if ((units = strstr(SizeWUnits, KBYTES_UNIT[i]))) {
             scale_factor = KBYTE_UNIT_SCALE;
             break;
         }
         
-        if ((units = strstr(CacheSize, MBYTES_UNIT[i]))) {
+        if ((units = strstr(SizeWUnits, MBYTES_UNIT[i]))) {
             scale_factor = MBYTE_UNIT_SCALE;
             break;
         }
 
-        if ((units = strstr(CacheSize, GBYTES_UNIT[i]))) {
+        if ((units = strstr(SizeWUnits, GBYTES_UNIT[i]))) {
             scale_factor = GBYTE_UNIT_SCALE;
             break;
         }
 
-        if ((units = strstr(CacheSize, TBYTES_UNIT[i]))) {
+        if ((units = strstr(SizeWUnits, TBYTES_UNIT[i]))) {
             scale_factor = TBYTE_UNIT_SCALE;
             break;
         }
@@ -285,17 +285,17 @@ static unsigned int ParseSizeWithUnits(const char * CacheSize)
 
     /* Strip the units from string */
     if (units) {
-        cachesize_len = (size_t)((units - CacheSize) / sizeof(char));
-        strncpy(CacheSizeWOUnits, CacheSize, cachesize_len);
-        CacheSizeWOUnits[cachesize_len] = 0;  // Make it null-terminated
+        size_len = (size_t)((units - SizeWUnits) / sizeof(char));
+        strncpy(SizeWOUnits, SizeWUnits, size_len);
+        SizeWOUnits[size_len] = 0;  // Make it null-terminated
     } else {
-        snprintf(CacheSizeWOUnits, sizeof(CacheSizeWOUnits), CacheSize);
+        snprintf(SizeWOUnits, sizeof(SizeWOUnits), SizeWUnits);
     }
 
     /* Scale the value */
-    cachesize = scale_factor * atof(CacheSizeWOUnits);
+    size_int = scale_factor * atof(SizeWOUnits);
 
-    return cachesize;
+    return size_int;
 }
 
 static int power_of_2(uint64_t num)
