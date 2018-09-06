@@ -81,20 +81,17 @@ extern int global_kernfd;
 
 #define CACHEFILENAMELEN 12
 
-
-#define CBLOCK_BITS_SIZE 15 /* 32768 = 2^15 */
-#define CBLOCK_SIZE (1 << 15)
-#define CBLOCK_SIZE_MAX (CBLOCK_SIZE - 1)
-
-#define LARGEST_SUPPORTED_FILE_SIZE (2^32)
-#define LARGEST_BITMAP_SIZE 131072 /* 2^32 / CBLOCK_SIZE */
+extern uint64_t CacheChunckBlockSize;
+extern uint64_t CacheChunckBlockSizeBits;
+extern uint64_t CacheChunckBlockSizeMax;
+extern uint64_t CacheChunckBlockBitmapSize;
 
 static inline uint64_t ccblocks_to_bytes(uint64_t ccblocks) {
-    return ccblocks << CBLOCK_BITS_SIZE;
+    return ccblocks << CacheChunckBlockSizeBits;
 }
 
 static inline uint64_t bytes_to_ccblocks(uint64_t bytes) {
-    return bytes >> CBLOCK_BITS_SIZE;
+    return bytes >> CacheChunckBlockSizeBits;
 }
 
 static inline uint64_t bytes_to_ccblocks_floor(uint64_t bytes) {
@@ -102,17 +99,17 @@ static inline uint64_t bytes_to_ccblocks_floor(uint64_t bytes) {
 }
 
 static inline uint64_t bytes_to_ccblocks_ceil(uint64_t bytes) {
-    return bytes_to_ccblocks(bytes + CBLOCK_SIZE_MAX);
+    return bytes_to_ccblocks(bytes + CacheChunckBlockSizeMax);
 }
 
 static inline uint64_t align_to_ccblock_ceil(uint64_t bytes)
 {
-    return (bytes + CBLOCK_SIZE_MAX) & ~CBLOCK_SIZE_MAX;
+    return (bytes + CacheChunckBlockSizeMax) & ~CacheChunckBlockSizeMax;
 }
 
 static inline uint64_t align_to_ccblock_floor(uint64_t bytes)
 {
-    return (bytes & ~CBLOCK_SIZE_MAX);
+    return (bytes & ~CacheChunckBlockSizeMax);
 }
 
 static inline uint64_t ccblock_start(uint64_t b_pos)
@@ -132,7 +129,7 @@ static inline uint64_t ccblock_length(uint64_t b_pos, int64_t b_count)
 
 static inline uint64_t pos_align_to_ccblock(uint64_t b_pos)
 {
-    return (b_pos & ~CBLOCK_SIZE_MAX);
+    return (b_pos & ~CacheChunckBlockSizeMax);
 }
 
 static inline uint64_t length_align_to_ccblock(uint64_t b_pos, int64_t b_count)

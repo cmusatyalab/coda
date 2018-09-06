@@ -165,6 +165,8 @@ static const unsigned int GBYTE_UNIT_SCALE = 1024 * MBYTE_UNIT_SCALE;
 static const char * TBYTES_UNIT[] = { "TB", "tb", "Tb", "tB", "T", "t"};
 static const unsigned int TBYTE_UNIT_SCALE = 1024 * GBYTE_UNIT_SCALE;
 
+static const uint64_t largest_supported_file = ((uint64_t)0x1) << 32;
+
 
 /* Some helpers to add fd/callbacks to the inner select loop */
 struct mux_cb_entry {
@@ -294,6 +296,49 @@ static unsigned int ParseSizeWithUnits(const char * CacheSize)
     cachesize = scale_factor * atof(CacheSizeWOUnits);
 
     return cachesize;
+}
+
+static int power_of_2(uint64_t num)
+{
+    int power = 0;
+    
+    if (!num) return -1;
+    
+    /*Find the first 1 */
+    while (!(num & 0x1)) {
+        num = num >> 1; 
+        power++;
+    }
+    
+    /* Shift the first 1 */
+    num = num >> 1;
+
+    /* Any other 1 means not power of 2 */
+    if (num) return -1;
+
+    return power; 
+}
+
+void ParseCacheChunckBlockSize(const char * ccblocksize) {
+    uint64_t TmpCacheChunckBlockSize = ParseSizeWithUnits(ccblocksize) * 1024;
+    int TmpCacheChunckBlockSizeBit = power_of_2(TmpCacheChunckBlockSize);
+    
+    if (TmpCacheChunckBlockSizeBit < 0) {
+        /* Not a power of 2 FAIL!!! */
+        eprint("Cannot start: provided cache chunck block size is not a power of 2");
+        exit(EXIT_UNCONFIGURED);
+    }
+    
+    if (TmpCacheChunckBlockSizeBit < 12) {
+        /* Smaller than minimum FAIL*/
+        eprint("Cannot start: minimum cache chunck block size is 4KB");
+        exit(EXIT_UNCONFIGURED);
+    }
+        
+    CacheChunckBlockSizeBits = TmpCacheChunckBlockSizeBit;
+    CacheChunckBlockSize = 1 << CacheChunckBlockSizeBits;
+    CacheChunckBlockSizeMax = CacheChunckBlockSize - 1;
+    CacheChunckBlockBitmapSize = largest_supported_file >> CacheChunckBlockSizeBits;
 }
 
 
@@ -443,6 +488,7 @@ static void Usage(char *argv0)
 " -lwpdebug <n>\t\t\tlwp debug level\n"
 " -cf <n>\t\t\t# of cache files\n"
 " -c <n>[KB|MB|GB|TB]\t\t\t\tcache size in the given units (e.g. 10MB)\n"
+" -ccbs <n>[KB|MB|GB|TB]\t\t\t\tcache chunck block size (shall be power of 2)\n"
 " -mles <n>\t\t\t# of CML entries\n"
 " -hdbes <n>\t\t\t# of hoard database entries\n"
 " -rdstrace\t\t\tenable RDS heap tracing\n"
@@ -634,6 +680,9 @@ static void ParseCmdline(int argc, char **argv)
 	    else if (STREQ(argv[i], "-nofork")) {
                 nofork = true;
 	    }
+        else if (STREQ(argv[i], "-ccbs")) {
+            i++, ParseCacheChunckBlockSize(argv[i]);
+        }
 	    else {
 		eprint("bad command line option %-4s", argv[i]);
 		done = -1;
@@ -671,6 +720,8 @@ static void DefaultCmdlineParms()
 {
     int DontUseRVM = 0;
     const char *CacheSize = NULL;
+    const char *TmpWFMax = NULL;
+    const char *TmpCacheChunckBlockSize = NULL;
 
     /* Load the "venus.conf" configuration file */
     codaconf_init("venus.conf");
@@ -700,6 +751,11 @@ static void DefaultCmdlineParms()
         exit(EXIT_UNCONFIGURED);
     }
     
+    if (!CacheChunckBlockSize) {
+        CODACONF_STR(TmpCacheChunckBlockSize, "cachechunckblocksize", "32KB");
+        ParseCacheChunckBlockSize(TmpCacheChunckBlockSize);
+    }
+        
     CODACONF_STR(CacheDir,	    "cachedir",      DFLT_CD);
     CODACONF_STR(SpoolDir,	    "checkpointdir", "/usr/coda/spool");
     CODACONF_STR(VenusLogFile,	    "logfile",	     DFLT_LOGFILE);
