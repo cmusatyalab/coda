@@ -78,11 +78,6 @@ void *bitmap::operator new(size_t size, int recable)
     return(x);
 }
 
-
-void bitmap::operator delete(void *deadobj){
-    /* Nothing to do; ~bitmap() has already done deallocation */
-    }
-
 bitmap::bitmap(int inputmapsize, int recable)
 {
 

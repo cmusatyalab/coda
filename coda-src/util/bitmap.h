@@ -53,7 +53,6 @@ class bitmap {
 
   public:
     void *operator new (size_t, int = 0);
-    void operator delete(void *);
     bitmap(int = 0, int = 0);
     ~bitmap();
     void Resize(int);		/* resize the index to a new size */
