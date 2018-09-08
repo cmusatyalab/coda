@@ -377,6 +377,28 @@ static uid_t getuserid(const char *username)
 }
 
 
+static char * getusername(uid_t uid)
+{
+    struct passwd pwd, *res = NULL;
+    char *buf;
+    ssize_t bufsize;
+    char *uname = (char *)"nobody"; /* fall back name */
+
+    bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
+    if (bufsize == -1)
+        bufsize = 16384;
+
+    buf = (char *)malloc(bufsize);
+    assert(buf != NULL);
+
+    getpwuid_r(uid, &pwd, buf, bufsize, &res);
+    if (res)
+        uname = strdup(res->pw_name);
+    free(buf);
+    return uname;
+}
+
+
 plan9server::plan9server(mariner *m)
 {
     conn = m;
@@ -650,7 +672,7 @@ int plan9server::recv_attach(unsigned char *buf, size_t len, uint16_t tag)
     struct plan9_qid qid;
 
     root->refcount = 0;
-    root->uname = uname;
+    root->uname = strlen(uname) == 0 ? getusername(uid) : uname;
     root->aname = aname;
     root->userid = uid == (uid_t)~0 ? getuserid(uname) : uid ;
 
