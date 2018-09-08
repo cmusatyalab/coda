@@ -1713,6 +1713,30 @@ int plan9server::cnode_getparent(struct venus_cnode *cnode,
   return 0;
 }
 
+/*
+ * Downcall to replace temporary Venus Fid once a server Fid has been assigned.
+ * Replacement must happen for every entry in the 9p fidmap that contains the
+ * temporary Venus Fid.
+ */
+int plan9server::fidmap_replace_cfid(VenusFid * OldFid, VenusFid * NewFid)
+{
+  dlist_iterator next(fids);
+  dlink *cur;
+
+  DEBUG("\n9pfs: Downcall received to replace c_fid %s with %s. Done for 9P fids: ", FID_(OldFid), FID_(NewFid));
+
+  while ((cur = next()))
+  {
+      struct fidmap *fm = strbase(struct fidmap, cur, link);
+      if (FID_EQ(&fm->cnode.c_fid, OldFid)) {
+          fm->cnode.c_fid = *NewFid;
+          DEBUG("%u ", fm->fid);
+        }
+  }
+  DEBUG("\n");
+  return 0;
+}
+
 
 struct fidmap *plan9server::find_fid(uint32_t fid)
 {

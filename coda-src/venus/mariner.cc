@@ -485,9 +485,10 @@ int mariner::AwaitRequest()
 
                 LOG(0, ("Found 9pfs version magic\n"));
 
-                plan9server *srv = new plan9server(this);
-                srv->main_loop((unsigned char *)commbuf, idx);
-                delete srv;
+                p9srv = new plan9server(this);
+                p9srv->main_loop((unsigned char *)commbuf, idx);
+                delete p9srv;
+                p9srv = NULL;
 
                 /* when the 9pfs main loop is done, we want to also exit the
                  * mariner main loop */

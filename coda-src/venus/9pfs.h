@@ -254,6 +254,7 @@ public:
     int pack_dirent(unsigned char **buf, size_t *len, size_t *offset,
                     struct venus_cnode *parent, struct attachment *root,
                     const char *name);
+    int fidmap_replace_cfid(VenusFid * OldFid, VenusFid * NewFid);
 };
 
 #endif /* _VENUS_9PFS_H_ */
