@@ -1401,15 +1401,8 @@ int plan9server::recv_wstat(unsigned char *buf, size_t len, uint16_t tag)
       }
     }
 
-
-    /* retrieve the current file attributes from Venus */
+    /* prepare to write the file attributes to Venus */
     conn->u.u_uid = fm->root->userid;
-    conn->getattr(&fm->cnode, &attr);
-    if (conn->u.u_error) {
-        errcode = conn->u.u_error;
-        strerr = VenusRetStr(errcode);
-        goto err_out;
-    }
 
     /* if wstat involves a rename */
     if (strcmp(stat.name, P9_DONT_TOUCH_NAME) != 0) {
@@ -1426,60 +1419,62 @@ int plan9server::recv_wstat(unsigned char *buf, size_t len, uint16_t tag)
       }
 
       /* attempt rename */
-      conn->u.u_uid = fm->root->userid;
+      DEBUG("--- renaming %s to %s\n", name, stat.name);
       conn->rename(&parent_cnode, name,&parent_cnode, stat.name);
       if (conn->u.u_error) {
           errcode = conn->u.u_error;
           strerr = VenusRetStr(errcode);
           goto err_out;
       }
-      DEBUG("renamed %s to %s\n", name, stat.name);
     }
-
-    /* Update attr with the new stats to be written.
-     * If all wstat fields were "don't touch", then according to 9P protocol,
-     * the server can interpret this wstat as a request to guarantee that
-     * the contents of the associated file are committed to stable storage
-     * before the Rwstat message is returned (i.e. "make the state of the
-     * file exactly what it claims to be.""), which we do by confirming at
-     * least the uid in the setattr() call.
+    else if (stat.mode == P9_DONT_TOUCH_MODE
+          && stat.length == P9_DONT_TOUCH_LENGTH
+          && stat.mtime == P9_DONT_TOUCH_MTIME )  {
+    /* If all legal wstat fields were "don't touch", then according to 9P
+     * protocol, the server can interpret this wstat as a request to guarantee
+     * that the contents of the associated file are committed to stable storage
+     * before the Rwstat message is returned (i.e. "make the state of the file
+     * exactly what it claims to be").
      */
-
-    /* must be set to IGNORE or will trigger error in vproc::setattr() */
-    attr.va_fileid = VA_IGNORE_ID;
-    attr.va_nlink = VA_IGNORE_NLINK;
-    attr.va_blocksize = VA_IGNORE_BLOCKSIZE;
-    attr.va_flags = VA_IGNORE_FLAGS;
-    attr.va_rdev = VA_IGNORE_RDEV;
-    attr.va_bytes = VA_IGNORE_STORAGE;
-
-    /* vproc::setattr() can set the following 4 attributes */
-    attr.va_uid = VA_IGNORE_UID;	   /* Cannot be modified through wstat */
-    attr.va_mode = (stat.mode == P9_DONT_TOUCH_MODE) ?
-                VA_IGNORE_MODE : stat.mode & 0777;
-    attr.va_size = (stat.length == P9_DONT_TOUCH_LENGTH) ?
-               VA_IGNORE_SIZE : stat.length;	  /* does this work? */
-    attr.va_mtime.tv_sec = (stat.mtime == P9_DONT_TOUCH_MTIME) ?
-                VA_IGNORE_TIME1 : stat.mtime;
-                                    /* rest of va_mtime is kept as-is */
-
-    /* vproc::setattr() doesn't document what to do with the remaining
-     * so we just keep/affirm them as they are:
-     *     attr.va_gid
-     *     attr.va_atime
-     *     attr.va_ctime
-     *     attr.va_gen
-     *     attr.va_type
-     *     attr.va_filerev
-     */
-
-    /* attempt setattr */
-    conn->u.u_uid = fm->root->userid;
-    conn->setattr(&fm->cnode, &attr);
-    if (conn->u.u_error) {
+      DEBUG("--- fsyncing fid %d\n", fid);
+      //conn->fsync(&fm->cnode);
+      if (conn->u.u_error) {
         errcode = conn->u.u_error;
         strerr = VenusRetStr(errcode);
         goto err_out;
+      }
+    }
+    else {
+      /* Update attr with the new stats to be written */
+      DEBUG("--- writing attributes of fid %d\n", fid);
+      /* must be set to IGNORE or will trigger error in vproc::setattr() */
+      attr.va_fileid = VA_IGNORE_ID;
+      attr.va_nlink = VA_IGNORE_NLINK;
+      attr.va_blocksize = VA_IGNORE_BLOCKSIZE;
+      attr.va_flags = VA_IGNORE_FLAGS;
+      attr.va_rdev = VA_IGNORE_RDEV;
+      attr.va_bytes = VA_IGNORE_STORAGE;
+
+      /* vproc::setattr() can set the following 4 attributes */
+      attr.va_uid = VA_IGNORE_UID;	   /* Cannot be modified through wstat */
+      attr.va_mode = (stat.mode == P9_DONT_TOUCH_MODE) ?
+                  VA_IGNORE_MODE : stat.mode & 0777;
+      attr.va_size = (stat.length == P9_DONT_TOUCH_LENGTH) ?
+                 VA_IGNORE_SIZE : stat.length;	  /* does this work? */
+      attr.va_mtime.tv_sec = (stat.mtime == P9_DONT_TOUCH_MTIME) ?
+                  VA_IGNORE_TIME1 : stat.mtime;
+                                      /* rest of va_mtime is kept as-is */
+
+      /* vproc::setattr() doesn't document what to do with the remaining
+       * vattr so we just ignore them */
+
+      /* attempt setattr */
+      conn->setattr(&fm->cnode, &attr);
+      if (conn->u.u_error) {
+          errcode = conn->u.u_error;
+          strerr = VenusRetStr(errcode);
+          goto err_out;
+      }
     }
 
     ::free(stat.muid);
