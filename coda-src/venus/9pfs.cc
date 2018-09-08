@@ -1228,23 +1228,23 @@ int plan9server::recv_remove(unsigned char *buf, size_t len, uint16_t tag)
 
     /* Find the parent directory cnode */
     struct venus_cnode parent_cnode;
-    if (cnode_getparent(&fm->cnode, &parent_cnode) < 0)
-        return send_error(tag, "tried to remove the mountpoint", EBUSY);
+    int errcode = cnode_getparent(&fm->cnode, &parent_cnode);
 
-    conn->u.u_uid = fm->root->userid;
-    if (fm->cnode.c_type == C_VDIR) {
-      /* remove a directory */
-      conn->rmdir(&parent_cnode, name);
+    if (!errcode) {
+        conn->u.u_uid = fm->root->userid;
+        if (fm->cnode.c_type == C_VDIR)
+            conn->rmdir(&parent_cnode, name);   /* remove a directory */
+        else
+            conn->remove(&parent_cnode, name);  /* remove a regular file */
+
+        if (conn->u.u_error)
+            errcode = conn->u.u_error;
     }
-    else {
-      /* remove a regular file */
-      conn->remove(&parent_cnode, name);
-    }
+
     /* 9p clunks the file, whether the actual server remove succeeded or not */
     del_fid(fid);
 
-    if (conn->u.u_error) {
-        int errcode = conn->u.u_error;
+    if (errcode) {
         const char *errstr = VenusRetStr(errcode);
         return send_error(tag, errstr, errcode);
     }
@@ -1712,8 +1712,8 @@ int plan9server::cnode_getparent(struct venus_cnode *cnode,
                               struct venus_cnode *parent)
 {
   fsobj *f = FSDB->Find(&cnode->c_fid);
-  assert(f);
-  if (f->IsMtPt()) return -1;  /* cnode was the mount point */
+  if (f == NULL) return -EBADF;         /* Venus fid not found */
+  if (f->IsMtPt()) return -EINVAL;      /* cnode was the mount point */
   MAKE_CNODE2(*parent, f->pfid, C_VDIR);
   return 0;
 }
