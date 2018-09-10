@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2008 Carnegie Mellon University
+          Copyright (c) 1987-2018 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -41,8 +41,9 @@ extern "C" {
 
 #include <rpc2/rpc2.h>
 #include <vice.h>
-/* from libal */
-#include <prs.h>
+
+#include <pioctl.h> /* from kerndep */
+#include <prs.h>    /* from libal */
 
 #ifdef __cplusplus
 }
@@ -68,6 +69,132 @@ extern "C" {
 
 /* Call with object write-locked. */
 /* MUST NOT be called from within a transaction. */
+int fsobj::OpenPioctlFile(void)
+{
+    unsigned int nr, plen, follow, in_size, out_size;
+    vproc *vp = VprocSelf();
+    FILE *f;
+    char buffer[MAX(CFS_PIOBUFSIZE, CODA_MAXPATHLEN+1)];
+    int n, code;
+
+    /* read pioctl input */
+    f = data.file->FOpen("r");
+
+    n = fscanf(f, "%u\n%u\n%u\n%u\n%u\n",
+               &nr, &plen, &follow, &in_size, &out_size);
+    if (n != 5)
+    {
+        LOG(0, ("fsobj::OpenPioctlFile: failed to parse data header\n"));
+        code = EIO;
+PioctlErrOut:
+        data.file->FClose(f);
+        return code;
+    }
+
+    LOG(0, ("fsobj::Open: got pioctl %u (%u, %u, %u, %u)\n",
+            nr, plen, follow, in_size, out_size));
+
+    if (nr > 255 || in_size > CFS_PIOBUFSIZE || out_size > CFS_PIOBUFSIZE)
+    {
+        LOG(0, ("fsobj::OpenPioctlFile: unexpected data header value\n"));
+        code = EINVAL;
+        goto PioctlErrOut;
+    }
+
+    /* map path to fid */
+    int flags = TRAVERSE_MTPTS | (follow ? FOLLOW_SYMLINKS : 0);
+    struct venus_cnode vnp;
+
+    if (plen > CODA_MAXPATHLEN ||
+        fread(buffer, 1, plen, f) != plen)
+    {
+        LOG(0, ("fsobj::OpenPioctlFile: failed to read path\n"));
+        code = EINVAL;
+        goto PioctlErrOut;
+    }
+    buffer[plen] = '\0';
+
+    vp->u.u_cdir = rootfid;
+    vp->u.u_nc = NULL;
+    if (!vp->namev(buffer, flags, &vnp))
+    {
+        LOG(10, ("fsobj::OpenPioctlFile: namev failed to traverse\n"));
+        code = vp->u.u_error;
+        goto PioctlErrOut;
+    }
+
+    /* read the pioctl input data */
+    if (in_size > CFS_PIOBUFSIZE || out_size > CFS_PIOBUFSIZE)
+    {
+        LOG(0, ("fsobj::OpenPioctlFile: unexpected request or response size\n"));
+        code = ENOBUFS;
+        goto PioctlErrOut;
+    }
+
+    if (fread(buffer, 1, in_size, f) != in_size)
+    {
+        LOG(0, ("fsobj::OpenPioctlFile: failed to read request data\n"));
+        code = EFAULT;
+        goto PioctlErrOut;
+    }
+
+    data.file->FClose(f);
+
+    /* truncate pioctl container file */
+    FSDB->ChangeDiskUsage(-NBLOCKS(data.file->Length()));
+    Recov_BeginTrans();
+    data.file->SetLength(0);
+    Recov_EndTrans(MAXFP);
+
+    /* get arguments ready for the ioctl */
+    struct ViceIoctl vidata;
+    vidata.in_size = in_size;
+    vidata.out_size = out_size;
+    vidata.in = vidata.out = buffer;
+
+    /* We're pretty much guaranteed to be in the wrong context, so we have
+     * to switch context before we can call vp->ioctl */
+
+    /* Preserve the user context. */
+    struct uarea saved_ctxt = vp->u;
+    vp->u.Init();
+    vp->u.u_uid = saved_ctxt.u_uid;
+    vp->u.u_priority = saved_ctxt.u_priority;
+    vp->u.u_flags = saved_ctxt.u_flags;
+    vp->u.u_pid = saved_ctxt.u_pid;
+    vp->u.u_pgid = saved_ctxt.u_pgid;
+
+    vp->ioctl(&vnp, nr, &vidata, 0);
+
+    int error = vp->u.u_error;
+    vp->u = saved_ctxt;
+
+    /* write pioctl output */
+    f = data.file->FOpen("w");
+
+    if (fprintf(f, "%d\n%u\n", error, vidata.out_size) < 0 ||
+        fwrite(vidata.out, 1, vidata.out_size, f) != vidata.out_size)
+    {
+        LOG(0, ("fsobj::OpenPioctlFile: failed to write result\n"));
+        code = ENOSPC;
+        goto PioctlErrOut;
+    }
+
+    data.file->FClose(f);
+
+    /* adjust for space used */
+    struct stat tstat;
+    data.file->Stat(&tstat);
+    FSDB->ChangeDiskUsage(NBLOCKS(tstat.st_size));
+    Recov_BeginTrans();
+    data.file->SetLength(tstat.st_size);
+    Recov_EndTrans(MAXFP);
+    return 0;
+}
+
+
+/* Call with object write-locked. */
+/* MUST NOT be called from within a transaction. */
 int fsobj::Open(int writep, int truncp, struct venus_cnode *cp, uid_t uid) 
 {
     LOG(10, ("fsobj::Open: (%s, %d, %d), uid = %d\n",
@@ -82,7 +209,8 @@ int fsobj::Open(int writep, int truncp, struct venus_cnode *cp, uid_t uid)
      * replacement and bumping reference counts are performed
      * elsewhere under read lock. */
     if (writep || truncp || 
-        (IsDir() && (!data.dir->udcf || !data.dir->udcfvalid)))
+        (IsDir() && (!data.dir->udcf || !data.dir->udcfvalid)) ||
+        IsPioctlFile())
         PromoteLock();
 
     /* Update usage counts here. */
@@ -110,6 +238,16 @@ int fsobj::Open(int writep, int truncp, struct venus_cnode *cp, uid_t uid)
 	}
 	/* set the container file timestamp */
 	data.file->Utimes(NULL);
+    }
+    else if (IsPioctlFile())
+    {
+        /* Virtual pioctls are implemented by the application first opening a
+         * virtual file for writing, and writing the request. Then when the
+         * file is re-opened for reading we actually execute the pioctl and
+         * store the result before returning from open. */
+        code = OpenPioctlFile();
+        if (code)
+            goto Exit;
     }
 
     /* If object is directory make sure Unix-format contents are valid. */
@@ -295,6 +433,11 @@ void fsobj::Release(int writep)
             }
             Recov_EndTrans(DMFP);
         }
+    } else if (IsPioctlFile()) {
+        LOG(10, ("fsobj::Release: dropping pioctl file (%s)\n", FID_(&fid)));
+        Recov_BeginTrans();
+        Kill();
+        Recov_EndTrans(DMFP);
     }
 
     FSO_RELE(this);	    /* Unpin object. */
@@ -323,6 +466,15 @@ int fsobj::Access(int rights, int modes, uid_t uid)
 	      GetComp(), rights, modes, uid));
 
     int code = 0, connected;
+
+    /* check for pioctl objects */
+    if (IsPioctlFile())
+    {
+        /* only the user who created a pioctl object may access it */
+        if (uid == stat.Owner)
+            return 0;
+        return EACCES;
+    }
 
 #define PRSFS_MUTATE (PRSFS_WRITE | PRSFS_DELETE | PRSFS_INSERT | PRSFS_LOCK)
     /* Disallow mutation of backup, rw-replica, and zombie volumes. */
@@ -474,7 +626,7 @@ int fsobj::Lookup(fsobj **target_fso_addr, VenusFid *inc_fid, const char *name, 
 	    size_t slen = strlen(subst);
 
 	    expand = (char *)malloc(len + slen + 1);
-	    strncpy(expand, name, len);
+	    memcpy(expand, name, len);
 	    strcpy(expand + len, subst);
 	    expand[len+slen] = '\0';
 	    name = expand;
@@ -498,11 +650,18 @@ int fsobj::Lookup(fsobj **target_fso_addr, VenusFid *inc_fid, const char *name, 
 		    goto done;
 		}
 
-		// Try to get and mount the realm.
-		realm = REALMDB->GetRealm(name);
-		target_fid = fid;
-		target_fid.Vnode = 0xfffffffc;
-		target_fid.Unique = realm->Id();
+                if (strncmp(name, PIOCTL_PREFIX, strlen(PIOCTL_PREFIX)) == 0) {
+                    const char *unique = &name[strlen(PIOCTL_PREFIX)];
+                    target_fid = fid;
+                    target_fid.Vnode = 0xfffffffa;
+                    target_fid.Unique = strtol(unique, NULL, 16);
+                } else {
+                    // Try to get and mount the realm.
+                    realm = REALMDB->GetRealm(name);
+                    target_fid = fid;
+                    target_fid.Vnode = 0xfffffffc;
+                    target_fid.Unique = realm->Id();
+                }
 	    }
 	}
     }

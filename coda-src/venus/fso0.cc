@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2008 Carnegie Mellon University
+          Copyright (c) 1987-2018 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -466,7 +466,7 @@ fsobj *fsdb::Create(VenusFid *key, int priority, const char *comp,
     if (!f)
 	LOG(0, ("fsdb::Create: (%s, %d) failed\n", FID_(key), priority));
     else
-	LOG(100, ("fsdb::Create: (%s, %d) suceeeded\n", FID_(key), priority));
+	LOG(100, ("fsdb::Create: (%s, %d) succeeded\n", FID_(key), priority));
 
     return(f);
 }
@@ -617,8 +617,9 @@ RestartFind:
 	/* The first clause catches the /coda root, the second catches
 	   realms as they are demand loaded */
 	if (FID_IsLocalFake(key) || FID_IsFakeRoot(MakeViceFid(key))) {
-	  LOG(0, ("fsdb::Get: transforming %s (%s) into fake mtpt with Fakeify()\n", f->GetComp(), FID_(&f->fid)));
-	  if (f->Fakeify()) {
+	  LOG(0, ("fsdb::Get: transforming %s (%s) with Fakeify()\n",
+                  f->GetComp(), FID_(&f->fid)));
+	  if (f->Fakeify(uid)) {
 		LOG(0, ("fsdb::Get: can't transform %s (%s) into fake mt pt\n",
 				f->GetComp(), FID_(&f->fid)));
 		Recov_BeginTrans();

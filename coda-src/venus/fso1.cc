@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2018 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -1868,7 +1868,7 @@ void fsobj::DiscardData() {
 /* Call with object write-locked. */
 /* returns 0 if successful, ENOENT if the parent cannot
    be found. */
-int fsobj::Fakeify()
+int fsobj::Fakeify(uid_t uid)
 {
     VenusFid fakefid;
     LOG(10, ("fsobj::Fakeify: %s, (%s)\n", comp, FID_(&fid)));
@@ -1910,8 +1910,22 @@ int fsobj::Fakeify()
 			 realm->Name()));
 	    }
 	    LOG(10, ("fsobj::Fakeify: created fake codaroot directory\n"));
-	} else {
 
+        } else if (IsPioctlFile()) {
+            stat.Mode = 0600;
+            stat.LinkCount = 1;
+            stat.VnodeType = File;
+            stat.Owner = uid;
+
+            pfid = fakefid;
+
+            int fd = GetContainerFD();
+            close(fd);
+
+            LOG(10, ("fsobj::Fakeify: created PIOCTL.%u for user %d\n",
+                     fid.Unique, uid));
+
+	} else {
 	    stat.Mode = 0644;
 	    stat.LinkCount = 1;
 	    stat.VnodeType = SymbolicLink;
@@ -2013,6 +2027,7 @@ int fsobj::Fakeify()
 
 done:
     flags.local = 1;
+    SetRcRights(RC_STATUS|RC_DATA);
 
     DisableReplacement();
     /* notify blocked threads that the fso is ready. */

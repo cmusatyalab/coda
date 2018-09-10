@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2018 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -38,6 +38,8 @@ Coda are listed in the file CREDITS.
 
 /* WARNING: don't send more data than allowed by the CFS_MAXMSG size
 in coda.h */
+
+#define PIOCTL_PREFIX "...PIOCTL."
 
 int pioctl(const char *path, unsigned long com, struct
 	   ViceIoctl *vidata, int follow);

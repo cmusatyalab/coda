@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2008 Carnegie Mellon University
+          Copyright (c) 1987-2018 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -324,3 +324,25 @@ int CacheFile::Close(int fd)
     return ::close(fd);
 }
 
+FILE *CacheFile::FOpen(const char *mode)
+{
+    int flags = 0;
+
+    /* just support a subset */
+    if (strcmp(mode, "r") == 0)
+        flags = O_RDONLY;
+    else if (strcmp(mode, "w") == 0)
+        flags = O_WRONLY|O_TRUNC;
+    else
+        CODA_ASSERT(0);
+
+    return fdopen(Open(flags), mode);
+}
+
+int CacheFile::FClose(FILE *f)
+{
+    CODA_ASSERT(f != NULL && numopens);
+    int rc = fclose(f);
+    numopens--;
+    return rc;
+}

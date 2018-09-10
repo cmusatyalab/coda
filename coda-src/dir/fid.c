@@ -123,7 +123,7 @@ static VnodeId LocalFileVnode = 0xfffffffe;
 static VnodeId LocalDirVnode  = 0xffffffff;
 int FID_IsDisco(const struct ViceFid *x)
 {
-  return  ( (x->Vnode == LocalFileVnode) || (x->Vnode == LocalDirVnode));
+    return ((x->Vnode == LocalFileVnode) || (x->Vnode == LocalDirVnode));
 }
 
 int FID_IsLocalDir(const struct ViceFid *fid)

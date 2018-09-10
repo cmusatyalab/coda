@@ -1177,7 +1177,13 @@ int fsobj::Store(unsigned long NewLength, Date_t Mtime, uid_t uid)
 
     int code = 0;
 
-    code = DisconnectedStore(Mtime, uid, NewLength);
+    if (IsPioctlFile()) {
+        Recov_BeginTrans();
+        LocalStore(Mtime, NewLength);
+        Recov_EndTrans(DMFP);
+    }
+    else
+        code = DisconnectedStore(Mtime, uid, NewLength);
 
     if (code != 0) {
 	Recov_BeginTrans();
