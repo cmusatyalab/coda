@@ -1,3 +1,7 @@
+# Use Debian-based official GCC image
+# see https://hub.docker.com/_/gcc/
+image: gcc
+
 variables:
   DOCKER_DRIVER: overlay2
 
@@ -14,10 +18,6 @@ cache:
 sources:
   stage: build
 
-  # Use Debian-based official GCC image
-  # see https://hub.docker.com/_/gcc/
-  image: gcc
-
   script:
     - apt-get update -y -qq
     - apt-get install -y -qq --no-install-recommends automake ccache bison flex pkg-config python systemd liblua5.1-0-dev libncurses5-dev libreadline-dev libuv1-dev
@@ -31,3 +31,16 @@ sources:
     paths:
       - "coda-*.tar*"
 
+pages:
+  stage: build
+
+  script:
+    - apt-get update -y -qq
+    - apt-get install -y -qq doxygen graphviz
+    - doxygen doxygen/Doxyfile
+    - mv doxygen/html/ public/
+
+  artifacts:
+    expire_in: 1 week
+    paths:
+      - public

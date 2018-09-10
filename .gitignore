@@ -16,6 +16,7 @@ config.log
 config.status
 configure
 depcomp
+doxygen/html
 install-sh
 libtool
 ltmain.sh
