@@ -1,0 +1,33 @@
+variables:
+  DOCKER_DRIVER: overlay2
+
+before_script:
+  - mkdir -p ccache
+  - export CCACHE_BASEDIR=${PWD}
+  - export CCACHE_DIR=${PWD}/ccache
+  - export PATH=/usr/lib/ccache:${PATH}
+
+cache:
+  paths:
+    - ccache/
+
+sources:
+  stage: build
+
+  # Use Debian-based official GCC image
+  # see https://hub.docker.com/_/gcc/
+  image: gcc
+
+  script:
+    - apt-get update -y -qq
+    - apt-get install -y -qq --no-install-recommends automake ccache bison flex pkg-config python systemd liblua5.1-0-dev libncurses5-dev libreadline-dev libuv1-dev
+    - tools/version_check.sh
+    - ./bootstrap.sh --fix-versions
+    - ./configure --prefix=/usr --with-lua
+    - make distcheck dist-xz
+
+  artifacts:
+    expire_in: 1 week
+    paths:
+      - "coda-*.tar*"
+
