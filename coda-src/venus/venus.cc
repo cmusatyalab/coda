@@ -675,12 +675,19 @@ static void DefaultCmdlineParms()
     /* Load the "venus.conf" configuration file */
     codaconf_init("venus.conf");
 
+    /* we will prefer the deprecated "cacheblocks" over "cachesize" */
+    if (!CacheBlocks) {
+        CODACONF_INT(CacheBlocks, "cacheblocks", 0);
+        if (CacheBlocks)
+            eprint("Using deprecated config 'cacheblocks', try the more flexible 'cachesize'");
+    }
+
     if (!CacheBlocks) {
         CODACONF_STR(CacheSize, "cachesize", MIN_CS);
         CacheBlocks = ParseSizeWithUnits(CacheSize);
     }
 
-    /* In case of user missconfiguration */
+    /* In case of user misconfiguration */
     if (CacheBlocks < MIN_CB) {
         eprint("Cannot start: minimum cache size is %s", "2MB");
         exit(EXIT_UNCONFIGURED);
