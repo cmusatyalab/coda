@@ -1,6 +1,4 @@
-# Use Debian-based official GCC image
-# see https://hub.docker.com/_/gcc/
-image: gcc
+image: registry.cmusatyalab.org/coda/coda-packaging/coda-build
 
 variables:
   DOCKER_DRIVER: overlay2
@@ -18,8 +16,6 @@ cache:
 sources:
   stage: build
   script:
-    - apt-get update -y -qq
-    - apt-get install -y -qq --no-install-recommends automake ccache bison flex pkg-config python systemd liblua5.1-0-dev libncurses5-dev libreadline-dev libuv1-dev
     - tools/version_check.sh
     - ./bootstrap.sh --fix-versions
     - ./configure --prefix=/usr --with-lua
@@ -31,9 +27,6 @@ sources:
 
 test_pages:
   stage: build
-  image: alpine
-  before_script:
-    - apk --no-cache add doxygen graphviz ttf-freefont
   script:
     - doxygen doxygen/Doxyfile
   except:
@@ -41,9 +34,6 @@ test_pages:
 
 pages:
   stage: build
-  image: alpine
-  before_script:
-    - apk update && apk add doxygen graphviz
   script:
     - doxygen doxygen/Doxyfile
     - mv doxygen/html/ public/
