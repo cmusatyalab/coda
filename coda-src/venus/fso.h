@@ -135,11 +135,11 @@ class fsdb {
     int damnitagain;
 
     /* Size parameters. */
-    uint64_t MaxFiles;
+    unsigned int MaxFiles;
     /* "files" is kept as count member of htab */
     int FreeFileMargin;
-    /*T*/uint64_t MaxBlocks;
-    /*T*/uint64_t blocks;
+    /*T*/unsigned int MaxBlocks;
+    /*T*/unsigned int blocks;
     /*T*/int FreeBlockMargin;
 
     /* Priority parameters. */

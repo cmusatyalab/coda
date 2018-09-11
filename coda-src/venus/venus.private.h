@@ -96,7 +96,7 @@ extern "C" {
 
 #define DFLT_LOGFILE "/usr/coda/etc/venus.log"	/* venus log file */
 #define DFLT_ERRLOG  "/usr/coda/etc/console"	/* venus error log */
-#define MIN_CS "2MB\0"
+#define MIN_CS "2MB"
 
 /* rule of thumb */
 const int BLOCKS_PER_FILE = 24;
@@ -341,7 +341,7 @@ extern const char *kernDevice;
 extern const char *realmtab;
 extern const char *CacheDir;
 extern const char *CachePrefix;
-extern uint64_t CacheBlocks;
+extern unsigned int CacheBlocks;
 extern const char *SpoolDir;
 extern uid_t PrimaryUser;
 extern const char *VenusPidFile;

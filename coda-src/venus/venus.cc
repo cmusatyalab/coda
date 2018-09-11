@@ -92,7 +92,7 @@ const char *kernDevice;
 const char *realmtab;
 const char *CacheDir;
 const char *CachePrefix;
-uint64_t    CacheBlocks;
+unsigned int CacheBlocks;
 uid_t PrimaryUser = UNSET_PRIMARYUSER;
 const char *SpoolDir;
 const char *CheckpointFormat;
@@ -157,13 +157,13 @@ int parent_fd = -1;
 
 /* Bytes units convertion */
 static const char * KBYTES_UNIT[] = { "KB", "kb", "Kb", "kB", "K", "k"};
-static const int KBYTE_UNIT_SCALE = 1;
+static const unsigned int KBYTE_UNIT_SCALE = 1;
 static const char * MBYTES_UNIT[] = { "MB", "mb", "Mb", "mB", "M", "m"};
-static const int MBYTE_UNIT_SCALE = 1024 * KBYTE_UNIT_SCALE;
+static const unsigned int MBYTE_UNIT_SCALE = 1024 * KBYTE_UNIT_SCALE;
 static const char * GBYTES_UNIT[] = { "GB", "gb", "Gb", "gB", "G", "g"};
-static const int GBYTE_UNIT_SCALE = 1024 * MBYTE_UNIT_SCALE;
+static const unsigned int GBYTE_UNIT_SCALE = 1024 * MBYTE_UNIT_SCALE;
 static const char * TBYTES_UNIT[] = { "TB", "tb", "Tb", "tB", "T", "t"};
-static const int TBYTE_UNIT_SCALE = 1024 * GBYTE_UNIT_SCALE;
+static const unsigned int TBYTE_UNIT_SCALE = 1024 * GBYTE_UNIT_SCALE;
 
 
 /* Some helpers to add fd/callbacks to the inner select loop */
@@ -250,32 +250,32 @@ void MUX_add_callback(int fd, void (*cb)(int fd, void *udata), void *udata)
 /*
  * Parse size value and converts into amount of 1K-Blocks 
  */
-static uint64_t ParseSizeWithUnits(const char * CacheSize)
+static unsigned int ParseSizeWithUnits(const char * CacheSize)
 {
     const char * units = NULL;
     int scale_factor = 1;
     char CacheSizeWOUnits[256];
     size_t cachesize_len = 0;
-    uint64_t cachesize = 0;
+    unsigned int cachesize = 0;
 
     /* Locate the units and determine the scale factor */
     for (int i = 0; i < 6; i++) {
-        if (units = strstr(CacheSize, KBYTES_UNIT[i])) {
+        if ((units = strstr(CacheSize, KBYTES_UNIT[i]))) {
             scale_factor = KBYTE_UNIT_SCALE;
             break;
         }
         
-        if (units = strstr(CacheSize, MBYTES_UNIT[i])) {
+        if ((units = strstr(CacheSize, MBYTES_UNIT[i]))) {
             scale_factor = MBYTE_UNIT_SCALE;
             break;
         }
 
-        if (units = strstr(CacheSize, GBYTES_UNIT[i])) {
+        if ((units = strstr(CacheSize, GBYTES_UNIT[i]))) {
             scale_factor = GBYTE_UNIT_SCALE;
             break;
         }
 
-        if (units = strstr(CacheSize, TBYTES_UNIT[i])) {
+        if ((units = strstr(CacheSize, TBYTES_UNIT[i]))) {
             scale_factor = TBYTE_UNIT_SCALE;
             break;
         }
@@ -654,12 +654,12 @@ static void ParseCmdline(int argc, char **argv)
  * 100MB -> 4412 cache files 
  * 200MB -> 8142 cache files 
  */
-static uint64_t CalculateCacheFiles(uint64_t CacheBlocks)
+static unsigned int CalculateCacheFiles(unsigned int CacheBlocks)
 {
     static const int y_scale = 24200;
     static const double x_scale_down = 500000;
 
-    return (uint64_t) y_scale * log(CacheBlocks / x_scale_down + 1);
+    return (unsigned int)(y_scale * log(CacheBlocks / x_scale_down + 1));
 }
 
 
@@ -686,7 +686,7 @@ static void DefaultCmdlineParms()
         exit(EXIT_UNCONFIGURED);
     }
 
-    CODACONF_INT(CacheFiles, "cachefiles", CalculateCacheFiles(CacheBlocks));
+    CODACONF_INT(CacheFiles, "cachefiles", (int)CalculateCacheFiles(CacheBlocks));
     if (CacheFiles < MIN_CF) {
         eprint("Cannot start: minimum number of cache files is %d", CalculateCacheFiles(CacheBlocks));
         eprint("Cannot start: minimum number of cache files is %d", MIN_CF);
