@@ -5,15 +5,28 @@ variables:
 
 before_script:
   - mkdir -p ccache
-  - export CCACHE_BASEDIR=${PWD}
-  - export CCACHE_DIR=${PWD}/ccache
-  - export PATH=/usr/lib/ccache:${PATH}
+  - export CCACHE_BASEDIR="${PWD}"
+  - export CCACHE_DIR="${PWD}/ccache"
+  - export CCACHE_NOHASHDIR=true
+  - export CC="/usr/bin/ccache gcc"
+  - export CXX="/usr/bin/ccache g++"
 
 cache:
   paths:
     - ccache/
 
-sources:
+test_build:
+  stage: build
+  script:
+    - tools/version_check.sh
+    - ./bootstrap.sh
+    - ./configure --prefix=/usr --with-lua
+    - make all
+  except:
+    - tags
+    - rc
+
+build_source:
   stage: build
   script:
     - tools/version_check.sh
@@ -24,8 +37,11 @@ sources:
     expire_in: 1 week
     paths:
       - "coda-*.tar*"
+  only:
+    - tags
+    - rc
 
-test_pages:
+test_doc:
   stage: build
   script:
     - doxygen doxygen/Doxyfile
