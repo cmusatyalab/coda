@@ -93,9 +93,9 @@ bitmap::bitmap(int inputmapsize, int recable)
     recoverable = recable;
     if (recoverable)
         rvmlib_set_range(this, sizeof(bitmap));
-
-    while (inputmapsize & 7)
-        inputmapsize++;  /* must be a multiple of 8 */
+        
+    inputmapsize = (inputmapsize + 7) & 7; /* must be a multiple of 8 */
+    
     if (inputmapsize > 0) {
         mapsize = inputmapsize >> 3;
         if (recoverable) {
@@ -143,8 +143,7 @@ bitmap::~bitmap()
 
 void bitmap::Resize(int newsize)
 {
-    while (newsize & 7)
-        newsize++; /* must be a multiple of 8 */
+    newsize = (newsize + 7) & 7; /* must be a multiple of 8 */
 
     int newmapsize = newsize >> 3;
     char *newmap = NULL;
