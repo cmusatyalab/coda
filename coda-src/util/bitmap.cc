@@ -47,8 +47,6 @@ extern "C" {
 #include "bitmap.h"
 extern char* hex(long, int =0);
 
-#define BITMAP_MIN_SIZE 8
-
 void *bitmap::operator new(size_t size, int recable)
 {
     bitmap *x = NULL;
@@ -84,11 +82,6 @@ bitmap::bitmap(int inputmapsize, int recable)
     CODA_ASSERT(malloced != BITMAP_NOTVIANEW); /* ensure malloced is undefined if via stack! */
     if (malloced != BITMAP_VIANEW) malloced = BITMAP_NOTVIANEW; /* infer I must be on the stack */
     /* From this point on, malloced is definitely defined */
-
-    /* To prevent zero sized bitmaps */
-    if (inputmapsize < BITMAP_MIN_SIZE) {
-        inputmapsize = BITMAP_MIN_SIZE;
-    }
 
     recoverable = recable;
     if (recoverable)
@@ -198,6 +191,7 @@ void bitmap::Grow(int newsize)
 int bitmap::GetFreeIndex()
 {
     int j = 0;
+    if (!map) return(-1);
     for (int offset = 0; offset < mapsize; offset++) {
         if ((~map[offset]) & ALLOCMASK) {
             /* atleast one bit is zero */
@@ -225,6 +219,8 @@ void bitmap::SetValue(int index, int value)
     int bitoffset = index & 7;
     int mask = (1 << (7 - bitoffset));
     CODA_ASSERT(offset < mapsize);
+    
+    if (!map) return;
 
     if (recoverable) rvmlib_set_range(&map[offset], sizeof(char));
 
@@ -242,10 +238,12 @@ void bitmap::CopyRange(int start, int len, bitmap& b)
     int bit_end = len < 0 ? mapsize - 1 : start + len;
     int byte_start = start;
     int byte_end = bit_end;
-    
+
+    if (!map) return;
+
     byte_start = (byte_start + 0x7) & ~0x7;
     byte_end = byte_end & ~0x7;
-    
+
     if (byte_start >= byte_end) {
         for (int i = start; i < bit_end; i++) {
             SetValue(i, Value(i));
@@ -273,10 +271,12 @@ void bitmap::SetRangeValue(int start, int len, int value)
     int bit_end = len < 0 ? mapsize - 1 : start + len;
     int byte_start = start;
     int byte_end = bit_end;
-    
+
+    if (!map) return;
+
     byte_start = (byte_start + 0x7) & ~0x7;
     byte_end = byte_end & ~0x7;
-    
+
     if (byte_start >= byte_end) {
         for (int i = start; i < bit_end; i++) {
             SetValue(i, value);
@@ -324,6 +324,8 @@ int bitmap::Value(int index)
     if (index > (mapsize << 3)) return(-1);
     int offset = index >> 3;
     int bitoffset = index & 7;
+    
+    if (!map) return 0;
 
     return(map[offset] & (1 << (7 - bitoffset)));
 }
@@ -331,6 +333,7 @@ int bitmap::Value(int index)
 int bitmap::Count()
 {
     int count = 0;
+    if (!map) return 0;
     for (int i = 0; i < mapsize; i++) 
         for (int j = 0; j < 8; j++) 
             if (map[i] & (1 << j)) 
@@ -340,6 +343,7 @@ int bitmap::Count()
 
 int bitmap::Size() 
 {
+    if (!map) return 0;
     return (mapsize << 3);
 }
 
@@ -367,16 +371,19 @@ void bitmap::operator=(bitmap& b)
                 delete[] map;
         }
 
+        mapsize = b.mapsize;
+
         /* allocate new map */
         if (recoverable) {
             RVMLIB_REC_OBJECT(*this);
-            map = (char *)rvmlib_rec_malloc(b.mapsize);
+            map = (char *)rvmlib_rec_malloc(mapsize);
             CODA_ASSERT(map);
             rvmlib_set_range(map, mapsize);
         } else {
             map = new char[mapsize];
             CODA_ASSERT(map);
         }
+
     } else {
         /* use space of old map itself */
         if (recoverable) 
@@ -390,6 +397,9 @@ int bitmap::operator!=(bitmap& b)
 {
     if (mapsize != b.mapsize)
         return (1);
+        
+    if (!map) return (1);
+    if (!b.map) return (1);
 
     for (int i = 0; i < mapsize; i++)
         if (map[i] != b.map[i]) return(1);
