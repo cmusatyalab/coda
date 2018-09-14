@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2018 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -16,10 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
 #ifndef _BITMAP_H_
 #define _BITMAP_H_ 1
 /*
@@ -27,6 +23,16 @@ listed in the file CREDITS.
  * Created Feb 13, 1992	-- Puneet Kumar 
  * Declaration of a bitmap class 
  */
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include <stdint.h>
+
+#ifdef __cplusplus
+}
+#endif
 
 #define ALLOCMASK	255
 #define HIGHBIT		128
@@ -43,8 +49,8 @@ listed in the file CREDITS.
 
 class bitmap {
 //  friend ostream& operator<<(ostream& s, bitmap *b);  
-    unsigned recoverable:8;	/* is this bitmap recoverable */
-    unsigned malloced:8;	/* was bitmap allocated via new? */
+    uint8_t recoverable;	/* is this bitmap recoverable */
+    uint8_t malloced = BITMAP_NOTVIANEW; /* was bitmap allocated via new? */
     int mapsize;		/* 1/8 size of array of elements */
     char *map;			/* bitmap showing status of the elements */
 

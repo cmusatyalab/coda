@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2018 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -78,19 +78,17 @@ void *bitmap::operator new(size_t size, int recable)
 
 bitmap::bitmap(int inputmapsize, int recable)
 {
-
-    CODA_ASSERT(malloced != BITMAP_NOTVIANEW); /* ensure malloced is undefined if via stack! */
-    if (malloced != BITMAP_VIANEW) malloced = BITMAP_NOTVIANEW; /* infer I must be on the stack */
-    /* From this point on, malloced is definitely defined */
+    if (malloced != BITMAP_VIANEW) {
+        CODA_ASSERT(malloced == BITMAP_NOTVIANEW); /* infer I must be on the stack */
+    }
 
     recoverable = recable;
     if (recoverable)
         rvmlib_set_range(this, sizeof(bitmap));
         
-    inputmapsize = (inputmapsize + 7) & 7; /* must be a multiple of 8 */
-    
     if (inputmapsize > 0) {
-        mapsize = inputmapsize >> 3;
+        /* make sure we allocate enough even if inputmapsize is not multiple of 8 */
+        mapsize = (inputmapsize + 7) >> 3;
         if (recoverable) {
             map = (char *)rvmlib_rec_malloc(mapsize);
             CODA_ASSERT(map);
@@ -136,9 +134,8 @@ bitmap::~bitmap()
 
 void bitmap::Resize(int newsize)
 {
-    newsize = (newsize + 7) & 7; /* must be a multiple of 8 */
-
-    int newmapsize = newsize >> 3;
+    /* make sure we allocate enough even if newsize is not multiple of 8 */
+    int newmapsize = (newsize + 7) >> 3;
     char *newmap = NULL;
 
     if (!newmapsize) {
@@ -161,10 +158,11 @@ void bitmap::Resize(int newsize)
 
         /* If zero size leave clean */
         if (newsize) {
-            /* If it's growing */
-            if (newmapsize < mapsize) {
+            if (newmapsize < mapsize)
+            { /* If it's shrinking */
                 memcpy(newmap, map, newmapsize);
-            } else { /* If it's shrinking */
+            } else
+            { /* If it's growing */
                 memcpy(newmap, map, mapsize);
             }
         }
@@ -256,11 +254,11 @@ void bitmap::CopyRange(int start, int len, bitmap& b)
 
     memcpy(&b.map[byte_start], &map[byte_start], byte_end - byte_start);
 
-    for (int i = start; i < byte_start << 3; i++) {
+    for (int i = start; i < (byte_start << 3); i++) {
         b.SetValue(i, Value(i));
     }
 
-    for (int i = byte_end << 3; i < bit_end; i++) {
+    for (int i = (byte_end << 3); i < bit_end; i++) {
         b.SetValue(i, Value(i));
     }    
 
@@ -289,11 +287,11 @@ void bitmap::SetRangeValue(int start, int len, int value)
 
     memset(&map[byte_start], value, byte_end - byte_start);
 
-    for (int i = start; i < byte_start << 3; i++) {
+    for (int i = start; i < (byte_start << 3); i++) {
         SetValue(i, value);
     }
 
-    for (int i = byte_end << 3; i < bit_end; i++) {
+    for (int i = (byte_end << 3); i < bit_end; i++) {
         SetValue(i, value);
     }
 
@@ -321,10 +319,12 @@ void bitmap::FreeRange(int start, int len)
 
 int bitmap::Value(int index)
 {
-    if (index > (mapsize << 3)) return(-1);
     int offset = index >> 3;
     int bitoffset = index & 7;
     
+    if (offset >= mapsize)
+        return -1;
+
     if (!map) return 0;
 
     return(map[offset] & (1 << (7 - bitoffset)));
