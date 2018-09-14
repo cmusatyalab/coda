@@ -48,24 +48,166 @@ class bitmap {
     int mapsize;		/* 1/8 size of array of elements */
     char *map;			/* bitmap showing status of the elements */
 
+    /**
+     * Set the value of a bit at an index
+     *
+     * @param index  index of the bit to be set 
+     * @param value  value to set to bit
+     */
+    inline void SetValue(int index, int value);
 
-  public:
-    void *operator new (size_t, int = 0);
-    void operator delete(void *);
-    bitmap(int = 0, int = 0);
+    /**
+     * Set the value of bit range
+     *
+     * @param start  start of the range 
+     * @param len    length of the range 
+     * @param value  value to be set
+     */
+    void SetRangeValue(int start, int len, int value);
+
+public:
+    /**
+     * New operator overloading
+     *
+     * @param size     memory size in bytes
+     * @param recable  recoverable flag (RVM persistent)
+     *
+     */
+    void *operator new (size_t size, int recable = 0);
+
+    /**
+     * Constuctor
+     *
+     * @param inputmapsize  size of the bitmap being created
+     * @param recable       recoverable flag (RVM persistent)
+     */
+    bitmap(int inputmapsize = 0, int recable = 0);
+
+    /**
+     * Destructor
+     */
     ~bitmap();
-    void Grow(int);		/* grow the index to a new size */
-    int GetFreeIndex();		/* get an index that is not in use and mark it */
-    void FreeIndex(int);	/* free a particular index */
-    void SetIndex(int);		/* mark a particular index as being used */
-    int Value(int);		/* get the value at a particular index */
-    int Count();		/* count the number of 1's in the bitmap */
-    int Size();			// how many entries in bitmap 
-    void purge();		// delete the map 
-    void operator =(bitmap& b); // copy bitmaps 
+
+    /**
+     * Resize the bitmap to a new size
+     *
+     * @param newsize  bitmap's new size
+     */
+    void Resize(int newsize);
+
+    /**
+     * Grow the bitmap to a new size 
+     *
+     * @param newsize  bitmap's new size
+     */
+    void Grow(int newsize);
+
+    /**
+     * Get an index that is not in use and mark it
+     *
+     * @return index obtained
+     */
+    int GetFreeIndex();
+
+    /**
+     * Unset the bit at a particualr index
+     *
+     * @param index  index of the bit to be unset
+     */
+    void FreeIndex(int index);
+
+    /**
+     * Unset all the bits at a particualr range
+     *
+     * @param start  start of the range
+     * @param len    length of the range
+     */
+    void FreeRange(int start, int len);
+
+    /**
+     * Set the bit at a particualr index
+     *
+     * @param index  index of the bit to be set
+     */
+    void SetIndex(int index);
+
+    /**
+     * Set all the bits at a particualr range
+     *
+     * @param start  start of the range
+     * @param len    length of the range
+     */
+    void SetRange(int start, int len);
+
+    /**
+     * Copy a range from one bitmap to another
+     *
+     * @param start  start of the range
+     * @param len    length of the range
+     * @param b      output bitmap
+     */
+    void CopyRange(int start, int len, bitmap& b);
+
+    /**
+     * Get the bit's value at a particular index
+     *
+     * @param index  index of the bit to be read
+     * @return bit's value
+     */
+    int Value(int index);
+
+    /**
+     * Count the number of 1's in the bitmap
+     *
+     * @return number of bits set to 1
+     */
+    int Count();
+
+    /**
+     * Obtain the size of the bitmap
+     *
+     * @return size of the bitmap
+     */
+    int Size();
+
+    /**
+     * Delete the map 
+     */
+    void purge();
+
+    /**
+     * Deep copy the entire bitmap
+     *
+     * @param b  input bitmap
+     */
+    void operator =(bitmap& b);
+
+    /**
+     * Test for inequality
+     *
+     * @param b  input bitmap
+     * @return 0 if both bitmaps are unequal and 1 otherwise
+     */
     int operator !=(bitmap& b); // test for inequality
+
+    /**
+     * Print the bitmap's content to the stderr
+     */
     void print();
-    void print(FILE *);
-    void print(int);
+
+    /**
+     * Print the bitmap's content to a file
+     *
+     * @param fp  pointer to the file struct of the file to be written to
+     */
+    void print(FILE *fp);
+
+    /**
+     * Print the bitmap's content to a file given a file descriptor
+     *
+     * @param fd  file descriptor of the file to be written to
+     */
+    void print(int fd);
 };
+
 #endif /* _BITMAP_H_ */
