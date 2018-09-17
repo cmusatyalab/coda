@@ -76,6 +76,18 @@ void *bitmap::operator new(size_t size, int recable)
     return(x);
 }
 
+void bitmap::operator delete(void *ptr)
+{
+    bitmap * x = (bitmap *) ptr;
+
+    if (x->malloced == BITMAP_VIANEW) {
+        if (x->recoverable)
+            rvmlib_rec_free(ptr);
+        else
+            free(ptr);
+    }
+}
+
 bitmap::bitmap(int inputmapsize, int recable)
 {
 
@@ -122,15 +134,7 @@ bitmap::~bitmap()
     map = NULL;
     mapsize = 0;
 
-    /* Finally, get rid of the object itself if it was allocated
-       via new.  This should really have been in delete(), but can't
-       test malloced there */
-    if (malloced == BITMAP_VIANEW) {
-        if (recoverable)
-            rvmlib_rec_free(this);
-        else
-            free(this);
-    }
+    
 }
 
 void bitmap::Resize(int newsize)

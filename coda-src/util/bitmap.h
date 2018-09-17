@@ -78,8 +78,17 @@ public:
      * @param size     memory size in bytes
      * @param recable  recoverable flag (RVM persistent)
      *
+     * @return pointer to the new allocated object
      */
     void *operator new (size_t size, int recable = 0);
+
+    /**
+     * Delete operator overloading
+     *
+     * @param ptr     Pointer of the object to be deleted
+     *
+     */
+    void operator delete(void *ptr);
 
     /**
      * Constuctor
