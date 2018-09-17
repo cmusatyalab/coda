@@ -50,7 +50,7 @@ extern "C" {
 class bitmap {
 //  friend ostream& operator<<(ostream& s, bitmap *b);  
     uint8_t recoverable;	/* is this bitmap recoverable */
-    uint8_t malloced = BITMAP_NOTVIANEW; /* was bitmap allocated via new? */
+    uint8_t malloced;           /* was bitmap allocated via new? */
     int mapsize;		/* 1/8 size of array of elements */
     char *map;			/* bitmap showing status of the elements */
 

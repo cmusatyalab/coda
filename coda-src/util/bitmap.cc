@@ -78,9 +78,10 @@ void *bitmap::operator new(size_t size, int recable)
 
 bitmap::bitmap(int inputmapsize, int recable)
 {
-    if (malloced != BITMAP_VIANEW) {
-        CODA_ASSERT(malloced == BITMAP_NOTVIANEW); /* infer I must be on the stack */
-    }
+
+    CODA_ASSERT(malloced != BITMAP_NOTVIANEW); /* ensure malloced is undefined if via stack! */
+    if (malloced != BITMAP_VIANEW) malloced = BITMAP_NOTVIANEW; /* infer I must be on the stack */
+    /* From this point on, malloced is definitely defined */
 
     recoverable = recable;
     if (recoverable)
