@@ -2318,7 +2318,7 @@ int fsobj::MakeShadow()
      * Create a shadow, using a name both distinctive and that will
      * be garbage collected at startup.
      */
-    if (!shadow) shadow = new CacheFile(-(ix+1));
+    if (!shadow) shadow = new CacheFile(-(ix+1), 0);
     else	 shadow->IncRef();
 
     if (!shadow) return -1;
