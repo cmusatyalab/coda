@@ -181,7 +181,8 @@ int fsobj::LookAside(void)
     return lka_successful;
 }
 
-int fsobj::FetchFileRPC(connent * con, ViceStatus * status, uint64_t offset,
+int fsobj::FetchFileRPC(connent * con, ViceStatus * status,
+                        unsigned long primaryHost, uint64_t offset,
                         int64_t len, RPC2_CountedBS * PiggyBS,
                         SE_Descriptor * sed)
 {
@@ -205,10 +206,11 @@ int fsobj::FetchFileRPC(connent * con, ViceStatus * status, uint64_t offset,
 
     if (fetchpartial_support) {
         code = ViceFetchPartial(con->connid, MakeViceFid(&fid), &stat.VV,
-                         inconok, status, 0, offset, len, PiggyBS, sed);
+                         inconok, status, primaryHost, offset, len, PiggyBS,
+                         sed);
     } else {
         code = ViceFetch(con->connid, MakeViceFid(&fid), &stat.VV,
-                         inconok, status, 0, offset, PiggyBS, sed);
+                         inconok, status, primaryHost, offset, PiggyBS, sed);
     }
 
     UNI_END_MESSAGE(viceop);
@@ -386,7 +388,7 @@ int fsobj::Fetch(uid_t uid, uint64_t pos, int64_t count)
             if (code != 0) goto RepExit;
 
         /* Fetch the file from the server */
-        code = FetchFileRPC(c, &status, offset, len, &PiggyBS, sed);
+        code = FetchFileRPC(c, &status, ph, offset, len, &PiggyBS, sed);
         if (code != 0) goto RepExit;
 
 	    {
@@ -452,7 +454,7 @@ RepExit:
 	if (code != 0) goto NonRepExit;
 
 	/* Make the RPC call. */
-    code = FetchFileRPC(c, &status, offset, len, &PiggyBS, sed);
+    code = FetchFileRPC(c, &status, 0, offset, len, &PiggyBS, sed);
     if (code != 0) goto NonRepExit;
 
 	{

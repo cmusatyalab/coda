@@ -616,8 +616,9 @@ class fsobj {
 			     char *, unsigned short, int, int prepend=0);
     int GetContainerFD(void);
     int LookAside(void);
-    int FetchFileRPC(connent * con, ViceStatus * status, uint64_t offset,
-                  int64_t len, RPC2_CountedBS * PiggyBS, SE_Descriptor * sed);
+    int FetchFileRPC(connent * con, ViceStatus * status,
+                     unsigned long primaryHost, uint64_t offset, int64_t len,
+                     RPC2_CountedBS * PiggyBS, SE_Descriptor * sed);
 
   public:
     /* The public CFS interface (Vice portion). */
