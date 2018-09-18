@@ -904,6 +904,7 @@ srvent::srvent(struct in_addr *Host, RealmId realm)
     bw = INIT_BW;
     lastobs.tv_sec = lastobs.tv_usec = 0;
     refcount = 1;
+    fetchpartial_support = 0;
 
 #ifdef	VENUSDEBUG
     allocs++;
@@ -1251,4 +1252,3 @@ int FailReconnect(int nservers, struct in_addr *hostids)
     Fail_SendPredicate = Fail_RecvPredicate = NULL;
     return 0;
 }
-

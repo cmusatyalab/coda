@@ -369,6 +369,87 @@ LOG(100, ("After HDB::ResetUser in userent::Reset\n"));
 LOG(100, ("L userent::Reset()\n"));
 }
 
+int userent::CheckFetchPartialSupport(RPC2_Handle *cid, srvent *sv, int * retry_cnt)
+{
+    int inconok = 0;
+    uint64_t offset = 0;
+    int64_t len = -1;
+    VenusFid fid = NullFid;
+    int code = 0;
+    
+    /* If it's known don't get it again */
+    if (sv->fetchpartial_support) {
+        return 0;
+    }
+
+    /* VersionVector */
+    ViceVersionVector vv;
+    memset((void *)&vv, 0, (int)sizeof(ViceVersionVector));
+
+    /* Status parameters. */
+    ViceStatus status;
+    memset((void *)&status, 0, (int)sizeof(ViceStatus));
+
+    /* COP2 Piggybacking. */
+    char PiggyData[COP2SIZE];
+    RPC2_CountedBS PiggyBS;
+    PiggyBS.SeqLen = 0;
+    PiggyBS.SeqBody = (RPC2_ByteSeq)PiggyData;
+
+    /* Set up the SE descriptor. */
+    SE_Descriptor dummysed;
+    memset(&dummysed, 0, sizeof(SE_Descriptor));
+    SE_Descriptor *sed = &dummysed;
+
+    /* SFTP setup */
+    sed->Tag = SMARTFTP;
+    sed->XferCB = NULL;
+    sed->userp = this;
+
+    struct SFTP_Descriptor *sei = &sed->Value.SmartFTPD;
+    sei->TransmissionDirection = SERVERTOCLIENT;
+    sei->hashmark = 0;
+    sei->SeekOffset = offset;
+    sei->ByteQuota = len;
+
+    sei->Tag = FILEBYFD;
+    sei->FileInfo.ByFD.fd = -1;
+
+    /* Perform the RPC */
+    UNI_START_MESSAGE(ViceFetchPartial_OP);
+    code = ViceFetchPartial(*cid, MakeViceFid(&fid), &vv,
+                     inconok, &status, 0, offset, len, &PiggyBS, sed);
+    UNI_END_MESSAGE(ViceFetchPartial_OP);
+    MarinerLog("userent::CheckFetchPartialSupport: ViceFetchPartial test returned %d\n", code);
+    UNI_RECORD_STATS(ViceFetchPartial_OP);
+
+    /* No doubt */
+    if (code == RPC2_INVALIDOPCODE) {
+        LOG(100, ("userent::CheckFetchPartialSupport: ViceFetchPartial Operation Not supported\n"));
+        sv->fetchpartial_support = 0;
+        return 0;
+    }
+
+    /* If it's not clear retry */
+    if (code < 0) {
+        LOG(100, ("userent::CheckFetchPartialSupport: ViceFetchPartial retrying\n"));
+        if (--*retry_cnt) return ERETRY;
+        return code;
+    }
+
+    /* Only EINVAL confirms presence of ViceFetchPartial().
+       Conservatively interpret all other server return codes as nonexistence */
+    if (code == EINVAL) {
+        LOG(100, ("userent::CheckFetchPartialSupport: ViceFetchPartial Supported\n"));
+        sv->fetchpartial_support = 1;
+    } else {
+        LOG(100, ("userent::CheckFetchPartialSupport: ViceFetchPartial Operation Not supported\n"));
+        sv->fetchpartial_support = 0;
+    }
+
+    return 0;
+}
+
 int userent::Connect(RPC2_Handle *cid, int *auth, struct in_addr *host)
 {
     LOG(100, ("userent::Connect: addr = %s, uid = %d, tokensvalid = %d\n",
@@ -376,6 +457,7 @@ int userent::Connect(RPC2_Handle *cid, int *auth, struct in_addr *host)
 
     *cid = 0;
     int code = 0;
+    int support_test_code = 0;
 
     /* This may be a request to connect either to a specific host, or to form an mgrp. */
     if (host->s_addr == INADDR_ANY)
@@ -454,6 +536,10 @@ int userent::Connect(RPC2_Handle *cid, int *auth, struct in_addr *host)
 	bparms.ClientIdent = &clientident;
 	bparms.SharedSecret = &clear.HandShakeKey;
 
+    int retry_cnt = 3;
+
+RetryConnect:
+
 	LOG(1, ("userent::Connect: RPC2_NewBinding(%s)\n", inet_ntoa(*host)));
 	code = (int) RPC2_NewBinding(&hid, &pid, &ssid, &bparms, cid);
 	LOG(1, ("userent::Connect: RPC2_NewBinding -> %s\n", RPC2_ErrorMsg(code)));
@@ -478,16 +564,30 @@ int userent::Connect(RPC2_Handle *cid, int *auth, struct in_addr *host)
 	 * It is only reset when RVM is reinitialized */
 	memcpy(vc.VenusUUID, &VenusGenID, sizeof(ViceUUID));
 
-        srvent *sv = FindServer(&hid.Value.InetAddress);
+    srvent *sv = FindServer(&hid.Value.InetAddress);
 	char *sname = sv->name;
-	LOG(1, ("userent::Connect: NewConnectFS(%s)\n", sname)); 
+	LOG(1, ("userent::Connect: NewConnectFS(%s)\n", sname));
 	MarinerLog("fetch::NewConnectFS %s\n", sname);
 	UNI_START_MESSAGE(ViceNewConnectFS_OP);
 	code = (int) ViceNewConnectFS(*cid, VICE_VERSION, &vc);
 	UNI_END_MESSAGE(ViceNewConnectFS_OP);
 	MarinerLog("fetch::newconnectfs done\n");
 	UNI_RECORD_STATS(ViceNewConnectFS_OP);
-	LOG(1, ("userent::Connect: NewConnectFS -> %d\n", code)); 
+	LOG(1, ("userent::Connect: NewConnectFS -> %d\n", code));
+
+    support_test_code = CheckFetchPartialSupport(cid, sv, &retry_cnt);
+
+    /* Check of retry */
+    if (support_test_code == ERETRY) {
+        /* some other RPC2 error code */
+        RPC2_Unbind(*cid);
+        goto RetryConnect;
+    }
+
+    /* Propagate the error */
+    if (support_test_code < 0) {
+        code = support_test_code;
+    }
 
 	if (code) {
 	    int unbind_code = (int) RPC2_Unbind(*cid);

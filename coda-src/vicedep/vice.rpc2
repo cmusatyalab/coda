@@ -439,3 +439,12 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 		       IN OUT RPC2_BoundedBS VFlagBS,
 		       IN RPC2_CountedBS PiggyCOP2);
 
+65: ViceFetchPartial (IN ViceFid Fid,
+		 IN ViceVersionVector VV,
+		 IN RPC2_Unsigned InconOK,
+		 OUT ViceStatus Status,
+		 IN RPC2_Unsigned PrimaryHost,
+		 IN RPC2_Unsigned Offset,
+     IN RPC2_Unsigned Count,
+		 IN RPC2_CountedBS PiggyCOP2,
+		 IN OUT SE_Descriptor BD);

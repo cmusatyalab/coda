@@ -28,6 +28,7 @@ listed in the file CREDITS.
 /* Forward declarations. */
 class userent;
 class user_iterator;
+class srvent;
 
 #ifdef __cplusplus
 extern "C" {
@@ -84,9 +85,10 @@ class userent {
     void CheckTokenExpiry();
     void Invalidate();
     void Reset();
+    int CheckFetchPartialSupport(RPC2_Handle *cid, srvent *sv, int * retry_cnt);
     int Connect(RPC2_Handle *, int *, struct in_addr *);
     int GetWaitForever();
-    void SetWaitForever(int);   
+    void SetWaitForever(int);
 
     uid_t GetUid() { return(uid); }
 

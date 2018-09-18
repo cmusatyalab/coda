@@ -176,13 +176,26 @@ extern void PollAndYield();
  ***************************************************
  */
 
+ /*
+   ViceFetch: Fetch a file or directory
+ */
+ long FS_ViceFetch(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
+ 		  RPC2_Unsigned InconOK, ViceStatus *Status,
+ 		  RPC2_Unsigned PrimaryHost, RPC2_Unsigned Offset,
+ 		  RPC2_CountedBS *PiggyBS, SE_Descriptor *BD)
+{
+	
+	return FS_ViceFetchPartial(RPCid, Fid, VV, InconOK, Status, PrimaryHost, 
+	                    Offset, -1, PiggyBS, BD);
+}
 
 /*
-  ViceFetch: Fetch a file or directory
+  ViceFetchPartial: Partially Fetch a file. Directories are fetched 
+                    as with ViceFetch.
 */
-long FS_ViceFetch(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
+long FS_ViceFetchPartial(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
 		  RPC2_Unsigned InconOK, ViceStatus *Status,
-		  RPC2_Unsigned PrimaryHost, RPC2_Unsigned Offset,
+		  RPC2_Unsigned PrimaryHost, RPC2_Unsigned Offset, RPC2_Unsigned Count,
 		  RPC2_CountedBS *PiggyBS, SE_Descriptor *BD)
 {
     int errorCode = 0;		/* return code to caller */
@@ -197,8 +210,13 @@ long FS_ViceFetch(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
     vle *av;
 
 START_TIMING(Fetch_Total);
-    SLog(1, "ViceFetch: Fid = %s, Repair = %d", FID_(Fid), InconOK);
 
+	if (Count < 0) {
+		SLog(1, "ViceFetch: Fid = %s, Repair = %d", FID_(Fid), InconOK);
+	} else {
+		SLog(1, "ViceFetch: Fid = %s, Repair = %d, Pos = %d, Count = %d", 
+		     FID_(Fid), InconOK, Offset, Count);
+	}
   
     /* Validate parameters. */
     {
@@ -224,7 +242,7 @@ START_TIMING(Fetch_Total);
     {
 	if (!ReplicatedOp || !PrimaryHost || PrimaryHost == ThisHostAddr)
 	    if ((errorCode = FetchBulkTransfer(RPCid, client, volptr, v->vptr,
-					      Offset, VV)))
+					      Offset, Count, VV)))
 		goto FreeLocks;
 	PerformFetch(client, volptr, v->vptr);
 
@@ -2120,7 +2138,8 @@ void PerformFetch(ClientEntry *client, Volume *volptr, Vnode *vptr) {
 
 
 int FetchBulkTransfer(RPC2_Handle RPCid, ClientEntry *client, 
-		      Volume *volptr, Vnode *vptr, RPC2_Unsigned Offset,
+		      Volume *volptr, Vnode *vptr, RPC2_Unsigned Offset, 
+			  RPC2_Integer Count,
 		      ViceVersionVector *VV)
 {
     int errorCode = 0;
@@ -2133,6 +2152,7 @@ int FetchBulkTransfer(RPC2_Handle RPCid, ClientEntry *client,
     PDirHeader buf = 0;
     int size = 0;
     int fd = -1;
+    int64_t bytes_to_transfer = 0;
 
     {
 	/* When we are continueing a trickle/interrupted fetch, the version
@@ -2168,7 +2188,7 @@ int FetchBulkTransfer(RPC2_Handle RPCid, ClientEntry *client,
 	sid.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
 	sid.Value.SmartFTPD.SeekOffset = Offset;
 	sid.Value.SmartFTPD.hashmark = (SrvDebugLevel > 2 ? '#' : '\0');
-	sid.Value.SmartFTPD.ByteQuota = -1;
+	sid.Value.SmartFTPD.ByteQuota = Count;
 	if (vptr->disk.type != vDirectory) {
 	    if (vptr->disk.node.inodeNumber) {
 		fd = iopen(V_device(volptr), vptr->disk.node.inodeNumber, O_RDONLY);
@@ -2227,14 +2247,23 @@ int FetchBulkTransfer(RPC2_Handle RPCid, ClientEntry *client,
 	    goto Exit;
 	}
 
-	/* compensate Length for the data we skipped because of the requested
-	 * Offset */
-	Length -= Offset;
+	    
+    if (Count < 0 || (Offset + Count) > Length) { /* Transfer till the EOF */
+        /* compensate Length for the data we skipped because of the requested
+    	 * Offset */
+        bytes_to_transfer = Length - Offset;
+    } else {
+        bytes_to_transfer = Count;
+    }
+    
+    if (bytes_to_transfer > Length) {
+        bytes_to_transfer = Length;
+    }
 
 	RPC2_Integer len = sid.Value.SmartFTPD.BytesTransferred;
-	if (len != Length) {
-	    SLog(0, "FetchBulkTransfer: length discrepancy (%d : %d), %s, %s %s.%d",
-		 Length, len, FID_(&Fid),
+	if (len != bytes_to_transfer) {
+	    SLog(0, "FetchBulkTransfer: length discrepancy (%d : %d, %d), %s, %s %s.%d",
+		 Length, len, bytes_to_transfer, FID_(&Fid),
 		 client->UserName, inet_ntoa(client->VenusId->host),
 		 ntohs(client->VenusId->port));
 	    errorCode = EINVAL;
@@ -2246,20 +2275,20 @@ int FetchBulkTransfer(RPC2_Handle RPCid, ClientEntry *client,
 	Counters[FETCHDATAOP]++;
 	Counters[FETCHTIME] += (int) (((StopTime.tv_sec - StartTime.tv_sec) * 1000) +
 	  ((StopTime.tv_usec - StartTime.tv_usec) / 1000));
-	Counters[FETCHDATA] += (int) Length;
-	if (Length < SIZE1)
+	Counters[FETCHDATA] += (int) bytes_to_transfer;
+	if (bytes_to_transfer < SIZE1)
 	    Counters[FETCHD1]++;
-	else if (Length < SIZE2)
+	else if (bytes_to_transfer < SIZE2)
 	    Counters[FETCHD2]++;
-	else if (Length < SIZE3)
+	else if (bytes_to_transfer < SIZE3)
 	    Counters[FETCHD3]++;
-	else if (Length < SIZE4)
+	else if (bytes_to_transfer < SIZE4)
 	    Counters[FETCHD4]++;
 	else
 	    Counters[FETCHD5]++;
 
 	SLog(2, "FetchBulkTransfer: transferred %d bytes %s",
-	     Length, FID_(&Fid));
+	     bytes_to_transfer, FID_(&Fid));
     }
 
 Exit:
@@ -3329,4 +3358,3 @@ END_NSC_TIMING(PutObjects_Inodes);
 
     SLog(10, "PutObjects: returning %s", ViceErrorMsg(0));
 }
-
