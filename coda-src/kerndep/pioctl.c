@@ -26,7 +26,9 @@ extern "C" {
 #include <sys/time.h>
 #include <sys/file.h>
 #include <sys/ioctl.h>
+#ifdef HAVE_SYS_RANDOM_H
 #include <sys/random.h>
+#endif
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -120,8 +122,11 @@ int pioctl(const char *path, unsigned long com,
     ssize_t n;
 
     uint32_t unique = getpid(); /* unique, but predictable */
+
+#ifdef HAVE_GETRANDOM
     /* try to read from /dev/urandom */
     getrandom(&unique, sizeof(uint32_t), 0);
+#endif
 
     pioctlfile = malloc(strlen(mtpt) + 1 + strlen(PIOCTL_PREFIX) + 8 + 1);
     sprintf(pioctlfile, "%s/" PIOCTL_PREFIX "%08x", mtpt, unique);

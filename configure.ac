@@ -89,7 +89,7 @@ AC_CHECK_HEADERS(sys/statvfs.h sys/statfs.h sys/param.h sys/vfs.h fts.h)
 AC_CHECK_HEADERS(sys/types.h sys/time.h sys/select.h sys/socket.h sys/ioccom.h)
 AC_CHECK_HEADERS(arpa/inet.h arpa/nameser.h netinet/in.h osreldate.h)
 AC_CHECK_HEADERS(ncurses/ncurses.h byteswap.h sys/bswap.h sys/endian.h)
-AC_CHECK_HEADERS(ucred.h execinfo.h)
+AC_CHECK_HEADERS(ucred.h execinfo.h sys/random.h)
 
 AC_CHECK_HEADERS(sys/un.h resolv.h, [], [],
 [#include <sys/types.h>
@@ -131,6 +131,7 @@ dnl Checks for library functions.
 AC_CHECK_FUNCS(inet_aton inet_ntoa res_search pread fseeko nmount)
 AC_CHECK_FUNCS(select setenv snprintf statfs strerror strtol)
 AC_CHECK_FUNCS(getpeereid getpeerucred backtrace __res_search)
+AC_CHECK_FUNCS(getrandom)
 
 dnl AC_FUNC_MMAP checks if mmap exists and works, but that fails
 dnl when we run configure on file systems that do not support mmap
