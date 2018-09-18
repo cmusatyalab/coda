@@ -670,7 +670,7 @@ static unsigned int CalculateCacheFiles(unsigned int CacheBlocks)
 static void DefaultCmdlineParms()
 {
     int DontUseRVM = 0;
-    const char *CacheSize;
+    const char *CacheSize = NULL;
 
     /* Load the "venus.conf" configuration file */
     codaconf_init("venus.conf");
