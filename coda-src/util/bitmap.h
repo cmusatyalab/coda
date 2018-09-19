@@ -91,7 +91,7 @@ public:
     void operator delete(void *ptr);
 
     /**
-     * Constuctor
+     * Constructor
      *
      * @param inputmapsize  size of the bitmap being created
      * @param recable       recoverable flag (RVM persistent)
@@ -125,14 +125,14 @@ public:
     int GetFreeIndex();
 
     /**
-     * Unset the bit at a particualr index
+     * Unset the bit at a particular index
      *
      * @param index  index of the bit to be unset
      */
     void FreeIndex(int index);
 
     /**
-     * Unset all the bits at a particualr range
+     * Unset all the bits at a particular range
      *
      * @param start  start of the range
      * @param len    length of the range
@@ -140,14 +140,14 @@ public:
     void FreeRange(int start, int len);
 
     /**
-     * Set the bit at a particualr index
+     * Set the bit at a particular index
      *
      * @param index  index of the bit to be set
      */
     void SetIndex(int index);
 
     /**
-     * Set all the bits at a particualr range
+     * Set all the bits at a particular range
      *
      * @param start  start of the range
      * @param len    length of the range
@@ -206,7 +206,7 @@ public:
     int operator !=(bitmap& b); // test for inequality
 
     /**
-     * Print the bitmap's content to the stderr
+     * Print the bitmap's content to stderr
      */
     void print();
 
