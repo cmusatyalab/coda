@@ -306,14 +306,17 @@ struct coda_statfs {
 #define VC_MAXMSGSIZE      sizeof(union inputArgs)+sizeof(union outputArgs) +\
                             VC_MAXDATASIZE
 
-#define CIOC_KERNEL_VERSION _IOWR('c', 10, int)
+#define CIOC_KERNEL_VERSION _IOWR('c', 10, size_t)
 
 #if 0
 #define CODA_KERNEL_VERSION 0 /* don't care about kernel version number */
 #define CODA_KERNEL_VERSION 1 /* The old venus 4.6 compatible interface */
 #define CODA_KERNEL_VERSION 2 /* venus_lookup gets an extra parameter */
-#endif
 #define CODA_KERNEL_VERSION 3 /* 128-bit file identifiers */
+#define CODA_KERNEL_VERSION 4 /* 64-bit time_t on a 32-bit system */
+#endif
+#define CODA_KERNEL_VERSION 5 /* access intent support */
+
 
 /*
  *        Venus <-> Coda  RPC arguments
