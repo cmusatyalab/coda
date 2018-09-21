@@ -236,6 +236,46 @@ class vproc : public olink {
     void symlink(struct venus_cnode *, char *, struct coda_vattr *, char *);
     void readlink(struct venus_cnode *, struct coda_string *);
     void fsync(struct venus_cnode *);
+    
+    /**
+     * Read file operation
+     *
+     * @param node     Venus cnode pointer holding file's metadata
+     * @param pos      Offset within the file
+     * @param count    Number of bytes to be read from the file
+     *
+     */
+    void read(struct venus_cnode * node, uint64_t pos, int64_t count);
+    
+    /**
+     * Write file operation
+     *
+     * @param node     Venus cnode pointer holding file's metadata
+     * @param pos      Offset within the file
+     * @param count    Number of bytes to be written to the file
+     *
+     */
+    void write(struct venus_cnode * node, uint64_t pos, int64_t count);
+    
+    /**
+     * Signal the of a synchronous read file operation 
+     *
+     * @param node     Venus cnode pointer holding file's metadata
+     * @param pos      Offset within the file
+     * @param count    Number of bytes read from the file
+     *
+     */
+    void read_finish(struct venus_cnode * node, uint64_t pos, int64_t count);
+    
+    /**
+     * Signal the of a synchronous write file operation 
+     *
+     * @param node     Venus cnode pointer holding file's metadata
+     * @param pos      Offset within the file
+     * @param count    Number of bytes written to the file
+     *
+     */
+    void write_finish(struct venus_cnode * node, uint64_t pos, int64_t count);
 
     /* Pathname translation. */
     int namev(char *, int, struct venus_cnode *);
@@ -341,4 +381,3 @@ struct venus_cnode {
 #define VA_IGNORE_FLAGS		((u_long)-1)
 
 #endif /* _VENUS_PROC_H_ */
-

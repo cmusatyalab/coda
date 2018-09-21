@@ -165,6 +165,8 @@ class worker : public vproc {
         int *msg_size);
     inline void op_coda_statfs(union inputArgs *in, union outputArgs *out,
         int *msg_size);
+    inline void op_coda_access_intent(union inputArgs *in,
+        union outputArgs *out, int *msg_size);
 
   public:
     worker();
