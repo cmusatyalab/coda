@@ -258,7 +258,7 @@ class vproc : public olink {
     void write(struct venus_cnode * node, uint64_t pos, int64_t count);
     
     /**
-     * Signal the of a synchronous read file operation 
+     * Signal the end of a synchronous read file operation 
      *
      * @param node     Venus cnode pointer holding file's metadata
      * @param pos      Offset within the file
@@ -268,7 +268,7 @@ class vproc : public olink {
     void read_finish(struct venus_cnode * node, uint64_t pos, int64_t count);
     
     /**
-     * Signal the of a synchronous write file operation 
+     * Signal the end of a synchronous write file operation 
      *
      * @param node     Venus cnode pointer holding file's metadata
      * @param pos      Offset within the file
