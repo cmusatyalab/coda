@@ -108,6 +108,7 @@ extern int venus_relay_addr;
 int worker::muxfd = -1;
 int worker::nworkers;
 int worker::nprefetchers;
+int worker::kernel_version = 0;
 time_t worker::lastresign;
 olist worker::FreeMsgs;
 olist worker::QueuedMsgs;
@@ -120,7 +121,6 @@ const int WorkerStackSize = 131072;
 
 int MaxWorkers = UNSET_MAXWORKERS;
 int MaxPrefetchers = UNSET_MAXWORKERS;
-int kernel_version = 0;
 static int Mounted = 0;
 
 /* Only for the crazy people among us.
@@ -789,15 +789,15 @@ void WorkerInit()
 #endif
 
 #if defined(__BSD44__) || defined(__linux__)
-    if (::ioctl(worker::muxfd, CIOC_KERNEL_VERSION, &kernel_version) >= 0 ) {
-        switch (kernel_version) {
+    if (::ioctl(worker::muxfd, CIOC_KERNEL_VERSION, &worker::kernel_version) >= 0 ) {
+        switch (worker::kernel_version) {
         case 3:
             break;
         case 2: /* 1 & 2 are upwards compatible, but 3 introduced the realms */
         case 1:
         default:
             eprint("WorkerInit: Version Skew with kernel! Get a newer kernel!");
-            eprint("WorkerInit: Kernel version is %d\n.", kernel_version);
+            eprint("WorkerInit: Kernel version is %d\n.", worker::kernel_version);
             exit(EXIT_FAILURE);
         }
     } else {
@@ -975,6 +975,11 @@ void PrintWorkers(int fd) {
     worker_iterator next;
     worker *w;
     while ((w = next())) w->print(fd);
+}
+
+
+int GetKernelModuleVersion() {
+    return worker::kernel_version;
 }
 
 

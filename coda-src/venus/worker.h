@@ -107,6 +107,7 @@ class worker : public vproc {
   friend void VFSMount();
   friend class vproc;
   friend class fsobj;
+  friend int GetKernelModuleVersion();
 
     static int muxfd;
     static int nworkers;
@@ -115,6 +116,7 @@ class worker : public vproc {
     static olist FreeMsgs;
     static olist QueuedMsgs;
     static olist ActiveMsgs;
+    static int kernel_version;
 
     unsigned returned : 1;
     msgent *msg;			/* For communication with the kernel */
@@ -212,5 +214,7 @@ extern time_t GetWorkerIdleTime(void);
 extern void PrintWorkers();
 extern void PrintWorkers(FILE *);
 extern void PrintWorkers(int);
+extern int GetKernelModuleVersion();
+
 
 #endif /* _VENUS_WORKER_H_ */
