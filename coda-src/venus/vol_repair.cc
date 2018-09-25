@@ -939,9 +939,9 @@ int repvol::LocalRepair(fsobj *f, ViceStatus *status, char *fname, VenusFid *pfi
 }
 
 /* Enable ASR invocation for this volume (as a volume service)  */
-void repvol::EnableASR(uid_t uid)
+void reintegrated_volume::EnableASR(uid_t uid)
 {
-    LOG(100, ("repvol::EnableASR: vol = %x, uid = %d\n", vid, uid));
+    LOG(100, ("reintegrated_volume::EnableASR: vol = %x, uid = %d\n", vid, uid));
 
     /* Place volume in "repair mode." */
     if (IsASREnabled())
@@ -950,9 +950,9 @@ void repvol::EnableASR(uid_t uid)
     flags.enable_asrinvocation = 1;
 }
 
-int repvol::DisableASR(uid_t uid)
+int reintegrated_volume::DisableASR(uid_t uid)
 {
-    LOG(100, ("repvol::DisableASR: vol = %x, uid = %d\n", vid, uid));
+    LOG(100, ("reintegrated_volume::DisableASR: vol = %x, uid = %d\n", vid, uid));
 
     if (asr_running())
 	return EBUSY;
@@ -966,9 +966,9 @@ int repvol::DisableASR(uid_t uid)
 }
 
 /* Allow ASR invocation for this volume (this is user's permission). */
-int repvol::AllowASR(uid_t uid)
+int reintegrated_volume::AllowASR(uid_t uid)
 {
-    LOG(100, ("repvol::AllowASR: vol = %x, uid = %d\n", vid, uid));
+    LOG(100, ("reintegrated_volume::AllowASR: vol = %x, uid = %d\n", vid, uid));
 
     /* Place volume in "repair mode." */
     if (IsASRAllowed())
@@ -979,9 +979,9 @@ int repvol::AllowASR(uid_t uid)
     return 0;
 }
 
-int repvol::DisallowASR(uid_t uid)
+int reintegrated_volume::DisallowASR(uid_t uid)
 {
-    LOG(100, ("repvol::DisallowASR: vol = %x, uid = %d\n", vid, uid));
+    LOG(100, ("reintegrated_volume::DisallowASR: vol = %x, uid = %d\n", vid, uid));
 
     if (asr_running())
 	return EBUSY;
@@ -994,18 +994,18 @@ int repvol::DisallowASR(uid_t uid)
     return 0;
 }
 
-void repvol::lock_asr()
+void reintegrated_volume::lock_asr()
 {
     CODA_ASSERT(flags.asr_running == 0);
     flags.asr_running = 1;
 }
 
-void repvol::unlock_asr() {
+void reintegrated_volume::unlock_asr() {
     CODA_ASSERT(flags.asr_running == 1);
     flags.asr_running = 0;
 }
 
-void repvol::asr_pgid(pid_t new_pgid) {
+void reintegrated_volume::asr_pgid(pid_t new_pgid) {
     CODA_ASSERT(flags.asr_running == 1);
     pgid = new_pgid;
 }

@@ -145,6 +145,7 @@ class ClientModifyLog {
   friend class cmlent;
   friend class cml_iterator;
   friend class repvol;
+  friend class reintegrated_volume;
   friend class volent; /* ::Enter(int, uid_t); */
                        /* ::Exit(int, uid_t) */
 
@@ -250,6 +251,7 @@ class cmlent {
   friend class cml_iterator;
   friend class volent;
   friend class repvol;
+  friend class reintegrated_volume;
   friend class fsobj;
   friend int PathAltered(VenusFid *, char *, ClientModifyLog *, cmlent *);
 
@@ -627,7 +629,7 @@ class volent {
     /*T*/short observer_count;
     /*T*/short resolver_count;
     /*T*/short shrd_count;		/* for volume pgid locking */
-    /*T*/int pgid;  /* pgid of ASRLauncher and children (0 if none) */
+    /*T*/int pgid;  /* pgid of ASRLauncher and children (0 if none) */    
 
     void operator delete(void *);
     volent(Realm *r, VolumeId vid, const char *name);
@@ -688,6 +690,71 @@ class volent {
     void print(int);
 
     void ListCache(FILE *, int long_format=1, unsigned int valid=3);
+    
+};
+
+class reintegrated_volume: public volent {
+    friend class ClientModifyLog;
+    friend class fsobj;
+    
+private:
+    
+protected:
+    /* Reintegration stuff. */
+    ClientModifyLog CML;
+    struct Lock CML_lock;               /* for synchronization */
+    int reint_id_gen;                   /* reintegration id generator */
+    /*T*/int cur_reint_tid;             /* tid of reintegration in progress */
+
+    unsigned int ReintLimit;		/* work limit, in MILLISECONDS */
+    unsigned int AgeLimit;		/* min age of log records in SECONDS */
+    
+    /*T*/int RecordsCancelled;
+    /*T*/int RecordsCommitted;
+    /*T*/int RecordsAborted;
+    /*T*/int FidsRealloced;
+    /*T*/long BytesBackFetched;
+    /*?*/cmlent * reintegrate_done;    /* WriteBack Caching */
+
+public:
+    reintegrated_volume(Realm *r, VolumeId volid, const char *volname);
+    
+    long LengthOfCML() { return(CML.entries); }
+    void ResetStats() { CML.ResetHighWater(); }
+    
+    /* local-repair */
+    void ClearRepairCML();                      /*U*/
+    ClientModifyLog *GetCML() { return &CML; }  /*N*/
+    int ContainUnrepairedCML();			/*N*/
+    int IsSync(void) { return (flags.sync_reintegrate || ReintLimit == 0); }
+    int WriteDisconnect(unsigned int age=V_UNSETAGE,
+			unsigned int time=V_UNSETREINTLIMIT);
+    
+    /* Reintegration routines. */
+    void Reintegrate();
+    int IncReintegrate(int);
+    int PartialReintegrate(int, unsigned long *reint_time);
+    int IsReintegrating() { return flags.reintegrating; }
+    int ReadyToReintegrate();
+    int GetReintId();                           /*U*/
+    void CheckTransition();                     /*N*/
+    void IncAbort(int);                         /*U*/
+    int SyncCache(VenusFid *fid = NULL);
+    
+    void ReportVolState(void);
+    
+    /* ASR routines */
+    int AllowASR(uid_t);
+    int DisallowASR(uid_t);
+    void EnableASR(uid_t);
+    int DisableASR(uid_t);
+    int IsASRAllowed() { return flags.allow_asrinvocation; }
+    int IsASREnabled() { return flags.enable_asrinvocation; }
+    void lock_asr();
+    void unlock_asr();
+    int asr_running() { return flags.asr_running; }
+    void asr_pgid(pid_t new_pgid);
+    pid_t asr_pgid() { return pgid; }
 };
 
 class srvent;
@@ -736,8 +803,7 @@ class volrep : public volent {
 };
 
 /* A replicated volume entry. */
-class repvol : public volent {
-    friend class ClientModifyLog;
+class repvol : public reintegrated_volume {
     friend class cmlent;
     friend class fsobj;
     friend class vdb;
@@ -755,21 +821,6 @@ class repvol : public volent {
     FidRange FileFids;
     FidRange DirFids;
     FidRange SymlinkFids;
-
-    /* Reintegration stuff. */
-    ClientModifyLog CML;
-    struct Lock CML_lock;               /* for synchronization */
-
-    unsigned int AgeLimit;		/* min age of log records in SECONDS */
-    unsigned int ReintLimit;		/* work limit, in MILLISECONDS */
-    int reint_id_gen;                   /* reintegration id generator */
-    /*T*/int cur_reint_tid;             /* tid of reintegration in progress */
-    /*T*/int RecordsCancelled;
-    /*T*/int RecordsCommitted;
-    /*T*/int RecordsAborted;
-    /*T*/int FidsRealloced;
-    /*T*/long BytesBackFetched;
-    /*?*/cmlent * reintegrate_done;    /* WriteBack Caching */
 
     /* Resolution stuff. */
     /*T*/olist *res_list;
@@ -814,30 +865,16 @@ class repvol : public volent {
     int IsHostedBy(const struct in_addr *addr); /* XXX not called? */
     void SetStagingServer(struct in_addr *srvr);
     void Reconfigure(void);
-    int IsSync(void) { return (flags.sync_reintegrate || ReintLimit == 0); }
-    long LengthOfCML() { return(CML.entries); }
-
+    
     /* Allocation routines. */
     VenusFid GenerateLocalFid(ViceDataType);
 
-    /* Reintegration routines. */
-    void Reintegrate();
-    int IncReintegrate(int);
-    int PartialReintegrate(int, unsigned long *reint_time);
-    int IsReintegrating() { return flags.reintegrating; }
-    int ReadyToReintegrate();
-    int GetReintId();                           /*U*/
-    void CheckTransition();                     /*N*/
-    void IncAbort(int);                         /*U*/
-    int SyncCache(VenusFid *fid = NULL);
+    
 
     void RestoreObj(VenusFid *);
     int	CheckPointMLEs(uid_t, char *);
     int LastMLETime(unsigned long *);
     int PurgeMLEs(uid_t);
-    void ResetStats() { CML.ResetHighWater(); }
-    int WriteDisconnect(unsigned int age=V_UNSETAGE,
-			unsigned int time=V_UNSETREINTLIMIT);
 
     /* local-repair modifications to the following methods */
     /* Modlog routines. */
@@ -867,11 +904,6 @@ class repvol : public volent {
     void PreserveLocalMutation(char *msg);
     void DiscardAllLocalMutation(char *msg);
     void DiscardLocalMutation(char *msg);
-
-    /* local-repair */
-    void ClearRepairCML();                      /*U*/
-    ClientModifyLog *GetCML() { return &CML; }  /*N*/
-    int ContainUnrepairedCML();			/*N*/
 
     /* Repair routines. */
     int Repair(VenusFid *, char *, uid_t, VolumeId *, int *);
@@ -909,21 +941,7 @@ class repvol : public volent {
     int WantCallBack();
     int ValidateFSOs();
 
-    /* ASR routines */
-    int AllowASR(uid_t);
-    int DisallowASR(uid_t);
-    void EnableASR(uid_t);
-    int DisableASR(uid_t);
-    int IsASRAllowed() { return flags.allow_asrinvocation; }
-    int IsASREnabled() { return flags.enable_asrinvocation; }
-    void lock_asr();
-    void unlock_asr();
-    int asr_running() { return flags.asr_running; }
-    void asr_pgid(pid_t new_pgid);
-    pid_t asr_pgid() { return pgid; }
-
     void print_repvol(int);
-    void ReportVolState(void);
 };
 
 class volent_iterator : public rec_ohashtab_iterator {

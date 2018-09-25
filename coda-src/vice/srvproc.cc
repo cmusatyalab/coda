@@ -1451,11 +1451,11 @@ int CheckSetAttrSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
 		    /* No further access checks. */
 		}
 
-		if (chownp && !IsOwner) {
-		    SLog(0, "CheckSetAttrSemantics: non-owner chown'ing %s",
-			 FID_(&Fid));
-		    return(EACCES);
-		}
+        if (chownp && !IsOwner) {
+            SLog(0, "CheckSetAttrSemantics: non-owner chown'ing %s",
+            FID_(&Fid));
+            return(EACCES);
+        }
 
 		if (truncp && CheckWriteMode(client, (*vptr)) != 0) {
 		    SLog(0, "CheckSetAttrSemantics: truncating %s", FID_(&Fid));
@@ -2388,13 +2388,13 @@ void PerformStore(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
     vptr->disk.author = client->Id;
     vptr->disk.dataVersion++;
     if (ReplicatedOp) {
-	NewCOP1Update(volptr, vptr, StoreId, vsptr);
+        NewCOP1Update(volptr, vptr, StoreId, vsptr);
 
-	/* Await COP2 message. */
-	ViceFid fids[MAXFIDS];
-	memset((void *)fids, 0, (int)(MAXFIDS * sizeof(ViceFid)));
-	fids[0] = Fid;
-	CopPendingMan->add(new cpent(StoreId, fids));
+        /* Await COP2 message. */
+        ViceFid fids[MAXFIDS];
+        memset((void *)fids, 0, (int)(MAXFIDS * sizeof(ViceFid)));
+        fids[0] = Fid;
+        CopPendingMan->add(new cpent(StoreId, fids));
     }
 }
 
