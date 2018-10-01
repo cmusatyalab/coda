@@ -317,11 +317,11 @@ void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage)
 		/"vicedir"/vol/skipsalvage file 
 		*/
 	    if (skipvolnums != NULL && 
-		InSkipVolumeList(header.parent, skipvolnums, nskipvols)){
+		InSkipVolumeList(header.parent, skipvolnums, nskipvols)) {
 		VLog(0, "Forcing Volume %x Offline", header.id);
 		VForceOffline(vp);
 	    } else {
-		if ((V_VolLog(vp) != NULL) && (V_type(vp) == readwriteVolume)) {
+		if (V_type(vp) == readwriteVolume && V_VolLog(vp)) {
 		    /* initialize the RVM log vm structures */
 		    V_VolLog(vp)->ResetTransients(V_id(vp));
 		    extern olist ResStatsList;
