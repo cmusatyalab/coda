@@ -131,7 +131,7 @@ static const char *VFSOpsNameTemplate[NVFSOPS] = {
     "Store",
     "Release",
     "No-Op",
-    "No-Op",
+    "AccessIntent",
     "No-Op"
 };
 

@@ -108,6 +108,7 @@ extern int venus_relay_addr;
 int worker::muxfd = -1;
 int worker::nworkers;
 int worker::nprefetchers;
+int worker::kernel_version = 0;
 time_t worker::lastresign;
 olist worker::FreeMsgs;
 olist worker::QueuedMsgs;
@@ -120,7 +121,6 @@ const int WorkerStackSize = 131072;
 
 int MaxWorkers = UNSET_MAXWORKERS;
 int MaxPrefetchers = UNSET_MAXWORKERS;
-int kernel_version = 0;
 static int Mounted = 0;
 
 /* Only for the crazy people among us.
@@ -789,15 +789,17 @@ void WorkerInit()
 #endif
 
 #if defined(__BSD44__) || defined(__linux__)
-    if (::ioctl(worker::muxfd, CIOC_KERNEL_VERSION, &kernel_version) >= 0 ) {
-        switch (kernel_version) {
+    if (::ioctl(worker::muxfd, CIOC_KERNEL_VERSION, &worker::kernel_version) >= 0 ) {
+        switch (worker::kernel_version) {
+        case 5:
+        case 4:
         case 3:
             break;
         case 2: /* 1 & 2 are upwards compatible, but 3 introduced the realms */
         case 1:
         default:
             eprint("WorkerInit: Version Skew with kernel! Get a newer kernel!");
-            eprint("WorkerInit: Kernel version is %d\n.", kernel_version);
+            eprint("WorkerInit: Kernel version is %d\n.", worker::kernel_version);
             exit(EXIT_FAILURE);
         }
     } else {
@@ -975,6 +977,11 @@ void PrintWorkers(int fd) {
     worker_iterator next;
     worker *w;
     while ((w = next())) w->print(fd);
+}
+
+
+int GetKernelModuleVersion() {
+    return worker::kernel_version;
 }
 
 
@@ -1529,6 +1536,46 @@ inline void worker::op_coda_statfs(union inputArgs *in, union outputArgs *out,
     }
 }
 
+inline void worker::op_coda_access_intent(union inputArgs *in, union outputArgs *out,
+  int *msg_size)
+{
+    struct venus_cnode vtarget;
+    struct coda_access_intent_in * coda_access_intent = &in->coda_access_intent;
+    
+    /* Sanity check */
+    CODA_ASSERT(worker::kernel_version >= 5);
+    
+    LOG(100, ("CODA_ACCESS_INTENT: u.u_pid = %d u.u_pgid = %d pos = %d count = %d, mode = %d \n",
+        u.u_pid,
+        u.u_pgid,
+        coda_access_intent->pos,
+        coda_access_intent->count,
+        coda_access_intent->mode));
+        
+    MAKE_CNODE(vtarget, coda_access_intent->Fid, 0);
+
+    switch (coda_access_intent->mode) {
+    case CODA_ACCESS_TYPE_READ:
+        read(&vtarget, coda_access_intent->pos, coda_access_intent->count);
+        break;
+    case CODA_ACCESS_TYPE_WRITE:
+        write(&vtarget, coda_access_intent->pos, coda_access_intent->count);
+        break;
+    case CODA_ACCESS_TYPE_MMAP:
+        // Unimplemented
+        break;
+    case CODA_ACCESS_TYPE_READ_FINISH:
+        read_finish(&vtarget, coda_access_intent->pos, coda_access_intent->count);
+        break;
+    case CODA_ACCESS_TYPE_WRITE_FINISH:
+        write_finish(&vtarget, coda_access_intent->pos, coda_access_intent->count);
+        break;
+    default:
+        // Do nothing
+        break;
+    }
+}
+
 void worker::main(void)
 {
     struct venus_cnode vtarget;
@@ -1633,6 +1680,9 @@ void worker::main(void)
             break;
         case CODA_STATFS:
             op_coda_statfs(in, out, &size);
+            break;
+        case CODA_ACCESS_INTENT:
+            op_coda_access_intent(in, out, &size);
             break;
         default:	 /* Toned this down a bit, used to be a choke -- DCS */
             /* But make sure someone sees it! */
