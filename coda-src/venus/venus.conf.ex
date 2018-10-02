@@ -306,3 +306,15 @@ mapprivate=1
 # Only use tcp tunnels for client-server communication (depends on codatunnel)
 #
 #onlytcp=0
+
+#
+# Enable or disable automatic mounting of the Coda File System on /coda
+# using the Coda specific kernel implementation
+#
+#codafs=1
+
+#
+# Expose the Coda File System through a Plan9 File System server over
+# the UNIX or TCP port that is configured as the mariner port.
+#
+#plan9server=0

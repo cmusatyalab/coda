@@ -124,6 +124,7 @@ int mariner_tcp_enable = 0;
 #else
 int mariner_tcp_enable = 1;
 #endif
+static int codafs_enabled;
 int plan9server_enabled;
 int nofork;
 
@@ -381,14 +382,19 @@ int main(int argc, char **argv)
     CallBackInit(); /* set up callback subsystem and create callback server threads */
 
     /* Get the Root Volume. */
-    eprint("Mounting root volume...");
-
-    VFSMount();
+    if (codafs_enabled) {
+        eprint("Mounting root volume...");
+        VFSMount();
+    }
 
     UnsetInitFile();
     eprint("Venus starting...");
 
     freopen("/dev/null", "w", stdout);
+
+    /* allow the daemonization to complete */
+    if (!codafs_enabled)
+        kill(getpid(), SIGUSR1);
 
     /* Act as message-multiplexor/daemon-dispatcher. */
     for (;;) {
@@ -491,6 +497,7 @@ static void Usage(char *argv0)
 " -codatunnel\t\t\tenable codatunneld helper\n"
 " -onlytcp\t\t\tonly use TCP tunnel connections to servers\n"
 " -9pfs\t\t\tenable embedded 9pfs server (experimental, INSECURE!)\n"
+" -no-codafs\t\t\tdo not automatically mount /coda\n"
 " -nofork\t\t\tdo not daemonize the process\n\n"
 "For more information see http://www.coda.cs.cmu.edu/\n"
 "Report bugs to <bugs@coda.cs.cmu.edu>.\n", argv0);
@@ -622,14 +629,28 @@ static void ParseCmdline(int argc, char **argv)
                 codatunnel_enabled = true;
                 eprint("codatunnel enabled");
 	    }
+	    else if (STREQ(argv[i], "-no-codatunnel")) {
+                codatunnel_enabled = -1;
+                eprint("codatunnel disabled");
+	    }
 	    else if (STREQ(argv[i], "-onlytcp")) {
                 codatunnel_onlytcp = true;
                 codatunnel_enabled = true;
                 eprint("codatunnel_onlytcp set");
             }
+	    else if (STREQ(argv[i], "-codafs")) {
+                codafs_enabled = true;
+	    }
+	    else if (STREQ(argv[i], "-no-codafs")) {
+                codafs_enabled = -1;
+	    }
 	    else if (STREQ(argv[i], "-9pfs")) {
                 plan9server_enabled = true;
                 eprint("9pfs enabled");
+	    }
+	    else if (STREQ(argv[i], "-no-9pfs")) {
+                plan9server_enabled = -1;
+                eprint("9pfs disabled");
 	    }
 	    else if (STREQ(argv[i], "-nofork")) {
                 nofork = true;
@@ -788,11 +809,21 @@ static void DefaultCmdlineParms()
      * - Disable reintegration replay detection. */
     CODACONF_INT(option_isr, "isr", 0);
 
+    /* Kernel filesystem support */
+    CODACONF_INT(codafs_enabled, "codafs", 1);
+    CODACONF_INT(plan9server_enabled, "9pfs", 0);
+
+    /* Allow overriding of the default setting from command line */
+    if (codafs_enabled == -1)       codafs_enabled = false;
+    if (plan9server_enabled == -1)  plan9server_enabled = false;
+
     /* Enable client-server communication helper process */
     CODACONF_INT(codatunnel_enabled, "codatunnel", 0);
     CODACONF_INT(codatunnel_onlytcp, "onlytcp", 0);
-    if (codatunnel_onlytcp)
-        codatunnel_enabled = 1;
+    if (codatunnel_enabled == -1) {
+        codatunnel_onlytcp = false;
+        codatunnel_enabled = false;
+    }
 
     CODACONF_INT(detect_reintegration_retry, "detect_reintegration_retry", 1);
     if (option_isr) {

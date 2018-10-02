@@ -1922,7 +1922,7 @@ int fsobj::Fakeify(uid_t uid)
             int fd = GetContainerFD();
             close(fd);
 
-            LOG(10, ("fsobj::Fakeify: created PIOCTL.%u for user %d\n",
+            LOG(10, ("fsobj::Fakeify: created PIOCTL.%x for user %d\n",
                      fid.Unique, uid));
 
 	} else {
