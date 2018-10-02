@@ -394,3 +394,22 @@ int CacheFile::FClose(FILE *f)
     numopens--;
     return rc;
 }
+
+uint64_t CacheFile::ConsecutiveValidData(void)
+{
+    /* Use the start of the first hole */
+    uint64_t start = 0;
+    uint64_t length_ccb = bytes_to_ccblocks_ceil(length);  // Ceil length in blocks
+
+    /* Find the first 0 in the bitmap */
+    for (start = 0; start < length_ccb; start++) {
+        if (!cached_chuncks->Value(start)) {
+            break;
+        }
+    }
+
+    if (start != 0)
+        start--;
+
+    return start;
+}
