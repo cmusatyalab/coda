@@ -89,55 +89,55 @@ extern int global_kernfd;
 #define LARGEST_SUPPORTED_FILE_SIZE (2^32)
 #define LARGEST_BITMAP_SIZE 131072 /* 2^32 / CBLOCK_SIZE */
 
-static inline uint64_t cblocks_to_bytes(uint64_t cblocks) {
-    return cblocks << CBLOCK_BITS_SIZE;
+static inline uint64_t ccblocks_to_bytes(uint64_t ccblocks) {
+    return ccblocks << CBLOCK_BITS_SIZE;
 }
 
-static inline uint64_t bytes_to_cblocks(uint64_t bytes) {
+static inline uint64_t bytes_to_ccblocks(uint64_t bytes) {
     return bytes >> CBLOCK_BITS_SIZE;
 }
 
-static inline uint64_t bytes_to_cblocks_floor(uint64_t bytes) {
-    return bytes_to_cblocks(bytes);
+static inline uint64_t bytes_to_ccblocks_floor(uint64_t bytes) {
+    return bytes_to_ccblocks(bytes);
 }
 
-static inline uint64_t bytes_to_cblocks_ceil(uint64_t bytes) {
-    return bytes_to_cblocks(bytes + CBLOCK_SIZE_MAX);
+static inline uint64_t bytes_to_ccblocks_ceil(uint64_t bytes) {
+    return bytes_to_ccblocks(bytes + CBLOCK_SIZE_MAX);
 }
 
-static inline uint64_t align_to_cblock_ceil(uint64_t bytes)
+static inline uint64_t align_to_ccblock_ceil(uint64_t bytes)
 {
     return (bytes + CBLOCK_SIZE_MAX) & ~CBLOCK_SIZE_MAX;
 }
 
-static inline uint64_t align_to_cblock_floor(uint64_t bytes)
+static inline uint64_t align_to_ccblock_floor(uint64_t bytes)
 {
     return (bytes & ~CBLOCK_SIZE_MAX);
 }
 
-static inline uint64_t cblock_start(uint64_t b_pos)
+static inline uint64_t ccblock_start(uint64_t b_pos)
 {
-    return bytes_to_cblocks_floor(b_pos);
+    return bytes_to_ccblocks_floor(b_pos);
 }
 
-static inline uint64_t cblock_end(uint64_t b_pos, int64_t b_count)
+static inline uint64_t ccblock_end(uint64_t b_pos, int64_t b_count)
 {
-    return bytes_to_cblocks_ceil(b_pos + b_count);
+    return bytes_to_ccblocks_ceil(b_pos + b_count);
 }
 
-static inline uint64_t cblock_length(uint64_t b_pos, int64_t b_count)
+static inline uint64_t ccblock_length(uint64_t b_pos, int64_t b_count)
 {
-    return cblock_end(b_pos, b_count) - cblock_start(b_pos);
+    return ccblock_end(b_pos, b_count) - ccblock_start(b_pos);
 }
 
-static inline uint64_t pos_align_to_cblock(uint64_t b_pos)
+static inline uint64_t pos_align_to_ccblock(uint64_t b_pos)
 {
     return (b_pos & ~CBLOCK_SIZE_MAX);
 }
 
-static inline uint64_t length_align_to_cblock(uint64_t b_pos, int64_t b_count)
+static inline uint64_t length_align_to_ccblock(uint64_t b_pos, int64_t b_count)
 {
-    return cblocks_to_bytes(cblock_length(b_pos, b_count));
+    return ccblocks_to_bytes(ccblock_length(b_pos, b_count));
 }
 
 #define FS_BLOCKS_SIZE_MAX    (4095)

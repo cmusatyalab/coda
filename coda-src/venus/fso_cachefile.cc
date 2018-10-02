@@ -295,8 +295,8 @@ void CacheFile::Truncate(long newlen)
         if (newlen < length) {
             ObtainWriteLock(&rw_lock);
             
-            cached_chuncks->FreeRange(bytes_to_cblocks_floor(newlen), 
-                bytes_to_cblocks_ceil(length - newlen));
+            cached_chuncks->FreeRange(bytes_to_ccblocks_floor(newlen), 
+                bytes_to_ccblocks_ceil(length - newlen));
                 
             ReleaseWriteLock(&rw_lock);
         } 
@@ -313,15 +313,15 @@ void CacheFile::Truncate(long newlen)
 
 /* Update the valid data*/
 int CacheFile::UpdateValidData() {
-    uint64_t length_cb = bytes_to_cblocks_ceil(length); /* Floor length in blocks */
+    uint64_t length_cb = bytes_to_ccblocks_ceil(length); /* Floor length in blocks */
     
     ObtainReadLock(&rw_lock);
 
-    validdata = cblocks_to_bytes(cached_chuncks->Count());
+    validdata = ccblocks_to_bytes(cached_chuncks->Count());
 
     /* In case the the last block is set */
     if (cached_chuncks->Value(length_cb - 1)) {
-        validdata -= cblocks_to_bytes(length_cb) - length;
+        validdata -= ccblocks_to_bytes(length_cb) - length;
     }
     
     ReleaseReadLock(&rw_lock);
@@ -336,8 +336,8 @@ void CacheFile::SetLength(uint64_t newlen)
         if (newlen < length) {
             ObtainWriteLock(&rw_lock);
             
-            cached_chuncks->FreeRange(bytes_to_cblocks_floor(newlen), 
-                bytes_to_cblocks_ceil(length - newlen));
+            cached_chuncks->FreeRange(bytes_to_ccblocks_floor(newlen), 
+                bytes_to_ccblocks_ceil(length - newlen));
                 
             ReleaseWriteLock(&rw_lock);
         }
@@ -359,10 +359,10 @@ void CacheFile::SetValidData(uint64_t len)
 /* MUST be called from within transaction! */
 void CacheFile::SetValidData(uint64_t start, int64_t len)
 {
-    uint64_t start_cb = cblock_start(start);
-    uint64_t end_cb = cblock_end(start, len);
+    uint64_t start_cb = ccblock_start(start);
+    uint64_t end_cb = ccblock_end(start, len);
     uint64_t newvaliddata = 0;
-    uint64_t length_cb = bytes_to_cblocks_ceil(length);
+    uint64_t length_cb = bytes_to_ccblocks_ceil(length);
 
     if (len < 0) {
         end_cb = length_cb;
@@ -388,7 +388,7 @@ void CacheFile::SetValidData(uint64_t start, int64_t len)
 
         /* The last block might not be full */
         if (i + 1 == length_cb) {
-            newvaliddata -= cblocks_to_bytes(length_cb) - length;
+            newvaliddata -= ccblocks_to_bytes(length_cb) - length;
             continue;
         }
     }
@@ -451,7 +451,7 @@ uint64_t CacheFile::ConsecutiveValidData(void)
 {
     /* Use the start of the first hole */
     uint64_t start = 0;
-    uint64_t length_ccb = bytes_to_cblocks_ceil(length);  // Ceil length in blocks
+    uint64_t length_ccb = bytes_to_ccblocks_ceil(length);  // Ceil length in blocks
 
     /* Find the first 0 in the bitmap */
     for (start = 0; start < length_ccb; start++) {
