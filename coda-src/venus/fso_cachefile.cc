@@ -108,7 +108,7 @@ CacheFile::~CacheFile()
 void CacheFile::Validate()
 {
     if (!ValidContainer())
-	Reset();
+	   Reset();
 }
 
 
@@ -269,7 +269,7 @@ void CacheFile::Utimes(const struct timeval times[2])
 
 
 /* MUST be called from within transaction! */
-void CacheFile::Truncate(long newlen)
+void CacheFile::Truncate(uint64_t newlen)
 {
     int fd;
 
@@ -317,7 +317,7 @@ void CacheFile::Truncate(long newlen)
 }
 
 /* Update the valid data*/
-int CacheFile::UpdateValidData() {
+void CacheFile::UpdateValidData() {
     uint64_t length_cb = bytes_to_ccblocks_ceil(length); /* Floor length in blocks */
     
     ObtainReadLock(&rw_lock);

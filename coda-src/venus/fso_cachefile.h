@@ -86,52 +86,134 @@ extern uint64_t CacheChunckBlockSizeBits;
 extern uint64_t CacheChunckBlockSizeMax;
 extern uint64_t CacheChunckBlockBitmapSize;
 
+/**
+ * Convert cache chunck block amount to bytes
+ *
+ * @param ccblocks cache chunck block amount
+ *
+ * @return bytes amount
+ */
 static inline uint64_t ccblocks_to_bytes(uint64_t ccblocks) {
     return ccblocks << CacheChunckBlockSizeBits;
 }
 
+/**
+ * Convert bytes amount to cache chunck block amount (rounded down)
+ *
+ * @param bytes bytes amount
+ *
+ * @return cache chunck block amount
+ */
 static inline uint64_t bytes_to_ccblocks(uint64_t bytes) {
     return bytes >> CacheChunckBlockSizeBits;
 }
 
+/**
+ * Convert bytes amount to cache chunck block amount (rounded down)
+ *
+ * @param bytes bytes amount
+ *
+ * @return cache chunck block amount
+ */
 static inline uint64_t bytes_to_ccblocks_floor(uint64_t bytes) {
     return bytes_to_ccblocks(bytes);
 }
 
+/**
+ * Convert bytes amount to cache chunck block amount (rounded up)
+ *
+ * @param bytes bytes amount
+ *
+ * @return cache chunck block amount
+ */
 static inline uint64_t bytes_to_ccblocks_ceil(uint64_t bytes) {
     return bytes_to_ccblocks(bytes + CacheChunckBlockSizeMax);
 }
 
+/**
+ * Align a bytes amount to the cache chunck block's upper-bound
+ *
+ * @param bytes bytes amount
+ *
+ * @return align amount in bytes
+ */
 static inline uint64_t align_to_ccblock_ceil(uint64_t bytes)
 {
     return (bytes + CacheChunckBlockSizeMax) & ~CacheChunckBlockSizeMax;
 }
 
+/**
+ * Align a bytes amount to the cache chunck block's lower-bound
+ *
+ * @param bytes bytes amount
+ *
+ * @return align amount in bytes
+ */
 static inline uint64_t align_to_ccblock_floor(uint64_t bytes)
 {
     return (bytes & ~CacheChunckBlockSizeMax);
 }
 
+/**
+ * Align a file position in bytes to the corresponding cache chunck block
+ *
+ * @param b_pos file position in bytes
+ *
+ * @return cache chunck block in which the file position is
+ */
 static inline uint64_t ccblock_start(uint64_t b_pos)
 {
     return bytes_to_ccblocks_floor(b_pos);
 }
 
+/**
+ * Align the end of range in bytes to the corresponding cache chunck block
+ *
+ * @param b_pos   start of the range in bytes
+ * @param b_count lenght of the range in bytes
+ *
+ * @return cache chunck block in which the range ends
+ */
 static inline uint64_t ccblock_end(uint64_t b_pos, int64_t b_count)
 {
     return bytes_to_ccblocks_ceil(b_pos + b_count);
 }
 
+/**
+ * Calculate the amount of cache chunck blocks of a range (aligned)
+ *
+ * @param b_pos   start of the range in bytes
+ * @param b_count lenght of the range in bytes
+ *
+ * @return amount of the cache chunck blocks
+ */
 static inline uint64_t ccblock_length(uint64_t b_pos, int64_t b_count)
 {
     return ccblock_end(b_pos, b_count) - ccblock_start(b_pos);
 }
 
+/**
+ * Align a file position in bytes to the start of the corresponding cache 
+ * chunck block
+ *
+ * @param b_pos file position in bytes
+ *
+ * @return start of the corresponding cache chunck block in bytes
+ */
 static inline uint64_t pos_align_to_ccblock(uint64_t b_pos)
 {
     return (b_pos & ~CacheChunckBlockSizeMax);
 }
 
+/**
+ * Align a the end of a range in bytes to the end of the corresponding cache 
+ * chunck block
+ *
+ * @param b_pos   start of the range in bytes
+ * @param b_count lenght of the range in bytes
+ *
+ * @return end of the corresponding cache chunck block in bytes
+ */
 static inline uint64_t length_align_to_ccblock(uint64_t b_pos, int64_t b_count)
 {
     return ccblocks_to_bytes(ccblock_length(b_pos, b_count));
@@ -143,55 +225,232 @@ static inline uint64_t length_align_to_ccblock(uint64_t b_pos, int64_t b_count)
                                FS_BLOCKS_SIZE_MASK)
 
 class CacheFile {
-    long length;
-    long validdata; /* amount of successfully fetched data */
-    int  refcnt;
-    char name[CACHEFILENAMELEN];		/* "xx/xx/xx/xx" */
-    int numopens;
-    bitmap *cached_chuncks;
-    int recoverable;
-    Lock rw_lock;
+    long length;  /**< Length of the container file */
+    long validdata; /**< Amount of actual and valid data in the container file */
+    int  refcnt; /**< Reference counter */
+    char name[CACHEFILENAMELEN]; /**< Container file path ("xx/xx/xx/xx") */
+    int numopens; /**< Number of openers */
+    bitmap *cached_chuncks; /**< Bitmap of actual cached data */
+    int recoverable;  /**< Recoverable flag (RVM) */
+    Lock rw_lock;  /**< Read/Write Lock */
 
+    /**
+     * Validate the container file
+     *
+     * @return zero if file is invalid and different than zero otherwise
+     */
     int ValidContainer();
-    int UpdateValidData();
+    
+    /**
+     * Calculate the actual valid data based on the caching bitmap
+     */
+    void UpdateValidData();
 
- public:
+public:
+
+    /**
+     * Constructor
+     *
+     * @param i            CacheFile index
+     * @param recoverable  set cachefile to be recoverable from RVM
+     */
     CacheFile(int i, int recoverable = 1);
+
+    /**
+     * Constructor
+     */
     CacheFile();
+    
+    /**
+     * Destructor
+     */
     ~CacheFile();
 
-    /* for safely obtaining access to container files, USE THESE!!! */
+    
+    /**
+     * Create and initialize a new cachefile (container file will be also 
+     * created)
+     *
+     * @param newlength length of the container file in bytes
+     */
     void Create(int newlength = 0);
+
+    /**
+     * Open the container file (with open sys call)
+     *
+     * @param flags open flags
+     *
+     * @return file descriptor of the file if opened successfully (Venus fails
+     *         if container file couldn't be opened)
+     */
     int Open(int flags);
+
+    /**
+     * Close the container file
+     *
+     * @param fd file descriptor of the opened file
+     *
+     * @return zero on success or -1 on error
+     */
     int Close(int fd);
 
+    /**
+     * Open the container file (with fopen sys call)
+     *
+     * @param mode opening mode (only "r" and "w" supported)
+     *
+     * @return FILE structure of successfully opened file or NULL otherwise
+     */
     FILE *FOpen(const char *mode);
+
+    /**
+     * Close the container file
+     *
+     * @param f FILE structure fo the opened file
+     *
+     * @return zero on success or errno otherwise
+     */
     int FClose(FILE *f);
 
+    /**
+     * Validate the container file (Resets the container file if invalid)
+     */
     void Validate();
+    
+    /**
+     * Reset the container file to zero length and no data
+     */
     void Reset();
-    int  Copy(CacheFile *destination);
+    
+    /**
+     * Copy the container file and metadata to another object
+     *
+     * @param destination destination cache file object
+     *
+     * @return zero on success or -1 on error
+     */
+    int Copy(CacheFile *destination);
+    
+    /**
+     * Copy the container file (only) to a specified location
+     *
+     * @param destname   destination cache file location
+     * @param recovering flag if the cache file is being recovered
+     *
+     * @return zero on success or -1 on error
+     */
     int  Copy(char *destname, int recovering = 0);
 
-    void IncRef() { refcnt++; } /* creation already does an implicit incref */
-    int  DecRef();             /* returns refcnt, unlinks if refcnt becomes 0 */
+    /**
+     * Increment reference counter. Creation already does an implicit IncRef() 
+     */
+    void IncRef() { refcnt++; }
+    
+    /**
+     * Decrements reference counter
+     *
+     * @return reference counter value (unlinks if it becomes 0)
+     */
+    int DecRef();
 
-    void Stat(struct stat *);
+    /**
+     * Get container file's stat
+     *
+     * @param stat output stat structure
+     */
+    void Stat(struct stat *tstat);
+    
+    /**
+     * Change container file's last access and modification times
+     *
+     * @param times time array of last access time and modification time, 
+     *        respectively.
+     */
     void Utimes(const struct timeval times[2]);
-    void Truncate(long);
-    void SetLength(uint64_t len);
+    
+    /**
+     * Truncate file to a new size
+     *
+     * @param newlen size to which the file will be truncated to
+     */
+    void Truncate(uint64_t newlen);
+    
+    /**
+     * Set the cache file length without truncating the container file
+     *
+     * @param newlen new cache file metadata size
+     */
+    void SetLength(uint64_t newlen);
+    
+    /**
+     * Set cache file's valid data (consecutive from beginning of the file)
+     *
+     * @param len amount of valid data
+     */
     void SetValidData(uint64_t len);
+    
+    /**
+     * Set cache file's valid data (within a range)
+     *
+     * @param start start of the valid data's range
+     * @param len   length of the valid data's range
+     */
     void SetValidData(uint64_t start, int64_t len);
 
+    /**
+     * Get the name of the container file
+     *
+     * @return name of the container file
+     */
     char *Name()         { return(name); }
-    long Length()        { return(length); }
-    uint64_t ValidData(void) { return(validdata); }
-    uint64_t ConsecutiveValidData(void);
-    int  IsPartial(void) { return(length != validdata); }
+    
+    /**
+     * Get the length of the cache file
+     *
+     * @return length of the cache file in bytes
+     */
+    uint64_t Length()        { return(length); }
+    
+    /**
+     * Get the amount of valid data of the cache file
+     *
+     * @return amount of valid data of the cache file in bytes
+     */
+    uint64_t ValidData() { return(validdata); }
+    
+    /**
+     * Get the amount of consecutive valid data starting from beginning of the 
+     * file
+     *
+     * @return amount of valid data of the cache file in bytes
+     */
+    uint64_t ConsecutiveValidData();
+    
+    /**
+     * Check if file is partially cached
+     *
+     * @return zero if file is fully cached or 1 otherwise
+     */
+    int IsPartial() { return(length != validdata); }
 
+    /**
+     * Print the metadata to the standard output
+     */
     void print() { print (stdout); }
+    
+    /**
+     * Print the metadata to the specified file
+     *
+     * @param fp FILE structure of the output file
+     */
     void print(FILE *fp) { fflush(fp); print(fileno(fp)); }
-    void print(int);
+    
+    /**
+     * Print the metadata to the specified file
+     *
+     * @param fdes file descriptor of the output file
+     */
+    void print(int fdes);
 };
 
 #endif	/* _VENUS_FSO_CACHEFILE_H_ */
