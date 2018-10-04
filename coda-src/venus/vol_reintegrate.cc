@@ -355,7 +355,12 @@ int reintegrated_volume::IncReintegrate(int tid)
 	    START_TIMING();
 
 	    outoforder = CML.OutOfOrder(tid);
-	    code = CML.COP1(buf, bufsize, &UpdateSet, outoforder);
+        if (IsReplicated())
+	       code = CML.COP1(buf, bufsize, &UpdateSet, outoforder);
+        else if (IsNonReplicated())
+           code = CML.COP1_NR(buf, bufsize, &UpdateSet, outoforder);
+        else 
+            CODA_ASSERT(0);
 
 	    END_TIMING();
 	    inter_elapsed = elapsed;

@@ -2261,7 +2261,129 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet,
 
 Exit:
     if (m) m->Put();
+ExitNonRep:
     LOG(0, ("ClientModifyLog::COP1: (%s), %d bytes, returns %d, index = %d\n",
+	     vol->name, bufsize, code, Index));
+    return(code);
+}
+
+int ClientModifyLog::COP1_NR(char *buf, int bufsize, ViceVersionVector *UpdateSet,
+			  int outoforder)
+{
+    reintegrated_volume *vol = strbase(reintegrated_volume, this, CML);
+    int code = 0;
+    unsigned int i = 0;
+    mgrpent *m = 0;
+    
+    /* Set up the SE descriptor. */
+    SE_Descriptor sed;
+    memset(&sed, 0, sizeof(SE_Descriptor));
+    sed.Tag = SMARTFTP;
+    struct SFTP_Descriptor *sei = &sed.Value.SmartFTPD;
+    sei->TransmissionDirection = CLIENTTOSERVER;
+    sei->hashmark = 0;
+    sei->SeekOffset = 0;
+    sei->ByteQuota = -1;
+    sei->Tag = FILEINVM;
+    sei->FileInfo.ByAddr.vmfile.SeqLen = bufsize;
+    sei->FileInfo.ByAddr.vmfile.SeqBody = (RPC2_ByteSeq)buf;
+
+    /* COP2 Piggybacking. */
+    long cbtemp; cbtemp = cbbreaks;
+    char PiggyData[COP2SIZE];
+    RPC2_CountedBS PiggyBS;
+    PiggyBS.SeqLen = 0;
+    PiggyBS.SeqBody = (RPC2_ByteSeq)PiggyData;
+
+    /* VCB maintenance */
+    RPC2_Integer VS = 0;
+    CallBackStatus VCBStatus = NoCallBack;
+
+    RPC2_Integer Index = UNSET_INDEX;
+    ViceFid StaleDirs[MAXSTALEDIRS];
+    RPC2_Unsigned MaxStaleDirs = MAXSTALEDIRS;
+    RPC2_Unsigned NumStaleDirs = 0;
+    
+    connent *c = NULL;
+    code = vol->GetConn(&c, owner, NULL);
+
+    // /* abort reintegration if the user is not authenticated */
+    // if (!m->IsAuthenticated()) {
+    //     code = ETIMEDOUT; /* treat this as an `spurious disconnection' */
+    //     goto ExitNonRep;
+    // }
+    
+    if (code != 0) goto ExitNonRep;
+
+    /* don't bother with VCBs, will lose them on resolve anyway */
+    RPC2_CountedBS OldVS; 
+    OldVS.SeqLen = 0;
+    // vol->ClearCallBack();
+
+    /* Make the RPC call. */
+    MarinerLog("store::Reintegrate %s, (%d, %d)\n", 
+               vol->name, count(), bufsize);
+
+    UNI_START_MESSAGE(ViceReintegrate_OP);
+    code = (int) ViceReintegrate(c->connid, vol->vid, bufsize, &Index,
+    			     outoforder, MaxStaleDirs, &NumStaleDirs,
+    			     StaleDirs, &OldVS, &VS,
+    			     &VCBStatus, &PiggyBS, &sed);
+    UNI_END_MESSAGE(ViceReintegrate_OP);
+    MarinerLog("store::reintegrate done\n");
+
+    code = vol->Collate(c, code, 0);
+    UNI_RECORD_STATS(ViceReintegrate_OP);
+
+    /* 
+     * if the return code is EALREADY, the log records up to and
+     * including the one with the storeid that matches the 
+     * uniquifier in Index have been committed at the server.  
+     * Mark the last of those records.
+     */
+    if (code == EALREADY)
+        MarkCommittedMLE((RPC2_Unsigned) Index);
+
+    /* if there is a semantic failure, mark the offending record */
+    if (code != 0 && code != EALREADY &&
+        code != ERETRY && code != EWOULDBLOCK && code != ETIMEDOUT) 
+        MarkFailedMLE((int) Index);
+
+    if (code != 0) {
+        PutConn(&c);
+        goto ExitNonRep;
+    }
+
+    bufsize += sed.Value.SmartFTPD.BytesTransferred;
+    LOG(10, ("ViceReintegrate: transferred %d bytes\n",
+    	 sed.Value.SmartFTPD.BytesTransferred));
+
+    /* Purge off stale directory fids, if any. fsobj::Kill is idempotent. */
+    LOG(0, ("ClientModifyLog::COP1_NR: %d stale dirs\n", NumStaleDirs));
+
+    for (unsigned int d = 0; d < NumStaleDirs; d++) {
+        VenusFid StaleDir;
+        MakeVenusFid(&StaleDir, vol->GetRealmId(), &StaleDirs[d]);
+        LOG(0, ("ClientModifyLog::COP1_NR: stale dir %s\n",
+    	    FID_(&StaleDir)));
+        fsobj *f = FSDB->Find(&StaleDir);
+        if (!f) continue;
+
+        Recov_BeginTrans();
+        f->Kill();
+        Recov_EndTrans(DMFP);
+    }
+
+    /* Fashion the update set. */
+	InitVV(UpdateSet);
+	(&(UpdateSet->Versions.Site0))[0] = 1;
+
+    /* Indicate that objects should be resolved on commit. */
+    vol->flags.resolve_me = 1;
+    PutConn(&c);
+        
+ExitNonRep:
+    LOG(0, ("ClientModifyLog::COP1_NR: (%s), %d bytes, returns %d, index = %d\n",
 	     vol->name, bufsize, code, Index));
     return(code);
 }

@@ -178,6 +178,8 @@ class ClientModifyLog {
     /* Reintegration routines. */
     void TranslateFid(VenusFid *, VenusFid *);
     int COP1(char *, int, ViceVersionVector *, int outoforder);
+    int COP1_NR(char *buf, int bufsize, ViceVersionVector *,
+    			  int outoforder);
     void UnLockObjs(int);
     void MarkFailedMLE(int);
     void HandleFailedMLE(void);
