@@ -21,6 +21,10 @@ Coda are listed in the file CREDITS.
 extern "C" {
 #endif
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/time.h>
@@ -30,6 +34,7 @@ extern "C" {
 #include <sys/random.h>
 #endif
 #include <unistd.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -103,6 +108,33 @@ static const char *strip_prefix(const char *path)
         free(cwd);
         return prefix;
     }
+#else
+    if (path[0] != '/') {
+        static char buf[PATH_MAX];
+        char *cwd = getcwd(buf, sizeof(buf));
+
+        if (cwd == NULL)
+            return NULL;
+
+        /* strip "." and "./" */
+        if (path[0] == '.') {
+            if (path[1] == '\0')
+                path += 1;
+            else if (path[1] == '/')
+                path += 2;
+        }
+
+        if ((strlen(cwd) + 1 + strlen(path) + 1) >= PATH_MAX) {
+            errno = ENAMETOOLONG;
+            return NULL;
+        }
+
+        /* concatenate current directory and path */
+        strcat(cwd, "/");
+        strcat(cwd, path);
+
+        path = buf;
+    }
 #endif
     if (strncmp(mountPoint, path, mPlen) == 0) {
         return path+mPlen;
@@ -143,6 +175,9 @@ int pioctl(const char *path, unsigned long com,
         path = strip_prefix(path);
     } else
 	path = "/";
+
+    if (!path)
+        return -1;
 
     uint8_t cmd = (uint8_t)_IOC_NR(com);
     uint16_t plen = (uint16_t)strlen(path);
