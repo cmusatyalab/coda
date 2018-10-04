@@ -398,7 +398,6 @@ static int GetVolReps(RealmId realm, VolumeInfo *volinfo, volrep *volreps[VSG_ME
     int i = 0;
     int err = 0;
     Volid volid;
-    volrep * vp = 0;
 
     volid.Realm = realm;
 
@@ -1872,6 +1871,8 @@ Exit:
        
        return(code);
    }
+   
+   return EINVAL;
 }
 
 #if 0
@@ -2022,9 +2023,7 @@ int reintegrated_volume::AllocFid(ViceDataType Type, VenusFid *target_fid, uid_t
     /* Get connection */
     code = ((volrep *)this)->GetConn(&c, ANYUSER_UID);
     if (code != 0) goto AllocFidError;
-    
-    RPC2_CountedBS PiggyBS;
-    PiggyBS.SeqLen = 0;    
+
     ViceFidRange NewFids;
     NewFids.Vnode = 0;
     NewFids.Unique = 0;
