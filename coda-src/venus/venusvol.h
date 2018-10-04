@@ -703,6 +703,11 @@ class reintegrated_volume: public volent {
 private:
     
 protected:
+    /* Preallocated Fids. */
+    FidRange FileFids;
+    FidRange DirFids;
+    FidRange SymlinkFids;
+    
     /* Reintegration stuff. */
     ClientModifyLog CML;
     struct Lock CML_lock;               /* for synchronization */
@@ -758,6 +763,10 @@ public:
     int asr_running() { return flags.asr_running; }
     void asr_pgid(pid_t new_pgid);
     pid_t asr_pgid() { return pgid; }
+    
+    int AllocFid(ViceDataType, VenusFid *, uid_t, int = 0);
+    
+    VenusFid GenerateLocalFid(ViceDataType);
     
     int GetConn(connent **c, uid_t uid, mgrpent **m, int *ph_ix = NULL, struct in_addr *phost = NULL);
     
@@ -823,10 +832,7 @@ class repvol : public reintegrated_volume {
     volrep *ro_replica;		   /* R/O staging replica for this volume */
     vsgent *vsg;
 
-    /* Preallocated Fids. */
-    FidRange FileFids;
-    FidRange DirFids;
-    FidRange SymlinkFids;
+    
 
     /* Resolution stuff. */
     /*T*/olist *res_list;
@@ -873,8 +879,6 @@ class repvol : public reintegrated_volume {
     void Reconfigure(void);
     
     /* Allocation routines. */
-    VenusFid GenerateLocalFid(ViceDataType);
-
     
 
     void RestoreObj(VenusFid *);

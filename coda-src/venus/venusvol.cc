@@ -1959,48 +1959,144 @@ void repvol::GetBandwidth(unsigned long *bw)
     if (*bw == 0) *bw = INIT_BW;
 }
 
+int reintegrated_volume::AllocFid(ViceDataType Type, VenusFid *target_fid, uid_t uid, int force)
+{
+    LOG(10, ("reintegrated_volume::AllocFid: (%x, %d), uid = %d\n", vid, Type, uid));
+    int code = 0;
+    FidRange *Fids = 0;
+    
+    /* Use a preallocated Fid if possible. */
+    {
+        Fids = 0;
+        switch(Type) {
+        case File:
+            Fids = &FileFids;
+            break;
+
+        case Directory:
+            Fids = &DirFids;
+            break;
+
+        case SymbolicLink:
+            Fids = &SymlinkFids;
+            break;
+
+        case Invalid:
+        default:
+            print(logFile);
+            CHOKE("reintegrated_volume::AllocFid: bogus Type (%d)", Type);
+        }
+
+        if (Fids->Count > 0) {
+            target_fid->Realm = realm->Id();
+            target_fid->Volume = vid;
+            target_fid->Vnode = Fids->Vnode;
+            target_fid->Unique = Fids->Unique;
+
+            Recov_BeginTrans();
+               RVMLIB_REC_OBJECT(*Fids);
+               Fids->Vnode += Fids->Stride;
+               Fids->Unique++;
+               Fids->Count--;
+            Recov_EndTrans(MAXFP);
+
+            LOG(100, ("reintegrated_volume::AllocFid: target_fid = %s\n", FID_(target_fid)));
+            return(0);
+        }
+    }
+    
+    if (IsReplicated()) {
+        return ((repvol *)this)->AllocFid(Type, target_fid, uid, force);
+    }
+    
+    if (IsUnreachable() || (IsReachable() && !force)) {
+        *target_fid = GenerateLocalFid(Type);
+        LOG(10, ("reintegrated_volume::AllocFid: target_fid = %s\n", FID_(target_fid)));
+        return(code);
+    }
+    
+    VOL_ASSERT(this, (IsReachable() && force));
+    
+    connent *c = 0;
+    
+    /* Get connection */
+    code = ((volrep *)this)->GetConn(&c, ANYUSER_UID);
+    if (code != 0) goto AllocFidError;
+    
+    RPC2_CountedBS PiggyBS;
+    PiggyBS.SeqLen = 0;    
+    ViceFidRange NewFids;
+    NewFids.Vnode = 0;
+    NewFids.Unique = 0;
+    NewFids.Stride = 0;
+    NewFids.Count = 32;
+
+    /* Make the RPC call. */
+    MarinerLog("store::AllocFids %s\n", name);
+    UNI_START_MESSAGE(ViceAllocFids_OP);
+    code = ViceAllocFids(c->connid, vid, Type, &NewFids);
+    UNI_END_MESSAGE(ViceAllocFids_OP);
+    MarinerLog("store::allocfids done\n");
+
+    /* Examine the returncode to decide what to do next. */
+    code = Collate(c, code);
+    UNI_RECORD_STATS(ViceAllocFids_OP);
+
+    if (code != 0) goto AllocFidError;
+    
+    if (NewFids.Count <= 0) { 
+        code = EINVAL; 
+        goto AllocFidError; 
+    }
+    
+    Recov_BeginTrans();
+    
+    Fids = 0;
+    
+    switch(Type) {
+    case File:
+        Fids = &FileFids;
+        break;
+
+    case Directory:
+        Fids = &DirFids;
+        break;
+
+    case SymbolicLink:
+        Fids = &SymlinkFids;
+        break;
+
+    case Invalid:
+    default:
+        print(logFile);
+        CHOKE("reintegrated_volume::AllocFid: bogus Type (%d)", Type);
+    }
+
+    RVMLIB_REC_OBJECT(*Fids);
+    Fids->Vnode = NewFids.Vnode;
+    Fids->Unique = NewFids.Unique;
+    Fids->Stride = NewFids.Stride;
+    Fids->Count = NewFids.Count;
+
+    target_fid->Realm = realm->Id();
+    target_fid->Volume = vid;
+    target_fid->Vnode = Fids->Vnode;
+    target_fid->Unique = Fids->Unique;
+
+    Fids->Vnode += Fids->Stride;
+    Fids->Unique++;
+    Fids->Count--;
+    Recov_EndTrans(MAXFP);
+    
+AllocFidError:
+    PutConn(&c);
+    return(code);
+    
+}
+
 int repvol::AllocFid(ViceDataType Type, VenusFid *target_fid, uid_t uid, int force)
 {
     LOG(10, ("repvol::AllocFid: (%x, %d), uid = %d\n", vid, Type, uid));
-
-    /* Use a preallocated Fid if possible. */
-    {
-	FidRange *Fids = 0;
-	switch(Type) {
-	    case File:
-		Fids = &FileFids;
-		break;
-
-	    case Directory:
-		Fids = &DirFids;
-		break;
-
-	    case SymbolicLink:
-		Fids = &SymlinkFids;
-		break;
-
-	    case Invalid:
-	    default:
-		print(logFile);
-		CHOKE("repvol::AllocFid: bogus Type (%d)", Type);
-	}
-	if (Fids->Count > 0) {
-	    target_fid->Realm = realm->Id();
-	    target_fid->Volume = vid;
-	    target_fid->Vnode = Fids->Vnode;
-	    target_fid->Unique = Fids->Unique;
-
-	    Recov_BeginTrans();
-		   RVMLIB_REC_OBJECT(*Fids);
-		   Fids->Vnode += Fids->Stride;
-		   Fids->Unique++;
-		   Fids->Count--;
-	    Recov_EndTrans(MAXFP);
-
-	    LOG(100, ("repvol::AllocFid: target_fid = %s\n", FID_(target_fid)));
-	    return(0);
-	}
-    }
 
     int code = 0;
 
@@ -2285,7 +2381,7 @@ int repvol::Collate_COP2(mgrpent *m, int code)
 }
 
 
-VenusFid repvol::GenerateLocalFid(ViceDataType fidtype)
+VenusFid reintegrated_volume::GenerateLocalFid(ViceDataType fidtype)
 {
     VenusFid fid;
 

@@ -2340,7 +2340,7 @@ int cmlent::realloc()
 	    goto Exit;
     }
 
-    code = ((repvol *)vol)->AllocFid(type, &NewFid, uid, 1);
+    code = vol->AllocFid(type, &NewFid, uid, 1);
     if (code == 0) {
 	    Recov_BeginTrans();
 	    vol->FidsRealloced++;
