@@ -2833,6 +2833,7 @@ static const char *xlate_vvtype(ViceVolumeType vvt)
     case ReadWrite:	return("ReadWrite");
     case Backup:	return("Backup");
     case Replicated:	return("Replicated");
+    case NonReplicated:	return("NonReplicated");
     default:		return("????");
     }
 }
