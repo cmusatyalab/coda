@@ -975,10 +975,10 @@ void cmlent::print(int afd) {
  * called from within transaction! */
 
 /* local-repair modification */
-int repvol::LogStore(time_t Mtime, uid_t uid, VenusFid *Fid, RPC2_Unsigned
+int reintegrated_volume::LogStore(time_t Mtime, uid_t uid, VenusFid *Fid, RPC2_Unsigned
                      NewLength, int prepend)
 {
-    LOG(1, ("repvol::LogStore: %d, %d, (%s), %d %d\n",
+    LOG(1, ("reintegrated_volume::LogStore: %d, %d, (%s), %d %d\n",
 	     Mtime, uid, FID_(Fid), NewLength, prepend));
 
     if (LogOpts && !prepend) {
@@ -1017,7 +1017,7 @@ int repvol::LogStore(time_t Mtime, uid_t uid, VenusFid *Fid, RPC2_Unsigned
 
 
 /* local-repair modification */
-int repvol::LogSetAttr(time_t Mtime, uid_t uid, VenusFid *Fid, RPC2_Unsigned
+int reintegrated_volume::LogSetAttr(time_t Mtime, uid_t uid, VenusFid *Fid, RPC2_Unsigned
                        NewLength, Date_t NewDate, UserId NewOwner,
                        RPC2_Unsigned NewMode, int prepend)
 {
@@ -1044,10 +1044,10 @@ int repvol::LogSetAttr(time_t Mtime, uid_t uid, VenusFid *Fid, RPC2_Unsigned
 
 
 /* local-repair modification */
-int repvol::LogTruncate(time_t Mtime, uid_t uid, VenusFid *Fid, RPC2_Unsigned
+int reintegrated_volume::LogTruncate(time_t Mtime, uid_t uid, VenusFid *Fid, RPC2_Unsigned
                         NewLength, int prepend)
 {
-    LOG(1, ("repvol::LogTruncate: %d, %d, (%s), %d %d\n",
+    LOG(1, ("reintegrated_volume::LogTruncate: %d, %d, (%s), %d %d\n",
 	     Mtime, uid, FID_(Fid), NewLength, prepend));
 
     /* Treat truncates as stores for now. -JJK */
@@ -1056,10 +1056,10 @@ int repvol::LogTruncate(time_t Mtime, uid_t uid, VenusFid *Fid, RPC2_Unsigned
 
 
 /* local-repair modification */
-int repvol::LogUtimes(time_t Mtime, uid_t uid, VenusFid *Fid, Date_t NewDate,
+int reintegrated_volume::LogUtimes(time_t Mtime, uid_t uid, VenusFid *Fid, Date_t NewDate,
                       int prepend)
 {
-    LOG(1, ("repvol::LogUtimes: %d, %d, (%s), %d %d\n",
+    LOG(1, ("reintegrated_volume::LogUtimes: %d, %d, (%s), %d %d\n",
 	     Mtime, uid, FID_(Fid), NewDate, prepend));
 
     if (LogOpts && !prepend) {
@@ -1084,10 +1084,10 @@ int repvol::LogUtimes(time_t Mtime, uid_t uid, VenusFid *Fid, Date_t NewDate,
 
 
 /* local-repair modification */
-int repvol::LogChown(time_t Mtime, uid_t uid, VenusFid *Fid, UserId NewOwner,
+int reintegrated_volume::LogChown(time_t Mtime, uid_t uid, VenusFid *Fid, UserId NewOwner,
                      int prepend)
 {
-    LOG(1, ("repvol::LogChown: %d, %d, (%s), %d %d\n",
+    LOG(1, ("reintegrated_volume::LogChown: %d, %d, (%s), %d %d\n",
 	     Mtime, uid, FID_(Fid), NewOwner, prepend));
 
     if (LogOpts && !prepend) {
@@ -1112,10 +1112,10 @@ int repvol::LogChown(time_t Mtime, uid_t uid, VenusFid *Fid, UserId NewOwner,
 
 
 /* local-repair modification */
-int repvol::LogChmod(time_t Mtime, uid_t uid, VenusFid *Fid,
+int reintegrated_volume::LogChmod(time_t Mtime, uid_t uid, VenusFid *Fid,
                      RPC2_Unsigned NewMode, int prepend)
 {
-    LOG(1, ("repvol::LogChmod: %d, %d, (%s), %o %d\n",
+    LOG(1, ("reintegrated_volume::LogChmod: %d, %d, (%s), %o %d\n",
 	     Mtime, uid, FID_(Fid), NewMode, prepend));
 
     if (LogOpts && !prepend) {
@@ -1148,10 +1148,10 @@ int repvol::LogChmod(time_t Mtime, uid_t uid, VenusFid *Fid,
 
 
 /* local-repair modification */
-int repvol::LogCreate(time_t Mtime, uid_t uid, VenusFid *PFid, char *Name,
+int reintegrated_volume::LogCreate(time_t Mtime, uid_t uid, VenusFid *PFid, char *Name,
                       VenusFid *CFid, RPC2_Unsigned Mode, int prepend)
 {
-    LOG(1, ("repvol::LogCreate: %d, %d, (%s), %s, (%s), %o %d\n",
+    LOG(1, ("reintegrated_volume::LogCreate: %d, %d, (%s), %s, (%s), %o %d\n",
 	     Mtime, uid, FID_(PFid), Name, FID_(CFid), Mode, prepend));
 
     cmlent *create_mle = new cmlent(&CML, Mtime, uid, CML_Create_OP, prepend,
@@ -1161,10 +1161,10 @@ int repvol::LogCreate(time_t Mtime, uid_t uid, VenusFid *PFid, char *Name,
 
 
 /* local-repair modification */
-int repvol::LogRemove(time_t Mtime, uid_t uid, VenusFid *PFid, char *Name,
+int reintegrated_volume::LogRemove(time_t Mtime, uid_t uid, VenusFid *PFid, char *Name,
                       const VenusFid *CFid, int LinkCount, int prepend)
 {
-    LOG(1, ("repvol::LogRemove: %d, %d, (%s), %s, (%s), %d %d\n",
+    LOG(1, ("reintegrated_volume::LogRemove: %d, %d, (%s), %s, (%s), %d %d\n",
 	     Mtime, uid, FID_(PFid), Name, FID_(CFid), LinkCount, prepend));
 
     int ObjectCreated = 0;
@@ -1239,7 +1239,7 @@ int repvol::LogRemove(time_t Mtime, uid_t uid, VenusFid *PFid, char *Name,
 	    if (ObjectCreated && !CreateReintegrating) {
 		int size = (int) (sizeof(cmlent) + strlen(Name));    
 
-		LOG(0/*10*/, ("repvol::LogRemove: record cancelled, %s, size = %d\n", 
+		LOG(0/*10*/, ("reintegrated_volume::LogRemove: record cancelled, %s, size = %d\n", 
 				Name, size));
 		CML.cancellations.other_count++;
 		CML.cancellations.other_size += size;
@@ -1260,9 +1260,9 @@ int repvol::LogRemove(time_t Mtime, uid_t uid, VenusFid *PFid, char *Name,
 
 
 /* local-repair modification */
-int repvol::LogLink(time_t Mtime, uid_t uid, VenusFid *PFid, char *Name,
+int reintegrated_volume::LogLink(time_t Mtime, uid_t uid, VenusFid *PFid, char *Name,
                     VenusFid *CFid, int prepend) {
-    LOG(1, ("repvol::LogLink: %d, %d, (%s), %s, (%s) %d\n",
+    LOG(1, ("reintegrated_volume::LogLink: %d, %d, (%s), %s, (%s) %d\n",
 	     Mtime, uid, FID_(PFid), Name, FID_(CFid), prepend));
 
     cmlent *link_mle = new cmlent(&CML, Mtime, uid, CML_Link_OP, prepend,
@@ -1272,7 +1272,7 @@ int repvol::LogLink(time_t Mtime, uid_t uid, VenusFid *PFid, char *Name,
 
 
 /* local-repair modification */
-int repvol::LogRename(time_t Mtime, uid_t uid, VenusFid *SPFid,
+int reintegrated_volume::LogRename(time_t Mtime, uid_t uid, VenusFid *SPFid,
                       char *OldName, VenusFid *TPFid, char *NewName,
                       VenusFid *SFid, const VenusFid *TFid, int LinkCount,
 		      int prepend)
@@ -1288,7 +1288,7 @@ int repvol::LogRename(time_t Mtime, uid_t uid, VenusFid *SPFid,
 
     }
 
-    LOG(1, ("repvol::LogRename: %d, %d, (%s), %s, (%s), %s, (%s) %d\n",
+    LOG(1, ("reintegrated_volume::LogRename: %d, %d, (%s), %s, (%s), %s, (%s) %d\n",
 	     Mtime, uid, FID_(SPFid), OldName, FID_(TPFid), NewName,
 	     FID_(SFid), prepend));
 
@@ -1299,10 +1299,10 @@ int repvol::LogRename(time_t Mtime, uid_t uid, VenusFid *SPFid,
 
 
 /* local-repair modification */
-int repvol::LogMkdir(time_t Mtime, uid_t uid, VenusFid *PFid, char *Name,
+int reintegrated_volume::LogMkdir(time_t Mtime, uid_t uid, VenusFid *PFid, char *Name,
                      VenusFid *CFid, RPC2_Unsigned Mode, int prepend)
 {
-    LOG(1, ("repvol::LogMkdir: %d, %d, (%s), %s, (%s), %o %d\n",
+    LOG(1, ("reintegrated_volume::LogMkdir: %d, %d, (%s), %s, (%s), %o %d\n",
 	     Mtime, uid, FID_(PFid), Name, FID_(CFid), Mode, prepend));
 
     cmlent *mkdir_mle = new cmlent(&CML, Mtime, uid, CML_MakeDir_OP, prepend,
@@ -1312,9 +1312,9 @@ int repvol::LogMkdir(time_t Mtime, uid_t uid, VenusFid *PFid, char *Name,
 
 
 /* local-repair modification */
-int repvol::LogRmdir(time_t Mtime, uid_t uid, VenusFid *PFid, char *Name,
+int reintegrated_volume::LogRmdir(time_t Mtime, uid_t uid, VenusFid *PFid, char *Name,
                      const VenusFid *CFid, int prepend) {
-    LOG(0, ("repvol::LogRmdir: %d, %d, (%s), %s, (%s) %d\n",
+    LOG(0, ("reintegrated_volume::LogRmdir: %d, %d, (%s), %s, (%s) %d\n",
 	     Mtime, uid, FID_(PFid), Name, FID_(CFid), prepend));
 
     int ObjectCreated = 0;
@@ -1407,7 +1407,7 @@ int repvol::LogRmdir(time_t Mtime, uid_t uid, VenusFid *PFid, char *Name,
 	if (ObjectCreated && !DependentChildren && !CreateReintegrating) {
 	    int size = (int) (sizeof(cmlent) + strlen(Name));    
 
-	    LOG(0/*10*/, ("repvol::LogRmdir: record cancelled, %s, size = %d\n", 
+	    LOG(0/*10*/, ("reintegrated_volume::LogRmdir: record cancelled, %s, size = %d\n", 
 				Name, size));
 
 	    CML.cancellations.other_count++;
@@ -1428,11 +1428,11 @@ int repvol::LogRmdir(time_t Mtime, uid_t uid, VenusFid *PFid, char *Name,
 
 
 /* local-repair modification */
-int repvol::LogSymlink(time_t Mtime, uid_t uid, VenusFid *PFid,
+int reintegrated_volume::LogSymlink(time_t Mtime, uid_t uid, VenusFid *PFid,
                        char *Name, char *Contents, VenusFid *CFid,
                        RPC2_Unsigned Mode, int prepend)
 {
-    LOG(1, ("repvol::LogSymlink: %d, %d, (%s), %s, %s, (%s), %o %d\n",
+    LOG(1, ("reintegrated_volume::LogSymlink: %d, %d, (%s), %s, %s, (%s), %o %d\n",
 	    Mtime, uid, FID_(PFid), Name, Contents, FID_(CFid), Mode, prepend));
 
     cmlent *symlink_mle = new cmlent(&CML, Mtime, uid, CML_SymLink_OP, prepend,
@@ -1441,11 +1441,11 @@ int repvol::LogSymlink(time_t Mtime, uid_t uid, VenusFid *PFid,
 }
 
 /* local-repair modification */
-int repvol::LogRepair(time_t Mtime, uid_t uid, VenusFid *Fid,
+int reintegrated_volume::LogRepair(time_t Mtime, uid_t uid, VenusFid *Fid,
                       RPC2_Unsigned Length, Date_t Date, UserId Owner,
                       RPC2_Unsigned Mode, int prepend)
 {
-    LOG(1, ("repvol::LogRepair: %d %d (%s) attrs [%u %d %u %o] %d\n",
+    LOG(1, ("reintegrated_volume::LogRepair: %d %d (%s) attrs [%u %d %u %o] %d\n",
 	    Mtime, uid, FID_(Fid), Length, Date, Owner, Mode, prepend));
 
     cmlent *repair_mle = new cmlent(&CML, Mtime, uid, CML_Repair_OP, prepend,
