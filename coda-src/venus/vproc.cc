@@ -602,9 +602,9 @@ wait_for_reintegration:
 #endif
 
     /* Kick out non-ASR processes if an ASR is running */
-    if (u.u_vol->IsReplicated() && (vfsop != CODA_RESOLVE) && 
-		(((repvol *)u.u_vol)->asr_running() && 
-		 (u.u_pgid != ((repvol *)u.u_vol)->asr_pgid())))
+    if ((u.u_vol->IsReplicated() || u.u_vol->IsNonReplicated()) && (vfsop != CODA_RESOLVE) && 
+		(((reintegrated_volume *)u.u_vol)->asr_running() && 
+		 (u.u_pgid != ((reintegrated_volume *)u.u_vol)->asr_pgid())))
       u.u_error = EAGAIN;
     else /* Attempt to enter the volume. */
       u.u_error = u.u_vol->Enter(u.u_volmode, u.u_uid);

@@ -288,7 +288,7 @@ void cmlent::Thaw()
 int ClientModifyLog::GetReintegrateable(int tid, unsigned long *reint_time,
 					int *nrecs)
 {
-    repvol *vol = strbase(repvol, this, CML);
+    reintegrated_volume *vol = strbase(reintegrated_volume, this, CML);
     cmlent *m;
     cml_iterator next(*this, CommitOrder);
     unsigned long this_time;
@@ -299,7 +299,10 @@ int ClientModifyLog::GetReintegrateable(int tid, unsigned long *reint_time,
     *nrecs = 0;
 
     /* get the current bandwidth estimate */
-    vol->GetBandwidth(&bw);
+    if (vol->IsReplicated())
+        ((repvol *)vol)->GetBandwidth(&bw);
+    else 
+        vol->GetBandwidth(&bw);
 
     while ((m = next())) {
 	/* do not pack stores if we want to avoid backfetches */
@@ -1860,7 +1863,7 @@ int cmlent::cancelstore()
 /* Add timing and statistics gathering! */
 int ClientModifyLog::IncReallocFids(int tid)
 {
-    repvol *vol = strbase(repvol, this, CML);
+    reintegrated_volume *vol = strbase(reintegrated_volume, this, CML);
     LOG(1, ("ClientModifyLog::IncReallocFids: (%s) and tid = %d\n", 
 	    vol->name, tid));
 
@@ -1883,14 +1886,14 @@ void ClientModifyLog::TranslateFid(VenusFid *OldFid, VenusFid *NewFid)
     cml_iterator next(*this, CommitOrder, OldFid);
     cmlent *m;
     while ((m = next()))
-	m->translatefid(OldFid, NewFid);
+	   m->translatefid(OldFid, NewFid);
 }
 
 
 /* need not be called from within a transaction */
 void ClientModifyLog::IncThread(int tid)
 {
-    repvol *vol = strbase(repvol, this, CML);
+    reintegrated_volume *vol = strbase(reintegrated_volume, this, CML);
     LOG(1, ("ClientModifyLog::IncThread: (%s) tid = %d\n", 
 	    vol->name, tid));
 
@@ -1956,7 +1959,7 @@ int ClientModifyLog::OutOfOrder(int tid)
 /* Caller is responsible for deallocating buffer! */
 void ClientModifyLog::IncPack(char **bufp, int *bufsizep, int tid)
 {
-    repvol *vol = strbase(repvol, this, CML);
+    reintegrated_volume *vol = strbase(reintegrated_volume, this, CML);
     LOG(1, ("ClientModifyLog::IncPack: (%s) and tid = %d\n", vol->name, tid));
 
     BUFFER buffer = {};
@@ -2268,7 +2271,8 @@ Exit:
 /* MUST NOT be called from within transaction! */
 void ClientModifyLog::IncCommit(ViceVersionVector *UpdateSet, int Tid)
 {
-    repvol *vol = strbase(repvol, this, CML);
+    reintegrated_volume *vol = strbase(reintegrated_volume, this, CML);
+
     LOG(1, ("ClientModifyLog::IncCommit: (%s) tid = %d\n", 
 	    vol->name, Tid));
 
@@ -2292,7 +2296,7 @@ void ClientModifyLog::IncCommit(ViceVersionVector *UpdateSet, int Tid)
     Recov_EndTrans(DMFP);
 
     /* flush COP2 for this volume */
-    vol->FlushCOP2();
+    ((repvol *)vol)->FlushCOP2();
     vol->flags.resolve_me = 0;
     LOG(0, ("ClientModifyLog::IncCommit: (%s)\n", vol->name));
 }
@@ -2303,7 +2307,7 @@ void ClientModifyLog::IncCommit(ViceVersionVector *UpdateSet, int Tid)
 /* Must NOT be called from within transaction! */
 int cmlent::realloc() 
 {
-    repvol *vol = strbase(repvol, log, CML);
+    reintegrated_volume *vol = strbase(reintegrated_volume, log, CML);
     int code = 0;
 
     VenusFid OldFid;
@@ -2336,7 +2340,7 @@ int cmlent::realloc()
 	    goto Exit;
     }
 
-    code = vol->AllocFid(type, &NewFid, uid, 1);
+    code = ((repvol *)vol)->AllocFid(type, &NewFid, uid, 1);
     if (code == 0) {
 	    Recov_BeginTrans();
 	    vol->FidsRealloced++;
@@ -2570,7 +2574,8 @@ void cmlent::commit(ViceVersionVector *UpdateSet)
 {
     LOG(1, ("cmlent::commit: (%d)\n", tid));
 
-    repvol *vol = strbase(repvol, log, CML);
+    reintegrated_volume *vol = strbase(reintegrated_volume, log, CML);
+    repvol *rv = (repvol *) vol;
     vol->RecordsCommitted++;
 
     /* 
@@ -2599,8 +2604,10 @@ void cmlent::commit(ViceVersionVector *UpdateSet)
 	CODA_ASSERT(f && (f->MagicNumber == FSO_MagicNumber));
 
 
-	if (vol->flags.resolve_me && vol->AVSGsize() > 1)
-	    vol->ResSubmit(NULL, &f->fid);
+        if (vol->IsReplicated()) {
+            if (rv->flags.resolve_me && rv->AVSGsize() > 1)
+                rv->ResSubmit(NULL, &f->fid);
+        }
 
 	cmlent *FinalCmlent = f->FinalCmlent(tid);
 	if (FinalCmlent == this) {
@@ -2618,10 +2625,10 @@ void cmlent::commit(ViceVersionVector *UpdateSet)
 	    AddVVs(&f->stat.VV, UpdateSet);
 	}
     }
-    if (1 /* FinalMutationForAnyObject */) {
 	LOG(10, ("cmlent::commit: Add COP2 with sid = 0x%x.%x\n",
 		 sid.HostId, sid.Uniquifier));
-	vol->AddCOP2(&sid, UpdateSet);
+	((repvol *)vol)->AddCOP2(&sid, UpdateSet);
+    if (vol->IsReplicated() /* FinalMutationForAnyObject */) {
     }
 
     delete this;
@@ -2663,13 +2670,12 @@ int cmlent::DoneSending()
 
 int cmlent::GetReintegrationHandle()
 {
-    repvol *vol = strbase(repvol, log, CML);
+    reintegrated_volume *vol = strbase(reintegrated_volume, log, CML);
     int code = 0;
     mgrpent *m = 0;
     int ph_ix;
     struct in_addr phost;
-    connent *c = 0;
-    srvent *s = 0;
+    connent *c = NULL;
 
     /* Eventhough it might seem like a good idea, we should NOT! clear the
      * reintegration handle here. There are 2 failure cases, one is that one
@@ -2683,20 +2689,12 @@ int cmlent::GetReintegrationHandle()
      * unreachable and we still have a usable handle to reconnect to the
      * original server when the network comes back.
      */
-
-    /* Acquire an Mgroup. */
-    code = vol->GetMgrp(&m, log->owner);
+     
+    code = vol->GetConn(&c, log->owner, &m, &ph_ix, &phost);
     if (code != 0) goto Exit;
-
-    /* Pick a server and get a connection to it. */
-    phost = *m->GetPrimaryHost(&ph_ix);
-    CODA_ASSERT(phost.s_addr != 0);
-
-    s = GetServer(&phost, vol->GetRealmId());
-    code = s->GetConn(&c, log->owner);
-    PutServer(&s);
-    if (code != 0) goto Exit;
-
+    
+    CODA_ASSERT(vol->IsReplicated() || vol->IsNonReplicated());
+    
     {
 	ViceReintHandle VR;
 
@@ -2734,7 +2732,7 @@ Exit:
 
 int cmlent::ValidateReintegrationHandle()
 {
-    repvol *vol = strbase(repvol, log, CML);
+    reintegrated_volume *vol = strbase(reintegrated_volume, log, CML);
     int code = 0;
     connent *c = 0;
     RPC2_Unsigned Offset = 0;
@@ -2875,9 +2873,11 @@ int cmlent::WriteReintegrationHandle(unsigned long *reint_time)
 int cmlent::CloseReintegrationHandle(char *buf, int bufsize, 
 				     ViceVersionVector *UpdateSet)
 {
-    repvol *vol = strbase(repvol, log, CML);
+    reintegrated_volume *vol = strbase(reintegrated_volume, log, CML);
+    repvol *rv = strbase(repvol, log, CML);
+    volrep *vr = NULL;
     int code = 0;
-    connent *c = 0;
+    connent *c = NULL;
     
     /* Set up the SE descriptor. */
     SE_Descriptor sed;
@@ -2900,17 +2900,26 @@ int cmlent::CloseReintegrationHandle(char *buf, int bufsize,
     RPC2_CountedBS empty_PiggyBS;
     empty_PiggyBS.SeqLen = 0;
     empty_PiggyBS.SeqBody = (RPC2_ByteSeq)PiggyData;
-
-    /* Get a connection to the server. */
-    srvent *s = GetServer(&u.u_store.ReintPH, vol->GetRealmId());
-    code = s->GetConn(&c, log->owner);
-    PutServer(&s);
-    if (code != 0) goto Exit;
+    
+    if (vol->IsReplicated()) {
+        /* Get a connection to the server. */
+        srvent *s = GetServer(&u.u_store.ReintPH, vol->GetRealmId());
+        code = s->GetConn(&c, log->owner);
+        PutServer(&s);
+        if (code != 0) goto Exit;
+    }
+    
+    if (vol->IsNonReplicated()) {
+        vr = (volrep *) vol;
+        vr->GetConn(&c, log->owner);
+    }
+    
+    CODA_ASSERT(vol->IsReplicated() || vol->IsNonReplicated());
 
     /* don't bother with VCBs, will lose them on resolve anyway */
     RPC2_CountedBS OldVS; 
     OldVS.SeqLen = 0;
-    vol->ClearCallBack();
+    if (vol->IsReplicated()) rv->ClearCallBack();
 
     /* Make the RPC call. */
     MarinerLog("store::CloseReintHandle %s, (%d)\n", vol->name, bufsize);

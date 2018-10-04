@@ -666,6 +666,7 @@ class volent {
     int IsBackup() { return (!flags.replicated && flags.readonly); }
     int IsReplicated() { return flags.replicated; }
     int IsReadWriteReplica();
+    int IsNonReplicated();
     int IsUnreachable() { return (state == Unreachable); }
     int IsReachable() { return (state == Reachable); }
     int IsResolving() { return (state == Resolving); }
@@ -696,6 +697,8 @@ class volent {
 class reintegrated_volume: public volent {
     friend class ClientModifyLog;
     friend class fsobj;
+    friend class volent;
+    friend class cmlent;
     
 private:
     
@@ -755,12 +758,15 @@ public:
     int asr_running() { return flags.asr_running; }
     void asr_pgid(pid_t new_pgid);
     pid_t asr_pgid() { return pgid; }
+    
+    int GetConn(connent **c, uid_t uid, mgrpent **m, int *ph_ix = NULL, struct in_addr *phost = NULL);
+    
 };
 
 class srvent;
 
 /* A volume replica entry. */
-class volrep : public volent {
+class volrep : public reintegrated_volume {
     friend class vdb;
     friend class volent;
     friend void VolInit(void);

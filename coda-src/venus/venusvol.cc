@@ -395,8 +395,10 @@ volent *vdb::Find(Realm *realm, const char *volname)
 /* must NOT be called from within a transaction */
 static int GetVolReps(RealmId realm, VolumeInfo *volinfo, volrep *volreps[VSG_MEMBERS])
 {
-    int i, err = 0;
+    int i = 0;
+    int err = 0;
     Volid volid;
+    volrep * vp = 0;
 
     volid.Realm = realm;
 
@@ -775,13 +777,24 @@ int vdb::WriteDisconnect(unsigned int age, unsigned int time)
 int vdb::SyncCache()
 {
     repvol_iterator next;
+    volrep_iterator nrnext;
     repvol *v;
+    volrep *nrv;
     int code = 0;
 
     while ((v = next())) {
         code = v->SyncCache();
         if (code) break;
     }
+    
+    while ((nrv = nrnext())) {
+        if (!nrv->IsNonReplicated()) continue;
+        
+        code = nrv->SyncCache();
+        
+        if (code) break;
+    }
+    
     return(code);
 }
 
@@ -936,8 +949,9 @@ void volent::release(void)
 	return;
 
     /* special test needed for volumes with local repair conflict */
-    if (IsReplicated() && ((repvol *)this)->CML.count() != 0)
-	return;
+    if (IsReplicated() || IsNonReplicated()) {
+        if (((reintegrated_volume *)this)->CML.count() != 0) return;
+    }
 
     /* we could be called when there already is a transaction ongoing, we
      * could start our own transaction, or just leave it up to getdown... */
@@ -957,6 +971,21 @@ int volent::IsReadWriteReplica()
     if (IsReplicated()) return 0;
 
     return (((volrep *)this)->ReplicatedVol() != 0);
+}
+
+int volent::IsNonReplicated()
+{
+    volrep * vp = (volrep *)this;
+
+    if (IsReplicated()) return 0;
+
+    if (vp->IsReadWriteReplica()) return 0;
+
+    if (IsBackup()) return 0;
+
+    if (flags.readonly) return 0;
+
+    return 1;
 }
 
 void reintegrated_volume::ReportVolState(void)
@@ -1080,7 +1109,8 @@ int volent::Enter(int mode, uid_t uid)
 		int proc_key = vp->u.u_pgid;
 		while ((excl_count > 0 && proc_key != excl_pgid) ||
                        IsResolving() ||
-                       (IsReplicated() && WriteLocked(&((repvol *)this)->CML_lock)) ||
+                       ((IsReplicated() || IsNonReplicated()) &&
+                       WriteLocked(&((repvol *)this)->CML_lock)) ||
                        flags.transition_pending) {
 		    if (mode & VM_NDELAY) return (EWOULDBLOCK);
 		    LOG(0, ("volent::Enter: mutate with proc_key = %d\n",
@@ -1092,8 +1122,8 @@ int volent::Enter(int mode, uid_t uid)
 		/*
 		 * mutator needs to aquire exclusive CML ownership
 		 */
-		if (IsReplicated()) {
-                    repvol *rv = (repvol *)this;
+		if (IsReplicated() || IsNonReplicated()) {
+                repvol *rv = (repvol *)this;
 
 		    /* 
 		     * Claim ownership if the volume is free. 
@@ -1252,9 +1282,9 @@ void volent::Exit(int mode, uid_t uid)
 	    mutator_count--;
 	    shrd_count--;
 
-	    if (IsReplicated()) {
 		repvol *rv = (repvol *)this;
 		int count = rv->GetCML()->count();
+	    if (IsReplicated() || IsNonReplicated()) {
 
 		ReleaseReadLock(&((repvol *)this)->CML_lock);
 
@@ -1323,32 +1353,41 @@ void volent::TakeTransition()
 
     VolumeStateType nextstate;
     int avsgsize = AVSGsize();
-    repvol *rv;
+    reintegrated_volume *rv;
 
-    if (!IsReplicated()) {
-	LOG(1, ("volent::TakeTransition %s |AVSG| = %d\n", name, avsgsize));
-	state = (avsgsize == 0) ? Unreachable : Reachable;
-	flags.transition_pending = 0;
-	Signal();
-	return;
+    if (!(IsReplicated() || IsNonReplicated())) {
+    	LOG(1, ("volent::TakeTransition %s |AVSG| = %d\n", name, avsgsize));
+    	state = (avsgsize == 0) ? Unreachable : Reachable;
+    	flags.transition_pending = 0;
+    	Signal();
+    	return;
     }
-    rv = (repvol *)this;
+    rv = (reintegrated_volume *)this;
 
-    LOG(1, ("volent::TakeTransition: %s, state = %s, |AVSG| = %d, "
-	    "CML = %d, Res = %d\n",
-	    name, PRINT_VOLSTATE(state), avsgsize,
-	    rv->GetCML()->count(), rv->ResListCount()));
+    if (IsReplicated()) {
+        LOG(1, ("volent::TakeTransition: %s, state = %s, |AVSG| = %d, "
+    	    "CML = %d, Res = %d\n",
+    	    name, PRINT_VOLSTATE(state), avsgsize,
+    	    rv->GetCML()->count(), ((repvol *)rv)->ResListCount()));
+    } else {
+        LOG(1, ("volent::TakeTransition: %s, state = %s, |AVSG| = %d, "
+    	    "CML = %d\n",
+    	    name, PRINT_VOLSTATE(state), avsgsize,
+    	    rv->GetCML()->count()));
+    }
+    
 
     /* Compute next state. */
     CODA_ASSERT(IsUnreachable() || IsReachable() || IsResolving());
 
     nextstate = Reachable;
-    /* if the AVSG is empty we are Unreachable */
-    if (avsgsize == 0)
-	nextstate = Unreachable;
-
-    else if (rv->ResListCount())
-	nextstate = Resolving;
+    if (IsReplicated()) {
+        /* if the AVSG is empty we are Unreachable */
+        if (avsgsize == 0)
+    	   nextstate = Unreachable;
+        else if (((repvol *)rv)->ResListCount())
+    	   nextstate = Resolving;
+    }
 
     /* Take corresponding action. */
     state = nextstate;
@@ -1359,8 +1398,8 @@ void volent::TakeTransition()
 	case Reachable:
 	    if (rv->IsSync())
 		rv->Reintegrate();
-	    else if (rv->ReadyToReintegrate())
-		::Reintegrate(rv);
+	    else if (rv->ReadyToReintegrate() && IsReplicated())
+            ::Reintegrate((repvol *)rv);
 	    // Fall through
 
 	case Unreachable:
@@ -1368,7 +1407,8 @@ void volent::TakeTransition()
 	    break;
 
 	case Resolving:
-	    ::Resolve(this);
+        if (IsReplicated())
+	       ::Resolve(this);
 	    break;
 
 	default:
@@ -1507,7 +1547,7 @@ void volent::Wait()
     LOG(0, ("WAITING(VOL): %s, state = %s, [%d, %d], counts = [%d %d %d %d]\n",
 	     name, PRINT_VOLSTATE(state), flags.transition_pending, flags.demotion_pending,
  	     observer_count, mutator_count, waiter_count, resolver_count));
-    if (IsReplicated()) {
+    if (IsReplicated() || IsNonReplicated()) {
         repvol *rv = (repvol *)this;
         LOG(0, ("CML= [%d, %d], Res = %d\n", rv->GetCML()->count(),
                 rv->GetCML()->Owner(), rv->ResListCount()));
@@ -1574,7 +1614,7 @@ void volent::UnLock(VolLockType l)
 
 volrep::volrep(Realm *r, VolumeId vid, const char *name,
 	       struct in_addr *addr, int readonly, VolumeId parent) :
-	volent(r, vid, name)
+	reintegrated_volume(r, vid, name)
 {
     LOG(10, ("volrep::volrep: host: %s readonly: %d parent: %#08x)\n",
              inet_ntoa(*addr), readonly, parent));
@@ -1789,6 +1829,49 @@ int volrep::GetConn(connent **c, uid_t uid)
 	code = ERETRY;
 
     return(code);
+}
+
+int reintegrated_volume::GetConn(connent **c, uid_t uid, mgrpent **m, int *ph_ix, struct in_addr *phost)
+{
+    volrep *vr = (volrep *)this;
+    repvol *rv = (repvol *)this;
+    int code = 0;
+    srvent *s = NULL;
+    
+    *c = NULL;
+    *m = NULL;
+    
+    if (IsReplicated()) {
+       /* Acquire an Mgroup. */
+       code = rv->GetMgrp(m, uid);
+       if (code != 0) goto Exit;
+
+       /* Pick a server and get a connection to it. */
+       if (phost && ph_ix) {
+           phost = (*m)->GetPrimaryHost(ph_ix);
+           CODA_ASSERT(phost->s_addr != 0);
+       }
+
+       s = GetServer(phost, rv->GetRealmId());
+       code = s->GetConn(c, uid);
+       PutServer(&s);
+Exit:
+        if (*m) (*m)->Put();
+       return(code);
+   }
+   
+   if (IsNonReplicated()) {
+       code = vr->GetConn(c, uid);
+
+       if (phost) {
+           vr->Host(phost);
+           CODA_ASSERT(phost->s_addr != 0);
+       }
+       
+       if (ph_ix) *ph_ix = 0;
+       
+       return(code);
+   }
 }
 
 #if 0
@@ -2251,6 +2334,9 @@ ViceVolumeType volent::VolStatType(void)
        
     if (IsBackup())
         return Backup;
+        
+    if (IsNonReplicated())
+        return NonReplicated;
 
     return ReadWrite;
 }
@@ -2272,9 +2358,9 @@ int volent::GetVolStat(VolumeStatus *volstat, RPC2_BoundedBS *Name,
     *conflict = *cml_count = 0;
     *cml_bytes = 0;
     
-    if (IsReplicated()) {
+    if (IsReplicated() || IsNonReplicated()) {
     	cmlstats current, cancelled;
-    	repvol *rv = (repvol *)this;
+    	reintegrated_volume *rv = (reintegrated_volume *)this;
 
     	*conflict = rv->ContainUnrepairedCML();
 
@@ -2383,6 +2469,9 @@ int volent::GetVolStat(VolumeStatus *volstat, RPC2_BoundedBS *Name,
             /* Examine the return code to decide what to do next. */
             code = vol->Collate(c, code);
             UNI_RECORD_STATS(ViceGetVolumeStatus_OP);
+            
+            /* Map vice's volume type to venus's */
+            volstat->Type = VolStatType();
 
         NonRepExit:
             PutConn(&c);
