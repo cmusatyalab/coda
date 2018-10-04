@@ -2076,7 +2076,7 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet,
 	 * them, so they will eventually be sent automatically or piggied on
 	 * the next multirpc. --JH */
 
-	if (PiggyBS.SeqLen) {
+	if (PiggyBS.SeqLen && vol->IsReplicated()) {
 	    code = vol->COP2(m, &PiggyBS);
 	    PiggyBS.SeqLen = 0;
 	}
@@ -2212,7 +2212,7 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet,
 	    vol->CollateVCB(m, VSvar_bufs, VCBStatusvar_bufs);
 
 	/* Finalize COP2 Piggybacking. */
-	if (PIGGYCOP2) 
+	if (PIGGYCOP2 && vol->IsReplicated()) 
 	    vol->ClearCOP2(&PiggyBS);
 
 	/* Manually compute the OUT parameters from the mgrpent::Reintegrate() call! -JJK */
@@ -2418,7 +2418,7 @@ void ClientModifyLog::IncCommit(ViceVersionVector *UpdateSet, int Tid)
     Recov_EndTrans(DMFP);
 
     /* flush COP2 for this volume */
-    ((repvol *)vol)->FlushCOP2();
+    if (vol->IsReplicated()) ((repvol *)vol)->FlushCOP2();
     vol->flags.resolve_me = 0;
     LOG(0, ("ClientModifyLog::IncCommit: (%s)\n", vol->name));
 }
@@ -2747,10 +2747,11 @@ void cmlent::commit(ViceVersionVector *UpdateSet)
 	    AddVVs(&f->stat.VV, UpdateSet);
 	}
     }
-	LOG(10, ("cmlent::commit: Add COP2 with sid = 0x%x.%x\n",
-		 sid.HostId, sid.Uniquifier));
-	((repvol *)vol)->AddCOP2(&sid, UpdateSet);
+
     if (vol->IsReplicated() /* FinalMutationForAnyObject */) {
+        ((repvol *)vol)->AddCOP2(&sid, UpdateSet);
+        LOG(10, ("cmlent::commit: Add COP2 with sid = 0x%x.%x\n",
+    		 sid.HostId, sid.Uniquifier));
     }
 
     delete this;
