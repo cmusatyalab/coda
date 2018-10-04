@@ -1839,7 +1839,7 @@ int reintegrated_volume::GetConn(connent **c, uid_t uid, mgrpent **m, int *ph_ix
     srvent *s = NULL;
     
     *c = NULL;
-    *m = NULL;
+    if (m) *m = NULL;
     
     if (IsReplicated()) {
        /* Acquire an Mgroup. */
