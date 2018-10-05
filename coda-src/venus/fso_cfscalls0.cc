@@ -181,10 +181,9 @@ int fsobj::LookAside(void)
     return lka_successful;
 }
 
-int fsobj::FetchFileRPC(connent * con, ViceStatus * status,
-                        unsigned long primaryHost, uint64_t offset,
-                        int64_t len, RPC2_CountedBS * PiggyBS,
-                        SE_Descriptor * sed)
+int fsobj::FetchFileRPC(connent *con, ViceStatus *status, uint64_t offset,
+                        int64_t len, RPC2_CountedBS *PiggyBS,
+                        SE_Descriptor *sed)
 {
     int code = 0;
     char prel_str[256];
@@ -198,7 +197,7 @@ int fsobj::FetchFileRPC(connent * con, ViceStatus * status,
 
     // TODO: Check if file will be partially cached
 
-    snprintf(prel_str, sizeof(256), "fetch::Fetch%s %%s [%ld]\n", partial_sel,
+    snprintf(prel_str, 256, "fetch::Fetch%s %%s [%ld]\n", partial_sel,
              BLOCKS(this));
 
     CFSOP_PRELUDE(prel_str, comp, fid);
@@ -206,11 +205,10 @@ int fsobj::FetchFileRPC(connent * con, ViceStatus * status,
 
     if (fetchpartial_support) {
         code = ViceFetchPartial(con->connid, MakeViceFid(&fid), &stat.VV,
-                         inconok, status, primaryHost, offset, len, PiggyBS,
-                         sed);
+                         inconok, status, 0, offset, len, PiggyBS, sed);
     } else {
         code = ViceFetch(con->connid, MakeViceFid(&fid), &stat.VV,
-                         inconok, status, primaryHost, offset, PiggyBS, sed);
+                         inconok, status, 0, offset, PiggyBS, sed);
     }
 
     UNI_END_MESSAGE(viceop);
@@ -377,19 +375,16 @@ int fsobj::Fetch(uid_t uid, uint64_t pos, int64_t count)
 	    /* Make multiple copies of the IN/OUT and OUT parameters. */
             int ph_ix;
             struct in_addr *phost;
-            unsigned long ph;
 
             phost = m->GetPrimaryHost(&ph_ix);
-            ph = ntohl(phost->s_addr);
-
             srvent *s = GetServer(phost, vol->GetRealmId());
             code = s->GetConn(&c, uid);
             PutServer(&s);
             if (code != 0) goto RepExit;
 
-        /* Fetch the file from the server */
-        code = FetchFileRPC(c, &status, ph, offset, len, &PiggyBS, sed);
-        if (code != 0) goto RepExit;
+            /* Fetch the file from the server */
+            code = FetchFileRPC(c, &status, offset, len, &PiggyBS, sed);
+            if (code != 0) goto RepExit;
 
 	    {
             unsigned long bytes = (unsigned long)sed->Value.SmartFTPD.BytesTransferred;
@@ -453,9 +448,9 @@ RepExit:
 	code = vp->GetConn(&c, uid);
 	if (code != 0) goto NonRepExit;
 
-	/* Make the RPC call. */
-    code = FetchFileRPC(c, &status, 0, offset, len, &PiggyBS, sed);
-    if (code != 0) goto NonRepExit;
+        /* Make the RPC call. */
+        code = FetchFileRPC(c, &status, offset, len, &PiggyBS, sed);
+        if (code != 0) goto NonRepExit;
 
 	{
 	    unsigned long bytes = sed->Value.SmartFTPD.BytesTransferred;
