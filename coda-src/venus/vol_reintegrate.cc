@@ -359,7 +359,8 @@ int reintegrated_volume::IncReintegrate(int tid)
 	       code = CML.COP1(buf, bufsize, &UpdateSet, outoforder);
         else if (IsNonReplicated())
            code = CML.COP1_NR(buf, bufsize, &UpdateSet, outoforder);
-        else 
+        else
+            /* For now no other type of volume acepts reintegration */
             CODA_ASSERT(0);
 
 	    END_TIMING();
