@@ -32,10 +32,6 @@ listed in the file CREDITS.
 extern "C" {
 #endif
 
-#include <stdio.h>
-#include <sys/types.h>
-// #include <sys/stat.h>
-
 // #include <sys/uio.h>
 
 // #include <rpc2/rpc2.h>

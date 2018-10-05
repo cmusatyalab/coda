@@ -165,9 +165,6 @@ static const unsigned int GBYTE_UNIT_SCALE = 1024 * MBYTE_UNIT_SCALE;
 static const char * TBYTES_UNIT[] = { "TB", "tb", "Tb", "tB", "T", "t"};
 static const unsigned int TBYTE_UNIT_SCALE = 1024 * GBYTE_UNIT_SCALE;
 
-static const uint64_t largest_supported_file = ((uint64_t)0x1) << 32;
-
-
 /* Some helpers to add fd/callbacks to the inner select loop */
 struct mux_cb_entry {
     struct mux_cb_entry *next;
