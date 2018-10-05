@@ -602,7 +602,7 @@ wait_for_reintegration:
 #endif
 
     /* Kick out non-ASR processes if an ASR is running */
-    if ((u.u_vol->IsReplicated() || u.u_vol->IsNonReplicated()) && (vfsop != CODA_RESOLVE) && 
+    if ((u.u_vol->IsReintegrated()) && (vfsop != CODA_RESOLVE) && 
 		(((reintegrated_volume *)u.u_vol)->asr_running() && 
 		 (u.u_pgid != ((reintegrated_volume *)u.u_vol)->asr_pgid())))
       u.u_error = EAGAIN;

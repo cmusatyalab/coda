@@ -948,7 +948,7 @@ void volent::release(void)
 	return;
 
     /* special test needed for volumes with local repair conflict */
-    if (IsReplicated() || IsNonReplicated()) {
+    if (IsReintegrated()) {
         if (((reintegrated_volume *)this)->CML.count() != 0) return;
     }
 
@@ -1108,7 +1108,7 @@ int volent::Enter(int mode, uid_t uid)
 		int proc_key = vp->u.u_pgid;
 		while ((excl_count > 0 && proc_key != excl_pgid) ||
                        IsResolving() ||
-                       ((IsReplicated() || IsNonReplicated()) &&
+                       ((IsReintegrated()) &&
                        WriteLocked(&((repvol *)this)->CML_lock)) ||
                        flags.transition_pending) {
 		    if (mode & VM_NDELAY) return (EWOULDBLOCK);
@@ -1121,7 +1121,7 @@ int volent::Enter(int mode, uid_t uid)
 		/*
 		 * mutator needs to aquire exclusive CML ownership
 		 */
-		if (IsReplicated() || IsNonReplicated()) {
+		if (IsReintegrated()) {
                 repvol *rv = (repvol *)this;
 
 		    /* 
@@ -1283,7 +1283,7 @@ void volent::Exit(int mode, uid_t uid)
 
 		repvol *rv = (repvol *)this;
 		int count = rv->GetCML()->count();
-	    if (IsReplicated() || IsNonReplicated()) {
+	    if (IsReintegrated()) {
 
 		ReleaseReadLock(&((repvol *)this)->CML_lock);
 
@@ -1354,7 +1354,7 @@ void volent::TakeTransition()
     int avsgsize = AVSGsize();
     reintegrated_volume *rv;
 
-    if (!(IsReplicated() || IsNonReplicated())) {
+    if (!(IsReintegrated())) {
     	LOG(1, ("volent::TakeTransition %s |AVSG| = %d\n", name, avsgsize));
     	state = (avsgsize == 0) ? Unreachable : Reachable;
     	flags.transition_pending = 0;
@@ -1546,7 +1546,7 @@ void volent::Wait()
     LOG(0, ("WAITING(VOL): %s, state = %s, [%d, %d], counts = [%d %d %d %d]\n",
 	     name, PRINT_VOLSTATE(state), flags.transition_pending, flags.demotion_pending,
  	     observer_count, mutator_count, waiter_count, resolver_count));
-    if (IsReplicated() || IsNonReplicated()) {
+    if (IsReintegrated()) {
         repvol *rv = (repvol *)this;
         LOG(0, ("CML= [%d, %d], Res = %d\n", rv->GetCML()->count(),
                 rv->GetCML()->Owner(), rv->ResListCount()));
@@ -2453,7 +2453,7 @@ int volent::GetVolStat(VolumeStatus *volstat, RPC2_BoundedBS *Name,
     *conflict = *cml_count = 0;
     *cml_bytes = 0;
     
-    if (IsReplicated() || IsNonReplicated()) {
+    if (IsReintegrated()) {
     	cmlstats current, cancelled;
     	reintegrated_volume *rv = (reintegrated_volume *)this;
 

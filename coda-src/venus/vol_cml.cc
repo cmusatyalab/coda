@@ -2816,7 +2816,7 @@ int cmlent::GetReintegrationHandle()
     code = vol->GetConn(&c, log->owner, &m, &ph_ix, &phost);
     if (code != 0) goto Exit;
     
-    CODA_ASSERT(vol->IsReplicated() || vol->IsNonReplicated());
+    CODA_ASSERT(vol->IsReintegrated());
     
     {
 	ViceReintHandle VR;
@@ -3037,7 +3037,7 @@ int cmlent::CloseReintegrationHandle(char *buf, int bufsize,
         vr->GetConn(&c, log->owner);
     }
     
-    CODA_ASSERT(vol->IsReplicated() || vol->IsNonReplicated());
+    CODA_ASSERT(vol->IsReintegrated());
 
     /* don't bother with VCBs, will lose them on resolve anyway */
     RPC2_CountedBS OldVS; 

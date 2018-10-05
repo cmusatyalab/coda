@@ -669,6 +669,7 @@ class volent {
     int IsReplicated() { return flags.replicated; }
     int IsReadWriteReplica();
     int IsNonReplicated();
+    int IsReintegrated() {return (IsReplicated() || IsNonReplicated()); }
     int IsUnreachable() { return (state == Unreachable); }
     int IsReachable() { return (state == Reachable); }
     int IsResolving() { return (state == Resolving); }
