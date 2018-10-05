@@ -190,8 +190,16 @@ int CacheFile::Copy(CacheFile *destination)
 
     destination->length = length;
     destination->validdata = validdata;
-    ObtainReadLock(&rw_lock);
-    ObtainWriteLock(&destination->rw_lock);
+    
+    /* Acquire the locks in ascending address order */
+    if (((uint64_t) &rw_lock) < ((uint64_t) &destination->rw_lock)) {
+        ObtainReadLock(&rw_lock);
+        ObtainWriteLock(&destination->rw_lock);
+    } else {
+        ObtainWriteLock(&destination->rw_lock);
+        ObtainReadLock(&rw_lock);
+    }
+
     *(destination->cached_chunks) = *cached_chunks;
     ReleaseWriteLock(&destination->rw_lock);
     ReleaseReadLock(&rw_lock);
