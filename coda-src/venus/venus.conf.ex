@@ -300,7 +300,7 @@ mapprivate=1
 #
 # Fork a helper process to handle client-server communication.
 #
-#codatunnel=0
+#codatunnel=1
 
 #
 # Only use tcp tunnels for client-server communication (depends on codatunnel)

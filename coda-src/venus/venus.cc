@@ -489,6 +489,7 @@ static void Usage(char *argv0)
 " -allow-reattach\t\tallow reattach to already mounted tree\n"
 " -relay <addr>\t\t\trelay socket address (windows only)\n"
 " -codatunnel\t\t\tenable codatunneld helper\n"
+" -no-codatunnel\t\t\tdisable codatunneld helper\n"
 " -onlytcp\t\t\tonly use TCP tunnel connections to servers\n"
 " -9pfs\t\t\tenable embedded 9pfs server (experimental, INSECURE!)\n"
 " -nofork\t\t\tdo not daemonize the process\n\n"
@@ -619,12 +620,15 @@ static void ParseCmdline(int argc, char **argv)
 	    else if (STREQ(argv[i], "-mapprivate"))
 		MapPrivate = true;
 	    else if (STREQ(argv[i], "-codatunnel")) {
-                codatunnel_enabled = true;
+                codatunnel_enabled = 1;
                 eprint("codatunnel enabled");
 	    }
+	    else if (STREQ(argv[i], "-no-codatunnel")) {
+                codatunnel_enabled = -1;
+                eprint("codatunnel disabled");
+	    }
 	    else if (STREQ(argv[i], "-onlytcp")) {
-                codatunnel_onlytcp = true;
-                codatunnel_enabled = true;
+                codatunnel_onlytcp = 1;
                 eprint("codatunnel_onlytcp set");
             }
 	    else if (STREQ(argv[i], "-9pfs")) {
@@ -789,10 +793,12 @@ static void DefaultCmdlineParms()
     CODACONF_INT(option_isr, "isr", 0);
 
     /* Enable client-server communication helper process */
-    CODACONF_INT(codatunnel_enabled, "codatunnel", 0);
+    CODACONF_INT(codatunnel_enabled, "codatunnel", 1);
     CODACONF_INT(codatunnel_onlytcp, "onlytcp", 0);
-    if (codatunnel_onlytcp)
+    if (codatunnel_onlytcp && !codatunnel_enabled)
         codatunnel_enabled = 1;
+    if (codatunnel_enabled == -1)
+        codatunnel_enabled = 0;
 
     CODACONF_INT(detect_reintegration_retry, "detect_reintegration_retry", 1);
     if (option_isr) {
