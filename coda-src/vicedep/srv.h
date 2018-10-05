@@ -149,7 +149,6 @@ typedef struct ClientEntry {
 #define TOTAL 0
 
 #define DISCONNECT ViceDisconnectFS_OP
-#define GETATTR ViceGetAttr_OP
 #define GETATTRPLUSSHA ViceGetAttrPlusSHA_OP
 #define GETACL ViceGetACL_OP
 #define FETCH ViceFetch_OP
@@ -168,7 +167,6 @@ typedef struct ClientEntry {
 #define SETVV ViceSetVV_OP
 #define REINTEGRATE ViceReintegrate_OP
 #define ALLOCFIDS ViceAllocFids_OP
-#define VALIDATEATTRS ViceValidateAttrs_OP
 #define VALIDATEATTRSPLUSSHA ViceValidateAttrsPlusSHA_OP
 #define NEWCONNECTFS ViceNewConnectFS_OP
 #define GETVOLVS ViceGetVolVS_OP

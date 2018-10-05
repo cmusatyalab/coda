@@ -771,7 +771,7 @@ static void SetViceStats(ViceStatistics *stats)
     stats->CurrentConnections = CurrentConnections;
     stats->TotalViceCalls = Counters[TOTAL];
 
-    stats->TotalFetches = Counters[GETATTRPLUSSHA]+Counters[GETATTR]+Counters[GETACL]+Counters[FETCH];
+    stats->TotalFetches = Counters[GETATTRPLUSSHA]+Counters[GETACL]+Counters[FETCH];
     stats->FetchDatas = Counters[FETCH];
     stats->FetchedBytes = Counters[FETCHDATA];
     seconds = Counters[FETCHTIME]/1000;
