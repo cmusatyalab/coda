@@ -403,7 +403,7 @@ int fsobj::Fetch(uid_t uid, uint64_t pos, int64_t count)
 	    }
 
 	    /* Handle failed validations. */
-	    if (VV_Cmp(&status.VV, &stat.VV) != VV_EQ) {
+	    if (!CompareVersion(&status)) {
 		if (LogLevel >= 1) {
 		    dprint("fsobj::Fetch: failed validation\n");
 		    int *r = ((int *)&status.VV);
@@ -469,7 +469,7 @@ RepExit:
 	}
 
 	/* Handle failed validations. */
-	if (HAVESTATUS(this) && status.DataVersion != stat.DataVersion) {
+	if (HAVESTATUS(this) && !CompareVersion(&status)) {
 	    LOG(1, ("fsobj::Fetch: failed validation (%d, %d)\n",
 		    status.DataVersion, stat.DataVersion));
 	    code = EAGAIN;
@@ -904,7 +904,7 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
 #endif
 
 	    /* Handle failed validations. */
-	    if (HAVESTATUS(this) && VV_Cmp(&status.VV, &stat.VV) != VV_EQ) {
+	    if (HAVESTATUS(this) && !CompareVersion(&status)) {
 		if (LogLevel >= 1) {
 		    dprint("fsobj::GetAttr: failed validation\n");
 		    int *r = ((int *)&status.VV);
@@ -1048,27 +1048,27 @@ RepExit:
 	}
 	if (code != 0) goto NonRepExit;
 
-	/* Handle failed validations. */
-	if (HAVESTATUS(this) && status.DataVersion != stat.DataVersion) {
-	    LOG(1, ("fsobj::GetAttr: failed validation (%d, %d)\n",
-		    status.DataVersion, stat.DataVersion));
+    /* Handle failed validations. */
+    if (HAVESTATUS(this) && !CompareVersion(&status)) {
+        LOG(1, ("fsobj::GetAttr: failed validation (%d, %d)\n",
+            status.DataVersion, stat.DataVersion));
 
-	    Demote();
+        Demote();
 
-	    /* If we have data, it is stale and must be discarded. */
-	    /* Operation MUST be restarted from beginning since, even though
-	     * this fetch was for status-only, the operation MAY be requiring
-	     * data! */
-	    if (HAVEDATA(this)) {
-		Recov_BeginTrans();
-		UpdateCacheStats((IsDir() ? &FSDB->DirDataStats : &FSDB->FileDataStats),
-				 REPLACE, BLOCKS(this));
-		DiscardData();
-		code = ERETRY;
-		Recov_EndTrans(CMFP);
+        /* If we have data, it is stale and must be discarded. */
+        /* Operation MUST be restarted from beginning since, even though
+         * this fetch was for status-only, the operation MAY be requiring
+         * data! */
+        if (HAVEDATA(this)) {
+            Recov_BeginTrans();
+            UpdateCacheStats((IsDir() ? &FSDB->DirDataStats : &FSDB->FileDataStats),
+            		 REPLACE, BLOCKS(this));
+            DiscardData();
+            code = ERETRY;
+            Recov_EndTrans(CMFP);
 
-		goto NonRepExit;
-	    }
+            goto NonRepExit;
+        }
 	}
 
 	if (status.CallBack == CallBackSet && cbtemp == cbbreaks)
@@ -1651,4 +1651,17 @@ int fsobj::Create(char *name, fsobj **target_fso_addr,
 	Demote();
     }
     return(code);
+}
+
+bool fsobj::CompareVersion(ViceStatus * status, VenusStat * venus_stat)
+{
+    if (!venus_stat) venus_stat = &(this->stat);
+    
+    if (VV_Cmp(&status->VV, &venus_stat->VV) != VV_EQ) return false;
+    
+    if (vol->IsNonReplicated()) {
+        if (status->DataVersion != venus_stat->DataVersion) return false;
+    }
+    
+    return true;
 }
