@@ -39,12 +39,12 @@ cachesize=100MB
 #cachefiles=0
 
 #
-# What should the cache chuncks block size be. If this is not specified or '0'
+# What should the cache chunks block size be. If this is not specified or '0'
 # the default value of 32KB is chosen. Supported units are KB, MB, GB and TB.
 # This is relevant for VASTROs handling.
 # Minimum value is 4096 or 4KB.
 #
-#cachechunckblocksize=4KB
+#cachechunkblocksize=4KB
 
 #
 # How many modification log entries should venus have. If this is not

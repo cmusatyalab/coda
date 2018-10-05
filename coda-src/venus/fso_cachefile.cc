@@ -58,10 +58,10 @@ extern "C" {
 /* always useful to have a page of zero's ready */
 static char zeropage[4096];
 
-uint64_t CacheChunckBlockSize = 0;
-uint64_t CacheChunckBlockSizeMax = 0;
-uint64_t CacheChunckBlockSizeBits = 0;
-uint64_t CacheChunckBlockBitmapSize = 0;
+uint64_t CacheChunkBlockSize = 0;
+uint64_t CacheChunkBlockSizeMax = 0;
+uint64_t CacheChunkBlockSizeBits = 0;
+uint64_t CacheChunkBlockBitmapSize = 0;
 
 /*  *****  CacheFile Members  *****  */
 
@@ -78,7 +78,7 @@ CacheFile::CacheFile(int i, int recoverable)
     refcnt = 1;
     numopens = 0;
     this->recoverable = recoverable;
-    cached_chuncks = new(recoverable) bitmap(CacheChunckBlockBitmapSize, recoverable);
+    cached_chunks = new(recoverable) bitmap(CacheChunkBlockBitmapSize, recoverable);
     Lock_Init(&rw_lock);
     /* Container reset will be done by eventually by FSOInit()! */
     LOG(100, ("CacheFile::CacheFile(%d): %s (this=0x%x)\n", i, name, this));
@@ -92,7 +92,7 @@ CacheFile::CacheFile()
     numopens = 0;
     this->recoverable = 1;
     Lock_Init(&rw_lock);
-    cached_chuncks = new(recoverable) bitmap(CacheChunckBlockBitmapSize, recoverable);
+    cached_chunks = new(recoverable) bitmap(CacheChunkBlockBitmapSize, recoverable);
 }
 
 
@@ -100,7 +100,7 @@ CacheFile::~CacheFile()
 {
     LOG(10, ("CacheFile::~CacheFile: %s (this=0x%x)\n", name, this));
     CODA_ASSERT(length == 0);
-    delete cached_chuncks;
+    delete cached_chunks;
 }
 
 
@@ -192,7 +192,7 @@ int CacheFile::Copy(CacheFile *destination)
     destination->validdata = validdata;
     ObtainReadLock(&rw_lock);
     ObtainWriteLock(&destination->rw_lock);
-    *(destination->cached_chuncks) = *cached_chuncks;
+    *(destination->cached_chunks) = *cached_chunks;
     ReleaseWriteLock(&destination->rw_lock);
     ReleaseReadLock(&rw_lock);
     return 0;
@@ -300,7 +300,7 @@ void CacheFile::Truncate(uint64_t newlen)
         if (newlen < length) {
             ObtainWriteLock(&rw_lock);
             
-            cached_chuncks->FreeRange(bytes_to_ccblocks_floor(newlen), 
+            cached_chunks->FreeRange(bytes_to_ccblocks_floor(newlen), 
                 bytes_to_ccblocks_ceil(length - newlen));
                 
             ReleaseWriteLock(&rw_lock);
@@ -322,10 +322,10 @@ void CacheFile::UpdateValidData() {
     
     ObtainReadLock(&rw_lock);
 
-    validdata = ccblocks_to_bytes(cached_chuncks->Count());
+    validdata = ccblocks_to_bytes(cached_chunks->Count());
 
     /* In case the the last block is set */
-    if (cached_chuncks->Value(length_cb - 1)) {
+    if (cached_chunks->Value(length_cb - 1)) {
         validdata -= ccblocks_to_bytes(length_cb) - length;
     }
     
@@ -341,7 +341,7 @@ void CacheFile::SetLength(uint64_t newlen)
         if (newlen < length) {
             ObtainWriteLock(&rw_lock);
             
-            cached_chuncks->FreeRange(bytes_to_ccblocks_floor(newlen), 
+            cached_chunks->FreeRange(bytes_to_ccblocks_floor(newlen), 
                 bytes_to_ccblocks_ceil(length - newlen));
                 
             ReleaseWriteLock(&rw_lock);
@@ -382,14 +382,14 @@ void CacheFile::SetValidData(uint64_t start, int64_t len)
     ObtainWriteLock(&rw_lock);
 
     for (uint64_t i = start_cb; i < end_cb; i++) {
-        if (cached_chuncks->Value(i)) {
+        if (cached_chunks->Value(i)) {
             continue;
         }
 
-        cached_chuncks->SetIndex(i);
+        cached_chunks->SetIndex(i);
 
         /* Add a full block */
-        newvaliddata += CacheChunckBlockSize;
+        newvaliddata += CacheChunkBlockSize;
 
         /* The last block might not be full */
         if (i + 1 == length_cb) {
@@ -404,7 +404,7 @@ void CacheFile::SetValidData(uint64_t start, int64_t len)
 
     LOG(60, ("CacheFile::SetValidData: { validdata: %d }\n", validdata));
     LOG(60, ("CacheFile::SetValidData: { fetchedblocks: %d, totalblocks: %d }\n",
-            cached_chuncks->Count(), length_cb));
+            cached_chunks->Count(), length_cb));
 }
 
 void CacheFile::print(int fdes)
@@ -460,7 +460,7 @@ uint64_t CacheFile::ConsecutiveValidData(void)
 
     /* Find the first 0 in the bitmap */
     for (start = 0; start < length_ccb; start++) {
-        if (!cached_chuncks->Value(start)) {
+        if (!cached_chunks->Value(start)) {
             break;
         }
     }
