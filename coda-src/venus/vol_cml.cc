@@ -3034,7 +3034,8 @@ int cmlent::CloseReintegrationHandle(char *buf, int bufsize,
     
     if (vol->IsNonReplicated()) {
         vr = (volrep *) vol;
-        vr->GetConn(&c, log->owner);
+        code = vr->GetConn(&c, log->owner);
+        if (code != 0) goto Exit;
     }
     
     CODA_ASSERT(vol->IsReintegrated());
