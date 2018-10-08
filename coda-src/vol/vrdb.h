@@ -100,8 +100,7 @@ class vrent : public olink {
 extern vrtab VRDB;
 extern void CheckVRDB();
 extern int DumpVRDB(int outfd);
-extern int XlateVid(VolumeId *, int * = NULL, int * = NULL);
+extern int XlateVid(VolumeId *, int * = NULL, int * = NULL, bool * = NULL);
 extern int ReverseXlateVid(VolumeId *, int * = NULL);
-extern bool IsReplicated(VolumeId *vidp);
 
 #endif /* _VICE_VRDB_H_ */

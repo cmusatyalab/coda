@@ -213,13 +213,16 @@ bool IsReplicated(VolumeId *vidp)
     return false;
 }
 
-int XlateVid(VolumeId *vidp, int *count, int *pos) 
+int XlateVid(VolumeId *vidp, int *count, int *pos, bool* isReplicated) 
 {
     if (!IsReplicated(vidp)) {
         if (count) *count = 1;
         if (pos)   *pos = 0;
+        if (isReplicated) *isReplicated = false;
         return(1);
     }
+    
+    if (isReplicated) *isReplicated = true;
     
     vrent *vre = VRDB.find(*vidp);
     if (!vre) return(0);

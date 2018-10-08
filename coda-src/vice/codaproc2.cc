@@ -175,7 +175,7 @@ struct rle {
 
 static int ValidateReintegrateParms(RPC2_Handle, VolumeId *, Volume **, 
 				    ClientEntry **, unsigned int, struct dllist_head *,
-				    RPC2_Integer *, ViceReintHandle *);
+				    RPC2_Integer *, ViceReintHandle *, bool *);
 static int GetReintegrateObjects(ClientEntry *, struct dllist_head *, dlist *,
 				 int *, RPC2_Integer *);
 static int CheckSemanticsAndPerform(ClientEntry *, VolumeId, VolumeId,
@@ -218,7 +218,7 @@ long FS_ViceReintegrate(RPC2_Handle RPCid, VolumeId Vid, RPC2_Integer LogSize,
 	INIT_LIST_HEAD(rlog);
 	dlist *vlist = new dlist((CFN)VLECmp);
 	int	blocks = 0;
-    bool isReplicated = IsReplicated(&Vid);
+    bool isReplicated = true;
 
 	if (NumDirs) *NumDirs = 0;	/* check for compatibility */
 
@@ -234,7 +234,7 @@ long FS_ViceReintegrate(RPC2_Handle RPCid, VolumeId Vid, RPC2_Integer LogSize,
 
 	/* Phase I. */
 	if ((errorCode = ValidateReintegrateParms(RPCid, &Vid, &volptr, &client,
-						 LogSize, &rlog, Index, 0)))
+						 LogSize, &rlog, Index, 0, &isReplicated)))
 		goto FreeLocks;
 	
 	SLog(1, "Starting GetReintegrateObjects for %x", Vid);
@@ -476,7 +476,7 @@ long FS_ViceCloseReintHandle(RPC2_Handle RPCid, VolumeId Vid,
     INIT_LIST_HEAD(rlog);
     dlist *vlist = new dlist((CFN)VLECmp);
     int	blocks = 0;
-    bool isReplicated = IsReplicated(&Vid);
+    bool isReplicated = true;
 
     SLog(0/*1*/, "ViceCloseReintHandle for volume 0x%x", Vid);
 
@@ -489,7 +489,7 @@ long FS_ViceCloseReintHandle(RPC2_Handle RPCid, VolumeId Vid,
 
     /* Phase I. */
     if ((errorCode = ValidateReintegrateParms(RPCid, &Vid, &volptr, &client,
-					     LogSize, &rlog, 0, RHandle)))
+					     LogSize, &rlog, 0, RHandle, &isReplicated)))
 	goto FreeLocks;
 
     /* Phase II. */
@@ -529,7 +529,8 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 				    Volume **volptr, ClientEntry **client,
 				    unsigned int rlen, struct dllist_head *rlog,
 				    RPC2_Integer *Index,
-				    ViceReintHandle *RHandle) 
+				    ViceReintHandle *RHandle,
+                    bool * isReplicated) 
 {
     START_TIMING(Reintegrate_ValidateParms);
     SLog(10, "ValidateReintegrateParms: RPCid = %d, *Vid = %x", RPCid, *Vid);
@@ -551,7 +552,7 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
     VolumeId VSGVolnum = *Vid;
 
     /* Translate the GroupVol into this host's RWVol. */
-    if (!XlateVid(Vid, &count, &ix)) {
+    if (!XlateVid(Vid, &count, &ix, isReplicated)) {
             SLog(0, "ValidateReintegrateParms: failed to translate VSG %x",
                  VSGVolnum);
             errorCode = EINVAL;
