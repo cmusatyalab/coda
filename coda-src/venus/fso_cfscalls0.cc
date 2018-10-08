@@ -1364,6 +1364,8 @@ int fsobj::SetAttr(struct coda_vattr *vap, uid_t uid)
 int fsobj::SetACL(RPC2_CountedBS *acl, uid_t uid)
 {
     LOG(10, ("fsobj::SetACL: (%s), uid = %d\n", GetComp(), uid));
+    
+    ViceVersionVector UpdateSet;
 
     if (!REACHABLE(this))
 	return ETIMEDOUT;
@@ -1424,7 +1426,7 @@ int fsobj::SetACL(RPC2_CountedBS *acl, uid_t uid)
 
 	/* The COP1 call. */
 	long cbtemp; cbtemp = cbbreaks;
-	ViceVersionVector UpdateSet;
+	
 
 	Recov_BeginTrans();
 	Recov_GenerateStoreId(&sid);
@@ -1524,10 +1526,16 @@ RepExit:
 	UNI_RECORD_STATS(ViceSetACL_OP);
 
 	if (code != 0) goto NonRepExit;
+    
+    
+    /* Non-replicated volumes stil use the first slot */
+    InitVV(&UpdateSet);
+    if (vol->IsNonReplicated())
+        (&(UpdateSet.Versions.Site0))[0] = 1;
 
 	/* Do setattr locally. */
 	Recov_BeginTrans();
-	UpdateStatus(&status, NULL, uid);
+	UpdateStatus(&status, &UpdateSet, uid);
 	Recov_EndTrans(CMFP);
 
 NonRepExit:

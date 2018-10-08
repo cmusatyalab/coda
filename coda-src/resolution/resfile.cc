@@ -324,7 +324,7 @@ long RS_ForceFile(RPC2_Handle RPCid, ViceFid *Fid,
 
     CODA_ASSERT(Request == ResStoreData);
     conninfo *cip = GetConnectionInfo(RPCid);
-    if (cip == NULL){
+    if (cip == NULL) {
 	SLog(0,  "RS_ForceFile: Couldnt get conninfo ");
 	return(EINVAL);
     }

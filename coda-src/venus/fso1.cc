@@ -702,7 +702,7 @@ void fsobj::UpdateStatus(ViceStatus *vstat, ViceVersionVector *UpdateSet, uid_t 
      *  - vstat differs (ValidateAttrs)
      */
     if (isrunt || UpdateSet || !StatusEq(vstat))
-	ReplaceStatus(vstat, UpdateSet);
+	   ReplaceStatus(vstat, UpdateSet);
 
     /* If this object is a runt, there may be others waiting for the create
      * to finalize */
@@ -2758,4 +2758,3 @@ fsobj *fso_iterator::operator()() {
 	}
     }
 }
-
