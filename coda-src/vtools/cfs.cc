@@ -2720,6 +2720,10 @@ static void DiscardLocal(int argc, char *argv[], int opslot)
     switch(argc)
         {
         case 3:
+            if(!strcmp(argv[2], "-all")) {
+                printf("Usage: %s\n", cmdarray[opslot].usetxt);
+                exit(-1);
+            }
 	  ioctl = REP_CMD_DISCARD;
 	  codadir = argv[2];
 	  break;
