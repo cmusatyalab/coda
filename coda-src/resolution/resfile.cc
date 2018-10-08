@@ -144,8 +144,8 @@ long FileResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV)
 
 	/* right now just use the connection from the mgrp -
 	   implement the uni-connection groups  --- PUNEET */
-	errorcode = Res_FetchFile(mgrp->rrcc.handles[dix], Fid,
-				  mgrp->rrcc.hosts[dix], &Status, &sid);
+	errorcode = Res_FetchFile(mgrp->rrcc.handles[dix], Fid, 0,
+				  &Status, &sid);
 	if (errorcode) {
 	    SLog(0,  "FileResolve: Error %d in fetchfile", errorcode);
 	    CODA_ASSERT(dix != -1);
