@@ -1172,7 +1172,7 @@ int fsobj::DisconnectedStore(Date_t Mtime, uid_t uid, unsigned long NewLength,
     int code = 0;
     repvol *rv;
 
-    if (!(vol->IsReintegrated())) {
+    if (!(vol->IsReadWrite())) {
         return ETIMEDOUT;
     }
 	
@@ -1273,7 +1273,7 @@ int fsobj::DisconnectedSetAttr(Date_t Mtime, uid_t uid, unsigned long NewLength,
     int code = 0;
     repvol *rv;
 
-    if (!(vol->IsReintegrated())) {
+    if (!(vol->IsReadWrite())) {
         return ETIMEDOUT;
     }
 	
@@ -1282,7 +1282,7 @@ int fsobj::DisconnectedSetAttr(Date_t Mtime, uid_t uid, unsigned long NewLength,
     Recov_BeginTrans();
     RPC2_Integer tNewMode = (short)NewMode;	    /* sign-extend!!! */
 
-    CODA_ASSERT(vol->IsReintegrated());
+    CODA_ASSERT(vol->IsReadWrite());
     code = rv->LogSetAttr(Mtime, uid, &fid, NewLength, NewDate, NewOwner,
 			  (RPC2_Unsigned)tNewMode, prepend);
     if (code == 0 && prepend == 0)
@@ -1604,7 +1604,7 @@ int fsobj::DisconnectedCreate(Date_t Mtime, uid_t uid, fsobj **t_fso_addr,
     VenusFid target_fid;
     repvol *rv;
 
-    if (!(vol->IsReintegrated())) {
+    if (!(vol->IsReadWrite())) {
         code = ETIMEDOUT;
         goto Exit;
     }

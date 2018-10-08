@@ -2816,7 +2816,7 @@ int cmlent::GetReintegrationHandle()
     code = vol->GetConn(&c, log->owner, &m, &ph_ix, &phost);
     if (code != 0) goto Exit;
     
-    CODA_ASSERT(vol->IsReintegrated());
+    CODA_ASSERT(vol->IsReadWrite());
     
     {
 	ViceReintHandle VR;
@@ -3038,7 +3038,7 @@ int cmlent::CloseReintegrationHandle(char *buf, int bufsize,
         if (code != 0) goto Exit;
     }
     
-    CODA_ASSERT(vol->IsReintegrated());
+    CODA_ASSERT(vol->IsReadWrite());
 
     /* don't bother with VCBs, will lose them on resolve anyway */
     RPC2_CountedBS OldVS; 
@@ -3221,7 +3221,7 @@ int reintvol::PurgeMLEs(uid_t uid)
 	return(ENOENT);
     if (CML.owner != uid && uid != V_UID)
 	return(EACCES);
-    if (IsReintegrated() && ((reintvol *)this)->IsReintegrating())
+    if (IsReadWrite() && ((reintvol *)this)->IsReintegrating())
       return EACCES;
 
     LOG(0, ("volent::PurgeMLEs:(%s) (%x.%x)\n", name, realm->Id(), vid));

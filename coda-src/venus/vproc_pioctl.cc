@@ -953,7 +953,7 @@ OI_FreeLocks:
 		    {
 		    char *ckpdir = (data->in_size == 0 ? 0 : (char *) data->in);
                     u.u_error = EOPNOTSUPP;
-                    if (v->IsReintegrated())
+                    if (v->IsReadWrite())
                         u.u_error = ((reintvol *)v)->CheckPointMLEs(u.u_uid, ckpdir);
 		    break;
 		    }
@@ -961,7 +961,7 @@ OI_FreeLocks:
 		case _VIOC_PURGEML:
 		    {
                     u.u_error = EOPNOTSUPP;
-                    if (v->IsReintegrated())
+                    if (v->IsReadWrite())
                         u.u_error = ((reintvol *)v)->PurgeMLEs(u.u_uid);
 		    break;
 		    }
@@ -976,7 +976,7 @@ OI_FreeLocks:
 #define agep ((unsigned int *)(startp))
 #define timep ((unsigned int *)(agep + 1))
                     u.u_error = EOPNOTSUPP;
-                    if (v->IsReintegrated())
+                    if (v->IsReadWrite())
                         u.u_error = ((reintvol *)v)->WriteDisconnect(*agep, *timep); 
 #undef timep
 #undef agep
@@ -1000,7 +1000,7 @@ OI_FreeLocks:
 		case _VIOC_SYNCCACHE:
 			{
                   u.u_error = EOPNOTSUPP;
-                  if (v->IsReintegrated()) {
+                  if (v->IsReadWrite()) {
 		      v->Exit(volmode, u.u_uid);
 		      entered = 0;
 		      u.u_error = ((reintvol *)v)->SyncCache(NULL);
@@ -1137,7 +1137,7 @@ OI_FreeLocks:
 		      }
 
 		      u.u_error = EOPNOTSUPP;
-		      if(v->IsReintegrated()) {
+		      if(v->IsReadWrite()) {
 			sprintf(msg, "no action performed\n");
 			u.u_error = 0;
 		      }
@@ -1158,7 +1158,7 @@ OI_FreeLocks:
 		      u.u_error = EINVAL;
 		    else
 		      u.u_error = EOPNOTSUPP;
-		    if(msg && v->IsReintegrated()) {
+		    if(msg && v->IsReadWrite()) {
 		      ClientModifyLog *cml = ((reintvol *)v)->GetCML();
 		      cml->CheckCMLHead(msg);
 		      u.u_error = 0;
@@ -1186,7 +1186,7 @@ OI_FreeLocks:
 
 		    msg[0] = '\0';
 		    u.u_error = EOPNOTSUPP;
-		    if(v->IsReintegrated()) {
+		    if(v->IsReadWrite()) {
 		      ClientModifyLog *cml = ((reintvol *)v)->GetCML();
 		      u.u_error = 0;
 		      cml->PreserveLocalMutation(msg);
@@ -1211,7 +1211,7 @@ OI_FreeLocks:
 		    }
 
 		    u.u_error = EOPNOTSUPP;
-		    if(v->IsReintegrated()) {
+		    if(v->IsReadWrite()) {
 		      ClientModifyLog *cml = ((reintvol *)v)->GetCML();
 		      CODA_ASSERT(cml);
 		      if(!cml) {
@@ -1243,7 +1243,7 @@ OI_FreeLocks:
 		    }
 
 		    u.u_error = EOPNOTSUPP;
-		    if(v->IsReintegrated()) {
+		    if(v->IsReadWrite()) {
 		      ClientModifyLog *cml = ((reintvol *)v)->GetCML();
 		      CODA_ASSERT(cml);
 		      if(!cml) {
@@ -1277,7 +1277,7 @@ OI_FreeLocks:
 */
 		case REP_CMD_LIST:
 		  {
-		    if(!v->IsReintegrated()) {
+		    if(!v->IsReadWrite()) {
                         u.u_error = EOPNOTSUPP;
                         break;
                     }
