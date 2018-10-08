@@ -74,24 +74,25 @@ static void FetchProgressIndicator_stub(void *up, unsigned int offset)
 
 void fsobj::FetchProgressIndicator(unsigned long offset)
 {
-    unsigned long last;
-    unsigned long curr;
-    
-    if (stat.Length > 100000) {
-        last = GotThisData / (stat.Length / 100) ; 
-	curr = offset / (stat.Length / 100) ;
-    } else if (stat.Length > 0) {
-        last = 100 * GotThisData / stat.Length ; 
-	curr = 100 * offset / stat.Length ;
+    static uint64_t last = 0;
+    uint64_t curr;
+    uint64_t total_data = GotThisDataEnd - GotThisDataStart;
+    uint64_t curr_data = offset - GotThisDataStart;
+
+    if (total_data != 0) {
+        curr = (100.0f * curr_data) / total_data;
     } else {
 	last = 0;
 	curr = 100;
     }
 
-    if (last != curr)
-	MarinerLog("progress::fetching (%s) %lu%%\n", GetComp(), curr);
+    if (last != curr) {
+        MarinerLog("progress::fetching (%s) %lu%% (%luBs/%luBs) [%lu - %lu]\n",
+                   GetComp(), curr, curr_data, total_data, GotThisDataStart,
+                   GotThisDataEnd);
+    }
 
-    GotThisData = (unsigned long)offset;
+    last = curr;
 }
 
 /* MUST be called from within a transaction */
@@ -220,11 +221,50 @@ int fsobj::FetchFileRPC(connent *con, ViceStatus *status, uint64_t offset,
 
     if (IsFile()) {
         Recov_BeginTrans();
-        cf.SetValidData(GotThisData);
+        cf.SetValidData(offset, len);
         Recov_EndTrans(CMFP);
     }
 
     return code;
+}
+
+static int CheckTranferedData(uint64_t pos, int64_t count, 
+    uint64_t length, uint64_t transfred) 
+{
+    LOG(10, ("(Multi)ViceFetch: fetched %lu bytes\n", transfred));
+
+    if (pos > length) return EINVAL;
+
+    if (count < 0) goto TillEndFetching;
+
+    /* Handle the VASTRO case */ 
+    /* If reaching EOF */
+    if (pos + count > length) {
+        if (transfred != (length - pos)) {
+            LOG(0, ("fsobj::Fetch: fetched data amount mismatch (%lu, %lu)",
+                    transfred, (length - pos)));
+            return ERETRY;
+        }
+    } 
+
+    if (transfred != (uint64_t)count) {
+        LOG(0, ("fsobj::Fetch: fetched data amount mismatch (%lu, %lu)",
+                transfred, count));
+        return ERETRY;
+    }
+
+    return 0;
+
+TillEndFetching:
+    /* If not VASTRO or Fetch till the end */
+    if ((pos + transfred) != length) {
+        // print(logFile);
+        LOG(0, ("fsobj::Fetch: fetched file length mismatch (%lu, %lu)",
+                pos + transfred, length));
+        return ERETRY;
+    }
+
+    return 0;
 }
 
 int fsobj::Fetch(uid_t uid)
@@ -237,9 +277,6 @@ int fsobj::Fetch(uid_t uid, uint64_t pos, int64_t count)
     int fd = -1;
     int code = 0;
     
-
-    LOG(10, ("fsobj::Fetch: (%s), uid = %d\n", GetComp(), uid));
-
     CODA_ASSERT(!IsLocalObj() && !IsFake());
 
     /* Sanity checks. */
@@ -274,7 +311,13 @@ int fsobj::Fetch(uid_t uid, uint64_t pos, int64_t count)
     uint64_t offset = IsFile() ? cf.ValidData() : 0;
     int64_t len = -1;
 
-    GotThisData = 0;
+    if (IsFile()) {
+        offset = cf.ConsecutiveValidData();
+        len = -1;
+    }
+
+    GotThisDataStart = offset;
+    GotThisDataEnd = len > 0 ? offset + len : Size();
 
     /* C++ 3.0 whines if the following decls moved closer to use  -- Satya */
     {
@@ -386,16 +429,10 @@ int fsobj::Fetch(uid_t uid, uint64_t pos, int64_t count)
             code = FetchFileRPC(c, &status, offset, len, &PiggyBS, sed);
             if (code != 0) goto RepExit;
 
-	    {
-            unsigned long bytes = (unsigned long)sed->Value.SmartFTPD.BytesTransferred;
-            LOG(10, ("(Multi)ViceFetch: fetched %lu bytes\n", bytes));
-            if ((offset + bytes) != status.Length) {
-                // print(logFile);
-                LOG(0, ("fsobj::Fetch: fetched file length mismatch (%lu, %lu)",
-                        offset + bytes, status.Length));
-                code = ERETRY;
+            {
+                unsigned long bytes = (unsigned long)sed->Value.SmartFTPD.BytesTransferred;        
+                code = CheckTranferedData(pos, count, status.Length, bytes);
             }
-	    }
 
 	    /* Handle failed validations. */
 	    if (VV_Cmp(&status.VV, &stat.VV) != VV_EQ) {
@@ -452,16 +489,10 @@ RepExit:
         code = FetchFileRPC(c, &status, offset, len, &PiggyBS, sed);
         if (code != 0) goto NonRepExit;
 
-	{
-	    unsigned long bytes = sed->Value.SmartFTPD.BytesTransferred;
-	    LOG(10, ("ViceFetch: fetched %lu bytes\n", bytes));
-	    if ((offset + bytes) != status.Length) {
-		//print(logFile);
-		LOG(0, ("fsobj::Fetch: fetch file size mismatch (%lu, %lu)",
-		        offset + bytes, status.Length));
-		code = ERETRY;
-	    }
-	}
+    {
+        unsigned long bytes = sed->Value.SmartFTPD.BytesTransferred;
+        code = CheckTranferedData(pos, count, status.Length, bytes);
+    }
 
 	/* Handle failed validations. */
 	if (HAVESTATUS(this) && status.DataVersion != stat.DataVersion) {
@@ -1134,6 +1165,7 @@ void fsobj::LocalStore(Date_t Mtime, unsigned long NewLength)
     stat.DataVersion++;
     stat.Length = NewLength;
     stat.Date = Mtime;
+    cf.SetValidData(NewLength);
     memset(VenusSHA, 0, SHA_DIGEST_LENGTH);
 
     UpdateCacheStats((IsDir() ? &FSDB->DirAttrStats : &FSDB->FileAttrStats),
@@ -1187,6 +1219,7 @@ int fsobj::Store(unsigned long NewLength, Date_t Mtime, uid_t uid)
 	Kill();
 	Recov_EndTrans(DMFP);
     }
+    
     return(code);
 }
 

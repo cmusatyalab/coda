@@ -160,7 +160,7 @@ void FSOInit() {
 		while ((f = next())) {
 		    /* Validate the cache-file, and record its blocks. */
 		    f->cf.Validate();
-		    FSDB->ChangeDiskUsage(NBLOCKS(f->cf.Length()));
+		    FSDB->ChangeDiskUsage(NBLOCKS(f->cf.ValidData()));
 
 		    /* Initialize transient members. */
 		    f->ResetTransient();
@@ -1264,7 +1264,7 @@ void fsdb::ReclaimFsos(int priority, int count) {
 	/* Reclaim fso and data. */
 	MarinerLog("cache::Replace [%s] %s [%d, %d]\n",
 		   (HAVEDATA(f) ? "status/data" : "status"),
-		   f->GetComp(), f->priority, NBLOCKS(f->cf.Length()));
+		   f->GetComp(), f->priority, NBLOCKS(f->cf.ValidData()));
 	UpdateCacheStats((f->IsDir() ? &DirAttrStats : &FileAttrStats),
 			 REPLACE, NBLOCKS(sizeof(fsobj)));
 	if (HAVEDATA(f))
@@ -1316,7 +1316,7 @@ int fsdb::DirtyBlockCount() {
     fsobj *f;
     while ((f = next())) {
         if (!REPLACEABLE(f) && !f->IsSymLink()) {
-	    count += NBLOCKS(f->cf.Length());
+	    count += NBLOCKS(f->cf.ValidData());
 	}
     }
 
@@ -1395,12 +1395,14 @@ void fsdb::ReclaimBlocks(int priority, int nblocks) {
 	/* Reclaim data.  Return if we've got enough. */
 	MarinerLog("cache::Replace [data] %s [%d, %d]\n",
 		   f->GetComp(), f->priority, ufs_blocks);
-	UpdateCacheStats((f->IsDir() ? &DirDataStats : &FileDataStats),
-			 REPLACE, BLOCKS(f));
 
 	f->DiscardData();
 
-	reclaimed += ufs_blocks;
+	reclaimed += ufs_blocks - f->cf.ValidData();
+    
+    UpdateCacheStats((f->IsDir() ? &DirDataStats : &FileDataStats),
+			 REPLACE, reclaimed);
+    
 	if (reclaimed >= nblocks) break;
     }
 }

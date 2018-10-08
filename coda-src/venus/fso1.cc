@@ -1820,7 +1820,7 @@ void fsobj::DiscardData() {
 	    {
 	    /* stat.Length() might have been changed, only data.file->Length()
 	     * can be trusted */
-	    FSDB->FreeBlocks(NBLOCKS(data.file->Length()));
+	    FSDB->FreeBlocks(NBLOCKS(data.file->ValidData()));
 	    data.file->Truncate(0);
 	    data.file = 0;
 	    }
@@ -2318,7 +2318,7 @@ int fsobj::MakeShadow()
      * Create a shadow, using a name both distinctive and that will
      * be garbage collected at startup.
      */
-    if (!shadow) shadow = new CacheFile(-(ix+1));
+    if (!shadow) shadow = new CacheFile(-(ix+1), 0);
     else	 shadow->IncRef();
 
     if (!shadow) return -1;
@@ -2758,4 +2758,3 @@ fsobj *fso_iterator::operator()() {
 	}
     }
 }
-
