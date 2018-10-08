@@ -1109,7 +1109,7 @@ int volent::Enter(int mode, uid_t uid)
 		while ((excl_count > 0 && proc_key != excl_pgid) ||
                        IsResolving() ||
                        ((IsReintegrated()) &&
-                       WriteLocked(&((repvol *)this)->CML_lock)) ||
+                       WriteLocked(&((reintvol *)this)->CML_lock)) ||
                        flags.transition_pending) {
 		    if (mode & VM_NDELAY) return (EWOULDBLOCK);
 		    LOG(0, ("volent::Enter: mutate with proc_key = %d\n",
@@ -1122,7 +1122,7 @@ int volent::Enter(int mode, uid_t uid)
 		 * mutator needs to aquire exclusive CML ownership
 		 */
 		if (IsReintegrated()) {
-                repvol *rv = (repvol *)this;
+                reintvol *rv = (reintvol *)this;
 
 		    /* 
 		     * Claim ownership if the volume is free. 

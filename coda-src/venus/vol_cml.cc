@@ -3198,7 +3198,7 @@ void RecoverPathName(char *path, VenusFid *fid, ClientModifyLog *CML, cmlent *st
 }
 
 
-int repvol::CheckPointMLEs(uid_t uid, char *ckpdir) 
+int reintvol::CheckPointMLEs(uid_t uid, char *ckpdir) 
 {
     if (CML.count() == 0)
 	return(ENOENT);
@@ -3215,13 +3215,13 @@ int repvol::CheckPointMLEs(uid_t uid, char *ckpdir)
 
 
 /* MUST NOT be called from within transaction! */
-int repvol::PurgeMLEs(uid_t uid)
+int reintvol::PurgeMLEs(uid_t uid)
 {
     if (CML.count() == 0)
 	return(ENOENT);
     if (CML.owner != uid && uid != V_UID)
 	return(EACCES);
-    if (IsReplicated() && ((repvol *)this)->IsReintegrating())
+    if (IsReintegrated() && ((reintvol *)this)->IsReintegrating())
       return EACCES;
 
     LOG(0, ("volent::PurgeMLEs:(%s) (%x.%x)\n", name, realm->Id(), vid));
@@ -3269,7 +3269,7 @@ int repvol::PurgeMLEs(uid_t uid)
 }
 
 
-int repvol::LastMLETime(unsigned long *time)
+int reintvol::LastMLETime(unsigned long *time)
 {
     if (CML.count() == 0)
 	return(ENOENT);

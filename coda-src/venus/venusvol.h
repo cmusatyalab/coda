@@ -702,6 +702,7 @@ class reintvol: public volent {
     friend class fsobj;
     friend class volent;
     friend class cmlent;
+    friend class vdb;
     
 private:
     
@@ -794,6 +795,17 @@ public:
     int LogRepair(time_t, uid_t, VenusFid *, RPC2_Unsigned,
 		  Date_t, UserId, RPC2_Unsigned, int prepend);
     /* local-repair modifications to the above methods */
+    
+    int	CheckPointMLEs(uid_t, char *);
+    int LastMLETime(unsigned long *);
+    int PurgeMLEs(uid_t);
+    
+    /* CML routines */
+    void ListCML(FILE *fp);
+    void PreserveAllLocalMutation(char *msg);
+    void PreserveLocalMutation(char *msg);
+    void DiscardAllLocalMutation(char *msg);
+    void DiscardLocalMutation(char *msg);
     
 };
 
@@ -904,19 +916,7 @@ class repvol : public reintvol {
     void Reconfigure(void);
     
     /* Allocation routines. */
-    
-
     void RestoreObj(VenusFid *);
-    int	CheckPointMLEs(uid_t, char *);
-    int LastMLETime(unsigned long *);
-    int PurgeMLEs(uid_t);
-
-    /* CML routines */
-    void ListCML(FILE *fp);
-    void PreserveAllLocalMutation(char *msg);
-    void PreserveLocalMutation(char *msg);
-    void DiscardAllLocalMutation(char *msg);
-    void DiscardLocalMutation(char *msg);
 
     /* Repair routines. */
     int Repair(VenusFid *, char *, uid_t, VolumeId *, int *);
