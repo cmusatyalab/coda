@@ -228,7 +228,7 @@ int fsobj::FetchFileRPC(connent *con, ViceStatus *status, uint64_t offset,
     return code;
 }
 
-static int CheckTranferedData(uint64_t pos, int64_t count, 
+static int CheckTransferredData(uint64_t pos, int64_t count,
     uint64_t length, uint64_t transfred) 
 {
     LOG(10, ("(Multi)ViceFetch: fetched %lu bytes\n", transfred));
@@ -431,7 +431,7 @@ int fsobj::Fetch(uid_t uid, uint64_t pos, int64_t count)
 
             {
                 unsigned long bytes = (unsigned long)sed->Value.SmartFTPD.BytesTransferred;        
-                code = CheckTranferedData(pos, count, status.Length, bytes);
+                code = CheckTransferredData(pos, count, status.Length, bytes);
             }
 
 	    /* Handle failed validations. */
@@ -491,7 +491,7 @@ RepExit:
 
     {
         unsigned long bytes = sed->Value.SmartFTPD.BytesTransferred;
-        code = CheckTranferedData(pos, count, status.Length, bytes);
+        code = CheckTransferredData(pos, count, status.Length, bytes);
     }
 
 	/* Handle failed validations. */

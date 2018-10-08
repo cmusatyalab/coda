@@ -721,7 +721,6 @@ static void DefaultCmdlineParms()
 {
     int DontUseRVM = 0;
     const char *CacheSize = NULL;
-    const char *TmpWFMax = NULL;
     const char *TmpCacheChunkBlockSize = NULL;
 
     /* Load the "venus.conf" configuration file */

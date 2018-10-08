@@ -29,7 +29,7 @@ char * codaenv_find(const char * var_name) {
     char env_var[256];
     char * val = NULL;
 
-    snprintf(env_var, sizeof(env_var), "CODA_%s\0", var_name);
+    snprintf(env_var, sizeof(env_var), "CODA_%s", var_name);
 
     val = getenv(env_var);
 

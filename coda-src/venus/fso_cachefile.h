@@ -217,8 +217,7 @@ static inline uint64_t length_align_to_ccblock(uint64_t b_pos, int64_t b_count)
 
 #define FS_BLOCKS_SIZE_MAX    (4095)
 #define FS_BLOCKS_SIZE_MASK   (~FS_BLOCKS_SIZE_MAX)
-#define FS_BLOCKS_ALIGN(size) ((size + FS_BLOCKS_SIZE_MAX) & \ 
-                               FS_BLOCKS_SIZE_MASK)
+#define FS_BLOCKS_ALIGN(size) ((size + FS_BLOCKS_SIZE_MAX) & FS_BLOCKS_SIZE_MASK)
 
 class CacheFile {
     long length;  /**< Length of the container file */
