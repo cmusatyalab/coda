@@ -234,7 +234,8 @@ extern char *ViceErrorMsg(int);
 /* codaproc.c */
 extern ViceVersionVector NullVV;
 extern long InternalCOP2(RPC2_Handle, ViceStoreId *, ViceVersionVector *);
-extern void NewCOP1Update(Volume *, Vnode *, ViceStoreId *, RPC2_Integer * =NULL);
+extern void NewCOP1Update(Volume *, Vnode *, ViceStoreId *, 
+                          RPC2_Integer * =NULL, bool isReplicated = true);
 extern void COP2Update(Volume *, Vnode *, ViceVersionVector *);
 extern long InternalCOP2(RPC2_Handle, ViceStoreId *, ViceVersionVector *);
 extern void PollAndYield();

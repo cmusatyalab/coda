@@ -194,7 +194,7 @@ static int AddParent(Volume **, dlist *, ViceFid *);
 static int ReintNormalVCmp(int, VnodeType, void *, void *);
 static void ReintPrelimCOP(vle *, const ViceStoreId *oldSID,
 			   const ViceStoreId *newSID);
-static void ReintFinalCOP(vle *, Volume *, RPC2_Integer *);
+static void ReintFinalCOP(vle *, Volume *, RPC2_Integer *, bool isReplicated);
 static int ValidateRHandle(VolumeId, ViceReintHandle *);
 
 
@@ -1964,7 +1964,7 @@ START_TIMING(Reintegrate_PutObjects);
 		SLog(2, "PutReintegrateObjects: un-mutated or deleted fid %s",
 		       FID_(&v->fid));
 	    }
-                if (isReplicated) ReintFinalCOP(v, volptr, NewVS);
+        ReintFinalCOP(v, volptr, NewVS, isReplicated);
 
 	    /* write down stale directory fids */
 	    if (StaleDirs && v->vptr->disk.type == vDirectory && 
@@ -2219,7 +2219,8 @@ static void ReintPrelimCOP(vle *v, const ViceStoreId *OldSid,
 }
 
 
-static void ReintFinalCOP(vle *v, Volume *volptr, RPC2_Integer *VS) 
+static void ReintFinalCOP(vle *v, Volume *volptr, RPC2_Integer *VS, 
+                          bool isReplicated) 
 {
 	ViceStoreId *FinalSid;
 	ViceStoreId UniqueSid;
@@ -2232,9 +2233,7 @@ static void ReintFinalCOP(vle *v, Volume *volptr, RPC2_Integer *VS)
 	}
 
 	/* 1. Record COP1 (for final update). */
-    if (IsReplicated(&V_id(volptr))) {
-        NewCOP1Update(volptr, v->vptr, FinalSid, VS);
-    }
+    NewCOP1Update(volptr, v->vptr, FinalSid, VS, isReplicated);
 
 	/* 2. Record COP2 pending (for final update). */
 	/* Note that for directories that "need-resolved", 
@@ -2311,4 +2310,3 @@ static int ValidateRHandle(VolumeId Vid, ViceReintHandle *RHandle)
  Exit:
     return(error);
 }
-

@@ -472,6 +472,16 @@ RepExit:
 	if (HAVESTATUS(this) && !CompareVersion(&status)) {
 	    LOG(1, ("fsobj::Fetch: failed validation (%d, %d)\n",
 		    status.DataVersion, stat.DataVersion));
+        if (LogLevel >= 1) {
+            int *r = ((int *)&status.VV);
+            dprint("\tremote = [%x %x %x %x %x %x %x %x] [%x %x] [%x]\n",
+        	   r[0], r[1], r[2], r[3], r[4],
+        	   r[5], r[6], r[7], r[8], r[9], r[10]);
+            int *l = ((int *)&stat.VV);
+            dprint("\tlocal = [%x %x %x %x %x %x %x %x] [%x %x] [%x]\n",
+        	   l[0], l[1], l[2], l[3], l[4],
+        	   l[5], l[6], l[7], l[8], l[9], l[10]);
+        }
 	    code = EAGAIN;
 	}
 
@@ -1052,6 +1062,16 @@ RepExit:
     if (HAVESTATUS(this) && !CompareVersion(&status)) {
         LOG(1, ("fsobj::GetAttr: failed validation (%d, %d)\n",
             status.DataVersion, stat.DataVersion));
+        if (LogLevel >= 1) {
+            int *r = ((int *)&status.VV);
+            dprint("\tremote = [%x %x %x %x %x %x %x %x] [%x %x] [%x]\n",
+        	   r[0], r[1], r[2], r[3], r[4],
+        	   r[5], r[6], r[7], r[8], r[9], r[10]);
+            int *l = ((int *)&stat.VV);
+            dprint("\tlocal = [%x %x %x %x %x %x %x %x] [%x %x] [%x]\n",
+        	   l[0], l[1], l[2], l[3], l[4],
+        	   l[5], l[6], l[7], l[8], l[9], l[10]);
+        }
 
         Demote();
 
