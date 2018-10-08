@@ -980,8 +980,6 @@ int volent::IsNonReplicated()
 
     if (vp->IsReadWriteReplica()) return 0;
 
-    if (IsBackup()) return 0;
-
     if (flags.readonly) return 0;
 
     return 1;
