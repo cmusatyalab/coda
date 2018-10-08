@@ -145,7 +145,7 @@ class ClientModifyLog {
   friend class cmlent;
   friend class cml_iterator;
   friend class repvol;
-  friend class reintegrated_volume;
+  friend class reintvol;
   friend class volent; /* ::Enter(int, uid_t); */
                        /* ::Exit(int, uid_t) */
 
@@ -253,7 +253,7 @@ class cmlent {
   friend class cml_iterator;
   friend class volent;
   friend class repvol;
-  friend class reintegrated_volume;
+  friend class reintvol;
   friend class fsobj;
   friend int PathAltered(VenusFid *, char *, ClientModifyLog *, cmlent *);
 
@@ -697,7 +697,7 @@ class volent {
     
 };
 
-class reintegrated_volume: public volent {
+class reintvol: public volent {
     friend class ClientModifyLog;
     friend class fsobj;
     friend class volent;
@@ -728,7 +728,7 @@ protected:
     /*?*/cmlent * reintegrate_done;    /* WriteBack Caching */
 
 public:
-    reintegrated_volume(Realm *r, VolumeId volid, const char *volname);
+    reintvol(Realm *r, VolumeId volid, const char *volname);
     
     long LengthOfCML() { return(CML.entries); }
     void ResetStats() { CML.ResetHighWater(); }
@@ -800,7 +800,7 @@ public:
 class srvent;
 
 /* A volume replica entry. */
-class volrep : public reintegrated_volume {
+class volrep : public reintvol {
     friend class vdb;
     friend class volent;
     friend void VolInit(void);
@@ -843,7 +843,7 @@ class volrep : public reintegrated_volume {
 };
 
 /* A replicated volume entry. */
-class repvol : public reintegrated_volume {
+class repvol : public reintvol {
     friend class cmlent;
     friend class fsobj;
     friend class vdb;

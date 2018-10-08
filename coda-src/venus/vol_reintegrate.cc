@@ -73,7 +73,7 @@ extern "C" {
 
 
 /* must not be called from within a transaction */
-void reintegrated_volume::Reintegrate()
+void reintvol::Reintegrate()
 {
     LOG(0, ("repvol::Reintegrate\n"));
 
@@ -287,7 +287,7 @@ Done:
  */
 
 /* must not be called from within a transaction */
-int reintegrated_volume::IncReintegrate(int tid)
+int reintvol::IncReintegrate(int tid)
 {
     LOG(0, ("volent::IncReintegrate: (%s, %d) uid = %d\n",
 	    name, tid, CML.owner));
@@ -501,7 +501,7 @@ extern struct timeval *VprocRetryBeta;
  * Reintegrate some portion of the store record at the head
  * of the log.
  */
-int reintegrated_volume::PartialReintegrate(int tid, unsigned long *reint_time)
+int reintvol::PartialReintegrate(int tid, unsigned long *reint_time)
 {
     cmlent *m;
     int code = 0;
@@ -626,7 +626,7 @@ CheckResult:
  * determine if a volume has updates that may be reintegrated,
  * and return the number. humongous predicate check here.  
  */
-int reintegrated_volume::ReadyToReintegrate()
+int reintvol::ReadyToReintegrate()
 {
     userent *u; 
     cml_iterator next(CML, CommitOrder);

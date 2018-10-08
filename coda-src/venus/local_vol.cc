@@ -42,7 +42,7 @@ extern "C" {
 
 
 /* must not be called from within a transaction */
-void reintegrated_volume::IncAbort(int tid)
+void reintvol::IncAbort(int tid)
 {
     CML.IncAbort(tid);
     if (CML.count() == 0)
@@ -50,7 +50,7 @@ void reintegrated_volume::IncAbort(int tid)
 }
 
 /* need not be called from within a transaction */
-int reintegrated_volume::ContainUnrepairedCML()
+int reintvol::ContainUnrepairedCML()
 {
     cml_iterator next(CML, CommitOrder);
     cmlent *m;
@@ -62,7 +62,7 @@ int reintegrated_volume::ContainUnrepairedCML()
 }
 
 /* must not be called from within a transaction */
-int reintegrated_volume::GetReintId()
+int reintvol::GetReintId()
 {
     Recov_BeginTrans();
     RVMLIB_REC_OBJECT(reint_id_gen);

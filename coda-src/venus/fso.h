@@ -392,7 +392,7 @@ class fsobj {
   friend class namectxt;
   friend class volent;
   friend class repvol;
-  friend class reintegrated_volume;
+  friend class reintvol;
   friend class ClientModifyLog;
   friend class cmlent;
   friend class cml_iterator;

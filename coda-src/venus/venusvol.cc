@@ -949,7 +949,7 @@ void volent::release(void)
 
     /* special test needed for volumes with local repair conflict */
     if (IsReintegrated()) {
-        if (((reintegrated_volume *)this)->CML.count() != 0) return;
+        if (((reintvol *)this)->CML.count() != 0) return;
     }
 
     /* we could be called when there already is a transaction ongoing, we
@@ -987,7 +987,7 @@ int volent::IsNonReplicated()
     return 1;
 }
 
-void reintegrated_volume::ReportVolState(void)
+void reintvol::ReportVolState(void)
 {
     const char *volstate;
 
@@ -1352,7 +1352,7 @@ void volent::TakeTransition()
 
     VolumeStateType nextstate;
     int avsgsize = AVSGsize();
-    reintegrated_volume *rv;
+    reintvol *rv;
 
     if (!(IsReintegrated())) {
     	LOG(1, ("volent::TakeTransition %s |AVSG| = %d\n", name, avsgsize));
@@ -1361,7 +1361,7 @@ void volent::TakeTransition()
     	Signal();
     	return;
     }
-    rv = (reintegrated_volume *)this;
+    rv = (reintvol *)this;
 
     if (IsReplicated()) {
         LOG(1, ("volent::TakeTransition: %s, state = %s, |AVSG| = %d, "
@@ -1499,7 +1499,7 @@ void repvol::UpMember(void)
     ResetStats();
 }
 
-int reintegrated_volume::WriteDisconnect(unsigned int age, unsigned int hogtime)
+int reintvol::WriteDisconnect(unsigned int age, unsigned int hogtime)
 {
     Recov_BeginTrans();
 
@@ -1517,7 +1517,7 @@ int reintegrated_volume::WriteDisconnect(unsigned int age, unsigned int hogtime)
     return 0;
 }
 
-int reintegrated_volume::SyncCache(VenusFid * fid)
+int reintvol::SyncCache(VenusFid * fid)
 {
     LOG(1,("volent::SyncCache()\n"));
 
@@ -1613,7 +1613,7 @@ void volent::UnLock(VolLockType l)
 
 volrep::volrep(Realm *r, VolumeId vid, const char *name,
 	       struct in_addr *addr, int readonly, VolumeId parent) :
-	reintegrated_volume(r, vid, name)
+	reintvol(r, vid, name)
 {
     LOG(10, ("volrep::volrep: host: %s readonly: %d parent: %#08x)\n",
              inet_ntoa(*addr), readonly, parent));
@@ -1729,7 +1729,7 @@ int volent::Collate(connent *c, int code, int TranslateEINCOMP)
     return(code);
 }
 
-repvol::repvol(Realm *r, VolumeId vid, const char *name, volrep *reps[VSG_MEMBERS]) : reintegrated_volume(r, vid, name)
+repvol::repvol(Realm *r, VolumeId vid, const char *name, volrep *reps[VSG_MEMBERS]) : reintvol(r, vid, name)
 {
     LOG(10, ("repvol::repvol %08x %08x %08x %08x %08x %08x %08x %08x\n",
              reps[0], reps[1], reps[2], reps[3],
@@ -1830,7 +1830,7 @@ int volrep::GetConn(connent **c, uid_t uid)
     return(code);
 }
 
-int reintegrated_volume::GetConn(connent **c, uid_t uid, mgrpent **m, int *ph_ix, struct in_addr *phost)
+int reintvol::GetConn(connent **c, uid_t uid, mgrpent **m, int *ph_ix, struct in_addr *phost)
 {
     volrep *vr = (volrep *)this;
     repvol *rv = (repvol *)this;
@@ -1960,9 +1960,9 @@ void repvol::GetBandwidth(unsigned long *bw)
     if (*bw == 0) *bw = INIT_BW;
 }
 
-int reintegrated_volume::AllocFid(ViceDataType Type, VenusFid *target_fid, uid_t uid, int force)
+int reintvol::AllocFid(ViceDataType Type, VenusFid *target_fid, uid_t uid, int force)
 {
-    LOG(10, ("reintegrated_volume::AllocFid: (%x, %d), uid = %d\n", vid, Type, uid));
+    LOG(10, ("reintvol::AllocFid: (%x, %d), uid = %d\n", vid, Type, uid));
     int code = 0;
     FidRange *Fids = 0;
     
@@ -1985,7 +1985,7 @@ int reintegrated_volume::AllocFid(ViceDataType Type, VenusFid *target_fid, uid_t
         case Invalid:
         default:
             print(logFile);
-            CHOKE("reintegrated_volume::AllocFid: bogus Type (%d)", Type);
+            CHOKE("reintvol::AllocFid: bogus Type (%d)", Type);
         }
 
         if (Fids->Count > 0) {
@@ -2001,7 +2001,7 @@ int reintegrated_volume::AllocFid(ViceDataType Type, VenusFid *target_fid, uid_t
                Fids->Count--;
             Recov_EndTrans(MAXFP);
 
-            LOG(100, ("reintegrated_volume::AllocFid: target_fid = %s\n", FID_(target_fid)));
+            LOG(100, ("reintvol::AllocFid: target_fid = %s\n", FID_(target_fid)));
             return(0);
         }
     }
@@ -2012,7 +2012,7 @@ int reintegrated_volume::AllocFid(ViceDataType Type, VenusFid *target_fid, uid_t
     
     if (IsUnreachable() || (IsReachable() && !force)) {
         *target_fid = GenerateLocalFid(Type);
-        LOG(10, ("reintegrated_volume::AllocFid: target_fid = %s\n", FID_(target_fid)));
+        LOG(10, ("reintvol::AllocFid: target_fid = %s\n", FID_(target_fid)));
         return(code);
     }
     
@@ -2068,7 +2068,7 @@ int reintegrated_volume::AllocFid(ViceDataType Type, VenusFid *target_fid, uid_t
     case Invalid:
     default:
         print(logFile);
-        CHOKE("reintegrated_volume::AllocFid: bogus Type (%d)", Type);
+        CHOKE("reintvol::AllocFid: bogus Type (%d)", Type);
     }
 
     RVMLIB_REC_OBJECT(*Fids);
@@ -2380,7 +2380,7 @@ int repvol::Collate_COP2(mgrpent *m, int code)
 }
 
 
-VenusFid reintegrated_volume::GenerateLocalFid(ViceDataType fidtype)
+VenusFid reintvol::GenerateLocalFid(ViceDataType fidtype)
 {
     VenusFid fid;
 
@@ -2455,7 +2455,7 @@ int volent::GetVolStat(VolumeStatus *volstat, RPC2_BoundedBS *Name,
     
     if (IsReintegrated()) {
     	cmlstats current, cancelled;
-    	reintegrated_volume *rv = (reintegrated_volume *)this;
+    	reintvol *rv = (reintvol *)this;
 
     	*conflict = rv->ContainUnrepairedCML();
 
@@ -2858,7 +2858,7 @@ volrep *volrep_iterator::operator()()
     return (volrep *)v;
 }
 
-reintegrated_volume::reintegrated_volume(Realm *r, VolumeId volid, const char *volname) : volent(r, volid, volname)
+reintvol::reintvol(Realm *r, VolumeId volid, const char *volname) : volent(r, volid, volname)
 {
     AgeLimit   = default_reintegration_age;  /* seconds */
     ReintLimit = default_reintegration_time; /* milliseconds */
