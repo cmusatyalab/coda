@@ -1139,16 +1139,21 @@ int fsobj::TryToCover(VenusFid *inc_fid, uid_t uid)
 	return(ENOENT); /* ELOOP? */
 
     /* Check for bogosities. */
-    int len = (int) stat.Length;
-    if (len < 2) {
+    if (stat.Length < 2) {
 	eprint("TryToCover: bogus link length");
 	return(EINVAL);
     }
 
     char type = data.symlink[0];
+    char *mtlink = strdup(&data.symlink[1]);
+    size_t link_len = strlen(mtlink);
 
-    /* Turn volume name into a proper string. */
-    data.symlink[len-1] = '\0';
+    /* strip trailing '.' */
+    /* Stored mountlinks always had one, but for a while fake links
+     * did not. Once we know all clients reinited (7.0?) we could
+     * unconditionally strip this, if we care. */
+    if (mtlink[link_len-1] == '.')
+        mtlink[link_len-1] = '\0';
 
     VenusFid root_fid;
     FID_MakeRoot(MakeViceFid(&root_fid));
@@ -1159,7 +1164,7 @@ int fsobj::TryToCover(VenusFid *inc_fid, uid_t uid)
 
     switch(type) {
     case '#':
-      code = VDB->Get(&tvol, vol->realm, &data.symlink[1], this);
+      code = VDB->Get(&tvol, vol->realm, mtlink, this);
       break;
 
     case '@':
@@ -1175,19 +1180,20 @@ int fsobj::TryToCover(VenusFid *inc_fid, uid_t uid)
 	int n;
 	Realm *r = vol->realm;
 
-	n = sscanf(data.symlink, "%*c%x.%x.%x@%c", &vid.Volume,
+	n = sscanf(mtlink, "%x.%x.%x@%c", &vid.Volume,
 		   &root_fid.Vnode, &root_fid.Unique, &tmp);
 	if (n < 3) {
-	  LOG(0,("fsobj::TryToCover: (%s) -> %s failed parse.\n",
-		 FID_(&fid), data.symlink));
-	  return EINVAL;
+          LOG(0,("fsobj::TryToCover: (%s) -> %s failed parse.\n",
+                 FID_(&fid), data.symlink));
+          free(mtlink);
+          return EINVAL;
 	}
 
 	r->GetRef();
 
 	if (n == 4) {
 	  /* strrchr should succeed now because sscanf succeeded. */
-	  realmname = strrchr(data.symlink, '@')+1;
+	  realmname = strrchr(mtlink, '@')+1;
 
 	  r->PutRef();
 	  r = REALMDB->GetRealm(realmname);
@@ -1201,8 +1207,10 @@ int fsobj::TryToCover(VenusFid *inc_fid, uid_t uid)
 
     default:
       eprint("TryToCover: bogus mount point type (%c)", type);
+      free(mtlink);
       return(EINVAL);
     }
+    free(mtlink);
 
     if (code != 0) {
 	LOG(0, ("fsobj::TryToCover: vdb::Get(%s) failed (%d)\n", data.symlink, code));
@@ -1850,7 +1858,7 @@ void fsobj::DiscardData() {
 	    {
 	    /* Get rid of RVM data. */
 	    rvmlib_rec_free(data.symlink);
-	    data.symlink = 0;
+	    data.symlink = NULL;
 	    }
 	    break;
 
@@ -1932,7 +1940,7 @@ int fsobj::Fakeify(uid_t uid)
 
 	    /* "#@RRRRRRRRR." */
 	    /* realm = comp */
-	    stat.Length = strlen(comp) + 3;
+	    stat.Length = 3 + strlen(comp);
 	    data.symlink = (char *)rvmlib_rec_malloc(stat.Length+1);
 	    rvmlib_set_range(data.symlink, stat.Length+1);
 	    sprintf(data.symlink, "#@%s.", comp);
@@ -1989,8 +1997,7 @@ int fsobj::Fakeify(uid_t uid)
 	} else {
 	    /* get the actual object we're mounted on */
 	    fsobj *real_obj = pfso->u.mtpoint;
-	    ViceFid LinkFid;
-	    const char *realmname;
+	    VenusFid LinkFid;
 
 	    CODA_ASSERT(real_obj->vol->IsReplicated());
 
@@ -2001,18 +2008,15 @@ int fsobj::Fakeify(uid_t uid)
 	    LinkFid.Volume = fid.Unique;
 	    LinkFid.Vnode  = real_obj->fid.Vnode;
 	    LinkFid.Unique = real_obj->fid.Unique;
+
 	    /* should really be vp->volrep[i]->realm->Name(), but
 	     * cross-realm replication should probably not be attempted
 	     * anyways, with authentication issues and all -JH */
-	    realmname = real_obj->vol->realm->Name();
+	    //realmname = real_obj->vol->realm->Name();
+            LinkFid.Realm  = real_obj->fid.Realm;
 
 	    /* Write out the link contents. */
-	    /* "@XXXXXXXX.YYYYYYYY.ZZZZZZZZ@RRRRRRRRR" */
-	    stat.Length = 29 + strlen(realmname);
-	    data.symlink = (char *)rvmlib_rec_malloc(stat.Length);
-	    rvmlib_set_range(data.symlink, stat.Length);
-	    sprintf(data.symlink, "@%08x.%08x.%08x@%s",
-		    LinkFid.Volume, LinkFid.Vnode, LinkFid.Unique, realmname);
+            SetMtLinkContents(&LinkFid);
 
 	    LOG(10, ("fsobj::Fakeify: making %s a symlink %s\n",
 		    FID_(&fid), data.symlink));
