@@ -1468,6 +1468,7 @@ void vproc::read(struct venus_cnode * node, uint64_t pos, int64_t count)
     
     Begin_VFS(&node->c_fid, CODA_ACCESS_INTENT, VM_OBSERVING);
 
+
     /* Get the object. */
     f = FSDB->Find(&node->c_fid);
     if (!f) {
@@ -1478,6 +1479,7 @@ void vproc::read(struct venus_cnode * node, uint64_t pos, int64_t count)
     if (pos > f->Size()) {
         u.u_error = EIO;
         return;
+
     }
     
     End_VFS(NULL);

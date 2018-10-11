@@ -49,6 +49,7 @@ extern int global_kernfd;
 
 /* from util */
 #include <bitmap.h>
+#include <dlist.h>
 
 /* from lka */
 // #include <lka.h>
@@ -219,6 +220,125 @@ static inline uint64_t length_align_to_ccblock(uint64_t b_pos, int64_t b_count)
 #define FS_BLOCKS_SIZE_MASK   (~FS_BLOCKS_SIZE_MAX)
 #define FS_BLOCKS_ALIGN(size) ((size + FS_BLOCKS_SIZE_MAX) & FS_BLOCKS_SIZE_MASK)
 
+class CacheChunk : private dlink {
+private:
+    uint64_t start; /**< Chunk's start */
+    int64_t len; /**< Chunk's length */
+    bool valid; /**< Flags object as valid chunk */
+
+public:
+    /**
+     * Constructor
+     *
+     * @param start the chunk's start
+     * @param len   the chunk's length
+     */
+    CacheChunk(uint64_t start, int64_t len) : start(start), len(len), 
+        valid(true) {}
+
+    /**
+     * Constructor
+     */
+    CacheChunk() : start(0), len(0), valid(false) {}
+
+    /**
+     * Chunk's start getter
+     *
+     * @return the chunk's start
+     */
+    uint64_t GetStart() {return start;}
+
+    /**
+     * Chunk's length getter
+     *
+     * @return the chunk's length
+     */
+    int64_t GetLength() {return len;}
+
+    /**
+     * Check wether the object represents a valid chunk
+     *
+     * @return true if object represents a valid chunk and false otherwise
+     */
+    bool isValid() {return valid;}
+};
+
+class CacheChunkList : private dlist {
+    Lock rd_wr_lock; /**< Read/Write lock */
+public:
+    /**
+     * Constructor
+     */
+    CacheChunkList();
+    
+    /**
+     * Destructor
+     */
+    ~CacheChunkList();
+
+    /**
+     * Add a chunk to the list
+     *
+     * @param start chunk's start
+     * @param len   chunk's length
+     */
+    void AddChunk(uint64_t start, int64_t len);
+
+    /**
+     * Check if a chunk is in the list given its start and length
+     *
+     * @param start chunk's start
+     * @param len   chunk's length
+     *
+     * @return true if the chunk is contained in the list and false otherwise
+     */
+    bool ReverseCheck(uint64_t start, int64_t len);
+
+    /**
+     * Remove the corresponding element (searched from last to first)
+     *
+     * @param start chunk's start
+     * @param len   chunk's length
+     */
+    void ReverseRemove(uint64_t start, int64_t len);
+
+    /**
+     * For each function
+     *
+     * @param foreachcb for each callback
+     * @param usr_data  user closure to be passed to the callback
+     */
+    void ForEach(void (*foreachcb)(uint64_t start, int64_t len, 
+        void * usr_data_cb), void * usr_data = NULL);
+
+    /**
+     * Acquire the lock object's for reading
+     */
+    void ReadLock();
+
+    /**
+     * Release the lock object's (acquired for reading)
+     */
+    void ReadUnlock();
+
+    /**
+     * Acquire the lock object's for writing
+     */
+    void WriteLock();
+
+    /**
+     * Release the lock object's (acquired for writing)
+     */
+    void WriteUnlock();
+
+    /**
+     * Acquire the lock object's for reading
+     *
+     * @return the last added element
+     */
+    CacheChunk pop();
+};
+
 class CacheFile {
     long length;  /**< Length of the container file */
     long validdata; /**< Amount of actual and valid data in the container file */
@@ -240,6 +360,17 @@ class CacheFile {
      * Calculate the actual valid data based on the caching bitmap
      */
     void UpdateValidData();
+
+    /**
+     * Get the first cache chunk hole within a range
+     *
+     * @param start_b start of the range in ccblocks
+     * @param end_b   end of the range in ccblocks
+     *
+     * @return cache chunck of the first hole. Might be invalid (check validity
+     *         by calling isValid())
+     */
+    CacheChunk GetNextHole(uint64_t start_b, uint64_t end_b);
 
 public:
 
@@ -391,6 +522,14 @@ public:
      * @param len   length of the valid data's range
      */
     void SetValidData(uint64_t start, int64_t len);
+
+    /**
+     * Get the holes of the file within a range
+     *
+     * @param start start of the search range
+     * @param len   length of the search range
+     */
+    CacheChunkList * GetHoles(uint64_t start, int64_t len);
 
     /**
      * Get the name of the container file

@@ -479,3 +479,205 @@ uint64_t CacheFile::ConsecutiveValidData(void)
 
     return start;
 }
+
+CacheChunkList::CacheChunkList()
+{
+    Lock_Init(&rd_wr_lock);
+}
+
+CacheChunkList::~CacheChunkList()
+{
+    CacheChunk * curr = NULL;
+
+    while ((curr = (CacheChunk *)this->first())) {
+        this->remove((dlink *)curr);
+    }
+}
+
+
+CacheChunk CacheFile::GetNextHole(uint64_t start_b, uint64_t end_b) {
+    /* Floor length in blocks */
+    uint64_t length_b_f = bytes_to_ccblocks_floor(length);
+    /* Ceil length in blocks */
+    uint64_t length_b = bytes_to_ccblocks_ceil(length);
+    uint64_t holestart = start_b;
+    int64_t holesize = 0;
+
+    for (uint64_t i = start_b; i < end_b; i++) {
+        if (cached_chunks->Value(i)) {
+            holesize = 0;
+            holestart = i + 1;
+            continue;
+        }
+
+        /* The last block might not be full */
+        if (i + 1 == length_b) {
+            holesize += length - (length_b_f << CacheChunkBlockSizeBits);
+            return (CacheChunk(holestart * CacheChunkBlockSize, holesize));
+
+        }
+
+        /* Add a full block */
+        holesize += CacheChunkBlockSize;
+
+        if ((i + 1 == end_b) || cached_chunks->Value(i + 1)) {
+            return (CacheChunk(holestart * CacheChunkBlockSize, holesize));
+        }
+    }
+
+    return (CacheChunk());
+}
+
+CacheChunkList * CacheFile::GetHoles(uint64_t start, int64_t len) {
+    uint64_t start_b = ccblock_start(start);
+    uint64_t end_b = ccblock_end(start, len);
+    uint64_t length_b = bytes_to_ccblocks_ceil(length);  // Ceil length in blocks
+    CacheChunkList * clist = new CacheChunkList();
+    CacheChunk currc = {};
+
+    if (len < 0) {
+        end_b = length_b;
+    }
+
+    LOG(0, ("CacheFile::GetHoles Range [%d - %d]\n", start, start + len - 1));
+
+    for (uint64_t i = start_b; i < end_b; i++) {
+        currc = GetNextHole(i, end_b);
+
+        if (!currc.isValid()) break;
+
+        LOG(0, ("CacheFile::GetHoles Found [%d, %d]\n", currc.GetStart(),
+                currc.GetLength()));
+
+        clist->AddChunk(currc.GetStart(), currc.GetLength());
+        i = currc.GetStart() + currc.GetLength() + 1;
+    }
+
+    return clist;
+}
+
+void CacheChunkList::AddChunk(uint64_t start, int64_t len)
+{
+    WriteLock();
+    CacheChunk * new_chunck = new CacheChunk(start, len);
+    this->insert((dlink *) new_chunck);
+    WriteUnlock();
+}
+
+void CacheChunkList::ReadLock()
+{
+    ObtainReadLock(&rd_wr_lock);
+}
+
+void CacheChunkList::WriteLock()
+{
+    ObtainWriteLock(&rd_wr_lock);
+}
+
+
+void CacheChunkList::ReadUnlock()
+{
+    ReleaseReadLock(&rd_wr_lock);
+}
+
+void CacheChunkList::WriteUnlock()
+{
+    ReleaseWriteLock(&rd_wr_lock);
+}
+
+bool CacheChunkList::ReverseCheck(uint64_t start, int64_t len)
+{
+    dlink * curr = NULL;
+    CacheChunk * curr_cc = NULL;
+
+    ReadLock();
+
+    dlist_iterator previous(*this, DlDescending);
+
+    while (curr = previous()) {
+        curr_cc = (CacheChunk *)curr;
+
+        if (!curr_cc->isValid()) continue;
+
+        if (start != curr_cc->GetStart()) continue;
+
+        if (len != curr_cc->GetLength()) continue;
+
+        ReadUnlock();
+
+        return true;
+    }
+
+    ReadUnlock();
+
+    return false;
+}
+
+void CacheChunkList::ReverseRemove(uint64_t start, int64_t len)
+{
+    dlink * curr = NULL;
+    CacheChunk * curr_cc = NULL;
+
+    WriteLock();
+
+    dlist_iterator previous(*this, DlDescending);
+
+    while (curr = previous()) {
+        curr_cc = (CacheChunk *)curr;
+
+        if (!curr_cc->isValid()) continue;
+
+        if (start != curr_cc->GetStart()) continue;
+
+        if (len != curr_cc->GetLength()) continue;
+
+        this->remove(curr);
+        break;
+    }
+
+    WriteUnlock();
+}
+
+void CacheChunkList::ForEach(void (*foreachcb)(uint64_t start, int64_t len, 
+    void * usr_data_cb), void * usr_data)
+{
+    dlink * curr = NULL;
+    CacheChunk * curr_cc = NULL;
+
+    if (!foreachcb) return;
+
+    ReadLock();
+
+    dlist_iterator next(*this);
+
+    while (curr = next()) {
+        curr_cc = (CacheChunk *)curr;
+        foreachcb(curr_cc->GetStart(), curr_cc->GetLength(), usr_data);
+    }
+
+    ReadUnlock();
+}
+
+CacheChunk CacheChunkList::pop()
+{
+    dlink * curr_first = NULL;
+    CacheChunk * tmp = NULL;
+
+    WriteLock();
+
+    curr_first = this->first();
+    tmp = (CacheChunk *)curr_first; 
+
+    if (!curr_first) {
+        WriteUnlock();
+        return CacheChunk();
+    }
+
+    CacheChunk cp = CacheChunk(*tmp);
+    this->remove(curr_first);
+    delete tmp;
+
+    WriteUnlock();
+
+    return CacheChunk(cp);
+}
