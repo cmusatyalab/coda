@@ -1562,7 +1562,7 @@ inline void worker::op_coda_access_intent(union inputArgs *in, union outputArgs 
         write(&vtarget, coda_access_intent->pos, coda_access_intent->count);
         break;
     case CODA_ACCESS_TYPE_MMAP:
-        // Unimplemented
+        mmap(&vtarget, coda_access_intent->pos, coda_access_intent->count);
         break;
     case CODA_ACCESS_TYPE_READ_FINISH:
         read_finish(&vtarget, coda_access_intent->pos, coda_access_intent->count);
