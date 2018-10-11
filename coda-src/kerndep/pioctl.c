@@ -157,7 +157,9 @@ int pioctl(const char *path, unsigned long com,
 
 #ifdef HAVE_GETRANDOM
     /* try to read from /dev/urandom */
-    getrandom(&unique, sizeof(uint32_t), 0);
+    n = getrandom(&unique, sizeof(uint32_t), 0);
+    if (n < sizeof(uint32_t))
+        fprintf(stderr, "WARNING: Unable to obtain reliable random data\n");
 #endif
 
     pioctlfile = malloc(strlen(mtpt) + 1 + strlen(PIOCTL_PREFIX) + 8 + 1);
