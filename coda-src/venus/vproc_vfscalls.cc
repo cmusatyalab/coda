@@ -1473,7 +1473,7 @@ void vproc::read(struct venus_cnode * node, uint64_t pos, int64_t count)
         return;
     }
 
-    if (pos >= f->Size()) {
+    if (pos > f->Size()) {
         u.u_error = EIO;
         return;
     }
@@ -1489,11 +1489,6 @@ void vproc::write(struct venus_cnode * node, uint64_t pos, int64_t count)
     /* Get the object. */
     f = FSDB->Find(&node->c_fid);
     if (!f) {
-        u.u_error = EIO;
-        return;
-    }
-
-    if (pos >= f->Size()) {
         u.u_error = EIO;
         return;
     }
@@ -1514,7 +1509,7 @@ void vproc::read_finish(struct venus_cnode * node, uint64_t pos, int64_t count)
         return;
     }
 
-    if (pos >= f->Size()) {
+    if (pos > f->Size()) {
         u.u_error = EIO;
         return;
     }

@@ -130,8 +130,8 @@ static const char *VFSOpsNameTemplate[NVFSOPS] = {
     "Statfs",
     "Store",
     "Release",
-    "No-Op",
     "AccessIntent",
+    "No-Op",
     "No-Op"
 };
 
@@ -782,4 +782,3 @@ int FAV_Compare(ViceFidAndVV *fav1, ViceFidAndVV *fav2) {
 
     return(0);  /* this shouldn't happen */
 }
-
