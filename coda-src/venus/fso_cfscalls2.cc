@@ -74,7 +74,8 @@ int fsobj::OpenPioctlFile(void)
     unsigned int nr, plen, follow, in_size, out_size;
     vproc *vp = VprocSelf();
     FILE *f;
-    char buffer[MAX(CFS_PIOBUFSIZE, CODA_MAXPATHLEN+1)];
+    char in_buffer[MAX(CFS_PIOBUFSIZE, CODA_MAXPATHLEN+1)];
+    char out_buffer[CFS_PIOBUFSIZE];
     int n, code;
 
     /* read pioctl input */
@@ -106,17 +107,17 @@ PioctlErrOut:
     struct venus_cnode vnp;
 
     if (plen > CODA_MAXPATHLEN ||
-        fread(buffer, 1, plen, f) != plen)
+        fread(in_buffer, 1, plen, f) != plen)
     {
         LOG(0, ("fsobj::OpenPioctlFile: failed to read path\n"));
         code = EINVAL;
         goto PioctlErrOut;
     }
-    buffer[plen] = '\0';
+    in_buffer[plen] = '\0';
 
     vp->u.u_cdir = rootfid;
     vp->u.u_nc = NULL;
-    if (!vp->namev(buffer, flags, &vnp))
+    if (!vp->namev(in_buffer, flags, &vnp))
     {
         LOG(10, ("fsobj::OpenPioctlFile: namev failed to traverse\n"));
         code = vp->u.u_error;
@@ -131,7 +132,7 @@ PioctlErrOut:
         goto PioctlErrOut;
     }
 
-    if (fread(buffer, 1, in_size, f) != in_size)
+    if (fread(in_buffer, 1, in_size, f) != in_size)
     {
         LOG(0, ("fsobj::OpenPioctlFile: failed to read request data\n"));
         code = EFAULT;
@@ -150,7 +151,8 @@ PioctlErrOut:
     struct ViceIoctl vidata;
     vidata.in_size = in_size;
     vidata.out_size = out_size;
-    vidata.in = vidata.out = buffer;
+    vidata.in = in_buffer;
+    vidata.out = out_buffer;
 
     /* We're pretty much guaranteed to be in the wrong context, so we have
      * to switch context before we can call vp->ioctl */
