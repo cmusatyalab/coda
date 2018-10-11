@@ -335,7 +335,7 @@ void ParseCacheChunkBlockSize(const char * ccblocksize) {
     CacheChunkBlockSizeBits = TmpCacheChunkBlockSizeBit;
     CacheChunkBlockSize = 1 << CacheChunkBlockSizeBits;
     CacheChunkBlockSizeMax = CacheChunkBlockSize - 1;
-    CacheChunkBlockBitmapSize = (UINT32_MAX + 1) >> CacheChunkBlockSizeBits;
+    CacheChunkBlockBitmapSize = (UINT32_MAX >> CacheChunkBlockSizeBits) + 1;
 }
 
 
