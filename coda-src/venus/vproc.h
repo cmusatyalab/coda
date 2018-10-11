@@ -278,6 +278,16 @@ class vproc : public olink {
      */
     void write_finish(struct venus_cnode * node, uint64_t pos, int64_t count);
 
+    /**
+     * Memory map file operation
+     *
+     * @param node     Venus cnode pointer holding file's metadata
+     * @param pos      Offset within the file
+     * @param count    Number of bytes mapped into memory
+     *
+     */
+    void mmap(struct venus_cnode * node, uint64_t pos, int64_t count);
+
     /* Pathname translation. */
     int namev(char *, int, struct venus_cnode *);
     void GetPath(VenusFid *, char *, int *, int =1);

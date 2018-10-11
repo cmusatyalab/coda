@@ -1529,10 +1529,19 @@ void vproc::write_finish(struct venus_cnode * node, uint64_t pos, int64_t count)
         u.u_error = EIO;
         return;
     }
+}
 
-    if (pos >= f->Size()) {
+void vproc::mmap(struct venus_cnode * node, uint64_t pos, int64_t count)
+{
+    LOG(1, ("vproc::mmap: fid = %s, pos = %d, count = %d\n",
+            FID_(&node->c_fid), pos, count));
+
+    fsobj *f = NULL;
+
+    /* Get the object. */
+    f = FSDB->Find(&node->c_fid);
+    if (!f) {
         u.u_error = EIO;
         return;
     }
-
 }
