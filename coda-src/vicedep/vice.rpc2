@@ -62,7 +62,8 @@ typedef RPC2_Enum
 	ReadOnly = 0,
 	ReadWrite = 1,
 	Backup = 2,
-	Replicated = 3
+	Replicated = 3,
+    NonReplicated = 4
 }	ViceVolumeType;
 
 typedef RPC2_Byte	DiskName[V_MAXPARTNAMELEN];

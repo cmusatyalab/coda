@@ -2293,19 +2293,29 @@ static int FidSort(ViceFid *fids) {
   other replicas's version numbers are incremented by COP2Update
 */
 void NewCOP1Update(Volume *volptr, Vnode *vptr, 
-		   ViceStoreId *StoreId, RPC2_Integer *vsptr) 
+		   ViceStoreId *StoreId, RPC2_Integer *vsptr, bool isReplicated) 
 {
-    /* Look up the VRDB entry. */
-    vrent *vre = VRDB.find(V_groupId(volptr));
-    if (!vre) Die("COP1Update: VSG not found!");
+    int ix = 0;
+    vrent *vre = NULL;
 
-    /* Look up the index of this host. */
-    int ix = vre->index();
-    if (ix < 0) Die("COP1Update: this host not found!");
+    if (isReplicated) {
+        /* Look up the VRDB entry. */
+        vre = VRDB.find(V_groupId(volptr));
+        if (!vre) Die("COP1Update: VSG not found!");
 
-    SLog(2, "COP1Update: Fid = (%x),(%x.%x.%x), StoreId = (%x.%x)",
-	 V_groupId(volptr), V_id(volptr), vptr->vnodeNumber, 
-	 vptr->disk.uniquifier, StoreId->HostId, StoreId->Uniquifier);
+        /* Look up the index of this host. */
+        ix = vre->index();
+        if (ix < 0) Die("COP1Update: this host not found!");
+
+        SLog(2, "COP1Update: Fid = (%x),(%x.%x.%x), StoreId = (%x.%x)",
+               V_groupId(volptr), V_id(volptr), vptr->vnodeNumber, 
+               vptr->disk.uniquifier, StoreId->HostId, StoreId->Uniquifier);
+    } else {
+        ix = 0;
+        SLog(2, "COP1Update: Fid = (%x.%x.%x), StoreId = (%x.%x)",
+               V_id(volptr), vptr->vnodeNumber, vptr->disk.uniquifier, 
+               StoreId->HostId, StoreId->Uniquifier);
+    }
 
     /* If a volume version stamp was sent in, and if it matches, update it. */
     if (vsptr) {
@@ -2326,7 +2336,7 @@ void NewCOP1Update(Volume *volptr, Vnode *vptr,
     /* Update the Volume and Vnode VVs. */
     UpdateVVs(&V_versionvector(volptr), &Vnode_vv(vptr), &UpdateSet);
     
-    SetCOP2Pending(Vnode_vv(vptr));
+    if (isReplicated) SetCOP2Pending(Vnode_vv(vptr));
 }
 
 /*

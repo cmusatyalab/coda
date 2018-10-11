@@ -325,12 +325,7 @@ long FS_ViceGetVolumeStatus(RPC2_Handle RPCid, VolumeId vid,
     }
 
     if (XlateVid(&vid)) {
-	SLog(1, "XlateVid: %u --> %u", VSGVolnum, vid);
-	if (IsReplicated == 0) {
-	    SLog(0, "Translated VSG but IsReplicated == 0");
-	    errorCode =	EINVAL;	    /* ??? -JJK */
-	    goto Final;
-	}
+        SLog(1, "XlateVid: %u --> %u", VSGVolnum, vid);
     }
     else {
 	if (IsReplicated != 0) {

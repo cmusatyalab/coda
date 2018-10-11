@@ -702,7 +702,7 @@ void fsobj::UpdateStatus(ViceStatus *vstat, ViceVersionVector *UpdateSet, uid_t 
      *  - vstat differs (ValidateAttrs)
      */
     if (isrunt || UpdateSet || !StatusEq(vstat))
-	ReplaceStatus(vstat, UpdateSet);
+	   ReplaceStatus(vstat, UpdateSet);
 
     /* If this object is a runt, there may be others waiting for the create
      * to finalize */
@@ -734,18 +734,18 @@ int fsobj::StatusEq(ViceStatus *vstat)
      * use the VV, and shouldn't use the DataVersion at all. -JH
      */
     if (!vol->IsReplicated()) {
-	if (stat.DataVersion != vstat->DataVersion) {
-	    eq = 0;
-	    if (log)
-		LOG(0, ("fsobj::StatusEq: (%s), DataVersion %d != %d\n",
-			FID_(&fid), stat.DataVersion, vstat->DataVersion));
-	}
-    } else {
-	if (VV_Cmp(&stat.VV, &vstat->VV) != VV_EQ) {
-	    eq = 0;
-	    if (log)
-		LOG(0, ("fsobj::StatusEq: (%s), VVs differ\n", FID_(&fid)));
-	}
+        if (stat.DataVersion != vstat->DataVersion) {
+            eq = 0;
+            if (log)
+        	LOG(0, ("fsobj::StatusEq: (%s), DataVersion %d != %d\n",
+        		FID_(&fid), stat.DataVersion, vstat->DataVersion));
+        }
+    }
+    
+    if (VV_Cmp(&stat.VV, &vstat->VV) != VV_EQ) {
+        eq = 0;
+        if (log)
+            LOG(0, ("fsobj::StatusEq: (%s), VVs differ\n", FID_(&fid)));
     }
     if (stat.Date != vstat->Date) {
 	eq = 0;

@@ -98,8 +98,8 @@ int fsobj::DisconnectedRemove(Date_t Mtime, uid_t uid, char *name,
     int code = 0;
     repvol *rv;
 
-    if (!vol->IsReplicated())
-	return ETIMEDOUT;
+    if (!(vol->IsReadWrite()))
+        return ETIMEDOUT;
     rv = (repvol *)vol;
 
     Recov_BeginTrans();
@@ -171,8 +171,8 @@ int fsobj::DisconnectedLink(Date_t Mtime, uid_t uid, char *name,
     int code = 0;
     repvol *rv;
 
-    if (!vol->IsReplicated())
-	return ETIMEDOUT;
+    if (!(vol->IsReadWrite()))
+        return ETIMEDOUT;
     rv = (repvol *)vol;
 
     Recov_BeginTrans();
@@ -304,8 +304,8 @@ int fsobj::DisconnectedRename(Date_t Mtime, uid_t uid, fsobj *s_parent_fso,
     int TargetExists = (t_fso != 0);
     repvol *rv;
 
-    if (!vol->IsReplicated())
-	return ETIMEDOUT;
+    if (!(vol->IsReadWrite()))
+        return ETIMEDOUT;
     rv = (repvol *)vol;
 
     Recov_BeginTrans();
@@ -406,9 +406,9 @@ int fsobj::DisconnectedMkdir(Date_t Mtime, uid_t uid, fsobj **t_fso_addr,
     VenusFid target_fid;
     repvol *rv;
 
-    if (!vol->IsReplicated()) {
-	code = ETIMEDOUT;
-	goto Exit;
+    if (!(vol->IsReadWrite())) {
+        code = ETIMEDOUT;
+        goto Exit;
     }
     rv = (repvol *)vol;
 
@@ -524,8 +524,8 @@ int fsobj::DisconnectedRmdir(Date_t Mtime, uid_t uid, char *name,
     int code = 0;
     repvol *rv;
 
-    if (!vol->IsReplicated())
-	return ETIMEDOUT;
+    if (!(vol->IsReadWrite()))
+        return ETIMEDOUT;
     rv = (repvol *)vol;
 
     Recov_BeginTrans();
@@ -618,9 +618,9 @@ int fsobj::DisconnectedSymlink(Date_t Mtime, uid_t uid, fsobj **t_fso_addr,
     VenusFid target_fid = NullFid;
     repvol *rv;
 
-    if (!vol->IsReplicated()) {
-	code = ETIMEDOUT;
-	goto Exit;
+    if (!(vol->IsReadWrite())) {
+        code = ETIMEDOUT;
+        goto Exit;
     }
     rv = (repvol *)vol;
     

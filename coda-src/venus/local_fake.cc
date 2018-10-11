@@ -75,6 +75,9 @@ int fsobj::ExpandObject(void)
     /* ignore local objects which can't be meaningfully expanded */
     if(IsLocalObj())
       return EINVAL;
+      
+    if(!vol->IsReplicated()) 
+        return EINVAL;
 
     isroot = IsRoot();
 

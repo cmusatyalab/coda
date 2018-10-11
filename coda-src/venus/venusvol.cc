@@ -395,7 +395,8 @@ volent *vdb::Find(Realm *realm, const char *volname)
 /* must NOT be called from within a transaction */
 static int GetVolReps(RealmId realm, VolumeInfo *volinfo, volrep *volreps[VSG_MEMBERS])
 {
-    int i, err = 0;
+    int i = 0;
+    int err = 0;
     Volid volid;
 
     volid.Realm = realm;
@@ -775,13 +776,24 @@ int vdb::WriteDisconnect(unsigned int age, unsigned int time)
 int vdb::SyncCache()
 {
     repvol_iterator next;
+    volrep_iterator nrnext;
     repvol *v;
+    volrep *nrv;
     int code = 0;
 
     while ((v = next())) {
         code = v->SyncCache();
         if (code) break;
     }
+    
+    while ((nrv = nrnext())) {
+        if (!nrv->IsNonReplicated()) continue;
+        
+        code = nrv->SyncCache();
+        
+        if (code) break;
+    }
+    
     return(code);
 }
 
@@ -936,8 +948,9 @@ void volent::release(void)
 	return;
 
     /* special test needed for volumes with local repair conflict */
-    if (IsReplicated() && ((repvol *)this)->CML.count() != 0)
-	return;
+    if (IsReadWrite()) {
+        if (((reintvol *)this)->CML.count() != 0) return;
+    }
 
     /* we could be called when there already is a transaction ongoing, we
      * could start our own transaction, or just leave it up to getdown... */
@@ -959,15 +972,36 @@ int volent::IsReadWriteReplica()
     return (((volrep *)this)->ReplicatedVol() != 0);
 }
 
-void repvol::ReportVolState(void)
+int volent::IsNonReplicated()
+{
+    volrep * vp = (volrep *)this;
+
+    if (IsReplicated()) return 0;
+
+    if (vp->IsReadWriteReplica()) return 0;
+
+    if (flags.readonly) return 0;
+
+    return 1;
+}
+
+void reintvol::ReportVolState(void)
 {
     const char *volstate;
 
     switch (state) {
-    case Reachable:	volstate = "reachable"; break;
-    case Resolving:	volstate = "resolving"; break;
-    case Unreachable:	volstate = "unreachable"; break;
-    default:		volstate = "unknown"; break;
+    case Reachable:
+        volstate = "reachable";
+        break;
+    case Resolving:
+        volstate = "resolving"; 
+        break;
+    case Unreachable:
+        volstate = "unreachable"; 
+        break;
+    default:		
+        volstate = "unknown";
+        break;
     }
 
     MarinerReportVolState(name, realm->Name(), volstate, CML.count(), &flags);
@@ -1072,7 +1106,8 @@ int volent::Enter(int mode, uid_t uid)
 		int proc_key = vp->u.u_pgid;
 		while ((excl_count > 0 && proc_key != excl_pgid) ||
                        IsResolving() ||
-                       (IsReplicated() && WriteLocked(&((repvol *)this)->CML_lock)) ||
+                       ((IsReadWrite()) &&
+                       WriteLocked(&((reintvol *)this)->CML_lock)) ||
                        flags.transition_pending) {
 		    if (mode & VM_NDELAY) return (EWOULDBLOCK);
 		    LOG(0, ("volent::Enter: mutate with proc_key = %d\n",
@@ -1084,8 +1119,8 @@ int volent::Enter(int mode, uid_t uid)
 		/*
 		 * mutator needs to aquire exclusive CML ownership
 		 */
-		if (IsReplicated()) {
-                    repvol *rv = (repvol *)this;
+		if (IsReadWrite()) {
+                reintvol *rv = (reintvol *)this;
 
 		    /* 
 		     * Claim ownership if the volume is free. 
@@ -1244,9 +1279,9 @@ void volent::Exit(int mode, uid_t uid)
 	    mutator_count--;
 	    shrd_count--;
 
-	    if (IsReplicated()) {
 		repvol *rv = (repvol *)this;
 		int count = rv->GetCML()->count();
+	    if (IsReadWrite()) {
 
 		ReleaseReadLock(&((repvol *)this)->CML_lock);
 
@@ -1315,32 +1350,41 @@ void volent::TakeTransition()
 
     VolumeStateType nextstate;
     int avsgsize = AVSGsize();
-    repvol *rv;
+    reintvol *rv;
 
-    if (!IsReplicated()) {
-	LOG(1, ("volent::TakeTransition %s |AVSG| = %d\n", name, avsgsize));
-	state = (avsgsize == 0) ? Unreachable : Reachable;
-	flags.transition_pending = 0;
-	Signal();
-	return;
+    if (!(IsReadWrite())) {
+    	LOG(1, ("volent::TakeTransition %s |AVSG| = %d\n", name, avsgsize));
+    	state = (avsgsize == 0) ? Unreachable : Reachable;
+    	flags.transition_pending = 0;
+    	Signal();
+    	return;
     }
-    rv = (repvol *)this;
+    rv = (reintvol *)this;
 
-    LOG(1, ("volent::TakeTransition: %s, state = %s, |AVSG| = %d, "
-	    "CML = %d, Res = %d\n",
-	    name, PRINT_VOLSTATE(state), avsgsize,
-	    rv->GetCML()->count(), rv->ResListCount()));
+    if (IsReplicated()) {
+        LOG(1, ("volent::TakeTransition: %s, state = %s, |AVSG| = %d, "
+    	    "CML = %d, Res = %d\n",
+    	    name, PRINT_VOLSTATE(state), avsgsize,
+    	    rv->GetCML()->count(), ((repvol *)rv)->ResListCount()));
+    } else {
+        LOG(1, ("volent::TakeTransition: %s, state = %s, |AVSG| = %d, "
+    	    "CML = %d\n",
+    	    name, PRINT_VOLSTATE(state), avsgsize,
+    	    rv->GetCML()->count()));
+    }
+    
 
     /* Compute next state. */
     CODA_ASSERT(IsUnreachable() || IsReachable() || IsResolving());
 
     nextstate = Reachable;
-    /* if the AVSG is empty we are Unreachable */
-    if (avsgsize == 0)
-	nextstate = Unreachable;
-
-    else if (rv->ResListCount())
-	nextstate = Resolving;
+    if (IsReplicated()) {
+        /* if the AVSG is empty we are Unreachable */
+        if (avsgsize == 0)
+    	   nextstate = Unreachable;
+        else if (((repvol *)rv)->ResListCount())
+    	   nextstate = Resolving;
+    }
 
     /* Take corresponding action. */
     state = nextstate;
@@ -1351,8 +1395,8 @@ void volent::TakeTransition()
 	case Reachable:
 	    if (rv->IsSync())
 		rv->Reintegrate();
-	    else if (rv->ReadyToReintegrate())
-		::Reintegrate(rv);
+	    else if (rv->ReadyToReintegrate() && IsReplicated())
+            ::Reintegrate((repvol *)rv);
 	    // Fall through
 
 	case Unreachable:
@@ -1360,7 +1404,8 @@ void volent::TakeTransition()
 	    break;
 
 	case Resolving:
-	    ::Resolve(this);
+        if (IsReplicated())
+	       ::Resolve(this);
 	    break;
 
 	default:
@@ -1452,7 +1497,7 @@ void repvol::UpMember(void)
     ResetStats();
 }
 
-int repvol::WriteDisconnect(unsigned int age, unsigned int hogtime)
+int reintvol::WriteDisconnect(unsigned int age, unsigned int hogtime)
 {
     Recov_BeginTrans();
 
@@ -1470,7 +1515,7 @@ int repvol::WriteDisconnect(unsigned int age, unsigned int hogtime)
     return 0;
 }
 
-int repvol::SyncCache(VenusFid * fid)
+int reintvol::SyncCache(VenusFid * fid)
 {
     LOG(1,("volent::SyncCache()\n"));
 
@@ -1499,7 +1544,7 @@ void volent::Wait()
     LOG(0, ("WAITING(VOL): %s, state = %s, [%d, %d], counts = [%d %d %d %d]\n",
 	     name, PRINT_VOLSTATE(state), flags.transition_pending, flags.demotion_pending,
  	     observer_count, mutator_count, waiter_count, resolver_count));
-    if (IsReplicated()) {
+    if (IsReadWrite()) {
         repvol *rv = (repvol *)this;
         LOG(0, ("CML= [%d, %d], Res = %d\n", rv->GetCML()->count(),
                 rv->GetCML()->Owner(), rv->ResListCount()));
@@ -1566,7 +1611,7 @@ void volent::UnLock(VolLockType l)
 
 volrep::volrep(Realm *r, VolumeId vid, const char *name,
 	       struct in_addr *addr, int readonly, VolumeId parent) :
-	volent(r, vid, name)
+	reintvol(r, vid, name)
 {
     LOG(10, ("volrep::volrep: host: %s readonly: %d parent: %#08x)\n",
              inet_ntoa(*addr), readonly, parent));
@@ -1682,7 +1727,7 @@ int volent::Collate(connent *c, int code, int TranslateEINCOMP)
     return(code);
 }
 
-repvol::repvol(Realm *r, VolumeId vid, const char *name, volrep *reps[VSG_MEMBERS]) : volent(r, vid, name)
+repvol::repvol(Realm *r, VolumeId vid, const char *name, volrep *reps[VSG_MEMBERS]) : reintvol(r, vid, name)
 {
     LOG(10, ("repvol::repvol %08x %08x %08x %08x %08x %08x %08x %08x\n",
              reps[0], reps[1], reps[2], reps[3],
@@ -1692,8 +1737,6 @@ repvol::repvol(Realm *r, VolumeId vid, const char *name, volrep *reps[VSG_MEMBER
     memcpy(volreps, reps, VSG_MEMBERS * sizeof(volrep *));
 
     VVV = NullVV;
-    AgeLimit   = default_reintegration_age;  /* seconds */
-    ReintLimit = default_reintegration_time; /* milliseconds */
     reint_id_gen = 100;
     flags.replicated = 1;
 
@@ -1785,6 +1828,51 @@ int volrep::GetConn(connent **c, uid_t uid)
     return(code);
 }
 
+int reintvol::GetConn(connent **c, uid_t uid, mgrpent **m, int *ph_ix, struct in_addr *phost)
+{
+    volrep *vr = (volrep *)this;
+    repvol *rv = (repvol *)this;
+    int code = 0;
+    srvent *s = NULL;
+    
+    *c = NULL;
+    if (m) *m = NULL;
+    
+    if (IsReplicated()) {
+       /* Acquire an Mgroup. */
+       code = rv->GetMgrp(m, uid);
+       if (code != 0) goto Exit;
+
+       /* Pick a server and get a connection to it. */
+       if (phost && ph_ix) {
+           phost = (*m)->GetPrimaryHost(ph_ix);
+           CODA_ASSERT(phost->s_addr != 0);
+       }
+
+       s = GetServer(phost, rv->GetRealmId());
+       code = s->GetConn(c, uid);
+       PutServer(&s);
+Exit:
+        if (*m) (*m)->Put();
+       return(code);
+   }
+   
+   if (IsNonReplicated()) {
+       code = vr->GetConn(c, uid);
+
+       if (phost) {
+           vr->Host(phost);
+           CODA_ASSERT(phost->s_addr != 0);
+       }
+       
+       if (ph_ix) *ph_ix = 0;
+       
+       return(code);
+   }
+   
+   return EINVAL;
+}
+
 #if 0
 int repvol::GetConn(connent **c, uid_t uid)
 {
@@ -1870,48 +1958,142 @@ void repvol::GetBandwidth(unsigned long *bw)
     if (*bw == 0) *bw = INIT_BW;
 }
 
+int reintvol::AllocFid(ViceDataType Type, VenusFid *target_fid, uid_t uid, int force)
+{
+    LOG(10, ("reintvol::AllocFid: (%x, %d), uid = %d\n", vid, Type, uid));
+    int code = 0;
+    FidRange *Fids = 0;
+    
+    /* Use a preallocated Fid if possible. */
+    {
+        Fids = 0;
+        switch(Type) {
+        case File:
+            Fids = &FileFids;
+            break;
+
+        case Directory:
+            Fids = &DirFids;
+            break;
+
+        case SymbolicLink:
+            Fids = &SymlinkFids;
+            break;
+
+        case Invalid:
+        default:
+            print(logFile);
+            CHOKE("reintvol::AllocFid: bogus Type (%d)", Type);
+        }
+
+        if (Fids->Count > 0) {
+            target_fid->Realm = realm->Id();
+            target_fid->Volume = vid;
+            target_fid->Vnode = Fids->Vnode;
+            target_fid->Unique = Fids->Unique;
+
+            Recov_BeginTrans();
+               RVMLIB_REC_OBJECT(*Fids);
+               Fids->Vnode += Fids->Stride;
+               Fids->Unique++;
+               Fids->Count--;
+            Recov_EndTrans(MAXFP);
+
+            LOG(100, ("reintvol::AllocFid: target_fid = %s\n", FID_(target_fid)));
+            return(0);
+        }
+    }
+    
+    if (IsReplicated()) {
+        return ((repvol *)this)->AllocFid(Type, target_fid, uid, force);
+    }
+    
+    if (IsUnreachable() || (IsReachable() && !force)) {
+        *target_fid = GenerateLocalFid(Type);
+        LOG(10, ("reintvol::AllocFid: target_fid = %s\n", FID_(target_fid)));
+        return(code);
+    }
+    
+    VOL_ASSERT(this, (IsReachable() && force));
+    
+    connent *c = 0;
+    
+    /* Get connection */
+    code = ((volrep *)this)->GetConn(&c, ANYUSER_UID);
+    if (code != 0) goto AllocFidError;
+
+    ViceFidRange NewFids;
+    NewFids.Vnode = 0;
+    NewFids.Unique = 0;
+    NewFids.Stride = 0;
+    NewFids.Count = 32;
+
+    /* Make the RPC call. */
+    MarinerLog("store::AllocFids %s\n", name);
+    UNI_START_MESSAGE(ViceAllocFids_OP);
+    code = ViceAllocFids(c->connid, vid, Type, &NewFids);
+    UNI_END_MESSAGE(ViceAllocFids_OP);
+    MarinerLog("store::allocfids done\n");
+
+    /* Examine the returncode to decide what to do next. */
+    code = Collate(c, code);
+    UNI_RECORD_STATS(ViceAllocFids_OP);
+
+    if (code != 0) goto AllocFidError;
+    
+    if (NewFids.Count <= 0) { 
+        code = EINVAL; 
+        goto AllocFidError; 
+    }
+    
+    Recov_BeginTrans();
+    
+    Fids = 0;
+    
+    switch(Type) {
+    case File:
+        Fids = &FileFids;
+        break;
+
+    case Directory:
+        Fids = &DirFids;
+        break;
+
+    case SymbolicLink:
+        Fids = &SymlinkFids;
+        break;
+
+    case Invalid:
+    default:
+        print(logFile);
+        CHOKE("reintvol::AllocFid: bogus Type (%d)", Type);
+    }
+
+    RVMLIB_REC_OBJECT(*Fids);
+    Fids->Vnode = NewFids.Vnode;
+    Fids->Unique = NewFids.Unique;
+    Fids->Stride = NewFids.Stride;
+    Fids->Count = NewFids.Count;
+
+    target_fid->Realm = realm->Id();
+    target_fid->Volume = vid;
+    target_fid->Vnode = Fids->Vnode;
+    target_fid->Unique = Fids->Unique;
+
+    Fids->Vnode += Fids->Stride;
+    Fids->Unique++;
+    Fids->Count--;
+    Recov_EndTrans(MAXFP);
+    
+AllocFidError:
+    PutConn(&c);
+    return(code);
+    
+}
+
 int repvol::AllocFid(ViceDataType Type, VenusFid *target_fid, uid_t uid, int force)
 {
     LOG(10, ("repvol::AllocFid: (%x, %d), uid = %d\n", vid, Type, uid));
-
-    /* Use a preallocated Fid if possible. */
-    {
-	FidRange *Fids = 0;
-	switch(Type) {
-	    case File:
-		Fids = &FileFids;
-		break;
-
-	    case Directory:
-		Fids = &DirFids;
-		break;
-
-	    case SymbolicLink:
-		Fids = &SymlinkFids;
-		break;
-
-	    case Invalid:
-	    default:
-		print(logFile);
-		CHOKE("repvol::AllocFid: bogus Type (%d)", Type);
-	}
-	if (Fids->Count > 0) {
-	    target_fid->Realm = realm->Id();
-	    target_fid->Volume = vid;
-	    target_fid->Vnode = Fids->Vnode;
-	    target_fid->Unique = Fids->Unique;
-
-	    Recov_BeginTrans();
-		   RVMLIB_REC_OBJECT(*Fids);
-		   Fids->Vnode += Fids->Stride;
-		   Fids->Unique++;
-		   Fids->Count--;
-	    Recov_EndTrans(MAXFP);
-
-	    LOG(100, ("repvol::AllocFid: target_fid = %s\n", FID_(target_fid)));
-	    return(0);
-	}
-    }
 
     int code = 0;
 
@@ -2196,7 +2378,7 @@ int repvol::Collate_COP2(mgrpent *m, int code)
 }
 
 
-VenusFid repvol::GenerateLocalFid(ViceDataType fidtype)
+VenusFid reintvol::GenerateLocalFid(ViceDataType fidtype)
 {
     VenusFid fid;
 
@@ -2245,6 +2427,9 @@ ViceVolumeType volent::VolStatType(void)
        
     if (IsBackup())
         return Backup;
+        
+    if (IsNonReplicated())
+        return NonReplicated;
 
     return ReadWrite;
 }
@@ -2265,118 +2450,125 @@ int volent::GetVolStat(VolumeStatus *volstat, RPC2_BoundedBS *Name,
     *age = *hogtime = 0;
     *conflict = *cml_count = 0;
     *cml_bytes = 0;
-    if (IsReplicated()) {
-	cmlstats current, cancelled;
-	repvol *rv = (repvol *)this;
+    
+    if (IsReadWrite()) {
+    	cmlstats current, cancelled;
+    	reintvol *rv = (reintvol *)this;
 
-	*conflict = rv->ContainUnrepairedCML();
+    	*conflict = rv->ContainUnrepairedCML();
 
-	rv->GetCML()->IncGetStats(current, cancelled, UNSET_TID);
-	*cml_count = current.store_count + current.other_count;
-	*cml_bytes = (size_t)(current.store_size + current.store_contents_size +
-			      current.other_size);
-	*age = rv->AgeLimit;
-	*hogtime = rv->ReintLimit;
+    	rv->GetCML()->IncGetStats(current, cancelled, UNSET_TID);
+    	*cml_count = current.store_count + current.other_count;
+    	*cml_bytes = (size_t)(current.store_size + current.store_contents_size +
+    			      current.other_size);
+    	*age = rv->AgeLimit;
+    	*hogtime = rv->ReintLimit;
     }
 
     if (IsLocalRealm() || IsUnreachable() || local_only) {
-	memset(volstat, 0, sizeof(VolumeStatus));
-	volstat->Vid = vid;
-	volstat->Type = VolStatType();	
-	volstat->InService = 1;
-    	volstat->Blessed = 1;
+    	memset(volstat, 0, sizeof(VolumeStatus));
+    	volstat->Vid = vid;
+    	volstat->Type = VolStatType();	
+    	volstat->InService = 1;
+        	volstat->Blessed = 1;
 
-	/* We do not know about quota and block usage, but should be ok. */
+    	/* We do not know about quota and block usage, but should be ok. */
 
-	strcpy((char *)Name->SeqBody, name);
-	Name->SeqLen = strlen((char *)name) + 1;
-	msg->SeqBody[0] = '\0';
-	msg->SeqLen = 1;
-	motd->SeqBody[0] = '\0';
-	motd->SeqLen = 1;
-	code = 0;
-    }
-    else {
-	VOL_ASSERT(this, (IsReachable()));
+    	strcpy((char *)Name->SeqBody, name);
+    	Name->SeqLen = strlen((char *)name) + 1;
+    	msg->SeqBody[0] = '\0';
+    	msg->SeqLen = 1;
+    	motd->SeqBody[0] = '\0';
+    	motd->SeqLen = 1;
+    	code = 0;
+    } else {
+        VOL_ASSERT(this, (IsReachable()));
 
-	if (IsReplicated()) {
-	    /* Acquire an Mgroup. */
-	    mgrpent *m = 0;
-            repvol *vp = (repvol *)this;
-	    code = vp->GetMgrp(&m, uid);
-	    if (code != 0) goto RepExit;
+        if (IsReplicated()) {
+            /* Acquire an Mgroup. */
+            mgrpent *m = 0;
+                repvol *vp = (repvol *)this;
+            code = vp->GetMgrp(&m, uid);
+            if (code != 0) goto RepExit;
 
-	    {
-		/* Make multiple copies of the IN/OUT and OUT parameters. */
-		int ph_ix; unsigned long ph;
+            {
+            	/* Make multiple copies of the IN/OUT and OUT parameters. */
+            	int ph_ix; unsigned long ph;
                 ph = ntohl(m->GetPrimaryHost(&ph_ix)->s_addr);
 
-		if (Name->MaxSeqLen > VENUS_MAXBSLEN ||
-		    msg->MaxSeqLen > VENUS_MAXBSLEN ||
-		    motd->MaxSeqLen > VENUS_MAXBSLEN)
-		    CHOKE("volent::GetVolStat: BS len too large");
-		ARG_MARSHALL(OUT_MODE, VolumeStatus, volstatvar, *volstat, VSG_MEMBERS);
-		ARG_MARSHALL_BS(IN_OUT_MODE, RPC2_BoundedBS, Namevar, *Name, VSG_MEMBERS, VENUS_MAXBSLEN);
-		ARG_MARSHALL_BS(IN_OUT_MODE, RPC2_BoundedBS, msgvar, *msg, VSG_MEMBERS, VENUS_MAXBSLEN);
-		ARG_MARSHALL_BS(IN_OUT_MODE, RPC2_BoundedBS, motdvar, *motd, VSG_MEMBERS, VENUS_MAXBSLEN);
+            	if (Name->MaxSeqLen > VENUS_MAXBSLEN ||
+            	    msg->MaxSeqLen > VENUS_MAXBSLEN ||
+            	    motd->MaxSeqLen > VENUS_MAXBSLEN)
+            	    CHOKE("volent::GetVolStat: BS len too large");
+                    
+            	ARG_MARSHALL(OUT_MODE, VolumeStatus, volstatvar, *volstat, VSG_MEMBERS);
+            	ARG_MARSHALL_BS(IN_OUT_MODE, RPC2_BoundedBS, Namevar, *Name, VSG_MEMBERS, VENUS_MAXBSLEN);
+            	ARG_MARSHALL_BS(IN_OUT_MODE, RPC2_BoundedBS, msgvar, *msg, VSG_MEMBERS, VENUS_MAXBSLEN);
+            	ARG_MARSHALL_BS(IN_OUT_MODE, RPC2_BoundedBS, motdvar, *motd, VSG_MEMBERS, VENUS_MAXBSLEN);
 
-		/* Make the RPC call. */
-		MarinerLog("store::GetVolStat %s\n", name);
-		MULTI_START_MESSAGE(ViceGetVolumeStatus_OP);
-		code = (int) MRPC_MakeMulti(ViceGetVolumeStatus_OP, ViceGetVolumeStatus_PTR,
-				      VSG_MEMBERS, m->rocc.handles,
-				      m->rocc.retcodes, m->rocc.MIp, 0, 0,
-				      vid, volstatvar_ptrs, Namevar_ptrs,
-				      msgvar_ptrs, motdvar_ptrs, ph);
-		MULTI_END_MESSAGE(ViceGetVolumeStatus_OP);
-		MarinerLog("store::getvolstat done\n");
+            	/* Make the RPC call. */
+            	MarinerLog("store::GetVolStat %s\n", name);
+            	MULTI_START_MESSAGE(ViceGetVolumeStatus_OP);
+            	code = (int) MRPC_MakeMulti(ViceGetVolumeStatus_OP, ViceGetVolumeStatus_PTR,
+            			      VSG_MEMBERS, m->rocc.handles,
+            			      m->rocc.retcodes, m->rocc.MIp, 0, 0,
+            			      vid, volstatvar_ptrs, Namevar_ptrs,
+            			      msgvar_ptrs, motdvar_ptrs, ph);
+            	MULTI_END_MESSAGE(ViceGetVolumeStatus_OP);
+            	MarinerLog("store::getvolstat done\n");
 
-		/* Collate responses from individual servers and decide what to do next. */
-		code = vp->Collate_NonMutating(m, code);
-		MULTI_RECORD_STATS(ViceGetVolumeStatus_OP);
-		if (code == EASYRESOLVE) code = 0;
-		if (code != 0) goto RepExit;
+            	/* Collate responses from individual servers and decide what to do next. */
+            	code = vp->Collate_NonMutating(m, code);
+            	MULTI_RECORD_STATS(ViceGetVolumeStatus_OP);
+                
+            	if (code == EASYRESOLVE) code = 0;
+            	if (code != 0) goto RepExit;
 
-		/* Copy out OUT parameters. */
-		int dh_ix; dh_ix = -1;
-		code = m->DHCheck(0, ph_ix, &dh_ix);
-		if (code != 0) CHOKE("volent::GetVolStat: no dh");
-		ARG_UNMARSHALL(volstatvar, *volstat, dh_ix);
-		ARG_UNMARSHALL_BS(Namevar, *Name, dh_ix);
-		ARG_UNMARSHALL_BS(msgvar, *msg, dh_ix);
-		ARG_UNMARSHALL_BS(motdvar, *motd, dh_ix);
-	    }
+            	/* Copy out OUT parameters. */
+            	int dh_ix; dh_ix = -1;
+            	code = m->DHCheck(0, ph_ix, &dh_ix);
+                
+            	if (code != 0) CHOKE("volent::GetVolStat: no dh");
+                
+            	ARG_UNMARSHALL(volstatvar, *volstat, dh_ix);
+            	ARG_UNMARSHALL_BS(Namevar, *Name, dh_ix);
+            	ARG_UNMARSHALL_BS(msgvar, *msg, dh_ix);
+            	ARG_UNMARSHALL_BS(motdvar, *motd, dh_ix);
+            }
 
-	    /* Translate Vid and Name to Replicated values. */
-	    volstat->Vid = vid;
-	    strcpy((char *)Name->SeqBody, name);
-	    Name->SeqLen = strlen((char *)name) + 1;
+            /* Translate Vid and Name to Replicated values. */
+            volstat->Vid = vid;
+            strcpy((char *)Name->SeqBody, name);
+            Name->SeqLen = strlen((char *)name) + 1;
 
-RepExit:
-	    if (m) m->Put();
-	}
-	else {
-	    /* Acquire a Connection. */
-	    connent *c;
+        RepExit:
+            if (m) m->Put();
+            
+        } else {
+            /* Acquire a Connection. */
+            connent *c;
             volrep *vol = (volrep *)this;
-	    code = vol->GetConn(&c, uid);
-	    if (code != 0) goto NonRepExit;
+            code = vol->GetConn(&c, uid);
+            if (code != 0) goto NonRepExit;
 
-	    /* Make the RPC call. */
-	    MarinerLog("store::GetVolStat %s\n", name);
-	    UNI_START_MESSAGE(ViceGetVolumeStatus_OP);
-	    code = (int) ViceGetVolumeStatus(c->connid, vid,
-				       volstat, Name, msg, motd, 0);
-	    UNI_END_MESSAGE(ViceGetVolumeStatus_OP);
-	    MarinerLog("store::getvolstat done\n");
+            /* Make the RPC call. */
+            MarinerLog("store::GetVolStat %s\n", name);
+            UNI_START_MESSAGE(ViceGetVolumeStatus_OP);
+            code = (int) ViceGetVolumeStatus(c->connid, vid,
+        			       volstat, Name, msg, motd, 0);
+            UNI_END_MESSAGE(ViceGetVolumeStatus_OP);
+            MarinerLog("store::getvolstat done\n");
 
-	    /* Examine the return code to decide what to do next. */
-	    code = vol->Collate(c, code);
-	    UNI_RECORD_STATS(ViceGetVolumeStatus_OP);
+            /* Examine the return code to decide what to do next. */
+            code = vol->Collate(c, code);
+            UNI_RECORD_STATS(ViceGetVolumeStatus_OP);
+            
+            /* Map vice's volume type to venus's */
+            volstat->Type = VolStatType();
 
-NonRepExit:
-	    PutConn(&c);
-	}
+        NonRepExit:
+            PutConn(&c);
+        }
     }
 
     return(code);
@@ -2580,11 +2772,11 @@ void repvol::print_repvol(int afd)
 
     /* Resolve List. */
     if (res_list != 0) {
-	fdprint(afd, "\tResList: count = %d\n", res_list->count());
-	olist_iterator rnext(*res_list);
-	resent *r;
-	while ((r = (resent *)rnext()))
-	    r->print(afd);
+        fdprint(afd, "\tResList: count = %d\n", res_list->count());
+        olist_iterator rnext(*res_list);
+        resent *r;
+        while ((r = (resent *)rnext()))
+            r->print(afd);
     }
 }
 
@@ -2664,3 +2856,8 @@ volrep *volrep_iterator::operator()()
     return (volrep *)v;
 }
 
+reintvol::reintvol(Realm *r, VolumeId volid, const char *volname) : volent(r, volid, volname)
+{
+    AgeLimit   = default_reintegration_age;  /* seconds */
+    ReintLimit = default_reintegration_time; /* milliseconds */
+}

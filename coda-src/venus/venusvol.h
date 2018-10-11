@@ -145,6 +145,7 @@ class ClientModifyLog {
   friend class cmlent;
   friend class cml_iterator;
   friend class repvol;
+  friend class reintvol;
   friend class volent; /* ::Enter(int, uid_t); */
                        /* ::Exit(int, uid_t) */
 
@@ -177,6 +178,8 @@ class ClientModifyLog {
     /* Reintegration routines. */
     void TranslateFid(VenusFid *, VenusFid *);
     int COP1(char *, int, ViceVersionVector *, int outoforder);
+    int COP1_NR(char *buf, int bufsize, ViceVersionVector *,
+    			  int outoforder);
     void UnLockObjs(int);
     void MarkFailedMLE(int);
     void HandleFailedMLE(void);
@@ -250,6 +253,7 @@ class cmlent {
   friend class cml_iterator;
   friend class volent;
   friend class repvol;
+  friend class reintvol;
   friend class fsobj;
   friend int PathAltered(VenusFid *, char *, ClientModifyLog *, cmlent *);
 
@@ -627,7 +631,7 @@ class volent {
     /*T*/short observer_count;
     /*T*/short resolver_count;
     /*T*/short shrd_count;		/* for volume pgid locking */
-    /*T*/int pgid;  /* pgid of ASRLauncher and children (0 if none) */
+    /*T*/int pgid;  /* pgid of ASRLauncher and children (0 if none) */    
 
     void operator delete(void *);
     volent(Realm *r, VolumeId vid, const char *name);
@@ -664,6 +668,8 @@ class volent {
     int IsBackup() { return (!flags.replicated && flags.readonly); }
     int IsReplicated() { return flags.replicated; }
     int IsReadWriteReplica();
+    int IsNonReplicated();
+    int IsReadWrite() {return (IsReplicated() || IsNonReplicated()); }
     int IsUnreachable() { return (state == Unreachable); }
     int IsReachable() { return (state == Reachable); }
     int IsResolving() { return (state == Resolving); }
@@ -688,12 +694,125 @@ class volent {
     void print(int);
 
     void ListCache(FILE *, int long_format=1, unsigned int valid=3);
+    
+};
+
+class reintvol: public volent {
+    friend class ClientModifyLog;
+    friend class fsobj;
+    friend class volent;
+    friend class cmlent;
+    friend class vdb;
+    
+private:
+    
+protected:
+    /* Preallocated Fids. */
+    FidRange FileFids;
+    FidRange DirFids;
+    FidRange SymlinkFids;
+    
+    /* Reintegration stuff. */
+    ClientModifyLog CML;
+    struct Lock CML_lock;               /* for synchronization */
+    int reint_id_gen;                   /* reintegration id generator */
+    /*T*/int cur_reint_tid;             /* tid of reintegration in progress */
+
+    unsigned int ReintLimit;		/* work limit, in MILLISECONDS */
+    unsigned int AgeLimit;		/* min age of log records in SECONDS */
+    
+    /*T*/int RecordsCancelled;
+    /*T*/int RecordsCommitted;
+    /*T*/int RecordsAborted;
+    /*T*/int FidsRealloced;
+    /*T*/long BytesBackFetched;
+    /*?*/cmlent * reintegrate_done;    /* WriteBack Caching */
+
+public:
+    reintvol(Realm *r, VolumeId volid, const char *volname);
+    
+    long LengthOfCML() { return(CML.entries); }
+    void ResetStats() { CML.ResetHighWater(); }
+    
+    /* local-repair */
+    void ClearRepairCML();                      /*U*/
+    ClientModifyLog *GetCML() { return &CML; }  /*N*/
+    int ContainUnrepairedCML();			/*N*/
+    int IsSync(void) { return (flags.sync_reintegrate || ReintLimit == 0); }
+    int WriteDisconnect(unsigned int age=V_UNSETAGE,
+			unsigned int time=V_UNSETREINTLIMIT);
+    
+    /* Reintegration routines. */
+    void Reintegrate();
+    int IncReintegrate(int);
+    int PartialReintegrate(int, unsigned long *reint_time);
+    int IsReintegrating() { return flags.reintegrating; }
+    int ReadyToReintegrate();
+    int GetReintId();                           /*U*/
+    void CheckTransition();                     /*N*/
+    void IncAbort(int);                         /*U*/
+    int SyncCache(VenusFid *fid = NULL);
+    
+    void ReportVolState(void);
+    
+    /* ASR routines */
+    int AllowASR(uid_t);
+    int DisallowASR(uid_t);
+    void EnableASR(uid_t);
+    int DisableASR(uid_t);
+    int IsASRAllowed() { return flags.allow_asrinvocation; }
+    int IsASREnabled() { return flags.enable_asrinvocation; }
+    void lock_asr();
+    void unlock_asr();
+    int asr_running() { return flags.asr_running; }
+    void asr_pgid(pid_t new_pgid);
+    pid_t asr_pgid() { return pgid; }
+    
+    int AllocFid(ViceDataType, VenusFid *, uid_t, int = 0);
+    
+    VenusFid GenerateLocalFid(ViceDataType);
+    
+    int GetConn(connent **c, uid_t uid, mgrpent **m, int *ph_ix = NULL, struct in_addr *phost = NULL);
+    
+    /* local-repair modifications to the following methods */
+    /* Modlog routines. */
+    int LogStore(time_t, uid_t, VenusFid *, RPC2_Unsigned, int prepend);
+    int LogSetAttr(time_t, uid_t, VenusFid *,
+		    RPC2_Unsigned, Date_t, UserId, RPC2_Unsigned, int prepend);
+    int LogTruncate(time_t, uid_t, VenusFid *, RPC2_Unsigned, int prepend);
+    int LogUtimes(time_t, uid_t, VenusFid *, Date_t, int prepend);
+    int LogChown(time_t, uid_t, VenusFid *, UserId, int prepend);
+    int LogChmod(time_t, uid_t, VenusFid *, RPC2_Unsigned, int prepend);
+    int LogCreate(time_t, uid_t, VenusFid *, char *, VenusFid *, RPC2_Unsigned, int prepend);
+    int LogRemove(time_t, uid_t, VenusFid *, char *, const VenusFid *, int, int prepend);
+    int LogLink(time_t, uid_t, VenusFid *, char *, VenusFid *, int prepend);
+    int LogRename(time_t, uid_t, VenusFid *, char *,
+		   VenusFid *, char *, VenusFid *, const VenusFid *, int, int prepend);
+    int LogMkdir(time_t, uid_t, VenusFid *, char *, VenusFid *, RPC2_Unsigned, int prepend);
+    int LogRmdir(time_t, uid_t, VenusFid *, char *, const VenusFid *, int prepend);
+    int LogSymlink(time_t, uid_t, VenusFid *, char *,
+		    char *, VenusFid *, RPC2_Unsigned, int prepend);
+    int LogRepair(time_t, uid_t, VenusFid *, RPC2_Unsigned,
+		  Date_t, UserId, RPC2_Unsigned, int prepend);
+    /* local-repair modifications to the above methods */
+    
+    int	CheckPointMLEs(uid_t, char *);
+    int LastMLETime(unsigned long *);
+    int PurgeMLEs(uid_t);
+    
+    /* CML routines */
+    void ListCML(FILE *fp);
+    void PreserveAllLocalMutation(char *msg);
+    void PreserveLocalMutation(char *msg);
+    void DiscardAllLocalMutation(char *msg);
+    void DiscardLocalMutation(char *msg);
+    
 };
 
 class srvent;
 
 /* A volume replica entry. */
-class volrep : public volent {
+class volrep : public reintvol {
     friend class vdb;
     friend class volent;
     friend void VolInit(void);
@@ -736,8 +855,7 @@ class volrep : public volent {
 };
 
 /* A replicated volume entry. */
-class repvol : public volent {
-    friend class ClientModifyLog;
+class repvol : public reintvol {
     friend class cmlent;
     friend class fsobj;
     friend class vdb;
@@ -750,26 +868,6 @@ class repvol : public volent {
     volrep *volreps[VSG_MEMBERS];  /* underlying volume replicas */
     volrep *ro_replica;		   /* R/O staging replica for this volume */
     vsgent *vsg;
-
-    /* Preallocated Fids. */
-    FidRange FileFids;
-    FidRange DirFids;
-    FidRange SymlinkFids;
-
-    /* Reintegration stuff. */
-    ClientModifyLog CML;
-    struct Lock CML_lock;               /* for synchronization */
-
-    unsigned int AgeLimit;		/* min age of log records in SECONDS */
-    unsigned int ReintLimit;		/* work limit, in MILLISECONDS */
-    int reint_id_gen;                   /* reintegration id generator */
-    /*T*/int cur_reint_tid;             /* tid of reintegration in progress */
-    /*T*/int RecordsCancelled;
-    /*T*/int RecordsCommitted;
-    /*T*/int RecordsAborted;
-    /*T*/int FidsRealloced;
-    /*T*/long BytesBackFetched;
-    /*?*/cmlent * reintegrate_done;    /* WriteBack Caching */
 
     /* Resolution stuff. */
     /*T*/olist *res_list;
@@ -814,64 +912,9 @@ class repvol : public volent {
     int IsHostedBy(const struct in_addr *addr); /* XXX not called? */
     void SetStagingServer(struct in_addr *srvr);
     void Reconfigure(void);
-    int IsSync(void) { return (flags.sync_reintegrate || ReintLimit == 0); }
-    long LengthOfCML() { return(CML.entries); }
-
+    
     /* Allocation routines. */
-    VenusFid GenerateLocalFid(ViceDataType);
-
-    /* Reintegration routines. */
-    void Reintegrate();
-    int IncReintegrate(int);
-    int PartialReintegrate(int, unsigned long *reint_time);
-    int IsReintegrating() { return flags.reintegrating; }
-    int ReadyToReintegrate();
-    int GetReintId();                           /*U*/
-    void CheckTransition();                     /*N*/
-    void IncAbort(int);                         /*U*/
-    int SyncCache(VenusFid *fid = NULL);
-
     void RestoreObj(VenusFid *);
-    int	CheckPointMLEs(uid_t, char *);
-    int LastMLETime(unsigned long *);
-    int PurgeMLEs(uid_t);
-    void ResetStats() { CML.ResetHighWater(); }
-    int WriteDisconnect(unsigned int age=V_UNSETAGE,
-			unsigned int time=V_UNSETREINTLIMIT);
-
-    /* local-repair modifications to the following methods */
-    /* Modlog routines. */
-    int LogStore(time_t, uid_t, VenusFid *, RPC2_Unsigned, int prepend);
-    int LogSetAttr(time_t, uid_t, VenusFid *,
-		    RPC2_Unsigned, Date_t, UserId, RPC2_Unsigned, int prepend);
-    int LogTruncate(time_t, uid_t, VenusFid *, RPC2_Unsigned, int prepend);
-    int LogUtimes(time_t, uid_t, VenusFid *, Date_t, int prepend);
-    int LogChown(time_t, uid_t, VenusFid *, UserId, int prepend);
-    int LogChmod(time_t, uid_t, VenusFid *, RPC2_Unsigned, int prepend);
-    int LogCreate(time_t, uid_t, VenusFid *, char *, VenusFid *, RPC2_Unsigned, int prepend);
-    int LogRemove(time_t, uid_t, VenusFid *, char *, const VenusFid *, int, int prepend);
-    int LogLink(time_t, uid_t, VenusFid *, char *, VenusFid *, int prepend);
-    int LogRename(time_t, uid_t, VenusFid *, char *,
-		   VenusFid *, char *, VenusFid *, const VenusFid *, int, int prepend);
-    int LogMkdir(time_t, uid_t, VenusFid *, char *, VenusFid *, RPC2_Unsigned, int prepend);
-    int LogRmdir(time_t, uid_t, VenusFid *, char *, const VenusFid *, int prepend);
-    int LogSymlink(time_t, uid_t, VenusFid *, char *,
-		    char *, VenusFid *, RPC2_Unsigned, int prepend);
-    int LogRepair(time_t, uid_t, VenusFid *, RPC2_Unsigned,
-		  Date_t, UserId, RPC2_Unsigned, int prepend);
-    /* local-repair modifications to the above methods */
-
-    /* CML routines */
-    void ListCML(FILE *fp);
-    void PreserveAllLocalMutation(char *msg);
-    void PreserveLocalMutation(char *msg);
-    void DiscardAllLocalMutation(char *msg);
-    void DiscardLocalMutation(char *msg);
-
-    /* local-repair */
-    void ClearRepairCML();                      /*U*/
-    ClientModifyLog *GetCML() { return &CML; }  /*N*/
-    int ContainUnrepairedCML();			/*N*/
 
     /* Repair routines. */
     int Repair(VenusFid *, char *, uid_t, VolumeId *, int *);
@@ -909,21 +952,7 @@ class repvol : public volent {
     int WantCallBack();
     int ValidateFSOs();
 
-    /* ASR routines */
-    int AllowASR(uid_t);
-    int DisallowASR(uid_t);
-    void EnableASR(uid_t);
-    int DisableASR(uid_t);
-    int IsASRAllowed() { return flags.allow_asrinvocation; }
-    int IsASREnabled() { return flags.enable_asrinvocation; }
-    void lock_asr();
-    void unlock_asr();
-    int asr_running() { return flags.asr_running; }
-    void asr_pgid(pid_t new_pgid);
-    pid_t asr_pgid() { return pgid; }
-
     void print_repvol(int);
-    void ReportVolState(void);
 };
 
 class volent_iterator : public rec_ohashtab_iterator {

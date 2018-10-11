@@ -47,11 +47,13 @@ Pittsburgh, PA.
 #define readonlyVolume  ROVOL
 #define backupVolume	   BACKVOL
 #define replicatedVolume	REPVOL
+#define nonReplicatedVolume	NONREPVOL
 
 #define RWVOL			0
 #define ROVOL			1
 #define BACKVOL			2
 #define	REPVOL			3
+#define	NONREPVOL		4
 
 /* All volumes will have a volume header name in this format */
 /*#define VFORMAT "V%010lu.vol"*/

@@ -210,7 +210,7 @@ void vdb::CheckPoint(unsigned long curr_time)
 
     /* For each volume. */
     repvol_iterator vnext;
-    repvol *v;
+    reintvol *v;
 
     while ((v = vnext())) {
 	unsigned long lmTime= 0;
@@ -224,7 +224,7 @@ void vdb::CheckPoint(unsigned long curr_time)
 		   (lmTime > curr_time - VolCheckPointInterval)) {
 
 	    LOG(1000, ("vdb::CheckPoint: checking %s\n", v->name));
-	    if (CheckLock(&v->CML_lock)) {    
+	    if (CheckLock(&v->CML_lock)) {
 		eprint("volume %s CML is busy, skip checkpoint!\n", v->name);
 	    } else if (v->Enter((VM_OBSERVING | VM_NDELAY), V_UID) == 0) {
 		 v->CheckPointMLEs(V_UID, (char *)NULL);

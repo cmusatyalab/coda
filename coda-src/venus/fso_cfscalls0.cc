@@ -435,7 +435,7 @@ int fsobj::Fetch(uid_t uid, uint64_t pos, int64_t count)
             }
 
 	    /* Handle failed validations. */
-	    if (VV_Cmp(&status.VV, &stat.VV) != VV_EQ) {
+	    if (!CompareVersion(&status)) {
 		if (LogLevel >= 1) {
 		    dprint("fsobj::Fetch: failed validation\n");
 		    int *r = ((int *)&status.VV);
@@ -495,9 +495,19 @@ RepExit:
     }
 
 	/* Handle failed validations. */
-	if (HAVESTATUS(this) && status.DataVersion != stat.DataVersion) {
+	if (HAVESTATUS(this) && !CompareVersion(&status)) {
 	    LOG(1, ("fsobj::Fetch: failed validation (%d, %d)\n",
 		    status.DataVersion, stat.DataVersion));
+        if (LogLevel >= 1) {
+            int *r = ((int *)&status.VV);
+            dprint("\tremote = [%x %x %x %x %x %x %x %x] [%x %x] [%x]\n",
+        	   r[0], r[1], r[2], r[3], r[4],
+        	   r[5], r[6], r[7], r[8], r[9], r[10]);
+            int *l = ((int *)&stat.VV);
+            dprint("\tlocal = [%x %x %x %x %x %x %x %x] [%x %x] [%x]\n",
+        	   l[0], l[1], l[2], l[3], l[4],
+        	   l[5], l[6], l[7], l[8], l[9], l[10]);
+        }
 	    code = EAGAIN;
 	}
 
@@ -930,7 +940,7 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
 #endif
 
 	    /* Handle failed validations. */
-	    if (HAVESTATUS(this) && VV_Cmp(&status.VV, &stat.VV) != VV_EQ) {
+	    if (HAVESTATUS(this) && !CompareVersion(&status)) {
 		if (LogLevel >= 1) {
 		    dprint("fsobj::GetAttr: failed validation\n");
 		    int *r = ((int *)&status.VV);
@@ -1074,27 +1084,37 @@ RepExit:
 	}
 	if (code != 0) goto NonRepExit;
 
-	/* Handle failed validations. */
-	if (HAVESTATUS(this) && status.DataVersion != stat.DataVersion) {
-	    LOG(1, ("fsobj::GetAttr: failed validation (%d, %d)\n",
-		    status.DataVersion, stat.DataVersion));
+    /* Handle failed validations. */
+    if (HAVESTATUS(this) && !CompareVersion(&status)) {
+        LOG(1, ("fsobj::GetAttr: failed validation (%d, %d)\n",
+            status.DataVersion, stat.DataVersion));
+        if (LogLevel >= 1) {
+            int *r = ((int *)&status.VV);
+            dprint("\tremote = [%x %x %x %x %x %x %x %x] [%x %x] [%x]\n",
+        	   r[0], r[1], r[2], r[3], r[4],
+        	   r[5], r[6], r[7], r[8], r[9], r[10]);
+            int *l = ((int *)&stat.VV);
+            dprint("\tlocal = [%x %x %x %x %x %x %x %x] [%x %x] [%x]\n",
+        	   l[0], l[1], l[2], l[3], l[4],
+        	   l[5], l[6], l[7], l[8], l[9], l[10]);
+        }
 
-	    Demote();
+        Demote();
 
-	    /* If we have data, it is stale and must be discarded. */
-	    /* Operation MUST be restarted from beginning since, even though
-	     * this fetch was for status-only, the operation MAY be requiring
-	     * data! */
-	    if (HAVEDATA(this)) {
-		Recov_BeginTrans();
-		UpdateCacheStats((IsDir() ? &FSDB->DirDataStats : &FSDB->FileDataStats),
-				 REPLACE, BLOCKS(this));
-		DiscardData();
-		code = ERETRY;
-		Recov_EndTrans(CMFP);
+        /* If we have data, it is stale and must be discarded. */
+        /* Operation MUST be restarted from beginning since, even though
+         * this fetch was for status-only, the operation MAY be requiring
+         * data! */
+        if (HAVEDATA(this)) {
+            Recov_BeginTrans();
+            UpdateCacheStats((IsDir() ? &FSDB->DirDataStats : &FSDB->FileDataStats),
+            		 REPLACE, BLOCKS(this));
+            DiscardData();
+            code = ERETRY;
+            Recov_EndTrans(CMFP);
 
-		goto NonRepExit;
-	    }
+            goto NonRepExit;
+        }
 	}
 
 	if (status.CallBack == CallBackSet && cbtemp == cbbreaks)
@@ -1179,8 +1199,10 @@ int fsobj::DisconnectedStore(Date_t Mtime, uid_t uid, unsigned long NewLength,
     int code = 0;
     repvol *rv;
 
-    if (!vol->IsReplicated())
-	return ETIMEDOUT;
+    if (!(vol->IsReadWrite())) {
+        return ETIMEDOUT;
+    }
+	
     rv = (repvol *)vol;
 
     Recov_BeginTrans();
@@ -1279,14 +1301,16 @@ int fsobj::DisconnectedSetAttr(Date_t Mtime, uid_t uid, unsigned long NewLength,
     int code = 0;
     repvol *rv;
 
-    if (!vol->IsReplicated())
-	return ETIMEDOUT;
+    if (!(vol->IsReadWrite())) {
+        return ETIMEDOUT;
+    }
+	
     rv = (repvol *)vol;
 
     Recov_BeginTrans();
     RPC2_Integer tNewMode = (short)NewMode;	    /* sign-extend!!! */
 
-    CODA_ASSERT(vol->IsReplicated());
+    CODA_ASSERT(vol->IsReadWrite());
     code = rv->LogSetAttr(Mtime, uid, &fid, NewLength, NewDate, NewOwner,
 			  (RPC2_Unsigned)tNewMode, prepend);
     if (code == 0 && prepend == 0)
@@ -1368,6 +1392,8 @@ int fsobj::SetAttr(struct coda_vattr *vap, uid_t uid)
 int fsobj::SetACL(RPC2_CountedBS *acl, uid_t uid)
 {
     LOG(10, ("fsobj::SetACL: (%s), uid = %d\n", GetComp(), uid));
+    
+    ViceVersionVector UpdateSet;
 
     if (!REACHABLE(this))
 	return ETIMEDOUT;
@@ -1428,7 +1454,7 @@ int fsobj::SetACL(RPC2_CountedBS *acl, uid_t uid)
 
 	/* The COP1 call. */
 	long cbtemp; cbtemp = cbbreaks;
-	ViceVersionVector UpdateSet;
+	
 
 	Recov_BeginTrans();
 	Recov_GenerateStoreId(&sid);
@@ -1528,10 +1554,16 @@ RepExit:
 	UNI_RECORD_STATS(ViceSetACL_OP);
 
 	if (code != 0) goto NonRepExit;
+    
+    
+    /* Non-replicated volumes stil use the first slot */
+    InitVV(&UpdateSet);
+    if (vol->IsNonReplicated())
+        (&(UpdateSet.Versions.Site0))[0] = 1;
 
 	/* Do setattr locally. */
 	Recov_BeginTrans();
-	UpdateStatus(&status, NULL, uid);
+	UpdateStatus(&status, &UpdateSet, uid);
 	Recov_EndTrans(CMFP);
 
 NonRepExit:
@@ -1600,9 +1632,9 @@ int fsobj::DisconnectedCreate(Date_t Mtime, uid_t uid, fsobj **t_fso_addr,
     VenusFid target_fid;
     repvol *rv;
 
-    if (!vol->IsReplicated()) {
-	code = ETIMEDOUT;
-	goto Exit;
+    if (!(vol->IsReadWrite())) {
+        code = ETIMEDOUT;
+        goto Exit;
     }
     rv = (repvol *)vol;
 
@@ -1675,4 +1707,17 @@ int fsobj::Create(char *name, fsobj **target_fso_addr,
 	Demote();
     }
     return(code);
+}
+
+bool fsobj::CompareVersion(ViceStatus * status, VenusStat * venus_stat)
+{
+    if (!venus_stat) venus_stat = &(this->stat);
+    
+    if (VV_Cmp(&status->VV, &venus_stat->VV) != VV_EQ) return false;
+    
+    if (vol->IsNonReplicated()) {
+        if (status->DataVersion != venus_stat->DataVersion) return false;
+    }
+    
+    return true;
 }

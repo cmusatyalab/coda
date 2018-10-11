@@ -127,7 +127,7 @@ int ClientModifyLog::DiscardLocalMutation(char *msg)
   END_HTML
 */
 /* need not be called from within a transaction */
-void repvol::DiscardAllLocalMutation(char *msg)
+void reintvol::DiscardAllLocalMutation(char *msg)
 {
     OBJ_ASSERT(this, msg);
     sprintf(msg, "use purgeml instead\n");
@@ -233,4 +233,3 @@ int ClientModifyLog::ListCML(FILE *fp)
 
     return count;
 }
-
