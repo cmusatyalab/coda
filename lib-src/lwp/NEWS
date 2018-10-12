@@ -1,3 +1,10 @@
+New in 2.10:
+
+ * Change autoconf test for mmap to only test for existence, not if it
+   actually works because we sometimes build on a filesystem that
+   doesn't support mmap.
+ * Fix memory leak when we fail to create a new LWP process (thread).
+
 New in 2.9:
 
  * Use stdlib defined exit codes.

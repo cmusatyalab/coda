@@ -1,3 +1,9 @@
+New in 1.22:
+
+* Change autoconf to only check for mmap existance. This allows building
+  the source on file systems that do not support mmap.
+* Fix resource leaks in RVM test programs.
+
 New in 1.21:
 
 * Use stdlib defined exit codes.

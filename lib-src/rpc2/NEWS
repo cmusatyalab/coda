@@ -1,3 +1,9 @@
+New in 2.23
+
+* Do not supress retransmissions over the TCP tunnel. Although we have
+  reliable delivery, we still need to see RPC2_BUSY responses as a keepalive
+  during long running operations.
+
 New in 2.22
 
 * In SFTP (the bulk/file transport layer for RPC2), packets that didn't
