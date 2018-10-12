@@ -2741,6 +2741,11 @@ failure:
   return 0;
 }
 
+CacheChunkList * fsobj::GetHoles(uint64_t start, int64_t len) {
+    FSO_ASSERT(this, IsFile());
+    return cf.GetHoles(start, len);
+}
+
 /* *****  Iterator  ***** */
 
 fso_iterator::fso_iterator(LockLevel level, const VenusFid *key) : rec_ohashtab_iterator(FSDB->htab, key) {
