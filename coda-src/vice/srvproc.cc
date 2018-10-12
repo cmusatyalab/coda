@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2018 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -179,24 +179,22 @@ extern void PollAndYield();
  /*
    ViceFetch: Fetch a file or directory
  */
- long FS_ViceFetch(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
- 		  RPC2_Unsigned InconOK, ViceStatus *Status,
- 		  RPC2_Unsigned PrimaryHost, RPC2_Unsigned Offset,
- 		  RPC2_CountedBS *PiggyBS, SE_Descriptor *BD)
+long FS_ViceFetch(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
+	RPC2_Unsigned InconOK, ViceStatus *Status, RPC2_Unsigned PrimaryHost,
+	RPC2_Unsigned Offset, RPC2_CountedBS *PiggyBS, SE_Descriptor *BD)
 {
-	
-	return FS_ViceFetchPartial(RPCid, Fid, VV, InconOK, Status, PrimaryHost, 
-	                    Offset, -1, PiggyBS, BD);
+    return FS_ViceFetchPartial(RPCid, Fid, VV, InconOK, Status, PrimaryHost,
+			       Offset, -1, PiggyBS, BD);
 }
 
 /*
-  ViceFetchPartial: Partially Fetch a file. Directories are fetched 
+  ViceFetchPartial: Partially Fetch a file. Directories are fetched
                     as with ViceFetch.
 */
 long FS_ViceFetchPartial(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
-		  RPC2_Unsigned InconOK, ViceStatus *Status,
-		  RPC2_Unsigned PrimaryHost, RPC2_Unsigned Offset, RPC2_Unsigned Count,
-		  RPC2_CountedBS *PiggyBS, SE_Descriptor *BD)
+	RPC2_Unsigned InconOK, ViceStatus *Status, RPC2_Unsigned PrimaryHost,
+	RPC2_Unsigned Offset, RPC2_Unsigned Count, RPC2_CountedBS *PiggyBS,
+	SE_Descriptor *BD)
 {
     int errorCode = 0;		/* return code to caller */
     Volume *volptr = 0;		/* pointer to the volume */
@@ -211,12 +209,12 @@ long FS_ViceFetchPartial(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
 
 START_TIMING(Fetch_Total);
 
-	if (Count < 0) {
-		SLog(1, "ViceFetch: Fid = %s, Repair = %d", FID_(Fid), InconOK);
-	} else {
-		SLog(1, "ViceFetch: Fid = %s, Repair = %d, Pos = %d, Count = %d", 
-		     FID_(Fid), InconOK, Offset, Count);
-	}
+    if (Count < 0) {
+	    SLog(1, "ViceFetch: Fid = %s, Repair = %d", FID_(Fid), InconOK);
+    } else {
+	    SLog(1, "ViceFetch: Fid = %s, Repair = %d, Pos = %d, Count = %d",
+		 FID_(Fid), InconOK, Offset, Count);
+    }
   
     /* Validate parameters. */
     {
@@ -2137,10 +2135,9 @@ void PerformFetch(ClientEntry *client, Volume *volptr, Vnode *vptr) {
 }
 
 
-int FetchBulkTransfer(RPC2_Handle RPCid, ClientEntry *client, 
-		      Volume *volptr, Vnode *vptr, RPC2_Unsigned Offset, 
-			  RPC2_Integer Count,
-		      ViceVersionVector *VV)
+int FetchBulkTransfer(RPC2_Handle RPCid, ClientEntry *client, Volume *volptr,
+	Vnode *vptr, RPC2_Unsigned Offset, RPC2_Integer Count,
+	ViceVersionVector *VV)
 {
     int errorCode = 0;
     ViceFid Fid;
@@ -2247,18 +2244,17 @@ int FetchBulkTransfer(RPC2_Handle RPCid, ClientEntry *client,
 	    goto Exit;
 	}
 
-	    
-    if (Count < 0 || (Offset + Count) > Length) { /* Transfer till the EOF */
-        /* compensate Length for the data we skipped because of the requested
-    	 * Offset */
-        bytes_to_transfer = Length - Offset;
-    } else {
-        bytes_to_transfer = Count;
-    }
-    
-    if (bytes_to_transfer > Length) {
-        bytes_to_transfer = Length;
-    }
+	if (Count < 0 || (Offset + Count) > Length) { /* Transfer till the EOF */
+	    /* compensate Length for the data we skipped because of the requested
+	     * Offset */
+	    bytes_to_transfer = Length - Offset;
+	} else {
+	    bytes_to_transfer = Count;
+	}
+
+	if (bytes_to_transfer > Length) {
+	    bytes_to_transfer = Length;
+	}
 
 	RPC2_Integer len = sid.Value.SmartFTPD.BytesTransferred;
 	if (len != bytes_to_transfer) {

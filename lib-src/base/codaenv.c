@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+	      Copyright (c) 2018 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -24,8 +24,8 @@ Coda are listed in the file CREDITS.
 #include <unistd.h>
 #include "codaenv.h"
 
-
-char * codaenv_find(const char * var_name) {
+char * codaenv_find(const char * var_name)
+{
     char env_var[256];
     char * val = NULL;
 

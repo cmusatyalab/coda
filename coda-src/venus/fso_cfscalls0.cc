@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2018 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -238,7 +238,6 @@ int fsobj::Fetch(uid_t uid, uint64_t pos, int64_t count)
 {
     int fd = -1;
     int code = 0;
-    
 
     LOG(10, ("fsobj::Fetch: (%s), uid = %d\n", GetComp(), uid));
 

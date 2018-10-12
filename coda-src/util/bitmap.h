@@ -57,7 +57,7 @@ class bitmap {
     /**
      * Set the value of a bit at an index
      *
-     * @param index  index of the bit to be set 
+     * @param index  index of the bit to be set
      * @param value  value to set to bit
      */
     inline void SetValue(int index, int value);
@@ -65,8 +65,8 @@ class bitmap {
     /**
      * Set the value of bit range
      *
-     * @param start  start of the range 
-     * @param len    length of the range 
+     * @param start  start of the range
+     * @param len    length of the range
      * @param value  value to be set
      */
     void SetRangeValue(int start, int len, int value);
@@ -111,7 +111,7 @@ public:
     void Resize(int newsize);
 
     /**
-     * Grow the bitmap to a new size 
+     * Grow the bitmap to a new size
      *
      * @param newsize  bitmap's new size
      */
@@ -186,7 +186,7 @@ public:
     int Size();
 
     /**
-     * Delete the map 
+     * Delete the map
      */
     void purge();
 

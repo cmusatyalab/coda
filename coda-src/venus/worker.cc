@@ -1541,17 +1541,17 @@ inline void worker::op_coda_access_intent(union inputArgs *in, union outputArgs 
 {
     struct venus_cnode vtarget;
     struct coda_access_intent_in * coda_access_intent = &in->coda_access_intent;
-    
+
     /* Sanity check */
     CODA_ASSERT(worker::kernel_version >= 5);
-    
+
     LOG(100, ("CODA_ACCESS_INTENT: u.u_pid = %d u.u_pgid = %d pos = %d count = %d, mode = %d \n",
         u.u_pid,
         u.u_pgid,
         coda_access_intent->pos,
         coda_access_intent->count,
         coda_access_intent->mode));
-        
+
     MAKE_CNODE(vtarget, coda_access_intent->Fid, 0);
 
     switch (coda_access_intent->mode) {

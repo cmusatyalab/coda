@@ -23,8 +23,8 @@
 #realmtab=/etc/coda/realms
 
 #
-# What should the size of the local cache be. If this is not specified or 
-# `0' the default value of 2048 or 2MB is chosen. Supported units are KB, 
+# What should the size of the local cache be. If this is not specified or
+# `0' the default value of 2048 or 2MB is chosen. Supported units are KB,
 # MB, GB, and TB.
 # Minimum value is 2048 or 2MB.
 #

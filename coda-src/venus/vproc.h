@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2018 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -236,7 +236,7 @@ class vproc : public olink {
     void symlink(struct venus_cnode *, char *, struct coda_vattr *, char *);
     void readlink(struct venus_cnode *, struct coda_string *);
     void fsync(struct venus_cnode *);
-    
+
     /**
      * Read file operation
      *
@@ -246,7 +246,7 @@ class vproc : public olink {
      *
      */
     void read(struct venus_cnode * node, uint64_t pos, int64_t count);
-    
+
     /**
      * Write file operation
      *
@@ -256,9 +256,9 @@ class vproc : public olink {
      *
      */
     void write(struct venus_cnode * node, uint64_t pos, int64_t count);
-    
+
     /**
-     * Signal the end of a synchronous read file operation 
+     * Signal the end of a synchronous read file operation
      *
      * @param node     Venus cnode pointer holding file's metadata
      * @param pos      Offset within the file
@@ -266,9 +266,9 @@ class vproc : public olink {
      *
      */
     void read_finish(struct venus_cnode * node, uint64_t pos, int64_t count);
-    
+
     /**
-     * Signal the end of a synchronous write file operation 
+     * Signal the end of a synchronous write file operation
      *
      * @param node     Venus cnode pointer holding file's metadata
      * @param pos      Offset within the file

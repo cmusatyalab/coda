@@ -8,7 +8,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2018 Carnegie Mellon University
                   Additional copyrights listed below
 
 This code is distributed "AS IS" without warranty of any kind under
@@ -25,7 +25,7 @@ CREDITS.
             Coda: an Experimental Distributed File System
                              Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2018 Carnegie Mellon University
                          All Rights Reserved
 
 Permission  to  use, copy, modify and distribute this software and its
@@ -295,7 +295,7 @@ struct coda_statfs {
 #define UPCALL(opcode) (opcode >= CODA_ROOT && \
                         opcode < CODA_OPCODE_MAX && \
                         !DOWNCALL(opcode))
-                        
+
 #define CODA_ACCESS_TYPE_READ         1
 #define CODA_ACCESS_TYPE_WRITE        2
 #define CODA_ACCESS_TYPE_MMAP         3

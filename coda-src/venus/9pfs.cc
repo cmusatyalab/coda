@@ -1480,7 +1480,7 @@ err_out:
     ::free(stat.gid);
     ::free(stat.uid);
     ::free(stat.name);
-    if (protocol == P9_PROTO_DOTU) 
+    if (protocol == P9_PROTO_DOTU)
         ::free(stat.extension);
     return send_error(tag, strerr, errcode);
 }

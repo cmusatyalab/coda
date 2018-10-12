@@ -121,20 +121,18 @@ bitmap::~bitmap()
 {
     /* Temporary, until we discover if bitmaps are ever allocated on the stack
        Satya (6/5/95) */
-    CODA_ASSERT(malloced == BITMAP_VIANEW); 
+    CODA_ASSERT(malloced == BITMAP_VIANEW);
 
     if (recoverable) {
         RVMLIB_REC_OBJECT(*this);
-        if (map) 
+        if (map)
             rvmlib_rec_free(map);
     } else {
-        if (map) 
+        if (map)
             delete[] map;
     }
     map = NULL;
     mapsize = 0;
-
-    
 }
 
 void bitmap::Resize(int newsize)
@@ -185,7 +183,7 @@ void bitmap::Resize(int newsize)
     map = newmap;
 }
 
-void bitmap::Grow(int newsize) 
+void bitmap::Grow(int newsize)
 {
     if (newsize < (mapsize << 3)) return;
     Resize(newsize);
@@ -222,7 +220,7 @@ void bitmap::SetValue(int index, int value)
     int bitoffset = index & 7;
     int mask = (1 << (7 - bitoffset));
     CODA_ASSERT(offset < mapsize);
-    
+
     if (!map) return;
 
     if (recoverable) rvmlib_set_range(&map[offset], sizeof(char));
@@ -233,7 +231,6 @@ void bitmap::SetValue(int index, int value)
     } else  {
         map[offset] &= ~mask;
     }
-    
 }
 
 void bitmap::CopyRange(int start, int len, bitmap& b)
@@ -265,8 +262,7 @@ void bitmap::CopyRange(int start, int len, bitmap& b)
 
     for (int i = (byte_end << 3); i < bit_end; i++) {
         b.SetValue(i, Value(i));
-    }    
-
+    }
 }
 
 void bitmap::SetRangeValue(int start, int len, int value)
@@ -299,7 +295,6 @@ void bitmap::SetRangeValue(int start, int len, int value)
     for (int i = (byte_end << 3); i < bit_end; i++) {
         SetValue(i, value);
     }
-
 }
 
 void bitmap::SetIndex(int index)
@@ -340,19 +335,19 @@ int bitmap::Count()
     int count = 0;
     if (!map) return 0;
     for (int i = 0; i < mapsize; i++) 
-        for (int j = 0; j < 8; j++) 
-            if (map[i] & (1 << j)) 
+        for (int j = 0; j < 8; j++)
+            if (map[i] & (1 << j))
                 count++;
     return(count);
 }
 
-int bitmap::Size() 
+int bitmap::Size()
 {
     if (!map) return 0;
     return (mapsize << 3);
 }
 
-void bitmap::purge() 
+void bitmap::purge()
 {
     if (recoverable) {
         RVMLIB_REC_OBJECT(*this);
@@ -370,7 +365,7 @@ void bitmap::operator=(bitmap& b)
     if (mapsize != b.mapsize) {
         /* deallocate existing map entry */
         if (map) {
-            if (recoverable) 
+            if (recoverable)
                 rvmlib_rec_free(map);
             else
                 delete[] map;
@@ -391,7 +386,7 @@ void bitmap::operator=(bitmap& b)
 
     } else {
         /* use space of old map itself */
-        if (recoverable) 
+        if (recoverable)
             rvmlib_set_range(map, mapsize);
     }
 
@@ -402,7 +397,7 @@ int bitmap::operator!=(bitmap& b)
 {
     if (mapsize != b.mapsize)
         return (1);
-        
+
     if (!map) return (1);
     if (!b.map) return (1);
 

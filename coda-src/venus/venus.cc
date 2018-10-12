@@ -34,7 +34,7 @@ extern "C" {
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <math.h> 
+#include <math.h>
 #include <rpc2/codatunnel.h>
 
 #include "archive.h"
@@ -249,7 +249,7 @@ void MUX_add_callback(int fd, void (*cb)(int fd, void *udata), void *udata)
 }
 
 /*
- * Parse size value and converts into amount of 1K-Blocks 
+ * Parse size value and converts into amount of 1K-Blocks
  */
 static unsigned int ParseSizeWithUnits(const char * CacheSize)
 {
@@ -265,7 +265,7 @@ static unsigned int ParseSizeWithUnits(const char * CacheSize)
             scale_factor = KBYTE_UNIT_SCALE;
             break;
         }
-        
+
         if ((units = strstr(CacheSize, MBYTES_UNIT[i]))) {
             scale_factor = MBYTE_UNIT_SCALE;
             break;
@@ -525,7 +525,7 @@ static void ParseCmdline(int argc, char **argv)
 	    else if (STREQ(argv[i], "-cf"))   /* number of cache files */
 		i++, CacheFiles = atoi(argv[i]);
 	    else if (STREQ(argv[i], "-c"))    /* cache block size */
-		i++, CacheBlocks = ParseSizeWithUnits(argv[i]);  
+		i++, CacheBlocks = ParseSizeWithUnits(argv[i]);
 	    else if (STREQ(argv[i], "-hdbes")) /* hoard DB entries */
 		i++, HDBEs = atoi(argv[i]);
 	    else if (STREQ(argv[i], "-d"))     /* debugging */
@@ -664,16 +664,16 @@ static void ParseCmdline(int argc, char **argv)
     if (done) exit(done < 0 ? EXIT_INVALID_ARG : EXIT_SUCCESS);
 }
 
-/* 
+/*
  * Use an adjusted logarithmic function experimentally linearlized around
  * the following points;
- * 2MB -> 85 cache files 
- * 100MB -> 4166 cache files 
- * 200MB -> 8333 cache files 
- * With the logarithmic function the following values are obtained 
- * 2MB -> 98 cache files 
- * 100MB -> 4412 cache files 
- * 200MB -> 8142 cache files 
+ * 2MB -> 85 cache files
+ * 100MB -> 4166 cache files
+ * 200MB -> 8333 cache files
+ * With the logarithmic function the following values are obtained
+ * 2MB -> 98 cache files
+ * 100MB -> 4412 cache files
+ * 200MB -> 8142 cache files
  */
 static unsigned int CalculateCacheFiles(unsigned int CacheBlocks)
 {
@@ -720,7 +720,7 @@ static void DefaultCmdlineParms()
         eprint("Cannot start: minimum number of cache files is %d", MIN_CF);
         exit(EXIT_UNCONFIGURED);
     }
-    
+
     CODACONF_STR(CacheDir,	    "cachedir",      DFLT_CD);
     CODACONF_STR(SpoolDir,	    "checkpointdir", "/usr/coda/spool");
     CODACONF_STR(VenusLogFile,	    "logfile",	     DFLT_LOGFILE);

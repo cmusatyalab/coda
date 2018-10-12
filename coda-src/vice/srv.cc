@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2017 Carnegie Mellon University
+          Copyright (c) 1987-2018 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -374,8 +374,8 @@ int main(int argc, char *argv[])
     }
 
     (void)ReadConfigFile();
-	
-	if(ParseArgs(argc,argv)) {
+
+    if (ParseArgs(argc,argv)) {
 	SLog(0, "usage: srv [-d (debug level)] [-p (number of processes)] ");
 	SLog(0, "[-l (large vnodes)] [-s (small vnodes)]");
 	SLog(0, "[-k (stack size)] [-w (call back wait interval)]");
@@ -1457,7 +1457,7 @@ static int ParseArgs(int argc, char *argv[])
 
     for (i = 1; i < argc; i++) {
 	if (!strcmp(argv[i], "-d")) {
-	    debuglevel = atoi(argv[++i]);	    
+	    debuglevel = atoi(argv[++i]);
 	}
 	else 
 	    if (!strcmp(argv[i], "-zombify"))
