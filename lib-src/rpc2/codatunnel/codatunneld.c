@@ -217,7 +217,9 @@ static void recv_codatunnel_cb(uv_udp_t *codatunnel, ssize_t nread,
     if (d && d->state == TCPACTIVE) {
         DEBUG("d->state == TCPACTIVE\n");
 
-        if (p->is_retry && (d->packets_sent > 0)) {
+        /* Changed this to always send retries so we get RPC2_BUSY as a keep
+         * alive on long running operations -JH */
+        if (0) { // p->is_retry && (d->packets_sent > 0)) {
             /* drop retry packet;
                only exception is when nothing has yet been sent on new TCP
                connection; the state may have become TCPACTIVE after most
