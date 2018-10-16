@@ -1852,6 +1852,8 @@ int reintvol::GetConn(connent **c, uid_t uid, mgrpent **m, int *ph_ix, struct in
        s = GetServer(phost, rv->GetRealmId());
        code = s->GetConn(c, uid);
        PutServer(&s);
+       
+       return(code);
 Exit:
         if (*m) (*m)->Put();
        return(code);
