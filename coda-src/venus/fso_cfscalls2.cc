@@ -301,6 +301,7 @@ int fsobj::Open(int writep, int truncp, struct venus_cnode *cp, uid_t uid)
 	    FSDB->ChangeDiskUsage((int) NBLOCKS(tstat.st_size) - NBLOCKS(data.dir->udcf->Length()));
 	    Recov_BeginTrans();
 	    data.dir->udcf->SetLength((int) tstat.st_size);
+        data.dir->udcf->SetValidData((int) tstat.st_size);
 	    Recov_EndTrans(MAXFP);
 	}
     }
