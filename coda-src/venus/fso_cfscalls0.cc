@@ -1185,6 +1185,7 @@ void fsobj::LocalStore(Date_t Mtime, unsigned long NewLength)
     stat.DataVersion++;
     stat.Length = NewLength;
     stat.Date = Mtime;
+    cf.SetLength(NewLength);
     cf.SetValidData(NewLength);
     memset(VenusSHA, 0, SHA_DIGEST_LENGTH);
 

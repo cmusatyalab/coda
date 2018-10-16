@@ -355,9 +355,10 @@ void CacheFile::SetLength(uint64_t newlen)
             ReleaseWriteLock(&rw_lock);
         }
 
+        length = newlen;
+
         UpdateValidData();
 
-        length = newlen;
     }
 
     LOG(60, ("CacheFile::SetLength: New Length: %d, Validata %d\n", newlen, validdata));

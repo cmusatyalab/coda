@@ -373,6 +373,7 @@ int fsobj::Sync(uid_t uid)
 
     Recov_BeginTrans();
     data.file->SetLength((unsigned int) NewLength);
+    data.file->SetValidData((unsigned int) NewLength);
     Recov_EndTrans(MAXFP);
 
     /* Attempt the Store. */
