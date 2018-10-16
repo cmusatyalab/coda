@@ -288,7 +288,7 @@ static unsigned int ParseSizeWithUnits(const char * CacheSize)
         strncpy(CacheSizeWOUnits, CacheSize, cachesize_len);
         CacheSizeWOUnits[cachesize_len] = 0;  // Make it null-terminated
     } else {
-        snprintf(CacheSizeWOUnits, sizeof(CacheSizeWOUnits), CacheSize);
+        snprintf(CacheSizeWOUnits, sizeof(CacheSizeWOUnits), "%s", CacheSize);
     }
 
     /* Scale the value */
