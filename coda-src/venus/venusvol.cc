@@ -1517,7 +1517,7 @@ int reintvol::WriteDisconnect(unsigned int age, unsigned int hogtime)
 
 int reintvol::SyncCache(VenusFid * fid)
 {
-    LOG(1,("volent::SyncCache()\n"));
+    LOG(1,("reintvol::SyncCache()\n"));
 
     flags.transition_pending = 1;
     while (VOLBUSY(this)) {
@@ -1530,7 +1530,7 @@ int reintvol::SyncCache(VenusFid * fid)
     while (flags.transition_pending && !VOLBUSY(this))
 	TakeTransition();
 
-    /* the sync_reintegrate flag is cleared in repvol::Reintegrate to avoid
+    /* the sync_reintegrate flag is cleared in reintvol::Reintegrate to avoid
      * recursion when exiting the volume in cases where the reintegration
      * required resolution or repair */
     // flags.sync_reintegrate = 0;

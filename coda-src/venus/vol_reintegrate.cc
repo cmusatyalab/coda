@@ -75,7 +75,7 @@ extern "C" {
 /* must not be called from within a transaction */
 void reintvol::Reintegrate()
 {
-    LOG(0, ("repvol::Reintegrate\n"));
+    LOG(0, ("reintvol::Reintegrate\n"));
 
     if (!ReadyToReintegrate())
 	return;
@@ -231,7 +231,7 @@ void reintvol::Reintegrate()
 
 	conflict = FSDB->Find(&fids[0]);
 	if(!conflict) {
-	    LOG(0, ("repvol::Reintegrate: Couldn't find conflict for ASR!\n"));
+	    LOG(0, ("reintvol::Reintegrate: Couldn't find conflict for ASR!\n"));
 	    goto Done;
 	}
 
