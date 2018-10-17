@@ -1145,14 +1145,14 @@ int fsobj::TryToCover(VenusFid *inc_fid, uid_t uid)
     }
 
     char type = data.symlink[0];
-    char *mtlink = strndup(&data.symlink[1], stat.Length);
+    char *mtlink = strndup(&data.symlink[1], stat.Length-1);
 
     /* strip trailing '.' */
     /* Stored mountlinks always had one, but for a while fake links
      * did not. Once we know all clients reinited (7.0?) we could
      * unconditionally strip this, if we care. */
-    if (mtlink[stat.Length-1] == '.')
-        mtlink[stat.Length-1] = '\0';
+    if (mtlink[stat.Length-2] == '.')
+        mtlink[stat.Length-2] = '\0';
 
     VenusFid root_fid;
     FID_MakeRoot(MakeViceFid(&root_fid));
