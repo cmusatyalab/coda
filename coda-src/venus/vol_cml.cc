@@ -2305,7 +2305,7 @@ int ClientModifyLog::COP1_NR(char *buf, int bufsize, ViceVersionVector *UpdateSe
     RPC2_Unsigned NumStaleDirs = 0;
     
     connent *c = NULL;
-    code = vol->GetConn(&c, owner, NULL);
+    code = vol->GetConn(&c, owner, NULL, NULL, NULL);
 
     // /* abort reintegration if the user is not authenticated */
     // if (!m->IsAuthenticated()) {

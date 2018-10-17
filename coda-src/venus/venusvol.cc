@@ -1834,6 +1834,9 @@ int reintvol::GetConn(connent **c, uid_t uid, mgrpent **m, int *ph_ix, struct in
     repvol *rv = (repvol *)this;
     int code = 0;
     srvent *s = NULL;
+    struct in_addr *phost_tmp = NULL;
+    struct in_addr phost_tmp2;
+    int ph_ix_tmp = 0;
     
     *c = NULL;
     if (m) *m = NULL;
@@ -1844,12 +1847,13 @@ int reintvol::GetConn(connent **c, uid_t uid, mgrpent **m, int *ph_ix, struct in
        if (code != 0) goto Exit;
 
        /* Pick a server and get a connection to it. */
-       if (phost && ph_ix) {
-           phost = (*m)->GetPrimaryHost(ph_ix);
-           CODA_ASSERT(phost->s_addr != 0);
-       }
+       phost_tmp = (*m)->GetPrimaryHost(&ph_ix_tmp);
+       CODA_ASSERT(phost_tmp->s_addr != 0);
 
-       s = GetServer(phost, rv->GetRealmId());
+       if (phost) *phost = *phost_tmp;
+       if (ph_ix) *ph_ix = ph_ix_tmp;
+
+       s = GetServer(phost_tmp, rv->GetRealmId());
        code = s->GetConn(c, uid);
        PutServer(&s);
        
@@ -1863,8 +1867,9 @@ Exit:
        code = vr->GetConn(c, uid);
 
        if (phost) {
-           vr->Host(phost);
-           CODA_ASSERT(phost->s_addr != 0);
+           vr->Host(&phost_tmp2);
+           CODA_ASSERT(phost_tmp2.s_addr != 0);
+           *phost = phost_tmp2;
        }
        
        if (ph_ix) *ph_ix = 0;

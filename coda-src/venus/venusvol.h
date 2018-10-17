@@ -772,7 +772,7 @@ public:
     
     VenusFid GenerateLocalFid(ViceDataType);
     
-    int GetConn(connent **c, uid_t uid, mgrpent **m, int *ph_ix = NULL, struct in_addr *phost = NULL);
+    int GetConn(connent **c, uid_t uid, mgrpent **m, int *ph_ix, struct in_addr *phost);
     
     /* local-repair modifications to the following methods */
     /* Modlog routines. */
