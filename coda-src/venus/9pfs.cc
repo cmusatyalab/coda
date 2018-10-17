@@ -534,6 +534,27 @@ int plan9server::handle_request(unsigned char *buf, size_t read)
     case Tremove:   return recv_remove(buf, len, tag);
     case Tstat:     return recv_stat(buf, len, tag);
     case Twstat:    return recv_wstat(buf, len, tag);
+    /* dotl messages */
+    case Tstatfs:
+    case Tlopen:
+    case Tlcreate:
+    case Tsymlink:
+    case Trename:
+    case Treadlink:
+    case Tgetattr:
+    case Tsetattr:
+    case Treaddir:
+    case Tfsync:
+    case Tlink:
+    case Tmkdir:
+    case Trenameat:
+    case Tunlinkat:
+    /* unsupported dotl operations */
+    case Tmknod:
+    case Txattrwalk:
+    case Txattrcreate:
+    case Tlock:
+    case Tgetlock:
     default:        return send_error(tag, "Operation not supported", EBADRQC);
     }
     return 0;
