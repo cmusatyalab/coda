@@ -48,7 +48,7 @@ extern "C" {
 
 
 #define	NVFSOPS	40	/* XXX -JJK */
-#define VFSSTATNAMELEN 12
+#define VFSSTATNAMELEN 13
 typedef struct VFSStat {
     char name[VFSSTATNAMELEN];	    /* XXX -JJK */
     int success;
