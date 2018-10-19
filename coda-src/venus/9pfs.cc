@@ -540,11 +540,24 @@ int plan9server::send_error(uint16_t tag, const char *error, int errcode)
     DEBUG("9pfs: Rerror[%x] '%s', errno: %d\n", tag, error, errcode);
 
     buf = buffer; len = max_msize;
-    if (pack_header(&buf, &len, Rerror, tag) ||
-        pack_string(&buf, &len, error))
-        return -1;
-    if (protocol == P9_PROTO_DOTU) {
-      if (pack_le32(&buf, &len, (uint32_t)errcode))
+    switch (protocol) {
+      case P9_PROTO_2000:
+        if (pack_header(&buf, &len, Rerror, tag) ||
+            pack_string(&buf, &len, error))
+            return -1;
+        break;
+      case P9_PROTO_DOTU:
+        if (pack_header(&buf, &len, Rerror, tag) ||
+            pack_string(&buf, &len, error) ||
+            pack_le32(&buf, &len, (uint32_t)errcode))
+            return -1;
+        break;
+      case P9_PROTO_DOTL:
+        if (pack_header(&buf, &len, Rlerror, tag) ||
+            pack_le32(&buf, &len, (uint32_t)errcode))
+            return -1;
+        break;
+      default:
           return -1;
     }
 
