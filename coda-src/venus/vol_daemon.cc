@@ -170,6 +170,8 @@ void vdb::FlushCOP2()
         for (;;) {
             int code = 0;
 
+            if (!v->IsReplicated()) continue;
+
             if (v->Enter((VM_OBSERVING | VM_NDELAY), V_UID) == 0) {
                 code = v->FlushCOP2(COP2Window);
                 v->Exit(VM_OBSERVING, V_UID);
