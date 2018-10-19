@@ -324,6 +324,94 @@ static int unpack_stat(unsigned char **buf, size_t *len,
 }
 
 
+static int pack_stat_dotl(unsigned char **buf, size_t *len,
+                     const struct plan9_stat_dotl *stat)
+{
+    if (pack_qid(buf, len, &stat->qid) ||
+        pack_le32(buf, len, stat->st_mode) ||
+        pack_le64(buf, len, stat->st_nlink) ||
+        pack_le32(buf, len, stat->st_uid) ||
+        pack_le32(buf, len, stat->st_gid) ||
+        pack_le64(buf, len, stat->st_rdev) ||
+        pack_le64(buf, len, stat->st_size) ||
+        pack_le64(buf, len, stat->st_blksize) ||
+        pack_le64(buf, len, stat->st_blocks) ||
+        pack_le64(buf, len, stat->st_atime_sec) ||
+        pack_le64(buf, len, stat->st_atime_nsec) ||
+        pack_le64(buf, len, stat->st_mtime_sec) ||
+        pack_le64(buf, len, stat->st_mtime_nsec) ||
+        pack_le64(buf, len, stat->st_ctime_sec) ||
+        pack_le64(buf, len, stat->st_ctime_nsec) ||
+        pack_le64(buf, len, stat->st_btime_sec) ||
+        pack_le64(buf, len, stat->st_btime_nsec) ||
+        pack_le64(buf, len, stat->st_gen) ||
+        pack_le64(buf, len, stat->st_data_version))
+        return -1;
+    return 0;
+}
+
+
+static int unpack_stat_dotl(unsigned char **buf, size_t *len,
+                       struct plan9_stat_dotl *stat)
+{
+    if (unpack_qid(buf, len, &stat->qid) ||
+        unpack_le32(buf, len, &stat->st_mode) ||
+        unpack_le64(buf, len, &stat->st_nlink) ||
+        unpack_le32(buf, len, &stat->st_uid) ||
+        unpack_le32(buf, len, &stat->st_gid) ||
+        unpack_le64(buf, len, &stat->st_rdev) ||
+        unpack_le64(buf, len, &stat->st_size) ||
+        unpack_le64(buf, len, &stat->st_blksize) ||
+        unpack_le64(buf, len, &stat->st_blocks) ||
+        unpack_le64(buf, len, &stat->st_atime_sec) ||
+        unpack_le64(buf, len, &stat->st_atime_nsec) ||
+        unpack_le64(buf, len, &stat->st_mtime_sec) ||
+        unpack_le64(buf, len, &stat->st_mtime_nsec) ||
+        unpack_le64(buf, len, &stat->st_ctime_sec) ||
+        unpack_le64(buf, len, &stat->st_ctime_nsec) ||
+        unpack_le64(buf, len, &stat->st_btime_sec) ||
+        unpack_le64(buf, len, &stat->st_btime_nsec) ||
+        unpack_le64(buf, len, &stat->st_gen) ||
+        unpack_le64(buf, len, &stat->st_data_version))
+        return -1;
+    return 0;
+}
+
+
+static int pack_statfs(unsigned char **buf, size_t *len,
+                     const struct plan9_statfs *statfs)
+{
+    if (pack_le32(buf, len, statfs->type) ||
+        pack_le32(buf, len, statfs->bsize) ||
+        pack_le64(buf, len, statfs->blocks) ||
+        pack_le64(buf, len, statfs->bfree) ||
+        pack_le64(buf, len, statfs->bavail) ||
+        pack_le64(buf, len, statfs->files) ||
+        pack_le64(buf, len, statfs->ffree) ||
+        pack_le64(buf, len, statfs->fsid) ||
+        pack_le32(buf, len, statfs->namelen))
+        return -1;
+    return 0;
+}
+
+
+static int unpack_statfs(unsigned char **buf, size_t *len,
+                       struct plan9_statfs *statfs)
+{
+  if (unpack_le32(buf, len, &statfs->type) ||
+      unpack_le32(buf, len, &statfs->bsize) ||
+      unpack_le64(buf, len, &statfs->blocks) ||
+      unpack_le64(buf, len, &statfs->bfree) ||
+      unpack_le64(buf, len, &statfs->bavail) ||
+      unpack_le64(buf, len, &statfs->files) ||
+      unpack_le64(buf, len, &statfs->ffree) ||
+      unpack_le64(buf, len, &statfs->fsid) ||
+      unpack_le32(buf, len, &statfs->namelen))
+      return -1;
+  return 0;
+}
+
+
 static void cnode2qid(struct venus_cnode *cnode, struct plan9_qid *qid)
 {
     fsobj *f;

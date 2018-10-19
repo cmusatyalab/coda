@@ -264,7 +264,7 @@ struct plan9_stat {
 #define P9_DONT_TOUCH_NMUID     ((uint32_t)(-1))
 
 
-struct p9_stat_dotl {
+struct plan9_stat_dotl {
 	struct plan9_qid qid;
 	uint32_t st_mode;
   uint64_t st_nlink;
@@ -321,7 +321,7 @@ struct p9_stat_dotl {
 #define P9_SETATTR_MTIME_SET    0x00000100UL
 
 
-struct p9_statfs {
+struct plan9_statfs {
 	uint32_t type;
 	uint32_t bsize;
 	uint64_t blocks;
