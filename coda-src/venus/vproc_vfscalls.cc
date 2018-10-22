@@ -263,7 +263,7 @@ void vproc::close(struct venus_cnode *cp, int flags)
     u.u_error = FSDB->Get(&f, &cp->c_fid, u.u_uid, RC_STATUS);
     if (u.u_error) goto FreeLocks;
 
-    if (!DYING(f) && !HAVEALLDATA(f)) 
+    if (!DYING(f) && !HAVEALLDATA(f) && !ISVASTRO(f)) 
 	LOG(0, ("vproc::close: Don't have DATA and not DYING! (fid = %s, flags = %x)\n", FID_(&cp->c_fid), flags));
 
     /* Do the operation. */
@@ -1462,27 +1462,58 @@ FreeLocks:
 
 void vproc::read(struct venus_cnode * node, uint64_t pos, int64_t count)
 {
-    LOG(1, ("vproc::read: fid = %s, pos = %d, count = %d\n", FID_(&node->c_fid), pos, count));
-
+    LOG(1, ("vproc::read: fid = %s, pos = %d, count = %d\n",
+            FID_(&node->c_fid), pos, count));
+            
+    int code = 0;
     fsobj *f = NULL;
-    
-    Begin_VFS(&node->c_fid, CODA_ACCESS_INTENT, VM_OBSERVING);
+    CacheChunkList * clist = NULL;
+    CacheChunk currc = {};
 
+    Begin_VFS(&node->c_fid, CODA_ACCESS_INTENT, VM_OBSERVING);
 
     /* Get the object. */
     f = FSDB->Find(&node->c_fid);
     if (!f) {
         u.u_error = EIO;
-        return;
+        goto FreeVFS;
+    }
+
+    if (!ISVASTRO(f)) {
+        goto FreeVFS;
     }
 
     if (pos > f->Size()) {
         u.u_error = EIO;
-        return;
+        goto FreeVFS;
+    }
+
+    clist = f->GetHoles(pos, count);
+
+    /* Fetch all holes */
+    currc = clist->pop();
+
+    while (currc.isValid()) {
+
+        /* Note that all the blocks are pre-allocated for now */
+        
+        code = f->Fetch(u.u_uid, currc.GetStart(), currc.GetLength());
+        if (code < 0) {
+            u.u_error = EIO;
+            break;
+        }
+
+        currc = clist->pop();
     }
     
-    End_VFS(NULL);
+    if (code < 0) {
+        u.u_error = EIO;
+    }
 
+    delete clist;
+
+FreeVFS:
+	End_VFS(NULL);
 }
 
 void vproc::write(struct venus_cnode * node, uint64_t pos, int64_t count)
@@ -1497,9 +1528,10 @@ void vproc::write(struct venus_cnode * node, uint64_t pos, int64_t count)
     f = FSDB->Find(&node->c_fid);
     if (!f) {
         u.u_error = EIO;
-        return;
+        goto FreeVFS;
     }
     
+FreeVFS:
     End_VFS(NULL);
 
 }
@@ -1517,14 +1549,19 @@ void vproc::read_finish(struct venus_cnode * node, uint64_t pos, int64_t count)
     f = FSDB->Find(&node->c_fid);
     if (!f) {
         u.u_error = EIO;
-        return;
+        goto FreeVFS;
+    }
+
+    if (!ISVASTRO(f)) {
+        goto FreeVFS;
     }
 
     if (pos > f->Size()) {
         u.u_error = EIO;
-        return;
+        goto FreeVFS;
     }
     
+FreeVFS:
     End_VFS(NULL);
 
 }
@@ -1542,9 +1579,10 @@ void vproc::write_finish(struct venus_cnode * node, uint64_t pos, int64_t count)
     f = FSDB->Find(&node->c_fid);
     if (!f) {
         u.u_error = EIO;
-        return;
+        goto FreeVFS;
     }
     
+FreeVFS:
     End_VFS(NULL);
 }
 
@@ -1561,8 +1599,9 @@ void vproc::mmap(struct venus_cnode * node, uint64_t pos, int64_t count)
     f = FSDB->Find(&node->c_fid);
     if (!f) {
         u.u_error = EIO;
-        return;
+        goto FreeVFS;
     }
     
+FreeVFS:
     End_VFS(NULL);
 }

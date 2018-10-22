@@ -1514,8 +1514,9 @@ void fsobj::EnableReplacement() {
 
     /* Are ALL conditions for replaceability met? */
     if (DYING(this) || !HAVESTATUS(this) || DIRTY(this) || IsLocalObj() ||
-	 READING(this) || WRITING(this) || (children && children->count() > 0) ||
-	 IsMtPt() || (IsSymLink() && hdb_bindings && hdb_bindings->count() > 0))
+	 (READING(this) && !ISVASTRO(this))|| WRITING(this) || 
+     (children && children->count() > 0) ||	 IsMtPt() || 
+     (IsSymLink() && hdb_bindings && hdb_bindings->count() > 0))
 	return;
 
     /* Sanity check. */

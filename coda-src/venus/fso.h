@@ -138,6 +138,8 @@ class fsdb {
 
     /* Size parameters. */
     unsigned int MaxFiles;
+    uint64_t WholeFileCachingMaxSize;
+
     /* "files" is kept as count member of htab */
     int FreeFileMargin;
     /*T*/unsigned int MaxBlocks;
@@ -420,7 +422,6 @@ class fsobj {
 
     // for asr invocation
     /*T*/long lastresolved;			// time when object was last resolved
-    
 
     /* Constructors, destructors. */
     void *operator new(size_t, fso_alloc_t, int); /* for allocation from freelist */

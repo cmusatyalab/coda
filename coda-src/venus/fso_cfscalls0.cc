@@ -82,8 +82,7 @@ void fsobj::FetchProgressIndicator(unsigned long offset)
     if (total_data != 0) {
         curr = (100.0f * curr_data) / total_data;
     } else {
-	last = 0;
-	curr = 100;
+        curr = 0;
     }
 
     if (last != curr) {
@@ -196,9 +195,7 @@ int fsobj::FetchFileRPC(connent *con, ViceStatus *status, uint64_t offset,
 
     viceop = fetchpartial_support ? ViceFetchPartial_OP : ViceFetch_OP;
 
-    // TODO: Check if file will be partially cached
-
-    snprintf(prel_str, 256, "fetch::Fetch%s %%s [%ld]\n", partial_sel,
+    snprintf(prel_str, sizeof(256), "fetch::Fetch%s %%s [%ld]\n", partial_sel,
              BLOCKS(this));
 
     CFSOP_PRELUDE(prel_str, comp, fid);
@@ -215,6 +212,9 @@ int fsobj::FetchFileRPC(connent *con, ViceStatus *status, uint64_t offset,
     UNI_END_MESSAGE(viceop);
     CFSOP_POSTLUDE("fetch::Fetch done\n");
 
+    LOG(10, ("fsobj::FetchFileRPC: (%s), pos = %d, count = %d, ret = %d \n",
+             GetComp(), offset, len, code));
+
     /* Examine the return code to decide what to do next. */
     code = vp->Collate(con, code);
     UNI_RECORD_STATS(viceop);
@@ -228,15 +228,17 @@ int fsobj::FetchFileRPC(connent *con, ViceStatus *status, uint64_t offset,
     return code;
 }
 
-static int CheckTransferredData(uint64_t pos, int64_t count,
-    uint64_t length, uint64_t transfred) 
+static int CheckTransferredData(uint64_t pos, int64_t count, 
+    uint64_t length, uint64_t transfred, bool vastro) 
 {
     LOG(10, ("(Multi)ViceFetch: fetched %lu bytes\n", transfred));
 
     if (pos > length) return EINVAL;
 
     if (count < 0) goto TillEndFetching;
-
+    
+    if (!vastro) goto TillEndFetching;
+        
     /* Handle the VASTRO case */ 
     /* If reaching EOF */
     if (pos + count > length) {
@@ -290,9 +292,11 @@ int fsobj::Fetch(uid_t uid, uint64_t pos, int64_t count)
 	if (!HAVESTATUS(this))
 	    { print(logFile); CHOKE("fsobj::Fetch: !HAVESTATUS"); }
 
-	/* We never fetch data if we already have the file. */
-	if (HAVEALLDATA(this))
-	    { print(logFile); CHOKE("fsobj::Fetch: HAVEALLDATA"); }
+        /* We never fetch data if we already have the file. */
+        if (HAVEALLDATA(this) && !ISVASTRO(this)) {
+            print(logFile);
+            CHOKE("fsobj::Fetch: HAVEALLDATA");
+        }
     }
 
     /* Status parameters. */
@@ -310,10 +314,19 @@ int fsobj::Fetch(uid_t uid, uint64_t pos, int64_t count)
     memset(&dummysed, 0, sizeof(SE_Descriptor));
     SE_Descriptor *sed = &dummysed;
 
-    uint64_t offset = IsFile() ? cf.ValidData() : 0;
+    uint64_t offset = 0;
     int64_t len = -1;
 
-    if (IsFile()) {
+    if (ISVASTRO(this)) {
+        offset = align_to_ccblock_floor(pos);
+        len = align_to_ccblock_ceil(pos + count) - offset;
+
+        /* If reading out-of-bound read missing file part */
+        if (pos + count > Size()) {
+            len = -1;
+        }
+
+    } else if (IsFile()) {
         offset = cf.ConsecutiveValidData();
         len = -1;
     }
@@ -427,14 +440,14 @@ int fsobj::Fetch(uid_t uid, uint64_t pos, int64_t count)
             PutServer(&s);
             if (code != 0) goto RepExit;
 
-            /* Fetch the file from the server */
-            code = FetchFileRPC(c, &status, offset, len, &PiggyBS, sed);
-            if (code != 0) goto RepExit;
-
-            {
-                unsigned long bytes = (unsigned long)sed->Value.SmartFTPD.BytesTransferred;        
-                code = CheckTransferredData(pos, count, status.Length, bytes);
-            }
+        /* Fetch the file from the server */
+        code = FetchFileRPC(c, &status, offset, len, &PiggyBS, sed);
+        if (code != 0) goto RepExit;
+        
+        {
+            unsigned long bytes = (unsigned long)sed->Value.SmartFTPD.BytesTransferred;        
+            code = CheckTransferredData(pos, count, status.Length, bytes, ISVASTRO(this));
+        }
 
 	    /* Handle failed validations. */
 	    if (!CompareVersion(&status)) {
@@ -493,7 +506,8 @@ RepExit:
 
     {
         unsigned long bytes = sed->Value.SmartFTPD.BytesTransferred;
-        code = CheckTransferredData(pos, count, status.Length, bytes);
+        code = CheckTransferredData(pos, count, status.Length, bytes, 
+            ISVASTRO(this));
     }
 
 	/* Handle failed validations. */

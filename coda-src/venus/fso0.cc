@@ -341,6 +341,7 @@ fsdb::fsdb() : htab(FSDB_NBUCKETS, FSO_HashFN) {
     RVMLIB_REC_OBJECT(*this);
     MagicNumber = FSDB_MagicNumber;
     MaxFiles = CacheFiles;
+    WholeFileCachingMaxSize = WholeFileMaxSize;
     FreeFileMargin = MaxFiles / FREE_FACTOR;
 
     LastRef = (long *)rvmlib_rec_malloc(MaxFiles * (int)sizeof(long));
@@ -757,8 +758,17 @@ RestartFind:
 		code = 0;
 		/* first try the LookAside cache */
 		if (!f->LookAside()) {
-		  /* Let fsobj::Fetch go ahead and fetch the object */
-		  code = f->Fetch(uid);
+			if (ISVASTRO(f)) { /* Create empty container file for VASTROS */
+				Recov_BeginTrans();
+				LOG(0, ("fsdb::Get: Creating Container file for VASTRO Comp: %s, Length: %d\n", f->comp, f->stat.Length));
+				int fd = f->GetContainerFD();
+				CODA_ASSERT(fd != -1);
+				f->cf.Close(fd);
+				Recov_EndTrans(MAXFP);
+			} else {
+				/* Let fsobj::Fetch go ahead and fetch the object */
+				code = f->Fetch(uid);
+			} 
 		}
 		
 		/* Restart operation in case of inconsistency. */
