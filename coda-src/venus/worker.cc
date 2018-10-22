@@ -792,8 +792,11 @@ void WorkerInit()
     if (::ioctl(worker::muxfd, CIOC_KERNEL_VERSION, &worker::kernel_version) >= 0 ) {
         switch (worker::kernel_version) {
         case 5:
+            eprint("Kernel module IS VASTRO-enabled");
+            break;
         case 4:
         case 3:
+            eprint("Kernel module IS NOT VASTRO-enabled");
             break;
         case 2: /* 1 & 2 are upwards compatible, but 3 introduced the realms */
         case 1:
