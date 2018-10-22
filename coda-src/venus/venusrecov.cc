@@ -138,9 +138,11 @@ static void Recov_LoadRDS();
 static void Recov_GetStatistics();
 
 /* Crude formula for estimating recoverable data requirements! */
+/* (assuming worst case 4k chunk size for VASTRO object bitmaps) */
 #define	RECOV_BYTES_NEEDED()\
     (MLEs * (sizeof(cmlent) + 64) +\
     CacheFiles * (sizeof(fsobj) + 64) +\
+    CacheFiles * (sizeof(bitmap) + (96*1024)) +\
     (CacheFiles / 4) * (sizeof(VenusDirData) + 3072) +\
     (CacheFiles / 256) * sizeof(repvol) +\
     (CacheFiles / 512) * sizeof(volrep) +\
