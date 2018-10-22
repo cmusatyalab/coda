@@ -325,12 +325,7 @@ long FS_ViceGetVolumeStatus(RPC2_Handle RPCid, VolumeId vid,
     }
 
     if (XlateVid(&vid)) {
-	SLog(1, "XlateVid: %u --> %u", VSGVolnum, vid);
-	if (IsReplicated == 0) {
-	    SLog(0, "Translated VSG but IsReplicated == 0");
-	    errorCode =	EINVAL;	    /* ??? -JJK */
-	    goto Final;
-	}
+        SLog(1, "XlateVid: %u --> %u", VSGVolnum, vid);
     }
     else {
 	if (IsReplicated != 0) {
@@ -771,7 +766,7 @@ static void SetViceStats(ViceStatistics *stats)
     stats->CurrentConnections = CurrentConnections;
     stats->TotalViceCalls = Counters[TOTAL];
 
-    stats->TotalFetches = Counters[GETATTRPLUSSHA]+Counters[GETATTR]+Counters[GETACL]+Counters[FETCH];
+    stats->TotalFetches = Counters[GETATTRPLUSSHA]+Counters[GETACL]+Counters[FETCH];
     stats->FetchDatas = Counters[FETCH];
     stats->FetchedBytes = Counters[FETCHDATA];
     seconds = Counters[FETCHTIME]/1000;

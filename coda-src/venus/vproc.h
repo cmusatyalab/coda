@@ -65,6 +65,7 @@ extern "C" {
 #include <venusioctl.h>
 
 /* from venus */
+#include "fso_cachefile.h"
 #include "venus.private.h"
 
 
@@ -277,6 +278,16 @@ class vproc : public olink {
      */
     void write_finish(struct venus_cnode * node, uint64_t pos, int64_t count);
 
+    /**
+     * Memory map file operation
+     *
+     * @param node     Venus cnode pointer holding file's metadata
+     * @param pos      Offset within the file
+     * @param count    Number of bytes mapped into memory
+     *
+     */
+    void mmap(struct venus_cnode * node, uint64_t pos, int64_t count);
+
     /* Pathname translation. */
     int namev(char *, int, struct venus_cnode *);
     void GetPath(VenusFid *, char *, int *, int =1);
@@ -338,8 +349,6 @@ extern long FidToNodeid(VenusFid *);
    into the output buffer back to the kernel without clobbering the
    inputbuffer, which is the same pointer as the output buffer.
 */
-
-class CacheFile;
 
 struct venus_cnode {
 	u_short     c_flags;	/* flags (see below) */

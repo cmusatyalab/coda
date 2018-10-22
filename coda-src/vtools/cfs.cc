@@ -2720,6 +2720,10 @@ static void DiscardLocal(int argc, char *argv[], int opslot)
     switch(argc)
         {
         case 3:
+            if(!strcmp(argv[2], "-all")) {
+                printf("Usage: %s\n", cmdarray[opslot].usetxt);
+                exit(-1);
+            }
 	  ioctl = REP_CMD_DISCARD;
 	  codadir = argv[2];
 	  break;
@@ -2833,6 +2837,7 @@ static const char *xlate_vvtype(ViceVolumeType vvt)
     case ReadWrite:	return("ReadWrite");
     case Backup:	return("Backup");
     case Replicated:	return("Replicated");
+    case NonReplicated:	return("NonReplicated");
     default:		return("????");
     }
 }

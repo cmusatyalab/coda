@@ -166,7 +166,6 @@ static const unsigned int GBYTE_UNIT_SCALE = 1024 * MBYTE_UNIT_SCALE;
 static const char * TBYTES_UNIT[] = { "TB", "tb", "Tb", "tB", "T", "t"};
 static const unsigned int TBYTE_UNIT_SCALE = 1024 * GBYTE_UNIT_SCALE;
 
-
 /* Some helpers to add fd/callbacks to the inner select loop */
 struct mux_cb_entry {
     struct mux_cb_entry *next;
@@ -251,32 +250,32 @@ void MUX_add_callback(int fd, void (*cb)(int fd, void *udata), void *udata)
 /*
  * Parse size value and converts into amount of 1K-Blocks
  */
-static unsigned int ParseSizeWithUnits(const char * CacheSize)
+static unsigned int ParseSizeWithUnits(const char * SizeWUnits)
 {
     const char * units = NULL;
     int scale_factor = 1;
-    char CacheSizeWOUnits[256];
-    size_t cachesize_len = 0;
-    unsigned int cachesize = 0;
+    char SizeWOUnits[256];
+    size_t size_len = 0;
+    unsigned int size_int = 0;
 
     /* Locate the units and determine the scale factor */
     for (int i = 0; i < 6; i++) {
-        if ((units = strstr(CacheSize, KBYTES_UNIT[i]))) {
+        if ((units = strstr(SizeWUnits, KBYTES_UNIT[i]))) {
             scale_factor = KBYTE_UNIT_SCALE;
             break;
         }
-
-        if ((units = strstr(CacheSize, MBYTES_UNIT[i]))) {
+        
+        if ((units = strstr(SizeWUnits, MBYTES_UNIT[i]))) {
             scale_factor = MBYTE_UNIT_SCALE;
             break;
         }
 
-        if ((units = strstr(CacheSize, GBYTES_UNIT[i]))) {
+        if ((units = strstr(SizeWUnits, GBYTES_UNIT[i]))) {
             scale_factor = GBYTE_UNIT_SCALE;
             break;
         }
 
-        if ((units = strstr(CacheSize, TBYTES_UNIT[i]))) {
+        if ((units = strstr(SizeWUnits, TBYTES_UNIT[i]))) {
             scale_factor = TBYTE_UNIT_SCALE;
             break;
         }
@@ -284,17 +283,60 @@ static unsigned int ParseSizeWithUnits(const char * CacheSize)
 
     /* Strip the units from string */
     if (units) {
-        cachesize_len = (size_t)((units - CacheSize) / sizeof(char));
-        strncpy(CacheSizeWOUnits, CacheSize, cachesize_len);
-        CacheSizeWOUnits[cachesize_len] = 0;  // Make it null-terminated
+        size_len = (size_t)((units - SizeWUnits) / sizeof(char));
+        strncpy(SizeWOUnits, SizeWUnits, size_len);
+        SizeWOUnits[size_len] = 0;  // Make it null-terminated
     } else {
-        snprintf(CacheSizeWOUnits, sizeof(CacheSizeWOUnits), "%s", CacheSize);
+        snprintf(SizeWOUnits, sizeof(SizeWOUnits), "%s", SizeWUnits);
     }
 
     /* Scale the value */
-    cachesize = scale_factor * atof(CacheSizeWOUnits);
+    size_int = scale_factor * atof(SizeWOUnits);
 
-    return cachesize;
+    return size_int;
+}
+
+static int power_of_2(uint64_t num)
+{
+    int power = 0;
+    
+    if (!num) return -1;
+    
+    /*Find the first 1 */
+    while (!(num & 0x1)) {
+        num = num >> 1; 
+        power++;
+    }
+    
+    /* Shift the first 1 */
+    num = num >> 1;
+
+    /* Any other 1 means not power of 2 */
+    if (num) return -1;
+
+    return power; 
+}
+
+void ParseCacheChunkBlockSize(const char * ccblocksize) {
+    uint64_t TmpCacheChunkBlockSize = ParseSizeWithUnits(ccblocksize) * 1024;
+    int TmpCacheChunkBlockSizeBit = power_of_2(TmpCacheChunkBlockSize);
+    
+    if (TmpCacheChunkBlockSizeBit < 0) {
+        /* Not a power of 2 FAIL!!! */
+        eprint("Cannot start: provided cache chunk block size is not a power of 2");
+        exit(EXIT_UNCONFIGURED);
+    }
+    
+    if (TmpCacheChunkBlockSizeBit < 12) {
+        /* Smaller than minimum FAIL*/
+        eprint("Cannot start: minimum cache chunk block size is 4KB");
+        exit(EXIT_UNCONFIGURED);
+    }
+        
+    CacheChunkBlockSizeBits = TmpCacheChunkBlockSizeBit;
+    CacheChunkBlockSize = 1 << CacheChunkBlockSizeBits;
+    CacheChunkBlockSizeMax = CacheChunkBlockSize - 1;
+    CacheChunkBlockBitmapSize = (UINT32_MAX >> CacheChunkBlockSizeBits) + 1;
 }
 
 
@@ -449,6 +491,7 @@ static void Usage(char *argv0)
 " -lwpdebug <n>\t\t\tlwp debug level\n"
 " -cf <n>\t\t\t# of cache files\n"
 " -c <n>[KB|MB|GB|TB]\t\t\t\tcache size in the given units (e.g. 10MB)\n"
+" -ccbs <n>[KB|MB|GB|TB]\t\t\t\tcache chunk block size (shall be power of 2)\n"
 " -mles <n>\t\t\t# of CML entries\n"
 " -hdbes <n>\t\t\t# of hoard database entries\n"
 " -rdstrace\t\t\tenable RDS heap tracing\n"
@@ -495,6 +538,7 @@ static void Usage(char *argv0)
 " -allow-reattach\t\tallow reattach to already mounted tree\n"
 " -relay <addr>\t\t\trelay socket address (windows only)\n"
 " -codatunnel\t\t\tenable codatunneld helper\n"
+" -no-codatunnel\t\t\tdisable codatunneld helper\n"
 " -onlytcp\t\t\tonly use TCP tunnel connections to servers\n"
 " -9pfs\t\t\tenable embedded 9pfs server (experimental, INSECURE!)\n"
 " -no-codafs\t\t\tdo not automatically mount /coda\n"
@@ -626,7 +670,7 @@ static void ParseCmdline(int argc, char **argv)
 	    else if (STREQ(argv[i], "-mapprivate"))
 		MapPrivate = true;
 	    else if (STREQ(argv[i], "-codatunnel")) {
-                codatunnel_enabled = true;
+                codatunnel_enabled = 1;
                 eprint("codatunnel enabled");
 	    }
 	    else if (STREQ(argv[i], "-no-codatunnel")) {
@@ -634,8 +678,7 @@ static void ParseCmdline(int argc, char **argv)
                 eprint("codatunnel disabled");
 	    }
 	    else if (STREQ(argv[i], "-onlytcp")) {
-                codatunnel_onlytcp = true;
-                codatunnel_enabled = true;
+                codatunnel_onlytcp = 1;
                 eprint("codatunnel_onlytcp set");
             }
 	    else if (STREQ(argv[i], "-codafs")) {
@@ -655,6 +698,9 @@ static void ParseCmdline(int argc, char **argv)
 	    else if (STREQ(argv[i], "-nofork")) {
                 nofork = true;
 	    }
+        else if (STREQ(argv[i], "-ccbs")) {
+            i++, ParseCacheChunkBlockSize(argv[i]);
+        }
 	    else {
 		eprint("bad command line option %-4s", argv[i]);
 		done = -1;
@@ -692,6 +738,7 @@ static void DefaultCmdlineParms()
 {
     int DontUseRVM = 0;
     const char *CacheSize = NULL;
+    const char *TmpCacheChunkBlockSize = NULL;
 
     /* Load the "venus.conf" configuration file */
     codaconf_init("venus.conf");
@@ -720,7 +767,12 @@ static void DefaultCmdlineParms()
         eprint("Cannot start: minimum number of cache files is %d", MIN_CF);
         exit(EXIT_UNCONFIGURED);
     }
-
+    
+    if (!CacheChunkBlockSize) {
+        CODACONF_STR(TmpCacheChunkBlockSize, "cachechunkblocksize", "32KB");
+        ParseCacheChunkBlockSize(TmpCacheChunkBlockSize);
+    }
+        
     CODACONF_STR(CacheDir,	    "cachedir",      DFLT_CD);
     CODACONF_STR(SpoolDir,	    "checkpointdir", "/usr/coda/spool");
     CODACONF_STR(VenusLogFile,	    "logfile",	     DFLT_LOGFILE);
@@ -818,11 +870,14 @@ static void DefaultCmdlineParms()
     if (plan9server_enabled == -1)  plan9server_enabled = false;
 
     /* Enable client-server communication helper process */
-    CODACONF_INT(codatunnel_enabled, "codatunnel", 0);
+    CODACONF_INT(codatunnel_enabled, "codatunnel", 1);
     CODACONF_INT(codatunnel_onlytcp, "onlytcp", 0);
+
+    if (codatunnel_onlytcp && codatunnel_enabled != -1)
+        codatunnel_enabled = 1;
     if (codatunnel_enabled == -1) {
-        codatunnel_onlytcp = false;
-        codatunnel_enabled = false;
+        codatunnel_onlytcp = 0;
+        codatunnel_enabled = 0;
     }
 
     CODACONF_INT(detect_reintegration_retry, "detect_reintegration_retry", 1);

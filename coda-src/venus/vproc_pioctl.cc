@@ -680,7 +680,7 @@ OI_FreeLocks:
 			   VM_MUTATING : VM_OBSERVING);
 	    int entered = 0;
 	    if ((u.u_error = v->Enter(volmode, u.u_uid)) != 0)
-		goto V_FreeLocks;
+            goto V_FreeLocks;
 	    entered = 1;
 
 	    switch(nr) {
@@ -953,16 +953,16 @@ OI_FreeLocks:
 		    {
 		    char *ckpdir = (data->in_size == 0 ? 0 : (char *) data->in);
                     u.u_error = EOPNOTSUPP;
-                    if (v->IsReplicated())
-                        u.u_error = ((repvol *)v)->CheckPointMLEs(u.u_uid, ckpdir);
+                    if (v->IsReadWrite())
+                        u.u_error = ((reintvol *)v)->CheckPointMLEs(u.u_uid, ckpdir);
 		    break;
 		    }
 
 		case _VIOC_PURGEML:
 		    {
                     u.u_error = EOPNOTSUPP;
-                    if (v->IsReplicated())
-                        u.u_error = ((repvol *)v)->PurgeMLEs(u.u_uid);
+                    if (v->IsReadWrite())
+                        u.u_error = ((reintvol *)v)->PurgeMLEs(u.u_uid);
 		    break;
 		    }
 		case _VIOC_WD:
@@ -976,8 +976,8 @@ OI_FreeLocks:
 #define agep ((unsigned int *)(startp))
 #define timep ((unsigned int *)(agep + 1))
                     u.u_error = EOPNOTSUPP;
-                    if (v->IsReplicated())
-                        u.u_error = ((repvol *)v)->WriteDisconnect(*agep, *timep); 
+                    if (v->IsReadWrite())
+                        u.u_error = ((reintvol *)v)->WriteDisconnect(*agep, *timep); 
 #undef timep
 #undef agep
 		    break;
@@ -1000,10 +1000,10 @@ OI_FreeLocks:
 		case _VIOC_SYNCCACHE:
 			{
                   u.u_error = EOPNOTSUPP;
-                  if (v->IsReplicated()) {
+                  if (v->IsReadWrite()) {
 		      v->Exit(volmode, u.u_uid);
 		      entered = 0;
-		      u.u_error = ((repvol *)v)->SyncCache(NULL);
+		      u.u_error = ((reintvol *)v)->SyncCache(NULL);
 		  }
 		  break;
               }
@@ -1137,7 +1137,7 @@ OI_FreeLocks:
 		      }
 
 		      u.u_error = EOPNOTSUPP;
-		      if(v->IsReplicated()) {
+		      if(v->IsReadWrite()) {
 			sprintf(msg, "no action performed\n");
 			u.u_error = 0;
 		      }
@@ -1158,8 +1158,8 @@ OI_FreeLocks:
 		      u.u_error = EINVAL;
 		    else
 		      u.u_error = EOPNOTSUPP;
-		    if(msg && v->IsReplicated()) {
-		      ClientModifyLog *cml = ((repvol *)v)->GetCML();
+		    if(msg && v->IsReadWrite()) {
+		      ClientModifyLog *cml = ((reintvol *)v)->GetCML();
 		      cml->CheckCMLHead(msg);
 		      u.u_error = 0;
 		    }
@@ -1186,8 +1186,8 @@ OI_FreeLocks:
 
 		    msg[0] = '\0';
 		    u.u_error = EOPNOTSUPP;
-		    if(v->IsReplicated()) {
-		      ClientModifyLog *cml = ((repvol *)v)->GetCML();
+		    if(v->IsReadWrite()) {
+		      ClientModifyLog *cml = ((reintvol *)v)->GetCML();
 		      u.u_error = 0;
 		      cml->PreserveLocalMutation(msg);
 		    }
@@ -1211,8 +1211,8 @@ OI_FreeLocks:
 		    }
 
 		    u.u_error = EOPNOTSUPP;
-		    if(v->IsReplicated()) {
-		      ClientModifyLog *cml = ((repvol *)v)->GetCML();
+		    if(v->IsReadWrite()) {
+		      ClientModifyLog *cml = ((reintvol *)v)->GetCML();
 		      CODA_ASSERT(cml);
 		      if(!cml) {
 			sprintf(msg, "no client modify log on this volume\n");
@@ -1243,8 +1243,8 @@ OI_FreeLocks:
 		    }
 
 		    u.u_error = EOPNOTSUPP;
-		    if(v->IsReplicated()) {
-		      ClientModifyLog *cml = ((repvol *)v)->GetCML();
+		    if(v->IsReadWrite()) {
+		      ClientModifyLog *cml = ((reintvol *)v)->GetCML();
 		      CODA_ASSERT(cml);
 		      if(!cml) {
 			sprintf(msg, "no client modify log on this volume\n");
@@ -1277,7 +1277,7 @@ OI_FreeLocks:
 */
 		case REP_CMD_LIST:
 		  {
-		    if(!v->IsReplicated()) {
+		    if(!v->IsReadWrite()) {
                         u.u_error = EOPNOTSUPP;
                         break;
                     }
@@ -1297,7 +1297,7 @@ OI_FreeLocks:
                     temp_fp = fdopen(temp_fd, "w");
                     CODA_ASSERT(temp_fp != NULL);
 
-                    ClientModifyLog *cml = ((repvol *)v)->GetCML();
+                    ClientModifyLog *cml = ((reintvol *)v)->GetCML();
                     CODA_ASSERT(cml);
 
                     u.u_error = 0;

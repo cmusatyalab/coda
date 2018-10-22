@@ -81,6 +81,7 @@ extern int global_kernfd;
 #include "realmdb.h"
 #include "venusrecov.h"
 #include "vproc.h"
+#include "fso_cachefile.h"
 #include "venus.private.h"
 
 /* from coda include again, must appear AFTER venus.private.h */
@@ -248,69 +249,6 @@ enum FsoState {	FsoRunt,
 		FsoDying
 };
 
-/* Representation of UFS file in cache directory. */
-/* Currently, CacheFiles and fsobjs are statically bound to each
-   other, one-to-one, by embedding */
-/* a single CacheFile in each fsobj.  An fsobj may use its CacheFile
-   in several ways (or not at all). */
-/* We guarantee that these uses are mutually exclusive (in time,
-   per-fsobj), hence the static allocation */
-/* policy works.  In the future we may choose not to make the uses
-   mutually exclusive, and will then */
-/* have to implement some sort of dynamic allocation/binding
-   scheme. */
-/* The different uses of CacheFile are: */
-/*    1. Copy of plain file */
-/*    2. Unix-format copy of directory */
-
-#define CACHEFILENAMELEN 12
-
-class CacheFile {
-    long length;
-    long validdata; /* amount of successfully fetched data */
-    int  refcnt;
-    char name[CACHEFILENAMELEN];		/* "xx/xx/xx/xx" */
-    int numopens;
-
-    int ValidContainer();
-
-  public:
-    CacheFile(int);
-    CacheFile();
-    ~CacheFile();
-
-    /* for safely obtaining access to container files, USE THESE!!! */
-    void Create(int newlength = 0);
-    int Open(int flags);
-    int Close(int fd);
-
-    FILE *FOpen(const char *mode);
-    int FClose(FILE *f);
-
-    void Validate();
-    void Reset();
-    int  Copy(CacheFile *destination);
-    int  Copy(char *destname, int recovering = 0);
-
-    void IncRef() { refcnt++; } /* creation already does an implicit incref */
-    int  DecRef();             /* returns refcnt, unlinks if refcnt becomes 0 */
-
-    void Stat(struct stat *);
-    void Utimes(const struct timeval times[2]);
-    void Truncate(long);
-    void SetLength(long);
-    void SetValidData(long);
-
-    char *Name()         { return(name); }
-    long Length()        { return(length); }
-    long ValidData(void) { return(validdata); }
-    int  IsPartial(void) { return(length != validdata); }
-
-    void print() { print (stdout); }
-    void print(FILE *fp) { fflush(fp); print(fileno(fp)); }
-    void print(int);
-};
-
 /* Condensed version of ViceStatus. */
 struct VenusStat {
     ViceDataType VnodeType;
@@ -392,6 +330,7 @@ class fsobj {
   friend class namectxt;
   friend class volent;
   friend class repvol;
+  friend class reintvol;
   friend class ClientModifyLog;
   friend class cmlent;
   friend class cml_iterator;
@@ -419,8 +358,13 @@ class fsobj {
     /* General status. */
     enum FsoState state;			/* {FsoRunt, FsoNormal, FsoDying} */
     VenusStat stat;
-    /*T*/long GotThisData;			/* used during fetch to keep
-						   track of where we are */
+    /*T*/uint64_t GotThisDataStart; /* used during fetch to keep 
+                                       track of where we are. Signalling the 
+                                       start point of the current fetch 
+                                       segment */
+    /*T*/uint64_t GotThisDataEnd; /* used during fetch to keep track of where 
+                                     we are. Signalling the end of the current 
+                                     fetch segment */
     /*T*/int RcRights;				/* replica control rights */
     AcRights AnyUser;				/* access control rights: any user */
     AcRights SpecificUser[CPSIZE];		/* access control rights: specific users */
@@ -620,10 +564,11 @@ class fsobj {
 			     char *, unsigned short, int, int prepend=0);
     int GetContainerFD(void);
     int LookAside(void);
-    int FetchFileRPC(connent * con, ViceStatus * status,
-                     unsigned long primaryHost, uint64_t offset, int64_t len,
-                     RPC2_CountedBS * PiggyBS, SE_Descriptor * sed);
+    int FetchFileRPC(connent *con, ViceStatus *status, uint64_t offset,
+                     int64_t len, RPC2_CountedBS *PiggyBS, SE_Descriptor *sed);
     int OpenPioctlFile(void);
+    
+    inline bool CompareVersion(ViceStatus * vstat, VenusStat * stat = NULL);
 
   public:
     /* The public CFS interface (Vice portion). */

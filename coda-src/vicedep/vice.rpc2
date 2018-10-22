@@ -62,7 +62,8 @@ typedef RPC2_Enum
 	ReadOnly = 0,
 	ReadWrite = 1,
 	Backup = 2,
-	Replicated = 3
+	Replicated = 3,
+    NonReplicated = 4
 }	ViceVolumeType;
 
 typedef RPC2_Byte	DiskName[V_MAXPARTNAMELEN];
@@ -241,17 +242,7 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 		   IN RPC2_CountedBS ClientIdent)
 		   NEW_CONNECTION;
 
-/* Replace ViceGetAttr() by ViceGetAttrPlusSHA() at the
-   earliest opportunity.  Call below (opcode 1) should 
-   be removed permanently.  No need to change ViceFetch() 
-   (opcode 3) --- since Venus is getting the entire file,
-   it can compute the SHA itself.  (Satya 12/02) */
-
-1: ViceGetAttr	(IN ViceFid Fid,
-		 IN RPC2_Unsigned InconOK,
-		 OUT ViceStatus Status,
-		 IN RPC2_Unsigned Unused,
-		 IN RPC2_CountedBS PiggyCOP2);
+/* 1: ViceGetAttr */
 
 2: ViceGetACL	(IN ViceFid Fid,
 		 IN RPC2_Unsigned InconOK,
@@ -342,14 +333,7 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 		   IN RPC2_Unsigned AllocHost,
 		   IN RPC2_CountedBS PiggyCOP2);
 
-/* Obsolete: replace with ViceValidateAttrsPlusSHA() (Satya, 12/02) */
-
-38: ViceValidateAttrs (IN RPC2_Unsigned Unused,
-		       IN ViceFid PrimaryFid,
-		       IN OUT ViceStatus PrimaryStatus,
-		       IN ViceFidAndVV Piggies[], 
-		       IN OUT RPC2_BoundedBS VFlagBS,
-		       IN RPC2_CountedBS PiggyCOP2);
+/* 38: ViceValidateAttrs */
 
 40: ViceNewConnectFS (IN RPC2_Unsigned ViceVersion,
 		      IN ViceClient ClientId);
@@ -422,29 +406,29 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 (Satya 12/02) */
 
 63: ViceGetAttrPlusSHA (IN ViceFid Fid,
-		 IN RPC2_Unsigned InconOK,
-		 OUT ViceStatus Status,
-		 OUT RPC2_BoundedBS SHAval,
-		 IN RPC2_Unsigned Unused,
-		 IN RPC2_CountedBS PiggyCOP2);
+                        IN RPC2_Unsigned InconOK,
+                        OUT ViceStatus Status,
+                        OUT RPC2_BoundedBS SHAval,
+                        IN RPC2_Unsigned Unused,
+                        IN RPC2_CountedBS PiggyCOP2);
 
 
 /* Same comments as for ViceGetAttrPlusSHA() above */
 
 64: ViceValidateAttrsPlusSHA (IN RPC2_Unsigned Unused,
-		       IN ViceFid PrimaryFid,
-		       IN OUT ViceStatus PrimaryStatus,
-		       OUT RPC2_BoundedBS SHAval,
-		       IN ViceFidAndVV Piggies[], 
-		       IN OUT RPC2_BoundedBS VFlagBS,
-		       IN RPC2_CountedBS PiggyCOP2);
+		              IN ViceFid PrimaryFid,
+                              IN OUT ViceStatus PrimaryStatus,
+                              OUT RPC2_BoundedBS SHAval,
+                              IN ViceFidAndVV Piggies[], 
+                              IN OUT RPC2_BoundedBS VFlagBS,
+                              IN RPC2_CountedBS PiggyCOP2);
 
 65: ViceFetchPartial (IN ViceFid Fid,
-		 IN ViceVersionVector VV,
-		 IN RPC2_Unsigned InconOK,
-		 OUT ViceStatus Status,
-		 IN RPC2_Unsigned PrimaryHost,
-		 IN RPC2_Unsigned Offset,
-     IN RPC2_Unsigned Count,
-		 IN RPC2_CountedBS PiggyCOP2,
-		 IN OUT SE_Descriptor BD);
+		      IN ViceVersionVector VV,
+                      IN RPC2_Unsigned InconOK,
+                      OUT ViceStatus Status,
+                      IN RPC2_Unsigned PrimaryHost,
+                      IN RPC2_Unsigned Offset,
+                      IN RPC2_Unsigned Count,
+                      IN RPC2_CountedBS PiggyCOP2,
+                      IN OUT SE_Descriptor BD);

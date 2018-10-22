@@ -287,13 +287,12 @@ struct coda_statfs {
 #define CODA_STATFS	 34
 #define CODA_STORE	 35
 #define CODA_RELEASE	 36
-#define CODA_NCALLS 37
-#define CODA_ACCESS_INTENT 38
-#define CODA_OPCODE_MAX 39
+#define CODA_ACCESS_INTENT 37
+#define CODA_NCALLS 38
 
 #define DOWNCALL(opcode) (opcode >= CODA_REPLACE && opcode <= CODA_PURGEFID)
 #define UPCALL(opcode) (opcode >= CODA_ROOT && \
-                        opcode < CODA_OPCODE_MAX && \
+                        opcode < CODA_NCALLS && \
                         !DOWNCALL(opcode))
 
 #define CODA_ACCESS_TYPE_READ         1

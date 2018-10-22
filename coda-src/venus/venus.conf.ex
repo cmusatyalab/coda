@@ -39,6 +39,14 @@ cachesize=100MB
 #cachefiles=0
 
 #
+# What should the cache chunks block size be. If this is not specified or '0'
+# the default value of 32KB is chosen. Supported units are KB, MB, GB and TB.
+# This is relevant for VASTROs handling.
+# Minimum value is 4096 or 4KB.
+#
+#cachechunkblocksize=4KB
+
+#
 # How many modification log entries should venus have. If this is not
 # specified or `0' the value is calculated as 'cacheblocks / 6'.
 # (with the default number of cachefiles this is '4 * cachefiles')
@@ -300,7 +308,7 @@ mapprivate=1
 #
 # Fork a helper process to handle client-server communication.
 #
-#codatunnel=0
+#codatunnel=1
 
 #
 # Only use tcp tunnels for client-server communication (depends on codatunnel)

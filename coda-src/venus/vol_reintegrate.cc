@@ -73,9 +73,9 @@ extern "C" {
 
 
 /* must not be called from within a transaction */
-void repvol::Reintegrate()
+void reintvol::Reintegrate()
 {
-    LOG(0, ("repvol::Reintegrate\n"));
+    LOG(0, ("reintvol::Reintegrate\n"));
 
     if (!ReadyToReintegrate())
 	return;
@@ -231,7 +231,7 @@ void repvol::Reintegrate()
 
 	conflict = FSDB->Find(&fids[0]);
 	if(!conflict) {
-	    LOG(0, ("repvol::Reintegrate: Couldn't find conflict for ASR!\n"));
+	    LOG(0, ("reintvol::Reintegrate: Couldn't find conflict for ASR!\n"));
 	    goto Done;
 	}
 
@@ -287,7 +287,7 @@ Done:
  */
 
 /* must not be called from within a transaction */
-int repvol::IncReintegrate(int tid)
+int reintvol::IncReintegrate(int tid)
 {
     LOG(0, ("volent::IncReintegrate: (%s, %d) uid = %d\n",
 	    name, tid, CML.owner));
@@ -355,7 +355,13 @@ int repvol::IncReintegrate(int tid)
 	    START_TIMING();
 
 	    outoforder = CML.OutOfOrder(tid);
-	    code = CML.COP1(buf, bufsize, &UpdateSet, outoforder);
+        if (IsReplicated())
+	       code = CML.COP1(buf, bufsize, &UpdateSet, outoforder);
+        else if (IsNonReplicated())
+           code = CML.COP1_NR(buf, bufsize, &UpdateSet, outoforder);
+        else
+            /* For now no other type of volume acepts reintegration */
+            CODA_ASSERT(0);
 
 	    END_TIMING();
 	    inter_elapsed = elapsed;
@@ -495,7 +501,7 @@ extern struct timeval *VprocRetryBeta;
  * Reintegrate some portion of the store record at the head
  * of the log.
  */
-int repvol::PartialReintegrate(int tid, unsigned long *reint_time)
+int reintvol::PartialReintegrate(int tid, unsigned long *reint_time)
 {
     cmlent *m;
     int code = 0;
@@ -620,7 +626,7 @@ CheckResult:
  * determine if a volume has updates that may be reintegrated,
  * and return the number. humongous predicate check here.  
  */
-int repvol::ReadyToReintegrate()
+int reintvol::ReadyToReintegrate()
 {
     userent *u; 
     cml_iterator next(CML, CommitOrder);

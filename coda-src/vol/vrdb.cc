@@ -204,9 +204,26 @@ int DumpVRDB(int outfd)
     return VRDB.dump(outfd);
 }
 
-
-int XlateVid(VolumeId *vidp, int *count, int *pos) 
+bool IsReplicated(VolumeId *vidp)
 {
+    uint8_t * vid = (uint8_t *) vidp;
+    
+    if (vid[3] == 0x7f) return true;
+    
+    return false;
+}
+
+int XlateVid(VolumeId *vidp, int *count, int *pos, bool* isReplicated) 
+{
+    if (!IsReplicated(vidp)) {
+        if (count) *count = 1;
+        if (pos)   *pos = 0;
+        if (isReplicated) *isReplicated = false;
+        return(1);
+    }
+    
+    if (isReplicated) *isReplicated = true;
+    
     vrent *vre = VRDB.find(*vidp);
     if (!vre) return(0);
 

@@ -74,24 +74,25 @@ static void FetchProgressIndicator_stub(void *up, unsigned int offset)
 
 void fsobj::FetchProgressIndicator(unsigned long offset)
 {
-    unsigned long last;
-    unsigned long curr;
-    
-    if (stat.Length > 100000) {
-        last = GotThisData / (stat.Length / 100) ; 
-	curr = offset / (stat.Length / 100) ;
-    } else if (stat.Length > 0) {
-        last = 100 * GotThisData / stat.Length ; 
-	curr = 100 * offset / stat.Length ;
+    static uint64_t last = 0;
+    uint64_t curr;
+    uint64_t total_data = GotThisDataEnd - GotThisDataStart;
+    uint64_t curr_data = offset - GotThisDataStart;
+
+    if (total_data != 0) {
+        curr = (100.0f * curr_data) / total_data;
     } else {
 	last = 0;
 	curr = 100;
     }
 
-    if (last != curr)
-	MarinerLog("progress::fetching (%s) %lu%%\n", GetComp(), curr);
+    if (last != curr) {
+        MarinerLog("progress::fetching (%s) %lu%% (%luBs/%luBs) [%lu - %lu]\n",
+                   GetComp(), curr, curr_data, total_data, GotThisDataStart,
+                   GotThisDataEnd);
+    }
 
-    GotThisData = (unsigned long)offset;
+    last = curr;
 }
 
 /* MUST be called from within a transaction */
@@ -181,10 +182,9 @@ int fsobj::LookAside(void)
     return lka_successful;
 }
 
-int fsobj::FetchFileRPC(connent * con, ViceStatus * status,
-                        unsigned long primaryHost, uint64_t offset,
-                        int64_t len, RPC2_CountedBS * PiggyBS,
-                        SE_Descriptor * sed)
+int fsobj::FetchFileRPC(connent *con, ViceStatus *status, uint64_t offset,
+                        int64_t len, RPC2_CountedBS *PiggyBS,
+                        SE_Descriptor *sed)
 {
     int code = 0;
     char prel_str[256];
@@ -198,7 +198,7 @@ int fsobj::FetchFileRPC(connent * con, ViceStatus * status,
 
     // TODO: Check if file will be partially cached
 
-    snprintf(prel_str, sizeof(256), "fetch::Fetch%s %%s [%ld]\n", partial_sel,
+    snprintf(prel_str, 256, "fetch::Fetch%s %%s [%ld]\n", partial_sel,
              BLOCKS(this));
 
     CFSOP_PRELUDE(prel_str, comp, fid);
@@ -206,11 +206,10 @@ int fsobj::FetchFileRPC(connent * con, ViceStatus * status,
 
     if (fetchpartial_support) {
         code = ViceFetchPartial(con->connid, MakeViceFid(&fid), &stat.VV,
-                         inconok, status, primaryHost, offset, len, PiggyBS,
-                         sed);
+                         inconok, status, 0, offset, len, PiggyBS, sed);
     } else {
         code = ViceFetch(con->connid, MakeViceFid(&fid), &stat.VV,
-                         inconok, status, primaryHost, offset, PiggyBS, sed);
+                         inconok, status, 0, offset, PiggyBS, sed);
     }
 
     UNI_END_MESSAGE(viceop);
@@ -222,11 +221,50 @@ int fsobj::FetchFileRPC(connent * con, ViceStatus * status,
 
     if (IsFile()) {
         Recov_BeginTrans();
-        cf.SetValidData(GotThisData);
+        cf.SetValidData(offset, len);
         Recov_EndTrans(CMFP);
     }
 
     return code;
+}
+
+static int CheckTransferredData(uint64_t pos, int64_t count,
+    uint64_t length, uint64_t transfred) 
+{
+    LOG(10, ("(Multi)ViceFetch: fetched %lu bytes\n", transfred));
+
+    if (pos > length) return EINVAL;
+
+    if (count < 0) goto TillEndFetching;
+
+    /* Handle the VASTRO case */ 
+    /* If reaching EOF */
+    if (pos + count > length) {
+        if (transfred != (length - pos)) {
+            LOG(0, ("fsobj::Fetch: fetched data amount mismatch (%lu, %lu)",
+                    transfred, (length - pos)));
+            return ERETRY;
+        }
+    } 
+
+    if (transfred != (uint64_t)count) {
+        LOG(0, ("fsobj::Fetch: fetched data amount mismatch (%lu, %lu)",
+                transfred, count));
+        return ERETRY;
+    }
+
+    return 0;
+
+TillEndFetching:
+    /* If not VASTRO or Fetch till the end */
+    if ((pos + transfred) != length) {
+        // print(logFile);
+        LOG(0, ("fsobj::Fetch: fetched file length mismatch (%lu, %lu)",
+                pos + transfred, length));
+        return ERETRY;
+    }
+
+    return 0;
 }
 
 int fsobj::Fetch(uid_t uid)
@@ -275,7 +313,13 @@ int fsobj::Fetch(uid_t uid, uint64_t pos, int64_t count)
     uint64_t offset = IsFile() ? cf.ValidData() : 0;
     int64_t len = -1;
 
-    GotThisData = 0;
+    if (IsFile()) {
+        offset = cf.ConsecutiveValidData();
+        len = -1;
+    }
+
+    GotThisDataStart = offset;
+    GotThisDataEnd = len > 0 ? offset + len : Size();
 
     /* C++ 3.0 whines if the following decls moved closer to use  -- Satya */
     {
@@ -376,33 +420,24 @@ int fsobj::Fetch(uid_t uid, uint64_t pos, int64_t count)
 	    /* Make multiple copies of the IN/OUT and OUT parameters. */
             int ph_ix;
             struct in_addr *phost;
-            unsigned long ph;
 
             phost = m->GetPrimaryHost(&ph_ix);
-            ph = ntohl(phost->s_addr);
-
             srvent *s = GetServer(phost, vol->GetRealmId());
             code = s->GetConn(&c, uid);
             PutServer(&s);
             if (code != 0) goto RepExit;
 
-        /* Fetch the file from the server */
-        code = FetchFileRPC(c, &status, ph, offset, len, &PiggyBS, sed);
-        if (code != 0) goto RepExit;
+            /* Fetch the file from the server */
+            code = FetchFileRPC(c, &status, offset, len, &PiggyBS, sed);
+            if (code != 0) goto RepExit;
 
-	    {
-            unsigned long bytes = (unsigned long)sed->Value.SmartFTPD.BytesTransferred;
-            LOG(10, ("(Multi)ViceFetch: fetched %lu bytes\n", bytes));
-            if ((offset + bytes) != status.Length) {
-                // print(logFile);
-                LOG(0, ("fsobj::Fetch: fetched file length mismatch (%lu, %lu)",
-                        offset + bytes, status.Length));
-                code = ERETRY;
+            {
+                unsigned long bytes = (unsigned long)sed->Value.SmartFTPD.BytesTransferred;        
+                code = CheckTransferredData(pos, count, status.Length, bytes);
             }
-	    }
 
 	    /* Handle failed validations. */
-	    if (VV_Cmp(&status.VV, &stat.VV) != VV_EQ) {
+	    if (!CompareVersion(&status)) {
 		if (LogLevel >= 1) {
 		    dprint("fsobj::Fetch: failed validation\n");
 		    int *r = ((int *)&status.VV);
@@ -452,25 +487,29 @@ RepExit:
 	code = vp->GetConn(&c, uid);
 	if (code != 0) goto NonRepExit;
 
-	/* Make the RPC call. */
-    code = FetchFileRPC(c, &status, 0, offset, len, &PiggyBS, sed);
-    if (code != 0) goto NonRepExit;
+        /* Make the RPC call. */
+        code = FetchFileRPC(c, &status, offset, len, &PiggyBS, sed);
+        if (code != 0) goto NonRepExit;
 
-	{
-	    unsigned long bytes = sed->Value.SmartFTPD.BytesTransferred;
-	    LOG(10, ("ViceFetch: fetched %lu bytes\n", bytes));
-	    if ((offset + bytes) != status.Length) {
-		//print(logFile);
-		LOG(0, ("fsobj::Fetch: fetch file size mismatch (%lu, %lu)",
-		        offset + bytes, status.Length));
-		code = ERETRY;
-	    }
-	}
+    {
+        unsigned long bytes = sed->Value.SmartFTPD.BytesTransferred;
+        code = CheckTransferredData(pos, count, status.Length, bytes);
+    }
 
 	/* Handle failed validations. */
-	if (HAVESTATUS(this) && status.DataVersion != stat.DataVersion) {
+	if (HAVESTATUS(this) && !CompareVersion(&status)) {
 	    LOG(1, ("fsobj::Fetch: failed validation (%d, %d)\n",
 		    status.DataVersion, stat.DataVersion));
+        if (LogLevel >= 1) {
+            int *r = ((int *)&status.VV);
+            dprint("\tremote = [%x %x %x %x %x %x %x %x] [%x %x] [%x]\n",
+        	   r[0], r[1], r[2], r[3], r[4],
+        	   r[5], r[6], r[7], r[8], r[9], r[10]);
+            int *l = ((int *)&stat.VV);
+            dprint("\tlocal = [%x %x %x %x %x %x %x %x] [%x %x] [%x]\n",
+        	   l[0], l[1], l[2], l[3], l[4],
+        	   l[5], l[6], l[7], l[8], l[9], l[10]);
+        }
 	    code = EAGAIN;
 	}
 
@@ -903,7 +942,7 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
 #endif
 
 	    /* Handle failed validations. */
-	    if (HAVESTATUS(this) && VV_Cmp(&status.VV, &stat.VV) != VV_EQ) {
+	    if (HAVESTATUS(this) && !CompareVersion(&status)) {
 		if (LogLevel >= 1) {
 		    dprint("fsobj::GetAttr: failed validation\n");
 		    int *r = ((int *)&status.VV);
@@ -1047,27 +1086,37 @@ RepExit:
 	}
 	if (code != 0) goto NonRepExit;
 
-	/* Handle failed validations. */
-	if (HAVESTATUS(this) && status.DataVersion != stat.DataVersion) {
-	    LOG(1, ("fsobj::GetAttr: failed validation (%d, %d)\n",
-		    status.DataVersion, stat.DataVersion));
+    /* Handle failed validations. */
+    if (HAVESTATUS(this) && !CompareVersion(&status)) {
+        LOG(1, ("fsobj::GetAttr: failed validation (%d, %d)\n",
+            status.DataVersion, stat.DataVersion));
+        if (LogLevel >= 1) {
+            int *r = ((int *)&status.VV);
+            dprint("\tremote = [%x %x %x %x %x %x %x %x] [%x %x] [%x]\n",
+        	   r[0], r[1], r[2], r[3], r[4],
+        	   r[5], r[6], r[7], r[8], r[9], r[10]);
+            int *l = ((int *)&stat.VV);
+            dprint("\tlocal = [%x %x %x %x %x %x %x %x] [%x %x] [%x]\n",
+        	   l[0], l[1], l[2], l[3], l[4],
+        	   l[5], l[6], l[7], l[8], l[9], l[10]);
+        }
 
-	    Demote();
+        Demote();
 
-	    /* If we have data, it is stale and must be discarded. */
-	    /* Operation MUST be restarted from beginning since, even though
-	     * this fetch was for status-only, the operation MAY be requiring
-	     * data! */
-	    if (HAVEDATA(this)) {
-		Recov_BeginTrans();
-		UpdateCacheStats((IsDir() ? &FSDB->DirDataStats : &FSDB->FileDataStats),
-				 REPLACE, BLOCKS(this));
-		DiscardData();
-		code = ERETRY;
-		Recov_EndTrans(CMFP);
+        /* If we have data, it is stale and must be discarded. */
+        /* Operation MUST be restarted from beginning since, even though
+         * this fetch was for status-only, the operation MAY be requiring
+         * data! */
+        if (HAVEDATA(this)) {
+            Recov_BeginTrans();
+            UpdateCacheStats((IsDir() ? &FSDB->DirDataStats : &FSDB->FileDataStats),
+            		 REPLACE, BLOCKS(this));
+            DiscardData();
+            code = ERETRY;
+            Recov_EndTrans(CMFP);
 
-		goto NonRepExit;
-	    }
+            goto NonRepExit;
+        }
 	}
 
 	if (status.CallBack == CallBackSet && cbtemp == cbbreaks)
@@ -1138,6 +1187,8 @@ void fsobj::LocalStore(Date_t Mtime, unsigned long NewLength)
     stat.DataVersion++;
     stat.Length = NewLength;
     stat.Date = Mtime;
+    cf.SetLength(NewLength);
+    cf.SetValidData(NewLength);
     memset(VenusSHA, 0, SHA_DIGEST_LENGTH);
 
     UpdateCacheStats((IsDir() ? &FSDB->DirAttrStats : &FSDB->FileAttrStats),
@@ -1151,8 +1202,10 @@ int fsobj::DisconnectedStore(Date_t Mtime, uid_t uid, unsigned long NewLength,
     int code = 0;
     repvol *rv;
 
-    if (!vol->IsReplicated())
-	return ETIMEDOUT;
+    if (!(vol->IsReadWrite())) {
+        return ETIMEDOUT;
+    }
+	
     rv = (repvol *)vol;
 
     Recov_BeginTrans();
@@ -1191,6 +1244,7 @@ int fsobj::Store(unsigned long NewLength, Date_t Mtime, uid_t uid)
 	Kill();
 	Recov_EndTrans(DMFP);
     }
+    
     return(code);
 }
 
@@ -1250,14 +1304,16 @@ int fsobj::DisconnectedSetAttr(Date_t Mtime, uid_t uid, unsigned long NewLength,
     int code = 0;
     repvol *rv;
 
-    if (!vol->IsReplicated())
-	return ETIMEDOUT;
+    if (!(vol->IsReadWrite())) {
+        return ETIMEDOUT;
+    }
+	
     rv = (repvol *)vol;
 
     Recov_BeginTrans();
     RPC2_Integer tNewMode = (short)NewMode;	    /* sign-extend!!! */
 
-    CODA_ASSERT(vol->IsReplicated());
+    CODA_ASSERT(vol->IsReadWrite());
     code = rv->LogSetAttr(Mtime, uid, &fid, NewLength, NewDate, NewOwner,
 			  (RPC2_Unsigned)tNewMode, prepend);
     if (code == 0 && prepend == 0)
@@ -1339,6 +1395,8 @@ int fsobj::SetAttr(struct coda_vattr *vap, uid_t uid)
 int fsobj::SetACL(RPC2_CountedBS *acl, uid_t uid)
 {
     LOG(10, ("fsobj::SetACL: (%s), uid = %d\n", GetComp(), uid));
+    
+    ViceVersionVector UpdateSet;
 
     if (!REACHABLE(this))
 	return ETIMEDOUT;
@@ -1399,7 +1457,7 @@ int fsobj::SetACL(RPC2_CountedBS *acl, uid_t uid)
 
 	/* The COP1 call. */
 	long cbtemp; cbtemp = cbbreaks;
-	ViceVersionVector UpdateSet;
+	
 
 	Recov_BeginTrans();
 	Recov_GenerateStoreId(&sid);
@@ -1499,10 +1557,16 @@ RepExit:
 	UNI_RECORD_STATS(ViceSetACL_OP);
 
 	if (code != 0) goto NonRepExit;
+    
+    
+    /* Non-replicated volumes stil use the first slot */
+    InitVV(&UpdateSet);
+    if (vol->IsNonReplicated())
+        (&(UpdateSet.Versions.Site0))[0] = 1;
 
 	/* Do setattr locally. */
 	Recov_BeginTrans();
-	UpdateStatus(&status, NULL, uid);
+	UpdateStatus(&status, &UpdateSet, uid);
 	Recov_EndTrans(CMFP);
 
 NonRepExit:
@@ -1571,9 +1635,9 @@ int fsobj::DisconnectedCreate(Date_t Mtime, uid_t uid, fsobj **t_fso_addr,
     VenusFid target_fid;
     repvol *rv;
 
-    if (!vol->IsReplicated()) {
-	code = ETIMEDOUT;
-	goto Exit;
+    if (!(vol->IsReadWrite())) {
+        code = ETIMEDOUT;
+        goto Exit;
     }
     rv = (repvol *)vol;
 
@@ -1646,4 +1710,17 @@ int fsobj::Create(char *name, fsobj **target_fso_addr,
 	Demote();
     }
     return(code);
+}
+
+bool fsobj::CompareVersion(ViceStatus * status, VenusStat * venus_stat)
+{
+    if (!venus_stat) venus_stat = &(this->stat);
+    
+    if (VV_Cmp(&status->VV, &venus_stat->VV) != VV_EQ) return false;
+    
+    if (vol->IsNonReplicated()) {
+        if (status->DataVersion != venus_stat->DataVersion) return false;
+    }
+    
+    return true;
 }

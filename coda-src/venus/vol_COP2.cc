@@ -81,6 +81,8 @@ int cop2ent::deallocs = 0;
 int repvol::COP2(mgrpent *m, RPC2_CountedBS *PiggyBS)
 {
     LOG(10, ("volent::COP2: \n"));
+    
+    CODA_ASSERT(IsReplicated());
 
     int code = 0;
 
@@ -111,6 +113,8 @@ int repvol::COP2(mgrpent *m, ViceStoreId *StoreId, ViceVersionVector *UpdateSet,
     PiggyBS.SeqLen = 0;
     char PiggyData[COP2SIZE];
     PiggyBS.SeqBody = (RPC2_ByteSeq)PiggyData;
+    
+    CODA_ASSERT(IsReplicated());
 
     /* If we are piggybacking COP2's just log a new COP2 entry */
     if (!donotpiggy && PIGGYCOP2) {
@@ -133,6 +137,7 @@ int repvol::COP2(mgrpent *m, ViceStoreId *StoreId, ViceVersionVector *UpdateSet,
 int repvol::FlushCOP2(time_t window)
 {
     CODA_ASSERT(!IsLocalRealm());
+    CODA_ASSERT(IsReplicated());
     LOG(100, ("repvol::FlushCOP2: vol = %x, window = %d\n", vid, window));
 
     int code = 0;
@@ -186,6 +191,7 @@ int repvol::FlushCOP2(time_t window)
 int repvol::FlushCOP2(mgrpent *m, RPC2_CountedBS *PiggyBS)
 {
     CODA_ASSERT(!IsLocalRealm());
+    CODA_ASSERT(IsReplicated());
     LOG(100, ("volent::FlushCOP2(Piggy): vol = %x\n", vid));
 
     int code = 0;
@@ -215,6 +221,7 @@ int repvol::FlushCOP2(mgrpent *m, RPC2_CountedBS *PiggyBS)
 
 void repvol::GetCOP2(RPC2_CountedBS *BS)
 {
+    CODA_ASSERT(IsReplicated());
     LOG(100, ("volent::GetCOP2: vol = %x\n", vid));
 
     dlist_iterator next(*cop2_list);
@@ -243,6 +250,7 @@ void repvol::GetCOP2(RPC2_CountedBS *BS)
 
 cop2ent *repvol::FindCOP2(ViceStoreId *StoreId)
 {
+    CODA_ASSERT(IsReplicated());
     dlist_iterator next(*cop2_list);
     cop2ent *c;
     while ((c = (cop2ent *)next()))
@@ -256,6 +264,7 @@ cop2ent *repvol::FindCOP2(ViceStoreId *StoreId)
 
 void repvol::AddCOP2(ViceStoreId *StoreId, ViceVersionVector *VV)
 {
+    CODA_ASSERT(IsReplicated());
     cop2ent *c = new cop2ent(StoreId, VV);
     cop2_list->append(c);	    /* list must be maintained in FIFO order! */
 }
@@ -263,6 +272,7 @@ void repvol::AddCOP2(ViceStoreId *StoreId, ViceVersionVector *VV)
 
 void repvol::ClearCOP2(RPC2_CountedBS *BS)
 {
+    CODA_ASSERT(IsReplicated());
     unsigned int cursor;
 
     if (BS->SeqLen == 0) return;
@@ -287,6 +297,7 @@ void repvol::ClearCOP2(RPC2_CountedBS *BS)
 
 void repvol::ClearCOP2(void)
 {
+    CODA_ASSERT(IsReplicated());
     cop2ent *c;
     while ((c = (cop2ent *)cop2_list->get()))
 	delete c;

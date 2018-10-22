@@ -43,8 +43,12 @@ extern "C" {
 #include <mkpath.h>
 #include <copyfile.h>
 
+/* from util */
+#include <rvmlib.h>
+
 /* from venus */
-#include "fso.h"
+#include "fso_cachefile.h"
+#include "venusrecov.h"
 #include "venus.private.h"
 
 #ifndef fdatasync
@@ -54,19 +58,28 @@ extern "C" {
 /* always useful to have a page of zero's ready */
 static char zeropage[4096];
 
+uint64_t CacheChunkBlockSize = 0;
+uint64_t CacheChunkBlockSizeMax = 0;
+uint64_t CacheChunkBlockSizeBits = 0;
+uint64_t CacheChunkBlockBitmapSize = 0;
+
 /*  *****  CacheFile Members  *****  */
 
 /* Pre-allocation routine. */
 /* MUST be called from within transaction! */
-CacheFile::CacheFile(int i)
+CacheFile::CacheFile(int i, int recoverable)
 {
     /* Assume caller has done RVMLIB_REC_OBJECT! */
     /* RVMLIB_REC_OBJECT(*this); */
     sprintf(name, "%02X/%02X/%02X/%02X",
 	    (i>>24) & 0xff, (i>>16) & 0xff, (i>>8) & 0xff, i & 0xff);
+            
     length = validdata = 0;
     refcnt = 1;
     numopens = 0;
+    this->recoverable = recoverable;
+    cached_chunks = new(recoverable) bitmap(CacheChunkBlockBitmapSize, recoverable);
+    Lock_Init(&rw_lock);
     /* Container reset will be done by eventually by FSOInit()! */
     LOG(100, ("CacheFile::CacheFile(%d): %s (this=0x%x)\n", i, name, this));
 }
@@ -77,6 +90,9 @@ CacheFile::CacheFile()
     CODA_ASSERT(length == 0);
     refcnt = 1;
     numopens = 0;
+    this->recoverable = 1;
+    Lock_Init(&rw_lock);
+    cached_chunks = new(recoverable) bitmap(CacheChunkBlockBitmapSize, recoverable);
 }
 
 
@@ -84,6 +100,7 @@ CacheFile::~CacheFile()
 {
     LOG(10, ("CacheFile::~CacheFile: %s (this=0x%x)\n", name, this));
     CODA_ASSERT(length == 0);
+    delete cached_chunks;
 }
 
 
@@ -91,7 +108,7 @@ CacheFile::~CacheFile()
 void CacheFile::Validate()
 {
     if (!ValidContainer())
-	Reset();
+	   Reset();
 }
 
 
@@ -173,6 +190,19 @@ int CacheFile::Copy(CacheFile *destination)
 
     destination->length = length;
     destination->validdata = validdata;
+    
+    /* Acquire the locks in ascending address order */
+    if (((uint64_t) &rw_lock) < ((uint64_t) &destination->rw_lock)) {
+        ObtainReadLock(&rw_lock);
+        ObtainWriteLock(&destination->rw_lock);
+    } else {
+        ObtainWriteLock(&destination->rw_lock);
+        ObtainReadLock(&rw_lock);
+    }
+
+    *(destination->cached_chunks) = *cached_chunks;
+    ReleaseWriteLock(&destination->rw_lock);
+    ReleaseReadLock(&rw_lock);
     return 0;
 }
 
@@ -247,7 +277,7 @@ void CacheFile::Utimes(const struct timeval times[2])
 
 
 /* MUST be called from within transaction! */
-void CacheFile::Truncate(long newlen)
+void CacheFile::Truncate(uint64_t newlen)
 {
     int fd;
 
@@ -271,8 +301,22 @@ void CacheFile::Truncate(long newlen)
     }
 
     if (length != newlen) {
-	RVMLIB_REC_OBJECT(*this);
-	length = validdata = newlen;
+        if (recoverable) RVMLIB_REC_OBJECT(*this);
+    
+        
+
+        if (newlen < length) {
+            ObtainWriteLock(&rw_lock);
+            
+            cached_chunks->FreeRange(bytes_to_ccblocks_floor(newlen), 
+                bytes_to_ccblocks_ceil(length - newlen));
+                
+            ReleaseWriteLock(&rw_lock);
+        } 
+
+        length = newlen;
+
+        UpdateValidData();
     }
 
     CODA_ASSERT(::ftruncate(fd, length) == 0);
@@ -280,26 +324,96 @@ void CacheFile::Truncate(long newlen)
     close(fd);
 }
 
-/* MUST be called from within transaction! */
-void CacheFile::SetLength(long newlen)
-{
-    LOG(0, ("Cachefile::SetLength %d\n", newlen));
+/* Update the valid data*/
+void CacheFile::UpdateValidData() {
+    uint64_t length_cb = bytes_to_ccblocks_ceil(length); /* Floor length in blocks */
+    
+    ObtainReadLock(&rw_lock);
 
-    if (length != newlen) {
-	RVMLIB_REC_OBJECT(*this);
-	length = validdata = newlen;
+    validdata = ccblocks_to_bytes(cached_chunks->Count());
+
+    /* In case the the last block is set */
+    if (cached_chunks->Value(length_cb - 1)) {
+        validdata -= ccblocks_to_bytes(length_cb) - length;
     }
+    
+    ReleaseReadLock(&rw_lock);
 }
 
 /* MUST be called from within transaction! */
-void CacheFile::SetValidData(long newoffset)
-{
-    LOG(0, ("Cachefile::SetValidData %d\n", newoffset));
+void CacheFile::SetLength(uint64_t newlen)
+{    
+    if (length != newlen) {
+        if (recoverable) RVMLIB_REC_OBJECT(*this);
 
-    if (validdata != newoffset) {
-	RVMLIB_REC_OBJECT(validdata);
-	validdata = newoffset;
+        if (newlen < length) {
+            ObtainWriteLock(&rw_lock);
+            
+            cached_chunks->FreeRange(bytes_to_ccblocks_floor(newlen), 
+                bytes_to_ccblocks_ceil(length - newlen));
+                
+            ReleaseWriteLock(&rw_lock);
+        }
+
+        length = newlen;
+
+        UpdateValidData();
+
     }
+
+    LOG(60, ("CacheFile::SetLength: New Length: %d, Validata %d\n", newlen, validdata));
+}
+
+/* MUST be called from within transaction! */
+void CacheFile::SetValidData(uint64_t len)
+{
+    SetValidData(0, len);
+}
+
+/* MUST be called from within transaction! */
+void CacheFile::SetValidData(uint64_t start, int64_t len)
+{
+    uint64_t start_cb = ccblock_start(start);
+    uint64_t end_cb = ccblock_end(start, len);
+    uint64_t newvaliddata = 0;
+    uint64_t length_cb = bytes_to_ccblocks_ceil(length);
+
+    if (len < 0) {
+        end_cb = length_cb;
+    }
+
+    if (end_cb > length_cb) {
+        end_cb = length_cb;
+    }
+
+    if (recoverable) RVMLIB_REC_OBJECT(validdata);
+    
+    ObtainWriteLock(&rw_lock);
+
+    for (uint64_t i = start_cb; i < end_cb; i++) {
+        if (cached_chunks->Value(i)) {
+            continue;
+        }
+
+        cached_chunks->SetIndex(i);
+
+        /* Add a full block */
+        newvaliddata += CacheChunkBlockSize;
+
+        /* The last block might not be full */
+        if (i + 1 == length_cb) {
+            newvaliddata -= ccblocks_to_bytes(length_cb) - length;
+            continue;
+        }
+    }
+    
+    ReleaseWriteLock(&rw_lock);
+
+    validdata += newvaliddata;
+
+    LOG(60, ("CacheFile::SetValidData: { validdata: %d }\n", validdata));
+    LOG(60, ("CacheFile::SetValidData: { fetchedblocks: %d, totalblocks: %d }\n",
+            cached_chunks->Count(), length_cb));
 }
 
 void CacheFile::print(int fdes)
@@ -345,4 +459,23 @@ int CacheFile::FClose(FILE *f)
     int rc = fclose(f);
     numopens--;
     return rc;
+}
+
+uint64_t CacheFile::ConsecutiveValidData(void)
+{
+    /* Use the start of the first hole */
+    uint64_t start = 0;
+    uint64_t length_ccb = bytes_to_ccblocks_ceil(length);  // Ceil length in blocks
+
+    /* Find the first 0 in the bitmap */
+    for (start = 0; start < length_ccb; start++) {
+        if (!cached_chunks->Value(start)) {
+            break;
+        }
+    }
+
+    if (start != 0)
+        start--;
+
+    return start;
 }
