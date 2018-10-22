@@ -142,8 +142,8 @@ class fsdb {
 
     /* "files" is kept as count member of htab */
     int FreeFileMargin;
-    /*T*/unsigned int MaxBlocks;
-    /*T*/unsigned int blocks;
+    /*T*/uint64_t MaxBlocks;
+    /*T*/uint64_t blocks;
     /*T*/int FreeBlockMargin;
 
     /* Priority parameters. */

@@ -487,7 +487,7 @@ void fsobj::Recover()
 	if (!HAVEDATA(this) && cf.Length() != 0) {
 	    eprint("\t(%s, %s) cache file validation failed",
 		   comp, FID_(&fid));
-	    FSDB->FreeBlocks(NBLOCKS(cf.Length()));
+	    FSDB->FreeBlocks(NBLOCKS(cf.ValidData()));
 	    cf.Reset();
 	}
 	break;
@@ -501,8 +501,8 @@ void fsobj::Recover()
 	 * version of the object.  The stuff in RVM is the ``Vice format''
 	 * version.
 	 */
-	if (cf.Length() != 0) {
-	    FSDB->FreeBlocks(NBLOCKS(cf.Length()));
+	if (cf.ValidData() != 0) {
+	    FSDB->FreeBlocks(NBLOCKS(cf.ValidData()));
 	    cf.Reset();
 	}
 	break;
@@ -545,9 +545,9 @@ Failure:
 		DiscardData();
 		Recov_EndTrans(MAXFP);
 	    }
-	    if (cf.Length()) {
+	    if (cf.ValidData()) {
 		/* Reclaim cache-file blocks. */
-		FSDB->FreeBlocks(NBLOCKS(cf.Length()));
+		FSDB->FreeBlocks(NBLOCKS(cf.ValidData()));
 		cf.Reset();
 	    }
 	}
@@ -2374,7 +2374,7 @@ void fsobj::CacheReport(int fd, int level) {
 	    fsobj *cf = strbase(fsobj, d, child_link);
 
 	    slots++;
-	    blocks += NBLOCKS(cf->cf.Length());
+	    blocks += NBLOCKS(cf->cf.ValidData());
 	}
     }
     fdprint(fd, "[ %3d  %5d ]      ", slots, blocks);

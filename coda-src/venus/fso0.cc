@@ -1400,11 +1400,14 @@ void fsdb::ReclaimBlocks(int priority, int nblocks) {
 	if (priority <= f->priority) break;
 
 	/* No point in reclaiming entries without data! */
-	int ufs_blocks = NBLOCKS(f->cf.Length());
+	int ufs_blocks = NBLOCKS(f->cf.ValidData());
 	if (ufs_blocks == 0) continue;
 
-	/* Can't reclaim if busy. */
-	if (BUSY(f) || f->IsLocalObj()) continue;
+	/* Can't reclaim if it's local */
+    if (f->IsLocalObj()) continue;
+    
+    /* Can't reclaim if busy. */
+	if (BUSY(f) && !ISVASTRO(f)) continue;
 
 	/* Reclaim data.  Return if we've got enough. */
 	MarinerLog("cache::Replace [data] %s [%d, %d]\n",
