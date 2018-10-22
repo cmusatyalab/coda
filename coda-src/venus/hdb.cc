@@ -698,6 +698,12 @@ void hdb::DataWalk(vproc *vp, int TotalBytesToFetch, int BytesFetched) {
 	    int blocks = BLOCKS(f);
 
 	    if (!HOARDABLE(f)) continue;
+        
+        if (ISVASTRO(f)) {
+            LOG(200, ("Warning (%s) flagged as VASTRO, not being hoarded.\n", 
+  		      f->comp));
+            continue;
+        }
 
 	    if (DATAVALID(f)) {
 	      LOG(200, ("AVAILABLE:  fid=<%s> comp=%s priority=%d blocks=%d\n", 
