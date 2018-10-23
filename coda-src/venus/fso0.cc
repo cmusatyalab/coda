@@ -737,23 +737,17 @@ RestartFind:
 	       a result of the inconsistent object manipulation above. */
 	    if (getdata && FETCHABLE(f) && !f->IsFake() && !HAVEALLDATA(f))
 	    {
-		int nblocks = BLOCKS(f);
 
 		/* If we haven't got any data yet, allocate enough for the
 		 * whole file. When we have a partial file, we should
 		 * already have reserved enough blocks. */
-		if (f->IsFile() && !HAVEDATA(f)) {
-		  code = AllocBlocks(vp->u.u_priority, nblocks);
+		if (f->IsFile() && !HAVEDATA(f) && !ISVASTRO(f)) {
+		  code = AllocBlocks(vp->u.u_priority, BLOCKS(f));
 		  if (code != 0) {
 			Put(&f);
 			return(code);
 		  }
 		}
-		
-		/* compensate # blocks for the amount we already have.
-		 * (only used for vmon statistical stuff later on, but
-		 * the fetch will modify f->cf.ValidData) */
-		nblocks -= NBLOCKS(f->cf.ValidData());
 		
 		code = 0;
 		/* first try the LookAside cache */
