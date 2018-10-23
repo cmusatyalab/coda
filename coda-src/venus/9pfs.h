@@ -371,6 +371,7 @@ class plan9server {
     int recv_stat(unsigned char *buf, size_t len, uint16_t tag);
     int recv_wstat(unsigned char *buf, size_t len, uint16_t tag);
 
+    int recv_getattr(unsigned char *buf, size_t len, uint16_t tag);
     int recv_lopen(unsigned char *buf, size_t len, uint16_t tag);
 
     struct fidmap *find_fid(uint32_t fid);

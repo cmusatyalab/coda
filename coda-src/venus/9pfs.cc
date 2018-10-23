@@ -636,13 +636,13 @@ int plan9server::handle_request(unsigned char *buf, size_t read)
     case Tstat:     return recv_stat(buf, len, tag);
     case Twstat:    return recv_wstat(buf, len, tag);
     /* dotl messages */
+    case Tgetattr:  return recv_getattr(buf, len, tag);
     case Tlopen:    return recv_lopen(buf, len, tag);
     case Tstatfs:
     case Tlcreate:
     case Tsymlink:
     case Trename:
     case Treadlink:
-    case Tgetattr:
     case Tsetattr:
     case Treaddir:
     case Tfsync:
@@ -1813,6 +1813,80 @@ int plan9server::plan9_stat(struct venus_cnode *cnode, struct attachment *root,
 /*
  * 9P2000.L operations
  */
+
+int plan9server::recv_getattr(unsigned char *buf, size_t len, uint16_t tag)
+{
+    uint32_t fid;
+    uint64_t request_mask;
+
+    if (unpack_le32(&buf, &len, &fid) ||
+       unpack_le64(&buf, &len, &request_mask))
+       return -1;
+
+    DEBUG("9pfs: Tgetattr[%x] fid %u req mask 0x%lx\n", tag, fid, request_mask);
+
+    struct fidmap *fm;
+    struct plan9_stat_dotl stat;
+    struct coda_vattr attr;
+
+    fm = find_fid(fid);
+    if (!fm)
+       return send_error(tag, "fid unknown or out of range", EBADF);
+
+    conn->u.u_uid = fm->root->userid;
+    conn->getattr(&fm->cnode, &attr);
+    if (conn->u.u_error) {
+        int errcode = conn->u.u_error;
+        const char *errstr = VenusRetStr(errcode);
+        return send_error(tag, errstr, errcode);
+    }
+
+    cnode2qid(&fm->cnode, &stat.qid);
+    stat.st_mode = (uint32_t)attr.va_mode;
+    stat.st_nlink = (uint64_t)attr.va_nlink;
+    stat.st_uid = attr.va_uid;
+    stat.st_gid = attr.va_gid;
+    stat.st_rdev = (uint64_t)attr.va_rdev;
+    stat.st_size = attr.va_size;
+    stat.st_blksize = (uint64_t)attr.va_blocksize;
+    //number of 512-byte blocks allocated
+    stat.st_blocks = (attr.va_bytes + 511) >> 9;
+    stat.st_atime_sec = attr.va_atime.tv_sec;
+    stat.st_atime_nsec = attr.va_atime.tv_nsec;
+    stat.st_mtime_sec = attr.va_mtime.tv_sec;
+    stat.st_mtime_nsec = attr.va_mtime.tv_nsec;
+    stat.st_ctime_sec = attr.va_ctime.tv_sec;
+    stat.st_ctime_nsec = attr.va_ctime.tv_nsec;
+
+    // For now, the valid fields in response are the same as the ones requested
+    uint64_t valid_mask = request_mask;
+
+    /* send_Rgetattr */
+    DEBUG("9pfs: Rgetattr[%x] valid mask 0x%lx\n", tag, valid_mask);
+    DEBUG("\
+            qid[type.ver.path]: %x.%x.%lx \n \
+            mode: 0%o  n_uid: %d  n_gid: %d  nlink: %lu \n \
+            rdev: %lu  size: %lu  blksize: %lu  blocks: %lu \n \
+            atime_sec: %lu  atime_nsec: %lu \n \
+            mtime_sec: %lu  mtime_nsec: %lu \n \
+            ctime_sec: %lu  ctime_nsec: %lu \n ",
+            stat.qid.type, stat.qid.version, stat.qid.path,
+            stat.st_mode, stat.st_uid, stat.st_gid, stat.st_nlink,
+            stat.st_rdev, stat.st_size, stat.st_blksize, stat.st_blocks,
+            stat.st_atime_sec, stat.st_atime_nsec, stat.st_mtime_sec,
+            stat.st_mtime_nsec, stat.st_ctime_sec, stat.st_ctime_nsec);
+
+    buf = buffer; len = max_msize;
+    if (pack_header(&buf, &len, Rgetattr, tag) ||
+       pack_le64(&buf, &len, valid_mask) ||
+       pack_stat_dotl(&buf, &len, &stat))
+    {
+       send_error(tag, "Message too long", EMSGSIZE);
+       return -1;
+    }
+    send_response(buffer, max_msize - len);
+    return 0;
+}
 
 
  int plan9server::recv_lopen(unsigned char *buf, size_t len, uint16_t tag)
