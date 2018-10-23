@@ -1924,6 +1924,8 @@ int plan9server::recv_getattr(unsigned char *buf, size_t len, uint16_t tag)
         case P9_DOTL_RDWR:
            coda_flags = C_O_READ | C_O_WRITE;
            break;
+        default:
+           return send_error(tag, "Invalid lopen access mode flags", EINVAL);
      }
      if (lopen_flags & P9_DOTL_TRUNC)
          coda_flags |= C_O_TRUNC;
