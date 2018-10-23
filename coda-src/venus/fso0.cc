@@ -802,7 +802,7 @@ RestartFind:
 			"Allowing access to stale status! (key = <%s>)\n",
 			FID_(key)));
 
-	    else if (!STATUSVALID(f) && !f->IsFake())
+	    else if (!STATUSVALID(f) && !f->IsLocalObj())
 		LOG(0, ("Allowing access to stale status! (key = <%s>)\n",
 			FID_(key)));
 
