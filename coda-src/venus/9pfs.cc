@@ -636,8 +636,8 @@ int plan9server::handle_request(unsigned char *buf, size_t read)
     case Tstat:     return recv_stat(buf, len, tag);
     case Twstat:    return recv_wstat(buf, len, tag);
     /* dotl messages */
+    case Tlopen:    return recv_lopen(buf, len, tag);
     case Tstatfs:
-    case Tlopen:
     case Tlcreate:
     case Tsymlink:
     case Trename:
@@ -1802,6 +1802,116 @@ int plan9server::plan9_stat(struct venus_cnode *cnode, struct attachment *root,
     return 0;
 }
 
+
+/*
+ * 9P2000.L operations
+ */
+
+
+ int plan9server::recv_lopen(unsigned char *buf, size_t len, uint16_t tag)
+ {
+     uint32_t fid;
+     uint32_t lopen_flags;
+
+     if (unpack_le32(&buf, &len, &fid) ||
+         unpack_le32(&buf, &len, &lopen_flags))
+         return -1;
+
+     DEBUG("9pfs: Tlopen[%x] fid %u, flags 0%o\n", tag, fid, lopen_flags);
+
+     struct fidmap *fm;
+     int coda_flags;
+
+     fm = find_fid(fid);
+     if (!fm)
+         return send_error(tag, "fid unknown or out of range", EBADF);
+
+     if (fm->open_flags)
+         return send_error(tag, "file already open for I/O", EIO);
+
+     /* We're not handling ORCLOSE, OEXEC, OEXCL yet and the rest should be 0 */
+     if (lopen_flags & ~00003003)
+         return send_error(tag, "Invalid lopen flags", EINVAL);
+
+     switch (lopen_flags & 00000003) {
+        case P9_DOTL_RDONLY:
+           coda_flags = C_O_READ;
+           break;
+        case P9_DOTL_WRONLY:
+           coda_flags = C_O_WRITE;
+           break;
+        case P9_DOTL_RDWR:
+           coda_flags = C_O_READ | C_O_WRITE;
+           break;
+     }
+     if (lopen_flags & P9_DOTL_TRUNC)
+         coda_flags |= C_O_TRUNC;
+
+     /* vget and open yield, so we may lose fidmap, but we need to make sure we
+      * can close opened cnodes if the fidmap was removed while we yielded. */
+     struct venus_cnode cnode = fm->cnode;
+     struct plan9_qid qid;
+
+     if (coda_flags & (C_O_WRITE | C_O_TRUNC)) {
+         switch (cnode.c_type) {
+         case C_VREG:
+             break;
+         case C_VDIR:
+             return send_error(tag, "can't open directory for writing", EISDIR);
+         case C_VLNK:
+         default:
+             return send_error(tag, "file is read only", EINVAL);
+         }
+     }
+
+     conn->u.u_uid = fm->root->userid;
+     if (cnode.c_type == C_VLNK) {
+         struct venus_cnode tmp;
+         conn->vget(&tmp, &cnode.c_fid, RC_STATUS|RC_DATA);
+     }
+     else {
+         conn->open(&cnode, coda_flags);
+     }
+     if (conn->u.u_error) {
+         int errcode = conn->u.u_error;
+         const char *errstr = VenusRetStr(errcode);
+         return send_error(tag, errstr, errcode);
+     }
+
+     /* open yields, reobtain fidmap reference */
+     fm = find_fid(fid);
+     if (!fm) {
+         if (cnode.c_type != C_VLNK)
+             conn->close(&cnode, coda_flags);
+         return send_error(tag, "fid unknown or out of range", EBADF);
+     }
+     fm->open_flags = coda_flags;
+
+     cnode2qid(&cnode, &qid);
+
+     uint32_t iounit = 4096;
+
+     /* send_Rlopen */
+     DEBUG("9pfs: Rlopen[%x] qid %x.%x.%lx, iounit %u\n",
+           tag, qid.type, qid.version, qid.path, iounit);
+
+     buf = buffer; len = max_msize;
+     if (pack_header(&buf, &len, Rlopen, tag) ||
+         pack_qid(&buf, &len, &qid) ||
+         pack_le32(&buf, &len, iounit))
+     {
+         send_error(tag, "Message too long", EMSGSIZE);
+         return -1;
+     }
+     send_response(buffer, max_msize - len);
+     return 0;
+ }
+
+
+
+/*
+ * fidmap helper functions
+ */
 
 /*
  * Obtains the file or directory name given a cnode, and places it in the
