@@ -1468,7 +1468,7 @@ void vproc::read(struct venus_cnode * node, uint64_t pos, int64_t count)
     int code = 0;
     fsobj *f = NULL;
     CacheChunkList * clist = NULL;
-    CacheChunk currc = {};
+    CacheChunk currc;
 
     Begin_VFS(&node->c_fid, CODA_ACCESS_INTENT, VM_OBSERVING);
 

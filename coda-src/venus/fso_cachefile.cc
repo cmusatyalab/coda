@@ -533,7 +533,7 @@ CacheChunkList * CacheFile::GetHoles(uint64_t start, int64_t len) {
     uint64_t end_b = ccblock_end(start, len);
     uint64_t length_b = bytes_to_ccblocks_ceil(length);  // Ceil length in blocks
     CacheChunkList * clist = new CacheChunkList();
-    CacheChunk currc = {};
+    CacheChunk currc;
 
     if (len < 0) {
         end_b = length_b;
