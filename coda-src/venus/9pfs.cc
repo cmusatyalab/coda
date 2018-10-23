@@ -1216,6 +1216,10 @@ int plan9server::recv_read(unsigned char *buf, size_t len, uint16_t tag)
     if (!(fm->open_flags & C_O_READ))
         return send_error(tag, "Bad file descriptor", EBADF);
 
+    if (protocol == P9_PROTO_DOTL && fm->cnode.c_type == C_VDIR)
+        return send_error(tag, "Under 9P2000.L, Tread cannot be used on dirs",
+                          EINVAL);
+
     /* send_Rread */
     unsigned char *tmpbuf;
     buf = buffer; len = max_msize;
