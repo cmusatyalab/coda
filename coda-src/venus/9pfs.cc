@@ -1911,7 +1911,7 @@ int plan9server::recv_getattr(unsigned char *buf, size_t len, uint16_t tag)
          return send_error(tag, "file already open for I/O", EIO);
 
      /* We're not handling ORCLOSE, OEXEC, OEXCL yet and the rest should be 0 */
-     if (lopen_flags & ~00003003)
+     if (lopen_flags & ~00307003)
          return send_error(tag, "Invalid lopen flags", EINVAL);
 
      switch (lopen_flags & 00000003) {
