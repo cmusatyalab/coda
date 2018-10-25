@@ -169,6 +169,7 @@ int pioctl(const char *path, unsigned long com,
     if (f == NULL)
     {
         fprintf(stderr, "Failed to open unique pioctl file\n");
+        errno = EBADF;
         return -1;
     }
 
@@ -178,8 +179,10 @@ int pioctl(const char *path, unsigned long com,
     } else
 	path = "/";
 
-    if (!path)
+    if (!path) {
+        errno = EBADF;
         return -1;
+    }
 
     uint8_t cmd = (uint8_t)_IOC_NR(com);
     uint16_t plen = (uint16_t)strlen(path);
@@ -195,6 +198,7 @@ int pioctl(const char *path, unsigned long com,
     if (f == NULL)
     {
         fprintf(stderr, "Failed to open pioctl file\n");
+        errno = EBADF;
         return -1;
     }
 
@@ -206,6 +210,7 @@ int pioctl(const char *path, unsigned long com,
     {
         fprintf(stderr, "Failed to parse results from pioctl file\n");
         fclose(f);
+        errno = EBADF;
         return -1;
     }
 
@@ -213,6 +218,7 @@ int pioctl(const char *path, unsigned long com,
     {
         fprintf(stderr, "pioctl response too large\n");
         fclose(f);
+        errno = EBADF;
         return -1;
     }
 
@@ -220,9 +226,15 @@ int pioctl(const char *path, unsigned long com,
     {
         fprintf(stderr, "Failed to read response from pioctl\n");
         fclose(f);
+        errno = EBADF;
         return -1;
     }
 
     fclose(f);
-    return(code);
+
+    if (code) {
+        errno = code;
+        return -1;
+    }
+    return 0;
 }
