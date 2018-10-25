@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2018 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -13,22 +13,13 @@ listed in the file CREDITS.
 
                         Additional copyrights
                            none currently
-
 #*/
-
-
-
-
-
-
-
 
 /*
  *
  *  Definitions of Venus Statistics
  *
  */
-
 
 #ifndef _VENUS_STATS_H_
 #define _VENUS_STATS_H_ 1
