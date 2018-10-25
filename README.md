@@ -37,12 +37,12 @@ library.
 
 On Redhat/Fedora/CentOS systems
 ```sh
-$ yum install gcc gcc-c++ autoconf automake libtool pkgconfig flex bison readline-devel ncurses5-devel lua-devel
+$ yum install gcc gcc-c++ autoconf automake libtool pkgconfig flex bison readline-devel ncurses5-devel lua-devel llvm-toolset-7
 ```
 
 On Debian/Ubuntu and derived systems
 ```sh
-$ apt-get install build-essential automake libtool pkg-config flex bison libreadline-dev libncurses5-dev liblua5.1-0-dev valgrind
+$ apt-get install build-essential automake libtool pkg-config flex bison libreadline-dev libncurses5-dev liblua5.1-0-dev clang-format-6.0 valgrind
 ```
 
 ### Build
