@@ -32,34 +32,15 @@ listed in the file CREDITS.
 extern "C" {
 #endif
 
-// #include <sys/uio.h>
+#include <lwp/lock.h>
 
-// #include <rpc2/rpc2.h>
-// 
-// #include <codadir.h>
-
-extern int global_kernfd;
 #ifdef __cplusplus
 }
 #endif
 
-/* interfaces */
-// #include <user.h>
-// #include <vice.h>
-
 /* from util */
 #include <bitmap.h>
 #include <dlist.h>
-
-/* from lka */
-// #include <lka.h>
-#include <lwp/lock.h>
-
-/* from venus */
-
-
-/* from coda include again, must appear AFTER venus.private.h */
-
 
 /* Representation of UFS file in cache directory. */
 /* Currently, CacheFiles and fsobjs are statically bound to each
@@ -233,7 +214,7 @@ public:
      * @param start the chunk's start
      * @param len   the chunk's length
      */
-    CacheChunk(uint64_t start, int64_t len) : start(start), len(len), 
+    CacheChunk(uint64_t start, int64_t len) : start(start), len(len),
         valid(true) {}
 
     /**
