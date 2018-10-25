@@ -188,10 +188,16 @@ int pioctl(const char *path, unsigned long com,
     uint16_t plen = (uint16_t)strlen(path);
     //uint16_t size = (uint16_t)_IOC_SIZE(com);
 
-    fprintf(f, "%u\n%u\n%u\n%u\n%u\n",
-            cmd, plen, follow, vidata->in_size, vidata->out_size);
-    fwrite(path, plen, 1, f);
-    fwrite(vidata->in, vidata->in_size, 1, f);
+    if (fprintf(f, "%u\n%u\n%u\n%u\n%u\n%c", cmd, plen, follow,
+                vidata->in_size, vidata->out_size, '\0') == -1 ||
+        fwrite(path, 1, plen, f) != plen ||
+        fwrite(vidata->in, 1, vidata->in_size, f) != vidata->in_size)
+    {
+        fprintf(stderr, "Failed to write to pioctl file\n");
+        fclose(f);
+        errno = EBADF;
+        return -1;
+    }
     fclose(f);
 
     f = fopen(pioctlfile, "r");
@@ -205,7 +211,7 @@ int pioctl(const char *path, unsigned long com,
     int code = 0;
     unsigned int size = 0;
 
-    n = fscanf(f, "%d\n%u\n", &code, &size);
+    n = fscanf(f, "%d\n%u\n%*c", &code, &size);
     if (n != 2)
     {
         fprintf(stderr, "Failed to parse results from pioctl file\n");
