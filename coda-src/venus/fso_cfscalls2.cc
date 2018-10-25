@@ -81,7 +81,7 @@ int fsobj::OpenPioctlFile(void)
     /* read pioctl input */
     f = data.file->FOpen("r");
 
-    n = fscanf(f, "%u\n%u\n%u\n%u\n%u\n",
+    n = fscanf(f, "%u\n%u\n%u\n%u\n%u\n%*c",
                &nr, &plen, &follow, &in_size, &out_size);
     if (n != 5)
     {
@@ -174,7 +174,7 @@ PioctlErrOut:
     /* write pioctl output */
     f = data.file->FOpen("w");
 
-    if (fprintf(f, "%d\n%u\n", error, vidata.out_size) < 0 ||
+    if (fprintf(f, "%d\n%u\n%c", error, vidata.out_size, '\0') == -1 ||
         fwrite(vidata.out, 1, vidata.out_size, f) != vidata.out_size)
     {
         LOG(0, ("fsobj::OpenPioctlFile: failed to write result\n"));

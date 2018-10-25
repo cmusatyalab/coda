@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2018 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -66,7 +66,7 @@ extern "C" {
 
 struct hdb_clear_msg {
     uid_t cuid;
-    int    spare;
+    int   spare;
 };
 
 struct hdb_add_msg {
@@ -80,13 +80,13 @@ struct hdb_add_msg {
 struct hdb_delete_msg {
     VolumeId vid;
     char     realm[MAXHOSTNAMELEN+1];
-    char     name[MAXPATHLEN];
+    char     name[CODA_MAXPATHLEN];
 };
 
 struct hdb_list_msg {
-    char   outfile[MAXPATHLEN];
+    char  outfile[CODA_MAXPATHLEN];
     uid_t luid;
-    int    spare;
+    int   spare;
 };
 
 struct hdb_walk_msg {
@@ -94,10 +94,10 @@ struct hdb_walk_msg {
 };
 
 struct hdb_verify_msg {
-    char   outfile[MAXPATHLEN];
+    char  outfile[CODA_MAXPATHLEN];
     uid_t luid;
-    int    spare;
-    int    verbosity;
+    int   spare;
+    int   verbosity;
 };
 
 
