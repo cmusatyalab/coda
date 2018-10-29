@@ -728,7 +728,7 @@ int plan9server::recv_auth(unsigned char *buf, size_t len, uint16_t tag)
         ::free(uname);
         return -1;
     }
-    if (protocol == P9_PROTO_DOTU) {
+    if (protocol == P9_PROTO_DOTU || protocol == P9_PROTO_DOTL) {
       if (unpack_le32(&buf, &len, &uid)) {
         ::free(uname);
         ::free(aname);
@@ -776,7 +776,7 @@ int plan9server::recv_attach(unsigned char *buf, size_t len, uint16_t tag)
         ::free(uname);
         return -1;
     }
-    if (protocol == P9_PROTO_DOTU) {
+    if (protocol == P9_PROTO_DOTU || protocol == P9_PROTO_DOTL) {
       if (unpack_le32(&buf, &len, &uid)) {
         ::free(uname);
         ::free(aname);
