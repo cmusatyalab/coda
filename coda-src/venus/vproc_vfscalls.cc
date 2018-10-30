@@ -1475,7 +1475,10 @@ void vproc::read(struct venus_cnode * node, uint64_t pos, int64_t count)
         goto FreeVFS;
     }
 
+    if (f->IsPioctlFile()) goto FreeVFS;
+
     if (!ISVASTRO(f)) {
+        u.u_error = EOPNOTSUPP;
         goto FreeVFS;
     }
 
@@ -1530,6 +1533,13 @@ void vproc::write(struct venus_cnode * node, uint64_t pos, int64_t count)
         u.u_error = EIO;
         goto FreeVFS;
     }
+
+    if (f->IsPioctlFile()) goto FreeVFS;
+
+    if (!ISVASTRO(f)) {
+        u.u_error = EOPNOTSUPP;
+        goto FreeVFS;
+    }
     
 FreeVFS:
     End_VFS(NULL);
@@ -1552,7 +1562,10 @@ void vproc::read_finish(struct venus_cnode * node, uint64_t pos, int64_t count)
         goto FreeVFS;
     }
 
+    if (f->IsPioctlFile()) goto FreeVFS;
+
     if (!ISVASTRO(f)) {
+        u.u_error = EOPNOTSUPP;
         goto FreeVFS;
     }
 
@@ -1581,6 +1594,13 @@ void vproc::write_finish(struct venus_cnode * node, uint64_t pos, int64_t count)
         u.u_error = EIO;
         goto FreeVFS;
     }
+
+    if (f->IsPioctlFile()) goto FreeVFS;
+
+    if (!ISVASTRO(f)) {
+        u.u_error = EOPNOTSUPP;
+        goto FreeVFS;
+    }
     
 FreeVFS:
     End_VFS(NULL);
@@ -1599,6 +1619,13 @@ void vproc::mmap(struct venus_cnode * node, uint64_t pos, int64_t count)
     f = FSDB->Find(&node->c_fid);
     if (!f) {
         u.u_error = EIO;
+        goto FreeVFS;
+    }
+
+    if (f->IsPioctlFile()) goto FreeVFS;
+
+    if (!ISVASTRO(f)) {
+        u.u_error = EOPNOTSUPP;
         goto FreeVFS;
     }
     
