@@ -373,6 +373,7 @@ class plan9server {
 
     int recv_getattr(unsigned char *buf, size_t len, uint16_t tag);
     int recv_lopen(unsigned char *buf, size_t len, uint16_t tag);
+    int recv_readdir(unsigned char *buf, size_t len, uint16_t tag);
 
     struct fidmap *find_fid(uint32_t fid);
     struct fidmap *add_fid(uint32_t fid, struct venus_cnode *cnode,
@@ -393,8 +394,8 @@ public:
 
     void main_loop(unsigned char *initial_buffer = NULL, size_t len = 0);
     int pack_dirent(unsigned char **buf, size_t *len, size_t *offset,
-                    struct venus_cnode *parent, struct attachment *root,
-                    const char *name);
+                    size_t *packed_offset, struct venus_cnode *parent,
+                    struct attachment *root, const char *name);
     int fidmap_replace_cfid(VenusFid * OldFid, VenusFid * NewFid);
 };
 

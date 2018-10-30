@@ -324,6 +324,32 @@ static int unpack_stat(unsigned char **buf, size_t *len,
 }
 
 
+static int pack_dotl_direntry(unsigned char **buf, size_t *len,
+                        const struct plan9_stat *stat, size_t *offset)
+{
+    unsigned char *stashed_buf = *buf;
+    size_t stashed_len = *len;
+
+    unsigned char *offset_buf = NULL;
+    size_t offset_len = 8;
+
+    if (pack_qid(buf, len, &stat->qid) ||
+        get_blob_ref(buf, len, &offset_buf, NULL, 8)  ||
+        pack_le8(buf, len, stat->qid.type) ||
+        pack_string(buf, len, stat->name))
+        goto pack_dotl_err_out;
+
+    *offset += stashed_len - *len ;
+    pack_le64(&offset_buf, &offset_len, *offset);
+    return 0;
+
+pack_dotl_err_out:
+    *buf = stashed_buf;
+    *len = stashed_len;
+    return -1;
+}
+
+
 static int pack_stat_dotl(unsigned char **buf, size_t *len,
                      const struct plan9_stat_dotl *stat)
 {
@@ -638,13 +664,13 @@ int plan9server::handle_request(unsigned char *buf, size_t read)
     /* dotl messages */
     case Tgetattr:  return recv_getattr(buf, len, tag);
     case Tlopen:    return recv_lopen(buf, len, tag);
+    case Treaddir:  return recv_readdir(buf, len, tag);
     case Tstatfs:
     case Tlcreate:
     case Tsymlink:
     case Trename:
     case Treadlink:
     case Tsetattr:
-    case Treaddir:
     case Tfsync:
     case Tlink:
     case Tmkdir:
@@ -1636,6 +1662,7 @@ struct filldir_args {
     plan9server *srv;
     unsigned char *buf;
     size_t count;
+    size_t packed_offset;   // offset packed in dotl direntries
     size_t offset;
     struct venus_cnode parent;
     struct attachment *root;
@@ -1646,17 +1673,18 @@ static int filldir(struct DirEntry *de, void *hook)
     struct filldir_args *args = (struct filldir_args *)hook;
     if (strcmp(de->name, ".") == 0 || strcmp(de->name, "..") == 0)
         return 0;
-    return args->srv->pack_dirent(&args->buf, &args->count, &args->offset,
-                                  &args->parent, args->root, de->name);
+    return args->srv->pack_dirent(&args->buf, &args->count, &args->packed_offset,
+                                  &args->offset, &args->parent,
+                                  args->root, de->name);
 }
 
-int plan9server::pack_dirent(unsigned char **buf, size_t *len, size_t *offset,
-                             struct venus_cnode *parent,
+int plan9server::pack_dirent(unsigned char **buf, size_t *len, size_t *packed_offset,
+                             size_t *offset, struct venus_cnode *parent,
                              struct attachment *root, const char *name)
 {
     struct venus_cnode child;
     struct plan9_stat stat;
-    int rc;
+    int rc = 0;
 
     conn->u.u_uid = root->userid;
     conn->lookup(parent, name, &child, CLU_CASE_SENSITIVE | CLU_TRAVERSE_MTPT);
@@ -1670,7 +1698,12 @@ int plan9server::pack_dirent(unsigned char **buf, size_t *len, size_t *offset,
         /* if there is an offset, we're guaranteed to be at the start of the
          * buffer. So there is 'room' for scratch space there. */
         unsigned char *scratch = *buf;
-        rc = pack_stat(&scratch, offset, &stat, protocol);
+        if (protocol == P9_PROTO_DOTL) {
+            rc = pack_dotl_direntry(&scratch, offset, &stat, packed_offset);
+        }
+        else {
+            rc = pack_stat(&scratch, offset, &stat, protocol);
+        }
         ::free(stat.name);
         if (rc) {
             /* was this a case of (offset < stat_length)? */
@@ -1681,7 +1714,17 @@ int plan9server::pack_dirent(unsigned char **buf, size_t *len, size_t *offset,
     }
 
     /* and finally we pack until we cannot fit any more entries */
-    rc = pack_stat(buf, len, &stat, protocol);
+    if (protocol == P9_PROTO_DOTL) {
+        rc = pack_dotl_direntry(buf, len, &stat, packed_offset);
+        if (!rc) {
+            DEBUG("      qid[%x.%x.%lx] off[%lu] typ[%x] '%s'\n",
+                    stat.qid.type, stat.qid.version, stat.qid.path,
+                    *packed_offset, stat.qid.type, stat.name);
+        }
+    }
+    else {
+        rc = pack_stat(buf, len, &stat, protocol);
+    }
     ::free(stat.name);
     if (rc) /* failed to pack this entry. stop enumerating. */
         return ENOBUFS;
@@ -1726,6 +1769,7 @@ ssize_t plan9server::plan9_read(struct fidmap *fm, unsigned char *buf,
         args.offset = offset;
         args.buf = buf;
         args.count = count;
+        args.packed_offset = 0;
         args.parent = fm->cnode;
 
         // when we allow concurrency we should bump the refcount on root
@@ -1996,6 +2040,60 @@ int plan9server::recv_getattr(unsigned char *buf, size_t len, uint16_t tag)
      }
      send_response(buffer, max_msize - len);
      return 0;
+ }
+
+
+ int plan9server::recv_readdir(unsigned char *buf, size_t len, uint16_t tag)
+ {
+     uint32_t fid;
+     uint64_t offset;
+     uint32_t count;
+
+     if (unpack_le32(&buf, &len, &fid) ||
+         unpack_le64(&buf, &len, &offset) ||
+         unpack_le32(&buf, &len, &count))
+         return -1;
+
+     DEBUG("9pfs: Treaddir[%x] fid %u, offset %lu, count %u\n",
+           tag, fid, offset, count);
+
+     struct fidmap *fm = find_fid(fid);
+     if (!fm)
+         return send_error(tag, "fid unknown or out of range", EBADF);
+
+     if (!(fm->open_flags & C_O_READ))
+         return send_error(tag, "Bad file descriptor", EBADF);
+
+     if (fm->cnode.c_type != C_VDIR)
+         return send_error(tag, "Not a directory", ENOTDIR);
+
+     /* send_Rreaddir */
+     unsigned char *tmpbuf;
+     buf = buffer; len = max_msize;
+     if (pack_header(&buf, &len, Rreaddir, tag) ||
+         get_blob_ref(&buf, &len, &tmpbuf, NULL, 4))
+     {
+         send_error(tag, "Message too long", EMSGSIZE);
+         return -1;
+     }
+
+     if (count > len)
+         count = len;
+
+     ssize_t n = plan9_read(fm, buf, count, offset);
+     if (n < 0) {
+         int errcode = conn->u.u_error;
+         const char *errstr = VenusRetStr(errcode);
+         return send_error(tag, errstr, errcode);
+     }
+
+     /* fix up the actual size of the blob, and send */
+     size_t tmplen = 4;
+     pack_le32(&tmpbuf, &tmplen, n);
+
+     DEBUG("9pfs: Rreaddir[%x] count %ld \n", tag, n);
+     len -= n;
+     return send_response(buffer, max_msize - len);
  }
 
 
