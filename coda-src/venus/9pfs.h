@@ -333,6 +333,8 @@ struct plan9_statfs {
 	uint32_t namelen;
 };
 
+#define V9FS_MAGIC		0x01021997       //for type in struct plan9_statfs
+
 
 #ifdef __cplusplus
 }
@@ -374,6 +376,7 @@ class plan9server {
     int recv_getattr(unsigned char *buf, size_t len, uint16_t tag);
     int recv_lopen(unsigned char *buf, size_t len, uint16_t tag);
     int recv_readdir(unsigned char *buf, size_t len, uint16_t tag);
+    int recv_statfs(unsigned char *buf, size_t len, uint16_t tag);
 
     struct fidmap *find_fid(uint32_t fid);
     struct fidmap *add_fid(uint32_t fid, struct venus_cnode *cnode,

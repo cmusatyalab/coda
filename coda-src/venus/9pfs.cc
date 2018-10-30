@@ -665,7 +665,7 @@ int plan9server::handle_request(unsigned char *buf, size_t read)
     case Tgetattr:  return recv_getattr(buf, len, tag);
     case Tlopen:    return recv_lopen(buf, len, tag);
     case Treaddir:  return recv_readdir(buf, len, tag);
-    case Tstatfs:
+    case Tstatfs:   return recv_statfs(buf, len, tag);
     case Tlcreate:
     case Tsymlink:
     case Trename:
@@ -2096,6 +2096,60 @@ int plan9server::recv_getattr(unsigned char *buf, size_t len, uint16_t tag)
      return send_response(buffer, max_msize - len);
  }
 
+
+int plan9server::recv_statfs(unsigned char *buf, size_t len, uint16_t tag)
+{
+    uint32_t fid;
+
+    if (unpack_le32(&buf, &len, &fid))
+        return -1;
+
+    DEBUG("9pfs: Tstatfs[%x] fid %u\n", tag, fid);
+
+    struct fidmap *fm = find_fid(fid);
+    if (!fm)
+        return send_error(tag, "fid unknown or out of range", EBADF);
+
+    struct coda_statfs c_statfs;
+
+    conn->u.u_uid = fm->root->userid;
+    conn->statfs(&c_statfs);
+
+    if (conn->u.u_error) {
+        int errcode = conn->u.u_error;
+        const char *errstr = VenusRetStr(errcode);
+        return send_error(tag, errstr, errcode);
+    }
+
+    struct plan9_statfs p9_statfs;
+    p9_statfs.blocks = (uint64_t)c_statfs.f_blocks;
+    p9_statfs.bfree = (uint64_t)c_statfs.f_bfree;
+    p9_statfs.bavail = (uint64_t)c_statfs.f_bavail;
+    p9_statfs.files = (uint64_t)c_statfs.f_files;
+    p9_statfs.ffree = (uint64_t)c_statfs.f_ffree;
+    //taken from kernel code:
+    p9_statfs.type = V9FS_MAGIC;
+    p9_statfs.bsize = 4096;
+    p9_statfs.namelen = CODA_MAXNAMLEN;
+    //not reported
+    p9_statfs.fsid = 0;
+
+    /* send_Rstat */
+    DEBUG("9pfs: Rstatfs[%x] typ[%u] bsize[%u] blocks[%lu] bfree[%lu] "
+                "bavail[%lu] files[%lu] ffree[%lu] fsid[%lu] namelen[%u]\n",
+                tag, p9_statfs.type, p9_statfs.bsize, p9_statfs.blocks,
+                p9_statfs.bfree, p9_statfs.bavail, p9_statfs.files,
+                p9_statfs.ffree, p9_statfs.fsid, p9_statfs.namelen);
+
+    buf = buffer; len = max_msize;
+    if (pack_header(&buf, &len, Rstat, tag) ||
+        pack_statfs(&buf, &len, &p9_statfs))
+    {
+        send_error(tag, "Message too long", EMSGSIZE);
+        return -1;
+    }
+    return send_response(buffer, max_msize - len);
+}
 
 
 /*
