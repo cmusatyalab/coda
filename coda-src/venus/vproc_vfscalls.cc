@@ -1511,6 +1511,9 @@ void vproc::read(struct venus_cnode * node, uint64_t pos, int64_t count)
     
     if (code < 0) {
         u.u_error = EIO;
+    } else {
+        /* No errors. Assume the chunk is being used. */
+        f->active_segments.AddChunk(pos, count);
     }
 
     delete clist;
@@ -1540,6 +1543,9 @@ void vproc::write(struct venus_cnode * node, uint64_t pos, int64_t count)
         u.u_error = EOPNOTSUPP;
         goto FreeVFS;
     }
+
+    /* No errors. Assume the chunk is being used. */
+    f->active_segments.AddChunk(pos, count);
     
 FreeVFS:
     End_VFS(NULL);
@@ -1573,6 +1579,9 @@ void vproc::read_finish(struct venus_cnode * node, uint64_t pos, int64_t count)
         u.u_error = EIO;
         goto FreeVFS;
     }
+
+    /* No errors. The chunk (no longer in use) can be safely removed. */
+    f->active_segments.ReverseRemove(pos, count);
     
 FreeVFS:
     End_VFS(NULL);
@@ -1601,6 +1610,9 @@ void vproc::write_finish(struct venus_cnode * node, uint64_t pos, int64_t count)
         u.u_error = EOPNOTSUPP;
         goto FreeVFS;
     }
+
+    /* No errors. The chunk (no longer in use) can be safely removed. */
+    f->active_segments.ReverseRemove(pos, count);
     
 FreeVFS:
     End_VFS(NULL);
@@ -1628,6 +1640,9 @@ void vproc::mmap(struct venus_cnode * node, uint64_t pos, int64_t count)
         u.u_error = EOPNOTSUPP;
         goto FreeVFS;
     }
+
+    /* No errors. Assume the chunk is being used. */
+    f->active_segments.AddChunk(pos, count);
     
 FreeVFS:
     End_VFS(NULL);

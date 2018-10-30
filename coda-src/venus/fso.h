@@ -344,6 +344,8 @@ class fsobj {
   friend void RecoverPathName(char *, VenusFid *, ClientModifyLog *, cmlent *);
 
     int MagicNumber;
+    
+    CacheChunkList active_segments; /**< List of active cache file segments */
 
     /* Keys. */
     VenusFid fid;				/* unique id for object */
