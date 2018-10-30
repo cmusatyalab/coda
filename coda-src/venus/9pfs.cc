@@ -329,9 +329,9 @@ static int pack_stat_dotl(unsigned char **buf, size_t *len,
 {
     if (pack_qid(buf, len, &stat->qid) ||
         pack_le32(buf, len, stat->st_mode) ||
-        pack_le64(buf, len, stat->st_nlink) ||
         pack_le32(buf, len, stat->st_uid) ||
         pack_le32(buf, len, stat->st_gid) ||
+        pack_le64(buf, len, stat->st_nlink) ||
         pack_le64(buf, len, stat->st_rdev) ||
         pack_le64(buf, len, stat->st_size) ||
         pack_le64(buf, len, stat->st_blksize) ||
@@ -1843,26 +1843,34 @@ int plan9server::recv_getattr(unsigned char *buf, size_t len, uint16_t tag)
 
     cnode2qid(&fm->cnode, &stat.qid);
     stat.st_mode = (uint32_t)attr.va_mode;
+    stat.st_uid = (uint32_t)attr.va_uid;
+    stat.st_gid = (uint32_t)attr.va_gid;
     stat.st_nlink = (uint64_t)attr.va_nlink;
-    stat.st_uid = attr.va_uid;
-    stat.st_gid = attr.va_gid;
     stat.st_rdev = (uint64_t)attr.va_rdev;
-    stat.st_size = attr.va_size;
+    stat.st_size = (stat.qid.type == P9_QTDIR) ? 0 : attr.va_size;
     stat.st_blksize = (uint64_t)attr.va_blocksize;
     //number of 512-byte blocks allocated
-    stat.st_blocks = (attr.va_bytes + 511) >> 9;
+    stat.st_blocks = (stat.st_size + 511) >> 9;
     stat.st_atime_sec = attr.va_atime.tv_sec;
     stat.st_atime_nsec = attr.va_atime.tv_nsec;
     stat.st_mtime_sec = attr.va_mtime.tv_sec;
     stat.st_mtime_nsec = attr.va_mtime.tv_nsec;
     stat.st_ctime_sec = attr.va_ctime.tv_sec;
     stat.st_ctime_nsec = attr.va_ctime.tv_nsec;
+    /* reserved for future use */
+    stat.st_btime_sec = 0;
+    stat.st_btime_nsec = 0;
+    stat.st_gen = 0;
+    stat.st_data_version = 0;
 
     // For now, the valid fields in response are the same as the ones requested
     uint64_t valid_mask = request_mask;
 
     /* send_Rgetattr */
-    DEBUG("9pfs: Rgetattr[%x] valid mask 0x%lx\n", tag, valid_mask);
+    /* find the filename */
+    char name[NAME_MAX];
+    cnode_getname(&fm->cnode, name);
+    DEBUG("9pfs: Rgetattr[%x] valid mask 0x%lx  (%s)\n", tag, valid_mask, name);
     DEBUG("\
             qid[type.ver.path]: %x.%x.%lx \n \
             mode: 0%o  n_uid: %d  n_gid: %d  nlink: %lu \n \

@@ -267,9 +267,9 @@ struct plan9_stat {
 struct plan9_stat_dotl {
 	struct plan9_qid qid;
 	uint32_t st_mode;
-  uint64_t st_nlink;
 	uid_t st_uid;
 	gid_t st_gid;
+    uint64_t st_nlink;
 	uint64_t st_rdev;
 	uint64_t st_size;
   uint64_t st_blksize;
