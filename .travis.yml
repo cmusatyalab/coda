@@ -5,6 +5,10 @@ cache: ccache
 
 addons:
   apt:
+    update: true
+    sources:
+    - ubuntu-toolchain-r-test
+    - llvm-toolchain-trusty-6.0
     packages:
     - libreadline-dev
     - libncurses5-dev
@@ -14,6 +18,8 @@ addons:
     - pkg-config
     - python
     - automake
+    - libllvm6.0
+    - clang-format-6.0
 
 before_script:
   - ./bootstrap.sh
