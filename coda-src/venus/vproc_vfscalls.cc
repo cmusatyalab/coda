@@ -83,10 +83,6 @@ extern "C" {
 #include "worker.h"
 #include "realmdb.h"
 
-/* Temporary!  Move to cnode.h. -JJK */
-#define	C_INCON	0x2
-
-
 /* ***** VFS Operations  ***** */
 
 void vproc::root(struct venus_cnode *vpp) {
@@ -145,7 +141,7 @@ void vproc::vget(struct venus_cnode *vpp, VenusFid *vfid, int what)
 
 		/* Set OUT parameter according to "fake" vnode. */
 		MAKE_CNODE2(*vpp, fid, C_VLNK);
-		vpp->c_flags |= C_INCON;
+		vpp->c_flags |= C_FLAGS_INCON;
 	    }
 
 	    goto FreeLocks;
@@ -154,7 +150,7 @@ void vproc::vget(struct venus_cnode *vpp, VenusFid *vfid, int what)
 	/* Set OUT parameter. */
 	MAKE_CNODE2(*vpp, f->fid, FTTOVT(f->stat.VnodeType));
 	if (f->IsFake() || f->IsMTLink())
-		vpp->c_flags |= C_INCON;
+		vpp->c_flags |= C_FLAGS_INCON;
 
 FreeLocks:
 	/* Update namectxt if applicable. */
@@ -356,7 +352,7 @@ FreeLocks:
 	vap->va_rdev = 1;
 	vap->va_bytes = NBLOCKS_BYTES(vap->va_size);
 
-	cp->c_flags |= C_INCON;
+	cp->c_flags |= C_FLAGS_INCON;
     }
 }
 
@@ -629,7 +625,7 @@ void vproc::lookup(struct venus_cnode *dcp, const char *name,
 
 		    /* Set OUT parameter according to "fake" vnode. */
 		    MAKE_CNODE2(*cp, inc_fid, C_VLNK);
-		    cp->c_flags |= C_INCON;
+		    cp->c_flags |= C_FLAGS_INCON;
 		}
 
 		goto FreeLocks;
@@ -640,7 +636,7 @@ void vproc::lookup(struct venus_cnode *dcp, const char *name,
 	MAKE_CNODE2(*cp, target_fso->fid, FTTOVT(target_fso->stat.VnodeType));
 	if (target_fso->IsToBeRepaired() || target_fso->IsFake()
 	    || target_fso->IsMTLink())
-	    cp->c_flags |= C_INCON;
+	    cp->c_flags |= C_FLAGS_INCON;
 
 FreeLocks:
 	/* Update namectxt if applicable. */

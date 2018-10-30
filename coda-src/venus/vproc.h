@@ -371,6 +371,9 @@ struct venus_cnode {
     (vp).c_flags = 0;\
 }
 
+/* Venus cnode's c_flags */
+#define C_FLAGS_INCON                0x2
+
 
 /* Definitions of the value -1 with correct cast for different
    platforms, to be used in struct vattr to indicate a field to be

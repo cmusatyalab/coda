@@ -101,8 +101,6 @@ extern "C" {
 
 
 extern int venus_relay_addr;
-/* Temporary!  Move to cnode.h. -JJK */
-#define	C_INCON	0x2
 
 /* static class members */
 int worker::muxfd = -1;
@@ -1302,7 +1300,7 @@ inline void worker::op_coda_lookup(union inputArgs *in, union outputArgs *out,
     if (u.u_error == 0) {
         out->coda_lookup.Fid = *VenusToKernelFid(&vtarget.c_fid);
         out->coda_lookup.vtype = vtarget.c_type;
-        if (vtarget.c_type == C_VLNK && vtarget.c_flags & C_INCON)
+        if (vtarget.c_type == C_VLNK && vtarget.c_flags & C_FLAGS_INCON)
           out->coda_lookup.vtype |= CODA_NOCACHE;
         *msg_size = sizeof (struct coda_lookup_out);
     }
@@ -1522,7 +1520,7 @@ inline void worker::op_coda_vget(union inputArgs *in, union outputArgs *out,
     if (u.u_error == 0) {
         out->coda_vget.Fid = *VenusToKernelFid(&vtarget.c_fid);
         out->coda_vget.vtype = vtarget.c_type;
-        if (vtarget.c_type == C_VLNK && vtarget.c_flags & C_INCON)
+        if (vtarget.c_type == C_VLNK && vtarget.c_flags & C_FLAGS_INCON)
             out->coda_vget.vtype |= CODA_NOCACHE;
         *msg_size = sizeof (struct coda_vget_out);
     }
