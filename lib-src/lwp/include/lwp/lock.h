@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 5
+                              Release 7
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2018 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -46,9 +46,11 @@ extern "C" {
 
 #include <lwp/lwp.h>
 
-#define READ_LOCK	1
-#define WRITE_LOCK	2
-#define SHARED_LOCK	4
+enum lock_how {
+    READ_LOCK = 1,
+    WRITE_LOCK = 2,
+    SHARED_LOCK = 4
+};
 
 /* When compiling for pthreads, always compile with -D_REENTRANT (on glibc
  * systems) or -D_THREAD_SAFE and -pthread/-kthread (on FreeBSD) */
@@ -95,6 +97,26 @@ void ReleaseSharedLock(struct Lock *lock);
 int CheckLock(struct Lock *lock);
 int WriteLocked(struct Lock *lock);
 void Lock_Init (struct Lock *lock);
+
+/**
+ * Safely obtain two simultaneous locks
+ *
+ * @param lock_1 pointer to the first lock
+ * @param how_1  first lock's type
+ * @param lock_2 pointer to the second lock
+ * @param how_2  second lock's type
+ */
+void ObtainDualLock(register struct Lock *lock_1, enum lock_how how_1, register struct Lock *lock_2, enum lock_how how_2);
+
+/**
+ * Safely release two simultaneous locks
+ *
+ * @param lock_1 pointer to the first lock
+ * @param how_1  first lock's type
+ * @param lock_2 pointer to the second lock
+ * @param how_2  second lock's type
+ */
+void ReleaseDualLock(register struct Lock *lock_1, enum lock_how how_1, register struct Lock *lock_2, enum lock_how how_2);
 
 #ifdef __cplusplus
 }

@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 5
+                              Release 7
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2018 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -111,6 +111,79 @@ void Lock_Obtain(register struct Lock *lock, int how)
 		fprintf(stderr, "Can't happen, bad LOCK type: %d\n", how);
 		abort();
 	}
+}
+
+void ObtainDualLock(register struct Lock *lock_1, enum lock_how how_1, register struct Lock *lock_2, enum lock_how how_2)
+{
+    register struct Lock *lock_lower = lock_1;
+    register struct Lock *lock_upper = lock_2;
+    enum lock_how how_lower = how_1;
+    enum lock_how how_upper = how_2;
+
+	if (((unsigned long) lock_1) > ((unsigned long) lock_2)) {
+        lock_lower = lock_2;
+        lock_upper = lock_1;
+        how_lower = how_2;
+        how_upper = how_1;
+    }
+
+    switch (how_lower) {
+        case READ_LOCK:
+            ObtainReadLock(lock_lower);
+            break;
+        case WRITE_LOCK:
+            ObtainWriteLock(lock_lower);
+            break;
+        case SHARED_LOCK:
+            ObtainSharedLock(lock_lower);
+            break;
+        default:
+            break;
+    }
+
+    switch (how_upper) {
+        case READ_LOCK:
+            ObtainReadLock(lock_upper);
+            break;
+        case WRITE_LOCK:
+            ObtainWriteLock(lock_upper);
+            break;
+        case SHARED_LOCK:
+            ObtainSharedLock(lock_upper);
+            break;
+        default:
+            break;
+    }
+}
+
+void ReleaseDualLock(register struct Lock *lock_1, enum lock_how how_1, register struct Lock *lock_2, enum lock_how how_2) {
+    switch (how_1) {
+        case READ_LOCK:
+            ReleaseReadLock(lock_1);
+            break;
+        case WRITE_LOCK:
+            ReleaseWriteLock(lock_1);
+            break;
+        case SHARED_LOCK:
+            ReleaseSharedLock(lock_1);
+            break;
+        default:
+            break;
+    }
+
+    switch (how_2) {
+        case READ_LOCK:
+            ReleaseReadLock(lock_2);
+            break;
+        case WRITE_LOCK:
+            ReleaseWriteLock(lock_2);
+            break;
+        case SHARED_LOCK:
+            ReleaseSharedLock(lock_2);
+            break;
+        default:
+            break;
+    }
 }
 
 /* release a lock, giving preference to new readers */
