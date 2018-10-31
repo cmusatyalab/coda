@@ -321,10 +321,10 @@ public:
 };
 
 class CacheFile {
+    friend class SegmentedCacheFile;
     long length;  /**< Length of the container file */
     long validdata; /**< Amount of actual and valid data in the container file */
     int  refcnt; /**< Reference counter */
-    char name[CACHEFILENAMELEN]; /**< Container file path ("xx/xx/xx/xx") */
     int numopens; /**< Number of openers */
     bitmap *cached_chunks; /**< Bitmap of actual cached data */
     int recoverable;  /**< Recoverable flag (RVM) */
@@ -352,6 +352,21 @@ class CacheFile {
      *         by calling isValid())
      */
     CacheChunk GetNextHole(uint64_t start_b, uint64_t end_b);
+protected:
+    char name[CACHEFILENAMELEN]; /**< Container file path ("xx/xx/xx/xx") */
+
+    /**
+     * Copy the segment of a cache file to another
+     *
+     * @param from  source cache file pointer
+     * @param to    destination cache file pointer
+     * @param pos   offset within the file
+     * @param count amount of bytes to be copied
+     * 
+     * @return amount of bytes copied
+     */
+    static int64_t CopySegment(CacheFile * from, CacheFile * to, 
+                               uint64_t pos, int64_t count);
 
 public:
 
@@ -566,6 +581,49 @@ public:
      * @param fdes file descriptor of the output file
      */
     void print(int fdes);
+};
+
+/**
+ * Segmented cache file
+ */
+class SegmentedCacheFile : public CacheFile {
+    CacheFile * cf; /**< Associated cache file */
+
+public:
+    /**
+     * Constructor
+     *
+     * @param i cache file identifier
+     */
+    SegmentedCacheFile(int i);
+
+    /**
+     * Destructor
+     */
+    ~SegmentedCacheFile();
+
+    /**
+     * Associate the segmented cache file with it's original cache file
+     *
+     * @param cf cache file pointer
+     */
+    void Associate(CacheFile *cf);
+
+    /**
+     * Extract a segment from the associated cache file
+     *
+     * @param pos   offset within the file
+     * @param count amount of bytes to be extracted
+     */
+    int64_t ExtractSegment(uint64_t pos, int64_t count);
+
+    /**
+     * Inject a segment to the associated cache file
+     *
+     * @param pos   offset within the file
+     * @param count amount of bytes to be injected
+     */
+    int64_t InjectSegment(uint64_t pos, int64_t count);
 };
 
 #endif	/* _VENUS_FSO_CACHEFILE_H_ */

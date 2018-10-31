@@ -474,6 +474,68 @@ uint64_t CacheFile::ConsecutiveValidData(void)
     return start;
 }
 
+int64_t CacheFile::CopySegment(CacheFile * from, CacheFile * to, uint64_t pos, int64_t count)
+{
+    uint32_t byte_start = pos_align_to_ccblock(pos);
+    uint32_t block_start = bytes_to_ccblocks(byte_start);
+    uint32_t byte_len = length_align_to_ccblock(pos, count);
+    uint32_t block_end = bytes_to_ccblocks(byte_start + byte_len);
+    int tfd, ffd;
+    struct stat tstat;
+    
+    LOG(10, ("SegmentedCacheFile::CopySegment: from %s [%d, %d], to %s\n",
+             from->name, byte_start, byte_len, to->name));
+
+    if (mkpath(to->name, V_MODE | 0100) < 0) {
+        LOG(0, ("SegmentedCacheFile::CopySegment: could not make path for %s\n", to->name));
+        return -1;
+    }
+    
+    tfd = to->Open(O_RDWR|O_CREAT);
+    
+    ::fchmod(tfd, V_MODE);
+    
+#ifdef __CYGWIN32__
+    ::chown(name, (uid_t)V_UID, (gid_t)V_GID);
+#else
+    ::fchown(tfd, (uid_t)V_UID, (gid_t)V_GID);
+#endif
+
+    ffd = from->Open(O_RDONLY);
+
+    if (copyfile_seg(ffd, tfd, byte_start, byte_len) < 0) {
+        LOG(0, ("SegmentedCacheFile::CopySegment failed! (%d)\n", errno));
+        from->Close(ffd);
+        to->Close(tfd);
+        return -1;
+    }
+
+    if (from->Close(ffd) < 0) {
+        CHOKE("SegmentedCacheFile::CopySegment: source close failed (%d)\n", 
+              errno);
+    }
+
+    if (::fstat(tfd, &tstat) < 0) {
+        CHOKE("SegmentedCacheFile::CopySegment: fstat failed (%d)\n", errno);
+    }
+
+    if (to->Close(tfd) < 0){
+        CHOKE("SegmentedCacheFile::CopySegment: close failed (%d)\n", errno);
+    }
+
+    CODA_ASSERT((off_t)from->length == tstat.st_size);
+
+    ObtainDualLock(&from->rw_lock, READ_LOCK, &to->rw_lock, WRITE_LOCK);
+
+    from->cached_chunks->CopyRange(block_start, bytes_to_ccblocks(byte_len), *(to->cached_chunks));
+
+    ReleaseDualLock(&from->rw_lock, READ_LOCK, &to->rw_lock, WRITE_LOCK);
+
+    to->UpdateValidData();
+
+    return byte_len;
+}
+
 CacheChunkList::CacheChunkList()
 {
     Lock_Init(&rd_wr_lock);
@@ -544,7 +606,7 @@ CacheChunkList * CacheFile::GetHoles(uint64_t start, int64_t len) {
                 currc.GetLength()));
 
         clist->AddChunk(currc.GetStart(), currc.GetLength());
-        i = currc.GetStart() + currc.GetLength() + 1;
+        i = bytes_to_ccblocks(currc.GetStart() + currc.GetLength() - 1);
     }
 
     return clist;
@@ -674,4 +736,32 @@ CacheChunk CacheChunkList::pop()
     WriteUnlock();
 
     return CacheChunk(cp);
+}
+
+/* MUST be called from within transaction! */
+SegmentedCacheFile::SegmentedCacheFile(int i) : CacheFile(i, 0) 
+{
+    sprintf(name, "%02X/%02X/%02X/%02X.seg",
+            (i>>24) & 0xff, (i>>16) & 0xff, (i>>8) & 0xff, i & 0xff);
+}
+
+SegmentedCacheFile::~SegmentedCacheFile() {
+    this->Truncate(0);
+    DecRef();
+}
+
+void SegmentedCacheFile::Associate(CacheFile *cf)
+{
+    CacheFile::Create(cf->length);
+    this->cf = cf;
+}
+
+int64_t SegmentedCacheFile::ExtractSegment(uint64_t pos, int64_t count)
+{
+    return CopySegment(cf, this, pos, count);
+}
+
+int64_t SegmentedCacheFile::InjectSegment(uint64_t pos, int64_t count)
+{
+    return CopySegment(this, cf, pos, count);
 }
