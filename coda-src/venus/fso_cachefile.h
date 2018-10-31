@@ -57,7 +57,7 @@ extern "C" {
 /*    1. Copy of plain file */
 /*    2. Unix-format copy of directory */
 
-#define CACHEFILENAMELEN 12
+#define CACHEFILENAMELEN 16
 
 extern uint64_t CacheChunkBlockSize;
 extern uint64_t CacheChunkBlockSizeBits;

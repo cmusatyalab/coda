@@ -488,6 +488,7 @@ class fsobj {
 
     /* Data contents. */
     void DiscardData();
+    void DiscardPartialData();
 
     /* Fake object management. */
     int Fakeify(uid_t uid);

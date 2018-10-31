@@ -168,11 +168,17 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
 			(void)k_Purge(fid, 1);
 
 			f = FSDB->Find(fid);
-			if (f != 0) {
-			    u.u_error = f->Flush();
-			    Recov_SetBound(DMFP);
-			    f = 0;
-			}
+			if (f == 0) break;
+
+            if (ISVASTRO(f) && ACTIVE(f)) {
+                Recov_BeginTrans();
+                f->DiscardData();
+                Recov_EndTrans(MAXFP);
+            } else {
+                u.u_error = f->Flush();
+                Recov_SetBound(DMFP);
+                f = NULL;
+            }
 
 			break;
 			}
@@ -444,7 +450,8 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
 			}
 		}
 O_FreeLocks:
-		FSDB->Put(&f);
+        if (!ISVASTRO(f) || !ACTIVE(f))
+		    FSDB->Put(&f);
 		int retry_call = 0;
 		End_VFS(&retry_call);
 		if (!retry_call) break;

@@ -978,15 +978,25 @@ void fsdb::Flush()
      */
     int restart = 1;
     while (restart) {
-	fsobj *f;
-	fso_iterator next(NL);
-	
-	restart = 0;
-	while ((f = next())) 
-	    if (f->Flush() == 0) {
-		restart = 1;
-		break;
-	    }
+        fsobj *f = NULL;
+        fso_iterator next(NL);
+
+        restart = 0;
+        while ((f = next())) {
+            if (ISVASTRO(f) && ACTIVE(f)) {
+
+                Recov_BeginTrans();
+                f->DiscardData();
+                Recov_EndTrans(MAXFP);
+
+                continue;
+            }
+
+            if (f->Flush() == 0) {
+                restart = 1;
+                break;
+            }
+        }
     }
 }
 
@@ -1012,9 +1022,14 @@ void fsdb::Flush(Volid *vid)
 		n = list_entry_plusplus(next, fsobj, vol_handle);
 		FSO_HOLD(n);
 	    }
-	
-	    if (f->Flush() == 0)
-		restart = 1;
+
+        if (ISVASTRO(f) && ACTIVE(f)) {
+            Recov_BeginTrans();
+            f->DiscardData();
+            Recov_EndTrans(MAXFP);
+        } else if (f->Flush() == 0) {
+            restart = 1;
+        }
 
 	    if (n) FSO_RELE(n);
 	}
@@ -1323,8 +1338,8 @@ int fsdb::DirtyBlockCount() {
     fso_iterator next(NL);
     fsobj *f;
     while ((f = next())) {
-        if (!REPLACEABLE(f) && !f->IsSymLink()) {
-	    count += NBLOCKS(f->cf.ValidData());
+        if ((!REPLACEABLE(f) && !f->IsSymLink()) || ISVASTRO(f)) {
+            count += NBLOCKS(FS_BLOCKS_ALIGN(f->cf.ValidData()));
 	}
     }
 

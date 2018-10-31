@@ -483,7 +483,7 @@ int64_t CacheFile::CopySegment(CacheFile * from, CacheFile * to, uint64_t pos, i
     int tfd, ffd;
     struct stat tstat;
     
-    LOG(10, ("SegmentedCacheFile::CopySegment: from %s [%d, %d], to %s\n",
+    LOG(300, ("SegmentedCacheFile::CopySegment: from %s [%d, %d], to %s\n",
              from->name, byte_start, byte_len, to->name));
 
     if (mkpath(to->name, V_MODE | 0100) < 0) {

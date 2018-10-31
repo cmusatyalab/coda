@@ -1494,7 +1494,8 @@ void vproc::read(struct venus_cnode * node, uint64_t pos, int64_t count)
 
     while (currc.isValid()) {
 
-        code = FSDB->AllocBlocks(u.u_priority, NBLOCKS(currc.GetLength()));
+        code = FSDB->AllocBlocks(u.u_priority,
+                                 NBLOCKS(FS_BLOCKS_ALIGN(currc.GetLength())));
         if (code != 0) {
             u.u_error = ENOSPC;
             break;

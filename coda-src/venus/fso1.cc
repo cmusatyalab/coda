@@ -1514,8 +1514,8 @@ void fsobj::EnableReplacement() {
 
     /* Are ALL conditions for replaceability met? */
     if (DYING(this) || !HAVESTATUS(this) || DIRTY(this) || IsLocalObj() ||
-	 (READING(this) && !ISVASTRO(this))|| WRITING(this) || 
-     (children && children->count() > 0) ||	 IsMtPt() || 
+	 (READING(this) && !ISVASTRO(this)) || WRITING(this) ||
+     (children && children->count() > 0) ||	 IsMtPt() ||
      (IsSymLink() && hdb_bindings && hdb_bindings->count() > 0))
 	return;
 
@@ -1807,6 +1807,19 @@ void fsobj::DetachMleBinding(binding *b) {
     }
 }
 
+void ExtractSegmentCallback(uint64_t start, int64_t len, 
+    void * usr_data_cb)
+{
+    SegmentedCacheFile * tmpcpy = (SegmentedCacheFile *)usr_data_cb;
+    tmpcpy->ExtractSegment(start, len);
+}
+
+void InjectSegmentCallback(uint64_t start, int64_t len, 
+    void * usr_data_cb)
+{
+    SegmentedCacheFile * tmpcpy = (SegmentedCacheFile *)usr_data_cb;
+    tmpcpy->InjectSegment(start, len);
+}
 
 /*  *****  Data Contents  *****  */
 
@@ -1816,7 +1829,7 @@ void fsobj::DetachMleBinding(binding *b) {
 void fsobj::DiscardData() {
     if (!HAVEDATA(this))
 	{ print(logFile); CHOKE("fsobj::DiscardData: !HAVEDATA"); }
-    if (ACTIVE(this))
+    if (ACTIVE(this) && !ISVASTRO(this))
 	{ print(logFile); CHOKE("fsobj::DiscardData: ACTIVE"); }
 
     LOG(10, ("fsobj::DiscardData: (%s)\n", FID_(&fid)));
@@ -1826,14 +1839,17 @@ void fsobj::DiscardData() {
     RVMLIB_REC_OBJECT(data);
     switch(stat.VnodeType) {
 	case File:
-	    {
-	    /* stat.Length() might have been changed, only data.file->Length()
-	     * can be trusted */
-	    FSDB->FreeBlocks(NBLOCKS(data.file->ValidData()));
-	    data.file->Truncate(0);
-	    data.file = 0;
-	    }
-	    break;
+        if (ISVASTRO(this) && ACTIVE(this)) {
+            DiscardPartialData();
+        } else {
+            /* stat.Length() might have been changed, only data.file->ValidData()
+            * can be trusted */
+            FSDB->FreeBlocks(NBLOCKS(FS_BLOCKS_ALIGN(data.file->ValidData())));
+            data.file->Truncate(0);
+            data.file = 0;
+        }
+
+        break;
 
 	case Directory:
 	    {
@@ -1868,6 +1884,38 @@ void fsobj::DiscardData() {
     }
 }
 
+/* MUST be called from within transaction! */
+void fsobj::DiscardPartialData() {
+    uint64_t len = 0;
+    uint64_t free_blocks = 0;
+
+    LOG(10, ("fsobj::DiscardPartialData: (%s)\n", FID_(&fid)));
+
+    CODA_ASSERT(ISVASTRO(this) && ACTIVE(this));
+    /* stat.Length() might have been changed, only data.file->Length()
+    * can be trusted */
+    SegmentedCacheFile * tmpcpy = new SegmentedCacheFile(ix);
+
+    len = data.file->Length();
+    tmpcpy->Associate(&cf);
+
+    active_segments.ReadLock();
+    active_segments.ForEach(ExtractSegmentCallback, tmpcpy);
+
+    free_blocks = FS_BLOCKS_ALIGN(data.file->ValidData());
+    /* Remove the data that will be kept */
+    free_blocks -= FS_BLOCKS_ALIGN(tmpcpy->ValidData());
+
+    FSDB->FreeBlocks(NBLOCKS(free_blocks));
+
+    data.file->Truncate(0);
+    data.file->Truncate(len);
+
+    active_segments.ForEach(InjectSegmentCallback, tmpcpy);
+    active_segments.ReadUnlock();
+
+    delete tmpcpy;
+}
 
 /*  *****  Fake Object Management  *****  */
 
@@ -2418,6 +2466,11 @@ void fsobj::UpdateVastroFlag(uid_t uid)
     
     /* Only files might be VASTROS */
     if (!IsFile()) {
+        flags.vastro = 0x0;
+        return;
+    }
+
+    if (IsPioctlFile()) {
         flags.vastro = 0x0;
         return;
     }
