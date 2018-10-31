@@ -28,6 +28,7 @@ Coda are listed in the file CREDITS.
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <stdint.h>
 
 #define BUF_SIZE 8192  /* size of buffer for looping copy */
 
@@ -36,6 +37,7 @@ extern "C" {
 #endif
 
 /* these functions are used to copy files, they return -1 on errors */
+int copyfile_seg(int infd, int outfd, uint64_t pos, int64_t count);
 int copyfile(int fromfd, int tofd);
 int copyfile_byname(const char *fromname, const char *toname);
 

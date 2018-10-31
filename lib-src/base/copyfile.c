@@ -22,6 +22,36 @@ Coda are listed in the file CREDITS.
 #define O_BINARY 0
 #endif
 
+/* Copies segment of file open for reading on file descriptor infd to file
+ * open for writing on file descriptor outfd.
+ * Returns -1 on error, 0 on success.
+ */
+int copyfile_seg(int infd, int outfd, uint64_t pos, int64_t count)
+{
+    char databuf[BUF_SIZE];
+    int cnt, ret;
+
+    lseek(infd, pos, SEEK_SET);
+    lseek(outfd, pos, SEEK_SET);
+
+    while ((cnt = read(infd, databuf, BUF_SIZE)) > 0) {
+
+        if (count > cnt) {
+            ret = write(outfd, databuf, cnt);
+        } else {
+            ret = write(outfd, databuf, count);
+        }
+
+        count -= cnt;
+
+        if (count <= 0) break;
+
+        if (ret < cnt) return(-1);
+    }
+
+    return (cnt < 0 ? -1 : 0);
+}
+
 /* Copies file open for reading on file descriptor infd
  *     to file open for writing on file descriptor outfd.
  * Returns -1 on error, 0 on success.
