@@ -46,10 +46,13 @@ extern "C" {
 
 #include <lwp/lwp.h>
 
+/**
+ * Locking type
+ */
 enum lock_how {
-    READ_LOCK = 1,
-    WRITE_LOCK = 2,
-    SHARED_LOCK = 4
+    READ_LOCK = 1,  /**< lock for reading */
+    WRITE_LOCK = 2, /**< lock for writting */
+    SHARED_LOCK = 4 /**< as a shared lock */
 };
 
 /* When compiling for pthreads, always compile with -D_REENTRANT (on glibc
@@ -58,20 +61,41 @@ enum lock_how {
 
 /* all locks wait on excl_locked except for READ_LOCK, which waits on
  * readers_reading */
+/**
+ * Lock structure
+ */
 struct Lock {
-	unsigned char   wait_states;	/* type of lockers waiting */
-	unsigned char   excl_locked;	/* anyone have boosted, shared or write lock? */
-	unsigned char   readers_reading;/* # readers actually with read locks */
-	unsigned char   num_waiting;	/* probably need this soon */
-	PROCESS         excl_locker;
+	unsigned char   wait_states;	/**< type of lockers waiting */
+	unsigned char   excl_locked;	/**< exclusive lock flag */
+	unsigned char   readers_reading;/**< amount of readers actually with read locks */
+	unsigned char   num_waiting;	/**< waiting lockers counter */
+	PROCESS         excl_locker;    /**< exclusive locker */
 };
 
 /* next defines wait_states for which we wait on excl_locked */
 #define EXCL_LOCKS (WRITE_LOCK|SHARED_LOCK)
 
-void Lock_Obtain (struct Lock*, int);
-void Lock_ReleaseR (struct Lock *);
-void Lock_ReleaseW (struct Lock *);
+/**
+ * Obtain the lock
+ *
+ * @param lock pointer to the lock
+ * @param how  locking type
+ */
+void Lock_Obtain (struct Lock* lock, int how);
+
+/**
+ * Release lock obtained for reading
+ *
+ * @param lock pointer to the lock
+ */
+void Lock_ReleaseR (struct Lock * lock);
+
+/**
+ * Release lock obtained for writting
+ *
+ * @param lock pointer to the lock
+ */
+void Lock_ReleaseW (struct Lock * lock);
 
 #else /* _REENTRANT || _THREAD_SAFE */
 #include <pthread.h>
@@ -88,14 +112,74 @@ struct Lock {
 typedef struct Lock Lock;
 
 /* extern definitions for lock manager routines */
+/**
+ * Obtain the lock for reading
+ *
+ * @param lock pointer to the lock
+ */
 void ObtainReadLock(struct Lock *lock);
+
+/**
+ * Obtain the lock for writting
+ *
+ * @param lock pointer to the lock
+ */
 void ObtainWriteLock(struct Lock *lock);
+
+/**
+ * Obtain the lock as shared lock
+ *
+ * @param lock pointer to the lock
+ */
 void ObtainSharedLock(struct Lock *lock);
+
+/**
+ * Release the lock obtained for reading
+ *
+ * @param lock pointer to the lock
+ */
 void ReleaseReadLock(struct Lock *lock);
+
+/**
+ * Release the lock obtained for writting
+ *
+ * @param lock pointer to the lock
+ */
 void ReleaseWriteLock(struct Lock *lock);
+
+/**
+ * Release the lock obtained as a shared lock
+ *
+ * @param lock pointer to the lock
+ */
 void ReleaseSharedLock(struct Lock *lock);
+
+/**
+ * Check the status of the lock
+ *
+ * @param lock pointer to the lock
+ * 
+ * @return 0 ff the lock is not acquired. If the lock is currently acquired
+ *         for reading returns the amount of readers. And -1 if the lock is
+ *         acquired obtained for writting or as a shared lock. 
+ */
 int CheckLock(struct Lock *lock);
+
+/**
+ * Check if the lock was acquired for reading
+ *
+ * @param lock pointer to the lock
+ * 
+ * @return true (different than zero) if the lock is currently acquired for
+ *         writting or as a shared lock. 0 otherwise.
+ */
 int WriteLocked(struct Lock *lock);
+
+/**
+ * Initialize the Lock structure
+ *
+ * @param lock pointer to the lock
+ */
 void Lock_Init (struct Lock *lock);
 
 /**
