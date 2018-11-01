@@ -421,23 +421,6 @@ static int pack_statfs(unsigned char **buf, size_t *len,
 }
 
 
-static int unpack_statfs(unsigned char **buf, size_t *len,
-                       struct plan9_statfs *statfs)
-{
-  if (unpack_le32(buf, len, &statfs->type) ||
-      unpack_le32(buf, len, &statfs->bsize) ||
-      unpack_le64(buf, len, &statfs->blocks) ||
-      unpack_le64(buf, len, &statfs->bfree) ||
-      unpack_le64(buf, len, &statfs->bavail) ||
-      unpack_le64(buf, len, &statfs->files) ||
-      unpack_le64(buf, len, &statfs->ffree) ||
-      unpack_le64(buf, len, &statfs->fsid) ||
-      unpack_le32(buf, len, &statfs->namelen))
-      return -1;
-  return 0;
-}
-
-
 static void cnode2qid(struct venus_cnode *cnode, struct plan9_qid *qid)
 {
     fsobj *f;
