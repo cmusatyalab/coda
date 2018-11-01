@@ -646,6 +646,7 @@ int plan9server::handle_request(unsigned char *buf, size_t read)
     case Twstat:    return recv_wstat(buf, len, tag);
     /* dotl messages */
     case Tgetattr:  return recv_getattr(buf, len, tag);
+    case Tsetattr:  return recv_setattr(buf, len, tag);
     case Tlopen:    return recv_lopen(buf, len, tag);
     case Treaddir:  return recv_readdir(buf, len, tag);
     case Tstatfs:   return recv_statfs(buf, len, tag);
@@ -653,7 +654,6 @@ int plan9server::handle_request(unsigned char *buf, size_t read)
     case Tsymlink:
     case Trename:
     case Treadlink:
-    case Tsetattr:
     case Tfsync:
     case Tlink:
     case Tmkdir:
@@ -1915,6 +1915,91 @@ int plan9server::recv_getattr(unsigned char *buf, size_t len, uint16_t tag)
     if (pack_header(&buf, &len, Rgetattr, tag) ||
        pack_le64(&buf, &len, valid_mask) ||
        pack_stat_dotl(&buf, &len, &stat))
+    {
+       send_error(tag, "Message too long", EMSGSIZE);
+       return -1;
+    }
+    send_response(buffer, max_msize - len);
+    return 0;
+}
+
+
+int plan9server::recv_setattr(unsigned char *buf, size_t len, uint16_t tag)
+{
+    uint32_t fid;
+    uint64_t valid_mask;
+    struct plan9_stat_dotl stat;
+    struct coda_vattr attr;
+
+    if (unpack_le32(&buf, &len, &fid) ||
+        unpack_le64(&buf, &len, &valid_mask) ||
+        unpack_stat_dotl(&buf, &len, &stat))
+       return -1;
+
+    DEBUG("9pfs: Tsetattr[%x] fid %u  valid mask 0x%lx \n \
+                 mode %o \n \
+                 uid %u  gid %u \n \
+                 size %lu \n \
+                 atime_sec %lu  _nsec %lu \n \
+                 mtime_sec %lu  _nsec %lu \n",
+                 tag, fid, valid_mask, stat.st_mode, stat.st_uid, stat.st_gid,
+                 stat.st_size, stat.st_atime_sec, stat.st_atime_nsec,
+                 stat.st_mtime_sec, stat.st_mtime_nsec);
+
+    struct timespec atime = {(time_t)stat.st_atime_sec,
+                             (long)stat.st_atime_nsec };
+    struct timespec mtime = {(time_t)stat.st_mtime_sec,
+                             (long)stat.st_mtime_nsec };
+    struct timespec ignore_time = {VA_IGNORE_TIME1,
+                                   VA_IGNORE_TIME1 };
+    struct timespec now_time;
+    ::clock_gettime(CLOCK_REALTIME, &now_time);
+
+    struct fidmap *fm = find_fid(fid);
+    if (!fm)
+       return send_error(tag, "fid unknown or out of range", EBADF);
+
+    /* Build coda_vattr struct for vproc::setattr() */
+    /* must be set to IGNORE or will trigger error in vproc::setattr() */
+    attr.va_fileid = VA_IGNORE_ID;
+    attr.va_nlink = VA_IGNORE_NLINK;
+    attr.va_blocksize = VA_IGNORE_BLOCKSIZE;
+    attr.va_flags = VA_IGNORE_FLAGS;
+    attr.va_rdev = VA_IGNORE_RDEV;
+    attr.va_bytes = VA_IGNORE_STORAGE;
+    /* vproc::setattr() can set the following 4 attributes */
+    attr.va_mode = valid_mask & P9_SETATTR_MODE ?
+                    stat.st_mode & 0777 : VA_IGNORE_MODE;
+    attr.va_uid = valid_mask & P9_SETATTR_UID ? stat.st_uid : VA_IGNORE_UID;
+    attr.va_size = valid_mask & P9_SETATTR_SIZE ? stat.st_size : VA_IGNORE_SIZE;
+    attr.va_mtime= valid_mask & P9_SETATTR_MTIME ?
+                   valid_mask & P9_SETATTR_MTIME_SET ?
+                   mtime : now_time : ignore_time;
+    /* Currently vproc::setattr() ignores these attributes (oct. 2018 -AS) */
+    attr.va_gid = valid_mask & P9_SETATTR_GID ? stat.st_gid : VA_IGNORE_GID;
+    attr.va_atime= valid_mask & P9_SETATTR_ATIME ?
+                   valid_mask & P9_SETATTR_ATIME_SET ?
+                   atime : now_time : ignore_time;
+    /* vproc::setattr() doesn't document what to do with the remaining vattr
+        so we just ignore them */
+
+    /* attempt setattr */
+    conn->u.u_uid = fm->root->userid;
+    conn->setattr(&fm->cnode, &attr);
+    if (conn->u.u_error) {
+        int errcode = conn->u.u_error;
+        const char *errstr = VenusRetStr(errcode);
+        return send_error(tag, errstr, errcode);
+    }
+
+    /* send_Rsetattr */
+    /* find the filename for debug only */
+    char name[NAME_MAX];
+    cnode_getname(&fm->cnode, name);
+    DEBUG("9pfs: Rsetattr[%x] (%s)\n", tag, name);
+
+    buf = buffer; len = max_msize;
+    if (pack_header(&buf, &len, Rgetattr, tag))
     {
        send_error(tag, "Message too long", EMSGSIZE);
        return -1;
