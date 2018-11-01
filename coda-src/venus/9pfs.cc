@@ -2248,7 +2248,7 @@ int plan9server::recv_statfs(unsigned char *buf, size_t len, uint16_t tag)
     //not reported
     p9_statfs.fsid = 0;
 
-    /* send_Rstat */
+    /* send_Rstatfs */
     DEBUG("9pfs: Rstatfs[%x] typ[%u] bsize[%u] blocks[%lu] bfree[%lu] "
                 "bavail[%lu] files[%lu] ffree[%lu] fsid[%lu] namelen[%u]\n",
                 tag, p9_statfs.type, p9_statfs.bsize, p9_statfs.blocks,
@@ -2256,7 +2256,7 @@ int plan9server::recv_statfs(unsigned char *buf, size_t len, uint16_t tag)
                 p9_statfs.ffree, p9_statfs.fsid, p9_statfs.namelen);
 
     buf = buffer; len = max_msize;
-    if (pack_header(&buf, &len, Rstat, tag) ||
+    if (pack_header(&buf, &len, Rstatfs, tag) ||
         pack_statfs(&buf, &len, &p9_statfs))
     {
         send_error(tag, "Message too long", EMSGSIZE);
