@@ -650,10 +650,10 @@ int plan9server::handle_request(unsigned char *buf, size_t read)
     case Tlopen:    return recv_lopen(buf, len, tag);
     case Treaddir:  return recv_readdir(buf, len, tag);
     case Tstatfs:   return recv_statfs(buf, len, tag);
+    case Treadlink: return recv_readlink(buf, len, tag);
     case Tlcreate:
     case Tsymlink:
     case Trename:
-    case Treadlink:
     case Tfsync:
     case Tlink:
     case Tmkdir:
@@ -2163,6 +2163,52 @@ int plan9server::recv_setattr(unsigned char *buf, size_t len, uint16_t tag)
      len -= n;
      return send_response(buffer, max_msize - len);
  }
+
+
+int plan9server::recv_readlink(unsigned char *buf, size_t len, uint16_t tag)
+{
+    uint32_t fid;
+
+    if (unpack_le32(&buf, &len, &fid))
+        return -1;
+
+    DEBUG("9pfs: Treadlink[%x] fid %u\n", tag, fid);
+
+    struct fidmap *fm = find_fid(fid);
+    if (!fm)
+        return send_error(tag, "fid unknown or out of range", EBADF);
+    if (fm->cnode.c_type != C_VLNK)
+        return send_error(tag, "not a symbolic link", EINVAL);
+
+    char target[CODA_MAXPATHLEN];
+
+    struct coda_string cstring;
+    cstring.cs_buf = target;
+    cstring.cs_len = 0;
+    cstring.cs_maxlen = CODA_MAXPATHLEN;
+
+    conn->u.u_uid = fm->root->userid;
+    conn->readlink(&fm->cnode, &cstring);
+
+    if (conn->u.u_error) {
+        int errcode = conn->u.u_error;
+        const char *errstr = VenusRetStr(errcode);
+        return send_error(tag, errstr, errcode);
+    }
+
+    /* send_Rreadlink */
+    DEBUG("9pfs: Readlink[%x] target '%s'\n", tag, target);
+
+    buf = buffer; len = max_msize;
+    if (pack_header(&buf, &len, Rstat, tag) ||
+        pack_string(&buf, &len, target))
+    {
+     send_error(tag, "Message too long", EMSGSIZE);
+     return -1;
+    }
+
+    return send_response(buffer, max_msize - len);
+}
 
 
 int plan9server::recv_statfs(unsigned char *buf, size_t len, uint16_t tag)
