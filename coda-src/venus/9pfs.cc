@@ -654,9 +654,9 @@ int plan9server::handle_request(unsigned char *buf, size_t read)
     case Tfsync:    return recv_fsync(buf, len, tag);
     case Tunlinkat: return recv_unlinkat(buf, len, tag);
     case Tlink:     return recv_link(buf, len, tag);
+    case Trename:   return recv_rename(buf, len, tag);
     case Tlcreate:
     case Tsymlink:
-    case Trename:
     case Tmkdir:
     case Trenameat:
     /* unsupported dotl operations */
@@ -2410,6 +2410,80 @@ int plan9server::recv_link(unsigned char *buf, size_t len, uint16_t tag)
     int rc = pack_header(&buf, &len, Rlink, tag);
     assert(rc == 0);
     return send_response(buffer, max_msize - len);
+}
+
+
+int plan9server::recv_rename(unsigned char *buf, size_t len, uint16_t tag)
+{
+    uint32_t fid;
+    uint32_t dfid;
+    char *name;
+    int errcode = 0;
+    const char *errstr = NULL;
+    int rc;
+
+    if (unpack_le32(&buf, &len, &fid) ||
+        unpack_le32(&buf, &len, &dfid) ||
+        unpack_string(&buf, &len, &name))
+        return -1;
+
+    DEBUG("9pfs: Trename[%x] fid %u, dfid %u, name '%s'\n",
+                    tag, fid, dfid, name);
+
+    struct fidmap *fm = find_fid(fid);
+    struct fidmap *dfm = find_fid(dfid);
+
+    if (!fm) {
+        errcode = EBADF;
+        errstr = "fid unknown or out of range";
+        goto err_out;
+    }
+
+    if (!dfm) {
+        errcode = EBADF;
+        errstr = "dfid unknown or out of range";
+        goto err_out;
+    }
+    if (dfm->cnode.c_type != C_VDIR){
+        errcode = ENOTDIR;
+        errstr = "dfid not a directory";
+        goto err_out;
+    }
+
+    /* get old name */
+    char old_name[NAME_MAX];
+    cnode_getname(&fm->cnode, old_name);
+
+    /* get the old parent directory cnode */
+    struct venus_cnode old_parent;
+    if (cnode_getparent(&fm->cnode, &old_parent) < 0) {
+        errcode = EINVAL;
+        errstr = "tried to rename the mountpoint";
+        goto err_out;
+    }
+
+    /* attempt rename */
+    conn->u.u_uid = fm->root->userid;
+    conn->rename(&old_parent, old_name, &dfm->cnode, name);
+    if (conn->u.u_error) {
+      errcode = conn->u.u_error;
+      errstr = VenusRetStr(errcode);
+      goto err_out;
+    }
+
+    ::free(name);
+
+    /* send_Rrename */
+    DEBUG("9pfs: Rrename[%x]\n", tag);
+
+    buf = buffer; len = max_msize;
+    rc = pack_header(&buf, &len, Rrename, tag);
+    assert(rc == 0);
+    return send_response(buffer, max_msize - len);
+
+err_out:
+    ::free(name);
+    return send_error(tag, errstr, errcode);
 }
 
 
