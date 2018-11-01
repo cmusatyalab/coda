@@ -1999,7 +1999,7 @@ int plan9server::recv_setattr(unsigned char *buf, size_t len, uint16_t tag)
     DEBUG("9pfs: Rsetattr[%x] (%s)\n", tag, name);
 
     buf = buffer; len = max_msize;
-    if (pack_header(&buf, &len, Rgetattr, tag))
+    if (pack_header(&buf, &len, Rsetattr, tag))
     {
        send_error(tag, "Message too long", EMSGSIZE);
        return -1;
