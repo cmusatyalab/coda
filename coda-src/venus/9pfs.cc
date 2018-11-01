@@ -655,10 +655,10 @@ int plan9server::handle_request(unsigned char *buf, size_t read)
     case Tunlinkat: return recv_unlinkat(buf, len, tag);
     case Tlink:     return recv_link(buf, len, tag);
     case Trename:   return recv_rename(buf, len, tag);
+    case Trenameat: return recv_renameat(buf, len, tag);
     case Tlcreate:
     case Tsymlink:
     case Tmkdir:
-    case Trenameat:
     /* unsupported dotl operations */
     case Tmknod:
     case Txattrwalk:
@@ -2483,6 +2483,80 @@ int plan9server::recv_rename(unsigned char *buf, size_t len, uint16_t tag)
 
 err_out:
     ::free(name);
+    return send_error(tag, errstr, errcode);
+}
+
+
+int plan9server::recv_renameat(unsigned char *buf, size_t len, uint16_t tag)
+{
+    uint32_t olddirfid;
+    uint32_t newdirfid;
+    char *oldname;
+    char *newname;
+    int errcode = 0;
+    const char *errstr = NULL;
+    int rc;
+
+    if (unpack_le32(&buf, &len, &olddirfid) ||
+        unpack_le32(&buf, &len, &newdirfid) ||
+        unpack_string(&buf, &len, &oldname))
+        return -1;
+    if (unpack_string(&buf, &len, &newname)) {
+        ::free(oldname);
+        return -1;
+    }
+
+    DEBUG("9pfs: Trenameat[%x] olddirfid %u, oldname '%s', newdirfid %u, "
+            "newname '%s'\n", tag, olddirfid, oldname, newdirfid, newname);
+
+    struct fidmap *olddirfm = find_fid(olddirfid);
+    struct fidmap *newdirfm = find_fid(newdirfid);
+
+    if (!olddirfm) {
+        errcode = EBADF;
+        errstr = "old dir fid unknown or out of range";
+        goto err_out;
+    }
+    if (!newdirfm) {
+        errcode = EBADF;
+        errstr = "new dir fid unknown or out of range";
+        goto err_out;
+    }
+
+    if (olddirfm->cnode.c_type != C_VDIR){
+        errcode = ENOTDIR;
+        errstr = "old dir fid not a directory";
+        goto err_out;
+    }
+    if (newdirfm->cnode.c_type != C_VDIR){
+        errcode = ENOTDIR;
+        errstr = "new dir fid not a directory";
+        goto err_out;
+    }
+
+    /* attempt rename */
+    conn->u.u_uid = newdirfm->root->userid;
+    conn->rename(&olddirfm->cnode, oldname, &newdirfm->cnode, newname);
+    if (conn->u.u_error) {
+      errcode = conn->u.u_error;
+      errstr = VenusRetStr(errcode);
+      goto err_out;
+    }
+
+    ::free(oldname);
+    ::free(newname);
+
+    /* send_Rrenameat */
+    DEBUG("9pfs: Rrenameat[%x]\n", tag);
+
+    buf = buffer; len = max_msize;
+    rc = pack_header(&buf, &len, Rrenameat, tag);
+    assert(rc == 0);
+    return send_response(buffer, max_msize - len);
+
+err_out:
+    ::free(oldname);
+    ::free(newname);
     return send_error(tag, errstr, errcode);
 }
 

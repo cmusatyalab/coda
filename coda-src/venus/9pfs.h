@@ -383,6 +383,7 @@ class plan9server {
     int recv_unlinkat(unsigned char *buf, size_t len, uint16_t tag);
     int recv_link(unsigned char *buf, size_t len, uint16_t tag);
     int recv_rename(unsigned char *buf, size_t len, uint16_t tag);
+    int recv_renameat(unsigned char *buf, size_t len, uint16_t tag);
 
     struct fidmap *find_fid(uint32_t fid);
     struct fidmap *add_fid(uint32_t fid, struct venus_cnode *cnode,
