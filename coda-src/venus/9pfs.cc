@@ -2200,7 +2200,7 @@ int plan9server::recv_readlink(unsigned char *buf, size_t len, uint16_t tag)
     DEBUG("9pfs: Readlink[%x] target '%s'\n", tag, target);
 
     buf = buffer; len = max_msize;
-    if (pack_header(&buf, &len, Rstat, tag) ||
+    if (pack_header(&buf, &len, Rreadlink, tag) ||
         pack_string(&buf, &len, target))
     {
      send_error(tag, "Message too long", EMSGSIZE);
