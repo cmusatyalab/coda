@@ -379,6 +379,7 @@ class plan9server {
     int recv_readdir(unsigned char *buf, size_t len, uint16_t tag);
     int recv_readlink(unsigned char *buf, size_t len, uint16_t tag);
     int recv_statfs(unsigned char *buf, size_t len, uint16_t tag);
+    int recv_fsync(unsigned char *buf, size_t len, uint16_t tag);
 
     struct fidmap *find_fid(uint32_t fid);
     struct fidmap *add_fid(uint32_t fid, struct venus_cnode *cnode,

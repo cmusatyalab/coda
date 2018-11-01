@@ -651,10 +651,10 @@ int plan9server::handle_request(unsigned char *buf, size_t read)
     case Treaddir:  return recv_readdir(buf, len, tag);
     case Tstatfs:   return recv_statfs(buf, len, tag);
     case Treadlink: return recv_readlink(buf, len, tag);
+    case Tfsync:    return recv_fsync(buf, len, tag);
     case Tlcreate:
     case Tsymlink:
     case Trename:
-    case Tfsync:
     case Tlink:
     case Tmkdir:
     case Trenameat:
@@ -2262,6 +2262,43 @@ int plan9server::recv_statfs(unsigned char *buf, size_t len, uint16_t tag)
         send_error(tag, "Message too long", EMSGSIZE);
         return -1;
     }
+    return send_response(buffer, max_msize - len);
+}
+
+
+int plan9server::recv_fsync(unsigned char *buf, size_t len, uint16_t tag)
+{
+    uint32_t fid;
+
+    if (unpack_le32(&buf, &len, &fid))
+        return -1;
+
+    DEBUG("9pfs: Tfsync[%x] fid %u\n", tag, fid);
+
+    struct fidmap *fm = find_fid(fid);
+    if (!fm)
+        return send_error(tag, "fid unknown or out of range", EBADF);
+
+    /* The current vproc::fsync() implementation is very heavy-handed, i.e. it
+     * syncs and flushes everything.
+     * Doing nothing seems to better achieve what we actually want here
+     * because in case of a crash, the recovery log will still have the writes.
+     * (Oct. 2018 -AS)
+
+    conn->u.u_uid = fm->root->userid;
+    conn->fsync(&fm->cnode);
+    if (conn->u.u_error) {
+        int errcode = conn->u.u_error;
+        const char *errstr = VenusRetStr(errcode);
+        return send_error(tag, errstr, errcode);
+    }
+    */
+
+    /* send_Rfsync */
+    DEBUG("9pfs: Rfsync[%x]\n", tag);
+    buf = buffer; len = max_msize;
+    int rc = pack_header(&buf, &len, Rfsync, tag);
+    assert(rc == 0);
     return send_response(buffer, max_msize - len);
 }
 
