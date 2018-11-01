@@ -652,10 +652,10 @@ int plan9server::handle_request(unsigned char *buf, size_t read)
     case Tstatfs:   return recv_statfs(buf, len, tag);
     case Treadlink: return recv_readlink(buf, len, tag);
     case Tfsync:    return recv_fsync(buf, len, tag);
+    case Tlink:     return recv_link(buf, len, tag);
     case Tlcreate:
     case Tsymlink:
     case Trename:
-    case Tlink:
     case Tmkdir:
     case Trenameat:
     case Tunlinkat:
@@ -2298,6 +2298,53 @@ int plan9server::recv_fsync(unsigned char *buf, size_t len, uint16_t tag)
     DEBUG("9pfs: Rfsync[%x]\n", tag);
     buf = buffer; len = max_msize;
     int rc = pack_header(&buf, &len, Rfsync, tag);
+    assert(rc == 0);
+    return send_response(buffer, max_msize - len);
+}
+
+
+int plan9server::recv_link(unsigned char *buf, size_t len, uint16_t tag)
+{
+    uint32_t dfid;
+    uint32_t src_fid;
+    char *name;
+
+    if (unpack_le32(&buf, &len, &dfid) ||
+        unpack_le32(&buf, &len, &src_fid) ||
+        unpack_string(&buf, &len, &name))
+        return -1;
+
+    DEBUG("9pfs: Tlink[%x] dfid %u, src fid %u, name %s\n",
+            tag, dfid, src_fid, name);
+
+
+    /* we can only create in a directory */
+    struct fidmap *dfm = find_fid(dfid);
+    if (!dfm)
+        return send_error(tag, "directory fid unknown or out of range", EBADF);
+    if (dfm->cnode.c_type != C_VDIR)
+        return send_error(tag, "Not a directory", ENOTDIR);
+    if (dfm->open_flags)
+        return send_error(tag, "Directory already open for I/O", EIO);
+
+    struct fidmap *src_fm = find_fid(src_fid);
+    if (!src_fm)
+        return send_error(tag, "Source fid unknown or out of range", EBADF);
+
+    /* create the hardlink */
+    conn->u.u_uid = dfm->root->userid;
+    conn->link(&src_fm->cnode, &dfm->cnode, name);
+
+    if (conn->u.u_error) {
+        int errcode = conn->u.u_error;
+        const char *errstr = VenusRetStr(errcode);
+        return send_error(tag, errstr, errcode);
+    }
+
+    /* send_Rlink */
+    DEBUG("9pfs: Rlink[%x]\n", tag);
+    buf = buffer; len = max_msize;
+    int rc = pack_header(&buf, &len, Rlink, tag);
     assert(rc == 0);
     return send_response(buffer, max_msize - len);
 }
