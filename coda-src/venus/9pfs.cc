@@ -652,13 +652,13 @@ int plan9server::handle_request(unsigned char *buf, size_t read)
     case Tstatfs:   return recv_statfs(buf, len, tag);
     case Treadlink: return recv_readlink(buf, len, tag);
     case Tfsync:    return recv_fsync(buf, len, tag);
+    case Tunlinkat: return recv_unlinkat(buf, len, tag);
     case Tlink:     return recv_link(buf, len, tag);
     case Tlcreate:
     case Tsymlink:
     case Trename:
     case Tmkdir:
     case Trenameat:
-    case Tunlinkat:
     /* unsupported dotl operations */
     case Tmknod:
     case Txattrwalk:
@@ -2300,6 +2300,69 @@ int plan9server::recv_fsync(unsigned char *buf, size_t len, uint16_t tag)
     int rc = pack_header(&buf, &len, Rfsync, tag);
     assert(rc == 0);
     return send_response(buffer, max_msize - len);
+}
+
+
+int plan9server::recv_unlinkat(unsigned char *buf, size_t len, uint16_t tag)
+{
+    uint32_t dirfid;
+    char *name;
+    uint32_t flags;
+    int rc;
+
+    if (unpack_le32(&buf, &len, &dirfid) ||
+        unpack_string(&buf, &len, &name))
+        return -1;
+    if (unpack_le32(&buf, &len, &flags))
+    {
+        free(name);
+        return -1;
+    }
+
+    DEBUG("9pfs: Tunlinkat[%x] dirfid %u, name '%s', flags %o\n",
+            tag, dirfid, name, flags);
+
+    struct fidmap *dirfm = find_fid(dirfid);
+    if (!dirfm)
+        return send_error(tag, "dirfid unknown or out of range", EBADF);
+    if (dirfm->cnode.c_type != C_VDIR)
+        return send_error(tag, "dirfid not a directory", ENOTDIR);
+
+    struct venus_cnode child;
+
+    conn->u.u_uid = dirfm->root->userid;
+
+    conn->lookup(&dirfm->cnode, name, &child,
+                 CLU_CASE_SENSITIVE | CLU_TRAVERSE_MTPT);
+    if (conn->u.u_error)
+        goto err_out;
+
+    if (child.c_type == C_VDIR)
+        conn->rmdir(&dirfm->cnode, name);   /* remove a directory */
+    else
+        conn->remove(&dirfm->cnode, name);  /* remove a regular file */
+
+    if (conn->u.u_error)
+        goto err_out;
+
+    /* Contrarily to what happens with the Remove operation, if the file name
+     * is represented by a fid, that fid is not clunked. */
+
+     ::free(name);
+
+    /* send_Runlinkat */
+    DEBUG("9pfs: Runlinkat[%x]\n", tag);
+
+    buf = buffer; len = max_msize;
+    rc = pack_header(&buf, &len, Runlinkat, tag);
+    assert(rc == 0);
+    return send_response(buffer, max_msize - len);
+
+    err_out:
+        ::free(name);
+        int errcode = conn->u.u_error;
+        const char *errstr = VenusRetStr(errcode);
+        return send_error(tag, errstr, errcode);
 }
 
 
