@@ -195,8 +195,8 @@ int fsobj::FetchFileRPC(connent *con, ViceStatus *status, uint64_t offset,
 
     viceop = fetchpartial_support ? ViceFetchPartial_OP : ViceFetch_OP;
 
-    snprintf(prel_str, sizeof(256), "fetch::Fetch%s %%s [%ld]\n", partial_sel,
-             BLOCKS(this));
+    snprintf(prel_str, sizeof(prel_str), "fetch::Fetch%s %%s [%ld]\n", 
+             partial_sel, BLOCKS(this));
 
     CFSOP_PRELUDE(prel_str, comp, fid);
     UNI_START_MESSAGE(viceop);
