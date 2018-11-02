@@ -487,11 +487,11 @@ int64_t CacheFile::CopySegment(CacheFile * from, CacheFile * to, uint64_t pos, i
     CacheChunkList * c_list;
     CacheChunk chunk;
     
-    LOG(300, ("SegmentedCacheFile::CopySegment: from %s [%d, %d], to %s\n",
+    LOG(300, ("CacheFile::CopySegment: from %s [%d, %d], to %s\n",
              from->name, byte_start, byte_len, to->name));
 
     if (mkpath(to->name, V_MODE | 0100) < 0) {
-        LOG(0, ("SegmentedCacheFile::CopySegment: could not make path for %s\n", to->name));
+        LOG(0, ("CacheFile::CopySegment: could not make path for %s\n", to->name));
         return -1;
     }
     
@@ -512,7 +512,7 @@ int64_t CacheFile::CopySegment(CacheFile * from, CacheFile * to, uint64_t pos, i
 
     for (chunk = c_list->pop(); chunk.isValid(); chunk = c_list->pop()) {
         if (copyfile_seg(ffd, tfd, chunk.GetStart(), chunk.GetLength()) < 0) {
-            LOG(0, ("SegmentedCacheFile::CopySegment failed! (%d)\n", errno));
+            LOG(0, ("CacheFile::CopySegment failed! (%d)\n", errno));
             from->Close(ffd);
             to->Close(tfd);
             return -1;
@@ -522,16 +522,16 @@ int64_t CacheFile::CopySegment(CacheFile * from, CacheFile * to, uint64_t pos, i
     delete c_list;
 
     if (from->Close(ffd) < 0) {
-        CHOKE("SegmentedCacheFile::CopySegment: source close failed (%d)\n", 
+        CHOKE("CacheFile::CopySegment: source close failed (%d)\n", 
               errno);
     }
 
     if (::fstat(tfd, &tstat) < 0) {
-        CHOKE("SegmentedCacheFile::CopySegment: fstat failed (%d)\n", errno);
+        CHOKE("CacheFile::CopySegment: fstat failed (%d)\n", errno);
     }
 
     if (to->Close(tfd) < 0){
-        CHOKE("SegmentedCacheFile::CopySegment: close failed (%d)\n", errno);
+        CHOKE("CacheFile::CopySegment: close failed (%d)\n", errno);
     }
 
     CODA_ASSERT((off_t)from->length == tstat.st_size);
@@ -606,7 +606,8 @@ CacheChunkList * CacheFile::GetHoles(uint64_t start, int64_t len) {
         end_b = length_b;
     }
 
-    LOG(100, ("CacheFile::GetHoles Range [%d - %d]\n", start, start + len - 1));
+    LOG(100, ("CacheFile::GetHoles Range [%lu - %lu]\n", ccblocks_to_bytes(start_b), 
+              ccblocks_to_bytes(end_b) - 1));
 
     for (uint64_t i = start_b; i < end_b; i++) {
         currc = GetNextHole(i, end_b);
@@ -636,14 +637,15 @@ CacheChunkList * CacheFile::GetValidChunks(uint64_t start, int64_t len) {
         end_b = length_b;
     }
 
-    LOG(100, ("CacheFile::GetValidChunks Range [%d - %d]\n", start, start + len - 1));
+    LOG(100, ("CacheFile::GetValidChunks Range [%lu - %lu]\n", ccblocks_to_bytes(start_b), 
+              ccblocks_to_bytes(end_b) - 1));
 
     for (i = start_b; i < end_b; i++) {
         currc = GetNextHole(i, end_b);
 
         if (!currc.isValid()) break;
 
-        LOG(100, ("CacheFile::GetHoles Found [%d, %d]\n", currc.GetStart(),
+        LOG(100, ("CacheFile::GetValidChunks Found [%d, %d]\n", currc.GetStart(),
                 currc.GetLength()));
 
         start_bytes = ccblocks_to_bytes(i);
