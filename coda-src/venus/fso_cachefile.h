@@ -313,11 +313,18 @@ public:
     void WriteUnlock();
 
     /**
-     * Acquire the lock object's for reading
+     * Pop the last element of the list
      *
      * @return the last added element
      */
     CacheChunk pop();
+
+    /**
+     * Get the amount of list elements
+     *
+     * @return number of list elements
+     */
+    uint Length() {return (uint) this->count();}
 };
 
 class CacheFile {

@@ -1462,6 +1462,8 @@ void vproc::read(struct venus_cnode * node, uint64_t pos, int64_t count)
             FID_(&node->c_fid), pos, count));
             
     int code = 0;
+    uint64_t actual_count = 0;
+    uint64_t blocks_to_alloc = 0;
     fsobj *f = NULL;
     CacheChunkList * clist = NULL;
     CacheChunk currc;
@@ -1487,34 +1489,53 @@ void vproc::read(struct venus_cnode * node, uint64_t pos, int64_t count)
         goto FreeVFS;
     }
 
+    /* Check if the amount of bytes being read can be allocated within the 
+     * cache */
+    actual_count = count < 0 ? f->Size() - pos : count;
+    blocks_to_alloc = NBLOCKS(length_align_to_ccblock(pos, actual_count));
+    if (blocks_to_alloc > (FSDB->MaxBlocks - FSDB->FreeBlockMargin)) {
+        u.u_error = EIO;
+        return;
+    }
+
+    /* Get the holes */
     clist = f->GetHoles(pos, count);
 
-    /* Fetch all holes */
-    currc = clist->pop();
+    /* Temporary add the chunk to the active segment to prevent 
+     * it to be discarded. Note that we only remove it from the list
+     * the fetching or allocation fails. */
+    if (clist->Length() > 0) {
+        f->active_segments.AddChunk(pos, count);
+    }
 
-    while (currc.isValid()) {
+    /* Go thru the list of holes */
+    for (currc = clist->pop(); currc.isValid(); currc = clist->pop()) {
 
-        code = FSDB->AllocBlocks(u.u_priority,
-                                 NBLOCKS(FS_BLOCKS_ALIGN(currc.GetLength())));
+        /* Blocks needed for the current hole. Note that holes are
+         * align with cache blocks. */
+        blocks_to_alloc = NBLOCKS(FS_BLOCKS_ALIGN(currc.GetLength()));
+
+        /* First pre-allocate the blocks */
+        code = FSDB->AllocBlocks(u.u_priority, blocks_to_alloc);
         if (code != 0) {
             u.u_error = ENOSPC;
             break;
         }
-        
+
+        /* Fetch the data */
         code = f->Fetch(u.u_uid, currc.GetStart(), currc.GetLength());
         if (code < 0) {
+            /* Don't forget to remove the allocated blocks if not fetched */
+            FSDB->FreeBlocks(blocks_to_alloc);
             u.u_error = EIO;
             break;
         }
-
-        currc = clist->pop();
     }
-    
+
     if (code < 0) {
         u.u_error = EIO;
-    } else {
-        /* No errors. Assume the chunk is being used. */
-        f->active_segments.AddChunk(pos, count);
+        /* Since we failed remove it from the active segment */
+        f->active_segments.ReverseRemove(pos, count);
     }
 
     delete clist;
