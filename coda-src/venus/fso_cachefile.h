@@ -524,8 +524,20 @@ public:
      *
      * @param start start of the search range
      * @param len   length of the search range
+     * 
+     * @return holes list
      */
     CacheChunkList * GetHoles(uint64_t start, int64_t len);
+
+    /**
+     * Get the valid data of the file within a range
+     *
+     * @param start start of the search range
+     * @param len   length of the search range
+     * 
+     * @return valid ranges chunks list
+     */
+    CacheChunkList * GetValidChunks(uint64_t start, int64_t len);
 
     /**
      * Get the name of the container file
