@@ -377,6 +377,7 @@ class plan9server {
     int recv_setattr(unsigned char *buf, size_t len, uint16_t tag);
     int recv_lopen(unsigned char *buf, size_t len, uint16_t tag);
     int recv_lcreate(unsigned char *buf, size_t len, uint16_t tag);
+    int recv_mkdir(unsigned char *buf, size_t len, uint16_t tag);
     int recv_readdir(unsigned char *buf, size_t len, uint16_t tag);
     int recv_readlink(unsigned char *buf, size_t len, uint16_t tag);
     int recv_statfs(unsigned char *buf, size_t len, uint16_t tag);

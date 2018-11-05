@@ -649,6 +649,7 @@ int plan9server::handle_request(unsigned char *buf, size_t read)
     case Tsetattr:  return recv_setattr(buf, len, tag);
     case Tlopen:    return recv_lopen(buf, len, tag);
     case Tlcreate:  return recv_lcreate(buf, len, tag);
+    case Tmkdir:    return recv_mkdir(buf, len, tag);
     case Treaddir:  return recv_readdir(buf, len, tag);
     case Tstatfs:   return recv_statfs(buf, len, tag);
     case Treadlink: return recv_readlink(buf, len, tag);
@@ -658,7 +659,6 @@ int plan9server::handle_request(unsigned char *buf, size_t read)
     case Trename:   return recv_rename(buf, len, tag);
     case Trenameat: return recv_renameat(buf, len, tag);
     case Tsymlink:
-    case Tmkdir:
     /* unsupported dotl operations */
     case Tmknod:
     case Txattrwalk:
@@ -2215,6 +2215,113 @@ int plan9server::recv_lcreate(unsigned char *buf, size_t len, uint16_t tag)
             send_error(tag, "Message too long", EMSGSIZE);
             return -1;
         }
+    return send_response(buffer, max_msize - len);
+
+err_out:
+    ::free(name);
+    return send_error(tag, errstr, errcode);
+}
+
+
+/*
+ * Note: CODA ignores the gid input parameter.
+ */
+int plan9server::recv_mkdir(unsigned char *buf, size_t len, uint16_t tag)
+{
+    uint32_t dfid;
+    char *name;
+    uint32_t mode;
+    gid_t gid;      // ignored by CODA
+
+    int errcode = 0;
+    const char *errstr = NULL;
+
+    if (unpack_le32(&buf, &len, &dfid) ||
+        unpack_string(&buf, &len, &name))
+        return -1;
+    if (unpack_le32(&buf, &len, &mode) ||
+        unpack_le32(&buf, &len, &gid))
+    {
+        free(name);
+        return -1;
+    }
+
+    DEBUG("9pfs: Tmkdir[%x] dfid %u, name %s, mode %o, gid %u\n",
+          tag, dfid, name, mode, gid);
+
+    struct fidmap *fm;
+    struct coda_vattr va = { 0 };
+    int flags = C_O_READ;
+
+    va.va_size = 0;
+    va.va_mode = mode & 0777;
+
+    fm = find_fid(dfid);
+    if (!fm) {
+        errcode = EBADF;
+        errstr = "fid unknown or out of range";
+        goto err_out;
+    }
+
+    if (fm->open_flags) {
+        errcode = EIO;
+        errstr = "file already open for I/O";
+        goto err_out;
+    }
+
+    /* we can only create in a directory */
+    if (fm->cnode.c_type != C_VDIR) {
+        errcode = ENOTDIR;
+        errstr = "Not a directory";
+        goto err_out;
+    }
+
+    struct venus_cnode child;
+    struct plan9_qid qid;
+
+    /* Attempt to create the directory */
+    conn->u.u_uid = fm->root->userid;
+    conn->mkdir(&fm->cnode, name, &va, &child);
+
+    if (conn->u.u_error) {
+        errcode = conn->u.u_error;
+        errstr = VenusRetStr(errcode);
+        goto err_out;
+    }
+
+    conn->open(&child, flags);
+
+    if (conn->u.u_error) {
+        errcode = conn->u.u_error;
+        errstr = VenusRetStr(errcode);
+        goto err_out;
+    }
+
+    /* mkdir yields, reobtain fidmap reference */
+    fm = find_fid(dfid);
+    if (!fm) {
+        conn->close(&child, flags);
+        errcode = EBADF;
+        errstr = "fid unknown or out of range";
+        goto err_out;
+    }
+    /* fid is replaced by the newly created directory */
+    fm->cnode = child;
+    fm->open_flags = flags;
+
+    cnode2qid(&child, &qid);
+
+    /* send_Rmkdir */
+    DEBUG("9pfs: Rmkdir[%x] qid %x.%x.%lx\n",
+          tag, qid.type, qid.version, qid.path);
+
+    buf = buffer; len = max_msize;
+    if (pack_header(&buf, &len, Rmkdir, tag) ||
+        pack_qid(&buf, &len, &qid))
+    {
+        send_error(tag, "Message too long", EMSGSIZE);
+        return -1;
+    }
     return send_response(buffer, max_msize - len);
 
 err_out:
