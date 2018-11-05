@@ -377,33 +377,6 @@ static int pack_stat_dotl(unsigned char **buf, size_t *len,
 }
 
 
-static int unpack_stat_dotl(unsigned char **buf, size_t *len,
-                       struct plan9_stat_dotl *stat)
-{
-    if (unpack_qid(buf, len, &stat->qid) ||
-        unpack_le32(buf, len, &stat->st_mode) ||
-        unpack_le64(buf, len, &stat->st_nlink) ||
-        unpack_le32(buf, len, &stat->st_uid) ||
-        unpack_le32(buf, len, &stat->st_gid) ||
-        unpack_le64(buf, len, &stat->st_rdev) ||
-        unpack_le64(buf, len, &stat->st_size) ||
-        unpack_le64(buf, len, &stat->st_blksize) ||
-        unpack_le64(buf, len, &stat->st_blocks) ||
-        unpack_le64(buf, len, &stat->st_atime_sec) ||
-        unpack_le64(buf, len, &stat->st_atime_nsec) ||
-        unpack_le64(buf, len, &stat->st_mtime_sec) ||
-        unpack_le64(buf, len, &stat->st_mtime_nsec) ||
-        unpack_le64(buf, len, &stat->st_ctime_sec) ||
-        unpack_le64(buf, len, &stat->st_ctime_nsec) ||
-        unpack_le64(buf, len, &stat->st_btime_sec) ||
-        unpack_le64(buf, len, &stat->st_btime_nsec) ||
-        unpack_le64(buf, len, &stat->st_gen) ||
-        unpack_le64(buf, len, &stat->st_data_version))
-        return -1;
-    return 0;
-}
-
-
 static int pack_statfs(unsigned char **buf, size_t *len,
                      const struct plan9_statfs *statfs)
 {
@@ -1927,16 +1900,23 @@ int plan9server::recv_getattr(unsigned char *buf, size_t len, uint16_t tag)
 int plan9server::recv_setattr(unsigned char *buf, size_t len, uint16_t tag)
 {
     uint32_t fid;
-    uint64_t valid_mask;
+    uint32_t valid_mask;
     struct plan9_stat_dotl stat;
     struct coda_vattr attr;
 
     if (unpack_le32(&buf, &len, &fid) ||
-        unpack_le64(&buf, &len, &valid_mask) ||
-        unpack_stat_dotl(&buf, &len, &stat))
+        unpack_le32(&buf, &len, &valid_mask) ||
+        unpack_le32(&buf, &len, &stat.st_mode) ||
+        unpack_le32(&buf, &len, &stat.st_uid) ||
+        unpack_le32(&buf, &len, &stat.st_gid) ||
+        unpack_le64(&buf, &len, &stat.st_size) ||
+        unpack_le64(&buf, &len, &stat.st_atime_sec) ||
+        unpack_le64(&buf, &len, &stat.st_atime_nsec) ||
+        unpack_le64(&buf, &len, &stat.st_mtime_sec) ||
+        unpack_le64(&buf, &len, &stat.st_mtime_nsec))
        return -1;
 
-    DEBUG("9pfs: Tsetattr[%x] fid %u  valid mask 0x%lx \n \
+    DEBUG("9pfs: Tsetattr[%x] fid %u  valid mask 0x%x \n \
                  mode %o \n \
                  uid %u  gid %u \n \
                  size %lu \n \
