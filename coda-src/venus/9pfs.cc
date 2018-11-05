@@ -648,6 +648,7 @@ int plan9server::handle_request(unsigned char *buf, size_t read)
     case Tgetattr:  return recv_getattr(buf, len, tag);
     case Tsetattr:  return recv_setattr(buf, len, tag);
     case Tlopen:    return recv_lopen(buf, len, tag);
+    case Tlcreate:  return recv_lcreate(buf, len, tag);
     case Treaddir:  return recv_readdir(buf, len, tag);
     case Tstatfs:   return recv_statfs(buf, len, tag);
     case Treadlink: return recv_readlink(buf, len, tag);
@@ -656,7 +657,6 @@ int plan9server::handle_request(unsigned char *buf, size_t read)
     case Tlink:     return recv_link(buf, len, tag);
     case Trename:   return recv_rename(buf, len, tag);
     case Trenameat: return recv_renameat(buf, len, tag);
-    case Tlcreate:
     case Tsymlink:
     case Tmkdir:
     /* unsupported dotl operations */
@@ -2109,6 +2109,118 @@ int plan9server::recv_setattr(unsigned char *buf, size_t len, uint16_t tag)
      send_response(buffer, max_msize - len);
      return 0;
  }
+
+
+/*
+ * Note: CODA ignores the intent bits and the gid information.
+ */
+int plan9server::recv_lcreate(unsigned char *buf, size_t len, uint16_t tag)
+{
+    uint32_t fid;
+    char *name;
+    uint32_t intent;   // ignored by CODA
+    uint32_t mode;
+    gid_t gid;         // ignored by CODA
+
+    int errcode = 0;
+    const char *errstr = NULL;
+
+    if (unpack_le32(&buf, &len, &fid) ||
+        unpack_string(&buf, &len, &name))
+        return -1;
+    if (unpack_le32(&buf, &len, &intent) ||
+        unpack_le32(&buf, &len, &mode) ||
+        unpack_le32(&buf, &len, &gid))
+        {
+            free(name);
+            return -1;
+        }
+
+    DEBUG("9pfs: Tlcreate[%x] fid %u, name %s, intent %o, mode %o, gid %u\n",
+       tag, fid, name, intent, mode, gid);
+
+    struct fidmap *fm;
+    struct coda_vattr va = { 0 };
+    int excl = 0;
+    int flags = C_O_WRITE | C_O_TRUNC;
+    va.va_size = 0;
+    va.va_mode = mode & 0777;
+
+    uint32_t iounit = 4096;
+
+    fm = find_fid(fid);
+    if (!fm) {
+        errcode = EBADF;
+        errstr = "fid unknown or out of range";
+        goto err_out;
+    }
+
+    if (fm->open_flags) {
+        errcode = EIO;
+        errstr = "file already open for I/O";
+        goto err_out;
+    }
+
+    /* we can only create in a directory */
+    if (fm->cnode.c_type != C_VDIR) {
+        errcode = ENOTDIR;
+        errstr = "Not a directory";
+        goto err_out;
+    }
+
+    struct venus_cnode child;
+    struct plan9_qid qid;
+
+    /* Attempt to create a regular file */
+    conn->u.u_uid = fm->root->userid;
+    conn->create(&fm->cnode, name, &va, excl, flags, &child);
+
+    if (conn->u.u_error) {
+        errcode = conn->u.u_error;
+        errstr = VenusRetStr(errcode);
+        goto err_out;
+    }
+
+    conn->open(&child, flags);
+
+    if (conn->u.u_error) {
+        errcode = conn->u.u_error;
+        errstr = VenusRetStr(errcode);
+        goto err_out;
+    }
+
+    /* create yields, reobtain fidmap reference */
+    fm = find_fid(fid);
+    if (!fm) {
+        conn->close(&child, flags);
+        errcode = EBADF;
+        errstr = "fid unknown or out of range";
+        goto err_out;
+    }
+    /* fid is replaced by the newly created file */
+    fm->cnode = child;
+    fm->open_flags = flags;
+
+    cnode2qid(&child, &qid);
+
+    /* send_Rlcreate */
+    DEBUG("9pfs: Rlcreate[%x] qid %x.%x.%lx, iounit %u\n",
+       tag, qid.type, qid.version, qid.path, iounit);
+
+    buf = buffer; len = max_msize;
+    if (pack_header(&buf, &len, Rlcreate, tag) ||
+        pack_qid(&buf, &len, &qid) ||
+        pack_le32(&buf, &len, iounit))
+        {
+            send_error(tag, "Message too long", EMSGSIZE);
+            return -1;
+        }
+    return send_response(buffer, max_msize - len);
+
+err_out:
+    ::free(name);
+    return send_error(tag, errstr, errcode);
+}
 
 
  int plan9server::recv_readdir(unsigned char *buf, size_t len, uint16_t tag)
