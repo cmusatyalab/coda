@@ -649,6 +649,7 @@ int plan9server::handle_request(unsigned char *buf, size_t read)
     case Tsetattr:  return recv_setattr(buf, len, tag);
     case Tlopen:    return recv_lopen(buf, len, tag);
     case Tlcreate:  return recv_lcreate(buf, len, tag);
+    case Tsymlink:  return recv_symlink(buf, len, tag);
     case Tmkdir:    return recv_mkdir(buf, len, tag);
     case Treaddir:  return recv_readdir(buf, len, tag);
     case Tstatfs:   return recv_statfs(buf, len, tag);
@@ -658,7 +659,6 @@ int plan9server::handle_request(unsigned char *buf, size_t read)
     case Tlink:     return recv_link(buf, len, tag);
     case Trename:   return recv_rename(buf, len, tag);
     case Trenameat: return recv_renameat(buf, len, tag);
-    case Tsymlink:
     /* unsupported dotl operations */
     case Tmknod:
     case Txattrwalk:
@@ -2219,6 +2219,107 @@ int plan9server::recv_lcreate(unsigned char *buf, size_t len, uint16_t tag)
 
 err_out:
     ::free(name);
+    return send_error(tag, errstr, errcode);
+}
+
+
+/*
+ * Note: CODA ignores the gid input parameter.
+ */
+int plan9server::recv_symlink(unsigned char *buf, size_t len, uint16_t tag)
+{
+    uint32_t dfid;
+    char *name;
+    char *target;
+    gid_t gid;      // ignored by CODA
+
+    int errcode = 0;
+    const char *errstr = NULL;
+
+    if (unpack_le32(&buf, &len, &dfid) ||
+        unpack_string(&buf, &len, &name))
+        return -1;
+    if (unpack_string(&buf, &len, &target)) {
+        ::free(name);
+        return -1;
+    }
+    if (unpack_le32(&buf, &len, &gid)) {
+        ::free(name);
+        ::free(target);
+        return -1;
+    }
+
+    DEBUG("9pfs: Tsymlink[%x] dfid %u, name '%s', target '%s', gid %u\n",
+          tag, dfid, name, target, gid);
+
+    struct fidmap *fm;
+    struct coda_vattr va = { 0 };
+
+    fm = find_fid(dfid);
+    if (!fm) {
+        errcode = EBADF;
+        errstr = "fid unknown or out of range";
+        goto err_out;
+    }
+
+    if (fm->open_flags) {
+        errcode = EIO;
+        errstr = "file already open for I/O";
+        goto err_out;
+    }
+
+    /* we can only create in a directory */
+    if (fm->cnode.c_type != C_VDIR) {
+        errcode = ENOTDIR;
+        errstr = "Not a directory";
+        goto err_out;
+    }
+
+    struct venus_cnode child;
+    struct plan9_qid qid;
+
+    conn->u.u_uid = fm->root->userid;
+    /* create a symlink and get a cnode for it */
+    conn->symlink(&fm->cnode, target, &va, name);
+    conn->lookup(&fm->cnode, name, &child,
+               CLU_CASE_SENSITIVE | CLU_TRAVERSE_MTPT);
+
+    if (conn->u.u_error) {
+        errcode = conn->u.u_error;
+        errstr = VenusRetStr(errcode);
+        goto err_out;
+    }
+
+    /* symlink yields, reobtain fidmap reference */
+    fm = find_fid(dfid);
+    if (!fm) {
+        errcode = EBADF;
+        errstr = "fid unknown or out of range";
+        goto err_out;
+    }
+    /* fid is replaced by the newly created symlink */
+    fm->cnode = child;
+
+    cnode2qid(&child, &qid);
+
+    ::free(target);
+
+    /* send_Rsymlink */
+    DEBUG("9pfs: Rsymlink[%x] qid %x.%x.%lx\n",
+          tag, qid.type, qid.version, qid.path);
+
+    buf = buffer; len = max_msize;
+    if (pack_header(&buf, &len, Rcreate, tag) ||
+        pack_qid(&buf, &len, &qid))
+    {
+        send_error(tag, "Message too long", EMSGSIZE);
+        return -1;
+    }
+    return send_response(buffer, max_msize - len);
+
+err_out:
+    ::free(name);
+    ::free(target);
     return send_error(tag, errstr, errcode);
 }
 
