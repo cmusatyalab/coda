@@ -1842,7 +1842,20 @@ int plan9server::recv_getattr(unsigned char *buf, size_t len, uint16_t tag)
     }
 
     cnode2qid(&fm->cnode, &stat.qid);
-    stat.st_mode = (uint32_t)attr.va_mode;
+    switch (stat.qid.type) {
+        case  P9_QTDIR:
+            stat.st_mode = S_IFDIR;
+            break;
+        case  P9_QTSYMLINK:
+            stat.st_mode = S_IFLNK;
+            break;
+        case  P9_QTFILE:
+            stat.st_mode = S_IFREG;
+            break;
+        default:
+            stat.st_mode = 0;
+    }
+    stat.st_mode |= (uint32_t)attr.va_mode;
     stat.st_uid = (uint32_t)attr.va_uid;
     stat.st_gid = (uint32_t)attr.va_gid;
     stat.st_nlink = (uint64_t)attr.va_nlink;
