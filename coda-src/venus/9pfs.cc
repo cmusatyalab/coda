@@ -1860,7 +1860,7 @@ int plan9server::recv_getattr(unsigned char *buf, size_t len, uint16_t tag)
     stat.st_uid = fm->root->userid;
     stat.st_gid = fm->root->userid;
     stat.st_rdev = (uint64_t)attr.va_rdev;
-    stat.st_size = (stat.qid.type == P9_QTDIR) ? 0 : attr.va_size;
+    stat.st_size = attr.va_size;
     stat.st_blksize = (uint64_t)attr.va_blocksize;
     //number of 512-byte blocks allocated
     stat.st_blocks = (stat.st_size + 511) >> 9;
