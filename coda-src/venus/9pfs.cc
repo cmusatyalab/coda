@@ -2152,12 +2152,6 @@ int plan9server::recv_lcreate(unsigned char *buf, size_t len, uint16_t tag)
         goto err_out;
     }
 
-    if (fm->open_flags) {
-        errcode = EIO;
-        errstr = "file already open for I/O";
-        goto err_out;
-    }
-
     /* we can only create in a directory */
     if (fm->cnode.c_type != C_VDIR) {
         errcode = ENOTDIR;
@@ -2259,12 +2253,6 @@ int plan9server::recv_symlink(unsigned char *buf, size_t len, uint16_t tag)
         goto err_out;
     }
 
-    if (fm->open_flags) {
-        errcode = EIO;
-        errstr = "file already open for I/O";
-        goto err_out;
-    }
-
     /* we can only create in a directory */
     if (fm->cnode.c_type != C_VDIR) {
         errcode = ENOTDIR;
@@ -2358,12 +2346,6 @@ int plan9server::recv_mkdir(unsigned char *buf, size_t len, uint16_t tag)
     if (!fm) {
         errcode = EBADF;
         errstr = "fid unknown or out of range";
-        goto err_out;
-    }
-
-    if (fm->open_flags) {
-        errcode = EIO;
-        errstr = "file already open for I/O";
         goto err_out;
     }
 
@@ -2697,8 +2679,6 @@ int plan9server::recv_link(unsigned char *buf, size_t len, uint16_t tag)
         return send_error(tag, "directory fid unknown or out of range", EBADF);
     if (dfm->cnode.c_type != C_VDIR)
         return send_error(tag, "Not a directory", ENOTDIR);
-    if (dfm->open_flags)
-        return send_error(tag, "Directory already open for I/O", EIO);
 
     struct fidmap *src_fm = find_fid(src_fid);
     if (!src_fm)
