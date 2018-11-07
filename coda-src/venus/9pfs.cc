@@ -1873,7 +1873,7 @@ int plan9server::recv_getattr(unsigned char *buf, size_t len, uint16_t tag)
     /* reserved for future use */
     stat.st_btime_sec = 0;
     stat.st_btime_nsec = 0;
-    stat.st_gen = 0;
+    stat.st_gen = attr.va_gen;
     stat.st_data_version = 0;
 
     // For now, the valid fields in response are the same as the ones requested
@@ -1890,12 +1890,16 @@ int plan9server::recv_getattr(unsigned char *buf, size_t len, uint16_t tag)
             rdev: %lu  size: %lu  blksize: %lu  blocks: %lu \n \
             atime_sec: %lu  atime_nsec: %lu \n \
             mtime_sec: %lu  mtime_nsec: %lu \n \
-            ctime_sec: %lu  ctime_nsec: %lu \n ",
+            ctime_sec: %lu  ctime_nsec: %lu \n \
+            btime_sec: %lu  btime_nsec: %lu \n \
+            gen: %lu  data_version: %lu \n",
             stat.qid.type, stat.qid.version, stat.qid.path,
             stat.st_mode, stat.st_uid, stat.st_gid, stat.st_nlink,
             stat.st_rdev, stat.st_size, stat.st_blksize, stat.st_blocks,
             stat.st_atime_sec, stat.st_atime_nsec, stat.st_mtime_sec,
-            stat.st_mtime_nsec, stat.st_ctime_sec, stat.st_ctime_nsec);
+            stat.st_mtime_nsec, stat.st_ctime_sec, stat.st_ctime_nsec,
+            stat.st_btime_sec, stat.st_btime_nsec, stat.st_gen,
+            stat.st_data_version);
 
     buf = buffer; len = max_msize;
     if (pack_header(&buf, &len, Rgetattr, tag) ||
