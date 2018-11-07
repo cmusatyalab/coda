@@ -216,6 +216,9 @@ enum plan9_dotl_message_types {
 #define P9_DOTL_CLOEXEC       02000000
 #define P9_DOTL_SYNC          04000000
 
+/* 9p2000.L unlinkat flags */
+#define P9_DOTL_AT_REMOVEDIR    0x200
+
 
 struct plan9_qid {
     uint8_t type;

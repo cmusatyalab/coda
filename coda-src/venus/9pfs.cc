@@ -2636,7 +2636,7 @@ int plan9server::recv_unlinkat(unsigned char *buf, size_t len, uint16_t tag)
         return -1;
     }
 
-    DEBUG("9pfs: Tunlinkat[%x] dirfid %u, name '%s', flags %o\n",
+    DEBUG("9pfs: Tunlinkat[%x] dirfid %u, name '%s', flags 0x%x\n",
             tag, dirfid, name, flags);
 
     struct fidmap *dirfm = find_fid(dirfid);
@@ -2645,16 +2645,9 @@ int plan9server::recv_unlinkat(unsigned char *buf, size_t len, uint16_t tag)
     if (dirfm->cnode.c_type != C_VDIR)
         return send_error(tag, "dirfid not a directory", ENOTDIR);
 
-    struct venus_cnode child;
-
+    /* Attempt unlinkat operation */
     conn->u.u_uid = dirfm->root->userid;
-
-    conn->lookup(&dirfm->cnode, name, &child,
-                 CLU_CASE_SENSITIVE | CLU_TRAVERSE_MTPT);
-    if (conn->u.u_error)
-        goto err_out;
-
-    if (child.c_type == C_VDIR)
+    if (flags == P9_DOTL_AT_REMOVEDIR)
         conn->rmdir(&dirfm->cnode, name);   /* remove a directory */
     else
         conn->remove(&dirfm->cnode, name);  /* remove a regular file */
