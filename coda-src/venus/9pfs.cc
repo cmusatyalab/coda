@@ -2788,10 +2788,10 @@ int plan9server::recv_renameat(unsigned char *buf, size_t len, uint16_t tag)
     int rc;
 
     if (unpack_le32(&buf, &len, &olddirfid) ||
-        unpack_le32(&buf, &len, &newdirfid) ||
         unpack_string(&buf, &len, &oldname))
         return -1;
-    if (unpack_string(&buf, &len, &newname)) {
+    if (unpack_le32(&buf, &len, &newdirfid) ||
+        unpack_string(&buf, &len, &newname)) {
         ::free(oldname);
         return -1;
     }
