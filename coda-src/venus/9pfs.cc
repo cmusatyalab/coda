@@ -1856,9 +1856,9 @@ int plan9server::recv_getattr(unsigned char *buf, size_t len, uint16_t tag)
             stat.st_mode = 0;
     }
     stat.st_mode |= (uint32_t)attr.va_mode;
-    stat.st_uid = (uint32_t)attr.va_uid;
-    stat.st_gid = (uint32_t)attr.va_gid;
     stat.st_nlink = (uint64_t)attr.va_nlink;
+    stat.st_uid = fm->root->userid;
+    stat.st_gid = fm->root->userid;
     stat.st_rdev = (uint64_t)attr.va_rdev;
     stat.st_size = (stat.qid.type == P9_QTDIR) ? 0 : attr.va_size;
     stat.st_blksize = (uint64_t)attr.va_blocksize;
