@@ -2282,8 +2282,9 @@ int plan9server::recv_symlink(unsigned char *buf, size_t len, uint16_t tag)
         errstr = "fid unknown or out of range";
         goto err_out;
     }
-    /* fid is replaced by the newly created symlink */
-    fm->cnode = child;
+    /* contrarily to what happens with legacy 9P or 9P2000.u, we do not
+     * update fid to the newly created file
+     */
 
     cnode2qid(&child, &qid);
 
@@ -2385,9 +2386,9 @@ int plan9server::recv_mkdir(unsigned char *buf, size_t len, uint16_t tag)
         errstr = "fid unknown or out of range";
         goto err_out;
     }
-    /* fid is replaced by the newly created directory */
-    fm->cnode = child;
-    fm->open_flags = flags;
+    /* contrarily to what happens with legacy 9P or 9P2000.u, we do not
+     * update fid to the newly created directory
+     */
 
     cnode2qid(&child, &qid);
 
