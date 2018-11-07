@@ -633,11 +633,11 @@ int plan9server::handle_request(unsigned char *buf, size_t read)
     case Trename:   return recv_rename(buf, len, tag);
     case Trenameat: return recv_renameat(buf, len, tag);
     /* unsupported dotl operations */
-    case Tmknod:
-    case Txattrwalk:
-    case Txattrcreate:
-    case Tlock:
-    case Tgetlock:
+    case Tmknod:        return recv_mknod(buf, len, tag);
+    case Txattrwalk:    return recv_xattrwalk(buf, len, tag);
+    case Txattrcreate:  return recv_xattrcreate(buf, len, tag);
+    case Tlock:         return recv_lock(buf, len, tag);
+    case Tgetlock:      return recv_getlock(buf, len, tag);
     default:        return send_error(tag, "Operation not supported", EBADRQC);
     }
     return 0;
@@ -2871,6 +2871,206 @@ err_out:
     ::free(oldname);
     ::free(newname);
     return send_error(tag, errstr, errcode);
+}
+
+
+int plan9server::recv_mknod(unsigned char *buf, size_t len, uint16_t tag)
+{
+    uint32_t dfid;
+    char *name;
+    uint32_t mode;
+    uint32_t major;
+    uint32_t minor;
+    gid_t gid;
+
+    if (unpack_le32(&buf, &len, &dfid) ||
+        unpack_string(&buf, &len, &name))
+        return -1;
+    if (unpack_le32(&buf, &len, &mode) ||
+        unpack_le32(&buf, &len, &major) ||
+        unpack_le32(&buf, &len, &minor) ||
+        unpack_le32(&buf, &len, &gid)) {
+        ::free(name);
+        return -1;
+    }
+
+    DEBUG("9pfs: Tmknod[%x] dfid %u, name %s, major %u, minor %u, gid %d\n",
+          tag, dfid, name, major, minor, gid);
+
+    ::free(name);
+
+#if 0
+    /* send_Rmknod */
+    DEBUG("9pfs: Rmknod[%x] qid %x.%x.%lx\n",
+          tag, qid->type, qid->version, qid->path);
+
+    buf = buffer; len = max_msize;
+    if (pack_header(&buf, &len, Rmknod, tag) ||
+        pack_qid(&buf, &len, qid))
+    {
+        send_error(tag, "Message too long");
+        return -1;
+    }
+    return send_response(buffer, max_msize - len);
+#endif
+    return send_error(tag, "Operation not supported", ENOTSUP);
+}
+
+
+int plan9server::recv_xattrwalk(unsigned char *buf, size_t len, uint16_t tag)
+{
+    uint32_t fid;
+    uint32_t newfid;
+    char *name;
+
+    if (unpack_le32(&buf, &len, &fid) ||
+        unpack_le32(&buf, &len, &newfid) ||
+        unpack_string(&buf, &len, &name))
+        return -1;
+
+    DEBUG("9pfs: Txattrwalk[%x] fid %u, newfid %u name %s\n",
+          tag, fid, newfid, name);
+
+    ::free(name);
+
+#if 0
+    /* send_Rxattrwalk */
+    DEBUG("9pfs: Rxattrwalk[%x] attr_size %lu\n", tag, attr_size);
+
+    buf = buffer; len = max_msize;
+    if (pack_header(&buf, &len, Rxattrwalk, tag) ||
+        pack_len64(&buf, &len, attr_size))
+    {
+        send_error(tag, "Message too long");
+        return -1;
+    }
+    return send_response(buffer, max_msize - len);
+#endif
+    return send_error(tag, "Operation not supported", ENOTSUP);
+}
+
+
+int plan9server::recv_xattrcreate(unsigned char *buf, size_t len, uint16_t tag)
+{
+    uint32_t fid;
+    char *name;
+    uint64_t attr_size;
+    uint32_t flags;
+
+    if (unpack_le32(&buf, &len, &fid) ||
+        unpack_string(&buf, &len, &name))
+        return -1;
+    if (unpack_le64(&buf, &len, &attr_size) ||
+        unpack_le32(&buf, &len, &flags)) {
+        ::free(name);
+        return -1;
+    }
+
+    DEBUG("9pfs: Txattrcreate[%x] fid %u, name %s, attr_size %lu, flags %x\n",
+          tag, fid, name, attr_size, flags);
+
+    ::free(name);
+
+#if 0
+    /* send_Rxattrcreate */
+    DEBUG("9pfs: Rxattrcreate[%x] \n", tag);
+
+    buf = buffer; len = max_msize;
+    if (pack_header(&buf, &len, Rxattrwalk, tag))
+    {
+        send_error(tag, "Message too long");
+        return -1;
+    }
+    return send_response(buffer, max_msize - len);
+#endif
+    return send_error(tag, "Operation not supported", ENOTSUP);
+}
+
+
+int plan9server::recv_lock(unsigned char *buf, size_t len, uint16_t tag)
+{
+    uint32_t fid;
+    uint8_t type;
+    uint32_t flags;
+    uint64_t start;
+    uint64_t length;
+    uint32_t proc_id;
+    char *client_id;
+
+    if (unpack_le32(&buf, &len, &fid) ||
+        unpack_le8(&buf, &len, &type) ||
+        unpack_le32(&buf, &len, &flags) ||
+        unpack_le64(&buf, &len, &start) ||
+        unpack_le64(&buf, &len, &length) ||
+        unpack_le32(&buf, &len, &proc_id) ||
+        unpack_string(&buf, &len, &client_id))
+        return -1;
+
+    DEBUG("9pfs: Tlock[%x] fid %u  type %x  flags %x  start %lu  length %lu  "
+                 "proc_id %d  client_id %s\n",
+          tag, fid, type, flags, start, length, proc_id, client_id);
+
+    ::free(client_id);
+
+#if 0
+    /* send_Rlock */
+    DEBUG("9pfs: Rlock[%x] status %u\n", tag, status);
+
+    buf = buffer; len = max_msize;
+    if (pack_header(&buf, &len, Rlock, tag) ||
+        pack_len8(&buf, &len, status))
+    {
+        send_error(tag, "Message too long");
+        return -1;
+    }
+    return send_response(buffer, max_msize - len);
+#endif
+    return send_error(tag, "Operation not supported", ENOTSUP);
+}
+
+
+int plan9server::recv_getlock(unsigned char *buf, size_t len, uint16_t tag)
+{
+    uint32_t fid;
+    uint8_t type;
+    uint64_t start;
+    uint64_t length;
+    uint32_t proc_id;
+    char *client_id;
+
+    if (unpack_le32(&buf, &len, &fid) ||
+        unpack_le8(&buf, &len, &type) ||
+        unpack_le64(&buf, &len, &start) ||
+        unpack_le64(&buf, &len, &length) ||
+        unpack_le32(&buf, &len, &proc_id) ||
+        unpack_string(&buf, &len, &client_id))
+        return -1;
+
+    DEBUG("9pfs: Tlock[%x] fid %u  type %x  start %lu  length %lu  "
+                 "proc_id %d  client_id %s\n",
+          tag, fid, type, start, length, proc_id, client_id);
+
+    ::free(client_id);
+
+#if 0
+    /* send_Rgetlock */
+    DEBUG("9pfs: Rgetlock[%x] type %x  start %lu  length %lu  proc_id %d  "
+            "client_id %s\n", tag, type, start, length, proc_id, client_id);
+
+    buf = buffer; len = max_msize;
+    if (pack_header(&buf, &len, Rgetlock, tag) ||
+        pack_len8(&buf, &len, type) ||
+        pack_len64(&buf, &len, start) ||
+        pack_len64(&buf, &len, length) ||
+        pack_len32(&buf, &len, proc_id) ||
+        pack_string(&buf, &len, client_id))
+    {
+        send_error(tag, "Message too long");
+        return -1;
+    }
+    return send_response(buffer, max_msize - len);
+#endif
+    return send_error(tag, "Operation not supported", ENOTSUP);
 }
 
 
