@@ -2027,9 +2027,9 @@ int plan9server::recv_setattr(unsigned char *buf, size_t len, uint16_t tag)
      if (fm->open_flags)
          return send_error(tag, "file already open for I/O", EIO);
 
-     /* We're not handling ORCLOSE, OEXEC, OEXCL yet and the rest should be 0 */
-     if (lopen_flags & ~00307003)
-         return send_error(tag, "Invalid lopen flags", EINVAL);
+     /* These are the flags that we support so far, the rest should be 0 */
+     if (lopen_flags & ~00707503)
+         return send_error(tag, "Unsupported lopen flags", ENOTSUP);
 
      switch (lopen_flags & 00000003) {
         case P9_DOTL_RDONLY:

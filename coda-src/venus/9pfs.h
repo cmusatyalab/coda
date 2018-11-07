@@ -201,20 +201,20 @@ enum plan9_dotl_message_types {
 #define P9_DOTL_RDWR          00000002
 #define P9_DOTL_NOACCESS      00000003
 #define P9_DOTL_CREATE        00000100
-#define P9_DOTL_EXCL          00000200
+#define P9_DOTL_EXCL          00000200   /* unsupported */
 #define P9_DOTL_NOCTTY        00000400
 #define P9_DOTL_TRUNC         00001000
 #define P9_DOTL_APPEND        00002000
 #define P9_DOTL_NONBLOCK      00004000
-#define P9_DOTL_DSYNC         00010000
-#define P9_DOTL_FASYNC        00020000
-#define P9_DOTL_DIRECT        00040000
+#define P9_DOTL_DSYNC         00010000   /* unsupported */
+#define P9_DOTL_FASYNC        00020000   /* unsupported */
+#define P9_DOTL_DIRECT        00040000   /* unsupported */
 #define P9_DOTL_LARGEFILE     00100000
 #define P9_DOTL_DIRECTORY     00200000
 #define P9_DOTL_NOFOLLOW      00400000
-#define P9_DOTL_NOATIME       01000000
-#define P9_DOTL_CLOEXEC       02000000
-#define P9_DOTL_SYNC          04000000
+#define P9_DOTL_NOATIME       01000000   /* unsupported */
+#define P9_DOTL_CLOEXEC       02000000   /* unsupported */
+#define P9_DOTL_SYNC          04000000   /* unsupported */
 
 /* 9p2000.L unlinkat flags */
 #define P9_DOTL_AT_REMOVEDIR    0x200
