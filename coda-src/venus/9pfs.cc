@@ -1856,9 +1856,9 @@ int plan9server::recv_getattr(unsigned char *buf, size_t len, uint16_t tag)
             stat.st_mode = 0;
     }
     stat.st_mode |= (uint32_t)attr.va_mode;
-    stat.st_nlink = (uint64_t)attr.va_nlink;
     stat.st_uid = fm->root->userid;
     stat.st_gid = fm->root->userid;
+    cnode_linkcount(&fm->cnode, &stat.st_nlink);
     stat.st_rdev = (uint64_t)attr.va_rdev;
     stat.st_size = attr.va_size;
     stat.st_blksize = (uint64_t)attr.va_blocksize;
@@ -3055,6 +3055,18 @@ int plan9server::recv_getlock(unsigned char *buf, size_t len, uint16_t tag)
 /*
  * fidmap helper functions
  */
+
+/*
+* Given a cnode, returns its actual link count.
+*/
+int plan9server::cnode_linkcount(struct venus_cnode *cnode, uint64_t *linkcount)
+{
+fsobj *f = FSDB->Find(&cnode->c_fid);
+if (f == NULL) return -EBADF;         /* Venus fid not found */
+*linkcount = (uint64_t)f->stat.LinkCount;
+return 0;
+}
+
 
 /*
  * Obtains the file or directory name given a cnode, and places it in the

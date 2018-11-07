@@ -408,6 +408,7 @@ class plan9server {
     ssize_t plan9_read(struct fidmap *fm, unsigned char *buf,
                        size_t count, size_t offset);
 
+    int cnode_linkcount(struct venus_cnode *cnode, uint64_t * linkcount);
     int cnode_getname(struct venus_cnode *cnode, char *name);
     int cnode_getparent(struct venus_cnode *cnode, struct venus_cnode *parent);
 
