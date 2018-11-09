@@ -333,9 +333,22 @@ static int pack_dotl_direntry(unsigned char **buf, size_t *len,
     unsigned char *offset_buf = NULL;
     size_t offset_len = 8;
 
+    // Build the byte representing the POSIX file type
+    uint8_t type;
+    switch (stat->qid.type) {
+        case P9_QTDIR:
+            type = (uint8_t)(S_IFDIR >> 12);
+            break;
+        case P9_QTSYMLINK:
+            type = (uint8_t)(S_IFLNK >> 12);
+            break;
+        default:
+            type = (uint8_t)(S_IFREG >> 12);
+    }
+
     if (pack_qid(buf, len, &stat->qid) ||
         get_blob_ref(buf, len, &offset_buf, NULL, 8)  ||
-        pack_le8(buf, len, stat->qid.type) ||
+        pack_le8(buf, len, type) ||
         pack_string(buf, len, stat->name))
         goto pack_dotl_err_out;
 
@@ -1671,11 +1684,23 @@ int plan9server::pack_dirent(unsigned char **buf, size_t *len, size_t *packed_of
 
     /* and finally we pack until we cannot fit any more entries */
     if (protocol == P9_PROTO_DOTL) {
+        // Figure out the byte representing the POSIX file type
+        uint8_t type;
+        switch (stat.qid.type) {
+            case P9_QTDIR:
+                type = (uint8_t)(S_IFDIR >> 12);
+                break;
+            case P9_QTSYMLINK:
+                type = (uint8_t)(S_IFLNK >> 12);
+                break;
+            default:
+                type = (uint8_t)(S_IFREG >> 12);
+        }
         rc = pack_dotl_direntry(buf, len, &stat, packed_offset);
         if (!rc) {
-            DEBUG("      qid[%x.%x.%lx] off[%lu] typ[%x] '%s'\n",
+            DEBUG("      qid[%x.%x.%lx] off[%lu] typ[0%o] '%s'\n",
                     stat.qid.type, stat.qid.version, stat.qid.path,
-                    *packed_offset, stat.qid.type, stat.name);
+                    *packed_offset, type, stat.name);
         }
     }
     else {
