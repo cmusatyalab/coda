@@ -2338,7 +2338,6 @@ int plan9server::recv_mkdir(unsigned char *buf, size_t len, uint16_t tag)
 
     struct fidmap *fm;
     struct coda_vattr va = { 0 };
-    int flags = C_O_READ;
 
     va.va_size = 0;
     va.va_mode = mode & 0777;
@@ -2370,18 +2369,9 @@ int plan9server::recv_mkdir(unsigned char *buf, size_t len, uint16_t tag)
         goto err_out;
     }
 
-    conn->open(&child, flags);
-
-    if (conn->u.u_error) {
-        errcode = conn->u.u_error;
-        errstr = VenusRetStr(errcode);
-        goto err_out;
-    }
-
     /* mkdir yields, reobtain fidmap reference */
     fm = find_fid(dfid);
     if (!fm) {
-        conn->close(&child, flags);
         errcode = EBADF;
         errstr = "fid unknown or out of range";
         goto err_out;
