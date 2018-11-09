@@ -1934,8 +1934,8 @@ int plan9server::recv_setattr(unsigned char *buf, size_t len, uint16_t tag)
        return -1;
 
     DEBUG("9pfs: Tsetattr[%x] fid %u  valid mask 0x%x \n \
-                 mode %o \n \
-                 uid %u  gid %u \n \
+                 mode 0%o \n \
+                 uid %d  gid %d \n \
                  size %lu \n \
                  atime_sec %lu  _nsec %lu \n \
                  mtime_sec %lu  _nsec %lu \n",
