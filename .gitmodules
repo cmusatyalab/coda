@@ -1,0 +1,4 @@
+[submodule "external-src/googletest"]
+	path = external-src/googletest
+	url = https://github.com/google/googletest.git
+	ignore = dirty

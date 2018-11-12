@@ -26,5 +26,9 @@ if [ "$1" = "--fix-versions" ] ; then
   fixver rvm
 fi
 
+# Update submodules
+git submodule init external-src/googletest
+git submodule update external-src/googletest
+
 # and rebuild configure files
 autoreconf --verbose --install --force

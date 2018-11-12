@@ -2,6 +2,7 @@
 .deps
 .dotest
 .libs
+.dirstamp
 Makefile
 Makefile.in
 autom4te.cache
@@ -41,3 +42,5 @@ ylwrap
 *.orig
 *.swp
 *~
+unittest.xml
+test-src/unit/unit
