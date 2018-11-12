@@ -2,7 +2,9 @@
 
 check_PROGRAMS = unit
 
-unit_SOURCES = main.cc
+UTIL_TESTS = util/u_bitmap.cc
+
+unit_SOURCES = main.cc $(UTIL_TESTS)
 
 unit_LDADD = $(top_builddir)/coda-src/util/libutil.la \
              $(top_builddir)/lib-src/base/libbase.la \
