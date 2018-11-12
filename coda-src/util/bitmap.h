@@ -24,6 +24,9 @@ listed in the file CREDITS.
  * Declaration of a bitmap class 
  */
 
+#include <stddef.h>
+#include <stdio.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -48,11 +51,12 @@ extern "C" {
 #define BITMAP_VIANEW 221     /* on heap, via operator new */
 
 class bitmap {
-//  friend ostream& operator<<(ostream& s, bitmap *b);  
-    uint8_t recoverable;	/* is this bitmap recoverable */
-    uint8_t malloced;           /* was bitmap allocated via new? */
-    int mapsize;		/* 1/8 size of array of elements */
-    char *map;			/* bitmap showing status of the elements */
+//  friend ostream& operator<<(ostream& s, bitmap *b);
+    uint8_t recoverable;   /**< is this bitmap recoverable */
+    uint8_t malloced;      /**< was bitmap allocated via new? */
+    int mapsize;           /**< 1/8 size of array of elements */
+    int indexsize;         /**< amount of bits in the map */
+    char *map;             /**< bitmap showing status of the elements */
 
     /**
      * Set the value of a bit at an index

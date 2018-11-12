@@ -98,6 +98,8 @@ bitmap::bitmap(int inputmapsize, int recable)
     recoverable = recable;
     if (recoverable)
         rvmlib_set_range(this, sizeof(bitmap));
+
+    indexsize = inputmapsize;
         
     if (inputmapsize > 0) {
         /* make sure we allocate enough even if inputmapsize is not multiple of 8 */
@@ -179,8 +181,14 @@ void bitmap::Resize(int newsize)
     if (recoverable)
         rvmlib_set_range(this, sizeof(bitmap));
 
-    mapsize = newmapsize;
     map = newmap;
+    mapsize = newmapsize;
+    indexsize = newsize;
+
+    /* Clean the gap between actual wanted size 
+     * and the map size when shrinking */
+    for (int i = newsize; i < (newmapsize << 3); i++) 
+        FreeIndex(i);
 }
 
 void bitmap::Grow(int newsize)
@@ -235,65 +243,62 @@ void bitmap::SetValue(int index, int value)
 
 void bitmap::CopyRange(int start, int len, bitmap& b)
 {
-    int bit_end = len < 0 ? mapsize - 1 : start + len;
-    int byte_start = start;
-    int byte_end = bit_end;
+    int end_bit = len < 0 ? indexsize: start + len;
+    int start_byte = (start + 0x7) >> 3;
+    int end_byte = end_bit >> 3;
+    int bulk_len = end_byte - start_byte;
 
     if (!map) return;
 
-    byte_start = (byte_start + 0x7) & ~0x7;
-    byte_end = byte_end & ~0x7;
-
-    if (byte_start >= byte_end) {
-        for (int i = start; i < bit_end; i++) {
-            SetValue(i, Value(i));
+    if (bulk_len <= 0) {
+        for (int i = start; i < end_bit; i++) {
+            b.SetValue(i, Value(i));
         }
         return;
     }
 
-    byte_start = byte_start >> 3;
-    byte_end = byte_end >> 3;
+    /* Copy all the bytes in between */
+    memcpy(&b.map[start_byte], &map[start_byte], bulk_len);
 
-    memcpy(&b.map[byte_start], &map[byte_start], byte_end - byte_start);
-
-    for (int i = start; i < (byte_start << 3); i++) {
+    /* Copy the values from before the first copied byte */
+    for (int i = start; i & 0x7; i++) {
         b.SetValue(i, Value(i));
     }
 
-    for (int i = (byte_end << 3); i < bit_end; i++) {
+    /* Copy the values from after the last copied byte */
+    for (int i = (end_byte << 3); i < end_bit; i++) {
         b.SetValue(i, Value(i));
     }
 }
 
 void bitmap::SetRangeValue(int start, int len, int value)
 {
-    int bit_end = len < 0 ? mapsize - 1 : start + len;
-    int byte_start = start;
-    int byte_end = bit_end;
+    int end_bit = len < 0 ? indexsize: start + len;
+    int start_byte = (start + 0x7) >> 3;
+    int end_byte = end_bit >> 3;
+    int bulk_len = end_byte - start_byte;
+    uint8_t bulk_value = value ? 0xFF : 0;
 
     if (!map) return;
 
-    byte_start = (byte_start + 0x7) & ~0x7;
-    byte_end = byte_end & ~0x7;
-
-    if (byte_start >= byte_end) {
-        for (int i = start; i < bit_end; i++) {
-            SetValue(i, value);
+    if (bulk_len <= 0) {
+        for (int i = start; i < end_bit; i++) {
+            SetValue(i, value & 0x1);
         }
         return;
     }
 
-    byte_start = byte_start >> 3;
-    byte_end = byte_end >> 3;
+    /* Copy all the bytes in between */
+    memset(&map[start_byte], bulk_value, bulk_len);
 
-    memset(&map[byte_start], value, byte_end - byte_start);
-
-    for (int i = start; i < (byte_start << 3); i++) {
-        SetValue(i, value);
+    /* Copy the values from before the first copied byte */
+    for (int i = start; i & 0x7; i++) {
+        SetValue(i, value & 0x1);
     }
 
-    for (int i = (byte_end << 3); i < bit_end; i++) {
-        SetValue(i, value);
+    /* Copy the values from after the last copied byte */
+    for (int i = (end_byte << 3); i < end_bit; i++) {
+        SetValue(i, value & 0x1);
     }
 }
 
