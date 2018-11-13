@@ -27,8 +27,10 @@ if [ "$1" = "--fix-versions" ] ; then
 fi
 
 # Update submodules
-git submodule init external-src/googletest
-git submodule update external-src/googletest
+if [ "$1" = "--install-optional-dependencies" ] ; then
+    git submodule init
+    git submodule update
+fi
 
 # and rebuild configure files
 autoreconf --verbose --install --force

@@ -168,16 +168,10 @@ AM_CONDITIONAL([WANT_FTS], [test "$ac_cv_header_fts_h" = no])
 
 AM_CONDITIONAL(HAVE_VALGRIND, [test "$HAVE_VALGRIND_BIN" == "1"])
 
-AM_CONDITIONAL(RUN_UNIT, [test "$run_unit" != no])
+AM_CONDITIONAL(RUN_UNIT, [test "$run_unit" != no -a -f "${srcdir}/external-src/googletest/googletest/Makefile.am"])
 
 dnl Needed for googletest/googletest/Makefile.am
 AM_CONDITIONAL(HAVE_PTHREADS, [false])
-
-dnl In case the submodule isn't updated
-AM_COND_IF(RUN_UNIT, [
-    git submodule init external-src/googletest
-    git submodule update external-src/googletest]
-)
 
 dnl If Valgrind isn't installed notify the user
 AM_COND_IF(HAVE_VALGRIND,, [
@@ -241,12 +235,15 @@ coda-src/asr/Makefile
 coda-src/egasr/Makefile
 coda-src/asrlauncher/Makefile
 coda-src/vcodacon/Makefile
-coda-src/smon2/Makefile])
-
-dnl Configure testing
-AC_CONFIG_FILES([
+coda-src/smon2/Makefile
 test-src/Makefile
-test-src/unit/Makefile
-external-src/googletest/googletest/Makefile])
+test-src/unit/Makefile])
+
+AC_CONFIG_COMMANDS_POST([
+    if test -f "${srcdir}/external-src/googletest/googletest/Makefile.am" ; then
+      automake --add-missing external-src/googletest/googletest/Makefile
+      ./config.status --file=external-src/googletest/googletest/Makefile
+    fi
+])
 
 AC_OUTPUT

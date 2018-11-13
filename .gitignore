@@ -31,6 +31,7 @@ mkinstalldirs
 rp2gen.stamp
 stamp-h1
 tags
+test-driver
 ylwrap
 *.[ao]
 *.l[ao]
