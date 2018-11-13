@@ -28,11 +28,10 @@ $(GTEST_DIR)/lib/libgtest.la:
 	$(MAKE) -C $(GTEST_DIR) lib/libgtest.la
 
 clean-local:
-	$(MAKE) -C $(GTEST_DIR) clean
+	if test -f "${GTEST_DIR}/Makefile"; then make -C $(GTEST_DIR) clean; fi
 
 distclean-local:
-	$(MAKE) -C $(GTEST_DIR) distclean
-
+	if test -f "${GTEST_DIR}/Makefile"; then make -C $(GTEST_DIR) distclean; fi
 
 check-local: unit
 	${LIBTOOL} ${UNIT_BIN} ${GTEST_FLAGS} ${GTEST_EXTRA_FLAGS}
