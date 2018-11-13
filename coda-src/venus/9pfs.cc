@@ -2158,7 +2158,7 @@ int plan9server::recv_lcreate(unsigned char *buf, size_t len, uint16_t tag)
             return -1;
         }
 
-    DEBUG("9pfs: Tlcreate[%x] fid %u, name %s, intent %o, mode %o, gid %u\n",
+    DEBUG("9pfs: Tlcreate[%x] fid %u, name %s, intent 0x%x, mode %o, gid %u\n",
        tag, fid, name, intent, mode, gid);
 
     struct fidmap *fm;
