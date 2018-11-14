@@ -239,11 +239,6 @@ coda-src/smon2/Makefile
 test-src/Makefile
 test-src/unit/Makefile])
 
-AC_CONFIG_COMMANDS_POST([
-    if test -f "${srcdir}/external-src/googletest/googletest/Makefile.am" ; then
-      automake --add-missing external-src/googletest/googletest/Makefile
-      ./config.status --file=external-src/googletest/googletest/Makefile
-    fi
-])
+CODA_SOFT_CONFIG_SUBDIR([external-src/googletest/googletest], [--with-pthreads=no])
 
 AC_OUTPUT
