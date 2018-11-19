@@ -17,5 +17,5 @@ AM_DISTCHECK_CONFIGURE_FLAGS =\
 DISTCLEANFILES = unittest.xml
 
 ## Testing related
-memcheck:
+memcheck: all
 	$(MAKE) -C test-src/unit memcheck
