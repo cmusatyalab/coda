@@ -1,15 +1,46 @@
+/* BLURB gpl
+
+                           Coda File System
+                              Release 7
+
+          Copyright (c) 1987-2018 Carnegie Mellon University
+                  Additional copyrights listed below
+
+This  code  is  distributed "AS IS" without warranty of any kind under
+the terms of the GNU General Public Licence Version 2, as shown in the
+file  LICENSE.  The  technical and financial  contributors to Coda are
+listed in the file CREDITS.
+
+                        Additional copyrights
+                           none currently
+
+#*/
+/* system */
+
+/* external */
+#include <gtest/gtest.h>
+
+/* from coda-src */
 #include <util/bitmap.h>
-#include "gtest/gtest.h"
+
+/* from test-src */
+#include <test/rvm/rvm.h>
+#include <test/rvm/recov.h>
 
 namespace {
 
 // bitmap.
 TEST(bitmap, assign) {
     int16_t bitmap_size = rand() & 0x7FFF;
+    int recoverable_1 = rand() & 0x1;
+    int recoverable_2 = rand() & 0x1;
     int16_t i = 0;
 
-    bitmap * src = new (0) bitmap(bitmap_size, 0);
-    bitmap * dst = new (0) bitmap(bitmap_size, 0);
+    Recov_BeginTrans();
+
+    bitmap * src = new (recoverable_1) bitmap(bitmap_size, recoverable_1);
+    bitmap * dst = new (recoverable_2) bitmap(bitmap_size, recoverable_2);
+
     EXPECT_GE(src->Size(), bitmap_size);
     EXPECT_GE(dst->Size(), bitmap_size);
 
@@ -30,6 +61,7 @@ TEST(bitmap, assign) {
     delete (src);
     delete (dst);
 
+    Recov_EndTrans(0);
 }
 
 TEST(bitmap, copy) {
@@ -37,9 +69,13 @@ TEST(bitmap, copy) {
     int16_t i = 0;
     int16_t start = rand() % bitmap_size;
     int16_t len = rand() % bitmap_size;
+    int recoverable_1 = rand() & 0x1;
+    int recoverable_2 = rand() & 0x1;
 
-    bitmap * src = new (0) bitmap(bitmap_size, 0);
-    bitmap * dst = new (0) bitmap(bitmap_size, 0);
+    Recov_BeginTrans();
+
+    bitmap * src = new (recoverable_1) bitmap(bitmap_size, recoverable_1);
+    bitmap * dst = new (recoverable_2) bitmap(bitmap_size, recoverable_2);
 
     EXPECT_GE(src->Size(), bitmap_size);
     EXPECT_GE(dst->Size(), bitmap_size);
@@ -64,15 +100,21 @@ TEST(bitmap, copy) {
     delete (src);
     delete (dst);
 
+    Recov_EndTrans(0);
+
 }
 
 TEST(bitmap, assign_different_size) {
     int16_t bitmap_size_1 = rand() & 0x7FFF;
     int16_t bitmap_size_2 = rand() & 0x7FFF;
     int16_t i = 0;
+    int recoverable_1 = rand() & 0x1;
+    int recoverable_2 = rand() & 0x1;
 
-    bitmap * src = new (0) bitmap(bitmap_size_1, 0);
-    bitmap * dst = new (0) bitmap(bitmap_size_2, 0);
+    Recov_BeginTrans();
+
+    bitmap * src = new (recoverable_1) bitmap(bitmap_size_1, recoverable_1);
+    bitmap * dst = new (recoverable_2) bitmap(bitmap_size_2, recoverable_2);
 
     EXPECT_GE(src->Size(), bitmap_size_1);
     EXPECT_GE(dst->Size(), bitmap_size_2);
@@ -96,14 +138,19 @@ TEST(bitmap, assign_different_size) {
     delete (src);
     delete (dst);
 
+    Recov_EndTrans(0);
+
 }
 
 TEST(bitmap, resize) {
     int16_t bitmap_size_start = rand() & 0x7FFF;
     int16_t bitmap_size_end = rand() & 0x7FFF;
     int16_t i = 0;
+    int recoverable = rand() & 0x1;
 
-    bitmap * bm = new (0) bitmap(bitmap_size_start, 0);
+    Recov_BeginTrans();
+
+    bitmap * bm = new (recoverable) bitmap(bitmap_size_start, recoverable);
 
     EXPECT_GE(bm->Size(), bitmap_size_start);
 
@@ -124,14 +171,19 @@ TEST(bitmap, resize) {
 
     delete (bm);
 
+    Recov_EndTrans(0);
+
 }
 
 TEST(bitmap, set_range) {
     int16_t bitmap_size = rand() & 0x7FFF;
     int16_t start = rand() % bitmap_size;
     int16_t len = rand() % bitmap_size;
+    int recoverable = rand() & 0x1;
 
-    bitmap * bm = new (0) bitmap(bitmap_size, 0);
+    Recov_BeginTrans();
+
+    bitmap * bm = new (recoverable) bitmap(bitmap_size, recoverable);
 
     EXPECT_GE(bm->Size(), bitmap_size);
 
@@ -156,15 +208,20 @@ TEST(bitmap, set_range) {
 
     delete (bm);
 
+    Recov_EndTrans(0);
 }
 
 TEST(bitmap, set_range_and_copy_till_end) {
     int16_t bitmap_size = rand() & 0x7FFF;
     int16_t start = rand() % bitmap_size;
     int16_t len = -1;
+    int recoverable_1 = rand() & 0x1;
+    int recoverable_2 = rand() & 0x1;
 
-    bitmap * bm = new (0) bitmap(bitmap_size, 0);
-    bitmap * bm_cpy = new (0) bitmap(bitmap_size, 0);
+    Recov_BeginTrans();
+
+    bitmap * bm = new (recoverable_1) bitmap(bitmap_size, recoverable_1);
+    bitmap * bm_cpy = new (recoverable_2) bitmap(bitmap_size, recoverable_2);
 
     EXPECT_GE(bm->Size(), bitmap_size);
     EXPECT_GE(bm_cpy->Size(), bitmap_size);
@@ -186,26 +243,36 @@ TEST(bitmap, set_range_and_copy_till_end) {
     delete (bm);
     delete (bm_cpy);
 
+    Recov_EndTrans(0);
+
 }
 
 TEST(bitmap, purge_delete) {
     int16_t bitmap_size = rand() & 0x7FFF;
+    int recoverable = rand() & 0x1;
 
-    bitmap * bm = new (0) bitmap(bitmap_size, 0);
+    Recov_BeginTrans();
+
+    bitmap * bm = new (recoverable) bitmap(bitmap_size, recoverable);
 
     EXPECT_GE(bm->Size(), bitmap_size);
 
     bm->purge();
 
     delete (bm);
+
+    Recov_EndTrans(0);
 }
 
 TEST(bitmap, get_free_index) {
     int16_t bitmap_size = rand() & 0x7FFF;
     int16_t i = 0;
     int16_t current_index = 0;
+    int recoverable = rand() & 0x1;
 
-    bitmap * bm = new (0) bitmap(bitmap_size, 0);
+    Recov_BeginTrans();
+
+    bitmap * bm = new (recoverable) bitmap(bitmap_size, recoverable);
     
     EXPECT_GE(bm->Size(), bitmap_size);
     bm->FreeRange(0, bitmap_size);
@@ -217,6 +284,8 @@ TEST(bitmap, get_free_index) {
     }
 
     delete (bm);
+
+    Recov_EndTrans(0);
 }
 
 static void check_range(bitmap* bm, int start, int len, int value) {
@@ -230,9 +299,15 @@ static void check_range(bitmap* bm, int start, int len, int value) {
 
 TEST(bitmap, ranges_cases) {
     int16_t bitmap_size = 333; // Simply need an unaligned size
-    bitmap * ones = new (0) bitmap(bitmap_size, 0);
-    bitmap * zeros = new (0) bitmap(bitmap_size, 0);
-    bitmap * test_bm = new (0) bitmap(bitmap_size, 0);
+    int recoverable_1 = rand() & 0x1;
+    int recoverable_2 = rand() & 0x1;
+    int recoverable_3 = rand() & 0x1;
+
+    Recov_BeginTrans();
+
+    bitmap * ones = new (recoverable_1) bitmap(bitmap_size, recoverable_1);
+    bitmap * zeros = new (recoverable_2) bitmap(bitmap_size, recoverable_2);
+    bitmap * test_bm = new (recoverable_3) bitmap(bitmap_size, recoverable_3);
     int start = 0;
     int len = 0;
 
@@ -370,6 +445,8 @@ TEST(bitmap, ranges_cases) {
     delete (zeros);
     delete (ones);
     delete (test_bm);
+
+    Recov_EndTrans(0);
 }
 
 }  // namespace
