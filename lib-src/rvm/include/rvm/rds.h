@@ -68,8 +68,16 @@ extern int rds_load_heap(
       int                   *err
     );
 
+extern int rds_unload_heap(
+      int                   *err
+    );
+
 extern int rds_start_heap(
       char                  *startAddr,
+      int                   *err
+    );
+
+extern int rds_stop_heap(
       int                   *err
     );
 

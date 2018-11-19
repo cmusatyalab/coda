@@ -99,6 +99,22 @@ rds_load_heap(DevName, DevLength, static_addr, err)
     return 0;
 }
 
+int
+rds_unload_heap(err)
+     int	  *err;
+{
+    rvm_flush();
+    rvm_truncate();
+
+    rvm_release_segment(NRegionDefs, &RegionDefs);
+
+    free(RegionDefs);
+
+    rds_stop_heap(err);
+
+    return 0;
+}
+
 /*
  * Provide an interface which doesn't know about the segment layout.
  */
@@ -131,6 +147,16 @@ rds_start_heap(startAddr, err)
 	((char *)RecoverableHeapStartAddress +
 	    ((RDS_HEAPLENGTH - heap_hdr_len)/ RDS_CHUNK_SIZE) * RDS_CHUNK_SIZE +
 		heap_hdr_len);
+
+    *err = SUCCESS;
+    return -1;
+}
+
+int
+rds_stop_heap(err)
+     int *err;
+{
+    RecoverableHeapStartAddress = 0;
 
     *err = SUCCESS;
     return -1;

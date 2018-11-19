@@ -2,9 +2,11 @@
 
 check_PROGRAMS = unit
 
+LIB_SRC = lib/rvm/rvm.cc lib/lwp/lwp.cc
+
 UTIL_TESTS = util/u_bitmap.cc
 
-unit_SOURCES = main.cc $(UTIL_TESTS)
+unit_SOURCES = main.cc $(UTIL_TESTS) $(LIB_SRC)
 
 GTEST_DIR = $(top_builddir)/external-src/googletest/googletest
 
@@ -14,9 +16,12 @@ unit_LDADD = $(top_builddir)/coda-src/util/libutil.la \
              $(RVM_RPC2_LIBS)
 
 AM_CPPFLAGS = $(RVM_RPC2_CFLAGS) -DVENUS -DTIMING -DVENUSDEBUG \
+              -I$(top_srcdir)/test-src/unit/include \
               -I$(top_srcdir)/lib-src/base \
               -I$(top_srcdir)/coda-src \
-              -I$(top_builddir)/coda-src
+              -I$(top_srcdir)/coda-src/util \
+              -I$(top_builddir)/coda-src \
+              -I$(GTEST_DIR)/include
 
 LIBTOOL = libtool --mode=execute
 GTEST_FLAGS = --gtest_output="xml:$(top_builddir)/unittest.xml" --gtest_shuffle
