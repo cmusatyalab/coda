@@ -55,7 +55,7 @@ rvm_create_segment(DevName, DevLength, options, nregions, regionDefs)
 
     /* Map in the first RVM_SEGMENT_HDR_SIZE bytes of the segment */
     
-    region->data_dev = DevName;
+    region->data_dev = strdup(DevName);
     region->dev_length = DevLength;
     RVM_ZERO_OFFSET(region->offset);
     region->length = RVM_SEGMENT_HDR_SIZE;

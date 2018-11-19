@@ -110,4 +110,3 @@ rds_zap_heap(DevName, DevLength, startAddr, staticLength, heapLength, nlists, ch
 
     return (*err == SUCCESS ? 0 : -1);
 }
-

@@ -222,6 +222,10 @@ int LWP_TerminateProcessSupport(void)       /* terminate all LWP support */
     for_all_elts(cur, blocked, { Free_PCB(cur);})
     free((char *)lwp_init);
     lwp_init = NULL;
+
+    free(reaper.uc_stack.ss_sp);
+    free(tracer.uc_stack.ss_sp);
+
     return LWP_SUCCESS;
 }
 

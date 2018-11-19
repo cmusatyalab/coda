@@ -137,6 +137,9 @@ rvm_return_t rvm_terminate(void)
         inited = rvm_false;
         terminated = rvm_true;
 
+        /* Clean free lists */
+        clear_free_lists();
+
 err_exit:;
         });                             /* end init_lock crit sec */
 

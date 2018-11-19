@@ -153,7 +153,7 @@ list_entry_t *move_list_entry(fromptr, toptr, victim)
                 victim->preventry->nextentry = victim->nextentry;
             victim->nextentry = victim->preventry = NULL;
 
-            fromptr->list.length --;
+            fromptr->list.length--;
             }
         }
     else
@@ -173,9 +173,11 @@ list_entry_t *move_list_entry(fromptr, toptr, victim)
         victim->nextentry = toptr;
         victim->preventry->nextentry = toptr->preventry = victim;
 
-        toptr->list.length ++;
+        toptr->list.length++;
         }
-    else victim->list.name = NULL;
+    else {
+        victim->list.name = NULL;
+    }
 
     return victim;
     }
@@ -264,7 +266,7 @@ static void free_list_entry(cell)
             kill_list_entry(cell);
         });                             /* end free_list_lock crit sec */
     }
-#ifdef UNUSED
+
 /* clear free lists */
 void clear_free_list(id)
     struct_id_t     id;                 /* type of free list */
@@ -288,7 +290,7 @@ void clear_free_lists()
     for (i = 0; i < ID_INDEX(struct_last_cache_id); i++)
         clear_free_list(INDEX_ID(i));
     }
-#endif
+
 /* unique name generator */
 /* Cannot be statically allocated in pthreads */
 static RVM_MUTEX     uname_lock = MUTEX_INITIALIZER;
@@ -598,6 +600,10 @@ void free_log(log)
     log->dev.name = NULL;
     log->dev.iov = NULL;
     free_log_buf(log);                  /* kill recovery buffers */
+
+    if (log->seg_dict_vec) {
+        free_seg_dict_vec(log);
+    }
 
     free_list_entry(&log->links);       /* free descriptor */
     }
@@ -909,9 +915,17 @@ rvm_region_t *rvm_malloc_region()
 void rvm_free_region(rvm_region)
     rvm_region_t    *rvm_region;
     {
-    if ((!bad_region(rvm_region))&&(free_lists_inited)&&
-        (rvm_region->from_heap))
-        free_export((list_entry_t *)rvm_region,region_rvm_id);
+        if ((!bad_region(rvm_region))&&(free_lists_inited)&&
+            (rvm_region->from_heap)) {
+
+            if (rvm_region->data_dev != NULL ) {
+                free(rvm_region->data_dev);
+                rvm_region->data_dev = NULL;
+            }
+
+            free_export((list_entry_t *)rvm_region,region_rvm_id);
+           
+        }
     }
 void rvm_init_region(rvm_region)
     rvm_region_t    *rvm_region;
@@ -1963,6 +1977,14 @@ rvm_bool_t tree_delete(tree,node,cmp)
         || ((old_root != tree->root) && (tree->root->bf == 0)))
         tree->max_depth--;
 
+    if (tree->n_nodes == 0) {
+        if (tree->traverse != NULL) {
+            free((char *)tree->traverse);
+            tree->traverse = NULL;
+            tree->traverse_len = 0;
+        }
+    }
+
     return rvm_true;
     }
 /* forward order iteration generator: balance not maintained if nodes unlinked */
@@ -2290,3 +2312,4 @@ rvm_offset_t rvm_rnd_offset_to_sector(x)
 
     return tmp;
     }
+

@@ -88,6 +88,7 @@ rvm_return_t rvm_unmap(rvm_region)
                                   (list_entry_t *)region);
             }
         else
+        free_mem_region(region->mem_region);
             free_region(region);
         });                             /* end seg_lock critical section */
 

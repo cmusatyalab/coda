@@ -480,7 +480,7 @@ rvm_return_t close_all_segs()
 
     RW_CRITICAL(seg_root_lock,w,        /* begin seg_root_lock crit section */
         {
-        FOR_ENTRIES_OF(seg_root,seg_t,seg)
+        UNLINK_ENTRIES_OF(seg_root,seg_t,seg)
             {
             CRITICAL(seg->dev_lock,     /* begin seg->dev_lock crit section */
                 {
@@ -489,6 +489,7 @@ rvm_return_t close_all_segs()
                 });                     /* end seg->dev_lock crit section */
             if (retval != RVM_SUCCESS)
                 break;
+            free_seg(seg);
             }
         });                             /* end seg_root_lock crit section */
 
@@ -878,6 +879,7 @@ static rvm_return_t chk_dependencies(seg,region)
                     if ((retval=wait_for_truncation(seg->log,
                                                 &x_region->unmap_ts))
                         != RVM_SUCCESS) goto err_exit;
+                    free_mem_region(x_region->mem_region);
                     free_region(x_region); /* can free now */
                     }
                 else break;             /* no further dependencies */

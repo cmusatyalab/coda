@@ -42,8 +42,11 @@ rvm_release_segment (
         if (err != RVM_SUCCESS)
             printf("release_segment unmap failed %s\n", rvm_return(err));
 
+        rvm_unregister_page(region->vmaddr, region->length);
         deallocate_vm(region->vmaddr, region->length);
+
     }
+    
     rvm_free_region(region);
     free(*regions);
     return err;

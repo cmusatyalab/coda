@@ -1157,8 +1157,7 @@ list_entry_t *alloc_list_entry();        /* [rvm_utils.c] */
 /* internal type allocators/deallocators */
 
 extern
-void clear_free_list();                 /* [rvm_utils.c] */
-/*  struct_id_t     id; */
+void clear_free_lists();                 /* [rvm_utils.c] */
 
 extern
 region_t *make_region();                /* [rvm_utils.c] */

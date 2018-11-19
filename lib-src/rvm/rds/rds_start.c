@@ -45,7 +45,7 @@ heap_header_t *RecoverableHeapStartAddress;
  * avoid casts in comparisons.
  */
 free_block_t *RecoverableHeapHighAddress;
-rvm_region_def_t *RegionDefs;
+rvm_region_def_t *RegionDefs = NULL;
 unsigned long     NRegionDefs;
 rvm_bool_t       rds_testsw = rvm_false;   /* switch to allow special
                                               test modes */
@@ -107,8 +107,6 @@ rds_unload_heap(err)
     rvm_truncate();
 
     rvm_release_segment(NRegionDefs, &RegionDefs);
-
-    free(RegionDefs);
 
     rds_stop_heap(err);
 

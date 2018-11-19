@@ -53,7 +53,7 @@ rvm_load_segment(char *DevName, rvm_offset_t DevLength, rvm_options_t *options,
     /* HACK */ rds_rvmsize = 0; /* HACK */
     
     /* Read in the header region of the segment. */
-    hdr_region->data_dev = DevName;
+    hdr_region->data_dev = strdup(DevName);
     hdr_region->dev_length = DevLength;		/* Struct assignment */
     RVM_ZERO_OFFSET(hdr_region->offset);
     hdr_region->length = RVM_SEGMENT_HDR_SIZE;
@@ -87,7 +87,7 @@ rvm_load_segment(char *DevName, rvm_offset_t DevLength, rvm_options_t *options,
 	return RVM_EVM_OVERLAP;
     
     /* Map in the regions */
-    region->data_dev = DevName; 
+    region->data_dev = strdup(DevName); 
     region->dev_length = DevLength;		/* Struct assignment */
     
     /* Setup return region definition array */
@@ -135,5 +135,7 @@ rvm_load_segment(char *DevName, rvm_offset_t DevLength, rvm_options_t *options,
     err = deallocate_vm(hdr_region->vmaddr, hdr_region->length);
 
     rvm_free_region(hdr_region);
+    rvm_free_region(region);
     return err;
 }
+
