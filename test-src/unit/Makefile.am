@@ -4,6 +4,8 @@ check_LTLIBRARIES = libmain_test.la librecov.la
 
 SUBDIRS = . util venus
 
+MEMCHECK_SUBDIRS := $(filter-out ., $(SUBDIRS))
+
 LIB_SRC = lib/rvm/rvm.cc lib/lwp/lwp.cc
 
 libmain_test_la_SOURCES = main.cc $(LIB_SRC)
@@ -26,9 +28,14 @@ distclean-local:
 	if test -f "${GTEST_DIR}/Makefile"; then make -C $(GTEST_DIR) distclean; fi
 
 
-memcheck:
-	$(MAKE) -C util memcheck
-	$(MAKE) -C venus memcheck
-
 check-local:
 	$(MAKE) -C $(GTEST_DIR) lib/libgtest.la
+
+$(MEMCHECK_SUBDIRS):
+	$(MAKE) -C $@ memcheck
+	echo $@
+
+memcheck: $(MEMCHECK_SUBDIRS)
+
+.PHONY: $(MEMCHECK_SUBDIRS)
+.NOTPARALLEL: $(MEMCHECK_SUBDIRS)
