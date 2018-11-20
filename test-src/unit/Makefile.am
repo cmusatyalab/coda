@@ -2,7 +2,7 @@
 
 check_LTLIBRARIES = libmain_test.la librecov.la
 
-SUBDIRS = . util
+SUBDIRS = . util venus
 
 LIB_SRC = lib/rvm/rvm.cc lib/lwp/lwp.cc
 
@@ -28,6 +28,7 @@ distclean-local:
 
 memcheck:
 	$(MAKE) -C util memcheck
+	$(MAKE) -C venus memcheck
 
 check-local:
 	$(MAKE) -C $(GTEST_DIR) lib/libgtest.la

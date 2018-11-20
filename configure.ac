@@ -245,7 +245,8 @@ coda-src/vcodacon/Makefile
 coda-src/smon2/Makefile
 test-src/Makefile
 test-src/unit/Makefile
-test-src/unit/util/Makefile])
+test-src/unit/util/Makefile
+test-src/unit/venus/Makefile])
 
 CODA_SOFT_CONFIG_SUBDIR([external-src/googletest/googletest], [--with-pthreads=no])
 

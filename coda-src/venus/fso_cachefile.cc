@@ -100,6 +100,7 @@ CacheFile::~CacheFile()
 {
     LOG(10, ("CacheFile::~CacheFile: %s (this=0x%x)\n", name, this));
     CODA_ASSERT(length == 0);
+    ::unlink(name);
     delete cached_chunks;
 }
 
