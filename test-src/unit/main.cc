@@ -6,6 +6,10 @@
 
 #include <test/rvm/rvm.h>
 
+char dir_template[] = "/tmp/cachedir.XXXXXX";
+
+char * CacheDir;
+
 int main(int argc, char **argv) {
     struct rvm_config config;
     int32_t seed = 0;
@@ -13,6 +17,13 @@ int main(int argc, char **argv) {
     printf("Running main() from %s\n", __FILE__);
     testing::InitGoogleTest(&argc, argv);
 
+    CacheDir = mkdtemp(dir_template);
+    printf("Changing to CacheDir %s\n", CacheDir);
+    if (chdir(CacheDir)) {
+        perror("CacheDir chdir");
+        exit(EXIT_FAILURE);
+    }
+    
 
     INIT_RVM_CONFIG(config)
 
