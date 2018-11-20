@@ -1864,7 +1864,7 @@ static rvm_bool_t do_poke()
             {
             /* make numeric available as both float and offset */
             if (scanned_float)
-                BCOPY(&dbl_float,&temp,sizeof(rvm_offset_t));
+                BCOPY(&dbl_float,&temp,sizeof(double));
             else dbl_float = RVM_OFFSET_TO_LENGTH(temp);
             one_word = RVM_OFFSET_TO_LENGTH(temp);
             data_src = (char *)&one_word;
