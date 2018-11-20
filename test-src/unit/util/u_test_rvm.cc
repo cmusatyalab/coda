@@ -16,6 +16,7 @@ listed in the file CREDITS.
 
 #*/
 /* system */
+#include <stdint.h>
 
 /* external */
 #include <gtest/gtest.h>
@@ -47,7 +48,7 @@ TEST(test_rvm, DISABLED_reinit) {
 }
 
 TEST(test_rvm, alloc) {
-    void * test_alloc = nullptr;
+    void * test_alloc = NULL;
 
     Recov_BeginTrans();
 

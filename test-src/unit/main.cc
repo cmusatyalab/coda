@@ -36,7 +36,7 @@ int main(int argc, char **argv) {
     seed = ::testing::GTEST_FLAG(random_seed);
 
     if (seed == 0) {
-        seed = time(nullptr) & 0xFFFF;
+        seed = time(NULL) & 0xFFFF;
         ::testing::GTEST_FLAG(random_seed) = seed;
     }
 
