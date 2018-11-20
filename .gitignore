@@ -44,4 +44,4 @@ ylwrap
 *.swp
 *~
 unittest.xml
-test-src/unit/unit
+unittest

@@ -78,7 +78,8 @@ AC_SEARCH_LIBS(__res_search, resolv)
 AC_SEARCH_LIBS(res_9_init, resolv)
 AC_SEARCH_LIBS(kvm_openfiles, kvm)
 
-AC_CHECK_PROG([HAVE_VALGRIND_BIN], [valgrind], [1])
+VALGRIND_FLAGS="--leak-check=full --show-leak-kinds=all --error-exitcode=14"
+AC_CHECK_PROG([VALGRIND], [valgrind], [valgrind $VALGRIND_FLAGS])
 
 CODA_CHECK_LIBTERMCAP
 CODA_CHECK_LIBCURSES
@@ -166,7 +167,7 @@ AM_CONDITIONAL(BUILD_VENUS, [test "$buildclient" != no -o "$buildvenus" != no])
 AM_CONDITIONAL([HAVE_PYTHON], [test "$PYTHON" != :])
 AM_CONDITIONAL([WANT_FTS], [test "$ac_cv_header_fts_h" = no])
 
-AM_CONDITIONAL(HAVE_VALGRIND, [test "$HAVE_VALGRIND_BIN" == "1"])
+AM_CONDITIONAL(HAVE_VALGRIND, [test "x$VALGRIND" != "x"])
 
 AM_CONDITIONAL(RUN_UNIT, [test "$run_unit" != no -a -f "${srcdir}/external-src/googletest/googletest/Makefile.am"])
 
@@ -179,6 +180,12 @@ AM_COND_IF(HAVE_VALGRIND,, [
         AC_MSG_WARN([Valgrind missing, please install it before running memcheck])]
     )]
 )
+
+LIBTOOL_PREFIX="libtool --mode=execute"
+AC_SUBST(LIBTOOL_PREFIX)
+GTEST_FLAGS="--gtest_output=\"xml:unittest.xml\" --gtest_shuffle \${GTEST_EXTRA_FLAGS}"
+AC_SUBST(GTEST_FLAGS)
+AC_SUBST(VALGRIND)
 
 AC_CONFIG_FILES([coda-src/scripts/bldvldb.sh],
        [chmod +x coda-src/scripts/bldvldb.sh])
@@ -237,7 +244,8 @@ coda-src/asrlauncher/Makefile
 coda-src/vcodacon/Makefile
 coda-src/smon2/Makefile
 test-src/Makefile
-test-src/unit/Makefile])
+test-src/unit/Makefile
+test-src/unit/util/Makefile])
 
 CODA_SOFT_CONFIG_SUBDIR([external-src/googletest/googletest], [--with-pthreads=no])
 
