@@ -135,4 +135,11 @@ extern rp2_bool ansi;
 
 extern int line;
 
+/* FUNCTION PROTOTYPES */
+/* functions defined in the lexer, used by the parser */
+int yylex(void);
+void yyerror(char *s);
+void yywarn(char *s);
 
+/* function defined in rp2main */
+void spit_include(char *filename);
