@@ -125,7 +125,7 @@ do { \
 #define RVMLIB_REC_OBJECT(object) rvmlib_set_range(&(object), sizeof(object))
 
 
-inline void rvmlib_check_trans(char *where, char *file);
+void rvmlib_check_trans(char *where, char *file);
 #define rvmlib_intrans()  rvmlib_check_trans(__FUNCTION__, __FILE__)
 
 
