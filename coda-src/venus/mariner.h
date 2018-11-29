@@ -43,6 +43,7 @@ extern "C" {
 
 #include "vproc.h"
 
+class plan9server;
 
 const int MWBUFSIZE = 80;
 
@@ -63,6 +64,7 @@ class mariner : public vproc {
   friend void MarinerMux(int fd, void *udata);
   friend void MarinerReport(VenusFid *, uid_t);
   friend void PrintMariners(int);
+	friend int k_Replace(VenusFid *fid_1, VenusFid *fid_2);
   friend class plan9server;
 
     static int nmariners;
@@ -75,6 +77,8 @@ class mariner : public vproc {
     uid_t uid;			    /* valid iff reporting = 1 */
     int fd;
     char commbuf[MWBUFSIZE];
+
+		plan9server *p9srv;
 
     mariner(int);
     int operator=(mariner&);    /* not supported! */

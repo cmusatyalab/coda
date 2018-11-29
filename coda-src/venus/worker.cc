@@ -95,6 +95,7 @@ extern "C" {
 #include "venus.private.h"
 #include "vproc.h"
 #include "worker.h"
+#include "9pfs.h"
 
 #include "nt_util.h"
 #include "getpeereid.h"
@@ -724,14 +725,24 @@ int k_Purge(uid_t uid)
     return(1);
 }
 
-int k_Replace(VenusFid *fid_1, VenusFid *fid_2) {
-    if (!worker::isReady()) return(1);
-
+int k_Replace(VenusFid *fid_1, VenusFid *fid_2)
+{
     if (!fid_1 || !fid_2)
 	CHOKE("k_Replace: nil fids");
 
     LOG(0, ("k_Replace: VenusFid (%s) with VenusFid (%s) in mini-cache\n",
 	    FID_(fid_1), FID_(fid_2)));
+
+    /* replace in 9pfs fidmaps */
+    if (plan9server_enabled) {
+        mariner_iterator next;
+        mariner *m;
+        while (m = next())
+         if (m->p9srv != NULL)
+          m->p9srv->fidmap_replace_cfid(fid_1, fid_2);
+    }
+
+    if (!worker::isReady()) return(1);
 
     /* Message prefix. */
     struct coda_replace_out msg;
