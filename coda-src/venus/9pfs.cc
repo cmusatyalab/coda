@@ -1975,7 +1975,14 @@ int plan9server::recv_setattr(unsigned char *buf, size_t len, uint16_t tag)
     struct timespec ignore_time = {VA_IGNORE_TIME1,
                                    VA_IGNORE_TIME1 };
     struct timespec now_time;
+#ifdef HAVE_CLOCK_GETTIME
     ::clock_gettime(CLOCK_REALTIME, &now_time);
+#else
+    struct timeval tv;
+    ::gettimeofday(&tv, NULL);
+    now_time.tv_sec = tv.tv_sec;
+    now_time.tv_nsec = (long)tv.tv_usec * 1000L;
+#endif
 
     struct fidmap *fm = find_fid(fid);
     if (!fm)
