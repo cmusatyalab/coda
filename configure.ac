@@ -2,7 +2,7 @@ dnl Process this file with autoconf to produce a configure script.
 
 dnl autoconf 2.5 stuff
 AC_PREREQ(2.50)
-AC_INIT(Coda, 6.15.2, [bugs@coda.cs.cmu.edu])
+AC_INIT(Coda, 6.15.3, [bugs@coda.cs.cmu.edu])
 AC_CONFIG_AUX_DIR([.])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_SRCDIR([coda-src/librepair/resolve.h])
@@ -135,7 +135,7 @@ dnl Checks for library functions.
 AC_CHECK_FUNCS(inet_aton inet_ntoa res_search pread fseeko nmount)
 AC_CHECK_FUNCS(select setenv snprintf statfs strerror strtol)
 AC_CHECK_FUNCS(getpeereid getpeerucred backtrace __res_search)
-AC_CHECK_FUNCS(getrandom)
+AC_CHECK_FUNCS(getrandom clock_gettime)
 
 dnl AC_FUNC_MMAP checks if mmap exists and works, but that fails
 dnl when we run configure on file systems that do not support mmap

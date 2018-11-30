@@ -324,6 +324,89 @@ static int unpack_stat(unsigned char **buf, size_t *len,
 }
 
 
+static int pack_dotl_direntry(unsigned char **buf, size_t *len,
+                        const struct plan9_stat *stat, size_t *offset)
+{
+    unsigned char *stashed_buf = *buf;
+    size_t stashed_len = *len;
+
+    unsigned char *offset_buf = NULL;
+    size_t offset_len = 8;
+
+    // Build the byte representing the POSIX file type
+    uint8_t type;
+    switch (stat->qid.type) {
+        case P9_QTDIR:
+            type = (uint8_t)(S_IFDIR >> 12);
+            break;
+        case P9_QTSYMLINK:
+            type = (uint8_t)(S_IFLNK >> 12);
+            break;
+        default:
+            type = (uint8_t)(S_IFREG >> 12);
+    }
+
+    if (pack_qid(buf, len, &stat->qid) ||
+        get_blob_ref(buf, len, &offset_buf, NULL, 8)  ||
+        pack_le8(buf, len, type) ||
+        pack_string(buf, len, stat->name))
+        goto pack_dotl_err_out;
+
+    *offset += stashed_len - *len ;
+    pack_le64(&offset_buf, &offset_len, *offset);
+    return 0;
+
+pack_dotl_err_out:
+    *buf = stashed_buf;
+    *len = stashed_len;
+    return -1;
+}
+
+
+static int pack_stat_dotl(unsigned char **buf, size_t *len,
+                     const struct plan9_stat_dotl *stat)
+{
+    if (pack_qid(buf, len, &stat->qid) ||
+        pack_le32(buf, len, stat->st_mode) ||
+        pack_le32(buf, len, stat->st_uid) ||
+        pack_le32(buf, len, stat->st_gid) ||
+        pack_le64(buf, len, stat->st_nlink) ||
+        pack_le64(buf, len, stat->st_rdev) ||
+        pack_le64(buf, len, stat->st_size) ||
+        pack_le64(buf, len, stat->st_blksize) ||
+        pack_le64(buf, len, stat->st_blocks) ||
+        pack_le64(buf, len, stat->st_atime_sec) ||
+        pack_le64(buf, len, stat->st_atime_nsec) ||
+        pack_le64(buf, len, stat->st_mtime_sec) ||
+        pack_le64(buf, len, stat->st_mtime_nsec) ||
+        pack_le64(buf, len, stat->st_ctime_sec) ||
+        pack_le64(buf, len, stat->st_ctime_nsec) ||
+        pack_le64(buf, len, stat->st_btime_sec) ||
+        pack_le64(buf, len, stat->st_btime_nsec) ||
+        pack_le64(buf, len, stat->st_gen) ||
+        pack_le64(buf, len, stat->st_data_version))
+        return -1;
+    return 0;
+}
+
+
+static int pack_statfs(unsigned char **buf, size_t *len,
+                     const struct plan9_statfs *statfs)
+{
+    if (pack_le32(buf, len, statfs->type) ||
+        pack_le32(buf, len, statfs->bsize) ||
+        pack_le64(buf, len, statfs->blocks) ||
+        pack_le64(buf, len, statfs->bfree) ||
+        pack_le64(buf, len, statfs->bavail) ||
+        pack_le64(buf, len, statfs->files) ||
+        pack_le64(buf, len, statfs->ffree) ||
+        pack_le64(buf, len, statfs->fsid) ||
+        pack_le32(buf, len, statfs->namelen))
+        return -1;
+    return 0;
+}
+
+
 static void cnode2qid(struct venus_cnode *cnode, struct plan9_qid *qid)
 {
     fsobj *f;
@@ -374,6 +457,28 @@ static uid_t getuserid(const char *username)
 
     free(buf);
     return (uid_t)-2;
+}
+
+
+static char * getusername(uid_t uid)
+{
+    struct passwd pwd, *res = NULL;
+    char *buf;
+    ssize_t bufsize;
+    char *uname = (char *)"nobody"; /* fall back name */
+
+    bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
+    if (bufsize == -1)
+        bufsize = 16384;
+
+    buf = (char *)malloc(bufsize);
+    assert(buf != NULL);
+
+    getpwuid_r(uid, &pwd, buf, bufsize, &res);
+    if (res)
+        uname = strdup(res->pw_name);
+    free(buf);
+    return uname;
 }
 
 
@@ -430,11 +535,24 @@ int plan9server::send_error(uint16_t tag, const char *error, int errcode)
     DEBUG("9pfs: Rerror[%x] '%s', errno: %d\n", tag, error, errcode);
 
     buf = buffer; len = max_msize;
-    if (pack_header(&buf, &len, Rerror, tag) ||
-        pack_string(&buf, &len, error))
-        return -1;
-    if (protocol == P9_PROTO_DOTU) {
-      if (pack_le32(&buf, &len, (uint32_t)errcode))
+    switch (protocol) {
+      case P9_PROTO_2000:
+        if (pack_header(&buf, &len, Rerror, tag) ||
+            pack_string(&buf, &len, error))
+            return -1;
+        break;
+      case P9_PROTO_DOTU:
+        if (pack_header(&buf, &len, Rerror, tag) ||
+            pack_string(&buf, &len, error) ||
+            pack_le32(&buf, &len, (uint32_t)errcode))
+            return -1;
+        break;
+      case P9_PROTO_DOTL:
+        if (pack_header(&buf, &len, Rlerror, tag) ||
+            pack_le32(&buf, &len, (uint32_t)errcode))
+            return -1;
+        break;
+      default:
           return -1;
     }
 
@@ -512,6 +630,27 @@ int plan9server::handle_request(unsigned char *buf, size_t read)
     case Tremove:   return recv_remove(buf, len, tag);
     case Tstat:     return recv_stat(buf, len, tag);
     case Twstat:    return recv_wstat(buf, len, tag);
+    /* dotl messages */
+    case Tgetattr:  return recv_getattr(buf, len, tag);
+    case Tsetattr:  return recv_setattr(buf, len, tag);
+    case Tlopen:    return recv_lopen(buf, len, tag);
+    case Tlcreate:  return recv_lcreate(buf, len, tag);
+    case Tsymlink:  return recv_symlink(buf, len, tag);
+    case Tmkdir:    return recv_mkdir(buf, len, tag);
+    case Treaddir:  return recv_readdir(buf, len, tag);
+    case Tstatfs:   return recv_statfs(buf, len, tag);
+    case Treadlink: return recv_readlink(buf, len, tag);
+    case Tfsync:    return recv_fsync(buf, len, tag);
+    case Tunlinkat: return recv_unlinkat(buf, len, tag);
+    case Tlink:     return recv_link(buf, len, tag);
+    case Trename:   return recv_rename(buf, len, tag);
+    case Trenameat: return recv_renameat(buf, len, tag);
+    /* unsupported dotl operations */
+    case Tmknod:        return recv_mknod(buf, len, tag);
+    case Txattrwalk:    return recv_xattrwalk(buf, len, tag);
+    case Txattrcreate:  return recv_xattrcreate(buf, len, tag);
+    case Tlock:         return recv_lock(buf, len, tag);
+    case Tgetlock:      return recv_getlock(buf, len, tag);
     default:        return send_error(tag, "Operation not supported", EBADRQC);
     }
     return 0;
@@ -533,8 +672,11 @@ int plan9server::recv_version(unsigned char *buf, size_t len, uint16_t tag)
 
     max_msize = (msize < P9_BUFSIZE) ? msize : P9_BUFSIZE;
 
-    if (::strncmp(remote_version, "9P2000.", 7) == 0) {
-        //9P2000.L Linux extensions not yet supported: degrade to 9P2000.u
+    if (::strncmp(remote_version, "9P2000.L", 8) == 0) {
+        version = "9P2000.L";
+        protocol = P9_PROTO_DOTL;
+      }
+    else if (::strncmp(remote_version, "9P2000.u", 8) == 0) {
         version = "9P2000.u";
         protocol = P9_PROTO_DOTU;
       }
@@ -581,7 +723,7 @@ int plan9server::recv_auth(unsigned char *buf, size_t len, uint16_t tag)
         ::free(uname);
         return -1;
     }
-    if (protocol == P9_PROTO_DOTU) {
+    if (protocol == P9_PROTO_DOTU || protocol == P9_PROTO_DOTL) {
       if (unpack_le32(&buf, &len, &uid)) {
         ::free(uname);
         ::free(aname);
@@ -629,7 +771,7 @@ int plan9server::recv_attach(unsigned char *buf, size_t len, uint16_t tag)
         ::free(uname);
         return -1;
     }
-    if (protocol == P9_PROTO_DOTU) {
+    if (protocol == P9_PROTO_DOTU || protocol == P9_PROTO_DOTL) {
       if (unpack_le32(&buf, &len, &uid)) {
         ::free(uname);
         ::free(aname);
@@ -650,7 +792,7 @@ int plan9server::recv_attach(unsigned char *buf, size_t len, uint16_t tag)
     struct plan9_qid qid;
 
     root->refcount = 0;
-    root->uname = uname;
+    root->uname = strlen(uname) == 0 ? getusername(uid) : uname;
     root->aname = aname;
     root->userid = uid == (uid_t)~0 ? getuserid(uname) : uid ;
 
@@ -1072,6 +1214,10 @@ int plan9server::recv_read(unsigned char *buf, size_t len, uint16_t tag)
     if (!(fm->open_flags & C_O_READ))
         return send_error(tag, "Bad file descriptor", EBADF);
 
+    if (protocol == P9_PROTO_DOTL && fm->cnode.c_type == C_VDIR)
+        return send_error(tag, "Under 9P2000.L, Tread cannot be used on dirs",
+                          EINVAL);
+
     /* send_Rread */
     unsigned char *tmpbuf;
     buf = buffer; len = max_msize;
@@ -1206,23 +1352,23 @@ int plan9server::recv_remove(unsigned char *buf, size_t len, uint16_t tag)
 
     /* Find the parent directory cnode */
     struct venus_cnode parent_cnode;
-    if (cnode_getparent(&fm->cnode, &parent_cnode) < 0)
-        return send_error(tag, "tried to remove the mountpoint", EBUSY);
+    int errcode = cnode_getparent(&fm->cnode, &parent_cnode);
 
-    conn->u.u_uid = fm->root->userid;
-    if (fm->cnode.c_type == C_VDIR) {
-      /* remove a directory */
-      conn->rmdir(&parent_cnode, name);
+    if (!errcode) {
+        conn->u.u_uid = fm->root->userid;
+        if (fm->cnode.c_type == C_VDIR)
+            conn->rmdir(&parent_cnode, name);   /* remove a directory */
+        else
+            conn->remove(&parent_cnode, name);  /* remove a regular file */
+
+        if (conn->u.u_error)
+            errcode = conn->u.u_error;
     }
-    else {
-      /* remove a regular file */
-      conn->remove(&parent_cnode, name);
-    }
+
     /* 9p clunks the file, whether the actual server remove succeeded or not */
     del_fid(fid);
 
-    if (conn->u.u_error) {
-        int errcode = conn->u.u_error;
+    if (errcode) {
         const char *errstr = VenusRetStr(errcode);
         return send_error(tag, errstr, errcode);
     }
@@ -1379,15 +1525,8 @@ int plan9server::recv_wstat(unsigned char *buf, size_t len, uint16_t tag)
       }
     }
 
-
-    /* retrieve the current file attributes from Venus */
+    /* prepare to write the file attributes to Venus */
     conn->u.u_uid = fm->root->userid;
-    conn->getattr(&fm->cnode, &attr);
-    if (conn->u.u_error) {
-        errcode = conn->u.u_error;
-        strerr = VenusRetStr(errcode);
-        goto err_out;
-    }
 
     /* if wstat involves a rename */
     if (strcmp(stat.name, P9_DONT_TOUCH_NAME) != 0) {
@@ -1404,60 +1543,62 @@ int plan9server::recv_wstat(unsigned char *buf, size_t len, uint16_t tag)
       }
 
       /* attempt rename */
-      conn->u.u_uid = fm->root->userid;
+      DEBUG("--- renaming %s to %s\n", name, stat.name);
       conn->rename(&parent_cnode, name,&parent_cnode, stat.name);
       if (conn->u.u_error) {
           errcode = conn->u.u_error;
           strerr = VenusRetStr(errcode);
           goto err_out;
       }
-      DEBUG("renamed %s to %s\n", name, stat.name);
     }
-
-    /* Update attr with the new stats to be written.
-     * If all wstat fields were "don't touch", then according to 9P protocol,
-     * the server can interpret this wstat as a request to guarantee that
-     * the contents of the associated file are committed to stable storage
-     * before the Rwstat message is returned (i.e. "make the state of the
-     * file exactly what it claims to be.""), which we do by confirming at
-     * least the uid in the setattr() call.
+    else if (stat.mode == P9_DONT_TOUCH_MODE
+          && stat.length == P9_DONT_TOUCH_LENGTH
+          && stat.mtime == P9_DONT_TOUCH_MTIME )  {
+    /* If all legal wstat fields were "don't touch", then according to 9P
+     * protocol, the server can interpret this wstat as a request to guarantee
+     * that the contents of the associated file are committed to stable storage
+     * before the Rwstat message is returned (i.e. "make the state of the file
+     * exactly what it claims to be").
      */
-
-    /* must be set to IGNORE or will trigger error in vproc::setattr() */
-    attr.va_fileid = VA_IGNORE_ID;
-    attr.va_nlink = VA_IGNORE_NLINK;
-    attr.va_blocksize = VA_IGNORE_BLOCKSIZE;
-    attr.va_flags = VA_IGNORE_FLAGS;
-    attr.va_rdev = VA_IGNORE_RDEV;
-    attr.va_bytes = VA_IGNORE_STORAGE;
-
-    /* vproc::setattr() can set the following 4 attributes */
-    attr.va_uid = VA_IGNORE_UID;	   /* Cannot be modified through wstat */
-    attr.va_mode = (stat.mode == P9_DONT_TOUCH_MODE) ?
-                VA_IGNORE_MODE : stat.mode & 0777;
-    attr.va_size = (stat.length == P9_DONT_TOUCH_LENGTH) ?
-               VA_IGNORE_SIZE : stat.length;	  /* does this work? */
-    attr.va_mtime.tv_sec = (stat.mtime == P9_DONT_TOUCH_MTIME) ?
-                VA_IGNORE_TIME1 : stat.mtime;
-                                    /* rest of va_mtime is kept as-is */
-
-    /* vproc::setattr() doesn't document what to do with the remaining
-     * so we just keep/affirm them as they are:
-     *     attr.va_gid
-     *     attr.va_atime
-     *     attr.va_ctime
-     *     attr.va_gen
-     *     attr.va_type
-     *     attr.va_filerev
-     */
-
-    /* attempt setattr */
-    conn->u.u_uid = fm->root->userid;
-    conn->setattr(&fm->cnode, &attr);
-    if (conn->u.u_error) {
+      DEBUG("--- fsyncing fid %d\n", fid);
+      //conn->fsync(&fm->cnode);
+      if (conn->u.u_error) {
         errcode = conn->u.u_error;
         strerr = VenusRetStr(errcode);
         goto err_out;
+      }
+    }
+    else {
+      /* Update attr with the new stats to be written */
+      DEBUG("--- writing attributes of fid %d\n", fid);
+      /* must be set to IGNORE or will trigger error in vproc::setattr() */
+      attr.va_fileid = VA_IGNORE_ID;
+      attr.va_nlink = VA_IGNORE_NLINK;
+      attr.va_blocksize = VA_IGNORE_BLOCKSIZE;
+      attr.va_flags = VA_IGNORE_FLAGS;
+      attr.va_rdev = VA_IGNORE_RDEV;
+      attr.va_bytes = VA_IGNORE_STORAGE;
+
+      /* vproc::setattr() can set the following 4 attributes */
+      attr.va_uid = VA_IGNORE_UID;	   /* Cannot be modified through wstat */
+      attr.va_mode = (stat.mode == P9_DONT_TOUCH_MODE) ?
+                  VA_IGNORE_MODE : stat.mode & 0777;
+      attr.va_size = (stat.length == P9_DONT_TOUCH_LENGTH) ?
+                 VA_IGNORE_SIZE : stat.length;	  /* does this work? */
+      attr.va_mtime.tv_sec = (stat.mtime == P9_DONT_TOUCH_MTIME) ?
+                  VA_IGNORE_TIME1 : stat.mtime;
+                                      /* rest of va_mtime is kept as-is */
+
+      /* vproc::setattr() doesn't document what to do with the remaining
+       * vattr so we just ignore them */
+
+      /* attempt setattr */
+      conn->setattr(&fm->cnode, &attr);
+      if (conn->u.u_error) {
+          errcode = conn->u.u_error;
+          strerr = VenusRetStr(errcode);
+          goto err_out;
+      }
     }
 
     ::free(stat.muid);
@@ -1490,6 +1631,7 @@ struct filldir_args {
     plan9server *srv;
     unsigned char *buf;
     size_t count;
+    size_t packed_offset;   // offset packed in dotl direntries
     size_t offset;
     struct venus_cnode parent;
     struct attachment *root;
@@ -1500,17 +1642,18 @@ static int filldir(struct DirEntry *de, void *hook)
     struct filldir_args *args = (struct filldir_args *)hook;
     if (strcmp(de->name, ".") == 0 || strcmp(de->name, "..") == 0)
         return 0;
-    return args->srv->pack_dirent(&args->buf, &args->count, &args->offset,
-                                  &args->parent, args->root, de->name);
+    return args->srv->pack_dirent(&args->buf, &args->count, &args->packed_offset,
+                                  &args->offset, &args->parent,
+                                  args->root, de->name);
 }
 
-int plan9server::pack_dirent(unsigned char **buf, size_t *len, size_t *offset,
-                             struct venus_cnode *parent,
+int plan9server::pack_dirent(unsigned char **buf, size_t *len, size_t *packed_offset,
+                             size_t *offset, struct venus_cnode *parent,
                              struct attachment *root, const char *name)
 {
     struct venus_cnode child;
     struct plan9_stat stat;
-    int rc;
+    int rc = 0;
 
     conn->u.u_uid = root->userid;
     conn->lookup(parent, name, &child, CLU_CASE_SENSITIVE | CLU_TRAVERSE_MTPT);
@@ -1524,7 +1667,12 @@ int plan9server::pack_dirent(unsigned char **buf, size_t *len, size_t *offset,
         /* if there is an offset, we're guaranteed to be at the start of the
          * buffer. So there is 'room' for scratch space there. */
         unsigned char *scratch = *buf;
-        rc = pack_stat(&scratch, offset, &stat, protocol);
+        if (protocol == P9_PROTO_DOTL) {
+            rc = pack_dotl_direntry(&scratch, offset, &stat, packed_offset);
+        }
+        else {
+            rc = pack_stat(&scratch, offset, &stat, protocol);
+        }
         ::free(stat.name);
         if (rc) {
             /* was this a case of (offset < stat_length)? */
@@ -1535,7 +1683,29 @@ int plan9server::pack_dirent(unsigned char **buf, size_t *len, size_t *offset,
     }
 
     /* and finally we pack until we cannot fit any more entries */
-    rc = pack_stat(buf, len, &stat, protocol);
+    if (protocol == P9_PROTO_DOTL) {
+        // Figure out the byte representing the POSIX file type
+        uint8_t type;
+        switch (stat.qid.type) {
+            case P9_QTDIR:
+                type = (uint8_t)(S_IFDIR >> 12);
+                break;
+            case P9_QTSYMLINK:
+                type = (uint8_t)(S_IFLNK >> 12);
+                break;
+            default:
+                type = (uint8_t)(S_IFREG >> 12);
+        }
+        rc = pack_dotl_direntry(buf, len, &stat, packed_offset);
+        if (!rc) {
+            DEBUG("      qid[%x.%x.%lx] off[%lu] typ[0%o] '%s'\n",
+                    stat.qid.type, stat.qid.version, stat.qid.path,
+                    *packed_offset, type, stat.name);
+        }
+    }
+    else {
+        rc = pack_stat(buf, len, &stat, protocol);
+    }
     ::free(stat.name);
     if (rc) /* failed to pack this entry. stop enumerating. */
         return ENOBUFS;
@@ -1580,6 +1750,7 @@ ssize_t plan9server::plan9_read(struct fidmap *fm, unsigned char *buf,
         args.offset = offset;
         args.buf = buf;
         args.count = count;
+        args.packed_offset = 0;
         args.parent = fm->cnode;
 
         // when we allow concurrency we should bump the refcount on root
@@ -1665,6 +1836,1261 @@ int plan9server::plan9_stat(struct venus_cnode *cnode, struct attachment *root,
 
 
 /*
+ * 9P2000.L operations
+ */
+
+int plan9server::recv_getattr(unsigned char *buf, size_t len, uint16_t tag)
+{
+    uint32_t fid;
+    uint64_t request_mask;
+
+    if (unpack_le32(&buf, &len, &fid) ||
+       unpack_le64(&buf, &len, &request_mask))
+       return -1;
+
+    DEBUG("9pfs: Tgetattr[%x] fid %u req mask 0x%lx\n", tag, fid, request_mask);
+
+    struct fidmap *fm;
+    struct plan9_stat_dotl stat;
+    struct coda_vattr attr;
+
+    fm = find_fid(fid);
+    if (!fm)
+       return send_error(tag, "fid unknown or out of range", EBADF);
+
+    conn->u.u_uid = fm->root->userid;
+    conn->getattr(&fm->cnode, &attr);
+    if (conn->u.u_error) {
+        int errcode = conn->u.u_error;
+        const char *errstr = VenusRetStr(errcode);
+        return send_error(tag, errstr, errcode);
+    }
+
+    cnode2qid(&fm->cnode, &stat.qid);
+    switch (stat.qid.type) {
+        case  P9_QTDIR:
+            stat.st_mode = S_IFDIR;
+            break;
+        case  P9_QTSYMLINK:
+            stat.st_mode = S_IFLNK;
+            break;
+        case  P9_QTFILE:
+            stat.st_mode = S_IFREG;
+            break;
+        default:
+            stat.st_mode = 0;
+    }
+    stat.st_mode |= (uint32_t)attr.va_mode;
+    stat.st_uid = fm->root->userid;
+    stat.st_gid = fm->root->userid;
+    cnode_linkcount(&fm->cnode, &stat.st_nlink);
+    stat.st_rdev = (uint64_t)attr.va_rdev;
+    stat.st_size = attr.va_size;
+    stat.st_blksize = (uint64_t)attr.va_blocksize;
+    //number of 512-byte blocks allocated
+    stat.st_blocks = (stat.st_size + 511) >> 9;
+    stat.st_atime_sec = attr.va_atime.tv_sec;
+    stat.st_atime_nsec = attr.va_atime.tv_nsec;
+    stat.st_mtime_sec = attr.va_mtime.tv_sec;
+    stat.st_mtime_nsec = attr.va_mtime.tv_nsec;
+    stat.st_ctime_sec = attr.va_ctime.tv_sec;
+    stat.st_ctime_nsec = attr.va_ctime.tv_nsec;
+    /* reserved for future use */
+    stat.st_btime_sec = 0;
+    stat.st_btime_nsec = 0;
+    stat.st_gen = attr.va_gen;
+    stat.st_data_version = 0;
+
+    // For now, the valid fields in response are the same as the ones requested
+    uint64_t valid_mask = request_mask;
+
+    /* send_Rgetattr */
+    /* find the filename */
+    char name[NAME_MAX];
+    cnode_getname(&fm->cnode, name);
+    DEBUG("9pfs: Rgetattr[%x] valid mask 0x%lx  (%s)\n", tag, valid_mask, name);
+    DEBUG("\
+            qid[type.ver.path]: %x.%x.%lx \n \
+            mode: 0%o  n_uid: %d  n_gid: %d  nlink: %lu \n \
+            rdev: %lu  size: %lu  blksize: %lu  blocks: %lu \n \
+            atime_sec: %lu  atime_nsec: %lu \n \
+            mtime_sec: %lu  mtime_nsec: %lu \n \
+            ctime_sec: %lu  ctime_nsec: %lu \n \
+            btime_sec: %lu  btime_nsec: %lu \n \
+            gen: %lu  data_version: %lu \n",
+            stat.qid.type, stat.qid.version, stat.qid.path,
+            stat.st_mode, stat.st_uid, stat.st_gid, stat.st_nlink,
+            stat.st_rdev, stat.st_size, stat.st_blksize, stat.st_blocks,
+            stat.st_atime_sec, stat.st_atime_nsec, stat.st_mtime_sec,
+            stat.st_mtime_nsec, stat.st_ctime_sec, stat.st_ctime_nsec,
+            stat.st_btime_sec, stat.st_btime_nsec, stat.st_gen,
+            stat.st_data_version);
+
+    buf = buffer; len = max_msize;
+    if (pack_header(&buf, &len, Rgetattr, tag) ||
+       pack_le64(&buf, &len, valid_mask) ||
+       pack_stat_dotl(&buf, &len, &stat))
+    {
+       send_error(tag, "Message too long", EMSGSIZE);
+       return -1;
+    }
+    send_response(buffer, max_msize - len);
+    return 0;
+}
+
+
+int plan9server::recv_setattr(unsigned char *buf, size_t len, uint16_t tag)
+{
+    uint32_t fid;
+    uint32_t valid_mask;
+    struct plan9_stat_dotl stat;
+    struct coda_vattr attr;
+
+    if (unpack_le32(&buf, &len, &fid) ||
+        unpack_le32(&buf, &len, &valid_mask) ||
+        unpack_le32(&buf, &len, &stat.st_mode) ||
+        unpack_le32(&buf, &len, &stat.st_uid) ||
+        unpack_le32(&buf, &len, &stat.st_gid) ||
+        unpack_le64(&buf, &len, &stat.st_size) ||
+        unpack_le64(&buf, &len, &stat.st_atime_sec) ||
+        unpack_le64(&buf, &len, &stat.st_atime_nsec) ||
+        unpack_le64(&buf, &len, &stat.st_mtime_sec) ||
+        unpack_le64(&buf, &len, &stat.st_mtime_nsec))
+       return -1;
+
+    DEBUG("9pfs: Tsetattr[%x] fid %u  valid mask 0x%x \n \
+                 mode 0%o \n \
+                 uid %d  gid %d \n \
+                 size %lu \n \
+                 atime_sec %lu  _nsec %lu \n \
+                 mtime_sec %lu  _nsec %lu \n",
+                 tag, fid, valid_mask, stat.st_mode, stat.st_uid, stat.st_gid,
+                 stat.st_size, stat.st_atime_sec, stat.st_atime_nsec,
+                 stat.st_mtime_sec, stat.st_mtime_nsec);
+
+    struct timespec atime = {(time_t)stat.st_atime_sec,
+                             (long)stat.st_atime_nsec };
+    struct timespec mtime = {(time_t)stat.st_mtime_sec,
+                             (long)stat.st_mtime_nsec };
+    struct timespec ignore_time = {VA_IGNORE_TIME1,
+                                   VA_IGNORE_TIME1 };
+    struct timespec now_time;
+#ifdef HAVE_CLOCK_GETTIME
+    ::clock_gettime(CLOCK_REALTIME, &now_time);
+#else
+    struct timeval tv;
+    ::gettimeofday(&tv, NULL);
+    now_time.tv_sec = tv.tv_sec;
+    now_time.tv_nsec = (long)tv.tv_usec * 1000L;
+#endif
+
+    struct fidmap *fm = find_fid(fid);
+    if (!fm)
+       return send_error(tag, "fid unknown or out of range", EBADF);
+
+    /* Build coda_vattr struct for vproc::setattr() */
+    /* must be set to IGNORE or will trigger error in vproc::setattr() */
+    attr.va_fileid = VA_IGNORE_ID;
+    attr.va_nlink = VA_IGNORE_NLINK;
+    attr.va_blocksize = VA_IGNORE_BLOCKSIZE;
+    attr.va_flags = VA_IGNORE_FLAGS;
+    attr.va_rdev = VA_IGNORE_RDEV;
+    attr.va_bytes = VA_IGNORE_STORAGE;
+    /* vproc::setattr() can set the following 4 attributes */
+    attr.va_mode = valid_mask & P9_SETATTR_MODE ?
+                    stat.st_mode & 0777 : VA_IGNORE_MODE;
+    attr.va_uid = valid_mask & P9_SETATTR_UID ? stat.st_uid : VA_IGNORE_UID;
+    attr.va_size = valid_mask & P9_SETATTR_SIZE ? stat.st_size : VA_IGNORE_SIZE;
+    attr.va_mtime= valid_mask & P9_SETATTR_MTIME ?
+                   valid_mask & P9_SETATTR_MTIME_SET ?
+                   mtime : now_time : ignore_time;
+    /* Currently vproc::setattr() ignores these attributes (oct. 2018 -AS) */
+    attr.va_gid = valid_mask & P9_SETATTR_GID ? stat.st_gid : VA_IGNORE_GID;
+    attr.va_atime= valid_mask & P9_SETATTR_ATIME ?
+                   valid_mask & P9_SETATTR_ATIME_SET ?
+                   atime : now_time : ignore_time;
+    /* vproc::setattr() doesn't document what to do with the remaining vattr
+        so we just ignore them */
+
+    /* attempt setattr */
+    conn->u.u_uid = fm->root->userid;
+    conn->setattr(&fm->cnode, &attr);
+    if (conn->u.u_error) {
+        int errcode = conn->u.u_error;
+        const char *errstr = VenusRetStr(errcode);
+        return send_error(tag, errstr, errcode);
+    }
+
+    /* send_Rsetattr */
+    /* find the filename for debug only */
+    char name[NAME_MAX];
+    cnode_getname(&fm->cnode, name);
+    DEBUG("9pfs: Rsetattr[%x] (%s)\n", tag, name);
+
+    buf = buffer; len = max_msize;
+    if (pack_header(&buf, &len, Rsetattr, tag))
+    {
+       send_error(tag, "Message too long", EMSGSIZE);
+       return -1;
+    }
+    send_response(buffer, max_msize - len);
+    return 0;
+}
+
+
+ int plan9server::recv_lopen(unsigned char *buf, size_t len, uint16_t tag)
+ {
+     uint32_t fid;
+     uint32_t lopen_flags;
+
+     if (unpack_le32(&buf, &len, &fid) ||
+         unpack_le32(&buf, &len, &lopen_flags))
+         return -1;
+
+     DEBUG("9pfs: Tlopen[%x] fid %u, flags 0%o\n", tag, fid, lopen_flags);
+
+     struct fidmap *fm;
+     int coda_flags;
+
+     fm = find_fid(fid);
+     if (!fm)
+         return send_error(tag, "fid unknown or out of range", EBADF);
+
+     if (fm->open_flags)
+         return send_error(tag, "file already open for I/O", EIO);
+
+     /* These are the flags that we support so far, the rest should be 0 */
+     if (lopen_flags & ~00707503)
+         return send_error(tag, "Unsupported lopen flags", ENOTSUP);
+
+     switch (lopen_flags & 00000003) {
+        case P9_DOTL_RDONLY:
+           coda_flags = C_O_READ;
+           break;
+        case P9_DOTL_WRONLY:
+           coda_flags = C_O_WRITE;
+           break;
+        case P9_DOTL_RDWR:
+           coda_flags = C_O_READ | C_O_WRITE;
+           break;
+        default:
+           return send_error(tag, "Invalid lopen access mode flags", EINVAL);
+     }
+     if (lopen_flags & P9_DOTL_TRUNC)
+         coda_flags |= C_O_TRUNC;
+
+     /* vget and open yield, so we may lose fidmap, but we need to make sure we
+      * can close opened cnodes if the fidmap was removed while we yielded. */
+     struct venus_cnode cnode = fm->cnode;
+     struct plan9_qid qid;
+
+     if (coda_flags & (C_O_WRITE | C_O_TRUNC)) {
+         switch (cnode.c_type) {
+         case C_VREG:
+             break;
+         case C_VDIR:
+             return send_error(tag, "can't open directory for writing", EISDIR);
+         case C_VLNK:
+         default:
+             return send_error(tag, "file is read only", EINVAL);
+         }
+     }
+
+     conn->u.u_uid = fm->root->userid;
+     if (cnode.c_type == C_VLNK) {
+         struct venus_cnode tmp;
+         conn->vget(&tmp, &cnode.c_fid, RC_STATUS|RC_DATA);
+     }
+     else {
+         conn->open(&cnode, coda_flags);
+     }
+     if (conn->u.u_error) {
+         int errcode = conn->u.u_error;
+         const char *errstr = VenusRetStr(errcode);
+         return send_error(tag, errstr, errcode);
+     }
+
+     /* open yields, reobtain fidmap reference */
+     fm = find_fid(fid);
+     if (!fm) {
+         if (cnode.c_type != C_VLNK)
+             conn->close(&cnode, coda_flags);
+         return send_error(tag, "fid unknown or out of range", EBADF);
+     }
+     fm->open_flags = coda_flags;
+
+     cnode2qid(&cnode, &qid);
+
+     uint32_t iounit = 4096;
+
+     /* send_Rlopen */
+     DEBUG("9pfs: Rlopen[%x] qid %x.%x.%lx, iounit %u\n",
+           tag, qid.type, qid.version, qid.path, iounit);
+
+     buf = buffer; len = max_msize;
+     if (pack_header(&buf, &len, Rlopen, tag) ||
+         pack_qid(&buf, &len, &qid) ||
+         pack_le32(&buf, &len, iounit))
+     {
+         send_error(tag, "Message too long", EMSGSIZE);
+         return -1;
+     }
+     send_response(buffer, max_msize - len);
+     return 0;
+ }
+
+
+/*
+ * Note: CODA ignores the intent bits and the gid information.
+ */
+int plan9server::recv_lcreate(unsigned char *buf, size_t len, uint16_t tag)
+{
+    uint32_t fid;
+    char *name;
+    uint32_t intent;   // ignored by CODA
+    uint32_t mode;
+    gid_t gid;         // ignored by CODA
+
+    int errcode = 0;
+    const char *errstr = NULL;
+
+    if (unpack_le32(&buf, &len, &fid) ||
+        unpack_string(&buf, &len, &name))
+        return -1;
+    if (unpack_le32(&buf, &len, &intent) ||
+        unpack_le32(&buf, &len, &mode) ||
+        unpack_le32(&buf, &len, &gid))
+        {
+            free(name);
+            return -1;
+        }
+
+    DEBUG("9pfs: Tlcreate[%x] fid %u, name %s, intent 0x%x, mode %o, gid %u\n",
+       tag, fid, name, intent, mode, gid);
+
+    struct fidmap *fm;
+    struct coda_vattr va = { 0 };
+    int excl = 0;
+    int flags = C_O_WRITE | C_O_TRUNC;
+    va.va_size = 0;
+    va.va_mode = mode & 0777;
+
+    uint32_t iounit = 4096;
+
+    fm = find_fid(fid);
+    if (!fm) {
+        errcode = EBADF;
+        errstr = "fid unknown or out of range";
+        goto err_out;
+    }
+
+    /* we can only create in a directory */
+    if (fm->cnode.c_type != C_VDIR) {
+        errcode = ENOTDIR;
+        errstr = "Not a directory";
+        goto err_out;
+    }
+
+    struct venus_cnode child;
+    struct plan9_qid qid;
+
+    /* Attempt to create a regular file */
+    conn->u.u_uid = fm->root->userid;
+    conn->create(&fm->cnode, name, &va, excl, flags, &child);
+
+    if (conn->u.u_error) {
+        errcode = conn->u.u_error;
+        errstr = VenusRetStr(errcode);
+        goto err_out;
+    }
+
+    conn->open(&child, flags);
+
+    if (conn->u.u_error) {
+        errcode = conn->u.u_error;
+        errstr = VenusRetStr(errcode);
+        goto err_out;
+    }
+
+    /* create yields, reobtain fidmap reference */
+    fm = find_fid(fid);
+    if (!fm) {
+        conn->close(&child, flags);
+        errcode = EBADF;
+        errstr = "fid unknown or out of range";
+        goto err_out;
+    }
+    /* fid is replaced by the newly created file */
+    fm->cnode = child;
+    fm->open_flags = flags;
+
+    cnode2qid(&child, &qid);
+
+    /* send_Rlcreate */
+    DEBUG("9pfs: Rlcreate[%x] qid %x.%x.%lx, iounit %u\n",
+       tag, qid.type, qid.version, qid.path, iounit);
+
+    buf = buffer; len = max_msize;
+    if (pack_header(&buf, &len, Rlcreate, tag) ||
+        pack_qid(&buf, &len, &qid) ||
+        pack_le32(&buf, &len, iounit))
+        {
+            send_error(tag, "Message too long", EMSGSIZE);
+            return -1;
+        }
+    return send_response(buffer, max_msize - len);
+
+err_out:
+    ::free(name);
+    return send_error(tag, errstr, errcode);
+}
+
+
+/*
+ * Note: CODA ignores the gid input parameter.
+ */
+int plan9server::recv_symlink(unsigned char *buf, size_t len, uint16_t tag)
+{
+    uint32_t dfid;
+    char *name;
+    char *target;
+    gid_t gid;      // ignored by CODA
+
+    int errcode = 0;
+    const char *errstr = NULL;
+
+    if (unpack_le32(&buf, &len, &dfid) ||
+        unpack_string(&buf, &len, &name))
+        return -1;
+    if (unpack_string(&buf, &len, &target)) {
+        ::free(name);
+        return -1;
+    }
+    if (unpack_le32(&buf, &len, &gid)) {
+        ::free(name);
+        ::free(target);
+        return -1;
+    }
+
+    DEBUG("9pfs: Tsymlink[%x] dfid %u, name '%s', target '%s', gid %u\n",
+          tag, dfid, name, target, gid);
+
+    struct fidmap *fm;
+    struct coda_vattr va = { 0 };
+
+    fm = find_fid(dfid);
+    if (!fm) {
+        errcode = EBADF;
+        errstr = "fid unknown or out of range";
+        goto err_out;
+    }
+
+    /* we can only create in a directory */
+    if (fm->cnode.c_type != C_VDIR) {
+        errcode = ENOTDIR;
+        errstr = "Not a directory";
+        goto err_out;
+    }
+
+    struct venus_cnode child;
+    struct plan9_qid qid;
+
+    conn->u.u_uid = fm->root->userid;
+    /* create a symlink and get a cnode for it */
+    conn->symlink(&fm->cnode, target, &va, name);
+    conn->lookup(&fm->cnode, name, &child,
+               CLU_CASE_SENSITIVE | CLU_TRAVERSE_MTPT);
+
+    if (conn->u.u_error) {
+        errcode = conn->u.u_error;
+        errstr = VenusRetStr(errcode);
+        goto err_out;
+    }
+
+    /* symlink yields, reobtain fidmap reference */
+    fm = find_fid(dfid);
+    if (!fm) {
+        errcode = EBADF;
+        errstr = "fid unknown or out of range";
+        goto err_out;
+    }
+    /* contrarily to what happens with legacy 9P or 9P2000.u, we do not
+     * update fid to the newly created file
+     */
+
+    cnode2qid(&child, &qid);
+
+    ::free(target);
+
+    /* send_Rsymlink */
+    DEBUG("9pfs: Rsymlink[%x] qid %x.%x.%lx\n",
+          tag, qid.type, qid.version, qid.path);
+
+    buf = buffer; len = max_msize;
+    if (pack_header(&buf, &len, Rcreate, tag) ||
+        pack_qid(&buf, &len, &qid))
+    {
+        send_error(tag, "Message too long", EMSGSIZE);
+        return -1;
+    }
+    return send_response(buffer, max_msize - len);
+
+err_out:
+    ::free(name);
+    ::free(target);
+    return send_error(tag, errstr, errcode);
+}
+
+
+/*
+ * Note: CODA ignores the gid input parameter.
+ */
+int plan9server::recv_mkdir(unsigned char *buf, size_t len, uint16_t tag)
+{
+    uint32_t dfid;
+    char *name;
+    uint32_t mode;
+    gid_t gid;      // ignored by CODA
+
+    int errcode = 0;
+    const char *errstr = NULL;
+
+    if (unpack_le32(&buf, &len, &dfid) ||
+        unpack_string(&buf, &len, &name))
+        return -1;
+    if (unpack_le32(&buf, &len, &mode) ||
+        unpack_le32(&buf, &len, &gid))
+    {
+        free(name);
+        return -1;
+    }
+
+    DEBUG("9pfs: Tmkdir[%x] dfid %u, name %s, mode %o, gid %u\n",
+          tag, dfid, name, mode, gid);
+
+    struct fidmap *fm;
+    struct coda_vattr va = { 0 };
+
+    va.va_size = 0;
+    va.va_mode = mode & 0777;
+
+    fm = find_fid(dfid);
+    if (!fm) {
+        errcode = EBADF;
+        errstr = "fid unknown or out of range";
+        goto err_out;
+    }
+
+    /* we can only create in a directory */
+    if (fm->cnode.c_type != C_VDIR) {
+        errcode = ENOTDIR;
+        errstr = "Not a directory";
+        goto err_out;
+    }
+
+    struct venus_cnode child;
+    struct plan9_qid qid;
+
+    /* Attempt to create the directory */
+    conn->u.u_uid = fm->root->userid;
+    conn->mkdir(&fm->cnode, name, &va, &child);
+
+    if (conn->u.u_error) {
+        errcode = conn->u.u_error;
+        errstr = VenusRetStr(errcode);
+        goto err_out;
+    }
+
+    /* mkdir yields, reobtain fidmap reference */
+    fm = find_fid(dfid);
+    if (!fm) {
+        errcode = EBADF;
+        errstr = "fid unknown or out of range";
+        goto err_out;
+    }
+    /* contrarily to what happens with legacy 9P or 9P2000.u, we do not
+     * update fid to the newly created directory
+     */
+
+    cnode2qid(&child, &qid);
+
+    /* send_Rmkdir */
+    DEBUG("9pfs: Rmkdir[%x] qid %x.%x.%lx\n",
+          tag, qid.type, qid.version, qid.path);
+
+    buf = buffer; len = max_msize;
+    if (pack_header(&buf, &len, Rmkdir, tag) ||
+        pack_qid(&buf, &len, &qid))
+    {
+        send_error(tag, "Message too long", EMSGSIZE);
+        return -1;
+    }
+    return send_response(buffer, max_msize - len);
+
+err_out:
+    ::free(name);
+    return send_error(tag, errstr, errcode);
+}
+
+
+ int plan9server::recv_readdir(unsigned char *buf, size_t len, uint16_t tag)
+ {
+     uint32_t fid;
+     uint64_t offset;
+     uint32_t count;
+
+     if (unpack_le32(&buf, &len, &fid) ||
+         unpack_le64(&buf, &len, &offset) ||
+         unpack_le32(&buf, &len, &count))
+         return -1;
+
+     DEBUG("9pfs: Treaddir[%x] fid %u, offset %lu, count %u\n",
+           tag, fid, offset, count);
+
+     struct fidmap *fm = find_fid(fid);
+     if (!fm)
+         return send_error(tag, "fid unknown or out of range", EBADF);
+
+     if (!(fm->open_flags & C_O_READ))
+         return send_error(tag, "Bad file descriptor", EBADF);
+
+     if (fm->cnode.c_type != C_VDIR)
+         return send_error(tag, "Not a directory", ENOTDIR);
+
+     /* send_Rreaddir */
+     unsigned char *tmpbuf;
+     buf = buffer; len = max_msize;
+     if (pack_header(&buf, &len, Rreaddir, tag) ||
+         get_blob_ref(&buf, &len, &tmpbuf, NULL, 4))
+     {
+         send_error(tag, "Message too long", EMSGSIZE);
+         return -1;
+     }
+
+     if (count > len)
+         count = len;
+
+     ssize_t n = plan9_read(fm, buf, count, offset);
+     if (n < 0) {
+         int errcode = conn->u.u_error;
+         const char *errstr = VenusRetStr(errcode);
+         return send_error(tag, errstr, errcode);
+     }
+
+     /* fix up the actual size of the blob, and send */
+     size_t tmplen = 4;
+     pack_le32(&tmpbuf, &tmplen, n);
+
+     DEBUG("9pfs: Rreaddir[%x] count %ld \n", tag, n);
+     len -= n;
+     return send_response(buffer, max_msize - len);
+ }
+
+
+int plan9server::recv_readlink(unsigned char *buf, size_t len, uint16_t tag)
+{
+    uint32_t fid;
+
+    if (unpack_le32(&buf, &len, &fid))
+        return -1;
+
+    DEBUG("9pfs: Treadlink[%x] fid %u\n", tag, fid);
+
+    struct fidmap *fm = find_fid(fid);
+    if (!fm)
+        return send_error(tag, "fid unknown or out of range", EBADF);
+    if (fm->cnode.c_type != C_VLNK)
+        return send_error(tag, "not a symbolic link", EINVAL);
+
+    char target[CODA_MAXPATHLEN];
+
+    struct coda_string cstring;
+    cstring.cs_buf = target;
+    cstring.cs_len = 0;
+    cstring.cs_maxlen = CODA_MAXPATHLEN;
+
+    conn->u.u_uid = fm->root->userid;
+    conn->readlink(&fm->cnode, &cstring);
+
+    if (conn->u.u_error) {
+        int errcode = conn->u.u_error;
+        const char *errstr = VenusRetStr(errcode);
+        return send_error(tag, errstr, errcode);
+    }
+
+    /* send_Rreadlink */
+    DEBUG("9pfs: Readlink[%x] target '%s'\n", tag, target);
+
+    buf = buffer; len = max_msize;
+    if (pack_header(&buf, &len, Rreadlink, tag) ||
+        pack_string(&buf, &len, target))
+    {
+     send_error(tag, "Message too long", EMSGSIZE);
+     return -1;
+    }
+
+    return send_response(buffer, max_msize - len);
+}
+
+
+int plan9server::recv_statfs(unsigned char *buf, size_t len, uint16_t tag)
+{
+    uint32_t fid;
+
+    if (unpack_le32(&buf, &len, &fid))
+        return -1;
+
+    DEBUG("9pfs: Tstatfs[%x] fid %u\n", tag, fid);
+
+    struct fidmap *fm = find_fid(fid);
+    if (!fm)
+        return send_error(tag, "fid unknown or out of range", EBADF);
+
+    struct coda_statfs c_statfs;
+
+    conn->u.u_uid = fm->root->userid;
+    conn->statfs(&c_statfs);
+
+    if (conn->u.u_error) {
+        int errcode = conn->u.u_error;
+        const char *errstr = VenusRetStr(errcode);
+        return send_error(tag, errstr, errcode);
+    }
+
+    struct plan9_statfs p9_statfs;
+    p9_statfs.blocks = (uint64_t)c_statfs.f_blocks;
+    p9_statfs.bfree = (uint64_t)c_statfs.f_bfree;
+    p9_statfs.bavail = (uint64_t)c_statfs.f_bavail;
+    p9_statfs.files = (uint64_t)c_statfs.f_files;
+    p9_statfs.ffree = (uint64_t)c_statfs.f_ffree;
+    //taken from kernel code:
+    p9_statfs.type = V9FS_MAGIC;
+    p9_statfs.bsize = 4096;
+    p9_statfs.namelen = CODA_MAXNAMLEN;
+    //not reported
+    p9_statfs.fsid = 0;
+
+    /* send_Rstatfs */
+    DEBUG("9pfs: Rstatfs[%x] typ[%u] bsize[%u] blocks[%lu] bfree[%lu] "
+                "bavail[%lu] files[%lu] ffree[%lu] fsid[%lu] namelen[%u]\n",
+                tag, p9_statfs.type, p9_statfs.bsize, p9_statfs.blocks,
+                p9_statfs.bfree, p9_statfs.bavail, p9_statfs.files,
+                p9_statfs.ffree, p9_statfs.fsid, p9_statfs.namelen);
+
+    buf = buffer; len = max_msize;
+    if (pack_header(&buf, &len, Rstatfs, tag) ||
+        pack_statfs(&buf, &len, &p9_statfs))
+    {
+        send_error(tag, "Message too long", EMSGSIZE);
+        return -1;
+    }
+    return send_response(buffer, max_msize - len);
+}
+
+
+int plan9server::recv_fsync(unsigned char *buf, size_t len, uint16_t tag)
+{
+    uint32_t fid;
+
+    if (unpack_le32(&buf, &len, &fid))
+        return -1;
+
+    DEBUG("9pfs: Tfsync[%x] fid %u\n", tag, fid);
+
+    struct fidmap *fm = find_fid(fid);
+    if (!fm)
+        return send_error(tag, "fid unknown or out of range", EBADF);
+
+    /* The current vproc::fsync() implementation is very heavy-handed, i.e. it
+     * syncs and flushes everything.
+     * Doing nothing seems to better achieve what we actually want here
+     * because in case of a crash, the recovery log will still have the writes.
+     * (Oct. 2018 -AS)
+
+    conn->u.u_uid = fm->root->userid;
+    conn->fsync(&fm->cnode);
+    if (conn->u.u_error) {
+        int errcode = conn->u.u_error;
+        const char *errstr = VenusRetStr(errcode);
+        return send_error(tag, errstr, errcode);
+    }
+    */
+
+    /* send_Rfsync */
+    DEBUG("9pfs: Rfsync[%x]\n", tag);
+    buf = buffer; len = max_msize;
+    int rc = pack_header(&buf, &len, Rfsync, tag);
+    assert(rc == 0);
+    return send_response(buffer, max_msize - len);
+}
+
+
+int plan9server::recv_unlinkat(unsigned char *buf, size_t len, uint16_t tag)
+{
+    uint32_t dirfid;
+    char *name;
+    uint32_t flags;
+    int rc;
+
+    if (unpack_le32(&buf, &len, &dirfid) ||
+        unpack_string(&buf, &len, &name))
+        return -1;
+    if (unpack_le32(&buf, &len, &flags))
+    {
+        free(name);
+        return -1;
+    }
+
+    DEBUG("9pfs: Tunlinkat[%x] dirfid %u, name '%s', flags 0x%x\n",
+            tag, dirfid, name, flags);
+
+    struct fidmap *dirfm = find_fid(dirfid);
+    if (!dirfm)
+        return send_error(tag, "dirfid unknown or out of range", EBADF);
+    if (dirfm->cnode.c_type != C_VDIR)
+        return send_error(tag, "dirfid not a directory", ENOTDIR);
+
+    /* Attempt unlinkat operation */
+    conn->u.u_uid = dirfm->root->userid;
+    if (flags == P9_DOTL_AT_REMOVEDIR)
+        conn->rmdir(&dirfm->cnode, name);   /* remove a directory */
+    else
+        conn->remove(&dirfm->cnode, name);  /* remove a regular file */
+
+    if (conn->u.u_error)
+        goto err_out;
+
+    /* Contrarily to what happens with the Remove operation, if the file name
+     * is represented by a fid, that fid is not clunked. */
+
+     ::free(name);
+
+    /* send_Runlinkat */
+    DEBUG("9pfs: Runlinkat[%x]\n", tag);
+
+    buf = buffer; len = max_msize;
+    rc = pack_header(&buf, &len, Runlinkat, tag);
+    assert(rc == 0);
+    return send_response(buffer, max_msize - len);
+
+    err_out:
+        ::free(name);
+        int errcode = conn->u.u_error;
+        const char *errstr = VenusRetStr(errcode);
+        return send_error(tag, errstr, errcode);
+}
+
+
+int plan9server::recv_link(unsigned char *buf, size_t len, uint16_t tag)
+{
+    uint32_t dfid;
+    uint32_t src_fid;
+    char *name;
+
+    if (unpack_le32(&buf, &len, &dfid) ||
+        unpack_le32(&buf, &len, &src_fid) ||
+        unpack_string(&buf, &len, &name))
+        return -1;
+
+    DEBUG("9pfs: Tlink[%x] dfid %u, src fid %u, name %s\n",
+            tag, dfid, src_fid, name);
+
+
+    /* we can only create in a directory */
+    struct fidmap *dfm = find_fid(dfid);
+    if (!dfm)
+        return send_error(tag, "directory fid unknown or out of range", EBADF);
+    if (dfm->cnode.c_type != C_VDIR)
+        return send_error(tag, "Not a directory", ENOTDIR);
+
+    struct fidmap *src_fm = find_fid(src_fid);
+    if (!src_fm)
+        return send_error(tag, "Source fid unknown or out of range", EBADF);
+
+    /* create the hardlink */
+    conn->u.u_uid = dfm->root->userid;
+    conn->link(&src_fm->cnode, &dfm->cnode, name);
+
+    if (conn->u.u_error) {
+        int errcode = conn->u.u_error;
+        const char *errstr = VenusRetStr(errcode);
+        return send_error(tag, errstr, errcode);
+    }
+
+    /* send_Rlink */
+    DEBUG("9pfs: Rlink[%x]\n", tag);
+    buf = buffer; len = max_msize;
+    int rc = pack_header(&buf, &len, Rlink, tag);
+    assert(rc == 0);
+    return send_response(buffer, max_msize - len);
+}
+
+
+int plan9server::recv_rename(unsigned char *buf, size_t len, uint16_t tag)
+{
+    uint32_t fid;
+    uint32_t dfid;
+    char *name;
+    int errcode = 0;
+    const char *errstr = NULL;
+    int rc;
+
+    if (unpack_le32(&buf, &len, &fid) ||
+        unpack_le32(&buf, &len, &dfid) ||
+        unpack_string(&buf, &len, &name))
+        return -1;
+
+    DEBUG("9pfs: Trename[%x] fid %u, dfid %u, name '%s'\n",
+                    tag, fid, dfid, name);
+
+    struct fidmap *fm = find_fid(fid);
+    struct fidmap *dfm = find_fid(dfid);
+
+    if (!fm) {
+        errcode = EBADF;
+        errstr = "fid unknown or out of range";
+        goto err_out;
+    }
+
+    if (!dfm) {
+        errcode = EBADF;
+        errstr = "dfid unknown or out of range";
+        goto err_out;
+    }
+    if (dfm->cnode.c_type != C_VDIR){
+        errcode = ENOTDIR;
+        errstr = "dfid not a directory";
+        goto err_out;
+    }
+
+    /* get old name */
+    char old_name[NAME_MAX];
+    cnode_getname(&fm->cnode, old_name);
+
+    /* get the old parent directory cnode */
+    struct venus_cnode old_parent;
+    if (cnode_getparent(&fm->cnode, &old_parent) < 0) {
+        errcode = EINVAL;
+        errstr = "tried to rename the mountpoint";
+        goto err_out;
+    }
+
+    /* attempt rename */
+    conn->u.u_uid = fm->root->userid;
+    conn->rename(&old_parent, old_name, &dfm->cnode, name);
+    if (conn->u.u_error) {
+      errcode = conn->u.u_error;
+      errstr = VenusRetStr(errcode);
+      goto err_out;
+    }
+
+    ::free(name);
+
+    /* send_Rrename */
+    DEBUG("9pfs: Rrename[%x]\n", tag);
+
+    buf = buffer; len = max_msize;
+    rc = pack_header(&buf, &len, Rrename, tag);
+    assert(rc == 0);
+    return send_response(buffer, max_msize - len);
+
+err_out:
+    ::free(name);
+    return send_error(tag, errstr, errcode);
+}
+
+
+int plan9server::recv_renameat(unsigned char *buf, size_t len, uint16_t tag)
+{
+    uint32_t olddirfid;
+    uint32_t newdirfid;
+    char *oldname;
+    char *newname;
+    int errcode = 0;
+    const char *errstr = NULL;
+    int rc;
+
+    if (unpack_le32(&buf, &len, &olddirfid) ||
+        unpack_string(&buf, &len, &oldname))
+        return -1;
+    if (unpack_le32(&buf, &len, &newdirfid) ||
+        unpack_string(&buf, &len, &newname)) {
+        ::free(oldname);
+        return -1;
+    }
+
+    DEBUG("9pfs: Trenameat[%x] olddirfid %u, oldname '%s', newdirfid %u, "
+            "newname '%s'\n", tag, olddirfid, oldname, newdirfid, newname);
+
+    struct fidmap *olddirfm = find_fid(olddirfid);
+    struct fidmap *newdirfm = find_fid(newdirfid);
+
+    if (!olddirfm) {
+        errcode = EBADF;
+        errstr = "old dir fid unknown or out of range";
+        goto err_out;
+    }
+    if (!newdirfm) {
+        errcode = EBADF;
+        errstr = "new dir fid unknown or out of range";
+        goto err_out;
+    }
+
+    if (olddirfm->cnode.c_type != C_VDIR){
+        errcode = ENOTDIR;
+        errstr = "old dir fid not a directory";
+        goto err_out;
+    }
+    if (newdirfm->cnode.c_type != C_VDIR){
+        errcode = ENOTDIR;
+        errstr = "new dir fid not a directory";
+        goto err_out;
+    }
+
+    /* attempt rename */
+    conn->u.u_uid = newdirfm->root->userid;
+    conn->rename(&olddirfm->cnode, oldname, &newdirfm->cnode, newname);
+    if (conn->u.u_error) {
+      errcode = conn->u.u_error;
+      errstr = VenusRetStr(errcode);
+      goto err_out;
+    }
+
+    ::free(oldname);
+    ::free(newname);
+
+    /* send_Rrenameat */
+    DEBUG("9pfs: Rrenameat[%x]\n", tag);
+
+    buf = buffer; len = max_msize;
+    rc = pack_header(&buf, &len, Rrenameat, tag);
+    assert(rc == 0);
+    return send_response(buffer, max_msize - len);
+
+err_out:
+    ::free(oldname);
+    ::free(newname);
+    return send_error(tag, errstr, errcode);
+}
+
+
+int plan9server::recv_mknod(unsigned char *buf, size_t len, uint16_t tag)
+{
+    uint32_t dfid;
+    char *name;
+    uint32_t mode;
+    uint32_t major;
+    uint32_t minor;
+    gid_t gid;
+
+    if (unpack_le32(&buf, &len, &dfid) ||
+        unpack_string(&buf, &len, &name))
+        return -1;
+    if (unpack_le32(&buf, &len, &mode) ||
+        unpack_le32(&buf, &len, &major) ||
+        unpack_le32(&buf, &len, &minor) ||
+        unpack_le32(&buf, &len, &gid)) {
+        ::free(name);
+        return -1;
+    }
+
+    DEBUG("9pfs: Tmknod[%x] dfid %u, name %s, major %u, minor %u, gid %d\n",
+          tag, dfid, name, major, minor, gid);
+
+    ::free(name);
+
+#if 0
+    /* send_Rmknod */
+    DEBUG("9pfs: Rmknod[%x] qid %x.%x.%lx\n",
+          tag, qid->type, qid->version, qid->path);
+
+    buf = buffer; len = max_msize;
+    if (pack_header(&buf, &len, Rmknod, tag) ||
+        pack_qid(&buf, &len, qid))
+    {
+        send_error(tag, "Message too long");
+        return -1;
+    }
+    return send_response(buffer, max_msize - len);
+#endif
+    return send_error(tag, "Operation not supported", ENOTSUP);
+}
+
+
+int plan9server::recv_xattrwalk(unsigned char *buf, size_t len, uint16_t tag)
+{
+    uint32_t fid;
+    uint32_t newfid;
+    char *name;
+
+    if (unpack_le32(&buf, &len, &fid) ||
+        unpack_le32(&buf, &len, &newfid) ||
+        unpack_string(&buf, &len, &name))
+        return -1;
+
+    DEBUG("9pfs: Txattrwalk[%x] fid %u, newfid %u name %s\n",
+          tag, fid, newfid, name);
+
+    ::free(name);
+
+#if 0
+    /* send_Rxattrwalk */
+    DEBUG("9pfs: Rxattrwalk[%x] attr_size %lu\n", tag, attr_size);
+
+    buf = buffer; len = max_msize;
+    if (pack_header(&buf, &len, Rxattrwalk, tag) ||
+        pack_len64(&buf, &len, attr_size))
+    {
+        send_error(tag, "Message too long");
+        return -1;
+    }
+    return send_response(buffer, max_msize - len);
+#endif
+    return send_error(tag, "Operation not supported", ENOTSUP);
+}
+
+
+int plan9server::recv_xattrcreate(unsigned char *buf, size_t len, uint16_t tag)
+{
+    uint32_t fid;
+    char *name;
+    uint64_t attr_size;
+    uint32_t flags;
+
+    if (unpack_le32(&buf, &len, &fid) ||
+        unpack_string(&buf, &len, &name))
+        return -1;
+    if (unpack_le64(&buf, &len, &attr_size) ||
+        unpack_le32(&buf, &len, &flags)) {
+        ::free(name);
+        return -1;
+    }
+
+    DEBUG("9pfs: Txattrcreate[%x] fid %u, name %s, attr_size %lu, flags %x\n",
+          tag, fid, name, attr_size, flags);
+
+    ::free(name);
+
+#if 0
+    /* send_Rxattrcreate */
+    DEBUG("9pfs: Rxattrcreate[%x] \n", tag);
+
+    buf = buffer; len = max_msize;
+    if (pack_header(&buf, &len, Rxattrwalk, tag))
+    {
+        send_error(tag, "Message too long");
+        return -1;
+    }
+    return send_response(buffer, max_msize - len);
+#endif
+    return send_error(tag, "Operation not supported", ENOTSUP);
+}
+
+
+int plan9server::recv_lock(unsigned char *buf, size_t len, uint16_t tag)
+{
+    uint32_t fid;
+    uint8_t type;
+    uint32_t flags;
+    uint64_t start;
+    uint64_t length;
+    uint32_t proc_id;
+    char *client_id;
+
+    if (unpack_le32(&buf, &len, &fid) ||
+        unpack_le8(&buf, &len, &type) ||
+        unpack_le32(&buf, &len, &flags) ||
+        unpack_le64(&buf, &len, &start) ||
+        unpack_le64(&buf, &len, &length) ||
+        unpack_le32(&buf, &len, &proc_id) ||
+        unpack_string(&buf, &len, &client_id))
+        return -1;
+
+    DEBUG("9pfs: Tlock[%x] fid %u  type %x  flags %x  start %lu  length %lu  "
+                 "proc_id %d  client_id %s\n",
+          tag, fid, type, flags, start, length, proc_id, client_id);
+
+    ::free(client_id);
+
+#if 0
+    /* send_Rlock */
+    DEBUG("9pfs: Rlock[%x] status %u\n", tag, status);
+
+    buf = buffer; len = max_msize;
+    if (pack_header(&buf, &len, Rlock, tag) ||
+        pack_len8(&buf, &len, status))
+    {
+        send_error(tag, "Message too long");
+        return -1;
+    }
+    return send_response(buffer, max_msize - len);
+#endif
+    return send_error(tag, "Operation not supported", ENOTSUP);
+}
+
+
+int plan9server::recv_getlock(unsigned char *buf, size_t len, uint16_t tag)
+{
+    uint32_t fid;
+    uint8_t type;
+    uint64_t start;
+    uint64_t length;
+    uint32_t proc_id;
+    char *client_id;
+
+    if (unpack_le32(&buf, &len, &fid) ||
+        unpack_le8(&buf, &len, &type) ||
+        unpack_le64(&buf, &len, &start) ||
+        unpack_le64(&buf, &len, &length) ||
+        unpack_le32(&buf, &len, &proc_id) ||
+        unpack_string(&buf, &len, &client_id))
+        return -1;
+
+    DEBUG("9pfs: Tlock[%x] fid %u  type %x  start %lu  length %lu  "
+                 "proc_id %d  client_id %s\n",
+          tag, fid, type, start, length, proc_id, client_id);
+
+    ::free(client_id);
+
+#if 0
+    /* send_Rgetlock */
+    DEBUG("9pfs: Rgetlock[%x] type %x  start %lu  length %lu  proc_id %d  "
+            "client_id %s\n", tag, type, start, length, proc_id, client_id);
+
+    buf = buffer; len = max_msize;
+    if (pack_header(&buf, &len, Rgetlock, tag) ||
+        pack_len8(&buf, &len, type) ||
+        pack_len64(&buf, &len, start) ||
+        pack_len64(&buf, &len, length) ||
+        pack_len32(&buf, &len, proc_id) ||
+        pack_string(&buf, &len, client_id))
+    {
+        send_error(tag, "Message too long");
+        return -1;
+    }
+    return send_response(buffer, max_msize - len);
+#endif
+    return send_error(tag, "Operation not supported", ENOTSUP);
+}
+
+
+/*
+ * fidmap helper functions
+ */
+
+/*
+* Given a cnode, returns its actual link count.
+*/
+int plan9server::cnode_linkcount(struct venus_cnode *cnode, uint64_t *linkcount)
+{
+fsobj *f = FSDB->Find(&cnode->c_fid);
+if (f == NULL) return -EBADF;         /* Venus fid not found */
+*linkcount = (uint64_t)f->stat.LinkCount;
+return 0;
+}
+
+
+/*
  * Obtains the file or directory name given a cnode, and places it in the
  * location pointed to by name.
  * Coda's getattr doesn't return the path component because it supports
@@ -1690,9 +3116,33 @@ int plan9server::cnode_getparent(struct venus_cnode *cnode,
                               struct venus_cnode *parent)
 {
   fsobj *f = FSDB->Find(&cnode->c_fid);
-  assert(f);
-  if (f->IsMtPt()) return -1;  /* cnode was the mount point */
+  if (f == NULL) return -EBADF;         /* Venus fid not found */
+  if (f->IsMtPt()) return -EINVAL;      /* cnode was the mount point */
   MAKE_CNODE2(*parent, f->pfid, C_VDIR);
+  return 0;
+}
+
+/*
+ * Downcall to replace temporary Venus Fid once a server Fid has been assigned.
+ * Replacement must happen for every entry in the 9p fidmap that contains the
+ * temporary Venus Fid.
+ */
+int plan9server::fidmap_replace_cfid(VenusFid * OldFid, VenusFid * NewFid)
+{
+  dlist_iterator next(fids);
+  dlink *cur;
+
+  DEBUG("\n9pfs: Downcall received to replace c_fid %s with %s. Done for 9P fids: ", FID_(OldFid), FID_(NewFid));
+
+  while ((cur = next()))
+  {
+      struct fidmap *fm = strbase(struct fidmap, cur, link);
+      if (FID_EQ(&fm->cnode.c_fid, OldFid)) {
+          fm->cnode.c_fid = *NewFid;
+          DEBUG("%u ", fm->fid);
+        }
+  }
+  DEBUG("\n");
   return 0;
 }
 
