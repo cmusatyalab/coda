@@ -113,10 +113,10 @@ void Lock_Obtain(register struct Lock *lock, int how)
 	}
 }
 
-void ObtainDualLock(register struct Lock *lock_1, enum lock_how how_1, register struct Lock *lock_2, enum lock_how how_2)
+void ObtainDualLock(struct Lock *lock_1, enum lock_how how_1, struct Lock *lock_2, enum lock_how how_2)
 {
-    register struct Lock *lock_lower = lock_1;
-    register struct Lock *lock_upper = lock_2;
+    struct Lock *lock_lower = lock_1;
+    struct Lock *lock_upper = lock_2;
     enum lock_how how_lower = how_1;
     enum lock_how how_upper = how_2;
 
@@ -156,7 +156,7 @@ void ObtainDualLock(register struct Lock *lock_1, enum lock_how how_1, register 
     }
 }
 
-void ReleaseDualLock(register struct Lock *lock_1, enum lock_how how_1, register struct Lock *lock_2, enum lock_how how_2) {
+void ReleaseDualLock(struct Lock *lock_1, enum lock_how how_1, struct Lock *lock_2, enum lock_how how_2) {
     switch (how_1) {
         case READ_LOCK:
             ReleaseReadLock(lock_1);
