@@ -320,7 +320,7 @@ public:
     CacheChunk pop();
 
     /**
-     * Get the amount of list elements
+     * Get the number of list elements
      *
      * @return number of list elements
      */

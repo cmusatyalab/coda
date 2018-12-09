@@ -983,12 +983,20 @@ void fsdb::Flush()
 
         restart = 0;
         while ((f = next())) {
+            /* If the fsobj is an active VASTRO don't flush it!
+             * Flushing an fsobj destroys the fsobj's state and
+             * removes it from the fsdb when Kill() is called.
+             * Simply discard the data and skip it. */
             if (ISVASTRO(f) && ACTIVE(f)) {
 
                 Recov_BeginTrans();
                 f->DiscardData();
                 Recov_EndTrans(MAXFP);
 
+                /* Since the fsobj wasn't removed from the fsdb
+                 * there's no need to restart. Continue with next
+                 * object instead. Breaking here could prevent us
+                 * to flush further fsobj from the fsdb. */
                 continue;
             }
 
