@@ -63,7 +63,7 @@ extern "C" {
 #include "vproc.h"
 #include "worker.h"
 
-int CacheFiles = 0;
+unsigned int CacheFiles = 0;
 uint64_t WholeFileMaxSize = 0;
 int FSO_SWT = UNSET_SWT;
 int FSO_MWT = UNSET_MWT;
@@ -72,7 +72,7 @@ int FSO_SSF = UNSET_SSF;
 
 /* Call with CacheDir the current directory. */
 void FSOInit() {
-    int i; 
+    unsigned int i;
 
     /* Allocate the database if requested. */
     if (InitMetaData) {					/* <==> FSDB == 0 */
@@ -361,7 +361,7 @@ void fsdb::ResetTransient() {
     htab.SetHFn(FSO_HashFN);
     prioq = new bstree(FSO_PriorityFN);
     RefCounter = 0;
-    for (int i = 0; i < MaxFiles; i++)
+    for (unsigned int i = 0; i < MaxFiles; i++)
 	if (LastRef[i] > RefCounter)
 	    RefCounter = LastRef[i];
     RefCounter++;

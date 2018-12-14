@@ -226,7 +226,7 @@ void VolInit(void)
 	    eprint("\t%d CML entries on free-list", VDB->mlefreelist.count());
 	}
 
-        int nvols = VDB->volrep_hash.count() + VDB->repvol_hash.count();
+        unsigned int nvols = VDB->volrep_hash.count() + VDB->repvol_hash.count();
 
 	if (nvols > CacheFiles)
 	    CHOKE("VolInit: too many vol entries (%d > %d)", nvols, CacheFiles);

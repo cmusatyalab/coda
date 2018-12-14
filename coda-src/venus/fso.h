@@ -693,7 +693,7 @@ class fso_iterator : public rec_ohashtab_iterator {
 
 /*  *****  Variables  ***** */
 
-extern int CacheFiles;
+extern unsigned int CacheFiles;
 extern uint64_t WholeFileMaxSize;
 extern int FSO_SWT;
 extern int FSO_MWT;
