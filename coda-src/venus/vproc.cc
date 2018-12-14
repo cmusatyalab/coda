@@ -561,7 +561,8 @@ void vproc::Begin_VFS(Volid *volid, int vfsop, int volmode)
 	!u.u_vol->IsUnreachable())
     {
 	struct timeval delay = { 1, 0 };
-	int free_fsos, free_mles, free_blocks;
+	int free_fsos, free_mles;
+        uint64_t free_blocks;
 	long cml_length;
 	int inyellowzone, inredzone;
 

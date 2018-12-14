@@ -87,7 +87,7 @@ CacheFile::CacheFile(int i, int recoverable)
 
 CacheFile::CacheFile()
 {
-    CODA_ASSERT(length == 0);
+    length = validdata = 0;
     refcnt = 1;
     numopens = 0;
     this->recoverable = 1;

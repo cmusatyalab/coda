@@ -329,8 +329,8 @@ public:
 
 class CacheFile {
     friend class SegmentedCacheFile;
-    long length;  /**< Length of the container file */
-    long validdata; /**< Amount of actual and valid data in the container file */
+    uint64_t length;  /**< Length of the container file */
+    uint64_t validdata; /**< Amount of actual and valid data in the container file */
     int  refcnt; /**< Reference counter */
     int numopens; /**< Number of openers */
     bitmap *cached_chunks; /**< Bitmap of actual cached data */

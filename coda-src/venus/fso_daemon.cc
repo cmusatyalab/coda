@@ -130,7 +130,7 @@ void fsdb::RecomputePriorities(int Force) {
     int Count = (int) (RefCounter - LastRefCounter);
     if (Count == 0)
 	return;				    /* don't recompute if nothing has been referenced */
-    if (!Force && Count < /*MAXRC*/(MaxFiles >> 16))
+    if (!Force && Count < /*MAXRC*/(int)(MaxFiles >> 16))
 	return;
 
     LastRefCounter = RefCounter;
