@@ -735,9 +735,9 @@ int k_Replace(VenusFid *fid_1, VenusFid *fid_2)
     if (plan9server_enabled) {
         mariner_iterator next;
         mariner *m;
-        while (m = next())
-         if (m->p9srv != NULL)
-          m->p9srv->fidmap_replace_cfid(fid_1, fid_2);
+        while ((m = next()))
+            if (m->p9srv != NULL)
+                m->p9srv->fidmap_replace_cfid(fid_1, fid_2);
     }
 
     if (!worker::isReady()) return(1);

@@ -2261,7 +2261,6 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet,
 
 Exit:
     if (m) m->Put();
-ExitNonRep:
     LOG(0, ("ClientModifyLog::COP1: (%s), %d bytes, returns %d, index = %d\n",
 	     vol->name, bufsize, code, Index));
     return(code);
@@ -2272,8 +2271,6 @@ int ClientModifyLog::COP1_NR(char *buf, int bufsize, ViceVersionVector *UpdateSe
 {
     reintvol *vol = strbase(reintvol, this, CML);
     int code = 0;
-    unsigned int i = 0;
-    mgrpent *m = 0;
     
     /* Set up the SE descriptor. */
     SE_Descriptor sed;

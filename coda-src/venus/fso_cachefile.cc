@@ -479,9 +479,6 @@ int64_t CacheFile::CopySegment(CacheFile * from, CacheFile * to, uint64_t pos, i
     uint32_t byte_start = pos_align_to_ccblock(pos);
     uint32_t block_start = bytes_to_ccblocks(byte_start);
     uint32_t byte_len = length_align_to_ccblock(pos, count);
-    uint32_t block_end = bytes_to_ccblocks(byte_start + byte_len);
-    uint32_t curr_byte_start = byte_start;
-    uint32_t curr_byte_len = 0;
     int tfd, ffd;
     struct stat tstat;
     CacheChunkList * c_list;
@@ -704,7 +701,7 @@ bool CacheChunkList::ReverseCheck(uint64_t start, int64_t len)
 
     dlist_iterator previous(*this, DlDescending);
 
-    while (curr = previous()) {
+    while ((curr = previous())) {
         curr_cc = (CacheChunk *)curr;
 
         if (!curr_cc->isValid()) continue;
@@ -732,7 +729,7 @@ void CacheChunkList::ReverseRemove(uint64_t start, int64_t len)
 
     dlist_iterator previous(*this, DlDescending);
 
-    while (curr = previous()) {
+    while ((curr = previous())) {
         curr_cc = (CacheChunk *)curr;
 
         if (!curr_cc->isValid()) continue;
@@ -760,7 +757,7 @@ void CacheChunkList::ForEach(void (*foreachcb)(uint64_t start, int64_t len,
 
     dlist_iterator next(*this);
 
-    while (curr = next()) {
+    while ((curr = next())) {
         curr_cc = (CacheChunk *)curr;
         foreachcb(curr_cc->GetStart(), curr_cc->GetLength(), usr_data);
     }
