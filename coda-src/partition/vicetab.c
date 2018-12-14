@@ -100,10 +100,18 @@ Partent Partent_create(char *host, char *dir, char *type, char *opts)
 {
     Partent pa = Partent_new();
     CODA_ASSERT(pa && host && dir && type && opts);
-    strncpy(pa->part_host, host, VICETAB_MAXSTR);
-    strncpy(pa->part_dir, dir, VICETAB_MAXSTR);
-    strncpy(pa->part_type, type, VICETAB_MAXSTR);
-    strncpy(pa->part_opts, opts, VICETAB_MAXSTR);
+
+    strncpy(pa->part_host, host, VICETAB_MAXSTR-1);
+    pa->part_host[VICETAB_MAXSTR-1] = '\0';
+
+    strncpy(pa->part_dir, dir, VICETAB_MAXSTR-1);
+    pa->part_dir[VICETAB_MAXSTR-1] = '\0';
+
+    strncpy(pa->part_type, type, VICETAB_MAXSTR-1);
+    pa->part_type[VICETAB_MAXSTR-1] = '\0';
+
+    strncpy(pa->part_opts, opts, VICETAB_MAXSTR-1);
+    pa->part_opts[VICETAB_MAXSTR-1] = '\0';
     return pa;
 }
 

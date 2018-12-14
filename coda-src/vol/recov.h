@@ -50,7 +50,7 @@ extern int ActiveVnodes(int volindex, int vclass);
 extern int AllocatedVnodes(int volindex, int vclass);
 extern int AvailVnode(int volindex, int vclass, VnodeId vnodeindex, Unique_t =0);
 extern int GetVolType(Error *ec, VolumeId volid);
-extern void GetVolPartition(Error *, VolumeId, int, char *);
+extern void GetVolPartition(Error *, VolumeId, int, char partition[V_MAXPARTNAMELEN]);
 extern void SetupVolCache();
 extern VolumeId VAllocateVolumeId(Error *ec);
 extern VolumeId VGetMaxVolumeId();

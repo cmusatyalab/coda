@@ -34,7 +34,8 @@ static char vicedir[MAXPATHLEN];
 void
 vice_dir_init (const char *dirname)
 {
-	strncpy(vicedir, dirname, MAXPATHLEN);
+    strncpy(vicedir, dirname, MAXPATHLEN-1);
+    vicedir[MAXPATHLEN-1] = '\0';
 }
 
 static const char *
@@ -42,6 +43,7 @@ vice_filepath (const char *dir, const char *name)
 {
 	static char volpath[2][MAXPATHLEN];
 	static int vpidx = 0;
+        int n;
 
 	if (!name)
 		return dir; 
@@ -50,7 +52,8 @@ vice_filepath (const char *dir, const char *name)
 	 *   rename(Vol_vicefile(p1), Vol_vicefile(p2);
 	 * the following indexing takes care of that. -JH */
 	vpidx = 1 - vpidx;
-	snprintf(volpath[vpidx], MAXPATHLEN, "%s/%s",  dir, name);
+	n = snprintf(volpath[vpidx], MAXPATHLEN, "%s/%s",  dir, name);
+        CODA_ASSERT(n < MAXPATHLEN);
 
 	return volpath[vpidx];
 }

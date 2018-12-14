@@ -1218,8 +1218,7 @@ void VOffline(Volume *vp, const char *message)
     if (!V_inUse(vp))
 	return;
     if (V_offlineMessage(vp)[0] == '\0')
-	strncpy(V_offlineMessage(vp),message,
-		sizeof(V_offlineMessage(vp)));
+	strncpy(V_offlineMessage(vp), message, sizeof(V_offlineMessage(vp))-1);
     V_offlineMessage(vp)[sizeof(V_offlineMessage(vp))-1] = '\0';
     vp->goingOffline = 1;
     VPutVolume(vp);

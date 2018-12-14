@@ -114,7 +114,7 @@ int main(int argc, char **argv)
     if (MyViceName[strlen(MyViceName)-1] == '\n' ){
 	    MyViceName[strlen(MyViceName)-1] = '\0';
     }
-    strncpy(MyPassword, getpass("Your password: "), sizeof(MyPassword));
+    strncpy(MyPassword, getpass("Your password: "), sizeof(MyPassword)-1);
 
     /* get realm information */
     SplitRealmFromName(MyViceName, &realm);

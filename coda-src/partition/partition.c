@@ -153,7 +153,8 @@ DP_InitPartition(Partent entry, struct inodeops *operations,
     /* Add it to the end.  Preserve order for printing. Check devno. */
     list_add(&dp->dp_chain, DiskPartitionList.prev);
     /*  fill in the structure */
-    strncpy(dp->name, Partent_dir(entry), MAXPATHLEN);
+    strncpy(dp->name, Partent_dir(entry), MAXPATHLEN-1);
+    dp->name[MAXPATHLEN-1] = '\0';
     dp->device = devno;
     dp->ops = operations;
     dp->d = data;

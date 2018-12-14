@@ -258,7 +258,8 @@ int AllocatedVnodes(int volindex, int vclass)
 
 /* Return the name of the physical partition containing the specified volume's */
 /* data inodes. ec is set if the volume is not found */
-void GetVolPartition(Error *ec, VolumeId volid, int myind, char partition[])
+void GetVolPartition(Error *ec, VolumeId volid, int myind,
+                     char partition[V_MAXPARTNAMELEN])
 {
     VolumeDiskData *voldata;
 
@@ -273,7 +274,7 @@ void GetVolPartition(Error *ec, VolumeId volid, int myind, char partition[])
     }
 
     voldata = SRV_RVM(VolumeList[myind]).data.volumeInfo;
-    strncpy(partition, voldata->partition, strlen(voldata->partition) + 1);
+    strncpy(partition, voldata->partition, V_MAXPARTNAMELEN);
 }
 
 /* Increment and return the value of MaxVolId, the maximum volume id allocated */
