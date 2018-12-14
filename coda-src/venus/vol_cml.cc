@@ -2288,7 +2288,7 @@ int ClientModifyLog::COP1_NR(char *buf, int bufsize, ViceVersionVector *UpdateSe
     sei->FileInfo.ByAddr.vmfile.SeqBody = (RPC2_ByteSeq)buf;
 
     /* COP2 Piggybacking. */
-    long cbtemp; cbtemp = cbbreaks;
+    long cbtemp = cbbreaks;
     char PiggyData[COP2SIZE];
     RPC2_CountedBS PiggyBS;
     PiggyBS.SeqLen = 0;
@@ -2317,7 +2317,6 @@ int ClientModifyLog::COP1_NR(char *buf, int bufsize, ViceVersionVector *UpdateSe
     /* don't bother with VCBs, will lose them on resolve anyway */
     RPC2_CountedBS OldVS; 
     OldVS.SeqLen = 0;
-    // vol->ClearCallBack();
 
     /* Make the RPC call. */
     MarinerLog("store::Reintegrate %s, (%d, %d)\n", 
@@ -2352,6 +2351,15 @@ int ClientModifyLog::COP1_NR(char *buf, int bufsize, ViceVersionVector *UpdateSe
         PutConn(&c);
         goto ExitNonRep;
     }
+
+    /* Update volume callback information */
+#if TOBEDONE
+    if (cbtemp == cbbreaks && VCBStatus == CallBackSet) {
+        vol->SetCallBack();
+        vol->VVV.Site0 = VS;
+    } else
+        vol->CallBackBreak();
+#endif
 
     bufsize += sed.Value.SmartFTPD.BytesTransferred;
     LOG(10, ("ViceReintegrate: transferred %d bytes\n",
