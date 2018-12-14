@@ -121,7 +121,9 @@ class cmlstats {
     int other_count;					/* number of records other than stores */
     float other_size;				/* size (in bytes) of non-stores */
 
-    cmlstats() {
+    cmlstats() { clear(); }
+
+    void clear() {
 	store_count = 0;
 	store_size = 0.0;
 	store_contents_size = 0.0;
