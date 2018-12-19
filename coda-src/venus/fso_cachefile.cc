@@ -666,8 +666,8 @@ CacheChunkList * CacheFile::GetValidChunks(uint64_t start, int64_t len) {
 void CacheChunkList::AddChunk(uint64_t start, int64_t len)
 {
     WriteLock();
-    CacheChunk * new_chunck = new CacheChunk(start, len);
-    this->insert((dlink *) new_chunck);
+    CacheChunk * new_chunk = new CacheChunk(start, len);
+    this->insert((dlink *) new_chunk);
     WriteUnlock();
 }
 

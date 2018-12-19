@@ -355,7 +355,7 @@ class CacheFile {
      * @param start_b start of the range in ccblocks
      * @param end_b   end of the range in ccblocks
      *
-     * @return cache chunck of the first hole. Might be invalid (check validity
+     * @return cache chunk of the first hole. Might be invalid (check validity
      *         by calling isValid())
      */
     CacheChunk GetNextHole(uint64_t start_b, uint64_t end_b);
