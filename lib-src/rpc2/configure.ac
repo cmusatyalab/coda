@@ -2,7 +2,7 @@ dnl Process this file with autoconf to produce a configure script
 
 dnl Initialization
 AC_PREREQ(2.50)
-AC_INIT(rpc2, 2.23)
+AC_INIT(rpc2, 2.24)
 AC_CONFIG_AUX_DIR([.])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_SRCDIR([rpc2-src/rpc2.private.h])
