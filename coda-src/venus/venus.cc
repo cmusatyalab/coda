@@ -92,7 +92,7 @@ const char *kernDevice;
 const char *realmtab;
 const char *CacheDir;
 const char *CachePrefix;
-unsigned int CacheBlocks;
+uint64_t CacheBlocks;
 uid_t PrimaryUser = UNSET_PRIMARYUSER;
 const char *SpoolDir;
 const char *CheckpointFormat;
@@ -250,13 +250,13 @@ void MUX_add_callback(int fd, void (*cb)(int fd, void *udata), void *udata)
 /*
  * Parse size value and converts into amount of 1K-Blocks
  */
-static unsigned int ParseSizeWithUnits(const char * SizeWUnits)
+static uint64_t ParseSizeWithUnits(const char * SizeWUnits)
 {
     const char * units = NULL;
     int scale_factor = 1;
     char SizeWOUnits[256];
     size_t size_len = 0;
-    unsigned int size_int = 0;
+    uint64_t size_int = 0;
 
     /* Locate the units and determine the scale factor */
     for (int i = 0; i < 6; i++) {
