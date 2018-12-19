@@ -1,7 +1,7 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 7
+                              Release 6
 
           Copyright (c) 1987-2018 Carnegie Mellon University
                   Additional copyrights listed below
