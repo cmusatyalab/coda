@@ -1,3 +1,7 @@
+New in 1.23:
+
+* Fixed buffer overflow in rvmutl command. No library code changes.
+
 New in 1.22:
 
 * Change autoconf to only check for mmap existance. This allows building
