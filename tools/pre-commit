@@ -49,7 +49,7 @@ fi
 staged_files=`git diff --cached --name-only`
 exit_code=0
 
-CODA_RELEASE=6
+CODA_RELEASE=7
 COPYRIGHT_YEAR=$(date +'%Y')
 
 echo "Pre-commit hook - Checking staged files copyright blurbs"
