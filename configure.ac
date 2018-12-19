@@ -180,6 +180,8 @@ AM_COND_IF(HAVE_VALGRIND,, [
     )]
 )
 
+AC_CONFIG_LINKS([.git/hooks/pre-commit:tools/pre-commit])
+
 AC_CONFIG_FILES([coda-src/scripts/bldvldb.sh],
        [chmod +x coda-src/scripts/bldvldb.sh])
 AC_CONFIG_FILES([coda-src/scripts/createvol_rep],
