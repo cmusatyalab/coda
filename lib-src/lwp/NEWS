@@ -1,3 +1,7 @@
+New in 2.11:
+
+ * Add functions to safely lock two locks, ObtainDualLock/ReleaseDualLock.
+
 New in 2.10:
 
  * Change autoconf test for mmap to only test for existence, not if it
