@@ -3,7 +3,7 @@
 			    Coda File System
 				Release 6
 
-	    Copyright (c) 1987-2016 Carnegie Mellon University
+	    Copyright (c) 1987-2018 Carnegie Mellon University
 		    Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -301,10 +301,7 @@ int ClientModifyLog::GetReintegrateable(int tid, unsigned long *reint_time,
     *nrecs = 0;
 
     /* get the current bandwidth estimate */
-    if (vol->IsReplicated())
-        ((repvol *)vol)->GetBandwidth(&bw);
-    else 
-        vol->GetBandwidth(&bw);
+    vol->GetBandwidth(&bw);
 
     while ((m = next())) {
 	/* do not pack stores if we want to avoid backfetches */
