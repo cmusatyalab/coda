@@ -317,7 +317,8 @@ static int power_of_2(uint64_t num)
     return power; 
 }
 
-void ParseCacheChunkBlockSize(const char * ccblocksize) {
+void ParseCacheChunkBlockSize(const char * ccblocksize)
+{
     uint64_t TmpCacheChunkBlockSize = ParseSizeWithUnits(ccblocksize) * 1024;
     int TmpCacheChunkBlockSizeBit = power_of_2(TmpCacheChunkBlockSize);
     
@@ -336,7 +337,7 @@ void ParseCacheChunkBlockSize(const char * ccblocksize) {
     CacheChunkBlockSizeBits = TmpCacheChunkBlockSizeBit;
     CacheChunkBlockSize = 1 << CacheChunkBlockSizeBits;
     CacheChunkBlockSizeMax = CacheChunkBlockSize - 1;
-    CacheChunkBlockBitmapSize = (UINT32_MAX >> CacheChunkBlockSizeBits) + 1;
+    CacheChunkBlockBitmapSize = (UINT_MAX >> CacheChunkBlockSizeBits) + 1;
 }
 
 
