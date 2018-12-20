@@ -16,10 +16,10 @@ listed in the file CREDITS.
 
 #*/
 
-#ifndef _BITMAP_H_
-#define _BITMAP_H_ 1
+#ifndef _BITMAP7_H_
+#define _BITMAP7_H_ 1
 /*
- * bitmap.h
+ * bitmap7.h
  * Created Feb 13, 1992	-- Puneet Kumar 
  * Declaration of a bitmap class 
  */
@@ -28,7 +28,9 @@ listed in the file CREDITS.
 extern "C" {
 #endif
 
+#include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #ifdef __cplusplus
 }
@@ -43,16 +45,17 @@ extern "C" {
  *	0 --> that element is free
  */
 
-/* Values of bitmap::malloced; must be 8 bits so can't use enums */
+/* Values of bitmap7::malloced; must be 8 bits so can't use enums */
 #define BITMAP_NOTVIANEW 193  /* must be on stack */
 #define BITMAP_VIANEW 221     /* on heap, via operator new */
 
-class bitmap {
-//  friend ostream& operator<<(ostream& s, bitmap *b);
-    uint8_t recoverable;	/* is this bitmap recoverable */
-    uint8_t malloced;           /* was bitmap allocated via new? */
-    int mapsize;		/* 1/8 size of array of elements */
-    char *map;			/* bitmap showing status of the elements */
+class bitmap7 {
+//  friend ostream& operator<<(ostream& s, bitmap7 *b);
+    uint8_t recoverable;   /**< is this bitmap recoverable */
+    uint8_t malloced;      /**< was bitmap allocated via new? */
+    int mapsize;           /**< 1/8 size of array of elements */
+    int indexsize;         /**< amount of bits in the map */
+    char *map;             /**< bitmap showing status of the elements */
 
     /**
      * Set the value of a bit at an index
@@ -96,12 +99,12 @@ public:
      * @param inputmapsize  size of the bitmap being created
      * @param recable       recoverable flag (RVM persistent)
      */
-    bitmap(int inputmapsize = 0, int recable = 0);
+    bitmap7(int inputmapsize = 0, int recable = 0);
 
     /**
      * Destructor
      */
-    ~bitmap();
+    ~bitmap7();
 
     /**
      * Resize the bitmap to a new size
@@ -161,7 +164,7 @@ public:
      * @param len    length of the range
      * @param b      output bitmap
      */
-    void CopyRange(int start, int len, bitmap& b);
+    void CopyRange(int start, int len, bitmap7& b);
 
     /**
      * Get the bit's value at a particular index
@@ -195,7 +198,7 @@ public:
      *
      * @param b  input bitmap
      */
-    void operator =(bitmap& b);
+    void operator =(bitmap7& b);
 
     /**
      * Test for inequality
@@ -203,7 +206,7 @@ public:
      * @param b  input bitmap
      * @return 0 if both bitmaps are unequal and 1 otherwise
      */
-    int operator !=(bitmap& b); // test for inequality
+    int operator !=(bitmap7& b); // test for inequality
 
     /**
      * Print the bitmap's content to stderr
@@ -225,4 +228,4 @@ public:
     void print(int fd);
 };
 
-#endif /* _BITMAP_H_ */
+#endif /* _BITMAP7_H_ */

@@ -1,7 +1,7 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
           Copyright (c) 1987-2018 Carnegie Mellon University
                   Additional copyrights listed below
@@ -39,7 +39,7 @@ extern "C" {
 #endif
 
 /* from util */
-#include <bitmap.h>
+#include <bitmap7.h>
 #include <dlist.h>
 
 /* Representation of UFS file in cache directory. */
@@ -333,7 +333,7 @@ class CacheFile {
     uint64_t validdata; /**< Amount of actual and valid data in the container file */
     int  refcnt; /**< Reference counter */
     int numopens; /**< Number of openers */
-    bitmap *cached_chunks; /**< Bitmap of actual cached data */
+    bitmap7 *cached_chunks; /**< Bitmap of actual cached data */
     int recoverable;  /**< Recoverable flag (RVM) */
     Lock rw_lock;  /**< Read/Write Lock */
 

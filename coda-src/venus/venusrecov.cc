@@ -1,7 +1,7 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
           Copyright (c) 1987-2018 Carnegie Mellon University
                   Additional copyrights listed below
@@ -142,7 +142,7 @@ static void Recov_GetStatistics();
 #define	RECOV_BYTES_NEEDED()\
     (MLEs * (sizeof(cmlent) + 64) +\
     CacheFiles * (sizeof(fsobj) + 64) +\
-    CacheFiles * (sizeof(bitmap) + (96*1024)) +\
+    CacheFiles * (sizeof(bitmap7) + (96*1024)) +\
     (CacheFiles / 4) * (sizeof(VenusDirData) + 3072) +\
     (CacheFiles / 256) * sizeof(repvol) +\
     (CacheFiles / 512) * sizeof(volrep) +\

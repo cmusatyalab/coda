@@ -1,7 +1,7 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
           Copyright (c) 1987-2018 Carnegie Mellon University
                   Additional copyrights listed below
@@ -78,7 +78,7 @@ CacheFile::CacheFile(int i, int recoverable)
     refcnt = 1;
     numopens = 0;
     this->recoverable = recoverable;
-    cached_chunks = new(recoverable) bitmap(CacheChunkBlockBitmapSize, recoverable);
+    cached_chunks = new(recoverable) bitmap7(CacheChunkBlockBitmapSize, recoverable);
     Lock_Init(&rw_lock);
     /* Container reset will be done by eventually by FSOInit()! */
     LOG(100, ("CacheFile::CacheFile(%d): %s (this=0x%x)\n", i, name, this));
@@ -92,7 +92,7 @@ CacheFile::CacheFile()
     numopens = 0;
     this->recoverable = 1;
     Lock_Init(&rw_lock);
-    cached_chunks = new(recoverable) bitmap(CacheChunkBlockBitmapSize, recoverable);
+    cached_chunks = new(recoverable) bitmap7(CacheChunkBlockBitmapSize, recoverable);
 }
 
 
