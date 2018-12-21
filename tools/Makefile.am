@@ -1,7 +1,7 @@
 ## Process this file with automake to produce Makefile.in
 
 dist_noinst_SCRIPTS = make-split-dist.sh maketags pkg-bsd.sh \
-	find_unused_symbols.py version_check.sh
+	find_unused_symbols.py version_check.sh pre-commit
 
 if HAVE_SYSTEMD
 dist_modulesload_DATA =

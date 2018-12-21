@@ -9,11 +9,14 @@ AC_CONFIG_SRCDIR([coda-src/librepair/resolve.h])
 AM_INIT_AUTOMAKE([foreign subdir-objects])
 AC_CONFIG_HEADERS([config.h])
 
+CODA_RELEASE=`echo $PACKAGE_VERSION | cut -d. -f1`
+AC_SUBST([CODA_RELEASE], $CODA_RELEASE, [Coda release from package version])
+
 CONFIG_DATE=`date +"%a, %d %b %Y %T %z"`
 AC_SUBST(CONFIG_DATE, "$CONFIG_DATE", [Date when configure was last run])
 
 dnl For some reason the default prefix was set to NONE on Solaris.
-AC_PREFIX_DEFAULT([/usr/local])
+AC_PREFIX_DEFAULT([/usr])
 
 dnl Checks for programs.
 AC_PROG_CC
@@ -180,6 +183,7 @@ AM_COND_IF(HAVE_VALGRIND,, [
     )]
 )
 
+AC_CONFIG_FILES([tools/pre-commit], [chmod +x tools/pre-commit])
 AC_CONFIG_LINKS([.git/hooks/pre-commit:tools/pre-commit])
 
 AC_CONFIG_FILES([coda-src/scripts/bldvldb.sh],

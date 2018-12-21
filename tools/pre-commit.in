@@ -7,6 +7,9 @@
 #
 # To enable this hook, rename this file to "pre-commit".
 
+CODA_RELEASE=@CODA_RELEASE@
+COPYRIGHT_YEAR=$(date +'%Y')
+
 if git rev-parse --verify HEAD >/dev/null 2>&1
 then
 	against=HEAD
@@ -48,9 +51,6 @@ fi
 # pre-commit checks for all staged files
 staged_files=`git diff --cached --name-only`
 exit_code=0
-
-CODA_RELEASE=7
-COPYRIGHT_YEAR=$(date +'%Y')
 
 echo "Pre-commit hook - Checking staged files copyright blurbs"
 for single_file in $staged_files
