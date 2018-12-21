@@ -47,7 +47,7 @@ echo "Generating switchc2s.h"
 ( cat << EOF
 /* This file was generated from errordb.txt at $(date) */
 /* It translates from on-the-wire RPC2 errors to system errno values */
-
+// clang-format off
 EOF
 sed 's/^#define \([^\t]*\)[\t]*\([^t]*\)\t\/\* \(.*\) \*\/$/  case \2:\tsys_err = \1; break;/' < errordb.txt
 ) > switchc2s.h
@@ -56,7 +56,7 @@ echo "Generating switchs2c.h"
 ( cat << EOF
 /* This file was generated from errordb.txt at $(date) */
 /* It translates from system errno values to on-the-wire RPC2 errors */
-
+// clang-format off
 EOF
 sed 's/^#define \([^\t]*\)[\t]*\([^t]*\)\t\/\* \(.*\) \*\/$/  case \1:\trpc2_err = \2; break;/' < errordb.txt
 ) > switchs2c.h
@@ -65,7 +65,7 @@ echo "Generating switchs2e.h"
 ( cat << EOF
 /* This file was generated from errordb.txt at $(date) */
 /* It translates from system (and Coda) errno values to error messages */
-
+// clang-format off
 EOF
 sed 's/^#define \([^\t]*\)[\t]*\([^t]*\)\t\/\* \(.*\) \*\/$/  case \1:\ttxt = \"\3\"; break;/' < errordb.txt
 ) > switchs2e.h

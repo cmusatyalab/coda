@@ -21,53 +21,49 @@ Coda are listed in the file CREDITS.
 #include <uv.h>
 
 #include <rpc2/codatunnel.h>
+
 #include "codatunnel.private.h"
 #include "wrapper.h"
-
 
 /* global flag below controls whether codatunnel is used */
 static int codatunnel_enable_codatunnel = 0; /* non zero to enable tunneling */
 
 /* fd in parent of open hfsocket */
-static int codatunnel_vside_sockfd = -1;  /* v2t: venus to tunnel */
+static int codatunnel_vside_sockfd = -1; /* v2t: venus to tunnel */
 
-
-int codatunnel_fork(int argc, char **argv,
-                    const char *tcp_bindaddr,
-                    const char *udp_bindaddr,
-                    const char *bind_service,
-		    int onlytcp)
+int codatunnel_fork(int argc, char **argv, const char *tcp_bindaddr,
+                    const char *udp_bindaddr, const char *bind_service,
+                    int onlytcp)
 {
     /*
-       Create the Coda tunnel process.  Returns 0 on success, -1 on error.
-       Invoked before RPC2_Init() by the Coda client or server.
+     Create the Coda tunnel process.  Returns 0 on success, -1 on error.
+     Invoked before RPC2_Init() by the Coda client or server.
 
-       tcp_bindaddr is the IP address to be used to bind the TCP listen
-       socket to.  This parameter should be NULL on the client as it is
-       is expected to initiate new TCP connections.  On the server this
-       can be set to "" (empty string) to bind to the wildcard address.
+     tcp_bindaddr is the IP address to be used to bind the TCP listen
+     socket to.  This parameter should be NULL on the client as it is
+     is expected to initiate new TCP connections.  On the server this
+     can be set to "" (empty string) to bind to the wildcard address.
 
-       udp_bindaddr is the IP address to be used to bind the UDP listen
-       socket for communicating with legacy clients and servers that are
-       not using codatunnel.  This can be set to "" (empty string) to
-       bind to the wildcard address.
+     udp_bindaddr is the IP address to be used to bind the UDP listen
+     socket for communicating with legacy clients and servers that are
+     not using codatunnel.  This can be set to "" (empty string) to
+     bind to the wildcard address.
 
-       bind_service is the port number to use; on the Coda client, this
-       may be the value of the variable "masquerade_port" or NULL to
-       bind to any available port.  On Coda servers, this is usually
-       specified as "codasrv" which is specified as an IANA reserved
-       port number in /etc/services.
+     bind_service is the port number to use; on the Coda client, this
+     may be the value of the variable "masquerade_port" or NULL to
+     bind to any available port.  On Coda servers, this is usually
+     specified as "codasrv" which is specified as an IANA reserved
+     port number in /etc/services.
 
-       onlytcp is a flag.  If non-zero it suppresses use of UDP as fallback.
-    */
+     onlytcp is a flag.  If non-zero it suppresses use of UDP as fallback.
+  */
     int rc, sockfd[2];
 
-    DEBUG("codatunnel_fork(\"%s:%s\", \"%s:%s\", %d)\n",
-          tcp_bindaddr, bind_service, udp_bindaddr, bind_service, onlytcp);
+    DEBUG("codatunnel_fork(\"%s:%s\", \"%s:%s\", %d)\n", tcp_bindaddr,
+          bind_service, udp_bindaddr, bind_service, onlytcp);
 
     /* codatunnel is enabled when the daemon process is forked */
     codatunnel_enable_codatunnel = 1;
-
 
     /* Create socketpair for host-facing UDP communication */
     rc = socketpair(AF_UNIX, SOCK_SEQPACKET, 0, sockfd);
@@ -76,9 +72,9 @@ int codatunnel_fork(int argc, char **argv,
         return -1;
     }
 
-    DEBUG("hfsocket_fdpair after socketpair() is: [%d, %d]\n", sockfd[0], sockfd[1]);
+    DEBUG("hfsocket_fdpair after socketpair() is: [%d, %d]\n", sockfd[0],
+          sockfd[1]);
     codatunnel_vside_sockfd = sockfd[0];
-
 
     /* fork, and then invoke codatunneld */
     rc = fork();
@@ -90,13 +86,12 @@ int codatunnel_fork(int argc, char **argv,
     if (rc > 0) { /* I am the parent. */
         DEBUG("Parent: fork succeeded, child pid is %d\n", rc);
         close(sockfd[1]);
-        return 0;  /* this is the only success return */
+        return 0; /* this is the only success return */
     }
 
     /* If I get here, I must be the newborn child */
     DEBUG("Child: codatunneld fork succeeded\n");
     close(sockfd[0]); /* codatunnel_vside_sockfd */
-
 
     /* if possible, rename child's command line for "ps ax" */
     if (argc) {
@@ -109,12 +104,10 @@ int codatunnel_fork(int argc, char **argv,
     __builtin_unreachable(); /* should never reach here */
 }
 
-
 int codatunnel_socket()
 {
-    return codatunnel_vside_sockfd;  /* already created by socketpair () */
+    return codatunnel_vside_sockfd; /* already created by socketpair () */
 }
-
 
 ssize_t codatunnel_sendto(int sockfd, const void *buf, size_t len, int flags,
                           const struct sockaddr *addr, socklen_t addrlen)
@@ -123,30 +116,29 @@ ssize_t codatunnel_sendto(int sockfd, const void *buf, size_t len, int flags,
     ctp_t p;
     struct iovec iov[2];
     struct msghdr msg = {
-        .msg_iov = iov,
+        .msg_iov    = iov,
         .msg_iovlen = 2,
     };
 
     if (!codatunnel_enable_codatunnel) {
-        return sendto(sockfd, buf, len, flags & ~CODATUNNEL_HINTS,
-                      addr, addrlen);
+        return sendto(sockfd, buf, len, flags & ~CODATUNNEL_HINTS, addr,
+                      addrlen);
     }
 
     /* construct the codatunnel packet */
     strncpy(p.magic, "magic01", 8);
     memcpy(&p.addr, addr, addrlen);
-    p.addrlen = addrlen;
+    p.addrlen  = addrlen;
     p.is_retry = (flags & CODATUNNEL_ISRETRY_HINT) ? 1 : 0;
     p.is_init1 = (flags & CODATUNNEL_ISINIT1_HINT) ? 1 : 0;
-    p.msglen = len;
+    p.msglen   = len;
 
     iov[0].iov_base = &p;
-    iov[0].iov_len = sizeof(ctp_t);
+    iov[0].iov_len  = sizeof(ctp_t);
     iov[1].iov_base = (void *)buf;
-    iov[1].iov_len = len;
+    iov[1].iov_len  = len;
 
-    /*    DEBUG("sending packet to codatunneld size=%ld\n",
-          sizeof(ctp_t) + len); */
+    // DEBUG("sending packet to codatunneld size=%ld\n", sizeof(ctp_t) + len);
 
     /* then send it to codatunneld */
     rc = sendmsg(sockfd, &msg, 0);
@@ -163,7 +155,6 @@ ssize_t codatunnel_sendto(int sockfd, const void *buf, size_t len, int flags,
     return rc;
 }
 
-
 ssize_t codatunnel_recvfrom(int sockfd, void *buf, size_t len, int flags,
                             struct sockaddr *from, socklen_t *fromlen)
 {
@@ -171,7 +162,7 @@ ssize_t codatunnel_recvfrom(int sockfd, void *buf, size_t len, int flags,
     ctp_t p;
     struct iovec iov[2];
     struct msghdr msg = {
-        .msg_iov = iov,
+        .msg_iov    = iov,
         .msg_iovlen = 2,
     };
 
@@ -180,9 +171,9 @@ ssize_t codatunnel_recvfrom(int sockfd, void *buf, size_t len, int flags,
     }
 
     iov[0].iov_base = &p;
-    iov[0].iov_len = sizeof(ctp_t);
+    iov[0].iov_len  = sizeof(ctp_t);
     iov[1].iov_base = buf;
-    iov[1].iov_len = len;
+    iov[1].iov_len  = len;
 
     /* get the packet from codatunneld */
     rc = recvmsg(sockfd, &msg, 0);
@@ -199,14 +190,13 @@ ssize_t codatunnel_recvfrom(int sockfd, void *buf, size_t len, int flags,
         return -1;
     }
 
-    DEBUG("is_retry = %u  is_init1 = %u  msglen = %u\n",
-	  p.is_retry, p.is_init1, p.msglen);
-    /*    hexdump("ctp_t", &p, sizeof(ctp_t));
-	  hexdump("packet bytes", buf, ((len < 64) ? len : 64)); */
+    DEBUG("is_retry = %u  is_init1 = %u  msglen = %u\n", p.is_retry, p.is_init1,
+          p.msglen);
+    /* hexdump("ctp_t", &p, sizeof(ctp_t));
+       hexdump("packet bytes", buf, ((len < 64) ? len : 64)); */
 
     /* were the buffers we passed large enough? */
-    if ((msg.msg_flags & MSG_TRUNC) || (*fromlen < p.addrlen))
-    {
+    if ((msg.msg_flags & MSG_TRUNC) || (*fromlen < p.addrlen)) {
         errno = ENOSPC;
         return -1;
     }
@@ -217,6 +207,6 @@ ssize_t codatunnel_recvfrom(int sockfd, void *buf, size_t len, int flags,
 
     rc -= sizeof(ctp_t);
     assert(rc >= 0);
-    //assert(rc == p.msglen); /* I think this should hold true -JH */
+    // assert(rc == p.msglen); /* I think this should hold true -JH */
     return rc;
 }

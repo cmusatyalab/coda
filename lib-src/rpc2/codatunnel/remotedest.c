@@ -15,8 +15,8 @@ Coda are listed in the file CREDITS.
 
 #*/
 
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <uv.h>
 
@@ -28,28 +28,27 @@ Coda are listed in the file CREDITS.
    data structure
 */
 
-#define DESTARRAY_SIZE 100   /* should be plenty for early debugging */
+#define DESTARRAY_SIZE 100 /* should be plenty for early debugging */
 dest_t destarray[DESTARRAY_SIZE]; /* only 0..hilimit-1 are in use */
 int hilimit = 0; /* one plus highest index in use in destarray */
 
 void cleardest(dest_t *d)
 {
     memset(&d->destaddr, 0, sizeof(struct sockaddr_storage));
-    d->destlen = 0;
-    d->state = FREE;
-    d->tcphandle = NULL;
+    d->destlen         = 0;
+    d->state           = FREE;
+    d->tcphandle       = NULL;
     d->received_packet = NULL;
-    d->nextbyte = 0;
-    d->ntoh_done = 0;
-    d->packets_sent = 0;
+    d->nextbyte        = 0;
+    d->ntoh_done       = 0;
+    d->packets_sent    = 0;
 }
 
-
 void initdestarray()
-{/* initialize the global data structure, so that
-    the destaddr fields are completely zeroed for memcmp()
-    comparisons in later getdest() calls; otherwise padding
-    in structures may cause trouble */
+{ /* initialize the global data structure, so that
+     the destaddr fields are completely zeroed for memcmp()
+     comparisons in later getdest() calls; otherwise padding
+     in structures may cause trouble */
     int i;
 
     hilimit = 0;
@@ -59,13 +58,12 @@ void initdestarray()
 }
 
 static int sockaddr_equal(const struct sockaddr_storage *a,
-                          const struct sockaddr_storage *b,
-                          socklen_t len)
+                          const struct sockaddr_storage *b, socklen_t len)
 {
     if (a->ss_family != b->ss_family)
         return 0;
 
-    switch(a->ss_family) {
+    switch (a->ss_family) {
     case AF_INET: {
         struct sockaddr_in *a_in = (struct sockaddr_in *)a;
         struct sockaddr_in *b_in = (struct sockaddr_in *)b;
@@ -107,7 +105,7 @@ dest_t *getdest(const struct sockaddr_storage *x, socklen_t xlen)
             sockaddr_equal(&d->destaddr, x, xlen))
             return d;
     }
-    return NULL;  /* dest not found */
+    return NULL; /* dest not found */
 }
 
 dest_t *createdest(const struct sockaddr_storage *x, socklen_t xlen)
@@ -139,7 +137,6 @@ dest_t *createdest(const struct sockaddr_storage *x, socklen_t xlen)
 
     return d;
 }
-
 
 static void _free_dest_cb(uv_handle_t *handle)
 {

@@ -18,8 +18,8 @@ Coda are listed in the file CREDITS.
 #ifndef _RPC2_ADDRINFO_H_
 #define _RPC2_ADDRINFO_H_
 
-#include <sys/types.h>
 #include <netinet/in.h>
+#include <sys/types.h>
 
 /* struct addrinfo wrappers, by using our own versions we can support systems
  * that don't have these useful functions yet and can avoid allocation problems
@@ -40,46 +40,45 @@ struct RPC2_addrinfo {
 
 /* These functions match their non RPC2_ counterparts */
 int RPC2_getaddrinfo(const char *node, const char *service,
-		     const struct RPC2_addrinfo *hints,
-		     struct RPC2_addrinfo **res);
+                     const struct RPC2_addrinfo *hints,
+                     struct RPC2_addrinfo **res);
 void RPC2_freeaddrinfo(struct RPC2_addrinfo *res);
 const char *RPC2_gai_strerror(int errcode);
 
 /* flag bits for ai_flags */
-#define RPC2_AI_PASSIVE	      0x0001
-#define RPC2_AI_CANONNAME     0x0002
-#define RPC2_AI_NUMERICHOST   0x0004
+#define RPC2_AI_PASSIVE 0x0001
+#define RPC2_AI_CANONNAME 0x0002
+#define RPC2_AI_NUMERICHOST 0x0004
 
 /* errorcodes returned by RPC2_getaddrinfo */
-#define RPC2_EAI_BADFLAGS   -1
-#define RPC2_EAI_NONAME     -2
-#define RPC2_EAI_AGAIN      -3
-#define RPC2_EAI_FAIL       -4
-#define RPC2_EAI_FAMILY     -6
-#define RPC2_EAI_SOCKTYPE   -7
-#define RPC2_EAI_SERVICE    -8
-#define RPC2_EAI_MEMORY     -10
-#define RPC2_EAI_SYSTEM     -11
+#define RPC2_EAI_BADFLAGS -1
+#define RPC2_EAI_NONAME -2
+#define RPC2_EAI_AGAIN -3
+#define RPC2_EAI_FAIL -4
+#define RPC2_EAI_FAMILY -6
+#define RPC2_EAI_SOCKTYPE -7
+#define RPC2_EAI_SERVICE -8
+#define RPC2_EAI_MEMORY -10
+#define RPC2_EAI_SYSTEM -11
 /* #define RPC2_EAI_NODATA     -3 ** deprecated by RFC3493 */
 /* #define RPC2_EAI_ADDRFAMILY -9 ** deprecated by RFC3493 */
 
 /* copyaddrinfo is in my opinion missing from the getaddrinfo suite */
 /* cmpaddrinfo tests whether 'host' matches any of the entries in 'node' */
 struct RPC2_addrinfo *RPC2_allocaddrinfo(const struct sockaddr *addr,
-					 size_t addrlen, int socktype,
-					 int protocol);
+                                         size_t addrlen, int socktype,
+                                         int protocol);
 struct RPC2_addrinfo *RPC2_copyaddrinfo(const struct RPC2_addrinfo *node);
 int RPC2_cmpaddrinfo(const struct RPC2_addrinfo *node,
-		     const struct RPC2_addrinfo *host);
+                     const struct RPC2_addrinfo *host);
 
 /* this one is inspired by inet_ntop, but this adds the portnumber to the
  * output and only works for addrinfo structs. */
-void RPC2_formataddrinfo(const struct RPC2_addrinfo *host,
-			 char *buf, size_t buflen);
+void RPC2_formataddrinfo(const struct RPC2_addrinfo *host, char *buf,
+                         size_t buflen);
 
 /* The maximum size that the previous buffer can be,
  * '[' + inet6 addr + ']:' + portnumber + '\0' */
 #define RPC2_ADDRSTRLEN (1 + 46 + 2 + 10 + 1)
 
 #endif /* _RPC2_ADDRINFO_H */
-

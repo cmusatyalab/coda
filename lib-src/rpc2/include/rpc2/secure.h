@@ -1,25 +1,25 @@
 /* BLURB lgpl
 
-			Coda File System
-			    Release 6
+                        Coda File System
+                            Release 6
 
-	  Copyright (c) 2005-2016 Carnegie Mellon University
-		  Additional copyrights listed below
+          Copyright (c) 2005-2016 Carnegie Mellon University
+                  Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
 the  terms of the  GNU  Library General Public Licence  Version 2,  as
 shown in the file LICENSE. The technical and financial contributors to
 Coda are listed in the file CREDITS.
 
-			Additional copyrights
+                        Additional copyrights
 #*/
 
 #ifndef _RPC2_SECURE_H_
 #define _RPC2_SECURE_H_
 
-#include <sys/types.h>
-#include <sys/socket.h>
 #include <stdint.h>
+#include <sys/socket.h>
+#include <sys/types.h>
 
 /* RFC2460 - Internet Protocol, Version 6 (IPv6) Specification
  * Section 5 - Packet Size Issues
@@ -50,16 +50,16 @@ Coda are listed in the file CREDITS.
  * I guess we'll keep the MTU the same as that used by RPC2 for now. */
 #define MAXPACKETSIZE (4500)
 
-#define MAXIVLEN  32
+#define MAXIVLEN 32
 #define MAXICVLEN 32
 
 /* Identifiers for authentication algorithms (IANA) */
-#define SECURE_ENCR_NULL		11
-#define SECURE_ENCR_AES_CBC		12
+#define SECURE_ENCR_NULL 11
+#define SECURE_ENCR_AES_CBC 12
 //#define SECURE_ENCR_AES_CTR		13
-#define SECURE_ENCR_AES_CCM_8		14
-#define SECURE_ENCR_AES_CCM_12		15
-#define SECURE_ENCR_AES_CCM_16		16
+#define SECURE_ENCR_AES_CCM_8 14
+#define SECURE_ENCR_AES_CCM_12 15
+#define SECURE_ENCR_AES_CCM_16 16
 //#define SECURE_ENCR_AES_GCM_8		18
 //#define SECURE_ENCR_AES_GCM_12	19
 //#define SECURE_ENCR_AES_GCM_16	20
@@ -67,14 +67,14 @@ Coda are listed in the file CREDITS.
 struct secure_encr {
     const int id;
     const char *name;
-    int  (*encrypt_init)(void **ctx, const uint8_t *key, size_t len);
+    int (*encrypt_init)(void **ctx, const uint8_t *key, size_t len);
     void (*encrypt_free)(void **ctx);
-    int  (*encrypt)(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
-		    uint8_t *iv, const uint8_t *aad, size_t aad_len);
-    int  (*decrypt_init)(void **ctx, const uint8_t *key, size_t len);
+    int (*encrypt)(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
+                   uint8_t *iv, const uint8_t *aad, size_t aad_len);
+    int (*decrypt_init)(void **ctx, const uint8_t *key, size_t len);
     void (*decrypt_free)(void **ctx);
-    int  (*decrypt)(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
-		    const uint8_t *iv, const uint8_t *aad, size_t aad_len);
+    int (*decrypt)(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
+                   const uint8_t *iv, const uint8_t *aad, size_t aad_len);
     const size_t min_keysize;
     const size_t max_keysize;
     const size_t blocksize;
@@ -83,23 +83,22 @@ struct secure_encr {
 };
 
 /* Identifiers for authentication algorithms (IANA) */
-#define SECURE_AUTH_NONE		0
+#define SECURE_AUTH_NONE 0
 //#define SECURE_AUTH_HMAC_SHA_1_96	2
-#define SECURE_AUTH_AES_XCBC_96		9
+#define SECURE_AUTH_AES_XCBC_96 9
 
 struct secure_auth {
     const int id;
     const char *name;
-    int  (*auth_init)(void **ctx, const uint8_t *key, size_t len);
+    int (*auth_init)(void **ctx, const uint8_t *key, size_t len);
     void (*auth_free)(void **ctx);
     void (*auth)(void *ctx, const uint8_t *in, size_t len, uint8_t *icv);
     const size_t keysize;
     const size_t icv_len;
 };
 
-
 struct security_association {
-/* incoming packets */
+    /* incoming packets */
 
     /* identifier to match an incoming packet with the the correct logical
      * connection. Really only here for the convenience of the application,
@@ -120,7 +119,7 @@ struct security_association {
     const struct secure_encr *decrypt;
     void *decrypt_context;
 
-/* outgoing packets */
+    /* outgoing packets */
     /* remote connection identifier */
     uint32_t peer_spi;
 
@@ -146,7 +145,6 @@ struct security_association {
     void *authenticate_context;
 };
 
-
 /* initialization */
 void secure_init(int verbose);
 void secure_release(void);
@@ -157,39 +155,37 @@ const struct secure_encr *secure_get_encr_byid(int id);
 /* version 0 - was using incorrect AES-CCM counter block initialization */
 #define SECURE_VERSION 1
 int secure_setup_encrypt(uint32_t secure_version,
-			 struct security_association *sa,
-			 const struct secure_auth *authenticate,
-			 const struct secure_encr *encrypt,
-			 const uint8_t *key, size_t len);
+                         struct security_association *sa,
+                         const struct secure_auth *authenticate,
+                         const struct secure_encr *encrypt, const uint8_t *key,
+                         size_t len);
 int secure_setup_decrypt(uint32_t secure_version,
-			 struct security_association *sa,
-			 const struct secure_auth *validate,
-			 const struct secure_encr *decrypt,
-			 const uint8_t *key, size_t len);
+                         struct security_association *sa,
+                         const struct secure_auth *validate,
+                         const struct secure_encr *decrypt, const uint8_t *key,
+                         size_t len);
 
 /* Password based key derivation function */
 #define SECURE_PBKDF_ITERATIONS 10000 /* see comments in secure_aes.c */
-int secure_pbkdf(const uint8_t *password, size_t plen,
-		 const uint8_t *salt, size_t slen, size_t iterations,
-		 uint8_t *key, size_t keylen);
+int secure_pbkdf(const uint8_t *password, size_t plen, const uint8_t *salt,
+                 size_t slen, size_t iterations, uint8_t *key, size_t keylen);
 
 /* cryptographically strong deterministic pseudo random number generator */
 void secure_random_bytes(void *buf, size_t len);
 
 /* low level socket interface */
 ssize_t secure_sendto(int s, const void *buf, size_t len, int flags,
-		      /* to/tolen only used to send non-encrypted packets */
-		      const struct sockaddr *to, socklen_t tolen,
-		      struct security_association *sa);
+                      /* to/tolen only used to send non-encrypted packets */
+                      const struct sockaddr *to, socklen_t tolen,
+                      struct security_association *sa);
 
 ssize_t secure_recvfrom(int s, void *buf, size_t len, int flags,
-			struct sockaddr *peer, socklen_t *peerlen, /*untrusted*/
-			struct security_association **sa,
-			struct security_association *(*GETSA)(uint32_t spi));
+                        struct sockaddr *peer, socklen_t *peerlen, /*untrusted*/
+                        struct security_association **sa,
+                        struct security_association *(*GETSA)(uint32_t spi));
 
 /* time-constant comparison */
-int secure_compare(const void *user_data, size_t user_len,
-                   const void *secret, size_t secret_len);
+int secure_compare(const void *user_data, size_t user_len, const void *secret,
+                   size_t secret_len);
 
 #endif /* _RPC2_SECURE_H_ */
-

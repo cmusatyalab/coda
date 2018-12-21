@@ -37,15 +37,17 @@ Pittsburgh, PA.
 
 */
 
-#include <stdio.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <sys/types.h>
+#include <assert.h>
 #include <netinet/in.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <sys/socket.h>
 #include <sys/time.h>
-#include <assert.h>
+#include <sys/types.h>
+#include <unistd.h>
+
 #include <rpc2/secure.h>
+
 #include "rpc2.private.h"
 
 #define RNDPOOL 256
@@ -54,49 +56,46 @@ static unsigned int RNStateAvail;
 
 int rpc2_XDebug;
 
-void rpc2_Encrypt(IN FromBuffer, OUT ToBuffer, IN HowManyBytes, IN WhichKey, IN EncryptionType)
-    char *FromBuffer;		/* The string of bytes to be encrypted.*/
-    char *ToBuffer;		/* Where to put the encrypted string.
-				    Equal to FromBuffer ==> inplace. */
-    size_t  HowManyBytes;		/* The number of bytes in FromBuffer. */
-    RPC2_EncryptionKey WhichKey;		/* The encryption key to be used. */
-    RPC2_Integer EncryptionType;	/* one of the supported types */
-
-    /* Does a trivial Exclusive-OR of FromBuffer and puts result in ToBuffer */
-    
-    /* NOTE: the assembler fast xor routine fxor has a bug somewhere; I have no time
-             to go into it; am removing its invocation here, and just using the slower
-	     C version below  --- Satya 3/7/1990 */
-
-    {
+void rpc2_Encrypt(
+    IN char *FromBuffer, /* The string of bytes to be encrypted.*/
+    OUT char *ToBuffer, /* Where to put the encrypted string.
+                           Equal to FromBuffer ==> inplace. */
+    IN size_t HowManyBytes, /* The number of bytes in FromBuffer. */
+    IN RPC2_EncryptionKey WhichKey, /* The encryption key to be used. */
+    IN RPC2_Integer EncryptionType /* one of the supported types */
+)
+/* Does a trivial Exclusive-OR of FromBuffer and puts result in ToBuffer */
+/* NOTE: the assembler fast xor routine fxor has a bug somewhere; I have no time
+   to go into it; am removing its invocation here, and just using the slower
+   C version below  --- Satya 3/7/1990 */
+{
     unsigned char *p, *q, *r, *s;
     long i;
-    
-    assert(EncryptionType == RPC2_XOR);	/* for now */
-    
-    p = (unsigned char *)FromBuffer;		/* ptr to next input char */
-    q = (unsigned char *)WhichKey;		/* ptr to next key char */
-    r = q + RPC2_KEYSIZE;			/* right limit of q */
-    s = (unsigned char *)ToBuffer;		/* ptr to next output char */
-    for (i = HowManyBytes; i > 0; i--)
-	{
-	*s++ = (*p++) ^ (*q++);
-	if (q >= r) q = (unsigned char *)WhichKey;
-	}
+
+    assert(EncryptionType == RPC2_XOR); /* for now */
+
+    p = (unsigned char *)FromBuffer; /* ptr to next input char */
+    q = (unsigned char *)WhichKey; /* ptr to next key char */
+    r = q + RPC2_KEYSIZE; /* right limit of q */
+    s = (unsigned char *)ToBuffer; /* ptr to next output char */
+    for (i = HowManyBytes; i > 0; i--) {
+        *s++ = (*p++) ^ (*q++);
+        if (q >= r)
+            q = (unsigned char *)WhichKey;
     }
+}
 
-
-void rpc2_Decrypt(IN FromBuffer, OUT ToBuffer,  IN HowManyBytes, IN WhichKey, IN EncryptionType)
-    char *FromBuffer;		/* The string of bytes to be decrypted. */
-    char *ToBuffer;		/* Where to put the decrypted bytes. Equal to FromBuffer for inplace encryption */
-    size_t  HowManyBytes;		/* The number of bytes in Buffer */
-    RPC2_EncryptionKey WhichKey;	/* The decryption key to be used */
-    RPC2_Integer EncryptionType;
-
-    {
+void rpc2_Decrypt(
+    IN char *FromBuffer, /* The string of bytes to be decrypted. */
+    OUT char *ToBuffer, /* Where to put the decrypted bytes.
+                           Equal to FromBuffer for inplace encryption */
+    IN size_t HowManyBytes, /* The number of bytes in Buffer */
+    IN RPC2_EncryptionKey WhichKey, /* The decryption key to be used */
+    IN RPC2_Integer EncryptionType)
+{
     assert(EncryptionType == RPC2_XOR);
     rpc2_Encrypt(FromBuffer, ToBuffer, HowManyBytes, WhichKey, EncryptionType);
-    }
+}
 
 void rpc2_InitRandom()
 {
@@ -110,60 +109,65 @@ unsigned int rpc2_NextRandom(char *StatePtr)
     unsigned int x;
 
     if (RNStateAvail < sizeof(x)) {
-	secure_random_bytes(RNState, sizeof(RNState));
-	RNStateAvail = sizeof(RNState);
+        secure_random_bytes(RNState, sizeof(RNState));
+        RNStateAvail = sizeof(RNState);
     }
     memcpy(&x, RNState + (sizeof(RNState) - RNStateAvail), sizeof(x));
     RNStateAvail -= sizeof(x);
 
-    return(x);
+    return (x);
 }
 
 void rpc2_ApplyE(RPC2_PacketBuffer *pb, struct CEntry *ce)
 {
-	if (ce->sa.encrypt) return;
+    if (ce->sa.encrypt)
+        return;
 
-	switch((int)ce->SecurityLevel) {
-	case RPC2_OPENKIMONO:
-	case RPC2_AUTHONLY:
-		return;
+    switch ((int)ce->SecurityLevel) {
+    case RPC2_OPENKIMONO:
+    case RPC2_AUTHONLY:
+        return;
 
-	case RPC2_HEADERSONLY:
-		rpc2_Encrypt((char *)&pb->Header.BodyLength, (char *)&pb->Header.BodyLength,
-			     sizeof(struct RPC2_PacketHeader)-4*sizeof(RPC2_Integer),
-			     ce->SessionKey, ce->EncryptionType);
-		break;
+    case RPC2_HEADERSONLY:
+        rpc2_Encrypt(
+            (char *)&pb->Header.BodyLength, (char *)&pb->Header.BodyLength,
+            sizeof(struct RPC2_PacketHeader) - 4 * sizeof(RPC2_Integer),
+            ce->SessionKey, ce->EncryptionType);
+        break;
 
-	case RPC2_SECURE:
-		rpc2_Encrypt((char *)&pb->Header.BodyLength, (char *)&pb->Header.BodyLength,
-			     pb->Prefix.LengthOfPacket-4*sizeof(RPC2_Integer),
-			     ce->SessionKey, ce->EncryptionType);
-		break;
-	}
+    case RPC2_SECURE:
+        rpc2_Encrypt((char *)&pb->Header.BodyLength,
+                     (char *)&pb->Header.BodyLength,
+                     pb->Prefix.LengthOfPacket - 4 * sizeof(RPC2_Integer),
+                     ce->SessionKey, ce->EncryptionType);
+        break;
+    }
 
-	pb->Header.Flags = htonl(ntohl(pb->Header.Flags) | RPC2_ENCRYPTED);
+    pb->Header.Flags = htonl(ntohl(pb->Header.Flags) | RPC2_ENCRYPTED);
 }
 
 void rpc2_ApplyD(RPC2_PacketBuffer *pb, struct CEntry *ce)
 {
-	if (!(ntohl(pb->Header.Flags) & RPC2_ENCRYPTED)) return;
+    if (!(ntohl(pb->Header.Flags) & RPC2_ENCRYPTED))
+        return;
 
-	switch((int)ce->SecurityLevel) {
-	case RPC2_HEADERSONLY:
-		rpc2_Decrypt((char *)&pb->Header.BodyLength, (char *)&pb->Header.BodyLength,
-			     sizeof(struct RPC2_PacketHeader)-4*sizeof(RPC2_Integer),
-			     ce->SessionKey, ce->EncryptionType);
-		break;
+    switch ((int)ce->SecurityLevel) {
+    case RPC2_HEADERSONLY:
+        rpc2_Decrypt(
+            (char *)&pb->Header.BodyLength, (char *)&pb->Header.BodyLength,
+            sizeof(struct RPC2_PacketHeader) - 4 * sizeof(RPC2_Integer),
+            ce->SessionKey, ce->EncryptionType);
+        break;
 
-	case RPC2_SECURE:
-		rpc2_Decrypt((char *)&pb->Header.BodyLength, (char *)&pb->Header.BodyLength,
-			     pb->Prefix.LengthOfPacket-4*sizeof(RPC2_Integer),
-			     ce->SessionKey, ce->EncryptionType);
-		break;
+    case RPC2_SECURE:
+        rpc2_Decrypt((char *)&pb->Header.BodyLength,
+                     (char *)&pb->Header.BodyLength,
+                     pb->Prefix.LengthOfPacket - 4 * sizeof(RPC2_Integer),
+                     ce->SessionKey, ce->EncryptionType);
+        break;
 
-	default:
-		break;
-	}
-	pb->Header.Flags = htonl(ntohl(pb->Header.Flags) & ~RPC2_ENCRYPTED);
+    default:
+        break;
+    }
+    pb->Header.Flags = htonl(ntohl(pb->Header.Flags) & ~RPC2_ENCRYPTED);
 }
-

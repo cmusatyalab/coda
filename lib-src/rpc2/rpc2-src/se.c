@@ -37,37 +37,40 @@ Pittsburgh, PA.
 
 */
 
-#include <stdio.h>
-#include <sys/types.h>
-#include <sys/time.h>
 #include <errno.h>
+#include <stdio.h>
+#include <sys/time.h>
+#include <sys/types.h>
+
 #include <lwp/lwp.h>
 #include <lwp/timer.h>
 #include <rpc2/rpc2.h>
 #include <rpc2/se.h>
 
-struct SE_Definition *SE_DefSpecs; /* array of definitions, one per activated side-effect */
+struct SE_Definition
+    *SE_DefSpecs; /* array of definitions, one per activated side-effect */
 long SE_DefCount;
 
-char *SE_ErrorMsg(rc)
-    long rc;
-    /* Returns a pointer to a static string describing error rc. */
-    {
+char *SE_ErrorMsg(rc) long rc;
+/* Returns a pointer to a static string describing error rc. */
+{
     static char msgbuf[100];
 
-    switch((enum SE_Status)rc)
-	{
-	case SE_SUCCESS:		return("SE_SUCCESS");
+    switch ((enum SE_Status)rc) {
+    case SE_SUCCESS:
+        return ("SE_SUCCESS");
 
-	case SE_FAILURE:		return("SE_FAILURE");
+    case SE_FAILURE:
+        return ("SE_FAILURE");
 
-	case SE_INPROGRESS:		return("SE_INPROGRESS");
+    case SE_INPROGRESS:
+        return ("SE_INPROGRESS");
 
-	case SE_NOTSTARTED:		return("SE_NOTSTARTED");
+    case SE_NOTSTARTED:
+        return ("SE_NOTSTARTED");
 
-	default:			sprintf(msgbuf, "Unknown SE return code %ld", rc); return(msgbuf);
-	}
-    
+    default:
+        sprintf(msgbuf, "Unknown SE return code %ld", rc);
+        return (msgbuf);
     }
-
-
+}

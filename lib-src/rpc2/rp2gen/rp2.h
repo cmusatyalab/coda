@@ -37,7 +37,6 @@ Pittsburgh, PA.
 
 */
 
-
 #include <rpc2/rpc2.h>
 #include <stdlib.h>
 
@@ -46,81 +45,86 @@ to avoid name clash with builtin bool on some versions of gcc; similar to
 fix in rvmh.h */
 typedef unsigned char rp2_bool;
 
-#define RP2_FALSE	0
-#define RP2_TRUE	1
+#define RP2_FALSE 0
+#define RP2_TRUE 1
 
-#define NIL	0
+#define NIL 0
 
 /* Subsystem information structure */
 
 struct subsystem {
-    char	*subsystem_name;
-    char	*timeout;
+    char *subsystem_name;
+    char *timeout;
 };
 
-/* This structure is used for typed variables (this includes structure fields) */
-
+/* This structure is used for typed variables (this includes structure fields)
+ */
 
 typedef struct {
-    char		*name;
-    MODE		mode;	/* Must be NO_MODE for structure fields */
-    struct entry	*type;
-    char		*array; /* If array structure, array suffix name */
-    char                *arraymax; /* if array && !IN_MODE, array_max_size */
+    char *name;
+    MODE mode; /* Must be NO_MODE for structure fields */
+    struct entry *type;
+    char *array; /* If array structure, array suffix name */
+    char *arraymax; /* if array && !IN_MODE, array_max_size */
 } VAR;
 
 /* RPC2 types */
 
 typedef struct {
-    char	*name;
-    char	*rep;
+    char *name;
+    char *rep;
 } ENUM;
 
 typedef struct {
-    TYPE_TAG	tag;
+    TYPE_TAG tag;
 
     union {
+        /* when RPC2_STRUCT_TAG => */
+        VAR **struct_fields;
 
-	/* when RPC2_STRUCT_TAG => */
-		VAR	**struct_fields;
+        /* when RPC2_ENUM_TAG => */
+        ENUM **values;
 
-	/* when RPC2_ENUM_TAG => */
-		ENUM	**values;
-
-    }		fields;
+    } fields;
 } RPC2_TYPE;
 
 /* Symbol table entry */
 
 typedef struct entry {
-    struct entry	*thread;	/* For symbol table */
-    char		*name;
-    char		*bound;		/* NIL => not array, ELSE => bound */
-    RPC2_TYPE		*type;		/* Pointer to underlying RPC2_TYPE */
-    struct entry	*defined;	/* Pointer to type that this was defined in terms of
-					   (or NIL) */
+    struct entry *thread; /* For symbol table */
+    char *name;
+    char *bound; /* NIL => not array, ELSE => bound */
+    RPC2_TYPE *type; /* Pointer to underlying RPC2_TYPE */
+    struct entry *defined; /* Pointer to type that this was defined in terms of
+                              (or NIL) */
 } ENTRY;
 
 typedef struct proc {
-    struct proc	*thread;	/* For chaining proc's together */
-    char	*name;
-    VAR		**formals;
-    char	*timeout;	/* NIL => no timeout override */
-    VAR		*bd;		/* Pointer to bulk descriptor parameter */
-    rp2_bool	new_connection;	/* TRUE if this is the unique new connection procedure */
-    char	*op_code;	/* Name of op code for this procedure */
-    int		op_number;	/* Opcode number for this proc */
-    int         linenum;        /* Line number where this proc was defined */
+    struct proc *thread; /* For chaining proc's together */
+    char *name;
+    VAR **formals;
+    char *timeout; /* NIL => no timeout override */
+    VAR *bd; /* Pointer to bulk descriptor parameter */
+    rp2_bool
+        new_connection; /* TRUE if this is the unique new connection procedure */
+    char *op_code; /* Name of op code for this procedure */
+    int op_number; /* Opcode number for this proc */
+    int linenum; /* Line number where this proc was defined */
 } PROC;
 
 /* Language values are specified for use in array */
-typedef enum{ NONE=0, C=1, PASCAL=2, F77=3 } LANGUAGE;
-
+typedef enum
+{
+    NONE   = 0,
+    C      = 1,
+    PASCAL = 2,
+    F77    = 3
+} LANGUAGE;
 
 typedef struct stubelem {
-    char        *type;
-    char        *name;
-}  STUBELEM;
+    char *type;
+    char *name;
+} STUBELEM;
 
 /*
  * crout needs to know whether to spit out ansi paste tokens, or
@@ -128,7 +132,6 @@ typedef struct stubelem {
  */
 
 extern rp2_bool ansi;
-
 
 /* make line number an externally-accessible variable so it can be
    set on semantic errors for yyerror() and yywarn() */

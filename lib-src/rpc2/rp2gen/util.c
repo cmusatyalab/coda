@@ -42,9 +42,10 @@ Pittsburgh, PA.
 *	Utility routines for RP2GEN				    *
 * 								    *
 \*******************************************************************/
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
+
 #include "rp2.h"
 
 void no_storage(char *proc)
@@ -59,66 +60,67 @@ char *copy(char *s)
     int32_t len;
 
     len = strlen(s) + 1;
-    new = (char *) malloc(len);
-    if (new == NIL) no_storage("copy");
+    new = (char *)malloc(len);
+    if (new == NIL)
+        no_storage("copy");
     memcpy(new, s, len);
     return new;
 }
-
+
 /* Stick proc on END of procedures list */
 
 static struct {
-    PROC	*head;
-    PROC	*tail;
+    PROC *head;
+    PROC *tail;
 } procedures = { NIL, NIL };
 
 void insert(PROC *proc)
 {
-    proc -> thread = NIL;
+    proc->thread = NIL;
     if (procedures.tail == NIL)
-	procedures.head = proc;
+        procedures.head = proc;
     else
-	procedures.tail -> thread = proc;
-    procedures.tail = proc;	
+        procedures.tail->thread = proc;
+    procedures.tail = proc;
 }
 
 PROC *get_head()
 {
     return procedures.head;
 }
-
-RPC2_TYPE *rpc2_enum_type(values)
-    ENUM **values;
+
+RPC2_TYPE *rpc2_enum_type(ENUM **values)
 {
     RPC2_TYPE *type;
 
-    type = (RPC2_TYPE *) malloc(sizeof(RPC2_TYPE));
-    if (type == NIL) no_storage("rpc2_enum_type");
-    type -> tag = RPC2_ENUM_TAG;
-    type -> fields.values = values;
+    type = (RPC2_TYPE *)malloc(sizeof(RPC2_TYPE));
+    if (type == NIL)
+        no_storage("rpc2_enum_type");
+    type->tag           = RPC2_ENUM_TAG;
+    type->fields.values = values;
     return type;
 }
 
-RPC2_TYPE *rpc2_struct_type(struct_fields)
-    VAR **struct_fields;
+RPC2_TYPE *rpc2_struct_type(VAR **struct_fields)
 {
     RPC2_TYPE *type;
 
-    type = (RPC2_TYPE *) malloc(sizeof(RPC2_TYPE));
-    if (type == NIL) no_storage("rpc2_struct_type");
-    type -> tag = RPC2_STRUCT_TAG;
-    type -> fields.struct_fields = struct_fields;
+    type = (RPC2_TYPE *)malloc(sizeof(RPC2_TYPE));
+    if (type == NIL)
+        no_storage("rpc2_struct_type");
+    type->tag                  = RPC2_STRUCT_TAG;
+    type->fields.struct_fields = struct_fields;
     return type;
 }
 
-RPC2_TYPE *rpc2_simple_type(tag)
-    TYPE_TAG tag;
+RPC2_TYPE *rpc2_simple_type(TYPE_TAG tag)
 {
     RPC2_TYPE *type;
 
-    type = (RPC2_TYPE *) malloc(sizeof(RPC2_TYPE));
-    if (type == NIL) no_storage("rpc2_simple_type");
-    type -> tag = tag;
+    type = (RPC2_TYPE *)malloc(sizeof(RPC2_TYPE));
+    if (type == NIL)
+        no_storage("rpc2_simple_type");
+    type->tag = tag;
     return type;
 }
 
@@ -126,112 +128,109 @@ VAR *make_var(char *name, MODE mode, ENTRY *type)
 {
     VAR *var;
 
-    var = (VAR *) malloc(sizeof(VAR));
-    if (var == NIL) no_storage("make_var");
-    var -> name = name;
-    var -> mode = mode;
-    var -> type = type;
-    var -> array = NIL;
+    var = (VAR *)malloc(sizeof(VAR));
+    if (var == NIL)
+        no_storage("make_var");
+    var->name  = name;
+    var->mode  = mode;
+    var->type  = type;
+    var->array = NIL;
     return var;
 }
 
-ENTRY *make_entry(type, defined)
-    RPC2_TYPE *type;
-    ENTRY *defined;
+ENTRY *make_entry(RPC2_TYPE *type, ENTRY *defined)
 {
     ENTRY *e;
 
-    e = (ENTRY *) malloc(sizeof(ENTRY));
-    if (e == NIL) no_storage("make_type");
-    e -> thread = NIL;
-    e -> type = type;
-    e -> defined = defined;
+    e = (ENTRY *)malloc(sizeof(ENTRY));
+    if (e == NIL)
+        no_storage("make_type");
+    e->thread  = NIL;
+    e->type    = type;
+    e->defined = defined;
     return e;
 }
 
-ENUM *make_enum(name, rep)
-    char *name, *rep;
+ENUM *make_enum(char *name, char *rep)
 {
     ENUM *e;
 
-    e = (ENUM *) malloc(sizeof(ENUM));
-    if (e == NIL) no_storage("make_enum");
-    e -> name = name;
-    e -> rep = rep;
+    e = (ENUM *)malloc(sizeof(ENUM));
+    if (e == NIL)
+        no_storage("make_enum");
+    e->name = name;
+    e->rep  = rep;
     return e;
 }
 
-PROC *make_proc(opnum, name, formals, timeout, new_connection)
-    int opnum;
-    char *name;
-    VAR **formals;
-    char *timeout;
-    rp2_bool new_connection;
+PROC *make_proc(int opnum, char *name, VAR **formals, char *timeout,
+                rp2_bool new_connection)
 {
     PROC *proc;
 
-    proc = (PROC *) malloc(sizeof(PROC));
-    if (proc == NIL) no_storage("make_proc");
-    proc -> name = name;
-    proc -> formals = formals;
-    proc -> timeout = timeout;
-    proc -> bd = NIL;
-    proc -> op_code = NIL;
-    proc -> op_number = opnum;
-    proc -> new_connection = new_connection;
-    proc -> linenum = line;
+    proc = (PROC *)malloc(sizeof(PROC));
+    if (proc == NIL)
+        no_storage("make_proc");
+    proc->name           = name;
+    proc->formals        = formals;
+    proc->timeout        = timeout;
+    proc->bd             = NIL;
+    proc->op_code        = NIL;
+    proc->op_number      = opnum;
+    proc->new_connection = new_connection;
+    proc->linenum        = line;
     return proc;
 }
 
-PROC *check_proc(proc)
-    PROC *proc;
+PROC *check_proc(PROC *proc)
 {
     VAR **formals;
 
     /* Look for <= 1 RPC2_BulkDescriptor parameter */
-    for (formals=proc->formals; *formals!=NIL; formals++)
-	if ((*formals)->type->type->tag == RPC2_BULKDESCRIPTOR_TAG) {
-	    if (proc->bd != NIL) {
-		printf("RP2GEN: too many bulk descriptors to proc: %s\n", proc->name);
-		exit(EXIT_FAILURE);
-	    } else {
-		if ((*formals)->mode != IN_OUT_MODE)
-		    printf("RP2GEN: usage for RPC2_BulkDescriptor must be IN OUT: %s\n", (*formals)->name);
-		proc -> bd = *formals;
-	    }
-	}
+    for (formals = proc->formals; *formals != NIL; formals++)
+        if ((*formals)->type->type->tag == RPC2_BULKDESCRIPTOR_TAG) {
+            if (proc->bd != NIL) {
+                printf("RP2GEN: too many bulk descriptors to proc: %s\n",
+                       proc->name);
+                exit(EXIT_FAILURE);
+            } else {
+                if ((*formals)->mode != IN_OUT_MODE)
+                    printf(
+                        "RP2GEN: usage for RPC2_BulkDescriptor must be IN OUT: %s\n",
+                        (*formals)->name);
+                proc->bd = *formals;
+            }
+        }
     return proc;
 }
-
-char *concat(s1, s2)
-    char *s1, *s2;
+
+char *concat(char *s1, char *s2)
 {
     char *new;
     int32_t len1, len2;
 
     len1 = strlen(s1);
     len2 = strlen(s2);
-    new = malloc(len1+len2+1);
-    if (new == NIL) no_storage("concat");
+    new  = malloc(len1 + len2 + 1);
+    if (new == NIL)
+        no_storage("concat");
     memcpy(new, s1, len1);
-    memcpy(new+len1, s2, len2);
-    new[len1+len2] = '\0';
+    memcpy(new + len1, s2, len2);
+    new[len1 + len2] = '\0';
     return new;
 }
 
-char *concat3elem(s1, s2, s3)
-    char *s1, *s2, *s3;
+char *concat3elem(char *s1, char *s2, char *s3)
 {
     char *new, *temp;
 
     temp = concat(s1, s2);
-    new = concat(temp, s3);
+    new  = concat(temp, s3);
     free(temp);
     return new;
 }
 
-char *coda_rp2_basename(name)
-    char *name;
+char *coda_rp2_basename(char *name)
 {
     char *p, *l, *r;
     int32_t len;
@@ -240,24 +239,26 @@ char *coda_rp2_basename(name)
     /* Save pointer to left end  -- i.e., last '/' */
     l = name - 1;
     r = name + strlen(name);
-    for (p=name; *p!='\0'; p++)
-	switch (*p) {
-	    case '/':	l = p;
-			break;
-	    case '.':	r = p;
-			break;
-	    default:	;
-	}
+    for (p = name; *p != '\0'; p++)
+        switch (*p) {
+        case '/':
+            l = p;
+            break;
+        case '.':
+            r = p;
+            break;
+        default:;
+        }
 
     len = r - l - 1;
     if (len <= 0) {
-	printf("RP2GEN: illegal filename: \"%s\"\n", name);
-	exit(EXIT_FAILURE);
+        printf("RP2GEN: illegal filename: \"%s\"\n", name);
+        exit(EXIT_FAILURE);
     }
-    base = malloc(len+1);
-    if (base == NIL) no_storage("basename");
-    memcpy(base, l+1, len);
+    base = malloc(len + 1);
+    if (base == NIL)
+        no_storage("basename");
+    memcpy(base, l + 1, len);
     base[len] = '\0';
     return base;
 }
-

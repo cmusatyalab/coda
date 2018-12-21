@@ -14,18 +14,15 @@ Coda are listed in the file CREDITS.
 
 #*/
 
-
 #ifndef _PACK_HELPER_
 #define _PACK_HELPER_
 #include <rpc2/rpc2.h>
 
 typedef struct {
-    char* buffer;
-    char* eob;
+    char *buffer;
+    char *eob;
     WHO who;
 } BUFFER;
-
-
 
 int unpack_integer(BUFFER *buf, RPC2_Integer *ptr);
 
@@ -76,6 +73,3 @@ int pack_struct_MultiCallEntry(BUFFER *buf, MultiCallEntry *ptr);
 int pack_struct_MultiStubWork(BUFFER *buf, MultiStubWork *ptr);
 
 #endif
-
-
-

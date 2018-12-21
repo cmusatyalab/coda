@@ -37,34 +37,31 @@ Pittsburgh, PA.
 
 */
 
-
 #include "test.h"
 
 static char *colors[] = { "red", "white", "blue" };
 
-static pcbs(bs)
-    RPC2_CountedBS *bs;
+static pcbs(RPC2_CountedBS *bs)
 {
-    register int i;
+    int i;
 
     printf("<%d, ", bs->SeqLen);
-    for (i=0; i<bs->SeqLen; i++) printf("\\%02x", bs->SeqBody[i]);
+    for (i = 0; i < bs->SeqLen; i++)
+        printf("\\%02x", bs->SeqBody[i]);
     putchar('>');
 }
 
-static pbbs(bs)
-    RPC2_BoundedBS *bs;
+static pbbs(RPC2_BoundedBS *bs)
 {
-    register int i;
+    int i;
 
     printf("< %d, %d, ", bs->MaxSeqLen, bs->SeqLen);
-    for (i=0; i<bs->SeqLen; i++) printf("\\%02x", bs->SeqBody[i]);
+    for (i = 0; i < bs->SeqLen; i++)
+        printf("\\%02x", bs->SeqBody[i]);
     putchar('>');
 }
 
-main(argc, argv)
-    int argc;
-    char *argv[];
+int main(int argc, char *argv[])
 {
     RPC2_Integer value;
     int cid = -2;
@@ -80,129 +77,113 @@ main(argc, argv)
     printf("Calling proc1(%d, %d);\n", cid, value);
     printf("Returns: %d\n", proc1(cid, value));
 
-    cid = 1234;
+    cid    = 1234;
     string = (RPC2_String) "Eat me raw!";
     printf("Calling proc2(%d, \"%s\", ...);\n", cid, string);
     printf("Returns %d\n", proc2(cid, string, &value));
     printf("Returning, value = %d\n", value);
 
-    cid = -567765;
+    cid           = -567765;
     bbs.MaxSeqLen = 30;
-    bbs.SeqLen = 0;
-    bbs.SeqBody = (RPC2_Byte *) malloc(30);
+    bbs.SeqLen    = 0;
+    bbs.SeqBody   = (RPC2_Byte *)malloc(30);
     strcpy(name, "Alfred E. Newman");
-    tint = blue;
-    bs.SeqLen = 10;
-    bs.SeqBody = (RPC2_Byte *) malloc(10);
+    tint       = blue;
+    bs.SeqLen  = 10;
+    bs.SeqBody = (RPC2_Byte *)malloc(10);
     memcpy(bs.SeqBody, "0123456789", 10);
     printf("Calling proc3(%d, ", cid);
     pbbs(&bbs);
-    printf(", %s, \"%s\", ", colors[(int) tint], name);
+    printf(", %s, \"%s\", ", colors[(int)tint], name);
     pcbs(&bs);
     puts(");");
     printf("Returns %d\n", proc3(cid, &bbs, &tint, name, &bs));
-    printf("Returning from proc3, name = \"%s\", tint = %s, bs=", name, colors[(int) tint]);
+    printf("Returning from proc3, name = \"%s\", tint = %s, bs=", name,
+           colors[(int)tint]);
     pcbs(&bs);
     printf(", bbs = ");
     pbbs(&bbs);
     putchar('\n');
 
-    cid = 6523465;
-    g1.code = 1;
+    cid        = 6523465;
+    g1.code    = 1;
     g1.place.x = 2;
     g1.place.y = 3;
-    g1.time = 5764;
-    g3.code = 4;
+    g1.time    = 5764;
+    g3.code    = 4;
     g3.place.x = 5;
     g3.place.y = 6;
-    g3.time = 86724371;
+    g3.time    = 86724371;
     printf("Returns %d\n", proc4(cid, &g1, &g2, &g3));
 }
 
-int test_proc1(cid, n)
-    RPC2_Handle cid;
-    int n;
+int test_proc1(RPC2_Handle cid, int n)
 {
     printf("Entering proc1(%d, %d);\n", cid, n);
     return -1;
 }
 
-int test_proc2(cid, s, n)
-    RPC2_Handle cid;
-    char *s;
-    int *n;
+int test_proc2(RPC2_Handle cid, char *s, int *n)
 {
     printf("Entering proc2(%d, \"%s\", ...);\n", cid, s);
     *n = 87654321;
     return 2;
 }
 
-int test_proc3(cid, bbs, c, s, bs)
-    RPC2_Handle cid;
-    RPC2_BoundedBS *bbs;
-    color *c;
-    RPC2_String s;
-    RPC2_CountedBS *bs;
+int test_proc3(RPC2_Handle cid, RPC2_BoundedBS *bbs, color *c, RPC2_String s,
+               RPC2_CountedBS *bs)
 {
     printf("Entering proc3(%d, ", cid);
     pbbs(bbs);
-    printf(", %s, \"%s\", ", colors[(int) *c], s);
+    printf(", %s, \"%s\", ", colors[(int)*c], s);
     pcbs(bs);
     puts(");");
     bbs->SeqLen = 4;
     strcpy(bbs->SeqBody, "ABCD");
-    s[7] = (RPC2_Byte) '?';
-    *c = white;
-    bs->SeqBody[0] = (RPC2_Byte) '!';
+    s[7]           = (RPC2_Byte)'?';
+    *c             = white;
+    bs->SeqBody[0] = (RPC2_Byte)'!';
     return 333;
 }
 
-int test_proc4(cid, g1, g2, g3)
-    RPC2_Handle cid;
-    garbage *g1, *g2, *g3;
+int test_proc4(RPC2_Handle cid, garbage *g1, garbage *g2, garbage *g3)
 {
-    g2->code = 7;
+    g2->code    = 7;
     g2->place.x = 8;
     g2->place.y = 9;
-    g2->time = 6324512;
-    g3->code = 999;
+    g2->time    = 6324512;
+    g3->code    = 999;
     g3->place.x = 998;
     g3->place.y = 997;
-    g3->time = 0;
+    g3->time    = 0;
     return 4;
 }
 
-int RPC2_AllocBuffer(int size,     RPC2_PacketBuffer **buff)
+int RPC2_AllocBuffer(int size, RPC2_PacketBuffer **buff)
 {
-	*buff = (RPC2_PacketBuffer *) malloc(sizeof(RPC2_PacketBuffer)+size-1);
-	if (*buff != 0)
-		return RPC2_SUCCESS;
-	else
-		return RPC2_FAIL;
+    *buff = (RPC2_PacketBuffer *)malloc(sizeof(RPC2_PacketBuffer) + size - 1);
+    if (*buff != 0)
+        return RPC2_SUCCESS;
+    else
+        return RPC2_FAIL;
 }
 
-int RPC2_FreeBuffer(buff)
-    RPC2_PacketBuffer **buff;
+int RPC2_FreeBuffer(RPC2_PacketBuffer **buff)
 {
     return RPC2_SUCCESS;
 }
 
 RPC2_PacketBuffer *answer;
 
-int RPC2_MakeRPC(cid, req, bd, rsp, life, options)
-    RPC2_Handle cid;
-    RPC2_PacketBuffer *req, **rsp;
-    int bd, life, options;
+int RPC2_MakeRPC(RPC2_Handle cid, RPC2_PacketBuffer *req, int bd,
+                 RPC2_PacketBuffer **rsp, int life, int options)
 {
     test1_ExecuteRequest(cid, req, bd);
     *rsp = answer;
     return RPC2_SUCCESS;
 }
 
-int RPC2_SendResponse(cid, rsp, bd, life)
-    RPC2_Handle cid;
-    RPC2_PacketBuffer *rsp;
-    int bd, life;
+int RPC2_SendResponse(RPC2_Handle cid, RPC2_PacketBuffer *rsp, int bd, int life)
 {
     answer = rsp;
 }

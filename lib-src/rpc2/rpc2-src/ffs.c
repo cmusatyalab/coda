@@ -46,11 +46,14 @@ Pittsburgh, PA.
 long ffs(long x)
 {
     long i;
-    if (x == 0) return(-1);
+    if (x == 0)
+        return (-1);
 
     for (i = 1;; i++) {
-	if (x & 1) return(i);
-	else x >>= 1;
+        if (x & 1)
+            return (i);
+        else
+            x >>= 1;
     }
 }
 #endif

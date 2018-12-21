@@ -18,8 +18,8 @@ Coda are listed in the file CREDITS.
 #ifndef _CODATUNNEL_WRAPPER_H_
 #define _CODATUNNEL_WRAPPER_H_
 
-#include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/types.h>
 
 /* Flag bits for codatunnel_sendto to hint that this is a retried UDP send
    and also a separate bit to hint that this is an Init1 packet */

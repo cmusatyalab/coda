@@ -37,15 +37,15 @@ Pittsburgh, PA.
 
 */
 
-
 /* ************************************************************ *\
 
-	Symbol Table Module for RP2GEN
+        Symbol Table Module for RP2GEN
 
 \* ************************************************************ */
 
 #include <stdio.h>
 #include <stdlib.h>
+
 #include "rp2.h"
 
 extern ENTRY *make_entry();
@@ -61,54 +61,44 @@ extern RPC2_TYPE *rpc2_struct_type(VAR **);
 
 /* This module uses external chaining */
 
-#define SYMTAB_SIZE	50
+#define SYMTAB_SIZE 50
 
 int SizeofStubPredefined;
 
 static ENTRY *table[SYMTAB_SIZE];
 
 static struct {
-    char	*name;
-    TYPE_TAG	tag;
+    char *name;
+    TYPE_TAG tag;
 } predefined[] = {
-
-	{ "RPC2_Integer",		RPC2_INTEGER_TAG },
-	{ "RPC2_Unsigned",		RPC2_UNSIGNED_TAG },
-	{ "RPC2_Byte",			RPC2_BYTE_TAG },
-	{ "RPC2_String",		RPC2_STRING_TAG },
-	{ "RPC2_CountedBS",		RPC2_COUNTEDBS_TAG },
-	{ "RPC2_BoundedBS",		RPC2_BOUNDEDBS_TAG },
-/*
- 	{ "RPC2_BulkDescriptor",	RPC2_BULKDESCRIPTOR_TAG },
+    { "RPC2_Integer", RPC2_INTEGER_TAG },
+    { "RPC2_Unsigned", RPC2_UNSIGNED_TAG },
+    { "RPC2_Byte", RPC2_BYTE_TAG },
+    { "RPC2_String", RPC2_STRING_TAG },
+    { "RPC2_CountedBS", RPC2_COUNTEDBS_TAG },
+    { "RPC2_BoundedBS", RPC2_BOUNDEDBS_TAG },
+    /*
+        { "RPC2_BulkDescriptor",	RPC2_BULKDESCRIPTOR_TAG },
 */
-	{ "SE_Descriptor",		RPC2_BULKDESCRIPTOR_TAG },
-	{ "RPC2_EncryptionKey",		RPC2_ENCRYPTIONKEY_TAG },
-	{ "RPC2_Double",		RPC2_DOUBLE_TAG },
+    { "SE_Descriptor", RPC2_BULKDESCRIPTOR_TAG },
+    { "RPC2_EncryptionKey", RPC2_ENCRYPTIONKEY_TAG },
+    { "RPC2_Double", RPC2_DOUBLE_TAG },
 };
 
 STUBELEM stub_predefined[] = {
 
-        { "RPC2_String", "name" },
-	{ "RPC2_Integer", "countent" },
-	{ "RPC2_Integer", "countexit" },
-	{ "RPC2_Integer", "tsec" },
-	{ "RPC2_Integer", "tusec" },
-	{ "RPC2_Integer", "counttime" },
-	{ NIL, "CallCountEntry" },
+    { "RPC2_String", "name" },       { "RPC2_Integer", "countent" },
+    { "RPC2_Integer", "countexit" }, { "RPC2_Integer", "tsec" },
+    { "RPC2_Integer", "tusec" },     { "RPC2_Integer", "counttime" },
+    { NIL, "CallCountEntry" },
 
-        { "RPC2_String", "name" },
-	{ "RPC2_Integer", "countent" },
-	{ "RPC2_Integer", "countexit" },
-	{ "RPC2_Integer", "tsec" },
-	{ "RPC2_Integer", "tusec" },
-	{ "RPC2_Integer", "counttime" },
-	{ "RPC2_Integer", "counthost" },
-	{ NIL, "MultiCallEntry" },
+    { "RPC2_String", "name" },       { "RPC2_Integer", "countent" },
+    { "RPC2_Integer", "countexit" }, { "RPC2_Integer", "tsec" },
+    { "RPC2_Integer", "tusec" },     { "RPC2_Integer", "counttime" },
+    { "RPC2_Integer", "counthost" }, { NIL, "MultiCallEntry" },
 
-	{ "RPC2_Integer", "opengate" },
-	{ "RPC2_Integer", "tsec" },
-	{ "RPC2_Integer", "tusec" },
-	{ NIL, "MultiStubWork" }
+    { "RPC2_Integer", "opengate" },  { "RPC2_Integer", "tsec" },
+    { "RPC2_Integer", "tusec" },     { NIL, "MultiStubWork" }
 
 };
 
@@ -116,8 +106,8 @@ static int hash(char *name)
 {
     unsigned int value;
 
-    for (value=0; *name!='\0'; name++)
-	value += *name;
+    for (value = 0; *name != '\0'; name++)
+        value += *name;
     return value % SYMTAB_SIZE;
 }
 
@@ -130,8 +120,9 @@ ENTRY *find(char *name)
     ENTRY *p;
 
     index = hash(name);
-    for (p=table[index]; p!=NIL; p=p->thread)
-	if (equal(p->name, name)) return p;
+    for (p = table[index]; p != NIL; p = p->thread)
+        if (equal(p->name, name))
+            return p;
     return NIL;
 }
 
@@ -140,15 +131,14 @@ void enter(ENTRY *e)
     int index;
 
     if (find(e->name) != NIL) {
-	printf("RP2GEN: duplicate identifier: %s, ignoring\n", e->name);
-	return;
+        printf("RP2GEN: duplicate identifier: %s, ignoring\n", e->name);
+        return;
     }
     index = hash(e->name);
     /* Insert at this bucket */
-    e -> thread = table[index];
+    e->thread    = table[index];
     table[index] = e;
 }
-
 
 static void init_stubspecial()
 {
@@ -159,31 +149,32 @@ static void init_stubspecial()
     STUBELEM *ep;
     int n, elemcount;
 
-    SizeofStubPredefined = n = sizeof stub_predefined/sizeof(stub_predefined[0]);
-    vartable = p = (VAR **)calloc(n+1, sizeof(VAR *));
-    ep = stub_predefined;
-    elemcount = 0;
+    SizeofStubPredefined = n =
+        sizeof stub_predefined / sizeof(stub_predefined[0]);
+    vartable = p = (VAR **)calloc(n + 1, sizeof(VAR *));
+    ep           = stub_predefined;
+    elemcount    = 0;
 
     for (; n > 0; n--, ep++) {
         if (ep->type != NIL && ep->name != NIL) {
-	    if ((typep = find(ep->type)) == NIL) {
-	        free(vartable);
-		return;
-	    }
-	    *p = make_var(ep->name, NO_MODE, typep);
-	    p++;
-	    elemcount++;
+            if ((typep = find(ep->type)) == NIL) {
+                free(vartable);
+                return;
+            }
+            *p = make_var(ep->name, NO_MODE, typep);
+            p++;
+            elemcount++;
         } else if (ep->type == NIL && ep->name != NIL && elemcount != 0) {
-	    *p = NIL;
-	    entryp = make_entry(rpc2_struct_type(vartable), NIL);
-	    entryp->name = ep->name;
-	    entryp->bound = NIL;
-	    enter(entryp);
-	    vartable = p = (VAR **)calloc(n+1, sizeof(VAR *));
-	    elemcount = 0;
+            *p            = NIL;
+            entryp        = make_entry(rpc2_struct_type(vartable), NIL);
+            entryp->name  = ep->name;
+            entryp->bound = NIL;
+            enter(entryp);
+            vartable = p = (VAR **)calloc(n + 1, sizeof(VAR *));
+            elemcount    = 0;
         } else {
-	    free(vartable);
-	    return;
+            free(vartable);
+            return;
         }
     }
 }
@@ -192,16 +183,16 @@ void init_table(void)
 {
     int i;
 
-    for (i=0; i<SYMTAB_SIZE; i++) table[i] = NIL;
+    for (i = 0; i < SYMTAB_SIZE; i++)
+        table[i] = NIL;
 
     /* Enter predefined types */
-    for (i=0; i<sizeof predefined/sizeof(predefined[0]); i++) {
-	ENTRY *e;
-	e = make_entry(rpc2_simple_type(predefined[i].tag), NIL);
-	e -> name = predefined[i].name;
-	e -> bound = NIL;
-	enter(e);
+    for (i = 0; i < sizeof predefined / sizeof(predefined[0]); i++) {
+        ENTRY *e;
+        e        = make_entry(rpc2_simple_type(predefined[i].tag), NIL);
+        e->name  = predefined[i].name;
+        e->bound = NIL;
+        enter(e);
     }
     init_stubspecial();
 }
-

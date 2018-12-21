@@ -20,20 +20,20 @@ Coda are listed in the file CREDITS.
 #define _DLLIST_H_
 
 /*
- * doubly linked list implementation -- based on linux 
+ * doubly linked list implementation -- based on linux
  * kernel code lists.
  *
  */
 
 struct dllist_head {
-	struct dllist_head *next, *prev;
+    struct dllist_head *next, *prev;
 };
 #define dllist_chain dllist_head
 
 #define DLLIST_HEAD(x) struct dllist_head x = { &x, &x }
 
-#define list_entry(ptr, type, member) \
-	((type *)((char *)(ptr)-(unsigned long)(&((type *)0)->member)))
+#define list_entry(ptr, type, member)                                          \
+    ((type *)((char *)(ptr) - (unsigned long)(&((type *)0)->member)))
 
 #ifdef __cplusplus
 extern "C" {
@@ -49,4 +49,3 @@ void list_head_init(struct dllist_head *ptr);
 #endif
 
 #endif /* _DLLIST_H_ */
-

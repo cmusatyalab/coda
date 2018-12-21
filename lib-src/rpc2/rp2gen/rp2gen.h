@@ -37,7 +37,6 @@ Pittsburgh, PA.
 
 */
 
-
 /*******************************************************************\
 *	Include file for RP2GEN generated C code.		    *
 \*******************************************************************/
@@ -53,17 +52,17 @@ typedef unsigned char RPC2_Byte;
 typedef char *RPC2_String;
 
 typedef struct {
-    int		length;
-    char	*string;
+    int length;
+    char *string;
 } RPC2_CountedBS;
 
 typedef struct {
-    int		maxlength;
-    int		curlength;
-    char	*string;
+    int maxlength;
+    int curlength;
+    char *string;
 } RPC2_BoundedBS;
 
 /* Temporary hack until bulk descriptor defined */
 typedef struct {
-    int		garbage;
+    int garbage;
 } RPC2_BulkDescriptor;

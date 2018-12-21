@@ -38,119 +38,119 @@ Pittsburgh, PA.
 */
 
 /*
-	-- Bit string manipulation routines
-	--sftp.h contains some macros too
+        -- Bit string manipulation routines
+        --sftp.h contains some macros too
 */
 
-
-#include <stdio.h>
-#include <sys/types.h>
-#include <sys/time.h>
-#include <sys/socket.h>
 #include <assert.h>
+#include <stdio.h>
 #include <string.h>
-#include "rpc2.private.h"
+#include <sys/socket.h>
+#include <sys/time.h>
+#include <sys/types.h>
+
 #include <rpc2/se.h>
 #include <rpc2/sftp.h>
+
+#include "rpc2.private.h"
 
 /* rightmost bits are ZERO-filled */
 void B_ShiftLeft(unsigned int *bMask, int bShift)
 {
-    /*  The bit string is made up of an integral number of integer parts. (assumption)
-	Each integer part is affected by at most two other integer parts, adjacent to each other.
-	In each iteration,
-	    current:	points to the next integer part of the bit string.
-	    first:	points to first integer part affecting current
-	(32-shift) low-order bits of *first will become the high order bits of *current
-	(shift) high-order bits of *(first+1) will become the low-order bits of *current.
-    */
-    
+    /*  The bit string is made up of an integral number of integer parts.
+     (assumption)
+      Each integer part is affected by at most two other integer parts, adjacent
+     to each other.
+      In each iteration,
+          current:	points to the next integer part of the bit string.
+          first:	points to first integer part affecting current
+      (32-shift) low-order bits of *first will become the high order bits of
+     *current
+      (shift) high-order bits of *(first+1) will become the low-order bits of
+     *current.
+  */
+
     unsigned int shift, *current, *first, *last;
-    
-    shift = bShift & 31;	/* modulo 32 */
-    
+
+    shift = bShift & 31; /* modulo 32 */
+
     current = bMask;
-    first = bMask + (bShift >> 5);
-    last = bMask + BITMASKWIDTH - 1;
+    first   = bMask + (bShift >> 5);
+    last    = bMask + BITMASKWIDTH - 1;
 
-    while(first < last)
-	{
-	if(shift == 0)
-		*current = *first;
-	else
-		*current = ((*first) << shift) | ((*(first+1)) >> (32-shift));
-	current++;
-	first++;
-	}
-    if (first == last)
-	{
-	*current = ((*first) << shift);
-	current++;
-	}
-    while (current <= last)
-	{
-	*current++ = 0;
-	}
+    while (first < last) {
+        if (shift == 0)
+            *current = *first;
+        else
+            *current = ((*first) << shift) | ((*(first + 1)) >> (32 - shift));
+        current++;
+        first++;
+    }
+    if (first == last) {
+        *current = ((*first) << shift);
+        current++;
+    }
+    while (current <= last) {
+        *current++ = 0;
+    }
 }
-
 
 /* leftmost bits are ONE-filled */
 #ifdef UNUSED
 void B_ShiftRight(unsigned int *bMask, int bShift)
 {
-    /*  The bit string is made up of an integral number of integer parts. (assumption)
-	Each integer part is affected by at most two other integer parts, adjacent to each other.
-	In each iteration,
-	    current:	points to the next integer part of the bit string.
-	    first:	points to first integer part affecting current
-	(32-shift) high-order bits of *first will become the low order bits of *current
-	(shift) low-order bits of *(first-1) will become the high-order bits of *current.
-    */
+    /*  The bit string is made up of an integral number of integer parts.
+     (assumption)
+      Each integer part is affected by at most two other integer parts, adjacent
+     to each other.
+      In each iteration,
+          current:	points to the next integer part of the bit string.
+          first:	points to first integer part affecting current
+      (32-shift) high-order bits of *first will become the low order bits of
+     *current
+      (shift) low-order bits of *(first-1) will become the high-order bits of
+     *current.
+  */
     unsigned int shift, *current, *first;
 
-    shift = bShift & 31;	/* modulo 32 */
+    shift   = bShift & 31; /* modulo 32 */
     current = bMask + BITMASKWIDTH - 1;
-    first = current - (bShift >> 5);
+    first   = current - (bShift >> 5);
 
-    while(first > bMask)
-	{
-	if(shift == 0)
-		*current-- = *first;
-	else
-		*current-- = ((*first) >> shift)| ((*(first-1)) << (32-shift));
-	first--;
-	}
-    if (first == bMask)
-	{
-	if(shift == 0)
-		*current-- = *first;
-	else
-		*current-- = ((*first) >> shift) | (0xFFFFFFFF << (32-shift));
-	}
-    while (current >= bMask)
-	{
-	*current-- = 0xFFFFFFFF;
-	}
+    while (first > bMask) {
+        if (shift == 0)
+            *current-- = *first;
+        else
+            *current-- = ((*first) >> shift) | ((*(first - 1)) << (32 - shift));
+        first--;
+    }
+    if (first == bMask) {
+        if (shift == 0)
+            *current-- = *first;
+        else
+            *current-- = ((*first) >> shift) | (0xFFFFFFFF << (32 - shift));
+    }
+    while (current >= bMask) {
+        *current-- = 0xFFFFFFFF;
+    }
 }
 #endif
 
 void B_Assign(unsigned int *dest, unsigned int *src)
 {
-    memcpy(dest, src, sizeof(int)*BITMASKWIDTH);
+    memcpy(dest, src, sizeof(int) * BITMASKWIDTH);
 }
-
 
 void B_CopyToPacket(unsigned int *bMask, RPC2_PacketBuffer *whichPacket)
 {
-    assert(BITMASKWIDTH <= 2);	/* for now */
-    whichPacket->Header.BitMask0 = (unsigned) bMask[0];
-    whichPacket->Header.BitMask1 = (unsigned) bMask[1];
+    assert(BITMASKWIDTH <= 2); /* for now */
+    whichPacket->Header.BitMask0 = (unsigned)bMask[0];
+    whichPacket->Header.BitMask1 = (unsigned)bMask[1];
 }
 
 void B_CopyFromPacket(RPC2_PacketBuffer *whichPacket, unsigned int *bMask)
 {
-    assert(BITMASKWIDTH <= 2);	/* for now */
-    bMask[0] = (unsigned) whichPacket->Header.BitMask0;
-    bMask[1] = (unsigned) whichPacket->Header.BitMask1;
+    assert(BITMASKWIDTH <= 2); /* for now */
+    bMask[0] = (unsigned)whichPacket->Header.BitMask0;
+    bMask[1] = (unsigned)whichPacket->Header.BitMask1;
 }
-

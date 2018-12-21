@@ -1,16 +1,16 @@
 /* BLURB lgpl
-			Coda File System
-			    Release 6
+                        Coda File System
+                            Release 6
 
-	    Copyright (c) 2006 Carnegie Mellon University
-		  Additional copyrights listed below
+            Copyright (c) 2006 Carnegie Mellon University
+                  Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
 the  terms of the  GNU  Library General Public Licence  Version 2,  as
 shown in the file LICENSE. The technical and financial contributors to
 Coda are listed in the file CREDITS.
 
-			Additional copyrights
+                        Additional copyrights
 #*/
 
 /* Wrapper around the rijndael (v3.0) reference implementation */
@@ -19,19 +19,20 @@ Coda are listed in the file CREDITS.
 #define _AES_H_
 
 #include <stdint.h>
+
 #include "rijndael-alg-fst.h"
 
-#define AES_MAXROUNDS	MAXNR
-#define AES_BLOCK_SIZE  16
+#define AES_MAXROUNDS MAXNR
+#define AES_BLOCK_SIZE 16
 
 typedef union {
-    uint8_t  u8[AES_BLOCK_SIZE];
-    uint32_t u32[AES_BLOCK_SIZE/sizeof(uint32_t)];
-    uint64_t u64[AES_BLOCK_SIZE/sizeof(uint64_t)];
+    uint8_t u8[AES_BLOCK_SIZE];
+    uint32_t u32[AES_BLOCK_SIZE / sizeof(uint32_t)];
+    uint64_t u64[AES_BLOCK_SIZE / sizeof(uint64_t)];
 } aes_block;
 
 typedef struct {
-    uint32_t context[4*(AES_MAXROUNDS+1)];
+    uint32_t context[4 * (AES_MAXROUNDS + 1)];
     uint32_t rounds;
 } aes_context;
 #define aes_encrypt_ctx aes_context
@@ -41,32 +42,31 @@ typedef struct {
 /* #define AES_INIT_FUNC */
 
 static inline int aes_encrypt_key(const uint8_t *key, int keylen,
-				  aes_encrypt_ctx *ctx)
+                                  aes_encrypt_ctx *ctx)
 {
     ctx->rounds = rijndaelKeySetupEnc(ctx->context, key, keylen);
     return 0;
 }
 
 static inline int aes_decrypt_key(const uint8_t *key, int keylen,
-				  aes_decrypt_ctx *ctx)
+                                  aes_decrypt_ctx *ctx)
 {
     ctx->rounds = rijndaelKeySetupDec(ctx->context, key, keylen);
     return 0;
 }
 
 static inline int aes_encrypt(const aes_block *in, aes_block *out,
-			      const aes_encrypt_ctx *ctx)
+                              const aes_encrypt_ctx *ctx)
 {
     rijndaelEncrypt(ctx->context, ctx->rounds, in->u8, out->u8);
     return 0;
 }
 
 static inline int aes_decrypt(const aes_block *in, aes_block *out,
-			      const aes_decrypt_ctx *ctx)
+                              const aes_decrypt_ctx *ctx)
 {
     rijndaelDecrypt(ctx->context, ctx->rounds, in->u8, out->u8);
     return 0;
 }
 
 #endif /* _AES_H_ */
-

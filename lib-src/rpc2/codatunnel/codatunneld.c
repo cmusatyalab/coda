@@ -25,9 +25,11 @@ Coda are listed in the file CREDITS.
    compatibility with legacy servers and clients.
 
    This code layers UDP socket primitives on top of TCP connections.
-   Maintains a single TCP connection for each (host, port) pair
-   All UDP packets to/from that (host, port) pair are sent/recvd on this connection.
-   All RPC2 connections to/from that (host,port are multiplexed on this connection.
+   Maintains a single TCP connection for each (host, port) pair.
+   All UDP packets to/from that (host, port) pair are sent/recvd on this
+   connection.
+   All RPC2 connections to/from that (host, port) pair are multiplexed
+   on this connection.
    Minimal changes to rest of the RPC2 code.
    Discards all packets with "RETRY" bit set.
 
@@ -43,38 +45,39 @@ Coda are listed in the file CREDITS.
 /* Encapsulation rules: Is ctp_t packet present as prefix to UDP packet?
    (1) Venus/CodaSrv to/from codatunnel daemon:  yes; ctp_t fields in host order
    (2) codatunnel daemon to/from network via udpsocket:  no
-   (3) codatunnel daemon to/from network via tcpsocket: yes; ctp_t fields in network order
+   (3) codatunnel daemon to/from network via tcpsocket: yes; ctp_t fields in
+   network order
 */
 
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <uv.h>
 
 #include "codatunnel.private.h"
 
 /* Global variables within codatunnel daemon */
-static int codatunnel_I_am_server = 0; /* only clients initiate; only servers accept */
-static int codatunnel_onlytcp = 0;    /* whether to use UDP fallback; default is yes */
+static int codatunnel_I_am_server = 0; /* only clients initiate;
+                                          only servers accept */
+static int codatunnel_onlytcp     = 0; /* whether to use UDP fallback;
+                                          default is yes */
 
 static uv_loop_t *codatunnel_main_loop = 0;
-static uv_udp_t codatunnel;  /* facing Venus or CodaSrv */
-static uv_udp_t udpsocket;   /* facing the network */
+static uv_udp_t codatunnel; /* facing Venus or CodaSrv */
+static uv_udp_t udpsocket; /* facing the network */
 static uv_tcp_t tcplistener; /* facing the network, only on servers */
-
 
 /* Useful data structures for callbacks; these minicbs do little real work
  * and are mainly used to free malloc'ed data structures after transmission */
 typedef struct {
-  uv_udp_send_t req;
-  ctp_t ctp;
-} minicb_udp_req_t;  /* used to be udp_send_req_t */
+    uv_udp_send_t req;
+    ctp_t ctp;
+} minicb_udp_req_t; /* used to be udp_send_req_t */
 
 typedef struct {
-  uv_write_t req;
-  dest_t *dest;
-} minicb_tcp_req_t;  /* used to be tcp_send_req_t */
-
+    uv_write_t req;
+    dest_t *dest;
+} minicb_tcp_req_t; /* used to be tcp_send_req_t */
 
 /* forward refs for workhorse functions; many are cb functions */
 static void recv_codatunnel_cb(uv_udp_t *, ssize_t, const uv_buf_t *,
@@ -82,13 +85,12 @@ static void recv_codatunnel_cb(uv_udp_t *, ssize_t, const uv_buf_t *,
 static void send_to_udp_dest(ssize_t, const uv_buf_t *,
                              const struct sockaddr *saddr, socklen_t slen);
 static void send_to_tcp_dest(dest_t *, ssize_t, const uv_buf_t *);
-static void try_creating_tcp_connection (dest_t *);
-static void recv_tcp_cb (uv_stream_t *, ssize_t, const uv_buf_t *);
+static void try_creating_tcp_connection(dest_t *);
+static void recv_tcp_cb(uv_stream_t *, ssize_t, const uv_buf_t *);
 static void tcp_connect_cb(uv_connect_t *, int);
 static void recv_udpsocket_cb(uv_udp_t *, ssize_t, const uv_buf_t *,
                               const struct sockaddr *, unsigned);
 static void tcp_newconnection_cb(uv_stream_t *, int);
-
 
 static socklen_t sockaddr_len(const struct sockaddr *addr)
 {
@@ -101,15 +103,14 @@ static socklen_t sockaddr_len(const struct sockaddr *addr)
     return sizeof(struct sockaddr_storage);
 }
 
-
 static void alloc_cb(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf)
 {
     *buf = uv_buf_init(calloc(1, suggested_size), suggested_size);
 
     /* gracefully handle allocation failures on libuv < 1.10.0 */
-    if (buf->base == NULL) buf->len = 0;
+    if (buf->base == NULL)
+        buf->len = 0;
 }
-
 
 /* All the minicb()s are gathered here in one place */
 
@@ -126,7 +127,7 @@ static void minicb_tcp(uv_write_t *arg, int status)
 /* used to tcp_send_req() */
 {
     minicb_tcp_req_t *req = (minicb_tcp_req_t *)arg;
-    dest_t *d = req->dest;
+    dest_t *d             = req->dest;
 
     DEBUG("minicb_tcp(%p, %p, %d)\n", arg, arg->data, status);
 
@@ -134,19 +135,16 @@ static void minicb_tcp(uv_write_t *arg, int status)
         DEBUG("tcp connection error: %s after %d packets\n",
               uv_strerror(status), d->packets_sent);
         free_dest(d);
-    }
-    else {
-        d->packets_sent++;   /* one more was sent out! */
+    } else {
+        d->packets_sent++; /* one more was sent out! */
     }
 
     free(arg->data);
     free(arg);
 }
 
-
 static void recv_codatunnel_cb(uv_udp_t *codatunnel, ssize_t nread,
-                               const uv_buf_t *buf,
-                               const struct sockaddr *addr,
+                               const uv_buf_t *buf, const struct sockaddr *addr,
                                unsigned flags)
 {
     static unsigned empties;
@@ -186,8 +184,8 @@ static void recv_codatunnel_cb(uv_udp_t *codatunnel, ssize_t nread,
         return;
     }
 
-    /* We have a legit packet; it was already been read into buf
-       before this upcall was invoked by libuv */
+    /* We have a legit packet; it was already been read into buf before this
+     * upcall was invoked by libuv */
 
     ctp_t *p = (ctp_t *)buf->base;
 
@@ -200,8 +198,8 @@ static void recv_codatunnel_cb(uv_udp_t *codatunnel, ssize_t nread,
     dest_t *d = getdest(&p->addr, p->addrlen);
 
     /* Try to establish a new TCP connection for future use;
-       do this only once per INIT1 (avoiding retries) to avoid TCP SYN flood;
-       Only clients should attempt this, because of NAT firewalls */
+     * do this only once per INIT1 (avoiding retries) to avoid TCP SYN flood;
+     * Only clients should attempt this, because of NAT firewalls */
     if (p->is_init1 && !p->is_retry && !codatunnel_I_am_server) {
         if (!d) /* new destination */
             d = createdest(&p->addr, p->addrlen);
@@ -230,8 +228,8 @@ static void recv_codatunnel_cb(uv_udp_t *codatunnel, ssize_t nread,
                (Satya, 1/20/2018)
             */
             free(buf->base); /* do this now since no cascaded cb */
-        }
-        else send_to_tcp_dest(d, nread, buf); /* free buf only in cascaded cb */
+        } else
+            send_to_tcp_dest(d, nread, buf); /* free buf only in cascaded cb */
         return;
     }
 
@@ -247,10 +245,11 @@ static void recv_codatunnel_cb(uv_udp_t *codatunnel, ssize_t nread,
        ensure at-most-once semantics regardless of how the packet
        traveled (Satya, 1/20/2018)
     */
-    if (!codatunnel_onlytcp)
-        send_to_udp_dest(nread, buf, addr, flags); /* free buf only in cascaded cb */
+    if (!codatunnel_onlytcp) {
+        send_to_udp_dest(nread, buf, addr, flags);
+        /* free buf only in cascaded cb */
+    }
 }
-
 
 static void send_to_udp_dest(ssize_t nread, const uv_buf_t *buf,
                              const struct sockaddr *addr, unsigned flags)
@@ -289,7 +288,6 @@ static void send_to_udp_dest(ssize_t nread, const uv_buf_t *buf,
     }
 }
 
-
 static void send_to_tcp_dest(dest_t *d, ssize_t nread, const uv_buf_t *buf)
 {
     minicb_tcp_req_t *req; /* req can't be local because of use in callback */
@@ -300,24 +298,25 @@ static void send_to_tcp_dest(dest_t *d, ssize_t nread, const uv_buf_t *buf)
 
     req = malloc(sizeof(*req));
     if (!req) {
-        /* unable to allocate, free buffer and trigger a disconnection because
-         * we have no other way to force a retry. */
+        /* unable to allocate, free buffer and trigger a disconnection
+         * because we have no other way to force a retry. */
         ERROR("malloc() failed\n");
         free(buf->base);
         free_dest(d);
         return;
     }
     req->dest = d;
-    msg = uv_buf_init(buf->base, nread); /* no stripping; send entire codatunnel packet */
+    msg       = uv_buf_init(buf->base, nread); /* no stripping; send entire
+                                                  codatunnel packet */
 
     /* Convert ctp_d fields to network order */
     ctp_t *p = (ctp_t *)buf->base;
-    DEBUG("is_retry = %u  is_init1 = %u  msglen = %u\n",
-          p->is_retry, p->is_init1, p->msglen);
+    DEBUG("is_retry = %u  is_init1 = %u  msglen = %u\n", p->is_retry,
+          p->is_init1, p->msglen);
 
     p->is_retry = htonl(p->is_retry);
     p->is_init1 = htonl(p->is_init1);
-    p->msglen = htonl(p->msglen);
+    p->msglen   = htonl(p->msglen);
     /* ignoring addr and addrlen; will be clobbered by dest_t->destaddr and
      * dest_t->destlen on the other side of the tunnel */
 
@@ -325,8 +324,10 @@ static void send_to_tcp_dest(dest_t *d, ssize_t nread, const uv_buf_t *buf)
     req->req.data = buf->base;
 
     /* forward packet to the remote host */
-    DEBUG("Going to do uv_write(%p, %p, %p,...)\n", req, req->req.data, d->tcphandle);
-    rc = uv_write((uv_write_t *)req, (uv_stream_t *)d->tcphandle, &msg, 1, minicb_tcp);
+    DEBUG("Going to do uv_write(%p, %p, %p,...)\n", req, req->req.data,
+          d->tcphandle);
+    rc = uv_write((uv_write_t *)req, (uv_stream_t *)d->tcphandle, &msg, 1,
+                  minicb_tcp);
     if (rc) {
         /* unable to send on tcp connection, free buffer and trigger a
          * disconnection because we have no other way to force a retry. */
@@ -345,26 +346,26 @@ static void tcp_connect_cb(uv_connect_t *req, int status)
     if (status == 0) { /* connection successful */
         DEBUG("tcp_connect_cb(%p, %d) --> %p\n", d, status, d->tcphandle);
         d->tcphandle->data = d; /* point back, for use in upcalls */
-        d->received_packet = calloc(1, MAXRECEIVE);  /* freed in uv_udp_sent_cb() */
-        d->nextbyte = 0;
+        d->received_packet =
+            calloc(1, MAXRECEIVE); /* freed in uv_udp_sent_cb() */
+        d->nextbyte     = 0;
         d->packets_sent = 0;
-        d->ntoh_done = 0;
-        d->state = TCPACTIVE; /* commit point */
+        d->ntoh_done    = 0;
+        d->state        = TCPACTIVE; /* commit point */
 
         /* disable Nagle */
         uv_tcp_nodelay(d->tcphandle, 1);
 
-        int rc = uv_read_start((uv_stream_t *)d->tcphandle, alloc_cb, recv_tcp_cb);
+        int rc =
+            uv_read_start((uv_stream_t *)d->tcphandle, alloc_cb, recv_tcp_cb);
         DEBUG("uv_read_start() --> %d\n", rc);
-    }
-    else { /* connection attempt failed */
+    } else { /* connection attempt failed */
         d->state = ALLOCATED;
         free(d->tcphandle);
         d->tcphandle = NULL;
     }
     free(req);
 }
-
 
 static void try_creating_tcp_connection(dest_t *d)
 {
@@ -377,16 +378,16 @@ static void try_creating_tcp_connection(dest_t *d)
     req = malloc(sizeof(uv_connect_t));
     assert(req != NULL);
 
-    req->data = d;  /* so we can identify dest in upcall */
+    req->data = d; /* so we can identify dest in upcall */
     int rc = uv_tcp_connect(req, d->tcphandle, (struct sockaddr *)&d->destaddr,
                             tcp_connect_cb);
     DEBUG("uv_tcp_connect --> %d\n", rc);
 }
 
-
-static void recv_tcp_cb(uv_stream_t *tcphandle, ssize_t nread, const uv_buf_t *buf)
+static void recv_tcp_cb(uv_stream_t *tcphandle, ssize_t nread,
+                        const uv_buf_t *buf)
 {
-    DEBUG("recv_tcp_cb (%p, %d, %p)\n", tcphandle, (int) nread, buf);
+    DEBUG("recv_tcp_cb (%p, %d, %p)\n", tcphandle, (int)nread, buf);
 
     dest_t *d = tcphandle->data;
     DEBUG("d = %p\n", d);
@@ -431,10 +432,10 @@ static void recv_tcp_cb(uv_stream_t *tcphandle, ssize_t nread, const uv_buf_t *b
 
     int bytesleft = nread;
     do { /* each iteration does one memcpy() from src to tgt */
-        DEBUG("bytesleft = %d  nextbyte = %d  ntoh_done = %d\n",
-              bytesleft, d->nextbyte, d->ntoh_done);
+        DEBUG("bytesleft = %d  nextbyte = %d  ntoh_done = %d\n", bytesleft,
+              d->nextbyte, d->ntoh_done);
         char *tgt = &((d->received_packet)[d->nextbyte]);
-        char *src = (char *) &((buf->base)[nread-bytesleft]);
+        char *src = (char *)&((buf->base)[nread - bytesleft]);
         int needed, msgsize;
 
         if (d->nextbyte < sizeof(ctp_t)) {
@@ -461,21 +462,20 @@ static void recv_tcp_cb(uv_stream_t *tcphandle, ssize_t nread, const uv_buf_t *b
            reassemble it
         */
         if (d->ntoh_done == 0) {
-            p->is_retry = ntohl(p->is_retry);
-            p->is_init1 = ntohl(p->is_init1);
-            p->msglen = ntohl(p->msglen);
+            p->is_retry  = ntohl(p->is_retry);
+            p->is_init1  = ntohl(p->is_init1);
+            p->msglen    = ntohl(p->msglen);
             d->ntoh_done = 1;
 
-            if (strncmp(p->magic, "magic01", 8) != 0)
-            {
+            if (strncmp(p->magic, "magic01", 8) != 0) {
                 DEBUG("Bad packet header, giving up\n");
                 free(buf->base);
                 free_dest(d);
                 return;
             }
 
-            DEBUG("is_retry = %u  is_init1 = %u  msglen = %u\n",
-                  p->is_retry, p->is_init1, p->msglen);
+            DEBUG("is_retry = %u  is_init1 = %u  msglen = %u\n", p->is_retry,
+                  p->is_init1, p->msglen);
         }
 
         msgsize = sizeof(ctp_t) + p->msglen;
@@ -501,7 +501,8 @@ static void recv_tcp_cb(uv_stream_t *tcphandle, ssize_t nread, const uv_buf_t *b
         needed = msgsize - d->nextbyte;
         DEBUG("Complete packet check, needed = %d\n", needed);
 
-        if (needed > 0) continue; /* not complete yet */
+        if (needed > 0)
+            continue; /* not complete yet */
 
         /* Victory: we have assembled a complete packet to handoff to
            venus or codasrv; no stripping of ctp_t needed */
@@ -536,7 +537,8 @@ static void recv_tcp_cb(uv_stream_t *tcphandle, ssize_t nread, const uv_buf_t *b
         /* forward packet to venus/codasrv */
         rc = uv_udp_send((uv_udp_send_t *)req, &codatunnel, &msg, 1,
                          (struct sockaddr *)&dummy_peer, minicb_udp);
-        DEBUG("codatunnel.send_queue_count = %lu\n", codatunnel.send_queue_count);
+        DEBUG("codatunnel.send_queue_count = %lu\n",
+              codatunnel.send_queue_count);
         if (rc) {
             /* unable to forward packet from tcp connection to venus/codasrv.
              * free buffers and trigger a disconnection */
@@ -549,8 +551,8 @@ static void recv_tcp_cb(uv_stream_t *tcphandle, ssize_t nread, const uv_buf_t *b
 
         /* Now prepare for read of a new packet */
         d->received_packet = calloc(1, MAXRECEIVE);
-        d->nextbyte = 0;
-        d->ntoh_done = 0;
+        d->nextbyte        = 0;
+        d->ntoh_done       = 0;
 
     } while (bytesleft > 0);
 
@@ -558,10 +560,8 @@ static void recv_tcp_cb(uv_stream_t *tcphandle, ssize_t nread, const uv_buf_t *b
     free(buf->base);
 }
 
-
 static void recv_udpsocket_cb(uv_udp_t *udpsocket, ssize_t nread,
-                              const uv_buf_t *buf,
-                              const struct sockaddr *addr,
+                              const uv_buf_t *buf, const struct sockaddr *addr,
                               unsigned flags)
 {
     minicb_udp_req_t *req;
@@ -600,10 +600,10 @@ static void recv_udpsocket_cb(uv_udp_t *udpsocket, ssize_t nread,
         return;
     }
 
-    msg[0] = uv_buf_init((char *)&req->ctp, sizeof(ctp_t));
+    msg[0]           = uv_buf_init((char *)&req->ctp, sizeof(ctp_t));
     req->ctp.addrlen = sockaddr_len(addr);
     memcpy(&req->ctp.addr, addr, req->ctp.addrlen);
-    req->ctp.msglen = nread;
+    req->ctp.msglen   = nread;
     req->ctp.is_retry = req->ctp.is_init1 = 0;
     strncpy(req->ctp.magic, "magic01", 8);
 
@@ -627,7 +627,7 @@ static void recv_udpsocket_cb(uv_udp_t *udpsocket, ssize_t nread,
     }
 }
 
-static void tcp_newconnection_cb (uv_stream_t *bindhandle, int status)
+static void tcp_newconnection_cb(uv_stream_t *bindhandle, int status)
 {
     uv_tcp_t *clienthandle;
     struct sockaddr_storage peeraddr;
@@ -655,7 +655,9 @@ static void tcp_newconnection_cb (uv_stream_t *bindhandle, int status)
 
     /* Figure out identity of new client and create dest structure */
     peerlen = sizeof(peeraddr);
-    rc = uv_tcp_getpeername(clienthandle, (struct sockaddr *)&peeraddr, &peerlen);
+
+    rc = uv_tcp_getpeername(clienthandle, (struct sockaddr *)&peeraddr,
+                            &peerlen);
     DEBUG("uv_tcp_getpeername() --> %d\n", rc);
     if (rc < 0) {
         DEBUG("uv_tcp_getpeername() --> %s\n", uv_strerror(rc));
@@ -663,14 +665,14 @@ static void tcp_newconnection_cb (uv_stream_t *bindhandle, int status)
     }
 
     d = getdest(&peeraddr, peerlen);
-    if (!d) {/* new destination */
+    if (!d) { /* new destination */
         d = createdest(&peeraddr, peerlen);
     }
 
     /* Bind this TCP handle and dest */
     clienthandle->data = d;
 
-    d->tcphandle = clienthandle;
+    d->tcphandle       = clienthandle;
     d->received_packet = malloc(MAXRECEIVE);
     /* all other fields of *d set by cleardest() in createdest() */
     d->state = TCPACTIVE; /* commit point */
@@ -685,24 +687,24 @@ static void tcp_newconnection_cb (uv_stream_t *bindhandle, int status)
 }
 
 /* main routine of coda tunnel daemon */
-void codatunneld(int codatunnel_sockfd,
-                 const char *tcp_bindaddr,
-                 const char *udp_bindaddr,
-                 const char *bind_service,
+void codatunneld(int codatunnel_sockfd, const char *tcp_bindaddr,
+                 const char *udp_bindaddr, const char *bind_service,
                  int onlytcp)
 {
     uv_getaddrinfo_t gai_req;
     const struct addrinfo *ai, gai_hints = {
-        .ai_family = AF_UNSPEC,
+        .ai_family   = AF_UNSPEC,
         .ai_socktype = SOCK_DGRAM,
-        .ai_flags = AI_PASSIVE,
+        .ai_flags    = AI_PASSIVE,
     };
     int rc;
 
     fprintf(stderr, "codatunneld: starting\n");
 
-    if (tcp_bindaddr) codatunnel_I_am_server = 1; /* remember who I am */
-    if (onlytcp) codatunnel_onlytcp = 1; /* no UDP fallback */
+    if (tcp_bindaddr)
+        codatunnel_I_am_server = 1; /* remember who I am */
+    if (onlytcp)
+        codatunnel_onlytcp = 1; /* no UDP fallback */
 
     /* make sure that writing to closed pipes doesn't kill us */
     signal(SIGPIPE, SIG_IGN);
@@ -716,10 +718,10 @@ void codatunneld(int codatunnel_sockfd,
     uv_udp_open(&codatunnel, codatunnel_sockfd);
 
     /* resolve the requested udp bind address */
-    const char *node = (udp_bindaddr && *udp_bindaddr) ? udp_bindaddr : NULL;
+    const char *node    = (udp_bindaddr && *udp_bindaddr) ? udp_bindaddr : NULL;
     const char *service = bind_service ? bind_service : "0";
-    rc = uv_getaddrinfo(codatunnel_main_loop, &gai_req, NULL,
-                        node, service, &gai_hints);
+    rc = uv_getaddrinfo(codatunnel_main_loop, &gai_req, NULL, node, service,
+                        &gai_hints);
     if (rc < 0) {
         ERROR("uv_getaddrinfo() --> %s\n", uv_strerror(rc));
         exit(-1);
@@ -734,8 +736,8 @@ void codatunneld(int codatunnel_sockfd,
     if (!ai) {
         ERROR("uv_udp_bind() unsuccessful, exiting\n");
         exit(-1);
-    }
-    else uv_freeaddrinfo(gai_req.addrinfo);
+    } else
+        uv_freeaddrinfo(gai_req.addrinfo);
 
     uv_udp_recv_start(&codatunnel, alloc_cb, recv_codatunnel_cb);
     uv_udp_recv_start(&udpsocket, alloc_cb, recv_udpsocket_cb);
@@ -743,18 +745,17 @@ void codatunneld(int codatunnel_sockfd,
     if (codatunnel_I_am_server) {
         /* start listening for connect() attempts */
         const struct addrinfo gai_hints2 = {
-            .ai_family = AF_INET,
+            .ai_family   = AF_INET,
             .ai_socktype = SOCK_STREAM,
-            .ai_flags = AI_PASSIVE,
+            .ai_flags    = AI_PASSIVE,
         };
         /* service was already set earlier */
-
 
         uv_tcp_init(codatunnel_main_loop, &tcplistener);
 
         /* try to bind to any of the resolved addresses */
-        uv_getaddrinfo(codatunnel_main_loop, &gai_req, NULL,
-                       tcp_bindaddr, service, &gai_hints2);
+        uv_getaddrinfo(codatunnel_main_loop, &gai_req, NULL, tcp_bindaddr,
+                       service, &gai_hints2);
         for (ai = gai_req.addrinfo; ai != NULL; ai = ai->ai_next) {
             if (uv_tcp_bind(&tcplistener, ai->ai_addr, 0) == 0)
                 break;
@@ -762,8 +763,8 @@ void codatunneld(int codatunnel_sockfd,
         if (!ai) {
             ERROR("uv_tcp_bind() unsuccessful, exiting\n");
             exit(-1);
-        }
-        else uv_freeaddrinfo(gai_req.addrinfo);
+        } else
+            uv_freeaddrinfo(gai_req.addrinfo);
 
         /* start listening for connect() attempts */
         uv_listen((uv_stream_t *)&tcplistener, 10, tcp_newconnection_cb);
@@ -779,24 +780,23 @@ void codatunneld(int codatunnel_sockfd,
     exit(0);
 }
 
-
 /* from Internet example */
-void hexdump (char *desc, void *addr, int len)
+void hexdump(char *desc, void *addr, int len)
 {
     int i;
     unsigned char buff[17];
-    unsigned char *pc = (unsigned char*)addr;
+    unsigned char *pc = (unsigned char *)addr;
 
     // Output description if given.
     if (desc != NULL)
-        printf ("%s:\n", desc);
+        printf("%s:\n", desc);
 
     if (len == 0) {
         printf("  ZERO LENGTH\n");
         return;
     }
     if (len < 0) {
-        printf("  NEGATIVE LENGTH: %i\n",len);
+        printf("  NEGATIVE LENGTH: %i\n", len);
         return;
     }
 
@@ -807,14 +807,14 @@ void hexdump (char *desc, void *addr, int len)
         if ((i % 16) == 0) {
             // Just don't print ASCII for the zeroth line.
             if (i != 0)
-                printf ("  %s\n", buff);
+                printf("  %s\n", buff);
 
             // Output the offset.
-            printf ("  %04x ", i);
+            printf("  %04x ", i);
         }
 
         // Now the hex code for the specific character.
-        printf (" %02x", pc[i]);
+        printf(" %02x", pc[i]);
 
         // And store a printable ASCII character for later.
         if ((pc[i] < 0x20) || (pc[i] > 0x7e))
@@ -826,10 +826,10 @@ void hexdump (char *desc, void *addr, int len)
 
     // Pad out last line if not exactly 16 characters.
     while ((i % 16) != 0) {
-        printf ("   ");
+        printf("   ");
         i++;
     }
 
     // And print the final ASCII bit.
-    printf ("  %s\n", buff);
+    printf("  %s\n", buff);
 }

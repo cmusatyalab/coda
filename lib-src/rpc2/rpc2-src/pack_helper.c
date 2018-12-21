@@ -13,16 +13,14 @@ Coda are listed in the file CREDITS.
 
 #*/
 
-
+#include <assert.h>
 #include <rpc2/pack_helper.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
 
-#define _PAD(n)((((n)-1) | 3) + 1)
+#define _PAD(n) ((((n)-1) | 3) + 1)
 
-
-int pack_integer(BUFFER *buf,  RPC2_Integer value)
+int pack_integer(BUFFER *buf, RPC2_Integer value)
 {
     if (buf->eob) {
         if (buf->buffer + 4 > buf->eob)
@@ -42,7 +40,6 @@ int unpack_integer(BUFFER *buf, RPC2_Integer *ptr)
     return 0;
 }
 
-
 int pack_unsigned(BUFFER *buf, RPC2_Unsigned value)
 {
     if (buf->eob) {
@@ -58,11 +55,10 @@ int unpack_unsigned(BUFFER *buf, RPC2_Unsigned *ptr)
 {
     if (buf->buffer + 4 > buf->eob)
         return -1;
-    *ptr = ntohl(*(RPC2_Unsigned*)(buf->buffer));
+    *ptr = ntohl(*(RPC2_Unsigned *)(buf->buffer));
     buf->buffer += _PAD(4);
     return 0;
 }
-
 
 int pack_double(BUFFER *buf, RPC2_Double value)
 {
@@ -84,7 +80,6 @@ int unpack_double(BUFFER *buf, RPC2_Double *ptr)
     return 0;
 }
 
-
 int pack_bytes(BUFFER *buf, RPC2_ByteSeq value, RPC2_Unsigned len)
 {
     if (buf->eob) {
@@ -105,7 +100,6 @@ int unpack_bytes(BUFFER *buf, RPC2_ByteSeq ptr, RPC2_Unsigned len)
     return 0;
 }
 
-
 int pack_byte(BUFFER *buf, RPC2_Byte value)
 {
     if (buf->eob) {
@@ -125,7 +119,6 @@ int unpack_byte(BUFFER *buf, RPC2_Byte *ptr)
     buf->buffer += _PAD(1);
     return 0;
 }
-
 
 int pack_string(BUFFER *buf, RPC2_String ptr)
 {
@@ -155,19 +148,18 @@ int unpack_string(BUFFER *buf, RPC2_String *ptr)
     if (*(buf->buffer + length) != '\0')
         return -1;
     /* If RPC2_String is the element of RPC2_Struct, mode should be NO_MODE. */
-	/* So mode should not be examined here. */
-	/* if (mode == IN_OUT_MODE && who == RP2_CLIENT) { */
+    /* So mode should not be examined here. */
+    /* if (mode == IN_OUT_MODE && who == RP2_CLIENT) { */
     assert(buf->who != RP2_CLIENT);
     /* it's very dangerous to do memcpy in client mode */
     /* if (who == RP2_CLIENT) {
-        memcpy(*ptr, buf->buffer, length);
-        *ptr[length] = '\0';
-    */
+      memcpy(*ptr, buf->buffer, length);
+      *ptr[length] = '\0';
+  */
     *ptr = (RPC2_String)(buf->buffer);
     buf->buffer += _PAD(length + 1);
     return 0;
 }
-
 
 int pack_countedbs(BUFFER *buf, RPC2_CountedBS *ptr)
 {
@@ -195,7 +187,6 @@ int unpack_countedbs(BUFFER *buf, RPC2_CountedBS *ptr)
     buf->buffer += _PAD(ptr->SeqLen);
     return 0;
 }
-
 
 int pack_boundedbs(BUFFER *buf, RPC2_BoundedBS *ptr)
 {
@@ -258,7 +249,6 @@ int unpack_boundedbs(BUFFER *buf, MODE mode, RPC2_BoundedBS *ptr)
     return 0;
 }
 
-
 int pack_encryptionKey(BUFFER *buf, RPC2_EncryptionKey key)
 {
     if (buf->eob) {
@@ -279,7 +269,6 @@ int unpack_encryptionKey(BUFFER *buf, RPC2_EncryptionKey key)
     return 0;
 }
 
-
 int pack_struct_CallCountEntry(BUFFER *buf, CallCountEntry *ptr)
 {
     if (pack_string(buf, ptr->name))
@@ -296,7 +285,6 @@ int pack_struct_CallCountEntry(BUFFER *buf, CallCountEntry *ptr)
         return -1;
     return 0;
 }
-
 
 int unpack_struct_CallCountEntry(BUFFER *buf, CallCountEntry *ptr)
 {
@@ -315,7 +303,6 @@ int unpack_struct_CallCountEntry(BUFFER *buf, CallCountEntry *ptr)
     return 0;
 }
 
-
 int pack_struct_MultiCallEntry(BUFFER *buf, MultiCallEntry *ptr)
 {
     if (pack_string(buf, ptr->name))
@@ -332,7 +319,6 @@ int pack_struct_MultiCallEntry(BUFFER *buf, MultiCallEntry *ptr)
         return -1;
     return 0;
 }
-
 
 int unpack_struct_MultiCallEntry(BUFFER *buf, MultiCallEntry *ptr)
 {
@@ -351,7 +337,6 @@ int unpack_struct_MultiCallEntry(BUFFER *buf, MultiCallEntry *ptr)
     return 0;
 }
 
-
 int pack_struct_MultiStubWork(BUFFER *buf, MultiStubWork *ptr)
 {
     if (pack_integer(buf, ptr->opengate))
@@ -363,7 +348,6 @@ int pack_struct_MultiStubWork(BUFFER *buf, MultiStubWork *ptr)
     return 0;
 }
 
-
 int unpack_struct_MultiStubWork(BUFFER *buf, MultiStubWork *ptr)
 {
     if (unpack_integer(buf, &(ptr->opengate)))
@@ -374,4 +358,3 @@ int unpack_struct_MultiStubWork(BUFFER *buf, MultiStubWork *ptr)
         return -1;
     return 0;
 }
-
