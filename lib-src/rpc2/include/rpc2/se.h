@@ -37,6 +37,8 @@ Pittsburgh, PA.
 
 */
 
+#include <rpc2/rpc2.h>
+
 #ifndef _SE_
 #define _SE_
 

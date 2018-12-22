@@ -37,10 +37,12 @@ Pittsburgh, PA.
 
 */
 
+#include <rpc2/rpc2.h>
+#include <rpc2/se.h>
+
 #ifndef _MULTI_H_
 #define _MULTI_H_
 
-#include "se.h"
 #define MAXSERVERS 100
 
 typedef long RPC2_HandleResult_func(int HowMany, RPC2_Handle ConnList[],

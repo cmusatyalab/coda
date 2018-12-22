@@ -691,8 +691,8 @@ typedef struct {
 /*
 RPC2 runtime routines:
 */
-#include "multi.h"
-#include "se.h"
+#include <rpc2/multi.h>
+#include <rpc2/se.h>
 
 extern long RPC2_Init(const char *VersionId, RPC2_Options *Options,
                       RPC2_PortIdent *PortList, long RetryCount,
