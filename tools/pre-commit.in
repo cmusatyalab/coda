@@ -78,11 +78,11 @@ done
 if test $exit_code -eq 0
 then
     echo ""
-    echo "${GREEN}Great! All files pass initial checks.${NC}"
+    printf "${GREEN}Great! All files pass initial checks.${NC}"
     echo ""
 else
     echo ""
-    echo "${RED}[ERROR]${NC} Not committing."
+    printf "${RED}[ERROR]${NC} Not committing."
 
     if test "${need_release_update-X}" != "X"
     then
@@ -128,11 +128,11 @@ then
     if test "${offending_files-X}" = "X"
     then
         echo ""
-        echo "${GREEN}Great! All files are correctly indented!${NC}"
+        printf "${GREEN}Great! All files are correctly indented!${NC}"
         echo ""
     else
         echo ""
-        echo "${RED}[ERROR]${NC} Not committing. Incorrectly indented files found!"
+        printf "${RED}[ERROR]${NC} Not committing. Incorrectly indented files found!"
         echo ""
 
         printf "    %s\n" $offending_files
@@ -150,7 +150,7 @@ then
 
 else
     echo ""
-    echo "${YELLOW}[WARNING]${NC} required clang-format version not installed. Skipping indentation check!"
+    printf "${YELLOW}[WARNING]${NC} Required clang-format version not installed. Skipping indentation check!"
     echo ""
 fi
 
