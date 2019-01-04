@@ -37,7 +37,7 @@ library.
 
 On Redhat/Fedora/CentOS systems
 ```sh
-$ yum install gcc gcc-c++ autoconf automake libtool pkgconfig flex bison readline-devel ncurses5-devel lua-devel llvm-toolset-7
+$ yum install gcc gcc-c++ autoconf automake libtool pkgconfig flex bison readline-devel ncurses5-devel lua-devel clang
 ```
 
 On Debian/Ubuntu and derived systems
