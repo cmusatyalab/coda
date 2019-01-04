@@ -34,11 +34,11 @@ AC_PROG_MAKE_SET
 AC_PROG_LIBTOOL
 AC_PROG_AWK
 
-dnl Currently not supported on RHL/Fedora/Centos because the 
 CLANG_FORMAT_VERSION=['6\.[0-9]*\.[0-9]*']
 AC_CHECK_PROGS([CLANG_FORMAT], [clang-format-6.0 clang-format])
 
-if test "x$CLANG_FORMAT" != x; then
+dnl Verify that the version matches in case clang-format is found
+if test "x$CLANG_FORMAT" != xclang-format; then
     if test ["$(${CLANG_FORMAT} --version | grep $CLANG_FORMAT_VERSION | wc -l)"] == 0; then
         CLANG_FORMAT=""
     fi
