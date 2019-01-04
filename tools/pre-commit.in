@@ -13,6 +13,7 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 NC='\033[0m'
+CLANG_FORMAT_COMMAND=@CLANG_FORMAT@
 
 if git rev-parse --verify HEAD >/dev/null 2>&1
 then
@@ -102,7 +103,7 @@ fi
 # If there are whitespace errors, print the offending file names and fail.
 echo "Pre-commit hook - Checking staged files indentation"
 
-if test "$(command -v @CLANG_FORMAT@)" != ""
+if test "$(command -v ${CLANG_FORMAT_COMMAND})" != ""
 then
 
     # Find the offending files
@@ -117,7 +118,7 @@ then
         esac
 
         if test $(git cat-file -p ":$single_file" | 
-                  @CLANG_FORMAT@ -style=file -output-replacements-xml |
+                  ${CLANG_FORMAT_COMMAND} -style=file -output-replacements-xml |
                   wc -l) != 3
         then
             offending_files="${offending_files:+"$offending_files "}$single_file"
@@ -139,7 +140,7 @@ then
         echo ""
         echo "To indent the files, please run;"
         echo ""
-        echo "    @CLANG_FORMAT@ -style=file -i $offending_files"
+        echo "    ${CLANG_FORMAT_COMMAND} -style=file -i $offending_files"
         echo ""
         echo "Be aware that this command will indent the file in the"
         echo "working tree. Unstaged changes will be also affected."
