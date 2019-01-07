@@ -706,7 +706,7 @@ static void ParseCmdline(int argc, char **argv)
             } else if (STREQ(argv[i], "-wfmin")) {
                 i++, WholeFileMinSize = ParseSizeWithUnits(argv[i]);
             } else if (STREQ(argv[i], "-wfstall")) {
-                i++, WholeFileMaxStall = ParseSizeWithUnits(argv[i]);
+                i++, WholeFileMaxStall = atoi(argv[i]);
             } else if (STREQ(argv[i], "-ccbs")) {
                 i++, ParseCacheChunkBlockSize(argv[i]);
             } else {
