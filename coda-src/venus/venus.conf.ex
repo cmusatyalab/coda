@@ -327,7 +327,6 @@ mapprivate=1
 #
 #plan9server=0
 
-
 #
 # Size of files above which it's partially cached, regardless of bandwidth.
 # The default value is 50MB.
@@ -346,4 +345,4 @@ mapprivate=1
 # seconds. This quantity depends on the bandwidth between the client and the 
 # server hosting the corresponding file. The default value is 10 seconds.
 #
-wholefilemaxstall=10
+#wholefilemaxstall=10
