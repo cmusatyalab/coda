@@ -2649,7 +2649,13 @@ void fsobj::UpdateVastroFlag(uid_t uid)
     if (INIT_BW == bw) {
         bw = 1;
     }
-    stall_time   = Size() / bw;
+
+    /* Prevent zero division */
+    if (0 == bw) {
+        bw = 1;
+    }
+
+    stall_time = Size() / bw;
     flags.vastro = stall_time > WholeFileMaxStall ? 0x1 : 0x0;
 
 PutAll:
