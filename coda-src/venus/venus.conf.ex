@@ -329,13 +329,13 @@ mapprivate=1
 
 
 #
-# Size of files above which it's partial-cached, regardless of bandwidth.
+# Size of files above which it's partially cached, regardless of bandwidth.
 # The default value is 50MB.
 #
 #wholefilemaxsize=50MB
 
 #
-# Size of files below which it's NEVER partial-cached, regardless of 
+# Size of files below which it's NEVER partially cached, regardless of 
 # bandwidth. The default value is 4MB.
 #
 #wholefileminsize=4MB
