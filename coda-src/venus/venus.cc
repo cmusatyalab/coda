@@ -796,7 +796,7 @@ static void DefaultCmdlineParms()
         WholeFileMinSize = ParseSizeWithUnits(TmpWFMin);
     }
 
-    CODACONF_INT(WholeFileMaxStall, "wholefilemaxstall", "10");
+    CODACONF_INT(WholeFileMaxStall, "wholefilemaxstall", 10);
 
     CODACONF_STR(CacheDir, "cachedir", DFLT_CD);
     CODACONF_STR(SpoolDir, "checkpointdir", "/usr/coda/spool");
