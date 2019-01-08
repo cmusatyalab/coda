@@ -3,7 +3,7 @@
                            Coda File System
                               Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -260,6 +260,7 @@ void bitmap7::CopyRange(int start, int len, bitmap7 &b)
 
     /* Copy all the bytes in between */
     memcpy(&b.map[start_byte], &map[start_byte], bulk_len);
+    if (recoverable) rvmlib_set_range(&b.map[start_byte], sizeof(char) * bulk_len);
 
     /* Copy the values from before the first copied byte */
     for (int i = start; i & 0x7; i++) {
@@ -292,6 +293,7 @@ void bitmap7::SetRangeValue(int start, int len, int value)
 
     /* Copy all the bytes in between */
     memset(&map[start_byte], bulk_value, bulk_len);
+    if (recoverable) rvmlib_set_range(&map[start_byte], sizeof(char) * bulk_len);
 
     /* Copy the values from before the first copied byte */
     for (int i = start; i & 0x7; i++) {
