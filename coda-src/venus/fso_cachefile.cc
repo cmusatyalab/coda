@@ -419,7 +419,7 @@ void CacheFile::SetValidData(uint64_t start, int64_t len)
     }
 
     if (recoverable)
-        RVMLIB_REC_OBJECT(validdata);
+        RVMLIB_REC_OBJECT(*this);
 
     if (isPartial) {
         ObtainWriteLock(&rw_lock);
