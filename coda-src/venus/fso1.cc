@@ -2629,7 +2629,9 @@ PutAll:
     if (m)
         m->Put();
 ConfigCacheFile:
+    Recov_BeginTrans();
     cf.SetPartial(flags.vastro);
+    Recov_EndTrans(MAXFP);
 }
 
 /* local-repair modification */

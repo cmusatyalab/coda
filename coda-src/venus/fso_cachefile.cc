@@ -119,22 +119,23 @@ void CacheFile::SetPartial(bool is_partial)
 
     this->isPartial = is_partial;
 
+    if (recoverable)
+        RVMLIB_REC_OBJECT(*this);
+
     if (is_partial) {
-        Recov_BeginTrans();
         cached_chunks = new (recoverable)
             bitmap7(CacheChunkBlockBitmapSize, this->recoverable);
         Lock_Init(&this->rw_lock);
 
         /* If there's valid data set it to the bitmap */
         SetValidData(validdata);
-        Recov_EndTrans(MAXFP);
     } else {
+        /* Set validdata to mimic disconnection while fetching */
+        SetValidData(ConsecutiveValidData());
+
         if (cached_chunks)
             delete (cached_chunks);
         cached_chunks = NULL;
-
-        /* Set validdata to zero to force re-fetching */
-        validdata = 0;
     }
 }
 
