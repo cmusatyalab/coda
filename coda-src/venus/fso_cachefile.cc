@@ -575,35 +575,54 @@ CacheChunkList::~CacheChunkList()
 
 CacheChunk CacheFile::GetNextHole(uint64_t start_b, uint64_t end_b)
 {
-    /* Floor length in blocks */
-    uint64_t length_b_f = bytes_to_ccblocks_floor(length);
-    /* Ceil length in blocks */
-    uint64_t length_b  = bytes_to_ccblocks_ceil(length);
-    uint64_t holestart = start_b;
-    int64_t holesize   = 0;
+    CODA_ASSERT(start_b <= end_b);
+    /* Number of blocks of the cache file */
+    uint64_t nblocks = bytes_to_ccblocks_ceil(length);
+    /* Number of full blocks */
+    uint64_t nblocks_full   = bytes_to_ccblocks_floor(length);
+    uint64_t hole_start_idx = 0;
+    uint64_t hole_end_idx   = 0;
+    uint64_t hole_size      = 0;
 
-    for (uint64_t i = start_b; i < end_b; i++) {
-        if (cached_chunks->Value(i)) {
-            holesize  = 0;
-            holestart = i + 1;
-            continue;
-        }
+    CODA_ASSERT(start_b <= nblocks);
 
-        /* The last block might not be full */
-        if (i + 1 == length_b) {
-            holesize += length - (length_b_f << CacheChunkBlockSizeBits);
-            return (CacheChunk(holestart * CacheChunkBlockSize, holesize));
-        }
+    if (end_b > nblocks) {
+        end_b = nblocks;
+    }
 
-        /* Add a full block */
-        holesize += CacheChunkBlockSize;
-
-        if ((i + 1 == end_b) || cached_chunks->Value(i + 1)) {
-            return (CacheChunk(holestart * CacheChunkBlockSize, holesize));
+    /* Find the start of the hole */
+    for (hole_start_idx = start_b; hole_start_idx < end_b; hole_start_idx++) {
+        if (!cached_chunks->Value(hole_start_idx)) {
+            break;
         }
     }
 
-    return (CacheChunk());
+    /* No hole */
+    if (hole_start_idx == end_b)
+        return CacheChunk();
+
+    /* Find the end of the hole */
+    for (hole_end_idx = hole_start_idx; hole_end_idx < end_b; hole_end_idx++) {
+        if (cached_chunks->Value(hole_end_idx)) {
+            break;
+        }
+    }
+
+    CODA_ASSERT(hole_end_idx > hole_start_idx);
+
+    hole_size = ccblocks_to_bytes(hole_end_idx - hole_start_idx - 1);
+
+    /* If the hole ends at EOF and it has a tail */
+    if (hole_end_idx == nblocks && nblocks_full != nblocks) {
+        /* Add the tail */
+        uint64_t tail = length - ccblocks_to_bytes(nblocks - 1);
+        hole_size += tail;
+    } else {
+        /* Add the last accounted block as a whole block*/
+        hole_size += CacheChunkBlockSize;
+    }
+
+    return (CacheChunk(ccblocks_to_bytes(hole_start_idx), hole_size));
 }
 
 CacheChunkList *CacheFile::GetHoles(uint64_t start, int64_t len)
@@ -614,7 +633,7 @@ CacheChunkList *CacheFile::GetHoles(uint64_t start, int64_t len)
     CacheChunkList *clist = new CacheChunkList();
     CacheChunk currc;
 
-    if (len < 0) {
+    if (len < 0 || end_b > length_b) {
         end_b = length_b;
     }
 
