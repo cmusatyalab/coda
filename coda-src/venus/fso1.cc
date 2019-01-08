@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -2559,7 +2559,7 @@ void fsobj::UpdateVastroFlag(uid_t uid)
 
     if (GetKernelModuleVersion() < 5) {
         flags.vastro = 0x0;
-        return;
+        goto ConfigCacheFile;
     }
 
     /* Limit the VASTRO flagging to first opener only*/
@@ -2570,12 +2570,12 @@ void fsobj::UpdateVastroFlag(uid_t uid)
     /* Only files might be VASTROS */
     if (!IsFile()) {
         flags.vastro = 0x0;
-        return;
+        goto ConfigCacheFile;
     }
 
     if (IsPioctlFile()) {
         flags.vastro = 0x0;
-        return;
+        goto ConfigCacheFile;
     }
 
     if (!REACHABLE(this)) {
@@ -2628,6 +2628,8 @@ PutAll:
         PutConn(&c);
     if (m)
         m->Put();
+ConfigCacheFile:
+    cf.SetPartial(flags.vastro);
 }
 
 /* local-repair modification */

@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -725,6 +725,7 @@ public:
 /*  *****  Variables  ***** */
 
 extern unsigned int CacheFiles;
+extern unsigned int PartialCacheFilesRatio;
 extern uint64_t WholeFileMaxSize;
 extern int FSO_SWT;
 extern int FSO_MWT;
@@ -762,7 +763,7 @@ void FSOD_ReclaimFSOs(void);
 #define HAVESTATUS(f) ((f)->state != FsoRunt)
 #define STATUSVALID(f) ((f)->IsValid(RC_STATUS))
 #define HAVEDATA(f) ((f)->data.havedata != 0)
-#define PARTIALDATA(f) ((f)->IsFile() && (f)->cf.IsPartial())
+#define PARTIALDATA(f) ((f)->IsFile() && !(f)->cf.IsComplete())
 #define HAVEALLDATA(f) (HAVEDATA(f) && !PARTIALDATA(f))
 #define DATAVALID(f) ((f)->IsValid(RC_DATA))
 #define EXECUTABLE(f) \

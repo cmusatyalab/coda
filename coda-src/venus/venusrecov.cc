@@ -3,7 +3,7 @@
                            Coda File System
                               Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -141,7 +141,8 @@ static void Recov_GetStatistics();
 /* (assuming worst case 4k chunk size for VASTRO object bitmaps) */
 #define RECOV_BYTES_NEEDED()                                                \
     (MLEs * (sizeof(cmlent) + 64) + CacheFiles * (sizeof(fsobj) + 64) +     \
-     CacheFiles * (sizeof(bitmap7) + (96 * 1024)) +                         \
+     ((CacheFiles * PartialCacheFilesRatio) / 100.0) *                      \
+         (sizeof(bitmap7) + (96 * 1024)) +                                  \
      (CacheFiles / 4) * (sizeof(VenusDirData) + 3072) +                     \
      (CacheFiles / 256) * sizeof(repvol) +                                  \
      (CacheFiles / 512) * sizeof(volrep) + HDBEs * (sizeof(hdbent) + 128) + \

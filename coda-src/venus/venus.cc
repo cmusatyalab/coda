@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -492,6 +492,8 @@ static void Usage(char *argv0)
         " -rpcdebug <n>\t\t\trpc2 debug level\n"
         " -lwpdebug <n>\t\t\tlwp debug level\n"
         " -cf <n>\t\t\t# of cache files\n"
+        " -pcfr <n>\t\t\t% of files that could be partially cached out \n"
+        "\t\t\t\tof the total cache files\n"
         " -c <n>[KB|MB|GB|TB]\t\t\t\tcache size in the given units (e.g. 10MB)\n"
         " -ccbs <n>[KB|MB|GB|TB]\t\t\t\tcache chunk block size (shall be power of 2)\n"
         " -mles <n>\t\t\t# of CML entries\n"
@@ -572,6 +574,8 @@ static void ParseCmdline(int argc, char **argv)
                 i++, MLEs = atoi(argv[i]);
             else if (STREQ(argv[i], "-cf")) /* number of cache files */
                 i++, CacheFiles = atoi(argv[i]);
+            else if (STREQ(argv[i], "-pcfr")) /* partial cache files ratio */
+                i++, PartialCacheFilesRatio = atoi(argv[i]);
             else if (STREQ(argv[i], "-c")) /* cache block size */
                 i++, CacheBlocks = ParseSizeWithUnits(argv[i]);
             else if (STREQ(argv[i], "-hdbes")) /* hoard DB entries */
@@ -782,6 +786,8 @@ static void DefaultCmdlineParms()
         CODACONF_STR(TmpWFMax, "wholefilemaxsize", "50MB");
         WholeFileMaxSize = ParseSizeWithUnits(TmpWFMax);
     }
+
+    CODACONF_INT(PartialCacheFilesRatio, "partialcachefilesratio", 1);
 
     CODACONF_STR(CacheDir, "cachedir", DFLT_CD);
     CODACONF_STR(SpoolDir, "checkpointdir", "/usr/coda/spool");

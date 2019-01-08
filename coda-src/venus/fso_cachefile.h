@@ -3,7 +3,7 @@
                            Coda File System
                               Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -351,6 +351,7 @@ class CacheFile {
     bitmap7 *cached_chunks; /**< Bitmap of actual cached data */
     int recoverable; /**< Recoverable flag (RVM) */
     Lock rw_lock; /**< Read/Write Lock */
+    bool isPartial; /**< File is being partially cached */
 
     /**
      * Validate the container file
@@ -397,8 +398,9 @@ public:
      *
      * @param i            CacheFile index
      * @param recoverable  set cachefile to be recoverable from RVM
+     * @param partial      set cachefile to be partially cached
      */
-    CacheFile(int i, int recoverable = 1);
+    CacheFile(int i, int recoverable = 1, int partial = 0);
 
     /**
      * Constructor
@@ -590,11 +592,25 @@ public:
     uint64_t ConsecutiveValidData();
 
     /**
+     * Check if file is fully cached
+     *
+     * @return zero if file isn't fully cached or not zero otherwise
+     */
+    int IsComplete() { return (length == validdata); }
+
+    /**
      * Check if file is partially cached
      *
-     * @return zero if file is fully cached or 1 otherwise
+     * @return true if file partially cached or false otherwise
      */
-    int IsPartial() { return (length != validdata); }
+    bool IsPartial() { return isPartial; }
+
+    /**
+     * Set the cache file to be partially cached
+     *
+     * @param is_partial partial cache enable status
+     */
+    void SetPartial(bool is_partial);
 
     /**
      * Print the metadata to the standard output
