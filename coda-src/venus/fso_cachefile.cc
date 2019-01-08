@@ -630,7 +630,8 @@ CacheChunk CacheFile::GetNextHole(uint64_t start_b, uint64_t end_b)
             continue;
         }
 
-        if (ccblocks_to_bytes(i) > length) break;
+        if (ccblocks_to_bytes(i) > length)
+            break;
 
         /* The last block might not be full */
         if (i + 1 == length_b) {

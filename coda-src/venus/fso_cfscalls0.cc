@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -334,7 +334,11 @@ int fsobj::Fetch(uid_t uid, uint64_t pos, int64_t count)
     }
 
     GotThisDataStart = offset;
-    GotThisDataEnd   = len > 0 ? offset + len : Size();
+    if (len > 0) {
+        GotThisDataEnd = (offset + len) < Size() ? offset + len : Size();
+    } else {
+        GotThisDataEnd = Size();
+    }
 
     /* C++ 3.0 whines if the following decls moved closer to use  -- Satya */
     {
