@@ -1175,7 +1175,7 @@ int reintvol::LogRemove(time_t Mtime, uid_t uid, VenusFid *PFid, char *Name,
 
     if (LogOpts && !prepend) {
         if (LinkCount == 1) {
-            /*
+            /* 
 	     * if the object was created here, we may be able to do an 
 	     * identity cancellation.  However, if the create is frozen,
 	     * we cannot cancel records involved in an identity cancellation,
@@ -2078,7 +2078,7 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet,
         code = vol->Collate(c, code, 0);
         UNI_RECORD_STATS(ViceReintegrate_OP);
 
-        /*
+        /* 
 	 * if the return code is EALREADY, the log records up to and
 	 * including the one with the storeid that matches the 
 	 * uniquifier in Index have been committed at the server.  
@@ -2176,7 +2176,7 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet,
             }
         }
 
-        /*
+        /* 
 	 * if the return code is EALREADY, the log records up to and
 	 * including the one with the storeid that matches the 
 	 * uniquifier in Index have been committed at the server.  
@@ -2213,7 +2213,7 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet,
         LOG(10, ("ViceReintegrate: transferred %d bytes\n",
                  sedvar_bufs[dh_ix].Value.SmartFTPD.BytesTransferred));
 
-        /*
+        /* 
 	 * Deal with stale directory fids, if any.  If the client
 	 * has a volume callback, stale directories must be purged.
 	 * If not, purging the directories saves an inevitable 
@@ -2309,7 +2309,7 @@ int ClientModifyLog::COP1_NR(char *buf, int bufsize,
     /* don't bother with VCBs, will lose them on resolve anyway */
     RPC2_CountedBS OldVS;
     OldVS.SeqLen = 0;
-    vol->ClearCallBack();
+    vol->PackVS(1, &OldVS);
 
     /* Make the RPC call. */
     MarinerLog("store::Reintegrate %s, (%d, %d)\n", vol->name, count(),
@@ -2326,7 +2326,9 @@ int ClientModifyLog::COP1_NR(char *buf, int bufsize,
     code = vol->Collate(c, code, 0);
     UNI_RECORD_STATS(ViceReintegrate_OP);
 
-    /*
+    free(OldVS.SeqBody);
+
+    /* 
      * if the return code is EALREADY, the log records up to and
      * including the one with the storeid that matches the 
      * uniquifier in Index have been committed at the server.  
@@ -2340,6 +2342,7 @@ int ClientModifyLog::COP1_NR(char *buf, int bufsize,
         code != EWOULDBLOCK && code != ETIMEDOUT)
         MarkFailedMLE((int)Index);
 
+    if (code == EASYRESOLVE) { code = 0; }
     if (code != 0) {
         PutConn(&c);
         goto ExitNonRep;
@@ -2358,8 +2361,8 @@ int ClientModifyLog::COP1_NR(char *buf, int bufsize,
     LOG(0, ("ClientModifyLog::COP1_NR: %d stale dirs\n", NumStaleDirs));
 
     /* server may have found more stale dirs */
-	if (NumStaleDirs == MaxStaleDirs)
-	    vol->ClearCallBack();
+    if (NumStaleDirs == MaxStaleDirs)
+        vol->ClearCallBack();
 
     for (unsigned int d = 0; d < NumStaleDirs; d++) {
         VenusFid StaleDir;
@@ -2741,7 +2744,7 @@ void cmlent::commit(ViceVersionVector *UpdateSet)
     repvol *rv    = (repvol *)vol;
     vol->RecordsCommitted++;
 
-    /*
+    /* 
      * Record StoreId/UpdateSet for objects involved in this operation ONLY 
      * when this is the  FINAL mutation of the object.  Record a COP2 entry 
      * only if this operation was final for ANY object! 
@@ -2774,7 +2777,7 @@ void cmlent::commit(ViceVersionVector *UpdateSet)
         cmlent *FinalCmlent = f->FinalCmlent(tid);
         if (FinalCmlent == this) {
             LOG(10, ("cmlent::commit: FinalCmlent for %s\n", FID_(&f->fid)));
-            /*
+            /* 
 	     * if the final update removed the object, don't bother adding the
 	     * COP2, but do update the version vector as in connected mode.
 	     */
@@ -3302,13 +3305,13 @@ int reintvol::PurgeMLEs(uid_t uid)
             d = next();
             Recov_BeginTrans();
             if (m->IsToBeRepaired())
-                /*
-                 * this record must be associated with
-                 * some local objects whose subtree root
-                 * is not in this volume. since we kill the
-                 * local objects later, we use cmlent destructor
-                 * instead of the cmlent::abort().
-                 */
+                /* 
+		       * this record must be associated with
+		       * some local objects whose subtree root	
+		       * is not in this volume. since we kill the
+		       * local objects later, we use cmlent destructor
+		       * instead of the cmlent::abort().
+		       */
                 delete m;
             else
                 m->abort();
