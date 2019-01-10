@@ -2346,11 +2346,9 @@ int ClientModifyLog::COP1_NR(char *buf, int bufsize,
     }
 
     /* Update volume callback information */
-    if (cbtemp == cbbreaks && VCBStatus == CallBackSet) {
-        vol->SetCallBack();
-        vol->VVV.Versions.Site0 = VS;
-    } else
-        vol->CallBackBreak();
+    if (cbtemp == cbbreaks) {
+        vol->UpdateVCBInfo(VS, VCBStatus);
+    }
 
     bufsize += sed.Value.SmartFTPD.BytesTransferred;
     LOG(10, ("ViceReintegrate: transferred %d bytes\n",
@@ -2358,6 +2356,10 @@ int ClientModifyLog::COP1_NR(char *buf, int bufsize,
 
     /* Purge off stale directory fids, if any. fsobj::Kill is idempotent. */
     LOG(0, ("ClientModifyLog::COP1_NR: %d stale dirs\n", NumStaleDirs));
+
+    /* server may have found more stale dirs */
+	if (NumStaleDirs == MaxStaleDirs)
+	    vol->ClearCallBack();
 
     for (unsigned int d = 0; d < NumStaleDirs; d++) {
         VenusFid StaleDir;
