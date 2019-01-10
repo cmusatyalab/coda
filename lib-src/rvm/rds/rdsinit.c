@@ -57,6 +57,7 @@ enum round_dir { UP, DOWN, NO_ROUND };
 
 jmp_buf jmpbuf_quit;
 
+// clang-format off
 char *usage[]={
 "Usage: rdsinit [-f] log data_seg [ datalen saddr hlen slen nl chunk ] \n",
 "  where\n",
@@ -133,6 +134,7 @@ char *explain_chunk[]={
 "   (chunksize=32 is a reasonable choice.)\n",
 ""
 };
+// clang-format on
 
 static void print_msg(msg)
      char **msg;

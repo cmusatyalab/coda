@@ -162,7 +162,7 @@ static void At_CPU(int, char **, int);
     searched to parse and execute a command; it doesn't seem worthwhile
     being smarter (e.g. binary search or hash lookup)
 */
-
+// clang-format off
 struct command cmdarray[] =
     {
         {"beginrepair", "br", BeginRepair,
@@ -422,6 +422,7 @@ struct command cmdarray[] =
 	 NULL
 	},
     };
+// clang-format on
 
 /* Number of commands in cmdarray */
 int cmdcount = (int) (sizeof(cmdarray)/sizeof(struct command));

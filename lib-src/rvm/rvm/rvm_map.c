@@ -478,19 +478,21 @@ rvm_return_t close_all_segs()
     seg_t           *seg;               /* segment desriptor */
     rvm_return_t    retval=RVM_SUCCESS; /* return value */
 
-    RW_CRITICAL(seg_root_lock,w,        /* begin seg_root_lock crit section */
+    // clang-format off
+    RW_CRITICAL(seg_root_lock, w,
+    { /* begin seg_root_lock crit section */
+        FOR_ENTRIES_OF(seg_root, seg_t, seg)
         {
-        FOR_ENTRIES_OF(seg_root,seg_t,seg)
-            {
-            CRITICAL(seg->dev_lock,     /* begin seg->dev_lock crit section */
-                {
+            CRITICAL(seg->dev_lock,
+            { /* begin seg->dev_lock crit section */
                 if (close_seg_dev(seg) < 0)
                     retval = RVM_EIO;
-                });                     /* end seg->dev_lock crit section */
+            }); /* end seg->dev_lock crit section */
             if (retval != RVM_SUCCESS)
                 break;
-            }
-        });                             /* end seg_root_lock crit section */
+        }
+    }); /* end seg_root_lock crit section */
+    // clang-format on
 
     return retval;
     }
@@ -509,12 +511,14 @@ seg_t *seg_lookup(dev_name,retval)
         return NULL;
 
     /* search segment list for full_name */
-    RW_CRITICAL(seg_root_lock,r,        /* begin seg_root_lock crit section */
-        {
-        FOR_ENTRIES_OF(seg_root,seg_t,seg)
-            if (!strcmp(seg->dev.name,full_name))
+    // clang-format off
+    RW_CRITICAL(seg_root_lock, r,
+    { /* begin seg_root_lock crit section */
+        FOR_ENTRIES_OF(seg_root, seg_t, seg)
+            if (!strcmp(seg->dev.name, full_name))
                 break;                  /* found */
-        });                             /* end seg_root_lock crit section */
+    }); /* end seg_root_lock crit section */
+    // clang-format on
 
     if (!seg->links.is_hdr)
         return seg;                     /* return found seg descriptor */
@@ -557,14 +561,14 @@ rvm_return_t define_all_segs(log)
     seg_t           *seg;               /* segment descriptor */
     rvm_return_t    retval = RVM_SUCCESS; /* return value */
     
-    RW_CRITICAL(seg_root_lock,r,        /* begin seg_root_lock crit sec */
-        {
+    // clang-format off
+    RW_CRITICAL(seg_root_lock, r,
+    { /* begin seg_root_lock crit sec */
         FOR_ENTRIES_OF(seg_root,seg_t,seg)
-            {
             if ((retval=define_seg(log,seg)) != RVM_SUCCESS)
                 break;
-            }
-        });                             /* end seg_root_lock crit sec */
+    }); /* end seg_root_lock crit sec */
+    // clang-format on
 
     return retval;
     }

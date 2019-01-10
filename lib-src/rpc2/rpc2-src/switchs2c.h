@@ -1,4 +1,5 @@
-/* This file was generated from errordb.txt at Mon May 21 22:31:27 EDT 2007 */
+// clang-format off
+/* This file was generated from errordb.txt at Thu Jan 10 15:42:30 EST 2019 */
 /* It translates from system errno values to on-the-wire RPC2 errors */
 
 /* Translations for common UNIX errno values */

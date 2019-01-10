@@ -1,4 +1,5 @@
-/* This file was generated from errordb.txt at Mon May 21 22:31:27 EDT 2007 */
+// clang-format off
+/* This file was generated from errordb.txt at Thu Jan 10 15:42:30 EST 2019 */
 /* It defines values for missing or RPC2/Coda specific errnos */
 
 /* RPC2 converts errno values to it's own platform independent numbering

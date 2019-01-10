@@ -215,6 +215,7 @@ struct_id_t;
 #define NUM_TYPES       ((rvm_length_t)struct_last_id \
                          -(rvm_length_t)struct_first_id-1)
 
+// clang-format off
 /* preallocation sizes for internal structure free lists
    must be in same order as above free list allocted enum's
 */
@@ -248,7 +249,8 @@ struct_id_t;
     10,                                 /* mem_region nodes */ \
     2000,                               /* dev_region nodes */ \
     1                                   /* special log markers */
-/* sizes and names of internal types
+
+/* sizes and names of internal types
    must be in same order as above enum's
 */
 #define CACHE_TYPE_SIZES \
@@ -280,7 +282,7 @@ struct_id_t;
     sizeof(rw_qentry_t), \
     sizeof(tree_root_t)/*, \
     sizeof(mmapped_list_t)*/
-
+
 #define TYPE_NAMES \
     "log_id", \
     "int_tid_id", \
@@ -306,8 +308,10 @@ struct_id_t;
     "nv_buf_id", \
     "free_page_id", \
     "rw_qentry_id", \
-    "tree_root_id"/*, \
-    "mmapped_list_id"*/
+    "tree_root_id"
+    // "mmapped_list_id"
+// clang-format on
+
 /* doubly-linked list cell header
    this structure serves as the link and struct_id carrier for larger
    structures when declared as the 1st field of the structure.

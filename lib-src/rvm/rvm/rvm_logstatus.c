@@ -282,7 +282,9 @@ rvm_return_t close_log(log)
     }
     /* kill unflushed log_special records */
     UNLINK_ENTRIES_OF(log->special_list,log_special_t,special)
+    {
         free_log_special(special);
+    }
 
     /* free descriptor */
     free_log(log);
@@ -296,14 +298,14 @@ rvm_return_t close_all_logs()
     rvm_return_t    retval = RVM_SUCCESS;
 
     /* cycle through log list */
-    CRITICAL(log_root_lock,             /* begin log_root_lock crit sec */
-        {
+    // clang-format off
+    CRITICAL(log_root_lock,
+    { /* begin log_root_lock crit sec */
         UNLINK_ENTRIES_OF(log_root,log_t,log)
-            {
             if ((retval=close_log(log)) != RVM_SUCCESS)
                 break;
-            }
-        });                             /* end log_root_lock crit sec */
+    }); /* end log_root_lock crit sec */
+    // clang-format on
 
     return retval;
     }
