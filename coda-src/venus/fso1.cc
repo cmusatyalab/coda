@@ -2570,6 +2570,7 @@ void fsobj::UpdateVastroFlag(uid_t uid, int force, int state)
             goto PutAll;
 
         s = c->srv;
+        s->GetRef();
 
         if (!s->fetchpartial_support) {
             flags.vastro = 0x0;
