@@ -1,3 +1,4 @@
+// clang-format off
 /*
  * SHA1 hash implementation gratefully 'stolen' from the Linux-2.5.65 kernel
  * source.

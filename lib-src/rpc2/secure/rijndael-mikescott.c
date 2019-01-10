@@ -1,3 +1,4 @@
+// clang-format off
 /* Rijndael Block Cipher - rijndael.c
 
    Written by Mike Scott 21st April 1999

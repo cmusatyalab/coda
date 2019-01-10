@@ -1,3 +1,4 @@
+// clang-format off
 /*-
  * Copyright (c) 1990, 1993, 1994
  *	The Regents of the University of California.  All rights reserved.

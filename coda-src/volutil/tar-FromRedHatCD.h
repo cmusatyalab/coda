@@ -1,3 +1,4 @@
+// clang-format off
 /* GNU tar Archive Format description.
 
    Copyright (C) 1988, 1989, 1991, 1992, 1993, 1994, 1995, 1996,

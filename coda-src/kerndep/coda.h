@@ -1,3 +1,4 @@
+// clang-format off
 /*
    You may distribute this file under either of the two licenses that
    follow at your discretion.
