@@ -105,7 +105,7 @@ void init_map_roots()
 }
 
 /* check validity of rvm_region record & ptr */
-rvm_return_t bad_region(rvm_region) rvm_region_t *rvm_region;
+rvm_return_t bad_region(rvm_region_t *rvm_region)
 {
     if (rvm_region == NULL)
         return RVM_EREGION;
@@ -335,7 +335,7 @@ static rvm_page_entry_t *find_page_entry(char *vmaddr)
 }
 
 /* BSD44 page allocator */
-char *page_alloc(len) rvm_length_t len;
+char *page_alloc(rvm_length_t len)
 {
     char *vmaddr;
     /* printf ("page_alloc(%ul)\n", len); */
@@ -375,8 +375,7 @@ char *page_alloc(len) rvm_length_t len;
 }
 
 /* BSD44 page deallocator */
-void page_free(vmaddr, length) char *vmaddr;
-rvm_length_t length;
+void page_free(char *vmaddr, rvm_length_t length)
 {
 #ifdef HAVE_MMAP
     if (munmap(vmaddr, length)) {
@@ -437,8 +436,8 @@ static long make_seg_code()
 }
 
 /* open segment device and set device characteristics */
-static long open_seg_dev(seg, dev_length) seg_t *seg; /* segment descriptor */
-rvm_offset_t *dev_length; /* optional device length */
+static long open_seg_dev(seg_t *seg /* segment descriptor */,
+                         rvm_offset_t *dev_length /* optional device length */)
 {
     rvm_length_t flags = O_RDWR; /* device open flags */
     long retval;
@@ -453,7 +452,7 @@ rvm_offset_t *dev_length; /* optional device length */
     return retval;
 }
 
-static long close_seg_dev(seg) seg_t *seg; /* segment descriptor */
+static long close_seg_dev(seg_t *seg /* segment descriptor */)
 {
     return close_dev(&seg->dev);
 }
@@ -478,14 +477,14 @@ rvm_return_t close_all_segs()
                 break;
         }
     }); /* end seg_root_lock crit section */
-// clang-format on
+    // clang-format on
 
-return retval;
+    return retval;
 }
 
 /* segment lookup via device name */
-seg_t *seg_lookup(dev_name, retval) char *dev_name; /* segment device name */
-rvm_return_t *retval;
+seg_t *seg_lookup(char *dev_name /* segment device name */,
+                  rvm_return_t *retval)
 {
     char full_name[MAXPATHLEN + 1];
     seg_t *seg = NULL;
@@ -495,13 +494,13 @@ rvm_return_t *retval;
     if (*retval != RVM_SUCCESS)
         return NULL;
 
-    /* search segment list for full_name */
     // clang-format off
+    /* search segment list for full_name */
     RW_CRITICAL(seg_root_lock, r,
     { /* begin seg_root_lock crit section */
         FOR_ENTRIES_OF(seg_root, seg_t, seg)
             if (!strcmp(seg->dev.name, full_name))
-                break;                  /* found */
+                break; /* found */
     }); /* end seg_root_lock crit section */
     // clang-format on
 
@@ -512,8 +511,8 @@ rvm_return_t *retval;
 }
 
 /* enter segment short name definition in log */
-static rvm_return_t define_seg(log, seg) log_t *log; /* log descriptor */
-seg_t *seg; /* segment descriptor */
+static rvm_return_t define_seg(log_t *log /* log descriptor */,
+                               seg_t *seg /* segment descriptor */)
 {
     log_seg_t *log_seg; /* special log segment entry */
     log_special_t *special; /* allocation for log_seg */
@@ -539,7 +538,7 @@ seg_t *seg; /* segment descriptor */
 }
 
 /* write new segment dictionary entries for all segments */
-rvm_return_t define_all_segs(log) log_t *log;
+rvm_return_t define_all_segs(log_t *log)
 {
     seg_t *seg; /* segment descriptor */
     rvm_return_t retval = RVM_SUCCESS; /* return value */
@@ -547,8 +546,8 @@ rvm_return_t define_all_segs(log) log_t *log;
     // clang-format off
     RW_CRITICAL(seg_root_lock, r,
     { /* begin seg_root_lock crit sec */
-        FOR_ENTRIES_OF(seg_root,seg_t,seg)
-            if ((retval=define_seg(log,seg)) != RVM_SUCCESS)
+        FOR_ENTRIES_OF(seg_root, seg_t, seg)
+            if ((retval = define_seg(log, seg)) != RVM_SUCCESS)
                 break;
     }); /* end seg_root_lock crit sec */
     // clang-format on
@@ -557,10 +556,10 @@ rvm_return_t define_all_segs(log) log_t *log;
 }
 
 /* segment builder */
-static seg_t *build_seg(rvm_region, log, retval)
-    rvm_region_t *rvm_region; /* segment's region descriptor */
-log_t *log; /* log descriptor */
-rvm_return_t *retval; /* ptr to return code */
+static seg_t *
+build_seg(rvm_region_t *rvm_region /* segment's region descriptor */,
+          log_t *log /* log descriptor */,
+          rvm_return_t *retval /* ptr to return code */)
 {
     seg_t *seg; /* new segment descriptor */
 
@@ -603,8 +602,8 @@ err_exit:
 } /* a segment used read-only  */
 
 /* device region conflict comparator */
-long dev_partial_include(base1, end1, base2, end2) rvm_offset_t *base1, *end1;
-rvm_offset_t *base2, *end2;
+long dev_partial_include(rvm_offset_t *base1, rvm_offset_t *end1,
+                         rvm_offset_t *base2, rvm_offset_t *end2)
 {
     if (RVM_OFFSET_GEQ(*base1, *end2))
         return 1; /* region1 above region2 */
@@ -615,8 +614,8 @@ rvm_offset_t *base2, *end2;
 }
 
 /* device region within other region comparator */
-long dev_total_include(base1, end1, base2, end2) rvm_offset_t *base1, *end1;
-rvm_offset_t *base2, *end2;
+long dev_total_include(rvm_offset_t *base1, rvm_offset_t *end1,
+                       rvm_offset_t *base2, rvm_offset_t *end2)
 {
     if ((RVM_OFFSET_GEQ(*base1, *base2) && RVM_OFFSET_LEQ(*base1, *end2)) &&
         (RVM_OFFSET_GEQ(*end1, *base2) && RVM_OFFSET_LEQ(*end1, *end2)))
@@ -628,9 +627,8 @@ rvm_offset_t *base2, *end2;
 }
 
 /* vm range conflict comparator */
-static long mem_partial_include(tnode1,
-                                tnode2) tree_node_t *tnode1; /* range1 */
-tree_node_t *tnode2; /* range2 */
+static long mem_partial_include(tree_node_t *tnode1 /* range1 */,
+                                tree_node_t *tnode2 /* range2 */)
 {
     rvm_length_t addr1; /* start of range 1 */
     rvm_length_t addr2; /* start of range 2 */
@@ -651,8 +649,8 @@ tree_node_t *tnode2; /* range2 */
 }
 
 /* vm range within other range comparator */
-long mem_total_include(tnode1, tnode2) tree_node_t *tnode1; /* range1 */
-tree_node_t *tnode2; /* range2 */
+long mem_total_include(tree_node_t *tnode1 /* range1 */,
+                       tree_node_t *tnode2 /* range2 */)
 {
     rvm_length_t addr1; /* start of range 1 */
     rvm_length_t addr2; /* start of range 2 */
@@ -679,9 +677,9 @@ tree_node_t *tnode2; /* range2 */
    -- region tree is left lock if mode = w
    -- used by transaction functions and unmap
 */
-region_t *find_whole_range(dest, length, mode) char *dest;
-rvm_length_t length;
-rw_lock_mode_t mode; /* lock mode for region descriptor */
+region_t *
+find_whole_range(char *dest, rvm_length_t length,
+                 rw_lock_mode_t mode /* lock mode for region descriptor */)
 {
     mem_region_t range; /* dummy node for lookup */
     mem_region_t *node; /* ptr to node found */
@@ -709,9 +707,9 @@ rw_lock_mode_t mode; /* lock mode for region descriptor */
     return region;
 }
 /* apply mapping options, compute region size, and round to page size */
-static rvm_return_t round_region(rvm_region, seg)
-    rvm_region_t *rvm_region; /* user region specs [in/out] */
-seg_t *seg; /* segment descriptor */
+static rvm_return_t
+round_region(rvm_region_t *rvm_region /* user region specs [in/out] */,
+             seg_t *seg /* segment descriptor */)
 {
     rvm_offset_t big_len;
 
@@ -756,11 +754,11 @@ seg_t *seg; /* segment descriptor */
 }
 
 /* validate region and construct descriptors */
-static rvm_return_t establish_range(rvm_region, region, mem_region, seg)
-    rvm_region_t *rvm_region; /* user request region descriptor */
-region_t **region; /* internal region descriptor [out]*/
-mem_region_t **mem_region; /* region tree descriptor [out] */
-seg_t *seg; /* segment ptr */
+static rvm_return_t
+establish_range(rvm_region_t *rvm_region /* user request region descriptor */,
+                region_t **region /* internal region descriptor [out]*/,
+                mem_region_t **mem_region /* region tree descriptor [out] */,
+                seg_t *seg /* segment ptr */)
 {
     mem_region_t *mem_node;
     region_t *new_region;
@@ -806,9 +804,9 @@ seg_t *seg; /* segment ptr */
    -- caller provides list locking
    returns true if dependency detected
 */
-static region_t *chk_seg_mappings(
-    chk_region, list_root) region_t *chk_region; /* region descriptor to chk*/
-list_entry_t *list_root; /* root of list to check */
+static region_t *
+chk_seg_mappings(region_t *chk_region /* region descriptor to chk*/,
+                 list_entry_t *list_root /* root of list to check */)
 {
     region_t *region; /* internal region descriptor */
 
@@ -824,8 +822,7 @@ list_entry_t *list_root; /* root of list to check */
 }
 
 /* check mapping dependencies within segment */
-static rvm_return_t chk_dependencies(seg, region) seg_t *seg;
-region_t *region;
+static rvm_return_t chk_dependencies(seg_t *seg, region_t *region)
 {
     region_t *x_region; /* conflicting or dependent region */
     rvm_return_t retval = RVM_SUCCESS;
@@ -860,8 +857,7 @@ region_t *region;
 }
 
 /* make data from segment available from mapped region */
-static rvm_return_t map_data(rvm_options, region) rvm_options_t *rvm_options;
-region_t *region;
+static rvm_return_t map_data(rvm_options_t *rvm_options, region_t *region)
 {
     seg_t *seg          = region->seg;
     rvm_return_t retval = RVM_SUCCESS;
@@ -908,8 +904,7 @@ region_t *region;
 }
 
 /* error exit cleanup */
-static void clean_up(region, mem_region) region_t *region;
-mem_region_t *mem_region;
+static void clean_up(region_t *region, mem_region_t *mem_region)
 {
     seg_t *seg;
 

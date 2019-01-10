@@ -36,9 +36,7 @@ Coda are listed in the file CREDITS.
  * a size field, and two guards to detect overwriting of memory, which will
  * be added to the object. Treat the last list seperately since it holds objects
  * of that size chunks OR LARGER. A pointer to size bytes will be returned. */
-char *rds_malloc(size, tid, err) unsigned long size;
-rvm_tid_t *tid;
-int *err;
+char *rds_malloc(unsigned long size, rvm_tid_t *tid, int *err)
 {
     free_block_t *fbp = NULL;
     rvm_tid_t *atid;

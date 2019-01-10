@@ -172,10 +172,11 @@ long set_dev_char(device_t *dev, rvm_offset_t *dev_length)
 
     return 0;
 }
+
 /* open device or file */
-long open_dev(dev, flags, mode) device_t *dev; /* device descriptor */
-long flags; /* open option flags */
-long mode; /* create protection modes */
+long open_dev(device_t *dev /* device descriptor */,
+              long flags /* open option flags */,
+              long mode /* create protection modes */)
 {
     long handle; /* device handle returned */
 
@@ -197,8 +198,9 @@ long mode; /* create protection modes */
 
     return 0;
 }
+
 /* close device or file */
-long close_dev(dev) device_t *dev; /* device descriptor */
+long close_dev(device_t *dev /* device descriptor */)
 {
     long retval;
 
@@ -219,11 +221,12 @@ long close_dev(dev) device_t *dev; /* device descriptor */
 
     return retval;
 }
+
 /* read bytes from device or file */
-long read_dev(dev, offset, dest, length) device_t *dev; /* device descriptor */
-rvm_offset_t *offset; /* device offset */
-char *dest; /* address of data destination */
-rvm_length_t length; /* length of transfer */
+long read_dev(device_t *dev /* device descriptor */,
+              rvm_offset_t *offset /* device offset */,
+              char *dest /* address of data destination */,
+              rvm_length_t length /* length of transfer */)
 {
     rvm_offset_t last_position;
     long nbytes;
@@ -277,13 +280,13 @@ rvm_length_t length; /* length of transfer */
     dev->last_position = RVM_ADD_LENGTH_TO_OFFSET(dev->last_position, retval);
     return retval;
 }
+
 /* write bytes to device or file */
-long write_dev(dev, offset, src, length,
-               sync) device_t *dev; /* device descriptor */
-rvm_offset_t *offset; /* device offset */
-char *src; /* address of data source */
-rvm_length_t length; /* length of transfer */
-rvm_bool_t sync; /* fsync if true */
+long write_dev(device_t *dev /* device descriptor */,
+               rvm_offset_t *offset /* device offset */,
+               char *src /* address of data source */,
+               rvm_length_t length /* length of transfer */,
+               rvm_bool_t sync /* fsync if true */)
 {
     rvm_offset_t last_position;
     long retval;
@@ -327,11 +330,12 @@ rvm_bool_t sync; /* fsync if true */
     dev->last_position = RVM_ADD_LENGTH_TO_OFFSET(dev->last_position, wrt_len);
     return wrt_len;
 }
+
 /* gather write for files */
-static long gather_write_file(dev, offset,
-                              wrt_len) device_t *dev; /* device descriptor */
-rvm_offset_t *offset; /* disk position */
-rvm_length_t *wrt_len; /* num bytes written (out) */
+static long
+gather_write_file(device_t *dev /* device descriptor */,
+                  rvm_offset_t *offset /* disk position */,
+                  rvm_length_t *wrt_len /* num bytes written (out) */)
 {
     long retval; /* kernel return value */
     long iov_index = 0; /* index of current iov entry */
@@ -376,13 +380,13 @@ rvm_length_t *wrt_len; /* num bytes written (out) */
 
     return 0;
 }
+
 /* incremental write for gather-write to partitions */
 static long
-    incr_write_partition(dev, offset, start_addr,
-                         end_addr) device_t *dev; /* device descriptor */
-rvm_offset_t *offset; /* disk position (in/out) */
-char *start_addr; /* vm starting address of data */
-char *end_addr; /* vm ending address of data */
+incr_write_partition(device_t *dev /* device descriptor */,
+                     rvm_offset_t *offset /* disk position (in/out) */,
+                     char *start_addr /* vm starting address of data */,
+                     char *end_addr /* vm ending address of data */)
 {
     long retval; /* kernel return value */
     rvm_offset_t tmp_offset; /* position temp */
@@ -413,12 +417,12 @@ char *end_addr; /* vm ending address of data */
 
     return length;
 }
+
 /* gather write for disk partitions */
 static long
-    gather_write_partition(dev, offset,
-                           wrt_len) device_t *dev; /* device descriptor */
-rvm_offset_t *offset; /* disk position */
-rvm_length_t *wrt_len; /* num bytes written (out) */
+gather_write_partition(device_t *dev /* device descriptor */,
+                       rvm_offset_t *offset /* disk position */,
+                       rvm_length_t *wrt_len /* num bytes written (out) */)
 {
     long retval    = 0; /* kernel return value */
     long iov_index = 0; /* index of current iov entry */
@@ -473,10 +477,11 @@ rvm_length_t *wrt_len; /* num bytes written (out) */
     assert((retval >= 0) ? (*wrt_len == dev->io_length) : 1);
     return retval;
 }
+
 /* gather write to device: accepts vector of any length
    pointed to by device descriptor */
-long gather_write_dev(dev, offset) device_t *dev; /* device descriptor */
-rvm_offset_t *offset; /* device offset */
+long gather_write_dev(device_t *dev /* device descriptor */,
+                      rvm_offset_t *offset /* device offset */)
 {
     long retval; /* kernel return value */
     rvm_length_t wrt_len = 0; /* #bytes actually written */
@@ -498,8 +503,9 @@ rvm_offset_t *offset; /* device offset */
 
     return wrt_len;
 }
+
 /* sync file */
-long sync_dev(dev) device_t *dev; /* device descriptor */
+long sync_dev(device_t *dev /* device descriptor */)
 {
     long retval;
 

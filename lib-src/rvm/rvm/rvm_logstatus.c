@@ -36,34 +36,30 @@ extern unsigned long *ClobberAddress;
 
 /* global variables */
 
-rvm_bool_t rvm_utlsw; /* true iff RVM called by rvmutl,
-                                           permits certain structures to be
-                                           retained after errors are discovered
-                                           */
+/* true iff RVM called by rvmutl, permits certain structures to be retained
+ * after errors are discovered */
+rvm_bool_t rvm_utlsw;
 extern rvm_bool_t rvm_no_update; /* no segment or log update if true */
 extern char *rvm_errmsg; /* internal error message buffer */
 
 extern rvm_length_t page_size; /* system page size */
 extern rvm_length_t page_mask; /* mask for rounding down to page size */
-extern rvm_length_t
-    flush_times_vec[flush_times_len]; /* flush timing histogram defs */
-extern rvm_length_t
-    truncation_times_vec[truncation_times_len]; /* truncation timing 
-                                                                   histogram defs */
-extern rvm_length_t range_lengths_vec[range_lengths_len]; /* range length
-                                                             histogram defs */
-extern rvm_length_t range_overlaps_vec[range_overlaps_len]; /* range coalesce
-                                                             histogram defs */
-extern rvm_length_t trans_overlaps_vec[trans_overlaps_len]; /* trans coalesce
-                                                             histogram defs */
-extern rvm_length_t
-    range_elims_vec[range_elims_len]; /* ranges eliminated by range
-                                                         coalesce histogram defs */
-extern rvm_length_t
-    trans_elims_vec[trans_elims_len]; /* ranges eliminated by trans
-                                                         coalesce histogram defs */
-extern rvm_length_t trans_coalesces_vec[trans_coalesces_len]; /* transactions
-                                                                 coalesed per flush */
+/* flush timing histogram defs */
+extern rvm_length_t flush_times_vec[flush_times_len];
+/* truncation timing histogram defs */
+extern rvm_length_t truncation_times_vec[truncation_times_len];
+/* range length histogram defs */
+extern rvm_length_t range_lengths_vec[range_lengths_len];
+/* range coalesce histogram defs */
+extern rvm_length_t range_overlaps_vec[range_overlaps_len];
+/* trans coalesce histogram defs */
+extern rvm_length_t trans_overlaps_vec[trans_overlaps_len];
+/* ranges eliminated by range coalesce histogram defs */
+extern rvm_length_t range_elims_vec[range_elims_len];
+/* ranges eliminated by trans coalesce histogram defs */
+extern rvm_length_t trans_elims_vec[trans_elims_len];
+/* transactions coalesed per flush */
+extern rvm_length_t trans_coalesces_vec[trans_coalesces_len];
 
 /* root of global log device list */
 log_t *default_log; /* default log descriptor ptr */
@@ -89,6 +85,7 @@ static rvm_offset_t raw_status_offset = /* log status area offset in partitions 
 
 static rvm_offset_t min_trans_size = /* minimum usable log size as offset */
     RVM_OFFSET_INITIALIZER(0, MIN_TRANS_SIZE);
+
 /* log_root initialization */
 void init_log_list()
 {
@@ -105,7 +102,7 @@ void init_log_list()
   case -bnoble 7/30/94
 */
 
-void enter_log(log) log_t *log; /* log descriptor */
+void enter_log(log_t *log /* log descriptor */)
 {
     assert(log != NULL);
 #ifdef RVM_LOG_TAIL_BUG
@@ -139,7 +136,7 @@ void enter_log(log) log_t *log; /* log descriptor */
 }
 
 /* find an existing log -- returns descriptor ptr or NULL */
-static log_t *find_log(log_dev) char *log_dev;
+static log_t *find_log(char *log_dev)
 {
     log_t *log;
     char *log_dev_fullname = log_dev;
@@ -156,6 +153,7 @@ static log_t *find_log(log_dev) char *log_dev;
 
     return log;
 }
+
 /* log daemon control */
 
 /* create daemon */
@@ -178,7 +176,7 @@ static rvm_return_t fork_daemon(log_t *log)
 }
 
 /* terminate daemon */
-static rvm_return_t join_daemon(log) log_t *log;
+static rvm_return_t join_daemon(log_t *log)
 {
     log_daemon_t *daemon = &log->daemon; /* truncation daemon descriptor */
     rvm_return_t retval  = RVM_SUCCESS;
@@ -205,10 +203,11 @@ static rvm_return_t join_daemon(log) log_t *log;
 
     return retval;
 }
+
 /* set log truncation options */
-static rvm_return_t
-    set_truncate_options(log, rvm_options) log_t *log; /* log descriptor ptr */
-rvm_options_t *rvm_options; /* optional options descriptor */
+static rvm_return_t set_truncate_options(
+    log_t *log /* log descriptor ptr */,
+    rvm_options_t *rvm_options /* optional options descriptor */)
 {
     log_daemon_t *daemon = &log->daemon; /* truncation daemon descriptor */
     rvm_return_t retval  = RVM_SUCCESS;
@@ -228,8 +227,9 @@ rvm_options_t *rvm_options; /* optional options descriptor */
 
     return retval;
 }
+
 /* close log device */
-rvm_return_t close_log(log) log_t *log;
+rvm_return_t close_log(log_t *log)
 {
     log_special_t *special;
     rvm_return_t retval = RVM_SUCCESS;
@@ -286,20 +286,21 @@ rvm_return_t close_all_logs()
     log_t *log; /* log device descriptor ptr */
     rvm_return_t retval = RVM_SUCCESS;
 
-    /* cycle through log list */
     // clang-format off
+    /* cycle through log list */
     CRITICAL(log_root_lock,
     { /* begin log_root_lock crit sec */
-        UNLINK_ENTRIES_OF(log_root,log_t,log)
-            if ((retval=close_log(log)) != RVM_SUCCESS)
+        UNLINK_ENTRIES_OF(log_root, log_t, log)
+            if ((retval = close_log(log)) != RVM_SUCCESS)
                 break;
     }); /* end log_root_lock crit sec */
     // clang-format on
 
     return retval;
 }
+
 /* pre-load log raw i/o gather write buffer with tail log sector */
-static rvm_return_t preload_wrt_buf(log) log_t *log; /* log descriptor */
+static rvm_return_t preload_wrt_buf(log_t *log /* log descriptor */)
 {
     device_t *dev        = &log->dev; /* device descriptor ptr */
     log_status_t *status = &log->status; /* log status descriptor */
@@ -316,13 +317,13 @@ static rvm_return_t preload_wrt_buf(log) log_t *log; /* log descriptor */
 
     return RVM_SUCCESS;
 }
+
 /* create log descriptor and open log device */
 rvm_return_t
-    open_log(dev_name, log_ptr, status_buf,
-             rvm_options) char *dev_name; /* name of log storage device */
-log_t **log_ptr; /* addr of log descriptor ptr */
-char *status_buf; /* optional i/o buffer */
-rvm_options_t *rvm_options; /* optional options descriptor */
+open_log(char *dev_name /* name of log storage device */,
+         log_t **log_ptr /* addr of log descriptor ptr */,
+         char *status_buf /* optional i/o buffer */,
+         rvm_options_t *rvm_options /* optional options descriptor */)
 {
     log_t *log; /* log descriptor ptr */
     log_buf_t *log_buf; /* log buffer descriptor ptr */
@@ -406,10 +407,11 @@ err_exit2:
     *log_ptr = (log_t *)NULL;
     return retval;
 }
+
 /* log options processing */
-rvm_return_t do_log_options(
-    log_ptr, rvm_options) log_t **log_ptr; /* addr of log descriptor ptr */
-rvm_options_t *rvm_options; /* ptr to rvm options descriptor */
+rvm_return_t
+do_log_options(log_t **log_ptr /* addr of log descriptor ptr */,
+               rvm_options_t *rvm_options /* ptr to rvm options descriptor */)
 {
     rvm_return_t retval;
     log_t *log = NULL;
@@ -456,8 +458,9 @@ rvm_options_t *rvm_options; /* ptr to rvm options descriptor */
 
     return retval;
 }
+
 /* accumulate running statistics totals */
-void copy_log_stats(log) log_t *log;
+void copy_log_stats(log_t *log)
 {
     log_status_t *status = &log->status; /* status area descriptor */
     rvm_length_t i;
@@ -526,8 +529,9 @@ void copy_log_stats(log) log_t *log;
     }
     ZERO_TIME(status->flush_time);
 }
+
 /* clear non-permenant log status area fields */
-void clear_log_status(log) log_t *log;
+void clear_log_status(log_t *log)
 {
     log_status_t *status = &log->status; /* status area descriptor */
 
@@ -551,8 +555,9 @@ void clear_log_status(log) log_t *log;
 
     copy_log_stats(log);
 }
+
 /* log status block initialization */
-rvm_return_t init_log_status(log) log_t *log; /* log descriptor */
+rvm_return_t init_log_status(log_t *log /* log descriptor */)
 {
     rvm_length_t i;
     log_status_t *status = &log->status; /* status area descriptor */
@@ -641,9 +646,10 @@ rvm_return_t init_log_status(log) log_t *log; /* log descriptor */
     /* write the device areas */
     return write_log_status(log, NULL);
 }
+
 /* read log status area from log device */
-rvm_return_t read_log_status(log, status_buf) log_t *log; /* log descriptor */
-char *status_buf; /* optional i/o buffer */
+rvm_return_t read_log_status(log_t *log /* log descriptor */,
+                             char *status_buf /* optional i/o buffer */)
 {
     log_status_t *status = &log->status; /* status area descriptor */
     rvm_offset_t *status_offset; /* device status area offset */
@@ -692,9 +698,9 @@ char *status_buf; /* optional i/o buffer */
     status->update_cnt = UPDATE_STATUS;
     return RVM_SUCCESS;
 }
+
 /* write log status area on log device */
-rvm_return_t write_log_status(log, dev) log_t *log;
-device_t *dev; /* optional device */
+rvm_return_t write_log_status(log_t *log, device_t *dev /* optional device */)
 {
     log_status_t *status = &log->status; /* status area descriptor */
     rvm_offset_t *status_offset; /* device status area offset */
@@ -750,8 +756,9 @@ device_t *dev; /* optional device */
 
     return RVM_SUCCESS;
 }
+
 /* consistency check for log head/tail ptrs */
-static rvm_bool_t chk_tail(log) log_t *log;
+static rvm_bool_t chk_tail(log_t *log)
 {
     log_status_t *status = &log->status; /* status area descriptor */
 
@@ -803,8 +810,9 @@ static rvm_bool_t chk_tail(log) log_t *log;
 
     return rvm_true;
 }
-rvm_return_t update_log_tail(log, rec_hdr) log_t *log;
-rec_hdr_t *rec_hdr; /* header of last record */
+
+rvm_return_t update_log_tail(log_t *log,
+                             rec_hdr_t *rec_hdr /* header of last record */)
 {
     log_status_t *status = &log->status; /* status area descriptor */
     rvm_length_t temp;
@@ -874,9 +882,10 @@ rec_hdr_t *rec_hdr; /* header of last record */
 
     return write_log_status(log, NULL); /* update disk status block */
 }
+
 /* determine total length of log tail area */
-void log_tail_length(log, tail_length) log_t *log; /* log descriptor */
-rvm_offset_t *tail_length; /* length [out] */
+void log_tail_length(log_t *log /* log descriptor */,
+                     rvm_offset_t *tail_length /* length [out] */)
 {
     log_status_t *status = &log->status; /* status area descriptor */
     rvm_offset_t temp;
@@ -900,6 +909,7 @@ rvm_offset_t *tail_length; /* length [out] */
         /* all other cases */
         *tail_length = RVM_SUB_OFFSETS(temp, status->log_tail);
 }
+
 /* determine length of log tail area usable in single write */
 void log_tail_sngl_w(log_t *log, rvm_offset_t *tail_length)
 {
@@ -921,9 +931,10 @@ void log_tail_sngl_w(log_t *log, rvm_offset_t *tail_length)
     *tail_length = RVM_SUB_OFFSETS(*tail_length, status->log_tail);
     assert(chk_tail(log));
 }
+
 /* determine length of log currently in use */
-void cur_log_length(log, length) log_t *log; /* log descriptor */
-rvm_offset_t *length; /* length [out] */
+void cur_log_length(log_t *log /* log descriptor */,
+                    rvm_offset_t *length /* length [out] */)
 {
     log_status_t *status = &log->status; /* log status area descriptor */
 
@@ -937,8 +948,8 @@ rvm_offset_t *length; /* length [out] */
 }
 
 /* determine percentage of log currently in use */
-long cur_log_percent(log, space_needed) log_t *log; /* log descriptor */
-rvm_offset_t *space_needed; /* space neded immediately */
+long cur_log_percent(log_t *log /* log descriptor */,
+                     rvm_offset_t *space_needed /* space neded immediately */)
 {
     log_status_t *status = &log->status; /* log status area descriptor */
     float cur_size; /* current size of log as float */
@@ -970,11 +981,12 @@ rvm_offset_t *space_needed; /* space neded immediately */
 
     return cur_percent;
 }
+
 /* rvm_create_log application interface */
-rvm_return_t rvm_create_log(rvm_options, log_len, mode)
-    rvm_options_t *rvm_options; /* ptr to options record */
-rvm_offset_t *log_len; /* length of log data area */
-long mode; /* file creation protection mode */
+rvm_return_t
+rvm_create_log(rvm_options_t *rvm_options /* ptr to options record */,
+               rvm_offset_t *log_len /* length of log data area */,
+               long mode /* file creation protection mode */)
 {
     log_t *log; /* descriptor for log */
     rvm_offset_t offset; /* offset temporary */
@@ -1061,6 +1073,7 @@ err_exit:
 
     return retval;
 }
+
 /* special routines for basher */
 rvm_offset_t rvm_log_head()
 {

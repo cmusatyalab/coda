@@ -193,7 +193,7 @@ long S_VolCreate(RPC2_Handle rpcid, RPC2_String formal_partition,
     rvmlib_end_transaction(flush, &(status));
 exit:
 
-    /* to make sure that rvm records are getting flushed 
+    /* to make sure that rvm records are getting flushed
 	   - to find this bug */
     CODA_ASSERT(rvm_flush() == RVM_SUCCESS);
     VDisconnectFS();

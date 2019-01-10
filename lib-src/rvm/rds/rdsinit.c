@@ -62,94 +62,92 @@ enum round_dir
 jmp_buf jmpbuf_quit;
 
 // clang-format off
-char *usage[]={
-"Usage: rdsinit [-f] log data_seg [ datalen saddr hlen slen nl chunk ] \n",
-"  where\n",
-"    -f       supplied parameter are firm, do not ask for confirm\n",
-"    log      is the name of log file/device\n",
-"    data_seg is the name of data segment file/device\n",
-"    datalen  gives the length of data segment\n",
-"    saddr    is the starting address of rvm\n",
-"    hlen     is the heap length\n",
-"    slen     is the static length\n",
-"    nl       is the number of free list used by RDS\n",
-"    chunk    is the chunksize\n",
-""
+char *usage[] = {
+    "Usage: rdsinit [-f] log data_seg [ datalen saddr hlen slen nl chunk ] \n",
+    "  where\n",
+    "    -f       supplied parameter are firm, do not ask for confirm\n",
+    "    log      is the name of log file/device\n",
+    "    data_seg is the name of data segment file/device\n",
+    "    datalen  gives the length of data segment\n",
+    "    saddr    is the starting address of rvm\n",
+    "    hlen     is the heap length\n",
+    "    slen     is the static length\n",
+    "    nl       is the number of free list used by RDS\n",
+    "    chunk    is the chunksize\n",
+    ""
 };
 
-static char *welcome[]={
-"\n",
-"============================================================\n",
-"  Getting parameters for RDS\n",
-"============================================================\n",
-""
+static char *welcome[] = {
+    "\n",
+    "============================================================\n",
+    "  Getting parameters for RDS\n",
+    "============================================================\n",
+    ""
 };
 
-char *explain_datalen[]={
-"1) length of data segment file/device\n",
-"   There will be two regions in the segment:\n",
-"   one is for the heap, the other is for the static.\n",
-"   Some extra space (usually one page) will also \n", 
-"   be needed for the segment header.\n",
-"   Length of data segment must be a multiple of pagesize.\n",
-"   Please make sure you have enough space in your disk.\n",
-""
+char *explain_datalen[] = {
+    "1) length of data segment file/device\n",
+    "   There will be two regions in the segment:\n",
+    "   one is for the heap, the other is for the static.\n",
+    "   Some extra space (usually one page) will also \n",
+    "   be needed for the segment header.\n",
+    "   Length of data segment must be a multiple of pagesize.\n",
+    "   Please make sure you have enough space in your disk.\n",
+    ""
 };
 
-char *explain_saddr[]={
-"2) starting address of rvm\n",
-"   This is where heap and static will be mapped into virtual memory, it\n",
-"   must be larger than the largest possible break point of your\n",
-"   application, and it should not be in conflict other use of vm (such as\n",
-"   shared libraries).  Also, it must be on a page boundary\n", 
-"   (In CMU, we use 0x20000000 (536870912) with Linux and BSD44,\n",
-"   0x70000000 (1879048192) with Mach and BSD44 without problem.)\n",
-""
+char *explain_saddr[] = {
+    "2) starting address of rvm\n",
+    "   This is where heap and static will be mapped into virtual memory, it\n",
+    "   must be larger than the largest possible break point of your\n",
+    "   application, and it should not be in conflict other use of vm (such as\n",
+    "   shared libraries).  Also, it must be on a page boundary\n",
+    "   (In CMU, we use 0x20000000 (536870912) with Linux and BSD44,\n",
+    "   0x70000000 (1879048192) with Mach and BSD44 without problem.)\n",
+    ""
 };
 
-char *explain_hlen[]={
-"3) heap length\n",
-"   It is the size of the dynamic heap to be managed by RDS,\n",
-"   it must be an integral multiple of pagesize.\n",
-""
+char *explain_hlen[] = {
+    "3) heap length\n",
+    "   It is the size of the dynamic heap to be managed by RDS,\n",
+    "   it must be an integral multiple of pagesize.\n",
+    ""
 };
 
-char *explain_slen[]={
-"4) static length\n",
-"   It is the size of the statically allocated location to be\n",
-"   managed by your application.\n",
-"   It must be an integral multiple of pagesize.\n",
-""
+char *explain_slen[] = {
+    "4) static length\n",
+    "   It is the size of the statically allocated location to be\n",
+    "   managed by your application.\n",
+    "   It must be an integral multiple of pagesize.\n",
+    ""
 };
 
-char *explain_nl[]={
-"5) nlists\n",
-"   It is the number of free list used by RDS.\n",
-"   (nlist=100 is a reasonable choice.)\n",
-""
+char *explain_nl[] = {
+    "5) nlists\n",
+    "   It is the number of free list used by RDS.\n",
+    "   (nlist=100 is a reasonable choice.)\n",
+    ""
 };
 
-char *explain_chunk[]={
-"6) chunksize\n",
-"   The free list are maintained in sizes of one chunk to n chunk,\n",
-"   where n is the number of free lists.\n",
-"   It must be an integral multiple of sizeof(char *) of your system,\n",
-"   and must at least be RDS_MIN_CHUNK_SIZE.\n", 
-"   (chunksize=32 is a reasonable choice.)\n",
-""
+char *explain_chunk[] = {
+    "6) chunksize\n",
+    "   The free list are maintained in sizes of one chunk to n chunk,\n",
+    "   where n is the number of free lists.\n",
+    "   It must be an integral multiple of sizeof(char *) of your system,\n",
+    "   and must at least be RDS_MIN_CHUNK_SIZE.\n",
+    "   (chunksize=32 is a reasonable choice.)\n",
+    ""
 };
 // clang-format on
 
-static void print_msg(msg) char **msg;
+static void print_msg(char **msg)
 {
     int i = 0;
     while (msg[i][0] != '\0')
         printf("%s", msg[i++]);
 }
 
-static int round_to_multiple(val, n, dir) long val;
-long n;
-enum round_dir dir;
+static int round_to_multiple(long val, long n, enum round_dir dir)
 {
     long rem;
 
@@ -166,12 +164,8 @@ enum round_dir dir;
     return (val);
 }
 
-static int confirm_rounded_value(pvalue, base, unit, round_dir,
-                                 min) unsigned long *pvalue;
-int base;
-int unit;
-enum round_dir round_dir;
-int min;
+static int confirm_rounded_value(unsigned long *pvalue, int base, int unit,
+                                 enum round_dir round_dir, int min)
 {
     char string[120];
     unsigned long t1 = 0, t2 = 0; /* temporary values */
@@ -228,7 +222,7 @@ int min;
 }
 
 /* determine if the numeric string is in hex, octal or decimal notation */
-static int find_base(string) char *string;
+static int find_base(char *string)
 {
     if (string[0] == '0')
         return (string[1] == 'x' ? 16 : 8);
@@ -236,16 +230,10 @@ static int find_base(string) char *string;
         return 10;
 }
 
-static int get_valid_parm(argc, argv, pdatalen, pstatic_addr, phlen, pslen,
-                          pnlists, pchunksize, firm) int argc;
-char **argv;
-rvm_length_t *pdatalen;
-char **pstatic_addr;
-unsigned long *phlen;
-unsigned long *pslen;
-unsigned long *pnlists;
-unsigned long *pchunksize;
-int firm;
+static int get_valid_parm(int argc, char **argv, rvm_length_t *pdatalen,
+                          char **pstatic_addr, unsigned long *phlen,
+                          unsigned long *pslen, unsigned long *pnlists,
+                          unsigned long *pchunksize, int firm)
 {
     char string[80];
     int paraOK     = 0;
@@ -366,8 +354,7 @@ int firm;
 extern char *ortarg;
 extern int optind, opterr, optopt;
 
-int main(argc, argv) int argc;
-char *argv[];
+int main(int argc, char *argv[])
 {
     rvm_options_t *options; /* options descriptor ptr */
     rvm_return_t ret;

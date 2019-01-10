@@ -36,16 +36,15 @@ public:
     VnodeId dvnode;
     Unique_t dunique;
     unsigned size : 16; /* size of variable part - to simplify
-					   calculating directory log size */
+                           calculating directory log size */
     recvarl *vle; /* pointer to variable length part */
 
-    /* varl v; 				variable length class varl goes here */
+    /* varl v;  variable length class varl goes here */
 
     int GetDumpSize(); // size of buffer for dumping entry
     // public:
     uint32_t index; /* index of entry in the log */
-    int seqno; /* monotonically increasing 
-					   number for log records */
+    int seqno; /* monotonically increasing number for log records */
     recle();
     ~recle();
     int FreeVarl(); /* free variable length part */
@@ -104,8 +103,7 @@ public:
     VnodeId cvnode;
     Unique_t cunique;
     UserId owner;
-    char name[1]; /* begining of null terminated name 
-					   of child created */
+    char name[1]; /* begining of null terminated name of child created */
     void init(VnodeId, Unique_t, UserId, char *);
     void print(int);
 };
@@ -115,8 +113,7 @@ public:
     VnodeId cvnode;
     Unique_t cunique;
     UserId owner;
-    char name[1]; /* begining of null terminated name 
-				   of child created */
+    char name[1]; /* begining of null terminated name of child created */
     void init(VnodeId, Unique_t, UserId, char *);
     void print(int);
 };
@@ -126,8 +123,7 @@ public:
     VnodeId cvnode;
     Unique_t cunique;
     ViceVersionVector cvv;
-    char name[1]; /* begining of null terminated name 
-				   of child created */
+    char name[1]; /* begining of null terminated name of child created */
     void init(VnodeId, Unique_t, ViceVersionVector *, char *);
     void print(int);
 };
@@ -137,8 +133,7 @@ public:
     VnodeId cvnode;
     Unique_t cunique;
     UserId owner;
-    char name[1]; /* begining of null terminated name 
-				   of child created */
+    char name[1]; /* begining of null terminated name of child created */
     void init(VnodeId, Unique_t, UserId, char *);
     void print(int);
 };
@@ -148,8 +143,7 @@ public:
     VnodeId cvnode;
     Unique_t cunique;
     ViceVersionVector cvv; /* version vector for child when deleted */
-    char name[1]; /* beginning of null terminated name 
-				   of child removed */
+    char name[1]; /* beginning of null terminated name of child removed */
     void init(VnodeId v, Unique_t u, ViceVersionVector *vv, char *s);
     void print(int);
 };
@@ -185,7 +179,7 @@ public:
     rec_dlist *tlist; /* target's log if deleted directory */
     unsigned short newname_offset; /* newname starts this many bytes away */
     char oldname[1]; /* name of child before rename */
-    //    char	newname[1];	/* name of child after rename -
+    //    char	newname[1];	/* name of child after rename */
     /* gets appended to oldname field */
 
     void init(unsigned short, VnodeId, Unique_t, VnodeId, Unique_t,

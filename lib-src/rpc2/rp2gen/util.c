@@ -45,6 +45,7 @@ Pittsburgh, PA.
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+
 #include "rp2.h"
 
 void no_storage(char *proc)
@@ -88,7 +89,7 @@ PROC *get_head()
     return procedures.head;
 }
 
-RPC2_TYPE *rpc2_enum_type(values) ENUM **values;
+RPC2_TYPE *rpc2_enum_type(ENUM **values)
 {
     RPC2_TYPE *type;
 
@@ -100,7 +101,7 @@ RPC2_TYPE *rpc2_enum_type(values) ENUM **values;
     return type;
 }
 
-RPC2_TYPE *rpc2_struct_type(struct_fields) VAR **struct_fields;
+RPC2_TYPE *rpc2_struct_type(VAR **struct_fields)
 {
     RPC2_TYPE *type;
 
@@ -112,7 +113,7 @@ RPC2_TYPE *rpc2_struct_type(struct_fields) VAR **struct_fields;
     return type;
 }
 
-RPC2_TYPE *rpc2_simple_type(tag) TYPE_TAG tag;
+RPC2_TYPE *rpc2_simple_type(TYPE_TAG tag)
 {
     RPC2_TYPE *type;
 
@@ -137,8 +138,7 @@ VAR *make_var(char *name, MODE mode, ENTRY *type)
     return var;
 }
 
-ENTRY *make_entry(type, defined) RPC2_TYPE *type;
-ENTRY *defined;
+ENTRY *make_entry(RPC2_TYPE *type, ENTRY *defined)
 {
     ENTRY *e;
 
@@ -151,7 +151,7 @@ ENTRY *defined;
     return e;
 }
 
-ENUM *make_enum(name, rep) char *name, *rep;
+ENUM *make_enum(char *name, char *rep)
 {
     ENUM *e;
 
@@ -163,11 +163,8 @@ ENUM *make_enum(name, rep) char *name, *rep;
     return e;
 }
 
-PROC *make_proc(opnum, name, formals, timeout, new_connection) int opnum;
-char *name;
-VAR **formals;
-char *timeout;
-rp2_bool new_connection;
+PROC *make_proc(int opnum, char *name, VAR **formals, char *timeout,
+                rp2_bool new_connection)
 {
     PROC *proc;
 
@@ -185,7 +182,7 @@ rp2_bool new_connection;
     return proc;
 }
 
-PROC *check_proc(proc) PROC *proc;
+PROC *check_proc(PROC *proc)
 {
     VAR **formals;
 
@@ -207,7 +204,7 @@ PROC *check_proc(proc) PROC *proc;
     return proc;
 }
 
-char *concat(s1, s2) char *s1, *s2;
+char *concat(char *s1, char *s2)
 {
     char *new;
     int32_t len1, len2;
@@ -223,7 +220,7 @@ char *concat(s1, s2) char *s1, *s2;
     return new;
 }
 
-char *concat3elem(s1, s2, s3) char *s1, *s2, *s3;
+char *concat3elem(char *s1, char *s2, char *s3)
 {
     char *new, *temp;
 
@@ -233,7 +230,7 @@ char *concat3elem(s1, s2, s3) char *s1, *s2, *s3;
     return new;
 }
 
-char *coda_rp2_basename(name) char *name;
+char *coda_rp2_basename(char *name)
 {
     char *p, *l, *r;
     int32_t len;

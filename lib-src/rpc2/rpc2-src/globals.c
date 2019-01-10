@@ -99,8 +99,8 @@ struct RStats rpc2_MRecvd;
 unsigned long rpc2_LamportClock;
 
 /* Other miscellaneous globals */
-long rpc2_BindLimit =
-    -1; /* At most how many can be in the request queue; -1 ==> infinite */
+long rpc2_BindLimit = -1; /* At most how many can be in the request queue;
+                             -1 ==> infinite */
 long rpc2_BindsInQueue;
 
 long rpc2_Unbinds, rpc2_FreeConns, rpc2_AllocConns, rpc2_GCConns;
@@ -108,9 +108,6 @@ long rpc2_Unbinds, rpc2_FreeConns, rpc2_AllocConns, rpc2_GCConns;
 long rpc2_AllocMgrps, rpc2_FreeMgrps;
 
 long rpc2_HoldHWMark, rpc2_FreezeHWMark;
-
-char *rpc2_LastEdit =
-    "$Header: /afs/cs/project/coda-src/cvs/rpc2/rpc2-src/globals.c,v 4.60 2010-03-22 19:18:41 jaharkes Exp $";
 
 long rpc2_errno;
 

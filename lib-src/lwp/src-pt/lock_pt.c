@@ -116,22 +116,27 @@ void ObtainReadLock(struct Lock *lock)
 {
     ObtainLock(lock, 'R');
 }
+
 void ObtainWriteLock(struct Lock *lock)
 {
     ObtainLock(lock, 'W');
 }
+
 void ObtainSharedLock(struct Lock *lock)
 {
     ObtainLock(lock, 'S');
 }
+
 void ReleaseReadLock(struct Lock *lock)
 {
     ReleaseLock(lock, 'R');
 }
+
 void ReleaseWriteLock(struct Lock *lock)
 {
     ReleaseLock(lock, 'W');
 }
+
 void ReleaseSharedLock(struct Lock *lock)
 {
     ReleaseLock(lock, 'S');

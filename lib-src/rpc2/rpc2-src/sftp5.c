@@ -38,8 +38,8 @@ Pittsburgh, PA.
 */
 
 /*
-	-- Bit string manipulation routines
-	--sftp.h contains some macros too
+        -- Bit string manipulation routines
+        --sftp.h contains some macros too
 */
 
 #include <stdio.h>
@@ -48,21 +48,27 @@ Pittsburgh, PA.
 #include <sys/socket.h>
 #include <assert.h>
 #include <string.h>
-#include "rpc2.private.h"
+
 #include <rpc2/se.h>
 #include <rpc2/sftp.h>
+
+#include "rpc2.private.h"
 
 /* rightmost bits are ZERO-filled */
 void B_ShiftLeft(unsigned int *bMask, int bShift)
 {
-    /*  The bit string is made up of an integral number of integer parts. (assumption)
-	Each integer part is affected by at most two other integer parts, adjacent to each other.
-	In each iteration,
-	    current:	points to the next integer part of the bit string.
-	    first:	points to first integer part affecting current
-	(32-shift) low-order bits of *first will become the high order bits of *current
-	(shift) high-order bits of *(first+1) will become the low-order bits of *current.
-    */
+    /*  The bit string is made up of an integral number of integer parts.
+     (assumption)
+      Each integer part is affected by at most two other integer parts, adjacent
+     to each other.
+      In each iteration,
+          current:	points to the next integer part of the bit string.
+          first:	points to first integer part affecting current
+      (32-shift) low-order bits of *first will become the high order bits of
+     *current
+      (shift) high-order bits of *(first+1) will become the low-order bits of
+     *current.
+  */
 
     unsigned int shift, *current, *first, *last;
 
@@ -93,14 +99,18 @@ void B_ShiftLeft(unsigned int *bMask, int bShift)
 #ifdef UNUSED
 void B_ShiftRight(unsigned int *bMask, int bShift)
 {
-    /*  The bit string is made up of an integral number of integer parts. (assumption)
-	Each integer part is affected by at most two other integer parts, adjacent to each other.
-	In each iteration,
-	    current:	points to the next integer part of the bit string.
-	    first:	points to first integer part affecting current
-	(32-shift) high-order bits of *first will become the low order bits of *current
-	(shift) low-order bits of *(first-1) will become the high-order bits of *current.
-    */
+    /*  The bit string is made up of an integral number of integer parts.
+     (assumption)
+      Each integer part is affected by at most two other integer parts, adjacent
+     to each other.
+      In each iteration,
+          current:	points to the next integer part of the bit string.
+          first:	points to first integer part affecting current
+      (32-shift) high-order bits of *first will become the low order bits of
+     *current
+      (shift) low-order bits of *(first-1) will become the high-order bits of
+     *current.
+  */
     unsigned int shift, *current, *first;
 
     shift   = bShift & 31; /* modulo 32 */

@@ -27,12 +27,8 @@ Coda are listed in the file CREDITS.
  * routine.
  */
 
-int rds_init_heap(base, length, chunk_size, nlists, tid, err) char *base;
-rvm_length_t length;
-unsigned long chunk_size;
-unsigned long nlists;
-rvm_tid_t *tid;
-int *err;
+int rds_init_heap(char *base, rvm_length_t length, unsigned long chunk_size,
+                  unsigned long nlists, rvm_tid_t *tid, int *err)
 {
     heap_header_t *hdrp = (heap_header_t *)base;
     free_block_t *fbp;

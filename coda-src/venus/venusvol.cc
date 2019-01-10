@@ -1072,7 +1072,8 @@ int volent::Enter(int mode, uid_t uid)
         just_transitioned = 1;
     }
 
-    /* Step 2 is to take pending transition for the volume IF no thread is active in it. */
+    /* Step 2 is to take pending transition for the volume IF no thread is
+     * active in it. */
     while (flags.transition_pending && !VOLBUSY(this)) {
         TakeTransition();
         just_transitioned = 1;
@@ -1128,21 +1129,21 @@ int volent::Enter(int mode, uid_t uid)
             }
 
             /*
-		 * mutator needs to aquire exclusive CML ownership
-		 */
+             * mutator needs to aquire exclusive CML ownership
+             */
             if (IsReadWrite()) {
                 reintvol *rv = (reintvol *)this;
 
-                /* 
-		     * Claim ownership if the volume is free. 
-		     * The CML lock is used to prevent checkpointers and
-		     * mutators from executing in the volume simultaneously,
-		     * because the CML must not change during a checkpoint.
-		     * We want shared/exclusive behavior, so all mutators
-		     * obtain a shared (read) lock on the CML to prevent the
-		     * checkpointer from entering. Note observers don't lock at
-		     * all. 
-		     */
+                /*
+                 * Claim ownership if the volume is free.
+                 * The CML lock is used to prevent checkpointers and
+                 * mutators from executing in the volume simultaneously,
+                 * because the CML must not change during a checkpoint.
+                 * We want shared/exclusive behavior, so all mutators
+                 * obtain a shared (read) lock on the CML to prevent the
+                 * checkpointer from entering. Note observers don't lock at
+                 * all.
+                 */
                 if (rv->GetCML()->Owner() == UNSET_UID) {
                     if (mutator_count != 0 || rv->GetCML()->count() != 0 ||
                         rv->IsReintegrating()) {
@@ -1160,7 +1161,7 @@ int volent::Enter(int mode, uid_t uid)
 
                 /* Continue using the volume if possible. */
                 /* We might need to do something about fairness here
-		     * eventually! -JJK */
+                 * eventually! -JJK */
                 if (rv->GetCML()->Owner() == uid) {
                     if (mutator_count == 0 && rv->GetCML()->count() == 0 &&
                         !rv->IsReintegrating()) {
@@ -1176,10 +1177,9 @@ int volent::Enter(int mode, uid_t uid)
                 }
 
                 /*
-		     * Allow ASR's in regardless; they cannot be locked out or
-		     * the system will die in deadlock.
-		     */
-
+                 * Allow ASR's in regardless; they cannot be locked out or
+                 * the system will die in deadlock.
+                 */
                 if (rv->asr_running() && uid == ASR_UID) {
                     mutator_count++;
                     shrd_count++;
@@ -1207,10 +1207,10 @@ int volent::Enter(int mode, uid_t uid)
     case VM_OBSERVING: {
         for (;;) {
             /*
-		 * acquire "shared" volume-lock for MUTATING or OBSERVING, also
-		 * block while resolution is going on, or volume state 
-		 * transition is pending.
-		 */
+             * acquire "shared" volume-lock for MUTATING or OBSERVING, also
+             * block while resolution is going on, or volume state
+             * transition is pending.
+             */
             int proc_key = vp->u.u_pgid;
             while ((excl_count > 0 && proc_key != excl_pgid) || IsResolving() ||
                    flags.transition_pending) {
@@ -1235,11 +1235,11 @@ int volent::Enter(int mode, uid_t uid)
         int proc_key = vp->u.u_pgid;
         while (VOLBUSY(this) || flags.transition_pending || shrd_count > 0 ||
                (excl_count > 0 && proc_key != excl_pgid)) {
-            /* 
-		 * must wait until all the volume-pgid-locks are released.
-		 * no need to check for VM_NDELAY and excl_pgid here.
-		 * But, should we check for interrupt here?	-luqi
-		 */
+            /*
+             * must wait until all the volume-pgid-locks are released.
+             * no need to check for VM_NDELAY and excl_pgid here.
+             * But, should we check for interrupt here?	-luqi
+             */
             LOG(0, ("volent::Enter: Wait--Resolving\n"));
             Wait();
         }
@@ -1308,8 +1308,8 @@ void volent::Exit(int mode, uid_t uid)
             if (mutator_count == 0 && count == 0 && !rv->IsReintegrating()) {
                 /* Special-case here. */
                 /* If we just cancelled the last log record for a volume that
-		     * was being kept in Unreachable state due to auth-token
-		     * absence, we need to provoke a transition! */
+                 * was being kept in Unreachable state due to auth-token
+                 * absence, we need to provoke a transition! */
                 if (IsUnreachable() && !flags.transition_pending)
                     flags.transition_pending = 1;
 

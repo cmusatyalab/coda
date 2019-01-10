@@ -25,8 +25,8 @@ Coda are listed in the file CREDITS.
 
 /* release regions of a segment */
 rvm_return_t rvm_release_segment(
-    unsigned long nregions, /* number of regions mapped */
-    rvm_region_def_t **regions) /* array of region descriptors */
+    unsigned long nregions /* number of regions mapped */,
+    rvm_region_def_t **regions /* array of region descriptors */)
 {
     rvm_region_t *region = rvm_malloc_region();
     rvm_return_t err     = RVM_SUCCESS;

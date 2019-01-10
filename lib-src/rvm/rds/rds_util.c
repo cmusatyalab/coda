@@ -26,9 +26,7 @@ Coda are listed in the file CREDITS.
 /*
  * Dequeue a memory object from the front of a list, return the memory object.
  */
-static free_block_t *dequeue(list, tid, err) free_list_t *list;
-rvm_tid_t *tid;
-int *err;
+static free_block_t *dequeue(free_list_t *list, rvm_tid_t *tid, int *err)
 {
     free_block_t *block = list->head;
     free_block_t *ptr;
@@ -61,10 +59,7 @@ int *err;
  * and a transaction ID, the status is passed back in err. NOTE: If the object
  * is the first one on the list, prev isn't used.
  */
-int rm_from_list(list, bp, tid, err) free_list_t *list;
-free_block_t *bp;
-rvm_tid_t *tid;
-int *err;
+int rm_from_list(free_list_t *list, free_block_t *bp, rvm_tid_t *tid, int *err)
 {
     rvm_return_t rvmret;
     free_block_t *ptr;
@@ -158,9 +153,7 @@ int print_heap()
  * have intermediary routines to get and put blocks on the list.
  */
 
-free_block_t *get_block(size, tid, err) int size;
-rvm_tid_t *tid;
-int *err;
+free_block_t *get_block(int size, rvm_tid_t *tid, int *err)
 {
     int list = ((size >= RDS_MAXLIST) ? RDS_MAXLIST : size);
 
@@ -194,9 +187,7 @@ int *err;
     return dequeue(&RDS_FREE_LIST[list], tid, err);
 }
 
-int put_block(bp, tid, err) free_block_t *bp;
-rvm_tid_t *tid;
-int *err;
+int put_block(free_block_t *bp, rvm_tid_t *tid, int *err)
 {
     rvm_return_t rvmerr;
     int size = (((bp->size) >= RDS_MAXLIST) ? RDS_MAXLIST : (bp->size));

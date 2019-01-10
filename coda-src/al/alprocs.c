@@ -150,9 +150,9 @@ int AL_ntohAlist(INOUT AL_AccessList *Al)
    Returns 0 on success; aborts if insufficient memory. */
 int AL_NewExternalAlist(IN int MinNoOfEntries, OUT AL_ExternalAccessList *R)
 {
-    /* Conservative estimate: enough space in each entry for longest 
-	   name plus decimal 2**32 (for largest rights mask) plus some
-	   formatting */
+    /* Conservative estimate: enough space in each entry for longest
+       name plus decimal 2**32 (for largest rights mask) plus some
+       formatting */
     if ((*R = (AL_ExternalAccessList)malloc(
              20 + MinNoOfEntries * (PRS_MAXNAMELEN + 2))) == NULL) {
         perror("AL_NewExternalAlist(): malloc() failed");
@@ -232,10 +232,10 @@ int AL_ntohCPS(INOUT PRS_InternalCPS *C)
    Returns 0 on success; aborts if insufficient memory. */
 int AL_NewExternalCPS(IN int MinNoOfEntries, OUT PRS_ExternalCPS *R)
 {
-    /* Conservative estimate: enough space in each entry for longest 
-	   name plus formatting */
-    if ((*R = (PRS_ExternalCPS)malloc(20 + (MinNoOfEntries) *
-                                               (PRS_MAXNAMELEN + 2))) == NULL) {
+    /* Conservative estimate: enough space in each entry for longest
+       name plus formatting */
+    *R = (PRS_ExternalCPS)malloc(20 + (MinNoOfEntries) * (PRS_MAXNAMELEN + 2));
+    if (*R == NULL) {
         perror("AL_NewExternalCPS: malloc() failed");
         abort();
     }
@@ -342,8 +342,8 @@ int AL_CheckRights(IN AL_AccessList *Alist, IN PRS_InternalCPS *CPS,
     }
 
     /* Each iteration eats up exactly one entry from either Alist or CPS.
-	   Duplicate Entries in access list ==> accumulated rights are obtained
-	   Duplicate Entries in CPS ==> irrelevant */
+       Duplicate Entries in access list ==> accumulated rights are obtained
+       Duplicate Entries in CPS ==> irrelevant */
     plusrights = 0;
     c = a = 0;
     while ((a < Alist->PlusEntriesInUse) && (c < CPS->InclEntries))
@@ -370,6 +370,7 @@ int AL_CheckRights(IN AL_AccessList *Alist, IN PRS_InternalCPS *CPS,
     minusrights = 0;
     c           = 0;
     a           = Alist->PlusEntriesInUse;
+
     while ((c < CPS->InclEntries) && (a < Alist->TotalNoOfEntries))
         switch (CmpInt(&(Alist->ActualEntries[a].Id), &(CPS->IdList[c]))) {
         case -1:

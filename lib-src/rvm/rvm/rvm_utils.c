@@ -79,19 +79,19 @@ static void rw_lock_clear(rw_lock_t *rwl);
 /* cannot be statically allocated if using pthreads */
 static RVM_MUTEX free_lists_init_lock = MUTEX_INITIALIZER;
 static rvm_bool_t free_lists_inited   = rvm_false;
-/*  Routines to allocate and manipulate the doubly-linked circular lists 
+/*  Routines to allocate and manipulate the doubly-linked circular lists
     used in RVM (derived from rpc2 routines)
 
     List headers always use the list_entry_t structure and maintain a count of
     elements on the list.  Headers can be statically or dynamically allocated,
     but must be initialized with init_list_header before use.
 */
+
 /* routine to initialize a list header
    can be statically or dynamically allocated
 */
-void init_list_header(whichlist, struct_id)
-    list_entry_t *whichlist; /* pointer to list header */
-struct_id_t struct_id; /* list type */
+void init_list_header(list_entry_t *whichlist /* pointer to list header */,
+                      struct_id_t struct_id /* list type */)
 {
     whichlist->nextentry   = whichlist; /* pointers are to self now */
     whichlist->preventry   = whichlist;
@@ -103,7 +103,7 @@ struct_id_t struct_id; /* list type */
 /*  routine to allocate typed list cells
     creates 1 entry of id type & returns address of cell
 */
-static list_entry_t *malloc_list_entry(id) struct_id_t id;
+static list_entry_t *malloc_list_entry(struct_id_t id)
 {
     register list_entry_t *cell;
 
@@ -117,7 +117,8 @@ static list_entry_t *malloc_list_entry(id) struct_id_t id;
 
     return cell;
 }
-/*  generic routine to move elements between lists    
+
+/*  generic routine to move elements between lists
     the types of lists must be the same if both from & to ptrs are not null.
     if cell is NULL, the 1st entry in fromptr list is selected
     if fromptr is NULL, victim must not be NULL.
@@ -125,11 +126,10 @@ static list_entry_t *malloc_list_entry(id) struct_id_t id;
     if toptr is not null, victim is appended & to->list.length is incremented.
     in all cases a pointer to the moved entry is returned.
 */
-list_entry_t *move_list_entry(
-    fromptr, toptr,
-    victim) register list_entry_t *fromptr; /* from list header */
-register list_entry_t *toptr; /* to list header */
-register list_entry_t *victim; /* pointer to entry to be moved */
+list_entry_t *
+move_list_entry(list_entry_t *fromptr /* from list header */,
+                list_entry_t *toptr /* to list header */,
+                list_entry_t *victim /* pointer to entry to be moved */)
 {
     if (!fromptr && victim)
         fromptr = victim->list.name;
@@ -173,13 +173,14 @@ register list_entry_t *victim; /* pointer to entry to be moved */
 
     return victim;
 }
+
 /* internal types free lists support */
 
 /* initialization -- call once at initialization
    free lists will be initialized and be pre-allocated with the number of
    elements specified in NUM_PRE_ALLOCATED (from rvm_private.h)
 */
-static void init_free_lists()
+static void init_free_lists(void)
 {
     list_entry_t *cell;
     int i, j;
@@ -197,7 +198,7 @@ static void init_free_lists()
 }
 
 /* get a cell from free list */
-list_entry_t *alloc_list_entry(id) struct_id_t id;
+list_entry_t *alloc_list_entry(struct_id_t id)
 {
     list_entry_t *cell;
 
@@ -210,8 +211,9 @@ list_entry_t *alloc_list_entry(id) struct_id_t id;
 
     return cell;
 }
+
 /* kill cell */
-static void kill_list_entry(cell) list_entry_t *cell;
+static void kill_list_entry(list_entry_t *cell)
 {
     assert(cell != NULL);
 
@@ -227,7 +229,7 @@ static void kill_list_entry(cell) list_entry_t *cell;
 /* move cell to free list
    will remove cell from any list that it is on before freeing
 */
-static void free_list_entry(cell) register list_entry_t *cell;
+static void free_list_entry(list_entry_t *cell)
 {
     int id_index;
     assert(cell != NULL);
@@ -246,9 +248,10 @@ static void free_list_entry(cell) register list_entry_t *cell;
                    kill_list_entry(cell);
              }); /* end free_list_lock crit sec */
 }
+
 #ifdef UNUSED
 /* clear free lists */
-void clear_free_list(id) struct_id_t id; /* type of free list */
+void clear_free_list(struct_id_t id /* type of free list */)
 {
     list_entry_t *cell;
 
@@ -261,7 +264,7 @@ void clear_free_list(id) struct_id_t id; /* type of free list */
              }); /* end free_list_lock crit sec */
 }
 
-void clear_free_lists()
+void clear_free_lists(void)
 {
     int i;
 
@@ -269,12 +272,13 @@ void clear_free_lists()
         clear_free_list(INDEX_ID(i));
 }
 #endif
+
 /* unique name generator */
 /* Cannot be statically allocated in pthreads */
 static RVM_MUTEX uname_lock = MUTEX_INITIALIZER;
 static struct timeval uname = { 0, 0 };
 
-void make_uname(new_uname) struct timeval *new_uname;
+void make_uname(struct timeval *new_uname)
 {
     /* generate a uname */
     CRITICAL(uname_lock, {
@@ -288,7 +292,7 @@ void make_uname(new_uname) struct timeval *new_uname;
 }
 
 /* uname initialization */
-long init_unames()
+long init_unames(void)
 {
     struct timeval new_uname;
     long retval;
@@ -310,7 +314,7 @@ long init_unames()
 
 /* module initialization */
 /* Locks cannot be statically allocated in pthreads. */
-long init_utils()
+long init_utils(void)
 {
     CRITICAL(free_lists_init_lock, {
         if (!free_lists_inited) {
@@ -321,9 +325,9 @@ long init_utils()
 
     return init_unames();
 }
+
 /* time value arithmetic */
-struct timeval add_times(x, y) struct timeval *x;
-struct timeval *y;
+struct timeval add_times(struct timeval *x, struct timeval *y)
 {
     struct timeval tmp;
 
@@ -336,8 +340,7 @@ struct timeval *y;
     return tmp;
 }
 
-struct timeval sub_times(x, y) struct timeval *x;
-struct timeval *y;
+struct timeval sub_times(struct timeval *x, struct timeval *y)
 {
     struct timeval tmp;
 
@@ -352,15 +355,16 @@ struct timeval *y;
 }
 
 /* round time to seconds */
-long round_time(x) struct timeval *x;
+long round_time(struct timeval *x)
 {
     if (x->tv_usec >= 500000)
         return x->tv_sec + 1;
 
     return x->tv_sec;
 }
+
 /* region descriptor allocator/finalizer */
-region_t *make_region()
+region_t *make_region(void)
 {
     region_t *region;
 
@@ -372,7 +376,7 @@ region_t *make_region()
     return region;
 }
 
-void free_region(region) region_t *region;
+void free_region(region_t *region)
 {
     assert(region->links.struct_id == region_id);
     assert(LOCK_FREE(region->count_lock));
@@ -381,10 +385,11 @@ void free_region(region) region_t *region;
     mutex_clear(&region->count_lock);
     free_list_entry((list_entry_t *)region);
 }
+
 /* construct full path name for file names */
-char *make_full_name(dev_str, dev_name, retval) char *dev_str; /* device name */
-char *dev_name; /* device name buffer for descriptor */
-rvm_return_t *retval; /* return code */
+char *make_full_name(char *dev_str /* device name */,
+                     char *dev_name /* device name buffer for descriptor */,
+                     rvm_return_t *retval /* return code */)
 {
     char wd_name[MAXPATHLEN + 1]; /* current working directory */
     long wd_len = 0; /* working dir string length */
@@ -422,9 +427,10 @@ rvm_return_t *retval; /* return code */
 
     return dev_name;
 }
+
 /* device descriptor initializer */
-rvm_return_t dev_init(dev, dev_str) device_t *dev; /* device descriptor */
-char *dev_str; /* device name */
+rvm_return_t dev_init(device_t *dev /* device descriptor */,
+                      char *dev_str /* device name */)
 {
     rvm_return_t retval;
 
@@ -450,10 +456,10 @@ char *dev_str; /* device name */
 
     return RVM_SUCCESS;
 }
+
 /* segment descriptor allocator/finalizer */
-seg_t *make_seg(seg_dev_name,
-                retval) char *seg_dev_name; /* segment device name */
-rvm_return_t *retval; /* return code */
+seg_t *make_seg(char *seg_dev_name /* segment device name */,
+                rvm_return_t *retval /* return code */)
 {
     seg_t *seg;
 
@@ -476,7 +482,7 @@ rvm_return_t *retval; /* return code */
     return seg;
 }
 
-void free_seg(seg) seg_t *seg;
+void free_seg(seg_t *seg)
 {
     assert(seg->links.struct_id == seg_id);
 
@@ -494,8 +500,9 @@ void free_seg(seg) seg_t *seg;
     }
     free_list_entry(&seg->links);
 }
-/* segemnt dictionary finalizer */
-void free_seg_dict_vec(log) log_t *log;
+
+/* segment dictionary finalizer */
+void free_seg_dict_vec(log_t *log)
 {
     int i; /* loop counter */
 
@@ -509,14 +516,14 @@ void free_seg_dict_vec(log) log_t *log;
         log->seg_dict_len = 0;
     }
 }
+
 /* log descriptor finalizer */
-void free_log(log) log_t *log;
+void free_log(log_t *log)
 {
     assert(log->links.struct_id == log_id);
-    assert(LIST_EMPTY(log->tid_list)); /* should not be any transactions
-                                              now */
+    assert(LIST_EMPTY(log->tid_list)); /* should not be any transactions now */
     assert(LIST_EMPTY(log->flush_list)); /* should not be any queued no_flush
-                                              transactions either */
+                                            transactions either */
     assert(LIST_EMPTY(log->special_list)); /* no special log records should
                                               be left */
     assert(LOCK_FREE(log->dev_lock)); /* all locks should be free */
@@ -554,9 +561,10 @@ void free_log(log) log_t *log;
 
     free_list_entry(&log->links); /* free descriptor */
 }
+
 /* log descriptor allocation */
-log_t *make_log(log_dev_name, retval) char *log_dev_name; /* device name */
-rvm_return_t *retval; /* return code */
+log_t *make_log(char *log_dev_name /* device name */,
+                rvm_return_t *retval /* return code */)
 {
     log_t *log;
     log_buf_t *log_buf;
@@ -620,10 +628,11 @@ rvm_return_t *retval; /* return code */
 
     return log;
 }
+
 /* log special types allocation/deallocation */
-log_special_t *make_log_special(special_id, length)
-    struct_id_t special_id; /* id of special type */
-rvm_length_t length; /* length of type-specific allocation */
+log_special_t *
+make_log_special(struct_id_t special_id /* id of special type */,
+                 rvm_length_t length /* length of type-specific allocation */)
 {
     log_special_t *special; /* ptr to descriptor allocated */
     char *buf = NULL; /* type-specific buffer */
@@ -651,8 +660,8 @@ rvm_length_t length; /* length of type-specific allocation */
 
     return special;
 }
-void free_log_special(special)
-    log_special_t *special; /* ptr to descriptor allocated */
+
+void free_log_special(log_special_t *special /* ptr to descriptor allocated */)
 {
     assert(special->links.struct_id == log_special_id);
 
@@ -670,8 +679,9 @@ void free_log_special(special)
 
     free_list_entry((list_entry_t *)special);
 }
+
 /* range descriptor allocator/finalizer */
-range_t *make_range()
+range_t *make_range(void)
 {
     register range_t *range;
 
@@ -689,7 +699,7 @@ range_t *make_range()
     return range;
 }
 
-void free_range(range) register range_t *range;
+void free_range(range_t *range)
 {
     assert(range->links.node.struct_id == range_id);
 
@@ -704,9 +714,9 @@ void free_range(range) register range_t *range;
     range->links.entry.is_hdr    = rvm_false;
     free_list_entry(&range->links.entry);
 }
-/* internal transaction descriptor allocator/finalizer */
 
-int_tid_t *make_tid(mode) rvm_mode_t mode; /* transaction begin mode */
+/* internal transaction descriptor allocator/finalizer */
+int_tid_t *make_tid(rvm_mode_t mode /* transaction begin mode */)
 {
     register int_tid_t *tid;
 
@@ -734,7 +744,7 @@ int_tid_t *make_tid(mode) rvm_mode_t mode; /* transaction begin mode */
     return tid;
 }
 
-void free_tid(tid) register int_tid_t *tid;
+void free_tid(int_tid_t *tid)
 {
     range_t *range;
 
@@ -743,7 +753,9 @@ void free_tid(tid) register int_tid_t *tid;
 
     /* free range list */
     UNLINK_NODES_OF(tid->range_tree, range_t, range)
-    free_range((range_t *)range);
+    {
+        free_range((range_t *)range);
+    }
     clear_tree_root(&tid->range_tree);
 
     /* free search vector */
@@ -755,8 +767,9 @@ void free_tid(tid) register int_tid_t *tid;
     /* free tid */
     free_list_entry(&tid->links);
 }
+
 /* mem_region nodes for mapping */
-mem_region_t *make_mem_region()
+mem_region_t *make_mem_region(void)
 {
     register mem_region_t *node;
 
@@ -768,7 +781,7 @@ mem_region_t *make_mem_region()
     return node;
 }
 
-void free_mem_region(node) register mem_region_t *node;
+void free_mem_region(mem_region_t *node)
 {
     assert(node->links.node.struct_id == mem_region_id);
 
@@ -777,8 +790,9 @@ void free_mem_region(node) register mem_region_t *node;
     node->links.entry.is_hdr    = rvm_false;
     free_list_entry(&node->links.entry);
 }
+
 /* dev_region nodes for recovery */
-dev_region_t *make_dev_region()
+dev_region_t *make_dev_region(void)
 {
     register dev_region_t *node;
 
@@ -793,7 +807,7 @@ dev_region_t *make_dev_region()
     return node;
 }
 
-void free_dev_region(node) register dev_region_t *node;
+void free_dev_region(dev_region_t *node)
 {
     assert(node->links.node.struct_id == dev_region_id);
 
@@ -811,10 +825,10 @@ void free_dev_region(node) register dev_region_t *node;
     }
     free_list_entry(&node->links.entry);
 }
+
 /* RVM exported structures support */
 
-static void free_export(cell, struct_id) list_entry_t *cell;
-struct_id_t struct_id;
+static void free_export(list_entry_t *cell, struct_id_t struct_id)
 {
     cell->struct_id = struct_id;
     cell->list.name = NULL;
@@ -825,7 +839,7 @@ struct_id_t struct_id;
 }
 
 /* rvm_region_t functions    */
-rvm_region_t *rvm_malloc_region()
+rvm_region_t *rvm_malloc_region(void)
 {
     rvm_region_t *new_rvm_region;
 
@@ -839,19 +853,20 @@ rvm_region_t *rvm_malloc_region()
     return new_rvm_region;
 }
 
-void rvm_free_region(rvm_region) rvm_region_t *rvm_region;
+void rvm_free_region(rvm_region_t *rvm_region)
 {
     if ((!bad_region(rvm_region)) && (free_lists_inited) &&
         (rvm_region->from_heap))
         free_export((list_entry_t *)rvm_region, region_rvm_id);
 }
-void rvm_init_region(rvm_region) rvm_region_t *rvm_region;
+
+void rvm_init_region(rvm_region_t *rvm_region)
 {
     BZERO((char *)rvm_region, sizeof(rvm_region_t));
     rvm_region->struct_id = rvm_region_id;
 }
 
-rvm_region_t *rvm_copy_region(rvm_region) rvm_region_t *rvm_region;
+rvm_region_t *rvm_copy_region(rvm_region_t *rvm_region)
 {
     rvm_region_t *new_rvm_region;
 
@@ -868,8 +883,9 @@ rvm_region_t *rvm_copy_region(rvm_region) rvm_region_t *rvm_region;
     }
     return new_rvm_region;
 }
+
 /* rvm_statistics_t functions */
-rvm_statistics_t *rvm_malloc_statistics()
+rvm_statistics_t *rvm_malloc_statistics(void)
 {
     rvm_statistics_t *new_rvm_statistics;
 
@@ -882,13 +898,14 @@ rvm_statistics_t *rvm_malloc_statistics()
     return new_rvm_statistics;
 }
 
-void rvm_free_statistics(rvm_statistics) rvm_statistics_t *rvm_statistics;
+void rvm_free_statistics(rvm_statistics_t *rvm_statistics)
 {
     if ((!bad_statistics(rvm_statistics)) && (free_lists_inited) &&
         (rvm_statistics->from_heap))
         free_export((list_entry_t *)rvm_statistics, statistics_rvm_id);
 }
-void rvm_init_statistics(rvm_statistics) rvm_statistics_t *rvm_statistics;
+
+void rvm_init_statistics(rvm_statistics_t *rvm_statistics)
 {
     if (rvm_statistics != NULL) {
         BZERO((char *)rvm_statistics, sizeof(rvm_statistics_t));
@@ -896,8 +913,7 @@ void rvm_init_statistics(rvm_statistics) rvm_statistics_t *rvm_statistics;
     }
 }
 
-rvm_statistics_t *
-    rvm_copy_statistics(rvm_statistics) rvm_statistics_t *rvm_statistics;
+rvm_statistics_t *rvm_copy_statistics(rvm_statistics_t *rvm_statistics)
 {
     rvm_statistics_t *new_rvm_statistics;
 
@@ -915,9 +931,10 @@ rvm_statistics_t *
     }
     return new_rvm_statistics;
 }
+
 /* rvm_options_t functions */
 
-rvm_options_t *rvm_malloc_options()
+rvm_options_t *rvm_malloc_options(void)
 {
     rvm_options_t *new_rvm_options;
 
@@ -931,7 +948,7 @@ rvm_options_t *rvm_malloc_options()
     return new_rvm_options;
 }
 
-void rvm_free_options(rvm_options) rvm_options_t *rvm_options;
+void rvm_free_options(rvm_options_t *rvm_options)
 {
     if (!bad_options(rvm_options, rvm_false) && free_lists_inited &&
         rvm_options->from_heap) {
@@ -946,7 +963,8 @@ void rvm_free_options(rvm_options) rvm_options_t *rvm_options;
         free_export((list_entry_t *)rvm_options, options_rvm_id);
     }
 }
-void rvm_init_options(rvm_options) rvm_options_t *rvm_options;
+
+void rvm_init_options(rvm_options_t *rvm_options)
 {
     if (rvm_options != NULL) {
         BZERO((char *)rvm_options, sizeof(rvm_options_t));
@@ -961,7 +979,7 @@ void rvm_init_options(rvm_options) rvm_options_t *rvm_options;
     }
 }
 
-rvm_options_t *rvm_copy_options(rvm_options) rvm_options_t *rvm_options;
+rvm_options_t *rvm_copy_options(rvm_options_t *rvm_options)
 {
     rvm_options_t *new_rvm_options;
 
@@ -978,9 +996,10 @@ rvm_options_t *rvm_copy_options(rvm_options) rvm_options_t *rvm_options;
     }
     return new_rvm_options;
 }
+
 /*      rvm_tid_t functions    */
 
-rvm_tid_t *rvm_malloc_tid()
+rvm_tid_t *rvm_malloc_tid(void)
 {
     rvm_tid_t *new_rvm_tid;
 
@@ -994,7 +1013,7 @@ rvm_tid_t *rvm_malloc_tid()
     return new_rvm_tid;
 }
 
-void rvm_free_tid(rvm_tid) rvm_tid_t *rvm_tid;
+void rvm_free_tid(rvm_tid_t *rvm_tid)
 {
     if ((!bad_tid(rvm_tid)) && (free_lists_inited) && (rvm_tid->from_heap))
         free_export((list_entry_t *)rvm_tid, tid_rvm_id);
@@ -1008,7 +1027,7 @@ void rvm_init_tid(rvm_tid_t *rvm_tid)
     }
 }
 
-rvm_tid_t *rvm_copy_tid(rvm_tid) rvm_tid_t *rvm_tid;
+rvm_tid_t *rvm_copy_tid(rvm_tid_t *rvm_tid)
 {
     rvm_tid_t *new_rvm_tid;
 
@@ -1024,6 +1043,7 @@ rvm_tid_t *rvm_copy_tid(rvm_tid) rvm_tid_t *rvm_tid;
     }
     return new_rvm_tid;
 }
+
 /* RVM User enumeration type print name support */
 static char *return_codes[(long)rvm_last_code - (long)rvm_first_code - 1] = {
     "RVM_EINIT",       "RVM_EINTERNAL",
@@ -1049,8 +1069,9 @@ static char *rvm_modes[(long)rvm_last_mode - (long)rvm_first_mode - 1] = {
 static char *rvm_types[(long)rvm_last_struct_id - (long)rvm_first_struct_id -
                        1] = { "rvm_region_t", "rvm_options_t", "rvm_tid_t",
                               "rvm_statistics_id" };
+
 /* RVM enumeration type print name routines */
-char *rvm_return(code) rvm_return_t code;
+char *rvm_return(rvm_return_t code)
 {
     if (code == RVM_SUCCESS)
         return "RVM_SUCCESS";
@@ -1061,7 +1082,8 @@ char *rvm_return(code) rvm_return_t code;
     else
         return "Invalid RVM return code";
 }
-char *rvm_mode(mode) rvm_mode_t mode;
+
+char *rvm_mode(rvm_mode_t mode)
 {
     if (((long)mode > (long)rvm_first_mode) &&
         ((long)mode < (long)rvm_last_mode))
@@ -1069,7 +1091,8 @@ char *rvm_mode(mode) rvm_mode_t mode;
     else
         return "Invalid RVM transaction mode";
 }
-char *rvm_type(id) rvm_struct_id_t id;
+
+char *rvm_type(rvm_struct_id_t id)
 {
     if (((long)id > (long)rvm_first_struct_id) &&
         ((long)id < (long)rvm_last_struct_id))
@@ -1077,13 +1100,14 @@ char *rvm_type(id) rvm_struct_id_t id;
     else
         return "Invalid RVM structure type";
 }
+
 /* Byte-aligned checksum and move functions */
 
 /* zero-pad unused bytes of word */
-static rvm_length_t zero_pad_word(word, addr, leading)
-    rvm_length_t word; /* value to be zero-padded */
-char *addr; /* address of 1st/last byte */
-rvm_bool_t leading; /* true if leading bytes are zeroed */
+static rvm_length_t
+zero_pad_word(rvm_length_t word /* value to be zero-padded */,
+              char *addr /* address of 1st/last byte */,
+              rvm_bool_t leading /* true if leading bytes are zeroed */)
 {
     char *word_array = (char *)&word; /* byte access of
 						    word value */
@@ -1104,10 +1128,11 @@ rvm_bool_t leading; /* true if leading bytes are zeroed */
 
     return word;
 }
+
 /* checksum function: forms checksum of arbitrarily aligned range
    by copying preceeding, trailing bytes to make length 0 mod length size */
-rvm_length_t chk_sum(nvaddr, len) char *nvaddr; /* address of 1st byte */
-rvm_length_t len; /* byte count */
+rvm_length_t chk_sum(char *nvaddr /* address of 1st byte */,
+                     rvm_length_t len /* byte count */)
 {
     rvm_length_t *base; /* 0 mod sizeof(rvm_length_t) addr */
     rvm_length_t length; /* number of words to sum */
@@ -1134,27 +1159,29 @@ rvm_length_t len; /* byte count */
 
     return chk_sum;
 }
+
 /* copy arbitrarily aligned range, maintaining 1st src byte alignment */
-void src_aligned_bcopy(src, dest, len) char *src; /* source address */
-char *dest; /* destination address */
-rvm_length_t len; /* length of range */
+void src_aligned_bcopy(char *src /* source address */,
+                       char *dest /* destination address */,
+                       rvm_length_t len /* length of range */)
 {
     if (len != 0)
         (void)BCOPY(src, RVM_ADD_LENGTH_TO_ADDR(dest, BYTE_SKEW(src)), len);
 }
 
 /* copy arbitrarily aligned range, maintaining 1st dest byte alignment */
-void dest_aligned_bcopy(src, dest, len) char *src; /* source address */
-char *dest; /* destination address */
-rvm_length_t len; /* length of range */
+void dest_aligned_bcopy(char *src /* source address */,
+                        char *dest /* destination address */,
+                        rvm_length_t len /* length of range */)
 {
     if (len != 0)
         (void)BCOPY(RVM_ADD_LENGTH_TO_ADDR(src, BYTE_SKEW(dest)), dest, len);
 }
+
 /* rw_lock functions */
 
 /* rw_lock initializer */
-void init_rw_lock(rwl) rw_lock_t *rwl;
+void init_rw_lock(rw_lock_t *rwl)
 {
     mutex_init(&rwl->mutex);
     init_list_header(&rwl->queue, rw_qentry_id);
@@ -1174,8 +1201,9 @@ static void rw_lock_clear(rw_lock_t *rwl)
 
     mutex_clear(&rwl->mutex);
 }
-void rw_lock(rwl, mode) rw_lock_t *rwl; /* ptr to rw_lock structure */
-rw_lock_mode_t mode; /* r or w */
+
+void rw_lock(rw_lock_t *rwl /* ptr to rw_lock structure */,
+             rw_lock_mode_t mode /* r or w */)
 {
 #ifdef RVM_USELWP
     if (mode == r)
@@ -1197,8 +1225,8 @@ rw_lock_mode_t mode; /* r or w */
             /* see if must block */
             if (((mode == w) && ((rwl->read_cnt + rwl->write_cnt) != 0)) ||
                 ((mode == r) && (rwl->write_cnt != 0)) ||
-                (LIST_NOT_EMPTY(rwl->queue))) /* this term prevents starvation 
-                                                of writers by readers */
+                (LIST_NOT_EMPTY(rwl->queue))) /* this term prevents starvation
+                                                 of writers by readers */
             {
                 /* must block: initialize queue entry & put on lock queue */
                 q.links.struct_id = rw_qentry_id;
@@ -1228,8 +1256,9 @@ rw_lock_mode_t mode; /* r or w */
         }); /* end rw_lock mutex crit sec */
 #endif
 }
-void rw_unlock(rwl, mode) rw_lock_t *rwl; /* ptr to rw_lock structure */
-rw_lock_mode_t mode; /* r or w (for consistency chk only) */
+
+void rw_unlock(rw_lock_t *rwl /* ptr to rw_lock structure */,
+               rw_lock_mode_t mode /* r or w (for consistency chk only) */)
 {
 #ifdef RVM_USELWP
     if (mode == r)
@@ -1289,6 +1318,7 @@ rw_lock_mode_t mode; /* r or w (for consistency chk only) */
              }); /* end rw_lock mutex crit sec */
 #endif
 }
+
 /*  binary tree functions
     all functions leave locking to caller
     lookup requires a comparator function with signature:
@@ -1300,8 +1330,9 @@ rw_lock_mode_t mode; /* r or w (for consistency chk only) */
                         0           target = test
                        -1           target < test
 */
+
 /* traversal vector initializer */
-static void chk_traverse(tree) tree_root_t *tree;
+static void chk_traverse(tree_root_t *tree)
 {
     if (tree->traverse_len <= (tree->max_depth + 1)) {
         tree->traverse_len += TRAVERSE_LEN_INCR;
@@ -1319,7 +1350,7 @@ static void chk_traverse(tree) tree_root_t *tree;
     (tr)->traverse[(tr)->level].state = (st)
 
 /* tree root initialization */
-void init_tree_root(root) tree_root_t *root;
+void init_tree_root(tree_root_t *root)
 {
     root->struct_id    = tree_root_id;
     root->root         = NULL;
@@ -1343,8 +1374,7 @@ static void clear_tree_root(tree_root_t *root)
 
 #ifdef UNUSED_FUNCTIONS
 /* balance checker */
-static int get_depth(node, n_nodes) tree_node_t *node;
-long *n_nodes;
+static int get_depth(tree_node_t *node, long *n_nodes)
 {
     int lss_depth = 1; /* init to 1 for this node */
     int gtr_depth = 1;
@@ -1368,7 +1398,7 @@ long *n_nodes;
 }
 
 /* Guaranteed to return 0, for now */
-static int chk_balance(tree) tree_root_t *tree; /* ptr to root of tree */
+static int chk_balance(tree_root_t *tree /* ptr to root of tree */)
 {
     long n_nodes = 0;
     get_depth(tree->root, &n_nodes);
@@ -1379,9 +1409,9 @@ static int chk_balance(tree) tree_root_t *tree; /* ptr to root of tree */
 #endif
 
 /* binary tree lookup -- returns ptr to node found (or NULL) */
-tree_node_t *tree_lookup(tree, node, cmp) tree_root_t *tree; /* root of tree */
-tree_node_t *node; /* node w/ range to lookup */
-cmp_func_t *cmp; /* ptr to comparator function */
+tree_node_t *tree_lookup(tree_root_t *tree /* root of tree */,
+                         tree_node_t *node /* node w/ range to lookup */,
+                         cmp_func_t *cmp /* ptr to comparator function */)
 {
     tree_node_t *cur; /* current search node */
     tree_node_t *par = NULL; /* parent of cur */
@@ -1408,13 +1438,14 @@ cmp_func_t *cmp; /* ptr to comparator function */
 
     return NULL; /* not found */
 }
+
 /* insertion rotation function */
-static void insert_rotate(tree, bal_pnt, bal_pnt_par, sub_root,
-                          new_bf) tree_root_t *tree; /* ptr to root of tree */
-tree_node_t *bal_pnt; /* balance point */
-tree_node_t *bal_pnt_par; /* parent of bal_pnt */
-tree_node_t *sub_root; /* root of unbalanced sub-tree */
-long new_bf; /* new balance factor */
+static void
+insert_rotate(tree_root_t *tree /* ptr to root of tree */,
+              tree_node_t *bal_pnt /* balance point */,
+              tree_node_t *bal_pnt_par /* parent of bal_pnt */,
+              tree_node_t *sub_root /* root of unbalanced sub-tree */,
+              long new_bf /* new balance factor */)
 {
     tree_node_t *new_bal_pnt = sub_root; /* new balance node */
 
@@ -1495,12 +1526,12 @@ long new_bf; /* new balance factor */
     else if (bal_pnt == bal_pnt_par->lss)
         bal_pnt_par->lss = new_bal_pnt;
 }
-/* binary tree insertion - traverse vector left suitable for 
+
+/* binary tree insertion - traverse vector left suitable for
    successor iterator */
-rvm_bool_t tree_insert(tree, node,
-                       cmp) tree_root_t *tree; /* ptr to root of tree */
-tree_node_t *node; /* node to insert */
-cmp_func_t *cmp; /* comparator */
+rvm_bool_t tree_insert(tree_root_t *tree /* ptr to root of tree */,
+                       tree_node_t *node /* node to insert */,
+                       cmp_func_t *cmp /* comparator */)
 {
     tree_node_t *cur; /* current search node */
     tree_node_t *par = NULL; /* parent of cur */
@@ -1589,13 +1620,14 @@ cmp_func_t *cmp; /* comparator */
 
     return rvm_true;
 }
+
 /* deletion rotation function */
-static rvm_bool_t delete_rotate(tree, bal_pnt, bal_pnt_par, sub_root, new_bf)
-    tree_root_t *tree; /* ptr to root of tree */
-tree_node_t *bal_pnt; /* balance point */
-tree_node_t *bal_pnt_par; /* parent of bal_pnt */
-tree_node_t *sub_root; /* root of unbalanced sub-tree */
-long new_bf; /* new balance factor */
+static rvm_bool_t
+delete_rotate(tree_root_t *tree /* ptr to root of tree */,
+              tree_node_t *bal_pnt /* balance point */,
+              tree_node_t *bal_pnt_par /* parent of bal_pnt */,
+              tree_node_t *sub_root /* root of unbalanced sub-tree */,
+              long new_bf /* new balance factor */)
 {
     tree_node_t *new_bal_pnt = sub_root; /* new balance point */
     long old_sub_root_bf     = sub_root->bf;
@@ -1697,12 +1729,12 @@ long new_bf; /* new balance factor */
         return rvm_true;
     return rvm_false;
 }
+
 /* binary tree deletion -- does not free the node
    traverse vector not left suitable for iterators */
-rvm_bool_t tree_delete(tree, node,
-                       cmp) tree_root_t *tree; /* ptr to root of tree */
-tree_node_t *node; /* node to delete */
-cmp_func_t *cmp; /* comparator */
+rvm_bool_t tree_delete(tree_root_t *tree /* ptr to root of tree */,
+                       tree_node_t *node /* node to delete */,
+                       cmp_func_t *cmp /* comparator */)
 {
     tree_node_t *cur; /* current search node */
     tree_node_t *sub_root = NULL; /* unbalanced sub tree root */
@@ -1852,9 +1884,9 @@ cmp_func_t *cmp; /* comparator */
 
     return rvm_true;
 }
+
 /* forward order iteration generator: balance not maintained if nodes unlinked */
-tree_node_t *
-    tree_successor(tree) tree_root_t *tree; /* ptr to tree root descriptor */
+tree_node_t *tree_successor(tree_root_t *tree /* ptr to tree root descriptor */)
 {
     tree_node_t *cur; /* current search node */
 
@@ -1914,9 +1946,10 @@ unlink:
     assert((cur->bf >= -1) && (cur->bf <= 1));
     return cur;
 }
+
 /* reverse order iterator generator: balance not maintained if nodes unlinked */
 tree_node_t *
-    tree_predecessor(tree) tree_root_t *tree; /* ptr to tree root descriptor */
+tree_predecessor(tree_root_t *tree /* ptr to tree root descriptor */)
 {
     tree_node_t *cur; /* current search node */
 
@@ -1976,11 +2009,12 @@ unlink:
     assert((cur->bf >= -1) && (cur->bf <= 1));
     return cur;
 }
+
 /* tree iteration initializers */
-tree_node_t *init_tree_generator(tree, direction, unlink)
-    tree_root_t *tree; /* ptr to tree root descriptor */
-rvm_bool_t direction; /* FORWARD ==> lss -> gtr */
-rvm_bool_t unlink; /* unlink nodes from tree if true */
+tree_node_t *
+init_tree_generator(tree_root_t *tree /* ptr to tree root descriptor */,
+                    rvm_bool_t direction /* FORWARD ==> lss -> gtr */,
+                    rvm_bool_t unlink /* unlink nodes from tree if true */)
 {
     assert(tree->struct_id == tree_root_id);
     tree->unlink = unlink;
@@ -1995,11 +2029,11 @@ rvm_bool_t unlink; /* unlink nodes from tree if true */
     else
         return tree_predecessor(tree);
 }
+
 /* initilizer for iteration after insertion failure */
-tree_node_t *tree_iterate_insert(tree, node, cmp)
-    tree_root_t *tree; /* ptr to root of tree */
-tree_node_t *node; /* node to insert */
-cmp_func_t *cmp; /* comparator */
+tree_node_t *tree_iterate_insert(tree_root_t *tree /* ptr to root of tree */,
+                                 tree_node_t *node /* node to insert */,
+                                 cmp_func_t *cmp /* comparator */)
 {
     tree_node_t *cur; /* current search node */
     int first_level; /* level of smallest node */
@@ -2014,6 +2048,7 @@ cmp_func_t *cmp; /* comparator */
     first_level                       = tree->level;
     cur                               = tree->traverse[tree->level].ptr->lss;
     tree->traverse[tree->level].state = lss;
+
     while (cur != NULL)
         switch ((*cmp)(cur, node)) {
         case -1:
@@ -2038,11 +2073,12 @@ cmp_func_t *cmp; /* comparator */
 
     return cur;
 }
+
 /* histogram data gathering function */
-void enter_histogram(val, histo, histo_def, length) long val; /* value to log */
-long *histo; /* histogram data */
-long *histo_def; /* histogram bucket sizes */
-long length; /* length of histogram vectors */
+void enter_histogram(long val /* value to log */,
+                     rvm_length_t *histo /* histogram data */,
+                     rvm_length_t *histo_def /* histogram bucket sizes */,
+                     long length /* length of histogram vectors */)
 {
     long i;
 
@@ -2056,12 +2092,13 @@ long length; /* length of histogram vectors */
     histo[length - 1]++; /* outsized */
     return;
 }
+
 /* The following functions are needed only on machines without 64-bit
    integer operations and are used only within macros defined in rvm.h
 */
+
 /* rvm_offset_t constructor */
-rvm_offset_t rvm_mk_offset(x, y) rvm_length_t x;
-rvm_length_t y;
+rvm_offset_t rvm_mk_offset(rvm_length_t x, rvm_length_t y)
 {
     rvm_offset_t tmp;
 
@@ -2072,9 +2109,8 @@ rvm_length_t y;
 }
 
 /* add rvm_length to rvm_offset; return (offset + length) */
-rvm_offset_t rvm_add_length_to_offset(offset, length)
-    rvm_offset_t *offset; /* ptr to offset */
-rvm_length_t length;
+rvm_offset_t rvm_add_length_to_offset(rvm_offset_t *offset /* ptr to offset */,
+                                      rvm_length_t length)
 {
     rvm_offset_t tmp;
 
@@ -2087,9 +2123,9 @@ rvm_length_t length;
 }
 
 /* subtract rvm_length from rvm_offset; return (offset - length)) */
-rvm_offset_t rvm_sub_length_from_offset(offset, length)
-    rvm_offset_t *offset; /* ptr to offset */
-rvm_length_t length; /* length to subtract */
+rvm_offset_t
+rvm_sub_length_from_offset(rvm_offset_t *offset /* ptr to offset */,
+                           rvm_length_t length /* length to subtract */)
 {
     rvm_offset_t tmp;
 
@@ -2100,8 +2136,9 @@ rvm_length_t length; /* length to subtract */
 
     return tmp;
 }
+
 /* add rvm_offset to rvm_offset; return (x+y) */
-rvm_offset_t rvm_add_offsets(x, y) rvm_offset_t *x, *y; /* operand ptrs */
+rvm_offset_t rvm_add_offsets(rvm_offset_t *x, rvm_offset_t *y)
 {
     rvm_offset_t tmp;
 
@@ -2114,7 +2151,7 @@ rvm_offset_t rvm_add_offsets(x, y) rvm_offset_t *x, *y; /* operand ptrs */
 }
 
 /* subtract rvm_offset from rvm_offset; return (x-y) */
-rvm_offset_t rvm_sub_offsets(x, y) rvm_offset_t *x, *y; /* operand ptrs */
+rvm_offset_t rvm_sub_offsets(rvm_offset_t *x, rvm_offset_t *y)
 {
     rvm_offset_t tmp;
 
@@ -2127,7 +2164,7 @@ rvm_offset_t rvm_sub_offsets(x, y) rvm_offset_t *x, *y; /* operand ptrs */
 }
 /* page rounding functions for rvm_offset; return offset rounded up/down
    to page boundrary: used only for rvm.h macro support */
-rvm_offset_t rvm_rnd_offset_up_to_page(x) rvm_offset_t *x; /* operand ptr */
+rvm_offset_t rvm_rnd_offset_up_to_page(rvm_offset_t *x)
 {
     rvm_offset_t tmp;
 
@@ -2137,7 +2174,7 @@ rvm_offset_t rvm_rnd_offset_up_to_page(x) rvm_offset_t *x; /* operand ptr */
     return tmp;
 }
 
-rvm_offset_t rvm_rnd_offset_dn_to_page(x) rvm_offset_t *x; /* operand ptr */
+rvm_offset_t rvm_rnd_offset_dn_to_page(rvm_offset_t *x)
 {
     rvm_offset_t tmp;
 
@@ -2148,18 +2185,18 @@ rvm_offset_t rvm_rnd_offset_dn_to_page(x) rvm_offset_t *x; /* operand ptr */
 }
 
 /* page size, mask export functions: used only for rvm.h macros */
-rvm_length_t rvm_page_size()
+rvm_length_t rvm_page_size(void)
 {
     return page_size;
 }
 
-rvm_length_t rvm_page_mask()
+rvm_length_t rvm_page_mask(void)
 {
     return page_mask;
 }
 
 /* round offset to sector size support */
-rvm_offset_t rvm_rnd_offset_to_sector(x) rvm_offset_t *x;
+rvm_offset_t rvm_rnd_offset_to_sector(rvm_offset_t *x)
 {
     rvm_offset_t tmp;
 

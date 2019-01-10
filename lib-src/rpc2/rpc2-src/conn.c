@@ -48,8 +48,10 @@ Pittsburgh, PA.
 #include <sys/time.h>
 #include <time.h>
 #include <assert.h>
+
 #include <rpc2/rpc2.h>
 #include <rpc2/secure.h>
+
 #include "rpc2.private.h"
 
 /* HASHLENGTH should be a power of two, because we use modulo HASHLENGTH-1 to
@@ -122,7 +124,7 @@ struct CEntry *rpc2_GetConn(RPC2_Handle handle)
     struct CEntry *ceaddr = __rpc2_GetConn(handle);
 
     /* we are likely to see more lookups for this CEntry, so put it at
-     * the front of the hash lookup chain */
+   * the front of the hash lookup chain */
     if (ceaddr)
         __rehash_ce(ceaddr);
 
@@ -336,7 +338,7 @@ Init1 packet and its retries have a truly random Uniquefier, generated
 by the client.  The retries also have the RETRY bit set in the packet
 headers.  The triple (Host,Port,Uniquefier) is totally unique even
 across client reboots.
-    
+
 In the worst case the mapping involves a linear search of the
 connection list.  With 1000 connections this took about 60
 milliseconds on a SUN2.  In practice, many of these connections will
@@ -362,10 +364,10 @@ struct RecentBind {
 };
 
 #define RBSIZE 300 /* max size of RBCache for large RPC */
-#define RBCACHE_THRESHOLD \
-    50 /* RBCache never used for less than RBCACHE_TRESHOLD connections */
+#define RBCACHE_THRESHOLD 50
+/* RBCache never used for less than RBCACHE_TRESHOLD connections */
 static struct RecentBind *RBCache; /* Wraps around; reused in LRU order.
-					Conditionally allocated. */
+                                        Conditionally allocated. */
 static int RBWrapped = 0; /* RBCache is full and has wrapped around */
 static int NextRB    = 0; /* Index of entry to be used for the next bind */
 static int RBCacheOn = 0; /* 0 = RBCacheOff, 1 = RBCacheOn */
@@ -417,7 +419,7 @@ struct CEntry *rpc2_ConnFromBindInfo(struct RPC2_addrinfo *addr,
     int i, j = 0;
 
     /* If RBCache is being used, check it first; search it backwards,
-     * to increase chances of hit on recent binds.  */
+   * to increase chances of hit on recent binds.  */
 
     if (RBCacheOn) {
         next = (NextRB == 0) ? RBSIZE - 1 : NextRB - 1;
@@ -436,7 +438,7 @@ struct CEntry *rpc2_ConnFromBindInfo(struct RPC2_addrinfo *addr,
                 say(1, RPC2_DebugLevel, "RBCache hit after %d tries\n", i + 1);
                 ce = rpc2_GetConn(rbn->MyConn);
                 /* can't test the state because OPENKIMONO connections
-			 * will already be in S_AWAITREQUEST state */
+                 * will already be in S_AWAITREQUEST state */
                 if (ce /* && TestState(ce, SERVER, S_STARTBIND) */)
                     return ce;
             }

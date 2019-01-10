@@ -121,8 +121,8 @@ static int debug = 0; /* -d flag */
 static int ListInodeOption = 0; /* -i flag */
 
 static int ForceSalvage = 0; /* If salvage should occur
-					   despite the DONT_SALVAGE
-					   flag in the volume header */
+                                despite the DONT_SALVAGE
+                                flag in the volume header */
 
 int nskipvols         = 0; /* volumes to be skipped during salvage */
 VolumeId *skipvolnums = NULL;
@@ -130,18 +130,18 @@ VolumeId *skipvolnums = NULL;
 int nodebarrenize = 0; /* flag for debarrenizing vnodes on startup */
 
 static Device fileSysDevice; /* The device number of
-					   partition being salvaged */
-static char *fileSysDeviceName; /* The block device where the file system 
-					   being salvaged was mounted */
+                                partition being salvaged */
+static char *fileSysDeviceName; /* The block device where the file system
+                                   being salvaged was mounted */
 static char *fileSysPath; /* The path of the mounted
-					   partition currently being
-					   salvaged, i.e. the
-					   diqrectory containing the
-					   volume headers */
+                             partition currently being
+                             salvaged, i.e. the
+                             diqrectory containing the
+                             volume headers */
 int VolumeChanged = 0; /* Set by any routine which would change
-					   the volume in a way which would require
-					   callback to be broken if the volume was
-					   put back on line by an active file server */
+                          the volume in a way which would require
+                          callback to be broken if the volume was
+                          put back on line by an active file server */
 
 struct InodeSummary *inodeSummary;
 static int nVolumesInInodeFile; /* Number of read-write volumes summarized */
@@ -167,8 +167,8 @@ long S_VolSalvage(RPC2_Handle rpcid, RPC2_String path,
                   RPC2_Integer Debug, RPC2_Integer list)
 {
     long rc = 0;
-    int UtilityOK =
-        0; /* flag specifying whether the salvager may run as a volume utility */
+    /* flag specifying whether the salvager may run as a volume utility */
+    int UtilityOK = 0;
     ProgramType *pt; /* These are to keep C++ > 2.0 happy */
     char *rock;
 
@@ -239,7 +239,7 @@ cleanup:
 /*
  *  SalvageFileSys is the top level call for the main part of the salvage
  *  operation.  It proceeds as follows:
- *  1.  First it reads the locks and reads the disk partition to 
+ *  1.  First it reads the locks and reads the disk partition to
  *	obtain a list of all the inodes in that partition(GetInodeSummary).
  *	The inode list is sorted by volume number they belong to.
  *  2.  It then obtains the summary of all the volumes in the partition(GetVolumeSummary).
@@ -248,7 +248,7 @@ cleanup:
  *	the id of the parent if this is a backup or read-only clone.
  *  3.  Salvage each set of read-only volumes + r/w volume they correspond
  *	to(SalvageVolumeGroup), i.e. check that
- *	*  each vnode has an inode (SalvageIndex), and 
+ *	*  each vnode has an inode (SalvageIndex), and
  *	*  a name exists in a directory for each vnode(SalvageVolume), and
  *	*  a vnode exists for all names in each directory(SalvageVolume)
  */
@@ -429,7 +429,7 @@ static int SalvageVolumeGroup(struct VolumeSummary *vsp, int nVols)
         return 0;
     }
 
-    /* get the list of inodes belonging to this 
+    /* get the list of inodes belonging to this
        group of volumes from the inode file */
     struct InodeSummary *isp = vsp->inSummary;
     size                     = isp->nInodes * sizeof(struct ViceInodeInfo);
@@ -535,11 +535,11 @@ static int SalvageVolHead(struct VolumeSummary *vsp)
 
 /* Checks that every vnode has an inode that matches.
  * Special cases for vnodes with:
- * 	inodeNumber = NEWVNODEINODE 
- *		vnode was allocated but the server crashed; delete the vnode 
- * 	inodeNumber = 0 
- *		vnode was created but no store was done 
- * 		create an empty object for this vnode 
+ * 	inodeNumber = NEWVNODEINODE
+ *		vnode was allocated but the server crashed; delete the vnode
+ * 	inodeNumber = 0
+ *		vnode was created but no store was done
+ * 		create an empty object for this vnode
  */
 static int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes,
                            struct VolumeSummary *vsp)
@@ -758,17 +758,17 @@ static struct VnodeEssence *CheckVnodeNumber(VnodeId vnodeNumber, Unique_t unq)
 }
 
 /* iterate through entries in a directory and check them for */
-/* validity. This routine is passed as a paramter to EnumerateDir 
+/* validity. This routine is passed as a paramter to EnumerateDir
    Checks performed:
    - is there a vnode for the entry with matching unique
    - if the entry is "." is the vnode number right
-   - if the entry is ".." and the vnode has a parent 
+   - if the entry is ".." and the vnode has a parent
      is the vnode number right
-   - if the entry is ".." and the vnode has no parent 
+   - if the entry is ".." and the vnode has no parent
      is the vnode number right
    - does the vnode of other entries point to the correct parent
    - finally reduce the linkcount in the vnodeEssence by one, indicating
-     that a directory entry for the vnode has been found (eventually the 
+     that a directory entry for the vnode has been found (eventually the
      link count in the vnodeEssence should be 0).
 */
 
@@ -1001,8 +1001,7 @@ void DirCompletenessCheck(struct VolumeSummary *vsp)
         }
 
         DH_EnumerateDir(DC_DC2DH(dir.dirCache), JudgeEntry, (void *)&dir);
-        /* XXX We could call DC_Put here equally well and 
-	       retain some cache */
+        /* XXX We could call DC_Put here equally well and retain some cache */
         DC_Put(dir.dirCache);
         VLog(9, "DCC: Finished checking directory(%#x.%x.%x)", vsp->header.id,
              dir.vnodeNumber, dir.unique);
@@ -1041,12 +1040,12 @@ void DirCompletenessCheck(struct VolumeSummary *vsp)
                     vnp->count);
                 doassert = 1;
                 /* You can bring up the server by forcing
-			     * this volume off-line edit
-			     * /"vicedir"/vol/skipsalvage.  The format of
-			     * this file is the first line has the
-			     * number of volumes to skip, and each
-			     * subsequent line has a volume number.
-			     */
+                 * this volume off-line edit
+                 * /"vicedir"/vol/skipsalvage.  The format of
+                 * this file is the first line has the
+                 * number of volumes to skip, and each
+                 * subsequent line has a volume number.
+                 */
             }
         }
     }
@@ -1220,9 +1219,9 @@ static void release_locks(int volUtil)
     close(fslock);
 }
 
-/* if some volumes shouldnt be salvaged their number is 
+/* if some volumes shouldnt be salvaged their number is
    placed in a file /"vicedir"/vol/skipsalvage  Check if file exists
-   and read in the volume numbers.  The format of the 
+   and read in the volume numbers.  The format of the
    file is "<number of volumes> \n <volume numbers in hex>"
 */
 static void GetSkipVolumeNumbers()
@@ -1477,7 +1476,7 @@ static int CompareInodes(struct ViceInodeInfo *p1, struct ViceInodeInfo *p2)
     return 0;
 }
 
-/*  
+/*
  *  Gets an inode summary by examining the vice disk partition directly.
  *  The inodes are sorted with qsort by order of the volume and vnode,
  *  respectively, with which they are associated.

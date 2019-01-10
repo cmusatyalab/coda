@@ -592,14 +592,14 @@ Vnode *VGetVnode(Error *ec, Volume *vp, VnodeId vnodeNumber, Unique_t unq,
     if (++vnp->nUsers == 1) {
         int cdn1, cdn2, cdn3;
         /* First user.  Remove it from the LRU chain.  We can
-		   assume that there is at least one item in the queue */
+           assume that there is at least one item in the queue */
         if (vnp == vcp->lruHead)
             vcp->lruHead = vcp->lruHead->lruNext;
         cdn1 = (vnp == vcp->lruHead);
         cdn2 = (vcp->lruHead == NULL);
         cdn3 = (cdn1 || cdn2);
         /* g++ goes haywire here? Why?
-		   if ( (vnp == vcp->lruHead) || (vcp->lruHead == NULL) ) */
+           if ( (vnp == vcp->lruHead) || (vcp->lruHead == NULL) ) */
         if (cdn3) {
             LogMsg(-1, 0, stdout, "VGetVnode: lru chain addled!");
             CODA_ASSERT(0);
@@ -632,7 +632,7 @@ Vnode *VGetVnode(Error *ec, Volume *vp, VnodeId vnodeNumber, Unique_t unq,
         LWP_CurrentProcess(&vnp->writer);
     }
     /* Check that the vnode hasn't been removed while we were obtaining
-	   the lock */
+       the lock */
     if (vnp->disk.type == vNull) {
         if (vnp->nUsers-- == 1)
             StickOnLruChain(vnp, vcp);
@@ -730,8 +730,8 @@ void VPutVnode(Error *ec, Vnode *vnp)
     }
 
     /* Do not look at disk portion of vnode after this point; it may
-	   have been deleted above; also clear the DirHandle (this could
-	   be postponed, by clearing it when we reuse a Vnode from the LRU) */
+       have been deleted above; also clear the DirHandle (this could
+       be postponed, by clearing it when we reuse a Vnode from the LRU) */
     if (vnp->nUsers-- == 1) {
         StickOnLruChain(vnp, vcp);
         /* VN_PutDirHandle(vnp);  */
@@ -850,7 +850,7 @@ static void StickOnLruChain(Vnode *vnp, struct VnodeClassInfo *vcp)
         vcp->lruHead          = vnp;
     }
     /* If the vnode was just deleted, put it at the end of the
-	   chain so it will be reused immediately */
+       chain so it will be reused immediately */
     if (vnp->delete_me)
         vcp->lruHead = vnp->lruNext;
 }

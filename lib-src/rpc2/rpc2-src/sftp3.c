@@ -38,7 +38,7 @@ Pittsburgh, PA.
 */
 
 /*
-	-- SFTP Globals and routines common to sftp1.c and sftp2.c
+        -- SFTP Globals and routines common to sftp1.c and sftp2.c
 */
 
 #ifdef HAVE_CONFIG_H
@@ -58,11 +58,14 @@ Pittsburgh, PA.
 #include <assert.h>
 #include <string.h>
 #include <unistd.h>
-#include "rpc2.private.h"
+
 #include <rpc2/se.h>
 #include <rpc2/sftp.h>
 
-/* Globals: see sftp.h for descriptions; set by SFTP_Activate(), via SFTP_SetDefaults() */
+#include "rpc2.private.h"
+
+/* Globals: see sftp.h for descriptions; set by SFTP_Activate(), via
+ * SFTP_SetDefaults() */
 long SFTP_PacketSize;
 long SFTP_WindowSize;
 long SFTP_EnforceQuota;
@@ -112,12 +115,12 @@ static void PrintDb(struct SFTP_Entry *se, RPC2_PacketBuffer *pb);
 
 int sftp_InitIO(struct SFTP_Entry *sEntry)
 /* Fills the openfd field of sEntry by opening and seeking to the
-     file/offset specified by its SDesc.  Merely initializes internal
-     data structure for FILEINVM Returns 0 on success, -1 on failure.
+   file/offset specified by its SDesc.  Merely initializes internal
+   data structure for FILEINVM Returns 0 on success, -1 on failure.
 
-     NOTE: seek offsets <= 0 cause file truncation.  This should
-     probably only be for seek offsets < 0, but there are too many
-     pieces of code out there that set it to 0 and expect truncation.  */
+   NOTE: seek offsets <= 0 cause file truncation.  This should
+   probably only be for seek offsets < 0, but there are too many
+   pieces of code out there that set it to 0 and expect truncation.  */
 {
     struct SFTP_Descriptor *sftpd;
     long omode, oflags;
@@ -169,9 +172,9 @@ int sftp_InitIO(struct SFTP_Entry *sEntry)
 
     case FILEBYFD:
         /* trust the user to have given a good fd!
-	 * However the fd might be shared, so we actually need to re-seek to
-	 * the fileoffset that we expect on every operation, so we have to know
-	 * where we currently are */
+         * However the fd might be shared, so we actually need to re-seek to
+         * the fileoffset that we expect on every operation, so we have to know
+         * where we currently are */
         sEntry->openfd    = dup(sftpd->FileInfo.ByFD.fd);
         sEntry->fd_offset = lseek(sEntry->openfd, 0, SEEK_CUR);
         break;
@@ -203,11 +206,11 @@ int sftp_InitIO(struct SFTP_Entry *sEntry)
 
 void sftp_UpdateRTT(RPC2_PacketBuffer *pb, struct SFTP_Entry *sEntry,
                     unsigned long inbytes, unsigned long outbytes)
-/* 
-      Updates the round trip time estimate and variance in sEntry->HostInfo
-      using the observation in pb->Header.TimeEcho, Called by AckArrived and
-      DataArrived.
-    */
+/*
+  Updates the round trip time estimate and variance in sEntry->HostInfo
+  using the observation in pb->Header.TimeEcho, Called by AckArrived and
+  DataArrived.
+*/
 {
     unsigned long obs;
 
@@ -229,8 +232,8 @@ void sftp_UpdateRTT(RPC2_PacketBuffer *pb, struct SFTP_Entry *sEntry,
 void sftp_UpdateBW(RPC2_PacketBuffer *pb, unsigned long inbytes,
                    unsigned long outbytes, struct SFTP_Entry *sEntry)
 /* Updates the bandwidth estimate using the data in the packetbuffer
-      and the amount of data in bytes. Called by AckArrived and DataArrived.
-    */
+   and the amount of data in bytes. Called by AckArrived and DataArrived.
+*/
 {
     unsigned long obs;
     RPC2_NetLogEntry entry;
@@ -260,10 +263,10 @@ void sftp_UpdateBW(RPC2_PacketBuffer *pb, unsigned long inbytes,
 
 int sftp_DataArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
 /* Handles packet pBuff on a connection whose state is sEntry.
-       Invokes write strategy routine on all packets that request ack.
-       Sets XferState in sEntry to XferInProgress if this file
-       transfer is not over yet, and to XferCompleted if it is over.
-       Returns 0 if normal, -1 if fatal error of some kind occurred.  */
+   Invokes write strategy routine on all packets that request ack.
+   Sets XferState in sEntry to XferInProgress if this file
+   transfer is not over yet, and to XferCompleted if it is over.
+   Returns 0 if normal, -1 if fatal error of some kind occurred.  */
 {
     long moffset; /* bit position of TheseBits corresponding to pBuff */
     long i, j;
@@ -282,14 +285,14 @@ int sftp_DataArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
 
     if ((SFTP_MaxPackets > 0) && (sftp_PacketsInUse > SFTP_MaxPackets)) {
         /* Drop this packet.  Since the packet could have been dropped
-	by the kernel or the net, the SFTP code will still function
-	correctly.  The effect of dropping this packet is thus to make
-	the network appear rather lossy.  WARNING: we may end up with
-	SEFAIL2s because of this, since packet buffers are a shared
-	resource for which there is now contention.  Instead of a
-	deadlock, we will end up with a timeout.  More sophisticated
-	contention resolution algorithms are a pain and not likely to
-	be really useful.  */
+           by the kernel or the net, the SFTP code will still function
+           correctly.  The effect of dropping this packet is thus to make
+           the network appear rather lossy.  WARNING: we may end up with
+           SEFAIL2s because of this, since packet buffers are a shared
+           resource for which there is now contention.  Instead of a
+           deadlock, we will end up with a timeout.  More sophisticated
+           contention resolution algorithms are a pain and not likely to
+           be really useful.  */
         sftp_starved++;
         SFTP_FreeBuffer(&pBuff);
         return (0);
@@ -365,9 +368,9 @@ int sftp_DataArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
     /* ackme flag is set? */
     if (pBuff->Header.Flags & SFTP_ACKME) {
         if (pBuff->Header.TimeEcho) {
-            /* update bandwidth estimate.  pBuff->Header.TimeEcho is the 
-	       timestamp from the last ack we sent.  figure out how much 
-	       data we have seen */
+            /* update bandwidth estimate.  pBuff->Header.TimeEcho is the
+               timestamp from the last ack we sent.  figure out how much
+               data we have seen */
             RPC2_PacketBuffer *pb;
             unsigned long dataThisRound = 0;
             for (i = 1; sEntry->RecvLastContig + i <= sEntry->RecvMostRecent;
@@ -384,7 +387,7 @@ int sftp_DataArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
                 }
             if (dataThisRound)
                 /* XXX The dataThisRound value is NOT equal to the data that
-		 * was actually sent if we sent duplicate packets! -JH */
+                 * was actually sent if we sent duplicate packets! -JH */
                 sftp_UpdateBW(pBuff, dataThisRound,
                               sizeof(struct RPC2_PacketHeader), sEntry);
         }
@@ -427,12 +430,12 @@ int sftp_DataArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
 
 int sftp_WriteStrategy(struct SFTP_Entry *sEntry)
 /* Strategy routine to write packets to disk.  Defers write until
-       a contiguous set of packets starting at RecvLastContig has been
-       collected Writes them all out in one fell swoop, then bumps
-       counters.
+   a contiguous set of packets starting at RecvLastContig has been
+   collected Writes them all out in one fell swoop, then bumps
+   counters.
 
-       Returns 0 if normal, -1 if fatal error of some kind occurred.
-       Marks connection DISKERROR on failure.  */
+   Returns 0 if normal, -1 if fatal error of some kind occurred.
+   Marks connection DISKERROR on failure.  */
 {
     RPC2_PacketBuffer *pb;
     struct iovec iovarray[MAXOPACKETS];
@@ -457,7 +460,7 @@ int sftp_WriteStrategy(struct SFTP_Entry *sEntry)
             iovarray[i - 1].iov_len =
                 sEntry->SDesc->Value.SmartFTPD.ByteQuota - x;
             /* may result in 0 len for trailing packets after the
-	       one exceeding the quota */
+               one exceeding the quota */
         } else
             iovarray[i - 1].iov_len = pb->Header.BodyLength;
 
@@ -487,9 +490,9 @@ int sftp_WriteStrategy(struct SFTP_Entry *sEntry)
 
 static void sftp_SendAck(struct SFTP_Entry *sEntry)
 /* Send out an ack for the current state of sEntry.  The ack will
-	have GotEmAll as high as possible (leading 1's are gobbled)
+   have GotEmAll as high as possible (leading 1's are gobbled)
 
-	Returns 0 if normal, -1 if fatal error of some kind occurred.  */
+   Returns 0 if normal, -1 if fatal error of some kind occurred.  */
 {
     RPC2_PacketBuffer *pb;
     long i, shiftlen;
@@ -554,9 +557,9 @@ static void sftp_SendAck(struct SFTP_Entry *sEntry)
 
 int sftp_AckArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
 /*
-    Ack pBuff arrived on connection whose state is in sEntry.
-    Returns 0 if normal, -1 if fatal error of some kind occurred.
-    */
+   Ack pBuff arrived on connection whose state is in sEntry.
+   Returns 0 if normal, -1 if fatal error of some kind occurred.
+*/
 {
     long prun, i;
     unsigned long dataThisRound = 0;
@@ -586,7 +589,7 @@ int sftp_AckArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
         return (-1);
     }
 
-    /*  update the RTT estimate if 
+    /*  update the RTT estimate if
      *
      * 1. the timestamp-echo field is set * (so we can live with SFTPs
      * without timestamps)
@@ -597,7 +600,7 @@ int sftp_AckArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
      *
      * We might want to add another condition:
      * 3. the timer is not backed off (retransmitting)
-     * 
+     *
      * This condition is part of Karn's algorithm for dealing with
      * ambiguous acks.  But with timestamps, observations are
      * unambiguous.  If we cancel backoff, and the current RTT is low,
@@ -610,10 +613,10 @@ int sftp_AckArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
                            sizeof(struct RPC2_PacketHeader));
 
         /*  Update the bandwidth estimate.  To determine the amount of
-	 * useful data involved, first look at the initial run of
-	 * acked packets, from SendLastContig+1 to GotEmAll.  Then
-	 * look at packets represented in the bitmask.  Note these,
-	 * unlike the received packets, are in network order!!  */
+         * useful data involved, first look at the initial run of
+         * acked packets, from SendLastContig+1 to GotEmAll.  Then
+         * look at packets represented in the bitmask.  Note these,
+         * unlike the received packets, are in network order!!  */
         for (i = sEntry->SendLastContig + 1; i <= pBuff->Header.GotEmAll; i++) {
             pb = sEntry->ThesePackets[PBUFF(i)];
             if (!(ntohl(pb->Header.SEFlags) & SFTP_COUNTED))
@@ -633,7 +636,7 @@ int sftp_AckArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
 
         if (dataThisRound)
             /* XXX This is bogus, the succesfully acked data is NOT equal to
-	     * the data we actually transferred over the wire! -JH */
+             * the data we actually transferred over the wire! -JH */
             sftp_UpdateBW(pBuff, sizeof(struct RPC2_PacketHeader),
                           dataThisRound, sEntry);
     }
@@ -654,7 +657,8 @@ int sftp_AckArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
     /* Do we have more work to do? */
     if (sEntry->HitEOF && sEntry->ReadAheadCount == 0 &&
         sEntry->SendMostRecent ==
-            sEntry->SendLastContig) { /* I have nothing more to send, and peer has seen all I have sent */
+            sEntry->SendLastContig) { /* I have nothing more to send, and peer
+                                         has seen all I have sent */
         sEntry->XferState = XferCompleted;
         return (0);
     } else {
@@ -673,66 +677,66 @@ int sftp_AckArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
 
 int sftp_SendStrategy(struct SFTP_Entry *sEntry)
 /* Send packets out on connection whose state is in sEntry.
-    Returns 0 if normal, -1 if fatal error of some kind occurred.
-    */
+   Returns 0 if normal, -1 if fatal error of some kind occurred.
+*/
 {
     int winopen, worried = 0;
 
     /* On entry to this routine there are four sets of packets for us
-	to consider: 
+       to consider:
 
-	1. Worried set: these are the packets for which an Ack has
-	been requested but not received, and a retransmission interval
-	has passed.
-	
-	2. NeedAck set: these are packets for which an Ack has been
-	requested but not received, and a retransmission interval has
-	not yet passed.  
+       1. Worried set: these are the packets for which an Ack has
+       been requested but not received, and a retransmission interval
+       has passed.
 
-	3. InTransit set: these are the packets which have been sent
-	out, but for which an Ack has not yet been requested.
+       2. NeedAck set: these are packets for which an Ack has been
+       requested but not received, and a retransmission interval has
+       not yet passed.
 
-	4. SendAhead set: these are packets which have been read in
-	from the disk and are ready to be sent out.
+       3. InTransit set: these are the packets which have been sent
+       out, but for which an Ack has not yet been requested.
 
-	Next time's NeedAck set will include this time's InTransit set.
-	Next time's InTransit set will be this time's SendAhead.
+       4. SendAhead set: these are packets which have been read in
+       from the disk and are ready to be sent out.
 
-	We treat each of these sets as a separate class:
-	
-	1. We retransmit EVERY packet in the Worried set; ask for an
-	ack for the last one only if the SendAhead set is empty. This
-	could occur on EOF or if max window size is reached.
-	Otherwise do not ask for any acks.  
+       Next time's NeedAck set will include this time's InTransit set.
+       Next time's InTransit set will be this time's SendAhead.
 
-	2. We do not do anything in the NeedAck or InTransit sets.
-	
-	3. We transmit all packets in the SendAhead set and request an
-	ack for the one at sftp_AckPoint.
+       We treat each of these sets as a separate class:
 
-	Returns 0 if normal, -1 if fatal error of some kind occurred.
+       1. We retransmit EVERY packet in the Worried set; ask for an
+       ack for the last one only if the SendAhead set is empty. This
+       could occur on EOF or if max window size is reached.
+       Otherwise do not ask for any acks.
 
-	Added (JH '98): if Window is full, send only the first packet
-	and ask for an ack; this serves as implicit flow-control and
-	prevents connections from breaking.
+       2. We do not do anything in the NeedAck or InTransit sets.
 
-	(JH '03): This still seems to be insufficient. When a router
-	is loaded it is more likely to drop packet that arrive later.
-	The combination of the last packet containing the ACKME flag
-	and the higher chance of losing that packet creates a very
-	abysmal situation where a transfer that is larger than the
-	router queue length and shorter than a full window size can
-	time out without ever getting the packets with ACKME flags to
-	the other side (~16 packets in the case I'm looking at)
+       3. We transmit all packets in the SendAhead set and request an
+       ack for the one at sftp_AckPoint.
 
-	Proposed solution, set ackme on the first retransmitted packet
-	in the worried set, keep sending the other packets but do not
-	include further ackme flags. This way the other side will send
-	back a selective ack for any received packets from the worried
-	set and we can advance the window. The next transmission will
-	contain the first lost packet and the new sendahead, the ack
-	will then identify which packets were received in the same
-	window after the previous ACKME
+       Returns 0 if normal, -1 if fatal error of some kind occurred.
+
+       Added (JH '98): if Window is full, send only the first packet
+       and ask for an ack; this serves as implicit flow-control and
+       prevents connections from breaking.
+
+       (JH '03): This still seems to be insufficient. When a router
+       is loaded it is more likely to drop packet that arrive later.
+       The combination of the last packet containing the ACKME flag
+       and the higher chance of losing that packet creates a very
+       abysmal situation where a transfer that is larger than the
+       router queue length and shorter than a full window size can
+       time out without ever getting the packets with ACKME flags to
+       the other side (~16 packets in the case I'm looking at)
+
+       Proposed solution, set ackme on the first retransmitted packet
+       in the worried set, keep sending the other packets but do not
+       include further ackme flags. This way the other side will send
+       back a selective ack for any received packets from the worried
+       set and we can advance the window. The next transmission will
+       contain the first lost packet and the new sendahead, the ack
+       will then identify which packets were received in the same
+       window after the previous ACKME
     */
 
     sftp_TraceStatus(sEntry, 3, __LINE__);
@@ -773,9 +777,9 @@ int sftp_SendStrategy(struct SFTP_Entry *sEntry)
     /* Window is open: be more ambitious */
     if (sEntry->ReadAheadCount > 0) {
         /* If we're starting to get worried about packets, send the first
-	 * unacknowledged packet in the worried set. If that doesn't fix
-	 * it, we will hit the end of the send window, and start sending
-	 * the complete worried set anyways. -JH */
+         * unacknowledged packet in the worried set. If that doesn't fix
+         * it, we will hit the end of the send window, and start sending
+         * the complete worried set anyways. -JH */
         if (worried && SendFirstUnacked(sEntry, 1) < 0)
             return (-1);
 
@@ -790,7 +794,7 @@ int sftp_SendStrategy(struct SFTP_Entry *sEntry)
 
 static int CheckWorried(struct SFTP_Entry *sEntry)
 /* Check the packets from SendWorriedLimit to SendAckLimit, and
-       see if we should be Worried about any of them.  */
+   see if we should be Worried about any of them.  */
 {
     long i;
     unsigned long now, then;
@@ -822,8 +826,8 @@ static int CheckWorried(struct SFTP_Entry *sEntry)
         rto = tv.tv_sec * 1000000 + tv.tv_usec;
 
         /* check the timestamp and see if a timeout interval has
-	   occurred, if so let's start thinking about retransmitting
-	   the packet */
+           occurred, if so let's start thinking about retransmitting
+           the packet */
         thePacket = sEntry->ThesePackets[PBUFF(i)];
         if (!thePacket)
             continue;
@@ -846,9 +850,9 @@ static int CheckWorried(struct SFTP_Entry *sEntry)
 }
 
 static int ResendWorried(struct SFTP_Entry *sEntry)
-/* Resend worried set for sEntry. 
-       Side effects: flag settings on resent packets
-       Returns 0 if normal, -1 if fatal error of some kind occurred.  */
+/* Resend worried set for sEntry.
+   Side effects: flag settings on resent packets
+   Returns 0 if normal, -1 if fatal error of some kind occurred.  */
 {
     RPC2_PacketBuffer *pb;
     long i;
@@ -962,11 +966,11 @@ static int SendFirstUnacked(struct SFTP_Entry *sEntry, int winopen)
 
 static int SendSendAhead(struct SFTP_Entry *sEntry)
 /* Send out SendAhead set, adds to the InTransit set and requests
-       ack for AckPoint packet.  Caller should ensure that sending
-       ReadAheadCount packets will not cause WindowSize to be
-       exceeded.  Sets SendAckLimit always Sets SendMostRecent and
-       ReadAheadCount if something gets sent Returns 0 if normal, -1
-       if fatal error of some kind occurred.  */
+   ack for AckPoint packet.  Caller should ensure that sending
+   ReadAheadCount packets will not cause WindowSize to be
+   exceeded.  Sets SendAckLimit always Sets SendMostRecent and
+   ReadAheadCount if something gets sent Returns 0 if normal, -1
+   if fatal error of some kind occurred.  */
 {
     RPC2_PacketBuffer *pb;
     long i, j;
@@ -1002,7 +1006,8 @@ static int SendSendAhead(struct SFTP_Entry *sEntry)
         }
         if (i == 0 &&
             sEntry->SendLastContig ==
-                sEntry->SendWorriedLimit) { /* mark first packet only if no worried packets sent */
+                sEntry->SendWorriedLimit) { /* mark first packet only if no
+                                               worried packets sent */
             pb->Header.SEFlags = ntohl(pb->Header.SEFlags);
             pb->Header.SEFlags |= SFTP_FIRST;
             pb->Header.SEFlags = htonl(pb->Header.SEFlags);
@@ -1036,12 +1041,12 @@ static int SendSendAhead(struct SFTP_Entry *sEntry)
 
 int sftp_ReadStrategy(struct SFTP_Entry *sEntry)
 /* On entry, assumes SendMostRecent is the last packet read so
-       far.  Fills SendAhead buffers from disk in one fell swoop.  If
-       EOF is seen, sets HitEOF and sets unfilled packet pointers to
-       NULL.  Does not read in any packets if WindowSize would be
-       exceeded.  Sets ReadAheadCount to the number of packets
-       actually read in.  Returns 0 if normal, -1 if fatal error of
-       some kind occurred.  */
+   far.  Fills SendAhead buffers from disk in one fell swoop.  If
+   EOF is seen, sets HitEOF and sets unfilled packet pointers to
+   NULL.  Does not read in any packets if WindowSize would be
+   exceeded.  Sets ReadAheadCount to the number of packets
+   actually read in.  Returns 0 if normal, -1 if fatal error of
+   some kind occurred.  */
 {
     RPC2_PacketBuffer *pb;
     struct iovec iovarray[MAXOPACKETS];
@@ -1156,7 +1161,7 @@ int sftp_SendStart(struct SFTP_Entry *sEntry)
 /*
     Sends out a start packet on sEntry.
     Returns 0 if normal, -1 if fatal error of some kind occurred.
-    */
+*/
 {
     RPC2_PacketBuffer *pb;
     unsigned long now;
@@ -1183,8 +1188,7 @@ int sftp_SendStart(struct SFTP_Entry *sEntry)
     pb->Header.TimeEcho = VALID_TIMEECHO(sEntry) ? sEntry->TimeEcho : 0;
 #endif
 
-    /* JJK: Parameters are screwed up!  For now I will always send
-       them! */
+    /* JJK: Parameters are screwed up! For now I will always send them! */
     /*    if (sEntry->SentParms == FALSE)*/
     {
         RPC2_PacketBuffer *saved_pkt = pb;
@@ -1194,7 +1198,8 @@ int sftp_SendStart(struct SFTP_Entry *sEntry)
         }
         if (saved_pkt != pb)
             RPC2_FreeBuffer(&saved_pkt);
-        /* Can't set SentParms to TRUE yet, packet may be lost; set it in sftp_DataArrived(). */
+        /* Can't set SentParms to TRUE yet, packet may be lost; set it in
+         * sftp_DataArrived(). */
     }
 
     rpc2_htonp(pb);
@@ -1247,9 +1252,9 @@ int sftp_StartArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
 
     say(/*9*/ 4, SFTP_DebugLevel, "X-%u [%u]\n", pBuff->Header.SeqNumber,
         pBuff->Header.TimeStamp);
-    /* 
+    /*
      * grab the timestamp whether the transfer has started or not,
-     * because we're going to send more data anyway. 
+     * because we're going to send more data anyway.
      */
     sEntry->TimeEcho = pBuff->Header.TimeStamp;
 
@@ -1301,18 +1306,20 @@ void sftp_InitPacket(RPC2_PacketBuffer *pb, struct SFTP_Entry *sfe,
 static void PrintDb(struct SFTP_Entry *se, RPC2_PacketBuffer *pb)
 {
     fprintf(rpc2_tracefile, "SFTP_Entry:\n");
-    fprintf(
-        rpc2_tracefile,
-        "\tMagic = %ld  WhoAmI = %d  LocalHandle = %#x  GotParms = %d  SentParms = %d\n",
-        se->Magic, se->WhoAmI, se->LocalHandle, se->GotParms, se->SentParms);
+    fprintf(rpc2_tracefile,
+            "\tMagic = %ld  WhoAmI = %d  LocalHandle = %#x  "
+            "GotParms = %d  SentParms = %d\n",
+            se->Magic, se->WhoAmI, se->LocalHandle, se->GotParms,
+            se->SentParms);
     fprintf(rpc2_tracefile,
             "\topenfd = %ld  XferState = %d  HitEOF = %d  CtrlSeqNumber = %d\n",
             se->openfd, se->XferState, se->HitEOF, se->CtrlSeqNumber);
-    fprintf(
-        rpc2_tracefile,
-        "\tSendLastContig = %d   SendMostRecent = %d  SendAckLimit = %d SendWorriedLimit = %d  ReadAheadCount = %d\n",
-        se->SendLastContig, se->SendMostRecent, se->SendAckLimit,
-        se->SendWorriedLimit, se->ReadAheadCount);
+    fprintf(rpc2_tracefile,
+            "\tSendLastContig = %d   SendMostRecent = %d  "
+            "SendAckLimit = %d SendWorriedLimit = %d  "
+            "ReadAheadCount = %d\n",
+            se->SendLastContig, se->SendMostRecent, se->SendAckLimit,
+            se->SendWorriedLimit, se->ReadAheadCount);
     fprintf(rpc2_tracefile, "\tRecvLastContig = %d   RecvMostRecent = %d\n",
             se->RecvLastContig, se->RecvMostRecent);
 
@@ -1329,21 +1336,21 @@ static void PrintDb(struct SFTP_Entry *se, RPC2_PacketBuffer *pb)
 /*--------------- Virtual file manipulation routines ------------*/
 
 /* These routines are the only ones that know whether a file is a real
-one (specified by name, fd or inode) or a fake one (in memory).  The first
-two args to all the routines are the same: an SE descriptor that defines
-the file, and a file descriptor that is already open in the correct mode */
+   one (specified by name, fd or inode) or a fake one (in memory).  The first
+   two args to all the routines are the same: an SE descriptor that defines
+   the file, and a file descriptor that is already open in the correct mode */
 
 /* Returns length of file defined by se->SDesc
-       Returns RPC2 error code (< 0)  on failure
+   Returns RPC2 error code (< 0)  on failure
 
-       !!!!! BEWARE !!!!
-       This function is only used by the ftp_AppendFileToPacket and
-       SFTP_CheckSE functions (directly and through sftp_piggybackreadfile),
-       to check whether the first CLIENTTOSERVER or SERVERTOCLIENT packet is
-       able to send the file as well. It returns the filesize _limited to_
-       ByteQuota if a quota has been specified.		- JH
-       !!!!! BEWARE !!!!
-    */
+   !!!!! BEWARE !!!!
+   This function is only used by the ftp_AppendFileToPacket and
+   SFTP_CheckSE functions (directly and through sftp_piggybackreadfile),
+   to check whether the first CLIENTTOSERVER or SERVERTOCLIENT packet is
+   able to send the file as well. It returns the filesize _limited to_
+   ByteQuota if a quota has been specified.		- JH
+   !!!!! BEWARE !!!!
+*/
 off_t sftp_piggybackfilesize(struct SFTP_Entry *se)
 {
     struct stat stbuf;
@@ -1369,9 +1376,9 @@ off_t sftp_piggybackfilesize(struct SFTP_Entry *se)
 
 int sftp_piggybackfileread(struct SFTP_Entry *se, char *buf)
 /* Reads entire file defined by se->SDesc into buf.
-       Returns 0 on success, RPC2 error code (< 0) on failure
-       WARNING: buf must be big enough -- no checks are done!
-    */
+   Returns 0 on success, RPC2 error code (< 0) on failure
+   WARNING: buf must be big enough -- no checks are done!
+*/
 {
     struct FileInfoByAddr *p;
     ssize_t n, len;
@@ -1392,8 +1399,8 @@ int sftp_piggybackfileread(struct SFTP_Entry *se, char *buf)
 }
 
 /* writes out nbytes from buf to file sdesc using openfd
-       Returns 0 on success,  RPC2 error code (< 0) on failure
-    */
+   Returns 0 on success,  RPC2 error code (< 0) on failure
+*/
 int sftp_vfwritefile(struct SFTP_Entry *se, char *buf, int nbytes)
 {
     struct FileInfoByAddr *p;
@@ -1425,8 +1432,8 @@ int sftp_vfwritefile(struct SFTP_Entry *se, char *buf, int nbytes)
 /* close any still open filedescriptor */
 void sftp_vfclose(struct SFTP_Entry *se)
 {
-    if (se->openfd ==
-        -1) { /* we closed this fd when CheckSE fails, so this is not a problem. -JH */
+    if (se->openfd == -1) { /* we closed this fd when CheckSE fails, so this is
+                               not a problem. -JH */
         say(10, SFTP_DebugLevel, "sftp_vfclose: fd was already closed.\n");
         return;
     }
@@ -1438,7 +1445,7 @@ void sftp_vfclose(struct SFTP_Entry *se)
 static int sftp_vfreadv(struct SFTP_Entry *se, struct iovec iovarray[],
                         long howMany)
 /* Like Unix readv().  Returns total number of bytes read.
-       Can deal with in-memory files */
+   Can deal with in-memory files */
 {
     long i, rc, bytesleft;
     char *initp;
@@ -1485,8 +1492,8 @@ static int sftp_vfreadv(struct SFTP_Entry *se, struct iovec iovarray[],
 
 static int sftp_vfwritev(struct SFTP_Entry *se, struct iovec *iovarray,
                          long howMany)
-/*  Iterates through the array and returns the total number of
-    bytes sent out.  */
+/* Iterates through the array and returns the total number of
+   bytes sent out.  */
 {
     long left, thistime, result, rc, i;
     struct FileInfoByAddr *p;
@@ -1539,8 +1546,8 @@ void sftp_Progress(SE_Descriptor *sdesc, off_t BytesTransferred)
     sdesc->Value.SmartFTPD.BytesTransferred = BytesTransferred;
 
     if (sdesc->XferCB)
-        sdesc->XferCB(
-            sdesc->userp,
-            /* needs LFS fixup */ (int)sdesc->Value.SmartFTPD.SeekOffset +
-                BytesTransferred);
+        sdesc->XferCB(sdesc->userp,
+                      /* needs LFS fixup */
+                      (int)sdesc->Value.SmartFTPD.SeekOffset +
+                          BytesTransferred);
 }

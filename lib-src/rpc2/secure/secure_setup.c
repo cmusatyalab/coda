@@ -17,6 +17,7 @@ Coda are listed in the file CREDITS.
 #include <string.h>
 
 #include <rpc2/secure.h>
+
 #include "aes.h"
 #include "grunt.h"
 
@@ -46,7 +47,7 @@ int secure_setup_encrypt(uint32_t secure_version,
             return -1;
 
         /* if we have enough key material, keep authentication and decryption
-	 * keys separate, otherwise we just have to reuse the same key data */
+         * keys separate, otherwise we just have to reuse the same key data */
         if (len >= authenticate->keysize + min_keysize) {
             key += authenticate->keysize;
             len -= authenticate->keysize;
@@ -99,7 +100,7 @@ int secure_setup_decrypt(uint32_t secure_version,
             return -1;
 
         /* if we have enough key material, keep authentication and decryption
-	 * keys separate, otherwise we just have to reuse the same key data */
+         * keys separate, otherwise we just have to reuse the same key data */
         if (len >= validate->keysize + min_keysize) {
             key += validate->keysize;
             len -= validate->keysize;

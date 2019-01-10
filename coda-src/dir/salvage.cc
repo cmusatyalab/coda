@@ -121,11 +121,11 @@ int DirSalvage(long *fromFile, long *toFile)
                 break;
             }
             entry = ntohs(ep->next);
-            /* XXXXX - Create expects fid to be an array of 3 longs.  
-  Here we are passing just an array of 2 (3rd param) */
-            /*            code = Create(toFile, ep->name, (long *)(&ep->fid)); */
-            /* XXXXX - Subtracting 1 from the pointer to make it look 
-  like an array of 3 longs - VERY BAD PRACTICE XXXXXXX */
+            /* XXXXX - Create expects fid to be an array of 3 longs.
+               Here we are passing just an array of 2 (3rd param) */
+            /* code = Create(toFile, ep->name, (long *)(&ep->fid)); */
+            /* XXXXX - Subtracting 1 from the pointer to make it look
+               like an array of 3 longs - VERY BAD PRACTICE XXXXXXX */
             code = Create(toFile, ep->name, ((long *)(&ep->fid)) - 1);
             if (code)
                 printf("Create of %s returned code %d, continuing.\n", ep->name,

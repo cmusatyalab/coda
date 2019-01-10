@@ -236,21 +236,20 @@ static long lookup_str_name();
 #endif
 
 /* scanner utilities */
-
-static void skip_white(ptr) char **ptr;
+static void skip_white(char **ptr)
 {
     while (isspace(**ptr))
         (*ptr)++;
 }
 
-static void skip_lf()
+static void skip_lf(void)
 {
     while (rvm_true)
         if (getc(stdin) == '\n')
             return;
 }
 
-static unsigned intval(c) char c;
+static unsigned intval(char c)
 {
     if (isdigit(c)) /* octal & decimal */
         return (unsigned)c - (unsigned)'0';
@@ -263,9 +262,9 @@ static unsigned intval(c) char c;
 
 #ifdef UNUSED_FUNCTIONS
 /* character substitution: locate all occurances of c1, change to c2 */
-static void change_to(c1, c2, str) char c1; /* target character */
-char c2; /* substitute character */
-char *str; /* string */
+static void change_to(char c1 /* target character */,
+                      char c2 /* substitute character */,
+                      char *str /* string */)
 {
     long i = 0;
 
@@ -278,10 +277,9 @@ char *str; /* string */
 #endif
 
 /* similar to ANSI function, but returns base used */
-static unsigned long str2ul(str, ptr,
-                            base_used) char *str; /* ptr to conversion string */
-char **ptr; /* ptr to terminating char [out] */
-int *base_used; /* base used for conversion [out] */
+static unsigned long str2ul(char *str /* ptr to conversion string */,
+                            char **ptr /* ptr to terminating char [out] */,
+                            int *base_used /* base used for conversion [out] */)
 {
     int base        = 0;
     unsigned long l = 0;
@@ -332,10 +330,11 @@ exit:
         *base_used = base;
     return l;
 }
+
 /* similar to ANSI function, but returns base used */
-static long str2l(str, ptr, base_used) char *str; /* ptr to conversion string */
-char **ptr; /* ptr to terminating char [out] */
-int *base_used; /* base used for conversion [out] */
+static long str2l(char *str /* ptr to conversion string */,
+                  char **ptr /* ptr to terminating char [out] */,
+                  int *base_used /* base used for conversion [out] */)
 {
     long l;
     rvm_bool_t is_neg = rvm_false;
@@ -354,10 +353,9 @@ int *base_used; /* base used for conversion [out] */
 }
 
 /* rvm_offset_t scanner */
-static rvm_offset_t str2off(str, ptr,
-                            base_used) char *str; /* ptr to conversion string */
-char **ptr; /* ptr to terminating char [out] */
-int *base_used; /* base used for conversion [out] */
+static rvm_offset_t str2off(char *str /* ptr to conversion string */,
+                            char **ptr /* ptr to terminating char [out] */,
+                            int *base_used /* base used for conversion [out] */)
 {
     rvm_length_t high;
     rvm_length_t low;
@@ -374,9 +372,10 @@ int *base_used; /* base used for conversion [out] */
 
     return RVM_MK_OFFSET(high, low);
 }
+
 /* floating pt. number tester */
-static int is_float(str, out_ptr) char *str; /* ptr to conversion string */
-char **out_ptr; /* ptr to terminating char [out] */
+static int is_float(char *str /* ptr to conversion string */,
+                    char **out_ptr /* ptr to terminating char [out] */)
 {
     int retval = -1; /* -1: not numeric, 0: int, 1: float */
     char *ptr  = str; /* working ptr to input string */
@@ -408,8 +407,8 @@ char **out_ptr; /* ptr to terminating char [out] */
 }
 
 /* double float scanner */
-static double str2dbl(str, ptr) char *str; /* ptr to conversion string */
-char **ptr; /* ptr to terminating char [out] */
+static double str2dbl(char *str /* ptr to conversion string */,
+                      char **ptr /* ptr to terminating char [out] */)
 {
     double val = 0.0; /* value scanned */
 
@@ -418,9 +417,10 @@ char **ptr; /* ptr to terminating char [out] */
 
     return val;
 }
+
 /* string scanner */
-static long scan_str(str, len) char *str; /* ptr to string buffer */
-long len; /* maximum length */
+static long scan_str(char *str /* ptr to string buffer */,
+                     long len /* maximum length */)
 {
     long indx = 0;
 
@@ -432,9 +432,10 @@ long len; /* maximum length */
 
     return indx; /* return length */
 }
+
 /* scan quoted string, uses C escape conventions */
-static long scan_qstr(str, len) char *str; /* ptr to string buffer */
-long len; /* maximum length */
+static long scan_qstr(char *str /* ptr to string buffer */,
+                      long len /* maximum length */)
 {
     long indx = 0; /* string index/length */
     char ostr[5]; /* octal conversion string */
@@ -498,11 +499,11 @@ long len; /* maximum length */
     str[indx] = '\0';
     return indx; /* return length */
 }
+
 /* string name scan and lookup */
-static long scan_str_name(str_name, str_vec,
-                          ambig_str) char *str_name; /* string name buffer */
-str_name_entry_t *str_vec; /* defining vector */
-char *ambig_str; /* ambiguous name type */
+static long scan_str_name(char *str_name /* string name buffer */,
+                          str_name_entry_t *str_vec /* defining vector */,
+                          char *ambig_str /* ambiguous name type */)
 {
     char str_name_buf[STR_NAME_LEN + 1]; /* name buffer */
     char *buf_ptr;
@@ -520,11 +521,11 @@ char *ambig_str; /* ambiguous name type */
     (void)scan_str(buf_ptr, STR_NAME_LEN);
     return lookup_str_name(buf_ptr, str_vec, ambig_str);
 }
+
 /* string name lookup: accepts minimum substring for match */
-static long lookup_str_name(str, str_vec,
-                            ambig_str) char *str; /* name to lookup */
-str_name_entry_t *str_vec; /* defining vector */
-char *ambig_str; /* ambiguous name type */
+static long lookup_str_name(char *str /* name to lookup */,
+                            str_name_entry_t *str_vec /* defining vector */,
+                            char *ambig_str /* ambiguous name type */)
 {
     long i         = 0; /* loop counter */
     long str_index = (long)UNKNOWN; /* string index in vector */
@@ -555,26 +556,25 @@ char *ambig_str; /* ambiguous name type */
     return str_index;
 }
 
-static void bad_key_word(key_word, key_msg, err_stream) char *key_word;
-char *key_msg;
-FILE *err_stream;
+static void bad_key_word(char *key_word, char *key_msg, FILE *err_stream)
 {
     fprintf(err_stream, "\n? Key word \"%s\" %s\n", key_word, key_msg);
 }
+
 /* numeric format print/scan support */
-static void init_num_format()
+static void init_num_format(void)
 {
     num_count  = 1;
     num_all    = rvm_false;
     num_format = (unsigned long)(dec_sw | long_sw);
 }
 
-static void bad_num_format(err_stream) FILE *err_stream;
+static void bad_num_format(FILE *err_stream)
 {
     fprintf(err_stream, "\n? Unknown numeric format code: %c\n", *cmd_cur);
 }
 
-static long num_format_size(format) unsigned long format;
+static long num_format_size(unsigned long format)
 {
     switch (format & ALL_SIZES) {
     case byte_sw:
@@ -599,9 +599,9 @@ static long num_format_size(format) unsigned long format;
 
     return 0;
 }
+
 /* format alignment checkers */
-static rvm_bool_t num_format_align(format, addr) int format;
-char *addr;
+static rvm_bool_t num_format_align(int format, char *addr)
 {
     int size;
 
@@ -613,8 +613,7 @@ char *addr;
         return rvm_false; /* error */
 }
 
-static void bad_format_align(err_stream, format) FILE *err_stream;
-int format;
+static void bad_format_align(FILE *err_stream, int format)
 {
     /* alignement error */
     fprintf(err_stream, "\n?  Alignment error for access of type ");
@@ -643,8 +642,9 @@ int format;
         assert(rvm_false);
     }
 }
+
 /* numeric size and format switch scanner */
-static rvm_bool_t scan_num_format()
+static rvm_bool_t scan_num_format(void)
 {
     unsigned long temp;
 
@@ -751,12 +751,11 @@ static rvm_bool_t scan_num_format()
         incr_cur(1);
     }
 }
+
 /* print format descriptor */
-static void pr_format(out_stream, format, count,
-                      all) FILE *out_stream; /* target stream */
-unsigned long format; /* format to print */
-long count; /* count to print */
-rvm_bool_t all;
+static void pr_format(FILE *out_stream /* target stream */,
+                      unsigned long format /* format to print */,
+                      long count /* count to print */, rvm_bool_t all)
 {
     unsigned long test;
 
@@ -814,12 +813,12 @@ rvm_bool_t all;
         return;
     }
 }
+
 /* print fixed-width unsigned long */
-static void pr_ulong(out_stream, ul, base,
-                     width) FILE *out_stream; /* target stream */
-rvm_length_t ul; /* data to print */
-int base; /* conversion base (8,10,16) */
-int *width; /* printed width [out] */
+static void pr_ulong(FILE *out_stream /* target stream */,
+                     rvm_length_t ul /* data to print */,
+                     int base /* conversion base (8,10,16) */,
+                     int *width /* printed width [out] */)
 {
     switch (base) {
     case 8:
@@ -839,12 +838,12 @@ int *width; /* printed width [out] */
             *width += 10;
     }
 }
+
 /* print full width rvm_offset_t */
-static void prw_offset(out_stream, offset, base,
-                       width) FILE *out_stream; /* target stream */
-rvm_offset_t *offset; /* ptr to data */
-int base; /* conversion base (8,10,16) */
-int *width; /* printed width [out] */
+static void prw_offset(FILE *out_stream /* target stream */,
+                       rvm_offset_t *offset /* ptr to data */,
+                       int base /* conversion base (8,10,16) */,
+                       int *width /* printed width [out] */)
 {
     pr_ulong(out_stream, RVM_OFFSET_HIGH_BITS_TO_LENGTH(*offset), base, width);
     switch (base) {
@@ -875,17 +874,17 @@ static void prw_timeval(FILE *out_stream, struct timeval *tv)
 }
 
 /* print compact rvm_offset_t */
-static void prc_offset(out_stream, offset, base,
-                       width) FILE *out_stream; /* target stream */
-rvm_offset_t *offset; /* ptr to data */
-int base; /* conversion base (8,10,16) */
-int *width; /* printed width [out] */
+static void prc_offset(FILE *out_stream /* target stream */,
+                       rvm_offset_t *offset /* ptr to data */,
+                       int base /* conversion base (8,10,16) */,
+                       int *width /* printed width [out] */)
 {
     if (RVM_OFFSET_HIGH_BITS_TO_LENGTH(*offset) != 0)
         prw_offset(out_stream, offset, base, width);
     else
         pr_ulong(out_stream, RVM_OFFSET_TO_LENGTH(*offset), base, width);
 }
+
 /* print "true" or "false" */
 /* out_stream - target stream */
 /* b          - rvm_bool_t value */
@@ -901,9 +900,9 @@ static void pr_bool(FILE *out_stream, rvm_bool_t b, int *width)
 }
 
 /* print printable characters, C escapes, octal otherwise */
-static void pr_char(out_stream, c, width) FILE *out_stream; /* target stream */
-char c; /* character to print */
-int *width; /* printed width [out] */
+static void pr_char(FILE *out_stream /* target stream */,
+                    char c /* character to print */,
+                    int *width /* printed width [out] */)
 {
     if (isprint(c))
         putc(c, out_stream);
@@ -941,16 +940,17 @@ int *width; /* printed width [out] */
     if (width != NULL)
         *width += 1;
 }
+
 /* timestamp print support -- similar to ctime, but also can print usecs */
 
 static char *day_vec[7]  = { "Sun", "Mon", "Tue", "Wen", "Thu", "Fri", "Sat" };
 static char *mon_vec[12] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun",
                              "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
-static void pr_timeval(out_stream, timestamp, usec,
-                       width) FILE *out_stream; /* target stream */
-struct timeval *timestamp; /* timeval to print */
-rvm_bool_t usec; /* print microsecs if true */
-int *width; /* printed width [out] */
+
+static void pr_timeval(FILE *out_stream /* target stream */,
+                       struct timeval *timestamp /* timeval to print */,
+                       rvm_bool_t usec /* print microsecs if true */,
+                       int *width /* printed width [out] */)
 {
     struct tm *tfields; /* broken down timeval struct */
 
@@ -973,11 +973,11 @@ int *width; /* printed width [out] */
             *width += 7;
     }
 }
+
 /* RVM error printing */
-static void pr_rvm_error(err_stream, errcode,
-                         msg) rvm_return_t errcode; /* error code */
-FILE *err_stream; /* error stream */
-char *msg; /* error message */
+static void pr_rvm_error(FILE *err_stream /* error stream */,
+                         rvm_return_t errcode /* error code */,
+                         char *msg /* error message */)
 {
     switch (errcode) {
     case RVM_EIO:
@@ -992,6 +992,7 @@ char *msg; /* error message */
                 rvm_return(errcode));
     }
 }
+
 /* formatted memory printer */
 /* out_stream - target stream */
 /* err_stream - target error stream */
@@ -1109,21 +1110,20 @@ static void pr_memory(FILE *out_stream, FILE *err_stream, char *addr,
         *tot_width += width;
     }
 }
+
 /* offset range printer ,*/
-static rvm_bool_t pr_data_range(out_stream, err_stream, indent, line_width,
-                                offset, pr_offset, base, count, chk_buffer,
-                                limit_offset,
-                                limit_str) FILE *out_stream; /* output stream */
-FILE *err_stream; /* error output stream */
-int indent; /* num spaces to indent */
-int line_width; /* num characters in line */
-rvm_offset_t *offset; /* ptr to data offset [in/out] */
-rvm_offset_t *pr_offset; /* ptr to printed offset [in/out] */
-int base; /* radix of pr_offset */
-rvm_length_t count; /* number of memory items to print */
-chk_buffer_t *chk_buffer; /* buffer manager - returns ptr to data */
-rvm_offset_t *limit_offset; /* limit of valid data */
-char *limit_str; /* msg to print if limit exceeded */
+static rvm_bool_t pr_data_range(
+    FILE *out_stream /* output stream */,
+    FILE *err_stream /* error output stream */,
+    int indent /* num spaces to indent */,
+    int line_width /* num characters in line */,
+    rvm_offset_t *offset /* ptr to data offset [in/out] */,
+    rvm_offset_t *pr_offset /* ptr to printed offset [in/out] */,
+    int base /* radix of pr_offset */,
+    rvm_length_t count /* number of memory items to print */,
+    chk_buffer_t *chk_buffer /* buffer manager - returns ptr to data */,
+    rvm_offset_t *limit_offset /* limit of valid data */,
+    char *limit_str /* msg to print if limit exceeded */)
 {
     char *data_ptr; /* ptr to data to print */
     rvm_length_t tot_size; /* total size of mem items printed */
@@ -1186,9 +1186,10 @@ char *limit_str; /* msg to print if limit exceeded */
 
     return rvm_true;
 }
+
 /* get boolean answer */
-static rvm_bool_t get_ans(prompt, sense) char *prompt; /* prompt string */
-rvm_bool_t sense; /* false if default is 'no' */
+static rvm_bool_t get_ans(char *prompt /* prompt string */,
+                          rvm_bool_t sense /* false if default is 'no' */)
 {
     char sense_char; /* default sense character */
 
@@ -1218,9 +1219,9 @@ rvm_bool_t sense; /* false if default is 'no' */
         }
     }
 }
+
 /* output redirection scanner */
-static void get_redirect(out_stream, err_stream) FILE **out_stream;
-FILE **err_stream;
+static void get_redirect(FILE **out_stream, FILE **err_stream)
 {
     char *cmd_cur_save; /* input line ptr hide-away */
     long file_name_len; /* length of file name */
@@ -1273,9 +1274,9 @@ FILE **err_stream;
 exit:
     cmd_cur = cmd_cur_save;
 }
+
 /* close redirected streams */
-static void close_redirect(out_stream, err_stream) FILE *out_stream;
-FILE *err_stream;
+static void close_redirect(FILE *out_stream, FILE *err_stream)
 {
     if ((out_stream != stdout) && (out_stream != NULL))
         fclose(out_stream);
@@ -1284,7 +1285,7 @@ FILE *err_stream;
         fclose(err_stream);
 }
 
-static rvm_bool_t no_log()
+static rvm_bool_t no_log(void)
 {
     if (log == NULL) {
         fprintf(stderr, "? log not open\n");
@@ -1292,10 +1293,11 @@ static rvm_bool_t no_log()
     }
     return rvm_false;
 }
+
 /* read prompted line from terminal */
-static char *read_prompt_line(out_stream, prompt, null_ok) FILE *out_stream;
-char *prompt; /* prompt string */
-rvm_bool_t null_ok; /* true if null input ok */
+static char *read_prompt_line(FILE *out_stream,
+                              char *prompt /* prompt string */,
+                              rvm_bool_t null_ok /* true if null input ok */)
 {
     skip_white(&cmd_cur);
     if (chk_sigint(out_stream))
@@ -1319,6 +1321,7 @@ rvm_bool_t null_ok; /* true if null input ok */
         }
     return NULL;
 }
+
 /* type sizes vector */
 #define MAX_TYPES 100 /* maximum number of types */
 
@@ -1387,8 +1390,9 @@ static str_name_entry_t type_vec[MAX_TYPES] = /* type sizes vector */
         { "unsigned", (char *)sizeof(unsigned) },
         { "", NULL } /* end mark, do not delete */
     };
+
 /* sizeof command support */
-static rvm_bool_t do_sizeof()
+static rvm_bool_t do_sizeof(void)
 {
     char type_name[STR_NAME_LEN + 1]; /* name buffer */
     long type_index; /* index of type in type vector */
@@ -1443,8 +1447,9 @@ static rvm_bool_t do_sizeof()
         }
     }
 }
+
 /* peek/poke file & buffer management */
-static void init_peekpoke_buf()
+static void init_peekpoke_buf(void)
 {
     peekpoke.r_length = 0;
     peekpoke.ptr      = 0;
@@ -1454,7 +1459,7 @@ static void init_peekpoke_buf()
 }
 
 /* close peek/poke file */
-static void close_peekpoke_dev()
+static void close_peekpoke_dev(void)
 {
     close_dev(&peekpoke.dev);
     if (peekpoke.dev.name != NULL)
@@ -1463,8 +1468,9 @@ static void close_peekpoke_dev()
     peekpoke.dev.raw_io = rvm_false;
     init_peekpoke_buf();
 }
+
 /* open peek/poke file */
-static rvm_bool_t open_peekpoke_dev()
+static rvm_bool_t open_peekpoke_dev(void)
 {
     char *file_name; /* temporary file name ptr */
     rvm_length_t temp;
@@ -1527,9 +1533,9 @@ static rvm_bool_t open_peekpoke_dev()
 
     return rvm_true;
 }
+
 /* write contents of peekpoke buffer to device */
-static rvm_bool_t
-    write_peekpoke(err_stream) FILE *err_stream; /* error output stream */
+static rvm_bool_t write_peekpoke(FILE *err_stream /* error output stream */)
 {
     long length;
 
@@ -1543,12 +1549,13 @@ static rvm_bool_t
 
     return rvm_true;
 }
+
 /* fill peekpoke buffer */
-static rvm_bool_t read_peekpoke(offset, length, rewrite, err_stream)
-    rvm_offset_t *offset; /* read offset */
-long length; /* minimum read length */
-rvm_bool_t rewrite; /* write contents back if true */
-FILE *err_stream; /* error output stream */
+static rvm_bool_t
+read_peekpoke(rvm_offset_t *offset /* read offset */,
+              long length /* minimum read length */,
+              rvm_bool_t rewrite /* write contents back if true */,
+              FILE *err_stream /* error output stream */)
 {
     rvm_offset_t end_offset;
     rvm_length_t read_length;
@@ -1598,18 +1605,18 @@ FILE *err_stream; /* error output stream */
 }
 
 /* peekpoke buffer check */
-static char *chk_peekpoke(offset, length, err_stream)
-    rvm_offset_t *offset; /* initial offset in file */
-rvm_length_t length; /* data length needed */
-FILE *err_stream; /* error output stream */
+static char *chk_peekpoke(rvm_offset_t *offset /* initial offset in file */,
+                          rvm_length_t length /* data length needed */,
+                          FILE *err_stream /* error output stream */)
 {
     if (!read_peekpoke(offset, length, rvm_false, err_stream))
         return NULL;
 
     return &peekpoke.buf[peekpoke.ptr];
 }
+
 /* peek cmd support */
-static rvm_bool_t do_peek()
+static rvm_bool_t do_peek(void)
 {
     FILE *out_stream; /* output stream */
     FILE *err_stream; /* error output stream */
@@ -1685,13 +1692,11 @@ exit:
         peekpoke.sticky_offset = offset;
     return no_err;
 }
+
 /* scan poke value */
-static rvm_bool_t scan_poke_val(offset, scanned_str, scanned_float, dbl_float,
-                                err_stream) rvm_offset_t *offset;
-rvm_bool_t *scanned_str;
-rvm_bool_t *scanned_float;
-double *dbl_float;
-FILE *err_stream;
+static rvm_bool_t scan_poke_val(rvm_offset_t *offset, rvm_bool_t *scanned_str,
+                                rvm_bool_t *scanned_float, double *dbl_float,
+                                FILE *err_stream)
 {
     long size;
 
@@ -1729,10 +1734,11 @@ FILE *err_stream;
 
     return rvm_true;
 }
+
 /* replicate poke assignments */
-static rvm_bool_t repeat_poke(offset, init_offset)
-    rvm_offset_t *offset; /* current offset in file */
-rvm_offset_t *init_offset; /* initial offset in file */
+static rvm_bool_t
+repeat_poke(rvm_offset_t *offset /* current offset in file */,
+            rvm_offset_t *init_offset /* initial offset in file */)
 {
     int i;
     char *copy_buf = NULL; /* repeated assignment buffer */
@@ -1781,8 +1787,9 @@ exit:
         free(copy_buf);
     return no_err;
 }
+
 /* poke cmd support */
-static rvm_bool_t do_poke()
+static rvm_bool_t do_poke(void)
 {
     rvm_offset_t init_offset; /* initial offset in file */
     rvm_offset_t offset; /* current offset in file */
@@ -1913,9 +1920,9 @@ exit:
             return rvm_false;
     return write_peekpoke(stderr);
 }
+
 /* sub record size determination; -1 if no valid header */
-static rvm_length_t
-    sub_rec_size(rec_hdr) rec_hdr_t *rec_hdr; /* generic record header */
+static rvm_length_t sub_rec_size(rec_hdr_t *rec_hdr /* generic record header */)
 {
     rvm_length_t size;
 
@@ -1939,10 +1946,10 @@ static rvm_length_t
 
     return size;
 }
+
 /* log record type name printer */
-static void print_hdr_type(out_stream,
-                           rec_hdr) FILE *out_stream; /* output stream */
-rec_hdr_t *rec_hdr; /* generic record header */
+static void print_hdr_type(FILE *out_stream /* output stream */,
+                           rec_hdr_t *rec_hdr /* generic record header */)
 {
     switch (rec_hdr->struct_id) {
     case trans_hdr_id:
@@ -1965,12 +1972,10 @@ rec_hdr_t *rec_hdr; /* generic record header */
 
 #ifdef UNUSED_FUNCTIONS
 /* print record summary */
-static void print_rec_summary(out_stream, rec_hdr, cur_msg, direction,
-                              print) FILE *out_stream; /* output stream */
-rec_hdr_t *rec_hdr; /* generic record header */
-char *cur_msg; /* currency message */
-rvm_bool_t direction;
-rvm_bool_t print;
+static void print_rec_summary(FILE *out_stream /* output stream */,
+                              rec_hdr_t *rec_hdr /* generic record header */,
+                              char *cur_msg /* currency message */,
+                              rvm_bool_t direction, rvm_bool_t print)
 {
     if (print == rvm_true) {
         fprintf(out_stream,
@@ -1984,11 +1989,11 @@ rvm_bool_t print;
         fprintf(out_stream, "** Record number is out of sequence **\n");
 }
 #endif
+
 /* record header printer */
-static void print_rec_hdr(out_stream, rec_hdr,
-                          cur_msg) FILE *out_stream; /* output stream */
-rec_hdr_t *rec_hdr; /* generic record header */
-char *cur_msg; /* currency message */
+static void print_rec_hdr(FILE *out_stream /* output stream */,
+                          rec_hdr_t *rec_hdr /* generic record header */,
+                          char *cur_msg /* currency message */)
 {
     fprintf(out_stream, "Record number: %7.1lu     Type: ", rec_hdr->rec_num);
     print_hdr_type(out_stream, rec_hdr);
@@ -2009,10 +2014,10 @@ char *cur_msg; /* currency message */
     prc_offset(out_stream, &cur_offset, 10, NULL);
     putc('\n', out_stream);
 }
+
 /* record end marker printer */
-static void print_rec_end(out_stream,
-                          rec_end) FILE *out_stream; /* output stream */
-rec_end_t *rec_end; /* record end marker */
+static void print_rec_end(FILE *out_stream /* output stream */,
+                          rec_end_t *rec_end /* record end marker */)
 {
     rvm_offset_t log_offset;
 
@@ -2024,9 +2029,10 @@ rec_end_t *rec_end; /* record end marker */
     fprintf(out_stream, "    Record length: %11.1lu   Back link:  %5.1lu\n",
             rec_end->rec_hdr.rec_length, rec_end->sub_rec_len);
 }
+
 /* modification range printer */
-static void print_range(out_stream, nv) FILE *out_stream; /* output stream */
-nv_range_t *nv; /* range header */
+static void print_range(FILE *out_stream /* output stream */,
+                        nv_range_t *nv /* range header */)
 {
     rvm_offset_t log_offset;
 
@@ -2045,10 +2051,10 @@ nv_range_t *nv; /* range header */
             "    Record length:       %5.1lu   Back link:  %5.1lu\n",
             nv->rec_hdr.rec_length, nv->sub_rec_len);
 }
+
 /* transaction header printer */
-static void print_trans_hdr(out_stream,
-                            trans_hdr) FILE *out_stream; /* output stream */
-trans_hdr_t *trans_hdr; /* transaction header */
+static void print_trans_hdr(FILE *out_stream /* output stream */,
+                            trans_hdr_t *trans_hdr /* transaction header */)
 {
     /* print transaction header, start/commit times */
     fprintf(out_stream, "  TID:              ");
@@ -2089,11 +2095,11 @@ trans_hdr_t *trans_hdr; /* transaction header */
     fprintf(out_stream, "   Tot. rec. length:%11.1lu\n\n",
             trans_hdr->rec_hdr.rec_length + sizeof(rec_end_t));
 }
+
 /* transaction printer */
-static void print_transaction(out_stream, err_stream,
-                              trans_hdr) FILE *out_stream; /* output stream */
-FILE *err_stream; /* error output stream */
-trans_hdr_t *trans_hdr; /* transaction header */
+static void print_transaction(FILE *out_stream /* output stream */,
+                              FILE *err_stream /* error output stream */,
+                              trans_hdr_t *trans_hdr /* transaction header */)
 {
     nv_range_t *nv; /* range header */
     rec_end_t *rec_end; /* record end marker */
@@ -2128,10 +2134,10 @@ trans_hdr_t *trans_hdr; /* transaction header */
     rec_end = (rec_end_t *)&log_buf->buf[log_buf->ptr];
     print_rec_end(out_stream, rec_end);
 }
+
 /* log segment dictionary entry printer */
-static void print_log_seg(out_stream,
-                          rec_hdr) FILE *out_stream; /* output stream */
-rec_hdr_t *rec_hdr; /* log record header */
+static void print_log_seg(FILE *out_stream /* output stream */,
+                          rec_hdr_t *rec_hdr /* log record header */)
 {
     log_seg_t *log_seg; /* log segment dictionary entry */
     char *name; /* segment file name */
@@ -2145,12 +2151,12 @@ rec_hdr_t *rec_hdr; /* log record header */
     prc_offset(out_stream, &log_seg->num_bytes, 10, NULL);
     putc('\n', out_stream);
 }
+
 /* log record printer */
-static void print_rec(out_stream, err_stream, rec_hdr,
-                      cur_msg) FILE *out_stream; /* output stream */
-FILE *err_stream; /* error output stream */
-rec_hdr_t *rec_hdr; /* generic record header */
-char *cur_msg; /* currency message */
+static void print_rec(FILE *out_stream /* output stream */,
+                      FILE *err_stream /* error output stream */,
+                      rec_hdr_t *rec_hdr /* generic record header */,
+                      char *cur_msg /* currency message */)
 {
     /* print standard header data */
     print_rec_hdr(out_stream, rec_hdr, cur_msg);
@@ -2171,8 +2177,9 @@ char *cur_msg; /* currency message */
 
     putc('\n', out_stream);
 }
+
 /* set current log position and record ptr */
-static rec_hdr_t *set_log_position()
+static rec_hdr_t *set_log_position(void)
 {
     rec_hdr_t *rec_hdr; /* generic record header */
     trans_hdr_t *trans_hdr; /* transaction header */
@@ -2195,9 +2202,8 @@ static rec_hdr_t *set_log_position()
 }
 
 /* current log record printer */
-static void print_cur_rec(out_stream,
-                          err_stream) FILE *out_stream; /* output stream */
-FILE *err_stream; /* error output stream */
+static void print_cur_rec(FILE *out_stream /* output stream */,
+                          FILE *err_stream /* error output stream */)
 {
     rec_hdr_t *rec_hdr; /* generic record header */
 
@@ -2210,11 +2216,9 @@ FILE *err_stream; /* error output stream */
 
 #ifdef UNUSED_FUNCTIONS
 /* Print a summary of the current log record: one line */
-static void print_cur_summary(out_stream, err_stream, direction,
-                              print) FILE *out_stream; /* output stream */
-FILE *err_stream; /* error output stream */
-rvm_bool_t direction;
-rvm_bool_t print;
+static void print_cur_summary(FILE *out_stream /* output stream */,
+                              FILE *err_stream /* error output stream */,
+                              rvm_bool_t direction, rvm_bool_t print)
 {
     rec_hdr_t *rec_hdr; /* generic record header */
 
@@ -2225,10 +2229,10 @@ rvm_bool_t print;
     print_rec_summary(out_stream, rec_hdr, NULL, direction, print);
 }
 #endif
+
 /* log sub record printer */
-static void print_cur_sub_rec(out_stream,
-                              err_stream) FILE *out_stream; /* output stream */
-FILE *err_stream; /* error output stream */
+static void print_cur_sub_rec(FILE *out_stream /* output stream */,
+                              FILE *err_stream /* error output stream */)
 {
     rec_hdr_t *rec_hdr; /* generic record header */
 
@@ -2259,6 +2263,7 @@ FILE *err_stream; /* error output stream */
         no_rec       = rvm_true;
     }
 }
+
 /* log status header printer */
 static void print_log_hdr(FILE *out_stream, FILE *err_stream)
 {
@@ -2278,11 +2283,11 @@ static void print_log_hdr(FILE *out_stream, FILE *err_stream)
     pr_timeval(out_stream, &status->last_trunc, rvm_true, NULL);
     fprintf(out_stream, "\n\n");
 }
+
 /* log segment dictionary printer */
-static void print_seg_dict(out_stream, err_stream,
-                           entry_num) FILE *out_stream; /* output stream */
-FILE *err_stream; /* error stream */
-int entry_num; /* index of entry */
+static void print_seg_dict(FILE *out_stream /* output stream */,
+                           FILE *err_stream /* error stream */,
+                           int entry_num /* index of entry */)
 {
     device_t *dev;
 
@@ -2296,8 +2301,9 @@ int entry_num; /* index of entry */
     prc_offset(out_stream, &(dev->num_bytes), 10, NULL);
     putc('\n', out_stream);
 }
+
 /* reset buffer if previous search failed */
-static rvm_bool_t reset_buffer(new_direction) rvm_bool_t new_direction;
+static rvm_bool_t reset_buffer(rvm_bool_t new_direction)
 {
     rvm_return_t retval;
 
@@ -2321,8 +2327,8 @@ static rvm_bool_t reset_buffer(new_direction) rvm_bool_t new_direction;
 
     return rvm_true;
 }
-static rvm_return_t load_sub_rec(incr, direction) long incr;
-rvm_bool_t direction;
+
+static rvm_return_t load_sub_rec(long incr, rvm_bool_t direction)
 {
     rec_hdr_t *rec_hdr;
     rvm_offset_t offset; /* offset temp. */
@@ -2384,9 +2390,9 @@ no_record:
     no_rec       = rvm_true;
     return retval;
 }
+
 /* load record header if at rec_end */
-static rvm_bool_t
-    load_rec_hdr(err_stream) FILE *err_stream; /* error output stream */
+static rvm_bool_t load_rec_hdr(FILE *err_stream /* error output stream */)
 {
     rec_end_t *rec_end; /* record end marker */
     long tmp_ptr; /* temporary buffer index */
@@ -2414,12 +2420,11 @@ static rvm_bool_t
     (void)set_log_position();
     return rvm_true;
 }
+
 /* search for earliest intact record by searching backward from
-     present log head */
-static rvm_bool_t
-    locate_earliest(out_stream,
-                    err_stream) FILE *out_stream; /* output stream */
-FILE *err_stream; /* error output stream */
+   present log head */
+static rvm_bool_t locate_earliest(FILE *out_stream /* output stream */,
+                                  FILE *err_stream /* error output stream */)
 {
     rvm_offset_t offset;
     rec_end_t *rec_end;
@@ -2485,9 +2490,9 @@ FILE *err_stream; /* error output stream */
     (void)set_log_position();
     return rvm_true;
 }
-static rvm_return_t locate_rec(rec_num,
-                               ts) long rec_num; /* record number if != 0 */
-struct timeval *ts; /* timestamp if != NULL */
+
+static rvm_return_t locate_rec(long rec_num /* record number if != 0 */,
+                               struct timeval *ts /* timestamp if != NULL */)
 {
     rec_hdr_t *rec_hdr; /* generic record header */
     rvm_offset_t offset; /* offset temp. */
@@ -2568,7 +2573,8 @@ no_record:
         no_rec = rvm_true; /* no current record */
     return retval;
 }
-static rvm_return_t locate_next_sub_rec()
+
+static rvm_return_t locate_next_sub_rec(void)
 {
     rec_hdr_t *rec_hdr; /* generic record header */
     long incr;
@@ -2605,7 +2611,8 @@ no_record:
     no_rec       = rvm_true;
     return retval;
 }
-static rvm_return_t locate_prev_sub_rec()
+
+static rvm_return_t locate_prev_sub_rec(void)
 {
     rec_hdr_t *rec_hdr; /* generic record header */
     rvm_offset_t offset; /* offset temp. */
@@ -2653,14 +2660,13 @@ no_record:
     no_rec       = rvm_true;
     return retval;
 }
+
 /* locate modifications of vm address */
 static rvm_bool_t
-    locate_mods(vmaddr, length, nv_found, out_stream,
-                err_stream) char *vmaddr; /* address to search for */
-rvm_length_t length; /* length of search range */
-nv_range_t **nv_found; /* range with located vmaddr [out] */
-FILE *out_stream;
-FILE *err_stream;
+locate_mods(char *vmaddr /* address to search for */,
+            rvm_length_t length /* length of search range */,
+            nv_range_t **nv_found /* range with located vmaddr [out] */,
+            FILE *out_stream, FILE *err_stream)
 {
     rec_hdr_t *rec_hdr; /* generic record header */
     nv_range_t *nv; /* nv range ptr */
@@ -2730,10 +2736,10 @@ FILE *err_stream;
         }
     }
 }
+
 /* show earliest record */
-static rvm_bool_t
-    show_earliest(out_stream, err_stream) FILE *out_stream; /* output stream */
-FILE *err_stream; /* error output stream */
+static rvm_bool_t show_earliest(FILE *out_stream /* output stream */,
+                                FILE *err_stream /* error output stream */)
 {
     if (!locate_earliest(out_stream, err_stream))
         return rvm_false;
@@ -2754,10 +2760,10 @@ exit:
     stop_sticky = rvm_true;
     return rvm_true;
 }
+
 /* show header record support */
-static rvm_bool_t show_head(out_stream,
-                            err_stream) FILE *out_stream; /* output stream */
-FILE *err_stream; /* error output stream */
+static rvm_bool_t show_head(FILE *out_stream /* output stream */,
+                            FILE *err_stream /* error output stream */)
 {
     rec_hdr_t *rec_hdr; /* generic record header */
     rvm_return_t retval;
@@ -2791,10 +2797,10 @@ no_record:
     no_rec       = rvm_true;
     return rvm_false;
 }
+
 /* show tail record support */
-static rvm_bool_t show_tail(out_stream,
-                            err_stream) FILE *out_stream; /* output stream */
-FILE *err_stream; /* error output stream */
+static rvm_bool_t show_tail(FILE *out_stream /* output stream */,
+                            FILE *err_stream /* error output stream */)
 {
     rvm_return_t retval;
 
@@ -2829,11 +2835,11 @@ FILE *err_stream; /* error output stream */
     stop_sticky = rvm_true;
     return rvm_true;
 }
+
 /* show by record number support */
-static rvm_bool_t show_by_num(out_stream, err_stream,
-                              key) FILE *out_stream; /* output stream */
-FILE *err_stream; /* error output stream */
-key_id_t key; /* NUM/NEXT/PREV */
+static rvm_bool_t show_by_num(FILE *out_stream /* output stream */,
+                              FILE *err_stream /* error output stream */,
+                              key_id_t key /* NUM/NEXT/PREV */)
 {
     rec_hdr_t *rec_hdr; /* generic record header */
     long rec_num = 0; /* target record number */
@@ -2918,19 +2924,19 @@ key_id_t key; /* NUM/NEXT/PREV */
     }
     return rvm_true;
 }
+
 /* show by record timestamp support */
-static rvm_bool_t show_by_time(out_stream, err_stream,
-                               key) FILE *out_stream; /* output stream */
-FILE *err_stream; /* error output stream */
-long key; /* ALL/REMAINING */
+static rvm_bool_t show_by_time(FILE *out_stream /* output stream */,
+                               FILE *err_stream /* error output stream */,
+                               long key /* ALL/REMAINING */)
 {
     return rvm_true;
 }
+
 /* show ALL support */
-static rvm_bool_t show_all(out_stream, err_stream,
-                           key) FILE *out_stream; /* output stream */
-FILE *err_stream; /* error output stream */
-key_id_t key; /* ALL/REMAINING */
+static rvm_bool_t show_all(FILE *out_stream /* output stream */,
+                           FILE *err_stream /* error output stream */,
+                           key_id_t key /* ALL/REMAINING */)
 {
     rvm_return_t retval;
 
@@ -2962,11 +2968,11 @@ key_id_t key; /* ALL/REMAINING */
     stop_sticky = rvm_true;
     return rvm_true;
 }
+
 /* show sub record support */
-static rvm_bool_t show_sub_rec(out_stream, err_stream,
-                               key) FILE *out_stream; /* output stream */
-FILE *err_stream; /* error output stream */
-key_id_t key;
+static rvm_bool_t show_sub_rec(FILE *out_stream /* output stream */,
+                               FILE *err_stream /* error output stream */,
+                               key_id_t key)
 {
     long num; /* number to print */
     rvm_return_t retval = RVM_SUCCESS;
@@ -3022,11 +3028,11 @@ key_id_t key;
     }
     return rvm_true;
 }
+
 /* buffer manager for range data printing via log_buf.aux_buf */
-static char *chk_aux_buf(offset, length, err_stream)
-    rvm_offset_t *offset; /* initial offset in file */
-rvm_length_t length; /* printed line width */
-FILE *err_stream; /* error output stream */
+static char *chk_aux_buf(rvm_offset_t *offset /* initial offset in file */,
+                         rvm_length_t length /* printed line width */,
+                         FILE *err_stream /* error output stream */)
 {
     long ptr; /* ptr to aux_buf */
     long len; /* length of data available */
@@ -3049,14 +3055,15 @@ FILE *err_stream; /* error output stream */
         clear_aux_buf(log);
     }
 }
+
 /* match modifications in range with command line values */
-static rvm_bool_t match_values(nv, offset, vmaddr, mod_cur, err_sw, err_stream)
-    nv_range_t *nv; /* range header located */
-rvm_offset_t *offset; /* offset of data area in log */
-rvm_length_t vmaddr; /* modification address */
-char *mod_cur; /* cursor position for modifications */
-rvm_bool_t *err_sw; /* error return switch */
-FILE *err_stream; /* error output stream */
+static rvm_bool_t
+match_values(nv_range_t *nv /* range header located */,
+             rvm_offset_t *offset /* offset of data area in log */,
+             rvm_length_t vmaddr /* modification address */,
+             char *mod_cur /* cursor position for modifications */,
+             rvm_bool_t *err_sw /* error return switch */,
+             FILE *err_stream /* error output stream */)
 {
     rvm_offset_t temp; /* temporary buffer for all integers */
     rvm_offset_t cmp_offset; /* comparison offset in log */
@@ -3115,10 +3122,10 @@ FILE *err_stream; /* error output stream */
 
     return rvm_true;
 }
+
 /* show modifications support */
-static rvm_bool_t show_mods(out_stream,
-                            err_stream) FILE *out_stream; /* output stream */
-FILE *err_stream; /* error output stream */
+static rvm_bool_t show_mods(FILE *out_stream /* output stream */,
+                            FILE *err_stream /* error output stream */)
 {
     nv_range_t *nv; /* range header located */
     rvm_offset_t temp; /* temporary buffer for all integers */
@@ -3227,10 +3234,10 @@ exit:
     stop_sticky = rvm_true;
     return rvm_true;
 }
+
 /* show monitored ranges support */
-static rvm_bool_t show_monitor(out_stream,
-                               err_stream) FILE *out_stream; /* output stream */
-FILE *err_stream; /* error output stream */
+static rvm_bool_t show_monitor(FILE *out_stream /* output stream */,
+                               FILE *err_stream /* error output stream */)
 {
     int i;
     unsigned long format;
@@ -3261,10 +3268,10 @@ exit:
     stop_sticky = rvm_true;
     return rvm_true;
 }
+
 /* show segment dictionary support */
-static rvm_bool_t
-    show_seg_dict(out_stream, err_stream) FILE *out_stream; /* output stream */
-FILE *err_stream; /* error output stream */
+static rvm_bool_t show_seg_dict(FILE *out_stream /* output stream */,
+                                FILE *err_stream /* error output stream */)
 {
     rvm_length_t entry_num;
 
@@ -3303,11 +3310,10 @@ FILE *err_stream; /* error output stream */
 
     return rvm_true;
 }
+
 /* log status display */
-static rvm_bool_t
-    show_log_status(out_stream,
-                    err_stream) FILE *out_stream; /* output stream */
-FILE *err_stream; /* error stream */
+static rvm_bool_t show_log_status(FILE *out_stream /* output stream */,
+                                  FILE *err_stream /* error stream */)
 {
     rvm_offset_t size_temp; /* size calculation temp */
     rvm_offset_t size_temp2; /* size calculation temp */
@@ -3403,11 +3409,10 @@ FILE *err_stream; /* error stream */
 
     return rvm_true;
 }
+
 /* show statistics */
-static rvm_bool_t
-    show_statistics(out_stream,
-                    err_stream) FILE *out_stream; /* output stream */
-FILE *err_stream; /* error stream */
+static rvm_bool_t show_statistics(FILE *out_stream /* output stream */,
+                                  FILE *err_stream /* error stream */)
 {
     rvm_statistics_t *stats; /* statistics record */
     rvm_return_t retval = RVM_SUCCESS; /* rvm return value */
@@ -3444,6 +3449,7 @@ FILE *err_stream; /* error stream */
 
     return rvm_true;
 }
+
 /* show record key words */
 #define MAX_SHOW_KEYS 32 /* maximum number of key words */
 
@@ -3479,7 +3485,7 @@ static str_name_entry_t show_key_vec[MAX_SHOW_KEYS] = {
 };
 
 /* show log record command support*/
-static rvm_bool_t do_show()
+static rvm_bool_t do_show(void)
 {
     long key_index; /* index of key word in vector */
     key_id_t key; /* actual key */
@@ -3581,8 +3587,9 @@ exit:
     close_redirect(out_stream, err_stream);
     return no_err;
 }
+
 /* next, prev command support */
-static rvm_bool_t do_next()
+static rvm_bool_t do_next(void)
 {
     /* be sure log is open & not empty, buffer initialized */
     if (no_log())
@@ -3594,7 +3601,7 @@ static rvm_bool_t do_next()
     return show_by_num(stdout, stderr, NEXT_KEY);
 }
 
-static rvm_bool_t do_prev()
+static rvm_bool_t do_prev(void)
 {
     /* be sure log is open & not empty, buffer initialized */
     if (no_log())
@@ -3605,6 +3612,7 @@ static rvm_bool_t do_prev()
     /* print previous record */
     return show_by_num(stdout, stderr, PREV_KEY);
 }
+
 static rvm_bool_t do_head()
 {
     if (no_log())
@@ -3660,6 +3668,7 @@ static rvm_bool_t do_show_log_status()
         return rvm_false;
     return show_log_status(stdout, stderr);
 }
+
 /* set command key words */
 #define MAX_SET_KEYS 20 /* maximum number of key words */
 
@@ -3678,8 +3687,8 @@ static str_name_entry_t set_key_vec[MAX_SHOW_KEYS] = {
 };
 
 /* segment dictionary definition support */
-static rvm_bool_t scan_seg_dict_index(length_ptr)
-    rvm_length_t *length_ptr; /* seg_dict index [out] */
+static rvm_bool_t
+scan_seg_dict_index(rvm_length_t *length_ptr /* seg_dict index [out] */)
 {
     /* scan index value */
     skip_white(&cmd_cur);
@@ -3693,7 +3702,7 @@ static rvm_bool_t scan_seg_dict_index(length_ptr)
     return rvm_false;
 }
 
-static rvm_bool_t scan_seg_dict_file(index) long index; /* seg_dict index */
+static rvm_bool_t scan_seg_dict_file(long index /* seg_dict index */)
 {
     char file_name[MAXPATHLEN + 1];
     FILE *temp;
@@ -3732,11 +3741,12 @@ err_exit:
     pr_rvm_error(stderr, retval, "defining segment dictionary");
     return rvm_false;
 }
+
 /* scan field identifiers for set command */
-static rvm_bool_t scan_set_field(offset_ptr, length_ptr, key_ptr)
-    rvm_offset_t **offset_ptr; /* ptr to offset [out] */
-rvm_length_t *length_ptr; /* ptr to word [out] */
-rvm_length_t *key_ptr; /* index of key word [out] */
+static rvm_bool_t
+scan_set_field(rvm_offset_t **offset_ptr /* ptr to offset [out] */,
+               rvm_length_t *length_ptr /* ptr to word [out] */,
+               rvm_length_t *key_ptr /* index of key word [out] */)
 {
     char str_name_buf[STR_NAME_LEN + 1]; /* name buffer */
     rvm_bool_t prev = rvm_false;
@@ -3779,8 +3789,9 @@ rvm_length_t *key_ptr; /* index of key word [out] */
 
     return rvm_false;
 }
+
 /* set command support */
-static rvm_bool_t do_set()
+static rvm_bool_t do_set(void)
 {
     rvm_offset_t *src;
     rvm_offset_t *dest;
@@ -3826,6 +3837,7 @@ static rvm_bool_t do_set()
         (rvm_bool_t)RVM_OFFSET_EQL(status->log_head, status->log_tail);
     return rvm_true;
 }
+
 /* build_seg_dict command and support */
 #define MAX_SEG_DICT_KEYS 10 /* maximum number of key words */
 
@@ -3835,7 +3847,7 @@ static str_name_entry_t seg_dict_key_vec[MAX_SEG_DICT_KEYS] = {
     { "", NULL } /* end mark, do not delete */
 };
 
-static rvm_bool_t do_build_seg_dict()
+static rvm_bool_t do_build_seg_dict(void)
 {
     rvm_offset_t offset; /* offset temporary */
     rec_end_t *rec_end; /* standard record ender */
@@ -3966,9 +3978,10 @@ log_err_exit:
     pr_rvm_error(stderr, retval, LOG_SCAN_STR);
     return rvm_false;
 }
+
 /* file length scanner */
-static rvm_length_t get_file_length(out_stream, prompt) FILE *out_stream;
-char *prompt; /* prompt string */
+static rvm_length_t get_file_length(FILE *out_stream,
+                                    char *prompt /* prompt string */)
 {
     rvm_length_t log_len; /* length for log file */
 
@@ -4038,8 +4051,7 @@ char *prompt; /* prompt string */
 
 #ifdef UNUSED_FUNCTIONS
 /* device length lookup */
-static rvm_length_t
-    get_dev_length(dev_name) char *dev_name; /* device name string */
+static rvm_length_t get_dev_length(char *dev_name /* device name string */)
 {
     rvm_length_t log_len; /* length of log device */
 
@@ -4050,8 +4062,9 @@ static rvm_length_t
     return log_len;
 }
 #endif
+
 /* init_log command support */
-static rvm_bool_t do_init_log()
+static rvm_bool_t do_init_log(void)
 {
     log_dev_status_t *log_dev_status = (log_dev_status_t *)status_io;
     rvm_length_t log_len; /* length of log file/device */
@@ -4139,9 +4152,9 @@ static rvm_bool_t do_init_log()
     enter_log(log);
     return rvm_true;
 }
-/* log status area primatives */
-static rvm_bool_t find_tail(out_stream, err_stream) FILE *out_stream;
-FILE *err_stream;
+
+/* log status area primitives */
+static rvm_bool_t find_tail(FILE *out_stream, FILE *err_stream)
 {
     rvm_return_t retval;
 
@@ -4156,7 +4169,8 @@ FILE *err_stream;
     }
     return rvm_true;
 }
-static rvm_bool_t do_find_tail()
+
+static rvm_bool_t do_find_tail(void)
 {
     if (no_log())
         return rvm_false;
@@ -4220,7 +4234,7 @@ static rvm_bool_t do_show_all_spec()
     return rvm_true;
 }
 
-static rvm_bool_t do_find_hole()
+static rvm_bool_t do_find_hole(void)
 {
     rvm_return_t retval;
     rec_hdr_t *rec_hdr __attribute__((unused));
@@ -4258,7 +4272,7 @@ static rvm_bool_t do_find_hole()
     return rvm_true;
 }
 
-static rvm_bool_t do_find_earliest()
+static rvm_bool_t do_find_earliest(void)
 {
     if (no_log())
         return rvm_false;
@@ -4278,6 +4292,7 @@ static rvm_bool_t do_find_earliest()
 
     return rvm_true;
 }
+
 /* recovery monitoring support */
 #define MAX_MONITOR_KEYS 20 /* maximum number of key words */
 
@@ -4289,7 +4304,7 @@ static str_name_entry_t monitor_key_vec[MAX_MONITOR_KEYS] = {
 };
 
 /* get monitor redirection files */
-static void redirect_monitor()
+static void redirect_monitor(void)
 {
     if (monitor_out == NULL)
         monitor_out = stdout;
@@ -4299,7 +4314,7 @@ static void redirect_monitor()
 }
 
 /* terminate monitoring */
-static void close_monitor()
+static void close_monitor(void)
 {
     close_redirect(monitor_out, monitor_err);
     monitor_out = NULL;
@@ -4307,16 +4322,15 @@ static void close_monitor()
 }
 
 /* terminate monitoring */
-static void clear_monitor()
+static void clear_monitor(void)
 {
     close_monitor();
     rvm_chk_len = 0;
 }
 
-static char *chk_monitor(offset, length, err_stream)
-    rvm_offset_t *offset; /* initial offset in file */
-rvm_length_t length; /* data length needed */
-FILE *err_stream; /* error output stream */
+static char *chk_monitor(rvm_offset_t *offset /* initial offset in file */,
+                         rvm_length_t length /* data length needed */,
+                         FILE *err_stream /* error output stream */)
 {
     /* see if data is in vm */
     if (monitor_vm)
@@ -4326,15 +4340,14 @@ FILE *err_stream; /* error output stream */
     return chk_aux_buf(offset, length, err_stream);
 }
 /* display function for replay recovery monitoring */
-static void replay_monitor(vmaddr, length, vmdata_ptr, vmdata_offset, rec_hdr,
-                           i, msg)
-    rvm_length_t vmaddr; /* base address of monitored range */
-rvm_length_t length; /* length of monitored range */
-char *vmdata_ptr; /* vmaddr of data if not null */
-rvm_offset_t *vmdata_offset; /* data offset in log if not null */
-rec_hdr_t *rec_hdr; /* ptr to record header if not null */
-rvm_length_t i; /* index of monitor range matched */
-char *msg; /* ptr to message test if not null */
+static void
+replay_monitor(rvm_length_t vmaddr /* base address of monitored range */,
+               rvm_length_t length /* length of monitored range */,
+               char *vmdata_ptr /* vmaddr of data if not null */,
+               rvm_offset_t *vmdata_offset /* data offset in log if not null */,
+               rec_hdr_t *rec_hdr /* ptr to record header if not null */,
+               rvm_length_t i /* index of monitor range matched */,
+               char *msg /* ptr to message test if not null */)
 {
     rvm_offset_t pr_offset; /* data vmaddr as offset */
     rvm_offset_t data_offset; /* offset of printed data*/
@@ -4366,6 +4379,7 @@ char *msg; /* ptr to message test if not null */
     if ((vmdata_ptr == NULL) &&
         ((vmdata_offset == NULL) || RVM_OFFSET_EQL_ZERO(*vmdata_offset)))
         goto exit;
+
     /* locate modification data and prepare for printing */
     if (vmaddr >= (rvm_length_t)rvm_chk_vec[i].vmaddr) {
         temp      = vmaddr - (rvm_length_t)rvm_chk_vec[i].vmaddr;
@@ -4401,6 +4415,7 @@ char *msg; /* ptr to message test if not null */
     temp         = num_format_size(rvm_chk_vec[i].format);
     count        = (data_length + temp - 1) / temp;
     limit_offset = RVM_ADD_LENGTH_TO_OFFSET(data_offset, data_length);
+
     /* print modification data */
     num_all    = rvm_false;
     num_format = rvm_chk_vec[i].format;
@@ -4417,8 +4432,9 @@ exit:
     num_count  = save_num_count;
     num_all    = save_num_all;
 }
+
 /* monitor command support */
-static rvm_bool_t do_monitor()
+static rvm_bool_t do_monitor(void)
 {
     char *cmd_save;
     long key;
@@ -4531,8 +4547,9 @@ exit:
     num_all    = save_num_all;
     return bool_ret;
 }
+
 /* log status block commands */
-static rvm_bool_t do_read_status()
+static rvm_bool_t do_read_status(void)
 {
     rvm_return_t retval;
 
@@ -4546,7 +4563,7 @@ static rvm_bool_t do_read_status()
     return rvm_true;
 }
 
-static rvm_bool_t do_write_status()
+static rvm_bool_t do_write_status(void)
 {
     rvm_return_t retval;
 
@@ -4568,7 +4585,7 @@ static str_name_entry_t open_key_vec[MAX_OPEN_KEYS] = {
     { "update", (char *)UPDATE_KEY }, { "", NULL } /* end mark, do not delete */
 };
 
-static rvm_bool_t do_open_log()
+static rvm_bool_t do_open_log(void)
 {
     log_dev_status_t *log_dev_status = (log_dev_status_t *)status_io;
     rvm_return_t retval; /* rvm return code */
@@ -4614,6 +4631,7 @@ static rvm_bool_t do_open_log()
             return rvm_false;
         }
     }
+
     /* get name of log file or device */
 file_name:
     cmd_save = cmd_cur;
@@ -4680,8 +4698,9 @@ file_name:
 
     return rvm_true;
 }
+
 /* close log command support */
-static rvm_bool_t do_close_log()
+static rvm_bool_t do_close_log(void)
 {
     rvm_return_t retval;
 
@@ -4704,16 +4723,16 @@ static rvm_bool_t do_close_log()
     clear_monitor();
     return rvm_true;
 }
+
 /* deallocation of change trees after recovery aborted */
-static void kill_tree(tree) tree_root_t *tree;
+static void kill_tree(tree_root_t *tree)
 {
     dev_region_t *node;
 
-    UNLINK_NODES_OF(tree, dev_region_t, node)
-    free_dev_region(node);
+    UNLINK_NODES_OF(*tree, dev_region_t, node) { free_dev_region(node); }
 }
 
-static void clear_cut()
+static void clear_cut(void)
 {
     int i;
 
@@ -4722,6 +4741,7 @@ static void clear_cut()
         assert(log->seg_dict_vec[i].mod_tree.root == NULL);
     }
 }
+
 /* log truncation/recovery support */
 #define MAX_RECOVER_KEYS 20 /* maximum number of key words */
 
@@ -4733,7 +4753,7 @@ static str_name_entry_t recover_key_vec[MAX_RECOVER_KEYS] = {
     { "", NULL } /* end mark, do not delete */
 };
 
-static rvm_bool_t do_recover()
+static rvm_bool_t do_recover(void)
 {
     char str_name_buf[STR_NAME_LEN + 1]; /* name buffer */
     char *cmd_save;
@@ -4821,9 +4841,9 @@ exit:
         log->trunc_thread = cthread_self();
     return bool_ret;
 }
+
 /* scan record number and locate */
-static rvm_bool_t find_rec_num(offset, rec_hdr) rvm_offset_t *offset;
-rec_hdr_t **rec_hdr;
+static rvm_bool_t find_rec_num(rvm_offset_t *offset, rec_hdr_t **rec_hdr)
 {
     rvm_length_t rec_num;
     rvm_return_t retval;
@@ -4857,6 +4877,7 @@ rec_hdr_t **rec_hdr;
     *offset  = RVM_ADD_LENGTH_TO_OFFSET(log_buf->offset, log_buf->ptr);
     return rvm_true;
 }
+
 /* recovery replay command & support */
 #define MAX_REPLAY_KEYS 20 /* maximum number of key words */
 
@@ -4870,7 +4891,7 @@ static str_name_entry_t replay_key_vec[MAX_REPLAY_KEYS] = {
     { "", NULL } /* end mark, do not delete */
 };
 
-static rvm_bool_t do_replay()
+static rvm_bool_t do_replay(void)
 {
     char str_name_buf[STR_NAME_LEN + 1]; /* name buffer */
     char *cmd_save;
@@ -4959,7 +4980,7 @@ sig_exit:
 
 #ifdef UNUSED_FUNCTIONS
 /* re-write log buffer contents */
-static rvm_bool_t do_write_log_buf()
+static rvm_bool_t do_write_log_buf(void)
 {
     long retval;
 
@@ -4976,8 +4997,9 @@ static rvm_bool_t do_write_log_buf()
     return rvm_true;
 }
 #endif
+
 /* copy log file/partition to file/partition */
-static rvm_bool_t do_copy_log()
+static rvm_bool_t do_copy_log(void)
 {
     device_t dest_dev; /* device descriptor for copy */
     log_status_t save_status; /* source log status save area */
@@ -5129,8 +5151,9 @@ exit:
 
     return cmd_retval;
 }
+
 /* quit, update, no_update command and signal support */
-static rvm_bool_t do_quit()
+static rvm_bool_t do_quit(void)
 {
     int err = 0;
 
@@ -5156,28 +5179,29 @@ static rvm_bool_t do_quit()
     return rvm_true;
 }
 
-static rvm_bool_t do_update()
+static rvm_bool_t do_update(void)
 {
     rvm_no_update = rvm_false;
     return rvm_true;
 }
 
-static rvm_bool_t do_no_update()
+static rvm_bool_t do_no_update(void)
 {
     return rvm_no_update = rvm_true;
 }
 
-static void sigint_handler()
+static void sigint_handler(int x)
 {
     stop_sw = rvm_true;
 }
 
-static rvm_bool_t chk_sigint(out_stream) FILE *out_stream;
+static rvm_bool_t chk_sigint(FILE *out_stream)
 {
     if ((out_stream != NULL) && stop_sw)
         fprintf(out_stream, " -- stopped\n");
     return stop_sw;
 }
+
 /* command dispatch vector */
 
 #define MAX_CMDS 64 /* maximum number of cmds */
@@ -5228,8 +5252,9 @@ static str_name_entry_t cmd_vec[MAX_CMDS] = /* command dispatch vector */
         { "write_status", NULL, do_write_status },
         { "", NULL } /* end mark, do not delete */
     };
+
 /* command name scan and dispatch */
-static void do_commands(new_file) char *new_file; /* new input file */
+static void do_commands(char *new_file /* new input file */)
 {
     char cmd_name[STR_NAME_LEN + 1]; /* command name */
     long cmd_index; /* index of cmd in cmd vector */
@@ -5321,8 +5346,7 @@ static void do_commands(new_file) char *new_file; /* new input file */
 
 #ifdef UNUSED_FUNCTIONS
 /* command line working directory switch function */
-static rvm_bool_t do_wd_sw(argc, argv) int argc;
-char *argv[];
+static rvm_bool_t do_wd_sw(int argc, char *argv[])
 {
     char *wd; /* working directory name ptr */
 
@@ -5335,6 +5359,7 @@ char *argv[];
     return rvm_true;
 }
 #endif
+
 /* command line switches */
 
 #define MAX_CMD_SWS 32
@@ -5342,9 +5367,9 @@ char *argv[];
 static str_name_entry_t cmd_sw_vec[MAX_CMD_SWS] = {
     { "", NULL } /* end mark, do not delete */
 };
+
 /* command line switch scanner */
-static void do_cmd_switches(argc, argv) int argc;
-char *argv[];
+static void do_cmd_switches(int argc, char *argv[])
 {
     char *sw;
     long sw_index;
@@ -5378,8 +5403,7 @@ char *argv[];
     }
 }
 
-int main(argc, argv) int argc;
-char *argv[];
+int main(int argc, char *argv[])
 {
     rvm_return_t retval;
 

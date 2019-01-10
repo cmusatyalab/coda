@@ -46,6 +46,7 @@ Pittsburgh, PA.
 #include <unistd.h>
 #include <assert.h>
 #include <string.h>
+
 #include "rpc2.private.h"
 
 /* Code to track host liveness
@@ -251,13 +252,13 @@ void rpc2_GetHostLog(struct HEntry *whichHost, RPC2_NetLog *log,
 
 #define GOOD_NLE(e) ((e->Tag == RPC2_STATIC_NLE || e->Tag == RPC2_MEASURED_NLE))
 
-/* 
+/*
  * dumb routine to add a record to the host log.  Returns 1 if it
  * actually appended the entry, 0 if it didn't.
- * 
- * In the interests of avoiding variable length argument lists, 
- * assumes the variable length part of the record  has been 
- * constructed elsewhere. 
+ *
+ * In the interests of avoiding variable length argument lists,
+ * assumes the variable length part of the record  has been
+ * constructed elsewhere.
  */
 int rpc2_AppendHostLog(struct HEntry *whichHost, RPC2_NetLogEntry *entry,
                        NetLogEntryType type)

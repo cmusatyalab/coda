@@ -30,13 +30,6 @@ extern pthread_t rvm_pthreadid;
 extern void *rvm_ptstat;
 extern int rvm_join_res;
 
-#ifndef MACRO_BEGIN
-#define MACRO_BEGIN do {
-#define MACRO_END \
-    }             \
-    while (0)
-#endif /* MACRO_BEGIN */
-
 #define BOGUSCODE (BOGUS_USE_OF_PTHREADS) /* force compilation error */
 
 #define RVM_MUTEX pthread_mutex_t
@@ -117,18 +110,18 @@ extern int rvm_lock_free(pthread_mutex_t *m);
 #define cthread_self() (rvm_pthreadid = pthread_self(), &rvm_pthreadid)
 
 #ifdef DEBUGRVM
-#define mutex_lock(m)                                               \
-    MACRO_BEGIN                                                     \
-    printf("mutex_lock OL(0x%x)%s:%d...", (m), __FILE__, __LINE__); \
-    pthread_mutex_lock((m));                                        \
-    printf("done\n");                                               \
-    MACRO_END
-#define mutex_unlock(m)                                               \
-    MACRO_BEGIN                                                       \
-    printf("mutex_unlock RL(0x%x)%s:%d...", (m), __FILE__, __LINE__); \
-    pthread_mutex_unlock((m));                                        \
-    printf("done\n");                                                 \
-    MACRO_END
+#define mutex_lock(m)                                                   \
+    do {                                                                \
+        printf("mutex_lock OL(0x%x)%s:%d...", (m), __FILE__, __LINE__); \
+        pthread_mutex_lock((m));                                        \
+        printf("done\n");                                               \
+    } while (0)
+#define mutex_unlock(m)                                                   \
+    do {                                                                  \
+        printf("mutex_unlock RL(0x%x)%s:%d...", (m), __FILE__, __LINE__); \
+        pthread_mutex_unlock((m));                                        \
+        printf("done\n");                                                 \
+    } while (0)
 #else /* DEBUGRVM */
 #define mutex_lock(m) (pthread_mutex_lock((m)))
 #define mutex_unlock(m) (pthread_mutex_unlock((m)))

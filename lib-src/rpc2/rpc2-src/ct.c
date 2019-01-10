@@ -45,10 +45,12 @@ Pittsburgh, PA.
 #include <netdb.h>
 #include <sys/file.h>
 #include <sys/time.h>
-#include "rpc2.private.h"
+
 #include <rpc2/se.h>
-#include "trace.h"
+
 #include "cbuf.h"
+#include "rpc2.private.h"
+#include "trace.h"
 
 /* this surrounds the entire file */
 

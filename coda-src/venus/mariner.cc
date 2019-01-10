@@ -466,10 +466,8 @@ int mariner::AwaitRequest()
          * connection, and the '\r' stripping and early exit of the loop when a
          * '\n' is found can mangle the incoming 9pfs Tversion message. */
         if (plan9server_enabled && idx == P9_MAGIC_LEN) {
-            if (memcmp(&commbuf[1], plan9_magic1, sizeof(plan9_magic1) - 1) ==
-                    0 &&
-                memcmp(&commbuf[12], plan9_magic12,
-                       sizeof(plan9_magic12) - 1) == 0) {
+            if (memcmp(&commbuf[1], p9_magic1, sizeof(p9_magic1) - 1) == 0 &&
+                memcmp(&commbuf[12], p9_magic12, sizeof(p9_magic12) - 1) == 0) {
                 /* make sure we no longer send any normal mariner output */
                 logging = reporting = want_volstate = 0;
 

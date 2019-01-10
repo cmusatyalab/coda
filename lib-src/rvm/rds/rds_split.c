@@ -26,9 +26,7 @@ Coda are listed in the file CREDITS.
  * aborts on error. The returned object is Object2 to make thing easier.
  */
 
-free_block_t *split(size, tid, err) int size;
-rvm_tid_t *tid;
-int *err;
+free_block_t *split(int size, rvm_tid_t *tid, int *err)
 {
     free_block_t *newObject1, *newObject2;
     free_block_t *bp, *tempbp;

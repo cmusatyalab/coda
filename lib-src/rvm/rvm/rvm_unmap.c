@@ -31,9 +31,9 @@ extern char *rvm_errmsg; /* internal error message buffer */
 
 extern rw_lock_t region_tree_lock; /* lock for region tree */
 extern tree_node_t *region_tree; /* root of mapped region tree */
+
 /* rvm_unmap */
-rvm_return_t
-    rvm_unmap(rvm_region) rvm_region_t *rvm_region; /* region to unmap */
+rvm_return_t rvm_unmap(rvm_region_t *rvm_region /* region to unmap */)
 {
     rvm_return_t retval;
     region_t *region; /* internal region descriptor */

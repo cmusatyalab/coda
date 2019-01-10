@@ -29,8 +29,7 @@ Coda are listed in the file CREDITS.
 extern char *sys_errlist[];
 extern int sys_nerr;
 
-main(argc, argv) int argc;
-char *argv[];
+int main(int argc, char *argv[])
 {
     rvm_options_t *options; /* options descriptor ptr */
     rvm_return_t ret;

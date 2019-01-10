@@ -44,6 +44,7 @@ Pittsburgh, PA.
 #include <time.h>
 #include <unistd.h>
 #include <assert.h>
+
 #include "rp2.h"
 
 int32_t yydebug;
@@ -92,7 +93,9 @@ static char *server_includes[] = {
 static char *h_includes[] = {
     /* NONE */ "Can't happen",
     /* C */
-    "#ifdef __cplusplus\nextern \"C\" {\n#endif\n\n#include <rpc2/rpc2.h>\n#include <rpc2/se.h>\n#include <rpc2/errors.h>\n#include <rpc2/pack_helper.h>\n\n#ifdef __cplusplus\n}\n#endif\n",
+    "#ifdef __cplusplus\nextern \"C\" {\n#endif\n\n#include "
+    "<rpc2/rpc2.h>\n#include <rpc2/se.h>\n#include <rpc2/errors.h>\n#include "
+    "<rpc2/pack_helper.h>\n\n#ifdef __cplusplus\n}\n#endif\n",
     /* PASCAL */ "Can't happen",
     /* F77 */ "Can't happen"
 };
@@ -100,7 +103,9 @@ static char *h_includes[] = {
 static char *helper_includes[] = {
     /* NONE */ "Can't happen",
     /* C */
-    "#ifdef __cplusplus\nextern \"C\" {\n#endif\n\n#include <stdlib.h>\n\n#include <rpc2/pack_helper.h>\n\n#ifdef __cplusplus\n}\n#endif\n",
+    "#ifdef __cplusplus\nextern \"C\" {\n#endif\n\n#include "
+    "<stdlib.h>\n\n#include <rpc2/pack_helper.h>\n\n#ifdef "
+    "__cplusplus\n}\n#endif\n",
     /* PASCAL */ "Can't happen",
     /* F77 */ "Can't happen"
 };
@@ -180,8 +185,7 @@ char *argv[];
     ansi = RP2_FALSE; /* generate ## paste tokens rather than double-comment */
     neterrors = RP2_FALSE; /* exchange errors in OS independent fashion */
     /* Wire-in client, server and multi languages to be C.
-       Should be settable on command line when other languages are
-       supported */
+       Should be settable on command line when other languages are supported */
     clanguage  = C;
     slanguage  = C;
     mlanguage  = C;
@@ -354,7 +358,8 @@ static int32_t SetupFiles()
 static void badargs(void)
 {
     printf(
-        "Usage: rp2gen [-neterrors,-n] [-I incldir] [-s srvstub] [-c clntstub]\n");
+        "Usage: rp2gen [-neterrors,-n] [-I incldir] [-s srvstub] "
+        " [-c clntstub]\n");
     printf("              [-h header] [-m multistub] [-p printstub] \n");
     printf("              [-t tcpdump prettyprint]   file\n");
     exit(EXIT_FAILURE);
@@ -402,9 +407,7 @@ static int32_t header(FILE *f, char *prefix)
 * 			     *
 \****************************/
 
-static void cant_happen(type, who, where) ENTRY *type;
-WHO who;
-FILE *where;
+static void cant_happen(ENTRY *type, WHO who, FILE *where)
 {
     puts("RP2GEN [can't happen]: no specified language");
     abort();
@@ -434,16 +437,14 @@ static struct {
 
 };
 
-static void no_support(type, who, where) ENTRY *type;
-WHO who;
-FILE *where;
+static void no_support(ENTRY *type, WHO who, FILE *where)
 {
     printf("RP2GEN: no language support for %s\n",
            lang_struct[(int32_t)clanguage].name);
     exit(EXIT_FAILURE);
 }
 
-void spit_type(type) ENTRY *type;
+void spit_type(ENTRY *type)
 {
     if (clanguage != slanguage || clanguage != mlanguage) {
         puts("RP2GEN: warning, SPIT_TYPE does not support multiple languages");
@@ -455,7 +456,7 @@ void spit_type(type) ENTRY *type;
     print_struct_func(type->type, libfile, hfile, type->name);
 }
 
-void spit_include(filename) char *filename;
+void spit_include(char *filename)
 {
     if (clanguage != slanguage || clanguage != mlanguage) {
         puts(
@@ -465,7 +466,7 @@ void spit_include(filename) char *filename;
     (*lang_struct[(int32_t)clanguage].include)(filename, RP2_CLIENT, hfile);
 }
 
-void spit_define(id, value) char *id, *value;
+void spit_define(char *id, char *value)
 {
     if (clanguage != slanguage || clanguage != mlanguage) {
         puts(

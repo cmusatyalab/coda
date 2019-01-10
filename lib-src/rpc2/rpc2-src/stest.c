@@ -46,12 +46,14 @@ Pittsburgh, PA.
 #include <math.h>
 #include <assert.h>
 #include <string.h>
+
 #include <lwp/lwp.h>
 #include <lwp/timer.h>
 #include <rpc2/rpc2.h>
 #include <rpc2/rpc2_addrinfo.h>
 #include <rpc2/se.h>
 #include <rpc2/sftp.h>
+
 #include "test.h"
 
 #ifndef INET_ADDRSTRLEN
@@ -93,8 +95,7 @@ long VMMaxFileSize; /* length of VMFileBuf, initially 0 */
 long VMCurrFileSize; /* number of useful bytes in VMFileBuf */
 char *VMFileBuf; /* for FILEINVM transfers */
 
-int main(argc, argv) int argc;
-char *argv[];
+int main(int argc, char *argv[])
 {
     SFTP_Initializer sftpi;
 
@@ -145,24 +146,25 @@ static void HandleRequests(void *arg)
     availableLWPs++;
     while (1) {
         /*
-	 * Get a request
-	 */
-        if ((i = RPC2_GetRequest(
+         * Get a request
+         */
+        i = RPC2_GetRequest(
 #if REQFILTER
-                 &reqfilter,
+            &reqfilter,
 #else
-                 (RPC2_RequestFilter *)NULL,
+            (RPC2_RequestFilter *)NULL,
 #endif
-                 &cid, &InBuff, (struct timeval *)NULL, FindKey, (long)RPC2_XOR,
-                 NoteAuthFailure)) != RPC2_SUCCESS) {
+            &cid, &InBuff, (struct timeval *)NULL, FindKey, (long)RPC2_XOR,
+            NoteAuthFailure);
+        if (i != RPC2_SUCCESS) {
             (void)WhatHappened(i, "GetRequest");
             exit(EXIT_FAILURE);
         }
 
         /*
-	 * Decrement number of available LWPs.  If count reaches zero and we
-	 * haven't reached the max number, create a new one.
-	 */
+         * Decrement number of available LWPs.  If count reaches zero and we
+         * haven't reached the max number, create a new one.
+         */
         if ((--availableLWPs <= 0) && (numLWPs < maxLWPs)) {
             i = LWP_CreateProcess(HandleRequests, STESTSTACK,
                                   LWP_NORMAL_PRIORITY,
@@ -185,11 +187,9 @@ static void HandleRequests(void *arg)
     }
 }
 
-static long FindKey(authenticationtype, ClientIdent, IdentKey,
-                    SessionKey) RPC2_Integer authenticationtype;
-RPC2_CountedBS *ClientIdent;
-RPC2_EncryptionKey IdentKey;
-RPC2_EncryptionKey SessionKey;
+static long FindKey(RPC2_Integer authenticationtype,
+                    RPC2_CountedBS *ClientIdent, RPC2_EncryptionKey IdentKey,
+                    RPC2_EncryptionKey SessionKey)
 {
     long x;
     fprintf(stderr, "*** In FindKey('%s', 0x%lx, 0x%lx) ***\n",
@@ -226,12 +226,9 @@ RPC2_EncryptionKey SessionKey;
     return (0);
 }
 
-static long NoteAuthFailure(authenticationtype, cIdent, eType, pHost,
-                            pPort) RPC2_Integer authenticationtype;
-RPC2_CountedBS *cIdent;
-RPC2_Integer eType;
-RPC2_HostIdent *pHost;
-RPC2_PortIdent *pPort;
+static long NoteAuthFailure(RPC2_Integer authenticationtype,
+                            RPC2_CountedBS *cIdent, RPC2_Integer eType,
+                            RPC2_HostIdent *pHost, RPC2_PortIdent *pPort)
 {
     printf("Authentication using e-type %d failed for %s from\n\t", eType,
            (char *)cIdent->SeqBody);
@@ -242,8 +239,7 @@ RPC2_PortIdent *pPort;
     return (RPC2_SUCCESS);
 }
 
-static void PrintHostIdent(hPtr, tFile) RPC2_HostIdent *hPtr;
-FILE *tFile;
+static void PrintHostIdent(RPC2_HostIdent *hPtr, FILE *tFile)
 {
     char addr[RPC2_ADDRSTRLEN];
     if (tFile == NULL)
@@ -270,8 +266,7 @@ FILE *tFile;
     (void)fflush(tFile);
 }
 
-static void PrintPortIdent(pPtr, tFile) RPC2_PortIdent *pPtr;
-FILE *tFile;
+static void PrintPortIdent(RPC2_PortIdent *pPtr, FILE *tFile)
 {
     if (tFile == NULL)
         tFile = stdout; /* it's ok, call-by-value */

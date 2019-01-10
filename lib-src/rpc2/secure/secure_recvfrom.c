@@ -20,6 +20,7 @@ Coda are listed in the file CREDITS.
 #include <assert.h>
 
 #include <rpc2/secure.h>
+
 #include "codatunnel/wrapper.h"
 #include "grunt.h"
 
@@ -250,12 +251,12 @@ ssize_t secure_recvfrom(int s, void *buf, size_t len, int flags,
 
     if (sa->validate && sa->validate->icv_len) {
         /* RFC 2406 - IP Encapsulating Security Payload (ESP)
-	 * Section 3.4.4  Integrity Check Value Verification
-	 *   If authentication has been selected, the receiver computes the ICV
-	 *   over the ESP packet minus the Authentication Data ... If the test
-	 *   fails, then the receiver MUST discard the received IP datagram as
-	 *   invalid
-	 */
+         * Section 3.4.4  Integrity Check Value Verification
+         *   If authentication has been selected, the receiver computes the ICV
+         *   over the ESP packet minus the Authentication Data ... If the test
+         *   fails, then the receiver MUST discard the received IP datagram as
+         *   invalid
+         */
         uint8_t tmp_icv[MAXICVLEN];
         size_t icv_len;
 

@@ -48,9 +48,7 @@ Coda are listed in the file CREDITS.
  * mode as the end_transaction mode.
  */
 
-int rds_free(addr, tid, err) char *addr;
-rvm_tid_t *tid;
-int *err;
+int rds_free(char *addr, rvm_tid_t *tid, int *err)
 {
     free_block_t *bp = BLOCK_HDR(addr); /* find pointer to block header */
     rvm_tid_t *atid;
@@ -144,8 +142,7 @@ int *err;
 /* Assume only one thread can have an open tid at a time. Since we're only
  * modifying per-tid structures, we don't have any concurency.
  */
-int rds_fake_free(addr, list) char *addr;
-intentionList_t *list;
+int rds_fake_free(char *addr, intentionList_t *list)
 {
     char **temp;
     free_block_t *bp = BLOCK_HDR(addr); /* find pointer to block header */
@@ -188,8 +185,7 @@ intentionList_t *list;
     return (SUCCESS);
 }
 
-int rds_do_free(list, mode) intentionList_t *list;
-rvm_mode_t mode;
+int rds_do_free(intentionList_t *list, rvm_mode_t mode)
 {
     int i, err;
     rvm_tid_t *tid = rvm_malloc_tid();

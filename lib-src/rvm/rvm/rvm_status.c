@@ -28,25 +28,22 @@ extern log_t *default_log; /* default log descriptor ptr */
 extern rvm_bool_t rvm_utlsw; /* true if call by rvmutl */
 extern char *rvm_errmsg; /* internal error message buffer */
 extern rvm_length_t rvm_max_read_len; /* maximum Mach read length */
-extern rvm_length_t
-    flush_times_vec[flush_times_len]; /* flush timing histogram defs */
-extern rvm_length_t
-    truncation_times_vec[truncation_times_len]; /* truncation timing 
-                                                                   histogram defs */
-extern rvm_length_t range_lengths_vec[range_lengths_len]; /* range length
-                                                             histogram defs */
-extern rvm_length_t range_overlaps_vec[range_overlaps_len]; /* range coalesce
-                                                             histogram defs */
-extern rvm_length_t trans_overlaps_vec[trans_overlaps_len]; /* trans coalesce
-                                                             histogram defs */
-extern rvm_length_t
-    range_elims_vec[range_elims_len]; /* ranges eliminated by range
-                                                         coalesce histogram defs */
-extern rvm_length_t
-    trans_elims_vec[trans_elims_len]; /* ranges eliminated by trans
-                                                         coalesce histogram defs */
-extern rvm_length_t trans_coalesces_vec[trans_coalesces_len]; /* transactions
-                                                                 coalesed per flush */
+/* flush timing histogram defs */
+extern rvm_length_t flush_times_vec[flush_times_len];
+/* truncation timing histogram defs */
+extern rvm_length_t truncation_times_vec[truncation_times_len];
+/* range length histogram defs */
+extern rvm_length_t range_lengths_vec[range_lengths_len];
+/* range coalesce histogram defs */
+extern rvm_length_t range_overlaps_vec[range_overlaps_len];
+/* trans coalesce histogram defs */
+extern rvm_length_t trans_overlaps_vec[trans_overlaps_len];
+/* ranges eliminated by range coalesce histogram defs */
+extern rvm_length_t range_elims_vec[range_elims_len];
+/* ranges eliminated by trans coalesce histogram defs */
+extern rvm_length_t trans_elims_vec[trans_elims_len];
+/* transactions coalesed per flush */
+extern rvm_length_t trans_coalesces_vec[trans_coalesces_len];
 
 rvm_length_t rvm_optimizations = 0; /* optimizations switches */
 
@@ -59,11 +56,10 @@ char rvm_statistics_version[RVM_VERSION_MAX] = { RVM_STATISTICS_VERSION };
 char rvm_release[RVM_VERSION_MAX]            = { "RVM Release 11 Jan 1993" };
 
 /* local macros */
-#define TID_ARRAY_REALLOC_INCR \
-    5 /* allocate tid_array 5 elements at a
-                                           time */
+#define TID_ARRAY_REALLOC_INCR 5 /* allocate tid_array 5 elements at a time */
+
 /* rvm_set_options */
-rvm_return_t rvm_set_options(rvm_options) rvm_options_t *rvm_options;
+rvm_return_t rvm_set_options(rvm_options_t *rvm_options)
 {
     rvm_return_t retval;
 
@@ -80,8 +76,9 @@ rvm_return_t rvm_set_options(rvm_options) rvm_options_t *rvm_options;
     /* check validity of options record & ptr */
     return do_rvm_options(rvm_options);
 }
+
 /* structure validation */
-rvm_return_t bad_statistics(rvm_statistics) rvm_statistics_t *rvm_statistics;
+rvm_return_t bad_statistics(rvm_statistics_t *rvm_statistics)
 {
     if (rvm_statistics == NULL)
         return RVM_SUCCESS;
@@ -91,8 +88,7 @@ rvm_return_t bad_statistics(rvm_statistics) rvm_statistics_t *rvm_statistics;
     return RVM_SUCCESS;
 }
 
-rvm_return_t bad_options(rvm_options, chk_log_dev) rvm_options_t *rvm_options;
-rvm_bool_t chk_log_dev;
+rvm_return_t bad_options(rvm_options_t *rvm_options, rvm_bool_t chk_log_dev)
 {
     if (rvm_options == NULL)
         return RVM_SUCCESS;
@@ -105,8 +101,9 @@ rvm_bool_t chk_log_dev;
 
     return RVM_SUCCESS;
 }
+
 /* rvm options processing */
-rvm_return_t do_rvm_options(rvm_options) rvm_options_t *rvm_options;
+rvm_return_t do_rvm_options(rvm_options_t *rvm_options)
 {
     log_t *log; /* log descriptor */
     rvm_return_t retval;
@@ -135,8 +132,7 @@ rvm_return_t do_rvm_options(rvm_options) rvm_options_t *rvm_options;
     return RVM_SUCCESS;
 }
 /* rvm_query */
-rvm_return_t rvm_query(rvm_options, rvm_region) rvm_options_t *rvm_options;
-rvm_region_t *rvm_region;
+rvm_return_t rvm_query(rvm_options_t *rvm_options, rvm_region_t *rvm_region)
 {
     log_t *log; /* log descriptor */
     log_status_t *status; /* log status area descriptor */
@@ -187,8 +183,7 @@ rvm_region_t *rvm_region;
             region =
                 find_whole_range(rvm_region->vmaddr, rvm_region->length, r);
             if (region == NULL)
-                return RVM_ENOT_MAPPED; /* not locked if not found
-                                                       */
+                return RVM_ENOT_MAPPED; /* not locked if not found */
         }
 
         /* count uncommitted transactions */
@@ -250,6 +245,7 @@ rvm_region_t *rvm_region;
 
     return retval;
 }
+
 /* rvm_statistics */
 rvm_return_t rvm_statistics(const char *version,
                             rvm_statistics_t *rvm_statistics)

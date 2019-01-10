@@ -97,7 +97,7 @@ int repvol::GetVolAttr(uid_t uid)
     long cbtemp;
     cbtemp = cbbreaks;
     {
-        /* 
+        /*
 	 * if we're fetching (as opposed to validating) volume state, 
 	 * we must first ensure all cached file state from this volume 
 	 * is valid (i.e., our cached state corresponds to the version 
@@ -135,7 +135,7 @@ int repvol::GetVolAttr(uid_t uid)
             if (cbtemp == cbbreaks)
                 CollateVCB(m, VSvar_bufs, CBStatusvar_bufs);
         } else {
-            /* 
+            /*
 	     * Figure out how many volumes to validate.
 	     * We can do this every call because there are a small number of volumes.
 	     * We send the server its version stamp, it its slot and sends back yea or nay.
@@ -143,7 +143,7 @@ int repvol::GetVolAttr(uid_t uid)
             int nVols = 0;
             ViceVolumeIdStruct VidList[MAX_PIGGY_VALIDATIONS];
 
-            /* 
+            /*
 	     * To minimize bandwidth, we should not send full version vectors
 	     * to each server.  We could send each server its version stamp,
 	     * but that would be extremely messy for multicast (which assumes
@@ -160,7 +160,7 @@ int repvol::GetVolAttr(uid_t uid)
             VSBS.SeqBody = (RPC2_ByteSeq)malloc(
                 MAX_PIGGY_VALIDATIONS * VSG_MEMBERS * sizeof(RPC2_Integer));
 
-            /* 
+            /*
 	     * this is a BS instead of an array because the RPC2 array
 	     * implementation requires array elements to be structures. In the
 	     * case of VFlags, that would be a real waste of space (which is
@@ -172,7 +172,7 @@ int repvol::GetVolAttr(uid_t uid)
             VFlagBS.SeqLen    = 0;
             VFlagBS.SeqBody   = (RPC2_ByteSeq)VFlags;
 
-            /* 
+            /*
 	     * validate volumes that:
 	     * - are replicated
 	     * - are in the same vsg
@@ -222,7 +222,7 @@ int repvol::GetVolAttr(uid_t uid)
                 nVols++;
             }
 
-            /* 
+            /*
 	     * nVols could be 0 here if someone else got into this routine and
 	     * validated while we were descheduled...such as in getmgrp.
 	     */

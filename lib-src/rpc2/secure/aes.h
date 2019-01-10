@@ -19,6 +19,7 @@ Coda are listed in the file CREDITS.
 #define _AES_H_
 
 #include <stdint.h>
+
 #include "rijndael-alg-fst.h"
 
 #define AES_MAXROUNDS MAXNR

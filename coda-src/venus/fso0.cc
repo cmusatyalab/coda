@@ -196,7 +196,7 @@ void FSOInit()
 
         /* Recover parent <--> child bindings. */
         /* This MUST wait until all fsobj's have been recovered/reset! */
-        /* 
+        /*
 	 * Need not be in a transaction for the call to SetParent, because
 	 * the parent vnode and unique arguments are the very ones in the fsobj 
 	 * (no recoverable store gets changed).
@@ -571,7 +571,7 @@ RestartFind:
             return (EIO);
         }
 
-        /* 
+        /*
 	 * check if the key is a locally generated fid.  We should never send
 	 * these to the server.  This check is not to be confused with
 	 * the routine fsobj::IsLocalFid, which checks to see if the _volume_
@@ -590,7 +590,8 @@ RestartFind:
             return (ETIMEDOUT);
         }
 
-        /* Retry the find, in case some other thread created the object while we blocked in vdb::Get(). */
+        /* Retry the find, in case some other thread created the object while
+         * we blocked in vdb::Get(). */
         if (Find(key)) {
             VDB->Put(&v);
             goto RestartFind;
@@ -637,7 +638,8 @@ RestartFind:
         }
         f->DemoteLock();
     } else {
-        /* Object without status must be matriculating now.  Wait for it to complete. */
+        /* Object without status must be matriculating now.
+         * Wait for it to complete. */
         int curr_matriculation_count = matriculation_count;
         if (!HAVESTATUS(f) && !f->IsFake()) {
             while (curr_matriculation_count == matriculation_count) {
@@ -680,10 +682,13 @@ RestartFind:
 
     /* Consider fetching status and/or data. */
     if ((!getdata && !STATUSVALID(f)) || (getdata && !DATAVALID(f))) {
-        /* Note that we CANNOT fetch, and must use whatever status/data we have, if : */
-        /*     - the file is being exec'ed (or the VM system refuses to release its pages) */
+        /* Note that we CANNOT fetch, and must use whatever status/data we
+         * have, if : */
+        /*     - the file is being exec'ed (or the VM system refuses to release
+         *       its pages) */
         /*     - the file is open for write */
-        /*     - the object has been deleted (it must also be open for read at this point) */
+        /*     - the object has been deleted (it must also be open for read at
+         *       this point) */
         /*     - the object's volume is unreachable */
         /*     - the object's volume is reachable, but the object is dirty */
         if (FETCHABLE(f)) {
@@ -1117,15 +1122,15 @@ int fsdb::TranslateFid(VenusFid *OldFid, VenusFid *NewFid)
     }
 
     /* An upcall may already be queued with the old local fid. Or we may
-	 * already be reintegrating before the local fid has been passed back
-	 * to the kernel.
-	 *
-	 * To avoid this race we have to remember the value of OldFid. If it
-	 * was a localfid (reintegration related) it will have the same volume
-	 * id, a special file or directory vnode value, and we only need to
-	 * remember the uniquifier value.
-	 *
-	 * We may need the vnode for repair related objects. */
+     * already be reintegrating before the local fid has been passed back
+     * to the kernel.
+     *
+     * To avoid this race we have to remember the value of OldFid. If it
+     * was a localfid (reintegration related) it will have the same volume
+     * id, a special file or directory vnode value, and we only need to
+     * remember the uniquifier value.
+     *
+     * We may need the vnode for repair related objects. */
     f->LocalFid_Vnode  = OldFid->Vnode;
     f->LocalFid_Unique = OldFid->Unique;
 
@@ -1551,9 +1556,11 @@ void fsdb::print(int fd, int SummaryOnly)
     }
 #endif /* VENUSDEBUG */
     fdprint(fd, "Cache Statistics:  [ count : blocks ]\n");
-    fdprint(
-        fd,
-        "                [     HIT     ]  [    MISS     ]  [    RETRY    ]  [   TIMEOUT   ]  [   NOSPACE   ]  [   FAILURE   ]  [   CREATE    ]  [    WRITE    ]  [   REMOVE    ]  [   REPLACE   ]\n");
+    fdprint(fd,
+            "                [     HIT     ]  [    MISS     ]"
+            "  [    RETRY    ]  [   TIMEOUT   ]  [   NOSPACE   ]"
+            "  [   FAILURE   ]  [   CREATE    ]  [    WRITE    ]"
+            "  [   REMOVE    ]  [   REPLACE   ]\n");
     PrintCacheStats("Directory ATTR:", &DirAttrStats, fd);
     PrintCacheStats("Directory DATA:", &DirDataStats, fd);
     PrintCacheStats("File ATTR:     ", &FileAttrStats, fd);

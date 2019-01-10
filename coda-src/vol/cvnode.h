@@ -96,27 +96,27 @@ extern struct VnodeClassInfo VnodeClassInfo_Array[nVNODECLASSES];
 /* VnodeDiskObject: Structure of vnode stored in RVM */
 typedef struct VnodeDiskObjectStruct {
     VnodeType type : 3; /* Vnode is file, directory, symbolic link
-    				   or not allocated */
+                           or not allocated */
     unsigned cloned : 1; /* This vnode was cloned--therefore the inode
-    				   is copy-on-write; only set for directories*/
+                            is copy-on-write; only set for directories*/
     unsigned modeBits : 12; /* Unix mode bits */
-    bit16 linkCount; /* Number of directory references to vnode
-    				   (from single directory only!) */
+    bit16 linkCount; /* Number of directory references to vnode (from single
+                        directory only!) */
     bit32 length; /* Number of bytes in this file */
-    Unique_t uniquifier; /* Uniquifier for the vnode; assigned
-				   from the volume uniquifier (actually
-				   from nextVnodeUnique in the Volume
-				   structure) */
+    Unique_t uniquifier; /* Uniquifier for the vnode; assigned from the volume
+                            uniquifier (actually from nextVnodeUnique in the
+                            Volume structure) */
     FileVersion dataVersion; /* version number of the data */
-#define NEWVNODEINODE \
-    ((PDirInode)-1) /* inode number for a vnode allocated 
-					 but not used for creation */
+
+/* inode number for a vnode allocated but not used for creation */
+#define NEWVNODEINODE ((PDirInode)-1)
+
     union {
         Inode inodeNumber; /* container file containing file/symlink data */
         PDirInode dirNode; /* pointer to RVM copy of the directory data. */
     } node;
     /* version vector is updated atomically with the data */
-    ViceVersionVector versionvector; /* CODA file version vector for this vnode */
+    ViceVersionVector versionvector; /* Coda file version vector for this vnode */
     int vol_index; /* index of vnode's volume in recoverable volume array */
     Date_t unixModifyTime; /* set by user */
     UserId author; /* Userid of the last user storing the file */
@@ -133,7 +133,7 @@ typedef struct VnodeDiskObjectStruct {
        when we notice a version change (the index version number) */
     ViceLock lock; /* Advisory lock */
     Date_t serverModifyTime; /* Used only by the server;
-					   for incremental backup purposes */
+                                for incremental backup purposes */
     struct rec_smolink nextvn; /* link to next vnode with same vnodeindex */
     rec_dlist *log; /* resolution log in RVM */
     /* Missing:
@@ -155,8 +155,7 @@ typedef struct Vnode {
     struct Vnode *hashNext; /* Next vnode on hash conflict chain */
     struct Vnode *lruNext; /* Less recently used vnode than this one */
     struct Vnode *lruPrev; /* More recently used vnode than this one */
-    /* The lruNext, lruPrev fields are not
-				   meaningful if the vnode is in use */
+    /* The lruNext, lruPrev fields are not meaningful if the vnode is in use */
     bit16 hashIndex; /* Hash table index */
     unsigned short changed : 1; /* 1 if the vnode has been changed */
     unsigned short delete_me : 1; /* 1 if the vnode should be deleted; in

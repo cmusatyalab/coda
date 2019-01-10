@@ -67,24 +67,24 @@ typedef struct codatunnel_packet {
 
 #define MAXRECEIVE (4500 + sizeof(ctp_t))
 /* WARNING: gross hack! Above field is space for received packet
-      that may be assembled piecemeal from multiple TCP reads; the
-      figure of 4500 is RPC2_MAXPACKETSIZE; there are many cleverer
-      ways of allocating this space, but the simplicity of this
-      approach is fine for initial implementation; get it working
-      first, and then fix later */
+   that may be assembled piecemeal from multiple TCP reads; the
+   figure of 4500 is RPC2_MAXPACKETSIZE; there are many cleverer
+   ways of allocating this space, but the simplicity of this
+   approach is fine for initial implementation; get it working
+   first, and then fix later
+*/
 
-/* Transitions always:  FREE --> ALLOCATED --> (optionally)TCPATTEMPTING --> TCPACTIVE --> TCPCLOSING --> FREE */
-
+/* Transitions always:  FREE --> ALLOCATED --> (optionally)TCPATTEMPTING -->
+ * TCPACTIVE --> TCPCLOSING --> FREE */
 enum deststate
 { /* NEW: 2018-5-29 */
   FREE      = 0, /* this entry is not allocated */
   ALLOCATED = 1, /* entry allocated, but TCP is not active; UDP works */
-  TCPATTEMPTING =
-      2, /* entry allocated, tcp connect is being attempted; UDP works */
-  TCPACTIVE  = 3, /* entry allocated, and its tcphandle is good */
-  TCPCLOSING = 4 /* this entry used to be TCPACTIVE; now closing, and waiting
-		   to become FREE */
-
+  TCPATTEMPTING = 2, /* entry allocated, tcp connect is being attempted;
+                        UDP works */
+  TCPACTIVE = 3, /* entry allocated, and its tcphandle is good */
+  TCPCLOSING = 4, /* this entry used to be TCPACTIVE;
+                     now closing, and waiting to become FREE */
 };
 
 typedef struct remotedest {
@@ -93,21 +93,21 @@ typedef struct remotedest {
 
     enum deststate state;
     /* All destinations are assumed to be capable of becoming TCPACTIVE;
-   Setting TCPACTIVE should be a commit point:  all fields below
-   should have been set before that happens, to avoid race conditions */
+       Setting TCPACTIVE should be a commit point:  all fields below
+       should have been set before that happens, to avoid race conditions */
 
     uv_tcp_t *tcphandle; /* only valid if state is TCPACTIVE*/
     int packets_sent; /* for help with INIT1 retries */
     int nextbyte; /* index in received_packet[] into which next byte will be read;
-		   needed because multiple read calls may be needed to obtain a
-		   complete UDP packet that has been tunneled in TCP */
+                     needed because multiple read calls may be needed to obtain a
+                     complete UDP packet that has been tunneled in TCP */
     int ntoh_done; /* whether ntohl() has already been done on
-		    the header of this packet */
+                      the header of this packet */
     char *received_packet; /* malloced array of size MAXRECEIVE; initial
-			     malloc when TCPACTIVE is set; after that a
-			     new malloc is done for each received
-			     packet; free() happens in
-			     uv_udp_sent_cb() */
+                              malloc when TCPACTIVE is set; after that a
+                              new malloc is done for each received
+                              packet; free() happens in
+                              uv_udp_sent_cb() */
 } dest_t;
 
 /* Stuff for destination management */

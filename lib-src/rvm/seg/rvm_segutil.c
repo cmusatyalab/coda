@@ -39,8 +39,7 @@ rvm_bool_t rvm_unregister_page(char *vmaddr, rvm_length_t length);
 
 /* Routine to check if regions will overlap in memory. */
 
-int overlap(nregions, regionDefs) unsigned long nregions;
-rvm_region_def_t regionDefs[];
+int overlap(unsigned long nregions, rvm_region_def_t regionDefs[])
 {
     int i, j;
     rvm_region_def_t temp;
@@ -82,8 +81,7 @@ rvm_region_def_t regionDefs[];
 #include <errno.h>
 #define ALLOCATE_VM_DEFINED
 
-rvm_return_t allocate_vm(addr, length) char **addr;
-unsigned long length;
+rvm_return_t allocate_vm(char **addr, unsigned long length)
 {
     rvm_return_t ret     = RVM_SUCCESS;
     char *requested_addr = *addr; /* save this so that we can check it
@@ -142,8 +140,7 @@ unsigned long length;
     return ret;
 }
 
-rvm_return_t deallocate_vm(addr, length) char *addr;
-unsigned long length;
+rvm_return_t deallocate_vm(char *addr, unsigned long length)
 {
     rvm_return_t ret = RVM_SUCCESS;
 

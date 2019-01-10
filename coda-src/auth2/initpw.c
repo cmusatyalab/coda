@@ -94,12 +94,13 @@ int main(int argc, char **argv)
     }
 
     /* Reads lines from stdin of the form:
-	<ViceId> <Clear Password> <other junk>\n
-
-   Produces lines on stdout of the form:
-	<ViceId> <Hex representation of encrypted password> <other junk>\n
-
-*/
+     *
+     *   <ViceId> <Clear Password> <other junk>\n
+     *
+     * Produces lines on stdout of the form:
+     *
+     *   <ViceId> <Hex representation of encrypted password> <other junk>\n
+     */
     if (!KeyIsValid)
         fprintf(stderr, "WARNING: no key specified\n");
 

@@ -30,12 +30,9 @@ Coda are listed in the file CREDITS.
  * structure. It is important to realize that all information that
  * used to exist in the segment will no longer be accessible.  */
 
-rvm_return_t rvm_create_segment(DevName, DevLength, options, nregions,
-                                regionDefs) char *DevName;
-rvm_offset_t DevLength;
-rvm_options_t *options;
-rvm_length_t nregions;
-rvm_region_def_t regionDefs[];
+rvm_return_t rvm_create_segment(char *DevName, rvm_offset_t DevLength,
+                                rvm_options_t *options, rvm_length_t nregions,
+                                rvm_region_def_t regionDefs[])
 {
     rvm_region_t *region = rvm_malloc_region();
     rvm_segment_hdr_t *hptr;

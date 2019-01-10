@@ -112,9 +112,11 @@ static void monitor_vmaddr(char *nv_addr, rvm_length_t nv_len, char *nv_data,
 
     return;
 }
-/* allocate log recovery buffers */
+
 char *tst_buf; /* debug temp */
-rvm_return_t alloc_log_buf(log) log_t *log; /* log descriptor */
+
+/* allocate log recovery buffers */
+rvm_return_t alloc_log_buf(log_t *log /* log descriptor */)
 {
     log_buf_t *log_buf = &log->log_buf; /* log buffer descriptor */
 
@@ -133,26 +135,26 @@ rvm_return_t alloc_log_buf(log) log_t *log; /* log descriptor */
 
     /* write-protect the buffers */
     /* I've taken out the mach-specific code, but it might be interesting to
- * implement this feature on other systems using mprotect. Therefore I've
- * `retained' the essence of the original code in this comment -- JH
- *
- * MACH_RVM_PROTECT
- *
- * protect(log_buf->buf,        log_buf->length,     FALSE, VM_PROT_READ);
- *
- * #ifdef SPECIAL_DEBUG
- * protect(log_buf->shadow_buf, log_buf->length,     FALSE, VM_PROT_READ);
- * protect(tst_buf,             log_buf->length,     FALSE, VM_PROT_READ);
- * #endif SPECIAL_DEBUG
- *
- * protect(log_buf->aux_buf,    log_buf->aux_length, FALSE, VM_PROT_READ);
- */
+     * implement this feature on other systems using mprotect. Therefore I've
+     * `retained' the essence of the original code in this comment -- JH
+     *
+     * MACH_RVM_PROTECT
+     *
+     * protect(log_buf->buf,        log_buf->length,     FALSE, VM_PROT_READ);
+     *
+     * #ifdef SPECIAL_DEBUG
+     * protect(log_buf->shadow_buf, log_buf->length,     FALSE, VM_PROT_READ);
+     * protect(tst_buf,             log_buf->length,     FALSE, VM_PROT_READ);
+     * #endif SPECIAL_DEBUG
+     *
+     * protect(log_buf->aux_buf,    log_buf->aux_length, FALSE, VM_PROT_READ);
+     */
 
     return RVM_SUCCESS;
 }
 
 /* free log recovery buffer */
-void free_log_buf(log) log_t *log; /* log descriptor */
+void free_log_buf(log_t *log /* log descriptor */)
 {
     log_buf_t *log_buf = &log->log_buf; /* log buffer descriptor */
 
@@ -170,12 +172,13 @@ void free_log_buf(log) log_t *log; /* log descriptor */
         log_buf->aux_length = 0;
     }
 }
+
 /* init log buffer with desired offset data from log */
-rvm_return_t init_buffer(log, offset, direction,
-                         synch) log_t *log; /* log descriptor */
-rvm_offset_t *offset; /* offset in log to load */
-rvm_bool_t direction; /* true ==> forward */
-rvm_bool_t synch; /* true ==> synchronization required */
+rvm_return_t
+init_buffer(log_t *log /* log descriptor */,
+            rvm_offset_t *offset /* offset in log to load */,
+            rvm_bool_t direction /* true ==> forward */,
+            rvm_bool_t synch /* true ==> synchronization required */)
 {
     log_buf_t *log_buf = &log->log_buf; /* log buffer descriptor */
     rvm_length_t length; /* length of buffer */
@@ -229,10 +232,10 @@ rvm_bool_t synch; /* true ==> synchronization required */
 
     /* allow write to buffer */
     /* MACH_RVM_PROTECT
- *
- * protect(log_buf->buf, log_buf->length, FALSE,
- *         VM_PROT_WRITE | VM_PROT_READ);
- */
+     *
+     * protect(log_buf->buf, log_buf->length, FALSE,
+     *         VM_PROT_WRITE | VM_PROT_READ);
+     */
 
     /* read data from log device */
     if ((log_buf->r_length =
@@ -244,32 +247,32 @@ rvm_bool_t synch; /* true ==> synchronization required */
 
     /* write protect buffer & unlock */
     /* MACH_RVM_PROTECT
- *
- * protect(log_buf->buf, log_buf->length, FALSE, VM_PROT_READ);
- *
- * #ifdef SPECIAL_DEBUG
- * / * re-read into shadow buffer & compare * /
- * if (rvm_shadow_buf)
- * {
- *     ret = vm_protect(task_self_,(vm_address_t)(log_buf->shadow_buf),
- *                      (vm_size_t)(log_buf->length),FALSE,
- *                      VM_PROT_WRITE | VM_PROT_READ);
- *     assert(ret == KERN_SUCCESS);
- *     if ((r_length=read_dev(&log->dev,&log_buf->offset,
- *                            log_buf->shadow_buf,length)) < 0)
- *     {
- *         retval = RVM_EIO;               / * i/o error * /
- *         assert(rvm_false);
- *     }
- *     assert(r_length == length);
- *     assert(r_length == log_buf->r_length);
- *     ret = vm_protect(task_self_,(vm_address_t)(log_buf->shadow_buf),
- *                      (vm_size_t)(log_buf->length),FALSE,VM_PROT_READ);
- *     assert(ret == KERN_SUCCESS);
- *     assert(memcmp(log_buf->buf,log_buf->shadow_buf,length) == 0);
- * }
- * #endif SPECIAL_DEBUG
- */
+     *
+     * protect(log_buf->buf, log_buf->length, FALSE, VM_PROT_READ);
+     *
+     * #ifdef SPECIAL_DEBUG
+     * / * re-read into shadow buffer & compare * /
+     * if (rvm_shadow_buf)
+     * {
+     *     ret = vm_protect(task_self_,(vm_address_t)(log_buf->shadow_buf),
+     *                      (vm_size_t)(log_buf->length),FALSE,
+     *                      VM_PROT_WRITE | VM_PROT_READ);
+     *     assert(ret == KERN_SUCCESS);
+     *     if ((r_length=read_dev(&log->dev,&log_buf->offset,
+     *                            log_buf->shadow_buf,length)) < 0)
+     *     {
+     *         retval = RVM_EIO;               / * i/o error * /
+     *         assert(rvm_false);
+     *     }
+     *     assert(r_length == length);
+     *     assert(r_length == log_buf->r_length);
+     *     ret = vm_protect(task_self_,(vm_address_t)(log_buf->shadow_buf),
+     *                      (vm_size_t)(log_buf->length),FALSE,VM_PROT_READ);
+     *     assert(ret == KERN_SUCCESS);
+     *     assert(memcmp(log_buf->buf,log_buf->shadow_buf,length) == 0);
+     * }
+     * #endif SPECIAL_DEBUG
+     */
 
     if (synch)
         mutex_unlock(&log->dev_lock); /* end dev_lock crit sec */
@@ -277,11 +280,12 @@ rvm_bool_t synch; /* true ==> synchronization required */
 
     return retval;
 }
+
 /* refill buffer in scan direction */
-static rvm_return_t refill_buffer(log, direction,
-                                  synch) log_t *log; /* log descriptor */
-rvm_bool_t direction; /* true ==> forward */
-rvm_bool_t synch; /* true ==> synchronization required */
+static rvm_return_t
+refill_buffer(log_t *log /* log descriptor */,
+              rvm_bool_t direction /* true ==> forward */,
+              rvm_bool_t synch /* true ==> synchronization required */)
 {
     log_buf_t *log_buf = &log->log_buf; /* log buffer descriptor */
     rvm_offset_t offset; /* new buffer offset temp */
@@ -292,9 +296,10 @@ rvm_bool_t synch; /* true ==> synchronization required */
     /* fill the buffer */
     return init_buffer(log, &offset, direction, synch);
 }
+
 /* compare buf & shadow buf from gdb */
 #ifdef DEBUG_GDB
-int log_buf_cmp(disp) int disp;
+int log_buf_cmp(int disp)
 {
     log_buf_t *log_buf = &default_log->log_buf;
     int i;
@@ -309,8 +314,7 @@ int log_buf_cmp(disp) int disp;
 }
 
 /* compare with disk */
-int disk_buf_cmp(buf, disp) char *buf;
-int disp;
+int disk_buf_cmp(char *buf, int disp)
 {
     log_buf_t *log_buf = &default_log->log_buf;
     int i;
@@ -318,9 +322,9 @@ int disp;
 
     /* allow write to buffer */
     /* MACH_RVM_PROTECT
- *
- * protect(log_buf->buf, log_buf->length, FALSE, VM_PROT_WRITE | VM_PROT_READ);
- */
+     *
+     * protect(log_buf->buf, log_buf->length, FALSE, VM_PROT_WRITE | VM_PROT_READ);
+     */
 
     /* read buffer from log */
     if ((r_length = read_dev(&default_log->dev, &log_buf->offset, tst_buf,
@@ -330,9 +334,9 @@ int disp;
 
     /* re-protect buffer */
     /* MACH_RVM_PROTECT
- *
- * protect(log_buf->buf, log_buf->length, FALSE, VM_PROT_READ);
- */
+     *
+     * protect(log_buf->buf, log_buf->length, FALSE, VM_PROT_READ);
+     */
 
     /* compare results */
     if (disp < 0)
@@ -343,11 +347,9 @@ int disp;
 
     return -1;
 }
+
 /* locate byte in buffer via gdb */
-int find_byte(chr, buf, disp, max_len) char chr;
-char *buf;
-int disp;
-int max_len;
+int find_byte(char chr, char *buf, int disp, int max_len)
 {
     int i;
 
@@ -361,10 +363,7 @@ int max_len;
 }
 
 /* locate word in buffer via gdb */
-int find_word(wrd, buf, disp, max_len) rvm_length_t wrd;
-rvm_length_t *buf;
-int disp;
-int max_len;
+int find_word(rvm_length_t wrd, rvm_length_t *buf, int disp, int max_len)
 {
     int i;
 
@@ -379,8 +378,7 @@ int max_len;
 }
 
 /* find word in log buffer via gdb */
-int find_buf_word(wrd, disp) rvm_length_t wrd;
-int disp;
+int find_buf_word(rvm_length_t wrd, int disp)
 {
     log_buf_t *log_buf = &default_log->log_buf;
 
@@ -388,15 +386,16 @@ int disp;
                      log_buf->r_length);
 }
 #endif /* DEBUG_GDB */
+
 /* load log auxillary buffer */
-rvm_return_t load_aux_buf(log, log_offset, length, aux_ptr, data_len, synch,
-                          pre_load) log_t *log; /* log descriptor */
-rvm_offset_t *log_offset; /* buffer read offset */
-rvm_length_t length; /* data length wanted */
-rvm_length_t *aux_ptr; /* ptr to aux. buf offset */
-rvm_length_t *data_len; /* ptr to actual data length read */
-rvm_bool_t synch; /* true ==> synchronization required */
-rvm_bool_t pre_load; /* permit pre-loading of range */
+rvm_return_t
+load_aux_buf(log_t *log /* log descriptor */,
+             rvm_offset_t *log_offset /* buffer read offset */,
+             rvm_length_t length /* data length wanted */,
+             rvm_length_t *aux_ptr /* ptr to aux. buf offset */,
+             rvm_length_t *data_len /* ptr to actual data length read */,
+             rvm_bool_t synch /* true ==> synchronization required */,
+             rvm_bool_t pre_load /* permit pre-loading of range */)
 {
     log_buf_t *log_buf = &log->log_buf; /* log buffer descriptor */
     rvm_offset_t high_offset; /* end of read area */
@@ -465,10 +464,10 @@ rvm_bool_t pre_load; /* permit pre-loading of range */
 
     /* allow write to buffer */
     /* MACH_RVM_PROTECT
- *
- * protect(log_buf->aux_buf, log_buf->aux_length, FALSE,
- *         VM_PROT_WRITE | VM_PROT_READ);
- */
+     *
+     * protect(log_buf->aux_buf, log_buf->aux_length, FALSE,
+     *         VM_PROT_WRITE | VM_PROT_READ);
+     */
 
     /* read new value data from log */
     if ((log_buf->aux_rlength = read_dev(&log->dev, &log_buf->aux_offset,
@@ -480,9 +479,9 @@ rvm_bool_t pre_load; /* permit pre-loading of range */
 
     /* write protect buffer & unlock */
     /* MACH_RVM_PROTECT
- *
- * protect(log_buf->aux_buf, log_buf->aux_length, FALSE, VM_PROT_READ);
- */
+     *
+     * protect(log_buf->aux_buf, log_buf->aux_length, FALSE, VM_PROT_READ);
+     */
 
     if (synch)
         mutex_unlock(&log->dev_lock); /* end dev_lock crit sec */
@@ -491,16 +490,16 @@ rvm_bool_t pre_load; /* permit pre-loading of range */
     return retval;
 }
 
-void clear_aux_buf(log) log_t *log; /* log descriptor */
+void clear_aux_buf(log_t *log /* log descriptor */)
 {
     log_buf_t *log_buf = &log->log_buf; /* log buffer descriptor */
 
     RVM_ZERO_OFFSET(log_buf->aux_offset);
     log_buf->aux_rlength = 0;
 }
+
 /* record header type validation */
-static rvm_bool_t
-    chk_hdr_type(rec_hdr) rec_hdr_t *rec_hdr; /* generic record header */
+static rvm_bool_t chk_hdr_type(rec_hdr_t *rec_hdr /* generic record header */)
 {
     switch (rec_hdr->struct_id) {
     case trans_hdr_id: /* transaction header */
@@ -515,8 +514,8 @@ static rvm_bool_t
 }
 
 /* test if record belongs to currently valid part of log */
-rvm_bool_t chk_hdr_currency(log, rec_hdr) log_t *log; /* log descriptor */
-rec_hdr_t *rec_hdr; /* generic record header */
+rvm_bool_t chk_hdr_currency(log_t *log /* log descriptor */,
+                            rec_hdr_t *rec_hdr /* generic record header */)
 {
     log_status_t *status = &log->status; /* status descriptor */
 
@@ -533,18 +532,18 @@ rec_hdr_t *rec_hdr; /* generic record header */
     return rvm_true;
 }
 
-void reset_hdr_chks(log) log_t *log; /* log descriptor */
+void reset_hdr_chks(log_t *log /* log descriptor */)
 {
     log_buf_t *log_buf = &log->log_buf; /* log buffer descriptor */
 
     log_buf->prev_rec_num = 0;
     ZERO_TIME(log_buf->prev_timestamp);
 }
+
 /* test if record is out of sequence in log */
-rvm_bool_t chk_hdr_sequence(log, rec_hdr,
-                            direction) log_t *log; /* log descriptor */
-rec_hdr_t *rec_hdr; /* generic record header */
-rvm_bool_t direction; /* scan direction */
+rvm_bool_t chk_hdr_sequence(log_t *log /* log descriptor */,
+                            rec_hdr_t *rec_hdr /* generic record header */,
+                            rvm_bool_t direction /* scan direction */)
 {
     log_buf_t *log_buf = &log->log_buf; /* recovery buffer descriptor */
 
@@ -566,12 +565,12 @@ rvm_bool_t direction; /* scan direction */
 
     return rvm_true;
 }
+
 /* record header validation */
-static rvm_bool_t chk_hdr(log, rec_hdr, rec_end,
-                          direction) log_t *log; /* log descriptor */
-rec_hdr_t *rec_hdr; /* generic record header */
-rec_end_t *rec_end; /* generic record end marker */
-rvm_bool_t direction; /* scan direction */
+static rvm_bool_t chk_hdr(log_t *log /* log descriptor */,
+                          rec_hdr_t *rec_hdr /* generic record header */,
+                          rec_end_t *rec_end /* generic record end marker */,
+                          rvm_bool_t direction /* scan direction */)
 {
     /* be sure record type valid */
     if (!chk_hdr_type(rec_hdr))
@@ -599,12 +598,12 @@ rvm_bool_t direction; /* scan direction */
 
     return rvm_true;
 }
+
 /* log record header validation */
-rvm_bool_t validate_hdr(log, rec_hdr, rec_end,
-                        direction) log_t *log; /* log descriptor */
-rec_hdr_t *rec_hdr; /* generic record header */
-rec_end_t *rec_end; /* generic record end marker */
-rvm_bool_t direction; /* scan direction */
+rvm_bool_t validate_hdr(log_t *log /* log descriptor */,
+                        rec_hdr_t *rec_hdr /* generic record header */,
+                        rec_end_t *rec_end /* generic record end marker */,
+                        rvm_bool_t direction /* scan direction */)
 {
     log_buf_t *log_buf = &log->log_buf; /* recovery buffer descriptor */
 
@@ -641,11 +640,13 @@ exit:
 
     return rvm_true;
 }
+
 /* get next new value range by forward scan of transaction record
    ptr points to next range header
    exits with as much of range in buffer as will fit */
-rvm_return_t scan_nv_forward(log, synch) log_t *log; /* log descriptor */
-rvm_bool_t synch; /* true ==> synchronization required */
+rvm_return_t
+scan_nv_forward(log_t *log /* log descriptor */,
+                rvm_bool_t synch /* true ==> synchronization required */)
 {
     log_buf_t *log_buf = &log->log_buf; /* log buffer descriptor */
     rvm_offset_t offset; /* offset calculation temp */
@@ -680,10 +681,12 @@ rvm_bool_t synch; /* true ==> synchronization required */
 
     return RVM_SUCCESS;
 }
+
 /* get previous new value range by reverse scan of transaction record
    ptr points to previous range header; exits with range in buffer */
-static rvm_return_t scan_nv_reverse(log, synch) log_t *log; /* log descriptor */
-rvm_bool_t synch; /* true ==> synchronization required */
+static rvm_return_t
+scan_nv_reverse(log_t *log /* log descriptor */,
+                rvm_bool_t synch /* true ==> synchronization required */)
 {
     log_buf_t *log_buf = &log->log_buf; /* log buffer descriptor */
     rec_hdr_t *rec_hdr; /* temporary cast for record header */
@@ -718,8 +721,8 @@ rvm_bool_t synch; /* true ==> synchronization required */
             offset = RVM_ADD_LENGTH_TO_OFFSET(
                 log_buf->offset, (log_buf->ptr + sizeof(nv_range_t)));
             offset = RVM_SUB_LENGTH_FROM_OFFSET(offset, len);
-            if ((retval = init_buffer(log, &offset, REVERSE, synch)) !=
-                RVM_SUCCESS)
+            retval = init_buffer(log, &offset, REVERSE, synch);
+            if (retval != RVM_SUCCESS)
                 return retval;
             log_buf->ptr -= sizeof(nv_range_t);
         }
@@ -733,10 +736,11 @@ rvm_bool_t synch; /* true ==> synchronization required */
 
     return RVM_SUCCESS;
 }
+
 /* validate record in buffer in forward scan */
-static rvm_return_t validate_rec_forward(log,
-                                         synch) log_t *log; /* log descriptor */
-rvm_bool_t synch; /* true ==> synchronization required */
+static rvm_return_t
+validate_rec_forward(log_t *log /* log descriptor */,
+                     rvm_bool_t synch /* true ==> synchronization required */)
 {
     log_buf_t *log_buf = &log->log_buf; /* log buffer descriptor */
     rec_hdr_t *rec_hdr; /* temporary cast for next record hdr */
@@ -750,8 +754,8 @@ rvm_bool_t synch; /* true ==> synchronization required */
     if ((log_buf->ptr + MAX_HDR_SIZE) > log_buf->r_length) {
         /* no, re-init buffer */
         end_offset = RVM_ADD_LENGTH_TO_OFFSET(log_buf->offset, log_buf->ptr);
-        if ((retval = init_buffer(log, &end_offset, FORWARD, synch)) !=
-            RVM_SUCCESS)
+        retval     = init_buffer(log, &end_offset, FORWARD, synch);
+        if (retval != RVM_SUCCESS)
             return retval;
     }
 
@@ -802,10 +806,12 @@ no_record: /* no next record */
     log_buf->ptr = -1;
     return RVM_SUCCESS;
 }
+
 /* scan forward from present position at a record structure
    returns updated offset indexed by ptr; -1 ==> no next rec. */
-rvm_return_t scan_forward(log, synch) log_t *log; /* log descriptor */
-rvm_bool_t synch; /* true ==> synchronization required */
+rvm_return_t
+scan_forward(log_t *log /* log descriptor */,
+             rvm_bool_t synch /* true ==> synchronization required */)
 {
     log_buf_t *log_buf = &log->log_buf; /* log buffer descriptor */
     rec_hdr_t *rec_hdr; /* cast for next record hdr */
@@ -841,8 +847,8 @@ rvm_bool_t synch; /* true ==> synchronization required */
     trans_done:
         break;
     case log_wrap_id:
-        if ((retval = init_buffer(log, &log->status.log_start, FORWARD,
-                                  synch)) != RVM_SUCCESS)
+        retval = init_buffer(log, &log->status.log_start, FORWARD, synch);
+        if (retval != RVM_SUCCESS)
             return retval;
         break;
     default:
@@ -856,10 +862,11 @@ rvm_bool_t synch; /* true ==> synchronization required */
     /* validate next record */
     return validate_rec_forward(log, synch);
 }
+
 /* scan for wrap marker */
-rvm_return_t scan_wrap_reverse(log, synch)
-    rvm_bool_t synch; /* true ==> synchronization required */
-log_t *log; /* log descriptor */
+rvm_return_t
+scan_wrap_reverse(log_t *log /* log descriptor */,
+                  rvm_bool_t synch /* true ==> synchronization required */)
 {
     log_buf_t *log_buf = &log->log_buf; /* log buffer descriptor */
     rec_hdr_t *rec_hdr; /* temporary cast for record header */
@@ -868,8 +875,8 @@ log_t *log; /* log descriptor */
     rvm_return_t retval;
 
     /* load last sectors of log */
-    if ((retval = init_buffer(log, &log->dev.num_bytes, REVERSE, synch)) !=
-        RVM_SUCCESS)
+    retval = init_buffer(log, &log->dev.num_bytes, REVERSE, synch);
+    if (retval != RVM_SUCCESS)
         return retval;
 
     /* scan for wrap marker */
@@ -885,10 +892,10 @@ log_t *log; /* log descriptor */
             assert((log_wrap->rec_hdr.struct_id == log_wrap_id) || rvm_utlsw);
             /* XXXX fix this */
 #if 0
-		if (!((log_wrap->struct_id == log_wrap_id) || rvm_utlsw)) {
-		    printf("not true!\n");
-		    assert(0);
-		}
+            if (!((log_wrap->struct_id == log_wrap_id) || rvm_utlsw)) {
+                printf("not true!\n");
+                assert(0);
+            }
 #endif
             break;
         }
@@ -909,10 +916,11 @@ log_t *log; /* log descriptor */
 
     return RVM_SUCCESS;
 }
+
 /* validate current record in buffer in reverse scan */
-rvm_return_t validate_rec_reverse(log, synch)
-    rvm_bool_t synch; /* true ==> synchronization required */
-log_t *log; /* log descriptor */
+rvm_return_t
+validate_rec_reverse(log_t *log /* log descriptor */,
+                     rvm_bool_t synch /* true ==> synchronization required */)
 {
     log_buf_t *log_buf   = &log->log_buf; /* log buffer descriptor */
     log_status_t *status = &log->status; /* status area */
@@ -930,8 +938,8 @@ log_t *log; /* log descriptor */
             retval = scan_wrap_reverse(log, synch);
             return retval; /* exit pointing to wrap marker */
         } else {
-            if ((retval = init_buffer(log, &offset, REVERSE, synch)) !=
-                RVM_SUCCESS)
+            retval = init_buffer(log, &offset, REVERSE, synch);
+            if (retval != RVM_SUCCESS)
                 return retval;
         }
     }
@@ -982,10 +990,12 @@ no_record:
     log_buf->ptr = -1; /* no next record */
     return RVM_SUCCESS;
 }
+
 /* scan backward from present position at a record structure
    returns index of offset in ptr; -1 ==> no next rec. */
-rvm_return_t scan_reverse(log, synch) log_t *log; /* log descriptor */
-rvm_bool_t synch; /* true ==> synchronization required */
+rvm_return_t
+scan_reverse(log_t *log /* log descriptor */,
+             rvm_bool_t synch /* true ==> synchronization required */)
 {
     log_buf_t *log_buf   = &log->log_buf; /* log buffer descriptor */
     log_status_t *status = &log->status; /* status area */
@@ -1044,24 +1054,26 @@ rvm_bool_t synch; /* true ==> synchronization required */
     /* validate new record and set log_buf->ptr */
     return validate_rec_reverse(log, synch);
 }
-/* Recovery: phase 1 -- locate current log tail from last status block
-     location */
+
+/* Recovery: phase 1 -- locate current log tail from last status
+ * block location */
 
 /* log_wrap status update for tail location */
-static void set_wrap_status(status, rec_hdr)
-    log_status_t *status; /* status descriptor */
-rec_hdr_t *rec_hdr; /* current record scanned in buffer */
+static void
+set_wrap_status(log_status_t *status /* status descriptor */,
+                rec_hdr_t *rec_hdr /* current record scanned in buffer */)
 {
     status->wrap_time = rec_hdr->timestamp;
     status->n_special++;
     status->tot_wrap++;
 }
+
 /* range checksum computation & check */
-static rvm_return_t range_chk_sum(log, nv, chk_val,
-                                  synch) log_t *log; /* log descriptor */
-nv_range_t *nv; /* range header */
-rvm_bool_t *chk_val; /* result [out] */
-rvm_bool_t synch; /* true ==> synchronization required */
+static rvm_return_t
+range_chk_sum(log_t *log /* log descriptor */,
+              nv_range_t *nv /* range header */,
+              rvm_bool_t *chk_val /* result [out] */,
+              rvm_bool_t synch /* true ==> synchronization required */)
 {
     log_buf_t *log_buf = &log->log_buf; /* log buffer descriptor */
     rvm_length_t nv_chk_sum; /* nv's check sum */
@@ -1101,10 +1113,11 @@ rvm_bool_t synch; /* true ==> synchronization required */
 
     return RVM_SUCCESS;
 }
+
 /* transaction validation & status update for tail location */
-static rvm_return_t set_trans_status(log,
-                                     rec_hdr) log_t *log; /* log descriptor */
-rec_hdr_t *rec_hdr; /* current trans record in buffer */
+static rvm_return_t
+set_trans_status(log_t *log /* log descriptor */,
+                 rec_hdr_t *rec_hdr /* current trans record in buffer */)
 {
     log_buf_t *log_buf   = &log->log_buf; /* log buffer descriptor */
     log_status_t *status = &log->status; /* status descriptor */
@@ -1133,8 +1146,8 @@ rec_hdr_t *rec_hdr; /* current trans record in buffer */
             goto bad_record; /* wrong transaction */
 
         /* test range's data check sum */
-        if ((retval = range_chk_sum(log, nv, &chk_val, NO_SYNCH)) !=
-            RVM_SUCCESS)
+        retval = range_chk_sum(log, nv, &chk_val, NO_SYNCH);
+        if (retval != RVM_SUCCESS)
             return retval;
         if (chk_val != rvm_true)
             goto bad_record; /* check sum failure */
@@ -1160,8 +1173,9 @@ bad_record:
     log_buf->ptr = -1;
     return RVM_SUCCESS;
 }
+
 /* Locate tail, update in-memory copy of status block; always reads forward */
-rvm_return_t locate_tail(log) log_t *log; /* log descriptor */
+rvm_return_t locate_tail(log_t *log /* log descriptor */)
 {
     log_status_t *status = &log->status; /* status descriptor */
     log_buf_t *log_buf   = &log->log_buf; /* log buffer descriptor */
@@ -1199,8 +1213,8 @@ rvm_return_t locate_tail(log) log_t *log; /* log descriptor */
     }
 
     /* need to update status: init read buffer at head */
-    if ((retval = init_buffer(log, &status->log_head, FORWARD, NO_SYNCH)) !=
-        RVM_SUCCESS)
+    retval = init_buffer(log, &status->log_head, FORWARD, NO_SYNCH);
+    if (retval != RVM_SUCCESS)
         goto err_exit;
     assert(log->trunc_thread == cthread_self());
     assert((status->trunc_state & RVM_TRUNC_PHASES) == RVM_TRUNC_FIND_TAIL);
@@ -1356,9 +1370,9 @@ err_exit:
     assert((status->trunc_state & RVM_TRUNC_PHASES) == RVM_TRUNC_FIND_TAIL);
     return retval;
 }
+
 /* add segment short id to dictionary */
-rvm_return_t enter_seg_dict(log, seg_code) log_t *log;
-long seg_code;
+rvm_return_t enter_seg_dict(log_t *log, long seg_code)
 {
     seg_dict_t *seg_dict;
     long old_dict_size, new_dict_size;
@@ -1387,10 +1401,12 @@ long seg_code;
     }
     return RVM_SUCCESS;
 }
+
 /* complete definition of seg_dict entry */
-rvm_return_t def_seg_dict(log, rec_hdr) log_t *log; /* log descriptor */
-rec_hdr_t *rec_hdr; /* log segment definition descriptor
-                                           (with log record header) */
+rvm_return_t def_seg_dict(
+    log_t *log /* log descriptor */,
+    rec_hdr_t *
+        rec_hdr /* log segment definition descriptor (with log record header) */)
 {
     log_seg_t *log_seg; /* log segment definition descriptor */
     seg_dict_t *seg_dict; /* segment dictionary entry */
@@ -1421,16 +1437,16 @@ rec_hdr_t *rec_hdr; /* log segment definition descriptor
 
     return RVM_SUCCESS;
 }
+
 /* change tree comparator for tree_insert */
-static long cmp_partial_include(node1, node2) dev_region_t *node1;
-dev_region_t *node2;
+static long cmp_partial_include(dev_region_t *node1, dev_region_t *node2)
 {
     return dev_partial_include(&node1->offset, &node1->end_offset,
                                &node2->offset, &node2->end_offset);
 }
 
 /* set length of change tree node from offsets */
-static void set_node_length(node) dev_region_t *node; /* change tree node */
+static void set_node_length(dev_region_t *node /* change tree node */)
 {
     rvm_offset_t offset_temp; /* offset arithmetic temp */
 
@@ -1438,9 +1454,10 @@ static void set_node_length(node) dev_region_t *node; /* change tree node */
     assert(RVM_OFFSET_LEQ(offset_temp, node->end_offset)); /* overflow! */
     node->length = RVM_OFFSET_TO_LENGTH(offset_temp);
 }
-static rvm_return_t change_tree_insert(seg_dict, node)
-    seg_dict_t *seg_dict; /* seg_dict for this nv */
-dev_region_t *node; /* change tree node for this nv */
+
+static rvm_return_t
+change_tree_insert(seg_dict_t *seg_dict /* seg_dict for this nv */,
+                   dev_region_t *node /* change tree node for this nv */)
 {
     dev_region_t *x_node; /* existing node if conflict */
     dev_region_t *split_node; /* ptr to created node, when used */
@@ -1580,10 +1597,10 @@ free_node:
     free_dev_region(node);
     return RVM_SUCCESS;
 }
+
 /* prepare new value record for seg_dict's mod_tree
    if new values are <= nv_local_max, they must be in buffer */
-static rvm_return_t do_nv(log, nv) log_t *log;
-nv_range_t *nv;
+static rvm_return_t do_nv(log_t *log, nv_range_t *nv)
 {
     log_status_t *status = &log->status; /* status descriptor */
     log_buf_t *log_buf   = &log->log_buf; /* log buffer descriptor */
@@ -1667,9 +1684,11 @@ nv_range_t *nv;
 
     return RVM_SUCCESS;
 }
+
 /* scan modifications of transaction in reverse order & build tree */
-static rvm_return_t do_trans(log, skip_trans) log_t *log; /* log descriptor */
-rvm_bool_t skip_trans; /* scan, but ignore if true */
+static rvm_return_t
+do_trans(log_t *log /* log descriptor */,
+         rvm_bool_t skip_trans /* scan, but ignore if true */)
 {
     log_status_t *status = &log->status; /* status descriptor */
     log_buf_t *log_buf   = &log->log_buf; /* log buffer descriptor */
@@ -1724,11 +1743,12 @@ rvm_bool_t skip_trans; /* scan, but ignore if true */
 
     return RVM_SUCCESS;
 }
+
 /* log wrap-around validation */
-static rvm_return_t chk_wrap(log, force_wrap_chk,
-                             skip_trans) log_t *log; /* log descriptor */
-rvm_bool_t force_wrap_chk; /* wrap check required if true */
-rvm_bool_t *skip_trans; /* set true if bad split */
+static rvm_return_t
+chk_wrap(log_t *log /* log descriptor */,
+         rvm_bool_t force_wrap_chk /* wrap check required if true */,
+         rvm_bool_t *skip_trans /* set true if bad split */)
 {
     log_status_t *status = &log->status; /* status descriptor */
     log_buf_t *log_buf   = &log->log_buf; /* log buffer descriptor */
@@ -1849,11 +1869,12 @@ rvm_bool_t *skip_trans; /* set true if bad split */
 
     return RVM_SUCCESS;
 }
+
 /* Recovery: phase 2 -- build modification trees, and
    construct dictionary of segment short names
 */
 #define X(a)
-static rvm_return_t build_tree(log) log_t *log; /* log descriptor */
+static rvm_return_t build_tree(log_t *log /* log descriptor */)
 {
     log_status_t *status = &log->status; /* status descriptor */
     log_buf_t *log_buf   = &log->log_buf; /* log buffer descriptor */
@@ -1949,9 +1970,10 @@ static rvm_return_t build_tree(log) log_t *log; /* log descriptor */
 
     return RVM_SUCCESS;
 }
+
 /* pre-scan change tree to see how much to read to read into buffer */
-static dev_region_t *pre_scan(log, tree) log_t *log; /* log descriptor */
-tree_root_t *tree; /* current tree root */
+static dev_region_t *pre_scan(log_t *log /* log descriptor */,
+                              tree_root_t *tree /* current tree root */)
 {
     log_buf_t *log_buf      = &log->log_buf; /* log buffer descriptor */
     dev_region_t *last_node = NULL;
@@ -1991,18 +2013,19 @@ tree_root_t *tree; /* current tree root */
 
     return last_node;
 }
+
 /* merge large node disk-resident new values with segment data */
-static rvm_return_t disk_merge(log, node,
-                               preload) log_t *log; /* log descriptor */
-dev_region_t *node; /* node to merge */
-rvm_bool_t preload; /* end sector preload done if true */
+static rvm_return_t
+disk_merge(log_t *log /* log descriptor */,
+           dev_region_t *node /* node to merge */,
+           rvm_bool_t preload /* end sector preload done if true */)
 {
     log_status_t *status  = &log->status; /* status descriptor */
     log_buf_t *log_buf    = &log->log_buf; /* log buffer descriptor */
     rvm_length_t data_len = 0; /* actual nv data length read */
     rvm_length_t buf_ptr; /* log buffer ptr */
     rvm_length_t aux_ptr; /* aux buffer ptr
-                                           (compensates for sector alignment) */
+                             (compensates for sector alignment) */
     rvm_length_t tmp_ptr; /* temporary buffer ptr */
     long rw_length; /* actual i/o transfer length */
     rvm_offset_t end_offset; /* end offset temporary */
@@ -2027,9 +2050,9 @@ rvm_bool_t preload; /* end sector preload done if true */
                 rw_length = log_buf->length - buf_ptr; /* fill log_buf */
             else
                 rw_length = node->length; /* get all remaining */
-            if ((retval = load_aux_buf(log, &node->log_offset, rw_length,
-                                       &aux_ptr, &data_len, SYNCH, rvm_true)) !=
-                RVM_SUCCESS)
+            retval = load_aux_buf(log, &node->log_offset, rw_length, &aux_ptr,
+                                  &data_len, SYNCH, rvm_true);
+            if (retval != RVM_SUCCESS)
                 return retval;
             /* sanity checks and monitoring */
             assert((aux_ptr + data_len) <= log_buf->aux_rlength);
@@ -2051,9 +2074,9 @@ rvm_bool_t preload; /* end sector preload done if true */
                     cthread_yield(); /* allow reschedule */
                     assert(log->trunc_thread == cthread_self());
                 }
-                if ((rw_length = read_dev(log->cur_seg_dev, &end_offset,
-                                          &log_buf->buf[tmp_ptr],
-                                          SECTOR_SIZE)) < 0)
+                rw_length = read_dev(log->cur_seg_dev, &end_offset,
+                                     &log_buf->buf[tmp_ptr], SECTOR_SIZE);
+                if (rw_length < 0)
                     return RVM_EIO;
                 assert(log->trunc_thread == cthread_self());
                 assert((status->trunc_state & RVM_TRUNC_PHASES) ==
@@ -2097,8 +2120,9 @@ rvm_bool_t preload; /* end sector preload done if true */
 
         /* write buffer to segment & monitor */
         assert(buf_ptr == log_buf->length);
-        if ((rw_length = write_dev(log->cur_seg_dev, &log_buf->offset,
-                                   log_buf->buf, log_buf->length, SYNCH)) < 0)
+        rw_length = write_dev(log->cur_seg_dev, &log_buf->offset, log_buf->buf,
+                              log_buf->length, SYNCH);
+        if (rw_length < 0)
             return RVM_EIO;
         assert(log->trunc_thread == cthread_self());
         assert((status->trunc_state & RVM_TRUNC_PHASES) == RVM_TRUNC_APPLY);
@@ -2117,11 +2141,12 @@ rvm_bool_t preload; /* end sector preload done if true */
         assert(OFFSET_TO_SECTOR_INDEX(log_buf->offset) == 0);
     }
 }
+
 /* merge node's new values with segment data in buffer */
-static rvm_return_t merge_node(log, node,
-                               preload) log_t *log; /* log descriptor */
-dev_region_t *node; /* current change tree node */
-rvm_bool_t preload; /* end sector preload done if true */
+static rvm_return_t
+merge_node(log_t *log /* log descriptor */,
+           dev_region_t *node /* current change tree node */,
+           rvm_bool_t preload /* end sector preload done if true */)
 {
     log_buf_t *log_buf = &log->log_buf; /* log buffer descriptor */
     rvm_length_t temp;
@@ -2153,10 +2178,10 @@ rvm_bool_t preload; /* end sector preload done if true */
     return RVM_SUCCESS;
 }
 
-static rvm_return_t update_seg(log, seg_dict,
-                               seg_dev) log_t *log; /* log descriptor */
-seg_dict_t *seg_dict; /* segment dictionary entry */
-device_t *seg_dev; /* segment device descriptor */
+static rvm_return_t
+update_seg(log_t *log /* log descriptor */,
+           seg_dict_t *seg_dict /* segment dictionary entry */,
+           device_t *seg_dev /* segment device descriptor */)
 {
     log_status_t *status = &log->status; /* status descriptor */
     log_buf_t *log_buf   = &log->log_buf; /* log buffer descriptor */
@@ -2278,8 +2303,9 @@ err_exit:
     }
     return retval;
 }
+
 /* Recovery: phase 3 -- apply modifications to segments */
-static rvm_return_t apply_mods(log) log_t *log; /* log descriptor */
+static rvm_return_t apply_mods(log_t *log /* log descriptor */)
 {
     log_status_t *status = &log->status; /* status descriptor */
     seg_dict_t *seg_dict; /* current segment dictionary entry */
@@ -2335,16 +2361,16 @@ static rvm_return_t apply_mods(log) log_t *log; /* log descriptor */
 
     /* re-protect buffer */
     /* MACH_RVM_PROTECT
- *
- * protect(log->log_buf.buf, log->log_buf.length, FALSE, VM_PROT_READ);
- */
+     *
+     * protect(log->log_buf.buf, log->log_buf.length, FALSE, VM_PROT_READ);
+     */
 
     return retval;
 }
+
 /* Recovery: phase 4 -- update head/tail of log */
-static rvm_return_t
-    status_update(log, new_1st_rec_num) log_t *log; /* log descriptor */
-rvm_length_t new_1st_rec_num;
+static rvm_return_t status_update(log_t *log /* log descriptor */,
+                                  rvm_length_t new_1st_rec_num)
 {
     log_status_t *status = &log->status; /* status descriptor */
     struct timeval end_time; /* end of action time temp */
@@ -2413,9 +2439,11 @@ rvm_length_t new_1st_rec_num;
 
     return retval;
 }
+
 /* switch truncation epochs */
-static rvm_return_t new_epoch(log, count) log_t *log; /* log descriptor */
-rvm_length_t *count; /* ptr to statistics counter */
+static rvm_return_t
+new_epoch(log_t *log /* log descriptor */,
+          rvm_length_t *count /* ptr to statistics counter */)
 {
     log_status_t *status = &log->status; /* log status descriptor */
     rvm_return_t retval  = RVM_SUCCESS;
@@ -2449,11 +2477,10 @@ rvm_length_t *count; /* ptr to statistics counter */
 }
 
 /* recover committed state from log */
-rvm_return_t log_recover(log, count, is_daemon,
-                         flag) log_t *log; /* log descriptor */
-rvm_length_t *count; /* ptr to statistics counter */
-rvm_bool_t is_daemon; /* true if called by daemon */
-rvm_length_t flag; /* truncation type flag */
+rvm_return_t log_recover(log_t *log /* log descriptor */,
+                         rvm_length_t *count /* ptr to statistics counter */,
+                         rvm_bool_t is_daemon /* true if called by daemon */,
+                         rvm_length_t flag /* truncation type flag */)
 {
     log_status_t *status = &log->status; /* log status descriptor */
     log_daemon_t *daemon = &log->daemon; /* log daemon descriptor */
@@ -2632,8 +2659,9 @@ rvm_return_t rvm_truncate()
 /* map & flush <--> truncation synchronization functions */
 
 /* initiate asynchronous truncation */
-rvm_bool_t initiate_truncation(log, threshold) log_t *log; /* log descriptor */
-rvm_length_t threshold; /* log % truncation threshold */
+rvm_bool_t
+initiate_truncation(log_t *log /* log descriptor */,
+                    rvm_length_t threshold /* log % truncation threshold */)
 {
     log_daemon_t *daemon = &log->daemon; /* daemon control descriptor */
     rvm_bool_t did_init  = rvm_false; /* true if initiated truncation */
@@ -2656,10 +2684,11 @@ rvm_length_t threshold; /* log % truncation threshold */
 
     return did_init;
 }
+
 /* wait until truncation has processed all records up to time_stamp */
-rvm_return_t wait_for_truncation(log,
-                                 time_stamp) log_t *log; /* log descriptor */
-struct timeval *time_stamp; /* time threshold */
+rvm_return_t
+wait_for_truncation(log_t *log /* log descriptor */,
+                    struct timeval *time_stamp /* time threshold */)
 {
     log_daemon_t *daemon   = &log->daemon; /* deamon control descriptor */
     log_status_t *status   = &log->status; /* log status descriptor */
@@ -2709,6 +2738,7 @@ struct timeval *time_stamp; /* time threshold */
 
     return retval;
 }
+
 /* truncation daemon */
 void log_daemon(void *arg)
 {

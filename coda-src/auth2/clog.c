@@ -160,10 +160,10 @@ int main(int argc, char **argv)
             SplitRealmFromName(username, &realm);
             i++;
         }
-        /* still coming: 
-	       -e ".............": newpag, authenticate, exec
-	       -u unsafe, tell Venus to use uid instead of pag.
-	    */
+        /* still coming:
+         *   -e ".............": newpag, authenticate, exec
+         *   -u unsafe, tell Venus to use uid instead of pag.
+         */
         else {
             fprintf(stderr, "Wrong argument: %s\n", argv[i]);
             printusage();

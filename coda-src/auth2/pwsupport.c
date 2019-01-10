@@ -144,15 +144,15 @@ void InitPW(int firsttime)
 
         /* moved from void main in auth2: */
         PWLen   = 100; /* length of PW array; this is an initial guess,
-				   may increase below */
+                          may increase below */
         PWArray = (RPC2_EncryptionKey *)malloc(PWLen * RPC2_KEYSIZE);
         CODA_ASSERT(PWArray != NULL);
     }
     /* now back to the old InitPW */
 
     /* Reads in contents of PWFile and builds a sorted list of passwords
-	   in PWArray.  Frees existing storage coor to PWArray.
-	*/
+       in PWArray.  Frees existing storage coor to PWArray.
+     */
     if (PWFile == NULL)
         PWFile = strdup(vice_config_path("db/auth2.pw"));
     if ((fd = open(PWFile, O_RDONLY, 0)) < 0 ||
@@ -187,9 +187,8 @@ void InitPW(int firsttime)
 
 static void BuildPWArray(char *fileBuf)
 {
-    /* fileBuf: pointer to in-core contents of PWFile
-	   parses the file buffer and builds up PWArray; sets PWLen and
-	   PWCount */
+    /* fileBuf: pointer to in-core contents of PWFile parses the file buffer
+     * and builds up PWArray; sets PWLen and PWCount */
 
     char *nextline, *kk;
     int thisid, i;
@@ -255,11 +254,11 @@ static void AppendPW(int vId, RPC2_EncryptionKey eKey, char *otherInfo,
                      int agentId)
 {
     /* eKey:	not yet encrypted with FileKey!!
-	   Appends a line to the PWFile for user whose ViceId is vID.
-	   Logs each change with the ViceId and the timestamp of the agent
-	     performing the change.
-	   Also updates PWArray, enlarging it if necessary.
-	   A periodic offline program should be run to squish old entries. */
+       Appends a line to the PWFile for user whose ViceId is vID.
+       Logs each change with the ViceId and the timestamp of the agent
+           performing the change.
+       Also updates PWArray, enlarging it if necessary.
+       A periodic offline program should be run to squish old entries. */
 
     int fd, i;
     char buf[100], *bnext;
@@ -440,7 +439,7 @@ long PWChangePasswd(RPC2_Handle cid, RPC2_Integer viceId, RPC2_String Passwd)
         printf("\")");
     }
 
-    /* Do not allow if this is a read only server       */
+    /* Do not allow if this is a read only server */
     if (CheckOnly)
         return (AUTH_READONLY);
 

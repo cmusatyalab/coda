@@ -66,10 +66,6 @@ Coda are listed in the file CREDITS.
 
 /* loop terminated by explicit break */
 #define DO_FOREVER for (;;)
-#define MACRO_BEGIN do {
-#define MACRO_END \
-    }             \
-    while (0)
 
 #define FORWARD rvm_true /* record scan forward */
 #define REVERSE rvm_false /* record scan reverse */
@@ -92,10 +88,11 @@ Coda are listed in the file CREDITS.
     (((x).tv_sec == (y).tv_sec) && ((x).tv_usec == (y).tv_usec))
 #define TIME_EQL_ZERO(x) (((x).tv_sec == 0 && ((x).tv_usec == 0)))
 
-#define ZERO_TIME(x)           \
-    MACRO_BEGIN(x).tv_sec = 0; \
-    (x).tv_usec           = 0; \
-    MACRO_END
+#define ZERO_TIME(x)     \
+    do {                 \
+        (x).tv_sec  = 0; \
+        (x).tv_usec = 0; \
+    } while (0)
 
 /* range monitoring vector */
 typedef struct {
@@ -351,6 +348,7 @@ typedef struct {
     list_entry_t links; /* list links */
     rvm_length_t len; /* length of free pages in bytes */
 } free_page_t;
+
 /* Synchronization and Threads support */
 
 /* 
@@ -390,12 +388,12 @@ typedef struct {
    lck:  address of mutex
    body: the critical section code
 */
-#define CRITICAL(lck, body) \
-    MACRO_BEGIN             \
-    mutex_lock(&(lck));     \
-    body;                   \
-    mutex_unlock(&(lck));   \
-    MACRO_END
+#define CRITICAL(lck, body)   \
+    do {                      \
+        mutex_lock(&(lck));   \
+        body;                 \
+        mutex_unlock(&(lck)); \
+    } while (0)
 
 /*  rw_lock (read/write) support
     An rw_lock permits many readers of a structure, but only
@@ -434,11 +432,11 @@ typedef struct /* rw_lock queue entry */
    body: the critical section code
 */
 #define RW_CRITICAL(rwl, mode, body) \
-    MACRO_BEGIN                      \
-    rw_lock(&(rwl), (mode));         \
-    body;                            \
-    rw_unlock(&(rwl), (mode));       \
-    MACRO_END
+    do {                             \
+        rw_lock(&(rwl), (mode));     \
+        body;                        \
+        rw_unlock(&(rwl), (mode));   \
+    } while (0)
 
 /* macro for testing if an rw_lock is free */
 #define RW_LOCK_FREE(rwl) \
@@ -564,8 +562,8 @@ typedef struct {
     rvm_length_t rec_num; /* record number of entry */
 } rec_hdr_t;
 
-/* transaction record header: trans_hdr_t -- a single copy in the log descriptor
-*/
+/* transaction record header: trans_hdr_t
+ *   -- a single copy in the log descriptor */
 typedef struct {
     rec_hdr_t rec_hdr; /* common log record header */
     rvm_length_t num_ranges; /* number of ranges in record */
@@ -587,6 +585,7 @@ typedef struct {
     long seg_code; /* segment short name */
     rvm_bool_t is_split; /* is a range split for log wrap */
 } nv_range_t;
+
 /* special log types -- these records are inserted into the log to
    record events not related to transaction commit and new value
    recording.
@@ -615,14 +614,15 @@ typedef struct {
         log_seg_t log_seg; /* segment mapping marker */
     } special;
 } log_special_t;
+
 /* generic log entry types */
 
 /* log record end marker: rec_end_t -- a single copy in the log descriptor */
 typedef struct {
     rec_hdr_t rec_hdr; /* common log record header */
     struct_id_t rec_type; /* type of recorded ended */
-    rvm_length_t sub_rec_len; /* back displacement to previous sub-
-                                           record; same as rec_length if none */
+    rvm_length_t sub_rec_len; /* back displacement to previous sub-record;
+                                 same as rec_length if none */
 } rec_end_t;
 
 /* log wrap-around marker -- a single copy in the log descriptor */
@@ -646,8 +646,8 @@ typedef struct {
     long iov_cnt; /* count of entries used in iov */
     rvm_length_t io_length; /* accumulated length of i/o */
     rvm_offset_t last_position; /* last location seeked or transfered */
-    /* the following fields are used for
-                                           log devices only */
+
+    /* the following fields are used for log devices only */
     char *wrt_buf; /* working raw io write buffer base */
     rvm_length_t wrt_buf_len; /* usable wrt_buf length */
     char *ptr; /* write buffer fill ptr */
@@ -694,6 +694,7 @@ typedef struct {
 #define FILE_STATUS_OFFSET 0
 
 #define UPDATE_STATUS 100 /* flushes before updating log status area */
+
 /* log status descriptor -- included in the log descriptor */
 #ifdef RVM_LOG_TAIL_SHADOW
 extern rvm_offset_t log_tail_shadow;
@@ -709,8 +710,7 @@ typedef struct {
 
     /* log pointers & limits */
     rvm_offset_t log_start; /* first offset for records */
-    rvm_offset_t log_size; /* dev.num_bytes - log_start:
-                                           space for records */
+    rvm_offset_t log_size; /* dev.num_bytes - log_start: space for records */
     rvm_offset_t log_head; /* current log head */
     rvm_offset_t log_tail; /* current log tail */
     rvm_offset_t prev_log_head; /* previous head (truncation only) */
@@ -742,40 +742,40 @@ typedef struct {
     rvm_length_t n_flush; /* number of internal flushes */
     rvm_length_t n_rvm_flush; /* number of explicit flush calls */
     rvm_length_t n_special; /* number of special log records */
-    rvm_offset_t range_overlap; /* current overlap eliminated by range coalesce */
-    rvm_offset_t trans_overlap; /* current overlap eliminated by trans coalesce */
-    rvm_length_t n_range_elim; /* number of ranges eliminated by
-                                           range coalesce/flush */
-    rvm_length_t n_trans_elim; /* number of ranges eliminated by
-                                           trans coalesce/flush */
-    rvm_length_t n_trans_coalesced; /* number of transactions coalesced in
-                                           this flush cycle */
+    /* current overlap eliminated by range coalesce */
+    rvm_offset_t range_overlap;
+    /* current overlap eliminated by trans coalesce */
+    rvm_offset_t trans_overlap;
+    /* number of ranges eliminated by range coalesce/flush */
+    rvm_length_t n_range_elim;
+    /* number of ranges eliminated by trans coalesce/flush */
+    rvm_length_t n_trans_elim;
+    /* number of transactions coalesced in this flush cycle */
+    rvm_length_t n_trans_coalesced;
     struct timeval flush_time; /* time spent in flushes */
     rvm_length_t last_flush_time; /* duration of last flush (msec) */
     rvm_length_t last_truncation_time; /* duration of last truncation (sec) */
     rvm_length_t last_tree_build_time; /* duration of tree build (sec) */
-    rvm_length_t last_tree_apply_time; /* duration of tree apply phase
-                                             (sec) */
+    rvm_length_t last_tree_apply_time; /* duration of tree apply phase (sec) */
 
     /* histogram vectors */
 
     rvm_length_t flush_times[flush_times_len]; /* flush timings */
     rvm_length_t range_lengths[range_lengths_len]; /* range lengths flushed */
-    rvm_length_t range_elims[range_elims_len]; /* num ranges eliminated by
-                                                     range coalesce/flush */
-    rvm_length_t trans_elims[trans_elims_len]; /* num ranges eliminated by
-                                                     trans coalesce/flush */
-    rvm_length_t range_overlaps[range_overlaps_len]; /* space saved by
-                                                           range coalesce/flush */
-    rvm_length_t trans_overlaps[range_overlaps_len]; /* space saved by
-                                                           trans coalesce/flush */
+    /* num ranges eliminated by range coalesce/flush */
+    rvm_length_t range_elims[range_elims_len];
+    /* num ranges eliminated by trans coalesce/flush */
+    rvm_length_t trans_elims[trans_elims_len];
+    /* space saved by range coalesce/flush */
+    rvm_length_t range_overlaps[range_overlaps_len];
+    /* space saved by trans coalesce/flush */
+    rvm_length_t trans_overlaps[range_overlaps_len];
 
     /* cummulative transaction stats */
     rvm_length_t tot_abort; /* total aborted transactions */
     rvm_length_t tot_flush_commit; /* total flush commits */
     rvm_length_t tot_no_flush_commit; /* total no_flush commits */
-    rvm_length_t tot_split; /* total transactions split for log
-                                           wrap-around */
+    rvm_length_t tot_split; /* total transactions split for log wrap-around */
 
     /* cummulative log statistics */
     rvm_length_t tot_flush; /* total internal flush calls  */
@@ -784,50 +784,52 @@ typedef struct {
     rvm_length_t tot_wrap; /* total log wrap-arounds */
     rvm_length_t log_dev_max; /* maximum % log device used so far */
     rvm_offset_t tot_log_written; /* total length of all writes to log */
-    rvm_offset_t
-        tot_range_overlap; /* total overlap eliminated by range coalesce */
-    rvm_offset_t
-        tot_trans_overlap; /* total overlap eliminated by trans coalesce */
-    rvm_length_t tot_range_elim; /* total number of ranges eliminated by
-                                           range coalesce */
-    rvm_length_t tot_trans_elim; /* total number of ranges eliminated by
-                                           trans coalesce */
-    rvm_length_t tot_trans_coalesced; /* total number of transactions coalesced */
+    /* total overlap eliminated by range coalesce */
+    rvm_offset_t tot_range_overlap;
+    /* total overlap eliminated by trans coalesce */
+    rvm_offset_t tot_trans_overlap;
+    /* total number of ranges eliminated by range coalesce */
+    rvm_length_t tot_range_elim;
+    /* total number of ranges eliminated by trans coalesce */
+    rvm_length_t tot_trans_elim;
+    /* total number of transactions coalesced */
+    rvm_length_t tot_trans_coalesced;
 
     /* truncation statistics */
     rvm_length_t tot_rvm_truncate; /* total explicit rvm_truncate calls */
     rvm_length_t tot_async_truncation; /* total asynchronous truncations */
-    rvm_length_t tot_sync_truncation; /* total forced synchronous truncations */
-    rvm_length_t
-        tot_truncation_wait; /* total transactions delayed by truncation */
+    /* total forced synchronous truncations */
+    rvm_length_t tot_sync_truncation;
+    /* total transactions delayed by truncation */
+    rvm_length_t tot_truncation_wait;
     rvm_length_t tot_recovery; /* total recovery truncations */
     struct timeval tot_flush_time; /* total time spent in flush */
     struct timeval tot_truncation_time; /* cumulative truncation time */
 
     /* histogram vectors */
 
-    rvm_length_t
-        tot_tree_build_times[truncation_times_len]; /* truncation timings */
+    /* truncation timings */
+    rvm_length_t tot_tree_build_times[truncation_times_len];
     rvm_length_t tot_tree_apply_times[truncation_times_len];
     rvm_length_t tot_truncation_times[truncation_times_len];
-    rvm_length_t tot_flush_times[flush_times_len]; /* cummulative flush timings */
-    rvm_length_t tot_range_lengths
-        [range_lengths_len]; /* cummulative range lengths flushed */
-    rvm_length_t
-        tot_range_elims[range_elims_len]; /* total num ranges eliminated by
-                                                         range coalesce/flush */
-    rvm_length_t tot_trans_elims
-        [trans_elims_len]; /* total num ranges eliminated by                                                 trans coalesce/flush */
-    rvm_length_t tot_range_overlaps[range_overlaps_len]; /* space saved by
-                                                           range coalesce/flush */
-    rvm_length_t tot_trans_overlaps[range_overlaps_len]; /* space saved by
-                                                           trans coalesce/flush */
-    rvm_length_t
-        tot_trans_coalesces[trans_coalesces_len]; /* transactions coalesced
-                                                                 per flush  */
+    /* cummulative flush timings */
+    rvm_length_t tot_flush_times[flush_times_len];
+    /* cummulative range lengths flushed */
+    rvm_length_t tot_range_lengths[range_lengths_len];
+    /* total num ranges eliminated by range coalesce/flush */
+    rvm_length_t tot_range_elims[range_elims_len];
+    /* total num ranges eliminated by trans coalesce/flush */
+    rvm_length_t tot_trans_elims[trans_elims_len];
+    /* space saved by range coalesce/flush */
+    rvm_length_t tot_range_overlaps[range_overlaps_len];
+    /* space saved by trans coalesce/flush */
+    rvm_length_t tot_trans_overlaps[range_overlaps_len];
+    /* transactions coalesced per flush  */
+    rvm_length_t tot_trans_coalesces[trans_coalesces_len];
     rvm_length_t flush_state; /* flush status */
     rvm_length_t trunc_state; /* truncation status */
 } log_status_t;
+
 /* log status descriptor on log device: log_dev_status_t */
 typedef struct {
     struct_id_t struct_id; /* self identifier */
@@ -902,23 +904,23 @@ typedef enum
 
 typedef struct {
     cthread_t thread; /* daemon thread handle */
-    RVM_MUTEX lock; /* daemon lock -- protects following
-                                           fields */
+    RVM_MUTEX lock; /* daemon lock -- protects following fields */
     RVM_CONDITION code; /* condition code to signal daemon */
     RVM_CONDITION flush_flag; /* condition code to signal flush */
     RVM_CONDITION wake_up; /* conditon code to signal threads
-                                           waiting for truncation completion */
+                              waiting for truncation completion */
     daemon_state_t state; /* control state */
     long truncate; /* truncation threshold, as % of log */
 } log_daemon_t;
+
 /* log descriptor */
 typedef struct {
-    list_entry_t links; /* list links and struct id -- points
-                                           to log list root */
+    list_entry_t links; /* list links and struct id --
+                           points to log list root */
     long ref_cnt; /* count seg's using this log device */
 
     RVM_MUTEX dev_lock; /* log device lock, protects device and
-                                           following i/o related fields: */
+                           following i/o related fields: */
     device_t dev; /* log device descriptor */
     log_status_t status; /* log status area descriptor */
     trans_hdr_t trans_hdr; /* i/o header for transaction log entry */
@@ -928,15 +930,15 @@ typedef struct {
     /* end of log_dev_lock protected fields */
 
     RVM_MUTEX tid_list_lock; /* lock for tid list header & links
-                                           used when adding/deleting a tid */
+                                used when adding/deleting a tid */
     list_entry_t tid_list; /* root of active transaction list */
 
     RVM_MUTEX flush_list_lock; /* lock for flush list header & links
-                                           used to add/delete a no_flush tid */
+                                  used to add/delete a no_flush tid */
     list_entry_t flush_list; /* list of no_flush committed tid's */
 
     RVM_MUTEX special_list_lock; /* lock for special list header & links
-                                           used to add/delete a special entry */
+                                    used to add/delete a special entry */
     list_entry_t special_list; /* list of special log entries */
 
     rw_lock_t flush_lock; /* log flush synchronization */
@@ -949,6 +951,7 @@ typedef struct {
     long seg_dict_len; /* length of seg_dict_vec */
     device_t *cur_seg_dev; /* current segment device in truncation */
 } log_t;
+
 /* segment descriptor: seg_t */
 typedef struct {
     list_entry_t links; /* list links and struct id */
@@ -959,13 +962,13 @@ typedef struct {
     log_t *log; /* log descriptor ptr */
 
     RVM_MUTEX seg_lock; /* lock for seg lists: protects header
-                                           and links -- used when mapping or
-                                           unmapping a region */
+                           and links -- used when mapping or
+                           unmapping a region */
     list_entry_t map_list; /* mapped region list header */
     list_entry_t unmap_list; /* unmapped region list header */
 
     rvm_bool_t threads_waiting; /* at least one thread is waiting to
-                                           map a previously unmapped region */
+                                   map a previously unmapped region */
 } seg_t;
 
 /* recovery dictionary segment descriptor: seg_dict_t */
@@ -982,9 +985,8 @@ typedef struct seg_dict_s seg_dict_t;
 #define SEG_DICT_INDEX(x) ((x)-1) /* index of segemnt in seg_dict_vec */
 /* region descriptor: region_t */
 typedef struct region_s {
-    list_entry_t links; /* list links and struct id
-                                           -- protected by seg.map_lock
-                                              or seg.unmap_lock */
+    list_entry_t links; /* list links and struct id --
+                           protected by seg.map_lock or seg.unmap_lock */
     rw_lock_t region_lock; /* rw lock for following fields */
     seg_t *seg; /* back ptr to segment */
     mem_region_t *mem_region; /* back ptr to region tree node */
@@ -1011,12 +1013,13 @@ typedef struct {
     rvm_offset_t end_offset; /* end byte of range */
     nv_range_t nv; /* nv range record header for i/o */
 } range_t;
+
 /* transaction id descriptor: int_tid_t */
 typedef struct {
     list_entry_t links; /* list links and struct id; protected
-                                           by log tid_list_lock */
+                           by log tid_list_lock */
     rw_lock_t tid_lock; /* remaining fields protected by
-                                           tid_lock until on flush list*/
+                           tid_lock until on flush list*/
     struct timeval uname; /* unique identifier */
     struct timeval commit_stamp; /* timestamp of commit */
     log_t *log; /* back link to log descriptor */
@@ -1025,8 +1028,8 @@ typedef struct {
     range_t **x_ranges; /* vector of overlaping ranges */
     long x_ranges_alloc; /* allocated length of x_ranges */
     long x_ranges_len; /* current length of x_ranges */
-    long range_elim; /* ranges eliminated by range coalesce */
-    long trans_elim; /* ranges eliminated by trans coalesce */
+    rvm_length_t range_elim; /* ranges eliminated by range coalesce */
+    rvm_length_t trans_elim; /* ranges eliminated by trans coalesce */
     rvm_offset_t range_overlap; /* overlap eliminated by range coalesce */
     rvm_offset_t trans_overlap; /* overlap eliminated by trans coalesce */
     rvm_length_t n_coalesced; /* count of coalesced transactions */
@@ -1045,7 +1048,7 @@ typedef struct {
 #define TID(x) ((tid->flags & (x)) != 0)
 #define TRANS_HDR(x) ((trans_hdr->flags & (x)) != 0)
 /* functions and structures for managing list of RVM-allocated
-     regions of memory (added by tilt, Nov 19 1996) */
+   regions of memory (added by tilt, Nov 19 1996) */
 
 typedef struct rvm_page_entry {
     char *start;
@@ -1056,8 +1059,8 @@ typedef struct rvm_page_entry {
 
 rvm_bool_t rvm_register_page(char *vmaddr, rvm_length_t length);
 rvm_bool_t rvm_unregister_page(char *vmaddr, rvm_length_t length);
-/* list management functions */
 
+/* list management functions [rvm_utils.c] */
 extern void init_list_header(); /* [rvm_utils.c] */
 /*  list_entry_t    *whichlist;
     struct_id_t     struct_id;
@@ -1287,8 +1290,7 @@ extern rvm_return_t alloc_log_buf(); /* [rvm_logrecovr.c] */
 extern void free_log_buf(); /* [rvm_logrecovr.c] */
 /*  log_t           *log; */
 
-/* Segment & region management functions */
-/* [rvm_map.c] */
+/* Segment & region management functions [rvm_map.c] */
 void init_map_roots(void);
 rvm_return_t bad_region(rvm_region_t *rvm_region);
 char *page_alloc(rvm_length_t len);

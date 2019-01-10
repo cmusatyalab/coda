@@ -1379,13 +1379,12 @@ int plan9server::recv_stat(unsigned char *buf, size_t len, uint16_t tag)
     /* send_Rstat */
     DEBUG("9pfs: Rstat[%x]\n", tag);
     DEBUG(
-        "\
-      mode: %o  length:  %lu name: '%s' \n \
-      qid[type.ver.path]: %x.%x.%lx \n \
-      extension: '%s' \n \
-      uid: %s  gid: %s  muid: %s \n \
-      n_uid: %d  n_gid: %d  n_muid: %d\n \
-      atime: %u  mtime: %u \n ",
+        "mode: %o  length:  %lu name: '%s'\n"
+        "qid[type.ver.path]: %x.%x.%lx\n"
+        "extension: '%s'\n"
+        "uid: %s  gid: %s  muid: %s\n"
+        "n_uid: %d  n_gid: %d  n_muid: %d\n"
+        "atime: %u  mtime: %u\n",
         stat.mode, stat.length, stat.name, stat.qid.type, stat.qid.version,
         stat.qid.path, stat.extension, stat.uid, stat.gid, stat.muid,
         stat.n_uid, stat.n_gid, stat.n_muid, stat.atime, stat.mtime);
@@ -1516,11 +1515,11 @@ int plan9server::recv_wstat(unsigned char *buf, size_t len, uint16_t tag)
                stat.length == P9_DONT_TOUCH_LENGTH &&
                stat.mtime == P9_DONT_TOUCH_MTIME) {
         /* If all legal wstat fields were "don't touch", then according to 9P
-     * protocol, the server can interpret this wstat as a request to guarantee
-     * that the contents of the associated file are committed to stable storage
-     * before the Rwstat message is returned (i.e. "make the state of the file
-     * exactly what it claims to be").
-     */
+         * protocol, the server can interpret this wstat as a request to
+         * guarantee that the contents of the associated file are committed to
+         * stable storage before the Rwstat message is returned (i.e. "make the
+         * state of the file exactly what it claims to be").
+         */
         DEBUG("--- fsyncing fid %d\n", fid);
         //conn->fsync(&fm->cnode);
         if (conn->u.u_error) {

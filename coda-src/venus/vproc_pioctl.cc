@@ -147,9 +147,9 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
                            could have venus cache the identity */
                 /* of administrators. */
                 /*
-			 u.u_error = f->Access(PRSFS_LOOKUP, C_A_F_OK, u.u_uid);
-			 if (u.u_error) break;
-*/
+                u.u_error = f->Access(PRSFS_LOOKUP, C_A_F_OK, u.u_uid);
+                if (u.u_error) break;
+                */
 
                 /* Do the operation. */
                 RPC2_BoundedBS acl;
@@ -192,10 +192,10 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
 
             case _VIOCPREFETCH: {
                 /*
- *			 if (type == VPT_Worker)
- *			     if (!((worker *)this)->returned)
- *				 ((worker *)this)->Return(0);
- */
+                if (type == VPT_Worker)
+                    if (!((worker *)this)->returned)
+                        ((worker *)this)->Return(0);
+                */
                 /* return early to user */
                 if (type == VPT_Worker) {
                     worker *w = (worker *)this;
@@ -217,15 +217,15 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
 
             case _VIOC_ADD_MT_PT: {
                 /* A mount-link is virtually identical to a symlink.
-			 * In fact Coda stores mount-links as symlinks on the
-			 * server. The only visible differences are that the
-			 * mount-link has a Unix modemask of 0644, while a
-			 * symlink has 0777. A mountpoint's contents always
-			 * start with '#', '@' (or '%'?)
-			 *
-			 * This code is almost identical to vproc::symlink in
-			 * vproc_vfscalls. -JH
-			 */
+                 * In fact Coda stores mount-links as symlinks on the
+                 * server. The only visible differences are that the
+                 * mount-link has a Unix modemask of 0644, while a
+                 * symlink has 0777. A mountpoint's contents always
+                 * start with '#', '@' (or '%'?)
+                 *
+                 * This code is almost identical to vproc::symlink in
+                 * vproc_vfscalls. -JH
+                 */
                 fsobj *target_fso = NULL;
                 char contents[CODA_MAXNAMLEN + 1];
                 char *link_name = (char *)data->in;
@@ -270,36 +270,36 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
                 }
 
                 /*
-			 * Regular mount-links start with a '#', optionally
-			 * followed by a volume name (current path is used in
-			 * case the volume name is not specified), optionally
-			 * followed by '@' and a realm/domain name (the realm
-			 * of the parent volume is used if this is not
-			 * specified), and end with a single '.'.
-			 *
-			 * The ending character doesn't seem too important, it
-			 * looks like the '.' was added mostly because of the
-			 * buggy implementation of TryToCover which strips the
-			 * last character of the volume name.
-			 *
-			 * There are references in the code that indicate there
-			 * used to be mount-links that started with '%'. I
-			 * don't know what they were used for.
-			 *
-			 * Internally, Venus creates mount-links starting with
-			 * '@', followed by a Fid (volume.vnode.unique),
-			 * optionally followed by '@' and a realm/domain name.
-			 * These are used for conflicts and during repair to
-			 * mount a specific object in the fake repair volume.
-			 *
-			 * -JH
-			 *
-			 * Additionally, collapsing an expanded object that
-			 * was previously a mount point modifies the old mount-
-			 * link to start with '$'. This is to avoid problems
-			 * with ignoring dangling symlinks within
-			 * TryToCover, and is never visible to the user. - Adam
-			 */
+                 * Regular mount-links start with a '#', optionally
+                 * followed by a volume name (current path is used in
+                 * case the volume name is not specified), optionally
+                 * followed by '@' and a realm/domain name (the realm
+                 * of the parent volume is used if this is not
+                 * specified), and end with a single '.'.
+                 *
+                 * The ending character doesn't seem too important, it
+                 * looks like the '.' was added mostly because of the
+                 * buggy implementation of TryToCover which strips the
+                 * last character of the volume name.
+                 *
+                 * There are references in the code that indicate there
+                 * used to be mount-links that started with '%'. I
+                 * don't know what they were used for.
+                 *
+                 * Internally, Venus creates mount-links starting with
+                 * '@', followed by a Fid (volume.vnode.unique),
+                 * optionally followed by '@' and a realm/domain name.
+                 * These are used for conflicts and during repair to
+                 * mount a specific object in the fake repair volume.
+                 *
+                 * -JH
+                 *
+                 * Additionally, collapsing an expanded object that
+                 * was previously a mount point modifies the old mount-
+                 * link to start with '$'. This is to avoid problems
+                 * with ignoring dangling symlinks within
+                 * TryToCover, and is never visible to the user. - Adam
+                 */
                 /* make it a 'magic' mount name */
                 snprintf(contents, CODA_MAXNAMLEN, "#%s.", arg);
                 contents[CODA_MAXNAMLEN] = '\0';
@@ -314,8 +314,8 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
                 /* set vattr fields? */
 
                 /* Send a downcall to the kernel to get rid of any
-			 * negative name cache entries for the newly created
-			 * object */
+                 * negative name cache entries for the newly created
+                 * object */
                 k_Purge(fid, 0);
                 break;
             }
@@ -372,7 +372,7 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
                 u.u_error = f->Remove(target_name, target_fso, u.u_uid);
 
                 /* Get rid of anything cached in the kernel relating to
-			 * the removed volume and it's children */
+                 * the removed volume and it's children */
                 k_Purge(&target_fso->fid, 1);
 
                 FSDB->Put(&target_fso);
@@ -556,7 +556,7 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
 		    BEGIN_HTML
 		    <a name="dorepair"><strong> dorepair handler </strong></a>
 		    END_HTML
-		  */
+		 */
             case _VIOC_REPAIR: {
                 if (f->IsLocalObj()) {
                     int rc;
@@ -639,9 +639,9 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
 
             case _VIOC_FLUSHASR:
                 /* This function used to be built around FSDB->Find, which
-		     * did no locking. Now we use FSDB->Get, which does do
-		     * locking. Hopefully this is better, and nothing breaks.
-		     * --JH */
+                 * did no locking. Now we use FSDB->Get, which does do
+                 * locking. Hopefully this is better, and nothing breaks.
+                 * --JH */
                 {
                     /* ASR flush operation allowed only for files */
                     LOG(100, ("Going to reset lastresolved time for %s\n",
@@ -904,11 +904,11 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
             Name.SeqBody   = (RPC2_ByteSeq)name;
             Name.MaxSeqLen = V_MAXVOLNAMELEN;
 #if 0
-		    /* Avoid setting the volumename, otherwise cfs setquota
-		     * renames all volume replicas to that of their replicated
-		     * parent. This might confuse ViceGetVolumeInfo and leads
-		     * to subtle corruption. --JH */
-		    Name.SeqLen = namelen;
+            /* Avoid setting the volumename, otherwise cfs setquota
+             * renames all volume replicas to that of their replicated
+             * parent. This might confuse ViceGetVolumeInfo and leads
+             * to subtle corruption. --JH */
+            Name.SeqLen = namelen;
 #else
             Name.SeqLen = 0;
 #endif
@@ -1090,24 +1090,24 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
             CODA_ASSERT(sscanf((char *)data->in, "%d", &rep_cmd) == 1);
             switch (rep_cmd) {
                 /*
-  BEGIN_HTML
-  <a name="beginrepair"><strong> beginrepair handler </strong></a>
-  END_HTML
-*/
+                   BEGIN_HTML
+                   <a name="beginrepair"><strong> beginrepair handler </strong></a>
+                   END_HTML
+                 */
             case REP_CMD_BEGIN: {
                 /* This ioctl only figures out what type of conflict
-		       * we are dealing with and verifies the object is
-		       * expanded correctly. No mutations are performed.
-		       * The idea of 'beginning repair' is historical, and
-		       * there is no problem calling this on the same directory
-		       * or volume many times without an 'endrepair', or
-		       * attempting any form of repair without calling this
-		       * first. */
+                 * we are dealing with and verifies the object is
+                 * expanded correctly. No mutations are performed.
+                 * The idea of 'beginning repair' is historical, and
+                 * there is no problem calling this on the same directory
+                 * or volume many times without an 'endrepair', or
+                 * attempting any form of repair without calling this
+                 * first. */
                 /*
-		       *      1 - Local/Global repair session
-		       *      2 - Server/Server repair session
-		       *      3 - Both Local/Global and Server/Server
-		       */
+                 *      1 - Local/Global repair session
+                 *      2 - Server/Server repair session
+                 *      3 - Both Local/Global and Server/Server
+                 */
 
                 int code   = -1, rc;
                 fsobj *dir = NULL, *localcache = NULL;
@@ -1171,21 +1171,21 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
                 break;
             }
                 /*
-  BEGIN_HTML
-  <a name="endrepair"><strong> endrepair handler </strong></a>
-  END_HTML
-*/
+                   BEGIN_HTML
+                   <a name="endrepair"><strong> endrepair handler </strong></a>
+                   END_HTML
+                 */
             case REP_CMD_END: {
                 /*
-		       * This ioctl literally does nothing. The only applicable
-		       * use might be for unfreezing volumes if mechanisms
-		       * are implemented to freeze state upon server-server
-		       * conflict discovery.
-		       *
-		       * Even then, that might be better suited to the
-		       * _VIOC_REPAIR ioctl, which figures out if any repair
-		       * actually occurred and if it was successful.
-		       */
+                 * This ioctl literally does nothing. The only applicable
+                 * use might be for unfreezing volumes if mechanisms
+                 * are implemented to freeze state upon server-server
+                 * conflict discovery.
+                 *
+                 * Even then, that might be better suited to the
+                 * _VIOC_REPAIR ioctl, which figures out if any repair
+                 * actually occurred and if it was successful.
+                 */
                 char *msg;
 
                 msg = (char *)data->out;
@@ -1204,10 +1204,10 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
                 break;
             }
                 /*
-  BEGIN_HTML
-  <a name="checklocal"><strong> checklocal handler </strong></a>
-  END_HTML
-*/
+                   BEGIN_HTML
+                   <a name="checklocal"><strong> checklocal handler </strong></a>
+                   END_HTML
+                 */
             case REP_CMD_CHECK: {
                 char *msg;
                 msg = (char *)data->out;
@@ -1227,10 +1227,10 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
             }
 
                 /*
-  BEGIN_HTML
-  <a name="preservelocal"><strong> preservelocal handler </strong></a>
-  END_HTML
-*/
+                   BEGIN_HTML
+                   <a name="preservelocal"><strong> preservelocal handler </strong></a>
+                   END_HTML
+                 */
             case REP_CMD_PRESERVE: {
                 char *msg;
                 msg = (char *)data->out;
@@ -1252,10 +1252,10 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
             }
 
                 /*
-  BEGIN_HTML
-  <a name="preservealllocal"><strong> preservealllocal handler </strong></a>
-  END_HTML
-*/
+                   BEGIN_HTML
+                   <a name="preservealllocal"><strong> preservealllocal handler </strong></a>
+                   END_HTML
+                 */
             case REP_CMD_PRESERVE_ALL: {
                 char *msg;
                 msg = (char *)data->out;
@@ -1283,10 +1283,10 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
             }
 
                 /*
-  BEGIN_HTML
-  <a name="discardlocal"><strong> discardlocal handler </strong></a>
-  END_HTML
-*/
+                   BEGIN_HTML
+                   <a name="discardlocal"><strong> discardlocal handler </strong></a>
+                   END_HTML
+                 */
             case REP_CMD_DISCARD: {
                 char *msg;
                 msg = (char *)data->out;
@@ -1312,10 +1312,10 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
                 break;
             }
                 /*
-  BEGIN_HTML
-  <a name="discardalllocal"><strong> discardalllocal handler </strong></a>
-  END_HTML
-*/
+                   BEGIN_HTML
+                   <a name="discardalllocal"><strong> discardalllocal handler </strong></a>
+                   END_HTML
+                 */
             case REP_CMD_DISCARD_ALL: {
                 /* Not supported. Use PURGEML instead. */
                 data->out_size = 0;
@@ -1323,10 +1323,10 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
                 break;
             }
                 /*
-  BEGIN_HTML
-  <a name="listlocal"><strong> listlocal handler </strong></a>
-  END_HTML
-*/
+                   BEGIN_HTML
+                   <a name="listlocal"><strong> listlocal handler </strong></a>
+                   END_HTML
+                 */
             case REP_CMD_LIST: {
                 if (!v->IsReadWrite()) {
                     u.u_error = EOPNOTSUPP;
@@ -1751,10 +1751,10 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
             memcpy(&on, data->in, sizeof(int));
 
             /* We would like "waitforever" behavior to be settable on a
-		     * per-process group basis. However, this would require
-		     * cooperation with the kernel, which I don't want to mess
-		     * with now.  So instead, we will set it on a per-user
-		     * basis (at least for now). */
+             * per-process group basis. However, this would require
+             * cooperation with the kernel, which I don't want to mess
+             * with now.  So instead, we will set it on a per-user
+             * basis (at least for now). */
             Realm *realm = REALMDB->GetRealm((char *)data->in + sizeof(int));
             userent *ue  = realm->GetUser(u.u_uid);
             ue->SetWaitForever(on);

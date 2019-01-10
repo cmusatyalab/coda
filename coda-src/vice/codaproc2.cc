@@ -129,8 +129,7 @@ struct rle {
         } u_rmdir;
         struct {
             RPC2_Integer Length;
-            ViceFid UntranslatedFid; /* in case we need to fetch 
-					       this object! */
+            ViceFid UntranslatedFid; /* in case we need to fetch this object */
             RPC2_Integer Inode; /* if data is already local */
         } u_store;
         struct {
@@ -982,8 +981,8 @@ static int GetReintegrateObjects(ClientEntry *client, struct dllist_head *rlog,
                 vle *v = AddVLE(*vlist, &r->Fid[0]);
 
                 /* Add file's parent Fid to list for ACL purposes. */
-                /* (Parent MUST already be on list if child was 
-		       just alloc'ed!) */
+                /* (Parent MUST already be on list if child was just
+                 * allocated) */
                 if (!v->vptr && !ISDIR(r->Fid[0]))
                     if ((errorCode = AddParent(&volptr, vlist, &r->Fid[0])))
                         goto Exit;
@@ -993,8 +992,8 @@ static int GetReintegrateObjects(ClientEntry *client, struct dllist_head *rlog,
             case CML_RemoveDir_OP: {
                 vle *p_v = AddVLE(*vlist, &r->Fid[0]);
 
-                /* Add the child object's fid to the vlist 
-		       (if it presently exists). */
+                /* Add the child object's fid to the vlist
+                 * (if it presently exists). */
                 if (!p_v->vptr)
                     if ((errorCode = AddChild(&volptr, vlist, &r->Fid[0],
                                               r->Name[0], 0)))
@@ -1007,8 +1006,8 @@ static int GetReintegrateObjects(ClientEntry *client, struct dllist_head *rlog,
             case CML_Rename_OP: {
                 vle *sp_v = AddVLE(*vlist, &r->Fid[0]);
 
-                /* Add the source object's fid to the vlist 
-		       (if it presently exists). */
+                /* Add the source object's fid to the vlist
+                 * (if it presently exists). */
                 if (sp_v->vptr == 0)
                     if ((errorCode = AddChild(&volptr, vlist, &r->Fid[0],
                                               r->Name[0], 0)))
@@ -1016,7 +1015,8 @@ static int GetReintegrateObjects(ClientEntry *client, struct dllist_head *rlog,
 
                 vle *tp_v = AddVLE(*vlist, &r->Fid[1]);
 
-                /* Add the target object's fid to the vlist (if it presently exists). */
+                /* Add the target object's fid to the vlist
+                 * (if it presently exists). */
                 if (tp_v->vptr == 0)
                     if ((errorCode = AddChild(&volptr, vlist, &r->Fid[1],
                                               r->Name[1], 0)))
@@ -1044,7 +1044,8 @@ static int GetReintegrateObjects(ClientEntry *client, struct dllist_head *rlog,
     SLog(1, "GetReintegrateObjects: added parent/children, vlist count = %d",
          vlist->count());
 
-    /* Reacquire all the objects (except those just alloc'ed), this time in FID-order and under write locks. */
+    /* Reacquire all the objects (except those just alloc'ed), this time in
+     * FID-order and under write locks. */
     {
         dlist_iterator next(*vlist);
         vle *v;
@@ -1106,7 +1107,8 @@ static int CheckSemanticsAndPerform(ClientEntry *client, VolumeId Vid,
     }
 
     /* Check each operation and perform it. */
-    /* Note: the data transfer part of stores is delayed until all other operations have completed. */
+    /* Note: the data transfer part of stores is delayed until all other
+     * operations have completed. */
     SLog(1, "Starting CheckSemanticsAndPerform for %x", Vid);
 
     {
@@ -1160,7 +1162,8 @@ static int CheckSemanticsAndPerform(ClientEntry *client, VolumeId Vid,
                                           v->vptr->disk.dataVersion + 1);
                 }
                 CODA_ASSERT(v->f_finode > 0);
-                /* Bulk transfer is deferred until all ops have been checked/performed. */
+                /* Bulk transfer is deferred until all ops have been
+                 * checked/performed. */
                 HandleWeakEquality(volptr, v->vptr, &r->VV[0]);
                 PerformStore(client, VSGVolnum, volptr, v->vptr, v->f_finode, 0,
                              r->u.u_store.Length, r->Mtime, &r->sid);
@@ -1186,8 +1189,8 @@ static int CheckSemanticsAndPerform(ClientEntry *client, VolumeId Vid,
             case CML_Utimes_OP:
             case CML_Chmod_OP:
             case CML_Chown_OP:
-                /* There is and never was a truncate CML operation the related code is still
- * present, but disabled --JH */
+                /* There is and never was a truncate CML operation the related
+                 * code is still present, but disabled --JH */
                 {
                     RPC2_Unsigned Mask =
                         (r->opcode == CML_Utimes_OP) ?
@@ -1271,8 +1274,9 @@ static int CheckSemanticsAndPerform(ClientEntry *client, VolumeId Vid,
                     }
 
 #if 0
-/* COW is only invoked by truncate, which we don't use support at the moment
- * (truncates are shipped as new stores in the CML) --JH */
+                    /* COW is only invoked by truncate, which we don't use
+                     * support at the moment * (truncates are shipped as new
+                     * stores in the CML) --JH */
 		    /* Note occurrence of COW. */
 		    if (c_inode) {
 			CODA_ASSERT(v->f_sinode == 0);

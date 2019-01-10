@@ -14,6 +14,7 @@ Coda are listed in the file CREDITS.
 #*/
 
 #include <stdlib.h>
+
 #include <rpc2/secure.h>
 
 /* This is clearly minimal, we already run tests during initialization */

@@ -47,11 +47,13 @@ Pittsburgh, PA.
 #include <signal.h>
 #include <netinet/in.h>
 #include <assert.h>
+
 #include <lwp/lwp.h>
 #include <lwp/timer.h>
 #include <rpc2/rpc2.h>
 #include <rpc2/se.h>
 #include <rpc2/sftp.h>
+
 #include "test.h"
 
 #define SUBSYS_SRV 1001
@@ -350,8 +352,8 @@ int main(int arg, char **argv)
                     VMCurrFileSize; /* ignored for fetch */
             }
 
-            /* Request packet contains: reply length, remote seek offset, remote byte quota, 
-			hash mark, remote name*/
+            /* Request packet contains: reply length, remote seek offset,
+             * remote byte quota, hash mark, remote name*/
             if (!qflag)
                 printf("Reply body length (0 unless testing piggybacking): ");
             (void)fscanf(ifd, "%ld", &tt);
@@ -420,7 +422,7 @@ int main(int arg, char **argv)
                 rpctime = ((t2.tv_sec - t1.tv_sec) * 1000) +
                           ((t2.tv_usec - t1.tv_usec) / 1000);
                 printf(
-                    "%ld bytes transferred in %ld milliseconds (%ld kbytes/second) \n",
+                    "%ld bytes transferred in %ld milliseconds (%ld kbytes/second)\n",
                     sed.Value.SmartFTPD.BytesTransferred, rpctime,
                     sed.Value.SmartFTPD.BytesTransferred / rpctime);
                 printf("QuotaExceeded = %ld\n",

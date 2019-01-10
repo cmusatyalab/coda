@@ -45,7 +45,9 @@ Pittsburgh, PA.
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <assert.h>
+
 #include <rpc2/secure.h>
+
 #include "rpc2.private.h"
 
 #define RNDPOOL 256
@@ -54,21 +56,18 @@ static unsigned int RNStateAvail;
 
 int rpc2_XDebug;
 
-void rpc2_Encrypt(IN FromBuffer, OUT ToBuffer, IN HowManyBytes, IN WhichKey,
-                  IN EncryptionType) char
-    *FromBuffer; /* The string of bytes to be encrypted.*/
-char *ToBuffer; /* Where to put the encrypted string.
-				    Equal to FromBuffer ==> inplace. */
-size_t HowManyBytes; /* The number of bytes in FromBuffer. */
-RPC2_EncryptionKey WhichKey; /* The encryption key to be used. */
-RPC2_Integer EncryptionType; /* one of the supported types */
-
+void rpc2_Encrypt(
+    IN char *FromBuffer, /* The string of bytes to be encrypted.*/
+    OUT char *ToBuffer, /* Where to put the encrypted string.
+                           Equal to FromBuffer ==> inplace. */
+    IN size_t HowManyBytes, /* The number of bytes in FromBuffer. */
+    IN RPC2_EncryptionKey WhichKey, /* The encryption key to be used. */
+    IN RPC2_Integer EncryptionType /* one of the supported types */
+)
 /* Does a trivial Exclusive-OR of FromBuffer and puts result in ToBuffer */
-
 /* NOTE: the assembler fast xor routine fxor has a bug somewhere; I have no time
-             to go into it; am removing its invocation here, and just using the slower
-	     C version below  --- Satya 3/7/1990 */
-
+   to go into it; am removing its invocation here, and just using the slower
+   C version below  --- Satya 3/7/1990 */
 {
     unsigned char *p, *q, *r, *s;
     long i;
@@ -86,14 +85,13 @@ RPC2_Integer EncryptionType; /* one of the supported types */
     }
 }
 
-void rpc2_Decrypt(IN FromBuffer, OUT ToBuffer, IN HowManyBytes, IN WhichKey,
-                  IN EncryptionType) char
-    *FromBuffer; /* The string of bytes to be decrypted. */
-char *ToBuffer; /* Where to put the decrypted bytes. Equal to FromBuffer for inplace encryption */
-size_t HowManyBytes; /* The number of bytes in Buffer */
-RPC2_EncryptionKey WhichKey; /* The decryption key to be used */
-RPC2_Integer EncryptionType;
-
+void rpc2_Decrypt(
+    IN char *FromBuffer, /* The string of bytes to be decrypted. */
+    OUT char *ToBuffer, /* Where to put the decrypted bytes.
+                           Equal to FromBuffer for inplace encryption */
+    IN size_t HowManyBytes, /* The number of bytes in Buffer */
+    IN RPC2_EncryptionKey WhichKey, /* The decryption key to be used */
+    IN RPC2_Integer EncryptionType)
 {
     assert(EncryptionType == RPC2_XOR);
     rpc2_Encrypt(FromBuffer, ToBuffer, HowManyBytes, WhichKey, EncryptionType);

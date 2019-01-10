@@ -25,9 +25,11 @@ Coda are listed in the file CREDITS.
    compatibility with legacy servers and clients.
 
    This code layers UDP socket primitives on top of TCP connections.
-   Maintains a single TCP connection for each (host, port) pair
-   All UDP packets to/from that (host, port) pair are sent/recvd on this connection.
-   All RPC2 connections to/from that (host,port are multiplexed on this connection.
+   Maintains a single TCP connection for each (host, port) pair.
+   All UDP packets to/from that (host, port) pair are sent/recvd on this
+   connection.
+   All RPC2 connections to/from that (host, port) pair are multiplexed
+   on this connection.
    Minimal changes to rest of the RPC2 code.
    Discards all packets with "RETRY" bit set.
 
@@ -43,7 +45,8 @@ Coda are listed in the file CREDITS.
 /* Encapsulation rules: Is ctp_t packet present as prefix to UDP packet?
    (1) Venus/CodaSrv to/from codatunnel daemon:  yes; ctp_t fields in host order
    (2) codatunnel daemon to/from network via udpsocket:  no
-   (3) codatunnel daemon to/from network via tcpsocket: yes; ctp_t fields in network order
+   (3) codatunnel daemon to/from network via tcpsocket: yes; ctp_t fields in
+   network order
 */
 
 #include <stdlib.h>
@@ -54,10 +57,10 @@ Coda are listed in the file CREDITS.
 #include "codatunnel.private.h"
 
 /* Global variables within codatunnel daemon */
-static int codatunnel_I_am_server =
-    0; /* only clients initiate; only servers accept */
-static int codatunnel_onlytcp =
-    0; /* whether to use UDP fallback; default is yes */
+static int codatunnel_I_am_server = 0; /* only clients initiate;
+                                          only servers accept */
+static int codatunnel_onlytcp     = 0; /* whether to use UDP fallback;
+                                          default is yes */
 
 static uv_loop_t *codatunnel_main_loop = 0;
 static uv_udp_t codatunnel; /* facing Venus or CodaSrv */
@@ -181,8 +184,8 @@ static void recv_codatunnel_cb(uv_udp_t *codatunnel, ssize_t nread,
         return;
     }
 
-    /* We have a legit packet; it was already been read into buf
-       before this upcall was invoked by libuv */
+    /* We have a legit packet; it was already been read into buf before this
+     * upcall was invoked by libuv */
 
     ctp_t *p = (ctp_t *)buf->base;
 
@@ -195,8 +198,8 @@ static void recv_codatunnel_cb(uv_udp_t *codatunnel, ssize_t nread,
     dest_t *d = getdest(&p->addr, p->addrlen);
 
     /* Try to establish a new TCP connection for future use;
-       do this only once per INIT1 (avoiding retries) to avoid TCP SYN flood;
-       Only clients should attempt this, because of NAT firewalls */
+     * do this only once per INIT1 (avoiding retries) to avoid TCP SYN flood;
+     * Only clients should attempt this, because of NAT firewalls */
     if (p->is_init1 && !p->is_retry && !codatunnel_I_am_server) {
         if (!d) /* new destination */
             d = createdest(&p->addr, p->addrlen);
@@ -242,9 +245,10 @@ static void recv_codatunnel_cb(uv_udp_t *codatunnel, ssize_t nread,
        ensure at-most-once semantics regardless of how the packet
        traveled (Satya, 1/20/2018)
     */
-    if (!codatunnel_onlytcp)
-        send_to_udp_dest(nread, buf, addr,
-                         flags); /* free buf only in cascaded cb */
+    if (!codatunnel_onlytcp) {
+        send_to_udp_dest(nread, buf, addr, flags);
+        /* free buf only in cascaded cb */
+    }
 }
 
 static void send_to_udp_dest(ssize_t nread, const uv_buf_t *buf,
@@ -294,16 +298,16 @@ static void send_to_tcp_dest(dest_t *d, ssize_t nread, const uv_buf_t *buf)
 
     req = malloc(sizeof(*req));
     if (!req) {
-        /* unable to allocate, free buffer and trigger a disconnection because
-         * we have no other way to force a retry. */
+        /* unable to allocate, free buffer and trigger a disconnection
+         * because we have no other way to force a retry. */
         ERROR("malloc() failed\n");
         free(buf->base);
         free_dest(d);
         return;
     }
     req->dest = d;
-    msg       = uv_buf_init(buf->base,
-                      nread); /* no stripping; send entire codatunnel packet */
+    msg       = uv_buf_init(buf->base, nread); /* no stripping; send entire
+                                                  codatunnel packet */
 
     /* Convert ctp_d fields to network order */
     ctp_t *p = (ctp_t *)buf->base;
@@ -651,7 +655,8 @@ static void tcp_newconnection_cb(uv_stream_t *bindhandle, int status)
 
     /* Figure out identity of new client and create dest structure */
     peerlen = sizeof(peeraddr);
-    rc      = uv_tcp_getpeername(clienthandle, (struct sockaddr *)&peeraddr,
+
+    rc = uv_tcp_getpeername(clienthandle, (struct sockaddr *)&peeraddr,
                             &peerlen);
     DEBUG("uv_tcp_getpeername() --> %d\n", rc);
     if (rc < 0) {

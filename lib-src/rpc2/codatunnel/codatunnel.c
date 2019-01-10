@@ -21,6 +21,7 @@ Coda are listed in the file CREDITS.
 #include <uv.h>
 
 #include <rpc2/codatunnel.h>
+
 #include "codatunnel.private.h"
 #include "wrapper.h"
 
@@ -35,27 +36,27 @@ int codatunnel_fork(int argc, char **argv, const char *tcp_bindaddr,
                     int onlytcp)
 {
     /*
-       Create the Coda tunnel process.  Returns 0 on success, -1 on error.
-       Invoked before RPC2_Init() by the Coda client or server.
+     Create the Coda tunnel process.  Returns 0 on success, -1 on error.
+     Invoked before RPC2_Init() by the Coda client or server.
 
-       tcp_bindaddr is the IP address to be used to bind the TCP listen
-       socket to.  This parameter should be NULL on the client as it is
-       is expected to initiate new TCP connections.  On the server this
-       can be set to "" (empty string) to bind to the wildcard address.
+     tcp_bindaddr is the IP address to be used to bind the TCP listen
+     socket to.  This parameter should be NULL on the client as it is
+     is expected to initiate new TCP connections.  On the server this
+     can be set to "" (empty string) to bind to the wildcard address.
 
-       udp_bindaddr is the IP address to be used to bind the UDP listen
-       socket for communicating with legacy clients and servers that are
-       not using codatunnel.  This can be set to "" (empty string) to
-       bind to the wildcard address.
+     udp_bindaddr is the IP address to be used to bind the UDP listen
+     socket for communicating with legacy clients and servers that are
+     not using codatunnel.  This can be set to "" (empty string) to
+     bind to the wildcard address.
 
-       bind_service is the port number to use; on the Coda client, this
-       may be the value of the variable "masquerade_port" or NULL to
-       bind to any available port.  On Coda servers, this is usually
-       specified as "codasrv" which is specified as an IANA reserved
-       port number in /etc/services.
+     bind_service is the port number to use; on the Coda client, this
+     may be the value of the variable "masquerade_port" or NULL to
+     bind to any available port.  On Coda servers, this is usually
+     specified as "codasrv" which is specified as an IANA reserved
+     port number in /etc/services.
 
-       onlytcp is a flag.  If non-zero it suppresses use of UDP as fallback.
-    */
+     onlytcp is a flag.  If non-zero it suppresses use of UDP as fallback.
+  */
     int rc, sockfd[2];
 
     DEBUG("codatunnel_fork(\"%s:%s\", \"%s:%s\", %d)\n", tcp_bindaddr,
@@ -137,8 +138,7 @@ ssize_t codatunnel_sendto(int sockfd, const void *buf, size_t len, int flags,
     iov[1].iov_base = (void *)buf;
     iov[1].iov_len  = len;
 
-    /*    DEBUG("sending packet to codatunneld size=%ld\n",
-          sizeof(ctp_t) + len); */
+    // DEBUG("sending packet to codatunneld size=%ld\n", sizeof(ctp_t) + len);
 
     /* then send it to codatunneld */
     rc = sendmsg(sockfd, &msg, 0);
@@ -192,8 +192,8 @@ ssize_t codatunnel_recvfrom(int sockfd, void *buf, size_t len, int flags,
 
     DEBUG("is_retry = %u  is_init1 = %u  msglen = %u\n", p.is_retry, p.is_init1,
           p.msglen);
-    /*    hexdump("ctp_t", &p, sizeof(ctp_t));
-	  hexdump("packet bytes", buf, ((len < 64) ? len : 64)); */
+    /* hexdump("ctp_t", &p, sizeof(ctp_t));
+       hexdump("packet bytes", buf, ((len < 64) ? len : 64)); */
 
     /* were the buffers we passed large enough? */
     if ((msg.msg_flags & MSG_TRUNC) || (*fromlen < p.addrlen)) {
@@ -207,6 +207,6 @@ ssize_t codatunnel_recvfrom(int sockfd, void *buf, size_t len, int flags,
 
     rc -= sizeof(ctp_t);
     assert(rc >= 0);
-    //assert(rc == p.msglen); /* I think this should hold true -JH */
+    // assert(rc == p.msglen); /* I think this should hold true -JH */
     return rc;
 }

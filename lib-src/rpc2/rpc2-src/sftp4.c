@@ -38,7 +38,7 @@ Pittsburgh, PA.
 */
 
 /*
-	-- SFTP routines related to tracing 
+        -- SFTP routines related to tracing
 */
 
 #include <stdio.h>
@@ -50,10 +50,12 @@ Pittsburgh, PA.
 #include <sys/uio.h>
 #include <sys/socket.h>
 #include <assert.h>
-#include "rpc2.private.h"
+
 #include <rpc2/se.h>
 #include <rpc2/sftp.h>
+
 #include "cbuf.h"
+#include "rpc2.private.h"
 
 #define TRACELEN 1000
 
@@ -197,15 +199,17 @@ FILE *outFile;
         break;
     }
 
-    fprintf(
-        outFile,
-        "%6s  %6lu  0x%08lx  0x%08lx  %6lu  0x%08lx|%08lx  0x%08lx  0x%08lx  %4lu\n",
-        s, (unsigned long)ntohl(ph->SeqNumber), (unsigned long)ntohl(ph->Flags),
-        (unsigned long)ntohl(ph->SEFlags), (unsigned long)ntohl(ph->GotEmAll),
-        (unsigned long)ntohl(ph->BitMask0), (unsigned long)ntohl(ph->BitMask1),
-        (unsigned long)ntohl(ph->RemoteHandle),
-        (unsigned long)ntohl(ph->LocalHandle),
-        (unsigned long)ntohl(ph->BodyLength));
+    fprintf(outFile,
+            "%6s  %6lu  0x%08lx  0x%08lx  %6lu  0x%08lx|%08lx  0x%08lx  "
+            "0x%08lx  %4lu\n",
+            s, (unsigned long)ntohl(ph->SeqNumber),
+            (unsigned long)ntohl(ph->Flags), (unsigned long)ntohl(ph->SEFlags),
+            (unsigned long)ntohl(ph->GotEmAll),
+            (unsigned long)ntohl(ph->BitMask0),
+            (unsigned long)ntohl(ph->BitMask1),
+            (unsigned long)ntohl(ph->RemoteHandle),
+            (unsigned long)ntohl(ph->LocalHandle),
+            (unsigned long)ntohl(ph->BodyLength));
 #endif
 }
 

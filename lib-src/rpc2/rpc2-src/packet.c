@@ -48,11 +48,13 @@ Pittsburgh, PA.
 #include <sys/ioctl.h>
 #include <errno.h>
 #include <assert.h>
-#include "rpc2.private.h"
+
 #include <rpc2/se.h>
 #include <rpc2/secure.h>
-#include "codatunnel/wrapper.h" /* for CODATUNNEL_{ISRETRY,INIT1}_HINT */
+
 #include "cbuf.h"
+#include "codatunnel/wrapper.h" /* for CODATUNNEL_{ISRETRY,INIT1}_HINT */
+#include "rpc2.private.h"
 #include "trace.h"
 
 #ifndef MSG_CONFIRM
@@ -173,12 +175,12 @@ void rpc2_XmitPacket(RPC2_PacketBuffer *pb, struct RPC2_addrinfo *addr,
         /* we have an RPC2 packet, not an SFTP packet */
 
         /* First test if RETRY flag should be set.
-	 Eventually, when SFTP bug is fixed, we should move this test
-	 outside the if statement; all retries, whether RPC2
-	 or SFTP, should be dropped by codatunnel; right now SFTP
-	 retries are NOT being dropped because RETRY bit is not set
-	 for them
-      */
+           Eventually, when SFTP bug is fixed, we should move this test
+           outside the if statement; all retries, whether RPC2
+           or SFTP, should be dropped by codatunnel; right now SFTP
+           retries are NOT being dropped because RETRY bit is not set
+           for them
+        */
         if (ntohl(pb->Header.Flags) & RPC2_RETRY)
             flags |= CODATUNNEL_ISRETRY_HINT;
 
@@ -196,9 +198,9 @@ void rpc2_XmitPacket(RPC2_PacketBuffer *pb, struct RPC2_addrinfo *addr,
 
     if (n == -1 && errno == EAGAIN) {
         /* operation failed probably because the send buffer was full. we could
-	 * try to select for write and retry, or we could just consider this
-	 * packet lost on the network.
-	 */
+         * try to select for write and retry, or we could just consider this
+         * packet lost on the network.
+         */
     } else
 
         if (n == -1 && errno == EINVAL && msg_confirm) {
@@ -267,7 +269,7 @@ long rpc2_RecvPacket(IN long whichSocket, OUT RPC2_PacketBuffer *whichBuff)
     if (rc < 0) {
         switch (errno) {
         case EAGAIN: /* the packet did not decrypt/validate correctly or may
-			have had a corrupt udp checksum */
+                        have had a corrupt udp checksum */
         case ENOMEM: /* received packet was too large */
         case ENOENT: /* no matching security association found */
             break;
@@ -377,7 +379,8 @@ long rpc2_CancelRetry(struct CEntry *Conn, struct SL_Entry *Sle)
         FT_GetTimeOfDay(&silence, NULL);
         SUBTIME(&silence, &lastword);
         say(9, RPC2_DebugLevel,
-            "Heard from side effect on %#x %ld.%06ld ago, retry interval was %ld.%06ld\n",
+            "Heard from side effect on %#x %ld.%06ld ago, "
+            "retry interval was %ld.%06ld\n",
             Conn->UniqueCID, silence.tv_sec, silence.tv_usec,
             Sle->RInterval.tv_sec, Sle->RInterval.tv_usec);
 

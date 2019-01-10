@@ -37,8 +37,9 @@ extern rvm_length_t rvm_optimizations; /* optimization switches */
 
 /* special search function signature type */
 typedef rvm_bool_t bool_func_t();
+
 /* rvm_tid checker */
-rvm_return_t bad_tid(rvm_tid) rvm_tid_t *rvm_tid;
+rvm_return_t bad_tid(rvm_tid_t *rvm_tid)
 {
     if (rvm_tid == NULL)
         return RVM_ETID;
@@ -76,8 +77,7 @@ static int_tid_t *get_tid(rvm_tid_t *rvm_tid)
 }
 
 /* reallocate tid x_ranges vector if necessary */
-static rvm_bool_t alloc_x_ranges(tid, len) int_tid_t *tid;
-int len;
+static rvm_bool_t alloc_x_ranges(int_tid_t *tid, int len)
 {
     if ((tid->x_ranges_len + len) > tid->x_ranges_alloc) {
         if (len <= X_RANGES_INCR)
@@ -94,9 +94,7 @@ int len;
 }
 
 /* construct range descriptor and fill in region parameters */
-static range_t *build_range(region, dest, length) region_t *region;
-char *dest;
-rvm_length_t length;
+static range_t *build_range(region_t *region, char *dest, rvm_length_t length)
 {
     range_t *new_range; /* ptr for new range descriptor */
 
@@ -118,8 +116,9 @@ rvm_length_t length;
 
     return new_range;
 }
+
 /* save old values for a range */
-static char *save_ov(range) range_t *range;
+static char *save_ov(range_t *range)
 {
     range->data_len = RANGE_LEN(range);
     range->data     = malloc(range->data_len);
@@ -130,7 +129,7 @@ static char *save_ov(range) range_t *range;
 }
 
 /* restore old values for a transaction */
-static void restore_ov(tid) int_tid_t *tid;
+static void restore_ov(int_tid_t *tid)
 {
     range_t *range;
 
@@ -154,9 +153,9 @@ static void restore_ov(tid) int_tid_t *tid;
         free_range(range);
     }
 }
+
 /* range tree comparator function for chronological order insertion */
-static long cmp_range_num(range1, range2) range_t *range1;
-range_t *range2;
+static long cmp_range_num(range_t *range1, range_t *range2)
 {
     /* compare range numbers */
     if (range1->nv.range_num > range2->nv.range_num)
@@ -168,8 +167,9 @@ range_t *range2;
 
 /* unconditionally add new range descriptor to tid's range tree
    used for non-optimized transactions only */
-static rvm_return_t add_new_range(tid, new_range) int_tid_t *tid;
-range_t *new_range; /* ptr for new range descriptor */
+static rvm_return_t
+add_new_range(int_tid_t *tid,
+              range_t *new_range /* ptr for new range descriptor */)
 {
     /* build old value record if necessary */
     assert(new_range->links.node.struct_id == range_id);
@@ -193,11 +193,11 @@ range_t *new_range; /* ptr for new range descriptor */
 
     return RVM_SUCCESS;
 }
+
 /* range tree comparator for tree_insert by compound key:
    {region, segment displacement}
    adjacent nodes within region are considered equivalent */
-static long region_partial_include(range1, range2) range_t *range1;
-range_t *range2;
+static long region_partial_include(range_t *range1, range_t *range2)
 {
     /* compare displacements if in same region */
     if (range1->region == range2->region) {
@@ -218,8 +218,7 @@ range_t *range2;
 /* range tree comparator for tree_insert by compound key:
    {segment, segment displacement}
    adjacent nodes within segment are considered equivalent */
-static long segment_partial_include(range1, range2) range_t *range1;
-range_t *range2;
+static long segment_partial_include(range_t *range1, range_t *range2)
 {
     /* compare displacements if in same segment */
     if (range1->nv.seg_code == range2->nv.seg_code) {
@@ -236,15 +235,15 @@ range_t *range2;
         return 1;
     return -1;
 }
+
 /* detect and form list of overlapping or adjacent ranges */
 static rvm_bool_t
-    find_overlap(tid, new_range, cmp_func, elim, overlap,
-                 retval) int_tid_t *tid; /* transaction descriptor to search */
-range_t *new_range; /* descriptor for new range */
-cmp_func_t *cmp_func; /* tree comparator function */
-rvm_length_t *elim; /* number of eliminated ranges */
-rvm_offset_t *overlap; /* length of eliminated ranges */
-rvm_return_t *retval; /* error code return */
+find_overlap(int_tid_t *tid /* transaction descriptor to search */,
+             range_t *new_range /* descriptor for new range */,
+             cmp_func_t *cmp_func /* tree comparator function */,
+             rvm_length_t *elim /* number of eliminated ranges */,
+             rvm_offset_t *overlap /* length of eliminated ranges */,
+             rvm_return_t *retval /* error code return */)
 {
     range_t *range; /* ptr to existing range descriptor */
     rvm_offset_t off_tmp; /* arithmetic temporary */
@@ -299,10 +298,11 @@ rvm_return_t *retval; /* error code return */
 
     return rvm_false;
 }
+
 /* merge new range with existing range(s) */
-static rvm_return_t merge_range(tid, region, new_range) int_tid_t *tid;
-region_t *region;
-range_t *new_range; /* ptr to new range descriptor */
+static rvm_return_t
+merge_range(int_tid_t *tid, region_t *region,
+            range_t *new_range /* ptr to new range descriptor */)
 {
     range_t *range; /* ptr range descriptor */
     char *vmaddr; /* working vm address */
@@ -410,12 +410,11 @@ range_t *new_range; /* ptr to new range descriptor */
 
     return RVM_SUCCESS;
 }
+
 /* rvm_set_range */
-rvm_return_t
-    rvm_set_range(rvm_tid, dest,
-                  length) rvm_tid_t *rvm_tid; /* transaction affected */
-void *dest; /* base vm address of range */
-rvm_length_t length; /* length of range */
+rvm_return_t rvm_set_range(rvm_tid_t *rvm_tid /* transaction affected */,
+                           void *dest /* base vm address of range */,
+                           rvm_length_t length /* length of range */)
 {
     int_tid_t *tid; /* internal tid ptr */
     region_t *region;
@@ -449,13 +448,12 @@ rvm_length_t length; /* length of range */
     rw_unlock(&tid->tid_lock, w); /* end tid_lock critical section */
     return retval;
 }
+
 /* rvm_modify_bytes */
-rvm_return_t
-    rvm_modify_bytes(rvm_tid, dest, src,
-                     length) rvm_tid_t *rvm_tid; /* transaction affected */
-void *dest; /* base vm address of range */
-const void *src; /* source of nv's */
-rvm_length_t length; /* length of range */
+rvm_return_t rvm_modify_bytes(rvm_tid_t *rvm_tid /* transaction affected */,
+                              void *dest /* base vm address of range */,
+                              const void *src /* source of nv's */,
+                              rvm_length_t length /* length of range */)
 {
     rvm_return_t retval;
 
@@ -463,16 +461,16 @@ rvm_length_t length; /* length of range */
     if ((retval = rvm_set_range(rvm_tid, dest, length)) != RVM_SUCCESS)
         return retval;
 
-    /* must memmove since there is no guarantee
-       that src and dest don't overlap */
-    /*    (void)memmove(dest,src,length); <-- not available on RT's */
+    /* must memmove, there is no guarantee that src and dest don't overlap */
+    /*(void)memmove(dest,src,length); <-- not available on RT's */
     (void)BCOPY(src, dest, (int)length);
 
     return RVM_SUCCESS;
 }
+
 /* calculate transaction's new value log entry size */
-static void nv_size(tid, size) int_tid_t *tid; /* transaction to size */
-rvm_offset_t *size; /* compute length; double [out] */
+static void nv_size(int_tid_t *tid /* transaction to size */,
+                    rvm_offset_t *size /* compute length; double [out] */)
 {
     range_t *range; /* current range */
 
@@ -483,9 +481,9 @@ rvm_offset_t *size; /* compute length; double [out] */
 }
 
 /* compute total i/o size */
-static rvm_return_t nv_io_size(tid,
-                               size) int_tid_t *tid; /* transaction to size */
-rvm_offset_t *size; /* compute length; double [out] */
+static rvm_return_t
+nv_io_size(int_tid_t *tid /* transaction to size */,
+           rvm_offset_t *size /* compute length; double [out] */)
 {
     log_t *log = tid->log; /* log descriptor */
 
@@ -502,9 +500,9 @@ rvm_offset_t *size; /* compute length; double [out] */
 
     return RVM_SUCCESS;
 }
+
 /* save new values for a range */
-static rvm_return_t
-    save_nv(range) range_t *range; /* modification range descriptor */
+static rvm_return_t save_nv(range_t *range /* modification range descriptor */)
 {
     rvm_length_t range_len; /* save size of range */
 
@@ -527,8 +525,7 @@ static rvm_return_t
 }
 
 /* save all new values for no_flush commit */
-static rvm_return_t
-    save_all_nvs(tid) int_tid_t *tid; /* committing transaction */
+static rvm_return_t save_all_nvs(int_tid_t *tid /* committing transaction */)
 {
     range_t *range; /* modification range descriptor */
     rvm_return_t retval;
@@ -547,12 +544,11 @@ static rvm_return_t
 
     return RVM_SUCCESS;
 }
+
 /* merge range into queued tid */
-static rvm_return_t
-    merge_tid(q_tid, tid,
-              new_range) int_tid_t *q_tid; /* ptr to last queued tid */
-int_tid_t *tid; /* ptr to new tid */
-range_t *new_range; /* new range ptr */
+static rvm_return_t merge_tid(int_tid_t *q_tid /* ptr to last queued tid */,
+                              int_tid_t *tid /* ptr to new tid */,
+                              range_t *new_range /* new range ptr */)
 {
     region_t *region = new_range->region;
     range_t *range; /* existing range ptr */
@@ -624,6 +620,7 @@ range_t *new_range; /* new range ptr */
             return retval;
         goto replace;
     }
+
     /* do general merge: reallocate new value save buffer */
     if (new_range->data != NULL)
         free(new_range->data);
@@ -645,6 +642,7 @@ range_t *new_range; /* new range ptr */
        since last commit; from now on, used only by rvmutl */
     if (range->nv.vmaddr < new_range->nv.vmaddr)
         new_range->nv.vmaddr = range->nv.vmaddr;
+
     /* merge new values from existing ranges
        copy leading bytes from 1st existing range */
     if (RVM_OFFSET_GTR(old_offset, range->nv.offset)) {
@@ -678,6 +676,7 @@ range_t *new_range; /* new range ptr */
                new_range->data_len);
         BCOPY(nv_ptr, new_nv_ptr, range_len);
     }
+
     /* delete nodes now obsolete */
     for (i = 1; i < q_tid->x_ranges_len; i++) {
         range = q_tid->x_ranges[i];
@@ -712,9 +711,11 @@ update: /* update region's uncommitted reference count */
         CRITICAL(region->count_lock, region->n_uncommit--);
     return RVM_SUCCESS;
 }
+
 /* merge ranges of transaction with previous transactions */
-static rvm_return_t coalesce_trans(tid, q_tid) int_tid_t *tid; /* tid to log */
-int_tid_t *q_tid; /* ptr to last queued tid */
+static rvm_return_t
+coalesce_trans(int_tid_t *tid /* tid to log */,
+               int_tid_t *q_tid /* ptr to last queued tid */)
 {
     range_t *range; /* range ptr */
     rvm_return_t retval;
@@ -741,8 +742,9 @@ int_tid_t *q_tid; /* ptr to last queued tid */
 
     return RVM_SUCCESS;
 }
+
 /* get address of queued tid that current tid can merge with */
-static int_tid_t *get_queued_tid(tid) int_tid_t *tid; /* tid to log */
+static int_tid_t *get_queued_tid(int_tid_t *tid /* tid to log */)
 {
     log_t *log = tid->log; /* log descriptor */
     int_tid_t *q_tid; /* ptr to last queued tid */
@@ -765,8 +767,9 @@ static int_tid_t *get_queued_tid(tid) int_tid_t *tid; /* tid to log */
 
     return q_tid;
 }
+
 /* establish log entry for committing tid */
-static rvm_return_t queue_tid(tid) int_tid_t *tid; /* tid to log */
+static rvm_return_t queue_tid(int_tid_t *tid /* tid to log */)
 {
     log_t *log = tid->log; /* log descriptor */
     int_tid_t *q_tid; /* ptr to last queued tid */
@@ -782,47 +785,48 @@ static rvm_return_t queue_tid(tid) int_tid_t *tid; /* tid to log */
     flush_flag = (rvm_bool_t)TID(FLUSH_FLAG); /* save flush flag */
 
     /* queue tid for flush */
-    CRITICAL(log->flush_list_lock, /* begin flush_list_lock crit sec */
-             {
-                 make_uname(&tid->commit_stamp); /* record commit timestamp */
-                 /* test for transaction coalesce */
-                 if (TID(RVM_COALESCE_TRANS)) {
-                     /* see if must initialize coalescing */
-                     if ((q_tid = get_queued_tid(tid)) == NULL) {
-                         if (flush_flag)
-                             goto enqueue; /* nothing to coalesce! */
+    CRITICAL(
+        log->flush_list_lock,
+        { /* begin flush_list_lock crit sec */
+          make_uname(&tid->commit_stamp); /* record commit timestamp */
+          /* test for transaction coalesce */
+          if (TID(RVM_COALESCE_TRANS)) {
+              /* see if must initialize coalescing */
+              if ((q_tid = get_queued_tid(tid)) == NULL) {
+                  if (flush_flag)
+                      goto enqueue; /* nothing to coalesce! */
 
-                         /* initialize transaction merger by inserting copy of tid
-                   with empty tree so that ranges get reordered by merge */
-                         if ((q_tid = (int_tid_t *)alloc_list_entry(
-                                  int_tid_id)) == NULL) {
-                             retval = RVM_ENO_MEMORY;
-                             goto exit;
-                         }
-                         BCOPY(tid, q_tid, sizeof(int_tid_t));
-                         init_tree_root(&q_tid->range_tree);
-                         RVM_ZERO_OFFSET(q_tid->log_size);
-                         tid->x_ranges = NULL; /* array now owned by q_tid */
-                         (void)move_list_entry(NULL, &log->flush_list,
-                                               &q_tid->links);
-                     }
+                  /* initialize transaction merger by inserting copy of tid
+                   * with empty tree so that ranges get reordered by merge */
+                  if ((q_tid = (int_tid_t *)alloc_list_entry(int_tid_id)) ==
+                      NULL) {
+                      retval = RVM_ENO_MEMORY;
+                      goto exit;
+                  }
+                  BCOPY(tid, q_tid, sizeof(int_tid_t));
+                  init_tree_root(&q_tid->range_tree);
+                  RVM_ZERO_OFFSET(q_tid->log_size);
+                  tid->x_ranges = NULL; /* array now owned by q_tid */
+                  (void)move_list_entry(NULL, &log->flush_list, &q_tid->links);
+              }
 
-                     /* merge ranges of tid with previously queued tid(s) */
-                     retval = coalesce_trans(tid, q_tid);
-                     goto exit;
-                 }
-                 /* save new values if necessary and queue */
-                 if (!flush_flag)
-                     if (tid->range_tree.n_nodes != 0)
-                         if ((retval = save_all_nvs(tid)) != RVM_SUCCESS)
-                             goto exit; /* too big for heap */
+              /* merge ranges of tid with previously queued tid(s) */
+              retval = coalesce_trans(tid, q_tid);
+              goto exit;
+          }
+          /* save new values if necessary and queue */
+          if (!flush_flag)
+              if (tid->range_tree.n_nodes != 0)
+                  if ((retval = save_all_nvs(tid)) != RVM_SUCCESS)
+                      goto exit; /* too big for heap */
 
-                 /* enqueue new tid */
-             enqueue:
-                 (void)move_list_entry(NULL, &log->flush_list, &tid->links);
+          /* enqueue new tid */
+      enqueue:
+          (void)move_list_entry(NULL, &log->flush_list, &tid->links);
 
-             exit:;
-             }); /* end flush_list_lock crit sec */
+      exit:;
+        }); /* end flush_list_lock crit sec */
+
     if (retval != RVM_SUCCESS)
         return retval;
 
@@ -832,11 +836,10 @@ static rvm_return_t queue_tid(tid) int_tid_t *tid; /* tid to log */
 
     return retval;
 }
+
 /* rvm_begin_transaction */
-rvm_return_t
-    rvm_begin_transaction(rvm_tid,
-                          mode) rvm_tid_t *rvm_tid; /* ptr to rvm_tid */
-rvm_mode_t mode; /* transaction's mode */
+rvm_return_t rvm_begin_transaction(rvm_tid_t *rvm_tid /* ptr to rvm_tid */,
+                                   rvm_mode_t mode /* transaction's mode */)
 {
     int_tid_t *tid; /* internal tid */
     log_t *log; /* log device  */
@@ -867,9 +870,10 @@ rvm_mode_t mode; /* transaction's mode */
     rvm_tid->tid = tid;
     return RVM_SUCCESS;
 }
+
 /* rvm_abort_transaction */
-rvm_return_t rvm_abort_transaction(
-    rvm_tid) rvm_tid_t *rvm_tid; /* ptr to transaction to abort */
+rvm_return_t
+rvm_abort_transaction(rvm_tid_t *rvm_tid /* ptr to transaction to abort */)
 {
     int_tid_t *tid; /* internal tid */
     log_t *log; /* log descriptor ptr */
@@ -897,10 +901,11 @@ rvm_return_t rvm_abort_transaction(
     free_tid(tid); /* free transaction descriptor */
     return RVM_SUCCESS;
 }
+
 /* rvm_end_transaction */
-rvm_return_t rvm_end_transaction(
-    rvm_tid, mode) rvm_tid_t *rvm_tid; /* ptr to transaction to commit */
-rvm_mode_t mode; /* end mode */
+rvm_return_t
+rvm_end_transaction(rvm_tid_t *rvm_tid /* ptr to transaction to commit */,
+                    rvm_mode_t mode /* end mode */)
 {
     int_tid_t *tid; /* internal tid */
     log_t *log; /* log descriptor ptr */
@@ -916,17 +921,16 @@ rvm_mode_t mode; /* end mode */
 
     /* remove tid from log's tid_list */
     log = tid->log;
-    CRITICAL(log->dev_lock, /* begin dev_lock crit section */
-             {
-                 CRITICAL(
-                     log->tid_list_lock, /* unlink tid from log's tid_list*/
-                     move_list_entry(&log->tid_list, NULL, &tid->links));
-                 if (mode == flush) /* record flush mode and count */
-                 {
-                     tid->flags |= FLUSH_FLAG;
-                     log->status.n_flush_commit++;
-                 } else
-                     log->status.n_no_flush_commit++;
+    CRITICAL(log->dev_lock,
+             { /* begin dev_lock crit section */
+               CRITICAL(log->tid_list_lock, /* unlink tid from log's tid_list*/
+                        move_list_entry(&log->tid_list, NULL, &tid->links));
+               if (mode == flush) /* record flush mode and count */
+               {
+                   tid->flags |= FLUSH_FLAG;
+                   log->status.n_flush_commit++;
+               } else
+                   log->status.n_no_flush_commit++;
              }); /* end tid_list_lock crit section */
     tid->commit_stamp.tv_sec = 1; /* temporary mark */
     rw_unlock(&tid->tid_lock, w); /* end tid_lock crit section */

@@ -97,17 +97,14 @@ static inline long EXIT_MRPC(long code, int HowMany, RPC2_Integer *RCList,
 
 #define GOODSEDLE(i) (SDescList && SDescList[i].Tag != OMITSE)
 
-long RPC2_MultiRPC(IN HowMany, IN ConnHandleList, IN RCList, IN MCast,
-                   IN Request, IN SDescList, IN UnpackMulti, IN OUT ArgInfo,
-                   IN BreathOfLife) int HowMany; /* no of connections involved */
-RPC2_Handle ConnHandleList[];
-RPC2_Integer RCList[]; /* NULL or list of per-connection return codes */
-RPC2_Multicast *MCast; /* NULL if multicast not used */
-RPC2_PacketBuffer *Request; /* Gets clobbered during call: BEWARE */
-SE_Descriptor SDescList[];
-long (*UnpackMulti)();
-ARG_INFO *ArgInfo;
-struct timeval *BreathOfLife;
+long RPC2_MultiRPC(
+    IN int HowMany, /* no of connections involved */
+    IN RPC2_Handle ConnHandleList[],
+    IN RPC2_Integer RCList[], /* NULL or list of per-connection return codes */
+    IN RPC2_Multicast *MCast, /* NULL if multicast not used */
+    IN RPC2_PacketBuffer *Request, /* Gets clobbered during call: BEWARE */
+    IN SE_Descriptor SDescList[], IN long (*UnpackMulti)(),
+    IN OUT ARG_INFO *ArgInfo, IN struct timeval *BreathOfLife)
 {
     MultiCon *mcon;
     int host;
@@ -184,7 +181,7 @@ static inline long EXIT_MRPC(long code, int HowMany, RPC2_Integer *RCList,
 {
     int i;
 
-    /* copy arguments into the return code lists, possibly translating 
+    /* copy arguments into the return code lists, possibly translating
        error codes */
     if (RCList) {
         for (i = 0; i < HowMany; i++)
@@ -203,7 +200,8 @@ static void SetupConns(int HowMany, MultiCon *mcon,
     int host;
     long rc, setype = -1; /* -1 ==> first time through loop */
 
-    /* verify the handles; don't update the connection state of the "good" connections yet */
+    /* verify the handles; don't update the connection state of the "good"
+     * connections yet */
     for (host = 0; host < HowMany; host++) {
         thisconn = mcon[host].ceaddr = rpc2_GetConn(ConnHandleList[host]);
         if (!thisconn) {
@@ -304,8 +302,9 @@ static void SetupPackets(int HowMany, MultiCon *mcon,
 
     /* Notify side effect routine, if any. */
     if (SDescList != NULL) {
-        /* We have already verified that all connections have the same side-effect type (or none), */
-        /* so we can simply invoke the procedure corresponding to the first GOOD connection. */
+        /* We have already verified that all connections have the same side-effect
+         * type (or none), so we can simply invoke the procedure corresponding
+         * to the first GOOD connection. */
         thisconn = 0;
         for (host = 0; host < HowMany; host++)
             if (mcon[host].retcode > RPC2_ELIMIT) {
@@ -411,7 +410,7 @@ static long mrpc_SendPacketsReliably(
     int HowMany, MultiCon *mcon,
     RPC2_Handle ConnHandleList[], /* array of connection ids */
     ARG_INFO *ArgInfo, /* Structure of client information
-					   (built in MakeMulti) */
+                          (built in MakeMulti) */
     SE_Descriptor SDescList[], /* array of side effect descriptors */
     long (*UnpackMulti)(), /* pointer to unpacking routine */
     struct timeval *TimeOut) /* client specified timeout */
@@ -449,7 +448,7 @@ static long mrpc_SendPacketsReliably(
 	    if ((*UnpackMulti)(HowMany, ConnHandleList, ArgInfo, NULL, RPC2_FAIL, i) == -1) 
 		return(RPC2_FAIL);
 	    }
-*/
+    */
 
     if (TimeOut) { /* create a time bomb */
         slp = pcon->pending[goodpackets++] = rpc2_AllocSle(OTHER, NULL);
@@ -481,7 +480,8 @@ static long mrpc_SendPacketsReliably(
         pcon->pending[goodpackets++] = slp; /* build array of good packets */
 
         /* send the packet and activate socket listener entry */
-        /* offer control to Socket Listener every 32 packets to prevent buffer overflow */
+        /* offer control to Socket Listener every 32 packets to prevent buffer
+         * overflow */
         if ((packets++ & 0x1f) && (packets < pcon->indexlen - 6)) {
             LWP_DispatchProcess();
             timestamp = rpc2_MakeTimeStamp();
@@ -517,7 +517,8 @@ static long mrpc_SendPacketsReliably(
             /* Overall timeout expired: clean up state and quit */
             EXIT_MRPC_SPR(RPC2_TIMEOUT)
 
-        /* the loop below looks at a decreasing list of sl entries using the permuted index array for sorting */
+        /* the loop below looks at a decreasing list of sl entries using the
+         * permuted index array for sorting */
         for (i = 0; i < pcon->indexlen; i++) {
             thispacket = pcon->indexlist[i];
             ce         = mcon[thispacket].ceaddr;
@@ -536,7 +537,7 @@ static long mrpc_SendPacketsReliably(
                     ce->UniqueCID);
 
                 /* At this point the final reply has been received;
-		       SocketListener has already decrypted it. */
+                   SocketListener has already decrypted it. */
                 preply                   = (RPC2_PacketBuffer *)slp->data;
                 mcon[thispacket].retcode = preply->Header.ReturnCode;
                 break; /* done with this connection */
@@ -552,7 +553,7 @@ static long mrpc_SendPacketsReliably(
                     slp->RetryIndex += 1;
 
                 /* XXX we should have the size of the expected reply
-		     * packet, somewhere.. */
+                 * packet, somewhere.. */
                 rc = rpc2_RetryInterval(ce, slp->RetryIndex, &slp->RInterval,
                                         req->Prefix.LengthOfPacket,
                                         sizeof(struct RPC2_PacketHeader), 0);
@@ -693,7 +694,8 @@ static void MSend_Cleanup(int HowMany, MultiCon *mcon,
         slp        = mcon[thispacket].sle;
         TM_Remove(rpc2_TimerQueue, &slp->TElem);
 
-        /* Call side-effect routine and increment connection sequence number for abandoned requests */
+        /* Call side-effect routine and increment connection sequence number for
+         * abandoned requests */
         if (GOODSEDLE(thispacket) && mcon[thispacket].ceaddr->SEProcs &&
             mcon[thispacket].ceaddr->SEProcs->SE_MultiRPC2)
             (*mcon[thispacket].ceaddr->SEProcs->SE_MultiRPC2)(
@@ -707,7 +709,7 @@ static void MSend_Cleanup(int HowMany, MultiCon *mcon,
     if (Timeout) {
         slp = pcon->pending[0]; /* Tag assumed to be TIMEENTRY */
         if (slp->ReturnCode == WAITING) {
-            /* delete  time bomb if it has not fired  */
+            /* delete time bomb if it has not fired  */
             TM_Remove(rpc2_TimerQueue, &slp->TElem);
         }
         rpc2_FreeSle(&slp); /* free timer entry */

@@ -20,6 +20,7 @@ Coda are listed in the file CREDITS.
 #include <assert.h>
 
 #include <rpc2/secure.h>
+
 #include "aes.h"
 #include "grunt.h"
 
@@ -229,7 +230,7 @@ static int aes_ccm_crypt(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
                 xor128(&CMAC, (aes_block *)out);
         } else {
             /* partial last block, use the counter block, which we no longer
-	     * need, as a scratch buffer */
+             * need, as a scratch buffer */
             step = len % sizeof(aes_block);
             memcpy(CTR.u8, in, step);
             if (encrypt) {

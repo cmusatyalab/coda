@@ -95,7 +95,7 @@ typedef struct entry {
     char *bound; /* NIL => not array, ELSE => bound */
     RPC2_TYPE *type; /* Pointer to underlying RPC2_TYPE */
     struct entry *defined; /* Pointer to type that this was defined in terms of
-					   (or NIL) */
+                              (or NIL) */
 } ENTRY;
 
 typedef struct proc {

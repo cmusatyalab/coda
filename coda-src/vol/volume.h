@@ -66,8 +66,8 @@ typedef enum
 
 struct versionStamp { /* Version stamp for critical volume files */
     bit32 magic; /* Magic number */
-    bit32 version; /* Version number of this file, or software
-    				   that created this file */
+    bit32 version; /* Version number of this file, or software that created
+                      this file */
 };
 
 /* Magic numbers and version stamps for each type of file */
@@ -112,66 +112,51 @@ typedef struct VolumeDiskData {
      * for the volume */
     char partition[V_MAXPARTNAMELEN];
     char name[V_MAXVOLNAMELEN];
-    byte inUse; /* Volume is being used (perhaps it is online),
-    				   or the system crashed while it was used */
-    byte inService; /* Volume in service, not necessarily
-				   on line This bit is set by an
-				   operator/system programmer.
-				   Manually taking a volume offline
-				   always clears the inService
-				   bit. Taking it out of service also
-				   takes it offline */
-    byte blessed; /* Volume is administratively blessed with
-    				   the ability to go on line.  Set by a system
-				   administrator. Clearing this bit will
-				   take the volume offline */
-    byte needsSalvaged; /* Volume needs salvaged--an
-				   unrecoverable error occured to the
-				   volume.  Note: a volume may still
-				   require salvage even if this flag
-				   isn't set--e.g. if a system crash
-				   occurred while the volume was on
-				   line. */
+    byte inUse; /* Volume is being used (perhaps it is online), or the system
+                   crashed while it was used */
+    byte inService; /* Volume in service, not necessarily on line This bit is
+                       set by an operator/system programmer.  Manually taking a
+                       volume offline always clears the inService bit. Taking
+                       it out of service also takes it offline */
+    byte blessed; /* Volume is administratively blessed with the ability to go
+                     on line.  Set by a system administrator. Clearing this bit
+                     will take the volume offline */
+    byte needsSalvaged; /* Volume needs salvaged--an unrecoverable error
+                           occured to the volume.  Note: a volume may still
+                           require salvage even if this flag isn't set--e.g. if
+                           a system crash occurred while the volume was on
+                           line. */
     bit32 uniquifier; /* Next vnode uniquifier for this volume */
     int type; /* RWVOL, ROVOL, BACKVOL */
     VolumeId parentId; /* Id of parent, if type==readonly */
     VolumeId groupId; /* Id of replication group, or 0 if not replicated */
-    VolumeId cloneId; /* Latest read-only clone, if
-    				   type==readwrite, 0 if the volume
-    				   has never been cloned.  Note: the
-    				   indicated volume does not
-    				   necessarily exist (it may have been
-    				   deleted since cloning). */
-    VolumeId backupId; /* Latest backup copy of this read
-				   write volume */
-    VolumeId restoredFromId; /* The id in the dump this volume was
-				   restored from--used simply to make
-				   sure that an incremental dump is
-				   not restored on top of something
-				   inappropriate: Note: this field
-				   itself is NEVER dumped!!! */
-    byte needsCallback; /* Set by the salvager if anything was
-				   changed about the volume.  Note:
-				   this is not set by
-				   clone/makebackups when setting the
-				   copy-on-write flag in directories;
-				   this flag is not seen by the
-				   clients. */
+    VolumeId cloneId; /* Latest read-only clone, if type==readwrite, 0 if the
+                         volume has never been cloned.  Note: the indicated
+                         volume does not necessarily exist (it may have been
+                         deleted since cloning). */
+    VolumeId backupId; /* Latest backup copy of this read write volume */
+    VolumeId restoredFromId; /* The id in the dump this volume was restored
+                                from--used simply to make sure that an
+                                incremental dump is not restored on top of
+                                something inappropriate: Note: this field
+                                itself is NEVER dumped!!! */
+    byte needsCallback; /* Set by the salvager if anything was changed about
+                           the volume.  Note: this is not set by
+                           clone/makebackups when setting the copy-on-write
+                           flag in directories; this flag is not seen by the
+                           clients. */
 #define DESTROY_ME 0xD3
-    byte destroyMe; /* If this is set to DESTROY_ME, then
-				   the salvager should destroy this
-				   volume; it is bogus (left over from
-				   an aborted volume move, for
-				   example).  Note: if this flag is
-				   on, then inService should be
-				   OFF--only the salvager checks this
-				   flag */
+    byte destroyMe; /* If this is set to DESTROY_ME, then the salvager should
+                       destroy this volume; it is bogus (left over from
+                       an aborted volume move, for example).  Note: if this
+                       flag is on, then inService should be OFF--only the
+                       salvager checks this flag */
 #define DONT_SALVAGE 0xE5
-    byte dontSalvage; /* If this is on, then don't bother
-				   salvaging this volume*/
+    byte dontSalvage; /* If this is on, then don't bother salvaging this
+                         volume */
     byte reserveb3;
 
-    ViceVersionVector versionvector; /* CODA version vector for this volume */
+    ViceVersionVector versionvector; /* Coda version vector for this volume */
     int ResOn; /* Flag to turn on resolution */
     bit32 reserved1[5];
 
@@ -188,25 +173,19 @@ typedef struct VolumeDiskData {
     int filecount; /* Actual number of files */
     bit16 linkcount; /* number of links */
     int diskused; /* Actual disk space used, 1K blocks */
-    int dayUse; /* Metric for today's usage of this
-				   volume so far */
-    int weekUse[7]; /* Usage of the volume for the last
-				   week.  weekUse[0] is for most
-				   recent complete 24 hour period of
-				   measurement; week[6] is 7 days ago */
-    Date_t dayUseDate; /* Date the dayUse statistics refer
-				   to; the week use stats are the
-				   preceding 7 days */
+    int dayUse; /* Metric for today's usage of this volume so far */
+    int weekUse[7]; /* Usage of the volume for the last week.  weekUse[0] is
+                       for most recent complete 24 hour period of measurement;
+                       week[6] is 7 days ago */
+    Date_t dayUseDate; /* Date the dayUse statistics refer to; the week use
+                          stats are the preceding 7 days */
     int reserved3[11]; /* Other stats here */
 
     /* Server supplied dates */
-    Date_t creationDate; /* Creation date for a read/write
-    				   volume; cloning date for original
-    				   copy of a readonly volume (readonly
-    				   replicas volumes have the same
-    				   creation date) */
-    Date_t accessDate; /* Last access time by a user, large
-				   granularity */
+    Date_t creationDate; /* Creation date for a read/write volume; cloning date
+                            for original copy of a readonly volume (readonly
+                            replicas volumes have the same creation date) */
+    Date_t accessDate; /* Last access time by a user, large granularity */
     Date_t updateDate; /* Last modification by user */
     Date_t expirationDate; /* 0 if it never expires */
     Date_t backupDate; /* last time a backup clone was taken */
@@ -214,8 +193,7 @@ typedef struct VolumeDiskData {
     /* Time that this copy of this volume was made.  NEVER backed up.
        This field is only set when the copy is created */
     Date_t copyDate;
-    recov_vol_log *log; /* Recoverable resolution log for this
-				   volume */
+    recov_vol_log *log; /* Recoverable resolution log for this volume */
     bit32 reserved4[7];
 
     /* messages */
@@ -223,7 +201,7 @@ typedef struct VolumeDiskData {
     char offlineMessage[VMSGSIZE]; /* Why the volume is offline */
     char motd[VMSGSIZE]; /* Volume "message of the day" */
 
-    char pad[4]; /* make size multiple of 4	*/
+    char pad[4]; /* make size multiple of 4 */
 
 } VolumeDiskData;
 
@@ -261,34 +239,34 @@ struct Volume {
     int vol_index; /* index of this volume in recoverable volume array */
     struct vnodeIndex vnIndex[nVNODECLASSES];
     Unique_t nextVnodeUnique; /* Derived originally from volume uniquifier.
-			   	   This is the actual next version number to
-			   	   assign; the uniquifier is bumped by 50 and
-			   	   and written to disk every 50 file creates
-			   	   If the volume is shutdown gracefully, the
-				   uniquifier should be rewritten with the
-				   value nextVnodeVersion*/
+                                 This is the actual next version number to
+                                 assign; the uniquifier is bumped by 50 and
+                                 and written to disk every 50 file creates
+                                 If the volume is shutdown gracefully, the
+                                 uniquifier should be rewritten with the
+                                 value nextVnodeVersion*/
     bit16 vnodeHashOffset; /* Computed by HashOffset function in cvnode.h.
-				   Assigned to the volume when initialized. 
-				   Added to vnode number for hash table index */
+                              Assigned to the volume when initialized.
+                              Added to vnode number for hash table index */
     byte shuttingDown; /* This volume is going to be detached */
     byte goingOffline; /* This volume is going offline */
     bit16 cacheCheck; /* Online sequence number to be used
-				   to invalidate vnode cache entries
-				   that stayed around while a volume
-				   was offline */
+                         to invalidate vnode cache entries
+                         that stayed around while a volume
+                         was offline */
     short nUsers; /* Number of users of this volume header */
     int32_t specialStatus; /* An error code to return on VGetVolume: the
-				   volume is unavailable for the reason quoted,
-				   currently VBUSY or VMOVED */
+                              volume is unavailable for the reason quoted,
+                              currently VBUSY or VMOVED */
     int32_t updateTime; /* Time that this volume was put on the updated
-				   volume list--the list of volumes that will be
-				   salvaged should the file server crash */
+                           volume list--the list of volumes that will be
+                           salvaged should the file server crash */
     struct Lock lock; /* internal lock */
     PROCESS writer; /* process id having write lock */
     struct VolLock VolLock; /* Volume level lock for backup/clone */
 #define VNREINTEGRATORS 8 /* List size increment */
     int nReintegrators; /* Number of clients that have successfully
-				   reintegrated with this volume. */
+                           reintegrated with this volume. */
     ViceStoreId *reintegrators; /* List of identifiers representing the last
 				   record reintegrated for each client. Could
 				   be moved to recoverable store if necessary.
@@ -419,32 +397,29 @@ extern void InitLRU(int howmany);
 
 /* Modes of attachment, for VAttachVolume[ByName] to convey to the
    file server */
-#define V_READONLY 1 /* Absolutely no updates will be done to the volume */
-#define V_CLONE \
-    2 /* Cloning the volume: if it is read/write,
-			   then directory version numbers will change.
-			   Header will be updated.  If the volume is
-			   read-only, the file server may continue to
-			   server it; it may also continue to server
-			   it in read/write mode if the writes are
-			   deferred */
-#define V_UPDATE \
-    3 /* General update or volume purge is possible.
-			   Volume must go offline */
-#define V_DUMP \
-    4 /* A dump of the volume is requested; the
-			   volume can be served read-only during this
-			   time */
-#define V_SECRETLY \
-    5 /* Secret attach of the volume.  This is used
-			   to attach a volume which the file server
-			   doesn't know about--and which it shouldn't
-			   know about yet, since the volume has just
-			   been created and is somewhat bogus.
-			   Required to make sure that a file server
-			   never knows about more than one copy of the
-			   same volume--when a volume is moved from
-			   one partition to another on a single server */
+/* Absolutely no updates will be done to the volume */
+#define V_READONLY 1
+
+/* Cloning the volume: if it is read/write, then directory version numbers will
+ * change.  Header will be updated.  If the volume is read-only, the file
+ * server may continue to server it; it may also continue to server it in
+ * read/write mode if the writes are deferred */
+#define V_CLONE 2
+
+/* General update or volume purge is possible. Volume must go offline */
+#define V_UPDATE 3
+
+/* A dump of the volume is requested; the volume can be served read-only during
+ * this time */
+#define V_DUMP 4
+
+/* Secret attach of the volume.  This is used to attach a volume which the file
+ * server doesn't know about--and which it shouldn't know about yet, since the
+ * volume has just been created and is somewhat bogus.  Required to make sure
+ * that a file server never knows about more than one copy of the same
+ * volume--when a volume is moved from one partition to another on a single
+ * server */
+#define V_SECRETLY 5
 
 /* partition disk usage related routines */
 

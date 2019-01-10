@@ -597,14 +597,17 @@ int LWP_Index()
 {
     return 0;
 }
+
 int LWP_HighestIndex()
 {
     return 0;
 }
-void LWP_UnProtectStacks()
+
+void LWP_UnProtectStacks() /* only available for newlwp */
 {
     return;
-} /* only available for newlwp */
+}
+
 void LWP_ProtectStacks()
 {
     return;

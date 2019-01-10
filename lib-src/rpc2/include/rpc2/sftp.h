@@ -42,15 +42,15 @@ Pittsburgh, PA.
 
 #include <unistd.h>
 #include <stdlib.h>
-/*	    
+/*
     Features:
-	    1. Windowing with bit masks to avoid unnecessary retransmissions
-	    2. Adaptive choice of transmission parameters	(not yet implemented)
-	    3. Piggybacking of small files with request/response
+    1. Windowing with bit masks to avoid unnecessary retransmissions
+    2. Adaptive choice of transmission parameters	(not yet implemented)
+    3. Piggybacking of small files with request/response
 */
 
-#define SFTPVERSION \
-    3 /* Changed from 1 on 7 Jan 1988 by Satya (ThisRPCCall check added) */
+#define SFTPVERSION 3
+/* Changed from 1 on 7 Jan 1988 by Satya (ThisRPCCall check added) */
 /* Changed from 2 on 27 Feb 1997 by bnoble */
 
 /* (header+body) of largest sftp packet (2 IP fragments on Ether) */
@@ -72,60 +72,64 @@ Pittsburgh, PA.
 /* Packet Format:
    =============
 
-	Smart FTP is NOT built on top of RPC, but it does use RPC format packets for convenience
+Smart FTP is NOT built on top of RPC, but it does use RPC format packets for
+convenience
 
-	The interpretation of header fields is similar to that in RPC:
+The interpretation of header fields is similar to that in RPC:
 
-		ProtoVersion	Set to SFTPVERSION; must match value at destination
-		RemoteHandle	RPC Handle, at the packet destination, of the connection
-					on whose behalf this file transfer is being performed
-		LocalHandle	RPC Handle, at the packet source, of the connection
-					on whose behalf this file transfer is being performed
-		Flags		RPC2_RETRY and RPC2_ENCRYPTED have the usual meanings.
-				SFTP_ACKME is also indicated here on data packets.
+    ProtoVersion        Set to SFTPVERSION; must match value at destination
+    RemoteHandle        RPC Handle, at the packet destination, of the connection
+                        on whose behalf this file transfer is being performed
+    LocalHandle         RPC Handle, at the packet source, of the connection
+                        on whose behalf this file transfer is being performed
+    Flags               RPC2_RETRY and RPC2_ENCRYPTED have the usual meanings.
+                        SFTP_ACKME is also indicated here on data packets.
 
-		<<< Fields below here encrypted on secure connections>>>
-		BodyLength	Number of bytes in packet body
-		SeqNumber	SFTP Sequence number with the following properties:
-				    1. Data packets (Opcode SFTP_DATA) and control
-					packets (all other opcodes) form different sequences.
-					Each starts at 1 and monotonically increases by 1.
-				    2. Every data packet is eventually acknowledged, but control
-					packets need not always be acknowledged.
-				    3. The client end and server ends each have their own, independent
-					sequences.
-				    4. There are thus 4 sequences in a connection:
-					Client to Server, Data
-					Client to Server, Control
-					Server to Client, Data
-					Server to Client, Control
-				    5. The flow of packets is effectively viewed as a series of file
-					transfers from client to server and vice versa, with control
-					packets being merely annotations.  The boundary between file
-					transfers is demarcated by a single data packet with the MOREDATA flag
-					off.  The use of a separate, non-sparse sequence numbers for
-					data is what allows the use of bitmasks.
+    <<< Fields below here encrypted on secure connections>>>
+    BodyLength          Number of bytes in packet body
+    SeqNumber           SFTP Sequence number with the following properties:
+                1. Data packets (Opcode SFTP_DATA) and control
+                   packets (all other opcodes) form different sequences.
+                   Each starts at 1 and monotonically increases by 1.
+                2. Every data packet is eventually acknowledged, but control
+                   packets need not always be acknowledged.
+                3. The client end and server ends each have their own,
+                   independent sequences.
+                4. There are thus 4 sequences in a connection:
+                    Client to Server, Data
+                    Client to Server, Control
+                    Server to Client, Data
+                    Server to Client, Control
+                5. The flow of packets is effectively viewed as a series of file
+                   transfers from client to server and vice versa, with control
+                   packets being merely annotations.  The boundary between file
+                   transfers is demarcated by a single data packet with the
+                   MOREDATA flag off.  The use of a separate, non-sparse
+                   sequence numbers for data is what allows the use of bitmasks.
 
-
-		Opcode		SFTP Op code
-		SEFlags		Flags meaningful to SFTP
-		SEDataOffSet	#defined to GotEmAll;
-					Makes sense only with opcode SFTP_ACK
-					Highest seq number up to and including which all preceding
-					data packets have been seen. Says nothing about control packets.
-		SubsysId	Set to SMARTFTP always
-		ReturnCode	#defined to BitMask0	(only sensible with SFTP_ACK)
-					BitMask0..BitMask1 together form a bit string.
-					1 bits indicate received packets with seq numbers greater than GotEmAll;
-					Read left to right, bits correspond to GotEmAll+1, GotEmAll+2 ....
-					Leftmost bit must be 0, by definition of GotEmAll
-		Lamport		#defined to BitMask1    (only sensible with SFTP_ACK)
-		Uniquefier	#defined to ThisCall    (RPC call sequence number at sending side
-				    of the RPC pertaining to this side effect)
-		TimeStamp
-		BindTime        #defined to TimeEcho
-		Body		Contains actual BodyLength bytes of file data;
-				Used with SFTP_DATA and SFTP_START (for conveying SFTP address)
+    Opcode              SFTP Op code
+    SEFlags             Flags meaningful to SFTP
+    SEDataOffSet        #defined to GotEmAll;
+                            Makes sense only with opcode SFTP_ACK
+                            Highest seq number up to and including which all
+                            preceding data packets have been seen. Says nothing
+                            about control packets.
+    SubsysId            Set to SMARTFTP always
+    ReturnCode          #defined to BitMask0	(only sensible with SFTP_ACK)
+                            BitMask0..BitMask1 together form a bit string.
+                            1 bits indicate received packets with seq numbers
+                            greater than GotEmAll; Read left to right, bits
+                            correspond to GotEmAll+1, GotEmAll+2 .... Leftmost
+                            bit must be 0, by definition of GotEmAll
+    Lamport             #defined to BitMask1    (only sensible with SFTP_ACK)
+    Uniquefier          #defined to ThisCall    (RPC call sequence number at
+                            sending side of the RPC pertaining to this side
+                            effect)
+    TimeStamp
+    BindTime            #defined to TimeEcho
+    Body                Contains actual BodyLength bytes of file data;
+                            Used with SFTP_DATA and SFTP_START (for
+                            conveying SFTP address)
 */
 
 /* Renaming of RPC packet header fields */
@@ -138,39 +142,42 @@ Pittsburgh, PA.
 /* Values of Flags field in header */
 #define SFTP_ACKME 0x80000000
 /* on data packets: acknowledge this packet.
-				Located in Flags rather than SEFlags so that retransmits
-				can turn off this bit without decryption and re-encryption */
+   Located in Flags rather than SEFlags so that retransmits
+   can turn off this bit without decryption and re-encryption */
 
 /* Values of SEFlags field in header */
 #define SFTP_MOREDATA 0x1 /* on data packets, indicates more data to come */
-#define SFTP_PIGGY \
-    0x2 /* on RPC packets: piggybacked info present on this packet */
-#define SFTP_ALLOVER \
-    0x4 /* on RPC reply packets: indicates server got all data packets */
-#define SFTP_TRIGGER \
-    0x8 /* on ack packets: distinguishes a server "triggered" ack from a real one */
-/* necessary only for compatibility, triggers now send null timestamp echos */
-#define SFTP_FIRST \
-    0x10 /* on data packets, indicates first of group sent by source */
-#define SFTP_COUNTED \
-    0x20 /* on data packets: arrived or acked before last round */
+#define SFTP_PIGGY 0x2 /* on RPC packets: piggybacked info present on this
+                          packet */
+#define SFTP_ALLOVER 0x4 /* on RPC reply packets: indicates server got all
+                            data packets */
+#define SFTP_TRIGGER 0x8 /* on ack packets: distinguishes a server "triggered"
+                            ack from a real one. Necessary only for
+                            compatibility, triggers now send null timestamp
+                            echos */
+#define SFTP_FIRST 0x10 /* on data packets, indicates first of group sent by
+                           source */
+#define SFTP_COUNTED 0x20 /* on data packets: arrived or acked before last
+                             round */
 
 /* SFTP Opcodes */
-#define SFTP_START \
-    1 /* Control: start sending data (flow is from RPC client to server)*/
+#define SFTP_START 1 /* Control: start sending data (flow is from RPC client
+                        to server)*/
 #define SFTP_ACK 2 /* Control: acknowledgement you had requested */
-#define SFTP_DATA \
-    3 /* Data: next chunk; MOREDATA flag indicates whether EOF has been seen */
+#define SFTP_DATA 3 /* Data: next chunk; MOREDATA flag indicates whether EOF
+                       has been seen */
 #define SFTP_NAK 4 /* Control: got a bogus packet from you */
 #define SFTP_RESET 5 /* Control: reset transmission parameters */
 #define SFTP_BUSY 6 /* Control: momentarily busy; reset your timeout counter */
 
-/* Per-connection information: accessible via RPC2_GetSEPointer() and RPC2_SetSEPointer() */
+/* Per-connection information: accessible via RPC2_GetSEPointer() and
+ * RPC2_SetSEPointer() */
 #define SFTPMAGIC 4902057
 #define MAXOPACKETS 64 /* Maximum no of outstanding packets; multiple of 32 */
 #define BITMASKWIDTH (MAXOPACKETS / 32) /* No of elements in integer array */
 
-struct SFTP_Parms { /* sent in SFTP_START packets, and piggy-backed on very first RPC call on a connection */
+struct SFTP_Parms { /* sent in SFTP_START packets, and piggy-backed on very
+                       first RPC call on a connection */
     RPC2_PortIdent Port;
     int32_t WindowSize;
     int32_t SendAhead;
@@ -197,72 +204,70 @@ struct SFTP_Entry /* per-connection data structure */
     long Magic; /* SFTPMAGIC */
     enum SFState WhoAmI;
     RPC2_Handle LocalHandle; /* which RPC2 conn on this side do I
-				   correspond to? */
+                                correspond to? */
     RPC2_PeerInfo PInfo; /* all the RPC info  about the other side */
     struct timeval LastWord; /* Last time we received something on this SE */
     struct HEntry *HostInfo; /* Connection-independent host info. set by
-				   ExaminePacket on client side (if
-				   !GotParms), and sftp_ExtractParmsFromPacket
-				   on server side */
+                                ExaminePacket on client side (if
+                                !GotParms), and sftp_ExtractParmsFromPacket
+                                on server side */
     uint32_t ThisRPCCall; /* Client-side RPC sequence number of the call
-				   in progress. Used to reject outdated SFTP
-				   packets that may be floating around after
-				   the next RPC has begun. Set on client side
-				   in SFTP_MakeRPC1() and on server side on
-				   SFTP_GetRequest() */
+                             in progress. Used to reject outdated SFTP
+                             packets that may be floating around after
+                             the next RPC has begun. Set on client side
+                             in SFTP_MakeRPC1() and on server side on
+                             SFTP_GetRequest() */
     uint32_t GotParms; /* FALSE initially; TRUE after I have
-				   discovered my peer's parms */
+                          discovered my peer's parms */
     uint32_t SentParms; /* FALSE initially; TRUE after I have sent my
-				   parms to peer */
+                           parms to peer */
     SE_Descriptor *SDesc; /* set by SFTP_MakeRPC1 on client side, by
-				   SFTP_InitSE and SFTP_CheckSE on server side
-				 */
-    long openfd; /* file descriptor: valid during actual
-				   transfer */
+                             SFTP_InitSE and SFTP_CheckSE on server side */
+    long openfd; /* file descriptor: valid during actual transfer */
     off_t fd_offset; /* For FILEBYFD transfers, we save the offset
-				   within the file after each read/write */
+                        within the file after each read/write */
     struct SL_Entry *Sleeper; /* SL_Entry of LWP sleeping on this connection,
-				   or NULL */
+                                 or NULL */
     RPC2_PacketBuffer *RecvQueue;
     long RecvQueueLen;
     uint32_t PacketSize; /* Amount of  data in each packet */
     uint32_t WindowSize; /* Max Number of outstanding packets without
-				   acknowledgement <= MAXOPACKETS */
+                            acknowledgement <= MAXOPACKETS */
     uint32_t SendAhead; /* How many more packets to send after
-				   demanding an ack. Equal to read-ahead  */
+                           demanding an ack. Equal to read-ahead  */
     uint32_t AckPoint; /* After how many send ahead packets should an
-				   ack be demanded? */
+                          ack be demanded? */
     uint32_t DupThreshold; /* How many duplicate data packets can I see
-				   before sending Ack spontaneously? */
+                              before sending Ack spontaneously? */
     uint32_t RetryCount; /* How many times to retry Ack request */
     uint32_t ReadAheadCount; /* How many packets have been read by read
-				   strategy routine */
+                                strategy routine */
     uint32_t CtrlSeqNumber; /* Seq number of last control packet sent out */
     uint32_t Retransmitting; /* FALSE initially; TRUE prevents RTT update */
     uint32_t TimeEcho; /* Timestamp to send on next packet (valid
-				   when not retransmitting) */
+                          when not retransmitting) */
     struct timeval LastSS; /* time SendStrategy was last invoked by an
-				   Ack on this connection */
+                              Ack on this connection */
     SE_Descriptor *PiggySDesc; /* malloc()ed copy of SDesc; held on until
-				   SendResponse, if piggybacking might take
-				   place */
+                                 SendResponse, if piggybacking might take
+                                 place */
 
     /*  Transmission Parameters:
 
-	INVARIANTs (when XferState = XferInProgress):
-	==========
- 	1. SendLastContig <= SendWorriedLimit <= SendAckLimit <= SendMostRecent 
-	2. (SendMostRecent - SendLastContig) <= WindowSize
-	3. (SendMostRecent - SendAckLimit) <= SendAhead
-	4. RecvLastContig <= RecvMostRecent
-	5. (RecvMostRecent - RecvLastContig) <= WindowSize
+      INVARIANTs (when XferState = XferInProgress):
+      ==========
+      1. SendLastContig <= SendWorriedLimit <= SendAckLimit <= SendMostRecent
+      2. (SendMostRecent - SendLastContig) <= WindowSize
+      3. (SendMostRecent - SendAckLimit) <= SendAhead
+      4. RecvLastContig <= RecvMostRecent
+      5. (RecvMostRecent - RecvLastContig) <= WindowSize
 
-	INVARIANTs (when XferState = {XferNotStarted,XferAborted,XferCompleted}):
-	=========
-	1. SendLastContig (at source) = SendMostRecent (at source)
-	2. RecvLastContig (at sink) = RecvMostRecent (at sink)
-	3. SendLastContig (at source) = RecvLastContig (at sink)
-*/
+      INVARIANTs (when XferState = {XferNotStarted,XferAborted,XferCompleted}):
+      =========
+      1. SendLastContig (at source) = SendMostRecent (at source)
+      2. RecvLastContig (at sink) = RecvMostRecent (at sink)
+      3. SendLastContig (at source) = RecvLastContig (at sink)
+    */
     enum
     {
         XferNotStarted = 0,
@@ -271,49 +276,53 @@ struct SFTP_Entry /* per-connection data structure */
     } XferState;
 
     /* Next block is multicast specific */
-    uint32_t
-        RepliedSinceLastSS; /* TRUE iff {ACK,NAK,START} received since last invocation of SendStrategy */
+    uint32_t RepliedSinceLastSS; /* TRUE iff {ACK,NAK,START} received since last
+                                  invocation of SendStrategy */
     uint32_t McastersStarted; /* number of individual conns participating */
-    uint32_t
-        McastersFinished; /* number of participating conns which have finished */
+    uint32_t McastersFinished; /* number of participating conns which have
+                                  finished */
     uint32_t FirstSeqNo;
-#define SendFirst \
-    FirstSeqNo /* Value of SendLastContig (+1) when Multicast MRPC call is initiated */
-#define RecvFirst \
-    FirstSeqNo /* Value of RecvMostRecent (+1) when Multicast MRPC call is initiated */
+#define SendFirst FirstSeqNo
+    /* Value of SendLastContig (+1) when Multicast MRPC call is initiated */
+#define RecvFirst FirstSeqNo
+    /* Value of RecvMostRecent (+1) when Multicast MRPC call is initiated */
 
     uint32_t HitEOF; /* source side: EOF has been seen by read strategy routine
-    				   sink side: last packet for this transfer has been received */
-    uint32_t
-        SendLastContig; /* Seq no. of packet before (and including) which NO state is maintained.
-				   This is the most recent packet such that it and all earlier packets
-				   are known by me to have been received by the other side */
-    uint32_t
-        SendMostRecent; /* SendMostRecent is the latest data packet we have sent out  */
-    unsigned int SendTheseBits
-        [BITMASKWIDTH]; /* Bit pattern of packets in the range SendLastContig+1..SendMostRecent
-				   that have successfully been sent by me AND are known by me to have
-				   been received by other side */
-    uint32_t
-        SendAckLimit; /* Highest data packet for which an ack has been requested. */
-    uint32_t
-        SendWorriedLimit; /* Highest data packet about which we are worried. */
-    uint32_t
-        RecvLastContig; /* Most recent data packet up to which I no longer maintain state */
+                        sink side: last packet for this transfer has been received */
+    uint32_t SendLastContig; /* Seq no. of packet before (and including) which NO
+                                state is maintained. This is the most recent
+                                packet such that it and all earlier packets
+                                are known by me to have been received by
+                                the other side */
+    uint32_t SendMostRecent; /* SendMostRecent is the latest data packet we have
+                                sent out  */
+
+    /* Bit pattern of packets in the range SendLastContig+1..SendMostRecent
+       that have successfully been sent by me AND are known by me to have
+       been received by other side */
+    unsigned int SendTheseBits[BITMASKWIDTH];
+
+    uint32_t SendAckLimit; /* Highest data packet for which an ack has been
+                              requested. */
+    uint32_t SendWorriedLimit; /* Highest data packet about which we are
+                                  worried. */
+    uint32_t RecvLastContig; /* Most recent data packet up to which I no longer
+                                maintain state */
     uint32_t RecvMostRecent; /* Highest numbered data packet seen so far */
     uint32_t DupsSinceAck; /* Duplicates seen since the last ack I sent */
     uint32_t RecvSinceAck; /* Packets received since the last ack I sent */
 
     uint32_t RequestTime; /* arrival time of packet, to correct RTT
-			      estimates for processing time */
+                             estimates for processing time */
 
-    unsigned int RecvTheseBits
-        [BITMASKWIDTH]; /* Packets in RecvLastContig+1..RecvMostRecent that I have received */
+    /* Packets in RecvLastContig+1..RecvMostRecent that I have received */
+    unsigned int RecvTheseBits[BITMASKWIDTH];
+
     RPC2_PacketBuffer *ThesePackets[MAXOPACKETS];
     /* Packets being currently dealt with. There can be at most MAXOPACKETS
      * outstanding, in the range LastContig+1..LastContig+WindowSize. The
      * index of the i'th packet is given by (i % MAXOPACKETS).
-     *					
+     *
      * Some of these pointers, may be NULL for the following reasons:
      * Receiving side:  The packets have not been received, or have
      *			been received and written to disk already.
@@ -342,8 +351,9 @@ void sftp_ExaminePacket(RPC2_PacketBuffer *pb);
      (sfe->WhoAmI == SFSERVER && sfe->SDesc &&                                \
       sfe->SDesc->Value.SmartFTPD.TransmissionDirection == CLIENTTOSERVER))
 
-/* Operations on integer array bitmask; leftmost position is 1, rightmost is 32*BITMASKWIDTH
-    Choice of 1 rather than 0 is deliberate: {Send,Recv}LastContig+1 corresponds to leftmost bit */
+/* Operations on integer array bitmask; leftmost position is 1, rightmost is
+   32*BITMASKWIDTH Choice of 1 rather than 0 is deliberate:
+   {Send,Recv}LastContig+1 corresponds to leftmost bit */
 #define WORDOFFSET(pos) (((pos)-1) >> 5) /* avoid / operator */
 #define BITOFFSET(pos) ((((pos)-1) & 31) + 1) /* avoid % operator */
 #define PM(pos) (1L << (32 - (BITOFFSET(pos))))
@@ -354,11 +364,12 @@ void sftp_ExaminePacket(RPC2_PacketBuffer *pb);
 /* Packet buffer position */
 #define PBUFF(x) ((x) & (MAXOPACKETS - 1)) /* effectively modulo operator */
 
-/* The transmission parameters below are initial values; actual ones are per-connection */
+/* The transmission parameters below are initial values; actual ones are
+ * per-connection */
 extern long SFTP_PacketSize;
 extern long SFTP_WindowSize;
-extern long
-    SFTP_EnforceQuota; /* Nonzero to activate ByteQuota in SE_Descriptors */
+extern long SFTP_EnforceQuota; /* Nonzero to activate ByteQuota in
+                                  SE_Descriptors */
 extern long SFTP_SendAhead;
 extern long SFTP_AckPoint;
 extern long SFTP_DupThreshold;

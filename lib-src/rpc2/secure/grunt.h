@@ -23,6 +23,7 @@ Coda are listed in the file CREDITS.
 #include <arpa/inet.h>
 #include <stdint.h>
 #include <stdio.h>
+
 #include "aes.h"
 
 #define bytes(bits) ((bits) / 8)

@@ -45,8 +45,8 @@ rvm_length_t trans_coalesces_vec[trans_coalesces_len] = { trans_coalesces_dist }
 static rvm_return_t flush_log_special(log_t *log);
 
 /* allocate variable sized log i/o vector */
-static rvm_return_t make_iov(log, length) log_t *log; /* log descriptor */
-long length; /* entries needed */
+static rvm_return_t make_iov(log_t *log /* log descriptor */,
+                             long length /* entries needed */)
 {
     device_t *dev = &log->dev; /* device descriptor */
 
@@ -72,12 +72,13 @@ long length; /* entries needed */
 }
 
 /* make record number */
-static long make_rec_num(log) log_t *log; /* log descriptor */
+static long make_rec_num(log_t *log /* log descriptor */)
 {
     if (log->status.first_rec_num == 0)
         log->status.first_rec_num = log->status.next_rec_num;
     return log->status.next_rec_num++;
 }
+
 /* allocate variable sized pad buffer */
 static void make_pad_buf(device_t *dev, long length)
 {
@@ -92,6 +93,7 @@ static void make_pad_buf(device_t *dev, long length)
         dev->pad_buf_len = length;
     }
 }
+
 /* setup wrap marker i/o */
 static rvm_return_t write_log_wrap(log_t *log)
 {
@@ -131,10 +133,12 @@ static rvm_return_t write_log_wrap(log_t *log)
 #endif /* RVM_LOG_TAIL_SHADOW */
     return update_log_tail(log, &wrap->rec_hdr);
 }
+
 /* setup header for nv log entry */
-static void build_trans_hdr(tid, is_first, is_last) int_tid_t *tid;
-rvm_bool_t is_first; /* true if 1st header written */
-rvm_bool_t is_last; /* true if last header written */
+static void
+build_trans_hdr(int_tid_t *tid,
+                rvm_bool_t is_first /* true if 1st header written */,
+                rvm_bool_t is_last /* true if last header written */)
 {
     log_t *log             = tid->log;
     trans_hdr_t *trans_hdr = &tid->log->trans_hdr;
@@ -164,13 +168,14 @@ rvm_bool_t is_last; /* true if last header written */
     dev->io_length       = TRANS_SIZE;
     dev->iov_cnt         = 1;
 }
+
 /* setup end marker for log entry */
-static void build_rec_end(log, timestamp, rec_num, rec_type,
-                          back_link) log_t *log; /* log descriptor */
-struct timeval *timestamp; /* log record timestamp */
-long rec_num; /* log record sequence number */
-struct_id_t rec_type; /* struct_id of rec header */
-rvm_length_t back_link; /* displacement to previous header */
+static void
+build_rec_end(log_t *log /* log descriptor */,
+              struct timeval *timestamp /* log record timestamp */,
+              long rec_num /* log record sequence number */,
+              struct_id_t rec_type /* struct_id of rec header */,
+              rvm_length_t back_link /* displacement to previous header */)
 {
     rec_end_t *rec_end     = &log->rec_end;
     trans_hdr_t *trans_hdr = &log->trans_hdr;
@@ -190,10 +195,11 @@ rvm_length_t back_link; /* displacement to previous header */
 
     assert(dev->iov_cnt <= dev->iov_length);
 }
+
 /* setup nv_range record */
-static void build_nv_range(log, tid, range) log_t *log; /* log descriptor */
-int_tid_t *tid; /* transaction descriptor */
-range_t *range; /* range descriptor */
+static void build_nv_range(log_t *log /* log descriptor */,
+                           int_tid_t *tid /* transaction descriptor */,
+                           range_t *range /* range descriptor */)
 {
     nv_range_t *nv_range; /* nv_range header */
     device_t *dev = &log->dev;
@@ -224,10 +230,10 @@ range_t *range; /* range descriptor */
     enter_histogram(nv_range->length, log->status.range_lengths,
                     range_lengths_vec, range_lengths_len);
 }
-static void split_range(range, new_range,
-                        avail) range_t *range; /* range to split */
-range_t *new_range; /* temporary range descriptor */
-rvm_length_t avail; /* space available */
+
+static void split_range(range_t *range /* range to split */,
+                        range_t *new_range /* temporary range descriptor */,
+                        rvm_length_t avail /* space available */)
 {
     /* copy basic data from parent range */
     new_range->nv.rec_hdr.timestamp = range->nv.rec_hdr.timestamp;
@@ -257,6 +263,7 @@ rvm_length_t avail; /* space available */
     assert(BYTE_SKEW(range->nvaddr) == 0);
     assert(BYTE_SKEW(RVM_OFFSET_TO_LENGTH(range->nv.offset)) == 0);
 }
+
 static rvm_bool_t write_range(int_tid_t *tid, range_t *range,
                               rvm_offset_t *log_free)
 {
@@ -293,6 +300,7 @@ static rvm_bool_t write_range(int_tid_t *tid, range_t *range,
 
     return rvm_false;
 }
+
 static rvm_return_t write_tid(int_tid_t *tid)
 {
     log_t *log           = tid->log; /* log descriptor */
@@ -373,13 +381,14 @@ static rvm_return_t write_tid(int_tid_t *tid)
         return RVM_EIO;
     return update_log_tail(log, &log->trans_hdr.rec_hdr);
 }
+
 /* wait for a truncation to free space for log record
    -- assumes dev_lock is held */
-static rvm_return_t wait_for_space(log, space_needed, log_free,
-                                   did_wait) log_t *log; /* log descriptor */
-rvm_offset_t *space_needed; /* amount of space required */
-rvm_offset_t *log_free; /* size calculation temp */
-rvm_bool_t *did_wait;
+static rvm_return_t
+wait_for_space(log_t *log /* log descriptor */,
+               rvm_offset_t *space_needed /* amount of space required */,
+               rvm_offset_t *log_free /* size calculation temp */,
+               rvm_bool_t *did_wait)
 {
     rvm_return_t retval = RVM_SUCCESS;
 
@@ -405,6 +414,7 @@ rvm_bool_t *did_wait;
 
     return retval;
 }
+
 /* compute log entry size; truncate if necessary */
 static rvm_return_t log_tid(log_t *log, int_tid_t *tid)
 {
@@ -449,6 +459,7 @@ static rvm_return_t log_tid(log_t *log, int_tid_t *tid)
 
     return retval;
 }
+
 /* set up special log entry i/o */
 static void build_log_special(log_t *log, log_special_t *special)
 {
@@ -480,6 +491,7 @@ static void build_log_special(log_t *log, log_special_t *special)
     }
     assert(dev->iov_cnt <= dev->iov_length);
 }
+
 /* insure space available in log; truncate if necessary, and initiate
    i/o for special log entries; */
 static rvm_return_t log_special(log_t *log, log_special_t *special)
@@ -524,6 +536,7 @@ static rvm_return_t log_special(log_t *log, log_special_t *special)
 
     return RVM_SUCCESS;
 }
+
 /* log immediate records flush -- log device locked by caller */
 static rvm_return_t flush_log_special(log_t *log)
 {
@@ -551,9 +564,9 @@ static rvm_return_t flush_log_special(log_t *log)
 
     return retval;
 }
+
 /* internal log flush */
-rvm_return_t flush_log(log, count) log_t *log;
-long *count; /* statistics counter */
+rvm_return_t flush_log(log_t *log, rvm_length_t *count /* statistics counter */)
 {
     int_tid_t *tid; /* tid to log */
     rvm_bool_t break_sw; /* break switch for loop termination */
@@ -629,6 +642,7 @@ long *count; /* statistics counter */
     }
     return retval;
 }
+
 /* exported flush routine */
 rvm_return_t rvm_flush()
 {
@@ -647,9 +661,11 @@ rvm_return_t rvm_flush()
 
     return RVM_SUCCESS;
 }
+
 /* special log entries enqueuing routine */
-rvm_return_t queue_special(log, special) log_t *log; /* log descriptor */
-log_special_t *special; /* special entry descriptor */
+rvm_return_t
+queue_special(log_t *log /* log descriptor */,
+              log_special_t *special /* special entry descriptor */)
 {
     /* queue  request for immediate flush */
     CRITICAL(log->special_list_lock,

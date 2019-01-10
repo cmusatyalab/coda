@@ -37,17 +37,19 @@ Pittsburgh, PA.
 
 */
 
+#include <rpc2/rpc2.h>
+#include <rpc2/se.h>
+
 #ifndef _MULTI_H_
 #define _MULTI_H_
 
-#include "se.h"
 #define MAXSERVERS 100
 
 typedef long RPC2_HandleResult_func(int HowMany, RPC2_Handle ConnList[],
                                     long offset, long rpcval, ...);
 
-/* union for packing and unpacking unspecified arguments (identified by parallel ARG
- * structure
+/* union for packing and unpacking unspecified arguments (identified by
+ * parallel ARG structure
  */
 typedef union PARM { /* PARM will always be 4 bytes */
     RPC2_Integer integer;

@@ -96,12 +96,12 @@ void rpc2_PrintTMElem(struct TM_Elem *tPtr, FILE *tFile)
 {
     if (tFile == NULL)
         tFile = rpc2_logfile; /* it's ok, call-by-value */
-    fprintf(
-        tFile,
-        "MyAddr = %p Next = %p Prev = %p TotalTime = %ld:%ld  TimeLeft = %ld:%ld  BackPointer = %p\n",
-        tPtr, tPtr->Next, tPtr->Prev, tPtr->TotalTime.tv_sec,
-        tPtr->TotalTime.tv_usec, tPtr->TimeLeft.tv_sec, tPtr->TimeLeft.tv_usec,
-        tPtr->BackPointer);
+    fprintf(tFile,
+            "MyAddr = %p Next = %p Prev = %p TotalTime = %ld:%ld  "
+            "TimeLeft = %ld:%ld  BackPointer = %p\n",
+            tPtr, tPtr->Next, tPtr->Prev, tPtr->TotalTime.tv_sec,
+            tPtr->TotalTime.tv_usec, tPtr->TimeLeft.tv_sec,
+            tPtr->TimeLeft.tv_usec, tPtr->BackPointer);
     (void)fflush(tFile);
 }
 
@@ -139,18 +139,18 @@ void rpc2_PrintSLEntry(struct SL_Entry *slPtr, FILE *tFile)
     if (tFile == NULL)
         tFile = rpc2_logfile;
 
-    fprintf(
-        tFile,
-        "MyAddr: 0x%lx\n\tNextEntry = 0x%lx PrevEntry = 0x%lx  MagicNumber = %s  ReturnCode = %s\n\tTElem==>  ",
-        (long)slPtr, (long)slPtr->NextEntry, (long)slPtr->PrevEntry,
-        WhichMagic(slPtr->MagicNumber),
-        slPtr->ReturnCode == WAITING ?
-            "WAITING" :
-            slPtr->ReturnCode == ARRIVED ?
-            "ARRIVED" :
-            slPtr->ReturnCode == TIMEOUT ?
-            "TIMEOUT" :
-            slPtr->ReturnCode == NAKED ? "NAKED" : "??????");
+    fprintf(tFile,
+            "MyAddr: 0x%lx\n\tNextEntry = 0x%lx PrevEntry = 0x%lx  "
+            "MagicNumber = %s  ReturnCode = %s\n\tTElem==>  ",
+            (long)slPtr, (long)slPtr->NextEntry, (long)slPtr->PrevEntry,
+            WhichMagic(slPtr->MagicNumber),
+            slPtr->ReturnCode == WAITING ?
+                "WAITING" :
+                slPtr->ReturnCode == ARRIVED ?
+                "ARRIVED" :
+                slPtr->ReturnCode == TIMEOUT ?
+                "TIMEOUT" :
+                slPtr->ReturnCode == NAKED ? "NAKED" : "??????");
     switch (slPtr->Type) {
     case REPLY:
         fprintf(tFile, "\tType = REPLY  Conn = %#x\n", slPtr->Conn);
@@ -216,11 +216,11 @@ void rpc2_PrintHEntry(struct HEntry *hPtr, FILE *tFile)
     if (tFile == NULL)
         tFile = rpc2_logfile; /* it's ok, call-by-value */
 
-    fprintf(
-        tFile,
-        "\nHost 0x%lx state is...\n\tNextEntry = 0x%lx  PrevEntry = 0x%lx  MagicNumber = %s\n",
-        (long)hPtr, (long)hPtr->Next, (long)hPtr->Prev,
-        WhichMagic(hPtr->MagicNumber));
+    fprintf(tFile,
+            "\nHost 0x%lx state is...\n\tNextEntry = 0x%lx  PrevEntry = "
+            "0x%lx  MagicNumber = %s\n",
+            (long)hPtr, (long)hPtr->Next, (long)hPtr->Prev,
+            WhichMagic(hPtr->MagicNumber));
 
     rpc2_printaddrinfo(hPtr->Addr, tFile);
 
@@ -242,16 +242,16 @@ void rpc2_PrintCEntry(struct CEntry *cPtr, FILE *tFile)
 {
     if (tFile == NULL)
         tFile = rpc2_logfile; /* it's ok, call-by-value */
-    fprintf(
-        tFile,
-        "MyAddr: %p\n\tNextEntry = %p  PrevEntry = %p  MagicNumber = %s  Role = %s  State = ",
-        cPtr, cPtr->connlist.next, cPtr->connlist.prev,
-        WhichMagic(cPtr->MagicNumber),
-        TestRole(cPtr, FREE) ?
-            "FREE" :
-            (TestRole(cPtr, CLIENT) ?
-                 "CLIENT" :
-                 (TestRole(cPtr, SERVER) ? "SERVER" : "?????")));
+    fprintf(tFile,
+            "MyAddr: %p\n\tNextEntry = %p  PrevEntry = %p  MagicNumber = "
+            "%s  Role = %s  State = ",
+            cPtr, cPtr->connlist.next, cPtr->connlist.prev,
+            WhichMagic(cPtr->MagicNumber),
+            TestRole(cPtr, FREE) ?
+                "FREE" :
+                (TestRole(cPtr, CLIENT) ?
+                     "CLIENT" :
+                     (TestRole(cPtr, SERVER) ? "SERVER" : "?????")));
     if (TestRole(cPtr, CLIENT))
         switch ((int)(cPtr->State & 0x0000ffff)) {
         case C_THINK:
@@ -318,11 +318,11 @@ void rpc2_PrintCEntry(struct CEntry *cPtr, FILE *tFile)
                                "RPC2_HEADERSONLY" :
                                "??????"))));
 
-    fprintf(
-        tFile,
-        "\n\tUniqueCID = %#x  NextSeqNumber = %d  PeerHandle = %#x\n\tPrivatePtr = %p  SideEffectPtr = %p\n",
-        cPtr->UniqueCID, cPtr->NextSeqNumber, cPtr->PeerHandle,
-        cPtr->PrivatePtr, cPtr->SideEffectPtr);
+    fprintf(tFile,
+            "\n\tUniqueCID = %#x  NextSeqNumber = %d  PeerHandle = "
+            "%#x\n\tPrivatePtr = %p  SideEffectPtr = %p\n",
+            cPtr->UniqueCID, cPtr->NextSeqNumber, cPtr->PeerHandle,
+            cPtr->PrivatePtr, cPtr->SideEffectPtr);
 
     fprintf(tFile, "\tTimeBomb = %ld.%0ld  (timeout)\n", cPtr->TimeBomb.tv_sec,
             cPtr->TimeBomb.tv_usec);
@@ -340,16 +340,16 @@ void rpc2_PrintMEntry(struct MEntry *mPtr, FILE *tFile)
 {
     if (tFile == NULL)
         tFile = rpc2_logfile; /* it's ok, call-by-value */
-    fprintf(
-        tFile,
-        "MyAddr: 0x%lx\n\tNextEntry = 0x%lx  PrevEntry = 0x%lx  MagicNumber = %s  Role = %s  State = ",
-        (long)mPtr, (long)mPtr->Next, (long)mPtr->Prev,
-        WhichMagic(mPtr->MagicNumber),
-        TestRole(mPtr, FREE) ?
-            "FREE" :
-            (TestRole(mPtr, CLIENT) ?
-                 "CLIENT" :
-                 (TestRole(mPtr, SERVER) ? "SERVER" : "?????")));
+    fprintf(tFile,
+            "MyAddr: 0x%lx\n\tNextEntry = 0x%lx  PrevEntry = 0x%lx  "
+            "MagicNumber = %s  Role = %s  State = ",
+            (long)mPtr, (long)mPtr->Next, (long)mPtr->Prev,
+            WhichMagic(mPtr->MagicNumber),
+            TestRole(mPtr, FREE) ?
+                "FREE" :
+                (TestRole(mPtr, CLIENT) ?
+                     "CLIENT" :
+                     (TestRole(mPtr, SERVER) ? "SERVER" : "?????")));
     if (TestRole(mPtr, CLIENT))
         switch ((int)(mPtr->State & 0x0000ffff)) {
         case C_THINK:
@@ -941,10 +941,10 @@ void rpc2_PrintTraceElem(struct TraceElem *whichTE, long whichIndex,
     case MSENDPACKETSRELIABLY: {
         struct te_MSENDPACKETSRELIABLY *tea;
         tea = &whichTE->Args.MSendPacketsReliablyEntry;
-        fprintf(
-            outFile,
-            "HowMany:    %d    ConnArray[0]:    %p    ConnArray[0].UniqueCID = 0x%x\n",
-            tea->HowMany, tea->ConnArray0, tea->ConnArray0_UniqueCID);
+        fprintf(outFile,
+                "HowMany:    %d    ConnArray[0]:    %p    "
+                "ConnArray[0].UniqueCID = 0x%x\n",
+                tea->HowMany, tea->ConnArray0, tea->ConnArray0_UniqueCID);
         fprintf(outFile, "PacketArray[0]:    OriginalAddress = 0x%lx    ",
                 (long)tea->PacketArray0_Address);
         rpc2_PrintPacketHeader(&tea->PacketArray0, outFile);

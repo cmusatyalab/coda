@@ -46,22 +46,20 @@ Pittsburgh, PA.
 #include <netinet/in.h>
 #include <sys/time.h>
 #include <assert.h>
+
 #include "rpc2.private.h"
 
-/* Routines to allocate and manipulate the doubly-linked circular lists 
-	used elsewhere in rpc2 */
+/* Routines to allocate and manipulate the doubly-linked circular lists
+   used elsewhere in rpc2 */
 
-void rpc2_Replenish(whichList, whichCount, elemSize, creationCount,
-                    magicNumber) struct LinkEntry **whichList;
-long *whichCount;
-long elemSize; /* size of each element in the list */
-long *creationCount;
-long magicNumber;
-/*  Routine to avoid using malloc() too often.  
-	Assumes *whichList is empty and grows it by 1 entry of size elemSize.
-	Sets *whichCount to 1.
-	Bumps creationCount by 1.
-    */
+void rpc2_Replenish(struct LinkEntry **whichList, long *whichCount,
+                    long elemSize, /* size of each element in the list */
+                    long *creationCount, long magicNumber)
+/* Routine to avoid using malloc() too often.
+   Assumes *whichList is empty and grows it by 1 entry of size elemSize.
+   Sets *whichCount to 1.
+   Bumps creationCount by 1.
+*/
 {
     *whichList = (struct LinkEntry *)malloc(elemSize);
     assert(*whichList != NULL);
@@ -82,18 +80,17 @@ long magicNumber;
    pointer to the moved entry is returned as the value of the
    function.
 
-	*fromCount is decremented by one.
-	*toCount is incremented by one.
+        *fromCount is decremented by one.
+        *toCount is incremented by one.
 
    Frequently used routine -- optimize the hell out of it.  */
-struct LinkEntry *rpc2_MoveEntry(fromPtr, toPtr, p, fromCount, toCount)
+struct LinkEntry *rpc2_MoveEntry(
     /* pointers to header pointers of from and to lists */
-    struct LinkEntry **fromPtr,
-    **toPtr;
-struct LinkEntry *p; /* pointer to entry to be moved */
-long *fromCount; /* pointer to count of entries in from list */
-long *toCount; /* pointer to count of entries in to list */
-
+    struct LinkEntry **fromPtr, struct LinkEntry **toPtr,
+    struct LinkEntry *p, /* pointer to entry to be moved */
+    long *fromCount, /* pointer to count of entries in from list */
+    long *toCount /* pointer to count of entries in to list */
+)
 {
     struct LinkEntry *victim;
 
@@ -171,7 +168,7 @@ struct SL_Entry *rpc2_AllocSle(enum SL_Type slType, struct CEntry *slConn)
 
 void rpc2_FreeSle(INOUT struct SL_Entry **sl)
 /* Releases the SL_Entry pointed to by sl. Sets sl to NULL.
-       Removes binding between sl and its connection */
+   Removes binding between sl and its connection */
 {
     struct SL_Entry *tsl, **fromlist;
     long *fromcount;
@@ -199,8 +196,7 @@ void rpc2_FreeSle(INOUT struct SL_Entry **sl)
     *sl = NULL;
 }
 
-void rpc2_ActivateSle(selem, exptime) struct SL_Entry *selem;
-struct timeval *exptime;
+void rpc2_ActivateSle(struct SL_Entry *selem, struct timeval *exptime)
 {
     struct TM_Elem *t, *oldt;
 
@@ -230,8 +226,7 @@ struct timeval *exptime;
     TM_Insert(rpc2_TimerQueue, t);
 }
 
-void rpc2_DeactivateSle(sl, rc) struct SL_Entry *sl;
-enum RetVal rc;
+void rpc2_DeactivateSle(struct SL_Entry *sl, enum RetVal rc)
 {
     struct timeval *t;
 
@@ -249,8 +244,8 @@ enum RetVal rc;
 
 struct SubsysEntry *rpc2_AllocSubsys()
 /* Allocates a new subsystem entry and returns a pointer to it.
-    	Returns NULL if unable to allocate such an entry.
-    */
+   Returns NULL if unable to allocate such an entry.
+*/
 {
     struct SubsysEntry *ss;
     if (rpc2_SSFreeCount == 0)
@@ -263,9 +258,9 @@ struct SubsysEntry *rpc2_AllocSubsys()
     return (ss);
 }
 
-void rpc2_FreeSubsys(whichSubsys) struct SubsysEntry **whichSubsys;
+void rpc2_FreeSubsys(struct SubsysEntry **whichSubsys)
 /* Releases the subsystem  entry pointed to by whichSubsys.
-	Sets whichSubsys to NULL;  */
+   Sets whichSubsys to NULL;  */
 {
     assert((*whichSubsys)->MagicNumber == OBJ_SSENTRY);
     rpc2_MoveEntry(&rpc2_SSList, &rpc2_SSFreeList, whichSubsys, &rpc2_SSCount,

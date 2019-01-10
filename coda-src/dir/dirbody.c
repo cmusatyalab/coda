@@ -146,7 +146,7 @@ static int dir_FindBlobs(struct DirHeader **dh, int nblobs)
         /* if page could contain enough entries */
         if ((*dh)->dirh_allomap[i] >= nblobs) {
             /* If there are EPP free entries, then the page is not
-			   yet allocated. Add the page to the directory. */
+               yet allocated. Add the page to the directory. */
             if ((*dh)->dirh_allomap[i] == EPP) {
                 dir_AddPage(dh);
                 grown                  = 1;
@@ -165,8 +165,8 @@ static int dir_FindBlobs(struct DirHeader **dh, int nblobs)
                 failed = 1;
             }
             /* Here we have the first index in j.  We clean up the
-			   allocation maps and free up any resources we've got
-			   allocated. */
+               allocation maps and free up any resources we've got
+               allocated. */
             if (!failed) {
                 if (grown == 0)
                     DIR_SetRange(*dh);
@@ -807,13 +807,13 @@ int DIR_Convert(PDirHeader dir, char *file, VolumeId vol, RealmId realm)
     len = DIR_Length(dir);
 #ifdef NOTE
     /* Because of a poor bsd libc readdir(), directory entries
-	   cannot span a dir block boundary.  Actually, the kernel
-	   also writes directories this way.  Because we can't know until
-	   we write out the directory how much we will have to pad
-	   things, just assume that we will have to pad one 
-	   maximum-sized directory entry for each chunk of
-	   directory we write.
-	 */
+       cannot span a dir block boundary.  Actually, the kernel
+       also writes directories this way.  Because we can't know until
+       we write out the directory how much we will have to pad
+       things, just assume that we will have to pad one
+       maximum-sized directory entry for each chunk of
+       directory we write.
+     */
 #endif
     len += (len / DIRBLKSIZ + 1) * ((sizeof(struct venus_dirent) + 3) & ~3);
     len = ((len + (DIRBLKSIZ - 1)) & ~(DIRBLKSIZ - 1));
@@ -841,9 +841,9 @@ int DIR_Convert(PDirHeader dir, char *file, VolumeId vol, RealmId realm)
                 ep, (struct venus_dirent *)(buf + offset), vol, realm);
             /* if what we just wrote crosses a boundary: */
             if (((offset + direntlen) ^ offset) & ~(DIRBLKSIZ - 1)) {
-                /* Note that offset still points to the *previous* directory 
-				   entry.  Calculate how much we have to add to its d_reclen 
-				   and offset for the padding: */
+                /* Note that offset still points to the *previous* directory
+                   entry.  Calculate how much we have to add to its d_reclen
+                   and offset for the padding: */
                 int pad =
                     ((offset + (DIRBLKSIZ - 1)) & ~(DIRBLKSIZ - 1)) - offset;
 
@@ -1050,8 +1050,8 @@ static struct DirEntry *dir_FindItem(struct DirHeader *dir, const char *ename,
             if (index)
                 *index = find.df_index;
             /* copying the found name back won't work reliably
-			 * especially because the names we're looking for are
-			 * in several cases const strings */
+	     * especially because the names we're looking for are
+	     * in several cases const strings */
             //strcpy(ename, find.df_tp->name);
             return find.df_tp;
         }
@@ -1206,12 +1206,11 @@ int DIR_DirOK(PDirHeader pdh)
         eaMap[i * (EPP / 8)] = 0x1;
     }
 
-    /* walk down the hash table: 
-          - check that the values point to valid blobs
-          - get the blob
-          - check the entry has the FFIRST flag set
-          - 
-	*/
+    /* walk down the hash table:
+         - check that the values point to valid blobs
+         - get the blob
+         - check the entry has the FFIRST flag set
+     */
     for (i = 0; i < NHASH; i++) {
         entryno = htons(pdh->dirh_hashTable[i]);
         while (1) {

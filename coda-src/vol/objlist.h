@@ -52,7 +52,8 @@ struct objlist {
     struct dllist_head objl_lh;
 }
 
-/* The data structure we want here is a binary search tree, but we use a list instead. -JJK */
+/* The data structure we want here is a binary search tree,
+ * but we use a list instead. -JJK */
 struct obj {
     struct dllist_head obj_chain;
     ViceFid obj_fid;
@@ -61,28 +62,26 @@ struct obj {
     olist obj_rsl; /* list of spooled rvm log records  */
     union {
         struct {
-            ViceStoreId sid; /* sid of LAST data
-			store (used to avoid multiple bulk transfers) */
+            ViceStoreId sid; /* sid of LAST data store (used to avoid multiple
+                                bulk transfers) */
             Inode sinode; /* inode to dec on success */
             Inode finode; /* inode to dec on failure */
             Inode tinode; /* inode to trunc on success */
-            unsigned tlength; /* length to trunc t_inode
-					     to (on success) */
+            unsigned tlength; /* length to trunc t_inode to (on success) */
         } file;
         struct {
             PDirInode cinode; /* cloned inode (in RVM)  */
             int inodemod; /* inode or pages modified */
-            int needsres; /* does directory need to
-			be resolved at end of reintegration? */
+            int needsres; /* does directory need to be resolved at end of
+                             reintegration? */
             int purgelog; /* should directory log be purged */
             int trunclog; /* should log be truncated */
-            unsigned rupdate : 1; /* was directory
-						  updated during
-						  reintegration */
-            unsigned rstale : 1; /* reintegration: is
-			client's directory version info stale? */
+            unsigned rupdate : 1; /* was directory updated during
+                                     reintegration */
+            unsigned rstale : 1; /* reintegration: is client's directory
+                                    version info stale? */
         } dir;
     } obj_u;
 };
 
-#endif not _VICE_VLIST_H_
+#endif /* !_VICE_VLIST_H_ */

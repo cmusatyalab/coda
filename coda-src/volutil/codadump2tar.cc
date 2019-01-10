@@ -16,8 +16,8 @@ listed in the file CREDITS.
 
 #*/
 
-/* codadump2tar: takes Coda dump file as input and  produces a 
-   standard tar file as output.  Enables Coda volumes to be backed up 
+/* codadump2tar: takes Coda dump file as input and  produces a
+   standard tar file as output.  Enables Coda volumes to be backed up
    so that they can be restored anywhere, even without use of Coda.
 
    Intended to work correctly even with full Unix semantics (e.g. even
@@ -49,9 +49,9 @@ extern "C" {
 #include "ohash.h"
 
 #include "tar-FromRedHatCD.h"
-/* replace above copy of tar.h from RedHat tar source in volutil directory 
-     by proper tar.h in /usr/include soon; right now, /usr/include/tar.h 
-     seems to be a very different file (Satya May 2004) */
+/* replace above copy of tar.h from RedHat tar source in volutil directory
+   by proper tar.h in /usr/include soon; right now, /usr/include/tar.h
+   seems to be a very different file (Satya May 2004) */
 
 #ifdef __cplusplus
 }
@@ -68,9 +68,9 @@ extern "C" {
 
 /* ------------ Global type definitions ------------ */
 
-/* volume is fixed in dump; so (vnode,uniquifier) pair identifies 
-   object;  note that the Coda directory package uses these in 
-   network order,  so we need to be careful about making conversions 
+/* volume is fixed in dump; so (vnode,uniquifier) pair identifies
+   object;  note that the Coda directory package uses these in
+   network order,  so we need to be careful about making conversions
    as needed; all the code below is kept in host order for sanity */
 typedef struct {
     VnodeId vnode;
@@ -136,7 +136,7 @@ dumpstream *DStream; /* open stream */
 char TarFileName[MAXPATHLEN];
 FILE *TarFile = stdout; /* open file handle for output */
 
-/* from "-rn xxx" on command line; if not specified, uses 
+/* from "-rn xxx" on command line; if not specified, uses
    volume name from dump */
 char *RootName;
 
@@ -407,7 +407,7 @@ void DoGlobalSetup()
 
 int ProcessDirectory()
 {
-    /* Called with DStream positioned at a large vnode; reads and 
+    /* Called with DStream positioned at a large vnode; reads and
      processes one large vnode and associated dir pages */
 
     /* the VnodeDiskObject definition doesn't include space for the ACL */
@@ -509,7 +509,7 @@ void CreateDirectories()
 
 int ProcessFileOrSymlink()
 {
-    /* Called with DStream positioned at a small vnode; reads and 
+    /* Called with DStream positioned at a small vnode; reads and
      processes one small vnode and associated data; this is typically
      a file, but might also be a sym link; at end, DStream is positioned
      for next call of ProcessFileOrLink() or is at EOF
@@ -599,7 +599,7 @@ void ProcessHardLinks()
     ohashtab_iterator dti(*DumpTable); /* iterator over all buckets */
     DumpObject *dobj;
 
-    /* Examine every object in the DumpTable and see if it has more than 
+    /* Examine every object in the DumpTable and see if it has more than
      one; if yes, create a hard link for each additional name */
 
     while ((dobj = (DumpObject *)dti())) {
@@ -863,7 +863,7 @@ int CompareDumpOid(DumpObject *dobj, objectid_t *testid)
 
 DumpObject *GetDumpObj(VnodeId vv, Unique_t uu)
 {
-    /* Checks if DumpObject already exists for vnode-unqiuifier pair; 
+    /* Checks if DumpObject already exists for vnode-unqiuifier pair;
      returns pointer  to that DumpObject or NULL */
 
     DumpObject dummy(0, 0); /* just to alloc space */
@@ -885,7 +885,7 @@ void FreeDirectory(PDirInode pdiri)
 {
     /* Free items malloc'ed by dumpstream::readDirectory() */
 
-    /* This relies on di_pages[] elements being non-zero 
+    /* This relies on di_pages[] elements being non-zero
      only if allocated; would have been much better for DirInode
      to have an explicit count */
 
@@ -948,7 +948,7 @@ int AddNameEntry(struct DirEntry *de, void *hook)
     return (0); /* continue enumeration */
 }
 
-/* NOTES: (mostly bugs) Satya, May 04 
+/* NOTES: (mostly bugs) Satya, May 04
 
 1. ACL in dump has group and user ids; totally unportable;
    dump should be written out in external form (ascii only);

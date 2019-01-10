@@ -37,6 +37,8 @@ Pittsburgh, PA.
 
 */
 
+#include <rpc2/rpc2.h>
+
 #ifndef _SE_
 #define _SE_
 
@@ -65,9 +67,9 @@ struct SE_Definition {
     long (*SE_GetHostInfo)();
 };
 
-/* Types of side effects: use these in the RPC2_Bind() call and in filling SE descriptors */
-#define OMITSE \
-    9999 /* useful in MultiRPC for omitting side effects on some conns */
+/* Types of side effects: use these in the RPC2_Bind() call and in filling SE
+ * descriptors */
+#define OMITSE 9999 /* in MultiRPC for omitting side effects on some conns */
 #define SMARTFTP 1189
 
 enum WhichWay
@@ -86,23 +88,23 @@ enum FileInfoTag
 struct SFTP_Descriptor {
     enum WhichWay TransmissionDirection; /* IN */
     char hashmark; /* IN: 0 for non-verbose transfer */
-    long SeekOffset; /* IN:  >= 0; position to seek to before first read or write */
+    long SeekOffset; /* IN: >= 0; position to seek to before first read/write */
     long BytesTransferred; /* OUT: value after RPC2_CheckSideEffect() meaningful */
-    long ByteQuota; /* IN: maximum number of data bytes  to be sent or received.
-				    A value of -1 implies infinity. 
-				    Transfer is terminated and QuotaExceeded set if this
-				    limit would be exceeded.
-				    EnforceQuota in SFTP_Initializer must be  specified as 1
-				    at RPC initialization for the quota enforcement to take place.
-				    
-				    NOTE:  (2/6/1994, Satya) The semantics is being slightly changed
-				    here to support partial file transfer; it used to be the case
-				    that hitting ByteQuota was an error reported as RPC2_SEFAIL1.
-				    But no one seems to be relying on this, so changing the error
-				    return to a success return seems fair game.
-				*/
-    long QuotaExceeded; /* OUT: set to 1 if transfer terminated due to ByteQuota limit
-					0 otherwise */
+    long ByteQuota;
+    /* IN: maximum number of data bytes  to be sent or received.
+     *  A value of -1 implies infinity.
+     *  Transfer is terminated and QuotaExceeded set if this limit would be
+     *  exceeded.
+     *  EnforceQuota in SFTP_Initializer must be specified as 1 at RPC
+     *  initialization for the quota enforcement to take place.
+     *  NOTE: (2/6/1994, Satya) The semantics is being slightly changed here to
+     *  support partial file transfer; it used to be the case that hitting
+     *  ByteQuota was an error reported as RPC2_SEFAIL1. But no one seems to be
+     *  relying on this, so changing the error return to a success return seems
+     *  fair game.
+     */
+    long QuotaExceeded; /* OUT: set to 1 if transfer terminated due to ByteQuota
+                           limit 0 otherwise */
     enum FileInfoTag Tag; /* IN */
     union {
         struct FileInfoByName {
@@ -120,15 +122,15 @@ struct SFTP_Descriptor {
         } ByFD; /* if (Tag == FILEBYFD); user gives already-open file */
 
         struct FileInfoByAddr {
-            /*  Describes buffer allocated by user in VM.
-		When file used as source:
-		    - user sets vmfile.SeqLen to actual file length.
-		    - SFTP ignores vmfile.MaxSeqLen
-		When used as sink:
-		    - user sets vmfile.MaxSeqLen
-		    - SFTP sets vmfile.SeqLen to length of received file.
-		    - SFTP returns RPC2_SEFAIL3 if file bigger than MaxSeqLen.
-	    */
+            /* Describes buffer allocated by user in VM.
+             *  When file used as source:
+             *  - user sets vmfile.SeqLen to actual file length.
+             *  - SFTP ignores vmfile.MaxSeqLen
+             *  When used as sink:
+             *  - user sets vmfile.MaxSeqLen
+             *  - SFTP sets vmfile.SeqLen to length of received file.
+             *  - SFTP returns RPC2_SEFAIL3 if file bigger than MaxSeqLen.
+             */
             RPC2_BoundedBS vmfile;
             long vmfilep; /* for internal use by SFTP as file pointer */
         } ByAddr; /* if (Tag == FILEINVM); file resides in VM */
@@ -153,7 +155,7 @@ typedef struct SE_SideEffectDescriptor {
     } Value;
 
     /* this is a callback function, which is called whenever a block of
-	* data is succesfully transferred (sink side only for now). */
+     * data is succesfully transferred (sink side only for now). */
     void (*XferCB)(void *userp, unsigned int offset);
     void *userp;
 } SE_Descriptor;
@@ -169,9 +171,9 @@ typedef struct SFTPI {
     long DoPiggy; /* FALSE ==> don't piggyback small files */
     long DupThreshold; /* Duplicates allowed before spontaneous Ack is sent */
     long MaxPackets; /* Memory usage throttle; SFTP will not use more than
-    			this many packets in total; -1 (default) says no limit;
-			Caveat user: packet starvation can cause mysterious
-			RPC2_SEFAIL2s */
+                        this many packets in total; -1 (default) says no limit;
+                        Caveat user: packet starvation can cause mysterious
+                        RPC2_SEFAIL2s */
     RPC2_PortIdent Port; /* initialization required on server side */
 } SFTP_Initializer;
 

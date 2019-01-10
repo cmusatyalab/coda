@@ -46,15 +46,17 @@ Pittsburgh, PA.
 #include <netdb.h>
 #include <sys/time.h>
 #include <assert.h>
+
 #include <lwp/lwp.h>
 #include <lwp/timer.h>
-#include <rpc2/rpc2.h>
-#include <rpc2/secure.h>
-#include <rpc2/se.h>
 #include <rpc2/multi.h>
+#include <rpc2/rpc2.h>
+#include <rpc2/se.h>
+#include <rpc2/secure.h>
+
+#include "cbuf.h"
 #include "rpc2.private.h"
 #include "trace.h"
-#include "cbuf.h"
 
 /*
 Contains the hard core of the major RPC runtime routines.
@@ -63,35 +65,35 @@ Protocol
 ========
     Client sends request to server.
     Retries from client provoke BUSY until server finishes servicing request.
-    Server sends reply to client and holds the reply packet for a fixed amount of
-	time after that. Server LWP is released immediately.
+    Server sends reply to client and holds the reply packet for a fixed amount
+    of time after that. Server LWP is released immediately.
     Retries from client cause saved reply packet to be sent out.
-    Reply packet is released on next request or on a timeout.  Further client retries
-	are ignored.
+    Reply packet is released on next request or on a timeout.  Further client
+    retries are ignored.
 
 
 Connection Invariants:
 =====================
-	1. State:
-	                  Modified in GetRequest, SendResponse,
-	                  MakeRPC, MultiRPC, Bind and SocketListener.
-	                  Always C_THINK in client code.  In
-	                  S_AWAITREQUEST when not servicing a request,
-	                  in server code.  In S_PROCESS between a
-	                  GetRequest and a SendResponse in server
-	                  code.  Other values used only during bind
-	                  sequence.  Set to S_HARDERROR or C_HARDERROR
-	                  on a permanent error.
+        1. State:
+                          Modified in GetRequest, SendResponse,
+                          MakeRPC, MultiRPC, Bind and SocketListener.
+                          Always C_THINK in client code.  In
+                          S_AWAITREQUEST when not servicing a request,
+                          in server code.  In S_PROCESS between a
+                          GetRequest and a SendResponse in server
+                          code.  Other values used only during bind
+                          sequence.  Set to S_HARDERROR or C_HARDERROR
+                          on a permanent error.
 
-	2. NextSeqNumber: Initialized by connection creation code in
-			GetRequest.  ALWAYS updated by SocketListener,
-			except in the RPC2_MultiRPC case.  Updated in
-			RPC2_MultiRPC() if SocketListener return code
-			is WAITING.  On client side, in state C_THINK,
-			this value is the next outgoing request's
-			sequence number.  On server side, in state
-			S_AWAITREQUEST, this value is the next
-			incoming request's sequence number.
+        2. NextSeqNumber: Initialized by connection creation code in
+                        GetRequest.  ALWAYS updated by SocketListener,
+                        except in the RPC2_MultiRPC case.  Updated in
+                        RPC2_MultiRPC() if SocketListener return code
+                        is WAITING.  On client side, in state C_THINK,
+                        this value is the next outgoing request's
+                        sequence number.  On server side, in state
+                        S_AWAITREQUEST, this value is the next
+                        incoming request's sequence number.
 
 NOTE 1
 ======
@@ -102,7 +104,7 @@ NOTE 1
     non-preemptible, since they do not do a PRE_PreemptMe() call.  The
     only lower-level RPC routines that have to be explicitly bracketed
     by critical sections are the randomize and encryption routines
-    which are useful independent of RPC2.  
+    which are useful independent of RPC2.
 */
 
 #define HAVE_SE_FUNC(xxx) (ce->SEProcs && ce->SEProcs->xxx)
@@ -201,8 +203,8 @@ long RPC2_SendResponse(IN RPC2_Handle ConnHandle, IN RPC2_PacketBuffer *Reply)
     }
 
     preply = Reply; /* side effect routine usually does not reallocate
-			 * packet. preply will be the packet actually sent
-			 * over the wire */
+                     * packet. preply will be the packet actually sent
+                     * over the wire */
 
     rc = preply->Header.ReturnCode; /* InitPacket clobbers it */
     rpc2_InitPacket(preply, ce, preply->Header.BodyLength);
@@ -400,11 +402,11 @@ ScanWorkList:
     if (!TestState(ce, SERVER, S_STARTBIND))
         SetState(ce, S_PROCESS);
     /* Invariants here:
-	   (1) pb points to a request packet, decrypted and nettohosted
-	   (2) ce is the connection associated with pb
-	   (3) ce's state is S_STARTBIND if this is a new bind,
-	   S_PROCESS otherwise
-	*/
+         (1) pb points to a request packet, decrypted and nettohosted
+         (2) ce is the connection associated with pb
+         (3) ce's state is S_STARTBIND if this is a new bind,
+         S_PROCESS otherwise
+    */
 
     *Request    = pb;
     *ConnHandle = ce->UniqueCID;
@@ -480,9 +482,9 @@ ScanWorkList:
 
         /* why reimplement something that is already working... */
         /* we just need some minor tweaks for the existing INIT2/INIT3/INIT4
-	 * sequence, but this is should not be a problem, the packets in the
-	 * new handshake are easily recognized by having a non-NULL
-	 * pb->Prefix.sa field */
+         * sequence, but this is should not be a problem, the packets in the
+         * new handshake are easily recognized by having a non-NULL
+         * pb->Prefix.sa field */
         rc = ServerHandShake(ce, XRandom, SharedSecret, rpc2sec_version,
                              keysize, 1);
         if (rc != RPC2_SUCCESS)
@@ -512,7 +514,8 @@ ScanWorkList:
     /* old bind sequence, unauthenticated connections, 2-way handshake */
     else {
         say(-1, RPC2_DebugLevel,
-            "Server doesn't support RPC2SEC, establishing unauthenticated connection\n");
+            "Server doesn't support RPC2SEC, establishing "
+            "unauthenticated connection\n");
         SendOKInit2(ce);
     }
 
@@ -564,8 +567,8 @@ long RPC2_MakeRPC(RPC2_Handle ConnHandle, RPC2_PacketBuffer *Request,
     *Reply = NULL;
 
     /* verify and set connection state, with possible enqueueing;
-	cannot factor out the verification, since other LWPs may grab
-	ConnHandle in race after wakeup */
+       cannot factor out the verification, since other LWPs may grab
+       ConnHandle in race after wakeup */
     while (TRUE) {
         ce = rpc2_GetConn(ConnHandle);
         if (!ce)
@@ -865,7 +868,8 @@ try_next_addr:
         ib->FakeBody_ClientIdent_SeqLen = 0;
     else {
         ib->FakeBody_ClientIdent_SeqLen = htonl(Bparms->ClientIdent->SeqLen);
-        /* ib->FakeBody_ClientIdent_SeqBody = ib->Text; // not really meaningful: this is pointer has to be reset on other side */
+        /* ib->FakeBody_ClientIdent_SeqBody = ib->Text; // not really meaningful:
+         * this is pointer has to be reset on other side */
         memcpy(ib->Text, Bparms->ClientIdent->SeqBody,
                Bparms->ClientIdent->SeqLen);
     }
@@ -950,9 +954,9 @@ try_next_addr:
             rpc2_Quit(rc);
         }
         /* When we know that the server is trying to use an incorrectly
-	 * initialized AES-CCM counter, we can't do much about that. However
-	 * we can at least force it to use AES-CBC encryption for any packets
-	 * it sends back to us. */
+         * initialized AES-CCM counter, we can't do much about that. However
+         * we can at least force it to use AES-CBC encryption for any packets
+         * it sends back to us. */
         if (rpc2sec_version == 0) {
             auth = secure_get_auth_byid(SECURE_AUTH_AES_XCBC_96);
             encr = secure_get_encr_byid(SECURE_ENCR_AES_CBC);
@@ -969,7 +973,7 @@ try_next_addr:
         say(-1, RPC2_DebugLevel,
             "Client doesn't support RPC2SEC, using old handshake\n");
         /* The INIT2 packet came over insecure connection, remove decryption
-	 * context and fall back on the old handshake */
+         * context and fall back on the old handshake */
         secure_setup_decrypt(0, &ce->sa, NULL, NULL, NULL, 0);
         say(1, RPC2_DebugLevel, "Got INIT2, proceeding with old binding\n");
         new_binding = 0;
@@ -1022,13 +1026,13 @@ try_next_addr:
 
     if (new_binding) {
         /* keylen, auth and encr were initialized when we handled the secure
-	 * INIT2 packet. We could choose different algorithms and keylengths,
-	 * but that doesn't seem particularily useful.
-	 * - A good server will already have picked the 'optimal strategy'
-	 * - MITM shouldn't have been able to send a decryptable INIT2 packet
-	 * - A rogue server won't care how we encrypt outgoing data, it clearly
-	 *   will be getting any required key material with this INIT3 packet.
-	 */
+         * INIT2 packet. We could choose different algorithms and keylengths,
+         * but that doesn't seem particularily useful.
+         * - A good server will already have picked the 'optimal strategy'
+         * - MITM shouldn't have been able to send a decryptable INIT2 packet
+         * - A rogue server won't care how we encrypt outgoing data, it clearly
+         *   will be getting any required key material with this INIT3 packet.
+         */
         rc = pack_initX_body(&ce->sa, auth, encr, rpc2sec_version, &pb->Body,
                              keylen);
         if (rc) {
@@ -1105,7 +1109,7 @@ try_next_addr:
         rpc2_Decrypt((char *)ib4, (char *)ib4, sizeof(struct Init4Body),
                      *Bparms->SharedSecret, Bparms->EncryptionType);
         ib4->XRandomPlusTwo = ntohl(ib4->XRandomPlusTwo);
-        //    say(9, RPC2_DebugLevel, "XRandomPlusTwo = %l\n", ib4->XRandomPlusTwo);
+        // say(9, RPC2_DebugLevel, "XRandomPlusTwo = %l\n", ib4->XRandomPlusTwo);
         if (xrandom + 2 != ib4->XRandomPlusTwo) {
             DROPCONN();
             RPC2_FreeBuffer(&pb);

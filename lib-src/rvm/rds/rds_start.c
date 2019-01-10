@@ -46,8 +46,7 @@ heap_header_t *RecoverableHeapStartAddress;
 free_block_t *RecoverableHeapHighAddress;
 rvm_region_def_t *RegionDefs;
 unsigned long NRegionDefs;
-rvm_bool_t rds_testsw = rvm_false; /* switch to allow special
-                                              test modes */
+rvm_bool_t rds_testsw = rvm_false; /* switch to allow special test modes */
 /*
  * Global lock for the heap. See comment in rds_private.h.
  */
@@ -67,10 +66,9 @@ static rvm_bool_t inited = rvm_false;
  * EFFECTIVELY idempotent since it will fail in rvm_load_segment without
  * modifying any structures if it has already been called.
  */
-int rds_load_heap(DevName, DevLength, static_addr, err) char *DevName;
-rvm_offset_t DevLength;
-char **static_addr; /* Start of region holding statics */
-int *err;
+int rds_load_heap(char *DevName, rvm_offset_t DevLength,
+                  char **static_addr /* Start of region holding statics */,
+                  int *err)
 {
     rvm_return_t rvmret;
 
@@ -100,8 +98,7 @@ int *err;
  * Provide an interface which doesn't know about the segment layout.
  */
 
-int rds_start_heap(startAddr, err) char *startAddr;
-int *err;
+int rds_start_heap(char *startAddr, int *err)
 {
     unsigned long heap_hdr_len;
 

@@ -52,7 +52,7 @@ extern "C" {
 enum lock_how
 {
     READ_LOCK   = 1, /**< lock for reading */
-    WRITE_LOCK  = 2, /**< lock for writting */
+    WRITE_LOCK  = 2, /**< lock for writing */
     SHARED_LOCK = 4 /**< as a shared lock */
 };
 
@@ -68,8 +68,7 @@ enum lock_how
 struct Lock {
     unsigned char wait_states; /**< type of lockers waiting */
     unsigned char excl_locked; /**< exclusive lock flag */
-    unsigned char
-        readers_reading; /**< amount of readers actually with read locks */
+    unsigned char readers_reading; /**< number of readers with read locks */
     unsigned char num_waiting; /**< waiting lockers counter */
     PROCESS excl_locker; /**< exclusive locker */
 };

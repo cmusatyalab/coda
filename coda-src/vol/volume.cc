@@ -153,11 +153,11 @@ void FreeVolumeHeader(Volume *vp);
 static void AddVolumeToHashTable(Volume *vp, int hashid);
 void DeleteVolumeFromHashTable(Volume *vp);
 
-/* InitVolUtil has a problem right now - 
+/* InitVolUtil has a problem right now -
    It seems to get advisory locks on these files, but
-   the volume utilities don't seem to release locks after 
+   the volume utilities don't seem to release locks after
    they are done.  Since this is going to be deleted  most probably
-   in the redesign of the volume package, I just added the 
+   in the redesign of the volume package, I just added the
    close() calls right now.
 */
 
@@ -313,8 +313,8 @@ void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage)
                 continue;
 
             /* if volume was not salvaged force it offline. */
-            /* a volume is not salvaged if it exists in the 
-		/"vicedir"/vol/skipsalvage file 
+            /* a volume is not salvaged if it exists in the
+		/"vicedir"/vol/skipsalvage file
 		*/
             if (skipvolnums != NULL &&
                 InSkipVolumeList(header.parent, skipvolnums, nskipvols)) {

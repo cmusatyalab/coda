@@ -178,8 +178,8 @@ int rpc2_MorePackets(void)
     return rpc2_CheckFDs(select, &tv);
 }
 
-/*  Await the earliest future event or a packet.
-    Returns active fd if packet came, -1 if earliest event expired */
+/* Await the earliest future event or a packet.
+   Returns active fd if packet came, -1 if earliest event expired */
 static int PacketCame(void)
 {
     struct TM_Elem *t;
@@ -273,12 +273,12 @@ void rpc2_SocketListener(void *dummy)
         fd = PacketCame();
         if (fd == -1) {
             /* some timeout elapsed, handle it and go back to waiting for the
-	     * next packet or timeout event */
+             * next packet or timeout event */
             rpc2_ExpireEvents();
             continue;
         }
         /* we received a packet, process any packets that have been queued
-	 * in the socket buffers */
+         * in the socket buffers */
         do {
             rpc2_ProcessPacket(fd);
             fd = rpc2_MorePackets();
@@ -421,19 +421,19 @@ static struct CEntry *FindOrNak(RPC2_PacketBuffer *pb)
     ce = rpc2_GetConn(ntohl(pb->Header.RemoteHandle));
 
     /* The received packet must be using the exact same security context as
-	 * the connection on which the packet was received. */
+     * the connection on which the packet was received. */
     invalid_sa = ce && ce->sa.decrypt && &ce->sa != pb->Prefix.sa;
 
     /* The only situation where this can differ is when we received an
-	 * non-encrypted response to the INIT1 request from a server that
-	 * doesn't know the new 'secret handshake'.
-	 * This test can be removed if we don't need or want to be compatible
-	 * with non-encrypted rpc2 connections anymore. */
+     * non-encrypted response to the INIT1 request from a server that
+     * doesn't know the new 'secret handshake'.
+     * This test can be removed if we don't need or want to be compatible
+     * with non-encrypted rpc2 connections anymore. */
     init2 = ce && TestState(ce, CLIENT, C_AWAITINIT2);
 
     if (invalid_sa && !init2) {
         /* should we log this? Responding is useless because the client
-	     * that sent this packet must not have had good intentions. */
+         * that sent this packet must not have had good intentions. */
         RPC2_FreeBuffer(&pb);
         return NULL;
     }
@@ -461,10 +461,10 @@ static void DecodePacket(RPC2_PacketBuffer *pb, struct CEntry *ce)
             return;
         }
         /*
-		 * If the state is C_AWAITINIT2, the server is processing
-		 * a bind request. Sequence numbers are 0 during the bind,
-		 * but a busy during bind will have a sequence number of -1.
-		 */
+         * If the state is C_AWAITINIT2, the server is processing
+         * a bind request. Sequence numbers are 0 during the bind,
+         * but a busy during bind will have a sequence number of -1.
+         */
         if (TestState(ce, CLIENT, C_AWAITREPLY) &&
             ce->NextSeqNumber != pb->Header.SeqNumber - 1) {
             BOGUS(pb, "DecodePacket(RPC2_BUSY): bad seqno\n");
@@ -533,7 +533,7 @@ static void DecodePacket(RPC2_PacketBuffer *pb, struct CEntry *ce)
     case RPC2_INITMULTICAST: {
         if (TestState(ce, SERVER, S_AWAITENABLE)) {
             say(1, RPC2_DebugLevel, "Connection not enabled\n");
-            //BOGUS(pb, "DecodePacket(INITMC): connection not enabled\n");
+            // BOGUS(pb, "DecodePacket(INITMC): connection not enabled\n");
             SendBusy(ce, TRUE);
             return;
         }
@@ -551,11 +551,11 @@ static void DecodePacket(RPC2_PacketBuffer *pb, struct CEntry *ce)
         }
 
         /* We can't have the "HandleCurrentRequest()" case because we don't
-		   yield control while processing an InitMulticast request.  Retries
-		   are thus always seen as "old requests."
-		   We don't special case the MultiRPC "packets ahead of sequence"
-		   situation because InitMulticast requests cannot be multicasted. */
-
+           yield control while processing an InitMulticast request.  Retries
+           are thus always seen as "old requests."
+           We don't special case the MultiRPC "packets ahead of sequence"
+           situation because InitMulticast requests cannot be multicasted.
+        */
         /* Anything else */
         BOGUS(pb, "DecodePacket(INITMC): anything else\n");
         return;
@@ -564,7 +564,7 @@ static void DecodePacket(RPC2_PacketBuffer *pb, struct CEntry *ce)
     default: {
         if (TestState(ce, SERVER, S_AWAITENABLE)) {
             say(1, RPC2_DebugLevel, "Connection not enabled\n");
-            //BOGUS(pb, "DecodePacket: connection not enabled\n");
+            // BOGUS(pb, "DecodePacket: connection not enabled\n");
             SendBusy(ce, TRUE);
             return;
         }
@@ -782,7 +782,7 @@ static void HandleNewRequest(RPC2_PacketBuffer *pb, struct CEntry *ce)
     rpc2_IncrementSeqNumber(ce);
 
     { /* set up a timer to send a unsolicited ack response (actually an
-	     RCP2_BUSY) within 100ms. */
+         RCP2_BUSY) within 100ms. */
         struct timeval tv;
         tv.tv_sec  = 0;
         tv.tv_usec = RPC2_DELACK_DELAY;
@@ -829,7 +829,7 @@ static void HandleCurrentRequest(RPC2_PacketBuffer *pb, struct CEntry *ce)
 
     ce->TimeStampEcho = pb->Header.TimeStamp;
     /* if we're modifying the TimeStampEcho, we also have to reset the
-	 * RequestTime */
+     * RequestTime */
     TVTOTS(&pb->Prefix.RecvStamp, ce->RequestTime);
 
     say(15, RPC2_DebugLevel, "handlecurrentrequest TS %u RQ %u\n",
@@ -870,13 +870,13 @@ static void HandleInit1(RPC2_PacketBuffer *pb)
     sl = FindRecipient(pb);
     if (!sl) {
         /* no threads are ready, send a busy to the other side so that it
-	     * will back off and try again later */
+         * will back off and try again later */
         say(1, RPC2_DebugLevel,
             "HandleInit1: No available threads, busying peer\n");
 
         /* SendBusy(ce, FALSE);
-	     * -- we don't have a CEntry yet, but we can reuse most of the
-	     * INIT1 packet we just got... */
+         * -- we don't have a CEntry yet, but we can reuse most of the
+         * INIT1 packet we just got... */
         pb->Header.RemoteHandle ^= pb->Header.LocalHandle;
         pb->Header.LocalHandle ^= pb->Header.RemoteHandle;
         pb->Header.RemoteHandle ^= pb->Header.LocalHandle;
@@ -922,13 +922,13 @@ static void HandleRetriedBind(RPC2_PacketBuffer *pb, struct CEntry *ce)
     }
 
     /* The original bind request could be:
-	   (1) in the hold queue,
-	   (2) in RPC2_GetRequest() on some LWP,
-	   (3) already completed.
-	*/
+         (1) in the hold queue,
+         (2) in RPC2_GetRequest() on some LWP,
+         (3) already completed.
+    */
     ce->TimeStampEcho = pb->Header.TimeStamp;
     /* if we're modifying the TimeStampEcho, we also have
-	 * to reset the RequestTime */
+     * to reset the RequestTime */
     TVTOTS(&pb->Prefix.RecvStamp, ce->RequestTime);
 
     say(15, RPC2_DebugLevel, "handleinit1 TS %u RQ %u\n", ce->TimeStampEcho,
@@ -1059,7 +1059,7 @@ static void SendNak(RPC2_PacketBuffer *pb)
 
     rpc2_htonp(nakpb);
     /* use the same security association on which we received the packet
-	 * we're currently nak-ing */
+     * we're currently nak-ing */
     rpc2_XmitPacket(nakpb, pb->Prefix.PeerAddr, 1);
     RPC2_FreeBuffer(&nakpb);
     rpc2_Sent.Naks++;

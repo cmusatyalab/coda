@@ -46,14 +46,15 @@ Pittsburgh, PA.
 
 #include <netinet/in.h>
 #include <signal.h>
+#include <string.h>
+
 #include <lwp/lwp.h>
 #include <lwp/timer.h>
 #include <rpc2/rpc2.h>
-#include <string.h>
-#include <dllist.h>
-
 #include <rpc2/rpc2_addrinfo.h>
 #include <rpc2/secure.h>
+
+#include "dllist.h"
 
 #ifndef HAVE_STRUCT_SOCKADDR_STORAGE
 /* this should be large enough to fit 'any' socket address. */
@@ -133,10 +134,9 @@ OBJ_HENTRY = 48127
 
 /* MAXRTO is used to avoid unbounded timeouts */
 #define RPC2_MAXRTO 30000000 /* max rto (rtt + variance) is 30 seconds */
-#define RPC2_DELACK_DELAY \
-    100000 /* delay for server to send an ack that it
-				      received a request. This provides an
-				      upper bound on server response time. */
+#define RPC2_DELACK_DELAY 100000
+/* delay for server to send an ack that it received a request. This provides an
+ * upper bound on server response time. */
 
 /* Definitions for Flags field of connections */
 #define CE_OLDV 0x1 /* old version detected during bind */
@@ -147,9 +147,10 @@ struct LinkEntry /* form of entries in doubly-linked lists */
     struct LinkEntry *NextEntry; /* in accordance with insque(3) */
     struct LinkEntry *PrevEntry;
     long MagicNumber; /* unique for object type; NEVER altered */
-    struct LinkEntry *
-        *Qname; /* head pointer of queue on which this element should be */
-    /* body comes here, but is irrelevant for list manipulation and object validation */
+    struct LinkEntry **Qname;
+    /* head pointer of queue on which this element should be */
+    /* body comes here, but is irrelevant for list manipulation and object
+     * validation */
 };
 
 struct CEntry /* describes a single RPC connection */
@@ -181,9 +182,9 @@ struct CEntry /* describes a single RPC connection */
     /* PeerInfo */
     RPC2_Handle PeerHandle; /* peer's connection ID */
     RPC2_Integer PeerUnique; /* Unique integer used in Init1 bind request
-				    from peer */
+                                from peer */
     struct HEntry *HostInfo; /* Link to host table and liveness
-				    information */
+                                information */
 
     /* Auxiliary stuff */
     struct SE_Definition *SEProcs; /* pointer to  side effect routines */
@@ -192,25 +193,25 @@ struct CEntry /* describes a single RPC connection */
     char *PrivatePtr; /* rock for pointer to user data */
     char *SideEffectPtr; /* rock for  per-connection side-effect data */
     RPC2_Integer Color; /* Packets sent out get this color.
-					    See documentation for libfail(3).
-					    Only lowest byte is useful. */
+                           See documentation for libfail(3).
+                           Only lowest byte is useful. */
     /* Stuff for SocketListener */
     struct SL_Entry *MySl; /* SL entry pertaining to this conn, or NULL */
     RPC2_PacketBuffer *HeldPacket; /* NULL or pointer to packet held in readiness
-					    for retransmission (reply or last packet
-					    of Bind handshake */
+                                      for retransmission (reply or last packet
+                                      of Bind handshake */
     unsigned long reqsize; /* size of request, for RTT calcs */
 
     unsigned int TimeStampEcho;
     unsigned int RequestTime;
     struct timeval TimeBomb; /* Time limit for some rpc2 requests on
-					   this connection. */
+                                this connection. */
     struct timeval
         SaveResponse; /* 2*KeepAlive, lifetime of saved response packet. */
     RPC2_RequestFilter Filter; /* Set on the server during binding,
-					   filter incoming requests so that the
-					   SubsysID/Connection matches that of
-					   the handler we authenticated with */
+                                  filter incoming requests so that the
+                                  SubsysID/Connection matches that of
+                                  the handler we authenticated with */
     struct security_association sa;
 };
 
@@ -252,37 +253,38 @@ struct MEntry /* describes an RPC multicast connection */
 };
 
 /* SL entries are the data structures used for comm between user LWPs and
-  the SocketListener.  The user LWP creates an entry, sets it up, sets a 
+  the SocketListener.  The user LWP creates an entry, sets it up, sets a
   timeout on it and goes to sleep.  SocketListener eventually sets a
   return code on the entry and wakes up the LWP.
-  
+
   SL Entries are typed:
           REPLY        associated with a specific connection
-	               created by user LWP in SendResponse
-	               creating LWP does not wait for timeout to expire
-		       destroyed by SocketListener
+                       created by user LWP in SendResponse
+                       creating LWP does not wait for timeout to expire
+                       destroyed by SocketListener
 
-	  REQ          not associated with a specific connection
+          REQ          not associated with a specific connection
                        created and destroyed by user LWP in GetRequest
 
           DELACK       delayed ack response to receiving a request
-	               created by SocketListener in HandleRequest
-		       destroyed by SocketListener on timeout
-	               destroyed by user LWP when reply is sent.
+                       created by SocketListener in HandleRequest
+                       destroyed by SocketListener on timeout
+                       destroyed by user LWP when reply is sent.
 
           DELAYED_SEND Artificially introduced a transmission delay
           DELAYED_RECV Artificially introduced a reception delay
 
           OTHER        associated with a specific connection
-	               created and destroyed by user LWP
+                       created and destroyed by user LWP
 
-Entries of type REQ are on a separate list to minimize list searching in 
+Entries of type REQ are on a separate list to minimize list searching in
 SocketListener.  Other types of entries can be directly accessed via the
 connection they are associated with.
 
 */
 
-/* NOTE:  enum definitions  have to be non-anonymous: else a dbx bug is triggered */
+/* NOTE:  enum definitions  have to be non-anonymous: else a dbx bug is
+ * triggered */
 enum SL_Type
 {
     REPLY        = 1421,
@@ -316,9 +318,9 @@ struct SL_Entry {
     enum SL_Type Type;
 
     /* Timeout-related fields */
-    struct TM_Elem TElem; /* element  to be inserted into  timer chain;
-				    The BackPointer field of TElem will
-				    point to this SL_Entry */
+    struct TM_Elem TElem; /* element to be inserted into timer chain;
+                             The BackPointer field of TElem will
+                             point to this SL_Entry */
     enum RetVal ReturnCode; /* SocketListener changes this from WAITING */
 
     /* Other fields */
@@ -338,7 +340,8 @@ struct SubsysEntry /* Defines a subsystem being actively serviced by a server */
         OBJ_SSENTRY = 34079
     } MagicNumber;
     struct SubsysEntry *Qname; /* LinkEntry field */
-    long Id; /* using a struct is a little excessive, but it makes things uniform */
+    long Id; /* using a struct is a little excessive, but it makes things
+                uniform */
 };
 
 /* extend with other side effect types */
@@ -361,19 +364,19 @@ struct HEntry {
     struct HEntry *HLink; /* for host hash */
     int RefCount; /* # connections that have a reference */
     struct RPC2_addrinfo *Addr; /* network address */
-    struct timeval LastWord; /* Most recent time we've heard from this host*/
+    struct timeval LastWord; /* Most recent time we've heard from this host */
     unsigned RPC2_NumEntries; /* number of observations recorded */
     RPC2_NetLogEntry RPC2_Log[RPC2_MAXLOGLENGTH];
-    /* circular buffer for recent observations on
-				 * round trip times and packet sizes */
+    /* circular buffer for recent observations on round trip times
+     * and packet sizes */
     unsigned SE_NumEntries; /* number of sideeffect observations recorded */
     RPC2_NetLogEntry SE_Log[RPC2_MAXLOGLENGTH];
 
 /* the RTT is shifted analogous to Jacobson's article in SIGCOMM'88 */
 #define RPC2_RTT_SHIFT 3 /* Bits to right of binary point of RTT */
 #define RPC2_RTTVAR_SHIFT 2 /* Bits to right of binary point of RTTvar */
-    unsigned long RTT; /* RTT		(us<<RPC2_RTT_SHIFT) */
-    unsigned long RTTvar; /* RTT variance	(us<<RPC2_RTTVAR_SHIFT) */
+    unsigned long RTT; /* RTT (us<<RPC2_RTT_SHIFT) */
+    unsigned long RTTvar; /* RTT variance (us<<RPC2_RTTVAR_SHIFT) */
 
 #define RPC2_INITIAL_BW 100000
 #define RPC2_BW_SHIFT 4
@@ -383,9 +386,11 @@ struct HEntry {
 
 /*-------------- Format of special packets ----------------*/
 
-/* WARNING: if you port RPC2, make sure the structure sizes work out to be the same on your target machine */
+/* WARNING: if you port RPC2, make sure the structure sizes work out to be the
+ * same on your target machine */
 
-struct Init1Body /* Client to Server: format of packets with opcode of RPC2_INIT1xxx */
+struct Init1Body /* Client to Server: format of packets with opcode of
+                    RPC2_INIT1xxx */
 {
     /* body of fake packet from RPC2_GetRequest() */
     RPC2_Integer FakeBody_SideEffectType;
@@ -402,17 +407,17 @@ struct Init1Body /* Client to Server: format of packets with opcode of RPC2_INIT
 
     RPC2_Integer XRandom; /* encrypted random number */
     char usedtobehostport[92]; /* XXX not used anymore but old rpc2
-					   servers need the alignment */
+                                  servers need the alignment */
     RPC2_Integer Uniquefier; /* to allow detection of retransmissions */
     RPC2_Unsigned RPC2SEC_version; /* supported handshake version */
     RPC2_Unsigned Preferred_Keysize; /* preferred encryption key length */
     RPC2_Integer Spare3;
     RPC2_Byte Version[96]; /* set to RPC2_VERSION */
     RPC2_Byte Text[4]; /* Storage for the ClientIdent. Moved
-					   to FakeBody_ClientIdent_SeqBody in
-					   rpc2a.c:MakeFake(). It can of course
-					   be more than 4 bytes, this is just
-					   for alignment purposes. */
+                          to FakeBody_ClientIdent_SeqBody in
+                          rpc2a.c:MakeFake(). It can of course
+                          be more than 4 bytes, this is just
+                          for alignment purposes. */
 };
 
 struct Init2Body /* Server to Client */
@@ -605,7 +610,8 @@ int mkcall(RPC2_HandleResult_func *ClientHandler, int ArgCount, int HowMany,
 
 /*-----------  Macros ---------- */
 
-/* Test if more than one bit is set; WARNING: make sure at least one bit is set first! */
+/* Test if more than one bit is set; WARNING: make sure at least one bit is set
+ * first! */
 #define MORETHANONEBITSET(x) (x != (1 << (ffs((long)x) - 1)))
 
 /* Macros to work with preemption package */
@@ -655,8 +661,10 @@ void rpc2_simplifyHost(RPC2_HostIdent *Host, RPC2_PortIdent *Port);
 void rpc2_formataddrinfo(const struct RPC2_addrinfo *ai, char *buf,
                          size_t buflen, int use_canonname);
 
-/*--------------- Useful definitions that used to be in potpourri.h or util.h ---------------*/
-/*                 Now included here to avoid including either of those files                */
+/*---------------
+ * Useful definitions that used to be in potpourri.h or util.h
+ * ---------------*/
+/* Now included here to avoid including either of those files */
 
 /* Parameter usage */
 #define IN /* Input parameter */

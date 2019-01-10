@@ -487,7 +487,7 @@ void hdb::ValidateCacheStatus(vproc *vp, int *interrupt_failures,
         }
         LOG(0, ("Number of interrupt failures = %d\n", *interrupt_failures));
 
-        /* 
+        /*
 	 * Find some interesting info.  My goal is to see if there 
 	 * might be a way we can test for the missing object without 
 	 * having to reFind the object. 
@@ -902,14 +902,16 @@ int hdb::Walk(hdb_walk_msg *m, uid_t local_id)
     FSDB->RecomputePriorities(1);
 
     /* 2. Bring the cache into STATUS equilibrium. */
-    /*    (i.e., validate/expand hoard entries s.t. priority and resource constraints) */
+    /*    (i.e., validate/expand hoard entries s.t. priority and resource
+     *    constraints) */
     StatusWalk(vp, &TotalBytesToFetch, &BytesFetched);
 
     /* 2b.  Request advice regarding what to fetch
      *  RequestHoardWalkAdvice(); */
 
     /* 3. Bring the cache into DATA equilibrium. */
-    /*    (i.e., fetch data for hoardable, cached, dataless objects, s.t. priority and resource constraints) */
+    /*    (i.e., fetch data for hoardable, cached, dataless objects, s.t.
+     *    priority and resource constraints) */
     DataWalk(vp, TotalBytesToFetch, BytesFetched);
 
     /* make sure files are really here. */
@@ -1413,7 +1415,8 @@ namectxt::~namectxt()
         CHOKE("namectxt::~namectxt: context inuse");
     }
 
-    /* Path was allocated in ctor (and hence only requires free'ing here) if context was meta_expanded. */
+    /* Path was allocated in ctor (and hence only requires free'ing here) if
+     * context was meta_expanded. */
     if (meta_expanded) {
         MetaNameCtxts--;
         delete[] path;
@@ -1847,14 +1850,14 @@ pestate namectxt::CheckExpansion()
 
     case ETIMEDOUT: {
         /* Context is partially valid.
-	       * In most cases, the next opportunity for full validation will
-	       * be signalled (by AVSG expansion).  However, there are some
-	       * exceptions.
-	       *   1. expansion.count() == 0
-	       *   2. the first "unbound component" evaluates to a different
-	       *      volume
-	       * These cases are sufficiently obscure that I will ignore them
-	       * for now, but they should be accounted for eventually. */
+         * In most cases, the next opportunity for full validation will
+         * be signalled (by AVSG expansion).  However, there are some
+         * exceptions.
+         *   1. expansion.count() == 0
+         *   2. the first "unbound component" evaluates to a different
+         *      volume
+         * These cases are sufficiently obscure that I will ignore them
+         * for now, but they should be accounted for eventually. */
         LOG(10, ("Received ETIMEOUT during CheckExpansion.\n"));
         next_state = PeValid;
     } break;
@@ -1870,11 +1873,11 @@ pestate namectxt::CheckExpansion()
         /* Context is too "poor" to be fully validated. */
 
         /* Unlike other partially valid contexts, next opportunity for
-	       * full validation will NOT be signalled.  Hence, the next hoard
-	       * walk will poll for that condition.  The polling is done in
-	       * order of decreasing priority (i.e., from least to most
-	       * "poor"), and terminates when an indigent context remains
-	       * indigent after namev. */
+         * full validation will NOT be signalled.  Hence, the next hoard
+         * walk will poll for that condition.  The polling is done in
+         * order of decreasing priority (i.e., from least to most
+         * "poor"), and terminates when an indigent context remains
+         * indigent after namev. */
         next_state = PeIndigent;
     } break;
 
@@ -1929,7 +1932,8 @@ struct MetaExpandHook {
   * namectxt for this name and inserts it into what will become the
  * parent's new list of children.
  *
- * This routine is called from DH_EnumerateDir (which appears in ../dir/dir.c).  */
+ * This routine is called from DH_EnumerateDir (which appears in ../dir/dir.c).
+ */
 int MetaExpand(PDirEntry entry, void *hook)
 {
     char *name = entry->name;
@@ -2071,7 +2075,9 @@ void namectxt::MetaExpand()
         f = FSDB->Find(&tfid);
         if (f == 0)
             CHOKE(
-                "hdb.c: Reacquire reference to object failed!  Don't know what to do so we die in an obvious way...  Sorry for the inconvenience.\n");
+                "hdb.c: Reacquire reference to object failed!"
+                "  Don't know what to do so we die in an obvious way..."
+                "  Sorry for the inconvenience.\n");
 
         dlist *new_children = new dlist;
         struct MetaExpandHook hook;
@@ -2085,7 +2091,8 @@ void namectxt::MetaExpand()
         delete children;
         children = new_children;
 
-        /* Remember version state so that we can avoid this process unless absolutely necessary. */
+        /* Remember version state so that we can avoid this process unless
+         * absolutely necessary. */
         expander_fid = f->fid;
         expander_vv  = f->stat.VV;
         expander_dv  = f->stat.DataVersion;
@@ -2265,7 +2272,7 @@ int NC_PriorityFN(bsnode *b1, bsnode *b2)
     /*
     if ((char *)n1 == (char *)n2)
 	{ n1->print(logFile); CHOKE("NC_PriorityFN: n1 == n2\n"); }
-*/
+    */
 
     /* First determinant is explicit priority. */
     if (n1->priority > n2->priority)
@@ -2289,7 +2296,7 @@ int NC_PriorityFN(bsnode *b1, bsnode *b2)
     /*
     eprint("NC_PriorityFN: priorities tied (%d, %d, %d)!\n",
 	    n1->priority, n1->depth, n1->random);
-*/
+    */
     LOG(1, ("NC_PriorityFN: priorities tied (%d, %d, %d)!\n", n1->priority,
             n1->depth, n1->random));
     return (0);

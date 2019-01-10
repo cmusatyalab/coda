@@ -56,6 +56,7 @@ int lwp_nextindex;
 #include <assert.h>
 #include <string.h>
 #include <unistd.h>
+
 #include <lwp/lwp.h>
 #include <lwp/timer.h>
 #include <rpc2/rpc2.h>
@@ -66,7 +67,7 @@ int lwp_nextindex;
 
 extern long sftp_windowfulls, sftp_ackslost, sftp_duplicates, sftp_bogus;
 long lostunbinds; /* no of times a NAK was received because of lost
-			reply to an Unbind RPC */
+                     reply to an Unbind RPC */
 long connbusies; /* no of times an RPC2_CONNBUSY was seen */
 
 static PROCESS ParentPid;
@@ -144,8 +145,8 @@ RPC2_PortIdent PortId;
 RPC2_SubsysIdent SubsysId;
 char TestDir[256];
 
-static long
-    ClientsReady; /* How many clients are ready; will be signalled by main() to start real action  */
+static long ClientsReady; /* How many clients are ready; will be signalled by
+                             main() to start real action  */
 
 static char *TimeNow(void)
 {
@@ -946,7 +947,8 @@ static void PrintStats(void)
     printf("            Unbinds=%ld  FreeConns=%ld\n", rpc2_Unbinds,
            rpc2_FreeConns);
     printf(
-        "SFTP:       WindowFulls=%ld  AcksLost=%ld  Duplicates=%ld  Bogus=%ld LostUnbinds=%ld  ConnBusies=%ld\n",
+        "SFTP:       WindowFulls=%ld  AcksLost=%ld  Duplicates=%ld  Bogus=%ld "
+        "LostUnbinds=%ld  ConnBusies=%ld\n",
         sftp_windowfulls, sftp_ackslost, sftp_duplicates, sftp_bogus,
         lostunbinds, connbusies);
 

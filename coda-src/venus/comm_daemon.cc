@@ -129,7 +129,7 @@ void ServerProbe(long *lastupp, long *lastdownp)
         srv_iterator next;
         srvent *s;
         while ((s = next())) {
-            /* 
+            /*
 	     * We will probe the server if the check is being forced (no 
 	     * times sent in), or if the server has not been heard from 
 	     * within the appropriate interval. Otherwise, pretend a probe

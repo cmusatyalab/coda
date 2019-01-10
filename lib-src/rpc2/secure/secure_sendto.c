@@ -23,6 +23,7 @@ Coda are listed in the file CREDITS.
 #include <assert.h>
 
 #include <rpc2/secure.h>
+
 #include "codatunnel/wrapper.h"
 #include "grunt.h"
 
@@ -125,12 +126,12 @@ send_packet:
 #ifdef __linux__
     if (n == -1 && errno == ECONNREFUSED) {
         /* On linux ECONNREFUSED is a result of a previous sendto
-	 * triggering an ICMP bad host/port response. This
-	 * behaviour seems to be required by RFC1122, but in
-	 * practice this is not implemented by other UDP stacks.
-	 * We retry the send, because the failing host was possibly
-	 * not the one we tried to send to this time. --JH
-	 */
+         * triggering an ICMP bad host/port response. This
+         * behaviour seems to be required by RFC1122, but in
+         * practice this is not implemented by other UDP stacks.
+         * We retry the send, because the failing host was possibly
+         * not the one we tried to send to this time. --JH
+         */
         n = codatunnel_sendto(s, buf, n, 0, to, tolen);
     }
 #endif

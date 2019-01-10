@@ -47,7 +47,8 @@ rvm_tid_t *tids[NUM_TIDS];
 #define T4 8
 #define T5 16
 long tid_bits[NUM_TIDS] = { T1, T2, T3, T4, T5 };
-static void eat_lf()
+
+static void eat_lf(void)
 {
     while (rvm_true)
         if (getc(stdin) == '\n')
@@ -55,8 +56,8 @@ static void eat_lf()
 }
 
 /* get boolean answer */
-static rvm_bool_t get_ans(prompt, sense) char *prompt; /* prompt string */
-rvm_bool_t sense; /* false if default is 'no' */
+static rvm_bool_t get_ans(char *prompt /* prompt string */,
+                          rvm_bool_t sense /* false if default is 'no' */)
 {
     char sense_char; /* default sense character */
 
@@ -86,8 +87,8 @@ rvm_bool_t sense; /* false if default is 'no' */
         }
     }
 }
-static rvm_bool_t chk_file(filename, region) char *filename;
-rvm_region_t *region;
+
+static rvm_bool_t chk_file(char *filename, rvm_region_t *region)
 {
     char *map_data;
     char *test_data;
@@ -141,9 +142,10 @@ rvm_region_t *region;
     printf("\n  Mapped data agrees with %s\n", filename);
     return rvm_true;
 }
+
 /* copy file */
-static rvm_bool_t copy_file(file1, file2) char *file1; /* source file */
-char *file2; /* destination file */
+static rvm_bool_t copy_file(char *file1 /* source file */,
+                            char *file2 /* destination file */)
 {
     FILE *F1, *F2; /* copy F1 to F2 */
     long i;
@@ -179,8 +181,9 @@ char *file2; /* destination file */
 
     return rvm_false;
 }
+
 /* initialization tests */
-static rvm_bool_t test_initialization(options) rvm_options_t *options;
+static rvm_bool_t test_initialization(rvm_options_t *options)
 {
     rvm_return_t retval;
     rvm_tid_t *t1;
@@ -200,8 +203,9 @@ static rvm_bool_t test_initialization(options) rvm_options_t *options;
 
     return rvm_false;
 }
+
 /* termination tests */
-static rvm_bool_t test_termination()
+static rvm_bool_t test_termination(void)
 {
     rvm_return_t retval;
 
@@ -221,8 +225,9 @@ static rvm_bool_t test_termination()
 
     return rvm_false;
 }
+
 /* bad TID tests */
-static rvm_bool_t bad_TID_tests(tid) rvm_tid_t *tid;
+static rvm_bool_t bad_TID_tests(rvm_tid_t *tid)
 {
     rvm_return_t retval; /* rvm return code */
 
@@ -243,10 +248,11 @@ static rvm_bool_t bad_TID_tests(tid) rvm_tid_t *tid;
 
     return rvm_false;
 }
+
 /* basic transaction start-up tests */
-static rvm_bool_t start_trans_tests(tid1, tid2, tid3, tid4,
-                                    tid5) rvm_tid_t *tid1,
-    *tid2, *tid3, *tid4, *tid5;
+static rvm_bool_t start_trans_tests(rvm_tid_t *tid1, rvm_tid_t *tid2,
+                                    rvm_tid_t *tid3, rvm_tid_t *tid4,
+                                    rvm_tid_t *tid5)
 {
     rvm_return_t retval; /* rvm return code */
 
@@ -286,8 +292,9 @@ static rvm_bool_t start_trans_tests(tid1, tid2, tid3, tid4,
     printf("    Transactions started\n");
     return rvm_false;
 }
+
 /* test null transaction */
-static rvm_bool_t test_null_trans(tid) rvm_tid_t *tid;
+static rvm_bool_t test_null_trans(rvm_tid_t *tid)
 {
     rvm_return_t retval; /* rvm return code */
 
@@ -311,8 +318,9 @@ static rvm_bool_t test_null_trans(tid) rvm_tid_t *tid;
     } else
         return rvm_true;
 }
+
 /* single range commit test */
-static rvm_bool_t test_single_range_commit(tid) rvm_tid_t *tid;
+static rvm_bool_t test_single_range_commit(rvm_tid_t *tid)
 {
     rvm_return_t retval; /* rvm return code */
     long i; /* loop counter */
@@ -343,8 +351,9 @@ static rvm_bool_t test_single_range_commit(tid) rvm_tid_t *tid;
 
     return rvm_false;
 }
+
 /* commit a transaction with several ranges */
-static rvm_bool_t test_multi_range_commit(tid) rvm_tid_t *tid;
+static rvm_bool_t test_multi_range_commit(rvm_tid_t *tid)
 {
     rvm_return_t retval; /* rvm return code */
     long i; /* loop counter */
@@ -388,8 +397,9 @@ static rvm_bool_t test_multi_range_commit(tid) rvm_tid_t *tid;
 
     return rvm_false;
 }
+
 /* test multi-range transaction with abort */
-static rvm_bool_t test_multi_range_abort(tid) rvm_tid_t *tid;
+static rvm_bool_t test_multi_range_abort(rvm_tid_t *tid)
 {
     rvm_return_t retval; /* rvm return code */
     long i;
@@ -433,8 +443,9 @@ static rvm_bool_t test_multi_range_abort(tid) rvm_tid_t *tid;
     printf("\n  Aborted transaction restored data correctly\n");
     return rvm_false;
 }
+
 /* test complex multi-range transaction */
-static rvm_bool_t test_complex_range_commit(tid) rvm_tid_t *tid;
+static rvm_bool_t test_complex_range_commit(rvm_tid_t *tid)
 {
     rvm_return_t retval; /* rvm return code */
     long i;
@@ -506,8 +517,8 @@ int main(int argc, char **argv)
 
     options           = rvm_malloc_options();
     options->truncate = TRUNCATE_VAL;
-    /*    options->flags |= RVM_COALESCE_RANGES; */
-    /*    options->flags |= (RVM_COALESCE_RANGES | RVM_COALESCE_TRANS); */
+    /* options->flags |= RVM_COALESCE_RANGES; */
+    /* options->flags |= (RVM_COALESCE_RANGES | RVM_COALESCE_TRANS); */
     options->flags |= RVM_ALL_OPTIMIZATIONS;
     if (get_ans("Do you want a private mapping?", rvm_false))
         options->flags |= RVM_MAP_PRIVATE;
@@ -550,6 +561,7 @@ int main(int argc, char **argv)
             printf("\n? Error in creating test files\n");
             exit(EXIT_FAILURE);
         }
+
     /* map first region, RVM to allocate space */
     region           = rvm_malloc_region();
     region->data_dev = TEST_DATA_FILE;
@@ -590,6 +602,7 @@ int main(int argc, char **argv)
     }
     if (in_recovery)
         exit(EXIT_SUCCESS);
+
     /* bad tid tests */
     tids[0] = t1 = rvm_malloc_tid();
     if (bad_TID_tests(t1)) {
@@ -633,6 +646,7 @@ int main(int argc, char **argv)
     if (test_complex_range_commit(t5)) {
         exit(EXIT_FAILURE);
     }
+
     /* truncation test */
     if (get_ans("Do truncation", rvm_true)) {
         if ((retval = rvm_truncate()) != RVM_SUCCESS) {
@@ -650,6 +664,7 @@ int main(int argc, char **argv)
         if (ans)
             exit(EXIT_FAILURE);
     }
+
     /* unmap the region */
     if ((retval = rvm_unmap(region)) != RVM_SUCCESS) {
         printf("\n? Error in rvm_unmap, retval = %s\n", rvm_return(retval));

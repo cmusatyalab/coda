@@ -24,7 +24,8 @@ listed in the file CREDITS.
 
 /*
  *  ToDo:
- *	1/ There is currently no way of reclaiming user entries!  Need some GC mechanism!
+ *	1/ There is currently no way of reclaiming user entries!
+ *	   Need some GC mechanism!
  */
 
 #ifdef __cplusplus
@@ -273,7 +274,9 @@ long userent::SetTokens(SecretToken *asecret, ClearToken *aclear)
         realm->PutRef();
     }
 
-    /* N.B. Using direct assignment to the Token structs rather than the bcopys (now memcpy) doesn't seem to work! XXXX Bogus comment? Phil Nelson*/
+    /* N.B. Using direct assignment to the Token structs rather than the
+     * bcopys (now memcpy) doesn't seem to work!
+     * XXX Bogus comment? Phil Nelson*/
     memcpy(&secret, asecret, sizeof(SecretToken));
     memcpy(&clear, aclear, sizeof(ClearToken));
     tokensvalid = 1;
@@ -537,9 +540,10 @@ int userent::Connect(RPC2_Handle *cid, int *auth, struct in_addr *host)
         else
             sprintf(username, "UID=%08u", uid); /* normal user */
 
-        /* 
-	 * If the user has valid tokens and he is not root, we send the secret token in an
-	 * authenticated bind. Otherwise, we send the username in an unauthenticated bind. 
+        /*
+         * If the user has valid tokens and he is not root, we send the secret
+         * token in an authenticated bind. Otherwise, we send the username in
+         * an unauthenticated bind.
 	 */
         RPC2_CountedBS clientident;
         RPC2_BindParms bparms;

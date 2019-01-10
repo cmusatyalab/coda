@@ -162,8 +162,8 @@ class ClientModifyLog {
     /*T*/ long entriesHighWater; /* reset when count == zero */
     /*T*/ long bytes; /* number of bytes used by CML */
     /*T*/ long bytesHighWater; /* reset when size == 0 */
-    /*T*/ char cancelFrozenEntries; /* flag indicating whether it's safe to 
-                                                 * auto-thaw and cancel frozen entries */
+    /*T*/ char cancelFrozenEntries; /* flag indicating whether it's safe to
+                                     * auto-thaw and cancel frozen entries */
     cmlstats cancellations;
 
     /* Size of the Log -- private, because it is only called

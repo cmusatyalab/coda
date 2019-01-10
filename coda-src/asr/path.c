@@ -82,8 +82,7 @@ void path(char *pathname, char *direc, char *file)
     *(direc + strlen(pathname) - num_char_to_be_rm) = '\0';
     /* removing the component for file from direc */
     if (strlen(direc) == 0)
-        strcpy(direc, "."); /* this happen when pathname 
-                                            * is "name/", for example */
+        strcpy(direc, "."); /* this happen when pathname is "name/" */
     if (strlen(direc) >= 2) /* don't do this if only '/' remains in direc */
         if (*(direc + strlen(direc) - 1) == '/')
             *(direc + strlen(direc) - 1) = '\0';

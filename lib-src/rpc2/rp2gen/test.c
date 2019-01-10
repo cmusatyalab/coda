@@ -41,7 +41,7 @@ Pittsburgh, PA.
 
 static char *colors[] = { "red", "white", "blue" };
 
-static pcbs(bs) RPC2_CountedBS *bs;
+static pcbs(RPC2_CountedBS *bs)
 {
     register int i;
 
@@ -51,7 +51,7 @@ static pcbs(bs) RPC2_CountedBS *bs;
     putchar('>');
 }
 
-static pbbs(bs) RPC2_BoundedBS *bs;
+static pbbs(RPC2_BoundedBS *bs)
 {
     register int i;
 
@@ -61,8 +61,7 @@ static pbbs(bs) RPC2_BoundedBS *bs;
     putchar('>');
 }
 
-main(argc, argv) int argc;
-char *argv[];
+int main(int argc, char *argv[])
 {
     RPC2_Integer value;
     int cid = -2;
@@ -118,27 +117,21 @@ char *argv[];
     printf("Returns %d\n", proc4(cid, &g1, &g2, &g3));
 }
 
-int test_proc1(cid, n) RPC2_Handle cid;
-int n;
+int test_proc1(RPC2_Handle cid, int n)
 {
     printf("Entering proc1(%d, %d);\n", cid, n);
     return -1;
 }
 
-int test_proc2(cid, s, n) RPC2_Handle cid;
-char *s;
-int *n;
+int test_proc2(RPC2_Handle cid, char *s, int *n)
 {
     printf("Entering proc2(%d, \"%s\", ...);\n", cid, s);
     *n = 87654321;
     return 2;
 }
 
-int test_proc3(cid, bbs, c, s, bs) RPC2_Handle cid;
-RPC2_BoundedBS *bbs;
-color *c;
-RPC2_String s;
-RPC2_CountedBS *bs;
+int test_proc3(RPC2_Handle cid, RPC2_BoundedBS *bbs, color *c, RPC2_String s,
+               RPC2_CountedBS *bs)
 {
     printf("Entering proc3(%d, ", cid);
     pbbs(bbs);
@@ -153,8 +146,7 @@ RPC2_CountedBS *bs;
     return 333;
 }
 
-int test_proc4(cid, g1, g2, g3) RPC2_Handle cid;
-garbage *g1, *g2, *g3;
+int test_proc4(RPC2_Handle cid, garbage *g1, garbage *g2, garbage *g3)
 {
     g2->code    = 7;
     g2->place.x = 8;
@@ -176,25 +168,22 @@ int RPC2_AllocBuffer(int size, RPC2_PacketBuffer **buff)
         return RPC2_FAIL;
 }
 
-int RPC2_FreeBuffer(buff) RPC2_PacketBuffer **buff;
+int RPC2_FreeBuffer(RPC2_PacketBuffer **buff)
 {
     return RPC2_SUCCESS;
 }
 
 RPC2_PacketBuffer *answer;
 
-int RPC2_MakeRPC(cid, req, bd, rsp, life, options) RPC2_Handle cid;
-RPC2_PacketBuffer *req, **rsp;
-int bd, life, options;
+int RPC2_MakeRPC(RPC2_Handle cid, RPC2_PacketBuffer *req, int bd,
+                 RPC2_PacketBuffer **rsp, int life, int options)
 {
     test1_ExecuteRequest(cid, req, bd);
     *rsp = answer;
     return RPC2_SUCCESS;
 }
 
-int RPC2_SendResponse(cid, rsp, bd, life) RPC2_Handle cid;
-RPC2_PacketBuffer *rsp;
-int bd, life;
+int RPC2_SendResponse(RPC2_Handle cid, RPC2_PacketBuffer *rsp, int bd, int life)
 {
     answer = rsp;
 }

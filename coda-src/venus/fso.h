@@ -379,19 +379,19 @@ class fsobj {
     /* General status. */
     enum FsoState state; /* {FsoRunt, FsoNormal, FsoDying} */
     VenusStat stat;
-    /*T*/ uint64_t GotThisDataStart; /* used during fetch to keep 
-                                       track of where we are. Signalling the 
-                                       start point of the current fetch 
-                                       segment */
-    /*T*/ uint64_t GotThisDataEnd; /* used during fetch to keep track of where 
-                                     we are. Signalling the end of the current 
-                                     fetch segment */
+    /*T*/ uint64_t GotThisDataStart; /* used during fetch to keep track of
+                                        where we are. Signalling the start
+                                        point of the current fetch segment */
+    /*T*/ uint64_t GotThisDataEnd; /* used during fetch to keep track of where
+                                      we are. Signalling the end of the current
+                                      fetch segment */
     /*T*/ int RcRights; /* replica control rights */
     AcRights AnyUser; /* access control rights: any user */
     AcRights SpecificUser[CPSIZE]; /* access control rights: specific users */
     FsoFlags flags; /* some of these are transient */
-    unsigned char VenusSHA
-        [SHA_DIGEST_LENGTH]; /* if non-zero, the saved SHA of the file; used by lookaside code; */
+
+    /* if non-zero, the saved SHA of the file; used by lookaside code; */
+    unsigned char VenusSHA[SHA_DIGEST_LENGTH];
 
     /* Mount state. */
     MountStatus mvstat; /* { NORMAL, MOUNTPOINT, ROOT } */

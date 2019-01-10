@@ -39,12 +39,13 @@ Pittsburgh, PA.
 
 /* ************************************************************ *\
 
-	Symbol Table Module for RP2GEN
+        Symbol Table Module for RP2GEN
 
 \* ************************************************************ */
 
 #include <stdio.h>
 #include <stdlib.h>
+
 #include "rp2.h"
 
 extern ENTRY *make_entry();
@@ -70,16 +71,13 @@ static struct {
     char *name;
     TYPE_TAG tag;
 } predefined[] = {
-
     { "RPC2_Integer", RPC2_INTEGER_TAG },
     { "RPC2_Unsigned", RPC2_UNSIGNED_TAG },
     { "RPC2_Byte", RPC2_BYTE_TAG },
     { "RPC2_String", RPC2_STRING_TAG },
     { "RPC2_CountedBS", RPC2_COUNTEDBS_TAG },
     { "RPC2_BoundedBS", RPC2_BOUNDEDBS_TAG },
-    /*
- 	{ "RPC2_BulkDescriptor",	RPC2_BULKDESCRIPTOR_TAG },
-*/
+    // { "RPC2_BulkDescriptor",	RPC2_BULKDESCRIPTOR_TAG },
     { "SE_Descriptor", RPC2_BULKDESCRIPTOR_TAG },
     { "RPC2_EncryptionKey", RPC2_ENCRYPTIONKEY_TAG },
     { "RPC2_Double", RPC2_DOUBLE_TAG },

@@ -29,28 +29,25 @@ Coda are listed in the file CREDITS.
 extern log_t *default_log; /* default log descriptor ptr */
 extern rvm_bool_t rvm_utlsw; /* true if running in rvmutl */
 extern char *rvm_errmsg; /* internal error message buffer */
-extern rvm_length_t
-    flush_times_vec[flush_times_len]; /* flush timing histogram defs */
-extern rvm_length_t
-    truncation_times_vec[truncation_times_len]; /* truncation timing 
-                                                                   histogram defs */
-extern rvm_length_t range_lengths_vec[range_lengths_len]; /* range length
-                                                             histogram defs */
-extern rvm_length_t range_overlaps_vec[range_overlaps_len]; /* range coalesce
-                                                             histogram defs */
-extern rvm_length_t trans_overlaps_vec[trans_overlaps_len]; /* trans coalesce
-                                                             histogram defs */
-extern rvm_length_t
-    range_elims_vec[range_elims_len]; /* ranges eliminated by range
-                                                         coalesce histogram defs */
-extern rvm_length_t
-    trans_elims_vec[trans_elims_len]; /* ranges eliminated by trans
-                                                         coalesce histogram defs */
-extern rvm_length_t trans_coalesces_vec[trans_coalesces_len]; /* transactions
-                                                                 coalesed per flush */
+/* flush timing histogram defs */
+extern rvm_length_t flush_times_vec[flush_times_len];
+/* truncation timing histogram defs */
+extern rvm_length_t truncation_times_vec[truncation_times_len];
+/* range length histogram defs */
+extern rvm_length_t range_lengths_vec[range_lengths_len];
+/* range coalesce histogram defs */
+extern rvm_length_t range_overlaps_vec[range_overlaps_len];
+/* trans coalesce histogram defs */
+extern rvm_length_t trans_overlaps_vec[trans_overlaps_len];
+/* ranges eliminated by range coalesce histogram defs */
+extern rvm_length_t range_elims_vec[range_elims_len];
+/* ranges eliminated by trans coalesce histogram defs */
+extern rvm_length_t trans_elims_vec[trans_elims_len];
+/* transactions coalesed per flush */
+extern rvm_length_t trans_coalesces_vec[trans_coalesces_len];
+
 /* print rvm_offset_t */
-static int pr_offset(offset, stream) rvm_offset_t *offset;
-FILE *stream;
+static int pr_offset(rvm_offset_t *offset, FILE *stream)
 {
     int tot_chars = 0;
     float flt_val;
@@ -65,13 +62,12 @@ FILE *stream;
 }
 
 /* histogram value printer -- handles placement of <= for definition values */
-static int pr_histo_val(out_stream, val, width, is_def, gtr,
-                        us) FILE *out_stream; /* target stream */
-rvm_length_t val; /* histogram value */
-int width; /* print width of histogram data */
-rvm_bool_t is_def; /* value is bucket size if true */
-rvm_bool_t gtr; /* print '> ' if true */
-rvm_bool_t us; /* true if value unsigned */
+static int pr_histo_val(FILE *out_stream /* target stream */,
+                        rvm_length_t val /* histogram value */,
+                        int width /* print width of histogram data */,
+                        rvm_bool_t is_def /* value is bucket size if true */,
+                        rvm_bool_t gtr /* print '> ' if true */,
+                        rvm_bool_t us /* true if value unsigned */)
 {
     char str[20]; /* string buffer */
     int pad;
@@ -105,16 +101,16 @@ rvm_bool_t us; /* true if value unsigned */
     err = fprintf(out_stream, "%s", str);
     return err;
 }
+
 /* histogram printer */
-static int pr_histogram(out_stream, histo, histo_def, length, width, leading,
-                        gtr, us) FILE *out_stream; /* target stream */
-rvm_length_t *histo; /* histogram data */
-rvm_length_t *histo_def; /* histogram bucket sizes */
-rvm_length_t length; /* length of histogram vectors */
-int width; /* print width of histogram data */
-int leading; /* number of leading spaces */
-rvm_bool_t gtr; /* print final > bucket if true */
-rvm_bool_t us; /* values unsigned if true */
+static int pr_histogram(FILE *out_stream /* target stream */,
+                        rvm_length_t *histo /* histogram data */,
+                        rvm_length_t *histo_def /* histogram bucket sizes */,
+                        rvm_length_t length /* length of histogram vectors */,
+                        int width /* print width of histogram data */,
+                        int leading /* number of leading spaces */,
+                        rvm_bool_t gtr /* print final > bucket if true */,
+                        rvm_bool_t us /* values unsigned if true */)
 {
     int err;
     rvm_length_t i;
@@ -156,12 +152,12 @@ rvm_bool_t us; /* values unsigned if true */
     err = putc('\n', out_stream);
     return err;
 }
+
 /* print transaction statistics */
-static rvm_return_t pr_trans_stats(stats, out_stream, n_trans, tot_trans)
-    rvm_statistics_t *stats; /* ptr top statistics record */
-FILE *out_stream; /* output stream */
-rvm_length_t n_trans;
-rvm_length_t tot_trans;
+static rvm_return_t
+pr_trans_stats(rvm_statistics_t *stats /* ptr top statistics record */,
+               FILE *out_stream /* output stream */, rvm_length_t n_trans,
+               rvm_length_t tot_trans)
 {
     rvm_length_t n_trans_started;
     int err;
@@ -224,12 +220,12 @@ rvm_length_t tot_trans;
 
     return RVM_SUCCESS;
 }
+
 /* print log statistics */
-static rvm_return_t pr_log_stats(stats, out_stream, n_trans, tot_trans)
-    rvm_statistics_t *stats; /* ptr top statistics record */
-FILE *out_stream; /* output stream */
-rvm_length_t n_trans;
-rvm_length_t tot_trans;
+static rvm_return_t
+pr_log_stats(rvm_statistics_t *stats /* ptr top statistics record */,
+             FILE *out_stream /* output stream */, rvm_length_t n_trans,
+             rvm_length_t tot_trans)
 {
     rvm_length_t n_flush;
     rvm_length_t tot_flush;
@@ -360,12 +356,12 @@ rvm_length_t tot_trans;
 
     return RVM_SUCCESS;
 }
+
 /* print timing histograms */
-static rvm_return_t pr_time_histos(stats, out_stream, n_trans, tot_trans)
-    rvm_statistics_t *stats; /* ptr top statistics record */
-FILE *out_stream; /* output stream */
-rvm_length_t n_trans;
-rvm_length_t tot_trans;
+static rvm_return_t
+pr_time_histos(rvm_statistics_t *stats /* ptr top statistics record */,
+               FILE *out_stream /* output stream */, rvm_length_t n_trans,
+               rvm_length_t tot_trans)
 {
     int err;
 
@@ -415,12 +411,12 @@ rvm_length_t tot_trans;
 
     return RVM_SUCCESS;
 }
+
 /* print transaction optimization statistics */
-static rvm_return_t pr_opt_stats(stats, out_stream, n_trans, tot_trans)
-    rvm_statistics_t *stats; /* ptr top statistics record */
-FILE *out_stream; /* output stream */
-rvm_length_t n_trans;
-rvm_length_t tot_trans;
+static rvm_return_t
+pr_opt_stats(rvm_statistics_t *stats /* ptr top statistics record */,
+             FILE *out_stream /* output stream */, rvm_length_t n_trans,
+             rvm_length_t tot_trans)
 {
     rvm_length_t n_flush;
     rvm_length_t tot_flush;
@@ -584,12 +580,12 @@ rvm_length_t tot_trans;
 
     return RVM_SUCCESS;
 }
+
 /* print transaction optimization histograms */
-static rvm_return_t pr_opt_histos(stats, out_stream, n_trans, tot_trans)
-    rvm_statistics_t *stats; /* ptr top statistics record */
-FILE *out_stream; /* output stream */
-rvm_length_t n_trans;
-rvm_length_t tot_trans;
+static rvm_return_t
+pr_opt_histos(rvm_statistics_t *stats /* ptr top statistics record */,
+              FILE *out_stream /* output stream */, rvm_length_t n_trans,
+              rvm_length_t tot_trans)
 {
     int err;
     int i;
@@ -813,10 +809,11 @@ rvm_length_t tot_trans;
 
     return RVM_SUCCESS;
 }
+
 /* rvm_print_stats */
-rvm_return_t rvm_print_statistics(stats, out_stream)
-    rvm_statistics_t *stats; /* ptr top statistics record */
-FILE *out_stream; /* output stream */
+rvm_return_t
+rvm_print_statistics(rvm_statistics_t *stats /* ptr top statistics record */,
+                     FILE *out_stream /* output stream */)
 {
     rvm_length_t n_trans;
     rvm_length_t tot_trans;

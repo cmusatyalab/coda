@@ -33,9 +33,8 @@ Coda are listed in the file CREDITS.
 /* histgram definitions */
 
 #define flush_times_len 10 /* length of flush timing vectors */
-#define flush_times_dist /* timing distribution in millisecs */ \
-    25, 50, 100, 250, 500, 1000, 2500, 5000,                    \
-        10000 /* use as array initializer */
+/* timing distribution in millisecs, use as array initializer */
+#define flush_times_dist 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000
 
 #define truncation_times_len 5 /* length of truncation timing vectors */
 #define truncation_times_dist /* timing distribution in seconds */ \
@@ -46,39 +45,30 @@ Coda are listed in the file CREDITS.
     0, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096
 
 #define range_overlaps_len \
-    13 /* length of overlaps eliminated by
-                                           range coalesce */
+    13 /* length of overlaps eliminated by range coalesce */
 #define range_overlaps_dist /* range lengths in bytes */ \
     0, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096
 
 #define trans_overlaps_len \
-    13 /* length of overlaps eliminated by
-                                           transaction coalesce */
+    13 /* length of overlaps eliminated by transaction coalesce */
 #define trans_overlaps_dist /* range lengths in bytes */ \
     0, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096
 
-#define range_elims_len \
-    6 /* ranges eliminated from log by
-                                           range coalesce */
+#define range_elims_len 6 /* ranges eliminated from log by range coalesce */
 #define range_elims_dist /* number of ranges */ 0, 5, 10, 50, 100
 
-#define trans_elims_len \
-    6 /* ranges eliminated from log by
-                                           trans coalesce */
+#define trans_elims_len 6 /* ranges eliminated from log by trans coalesce */
 #define trans_elims_dist /* number of ranges */ 0, 5, 10, 50, 100
 
-#define trans_coalesces_len \
-    6 /* transactions coalesced by
-                                           trans coalesce */
+#define trans_coalesces_len 6 /* transactions coalesced by trans coalesce */
 #define trans_coalesces_dist /* number of transactions */ 0, 5, 10, 50, 100
+
 /* RVM statistics record */
 typedef struct {
     rvm_struct_id_t struct_id; /* self-identifier, do not change */
-    rvm_bool_t from_heap; /* true if heap allocated;
-					   do not change */
+    rvm_bool_t from_heap; /* true if heap allocated; do not change */
 
-    /* transaction statistics --
-					   current epoch */
+    /* transaction statistics -- current epoch */
 
     rvm_length_t n_abort; /* number of transactions aborted */
     rvm_length_t n_flush_commit; /* number of flush mode commits */
@@ -96,32 +86,34 @@ typedef struct {
     rvm_length_t n_wrap; /* number of log wrap-arounds (0 or 1) */
     rvm_length_t log_dev_cur; /* current % log device in use */
     rvm_offset_t log_written; /* current length of writes to log */
-    rvm_offset_t range_overlap; /* current overlap eliminated by range coalesce */
-    rvm_offset_t trans_overlap; /* current overlap eliminated by trans coalesce */
-    rvm_length_t n_range_elim; /* current number of ranges eliminated by
-                                           range coalesce/flush */
-    rvm_length_t n_trans_elim; /* current number of ranges eliminated by
-                                           trans coalesce/flush */
-    rvm_length_t n_trans_coalesced; /* number of transactions coalesced in
-                                           this flush cycle */
+    /* current overlap eliminated by range coalesce */
+    rvm_offset_t range_overlap;
+    /* current overlap eliminated by trans coalesce */
+    rvm_offset_t trans_overlap;
+    /* current number of ranges eliminated by range coalesce/flush */
+    rvm_length_t n_range_elim;
+    /* current number of ranges eliminated by trans coalesce/flush */
+    rvm_length_t n_trans_elim;
+    /* number of transactions coalesced in this flush cycle */
+    rvm_length_t n_trans_coalesced;
     struct timeval flush_time; /* time spent in flushes */
     rvm_length_t last_flush_time; /* duration of last flush (msec) */
     rvm_length_t last_truncation_time; /* duration of last truncation (sec) */
     rvm_length_t last_tree_build_time; /* duration of tree build (sec) */
-    rvm_length_t last_tree_apply_time; /* duration of tree apply phase
-                                             (sec) */
+    rvm_length_t last_tree_apply_time; /* duration of tree apply phase (sec) */
+
     /* histogram vectors */
 
     rvm_length_t flush_times[flush_times_len]; /* flush timings (msec) */
     rvm_length_t range_lengths[range_lengths_len]; /* range lengths flushed */
-    rvm_length_t range_elims[range_elims_len]; /* num ranges eliminated by
-                                                     range coalesce/flush */
-    rvm_length_t trans_elims[trans_elims_len]; /* num ranges eliminated by
-                                                     trans coalesce/flush */
-    rvm_length_t range_overlaps[range_overlaps_len]; /* space saved by
-                                                           range coalesce/flush */
-    rvm_length_t trans_overlaps[range_overlaps_len]; /* space saved by
-                                                           trans coalesce/flush */
+    /* num ranges eliminated by range coalesce/flush */
+    rvm_length_t range_elims[range_elims_len];
+    /* num ranges eliminated by trans coalesce/flush */
+    rvm_length_t trans_elims[trans_elims_len];
+    /* space saved by range coalesce/flush */
+    rvm_length_t range_overlaps[range_overlaps_len];
+    /* space saved by trans coalesce/flush */
+    rvm_length_t trans_overlaps[range_overlaps_len];
     /* transaction stats -- cumulative since log init */
 
     rvm_length_t tot_abort; /* total aborted transactions */
@@ -137,23 +129,25 @@ typedef struct {
     rvm_length_t tot_wrap; /* total log wrap-arounds */
     rvm_length_t log_dev_max; /* maximum % log device used so far */
     rvm_offset_t tot_log_written; /* total length of all writes to log */
-    rvm_offset_t
-        tot_range_overlap; /* total overlap eliminated by range coalesce */
-    rvm_offset_t
-        tot_trans_overlap; /* total overlap eliminated by trans coalesce */
-    rvm_length_t tot_range_elim; /* total number of ranges eliminated by
-                                           range coalesce */
-    rvm_length_t tot_trans_elim; /* total number of ranges eliminated by
-                                           trans coalesce */
-    rvm_length_t tot_trans_coalesced; /* total number of transactions coalesced */
+    /* total overlap eliminated by range coalesce */
+    rvm_offset_t tot_range_overlap;
+    /* total overlap eliminated by trans coalesce */
+    rvm_offset_t tot_trans_overlap;
+    /* total number of ranges eliminated by range coalesce */
+    rvm_length_t tot_range_elim;
+    /* total number of ranges eliminated by trans coalesce */
+    rvm_length_t tot_trans_elim;
+    /* total number of transactions coalesced */
+    rvm_length_t tot_trans_coalesced;
 
     /* truncation stats -- cummulative */
 
     rvm_length_t tot_rvm_truncate; /* total explicit rvm_truncate calls */
     rvm_length_t tot_async_truncation; /* total asynchronous truncations */
-    rvm_length_t tot_sync_truncation; /* total forced synchronous truncations */
-    rvm_length_t
-        tot_truncation_wait; /* total transactions delayed by truncation */
+    /* total forced synchronous truncations */
+    rvm_length_t tot_sync_truncation;
+    /* total transactions delayed by truncation */
+    rvm_length_t tot_truncation_wait;
     rvm_length_t tot_recovery; /* total recovery truncations */
     struct timeval tot_flush_time; /* total time spent in flush */
     struct timeval tot_truncation_time; /* cumulative truncation time */
@@ -167,11 +161,9 @@ typedef struct {
     rvm_length_t tot_flush_times[flush_times_len];
     /* cummulative range lengths */
     rvm_length_t tot_range_lengths[range_lengths_len];
-    /* total num ranges eliminated by
-                                           range coalesce/flush */
+    /* total num ranges eliminated by range coalesce/flush */
     rvm_length_t tot_range_elims[range_elims_len];
-    /* total num ranges eliminated by
-                                           trans coalesce/flush */
+    /* total num ranges eliminated by trans coalesce/flush */
     rvm_length_t tot_trans_elims[trans_elims_len];
     /* space saved by range coalesce/flush */
     rvm_length_t tot_range_overlaps[range_overlaps_len];
@@ -180,6 +172,7 @@ typedef struct {
     /* transactions coalesced per flush  */
     rvm_length_t tot_trans_coalesces[trans_coalesces_len];
 } rvm_statistics_t;
+
 /* get RVM statistics */
 rvm_return_t rvm_statistics(const char *version, rvm_statistics_t *statistics);
 #define RVM_STATISTICS(statistics) \

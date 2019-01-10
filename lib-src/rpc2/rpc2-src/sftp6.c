@@ -38,8 +38,8 @@ Pittsburgh, PA.
 */
 
 /*
-	-- SFTP: a smart file transfer protocol using windowing and piggybacking
-	-- sftp6.c contains (most of) the Multicast extensions to SFTP
+        -- SFTP: a smart file transfer protocol using windowing and piggybacking
+        -- sftp6.c contains (most of) the Multicast extensions to SFTP
 */
 
 #ifdef HAVE_CONFIG_H
@@ -60,9 +60,11 @@ Pittsburgh, PA.
 #include <assert.h>
 #include <string.h>
 #include <unistd.h>
-#include "rpc2.private.h"
+
 #include <rpc2/se.h>
 #include <rpc2/sftp.h>
+
+#include "rpc2.private.h"
 
 static void MC_AppendParmsToPacket(struct SFTP_Entry *mse,
                                    struct SFTP_Entry *sse,
@@ -71,7 +73,9 @@ static int MC_ExtractParmsFromPacket(struct SFTP_Entry *mse,
                                      struct SFTP_Entry *sse,
                                      RPC2_PacketBuffer *req);
 
-/*----------------------- The procs below interface directly with RPC2 ------------------------ */
+/*-----------------------
+ * The procs below interface directly with RPC2
+ * ------------------------ */
 
 long SFTP_MultiRPC1(IN HowMany, IN ConnHandleList, INOUT SDescList, INOUT req,
                     INOUT retcode) int HowMany;
@@ -139,10 +143,8 @@ long SFTP_CreateMgrp(IN MgroupHandle) RPC2_Handle MgroupHandle;
     return (RPC2_SUCCESS);
 }
 
-long SFTP_AddToMgrp(IN MgroupHandle, IN ConnHandle,
-                    INOUT Request) RPC2_Handle MgroupHandle;
-RPC2_Handle ConnHandle;
-RPC2_PacketBuffer **Request; /* InitMulticast packet */
+long SFTP_AddToMgrp(IN RPC2_Handle MgroupHandle, IN RPC2_Handle ConnHandle,
+                    INOUT RPC2_PacketBuffer **Request /* InitMulticast packet */)
 {
     struct MEntry *me;
     struct SFTP_Entry *mse; /* Multicast SFTP Entry */
@@ -156,11 +158,10 @@ RPC2_PacketBuffer **Request; /* InitMulticast packet */
     return (RPC2_SUCCESS);
 }
 
-/* This is effectively a combination SE_CreateMgrp/SE_AddToMgrp call for the server */
-long SFTP_InitMulticast(IN MgroupHandle, IN ConnHandle,
-                        IN Request) RPC2_Handle MgroupHandle;
-RPC2_Handle ConnHandle;
-RPC2_PacketBuffer *Request;
+/* This is effectively a combination SE_CreateMgrp/SE_AddToMgrp call for the
+ * server */
+long SFTP_InitMulticast(IN RPC2_Handle MgroupHandle, IN RPC2_Handle ConnHandle,
+                        IN RPC2_PacketBuffer *Request)
 {
     struct CEntry *ce;
     struct SFTP_Entry *sse; /* Singlecast SFTP Entry */
@@ -247,8 +248,9 @@ static void MC_AppendParmsToPacket(struct SFTP_Entry *mse,
     sftp_AppendParmsToPacket(mse, req);
     sse->SentParms = TRUE; /* installed in server's SINGLECAST parm block */
 
-    /* We also piggyback state information that is necessary to initialize the MULTICAST parameter
-	block; currently this is only PeerSendLastContig (PeerCtrlSeqNumber may be added later). */
+    /* We also piggyback state information that is necessary to initialize the
+       MULTICAST parameter block; currently this is only PeerSendLastContig
+       (PeerCtrlSeqNumber may be added later). */
     mcp.PeerSendLastContig = htonl(mse->SendLastContig);
     assert(sftp_AddPiggy(req, (char *)&mcp, sizeof(struct SFTP_MCParms),
                          RPC2_MAXPACKETSIZE) == 0);
@@ -260,13 +262,16 @@ static int MC_ExtractParmsFromPacket(struct SFTP_Entry *mse,
 {
     struct SFTP_MCParms mcp;
 
-    /* Extract information from the InitMulticast packet.  There are two things we are interested in:
-       1/ the piggybacked parameters which we install in our SINGLECAST parameter block (even if 
-       we already have a valid set of parms),
-       2/ other piggybacked MULTICAST state information which we install in our MULTICAST
-       parameter block.
-       The only item currently in the latter category is PeerSendLastContig which we record as our
-       RecvLastContig (later we may add a PeerCtrSeqNumber). */
+    /* Extract information from the InitMulticast packet.  There are two things
+       we are interested in:
+         1/ the piggybacked parameters which we install in our SINGLECAST
+            parameter block (even if we already have a valid set of parms),
+         2/ other piggybacked MULTICAST state information which we install in
+            our MULTICAST parameter block.
+       The only item currently in the latter category is PeerSendLastContig
+       which we record as our RecvLastContig (later we may add a
+       PeerCtrSeqNumber).
+    */
     if (req->Header.BodyLength - req->Header.SEDataOffset <
         sizeof(struct SFTP_MCParms))
         return (-1);
@@ -277,6 +282,6 @@ static int MC_ExtractParmsFromPacket(struct SFTP_Entry *mse,
     req->Header.BodyLength -= sizeof(struct SFTP_MCParms);
 
     /* Now it's safe to extract the SINGLECAST parameter block. */
-    return (sftp_ExtractParmsFromPacket(sse,
-                                        req)); /* sse->GotParms set TRUE here */
+    /* sse->GotParms set TRUE here */
+    return (sftp_ExtractParmsFromPacket(sse, req));
 }

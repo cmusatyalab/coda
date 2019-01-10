@@ -60,12 +60,13 @@ Pittsburgh, PA.
 #include <assert.h>
 #include <sys/file.h>
 
-#include <rpc2/secure.h>
-#include "rpc2.private.h"
 #include <rpc2/se.h>
-#include "codatunnel/wrapper.h"
-#include "trace.h"
+#include <rpc2/secure.h>
+
 #include "cbuf.h"
+#include "codatunnel/wrapper.h"
+#include "rpc2.private.h"
+#include "trace.h"
 
 RPC2_HostIdent rpc2_bindhost = {
     .Tag = RPC2_DUMMYHOST,
@@ -218,7 +219,7 @@ void RPC2_setbindaddr(RPC2_HostIdent *host)
         rpc2_bindhost.Value.AddrInfo = RPC2_copyaddrinfo(host->Value.AddrInfo);
 }
 
-long RPC2_Export(IN Subsys) RPC2_SubsysIdent *Subsys;
+long RPC2_Export(IN RPC2_SubsysIdent *Subsys)
 {
     long i, myid = 0;
     struct SubsysEntry *sp;
@@ -251,7 +252,7 @@ long RPC2_Export(IN Subsys) RPC2_SubsysIdent *Subsys;
     rpc2_Quit(RPC2_SUCCESS);
 }
 
-long RPC2_DeExport(IN Subsys) RPC2_SubsysIdent *Subsys;
+long RPC2_DeExport(IN RPC2_SubsysIdent *Subsys)
 {
     long i, myid = 0;
     struct SubsysEntry *sp;
@@ -308,7 +309,7 @@ static RPC2_PacketBuffer *Gimme(long size, RPC2_PacketBuffer **flist,
     return (pb);
 }
 
-static RPC2_PacketBuffer *GetPacket(psize) long psize;
+static RPC2_PacketBuffer *GetPacket(long psize)
 {
     if (psize <= SMALLPACKET) {
         return (Gimme(SMALLPACKET, &rpc2_PBSmallFreeList,
@@ -397,10 +398,10 @@ long RPC2_FreeBuffer(INOUT RPC2_PacketBuffer **BuffPtr)
     rpc2_Quit(RPC2_SUCCESS);
 }
 
-char *RPC2_ErrorMsg(rc) long rc;
-/* Returns a pointer to a static string describing error rc.  Note that this routine
-	violates the RPC2 tradition of stuffing an OUT parameter. 
-    */
+char *RPC2_ErrorMsg(long rc)
+/* Returns a pointer to a static string describing error rc.  Note that this
+   routine violates the RPC2 tradition of stuffing an OUT parameter.
+*/
 {
     static char msgbuf[100];
 
@@ -479,9 +480,7 @@ char *RPC2_ErrorMsg(rc) long rc;
     }
 }
 
-long RPC2_GetPrivatePointer(IN ConnHandle,
-                            OUT PrivatePtr) RPC2_Handle ConnHandle;
-char **PrivatePtr;
+long RPC2_GetPrivatePointer(IN RPC2_Handle ConnHandle, OUT char **PrivatePtr)
 {
     struct CEntry *ceaddr;
 
@@ -497,9 +496,7 @@ char **PrivatePtr;
     rpc2_Quit(RPC2_SUCCESS);
 }
 
-long RPC2_SetPrivatePointer(IN ConnHandle,
-                            IN PrivatePtr) RPC2_Handle ConnHandle;
-char *PrivatePtr;
+long RPC2_SetPrivatePointer(IN RPC2_Handle ConnHandle, IN char *PrivatePtr)
 {
     struct CEntry *ceaddr;
 
@@ -513,8 +510,7 @@ char *PrivatePtr;
     rpc2_Quit(RPC2_SUCCESS);
 }
 
-long RPC2_GetSEPointer(IN ConnHandle, OUT SEPtr) RPC2_Handle ConnHandle;
-struct SFTP_Entry **SEPtr;
+long RPC2_GetSEPointer(IN RPC2_Handle ConnHandle, OUT struct SFTP_Entry **SEPtr)
 {
     struct CEntry *ceaddr;
 
@@ -528,8 +524,7 @@ struct SFTP_Entry **SEPtr;
     rpc2_Quit(RPC2_SUCCESS);
 }
 
-long RPC2_SetSEPointer(IN ConnHandle, IN SEPtr) RPC2_Handle ConnHandle;
-struct SFTP_Entry *SEPtr;
+long RPC2_SetSEPointer(IN RPC2_Handle ConnHandle, IN struct SFTP_Entry *SEPtr)
 {
     struct CEntry *ceaddr;
 
@@ -543,8 +538,7 @@ struct SFTP_Entry *SEPtr;
     rpc2_Quit(RPC2_SUCCESS);
 }
 
-long RPC2_GetPeerInfo(IN ConnHandle, OUT PeerInfo) RPC2_Handle ConnHandle;
-RPC2_PeerInfo *PeerInfo;
+long RPC2_GetPeerInfo(IN RPC2_Handle ConnHandle, OUT RPC2_PeerInfo *PeerInfo)
 {
     struct CEntry *ceaddr;
 
@@ -567,8 +561,7 @@ RPC2_PeerInfo *PeerInfo;
     rpc2_Quit(RPC2_SUCCESS);
 }
 
-long RPC2_DumpTrace(IN OutFile, IN HowMany) FILE *OutFile;
-long HowMany;
+long RPC2_DumpTrace(IN FILE *OutFile, IN long HowMany)
 { /* NOTE: not surrounded by rpc2_Enter() and rpc2_Quit() */
 
 #ifdef RPC2DEBUG
@@ -580,7 +573,7 @@ long HowMany;
     return (RPC2_SUCCESS);
 }
 
-long RPC2_InitTraceBuffer(IN ecount) long ecount;
+long RPC2_InitTraceBuffer(IN long ecount)
 { /* NOTE: not surrounded by rpc2_Enter() and rpc2_Quit() */
 
 #ifdef RPC2DEBUG
@@ -593,8 +586,7 @@ long RPC2_InitTraceBuffer(IN ecount) long ecount;
     return (RPC2_SUCCESS);
 }
 
-long RPC2_DumpState(DumpFile, Verbosity) FILE *DumpFile;
-long Verbosity; /* > 0 ==> full dump */
+long RPC2_DumpState(FILE *DumpFile, long Verbosity /* > 0 ==> full dump */)
 { /* NOTE: not surrounded by rpc2_Enter() and rpc2_Quit() */
 
 #ifdef RPC2DEBUG
@@ -606,10 +598,10 @@ long Verbosity; /* > 0 ==> full dump */
     gethostname(where, sizeof(where));
     fprintf(DumpFile, "\n\n\t\t\tRPC2 Runtime State on %s at %s\n", where,
             ctime(&when));
-    fprintf(
-        DumpFile,
-        "rpc2_ConnCreationCount = %ld  rpc2_ConnCount = %ld  rpc2_ConnFreeCount = %ld\n",
-        rpc2_ConnCreationCount, rpc2_ConnCount, rpc2_ConnFreeCount);
+    fprintf(DumpFile,
+            "rpc2_ConnCreationCount = %ld  rpc2_ConnCount = %ld  "
+            "rpc2_ConnFreeCount = %ld\n",
+            rpc2_ConnCreationCount, rpc2_ConnCount, rpc2_ConnFreeCount);
     fprintf(
         DumpFile,
         "rpc2_PBCount = %ld  rpc2_PBHoldCount = %ld  rpc2_PBFreezeCount = %ld\n",
@@ -624,33 +616,36 @@ long Verbosity; /* > 0 ==> full dump */
             "rpc2_PBLargeFreeCount = %ld  rpc2_PBLargeCreationCount = %ld\n",
             rpc2_PBLargeFreeCount, rpc2_PBLargeCreationCount);
 
-    fprintf(
-        DumpFile,
-        "rpc2_SLCreationCount = %ld rpc2_SLFreeCount = %ld  rpc2_ReqCount = %ld  rpc2_SLCount = %ld\n",
-        rpc2_SLCreationCount, rpc2_SLFreeCount, rpc2_SLReqCount, rpc2_SLCount);
-    fprintf(
-        DumpFile,
-        "rpc2_SSCreationCount = %ld  rpc2_SSCount = %ld  rpc2_SSFreeCount = %ld\n",
-        rpc2_SSCreationCount, rpc2_SSCount, rpc2_SSFreeCount);
+    fprintf(DumpFile,
+            "rpc2_SLCreationCount = %ld rpc2_SLFreeCount = %ld  "
+            "rpc2_ReqCount = %ld  rpc2_SLCount = %ld\n",
+            rpc2_SLCreationCount, rpc2_SLFreeCount, rpc2_SLReqCount,
+            rpc2_SLCount);
+    fprintf(DumpFile,
+            "rpc2_SSCreationCount = %ld  rpc2_SSCount = %ld  "
+            "rpc2_SSFreeCount = %ld\n",
+            rpc2_SSCreationCount, rpc2_SSCount, rpc2_SSFreeCount);
 #endif
     return (RPC2_SUCCESS);
 }
 
 long RPC2_LamportTime()
-/*  Returns the Lamport time for this system.
-    	This is at least one greater than the value returned on the preceding call.
-	Accepted incoming packets with Lamport times greater than the local Lamport clock cause
-	    the local clock to be set to one greater than the incoming packet's time.
-	Each non-retry outgoing packet gets a Lamport timestamp via this call.
-	NOTE: the Lamport time bears no resemblance to the actual time of day.  We could fix this.
-    */
+/* Returns the Lamport time for this system.
+   This is at least one greater than the value returned on the preceding call.
+   Accepted incoming packets with Lamport times greater than the local Lamport
+   clock cause the local clock to be set to one greater than the incoming
+   packet's time.
+   Each non-retry outgoing packet gets a Lamport timestamp via this call.
+   NOTE: the Lamport time bears no resemblance to the actual time of day.
+   We could fix this.
+*/
 {
     rpc2_Enter();
     rpc2_LamportClock += 1;
     rpc2_Quit(rpc2_LamportClock);
 }
 
-long RPC2_SetBindLimit(IN bindLimit) int bindLimit;
+long RPC2_SetBindLimit(IN int bindLimit)
 {
     rpc2_Enter();
     rpc2_BindLimit = bindLimit;
@@ -673,8 +668,7 @@ long RPC2_Enable(RPC2_Handle whichConn)
     rpc2_Quit(RPC2_SUCCESS);
 }
 
-long RPC2_SetColor(Conn, Color) RPC2_Handle Conn;
-RPC2_Integer Color;
+long RPC2_SetColor(RPC2_Handle Conn, RPC2_Integer Color)
 {
     struct CEntry *ceaddr;
 
@@ -688,8 +682,7 @@ RPC2_Integer Color;
     rpc2_Quit(RPC2_SUCCESS);
 }
 
-long RPC2_GetColor(Conn, Color) RPC2_Handle Conn;
-RPC2_Integer *Color;
+long RPC2_GetColor(RPC2_Handle Conn, RPC2_Integer *Color)
 {
     struct CEntry *ceaddr;
 
@@ -732,11 +725,11 @@ long RPC2_GetPeerLiveness(IN RPC2_Handle ConnHandle, OUT struct timeval *Time,
     rpc2_Quit(rc);
 }
 
-/* 
+/*
  * returns the RPC and side effect network logs for the
- * peer of the connection Conn.  Note that the logs 
- * contain information from all connections to that 
- * peer, not just the connection Conn.  
+ * peer of the connection Conn.  Note that the logs
+ * contain information from all connections to that
+ * peer, not just the connection Conn.
  *
  * CAVEAT: the side effect logs may not be returned if
  * the side effect data structures have not been linked
@@ -747,9 +740,8 @@ long RPC2_GetPeerLiveness(IN RPC2_Handle ConnHandle, OUT struct timeval *Time,
  * a side effect descriptor!
  */
 
-long RPC2_GetNetInfo(IN Conn, INOUT RPCLog, INOUT SELog) RPC2_Handle Conn;
-RPC2_NetLog *RPCLog;
-RPC2_NetLog *SELog;
+long RPC2_GetNetInfo(IN RPC2_Handle Conn, INOUT RPC2_NetLog *RPCLog,
+                     INOUT RPC2_NetLog *SELog)
 {
     struct CEntry *ceaddr;
 
@@ -791,18 +783,17 @@ RPC2_NetLog *SELog;
     rpc2_Quit(RPC2_SUCCESS);
 }
 
-/* 
+/*
  * allows log entries to be added to the RPC or side effect
- * log for the peer of connection Conn.  This is useful 
+ * log for the peer of connection Conn.  This is useful
  * for depositing externally derived information about
  * conditions to a particular host.  The number of log
- * entries to be deposited is in NumEntries.  The number 
- * of log entries actually deposted is returned in 
+ * entries to be deposited is in NumEntries.  The number
+ * of log entries actually deposted is returned in
  * ValidEntries.
  */
-long RPC2_PutNetInfo(IN Conn, INOUT RPCLog, INOUT SELog) RPC2_Handle Conn;
-RPC2_NetLog *RPCLog;
-RPC2_NetLog *SELog;
+long RPC2_PutNetInfo(IN RPC2_Handle Conn, INOUT RPC2_NetLog *RPCLog,
+                     INOUT RPC2_NetLog *SELog)
 {
     struct CEntry *ceaddr;
     int i;
@@ -853,11 +844,11 @@ RPC2_NetLog *SELog;
     rpc2_Quit(RPC2_SUCCESS);
 }
 
-/* 
+/*
  * clears the RPC and side effect network logs for the
- * peer of the connection Conn.  
+ * peer of the connection Conn.
  */
-long RPC2_ClearNetInfo(IN Conn) RPC2_Handle Conn;
+long RPC2_ClearNetInfo(IN RPC2_Handle Conn)
 {
     struct CEntry *ceaddr;
 
@@ -934,11 +925,11 @@ long rpc2_CreateIPSocket(int af, int *svar, struct RPC2_addrinfo *addr,
             sa_port = NULL;
         }
         /* if the sockaddr doesn't have a port set, but we previously bound
-	 * successfully to a specific port (most likely with another protocol
-	 * or on another interface), then try to bind to the same port for this
-	 * address. If the bind fails then the OS probably maps 6to4. Or we are
-	 * colliding with some other application, but there is no way to tell
-	 * the difference. */
+         * successfully to a specific port (most likely with another protocol
+         * or on another interface), then try to bind to the same port for this
+         * address. If the bind fails then the OS probably maps 6to4. Or we are
+         * colliding with some other application, but there is no way to tell
+         * the difference. */
         if (sa_port && *sa_port == 0 && port != 0)
             *sa_port = port;
 
@@ -950,8 +941,8 @@ long rpc2_CreateIPSocket(int af, int *svar, struct RPC2_addrinfo *addr,
         }
 
         /* make sure the socket is non-blocking, corrupt udp checksums can
-	 * cause a packet drop by recvmsg and it would end up blocking
-	 * (possibly indefinitely). */
+         * cause a packet drop by recvmsg and it would end up blocking
+         * (possibly indefinitely). */
         flags = fcntl(*svar, F_GETFL, 0);
         fcntl(*svar, F_SETFL, flags | O_NONBLOCK);
 
@@ -964,7 +955,7 @@ long rpc2_CreateIPSocket(int af, int *svar, struct RPC2_addrinfo *addr,
         }
 
         /* Retrieve fully resolved socket address so we can check which port we
-	 * actually got bound to */
+         * actually got bound to */
         blen = sizeof(bindaddr);
         rc   = getsockname(*svar, (struct sockaddr *)&bindaddr, &blen);
         if (rc < 0) {
@@ -1025,10 +1016,10 @@ void rpc2_UpdateRTT(RPC2_PacketBuffer *pb, struct CEntry *ceaddr)
     RPC2_UpdateEstimates(ceaddr->HostInfo, obs, pb->Prefix.LengthOfPacket,
                          ceaddr->reqsize);
 
-    /* 
-     * Requests can be sent and received in the same tick.  
+    /*
+     * Requests can be sent and received in the same tick.
      * (though this is unlikely in the 1ms/tick case)
-     * Adding in service time on the server complicates things -- 
+     * Adding in service time on the server complicates things --
      * the clock may tick on the server (service time > 0) but not
      * on the client. Coerce this case to 1.
      */

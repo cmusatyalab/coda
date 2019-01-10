@@ -67,8 +67,7 @@ struct ViceInodeInfo {
     int32_t Magic;
 };
 
-#define INODESPECIAL \
-    0xffffffff /* This vnode number will never
-					   be used legitimately */
+/* This vnode number will never be used legitimately */
+#define INODESPECIAL 0xffffffff
 
 #endif /* _VICEINODE_H_ */

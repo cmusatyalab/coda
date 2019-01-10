@@ -575,11 +575,11 @@ int fsobj::Fetch(uid_t uid, uint64_t pos, int64_t count)
             FSO_ASSERT(this, 0);
         }
     } else {
-        /* 
-	* Return allocation and truncate. If a file, set the cache
-	* file length so that DiscardData releases the correct
-	* number of blocks (i.e., the number allocated in fsdb::Get).
-	*/
+        /*
+         * Return allocation and truncate. If a file, set the cache
+         * file length so that DiscardData releases the correct
+         * number of blocks (i.e., the number allocated in fsdb::Get).
+         */
         /* when the server responds with EAGAIN, the VersionVector was
 	 * changed, so this should effectively be handled like a failed
 	 * validation, and we can throw away the data */
@@ -682,7 +682,7 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
             if (HAVESTATUS(this) && !getacl) {
                 ViceFidAndVV FAVs[MAX_PIGGY_VALIDATIONS];
 
-                /* 
+                /*
 		 * pack piggyback fids and version vectors from this volume. 
 		 * We exclude busy objects because if their validation fails,
 		 * they end up in the same state (demoted) that they are now.
@@ -726,7 +726,7 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
                 (void)qsort((char *)FAVs, numPiggyFids, sizeof(ViceFidAndVV),
                             (int (*)(const void *, const void *))FAV_Compare);
 
-                /* 
+                /*
 		 * another OUT parameter. We don't use an array here
 		 * because each char would be embedded in a struct that
 		 * would be longword aligned. Ugh.
@@ -763,7 +763,7 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
                     asy_resolve = 1;
                     code        = 0;
                 } else if (code == 0 || code == ERETRY) {
-                    /* 
+                    /*
 		     * collate flags from vsg members. even if the return
 		     * is ERETRY we can (and should) grab the flags.
 		     */
@@ -776,7 +776,7 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
                                 ARG_UNMARSHALL_BS(VFlagvar, VFlagBS, i);
                                 numVFlags = (unsigned)VFlagBS.SeqLen;
                             } else {
-                                /* 
+                                /*
 				 * "and" in results from other servers. 
 				 * Remember that VFlagBS.SeqBody == VFlags.
 				 */
@@ -790,11 +790,11 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
                          GetComp(), numPiggyFids, numVFlags));
 
                     nchecked += numPiggyFids;
-                    /* 
+                    /*
 		     * now set status of piggybacked objects 
 		     */
                     for (i = 0; i < numVFlags; i++) {
-                        /* 
+                        /*
 			 * lookup this object. It may have been flushed and
 			 * reincarnated as a runt in the while we were out,
 			 * so we check status again.
@@ -818,7 +818,7 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
                                     pobj->SetRcRights(RC_STATUS);
                                 else
                                     pobj->SetRcRights(RC_STATUS | RC_DATA);
-                                /* 
+                                /*
 				 * if the object matched, the access rights 
 				 * cached for this object are still good.
 				 */
@@ -843,7 +843,7 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
                                     pobj->Demote();
 
                                 nfailed++;
-                                /* 
+                                /*
 				 * If we have data, it is stale and must be
 				 * discarded, unless someone is writing or
 				 * executing it, or it is a fake directory.
@@ -874,16 +874,16 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
                 CFSOP_PRELUDE(prel_str, comp, fid);
                 if (getacl) {
                     /* Note: this will cause SHA for this fso to be set to zero
-		     because we haven't created a ViceGetACLPlusSHA().  This is
-		     probably ok since the only use of this call is for "cfs getacl..."
-		     If this proves unacceptable, we'll need to treat the
-		     ViceGetACL branch of this code just like ViceValidateAttrs()
-		     and ViceGetAttr() branches.   (Satya, 1/03)
-		   
-		     Side note: ACL's only exist for directory objects, and
-		     lookaside only works for file objects, so it really
-		     shouldn't matter right now -JH.
-		   */
+                       because we haven't created a ViceGetACLPlusSHA().  This is
+                       probably ok since the only use of this call is for "cfs getacl..."
+                       If this proves unacceptable, we'll need to treat the
+                       ViceGetACL branch of this code just like ViceValidateAttrs()
+                       and ViceGetAttr() branches.   (Satya, 1/03)
+
+                       Side note: ACL's only exist for directory objects, and
+                       lookaside only works for file objects, so it really
+                       shouldn't matter right now -JH.
+                     */
 
                     MULTI_START_MESSAGE(ViceGetACL_OP);
                     code = (int)MRPC_MakeMulti(ViceGetACL_OP, ViceGetACL_PTR,
@@ -913,7 +913,7 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
                     CFSOP_POSTLUDE(post_str);
 
                     /* Collate responses from individual servers and decide
-		   * what to do next. */
+                     * what to do next. */
                     code = vp->Collate_NonMutating(m, code);
                     MULTI_RECORD_STATS(ViceGetAttrPlusSHA_OP);
                 }
@@ -946,7 +946,7 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
             if (code != 0)
                 goto RepExit;
 
-            /* 
+            /*
 	     * Compute the dominant host set.  
 	     * The index of a dominant host is returned as a side-effect. 
 	     */
@@ -1055,15 +1055,15 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
 
         case EINCONS:
             /* We used to kill inconsistent objects, but that is not a
-	       * useful thing to do anymore, as the object now simply has
-	       * its attributes changed and functions as a .localcache
-	       * object in server/server conflict expansions. -- Adam */
+             * useful thing to do anymore, as the object now simply has
+             * its attributes changed and functions as a .localcache
+             * object in server/server conflict expansions. -- Adam */
             break;
 
         case ENXIO:
             /* VNOVOL is mapped to ENXIO, and when ViceValidateAttrs
-		 * returns this error for all servers, we should get rid of
-		 * all cached fsobjs for this volume. */
+             * returns this error for all servers, we should get rid of
+             * all cached fsobjs for this volume. */
             if (vol) {
                 struct dllist_head *p, *next;
                 Recov_BeginTrans();
@@ -1157,8 +1157,8 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
 
             /* If we have data, it is stale and must be discarded. */
             /* Operation MUST be restarted from beginning since, even though
-         * this fetch was for status-only, the operation MAY be requiring
-         * data! */
+             * this fetch was for status-only, the operation MAY be requiring
+             * data! */
             if (HAVEDATA(this)) {
                 Recov_BeginTrans();
                 UpdateCacheStats((IsDir() ? &FSDB->DirDataStats :
@@ -1259,13 +1259,14 @@ int fsobj::DisconnectedStore(Date_t Mtime, uid_t uid, unsigned long NewLength,
 
     Recov_BeginTrans();
     /* Failure to log a store would be most unpleasant for the user! */
-    /* Probably we should try to guarantee that it never happens (e.g., by reserving a record at open). */
+    /* Probably we should try to guarantee that it never happens
+     * (e.g., by reserving a record at open). */
     code = rv->LogStore(Mtime, uid, &fid, NewLength, prepend);
 
     if (code == 0 && prepend == 0)
         /* It's already been updated if we're 'prepending',
-	     * which basically means it is a repair-related operation,
-	     * and doing it again would trigger an assertion. */
+         * which basically means it is a repair-related operation,
+         * and doing it again would trigger an assertion. */
         LocalStore(Mtime, NewLength);
     Recov_EndTrans(DMFP);
 
@@ -1367,8 +1368,8 @@ int fsobj::DisconnectedSetAttr(Date_t Mtime, uid_t uid, unsigned long NewLength,
                           (RPC2_Unsigned)tNewMode, prepend);
     if (code == 0 && prepend == 0)
         /* It's already been updated if we're 'prepending',
-	     * which basically means it is a repair-related operation,
-	     * and doing it again would trigger an assertion. */
+         * which basically means it is a repair-related operation,
+         * and doing it again would trigger an assertion. */
         LocalSetAttr(Mtime, NewLength, NewDate, NewOwner, NewMode);
     Recov_EndTrans(DMFP);
 
@@ -1403,7 +1404,7 @@ int fsobj::SetAttr(struct coda_vattr *vap, uid_t uid)
     }
 
     /* When we are truncating to zero length, should create any missing
-	 * container files */
+     * container files */
     if (!NewLength && !HAVEDATA(this)) {
         Recov_BeginTrans();
         RVMLIB_REC_OBJECT(data.file);
@@ -1717,8 +1718,8 @@ int fsobj::DisconnectedCreate(Date_t Mtime, uid_t uid, fsobj **t_fso_addr,
     if (code == 0 && prepend == 0) {
         /* This MUST update second-class state! */
         /* It's already been updated if we're 'prepending',
-	     * which basically means it is a repair-related operation,
-	     * and doing it again would trigger an assertion. */
+         * which basically means it is a repair-related operation,
+         * and doing it again would trigger an assertion. */
         LocalCreate(Mtime, target_fso, name, uid, Mode);
 
         /* target_fso->stat is not initialized until LocalCreate */

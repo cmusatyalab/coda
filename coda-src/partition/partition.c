@@ -111,7 +111,7 @@ void DP_Init(const char *tabfile, const char *hostname)
             }
         }
 
-        /* the devno is written to RVM storage in the vnodes - 
+        /* the devno is written to RVM storage in the vnodes -
 	   whatever scheme for numbering partitions is used should 
 	   take note of this */
         DP_InitPartition(entry, operations, data, devno);

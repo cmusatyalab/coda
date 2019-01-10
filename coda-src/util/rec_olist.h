@@ -80,9 +80,7 @@ public:
     rec_olink *clink; /* current rec_olink */
     rec_olist_iterator(rec_olist &);
     rec_olink *operator()(); /* return next object or 0 */
-    /* Support safe deletion 
-                                                     * of currently returned 
-                                                     * entry. See dlist.h also */
+    /* Support safe deletion of currently returned entry. See dlist.h also */
 };
 
 class rec_olink { /* objects are derived from this class */

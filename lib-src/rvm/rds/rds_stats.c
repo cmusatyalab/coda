@@ -54,7 +54,7 @@ int rds_print_stats()
 }
 
 /* Zero out the stats structure. */
-int rds_clear_stats(err) int *err;
+int rds_clear_stats(int *err)
 {
     rvm_return_t rvmret;
     rvm_tid_t *atid = rvm_malloc_tid();
@@ -98,7 +98,7 @@ int rds_clear_stats(err) int *err;
  * Like print_stats, this really doesn't need to be critical -- dcs 1/29
  */
 
-int rds_get_stats(stats) rds_stats_t *stats;
+int rds_get_stats(rds_stats_t *stats)
 {
     if (stats == NULL) /* stats structure must be already allocated */
         return EBAD_ARGS;

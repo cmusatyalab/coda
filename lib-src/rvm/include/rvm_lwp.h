@@ -21,13 +21,6 @@ Coda are listed in the file CREDITS.
 #include <lwp/lwp.h>
 #include <lwp/lock.h>
 
-#ifndef MACRO_BEGIN
-#define MACRO_BEGIN do {
-#define MACRO_END \
-    }             \
-    while (0)
-#endif /* MACRO_BEGIN */
-
 #define RVM_STACKSIZE 1024 * 16
 #define BOGUSCODE (BOGUS_USE_OF_CTHREADS) /* force compilation error */
 
@@ -37,6 +30,7 @@ Coda are listed in the file CREDITS.
     {                     \
         0, 0, 0, 0        \
     }
+
 /* Supported cthread definitions */
 
 #define cthread_t PROCESS
@@ -47,25 +41,25 @@ static inline PROCESS cthread_fork(void (*fname)(void *), void *arg)
                       "rvm_thread", &rvm_lwppid);
     return rvm_lwppid;
 }
-#define cthread_init()                                \
-    MACRO_BEGIN                                       \
-    LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, NULL); \
-    IOMGR_Initialize();                               \
-    MACRO_END
+#define cthread_init()                                    \
+    do {                                                  \
+        LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, NULL); \
+        IOMGR_Initialize();                               \
+    } while (0)
 #define cthread_exit(retval) return
-#define cthread_yield()    \
-    MACRO_BEGIN            \
-    IOMGR_Poll();          \
-    LWP_DispatchProcess(); \
-    MACRO_END
+#define cthread_yield()        \
+    do {                       \
+        IOMGR_Poll();          \
+        LWP_DispatchProcess(); \
+    } while (0)
 #define cthread_join(thread) (0)
 
-#define condition_wait(c, m) \
-    MACRO_BEGIN              \
-    ReleaseWriteLock((m));   \
-    LWP_WaitProcess((c));    \
-    ObtainWriteLock((m));    \
-    MACRO_END
+#define condition_wait(c, m)   \
+    do {                       \
+        ReleaseWriteLock((m)); \
+        LWP_WaitProcess((c));  \
+        ObtainWriteLock((m));  \
+    } while (0)
 #define condition_signal(c) (LWP_SignalProcess((c)))
 #define condition_broadcast(c) (LWP_SignalProcess((c)))
 #define condition_clear(c) /* nop  */
@@ -80,24 +74,26 @@ static inline PROCESS cthread_self(void)
     LWP_CurrentProcess(&rvm_lwppid);
     return rvm_lwppid;
 }
+
 /* synchronization tracing definitions of lock/unlock */
 #ifdef DEBUGRVM
-#define mutex_lock(m)                                               \
-    MACRO_BEGIN                                                     \
-    printf("mutex_lock OL(0x%x)%s:%d...", (m), __FILE__, __LINE__); \
-    ObtainWriteLock((m));                                           \
-    printf("done\n");                                               \
-    MACRO_END
-#define mutex_unlock(m)                                               \
-    MACRO_BEGIN                                                       \
-    printf("mutex_unlock RL(0x%x)%s:%d...", (m), __FILE__, __LINE__); \
-    ReleaseWriteLock((m));                                            \
-    printf("done\n");                                                 \
-    MACRO_END
+#define mutex_lock(m)                                                   \
+    do {                                                                \
+        printf("mutex_lock OL(0x%x)%s:%d...", (m), __FILE__, __LINE__); \
+        ObtainWriteLock((m));                                           \
+        printf("done\n");                                               \
+    } while (0)
+#define mutex_unlock(m)                                                   \
+    do {                                                                  \
+        printf("mutex_unlock RL(0x%x)%s:%d...", (m), __FILE__, __LINE__); \
+        ReleaseWriteLock((m));                                            \
+        printf("done\n");                                                 \
+    } while (0)
 #else /* !DEBUGRVM */
 #define mutex_lock(m) ObtainWriteLock((m))
 #define mutex_unlock(m) ReleaseWriteLock((m))
 #endif /* !DEBUGRVM */
+
 /* Unsupported cthread calls */
 
 #define mutex_alloc() BOGUSCODE

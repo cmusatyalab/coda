@@ -38,7 +38,7 @@ Pittsburgh, PA.
 */
 
 /*
-	Routines for MultiRPC
+        Routines for MultiRPC
 */
 
 /* MRPC_MakeMulti() and MRPC_UnpackMulti() perform argument packing
@@ -57,9 +57,11 @@ Pittsburgh, PA.
 #include <stdarg.h>
 #include <stdlib.h>
 #include <assert.h>
-#include "rpc2.private.h"
-#include <rpc2/se.h>
+
 #include <rpc2/multi.h>
+#include <rpc2/se.h>
+
+#include "rpc2.private.h"
 
 #define _ROUND(n, a) (n) = (void *)((((intptr_t)n) + ((a)-1)) & ~((a)-1))
 #define _INCR(n, a) (n) = (void *)((intptr_t)(n) + a)
@@ -84,8 +86,8 @@ int unpack_struct(ARG *a_types, PARM **args, unsigned char **_ptr, char *_end,
 static void byte_pad(PARM **args);
 
 /*
-    ServerOp	RP2Gen generated op code 
-    ArgTypes	format of server arguments 
+    ServerOp	RP2Gen generated op code
+    ArgTypes	format of server arguments
     HowMany	how many multiple servers
     CIDList	list of connection ids
     RCList	NULL or pointer to array for individual return codes
@@ -208,7 +210,7 @@ long MRPC_MakeMulti(int ServerOp, ARG ArgTypes[], RPC2_Integer HowMany,
             case IN_MODE:
             case OUT_MODE:
             case IN_OUT_MODE: /* not sure if this is correct way: bulk descriptor is
-					   not documented in Ch.2 of RPC2 manual*/
+                                 not documented in Ch.2 of RPC2 manual*/
                 va_array[i].sedp = va_arg(ap, SE_Descriptor *);
                 break;
             default:
@@ -695,7 +697,7 @@ long MRPC_UnpackMulti(int HowMany, RPC2_Handle ConnHandleList[],
 /* Returns the buffer length needed for the given argument, or -1 if unknown
  * type. Note that this routine modifies the static array of argument type
  * descriptors defined in <subsys>.client.c by changing the value of the 'size'
- * field. 
+ * field.
  */
 
 int get_len(ARG **a_types, PARM **args, MODE mode)
@@ -765,8 +767,8 @@ int get_len(ARG **a_types, PARM **args, MODE mode)
     }
 }
 
-/* Returns an array size. It is assumed that an array size of an array is declared 
- * in front of array declaration.
+/* Returns an array size. It is assumed that an array size of an array is
+ * declared in front of array declaration.
  */
 static unsigned int get_arraylen_pack(ARG *a_types, PARM *args)
 {
@@ -993,7 +995,8 @@ int unpack_struct(ARG *a_types, PARM **args, unsigned char **_ptr, char *_end,
     return 0;
 }
 
-/* This should only be called for structure fields, never for top level arguments */
+/* This should only be called for structure fields, never for top level
+ * arguments */
 static void incr_struct_byte(ARG *a_types, PARM **args)
 {
     *(char **)args += (a_types->bound) ? (a_types->bound) : 1;

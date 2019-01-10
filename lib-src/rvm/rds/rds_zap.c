@@ -24,15 +24,9 @@ Coda are listed in the file CREDITS.
  * Put the heap in the first, or lower address range, and the statics in the
  * upper address range.
  */
-int rds_zap_heap(DevName, DevLength, startAddr, staticLength, heapLength,
-                 nlists, chunkSize, err) char *DevName;
-rvm_offset_t DevLength;
-char *startAddr;
-rvm_length_t staticLength;
-rvm_length_t heapLength;
-unsigned long nlists;
-unsigned long chunkSize;
-int *err;
+int rds_zap_heap(char *DevName, rvm_offset_t DevLength, char *startAddr,
+                 rvm_length_t staticLength, rvm_length_t heapLength,
+                 unsigned long nlists, unsigned long chunkSize, int *err)
 {
     rvm_region_def_t regions[2], *loadregions = NULL;
     rvm_tid_t *tid = NULL;

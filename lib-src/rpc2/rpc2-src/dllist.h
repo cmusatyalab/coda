@@ -20,7 +20,7 @@ Coda are listed in the file CREDITS.
 #define _DLLIST_H_
 
 /*
- * doubly linked list implementation -- based on linux 
+ * doubly linked list implementation -- based on linux
  * kernel code lists.
  *
  */

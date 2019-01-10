@@ -89,7 +89,7 @@ long S_VolSetVV(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
     rvmlib_begin_transaction(restore);
     VInitVolUtil(volumeUtility);
     /*    vp = VAttachVolume(&error, volid, V_READONLY); */
-    /* Ignoring the volume lock for now - assume this will 
+    /* Ignoring the volume lock for now - assume this will
        be used in bad situations only*/
     vp = VGetVolume(&error, tmpvolid);
     if (error) {
@@ -119,7 +119,7 @@ long S_VolSetVV(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
              vnp->vnodeNumber, vnp->disk.uniquifier);
         VLog(0, "Object will be inconsistent and input vector is ignored");
 
-        /* clear the barren flag - make sure object will be marked 
+        /* clear the barren flag - make sure object will be marked
 	   inconsistent; create a new inode so salvager will not complain */
         ClearBarren(vnp->disk.versionvector);
         SetIncon(vnp->disk.versionvector);

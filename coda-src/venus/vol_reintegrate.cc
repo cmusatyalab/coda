@@ -170,10 +170,11 @@ void reintvol::Reintegrate()
                startedrecs, VenusRetStr(code));
 
         /*
-     * Keep going as long as we managed to reintegrate records without errors,
-     * but we don't want to interfere with trickle reintegration so we test
-     * whether a full block has been sent (see also cmlent::GetReintegrateable)
-     */
+         * Keep going as long as we managed to reintegrate records without
+         * errors, but we don't want to interfere with trickle reintegration
+         * so we test whether a full block has been sent
+         * (see also cmlent::GetReintegrateable)
+         */
     } while (code == 0 && !stop_loop);
 
     flags.reintegrating = 0;
@@ -278,12 +279,10 @@ Done:
 }
 
 /*
- *
  *    Reintegration consists of the following phases:
  *       1. (late) prelude
  *       2. interlude
  *       3. postlude
- *
  */
 
 /* must not be called from within a transaction */
@@ -331,7 +330,7 @@ int reintvol::IncReintegrate(int tid)
         /* Steps 1-3 constitute the ``late prelude.'' */
         {
             START_TIMING();
-            /* 
+            /*
 	     * Step 1 is to reallocate real fids for new client-log 
 	     * objects that were created with "local" fids.
 	     */
@@ -339,7 +338,7 @@ int reintvol::IncReintegrate(int tid)
             if (code != 0)
                 goto CheckResult;
 
-            /* 
+            /*
 	     * Step 3 is to "thread" the log and pack it into a buffer 
 	     * (buffer is allocated with new[] by pack routine).
 	     */
@@ -350,7 +349,7 @@ int reintvol::IncReintegrate(int tid)
             pre_elapsed = elapsed;
         }
 
-        /* 
+        /*
 	 * Step 4 is to have the server(s) replay the client modify log 
 	 * via a Reintegrate RPC. 
 	 */
@@ -397,13 +396,13 @@ int reintvol::IncReintegrate(int tid)
 
             case ERETRY:
             case EWOULDBLOCK:
-                /* 
+                /*
 		 * if any cmlents we were working on are still around and 
 		 * should now be cancelled, do it.
 		 */
                 CML.CancelPending();
 
-                /* 
+                /*
 		 * We do our own retrying here, because the code in 
 		 * vproc::End_VFS() causes an entirely new vproc to start 
 		 * up for each transition into reintegrating state (and 
@@ -448,13 +447,14 @@ int reintvol::IncReintegrate(int tid)
 
                 LOG(0, ("volent::IncReintegrate: fail code = %d\n", code));
                 CML.print(logFile);
-                /* 	
+                /*
                  * checkpoint the log before localizing or aborting.
 		 * release read lock; it will be boosted in CML.Checkpoint.
-		 * Note that we may have to wait until other mutators finish 
-		 * mucking with the volume/log, which means the state we checkpoint 
-		 * might not be the state we had.  Note that we MUST unlock objects 
-		 * before boosting this lock to prevent deadlock with mutator threads.
+                 * Note that we may have to wait until other mutators finish
+                 * mucking with the volume/log, which means the state we
+                 * checkpoint might not be the state we had.  Note that we MUST
+                 * unlock objects before boosting this lock to prevent deadlock
+                 * with mutator threads.
 		 */
                 ReleaseReadLock(&CML_lock);
                 CML.CheckPoint(0);

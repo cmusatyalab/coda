@@ -91,10 +91,13 @@ extern rvm_bool_t rds_testsw; /* special test mode switch */
     }
 
 #undef CRITICAL
-#define CRITICAL(lock, body)          \
-    do {                              \
-        mutex_lock(&lock);            \
-        { body } mutex_unlock(&lock); \
+#define CRITICAL(lock, body) \
+    do {                     \
+        mutex_lock(&lock);   \
+        do {                 \
+            body             \
+        } while (0);         \
+        mutex_unlock(&lock); \
     } while (0)
 
 typedef struct list_entry_s {
@@ -113,6 +116,7 @@ typedef struct {
     rvm_length_t chksum; /* block checksum */
     char *ptr; /* ptr to rds allocated space */
 } block_t;
+
 /* system variables */
 #define CMD_MAX 2048 /* maximum cmd line length */
 static char cmd_line[CMD_MAX]; /* command line buffer */
@@ -256,8 +260,7 @@ typedef struct /* string name vector entry */
 /* list maintainance functions */
 
 /* list header initializer */
-static void init_list_head(whichlist)
-    list_entry_t *whichlist; /* pointer to list header */
+static void init_list_head(list_entry_t *whichlist /* pointer to list header */)
 {
     whichlist->nextentry   = whichlist; /* pointers are to self now */
     whichlist->preventry   = whichlist;
@@ -266,19 +269,19 @@ static void init_list_head(whichlist)
 }
 
 /* list entry initializer */
-static void init_list_ent(entry) list_entry_t *entry;
+static void init_list_ent(list_entry_t *entry)
 {
     entry->nextentry = NULL;
     entry->preventry = NULL;
     entry->list.name = NULL;
     entry->is_header = rvm_false;
 }
+
 /* list entry mover */
 static list_entry_t *
-    move_list_ent(fromptr, toptr,
-                  victim) register list_entry_t *fromptr; /* from list header */
-register list_entry_t *toptr; /* to list header */
-register list_entry_t *victim; /* pointer to entry to be moved */
+move_list_ent(list_entry_t *fromptr /* from list header */,
+              list_entry_t *toptr /* to list header */,
+              list_entry_t *victim /* pointer to entry to be moved */)
 {
     if (fromptr != NULL) {
         CODA_ASSERT(fromptr->is_header);
@@ -318,6 +321,7 @@ register list_entry_t *victim; /* pointer to entry to be moved */
 
     return victim;
 }
+
 /* Byte-aligned checksum and move functions */
 
 #define LENGTH_MASK ((rvm_length_t)(~(sizeof(rvm_length_t) - 1)))
@@ -331,10 +335,10 @@ register list_entry_t *victim; /* pointer to entry to be moved */
 #define BYTE_SKEW(len) ((rvm_length_t)(len) & ~LENGTH_MASK)
 
 /* zero-pad unused bytes of word */
-static rvm_length_t zero_pad(word, addr, leading)
-    rvm_length_t word; /* value to be zero-padded */
-char *addr; /* address of 1st/last byte */
-rvm_bool_t leading; /* true if leading bytes are zeroed */
+static rvm_length_t
+zero_pad(rvm_length_t word /* value to be zero-padded */,
+         char *addr /* address of 1st/last byte */,
+         rvm_bool_t leading /* true if leading bytes are zeroed */)
 {
     char *word_array = (char *)&word; /* byte access of word value */
     int skew         = BYTE_SKEW(addr);
@@ -354,11 +358,11 @@ rvm_bool_t leading; /* true if leading bytes are zeroed */
 
     return word;
 }
+
 /* checksum function: forms checksum of arbitrarily aligned range
    by copying preceeding, trailing bytes to make length 0 mod length size */
-static rvm_length_t check_sum(nvaddr,
-                              len) char *nvaddr; /* address of 1st byte */
-rvm_length_t len; /* byte count */
+static rvm_length_t check_sum(char *nvaddr /* address of 1st byte */,
+                              rvm_length_t len /* byte count */)
 {
     rvm_length_t *base; /* 0 mod sizeof(rvm_length_t) addr */
     rvm_length_t length; /* number of words to sum */
@@ -385,8 +389,9 @@ rvm_length_t len; /* byte count */
 
     return chk_sum;
 }
+
 /* test block check sum */
-static rvm_bool_t test_chk_sum(block) block_t *block;
+static rvm_bool_t test_chk_sum(block_t *block)
 {
     rvm_length_t chksum;
 
@@ -399,8 +404,9 @@ static rvm_bool_t test_chk_sum(block) block_t *block;
 
     return rvm_true;
 }
+
 /* pick random block from alloc list */
-static block_t *pick_random()
+static block_t *pick_random(void)
 {
     block_t *block; /* allocated block descriptor */
     int i;
@@ -425,8 +431,9 @@ static block_t *pick_random()
 
     return block;
 }
+
 /* allocator */
-static void do_malloc(id) int id; /* thread id */
+static void do_malloc(int id /* thread id */)
 {
     rvm_tid_t tid; /* transaction identifier */
     rvm_return_t ret; /* rvm error return */
@@ -479,8 +486,9 @@ static void do_malloc(id) int id; /* thread id */
                  (void)move_list_ent(NULL, &alloc_list, (list_entry_t *)block);
              }); /* end alloc list crit sec */
 }
+
 /* deallocator function */
-static void do_free(id) int id; /* thread id */
+static void do_free(int id /* thread id */)
 {
     int err; /* rds error return */
     block_t *block; /* allocated block descriptor */
@@ -516,11 +524,10 @@ static void do_free(id) int id; /* thread id */
     /* deallocate list entry */
     free(block);
 }
+
 /* rvm_chk_range test */
-static void test_chk_range(tid, addr, len, id) rvm_tid_t *tid;
-char *addr;
-rvm_length_t len;
-int id; /* thread id */
+static void test_chk_range(rvm_tid_t *tid, char *addr, rvm_length_t len,
+                           int id /* thread id */)
 {
 #if ((RVM_MAJOR_VERSION >= 2) && (RVM_MINOR_VERSION >= 0))
     rvm_return_t ret; /* rvm return code */
@@ -545,12 +552,11 @@ int id; /* thread id */
     }
 #endif /* VERSION_TEST */
 }
+
 /* block modifier transaction */
-static void do_trans(block, range_list, do_flush,
-                     id) block_t *block; /* block descriptor */
-block_t *range_list; /* list of modification ranges */
-rvm_bool_t do_flush;
-int id; /* thread id */
+static void do_trans(block_t *block /* block descriptor */,
+                     block_t *range_list /* list of modification ranges */,
+                     rvm_bool_t do_flush, int id /* thread id */)
 {
     int start, finish, temp, i, j;
     int n_ranges;
@@ -581,6 +587,7 @@ int id; /* thread id */
                rvm_return(ret));
         CODA_ASSERT(rvm_false);
     }
+
     /* pick random ranges and modifications */
     for (j = 0; j < n_ranges; j++) {
         /* select a random range within the recoverable block */
@@ -606,6 +613,7 @@ int id; /* thread id */
                    rvm_return(ret));
             CODA_ASSERT(rvm_false);
         }
+
         /* see if range should be checked */
         if ((random() % 100) < chk_range_frac)
             test_chk_range(&tid, range->ptr, range->size, id);
@@ -643,8 +651,9 @@ int id; /* thread id */
         }
     }
 }
+
 /* block modifier */
-static void do_modify(id) int id; /* thread id */
+static void do_modify(int id /* thread id */)
 {
     int n_trans; /* number of transactions per block */
     block_t *block; /* block descriptor */
@@ -695,9 +704,9 @@ static void do_modify(id) int id; /* thread id */
                  (void)move_list_ent(NULL, &alloc_list, (list_entry_t *)block);
              }); /* end alloc list crit sec */
 }
+
 /* region checker for chk_vm */
-static rvm_bool_t chk_region(seg_file, region) FILE *seg_file;
-int region; /* index of region */
+static rvm_bool_t chk_region(FILE *seg_file, int region /* index of region */)
 {
     int j;
     int c;
@@ -744,8 +753,9 @@ int region; /* index of region */
 
     return rvm_true;
 }
+
 /* vm <==> disk comparator */
-static rvm_bool_t chk_vm()
+static rvm_bool_t chk_vm(void)
 {
     rvm_return_t ret;
     FILE *seg_file;
@@ -860,7 +870,7 @@ static rvm_bool_t chk_vm()
     return rvm_true;
 }
 
-static rvm_bool_t chk_time()
+static rvm_bool_t chk_time(void)
 {
     struct timeval time;
 
@@ -880,7 +890,7 @@ static rvm_bool_t chk_time()
 }
 
 /* moby range test */
-static rvm_bool_t chk_moby()
+static rvm_bool_t chk_moby(void)
 {
     rvm_length_t length; /* range length */
     char *start; /* starting offset for range */
@@ -949,8 +959,9 @@ static rvm_bool_t chk_moby()
     free(vm_save);
     return rvm_true;
 }
+
 /* test monitor */
-static void monitor()
+static void monitor(void)
 {
     mutex_lock(&chk_lock); /* begin chk_lock crit sec */
     if (chk_block) {
@@ -996,6 +1007,7 @@ exit:
     mutex_unlock(&chk_lock); /* end chk_lock crit sec */
     return;
 }
+
 /* testing thread function */
 static void worker(void *idp)
 {
@@ -1028,11 +1040,11 @@ static void worker(void *idp)
     cthread_exit(EXIT_SUCCESS);
     return;
 }
+
 /* string name lookup: accepts minimum substring for match */
-static int lookup_str_name(str, str_vec,
-                           ambig_str) char *str; /* name to lookup */
-str_name_entry_t *str_vec; /* defining vector */
-char *ambig_str; /* ambiguous name type */
+static int lookup_str_name(char *str /* name to lookup */,
+                           str_name_entry_t *str_vec /* defining vector */,
+                           char *ambig_str /* ambiguous name type */)
 {
     int i         = 0; /* loop counter */
     int str_index = (int)UNKNOWN; /* string index in vector */
@@ -1061,6 +1073,7 @@ char *ambig_str; /* ambiguous name type */
 
     return str_index;
 }
+
 /* scanner utilities */
 
 /* cmd line cursor incrementor */
@@ -1070,15 +1083,15 @@ char *ambig_str; /* ambiguous name type */
 #define end_line(c) (((c) == '\0') || ((c) == '\n'))
 #define scan_stop(c) (end_line(c) || ((c) == '#'))
 
-static void skip_white(ptr) char **ptr;
+static void skip_white(char **ptr)
 {
     while (isspace(**ptr))
         (*ptr)++;
 }
 
 /* string scanner */
-static int scan_str(str, len) char *str; /* ptr to string buffer */
-int len; /* maximum length */
+static int scan_str(char *str /* ptr to string buffer */,
+                    int len /* maximum length */)
 {
     int indx = 0;
 
@@ -1090,13 +1103,10 @@ int len; /* maximum length */
 
     return indx; /* return length */
 }
+
 /* integer scanner & range checker */
-static int scan_int(low_range, high_range, default_val, name_str,
-                    err_str) int low_range;
-int high_range;
-int default_val;
-char *name_str;
-char *err_str;
+static int scan_int(int low_range, int high_range, int default_val,
+                    char *name_str, char *err_str)
 {
     int val;
 
@@ -1133,9 +1143,10 @@ char *err_str;
 
     return default_val;
 }
+
 /* read prompted line from terminal */
-static char *read_prompt_line(prompt, null_ok) char *prompt; /* prompt string */
-rvm_bool_t null_ok; /* true if null input ok */
+static char *read_prompt_line(char *prompt /* prompt string */,
+                              rvm_bool_t null_ok /* true if null input ok */)
 {
     /* read from input stream if nothing left in command line */
     skip_white(&cmd_cur);
@@ -1163,7 +1174,7 @@ rvm_bool_t null_ok; /* true if null input ok */
 
 /* display test parameters */
 
-static void show_test_parms()
+static void show_test_parms(void)
 {
     int priority;
 
@@ -1264,8 +1275,9 @@ static void show_test_parms()
         printf("  Show break point:                         false\n");
     printf("\n");
 }
+
 /* get data file name and size */
-static void set_data_file()
+static void set_data_file(void)
 {
     int len;
     struct stat sbuf;
@@ -1325,8 +1337,9 @@ static void set_data_file()
         return;
     }
 }
+
 /* get log file name */
-static void set_log_file()
+static void set_log_file(void)
 {
     int len;
 
@@ -1341,7 +1354,7 @@ static void set_log_file()
 }
 
 /* set execution priority */
-static void set_priority()
+static void set_priority(void)
 {
     int priority;
     int err;
@@ -1357,6 +1370,7 @@ static void set_priority()
     if (err != 0)
         printf("?  Error setting process priority, err = %d\n", err);
 }
+
 /* option flags */
 #define MAX_FLAGS 15 /* maximum number of flag codes */
 
@@ -1379,8 +1393,9 @@ static str_name_entry_t flag_vec[MAX_FLAGS] = /* flag codes vector */
 #endif /* VERSION_TEST */
         { "", (key_id_t)NULL } /* end mark, do not delete */
     };
+
 /* set rvm_options flags */
-static void set_flags()
+static void set_flags(void)
 {
     char string[80]; /* flag code name string */
     int i;
@@ -1427,8 +1442,9 @@ static void set_flags()
         }
     }
 }
+
 /* plumber support */
-static void setup_plumber_file()
+static void setup_plumber_file(void)
 {
     int len;
 
@@ -1458,7 +1474,7 @@ static void setup_plumber_file()
 
 #ifdef DEBUG_GDB
 /* call function (to be used from GDB) */
-void call_plumber()
+void call_plumber(void)
 {
 #ifdef RVM_USELWP
 #ifdef HAS_PLUMBER
@@ -1474,8 +1490,9 @@ void call_plumber()
 #endif /* RVM_USELWP */
 }
 #endif /* DEBUG_GDB */
+
 /* print break point and limit */
-static void show_break()
+static void show_break(void)
 {
     rvm_length_t cur_brk;
 #ifdef RLIMIT_DATA
@@ -1506,6 +1523,7 @@ static void show_break()
 #endif
     exit(EXIT_SUCCESS);
 }
+
 /* command dispatch */
 #define MAX_CMDS 50 /* maximum number of commands */
 
@@ -1565,8 +1583,7 @@ static str_name_entry_t cmd_vec[MAX_CMDS] = /* command codes vector */
         { "", (key_id_t)NULL } /* end mark, do not delete */
     };
 
-int main(argc, argv) int argc;
-char **argv;
+int main(int argc, char **argv)
 {
     rvm_options_t *options; /* options descriptor ptr */
     rvm_return_t ret;
@@ -1656,6 +1673,7 @@ char **argv;
             *cmd_cur = '\0';
             continue;
         }
+
         /* dispatch commands */
         switch (cmd_vec[i].key) {
         case LOG_KEY: /* get name of log file */
@@ -1774,6 +1792,7 @@ char **argv;
         case BRK_KEY: /* show break point */
             show_brk = rvm_true;
             continue;
+
 /* version specific commands */
 #if ((RVM_MAJOR_VERSION >= 2) && (RVM_MINOR_VERSION >= 0))
         case CHK_SUM_KEY: /* set rvm_chk_sum switch */
@@ -1821,6 +1840,7 @@ char **argv;
         default:
             CODA_ASSERT(rvm_false);
         }
+
         /* check that all necessary parameters have been speced */
         if (strlen(LogFileName) == 0) {
             printf("\n?  Log file name must be specified\n");
@@ -1853,7 +1873,7 @@ char **argv;
     }
 #endif
 
-    /* esatblish RVM options */
+    /* establish RVM options */
     options          = rvm_malloc_options();
     options->log_dev = LogFileName;
     options->flags &= ~RVM_ALL_OPTIMIZATIONS;
@@ -1877,6 +1897,7 @@ char **argv;
     if (vm_protect_sw)
         options->flags |= RVM_VM_PROTECT;
 #endif /* VERSION_TEST */
+
     /* initialize RVM */
     ret = RVM_INIT(options);
     if (ret != RVM_SUCCESS) {

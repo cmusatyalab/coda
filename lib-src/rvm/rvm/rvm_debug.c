@@ -88,10 +88,9 @@ static rvm_length_t twos[NUM_TWOS] = {
     1 << 27, 1 << 28, 1 << 29, 1 << 30, 1 << 31, -1
 };
 /* test ifaddress is in heap-allocated space */
-rvm_bool_t in_heap(addr, buf,
-                   len) rvm_length_t addr; /* address to search for */
-rvm_length_t buf; /* buffer to search */
-rvm_length_t len; /* requested length of buffer */
+rvm_bool_t in_heap(rvm_length_t addr /* address to search for */,
+                   rvm_length_t buf /* buffer to search */,
+                   rvm_length_t len /* requested length of buffer */)
 {
     long i;
 
@@ -110,10 +109,10 @@ rvm_length_t len; /* requested length of buffer */
 
     return rvm_false;
 }
+
 /* list checker -- makes sure elements of list are valid */
-rvm_bool_t chk_list(hdr,
-                    silent) list_entry_t *hdr; /* header of list to check */
-rvm_bool_t silent; /* print only errors if true */
+rvm_bool_t chk_list(list_entry_t *hdr /* header of list to check */,
+                    rvm_bool_t silent /* print only errors if true */)
 {
     list_entry_t *entry; /* current list entry */
     list_entry_t *prev; /* previous list entry */
@@ -217,9 +216,9 @@ rvm_bool_t silent; /* print only errors if true */
 
     return retval;
 }
+
 /* structure cache free list checker */
-rvm_bool_t chk_free_list(struct_id)
-    struct_id_t struct_id; /* type of free list to check */
+rvm_bool_t chk_free_list(struct_id_t struct_id /* type of free list to check */)
 {
     if (!(((long)struct_id > (long)struct_first_id) &&
           ((long)struct_id < (long)struct_last_cache_id))) {
@@ -240,11 +239,11 @@ void chk_all_free_lists()
         chk_free_list(INDEX_ID(i));
     }
 }
+
 /* locate an address in simple list */
-rvm_bool_t search_list(hdr, struct_id,
-                       addr) list_entry_t *hdr; /* header of list to search */
-struct_id_t struct_id; /* type of list to search */
-rvm_length_t addr; /* address to search for */
+rvm_bool_t search_list(list_entry_t *hdr /* header of list to search */,
+                       struct_id_t struct_id /* type of list to search */,
+                       rvm_length_t addr /* address to search for */)
 {
     list_entry_t *entry; /* current list entry */
     long i            = 0;
@@ -278,9 +277,9 @@ rvm_length_t addr; /* address to search for */
     }
     return retval;
 }
+
 /* locate an address in free page list */
-rvm_bool_t
-    in_free_page_list(addr) rvm_length_t addr; /* address to search for */
+rvm_bool_t in_free_page_list(rvm_length_t addr /* address to search for */)
 {
     free_page_t *pg;
     rvm_bool_t retval = rvm_false;
@@ -302,10 +301,10 @@ rvm_bool_t
 
     return retval;
 }
+
 /* locate an address in free list */
-rvm_bool_t in_free_list(struct_id, addr)
-    struct_id_t struct_id; /* type of free list to search */
-rvm_length_t addr; /* address to search for */
+rvm_bool_t in_free_list(struct_id_t struct_id /* type of free list to search */,
+                        rvm_length_t addr /* address to search for */)
 {
     /* check basic list structure */
     if (!chk_list(&free_lists[ID_INDEX(struct_id)], rvm_true))
@@ -316,7 +315,7 @@ rvm_length_t addr; /* address to search for */
 }
 
 /* locate an address in free lists (searches all) */
-rvm_bool_t in_free_lists(addr) rvm_length_t addr; /* address to search for */
+rvm_bool_t in_free_lists(rvm_length_t addr /* address to search for */)
 {
     rvm_bool_t retval = rvm_false;
     long i;
@@ -329,8 +328,9 @@ rvm_bool_t in_free_lists(addr) rvm_length_t addr; /* address to search for */
 
     return retval;
 }
+
 /* mem_region_t tree node checks */
-rvm_bool_t chk_mem_node(node) mem_region_t *node;
+rvm_bool_t chk_mem_node(mem_region_t *node)
 {
     region_t *region;
     seg_t *seg;
@@ -466,6 +466,7 @@ rvm_bool_t chk_mem_node(node) mem_region_t *node;
 
     return retval;
 }
+
 /* validate dev_region node */
 rvm_bool_t chk_dev_node(dev_region_t *node)
 {
@@ -492,6 +493,7 @@ rvm_bool_t chk_dev_node(dev_region_t *node)
 
     return retval;
 }
+
 /* check validity of tree node */
 rvm_bool_t chk_node(tree_node_t *node, struct_id_t struct_id)
 {
@@ -528,10 +530,10 @@ rvm_bool_t chk_node(tree_node_t *node, struct_id_t struct_id)
 
     return retval;
 }
+
 /* search mem_region tree node */
-rvm_bool_t
-    search_mem_region(addr, node) rvm_length_t addr; /* address to search for */
-mem_region_t *node; /* mem_region node to search */
+rvm_bool_t search_mem_region(rvm_length_t addr /* address to search for */,
+                             mem_region_t *node /* mem_region node to search */)
 {
     rvm_bool_t retval = rvm_false;
 
@@ -567,16 +569,17 @@ mem_region_t *node; /* mem_region node to search */
 }
 
 /* locate an address in region_tree */
-rvm_bool_t in_region_tree(addr) rvm_length_t addr; /* address to search for */
+rvm_bool_t in_region_tree(rvm_length_t addr /* address to search for */)
 {
     printf("Searching mapped region tree\n");
 
     return search_mem_region(addr, (mem_region_t *)region_tree);
 }
+
 /* */
 rvm_bool_t
-    search_dev_region(addr, node) rvm_length_t addr; /* address to search for */
-dev_region_t *node; /* segment region node to search */
+search_dev_region(rvm_length_t addr /* address to search for */,
+                  dev_region_t *node /* segment region node to search */)
 {
     rvm_bool_t retval = rvm_false;
 
@@ -609,11 +612,10 @@ dev_region_t *node; /* segment region node to search */
 
     return retval;
 }
+
 /* search region descriptor */
-rvm_bool_t in_region(addr, region,
-                     n) rvm_length_t addr; /* address to search for */
-region_t *region; /* region descriptor to search */
-long n;
+rvm_bool_t in_region(rvm_length_t addr /* address to search for */,
+                     region_t *region /* region descriptor to search */, long n)
 {
     rvm_bool_t retval = rvm_false;
 
@@ -626,10 +628,10 @@ long n;
 
     return retval;
 }
+
 /* search segment descriptor */
-rvm_bool_t in_seg(addr, seg, n) rvm_length_t addr; /* address to search for */
-seg_t *seg; /* segment descriptor to search */
-long n;
+rvm_bool_t in_seg(rvm_length_t addr /* address to search for */,
+                  seg_t *seg /* segment descriptor to search */, long n)
 {
     region_t *region, *region2;
     long i            = 0;
@@ -688,8 +690,9 @@ long n;
 
     return retval;
 }
+
 /* search segment list */
-rvm_bool_t in_seg_list(addr) rvm_length_t addr; /* address to search for */
+rvm_bool_t in_seg_list(rvm_length_t addr /* address to search for */)
 {
     seg_t *seg;
     long i            = 0;
@@ -710,11 +713,11 @@ rvm_bool_t in_seg_list(addr) rvm_length_t addr; /* address to search for */
 
     return retval;
 }
+
 /* locate an address in change tree */
-rvm_bool_t in_seg_dict(addr, seg_dict,
-                       n) rvm_length_t addr; /* address to search for */
-seg_dict_t *seg_dict; /* segment dictionary entry */
-long n;
+rvm_bool_t in_seg_dict(rvm_length_t addr /* address to search for */,
+                       seg_dict_t *seg_dict /* segment dictionary entry */,
+                       long n)
 {
     char *seg_name;
     rvm_bool_t retval = rvm_false;
@@ -749,11 +752,12 @@ long n;
 
     return retval;
 }
+
 /* search log special function descriptor */
-rvm_bool_t in_log_special(addr, special,
-                          n) rvm_length_t addr; /* address to search for */
-log_special_t *special; /* log special descriptor to search */
-long n;
+rvm_bool_t
+in_log_special(rvm_length_t addr /* address to search for */,
+               log_special_t *special /* log special descriptor to search */,
+               long n)
 {
     rvm_bool_t retval = rvm_false;
 
@@ -780,11 +784,10 @@ long n;
 
     return retval;
 }
+
 /* search modification range descriptor */
-rvm_bool_t in_range(addr, range,
-                    n) rvm_length_t addr; /* address to search for */
-range_t *range;
-long n;
+rvm_bool_t in_range(rvm_length_t addr /* address to search for */,
+                    range_t *range, long n)
 {
     rvm_bool_t retval = rvm_false;
 
@@ -820,10 +823,10 @@ long n;
 
     return retval;
 }
+
 /* search transaction descriptor */
-rvm_bool_t in_tid(addr, tid, n) rvm_length_t addr; /* address to search for */
-int_tid_t *tid; /* transaction descriptor to search */
-long n;
+rvm_bool_t in_tid(rvm_length_t addr /* address to search for */,
+                  int_tid_t *tid /* transaction descriptor to search */, long n)
 {
     range_t *range;
     long i            = 0;
@@ -861,10 +864,11 @@ long n;
 
     return retval;
 }
+
 /* search a log descriptor */
-rvm_bool_t in_log(addr, log, n) rvm_length_t addr; /* address to search for */
-log_t *log; /* log descriptor to search */
-long n; /* position in list */
+rvm_bool_t in_log(rvm_length_t addr /* address to search for */,
+                  log_t *log /* log descriptor to search */,
+                  long n /* position in list */)
 {
     long i;
     int_tid_t *tid;
@@ -1003,8 +1007,9 @@ long n; /* position in list */
 
     return retval;
 }
+
 /* search log list */
-rvm_bool_t in_log_list(addr) rvm_length_t addr; /* address to search for */
+rvm_bool_t in_log_list(rvm_length_t addr /* address to search for */)
 {
     log_t *log;
     long i            = 0;
@@ -1025,8 +1030,9 @@ rvm_bool_t in_log_list(addr) rvm_length_t addr; /* address to search for */
 
     return retval;
 }
+
 /* locate an address in RVM internal structures */
-void find_addr(addr) rvm_length_t addr; /* address to search for */
+void find_addr(rvm_length_t addr /* address to search for */)
 {
     rvm_bool_t retval = rvm_false;
 
@@ -1044,9 +1050,10 @@ void find_addr(addr) rvm_length_t addr; /* address to search for */
     if (!retval)
         printf("\nAddress not found\n");
 }
+
 /* test if entry is on list -- more forgiving than chk_list */
-void on_list(hdr, addr) list_entry_t *hdr; /* header of list to search */
-list_entry_t *addr; /* entry to search for */
+void on_list(list_entry_t *hdr /* header of list to search */,
+             list_entry_t *addr /* entry to search for */)
 {
     list_entry_t *entry; /* current list entry */
     long i = 0;

@@ -253,8 +253,7 @@ typedef struct { /* INTERNAL FIELDS static */
 /* transaction identifier descriptor */
 typedef struct {
     rvm_struct_id_t struct_id; /* self-identifier, do not change */
-    rvm_bool_t from_heap; /* true if heap allocated;
-                                           do not change */
+    rvm_bool_t from_heap; /* true if heap allocated, do not change */
     struct timeval uname; /* unique name (timestamp) */
 
     void *tid; /* internal use only */
@@ -273,8 +272,7 @@ extern void rvm_free_tid(rvm_tid_t *tid); /* pointer to record to be copied */
 /*  options descriptor:  rvm_options_t */
 typedef struct {
     rvm_struct_id_t struct_id; /* self-identifier, do not change */
-    rvm_bool_t from_heap; /* true if heap allocated;
-                                           do not change */
+    rvm_bool_t from_heap; /* true if heap allocated, do not change */
 
     char *log_dev; /* device name */
     long truncate; /* truncation threshold, % of log */
@@ -286,13 +284,11 @@ typedef struct {
     long n_uncommit; /* length of uncommitted tid array */
     rvm_tid_t *tid_array; /* ptr to array of uncommitted tid's */
 
-    rvm_length_t flags; /* bit vector for optimization and
-                                           other flags */
+    rvm_length_t flags; /* bit vector for optimization and other flags */
     rvm_bool_t create_log_file; /* TRUE  ==> create the log file */
-    rvm_offset_t create_log_size; /* when creating a new log file, this
-                                           is the wanted size */
-    long create_log_mode; /* when creating a new log file, this
-                                           is the wanted mode */
+    rvm_offset_t
+        create_log_size; /* when creating a new log file, this is the wanted size */
+    long create_log_mode; /* when creating a new log file, this is the wanted mode */
 } rvm_options_t;
 
 /* rvm_options default values and other constants */
@@ -305,11 +301,9 @@ typedef struct {
 #define MAX_READ_LEN (512 * 1024) /* default maximum single read length */
 
 #define RVM_COALESCE_RANGES \
-    1 /* coalesce adjacent or shadowed
-                                           ranges within a transaction */
+    1 /* coalesce adjacent or shadowed ranges within a transaction */
 #define RVM_COALESCE_TRANS \
-    2 /* coalesce adjacent or shadowed ranges
-                                           within no_flush transactions */
+    2 /* coalesce adjacent or shadowed ranges within no_flush transactions */
 
 #define RVM_ALL_OPTIMIZATIONS (RVM_COALESCE_RANGES | RVM_COALESCE_TRANS)
 
@@ -328,8 +322,7 @@ extern void rvm_free_options(rvm_options_t *options);
 /*  region descriptor: rvm_region_t */
 typedef struct {
     rvm_struct_id_t struct_id; /* self-identifier, do not change */
-    rvm_bool_t from_heap; /* true if heap allocated;
-                                           do not change */
+    rvm_bool_t from_heap; /* true if heap allocated, do not change */
 
     char *data_dev; /* device name */
     rvm_offset_t dev_length; /* maximum device length */

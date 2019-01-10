@@ -379,7 +379,7 @@ void vproc::setattr(struct venus_cnode *cp, struct coda_vattr *vap)
     fsobj *f = 0;
     int rcrights;
 
-    /* 
+    /*
      * BSD44 supports chflags, which sets the va_flags field of 
      * the vattr.  Coda doesn't support these flags, but we will
      * allow calls that clear the field.  
@@ -1062,7 +1062,7 @@ void vproc::rename(struct venus_cnode *spcp, char *name,
         /* Acquire the source and target (if it exists). */
         /* The locking protocol is violated here! -JJK */
         /* We need data for directories! */
-        /* 
+        /*
 	 * If the target exists, this thread must look up (and in the
 	 * process read-lock) both child objects.  To avoid deadlock, this
 	 * should be done in fid-order, unfortunately we do not know
@@ -1220,7 +1220,7 @@ void vproc::rename(struct venus_cnode *spcp, char *name,
         if (!SameParent)
             s_parent_fso->PromoteLock();
 
-        /* 
+        /*
 	 * To avoid potential deadlock with the reintegrator thread,
 	 * we must promote the locks of the child objects in fid 
 	 * order if the target exists.
@@ -1578,7 +1578,7 @@ void vproc::fsync(struct venus_cnode *cp)
         if (u.u_error)
             goto FreeLocks;
 
-        /* 
+        /*
 	 * what we want: if the file is open for write, sync the
 	 * changes to it and flush associated RVM updates.
 	 * below is the heavy handed version.

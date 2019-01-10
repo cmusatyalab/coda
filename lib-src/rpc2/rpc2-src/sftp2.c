@@ -53,9 +53,11 @@ Pittsburgh, PA.
 #include <netinet/in.h>
 #include <errno.h>
 #include <assert.h>
-#include "rpc2.private.h"
+
 #include <rpc2/se.h>
 #include <rpc2/sftp.h>
+
+#include "rpc2.private.h"
 
 static void ClientPacket();
 static void ServerPacket();
@@ -105,9 +107,9 @@ void sftp_ExaminePacket(RPC2_PacketBuffer *pb)
     sfp = ce ? (struct SFTP_Entry *)ce->SideEffectPtr : NULL;
 
     if (!ce || !sfp || TestState(ce, CLIENT, C_HARDERROR) ||
-        TestState(ce, SERVER, S_HARDERROR)
-        //	|| pb->Header.LocalHandle != ce->PeerHandle
-        || sfp->WhoAmI == ERROR || sfp->WhoAmI == DISKERROR) {
+        TestState(ce, SERVER, S_HARDERROR) ||
+        // pb->Header.LocalHandle != ce->PeerHandle ||
+        sfp->WhoAmI == ERROR || sfp->WhoAmI == DISKERROR) {
         /* SFSendNAK expects host-order */
         pb->Header.LocalHandle = ntohl(pb->Header.LocalHandle);
         SFSendNAK(pb); /* NAK this packet */
@@ -132,7 +134,7 @@ void sftp_ExaminePacket(RPC2_PacketBuffer *pb)
         SFTP_FreeBuffer(&pb);
 
         /* When we are the SFSERVER, tell the blocked thread about the
-	 * failure now, instead of having it wait for a full timeout. */
+         * failure now, instead of having it wait for a full timeout. */
         if (iamserver)
             ServerPacket(NULL, sfp);
         return;

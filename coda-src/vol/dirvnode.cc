@@ -80,8 +80,7 @@ int VN_DCommit(Vnode *vnp)
         /* directory was deleted */
         DLog(29, "VN_DCommit: deleted directory, vnode = %x", vnp->vnodeNumber);
         vnp->disk.node.dirNode = NULL;
-        /* if this vnode was just cloned, there won't be a pdi upon
-		   removal */
+        /* if this vnode was just cloned, there won't be a pdi upon removal */
         if (pdi)
             DI_Dec(pdi);
     } else if (vnp->changed) {
@@ -129,10 +128,10 @@ PDirHandle VN_SetDirHandle(struct Vnode *vn)
     PDCEntry pdce = NULL;
 
     /* three cases:
-	   - new not previously seen: node.dirNode=0, dh=0
-           - new, not yet in RVM: node.dirNode = 0, dh!=0
-	   - not new, already in RVM: node.dirNode != 0
-	*/
+       - new not previously seen: node.dirNode=0, dh=0
+       - new, not yet in RVM: node.dirNode = 0, dh!=0
+       - not new, already in RVM: node.dirNode != 0
+     */
 
     if (!vn->disk.node.dirNode && !vn->dh) {
         pdce        = DC_New();
@@ -214,8 +213,8 @@ void VN_CopyOnWrite(struct Vnode *vn)
     oldpdce      = DC_DH2DC(pdh);
     others_count = DC_Count(oldpdce) - vn->dh_refc;
 
-    /* no one else has a reference to this directory - 
-	   merely prepare for cloning the RVM directory inode */
+    /* no one else has a reference to this directory -
+       merely prepare for cloning the RVM directory inode */
     if (!others_count) {
         DC_SetCowpdi(oldpdce, vn->disk.node.dirNode);
         DC_SetRefcount(oldpdce, 1);
@@ -223,8 +222,8 @@ void VN_CopyOnWrite(struct Vnode *vn)
     }
 
     /* other vnodes have a reference to this directory -
-	   prepare for cloning the RVM directory inode _and_
-	   clone the VM directory cache entry now */
+       prepare for cloning the RVM directory inode _and_
+       clone the VM directory cache entry now */
     if (others_count) {
         pdce = DC_New();
         CODA_ASSERT(pdce);

@@ -244,7 +244,7 @@ struct TraceElem {
 };
 
 /* Macros to actually do the tracing follows.  Each of these is used only once,
-    but is placed here to avoid cluttering up all the other files */
+   but is placed here to avoid cluttering up all the other files */
 #ifndef RPC2DEBUG
 #define TR_SENDRESPONSE()
 #define TR_GETREQUEST()

@@ -36,9 +36,8 @@ Coda are listed in the file CREDITS.
  * of appropriate size so splits won't happen during rds_malloc().
  */
 
-int rds_prealloc(size, nblocks, tid, err) unsigned long size, nblocks;
-rvm_tid_t *tid;
-int *err;
+int rds_prealloc(unsigned long size, unsigned long nblocks, rvm_tid_t *tid,
+                 int *err)
 {
     free_block_t *bp;
     rvm_tid_t *atid;

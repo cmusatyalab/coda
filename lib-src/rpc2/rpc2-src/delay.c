@@ -52,7 +52,7 @@ int rpc2_DelayedSend(int s, struct RPC2_addrinfo *addr, RPC2_PacketBuffer *pb,
     de->len  = pb->Prefix.LengthOfPacket;
     de->addr = RPC2_copyaddrinfo(addr);
     /* hopefully the connection entry (and security association) are not
-     * destroyed during the delay period */
+   * destroyed during the delay period */
     de->sa = pb->Prefix.sa;
     memcpy(&de[1], &pb->Header, de->len);
 

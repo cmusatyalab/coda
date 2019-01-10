@@ -26,6 +26,7 @@ Coda are listed in the file CREDITS.
 #include <assert.h>
 
 #include <rpc2/secure.h>
+
 #include "aes.h"
 #include "grunt.h"
 

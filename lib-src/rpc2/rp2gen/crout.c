@@ -450,7 +450,7 @@ void copcodes(PROC *head, WHO who, FILE *where)
     fprintf(where, "\n/* Op codes and definitions */\n\n");
 
     /* Generate <subsystem>_ExecuteRequest() definition, if
-	<subsystem> is defined; may not be if HeadersOnlyFlag is RP2_TRUE */
+      <subsystem> is defined; may not be if HeadersOnlyFlag is RP2_TRUE */
     if (!cplusplus) {
         fprintf(where, "#ifdef __cplusplus\n");
         fprintf(where, "extern \"C\"{\n");
@@ -458,10 +458,10 @@ void copcodes(PROC *head, WHO who, FILE *where)
     }
 
     if (subsystem.subsystem_name) {
-        fprintf(
-            where,
-            "long %s_ExecuteRequest(RPC2_Handle cid, RPC2_PacketBuffer *pb, SE_Descriptor *se);\n\n",
-            subsystem.subsystem_name);
+        fprintf(where,
+                "long %s_ExecuteRequest(RPC2_Handle cid, RPC2_PacketBuffer "
+                "*pb, SE_Descriptor *se);\n\n",
+                subsystem.subsystem_name);
     }
     for (next_opnum = 1; head != NIL; head = head->thread)
         if (!head->new_connection) { /* Normal routine */
@@ -497,14 +497,14 @@ void copcodes(PROC *head, WHO who, FILE *where)
                 next_opnum += 1;
             } else {
                 if (head->op_number < next_opnum) {
-                    /* We've encountered a procedure whose opcode number is lower
-                   than expected; this is not necessarily an error since there
-                   may not be duplicates;  we could do duplicate detection with
-		   an extra data structure, but it's so much simpler to
-                   just demand that opcode numbers be in increasing order;
-                   note that gaps in the opcode numbers are fine, and cause
-                   no trouble   (Satya, 1/7/98)
-                */
+                    /* We've encountered a procedure whose opcode number is
+                     * lower than expected; this is not necessarily an error
+                     * since there may not be duplicates;  we could do
+                     * duplicate detection with an extra data structure, but
+                     * it's so much simpler to just demand that opcode numbers
+                     * be in increasing order; note that gaps in the opcode
+                     * numbers are fine, and cause no trouble   (Satya, 1/7/98)
+                     */
                     sprintf(msg, "opcode number specified for %s too low\n",
                             head->name);
                     line = head->linenum;
@@ -526,9 +526,11 @@ void copcodes(PROC *head, WHO who, FILE *where)
                 fprintf(where, "extern long %s_%s(", server_prefix, head->name);
             else
                 fprintf(where, "extern long %s(", head->name);
-            fprintf(
-                where,
-                "RPC2_Handle cid, RPC2_Integer SideEffectType, RPC2_Integer SecurityLevel, RPC2_Integer EncryptionType, RPC2_Integer AuthType, RPC2_CountedBS *ClientIdent);\n\n");
+            fprintf(where,
+                    "RPC2_Handle cid, RPC2_Integer SideEffectType, "
+                    "RPC2_Integer SecurityLevel, RPC2_Integer EncryptionType, "
+                    "RPC2_Integer AuthType, RPC2_CountedBS "
+                    "*ClientIdent);\n\n");
             head->op_code = "RPC2_NEWCONNECTION";
 
             spit_unpack_request(head, where, RP2_TRUE);
@@ -647,10 +649,9 @@ static void client_procs(PROC *head, FILE *where)
     WhatAmIDoing = INCLIENTS;
 
     declare_CallCount(head, where); /* user transparent log structure
-					   int *_ElapseSwitch;
-					   *_CallCount[]
-					 */
-    //print_inlineFunction(where);
+                                       int *_ElapseSwitch; *_CallCount[]
+                                     */
+    // print_inlineFunction(where);
     /* Now, generate procs */
     for (; head != NIL; head = head->thread) {
         if (!head->new_connection)
@@ -1109,30 +1110,31 @@ static void one_client_proc(PROC *proc, FILE *where)
             rpc2val, cid, reqbuffer, has_bd != NIL ? has_bd : "NULL", rspbuffer,
             timeout, subsystem.subsystem_name);
     fprintf(where, "    RPC2_FreeBuffer(&%s);\n", reqbuffer);
-    fprintf(
-        where,
-        "    if (%s != RPC2_SUCCESS) {\n\tRPC2_FreeBuffer(&%s);\n\treturn %s;\n    }\n",
-        rpc2val, rspbuffer, rpc2val);
-    fprintf(
-        where,
-        "    if (%s->Header.ReturnCode == RPC2_INVALIDOPCODE) {\n\tRPC2_FreeBuffer(&%s);\n\treturn RPC2_INVALIDOPCODE;\n    }\n",
-        rspbuffer, rspbuffer);
+    fprintf(where,
+            "    if (%s != RPC2_SUCCESS) "
+            "{\n\tRPC2_FreeBuffer(&%s);\n\treturn %s;\n    }\n",
+            rpc2val, rspbuffer, rpc2val);
+    fprintf(where,
+            "    if (%s->Header.ReturnCode == RPC2_INVALIDOPCODE) "
+            "{\n\tRPC2_FreeBuffer(&%s);\n\treturn RPC2_INVALIDOPCODE;\n   "
+            " }\n",
+            rspbuffer, rspbuffer);
 
     /* Unpack arguments */
     if (out_parms) {
         fprintf(where, "\n    /* Unpack arguments */\n");
         fprintf(where, "    _buffer.buffer = (char *)%s->Body;\n", rspbuffer);
-        fprintf(
-            where,
-            "    _buffer.eob = (char *)%s + %s->Prefix.LengthOfPacket + sizeof(struct RPC2_PacketBufferPrefix);\n",
-            rspbuffer, rspbuffer);
+        fprintf(where,
+                "    _buffer.eob = (char *)%s + %s->Prefix.LengthOfPacket + "
+                "sizeof(struct RPC2_PacketBufferPrefix);\n",
+                rspbuffer, rspbuffer);
         fprintf(where, "    if (");
         call_unpack_response(proc, where);
         fprintf(where, ") {\n");
         fprintf(where, "        RPC2_FreeBuffer(&%s);\n", rspbuffer);
-        fprintf(
-            where,
-            "        fprintf(stderr,\"%%s:%%d Buffer overflow in unmarshalling !\\n\",__FILE__,__LINE__);\n");
+        fprintf(where,
+                "        fprintf(stderr,\"%%s:%%d Buffer overflow in "
+                "unmarshalling !\\n\",__FILE__,__LINE__);\n");
         fprintf(where, "        return RPC2_BADDATA;\n");
         fprintf(where, "    }\n");
     }
@@ -1492,17 +1494,17 @@ static void one_server_proc(PROC *proc, FILE *where)
     if (in_parms) {
         fprintf(where, "    /* Unpack parameters */\n");
         fprintf(where, "    _buffer.buffer = (char *)%s->Body;\n", reqbuffer);
-        fprintf(
-            where,
-            "    _buffer.eob = (char *)%s + %s->Prefix.LengthOfPacket + sizeof(struct RPC2_PacketBufferPrefix);\n",
-            reqbuffer, reqbuffer);
+        fprintf(where,
+                "    _buffer.eob = (char *)%s + %s->Prefix.LengthOfPacket + "
+                "sizeof(struct RPC2_PacketBufferPrefix);\n",
+                reqbuffer, reqbuffer);
 
         fprintf(where, "    if (");
         call_unpack_request(proc, where);
         fprintf(where, ")\n    {\n");
-        fprintf(
-            where,
-            "        fprintf(stderr,\"%%s:%%d Buffer overflow in unmarshalling !\\n\",__FILE__,__LINE__);\n");
+        fprintf(where,
+                "        fprintf(stderr,\"%%s:%%d Buffer overflow in "
+                "unmarshalling !\\n\",__FILE__,__LINE__);\n");
         fprintf(where, "        return NULL;\n");
         fprintf(where, "    }\n");
     }
@@ -1556,9 +1558,9 @@ static void one_server_proc(PROC *proc, FILE *where)
         call_pack_response(proc, where);
         fprintf(where, ")\n");
         fprintf(where, "    {\n");
-        fprintf(
-            where,
-            "        fprintf(stderr,\"%%s:%%d Buffer overflow in marshalling !\\n\",__FILE__,__LINE__);\n");
+        fprintf(where,
+                "        fprintf(stderr,\"%%s:%%d Buffer overflow in "
+                "marshalling !\\n\",__FILE__,__LINE__);\n");
         fprintf(where, "        RPC2_FreeBuffer(&%s);\n", rspbuffer);
         fprintf(where, "    }\n\n");
     }
@@ -1661,10 +1663,10 @@ static void execute(PROC *head, FILE *where)
     extern char *copy();
     int32_t sawnewconn;
 
-    fprintf(
-        where,
-        "\nlong %s_ExecuteRequest(RPC2_Handle %s, RPC2_PacketBuffer *%s, SE_Descriptor *%s)\n",
-        subsystem.subsystem_name, cid, reqbuffer, bd);
+    fprintf(where,
+            "\nlong %s_ExecuteRequest(RPC2_Handle %s, RPC2_PacketBuffer "
+            "*%s, SE_Descriptor *%s)\n",
+            subsystem.subsystem_name, cid, reqbuffer, bd);
 
     /* Body of routine */
     fprintf(where, "{\n    RPC2_PacketBuffer *%s;\n    long %s, %s;\n",
@@ -1772,8 +1774,8 @@ static void pr_size(VAR *parm, FILE *where, rp2_bool TOP, int32_t proc,
         } else
             fprintf(where, "0");
         break;
-        /* negative number indicates array */
-        /* Fall through */
+    /* negative number indicates array */
+    /* Fall through */
     case RPC2_INTEGER_TAG:
     case RPC2_UNSIGNED_TAG:
     case RPC2_ENUM_TAG:
@@ -1864,9 +1866,8 @@ static void multi_procs(PROC *head, FILE *where)
     WhatAmIDoing = NEITHER;
 
     declare_MultiCall(head, where); /* user transparent log structure
-					   int *_ElapseSwitch;
-					   *_CallCount[]
-					 */
+                                         int *_ElapseSwitch; *_CallCount[]
+                                     */
     declare_LogFunction(head, where);
 
     /* Generate argument descriptors for MakeMulti call */
@@ -2029,19 +2030,19 @@ static void declare_LogFunction(PROC *head, FILE *where)
     fprintf(where, "}\n");
 
     /* define endlog function */
-    fprintf(
-        where,
-        "\nvoid %s_endlog(long op, RPC2_Integer many, RPC2_Handle *cidlist, RPC2_Integer *rclist)\n",
-        subname);
+    fprintf(where,
+            "\nvoid %s_endlog(long op, RPC2_Integer many, RPC2_Handle "
+            "*cidlist, RPC2_Integer *rclist)\n",
+            subname);
     fprintf(where, "{\n");
     fprintf(where, "    struct timeval timeend;\n");
     fprintf(where, "    long i, timework, istimeouted, hosts;\n");
     fprintf(where, "\n    istimeouted = hosts = 0;\n");
     fprintf(where, "    if ( rclist == 0 ) return;\n");
     fprintf(where, "    for ( i = 0; i < many ; i++) {\n");
-    fprintf(
-        where,
-        "        if ( cidlist[i] != 0 && rclist[i] == RPC2_TIMEOUT ) istimeouted = 1;\n");
+    fprintf(where,
+            "        if ( cidlist[i] != 0 && rclist[i] == RPC2_TIMEOUT ) "
+            "istimeouted = 1;\n");
     fprintf(where,
             "        if ( cidlist[i] != 0 && (rclist[i] >= 0) ) hosts++;\n");
     fprintf(where, "    }\n");
@@ -2049,10 +2050,11 @@ static void declare_LogFunction(PROC *head, FILE *where)
     fprintf(where, "        ++%s.countexit;\n", array);
     fprintf(where, "        if ( %s.opengate ) {\n", work);
     fprintf(where, "            gettimeofday(&timeend, NULL);\n");
-    fprintf(
-        where,
-        "            timework = (%s.tusec += (timeend.tv_sec-%s.tsec)*1000000+(timeend.tv_usec-%s.tusec))/1000000;\n",
-        array, work, work);
+    fprintf(where,
+            "            timework = (%s.tusec += "
+            "(timeend.tv_sec-%s.tsec)*1000000+(timeend.tv_usec-%s.tusec))/"
+            "1000000;\n",
+            array, work, work);
     fprintf(where, "            %s.tusec -= timework*1000000;\n", array);
     fprintf(where, "            %s.tsec += timework;\n", array);
     fprintf(where, "            ++%s.counttime;\n", array);

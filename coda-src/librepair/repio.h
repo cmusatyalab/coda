@@ -34,9 +34,9 @@ listed in the file CREDITS.
 
 #define REPAIR_MAX 5 /* Max no of integer parms for a repair entry */
 #ifndef MAXNAMELEN
-#define MAXNAMELEN \
-    255 /* Max len of pathname component: should this be defined 
-                          somewhere in /usr/include/sys? */
+/* Max len of pathname component, should this be defined somewhere
+ * in /usr/include/sys? */
+#define MAXNAMELEN 255
 #endif
 
 /* Realm of localcache objects should be 0xffffffff */

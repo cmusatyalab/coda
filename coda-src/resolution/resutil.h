@@ -127,10 +127,9 @@ he *FindHE(olist *list, long hostaddress);
 #define MARKOBJINC 3
 #define CREATEINCOBJ 4
 
-#define MAXCOMPS                                      \
-    100 // defined by Kudo in rp2gen -                \
-        // this is the max size of an array  that can \
-        // be passed as arg in a rpc call
+/* defined by Kudo in rp2gen - this is the max size of an array that can be
+ * passed as arg in a rpc call */
+#define MAXCOMPS 100
 
 /**************** ilink class functions *******************/
 /* declaration of functions that parse the list of inconsistencies 

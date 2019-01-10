@@ -46,9 +46,9 @@ void cleardest(dest_t *d)
 
 void initdestarray()
 { /* initialize the global data structure, so that
-    the destaddr fields are completely zeroed for memcmp()
-    comparisons in later getdest() calls; otherwise padding
-    in structures may cause trouble */
+     the destaddr fields are completely zeroed for memcmp()
+     comparisons in later getdest() calls; otherwise padding
+     in structures may cause trouble */
     int i;
 
     hilimit = 0;

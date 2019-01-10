@@ -268,7 +268,7 @@ static int IOMGR_CheckDescriptors(int PollingCheck)
 #endif
 
     if (iomgr_timeout.tv_sec != 0 || iomgr_timeout.tv_usec != 0) {
-        /* this is a non polling select 
+        /* this is a non polling select
 	   ignore cont_sw_threshold flag in dispatcher */
         last_context_switch.tv_sec  = 0;
         last_context_switch.tv_usec = 0;

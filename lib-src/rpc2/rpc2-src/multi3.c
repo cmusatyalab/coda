@@ -38,7 +38,7 @@ Pittsburgh, PA.
 */
 
 /*
-	Multicast Utility Routines for MultiRPC
+        Multicast Utility Routines for MultiRPC
 */
 
 #include <stdio.h>
@@ -50,10 +50,12 @@ Pittsburgh, PA.
 #include <sys/socket.h>
 #include <netdb.h>
 #include <assert.h>
-#include "rpc2.private.h"
+
 #include <rpc2/se.h>
-#include "trace.h"
+
 #include "cbuf.h"
+#include "rpc2.private.h"
+#include "trace.h"
 
 void rpc2_RemoveFromMgrp();
 void rpc2_DeleteMgrp();
@@ -226,16 +228,12 @@ struct MEntry *rpc2_GetMgrp(struct RPC2_addrinfo *addr, RPC2_Handle handle,
 }
 
 /* Client-side operation only. */
-long RPC2_CreateMgrp(OUT MgroupHandle, IN MulticastHost, IN MulticastPort,
-                     IN Subsys, SecurityLevel, SessionKey, EncryptionType,
-                     SideEffectType) RPC2_Handle *MgroupHandle;
-RPC2_McastIdent *MulticastHost;
-RPC2_PortIdent *MulticastPort;
-RPC2_SubsysIdent *Subsys;
-RPC2_Integer SecurityLevel;
-RPC2_EncryptionKey SessionKey;
-RPC2_Integer EncryptionType;
-long SideEffectType;
+long RPC2_CreateMgrp(OUT RPC2_Handle *MgroupHandle,
+                     IN RPC2_McastIdent *MulticastHost,
+                     IN RPC2_PortIdent *MulticastPort,
+                     IN RPC2_SubsysIdent *Subsys, RPC2_Integer SecurityLevel,
+                     RPC2_EncryptionKey SessionKey, RPC2_Integer EncryptionType,
+                     long SideEffectType)
 {
     struct MEntry *me;
     long secode;
@@ -293,8 +291,7 @@ long SideEffectType;
 }
 
 /* Client-side operation only. */
-long RPC2_AddToMgrp(IN MgroupHandle, IN ConnHandle) RPC2_Handle MgroupHandle;
-RPC2_Handle ConnHandle;
+long RPC2_AddToMgrp(IN RPC2_Handle MgroupHandle, IN RPC2_Handle ConnHandle)
 {
     struct MEntry *me;
     struct CEntry *ce;
@@ -459,8 +456,7 @@ RPC2_Handle ConnHandle;
 /* RPC2 internal version. */
 /* This routine does NOT prohibit the removal of a connection from a
    busy multicast group. */
-void rpc2_RemoveFromMgrp(me, ce) struct MEntry *me;
-struct CEntry *ce;
+void rpc2_RemoveFromMgrp(struct MEntry *me, struct CEntry *ce)
 {
     int i;
 
@@ -499,9 +495,7 @@ struct CEntry *ce;
 }
 
 /* User callable version.  Only available on client-side. */
-long RPC2_RemoveFromMgrp(IN MgroupHandle,
-                         IN ConnHandle) RPC2_Handle MgroupHandle;
-RPC2_Handle ConnHandle;
+long RPC2_RemoveFromMgrp(IN RPC2_Handle MgroupHandle, IN RPC2_Handle ConnHandle)
 {
     struct MEntry *me;
     struct CEntry *ce;
@@ -550,7 +544,7 @@ RPC2_Handle ConnHandle;
 
 /* RPC2 internal version. */
 /* This routine does NOT prohibit the deletion of a busy multicast group. */
-void rpc2_DeleteMgrp(me) struct MEntry *me;
+void rpc2_DeleteMgrp(struct MEntry *me)
 {
     assert(me != NULL && !TestRole(me, FREE));
     if (TestState(me, CLIENT, ~(C_THINK | C_HARDERROR)) ||
@@ -568,7 +562,7 @@ void rpc2_DeleteMgrp(me) struct MEntry *me;
 }
 
 /* User callable version.  Only available on client-side. */
-long RPC2_DeleteMgrp(IN MgroupHandle) RPC2_Handle MgroupHandle;
+long RPC2_DeleteMgrp(IN RPC2_Handle MgroupHandle)
 {
     struct MEntry *me;
 

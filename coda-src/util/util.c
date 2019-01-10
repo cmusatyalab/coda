@@ -88,18 +88,18 @@ int HashString(char *s, unsigned int size)
 }
 
 void PrintTimeStamp(FILE *f)
-/* Prints current timestamp on f; 
-       Keeps track of when last invocation was;
-       If a day boundary is crossed (i.e., midnight),
-          prints out date first.
-       CAVEAT: uses static locals to remember when last called.
-       There should really be one such local per FILE * used, otherwise
-       new date will appear on only one of the log files being used.
-       I can't figure out how to do this cleanly, short of adding
-       yet another required parameter or keeping a list of FILE *'s
-       seen so far, and a separate oldyear and oldday for each. This
-       seems overkill for now.
-    */
+/* Prints current timestamp on f;
+   Keeps track of when last invocation was;
+   If a day boundary is crossed (i.e., midnight),
+      prints out date first.
+   CAVEAT: uses static locals to remember when last called.
+   There should really be one such local per FILE * used, otherwise
+   new date will appear on only one of the log files being used.
+   I can't figure out how to do this cleanly, short of adding
+   yet another required parameter or keeping a list of FILE *'s
+   seen so far, and a separate oldyear and oldday for each. This
+   seems overkill for now.
+*/
 {
 #define NLOGS 5
     /* these are used for keeping track of when we last logged a message */
