@@ -95,7 +95,6 @@ int reintvol::GetVolAttr(uid_t uid)
     VOL_ASSERT(this, IsReachable());
 
     unsigned int i;
-    int code = 0;
 
     /* Acquire an Mgroup. */
     mgrpent *m = 0;
