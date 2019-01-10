@@ -367,6 +367,20 @@ RepExit:
 /* collate version stamp and callback status out parameters from servers */
 void reintvol::UpdateVCBInfo(RPC2_Integer VS, CallBackStatus CBStatus)
 {
+    if (LogLevel >= 100) {
+        fprintf(logFile, "reintvol::UpdateVCBInfo: vid %08x Current VVV:\n",
+                vid);
+        FPrintVV(logFile, &VVV);
+
+        fprintf(logFile,
+                "reintvol::UpdateVCBInfo: Version stamps returned: %d\n", VS);
+
+        fprintf(logFile,
+                "reintvol::UpdateVCBInfo: Callback status returned: %d\n",
+                CBStatus);
+        fflush(logFile);
+    }
+
     /* This is the single server version of CollateVCB */
     if (CBStatus == CallBackSet) {
         SetCallBack();
@@ -379,7 +393,7 @@ void reintvol::UpdateVCBInfo(RPC2_Integer VS, CallBackStatus CBStatus)
         ClearCallBack();
 
         /* check if any of the returned stamp is zero.
-               If so, server said stamp invalid. */
+            If so, server said stamp invalid. */
         if (VS == 0) {
             Recov_BeginTrans();
             RVMLIB_REC_OBJECT(VVV);
