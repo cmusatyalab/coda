@@ -547,11 +547,10 @@ typedef struct {
 } mem_region_t;
 
 /* node comparator function type */
-typedef long cmp_func_t();
-/*  tree_node_t     *node1;
-    tree_node_t     *node2;
-*/
+typedef long cmp_func_t(tree_node_t *node1, tree_node_t *node2);
+
 /* log records written by commit, and associated with new value records */
+
 /* generic record header; not actually allocated, but any record header
    can be cast to this to get its type & length for detailed analysis 
 */
@@ -1061,234 +1060,92 @@ rvm_bool_t rvm_register_page(char *vmaddr, rvm_length_t length);
 rvm_bool_t rvm_unregister_page(char *vmaddr, rvm_length_t length);
 
 /* list management functions [rvm_utils.c] */
-extern void init_list_header(); /* [rvm_utils.c] */
-/*  list_entry_t    *whichlist;
-    struct_id_t     struct_id;
-*/
-extern list_entry_t *move_list_entry(); /* [rvm_utils.c] */
-/*  register list_entry_t *fromptr;
-    register list_entry_t *toptr;
-    register list_entry_t *cell;
-*/
-extern list_entry_t *alloc_list_entry(); /* [rvm_utils.c] */
-/*  struct_id_t     id; */
+void init_list_header(list_entry_t *whichlist, struct_id_t struct_id);
+list_entry_t *move_list_entry(list_entry_t *fromptr, list_entry_t *toptr,
+                              list_entry_t *cell);
+list_entry_t *alloc_list_entry(struct_id_t id);
+void clear_free_list(struct_id_t id);
 
-/* internal type allocators/deallocators */
+/* internal type allocators/deallocators [rvm_utils.c] */
+region_t *make_region(void);
+void free_region(region_t *region);
 
-extern void clear_free_list(); /* [rvm_utils.c] */
-/*  struct_id_t     id; */
+seg_t *make_seg(char *seg_dev_name, rvm_return_t *retval);
+void free_seg(seg_t *seg);
+void free_seg_dict_vec(log_t *log);
 
-extern region_t *make_region(); /* [rvm_utils.c] */
+log_t *make_log(char *dev_name, rvm_return_t *retval);
+void free_log(log_t *log);
+char *make_full_name(char *dev_str, char *dev_name, rvm_return_t *retval);
 
-extern void free_region(); /* [rvm_utils.c] */
-/*  region_t        *region; */
+log_special_t *make_log_special(struct_id_t special_id, rvm_length_t length);
+void free_log_special(log_special_t *special);
 
-extern seg_t *make_seg(); /* [rvm_utils.c] */
-/*  char            *seg_dev_name;
-    rvm_return_t    *retval
-*/
-extern void free_seg(); /* [rvm_utils.c] */
-/*  seg_t           *seg; */
+rvm_return_t dev_init(device_t *dev, char *dev_str);
 
-extern void free_seg_dict_vec(); /* [rvm_utils.c] */
-/*  log_t           *log; */
+range_t *make_range(void);
+void free_range(range_t *range);
 
-extern log_t *make_log(); /* [rvm_utils.c] */
-/*  char            *dev_name;
-    rvm_return_t    *retval
-*/
-extern void free_log(); /* [rvm_utils.c] */
-/*  log_t           *log; */
+int_tid_t *make_tid(rvm_mode_t mode);
+void free_tid(int_tid_t *tid);
 
-extern char *make_full_name(); /* [rvm_utils.c] */
-/*  char            *dev_str;
-    char            *dev_name;
-    rvm_return_t    *retval;
-*/
-extern void free_log(); /* [rvm_utils.c] */
-/*  log_t           *log; */
+mem_region_t *make_mem_region(void);
+void free_mem_region(mem_region_t *node);
 
-extern log_special_t *make_log_special(); /* [rvm_utils.c] */
-/*  struct_id_t     special_id;
-    rvm_length_t    length;
-*/
-extern void free_log_special(); /* [rvm_utils.c] */
-/*  log_special_t   *special; */
-extern rvm_return_t dev_init(); /* [rvm_utils.c] */
-/*  device_t        *dev;
-    char            *dev_str;
-*/
-extern range_t *make_range(); /* [rvm_utils.c] */
+dev_region_t *make_dev_region(void);
+void free_dev_region(dev_region_t *node);
 
-extern void free_range(); /* [rvm_utils.c] */
-/*  range_t         *range; */
+/* log management functions [rvm_logstatus.c] */
+void init_log_list(void);
+void enter_log(log_t *log);
+rvm_return_t open_log(char *dev_name, log_t **log_ptr, char *status_buf,
+                      rvm_options_t *rvm_options);
+rvm_return_t create_log(log_t **log_ptr, rvm_options_t *rvm_options);
+rvm_return_t do_log_options(log_t **log, rvm_options_t *rvm_options);
+rvm_return_t close_log(log_t *log);
+rvm_return_t close_all_logs(void);
+void copy_log_stats(log_t *log);
+void clear_log_status(log_t *log);
+rvm_return_t init_log_status(log_t *log);
+rvm_return_t read_log_status(log_t *log, char *status_buf);
+rvm_return_t write_log_status(log_t *log, device_t *dev);
+rvm_return_t update_log_tail(log_t *log, rec_hdr_t *rec_hdr);
+void log_tail_length(log_t *log, rvm_offset_t *tail_length);
+void log_tail_sngl_w(log_t *log, rvm_offset_t *tail_length);
+long cur_log_percent(log_t *log, rvm_offset_t *space_needed);
+void cur_log_length(log_t *log, rvm_offset_t *length);
 
-extern int_tid_t *make_tid(); /* [rvm_utils.c] */
-/*  rvm_mode_t      mode; */
+/* [rvm_logflush.c] */
+rvm_return_t queue_special(log_t *log, log_special_t *special);
+rvm_return_t flush_log(log_t *log, rvm_length_t *count);
 
-extern void free_tid(); /* [rvm_utils.c] */
-/*  register int_tid_t  *tid; */
+/* [rvm_logrecovr.c] */
+rvm_return_t locate_tail(log_t *log);
+rvm_return_t init_buffer(log_t *log, rvm_offset_t *offset, rvm_bool_t direction,
+                         rvm_bool_t synch);
+void clear_aux_buf(log_t *log);
+rvm_return_t load_aux_buf(log_t *log, rvm_offset_t *offset, rvm_length_t length,
+                          rvm_length_t *aux_ptr, rvm_length_t *data_len,
+                          rvm_bool_t direction, rvm_bool_t synch);
+void reset_hdr_chks(log_t *log);
 
-extern mem_region_t *make_mem_region(); /* [rvm_utils.c] */
-
-extern void free_mem_region(); /* [rvm_utils.c] */
-/*  mem_region_t   *node; */
-
-extern dev_region_t *make_dev_region(); /* [rvm_utils.c] */
-
-extern void free_dev_region(); /* [rvm_utils.c] */
-/*  dev_region_t   *node; */
-/* log management functions */
-
-extern void init_log_list(); /* [rvm_logstatus.c] */
-
-extern void enter_log(); /* [rvm_logstatus.c] */
-/*  log_t           *log; */
-
-extern rvm_return_t open_log(); /* [rvm_logstatus.c] */
-/*  char            *dev_name;
-    log_t           **log_ptr;
-    char            *status_buf;
-    rvm_options_t   *rvm_options;
-*/
-extern rvm_return_t create_log(); /* [rvm_logstatus.c] */
-/*  log_t           **log_ptr;
-    rvm_options_t   *rvm_options;
-*/
-extern rvm_return_t do_log_options(); /* [rvm_logstatus.c] */
-/*  log_t           *log;
-    rvm_options_t   *rvm_options;
-*/
-extern rvm_return_t close_log(); /* [rvm_logstatus.c] */
-/*  log_t           *log; */
-
-extern rvm_return_t close_all_logs(); /* [rvm_logstatus.c] */
-
-extern void copy_log_stats(); /* [rvm_logstatus.c] */
-/*  log_t           *log; */
-
-extern void clear_log_status(); /* [rvm_logstatus.c] */
-/*  log_t           *log; */
-
-extern rvm_return_t init_log_status(); /* [rvm_logstatus.c] */
-/*  log_t           *log; */
-extern rvm_return_t read_log_status(); /* [rvm_logstatus.c] */
-/*  log_t           *log;
-    char            *status_buf;
-*/
-extern rvm_return_t write_log_status(); /* [rvm_logstatus.c] */
-/*  log_t           *log;
-    device_t        *dev;
-*/
-extern rvm_return_t update_log_tail(); /* [rvm_logstatus.c] */
-/*  log_t           *log;
-    rec_hdr_t       *rec_hdr;
-*/
-extern void log_tail_length(); /* [rvm_logstatus.c] */
-/*  log_t           *log;
-    rvm_offset_t    *tail_length;
-*/
-extern void log_tail_sngl_w(); /* [rvm_logstatus.c] */
-/*  log_t           *log;
-    rvm_offset_t    *tail_length;
-*/
-extern long cur_log_percent(); /* [rvm_logstatus.c] */
-/*  log_t           *log;
-    rvm_offset_t    *space_nneded;
-*/
-extern void cur_log_length(); /* [rvm_logstatus.c] */
-/*  log_t           *log;
-    rvm_offset_t    *length;
-*/
-extern rvm_return_t queue_special(); /* [rvm_logflush.c] */
-/*  log_t           *log;
-    log_special_t   *special;
-*/
-extern rvm_return_t flush_log(); /* [rvm_logflush.c] */
-/*  log_t           *log;
-    long            *count;
-*/
-extern rvm_return_t locate_tail(); /* [rvm_logrecovr.c] */
-/*  log_t           *log; */
-
-extern rvm_return_t init_buffer(); /* [rvm_logrecovr.c] */
-/*  log_t           *log;
-    rvm_offset_t    *offset;
-    rvm_bool_t      direction;
-    rvm_bool_t      synch;
-*/
-extern void clear_aux_buf(); /* [rvm_logrecovr.c] */
-/*  log_t           *log; */
-
-extern rvm_return_t load_aux_buf(); /* [rvm_logrecovr.c] */
-/*  log_t           *log;
-    rvm_offset_t    *offset;
-    rvm_length_t    length;
-    rvm_length_t    *aux_ptr;
-    rvm_length_t    *data_len;
-    rvm_bool_t      direction;
-    rvm_bool_t      synch;
-*/
-extern void reset_hdr_chks(); /* [rvm_logrecovr.c] */
-/*  log_t           *log; */
-
-extern rvm_bool_t chk_hdr_currency(); /* [rvm_logrecovr.c] */
-/*  log_t           *log;
-    rec_hdr_t       *rec_hdr;
-*/
-extern rvm_bool_t chk_hdr_sequence(); /* [rvm_logrecovr.c] */
-/*  log_t           *log;
-    rec_hdr_t       *rec_hdr;
-    rvm_bool_t      direction;
-*/
-extern rvm_bool_t validate_hdr(); /* [rvm_logrecovr.c] */
-/*  log_t           *log;
-    rec_hdr_t       *rec_hdr;
-    rec_end_t       *rec_end;
-    rvm_bool_t      direction;
-*/
-extern rvm_return_t validate_rec_reverse(); /* [rvm_logrecovr.c] */
-/*  log_t           *log;
-    rvm_bool_t      synch;
-*/
-extern rvm_return_t scan_forward(); /* [rvm_logrecovr.c] */
-/*  log_t           *log;
-    rvm_bool_t      synch;
-*/
-extern rvm_return_t scan_reverse(); /* [rvm_logrecovr.c] */
-/*  log_t           *log;
-    rvm_bool_t      synch;
-*/
-extern rvm_return_t scan_nv_forward(); /* [rvm_logrecovr.c] */
-/*  log_t           *log;
-    rvm_bool_t      synch;
-*/
-extern rvm_return_t scan_wrap_reverse(); /* [rvm_logrecovr.c] */
-/*  log_t           *log;
-    rvm_bool_t      synch;
-*/
-extern rvm_bool_t initiate_truncation(); /* [rvm_logrecovr.c] */
-/*  log_t           *log;
-    long            threshold;
-*/
-extern rvm_return_t wait_for_truncation(); /* [rvm_logrecovr.c] */
-/*  log_t           *log;
-    struct timeval  *time_stamp;
-*/
-extern rvm_return_t log_recover(); /* [rvm_logrecovr.c] */
-/*  log_t           *log;
-    long            *count;
-    rvm_bool_t      is_daemon;
-    rvm_length_t    flag;
-*/
-extern void log_daemon(); /* [rvm_logrecovr.c] */
-/*  log_t           *log; */
-
-extern rvm_return_t alloc_log_buf(); /* [rvm_logrecovr.c] */
-/*  log_t           *log; */
-
-extern void free_log_buf(); /* [rvm_logrecovr.c] */
-/*  log_t           *log; */
+rvm_bool_t chk_hdr_currency(log_t *log, rec_hdr_t *rec_hdr);
+rvm_bool_t chk_hdr_sequence(log_t *log, rec_hdr_t *rec_hdr,
+                            rvm_bool_t direction);
+rvm_bool_t validate_hdr(log_t *log, rec_hdr_t *rec_hdr, rec_end_t *rec_end,
+                        rvm_bool_t direction);
+rvm_return_t validate_rec_reverse(log_t *log, rvm_bool_t synch);
+rvm_return_t scan_forward(log_t *log, rvm_bool_t synch);
+rvm_return_t scan_reverse(log_t *log, rvm_bool_t synch);
+rvm_return_t scan_nv_forward(log_t *log, rvm_bool_t synch);
+rvm_return_t scan_wrap_reverse(log_t *log, rvm_bool_t synch);
+rvm_bool_t initiate_truncation(log_t *log, rvm_length_t threshold);
+rvm_return_t wait_for_truncation(log_t *log, struct timeval *time_stamp);
+rvm_return_t log_recover(log_t *log, rvm_length_t *count, rvm_bool_t is_daemon,
+                         rvm_length_t flag);
+void log_daemon(void * /* log_t *log */);
+rvm_return_t alloc_log_buf(log_t *log);
+void free_log_buf(log_t *log);
 
 /* Segment & region management functions [rvm_map.c] */
 void init_map_roots(void);
@@ -1307,177 +1164,77 @@ region_t *find_whole_range(char *dest, rvm_length_t length,
                            rw_lock_mode_t mode);
 rvm_return_t rvm_map(rvm_region_t *rvm_region, rvm_options_t *rvm_options);
 
-/* segment dictionary functions */
-extern rvm_return_t enter_seg_dict(); /* [rvm_logrecovr.c] */
-/*  log_t           *log;
-    long            seg_code;
-*/
-extern rvm_return_t def_seg_dict(); /* [rvm_logrecovr.c] */
-/*  log_t           *log;
-    rec_hdr_t       *rec_hdr;
-*/
-/* I/O functions */
+/* segment dictionary functions [rvm_logrecovr.c] */
+rvm_return_t enter_seg_dict(log_t *log, long seg_code);
+rvm_return_t def_seg_dict(log_t *log, rec_hdr_t *rec_hdr);
 
-extern long open_dev(); /* [rvm_io.c] */
-/*  device_t        *dev;
-    long            flags;
-    long            mode;
-*/
-extern long close_dev(); /* [rvm_io.c] */
-/*  device_t        *dev; */
+/* I/O functions [rvm_io.c] */
+long open_dev(device_t *dev, long flags, long mode);
+long close_dev(device_t *dev);
+long read_dev(device_t *dev, rvm_offset_t *offset, char *dest,
+              rvm_length_t length);
+long write_dev(device_t *dev, rvm_offset_t *offset, char *src,
+               rvm_length_t length, rvm_bool_t no_sync);
+long sync_dev(device_t *dev);
+long gather_write_dev(device_t *dev, rvm_offset_t *offset);
 
-extern long read_dev(); /* [rvm_io.c] */
-/*  device_t        *dev;
-    rvm_offset_t    *offset;
-    char            *dest;
-    rvm_length_t    length;
-*/
-extern long write_dev(); /* [rvm_io.c] */
-/*  device_t        *dev;
-    rvm_offset_t    *offset;
-    char            *src;
-    rvm_length_t    length;
-    rvm_bool_t      no_sync;
-*/
-extern long sync_dev(); /* [rvm_io.c] */
-/*  device_t        *dev; */
+/* length is optional */
+long set_dev_char(device_t *dev, rvm_offset_t *dev_length);
 
-extern long gather_write_dev(); /* [rvm_io.c] */
-/*  device_t        *dev;
-    rvm_offset_t    *offset;
-    struct iovec    *iov;
-    rvm_length_t    iovcnt;
-*/
+/* read/write lock [rvm_utils.c] */
+void rw_lock(rw_lock_t *rwl, rw_lock_mode_t mode);
+void rw_unlock(rw_lock_t *rwl, rw_lock_mode_t mode);
+void init_rw_lock(rw_lock_t *rwl);
 
-/* length is optional [rvm_io.c] */
-extern long set_dev_char(device_t *dev, rvm_offset_t *dev_length);
+void init_tree_root(tree_root_t *root);
+tree_node_t *tree_lookup(tree_root_t *tree, tree_node_t *node, cmp_func_t *cmp);
+rvm_bool_t tree_insert(tree_root_t *tree, tree_node_t *node, cmp_func_t *cmp);
+rvm_bool_t tree_delete(tree_root_t *tree, tree_node_t *node, cmp_func_t *cmp);
+tree_node_t *init_tree_generator(tree_root_t *tree, rvm_bool_t direction,
+                                 rvm_bool_t unlink);
+tree_node_t *tree_iterate_insert(tree_root_t *tree, tree_node_t *node,
+                                 cmp_func_t *cmp);
+tree_node_t *tree_successor(tree_root_t *tree);
+tree_node_t *tree_predecessor(tree_root_t *tree);
 
-/* read/write lock */
-extern /* [rvm_utils.c] */
-    void
-    rw_lock();
-/*  rw_lock_t       *rwl;
-    rw_lock_mode_t  mode;
-*/
-extern /* [rvm_utils.c] */
-    void
-    rw_unlock();
-/*  rw_lock_t       *rwl;
-    rw_lock_mode_t  mode;
-*/
-extern /* [rvm_utils.c] */
-    void
-    init_rw_lock();
-/*  rw_lock_t       *rwl; */
-
-extern void init_tree_root(); /* [rvm_utils.c] */
-/*  tree_root_t     *root; */
-
-extern tree_node_t *tree_lookup(); /* [rvm_utils.c] */
-/*  tree_root_t     *tree;
-    tree_node_t     *node;
-    cmp_func_t      *cmp;
-*/
-extern rvm_bool_t tree_insert(); /* [rvm_utils.c] */
-/*  tree_root_t     *tree;
-    tree_node_t     *node;
-    cmp_func_t      *cmp;
-*/
-extern rvm_bool_t tree_delete(); /* [rvm_utils.c] */
-/*  tree_root_t     *tree;
-    tree_node_t     *node;
-    cmp_func_t      *cmp;
-*/
-extern tree_node_t *init_tree_generator(); /* [rvm_utils.c] */
-/*  tree_root_t     *tree;
-    rvm_bool_t      direction;
-    rvm_bool_t      unlink;
-*/
-extern tree_node_t *tree_iterate_insert(); /* [rvm_utils.c] */
-/*  tree_root_t     *tree;
-    tree_node_t     *node;
-    cmp_func_t      *cmp;
-*/
-extern tree_node_t *tree_successor(); /* [rvm_utils.c] */
-/*  tree_root_t     *tree;
-    rvm_bool_t      direction;
-*/
-extern tree_node_t *tree_predecessor(); /* [rvm_utils.c] */
-/*  tree_root_t     *tree;
-    rvm_bool_t      direction;
-*/
-/* initialization, query, and structure checkers */
-
-extern rvm_bool_t bad_init(); /* [rvm_init.c] */
+/* initialization, query, and structure checkers [rvm_init.c] */
+rvm_bool_t bad_init(void);
 
 /* [rvm_status.c] */
 rvm_return_t bad_options(rvm_options_t *rvm_options, rvm_bool_t chk_log_dev);
 rvm_return_t bad_statistics(rvm_statistics_t *rvm_statistics);
 
-extern rvm_return_t bad_region(); /* [rvm_map.c] */
-/*   rvm_region_t   *rvm_region; */
+/* [rvm_trans.c] */
+rvm_return_t bad_tid(rvm_tid_t *rvm_tid);
 
-extern rvm_return_t bad_tid(); /* [rvm_trans.c] */
-/*   rvm_tid_t      *rvm_tid; */
+/* [rvm_status.c] */
+rvm_return_t do_rvm_options(rvm_options_t *rvm_options);
 
-extern rvm_return_t do_rvm_options(); /* [rvm_status.c] */
-/*  rvm_options_t   *rvm_options; */
-/* make unique name */
-extern /* [rvm_utils.c] */
-    void
-    make_uname();
-/*  struct timeval  *time; */
-extern /* [rvm_utils.c] */
-    long
-    init_unames();
+/* make unique name [rvm_utils.c] */
+void make_uname(struct timeval *time);
+long init_unames(void);
 
-/* time value arithmetic */
-extern struct timeval add_times(); /* [rvm_utils.c] */
-/*  struct timeval  *x;
-    struct timeval  *y;
-*/
-extern struct timeval sub_times(); /* [rvm_utils.c] */
-/*  struct timeval  *x;
-    struct timeval  *y;
-*/
-extern long round_time(); /* [rvm_utils.c] */
-/*  struct timeval  *x; */
+/* time value arithmetic [rvm_utils.c] */
+struct timeval add_times(struct timeval *x, struct timeval *y);
+struct timeval sub_times(struct timeval *x, struct timeval *y);
+long round_time(struct timeval *x);
 
-/* statistics gathering functions */
-extern void enter_histogram(); /* [rvm_utils] */
-/*  long            val;
-    long            *histo;
-    long            *histo_def;
-    long            length;    
-*/
+/* statistics gathering functions [rvm_utils] */
+void enter_histogram(long val, rvm_length_t *histo, rvm_length_t *histo_def,
+                     long length);
 
-/* various initializers */
-extern void init_map_roots(); /* [rvm_map.c] */
+/* [rvm_utils.c] */
+long init_utils(void);
 
-extern long init_utils(); /* [rvm_utils.c] */
-
-/* check summing and byte-aligned copy and pad functions */
-extern rvm_length_t chk_sum(); /* rvm_utils.c */
-/*  char            *nvaddr;
-    rvm_length_t    len;
-*/
-extern void src_aligned_bcopy(); /* rvm_utils.c */
-/*  char            *src;
-    char            *dest;
-    rvm_length_t    len;
-*/
-extern void dest_aligned_bcopy(); /* rvm_utils.c */
-/*  char            *src;
-    char            *dest;
-    rvm_length_t    len;
-*/
+/* check summing and byte-aligned copy and pad functions [rvm_utils.c] */
+rvm_length_t chk_sum(char *nvaddr, rvm_length_t len);
+void src_aligned_bcopy(char *src, char *dest, rvm_length_t len);
+void dest_aligned_bcopy(char *src, char *dest, rvm_length_t len);
 
 /*  offset arithmetic */
-extern rvm_offset_t rvm_rnd_offset_to_sector(); /* [rvm_utils.c] */
-/*  rvm_offset_t    *x; */
+rvm_offset_t rvm_rnd_offset_to_sector(rvm_offset_t *x);
 
-/* debug support */
-extern void rvm_debug(); /* [rvm_debug] */
-/*  rvm_length_t    val; */
+/* debug support [rvm_debug] */
+void rvm_debug(rvm_length_t val);
 
 #endif /* _RVM_PRIVATE_ */

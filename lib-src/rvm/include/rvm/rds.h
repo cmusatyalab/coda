@@ -41,26 +41,24 @@ Coda are listed in the file CREDITS.
 
 /* Function definitions */
 
-extern int rds_zap_heap(char *DevName, rvm_offset_t DevLength, char *startAddr,
-                        rvm_length_t staticLength, rvm_length_t heapLength,
-                        unsigned long nlists, unsigned long chunkSize,
-                        int *err);
+int rds_zap_heap(char *DevName, rvm_offset_t DevLength, char *startAddr,
+                 rvm_length_t staticLength, rvm_length_t heapLength,
+                 unsigned long nlists, unsigned long chunkSize, int *err);
 
-extern int rds_init_heap(char *base, rvm_length_t length,
-                         unsigned long chunkSize, unsigned long nlists,
-                         rvm_tid_t *tid, int *err);
+int rds_init_heap(char *base, rvm_length_t length, unsigned long chunkSize,
+                  unsigned long nlists, rvm_tid_t *tid, int *err);
 
-extern int rds_load_heap(char *DevName, rvm_offset_t DevLength,
-                         char **staticAddr, int *err);
+int rds_load_heap(char *DevName, rvm_offset_t DevLength, char **staticAddr,
+                  int *err);
 
-extern int rds_start_heap(char *startAddr, int *err);
+int rds_start_heap(char *startAddr, int *err);
 
-extern int rds_prealloc(unsigned long size, unsigned long nblocks,
-                        rvm_tid_t *tid, int *err);
+int rds_prealloc(unsigned long size, unsigned long nblocks, rvm_tid_t *tid,
+                 int *err);
 
-extern char *rds_malloc(unsigned long size, rvm_tid_t *tid, int *err);
+char *rds_malloc(unsigned long size, rvm_tid_t *tid, int *err);
 
-extern int rds_free(char *addr, rvm_tid_t *tid, int *err);
+int rds_free(char *addr, rvm_tid_t *tid, int *err);
 
 int rds_maxblock(unsigned long size);
 
@@ -79,9 +77,9 @@ typedef struct intlist {
 
 #define STARTSIZE 128 /* Initial size of list, may grow over time */
 
-extern int rds_fake_free(char *addr, intentionList_t *list);
+int rds_fake_free(char *addr, intentionList_t *list);
 
-extern int rds_do_free(intentionList_t *list, rvm_mode_t mode);
+int rds_do_free(intentionList_t *list, rvm_mode_t mode);
 
 /* Heap statistics reporting */
 typedef struct {
@@ -100,15 +98,17 @@ typedef struct {
     unsigned mallocbytes; /* Bytes allocated */
 } rds_stats_t;
 
-extern int rds_print_stats();
-extern int rds_clear_stats(int *err);
-extern int rds_get_stats(rds_stats_t *stats);
+int rds_print_stats(void);
+int rds_clear_stats(int *err);
+int rds_get_stats(rds_stats_t *stats);
 
 extern int rds_tracing;
 extern FILE *rds_tracing_file;
-extern int rds_trace_on(FILE *);
-extern int rds_trace_off();
-extern int rds_trace_dump_heap();
+
+int rds_trace_on(FILE *);
+int rds_trace_off(void);
+int rds_trace_dump_heap(void);
+
 #define RDS_LOG(format, a...)                       \
     do {                                            \
         if (rds_tracing && rds_tracing_file) {      \

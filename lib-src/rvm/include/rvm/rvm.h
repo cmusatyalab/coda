@@ -123,9 +123,9 @@ typedef int rvm_return_t;
 #define rvm_last_code 227 /* internal use only */
 
 /* Enumeration type print name functions */
-extern char *rvm_return(rvm_return_t code);
-extern char *rvm_mode(rvm_mode_t mode);
-extern char *rvm_type(rvm_struct_id_t id);
+char *rvm_return(rvm_return_t code);
+char *rvm_mode(rvm_mode_t mode);
+char *rvm_type(rvm_struct_id_t id);
 
 /*  RVM basic length and offset types:
     these types are used throughout RVM to hide machine-dependent
@@ -262,12 +262,11 @@ typedef struct {
 
 /* rvm_tid_t initializer, copier & finalizer */
 
-extern rvm_tid_t *rvm_malloc_tid();
+rvm_tid_t *rvm_malloc_tid(void);
 
-extern void rvm_init_tid(rvm_tid_t *tid); /* pointer to record to initialize */
-extern rvm_tid_t *
-rvm_copy_tid(rvm_tid_t *tid); /* pointer to record to be copied */
-extern void rvm_free_tid(rvm_tid_t *tid); /* pointer to record to be copied */
+void rvm_init_tid(rvm_tid_t *tid); /* pointer to record to initialize */
+rvm_tid_t *rvm_copy_tid(rvm_tid_t *tid); /* pointer to record to be copied */
+void rvm_free_tid(rvm_tid_t *tid); /* pointer to record to be copied */
 
 /*  options descriptor:  rvm_options_t */
 typedef struct {
@@ -313,11 +312,11 @@ typedef struct {
 
 /* rvm_options_t initializer, copier & finalizer */
 
-extern rvm_options_t *rvm_malloc_options();
+rvm_options_t *rvm_malloc_options(void);
 
-extern void rvm_init_options(rvm_options_t *options);
-extern rvm_options_t *rvm_copy_options(rvm_options_t *options);
-extern void rvm_free_options(rvm_options_t *options);
+void rvm_init_options(rvm_options_t *options);
+rvm_options_t *rvm_copy_options(rvm_options_t *options);
+void rvm_free_options(rvm_options_t *options);
 
 /*  region descriptor: rvm_region_t */
 typedef struct {
@@ -333,11 +332,11 @@ typedef struct {
 } rvm_region_t;
 
 /* rvm_region_t allocator, initializer, copier & finalizer */
-extern rvm_region_t *rvm_malloc_region();
-extern void rvm_init_region(rvm_region_t *region);
+rvm_region_t *rvm_malloc_region(void);
+void rvm_init_region(rvm_region_t *region);
 /* note: copier copies pointers to the char arrays */
-extern rvm_region_t *rvm_copy_region(rvm_region_t *region);
-extern void rvm_free_region(rvm_region_t *region);
+rvm_region_t *rvm_copy_region(rvm_region_t *region);
+void rvm_free_region(rvm_region_t *region);
 
 /*
         Main Function Declarations
@@ -345,47 +344,46 @@ extern void rvm_free_region(rvm_region_t *region);
 
 /* RVM initialization: pass version and optional options
    descriptor */
-extern rvm_return_t rvm_initialize(const char *version, rvm_options_t *opts);
+rvm_return_t rvm_initialize(const char *version, rvm_options_t *opts);
 /* init macro */
 #define RVM_INIT(options) rvm_initialize(RVM_VERSION, (options))
 
 /* shutdown RVM */
-extern rvm_return_t rvm_terminate(void); /* no parameters */
+rvm_return_t rvm_terminate(void); /* no parameters */
 
 /* map recoverable storage */
-extern rvm_return_t
+rvm_return_t
 rvm_map(rvm_region_t *region, /* pointer to region descriptor */
         rvm_options_t *options /* optional ptr to option descriptor */
 );
 
 /* unmap recoverable storage */
-extern rvm_return_t rvm_unmap(rvm_region_t *region);
+rvm_return_t rvm_unmap(rvm_region_t *region);
 
 /* set RVM options */
-extern rvm_return_t rvm_set_options(rvm_options_t *options);
+rvm_return_t rvm_set_options(rvm_options_t *options);
 
 /* query RVM options */
-extern rvm_return_t
-rvm_query(rvm_options_t *options, /* address of pointer to option
-                                           descriptor [out] */
-          rvm_region_t *region /* optional pointer to region descriptor */
+rvm_return_t rvm_query(
+    rvm_options_t *options, /* address of pointer to option descriptor [out] */
+    rvm_region_t *region /* optional pointer to region descriptor */
 );
 
 /* begin a transaction */
-extern rvm_return_t
+rvm_return_t
 rvm_begin_transaction(rvm_tid_t *tid, /* pointer to transaction identifier */
                       rvm_mode_t mode /* transaction begin mode */
 );
 
 /* declare a modification region for a transaction */
-extern rvm_return_t
+rvm_return_t
 rvm_set_range(rvm_tid_t *tid, /* pointer to transaction identifier */
               void *dest, /* base address of modification range */
               rvm_length_t length /* length of modification range */
 );
 
 /* modification of a region for a transaction */
-extern rvm_return_t
+rvm_return_t
 rvm_modify_bytes(rvm_tid_t *tid, /* pointer to transaction identifier */
                  void *dest, /* base address of modification range */
                  const void *src, /* base address of source range */
@@ -393,24 +391,24 @@ rvm_modify_bytes(rvm_tid_t *tid, /* pointer to transaction identifier */
 );
 
 /* abort a transaction */
-extern rvm_return_t
+rvm_return_t
 rvm_abort_transaction(rvm_tid_t *tid /* pointer to transaction identifier */
 );
 
 /* commit a transaction */
-extern rvm_return_t
+rvm_return_t
 rvm_end_transaction(rvm_tid_t *tid, /* pointer to transaction identifier */
                     rvm_mode_t mode /* transaction commit mode */
 );
 
 /* flush log cache buffer to log device */
-extern rvm_return_t rvm_flush(); /* no parameters */
+rvm_return_t rvm_flush(void); /* no parameters */
 
 /* apply logged changes to segments and garbage collect the log device */
-extern rvm_return_t rvm_truncate(); /* no parameters */
+rvm_return_t rvm_truncate(void); /* no parameters */
 
 /* initialize log */
-extern rvm_return_t
+rvm_return_t
 rvm_create_log(rvm_options_t *rvm_options, /* ptr to options record */
                rvm_offset_t *log_len, /* length of log data area */
                long mode /* file creation protection mode */
@@ -424,19 +422,19 @@ rvm_create_log(rvm_options_t *rvm_options, /* ptr to options record */
    integer formats since their operations will be available in the
    native instruction set
 */
-extern rvm_offset_t rvm_mk_offset(rvm_length_t x, rvm_length_t y);
-extern rvm_offset_t rvm_add_offsets(rvm_offset_t *x, rvm_offset_t *y);
-extern rvm_offset_t rvm_add_length_to_offset(rvm_offset_t *offset,
-                                             rvm_length_t length);
-extern rvm_offset_t rvm_sub_offsets(rvm_offset_t *x, rvm_offset_t *y);
-extern rvm_offset_t rvm_sub_length_from_offset(rvm_offset_t *offset,
-                                               rvm_length_t length);
+rvm_offset_t rvm_mk_offset(rvm_length_t x, rvm_length_t y);
+rvm_offset_t rvm_add_offsets(rvm_offset_t *x, rvm_offset_t *y);
+rvm_offset_t rvm_add_length_to_offset(rvm_offset_t *offset,
+                                      rvm_length_t length);
+rvm_offset_t rvm_sub_offsets(rvm_offset_t *x, rvm_offset_t *y);
+rvm_offset_t rvm_sub_length_from_offset(rvm_offset_t *offset,
+                                        rvm_length_t length);
 
 /* private functions to support page rounding */
 
-extern rvm_length_t rvm_page_size();
-extern rvm_length_t rvm_page_mask();
-extern rvm_offset_t rvm_rnd_offset_up_to_page(rvm_offset_t *x);
-extern rvm_offset_t rvm_rnd_offset_dn_to_page(rvm_offset_t *x);
+rvm_length_t rvm_page_size();
+rvm_length_t rvm_page_mask();
+rvm_offset_t rvm_rnd_offset_up_to_page(rvm_offset_t *x);
+rvm_offset_t rvm_rnd_offset_dn_to_page(rvm_offset_t *x);
 
 #endif /* RVM_VERSION */

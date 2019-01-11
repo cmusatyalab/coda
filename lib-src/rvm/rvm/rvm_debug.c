@@ -45,7 +45,7 @@ extern long cache_type_sizes[NUM_CACHE_TYPES];
 
 /* main structures roots */
 extern list_entry_t seg_root; /* segment list */
-extern tree_node_t *region_tree; /* mapped regions tree */
+extern tree_root_t region_tree; /* mapped regions tree */
 extern list_entry_t page_list; /* free page list */
 extern list_entry_t log_root; /* log list */
 

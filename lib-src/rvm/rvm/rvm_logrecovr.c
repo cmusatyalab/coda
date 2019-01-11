@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -747,7 +747,7 @@ validate_rec_forward(log_t *log /* log descriptor */,
     rec_end_t *rec_end = NULL; /* temporary cast for record end */
     rvm_offset_t end_offset; /* temporary for caluculating end */
     rvm_return_t retval;
-    long tmp_ptr;
+    rvm_length_t tmp_ptr;
     rvm_length_t tmp_len;
 
     /* see if next header is entirely within buffer */
@@ -926,7 +926,7 @@ validate_rec_reverse(log_t *log /* log descriptor */,
     log_status_t *status = &log->status; /* status area */
     rec_end_t *rec_end   = NULL; /* temporary cast for record end */
     rec_hdr_t *rec_hdr; /* temporary cast for record header */
-    long tmp_ptr; /* temporary buffer ptr */
+    rvm_length_t tmp_ptr; /* temporary buffer ptr */
     rvm_length_t tmp_len;
     rvm_offset_t offset; /* temp for offset calculations */
     rvm_return_t retval;
@@ -1439,10 +1439,12 @@ rvm_return_t def_seg_dict(
 }
 
 /* change tree comparator for tree_insert */
-static long cmp_partial_include(dev_region_t *node1, dev_region_t *node2)
+static long cmp_partial_include(tree_node_t *node1, tree_node_t *node2)
 {
-    return dev_partial_include(&node1->offset, &node1->end_offset,
-                               &node2->offset, &node2->end_offset);
+    dev_region_t *region1 = (dev_region_t *)node1;
+    dev_region_t *region2 = (dev_region_t *)node2;
+    return dev_partial_include(&region1->offset, &region1->end_offset,
+                               &region2->offset, &region2->end_offset);
 }
 
 /* set length of change tree node from offsets */
@@ -1485,7 +1487,8 @@ change_tree_insert(seg_dict_t *seg_dict /* seg_dict for this nv */,
     assert((default_log->status.trunc_state & RVM_TRUNC_PHASES) ==
            RVM_TRUNC_BUILD_TREE);
 
-    if (tree_insert(&seg_dict->mod_tree, node, cmp_partial_include)) {
+    if (tree_insert(&seg_dict->mod_tree, &node->links.node,
+                    cmp_partial_include)) {
         if (rvm_chk_len != 0) /* do monitoring */
             monitor_vmaddr(node->vmaddr, node->length, node->nv_ptr,
                            &node->log_offset, NULL,
@@ -1758,8 +1761,8 @@ chk_wrap(log_t *log /* log descriptor */,
     trans_hdr_t last_trans_hdr; /* last transaction record header */
     trans_hdr_t *trans_hdr; /* header temporary */
     log_wrap_t *log_wrap; /* wrap-around marker */
-    long tmp_ptr; /* buffer index temp */
-    long data_len; /* length temporary */
+    rvm_length_t tmp_ptr; /* buffer index temp */
+    rvm_length_t data_len; /* length temporary */
     rvm_return_t retval; /* return value */
 
     *skip_trans = rvm_false;

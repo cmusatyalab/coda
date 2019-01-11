@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 5
+                              Release 7
 
-          Copyright (c) 1987-2010 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -155,8 +155,11 @@ static void restore_ov(int_tid_t *tid)
 }
 
 /* range tree comparator function for chronological order insertion */
-static long cmp_range_num(range_t *range1, range_t *range2)
+static long cmp_range_num(tree_node_t *node1, tree_node_t *node2)
 {
+    range_t *range1 = (range_t *)node1;
+    range_t *range2 = (range_t *)node2;
+
     /* compare range numbers */
     if (range1->nv.range_num > range2->nv.range_num)
         return 1;
@@ -188,7 +191,7 @@ add_new_range(int_tid_t *tid,
 
     /* insert range to transaction's range tree in order of arrival */
     new_range->nv.range_num = tid->range_tree.n_nodes + 1;
-    if (!tree_insert(&tid->range_tree, (tree_node_t *)new_range, cmp_range_num))
+    if (!tree_insert(&tid->range_tree, &new_range->links.node, cmp_range_num))
         assert(rvm_false);
 
     return RVM_SUCCESS;
@@ -197,8 +200,11 @@ add_new_range(int_tid_t *tid,
 /* range tree comparator for tree_insert by compound key:
    {region, segment displacement}
    adjacent nodes within region are considered equivalent */
-static long region_partial_include(range_t *range1, range_t *range2)
+static long region_partial_include(tree_node_t *node1, tree_node_t *node2)
 {
+    range_t *range1 = (range_t *)node1;
+    range_t *range2 = (range_t *)node2;
+
     /* compare displacements if in same region */
     if (range1->region == range2->region) {
         /* compare displacement within segment */
@@ -218,8 +224,11 @@ static long region_partial_include(range_t *range1, range_t *range2)
 /* range tree comparator for tree_insert by compound key:
    {segment, segment displacement}
    adjacent nodes within segment are considered equivalent */
-static long segment_partial_include(range_t *range1, range_t *range2)
+static long segment_partial_include(tree_node_t *node1, tree_node_t *node2)
 {
+    range_t *range1 = (range_t *)node1;
+    range_t *range2 = (range_t *)node2;
+
     /* compare displacements if in same segment */
     if (range1->nv.seg_code == range2->nv.seg_code) {
         /* compare displacement within segment */
@@ -252,10 +261,11 @@ find_overlap(int_tid_t *tid /* transaction descriptor to search */,
     *retval           = RVM_SUCCESS;
 
     /* try to insert, iterate on collision */
-    FROM_EXISTING_NODE_OF(tid->range_tree, range_t, range, new_range, *cmp_func)
+    FROM_EXISTING_NODE_OF(tid->range_tree, range_t, range,
+                          &new_range->links.node, *cmp_func)
     {
         /* see if out of region/segment or new_range */
-        if ((*cmp_func)(new_range, range) != 0)
+        if ((*cmp_func)(&new_range->links.node, &range->links.node) != 0)
             break;
 
         /* save overlaping/adjacent ranges */
@@ -327,7 +337,7 @@ merge_range(int_tid_t *tid, region_t *region,
     if (tid->x_ranges_len == 0) {
         if (TID(RESTORE_FLAG))
             if (save_ov(new_range) == NULL) {
-                if (!tree_delete(&tid->range_tree, new_range,
+                if (!tree_delete(&tid->range_tree, &new_range->links.node,
                                  region_partial_include))
                     assert(rvm_false);
                 free_range(new_range);
@@ -383,7 +393,7 @@ merge_range(int_tid_t *tid, region_t *region,
 
             /* kill replaced nodes in tree */
             if (i != 0) {
-                if (!tree_delete(&tid->range_tree, range,
+                if (!tree_delete(&tid->range_tree, &range->links.node,
                                  region_partial_include))
                     assert(rvm_false);
                 free_range(range);
@@ -682,7 +692,8 @@ static rvm_return_t merge_tid(int_tid_t *q_tid /* ptr to last queued tid */,
         range = q_tid->x_ranges[i];
         q_tid->log_size =
             RVM_SUB_LENGTH_FROM_OFFSET(q_tid->log_size, RANGE_SIZE(range));
-        if (!tree_delete(&q_tid->range_tree, range, segment_partial_include))
+        if (!tree_delete(&q_tid->range_tree, &range->links.node,
+                         segment_partial_include))
             assert(rvm_false);
         free_range(range);
     }

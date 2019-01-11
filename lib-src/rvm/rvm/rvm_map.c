@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 5
+                              Release 7
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -532,7 +532,7 @@ static rvm_return_t define_seg(log_t *log /* log descriptor */,
     log_seg->name_len  = name_len;
     (void)strcpy(log_seg->name, seg->dev.name);
     if ((retval = queue_special(log, special)) != RVM_SUCCESS)
-        free_log_special(log_seg);
+        free_log_special(special);
 
     return retval;
 }
@@ -590,7 +590,7 @@ build_seg(rvm_region_t *rvm_region /* segment's region descriptor */,
     /* put segment on segment list */
     RW_CRITICAL(seg_root_lock, w, /* begin seg_root_lock crit sec */
                 {
-                    (void)move_list_entry(NULL, &seg_root, seg);
+                    (void)move_list_entry(NULL, &seg_root, &seg->links);
                 }); /* end seg_root_lock crit sec */
     return seg;
 
@@ -692,7 +692,7 @@ find_whole_range(char *dest, rvm_length_t length,
     RW_CRITICAL(region_tree_lock, mode, /* begin region_tree_lock crit sect */
                 {
                     node = (mem_region_t *)tree_lookup(
-                        &region_tree, (tree_node_t *)&range, mem_total_include);
+                        &region_tree, &range.links.node, mem_total_include);
                     if (node != NULL) {
                         region = node->region;
                         if (region != NULL) { /* begin region_lock crit sect */

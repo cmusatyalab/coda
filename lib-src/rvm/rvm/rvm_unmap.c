@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 5
+                              Release 7
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -30,7 +30,7 @@ extern log_t *default_log; /* default log descriptor ptr */
 extern char *rvm_errmsg; /* internal error message buffer */
 
 extern rw_lock_t region_tree_lock; /* lock for region tree */
-extern tree_node_t *region_tree; /* root of mapped region tree */
+extern tree_root_t region_tree; /* root of mapped region tree */
 
 /* rvm_unmap */
 rvm_return_t rvm_unmap(rvm_region_t *rvm_region /* region to unmap */)
@@ -65,7 +65,7 @@ rvm_return_t rvm_unmap(rvm_region_t *rvm_region /* region to unmap */)
     }
 
     /* remove from region tree and unlock tree */
-    if (!tree_delete(&region_tree, (tree_node_t *)region->mem_region,
+    if (!tree_delete(&region_tree, &region->mem_region->links.node,
                      mem_total_include))
         assert(rvm_false); /* couldn't find node */
     rw_unlock(&region_tree_lock, w); /* end region_tree_lock crit sect */

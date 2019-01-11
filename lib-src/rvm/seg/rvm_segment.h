@@ -42,7 +42,7 @@ typedef struct {
 #define RVM_ESEGMENT_HDR 2000
 
 /* define regions within a segment for segement loader */
-extern rvm_return_t rvm_create_segment(
+rvm_return_t rvm_create_segment(
     char *DevName, /* pointer to data device name */
     rvm_offset_t DevLength, /* Length of dataDev if really a device */
     rvm_options_t *options, /* options record for RVM */
@@ -51,7 +51,7 @@ extern rvm_return_t rvm_create_segment(
 );
 
 /* load regions of a segment */
-extern rvm_return_t rvm_load_segment(
+rvm_return_t rvm_load_segment(
     char *DevName, /* pointer to data device name */
     rvm_offset_t DevLength, /* Length of dataDev if really a device */
     rvm_options_t *options, /* options record for RVM */

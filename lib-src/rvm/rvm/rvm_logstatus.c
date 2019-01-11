@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 5
+                              Release 7
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -109,7 +109,7 @@ void enter_log(log_t *log /* log descriptor */)
     assert(default_log == NULL);
 #endif /* RVM_LOG_TAIL_BUG */
     CRITICAL(log_root_lock, {
-        (void)move_list_entry(NULL, (list_entry_t *)&log_root, log);
+        (void)move_list_entry(NULL, &log_root, &log->links);
         if (default_log == NULL)
             default_log = log;
     });
@@ -668,7 +668,8 @@ rvm_return_t read_log_status(log_t *log /* log descriptor */,
         status_offset = &raw_status_offset;
     else
         status_offset = &file_status_offset;
-    if (read_dev(&log->dev, status_offset, dev_status, LOG_DEV_STATUS_SIZE) < 0)
+    if (read_dev(&log->dev, status_offset, (void *)dev_status,
+                 LOG_DEV_STATUS_SIZE) < 0)
         return RVM_EIO;
 
     /* save old checksum and compute new */
@@ -750,8 +751,8 @@ rvm_return_t write_log_status(log_t *log, device_t *dev /* optional device */)
         status_offset = &raw_status_offset;
     else
         status_offset = &file_status_offset;
-    if (write_dev(dev, status_offset, dev_status, LOG_DEV_STATUS_SIZE, SYNCH) <
-        0)
+    if (write_dev(dev, status_offset, (void *)dev_status, LOG_DEV_STATUS_SIZE,
+                  SYNCH) < 0)
         return RVM_EIO;
 
     return RVM_SUCCESS;

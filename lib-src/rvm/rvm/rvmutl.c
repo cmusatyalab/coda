@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -1997,7 +1997,7 @@ static void print_rec_hdr(FILE *out_stream /* output stream */,
 {
     fprintf(out_stream, "Record number: %7.1lu     Type: ", rec_hdr->rec_num);
     print_hdr_type(out_stream, rec_hdr);
-    if (!chk_hdr_sequence(log, rec_hdr))
+    if (!chk_hdr_sequence(log, rec_hdr, FORWARD))
         fprintf(out_stream, "\n ** Record number is out of sequence **");
     fprintf(out_stream, "\n\n");
 
@@ -2951,7 +2951,7 @@ static rvm_bool_t show_all(FILE *out_stream /* output stream */,
     putc('\n', out_stream);
     DO_FOREVER
     {
-        if ((retval = scan_forward(log)) != RVM_SUCCESS) {
+        if ((retval = scan_forward(log, NO_SYNCH)) != RVM_SUCCESS) {
             pr_rvm_error(err_stream, retval, "scanning log file");
             no_rec = rvm_true;
             return rvm_false;
@@ -3034,8 +3034,8 @@ static char *chk_aux_buf(rvm_offset_t *offset /* initial offset in file */,
                          rvm_length_t length /* printed line width */,
                          FILE *err_stream /* error output stream */)
 {
-    long ptr; /* ptr to aux_buf */
-    long len; /* length of data available */
+    rvm_length_t ptr; /* ptr to aux_buf */
+    rvm_length_t len; /* length of data available */
     rvm_return_t retval;
 
     DO_FOREVER
@@ -3797,7 +3797,7 @@ static rvm_bool_t do_set(void)
     rvm_offset_t *dest;
     rvm_offset_t offset;
     rvm_length_t len;
-    long key_index;
+    rvm_length_t key_index;
 
     /* scan key word(s) for destination */
     if (!scan_set_field(&dest, &len, &key_index))
@@ -4133,7 +4133,7 @@ static rvm_bool_t do_init_log(void)
         if (wrt_len > log_buf->length)
             wrt_len = log_buf->length;
 
-        if (write_dev(log_dev, &offset, buf, wrt_len, NO_SYNCH) < 0) {
+        if (write_dev(log_dev, &offset, (char *)buf, wrt_len, NO_SYNCH) < 0) {
             perror("? could not initialize log data area");
             exit(EXIT_FAILURE);
         }

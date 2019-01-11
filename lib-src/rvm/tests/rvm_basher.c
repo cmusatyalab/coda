@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -604,7 +604,7 @@ static void do_trans(block_t *block /* block descriptor */,
         range->size = finish - start + 1;
         if (range->size > max_mod_size)
             range->size = random() % max_mod_size;
-        move_list_ent(NULL, range_list, range);
+        move_list_ent(NULL, &range_list->links, &range->links);
 
         /* tell RVM */
         if ((ret = rvm_set_range(&tid, range->ptr, range->size)) !=
@@ -675,7 +675,7 @@ static void do_modify(int id /* thread id */)
 
     /* pick random number of transactions; modify block */
     n_trans = random() % max_trans;
-    init_list_head(&range_list);
+    init_list_head(&range_list.links);
 
     /* execute the transactions */
     while (n_trans-- >= 0) {
@@ -688,14 +688,14 @@ static void do_modify(int id /* thread id */)
         init_list_ent(&range->links);
         range->size = n_trans + 1;
         range->ptr  = NULL;
-        move_list_ent(NULL, &range_list, range);
+        move_list_ent(NULL, &range_list.links, &range->links);
         cthread_yield();
     }
 
     /* resum block and kill range list */
     block->chksum = check_sum(block->ptr, block->size);
     while (range_list.links.nextentry->is_header != rvm_true) {
-        range = (block_t *)move_list_ent(&range_list, NULL, NULL);
+        range = (block_t *)move_list_ent(&range_list.links, NULL, NULL);
         free(range);
     }
     /* put the block back on the allocated list */
