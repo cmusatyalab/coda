@@ -16,9 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
 /*
  * bitmap.c 
  * Created Feb 13, 1992	-- Puneet Kumar
@@ -45,7 +42,7 @@ extern "C" {
 #include "util.h"
 #include "rvmlib.h"
 #include "bitmap.h"
-extern char* hex(long, int =0);
+extern char *hex(long, int = 0);
 
 void *bitmap::operator new(size_t size, int recable)
 {
@@ -54,12 +51,11 @@ void *bitmap::operator new(size_t size, int recable)
     if (recable) {
         x = (bitmap *)rvmlib_rec_malloc(sizeof(bitmap));
         CODA_ASSERT(x);
-    }
-    else {
-        x = (bitmap *) malloc(sizeof(bitmap));
+    } else {
+        x = (bitmap *)malloc(sizeof(bitmap));
         CODA_ASSERT(x);
     }
-    
+
     /* GROSS HACK BELOW; if this object was born via new, we
        are confident malloced is set.  But if object was
        allocated on stack, malloced is undefined.  We rely
@@ -72,13 +68,13 @@ void *bitmap::operator new(size_t size, int recable)
        Satya, 2/95
        
     */
-    x->malloced = BITMAP_VIANEW;  
-    return(x);
+    x->malloced = BITMAP_VIANEW;
+    return (x);
 }
 
 void bitmap::operator delete(void *ptr)
 {
-    bitmap * x = (bitmap *) ptr;
+    bitmap *x = (bitmap *)ptr;
 
     if (x->malloced == BITMAP_VIANEW) {
         if (x->recoverable)
@@ -90,15 +86,17 @@ void bitmap::operator delete(void *ptr)
 
 bitmap::bitmap(int inputmapsize, int recable)
 {
-
-    CODA_ASSERT(malloced != BITMAP_NOTVIANEW); /* ensure malloced is undefined if via stack! */
-    if (malloced != BITMAP_VIANEW) malloced = BITMAP_NOTVIANEW; /* infer I must be on the stack */
+    CODA_ASSERT(
+        malloced !=
+        BITMAP_NOTVIANEW); /* ensure malloced is undefined if via stack! */
+    if (malloced != BITMAP_VIANEW)
+        malloced = BITMAP_NOTVIANEW; /* infer I must be on the stack */
     /* From this point on, malloced is definitely defined */
 
     recoverable = recable;
     if (recoverable)
         rvmlib_set_range(this, sizeof(bitmap));
-        
+
     if (inputmapsize > 0) {
         /* make sure we allocate enough even if inputmapsize is not multiple of 8 */
         mapsize = (inputmapsize + 7) >> 3;
@@ -113,7 +111,7 @@ bitmap::bitmap(int inputmapsize, int recable)
         memset(map, 0, mapsize);
     } else {
         mapsize = 0;
-        map = NULL;
+        map     = NULL;
     }
 }
 
@@ -131,7 +129,7 @@ bitmap::~bitmap()
         if (map)
             delete[] map;
     }
-    map = NULL;
+    map     = NULL;
     mapsize = 0;
 }
 
@@ -139,7 +137,7 @@ void bitmap::Resize(int newsize)
 {
     /* make sure we allocate enough even if newsize is not multiple of 8 */
     int newmapsize = (newsize + 7) >> 3;
-    char *newmap = NULL;
+    char *newmap   = NULL;
 
     if (!newmapsize) {
         newmapsize++;
@@ -161,11 +159,9 @@ void bitmap::Resize(int newsize)
 
         /* If zero size leave clean */
         if (newsize) {
-            if (newmapsize < mapsize)
-            { /* If it's shrinking */
+            if (newmapsize < mapsize) { /* If it's shrinking */
                 memcpy(newmap, map, newmapsize);
-            } else
-            { /* If it's growing */
+            } else { /* If it's growing */
                 memcpy(newmap, map, mapsize);
             }
         }
@@ -180,19 +176,21 @@ void bitmap::Resize(int newsize)
         rvmlib_set_range(this, sizeof(bitmap));
 
     mapsize = newmapsize;
-    map = newmap;
+    map     = newmap;
 }
 
 void bitmap::Grow(int newsize)
 {
-    if (newsize < (mapsize << 3)) return;
+    if (newsize < (mapsize << 3))
+        return;
     Resize(newsize);
 }
 
 int bitmap::GetFreeIndex()
 {
     int j = 0;
-    if (!map) return(-1);
+    if (!map)
+        return (-1);
     for (int offset = 0; offset < mapsize; offset++) {
         if ((~map[offset]) & ALLOCMASK) {
             /* atleast one bit is zero */
@@ -208,41 +206,44 @@ int bitmap::GetFreeIndex()
                 }
             }
             CODA_ASSERT(j < 8);
-            return((offset << 3) + j);
+            return ((offset << 3) + j);
         }
     }
-    return(-1);		/* no free slot */
+    return (-1); /* no free slot */
 }
 
 void bitmap::SetValue(int index, int value)
 {
-    int offset = index >> 3;	/* the byte offset into bitmap */
+    int offset    = index >> 3; /* the byte offset into bitmap */
     int bitoffset = index & 7;
-    int mask = (1 << (7 - bitoffset));
+    int mask      = (1 << (7 - bitoffset));
     CODA_ASSERT(offset < mapsize);
 
-    if (!map) return;
+    if (!map)
+        return;
 
-    if (recoverable) rvmlib_set_range(&map[offset], sizeof(char));
+    if (recoverable)
+        rvmlib_set_range(&map[offset], sizeof(char));
 
     /* make sure bit is not set */
     if (value) {
         map[offset] |= mask;
-    } else  {
+    } else {
         map[offset] &= ~mask;
     }
 }
 
-void bitmap::CopyRange(int start, int len, bitmap& b)
+void bitmap::CopyRange(int start, int len, bitmap &b)
 {
-    int bit_end = len < 0 ? mapsize - 1 : start + len;
+    int bit_end    = len < 0 ? mapsize - 1 : start + len;
     int byte_start = start;
-    int byte_end = bit_end;
+    int byte_end   = bit_end;
 
-    if (!map) return;
+    if (!map)
+        return;
 
     byte_start = (byte_start + 0x7) & ~0x7;
-    byte_end = byte_end & ~0x7;
+    byte_end   = byte_end & ~0x7;
 
     if (byte_start >= byte_end) {
         for (int i = start; i < bit_end; i++) {
@@ -252,7 +253,7 @@ void bitmap::CopyRange(int start, int len, bitmap& b)
     }
 
     byte_start = byte_start >> 3;
-    byte_end = byte_end >> 3;
+    byte_end   = byte_end >> 3;
 
     memcpy(&b.map[byte_start], &map[byte_start], byte_end - byte_start);
 
@@ -267,14 +268,15 @@ void bitmap::CopyRange(int start, int len, bitmap& b)
 
 void bitmap::SetRangeValue(int start, int len, int value)
 {
-    int bit_end = len < 0 ? mapsize - 1 : start + len;
+    int bit_end    = len < 0 ? mapsize - 1 : start + len;
     int byte_start = start;
-    int byte_end = bit_end;
+    int byte_end   = bit_end;
 
-    if (!map) return;
+    if (!map)
+        return;
 
     byte_start = (byte_start + 0x7) & ~0x7;
-    byte_end = byte_end & ~0x7;
+    byte_end   = byte_end & ~0x7;
 
     if (byte_start >= byte_end) {
         for (int i = start; i < bit_end; i++) {
@@ -284,7 +286,7 @@ void bitmap::SetRangeValue(int start, int len, int value)
     }
 
     byte_start = byte_start >> 3;
-    byte_end = byte_end >> 3;
+    byte_end   = byte_end >> 3;
 
     memset(&map[byte_start], value, byte_end - byte_start);
 
@@ -319,31 +321,34 @@ void bitmap::FreeRange(int start, int len)
 
 int bitmap::Value(int index)
 {
-    int offset = index >> 3;
+    int offset    = index >> 3;
     int bitoffset = index & 7;
-    
+
     if (offset >= mapsize)
         return -1;
 
-    if (!map) return 0;
+    if (!map)
+        return 0;
 
-    return(map[offset] & (1 << (7 - bitoffset)));
+    return (map[offset] & (1 << (7 - bitoffset)));
 }
 
 int bitmap::Count()
 {
     int count = 0;
-    if (!map) return 0;
-    for (int i = 0; i < mapsize; i++) 
+    if (!map)
+        return 0;
+    for (int i = 0; i < mapsize; i++)
         for (int j = 0; j < 8; j++)
             if (map[i] & (1 << j))
                 count++;
-    return(count);
+    return (count);
 }
 
 int bitmap::Size()
 {
-    if (!map) return 0;
+    if (!map)
+        return 0;
     return (mapsize << 3);
 }
 
@@ -356,11 +361,11 @@ void bitmap::purge()
         if (map)
             delete[] map;
     }
-    map = NULL;
+    map     = NULL;
     mapsize = 0;
 }
 
-void bitmap::operator=(bitmap& b)
+void bitmap::operator=(bitmap &b)
 {
     if (mapsize != b.mapsize) {
         /* deallocate existing map entry */
@@ -393,18 +398,21 @@ void bitmap::operator=(bitmap& b)
     memcpy(map, b.map, mapsize);
 }
 
-int bitmap::operator!=(bitmap& b)
+int bitmap::operator!=(bitmap &b)
 {
     if (mapsize != b.mapsize)
         return (1);
 
-    if (!map) return (1);
-    if (!b.map) return (1);
+    if (!map)
+        return (1);
+    if (!b.map)
+        return (1);
 
     for (int i = 0; i < mapsize; i++)
-        if (map[i] != b.map[i]) return(1);
+        if (map[i] != b.map[i])
+            return (1);
 
-    return(0);
+    return (0);
 }
 
 void bitmap::print()
@@ -423,9 +431,9 @@ void bitmap::print(int fd)
     sprintf(buf, "mapsize %d\n map:\n", mapsize);
     write(fd, buf, strlen(buf));
     for (int i = 0; i < mapsize; i++) {
-        unsigned long l = (unsigned long) map[i];
-        l = l & 0x000000ff;
-        sprintf(buf, "0x%lx ",l);
+        unsigned long l = (unsigned long)map[i];
+        l               = l & 0x000000ff;
+        sprintf(buf, "0x%lx ", l);
         write(fd, buf, strlen(buf));
     }
     sprintf(buf, "\n");
@@ -433,7 +441,7 @@ void bitmap::print(int fd)
 }
 
 #ifdef notdef
-ostream &operator<<(ostream& s, bitmap *b)
+ostream &operator<<(ostream &s, bitmap *b)
 {
     s << "mapsize = " << b->mapsize << '\n';
     s << "bitmap = ";
@@ -442,6 +450,6 @@ ostream &operator<<(ostream& s, bitmap *b)
         s << hex(l, 2);
     }
     s << '\n';
-    return(s);
+    return (s);
 }
 #endif

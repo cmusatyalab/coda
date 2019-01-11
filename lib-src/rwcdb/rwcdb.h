@@ -35,7 +35,6 @@ struct rwcdb {
     struct dllist_head added[256];
 };
 
-
 int rwcdb_init(struct rwcdb *c, const char *file, const int mode);
 int rwcdb_free(struct rwcdb *c);
 int rwcdb_find(struct rwcdb *c, const char *k, const uint32_t klen);
@@ -45,12 +44,12 @@ int rwcdb_read(struct rwcdb *c, char *d, const uint32_t dlen,
                const uint32_t dpos);
 
 int rwcdb_next(struct rwcdb *c, int init);
-#define rwcdb_keylen(c)  ((c)->klen)
+#define rwcdb_keylen(c) ((c)->klen)
 int rwcdb_readkey(struct rwcdb *c, char *k, const uint32_t klen,
                   const uint32_t dpos);
 
 int rwcdb_insert(struct rwcdb *c, const char *k, const uint32_t klen,
-                  const char *d, const uint32_t dlen);
+                 const char *d, const uint32_t dlen);
 int rwcdb_delete(struct rwcdb *c, const char *k, const uint32_t klen);
 
 int rwcdb_sync(struct rwcdb *c);

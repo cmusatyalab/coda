@@ -34,8 +34,8 @@ extern "C" {
 }
 #endif
 
-#define ALLOCMASK	255
-#define HIGHBIT		128
+#define ALLOCMASK 255
+#define HIGHBIT 128
 /* Bitmap for keeping status of N elements of an array.
  * The class keeps an array of size = 1/8th N
  * Each elements status is stored in a bit
@@ -44,15 +44,15 @@ extern "C" {
  */
 
 /* Values of bitmap::malloced; must be 8 bits so can't use enums */
-#define BITMAP_NOTVIANEW 193  /* must be on stack */
-#define BITMAP_VIANEW 221     /* on heap, via operator new */
+#define BITMAP_NOTVIANEW 193 /* must be on stack */
+#define BITMAP_VIANEW 221 /* on heap, via operator new */
 
 class bitmap {
-//  friend ostream& operator<<(ostream& s, bitmap *b);
-    uint8_t recoverable;	/* is this bitmap recoverable */
-    uint8_t malloced;           /* was bitmap allocated via new? */
-    int mapsize;		/* 1/8 size of array of elements */
-    char *map;			/* bitmap showing status of the elements */
+    //  friend ostream& operator<<(ostream& s, bitmap *b);
+    uint8_t recoverable; /* is this bitmap recoverable */
+    uint8_t malloced; /* was bitmap allocated via new? */
+    int mapsize; /* 1/8 size of array of elements */
+    char *map; /* bitmap showing status of the elements */
 
     /**
      * Set the value of a bit at an index
@@ -80,7 +80,7 @@ public:
      *
      * @return pointer to the new allocated object
      */
-    void *operator new (size_t size, int recable = 0);
+    void *operator new(size_t size, int recable = 0);
 
     /**
      * Delete operator overloading
@@ -161,7 +161,7 @@ public:
      * @param len    length of the range
      * @param b      output bitmap
      */
-    void CopyRange(int start, int len, bitmap& b);
+    void CopyRange(int start, int len, bitmap &b);
 
     /**
      * Get the bit's value at a particular index
@@ -195,7 +195,7 @@ public:
      *
      * @param b  input bitmap
      */
-    void operator =(bitmap& b);
+    void operator=(bitmap &b);
 
     /**
      * Test for inequality
@@ -203,7 +203,7 @@ public:
      * @param b  input bitmap
      * @return 0 if both bitmaps are unequal and 1 otherwise
      */
-    int operator !=(bitmap& b); // test for inequality
+    int operator!=(bitmap &b); // test for inequality
 
     /**
      * Print the bitmap's content to stderr

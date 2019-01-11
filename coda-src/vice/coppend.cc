@@ -16,7 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -38,80 +37,85 @@ extern "C" {
 #include <srv.h>
 #include "coppend.h"
 
-const int CPTIMEOUT = 900; 	/* seconds */
+const int CPTIMEOUT       = 900; /* seconds */
 const int cpman_stacksize = 8192;
 
 cpman *CopPendingMan;
 
-void InitCopPendingTable() {
+void InitCopPendingTable()
+{
     CopPendingMan = new cpman("Cop Pending Manager");
 }
 
-void AddToCopPendingTable(ViceStoreId *stid, ViceFid *fids) {
+void AddToCopPendingTable(ViceStoreId *stid, ViceFid *fids)
+{
     CopPendingMan->add(new cpent(stid, fids));
 }
 
-void AddPairToCopPendingTable(ViceStoreId *sid, ViceFid *fid) {
+void AddPairToCopPendingTable(ViceStoreId *sid, ViceFid *fid)
+{
     int i;
     cpent *cpe = CopPendingMan->find(sid);
     if (cpe) {
-	int found = 0;
-	for (i = 0; i < MAXFIDS; i++) {
-	    if (FID_EQ(&cpe->fids[i], &NullFid))
-		break;
-	    if (FID_EQ(&cpe->fids[i], fid)) {
-		found = 1;
-		break;
-	    }
-	}
-	if (!found) {
-	    CODA_ASSERT(i < MAXFIDS);
-	    cpe->fids[i] = *fid;
-	}
-    }
-    else {
-	ViceFid fids[MAXFIDS];
-	memset((void *)fids, 0, (int) (MAXFIDS * sizeof(ViceFid)));
-	fids[0] = *fid;
-	CopPendingMan->add(new cpent(sid, fids));
+        int found = 0;
+        for (i = 0; i < MAXFIDS; i++) {
+            if (FID_EQ(&cpe->fids[i], &NullFid))
+                break;
+            if (FID_EQ(&cpe->fids[i], fid)) {
+                found = 1;
+                break;
+            }
+        }
+        if (!found) {
+            CODA_ASSERT(i < MAXFIDS);
+            cpe->fids[i] = *fid;
+        }
+    } else {
+        ViceFid fids[MAXFIDS];
+        memset((void *)fids, 0, (int)(MAXFIDS * sizeof(ViceFid)));
+        fids[0] = *fid;
+        CopPendingMan->add(new cpent(sid, fids));
     }
 }
 
-cpent::cpent(ViceStoreId *sid, ViceFid *fidp) {
+cpent::cpent(ViceStoreId *sid, ViceFid *fidp)
+{
     StoreId = *sid;
     for (int i = 0; i < MAXFIDS; i++)
-	fids[i] = fidp[i];
-    time = ::time(0);
+        fids[i] = fidp[i];
+    time   = ::time(0);
     deqing = 0;
-    id = CPENTMAGIC;
+    id     = CPENTMAGIC;
 }
-cpent::~cpent() {
+cpent::~cpent()
+{
     if (id != CPENTMAGIC) {
-	LogMsg(0, SrvDebugLevel, stdout,
-	       "~cpent: id is not CPENTMAGIC but %d\n",
-	       id);
-	CODA_ASSERT(0);
+        LogMsg(0, SrvDebugLevel, stdout,
+               "~cpent: id is not CPENTMAGIC but %d\n", id);
+        CODA_ASSERT(0);
     }
     id = 0;
 }
 
-void cpent::print() {
+void cpent::print()
+{
     print(stdout);
 }
 
-void cpent::print(FILE *fp) {
+void cpent::print(FILE *fp)
+{
     fflush(fp);
     print(fileno(fp));
 }
 
-void cpent::print(int fd) {
+void cpent::print(int fd)
+{
     char buf[80];
 
-    sprintf(buf, "StoreId = (%x.%x), time = %ld, deqing = %d\n",
-	     StoreId.HostId, StoreId.Uniquifier, time, deqing);
+    sprintf(buf, "StoreId = (%x.%x), time = %ld, deqing = %d\n", StoreId.HostId,
+            StoreId.Uniquifier, time, deqing);
 
     write(fd, buf, (int)strlen(buf));
-
 }
 
 intptr_t coppendhashfn(void *a)
@@ -126,90 +130,92 @@ void cpman_func(void *arg)
     cpm->func(0);
 }
 
-cpman::cpman(const char *n): objects(COPHASHSIZE, coppendhashfn)
+cpman::cpman(const char *n)
+    : objects(COPHASHSIZE, coppendhashfn)
 {
     name = new char[strlen(n) + 1];
     strcpy(name, n);
     Lock_Init(&lock);
-    LWP_CreateProcess(&cpman_func, cpman_stacksize, LWP_NORMAL_PRIORITY,
-		      this, name, &pid);
+    LWP_CreateProcess(&cpman_func, cpman_stacksize, LWP_NORMAL_PRIORITY, this,
+                      name, &pid);
 }
 
-cpman::~cpman() {
-    delete [] name;
+cpman::~cpman()
+{
+    delete[] name;
     LWP_DestroyProcess(pid);
 }
 
-const int CPINTERVAL = 60; 	/* seconds */
+const int CPINTERVAL = 60; /* seconds */
 void cpman::func(int parm)
 {
     /* parm is currently not used. */
     for (;;) {
-	long currtime = time(0);
-	ObtainWriteLock(&lock);
+        long currtime = time(0);
+        ObtainWriteLock(&lock);
 
-	cpent *cpe = (cpent *)objects.first();
-	if (cpe && (cpe->time + CPTIMEOUT <= currtime) && !cpe->deqing) {
-	    if (SrvDebugLevel >= 1) {
-		LogMsg(1, SrvDebugLevel, stdout,  "StoreId = (%x.%x)",
-			cpe->StoreId.HostId, cpe->StoreId.Uniquifier);
-		for (int i = 0; i < MAXFIDS; i++)
-		    if (!FID_EQ(&cpe->fids[i], &NullFid))
-			LogMsg(1, SrvDebugLevel, stdout,  ", fids[%d] = %s",
-				i, FID_(&cpe->fids[i]));
-		LogMsg(1, SrvDebugLevel, stdout,  ", expired on BusyQueue");
-	    }
-	    
-	    objects.remove((void *)&cpe->StoreId, (olink *)cpe);
-	    delete cpe;
-	}
-    
+        cpent *cpe = (cpent *)objects.first();
+        if (cpe && (cpe->time + CPTIMEOUT <= currtime) && !cpe->deqing) {
+            if (SrvDebugLevel >= 1) {
+                LogMsg(1, SrvDebugLevel, stdout, "StoreId = (%x.%x)",
+                       cpe->StoreId.HostId, cpe->StoreId.Uniquifier);
+                for (int i = 0; i < MAXFIDS; i++)
+                    if (!FID_EQ(&cpe->fids[i], &NullFid))
+                        LogMsg(1, SrvDebugLevel, stdout, ", fids[%d] = %s", i,
+                               FID_(&cpe->fids[i]));
+                LogMsg(1, SrvDebugLevel, stdout, ", expired on BusyQueue");
+            }
 
-	ReleaseWriteLock(&lock);
+            objects.remove((void *)&cpe->StoreId, (olink *)cpe);
+            delete cpe;
+        }
 
-	if (SrvDebugLevel >= 9)
-	    print();
-       
-	VSLEEP(CPINTERVAL);
+        ReleaseWriteLock(&lock);
+
+        if (SrvDebugLevel >= 9)
+            print();
+
+        VSLEEP(CPINTERVAL);
     }
 }
 
 /* Insert entry into table */
-void cpman::add(cpent *cpe) {
+void cpman::add(cpent *cpe)
+{
     ObtainWriteLock(&lock);
-    LogMsg(9, SrvDebugLevel, stdout,  "StoreId = (0x%x.%x)", 
-	    cpe->StoreId.HostId, cpe->StoreId.Uniquifier);
-    for (int i = 0; i < MAXFIDS; i++) 
-	    if (!FID_EQ(&cpe->fids[i], &NullFid))
-		    LogMsg(9, SrvDebugLevel, stdout,  ", fids[%d] = %s",
-			   i, FID_(&cpe->fids[i]));
-    LogMsg(9, SrvDebugLevel, stdout,  ", added to BusyQueue");
-    
+    LogMsg(9, SrvDebugLevel, stdout, "StoreId = (0x%x.%x)", cpe->StoreId.HostId,
+           cpe->StoreId.Uniquifier);
+    for (int i = 0; i < MAXFIDS; i++)
+        if (!FID_EQ(&cpe->fids[i], &NullFid))
+            LogMsg(9, SrvDebugLevel, stdout, ", fids[%d] = %s", i,
+                   FID_(&cpe->fids[i]));
+    LogMsg(9, SrvDebugLevel, stdout, ", added to BusyQueue");
+
     objects.append(&cpe->StoreId, cpe);
     ReleaseWriteLock(&lock);
 }
 
-
-void cpman::remove(cpent *cpe) 
+void cpman::remove(cpent *cpe)
 {
     ObtainWriteLock(&lock);
     objects.remove(&cpe->StoreId, cpe);
     ReleaseWriteLock(&lock);
 }
 
-cpent *cpman::find(ViceStoreId *StoreId) {
+cpent *cpman::find(ViceStoreId *StoreId)
+{
     ObtainReadLock(&lock);
 
     ohashtab_iterator next(objects, StoreId);
     cpent *cpe;
-    while((cpe = (cpent *)next()))
-	if (cpe->StoreId.HostId == StoreId->HostId &&
-	    cpe->StoreId.Uniquifier == StoreId->Uniquifier) {
-	    ReleaseReadLock(&lock);
-	    return(cpe);
-	}
+    while ((cpe = (cpent *)next()))
+        if (cpe->StoreId.HostId == StoreId->HostId &&
+            cpe->StoreId.Uniquifier == StoreId->Uniquifier) {
+            ReleaseReadLock(&lock);
+            return (cpe);
+        }
     ReleaseReadLock(&lock);
-    return(0);
+    return (0);
 }
 
 /*
@@ -231,40 +237,43 @@ cpent *cpman::find(ViceFid *fid) {
     return(0);
 }
 */
-cpent *cpman::findanddeq(ViceStoreId *StoreId) {
+cpent *cpman::findanddeq(ViceStoreId *StoreId)
+{
     ObtainReadLock(&lock);
     ohashtab_iterator next(objects, StoreId);
     cpent *cpe;
 
-    while ((cpe = (cpent *)next()) )
-	if (cpe->StoreId.HostId == StoreId->HostId &&
-	    cpe->StoreId.Uniquifier == StoreId->Uniquifier)
-	    break;
+    while ((cpe = (cpent *)next()))
+        if (cpe->StoreId.HostId == StoreId->HostId &&
+            cpe->StoreId.Uniquifier == StoreId->Uniquifier)
+            break;
     if (!cpe) {
-	ReleaseReadLock(&lock);
-	return(0);
+        ReleaseReadLock(&lock);
+        return (0);
     }
     if (cpe->deqing) {
-	LogMsg(0, SrvDebugLevel, stdout, 
-	       "****** WARNING entry at 0x%x already has deqing set!\n",
-	       this);
-	ReleaseReadLock(&lock);
-	return(0);
+        LogMsg(0, SrvDebugLevel, stdout,
+               "****** WARNING entry at 0x%x already has deqing set!\n", this);
+        ReleaseReadLock(&lock);
+        return (0);
     }
     cpe->deqing = 1;
     ReleaseReadLock(&lock);
-    return(cpe);
+    return (cpe);
 }
 
-void cpman::print() {
+void cpman::print()
+{
     print(stdout);
 }
-void cpman::print(FILE *fp) {
+void cpman::print(FILE *fp)
+{
     fflush(fp);
     print(fileno(fp));
 }
 
-void cpman::print(int fd) {
+void cpman::print(int fd)
+{
     ObtainReadLock(&lock);
     char buf[40];
     sprintf(buf, "%p : %-16s\n", this, name);
@@ -272,9 +281,8 @@ void cpman::print(int fd) {
 
     ohashtab_iterator next(objects);
     cpent *cpe;
-    while ((cpe = (cpent *)next())) cpe->print(fd);
+    while ((cpe = (cpent *)next()))
+        cpe->print(fd);
 
     ReleaseReadLock(&lock);
 }
-
-

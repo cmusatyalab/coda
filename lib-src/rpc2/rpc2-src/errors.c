@@ -25,13 +25,14 @@ Coda are listed in the file CREDITS.
 int RPC2_R2SError(int rpc2_err)
 {
     int sys_err;
-    if (rpc2_err <= 0) return rpc2_err;
+    if (rpc2_err <= 0)
+        return rpc2_err;
 
     switch (rpc2_err) {
 #include <switchc2s.h>
     default:
-	fprintf(stderr, "Unknown translation for rpc2 error %d\n", rpc2_err);
-	sys_err = 4711;
+        fprintf(stderr, "Unknown translation for rpc2 error %d\n", rpc2_err);
+        sys_err = 4711;
     }
     return sys_err;
 }
@@ -40,13 +41,14 @@ int RPC2_R2SError(int rpc2_err)
 int RPC2_S2RError(int sys_err)
 {
     int rpc2_err;
-    if ( sys_err <= 0 ) return sys_err;
+    if (sys_err <= 0)
+        return sys_err;
 
     switch (sys_err) {
 #include <switchs2c.h>
     default:
-	fprintf(stderr, "Unknown translation for system errno %d\n", sys_err);
-	rpc2_err = 4711;
+        fprintf(stderr, "Unknown translation for system errno %d\n", sys_err);
+        rpc2_err = 4711;
     }
     return rpc2_err;
 }
@@ -57,8 +59,11 @@ const char *cerror(int err)
 
     switch (err) {
 #include <switchs2e.h>
-    case 0: txt = "Success"; break;
-    default: txt = "Unknown error!";
+    case 0:
+        txt = "Success";
+        break;
+    default:
+        txt = "Unknown error!";
     }
     return txt;
 }

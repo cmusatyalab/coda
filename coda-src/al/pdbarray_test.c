@@ -5,7 +5,7 @@ void print_array(pdb_array *a)
     int i, n = pdb_array_size(a);
     printf("[ ");
     for (i = 0; i < n; i++)
-	printf("%d ", a->data[i]);
+        printf("%d ", a->data[i]);
     printf("]\n");
 }
 
@@ -42,4 +42,3 @@ int main(int argc, char *argv[])
 
     pdb_array_free(&a);
 }
-

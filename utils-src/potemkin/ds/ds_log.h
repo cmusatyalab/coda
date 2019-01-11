@@ -10,7 +10,6 @@
  * ds_log.h: public interface to the logging data structure
  */
 
-
 /* 
  * An abstract log:
  *     A log consists of the following abstract entities:
@@ -33,23 +32,20 @@
  * the same stream.  These routines are not thread safe.
  */
 
-typedef struct ds_log_t ds_log_t;  /* logs are opaque */
+typedef struct ds_log_t ds_log_t; /* logs are opaque */
 
 /*** Observers ***/
 
-extern bool
-ds_log_valid(ds_log_t *lp);
+extern bool ds_log_valid(ds_log_t *lp);
 
 /*** Mutators ***/
 
-extern ds_log_t *
-ds_log_create(int loglevel, FILE *fp, int flushlevel, char *name);
+extern ds_log_t *ds_log_create(int loglevel, FILE *fp, int flushlevel,
+                               char *name);
 
-extern FILE *
-ds_log_destroy(ds_log_t *lp);
+extern FILE *ds_log_destroy(ds_log_t *lp);
 
-extern void
-ds_log_setlevel(ds_log_t *lp, int level);
+extern void ds_log_setlevel(ds_log_t *lp, int level);
 
 /* 
  * printmsg appends a newline: you don't need one.
@@ -57,13 +53,11 @@ ds_log_setlevel(ds_log_t *lp, int level);
  * instead;
  */
 
-extern void
-ds_log_printmsg(ds_log_t *lp, int level, char *fmt, ...);
+extern void ds_log_printmsg(ds_log_t *lp, int level, char *fmt, ...);
 
 /* Use the macro, DS_LOG_MSG to do logging: this will allow you to turn
    off logging in performance-sensitive spots. */
 
-#define DS_LOG_MSG(args) \
-      ds_log_printmsg args
+#define DS_LOG_MSG(args) ds_log_printmsg args
 
 #endif /* _DS_LOG_H_ */

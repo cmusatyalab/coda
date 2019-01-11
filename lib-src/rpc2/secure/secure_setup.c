@@ -21,112 +21,108 @@ Coda are listed in the file CREDITS.
 #include "grunt.h"
 
 int secure_setup_encrypt(uint32_t secure_version,
-			 struct security_association *sa,
-			 const struct secure_auth *authenticate,
-			 const struct secure_encr *encrypt,
-			 const uint8_t *key, size_t len)
+                         struct security_association *sa,
+                         const struct secure_auth *authenticate,
+                         const struct secure_encr *encrypt, const uint8_t *key,
+                         size_t len)
 {
     int rc, min_keysize = encrypt ? encrypt->min_keysize : 0;
 
     /* clear any existing decryption/validation state */
     if (sa->authenticate) {
-	sa->authenticate->auth_free(&sa->authenticate_context);
-	sa->authenticate = NULL;
+        sa->authenticate->auth_free(&sa->authenticate_context);
+        sa->authenticate = NULL;
     }
 
     if (sa->encrypt) {
-	sa->encrypt->encrypt_free(&sa->encrypt_context);
-	sa->encrypt = NULL;
+        sa->encrypt->encrypt_free(&sa->encrypt_context);
+        sa->encrypt = NULL;
     }
 
     /* intialize new state */
     if (authenticate) {
-	rc = authenticate->auth_init(&sa->authenticate_context, key, len);
-	if (rc) return -1;
+        rc = authenticate->auth_init(&sa->authenticate_context, key, len);
+        if (rc)
+            return -1;
 
-	/* if we have enough key material, keep authentication and decryption
+        /* if we have enough key material, keep authentication and decryption
 	 * keys separate, otherwise we just have to reuse the same key data */
-	if (len >= authenticate->keysize + min_keysize)
-	{
-	    key += authenticate->keysize;
-	    len -= authenticate->keysize;
-	}
+        if (len >= authenticate->keysize + min_keysize) {
+            key += authenticate->keysize;
+            len -= authenticate->keysize;
+        }
     }
 
     if (encrypt) {
-	rc = encrypt->encrypt_init(&sa->encrypt_context, key, len);
-	if (rc) {
-	    if (authenticate)
-		authenticate->auth_free(&sa->authenticate_context);
-	    return -1;
-	}
-	/* Can't propagate version to the initializer as it breaks the ABI */
-	if (encrypt->id == SECURE_ENCR_AES_CCM_8 ||
-	    encrypt->id == SECURE_ENCR_AES_CCM_12 ||
-	    encrypt->id == SECURE_ENCR_AES_CCM_16)
-	{
-	    aes_ccm_tweak(sa->encrypt_context, secure_version);
-	}
+        rc = encrypt->encrypt_init(&sa->encrypt_context, key, len);
+        if (rc) {
+            if (authenticate)
+                authenticate->auth_free(&sa->authenticate_context);
+            return -1;
+        }
+        /* Can't propagate version to the initializer as it breaks the ABI */
+        if (encrypt->id == SECURE_ENCR_AES_CCM_8 ||
+            encrypt->id == SECURE_ENCR_AES_CCM_12 ||
+            encrypt->id == SECURE_ENCR_AES_CCM_16) {
+            aes_ccm_tweak(sa->encrypt_context, secure_version);
+        }
     }
 
-
     sa->authenticate = authenticate;
-    sa->encrypt = encrypt;
+    sa->encrypt      = encrypt;
     return 0;
 }
 
 int secure_setup_decrypt(uint32_t secure_version,
-			 struct security_association *sa,
-			 const struct secure_auth *validate,
-			 const struct secure_encr *decrypt,
-			 const uint8_t *key, size_t len)
+                         struct security_association *sa,
+                         const struct secure_auth *validate,
+                         const struct secure_encr *decrypt, const uint8_t *key,
+                         size_t len)
 {
     int rc, min_keysize = decrypt ? decrypt->min_keysize : 0;
 
     /* clear any existing decryption/validation state */
     if (sa->validate) {
-	sa->validate->auth_free(&sa->validate_context);
-	sa->validate = NULL;
+        sa->validate->auth_free(&sa->validate_context);
+        sa->validate = NULL;
     }
 
     if (sa->decrypt) {
-	sa->decrypt->decrypt_free(&sa->decrypt_context);
-	sa->decrypt = NULL;
+        sa->decrypt->decrypt_free(&sa->decrypt_context);
+        sa->decrypt = NULL;
     }
 
     /* intialize new state */
     if (validate) {
-	rc = validate->auth_init(&sa->validate_context, key, len);
-	if (rc) return -1;
+        rc = validate->auth_init(&sa->validate_context, key, len);
+        if (rc)
+            return -1;
 
-	/* if we have enough key material, keep authentication and decryption
+        /* if we have enough key material, keep authentication and decryption
 	 * keys separate, otherwise we just have to reuse the same key data */
-	if (len >= validate->keysize + min_keysize)
-	{
-	    key += validate->keysize;
-	    len -= validate->keysize;
-	}
+        if (len >= validate->keysize + min_keysize) {
+            key += validate->keysize;
+            len -= validate->keysize;
+        }
     }
 
     if (decrypt) {
-	rc = decrypt->decrypt_init(&sa->decrypt_context, key, len);
-	if (rc) {
-	    if (validate)
-		validate->auth_free(&sa->validate_context);
-	    return -1;
-	}
-	/* Can't propagate version to the initializer as it breaks the ABI */
-	if (decrypt->id == SECURE_ENCR_AES_CCM_8 ||
-	    decrypt->id == SECURE_ENCR_AES_CCM_12 ||
-	    decrypt->id == SECURE_ENCR_AES_CCM_16)
-	{
-	    aes_ccm_tweak(sa->decrypt_context, secure_version);
-	}
+        rc = decrypt->decrypt_init(&sa->decrypt_context, key, len);
+        if (rc) {
+            if (validate)
+                validate->auth_free(&sa->validate_context);
+            return -1;
+        }
+        /* Can't propagate version to the initializer as it breaks the ABI */
+        if (decrypt->id == SECURE_ENCR_AES_CCM_8 ||
+            decrypt->id == SECURE_ENCR_AES_CCM_12 ||
+            decrypt->id == SECURE_ENCR_AES_CCM_16) {
+            aes_ccm_tweak(sa->decrypt_context, secure_version);
+        }
     }
 
     sa->validate = validate;
-    sa->decrypt = decrypt;
+    sa->decrypt  = decrypt;
     secure_random_bytes(&sa->send_iv, sizeof(sa->send_iv));
     return 0;
 }
-

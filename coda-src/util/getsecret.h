@@ -35,7 +35,7 @@ struct secret_state {
 };
 /* Read a tokenfile and return an RPC2 encryption key. */
 int GetSecret(const char *file, RPC2_EncryptionKey key,
-	      struct secret_state *state);
+              struct secret_state *state);
 
 /* Fill the RPC2 key with random values (for session keys) */
 void GenerateSecret(RPC2_EncryptionKey key);
@@ -45,4 +45,3 @@ void GenerateSecret(RPC2_EncryptionKey key);
 #endif
 
 #endif /* _GETSECRET_H_ */
-

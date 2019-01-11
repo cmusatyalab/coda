@@ -40,9 +40,11 @@ int getpeereid(int sock, uid_t *euid, gid_t *egid)
 
     rc = getpeerucred(sock, &cred);
     if (rc == 0) {
-	if (euid) *euid = ucred_geteuid(cred);
-	if (egid) *egid = ucred_getegid(cred);
-	ucred_free(cred);
+        if (euid)
+            *euid = ucred_geteuid(cred);
+        if (egid)
+            *egid = ucred_getegid(cred);
+        ucred_free(cred);
     }
 #elif 0 // defined(SO_PEERCRED)
     struct ucred cred;
@@ -50,16 +52,19 @@ int getpeereid(int sock, uid_t *euid, gid_t *egid)
 
     rc = getsockopt(sock, SOL_SOCKET, SO_PEERCRED, &cred, &len);
     if (rc == 0) {
-	if (euid) *euid = cred.uid;
-	if (egid) *egid = cred.gid;
+        if (euid)
+            *euid = cred.uid;
+        if (egid)
+            *egid = cred.gid;
     }
 #else
-//#warning "Need getpeereid(), getpeerucred(), or getsockopt(SO_PEERCRED) support"
-    if (euid) *euid = 65534; /* nobody */
-    if (egid) *egid = 65534; /* nogroup */
+    //#warning "Need getpeereid(), getpeerucred(), or getsockopt(SO_PEERCRED) support"
+    if (euid)
+        *euid = 65534; /* nobody */
+    if (egid)
+        *egid = 65534; /* nogroup */
 #endif
     return rc;
 }
 
 #endif
-

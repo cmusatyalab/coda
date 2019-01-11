@@ -50,7 +50,7 @@ struct vrent {
     unsigned nextptr : 32;
     char key[33];
     VolumeId volnum;
-    /*byte*/unsigned char nServers;
+    /*byte*/ unsigned char nServers;
     VolumeId ServerVolnum[VSG_MEMBERS];
     unsigned long addr;
 };
@@ -58,8 +58,7 @@ struct vrent {
 #define VRDB_PATH vice_config_path("db/VRDB")
 #define VRDB_TEMP vice_config_path("db/VRDB.new")
 
-void
-ReadConfigFile()
+void ReadConfigFile()
 {
     const char *vicedir;
 
@@ -69,27 +68,27 @@ ReadConfigFile()
     vice_dir_init(vicedir);
 }
 
-
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
     int fd;
 
     ReadConfigFile();
 
     fd = open(VRDB_PATH, O_RDONLY, 0);
     if (fd < 0) {
-	printf("printvrdb:  Unable to open %s; aborted\n", VRDB_PATH);
-	exit(EXIT_FAILURE);
+        printf("printvrdb:  Unable to open %s; aborted\n", VRDB_PATH);
+        exit(EXIT_FAILURE);
     }
 
     struct vrent vre;
     while (read(fd, &vre, sizeof(struct vrent)) == sizeof(struct vrent)) {
-	printf("%32s %u %d %x %x %x %x %x %x %x %x %x\n",
-	       vre.key, (int)ntohl(vre.volnum), vre.nServers,
-	       (int)ntohl(vre.ServerVolnum[0]), (int)ntohl(vre.ServerVolnum[1]),
-	       (int)ntohl(vre.ServerVolnum[2]), (int)ntohl(vre.ServerVolnum[3]),
-	       (int)ntohl(vre.ServerVolnum[4]), (int)ntohl(vre.ServerVolnum[5]),
-	       (int)ntohl(vre.ServerVolnum[6]), (int)ntohl(vre.ServerVolnum[7]),
-	       (int)ntohl(vre.addr));
+        printf("%32s %u %d %x %x %x %x %x %x %x %x %x\n", vre.key,
+               (int)ntohl(vre.volnum), vre.nServers,
+               (int)ntohl(vre.ServerVolnum[0]), (int)ntohl(vre.ServerVolnum[1]),
+               (int)ntohl(vre.ServerVolnum[2]), (int)ntohl(vre.ServerVolnum[3]),
+               (int)ntohl(vre.ServerVolnum[4]), (int)ntohl(vre.ServerVolnum[5]),
+               (int)ntohl(vre.ServerVolnum[6]), (int)ntohl(vre.ServerVolnum[7]),
+               (int)ntohl(vre.addr));
     }
 
     close(fd);

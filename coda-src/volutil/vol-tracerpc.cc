@@ -63,43 +63,41 @@ long S_TraceRpc(RPC2_Handle rpcid, SE_Descriptor *formal_sed)
     CODA_ASSERT(tracefile != NULL);
 
     if (!RPCTraceBufInited) {
-	RPC2_InitTraceBuffer(RPCTRACEBUFSIZE);
-	RPCTraceBufInited = 1;
-	CODA_ASSERT(!RPC2_Trace);
-	RPC2_Trace = 1;
-	fprintf(tracefile, "Inited trace buffer; tracing is now ON\n");
-    }
-    else if (!RPC2_Trace) {
-	RPC2_Trace = 1;
-	fprintf(tracefile, "Tracing is now turned on\n");
-    }
-    else {
-	// dump trace buffers and turn off tracing
-	fprintf(tracefile, "Dumping RPC buffers \n");
-	RPC2_DumpTrace(tracefile, RPCTRACEBUFSIZE);
-	RPC2_DumpState(tracefile, 0);
-	RPC2_Trace = 0;
+        RPC2_InitTraceBuffer(RPCTRACEBUFSIZE);
+        RPCTraceBufInited = 1;
+        CODA_ASSERT(!RPC2_Trace);
+        RPC2_Trace = 1;
+        fprintf(tracefile, "Inited trace buffer; tracing is now ON\n");
+    } else if (!RPC2_Trace) {
+        RPC2_Trace = 1;
+        fprintf(tracefile, "Tracing is now turned on\n");
+    } else {
+        // dump trace buffers and turn off tracing
+        fprintf(tracefile, "Dumping RPC buffers \n");
+        RPC2_DumpTrace(tracefile, RPCTRACEBUFSIZE);
+        RPC2_DumpState(tracefile, 0);
+        RPC2_Trace = 0;
     }
 
-    // ship the file back 
+    // ship the file back
     fd = fileno(tracefile);
     lseek(fd, 0, SEEK_SET);
     memset(&sed, 0, sizeof(SE_Descriptor));
-    sed.Tag = SMARTFTP;
+    sed.Tag                                   = SMARTFTP;
     sed.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
-    sed.Value.SmartFTPD.Tag = FILEBYFD;
-    sed.Value.SmartFTPD.FileInfo.ByFD.fd = fd;
+    sed.Value.SmartFTPD.Tag                   = FILEBYFD;
+    sed.Value.SmartFTPD.FileInfo.ByFD.fd      = fd;
 
-    if ((rc = RPC2_InitSideEffect(rpcid, &sed)) <= RPC2_ELIMIT) 
-	LogMsg(0, VolDebugLevel, stdout, 
-	       "TraceRpc: InitSideEffect failed with %s", RPC2_ErrorMsg(rc));
+    if ((rc = RPC2_InitSideEffect(rpcid, &sed)) <= RPC2_ELIMIT)
+        LogMsg(0, VolDebugLevel, stdout,
+               "TraceRpc: InitSideEffect failed with %s", RPC2_ErrorMsg(rc));
 
     if (!rc && ((rc = RPC2_CheckSideEffect(rpcid, &sed, SE_AWAITLOCALSTATUS)) <=
-		RPC2_ELIMIT)) 
-	LogMsg(0, VolDebugLevel, stdout, 
-	       "TraceRpc: CheckSideEffect failed with %s", RPC2_ErrorMsg(rc));
-    
+                RPC2_ELIMIT))
+        LogMsg(0, VolDebugLevel, stdout,
+               "TraceRpc: CheckSideEffect failed with %s", RPC2_ErrorMsg(rc));
+
     fclose(tracefile);
     LogMsg(1, VolDebugLevel, stdout, "TraceRpc returns %d\n", rc);
-    return(rc);
+    return (rc);
 }

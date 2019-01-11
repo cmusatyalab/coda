@@ -26,10 +26,12 @@ static VolumeId VREtoVolRepId(vrent *vre)
 {
     int idx;
 
-    if (!vre) return 0;
+    if (!vre)
+        return 0;
 
     idx = vre->index();
-    if (idx == -1) return 0;
+    if (idx == -1)
+        return 0;
 
     return vre->ServerVolnum[idx];
 }
@@ -40,27 +42,25 @@ VolumeId VOL_Locate(char *volkey)
     char *end;
     VolumeId volid;
     struct vldb *vldbp;
-    
+
     /* Try tp find by replicated volume name */
     vre = VRDB.find(volkey);
     if (vre)
-	return VREtoVolRepId(vre);
+        return VREtoVolRepId(vre);
 
     /* Try to find by replicated volume id */
     volid = strtoul(volkey, &end, 16);
     if (volkey != end) {
-	vre = VRDB.find(volid);
-	if (vre)
-	    return VREtoVolRepId(vre);
-    }
-    else
-	volid = 0;
+        vre = VRDB.find(volid);
+        if (vre)
+            return VREtoVolRepId(vre);
+    } else
+        volid = 0;
 
     /* Try to find by volume replica name */
     vldbp = VLDBLookup(volkey);
     if (vldbp)
-	return ntohl(vldbp->volumeId[vldbp->volumeType]);
+        return ntohl(vldbp->volumeId[vldbp->volumeType]);
 
     return volid;
 }
-

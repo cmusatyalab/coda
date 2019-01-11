@@ -57,4 +57,3 @@ void PRE_EndCritical(void)
     pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
     pthread_testcancel();
 }
-

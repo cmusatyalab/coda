@@ -44,19 +44,19 @@ static vhashtab *VolTable;
 
 static intptr_t VolIdHash(void *arg)
 {
-    VolumeId volid = (intptr_t)arg;
+    VolumeId volid   = (intptr_t)arg;
     unsigned int sum = 0;
     int n;
     char s[V_MAXVOLNAMELEN], *tmp;
-    
+
     sprintf(s, VFORMAT, volid);
     /* Sum the id in reverse so that consecutive integers, as strings, do not
        hash to consecutive locations */
     tmp = s;
-    for (sum = 0, n = strlen(s), tmp += n-1; n--; tmp--) {
-        sum = (sum*31) + (*tmp-31);
+    for (sum = 0, n = strlen(s), tmp += n - 1; n--; tmp--) {
+        sum = (sum * 31) + (*tmp - 31);
     }
-    return(sum);
+    return (sum);
 }
 
 /* Initializes the volume table to the specified size. */
@@ -64,12 +64,12 @@ static intptr_t VolIdHash(void *arg)
 void InitVolTable(int size)
 {
     VolTable = new vhashtab(size, VolIdHash, "VolTable");
-/*    VolTable = new vhashtab(size, NULL, "VolTable");*/
+    /*    VolTable = new vhashtab(size, NULL, "VolTable");*/
 }
 
 /* Constructor for vhashtab */
 vhashtab::vhashtab(int size, intptr_t (*hashfn)(void *), const char *n)
-: ohashtab(size, hashfn)
+    : ohashtab(size, hashfn)
 {
     CODA_ASSERT(size > 0);
     name = strdup(n);
@@ -101,8 +101,9 @@ void vhashtab::add(hashent *vol)
 void vhashtab::remove(hashent *vol)
 {
     if (!vol) {
-	LogMsg(0, VolDebugLevel, stdout, "hashtab::remove called on null entry!");
-	exit(EXIT_FAILURE);
+        LogMsg(0, VolDebugLevel, stdout,
+               "hashtab::remove called on null entry!");
+        exit(EXIT_FAILURE);
     }
 
     ohashtab::remove((void *)(intptr_t)vol->id, vol);
@@ -115,73 +116,79 @@ hashent *vhashtab::find(VolumeId volid)
     hashent *vol;
 
     while ((vol = next())) {
-	if(vol->id == volid)
-	    return(vol);
+        if (vol->id == volid)
+            return (vol);
     }
 
-    return(NULL);
+    return (NULL);
 }
 
 /* Returns the number of volumes in the table */
 int vhashtab::volumes()
 {
-    return(vols);
+    return (vols);
 }
 
-void vhashtab::vprint(FILE *fp) {
+void vhashtab::vprint(FILE *fp)
+{
     if (fp == NULL) {
-	printf("%p : %s\n", this, name);
-	printf("%d volumes\n", vols);
-    }
-    else {
-	fprintf(fp, "%p : %s\n", this, name);
-	fprintf(fp, "%d volumes\n", vols);
+        printf("%p : %s\n", this, name);
+        printf("%d volumes\n", vols);
+    } else {
+        fprintf(fp, "%p : %s\n", this, name);
+        fprintf(fp, "%d volumes\n", vols);
     }
 }
 
 /* initialize vhash iterator; key of -1 iterates through whole table */
-vhash_iterator::vhash_iterator(vhashtab& voltab, VolumeId key)
-: ohashtab_iterator(voltab, (void *)(intptr_t)key)
+vhash_iterator::vhash_iterator(vhashtab &voltab, VolumeId key)
+    : ohashtab_iterator(voltab, (void *)(intptr_t)key)
 {
 }
 
 /* returns next element in specified bucket or table */
-hashent *vhash_iterator::operator()() {
+hashent *vhash_iterator::operator()()
+{
     hashent *vol = (hashent *)ohashtab_iterator::operator()();
-    return(vol);
+    return (vol);
 }
 
-hashent::hashent(VolumeId volid, int volindex) {
-    id = volid;
+hashent::hashent(VolumeId volid, int volindex)
+{
+    id    = volid;
     index = volindex;
 }
 
-
 /* Lookup a volume in the volume name hash table. Returns the volume's */
 /* index in recoverable storage, or -1 if not found */
-int HashLookup(VolumeId volid) {
+int HashLookup(VolumeId volid)
+{
     hashent *vol = VolTable->find(volid);
-    if (vol == NULL) return (-1);
-    return(vol->index);
+    if (vol == NULL)
+        return (-1);
+    return (vol->index);
 }
 
 /* insert a new volume into the volume name hash table. */
 /* Returns -1 if the entry already exists */
 int HashInsert(VolumeId volid, int vol_index)
 {
-	hashent *vol = VolTable->find(volid);
-	if (vol != NULL) return (-1);
-	vol = new hashent(volid, vol_index);
-	VolTable->add(vol);
-	return(0);
+    hashent *vol = VolTable->find(volid);
+    if (vol != NULL)
+        return (-1);
+    vol = new hashent(volid, vol_index);
+    VolTable->add(vol);
+    return (0);
 }
 
 /* delete a volume from the volume name hash table. */
 /* returns -1 if the entry does not exist */
-int HashDelete(VolumeId volid) {
+int HashDelete(VolumeId volid)
+{
     hashent *vol = VolTable->find(volid);
-    if (vol == NULL) return (-1);
+    if (vol == NULL)
+        return (-1);
     VolTable->remove(vol);
     delete vol;
-    return(0);
+    return (0);
 }

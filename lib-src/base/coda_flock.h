@@ -25,17 +25,17 @@ extern "C" {
 extern int myflock(int fd, int type, int block);
 
 #ifdef HAVE_FCNTL_LOCKING
-#define MYFLOCK_UN	F_UNLCK
-#define MYFLOCK_SH	F_RDLCK
-#define MYFLOCK_EX	F_WRLCK
-#define MYFLOCK_NB	F_SETLK
-#define MYFLOCK_BL	F_SETLKW
-#else	/* HAVE_FLOCK_LOCKING */
-#define MYFLOCK_UN	LOCK_UN
-#define MYFLOCK_SH	LOCK_SH
-#define MYFLOCK_EX	LOCK_EX
-#define MYFLOCK_NB	LOCK_NB
-#define MYFLOCK_BL	0
+#define MYFLOCK_UN F_UNLCK
+#define MYFLOCK_SH F_RDLCK
+#define MYFLOCK_EX F_WRLCK
+#define MYFLOCK_NB F_SETLK
+#define MYFLOCK_BL F_SETLKW
+#else /* HAVE_FLOCK_LOCKING */
+#define MYFLOCK_UN LOCK_UN
+#define MYFLOCK_SH LOCK_SH
+#define MYFLOCK_EX LOCK_EX
+#define MYFLOCK_NB LOCK_NB
+#define MYFLOCK_BL 0
 #endif
 
 #ifdef __cplusplus

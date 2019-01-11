@@ -36,4 +36,3 @@ typedef struct sigaltstack {
 void lwp_stacktrace(FILE *fp, void *top, stack_t *stack);
 
 #endif /* LWP_STACKTRACE_H */
-

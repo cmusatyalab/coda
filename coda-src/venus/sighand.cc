@@ -43,7 +43,6 @@ extern "C" {
 }
 #endif
 
-
 #include "sighand.h"
 #include "venus.private.h"
 #include "venusrecov.h"
@@ -98,41 +97,40 @@ void SigInit(void)
     sigaction(SIGVTALRM, &sa, NULL);
 #endif
 
-
     /* shutdown... */
     sa.sa_handler = SigExit;
-    sigaction(SIGINT,  &sa, NULL);
+    sigaction(SIGINT, &sa, NULL);
     sigaction(SIGTERM, &sa, NULL);
 #ifdef SIGPWR
-    sigaction(SIGPWR,  &sa, NULL);
+    sigaction(SIGPWR, &sa, NULL);
 #endif
 
     /* venus control... */
     sa.sa_handler = SigControl;
-    sigaction(SIGHUP,  &sa, NULL);
+    sigaction(SIGHUP, &sa, NULL);
 
     /* coerce coredumps and unexpected signals into zombie state... */
     sa.sa_handler = SigChoke;
     sigaction(SIGQUIT, &sa, NULL);
-    sigaction(SIGILL,  &sa, NULL);
+    sigaction(SIGILL, &sa, NULL);
     sigaction(SIGABRT, &sa, NULL);
-    sigaction(SIGFPE,  &sa, NULL);
+    sigaction(SIGFPE, &sa, NULL);
     sigaction(SIGSEGV, &sa, NULL);
 
     /* various other signals that cause random coredumps and sudden exits. */
     /* as these are not POSIX, they may be missing on some platforms. */
     sigaction(SIGTRAP, &sa, NULL);
 #ifdef SIGBUS
-    sigaction(SIGBUS,  &sa, NULL);
+    sigaction(SIGBUS, &sa, NULL);
 #endif
 #ifdef SIGEMT
-    sigaction(SIGEMT,  &sa, NULL);
+    sigaction(SIGEMT, &sa, NULL);
 #endif
 #ifdef SIGSYS
-    sigaction(SIGSYS,  &sa, NULL);
+    sigaction(SIGSYS, &sa, NULL);
 #endif
 #ifdef SIGSTKFLT
-    sigaction(SIGSTKFLT,  &sa, NULL);
+    sigaction(SIGSTKFLT, &sa, NULL);
 #endif
 
     sa.sa_handler = SigMounted;
@@ -148,7 +146,7 @@ void SigInit(void)
     sa.sa_handler = SigASR;
 #ifdef SIGCHLD
     sigaction(SIGCHLD, &sa, NULL);
-    ASRpid = NO_ASR; 
+    ASRpid = NO_ASR;
 #endif
 }
 
@@ -159,7 +157,7 @@ static void SigControl(int sig)
     char command[80];
 
     if (stat(VenusControlFile, &tstat) != 0) {
-	SwapLog();
+        SwapLog();
         return;
     }
 
@@ -184,43 +182,43 @@ static void SigControl(int sig)
 	    COPModes = OldModes;
 	}
 #endif
-	LOG(100, ("COPModes = %x\n", COPModes));
+        LOG(100, ("COPModes = %x\n", COPModes));
     }
 
     if (STREQ(command, "DEBUG")) {
-	int found, loglevel, rpc2level, lwplevel;
+        int found, loglevel, rpc2level, lwplevel;
 
-	found = fscanf(fp, "%d %d %d", &loglevel, &rpc2level, &lwplevel);
+        found = fscanf(fp, "%d %d %d", &loglevel, &rpc2level, &lwplevel);
 
-	if (found > 0 && loglevel >= 0)
-		LogLevel = loglevel;
+        if (found > 0 && loglevel >= 0)
+            LogLevel = loglevel;
 
-	if (found > 1 && rpc2level >= 0) {
-		RPC2_DebugLevel = rpc2level;
-		RPC2_Trace = (rpc2level > 0) ? 1 : 0;
-	}
+        if (found > 1 && rpc2level >= 0) {
+            RPC2_DebugLevel = rpc2level;
+            RPC2_Trace      = (rpc2level > 0) ? 1 : 0;
+        }
 
-	if (found > 2 && lwplevel >= 0)
-		lwp_debug = lwplevel;
+        if (found > 2 && lwplevel >= 0)
+            lwp_debug = lwplevel;
 
-	LOG(0, ("LogLevel is now %d.\n", LogLevel));
-	LOG(0, ("RPC2_DebugLevel is now %d.\n", RPC2_DebugLevel));
-	LOG(0, ("lwp_debug is now %d.\n", lwp_debug));
+        LOG(0, ("LogLevel is now %d.\n", LogLevel));
+        LOG(0, ("RPC2_DebugLevel is now %d.\n", RPC2_DebugLevel));
+        LOG(0, ("lwp_debug is now %d.\n", lwp_debug));
     }
 
     if (STREQ(command, "SWAPLOGS"))
-	SwapLog();
+        SwapLog();
 
     if (STREQ(command, "STATSINIT"))
-	StatsInit();
+        StatsInit();
 
     if (STREQ(command, "STATS"))
-	DumpState();
+        DumpState();
 
     if (fclose(fp) == EOF)
-	LOG(0, ("SigControl: fclose(%s) failed", VenusControlFile));
+        LOG(0, ("SigControl: fclose(%s) failed", VenusControlFile));
     if (unlink(VenusControlFile) < 0)
-	LOG(0, ("SigControl: unlink(%s) failed", VenusControlFile));
+        LOG(0, ("SigControl: unlink(%s) failed", VenusControlFile));
 }
 
 static void SigChoke(int sig)
@@ -270,47 +268,48 @@ static void SigMounted(int sig)
 
 static void SigASR(int sig)
 {
-  int child_pid, status, options;
-  repvol *v;
+    int child_pid, status, options;
+    repvol *v;
 
-
-  /* Beyond Venus initialization, the only forking occurring within Venus
+    /* Beyond Venus initialization, the only forking occurring within Venus
    * is a result of ASRLauncher invocation. Thus, every SIGCHLD received is
    * an ASRLauncher completing execution, and the status is the return code
    * of success or failure of the repair. */
 
-  if(ASRpid == NO_ASR)
-	return;
+    if (ASRpid == NO_ASR)
+        return;
 
-  LOG(0, ("Signal Handler(ASR): ASRpid:%d, ASRfid:%s\n", 
-		  ASRpid, FID_(&ASRfid)));
+    LOG(0,
+        ("Signal Handler(ASR): ASRpid:%d, ASRfid:%s\n", ASRpid, FID_(&ASRfid)));
 
-  status = options = 0;
+    status = options = 0;
 
-  child_pid = waitpid(ASRpid, &status, WNOHANG);
-  if(child_pid < 0) { perror("waitpid"); exit(EXIT_FAILURE); }
-  else if(child_pid == ASRpid)
-      LOG(0, ("Signal Handler(ASR): Caught ASRLauncher (%d) with status %d\n", 
-	      child_pid, status));
-  else {
-      LOG(0, ("Signal Handler(ASR): Caught an unknown child!\n"));
-      return;             /* If there are no documented ASR's running, this
+    child_pid = waitpid(ASRpid, &status, WNOHANG);
+    if (child_pid < 0) {
+        perror("waitpid");
+        exit(EXIT_FAILURE);
+    } else if (child_pid == ASRpid)
+        LOG(0, ("Signal Handler(ASR): Caught ASRLauncher (%d) with status %d\n",
+                child_pid, status));
+    else {
+        LOG(0, ("Signal Handler(ASR): Caught an unknown child!\n"));
+        return; /* If there are no documented ASR's running, this
 			   * could be the VFSMount double-fork middle child. */
-  }
+    }
 
-  v = (repvol *)VDB->Find(MakeVolid(&ASRfid)); 
-  if(v == NULL) {
-      LOG(0, ("Signal Handler(ASR): Couldn't find volume!\n"));
-      return;
-  }
+    v = (repvol *)VDB->Find(MakeVolid(&ASRfid));
+    if (v == NULL) {
+        LOG(0, ("Signal Handler(ASR): Couldn't find volume!\n"));
+        return;
+    }
 
-  /* Clear out table entry */
-  ASRpid = NO_ASR;
+    /* Clear out table entry */
+    ASRpid = NO_ASR;
 
-  /* Unassign Tokens */
-  /* TODO: not easy to do at the moment. */
+    /* Unassign Tokens */
+    /* TODO: not easy to do at the moment. */
 
-  /* Unlock volume */
-  v->asr_pgid(NO_ASR);
-  v->unlock_asr();
+    /* Unlock volume */
+    v->asr_pgid(NO_ASR);
+    v->unlock_asr();
 }

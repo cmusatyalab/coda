@@ -30,12 +30,10 @@ static void auth(void *ctx, const uint8_t *buf, size_t len, uint8_t *icv)
     return;
 }
 
-
 struct secure_auth secure_AUTH_NONE = {
-    .id = SECURE_AUTH_NONE,
-    .name = "AUTH-NONE",
+    .id        = SECURE_AUTH_NONE,
+    .name      = "AUTH-NONE",
     .auth_init = init,
     .auth_free = release,
-    .auth = auth,
+    .auth      = auth,
 };
-

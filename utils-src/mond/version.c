@@ -30,8 +30,6 @@ Mellon the rights to redistribute these changes without encumbrance.
 */
 #endif /*_BLURB_*/
 
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif __cplusplus
@@ -64,70 +62,72 @@ char *HostNameOfConn(RPC2_Handle);
 
 connection_entry::connection_entry(RPC2_Handle _cid, long _clientType)
 {
-    myCid = _cid;
+    myCid        = _cid;
     myClientType = _clientType;
 }
 
 void connection_entry::print(void)
 {
-    print(0,LogFile);
+    print(0, LogFile);
 }
 
 void connection_entry::print(FILE *fp)
 {
-    print(0,fp);
+    print(0, fp);
 }
 
 void connection_entry::print(int fd)
 {
-    print(0,fdopen(fd,"a+"));
+    print(0, fdopen(fd, "a+"));
 }
 
-void connection_entry::print(int level,FILE *file)
+void connection_entry::print(int level, FILE *file)
 {
     char *conname;
     conname = HostNameOfConn(myCid);
-    if (conname == NULL) return;
-    LogMsg(level,LogLevel,file,"connentry: %s [%s]",
-	   conname,
-	   (myClientType == MOND_VICE_CLIENT) ? "vice" : "venus");
-    delete [] conname;
+    if (conname == NULL)
+        return;
+    LogMsg(level, LogLevel, file, "connentry: %s [%s]", conname,
+           (myClientType == MOND_VICE_CLIENT) ? "vice" : "venus");
+    delete[] conname;
 }
 
 static inline int hashfn(RPC2_Handle *cid)
 {
-    return ((int) *cid);
+    return ((int)*cid);
 }
 
 connection_entry *connection_table::GetConnection(RPC2_Handle cid)
 {
     ohashtab_iterator next(*table, &cid);
     connection_entry *theEntry;
-    while (theEntry = (connection_entry*) next()) {
-	if (theEntry->cid() == cid)
-	    return (connection_entry *) theEntry;
+    while (theEntry = (connection_entry *)next()) {
+        if (theEntry->cid() == cid)
+            return (connection_entry *)theEntry;
     }
     return NULL;
 }
-    
 
 int connection_table::ConnectionValid(RPC2_Handle cid, long clientType)
 {
     connection_entry *theEntry = GetConnection(cid);
-    
-    if (theEntry == NULL) return MOND_NOTCONNECTED;
-    
+
+    if (theEntry == NULL)
+        return MOND_NOTCONNECTED;
+
     if (theEntry->client_type() == clientType)
-	return MOND_OK;
-    else return MOND_BADCONNECTION;
+        return MOND_OK;
+    else
+        return MOND_BADCONNECTION;
 }
 
 int connection_table::RemoveConnection(RPC2_Handle cid)
 {
     connection_entry *theEntry = GetConnection(cid);
-    if (theEntry == NULL) return MOND_NOTCONNECTED;
-    
-    table->remove(&cid,theEntry);
+    if (theEntry == NULL)
+        return MOND_NOTCONNECTED;
+
+    table->remove(&cid, theEntry);
     return MOND_OK;
 }
 
@@ -136,9 +136,9 @@ void connection_table::LogConnections(int importance, FILE *LogFile)
     ohashtab_iterator next(*table);
     connection_entry *theEntry;
 
-    LogMsg(importance,LogLevel,LogFile,"Current connections");
+    LogMsg(importance, LogLevel, LogFile, "Current connections");
     while (theEntry = (connection_entry *)next()) {
-	theEntry->print(importance,LogFile);
+        theEntry->print(importance, LogFile);
     }
 }
 
@@ -149,22 +149,22 @@ int connection_table::PurgeConnections()
     int theResult = MOND_OK;
 
     while (theEntry = (connection_entry *)next()) {
-	int result = (int)RPC2_Unbind(theEntry->cid());
-	if (result != RPC2_SUCCESS && result != RPC2_NOCONNECTION) {
-	    theResult = (theResult == MOND_OK) ? result : theResult;
-	}
+        int result = (int)RPC2_Unbind(theEntry->cid());
+        if (result != RPC2_SUCCESS && result != RPC2_NOCONNECTION) {
+            theResult = (theResult == MOND_OK) ? result : theResult;
+        }
     }
     if (theResult == MOND_OK)
-	table->clear();
+        table->clear();
     return theResult;
-}	
+}
 
 connection_table::connection_table(int tablesize)
 {
-    typedef int (*XXX) (void *);
+    typedef int (*XXX)(void *);
     int realsize = 1;
-    while (realsize*2 < tablesize) {
-	realsize *= 2;
+    while (realsize * 2 < tablesize) {
+        realsize *= 2;
     }
     table = new ohashtab(realsize, (XXX)hashfn);
 }
@@ -175,58 +175,54 @@ connection_table::~connection_table()
     delete table;
 }
 
-long MondEstablishConn(RPC2_Handle cid, unsigned long Version,
-		       long clientType, long spare_size, SpareEntry spare[])
+long MondEstablishConn(RPC2_Handle cid, unsigned long Version, long clientType,
+                       long spare_size, SpareEntry spare[])
 {
-    // check for valid version 
+    // check for valid version
     // (this should be changed to allow for old, but compatible)
     char *hostname = HostNameOfConn(cid);
-    CODA_ASSERT (hostname != NULL);
-    LogMsg(10,LogLevel,LogFile,
-	   "Beginning MondEstablishConn for %s as a %s",
-	   hostname, ((clientType == MOND_VICE_CLIENT) ? "vice" : "venus"));
-    delete [] hostname;
-    if (Version != MOND_CURRENT_VERSION
-	|| (clientType != MOND_VENUS_CLIENT && clientType != MOND_VICE_CLIENT)) {
-	char *badhost = HostNameOfConn(cid);
-	CODA_ASSERT(hostname != NULL);
-	LogMsg(0,LogLevel,LogFile,
-	       "Incompatible Version request: host %s [%s]; version %ld",
-	       badhost,
-	       (clientType == MOND_VENUS_CLIENT) ? "venus" :
-	           (clientType == MOND_VICE_CLIENT) ? "vice" : "???",
-	       Version);
-	delete [] badhost;
-	return MOND_INCOMPATIBLE;
+    CODA_ASSERT(hostname != NULL);
+    LogMsg(10, LogLevel, LogFile, "Beginning MondEstablishConn for %s as a %s",
+           hostname, ((clientType == MOND_VICE_CLIENT) ? "vice" : "venus"));
+    delete[] hostname;
+    if (Version != MOND_CURRENT_VERSION ||
+        (clientType != MOND_VENUS_CLIENT && clientType != MOND_VICE_CLIENT)) {
+        char *badhost = HostNameOfConn(cid);
+        CODA_ASSERT(hostname != NULL);
+        LogMsg(0, LogLevel, LogFile,
+               "Incompatible Version request: host %s [%s]; version %ld",
+               badhost,
+               (clientType == MOND_VENUS_CLIENT) ?
+                   "venus" :
+                   (clientType == MOND_VICE_CLIENT) ? "vice" : "???",
+               Version);
+        delete[] badhost;
+        return MOND_INCOMPATIBLE;
     }
 
     // does and entry for this RPC2_Handle exist?
     connection_entry *theEntry = ClientTable->GetConnection(cid);
     if (theEntry != NULL) {
-	LogMsg(5,LogLevel,LogFile,
-	       "Found entry for RPC2_Handle %d",cid);
-	if (theEntry->client_type() == clientType)
-	    return MOND_CONNECTED;
-	else
-	    return MOND_BADCONNECTION;
+        LogMsg(5, LogLevel, LogFile, "Found entry for RPC2_Handle %d", cid);
+        if (theEntry->client_type() == clientType)
+            return MOND_CONNECTED;
+        else
+            return MOND_BADCONNECTION;
     }
 
     // enter the connection
     theEntry = new connection_entry(cid, clientType);
-    ClientTable->table->insert((void*)&cid,theEntry);
-    LogMsg(10,LogLevel,LogFile,
-	   "Entered connection for RPC2_Handle %d",cid);
+    ClientTable->table->insert((void *)&cid, theEntry);
+    LogMsg(10, LogLevel, LogFile, "Entered connection for RPC2_Handle %d", cid);
     return MOND_OK;
 }
-
-
 
 char *HostNameOfConn(RPC2_Handle cid)
 // returns a string that *must* be freed later
 {
     RPC2_PeerInfo PeerInfo;
-    if (RPC2_GetPeerInfo(cid,&PeerInfo) != RPC2_SUCCESS) {
-	return NULL;
+    if (RPC2_GetPeerInfo(cid, &PeerInfo) != RPC2_SUCCESS) {
+        return NULL;
     }
 
     char *newconname;
@@ -234,19 +230,18 @@ char *HostNameOfConn(RPC2_Handle cid)
     struct hostent *hostentry;
 
     const int CNSIZE = 256;
-    newconname = new char[CNSIZE];
+    newconname       = new char[CNSIZE];
     if (PeerInfo.RemoteHost.Tag == RPC2_HOSTBYNAME)
-	strncpy(newconname,PeerInfo.RemoteHost.Value.Name,CNSIZE-1);
+        strncpy(newconname, PeerInfo.RemoteHost.Value.Name, CNSIZE - 1);
     else {
-	addr.s_addr = PeerInfo.RemoteHost.Value.InetAddress;
-	hostentry = gethostbyaddr((char *)&addr.s_addr,
-				  sizeof(addr.s_addr),AF_INET);
-	if (hostentry == NULL)
-	    strncpy(newconname,inet_ntoa(addr),CNSIZE-1);
-	else
-	    strncpy(newconname,hostentry->h_name,CNSIZE-1);
+        addr.s_addr = PeerInfo.RemoteHost.Value.InetAddress;
+        hostentry =
+            gethostbyaddr((char *)&addr.s_addr, sizeof(addr.s_addr), AF_INET);
+        if (hostentry == NULL)
+            strncpy(newconname, inet_ntoa(addr), CNSIZE - 1);
+        else
+            strncpy(newconname, hostentry->h_name, CNSIZE - 1);
     }
-    newconname[CNSIZE-1] ='\0';
+    newconname[CNSIZE - 1] = '\0';
     return newconname;
 }
-

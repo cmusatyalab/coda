@@ -48,11 +48,12 @@ class vhash_iterator;
 class hashent;
 
 class vhashtab : public ohashtab {
-  friend void InitVolTable(int);
+    friend void InitVolTable(int);
     char *name; /* table name */
-    int vols;    /* number of volumes in table */
+    int vols; /* number of volumes in table */
     int lock;
-  public:
+
+public:
     vhashtab(int size, intptr_t (*hashfn)(void *), const char *);
     ~vhashtab();
     void Lock(int);
@@ -61,28 +62,29 @@ class vhashtab : public ohashtab {
     void remove(hashent *);
     hashent *find(VolumeId);
     int volumes();
-    void vprint(FILE* =NULL);
+    void vprint(FILE * = NULL);
 };
 
 class vhash_iterator : public ohashtab_iterator {
-    public:
-	vhash_iterator(vhashtab&, VolumeId =-1);
-	hashent *operator()();
+public:
+    vhash_iterator(vhashtab &, VolumeId = -1);
+    hashent *operator()();
 };
 
-class hashent: public olink {
-  friend class vhashtab;
-  friend class vhashtab_iterator;
-  friend int HashInsert(VolumeId, int);
-  friend int HashLookup(VolumeId);
-  friend int HashDelete(VolumeId);
-    VolumeId	id;
-    int		index;
+class hashent : public olink {
+    friend class vhashtab;
+    friend class vhashtab_iterator;
+    friend int HashInsert(VolumeId, int);
+    friend int HashLookup(VolumeId);
+    friend int HashDelete(VolumeId);
+    VolumeId id;
+    int index;
 
-    int get_index() {return(index);};
-  public:
+    int get_index() { return (index); };
+
+public:
     hashent(VolumeId, int);
-    ~hashent() {};
+    ~hashent(){};
 };
 
 extern int HashInsert(VolumeId, int);

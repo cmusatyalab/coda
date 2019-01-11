@@ -27,7 +27,6 @@ listed in the file CREDITS.
 
 */
 
-
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -41,16 +40,15 @@ listed in the file CREDITS.
 
 void pdb_pack(PDB_profile *r, void **data, size_t *size)
 {
-	int32_t *tmp;
-	int off, len, tmpsize;
+    int32_t *tmp;
+    int off, len, tmpsize;
 
-	tmpsize = 2 + /* id + strlen(name) */
-		  2 + /* owner id + strlen(owner_name) */ 
-		  pdb_array_size(&r->member_of) + 1 +
-		  pdb_array_size(&r->cps) + 1 +
-		  pdb_array_size(&r->groups_or_members) + 1;
+    tmpsize = 2 + /* id + strlen(name) */
+              2 + /* owner id + strlen(owner_name) */
+              pdb_array_size(&r->member_of) + 1 + pdb_array_size(&r->cps) + 1 +
+              pdb_array_size(&r->groups_or_members) + 1;
 
-	/* WTF we pad 4 times as much as needed for the strings!!!
+    /* WTF we pad 4 times as much as needed for the strings!!!
 	 * too late to transparently change now. */
 #if 1
 #define ALIGN(x) (x)
@@ -59,85 +57,89 @@ void pdb_pack(PDB_profile *r, void **data, size_t *size)
  * for 5000 users with 8 letter names */
 #define ALIGN(x) (((x) + sizeof(int32_t) - 1) / sizeof(int32_t))
 #endif
-	if (r->name)
-	    tmpsize += ALIGN(strlen(r->name));
-	if (r->owner_name)
-	    tmpsize += ALIGN(strlen(r->owner_name));
+    if (r->name)
+        tmpsize += ALIGN(strlen(r->name));
+    if (r->owner_name)
+        tmpsize += ALIGN(strlen(r->owner_name));
 
-	tmp = (int32_t *)malloc(tmpsize * sizeof(int32_t));
-	CODA_ASSERT(tmp);
+    tmp = (int32_t *)malloc(tmpsize * sizeof(int32_t));
+    CODA_ASSERT(tmp);
 
-	/* Pack the id and name */
-	tmp[0] = htonl(r->id);
-	if(r->name != NULL){
-		/* Have to store length because may be zero length */
-		len = strlen(r->name) * sizeof(char);
-		tmp[1] = htonl(len);
-		/* Convert to network layer while copying */
-		memcpy((char *)&tmp[2], r->name, len);
-		off = 2+ALIGN(len);
-	} else {
-		tmp[1] = 0;
-		off = 2;
-	}
+    /* Pack the id and name */
+    tmp[0] = htonl(r->id);
+    if (r->name != NULL) {
+        /* Have to store length because may be zero length */
+        len    = strlen(r->name) * sizeof(char);
+        tmp[1] = htonl(len);
+        /* Convert to network layer while copying */
+        memcpy((char *)&tmp[2], r->name, len);
+        off = 2 + ALIGN(len);
+    } else {
+        tmp[1] = 0;
+        off    = 2;
+    }
 
-	/* Pack the owner id and name */
-	tmp[off++] = htonl(r->owner_id);
-	if(r->owner_name != NULL){
-		len = strlen(r->owner_name) * sizeof(char);
-		/* Have to store length because may be zero length */
-		tmp[off++] = htonl(len);
-		memcpy((char *)&tmp[off], r->owner_name, len);
-		off += ALIGN(len);
-	} else
-		tmp[off++] = 0;
-	
-	/* Pack the lists */
-	off += pdb_array_pack(&tmp[off], &(r->member_of));
-	off += pdb_array_pack(&tmp[off], &(r->cps));
-	off += pdb_array_pack(&tmp[off], &(r->groups_or_members));
+    /* Pack the owner id and name */
+    tmp[off++] = htonl(r->owner_id);
+    if (r->owner_name != NULL) {
+        len = strlen(r->owner_name) * sizeof(char);
+        /* Have to store length because may be zero length */
+        tmp[off++] = htonl(len);
+        memcpy((char *)&tmp[off], r->owner_name, len);
+        off += ALIGN(len);
+    } else
+        tmp[off++] = 0;
 
-	CODA_ASSERT(off == tmpsize);
-	
-	*data = (char *)tmp;
-	*size = tmpsize * sizeof(int32_t);
+    /* Pack the lists */
+    off += pdb_array_pack(&tmp[off], &(r->member_of));
+    off += pdb_array_pack(&tmp[off], &(r->cps));
+    off += pdb_array_pack(&tmp[off], &(r->groups_or_members));
+
+    CODA_ASSERT(off == tmpsize);
+
+    *data = (char *)tmp;
+    *size = tmpsize * sizeof(int32_t);
 }
-
 
 void pdb_unpack(PDB_profile *r, void *data, size_t size)
 {
-	int32_t *tmp = (int32_t *) data;
-	unsigned int off, len;
+    int32_t *tmp = (int32_t *)data;
+    unsigned int off, len;
 
-	if(size == 0){
-		r->id = 0;
-		if (data) free(data);
-		return;
-	}
-	/* Unpack the id and name */
-	r->id = ntohl(tmp[0]);
-	off = 1;
-	len = ntohl(tmp[off]); off++;
-	r->name = malloc(len+1);
-	memcpy(r->name, (char *)&tmp[off], len);
-	r->name[len] = '\0';
-	off += ALIGN(len);
+    if (size == 0) {
+        r->id = 0;
+        if (data)
+            free(data);
+        return;
+    }
+    /* Unpack the id and name */
+    r->id = ntohl(tmp[0]);
+    off   = 1;
+    len   = ntohl(tmp[off]);
+    off++;
+    r->name = malloc(len + 1);
+    memcpy(r->name, (char *)&tmp[off], len);
+    r->name[len] = '\0';
+    off += ALIGN(len);
 
-	/* Unpack the owner id and name */
-	r->owner_id = ntohl(tmp[off]); off++;
-	len = ntohl(tmp[off]); off++;
-	r->owner_name = malloc(len+1);
-	memcpy(r->owner_name, (char *)&tmp[off], ntohl(tmp[off-1]));
-	r->owner_name[len] = '\0';
-	off += ALIGN(len);
+    /* Unpack the owner id and name */
+    r->owner_id = ntohl(tmp[off]);
+    off++;
+    len = ntohl(tmp[off]);
+    off++;
+    r->owner_name = malloc(len + 1);
+    memcpy(r->owner_name, (char *)&tmp[off], ntohl(tmp[off - 1]));
+    r->owner_name[len] = '\0';
+    off += ALIGN(len);
 
-	/* Unpack the lists */
-	off += pdb_array_unpack(&tmp[off],&(r->member_of));
-	off += pdb_array_unpack(&tmp[off],&(r->cps));
-	off += pdb_array_unpack(&tmp[off],&(r->groups_or_members));
+    /* Unpack the lists */
+    off += pdb_array_unpack(&tmp[off], &(r->member_of));
+    off += pdb_array_unpack(&tmp[off], &(r->cps));
+    off += pdb_array_unpack(&tmp[off], &(r->groups_or_members));
 
-	CODA_ASSERT(off <= size);
+    CODA_ASSERT(off <= size);
 
-	/* Here we free the data allocated by PDB_db_read */
-	if (data) free(data);
+    /* Here we free the data allocated by PDB_db_read */
+    if (data)
+        free(data);
 }

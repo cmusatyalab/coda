@@ -30,7 +30,6 @@ listed in the file CREDITS.
 
 */
 
-
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -39,8 +38,8 @@ listed in the file CREDITS.
 #include <sys/types.h>
 
 typedef struct pdb_array {
-	int32_t size,memsize;
-	int32_t *data;
+    int32_t size, memsize;
+    int32_t *data;
 } pdb_array;
 
 typedef int pdb_array_off;

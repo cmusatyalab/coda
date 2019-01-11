@@ -50,50 +50,52 @@ extern "C" {
 #include <srv.h>
 #include <vutil.h>
 
-
 /*
   BEGIN_HTML
   <a name="S_VolLock"><strong>Lock the volume for backups.
   Return the VVV for the volume if successful  </strong></a> 
   END_HTML
 */
-long S_VolLock(RPC2_Handle rpcid, VolumeId Vid, ViceVersionVector *VolVV) {
+long S_VolLock(RPC2_Handle rpcid, VolumeId Vid, ViceVersionVector *VolVV)
+{
     Volume *volptr = 0;
     Error error;
     int rc = 0;
-    
-    LogMsg(2, VolDebugLevel, stdout, "Entering S_VolLock: rpcid = %d, Volume = %x", rpcid, Vid);
+
+    LogMsg(2, VolDebugLevel, stdout,
+           "Entering S_VolLock: rpcid = %d, Volume = %x", rpcid, Vid);
 
     rc = VInitVolUtil(volumeUtility);
     if (rc != 0)
-	return rc;
+        return rc;
 
     volptr = VGetVolume(&error, Vid);
     if (error) {
-	LogMsg(0, SrvDebugLevel, stdout, "S_VolLock: VGetVolume error %d",error);
-	VDisconnectFS();
-	return(error);
+        LogMsg(0, SrvDebugLevel, stdout, "S_VolLock: VGetVolume error %d",
+               error);
+        VDisconnectFS();
+        return (error);
     }
 
-    LogMsg(9, SrvDebugLevel, stdout, "S_VolLock: Got Volume %x",Vid);
+    LogMsg(9, SrvDebugLevel, stdout, "S_VolLock: Got Volume %x", Vid);
 
     if (V_VolLock(volptr).IPAddress) {
-	/* Lock is taken by somebody else, return EWOULDBLOCK */
-	/* Treat locks for backup as exclusive locks. */
-	LogMsg(0, 0, stdout, "S_VolLock:Volume %x already locked by %x",
-	       Vid, V_VolLock(volptr).IPAddress);
-	VPutVolume(volptr);
-	volptr = 0;	
-	VDisconnectFS();
-	return(EWOULDBLOCK);
+        /* Lock is taken by somebody else, return EWOULDBLOCK */
+        /* Treat locks for backup as exclusive locks. */
+        LogMsg(0, 0, stdout, "S_VolLock:Volume %x already locked by %x", Vid,
+               V_VolLock(volptr).IPAddress);
+        VPutVolume(volptr);
+        volptr = 0;
+        VDisconnectFS();
+        return (EWOULDBLOCK);
     }
-    
+
     /* Lock the volume */
     LogMsg(3, SrvDebugLevel, stdout, "S_VolLock: Obtaining WriteLock....");
     ObtainWriteLock(&(V_VolLock(volptr).VolumeLock));
     LogMsg(3, SrvDebugLevel, stdout, "S_VolLock: Obtained WriteLock.");
 
-    V_VolLock(volptr).IPAddress = 5;			/* NEEDS CHANGING */
+    V_VolLock(volptr).IPAddress = 5; /* NEEDS CHANGING */
 
     /* Put volume on lock queue to have it time out? */
     /* lqent *lqep = new lqent(Vid); */
@@ -103,41 +105,44 @@ long S_VolLock(RPC2_Handle rpcid, VolumeId Vid, ViceVersionVector *VolVV) {
     memcpy(VolVV, &(V_versionvector(volptr)), sizeof(ViceVersionVector));
     VPutVolume(volptr);
     VDisconnectFS();
-    return(0);
+    return (0);
 }
 
-    
 /*
   BEGIN_HTML
   <a name="S_VolUnlock"><strong>Unlock the volume</strong></a> 
   END_HTML
 */
-long S_VolUnlock(RPC2_Handle rpcid, VolumeId Vid) {
+long S_VolUnlock(RPC2_Handle rpcid, VolumeId Vid)
+{
     Volume *volptr = 0;
-    int rc = 0;
+    int rc         = 0;
     Error error;
 
-    LogMsg(2, VolDebugLevel, stdout, "Entering S_VolUnlock: rpcid = %d, Volume = %x", rpcid, Vid);
+    LogMsg(2, VolDebugLevel, stdout,
+           "Entering S_VolUnlock: rpcid = %d, Volume = %x", rpcid, Vid);
 
     rc = VInitVolUtil(volumeUtility);
     if (rc != 0)
-	return rc;
+        return rc;
 
     /* get volume and check if locked */
     volptr = VGetVolume(&error, Vid);
     LogMsg(9, SrvDebugLevel, stdout, "S_VolUnlock: Got Volume %x", Vid);
 
     if (error) {
-	LogMsg(0, SrvDebugLevel, stdout, "S_VolUnlock: VGetVolume error %d, volume %x", error, Vid);
-	VDisconnectFS();
-	return(error);
+        LogMsg(0, SrvDebugLevel, stdout,
+               "S_VolUnlock: VGetVolume error %d, volume %x", error, Vid);
+        VDisconnectFS();
+        return (error);
     }
 
-    if (V_VolLock(volptr).IPAddress == 0){
-	LogMsg(0, VolDebugLevel, stdout, "Unlock: Locker Id doesn't match Id of lock!");
-	VPutVolume(volptr);
-	VDisconnectFS();
-	return(EINVAL);
+    if (V_VolLock(volptr).IPAddress == 0) {
+        LogMsg(0, VolDebugLevel, stdout,
+               "Unlock: Locker Id doesn't match Id of lock!");
+        VPutVolume(volptr);
+        VDisconnectFS();
+        return (EINVAL);
     }
 
     V_VolLock(volptr).IPAddress = 0;
@@ -146,7 +151,6 @@ long S_VolUnlock(RPC2_Handle rpcid, VolumeId Vid) {
 
     LogMsg(2, SrvDebugLevel, stdout, "S_VolUnlock finished successfully");
     VDisconnectFS();
-	
-    return(0);
-}
 
+    return (0);
+}

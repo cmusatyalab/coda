@@ -19,27 +19,26 @@ Coda are listed in the file CREDITS.
 #include <stdlib.h>
 #include <stdio.h>
 #include "rds_private.h"
-    
+
 /*
  * Put the heap in the first, or lower address range, and the statics in the
  * upper address range.
  */
-int
-rds_zap_heap(DevName, DevLength, startAddr, staticLength, heapLength, nlists, chunkSize, err)
-     char 		*DevName;
-     rvm_offset_t 	DevLength;
-     char  		*startAddr;
-     rvm_length_t 	staticLength;
-     rvm_length_t	heapLength;
-     unsigned long 	nlists;
-     unsigned long 	chunkSize;
-     int		*err;
+int rds_zap_heap(DevName, DevLength, startAddr, staticLength, heapLength,
+                 nlists, chunkSize, err) char *DevName;
+rvm_offset_t DevLength;
+char *startAddr;
+rvm_length_t staticLength;
+rvm_length_t heapLength;
+unsigned long nlists;
+unsigned long chunkSize;
+int *err;
 {
     rvm_region_def_t regions[2], *loadregions = NULL;
     rvm_tid_t *tid = NULL;
     unsigned long n_loadregions;
     rvm_return_t rvmret;
-    
+
     memset(regions, 0, 2 * sizeof(rvm_region_def_t));
     regions[0].length = heapLength;
     regions[0].vmaddr = startAddr;
@@ -52,44 +51,45 @@ rds_zap_heap(DevName, DevLength, startAddr, staticLength, heapLength, nlists, ch
     /* Create the segments */
     rvmret = rvm_create_segment(DevName, DevLength, NULL, 2, regions);
     if (rvmret != RVM_SUCCESS) {
-	(*err) = (int) rvmret;
-	return -1;
+        (*err) = (int)rvmret;
+        return -1;
     }
 
     /* Force the writes from create to appear in the data segment. */
     if ((rvmret = rvm_truncate()) != RVM_SUCCESS) {
-	(*err) = (int) rvmret;
-	return -1;
+        (*err) = (int)rvmret;
+        return -1;
     }
-    
+
     /* Map in the appropriate structures by calling Rvm_Load_Segment. */
-    rvmret = rvm_load_segment(DevName, DevLength, NULL, &n_loadregions, &loadregions);
+    rvmret = rvm_load_segment(DevName, DevLength, NULL, &n_loadregions,
+                              &loadregions);
     if (rvmret != RVM_SUCCESS) {
-	(*err) = (int) rvmret;
+        (*err) = (int)rvmret;
         return -1;
     }
 
     /* Total sanity checks -- since we just created the segment */
     if (n_loadregions != 2) {
-	*err = EBAD_SEGMENT_HDR;
+        *err = EBAD_SEGMENT_HDR;
         rvm_release_segment(n_loadregions, &loadregions);
         return -1;
     }
-    
+
     /* Start a transaction to initialize the heap */
-    tid = rvm_malloc_tid();
+    tid    = rvm_malloc_tid();
     rvmret = rvm_begin_transaction(tid, restore);
     if (rvmret != RVM_SUCCESS) {
-	(*err) = (int) rvmret;
+        (*err) = (int)rvmret;
         rvm_free_tid(tid);
         rvm_release_segment(n_loadregions, &loadregions);
         return -1;
     }
 
-    *err = SUCCESS; 		/* Initialize the error value */
+    *err = SUCCESS; /* Initialize the error value */
     rds_init_heap(startAddr, heapLength, chunkSize, nlists, tid, err);
     if (*err != SUCCESS) {
-	rvm_abort_transaction(tid);
+        rvm_abort_transaction(tid);
         rvm_free_tid(tid);
         rvm_release_segment(n_loadregions, &loadregions);
         return -1;
@@ -97,7 +97,7 @@ rds_zap_heap(DevName, DevLength, startAddr, staticLength, heapLength, nlists, ch
 
     rvmret = rvm_end_transaction(tid, no_flush);
     if (rvmret != RVM_SUCCESS) {
-	(*err) = (int) rvmret;
+        (*err) = (int)rvmret;
     }
 
     rvm_free_tid(tid);
@@ -110,4 +110,3 @@ rds_zap_heap(DevName, DevLength, startAddr, staticLength, heapLength, nlists, ch
 
     return (*err == SUCCESS ? 0 : -1);
 }
-

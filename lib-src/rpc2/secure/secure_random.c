@@ -90,7 +90,7 @@ static void prng_free(void)
 
 static void prng_get_bytes(uint8_t *random, size_t len)
 {
-    aes_block I, *prev = &last;
+    aes_block I, *prev  = &last;
     aes_block tmp, *out = (aes_block *)random;
     int nblocks = (len + sizeof(aes_block) - 1) / sizeof(aes_block);
 
@@ -100,28 +100,27 @@ static void prng_get_bytes(uint8_t *random, size_t len)
     aes_encrypt(&I, &I, &context);
 
     len %= sizeof(aes_block);
-    while (nblocks--)
-    {
-	xor128(&pool, &I);
+    while (nblocks--) {
+        xor128(&pool, &I);
 
-	if (!nblocks && len) {
-	    aes_encrypt(&pool, &tmp, &context);
-	    memcpy(out->u8, tmp.u8, len);
-	    out = &tmp;
-	} else
-	    aes_encrypt(&pool, out, &context);
+        if (!nblocks && len) {
+            aes_encrypt(&pool, &tmp, &context);
+            memcpy(out->u8, tmp.u8, len);
+            out = &tmp;
+        } else
+            aes_encrypt(&pool, out, &context);
 
-	/* reseed the pool, mix in the random value */
-	xor128(&I, out);
-	aes_encrypt(&I, &pool, &context);
+        /* reseed the pool, mix in the random value */
+        xor128(&I, out);
+        aes_encrypt(&I, &pool, &context);
 
-	/* we must never return consecutive identical blocks */
-	assert(memcmp(prev->u8, out->u8, sizeof(aes_block)) != 0);
+        /* we must never return consecutive identical blocks */
+        assert(memcmp(prev->u8, out->u8, sizeof(aes_block)) != 0);
 
-	prev = out++;
+        prev = out++;
     }
     if (prev != &last)
-	memcpy(last.u8, prev->u8, sizeof(aes_block));
+        memcpy(last.u8, prev->u8, sizeof(aes_block));
 }
 
 /* we need to find between 32 and 48 bytes of entropy to seed our PRNG
@@ -132,23 +131,23 @@ static void get_initial_seed(uint8_t *ptr, size_t len)
 
     /* about 8 bytes from the current time */
     if (len >= sizeof(struct timeval)) {
-	struct timeval tv;
-	gettimeofday(&tv, NULL);
-	memcpy(ptr, &tv, sizeof(struct timeval));
-	ptr += sizeof(struct timeval);
-	len -= sizeof(struct timeval);
+        struct timeval tv;
+        gettimeofday(&tv, NULL);
+        memcpy(ptr, &tv, sizeof(struct timeval));
+        ptr += sizeof(struct timeval);
+        len -= sizeof(struct timeval);
     }
 
     /* try to get the rest from /dev/random */
     fd = open(RANDOM_DEVICE, O_RDONLY);
     if (fd != -1) {
-	ssize_t n = read(fd, ptr, len);
-	if (n > 0) {
-	    ptr += n;
-	    len -= n;
-	}
-	close(fd);
-	/* we should be done now, but fall through just in case... */
+        ssize_t n = read(fd, ptr, len);
+        if (n > 0) {
+            ptr += n;
+            len -= n;
+        }
+        close(fd);
+        /* we should be done now, but fall through just in case... */
     }
 
     /* we can get about 20 bytes from times(). I assume these would be rather
@@ -156,30 +155,30 @@ static void get_initial_seed(uint8_t *ptr, size_t len)
      * returned ticks value should be clock ticks since system boot, which
      * might be more random depending on whether we just rebooted or not. */
     if (len >= sizeof(clock_t) + sizeof(struct tms)) {
-	struct tms tms;
-	clock_t ticks = times(&tms);
-	memcpy(ptr, &ticks, sizeof(clock_t));
-	ptr += sizeof(clock_t);
-	memcpy(ptr, &tms, sizeof(struct tms));
-	ptr += sizeof(struct tms);
-	len -= sizeof(struct tms) + sizeof(clock_t);
+        struct tms tms;
+        clock_t ticks = times(&tms);
+        memcpy(ptr, &ticks, sizeof(clock_t));
+        ptr += sizeof(clock_t);
+        memcpy(ptr, &tms, sizeof(struct tms));
+        ptr += sizeof(struct tms);
+        len -= sizeof(struct tms) + sizeof(clock_t);
     }
 
     /* mix in the process id, probably not so random right after boot either */
     if (len >= sizeof(pid_t)) {
-	pid_t pid = getpid();
-	memcpy(ptr, &pid, sizeof(pid_t));
-	ptr += sizeof(pid_t);
-	len -= sizeof(pid_t);
+        pid_t pid = getpid();
+        memcpy(ptr, &pid, sizeof(pid_t));
+        ptr += sizeof(pid_t);
+        len -= sizeof(pid_t);
     }
 
     /* we _really_ should be done by now, but just in case someone changed
      * RND_KEY_BITS.. Supposedly the top-8 bits in the random() result are
      * 'more random', which is why we use (random()*255)/RAND_MAX */
     if (len) {
-	srandom(time(NULL));
-	while (len--)
-	    *(ptr++) = (uint8_t)(((double)random() * 255) / (double)RAND_MAX);
+        srandom(time(NULL));
+        while (len--)
+            *(ptr++) = (uint8_t)(((double)random() * 255) / (double)RAND_MAX);
     }
 
     /* /dev/random is probably the most randomized source, but just in case
@@ -255,88 +254,89 @@ static void check_random(int verbose)
      * I assume little endian */
 
     /* Monobit Test */
-    for (ones = 0, i = 0 ; i < TESTSIZE; i++) {
-	val = data[i];
-	while (val) {
-	    if (val & 1) ones++;
-	    val >>= 1;
-	}
+    for (ones = 0, i = 0; i < TESTSIZE; i++) {
+        val = data[i];
+        while (val) {
+            if (val & 1)
+                ones++;
+            val >>= 1;
+        }
     }
 
     fail = (ones <= 9654 || ones >= 10346);
     failed += fail;
     if (fail || verbose)
-	fprintf(stderr, "PRNG monobit test:              %s\n",
-		fail ? "FAILED" : "PASSED");
+        fprintf(stderr, "PRNG monobit test:              %s\n",
+                fail ? "FAILED" : "PASSED");
 
     /* Poker Test */
     memset(f, 0, sizeof(f));
-    for (i = 0 ; i < TESTSIZE; i++) {
-	for (j = 0; j < 32; j += 4) {
-	    idx = (data[i] >> j) & 0xf;
-	    f[idx]++;
-	}
+    for (i = 0; i < TESTSIZE; i++) {
+        for (j = 0; j < 32; j += 4) {
+            idx = (data[i] >> j) & 0xf;
+            f[idx]++;
+        }
     }
     for (val = 0, i = 0; i < 16; i++)
-	val += f[i] * f[i];
+        val += f[i] * f[i];
     assert((val & 0xf0000000) == 0);
     val <<= 4;
 
     fail = (val <= 25005150 || val >= 25287000);
     failed += fail;
     if (fail || verbose)
-	fprintf(stderr, "PRNG poker test:                %s\n",
-		fail ? "FAILED" : "PASSED");
+        fprintf(stderr, "PRNG poker test:                %s\n",
+                fail ? "FAILED" : "PASSED");
 
     /* Runs Test */
     memset(f, 0, sizeof(f));
     odd = run = longrun = 0;
-    for (i = 0 ; i < TESTSIZE; i++) {
-	val = data[i];
-	for (j = 0; j < 32; j++) {
-	    if (odd ^ (val & 1)) {
-		if (run) {
-		    if (run > longrun)
-			longrun = run;
-		    if (run > 6)
-			run = 6;
-		    idx = run - 1 + (odd ? 6 : 0);
-		    f[idx]++;
-		}
-		odd = val & 1;
-		run = 0;
-	    }
-	    run++;
-	    val >>= 1;
-	}
+    for (i = 0; i < TESTSIZE; i++) {
+        val = data[i];
+        for (j = 0; j < 32; j++) {
+            if (odd ^ (val & 1)) {
+                if (run) {
+                    if (run > longrun)
+                        longrun = run;
+                    if (run > 6)
+                        run = 6;
+                    idx = run - 1 + (odd ? 6 : 0);
+                    f[idx]++;
+                }
+                odd = val & 1;
+                run = 0;
+            }
+            run++;
+            val >>= 1;
+        }
     }
     if (run > longrun)
-	longrun = run;
+        longrun = run;
     if (run > 6)
-	run = 6;
+        run = 6;
     idx = run - 1 + (odd ? 6 : 0);
     f[idx]++;
 
     fail = (f[0] <= 2267 || f[0] >= 2733 || f[6] <= 2267 || f[6] >= 2733 ||
-	    f[1] <= 1079 || f[1] >= 1421 || f[7] <= 1079 || f[7] >= 1421 ||
-	    f[2] <= 502  || f[2] >= 748  || f[8] <= 502  || f[8] >= 748 ||
-	    f[3] <= 223  || f[3] >= 402  || f[9] <= 223  || f[9] >= 402 ||
-	    f[4] <= 90   || f[4] >= 223  || f[10] <= 90  || f[10] >= 223 ||
-	    f[5] <= 90   || f[5] >= 223  || f[11] <= 90  || f[11] >= 223);
+            f[1] <= 1079 || f[1] >= 1421 || f[7] <= 1079 || f[7] >= 1421 ||
+            f[2] <= 502 || f[2] >= 748 || f[8] <= 502 || f[8] >= 748 ||
+            f[3] <= 223 || f[3] >= 402 || f[9] <= 223 || f[9] >= 402 ||
+            f[4] <= 90 || f[4] >= 223 || f[10] <= 90 || f[10] >= 223 ||
+            f[5] <= 90 || f[5] >= 223 || f[11] <= 90 || f[11] >= 223);
     failed += fail;
     if (fail || verbose)
-	fprintf(stderr, "PRNG runs test:                 %s\n",
-		fail ? "FAILED" : "PASSED");
+        fprintf(stderr, "PRNG runs test:                 %s\n",
+                fail ? "FAILED" : "PASSED");
 
     /* Long Run Test */
     fail = (longrun >= 34);
     failed += fail;
     if (fail || verbose)
-	fprintf(stderr, "PRNG long run test:             %s\n",
-		fail ? "FAILED" : "PASSED");
+        fprintf(stderr, "PRNG long run test:             %s\n",
+                fail ? "FAILED" : "PASSED");
 
     if (failed)
-	abort();
+        abort();
 }
 
 /* initialization only called from secure_init */
@@ -344,7 +344,8 @@ void secure_random_init(int verbose)
 {
     uint8_t initial_seed[INITIAL_SEED_LENGTH];
 
-    if (counter != 0) return; /* we're already initialized */
+    if (counter != 0)
+        return; /* we're already initialized */
 
     get_initial_seed(initial_seed, INITIAL_SEED_LENGTH);
 
@@ -364,5 +365,3 @@ void secure_random_bytes(void *random, size_t len)
 {
     prng_get_bytes((uint8_t *)random, len);
 }
-
-

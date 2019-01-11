@@ -16,10 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
 #ifndef _VMINDEX_H
 #define _VMINDEX_H 1
 /* vmindex.h
@@ -36,7 +32,7 @@ class vmindex {
     int size;
     int count;
 
-  public:
+public:
     vmindex(int sz = DEFAULTINDEXSIZE);
     ~vmindex();
     void add(unsigned long);
@@ -46,9 +42,9 @@ class vmindex_iterator {
     vmindex *ind;
     int current_ind;
 
-  public:
-    vmindex_iterator(vmindex*);
+public:
+    vmindex_iterator(vmindex *);
     ~vmindex_iterator();
-    long operator()();	/* return next index */
+    long operator()(); /* return next index */
 };
 #endif /* _VMINDEX_H */

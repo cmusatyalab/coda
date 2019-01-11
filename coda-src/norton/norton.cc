@@ -16,8 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -32,35 +30,38 @@ extern "C" {
 #include "parser.h"
 #include "vice_file.h"
 
-void usage(char * name) {
-    fprintf(stderr,
-	    "Usage: %s [-n servernumber] [-mapprivate] <log_device> <data_device> <length>\n",
-	    name);
+void usage(char *name)
+{
+    fprintf(
+        stderr,
+        "Usage: %s [-n servernumber] [-mapprivate] <log_device> <data_device> <length>\n",
+        name);
 }
 
-
-int main(int argc, char * argv[])
+int main(int argc, char *argv[])
 {
     rvm_return_t err;
-    mapprivate = 0;
+    mapprivate    = 0;
     char *exename = argv[0];
 
-    argc--; argv++;
+    argc--;
+    argv++;
     while (argc > 3) {
-	if (strcmp(argv[0],"-mapprivate") == 0) {
-	    mapprivate = 1;
-	}
-	argc--; argv++;
+        if (strcmp(argv[0], "-mapprivate") == 0) {
+            mapprivate = 1;
+        }
+        argc--;
+        argv++;
     }
-    
+
     if (argc != 3) {
-	usage(exename);
-	exit(EXIT_FAILURE);
+        usage(exename);
+        exit(EXIT_FAILURE);
     }
 
     vice_dir_init("/vice");
     NortonInit(argv[0], argv[1], atoi(argv[2]));
-    
+
     InitParsing();
     Parser_commands();
 

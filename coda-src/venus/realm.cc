@@ -40,7 +40,6 @@ extern "C" {
 #include "rec_dllist.h"
 #include "fso.h"
 
-
 #define DEFAULT_ROOTVOLNAME "/"
 
 /* MUST be called from within a transaction */
@@ -66,7 +65,7 @@ Realm::Realm(const RealmId id, const char *realm_name)
     ResetTransient();
 
     /* and set the correct refcounts for the new object */
-    refcount = 1;
+    refcount     = 1;
     rec_refcount = 0;
 }
 
@@ -82,39 +81,40 @@ Realm::~Realm(void)
 
     rec_list_del(&realms);
     if (rootservers) {
-	eprint("Removing realm '%s'", name);
-	ReplaceRootServers();
+        eprint("Removing realm '%s'", name);
+        ReplaceRootServers();
     }
 
     /* remove the name entry from /coda */
-    Fid.Realm = LocalRealm->Id();
+    Fid.Realm  = LocalRealm->Id();
     Fid.Volume = FakeRootVolumeId;
-    Fid.Vnode = 1;
+    Fid.Vnode  = 1;
     Fid.Unique = 1;
 
     f = FSDB->Find(&Fid);
     if (f && f->dir_Lookup(name, &Fid, CLU_CASE_SENSITIVE) == 0)
-	f->dir_Delete(name);
+        f->dir_Delete(name);
 
     rvmlib_rec_free(name);
     rvmlib_rec_free(rootvolname);
 
     /* kill the fake object that represents our mountlink */
-    Fid.Vnode = 0xfffffffc;
+    Fid.Vnode  = 0xfffffffc;
     Fid.Unique = Id();
 
     f = FSDB->Find(&Fid);
-    if (f) f->Kill();
+    if (f)
+        f->Kill();
 }
 
 /* MAY be called from within a transaction */
 void Realm::ResetTransient(void)
 {
     rootservers = NULL;
-    refcount = 0;
+    refcount    = 0;
 
     if (rvmlib_in_transaction() && !rec_refcount)
-	delete this;
+        delete this;
 }
 
 /* MUST be called from within a transaction */
@@ -124,7 +124,7 @@ void Realm::Rec_PutRef(void)
     RVMLIB_REC_OBJECT(rec_refcount);
     rec_refcount--;
     if (!refcount && !rec_refcount)
-	delete this;
+        delete this;
 }
 
 /* MAY be called from within a transaction */
@@ -162,27 +162,27 @@ void Realm::ReplaceRootServers(struct RPC2_addrinfo *newsrvs)
 
     /* grab an extra reference count to pin down the new servers */
     for (p = newsrvs; p; p = p->ai_next) {
-	if (p->ai_family != PF_INET)
-	    continue;
+        if (p->ai_family != PF_INET)
+            continue;
 
-	sin = (struct sockaddr_in *)p->ai_addr;
-	s = ::GetServer(&sin->sin_addr, Id());
-	s->GetRef();
-	PutServer(&s);
+        sin = (struct sockaddr_in *)p->ai_addr;
+        s   = ::GetServer(&sin->sin_addr, Id());
+        s->GetRef();
+        PutServer(&s);
     }
 
-    oldsrvs = rootservers;
+    oldsrvs     = rootservers;
     rootservers = newsrvs;
 
     /* drop the reference count on the old root servers */
     for (p = oldsrvs; p; p = p->ai_next) {
-	if (p->ai_family != PF_INET)
-	    continue;
+        if (p->ai_family != PF_INET)
+            continue;
 
-	sin = (struct sockaddr_in *)p->ai_addr;
-	s = ::GetServer(&sin->sin_addr, Id());
-	s->PutRef();
-	PutServer(&s);
+        sin = (struct sockaddr_in *)p->ai_addr;
+        s   = ::GetServer(&sin->sin_addr, Id());
+        s->PutRef();
+        PutServer(&s);
     }
     RPC2_freeaddrinfo(oldsrvs);
 }
@@ -199,85 +199,84 @@ int Realm::GetAdmConn(connent **cpp)
     LOG(100, ("GetAdmConn: %s\n", name));
 
     if (STREQ(name, LOCALREALM))
-	return ETIMEDOUT;
+        return ETIMEDOUT;
 
     *cpp = 0;
 
     unknown = resolve = !rootservers;
 retry:
     if (resolve) {
-	struct RPC2_addrinfo *newsrvs = NULL;
-	GetRealmServers(name, "codasrv", &newsrvs);
-	ReplaceRootServers(newsrvs);
-	resolve = 0;
+        struct RPC2_addrinfo *newsrvs = NULL;
+        GetRealmServers(name, "codasrv", &newsrvs);
+        ReplaceRootServers(newsrvs);
+        resolve = 0;
     } else {
-	coda_reorder_addrinfo(&rootservers);
-	/* our cached addresses might be stale, re-resolve if we end up not
+        coda_reorder_addrinfo(&rootservers);
+        /* our cached addresses might be stale, re-resolve if we end up not
 	 * reaching any of the servers */
-	resolve = 1;
+        resolve = 1;
     }
     tmp = RPC2_copyaddrinfo(rootservers);
 
     /* Get a connection to any custodian. */
     for (p = tmp; p; p = p->ai_next) {
-	if (p->ai_family != PF_INET)
-	    continue;
+        if (p->ai_family != PF_INET)
+            continue;
 
-	sin = (struct sockaddr_in *)p->ai_addr;
+        sin = (struct sockaddr_in *)p->ai_addr;
 
-	s = ::GetServer(&sin->sin_addr, Id());
-	code = s->GetConn(cpp, ANYUSER_UID);
-	PutServer(&s);
+        s    = ::GetServer(&sin->sin_addr, Id());
+        code = s->GetConn(cpp, ANYUSER_UID);
+        PutServer(&s);
 
-	switch(code) {
-	case ERETRY:
-	    resolve = 1;
-	case ETIMEDOUT:
-	    continue;
+        switch (code) {
+        case ERETRY:
+            resolve = 1;
+        case ETIMEDOUT:
+            continue;
 
-	case 0:
-	case EINTR:
-	    /* We might have discovered a new realm */
-	    if (unknown) {
-		VenusFid Fid;
-		fsobj *f;
+        case 0:
+        case EINTR:
+            /* We might have discovered a new realm */
+            if (unknown) {
+                VenusFid Fid;
+                fsobj *f;
 
-		eprint("Resolved realm '%s'", name);
-		Fid.Realm = LocalRealm->Id();
-		Fid.Volume = FakeRootVolumeId;
-		Fid.Vnode = 1;
-		Fid.Unique = 1;
+                eprint("Resolved realm '%s'", name);
+                Fid.Realm  = LocalRealm->Id();
+                Fid.Volume = FakeRootVolumeId;
+                Fid.Vnode  = 1;
+                Fid.Unique = 1;
 
-		f = FSDB->Find(&Fid);
-		if (f && !f->dir_Lookup(name, &Fid, CLU_CASE_SENSITIVE) == 0) {
-		    Recov_BeginTrans();
+                f = FSDB->Find(&Fid);
+                if (f && !f->dir_Lookup(name, &Fid, CLU_CASE_SENSITIVE) == 0) {
+                    Recov_BeginTrans();
 
-		    Fid.Vnode = 0xfffffffc;
-		    Fid.Unique = realmid;
-		    f->dir_Create(name, &Fid);
+                    Fid.Vnode  = 0xfffffffc;
+                    Fid.Unique = realmid;
+                    f->dir_Create(name, &Fid);
 
-		    Recov_EndTrans(MAXFP);
-		}
-	    }
-	    goto exit_done;
+                    Recov_EndTrans(MAXFP);
+                }
+            }
+            goto exit_done;
 
-	default:
-	    if (code < 0)
-		eprint("GetAdmConn: bogus code (%d)", code);
-	    goto exit_done;
-	}
+        default:
+            if (code < 0)
+                eprint("GetAdmConn: bogus code (%d)", code);
+            goto exit_done;
+        }
     }
     if (resolve)
-	goto retry;
+        goto retry;
 
     code = ETIMEDOUT;
 
 exit_done:
     if (tmp)
-	RPC2_freeaddrinfo(tmp);
+        RPC2_freeaddrinfo(tmp);
     return code;
 }
-
 
 /* MUST NOT be called from within a transaction */
 void Realm::SetRootVolName(char *name)
@@ -295,11 +294,10 @@ void Realm::print(FILE *f)
     struct RPC2_addrinfo *p;
 
     fprintf(f, "%08x realm '%s', refcount %d/%d\n", (unsigned int)Id(), Name(),
-	    refcount, rec_refcount);
+            refcount, rec_refcount);
     for (p = rootservers; p; p = p->ai_next) {
-	char buf[RPC2_ADDRSTRLEN];
-	RPC2_formataddrinfo(p, buf, RPC2_ADDRSTRLEN);
-	fprintf(f, "\t%s\n", buf);
+        char buf[RPC2_ADDRSTRLEN];
+        RPC2_formataddrinfo(p, buf, RPC2_ADDRSTRLEN);
+        fprintf(f, "\t%s\n", buf);
     }
 }
-

@@ -37,7 +37,6 @@ Pittsburgh, PA.
 
 */
 
-
 /*
   Routines used by Vice file servers to do authentication
 */
@@ -76,9 +75,8 @@ static uint8_t auth2key2[AUTH2KEYSIZE];
 */
 
 long GetKeysFromToken(IN RPC2_Integer *AuthenticationType,
-		      INOUT RPC2_CountedBS *cIdent,
-		      OUT RPC2_EncryptionKey hKey,
-		      OUT RPC2_EncryptionKey sKey)
+                      INOUT RPC2_CountedBS *cIdent, OUT RPC2_EncryptionKey hKey,
+                      OUT RPC2_EncryptionKey sKey)
 {
     SecretToken st;
     time_t now, endtimestamp;
@@ -86,41 +84,42 @@ long GetKeysFromToken(IN RPC2_Integer *AuthenticationType,
     int rc;
 
     /* unauthenticated (RPC2_OPENKIMONO) connections are allowed */
-    if (!cIdent) return 0;
+    if (!cIdent)
+        return 0;
 
     if (cIdent->SeqLen != sizeof(SecretToken)) {
-	LogMsg(-1, 0, stdout, "Invalid length token in GetKeysFromToken");
-	return(-1);
+        LogMsg(-1, 0, stdout, "Invalid length token in GetKeysFromToken");
+        return (-1);
     }
 
     rc = -1;
     if (key1valid)
-	rc = validate_CodaToken(auth2key1, cIdent->SeqBody, &viceid,
-				&endtimestamp, &st.HandShakeKey);
+        rc = validate_CodaToken(auth2key1, cIdent->SeqBody, &viceid,
+                                &endtimestamp, &st.HandShakeKey);
     if (rc && key2valid)
-	rc = validate_CodaToken(auth2key2, cIdent->SeqBody, &viceid,
-				&endtimestamp, &st.HandShakeKey);
+        rc = validate_CodaToken(auth2key2, cIdent->SeqBody, &viceid,
+                                &endtimestamp, &st.HandShakeKey);
     if (rc) {
-	LogMsg(-1, 0, stdout, "Token validation failed");
-	return(-1);	/* no valid key did the job */
+        LogMsg(-1, 0, stdout, "Token validation failed");
+        return (-1); /* no valid key did the job */
     }
 
     now = time(NULL);
     if (now > endtimestamp) {
-	LogMsg(10, SrvDebugLevel, stdout,
-	       "End time stamp %d > time %d for user %d",
-		st.EndTimestamp, now, st.ViceId);
-	return(-1);
+        LogMsg(10, SrvDebugLevel, stdout,
+               "End time stamp %d > time %d for user %d", st.EndTimestamp, now,
+               st.ViceId);
+        return (-1);
     }
 
-    st.ViceId = viceid;
+    st.ViceId       = viceid;
     st.EndTimestamp = endtimestamp;
     memcpy(hKey, st.HandShakeKey, sizeof(RPC2_EncryptionKey));
     GenerateSecret(sKey);
 
     memcpy(cIdent->SeqBody, &st, sizeof(SecretToken));
     /* to be passed back as new connection packet */
-    return(0);
+    return (0);
 }
 
 /* Sets the global server keys to the specified value.  Either of the
@@ -128,15 +127,14 @@ long GetKeysFromToken(IN RPC2_Integer *AuthenticationType,
    marked invalid */
 
 void SetServerKeys(IN RPC2_EncryptionKey serverKey1,
-		   IN RPC2_EncryptionKey serverKey2)
+                   IN RPC2_EncryptionKey serverKey2)
 {
     int rc = -1;
     if (serverKey1)
-	rc = getauth2key(serverKey1, RPC2_KEYSIZE, auth2key1);
+        rc = getauth2key(serverKey1, RPC2_KEYSIZE, auth2key1);
     key1valid = (serverKey1 != NULL && rc == 0);
 
     if (serverKey2)
-	rc = getauth2key(serverKey2, RPC2_KEYSIZE, auth2key2);
+        rc = getauth2key(serverKey2, RPC2_KEYSIZE, auth2key2);
     key2valid = (serverKey2 != NULL && rc == 0);
 }
-

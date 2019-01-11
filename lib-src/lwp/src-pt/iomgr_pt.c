@@ -30,7 +30,7 @@ Coda are listed in the file CREDITS.
 static void iomgr_sigio_handler(int n)
 {
     struct sigaction action;
-   
+
     memset(&action, 0, sizeof(struct sigaction));
     action.sa_handler = iomgr_sigio_handler;
     sigemptyset(&action.sa_mask);
@@ -50,7 +50,7 @@ int IOMGR_Select(int fds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
 {
     PROCESS pid;
     int retval;
-    struct timeval to = {0,0};
+    struct timeval to = { 0, 0 };
 
     if (LWP_CurrentProcess(&pid))
         return LWP_EBADPID;
@@ -73,7 +73,7 @@ int IOMGR_Poll(void)
     return lwp_threads_waiting();
 }
 
-int IOMGR_Cancel (PROCESS pid)
+int IOMGR_Cancel(PROCESS pid)
 {
     /* this should wake him up, I only hope it won't kill the thread */
     pthread_kill(pid->thread, SIGIO);
@@ -81,24 +81,26 @@ int IOMGR_Cancel (PROCESS pid)
 }
 
 /* These don't do anything for us */
-int IOMGR_Finalize() { return 0; }
+int IOMGR_Finalize()
+{
+    return 0;
+}
 
 /* signal delivery is not implemented yet */
-int IOMGR_SoftSig (void (*aproc)(void *), char *arock)
+int IOMGR_SoftSig(void (*aproc)(void *), char *arock)
 {
     assert(0);
     return LWP_SUCCESS;
 }
 
-int IOMGR_Signal (int signo, char *event)
+int IOMGR_Signal(int signo, char *event)
 {
     assert(0);
     return LWP_SUCCESS;
 }
 
-int IOMGR_CancelSignal (int signo)
+int IOMGR_CancelSignal(int signo)
 {
     assert(0);
     return LWP_SUCCESS;
 }
-

@@ -60,18 +60,18 @@ Pittsburgh, PA.
 static struct dllist_head HashTable[HASHLENGTH];
 
 /* The basic connection abstraction */
-DLLIST_HEAD(rpc2_ConnList);		/* active connections  */
-DLLIST_HEAD(rpc2_ConnFreeList);		/* free connection blocks */
+DLLIST_HEAD(rpc2_ConnList); /* active connections  */
+DLLIST_HEAD(rpc2_ConnFreeList); /* free connection blocks */
 
 int rpc2_InitConn(void)
 {
     int i;
 
     /* safety check, never initialize twice */
-    if (rpc2_ConnCount != -1) return 0;
+    if (rpc2_ConnCount != -1)
+        return 0;
 
-    for (i = 0; i < HASHLENGTH; i++)
-    {
+    for (i = 0; i < HASHLENGTH; i++) {
         list_head_init(&HashTable[i]);
     }
 
@@ -85,31 +85,31 @@ int rpc2_InitConn(void)
    existing connection.  */
 struct CEntry *__rpc2_GetConn(RPC2_Handle handle)
 {
-    uint32_t            i;
+    uint32_t i;
     struct dllist_head *ptr;
-    struct CEntry      *ceaddr;
+    struct CEntry *ceaddr;
 
-    if (handle == 0) return(NULL);
+    if (handle == 0)
+        return (NULL);
 
     /* bucket is handle modulo HASHLENGTH */
-    i = handle & (HASHLENGTH-1);
+    i = handle & (HASHLENGTH - 1);
 
     /* and walk the chain */
-    for (ptr = HashTable[i].next; ptr != &HashTable[i]; ptr = ptr->next)
-    {
+    for (ptr = HashTable[i].next; ptr != &HashTable[i]; ptr = ptr->next) {
         /* compare the entry to our handle */
         ceaddr = list_entry(ptr, struct CEntry, Chain);
         assert(ceaddr->MagicNumber == OBJ_CENTRY);
 
         if (ceaddr->UniqueCID == handle)
-	    return ceaddr;
+            return ceaddr;
     }
     return (NULL);
 }
 
 static void __rehash_ce(struct CEntry *ce)
 {
-    uint32_t i = ce->UniqueCID & (HASHLENGTH-1);
+    uint32_t i = ce->UniqueCID & (HASHLENGTH - 1);
     list_del(&ce->Chain);
     list_add(&ce->Chain, &HashTable[i]);
 
@@ -124,7 +124,7 @@ struct CEntry *rpc2_GetConn(RPC2_Handle handle)
     /* we are likely to see more lookups for this CEntry, so put it at
      * the front of the hash lookup chain */
     if (ceaddr)
-	__rehash_ce(ceaddr);
+        __rehash_ce(ceaddr);
 
     return (ceaddr);
 }
@@ -146,23 +146,23 @@ static void Uniquefy(IN struct CEntry *ceaddr)
      * with a `full' table (within the constraint above), we should, on
      * average, find a free handle after walking two chains. Advice for those
      * who are afraid of long bucket chain lookups: increase HASHLENGTH */
-    while(1)
-    {
+    while (1) {
         secure_random_bytes(&handle, sizeof(handle));
 
-	/* ignore any handles < 256 which have special meaning */
-	handle = abs(handle);
-	if (handle < 256) continue;
+        /* ignore any handles < 256 which have special meaning */
+        handle = abs(handle);
+        if (handle < 256)
+            continue;
 
-	if (__rpc2_GetConn(handle) == NULL)
-	    break;
+        if (__rpc2_GetConn(handle) == NULL)
+            break;
     }
 
     /* set the handle */
     ceaddr->UniqueCID = handle;
 
     /* add to the bucket */
-    index = handle & (HASHLENGTH-1);
+    index = handle & (HASHLENGTH - 1);
     list_add(&ceaddr->Chain, &HashTable[index]);
 }
 
@@ -170,22 +170,19 @@ struct CEntry *rpc2_getFreeConn()
 {
     struct CEntry *ce;
 
-    if (list_empty(&rpc2_ConnFreeList))
-    {
-	/* allocate a new conn entry */
-	ce = (struct CEntry *)malloc(sizeof(struct CEntry));
-	assert(ce || "failed to allocate conn entry");
-	rpc2_ConnCreationCount++;
-    }
-    else
-    {
-	/* grab a conn entry off the freelist */
-	struct dllist_head *tmp = rpc2_ConnFreeList.prev;
-	ce = list_entry(tmp, struct CEntry, connlist);
+    if (list_empty(&rpc2_ConnFreeList)) {
+        /* allocate a new conn entry */
+        ce = (struct CEntry *)malloc(sizeof(struct CEntry));
+        assert(ce || "failed to allocate conn entry");
+        rpc2_ConnCreationCount++;
+    } else {
+        /* grab a conn entry off the freelist */
+        struct dllist_head *tmp = rpc2_ConnFreeList.prev;
+        ce                      = list_entry(tmp, struct CEntry, connlist);
 
-	list_del(tmp);
-	rpc2_ConnFreeCount--;
-	assert(ce->MagicNumber == OBJ_FREE_CENTRY);
+        list_del(tmp);
+        rpc2_ConnFreeCount--;
+        assert(ce->MagicNumber == OBJ_FREE_CENTRY);
     }
 
     ce->MagicNumber = OBJ_CENTRY;
@@ -204,34 +201,34 @@ struct CEntry *rpc2_AllocConn(struct RPC2_addrinfo *addr)
     ce = rpc2_getFreeConn();
 
     /* Initialize */
-    ce->State = 0;
-    ce->UniqueCID = 0;
+    ce->State         = 0;
+    ce->UniqueCID     = 0;
     ce->NextSeqNumber = 0;
-    ce->SubsysId = 0;
+    ce->SubsysId      = 0;
     list_head_init(&ce->Chain);
-    ce->Flags = 0;
+    ce->Flags         = 0;
     ce->SecurityLevel = 0;
     memset(&ce->SessionKey, 0, sizeof(RPC2_EncryptionKey));
     ce->EncryptionType = 0;
-    ce->PeerHandle = 0;
-    ce->PeerUnique = 0;
-    ce->LastRef = time(NULL);
-    ce->SEProcs = NULL;
-    ce->sebroken = 0;
-    ce->Mgrp = (struct MEntry *)NULL;
-    ce->PrivatePtr = NULL;
-    ce->SideEffectPtr = NULL;
-    ce->Color = 0;
+    ce->PeerHandle     = 0;
+    ce->PeerUnique     = 0;
+    ce->LastRef        = time(NULL);
+    ce->SEProcs        = NULL;
+    ce->sebroken       = 0;
+    ce->Mgrp           = (struct MEntry *)NULL;
+    ce->PrivatePtr     = NULL;
+    ce->SideEffectPtr  = NULL;
+    ce->Color          = 0;
 
-    ce->TimeBomb = KeepAlive;
+    ce->TimeBomb             = KeepAlive;
     ce->SaveResponse.tv_usec = (2 * KeepAlive.tv_usec) % 1000000;
-    ce->SaveResponse.tv_sec = (2 * KeepAlive.tv_usec) / 1000000;
+    ce->SaveResponse.tv_sec  = (2 * KeepAlive.tv_usec) / 1000000;
     ce->SaveResponse.tv_sec += 2 * KeepAlive.tv_sec;
 
-    ce->MySl = NULL;
+    ce->MySl       = NULL;
     ce->HeldPacket = NULL;
-    ce->reqsize = 0;
-    ce->HostInfo = rpc2_GetHost(addr);
+    ce->reqsize    = 0;
+    ce->HostInfo   = rpc2_GetHost(addr);
     assert(ce->HostInfo);
     ce->Filter.FromWhom = ANY;
     ce->Filter.OldOrNew = OLDORNEW;
@@ -245,7 +242,7 @@ struct CEntry *rpc2_AllocConn(struct RPC2_addrinfo *addr)
     Uniquefy(ce);
     ce->sa.recv_spi = ce->UniqueCID;
 
-    return(ce);
+    return (ce);
 }
 
 /* Frees the connection whichConn */
@@ -260,21 +257,21 @@ void rpc2_FreeConn(RPC2_Handle whichConn)
     rpc2_FreeConns++;
 
     if (ce->HeldPacket != NULL)
-	RPC2_FreeBuffer(&ce->HeldPacket);
+        RPC2_FreeBuffer(&ce->HeldPacket);
     if (ce->MySl != NULL) {
-	rpc2_DeactivateSle(ce->MySl);
-	rpc2_FreeSle(&ce->MySl);
+        rpc2_DeactivateSle(ce->MySl);
+        rpc2_FreeSle(&ce->MySl);
     }
 
     /* Scan the hold queue and purge the request for this connection */
-    pb=rpc2_PBHoldList;
+    pb = rpc2_PBHoldList;
     for (i = 0; i < rpc2_PBHoldCount; i++) {
-	    if (pb->Header.RemoteHandle == ce->UniqueCID) {
-		    say(9, RPC2_DebugLevel, "Purging request from hold queue\n");
-		    rpc2_UnholdPacket(pb);
-		    RPC2_FreeBuffer(&pb);
-		    break;  /* there can be at most one in hold queue (RPC) */
-	    }
+        if (pb->Header.RemoteHandle == ce->UniqueCID) {
+            say(9, RPC2_DebugLevel, "Purging request from hold queue\n");
+            rpc2_UnholdPacket(pb);
+            RPC2_FreeBuffer(&pb);
+            break; /* there can be at most one in hold queue (RPC) */
+        }
     }
 
     list_del(&ce->Chain);
@@ -290,7 +287,8 @@ void rpc2_FreeConn(RPC2_Handle whichConn)
     assert(ce->MagicNumber == OBJ_CENTRY);
     ce->MagicNumber = OBJ_FREE_CENTRY;
     list_add(&ce->connlist, &rpc2_ConnFreeList);
-    rpc2_ConnCount--; rpc2_ConnFreeCount++;
+    rpc2_ConnCount--;
+    rpc2_ConnFreeCount++;
 }
 
 /* Reap connections that have not seen any activity in the past 15 minutes */
@@ -303,37 +301,32 @@ void rpc2_ReapDeadConns(void)
 
     now = time(NULL);
 
-    for (entry = rpc2_ConnList.next;
-	 entry != &rpc2_ConnList;
-	 entry = next)
-    {
-	next = entry->next;
-	ce = list_entry(entry, struct CEntry, connlist);
-	assert(ce->MagicNumber == OBJ_CENTRY);
+    for (entry = rpc2_ConnList.next; entry != &rpc2_ConnList; entry = next) {
+        next = entry->next;
+        ce   = list_entry(entry, struct CEntry, connlist);
+        assert(ce->MagicNumber == OBJ_CENTRY);
 
-	if (!ce->PrivatePtr && TestRole(ce, SERVER) &&
-	    ce->LastRef + RPC2_DEAD_CONN_TIMEOUT < now)
-	{
-	    say(1, RPC2_DebugLevel, "Reaping dead connection %#x\n",
-		ce->UniqueCID);
-	    RPC2_Unbind(ce->UniqueCID);
-	}
+        if (!ce->PrivatePtr && TestRole(ce, SERVER) &&
+            ce->LastRef + RPC2_DEAD_CONN_TIMEOUT < now) {
+            say(1, RPC2_DebugLevel, "Reaping dead connection %#x\n",
+                ce->UniqueCID);
+            RPC2_Unbind(ce->UniqueCID);
+        }
     }
 }
 
 void rpc2_SetConnError(IN struct CEntry *ce)
 {
-    assert (ce->MagicNumber == OBJ_CENTRY);
+    assert(ce->MagicNumber == OBJ_CENTRY);
 
-    if (TestRole(ce, SERVER)) 
-	    SetState(ce, S_HARDERROR);
-    else 
-	    SetState(ce, C_HARDERROR);
-    
+    if (TestRole(ce, SERVER))
+        SetState(ce, S_HARDERROR);
+    else
+        SetState(ce, C_HARDERROR);
+
     /* RC should be LWP_SUCCESS or LWP_ENOWAIT */
     LWP_NoYieldSignal((char *)ce);
 }
-
 
 /* Code to Map Retried Bind Requests to Existing Connections  */
 
@@ -361,50 +354,49 @@ data structure that maps each (host, port, uniquefier) triple to a
 connection handle.  That will almost certainly be more complex to
 build and maintain.  */
 
-
-struct RecentBind
-{
-    struct RPC2_addrinfo *addr;	/* Remote Host */
-    RPC2_Integer Unique;	/* Uniquefier value in Init1 packet */
-    RPC2_Handle RemoteHandle;	/* Remote handle for this connection */
-    RPC2_Handle MyConn;		/* Local handle allocated for this connection */
+struct RecentBind {
+    struct RPC2_addrinfo *addr; /* Remote Host */
+    RPC2_Integer Unique; /* Uniquefier value in Init1 packet */
+    RPC2_Handle RemoteHandle; /* Remote handle for this connection */
+    RPC2_Handle MyConn; /* Local handle allocated for this connection */
 };
 
-#define RBSIZE 300	/* max size of RBCache for large RPC */
-#define RBCACHE_THRESHOLD 50	/* RBCache never used for less than RBCACHE_TRESHOLD connections */
-static struct RecentBind *RBCache;	/* Wraps around; reused in LRU order.
+#define RBSIZE 300 /* max size of RBCache for large RPC */
+#define RBCACHE_THRESHOLD \
+    50 /* RBCache never used for less than RBCACHE_TRESHOLD connections */
+static struct RecentBind *RBCache; /* Wraps around; reused in LRU order.
 					Conditionally allocated. */
-static int RBWrapped = 0;	/* RBCache is full and has wrapped around */
-static int NextRB = 0;		/* Index of entry to be used for the next bind */
-static int RBCacheOn = 0;	/* 0 = RBCacheOff, 1 = RBCacheOn */
+static int RBWrapped = 0; /* RBCache is full and has wrapped around */
+static int NextRB    = 0; /* Index of entry to be used for the next bind */
+static int RBCacheOn = 0; /* 0 = RBCacheOff, 1 = RBCacheOn */
 
 /* Adds information about a new bind to the RBCache; throws out the
    oldest entry if needed */
-void rpc2_NoteBinding(struct RPC2_addrinfo *addr,
-		      RPC2_Handle RemoteHandle, RPC2_Integer whichUnique,
-		      RPC2_Handle whichConn)
+void rpc2_NoteBinding(struct RPC2_addrinfo *addr, RPC2_Handle RemoteHandle,
+                      RPC2_Integer whichUnique, RPC2_Handle whichConn)
 {
     if (rpc2_ConnCount <= RBCACHE_THRESHOLD)
-            return;
+        return;
 
     if (!RBCacheOn) {
-	    /* first use of RBCache- must allocate cache */
-	    RBCache = (struct RecentBind *) malloc(RBSIZE * sizeof(struct RecentBind));
-	    memset(RBCache, 0, RBSIZE * sizeof(struct RecentBind));
-	    RBCacheOn = 1;
+        /* first use of RBCache- must allocate cache */
+        RBCache =
+            (struct RecentBind *)malloc(RBSIZE * sizeof(struct RecentBind));
+        memset(RBCache, 0, RBSIZE * sizeof(struct RecentBind));
+        RBCacheOn = 1;
     }
     if (RBCache[NextRB].addr)
-	RPC2_freeaddrinfo(RBCache[NextRB].addr);
+        RPC2_freeaddrinfo(RBCache[NextRB].addr);
 
-    RBCache[NextRB].addr = RPC2_copyaddrinfo(addr);
-    RBCache[NextRB].Unique = whichUnique;
+    RBCache[NextRB].addr         = RPC2_copyaddrinfo(addr);
+    RBCache[NextRB].Unique       = whichUnique;
     RBCache[NextRB].RemoteHandle = RemoteHandle;
-    RBCache[NextRB].MyConn = whichConn;
-    
+    RBCache[NextRB].MyConn       = whichConn;
+
     NextRB++;
     if (NextRB >= RBSIZE) {
-	    RBWrapped = 1;
-	    NextRB = 0;
+        RBWrapped = 1;
+        NextRB    = 0;
     }
 }
 
@@ -414,81 +406,77 @@ void rpc2_NoteBinding(struct RPC2_addrinfo *addr,
    first looks in RBCache[] and if that fails, it walks the connection
    list.    */
 
-struct CEntry *
-rpc2_ConnFromBindInfo(struct RPC2_addrinfo *addr,
-		      RPC2_Handle RemoteHandle, RPC2_Integer whichUnique)
+struct CEntry *rpc2_ConnFromBindInfo(struct RPC2_addrinfo *addr,
+                                     RPC2_Handle RemoteHandle,
+                                     RPC2_Integer whichUnique)
 {
     struct RecentBind *rbn;
     int next, count;
     struct CEntry *ce;
     struct dllist_head *ptr;
     int i, j = 0;
-    
+
     /* If RBCache is being used, check it first; search it backwards,
      * to increase chances of hit on recent binds.  */
 
     if (RBCacheOn) {
-	    next = (NextRB == 0) ? RBSIZE - 1 : NextRB - 1;
-	    if (RBWrapped) 
-		    count = RBSIZE;
-	    else 
-		    count = NextRB;
-	    i = 0;
+        next = (NextRB == 0) ? RBSIZE - 1 : NextRB - 1;
+        if (RBWrapped)
+            count = RBSIZE;
+        else
+            count = NextRB;
+        i = 0;
 
-	    while (i < count) {
-		    rbn = &RBCache[next];
-		    /* do cheapest tests first */
-		    if (rbn->RemoteHandle == RemoteHandle &&
-			rbn->Unique == whichUnique &&
-			RPC2_cmpaddrinfo(rbn->addr, addr))
-		    {
-			say(1, RPC2_DebugLevel, "RBCache hit after %d tries\n", i+1);
-			ce = rpc2_GetConn(rbn->MyConn);
-			/* can't test the state because OPENKIMONO connections
+        while (i < count) {
+            rbn = &RBCache[next];
+            /* do cheapest tests first */
+            if (rbn->RemoteHandle == RemoteHandle &&
+                rbn->Unique == whichUnique &&
+                RPC2_cmpaddrinfo(rbn->addr, addr)) {
+                say(1, RPC2_DebugLevel, "RBCache hit after %d tries\n", i + 1);
+                ce = rpc2_GetConn(rbn->MyConn);
+                /* can't test the state because OPENKIMONO connections
 			 * will already be in S_AWAITREQUEST state */
-			if (ce /* && TestState(ce, SERVER, S_STARTBIND) */)
-			    return ce;
-		    }
+                if (ce /* && TestState(ce, SERVER, S_STARTBIND) */)
+                    return ce;
+            }
 
-	    /* Else bump counters and try previous one */
-		    i++;
-		    if (next == 0) 
-			    next = RBSIZE - 1;
-		    else next--;
-	    }
-	    
-	    say(1, RPC2_DebugLevel, "RBCache miss after %d tries\n", RBSIZE);
+            /* Else bump counters and try previous one */
+            i++;
+            if (next == 0)
+                next = RBSIZE - 1;
+            else
+                next--;
+        }
+
+        say(1, RPC2_DebugLevel, "RBCache miss after %d tries\n", RBSIZE);
     }
-    
+
     /* It was not in the RBCache; scan all the connections */
-    
+
     /* XXX what we probably want to do is first find a host matching the
      * current addr, and then drill down to the right connection entry.
      * However, this code just walks all connections -JH */
-    for (ptr = rpc2_ConnList.next; ptr != &rpc2_ConnList; ptr = ptr->next)
-    {
-	ce = list_entry(ptr, struct CEntry, connlist);
-	assert(ce->MagicNumber == OBJ_CENTRY);
+    for (ptr = rpc2_ConnList.next; ptr != &rpc2_ConnList; ptr = ptr->next) {
+        ce = list_entry(ptr, struct CEntry, connlist);
+        assert(ce->MagicNumber == OBJ_CENTRY);
 
-	j++; /* count # searched connections */
+        j++; /* count # searched connections */
 
-	/* do cheapest test first */
-	if (ce->PeerHandle == RemoteHandle &&
-	    ce->PeerUnique == whichUnique &&
-	    (TestState(ce, SERVER, S_STARTBIND) ||
-	     TestState(ce, SERVER, S_AWAITINIT3)) &&
-	    RPC2_cmpaddrinfo(ce->HostInfo->Addr, addr))
-	{
-	    say(1, RPC2_DebugLevel,
-		"Match after searching %d connection entries\n", j);
-	    /* and put the CE at the head of it's hashbucket */
-	    __rehash_ce(ce);
-	    return(ce);
-	}
+        /* do cheapest test first */
+        if (ce->PeerHandle == RemoteHandle && ce->PeerUnique == whichUnique &&
+            (TestState(ce, SERVER, S_STARTBIND) ||
+             TestState(ce, SERVER, S_AWAITINIT3)) &&
+            RPC2_cmpaddrinfo(ce->HostInfo->Addr, addr)) {
+            say(1, RPC2_DebugLevel,
+                "Match after searching %d connection entries\n", j);
+            /* and put the CE at the head of it's hashbucket */
+            __rehash_ce(ce);
+            return (ce);
+        }
     }
     say(1, RPC2_DebugLevel, "No match after searching %ld connections\n",
         rpc2_ConnCount);
 
-    return(NULL);
+    return (NULL);
 }
-

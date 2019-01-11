@@ -52,42 +52,41 @@ typedef unsigned char bool;
 
 #define expiration TotalTime
 
-#define new_elem()	((struct TM_Elem *) malloc(sizeof(struct TM_Elem)))
+#define new_elem() ((struct TM_Elem *)malloc(sizeof(struct TM_Elem)))
 
-#define MILLION	1000000
+#define MILLION 1000000
 
 static int globalInitDone = 0;
 
 /* declaration of private routines */
-static void subtract (struct timeval *t1, struct timeval *t2, struct timeval *t3);
-static void add (struct timeval *t1, struct timeval *t2);
-static bool blocking (struct TM_Elem *t);
-
-
+static void subtract(struct timeval *t1, struct timeval *t2,
+                     struct timeval *t3);
+static void add(struct timeval *t1, struct timeval *t2);
+static bool blocking(struct TM_Elem *t);
 
 /* t1 = t2 - t3 */
 static void subtract(struct timeval *t1, struct timeval *t2, struct timeval *t3)
 {
     int sec, usec;
 
-    sec = t2 -> tv_sec;
-    usec = t2 -> tv_usec;
+    sec  = t2->tv_sec;
+    usec = t2->tv_usec;
     if (t3->tv_usec > usec) {
-	usec += MILLION;
-	sec--;
+        usec += MILLION;
+        sec--;
     }
-    t1 -> tv_usec = usec - t3 -> tv_usec;
-    t1 -> tv_sec = sec - t3 -> tv_sec;
+    t1->tv_usec = usec - t3->tv_usec;
+    t1->tv_sec  = sec - t3->tv_sec;
 }
 
 /* t1 += t2; */
 static void add(struct timeval *t1, struct timeval *t2)
 {
-    t1 -> tv_usec += t2 -> tv_usec;
-    t1 -> tv_sec += t2 -> tv_sec;
+    t1->tv_usec += t2->tv_usec;
+    t1->tv_sec += t2->tv_sec;
     if (t1->tv_usec >= MILLION) {
-	t1 -> tv_sec ++;
-	t1 -> tv_usec -= MILLION;
+        t1->tv_sec++;
+        t1->tv_usec -= MILLION;
     }
 }
 
@@ -97,14 +96,11 @@ int TM_eql(struct timeval *t1, struct timeval *t2)
     return (t1->tv_usec == t2->tv_usec) && (t1->tv_sec == t2->tv_sec);
 }
 
-
 static bool blocking(struct TM_Elem *t)
 {
     return (t->TotalTime.tv_sec < 0 || t->TotalTime.tv_usec < 0);
 }
 
-
-
 /*
     Initializes a list -- returns -1 if failure, else 0.
 */
@@ -112,33 +108,33 @@ static bool blocking(struct TM_Elem *t)
 int TM_Init(struct TM_Elem **list)
 {
     if (!globalInitDone) {
-	FT_Init (0, 0);
-	globalInitDone = 1;
+        FT_Init(0, 0);
+        globalInitDone = 1;
     }
     *list = new_elem();
     if (*list == NULL)
-	return -1;
+        return -1;
     else {
-	(*list) -> Next = *list;
-	(*list) -> Prev = *list;
-	(*list) -> TotalTime.tv_sec = 0;
-	(*list) -> TotalTime.tv_usec = 0;
-	(*list) -> TimeLeft.tv_sec = 0;
-	(*list) -> TimeLeft.tv_usec = 0;
-	(*list) -> BackPointer = NULL;
+        (*list)->Next              = *list;
+        (*list)->Prev              = *list;
+        (*list)->TotalTime.tv_sec  = 0;
+        (*list)->TotalTime.tv_usec = 0;
+        (*list)->TimeLeft.tv_sec   = 0;
+        (*list)->TimeLeft.tv_usec  = 0;
+        (*list)->BackPointer       = NULL;
 
-	return 0;
+        return 0;
     }
 }
 
 int TM_Final(struct TM_Elem **list)
 {
     if (list == NULL || *list == NULL)
-	return -1;
+        return -1;
     else {
-	free((char *)*list);
-	*list = NULL;
-	return 0;
+        free((char *)*list);
+        *list = NULL;
+        return 0;
     }
 }
 
@@ -151,18 +147,18 @@ void TM_Insert(struct TM_Elem *tlistPtr, struct TM_Elem *elem)
     struct TM_Elem *next;
 
     /* TimeLeft must be set for function IOMGR with infinite timeouts */
-    elem -> TimeLeft = elem -> TotalTime;
+    elem->TimeLeft = elem->TotalTime;
 
     /* Special case -- infinite timeout */
     if (blocking(elem)) {
-	/* Removed dependency for some systems on libiberty/libcompat by simply
+        /* Removed dependency for some systems on libiberty/libcompat by simply
 	 * expanding the implementation of insque here.
 	 * insque((struct qelem *)elem, (struct qelem *)(tlistPtr->Prev)); */
-	elem->Prev = tlistPtr->Prev;
-	elem->Next = tlistPtr;
-	tlistPtr->Prev->Next = elem;
-	tlistPtr->Prev = elem;
-	return;
+        elem->Prev           = tlistPtr->Prev;
+        elem->Next           = tlistPtr;
+        tlistPtr->Prev->Next = elem;
+        tlistPtr->Prev       = elem;
+        return;
     }
 
     /* Finite timeout, set expiration time */
@@ -170,21 +166,22 @@ void TM_Insert(struct TM_Elem *tlistPtr, struct TM_Elem *elem)
     add(&elem->expiration, &elem->TimeLeft);
     next = NULL;
     FOR_ALL_ELTS(p, tlistPtr, {
-	if (blocking(p) || !(elem->TimeLeft.tv_sec > p->TimeLeft.tv_sec ||
-	    (elem->TimeLeft.tv_sec == p->TimeLeft.tv_sec && elem->TimeLeft.tv_usec >= p->TimeLeft.tv_usec))
-	    ) {
-		next = p;	/* Save ptr to element that will be after this one */
-		break;
-	}
-     })
+        if (blocking(p) || !(elem->TimeLeft.tv_sec > p->TimeLeft.tv_sec ||
+                             (elem->TimeLeft.tv_sec == p->TimeLeft.tv_sec &&
+                              elem->TimeLeft.tv_usec >= p->TimeLeft.tv_usec))) {
+            next = p; /* Save ptr to element that will be after this one */
+            break;
+        }
+    })
 
-    if (next == NULL) next = tlistPtr;
+    if (next == NULL)
+        next = tlistPtr;
 
     /* insque((struct qelem *)elem, (struct qelem *)(next->Prev)); */
-    elem->Prev = next->Prev;
-    elem->Next = next;
+    elem->Prev       = next->Prev;
+    elem->Next       = next;
     next->Prev->Next = elem;
-    next->Prev = elem;
+    next->Prev       = elem;
 }
 
 /*
@@ -212,15 +209,16 @@ int TM_Rescan(struct TM_Elem *tlist)
     FT_GetTimeOfDay(&time, 0);
     expired = 0;
     FOR_ALL_ELTS(e, tlist, {
-	if (!blocking(e)) {
-	    subtract(&e->TimeLeft, &e->expiration, &time);
-	    if (0 > e->TimeLeft.tv_sec || (0 == e->TimeLeft.tv_sec && 0 >= e->TimeLeft.tv_usec))
-		expired++;
-	}
+        if (!blocking(e)) {
+            subtract(&e->TimeLeft, &e->expiration, &time);
+            if (0 > e->TimeLeft.tv_sec ||
+                (0 == e->TimeLeft.tv_sec && 0 >= e->TimeLeft.tv_usec))
+                expired++;
+        }
     })
     return expired;
 }
-    
+
 /*
     RETURNS POINTER TO earliest expired entry from tlist.
     Returns 0 if no expired entries are present.
@@ -229,13 +227,14 @@ int TM_Rescan(struct TM_Elem *tlist)
 struct TM_Elem *TM_GetExpired(struct TM_Elem *tlist)
 {
     FOR_ALL_ELTS(e, tlist, {
-	if (!blocking(e) &&
-	    (0 > e->TimeLeft.tv_sec || (0 == e->TimeLeft.tv_sec && 0 >= e->TimeLeft.tv_usec)))
-		return e;
+        if (!blocking(e) &&
+            (0 > e->TimeLeft.tv_sec ||
+             (0 == e->TimeLeft.tv_sec && 0 >= e->TimeLeft.tv_usec)))
+            return e;
     })
     return NULL;
 }
-    
+
 /*
     Returns a pointer to the earliest unexpired element in tlist.
     Its TimeLeft field will specify how much time is left.
@@ -246,6 +245,6 @@ struct TM_Elem *TM_GetEarliest(struct TM_Elem *tlist)
 {
     struct TM_Elem *e;
 
-    e = tlist -> Next;
+    e = tlist->Next;
     return (e == tlist ? NULL : e);
 }

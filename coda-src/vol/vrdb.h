@@ -17,7 +17,7 @@ listed in the file CREDITS.
 #*/
 
 #ifndef _VICE_VRDB_H_
-#define	_VICE_VRDB_H_	1
+#define _VICE_VRDB_H_ 1
 
 #ifdef __cplusplus
 extern "C" {
@@ -37,10 +37,10 @@ extern "C" {
 #include <vice_file.h>
 #include <deprecations.h>
 
-#define VRDB_PATH   vice_config_path("db/VRDB")
-#define VRDB_TEMP   vice_config_path("db/VRDB.new")
+#define VRDB_PATH vice_config_path("db/VRDB")
+#define VRDB_TEMP vice_config_path("db/VRDB.new")
 
-#define VRTABHASHSIZE	128
+#define VRTABHASHSIZE 128
 
 class vrtab_iterator;
 class vrent;
@@ -49,7 +49,8 @@ class vrtab : public ohashtab {
     friend void PrintVRDB();
     char *name;
     ohashtab namehtb;
-  public:
+
+public:
     vrtab(const char *name = "anonymous vrtab");
     ~vrtab();
     void add(vrent *);
@@ -65,27 +66,27 @@ class vrtab : public ohashtab {
     int dump(int);
 };
 
-
 /* each vrent is in 2 hash tables; lookup by replicated id and by volume name */
 class vrent : public olink {
-  public:   /* made public (temporarily?) to avoid multiple header include problems */
+public
+    : /* made public (temporarily?) to avoid multiple header include problems */
     char key[33];
     VolumeId volnum;
-    olink	namehtblink;
-    /*byte*/unsigned char nServers;
+    olink namehtblink;
+    /*byte*/ unsigned char nServers;
     VolumeId ServerVolnum[VSG_MEMBERS];
     uint32_t unused;
 
     vrent();
-    vrent(vrent&);
-    int operator=(vrent&);	    /* not supported! */
+    vrent(vrent &);
+    int operator=(vrent &); /* not supported! */
     ~vrent();
 
-//  public:
+    //  public:
     void GetHosts(unsigned long *) WARN_SINGLE_HOMING;
     int index_by_hostaddr(unsigned long) WARN_SINGLE_HOMING;
     int index_by_serverid(uint8_t serverid);
-    int index(void);               /* get the replica index for this server */
+    int index(void); /* get the replica index for this server */
     void GetCheckVV(ViceVersionVector *);
     int GetVolumeInfo(VolumeInfo *);
     void hton();

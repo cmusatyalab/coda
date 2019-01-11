@@ -19,19 +19,19 @@ Coda are listed in the file CREDITS.
 #ifndef _PARSER_H_
 #define _PARSER_H_
 
-#define HISTORY	100		/* Don't let history grow unbounded    */
+#define HISTORY 100 /* Don't let history grow unbounded    */
 #define MAXARGS 100
 
 typedef struct cmd {
     const char *name;
-    void	(*func)(int, char **);
+    void (*func)(int, char **);
     struct cmd *sub_cmd;
     const char *help;
 } command_t;
 
 typedef struct argcmd {
     const char *ac_name;
-    int		(*ac_func)(int, char **);
+    int (*ac_func)(int, char **);
     const char *ac_help;
 } argcmd_t;
 
@@ -39,40 +39,38 @@ typedef struct argcmd {
 extern "C" {
 #endif
 void Parser_init(const char *, command_t *); /* Set prompt and load cmd list */
-void Parser_commands(void);		/* Start the command parser */
-void Parser_qhelp(int, char **);	/* Quick help routine */
-void Parser_help(int, char **);		/* Detailed help routine */
-void Parser_exit(int, char **);		/* Shuts down command parser */
+void Parser_commands(void); /* Start the command parser */
+void Parser_qhelp(int, char **); /* Quick help routine */
+void Parser_help(int, char **); /* Detailed help routine */
+void Parser_exit(int, char **); /* Shuts down command parser */
 int Parser_execarg(int argc, char **argv, argcmd_t cmds[]);
-void execute_line(char * line);
+void execute_line(char *line);
 
 /* Converts a string to an integer */
 int Parser_uint(char *, unsigned int *);
 
 /* Prompts for a string, with default values and a maximum length */
-char *Parser_getstr(const char *prompt, const char *deft, char *res, 
-		    size_t len);
+char *Parser_getstr(const char *prompt, const char *deft, char *res,
+                    size_t len);
 
 /* Prompts for an integer, with minimum, maximum and default values and base */
-int Parser_getint(const char *prompt, long min, long max, long deft,
-		  int base);
+int Parser_getint(const char *prompt, long min, long max, long deft, int base);
 
 /* Prompts for a yes/no, with default */
 int Parser_getbool(const char *prompt, int deft);
 
 /* Extracts an integer from a string, or prompts if it cannot get one */
-long Parser_intarg(const char *inp, const char *prompt, int deft,
-		   int min, int max, int base);
+long Parser_intarg(const char *inp, const char *prompt, int deft, int min,
+                   int max, int base);
 
 /* Extracts a word from the input, or propmts if it cannot get one */
 char *Parser_strarg(char *inp, const char *prompt, const char *deft,
-		    char *answer, int len);
+                    char *answer, int len);
 
 /* Extracts an integer from a string  with a base */
 int Parser_arg2int(const char *inp, long *result, int base);
 #ifdef __cplusplus
 }
 #endif
-
 
 #endif /* _PARSER_H_ */

@@ -29,7 +29,7 @@ Coda are listed in the file CREDITS.
 #include "grunt.h"
 
 static void F(void *ctx, uint8_t *U0, size_t U0len, uint32_t i,
-	      size_t iterations, aes_block *prv)
+              size_t iterations, aes_block *prv)
 {
     aes_block UN;
     size_t n;
@@ -41,15 +41,14 @@ static void F(void *ctx, uint8_t *U0, size_t U0len, uint32_t i,
     memcpy(prv->u8, UN.u8, AES_BLOCK_SIZE);
 
     for (n = 1; n < iterations; n++) {
-	aes_xcbc_prf_128(ctx, UN.u8, sizeof(aes_block), &UN);
-	xor128(prv, &UN);
+        aes_xcbc_prf_128(ctx, UN.u8, sizeof(aes_block), &UN);
+        xor128(prv, &UN);
     }
 }
 
 /* Password Based Key Derivation Function (PKCS #5 version 2) */
-int secure_pbkdf(const uint8_t *password, size_t plen,
-		 const uint8_t *salt, size_t slen, size_t iterations,
-		 uint8_t *key, size_t keylen)
+int secure_pbkdf(const uint8_t *password, size_t plen, const uint8_t *salt,
+                 size_t slen, size_t iterations, uint8_t *key, size_t keylen)
 {
     size_t U0len, nblocks = keylen / AES_BLOCK_SIZE;
     uint8_t *U0;
@@ -57,31 +56,33 @@ int secure_pbkdf(const uint8_t *password, size_t plen,
     void *ctx;
 
     U0len = slen + sizeof(uint32_t);
-    U0 = malloc(U0len);
-    if (!U0) return -1;
+    U0    = malloc(U0len);
+    if (!U0)
+        return -1;
 
     if (aes_xcbc_prf_init(&ctx, password, plen)) {
-	free(U0);
-	return -1;
+        free(U0);
+        return -1;
     }
 
     /* recommended minimum number of iterations is 1000 */
-    if (iterations < 1000) iterations = 1000;
+    if (iterations < 1000)
+        iterations = 1000;
 
     memset(U0, 0, U0len);
     if (salt && slen)
-	memcpy(U0, salt, slen);
+        memcpy(U0, salt, slen);
 
     for (i = 1; i <= nblocks; i++) {
-	F(ctx, U0, U0len, i, iterations, (aes_block *)key);
-	key += AES_BLOCK_SIZE;
-	keylen -= AES_BLOCK_SIZE;
+        F(ctx, U0, U0len, i, iterations, (aes_block *)key);
+        key += AES_BLOCK_SIZE;
+        keylen -= AES_BLOCK_SIZE;
     }
     if (keylen) {
-	aes_block tmp;
-	F(ctx, U0, U0len, i, iterations, &tmp);
-	memcpy(key, tmp.u8, keylen);
-	memset(tmp.u8, 0, sizeof(aes_block));
+        aes_block tmp;
+        F(ctx, U0, U0len, i, iterations, &tmp);
+        memcpy(key, tmp.u8, keylen);
+        memset(tmp.u8, 0, sizeof(aes_block));
     }
     aes_xcbc_prf_release(&ctx);
     memset(U0, 0, U0len);
@@ -96,7 +97,7 @@ void secure_pbkdf_init(int verbose)
     int operations = 0, runlength = verbose ? 1000000 : 100000;
 
     if (verbose)
-	fprintf(stderr, "Password Based Key Derivation:  ");
+        fprintf(stderr, "Password Based Key Derivation:  ");
 
     memset(key, 0, sizeof(key));
     memset(salt, 0, sizeof(salt));
@@ -104,15 +105,15 @@ void secure_pbkdf_init(int verbose)
 
     gettimeofday(&begin, NULL);
     do {
-	operations++;
-	secure_pbkdf(password, sizeof(password), salt, sizeof(salt),
-		    SECURE_PBKDF_ITERATIONS, key, sizeof(key));
-	gettimeofday(&end, NULL);
+        operations++;
+        secure_pbkdf(password, sizeof(password), salt, sizeof(salt),
+                     SECURE_PBKDF_ITERATIONS, key, sizeof(key));
+        gettimeofday(&end, NULL);
 
-	end.tv_sec -= begin.tv_sec;
-	end.tv_usec += 1000000 * end.tv_sec;
-	end.tv_usec -= begin.tv_usec;
-	/* see how many iterations we can run in ~0.1 seconds. */
+        end.tv_sec -= begin.tv_sec;
+        end.tv_usec += 1000000 * end.tv_sec;
+        end.tv_usec -= begin.tv_usec;
+        /* see how many iterations we can run in ~0.1 seconds. */
     } while (end.tv_usec < runlength);
 
     operations *= 1000000 / runlength;
@@ -156,9 +157,8 @@ void secure_pbkdf_init(int verbose)
      */
 
     if (operations > 1000) /* i.e. > 1000 ops/s */
-	fprintf(stderr, "WARNING: Password Based Key Derivation ");
+        fprintf(stderr, "WARNING: Password Based Key Derivation ");
 
     if (verbose || operations > 1000)
-	fprintf(stderr, "%d ops/s\n", operations);
+        fprintf(stderr, "%d ops/s\n", operations);
 }
-

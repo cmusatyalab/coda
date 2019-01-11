@@ -38,259 +38,258 @@ extern "C" {
 #include "coda_assert.h"
 #include "olist.h"
 
-
-
 /* DEBUGGING! -JJK */
 /*
   extern FILE *logFile;
   extern void Die(char * ...);
   */
 
-
-olist::olist() {
+olist::olist()
+{
     tail = 0;
-    cnt = 0;
+    cnt  = 0;
 }
 
-
-olist::olist(olist& ol) {
+olist::olist(olist &ol)
+{
     abort();
 }
 
-
-int olist::operator=(olist& ol) {
+int olist::operator=(olist &ol)
+{
     abort();
-    return(0);  /* to keep C++ happy!! */
+    return (0); /* to keep C++ happy!! */
 }
 
-
-olist::~olist() {
+olist::~olist()
+{
     /* This is dangerous! */
     /* Perhaps we should abort() if count() != 0?  -JJK */
-    
+
     clear();
 }
 
-
-void olist::insert(olink *p) {
-    if (p->next != 0) abort();
+void olist::insert(olink *p)
+{
+    if (p->next != 0)
+        abort();
     /*	{ print(logFile); p->print(logFile); Die("olist::insert: p->next != 0"); }*/
 
-    if (tail !=	0) {	// at least one entry exists
-        p->next = tail->next;
+    if (tail != 0) { // at least one entry exists
+        p->next    = tail->next;
         tail->next = p;
-    }
-    else {		// no existing entries
-	p->next = p;
-        tail = p;
+    } else { // no existing entries
+        p->next = p;
+        tail    = p;
     }
 
     cnt++;
 }
 
-
-void olist::append(olink *p) {
-    if (p->next != 0) abort();
+void olist::append(olink *p)
+{
+    if (p->next != 0)
+        abort();
     /*	{ print(logFile); p->print(logFile); Die("olist::append: p->next != 0"); }*/
 
-    if (tail !=	0) {	// at least one entry exists
-	p->next = tail->next;
+    if (tail != 0) { // at least one entry exists
+        p->next    = tail->next;
         tail->next = p;
-        tail = p;
-    }
-    else {		// no existing entries
-	p->next = p;
-        tail = p;
+        tail       = p;
+    } else { // no existing entries
+        p->next = p;
+        tail    = p;
     }
 
     cnt++;
 }
 
-
-olink *olist::remove(olink *p) {
+olink *olist::remove(olink *p)
+{
     olink *q, *prev;
-    
-    if (tail ==	0) 
-	return(0);	    // empty list
+
+    if (tail == 0)
+        return (0); // empty list
 
     prev = tail;
-    q = tail->next;
-    while ( q != tail && q != p) {
-	prev = q;
-	q = q->next;
+    q    = tail->next;
+    while (q != tail && q != p) {
+        prev = q;
+        q    = q->next;
     }
 
     // 3 cases: p found and p is not the only element in olist
     //          p found and p is the only element in the olist
     //          p not found
-	
-    if ( q == p ) {
-	prev->next = p->next;
-	p->next = 0;
-	cnt--;
-	if (tail == p) { // we have removed tail, reassign or 
-			 // set tail = 0 if olist is now empty
-	    tail = ( prev == tail ) ? 0 : prev; 
-	}
-	return p;
+
+    if (q == p) {
+        prev->next = p->next;
+        p->next    = 0;
+        cnt--;
+        if (tail == p) { // we have removed tail, reassign or
+            // set tail = 0 if olist is now empty
+            tail = (prev == tail) ? 0 : prev;
+        }
+        return p;
     } else {
-	return(0);      // not found 
+        return (0); // not found
     }
     // not reached
 }
 
+olink *olist::first()
+{
+    if (tail == 0)
+        return (0); // empty list
 
-
-olink *olist::first() {
-    if (tail ==	0) return(0);	    // empty list
-
-    return(tail->next);
+    return (tail->next);
 }
 
-
-olink *olist::last() {
-    return(tail);
+olink *olist::last()
+{
+    return (tail);
 }
 
-
-olink *olist::get() {
-    if (tail ==	0) return(0);	    // empty list
-    return(remove(tail->next));
+olink *olist::get()
+{
+    if (tail == 0)
+        return (0); // empty list
+    return (remove(tail->next));
 }
 
-
-void olist::clear() {
+void olist::clear()
+{
     olink *p;
-    while ((p = get())) ;
-    if (cnt != 0) abort();
+    while ((p = get()))
+        ;
+    if (cnt != 0)
+        abort();
     /*	{ print(logFile); Die("olist::clear: cnt != 0 after gets"); }*/
 }
 
-
-int olist::count() {
-    return(cnt);
+int olist::count()
+{
+    return (cnt);
 }
 
-
-int olist::IsMember(olink *p) {
+int olist::IsMember(olink *p)
+{
     olist_iterator next(*this);
     olink *ol;
     while ((ol = next()))
-	if (ol == p) return(1);
-    return(0);
+        if (ol == p)
+            return (1);
+    return (0);
 }
 
-
-void olist::print() {
+void olist::print()
+{
     print(stderr);
 }
 
-
-void olist::print(FILE *fp) {
+void olist::print(FILE *fp)
+{
     fflush(fp);
     print(fileno(fp));
 }
 
-
-void olist::print(int fd) {
+void olist::print(int fd)
+{
     /* first print out the olist header */
     char buf[1000];
-    sprintf(buf, "this: %p, tail: %p : Default Olist : count = %d\n",
-	    this, this->tail, cnt);
+    sprintf(buf, "this: %p, tail: %p : Default Olist : count = %d\n", this,
+            this->tail, cnt);
     write(fd, buf, strlen(buf));
 
     /* then print out all of the olinks */
     olist_iterator next(*this);
     olink *p;
-    while((p = next())) p->print(fd);
+    while ((p = next()))
+        p->print(fd);
 }
-
 
 /* return pointer to matching object in olist, or NULL */
 
-olink *olist::FindObject(void *tag, otagcompare_t cmpfn) {
+olink *olist::FindObject(void *tag, otagcompare_t cmpfn)
+{
     olist_iterator nextobj(*this);
     olink *ol;
-    while ((ol = nextobj())){
-      if (ol->otagmatch(tag, cmpfn)) return (ol);  /* found it! */
+    while ((ol = nextobj())) {
+        if (ol->otagmatch(tag, cmpfn))
+            return (ol); /* found it! */
     }
-    return(0); /* no matching object */
+    return (0); /* no matching object */
 }
 
-
-
-olist_iterator::olist_iterator(olist& l) {
+olist_iterator::olist_iterator(olist &l)
+{
     clist = &l;
     clink = (olink *)-1;
 }
 
+olink *olist_iterator::operator()()
+{
+    if (clink == (olink *)-1) /* state == NOTSTARTED */
+        clink = clist->first();
 
-olink *olist_iterator::operator()() {
-    if (clink == (olink *)-1)		/* state == NOTSTARTED */
-	clink = clist->first();
+    else if (clink == clist->last()) /* hit end of list */
+        clink = (olink *)0;
 
-    else if (clink == clist->last())	/* hit end of list */
-	clink = (olink *)0;
-    
-    else if (clink)			/* state == INPROGRESS */
-	clink = clink->next;
+    else if (clink) /* state == INPROGRESS */
+        clink = clink->next;
 
     /* else clink == 0 ... state == DONE */
     return clink;
 }
 
 /* reset internal state */
-void olist_iterator::reset() {
+void olist_iterator::reset()
+{
     clink = (olink *)-1;
 }
 
-
-olink::olink() {
+olink::olink()
+{
     next = 0;
 }
 
-
-olink::olink(olink& ol) {
+olink::olink(olink &ol)
+{
     abort();
 }
 
-
-int olink::operator=(olink& ol) {
+int olink::operator=(olink &ol)
+{
     abort();
-    return(0);  /* to keep C++ happy!! */
+    return (0); /* to keep C++ happy!! */
 }
 
+olink::~olink() {}
 
-olink::~olink() {
-}
-
-
-void olink::print() {
+void olink::print()
+{
     print(stderr);
 }
 
-
-void olink::print(FILE *fp) {
+void olink::print(FILE *fp)
+{
     fflush(fp);
     print(fileno(fp));
 }
 
-
-void olink::print(int fd) {
+void olink::print(int fd)
+{
     char buf[80];
-    sprintf(buf, "this: %p, next: %p: Default Olink\n",
-	    this, this->next);
+    sprintf(buf, "this: %p, next: %p: Default Olink\n", this, this->next);
     write(fd, buf, strlen(buf));
 }
 
-
 /* test an object of arbitrary class derived from olink for matching tag;
    return 1 if tag matches, 0 otherwise */
-int olink::otagmatch(void *testtag, otagcompare_t cmpfn ){
-  int result = 0;
+int olink::otagmatch(void *testtag, otagcompare_t cmpfn)
+{
+    int result = 0;
 
-  result = (*cmpfn)(this, testtag); 
-  return(result);
+    result = (*cmpfn)(this, testtag);
+    return (result);
 }
-
-

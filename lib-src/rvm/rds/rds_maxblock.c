@@ -21,25 +21,24 @@ Coda are listed in the file CREDITS.
 
 #include "rds_private.h"
 
-int rds_maxblock(unsigned long size) 
+int rds_maxblock(unsigned long size)
 {
     unsigned long nblocks = size / RDS_CHUNK_SIZE;
     free_block_t *tempbp;
     int i;
 
     if (RDS_FREE_LIST[RDS_MAXLIST].head != NULL) {
-	tempbp = RDS_FREE_LIST[RDS_MAXLIST].head;
-	while (tempbp) {
-	    if (tempbp->size >= nblocks) 
-		return 1;
-	    tempbp = tempbp->next;
-	}
+        tempbp = RDS_FREE_LIST[RDS_MAXLIST].head;
+        while (tempbp) {
+            if (tempbp->size >= nblocks)
+                return 1;
+            tempbp = tempbp->next;
+        }
     } else {
-	for (i = RDS_MAXLIST - 1; i > nblocks; i--) {
-	    if (RDS_FREE_LIST[i].head) 
-		return 1;
-	}
+        for (i = RDS_MAXLIST - 1; i > nblocks; i--) {
+            if (RDS_FREE_LIST[i].head)
+                return 1;
+        }
     }
     return 0;
 }
-

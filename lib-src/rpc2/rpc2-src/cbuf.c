@@ -53,18 +53,19 @@ struct CBUF_Header *CBUF_Init(long elemSize, long noofElems, char *printName)
     struct CBUF_Header *bufId;
 
     bufId = (struct CBUF_Header *)malloc(sizeof(struct CBUF_Header));
-    if (bufId == NULL) return(NULL);
-    bufId->ElemSize = elemSize;
-    bufId->NoOfElems = noofElems;
+    if (bufId == NULL)
+        return (NULL);
+    bufId->ElemSize          = elemSize;
+    bufId->NoOfElems         = noofElems;
     bufId->LastAllocatedSlot = -1;
-    bufId->TotalElemsAdded = 0;
+    bufId->TotalElemsAdded   = 0;
     strncpy(bufId->PrintName, printName, sizeof(bufId->PrintName) - 1);
-    bufId->Buffer = (char *)malloc(elemSize*noofElems);    
+    bufId->Buffer = (char *)malloc(elemSize * noofElems);
     if (bufId->Buffer == NULL && noofElems != 0) {
-	free(bufId);
-	bufId = NULL;
+        free(bufId);
+        bufId = NULL;
     }
-    return(bufId);
+    return (bufId);
 }
 
 char *CBUF_NextSlot(struct CBUF_Header *bufId)
@@ -72,44 +73,41 @@ char *CBUF_NextSlot(struct CBUF_Header *bufId)
     char *p;
     bufId->TotalElemsAdded++;
     bufId->LastAllocatedSlot++;
-    if (bufId->LastAllocatedSlot > bufId->NoOfElems-1)
-	bufId->LastAllocatedSlot = 0;
-    p = bufId->Buffer + (bufId->LastAllocatedSlot)*(bufId->ElemSize);
-    return(p);
+    if (bufId->LastAllocatedSlot > bufId->NoOfElems - 1)
+        bufId->LastAllocatedSlot = 0;
+    p = bufId->Buffer + (bufId->LastAllocatedSlot) * (bufId->ElemSize);
+    return (p);
 }
 
-
 void CBUF_WalkBuff(struct CBUF_Header *bufId, void (*userProc)(), long howMany,
-		   FILE *outFile)
+                   FILE *outFile)
 /* userProc	called with (<ptr to elem>, <index of elem>, outFile)
  * howMany;	userProc is invoked only for the last howMany elems
  * outFile;	opened for writing already */
 {
     long i, j;
 
-    if (bufId->TotalElemsAdded <= bufId->NoOfElems)
-    {
-	for (i = 0; i < bufId->TotalElemsAdded; i++)
-	    if (bufId->TotalElemsAdded - i <= howMany)
-		(*userProc)(bufId->Buffer+(i*bufId->ElemSize), i, outFile);
-    }
-    else
-    {
-	i = (bufId->LastAllocatedSlot == bufId->NoOfElems-1) ? 0 :
-	    bufId->LastAllocatedSlot+1;
+    if (bufId->TotalElemsAdded <= bufId->NoOfElems) {
+        for (i = 0; i < bufId->TotalElemsAdded; i++)
+            if (bufId->TotalElemsAdded - i <= howMany)
+                (*userProc)(bufId->Buffer + (i * bufId->ElemSize), i, outFile);
+    } else {
+        i = (bufId->LastAllocatedSlot == bufId->NoOfElems - 1) ?
+                0 :
+                bufId->LastAllocatedSlot + 1;
 
-	for (j = 0; j < bufId->NoOfElems; j++)
-	{
-	    if (bufId->NoOfElems - j <= howMany)
-		(*userProc)(bufId->Buffer+(i*bufId->ElemSize),
-			    bufId->TotalElemsAdded - bufId->NoOfElems + j,
-			    outFile);
+        for (j = 0; j < bufId->NoOfElems; j++) {
+            if (bufId->NoOfElems - j <= howMany)
+                (*userProc)(bufId->Buffer + (i * bufId->ElemSize),
+                            bufId->TotalElemsAdded - bufId->NoOfElems + j,
+                            outFile);
 
-	    if (i == bufId->NoOfElems-1) i = 0;
-	    else			 i++;
-	}
+            if (i == bufId->NoOfElems - 1)
+                i = 0;
+            else
+                i++;
+        }
     }
-    
 }
 
 void CBUF_Free(struct CBUF_Header **whichBuff)

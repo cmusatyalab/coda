@@ -21,7 +21,7 @@ listed in the file CREDITS.
 #include <auth2.h>
 
 void WriteTokenToFile(char *filename, ClearToken *cToken,
-		      EncryptedSecretToken sToken);
+                      EncryptedSecretToken sToken);
 void ReadTokenFromFile(char *filename, ClearToken *cToken,
                        EncryptedSecretToken sToken);
 

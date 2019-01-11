@@ -54,29 +54,30 @@ extern "C" {
   <a name="S_VolGetMaxVolId"><strong>Service the getmaxvol request</strong></a>
   END_HTML
  */
-long S_VolGetMaxVolId(RPC2_Handle cid, RPC2_Integer * maxid) {
+long S_VolGetMaxVolId(RPC2_Handle cid, RPC2_Integer *maxid)
+{
     *maxid = VGetMaxVolumeId();
     return (RPC2_SUCCESS);
 }
 
-
 /*
   S_VolSetMaxVolId: Service the setmaxvol request
  */
-long S_VolSetMaxVolId(RPC2_Handle cid, RPC2_Integer newid) 
+long S_VolSetMaxVolId(RPC2_Handle cid, RPC2_Integer newid)
 {
     rvm_return_t status;
 
     /* Make sure this request won't change the server id! */
-    if ( (SRV_RVM(MaxVolId) & 0xff000000) != (newid & 0xff000000)) {
-        VLog(0, "VSetMaxVolumeId: New volume id has a different server id! "
-	       "Not changing id.");
-	return(RPC2_FAIL);
+    if ((SRV_RVM(MaxVolId) & 0xff000000) != (newid & 0xff000000)) {
+        VLog(0,
+             "VSetMaxVolumeId: New volume id has a different server id! "
+             "Not changing id.");
+        return (RPC2_FAIL);
     }
 
-    if ( (int) SRV_RVM(MaxVolId) > newid) {
-	VLog(0, "VSetMaxVolumeId: MaxVolId > newid, not setting MaxVolId");
-	return (RPC2_FAIL);
+    if ((int)SRV_RVM(MaxVolId) > newid) {
+        VLog(0, "VSetMaxVolumeId: MaxVolId > newid, not setting MaxVolId");
+        return (RPC2_FAIL);
     }
 
     rvmlib_begin_transaction(restore);
@@ -85,5 +86,3 @@ long S_VolSetMaxVolId(RPC2_Handle cid, RPC2_Integer newid)
     VLog(0, "S_VolSetMaxVolId: returning 0.\n");
     return (0);
 }
-
-

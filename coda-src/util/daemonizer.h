@@ -40,4 +40,3 @@ void gogogo(int parent_fd);
 #endif
 
 #endif /* _DAEMONIZER_H_ */
-

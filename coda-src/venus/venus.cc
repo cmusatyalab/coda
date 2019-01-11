@@ -68,7 +68,7 @@ extern "C" {
 #include "nt_util.h"
 #ifdef __CYGWIN32__
 //  Not right now ... should go #define main venus_main
-uid_t V_UID; 
+uid_t V_UID;
 #endif
 
 /* FreeBSD 2.2.5 defines this in rpc/types.h, all others in netinet/in.h */
@@ -82,7 +82,7 @@ vproc *Main;
 VenusFid rootfid;
 long rootnodeid;
 int CleanShutDown;
-int SearchForNOreFind;  // Look for better detection method for iterrupted hoard walks. mre 1/18/93
+int SearchForNOreFind; // Look for better detection method for iterrupted hoard walks. mre 1/18/93
 int ASRallowed = 1;
 
 /* Command-line/venus.conf parameters. */
@@ -112,12 +112,12 @@ int option_isr;
 /* exit codes (http://refspecs.linuxbase.org/LSB_3.1.1/LSB-Core-generic/LSB-Core-generic/iniscrptact.html) */
 // EXIT_SUCCESS             0   /* stdlib.h - success */
 // EXIT_FAILURE             1   /* stdlib.h - generic or unspecified error */
-#define EXIT_INVALID_ARG    2   /* invalid or excess argument(s) */
-#define EXIT_UNIMPLEMENTED  3   /* unimplemented feature */
-#define EXIT_PRIVILEGE_ERR  4   /* user had insufficient privilege */
-#define EXIT_UNINSTALLED    5   /* program is not installed */
-#define EXIT_UNCONFIGURED   6   /* program is not configured */
-#define EXIT_NOT_RUNNING    7   /* program is not running */
+#define EXIT_INVALID_ARG 2 /* invalid or excess argument(s) */
+#define EXIT_UNIMPLEMENTED 3 /* unimplemented feature */
+#define EXIT_PRIVILEGE_ERR 4 /* user had insufficient privilege */
+#define EXIT_UNINSTALLED 5 /* program is not installed */
+#define EXIT_UNCONFIGURED 6 /* program is not configured */
+#define EXIT_NOT_RUNNING 7 /* program is not running */
 
 #if defined(HAVE_SYS_UN_H) && !defined(__CYGWIN32__)
 int mariner_tcp_enable = 0;
@@ -136,7 +136,7 @@ static int codatunnel_onlytcp;
 
 /* *****  Private constants  ***** */
 
-struct timeval DaemonExpiry = {TIMERINTERVAL, 0};
+struct timeval DaemonExpiry = { TIMERINTERVAL, 0 };
 
 /* *****  Private routines  ***** */
 
@@ -157,13 +157,13 @@ struct in_addr venus_relay_addr = { INADDR_LOOPBACK };
 int parent_fd = -1;
 
 /* Bytes units convertion */
-static const char * KBYTES_UNIT[] = { "KB", "kb", "Kb", "kB", "K", "k"};
+static const char *KBYTES_UNIT[] = { "KB", "kb", "Kb", "kB", "K", "k" };
 static const unsigned int KBYTE_UNIT_SCALE = 1;
-static const char * MBYTES_UNIT[] = { "MB", "mb", "Mb", "mB", "M", "m"};
+static const char *MBYTES_UNIT[] = { "MB", "mb", "Mb", "mB", "M", "m" };
 static const unsigned int MBYTE_UNIT_SCALE = 1024 * KBYTE_UNIT_SCALE;
-static const char * GBYTES_UNIT[] = { "GB", "gb", "Gb", "gB", "G", "g"};
+static const char *GBYTES_UNIT[] = { "GB", "gb", "Gb", "gB", "G", "g" };
 static const unsigned int GBYTE_UNIT_SCALE = 1024 * MBYTE_UNIT_SCALE;
-static const char * TBYTES_UNIT[] = { "TB", "tb", "Tb", "tB", "T", "t"};
+static const char *TBYTES_UNIT[] = { "TB", "tb", "Tb", "tB", "T", "t" };
 static const unsigned int TBYTE_UNIT_SCALE = 1024 * GBYTE_UNIT_SCALE;
 
 /* Some helpers to add fd/callbacks to the inner select loop */
@@ -179,7 +179,7 @@ static struct mux_cb_entry *_MUX_CBEs;
 static int _MUX_FD_SET(fd_set *fds)
 {
     struct mux_cb_entry *cbe = _MUX_CBEs;
-    int maxfd = -1;
+    int maxfd                = -1;
 
     for (; cbe; cbe = cbe->next) {
         FD_SET(cbe->fd, fds);
@@ -193,8 +193,7 @@ static int _MUX_FD_SET(fd_set *fds)
 static void _MUX_Dispatch(fd_set *fds)
 {
     struct mux_cb_entry *cbe = _MUX_CBEs, *next;
-    while(cbe)
-    {
+    while (cbe) {
         /* allow callback to remove itself without messing with the iterator */
         next = cbe->next;
 
@@ -205,7 +204,6 @@ static void _MUX_Dispatch(fd_set *fds)
     }
 }
 
-
 /* Helper to add a file descriptor with callback to main select loop.
  *
  * Call with cb == NULL to remove existing callback.
@@ -215,8 +213,7 @@ void MUX_add_callback(int fd, void (*cb)(int fd, void *udata), void *udata)
 {
     struct mux_cb_entry *cbe = _MUX_CBEs, *prev = NULL;
 
-    for (; cbe; cbe = cbe->next)
-    {
+    for (; cbe; cbe = cbe->next) {
         if (cbe->fd == fd) {
             /* remove old callback entry */
             if (prev)
@@ -239,8 +236,8 @@ void MUX_add_callback(int fd, void (*cb)(int fd, void *udata), void *udata)
     cbe = (struct mux_cb_entry *)malloc(sizeof(*cbe));
     assert(cbe != NULL);
 
-    cbe->fd = fd;
-    cbe->cb = cb;
+    cbe->fd    = fd;
+    cbe->cb    = cb;
     cbe->udata = udata;
 
     cbe->next = _MUX_CBEs;
@@ -250,12 +247,12 @@ void MUX_add_callback(int fd, void (*cb)(int fd, void *udata), void *udata)
 /*
  * Parse size value and converts into amount of 1K-Blocks
  */
-static uint64_t ParseSizeWithUnits(const char * SizeWUnits)
+static uint64_t ParseSizeWithUnits(const char *SizeWUnits)
 {
-    const char * units = NULL;
-    int scale_factor = 1;
+    const char *units = NULL;
+    int scale_factor  = 1;
     char SizeWOUnits[256];
-    size_t size_len = 0;
+    size_t size_len   = 0;
     uint64_t size_int = 0;
 
     /* Locate the units and determine the scale factor */
@@ -264,7 +261,7 @@ static uint64_t ParseSizeWithUnits(const char * SizeWUnits)
             scale_factor = KBYTE_UNIT_SCALE;
             break;
         }
-        
+
         if ((units = strstr(SizeWUnits, MBYTES_UNIT[i]))) {
             scale_factor = MBYTE_UNIT_SCALE;
             break;
@@ -285,7 +282,7 @@ static uint64_t ParseSizeWithUnits(const char * SizeWUnits)
     if (units) {
         size_len = (size_t)((units - SizeWUnits) / sizeof(char));
         strncpy(SizeWOUnits, SizeWUnits, size_len);
-        SizeWOUnits[size_len] = 0;  // Make it null-terminated
+        SizeWOUnits[size_len] = 0; // Make it null-terminated
     } else {
         snprintf(SizeWOUnits, sizeof(SizeWOUnits), "%s", SizeWUnits);
     }
@@ -299,61 +296,63 @@ static uint64_t ParseSizeWithUnits(const char * SizeWUnits)
 static int power_of_2(uint64_t num)
 {
     int power = 0;
-    
-    if (!num) return -1;
-    
+
+    if (!num)
+        return -1;
+
     /*Find the first 1 */
     while (!(num & 0x1)) {
-        num = num >> 1; 
+        num = num >> 1;
         power++;
     }
-    
+
     /* Shift the first 1 */
     num = num >> 1;
 
     /* Any other 1 means not power of 2 */
-    if (num) return -1;
+    if (num)
+        return -1;
 
-    return power; 
+    return power;
 }
 
-void ParseCacheChunkBlockSize(const char * ccblocksize)
+void ParseCacheChunkBlockSize(const char *ccblocksize)
 {
     uint64_t TmpCacheChunkBlockSize = ParseSizeWithUnits(ccblocksize) * 1024;
-    int TmpCacheChunkBlockSizeBit = power_of_2(TmpCacheChunkBlockSize);
-    
+    int TmpCacheChunkBlockSizeBit   = power_of_2(TmpCacheChunkBlockSize);
+
     if (TmpCacheChunkBlockSizeBit < 0) {
         /* Not a power of 2 FAIL!!! */
-        eprint("Cannot start: provided cache chunk block size is not a power of 2");
+        eprint(
+            "Cannot start: provided cache chunk block size is not a power of 2");
         exit(EXIT_UNCONFIGURED);
     }
-    
+
     if (TmpCacheChunkBlockSizeBit < 12) {
         /* Smaller than minimum FAIL*/
         eprint("Cannot start: minimum cache chunk block size is 4KB");
         exit(EXIT_UNCONFIGURED);
     }
-        
-    CacheChunkBlockSizeBits = TmpCacheChunkBlockSizeBit;
-    CacheChunkBlockSize = 1 << CacheChunkBlockSizeBits;
-    CacheChunkBlockSizeMax = CacheChunkBlockSize - 1;
+
+    CacheChunkBlockSizeBits   = TmpCacheChunkBlockSizeBit;
+    CacheChunkBlockSize       = 1 << CacheChunkBlockSizeBits;
+    CacheChunkBlockSizeMax    = CacheChunkBlockSize - 1;
     CacheChunkBlockBitmapSize = (UINT_MAX >> CacheChunkBlockSizeBits) + 1;
 }
-
 
 /* local-repair modification */
 int main(int argc, char **argv)
 {
-    coda_assert_action = CODA_ASSERT_SLEEP;
+    coda_assert_action  = CODA_ASSERT_SLEEP;
     coda_assert_cleanup = VFSUnmount;
 
     ParseCmdline(argc, argv);
-    DefaultCmdlineParms();   /* read /etc/coda/venus.conf */
+    DefaultCmdlineParms(); /* read /etc/coda/venus.conf */
 
     // Cygwin runs as a service and doesn't need to daemonize.
 #ifndef __CYGWIN__
     if (!nofork && LogLevel == 0)
-	parent_fd = daemonize();
+        parent_fd = daemonize();
 #endif
 
     update_pidfile(VenusPidFile);
@@ -363,7 +362,7 @@ int main(int argc, char **argv)
         freopen(consoleFile, "a+", stderr);
     eprint("Coda Venus, version " PACKAGE_VERSION);
 
-    CdToCacheDir(); 
+    CdToCacheDir();
     CheckInitFile();
     SetRlimits();
     /* Initialize.  N.B. order of execution is very important here! */
@@ -372,11 +371,11 @@ int main(int argc, char **argv)
 #ifdef __CYGWIN32__
     /* MapPrivate does not work on Cygwin */
     if (MapPrivate) {
-      eprint ("Private mapping turned off, does not work on CYGWIN.");
-      MapPrivate = 0;
+        eprint("Private mapping turned off, does not work on CYGWIN.");
+        MapPrivate = 0;
     }
     V_UID = getuid();
-#endif    
+#endif
 
     /* test mismatch with kernel before doing real work */
     testKernDevice();
@@ -386,8 +385,9 @@ int main(int argc, char **argv)
         /* masquerade_port is the UDP portnum specified via venus.conf */
         char service[6];
         sprintf(service, "%hu", masquerade_port);
-        rc = codatunnel_fork(argc, argv, NULL, "0.0.0.0", service, codatunnel_onlytcp);
-        if (rc < 0){
+        rc = codatunnel_fork(argc, argv, NULL, "0.0.0.0", service,
+                             codatunnel_onlytcp);
+        if (rc < 0) {
             perror("codatunnel_fork: ");
             exit(-1);
         }
@@ -401,27 +401,27 @@ int main(int argc, char **argv)
      * The logging routines return without doing anything if LogInit 
      * hasn't yet been called. 
      */
-    VprocInit();    /* init LWP/IOMGR support */
-    LogInit();      /* move old Venus log and create a new one */
-   
+    VprocInit(); /* init LWP/IOMGR support */
+    LogInit(); /* move old Venus log and create a new one */
+
     LWP_SetLog(logFile, lwp_debug);
     RPC2_SetLog(logFile, RPC2_DebugLevel);
-    DaemonInit();   /* before any Daemons initialize and after LogInit */
+    DaemonInit(); /* before any Daemons initialize and after LogInit */
     StatsInit();
-    SigInit();      /* set up signal handlers */
+    SigInit(); /* set up signal handlers */
 
     DIR_Init(RvmType == VM ? DIR_DATA_IN_VM : DIR_DATA_IN_RVM);
-    RecovInit();    /* set up RVM and recov daemon */
-    CommInit();     /* set up RPC2, {connection,server,mgroup} lists, probe daemon */
-    UserInit();     /* fire up user daemon */
-    VSGDBInit();    /* init VSGDB */
+    RecovInit(); /* set up RVM and recov daemon */
+    CommInit(); /* set up RPC2, {connection,server,mgroup} lists, probe daemon */
+    UserInit(); /* fire up user daemon */
+    VSGDBInit(); /* init VSGDB */
     RealmDBInit();
-    VolInit();	    /* init VDB, daemon */
-    FSOInit();      /* allocate FSDB if necessary, recover FSOs, start FSO daemon */
-    VolInitPost();  /* drop extra volume refcounts */
-    HDB_Init();     /* allocate HDB if necessary, scan entries, start the HDB daemon */
-    MarinerInit();  /* set up mariner socket */
-    WorkerInit();   /* open kernel device */
+    VolInit(); /* init VDB, daemon */
+    FSOInit(); /* allocate FSDB if necessary, recover FSOs, start FSO daemon */
+    VolInitPost(); /* drop extra volume refcounts */
+    HDB_Init(); /* allocate HDB if necessary, scan entries, start the HDB daemon */
+    MarinerInit(); /* set up mariner socket */
+    WorkerInit(); /* open kernel device */
     CallBackInit(); /* set up callback subsystem and create callback server threads */
 
     /* Get the Root Volume. */
@@ -441,22 +441,22 @@ int main(int argc, char **argv)
 
     /* Act as message-multiplexor/daemon-dispatcher. */
     for (;;) {
-	/* Wait for a message or daemon expiry. */
-	fd_set rfds;
-	int maxfd;
+        /* Wait for a message or daemon expiry. */
+        fd_set rfds;
+        int maxfd;
 
-	FD_ZERO(&rfds);
+        FD_ZERO(&rfds);
         maxfd = _MUX_FD_SET(&rfds);
 
-	if (VprocSelect(maxfd+1, &rfds, 0, 0, &DaemonExpiry) > 0)
+        if (VprocSelect(maxfd + 1, &rfds, 0, 0, &DaemonExpiry) > 0)
             _MUX_Dispatch(&rfds);
 
-	/* set in sighand.cc whenever we want to perform a clean shutdown */
-	if (TerminateVenus)
-	    break;
+        /* set in sighand.cc whenever we want to perform a clean shutdown */
+        if (TerminateVenus)
+            break;
 
-	/* Fire daemons that are ready to run. */
-	DispatchDaemons();
+        /* Fire daemons that are ready to run. */
+        DispatchDaemons();
     }
 
     LOG(0, ("Venus exiting\n"));
@@ -481,238 +481,235 @@ int main(int argc, char **argv)
 
 static void Usage(char *argv0)
 {
-    printf("Usage: %s [OPTION]...\n\n"
-"Options:\n"
-" -init\t\t\t\twipe and reinitialize persistent state\n"
-" -newinstance\t\t\tfake a 'reinit'\n"
-" -primaryuser <n>\t\tprimary user\n"
-" -mapprivate\t\t\tuse private mmap for RVM\n"
-" -d <debug level>\t\tdebug level\n"
-" -rpcdebug <n>\t\t\trpc2 debug level\n"
-" -lwpdebug <n>\t\t\tlwp debug level\n"
-" -cf <n>\t\t\t# of cache files\n"
-" -c <n>[KB|MB|GB|TB]\t\t\t\tcache size in the given units (e.g. 10MB)\n"
-" -ccbs <n>[KB|MB|GB|TB]\t\t\t\tcache chunk block size (shall be power of 2)\n"
-" -mles <n>\t\t\t# of CML entries\n"
-" -hdbes <n>\t\t\t# of hoard database entries\n"
-" -rdstrace\t\t\tenable RDS heap tracing\n"
-" -k <kernel device>\t\tTake kernel device to be the device for\n"
-"\t\t\t\tkernel/venus communication (/dev/cfs0)\n"
-" -f <cache dir>\t\t\tlocation of cache files\n"
-" -console <error log>\t\tlocation of error log file\n"
-" -m <n>\t\t\t\tCOP modes\n"
-" -maxworkers <n>\t\t# of worker threads\n"
-" -maxcbservers <n>\t\t# of callback server threads\n"
-" -maxprefetchers <n>\t\t# of threads servicing prefetch ioctl\n"
-" -retries <n>\t\t\t# of rpc2 retries\n"
-" -timeout <n>\t\t\trpc2 timeout\n"
-" -ws <n>\t\t\tsftp window size\n"
-" -sa <n>\t\t\tsftp send ahead\n"
-" -ap <n>\t\t\tsftp ack point\n"
-" -ps <n>\t\t\tsftp packet size\n"
-" -rvmt <n>\t\t\tRVM type\n"
-" -vld <RVM log>\t\t\tlocation of RVM log\n"
-" -vlds <n>\t\t\tsize of RVM log\n"
-" -vdd <RVM data>\t\tlocation of RVM data\n"
-" -vdds <n>\t\t\tsize of RVM data\n"
-" -rdscs <n>\t\t\tRDS chunk size\n"
-" -rdsnl <n>\t\t\tRDS # lists\n"
-" -logopts <n>\t\t\tRVM log optimizations\n"
-" -swt <n>\t\t\tshort term weight\n"
-" -mwt <n>\t\t\tmedium term weight\n"
-" -ssf <n>\t\t\tshort term scale factor\n"
-" -alpha <n>\t\t\tpatience ALPHA value\n"
-" -beta <n>\t\t\tpatience BETA value\n"
-" -gamma <n>\t\t\tpatience GAMMA value\n"
-" -von\t\t\t\tenable rpc2 timing\n"
-" -voff\t\t\t\tdisable rpc2 timing\n"
-" -vmon\t\t\t\tenable multirpc2 timing\n"
-" -vmoff\t\t\t\tdisable multirpc2 timing\n"
-" -SearchForNOreFind\t\tsomething, forgot what\n"
-" -noskk\t\t\t\tdisable venus sidekick\n"
-" -noasr\t\t\t\tdisable application specific resolvers\n"
-" -novcb\t\t\t\tdisable volume callbacks\n"
-" -nowalk\t\t\tdisable hoard walks\n"
-" -spooldir <spool directory>\tspooldir to hold CML snapshots\n"
-" -MarinerTcp\t\t\tenable mariner tcp port\n"
-" -noMarinerTcp\t\t\tdisable mariner tcp port\n"
-" -allow-reattach\t\tallow reattach to already mounted tree\n"
-" -relay <addr>\t\t\trelay socket address (windows only)\n"
-" -codatunnel\t\t\tenable codatunneld helper\n"
-" -no-codatunnel\t\t\tdisable codatunneld helper\n"
-" -onlytcp\t\t\tonly use TCP tunnel connections to servers\n"
-" -9pfs\t\t\tenable embedded 9pfs server (experimental, INSECURE!)\n"
-" -no-codafs\t\t\tdo not automatically mount /coda\n"
-" -nofork\t\t\tdo not daemonize the process\n\n"
-" -wfmax\t\t\tmaximum file size to allow whole-file caching\n\n"
-"For more information see http://www.coda.cs.cmu.edu/\n"
-"Report bugs to <bugs@coda.cs.cmu.edu>.\n", argv0);
+    printf(
+        "Usage: %s [OPTION]...\n\n"
+        "Options:\n"
+        " -init\t\t\t\twipe and reinitialize persistent state\n"
+        " -newinstance\t\t\tfake a 'reinit'\n"
+        " -primaryuser <n>\t\tprimary user\n"
+        " -mapprivate\t\t\tuse private mmap for RVM\n"
+        " -d <debug level>\t\tdebug level\n"
+        " -rpcdebug <n>\t\t\trpc2 debug level\n"
+        " -lwpdebug <n>\t\t\tlwp debug level\n"
+        " -cf <n>\t\t\t# of cache files\n"
+        " -c <n>[KB|MB|GB|TB]\t\t\t\tcache size in the given units (e.g. 10MB)\n"
+        " -ccbs <n>[KB|MB|GB|TB]\t\t\t\tcache chunk block size (shall be power of 2)\n"
+        " -mles <n>\t\t\t# of CML entries\n"
+        " -hdbes <n>\t\t\t# of hoard database entries\n"
+        " -rdstrace\t\t\tenable RDS heap tracing\n"
+        " -k <kernel device>\t\tTake kernel device to be the device for\n"
+        "\t\t\t\tkernel/venus communication (/dev/cfs0)\n"
+        " -f <cache dir>\t\t\tlocation of cache files\n"
+        " -console <error log>\t\tlocation of error log file\n"
+        " -m <n>\t\t\t\tCOP modes\n"
+        " -maxworkers <n>\t\t# of worker threads\n"
+        " -maxcbservers <n>\t\t# of callback server threads\n"
+        " -maxprefetchers <n>\t\t# of threads servicing prefetch ioctl\n"
+        " -retries <n>\t\t\t# of rpc2 retries\n"
+        " -timeout <n>\t\t\trpc2 timeout\n"
+        " -ws <n>\t\t\tsftp window size\n"
+        " -sa <n>\t\t\tsftp send ahead\n"
+        " -ap <n>\t\t\tsftp ack point\n"
+        " -ps <n>\t\t\tsftp packet size\n"
+        " -rvmt <n>\t\t\tRVM type\n"
+        " -vld <RVM log>\t\t\tlocation of RVM log\n"
+        " -vlds <n>\t\t\tsize of RVM log\n"
+        " -vdd <RVM data>\t\tlocation of RVM data\n"
+        " -vdds <n>\t\t\tsize of RVM data\n"
+        " -rdscs <n>\t\t\tRDS chunk size\n"
+        " -rdsnl <n>\t\t\tRDS # lists\n"
+        " -logopts <n>\t\t\tRVM log optimizations\n"
+        " -swt <n>\t\t\tshort term weight\n"
+        " -mwt <n>\t\t\tmedium term weight\n"
+        " -ssf <n>\t\t\tshort term scale factor\n"
+        " -alpha <n>\t\t\tpatience ALPHA value\n"
+        " -beta <n>\t\t\tpatience BETA value\n"
+        " -gamma <n>\t\t\tpatience GAMMA value\n"
+        " -von\t\t\t\tenable rpc2 timing\n"
+        " -voff\t\t\t\tdisable rpc2 timing\n"
+        " -vmon\t\t\t\tenable multirpc2 timing\n"
+        " -vmoff\t\t\t\tdisable multirpc2 timing\n"
+        " -SearchForNOreFind\t\tsomething, forgot what\n"
+        " -noskk\t\t\t\tdisable venus sidekick\n"
+        " -noasr\t\t\t\tdisable application specific resolvers\n"
+        " -novcb\t\t\t\tdisable volume callbacks\n"
+        " -nowalk\t\t\tdisable hoard walks\n"
+        " -spooldir <spool directory>\tspooldir to hold CML snapshots\n"
+        " -MarinerTcp\t\t\tenable mariner tcp port\n"
+        " -noMarinerTcp\t\t\tdisable mariner tcp port\n"
+        " -allow-reattach\t\tallow reattach to already mounted tree\n"
+        " -relay <addr>\t\t\trelay socket address (windows only)\n"
+        " -codatunnel\t\t\tenable codatunneld helper\n"
+        " -no-codatunnel\t\t\tdisable codatunneld helper\n"
+        " -onlytcp\t\t\tonly use TCP tunnel connections to servers\n"
+        " -9pfs\t\t\tenable embedded 9pfs server (experimental, INSECURE!)\n"
+        " -no-codafs\t\t\tdo not automatically mount /coda\n"
+        " -nofork\t\t\tdo not daemonize the process\n\n"
+        " -wfmax\t\t\tmaximum file size to allow whole-file caching\n\n"
+        "For more information see http://www.coda.cs.cmu.edu/\n"
+        "Report bugs to <bugs@coda.cs.cmu.edu>.\n",
+        argv0);
 }
 
 static void ParseCmdline(int argc, char **argv)
 {
     int i, done = 0;
 
-    for(i = 1; i < argc; i++) {
-  	if (argv[i][0] == '-') {
-	    if (STREQ(argv[i], "-h") || STREQ(argv[i], "--help") ||
-		STREQ(argv[i], "-?"))
-		done = 1, Usage(argv[0]);
-	    else if (STREQ(argv[i], "--version"))
-		done = 1, printf("Venus " PACKAGE_VERSION "\n");
+    for (i = 1; i < argc; i++) {
+        if (argv[i][0] == '-') {
+            if (STREQ(argv[i], "-h") || STREQ(argv[i], "--help") ||
+                STREQ(argv[i], "-?"))
+                done = 1, Usage(argv[0]);
+            else if (STREQ(argv[i], "--version"))
+                done = 1, printf("Venus " PACKAGE_VERSION "\n");
 
-	    else if (STREQ(argv[i], "-relay")) {   /* default is 127.0.0.1 */
- 		i++;
-		inet_aton(argv[i], &venus_relay_addr);
- 	    } else if (STREQ(argv[i], "-k"))         /* default is /dev/cfs0 */
-  		i++, kernDevice = argv[i];
-	    else if (STREQ(argv[i], "-mles")) /* total number of CML entries */
-		i++, MLEs = atoi(argv[i]);
-	    else if (STREQ(argv[i], "-cf"))   /* number of cache files */
-		i++, CacheFiles = atoi(argv[i]);
-	    else if (STREQ(argv[i], "-c"))    /* cache block size */
-		i++, CacheBlocks = ParseSizeWithUnits(argv[i]);
-	    else if (STREQ(argv[i], "-hdbes")) /* hoard DB entries */
-		i++, HDBEs = atoi(argv[i]);
-	    else if (STREQ(argv[i], "-d"))     /* debugging */
-		i++, LogLevel = atoi(argv[i]);
-	    else if (STREQ(argv[i], "-rpcdebug")) {    /* debugging */
-		i++;
-		RPC2_DebugLevel = atoi(argv[i]);
-		RPC2_Trace = 1;
-	    } else if (STREQ(argv[i], "-lwpdebug")) {    /* debugging */
-		i++;
-		lwp_debug =atoi(argv[i]);
-	    } else if (STREQ(argv[i], "-rdstrace"))     /* RDS heap tracing */
-		MallocTrace = 1;
-	    else if (STREQ(argv[i], "-f"))     /* location of cache files */
-		i++, CacheDir = argv[i];
-	    else if (STREQ(argv[i], "-m"))
-		i++, COPModes = atoi(argv[i]);
-	    else if (STREQ(argv[i], "-maxworkers"))  /* number of worker threads */
-		i++, MaxWorkers = atoi(argv[i]);
-	    else if (STREQ(argv[i], "-maxcbservers")) 
-		i++, MaxCBServers = atoi(argv[i]);
-	    else if (STREQ(argv[i], "-maxprefetchers")) /* max number of threads */
-		i++, MaxPrefetchers = atoi(argv[i]);    /* doing prefetch ioctl */
-	    else if (STREQ(argv[i], "-console"))      /* location of console file */
-		i++, consoleFile = argv[i];
-	    else if (STREQ(argv[i], "-retries"))      /* number of rpc2 retries */
-		i++, rpc2_retries = atoi(argv[i]);
-	    else if (STREQ(argv[i], "-timeout"))      /* rpc timeout */
-		i++, rpc2_timeout = atoi(argv[i]);
-	    else if (STREQ(argv[i], "-ws"))           /* sftp window size */
-		i++, sftp_windowsize = atoi(argv[i]);
-	    else if (STREQ(argv[i], "-sa"))           /* sftp send ahead */
-		i++, sftp_sendahead = atoi(argv[i]);
-	    else if (STREQ(argv[i], "-ap"))           /* sftp ack point */
-		i++, sftp_ackpoint = atoi(argv[i]);
-	    else if (STREQ(argv[i], "-ps"))           /* sftp packet size */
-		i++, sftp_packetsize = atoi(argv[i]);
-	    else if (STREQ(argv[i], "-init"))        /* brain wipe rvm */
-		InitMetaData = 1;
-	    else if (STREQ(argv[i], "-newinstance")) /* fake a 'reinit' */
-		InitNewInstance = 1;
-	    else if (STREQ(argv[i], "-rvmt"))
-		i++, RvmType = (rvm_type_t)(atoi(argv[i]));
-	    else if (STREQ(argv[i], "-vld"))          /* location of log device */
-		i++, VenusLogDevice = argv[i];        /* normally /usr/coda/LOG */
-	    else if (STREQ(argv[i], "-vlds"))         /* log device size */
-		i++, VenusLogDeviceSize = atoi(argv[i]);  
-	    else if (STREQ(argv[i], "-vdd"))          /* location of data device */
-                i++, VenusDataDevice = argv[i];       /* normally /usr/coda/DATA */
-	    else if (STREQ(argv[i], "-vdds"))         /* meta-data device size */
-		i++, VenusDataDeviceSize = atoi(argv[i]);
-	    else if (STREQ(argv[i], "-rdscs"))        
-		i++, RdsChunkSize = atoi(argv[i]);    
-	    else if (STREQ(argv[i], "-rdsnl"))
-		i++, RdsNlists = atoi(argv[i]);
-	    else if (STREQ(argv[i], "-logopts"))
-		i++, LogOpts = atoi(argv[i]);
-	    else if (STREQ(argv[i], "-swt"))         /* short term pri weight */
-		i++, FSO_SWT = atoi(argv[i]);
-	    else if (STREQ(argv[i], "-mwt"))         /* med term priority weight */
-		i++, FSO_MWT = atoi(argv[i]);
-	    else if (STREQ(argv[i], "-ssf"))         /* short term scale factor */
-		i++, FSO_SSF = atoi(argv[i]);
-	    else if (STREQ(argv[i], "-primaryuser")) /* primary user of this machine */
-		i++, PrimaryUser = atoi(argv[i]);
-	    else if (STREQ(argv[i], "-von"))
-		rpc2_timeflag = 1;
-	    else if (STREQ(argv[i], "-voff"))
-		rpc2_timeflag = 0;
-	    else if (STREQ(argv[i], "-vmon"))
-		mrpc2_timeflag = 1;
-	    else if (STREQ(argv[i], "-vmoff"))
-		mrpc2_timeflag = 0;
-	    else if (STREQ(argv[i], "-SearchForNOreFind"))
-	        SearchForNOreFind = 1;
-	    else if (STREQ(argv[i], "-noasr"))
-	        ASRallowed = 0;
-	    else if (STREQ(argv[i], "-novcb"))
-	        VCBEnabled = 0;
-	    else if (STREQ(argv[i], "-nowalk")) {
-	        extern char PeriodicWalksAllowed;
-	        PeriodicWalksAllowed = 0;
-	    }
-	    else if (STREQ(argv[i], "-spooldir")) {
-	        i++, SpoolDir = argv[i];
-	    }
+            else if (STREQ(argv[i], "-relay")) { /* default is 127.0.0.1 */
+                i++;
+                inet_aton(argv[i], &venus_relay_addr);
+            } else if (STREQ(argv[i], "-k")) /* default is /dev/cfs0 */
+                i++, kernDevice = argv[i];
+            else if (STREQ(argv[i], "-mles")) /* total number of CML entries */
+                i++, MLEs = atoi(argv[i]);
+            else if (STREQ(argv[i], "-cf")) /* number of cache files */
+                i++, CacheFiles = atoi(argv[i]);
+            else if (STREQ(argv[i], "-c")) /* cache block size */
+                i++, CacheBlocks = ParseSizeWithUnits(argv[i]);
+            else if (STREQ(argv[i], "-hdbes")) /* hoard DB entries */
+                i++, HDBEs = atoi(argv[i]);
+            else if (STREQ(argv[i], "-d")) /* debugging */
+                i++, LogLevel = atoi(argv[i]);
+            else if (STREQ(argv[i], "-rpcdebug")) { /* debugging */
+                i++;
+                RPC2_DebugLevel = atoi(argv[i]);
+                RPC2_Trace      = 1;
+            } else if (STREQ(argv[i], "-lwpdebug")) { /* debugging */
+                i++;
+                lwp_debug = atoi(argv[i]);
+            } else if (STREQ(argv[i], "-rdstrace")) /* RDS heap tracing */
+                MallocTrace = 1;
+            else if (STREQ(argv[i], "-f")) /* location of cache files */
+                i++, CacheDir = argv[i];
+            else if (STREQ(argv[i], "-m"))
+                i++, COPModes = atoi(argv[i]);
+            else if (STREQ(argv[i],
+                           "-maxworkers")) /* number of worker threads */
+                i++, MaxWorkers = atoi(argv[i]);
+            else if (STREQ(argv[i], "-maxcbservers"))
+                i++, MaxCBServers = atoi(argv[i]);
+            else if (STREQ(argv[i],
+                           "-maxprefetchers")) /* max number of threads */
+                i++, MaxPrefetchers = atoi(argv[i]); /* doing prefetch ioctl */
+            else if (STREQ(argv[i], "-console")) /* location of console file */
+                i++, consoleFile = argv[i];
+            else if (STREQ(argv[i], "-retries")) /* number of rpc2 retries */
+                i++, rpc2_retries = atoi(argv[i]);
+            else if (STREQ(argv[i], "-timeout")) /* rpc timeout */
+                i++, rpc2_timeout = atoi(argv[i]);
+            else if (STREQ(argv[i], "-ws")) /* sftp window size */
+                i++, sftp_windowsize = atoi(argv[i]);
+            else if (STREQ(argv[i], "-sa")) /* sftp send ahead */
+                i++, sftp_sendahead = atoi(argv[i]);
+            else if (STREQ(argv[i], "-ap")) /* sftp ack point */
+                i++, sftp_ackpoint = atoi(argv[i]);
+            else if (STREQ(argv[i], "-ps")) /* sftp packet size */
+                i++, sftp_packetsize = atoi(argv[i]);
+            else if (STREQ(argv[i], "-init")) /* brain wipe rvm */
+                InitMetaData = 1;
+            else if (STREQ(argv[i], "-newinstance")) /* fake a 'reinit' */
+                InitNewInstance = 1;
+            else if (STREQ(argv[i], "-rvmt"))
+                i++, RvmType = (rvm_type_t)(atoi(argv[i]));
+            else if (STREQ(argv[i], "-vld")) /* location of log device */
+                i++, VenusLogDevice = argv[i]; /* normally /usr/coda/LOG */
+            else if (STREQ(argv[i], "-vlds")) /* log device size */
+                i++, VenusLogDeviceSize = atoi(argv[i]);
+            else if (STREQ(argv[i], "-vdd")) /* location of data device */
+                i++, VenusDataDevice = argv[i]; /* normally /usr/coda/DATA */
+            else if (STREQ(argv[i], "-vdds")) /* meta-data device size */
+                i++, VenusDataDeviceSize = atoi(argv[i]);
+            else if (STREQ(argv[i], "-rdscs"))
+                i++, RdsChunkSize = atoi(argv[i]);
+            else if (STREQ(argv[i], "-rdsnl"))
+                i++, RdsNlists = atoi(argv[i]);
+            else if (STREQ(argv[i], "-logopts"))
+                i++, LogOpts = atoi(argv[i]);
+            else if (STREQ(argv[i], "-swt")) /* short term pri weight */
+                i++, FSO_SWT = atoi(argv[i]);
+            else if (STREQ(argv[i], "-mwt")) /* med term priority weight */
+                i++, FSO_MWT = atoi(argv[i]);
+            else if (STREQ(argv[i], "-ssf")) /* short term scale factor */
+                i++, FSO_SSF = atoi(argv[i]);
+            else if (STREQ(argv[i],
+                           "-primaryuser")) /* primary user of this machine */
+                i++, PrimaryUser = atoi(argv[i]);
+            else if (STREQ(argv[i], "-von"))
+                rpc2_timeflag = 1;
+            else if (STREQ(argv[i], "-voff"))
+                rpc2_timeflag = 0;
+            else if (STREQ(argv[i], "-vmon"))
+                mrpc2_timeflag = 1;
+            else if (STREQ(argv[i], "-vmoff"))
+                mrpc2_timeflag = 0;
+            else if (STREQ(argv[i], "-SearchForNOreFind"))
+                SearchForNOreFind = 1;
+            else if (STREQ(argv[i], "-noasr"))
+                ASRallowed = 0;
+            else if (STREQ(argv[i], "-novcb"))
+                VCBEnabled = 0;
+            else if (STREQ(argv[i], "-nowalk")) {
+                extern char PeriodicWalksAllowed;
+                PeriodicWalksAllowed = 0;
+            } else if (STREQ(argv[i], "-spooldir")) {
+                i++, SpoolDir = argv[i];
+            }
             /* let venus listen to tcp port `venus', as mariner port, normally
              * it only listens to a unix domain socket */
-	    else if (STREQ(argv[i], "-MarinerTcp"))
-		mariner_tcp_enable = 1;
-	    else if (STREQ(argv[i], "-noMarinerTcp"))
-		mariner_tcp_enable = 0;
-	    else if (STREQ(argv[i], "-allow-reattach"))
-		allow_reattach = 1;
-  	    else if (STREQ(argv[i], "-masquerade")) /* always on */;
-  	    else if (STREQ(argv[i], "-nomasquerade")) /* always on */;
-	    /* Private mapping ... */
-	    else if (STREQ(argv[i], "-mapprivate"))
-		MapPrivate = true;
-	    else if (STREQ(argv[i], "-codatunnel")) {
+            else if (STREQ(argv[i], "-MarinerTcp"))
+                mariner_tcp_enable = 1;
+            else if (STREQ(argv[i], "-noMarinerTcp"))
+                mariner_tcp_enable = 0;
+            else if (STREQ(argv[i], "-allow-reattach"))
+                allow_reattach = 1;
+            else if (STREQ(argv[i], "-masquerade")) /* always on */
+                ;
+            else if (STREQ(argv[i], "-nomasquerade")) /* always on */
+                ;
+            /* Private mapping ... */
+            else if (STREQ(argv[i], "-mapprivate"))
+                MapPrivate = true;
+            else if (STREQ(argv[i], "-codatunnel")) {
                 codatunnel_enabled = 1;
                 eprint("codatunnel enabled");
-	    }
-	    else if (STREQ(argv[i], "-no-codatunnel")) {
+            } else if (STREQ(argv[i], "-no-codatunnel")) {
                 codatunnel_enabled = -1;
                 eprint("codatunnel disabled");
-	    }
-	    else if (STREQ(argv[i], "-onlytcp")) {
+            } else if (STREQ(argv[i], "-onlytcp")) {
                 codatunnel_onlytcp = 1;
                 eprint("codatunnel_onlytcp set");
-            }
-	    else if (STREQ(argv[i], "-codafs")) {
+            } else if (STREQ(argv[i], "-codafs")) {
                 codafs_enabled = true;
-	    }
-	    else if (STREQ(argv[i], "-no-codafs")) {
+            } else if (STREQ(argv[i], "-no-codafs")) {
                 codafs_enabled = -1;
-	    }
-	    else if (STREQ(argv[i], "-9pfs")) {
+            } else if (STREQ(argv[i], "-9pfs")) {
                 plan9server_enabled = true;
                 eprint("9pfs enabled");
-	    }
-	    else if (STREQ(argv[i], "-no-9pfs")) {
+            } else if (STREQ(argv[i], "-no-9pfs")) {
                 plan9server_enabled = -1;
                 eprint("9pfs disabled");
-	    }
-	    else if (STREQ(argv[i], "-nofork")) {
+            } else if (STREQ(argv[i], "-nofork")) {
                 nofork = true;
-	    }
-        else if (STREQ(argv[i], "-wfmax")) {
-            i++, WholeFileMaxSize = ParseSizeWithUnits(argv[i]);
-        }	
-        else if (STREQ(argv[i], "-ccbs")) {
-            i++, ParseCacheChunkBlockSize(argv[i]);
+            } else if (STREQ(argv[i], "-wfmax")) {
+                i++, WholeFileMaxSize = ParseSizeWithUnits(argv[i]);
+            } else if (STREQ(argv[i], "-ccbs")) {
+                i++, ParseCacheChunkBlockSize(argv[i]);
+            } else {
+                eprint("bad command line option %-4s", argv[i]);
+                done = -1;
+            }
         }
-	    else {
-		eprint("bad command line option %-4s", argv[i]);
-		done = -1;
-	    }
-	}
     }
-    if (done) exit(done < 0 ? EXIT_INVALID_ARG : EXIT_SUCCESS);
+    if (done)
+        exit(done < 0 ? EXIT_INVALID_ARG : EXIT_SUCCESS);
 }
 
 /*
@@ -728,12 +725,11 @@ static void ParseCmdline(int argc, char **argv)
  */
 static unsigned int CalculateCacheFiles(unsigned int CacheBlocks)
 {
-    static const int y_scale = 24200;
+    static const int y_scale         = 24200;
     static const double x_scale_down = 500000;
 
     return (unsigned int)(y_scale * log(CacheBlocks / x_scale_down + 1));
 }
-
 
 /* Initialize "general" unset command-line parameters to user specified values
  * or hard-wired defaults. */
@@ -741,10 +737,10 @@ static unsigned int CalculateCacheFiles(unsigned int CacheBlocks)
  * parameters as appropriate. */
 static void DefaultCmdlineParms()
 {
-    int DontUseRVM = 0;
-    const char *CacheSize = NULL;
+    int DontUseRVM                     = 0;
+    const char *CacheSize              = NULL;
     const char *TmpCacheChunkBlockSize = NULL;
-    const char *TmpWFMax = NULL;
+    const char *TmpWFMax               = NULL;
 
     /* Load the "venus.conf" configuration file */
     codaconf_init("venus.conf");
@@ -753,7 +749,8 @@ static void DefaultCmdlineParms()
     if (!CacheBlocks) {
         CODACONF_INT(CacheBlocks, "cacheblocks", 0);
         if (CacheBlocks)
-            eprint("Using deprecated config 'cacheblocks', try the more flexible 'cachesize'");
+            eprint(
+                "Using deprecated config 'cacheblocks', try the more flexible 'cachesize'");
     }
 
     if (!CacheBlocks) {
@@ -767,94 +764,102 @@ static void DefaultCmdlineParms()
         exit(EXIT_UNCONFIGURED);
     }
 
-    CODACONF_INT(CacheFiles, "cachefiles", (int)CalculateCacheFiles(CacheBlocks));
+    CODACONF_INT(CacheFiles, "cachefiles",
+                 (int)CalculateCacheFiles(CacheBlocks));
     if (CacheFiles < MIN_CF) {
-        eprint("Cannot start: minimum number of cache files is %d", CalculateCacheFiles(CacheBlocks));
+        eprint("Cannot start: minimum number of cache files is %d",
+               CalculateCacheFiles(CacheBlocks));
         eprint("Cannot start: minimum number of cache files is %d", MIN_CF);
         exit(EXIT_UNCONFIGURED);
     }
-    
+
     if (!CacheChunkBlockSize) {
         CODACONF_STR(TmpCacheChunkBlockSize, "cachechunkblocksize", "32KB");
         ParseCacheChunkBlockSize(TmpCacheChunkBlockSize);
     }
-        
+
     if (!WholeFileMaxSize) {
         CODACONF_STR(TmpWFMax, "wholefilemaxsize", "50MB");
         WholeFileMaxSize = ParseSizeWithUnits(TmpWFMax);
     }
-    
-    CODACONF_STR(CacheDir,	    "cachedir",      DFLT_CD);
-    CODACONF_STR(SpoolDir,	    "checkpointdir", "/usr/coda/spool");
-    CODACONF_STR(VenusLogFile,	    "logfile",	     DFLT_LOGFILE);
-    CODACONF_STR(consoleFile,	    "errorlog",      DFLT_ERRLOG);
-    CODACONF_STR(kernDevice,	    "kerneldevice",  "/dev/cfs0,/dev/coda/0");
-    CODACONF_INT(MapPrivate,	    "mapprivate",     0);
-    CODACONF_STR(MarinerSocketPath, "marinersocket", "/usr/coda/spool/mariner");
-    CODACONF_INT(masquerade_port,   "masquerade_port", 0);
-    CODACONF_INT(allow_backfetch,   "allow_backfetch", 0);
-    CODACONF_STR(venusRoot,	    "mountpoint",     DFLT_VR);
-    CODACONF_INT(PrimaryUser,	    "primaryuser",    UNSET_PRIMARYUSER);
-    CODACONF_STR(realmtab,	    "realmtab",	      "/etc/coda/realms");
-    CODACONF_STR(VenusLogDevice,    "rvm_log",        "/usr/coda/LOG");
-    CODACONF_STR(VenusDataDevice,   "rvm_data",       "/usr/coda/DATA");
 
-    CODACONF_INT(rpc2_timeout,	    "RPC2_timeout",   DFLT_TO);
-    CODACONF_INT(rpc2_retries,	    "RPC2_retries",   DFLT_RT);
+    CODACONF_STR(CacheDir, "cachedir", DFLT_CD);
+    CODACONF_STR(SpoolDir, "checkpointdir", "/usr/coda/spool");
+    CODACONF_STR(VenusLogFile, "logfile", DFLT_LOGFILE);
+    CODACONF_STR(consoleFile, "errorlog", DFLT_ERRLOG);
+    CODACONF_STR(kernDevice, "kerneldevice", "/dev/cfs0,/dev/coda/0");
+    CODACONF_INT(MapPrivate, "mapprivate", 0);
+    CODACONF_STR(MarinerSocketPath, "marinersocket", "/usr/coda/spool/mariner");
+    CODACONF_INT(masquerade_port, "masquerade_port", 0);
+    CODACONF_INT(allow_backfetch, "allow_backfetch", 0);
+    CODACONF_STR(venusRoot, "mountpoint", DFLT_VR);
+    CODACONF_INT(PrimaryUser, "primaryuser", UNSET_PRIMARYUSER);
+    CODACONF_STR(realmtab, "realmtab", "/etc/coda/realms");
+    CODACONF_STR(VenusLogDevice, "rvm_log", "/usr/coda/LOG");
+    CODACONF_STR(VenusDataDevice, "rvm_data", "/usr/coda/DATA");
+
+    CODACONF_INT(rpc2_timeout, "RPC2_timeout", DFLT_TO);
+    CODACONF_INT(rpc2_retries, "RPC2_retries", DFLT_RT);
 
     CODACONF_INT(T1Interval, "serverprobe", 150); // used to be 12 minutes
 
-    CODACONF_INT(default_reintegration_age,  "reintegration_age",  0);
+    CODACONF_INT(default_reintegration_age, "reintegration_age", 0);
     CODACONF_INT(default_reintegration_time, "reintegration_time", 15);
     default_reintegration_time *= 1000; /* reintegration time is in msec */
 
 #if defined(__CYGWIN32__)
-    CODACONF_STR(CachePrefix, "cache_prefix", "/?" "?/C:/cygwin");
+    CODACONF_STR(CachePrefix, "cache_prefix",
+                 "/?"
+                 "?/C:/cygwin");
 #else
     CachePrefix = "";
 #endif
 
     CODACONF_INT(DontUseRVM, "dontuservm", 0);
     {
-	if (DontUseRVM)
-	    RvmType = VM;
+        if (DontUseRVM)
+            RvmType = VM;
     }
 
     CODACONF_INT(MLEs, "cml_entries", 0);
     {
-	if (!MLEs) MLEs = CacheFiles * MLES_PER_FILE;
+        if (!MLEs)
+            MLEs = CacheFiles * MLES_PER_FILE;
 
-	if (MLEs < MIN_MLE) {
-	    eprint("Cannot start: minimum number of cml entries is %d",MIN_MLE);
-	    exit(EXIT_UNCONFIGURED);
-	}
+        if (MLEs < MIN_MLE) {
+            eprint("Cannot start: minimum number of cml entries is %d",
+                   MIN_MLE);
+            exit(EXIT_UNCONFIGURED);
+        }
     }
 
     CODACONF_INT(HDBEs, "hoard_entries", 0);
     {
-	if (!HDBEs) HDBEs = CacheFiles / FILES_PER_HDBE;
+        if (!HDBEs)
+            HDBEs = CacheFiles / FILES_PER_HDBE;
 
-	if (HDBEs < MIN_HDBE) {
-	    eprint("Cannot start: minimum number of hoard entries is %d",
-		   MIN_HDBE);
-	    exit(EXIT_UNCONFIGURED);
-	}
+        if (HDBEs < MIN_HDBE) {
+            eprint("Cannot start: minimum number of hoard entries is %d",
+                   MIN_HDBE);
+            exit(EXIT_UNCONFIGURED);
+        }
     }
 
     CODACONF_STR(VenusPidFile, "pid_file", DFLT_PIDFILE);
     if (*VenusPidFile != '/') {
-	char *tmp = (char *)malloc(strlen(CacheDir) + strlen(VenusPidFile) + 2);
-	CODA_ASSERT(tmp);
-	sprintf(tmp, "%s/%s", CacheDir, VenusPidFile);
-	VenusPidFile = tmp;
+        char *tmp = (char *)malloc(strlen(CacheDir) + strlen(VenusPidFile) + 2);
+        CODA_ASSERT(tmp);
+        sprintf(tmp, "%s/%s", CacheDir, VenusPidFile);
+        VenusPidFile = tmp;
     }
 
     CODACONF_STR(VenusControlFile, "run_control_file", DFLT_CTRLFILE);
     if (*VenusControlFile != '/') {
-	char *tmp = (char *)malloc(strlen(CacheDir) + strlen(VenusControlFile) + 2);
-	CODA_ASSERT(tmp);
-	sprintf(tmp, "%s/%s", CacheDir, VenusControlFile);
-	VenusControlFile = tmp;
+        char *tmp =
+            (char *)malloc(strlen(CacheDir) + strlen(VenusControlFile) + 2);
+        CODA_ASSERT(tmp);
+        sprintf(tmp, "%s/%s", CacheDir, VenusControlFile);
+        VenusControlFile = tmp;
     }
 
     CODACONF_STR(ASRLauncherFile, "asrlauncher_path", NULL);
@@ -863,8 +868,8 @@ static void DefaultCmdlineParms()
 
     CODACONF_INT(PiggyValidations, "validateattrs", 15);
     {
-	if (PiggyValidations > MAX_PIGGY_VALIDATIONS)
-	    PiggyValidations = MAX_PIGGY_VALIDATIONS;
+        if (PiggyValidations > MAX_PIGGY_VALIDATIONS)
+            PiggyValidations = MAX_PIGGY_VALIDATIONS;
     }
 
     /* Enable special tweaks for running in a VM
@@ -877,8 +882,10 @@ static void DefaultCmdlineParms()
     CODACONF_INT(plan9server_enabled, "9pfs", 0);
 
     /* Allow overriding of the default setting from command line */
-    if (codafs_enabled == -1)       codafs_enabled = false;
-    if (plan9server_enabled == -1)  plan9server_enabled = false;
+    if (codafs_enabled == -1)
+        codafs_enabled = false;
+    if (plan9server_enabled == -1)
+        plan9server_enabled = false;
 
     /* Enable client-server communication helper process */
     CODACONF_INT(codatunnel_enabled, "codatunnel", 1);
@@ -893,14 +900,18 @@ static void DefaultCmdlineParms()
 
     CODACONF_INT(detect_reintegration_retry, "detect_reintegration_retry", 1);
     if (option_isr) {
-	detect_reintegration_retry = 0;
+        detect_reintegration_retry = 0;
     }
 
-    CODACONF_STR(CheckpointFormat,  "checkpointformat", "newc");
-    if (strcmp(CheckpointFormat, "tar") == 0)	archive_type = TAR_TAR;
-    if (strcmp(CheckpointFormat, "ustar") == 0) archive_type = TAR_USTAR;
-    if (strcmp(CheckpointFormat, "odc") == 0)   archive_type = CPIO_ODC;
-    if (strcmp(CheckpointFormat, "newc") == 0)  archive_type = CPIO_NEWC;
+    CODACONF_STR(CheckpointFormat, "checkpointformat", "newc");
+    if (strcmp(CheckpointFormat, "tar") == 0)
+        archive_type = TAR_TAR;
+    if (strcmp(CheckpointFormat, "ustar") == 0)
+        archive_type = TAR_USTAR;
+    if (strcmp(CheckpointFormat, "odc") == 0)
+        archive_type = CPIO_ODC;
+    if (strcmp(CheckpointFormat, "newc") == 0)
+        archive_type = CPIO_NEWC;
 
 #ifdef moremoremore
     char *x = NULL;
@@ -909,20 +920,18 @@ static void DefaultCmdlineParms()
 #endif
 }
 
-
 static const char CACHEDIR_TAG[] =
-"Signature: 8a477f597d28d172789f06886806bc55\n"
-"# This file is a cache directory tag created by the Coda client (venus).\n"
-"# For information about cache directory tags, see:\n"
-"#   http://www.brynosaurus.com/cachedir/";
+    "Signature: 8a477f597d28d172789f06886806bc55\n"
+    "# This file is a cache directory tag created by the Coda client (venus).\n"
+    "# For information about cache directory tags, see:\n"
+    "#   http://www.brynosaurus.com/cachedir/";
 
 static void CdToCacheDir()
 {
     struct stat statbuf;
     int fd;
 
-    if (stat(CacheDir, &statbuf) != 0)
-    {
+    if (stat(CacheDir, &statbuf) != 0) {
         if (errno != ENOENT) {
             perror("CacheDir stat");
             exit(EXIT_FAILURE);
@@ -943,35 +952,38 @@ static void CdToCacheDir()
         return;
 
     fd = open("CACHEDIR.TAG", O_CREAT | O_WRONLY | O_EXCL | O_NOFOLLOW, 0444);
-    if (fd == -1) return;
-    write(fd, CACHEDIR_TAG, sizeof(CACHEDIR_TAG)-1);
+    if (fd == -1)
+        return;
+    write(fd, CACHEDIR_TAG, sizeof(CACHEDIR_TAG) - 1);
     close(fd);
 }
 
-static void CheckInitFile() {
+static void CheckInitFile()
+{
     char initPath[MAXPATHLEN];
     struct stat tstat;
 
     /* Construct name for INIT file */
     snprintf(initPath, MAXPATHLEN, "%s/INIT", CacheDir);
 
-    /* See if it's there */ 
+    /* See if it's there */
     if (stat(initPath, &tstat) == 0) {
         /* If so, set InitMetaData */
-	InitMetaData = 1;
+        InitMetaData = 1;
     } else if ((errno == ENOENT) && (InitMetaData == 1)) {
         int initFD;
 
-	/* If not and it should be, create it. */
+        /* If not and it should be, create it. */
         initFD = open(initPath, O_CREAT, S_IRUSR);
         if (initFD) {
-	    write(initFD, initPath, strlen(initPath));
+            write(initFD, initPath, strlen(initPath));
             close(initFD);
         }
     }
 }
 
-static void UnsetInitFile() {
+static void UnsetInitFile()
+{
     char initPath[MAXPATHLEN];
 
     /* Create the file, if it doesn't already exist */
@@ -979,7 +991,8 @@ static void UnsetInitFile() {
     unlink(initPath);
 }
 
-static void SetRlimits() {
+static void SetRlimits()
+{
 #ifndef __CYGWIN32__
     /* Set DATA segment limit to maximum allowable. */
     struct rlimit rl;

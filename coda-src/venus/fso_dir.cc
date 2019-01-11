@@ -16,7 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
 /*
  *
  * Implementation of the Venus File-System Object (fso) Directory subsystem.
@@ -49,7 +48,6 @@ extern "C" {
 }
 #endif
 
-
 /* from dir */
 
 #include "fso.h"
@@ -60,61 +58,59 @@ extern "C" {
 /* *****  FSO Directory Interface  ***** */
 
 /* Need not be called from within transaction. */
-void fsobj::dir_Rebuild() 
+void fsobj::dir_Rebuild()
 {
-	if (!HAVEALLDATA(this)) { 
-		print(logFile); 
-		CHOKE("fsobj::dir_Rebuild: no data"); 
-	}
+    if (!HAVEALLDATA(this)) {
+        print(logFile);
+        CHOKE("fsobj::dir_Rebuild: no data");
+    }
 
-	if ( ! DH_DirOK(&data.dir->dh)) {
-		LOG(0, ("WARNING: Corrupt directory for %s\n", FID_(&fid)));
-		DH_Print(&data.dir->dh, stdout);
-	}
+    if (!DH_DirOK(&data.dir->dh)) {
+        LOG(0, ("WARNING: Corrupt directory for %s\n", FID_(&fid)));
+        DH_Print(&data.dir->dh, stdout);
+    }
 
-	DH_Convert(&data.dir->dh, data.dir->udcf->Name(), fid.Volume, fid.Realm);
+    DH_Convert(&data.dir->dh, data.dir->udcf->Name(), fid.Volume, fid.Realm);
 
-	data.dir->udcfvalid = 1;
+    data.dir->udcfvalid = 1;
 }
-
 
 /* TRANS */
-void fsobj::dir_Create(const char *Name, VenusFid *Fid) 
+void fsobj::dir_Create(const char *Name, VenusFid *Fid)
 {
-	if (!HAVEALLDATA(this)) { 
-		print(logFile); 
-		CHOKE("fsobj::dir_Create: (%s, %s) no data", Name, FID_(Fid)); 
-	}
+    if (!HAVEALLDATA(this)) {
+        print(logFile);
+        CHOKE("fsobj::dir_Create: (%s, %s) no data", Name, FID_(Fid));
+    }
 
-	int rc, oldlength = dir_Length();
+    int rc, oldlength = dir_Length();
 
-	/* XXX we need to strdup, because the dirops don't accept const char */
-	char *entry = strdup(Name);
-	CODA_ASSERT(entry);
-	rc = DH_Create(&data.dir->dh, entry, MakeViceFid(Fid));
-	if (rc) {
-		print(logFile);
-		CHOKE("fsobj::dir_Create: (%s, %s) Create failed %d!",
-		      Name, FID_(Fid), rc);
-	}
-	free(entry);
+    /* XXX we need to strdup, because the dirops don't accept const char */
+    char *entry = strdup(Name);
+    CODA_ASSERT(entry);
+    rc = DH_Create(&data.dir->dh, entry, MakeViceFid(Fid));
+    if (rc) {
+        print(logFile);
+        CHOKE("fsobj::dir_Create: (%s, %s) Create failed %d!", Name, FID_(Fid),
+              rc);
+    }
+    free(entry);
 
-	data.dir->udcfvalid = 0;
+    data.dir->udcfvalid = 0;
 
-	int newlength = dir_Length();
-	int delta_blocks = NBLOCKS(newlength) - NBLOCKS(oldlength);
-	UpdateCacheStats(&FSDB->DirDataStats, CREATE, delta_blocks);
+    int newlength    = dir_Length();
+    int delta_blocks = NBLOCKS(newlength) - NBLOCKS(oldlength);
+    UpdateCacheStats(&FSDB->DirDataStats, CREATE, delta_blocks);
 }
 
-
-int fsobj::dir_Length() 
+int fsobj::dir_Length()
 {
-	if (!HAVEALLDATA(this)) { 
-		print(logFile); 
-		CHOKE("fsobj::dir_Length: no data"); 
-	}
+    if (!HAVEALLDATA(this)) {
+        print(logFile);
+        CHOKE("fsobj::dir_Length: no data");
+    }
 
-	return(DH_Length(&data.dir->dh));
+    return (DH_Length(&data.dir->dh));
 }
 
 /* This is a hack to avoid an endless loop in GNU rm -rf.
@@ -130,192 +126,186 @@ static void clear_dir_container_entry(CacheFile *cf, const char *name)
     int fd, len = strlen(name);
     int offset = 0, n = 0;
 
-    if (!cf) return;
+    if (!cf)
+        return;
     fd = cf->Open(O_RDWR);
 
     while (1) {
-	if (offset >= n) {
-	    n = read(fd, buf, sizeof(buf));
-	    if (n <= 0) break;
-	    offset = 0;
-	}
+        if (offset >= n) {
+            n = read(fd, buf, sizeof(buf));
+            if (n <= 0)
+                break;
+            offset = 0;
+        }
 
-	vdir = (struct venus_dirent *)&buf[offset];
+        vdir = (struct venus_dirent *)&buf[offset];
 
-	if (vdir->d_namlen == len && memcmp(vdir->d_name, name, len) == 0)
-	{
-	    /* found matching entry, write it back with zero'd fileno/namlen */
-	    vdir->d_fileno = vdir->d_namlen = 0;
-	    lseek(fd, offset - n, SEEK_CUR);
-	    write(fd, vdir, sizeof(*vdir) - sizeof(vdir->d_name));
-	    break;
-	}
-	offset += vdir->d_reclen;
+        if (vdir->d_namlen == len && memcmp(vdir->d_name, name, len) == 0) {
+            /* found matching entry, write it back with zero'd fileno/namlen */
+            vdir->d_fileno = vdir->d_namlen = 0;
+            lseek(fd, offset - n, SEEK_CUR);
+            write(fd, vdir, sizeof(*vdir) - sizeof(vdir->d_name));
+            break;
+        }
+        offset += vdir->d_reclen;
     }
 
     cf->Close(fd);
 }
 
 /* TRANS */
-void fsobj::dir_Delete(const char *Name) 
+void fsobj::dir_Delete(const char *Name)
 {
-	if (!HAVEALLDATA(this)) { 
-		print(logFile); 
-		CHOKE("fsobj::dir_Delete: (%s) no data", Name); 
-	}
+    if (!HAVEALLDATA(this)) {
+        print(logFile);
+        CHOKE("fsobj::dir_Delete: (%s) no data", Name);
+    }
 
-	int oldlength = dir_Length();
+    int oldlength = dir_Length();
 
-	char *entry = strdup(Name);
-	CODA_ASSERT(entry);
-	if (DH_Delete(&data.dir->dh, entry)) { 
-		print(logFile); 
-		CHOKE("fsobj::dir_Delete: (%s) Delete failed!", Name); 
-	}
-	free(entry);
+    char *entry = strdup(Name);
+    CODA_ASSERT(entry);
+    if (DH_Delete(&data.dir->dh, entry)) {
+        print(logFile);
+        CHOKE("fsobj::dir_Delete: (%s) Delete failed!", Name);
+    }
+    free(entry);
 
-	clear_dir_container_entry(data.dir->udcf, Name);
-	data.dir->udcfvalid = 0;
+    clear_dir_container_entry(data.dir->udcf, Name);
+    data.dir->udcfvalid = 0;
 
-	int newlength = dir_Length();
-	int delta_blocks = NBLOCKS(newlength) - NBLOCKS(oldlength);
-	UpdateCacheStats(&FSDB->DirDataStats, REMOVE, delta_blocks);
+    int newlength    = dir_Length();
+    int delta_blocks = NBLOCKS(newlength) - NBLOCKS(oldlength);
+    UpdateCacheStats(&FSDB->DirDataStats, REMOVE, delta_blocks);
 }
-
 
 /* TRANS */
-void fsobj::dir_MakeDir() 
+void fsobj::dir_MakeDir()
 {
-	FSO_ASSERT(this, !HAVEDATA(this));
+    FSO_ASSERT(this, !HAVEDATA(this));
 
-	data.dir = (VenusDirData *)rvmlib_rec_malloc((int)sizeof(VenusDirData));
-	FSO_ASSERT(this, data.dir);
-	RVMLIB_REC_OBJECT(*data.dir);
-	memset((void *)data.dir, 0, (int)sizeof(VenusDirData));
-	DH_Init(&data.dir->dh);
+    data.dir = (VenusDirData *)rvmlib_rec_malloc((int)sizeof(VenusDirData));
+    FSO_ASSERT(this, data.dir);
+    RVMLIB_REC_OBJECT(*data.dir);
+    memset((void *)data.dir, 0, (int)sizeof(VenusDirData));
+    DH_Init(&data.dir->dh);
 
+    if (DH_MakeDir(&data.dir->dh, MakeViceFid(&fid), MakeViceFid(&pfid)) != 0) {
+        print(logFile);
+        CHOKE("fsobj::dir_MakeDir: MakeDir failed!");
+    }
 
-	if (DH_MakeDir(&data.dir->dh, MakeViceFid(&fid), MakeViceFid(&pfid)) != 0) {
-		print(logFile); 
-		CHOKE("fsobj::dir_MakeDir: MakeDir failed!"); 
-	}
+    data.dir->udcfvalid = 0;
 
-	data.dir->udcfvalid = 0;
-
-	stat.Length = dir_Length();
-	UpdateCacheStats(&FSDB->DirDataStats, CREATE, BLOCKS(this));
+    stat.Length = dir_Length();
+    UpdateCacheStats(&FSDB->DirDataStats, CREATE, BLOCKS(this));
 }
-
 
 int fsobj::dir_Lookup(const char *Name, VenusFid *Fid, int flags)
 {
-	if (!HAVEALLDATA(this)) {
-		print(logFile);
-		CHOKE("fsobj::dir_Lookup: (%s) no data", Name);
-	}
+    if (!HAVEALLDATA(this)) {
+        print(logFile);
+        CHOKE("fsobj::dir_Lookup: (%s) no data", Name);
+    }
 
-	int code = DH_Lookup(&data.dir->dh, Name, MakeViceFid(Fid), flags);
-	if (code != 0)
-		return(code);
+    int code = DH_Lookup(&data.dir->dh, Name, MakeViceFid(Fid), flags);
+    if (code != 0)
+        return (code);
 
-	Fid->Realm = fid.Realm;
-	Fid->Volume = fid.Volume;
-	return(0);
+    Fid->Realm  = fid.Realm;
+    Fid->Volume = fid.Volume;
+    return (0);
 }
-
 
 /* Name buffer had better be CODA_MAXNAMLEN bytes or more! */
-int fsobj::dir_LookupByFid(char *Name, VenusFid *Fid) 
+int fsobj::dir_LookupByFid(char *Name, VenusFid *Fid)
 {
-	if (!HAVEALLDATA(this)) { 
-		print(logFile); 
-		CHOKE("fsobj::dir_LookupByFid: %s no data", FID_(Fid));
-	}
+    if (!HAVEALLDATA(this)) {
+        print(logFile);
+        CHOKE("fsobj::dir_LookupByFid: %s no data", FID_(Fid));
+    }
 
-	return DH_LookupByFid(&data.dir->dh, Name, MakeViceFid(Fid));
+    return DH_LookupByFid(&data.dir->dh, Name, MakeViceFid(Fid));
 }
 
-
 /* return 1 if directory is empty, 0 otherwise */
-int fsobj::dir_IsEmpty() 
+int fsobj::dir_IsEmpty()
 {
-	if (!HAVEALLDATA(this)) { 
-		print(logFile); 
-		CHOKE("fsobj::dir_IsEmpty: no data"); 
-	}
+    if (!HAVEALLDATA(this)) {
+        print(logFile);
+        CHOKE("fsobj::dir_IsEmpty: no data");
+    }
 
-	return(DH_IsEmpty(&data.dir->dh));
+    return (DH_IsEmpty(&data.dir->dh));
 }
 
 /* determine if target_fid is the parent of this */
-int fsobj::dir_IsParent(VenusFid *target_fid) 
+int fsobj::dir_IsParent(VenusFid *target_fid)
 {
-	if (!HAVEALLDATA(this)) { 
-		print(logFile); 
-		CHOKE("fsobj::dir_IsParent: (%s) no data", FID_(target_fid));
-	}
+    if (!HAVEALLDATA(this)) {
+        print(logFile);
+        CHOKE("fsobj::dir_IsParent: (%s) no data", FID_(target_fid));
+    }
 
-	/* Volumes must be the same. */
-	if (!FID_VolEQ(&fid, target_fid))
-		return(0);
+    /* Volumes must be the same. */
+    if (!FID_VolEQ(&fid, target_fid))
+        return (0);
 
-	/* Don't match "." or "..". */
-	if (FID_EQ(target_fid, &fid) || FID_EQ(target_fid, &pfid)) 
-		return(0);
+    /* Don't match "." or "..". */
+    if (FID_EQ(target_fid, &fid) || FID_EQ(target_fid, &pfid))
+        return (0);
 
-	/* Lookup the target object. */
-	char Name[MAXPATHLEN];
+    /* Lookup the target object. */
+    char Name[MAXPATHLEN];
 
-	return (!DH_LookupByFid(&data.dir->dh, Name, MakeViceFid(target_fid)));
+    return (!DH_LookupByFid(&data.dir->dh, Name, MakeViceFid(target_fid)));
 }
 
 /* local-repair modification */
 /* TRANS */
-void fsobj::dir_TranslateFid(VenusFid *OldFid, VenusFid *NewFid) 
+void fsobj::dir_TranslateFid(VenusFid *OldFid, VenusFid *NewFid)
 {
-	char *Name = NULL; 
+    char *Name = NULL;
 
-	if (!HAVEALLDATA(this)) { 
-		print(logFile); 
-		CHOKE("fsobj::dir_TranslateFid: %s -> %s no data", 
-		      FID_(OldFid), FID_(NewFid));
-	}
+    if (!HAVEALLDATA(this)) {
+        print(logFile);
+        CHOKE("fsobj::dir_TranslateFid: %s -> %s no data", FID_(OldFid),
+              FID_(NewFid));
+    }
 
-	if ((!FID_VolEQ(&fid, OldFid) && !FID_IsLocalFake(OldFid) && !FID_IsLocalFake(&fid)) ||
-	    (!FID_VolEQ(&fid, NewFid) && !FID_IsLocalFake(NewFid) && !FID_IsLocalFake(&fid))) {
-		print(logFile); 
-		CHOKE("fsobj::dir_TranslateFid: %s -> %s cross-volume", 
-		      FID_(OldFid), FID_(NewFid)); 
-	}
+    if ((!FID_VolEQ(&fid, OldFid) && !FID_IsLocalFake(OldFid) &&
+         !FID_IsLocalFake(&fid)) ||
+        (!FID_VolEQ(&fid, NewFid) && !FID_IsLocalFake(NewFid) &&
+         !FID_IsLocalFake(&fid))) {
+        print(logFile);
+        CHOKE("fsobj::dir_TranslateFid: %s -> %s cross-volume", FID_(OldFid),
+              FID_(NewFid));
+    }
 
-	if (FID_EQ(OldFid, NewFid)) 
-		return;
+    if (FID_EQ(OldFid, NewFid))
+        return;
 
-	Name = (char *)malloc(CODA_MAXNAMLEN+1);
-	CODA_ASSERT(Name);
+    Name = (char *)malloc(CODA_MAXNAMLEN + 1);
+    CODA_ASSERT(Name);
 
-	while ( !dir_LookupByFid(Name, OldFid) ) {
-		dir_Delete(Name);
-		dir_Create(Name, NewFid);
-	}
-	free(Name);
+    while (!dir_LookupByFid(Name, OldFid)) {
+        dir_Delete(Name);
+        dir_Create(Name, NewFid);
+    }
+    free(Name);
 }
 
-
-
-void fsobj::dir_Print() 
+void fsobj::dir_Print()
 {
-	if (!HAVEALLDATA(this)) { 
-		print(logFile); 
-		CHOKE("fsobj::dir_Print: no data"); 
-	}
+    if (!HAVEALLDATA(this)) {
+        print(logFile);
+        CHOKE("fsobj::dir_Print: no data");
+    }
 
-	if (LogLevel >= 1000) {
-		LOG(1000, ("fsobj::dir_Print: %s, %d, %d\n",
-			   data.dir->udcf->Name(), data.dir->udcf->Length(), 
-			   data.dir->udcfvalid));
+    if (LogLevel >= 1000) {
+        LOG(1000, ("fsobj::dir_Print: %s, %d, %d\n", data.dir->udcf->Name(),
+                   data.dir->udcf->Length(), data.dir->udcfvalid));
 
-		DH_Print(&data.dir->dh, stdout);
-	}
+        DH_Print(&data.dir->dh, stdout);
+    }
 }
-

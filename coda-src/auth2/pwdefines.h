@@ -19,7 +19,7 @@ listed in the file CREDITS.
 #ifndef _PWDEFINES_H
 #define _PWDEFINES_H
 
-#define PWFIRSTTIME     0
-#define PWNOTFIRSTTIME  1
+#define PWFIRSTTIME 0
+#define PWNOTFIRSTTIME 1
 
 #endif

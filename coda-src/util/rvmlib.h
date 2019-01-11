@@ -16,7 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
 #ifndef _RVMLIB_H_
 #define _RVMLIB_H_ 1
 
@@ -45,36 +44,33 @@ extern "C" {
 }
 #endif
 
-
-
 /*  *****  Types  *****  */
 
-typedef enum {	UNSET =	0,		/* uninitialized */
-		RAWIO = 1,		/* raw disk partition */
-		UFS = 2,		/* Unix file system */
-		VM = 3			/* virtual memory */
+typedef enum
+{
+    UNSET = 0, /* uninitialized */
+    RAWIO = 1, /* raw disk partition */
+    UFS   = 2, /* Unix file system */
+    VM    = 3 /* virtual memory */
 } rvm_type_t;
 
 typedef struct {
-	rvm_tid_t *tid;
-	rvm_tid_t tids;
-	/*	jmp_buf abort; */
-	intentionList_t list;
+    rvm_tid_t *tid;
+    rvm_tid_t tids;
+    /*	jmp_buf abort; */
+    intentionList_t list;
 
-	/* where was the transaction started */
-	const char *file;
-	int line;
+    /* where was the transaction started */
+    const char *file;
+    int line;
 } rvm_perthread_t;
-
 
 /*  *****  Variables  *****  */
 
-extern rvm_type_t RvmType;	 /* your program must supply this! */
-extern long rvm_no_yield;	 /*  exported by rvm */
+extern rvm_type_t RvmType; /* your program must supply this! */
+extern long rvm_no_yield; /*  exported by rvm */
 
 /*  ***** Functions  ***** */
-
-
 
 #ifdef __cplusplus
 extern "C" {
@@ -99,24 +95,22 @@ rvm_perthread_t *rvmlib_thread_data(void);
 void _rvmlib_begin_transaction(int restore_mode, const char file[], int line);
 void rvmlib_end_transaction(int flush_mode, rvm_return_t *statusp);
 
-
 #ifdef __cplusplus
 }
 #endif
 
-#define CODA_STACK_LENGTH 0x20000	/* 128 K */
-#define LOGTHRESHOLD	50
+#define CODA_STACK_LENGTH 0x20000 /* 128 K */
+#define LOGTHRESHOLD 50
 
 /* pointer to rvm_perthread_t must be under this rock! */
 extern int optimizationson;
 
-#define RVMLIB_ASSERT(errmsg) \
-do { \
-    fprintf(stderr, "RVMLIB_ASSERT: %s\n", errmsg); \
-    fflush(stderr); \
-    coda_assert("0", __FILE__, __LINE__); \
-} while (0)
-
+#define RVMLIB_ASSERT(errmsg)                           \
+    do {                                                \
+        fprintf(stderr, "RVMLIB_ASSERT: %s\n", errmsg); \
+        fflush(stderr);                                 \
+        coda_assert("0", __FILE__, __LINE__);           \
+    } while (0)
 
 #define rvmlib_rec_malloc(size) rvmlib_malloc(size, __FILE__, __LINE__)
 #define rvmlib_rec_free(addr) rvmlib_free(addr, __FILE__, __LINE__)
@@ -124,31 +118,27 @@ do { \
 
 #define RVMLIB_REC_OBJECT(object) rvmlib_set_range(&(object), sizeof(object))
 
-
 void rvmlib_check_trans(char *where, char *file);
-#define rvmlib_intrans()  rvmlib_check_trans(__FUNCTION__, __FILE__)
-
+#define rvmlib_intrans() rvmlib_check_trans(__FUNCTION__, __FILE__)
 
 /* macros */
 
-#define RVMLIB_MODIFY(object, newValue)					    \
-do {									    \
-    rvm_perthread_t *_rvm_data = rvmlib_thread_data();\
-    if (RvmType == VM) (object) = (newValue);	    	    		    \
-    else if (RvmType == RAWIO || RvmType == UFS) { /* is object a pointer? */		    \
-        rvm_return_t ret = rvm_set_range(_rvm_data->tid, (char *)&object, sizeof(object)); \
-	if (ret != RVM_SUCCESS)						    \
-	    printf("Modify Bytes error %s\n",rvm_return(ret));		    \
-        CODA_ASSERT(ret == RVM_SUCCESS);					    \
-        (object) = (newValue);						    \
-    }									    \
-    else {								    \
-       CODA_ASSERT(0);							    \
-    }								    	    \
-} while(0)
-
-
-
+#define RVMLIB_MODIFY(object, newValue)                                       \
+    do {                                                                      \
+        rvm_perthread_t *_rvm_data = rvmlib_thread_data();                    \
+        if (RvmType == VM)                                                    \
+            (object) = (newValue);                                            \
+        else if (RvmType == RAWIO ||                                          \
+                 RvmType == UFS) { /* is object a pointer? */                 \
+            rvm_return_t ret = rvm_set_range(_rvm_data->tid, (char *)&object, \
+                                             sizeof(object));                 \
+            if (ret != RVM_SUCCESS)                                           \
+                printf("Modify Bytes error %s\n", rvm_return(ret));           \
+            CODA_ASSERT(ret == RVM_SUCCESS);                                  \
+            (object) = (newValue);                                            \
+        } else {                                                              \
+            CODA_ASSERT(0);                                                   \
+        }                                                                     \
+    } while (0)
 
 #endif /* _RVMLIB_H_ */
-

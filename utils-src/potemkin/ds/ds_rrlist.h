@@ -8,7 +8,7 @@
 #include <stdio.h>
 
 #include <odytypes.h>
-#include <ds_list.h>    /* some calls return lists */
+#include <ds_list.h> /* some calls return lists */
 
 /*
 
@@ -44,54 +44,54 @@
 */
 
 typedef struct ds_request_t {
-    magic_t     magic;
-    long        low;          /* lower bound */
-    long        high;         /* upper bound */
-    long        reqid;        /* const: filled only by rrlists */
-    long        pid;          /* process id of requesting process */
+    magic_t magic;
+    long low; /* lower bound */
+    long high; /* upper bound */
+    long reqid; /* const: filled only by rrlists */
+    long pid; /* process id of requesting process */
 } ds_request_t;
 
 extern const magic_t ds_request_magic;
 
-#define DS_REQUEST_VALID(rp)   ((rp) && ((rp)->magic == ds_request_magic))
+#define DS_REQUEST_VALID(rp) ((rp) && ((rp)->magic == ds_request_magic))
 
-#define DS_REQUEST_ALLOCATE(X,l,h,p)   \
-do {                                   \
-    ALLOC((X),ds_request_t);           \
-    (X)->magic = ds_request_magic;     \
-    (X)->low = (l);                    \
-    (X)->high = (h);                   \
-    (X)->reqid = 0;                    \
-    (X)->pid = (p);                    \
-} while (0)
+#define DS_REQUEST_ALLOCATE(X, l, h, p) \
+    do {                                \
+        ALLOC((X), ds_request_t);       \
+        (X)->magic = ds_request_magic;  \
+        (X)->low   = (l);               \
+        (X)->high  = (h);               \
+        (X)->reqid = 0;                 \
+        (X)->pid   = (p);               \
+    } while (0)
 
-#define DS_REQUEST_DESTROY(X)                \
-do {                                         \
-    CODA_ASSERT(DS_REQUEST_VALID((X)));           \
-    (X)->magic = 0;                          \
-    (X)->low = (X)->high = (X)->reqid = 0L;  \
-    (X)->pid = 0;                            \
-    FREE((X));                               \
-} while (0)
-
+#define DS_REQUEST_DESTROY(X)                   \
+    do {                                        \
+        CODA_ASSERT(DS_REQUEST_VALID((X)));     \
+        (X)->magic = 0;                         \
+        (X)->low = (X)->high = (X)->reqid = 0L; \
+        (X)->pid                          = 0;  \
+        FREE((X));                              \
+    } while (0)
 
 /* resource request lists */
-typedef struct ds_rrlist_t ds_rrlist_t;    /* opaque */
+typedef struct ds_rrlist_t ds_rrlist_t; /* opaque */
 
 /*** Return Values ***/
 /* the functions can return more than one flag! */
-typedef enum { 
-    DS_RRLIST_SUCCESS = 0, 
+typedef enum
+{
+    DS_RRLIST_SUCCESS     = 0,
     DS_RRLIST_OUTOFWINDOW = 1,
-    DS_RRLIST_DUPLICATE = 2,
-    DS_RRLIST_NOSUCHPID = 4,
-    DS_RRLIST_NOSUCHREQ = 8
+    DS_RRLIST_DUPLICATE   = 2,
+    DS_RRLIST_NOSUCHPID   = 4,
+    DS_RRLIST_NOSUCHREQ   = 8
 } ds_rrlist_return_t;
-	       
+
 /*** Observers ***/
 
-extern bool          ds_rrlist_valid    (ds_rrlist_t *l);
-extern long          ds_rrlist_value    (ds_rrlist_t *l);
+extern bool ds_rrlist_valid(ds_rrlist_t *l);
+extern long ds_rrlist_value(ds_rrlist_t *l);
 
 /*** Mutators ***/
 
@@ -101,14 +101,12 @@ extern long          ds_rrlist_value    (ds_rrlist_t *l);
    package can be (legitimately) called before this one: it does
    any internal setup necessary.
 */
-extern ds_rrlist_t *
-ds_rrlist_create(long value);
+extern ds_rrlist_t *ds_rrlist_create(long value);
 
 /*
    Destroy a rrlist.  It must be empty.
 */
-void
-ds_rrlist_destroy(ds_rrlist_t *l);
+void ds_rrlist_destroy(ds_rrlist_t *l);
 
 /*
    Place a request.  Returns:
@@ -126,9 +124,9 @@ ds_rrlist_destroy(ds_rrlist_t *l);
    If the current request supersedes an old one, the OUT parameter
    '*old_req' is set to the old outstanding request, which is removed.
 */
-extern ds_rrlist_return_t
-ds_rrlist_request (ds_rrlist_t *l, ds_request_t *r, long *value,
-		   ds_request_t **old_req);
+extern ds_rrlist_return_t ds_rrlist_request(ds_rrlist_t *l, ds_request_t *r,
+                                            long *value,
+                                            ds_request_t **old_req);
 
 /*
    Cancel a request.  Returns:
@@ -139,8 +137,7 @@ ds_rrlist_request (ds_rrlist_t *l, ds_request_t *r, long *value,
    Note that we don't need to (and often cannot) know what list the 
    request was granted from.
 */
-extern ds_rrlist_return_t   
-ds_rrlist_cancel  (long reqid, ds_request_t **req);
+extern ds_rrlist_return_t ds_rrlist_cancel(long reqid, ds_request_t **req);
 
 /*
    Purge a program's outstanding requests.  Returns
@@ -149,8 +146,8 @@ ds_rrlist_cancel  (long reqid, ds_request_t **req);
 
    If the call is successful, req is filled with the removed request
 */
-extern ds_rrlist_return_t
-ds_rrlist_purge   (ds_rrlist_t *l, int pid, ds_request_t **req);
+extern ds_rrlist_return_t ds_rrlist_purge(ds_rrlist_t *l, int pid,
+                                          ds_request_t **req);
 
 /*
    Change the value of the resource.  Returns
@@ -162,13 +159,12 @@ ds_rrlist_purge   (ds_rrlist_t *l, int pid, ds_request_t **req);
    It is the caller's responsibility to destroy *to_notify, which is
    a "safe" list.  See ds_list.h for more information.
 */
-extern ds_rrlist_return_t
-ds_rrlist_set_value (ds_rrlist_t *l, long newval, ds_list_t **to_notify);
+extern ds_rrlist_return_t ds_rrlist_set_value(ds_rrlist_t *l, long newval,
+                                              ds_list_t **to_notify);
 
 /*
    Debugging:  print out a list.
 */
-extern void
-ds_rrlist_dump (ds_rrlist_t *l, FILE *f, char *name);
+extern void ds_rrlist_dump(ds_rrlist_t *l, FILE *f, char *name);
 
 #endif /* _DS_RRLIST_H_ */

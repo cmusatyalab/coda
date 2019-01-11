@@ -16,19 +16,14 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
 /*
  *
  * Specification of the Venus CallBack server.
  *
  */
 
-
-#ifndef	_VENUSCB_H_
+#ifndef _VENUSCB_H_
 #define _VENUSCB_H_
-
 
 #ifdef __cplusplus
 extern "C" {
@@ -44,24 +39,22 @@ extern "C" {
 /* from venus */
 #include "vproc.h"
 
-
-const int DFLT_MAXCBSERVERS = 5;
+const int DFLT_MAXCBSERVERS  = 5;
 const int UNSET_MAXCBSERVERS = -1;
 
-
 class callbackserver : public vproc {
-  friend void CallBackInit();
+    friend void CallBackInit();
 
     RPC2_RequestFilter filter;
     RPC2_Handle handle;
     RPC2_PacketBuffer *packet;
 
     callbackserver();
-    callbackserver(callbackserver&);	/* not supported! */
-    int operator=(callbackserver&);		/* not supported! */
+    callbackserver(callbackserver &); /* not supported! */
+    int operator=(callbackserver &); /* not supported! */
     ~callbackserver();
 
-  protected:
+protected:
     virtual void main(void);
 };
 

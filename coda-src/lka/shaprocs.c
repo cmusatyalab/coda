@@ -36,26 +36,25 @@ listed in the file CREDITS.
 
 /* "Helper" functions for SHA */
 
-void ViceSHAtoHex(unsigned char sha[SHA_DIGEST_LENGTH],
-		  char *printbuf, int printbuflen)
+void ViceSHAtoHex(unsigned char sha[SHA_DIGEST_LENGTH], char *printbuf,
+                  int printbuflen)
 {
     /* Convert a Vice SHA structure into a printable hex string in a
        buffer of length printbuflen (at least 40 chars long) */
 
     int i;
 
-    if (printbuflen <= 2*SHA_DIGEST_LENGTH)
-	return; /* buffer too short */
+    if (printbuflen <= 2 * SHA_DIGEST_LENGTH)
+        return; /* buffer too short */
 
     for (i = 0; i < SHA_DIGEST_LENGTH; i++)
-	sprintf(&printbuf[2*i], "%02x", sha[i]);
+        sprintf(&printbuf[2 * i], "%02x", sha[i]);
 
-    printbuf[2*SHA_DIGEST_LENGTH] = '\0';
+    printbuf[2 * SHA_DIGEST_LENGTH] = '\0';
 }
 
-
 int CopyAndComputeViceSHA(int infd, int outfd,
-			  unsigned char sha[SHA_DIGEST_LENGTH])
+                          unsigned char sha[SHA_DIGEST_LENGTH])
 {
     /* ComputeViceSHA() takes an open file and returns its SHA value
        in a Vice SHA structure. If outfd is not -1, we copy the while
@@ -66,25 +65,26 @@ int CopyAndComputeViceSHA(int infd, int outfd,
     int i = 0;
     SHA_CTX cx;
 
-#define SHACHUNKSIZE 4096  /* might be better to set to fs block size? */
+#define SHACHUNKSIZE 4096 /* might be better to set to fs block size? */
     unsigned char shachunk[SHACHUNKSIZE];
 
     SHA1_Init(&cx);
     while (1) {
-	/* make sure we yield to other threads once in a while */
-	if ((++i % SHA_YIELD_INTERVAL) == 0)
-	    LWP_DispatchProcess();
+        /* make sure we yield to other threads once in a while */
+        if ((++i % SHA_YIELD_INTERVAL) == 0)
+            LWP_DispatchProcess();
 
-	bytes_in = read (infd, shachunk, SHACHUNKSIZE);
-	if (bytes_in <= 0)
-	    break;
+        bytes_in = read(infd, shachunk, SHACHUNKSIZE);
+        if (bytes_in <= 0)
+            break;
 
-	SHA1_Update(&cx, shachunk, bytes_in);
+        SHA1_Update(&cx, shachunk, bytes_in);
 
-	if (outfd != -1) {
-	    bytes_out = write(outfd, shachunk, bytes_in);
-	    if (bytes_out < bytes_in) return -1;
-	}
+        if (outfd != -1) {
+            bytes_out = write(outfd, shachunk, bytes_in);
+            if (bytes_out < bytes_in)
+                return -1;
+        }
     }
     SHA1_Final(sha, &cx);
     return (bytes_in < 0 ? -1 : 0);
@@ -93,13 +93,10 @@ int CopyAndComputeViceSHA(int infd, int outfd,
 int IsZeroSHA(unsigned char sha[SHA_DIGEST_LENGTH])
 {
     int i;
-/* IsZeroSHA() returns 1 if testsha is all zeros; 0 otherwise */
+    /* IsZeroSHA() returns 1 if testsha is all zeros; 0 otherwise */
 
     for (i = 0; i < SHA_DIGEST_LENGTH; i++)
-	if (sha[i])
-	    return(0); /* non-zero byte in sha */
-    return(1); 
+        if (sha[i])
+            return (0); /* non-zero byte in sha */
+    return (1);
 }
-
-
-

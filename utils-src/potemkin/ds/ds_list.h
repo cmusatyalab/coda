@@ -32,7 +32,7 @@
    list items.
 */
 
-typedef struct ds_list_t ds_list_t;            /* opaque list */
+typedef struct ds_list_t ds_list_t; /* opaque list */
 
 /*
    The following operations are allowed on lists:
@@ -51,15 +51,14 @@ typedef struct ds_list_t ds_list_t;            /* opaque list */
 		  of elements is used.
 */
 
-extern bool  ds_list_valid (ds_list_t *l);   /* TRUE => looks like a list */
-extern int   ds_list_count (ds_list_t *l);   /* number of elements in list */
-extern void *ds_list_first (ds_list_t *l);   /* return head element */
-extern void *ds_list_last  (ds_list_t *l);   /* return tail element */
-extern void *ds_list_member(ds_list_t *l,    /* is e in l? */
-			     void *e); 
+extern bool ds_list_valid(ds_list_t *l); /* TRUE => looks like a list */
+extern int ds_list_count(ds_list_t *l); /* number of elements in list */
+extern void *ds_list_first(ds_list_t *l); /* return head element */
+extern void *ds_list_last(ds_list_t *l); /* return tail element */
+extern void *ds_list_member(ds_list_t *l, /* is e in l? */
+                            void *e);
 
 /*** Mutators ***/
-
 
 /*
    ds_list_create:  create a new list
@@ -91,23 +90,19 @@ extern void *ds_list_member(ds_list_t *l,    /* is e in l? */
 		      equality is used.
 		      Returns its argument if successful, NULL if p not on l.
 */
-		    
-extern ds_list_t     *ds_list_create    (COMPFN c, 
-					 bool safe_destroy,
-					 bool dups_ok); 
-extern void           ds_list_destroy   (ds_list_t *l);
-extern void          *ds_list_insert    (ds_list_t *l, void *i);
-extern void          *ds_list_append    (ds_list_t *l, void *i);
-extern void          *ds_list_get_first (ds_list_t *l);
-extern void          *ds_list_get_last  (ds_list_t *l);
-extern void          *ds_list_remove    (ds_list_t *l, void *p);
-extern void           ds_list_print     (ds_list_t *l,
-					 bool forward,
-					 void (*printer)(void*));
+
+extern ds_list_t *ds_list_create(COMPFN c, bool safe_destroy, bool dups_ok);
+extern void ds_list_destroy(ds_list_t *l);
+extern void *ds_list_insert(ds_list_t *l, void *i);
+extern void *ds_list_append(ds_list_t *l, void *i);
+extern void *ds_list_get_first(ds_list_t *l);
+extern void *ds_list_get_last(ds_list_t *l);
+extern void *ds_list_remove(ds_list_t *l, void *p);
+extern void ds_list_print(ds_list_t *l, bool forward, void (*printer)(void *));
 
 /*** Iterators ***/
 
-typedef struct ds_list_iter_t ds_list_iter_t;     /* opaque */
+typedef struct ds_list_iter_t ds_list_iter_t; /* opaque */
 
 /* 
    You can create an interator, destroy an iterator, 
@@ -122,8 +117,8 @@ typedef struct ds_list_iter_t ds_list_iter_t;     /* opaque */
    the iterator is hooked up is kinda silly anyway.
 */
 
-extern ds_list_iter_t *ds_list_iter_create  (ds_list_t *l);
-extern void            ds_list_iter_destroy (ds_list_iter_t *i);
-extern void           *ds_list_iter_next    (ds_list_iter_t *i);
+extern ds_list_iter_t *ds_list_iter_create(ds_list_t *l);
+extern void ds_list_iter_destroy(ds_list_iter_t *i);
+extern void *ds_list_iter_next(ds_list_iter_t *i);
 
 #endif /* _DS_LIST_H_ */

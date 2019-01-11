@@ -25,10 +25,10 @@ Coda are listed in the file CREDITS.
 
 /* various constants that define the CCM flags, using fixed values according
  * to RFC4309. */
-#define AFLAG    (1<<6)	/* do we have additional authenticated data */
-#define NONCELEN 11	/* fixed nonce size, 3 byte salt + 8 byte IV */
-#define PARM_L   (AES_BLOCK_SIZE - 1 - NONCELEN) /* size of length field == 4 */
-#define CCMflags(len) ((((len/2)-1)<<3) | (PARM_L-1))
+#define AFLAG (1 << 6) /* do we have additional authenticated data */
+#define NONCELEN 11 /* fixed nonce size, 3 byte salt + 8 byte IV */
+#define PARM_L (AES_BLOCK_SIZE - 1 - NONCELEN) /* size of length field == 4 */
+#define CCMflags(len) ((((len / 2) - 1) << 3) | (PARM_L - 1))
 
 struct aes_ccm_ctx {
     uint8_t flag_n_salt[4];
@@ -37,29 +37,33 @@ struct aes_ccm_ctx {
     int broken_counter;
 };
 
-static int init(void **ctx, const uint8_t *key, size_t len,
-		size_t icv_len)
+static int init(void **ctx, const uint8_t *key, size_t len, size_t icv_len)
 {
     struct aes_ccm_ctx *acc = malloc(sizeof(struct aes_ccm_ctx));
-    if (!acc) return -1;
+    if (!acc)
+        return -1;
 
     /* copy salt */
     acc->flag_n_salt[3] = key[--len];
     acc->flag_n_salt[2] = key[--len];
     acc->flag_n_salt[1] = key[--len];
     acc->flag_n_salt[0] = CCMflags(icv_len);
-    acc->icv_len = icv_len;
+    acc->icv_len        = icv_len;
 
-    if      (len >= bytes(256)) len = 256;
-    else if (len >= bytes(192)) len = 192;
-    else if (len >= bytes(128)) len = 128;
-    else goto err_out;
+    if (len >= bytes(256))
+        len = 256;
+    else if (len >= bytes(192))
+        len = 192;
+    else if (len >= bytes(128))
+        len = 128;
+    else
+        goto err_out;
 
     acc->broken_counter = 0;
 
     if (aes_encrypt_key(key, len, &acc->ctx) == 0) {
-	*ctx = acc;
-	return 0;
+        *ctx = acc;
+        return 0;
     }
 
 err_out:
@@ -98,56 +102,58 @@ static int init16(void **ctx, const uint8_t *key, size_t len)
     return init(ctx, key, len, 16);
 }
 
-
 static void release(void **ctx)
 {
-    if (!*ctx) return;
+    if (!*ctx)
+        return;
     memset(*ctx, 0, sizeof(struct aes_ccm_ctx));
     free(*ctx);
     *ctx = NULL;
 }
 
 static int aes_ccm_crypt(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
-			 const uint8_t *iv, const uint8_t *aad,
-			 size_t aad_len, int encrypt)
+                         const uint8_t *iv, const uint8_t *aad, size_t aad_len,
+                         int encrypt)
 {
     struct aes_ccm_ctx *acc = (struct aes_ccm_ctx *)ctx;
     int i, n, step, nblocks, partial;
     aes_block CMAC, CTR, S0, tmp;
     aes_block *ivp = (aes_block *)iv;
-    int idx = 0;
+    int idx        = 0;
 
     if (!encrypt) {
-	if (len < acc->icv_len)
-	    return -1;
-	len -= acc->icv_len;
+        if (len < acc->icv_len)
+            return -1;
+        len -= acc->icv_len;
     }
 
-    if (aad_len) acc->flag_n_salt[0] |= AFLAG;
-    else	 acc->flag_n_salt[0] &= ~AFLAG;
+    if (aad_len)
+        acc->flag_n_salt[0] |= AFLAG;
+    else
+        acc->flag_n_salt[0] &= ~AFLAG;
 
     /* initialize CMAC (initial seed for authentication) */
-    CMAC.u8[0] = acc->flag_n_salt[0];
-    CMAC.u8[1] = acc->flag_n_salt[1];
-    CMAC.u8[2] = acc->flag_n_salt[2];
-    CMAC.u8[3] = acc->flag_n_salt[3];
+    CMAC.u8[0]  = acc->flag_n_salt[0];
+    CMAC.u8[1]  = acc->flag_n_salt[1];
+    CMAC.u8[2]  = acc->flag_n_salt[2];
+    CMAC.u8[3]  = acc->flag_n_salt[3];
     CMAC.u32[1] = ivp->u32[0];
     CMAC.u32[2] = ivp->u32[1];
     CMAC.u32[3] = htonl(len);
     aes_encrypt(&CMAC, &CMAC, &acc->ctx);
 
     /* initialize counter block */
-    CTR.u8[0] = acc->flag_n_salt[0] & 0x07;
-    CTR.u8[1] = acc->flag_n_salt[1];
-    CTR.u8[2] = acc->flag_n_salt[2];
-    CTR.u8[3] = acc->flag_n_salt[3];
+    CTR.u8[0]  = acc->flag_n_salt[0] & 0x07;
+    CTR.u8[1]  = acc->flag_n_salt[1];
+    CTR.u8[2]  = acc->flag_n_salt[2];
+    CTR.u8[3]  = acc->flag_n_salt[3];
     CTR.u32[1] = ivp->u32[0];
     CTR.u32[2] = ivp->u32[1];
     CTR.u32[3] = 0;
 
     if (acc->broken_counter) {
-	CTR.u8[0] = acc->flag_n_salt[0];
-	CTR.u8[3] = acc->flag_n_salt[3] & 0x07;
+        CTR.u8[0] = acc->flag_n_salt[0];
+        CTR.u8[3] = acc->flag_n_salt[3] & 0x07;
     }
 
     /* save the first counter block. we will use that for authentication. */
@@ -167,104 +173,109 @@ static int aes_ccm_crypt(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
 	idx += sizeof(uint64_t);
     } else
 #endif
-    if (aad_len >= (1<<16) - (1<<8)) {
-	uint32_t x = htonl(aad_len);
-	tmp.u8[idx++] = 0xff;
-	tmp.u8[idx++] = 0xfe;
-	memcpy(&tmp.u8[idx], (void *)&x, sizeof(uint32_t));
-	idx += sizeof(uint32_t);
+    if (aad_len >= (1 << 16) - (1 << 8)) {
+        uint32_t x    = htonl(aad_len);
+        tmp.u8[idx++] = 0xff;
+        tmp.u8[idx++] = 0xfe;
+        memcpy(&tmp.u8[idx], (void *)&x, sizeof(uint32_t));
+        idx += sizeof(uint32_t);
     } else {
-	uint16_t x = htons(aad_len);
-	memcpy(&tmp.u8[idx], (void *)&x, sizeof(uint16_t));
-	idx += sizeof(uint16_t);
+        uint16_t x = htons(aad_len);
+        memcpy(&tmp.u8[idx], (void *)&x, sizeof(uint16_t));
+        idx += sizeof(uint16_t);
     }
 
     while (aad_len > 0) {
-	n = sizeof(aes_block) - idx;
-	if (aad_len < n) n = aad_len;
+        n = sizeof(aes_block) - idx;
+        if (aad_len < n)
+            n = aad_len;
 
-	memcpy(&tmp.u8[idx], aad, n);
-	idx += n;
-	if (idx < sizeof(aes_block))
-	    memset(&tmp.u8[idx], 0, sizeof(aes_block) - idx);
+        memcpy(&tmp.u8[idx], aad, n);
+        idx += n;
+        if (idx < sizeof(aes_block))
+            memset(&tmp.u8[idx], 0, sizeof(aes_block) - idx);
 
-	xor128(&CMAC, &tmp);
-	aes_encrypt(&CMAC, &CMAC, &acc->ctx);
+        xor128(&CMAC, &tmp);
+        aes_encrypt(&CMAC, &CMAC, &acc->ctx);
 
-	aad += n; aad_len -= n; idx = 0;
+        aad += n;
+        aad_len -= n;
+        idx = 0;
     }
 
     nblocks = (len + sizeof(aes_block) - 1) / sizeof(aes_block);
-    step = sizeof(aes_block);
-    while (nblocks--)
-    {
-	/* increment counter */
-	for (i = sizeof(aes_block)-1; i >=0; i--)
-	    if (++CTR.u8[i] != 0) break;
+    step    = sizeof(aes_block);
+    while (nblocks--) {
+        /* increment counter */
+        for (i = sizeof(aes_block) - 1; i >= 0; i--)
+            if (++CTR.u8[i] != 0)
+                break;
 
-	/* get the next keystream block */
-	aes_encrypt(&CTR, &tmp, &acc->ctx);
+        /* get the next keystream block */
+        aes_encrypt(&CTR, &tmp, &acc->ctx);
 
-	partial = !nblocks && len % sizeof(aes_block);
-	if (!partial) {
-	    /* Checksum the plaintext before we encrypt */
-	    if (encrypt) xor128(&CMAC, (aes_block *)in);
+        partial = !nblocks && len % sizeof(aes_block);
+        if (!partial) {
+            /* Checksum the plaintext before we encrypt */
+            if (encrypt)
+                xor128(&CMAC, (aes_block *)in);
 
-	    if (out != in)
-		memcpy(out, in, step);
-	    xor128((aes_block *)out, &tmp);
+            if (out != in)
+                memcpy(out, in, step);
+            xor128((aes_block *)out, &tmp);
 
-	    /* Checksum the plaintext after decryption */
-	    if (!encrypt) xor128(&CMAC, (aes_block *)out);
-	} else {
-	    /* partial last block, use the counter block, which we no longer
+            /* Checksum the plaintext after decryption */
+            if (!encrypt)
+                xor128(&CMAC, (aes_block *)out);
+        } else {
+            /* partial last block, use the counter block, which we no longer
 	     * need, as a scratch buffer */
-	    step = len % sizeof(aes_block);
-	    memcpy(CTR.u8, in, step);
-	    if (encrypt) {
-		memset(&CTR.u8[step], 0, sizeof(aes_block) - step);
-		xor128(&CMAC, &CTR);
-	    }
+            step = len % sizeof(aes_block);
+            memcpy(CTR.u8, in, step);
+            if (encrypt) {
+                memset(&CTR.u8[step], 0, sizeof(aes_block) - step);
+                xor128(&CMAC, &CTR);
+            }
 
-	    xor128(&CTR, &tmp); /* encryption/decryption step*/
-	    memcpy(out, CTR.u8, step); /* copy result to output */
+            xor128(&CTR, &tmp); /* encryption/decryption step*/
+            memcpy(out, CTR.u8, step); /* copy result to output */
 
-	    /* clear step and checksum decrypted data */
-	    if (!encrypt) {
-		memset(&CTR.u8[step], 0, sizeof(aes_block) - step);
-		xor128(&CMAC, &CTR);
-	    }
-	}
-	aes_encrypt(&CMAC, &CMAC, &acc->ctx);
-	in += step; out += step;
+            /* clear step and checksum decrypted data */
+            if (!encrypt) {
+                memset(&CTR.u8[step], 0, sizeof(aes_block) - step);
+                xor128(&CMAC, &CTR);
+            }
+        }
+        aes_encrypt(&CMAC, &CMAC, &acc->ctx);
+        in += step;
+        out += step;
     }
 
     /* finalize the ICV calculation */
     xor128(&CMAC, &S0);
     if (encrypt) {
-	memcpy(out, CMAC.u8, acc->icv_len);
-	len += acc->icv_len;
-    }
-    else if (memcmp(in, CMAC.u8, acc->icv_len) != 0)
-	return -1;
+        memcpy(out, CMAC.u8, acc->icv_len);
+        len += acc->icv_len;
+    } else if (memcmp(in, CMAC.u8, acc->icv_len) != 0)
+        return -1;
 
     return len;
 }
 
 static int encrypt(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
-		   uint8_t *iv, const uint8_t *aad, size_t aad_len)
+                   uint8_t *iv, const uint8_t *aad, size_t aad_len)
 {
     return aes_ccm_crypt(ctx, in, out, len, iv, aad, aad_len, 1);
 }
 
 static int decrypt(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
-		   const uint8_t *iv, const uint8_t *aad, size_t aad_len)
+                   const uint8_t *iv, const uint8_t *aad, size_t aad_len)
 {
     return aes_ccm_crypt(ctx, in, out, len, iv, aad, aad_len, 0);
 }
 
 struct secure_encr secure_ENCR_AES_CCM_8 = {
-    .id	          = SECURE_ENCR_AES_CCM_8,
+    .id           = SECURE_ENCR_AES_CCM_8,
     .name         = "ENCR-AES-CCM-8",
     .encrypt_init = init8,
     .encrypt_free = release,
@@ -280,7 +291,7 @@ struct secure_encr secure_ENCR_AES_CCM_8 = {
 };
 
 struct secure_encr secure_ENCR_AES_CCM_12 = {
-    .id	          = SECURE_ENCR_AES_CCM_12,
+    .id           = SECURE_ENCR_AES_CCM_12,
     .name         = "ENCR-AES-CCM-12",
     .encrypt_init = init12,
     .encrypt_free = release,
@@ -296,7 +307,7 @@ struct secure_encr secure_ENCR_AES_CCM_12 = {
 };
 
 struct secure_encr secure_ENCR_AES_CCM_16 = {
-    .id	          = SECURE_ENCR_AES_CCM_16,
+    .id           = SECURE_ENCR_AES_CCM_16,
     .name         = "ENCR-AES-CCM-16",
     .encrypt_init = init16,
     .encrypt_free = release,
@@ -310,4 +321,3 @@ struct secure_encr secure_ENCR_AES_CCM_16 = {
     .iv_len       = 8,
     .icv_len      = 16,
 };
-

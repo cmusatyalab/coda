@@ -35,10 +35,12 @@ int aes_xcbc_mac_init(void **ctx, const uint8_t *key, size_t len)
     aes_block tmp;
     aes_encrypt_ctx c;
 
-    if (len < KEYSIZE) return -1;
+    if (len < KEYSIZE)
+        return -1;
 
     state = malloc(sizeof(struct aes_xcbc_state));
-    if (!state) return -1;
+    if (!state)
+        return -1;
 
     aes_encrypt_key(key, KEYSIZE * 8, &c);
 
@@ -62,7 +64,8 @@ int aes_xcbc_mac_init(void **ctx, const uint8_t *key, size_t len)
 void aes_xcbc_mac_release(void **ctx)
 {
     struct aes_xcbc_state *state = *ctx;
-    if (!*ctx) return;
+    if (!*ctx)
+        return;
     memset(&state->C1, 0, sizeof(aes_encrypt_ctx));
     memset(state->K2.u8, 0, sizeof(aes_block));
     memset(state->K3.u8, 0, sizeof(aes_block));
@@ -78,29 +81,29 @@ void aes_xcbc_mac_128(void *ctx, const uint8_t *buf, size_t len, aes_block *mac)
 
     memset(mac->u8, 0, sizeof(aes_block));
 
-    while(nblocks-- > 1) {
-	xor128(mac, in++);
-	aes_encrypt(mac, mac, &state->C1);
+    while (nblocks-- > 1) {
+        xor128(mac, in++);
+        aes_encrypt(mac, mac, &state->C1);
     }
 
     len %= sizeof(aes_block);
     if (len) {
-	memcpy(tmp.u8, in->u8, len);
-	tmp.u8[len++] = 0x80;
-	if (len != sizeof(aes_block))
-	    memset(&tmp.u8[len], 0, sizeof(aes_block) - len);
+        memcpy(tmp.u8, in->u8, len);
+        tmp.u8[len++] = 0x80;
+        if (len != sizeof(aes_block))
+            memset(&tmp.u8[len], 0, sizeof(aes_block) - len);
 
-	xor128(mac, &tmp);
-	xor128(mac, &state->K3);
+        xor128(mac, &tmp);
+        xor128(mac, &state->K3);
     } else {
-	xor128(mac, in);
-	xor128(mac, &state->K2);
+        xor128(mac, in);
+        xor128(mac, &state->K2);
     }
     aes_encrypt(mac, mac, &state->C1);
 }
 
 static void aes_xcbc_mac_96(void *ctx, const uint8_t *buf, size_t len,
-			    uint8_t *icv)
+                            uint8_t *icv)
 {
     aes_block mac;
     aes_xcbc_mac_128(ctx, buf, len, &mac);
@@ -108,12 +111,11 @@ static void aes_xcbc_mac_96(void *ctx, const uint8_t *buf, size_t len,
 }
 
 struct secure_auth secure_AUTH_AES_XCBC_MAC_96 = {
-    .id = SECURE_AUTH_AES_XCBC_96,
-    .name = "AUTH-AES-XCBC-MAC-96",
+    .id        = SECURE_AUTH_AES_XCBC_96,
+    .name      = "AUTH-AES-XCBC-MAC-96",
     .auth_init = aes_xcbc_mac_init,
     .auth_free = aes_xcbc_mac_release,
-    .auth = aes_xcbc_mac_96,
-    .keysize = KEYSIZE,
-    .icv_len = ICV_LEN,
+    .auth      = aes_xcbc_mac_96,
+    .keysize   = KEYSIZE,
+    .icv_len   = ICV_LEN,
 };
-

@@ -23,4 +23,3 @@ int main(int argc, char **argv)
     secure_release();
     return EXIT_SUCCESS;
 }
-

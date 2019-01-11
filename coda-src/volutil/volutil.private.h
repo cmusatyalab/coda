@@ -37,7 +37,6 @@ Pittsburgh, PA.
 
 */
 
-
 /* volutil.private.h (used to be confusingly called "vutils.h") */
 
 /* Common definitions for volume utilities */
@@ -45,13 +44,11 @@ Pittsburgh, PA.
 #ifndef _VOLUTIL_PRIVATE_H_
 #define _VOLUTIL_PRIVATE_H_ 1
 
-#define VOLUTIL_TIMEOUT	15	/* Timeout period for a remote host */
-
+#define VOLUTIL_TIMEOUT 15 /* Timeout period for a remote host */
 
 /* Exit codes -- see comments in tcp/exits.h */
-#define VOLUTIL_RESTART	64	/* please restart this job later */
-#define VOLUTIL_ABORT	1	/* do not restart this job */
-
+#define VOLUTIL_RESTART 64 /* please restart this job later */
+#define VOLUTIL_ABORT 1 /* do not restart this job */
 
 void PrintVersionVector(FILE *outfile, ViceVersionVector vv);
 

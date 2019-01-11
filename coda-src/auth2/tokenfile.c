@@ -75,11 +75,12 @@ void ReadTokenFromFile(char *filename, ClearToken *cToken,
     f = fopen(filename, "r");
     if (!f) {
         fprintf(stderr, "Failed to open %s.\n", filename);
-	exit(EXIT_FAILURE);
+        exit(EXIT_FAILURE);
     }
 
     /* skip the first line */
-    while((c = fgetc(f)) != EOF && c != '\n' && c != '\r') /* skip */;
+    while ((c = fgetc(f)) != EOF && c != '\n' && c != '\r') /* skip */
+        ;
     coda_base64_decode(f, &buf, &len);
     fclose(f);
 
@@ -93,4 +94,3 @@ void ReadTokenFromFile(char *filename, ClearToken *cToken,
     import(cToken);
     free(buf);
 }
-

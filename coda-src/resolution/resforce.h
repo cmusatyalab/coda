@@ -16,22 +16,23 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
 #ifndef _RES_FORCE_H
 #define _RES_FORCE_H 1
 #include "olist.h"
-typedef enum {CreateD=0, CreateF=1, CreateS=2, CreateL=3} dirop_t;
- 
+typedef enum
+{
+    CreateD = 0,
+    CreateF = 1,
+    CreateS = 2,
+    CreateL = 3
+} dirop_t;
+
 class diroplink : public olink {
-  public:
-    dirop_t	op;
-    long	vnode;
-    long	unique;
-    char	name[DIROPNAMESIZE];
+public:
+    dirop_t op;
+    long vnode;
+    long unique;
+    char name[DIROPNAMESIZE];
 
     diroplink(dirop_t, long, long, char *);
     ~diroplink();
@@ -52,13 +53,12 @@ class commitlink : public olink {
 */
 
 /* getdiropParm - struct to pack all the arguments to the enumerate dir proc*/
-struct  getdiropParm {
-    Volume	*volptr;
-    olist	*oplist;
-}; 
+struct getdiropParm {
+    Volume *volptr;
+    olist *oplist;
+};
 
 extern void UpdateRunts(res_mgrpent *, ViceVersionVector **, ViceFid *);
 extern int RuntExists(ViceVersionVector **, int, int *, int *);
 
 #endif /* _RES_FORCE_H_ */
-

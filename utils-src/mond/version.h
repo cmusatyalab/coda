@@ -30,35 +30,35 @@ Mellon the rights to redistribute these changes without encumbrance.
 */
 #endif /*_BLURB_*/
 
-
-
 #ifndef VERSION_H
 #define VERSION_H
 
 class connection_entry : public olink {
     RPC2_Handle myCid;
-    long        myClientType;
+    long myClientType;
+
 public:
     connection_entry(RPC2_Handle, long);
-    long client_type(void) {return myClientType;}
-    RPC2_Handle cid(void) {return myCid;}
+    long client_type(void) { return myClientType; }
+    RPC2_Handle cid(void) { return myCid; }
     void print();
     void print(FILE *);
     void print(int);
-    void print(int,FILE*);
+    void print(int, FILE *);
 };
 
 class connection_table {
-    friend long MondEstablishConn(RPC2_Handle, unsigned long, 
-				  long, long, SpareEntry[]);
+    friend long MondEstablishConn(RPC2_Handle, unsigned long, long, long,
+                                  SpareEntry[]);
     ohashtab *table;
+
 public:
     connection_entry *GetConnection(RPC2_Handle);
     int ConnectionValid(RPC2_Handle, long);
     int RemoveConnection(RPC2_Handle);
-    void LogConnections(int,FILE*);
+    void LogConnections(int, FILE *);
     int PurgeConnections(void);
-    connection_table(int =1024);
+    connection_table(int = 1024);
     ~connection_table(void);
 };
 

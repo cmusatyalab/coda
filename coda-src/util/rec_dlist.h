@@ -16,14 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
-
-
 /*
  *
  * rec_dlist.h -- Specification of  doubly-linked list type where list elements
@@ -44,8 +36,6 @@ extern "C" {
 }
 #endif
 
-
-
 #include "dlist.h"
 #include "rvmlib.h"
 
@@ -58,28 +48,29 @@ typedef int (*RCFN)(rec_dlink *, rec_dlink *);
 
 class rec_dlist {
     friend class rec_dhashtab;
-    rec_dlink *head;	    /* head of list */
+    rec_dlink *head; /* head of list */
     int cnt;
-    RCFN CmpFn;		    /* function to order the elements  */
-	
-  public:
-    void *operator new (size_t);
+    RCFN CmpFn; /* function to order the elements  */
+
+public:
+    void *operator new(size_t);
     void operator delete(void *);
 
-    rec_dlist(RCFN =0);
+    rec_dlist(RCFN = 0);
     ~rec_dlist();
 
     void Init(RCFN);
     void SetCmpFn(RCFN);
     void DeInit();
 
-    void insert(rec_dlink *);				/* insert in sorted order */
-    void prepend(rec_dlink *);				/* add at beginning of list */
-    void append(rec_dlink *);				/* add at end of list */ 
-    rec_dlink *remove(rec_dlink	*);			/* remove specified entry */
-    rec_dlink *first();	    				/* return head of list */
-    rec_dlink *last();	    				/* return tail of list */
-    rec_dlink *get(DlGetType =DlGetMin);		/* return and remove head or tail of list */
+    void insert(rec_dlink *); /* insert in sorted order */
+    void prepend(rec_dlink *); /* add at beginning of list */
+    void append(rec_dlink *); /* add at end of list */
+    rec_dlink *remove(rec_dlink *); /* remove specified entry */
+    rec_dlink *first(); /* return head of list */
+    rec_dlink *last(); /* return tail of list */
+    rec_dlink *
+        get(DlGetType = DlGetMin); /* return and remove head or tail of list */
     int count();
     int IsMember(rec_dlink *);
     /*virtual*/ void print();
@@ -90,26 +81,27 @@ class rec_dlist {
 /*enum DlIterOrder { DlAscending, DlDescending };*/
 
 class rec_dlist_iterator {
-    rec_dlist *cdlist;	    // current dlist
-    rec_dlink *cdlink;	    // current dlink
-    DlIterOrder	order;	    // iteration order
-  public:
-    rec_dlist_iterator(rec_dlist&, DlIterOrder =DlAscending);
-    rec_dlink *operator()();    // return next object or 0
-                                // Does *not* support safe deletion
-                                // of currently returned entry.  See the 
-                                // comment in dlist.h for more explanation.
+    rec_dlist *cdlist; // current dlist
+    rec_dlink *cdlink; // current dlink
+    DlIterOrder order; // iteration order
+public:
+    rec_dlist_iterator(rec_dlist &, DlIterOrder = DlAscending);
+    rec_dlink *operator()(); // return next object or 0
+        // Does *not* support safe deletion
+        // of currently returned entry.  See the
+        // comment in dlist.h for more explanation.
 };
 
-class rec_dlink {		    /* objects are derived from this class */
-  friend class rec_dlist;
-  friend class rec_dlist_iterator;
+class rec_dlink { /* objects are derived from this class */
+    friend class rec_dlist;
+    friend class rec_dlist_iterator;
     rec_dlink *next;
     rec_dlink *prev;
-  public:
+
+public:
     rec_dlink();
     void Init();
-/*
+    /*
     ~rec_dlink();
 */
     /*virtual*/ void print();

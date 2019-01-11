@@ -1,21 +1,23 @@
 #include <util/bitmap.h>
 #include "gtest/gtest.h"
 
-namespace {
-
+namespace
+{
 // bitmap.
-TEST(bitmap, assign) {
+TEST(bitmap, assign)
+{
     int16_t bitmap_size = rand() & 0x7FFF;
-    int16_t i = 0;
+    int16_t i           = 0;
 
-    bitmap * src = new (0) bitmap(bitmap_size, 0);
-    bitmap * dst = new (0) bitmap(bitmap_size, 0);
+    bitmap *src = new (0) bitmap(bitmap_size, 0);
+    bitmap *dst = new (0) bitmap(bitmap_size, 0);
     EXPECT_GE(src->Size(), bitmap_size);
     EXPECT_GE(dst->Size(), bitmap_size);
 
     /* Fill it randomly */
     for (i = 0; i < bitmap_size; i++) {
-        if (rand() % 2) src->SetIndex(i);
+        if (rand() % 2)
+            src->SetIndex(i);
     }
 
     /* Assign to the destination */
@@ -29,24 +31,25 @@ TEST(bitmap, assign) {
 
     delete (src);
     delete (dst);
-
 }
 
-TEST(bitmap, copy) {
+TEST(bitmap, copy)
+{
     int16_t bitmap_size = rand() & 0x7FFF;
-    int16_t i = 0;
-    int16_t start = rand() % bitmap_size;
-    int16_t len = rand() % bitmap_size;
+    int16_t i           = 0;
+    int16_t start       = rand() % bitmap_size;
+    int16_t len         = rand() % bitmap_size;
 
-    bitmap * src = new (0) bitmap(bitmap_size, 0);
-    bitmap * dst = new (0) bitmap(bitmap_size, 0);
+    bitmap *src = new (0) bitmap(bitmap_size, 0);
+    bitmap *dst = new (0) bitmap(bitmap_size, 0);
 
     EXPECT_GE(src->Size(), bitmap_size);
     EXPECT_GE(dst->Size(), bitmap_size);
 
     /* Fill it randomly */
     for (i = 0; i < bitmap_size; i++) {
-        if (rand() % 2) src->SetIndex(i);
+        if (rand() % 2)
+            src->SetIndex(i);
     }
 
     /* Order the start and end */
@@ -63,23 +66,24 @@ TEST(bitmap, copy) {
 
     delete (src);
     delete (dst);
-
 }
 
-TEST(bitmap, assign_different_size) {
+TEST(bitmap, assign_different_size)
+{
     int16_t bitmap_size_1 = rand() & 0x7FFF;
     int16_t bitmap_size_2 = rand() & 0x7FFF;
-    int16_t i = 0;
+    int16_t i             = 0;
 
-    bitmap * src = new (0) bitmap(bitmap_size_1, 0);
-    bitmap * dst = new (0) bitmap(bitmap_size_2, 0);
+    bitmap *src = new (0) bitmap(bitmap_size_1, 0);
+    bitmap *dst = new (0) bitmap(bitmap_size_2, 0);
 
     EXPECT_GE(src->Size(), bitmap_size_1);
     EXPECT_GE(dst->Size(), bitmap_size_2);
 
     /* Fill it randomly */
     for (i = 0; i < bitmap_size_1; i++) {
-        if (rand() % 2) src->SetIndex(i);
+        if (rand() % 2)
+            src->SetIndex(i);
     }
 
     /* Assign to the destination */
@@ -95,15 +99,15 @@ TEST(bitmap, assign_different_size) {
 
     delete (src);
     delete (dst);
-
 }
 
-TEST(bitmap, resize) {
+TEST(bitmap, resize)
+{
     int16_t bitmap_size_start = rand() & 0x7FFF;
-    int16_t bitmap_size_end = rand() & 0x7FFF;
-    int16_t i = 0;
+    int16_t bitmap_size_end   = rand() & 0x7FFF;
+    int16_t i                 = 0;
 
-    bitmap * bm = new (0) bitmap(bitmap_size_start, 0);
+    bitmap *bm = new (0) bitmap(bitmap_size_start, 0);
 
     EXPECT_GE(bm->Size(), bitmap_size_start);
 
@@ -123,15 +127,15 @@ TEST(bitmap, resize) {
     }
 
     delete (bm);
-
 }
 
-TEST(bitmap, set_range) {
+TEST(bitmap, set_range)
+{
     int16_t bitmap_size = rand() & 0x7FFF;
-    int16_t start = rand() % bitmap_size;
-    int16_t len = rand() % bitmap_size;
+    int16_t start       = rand() % bitmap_size;
+    int16_t len         = rand() % bitmap_size;
 
-    bitmap * bm = new (0) bitmap(bitmap_size, 0);
+    bitmap *bm = new (0) bitmap(bitmap_size, 0);
 
     EXPECT_GE(bm->Size(), bitmap_size);
 
@@ -155,16 +159,16 @@ TEST(bitmap, set_range) {
     }
 
     delete (bm);
-
 }
 
-TEST(bitmap, set_range_and_copy_till_end) {
+TEST(bitmap, set_range_and_copy_till_end)
+{
     int16_t bitmap_size = rand() & 0x7FFF;
-    int16_t start = rand() % bitmap_size;
-    int16_t len = -1;
+    int16_t start       = rand() % bitmap_size;
+    int16_t len         = -1;
 
-    bitmap * bm = new (0) bitmap(bitmap_size, 0);
-    bitmap * bm_cpy = new (0) bitmap(bitmap_size, 0);
+    bitmap *bm     = new (0) bitmap(bitmap_size, 0);
+    bitmap *bm_cpy = new (0) bitmap(bitmap_size, 0);
 
     EXPECT_GE(bm->Size(), bitmap_size);
     EXPECT_GE(bm_cpy->Size(), bitmap_size);
@@ -185,13 +189,13 @@ TEST(bitmap, set_range_and_copy_till_end) {
 
     delete (bm);
     delete (bm_cpy);
-
 }
 
-TEST(bitmap, purge_delete) {
+TEST(bitmap, purge_delete)
+{
     int16_t bitmap_size = rand() & 0x7FFF;
 
-    bitmap * bm = new (0) bitmap(bitmap_size, 0);
+    bitmap *bm = new (0) bitmap(bitmap_size, 0);
 
     EXPECT_GE(bm->Size(), bitmap_size);
 
@@ -200,13 +204,14 @@ TEST(bitmap, purge_delete) {
     delete (bm);
 }
 
-TEST(bitmap, get_free_index) {
-    int16_t bitmap_size = rand() & 0x7FFF;
-    int16_t i = 0;
+TEST(bitmap, get_free_index)
+{
+    int16_t bitmap_size   = rand() & 0x7FFF;
+    int16_t i             = 0;
     int16_t current_index = 0;
 
-    bitmap * bm = new (0) bitmap(bitmap_size, 0);
-    
+    bitmap *bm = new (0) bitmap(bitmap_size, 0);
+
     EXPECT_GE(bm->Size(), bitmap_size);
     bm->FreeRange(0, bitmap_size);
     EXPECT_EQ(bm->Count(), 0);
@@ -219,22 +224,24 @@ TEST(bitmap, get_free_index) {
     delete (bm);
 }
 
-static void check_range(bitmap* bm, int start, int len, int value) {
-    int i = 0;
+static void check_range(bitmap *bm, int start, int len, int value)
+{
+    int i          = 0;
     int actual_val = 0;
     for (i = start; i < start + len; i++) {
-        actual_val = bm->Value(i) ? 1 :0;
+        actual_val = bm->Value(i) ? 1 : 0;
         EXPECT_EQ(actual_val, value);
     }
 }
 
-TEST(bitmap, ranges_cases) {
+TEST(bitmap, ranges_cases)
+{
     int16_t bitmap_size = 333; // Simply need an unaligned size
-    bitmap * ones = new (0) bitmap(bitmap_size, 0);
-    bitmap * zeros = new (0) bitmap(bitmap_size, 0);
-    bitmap * test_bm = new (0) bitmap(bitmap_size, 0);
-    int start = 0;
-    int len = 0;
+    bitmap *ones        = new (0) bitmap(bitmap_size, 0);
+    bitmap *zeros       = new (0) bitmap(bitmap_size, 0);
+    bitmap *test_bm     = new (0) bitmap(bitmap_size, 0);
+    int start           = 0;
+    int len             = 0;
 
     EXPECT_GE(ones->Size(), bitmap_size);
     EXPECT_GE(zeros->Size(), bitmap_size);
@@ -254,7 +261,7 @@ TEST(bitmap, ranges_cases) {
 
     /* Same byte range and aligned */
     start = 8;
-    len = 8;
+    len   = 8;
 
     // Clean
     *test_bm = *zeros;
@@ -273,7 +280,7 @@ TEST(bitmap, ranges_cases) {
 
     /* Same byte range and unaligned */
     start = 10;
-    len = 3;
+    len   = 3;
 
     // Clean
     *test_bm = *zeros;
@@ -292,7 +299,7 @@ TEST(bitmap, ranges_cases) {
 
     /* Consecutive bytes range and aligned */
     start = 16;
-    len = 16;
+    len   = 16;
 
     // Clean
     *test_bm = *zeros;
@@ -311,7 +318,7 @@ TEST(bitmap, ranges_cases) {
 
     /* Consecutive bytes range and unaligned */
     start = 10;
-    len = 10;
+    len   = 10;
 
     // Clean
     *test_bm = *zeros;
@@ -330,7 +337,7 @@ TEST(bitmap, ranges_cases) {
 
     /* 3 Consecutive bytes range and unaligned */
     start = 10;
-    len = 16;
+    len   = 16;
 
     // Clean
     *test_bm = *zeros;
@@ -347,10 +354,9 @@ TEST(bitmap, ranges_cases) {
     EXPECT_EQ(test_bm->Count(), len);
     check_range(test_bm, start, len, 0x1);
 
-
     /* Big unaligned bulk */
     start = 10;
-    len = 200;
+    len   = 200;
 
     // Clean
     *test_bm = *zeros;
@@ -372,4 +378,4 @@ TEST(bitmap, ranges_cases) {
     delete (test_bm);
 }
 
-}  // namespace
+} // namespace

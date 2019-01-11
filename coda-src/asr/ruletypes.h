@@ -16,10 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
 #ifndef _RULETYPES_H_
 #define _RULETYPES_H_
 
@@ -32,7 +28,7 @@ extern "C" {
 #endif
 
 #include <stdio.h>
-#include <stdlib.h>        
+#include <stdlib.h>
 #include <sys/param.h>
 #include <unistd.h>
 #include "coda_string.h"
@@ -42,28 +38,28 @@ extern "C" {
 }
 #endif
 
-//C++ include files 
+//C++ include files
 #include <olist.h>
 #include <inconsist.h>
 
 class objname_t : public olink {
-    char	dname[CODA_MAXPATHLEN];	/* dir name cannot have any * in it */
-    char 	fname[CODA_MAXNAMLEN];	/* file name can have *s */
-  public:
+    char dname[CODA_MAXPATHLEN]; /* dir name cannot have any * in it */
+    char fname[CODA_MAXNAMLEN]; /* file name can have *s */
+public:
     objname_t(char *);
     ~objname_t();
-    int match(char *, char*);
+    int match(char *, char *);
     void GetPrefix(char *name, char *prefix);
     void print();
     void print(FILE *);
     void print(int);
 };
 
-class  depname_t : public olink {
-    char 	dname[CODA_MAXPATHLEN];
-    char	fname[CODA_MAXNAMLEN];
-    ViceFid 	fid; 			/* initialized only by application */
-  public:
+class depname_t : public olink {
+    char dname[CODA_MAXPATHLEN];
+    char fname[CODA_MAXNAMLEN];
+    ViceFid fid; /* initialized only by application */
+public:
     depname_t(char *);
     ~depname_t();
     void print();
@@ -71,18 +67,19 @@ class  depname_t : public olink {
     void print(int);
 };
 
-#define NOREPLICAID	-1
-#define ALLREPLICAS	9
+#define NOREPLICAID -1
+#define ALLREPLICAS 9
 class arg_t {
-friend class command_t;
+    friend class command_t;
     char name[CODA_MAXPATHLEN];
-    int	replicaid;
-  public:
+    int replicaid;
+
+public:
     arg_t(char *);
     ~arg_t();
     void addreplicaid(char *);
     void expandname(char *, char *, char *);
-    int expandall();			// returns true if [all] was in the arg
+    int expandall(); // returns true if [all] was in the arg
     void appendname(char *, char *);
     void expandreplicas(int, char **);
     void print();
@@ -91,12 +88,13 @@ friend class command_t;
 };
 
 class command_t : public olink {
-    char	cmddname[CODA_MAXPATHLEN];
-    char	cmdfname[CODA_MAXNAMLEN];
-    ViceFid	fid;
-    int 	argc;
-    arg_t	**arglist;
-  public:
+    char cmddname[CODA_MAXPATHLEN];
+    char cmdfname[CODA_MAXNAMLEN];
+    ViceFid fid;
+    int argc;
+    arg_t **arglist;
+
+public:
     command_t(char *);
     ~command_t();
     arg_t *addarg(char *);
@@ -110,20 +108,20 @@ class command_t : public olink {
 };
 
 class rule_t : public olink {
-    olist 	objlist;
-    olist	deplist;
-    olist	cmdlist;
+    olist objlist;
+    olist deplist;
+    olist cmdlist;
     // the following are filled only after this rule is matched for an inc object
-    char	prefix[CODA_MAXNAMLEN];	// common prefix from obj name (eg. *.c)
-    char	*repnames[VSG_MEMBERS];	// canonical ordering of rep names
-    int		nreplicas;		// number of replicas of the inc object
-    ViceFid	incfid;			// fid of inc object causing the asr invocation
-    char	increalm[MAXHOSTNAMELEN]; // realm of inc object
-    char 	idname[CODA_MAXPATHLEN]; // name of inc object 
-    char 	ifname[CODA_MAXNAMLEN];
-    int GetReplicaNames();		// gets name of individual replicas
-    //int GetIFid();			// gets fid of inc. object 
-  public:
+    char prefix[CODA_MAXNAMLEN]; // common prefix from obj name (eg. *.c)
+    char *repnames[VSG_MEMBERS]; // canonical ordering of rep names
+    int nreplicas; // number of replicas of the inc object
+    ViceFid incfid; // fid of inc object causing the asr invocation
+    char increalm[MAXHOSTNAMELEN]; // realm of inc object
+    char idname[CODA_MAXPATHLEN]; // name of inc object
+    char ifname[CODA_MAXNAMLEN];
+    int GetReplicaNames(); // gets name of individual replicas
+    //int GetIFid();			// gets fid of inc. object
+public:
     rule_t();
     ~rule_t();
     void addobject(char *);
@@ -140,6 +138,6 @@ class rule_t : public olink {
     void print(int);
 };
 
-// exportable routines 
+// exportable routines
 extern void expandstring(char *, const char *, char *);
 #endif /* _RULETYPES_H_ */

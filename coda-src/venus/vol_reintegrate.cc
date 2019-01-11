@@ -49,7 +49,6 @@ listed in the file CREDITS.
  *       always be "serialized" before any conflicting mutations
  */
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -71,18 +70,17 @@ extern "C" {
 #include "venusvol.h"
 #include "vproc.h"
 
-
 /* must not be called from within a transaction */
 void reintvol::Reintegrate()
 {
     LOG(0, ("reintvol::Reintegrate\n"));
 
     if (!ReadyToReintegrate())
-	return;
+        return;
 
     /* prevent ASRs from slipping in and adding records we might reintegrate. */
     if (DisableASR(V_UID))
-	return;
+        return;
 
     /* 
      * this flag keeps multiple reintegrators from interfering with
@@ -97,7 +95,7 @@ void reintvol::Reintegrate()
     vproc *v = VprocSelf();
 
     Volid volid;
-    volid.Realm = realm->Id();
+    volid.Realm  = realm->Id();
     volid.Volume = vid;
 
     v->Begin_VFS(&volid, CODA_REINTEGRATE);
@@ -123,27 +121,27 @@ void reintvol::Reintegrate()
     do {
         /* reset invariants */
         thisTid = -GetReintId();
-        nrecs = 0;
+        nrecs   = 0;
 
-	/*
+        /*
 	 * step 2. Attempt to do partial reintegration for big stores at
 	 * the head of the CML.
 	 */
-	code = PartialReintegrate(thisTid, &reint_time);
+        code = PartialReintegrate(thisTid, &reint_time);
 
-	if (code == 0 && IsSync())
-	    continue;
+        if (code == 0 && IsSync())
+            continue;
 
-	/* PartialReintegrate returns ENOENT when there was no CML entry
+        /* PartialReintegrate returns ENOENT when there was no CML entry
 	 * available for partial reintegration */
-	if (code != ENOENT) {
-	    eprint("Reintegrate: %s, partial record, result = %s",
-		   name, VenusRetStr(code));
-	    /* done for now */
-	    break;
-	}
-	/* clear the errorcode, ENOENT was not a fatal error. */
-	code = 0;
+        if (code != ENOENT) {
+            eprint("Reintegrate: %s, partial record, result = %s", name,
+                   VenusRetStr(code));
+            /* done for now */
+            break;
+        }
+        /* clear the errorcode, ENOENT was not a fatal error. */
+        code = 0;
 
         /*
          * step 3.
@@ -152,7 +150,8 @@ void reintvol::Reintegrate()
         stop_loop = CML.GetReintegrateable(thisTid, &reint_time, &nrecs);
 
         /* nothing to reintegrate? jump out of the loop! */
-        if (nrecs == 0) break;
+        if (nrecs == 0)
+            break;
 
         /*
          * step 4.
@@ -163,14 +162,14 @@ void reintvol::Reintegrate()
         startedrecs = CML.count();
         MarinerLog("reintegrate::%s, %d/%d\n", name, nrecs, startedrecs);
 
-	code = IncReintegrate(thisTid);
+        code = IncReintegrate(thisTid);
 
-	/* Log how many entries are left to reintegrate */
-	MarinerLog("reintegrate::%s, 0/%d\n", name, CML.count());
-        eprint("Reintegrate: %s, %d/%d records, result = %s", 
-               name, nrecs, startedrecs, VenusRetStr(code));
+        /* Log how many entries are left to reintegrate */
+        MarinerLog("reintegrate::%s, 0/%d\n", name, CML.count());
+        eprint("Reintegrate: %s, %d/%d records, result = %s", name, nrecs,
+               startedrecs, VenusRetStr(code));
 
-    /*
+        /*
      * Keep going as long as we managed to reintegrate records without errors,
      * but we don't want to interfere with trickle reintegration so we test
      * whether a full block has been sent (see also cmlent::GetReintegrateable)
@@ -189,14 +188,15 @@ void reintvol::Reintegrate()
      * mutator will clear the owner on volume exit.
      */
     if (CML.count() == 0 && mutator_count == 0)
-	CML.owner = UNSET_UID;
+        CML.owner = UNSET_UID;
 
     /* if code was non-zero, return EINVAL to End_VFS to force this
        reintegration to inc fail count rather than success count */
     VOL_ASSERT(this, v->u.u_error == 0);
-    if (code) v->u.u_error = EINVAL;
+    if (code)
+        v->u.u_error = EINVAL;
 
-    EnableASR(V_UID);	
+    EnableASR(V_UID);
     ReleaseReadLock(&CML_lock);
 
     ReportVolState();
@@ -205,77 +205,77 @@ void reintvol::Reintegrate()
     v->End_VFS();
 
     /* Check and launch ASRs, if appropriate. */
-    if (code == EINCOMPATIBLE || code == EINCONS)
-    {
-	VenusFid fids[3];
-	int ASRInvokable;
-	fsobj *conflict;
-	repvol *v;
-	struct timeval tv;
-	cml_iterator next(CML, CommitOrder);
-	cmlent *m;
+    if (code == EINCOMPATIBLE || code == EINCONS) {
+        VenusFid fids[3];
+        int ASRInvokable;
+        fsobj *conflict;
+        repvol *v;
+        struct timeval tv;
+        cml_iterator next(CML, CommitOrder);
+        cmlent *m;
 
-	/* grab the first cmlent that is flagged as 'to_be_repaired' */
-	while ((m = next()))
-	    if (m->IsToBeRepaired())
-		break;
+        /* grab the first cmlent that is flagged as 'to_be_repaired' */
+        while ((m = next()))
+            if (m->IsToBeRepaired())
+                break;
 
-	if (!m) goto Done;
+        if (!m)
+            goto Done;
 
-	m->getfids(fids);
+        m->getfids(fids);
 
-	/* we could also iterate through all returned fids, now we just pick
+        /* we could also iterate through all returned fids, now we just pick
 	 * the (first) parent directory. */
-	if (FID_EQ(&fids[0], &NullFid))
-	    goto Done;
+        if (FID_EQ(&fids[0], &NullFid))
+            goto Done;
 
-	conflict = FSDB->Find(&fids[0]);
-	if(!conflict) {
-	    LOG(0, ("reintvol::Reintegrate: Couldn't find conflict for ASR!\n"));
-	    goto Done;
-	}
+        conflict = FSDB->Find(&fids[0]);
+        if (!conflict) {
+            LOG(0,
+                ("reintvol::Reintegrate: Couldn't find conflict for ASR!\n"));
+            goto Done;
+        }
 
-	v = (repvol *)conflict->vol;
-	gettimeofday(&tv, 0);
+        v = (repvol *)conflict->vol;
+        gettimeofday(&tv, 0);
 
-	/* Check that:
+        /* Check that:
 	 * 1.) An ASRLauncher path was parsed in venus.conf.
 	 * 2.) This thread is a worker.
 	 * 3.) ASR's are allowed to execute within this volume.
 	 * 4.) An ASR is not currently running within this volume.
 	 * 5.) The timeout interval for ASR launching has expired.
 	 */
-	if (!ASRLauncherFile) {
-	    LOG(0, ("ClientModifyLog::HandleFailedMLE: No ASRLauncher "
-		    "specified in venus.conf!\n"));
-	    goto Done;
-	}
-	if (!v->IsASRAllowed()) {
-	    LOG(0, ("ClientModifyLog::HandleFailedMLE: User does not "
-		    "allow ASR execution in this volume.\n"));
-	    goto Done;
-	}
-	if (v->asr_running()) {
-	    LOG(0, ("ClientModifyLog::HandleFailedMLE: ASR already "
-		    "running in this volume.\n"));
-	    goto Done;
-	}
-	if ((tv.tv_sec - conflict->lastresolved) <= ASR_INTERVAL) {
-	    LOG(0, ("ClientModifyLog::HandleFailedMLE: ASR too soon!\n"));
-	    goto Done;
-	}
+        if (!ASRLauncherFile) {
+            LOG(0, ("ClientModifyLog::HandleFailedMLE: No ASRLauncher "
+                    "specified in venus.conf!\n"));
+            goto Done;
+        }
+        if (!v->IsASRAllowed()) {
+            LOG(0, ("ClientModifyLog::HandleFailedMLE: User does not "
+                    "allow ASR execution in this volume.\n"));
+            goto Done;
+        }
+        if (v->asr_running()) {
+            LOG(0, ("ClientModifyLog::HandleFailedMLE: ASR already "
+                    "running in this volume.\n"));
+            goto Done;
+        }
+        if ((tv.tv_sec - conflict->lastresolved) <= ASR_INTERVAL) {
+            LOG(0, ("ClientModifyLog::HandleFailedMLE: ASR too soon!\n"));
+            goto Done;
+        }
 
-	ASRInvokable = ASRPolicyFile && v->IsASREnabled();
-	/* Send in any conflict type, it will get changed later. */
-	if (ASRInvokable)  /* Execute ASR. */
-	    conflict->LaunchASR(LOCAL_GLOBAL, DIRECTORY_CONFLICT);
+        ASRInvokable = ASRPolicyFile && v->IsASREnabled();
+        /* Send in any conflict type, it will get changed later. */
+        if (ASRInvokable) /* Execute ASR. */
+            conflict->LaunchASR(LOCAL_GLOBAL, DIRECTORY_CONFLICT);
     }
 
 Done:
     /* reset any errors, 'cause we can't leave errors just laying around */
     v->u.u_error = 0;
 }
-
 
 /*
  *
@@ -289,118 +289,121 @@ Done:
 /* must not be called from within a transaction */
 int reintvol::IncReintegrate(int tid)
 {
-    LOG(0, ("volent::IncReintegrate: (%s, %d) uid = %d\n",
-	    name, tid, CML.owner));
+    LOG(0,
+        ("volent::IncReintegrate: (%s, %d) uid = %d\n", name, tid, CML.owner));
     /* check if transaction "tid" has any cmlent objects */
     if (!CML.HaveElements(tid)) {
-	LOG(0, ("volent::IncReintegrate: transaction %d does not have any elements\n", 
-		tid));
-	return 0;
+        LOG(0,
+            ("volent::IncReintegrate: transaction %d does not have any elements\n",
+             tid));
+        return 0;
     }
 
     /* check if volume state is Reachable or not */
-    if (!IsReachable()) return ETIMEDOUT; /* we must be Unreachable or Resolving */
+    if (!IsReachable())
+        return ETIMEDOUT; /* we must be Unreachable or Resolving */
 
     int code = 0;
     int done;
 
     /* Get the current CML stats for reporting diffs */
-    int StartCancelled = RecordsCancelled;
-    int StartCommitted = RecordsCommitted;
-    int StartAborted = RecordsAborted;
-    int StartRealloced = FidsRealloced;
+    int StartCancelled    = RecordsCancelled;
+    int StartCommitted    = RecordsCommitted;
+    int StartAborted      = RecordsAborted;
+    int StartRealloced    = FidsRealloced;
     long StartBackFetched = BytesBackFetched;
 
     /* Get the NEW CML stats. */
     cmlstats current, cancelled;
-    CML.IncGetStats(current, cancelled, tid);	/* get incremental stats */
+    CML.IncGetStats(current, cancelled, tid); /* get incremental stats */
 
     START_TIMING();
     float pre_elapsed = 0.0, inter_elapsed = 0.0, post_elapsed = 0.0;
     do {
-	char *buf = NULL;
-	int bufsize = 0;
-	ViceVersionVector UpdateSet;
-	code = 0;
-	cur_reint_tid = tid; 
-	done = 1;
-	int outoforder;
+        char *buf   = NULL;
+        int bufsize = 0;
+        ViceVersionVector UpdateSet;
+        code          = 0;
+        cur_reint_tid = tid;
+        done          = 1;
+        int outoforder;
 
-	/* Steps 1-3 constitute the ``late prelude.'' */
-	{
-	    START_TIMING();
-	    /* 
+        /* Steps 1-3 constitute the ``late prelude.'' */
+        {
+            START_TIMING();
+            /* 
 	     * Step 1 is to reallocate real fids for new client-log 
 	     * objects that were created with "local" fids.
 	     */
-	    code = CML.IncReallocFids(tid);
-	    if (code != 0) goto CheckResult;
+            code = CML.IncReallocFids(tid);
+            if (code != 0)
+                goto CheckResult;
 
-	    /* 
+            /* 
 	     * Step 3 is to "thread" the log and pack it into a buffer 
 	     * (buffer is allocated with new[] by pack routine).
 	     */
-	    CML.IncThread(tid);
-	    CML.IncPack(&buf, &bufsize, tid);
+            CML.IncThread(tid);
+            CML.IncPack(&buf, &bufsize, tid);
 
-	    END_TIMING();
-	    pre_elapsed = elapsed;
-	}
+            END_TIMING();
+            pre_elapsed = elapsed;
+        }
 
-	/* 
+        /* 
 	 * Step 4 is to have the server(s) replay the client modify log 
 	 * via a Reintegrate RPC. 
 	 */
-	{
-	    START_TIMING();
+        {
+            START_TIMING();
 
-	    outoforder = CML.OutOfOrder(tid);
-        if (IsReplicated())
-	       code = CML.COP1(buf, bufsize, &UpdateSet, outoforder);
-        else if (IsNonReplicated())
-           code = CML.COP1_NR(buf, bufsize, &UpdateSet, outoforder);
-        else
-            /* For now no other type of volume acepts reintegration */
-            CODA_ASSERT(0);
+            outoforder = CML.OutOfOrder(tid);
+            if (IsReplicated())
+                code = CML.COP1(buf, bufsize, &UpdateSet, outoforder);
+            else if (IsNonReplicated())
+                code = CML.COP1_NR(buf, bufsize, &UpdateSet, outoforder);
+            else
+                /* For now no other type of volume acepts reintegration */
+                CODA_ASSERT(0);
 
-	    END_TIMING();
-	    inter_elapsed = elapsed;
-	}
+            END_TIMING();
+            inter_elapsed = elapsed;
+        }
 
-	delete [] buf;
+        delete[] buf;
 
-	{
-CheckResult:
-	    START_TIMING();
+        {
+        CheckResult:
+            START_TIMING();
 
-	    switch(code) {
-	    case 0 : 
-	    case EALREADY:
-		/* Commit logged mutations upon successful replay at server. */
-		CML.IncCommit(&UpdateSet, tid);
-		LOG(0, ("volent::IncReintegrate: committed\n"));
+            switch (code) {
+            case 0:
+            case EALREADY:
+                /* Commit logged mutations upon successful replay at server. */
+                CML.IncCommit(&UpdateSet, tid);
+                LOG(0, ("volent::IncReintegrate: committed\n"));
 
-		CML.ClearPending();
-		break;
+                CML.ClearPending();
+                break;
 
-	    case ETIMEDOUT:
-		/*
+            case ETIMEDOUT:
+                /*
 		 * We cannot cancel pending records because we do not know if 
 		 * the reintegration actually occurred at the server.  If the 
 		 * RPC reply was lost it is possible that it succeeded.  Note
 		 * the next attempt may involve a different set of records.
 		 */
-		break;
+                break;
 
-	    case ERETRY:
-	    case EWOULDBLOCK:
-		/* 
+            case ERETRY:
+            case EWOULDBLOCK:
+                /* 
 		 * if any cmlents we were working on are still around and 
 		 * should now be cancelled, do it.
 		 */
-		CML.CancelPending();
+                CML.CancelPending();
 
-		/* 
+                /* 
 		 * We do our own retrying here, because the code in 
 		 * vproc::End_VFS() causes an entirely new vproc to start 
 		 * up for each transition into reintegrating state (and 
@@ -409,44 +412,43 @@ CheckResult:
 		 * duplicating some code here.  Finally, if a transition is 
 		 * pending, we'd better take it. 
 		 */
-		if (flags.transition_pending) {
-		    break;
-		}
-		else {
-		    vproc *v = VprocSelf();
+                if (flags.transition_pending) {
+                    break;
+                } else {
+                    vproc *v = VprocSelf();
 
-		    if (code == ERETRY) {
-			v->u.u_retrycnt++;
-extern int VprocRetryN;
-			if (v->u.u_retrycnt <= VprocRetryN) {
-extern struct timeval *VprocRetryBeta;
-			    VprocSleep(&VprocRetryBeta[v->u.u_retrycnt]);
-			    done = 0;
-			    break;
+                    if (code == ERETRY) {
+                        v->u.u_retrycnt++;
+                        extern int VprocRetryN;
+                        if (v->u.u_retrycnt <= VprocRetryN) {
+                            extern struct timeval *VprocRetryBeta;
+                            VprocSleep(&VprocRetryBeta[v->u.u_retrycnt]);
+                            done = 0;
+                            break;
                         }
-		    }
-		    if (code == EWOULDBLOCK) {
-			v->u.u_wdblkcnt++;
-			if (v->u.u_wdblkcnt <= 20) {	/* XXX */
-			    eprint("Volume %s busy, waiting", name);
-			    struct timeval delay;
-			    delay.tv_sec = 20;		/* XXX */
-			    delay.tv_usec = 0;
-			    VprocSleep(&delay);
-			    done = 0;
-			    break;
-			}
-		    }
-		    /* Fall through if retry/wdblk count was exceeded ... */
-		}
+                    }
+                    if (code == EWOULDBLOCK) {
+                        v->u.u_wdblkcnt++;
+                        if (v->u.u_wdblkcnt <= 20) { /* XXX */
+                            eprint("Volume %s busy, waiting", name);
+                            struct timeval delay;
+                            delay.tv_sec  = 20; /* XXX */
+                            delay.tv_usec = 0;
+                            VprocSleep(&delay);
+                            done = 0;
+                            break;
+                        }
+                    }
+                    /* Fall through if retry/wdblk count was exceeded ... */
+                }
 
-	    case EINCOMPATIBLE:	
-	    default:
-		/* non-retryable failures */
+            case EINCOMPATIBLE:
+            default:
+                /* non-retryable failures */
 
-		LOG(0, ("volent::IncReintegrate: fail code = %d\n", code));
-		CML.print(logFile);
-		/* 	
+                LOG(0, ("volent::IncReintegrate: fail code = %d\n", code));
+                CML.print(logFile);
+                /* 	
                  * checkpoint the log before localizing or aborting.
 		 * release read lock; it will be boosted in CML.Checkpoint.
 		 * Note that we may have to wait until other mutators finish 
@@ -454,48 +456,48 @@ extern struct timeval *VprocRetryBeta;
 		 * might not be the state we had.  Note that we MUST unlock objects 
 		 * before boosting this lock to prevent deadlock with mutator threads.
 		 */
-		ReleaseReadLock(&CML_lock);
-		CML.CheckPoint(0);
-		ObtainReadLock(&CML_lock);
+                ReleaseReadLock(&CML_lock);
+                CML.CheckPoint(0);
+                ObtainReadLock(&CML_lock);
 
-		CML.CancelPending();
-		CML.HandleFailedMLE();
+                CML.CancelPending();
+                CML.HandleFailedMLE();
 
-		break;
-	    }
+                break;
+            }
 
-	    END_TIMING();
-	    post_elapsed = elapsed;
-	}
+            END_TIMING();
+            post_elapsed = elapsed;
+        }
     } while (!done);
 
     cur_reint_tid = UNSET_TID;
     END_TIMING();
-    LOG(0, ("IncReintegrate: (%s,%d) result = %s, elapsed = %3.1f (%3.1f, %3.1f, %3.1f)\n", 
-	    name, tid, VenusRetStr(code), elapsed, pre_elapsed, inter_elapsed, post_elapsed));
-    LOG(100, ("\t old stats = [%d, %d, %d, %d, %d]\n",
-	   RecordsCancelled - StartCancelled, 
-	   RecordsCommitted - StartCommitted, 
-	   RecordsAborted - StartAborted,
-	   FidsRealloced - StartRealloced,
-	   BytesBackFetched - StartBackFetched));
-    LOG(0, ("\tnew stats = [%4d, %5.1f, %7.1f, %4d, %5.1f], [%4d, %5.1f, %7.1f, %4d, %5.1f]\n",
-	   current.store_count, current.store_size / 1024.0, 
-	   current.store_contents_size / 1024.0,
-	   current.other_count, current.other_size / 1024.0,
-	   cancelled.store_count, cancelled.store_size / 1024.0, 
-	   cancelled.store_contents_size / 1024.0,
-	   cancelled.other_count, cancelled.other_size / 1024.0));
+    LOG(0,
+        ("IncReintegrate: (%s,%d) result = %s, elapsed = %3.1f (%3.1f, %3.1f, %3.1f)\n",
+         name, tid, VenusRetStr(code), elapsed, pre_elapsed, inter_elapsed,
+         post_elapsed));
+    LOG(100,
+        ("\t old stats = [%d, %d, %d, %d, %d]\n",
+         RecordsCancelled - StartCancelled, RecordsCommitted - StartCommitted,
+         RecordsAborted - StartAborted, FidsRealloced - StartRealloced,
+         BytesBackFetched - StartBackFetched));
+    LOG(0,
+        ("\tnew stats = [%4d, %5.1f, %7.1f, %4d, %5.1f], [%4d, %5.1f, %7.1f, %4d, %5.1f]\n",
+         current.store_count, current.store_size / 1024.0,
+         current.store_contents_size / 1024.0, current.other_count,
+         current.other_size / 1024.0, cancelled.store_count,
+         cancelled.store_size / 1024.0, cancelled.store_contents_size / 1024.0,
+         cancelled.other_count, cancelled.other_size / 1024.0));
 
-    CML.cancellations.store_count = 0;
-    CML.cancellations.store_size = 0.0;
+    CML.cancellations.store_count         = 0;
+    CML.cancellations.store_size          = 0.0;
     CML.cancellations.store_contents_size = 0.0;
-    CML.cancellations.other_count = 0;
-    CML.cancellations.other_size = 0.0;
+    CML.cancellations.other_count         = 0;
+    CML.cancellations.other_size          = 0.0;
 
     return (code);
 }
-
 
 /*
  * Reintegrate some portion of the store record at the head
@@ -511,16 +513,18 @@ int reintvol::PartialReintegrate(int tid, unsigned long *reint_time)
     m = CML.GetFatHead(tid);
 
     /* Indicate that there was nothing to do partial reintegration on. */
-    if (!m) return(ENOENT);
+    if (!m)
+        return (ENOENT);
 
-    cur_reint_tid = tid; 
-    LOG(0, ("volent::PartialReintegrate: (%s, %d) uid = %d\n",
-	    name, tid, CML.owner));
+    cur_reint_tid = tid;
+    LOG(0, ("volent::PartialReintegrate: (%s, %d) uid = %d\n", name, tid,
+            CML.owner));
 
     /* perform some late prelude functions. */
     {
-	code = m->realloc();
-	if (code != 0) goto CheckResult;
+        code = m->realloc();
+        if (code != 0)
+            goto CheckResult;
     }
 
     /* 
@@ -528,37 +532,41 @@ int reintvol::PartialReintegrate(int tid, unsigned long *reint_time)
      * If this is a new transfer, get a handle from the server.
      */
     {
-	if (m->HaveReintegrationHandle()) 
-	     code = m->ValidateReintegrationHandle();
-	else code = EBADF;
+        if (m->HaveReintegrationHandle())
+            code = m->ValidateReintegrationHandle();
+        else
+            code = EBADF;
 
-	if (code)
-	    code = m->GetReintegrationHandle();
+        if (code)
+            code = m->GetReintegrationHandle();
 
-	if (code) goto CheckResult;
+        if (code)
+            goto CheckResult;
     }
 
     /* send some file data to the server */
     {
-	while (!m->DoneSending() && (code == 0))
-	    code = m->WriteReintegrationHandle(reint_time);
+        while (!m->DoneSending() && (code == 0))
+            code = m->WriteReintegrationHandle(reint_time);
 
-	if (code != 0) goto CheckResult;
+        if (code != 0)
+            goto CheckResult;
     }
 
     /* reintegrate the changes if all of the data is there */
     if (m->DoneSending()) {
-	char *buf = NULL;
-	int bufsize = 0;
+        char *buf   = NULL;
+        int bufsize = 0;
 
-	CML.IncThread(tid);
-	CML.IncPack(&buf, &bufsize, tid);
+        CML.IncThread(tid);
+        CML.IncPack(&buf, &bufsize, tid);
 
-	code = m->CloseReintegrationHandle(buf, bufsize, &UpdateSet);
+        code = m->CloseReintegrationHandle(buf, bufsize, &UpdateSet);
 
-	delete [] buf;
+        delete[] buf;
 
-	if (code != 0) goto CheckResult;
+        if (code != 0)
+            goto CheckResult;
     }
 
 CheckResult:
@@ -572,55 +580,54 @@ CheckResult:
     switch (code) {
     case 0:
     case EALREADY:
-	if (m->DoneSending()) {
-	    /* Commit logged mutations upon successful replay at server. */
-	    CML.IncCommit(&UpdateSet, tid);
-	    LOG(0, ("volent::PartialReintegrate: committed\n"));
+        if (m->DoneSending()) {
+            /* Commit logged mutations upon successful replay at server. */
+            CML.IncCommit(&UpdateSet, tid);
+            LOG(0, ("volent::PartialReintegrate: committed\n"));
 
-	    CML.ClearPending();
-	    code = 0;
-	} else {
-	    /* allow an incompletely sent record to be cancelled. */
-	    CML.CancelPending();
-	}
-	break;
+            CML.ClearPending();
+            code = 0;
+        } else {
+            /* allow an incompletely sent record to be cancelled. */
+            CML.CancelPending();
+        }
+        break;
 
-    case ETIMEDOUT: 
+    case ETIMEDOUT:
     case EWOULDBLOCK:
     case ERETRY:
-	CML.CancelPending();
-	break;
+        CML.CancelPending();
+        break;
 
-    case EBADF:		/* bad handle */
-	m->ClearReintegrationHandle();
-	CML.CancelPending();
-	code = ERETRY;	/* try again later */
-	break;
+    case EBADF: /* bad handle */
+        m->ClearReintegrationHandle();
+        CML.CancelPending();
+        code = ERETRY; /* try again later */
+        break;
 
     case EINCOMPATIBLE:
     default:
-	/* non-retryable failures -- see IncReintegrate for comments */
-	m->flags.failed = 1;
+        /* non-retryable failures -- see IncReintegrate for comments */
+        m->flags.failed = 1;
 
-	LOG(0, ("volent::PartialReintegrate: fail code = %d\n", code));
-	CML.print(logFile);
+        LOG(0, ("volent::PartialReintegrate: fail code = %d\n", code));
+        CML.print(logFile);
 
-	/* checkpoint the log */
-	ReleaseReadLock(&CML_lock);
-	CML.CheckPoint(0);
-	ObtainReadLock(&CML_lock);
+        /* checkpoint the log */
+        ReleaseReadLock(&CML_lock);
+        CML.CheckPoint(0);
+        ObtainReadLock(&CML_lock);
 
-	/* cancel, localize, or abort the offending record */
-	m->ClearReintegrationHandle();
-	CML.CancelPending();       
-	CML.HandleFailedMLE();
+        /* cancel, localize, or abort the offending record */
+        m->ClearReintegrationHandle();
+        CML.CancelPending();
+        CML.HandleFailedMLE();
 
-	break;
+        break;
     }
 
-    return(code);
+    return (code);
 }
-
 
 /* 
  * determine if a volume has updates that may be reintegrated,
@@ -628,11 +635,10 @@ CheckResult:
  */
 int reintvol::ReadyToReintegrate()
 {
-    userent *u; 
+    userent *u;
     cml_iterator next(CML, CommitOrder);
     cmlent *m;
     int rc;
-
 
     /* 
      * we're a bit draconian about ASRs.  We want to avoid reintegrating
@@ -643,7 +649,7 @@ int reintvol::ReadyToReintegrate()
      * we would like.
      */
     if (IsReintegrating() || !IsReachable() || CML.count() == 0)
-	return 0;
+        return 0;
 
     u = realm->GetUser(CML.owner); /* if CML is non-empty, u != 0 */
     flags.unauthenticated = !u->TokensValid();
@@ -651,29 +657,31 @@ int reintvol::ReadyToReintegrate()
 
     m = next();
     if (!m) {
-	LOG(0, ("repvol::ReadyToReintegrate: failed to find head of the CML\n"));
-	// Should we trigger an assertion? This should never happen because
-	// CML.count is non-zero and we are not yet reintegrating.
-	return 0;
+        LOG(0,
+            ("repvol::ReadyToReintegrate: failed to find head of the CML\n"));
+        // Should we trigger an assertion? This should never happen because
+        // CML.count is non-zero and we are not yet reintegrating.
+        return 0;
     }
 
-    rc = m->ReintReady();
+    rc                   = m->ReintReady();
     flags.reint_conflict = (rc == EINCONS);
 
     if (flags.unauthenticated) {
-	MarinerLog("Reintegrate %s pending tokens for uid = %d\n", name, CML.owner);
-	eprint("Reintegrate %s pending tokens for uid = %d", name, CML.owner);
+        MarinerLog("Reintegrate %s pending tokens for uid = %d\n", name,
+                   CML.owner);
+        eprint("Reintegrate %s pending tokens for uid = %d", name, CML.owner);
     }
 
-    if (flags.transition_pending || asr_running() || flags.unauthenticated || rc) {
-	ReportVolState();
-	return 0;
+    if (flags.transition_pending || asr_running() || flags.unauthenticated ||
+        rc) {
+        ReportVolState();
+        return 0;
     }
 
     /* volume state will be reported when reintegration actually starts */
     return 1;
 }
-
 
 /* need not be called from within a transaction */
 int cmlent::ReintReady()
@@ -682,56 +690,58 @@ int cmlent::ReintReady()
 
     /* check if its repair flag is set */
     if (!vol->IsSync() && IsToBeRepaired()) {
-	LOG(0, ("cmlent::ReintReady: this is a repair related cmlent\n"));
-	return EINCONS;
+        LOG(0, ("cmlent::ReintReady: this is a repair related cmlent\n"));
+        return EINCONS;
     }
 
     if (ContainLocalFid()) {
-	LOG(0, ("cmlent::ReintReady: contains local fid\n"));
-	/* set its to_be_repaired flag */
-	SetRepairFlag();
-	return EINCONS;
+        LOG(0, ("cmlent::ReintReady: contains local fid\n"));
+        /* set its to_be_repaired flag */
+        SetRepairFlag();
+        return EINCONS;
     }
 
     /* check if this record is part of a transaction (IOT, etc.) */
     if (tid > 0) {
-	LOG(0, ("cmlent::ReintReady: transactional cmlent\n"));
-	return EALREADY;
+        LOG(0, ("cmlent::ReintReady: transactional cmlent\n"));
+        return EALREADY;
     }
 
     if (!Aged()) {
-	LOG(100, ("cmlent::ReintReady: record too young\n"));
-	return EAGAIN;
+        LOG(100, ("cmlent::ReintReady: record too young\n"));
+        return EAGAIN;
     }
     return 0;
 }
 
-
 /* *****  Reintegrator  ***** */
 
 static const int ReintegratorStackSize = 65536;
-static const int MaxFreeReintegrators = 2;
-static const int ReintegratorPriority = LWP_NORMAL_PRIORITY-2;
+static const int MaxFreeReintegrators  = 2;
+static const int ReintegratorPriority  = LWP_NORMAL_PRIORITY - 2;
 
 /* local-repair modification */
 class reintegrator : public vproc {
-  friend void Reintegrate(repvol *);
+    friend void Reintegrate(repvol *);
 
     static olist freelist;
     olink handle;
     struct Lock run_lock;
 
     reintegrator();
-    reintegrator(reintegrator&);			/* not supported! */
-    int operator=(reintegrator&) { abort();	return(0); }	/* not supported! */
+    reintegrator(reintegrator &); /* not supported! */
+    int operator=(reintegrator &)
+    {
+        abort();
+        return (0);
+    } /* not supported! */
     ~reintegrator();
 
-  protected:
+protected:
     virtual void main(void);
 };
 
 olist reintegrator::freelist;
-
 
 /* This is the entry point for reintegration. */
 /* It finds a free reintegrator (or creates a new one), 
@@ -742,44 +752,41 @@ void Reintegrate(repvol *v)
     /* Get a free reintegrator. */
     reintegrator *r;
     olink *o = reintegrator::freelist.get();
-    r = (o == 0)
-	? new reintegrator
-	: strbase(reintegrator, o, handle);
+    r        = (o == 0) ? new reintegrator : strbase(reintegrator, o, handle);
     CODA_ASSERT(r->idle);
 
     /* Set up context for reintegrator. */
     r->u.Init();
     r->u.u_vol = v;
-    v->hold();		    /* vproc::End_VFS() will do release */
+    v->hold(); /* vproc::End_VFS() will do release */
 
     /* Set it going. */
     r->idle = 0;
-    VprocSignal((char *)r);	/* ignored for new reintegrators */
+    VprocSignal((char *)r); /* ignored for new reintegrators */
 }
 
-
-reintegrator::reintegrator() :
-	vproc("Reintegrator", NULL, VPT_Reintegrator, ReintegratorStackSize,
-	      ReintegratorPriority)
+reintegrator::reintegrator()
+    : vproc("Reintegrator", NULL, VPT_Reintegrator, ReintegratorStackSize,
+            ReintegratorPriority)
 {
-    LOG(100, ("reintegrator::reintegrator(%#x): %-16s : lwpid = %d\n",
-	       this, name, lwpid));
+    LOG(100, ("reintegrator::reintegrator(%#x): %-16s : lwpid = %d\n", this,
+              name, lwpid));
 
     idle = 1;
     start_thread();
 }
 
-
-reintegrator::reintegrator(reintegrator& r) : vproc((vproc&)r) {
+reintegrator::reintegrator(reintegrator &r)
+    : vproc((vproc &)r)
+{
     abort();
 }
 
-
-reintegrator::~reintegrator() {
-    LOG(100, ("reintegrator::~reintegrator: %-16s : lwpid = %d\n", name, lwpid));
-
+reintegrator::~reintegrator()
+{
+    LOG(100,
+        ("reintegrator::~reintegrator: %-16s : lwpid = %d\n", name, lwpid));
 }
-
 
 /* 
  * N.B. Vproc synchronization is not done in the usual way, with
@@ -800,23 +807,24 @@ void reintegrator::main(void)
     VprocYield();
 
     for (;;) {
-	if (idle) CHOKE("reintegrator::main: signalled but not dispatched!");
+        if (idle)
+            CHOKE("reintegrator::main: signalled but not dispatched!");
 
-	/* Do the reintegration. */
-	if (u.u_vol && u.u_vol->IsReplicated())
-	    ((repvol *)u.u_vol)->Reintegrate();
+        /* Do the reintegration. */
+        if (u.u_vol && u.u_vol->IsReplicated())
+            ((repvol *)u.u_vol)->Reintegrate();
 
-	seq++;
-	idle = 1;
+        seq++;
+        idle = 1;
 
-	/* Commit suicide if we already have enough free reintegrators. */
-	if (freelist.count() == MaxFreeReintegrators) 
-	    delete VprocSelf();
+        /* Commit suicide if we already have enough free reintegrators. */
+        if (freelist.count() == MaxFreeReintegrators)
+            delete VprocSelf();
 
-	/* Else put ourselves on free list. */
-	freelist.append(&handle);
+        /* Else put ourselves on free list. */
+        freelist.append(&handle);
 
-	/* Wait for new request. */
-	VprocWait((char *)this);
+        /* Wait for new request. */
+        VprocWait((char *)this);
     }
 }

@@ -37,7 +37,6 @@ Pittsburgh, PA.
 
 */
 
-
 /*
 	(Multiple) readers & writers test of LWP stuff.
 
@@ -51,23 +50,23 @@ Pittsburgh, PA.
 #include <lwp/lwp.h>
 #include <lwp/lock.h>
 
-#define DEFAULT_READERS	5
+#define DEFAULT_READERS 5
 
-#define STACK_SIZE	65536
+#define STACK_SIZE 65536
 
 /* The shared queue */
 typedef struct QUEUE {
-    struct QUEUE	*prev, *next;
-    char		*data;
-    struct Lock		lock;
+    struct QUEUE *prev, *next;
+    char *data;
+    struct Lock lock;
 } queue;
 
 /* declaration of internal routines */
 static queue *init();
-static char empty (queue *q);
-static void insert (queue *q, char *s);
-static char *myremove (queue *q);
-static void read_process (void *arg);
+static char empty(queue *q);
+static void insert(queue *q, char *s);
+static char *myremove(queue *q);
+static void read_process(void *arg);
 static void write_process(void *unused);
 
 // clang-format off
@@ -120,10 +119,10 @@ static queue *init()
 {
     queue *q;
 
-    q = (queue *) malloc(sizeof(queue));
-    q -> prev = q -> next = q;
-    q -> data = NULL;
-    return(q);
+    q       = (queue *)malloc(sizeof(queue));
+    q->prev = q->next = q;
+    q->data           = NULL;
+    return (q);
 }
 
 static char empty(queue *q)
@@ -141,12 +140,12 @@ static void insert(queue *q, char *s)
 {
     queue *n;
 
-    n = (queue *) malloc(sizeof(queue));
-    n -> data = s;
-    n -> prev = q -> prev;
-    q -> prev -> next = n;
-    q -> prev = n;
-    n -> next = q;
+    n             = (queue *)malloc(sizeof(queue));
+    n->data       = s;
+    n->prev       = q->prev;
+    q->prev->next = n;
+    q->prev       = n;
+    n->next       = q;
 }
 
 static char *myremove(queue *q)
@@ -155,50 +154,50 @@ static char *myremove(queue *q)
     char *s;
 
     if (empty(q)) {
-	printf("Remove from empty queue");
-	abort();
+        printf("Remove from empty queue");
+        abort();
     }
 
-    old = q -> next;
-    q -> next = old -> next;
-    q -> next -> prev = q;
-    s = old -> data;
+    old           = q->next;
+    q->next       = old->next;
+    q->next->prev = q;
+    s             = old->data;
     free(old);
-    return(s);
+    return (s);
 }
 
 queue *q;
 
-int asleep;	/* Number of processes sleeping -- used for
+int asleep; /* Number of processes sleeping -- used for
 		   clean termination */
 
 static void read_process(void *arg)
 {
     struct timeval tv = *(struct timeval *)arg;
     struct timeval sleep;
-    int id = tv.tv_sec;
+    int id    = tv.tv_sec;
     tv.tv_sec = 0;
 
     printf("\t[Reader %d]\n", id);
 
-   for (;;) {
-	/* Wait until there is something in the queue */
-	asleep++;
-	ObtainReadLock(&q->lock);
-	while (empty(q)) {
-	    ReleaseReadLock(&q->lock);
-	    LWP_WaitProcess((char *)q);
-	    ObtainReadLock(&q->lock);
-	}
-	asleep--;
+    for (;;) {
+        /* Wait until there is something in the queue */
+        asleep++;
+        ObtainReadLock(&q->lock);
+        while (empty(q)) {
+            ReleaseReadLock(&q->lock);
+            LWP_WaitProcess((char *)q);
+            ObtainReadLock(&q->lock);
+        }
+        asleep--;
 
-	sleep = tv;
-	select(0, NULL, NULL, NULL, &sleep);
+        sleep = tv;
+        select(0, NULL, NULL, NULL, &sleep);
 
-	printf("[%d: %s]\n", id, myremove(q));
+        printf("[%d: %s]\n", id, myremove(q));
 
-	ReleaseReadLock(&q->lock);
-	LWP_DispatchProcess();
+        ReleaseReadLock(&q->lock);
+        LWP_DispatchProcess();
     }
 }
 
@@ -209,11 +208,11 @@ static void write_process(void *unused)
     printf("\t[Writer]\n");
 
     /* Now loop & write data */
-    for (mesg=messages; *mesg!=0; mesg++) {
-	ObtainWriteLock(&q->lock);
-	insert(q, *mesg);
-	ReleaseWriteLock(&q->lock);
-	LWP_SignalProcess((char *)q);
+    for (mesg = messages; *mesg != 0; mesg++) {
+        ObtainWriteLock(&q->lock);
+        insert(q, *mesg);
+        ReleaseWriteLock(&q->lock);
+        LWP_SignalProcess((char *)q);
     }
 
     asleep++;
@@ -228,9 +227,8 @@ static void write_process(void *unused)
 
 int main(int argc, char **argv)
 {
-
     int nreaders, i;
-    long interval;	/* To satisfy Brad */
+    long interval; /* To satisfy Brad */
     PROCESS *readers;
     PROCESS writer, mainthread;
     struct timeval tv;
@@ -240,17 +238,18 @@ int main(int argc, char **argv)
 
     /* Determine # readers */
     if (argc == 1)
-	nreaders = DEFAULT_READERS;
+        nreaders = DEFAULT_READERS;
     else
-	sscanf(*++argv, "%d", &nreaders);
+        sscanf(*++argv, "%d", &nreaders);
     printf("[There will be %d readers]\n", nreaders);
 
-    interval = (argc >= 3 ? atoi(*++argv)*1000 : 50000);
+    interval = (argc >= 3 ? atoi(*++argv) * 1000 : 50000);
 
-    if (argc == 4) lwp_debug = 1;
+    if (argc == 4)
+        lwp_debug = 1;
     LWP_Init(LWP_VERSION, 0, &mainthread);
     printf("[Support initialized]\n");
-    tv.tv_sec = 0;
+    tv.tv_sec  = 0;
     tv.tv_usec = interval;
 
     /* Initialize queue */
@@ -262,10 +261,12 @@ int main(int argc, char **argv)
     asleep = 0;
     /* Now create readers */
     printf("[Creating Readers...\n");
-    readers = (PROCESS *) calloc((unsigned)nreaders, (unsigned)(sizeof(PROCESS)));
-    for (i=0; i<nreaders; i++) {
-	tv.tv_sec = i; /* piggy back thread-id in tv struct */
-	LWP_CreateProcess(read_process, STACK_SIZE, 0, &tv, "Reader", &readers[i]);
+    readers =
+        (PROCESS *)calloc((unsigned)nreaders, (unsigned)(sizeof(PROCESS)));
+    for (i = 0; i < nreaders; i++) {
+        tv.tv_sec = i; /* piggy back thread-id in tv struct */
+        LWP_CreateProcess(read_process, STACK_SIZE, 0, &tv, "Reader",
+                          &readers[i]);
     }
     printf("done]\n");
 
@@ -274,11 +275,12 @@ int main(int argc, char **argv)
     printf("done]\n");
 
     /* Now loop until everyone's done */
-    while (asleep != nreaders+1 || !empty(q))
-	LWP_DispatchProcess();
+    while (asleep != nreaders + 1 || !empty(q))
+        LWP_DispatchProcess();
 
     /* Destroy the readers */
-    for (i=nreaders-1; i>=0; i--) LWP_DestroyProcess(readers[i]);
+    for (i = nreaders - 1; i >= 0; i--)
+        LWP_DestroyProcess(readers[i]);
     printf("\n*Exiting*\n");
     LWP_TerminateProcessSupport();
     free(readers);

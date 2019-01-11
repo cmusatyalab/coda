@@ -16,27 +16,39 @@ Coda are listed in the file CREDITS.
 
 #*/
 
-enum Opcodes   {
-		HELP=0,
-		QUIT, LENGTHTEST, REBIND,
-		ONEPING, MANYPINGS, 
-		FETCHFILE, STOREFILE,
-		DUMPTRACE, STATS, REMOTESTATS,
-		BEGINREMOTEPROFILING, ENDREMOTEPROFILING,
-		SETVMFILESIZE, SETREMOTEVMFILESIZE,
-		DELACKTEST
-		};
-		
-char *Opnames[]= {
-		"Help",
-		"Quit", "LengthTest", "Rebind",
-		"OnePing", "ManyPings",
-		"FetchFile", "StoreFile",
-		"Dumptrace", "Stats", "RemoteStats",
-		"BeginRemoteProfiling", "EndRemoteProfiling",
-		"SetVMFileBuffer", "SetRemoteVMFileBuffer",
-		"Delayed ACK test"
-		};
-		
-		
-	    
+enum Opcodes
+{
+    HELP = 0,
+    QUIT,
+    LENGTHTEST,
+    REBIND,
+    ONEPING,
+    MANYPINGS,
+    FETCHFILE,
+    STOREFILE,
+    DUMPTRACE,
+    STATS,
+    REMOTESTATS,
+    BEGINREMOTEPROFILING,
+    ENDREMOTEPROFILING,
+    SETVMFILESIZE,
+    SETREMOTEVMFILESIZE,
+    DELACKTEST
+};
+
+char *Opnames[] = { "Help",
+                    "Quit",
+                    "LengthTest",
+                    "Rebind",
+                    "OnePing",
+                    "ManyPings",
+                    "FetchFile",
+                    "StoreFile",
+                    "Dumptrace",
+                    "Stats",
+                    "RemoteStats",
+                    "BeginRemoteProfiling",
+                    "EndRemoteProfiling",
+                    "SetVMFileBuffer",
+                    "SetRemoteVMFileBuffer",
+                    "Delayed ACK test" };

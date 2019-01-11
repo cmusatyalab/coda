@@ -25,13 +25,16 @@ Coda are listed in the file CREDITS.
 #define MAP_ANON 0
 #endif
 
-#define mmap_anon(raddrptr, addrptr, len, prot) do { \
-    int fd = -1, flags = MAP_ANON | MAP_PRIVATE; \
-    if (addrptr) flags |= MAP_FIXED; \
-    if (!MAP_ANON) fd = open("/dev/zero", O_RDWR); \
-    raddrptr = mmap((char *)addrptr, len, prot, flags, fd, 0); \
-    if (fd != -1) close(fd); \
-} while(0);
+#define mmap_anon(raddrptr, addrptr, len, prot)                    \
+    do {                                                           \
+        int fd = -1, flags = MAP_ANON | MAP_PRIVATE;               \
+        if (addrptr)                                               \
+            flags |= MAP_FIXED;                                    \
+        if (!MAP_ANON)                                             \
+            fd = open("/dev/zero", O_RDWR);                        \
+        raddrptr = mmap((char *)addrptr, len, prot, flags, fd, 0); \
+        if (fd != -1)                                              \
+            close(fd);                                             \
+    } while (0);
 
 #endif /* CODA_MMAP_ANON_H */
-

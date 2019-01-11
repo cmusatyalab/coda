@@ -23,7 +23,6 @@ listed in the file CREDITS.
 #ifndef _BINDING_H_
 #define _BINDING_H_ 1
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -40,8 +39,8 @@ extern "C" {
 #include <coda_assert.h>
 
 class binding {
-  public:
-#ifdef	VENUSDEBUG
+public:
+#ifdef VENUSDEBUG
     static int allocs;
     static int deallocs;
 #endif
@@ -53,15 +52,23 @@ class binding {
     int referenceCount;
 
     binding();
-    binding(binding& b) { abort(); }	/* not supported! */
-    int operator=(binding&) { abort(); }	/* not supported! */
+    binding(binding &b) { abort(); } /* not supported! */
+    int operator=(binding &) { abort(); } /* not supported! */
     ~binding();
 
     void IncrRefCount() { referenceCount++; }
-    void DecrRefCount() { CODA_ASSERT(referenceCount > 0); referenceCount--; }
+    void DecrRefCount()
+    {
+        CODA_ASSERT(referenceCount > 0);
+        referenceCount--;
+    }
 
     void print() { print(stdout); }
-    void print(FILE *fp) { fflush(fp); print(fileno(fp)); }
+    void print(FILE *fp)
+    {
+        fflush(fp);
+        print(fileno(fp));
+    }
     void print(int);
 };
 

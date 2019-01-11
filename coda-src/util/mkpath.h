@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-int mkpath (const char *name, mode_t mode);
+int mkpath(const char *name, mode_t mode);
 
 #ifdef __cplusplus
 }

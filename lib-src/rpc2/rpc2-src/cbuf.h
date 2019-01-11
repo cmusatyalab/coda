@@ -37,18 +37,14 @@ Pittsburgh, PA.
 
 */
 
-
-struct CBUF_Header
-    {
+struct CBUF_Header {
     long ElemSize;
     long NoOfElems;
     long LastAllocatedSlot;
     long TotalElemsAdded;
     char PrintName[20];
-    char *Buffer;	/* pointer to malloc()ed array of bytes */
-    };
-
-
+    char *Buffer; /* pointer to malloc()ed array of bytes */
+};
 
 extern struct CBUF_Header *CBUF_Init();
 char *CBUF_NextSlot(struct CBUF_Header *bufId);

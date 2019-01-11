@@ -26,12 +26,13 @@ Coda are listed in the file CREDITS.
 
 #include <bitmap.h>
 
-#define LOGRECORD_BLOCKSIZE	32	/* # log records in each block allocated */
-#define VOLLOG_GROWSIZE		32	/* # log records to grow by */
-#define SEQNO_GROWSIZE		200	/* increase seq no on log records in rvm every 200 spools */
-#define VERSION_NUMBER		1
+#define LOGRECORD_BLOCKSIZE 32 /* # log records in each block allocated */
+#define VOLLOG_GROWSIZE 32 /* # log records to grow by */
+#define SEQNO_GROWSIZE \
+    200 /* increase seq no on log records in rvm every 200 spools */
+#define VERSION_NUMBER 1
 
-#define MAXWRAPTRIES		32	// no of tries to wrap around
+#define MAXWRAPTRIES 32 // no of tries to wrap around
 
 class recov_vol_log;
 class recle;
@@ -44,60 +45,62 @@ class resstats;
 typedef struct VolumeDiskData VolumeDiskData;
 
 class recov_vol_log {
-    friend long RS_LockAndFetch(RPC2_Handle, ViceFid *, ResFetchType, 
-				ViceVersionVector *, ResStatus *, 
-				RPC2_Integer *);
+    friend long RS_LockAndFetch(RPC2_Handle, ViceFid *, ResFetchType,
+                                ViceVersionVector *, ResStatus *,
+                                RPC2_Integer *);
     friend void DumpLog(rec_dlist *, struct Volume *, char **, int *, int *);
     friend int DumpVolDiskData(int, VolumeDiskData *);
-    
-    // recoverable part 
-    unsigned Version:8;		// version information for resolution system 
-    unsigned malloced:8;
-    int admin_limit;		// absolute limit on # of log entries changed by volutil
-    int size;			// <= admin_limit; number of entries in volume log 
-    recle **index;		// array of ptrs to log record blocks :
-                                // size = admin_limit/LOGRECORD_BLOCKSIZE 
-    int rec_max_seqno;
-    bitmap recov_inuse;		// bitmap in rvm to indicate if an index in the log is being used 
-    VnodeId	wrapvn;		// vnode number of wrap around vnode
-    Unique_t	wrapun;		// uniquifier of wrap around vnode
-    int		lastwrapindex;	// index of last log entry that was wrapped over
 
-    // transient part - only in VM 
-    int nused;			// entries being used currently 
-    bitmap *vm_inuse;		// bitmap as above but only in VM 
+    // recoverable part
+    unsigned Version : 8; // version information for resolution system
+    unsigned malloced : 8;
+    int admin_limit; // absolute limit on # of log entries changed by volutil
+    int size; // <= admin_limit; number of entries in volume log
+    recle **index; // array of ptrs to log record blocks :
+        // size = admin_limit/LOGRECORD_BLOCKSIZE
+    int rec_max_seqno;
+    bitmap
+        recov_inuse; // bitmap in rvm to indicate if an index in the log is being used
+    VnodeId wrapvn; // vnode number of wrap around vnode
+    Unique_t wrapun; // uniquifier of wrap around vnode
+    int lastwrapindex; // index of last log entry that was wrapped over
+
+    // transient part - only in VM
+    int nused; // entries being used currently
+    bitmap *vm_inuse; // bitmap as above but only in VM
     int max_seqno;
 
-    // private routines 
-    int Grow(int =-1);
+    // private routines
+    int Grow(int = -1);
     void FreeBlock(int);
-    void Increase_rec_max_seqno(int i =SEQNO_GROWSIZE);
-    void *IndexToAddr(int);	// given an index, returns the address of block 
+    void Increase_rec_max_seqno(int i = SEQNO_GROWSIZE);
+    void *IndexToAddr(int); // given an index, returns the address of block
     void PrintUnreachableRecords(bitmap *);
-    int ChooseWrapAroundVnode(Volume *, int different =0);
+    int ChooseWrapAroundVnode(Volume *, int different = 0);
 
-  public:
-    resstats *vmrstats;		// res statistics (only in VM)
-    int reserved[10];		// for future use
+public:
+    resstats *vmrstats; // res statistics (only in VM)
+    int reserved[10]; // for future use
 
     void *operator new(size_t);
-    recov_vol_log(VolumeId =0, int adm =4096);	// default: max 4k log entries 
+    recov_vol_log(VolumeId = 0, int adm = 4096); // default: max 4k log entries
     ~recov_vol_log();
     void operator delete(void *);
     int init(int);
-    void ResetTransients(VolumeId =0);
-    
+    void ResetTransients(VolumeId = 0);
+
     void Increase_Admin_Limit(int);
 
-    int AllocRecord(int *index, int *seqno); 		// in vm only 
-    void DeallocRecord(int index); 			// in vm only
-    int AllocViaWrapAround(int *, int *, Volume *, dlist * =NULL);	// reuse record
-    recle *RecovPutRecord(int index);			// in rvm 
-    void RecovFreeRecord(int index);			// in rvm 
+    int AllocRecord(int *index, int *seqno); // in vm only
+    void DeallocRecord(int index); // in vm only
+    int AllocViaWrapAround(int *, int *, Volume *,
+                           dlist * = NULL); // reuse record
+    recle *RecovPutRecord(int index); // in rvm
+    void RecovFreeRecord(int index); // in rvm
     int bmsize();
     int LogSize();
 
-    void purge();					// purge all the logs 
+    void purge(); // purge all the logs
     void SalvageLog(bitmap *);
     void print();
     void print(FILE *);
@@ -110,4 +113,3 @@ extern void CreateResLog(Volume *, Vnode *);
 
 // subresphase3.c
 #endif /* _RECOV_VOLLOG_H */
-

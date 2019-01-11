@@ -18,7 +18,7 @@ listed in the file CREDITS.
 
 extern void CLIENT_InitHostTable(void);
 extern int CLIENT_Build(RPC2_Handle, char *, RPC2_Integer, SecretToken *,
-			ClientEntry **);
+                        ClientEntry **);
 extern void CLIENT_Delete(ClientEntry *);
 extern void CLIENT_CleanUpHost(HostTable *);
 extern void CLIENT_GetWorkStats(int *, int *, unsigned int);
@@ -28,15 +28,14 @@ int CLIENT_MakeCallBackConn(ClientEntry *Client);
 
 char *ViceErrorMsg(int errorCode);
 
-extern void Die (char *);
+extern void Die(char *);
 extern int GetEtherStats();
 extern int InitCallBack();
-extern void ViceLog (int ...);
+extern void ViceLog(int...);
 extern void DeleteCallBack(HostTable *, ViceFid *);
 extern void BreakCallBack(HostTable *, ViceFid *);
-extern void DeleteVenus (HostTable *);
-extern void DeleteFile (ViceFid *);
-extern int InitCallBack ();
+extern void DeleteVenus(HostTable *);
+extern void DeleteFile(ViceFid *);
+extern int InitCallBack();
 
 extern int check_reintegration_retry;
-

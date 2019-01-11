@@ -34,7 +34,7 @@ static void ValidateDir(const char *dir, uid_t owner, mode_t mode)
     int code = 0;
     struct stat tstat;
 
-    // Ensure that directory exists... 
+    // Ensure that directory exists...
     code = ::stat(dir, &tstat);
     if (code < 0 || !S_ISDIR(tstat.st_mode)) {
         if (code == 0)
@@ -45,10 +45,10 @@ static void ValidateDir(const char *dir, uid_t owner, mode_t mode)
 
     // ...and it has the correct attributes.
     if (tstat.st_uid != owner || tstat.st_gid != V_GID)
-	::chown(dir, owner, V_GID);
+        ::chown(dir, owner, V_GID);
 
     if ((tstat.st_mode & ~S_IFMT) != mode)
-	::chmod(dir, mode);
+        ::chmod(dir, mode);
 }
 
 void MakeUserSpoolDir(char *usd, uid_t owner)

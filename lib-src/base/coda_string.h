@@ -33,7 +33,7 @@ Coda are listed in the file CREDITS.
 #ifndef HAVE_SNPRINTF
 /* yeah, sprintf is not as safe, but snprintf is prety much included on all
  * platforms anyway. */
-#define snprintf(str, size, format...) sprintf(str, ## format);
+#define snprintf(str, size, format...) sprintf(str, ##format);
 #endif
 
 #endif

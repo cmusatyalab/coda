@@ -37,7 +37,6 @@ Pittsburgh, PA.
 
 */
 
-
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/time.h>
@@ -52,29 +51,26 @@ static enum InitState { notTried, tried, done } initState = notTried;
 /* last time returned by RT_FastTime.  Used to implement FT_ApproxTime */
 struct timeval FT_LastTime;
 
-
 /* 
    This routine was used on SUN's to memory map the time.
 */
 int FT_Init(int printErrors, int notReally)
 {
-
-	return -1;
-	/* This is in case explicit initialization occurs after
+    return -1;
+    /* This is in case explicit initialization occurs after
            automatic initialization */
 
-	if (initState != notTried && !notReally)
-		return (initState == done? 0: -1);
-	initState = tried;
+    if (initState != notTried && !notReally)
+        return (initState == done ? 0 : -1);
+    initState = tried;
 
-	/* fake success, but leave initState wrong. */
-	if (notReally)
-		return 0;	
-	if (printErrors)
-		fprintf (stderr, "FT_Init: mmap  not implemented on this kernel\n");
-	return (-1);
+    /* fake success, but leave initState wrong. */
+    if (notReally)
+        return 0;
+    if (printErrors)
+        fprintf(stderr, "FT_Init: mmap  not implemented on this kernel\n");
+    return (-1);
 }
-
 
 /* Call this to get the time of day.  It will automatically initialize
    the first time you call it.  If you want error messages when you
@@ -82,39 +78,37 @@ int FT_Init(int printErrors, int notReally)
    this will just call gettimeofday.  If you ask for the timezone
    info, this routine will punt to gettimeofday. */
 
-
 int FT_GetTimeOfDay(struct timeval *tv, struct timezone *tz)
 {
-	register int ret;
-	ret = gettimeofday (tv, tz);
-	if (!ret) {
-		FT_LastTime.tv_sec = tv->tv_sec;
-		FT_LastTime.tv_usec = tv->tv_usec;
-	}
-	return ret;
+    register int ret;
+    ret = gettimeofday(tv, tz);
+    if (!ret) {
+        FT_LastTime.tv_sec  = tv->tv_sec;
+        FT_LastTime.tv_usec = tv->tv_usec;
+    }
+    return ret;
 }
-
 
 /* For compatibility.  Should go away. */
 int TM_GetTimeOfDay(struct timeval *tv, struct timezone *tz)
 {
-	return FT_GetTimeOfDay(tv, tz);
+    return FT_GetTimeOfDay(tv, tz);
 }
 
 int FT_AGetTimeOfDay(struct timeval *tv, struct timezone *tz)
 {
-	if (FT_LastTime.tv_sec) {
-		tv->tv_sec = FT_LastTime.tv_sec;
-		tv->tv_usec = FT_LastTime.tv_usec;
-		return 0;
-	}
-	return FT_GetTimeOfDay(tv, tz);
+    if (FT_LastTime.tv_sec) {
+        tv->tv_sec  = FT_LastTime.tv_sec;
+        tv->tv_usec = FT_LastTime.tv_usec;
+        return 0;
+    }
+    return FT_GetTimeOfDay(tv, tz);
 }
 
 unsigned int FT_ApproxTime()
 {
-	if (!FT_LastTime.tv_sec) {
-		FT_GetTimeOfDay(&FT_LastTime, 0);
-	}
-	return FT_LastTime.tv_sec;
+    if (!FT_LastTime.tv_sec) {
+        FT_GetTimeOfDay(&FT_LastTime, 0);
+    }
+    return FT_LastTime.tv_sec;
 }

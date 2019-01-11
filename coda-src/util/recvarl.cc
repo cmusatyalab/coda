@@ -16,10 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
 /*
  * recvarl.c 
  *	definition of variable length class
@@ -37,7 +33,7 @@ extern "C" {
 #include <unistd.h>
 #include <stdlib.h>
 #include <setjmp.h>
-    
+
 #ifdef __cplusplus
 }
 #endif
@@ -46,26 +42,30 @@ extern "C" {
 #include "rvmlib.h"
 #include "recvarl.h"
 
-void *recvarl::operator new(size_t size, int recvsize) {
+void *recvarl::operator new(size_t size, int recvsize)
+{
     recvarl *r = 0;
     r = (recvarl *)rvmlib_rec_malloc(recvsize + sizeof(recvarl_length_t));
     CODA_ASSERT(r);
-    return(r);
+    return (r);
 }
 
-void *recvarl::operator new(size_t size) {
-    CODA_ASSERT(0); /* dummy definition of new() to pacify g++; should never get here*/
+void *recvarl::operator new(size_t size)
+{
+    CODA_ASSERT(
+        0); /* dummy definition of new() to pacify g++; should never get here*/
     return 0;
 }
 
-void recvarl::operator delete(void *deadobj) {
+void recvarl::operator delete(void *deadobj)
+{
     CODA_ASSERT(0); /* destructor should never let control get here */
 }
 
-
-recvarl::recvarl(int recvarlsize) {
+recvarl::recvarl(int recvarlsize)
+{
     rvmlib_set_range(this, recvarlsize + sizeof(recvarl_length_t));
-    length = recvarlsize;
+    length  = recvarlsize;
     char *c = (char *)&(this->vfld[0]);
     memset(c, 0, recvarlsize);
 }
@@ -73,20 +73,23 @@ recvarl::recvarl(int recvarlsize) {
 /* the destructor should never be called 
    because it is possible to call destructor only
    with delete - which calls the c++ delete first */
-recvarl::~recvarl() {
+recvarl::~recvarl()
+{
     CODA_ASSERT(0);
 }
 
-int recvarl::size() {		/* return size of particular instance of varl class */
-    return(length + sizeof(length));
+int recvarl::size()
+{ /* return size of particular instance of varl class */
+    return (length + sizeof(length));
 }
 
-void *recvarl::end() {
-    return((char *)this + length + sizeof(length));
+void *recvarl::end()
+{
+    return ((char *)this + length + sizeof(length));
 }
-
 
 /* not sure if this will work */
-void recvarl::destroy() {
+void recvarl::destroy()
+{
     rvmlib_rec_free(this);
 }

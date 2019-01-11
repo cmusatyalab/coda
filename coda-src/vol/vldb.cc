@@ -66,30 +66,30 @@ extern "C" {
 #include "vutil.h"
 #include "vldb.h"
 
-
-static int VLDB_fd = -1;
+static int VLDB_fd   = -1;
 static int VLDB_size = 0;
 
 struct vldb *VLDBLookup(char *key);
 
-int VCheckVLDB() 
+int VCheckVLDB()
 {
     struct vldbHeader header;
 
     VLog(19, "Checking VLDB...");
     if (VLDB_fd != -1)
-	close(VLDB_fd);
+        close(VLDB_fd);
 
     VLDB_fd = open(VLDB_PATH, O_RDONLY, 0);
     if (VLDB_fd == -1) {
-	VLog(0, "VCheckVLDB:  could not open VLDB");
-	return (-1);
+        VLog(0, "VCheckVLDB:  could not open VLDB");
+        return (-1);
     }
-    if (read(VLDB_fd, (char *)&header, sizeof(header)) != sizeof(header) || ntohl(header.magic) != VLDB_MAGIC) {
-	VLog(0, "VCheckVLDB:  bad VLDB!");
-	close(VLDB_fd);
-	VLDB_fd = -1;
-	return (-1);
+    if (read(VLDB_fd, (char *)&header, sizeof(header)) != sizeof(header) ||
+        ntohl(header.magic) != VLDB_MAGIC) {
+        VLog(0, "VCheckVLDB:  bad VLDB!");
+        close(VLDB_fd);
+        VLDB_fd = -1;
+        return (-1);
     }
     VLDB_size = ntohl(header.hashSize);
     return (0);
@@ -102,89 +102,89 @@ struct vldb *VLDBLookup(char *key)
     int rc;
 
     if (VLDB_size == 0) {
-	VLog(0, "VLDBLookup: VLDB_size unset. Calling VCheckVLDB()");
-	rc = VCheckVLDB();
-	if ( rc != 0 ) {
-		VLog(0, "VLDBLookup: No or bad vldb.");
-		return 0;
-	}
+        VLog(0, "VLDBLookup: VLDB_size unset. Calling VCheckVLDB()");
+        rc = VCheckVLDB();
+        if (rc != 0) {
+            VLog(0, "VLDBLookup: No or bad vldb.");
+            return 0;
+        }
     }
     int index = HashString(key, VLDB_size);
-    VLog(9, "VLDBLookup: index = %d, VLDB_size = %d, LOG_VLDBSIZE = %d",
-		    index, VLDB_size, LOG_VLDBSIZE);
+    VLog(9, "VLDBLookup: index = %d, VLDB_size = %d, LOG_VLDBSIZE = %d", index,
+         VLDB_size, LOG_VLDBSIZE);
     for (;;) {
         int n;
-	int i=0, nRecords=0;
-	if (lseek(VLDB_fd, index << LOG_VLDBSIZE, L_SET) == -1) {
-	    VLog(9, "VLDBLookup: lseek failed for VLDB");
-	    return 0;
-	}
-	n = read(VLDB_fd, (char *)VLDB_records, sizeof(VLDB_records));
-	if (n <= 0) {
-	    VLog(0, "VLDBLookup: read failed for VLDB");
-	    return 0;
-	}
-	VLog(29, "VLDBLookup: read succeeded, n = %d", n>>LOG_VLDBSIZE);
-	nRecords = (n>>LOG_VLDBSIZE);    
-	for (i = 0; i<nRecords; ) {
-	    struct vldb *vldp = &VLDB_records[i];
-	    if (vldp->key[0] == key[0] && strcmp(vldp->key, key) == 0) {
-		VLog(39, "VLDBLookup: found VLDB record, VID = %u type = %x, servers = %d, server0 = %d, server1 = %x, server2 = %x",
-		    ntohl(vldp->volumeId[vldp->volumeType]), vldp->volumeType,
-		    vldp->nServers, vldp->serverNumber[0],
-		    vldp->serverNumber[1], vldp->serverNumber[2]);
-		return vldp;
-	    }
-	    else {  /* key mismatch; generate log message */
-		VLog(9, "VLDBLookup: vldp->key = %s, key = %s", 
-			vldp->key, key);
-	    }
-	    if (!vldp->hashNext) {
-		VLog(0, "VLDB_Lookup: cannot find \"%s\"", key);
-		return 0;
-	    }
-	    i += vldp->hashNext;
-	}
-	index += i;
+        int i = 0, nRecords = 0;
+        if (lseek(VLDB_fd, index << LOG_VLDBSIZE, L_SET) == -1) {
+            VLog(9, "VLDBLookup: lseek failed for VLDB");
+            return 0;
+        }
+        n = read(VLDB_fd, (char *)VLDB_records, sizeof(VLDB_records));
+        if (n <= 0) {
+            VLog(0, "VLDBLookup: read failed for VLDB");
+            return 0;
+        }
+        VLog(29, "VLDBLookup: read succeeded, n = %d", n >> LOG_VLDBSIZE);
+        nRecords = (n >> LOG_VLDBSIZE);
+        for (i = 0; i < nRecords;) {
+            struct vldb *vldp = &VLDB_records[i];
+            if (vldp->key[0] == key[0] && strcmp(vldp->key, key) == 0) {
+                VLog(
+                    39,
+                    "VLDBLookup: found VLDB record, VID = %u type = %x, servers = %d, server0 = %d, server1 = %x, server2 = %x",
+                    ntohl(vldp->volumeId[vldp->volumeType]), vldp->volumeType,
+                    vldp->nServers, vldp->serverNumber[0],
+                    vldp->serverNumber[1], vldp->serverNumber[2]);
+                return vldp;
+            } else { /* key mismatch; generate log message */
+                VLog(9, "VLDBLookup: vldp->key = %s, key = %s", vldp->key, key);
+            }
+            if (!vldp->hashNext) {
+                VLog(0, "VLDB_Lookup: cannot find \"%s\"", key);
+                return 0;
+            }
+            i += vldp->hashNext;
+        }
+        index += i;
     }
-}    
-
+}
 
 int VLDBPrint()
 {
     struct vldb VLDB_records[8];
 
-    if (VLDB_fd == -1) 
-      if (VCheckVLDB() == -1)    /* Close and reopen the db file and reset */
-	  return(-1);            /* the fd to after the header */
+    if (VLDB_fd == -1)
+        if (VCheckVLDB() == -1) /* Close and reopen the db file and reset */
+            return (-1); /* the fd to after the header */
 
     if (lseek(VLDB_fd, 0, L_SET) == -1) {
-	VLog(129, "VLDBPrint:  lseek failed for VLDB!");
-	close(VLDB_fd);
-	VLDB_fd = -1;
-	return (-1);
+        VLog(129, "VLDBPrint:  lseek failed for VLDB!");
+        close(VLDB_fd);
+        VLDB_fd = -1;
+        return (-1);
     }
 
     VLog(100, "VLDBPrint: ");
     for (;;) {
         int n;
-	int i=0, nRecords=0;
-	n = read(VLDB_fd, (char *)VLDB_records, sizeof(VLDB_records));
-	if (n < 0) 
-	    VLog(129, "VLDBPrint: read failed for VLDB");
-	if (n <= 0)
-	    return 0;
+        int i = 0, nRecords = 0;
+        n = read(VLDB_fd, (char *)VLDB_records, sizeof(VLDB_records));
+        if (n < 0)
+            VLog(129, "VLDBPrint: read failed for VLDB");
+        if (n <= 0)
+            return 0;
 
-	VLog(129, "VLDBPrint: read succeeded, n = %d", n>>LOG_VLDBSIZE);
-	nRecords = (n>>LOG_VLDBSIZE);    
-	for (i = 0; i<nRecords; i++) {
-	    struct vldb *vldp = &VLDB_records[i];
-	    if (ntohl(vldp->volumeId[vldp->volumeType]) != 0)
-		VLog(100, "VID = %x type = %x, servers = %d, server0 = %x, server1 = %x, server2 = %x, key= %s",
-		    ntohl(vldp->volumeId[vldp->volumeType]), vldp->volumeType,
-		    vldp->nServers, vldp->serverNumber[0],
-		    vldp->serverNumber[1], vldp->serverNumber[2], vldp->key);
-	  }	
-      }
-}    
-
+        VLog(129, "VLDBPrint: read succeeded, n = %d", n >> LOG_VLDBSIZE);
+        nRecords = (n >> LOG_VLDBSIZE);
+        for (i = 0; i < nRecords; i++) {
+            struct vldb *vldp = &VLDB_records[i];
+            if (ntohl(vldp->volumeId[vldp->volumeType]) != 0)
+                VLog(
+                    100,
+                    "VID = %x type = %x, servers = %d, server0 = %x, server1 = %x, server2 = %x, key= %s",
+                    ntohl(vldp->volumeId[vldp->volumeType]), vldp->volumeType,
+                    vldp->nServers, vldp->serverNumber[0],
+                    vldp->serverNumber[1], vldp->serverNumber[2], vldp->key);
+        }
+    }
+}

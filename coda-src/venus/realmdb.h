@@ -37,16 +37,13 @@ public:
     /* MUST be called from within a transaction */
     void *operator new(size_t size)
     {
-	void *p = rvmlib_rec_malloc(size);
-	CODA_ASSERT(p);
-	return p;
+        void *p = rvmlib_rec_malloc(size);
+        CODA_ASSERT(p);
+        return p;
     }
 
     /* MUST be called from within a transaction */
-    void operator delete(void *p)
-    {
-	rvmlib_rec_free(p);
-    }
+    void operator delete(void *p) { rvmlib_rec_free(p); }
 
     /* MUST be called from within a transaction */
     RealmDB(void);
@@ -65,11 +62,10 @@ public:
     void print(void) { print(stdout); }
 
 private:
-     struct dllist_head realms;
-     RealmId max_realmid; /*T*/
+    struct dllist_head realms;
+    RealmId max_realmid; /*T*/
 };
 
 void RealmDBInit(void);
 
 #endif /* _REALMDB_H_ */
-

@@ -44,39 +44,39 @@ extern "C" {
 #include <coda_globals.h>
 #include "volutil.h"
 
-
-
 /*
   S_VolRVMSize: Returns RVM usage by various components of a Volume
 */
 
-long S_VolRVMSize(RPC2_Handle rpcid, VolumeId VolID, RVMSize_data *data) {
+long S_VolRVMSize(RPC2_Handle rpcid, VolumeId VolID, RVMSize_data *data)
+{
     Volume *vp;
     Error error;
     struct VolumeData *voldata;
     int status = 0;
-    long size = 0;
+    long size  = 0;
 
     LogMsg(9, VolDebugLevel, stdout, "Entering VolRVMSize()");
     VInitVolUtil(volumeUtility);
 
-    XlateVid(&VolID);	/* Translate Volid into Replica Id if necessary */
-    
+    XlateVid(&VolID); /* Translate Volid into Replica Id if necessary */
+
     vp = VGetVolume(&error, VolID);
     if (error) {
-	LogMsg(0, VolDebugLevel, stdout, "S_VolRVMSize: failure attaching volume %d", VolID);
-	if (error != VNOVOL) {
-	    VPutVolume(vp);
-	}
-	VDisconnectFS();
-	return error;
+        LogMsg(0, VolDebugLevel, stdout,
+               "S_VolRVMSize: failure attaching volume %d", VolID);
+        if (error != VNOVOL) {
+            VPutVolume(vp);
+        }
+        VDisconnectFS();
+        return error;
     }
 
     /* Location of the volume's data in RVM */
     voldata = &(SRV_RVM(VolumeList[V_volumeindex(vp)]).data);
 
     /* Size of volume header information */
-    size = sizeof(struct VolHead) + sizeof(struct VolumeDiskData); 
+    size = sizeof(struct VolHead) + sizeof(struct VolumeDiskData);
     LogMsg(5, VolDebugLevel, stdout, "RVM Size after header %d.", size);
 
     /* Storage taken by the arrays of list pointers */
@@ -92,38 +92,38 @@ long S_VolRVMSize(RPC2_Handle rpcid, VolumeId VolID, RVMSize_data *data) {
     data->nLargeVnodes = voldata->nlargevnodes;
 
     data->SmallVnodeSize = voldata->nsmallvnodes * SIZEOF_SMALLDISKVNODE;
-    data->LargeVnodeSize = (voldata->nlargevnodes * 
-	(SIZEOF_LARGEDISKVNODE + sizeof(struct DirInode)));
+    data->LargeVnodeSize = (voldata->nlargevnodes *
+                            (SIZEOF_LARGEDISKVNODE + sizeof(struct DirInode)));
     size += data->SmallVnodeSize + data->LargeVnodeSize;
-    
+
     /* Find the number of DirPages by iterating through the large vnode array
      * For each vnode within, add PAGESIZE to both size and data->DirPagesSize
      * for each initialized pointer in vnode->Pages.
      */
     char buf[SIZEOF_LARGEDISKVNODE];
     VnodeDiskObject *vnode = (VnodeDiskObject *)&buf;
-    
-    vindex vol_index(V_id(vp), vLarge, V_device(vp), VnodeClassInfo_Array[vLarge].diskSize);
+
+    vindex vol_index(V_id(vp), vLarge, V_device(vp),
+                     VnodeClassInfo_Array[vLarge].diskSize);
     vindex_iterator vnext(vol_index);
     data->DirPagesSize = 0;
     int vnodeindex;
     while ((vnodeindex = vnext(vnode)) != -1) {
-	int tmp;
-	PDirInode dip = vnode->node.dirNode;
-	CODA_ASSERT(dip);
-	tmp = DI_Pages(dip) * DIR_PAGESIZE;
-	size +=  tmp;
-	data->DirPagesSize += tmp;
-	LogMsg(5, VolDebugLevel, stdout, "Dir Vnode %d had length %d.", vnodeindex, tmp);
+        int tmp;
+        PDirInode dip = vnode->node.dirNode;
+        CODA_ASSERT(dip);
+        tmp = DI_Pages(dip) * DIR_PAGESIZE;
+        size += tmp;
+        data->DirPagesSize += tmp;
+        LogMsg(5, VolDebugLevel, stdout, "Dir Vnode %d had length %d.",
+               vnodeindex, tmp);
     }
-	
+
     data->VolumeSize = size;
 
     VPutVolume(vp);
     VDisconnectFS();
     if (status)
-	LogMsg(0, VolDebugLevel, stdout, "S_VolRVMSize failed with %d", status);
-    return(status);
+        LogMsg(0, VolDebugLevel, stdout, "S_VolRVMSize failed with %d", status);
+    return (status);
 }
-
-

@@ -29,7 +29,6 @@ listed in the file CREDITS.
  *     Note that COP2 messages are piggybacked on normal CFS calls whenever possible.
  */
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -50,17 +49,16 @@ extern "C" {
 #include "venusvol.h"
 #include "vproc.h"
 
-
-static const int VolDaemonStackSize =  0xffff; /* 64k stack, because of all
+static const int VolDaemonStackSize    = 0xffff; /* 64k stack, because of all
 						   the MAXPATHLEN stuff in
 						   vdb::CheckPoint. JH */
-static const int VolDaemonInterval = 5;
-static const int VolumeCheckInterval = 120 * 60;
-static const int VolGetDownInterval = 5 * 60;
-static const int COP2CheckInterval = 5;
-static const int COP2Window = 10;
+static const int VolDaemonInterval     = 5;
+static const int VolumeCheckInterval   = 120 * 60;
+static const int VolGetDownInterval    = 5 * 60;
+static const int COP2CheckInterval     = 5;
+static const int COP2Window            = 10;
 static const int VolCheckPointInterval = 10 * 60;
-static const int LocalSubtreeCheckInterval = 10 * 60;
+static const int LocalSubtreeCheckInterval     = 10 * 60;
 static const int VolTrickleReintegrateInterval = 10;
 
 char voldaemon_sync;
@@ -81,57 +79,57 @@ void VolDaemon(void)
     time_t curr_time = Vtime();
 
     /* Avoid checks on first firing! */
-    time_t LastGetDown = 0; /* except for GC'ing empty volumes */
-    time_t LastCOP2Check = curr_time;
-    time_t LastCheckPoint = curr_time;
+    time_t LastGetDown            = 0; /* except for GC'ing empty volumes */
+    time_t LastCOP2Check          = curr_time;
+    time_t LastCheckPoint         = curr_time;
     time_t LastTrickleReintegrate = curr_time;
 
     for (;;) {
-	VprocWait(&voldaemon_sync);
+        VprocWait(&voldaemon_sync);
 
-	START_TIMING();
-	curr_time = Vtime();
+        START_TIMING();
+        curr_time = Vtime();
 
-	{
-	    /* always check if there are transitions to be taken */
-	    VDB->TakeTransition();
+        {
+            /* always check if there are transitions to be taken */
+            VDB->TakeTransition();
 
-	    /* Periodically and on-demand free up cache resources. */
-	    if (curr_time - LastGetDown >= VolGetDownInterval) {
-		LastGetDown = curr_time;
+            /* Periodically and on-demand free up cache resources. */
+            if (curr_time - LastGetDown >= VolGetDownInterval) {
+                LastGetDown = curr_time;
 
-		VDB->GetDown();
-	    }
+                VDB->GetDown();
+            }
 
-	    /* Send off expired COP2 entries. */
-	    if (curr_time - LastCOP2Check >= COP2CheckInterval) {
-		LastCOP2Check = curr_time;
+            /* Send off expired COP2 entries. */
+            if (curr_time - LastCOP2Check >= COP2CheckInterval) {
+                LastCOP2Check = curr_time;
 
-		VDB->FlushCOP2();
-	    }
+                VDB->FlushCOP2();
+            }
 
-	    /* Checkpoint modify logs if necessary. */
-	    if (curr_time - LastCheckPoint >= VolCheckPointInterval) {
-		VDB->CheckPoint(curr_time);  /* loss of symmetry. sigh. */
-		LastCheckPoint = curr_time;
-	    }
+            /* Checkpoint modify logs if necessary. */
+            if (curr_time - LastCheckPoint >= VolCheckPointInterval) {
+                VDB->CheckPoint(curr_time); /* loss of symmetry. sigh. */
+                LastCheckPoint = curr_time;
+            }
 
-	    /* Propagate updates, if any. */
-	    if (curr_time - LastTrickleReintegrate >= VolTrickleReintegrateInterval) {
-		LastTrickleReintegrate = curr_time;
+            /* Propagate updates, if any. */
+            if (curr_time - LastTrickleReintegrate >=
+                VolTrickleReintegrateInterval) {
+                LastTrickleReintegrate = curr_time;
 
-		TrickleReintegrate();
-	    }
-	}
+                TrickleReintegrate();
+            }
+        }
 
-	END_TIMING();
-	LOG(10, ("VolDaemon: elapsed = %3.1f\n", elapsed));
+        END_TIMING();
+        LOG(10, ("VolDaemon: elapsed = %3.1f\n", elapsed));
 
-	/* Bump sequence number. */
-	vp->seq++;
+        /* Bump sequence number. */
+        vp->seq++;
     }
 }
-
 
 /* local-repair modification */
 void vdb::GetDown()
@@ -157,7 +155,6 @@ void vdb::GetDown()
     Recov_EndTrans(0);
 }
 
-
 /* local-repair modification */
 void vdb::FlushCOP2()
 {
@@ -170,18 +167,19 @@ void vdb::FlushCOP2()
         for (;;) {
             int code = 0;
 
-            if (!v->IsReplicated()) continue;
+            if (!v->IsReplicated())
+                continue;
 
             if (v->Enter((VM_OBSERVING | VM_NDELAY), V_UID) == 0) {
                 code = v->FlushCOP2(COP2Window);
                 v->Exit(VM_OBSERVING, V_UID);
             }
 
-            if (code != ERETRY) break;
-	}
+            if (code != ERETRY)
+                break;
+        }
     }
 }
-
 
 /* local-repair modification */
 /* XXX Use this routine to "touch" all volumes periodically so that volume state changes get taken! */
@@ -194,10 +192,11 @@ void vdb::TakeTransition()
     volrep_iterator vrnext;
     volent *v;
     while ((v = rvnext()) || (v = vrnext())) {
-	if (v->IsLocalRealm()) continue;
-	LOG(1000, ("vdb::TakeTransition: checking %s\n", v->name));
-	if (v->Enter((VM_OBSERVING | VM_NDELAY), V_UID) == 0)
-	    v->Exit(VM_OBSERVING, V_UID);
+        if (v->IsLocalRealm())
+            continue;
+        LOG(1000, ("vdb::TakeTransition: checking %s\n", v->name));
+        if (v->Enter((VM_OBSERVING | VM_NDELAY), V_UID) == 0)
+            v->Exit(VM_OBSERVING, V_UID);
     }
 }
 
@@ -215,27 +214,26 @@ void vdb::CheckPoint(unsigned long curr_time)
     reintvol *v;
 
     while ((v = vnext())) {
-	unsigned long lmTime= 0;
+        unsigned long lmTime = 0;
 
         /* check if the volume contains cmlent to be repaired */
         if (v->ContainUnrepairedCML()) {
-	    eprint("volume %s has unrepaired local subtree(s), skip checkpointing CML!\n",
-		   v->name);
-	    /* skip checkpointing if there is unrepaired mutations */
-	} else if (v->LastMLETime(&lmTime) == 0 && 
-		   (lmTime > curr_time - VolCheckPointInterval)) {
-
-	    LOG(1000, ("vdb::CheckPoint: checking %s\n", v->name));
-	    if (CheckLock(&v->CML_lock)) {
-		eprint("volume %s CML is busy, skip checkpoint!\n", v->name);
-	    } else if (v->Enter((VM_OBSERVING | VM_NDELAY), V_UID) == 0) {
-		 v->CheckPointMLEs(V_UID, (char *)NULL);
-		 v->Exit(VM_OBSERVING, V_UID);
-	    }
-	}
+            eprint(
+                "volume %s has unrepaired local subtree(s), skip checkpointing CML!\n",
+                v->name);
+            /* skip checkpointing if there is unrepaired mutations */
+        } else if (v->LastMLETime(&lmTime) == 0 &&
+                   (lmTime > curr_time - VolCheckPointInterval)) {
+            LOG(1000, ("vdb::CheckPoint: checking %s\n", v->name));
+            if (CheckLock(&v->CML_lock)) {
+                eprint("volume %s CML is busy, skip checkpoint!\n", v->name);
+            } else if (v->Enter((VM_OBSERVING | VM_NDELAY), V_UID) == 0) {
+                v->CheckPointMLEs(V_UID, (char *)NULL);
+                v->Exit(VM_OBSERVING, V_UID);
+            }
+        }
     }
 }
-
 
 /* Note: no longer in class vdb, since VolDaemon isn't (Satya, 5/20/95) */
 void TrickleReintegrate()
@@ -246,13 +244,13 @@ void TrickleReintegrate()
     repvol_iterator next;
     repvol *v;
     while ((v = next())) {
-	LOG(1000, ("TrickleReintegrate: checking %s\n", v->GetName()));
-	if (v->Enter((VM_OBSERVING | VM_NDELAY), V_UID) == 0) {
-	    /* force a connectivity check? */
-	    /* try to propagate updates from this volume.  */
-	    if (v->ReadyToReintegrate())
-		::Reintegrate(v);
-	    v->Exit(VM_OBSERVING, V_UID);
-	}
+        LOG(1000, ("TrickleReintegrate: checking %s\n", v->GetName()));
+        if (v->Enter((VM_OBSERVING | VM_NDELAY), V_UID) == 0) {
+            /* force a connectivity check? */
+            /* try to propagate updates from this volume.  */
+            if (v->ReadyToReintegrate())
+                ::Reintegrate(v);
+            v->Exit(VM_OBSERVING, V_UID);
+        }
     }
 }

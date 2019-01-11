@@ -23,8 +23,10 @@ listed in the file CREDITS.
 
 // Defines needed for DeviceIoControls from OSR headers
 
-#define OW_FSCTL_MOUNT_PSEUDO           CTL_CODE(FILE_DEVICE_FILE_SYSTEM, 3031, METHOD_BUFFERED, FILE_WRITE_ACCESS)
-#define OW_FSCTL_DISMOUNT_PSEUDO        CTL_CODE(FILE_DEVICE_FILE_SYSTEM, 3033, METHOD_NEITHER, FILE_WRITE_ACCESS)
+#define OW_FSCTL_MOUNT_PSEUDO \
+    CTL_CODE(FILE_DEVICE_FILE_SYSTEM, 3031, METHOD_BUFFERED, FILE_WRITE_ACCESS)
+#define OW_FSCTL_DISMOUNT_PSEUDO \
+    CTL_CODE(FILE_DEVICE_FILE_SYSTEM, 3033, METHOD_NEITHER, FILE_WRITE_ACCESS)
 
 //
 // Pseudo mount/dismount data structures
@@ -42,16 +44,16 @@ typedef struct {
 // ntfsd/coda/coda_nt.h
 //
 #define CODA_FSCTL_ANSWER 0x1002
-#define CODA_FSCTL_FETCH  0x1003
-#define CODA_FSCTL_PIOCTL 0x1006	
+#define CODA_FSCTL_FETCH 0x1003
+#define CODA_FSCTL_PIOCTL 0x1006
 
 // prototypes
 
-void nt_mount (const char *drivename);
-void nt_umount (const char *drivename);
+void nt_mount(const char *drivename);
+void nt_umount(const char *drivename);
 
-int nt_initialize_ipc (int sock);
-int nt_msg_write (const char *buf, int size);
-void nt_stop_ipc (void);
+int nt_initialize_ipc(int sock);
+int nt_msg_write(const char *buf, int size);
+void nt_stop_ipc(void);
 
 #endif

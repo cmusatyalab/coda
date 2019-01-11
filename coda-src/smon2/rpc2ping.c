@@ -42,11 +42,11 @@ static void Initialize(void)
     /* initialize the subsystems LWP/RPC */
     rc = LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, &pid);
     if (rc != LWP_SUCCESS) {
-	printf("LWP_Init() failed\n");
-	exit(EXIT_FAILURE);
+        printf("LWP_Init() failed\n");
+        exit(EXIT_FAILURE);
     }
 
-    tv.tv_sec = 15;
+    tv.tv_sec  = 15;
     tv.tv_usec = 0;
 
     memset(&options, 0, sizeof(options));
@@ -54,31 +54,31 @@ static void Initialize(void)
 
     rc = RPC2_Init(RPC2_VERSION, &options, NULL, -1, &tv);
     if (rc != LWP_SUCCESS) {
-	printf("RPC_Init() failed\n");
-	exit(EXIT_FAILURE);
+        printf("RPC_Init() failed\n");
+        exit(EXIT_FAILURE);
     }
 }
 
 static long Bind(char *host, short port, long subsys, RPC2_Handle *cid)
 {
-    RPC2_HostIdent   hostid;
-    RPC2_PortIdent   portid;
+    RPC2_HostIdent hostid;
+    RPC2_PortIdent portid;
     RPC2_SubsysIdent subsysid;
-    RPC2_BindParms   bindparms;
+    RPC2_BindParms bindparms;
 
     /* Initialize connection stuff */
     hostid.Tag = RPC2_HOSTBYNAME;
     strcpy(hostid.Value.Name, host);
 
-    portid.Tag = RPC2_PORTBYINETNUMBER;
+    portid.Tag                  = RPC2_PORTBYINETNUMBER;
     portid.Value.InetPortNumber = htons(port);
 
-    subsysid.Tag = RPC2_SUBSYSBYID;
-    subsysid.Value.SubsysId= subsys;
+    subsysid.Tag            = RPC2_SUBSYSBYID;
+    subsysid.Value.SubsysId = subsys;
 
     bindparms.SideEffectType = 0;
-    bindparms.SecurityLevel = RPC2_OPENKIMONO;
-    bindparms.ClientIdent = NULL;
+    bindparms.SecurityLevel  = RPC2_OPENKIMONO;
+    bindparms.ClientIdent    = NULL;
 
     return RPC2_NewBinding(&hostid, &portid, &subsysid, &bindparms, cid);
 }
@@ -86,10 +86,10 @@ static long Bind(char *host, short port, long subsys, RPC2_Handle *cid)
 int main(int argc, char *argv[])
 {
     RPC2_Handle cid;
-    long	subsys = 1001;
-    long        rc;
-    char       *host;
-    short       port;
+    long subsys = 1001;
+    long rc;
+    char *host;
+    short port;
 
     if (argc == 1)
         goto badargs;
@@ -101,10 +101,10 @@ int main(int argc, char *argv[])
         host = argv[3];
         port = atoi(argv[2]);
     } else {
-	struct servent *s = coda_getservbyname("codasrv", "udp");
-        host = argv[1];
-        port = ntohs(s->s_port);
-	subsys = 1001; /* SUBSYS_SRV */
+        struct servent *s = coda_getservbyname("codasrv", "udp");
+        host              = argv[1];
+        port              = ntohs(s->s_port);
+        subsys            = 1001; /* SUBSYS_SRV */
     }
 
     Initialize();
@@ -114,11 +114,11 @@ int main(int argc, char *argv[])
     RPC2_Unbind(cid);
 
     if (rc != RPC2_SUCCESS) {
-        printf("RPC2 connection to %s:%d failed with %s.\n",
-               host, port, RPC2_ErrorMsg(rc));
+        printf("RPC2 connection to %s:%d failed with %s.\n", host, port,
+               RPC2_ErrorMsg(rc));
         exit(EXIT_FAILURE);
     }
-    
+
     printf("RPC2 connection to %s:%d successful.\n", host, port);
     exit(EXIT_SUCCESS);
 
@@ -126,4 +126,3 @@ badargs:
     printf("Usage %s [-p port] hostname\n", argv[0]);
     exit(EXIT_FAILURE);
 }
-

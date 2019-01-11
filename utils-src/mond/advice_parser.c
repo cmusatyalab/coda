@@ -40,14 +40,13 @@ extern "C" {
 #include <sys/param.h>
 #include <sysent.h>
 
-extern int ffilecopy(FILE*, FILE*);
+extern int ffilecopy(FILE *, FILE *);
 }
 #include "util.h"
 #include "advice_parser.h"
 
 extern int LogLevel;
 extern FILE *LogFile;
-
 
 #define CommentsDBdir "/usr/mond/adviceCommentsDB"
 #define LINE_LENGTH 256
@@ -58,108 +57,108 @@ static int SkipLines(FILE *fp, int number)
 {
     int error = 0;
 
-    for (int count = 0; count < number; count++) 
+    for (int count = 0; count < number; count++)
         if (fgets(line, LINE_LENGTH, fp) == NULL)
-	    error = 1;
-    return(error);
+            error = 1;
+    return (error);
 }
 
 static int ReadVenusVersionLine(FILE *fp, int *Major, int *Minor)
 {
     int error = 0;
-    int rc = 0;
+    int rc    = 0;
 
     if (fgets(line, LINE_LENGTH, fp) == NULL)
-	error = 1;
+        error = 1;
     rc = sscanf(line, "VenusVersion: %d.%d", Major, Minor);
     if (rc != 2)
-	error += 1;
-    return(error);
+        error += 1;
+    return (error);
 }
 
 static int ReadFIDLine(FILE *fp, char *id, int *volume, int *vnode, int *unique)
 {
     char formatstring[LINE_LENGTH];
     int error = 0;
-    int rc = 0;
+    int rc    = 0;
 
     if (fgets(line, LINE_LENGTH, fp) == NULL)
-	error = 1;
+        error = 1;
 
-    (void) sprintf(formatstring, "%s: <%%x.%%x.%%x>", id);
+    (void)sprintf(formatstring, "%s: <%%x.%%x.%%x>", id);
 
     rc = sscanf(line, formatstring, volume, vnode, unique);
     if (rc != 3)
-	error += 1;
-    return(error);
+        error += 1;
+    return (error);
 }
 
 static int ReadVIDLine(FILE *fp, char *id, int *volume)
 {
     char formatstring[LINE_LENGTH];
     int error = 0;
-    int rc = 0;
+    int rc    = 0;
 
     if (fgets(line, LINE_LENGTH, fp) == NULL)
-	error = 1;
+        error = 1;
 
-    (void) sprintf(formatstring, "%s: 0x%%x", id);
+    (void)sprintf(formatstring, "%s: 0x%%x", id);
 
     rc = sscanf(line, formatstring, volume);
     if (rc != 1)
-	error += 1;
-    return(error);
+        error += 1;
+    return (error);
 }
 
 static int ReadFormat1Line(FILE *fp, char *id, int *value)
 {
     char formatstring[LINE_LENGTH];
     int error = 0;
-    int rc = 0;
+    int rc    = 0;
 
     if (fgets(line, LINE_LENGTH, fp) == NULL)
-	error = 1;
+        error = 1;
 
-    (void) sprintf(formatstring, "%s: %%d", id);
+    (void)sprintf(formatstring, "%s: %%d", id);
 
     rc = sscanf(line, formatstring, value);
     if (rc != 1)
-	error += 1;
-    return(error);
+        error += 1;
+    return (error);
 }
 
 static int ReadFormat1xLine(FILE *fp, char *id, int *value)
 {
     char formatstring[LINE_LENGTH];
     int error = 0;
-    int rc = 0;
+    int rc    = 0;
 
     if (fgets(line, LINE_LENGTH, fp) == NULL)
-	error = 1;
+        error = 1;
 
-    (void) sprintf(formatstring, "%s: %%x", id);
+    (void)sprintf(formatstring, "%s: %%x", id);
 
     rc = sscanf(line, formatstring, value);
     if (rc != 1)
-	error += 1;
-    return(error);
+        error += 1;
+    return (error);
 }
 
 static int ReadFormat2Line(FILE *fp, char *id, char *value)
 {
     char formatstring[LINE_LENGTH];
     int error = 0;
-    int rc = 0;
+    int rc    = 0;
 
     if (fgets(line, LINE_LENGTH, fp) == NULL)
-	error = 1;
+        error = 1;
 
-    (void) sprintf(formatstring, "%s: %%s", id);
+    (void)sprintf(formatstring, "%s: %%s", id);
 
     rc = sscanf(line, formatstring, value);
     if (rc != 1)
-	error += 1;
-    return(error); 
+        error += 1;
+    return (error);
 }
 
 static int ReadAwarenessLine(FILE *fp, char *id, int *value)
@@ -168,46 +167,53 @@ static int ReadAwarenessLine(FILE *fp, char *id, int *value)
     int error = 0;
 
     *value = 0;
-    error = ReadFormat2Line(fp, id, tmpstring);
+    error  = ReadFormat2Line(fp, id, tmpstring);
     if (strncmp(tmpstring, "Yes", strlen("Yes")) == 0)
-	*value = 2;
+        *value = 2;
     else if (strncmp(tmpstring, "Suspected", strlen("Suspected")) == 0)
-	*value = 1;
+        *value = 1;
     else if (strncmp(tmpstring, "No", strlen("No")) == 0)
-	*value = 0;
+        *value = 0;
     else {
-	error++;
-	*value = -1;
+        error++;
+        *value = -1;
     }
-    return(error);
+    return (error);
 }
 
-static void MoveFile(char *hereFileName, char *thereFileName) 
+static void MoveFile(char *hereFileName, char *thereFileName)
 {
     FILE *hereFile, *thereFile;
-    int code = 0;
+    int code  = 0;
     int error = 0;
 
     // Open the file we will copy FROM
     hereFile = fopen(hereFileName, "r");
     if (hereFile == NULL) {
-	LogMsg(0,LogLevel,LogFile, "ERROR: MoveFile(%s,%s) ==> Cannot open file %s", hereFileName, thereFileName, hereFileName);
-	CODA_ASSERT(1 == 0);
+        LogMsg(0, LogLevel, LogFile,
+               "ERROR: MoveFile(%s,%s) ==> Cannot open file %s", hereFileName,
+               thereFileName, hereFileName);
+        CODA_ASSERT(1 == 0);
     }
 
     // Open the file we will copy TO
     thereFile = fopen(thereFileName, "w+");
     if (thereFile == NULL) {
-	LogMsg(0,LogLevel,LogFile, "ERROR: MoveFile(%s,%s) ==> Cannot open file %s", hereFileName, thereFileName, thereFileName);
-	CODA_ASSERT(1 == 0);
+        LogMsg(0, LogLevel, LogFile,
+               "ERROR: MoveFile(%s,%s) ==> Cannot open file %s", hereFileName,
+               thereFileName, thereFileName);
+        CODA_ASSERT(1 == 0);
     }
-    
+
     // Copy the file
-    LogMsg(100,LogLevel,LogFile, "Moving %s to %s", hereFileName, thereFileName);
+    LogMsg(100, LogLevel, LogFile, "Moving %s to %s", hereFileName,
+           thereFileName);
     code = ffilecopy(hereFile, thereFile);
     if (code != 0) {
-	LogMsg(0,LogLevel,LogFile, "ERROR: MoveFile(%s,%s) ==> Cannot ffilecopy", hereFileName, thereFileName);
-	CODA_ASSERT(1 == 0);
+        LogMsg(0, LogLevel, LogFile,
+               "ERROR: MoveFile(%s,%s) ==> Cannot ffilecopy", hereFileName,
+               thereFileName);
+        CODA_ASSERT(1 == 0);
     }
 
     fclose(hereFile);
@@ -219,34 +225,39 @@ static char *DetermineQuestionnaire(char *comment_id)
 {
     static char questionnaire[32];
 
-    if (strncmp(comment_id, "OtherComments", strlen("OtherComments")) == 0) 
-	strcpy(questionnaire, "DisconnectedMiss");
+    if (strncmp(comment_id, "OtherComments", strlen("OtherComments")) == 0)
+        strcpy(questionnaire, "DisconnectedMiss");
     else
-	strcpy(questionnaire, "Reconnection");
+        strcpy(questionnaire, "Reconnection");
 
-    return(questionnaire);
+    return (questionnaire);
 }
 
 static char *DetermineCommentField(char *comment_id)
 {
     static char field[32];
 
-    if (strncmp(comment_id, "SuspectedOtherComments", strlen("SuspectedOtherComments")) == 0) 
-	strcpy(field, "Suspected");
-    else if (strncmp(comment_id, "KnownOtherComments", strlen("KnownOtherComments")) == 0) 
-	strcpy(field, "Known");
-    else if (strncmp(comment_id, "PreparationComments", strlen("PreparationComments")) == 0) 
-	strcpy(field, "Preparation");
-    else if (strncmp(comment_id, "FinalComments", strlen("FinalComments")) == 0) 
-	strcpy(field, "Final");
-    else if (strncmp(comment_id, "OtherComments", strlen("OtherComments")) == 0) 
-	strcpy(field, "Other");
+    if (strncmp(comment_id, "SuspectedOtherComments",
+                strlen("SuspectedOtherComments")) == 0)
+        strcpy(field, "Suspected");
+    else if (strncmp(comment_id, "KnownOtherComments",
+                     strlen("KnownOtherComments")) == 0)
+        strcpy(field, "Known");
+    else if (strncmp(comment_id, "PreparationComments",
+                     strlen("PreparationComments")) == 0)
+        strcpy(field, "Preparation");
+    else if (strncmp(comment_id, "FinalComments", strlen("FinalComments")) == 0)
+        strcpy(field, "Final");
+    else if (strncmp(comment_id, "OtherComments", strlen("OtherComments")) == 0)
+        strcpy(field, "Other");
     else {
-	LogMsg(0, LogLevel,LogFile, "DetermineCommentField:  Unrecognized comment type (id=%s)\n", comment_id);
-	CODA_ASSERT(1 == 0);
-    }  
+        LogMsg(0, LogLevel, LogFile,
+               "DetermineCommentField:  Unrecognized comment type (id=%s)\n",
+               comment_id);
+        CODA_ASSERT(1 == 0);
+    }
 
-    return(field);
+    return (field);
 }
 
 static int DetermineUnique(char *questionnaire, char *commentField)
@@ -255,32 +266,35 @@ static int DetermineUnique(char *questionnaire, char *commentField)
     FILE *UniqueFile;
     char NewValue[8];
     int error = 0;
-    int rc = 0;
+    int rc    = 0;
     int unique;
 
-    sprintf(UniqueFileName, "%s/%s/%s.ID", CommentsDBdir, questionnaire, commentField);
+    sprintf(UniqueFileName, "%s/%s/%s.ID", CommentsDBdir, questionnaire,
+            commentField);
     if ((UniqueFile = fopen(UniqueFileName, "r+")) == NULL)
-	error++;
+        error++;
     if (fgets(line, LINE_LENGTH, UniqueFile) == NULL)
-	error++;
+        error++;
     rc = sscanf(line, "%d", &unique);
     if (rc != 1)
-	error++;
+        error++;
     if (fseek(UniqueFile, 0L, 0) != 0)
-	error++;
-    if (fprintf(UniqueFile, "%d", unique+1) != 0)
-	error++;
+        error++;
+    if (fprintf(UniqueFile, "%d", unique + 1) != 0)
+        error++;
     if (fflush(UniqueFile) != 0)
-	error++;
+        error++;
     if (fclose(UniqueFile) != 0)
-	error++;
+        error++;
 
     if (error != 0) {
-	LogMsg(0,LogLevel,LogFile, "DetermineUnique(%s,%s):  File handling error\n", questionnaire, commentField);
-	CODA_ASSERT(1 == 0);
+        LogMsg(0, LogLevel, LogFile,
+               "DetermineUnique(%s,%s):  File handling error\n", questionnaire,
+               commentField);
+        CODA_ASSERT(1 == 0);
     }
 
-    return(unique);
+    return (unique);
 }
 
 static int DepositCommentFile(char *tmpFileName, char *id)
@@ -291,37 +305,38 @@ static int DepositCommentFile(char *tmpFileName, char *id)
     int unique;
 
     questionnaire = DetermineQuestionnaire(id);
-    commentField = DetermineCommentField(id);
-    unique = DetermineUnique(questionnaire, commentField);
-    sprintf(newCommentFileName, "%s/%s/%s/%d", CommentsDBdir, questionnaire, commentField, unique);
+    commentField  = DetermineCommentField(id);
+    unique        = DetermineUnique(questionnaire, commentField);
+    sprintf(newCommentFileName, "%s/%s/%s/%d", CommentsDBdir, questionnaire,
+            commentField, unique);
 
     MoveFile(tmpFileName, newCommentFileName);
-    return(unique);
+    return (unique);
 }
 
 static int CopeWithCommentsField(FILE *fp, char *id, int *value)
 {
     FILE *CommentFile;
     char CommentFileName[MAXPATHLEN];
-    int error = 0;
-    int rc = 0;
+    int error     = 0;
+    int rc        = 0;
     int num_lines = 0;
 
     if (fgets(line, LINE_LENGTH, fp) == NULL)
-	error++;
+        error++;
     if (strncmp(line, id, strlen(id)) != 0)
-	error++;
+        error++;
 
     sprintf(CommentFileName, "/tmp/advice.comment.%d", getpid());
     CommentFile = fopen(CommentFileName, "w+");
     CODA_ASSERT(CommentFile != NULL);
 
-    while (fgets(line, LINE_LENGTH, fp) != NULL) { 
-	if (strncmp(line, "EndComment.", strlen("EndComment.")) == 0)
-	    break;
-	else {
-   	    num_lines++;
-	    fprintf(CommentFile, "%s", line);
+    while (fgets(line, LINE_LENGTH, fp) != NULL) {
+        if (strncmp(line, "EndComment.", strlen("EndComment.")) == 0)
+            break;
+        else {
+            num_lines++;
+            fprintf(CommentFile, "%s", line);
         }
     }
     error += SkipLines(fp, 1);
@@ -331,99 +346,108 @@ static int CopeWithCommentsField(FILE *fp, char *id, int *value)
     if (num_lines > 1)
         *value = DepositCommentFile(CommentFileName, id);
     else {
-	*value = -1;
-	unlink(CommentFileName);
+        *value = -1;
+        unlink(CommentFileName);
     }
 
-    return(error);
+    return (error);
 }
 
-int ParseDisconQfile(char *filename, DiscoMissQ *q) 
+int ParseDisconQfile(char *filename, DiscoMissQ *q)
 {
     FILE *fp;
     int error = 0;
 
-    LogMsg(20,LogLevel,LogFile,"Parsing: %s", filename);
+    LogMsg(20, LogLevel, LogFile, "Parsing: %s", filename);
 
     fp = fopen(filename, "r");
     if (fp == NULL) {
-        LogMsg(0,LogLevel,LogFile,"ParseDiscoQfile could not open %s",filename);
-        return(1);
+        LogMsg(0, LogLevel, LogFile, "ParseDiscoQfile could not open %s",
+               filename);
+        return (1);
     }
     error += SkipLines(fp, 1);
     error += ReadFormat1xLine(fp, "hostid", &(q->hostid));
     error += ReadFormat1Line(fp, "user", &(q->uid));
-    error += ReadVenusVersionLine(fp, &(q->venusmajorversion), &(q->venusminorversion));
-    error += ReadFormat1Line(fp, "AdviceMonitorVersion", &(q->advicemonitorversion));
+    error += ReadVenusVersionLine(fp, &(q->venusmajorversion),
+                                  &(q->venusminorversion));
+    error +=
+        ReadFormat1Line(fp, "AdviceMonitorVersion", &(q->advicemonitorversion));
     error += ReadFormat1Line(fp, "ADSRVversion", &(q->adsrv_version));
     error += ReadFormat1Line(fp, "ADMONversion", &(q->admon_version));
     error += ReadFormat1Line(fp, "Qversion", &(q->q_version));
     error += ReadFormat1Line(fp, "TimeOfDisconnection", &(q->disco_time));
     error += ReadFormat1Line(fp, "TimeOfCacheMiss", &(q->cachemiss_time));
-    error += ReadFIDLine(fp, "Fid", &(q->fid_volume), &(q->fid_vnode), &(q->fid_uniquifier));
+    error += ReadFIDLine(fp, "Fid", &(q->fid_volume), &(q->fid_vnode),
+                         &(q->fid_uniquifier));
     error += SkipLines(fp, 2); // Path and RequestingProgram
-    error += ReadFormat1Line(fp, "Practice",  &(q->practice_session));
+    error += ReadFormat1Line(fp, "Practice", &(q->practice_session));
     error += ReadFormat1Line(fp, "ExpectedAffect", &(q->expected_affect));
     error += CopeWithCommentsField(fp, "OtherComments:", &(q->comment_id));
 
-    return(error);
+    return (error);
 }
 
-static void InitReconnQ(ReconnQ *q) {
-    q->hostid = -1;
-    q->uid = -1;
-    q->venusmajorversion = -1;
-    q->venusminorversion = -1;
-    q->advicemonitorversion = -1;
-    q->adsrv_version = -1;
-    q->admon_version = -1;
-    q->q_version = -1;
-    q->volume_id = -1;
-    q->cml_count = -1;
-    q->disco_time = -1;
-    q->reconn_time = -1;
-    q->walk_time = -1;
-    q->reboots = -1;
-    q->hits = -1;
-    q->misses = -1;
-    q->unique_hits = -1;
-    q->unique_misses = -1;
-    q->not_referenced = -1;
-    q->awareofdisco = -1;
-    q->voluntary = -1;
-    q->practicedisco = -1;
-    q->codacon = -1;
-    q->sluggish = -1;
-    q->observed_miss = -1;
-    q->known_other_comments = -1;
+static void InitReconnQ(ReconnQ *q)
+{
+    q->hostid                   = -1;
+    q->uid                      = -1;
+    q->venusmajorversion        = -1;
+    q->venusminorversion        = -1;
+    q->advicemonitorversion     = -1;
+    q->adsrv_version            = -1;
+    q->admon_version            = -1;
+    q->q_version                = -1;
+    q->volume_id                = -1;
+    q->cml_count                = -1;
+    q->disco_time               = -1;
+    q->reconn_time              = -1;
+    q->walk_time                = -1;
+    q->reboots                  = -1;
+    q->hits                     = -1;
+    q->misses                   = -1;
+    q->unique_hits              = -1;
+    q->unique_misses            = -1;
+    q->not_referenced           = -1;
+    q->awareofdisco             = -1;
+    q->voluntary                = -1;
+    q->practicedisco            = -1;
+    q->codacon                  = -1;
+    q->sluggish                 = -1;
+    q->observed_miss            = -1;
+    q->known_other_comments     = -1;
     q->suspected_other_comments = -1;
-    q->nopreparation = -1;
-    q->hoard_walk = -1;
-    q->num_pseudo_disco = -1;
-    q->num_practice_disco = -1;
-    q->prep_comments = -1;
-    q->overall_impression = -1;
-    q->final_comments = -1;
+    q->nopreparation            = -1;
+    q->hoard_walk               = -1;
+    q->num_pseudo_disco         = -1;
+    q->num_practice_disco       = -1;
+    q->prep_comments            = -1;
+    q->overall_impression       = -1;
+    q->final_comments           = -1;
 }
 
-int ParseReconnQfile(char *filename, ReconnQ *q) {
+int ParseReconnQfile(char *filename, ReconnQ *q)
+{
     FILE *fp;
     int error = 0;
 
-    LogMsg(20,LogLevel,LogFile,"Parsing: %s", filename);
+    LogMsg(20, LogLevel, LogFile, "Parsing: %s", filename);
 
     fp = fopen(filename, "r");
     if (fp == NULL) {
-	LogMsg(0,LogLevel,LogFile,"ParseReconnQfile could not open %s", filename);
-        return(1);
+        LogMsg(0, LogLevel, LogFile, "ParseReconnQfile could not open %s",
+               filename);
+        return (1);
     }
 
     InitReconnQ(q);
     error += SkipLines(fp, 1);
     error += ReadFormat1xLine(fp, "hostid", &(q->hostid));
     error += ReadFormat1Line(fp, "user", &(q->uid));
-    error += ReadVenusVersionLine(fp, &(q->venusmajorversion), &(q->venusminorversion));
-    error += ReadFormat1Line(fp, "AdviceMonitorVersion", &(q->advicemonitorversion));
+    error += ReadVenusVersionLine(fp, &(q->venusmajorversion),
+                                  &(q->venusminorversion));
+    error +=
+        ReadFormat1Line(fp, "AdviceMonitorVersion", &(q->advicemonitorversion));
     error += ReadFormat1Line(fp, "ADSRVversion", &(q->adsrv_version));
     error += ReadFormat1Line(fp, "ADMONversion", &(q->admon_version));
     error += ReadFormat1Line(fp, "Qversion", &(q->q_version));
@@ -431,39 +455,49 @@ int ParseReconnQfile(char *filename, ReconnQ *q) {
     error += ReadVIDLine(fp, "VID", &(q->volume_id));
     error += ReadFormat1Line(fp, "CMLCount", &(q->cml_count));
     error += ReadFormat1Line(fp, "TimeOfDisconnection", &(q->disco_time));
-    error += ReadFormat1Line(fp, "TimeOfReconnection", &(q->reconn_time)); 
-    error += ReadFormat1Line(fp, "TimeOfLastDemandHoardWalk", &(q->walk_time)); 
-    error += ReadFormat1Line(fp, "NumberOfReboots", &(q->reboots)); 
-    error += ReadFormat1Line(fp, "NumberOfCacheHits", &(q->hits)); 
-    error += ReadFormat1Line(fp, "NumberOfCacheMisses", &(q->misses)); 
-    error += ReadFormat1Line(fp, "NumberOfUniqueCacheHits",  &(q->unique_hits)); 
-    error += ReadFormat1Line(fp, "NumberOfObjectsNotReferenced",  &(q->not_referenced)); 
+    error += ReadFormat1Line(fp, "TimeOfReconnection", &(q->reconn_time));
+    error += ReadFormat1Line(fp, "TimeOfLastDemandHoardWalk", &(q->walk_time));
+    error += ReadFormat1Line(fp, "NumberOfReboots", &(q->reboots));
+    error += ReadFormat1Line(fp, "NumberOfCacheHits", &(q->hits));
+    error += ReadFormat1Line(fp, "NumberOfCacheMisses", &(q->misses));
+    error += ReadFormat1Line(fp, "NumberOfUniqueCacheHits", &(q->unique_hits));
+    error += ReadFormat1Line(fp, "NumberOfObjectsNotReferenced",
+                             &(q->not_referenced));
     error += ReadAwarenessLine(fp, "AwareOfDisconnection", &(q->awareofdisco));
     if (q->awareofdisco != 0) {
-	if (q->awareofdisco == 2) {
-            error += ReadFormat1Line(fp, "VoluntaryDisconnection", &(q->voluntary)); 
-            error += ReadFormat1Line(fp, "PracticeDisconnection", &(q->practicedisco)); 
-        }
-        error += ReadFormat1Line(fp, "Codacon", &(q->codacon)); 
-        error += ReadFormat1Line(fp, "Sluggish", &(q->sluggish)); 
-        error += ReadFormat1Line(fp, "ObservedCacheMiss", &(q->observed_miss)); 
         if (q->awareofdisco == 2) {
-            error += CopeWithCommentsField(fp, "KnownOtherComments:", &(q->known_other_comments));
-	    error += ReadFormat1Line(fp, "NoPreparation", &(q->nopreparation)); 
-            error += ReadFormat1Line(fp, "HoardWalk", &(q->hoard_walk)); 
-            error += ReadFormat1Line(fp, "PseudoDisconnection", &(q->num_pseudo_disco)); 
-            error += ReadFormat1Line(fp, "PracticeDisconnection(s)", &(q->num_practice_disco)); 
-    	    if (q->num_practice_disco) 
-	        error += ReadFormat1Line(fp, "NumberPracticeDisconnection(s)", &(q->num_practice_disco));
-            error += CopeWithCommentsField(fp, "PreparationComments:", &(q->prep_comments));
+            error +=
+                ReadFormat1Line(fp, "VoluntaryDisconnection", &(q->voluntary));
+            error += ReadFormat1Line(fp, "PracticeDisconnection",
+                                     &(q->practicedisco));
         }
-        if (q->awareofdisco == 1) 
-            error += CopeWithCommentsField(fp, "SuspectedOtherComments:", &(q->suspected_other_comments));
-        error += ReadFormat1Line(fp, "OveralImpression", &(q->overall_impression)); 
+        error += ReadFormat1Line(fp, "Codacon", &(q->codacon));
+        error += ReadFormat1Line(fp, "Sluggish", &(q->sluggish));
+        error += ReadFormat1Line(fp, "ObservedCacheMiss", &(q->observed_miss));
+        if (q->awareofdisco == 2) {
+            error += CopeWithCommentsField(
+                fp, "KnownOtherComments:", &(q->known_other_comments));
+            error += ReadFormat1Line(fp, "NoPreparation", &(q->nopreparation));
+            error += ReadFormat1Line(fp, "HoardWalk", &(q->hoard_walk));
+            error += ReadFormat1Line(fp, "PseudoDisconnection",
+                                     &(q->num_pseudo_disco));
+            error += ReadFormat1Line(fp, "PracticeDisconnection(s)",
+                                     &(q->num_practice_disco));
+            if (q->num_practice_disco)
+                error += ReadFormat1Line(fp, "NumberPracticeDisconnection(s)",
+                                         &(q->num_practice_disco));
+            error += CopeWithCommentsField(
+                fp, "PreparationComments:", &(q->prep_comments));
+        }
+        if (q->awareofdisco == 1)
+            error += CopeWithCommentsField(
+                fp, "SuspectedOtherComments:", &(q->suspected_other_comments));
+        error +=
+            ReadFormat1Line(fp, "OveralImpression", &(q->overall_impression));
     }
     error += CopeWithCommentsField(fp, "FinalComments:", &(q->final_comments));
 
-    return(error);
+    return (error);
 }
 
 /*

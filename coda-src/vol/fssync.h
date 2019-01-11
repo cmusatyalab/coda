@@ -37,39 +37,39 @@ Pittsburgh, PA.
 
 */
 
-
-
 #ifndef _FSSYNC_H_
 #define _FSSYNC_H_ 1
 
 #include "deprecations.h"
 
 /* FSYNC commands */
-#define FSYNC_ON		1 /* Volume online */
-#define FSYNC_OFF		2 /* Volume offline */
-#define FSYNC_NEEDVOLUME	4 /* Put volume in whatever mode (offline, or
+#define FSYNC_ON 1 /* Volume online */
+#define FSYNC_OFF 2 /* Volume offline */
+#define FSYNC_NEEDVOLUME \
+    4 /* Put volume in whatever mode (offline, or
 				     whatever) best fits the attachment mode
 				     provided in reason */
-#define FSYNC_MOVEVOLUME	5 /* Generate temporary relocation information
+#define FSYNC_MOVEVOLUME \
+    5 /* Generate temporary relocation information
 				     for this volume to another site, to be used
 				     if this volume disappears */
 
-
 /* Reasons (these could be communicated to venus or converted to messages) */
-#define FSYNC_WHATEVER		0 /* XXXX */
-#define FSYNC_SALVAGE		1 /* volume is being salvaged */
-#define FSYNC_MOVE		2 /* volume is being moved */
-#define FSYNC_OPERATOR		3 /* operator forced volume offline */
+#define FSYNC_WHATEVER 0 /* XXXX */
+#define FSYNC_SALVAGE 1 /* volume is being salvaged */
+#define FSYNC_MOVE 2 /* volume is being moved */
+#define FSYNC_OPERATOR 3 /* operator forced volume offline */
 
 /* Replies (1 byte) */
-#define FSYNC_DENIED		0
-#define FSYNC_OK		1
+#define FSYNC_DENIED 0
+#define FSYNC_OK 1
 
 /* Exported Routines */
 extern void FSYNC_fsInit();
 extern int FSYNC_clientInit();
 extern void FSYNC_clientFinis();
 extern int FSYNC_askfs(VolumeId volume, int com, int reason);
-extern unsigned int FSYNC_CheckRelocationSite(VolumeId volumeId) WARN_SINGLE_HOMING;
+extern unsigned int
+FSYNC_CheckRelocationSite(VolumeId volumeId) WARN_SINGLE_HOMING;
 
 #endif /* _FSSYNC_H_ */

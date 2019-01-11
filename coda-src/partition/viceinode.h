@@ -42,34 +42,33 @@ Pittsburgh, PA.
 #include <vcrcommon.h>
 #include <voltypes.h>
 
-
 /* used by the inode methods */
 struct i_header {
-    int32_t    lnk;
-    VolumeId   volume;
-    VnodeId    vnode;
-    Unique_t   unique;
+    int32_t lnk;
+    VolumeId volume;
+    VnodeId vnode;
+    Unique_t unique;
     FileVersion dataversion;
-    int32_t    magic;
+    int32_t magic;
 };
-
 
 /* Structure of individual records output by fsck.
    When VICEMAGIC inodes are created, they are given four parameters;
    these correspond to the params.fsck array of this record.
  */
 struct ViceInodeInfo {
-    bit32	InodeNumber;
-    int32_t	ByteCount;
-    int32_t	LinkCount;
-    VolumeId	VolumeNo;
-    VnodeId	VnodeNumber;
-    Unique_t	VnodeUniquifier;
-    FileVersion	InodeDataVersion;
-    int32_t     Magic;
-}; 
+    bit32 InodeNumber;
+    int32_t ByteCount;
+    int32_t LinkCount;
+    VolumeId VolumeNo;
+    VnodeId VnodeNumber;
+    Unique_t VnodeUniquifier;
+    FileVersion InodeDataVersion;
+    int32_t Magic;
+};
 
-#define INODESPECIAL 0xffffffff	/* This vnode number will never
+#define INODESPECIAL \
+    0xffffffff /* This vnode number will never
 					   be used legitimately */
 
 #endif /* _VICEINODE_H_ */

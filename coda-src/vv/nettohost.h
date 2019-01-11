@@ -16,12 +16,12 @@ listed in the file CREDITS.
 
 #*/
 
-#ifndef _NETTOHOST_H_ 
+#ifndef _NETTOHOST_H_
 #define _NETTOHOST_H_ 1
 
 void ntohsid(ViceStoreId *, ViceStoreId *);
 void htonsid(ViceStoreId *, ViceStoreId *);
 void ntohvv(ViceVersionVector *, ViceVersionVector *);
 void htonvv(ViceVersionVector *, ViceVersionVector *);
- 
+
 #endif /* _NETTOHOST_H_ */

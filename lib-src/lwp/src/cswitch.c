@@ -26,13 +26,12 @@ listed in the file CREDITS.
 static void OtherProcess(void *arg)
 {
     PROCESS parent = (PROCESS)arg;
-    for(;;)
-    {
+    for (;;) {
         /* we just yield */
 #if 0
 	LWP_DispatchProcess();
 #else
-	LWP_QSignal(parent);
+        LWP_QSignal(parent);
         LWP_QWait();
 #endif
     }
@@ -42,18 +41,19 @@ int main(int argc, char **argv)
 {
     struct timeval t1, t2;
     PROCESS pid, otherpid;
-    register long i,  count, x;
+    register long i, count, x;
     static char c[] = "OtherProcess";
 
     count = argc > 1 ? atoi(argv[1]) : 10000;
 
-    cont_sw_threshold.tv_sec = 0;
-    cont_sw_threshold.tv_usec = 10000;
-    last_context_switch.tv_sec = 0;
+    cont_sw_threshold.tv_sec    = 0;
+    cont_sw_threshold.tv_usec   = 10000;
+    last_context_switch.tv_sec  = 0;
     last_context_switch.tv_usec = 0;
 
     assert(LWP_Init(LWP_VERSION, 0, &pid) == LWP_SUCCESS);
-    assert(LWP_CreateProcess(OtherProcess, 16384, 0, (char *)pid, c, &otherpid) == LWP_SUCCESS);
+    assert(LWP_CreateProcess(OtherProcess, 16384, 0, (char *)pid, c,
+                             &otherpid) == LWP_SUCCESS);
     assert(IOMGR_Initialize() == LWP_SUCCESS);
     gettimeofday(&t1, NULL);
 
@@ -68,10 +68,10 @@ int main(int argc, char **argv)
 
     gettimeofday(&t2, NULL);
 
-    if (count)
-    {
-	x = (t2.tv_sec -t1.tv_sec)*1000000 + (t2.tv_usec - t1.tv_usec);
-	printf("%ld milliseconds for %ld Yields (%f usec per Yield)\n", x/1000, count, (float)(x/count));
+    if (count) {
+        x = (t2.tv_sec - t1.tv_sec) * 1000000 + (t2.tv_usec - t1.tv_usec);
+        printf("%ld milliseconds for %ld Yields (%f usec per Yield)\n",
+               x / 1000, count, (float)(x / count));
     }
 
     LWP_TerminateProcessSupport();

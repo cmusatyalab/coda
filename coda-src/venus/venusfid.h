@@ -22,14 +22,14 @@ listed in the file CREDITS.
 #include <codadir.h>
 
 typedef struct {
-    RealmId  Realm;
+    RealmId Realm;
     VolumeId Volume;
-    VnodeId  Vnode;
+    VnodeId Vnode;
     Unique_t Unique;
 } VenusFid;
 
 typedef struct {
-    RealmId  Realm;
+    RealmId Realm;
     VolumeId Volume;
 } Volid;
 
@@ -56,17 +56,17 @@ inline Volid *MakeVolid(VenusFid *fid)
 inline int FID_EQ(const VenusFid *a, const VenusFid *b)
 {
     return (a->Realm == b->Realm && a->Volume == b->Volume &&
-	    a->Vnode == b->Vnode && a->Unique == b->Unique);
+            a->Vnode == b->Vnode && a->Unique == b->Unique);
 }
 
 inline int FID_VolEQ(const Volid *a, const Volid *b)
 {
-	return (a->Realm == b->Realm && a->Volume == b->Volume);
+    return (a->Realm == b->Realm && a->Volume == b->Volume);
 }
 
 inline int FID_VolEQ(const VenusFid *a, const VenusFid *b)
 {
-	return FID_VolEQ((Volid *)a, (Volid *)b);
+    return FID_VolEQ((Volid *)a, (Volid *)b);
 }
 
 inline int FID_IsVolRoot(VenusFid *fid)
@@ -78,10 +78,10 @@ inline char *FID_(const VenusFid *fid)
 {
     static char buf[2][37];
     static int i = 0;
-    i = 1 - i;
-    sprintf(buf[i], "%x.%x.%x.%x",
-	    (unsigned int)fid->Realm, (unsigned int)fid->Volume,
-	    (unsigned int)fid->Vnode, (unsigned int)fid->Unique);
+    i            = 1 - i;
+    sprintf(buf[i], "%x.%x.%x.%x", (unsigned int)fid->Realm,
+            (unsigned int)fid->Volume, (unsigned int)fid->Vnode,
+            (unsigned int)fid->Unique);
     return buf[i];
 }
 
@@ -93,18 +93,19 @@ inline void MakeVenusFid(VenusFid *vf, const uint32_t realm, const ViceFid *fid)
     vf->Unique = fid->Unique;
 }
 
-#define FakeRootVolumeId   ((VolumeId)0xff000001)
+#define FakeRootVolumeId ((VolumeId)0xff000001)
 #define FakeRepairVolumeId ((VolumeId)0xffffffff)
 
 int FID_IsLocalFake(VenusFid *fid);
 
-inline int FID_IsExpandedDir(ViceFid *vf) {
-  return (vf->Volume == FakeRepairVolumeId) && FID_IsFakeRoot(vf);
+inline int FID_IsExpandedDir(ViceFid *vf)
+{
+    return (vf->Volume == FakeRepairVolumeId) && FID_IsFakeRoot(vf);
 }
 
-inline int FID_IsExpandedDir(VenusFid *vf) {
-  return FID_IsLocalFake(vf) && FID_IsExpandedDir(MakeViceFid(vf));
+inline int FID_IsExpandedDir(VenusFid *vf)
+{
+    return FID_IsLocalFake(vf) && FID_IsExpandedDir(MakeViceFid(vf));
 }
 
 #endif /* _VENUSFID_H_ */
-

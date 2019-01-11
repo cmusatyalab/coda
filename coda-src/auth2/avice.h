@@ -18,13 +18,10 @@ listed in the file CREDITS.
 #ifndef _AVICE_H_
 #define _AVICE_H_
 
-long GetKeysFromToken(RPC2_Integer *AuthenticationType,
-		      RPC2_CountedBS *cIdent,
-                      RPC2_EncryptionKey hKey,
-                      RPC2_EncryptionKey sKey);
+long GetKeysFromToken(RPC2_Integer *AuthenticationType, RPC2_CountedBS *cIdent,
+                      RPC2_EncryptionKey hKey, RPC2_EncryptionKey sKey);
 
-void SetServerKeys(RPC2_EncryptionKey serverKey1, 
-		   RPC2_EncryptionKey serverKey2);
+void SetServerKeys(RPC2_EncryptionKey serverKey1,
+                   RPC2_EncryptionKey serverKey2);
 
 #endif /* _AVICE_H_ */
-

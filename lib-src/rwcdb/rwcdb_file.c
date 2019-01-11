@@ -36,13 +36,14 @@ static int grow_cache(struct db_file *f, uint32_t len)
 {
     f->cache_pos = f->len;
     if (f->cache_len >= len)
-	return 0;
+        return 0;
 
-    if (f->cache) free(f->cache);
+    if (f->cache)
+        free(f->cache);
     f->cache = (char *)malloc(len);
     if (!f->cache) {
-	f->cache = NULL;
-	return -1;
+        f->cache = NULL;
+        return -1;
     }
     f->cache_len = len;
     return 0;
@@ -58,37 +59,39 @@ static int cached(struct db_file *f, uint32_t len, uint32_t pos)
 
 int db_file_seek(struct db_file *f, const uint32_t pos)
 {
-    if (lseek(f->fd, pos, SEEK_SET) != pos) return -1;
+    if (lseek(f->fd, pos, SEEK_SET) != pos)
+        return -1;
     f->pos = pos;
     return 0;
 }
 
 int db_file_mread(struct db_file *f, void **data, const uint32_t len,
-		  const uint32_t pos)
+                  const uint32_t pos)
 {
     ssize_t n;
 
     if (pos + len > f->len)
-	return -1;
+        return -1;
 
     if (!cached(f, len, pos)) {
-	if (grow_cache(f, len))
-	    return -1;
+        if (grow_cache(f, len))
+            return -1;
 
 #ifdef HAVE_PREAD
-	n = pread(f->fd, f->cache, len, pos);
+        n = pread(f->fd, f->cache, len, pos);
 #else
-	if (pos != f->pos && lseek(f->fd, pos, SEEK_SET) != pos)
-	    return -1;
+        if (pos != f->pos && lseek(f->fd, pos, SEEK_SET) != pos)
+            return -1;
 
-	n = read(f->fd, f->cache, len);
+        n = read(f->fd, f->cache, len);
 #endif
-	if (n >= 0)
-	    f->pos = pos + n;
-	if (n != len) return -1;
+        if (n >= 0)
+            f->pos = pos + n;
+        if (n != len)
+            return -1;
 
-	f->cache_pos = pos;
-	f->cache_len = len;
+        f->cache_pos = pos;
+        f->cache_len = len;
     }
 
     *data = (char *)f->cache + (pos - f->cache_pos);
@@ -102,10 +105,11 @@ int db_file_write(struct db_file *f, void *data, uint32_t len)
     ssize_t n;
     uint32_t blob;
 
-    if (!len) return 0;
+    if (!len)
+        return 0;
 
     if (grow_cache(f, PAGESIZE))
-	return -1;
+        return -1;
 
     /* first fill the rest of the page */
     blob = len < (PAGESIZE - f->pending) ? len : PAGESIZE - f->pending;
@@ -117,30 +121,32 @@ int db_file_write(struct db_file *f, void *data, uint32_t len)
 
     /* flush full pages */
     if (f->pending == PAGESIZE) {
-	n = write(f->fd, f->cache, PAGESIZE);
-	if (n == -1) return -1;
-	f->pending = 0;
+        n = write(f->fd, f->cache, PAGESIZE);
+        if (n == -1)
+            return -1;
+        f->pending = 0;
     }
 
     /* flush rest of the data, when it is a lot */
     blob = len & ~(PAGESIZE - 1);
     if (blob) {
-	n = write(f->fd, data, blob);
-	if (n == -1) return -1;
-	data = (char *)data + blob;
-	len -= blob;
-	f->pos += blob;
+        n = write(f->fd, data, blob);
+        if (n == -1)
+            return -1;
+        data = (char *)data + blob;
+        len -= blob;
+        f->pos += blob;
     }
 
     /* start filling the next page with the leftovers */
     if (len) {
-	memcpy(f->cache, data, len);
-	f->pending += len;
-	f->pos += len;
+        memcpy(f->cache, data, len);
+        f->pending += len;
+        f->pos += len;
     }
 
     if (f->pos > f->len)
-	f->len = f->pos;
+        f->len = f->pos;
 
     return 0;
 }
@@ -149,9 +155,10 @@ int db_file_flush(struct db_file *f)
 {
     ssize_t n;
     if (f->pending) {
-	n = write(f->fd, f->cache, f->pending);
-	if (n == -1) return -1;
-	f->pending = 0;
+        n = write(f->fd, f->cache, f->pending);
+        if (n == -1)
+            return -1;
+        f->pending = 0;
     }
     return 0;
 }
@@ -161,7 +168,7 @@ int db_readints(struct db_file *f, uint32_t *a, uint32_t *b, uint32_t pos)
     void *buf;
 
     if (db_file_mread(f, &buf, 8, pos))
-	return -1;
+        return -1;
 
     unpackints(buf, a, b);
     return 0;
@@ -172,23 +179,24 @@ int db_file_open(struct db_file *f, const char *name, const int mode)
     struct stat sb;
     uint32_t dummy;
 
-    f->pos = 0;
-    f->eod = 2048;
-    f->cache = NULL;
+    f->pos       = 0;
+    f->eod       = 2048;
+    f->cache     = NULL;
     f->cache_len = f->pending = 0;
 
     f->fd = open(name, mode, 0600);
-    if (f->fd == -1) return -1;
+    if (f->fd == -1)
+        return -1;
 
     if (fstat(f->fd, &sb)) {
-	close(f->fd);
-	return -1;
+        close(f->fd);
+        return -1;
     }
     f->ino = sb.st_ino;
     f->len = f->cache_pos = sb.st_size;
 
     if (f->len)
-	(void)db_readints(f, &f->eod, &dummy, 0);
+        (void)db_readints(f, &f->eod, &dummy, 0);
 
     return 0;
 }
@@ -196,13 +204,12 @@ int db_file_open(struct db_file *f, const char *name, const int mode)
 void db_file_close(struct db_file *f)
 {
     if (f->cache) {
-	free(f->cache);
-	f->cache_len = 0;
+        free(f->cache);
+        f->cache_len = 0;
     }
 
     if (f->fd != -1) {
-	close(f->fd);
-	f->fd = -1;
+        close(f->fd);
+        f->fd = -1;
     }
 }
-

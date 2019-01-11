@@ -17,7 +17,7 @@ listed in the file CREDITS.
 #*/
 
 #ifndef _PARSELOG_H_
-#define _PARSELOG_H_ 	1
+#define _PARSELOG_H_ 1
 // compops.h
 // 	class definition for remoteloglist
 //		groups remote logentries  by vnode and unique
@@ -29,12 +29,15 @@ struct remoteloglist : public olink {
     Unique_t unique;
     olist slelist;
 
-    remoteloglist(VnodeId vn, Unique_t u) { 
-	vnode = vn; unique = u; 
+    remoteloglist(VnodeId vn, Unique_t u)
+    {
+        vnode  = vn;
+        unique = u;
     }
-	
-    ~remoteloglist() {
-	// CODA_ASSERT(slelist.count() == 0);
+
+    ~remoteloglist()
+    {
+        // CODA_ASSERT(slelist.count() == 0);
     }
 };
 
@@ -42,6 +45,6 @@ struct remoteloglist : public olink {
 extern void ParseRemoteLogs(char *, int, int, olist **, rsle **);
 extern void DeallocateRemoteLogs(olist *);
 extern remoteloglist *FindLogList(he *, VnodeId, Unique_t);
-extern olist *FindRemoteLog(olist *, unsigned long , ViceFid *);
+extern olist *FindRemoteLog(olist *, unsigned long, ViceFid *);
 
 #endif /* _PARSELOG_H_ */

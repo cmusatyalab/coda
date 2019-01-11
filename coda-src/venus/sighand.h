@@ -16,22 +16,14 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
-
 /*
  *
  *    Specification of the Venus Signal Handler facility.
  *
  */
 
-
-#ifndef	_VENUS_SIGHAND_H_
-#define	_VENUS_SIGHAND_H_ 1
+#ifndef _VENUS_SIGHAND_H_
+#define _VENUS_SIGHAND_H_ 1
 
 void SigInit(void);
 extern int TerminateVenus;

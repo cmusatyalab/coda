@@ -54,15 +54,22 @@ char *codaconf_file(const char *confname);
 
 #include "coda_string.h"
 
-#define CODACONF_STR(var, key, defval) \
-    if (var == NULL || *var == '\0') { var = codaconf_lookup(key, defval); }
-#define CODACONF_INT(var, key, defval) \
-    { char t[256]; snprintf(t, 255, "%d", defval); t[255] = '\0'; \
-    if (var == 0) { var = atoi(codaconf_lookup(key, t)); } }
+#define CODACONF_STR(var, key, defval)      \
+    if (var == NULL || *var == '\0') {      \
+        var = codaconf_lookup(key, defval); \
+    }
+#define CODACONF_INT(var, key, defval)           \
+    {                                            \
+        char t[256];                             \
+        snprintf(t, 255, "%d", defval);          \
+        t[255] = '\0';                           \
+        if (var == 0) {                          \
+            var = atoi(codaconf_lookup(key, t)); \
+        }                                        \
+    }
 
 #ifdef __cplusplus
 }
 #endif
 
 #endif /* _CODACONF_H_ */
-

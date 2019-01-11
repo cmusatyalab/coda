@@ -30,9 +30,6 @@ Mellon the rights to redistribute these changes without encumbrance.
 */
 #endif /*_BLURB_*/
 
-
-
-
 // Multi-Threaded bounded buffer.
 
 // bbuf.c
@@ -56,7 +53,7 @@ Mellon the rights to redistribute these changes without encumbrance.
 // no one ever deletes.
 //
 // Delete:
-// delete obtains the lock, and then checks to see if the number of items 
+// delete obtains the lock, and then checks to see if the number of items
 // in the buffer is less than low_fuel_mark.  If it is, delete releases
 // the lock and sleeps on the condition variable low_fuel.  Delete signals
 // full_tank whenever it deletes something from the queue.  Delete can
@@ -83,112 +80,110 @@ extern "C" {
 
 bbuf::bbuf(int bound, int lfm)
 {
-  head = 0;
-  tail = 0;
-  count = 0;
-  bnd = bound;
-  low_fuel_mark = lfm;
-  buf = new bbuf_item[bound];
-  low_fuel = new(char);             // set valid addresses to the conditions;
-  full_tank = new(char);
-  Lock_Init(&lock);                 // initialize the lock;
-  dbg = mfalse;
+    head          = 0;
+    tail          = 0;
+    count         = 0;
+    bnd           = bound;
+    low_fuel_mark = lfm;
+    buf           = new bbuf_item[bound];
+    low_fuel      = new (char); // set valid addresses to the conditions;
+    full_tank     = new (char);
+    Lock_Init(&lock); // initialize the lock;
+    dbg = mfalse;
 }
 
 bbuf::~bbuf()
 {
-  ObtainWriteLock(&lock);           // this had better be the only thread;
-  delete [] buf;
-  delete low_fuel;                  // deallocate memory for free-store;
-  delete full_tank;                 // objects;
-  ReleaseWriteLock(&lock);
+    ObtainWriteLock(&lock); // this had better be the only thread;
+    delete[] buf;
+    delete low_fuel; // deallocate memory for free-store;
+    delete full_tank; // objects;
+    ReleaseWriteLock(&lock);
 }
 
 BbufStatus bbuf::insert(bbuf_item to_insert)
 {
-  int sigResult;
-  
-  ObtainWriteLock(&lock);
-  while (count == bnd) {
-    ReleaseWriteLock(&lock);
-    LWP_WaitProcess(full_tank);
+    int sigResult;
+
     ObtainWriteLock(&lock);
-  }
-  buf[tail++] = to_insert;
-  tail = tail % bnd;
-  count++;
-  if (count > low_fuel_mark) {
-    sigResult = LWP_SignalProcess(low_fuel);
-    if ((sigResult != LWP_SUCCESS) && (sigResult != LWP_ENOWAIT)) {
-      bbuf_error("bbuf->insert():",sigResult);
+    while (count == bnd) {
+        ReleaseWriteLock(&lock);
+        LWP_WaitProcess(full_tank);
+        ObtainWriteLock(&lock);
     }
-  }
-  ReleaseWriteLock(&lock);
-  return BBUFOK;
+    buf[tail++] = to_insert;
+    tail        = tail % bnd;
+    count++;
+    if (count > low_fuel_mark) {
+        sigResult = LWP_SignalProcess(low_fuel);
+        if ((sigResult != LWP_SUCCESS) && (sigResult != LWP_ENOWAIT)) {
+            bbuf_error("bbuf->insert():", sigResult);
+        }
+    }
+    ReleaseWriteLock(&lock);
+    return BBUFOK;
 }
 
 BbufStatus bbuf::remove(bbuf_item *result)
 {
-  int sigResult;
+    int sigResult;
 
-  ObtainWriteLock(&lock);
-  while (count <= low_fuel_mark) {
-    ReleaseWriteLock(&lock);
-    LWP_WaitProcess(low_fuel);
     ObtainWriteLock(&lock);
-  }
-  *result = buf[head++];
-  head = head%bnd;
-  count--;
-  sigResult = LWP_SignalProcess(full_tank);
-  if ((sigResult != LWP_SUCCESS) && (sigResult != LWP_ENOWAIT))
-    bbuf_error("bbuf->remove():",sigResult);
-  ReleaseWriteLock(&lock);
-  return BBUFOK;
+    while (count <= low_fuel_mark) {
+        ReleaseWriteLock(&lock);
+        LWP_WaitProcess(low_fuel);
+        ObtainWriteLock(&lock);
+    }
+    *result = buf[head++];
+    head    = head % bnd;
+    count--;
+    sigResult = LWP_SignalProcess(full_tank);
+    if ((sigResult != LWP_SUCCESS) && (sigResult != LWP_ENOWAIT))
+        bbuf_error("bbuf->remove():", sigResult);
+    ReleaseWriteLock(&lock);
+    return BBUFOK;
 }
 
 bool bbuf::full(void)
 {
-  ObtainReadLock(&lock);
-  if (count == bnd) {
-    ReleaseReadLock(&lock);
-    return mtrue;
-  }
-  else {
-    ReleaseReadLock(&lock);
-    return mfalse;
-  }
+    ObtainReadLock(&lock);
+    if (count == bnd) {
+        ReleaseReadLock(&lock);
+        return mtrue;
+    } else {
+        ReleaseReadLock(&lock);
+        return mfalse;
+    }
 }
 
 bool bbuf::empty(void)
 {
-  ObtainReadLock(&lock);
-  if (count == 0) {
-    ReleaseReadLock(&lock);
-    return mtrue;
-  }
-  else {
-    ReleaseReadLock(&lock);
-    return mfalse;
-  }
+    ObtainReadLock(&lock);
+    if (count == 0) {
+        ReleaseReadLock(&lock);
+        return mtrue;
+    } else {
+        ReleaseReadLock(&lock);
+        return mfalse;
+    }
 }
 
 void bbuf::flush_the_tank(void)
 {
-  int sigResult;
-  
-  ObtainWriteLock(&lock);
-  low_fuel_mark = 0;
-  ReleaseWriteLock(&lock);
-  sigResult = LWP_SignalProcess(low_fuel);
-  if ((sigResult != LWP_SUCCESS) && (sigResult != LWP_ENOWAIT)) {
-    bbuf_error("bbuf->insert():",sigResult);
-  }
+    int sigResult;
+
+    ObtainWriteLock(&lock);
+    low_fuel_mark = 0;
+    ReleaseWriteLock(&lock);
+    sigResult = LWP_SignalProcess(low_fuel);
+    if ((sigResult != LWP_SUCCESS) && (sigResult != LWP_ENOWAIT)) {
+        bbuf_error("bbuf->insert():", sigResult);
+    }
 }
 
 void bbuf::bbuf_error(char *string, int err)
 {
-/*  bool crash = mtrue;
+    /*  bool crash = mtrue;
 
   switch(err) {
   case LWP_SUCCESS:
@@ -211,7 +206,7 @@ void bbuf::bbuf_error(char *string, int err)
 */
 }
 
-void bbuf::debug(bool dbg_value) {
-  dbg = dbg_value;
+void bbuf::debug(bool dbg_value)
+{
+    dbg = dbg_value;
 }
-

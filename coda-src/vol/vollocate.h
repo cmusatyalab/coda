@@ -24,4 +24,3 @@ listed in the file CREDITS.
 VolumeId VOL_Locate(char *volkey);
 
 #endif /* _VICE_VOLLOCATE_H_ */
-

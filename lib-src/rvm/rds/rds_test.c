@@ -16,8 +16,6 @@ Coda are listed in the file CREDITS.
 
 #*/
 
-
-
 /*
  * this file was written to test the recoverable heap stuff for rvm.
  */
@@ -31,12 +29,11 @@ Coda are listed in the file CREDITS.
 extern char *sys_errlist[];
 extern int sys_nerr;
 
-main(argc, argv)
-     int  argc;
-     char *argv[];
+main(argc, argv) int argc;
+char *argv[];
 {
-    rvm_options_t       *options;       /* options descriptor ptr */
-    rvm_return_t	ret;
+    rvm_options_t *options; /* options descriptor ptr */
+    rvm_return_t ret;
     int err;
     char string[80], DataDev[80], *sptr;
     unsigned long vmaddr, length, i;
@@ -44,382 +41,408 @@ main(argc, argv)
     rvm_tid_t *tid = rvm_malloc_tid();
     rvm_offset_t DataLen;
     struct stat sbuf;
-    
+
     if (argc < 3) {
-	printf("Usage: %s log-device data-device\n",argv[0]);
-	exit(EXIT_FAILURE);
+        printf("Usage: %s log-device data-device\n", argv[0]);
+        exit(EXIT_FAILURE);
     }
-    
-    options = rvm_malloc_options();
+
+    options          = rvm_malloc_options();
     options->log_dev = argv[1];
     strcpy(DataDev, argv[2]);
-    
+
     if (stat(DataDev, &sbuf) < 0) {
-	printf("%s\n", errno < sys_nerr? sys_errlist[errno]: "Cannot stat");
-	exit(EXIT_FAILURE);
+        printf("%s\n", errno < sys_nerr ? sys_errlist[errno] : "Cannot stat");
+        exit(EXIT_FAILURE);
     }
 
     switch (sbuf.st_mode & S_IFMT) {
-      case S_IFSOCK:
-      case S_IFDIR:
-      case S_IFLNK:
-      case S_IFBLK: 
-	printf("Illegal file type!\n");
-	exit(EXIT_FAILURE);
+    case S_IFSOCK:
+    case S_IFDIR:
+    case S_IFLNK:
+    case S_IFBLK:
+        printf("Illegal file type!\n");
+        exit(EXIT_FAILURE);
 
-      case S_IFCHR:
-	printf("Enter the length of the device %s: ", DataDev);
-	gets(string);
-	
-	sptr = string;
-	if ((*sptr == '0') && (*(++sptr) == 'x'))
-	    sscanf(string, "0x%X", &length);
-	else
-	    length = atoi(string);
+    case S_IFCHR:
+        printf("Enter the length of the device %s: ", DataDev);
+        gets(string);
 
-	DataLen = RVM_MK_OFFSET(0, length);
-	break;
-	
-      default:		/* Normal files. */
-	DataLen = RVM_MK_OFFSET(0, sbuf.st_size);
+        sptr = string;
+        if ((*sptr == '0') && (*(++sptr) == 'x'))
+            sscanf(string, "0x%X", &length);
+        else
+            length = atoi(string);
+
+        DataLen = RVM_MK_OFFSET(0, length);
+        break;
+
+    default: /* Normal files. */
+        DataLen = RVM_MK_OFFSET(0, sbuf.st_size);
     }
-	
+
     for (;;) {
-	printf("> ");
-	gets(string);
-	
-	switch (*string) {
-	  case 'i' :
-	      ret = RVM_INIT(options);
-	      if  (ret != RVM_SUCCESS) 
-		  printf("?rvm_initialize failed, code: %s\n",rvm_return(ret));
-	      else
-		  printf("rvm_initialize succeeded.\n");
-	      break;
+        printf("> ");
+        gets(string);
 
-	  case 'C' :
-	      for (i = 0; i < 20; i++) {
-		  printf("region %d:\n",i);
-		  printf("    vmaddr> ");	gets(string);
-		  if (*string == 'q') break;
-		  sscanf(string, "%x", &regions[i].vmaddr);
-		  printf("    length> ");	gets(string);
-		  sscanf(string, "%x", &regions[i].length);
-	      }
+        switch (*string) {
+        case 'i':
+            ret = RVM_INIT(options);
+            if (ret != RVM_SUCCESS)
+                printf("?rvm_initialize failed, code: %s\n", rvm_return(ret));
+            else
+                printf("rvm_initialize succeeded.\n");
+            break;
 
-	      ret = rvm_create_segment(DataDev, DataLen, i, regions, options);
-	      if (ret != RVM_SUCCESS)
-		  printf("ERROR:rvm_create_segment failed, code: %s\n",
-			 rvm_return(ret));
-	      else
-		  printf("rvm_create_segment succeeded.\n");
-	      break;
+        case 'C':
+            for (i = 0; i < 20; i++) {
+                printf("region %d:\n", i);
+                printf("    vmaddr> ");
+                gets(string);
+                if (*string == 'q')
+                    break;
+                sscanf(string, "%x", &regions[i].vmaddr);
+                printf("    length> ");
+                gets(string);
+                sscanf(string, "%x", &regions[i].length);
+            }
 
-	  case 't' :
-	      ret = rvm_terminate();
-	      if (ret != RVM_SUCCESS)
-		  printf("\n? Error in rvm_terminate, ret = %s\n",
-			 rvm_return(ret));
-	      else
-		  printf("rvm_terminate succeeded.\n");
-	      break;
-	      
+            ret = rvm_create_segment(DataDev, DataLen, i, regions, options);
+            if (ret != RVM_SUCCESS)
+                printf("ERROR:rvm_create_segment failed, code: %s\n",
+                       rvm_return(ret));
+            else
+                printf("rvm_create_segment succeeded.\n");
+            break;
 
-	  case 'l' : {
-	      unsigned long nregions;
-	      rvm_region_def_t *regions;
-	      ret = rvm_load_segment(DataDev,DataLen,options,&nregions, &regions);
-	      if (ret != RVM_SUCCESS) 
-		  printf("ERROR: rvm_load_seg, code: %s\n",rvm_return(ret));
-	      else
-		  printf("rvm_load_segment succeeded.\n");
-	      free(regions);
-	      break;
-	  }
-	      
-	  case 'q' :
-		exit(EXIT_SUCCESS);
+        case 't':
+            ret = rvm_terminate();
+            if (ret != RVM_SUCCESS)
+                printf("\n? Error in rvm_terminate, ret = %s\n",
+                       rvm_return(ret));
+            else
+                printf("rvm_terminate succeeded.\n");
+            break;
 
-	  case 'Q' : { /* Query RVM */
-	      rvm_options_t *curopts;
-	      int i;
-	      
-	      BZERO(&regions[0], sizeof(rvm_region_def_t));
-	      ret = rvm_query(&curopts, &regions[0]);
+        case 'l': {
+            unsigned long nregions;
+            rvm_region_def_t *regions;
+            ret = rvm_load_segment(DataDev, DataLen, options, &nregions,
+                                   &regions);
+            if (ret != RVM_SUCCESS)
+                printf("ERROR: rvm_load_seg, code: %s\n", rvm_return(ret));
+            else
+                printf("rvm_load_segment succeeded.\n");
+            free(regions);
+            break;
+        }
 
-	      printf("Uncommitted transactions: %d\n", curopts->n_uncommit);
+        case 'q':
+            exit(EXIT_SUCCESS);
 
-	      for (i = 0; i < curopts->n_uncommit; i++) {
-		  rvm_abort_transaction(&(curopts->tid_array[i]));
-		  if (ret != RVM_SUCCESS) 
-		      printf("ERROR: abort failed, code: %s\n", rvm_return(ret));
-	      }
+        case 'Q': { /* Query RVM */
+            rvm_options_t *curopts;
+            int i;
 
-	      BZERO(&regions[0], sizeof(rvm_region_def_t));
-	      ret = rvm_query(&curopts, &regions[0]);
+            BZERO(&regions[0], sizeof(rvm_region_def_t));
+            ret = rvm_query(&curopts, &regions[0]);
 
-	      printf("Uncommitted transactions: %d\n", curopts->n_uncommit);
+            printf("Uncommitted transactions: %d\n", curopts->n_uncommit);
 
-	      rvm_free_options(curopts);
-	      break;
-	  }
+            for (i = 0; i < curopts->n_uncommit; i++) {
+                rvm_abort_transaction(&(curopts->tid_array[i]));
+                if (ret != RVM_SUCCESS)
+                    printf("ERROR: abort failed, code: %s\n", rvm_return(ret));
+            }
 
-	  case 'b' : {
-	      rvm_tid_t *ttid = rvm_malloc_tid();
+            BZERO(&regions[0], sizeof(rvm_region_def_t));
+            ret = rvm_query(&curopts, &regions[0]);
 
-	      ret = rvm_begin_transaction(ttid, no_restore);
-	      if (ret != RVM_SUCCESS) {
-		  printf("ERROR: begin_trans failed, code: %s\n",rvm_return(ret));
-		  break;
-	      }
+            printf("Uncommitted transactions: %d\n", curopts->n_uncommit);
 
-	      printf("Transaction started, tid = 0x%x\n", ttid);
-	      break;
-	  }
+            rvm_free_options(curopts);
+            break;
+        }
 
-	  case 'a' : {
-	      rvm_tid_t *ttid = rvm_malloc_tid();
-	      
-	      printf("address of transaction to abort: 0x"); gets(string);
-	      sscanf(string, "%x", (int *)&ttid);
+        case 'b': {
+            rvm_tid_t *ttid = rvm_malloc_tid();
 
-	      ret = rvm_abort_transaction(ttid);
-	      if (ret != RVM_SUCCESS) 
-		  printf("ERROR: abort failed, code: %s\n", rvm_return(ret));
+            ret = rvm_begin_transaction(ttid, no_restore);
+            if (ret != RVM_SUCCESS) {
+                printf("ERROR: begin_trans failed, code: %s\n",
+                       rvm_return(ret));
+                break;
+            }
 
-	      break;
-	  }
+            printf("Transaction started, tid = 0x%x\n", ttid);
+            break;
+        }
 
-	  case 'e' : {
-	      rvm_tid_t *ttid = rvm_malloc_tid();
-	      
-	      printf("address of transaction to end: 0x"); gets(string);
-	      sscanf(string, "%x", (int *)&ttid);
+        case 'a': {
+            rvm_tid_t *ttid = rvm_malloc_tid();
 
-	      ret = rvm_end_transaction(ttid, flush);
-	      if (ret != RVM_SUCCESS) 
-		  printf("ERROR: abort failed, code: %s\n", rvm_return(ret));
+            printf("address of transaction to abort: 0x");
+            gets(string);
+            sscanf(string, "%x", (int *)&ttid);
 
-	      break;
-	  }
-	      
-	  case 'w' : {
-	      int len;
-	      int *addr;
+            ret = rvm_abort_transaction(ttid);
+            if (ret != RVM_SUCCESS)
+                printf("ERROR: abort failed, code: %s\n", rvm_return(ret));
 
-	      printf("address to write to: "); gets(string);
-	      sscanf(string, "%x", (int *)&addr);
-	      printf("Number of words to write: "); gets(string);
-	      sscanf(string, "%d", &len);
+            break;
+        }
 
-	      ret = rvm_begin_transaction(tid, no_restore);
-	      if (ret != RVM_SUCCESS) {
-		  printf("ERROR: begin_trans failed, code: %s\n",rvm_return(ret));
-		  break;
-	      }
-	      
-	      ret = rvm_set_range(tid, (char *)addr, len * sizeof(int));
-	      if (ret != RVM_SUCCESS) {
-		  printf("ERROR: set_range, code: %s, abort: %s\n",
-			 rvm_return(ret),
-			 rvm_return(rvm_abort_transaction(tid)));
-	      }
-	      
-	      for (i = 0; i < len; i++)
-		  addr[i] = i;
+        case 'e': {
+            rvm_tid_t *ttid = rvm_malloc_tid();
 
-	      ret = rvm_end_transaction(tid, flush);
-	      if (ret != RVM_SUCCESS)
-		  printf("ERROR: end_trans, code: %s\n",rvm_return(ret));
+            printf("address of transaction to end: 0x");
+            gets(string);
+            sscanf(string, "%x", (int *)&ttid);
 
-	      break;
-	  }
+            ret = rvm_end_transaction(ttid, flush);
+            if (ret != RVM_SUCCESS)
+                printf("ERROR: abort failed, code: %s\n", rvm_return(ret));
 
-	  case 'r' : {
-	      int len;
-	      int *addr;
-	      
-	      printf("address to read from: "); gets(string);
-	      sscanf(string, "%x", (int *)&addr);
-	      printf("Number of words to read: "); gets(string);
-	      sscanf(string, "%d", &len);
+            break;
+        }
 
-	      for (i = 0; i < len; i++)
-		  printf("%d\n", addr[i]);
-	      break;
-	  }
+        case 'w': {
+            int len;
+            int *addr;
 
-	  case 'z' : { /* Create a heap */
-	      char *static_addr;
-	      int slen, hlen, nlists, chunksize;
-	      printf("Create a dynamic heap.\n");
-	      printf("starting address of rvm: "); gets(string);
-	      sscanf(string, "%x", (int *)&static_addr);
-	      printf("heap len, static len: "); gets(string);
-	      sscanf(string, "%x, %x", &hlen, &slen);
-	      printf("nlists: "); gets(string); nlists = atoi(string);
-	      printf("chunksize: "); gets(string); chunksize = atoi(string);
+            printf("address to write to: ");
+            gets(string);
+            sscanf(string, "%x", (int *)&addr);
+            printf("Number of words to write: ");
+            gets(string);
+            sscanf(string, "%d", &len);
 
-	      rds_zap_heap(DataDev, DataLen, static_addr, slen, hlen, nlists, chunksize, &err);
-	      if (err == SUCCESS)
-		  printf("rds_zap_heap completed successfully.\n");
-	      else if (err > SUCCESS)
-		  printf("ERROR: rds_zap_heap %s.\n",
-			 rvm_return((rvm_return_t) err));
-	      else
-		  printf("ERROR: rds_zap_heap, code: %d\n", err);
+            ret = rvm_begin_transaction(tid, no_restore);
+            if (ret != RVM_SUCCESS) {
+                printf("ERROR: begin_trans failed, code: %s\n",
+                       rvm_return(ret));
+                break;
+            }
 
-	      break;
-	  }
- 
-	  case 'm' : {
-	      int s, n, i;
-	      char *temp;
+            ret = rvm_set_range(tid, (char *)addr, len * sizeof(int));
+            if (ret != RVM_SUCCESS) {
+                printf("ERROR: set_range, code: %s, abort: %s\n",
+                       rvm_return(ret), rvm_return(rvm_abort_transaction(tid)));
+            }
 
-	      printf("Size of object to allocate: "); gets(string);
-	      s = atoi(string);
-	      printf("Number of objects to allocate: "); gets(string);
-	      n = atoi(string);
+            for (i = 0; i < len; i++)
+                addr[i] = i;
 
-	      for (i = 0; i < n; i++) {
-		  temp = rds_malloc(s, 0, &err);
-		  printf("%d: rds_malloc = %d, &object = 0x%x\n", i, err, temp);
-	      }
-	      break;
-	  }
+            ret = rvm_end_transaction(tid, flush);
+            if (ret != RVM_SUCCESS)
+                printf("ERROR: end_trans, code: %s\n", rvm_return(ret));
 
-	  case 'f' : {
-	      char *temp;
-	      
-	      printf("object to free: 0x"); gets(string);
-	      sscanf(string, "%x", (int *)&temp);
-	      rds_free(temp, 0, &err);
-	      if (err != SUCCESS) {
-		  if (err > SUCCESS)
-		      printf("rds_free = %s\n", rvm_return((rvm_return_t)err));
-		  else
-		      printf("rds_free = %d\n", err);
-	      }
-	      break;
-	  }
+            break;
+        }
 
-	  case 'x' : { /* init_heap */
-	      rvm_tid_t *tid = rvm_malloc_tid();
-	      unsigned long hlen, slen, chunksize, nlists;
-	      char *startAddr;
-	      
-	      /* Start a transaction to initialize the heap */
-	      printf("Initialize heap.\n");
-	      printf("starting address of rvm: "); gets(string);
-	      sscanf(string, "%x", (int *)&startAddr);
-	      printf("heap len, static len: "); gets(string);
-	      sscanf(string, "%x, %x", &hlen, &slen);
-	      printf("nlists: "); gets(string); nlists = atoi(string);
-	      printf("chunksize: "); gets(string); chunksize = atoi(string);
+        case 'r': {
+            int len;
+            int *addr;
 
-	      ret = rvm_begin_transaction(tid, no_restore);
-	      if (ret != RVM_SUCCESS)
-		  printf("begin_trans code %s\n",rvm_return(ret));
-	      
-	      rds_init_heap(startAddr, hlen, chunksize, nlists, tid, &err);
-	      if (err > SUCCESS) /* RVM error */ 
-		  printf("init_heap code %s\n",rvm_return((rvm_return_t)err));
+            printf("address to read from: ");
+            gets(string);
+            sscanf(string, "%x", (int *)&addr);
+            printf("Number of words to read: ");
+            gets(string);
+            sscanf(string, "%d", &len);
 
-	      if (err < SUCCESS)
-		  printf("init_heap code %d\n",err);
-	      
-	      ret = rvm_end_transaction(tid, flush);
-	      if (ret != RVM_SUCCESS) 
-		  printf("end_trans code %s\n",rvm_return(ret));
+            for (i = 0; i < len; i++)
+                printf("%d\n", addr[i]);
+            break;
+        }
 
-	      rvm_free_tid(tid);
-	      break;
-	  }
+        case 'z': { /* Create a heap */
+            char *static_addr;
+            int slen, hlen, nlists, chunksize;
+            printf("Create a dynamic heap.\n");
+            printf("starting address of rvm: ");
+            gets(string);
+            sscanf(string, "%x", (int *)&static_addr);
+            printf("heap len, static len: ");
+            gets(string);
+            sscanf(string, "%x, %x", &hlen, &slen);
+            printf("nlists: ");
+            gets(string);
+            nlists = atoi(string);
+            printf("chunksize: ");
+            gets(string);
+            chunksize = atoi(string);
 
-	  case 's' : { /* Start Heap */
-	      char *addr;
+            rds_zap_heap(DataDev, DataLen, static_addr, slen, hlen, nlists,
+                         chunksize, &err);
+            if (err == SUCCESS)
+                printf("rds_zap_heap completed successfully.\n");
+            else if (err > SUCCESS)
+                printf("ERROR: rds_zap_heap %s.\n",
+                       rvm_return((rvm_return_t)err));
+            else
+                printf("ERROR: rds_zap_heap, code: %d\n", err);
 
-	      rds_load_heap(DataDev, DataLen, &addr, &err);
-	      if (err == SUCCESS)
-		  printf("rds_load_heap successful\n");
-	      else if (err > SUCCESS)
-		  printf("rds_load_heap = %s\n", rvm_return((rvm_return_t)err));
-	      else
-		  printf("rds_load_heap = %d\n", err);
-	      break;
-	  }
+            break;
+        }
 
-	  case 'c' :
-	      ret = rvm_begin_transaction(tid, no_restore);
-	      if (ret != RVM_SUCCESS)
-		  printf("begin_trans code %s\n",rvm_return(ret));
+        case 'm': {
+            int s, n, i;
+            char *temp;
 
-	      ret = rvm_set_range(tid, &RDS_STATS, sizeof(rds_stats_t));
-	      if (ret != RVM_SUCCESS) {
-		  printf("Couldn't setrange for stats %s.", rvm_return(ret));
-		  break;
-	      }
-	      
-	      coalesce(tid, &err);
-	      if (err == SUCCESS)
-		  printf("rds_coalesce successful\n");
-	      else if (err > SUCCESS)
-		  printf("rds_coalesce = %s\n", rvm_return((rvm_return_t)err));
-	      else
-		  printf("rds_coalesce = %d\n", err);
+            printf("Size of object to allocate: ");
+            gets(string);
+            s = atoi(string);
+            printf("Number of objects to allocate: ");
+            gets(string);
+            n = atoi(string);
 
-	      ret = rvm_end_transaction(tid, flush);
-	      if (ret != RVM_SUCCESS) 
-		  printf("end_trans code %s\n",rvm_return(ret));
+            for (i = 0; i < n; i++) {
+                temp = rds_malloc(s, 0, &err);
+                printf("%d: rds_malloc = %d, &object = 0x%x\n", i, err, temp);
+            }
+            break;
+        }
 
-	      break;
-	      
-          case 'p' :
-	      print_heap();
-	      break;
+        case 'f': {
+            char *temp;
 
-	  case '+' :
-	      rds_print_stats();
-	      break;
+            printf("object to free: 0x");
+            gets(string);
+            sscanf(string, "%x", (int *)&temp);
+            rds_free(temp, 0, &err);
+            if (err != SUCCESS) {
+                if (err > SUCCESS)
+                    printf("rds_free = %s\n", rvm_return((rvm_return_t)err));
+                else
+                    printf("rds_free = %d\n", err);
+            }
+            break;
+        }
 
-	  case '-' :
-	      rds_clear_stats(&err);
-	      printf("Cleared stats %d\n", err);
-	      break;
-	      
-	  case '*' : {
-	      rds_stats_t stats;
-	      
-	      rds_get_stats(&stats);
-	      break;
-	  }
-	      
-	  case '?' :
-	      printf("One letter commands are:\n");
-	      printf("p	\t Print out the heap free lists.\n");
-	      printf("c	\t Coalesce the heap.\n");
-	      printf("C	\t Create a new segment header.\n");
-	      printf("i	\t Initialize RVM.\n");
-	      printf("f	\t Free a memory object.\n");
-	      printf("h	\t Create a heap in a segment.\n");
-	      printf("l	\t Load in a segment.\n");
-	      printf("m	\t Allocate a memory object.\n");
-	      printf("q	\t Quit this program.\n");
-	      printf("r	\t Read some number of values from a segment.\n");
-	      printf("s	\t Start the heap - eg load in the sement.\n");
-	      printf("t	\t Terminate RVM.\n");
-	      printf("w	\t Write some number of values to a segment.\n");
-	      printf("x	\t Initialize the heap (not the segment!).\n");
-	      printf("+ \t Print the heap usage statistics.\n");
-	      printf("?	\t This Help Message.\n");
-	      break;
-	  }
+        case 'x': { /* init_heap */
+            rvm_tid_t *tid = rvm_malloc_tid();
+            unsigned long hlen, slen, chunksize, nlists;
+            char *startAddr;
 
-	/* Need to flush any changes that were made. */
-	if (*string != 't') { /* Only if terminate hasn't been called. */
-	    ret = rvm_flush();
-    	    if (ret != RVM_SUCCESS)
-		printf("Flush failed %s\n", rvm_return(ret));
-	}
+            /* Start a transaction to initialize the heap */
+            printf("Initialize heap.\n");
+            printf("starting address of rvm: ");
+            gets(string);
+            sscanf(string, "%x", (int *)&startAddr);
+            printf("heap len, static len: ");
+            gets(string);
+            sscanf(string, "%x, %x", &hlen, &slen);
+            printf("nlists: ");
+            gets(string);
+            nlists = atoi(string);
+            printf("chunksize: ");
+            gets(string);
+            chunksize = atoi(string);
+
+            ret = rvm_begin_transaction(tid, no_restore);
+            if (ret != RVM_SUCCESS)
+                printf("begin_trans code %s\n", rvm_return(ret));
+
+            rds_init_heap(startAddr, hlen, chunksize, nlists, tid, &err);
+            if (err > SUCCESS) /* RVM error */
+                printf("init_heap code %s\n", rvm_return((rvm_return_t)err));
+
+            if (err < SUCCESS)
+                printf("init_heap code %d\n", err);
+
+            ret = rvm_end_transaction(tid, flush);
+            if (ret != RVM_SUCCESS)
+                printf("end_trans code %s\n", rvm_return(ret));
+
+            rvm_free_tid(tid);
+            break;
+        }
+
+        case 's': { /* Start Heap */
+            char *addr;
+
+            rds_load_heap(DataDev, DataLen, &addr, &err);
+            if (err == SUCCESS)
+                printf("rds_load_heap successful\n");
+            else if (err > SUCCESS)
+                printf("rds_load_heap = %s\n", rvm_return((rvm_return_t)err));
+            else
+                printf("rds_load_heap = %d\n", err);
+            break;
+        }
+
+        case 'c':
+            ret = rvm_begin_transaction(tid, no_restore);
+            if (ret != RVM_SUCCESS)
+                printf("begin_trans code %s\n", rvm_return(ret));
+
+            ret = rvm_set_range(tid, &RDS_STATS, sizeof(rds_stats_t));
+            if (ret != RVM_SUCCESS) {
+                printf("Couldn't setrange for stats %s.", rvm_return(ret));
+                break;
+            }
+
+            coalesce(tid, &err);
+            if (err == SUCCESS)
+                printf("rds_coalesce successful\n");
+            else if (err > SUCCESS)
+                printf("rds_coalesce = %s\n", rvm_return((rvm_return_t)err));
+            else
+                printf("rds_coalesce = %d\n", err);
+
+            ret = rvm_end_transaction(tid, flush);
+            if (ret != RVM_SUCCESS)
+                printf("end_trans code %s\n", rvm_return(ret));
+
+            break;
+
+        case 'p':
+            print_heap();
+            break;
+
+        case '+':
+            rds_print_stats();
+            break;
+
+        case '-':
+            rds_clear_stats(&err);
+            printf("Cleared stats %d\n", err);
+            break;
+
+        case '*': {
+            rds_stats_t stats;
+
+            rds_get_stats(&stats);
+            break;
+        }
+
+        case '?':
+            printf("One letter commands are:\n");
+            printf("p	\t Print out the heap free lists.\n");
+            printf("c	\t Coalesce the heap.\n");
+            printf("C	\t Create a new segment header.\n");
+            printf("i	\t Initialize RVM.\n");
+            printf("f	\t Free a memory object.\n");
+            printf("h	\t Create a heap in a segment.\n");
+            printf("l	\t Load in a segment.\n");
+            printf("m	\t Allocate a memory object.\n");
+            printf("q	\t Quit this program.\n");
+            printf("r	\t Read some number of values from a segment.\n");
+            printf("s	\t Start the heap - eg load in the sement.\n");
+            printf("t	\t Terminate RVM.\n");
+            printf("w	\t Write some number of values to a segment.\n");
+            printf("x	\t Initialize the heap (not the segment!).\n");
+            printf("+ \t Print the heap usage statistics.\n");
+            printf("?	\t This Help Message.\n");
+            break;
+        }
+
+        /* Need to flush any changes that were made. */
+        if (*string != 't') { /* Only if terminate hasn't been called. */
+            ret = rvm_flush();
+            if (ret != RVM_SUCCESS)
+                printf("Flush failed %s\n", rvm_return(ret));
+        }
     }
 }

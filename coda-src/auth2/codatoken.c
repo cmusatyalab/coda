@@ -38,10 +38,10 @@ listed in the file CREDITS.
 #include "auth2.h"
 
 static void generate_Secret(const struct secure_encr *encr, void *encr_ctx,
-			    const struct secure_auth *auth, void *auth_ctx,
-			    const uint8_t *key, size_t keylen,
-			    const uint8_t *identity, size_t idlen,
-			    time_t endtime, uint8_t *token, size_t *tokenlen)
+                            const struct secure_auth *auth, void *auth_ctx,
+                            const uint8_t *key, size_t keylen,
+                            const uint8_t *identity, size_t idlen,
+                            time_t endtime, uint8_t *token, size_t *tokenlen)
 {
     uint8_t *payload, *p, icv[MAXICVLEN];
     size_t len;
@@ -55,16 +55,21 @@ static void generate_Secret(const struct secure_encr *encr, void *encr_ctx,
 
     /* fill in secret token bits */
     secure_random_bytes(token, encr->iv_len);
-    payload = token + encr->iv_len;
-    payload[0] = 0xC0; payload[1] = 0xDA;
-    payload[2] = keylen; payload[3] = idlen;
+    payload                  = token + encr->iv_len;
+    payload[0]               = 0xC0;
+    payload[1]               = 0xDA;
+    payload[2]               = keylen;
+    payload[3]               = idlen;
     ((uint32_t *)payload)[1] = htonl(endtime);
-    p = payload + 2 * sizeof(uint32_t);
-    memcpy(p, key, keylen); p += keylen;
-    memcpy(p, identity, idlen); p += idlen;
+    p                        = payload + 2 * sizeof(uint32_t);
+    memcpy(p, key, keylen);
+    p += keylen;
+    memcpy(p, identity, idlen);
+    p += idlen;
 
     /* pad tail */
-    for (i = 1; p < payload + len; i++) *(p++) = i;
+    for (i = 1; p < payload + len; i++)
+        *(p++) = i;
 
     /* encrypt and authenticate */
     encr->encrypt(encr_ctx, payload, payload, len, token, NULL, 0);
@@ -75,61 +80,63 @@ static void generate_Secret(const struct secure_encr *encr, void *encr_ctx,
 }
 
 static int validate_Secret(const struct secure_encr *decr, void *decr_ctx,
-			   const struct secure_auth *auth, void *auth_ctx,
-			   uint8_t *token, size_t tokenlen,
-			   uint8_t **key, size_t *keylen,
-			   uint8_t **identity, size_t *idlen,
-			   time_t *endtime)
+                           const struct secure_auth *auth, void *auth_ctx,
+                           uint8_t *token, size_t tokenlen, uint8_t **key,
+                           size_t *keylen, uint8_t **identity, size_t *idlen,
+                           time_t *endtime)
 {
     uint8_t icv[MAXICVLEN], *payload = token + decr->iv_len, *p;
     size_t len = tokenlen - 8;
     int i;
 
     if (tokenlen < decr->iv_len + 2 * sizeof(uint32_t) + 8)
-	return -1;
+        return -1;
 
     /* validate checksum */
     auth->auth(auth_ctx, token, len, icv);
-    if (secure_compare(token + len, 8, icv, 8) == 0) return -1;
+    if (secure_compare(token + len, 8, icv, 8) == 0)
+        return -1;
 
     /* decrypt */
     len -= decr->iv_len;
-    if (len % decr->blocksize) return -1;
+    if (len % decr->blocksize)
+        return -1;
     decr->decrypt(decr_ctx, payload, payload, len, token, NULL, 0);
 
     /* check magic and validate header */
     if (payload[0] != 0xC0 || payload[1] != 0xDA ||
-	2 * sizeof(uint32_t) + payload[2] + payload[3] > len)
-	return -1;
+        2 * sizeof(uint32_t) + payload[2] + payload[3] > len)
+        return -1;
 
     /* check padding */
     p = payload + 2 * sizeof(uint32_t) + payload[2] + payload[3];
     for (i = 1; p < payload + len; i++)
-	if (*(p++) != i) return -1;
+        if (*(p++) != i)
+            return -1;
 
     /* extract contents */
-    *key =  payload + 2 * sizeof(uint32_t);
+    *key    = payload + 2 * sizeof(uint32_t);
     *keylen = payload[2];
 
     *identity = payload + 2 * sizeof(uint32_t) + *keylen;
-    *idlen = payload[3];
+    *idlen    = payload[3];
 
     *endtime = ntohl(((uint32_t *)payload)[1]);
     return 0;
 }
 
 int getauth2key(uint8_t *token, size_t token_size,
-		uint8_t auth2key[AUTH2KEYSIZE])
+                uint8_t auth2key[AUTH2KEYSIZE])
 {
     /* make sure we're initialized */
     secure_init(0);
     return secure_pbkdf(token, token_size, NULL, 0, SECURE_PBKDF_ITERATIONS,
-			auth2key, AUTH2KEYSIZE);
+                        auth2key, AUTH2KEYSIZE);
 }
 
 int generate_CodaToken(uint8_t auth2key[AUTH2KEYSIZE], uint32_t viceid,
-		       uint32_t lifetime, ClearToken *ctoken,
-		       EncryptedSecretToken estoken)
+                       uint32_t lifetime, ClearToken *ctoken,
+                       EncryptedSecretToken estoken)
 {
     const struct secure_encr *encr;
     const struct secure_auth *auth;
@@ -139,10 +146,10 @@ int generate_CodaToken(uint8_t auth2key[AUTH2KEYSIZE], uint32_t viceid,
     int rc;
 
     /* construct the clear token */
-    ctoken->ViceId	   = viceid;
+    ctoken->ViceId         = viceid;
     ctoken->BeginTimestamp = time(NULL) - 900;
     ctoken->EndTimestamp   = time(NULL) + lifetime;
-    ctoken->AuthHandle	   = -1;
+    ctoken->AuthHandle     = -1;
     secure_random_bytes(ctoken->HandShakeKey, sizeof(RPC2_EncryptionKey));
 
     /* viceid is 32-bits, so we only need 10 characters */
@@ -157,14 +164,14 @@ int generate_CodaToken(uint8_t auth2key[AUTH2KEYSIZE], uint32_t viceid,
     assert(encr->max_keysize + auth->keysize <= AUTH2KEYSIZE);
     rc = encr->encrypt_init(&encr_ctx, auth2key, encr->max_keysize);
     assert(!rc);
-    rc = auth->auth_init(&auth_ctx, auth2key + encr->max_keysize,auth->keysize);
+    rc =
+        auth->auth_init(&auth_ctx, auth2key + encr->max_keysize, auth->keysize);
     assert(!rc);
 
     estokenlen = sizeof(EncryptedSecretToken);
-    generate_Secret(encr, encr_ctx, auth, auth_ctx,
-		    ctoken->HandShakeKey, sizeof(RPC2_EncryptionKey),
-		    identity, idlen, ctoken->EndTimestamp,
-		    (uint8_t *)estoken, &estokenlen);
+    generate_Secret(encr, encr_ctx, auth, auth_ctx, ctoken->HandShakeKey,
+                    sizeof(RPC2_EncryptionKey), identity, idlen,
+                    ctoken->EndTimestamp, (uint8_t *)estoken, &estokenlen);
 
     /* release encryption/authentication contexts */
     encr->encrypt_free(&encr_ctx);
@@ -173,9 +180,8 @@ int generate_CodaToken(uint8_t auth2key[AUTH2KEYSIZE], uint32_t viceid,
 }
 
 int validate_CodaToken(uint8_t auth2key[AUTH2KEYSIZE],
-		       EncryptedSecretToken estoken,
-		       uint32_t *viceid, time_t *endtime,
-		       RPC2_EncryptionKey *sessionkey)
+                       EncryptedSecretToken estoken, uint32_t *viceid,
+                       time_t *endtime, RPC2_EncryptionKey *sessionkey)
 {
     const struct secure_encr *decr;
     const struct secure_auth *auth;
@@ -188,21 +194,21 @@ int validate_CodaToken(uint8_t auth2key[AUTH2KEYSIZE],
     decr = secure_get_encr_byid(SECURE_ENCR_AES_CBC);
     auth = secure_get_auth_byid(SECURE_AUTH_AES_XCBC_96);
     if (!decr || !auth || decr->max_keysize + auth->keysize > AUTH2KEYSIZE)
-	return -1;
+        return -1;
 
     decr->decrypt_init(&decr_ctx, auth2key, decr->max_keysize);
     auth->auth_init(&auth_ctx, auth2key + decr->max_keysize, auth->keysize);
 
-    rc = validate_Secret(decr, decr_ctx, auth, auth_ctx,
-			 (uint8_t *)estoken, sizeof(EncryptedSecretToken),
-			 &key, &keylen, &identity, &idlen, endtime);
+    rc = validate_Secret(decr, decr_ctx, auth, auth_ctx, (uint8_t *)estoken,
+                         sizeof(EncryptedSecretToken), &key, &keylen, &identity,
+                         &idlen, endtime);
     if (rc || keylen != sizeof(RPC2_EncryptionKey))
-	return -1;
+        return -1;
 
     /* null-terminate the identity. Safe, since identity points into the
      * decrypted estoken and there are at least 8 (now) unused checksum bytes */
     identity[idlen] = '\0';
-    *viceid = strtoul((char *)identity, NULL, 10);
+    *viceid         = strtoul((char *)identity, NULL, 10);
     memcpy(sessionkey, key, sizeof(RPC2_EncryptionKey));
 
     /* release decryption/authentication contexts */
@@ -210,4 +216,3 @@ int validate_CodaToken(uint8_t auth2key[AUTH2KEYSIZE],
     auth->auth_free(&auth_ctx);
     return 0;
 }
-

@@ -30,8 +30,6 @@ Mellon the rights to redistribute these changes without encumbrance.
 */
 #endif /*_BLURB_*/
 
-
-
 /*
  * dummy module for non-plumber mond
  */
@@ -42,11 +40,13 @@ extern "C" {
 
 #include <stdio.h>
 
-void SetMallocCheckLevel(int foo) {
+void SetMallocCheckLevel(int foo)
+{
     ;
 }
 
-void plumber(FILE *foo) {
+void plumber(FILE *foo)
+{
     ;
 }
 
@@ -63,4 +63,3 @@ void newPlumber(FILE *foo)
 {
     ;
 }
-

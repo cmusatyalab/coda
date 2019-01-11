@@ -29,17 +29,17 @@ listed in the file CREDITS.
 #include <sys/file.h>
 #endif
 
-int myflock(int fd, int type, int block) {
+int myflock(int fd, int type, int block)
+{
 #ifdef HAVE_FCNTL_LOCKING
     struct flock lock;
     int rc;
-    
-    memset((char *) &lock, 0, sizeof(struct flock));
+
+    memset((char *)&lock, 0, sizeof(struct flock));
     lock.l_type = type;
-    while ((rc = fcntl(fd, block, &lock)) < 0
-    	   && block == F_SETLKW
-    	   && errno == EINTR)		/* interrupted */
-    	sleep(1);
+    while ((rc = fcntl(fd, block, &lock)) < 0 && block == F_SETLKW &&
+           errno == EINTR) /* interrupted */
+        sleep(1);
     return rc;
 
 #else /* HAVE_FLOCK_LOCKING */

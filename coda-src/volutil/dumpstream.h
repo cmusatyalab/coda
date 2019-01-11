@@ -28,7 +28,7 @@ extern "C" {
 #define _LARGEFILE_SOURCE 1
 #define _FILE_OFFSET_BITS 64
 
-#include <lwp/lwp.h>		/* Include all files referenced herein */
+#include <lwp/lwp.h> /* Include all files referenced herein */
 #include <lwp/lock.h>
 #include <voltypes.h>
 
@@ -45,8 +45,8 @@ class dumpstream {
     char name[MAXSTRLEN];
     VnodeClass IndexType;
     int skip_vnode_garbage();
-	
-  public:
+
+public:
     dumpstream(char *);
     ~dumpstream();
     int isopen(); /* 1 if dumpstream is open; 0 otherwise */
@@ -55,16 +55,15 @@ class dumpstream {
     int getVnodeIndex(VnodeClass, long *, long *);
     int getNextVnode(VnodeDiskObject *, VnodeId *, int *, off_t *offset);
     int getVnode(int vnum, long unique, off_t offset, VnodeDiskObject *vdo);
-    int copyVnodeData(DumpBuffer_t *);		/* Copy entire vnode into DumpFd*/
-    int EndOfDump();				/* See if ENDDUMP is present */
+    int copyVnodeData(DumpBuffer_t *); /* Copy entire vnode into DumpFd*/
+    int EndOfDump(); /* See if ENDDUMP is present */
     void setIndex(VnodeClass);
     int readDirectory(PDirInode *);
-    int CopyBytesToMemory(char *, int); 
-    int CopyBytesToFile(FILE *, int); 
+    int CopyBytesToMemory(char *, int);
+    int CopyBytesToFile(FILE *, int);
 };
 
 /* Debugging routine: prints dump header on specified output file */
 void PrintDumpHeader(FILE *, struct DumpHeader *);
 
 #endif /* _DUMPSTREAM_H_ */
-

@@ -44,35 +44,36 @@ extern "C" {
 
 struct listhdr *harray;
 int hcount;
-int  repair_DebugFlag;
+int repair_DebugFlag;
 
-int main(int argc, char **argv) {
-  unsigned int j;
-  int i, rc;
-  struct listhdr *newha;
-  int newhc;
+int main(int argc, char **argv)
+{
+    unsigned int j;
+    int i, rc;
+    struct listhdr *newha;
+    int newhc;
 
-  rc = repair_parsefile(argv[1], &hcount, &harray);
-  if (rc < 0)
-    return -1;
+    rc = repair_parsefile(argv[1], &hcount, &harray);
+    if (rc < 0)
+        return -1;
 
-  rc = repair_putdfile("/tmp/xxx", hcount, harray);
-  if (rc) {
-    printf("repair_putdfile() failed\n");
-    return -1;
-  }
+    rc = repair_putdfile("/tmp/xxx", hcount, harray);
+    if (rc) {
+        printf("repair_putdfile() failed\n");
+        return -1;
+    }
 
-  rc = repair_getdfile("/tmp/xxx", &newhc, &newha);
-  if (rc) {
-    printf("repair_getdfile() failed\n");
-    return -1;
-  }
+    rc = repair_getdfile("/tmp/xxx", &newhc, &newha);
+    if (rc) {
+        printf("repair_getdfile() failed\n");
+        return -1;
+    }
 
-  for (i = 0; i < newhc; i++) {
-    printf("\n** Replica %lu ***\n", newha[i].replicaId);
-    for (j = 0; j < newha[i].repairCount; j++)
-      repair_printline(&newha[i].repairList[j], stdout);
-  }
+    for (i = 0; i < newhc; i++) {
+        printf("\n** Replica %lu ***\n", newha[i].replicaId);
+        for (j = 0; j < newha[i].repairCount; j++)
+            repair_printline(&newha[i].repairList[j], stdout);
+    }
 
-  return 0;
+    return 0;
 }

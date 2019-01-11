@@ -23,7 +23,7 @@ listed in the file CREDITS.
 #ifndef BITVECT_INCLUDED
 #define BITVECT_INCLUDED
 
-typedef struct Bitv_s * Bitv;
+typedef struct Bitv_s *Bitv;
 
 Bitv Bitv_new(int length);
 void Bitv_free(Bitv *b);
@@ -34,6 +34,5 @@ void Bitv_clear(Bitv b, int loc);
 void Bitv_set(Bitv b, int loc);
 int Bitv_getfree(Bitv b); /* get first 0 index and set it to 1 */
 void Bitv_print(Bitv b, FILE *fd);
-
 
 #endif

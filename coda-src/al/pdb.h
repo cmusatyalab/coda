@@ -33,28 +33,25 @@ listed in the file CREDITS.
 #include <sys/types.h>
 #include "pdbarray.h"
 
-
 #define PDB_ISUSER(x) ((x) > 0)
 #define PDB_ISGROUP(x) ((x) < 0)
 
-#define PDB_MAXID_SET   (0)
+#define PDB_MAXID_SET (0)
 #define PDB_MAXID_FORCE (1)
 
-
-typedef struct PDB_HANDLE_S *PDB_HANDLE; 
+typedef struct PDB_HANDLE_S *PDB_HANDLE;
 
 typedef struct {
-   int32_t id;
-   char *name;
-   int32_t owner_id;         /* used only for groups */
-   char *owner_name;       /* used only for groups */
-   pdb_array member_of;
-   pdb_array cps;
-   pdb_array groups_or_members;
+    int32_t id;
+    char *name;
+    int32_t owner_id; /* used only for groups */
+    char *owner_name; /* used only for groups */
+    pdb_array member_of;
+    pdb_array cps;
+    pdb_array groups_or_members;
 
-   /*struct acl *pdbacl; */
+    /*struct acl *pdbacl; */
 } PDB_profile;
-
 
 /* VHL functions */
 void PDB_addToGroup(int32_t id, int32_t groupId);
@@ -94,13 +91,12 @@ void PDB_db_maxids(PDB_HANDLE h, int32_t *uid, int32_t *gid);
 void PDB_db_update_maxids(PDB_HANDLE h, int32_t uid, int32_t gid, int mode);
 void PDB_db_write(PDB_HANDLE h, int32_t id, char *name, void *buf, size_t size);
 void PDB_db_read(PDB_HANDLE h, int32_t id, const char *name, void **buf,
-		 size_t *size);
+                 size_t *size);
 void PDB_db_delete(PDB_HANDLE h, int32_t id, char *name);
 void PDB_db_delete_xfer(PDB_HANDLE h, char *name);
 int PDB_db_exists(void);
 void PDB_db_compact(PDB_HANDLE h);
 int PDB_setupdb(void);
 int PDB_db_nextkey(PDB_HANDLE h, int *id);
-
 
 #endif

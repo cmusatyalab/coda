@@ -16,7 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
 /*
  * This module holds the routines to initialize the datadevice of a heap.
  * Hopefully it'll someday be merged with something hank wrote to initialize
@@ -44,16 +43,21 @@ listed in the file CREDITS.
 
 #ifdef __STDC__
 #include <string.h>
-#define BZERO(D,L)   memset((D),0,(L))
+#define BZERO(D, L) memset((D), 0, (L))
 #else
-#define BZERO(D,L)   bzero((D),(L))
+#define BZERO(D, L) bzero((D), (L))
 #endif
 
 #ifndef O_BINARY
 #define O_BINARY 0
 #endif
 
-enum round_dir { UP, DOWN, NO_ROUND };
+enum round_dir
+{
+    UP,
+    DOWN,
+    NO_ROUND
+};
 
 jmp_buf jmpbuf_quit;
 
@@ -136,365 +140,340 @@ char *explain_chunk[]={
 };
 // clang-format on
 
-static void print_msg(msg)
-     char **msg;
+static void print_msg(msg) char **msg;
 {
-    int i=0;
+    int i = 0;
     while (msg[i][0] != '\0')
-	printf("%s", msg[i++]);
+        printf("%s", msg[i++]);
 }
 
-static int round_to_multiple(val, n, dir)
-     long           val;
-     long           n;
-     enum round_dir dir;
+static int round_to_multiple(val, n, dir) long val;
+long n;
+enum round_dir dir;
 {
     long rem;
 
-    if (dir==NO_ROUND || n==0)		/* don't round */
-	return(val);
-    
-    if ((rem = val % n) != 0) { /* need round up/down */
-	if (dir==UP)
-	    return ( val + n -rem );
-	else if (dir==DOWN)
-	    return ( val - rem );
-    }
- 
-    return( val );
+    if (dir == NO_ROUND || n == 0) /* don't round */
+        return (val);
 
+    if ((rem = val % n) != 0) { /* need round up/down */
+        if (dir == UP)
+            return (val + n - rem);
+        else if (dir == DOWN)
+            return (val - rem);
+    }
+
+    return (val);
 }
 
-
-static int confirm_rounded_value(pvalue, base, unit, round_dir, min)
-     unsigned long  *pvalue;
-     int            base;
-     int            unit;
-     enum round_dir round_dir;
-     int            min;
+static int confirm_rounded_value(pvalue, base, unit, round_dir,
+                                 min) unsigned long *pvalue;
+int base;
+int unit;
+enum round_dir round_dir;
+int min;
 {
-    char          string[120];
-    unsigned long t1=0, t2=0;	/* temporary values */
-    
+    char string[120];
+    unsigned long t1 = 0, t2 = 0; /* temporary values */
+
     if (base == 16) {
-	sprintf(string,  "0x%lx (in decimal %lu)", *pvalue, *pvalue);
+        sprintf(string, "0x%lx (in decimal %lu)", *pvalue, *pvalue);
     } else if (base == 10) {
-	sprintf(string, "%ld (in hex 0x%lx)", *pvalue, *pvalue);
+        sprintf(string, "%ld (in hex 0x%lx)", *pvalue, *pvalue);
     } else if (base == 8) {
-	sprintf(string, "0%lo (in decimal %lu)", *pvalue, *pvalue);
+        sprintf(string, "0%lo (in decimal %lu)", *pvalue, *pvalue);
     } else {
-	assert(0);		/* illegal base value */
+        assert(0); /* illegal base value */
     }
 
     printf("   ====> You have entered %s. ", string);
 
-    if (*pvalue<min) {
-	printf("\n");
-	printf("         Umm... minimum is %d (in hex 0x%x) ",
-	       min, min);
+    if (*pvalue < min) {
+        printf("\n");
+        printf("         Umm... minimum is %d (in hex 0x%x) ", min, min);
         t1 = min;
     } else {
-	t1 = *pvalue;
+        t1 = *pvalue;
     }
-    
+
     t2 = round_to_multiple(t1, unit, round_dir);
 
     if (t2 != t1) {
-    	if (base == 16) {
-    	    sprintf(string, "0x%lx (in decimal %lu)", t2, t2);
-    	} else if (base == 10) {
-    	    sprintf(string, "%ld (in hex 0x%lx)", t2, t2);
-    	} else if (base == 8) {
-    	    sprintf(string, "0%lo (in decimal %lu)", t2, t2);
-    	} else {
-    	    assert(0);		/* illegal base value */
-    	}
+        if (base == 16) {
+            sprintf(string, "0x%lx (in decimal %lu)", t2, t2);
+        } else if (base == 10) {
+            sprintf(string, "%ld (in hex 0x%lx)", t2, t2);
+        } else if (base == 8) {
+            sprintf(string, "0%lo (in decimal %lu)", t2, t2);
+        } else {
+            assert(0); /* illegal base value */
+        }
 
-	printf("\n");
+        printf("\n");
         printf("         Umm... not a multiple of %d.  I need to round it\n",
-	       unit);
-        printf("         %s to %s. ",
-               (round_dir == UP ? "up" : "down"), string);
-
+               unit);
+        printf("         %s to %s. ", (round_dir == UP ? "up" : "down"),
+               string);
     }
     printf("Accept ? (y|n|q) ");
     fgets(string, 120, stdin);
-    if (strcmp(string,"y\n") == 0 || strcmp(string,"Y\n") == 0
-	  || strcmp(string, "\n") == 0 ) {
-	*pvalue = t2;
-	return 1;		/* confirmed */
-    } else if (strcmp(string,"q\n")==0 || strcmp(string, "Q\n")==0)
-	longjmp(jmpbuf_quit, 1); /* quit */
-    else			/* all other cases: re-enter */
-	return 0;		/* not confirmed */
+    if (strcmp(string, "y\n") == 0 || strcmp(string, "Y\n") == 0 ||
+        strcmp(string, "\n") == 0) {
+        *pvalue = t2;
+        return 1; /* confirmed */
+    } else if (strcmp(string, "q\n") == 0 || strcmp(string, "Q\n") == 0)
+        longjmp(jmpbuf_quit, 1); /* quit */
+    else /* all other cases: re-enter */
+        return 0; /* not confirmed */
 }
 
 /* determine if the numeric string is in hex, octal or decimal notation */
-static int find_base(string)
-     char *string;
+static int find_base(string) char *string;
 {
     if (string[0] == '0')
-	return ( string[1]=='x' ? 16 : 8 );
+        return (string[1] == 'x' ? 16 : 8);
     else
-	return 10;
+        return 10;
 }
-		
 
-static int get_valid_parm(argc, argv, pdatalen,
-			   pstatic_addr, phlen, pslen,
-			   pnlists,pchunksize,firm)
-     int          argc;
-     char         **argv;
-     rvm_length_t  *pdatalen;
-     char         **pstatic_addr;
-     unsigned long *phlen;
-     unsigned long *pslen;
-     unsigned long *pnlists;
-     unsigned long *pchunksize;
-     int          firm;
+static int get_valid_parm(argc, argv, pdatalen, pstatic_addr, phlen, pslen,
+                          pnlists, pchunksize, firm) int argc;
+char **argv;
+rvm_length_t *pdatalen;
+char **pstatic_addr;
+unsigned long *phlen;
+unsigned long *pslen;
+unsigned long *pnlists;
+unsigned long *pchunksize;
+int firm;
 {
     char string[80];
-    int  paraOK=0;
-    int  para_given=0;
-    int  base;
+    int paraOK     = 0;
+    int para_given = 0;
+    int base;
 
-    if ( argc == 9 ) {
-	/* accept the 6 parameter as cmd-line argument */
-	*pdatalen       = strtoul(argv[3], NULL, 0);
-	*pstatic_addr = (char *)strtoul(argv[4], NULL, 0);
-	*phlen        = strtoul(argv[5], NULL, 0);
-	*pslen        = strtoul(argv[6], NULL, 0);
-	*pnlists      = strtoul(argv[7], NULL, 0);
-	*pchunksize   = strtoul(argv[8], NULL, 0);
-	    
-	para_given = 1;
-	if (firm)
-	    return 0;		/* no need to get confirm from user */
+    if (argc == 9) {
+        /* accept the 6 parameter as cmd-line argument */
+        *pdatalen     = strtoul(argv[3], NULL, 0);
+        *pstatic_addr = (char *)strtoul(argv[4], NULL, 0);
+        *phlen        = strtoul(argv[5], NULL, 0);
+        *pslen        = strtoul(argv[6], NULL, 0);
+        *pnlists      = strtoul(argv[7], NULL, 0);
+        *pchunksize   = strtoul(argv[8], NULL, 0);
+
+        para_given = 1;
+        if (firm)
+            return 0; /* no need to get confirm from user */
     }
 
     /* looping to get parameters from user interactively, and confirm */
     do {
-	if (para_given) {
-	    para_given = 0;	/* skip the first time of asking */
-	    goto confirm;
-	}
-	print_msg(welcome);
-	print_msg(explain_datalen);
+        if (para_given) {
+            para_given = 0; /* skip the first time of asking */
+            goto confirm;
+        }
+        print_msg(welcome);
+        print_msg(explain_datalen);
         do {
             printf("   ==> please enter length of data segment:");
-    	    fgets(string,80,stdin);
-    	    base = find_base(string);
-    	    *pdatalen = strtoul(string, NULL, 0);
-	} while (!confirm_rounded_value(pdatalen, base, RVM_PAGE_SIZE, UP,
-					3*RVM_PAGE_SIZE));
+            fgets(string, 80, stdin);
+            base      = find_base(string);
+            *pdatalen = strtoul(string, NULL, 0);
+        } while (!confirm_rounded_value(pdatalen, base, RVM_PAGE_SIZE, UP,
+                                        3 * RVM_PAGE_SIZE));
 
-	print_msg(explain_saddr);
+        print_msg(explain_saddr);
         do {
             printf("   ==> please enter starting address of rvm: ");
-	    fgets(string,80,stdin);
-	    base = find_base(string);
-	    *pstatic_addr = (char *)strtoul(string, NULL, 0);
-        } while (!confirm_rounded_value((unsigned long *)pstatic_addr, 
-					base, RVM_PAGE_SIZE,UP,
-					0x2000000)); 
-				/* note 0x4000000 is just a very loose lower
+            fgets(string, 80, stdin);
+            base          = find_base(string);
+            *pstatic_addr = (char *)strtoul(string, NULL, 0);
+        } while (!confirm_rounded_value((unsigned long *)pstatic_addr, base,
+                                        RVM_PAGE_SIZE, UP, 0x2000000));
+        /* note 0x4000000 is just a very loose lower
 				*  bound.  Actual number should be much
 				*  larger (and system-dependent)
 				*/
     get_heap_n_static:
-	print_msg(explain_hlen);
+        print_msg(explain_hlen);
         do {
             printf("   ==> please enter the heap length: ");
-	    fgets(string,80,stdin);
-	    base = find_base(string);
-	    *phlen = strtoul(string, NULL, 0);
+            fgets(string, 80, stdin);
+            base   = find_base(string);
+            *phlen = strtoul(string, NULL, 0);
         } while (!confirm_rounded_value(phlen, base, RVM_PAGE_SIZE, UP,
-					RVM_PAGE_SIZE));
+                                        RVM_PAGE_SIZE));
 
         print_msg(explain_slen);
         do {
             printf("   ==> please enter the static length: ");
-	    fgets(string,80,stdin);
-            base = find_base(string);
-	    *pslen = strtoul(string, NULL, 0);
-	} while (!confirm_rounded_value(pslen, base, RVM_PAGE_SIZE, UP,
-					RVM_PAGE_SIZE));
+            fgets(string, 80, stdin);
+            base   = find_base(string);
+            *pslen = strtoul(string, NULL, 0);
+        } while (!confirm_rounded_value(pslen, base, RVM_PAGE_SIZE, UP,
+                                        RVM_PAGE_SIZE));
 
-	if (*pdatalen<*phlen+*pslen+RVM_SEGMENT_HDR_SIZE) {
-	    printf("\n");
-	    printf("   Sorry ! your heap len + static len is too large !\n");
-	    printf("   their sum must be less than 0x%lx (%ld)\n", 
-		   *pdatalen-RVM_PAGE_SIZE, *pdatalen-RVM_SEGMENT_HDR_SIZE);
-	    printf("   please re-enter\n\n");
-	    goto get_heap_n_static;
-	}
+        if (*pdatalen < *phlen + *pslen + RVM_SEGMENT_HDR_SIZE) {
+            printf("\n");
+            printf("   Sorry ! your heap len + static len is too large !\n");
+            printf("   their sum must be less than 0x%lx (%ld)\n",
+                   *pdatalen - RVM_PAGE_SIZE, *pdatalen - RVM_SEGMENT_HDR_SIZE);
+            printf("   please re-enter\n\n");
+            goto get_heap_n_static;
+        }
 
-	print_msg(explain_nl);
+        print_msg(explain_nl);
         do {
             printf("   ==> please enter a decimal value for nlists: ");
-	    fgets(string,80,stdin);
-	    base = find_base(string);
-	    *pnlists = strtoul(string, NULL, 0);
-        } while (!confirm_rounded_value(pnlists, base, 0, NO_ROUND,
-					1));
+            fgets(string, 80, stdin);
+            base     = find_base(string);
+            *pnlists = strtoul(string, NULL, 0);
+        } while (!confirm_rounded_value(pnlists, base, 0, NO_ROUND, 1));
 
-	print_msg(explain_chunk);
+        print_msg(explain_chunk);
         do {
             printf("   ==> please enter a decimal value for chunksize: ");
-	    fgets(string,80,stdin);
-	    base = find_base(string);
-	    *pchunksize = strtoul(string, NULL, 0);
-	} while (!confirm_rounded_value(pchunksize, base, sizeof(char *), UP,
-					32));
+            fgets(string, 80, stdin);
+            base        = find_base(string);
+            *pchunksize = strtoul(string, NULL, 0);
+        } while (
+            !confirm_rounded_value(pchunksize, base, sizeof(char *), UP, 32));
 
     confirm:
-	printf("\n");
+        printf("\n");
         printf("The following parameters are chosen:\n");
-        printf("   length of data segment: %#10lx (%10ld)\n",
-	       *pdatalen, *pdatalen);
+        printf("   length of data segment: %#10lx (%10ld)\n", *pdatalen,
+               *pdatalen);
         printf("  starting address of rvm: %#10lx (%10lu)\n",
-	       (unsigned long)*pstatic_addr, (unsigned long)*pstatic_addr);
-        printf("                 heap len: %#10lx (%10ld)\n",
-	       *phlen, *phlen);
-        printf("               static len: %#10lx (%10ld)\n",
-	       *pslen, *pslen);
-        printf("                   nlists: %#10lx (%10ld)\n",
-	       *pnlists, *pnlists);
-        printf("               chunk size: %#10lx (%10ld)\n",
-	       *pchunksize, *pchunksize);
+               (unsigned long)*pstatic_addr, (unsigned long)*pstatic_addr);
+        printf("                 heap len: %#10lx (%10ld)\n", *phlen, *phlen);
+        printf("               static len: %#10lx (%10ld)\n", *pslen, *pslen);
+        printf("                   nlists: %#10lx (%10ld)\n", *pnlists,
+               *pnlists);
+        printf("               chunk size: %#10lx (%10ld)\n", *pchunksize,
+               *pchunksize);
         printf("Do you agree with these parameters ? (y|n|q) ");
-	fgets(string,80,stdin);
-	if (strcmp(string,"y\n") == 0 || strcmp(string,"Y\n") == 0
-	    || strcmp(string, "\n") == 0 )
-	    paraOK = 1;
-	else if (strcmp(string,"q\n") == 0 || strcmp(string,"Q\n") == 0)
-	    longjmp(jmpbuf_quit,1);
+        fgets(string, 80, stdin);
+        if (strcmp(string, "y\n") == 0 || strcmp(string, "Y\n") == 0 ||
+            strcmp(string, "\n") == 0)
+            paraOK = 1;
+        else if (strcmp(string, "q\n") == 0 || strcmp(string, "Q\n") == 0)
+            longjmp(jmpbuf_quit, 1);
     } while (!paraOK);
     return 0;
 }
 
-
-
 extern char *ortarg;
 extern int optind, opterr, optopt;
 
-
-int main(argc, argv)
-     int  argc;
-     char *argv[];
+int main(argc, argv) int argc;
+char *argv[];
 {
-    rvm_options_t       *options;       /* options descriptor ptr */
-    rvm_return_t	ret;
+    rvm_options_t *options; /* options descriptor ptr */
+    rvm_return_t ret;
     int err, fd;
-    char *static_addr=NULL, buf[4096];
+    char *static_addr = NULL, buf[4096];
     char *logName, *dataName;
-    unsigned long slen=0, hlen=0, nlists=0, chunksize=0;
+    unsigned long slen = 0, hlen = 0, nlists = 0, chunksize = 0;
     rvm_offset_t DataLen;
     rvm_length_t i, datalen = 0;
-    int firm=0, opt_unknown=0;
-    int c, arg_used=0;
+    int firm = 0, opt_unknown = 0;
+    int c, arg_used           = 0;
 
     /* first check if we have -l and -c options */
-    while ( (c = getopt(argc, argv, "f")) != EOF ) {	
-	switch (c) {
-	case 'f':
-	    firm = 1;
-	    arg_used ++;
-	    break;
-	default:
-	    opt_unknown = 1;
-	    break;
-	}
+    while ((c = getopt(argc, argv, "f")) != EOF) {
+        switch (c) {
+        case 'f':
+            firm = 1;
+            arg_used++;
+            break;
+        default:
+            opt_unknown = 1;
+            break;
+        }
     }
     argc -= arg_used;
     argv += arg_used;
-	    
-    if ((argc !=3 && argc !=9) || opt_unknown) {
-	print_msg(usage);
-	exit(EXIT_FAILURE);
+
+    if ((argc != 3 && argc != 9) || opt_unknown) {
+        print_msg(usage);
+        exit(EXIT_FAILURE);
     }
 
-    logName = argv[1];
+    logName  = argv[1];
     dataName = argv[2];
 
     /* initialized RVM */
-    options = rvm_malloc_options();
+    options          = rvm_malloc_options();
     options->log_dev = logName;
-	      
+
     ret = RVM_INIT(options);
-    if  (ret != RVM_SUCCESS) {
-	printf("?  rvm_initialize failed, code: %s\n",rvm_return(ret));
-	exit(EXIT_FAILURE);
+    if (ret != RVM_SUCCESS) {
+        printf("?  rvm_initialize failed, code: %s\n", rvm_return(ret));
+        exit(EXIT_FAILURE);
     } else
-	printf("rvm_initialize succeeded.\n");
+        printf("rvm_initialize succeeded.\n");
 
     if (setjmp(jmpbuf_quit) != 0) {
         printf("rdsinit quit.  No permanent change is made\n");
         exit(EXIT_FAILURE);
     }
 
-    ret = get_valid_parm(argc, argv, &datalen,
-			 &static_addr, &hlen, &slen, &nlists, &chunksize,
-			 firm);
+    ret = get_valid_parm(argc, argv, &datalen, &static_addr, &hlen, &slen,
+                         &nlists, &chunksize, firm);
     if (ret < 0) {
-	printf("? invalid rdsinit parameters\n");
+        printf("? invalid rdsinit parameters\n");
         printf("rdsinit quit.  No permanent change is made\n");
-	exit(EXIT_FAILURE);
+        exit(EXIT_FAILURE);
     }
 
     {
         int minchunksize = sizeof(free_block_t) + sizeof(guard_t);
-    	if (chunksize < minchunksize) {
-	    printf("? chucksize should be at least %d bytes\n", minchunksize);
-	    printf("rdsinit quit.  No permanent change is made\n");
-	    exit(EXIT_FAILURE);
-	}
+        if (chunksize < minchunksize) {
+            printf("? chucksize should be at least %d bytes\n", minchunksize);
+            printf("rdsinit quit.  No permanent change is made\n");
+            exit(EXIT_FAILURE);
+        }
     }
 
     fd = open(dataName, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 00644);
     if (fd < 0) {
-	printf("?  Couldn't truncate %s.\n", dataName);
-	exit(EXIT_FAILURE);
+        printf("?  Couldn't truncate %s.\n", dataName);
+        exit(EXIT_FAILURE);
     }
 
     printf("Going to initialize data file to zero, could take awhile.\n");
     lseek(fd, 0, 0);
     BZERO(buf, 4096);
-    for (i = 0; i < datalen; i+= 4096) {
-	if (write(fd, buf, 4096) != 4096) {
-	    printf("?  Couldn't write to %s.\n", dataName);
-	    exit(EXIT_FAILURE);
-	}
+    for (i = 0; i < datalen; i += 4096) {
+        if (write(fd, buf, 4096) != 4096) {
+            printf("?  Couldn't write to %s.\n", dataName);
+            exit(EXIT_FAILURE);
+        }
     }
     printf("done.\n");
-    
+
     close(fd);
 
-
     DataLen = RVM_MK_OFFSET(0, datalen);
-    rds_zap_heap(dataName, DataLen, static_addr, slen, hlen, nlists,
-		 chunksize, &err);
+    rds_zap_heap(dataName, DataLen, static_addr, slen, hlen, nlists, chunksize,
+                 &err);
     if (err == SUCCESS)
-	printf("rds_zap_heap completed successfully.\n");
-    else
-        {
+        printf("rds_zap_heap completed successfully.\n");
+    else {
         if (err > SUCCESS)
-            printf("?  ERROR: rds_zap_heap %s.\n",
-                   rvm_return(err));
+            printf("?  ERROR: rds_zap_heap %s.\n", rvm_return(err));
         else
             printf("?  ERROR: rds_zap_heap, code: %d\n", err);
         exit(EXIT_FAILURE);
-        }
+    }
 
     ret = rvm_terminate();
-    if (ret != RVM_SUCCESS)
-        {
-	printf("\n? Error in rvm_terminate, ret = %s\n", rvm_return(ret));
+    if (ret != RVM_SUCCESS) {
+        printf("\n? Error in rvm_terminate, ret = %s\n", rvm_return(ret));
         exit(EXIT_FAILURE);
-        }
-    else
-	printf("rvm_terminate succeeded.\n");
+    } else
+        printf("rvm_terminate succeeded.\n");
 
     return 0;
 }
-

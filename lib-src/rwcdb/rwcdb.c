@@ -37,8 +37,10 @@ static int owrite(struct rwcdb *c)
 {
     char newname[MAXPATHLEN];
 
-    if (c->readonly) return -1;
-    if (c->wf.fd != -1) return 0;
+    if (c->readonly)
+        return -1;
+    if (c->wf.fd != -1)
+        return 0;
 
     strcpy(newname, c->file);
     strcat(newname, ".tmp");
@@ -59,12 +61,12 @@ static void checkdb(struct rwcdb *c)
 
     /* reopen the database, but only if it has been modified */
     if (stat(c->file, &sb) != 0 || sb.st_ino == c->rf.ino)
-	return;
+        return;
 
     db_file_close(&c->rf);
     if (db_file_open(&c->rf, c->file, O_RDONLY)) {
-	/* Ouch, we just hosed ourselves big time */
-	abort();
+        /* Ouch, we just hosed ourselves big time */
+        abort();
     }
     c->index = 2048;
 
@@ -93,7 +95,8 @@ static struct wrentry *alloc_wrentry(const uint32_t klen, const uint32_t dlen,
     struct wrentry *w;
 
     w = (struct wrentry *)malloc(sizeof(struct wrentry) + 8 + klen + dlen);
-    if (!w) return NULL;
+    if (!w)
+        return NULL;
 
     w->hash = hash;
     w->klen = klen;
@@ -107,7 +110,6 @@ static void free_wrentry(struct wrentry *w)
     free(w);
 }
 
-
 static struct wrentry *ispending(struct rwcdb *c, const char *k,
                                  const uint32_t klen, const uint32_t hash,
                                  uint32_t *index)
@@ -118,14 +120,15 @@ static struct wrentry *ispending(struct rwcdb *c, const char *k,
 
     list_for_each(p, c->removed)
     {
-        w = list_entry(p, struct wrentry, list); 
+        w = list_entry(p, struct wrentry, list);
         if (w->hash == hash && klen == w->klen &&
             memcmp(wkey(w), k, klen) == 0) {
             return w;
         }
     }
 
-    if (!c->hlens[hash & 0xff]) return NULL;
+    if (!c->hlens[hash & 0xff])
+        return NULL;
 
     if (index) {
         for (i = 0; i < (hash & 0xff); i++)
@@ -134,11 +137,11 @@ static struct wrentry *ispending(struct rwcdb *c, const char *k,
 
     list_for_each(p, c->added[hash & 0xff])
     {
-        w = list_entry(p, struct wrentry, list); 
+        w = list_entry(p, struct wrentry, list);
         if (w->hash == hash && klen == w->klen &&
-            memcmp(wkey(w), k, klen) == 0)
-        {
-            if (index) *index = idx;
+            memcmp(wkey(w), k, klen) == 0) {
+            if (index)
+                *index = idx;
             return w;
         }
         idx++;
@@ -158,7 +161,8 @@ static struct wrentry *fromhash(struct rwcdb *c, uint32_t index)
         }
         list_for_each(p, c->added[i])
         {
-            if (index--) continue;
+            if (index--)
+                continue;
             return list_entry(p, struct wrentry, list);
         }
     }
@@ -207,14 +211,16 @@ static uint32_t cdb_hash(const char *k, const uint32_t klen)
 int rwcdb_init(struct rwcdb *c, const char *file, const int mode)
 {
     uint32_t i, n;
-    
+
     n = strlen(file) + 1;
-    if (n > MAXPATHLEN - 5) return -1;
+    if (n > MAXPATHLEN - 5)
+        return -1;
 
     memset(c, 0, sizeof(struct rwcdb));
 
     c->file = strdup(file);
-    if (!c->file) return -1;
+    if (!c->file)
+        return -1;
 
     c->removed.next = c->removed.prev = &c->removed;
     for (i = 0; i < 256; i++)
@@ -224,9 +230,9 @@ int rwcdb_init(struct rwcdb *c, const char *file, const int mode)
     c->rf.fd = c->wf.fd = -1;
     if (db_file_open(&c->rf, file, O_RDONLY) == 0)
         return 0;
-    
+
     if (c->rf.fd != -1)
-	goto err_out;
+        goto err_out;
 
     /* try to create a new database */
     if (owrite(c) != -1 && rwcdb_sync(c) != -1)
@@ -236,8 +242,8 @@ int rwcdb_init(struct rwcdb *c, const char *file, const int mode)
 
 err_out:
     if (c->file) {
-	free(c->file);
-	c->file = NULL;
+        free(c->file);
+        c->file = NULL;
     }
     return -1;
 }
@@ -253,8 +259,8 @@ int rwcdb_free(struct rwcdb *c)
     db_file_close(&c->rf);
 
     if (c->file) {
-	free(c->file);
-	c->file = NULL;
+        free(c->file);
+        c->file = NULL;
     }
     return 1;
 }
@@ -275,7 +281,8 @@ int rwcdb_find(struct rwcdb *c, const char *k, const uint32_t klen)
     /* first check whether there are pending modifications for this key */
     w = ispending(c, k, klen, hash, &loop);
     if (w) {
-        if (!w->dlen) return 0;
+        if (!w->dlen)
+            return 0;
         c->klen = w->klen;
         c->dlen = w->dlen;
         c->dpos = c->rf.eod + loop;
@@ -290,7 +297,8 @@ int rwcdb_find(struct rwcdb *c, const char *k, const uint32_t klen)
         return -1;
 
     /* micro-optimization? */
-    if (hlen == 0) return 0;
+    if (hlen == 0)
+        return 0;
 
     cur_pos = hpos + (((hash >> 8) % hlen) << 3);
 
@@ -301,20 +309,23 @@ int rwcdb_find(struct rwcdb *c, const char *k, const uint32_t klen)
         if (db_readints(&c->rf, &hash2, &pos, cur_pos))
             return -1;
 
-        if (pos == 0) return 0;
+        if (pos == 0)
+            return 0;
 
         cur_pos += 8;
         if (cur_pos == hpos + (hlen << 3))
             cur_pos = hpos;
 
-        if (hash != hash2) continue;
+        if (hash != hash2)
+            continue;
 
         /* Records are stored sequentially, without special alignment. A
          * record states a key length, a data length, the key, and the data. */
         if (db_readints(&c->rf, &keylen, &dlen, pos))
             return -1;
 
-        if (klen != keylen) continue;
+        if (klen != keylen)
+            continue;
 
         if (db_file_mread(&c->rf, &buf, klen + dlen, c->rf.pos))
             return -1;
@@ -330,25 +341,26 @@ int rwcdb_find(struct rwcdb *c, const char *k, const uint32_t klen)
 }
 
 int rwcdb_insert(struct rwcdb *c, const char *k, const uint32_t klen,
-                  const char *d, const uint32_t dlen)
+                 const char *d, const uint32_t dlen)
 {
     struct wrentry *w, *old;
     uint32_t hash, slot;
     static uint32_t warned = 0;
 
     if (c->readonly) {
-	if (!warned++)
-	    fprintf(stderr, "RWCDB warning: modifying read-only database\n");
-    }
-    else if (owrite(c) == -1)
-	return -1;
+        if (!warned++)
+            fprintf(stderr, "RWCDB warning: modifying read-only database\n");
+    } else if (owrite(c) == -1)
+        return -1;
 
     hash = cdb_hash(k, klen);
-    w = alloc_wrentry(klen, dlen, hash);
-    if (!w) return -1;
+    w    = alloc_wrentry(klen, dlen, hash);
+    if (!w)
+        return -1;
 
     memcpy(wkey(w), k, klen);
-    if (dlen) memcpy(wdata(w), d, dlen);
+    if (dlen)
+        memcpy(wdata(w), d, dlen);
 
     old = ispending(c, k, klen, hash, NULL);
 
@@ -370,7 +382,8 @@ int rwcdb_insert(struct rwcdb *c, const char *k, const uint32_t klen,
 
 int rwcdb_delete(struct rwcdb *c, const char *k, const uint32_t klen)
 {
-    if (rwcdb_find(c, k, klen) != 1) return 0;
+    if (rwcdb_find(c, k, klen) != 1)
+        return 0;
     return rwcdb_insert(c, k, klen, NULL, 0);
 }
 
@@ -379,7 +392,8 @@ int rwcdb_next(struct rwcdb *c, int init)
     uint32_t klen, dlen, hash;
     void *buf;
 
-    if (init) c->index = 2048;
+    if (init)
+        c->index = 2048;
 
 again:
     /* reading from disk? */
@@ -390,13 +404,14 @@ again:
         if (db_file_mread(&c->rf, &buf, klen + dlen, c->rf.pos))
             goto read_failed;
 
-        hash = cdb_hash(buf, klen);
+        hash       = cdb_hash(buf, klen);
         c->pending = ispending(c, buf, klen, hash, NULL);
 
         c->index = c->rf.pos;
 
         /* already on the write queue? skip entry */
-        if (c->pending) goto again;
+        if (c->pending)
+            goto again;
 
         c->hash = hash;
         c->klen = klen;
@@ -407,7 +422,8 @@ again:
 
     /* sweep through the pending write hashes */
     c->pending = fromhash(c, c->index - c->rf.eod);
-    if (!c->pending) return 0;
+    if (!c->pending)
+        return 0;
 
     c->klen = c->pending->klen;
     c->dlen = c->pending->dlen;
@@ -434,7 +450,8 @@ int rwcdb_read(struct rwcdb *c, char *d, const uint32_t dlen,
     } else {
         /* sweep through the pending write hashes */
         w = fromhash(c, dpos - c->rf.eod);
-        if (!w || dlen > w->dlen) return -1;
+        if (!w || dlen > w->dlen)
+            return -1;
         buf = wdata(w);
     }
     memcpy(d, buf, dlen);
@@ -454,7 +471,8 @@ int rwcdb_readkey(struct rwcdb *c, char *k, const uint32_t klen,
     } else {
         /* sweep through the pending write hashes */
         w = fromhash(c, dpos - c->rf.eod);
-        if (!w || klen != w->klen) return -1;
+        if (!w || klen != w->klen)
+            return -1;
         buf = wkey(w);
     }
     memcpy(k, buf, klen);
@@ -472,9 +490,10 @@ static int dump_records(struct rwcdb *c, struct dllist_head *old)
     char ints[8];
     void *buf;
 
-    while(1) {
+    while (1) {
         ret = rwcdb_next(c, rewind);
-        if (ret != 1) return ret;
+        if (ret != 1)
+            return ret;
         rewind = 0;
 
         if (!c->pending) {
@@ -484,11 +503,11 @@ static int dump_records(struct rwcdb *c, struct dllist_head *old)
                 return -1;
             }
             list_add(&w->list, old->prev);
-            if (db_file_mread(&c->rf, &buf, c->klen+c->dlen, c->dpos - c->klen))
+            if (db_file_mread(&c->rf, &buf, c->klen + c->dlen,
+                              c->dpos - c->klen))
                 return -1;
-        }
-        else {
-            w = c->pending;
+        } else {
+            w   = c->pending;
             buf = wkey(w);
         }
 
@@ -498,8 +517,9 @@ static int dump_records(struct rwcdb *c, struct dllist_head *old)
         packints(ints, c->klen, c->dlen);
 
         if (db_file_write(&c->wf, ints, 8) ||
-            db_file_write(&c->wf, buf, c->klen+c->dlen)) {
-            fprintf(stderr, "RWCDB dump_records: write failed, out of diskspace?\n");
+            db_file_write(&c->wf, buf, c->klen + c->dlen)) {
+            fprintf(stderr,
+                    "RWCDB dump_records: write failed, out of diskspace?\n");
             return -1;
         }
     }
@@ -513,10 +533,12 @@ static int write_hashchains(struct rwcdb *c)
     struct dllist_head *p;
     struct rwcdb_tuple *h;
 
-    maxlen = 256; totallen = 0;
+    maxlen   = 256;
+    totallen = 0;
     for (i = 0; i < 256; i++) {
         len = c->hlens[i] * 2;
-        if (len > maxlen) maxlen = len;
+        if (len > maxlen)
+            maxlen = len;
         totallen += len;
     }
 
@@ -527,14 +549,16 @@ static int write_hashchains(struct rwcdb *c)
     }
 
     for (i = 0; i < 256; i++) {
-        len = c->hlens[i] * 2;
+        len      = c->hlens[i] * 2;
         hoffs[i] = c->wf.pos;
-        if (len == 0) continue;
+        if (len == 0)
+            continue;
 
         memset(h, 0, len * sizeof(struct rwcdb_tuple));
 
-        list_for_each(p, c->added[i]) {
-            w = list_entry(p, struct wrentry, list);
+        list_for_each(p, c->added[i])
+        {
+            w    = list_entry(p, struct wrentry, list);
             slot = (w->hash >> 8) % len;
             while (h[slot].a) {
                 if (++slot == len)
@@ -550,8 +574,7 @@ static int write_hashchains(struct rwcdb *c)
     /* dump the header */
     for (i = 0; i < 256; i++)
         packints((char *)(&h[i]), hoffs[i], c->hlens[i] * 2);
-    if (db_file_flush(&c->wf) ||
-        db_file_seek(&c->wf, 0) ||
+    if (db_file_flush(&c->wf) || db_file_seek(&c->wf, 0) ||
         db_file_write(&c->wf, h, 256 * sizeof(struct rwcdb_tuple)) ||
         db_file_flush(&c->wf))
         goto write_failed;
@@ -560,7 +583,8 @@ static int write_hashchains(struct rwcdb *c)
     return 0;
 
 write_failed:
-    fprintf(stderr, "RWCDB rwcdb_write_hashchains: write failed, out of diskspace?\n");
+    fprintf(stderr,
+            "RWCDB rwcdb_write_hashchains: write failed, out of diskspace?\n");
     free(h);
     return -1;
 }
@@ -637,4 +661,3 @@ recover: /* try to get back to the same state as before the failure */
     }
     return -1;
 }
-

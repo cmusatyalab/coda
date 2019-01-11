@@ -16,14 +16,12 @@ listed in the file CREDITS.
 
 #*/
 
-
 /*
  * Manifest constants for Venus, plus declarations for source files without
  * their own headers.
  */
 
-
-#ifndef	_VENUS_PRIVATE_H_
+#ifndef _VENUS_PRIVATE_H_
 #define _VENUS_PRIVATE_H_
 
 #ifdef __cplusplus
@@ -64,17 +62,17 @@ extern "C" {
 /* Replica Control Rights. */
 /* Note that we presently do not distinguish between read and write rights. */
 /* We may well do so in the future, however. */
-#define	RC_STATUSREAD	1
-#define	RC_STATUSWRITE	2
-#define	RC_STATUS	(RC_STATUSREAD | RC_STATUSWRITE)
-#define	RC_DATAREAD	4
-#define	RC_DATAWRITE	8
-#define	RC_DATA		(RC_DATAREAD | RC_DATAWRITE)
+#define RC_STATUSREAD 1
+#define RC_STATUSWRITE 2
+#define RC_STATUS (RC_STATUSREAD | RC_STATUSWRITE)
+#define RC_DATAREAD 4
+#define RC_DATAWRITE 8
+#define RC_DATA (RC_DATAREAD | RC_DATAWRITE)
 
-#define	EMULTRSLTS	ETOOMANYREFS	    /* external */
-#define	ESYNRESOLVE	155		    /* internal */
-#define	EASYRESOLVE	156		    /* internal */
-#define	ERETRY		157		    /* internal */
+#define EMULTRSLTS ETOOMANYREFS /* external */
+#define ESYNRESOLVE 155 /* internal */
+#define EASYRESOLVE 156 /* internal */
+#define ERETRY 157 /* internal */
 /* The next three are internal, but defined in other modules. */
 /*
 #define	EVOLUME		158
@@ -83,41 +81,39 @@ extern "C" {
 */
 /* added for implementing ASRs.  Used to tell the vfs layer that 
    an ASR was started and it should block */
-#define EASRSTARTED     200
+#define EASRSTARTED 200
 
 #define ASR_INTERVAL 300
 
 /*  *****  parameter defaults.  ***** */
-#define DFLT_VR "/coda"				/* venus root */
-#define DFLT_CD "/usr/coda/venus.cache"		/* cache directory */
+#define DFLT_VR "/coda" /* venus root */
+#define DFLT_CD "/usr/coda/venus.cache" /* cache directory */
 /* the next two are relative to cachedir if they do not start with '/' */
-#define DFLT_PIDFILE "pid"			/* default pid file */
-#define DFLT_CTRLFILE "VENUS_CTRL"		/* default control file */
+#define DFLT_PIDFILE "pid" /* default pid file */
+#define DFLT_CTRLFILE "VENUS_CTRL" /* default control file */
 
-#define DFLT_LOGFILE "/usr/coda/etc/venus.log"	/* venus log file */
-#define DFLT_ERRLOG  "/usr/coda/etc/console"	/* venus error log */
+#define DFLT_LOGFILE "/usr/coda/etc/venus.log" /* venus log file */
+#define DFLT_ERRLOG "/usr/coda/etc/console" /* venus error log */
 #define MIN_CS "2MB"
 
 /* rule of thumb */
 const int BLOCKS_PER_FILE = 24;
-const int MLES_PER_FILE = 4;
-const int FILES_PER_HDBE = 2;
+const int MLES_PER_FILE   = 4;
+const int FILES_PER_HDBE  = 2;
 
-const int MIN_CB = 2048;
-const int MIN_CF = MIN_CB / BLOCKS_PER_FILE;
-const int MIN_MLE = MIN_CF * MLES_PER_FILE;
+const int MIN_CB   = 2048;
+const int MIN_CF   = MIN_CB / BLOCKS_PER_FILE;
+const int MIN_MLE  = MIN_CF * MLES_PER_FILE;
 const int MIN_HDBE = MIN_CF / FILES_PER_HDBE;
 
-
-#define UNSET_PRIMARYUSER 0		    /* primary user of this machine */
+#define UNSET_PRIMARYUSER 0 /* primary user of this machine */
 const int FREE_FACTOR = 16;
-
 
 /*  *****  Manifest constants for Venus.  *****  */
 #ifdef __CYGWIN32__
-extern uid_t V_UID;    /* UID that the venus process runs under. */
+extern uid_t V_UID; /* UID that the venus process runs under. */
 #else
-const uid_t V_UID = (uid_t)0;	    /* UID that the venus process runs under. */
+const uid_t V_UID = (uid_t)0; /* UID that the venus process runs under. */
 #endif
 /* Group id fields are 32 bits in BSD44 (not 16 bits); the use of a small 
    negative number (-2) means its unsigned long representation is huge
@@ -127,161 +123,174 @@ const uid_t V_UID = (uid_t)0;	    /* UID that the venus process runs under. */
    unsigned int which is 32-bit, so we also need to hardcode the number
    here.  (Clement 6/10/97) */
 #if defined(__CYGWIN32__)
-const gid_t V_GID = 513;    /* GID that the venus process runs under. */
+const gid_t V_GID = 513; /* GID that the venus process runs under. */
 #else
-const gid_t V_GID = 65534;    /* GID that the venus process runs under. */
+const gid_t V_GID = 65534; /* GID that the venus process runs under. */
 #endif
-const uid_t ANYUSER_UID = (uid_t)-1;
-const uid_t HOARD_UID = (uid_t)-2; /* uid of hoard daemon */
-const uid_t UNSET_UID = (uid_t)-666; /* beastly but recognizable */
+const uid_t ANYUSER_UID     = (uid_t)-1;
+const uid_t HOARD_UID       = (uid_t)-2; /* uid of hoard daemon */
+const uid_t UNSET_UID       = (uid_t)-666; /* beastly but recognizable */
 const unsigned short V_MODE = 0600;
-const int OWNERBITS = 0700;
-const int OWNERREAD = 0400;
-const int OWNERWRITE = 0200;
-const int OWNEREXEC = 0100;
-const uint32_t NO_HOST = (uint32_t)-1;
-const uint32_t V_MAXACLLEN = 1000;
-const int V_BLKSIZE = 8192;
-const int TIMERINTERVAL = 5;
-const int GETDATA = 1;
-#define	ALL_FIDS    (&NullFid)
+const int OWNERBITS         = 0700;
+const int OWNERREAD         = 0400;
+const int OWNERWRITE        = 0200;
+const int OWNEREXEC         = 0100;
+const uint32_t NO_HOST      = (uint32_t)-1;
+const uint32_t V_MAXACLLEN  = 1000;
+const int V_BLKSIZE         = 8192;
+const int TIMERINTERVAL     = 5;
+const int GETDATA           = 1;
+#define ALL_FIDS (&NullFid)
 typedef void (*PROC_V_UL)(unsigned long);
-#define	STREQ(a, b)		(strcmp((a), (b)) == 0)
-#define	STRNEQ(a, b, n)		(strncmp((a), (b), (n)) == 0)
-#define	NBLOCKS(bytes)		((bytes + 1023) >> 10)
-#define	NBLOCKS_BYTES(bytes)	(NBLOCKS(bytes) << 10)
+#define STREQ(a, b) (strcmp((a), (b)) == 0)
+#define STRNEQ(a, b, n) (strncmp((a), (b), (n)) == 0)
+#define NBLOCKS(bytes) ((bytes + 1023) >> 10)
+#define NBLOCKS_BYTES(bytes) (NBLOCKS(bytes) << 10)
 
 /* Flags for the various vproc/fsobj name/object lookup routines. */
-#define	FOLLOW_SYMLINKS	0x1	    /* should lookup follow symlinks for last component? */
-#define	TRAVERSE_MTPTS	0x2	    /* should lookup cross covered mount points? */
-#define	REFERENCE	0x8	    /* should cache references be noted? */
-
+#define FOLLOW_SYMLINKS \
+    0x1 /* should lookup follow symlinks for last component? */
+#define TRAVERSE_MTPTS 0x2 /* should lookup cross covered mount points? */
+#define REFERENCE 0x8 /* should cache references be noted? */
 
 /*  *****  Debugging macros.  *****  */
-#ifdef	VENUSDEBUG
-#define	LOG(level, stmt) do { if (LogLevel >= (level)) dprint stmt; } while(0)
+#ifdef VENUSDEBUG
+#define LOG(level, stmt)         \
+    do {                         \
+        if (LogLevel >= (level)) \
+            dprint stmt;         \
+    } while (0)
 #else
-#define	LOG(level, stmt)
+#define LOG(level, stmt)
 #endif /* !VENUSDEBUG */
 
 /*  *****  Locking macros.  *****  */
 
-enum LockLevel { NL, RD, SH, WR };
+enum LockLevel
+{
+    NL,
+    RD,
+    SH,
+    WR
+};
 
-#define ObtainLock(lock, level)\
-{\
-    switch(level) {\
-	case RD:\
-	    ObtainReadLock(lock);\
-	    break;\
-\
-	case SH:\
-	    ObtainSharedLock(lock);\
-	    break;\
-\
-	case WR:\
-	    ObtainWriteLock(lock);\
-	    break;\
-\
-	case NL:\
-	default:\
-	    CODA_ASSERT(0);\
-    }\
-}
+#define ObtainLock(lock, level)     \
+    {                               \
+        switch (level) {            \
+        case RD:                    \
+            ObtainReadLock(lock);   \
+            break;                  \
+                                    \
+        case SH:                    \
+            ObtainSharedLock(lock); \
+            break;                  \
+                                    \
+        case WR:                    \
+            ObtainWriteLock(lock);  \
+            break;                  \
+                                    \
+        case NL:                    \
+        default:                    \
+            CODA_ASSERT(0);         \
+        }                           \
+    }
 
-#define ReleaseLock(lock, level)\
-{\
-    switch(level) {\
-	case RD:\
-	    ReleaseReadLock(lock);\
-	    break;\
-\
-	case SH:\
-	    ReleaseSharedLock(lock);\
-	    break;\
-\
-	case WR:\
-	    ReleaseWriteLock(lock);\
-	    break;\
-\
-	case NL:\
-	default:\
-	    CODA_ASSERT(0);\
-    }\
-}
-
+#define ReleaseLock(lock, level)     \
+    {                                \
+        switch (level) {             \
+        case RD:                     \
+            ReleaseReadLock(lock);   \
+            break;                   \
+                                     \
+        case SH:                     \
+            ReleaseSharedLock(lock); \
+            break;                   \
+                                     \
+        case WR:                     \
+            ReleaseWriteLock(lock);  \
+            break;                   \
+                                     \
+        case NL:                     \
+        default:                     \
+            CODA_ASSERT(0);          \
+        }                            \
+    }
 
 /*  *****  Timing macros.  *****  */
-#ifdef	TIMING
-#define SubTimes(end, start) \
-    ((((end)->tv_sec  - (start)->tv_sec)  * 1000.0) + \
+#ifdef TIMING
+#define SubTimes(end, start)                        \
+    ((((end)->tv_sec - (start)->tv_sec) * 1000.0) + \
      (((end)->tv_usec - (start)->tv_usec) / 1000.0))
 
-#define	START_TIMING()\
-    struct timeval StartTV, EndTV;\
+#define START_TIMING()             \
+    struct timeval StartTV, EndTV; \
     gettimeofday(&StartTV, 0);
 
-#define END_TIMING()\
-    gettimeofday(&EndTV, 0);\
-    float elapsed;\
+#define END_TIMING()         \
+    gettimeofday(&EndTV, 0); \
+    float elapsed;           \
     elapsed = SubTimes(&EndTV, &StartTV);
 #else
-#define	SubTimes(end, start) (0.0)
+#define SubTimes(end, start) (0.0)
 #define START_TIMING()
-#define END_TIMING()\
-    float elapsed = 0.0;
+#define END_TIMING() float elapsed = 0.0;
 #endif /* !TIMING */
 
-
 /*  *****  Cache Stuff *****  */
-enum CacheType {    ATTR,
-		    DATA
+enum CacheType
+{
+    ATTR,
+    DATA
 };
 
 #undef WRITE
 
-enum CacheEvent	{   HIT,
-		    MISS,
-		    RETRY,
-		    TIMEOUT,
-		    NOSPACE,
-		    FAILURE,
-		    CREATE,
-		    WRITE,
-		    REMOVE,
-		    REPLACE
+enum CacheEvent
+{
+    HIT,
+    MISS,
+    RETRY,
+    TIMEOUT,
+    NOSPACE,
+    FAILURE,
+    CREATE,
+    WRITE,
+    REMOVE,
+    REPLACE
 };
 
 /* "blocks" field is not relevant for all events */
 /* "blocks" is constant for (relevant) ATTR events */
 /* Now the same struct named CacheEventEntry is generated from mond.rpc2 */
 struct CacheEventRecord {
-   int count;
-   int blocks;
+    int count;
+    int blocks;
 };
 
 struct CacheStats {
-    CacheEventRecord events[10];	    /* indexed by CacheEvent type! */
+    CacheEventRecord events[10]; /* indexed by CacheEvent type! */
 };
 
 /*  *****  Misc stuff  *****  */
-#define TRANSLATE_TO_LOWER(s)\
-{\
-    for (char *c = s; *c; c++)\
-	if (isupper(*c)) *c = tolower(*c);\
-}
-#define TRANSLATE_TO_UPPER(s)\
-{\
-    for (char *c = s; *c; c++)\
-	if (islower(*c)) *c = toupper(*c);\
-}
+#define TRANSLATE_TO_LOWER(s)      \
+    {                              \
+        for (char *c = s; *c; c++) \
+            if (isupper(*c))       \
+                *c = tolower(*c);  \
+    }
+#define TRANSLATE_TO_UPPER(s)      \
+    {                              \
+        for (char *c = s; *c; c++) \
+            if (islower(*c))       \
+                *c = toupper(*c);  \
+    }
 
 #define CHOKE(me...) choke(__FILE__, __LINE__, ##me)
 
 /*  *****  Declarations for source files without their own headers.  ***** */
-void dprint(const char * ...);
-void choke(const char *file, int line, const char* ...);
-void rds_printer(char * ...);
+void dprint(const char *...);
+void choke(const char *file, int line, const char *...);
+void rds_printer(char *...);
 void VenusPrint(int argc, const char **argv);
 void VenusPrint(FILE *, int argc, const char **argv);
 void VenusPrint(int, int argc, const char **argv);
@@ -310,7 +319,7 @@ time_t Vtime();
 int FAV_Compare(ViceFidAndVV *, ViceFidAndVV *);
 void DaemonInit();
 void FireAndForget(const char *name, void (*f)(void), int interval,
-		   int stacksize=32*1024);
+                   int stacksize = 32 * 1024);
 void RegisterDaemon(unsigned long, char *);
 void DispatchDaemons();
 
@@ -349,22 +358,21 @@ extern const char *VenusControlFile;
 extern const char *VenusLogFile;
 extern const char *consoleFile;
 extern const char *MarinerSocketPath;
-extern int   mariner_tcp_enable;
-extern int   plan9server_enabled;
-extern int   nofork;
-extern int   allow_reattach;
-extern int   masquerade_port;
-extern int   PiggyValidations;
-extern int   T1Interval;
+extern int mariner_tcp_enable;
+extern int plan9server_enabled;
+extern int nofork;
+extern int allow_reattach;
+extern int masquerade_port;
+extern int PiggyValidations;
+extern int T1Interval;
 extern const char *ASRLauncherFile;
 extern const char *ASRPolicyFile;
-extern int   option_isr;
-extern int   detect_reintegration_retry;
-extern int   redzone_limit, yellowzone_limit;
+extern int option_isr;
+extern int detect_reintegration_retry;
+extern int redzone_limit, yellowzone_limit;
 
 /* spool.cc */
 extern void MakeUserSpoolDir(char *, uid_t);
-
 
 /* ASR misc */
 /* Note: At some point, it would be nice to run ASRs in different

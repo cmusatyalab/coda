@@ -40,60 +40,57 @@ extern "C" {
 #include "rec_olist.h"
 #include "rvmlib.h"
 
-
 class rec_ohashtab;
 class rec_ohashtab_iterator;
 typedef int (*RHFN)(const void *);
 
-
 class rec_ohashtab {
-  friend class rec_ohashtab_iterator;
-    int	sz;						/* size of the array */
-    rec_olist *a;					/* array of olists */
-    RHFN hfn;						/* the hash function */
+    friend class rec_ohashtab_iterator;
+    int sz; /* size of the array */
+    rec_olist *a; /* array of olists */
+    RHFN hfn; /* the hash function */
     int cnt;
 
-  public:
+public:
     void *operator new(size_t);
     void operator delete(void *);
 
     rec_ohashtab(int, RHFN);
-    rec_ohashtab(rec_ohashtab&);			// not supported! 
+    rec_ohashtab(rec_ohashtab &); // not supported!
     void Init(int, RHFN);
-    int operator=(rec_ohashtab&);			/* not supported! */
+    int operator=(rec_ohashtab &); /* not supported! */
     ~rec_ohashtab();
     void DeInit();
-    void SetHFn(RHFN); 
+    void SetHFn(RHFN);
 
-    void insert(void *,	rec_olink *);			/* add at head of list */
-    void append(void *,	rec_olink *);			/* add at tail of list */
-    rec_olink *remove(void *, rec_olink	*);		/* remove specified entry */
-    rec_olink *first();					/* return first element of table */
-    rec_olink *last();					/* return last element of table */
-    rec_olink *get(void	*);				/* return and remove head of list */
+    void insert(void *, rec_olink *); /* add at head of list */
+    void append(void *, rec_olink *); /* add at tail of list */
+    rec_olink *remove(void *, rec_olink *); /* remove specified entry */
+    rec_olink *first(); /* return first element of table */
+    rec_olink *last(); /* return last element of table */
+    rec_olink *get(void *); /* return and remove head of list */
 
     int count();
     int IsMember(void *, rec_olink *);
-    int	bucket(const void *);					/* returns bucket number of key */
+    int bucket(const void *); /* returns bucket number of key */
     /*virtual*/ void print();
     /*virtual*/ void print(FILE *);
     /*virtual*/ void print(int);
 };
 
-
 class rec_ohashtab_iterator {
-    rec_ohashtab *chashtab;				/* current rec_ohashtab */
-    int	allbuckets;					/* iterate over all or single bucket */
-    int	cbucket;					/* current bucket */
+    rec_ohashtab *chashtab; /* current rec_ohashtab */
+    int allbuckets; /* iterate over all or single bucket */
+    int cbucket; /* current bucket */
 
-  protected:
-    rec_olist_iterator *nextlink;			/* current olist iterator */
+protected:
+    rec_olist_iterator *nextlink; /* current olist iterator */
 
-  public:
-    rec_ohashtab_iterator(rec_ohashtab&, const void * =(void *)-1);
+public:
+    rec_ohashtab_iterator(rec_ohashtab &, const void * = (void *)-1);
     ~rec_ohashtab_iterator();
     void Reset();
-    rec_olink *operator()();				/* return next object or 0 */
+    rec_olink *operator()(); /* return next object or 0 */
 };
 
 #endif /* _UTIL_REC_OHASH_H_ */

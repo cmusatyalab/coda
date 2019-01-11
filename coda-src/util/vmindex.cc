@@ -16,10 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -33,62 +29,68 @@ extern "C" {
 #include "util.h"
 #include "vmindex.h"
 
-vmindex::vmindex(int sz) {
+vmindex::vmindex(int sz)
+{
     if (sz > 0) {
-	indices = new unsigned long[sz];
-	CODA_ASSERT(indices);
-	size = sz;
-	count = 0;
-    }
-    else {
-	sz = 0;
-	indices = NULL;
-	count = 0;
+        indices = new unsigned long[sz];
+        CODA_ASSERT(indices);
+        size  = sz;
+        count = 0;
+    } else {
+        sz      = 0;
+        indices = NULL;
+        count   = 0;
     }
 }
 
-vmindex::~vmindex() {
+vmindex::~vmindex()
+{
     if (indices) {
-	delete[] indices;
+        delete[] indices;
     }
     indices = 0;
     count = size = 0;
 }
 
-void vmindex::add(unsigned long a) {
+void vmindex::add(unsigned long a)
+{
     if (count >= size) {
-	/* grow index */
-	int newsize;
-	if (size) newsize = size * 2;
-	else newsize = DEFAULTINDEXSIZE;
-	unsigned long *newindex = new unsigned long[newsize];
-	CODA_ASSERT(newindex);
-	for (int i = 0; i < size; i++) 
-	    newindex[i] = indices[i];
-	delete[] indices;
-	indices = newindex;
-	size = newsize;
+        /* grow index */
+        int newsize;
+        if (size)
+            newsize = size * 2;
+        else
+            newsize = DEFAULTINDEXSIZE;
+        unsigned long *newindex = new unsigned long[newsize];
+        CODA_ASSERT(newindex);
+        for (int i = 0; i < size; i++)
+            newindex[i] = indices[i];
+        delete[] indices;
+        indices = newindex;
+        size    = newsize;
     }
-    
+
     indices[count] = a;
     count++;
 }
 
-vmindex_iterator::vmindex_iterator(vmindex *i) {
-     ind = i;
-     current_ind = 0;
+vmindex_iterator::vmindex_iterator(vmindex *i)
+{
+    ind         = i;
+    current_ind = 0;
 }
 
-vmindex_iterator::~vmindex_iterator() {
+vmindex_iterator::~vmindex_iterator()
+{
     ind = 0;
 }
 
-long vmindex_iterator::operator()() {
+long vmindex_iterator::operator()()
+{
     long rval = -1;
     if (ind && ind->indices && (current_ind < ind->count)) {
-	rval = ind->indices[current_ind];
-	current_ind++;
+        rval = ind->indices[current_ind];
+        current_ind++;
     }
-    return(rval);
+    return (rval);
 }
-

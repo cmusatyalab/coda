@@ -44,11 +44,10 @@ extern "C" {
 class rsle;
 class res_mgrpent;
 
-
 /* export definitions */
-extern int SpoolVMLogRecord(dlist *, vle *,  Volume *, ViceStoreId *, int op ...);
-extern int SpoolRenameLogRecord(int, dlist *, vle *, vle *, vle *, vle *, 
-				Volume *, char *, char *, ViceStoreId *);
+extern int SpoolVMLogRecord(dlist *, vle *, Volume *, ViceStoreId *, int op...);
+extern int SpoolRenameLogRecord(int, dlist *, vle *, vle *, vle *, vle *,
+                                Volume *, char *, char *, ViceStoreId *);
 extern void TruncateLog(Volume *, Vnode *, vmindex *);
 extern void FreeVMIndices(Volume *, vmindex *);
 extern void PurgeLog(rec_dlist *, Volume *, vmindex *);
@@ -56,6 +55,8 @@ extern void PrintLog(rec_dlist *, FILE *);
 extern void PrintLog(Vnode *, FILE *);
 extern void DumpLog(rec_dlist *, Volume *, char **, int *, int *);
 // temporary  - should go to rvmrescoord.h
-extern long RecovDirResolve(res_mgrpent *, ViceFid *, ViceVersionVector **, ResStatus **, int *, struct DirFid *);
-extern int CheckAndPerformRename(rsle *, Volume *, VolumeId, ViceFid *, dlist *, olist *, dlist *, int *, DirFid *);
+extern long RecovDirResolve(res_mgrpent *, ViceFid *, ViceVersionVector **,
+                            ResStatus **, int *, struct DirFid *);
+extern int CheckAndPerformRename(rsle *, Volume *, VolumeId, ViceFid *, dlist *,
+                                 olist *, dlist *, int *, DirFid *);
 #endif /* _OPS_H_ */

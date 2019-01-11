@@ -21,10 +21,10 @@
 
 */
 
-typedef struct ds_hash_t ds_hash_t;    /* opaque hashtable */
+typedef struct ds_hash_t ds_hash_t; /* opaque hashtable */
 
-#ifdef __STDC__                       /* hash tables have hash functions */
-typedef long (*HFN)(void*);
+#ifdef __STDC__ /* hash tables have hash functions */
+typedef long (*HFN)(void *);
 #else
 typedef long (*HFN)();
 #endif
@@ -35,32 +35,26 @@ typedef long (*HFN)();
 
 /*** Observers ***/
 
-extern bool            ds_hash_valid    (ds_hash_t *t);
-extern int             ds_hash_count    (ds_hash_t *t);
-extern void           *ds_hash_first    (ds_hash_t *t, 
-					 void *e);       
-extern void           *ds_hash_last     (ds_hash_t *t, 
-					 void *e);       
-extern void           *ds_hash_member   (ds_hash_t *t, 
-					 void *e); 
+extern bool ds_hash_valid(ds_hash_t *t);
+extern int ds_hash_count(ds_hash_t *t);
+extern void *ds_hash_first(ds_hash_t *t, void *e);
+extern void *ds_hash_last(ds_hash_t *t, void *e);
+extern void *ds_hash_member(ds_hash_t *t, void *e);
 
 /*** Mutators ***/
 
-extern ds_hash_t       *ds_hash_create     (COMPFN c,
-					    HFN h,
-					    int nbuckets,
-					    bool safe_destroy,
-					    bool dups_ok);
-extern void             ds_hash_destroy    (ds_hash_t *t);
-extern void            *ds_hash_insert     (ds_hash_t *t, void *e);
-extern void            *ds_hash_append     (ds_hash_t *t, void *e);
-extern void            *ds_hash_get_first  (ds_hash_t *t, void *e);
-extern void            *ds_hash_get_last   (ds_hash_t *t, void *e);
-extern void            *ds_hash_remove     (ds_hash_t *t, void *e);
-					 
+extern ds_hash_t *ds_hash_create(COMPFN c, HFN h, int nbuckets,
+                                 bool safe_destroy, bool dups_ok);
+extern void ds_hash_destroy(ds_hash_t *t);
+extern void *ds_hash_insert(ds_hash_t *t, void *e);
+extern void *ds_hash_append(ds_hash_t *t, void *e);
+extern void *ds_hash_get_first(ds_hash_t *t, void *e);
+extern void *ds_hash_get_last(ds_hash_t *t, void *e);
+extern void *ds_hash_remove(ds_hash_t *t, void *e);
+
 /*** Iterators ***/
 
-typedef struct ds_hash_iter_t ds_hash_iter_t;  /* opaque */
+typedef struct ds_hash_iter_t ds_hash_iter_t; /* opaque */
 
 /* 
    You can create an interator, destroy an iterator, or ask for the
@@ -75,9 +69,8 @@ typedef struct ds_hash_iter_t ds_hash_iter_t;  /* opaque */
    hooked up is kinda silly anyway.
 */
 
-extern ds_hash_iter_t *ds_hash_iter_create  (ds_hash_t *t);
-extern void            ds_hash_iter_destroy (ds_hash_iter_t *i);
-extern void           *ds_hash_iter_next    (ds_hash_iter_t *i);
+extern ds_hash_iter_t *ds_hash_iter_create(ds_hash_t *t);
+extern void ds_hash_iter_destroy(ds_hash_iter_t *i);
+extern void *ds_hash_iter_next(ds_hash_iter_t *i);
 
 #endif /* _DS_HASH_H_ */
-

@@ -33,48 +33,44 @@ supported by Transarc Corporation, Pittsburgh, PA.
 
 */
 
-
 #ifndef _PRS_
 #define _PRS_
 
 #define PRS_VERSION "PRS v2003.05.23"
 
-#define PRS_MAXNAMELEN 100    /* Maximum length of group and user names */
+#define PRS_MAXNAMELEN 100 /* Maximum length of group and user names */
 
 #define PRS_ANYUSERGROUP "System:AnyUser"
-#define PRS_ADMINGROUP   "System:Administrators"
+#define PRS_ADMINGROUP "System:Administrators"
 
-typedef struct
-{
-	int InclEntries; /* Leading part of IdList */
-	int ExclEntries; /* Trailing part of IdList */
-	int IdList[1];   /* Actual  bound  is InclEntries+ExclEntries.
+typedef struct {
+    int InclEntries; /* Leading part of IdList */
+    int ExclEntries; /* Trailing part of IdList */
+    int IdList[1]; /* Actual  bound  is InclEntries+ExclEntries.
 			    The first InclEntries entries are currently 
 			    included in this CPS: sorted in ascending order.
 			    The last ExclEntries have been excluded from this
 			    CPS: not sorted.*/
-	
+
 } PRS_InternalCPS;
 /* Used only in VICE. Typically obtained via access list package routine
    AL_GetInternalCPS. */
 
-
-typedef	char *PRS_ExternalCPS;
+typedef char *PRS_ExternalCPS;
 /* An ASCII representation of a CPS.  Consists of a decimal integer in format
    "%d\n" followed by a list of blank separated names. */
-
 
 /*
 An access list is associated with each directory.  Possession of each of the following rights allows
 the possessor the corresponding privileges on ALL files in that directory
 */
-#define PRSFS_READ            1 /*Read files*/
-#define PRSFS_WRITE           2 /*Write and write-lock existing files*/
-#define PRSFS_INSERT          4 /*Insert and write-lock new files*/
-#define PRSFS_LOOKUP          8 /*Enumerate files and examine access list */
-#define PRSFS_DELETE          16 /*Remove files*/
-#define PRSFS_LOCK            32 /*Read-lock files*/
-#define PRSFS_ADMINISTER      64 /*Set access list of directory*/
-#define PRSFS_ALL            127
+#define PRSFS_READ 1 /*Read files*/
+#define PRSFS_WRITE 2 /*Write and write-lock existing files*/
+#define PRSFS_INSERT 4 /*Insert and write-lock new files*/
+#define PRSFS_LOOKUP 8 /*Enumerate files and examine access list */
+#define PRSFS_DELETE 16 /*Remove files*/
+#define PRSFS_LOCK 32 /*Read-lock files*/
+#define PRSFS_ADMINISTER 64 /*Set access list of directory*/
+#define PRSFS_ALL 127
 
 #endif

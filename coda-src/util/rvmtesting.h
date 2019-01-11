@@ -16,15 +16,10 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
 #ifndef _RVMTESTING_H
 #define _RVMTESTING_H 1
 
-
-extern void protect_page (int x);
-extern void unprotect_page (int x);
+extern void protect_page(int x);
+extern void unprotect_page(int x);
 extern void my_sigBus(int sig, int code, struct sigcontext *scp);
-#endif  _RVMTESTING_H 
+#endif _RVMTESTING_H

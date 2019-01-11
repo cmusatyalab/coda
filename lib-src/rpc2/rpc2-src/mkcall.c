@@ -37,7 +37,6 @@ Pittsburgh, PA.
 
 */
 
-
 /* By Richard Draves, to replace mkcall.s for portability;
    number of INOUT and OUT args in a call should not exceed max in case below.
 */
@@ -47,63 +46,57 @@ Pittsburgh, PA.
 #include <rpc2/rpc2.h>
 
 int mkcall(RPC2_HandleResult_func *ClientHandler, int ArgCount, int HowMany,
-	   RPC2_Handle ConnList[], long offset, long rpcval, int *args)
+           RPC2_Handle ConnList[], long offset, long rpcval, int *args)
 {
-	switch (ArgCount) {
-	    case 0:
-		return (*ClientHandler)(HowMany, ConnList, offset, rpcval);
-	    case 1:
-		return (*ClientHandler)(HowMany, ConnList, offset, rpcval,
-					args[0]);
-	    case 2:
-		return (*ClientHandler)(HowMany, ConnList, offset, rpcval,
-					args[0], args[1]);
-	    case 3:
-		return (*ClientHandler)(HowMany, ConnList, offset, rpcval,
-					args[0], args[1], args[2]);
-	    case 4:
-		return (*ClientHandler)(HowMany, ConnList, offset, rpcval,
-					args[0], args[1], args[2], args[3]);
-	    case 5:
-		return (*ClientHandler)(HowMany, ConnList, offset, rpcval,
-					args[0], args[1], args[2], args[3],
-					args[4]);
-	    case 6:
-		return (*ClientHandler)(HowMany, ConnList, offset, rpcval,
-					args[0], args[1], args[2], args[3],
-					args[4], args[5]);
-	    case 7:
-		return (*ClientHandler)(HowMany, ConnList, offset, rpcval,
-					args[0], args[1], args[2], args[3],
-					args[4], args[5], args[6]);
-	    case 8:
-		return (*ClientHandler)(HowMany, ConnList, offset, rpcval,
-					args[0], args[1], args[2], args[3],
-					args[4], args[5], args[6], args[7]);
-	    case 9:
-		return (*ClientHandler)(HowMany, ConnList, offset, rpcval,
-					args[0], args[1], args[2], args[3],
-					args[4], args[5], args[6], args[7],
-					args[8]);
-	    case 10:
-		return (*ClientHandler)(HowMany, ConnList, offset, rpcval,
-					args[0], args[1], args[2], args[3],
-					args[4], args[5], args[6], args[7],
-					args[8], args[9]);
-	    case 11:
-		return (*ClientHandler)(HowMany, ConnList, offset, rpcval,
-					args[0], args[1], args[2], args[3],
-					args[4], args[5], args[6], args[7],
-					args[8], args[9], args[10]);
+    switch (ArgCount) {
+    case 0:
+        return (*ClientHandler)(HowMany, ConnList, offset, rpcval);
+    case 1:
+        return (*ClientHandler)(HowMany, ConnList, offset, rpcval, args[0]);
+    case 2:
+        return (*ClientHandler)(HowMany, ConnList, offset, rpcval, args[0],
+                                args[1]);
+    case 3:
+        return (*ClientHandler)(HowMany, ConnList, offset, rpcval, args[0],
+                                args[1], args[2]);
+    case 4:
+        return (*ClientHandler)(HowMany, ConnList, offset, rpcval, args[0],
+                                args[1], args[2], args[3]);
+    case 5:
+        return (*ClientHandler)(HowMany, ConnList, offset, rpcval, args[0],
+                                args[1], args[2], args[3], args[4]);
+    case 6:
+        return (*ClientHandler)(HowMany, ConnList, offset, rpcval, args[0],
+                                args[1], args[2], args[3], args[4], args[5]);
+    case 7:
+        return (*ClientHandler)(HowMany, ConnList, offset, rpcval, args[0],
+                                args[1], args[2], args[3], args[4], args[5],
+                                args[6]);
+    case 8:
+        return (*ClientHandler)(HowMany, ConnList, offset, rpcval, args[0],
+                                args[1], args[2], args[3], args[4], args[5],
+                                args[6], args[7]);
+    case 9:
+        return (*ClientHandler)(HowMany, ConnList, offset, rpcval, args[0],
+                                args[1], args[2], args[3], args[4], args[5],
+                                args[6], args[7], args[8]);
+    case 10:
+        return (*ClientHandler)(HowMany, ConnList, offset, rpcval, args[0],
+                                args[1], args[2], args[3], args[4], args[5],
+                                args[6], args[7], args[8], args[9]);
+    case 11:
+        return (*ClientHandler)(HowMany, ConnList, offset, rpcval, args[0],
+                                args[1], args[2], args[3], args[4], args[5],
+                                args[6], args[7], args[8], args[9], args[10]);
 
-	    case 12:
-		return (*ClientHandler)(HowMany, ConnList, offset, rpcval,
-					args[0], args[1], args[2], args[3],
-					args[4], args[5], args[6], args[7],
-					args[8], args[9], args[10], args[11]);
-	    default:
-		assert(ArgCount <= 12);
-	}
-	/*NOTREACHED*/
-        return -1;
+    case 12:
+        return (*ClientHandler)(HowMany, ConnList, offset, rpcval, args[0],
+                                args[1], args[2], args[3], args[4], args[5],
+                                args[6], args[7], args[8], args[9], args[10],
+                                args[11]);
+    default:
+        assert(ArgCount <= 12);
+    }
+    /*NOTREACHED*/
+    return -1;
 }

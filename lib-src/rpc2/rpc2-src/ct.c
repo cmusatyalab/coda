@@ -56,51 +56,49 @@ Pittsburgh, PA.
   Clock tick generator for traces.
 */
 
-
-#define TICKINTERVAL 5		/* in seconds */
+#define TICKINTERVAL 5 /* in seconds */
 
 int RPC2_enableReaping = 0;
 
 void rpc2_ClockTick(void *dummy)
-{/* Non terminating LWP */
+{ /* Non terminating LWP */
     struct SL_Entry *sl;
     struct timeval tval;
     long timenow;
     int ticks = 0;
 
-    sl = rpc2_AllocSle(OTHER, NULL);
-    tval.tv_sec = TICKINTERVAL;
+    sl           = rpc2_AllocSle(OTHER, NULL);
+    tval.tv_sec  = TICKINTERVAL;
     tval.tv_usec = 0;
 
-    while (TRUE)
-    {
-	/* ask for SocketListener to wake me up after TICKINTERVAL seconds */
-	rpc2_ActivateSle(sl, &tval);
-	LWP_WaitProcess((char *)sl);
+    while (TRUE) {
+        /* ask for SocketListener to wake me up after TICKINTERVAL seconds */
+        rpc2_ActivateSle(sl, &tval);
+        LWP_WaitProcess((char *)sl);
 
-	LUA_clocktick();
+        LUA_clocktick();
 
-	/* only reap connections once a minute */
-	if ((ticks++ % 12) != 0) continue;
+        /* only reap connections once a minute */
+        if ((ticks++ % 12) != 0)
+            continue;
 
-	timenow = rpc2_time();
-	say(1, RPC2_DebugLevel, "Clock Tick at %ld\n",  timenow);
+        timenow = rpc2_time();
+        say(1, RPC2_DebugLevel, "Clock Tick at %ld\n", timenow);
 
 #ifdef RPC2DEBUG
-	if (RPC2_Trace && rpc2_TraceBuffHeader)
-	{
-	    struct TraceElem *te;
-	    struct te_CLOCKTICK *tea;
-	    te = (struct TraceElem *)CBUF_NextSlot(rpc2_TraceBuffHeader);
-	    tea = &te->Args.ClockTickEntry;
-	    te->CallCode = CLOCKTICK;
-	    strncpy(te->ActiveLWP, LWP_Name(), sizeof(te->ActiveLWP)-1);
-	    tea->TimeNow = timenow;	/* structure assignment */
-	}
+        if (RPC2_Trace && rpc2_TraceBuffHeader) {
+            struct TraceElem *te;
+            struct te_CLOCKTICK *tea;
+            te  = (struct TraceElem *)CBUF_NextSlot(rpc2_TraceBuffHeader);
+            tea = &te->Args.ClockTickEntry;
+            te->CallCode = CLOCKTICK;
+            strncpy(te->ActiveLWP, LWP_Name(), sizeof(te->ActiveLWP) - 1);
+            tea->TimeNow = timenow; /* structure assignment */
+        }
 #endif
 
-	/* and free up `dead' connections */
-	if (RPC2_enableReaping)
-	    rpc2_ReapDeadConns();
+        /* and free up `dead' connections */
+        if (RPC2_enableReaping)
+            rpc2_ReapDeadConns();
     }
 }

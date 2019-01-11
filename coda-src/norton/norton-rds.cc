@@ -21,11 +21,12 @@ extern "C" {
 #endif
 
 extern int print_heap();
-    
+
 #ifdef __cplusplus
 }
 #endif
 
-void show_heap(int arc, char *argv[]) {
+void show_heap(int arc, char *argv[])
+{
     print_heap();
 }

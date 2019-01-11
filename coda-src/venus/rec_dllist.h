@@ -41,11 +41,10 @@ static inline void rec_list_del(struct dllist_head *p)
 {
     RVMLIB_REC_OBJECT(*p);
     if (!list_empty(p)) {
-	RVMLIB_REC_OBJECT(p->next->prev);
-	RVMLIB_REC_OBJECT(p->prev->next);
+        RVMLIB_REC_OBJECT(p->next->prev);
+        RVMLIB_REC_OBJECT(p->prev->next);
     }
     list_del(p);
 }
 
 #endif /* _REC_DLLIST_H_ */
-

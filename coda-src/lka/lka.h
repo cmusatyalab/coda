@@ -22,16 +22,17 @@ listed in the file CREDITS.
 #include <coda_hash.h>
 
 /* "helper" routines in shaprocs.cc */
-void ViceSHAtoHex (unsigned char sha[SHA_DIGEST_LENGTH], char *buf, int buflen);
-int CopyAndComputeViceSHA(int infd, int outfd, unsigned char sha[SHA_DIGEST_LENGTH]);
+void ViceSHAtoHex(unsigned char sha[SHA_DIGEST_LENGTH], char *buf, int buflen);
+int CopyAndComputeViceSHA(int infd, int outfd,
+                          unsigned char sha[SHA_DIGEST_LENGTH]);
 #define ComputeViceSHA(fd, sha) CopyAndComputeViceSHA(fd, -1, sha)
 
 int IsZeroSHA(unsigned char sha[SHA_DIGEST_LENGTH]);
 
 /* "core" routines in lka.cc called by venus */
 int LookAsideAndFillContainer(unsigned char sha[SHA_DIGEST_LENGTH], int cfd,
-			      int length, const char *venusRoot,
-			      char *emsg, int emsglen);
+                              int length, const char *venusRoot, char *emsg,
+                              int emsglen);
 int LKParseAndExecute(char *in, char *out, int len);
 
 #endif /*_LKA_H_INCLUDED_ */

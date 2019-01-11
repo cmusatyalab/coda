@@ -27,15 +27,18 @@
 /**************************************** prototypes */
 #ifndef __P
 #ifdef __STDC__
-#define __P(args)     args
+#define __P(args) args
 #else /* __STDC__ */
-#define __P(args)     ()
+#define __P(args) ()
 #endif /* __STDC__ */
 #endif /* __P */
 
-
 /**************************************** booleans */
-typedef enum {TRUE =1, FALSE=0} bool;
+typedef enum
+{
+    TRUE  = 1,
+    FALSE = 0
+} bool;
 
 /*************************************** magic number tags */
 typedef unsigned long magic_t;
@@ -44,7 +47,7 @@ typedef unsigned long magic_t;
 
 #ifdef __STDC__
 
-typedef long (*COMPFN)(void*,void*);  /* used by data structure routines */
+typedef long (*COMPFN)(void *, void *); /* used by data structure routines */
 
 #else /* __STDC__ */
 
@@ -67,75 +70,72 @@ typedef struct timeval TIMEVAL;
 
 #ifdef __STDC__
 
-#define CODA_ASSERT(cond) 						      \
-do {                                                                  \
-    if (!(cond)) {                                                    \
-	int *j = 0;                                                   \
-	fprintf(stderr, "Assert (%s) in %s:%d\n",                     \
-		#cond, __FILE__, __LINE__);                           \
-	fflush(stderr);                                               \
-	*j = 1; /* cause a real SIGTRAP to happen: can be caught */   \
-    }                                                                 \
-} while (0)
+#define CODA_ASSERT(cond)                                               \
+    do {                                                                \
+        if (!(cond)) {                                                  \
+            int *j = 0;                                                 \
+            fprintf(stderr, "Assert (%s) in %s:%d\n", #cond, __FILE__,  \
+                    __LINE__);                                          \
+            fflush(stderr);                                             \
+            *j = 1; /* cause a real SIGTRAP to happen: can be caught */ \
+        }                                                               \
+    } while (0)
 
 #else /* __STDC__ */
 
-#define CODA_ASSERT(cond) 						      \
-do {                                                                  \
-    if (!(cond)) {                                                    \
-	int *j = 0;                                                   \
-	fprintf(stderr, "Assert failed in %s:%d\n",                   \
-		__FILE__, __LINE__);                                  \
-	fflush(stderr);                                               \
-	*j = 1; /* cause a real SIGTRAP to happen: can be caught */   \
-    }                                                                 \
-} while (0)
+#define CODA_ASSERT(cond)                                                    \
+    do {                                                                     \
+        if (!(cond)) {                                                       \
+            int *j = 0;                                                      \
+            fprintf(stderr, "Assert failed in %s:%d\n", __FILE__, __LINE__); \
+            fflush(stderr);                                                  \
+            *j = 1; /* cause a real SIGTRAP to happen: can be caught */      \
+        }                                                                    \
+    } while (0)
 
 #endif /* __STDC__ */
 
 /*************************************** Allocation, deallocation, validity */
 
-#define ALLOC(X,T)                                                \
-do {                                                              \
-    if (((X) = (T *)malloc(sizeof(T))) == NULL)                   \
-	CODA_ASSERT(0);                                                \
-} while (0)
+#define ALLOC(X, T)                                 \
+    do {                                            \
+        if (((X) = (T *)malloc(sizeof(T))) == NULL) \
+            CODA_ASSERT(0);                         \
+    } while (0)
 
-#define NALLOC(X,T,S)                                  \
-do {                                                   \
-    if (((X) = (T *)malloc(sizeof(T)*(S))) == NULL) {  \
-	CODA_ASSERT(0);                                     \
-    }                                                  \
-} while (0)
+#define NALLOC(X, T, S)                                     \
+    do {                                                    \
+        if (((X) = (T *)malloc(sizeof(T) * (S))) == NULL) { \
+            CODA_ASSERT(0);                                 \
+        }                                                   \
+    } while (0)
 
-#define FREE(X)           \
-do {                      \
-    if ((X) != NULL) {    \
-	free((X));        \
-	(X) = NULL;       \
-    }                     \
-} while (0)
+#define FREE(X)            \
+    do {                   \
+        if ((X) != NULL) { \
+            free((X));     \
+            (X) = NULL;    \
+        }                  \
+    } while (0)
 
 /*************************************** time operations */
 
 /* tvp should be of type TIMEVAL */
-#define TIME(tv)    (gettimeofday(&(tv),NULL))
+#define TIME(tv) (gettimeofday(&(tv), NULL))
 
 /* tvb, tve, tvr should be of type TIMEVAL */
 /* tve should be >= tvb. */
-#define TIMEDIFF(tvb,tve,tvr)                           \
-do {                                                    \
-    CODA_ASSERT(((tve).sec > (tvb).sec)                      \
-	   || (((tve).sec == (tvb).sec)                 \
-	       && ((tve).usec > (tvb).usec)));          \
-    if ((tve).usec < (tvb).usec) {                      \
-	(tvr).usec = 1000000 + (tve).usec - (tvb).usec; \
-	(tvr).sec = (tve).sec - (tvb).sec - 1;          \
-    } else {                                            \
-	(tvr).usec = (tve).usec - (tvb).usec;           \
-	(tvr).sec = (tve).sec - (tvb).sec;              \
-    }                                                   \
-} while (0)
-
+#define TIMEDIFF(tvb, tve, tvr)                                               \
+    do {                                                                      \
+        CODA_ASSERT(((tve).sec > (tvb).sec) ||                                \
+                    (((tve).sec == (tvb).sec) && ((tve).usec > (tvb).usec))); \
+        if ((tve).usec < (tvb).usec) {                                        \
+            (tvr).usec = 1000000 + (tve).usec - (tvb).usec;                   \
+            (tvr).sec  = (tve).sec - (tvb).sec - 1;                           \
+        } else {                                                              \
+            (tvr).usec = (tve).usec - (tvb).usec;                             \
+            (tvr).sec  = (tve).sec - (tvb).sec;                               \
+        }                                                                     \
+    } while (0)
 
 #endif /* _ODYTYPES_H_ */

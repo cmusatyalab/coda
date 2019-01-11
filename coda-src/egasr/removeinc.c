@@ -16,12 +16,10 @@ listed in the file CREDITS.
 
 #*/
 
-
-
 /*
  * removeinc - removes an inconsistent file (after repairing with an empty file) 
- */ 
- 
+ */
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -50,13 +48,12 @@ extern int wildmat(char *text, char *pattern);
 }
 #endif
 
-
-int IsObjInc(char *name, ViceFid *fid, char *realm) 
+int IsObjInc(char *name, ViceFid *fid, char *realm)
 {
     struct GetFid {
-	ViceFid fid;
-	ViceVersionVector vv;
-	char realm[MAXHOSTNAMELEN+1];
+        ViceFid fid;
+        ViceVersionVector vv;
+        char realm[MAXHOSTNAMELEN + 1];
     } out;
     struct ViceIoctl vio;
     struct stat statbuf;
@@ -69,46 +66,47 @@ int IsObjInc(char *name, ViceFid *fid, char *realm)
     /* what if the begin repair has been done already */
     rc = stat(name, &statbuf);
     if (rc) {
-	/* is it a sym link */
-	symval[0] = 0;
-	rc = readlink(name, symval, MAXPATHLEN);
-	if (rc < 0) return(0);
+        /* is it a sym link */
+        symval[0] = 0;
+        rc        = readlink(name, symval, MAXPATHLEN);
+        if (rc < 0)
+            return (0);
 
-	/* it's a sym link, alright */
-	n = sscanf(symval, "@%x.%x.%x@%s",
-		   &fid->Volume, &fid->Vnode, &fid->Unique, realm);
+        /* it's a sym link, alright */
+        n = sscanf(symval, "@%x.%x.%x@%s", &fid->Volume, &fid->Vnode,
+                   &fid->Unique, realm);
 
-	return(n == 4);
+        return (n == 4);
     }
 
     memset(&out, 0, sizeof(out));
-    vio.in = NULL;
-    vio.in_size = 0;
-    vio.out = (char *)&out;
+    vio.in       = NULL;
+    vio.in_size  = 0;
+    vio.out      = (char *)&out;
     vio.out_size = sizeof(out);
 
     rc = pioctl(name, _VICEIOCTL(_VIOC_GETFID), &vio, 0);
     if (rc < 0 && errno != ETOOMANYREFS) {
-	fprintf(stderr, "Error %d for Getfid\n", errno);
-	return(0);
+        fprintf(stderr, "Error %d for Getfid\n", errno);
+        return (0);
     }
     memcpy(fid, &out.fid, sizeof(ViceFid));
     strcpy(realm, out.realm);
 
     if (!ISDIR(out.fid) && (statbuf.st_mode & S_IFDIR))
-	return(1);
+        return (1);
 
     /* indicates VV is undefined */
     if (out.vv.StoreId.HostId == (unsigned)-1)
-	return(1);
+        return (1);
 
-    return(0);
+    return (0);
 }
 
-int main(int argc, char **argv) 
+int main(int argc, char **argv)
 {
     ViceFid fid;
-    char realm[MAXHOSTNAMELEN+1];
+    char realm[MAXHOSTNAMELEN + 1];
     char tmpfname[80];
     int fd;
     struct ViceIoctl vioc;
@@ -116,48 +114,49 @@ int main(int argc, char **argv)
     int rc;
 
     if (argc != 2) {
-	fprintf(stderr, "Usage: %s <inc-file-name>\n", argv[0]);
-	exit(EXIT_FAILURE);
+        fprintf(stderr, "Usage: %s <inc-file-name>\n", argv[0]);
+        exit(EXIT_FAILURE);
     }
-    
+
     /* make sure object is inconsistent */
     if (!IsObjInc(argv[1], &fid, realm)) {
-	fprintf(stderr, "%s isn't inconsistent\n", argv[1]);
-	exit(EXIT_SUCCESS);
+        fprintf(stderr, "%s isn't inconsistent\n", argv[1]);
+        exit(EXIT_SUCCESS);
     }
-    
+
     /* get fid and make sure it is a file */
     if (ISDIR(fid) && !FID_IsLocalDir(&fid)) {
-	fprintf(stderr, "%s is a directory - must be removed manually\n", argv[1]);
-	exit(EXIT_FAILURE);
+        fprintf(stderr, "%s is a directory - must be removed manually\n",
+                argv[1]);
+        exit(EXIT_FAILURE);
     }
 
     /* create an empty file /tmp/REPAIR.XXXXXX */
     strcpy(tmpfname, "/tmp/RMINC.XXXXXX");
     if ((fd = mkstemp(tmpfname)) < 0) {
-	fprintf(stderr, "Couldn't create /tmp file\n");
-	exit(EXIT_FAILURE);
+        fprintf(stderr, "Couldn't create /tmp file\n");
+        exit(EXIT_FAILURE);
     }
     close(fd);
 
     /* dorepair on the fid with an empty file */
-    vioc.in_size = (short)(1+strlen(tmpfname)); 
-    vioc.in = tmpfname;
-    vioc.out_size = (short) sizeof(space);
-    vioc.out = space;
-    memset(space, 0, (int) sizeof(space));
+    vioc.in_size  = (short)(1 + strlen(tmpfname));
+    vioc.in       = tmpfname;
+    vioc.out_size = (short)sizeof(space);
+    vioc.out      = space;
+    memset(space, 0, (int)sizeof(space));
     rc = pioctl(argv[1], _VICEIOCTL(_VIOC_REPAIR), &vioc, 0);
     if (rc < 0 && errno != ETOOMANYREFS) {
-	fprintf(stderr, "Error %d for repair\n", errno);
-	unlink(tmpfname);
-	exit(EXIT_FAILURE);
+        fprintf(stderr, "Error %d for repair\n", errno);
+        unlink(tmpfname);
+        exit(EXIT_FAILURE);
     }
     unlink(tmpfname);
 
     /* remove the repaired file */
     if (unlink(argv[1])) {
-	fprintf(stderr, "Couldn't remove %s\n", argv[1]);
-	exit(EXIT_FAILURE);
+        fprintf(stderr, "Couldn't remove %s\n", argv[1]);
+        exit(EXIT_FAILURE);
     }
     exit(EXIT_SUCCESS);
 }

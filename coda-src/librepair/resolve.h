@@ -33,10 +33,10 @@ listed in the file CREDITS.
 #undef MAXNAMELEN
 #endif
 #define MAXNAMELEN 255
-#define	AVGDIRENTRYSIZE 12
-#define	GROWSIZE    32
-#define MAXHOSTS    8
-#define	ISDIRVNODE(vnode) ((vnode) &	1)  /* directory vnodes are odd */
+#define AVGDIRENTRYSIZE 12
+#define GROWSIZE 32
+#define MAXHOSTS 8
+#define ISDIRVNODE(vnode) ((vnode)&1) /* directory vnodes are odd */
 #define NNCONFLICTS -1
 
 struct Acl {
@@ -52,55 +52,56 @@ struct AclEntry {
 };
 
 struct repinfo {
-    char *user, *rights;      /* ACL sets   (what to set ACL's to if conflicting) */
-    char *owner;              /* Owner sets (what to set owner to...) */
-    char *mode;               /* Mode sets */
-    char *fixed;              /* Location of 'fixed' file/directory if non-interactive */
-    char interactive;         /* flag indicating whether repair is interactive */
+    char *user, *rights; /* ACL sets   (what to set ACL's to if conflicting) */
+    char *owner; /* Owner sets (what to set owner to...) */
+    char *mode; /* Mode sets */
+    char *fixed; /* Location of 'fixed' file/directory if non-interactive */
+    char interactive; /* flag indicating whether repair is interactive */
 };
 
 /* definition of directory entries within a directory conflict replica
  * as used by the resolution subsystem */
 typedef struct {
-    char    name[MAXNAMELEN + 1];   /* name of the entry */
-  /* char    realm  // not needed because cross-realm mtpts aren't supported
+    char name[MAXNAMELEN + 1]; /* name of the entry */
+    /* char    realm  // not needed because cross-realm mtpts aren't supported
    * (Jan has a good comment on authentication issues somewhere) */
     ViceFid fid;
-    ViceVersionVector	VV;
-    int	    MtPt;		    /* Is this child a mount point? */
-    int	    lookedAt;
-    int     index;                  /* Functions as a index for resreplica arrays */
+    ViceVersionVector VV;
+    int MtPt; /* Is this child a mount point? */
+    int lookedAt;
+    int index; /* Functions as a index for resreplica arrays */
 } resdir_entry;
 
 /* definition of the parent directory replica */
 typedef struct {
-    int	    entry1;		    /* index of first child in table */
-    int	    nentries;		    /* number of children */
+    int entry1; /* index of first child in table */
+    int nentries; /* number of children */
     ViceFid fid;
-    char    *path;		    /* path name of the RO mounted copy */
+    char *path; /* path name of the RO mounted copy */
     u_short modebits;
-    struct  Acl *al;
-    short   owner;
+    struct Acl *al;
+    short owner;
 } resreplica;
 
 /* globals */
-extern resdir_entry	*direntriesarr;
+extern resdir_entry *direntriesarr;
 extern int direntriesarrsize;
 extern int nextavailindex;
-extern resdir_entry	**sortedArrByFidName;	/* for sorting the direntries in fid order*/
-extern resdir_entry	**sortedArrByName;	/* for sorting the direntries in name order */
-extern int  totaldirentries;
-extern int  nConflicts;
+extern resdir_entry *
+    *sortedArrByFidName; /* for sorting the direntries in fid order*/
+extern resdir_entry *
+    *sortedArrByName; /* for sorting the direntries in name order */
+extern int totaldirentries;
+extern int nConflicts;
 
-
-extern void InitListHdr (int , resreplica *, struct listhdr **);
-extern int InsertListHdr (int , struct repair *, struct listhdr **, int);
-extern int InRepairList (struct listhdr *, unsigned, VnodeId, Unique_t);
+extern void InitListHdr(int, resreplica *, struct listhdr **);
+extern int InsertListHdr(int, struct repair *, struct listhdr **, int);
+extern int InRepairList(struct listhdr *, unsigned, VnodeId, Unique_t);
 extern int IsCreatedEarlier(struct listhdr **, int, VnodeId, Unique_t);
-extern int getunixdirreps (int , char **, resreplica **);
-extern int dirresolve (int, resreplica *, int (*)(char *), struct listhdr **,
-		       VolumeId, struct repinfo *, char *realm);
-extern void resClean (int, resreplica *, struct listhdr *);
-extern int GetParent (char *realm, ViceFid *, ViceFid *, char *, char *);
+extern int getunixdirreps(int, char **, resreplica **);
+extern int dirresolve(int, resreplica *, int (*)(char *), struct listhdr **,
+                      VolumeId, struct repinfo *, char *realm);
+extern void resClean(int, resreplica *, struct listhdr *);
+extern int GetParent(char *realm, ViceFid *, ViceFid *, char *, char *);
 
 #endif

@@ -44,18 +44,17 @@ void RealmDB::ResetTransient(void)
 
     eprint("Starting RealmDB scan");
 
-    for(p = realms.next; p != &realms;) {
-	realm = list_entry_plusplus(p, Realm, realms);
-	p = p->next;
-	realm->ResetTransient();
-	if (realm->Id() > max_realmid)
-	    max_realmid = realm->Id();
+    for (p = realms.next; p != &realms;) {
+        realm = list_entry_plusplus(p, Realm, realms);
+        p     = p->next;
+        realm->ResetTransient();
+        if (realm->Id() > max_realmid)
+            max_realmid = realm->Id();
     }
 
     LocalRealm = GetRealm(LOCALREALM);
 
-    list_for_each(p, realms)
-	nrealms++;
+    list_for_each(p, realms) nrealms++;
 
     eprint("\tFound %d realms", nrealms);
 }
@@ -66,16 +65,17 @@ Realm *RealmDB::GetRealm(const char *realmname)
     Realm *realm;
 
     if (!realmname || realmname[0] == '\0')
-	realmname = "UNKNOWN";
+        realmname = "UNKNOWN";
 
     CODA_ASSERT(strlen(realmname) <= MAXHOSTNAMELEN);
 
-    list_for_each(p, realms) {
-	realm = list_entry_plusplus(p, Realm, realms);
-	if (STREQ(realm->Name(), realmname)) {
-	    realm->GetRef();
-	    return realm;
-	}
+    list_for_each(p, realms)
+    {
+        realm = list_entry_plusplus(p, Realm, realms);
+        if (STREQ(realm->Name(), realmname)) {
+            realm->GetRef();
+            return realm;
+        }
     }
 
     Recov_BeginTrans();
@@ -91,12 +91,13 @@ Realm *RealmDB::GetRealm(const RealmId realmid)
     struct dllist_head *p;
     Realm *realm;
 
-    list_for_each(p, realms) {
-	realm = list_entry_plusplus(p, Realm, realms);
-	if (realm->Id() == realmid) {
-	    realm->GetRef();
-	    return realm;
-	}
+    list_for_each(p, realms)
+    {
+        realm = list_entry_plusplus(p, Realm, realms);
+        if (realm->Id() == realmid) {
+            realm->GetRef();
+            return realm;
+        }
     }
     return NULL;
 }
@@ -107,16 +108,16 @@ void RealmDB::GetDown(void)
     struct dllist_head *p;
     Realm *realm;
 
-    for(p = realms.next; p != &realms;) {
-	realm = list_entry_plusplus(p, Realm, realms);
-	p = p->next;
+    for (p = realms.next; p != &realms;) {
+        realm = list_entry_plusplus(p, Realm, realms);
+        p     = p->next;
 
-	if (!realm->refcount && !realm->rec_refcount) {
-	    Recov_BeginTrans();
-	    realm->Rec_GetRef();
-	    realm->Rec_PutRef();
-	    Recov_EndTrans(MAXFP);
-	}
+        if (!realm->refcount && !realm->rec_refcount) {
+            Recov_BeginTrans();
+            realm->Rec_GetRef();
+            realm->Rec_PutRef();
+            Recov_EndTrans(MAXFP);
+        }
     }
 }
 
@@ -127,9 +128,10 @@ void RealmDB::print(FILE *f)
 
     fprintf(f, "*** BEGIN RealmDB ***\n");
 
-    list_for_each(p, realms) {
-	realm = list_entry_plusplus(p, Realm, realms);
-	realm->print(f);
+    list_for_each(p, realms)
+    {
+        realm = list_entry_plusplus(p, Realm, realms);
+        realm->print(f);
     }
 
     fprintf(f, "*** END RealmDB ***\n");
@@ -143,10 +145,10 @@ static void RealmDB_GetDown(void)
 void RealmDBInit(void)
 {
     if (InitMetaData) {
-	Recov_BeginTrans();
-	RVMLIB_REC_OBJECT(REALMDB);
-	REALMDB = new RealmDB;
-	Recov_EndTrans(0);
+        Recov_BeginTrans();
+        RVMLIB_REC_OBJECT(REALMDB);
+        REALMDB = new RealmDB;
+        Recov_EndTrans(0);
     }
     REALMDB->ResetTransient();
 
@@ -158,4 +160,3 @@ int FID_IsLocalFake(VenusFid *fid)
 {
     return (fid->Realm == LocalRealm->Id());
 }
-

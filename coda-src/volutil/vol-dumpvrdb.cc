@@ -44,19 +44,20 @@ long S_VolDumpVRDB(RPC2_Handle rpcid, RPC2_String formal_outfile)
     int fd = -1, err = 0;
 
     LogMsg(9, VolDebugLevel, stdout, "Entering S_VolDumpVRDB; outfile %s",
-	   outfile);
-    
+           outfile);
+
     fd = open(outfile, O_CREAT | O_EXCL | O_WRONLY, 0644);
     if (fd == -1) {
-	LogMsg(0, VolDebugLevel, stdout, 
-	       "S_VolDumpVRDB: unable to open file %s", outfile);
-	err = VFAIL;
-	goto Exit;
+        LogMsg(0, VolDebugLevel, stdout,
+               "S_VolDumpVRDB: unable to open file %s", outfile);
+        err = VFAIL;
+        goto Exit;
     }
 
     err = DumpVRDB(fd);
 
 Exit:
-    if (fd != -1) close(fd);
-    return(err ? VFAIL : 0);
+    if (fd != -1)
+        close(fd);
+    return (err ? VFAIL : 0);
 }

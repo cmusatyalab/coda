@@ -30,35 +30,36 @@ extern "C" {
 }
 #endif
 
-const int RVM_THREAD_DATA_ROCK_TAG = 2001;	
-rvm_type_t RvmType = UNSET;     /* What kind of persistence are we relying on? */
+const int RVM_THREAD_DATA_ROCK_TAG = 2001;
+rvm_type_t RvmType = UNSET; /* What kind of persistence are we relying on? */
 
 void rvmlib_init_threaddata(rvm_perthread_t *rvmptt)
 {
-	if (RvmType == RAWIO || RvmType == UFS) {
-		rvmptt->tid = NULL;
-		rvmptt->list.table = NULL;
-		rvmptt->list.count = 0;
-		rvmptt->list.size = 0;
-		rvmlib_set_thread_data(rvmptt);
-		CODA_ASSERT(rvmlib_thread_data() != 0);
-	}
+    if (RvmType == RAWIO || RvmType == UFS) {
+        rvmptt->tid        = NULL;
+        rvmptt->list.table = NULL;
+        rvmptt->list.count = 0;
+        rvmptt->list.size  = 0;
+        rvmlib_set_thread_data(rvmptt);
+        CODA_ASSERT(rvmlib_thread_data() != 0);
+    }
 }
 
 rvm_perthread_t *rvmlib_thread_data(void)
 {
-	rvm_perthread_t *data = NULL;
-	int lwprc = LWP_GetRock(RVM_THREAD_DATA_ROCK_TAG, (void *)&data);
-	if (lwprc != LWP_SUCCESS)
-	/*RVMLIB_ASSERT("thread_data: LWP_GetRock failed");*/
-		return NULL;
-	return data;
+    rvm_perthread_t *data = NULL;
+    int lwprc = LWP_GetRock(RVM_THREAD_DATA_ROCK_TAG, (void *)&data);
+    if (lwprc != LWP_SUCCESS)
+        /*RVMLIB_ASSERT("thread_data: LWP_GetRock failed");*/
+        return NULL;
+    return data;
 }
 
-void rvmlib_set_thread_data(void *p) {
+void rvmlib_set_thread_data(void *p)
+{
     int lwprc = LWP_NewRock(RVM_THREAD_DATA_ROCK_TAG, (char *)p);
-    if (lwprc != LWP_SUCCESS) 
-	    abort();
+    if (lwprc != LWP_SUCCESS)
+        abort();
 }
 
 void _rvmlib_begin_transaction(int restore_mode, const char file[], int line)
@@ -69,216 +70,217 @@ void _rvmlib_begin_transaction(int restore_mode, const char file[], int line)
     switch (RvmType) {
     case RAWIO:
     case UFS:
-	    /* Initialize the rvm_perthread_t object. */
-	    _rvm_data = rvmlib_thread_data();
-	    if (_rvm_data == 0) 
-		    RVMLIB_ASSERT("BeginTransaction: _rvm_data = 0");
-	    if (_rvm_data->tid != 0) {
-		    fprintf(stderr, "rvmlib_begin_transacion: "
-			    "transaction already started at %s:%d\n",
-			    _rvm_data->file, _rvm_data->line);
-		    RVMLIB_ASSERT("_rvm_data->tid is non zero during begin transaction");
-	    }
-	    rvm_init_tid(&(_rvm_data->tids));
-	    _rvm_data->tid = &(_rvm_data->tids);
-	    _rvm_data->list.table = NULL;
-	    _rvm_data->list.count = 0;
-	    _rvm_data->list.size = 0;
+        /* Initialize the rvm_perthread_t object. */
+        _rvm_data = rvmlib_thread_data();
+        if (_rvm_data == 0)
+            RVMLIB_ASSERT("BeginTransaction: _rvm_data = 0");
+        if (_rvm_data->tid != 0) {
+            fprintf(stderr,
+                    "rvmlib_begin_transacion: "
+                    "transaction already started at %s:%d\n",
+                    _rvm_data->file, _rvm_data->line);
+            RVMLIB_ASSERT(
+                "_rvm_data->tid is non zero during begin transaction");
+        }
+        rvm_init_tid(&(_rvm_data->tids));
+        _rvm_data->tid        = &(_rvm_data->tids);
+        _rvm_data->list.table = NULL;
+        _rvm_data->list.count = 0;
+        _rvm_data->list.size  = 0;
 
-	    /* track where the transaction was started */
-	    _rvm_data->file = file;
-	    _rvm_data->line = line;
+        /* track where the transaction was started */
+        _rvm_data->file = file;
+        _rvm_data->line = line;
 
-	    /* Begin the transaction. */
-	    _status = rvm_begin_transaction(_rvm_data->tid, restore_mode);
-	    if (_status != RVM_SUCCESS)
-		    CODA_ASSERT(0);
-	    break;
+        /* Begin the transaction. */
+        _status = rvm_begin_transaction(_rvm_data->tid, restore_mode);
+        if (_status != RVM_SUCCESS)
+            CODA_ASSERT(0);
+        break;
     case VM:
-	    _status = RVM_SUCCESS;
-	    break;
+        _status = RVM_SUCCESS;
+        break;
     default:
-	    CODA_ASSERT(0);
+        CODA_ASSERT(0);
     }
 }
 
 void rvmlib_end_transaction(int flush_mode, rvm_return_t *statusp)
 {
-	rvm_perthread_t *_rvm_data;
-	rvm_return_t _status = RVM_SUCCESS;
+    rvm_perthread_t *_rvm_data;
+    rvm_return_t _status = RVM_SUCCESS;
 
-	if (RvmType == VM) {
-		if (statusp)
-			*(statusp) = RVM_SUCCESS;
-		return;
-	}
+    if (RvmType == VM) {
+        if (statusp)
+            *(statusp) = RVM_SUCCESS;
+        return;
+    }
 
-	if (RvmType != RAWIO && RvmType != UFS)
-		CODA_ASSERT(0);
+    if (RvmType != RAWIO && RvmType != UFS)
+        CODA_ASSERT(0);
 
-	_rvm_data = rvmlib_thread_data();
-	if (_rvm_data == 0) 
-		RVMLIB_ASSERT("rvmlib_end_transaction: _rvm_data = 0");
+    _rvm_data = rvmlib_thread_data();
+    if (_rvm_data == 0)
+        RVMLIB_ASSERT("rvmlib_end_transaction: _rvm_data = 0");
 
-	/* UFS or RAWIO case */
-	if (flush_mode == no_flush) {
-		_status = rvm_end_transaction(_rvm_data->tid, no_flush);
-		CODA_ASSERT(_status == 0);
-		if (_rvm_data->list.table != NULL)
-			_status = rds_do_free(&_rvm_data->list, no_flush);
-		CODA_ASSERT(_status == 0);
-	} else {/* flush mode */
-		if (_rvm_data->list.table != NULL) {
-			_status = rvm_end_transaction(_rvm_data->tid, no_flush);
-			CODA_ASSERT(_status == 0);
-			_status = (rvm_return_t)rds_do_free(&_rvm_data->list, flush);
-			CODA_ASSERT(_status == 0);
-		} else {
-			_status = rvm_end_transaction(_rvm_data->tid, flush);
-			if (_status == RVM_ETOO_BIG)
-			    RVMLIB_ASSERT("RVM log is not big enough for transaction, going down");
-			CODA_ASSERT(_status == 0);
-                }
-	}
+    /* UFS or RAWIO case */
+    if (flush_mode == no_flush) {
+        _status = rvm_end_transaction(_rvm_data->tid, no_flush);
+        CODA_ASSERT(_status == 0);
+        if (_rvm_data->list.table != NULL)
+            _status = rds_do_free(&_rvm_data->list, no_flush);
+        CODA_ASSERT(_status == 0);
+    } else { /* flush mode */
+        if (_rvm_data->list.table != NULL) {
+            _status = rvm_end_transaction(_rvm_data->tid, no_flush);
+            CODA_ASSERT(_status == 0);
+            _status = (rvm_return_t)rds_do_free(&_rvm_data->list, flush);
+            CODA_ASSERT(_status == 0);
+        } else {
+            _status = rvm_end_transaction(_rvm_data->tid, flush);
+            if (_status == RVM_ETOO_BIG)
+                RVMLIB_ASSERT(
+                    "RVM log is not big enough for transaction, going down");
+            CODA_ASSERT(_status == 0);
+        }
+    }
 
+    if (statusp)
+        *(statusp) = _status;
 
-	if (statusp)
-		*(statusp) = _status;
-
-	/* De-initialize the rvm_perthread_t object. */
-	_rvm_data->tid = NULL;
-	if (_rvm_data->list.table)
-		free(_rvm_data->list.table);
+    /* De-initialize the rvm_perthread_t object. */
+    _rvm_data->tid = NULL;
+    if (_rvm_data->list.table)
+        free(_rvm_data->list.table);
 }
 
 void rvmlib_abort(int status)
 {
-	rvm_return_t err;
+    rvm_return_t err;
 
-	rvm_perthread_t *_rvm_data = rvmlib_thread_data();
-	if (RvmType == VM) 
-		RVMLIB_ASSERT("AbortTransaction: RvmType == VM");
-	if (RvmType != RAWIO && RvmType != UFS) 
-		CODA_ASSERT(0);
-	if (_rvm_data == 0) 
-		RVMLIB_ASSERT("AbortTransaction: _rvm_data = 0");
-	if (_rvm_data->tid == 0) {
-		RVMLIB_ASSERT("AbortTransaction: _rvm_data->tid is NULL");
-	}
-	err = rvm_abort_transaction(_rvm_data->tid);
-	if ( err != RVM_SUCCESS ) 
-		RVMLIB_ASSERT("Error aborting transaction.");
-	if (_rvm_data->list.table != NULL) 
-		free(_rvm_data->list.table);
-	_rvm_data->list.table = NULL;
-	_rvm_data->list.count = 0;
-	_rvm_data->list.size = 0;
-	_rvm_data->tid = NULL;
+    rvm_perthread_t *_rvm_data = rvmlib_thread_data();
+    if (RvmType == VM)
+        RVMLIB_ASSERT("AbortTransaction: RvmType == VM");
+    if (RvmType != RAWIO && RvmType != UFS)
+        CODA_ASSERT(0);
+    if (_rvm_data == 0)
+        RVMLIB_ASSERT("AbortTransaction: _rvm_data = 0");
+    if (_rvm_data->tid == 0) {
+        RVMLIB_ASSERT("AbortTransaction: _rvm_data->tid is NULL");
+    }
+    err = rvm_abort_transaction(_rvm_data->tid);
+    if (err != RVM_SUCCESS)
+        RVMLIB_ASSERT("Error aborting transaction.");
+    if (_rvm_data->list.table != NULL)
+        free(_rvm_data->list.table);
+    _rvm_data->list.table = NULL;
+    _rvm_data->list.count = 0;
+    _rvm_data->list.size  = 0;
+    _rvm_data->tid        = NULL;
 }
 
 void rvmlib_set_range(void *base, unsigned long size)
 {
-	if (RvmType != VM) {
-		rvm_perthread_t *_rvm_data = rvmlib_thread_data();
-		rvm_return_t ret;
-		
-		if (_rvm_data == 0) 
-			RVMLIB_ASSERT("SetRange: _rvm_data = 0");
-		if (_rvm_data->tid == 0 )
-			RVMLIB_ASSERT("SetRange: _rvm_data->tid = 0");
-		ret = rvm_set_range(_rvm_data->tid, (char *)(base), size);
-		if (ret != RVM_SUCCESS) 
-			RVMLIB_ASSERT("Error in rvm_set_range\n");
-	}
+    if (RvmType != VM) {
+        rvm_perthread_t *_rvm_data = rvmlib_thread_data();
+        rvm_return_t ret;
+
+        if (_rvm_data == 0)
+            RVMLIB_ASSERT("SetRange: _rvm_data = 0");
+        if (_rvm_data->tid == 0)
+            RVMLIB_ASSERT("SetRange: _rvm_data->tid = 0");
+        ret = rvm_set_range(_rvm_data->tid, (char *)(base), size);
+        if (ret != RVM_SUCCESS)
+            RVMLIB_ASSERT("Error in rvm_set_range\n");
+    }
 }
 
 void rvmlib_modify_bytes(void *dest, const void *newval, int len)
 {
-	rvmlib_set_range(dest, len);
-	memmove(dest, newval, len);
+    rvmlib_set_range(dest, len);
+    memmove(dest, newval, len);
 }
 
 char *rvmlib_strdup(const char *src, const char *file, int line)
 {
-    int len = strlen(src) + 1;
-    char *dst = (char *)rvmlib_malloc(len, file, line); 
+    int len   = strlen(src) + 1;
+    char *dst = (char *)rvmlib_malloc(len, file, line);
 
     if (dst)
-	rvmlib_modify_bytes(dst, src, len);
+        rvmlib_modify_bytes(dst, src, len);
 
     return dst;
 }
 
 void *rvmlib_malloc(unsigned long size, const char *file, int line)
 {
-	int err;
-	void *p;
-	rvm_perthread_t *_rvm_data; 
+    int err;
+    void *p;
+    rvm_perthread_t *_rvm_data;
 
-	switch (RvmType) {
-	case VM:
-		return malloc(size);
-	case RAWIO :
-	case UFS:
-		_rvm_data = rvmlib_thread_data();
-		if (_rvm_data == 0) 
-			RVMLIB_ASSERT("RecMalloc: _rvm_data = 0");
+    switch (RvmType) {
+    case VM:
+        return malloc(size);
+    case RAWIO:
+    case UFS:
+        _rvm_data = rvmlib_thread_data();
+        if (_rvm_data == 0)
+            RVMLIB_ASSERT("RecMalloc: _rvm_data = 0");
 
-		err = 0;
-		p = rds_malloc(size, _rvm_data->tid, &err);
-		
-		if (err != 0) {
-			fprintf(stderr, "rvm_malloc: error %d size %lx file %s line %d\n",
-					err, size, file, line);
-			RVMLIB_ASSERT("error in rvmlib_malloc\n");
-		}
-		RDS_LOG("rdstrace: rec_malloc addr %p size %lx file %s line %d\n",
-			p, size, file, line);
-		return p;
-	default :
-		return NULL;
-	}
+        err = 0;
+        p   = rds_malloc(size, _rvm_data->tid, &err);
+
+        if (err != 0) {
+            fprintf(stderr, "rvm_malloc: error %d size %lx file %s line %d\n",
+                    err, size, file, line);
+            RVMLIB_ASSERT("error in rvmlib_malloc\n");
+        }
+        RDS_LOG("rdstrace: rec_malloc addr %p size %lx file %s line %d\n", p,
+                size, file, line);
+        return p;
+    default:
+        return NULL;
+    }
 }
 
 inline void rvmlib_free(void *p, const char *file, int line)
 {
-	int err = 0;  
-	rvm_perthread_t *_rvm_data;
+    int err = 0;
+    rvm_perthread_t *_rvm_data;
 
-	switch (RvmType) {
-	case VM:
-		free(p);
-		break;
-	case RAWIO:
-        case UFS:
-		_rvm_data = rvmlib_thread_data();
-		if (_rvm_data == 0) 
-			RVMLIB_ASSERT("RecFree: _rvm_data = 0");
-		err = rds_fake_free((char *)p, &(_rvm_data->list));
-		if ( err != RVM_SUCCESS ) 
-			RVMLIB_ASSERT("Error in rvmlib_free\n");
-		RDS_LOG("rdstrace: rec_free addr %p file %s line %d\n",
-			p, file, line);
-		break; 
-	default:
-		CODA_ASSERT(0);
-	}
+    switch (RvmType) {
+    case VM:
+        free(p);
+        break;
+    case RAWIO:
+    case UFS:
+        _rvm_data = rvmlib_thread_data();
+        if (_rvm_data == 0)
+            RVMLIB_ASSERT("RecFree: _rvm_data = 0");
+        err = rds_fake_free((char *)p, &(_rvm_data->list));
+        if (err != RVM_SUCCESS)
+            RVMLIB_ASSERT("Error in rvmlib_free\n");
+        RDS_LOG("rdstrace: rec_free addr %p file %s line %d\n", p, file, line);
+        break;
+    default:
+        CODA_ASSERT(0);
+    }
 }
 
 void rvmlib_check_trans(char *where, char *file)
 
 {
-	if ( ! rvmlib_in_transaction() ) {
-		fprintf(stderr, "Aborting: no transaction in %s (%s)!\n", where, file);
-		fflush(stderr);
-		abort();
-	}
+    if (!rvmlib_in_transaction()) {
+        fprintf(stderr, "Aborting: no transaction in %s (%s)!\n", where, file);
+        fflush(stderr);
+        abort();
+    }
 }
 
-
-int rvmlib_in_transaction(void) 
+int rvmlib_in_transaction(void)
 {
-    if (RvmType != RAWIO && RvmType != UFS) return(0);
+    if (RvmType != RAWIO && RvmType != UFS)
+        return (0);
 
     return ((rvmlib_thread_data())->tid != NULL);
 }

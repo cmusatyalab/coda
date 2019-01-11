@@ -19,14 +19,14 @@ Coda are listed in the file CREDITS.
 #include <pthread.h>
 #include <rvm/rvm.h>
 
-pthread_t       rvm_pthreadid;
-void		*rvm_ptstat;
-int             rvm_join_res;
+pthread_t rvm_pthreadid;
+void *rvm_ptstat;
+int rvm_join_res;
 
-int rvm_lock_free (pthread_mutex_t *m) 
+int rvm_lock_free(pthread_mutex_t *m)
 {
     int result = pthread_mutex_trylock(m);
-    if (result == 0) pthread_mutex_unlock(m);
+    if (result == 0)
+        pthread_mutex_unlock(m);
     return (result == 0) ? rvm_true : rvm_false;
 }
-

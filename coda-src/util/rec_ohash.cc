@@ -45,41 +45,49 @@ extern FILE *logFile;
 extern void Die(char * ...);
 */
 
-void *rec_ohashtab::operator new(size_t size) {
+void *rec_ohashtab::operator new(size_t size)
+{
     rec_ohashtab *r = 0;
 
     r = (rec_ohashtab *)rvmlib_rec_malloc(size);
     CODA_ASSERT(r);
-    return(r);
+    return (r);
 }
 
-void rec_ohashtab::operator delete(void *deadobj) {
-	rvmlib_rec_free(deadobj);
+void rec_ohashtab::operator delete(void *deadobj)
+{
+    rvmlib_rec_free(deadobj);
 }
 
-rec_ohashtab::rec_ohashtab(int hashtabsize, RHFN hashfn) {
+rec_ohashtab::rec_ohashtab(int hashtabsize, RHFN hashfn)
+{
     rec_ohashtab::Init(hashtabsize, hashfn);
 }
 
-rec_ohashtab::~rec_ohashtab() {
+rec_ohashtab::~rec_ohashtab()
+{
     DeInit();
 }
 
-void rec_ohashtab::Init(int hashtabsize, RHFN hashfn) {
+void rec_ohashtab::Init(int hashtabsize, RHFN hashfn)
+{
     RVMLIB_REC_OBJECT(*this);
 
     /* Ensure that hashtabsize is a power of 2 so that we can use "AND" for modulus division. */
-    if (hashtabsize <= 0) abort();
-    for (sz = 1; sz < hashtabsize; sz *= 2) ;
-    if (sz != hashtabsize) abort();
+    if (hashtabsize <= 0)
+        abort();
+    for (sz = 1; sz < hashtabsize; sz *= 2)
+        ;
+    if (sz != hashtabsize)
+        abort();
 
     /* Allocate and initialize the array. */
     /* N.B. Normal vector construction won't work because RECOVERABLE vector must be allocated! */
     {
-	a = (rec_olist *)rvmlib_rec_malloc(sz * sizeof(rec_olist));
-    
-	for (int bucket = 0; bucket < sz; bucket++)
-	    a[bucket].Init();
+        a = (rec_olist *)rvmlib_rec_malloc(sz * sizeof(rec_olist));
+
+        for (int bucket = 0; bucket < sz; bucket++)
+            a[bucket].Init();
     }
     /* Store the hash function. */
     hfn = hashfn;
@@ -87,164 +95,172 @@ void rec_ohashtab::Init(int hashtabsize, RHFN hashfn) {
     cnt = 0;
 }
 
-void rec_ohashtab::DeInit() {
+void rec_ohashtab::DeInit()
+{
     RVMLIB_REC_OBJECT(*this);
 
     /* Free up array. */
     {
-	for (int bucket = 0; bucket < sz; bucket++)
-	    a[bucket].DeInit();
+        for (int bucket = 0; bucket < sz; bucket++)
+            a[bucket].DeInit();
 
-	rvmlib_rec_free(a);
+        rvmlib_rec_free(a);
     }
 }
 
-
-rec_ohashtab::rec_ohashtab(rec_ohashtab& ht) {
+rec_ohashtab::rec_ohashtab(rec_ohashtab &ht)
+{
     abort();
 }
 
-
-int rec_ohashtab::operator=(rec_ohashtab& ht) {
+int rec_ohashtab::operator=(rec_ohashtab &ht)
+{
     abort();
-    return(0); /* keep C++ happy */
+    return (0); /* keep C++ happy */
 }
-
-
-
 
 /* The hash function is not necessarily recoverable, so don't insist on an enclosing transaction! */
-void rec_ohashtab::SetHFn(RHFN hashfn) {
+void rec_ohashtab::SetHFn(RHFN hashfn)
+{
     if (rvmlib_thread_data()->tid != 0)
-	RVMLIB_REC_OBJECT(*this);
+        RVMLIB_REC_OBJECT(*this);
     hfn = hashfn;
 }
 
-
-void rec_ohashtab::insert(void *key, rec_olink *p) {
+void rec_ohashtab::insert(void *key, rec_olink *p)
+{
     RVMLIB_REC_OBJECT(*this);
     int bucket = hfn(key) & (sz - 1);
     a[bucket].insert(p);
     cnt++;
 }
 
-
-void rec_ohashtab::append(void *key, rec_olink *p) {
+void rec_ohashtab::append(void *key, rec_olink *p)
+{
     RVMLIB_REC_OBJECT(*this);
     int bucket = hfn(key) & (sz - 1);
     a[bucket].append(p);
     cnt++;
 }
 
-
-rec_olink *rec_ohashtab::remove(void *key, rec_olink *p) {
+rec_olink *rec_ohashtab::remove(void *key, rec_olink *p)
+{
     RVMLIB_REC_OBJECT(*this);
     int bucket = hfn(key) & (sz - 1);
-    return(cnt--, a[bucket].remove(p));
+    return (cnt--, a[bucket].remove(p));
 }
 
-
-rec_olink *rec_ohashtab::first() {
-    if (cnt == 0) return(0);
+rec_olink *rec_ohashtab::first()
+{
+    if (cnt == 0)
+        return (0);
 
     for (int i = 0; i < sz; i++) {
-	rec_olink *p = a[i].first();
-	if (p != 0) return(p);
+        rec_olink *p = a[i].first();
+        if (p != 0)
+            return (p);
     }
     abort();
-    return(0); /* keep g++ happy */
+    return (0); /* keep g++ happy */
 }
 
-
-rec_olink *rec_ohashtab::last() {
-    if (cnt == 0) return(0);
+rec_olink *rec_ohashtab::last()
+{
+    if (cnt == 0)
+        return (0);
 
     for (int i = sz - 1; i >= 0; i--) {
-	rec_olink *p = a[i].last();
-	if (p != 0) return(p);
+        rec_olink *p = a[i].last();
+        if (p != 0)
+            return (p);
     }
     abort();
-    return(0); /* keep g++ happy */
+    return (0); /* keep g++ happy */
 }
 
-
-rec_olink *rec_ohashtab::get(void *key) {
+rec_olink *rec_ohashtab::get(void *key)
+{
     RVMLIB_REC_OBJECT(*this);
     int bucket = hfn(key) & (sz - 1);
-    return(cnt--, a[bucket].get());
+    return (cnt--, a[bucket].get());
 }
 
-
-int rec_ohashtab::count() {
-    return(cnt);
+int rec_ohashtab::count()
+{
+    return (cnt);
 }
 
-
-int rec_ohashtab::IsMember(void *key, rec_olink *p) {
+int rec_ohashtab::IsMember(void *key, rec_olink *p)
+{
     int bucket = hfn(key) & (sz - 1);
-    return(a[bucket].IsMember(p));
+    return (a[bucket].IsMember(p));
 }
 
-
-int rec_ohashtab::bucket(const void *key) {
-    return(hfn(key) & (sz - 1));
+int rec_ohashtab::bucket(const void *key)
+{
+    return (hfn(key) & (sz - 1));
 }
 
-
-void rec_ohashtab::print() {
+void rec_ohashtab::print()
+{
     print(stderr);
 }
 
-
-void rec_ohashtab::print(FILE *fp) {
+void rec_ohashtab::print(FILE *fp)
+{
     fflush(fp);
     print(fileno(fp));
 }
 
-
-void rec_ohashtab::print(int fd) {
+void rec_ohashtab::print(int fd)
+{
     /* first print out the rec_ohashtab header */
     char buf[40];
     sprintf(buf, "%p : Default rec_ohashtab\n", this);
     write(fd, buf, strlen(buf));
 
     /* then print out all of the rec_olists */
-    for (int i = 0; i < sz; i++) a[i].print(fd);
+    for (int i = 0; i < sz; i++)
+        a[i].print(fd);
 }
 
-
-rec_ohashtab_iterator::rec_ohashtab_iterator(rec_ohashtab& ht, const void *key)
+rec_ohashtab_iterator::rec_ohashtab_iterator(rec_ohashtab &ht, const void *key)
 {
-    chashtab = &ht;
+    chashtab   = &ht;
     allbuckets = (key == (void *)-1);
-    cbucket = (allbuckets ? 0 : chashtab->bucket(key));
+    cbucket    = (allbuckets ? 0 : chashtab->bucket(key));
+    nextlink   = new rec_olist_iterator(chashtab->a[cbucket]);
+}
+
+void rec_ohashtab_iterator::Reset()
+{
+    if (allbuckets)
+        cbucket = 0;
+    delete nextlink;
     nextlink = new rec_olist_iterator(chashtab->a[cbucket]);
 }
 
-void rec_ohashtab_iterator::Reset() {
-  if (allbuckets)
-    cbucket = 0;
-  delete nextlink;
-  nextlink = new rec_olist_iterator(chashtab->a[cbucket]);
-}
-
-rec_ohashtab_iterator::~rec_ohashtab_iterator() {
+rec_ohashtab_iterator::~rec_ohashtab_iterator()
+{
     delete nextlink;
 }
 
-
-rec_olink *rec_ohashtab_iterator::operator()() {
+rec_olink *rec_ohashtab_iterator::operator()()
+{
     for (;;) {
-	/* Take next entry from the current bucket. */
-	rec_olink *l = (*nextlink)();
-	if (l) return(l);
+        /* Take next entry from the current bucket. */
+        rec_olink *l = (*nextlink)();
+        if (l)
+            return (l);
 
-	/* Can we continue with the next bucket? */
-	if (!allbuckets) return(0);
+        /* Can we continue with the next bucket? */
+        if (!allbuckets)
+            return (0);
 
-	/* Try the next bucket. */
-	if (++cbucket >= chashtab->sz) return(0);
-	delete nextlink;
-	nextlink = new rec_olist_iterator(chashtab->a[cbucket]);
+        /* Try the next bucket. */
+        if (++cbucket >= chashtab->sz)
+            return (0);
+        delete nextlink;
+        nextlink = new rec_olist_iterator(chashtab->a[cbucket]);
     }
 }

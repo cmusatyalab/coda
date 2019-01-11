@@ -37,7 +37,6 @@ Pittsburgh, PA.
 
 */
 
-
 #ifndef _LWP_PRIVATE_
 #define _LWP_PRIVATE_
 
@@ -49,67 +48,65 @@ Pittsburgh, PA.
 #include <stdio.h>
 #include "lwp_ucontext.h"
 
-/* Initial size of eventlist in a PCB; grows dynamically  */ 
-#define EVINITSIZE  5
+/* Initial size of eventlist in a PCB; grows dynamically  */
+#define EVINITSIZE 5
 
-struct rock
-    {/* to hide things associated with this LWP under */
-    int  tag;		/* unique identifier for this rock */
-    char *value;	/* pointer to some arbitrary data structure */
-    };
+struct rock { /* to hide things associated with this LWP under */
+    int tag; /* unique identifier for this rock */
+    char *value; /* pointer to some arbitrary data structure */
+};
 
-#define MAXROCKS	8	/* max no. of rocks per LWP */
+#define MAXROCKS 8 /* max no. of rocks per LWP */
 
-struct lwp_pcb {			/* process control block */
-  char		*name;			/* ASCII name */
-  int		rc;			/* most recent return code */
-  char		status;			/* status flags */
-  const void  **eventlist;		/* ptr to array of eventids */
-  char		eventlistsize;		/* size of eventlist array */
-  int		eventcnt;		/* no. of events currently in eventlist array*/
-  int		wakevent;		/* index of eventid causing wakeup */
-  int		waitcnt;		/* min number of events awaited */
-  int		qpending;		/* number of pending QSignal events */
-  int		priority;		/* dispatching priority */
-  PROCESS	misc;			/* for LWP internal use only */
-  long		stackcheck;		/* first word of stack for overflow checking */
-  unsigned int	valgrind_stackid;	/* stack identifier from valgrind */
-  void		*topstack;		/* stack ptr value during last yield */
-  void		(*ep)(void *);		/* initial entry point */
-  char		*parm;			/* initial parm for process */
-  int		rused;			/* no of rocks presently in use */
-  struct rock	rlist[MAXROCKS];	/* set of rocks to hide things under */
-  PROCESS       next, prev;		/* ptrs to next and previous pcb */
-  int		level;			/* nesting level of critical sections */
-  struct IoRequest *iomgrRequest;	/* request we're waiting for */
-  int           index;                  /* LWP index: should be small index; actually is
-                                           incremented on each lwp_create_process */ 
-  struct timeval lastReady;		/* if ready, time placed in the run queue */
+struct lwp_pcb { /* process control block */
+    char *name; /* ASCII name */
+    int rc; /* most recent return code */
+    char status; /* status flags */
+    const void **eventlist; /* ptr to array of eventids */
+    char eventlistsize; /* size of eventlist array */
+    int eventcnt; /* no. of events currently in eventlist array*/
+    int wakevent; /* index of eventid causing wakeup */
+    int waitcnt; /* min number of events awaited */
+    int qpending; /* number of pending QSignal events */
+    int priority; /* dispatching priority */
+    PROCESS misc; /* for LWP internal use only */
+    long stackcheck; /* first word of stack for overflow checking */
+    unsigned int valgrind_stackid; /* stack identifier from valgrind */
+    void *topstack; /* stack ptr value during last yield */
+    void (*ep)(void *); /* initial entry point */
+    char *parm; /* initial parm for process */
+    int rused; /* no of rocks presently in use */
+    struct rock rlist[MAXROCKS]; /* set of rocks to hide things under */
+    PROCESS next, prev; /* ptrs to next and previous pcb */
+    int level; /* nesting level of critical sections */
+    struct IoRequest *iomgrRequest; /* request we're waiting for */
+    int index; /* LWP index: should be small index; actually is
+                                           incremented on each lwp_create_process */
+    struct timeval lastReady; /* if ready, time placed in the run queue */
 
-  stack_t    stack;			/* allocated stack for this thread */
-  struct lwp_ucontext ctx;		/* saved context for next dispatch */
-  };
+    stack_t stack; /* allocated stack for this thread */
+    struct lwp_ucontext ctx; /* saved context for next dispatch */
+};
 
-extern int lwp_nextindex;                      /* Next lwp index to assign */
+extern int lwp_nextindex; /* Next lwp index to assign */
 
-
-extern PROCESS	lwp_cpptr;		/* pointer to current process pcb */
-struct lwp_ctl {			/* LWP control structure */
-    int		processcnt;		/* number of lightweight processes */
-    PROCESS	outerpid;		/* process carved by Initialize */
-    void	*outersp;
+extern PROCESS lwp_cpptr; /* pointer to current process pcb */
+struct lwp_ctl { /* LWP control structure */
+    int processcnt; /* number of lightweight processes */
+    PROCESS outerpid; /* process carved by Initialize */
+    void *outersp;
 };
 
 /* Debugging macro */
 #ifdef LWPDEBUG
 extern FILE *lwp_logfile;
-#define lwpdebug(level, msg...)\
-	 if (lwp_debug > level && lwp_logfile) {\
-	     fprintf(lwp_logfile, "***LWP (%p): ", lwp_cpptr);\
-	     fprintf(lwp_logfile, ## msg);\
-	     fprintf(lwp_logfile, "\n");\
-	     fflush(lwp_logfile);\
-	 }
+#define lwpdebug(level, msg...)                           \
+    if (lwp_debug > level && lwp_logfile) {               \
+        fprintf(lwp_logfile, "***LWP (%p): ", lwp_cpptr); \
+        fprintf(lwp_logfile, ##msg);                      \
+        fprintf(lwp_logfile, "\n");                       \
+        fflush(lwp_logfile);                              \
+    }
 #else /* !LWPDEBUG */
 #define lwpdebug(level, msg...)
 #endif /* !LWPDEBUG */

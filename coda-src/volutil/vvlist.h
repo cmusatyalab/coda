@@ -16,18 +16,14 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
 #ifndef _VVLIST_H_
 #define _VVLIST_H_ 1
-    
+
 #include <vcrcommon.h>
 #include <cvnode.h>
-    
+
 typedef struct vventry {
-    int isThere;	/* We have seen an existing vnode for this entry */
+    int isThere; /* We have seen an existing vnode for this entry */
     long unique;
     ViceStoreId StoreId;
     struct vventry *next;
@@ -41,29 +37,28 @@ class vvtable {
     friend class vvent_iterator;
     vvent **vvlist;
     int nlists;
-    
-  public:
+
+public:
     vvtable(FILE *Ancient, VnodeClass vclass, int listsize);
     ~vvtable();
     int IsModified(int vnodeNumber, long unique, ViceStoreId *StoreId,
-		   unsigned int current_dumplevel,
-		   unsigned int *last_dumplevel);
+                   unsigned int current_dumplevel,
+                   unsigned int *last_dumplevel);
 };
-
 
 // Iterate through 1 list! Just one!
 class vvent_iterator {
-    vvent *cvvent;		// current olist
-	
-  public:
-    vvent_iterator(vvtable&, int);
-    vvent *operator()();	// return next object or 0
+    vvent *cvvent; // current olist
+
+public:
+    vvent_iterator(vvtable &, int);
+    vvent *operator()(); // return next object or 0
 };
 
-extern int  ValidListVVHeader(FILE *, Volume *, int *);
+extern int ValidListVVHeader(FILE *, Volume *, int *);
 extern void DumpListVVHeader(int, Volume *vp, unsigned int dumplevel, int);
 extern void ListVV(int fd, int vnode, VnodeDiskObject *vnp,
-		   unsigned int dumplevel);
+                   unsigned int dumplevel);
 extern void getlistfilename(char *, VolumeId, VolumeId, const char *);
 
 #endif /* _VVLIST_H_ */

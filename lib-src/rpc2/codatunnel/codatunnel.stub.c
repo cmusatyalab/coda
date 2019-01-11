@@ -24,11 +24,9 @@ Coda are listed in the file CREDITS.
    to keep the linker happy */
 
 /* stubs to make codatunnel related code a noop */
-int codatunnel_fork(int argc, char **argv,
-                    const char *tcp_bindaddr,
-                    const char *udp_bindaddr,
-                    const char *bind_service,
-		    int onlytcp)
+int codatunnel_fork(int argc, char **argv, const char *tcp_bindaddr,
+                    const char *udp_bindaddr, const char *bind_service,
+                    int onlytcp)
 {
     return -1;
 }
@@ -41,8 +39,8 @@ int codatunnel_socket()
 ssize_t codatunnel_sendto(int sockfd, const void *buf, size_t len, int flags,
                           const struct sockaddr *addr, socklen_t addrlen)
 {
-    return sendto(sockfd, buf, len, flags & ~CODATUNNEL_ISRETRY_HINT,
-                    addr, addrlen);
+    return sendto(sockfd, buf, len, flags & ~CODATUNNEL_ISRETRY_HINT, addr,
+                  addrlen);
 }
 
 ssize_t codatunnel_recvfrom(int sockfd, void *buf, size_t len, int flags,

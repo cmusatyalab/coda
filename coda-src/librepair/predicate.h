@@ -21,12 +21,11 @@ extern PtrFuncInt Predicates[];
 
 extern int nPredicates;
 /* the conflict types order must match the array Predicates order */
-#define	STRONGLY_EQUAL	0
-#define	WEAKLY_EQUAL	1
-#define	ALL_PRESENT	2
-#define SUBSET_RENAME	3
-#define	SUBSET_CREATE	4
-#define	SUBSET_REMOVE	5
+#define STRONGLY_EQUAL 0
+#define WEAKLY_EQUAL 1
+#define ALL_PRESENT 2
+#define SUBSET_RENAME 3
+#define SUBSET_CREATE 4
+#define SUBSET_REMOVE 5
 #define MAYBESUBSET_REMOVE 6
-#define	UNKNOWN_CONFLICT    -1
-
+#define UNKNOWN_CONFLICT -1

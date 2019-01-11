@@ -30,8 +30,6 @@ Mellon the rights to redistribute these changes without encumbrance.
 */
 #endif /*_BLURB_*/
 
-
-
 #ifndef _MONDUTIL_H_
 #define _MONDUTIL_H_
 
@@ -46,8 +44,7 @@ extern void Data_Init(void);
 extern void Data_Done(void);
 extern void BrainSurgeon(void);
 extern void PrintPinged(RPC2_Handle);
-extern int CheckCVResult(RPC2_Handle,int,const char*,
-			 const char*);
-extern void LogEventArray(VmonSessionEventArray*);
+extern int CheckCVResult(RPC2_Handle, int, const char *, const char *);
+extern void LogEventArray(VmonSessionEventArray *);
 
 #endif _MONDUTIL_H_

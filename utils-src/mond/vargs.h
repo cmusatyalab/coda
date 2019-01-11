@@ -30,11 +30,9 @@ Mellon the rights to redistribute these changes without encumbrance.
 */
 #endif /*_BLURB_*/
 
-
-
 #ifndef _VARGS_H_
 #define _VARGS_H_
 
-extern void Die(char * ...);
+extern void Die(char *...);
 
 #endif _VARGS_H_

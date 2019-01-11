@@ -24,12 +24,14 @@ Coda are listed in the file CREDITS.
 #include "rvm_private.h"
 
 /* global variables */
-extern log_t        *default_log;       /* default log descriptor ptr */
-extern rvm_bool_t   rvm_utlsw;          /* true if call by rvmutl */
-extern char         *rvm_errmsg;        /* internal error message buffer */
-extern rvm_length_t rvm_max_read_len;   /* maximum Mach read length */
-extern rvm_length_t flush_times_vec[flush_times_len]; /* flush timing histogram defs */
-extern rvm_length_t truncation_times_vec[truncation_times_len]; /* truncation timing 
+extern log_t *default_log; /* default log descriptor ptr */
+extern rvm_bool_t rvm_utlsw; /* true if call by rvmutl */
+extern char *rvm_errmsg; /* internal error message buffer */
+extern rvm_length_t rvm_max_read_len; /* maximum Mach read length */
+extern rvm_length_t
+    flush_times_vec[flush_times_len]; /* flush timing histogram defs */
+extern rvm_length_t
+    truncation_times_vec[truncation_times_len]; /* truncation timing 
                                                                    histogram defs */
 extern rvm_length_t range_lengths_vec[range_lengths_len]; /* range length
                                                              histogram defs */
@@ -37,85 +39,79 @@ extern rvm_length_t range_overlaps_vec[range_overlaps_len]; /* range coalesce
                                                              histogram defs */
 extern rvm_length_t trans_overlaps_vec[trans_overlaps_len]; /* trans coalesce
                                                              histogram defs */
-extern rvm_length_t range_elims_vec[range_elims_len]; /* ranges eliminated by range
+extern rvm_length_t
+    range_elims_vec[range_elims_len]; /* ranges eliminated by range
                                                          coalesce histogram defs */
-extern rvm_length_t trans_elims_vec[trans_elims_len]; /* ranges eliminated by trans
+extern rvm_length_t
+    trans_elims_vec[trans_elims_len]; /* ranges eliminated by trans
                                                          coalesce histogram defs */
 extern rvm_length_t trans_coalesces_vec[trans_coalesces_len]; /* transactions
                                                                  coalesed per flush */
 
-rvm_length_t        rvm_optimizations = 0;  /* optimizations switches */
+rvm_length_t rvm_optimizations = 0; /* optimizations switches */
 
-rvm_bool_t	    rvm_map_private = 0;  /* Do we map private or not. */
+rvm_bool_t rvm_map_private = 0; /* Do we map private or not. */
 
 /* version strings */
-char                rvm_version[RVM_VERSION_MAX] =
-                        {RVM_VERSION};
-char                rvm_log_version[RVM_VERSION_MAX] =
-                        {RVM_LOG_VERSION};
-char                rvm_statistics_version[RVM_VERSION_MAX] =
-                        {RVM_STATISTICS_VERSION};
-char                rvm_release[RVM_VERSION_MAX] =
-                        {"RVM Release 11 Jan 1993"};
+char rvm_version[RVM_VERSION_MAX]            = { RVM_VERSION };
+char rvm_log_version[RVM_VERSION_MAX]        = { RVM_LOG_VERSION };
+char rvm_statistics_version[RVM_VERSION_MAX] = { RVM_STATISTICS_VERSION };
+char rvm_release[RVM_VERSION_MAX]            = { "RVM Release 11 Jan 1993" };
 
 /* local macros */
-#define TID_ARRAY_REALLOC_INCR  5       /* allocate tid_array 5 elements at a
+#define TID_ARRAY_REALLOC_INCR \
+    5 /* allocate tid_array 5 elements at a
                                            time */
-/* rvm_set_options */
-rvm_return_t rvm_set_options(rvm_options)
-    rvm_options_t   *rvm_options;
-    {
-    rvm_return_t    retval;
+/* rvm_set_options */
+rvm_return_t rvm_set_options(rvm_options) rvm_options_t *rvm_options;
+{
+    rvm_return_t retval;
 
     /* be sure RVM is initialized */
-    if (bad_init()) return RVM_EINIT;
+    if (bad_init())
+        return RVM_EINIT;
 
     /* must have an options record here */
-    if ((retval=bad_options(rvm_options, rvm_true)) != RVM_SUCCESS)
-        return retval;                  /* bad options ptr or record */
+    if ((retval = bad_options(rvm_options, rvm_true)) != RVM_SUCCESS)
+        return retval; /* bad options ptr or record */
     if (rvm_options == NULL)
         return RVM_EOPTIONS;
 
     /* check validity of options record & ptr */
     return do_rvm_options(rvm_options);
-
-    }
-/* structure validation */
-rvm_return_t bad_statistics(rvm_statistics)
-    rvm_statistics_t   *rvm_statistics;
-    {
+}
+/* structure validation */
+rvm_return_t bad_statistics(rvm_statistics) rvm_statistics_t *rvm_statistics;
+{
     if (rvm_statistics == NULL)
         return RVM_SUCCESS;
     if (rvm_statistics->struct_id != rvm_statistics_id)
         return RVM_ESTATISTICS;
 
     return RVM_SUCCESS;
-    }
+}
 
-rvm_return_t bad_options(rvm_options,chk_log_dev)
-    rvm_options_t   *rvm_options;
-    rvm_bool_t      chk_log_dev;
-    {
+rvm_return_t bad_options(rvm_options, chk_log_dev) rvm_options_t *rvm_options;
+rvm_bool_t chk_log_dev;
+{
     if (rvm_options == NULL)
         return RVM_SUCCESS;
     if (rvm_options->struct_id != rvm_options_id)
         return RVM_EOPTIONS;
 
     if (chk_log_dev && (rvm_options->log_dev != NULL))
-        if (strlen(rvm_options->log_dev) > (MAXPATHLEN-1))
+        if (strlen(rvm_options->log_dev) > (MAXPATHLEN - 1))
             return RVM_ENAME_TOO_LONG;
 
     return RVM_SUCCESS;
-    }
-/* rvm options processing */
-rvm_return_t do_rvm_options(rvm_options)
-    rvm_options_t   *rvm_options;
-    {
-    log_t           *log;               /* log descriptor */
-    rvm_return_t    retval;
+}
+/* rvm options processing */
+rvm_return_t do_rvm_options(rvm_options) rvm_options_t *rvm_options;
+{
+    log_t *log; /* log descriptor */
+    rvm_return_t retval;
 
-    if (rvm_options != NULL)
-        {
+    if (rvm_options != NULL) {
         /* set up maximum read length for large transafers */
         rvm_options->max_read_len =
             CHOP_TO_SECTOR_SIZE(rvm_options->max_read_len);
@@ -124,37 +120,36 @@ rvm_return_t do_rvm_options(rvm_options)
         rvm_max_read_len = rvm_options->max_read_len;
 
         /* do log - modifying options */
-        if ((retval=do_log_options(&log,rvm_options)) != RVM_SUCCESS)
+        if ((retval = do_log_options(&log, rvm_options)) != RVM_SUCCESS)
             return retval;
 
         /* set optimizations */
         rvm_optimizations = rvm_options->flags & (RVM_ALL_OPTIMIZATIONS);
         if (rvm_optimizations & RVM_COALESCE_TRANS)
             rvm_optimizations |= RVM_COALESCE_RANGES;
-	
-	/* set mapping kind */
-	rvm_map_private = rvm_options->flags & RVM_MAP_PRIVATE;
-        }
 
+        /* set mapping kind */
+        rvm_map_private = rvm_options->flags & RVM_MAP_PRIVATE;
+    }
 
     return RVM_SUCCESS;
-    }
-/* rvm_query */
-rvm_return_t rvm_query(rvm_options,rvm_region)
-    rvm_options_t       *rvm_options;
-    rvm_region_t        *rvm_region;
-    {
-    log_t               *log;           /* log descriptor */
-    log_status_t        *status;        /* log status area descriptor */
-    int_tid_t           *tid;           /* transaction descriptor */
-    region_t            *region=NULL;   /* mapped region descriptor */
-    range_t             *range;         /* tid modification range */
-    rvm_length_t        n_tids = 0;     /* number of tids found */
-    rvm_bool_t          copy_tid = rvm_false; /* copy tid if true */
-    rvm_return_t        retval;
+}
+/* rvm_query */
+rvm_return_t rvm_query(rvm_options, rvm_region) rvm_options_t *rvm_options;
+rvm_region_t *rvm_region;
+{
+    log_t *log; /* log descriptor */
+    log_status_t *status; /* log status area descriptor */
+    int_tid_t *tid; /* transaction descriptor */
+    region_t *region = NULL; /* mapped region descriptor */
+    range_t *range; /* tid modification range */
+    rvm_length_t n_tids = 0; /* number of tids found */
+    rvm_bool_t copy_tid = rvm_false; /* copy tid if true */
+    rvm_return_t retval;
 
     /* be sure RVM is initialized */
-    if (bad_init()) return RVM_EINIT;
+    if (bad_init())
+        return RVM_EINIT;
 
     /* check validity of region record & ptr */
     if (rvm_region != NULL)
@@ -162,242 +157,222 @@ rvm_return_t rvm_query(rvm_options,rvm_region)
             return RVM_EREGION;
 
     /* check validity of options record */
-    if (rvm_options == NULL) return RVM_EOPTIONS;
-    if ((retval=bad_options(rvm_options,rvm_false)) != RVM_SUCCESS)
+    if (rvm_options == NULL)
+        return RVM_EOPTIONS;
+    if ((retval = bad_options(rvm_options, rvm_false)) != RVM_SUCCESS)
         return retval;
 
     /* set fields for log options */
-    if (default_log != NULL)
-        {
-        log = default_log;
+    if (default_log != NULL) {
+        log    = default_log;
         status = &default_log->status;
 
         /* set log device name if buffer supplied */
         if (rvm_options->log_dev != NULL)
-            (void)strcpy(rvm_options->log_dev,log->dev.name);
-        rvm_options->truncate = log->daemon.truncate;
+            (void)strcpy(rvm_options->log_dev, log->dev.name);
+        rvm_options->truncate         = log->daemon.truncate;
         rvm_options->recovery_buf_len = log->log_buf.length;
-        rvm_options->flush_buf_len = log->dev.wrt_buf_len;
+        rvm_options->flush_buf_len    = log->dev.wrt_buf_len;
 
         /* log truncation fields */
-        CRITICAL(log->dev_lock,         /* begin dev_lock crit sec */
-            {
-            rvm_options->log_empty = rvm_false;
-            if (RVM_OFFSET_EQL_ZERO(status->prev_log_head))
-                if (RVM_OFFSET_EQL(status->log_head,status->log_tail))
-                    rvm_options->log_empty = rvm_true;
-            });                         /* end dev_lock crit sec */
-        /* if region specified, look it up */
-        if (rvm_region != NULL)
-            {                           /* begin region_lock crit sect */
-            region = find_whole_range(rvm_region->vmaddr,
-                                      rvm_region->length,r);
+        CRITICAL(log->dev_lock, /* begin dev_lock crit sec */
+                 {
+                     rvm_options->log_empty = rvm_false;
+                     if (RVM_OFFSET_EQL_ZERO(status->prev_log_head))
+                         if (RVM_OFFSET_EQL(status->log_head, status->log_tail))
+                             rvm_options->log_empty = rvm_true;
+                 }); /* end dev_lock crit sec */
+        /* if region specified, look it up */
+        if (rvm_region != NULL) { /* begin region_lock crit sect */
+            region =
+                find_whole_range(rvm_region->vmaddr, rvm_region->length, r);
             if (region == NULL)
                 return RVM_ENOT_MAPPED; /* not locked if not found
                                                        */
-            }
-
-        /* count uncommitted transactions */
-        CRITICAL(log->tid_list_lock,    /* begin log tid list crit sec */
-            {
-            FOR_ENTRIES_OF(log->tid_list,int_tid_t,tid)
-                {
-                if (rvm_region == NULL)
-                    copy_tid = rvm_true;
-                else
-                    {
-                    /* see if tid modifies specified region */
-                    copy_tid = rvm_false;
-                    RW_CRITICAL(tid->tid_lock,r, /* begin tid lock crit sec */
-                        {
-                        FOR_NODES_OF(tid->range_tree,range_t,range)
-                            if (range->region == region)
-                                {
-                                copy_tid = rvm_true;
-                                break;
-                                }
-                        });             /* end tid lock crit sec */
-                    }
-                /* copy uncommitted tid descriptions to uncommitted tid array */
-                if (copy_tid)
-                    {
-                    rvm_options->n_uncommit++;
-                    if (n_tids < rvm_options->n_uncommit)
-                        {
-                        /* reallocate tid_array */
-                        n_tids += TID_ARRAY_REALLOC_INCR;
-                        rvm_options->tid_array = (rvm_tid_t *)
-                            REALLOC(rvm_options->tid_array,
-                                    n_tids*sizeof(rvm_tid_t));
-                        if (rvm_options->tid_array == NULL)
-                            {
-                            retval = RVM_ENO_MEMORY;
-                            goto err_exit;
-                            }
-                        }
-
-                    /* copy tid uname */
-                    rvm_init_tid(&rvm_options->tid_array[
-                                   rvm_options->n_uncommit-1]);
-                    rvm_options->tid_array[rvm_options->
-                                           n_uncommit-1].uname
-                                               = tid->uname;
-                    rvm_options->tid_array[rvm_options->
-                                           n_uncommit-1].tid
-                                               = tid;
-                    }
-                }
-err_exit:;
-            });                         /* end log tid list crit sec */
-
-        if (rvm_region != NULL)
-            rw_unlock(&region->region_lock,r); /* end region_lock crit sect */
         }
 
+        /* count uncommitted transactions */
+        CRITICAL(log->tid_list_lock, /* begin log tid list crit sec */
+                 {
+                     FOR_ENTRIES_OF(log->tid_list, int_tid_t, tid)
+                     {
+                         if (rvm_region == NULL)
+                             copy_tid = rvm_true;
+                         else {
+                             /* see if tid modifies specified region */
+                             copy_tid = rvm_false;
+                             RW_CRITICAL(tid->tid_lock,
+                                         r, /* begin tid lock crit sec */
+                                         {
+                                             FOR_NODES_OF(tid->range_tree,
+                                                          range_t, range)
+                                             if (range->region == region) {
+                                                 copy_tid = rvm_true;
+                                                 break;
+                                             }
+                                         }); /* end tid lock crit sec */
+                         }
+                         /* copy uncommitted tid descriptions to uncommitted tid array */
+                         if (copy_tid) {
+                             rvm_options->n_uncommit++;
+                             if (n_tids < rvm_options->n_uncommit) {
+                                 /* reallocate tid_array */
+                                 n_tids += TID_ARRAY_REALLOC_INCR;
+                                 rvm_options->tid_array = (rvm_tid_t *)REALLOC(
+                                     rvm_options->tid_array,
+                                     n_tids * sizeof(rvm_tid_t));
+                                 if (rvm_options->tid_array == NULL) {
+                                     retval = RVM_ENO_MEMORY;
+                                     goto err_exit;
+                                 }
+                             }
+
+                             /* copy tid uname */
+                             rvm_init_tid(
+                                 &rvm_options
+                                      ->tid_array[rvm_options->n_uncommit - 1]);
+                             rvm_options->tid_array[rvm_options->n_uncommit - 1]
+                                 .uname = tid->uname;
+                             rvm_options->tid_array[rvm_options->n_uncommit - 1]
+                                 .tid = tid;
+                         }
+                     }
+                 err_exit:;
+                 }); /* end log tid list crit sec */
+
+        if (rvm_region != NULL)
+            rw_unlock(&region->region_lock, r); /* end region_lock crit sect */
+    }
+
     /* return non-log options */
-    rvm_options->flags = rvm_optimizations | rvm_map_private;
+    rvm_options->flags        = rvm_optimizations | rvm_map_private;
     rvm_options->max_read_len = rvm_max_read_len;
 
     return retval;
-    }
-/* rvm_statistics */
-rvm_return_t rvm_statistics(const char *version, rvm_statistics_t *rvm_statistics)
+}
+/* rvm_statistics */
+rvm_return_t rvm_statistics(const char *version,
+                            rvm_statistics_t *rvm_statistics)
 {
-    log_t               *log;           /* log descriptor */
-    log_status_t        *status;        /* log status area descriptor */
-    int_tid_t           *tid;           /* transaction ptr */
-    rvm_length_t        i;
-    rvm_return_t        retval;
+    log_t *log; /* log descriptor */
+    log_status_t *status; /* log status area descriptor */
+    int_tid_t *tid; /* transaction ptr */
+    rvm_length_t i;
+    rvm_return_t retval;
 
     /* be sure RVM is initialized */
-    if (bad_init()) return RVM_EINIT;
+    if (bad_init())
+        return RVM_EINIT;
 
     /* check validity of statistics version and record */
     if (strcmp(version, RVM_STATISTICS_VERSION))
         return RVM_ESTAT_VERSION_SKEW;
     if (rvm_statistics == NULL)
         return RVM_ESTATISTICS;
-    if ((retval=bad_statistics(rvm_statistics)) != RVM_SUCCESS)
+    if ((retval = bad_statistics(rvm_statistics)) != RVM_SUCCESS)
         return retval;
 
     /* check log */
     if (default_log == NULL)
         return RVM_ELOG;
-    log = default_log;
+    log    = default_log;
     status = &log->status;
-    /* copy log and transaction statistics from log status area */
-    rvm_statistics->log_dev_cur = cur_log_percent(log,NULL);
-    CRITICAL(log->dev_lock,             /* begin dev_lock crit sec */
+    /* copy log and transaction statistics from log status area */
+    rvm_statistics->log_dev_cur = cur_log_percent(log, NULL);
+    CRITICAL(
+        log->dev_lock, /* begin dev_lock crit sec */
         {
-        rvm_statistics->n_abort = status->n_abort;
-        rvm_statistics->n_flush_commit = status->n_flush_commit;
-        rvm_statistics->n_no_flush_commit = 
-            status->n_no_flush_commit;
-        rvm_statistics->n_split = status->n_split;
-        rvm_statistics->n_flush = status->n_flush;
-        rvm_statistics->n_rvm_flush = status->n_rvm_flush;
-        rvm_statistics->n_special = status->n_special;
-        rvm_statistics->n_wrap = 0;
-        if (RVM_OFFSET_GTR(status->log_head,status->log_tail))
-            rvm_statistics->n_wrap = 1;
-        rvm_statistics->tot_abort = status->tot_abort;
-        rvm_statistics->tot_flush_commit = status->tot_flush_commit;
-        rvm_statistics->tot_no_flush_commit =
-            status->tot_no_flush_commit;
-        rvm_statistics->tot_split = status->tot_split;
-        rvm_statistics->tot_rvm_truncate =
-            status->tot_rvm_truncate;
-        rvm_statistics->tot_async_truncation =
-            status->tot_async_truncation;
-        rvm_statistics->tot_sync_truncation =
-            status->tot_sync_truncation;
-        rvm_statistics->tot_truncation_wait = 
-            status->tot_truncation_wait;
-        rvm_statistics->tot_recovery = status->tot_recovery;
-        rvm_statistics->tot_flush = status->tot_flush;
-        rvm_statistics->tot_rvm_flush = status->tot_rvm_flush;
-        rvm_statistics->tot_special = status->tot_special;
-        rvm_statistics->tot_wrap = status->tot_wrap;
-        rvm_statistics->log_dev_max = status->log_dev_max;
-        cur_log_length(log,&rvm_statistics->log_written);
-        rvm_statistics->tot_log_written = status->tot_log_written;
-        rvm_statistics->range_overlap = status->range_overlap;
-        rvm_statistics->tot_range_overlap = status->tot_range_overlap;
-        rvm_statistics->trans_overlap = status->trans_overlap;
-        rvm_statistics->tot_trans_overlap = status->tot_trans_overlap;
-        rvm_statistics->n_range_elim = status->n_range_elim;
-        rvm_statistics->n_trans_elim = status->n_trans_elim;
-        rvm_statistics->n_trans_coalesced = status->n_trans_coalesced;
-        rvm_statistics->tot_range_elim = status->tot_range_elim;
-        rvm_statistics->tot_trans_elim = status->tot_trans_elim;
-        rvm_statistics->tot_trans_coalesced = status->tot_trans_coalesced;
-        rvm_statistics->last_flush_time = status->last_flush_time;
-        rvm_statistics->last_truncation_time = status->last_truncation_time;
-        rvm_statistics->last_tree_build_time = status->last_tree_build_time;
-        rvm_statistics->last_tree_apply_time = status->last_tree_apply_time;
-        /* copy histograms and timings */
-        for (i=0; i < flush_times_len; i++)
-            {
-            rvm_statistics->flush_times[i] = status->flush_times[i];
-            rvm_statistics->tot_flush_times[i] =
-                status->tot_flush_times[i];
+            rvm_statistics->n_abort           = status->n_abort;
+            rvm_statistics->n_flush_commit    = status->n_flush_commit;
+            rvm_statistics->n_no_flush_commit = status->n_no_flush_commit;
+            rvm_statistics->n_split           = status->n_split;
+            rvm_statistics->n_flush           = status->n_flush;
+            rvm_statistics->n_rvm_flush       = status->n_rvm_flush;
+            rvm_statistics->n_special         = status->n_special;
+            rvm_statistics->n_wrap            = 0;
+            if (RVM_OFFSET_GTR(status->log_head, status->log_tail))
+                rvm_statistics->n_wrap = 1;
+            rvm_statistics->tot_abort            = status->tot_abort;
+            rvm_statistics->tot_flush_commit     = status->tot_flush_commit;
+            rvm_statistics->tot_no_flush_commit  = status->tot_no_flush_commit;
+            rvm_statistics->tot_split            = status->tot_split;
+            rvm_statistics->tot_rvm_truncate     = status->tot_rvm_truncate;
+            rvm_statistics->tot_async_truncation = status->tot_async_truncation;
+            rvm_statistics->tot_sync_truncation  = status->tot_sync_truncation;
+            rvm_statistics->tot_truncation_wait  = status->tot_truncation_wait;
+            rvm_statistics->tot_recovery         = status->tot_recovery;
+            rvm_statistics->tot_flush            = status->tot_flush;
+            rvm_statistics->tot_rvm_flush        = status->tot_rvm_flush;
+            rvm_statistics->tot_special          = status->tot_special;
+            rvm_statistics->tot_wrap             = status->tot_wrap;
+            rvm_statistics->log_dev_max          = status->log_dev_max;
+            cur_log_length(log, &rvm_statistics->log_written);
+            rvm_statistics->tot_log_written      = status->tot_log_written;
+            rvm_statistics->range_overlap        = status->range_overlap;
+            rvm_statistics->tot_range_overlap    = status->tot_range_overlap;
+            rvm_statistics->trans_overlap        = status->trans_overlap;
+            rvm_statistics->tot_trans_overlap    = status->tot_trans_overlap;
+            rvm_statistics->n_range_elim         = status->n_range_elim;
+            rvm_statistics->n_trans_elim         = status->n_trans_elim;
+            rvm_statistics->n_trans_coalesced    = status->n_trans_coalesced;
+            rvm_statistics->tot_range_elim       = status->tot_range_elim;
+            rvm_statistics->tot_trans_elim       = status->tot_trans_elim;
+            rvm_statistics->tot_trans_coalesced  = status->tot_trans_coalesced;
+            rvm_statistics->last_flush_time      = status->last_flush_time;
+            rvm_statistics->last_truncation_time = status->last_truncation_time;
+            rvm_statistics->last_tree_build_time = status->last_tree_build_time;
+            rvm_statistics->last_tree_apply_time = status->last_tree_apply_time;
+            /* copy histograms and timings */
+            for (i = 0; i < flush_times_len; i++) {
+                rvm_statistics->flush_times[i]     = status->flush_times[i];
+                rvm_statistics->tot_flush_times[i] = status->tot_flush_times[i];
             }
-        rvm_statistics->flush_time = status->flush_time;
-        rvm_statistics->tot_flush_time = status->tot_flush_time;
-        rvm_statistics->tot_truncation_time = status->tot_truncation_time;
-        for (i=0; i < range_lengths_len; i++)
-            {
-            rvm_statistics->range_lengths[i] =
-                status->range_lengths[i];
-            rvm_statistics->tot_range_lengths[i] =
-                status->tot_range_lengths[i];
-            rvm_statistics->range_overlaps[i] =
-                status->range_overlaps[i];
-            rvm_statistics->tot_range_overlaps[i] =
-                status->tot_range_overlaps[i];
-            rvm_statistics->trans_overlaps[i] =
-                status->trans_overlaps[i];
-            rvm_statistics->tot_trans_overlaps[i] =
-                status->tot_trans_overlaps[i];
+            rvm_statistics->flush_time          = status->flush_time;
+            rvm_statistics->tot_flush_time      = status->tot_flush_time;
+            rvm_statistics->tot_truncation_time = status->tot_truncation_time;
+            for (i = 0; i < range_lengths_len; i++) {
+                rvm_statistics->range_lengths[i] = status->range_lengths[i];
+                rvm_statistics->tot_range_lengths[i] =
+                    status->tot_range_lengths[i];
+                rvm_statistics->range_overlaps[i] = status->range_overlaps[i];
+                rvm_statistics->tot_range_overlaps[i] =
+                    status->tot_range_overlaps[i];
+                rvm_statistics->trans_overlaps[i] = status->trans_overlaps[i];
+                rvm_statistics->tot_trans_overlaps[i] =
+                    status->tot_trans_overlaps[i];
             }
-        for (i=0; i < range_elims_len; i++)
-            {
-            rvm_statistics->range_elims[i] = status->range_elims[i];
-            rvm_statistics->tot_range_elims[i] =
-                status->tot_range_elims[i];
-            rvm_statistics->trans_elims[i] = status->trans_elims[i];
-            rvm_statistics->tot_trans_elims[i] =
-                status->tot_trans_elims[i];
-            rvm_statistics->tot_trans_coalesces[i] =
-                status->tot_trans_coalesces[i];
+            for (i = 0; i < range_elims_len; i++) {
+                rvm_statistics->range_elims[i]     = status->range_elims[i];
+                rvm_statistics->tot_range_elims[i] = status->tot_range_elims[i];
+                rvm_statistics->trans_elims[i]     = status->trans_elims[i];
+                rvm_statistics->tot_trans_elims[i] = status->tot_trans_elims[i];
+                rvm_statistics->tot_trans_coalesces[i] =
+                    status->tot_trans_coalesces[i];
             }
-        for (i=0; i < truncation_times_len; i++)
-            {
-            rvm_statistics->tot_tree_build_times[i] =
-                status->tot_tree_build_times[i];
-            rvm_statistics->tot_tree_apply_times[i] =
-                status->tot_tree_apply_times[i];
-            rvm_statistics->tot_truncation_times[i] =
-                status->tot_truncation_times[i];
+            for (i = 0; i < truncation_times_len; i++) {
+                rvm_statistics->tot_tree_build_times[i] =
+                    status->tot_tree_build_times[i];
+                rvm_statistics->tot_tree_apply_times[i] =
+                    status->tot_tree_apply_times[i];
+                rvm_statistics->tot_truncation_times[i] =
+                    status->tot_truncation_times[i];
             }
-        });                             /* end dev_lock crit sec */
-    /* get non-status area statistics */
+        }); /* end dev_lock crit sec */
+    /* get non-status area statistics */
     CRITICAL(log->tid_list_lock,
-        rvm_statistics->n_uncommit = log->tid_list.list.length);
-    CRITICAL(log->flush_list_lock,
-        {
+             rvm_statistics->n_uncommit = log->tid_list.list.length);
+    CRITICAL(log->flush_list_lock, {
         rvm_statistics->n_no_flush = 0;
         RVM_ZERO_OFFSET(rvm_statistics->no_flush_length);
-        FOR_ENTRIES_OF(log->flush_list,int_tid_t,tid)
-            {
-            if (!TID(FLUSH_FLAG))
-                {
+        FOR_ENTRIES_OF(log->flush_list, int_tid_t, tid)
+        {
+            if (!TID(FLUSH_FLAG)) {
                 rvm_statistics->n_no_flush++;
                 rvm_statistics->no_flush_length = RVM_ADD_OFFSETS(
-                       rvm_statistics->no_flush_length,tid->log_size);
-                }
+                    rvm_statistics->no_flush_length, tid->log_size);
             }
-        });
+        }
+    });
 
     return RVM_SUCCESS;
 }

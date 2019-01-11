@@ -32,5 +32,4 @@ void coda_base64_decode(FILE *in, char **out, int *len);
 }
 #endif
 
-
 #endif /* _BASE64_H_ */

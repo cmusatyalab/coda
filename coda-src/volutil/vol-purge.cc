@@ -68,23 +68,22 @@ extern "C" {
 #include <vutil.h>
 #include <recov.h>
 
-
 /*
   S_VolPurge: Purge the requested volume
 */
-long int S_VolPurge(RPC2_Handle rpcid, RPC2_Unsigned formal_purgeId, 
-		    RPC2_String formal_purgeName) 
+long int S_VolPurge(RPC2_Handle rpcid, RPC2_Unsigned formal_purgeId,
+                    RPC2_String formal_purgeName)
 {
-    Error error = 0;
+    Error error  = 0;
     Error error2 = 0;
-    Volume *vp = NULL;
-    int status = 0;
-    int rc = 0;
+    Volume *vp   = NULL;
+    int status   = 0;
+    int rc       = 0;
     ProgramType *pt;
-    int	AlreadyOffline = 0;
+    int AlreadyOffline = 0;
 
     /* To keep C++ 2.0 happy */
-    char *purgeName = (char *)formal_purgeName;
+    char *purgeName  = (char *)formal_purgeName;
     VolumeId purgeId = (VolumeId)formal_purgeId;
     char *rock;
 
@@ -92,80 +91,80 @@ long int S_VolPurge(RPC2_Handle rpcid, RPC2_Unsigned formal_purgeId,
     CODA_ASSERT(LWP_GetRock(FSTAG, &rock) == LWP_SUCCESS);
     pt = (ProgramType *)rock;
 
-    VLog(9, "Entering S_VolPurge: purgeId = %x, purgeName = %s",
-					    purgeId, purgeName);
+    VLog(9, "Entering S_VolPurge: purgeId = %x, purgeName = %s", purgeId,
+         purgeName);
     rc = VInitVolUtil(volumeUtility);
     if (rc != 0) {
-	VLog(0, "S_VolPurge: returned %ld from VInitVolUtil; aborting", rc);
-	return rc;
+        VLog(0, "S_VolPurge: returned %ld from VInitVolUtil; aborting", rc);
+        return rc;
     }
 
-    vp = VGetVolume(&error, purgeId);	/* Does this need a transaction? */
-    if ( !vp ) {
-	    rc = VNOVOL;
-	    VLog(0, "No such volume: 0x%x\n", purgeId);
-	    goto exit;
+    vp = VGetVolume(&error, purgeId); /* Does this need a transaction? */
+    if (!vp) {
+        rc = VNOVOL;
+        VLog(0, "No such volume: 0x%x\n", purgeId);
+        goto exit;
     }
     if (error) {
-	if (error == VOFFLINE){
-		VLog(9, "VolPurge: Volume %x was already offline", V_id(vp));
-		AlreadyOffline = 1;
-	} else if (error == VNOVOL){
-		/* volume is not attached or is shutting down */
-		vp = VAttachVolume(&error2, purgeId, V_UPDATE);
-		if (error2) {
-			VLog(0, "Unable to attach volume %x; not purged", 
-			     purgeId);
-			rc = VNOVOL;
-			goto exit;
-		}
-		AlreadyOffline = 1;
-	} else {
-		if (vp)
-			VPutVolume(vp);
-		VLog(0, "VolPurge: GetVolume %x  returns error %d", 
-		     purgeId, error);
-		rc = error;
-		goto exit;
-	}
+        if (error == VOFFLINE) {
+            VLog(9, "VolPurge: Volume %x was already offline", V_id(vp));
+            AlreadyOffline = 1;
+        } else if (error == VNOVOL) {
+            /* volume is not attached or is shutting down */
+            vp = VAttachVolume(&error2, purgeId, V_UPDATE);
+            if (error2) {
+                VLog(0, "Unable to attach volume %x; not purged", purgeId);
+                rc = VNOVOL;
+                goto exit;
+            }
+            AlreadyOffline = 1;
+        } else {
+            if (vp)
+                VPutVolume(vp);
+            VLog(0, "VolPurge: GetVolume %x  returns error %d", purgeId, error);
+            rc = error;
+            goto exit;
+        }
     }
 
     CODA_ASSERT(vp != NULL);
     if (strcmp(V_name(vp), purgeName) != 0) {
-	VLog(0, "The name you specified (%s) does not match the internal name "
-	     "(%s) for volume %x; not purged", purgeName, V_name(vp), purgeId);
-	VPutVolume(vp);
-	rc = VNOVOL;
-	goto exit;
+        VLog(0,
+             "The name you specified (%s) does not match the internal name "
+             "(%s) for volume %x; not purged",
+             purgeName, V_name(vp), purgeId);
+        VPutVolume(vp);
+        rc = VNOVOL;
+        goto exit;
     }
 
-    if (!AlreadyOffline){
-	/* force the volume offline */
-	VLog(9, "VolPurge: Forcing Volume %x offline", V_id(vp));
-	*pt = fileServer;
-	VOffline(vp, "Volume being Purged");
-	*pt = volumeUtility;
-	vp = VGetVolume(&error, purgeId);
-	CODA_ASSERT(error == VOFFLINE);
+    if (!AlreadyOffline) {
+        /* force the volume offline */
+        VLog(9, "VolPurge: Forcing Volume %x offline", V_id(vp));
+        *pt = fileServer;
+        VOffline(vp, "Volume being Purged");
+        *pt = volumeUtility;
+        vp  = VGetVolume(&error, purgeId);
+        CODA_ASSERT(error == VOFFLINE);
     }
 
     if (status != 0) {
-	VLog(0, "S_VolPurge: Transaction aborted!");
-	VDisconnectFS();
-	return status;
+        VLog(0, "S_VolPurge: Transaction aborted!");
+        VDisconnectFS();
+        return status;
     }
 
     /* By this time the volume is attached and is offline */
     CODA_ASSERT(V_inUse(vp) == 0);
-    CODA_ASSERT(DeleteVolume(vp) == 0);  /* Remove volume from rvm and vm */
+    CODA_ASSERT(DeleteVolume(vp) == 0); /* Remove volume from rvm and vm */
     vp->shuttingDown = 1;
 
     /* Don't need to call VPutVolume since all vm traces have been removed. */
 
     PrintVolumesInHashTable();
- exit:
+exit:
     VDisconnectFS();
-    if  ( !rc ) 
-	    VLog(0, "purge: volume %x (%s) purged", purgeId, purgeName);
-    return(status?status:rc);
+    if (!rc)
+        VLog(0, "purge: volume %x (%s) purged", purgeId, purgeName);
+    return (status ? status : rc);
 }

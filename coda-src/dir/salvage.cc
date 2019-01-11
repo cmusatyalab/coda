@@ -37,8 +37,6 @@ Pittsburgh, PA.
 
 */
 
-
-
 /* This is the directory salvager.  It consists of two routines.  The first, DirOK, checks to see if the directory looks good.  If the directory does NOT look good, the approved procedure is to then call Salvage, which copies all the good entries from the damaged dir into a new directory. */
 
 #ifdef __cplusplus
@@ -60,10 +58,8 @@ extern "C" {
 }
 #endif __cplusplus
 
-
 #include "coda_dir.h"
 #include "dir.private.h"
-
 
 /* This routine is called with two parameters.  The first is the id of
    the original, currently suspect, directory.  The second is the file
@@ -71,68 +67,76 @@ extern "C" {
    directory. */
 
 /*int DirSalvage (File *fromFile, File *toFile){*/
-int DirSalvage (long *fromFile, long *toFile)
-{	/* corrected referencing level (ehs 10/87) */
-	/* First do a MakeDir on the target. */
-	long dot[3], dotdot[3], code, usedPages;
-	register int i;
-	struct DirHeader *dhp;
-	struct DirEntry *ep;
-	int entry;
+int DirSalvage(long *fromFile, long *toFile)
+{ /* corrected referencing level (ehs 10/87) */
+    /* First do a MakeDir on the target. */
+    long dot[3], dotdot[3], code, usedPages;
+    register int i;
+    struct DirHeader *dhp;
+    struct DirEntry *ep;
+    int entry;
 
     memset((char *)dot, 0, sizeof(dot));
     memset((char *)dotdot, 0, sizeof(dotdot));
-    MakeDir(toFile, dot, dotdot);	/* Returns no error code. */
+    MakeDir(toFile, dot, dotdot); /* Returns no error code. */
     code = Delete(toFile, ".");
-    if (code) printf("makedir screwup on '.', code %d.\n", code);
+    if (code)
+        printf("makedir screwup on '.', code %d.\n", code);
     code = Delete(toFile, "..");
-    if (code) printf("makedir screwup on '..', code %d.\n", code);
+    if (code)
+        printf("makedir screwup on '..', code %d.\n", code);
 
     /* Find out how many pages are valid, using stupid heuristic since DRead never returns null. */
-    dhp = (struct DirHeader *) DRead(fromFile, 0);
-    if (!dhp)
-        {printf("Failed to read first page of fromDir!\n");
+    dhp = (struct DirHeader *)DRead(fromFile, 0);
+    if (!dhp) {
+        printf("Failed to read first page of fromDir!\n");
         return 0;
-        }
+    }
 
     usedPages = 0;
-    for(i=0; i<MAXPAGES; i++)
-        {if (dhp->alloMap[i] == EPP)
-            {usedPages = i;
+    for (i = 0; i < MAXPAGES; i++) {
+        if (dhp->alloMap[i] == EPP) {
+            usedPages = i;
             break;
-            }
         }
-    if (usedPages == 0) usedPages = MAXPAGES;
+    }
+    if (usedPages == 0)
+        usedPages = MAXPAGES;
 
     /* Finally, enumerate all the entries, doing a create on them. */
-    for(i=0; i<NHASH; i++)
-        {entry = ntohs(dhp->hashTable[i]);
-        while(1)
-            {if (!entry) break;
-            if (entry < 0 || entry >= usedPages*EPP)
-                {printf("Warning: bogus hash table entry encountered, ignoring.\n");
+    for (i = 0; i < NHASH; i++) {
+        entry = ntohs(dhp->hashTable[i]);
+        while (1) {
+            if (!entry)
                 break;
-                }
-            ep = GetBlob(fromFile, entry);
-            if (!ep)
-                {printf("Warning: bogus hash chain encountered, switching to next.\n");
+            if (entry < 0 || entry >= usedPages * EPP) {
+                printf(
+                    "Warning: bogus hash table entry encountered, ignoring.\n");
                 break;
-                }
-            entry = ntohs(ep->next);
-/* XXXXX - Create expects fid to be an array of 3 longs.  
-  Here we are passing just an array of 2 (3rd param) */
-/*            code = Create(toFile, ep->name, (long *)(&ep->fid)); */
-/* XXXXX - Subtracting 1 from the pointer to make it look 
-  like an array of 3 longs - VERY BAD PRACTICE XXXXXXX */
-            code = Create(toFile, ep->name, ((long *)(&ep->fid)) - 1 );
-            if (code) printf("Create of %s returned code %d, continuing.\n", ep->name, code);
-            DRelease((buffer *)ep, 0);
             }
+            ep = GetBlob(fromFile, entry);
+            if (!ep) {
+                printf(
+                    "Warning: bogus hash chain encountered, switching to next.\n");
+                break;
+            }
+            entry = ntohs(ep->next);
+            /* XXXXX - Create expects fid to be an array of 3 longs.  
+  Here we are passing just an array of 2 (3rd param) */
+            /*            code = Create(toFile, ep->name, (long *)(&ep->fid)); */
+            /* XXXXX - Subtracting 1 from the pointer to make it look 
+  like an array of 3 longs - VERY BAD PRACTICE XXXXXXX */
+            code = Create(toFile, ep->name, ((long *)(&ep->fid)) - 1);
+            if (code)
+                printf("Create of %s returned code %d, continuing.\n", ep->name,
+                       code);
+            DRelease((buffer *)ep, 0);
         }
+    }
 
     /* Clean up things. */
     DRelease((buffer *)dhp, 0);
     return 0;
-    }
+}
 
 /* the end */

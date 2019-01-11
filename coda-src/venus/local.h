@@ -16,8 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
 #ifndef _LOCAL_H_
 #define _LOCAL_H_ 1
 
@@ -31,10 +29,10 @@ listed in the file CREDITS.
 #include <lwp/lock.h>
 
 /* below are methods for repair local subtrees */
-void DiscardLocalMutation(repvol *, char *);				/*?*/
-void PreserveLocalMutation(char *);						/*N*/
-void PreserveAllLocalMutation(char *);					/*N*/
-void ListCML(VenusFid *, FILE *);						/*U*/
+void DiscardLocalMutation(repvol *, char *); /*?*/
+void PreserveLocalMutation(char *); /*N*/
+void PreserveAllLocalMutation(char *); /*N*/
+void ListCML(VenusFid *, FILE *); /*U*/
 
 /* class for a dir entry used for process uncached children
    (Satya, 8/12/96): had to change the name from dirent to
@@ -42,13 +40,14 @@ void ListCML(VenusFid *, FILE *);						/*U*/
 */
 class vdirent : public dlink {
     VenusFid fid;
-    char name[CODA_MAXNAMLEN+1];
+    char name[CODA_MAXNAMLEN + 1];
+
 public:
     vdirent(VenusFid *, char *);
     ~vdirent();
     VenusFid *GetFid();
     char *GetName();
-    
+
     void print(FILE *);
     void print();
     void print(int);
@@ -56,7 +55,7 @@ public:
 
 class dir_iterator : public dlist_iterator {
 public:
-    dir_iterator(dlist&);
+    dir_iterator(dlist &);
     vdirent *operator()();
 };
 
@@ -64,31 +63,32 @@ public:
 class optent : public dlink {
     fsobj *obj;
     int tag;
+
 public:
     optent(fsobj *);
     ~optent();
     fsobj *GetFso();
     void SetTag(int);
     int GetTag();
-    
+
     void print(FILE *);
     void print();
     void print(int);
 };
 
 class opt_iterator : public dlist_iterator {
-public:	
-    opt_iterator(dlist&);
+public:
+    opt_iterator(dlist &);
     optent *operator()();
 };
-
 
 /* class for repvol object-pointer */
 class vptent : public dlink {
     repvol *vpt;
+
 public:
     vptent(repvol *);
-    ~vptent();    
+    ~vptent();
     repvol *GetVol();
 
     void print(FILE *);
@@ -97,11 +97,10 @@ public:
 };
 
 class vpt_iterator : public dlist_iterator {
-public:	
-    vpt_iterator(dlist&);
+public:
+    vpt_iterator(dlist &);
     vptent *operator()();
 };
-
 
 /*
  * constants for local mutation integrity check.
@@ -109,28 +108,29 @@ public:
  * NN_CONFLICT: means name/name conflict.
  * RU_CONFLICT: means remove(client)/update(server) conflict.
  */
-#define	MUTATION_MISS_TARGET	0x1
-#define MUTATION_MISS_PARENT	0x2
-#define MUTATION_ACL_FAILURE	0x4
-#define MUTATION_VV_CONFLICT	0x8
-#define MUTATION_NN_CONFLICT	0x10
-#define MUTATION_RU_CONFLICT	0x20
+#define MUTATION_MISS_TARGET 0x1
+#define MUTATION_MISS_PARENT 0x2
+#define MUTATION_ACL_FAILURE 0x4
+#define MUTATION_VV_CONFLICT 0x8
+#define MUTATION_NN_CONFLICT 0x10
+#define MUTATION_RU_CONFLICT 0x20
 
 /* constants for local repair option */
-#define REPAIR_FAILURE		0x1
-#define REPAIR_OVER_WRITE	0x2
-#define REPAIR_FORCE_REMOVE	0x4
+#define REPAIR_FAILURE 0x1
+#define REPAIR_OVER_WRITE 0x2
+#define REPAIR_FORCE_REMOVE 0x4
 
 /* constant for the initial value of repair transaction-id number generator */
-#define	REP_INIT_TID		1000000
+#define REP_INIT_TID 1000000
 
 /* object-based debug macro */
-#define	OBJ_ASSERT(o, ex) \
-{\
-    if (!(ex)) {\
-       (o)->print(logFile);\
-       CHOKE("Assertion failed: file \"%s\", line %d\n", __FILE__, __LINE__);\
-    }\
-}
+#define OBJ_ASSERT(o, ex)                                               \
+    {                                                                   \
+        if (!(ex)) {                                                    \
+            (o)->print(logFile);                                        \
+            CHOKE("Assertion failed: file \"%s\", line %d\n", __FILE__, \
+                  __LINE__);                                            \
+        }                                                               \
+    }
 
 #endif /* _LOCAL_H_ */

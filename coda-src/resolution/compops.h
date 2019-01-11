@@ -17,7 +17,7 @@ listed in the file CREDITS.
 #*/
 
 #ifndef _COMPOPS_H_
-#define _COMPOPS_H_ 	1
+#define _COMPOPS_H_ 1
 // compops.h
 
 #include <olist.h>
@@ -28,4 +28,3 @@ extern void PrintCompOps(arrlist *);
 extern arrlist *ComputeCompOps(olist *, ViceFid *);
 
 #endif /* _COMPOPS_H_ */
-

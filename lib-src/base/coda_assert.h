@@ -19,13 +19,21 @@ Coda are listed in the file CREDITS.
 #ifndef _CODA_ASSERT_H_
 #define _CODA_ASSERT_H_ 1
 
-#define CODA_ASSERT(pred) do { if (!(pred)) coda_assert(#pred, __FILE__, __LINE__) ; } while (0)
-#define CODA_NOTE(pred)   do { if (!(pred)) coda_note  (#pred, __FILE__, __LINE__) ; } while (0)
+#define CODA_ASSERT(pred)                           \
+    do {                                            \
+        if (!(pred))                                \
+            coda_assert(#pred, __FILE__, __LINE__); \
+    } while (0)
+#define CODA_NOTE(pred)                           \
+    do {                                          \
+        if (!(pred))                              \
+            coda_note(#pred, __FILE__, __LINE__); \
+    } while (0)
 
-#define CODA_ASSERT_SLEEP	1
-#define CODA_ASSERT_EXIT	2
-#define CODA_ASSERT_ABORT	3
-#define CODA_ASSERT_CORE	3
+#define CODA_ASSERT_SLEEP 1
+#define CODA_ASSERT_EXIT 2
+#define CODA_ASSERT_ABORT 3
+#define CODA_ASSERT_CORE 3
 
 #ifdef __cplusplus
 extern "C" {
@@ -41,5 +49,4 @@ void coda_note(const char *pred, const char *file, int line);
 }
 #endif
 
-#endif  /* _CODA_ASSERT_H_ */
-
+#endif /* _CODA_ASSERT_H_ */

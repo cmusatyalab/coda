@@ -16,9 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
 /* this file contains local-repair related volent methods */
 
 #ifdef __cplusplus
@@ -40,13 +37,12 @@ extern "C" {
 #include "local.h"
 #include "venusvol.h"
 
-
 /* must not be called from within a transaction */
 void reintvol::IncAbort(int tid)
 {
     CML.IncAbort(tid);
     if (CML.count() == 0)
-      CML.owner = UNSET_UID;
+        CML.owner = UNSET_UID;
 }
 
 /* need not be called from within a transaction */
@@ -55,8 +51,8 @@ int reintvol::ContainUnrepairedCML()
     cml_iterator next(CML, CommitOrder);
     cmlent *m;
     while ((m = next())) {
-	if (m->IsToBeRepaired())
-	  return 1;
+        if (m->IsToBeRepaired())
+            return 1;
     }
     return 0;
 }

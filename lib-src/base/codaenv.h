@@ -23,12 +23,11 @@ Coda are listed in the file CREDITS.
 extern "C" {
 #endif
 
-char * codaenv_find(const char * var_name);
+char *codaenv_find(const char *var_name);
 
 int codaenv_int(const char *var_name, const int prev_val);
 
-const char *codaenv_str(const char *var_name,
-                        const char *prev_val);
+const char *codaenv_str(const char *var_name, const char *prev_val);
 
 #ifdef __cplusplus
 }

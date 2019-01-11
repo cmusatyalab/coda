@@ -54,46 +54,46 @@ extern "C" {
 */
 /* Change this if you make an incompatible change of some kind */
 #if !defined(_REENTRANT) && !defined(_THREAD_SAFE)
-#define LWP_VERSION  210888002 /* old lwp */
+#define LWP_VERSION 210888002 /* old lwp */
 #else
-#define LWP_VERSION  210888003 /* pthreaded lwp */
+#define LWP_VERSION 210888003 /* pthreaded lwp */
 #endif
 
-#define LWP_SUCCESS	0
-#define LWP_EBADPID	-1
-#define LWP_EBLOCKED	-2
-#define LWP_EINIT	-3
-#define LWP_EMAXPROC	-4
-#define LWP_ENOBLOCK	-5
-#define LWP_ENOMEM	-6
-#define LWP_ENOPROCESS	-7
-#define LWP_ENOWAIT	-8
-#define LWP_EBADCOUNT	-9
-#define LWP_EBADEVENT	-10
-#define LWP_EBADPRI	-11
-#define LWP_NO_STACK	-12
+#define LWP_SUCCESS 0
+#define LWP_EBADPID -1
+#define LWP_EBLOCKED -2
+#define LWP_EINIT -3
+#define LWP_EMAXPROC -4
+#define LWP_ENOBLOCK -5
+#define LWP_ENOMEM -6
+#define LWP_ENOPROCESS -7
+#define LWP_ENOWAIT -8
+#define LWP_EBADCOUNT -9
+#define LWP_EBADEVENT -10
+#define LWP_EBADPRI -11
+#define LWP_NO_STACK -12
 /* These two are for the signal mechanism. */
-#define LWP_EBADSIG	-13		/* bad signal number */
-#define LWP_ESYSTEM	-14		/* system call failed */
+#define LWP_EBADSIG -13 /* bad signal number */
+#define LWP_ESYSTEM -14 /* system call failed */
 /* These are for the rock mechanism */
-#define LWP_ENOROCKS	-15	/* all rocks are in use */
-#define LWP_EBADROCK	-16	/* the specified rock does not exist */
+#define LWP_ENOROCKS -15 /* all rocks are in use */
+#define LWP_EBADROCK -16 /* the specified rock does not exist */
 
 /* Maximum priority permissible (minimum is always 0) */
 #define LWP_MAX_PRIORITY 4
 
 /* Usual priority used by user LWPs */
-#define LWP_NORMAL_PRIORITY (LWP_MAX_PRIORITY-1)
+#define LWP_NORMAL_PRIORITY (LWP_MAX_PRIORITY - 1)
 
 /* Users aren't really supposed to know what a pcb is, but .....*/
 typedef struct lwp_pcb *PROCESS;
 
-extern int lwp_debug;			/* ON = show LWP debugging trace */
+extern int lwp_debug; /* ON = show LWP debugging trace */
 
 /* Action to take on stack overflow. */
-#define LWP_SOQUIET	1		/* do nothing */
-#define LWP_SOABORT	2		/* abort the program */
-#define LWP_SOMESSAGE	3		/* print a message and be quiet */
+#define LWP_SOQUIET 1 /* do nothing */
+#define LWP_SOABORT 2 /* abort the program */
+#define LWP_SOMESSAGE 3 /* print a message and be quiet */
 extern int lwp_overflowAction;
 
 /* Tells if stack size counting is enabled. */
@@ -101,64 +101,62 @@ extern int lwp_stackUseEnabled;
 
 /* variables used for checking work time of an lwp */
 extern struct timeval last_context_switch; /* how long a lwp was running */
-extern struct timeval cont_sw_threshold;  /* how long a lwp is allowed to run */
+extern struct timeval cont_sw_threshold; /* how long a lwp is allowed to run */
 
 extern struct timeval run_wait_threshold;
 
 void LWP_SetLog(FILE *file, int level);
 extern int LWP_QWait();
-extern int LWP_QSignal (PROCESS pid);
-extern int LWP_Init (int version, int priority, PROCESS *pid);
+extern int LWP_QSignal(PROCESS pid);
+extern int LWP_Init(int version, int priority, PROCESS *pid);
 extern int LWP_TerminateProcessSupport();
-extern int LWP_CreateProcess (void (*ep)(void *), int stacksize, int priority,
-			      void *parm, const char *name, PROCESS *pid);
-extern int LWP_CurrentProcess (PROCESS *pid);
+extern int LWP_CreateProcess(void (*ep)(void *), int stacksize, int priority,
+                             void *parm, const char *name, PROCESS *pid);
+extern int LWP_CurrentProcess(PROCESS *pid);
 PROCESS LWP_ThisProcess();
-extern void LWP_SetLog(FILE *, int );
-extern int LWP_DestroyProcess (PROCESS pid);
+extern void LWP_SetLog(FILE *, int);
+extern int LWP_DestroyProcess(PROCESS pid);
 extern int LWP_DispatchProcess();
-extern int LWP_GetProcessPriority (PROCESS pid, int *priority);
-extern int LWP_INTERNALSIGNAL (const void *event, int yield);
-extern int LWP_WaitProcess (const void *event);
-extern int LWP_MwaitProcess (int wcount, const void *evlist[]);
-extern int LWP_StackUsed (PROCESS pid, int *max, int *used);
-extern int LWP_NewRock (int Tag, char *Value);
-extern int LWP_GetRock (int Tag,  char **Value);
-extern char *LWP_Name ();  /* NOTE: returs a char * !! */
+extern int LWP_GetProcessPriority(PROCESS pid, int *priority);
+extern int LWP_INTERNALSIGNAL(const void *event, int yield);
+extern int LWP_WaitProcess(const void *event);
+extern int LWP_MwaitProcess(int wcount, const void *evlist[]);
+extern int LWP_StackUsed(PROCESS pid, int *max, int *used);
+extern int LWP_NewRock(int Tag, char *Value);
+extern int LWP_GetRock(int Tag, char **Value);
+extern char *LWP_Name(); /* NOTE: returs a char * !! */
 extern int LWP_Index();
 extern int LWP_HighestIndex();
-extern void LWP_UnProtectStacks();	/* only available for newlwp */
+extern void LWP_UnProtectStacks(); /* only available for newlwp */
 extern void LWP_ProtectStacks();
 
-#define LWP_SignalProcess(event)	LWP_INTERNALSIGNAL(event, 1)
-#define LWP_NoYieldSignal(event)	LWP_INTERNALSIGNAL(event, 0)
+#define LWP_SignalProcess(event) LWP_INTERNALSIGNAL(event, 1)
+#define LWP_NoYieldSignal(event) LWP_INTERNALSIGNAL(event, 0)
 
 void PRE_Concurrent(int on);
 void PRE_BeginCritical(void);
 void PRE_EndCritical(void);
 
 /* extern definitions for the io manager routines */
-extern int IOMGR_SoftSig (void (*aproc)(void *), char *arock);
+extern int IOMGR_SoftSig(void (*aproc)(void *), char *arock);
 extern int IOMGR_Initialize();
 extern int IOMGR_Finalize();
 extern int IOMGR_Poll();
-extern int IOMGR_Select (int fds, fd_set *readfds, fd_set *writefds,
-			 fd_set *exceptfds, struct timeval *timeout);
-extern int IOMGR_Cancel (PROCESS pid);
-extern int IOMGR_Signal (int signo, char *event);
-extern int IOMGR_CancelSignal (int signo);
+extern int IOMGR_Select(int fds, fd_set *readfds, fd_set *writefds,
+                        fd_set *exceptfds, struct timeval *timeout);
+extern int IOMGR_Cancel(PROCESS pid);
+extern int IOMGR_Signal(int signo, char *event);
+extern int IOMGR_CancelSignal(int signo);
 
 /* declarations for fasttime.c routines */
-extern int FT_Init (int printErrors, int notReally);
-extern int FT_GetTimeOfDay (struct timeval *tv, struct timezone *tz);
-extern int TM_GetTimeOfDay (struct timeval *tv, struct timezone *tz);
-extern int FT_AGetTimeOfDay (struct timeval *tv, struct timezone *tz);
-extern unsigned int FT_ApproxTime() ;
+extern int FT_Init(int printErrors, int notReally);
+extern int FT_GetTimeOfDay(struct timeval *tv, struct timezone *tz);
+extern int TM_GetTimeOfDay(struct timeval *tv, struct timezone *tz);
+extern int FT_AGetTimeOfDay(struct timeval *tv, struct timezone *tz);
+extern unsigned int FT_ApproxTime();
 
 #ifdef __cplusplus
 }
 #endif
 
 #endif /* _LWP_LWP_H_ */
-
-

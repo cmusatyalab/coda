@@ -33,7 +33,7 @@ extern "C" {
 #include <netinet/in.h>
 #include <unistd.h>
 #include <stdlib.h>
-    
+
 #include <lwp.h>
 #include <lock.h>
 
@@ -46,29 +46,29 @@ extern "C" {
 #include <volume.h>
 #include <vldb.h>
 
-#define LEFT(i)		2 * (i);
-#define RIGHT(i) 	2*(i) + 1;
-#define VID(lp) 	ntohl((lp)->volumeId[(lp)->volumeType])
-#define UNIQUE(vid)	((vid) & 0xffffff)	/* strip hostid bits */
-    
+#define LEFT(i) 2 * (i);
+#define RIGHT(i) 2 * (i) + 1;
+#define VID(lp) ntohl((lp)->volumeId[(lp)->volumeType])
+#define UNIQUE(vid) ((vid)&0xffffff) /* strip hostid bits */
+
 void heapify(struct vldb a[], int i, int size)
 {
     int l, r, largest;
     struct vldb tmp;
-    
+
     l = LEFT(i);
     r = RIGHT(i);
 
-    largest = ((l <= size) && VID(&a[l]) > VID(&a[i])) ?  l : i;
+    largest = ((l <= size) && VID(&a[l]) > VID(&a[i])) ? l : i;
 
-    if ((r <=size) && VID(&a[r]) > VID(&a[largest]))
-	largest = r;
-	
+    if ((r <= size) && VID(&a[r]) > VID(&a[largest]))
+        largest = r;
+
     if (largest != i) {
-	memcpy(&tmp, &a[i], sizeof(struct vldb));
-	memcpy(&a[i], &a[largest], sizeof(struct vldb));
-	memcpy(&a[largest], &tmp, sizeof(struct vldb));
-	heapify(a, largest, size);
+        memcpy(&tmp, &a[i], sizeof(struct vldb));
+        memcpy(&a[i], &a[largest], sizeof(struct vldb));
+        memcpy(&a[largest], &tmp, sizeof(struct vldb));
+        heapify(a, largest, size);
     }
 }
 
@@ -76,77 +76,77 @@ void heapsort(struct vldb a[], int length)
 {
     int i, size = length;
     struct vldb tmp;
-    
+
     for (i = length / 2; i >= 1; i--)
-	heapify(a, i, size);
+        heapify(a, i, size);
 
     for (i = length; i >= 2; i--) {
-	memcpy(&tmp, &a[i], sizeof(struct vldb));
-	memcpy(&a[i], &a[1], sizeof(struct vldb));
-	memcpy(&a[1], &tmp, sizeof(struct vldb));
-	heapify(a, 1, --size);
+        memcpy(&tmp, &a[i], sizeof(struct vldb));
+        memcpy(&a[i], &a[1], sizeof(struct vldb));
+        memcpy(&a[1], &tmp, sizeof(struct vldb));
+        heapify(a, 1, --size);
     }
 }
-    
+
 void main(int argc, char **argv)
 {
-    if (argc > 1) printf("Usage: %s\n", argv[0]); /* code to supress warnings */
-    
-    struct vldb buffer[8];
-    
-    int VLDB_fd = open(VLDB_PATH, O_RDONLY, 0);
-    if (VLDB_fd == -1) 
-	exit(EXIT_FAILURE);
+    if (argc > 1)
+        printf("Usage: %s\n", argv[0]); /* code to supress warnings */
 
-    int size = 8;			/* Current size of VLDB array */
-    int nentries = 0;			/* Number of valid records in VLDB */
+    struct vldb buffer[8];
+
+    int VLDB_fd = open(VLDB_PATH, O_RDONLY, 0);
+    if (VLDB_fd == -1)
+        exit(EXIT_FAILURE);
+
+    int size          = 8; /* Current size of VLDB array */
+    int nentries      = 0; /* Number of valid records in VLDB */
     struct vldb *VLDB = (struct vldb *)malloc(size * sizeof(struct vldb));
     register int i;
-    
+
     for (;;) {
         int n;
-	register nRecords=0;
-	n = read(VLDB_fd, (char *)buffer, sizeof(buffer));
-	if (n < 0) {
-	    printf("VLDBPrint: read failed for VLDB\n");
-	    exit(EXIT_FAILURE);
-	}
-	if (n==0)
-	    break;
+        register nRecords = 0;
+        n                 = read(VLDB_fd, (char *)buffer, sizeof(buffer));
+        if (n < 0) {
+            printf("VLDBPrint: read failed for VLDB\n");
+            exit(EXIT_FAILURE);
+        }
+        if (n == 0)
+            break;
 
-	nRecords = (n>>LOG_VLDBSIZE);
+        nRecords = (n >> LOG_VLDBSIZE);
 
-	for (i = 0; i < nRecords; i++) {
-	    struct vldb *vldp = &buffer[i];
+        for (i = 0; i < nRecords; i++) {
+            struct vldb *vldp = &buffer[i];
 
-/* There are two entries in the VLDB for each volume, one is keyed on the
+            /* There are two entries in the VLDB for each volume, one is keyed on the
    volume name, and the other is keyed on the volume id in alphanumeric form.
    I feel we should only print out the entry with the volume name. */
-	    
-	    if ((VID(vldp) != 0) && (VID(vldp) != atoi(vldp->key))) {
-		memcpy(&VLDB[nentries++], vldp, sizeof(struct vldb));
-		if (nentries == size) {
-		    struct vldb *tmp;
 
-		    size *= 2;
-		    tmp = (struct vldb *)malloc(size * sizeof(struct vldb));
-		    memcpy(tmp, VLDB, nentries * sizeof(struct vldb));
-		    free(VLDB);
-		    VLDB = tmp;
-		}
-	    }
-	}
+            if ((VID(vldp) != 0) && (VID(vldp) != atoi(vldp->key))) {
+                memcpy(&VLDB[nentries++], vldp, sizeof(struct vldb));
+                if (nentries == size) {
+                    struct vldb *tmp;
+
+                    size *= 2;
+                    tmp = (struct vldb *)malloc(size * sizeof(struct vldb));
+                    memcpy(tmp, VLDB, nentries * sizeof(struct vldb));
+                    free(VLDB);
+                    VLDB = tmp;
+                }
+            }
+        }
     }
 
     heapsort(VLDB, nentries);
-    for (i = 0; i<nentries; i++) {
-	register struct vldb *vldp = &VLDB[i];
-	printf("VID =%x, key = %s, type = %x, servers = (%x", 
-	       VID(vldp), vldp->key, vldp->volumeType, vldp->serverNumber[0]);
-	    
-	for (byte j = 1; j < vldp->nServers; j++)
-	    printf(",%x", vldp->serverNumber[j]);
-	printf(")\n");
-    }	
-}    
-     
+    for (i = 0; i < nentries; i++) {
+        register struct vldb *vldp = &VLDB[i];
+        printf("VID =%x, key = %s, type = %x, servers = (%x", VID(vldp),
+               vldp->key, vldp->volumeType, vldp->serverNumber[0]);
+
+        for (byte j = 1; j < vldp->nServers; j++)
+            printf(",%x", vldp->serverNumber[j]);
+        printf(")\n");
+    }
+}

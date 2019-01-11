@@ -16,7 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
 #ifndef _CAMPRIVATE_H_
 #define _CAMPRIVATE_H_ 1
 #include "rec_smolist.h"
@@ -27,23 +26,22 @@ listed in the file CREDITS.
 */
 
 /* Used to be part of struct VolumeHeader, now private to camelot storage */
-struct VolumeData 
-{
-    VolumeDiskData *volumeInfo;	        /* pointer to VolumeDiskData */
-    rec_smolist    *smallVnodeLists;	/* pointer to array of Vnode list ptrs */
-    bit32	    nsmallvnodes;	/* number of alloced vnodes */
-    bit32	    nsmallLists;	/* number of vnode lists */
-    rec_smolist    *largeVnodeLists;	/* pointer to array of Vnode list ptrs */
-    bit32	    nlargevnodes;	/* number of alloced vnodes */
-    bit32	    nlargeLists;	/* number of vnode lists */
-    bit32	    reserved[10];	/* If you add fields, add them before
+struct VolumeData {
+    VolumeDiskData *volumeInfo; /* pointer to VolumeDiskData */
+    rec_smolist *smallVnodeLists; /* pointer to array of Vnode list ptrs */
+    bit32 nsmallvnodes; /* number of alloced vnodes */
+    bit32 nsmallLists; /* number of vnode lists */
+    rec_smolist *largeVnodeLists; /* pointer to array of Vnode list ptrs */
+    bit32 nlargevnodes; /* number of alloced vnodes */
+    bit32 nlargeLists; /* number of vnode lists */
+    bit32 reserved[10]; /* If you add fields, add them before
     				   here and reduce the size of this array */
 };
 
 /* Top level of camelot recoverable storage structures */
 struct VolHead {
     struct VolumeHeader header;
-    struct VolumeData	data;
+    struct VolumeData data;
 };
 
 #endif /* _CAMPRIVATE_H_ */

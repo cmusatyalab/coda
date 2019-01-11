@@ -27,22 +27,21 @@ static void release(void **ctx)
 }
 
 static int decrypt(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
-		   const uint8_t *iv, const uint8_t *aad, size_t aad_len)
+                   const uint8_t *iv, const uint8_t *aad, size_t aad_len)
 {
     if (out != in)
-	memcpy(out, in, len);
+        memcpy(out, in, len);
     return len;
 }
 
 static int encrypt(void *ctx, const uint8_t *in, uint8_t *out, size_t len,
-		   uint8_t *iv, const uint8_t *aad, size_t aad_len)
+                   uint8_t *iv, const uint8_t *aad, size_t aad_len)
 {
     return decrypt(ctx, in, out, len, iv, aad, aad_len);
 }
 
-
 struct secure_encr secure_ENCR_NULL = {
-    .id	          = SECURE_ENCR_NULL,
+    .id           = SECURE_ENCR_NULL,
     .name         = "ENCR-NULL",
     .encrypt_init = init,
     .encrypt_free = release,
@@ -51,4 +50,3 @@ struct secure_encr secure_ENCR_NULL = {
     .decrypt_free = release,
     .decrypt      = decrypt,
 };
-

@@ -35,7 +35,6 @@ int copyfile_seg(int infd, int outfd, uint64_t pos, int64_t count)
     lseek(outfd, pos, SEEK_SET);
 
     while ((cnt = read(infd, databuf, BUF_SIZE)) > 0) {
-
         if (count > cnt) {
             ret = write(outfd, databuf, cnt);
         } else {
@@ -44,9 +43,11 @@ int copyfile_seg(int infd, int outfd, uint64_t pos, int64_t count)
 
         count -= cnt;
 
-        if (count <= 0) break;
+        if (count <= 0)
+            break;
 
-        if (ret < cnt) return(-1);
+        if (ret < cnt)
+            return (-1);
     }
 
     return (cnt < 0 ? -1 : 0);
@@ -62,8 +63,9 @@ int copyfile(int infd, int outfd)
     int cnt, ret;
 
     while ((cnt = read(infd, databuf, BUF_SIZE)) > 0) {
-	ret = write(outfd, databuf, cnt);
-	if (ret < cnt) return(-1);
+        ret = write(outfd, databuf, cnt);
+        if (ret < cnt)
+            return (-1);
     }
     return (cnt < 0 ? -1 : 0);
 }
@@ -77,29 +79,29 @@ int copyfile_byname(const char *in, const char *out)
     int outopen = 0, infd, outfd, save;
 
     if ((infd = open(in, O_RDONLY)) < 0)
-	return -1;
+        return -1;
 
-    if ((outfd = open(out, O_WRONLY|O_CREAT|O_TRUNC|O_BINARY, 0600)) < 0)
-	goto err_exit;
+    if ((outfd = open(out, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0600)) < 0)
+        goto err_exit;
     outopen = 1;
 
     if (copyfile(infd, outfd) < 0)
-	goto err_exit;
+        goto err_exit;
 
     outopen = 0;
     if (close(outfd) < 0)
-	goto err_exit;
+        goto err_exit;
 
     if (close(infd) < 0)
-	return -1;
+        return -1;
 
     return 0;
 
 err_exit:
     save = errno;
-    if (outopen) close(outfd);
+    if (outopen)
+        close(outfd);
     close(infd);
     errno = save;
     return -1;
 }
-

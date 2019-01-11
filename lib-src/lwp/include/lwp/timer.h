@@ -45,39 +45,38 @@ extern "C" {
 #endif
 
 struct TM_Elem {
-    struct TM_Elem	*Next;		/* filled by package */
-    struct TM_Elem	*Prev;		/* filled by package */
-    struct timeval	TotalTime;	/* filled in by caller; 
+    struct TM_Elem *Next; /* filled by package */
+    struct TM_Elem *Prev; /* filled by package */
+    struct timeval TotalTime; /* filled in by caller; 
 					   changed to expiration by package */
-    struct timeval	TimeLeft;	/* filled by package */
-    char		*BackPointer;	/* filled by caller, not interpreted by package */
+    struct timeval TimeLeft; /* filled by package */
+    char *BackPointer; /* filled by caller, not interpreted by package */
 };
 
-
-#define FOR_ALL_ELTS(var, list, body)\
-	{\
-	    register struct TM_Elem *_LIST_, *var, *_NEXT_;\
-	    _LIST_ = (list);\
-	    for (var = _LIST_ -> Next; var != _LIST_; var = _NEXT_) {\
-		_NEXT_ = var -> Next;\
-		body\
-	    }\
-	}
+#define FOR_ALL_ELTS(var, list, body)                           \
+    {                                                           \
+        register struct TM_Elem *_LIST_, *var, *_NEXT_;         \
+        _LIST_ = (list);                                        \
+        for (var = _LIST_->Next; var != _LIST_; var = _NEXT_) { \
+            _NEXT_ = var->Next;                                 \
+            body                                                \
+        }                                                       \
+    }
 
 /* extern definitions of timer routines */
-extern void TM_Insert (struct TM_Elem *tlistPtr, struct TM_Elem *elem);
-extern void TM_Remove (struct TM_Elem *tlistPtr, struct TM_Elem *elem);
-extern int  TM_Rescan (struct TM_Elem *tlist);
-extern struct TM_Elem *TM_GetExpired (struct TM_Elem *tlist);
-extern struct TM_Elem *TM_GetEarliest (struct TM_Elem *tlist);
+extern void TM_Insert(struct TM_Elem *tlistPtr, struct TM_Elem *elem);
+extern void TM_Remove(struct TM_Elem *tlistPtr, struct TM_Elem *elem);
+extern int TM_Rescan(struct TM_Elem *tlist);
+extern struct TM_Elem *TM_GetExpired(struct TM_Elem *tlist);
+extern struct TM_Elem *TM_GetEarliest(struct TM_Elem *tlist);
 
-extern int  TM_eql (register struct timeval *t1, register struct timeval *t2);
-extern int  TM_Init (register struct TM_Elem **list);
-extern int  TM_Final (register struct TM_Elem **list);
-extern void TM_Insert (struct TM_Elem *tlistPtr, struct TM_Elem *elem);
-extern int  TM_Rescan (struct TM_Elem *tlist);
-extern struct TM_Elem *TM_GetExpired (struct TM_Elem *tlist);
-extern struct TM_Elem *TM_GetEarliest (struct TM_Elem *tlist);
+extern int TM_eql(register struct timeval *t1, register struct timeval *t2);
+extern int TM_Init(register struct TM_Elem **list);
+extern int TM_Final(register struct TM_Elem **list);
+extern void TM_Insert(struct TM_Elem *tlistPtr, struct TM_Elem *elem);
+extern int TM_Rescan(struct TM_Elem *tlist);
+extern struct TM_Elem *TM_GetExpired(struct TM_Elem *tlist);
+extern struct TM_Elem *TM_GetEarliest(struct TM_Elem *tlist);
 
 #ifdef __cplusplus
 }

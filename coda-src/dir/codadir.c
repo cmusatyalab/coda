@@ -16,8 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -46,247 +44,237 @@ extern "C" {
 }
 #endif
 
-
 /*
  * LOCK support
- */ 
+ */
 
 void DH_LockW(PDirHandle dh)
 {
-	ObtainWriteLock(&dh->dh_lock);
+    ObtainWriteLock(&dh->dh_lock);
 }
 
 void DH_LockR(PDirHandle dh)
 {
-	ObtainReadLock(&dh->dh_lock);
+    ObtainReadLock(&dh->dh_lock);
 }
 
 void DH_UnLockW(PDirHandle dh)
 {
-	ReleaseWriteLock(&dh->dh_lock);
+    ReleaseWriteLock(&dh->dh_lock);
 }
 
 void DH_UnLockR(PDirHandle dh)
 {
-	ReleaseReadLock(&dh->dh_lock);
+    ReleaseReadLock(&dh->dh_lock);
 }
 
 void DH_Init(PDirHandle dh)
 {
-	CODA_ASSERT(dh);
-	memset(dh, 0, sizeof(*dh));
-	Lock_Init(&dh->dh_lock);
+    CODA_ASSERT(dh);
+    memset(dh, 0, sizeof(*dh));
+    Lock_Init(&dh->dh_lock);
 }
-
 
 int DH_Length(PDirHandle dh)
 {
-	int rc;
+    int rc;
 
-	DH_LockR(dh);
+    DH_LockR(dh);
 
-	rc = DIR_Length(dh->dh_data);
+    rc = DIR_Length(dh->dh_data);
 
-	DH_UnLockR(dh);
+    DH_UnLockR(dh);
 
-	return rc;
+    return rc;
 }
-
 
 /* to convert Coda dir to Unix dir: called by client */
 int DH_Convert(PDirHandle dh, char *file, VolumeId vol, RealmId realm)
 {
-	int rc;
+    int rc;
 
-	DH_LockR(dh);
+    DH_LockR(dh);
 
-	rc = DIR_Convert(dh->dh_data, file, vol, realm);
+    rc = DIR_Convert(dh->dh_data, file, vol, realm);
 
-	DH_UnLockR(dh);
+    DH_UnLockR(dh);
 
-	return rc;
+    return rc;
 }
 
 /* create new entry: called by client and server */
-int DH_Create (PDirHandle dh, const char *entry, struct ViceFid *vfid)
+int DH_Create(PDirHandle dh, const char *entry, struct ViceFid *vfid)
 {
-	int rc;
-	struct DirFid dfid;
-	
-	FID_VFid2DFid(vfid, &dfid);
-	
-	DH_LockW(dh);
-	dh->dh_dirty = 1;
+    int rc;
+    struct DirFid dfid;
 
-	rc = DIR_Create(&dh->dh_data, entry, &dfid);
+    FID_VFid2DFid(vfid, &dfid);
 
-	DH_UnLockW(dh);
+    DH_LockW(dh);
+    dh->dh_dirty = 1;
 
-	return rc;
+    rc = DIR_Create(&dh->dh_data, entry, &dfid);
+
+    DH_UnLockW(dh);
+
+    return rc;
 }
 
 /* check if the directory has entries apart from . and .. */
 int DH_IsEmpty(PDirHandle dh)
 {
-	int rc;
+    int rc;
 
-	DH_LockR(dh);
+    DH_LockR(dh);
 
-	rc  = DIR_IsEmpty(dh->dh_data);
+    rc = DIR_IsEmpty(dh->dh_data);
 
-	DH_UnLockR(dh);
+    DH_UnLockR(dh);
 
-	return rc;
-
+    return rc;
 }
-
 
 /* find fid given the name: called all over */
 int DH_Lookup(PDirHandle dh, const char *entry, struct ViceFid *vfid, int flags)
 {
-	int rc;
-	struct DirFid dfid;
+    int rc;
+    struct DirFid dfid;
 
-	DH_LockR(dh);
+    DH_LockR(dh);
 
-	rc = DIR_Lookup(dh->dh_data, entry, &dfid, flags);
+    rc = DIR_Lookup(dh->dh_data, entry, &dfid, flags);
 
-	DH_UnLockR(dh);
+    DH_UnLockR(dh);
 
-	FID_DFid2VFid(&dfid, vfid);
+    FID_DFid2VFid(&dfid, vfid);
 
-	return rc;
-
+    return rc;
 }
 
 int DH_LookupByFid(PDirHandle dh, char *entry, struct ViceFid *vfid)
 {
-	int rc;
-	struct DirFid dfid;
-	
-	FID_VFid2DFid(vfid, &dfid);
+    int rc;
+    struct DirFid dfid;
 
-	DH_LockR(dh);
+    FID_VFid2DFid(vfid, &dfid);
 
-	rc  = DIR_LookupByFid(dh->dh_data, entry, &dfid);
+    DH_LockR(dh);
 
-	DH_UnLockR(dh);
+    rc = DIR_LookupByFid(dh->dh_data, entry, &dfid);
 
-	return rc;
+    DH_UnLockR(dh);
 
+    return rc;
 }
 
 /* remove an entry from a directory */
 int DH_Delete(PDirHandle dh, const char *entry)
 {
-	int rc;
+    int rc;
 
-	DH_LockW(dh);
-	dh->dh_dirty = 1;
+    DH_LockW(dh);
+    dh->dh_dirty = 1;
 
-	rc = DIR_Delete(dh->dh_data, entry);
+    rc = DIR_Delete(dh->dh_data, entry);
 
-	DH_UnLockW(dh);
+    DH_UnLockW(dh);
 
-	return rc;
+    return rc;
 }
-
 
 /* the end of the data */
 void DH_FreeData(PDirHandle dh)
 {
-	DH_LockW(dh);
+    DH_LockW(dh);
 
-	if (!dh->dh_data)
-		return;
+    if (!dh->dh_data)
+        return;
 
-	if ( DIR_rvm() ) {
-		rvmlib_rec_free(dh->dh_data);
-	} else {
-		free(dh->dh_data);
-	}
+    if (DIR_rvm()) {
+        rvmlib_rec_free(dh->dh_data);
+    } else {
+        free(dh->dh_data);
+    }
 
-	dh->dh_data = NULL;
-	DH_UnLockW(dh);
+    dh->dh_data = NULL;
+    DH_UnLockW(dh);
 }
 
 /* alloc a directory buffer for the DH */
 void DH_Alloc(PDirHandle dh, int size, int in_rvm)
 {
-	CODA_ASSERT(dh);
-	DH_LockW(dh);
-	dh->dh_dirty = 1;
-	if ( in_rvm ) {
-		DIR_intrans();
-		RVMLIB_REC_OBJECT(*dh);
-		dh->dh_data = rvmlib_rec_malloc(size);
-	} else {
-		dh->dh_data = malloc(size);
-	}
-        CODA_ASSERT(dh->dh_data);
-        memset((void *)dh->dh_data, 0, size);
+    CODA_ASSERT(dh);
+    DH_LockW(dh);
+    dh->dh_dirty = 1;
+    if (in_rvm) {
+        DIR_intrans();
+        RVMLIB_REC_OBJECT(*dh);
+        dh->dh_data = rvmlib_rec_malloc(size);
+    } else {
+        dh->dh_data = malloc(size);
+    }
+    CODA_ASSERT(dh->dh_data);
+    memset((void *)dh->dh_data, 0, size);
 
-	DH_UnLockW(dh);
-	return;
+    DH_UnLockW(dh);
+    return;
 }
 
 PDirHeader DH_Data(PDirHandle dh)
 {
-	return dh->dh_data;
+    return dh->dh_data;
 }
 
 void DH_Print(PDirHandle dh, FILE *f)
 {
-
-	DH_LockR(dh);
-	DIR_Print(dh->dh_data, f);
-	DH_UnLockR(dh);
-	return;
+    DH_LockR(dh);
+    DIR_Print(dh->dh_data, f);
+    DH_UnLockR(dh);
+    return;
 }
-
 
 int DH_DirOK(PDirHandle dh)
 {
-	int rc;
+    int rc;
 
-	DH_LockR(dh);
-	rc = DIR_DirOK(dh->dh_data);
-	DH_UnLockR(dh);
-	return rc;
+    DH_LockR(dh);
+    rc = DIR_DirOK(dh->dh_data);
+    DH_UnLockR(dh);
+    return rc;
 }
 
 int DH_MakeDir(PDirHandle dh, struct ViceFid *vme, struct ViceFid *vparent)
 {
-	int rc;
-	struct DirFid dme;
-	struct DirFid dparent;
+    int rc;
+    struct DirFid dme;
+    struct DirFid dparent;
 
-	FID_VFid2DFid(vme, &dme);
-	FID_VFid2DFid(vparent, &dparent);
+    FID_VFid2DFid(vme, &dme);
+    FID_VFid2DFid(vparent, &dparent);
 
-	DH_LockW(dh);
-	dh->dh_dirty = 1;
-	if ( DIR_rvm() ) {
-		DIR_intrans();
-		rc = DIR_MakeDir(&dh->dh_data, &dme, &dparent);
-	} else {
-		rc = DIR_MakeDir(&dh->dh_data, &dme, &dparent);
-	}
-	DH_UnLockW(dh);
-	return rc;
+    DH_LockW(dh);
+    dh->dh_dirty = 1;
+    if (DIR_rvm()) {
+        DIR_intrans();
+        rc = DIR_MakeDir(&dh->dh_data, &dme, &dparent);
+    } else {
+        rc = DIR_MakeDir(&dh->dh_data, &dme, &dparent);
+    }
+    DH_UnLockW(dh);
+    return rc;
 }
 
-int DH_EnumerateDir(PDirHandle dh, int (*hookproc)(struct DirEntry *de, void* hook) , 
-		    void *hook)
+int DH_EnumerateDir(PDirHandle dh,
+                    int (*hookproc)(struct DirEntry *de, void *hook),
+                    void *hook)
 {
-	int rc;
-	
-	DH_LockW(dh);
+    int rc;
 
-	rc = DIR_EnumerateDir(dh->dh_data, hookproc, hook);
+    DH_LockW(dh);
 
-	DH_UnLockW(dh);
+    rc = DIR_EnumerateDir(dh->dh_data, hookproc, hook);
 
-	return rc;
+    DH_UnLockW(dh);
+
+    return rc;
 }
-

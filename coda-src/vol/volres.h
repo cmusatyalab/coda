@@ -16,11 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
 extern void InitVolLog(int);
 extern int AllocateResLog(int, VnodeId, Unique_t);
 extern void DeAllocateVMResLogListHeader(int, VnodeId, Unique_t);
-

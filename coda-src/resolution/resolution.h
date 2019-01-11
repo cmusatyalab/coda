@@ -29,4 +29,3 @@ void ResCheckServerLWP_worker(void *);
 #endif
 
 #endif /* _RESOLUTION_H_ */
-

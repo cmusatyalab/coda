@@ -20,8 +20,8 @@ Coda are listed in the file CREDITS.
 
 void list_head_init(struct dllist_head *ptr)
 {
-	ptr->next = ptr;
-	ptr->prev = ptr;
+    ptr->next = ptr;
+    ptr->prev = ptr;
 }
 
 /*
@@ -29,10 +29,10 @@ void list_head_init(struct dllist_head *ptr)
  */
 void list_add(struct dllist_head *entry, struct dllist_head *head)
 {
-	head->next->prev = entry;
-	entry->next = head->next;
-	entry->prev = head;
-	head->next = entry;
+    head->next->prev = entry;
+    entry->next      = head->next;
+    entry->prev      = head;
+    head->next       = entry;
 }
 
 /*
@@ -41,14 +41,13 @@ void list_add(struct dllist_head *entry, struct dllist_head *head)
  */
 void list_del(struct dllist_head *entry)
 {
-	entry->prev->next = entry->next;
-	entry->next->prev = entry->prev;
-	entry->prev = entry;
-	entry->next = entry;
+    entry->prev->next = entry->next;
+    entry->next->prev = entry->prev;
+    entry->prev       = entry;
+    entry->next       = entry;
 }
 
 int list_empty(struct dllist_head *head)
 {
-	return head->next == head;
+    return head->next == head;
 }
-

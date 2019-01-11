@@ -37,8 +37,6 @@ Pittsburgh, PA.
 
 */
 
-
-
 /* Clone a volume.  Assumes the new volume is already created */
 
 #ifdef __cplusplus
@@ -72,15 +70,15 @@ extern "C" {
 #include "index.h"
 #include "coda_assert.h"
 
-
-static void CloneIndex(Volume *ovp, Volume *cvp, Volume *dvp, VnodeClass vclass);
+static void CloneIndex(Volume *ovp, Volume *cvp, Volume *dvp,
+                       VnodeClass vclass);
 static void FinalDelete(Volume *vp);
 
 void CloneVolume(Error *error, Volume *original, Volume *newv, Volume *old)
 {
     *error = 0;
-    CloneIndex(original,newv,old,vLarge);
-    CloneIndex(original,newv,old,vSmall);
+    CloneIndex(original, newv, old, vLarge);
+    CloneIndex(original, newv, old, vSmall);
     CopyVolumeHeader(&V_disk(original), &V_disk(newv));
     FinalDelete(old);
 }
@@ -92,67 +90,67 @@ static void CloneIndex(Volume *ovp, Volume *cvp, Volume *dvp, VnodeClass vclass)
 /*	   *cvp,	new cloned backup volume */
 /*	   *dvp;	old cloned backup which is to be deleted */
 {
-    int dfile = 1;
+    int dfile   = 1;
     long offset = 0;
     Inode dinode;
     struct VnodeClassInfo *vcp = &VnodeClassInfo[vclass];
     char buf[SIZEOF_LARGEDISKVNODE];
-    struct VnodeDiskObject *vnode = (struct VnodeDiskObject *) buf;
+    struct VnodeDiskObject *vnode = (struct VnodeDiskObject *)buf;
     char dbuf[SIZEOF_LARGEDISKVNODE];
-    struct VnodeDiskObject *dvnode = (struct VnodeDiskObject *) dbuf;
-    Device device = ovp->device;
-    int RWOriginal = VolumeWriteable(ovp);
+    struct VnodeDiskObject *dvnode = (struct VnodeDiskObject *)dbuf;
+    Device device                  = ovp->device;
+    int RWOriginal                 = VolumeWriteable(ovp);
 
     vindex oindex(V_id(ovp), vclass, device, vcp->diskSize);
     vindex_iterator onext(oindex);
     vindex cindex(V_id(cvp), vclass, device, vcp->diskSize);
     vindex dindex(V_id(dvp), vclass, device, vcp->diskSize);
     if (!dvp)
-	dfile = 0;
+        dfile = 0;
 
-    while((offset = onext(vnode)) != -1) {
-	if (dfile && (dindex.oget(offset, dvnode) != -1))
-	    dinode = dvnode->inodeNumber;
-	else
-	    dinode = 0;
+    while ((offset = onext(vnode)) != -1) {
+        if (dfile && (dindex.oget(offset, dvnode) != -1))
+            dinode = dvnode->inodeNumber;
+        else
+            dinode = 0;
         if (vnode->type != vNull) {
-	    CODA_ASSERT(vnode->vnodeMagic == vcp->magic);
-	    if (vnode->type == vDirectory && RWOriginal) {
-	    	vnode->cloned = 1;
-		/* NOTE:  the dataVersion++ is incredibly important!!!.
+            CODA_ASSERT(vnode->vnodeMagic == vcp->magic);
+            if (vnode->type == vDirectory && RWOriginal) {
+                vnode->cloned = 1;
+                /* NOTE:  the dataVersion++ is incredibly important!!!.
 		   This will cause the inode created by the file server
 		   on copy-on-write to be stamped with a dataVersion bigger
 		   than the current one.  The salvager will then do the
 		   right thing */
-		vnode->dataVersion++;
-		/* write out the changed old vnode */
-		CODA_ASSERT(oindex.oput(offset, vnode) == 0);
-		/* Turn clone flag off for the cloned volume, just for
+                vnode->dataVersion++;
+                /* write out the changed old vnode */
+                CODA_ASSERT(oindex.oput(offset, vnode) == 0);
+                /* Turn clone flag off for the cloned volume, just for
 		   cleanliness */
-		vnode->cloned = 0;
-		vnode->dataVersion--; /* Really needs to be set to the value in the inode,
+                vnode->cloned = 0;
+                vnode->dataVersion--; /* Really needs to be set to the value in the inode,
 					 for the read-only volume */
-	    }
-	    if (vnode->inodeNumber == dinode) {
-	        dinode = 0;
-	    }
-	    else if (vnode->inodeNumber) {
-		/* a new clone is also referencing this inode */
-	        CODA_ASSERT(iinc(device, vnode->inodeNumber, V_parentId(ovp)) != -1);
-	    }
-	}
-	if (dinode) {
-	    /* the old backup volume is no longer referencing this vnode */
-	    CODA_ASSERT(idec(device, dinode, V_parentId(ovp)) != -1);
-	}
-	/* write out the vnode to the new cloned volume index */
-	CODA_ASSERT(cindex.oput(offset, vnode) == 0);
+            }
+            if (vnode->inodeNumber == dinode) {
+                dinode = 0;
+            } else if (vnode->inodeNumber) {
+                /* a new clone is also referencing this inode */
+                CODA_ASSERT(iinc(device, vnode->inodeNumber, V_parentId(ovp)) !=
+                            -1);
+            }
+        }
+        if (dinode) {
+            /* the old backup volume is no longer referencing this vnode */
+            CODA_ASSERT(idec(device, dinode, V_parentId(ovp)) != -1);
+        }
+        /* write out the vnode to the new cloned volume index */
+        CODA_ASSERT(cindex.oput(offset, vnode) == 0);
     }
 
     /* Isn't this redundant? ***ehs***/
     vindex_iterator dnext(dindex);
     while (dfile && ((offset = dnext(dvnode)) != -1)) {
-	CODA_ASSERT(idec(device, dvnode->inodeNumber, V_parentId(ovp)) != -1);
+        CODA_ASSERT(idec(device, dvnode->inodeNumber, V_parentId(ovp)) != -1);
     }
 }
 
@@ -161,7 +159,7 @@ static void FinalDelete(Volume *vp)
     /* Delete old backup -- it's vnodes are already gone */
     if (vp) {
         Error error;
-	CODA_ASSERT(DeleteVolume(V_id(vp)) == 0);
-	VDetachVolume(&error, vp);
+        CODA_ASSERT(DeleteVolume(V_id(vp)) == 0);
+        VDetachVolume(&error, vp);
     }
 }

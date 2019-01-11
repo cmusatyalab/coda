@@ -16,7 +16,6 @@ Coda are listed in the file CREDITS.
 
 #*/
 
-
 /* segment loader private declarations */
 
 #ifndef _RVM_SEGMENT_PRIVATE_H_
@@ -37,22 +36,23 @@ extern int overlap();
 
 /* Moved this to rvm_segment.h, as rdsinit needs it. */
 /* #define RVM_SEGMENT_HDR_SIZE RVM_PAGE_SIZE   * length of segment header */
-#define RVM_MAX_REGIONS                 /* maximum regions in seg  hdr */ \
-        ((RVM_SEGMENT_HDR_SIZE/sizeof(rvm_region_def_t))-1)
+#define RVM_MAX_REGIONS /* maximum regions in seg  hdr */ \
+    ((RVM_SEGMENT_HDR_SIZE / sizeof(rvm_region_def_t)) - 1)
 
-typedef enum { rvm_segment_hdr_id = 1 } rvm_seg_struct_id_t;
+typedef enum
+{
+    rvm_segment_hdr_id = 1
+} rvm_seg_struct_id_t;
 
 /* segment header: rvm_segment_hdr_t */
-typedef struct
-    {
-    rvm_seg_struct_id_t     struct_id;      /* self-identifier, do not change */
+typedef struct {
+    rvm_seg_struct_id_t struct_id; /* self-identifier, do not change */
 
-    char                version[RVM_VERSION_MAX]; /* version string */
-    rvm_length_t        nregions;                 /* number of regions defined */
-    rvm_region_def_t    regions[1];     /* region definition array  -- length
+    char version[RVM_VERSION_MAX]; /* version string */
+    rvm_length_t nregions; /* number of regions defined */
+    rvm_region_def_t regions[1]; /* region definition array  -- length
                                            actually determined by
                                            RVM_MAX_REGIONS */
-    }
-rvm_segment_hdr_t;
+} rvm_segment_hdr_t;
 
 #endif /* _RVM_SEGMENT_PRIVATE_H_ */
