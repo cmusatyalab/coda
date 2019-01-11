@@ -902,7 +902,7 @@ int fsobj::IsValid(int rcrights)
     if (!(vol->IsReplicated() || vol->IsNonReplicated()))
         return 0;
 
-    repvol *vp = (repvol *)vol;
+    reintvol *vp = (reintvol *)vol;
     if (vp->HaveCallBack()) {
         vp->VCBHits++;
         return 1;
