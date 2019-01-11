@@ -1033,6 +1033,7 @@ int ValidateParms(RPC2_Handle RPCid, ClientEntry **client, int *voltype,
     int errorCode = 0;
     VolumeId GroupVid;
     int count, pos;
+    int voltype_tmp;
 
     /* 1. Apply PiggyBacked COP2 operations. */
     if (PiggyBS && PiggyBS->SeqLen > 0) {
@@ -1054,15 +1055,18 @@ int ValidateParms(RPC2_Handle RPCid, ClientEntry **client, int *voltype,
 
     /* 3. Translate group to read/write volume id. */
     GroupVid  = *Vidp;
-    errorCode = XlateVid(Vidp, &count, &pos, voltype);
+    errorCode = XlateVid(Vidp, &count, &pos, &voltype_tmp);
 
-    if (*voltype & REPVOL) {
+    if (voltype_tmp & REPVOL) {
         SLog(10, "ValidateParms: %x --> %x", GroupVid, *Vidp);
-    } else if (*voltype & NONREPVOL) {
+    } else if (voltype_tmp & NONREPVOL) {
         SLog(10, "ValidateParms: using non-replicated vol --> %x", *Vidp);
     } else if (!errorCode) {
         SLog(10, "ValidateParms: using replica %x", *Vidp);
     }
+
+    if (voltype)
+        *voltype = voltype_tmp;
 
     if (Nservers)
         *Nservers = count;
