@@ -9,6 +9,10 @@
 
 CODA_RELEASE=@CODA_RELEASE@
 COPYRIGHT_YEAR=$(date +'%Y')
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+NC='\033[0m'
 
 if git rev-parse --verify HEAD >/dev/null 2>&1
 then
@@ -70,10 +74,6 @@ do
     fi
 done
 
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-NC='\033[0m'
-
 if test $exit_code -eq 0
 then
     echo ""
@@ -98,4 +98,59 @@ else
         printf "    %s\n" $need_copyright_update
     fi
 fi
-exit $exit_code	
+
+# If there are whitespace errors, print the offending file names and fail.
+echo "Pre-commit hook - Checking staged files indentation"
+
+if test "$(command -v @CLANG_FORMAT@)" != ""
+then
+
+    # Find the offending files
+    for single_file in $staged_files
+    do
+        # Check if it's a C/C++ source or header
+        case $single_file in
+        *\.cc) ;;
+        *\.c) ;;
+        *\.h) ;;
+        *) continue;;
+        esac
+
+        if test $(git cat-file -p ":$single_file" | 
+                  @CLANG_FORMAT@ -style=file -output-replacements-xml |
+                  wc -l) != 3
+        then
+            offending_files="${offending_files:+"$offending_files "}$single_file"
+        fi
+    done
+
+    if test "${offending_files-X}" = "X"
+    then
+        echo ""
+        echo "${GREEN}Great! All files are correctly indented!${NC}"
+        echo ""
+    else
+        echo ""
+        echo "${RED}[ERROR]${NC} Not committing. Incorrectly indented files found!"
+        echo ""
+
+        printf "    %s\n" $offending_files
+
+        echo ""
+        echo "To indent the files, please run;"
+        echo ""
+        echo "    @CLANG_FORMAT@ -style=file -i $offending_files"
+        echo ""
+        echo "Be aware that this command will indent the file in the"
+        echo "working tree. Unstaged changes will be also affected."
+
+        exit_code=1
+    fi
+
+else
+    echo ""
+    echo "${YELLOW}[WARNING]${NC} required clang-format version not installed. Skipping indentation check!"
+    echo ""
+fi
+
+exit $exit_code

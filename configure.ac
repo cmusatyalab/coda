@@ -34,6 +34,10 @@ AC_PROG_MAKE_SET
 AC_PROG_LIBTOOL
 AC_PROG_AWK
 
+
+AC_CHECK_PROGS([CLANG_FORMAT], [clang-format-6.0])
+AM_CONDITIONAL([FOUND_CLANG_FORMAT], [test "x$CLANG_FORMAT" != x])
+
 dnl Now we can derive things like systype/cputype
 m4_include(configs/codaconf.m4)
 
