@@ -147,25 +147,25 @@ The interpretation of header fields is similar to that in RPC:
 
 /* Values of SEFlags field in header */
 #define SFTP_MOREDATA 0x1 /* on data packets, indicates more data to come */
-#define SFTP_PIGGY 0x2 /* on RPC packets: piggybacked info present on this
-                          packet */
-#define SFTP_ALLOVER 0x4 /* on RPC reply packets: indicates server got all
-                            data packets */
-#define SFTP_TRIGGER 0x8 /* on ack packets: distinguishes a server "triggered"
-                            ack from a real one. Necessary only for
-                            compatibility, triggers now send null timestamp
-                            echos */
-#define SFTP_FIRST 0x10 /* on data packets, indicates first of group sent by
-                           source */
-#define SFTP_COUNTED 0x20 /* on data packets: arrived or acked before last
-                             round */
+#define SFTP_PIGGY \
+    0x2 /* on RPC packets: piggybacked info present on this packet */
+#define SFTP_ALLOVER \
+    0x4 /* on RPC reply packets: indicates server got all data packets */
+#define SFTP_TRIGGER \
+    0x8 /* on ack packets: distinguishes a server "triggered" ack from a real
+           one. Necessary only for compatibility, triggers now send null
+           timestamp echos */
+#define SFTP_FIRST \
+    0x10 /* on data packets, indicates first of group sent by source */
+#define SFTP_COUNTED \
+    0x20 /* on data packets: arrived or acked before last round */
 
 /* SFTP Opcodes */
-#define SFTP_START 1 /* Control: start sending data (flow is from RPC client
-                        to server)*/
+#define SFTP_START \
+    1 /* Control: start sending data (flow is from RPC client to server)*/
 #define SFTP_ACK 2 /* Control: acknowledgement you had requested */
-#define SFTP_DATA 3 /* Data: next chunk; MOREDATA flag indicates whether EOF
-                       has been seen */
+#define SFTP_DATA \
+    3 /* Data: next chunk; MOREDATA flag indicates whether EOF has been seen */
 #define SFTP_NAK 4 /* Control: got a bogus packet from you */
 #define SFTP_RESET 5 /* Control: reset transmission parameters */
 #define SFTP_BUSY 6 /* Control: momentarily busy; reset your timeout counter */

@@ -78,12 +78,12 @@ typedef struct codatunnel_packet {
  * TCPACTIVE --> TCPCLOSING --> FREE */
 enum deststate
 { /* NEW: 2018-5-29 */
-  FREE      = 0, /* this entry is not allocated */
-  ALLOCATED = 1, /* entry allocated, but TCP is not active; UDP works */
+  FREE          = 0, /* this entry is not allocated */
+  ALLOCATED     = 1, /* entry allocated, but TCP is not active; UDP works */
   TCPATTEMPTING = 2, /* entry allocated, tcp connect is being attempted;
                         UDP works */
-  TCPACTIVE = 3, /* entry allocated, and its tcphandle is good */
-  TCPCLOSING = 4, /* this entry used to be TCPACTIVE;
+  TCPACTIVE     = 3, /* entry allocated, and its tcphandle is good */
+  TCPCLOSING    = 4, /* this entry used to be TCPACTIVE;
                      now closing, and waiting to become FREE */
 };
 

@@ -457,13 +457,13 @@ static long close_seg_dev(seg_t *seg /* segment descriptor */)
     return close_dev(&seg->dev);
 }
 
+// clang-format off
 /* close segment devices at termination time */
 rvm_return_t close_all_segs()
 {
     seg_t *seg; /* segment desriptor */
     rvm_return_t retval = RVM_SUCCESS; /* return value */
 
-    // clang-format off
     RW_CRITICAL(seg_root_lock, w,
     { /* begin seg_root_lock crit section */
         FOR_ENTRIES_OF(seg_root, seg_t, seg)
@@ -477,10 +477,10 @@ rvm_return_t close_all_segs()
                 break;
         }
     }); /* end seg_root_lock crit section */
-    // clang-format on
 
     return retval;
 }
+// clang-format on
 
 /* segment lookup via device name */
 seg_t *seg_lookup(char *dev_name /* segment device name */,
