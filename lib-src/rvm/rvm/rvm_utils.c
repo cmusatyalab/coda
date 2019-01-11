@@ -105,7 +105,7 @@ void init_list_header(list_entry_t *whichlist /* pointer to list header */,
 */
 static list_entry_t *malloc_list_entry(struct_id_t id)
 {
-    register list_entry_t *cell;
+    list_entry_t *cell;
 
     /* allocate the element */
     cell = (list_entry_t *)calloc(1, cache_type_sizes[ID_INDEX(id)]);
@@ -683,7 +683,7 @@ void free_log_special(log_special_t *special /* ptr to descriptor allocated */)
 /* range descriptor allocator/finalizer */
 range_t *make_range(void)
 {
-    register range_t *range;
+    range_t *range;
 
     if ((range = (range_t *)alloc_list_entry(range_id)) != NULL) {
         range->links.node.lss       = NULL;
@@ -718,7 +718,7 @@ void free_range(range_t *range)
 /* internal transaction descriptor allocator/finalizer */
 int_tid_t *make_tid(rvm_mode_t mode /* transaction begin mode */)
 {
-    register int_tid_t *tid;
+    int_tid_t *tid;
 
     tid = (int_tid_t *)alloc_list_entry(int_tid_id);
     if (tid != NULL) {
@@ -771,7 +771,7 @@ void free_tid(int_tid_t *tid)
 /* mem_region nodes for mapping */
 mem_region_t *make_mem_region(void)
 {
-    register mem_region_t *node;
+    mem_region_t *node;
 
     node = (mem_region_t *)alloc_list_entry(mem_region_id);
     if (node != NULL) {
@@ -794,7 +794,7 @@ void free_mem_region(mem_region_t *node)
 /* dev_region nodes for recovery */
 dev_region_t *make_dev_region(void)
 {
-    register dev_region_t *node;
+    dev_region_t *node;
 
     node = (dev_region_t *)alloc_list_entry(dev_region_id);
     if (node == NULL)

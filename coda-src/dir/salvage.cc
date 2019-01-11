@@ -71,7 +71,7 @@ int DirSalvage(long *fromFile, long *toFile)
 { /* corrected referencing level (ehs 10/87) */
     /* First do a MakeDir on the target. */
     long dot[3], dotdot[3], code, usedPages;
-    register int i;
+    int i;
     struct DirHeader *dhp;
     struct DirEntry *ep;
     int entry;

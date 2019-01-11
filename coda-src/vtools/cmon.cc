@@ -452,9 +452,9 @@ char *when(time_t now, time_t then)
 static void PrintServer(struct server *s)
 {
     char shortname[SRVCOLWIDTH + 1];
-    register WINDOW *w;
+    WINDOW *w;
     struct printvals pv;
-    register int i;
+    int i;
 
     w = s->win;
 
@@ -545,7 +545,7 @@ static void ComputePV(struct server *s, struct printvals *pv)
     long t;
     long total;
     ViceDisk *di[10];
-    register int i;
+    int i;
 
     pv->rpc_conn = s->newvs.CurrentConnections;
     pv->rpc_wkst = s->newvs.WorkStations;
@@ -692,7 +692,7 @@ static char *ShortDiskName(char *s)
        by ViceGetStatistics(). */
 {
     static char sdn[SDNLEN + 1];
-    register char *c;
+    char *c;
 
     /* Eliminate leading '/' unless that's all there is */
     if (*s == '/' && *(s + 1) != 0)

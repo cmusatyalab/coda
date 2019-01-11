@@ -69,7 +69,7 @@ void DP_UnlockPartition(char *name);
 
 struct DiskPartition *DP_Find(Device devno);
 struct DiskPartition *DP_Get(char *name);
-void DP_SetUsage(register struct DiskPartition *dp);
+void DP_SetUsage(struct DiskPartition *dp);
 void DP_ResetUsage();
 void DP_PrintStats(FILE *fp);
 

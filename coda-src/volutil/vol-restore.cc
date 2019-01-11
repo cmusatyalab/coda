@@ -213,7 +213,7 @@ static int RestoreVolume(DumpBuffer_t *buf, char *partition, char *volname,
     VolumeDiskData vol;
     struct DumpHeader header;
     Error error;
-    register Volume *vp = NULL;
+    Volume *vp = NULL;
     VolumeId parentid;
     rvm_return_t status = RVM_SUCCESS;
     time_t backupdate;
@@ -421,7 +421,7 @@ static int ReadLargeVnodeIndex(DumpBuffer_t *buf, Volume *vp)
     rec_smolist *rlist;
     PDirInode dinode    = NULL;
     PDirInode camdInode = NULL;
-    register signed char tag;
+    signed char tag;
     int volindex = V_volumeindex(vp);
 
     VLog(9, "Restore: Reading in large vnode array.");
@@ -519,7 +519,7 @@ static int ReadSmallVnodeIndex(DumpBuffer_t *buf, Volume *vp)
     int nvnodes         = 0;
     char vbuf[SIZEOF_SMALLDISKVNODE];
     VnodeDiskObject *vdo = (VnodeDiskObject *)vbuf;
-    register signed char tag;
+    signed char tag;
     rec_smolist *rlist;
     int volindex = V_volumeindex(vp);
 
@@ -603,7 +603,7 @@ static int ReadSmallVnodeIndex(DumpBuffer_t *buf, Volume *vp)
 static int ReadVnodeDiskObject(DumpBuffer_t *buf, VnodeDiskObject *vdop,
                                PDirInode *dinode, Volume *vp, long *vnodeNumber)
 {
-    register signed char tag;
+    signed char tag;
     *vnodeNumber = -1;
     tag          = ReadTag(buf);
     if (tag == D_NULLVNODE) {

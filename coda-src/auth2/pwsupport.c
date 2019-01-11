@@ -102,7 +102,7 @@ long PWGetKeys(RPC2_CountedBS *cIdent, RPC2_EncryptionKey hKey,
                RPC2_EncryptionKey sKey)
 {
     int vid;
-    register int i;
+    int i;
     struct stat statbuff;
 
     LogMsg(10, AuthDebugLevel, stdout, "In PWGetKeys()");

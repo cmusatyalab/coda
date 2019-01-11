@@ -132,7 +132,7 @@ void MUpdateHisto(struct hgram *hg, double newval, int number)
        newval -- value to be entered 
        number -- number of newvals to be entered */
 {
-    register int i;
+    int i;
 
     if (newval < hg->uflow.hival) {
         hg->uflow.count += number;
@@ -185,7 +185,7 @@ int PrintHisto(FILE *outfile, struct hgram *hg)
 {
     double mean, stddev, c90;
     double temp;
-    register int i;
+    int i;
 
     /* Compute mean, std deviation and confidence interval */
     if (hg->count < 1)
@@ -241,7 +241,7 @@ int PlotHisto(FILE *outfile, struct hgram *hg, char *graphtitle, char *xtitle,
               char *ytitle, char *psfileprefix)
 
 {
-    register int i;
+    int i;
     int maxcount, totalcount;
     static int plotid = 1;
 

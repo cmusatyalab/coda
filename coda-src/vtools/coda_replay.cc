@@ -406,7 +406,7 @@ int checksum(hblock &hdr)
 void makeprefix(char *name)
 {
     if (rflag) {
-        register char *cp;
+        char *cp;
 
         /* Quick check for existence of directory. */
         if ((cp = strrchr(name, '/')) == 0)

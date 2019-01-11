@@ -80,7 +80,7 @@ int FT_Init(int printErrors, int notReally)
 
 int FT_GetTimeOfDay(struct timeval *tv, struct timezone *tz)
 {
-    register int ret;
+    int ret;
     ret = gettimeofday(tv, tz);
     if (!ret) {
         FT_LastTime.tv_sec  = tv->tv_sec;

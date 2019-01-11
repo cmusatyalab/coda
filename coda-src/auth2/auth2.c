@@ -139,7 +139,7 @@ int main(int argc, char **argv)
 {
     RPC2_PacketBuffer *reqbuffer;
     RPC2_Handle cid;
-    register int rc;
+    int rc;
     char errmsg[MAXPATHLEN];
 
     ReadConfigFile();
@@ -253,7 +253,7 @@ static int IsSCM(void)
 static void InitGlobals(int argc, char **argv)
 /* Set globals from command line args */
 {
-    register int i;
+    int i;
     int len;
 
     len = strlen(argv[0]);

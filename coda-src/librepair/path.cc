@@ -40,7 +40,7 @@ static int repair_getvid(char *path, VolumeId *vid, char *realm, char *msg,
 int repair_isleftmost(char *path, char *realpath, int len, char *msg,
                       int msgsize)
 {
-    register char *car, *cdr;
+    char *car, *cdr;
     int symlinks;
     char buf[MAXPATHLEN], symbuf[MAXPATHLEN], here[MAXPATHLEN], tmp[MAXPATHLEN];
 

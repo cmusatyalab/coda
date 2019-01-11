@@ -43,7 +43,7 @@ static char *colors[] = { "red", "white", "blue" };
 
 static pcbs(RPC2_CountedBS *bs)
 {
-    register int i;
+    int i;
 
     printf("<%d, ", bs->SeqLen);
     for (i = 0; i < bs->SeqLen; i++)
@@ -53,7 +53,7 @@ static pcbs(RPC2_CountedBS *bs)
 
 static pbbs(RPC2_BoundedBS *bs)
 {
-    register int i;
+    int i;
 
     printf("< %d, %d, ", bs->MaxSeqLen, bs->SeqLen);
     for (i = 0; i < bs->SeqLen; i++)

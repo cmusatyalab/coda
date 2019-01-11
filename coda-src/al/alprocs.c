@@ -257,8 +257,8 @@ int AL_FreeExternalCPS(INOUT PRS_ExternalCPS *R)
    of entries > AL_MaxExtEntries. */
 int AL_Externalize(IN AL_AccessList *Alist, OUT AL_ExternalAccessList *Elist)
 {
-    register int i;
-    register char *nextc;
+    int i;
+    char *nextc;
 
     if (Alist->PlusEntriesInUse + Alist->MinusEntriesInUse > AL_MaxExtEntries)
         return (-1);
@@ -489,8 +489,8 @@ int AL_GetInternalCPS(IN int Id, OUT PRS_InternalCPS **ICPS)
 int AL_GetExternalCPS(IN int Id, OUT PRS_ExternalCPS *ECPS)
 {
     PRS_InternalCPS *ICPS;
-    register char *s;
-    register int i;
+    char *s;
+    int i;
 
     LogMsg(1, AL_DebugLevel, stdout, "in AL_GetExternalCPS(%d, 0x%x)", Id,
            ECPS);

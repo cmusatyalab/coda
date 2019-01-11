@@ -75,7 +75,7 @@ PRIVATE RPC2_Handle AuthID;
 
 int main(int argc, char **argv)
 {
-    register int i;
+    int i;
     char *current;
     char *next;
     char *uid;
@@ -199,8 +199,8 @@ PRIVATE int AddNewUser(char *uid, char *pw)
 
 PRIVATE void MakeString(char *input)
 { /* scans for the first field delimiter and makes it an end of string */
-    register char srch;
-    register int i;
+    char srch;
+    int i;
 
     for (i = 0; i < 256; i++) {
         if ((srch = input[i]) == '\0' || srch == '\t' || srch == ' ' ||
@@ -215,8 +215,8 @@ PRIVATE char *NextField(char *input)
 { /* scans the input string for up to 255 characters and returns the address
       of the next field.  If no field is found in 255 characters or a null is found,
       it returns a zero */
-    register char srch;
-    register int i;
+    char srch;
+    int i;
 
     for (i = 0; i < 256; i++) {
         if ((srch = input[i]) == '\0') { /* null - end of string */
@@ -232,8 +232,8 @@ PRIVATE char *NextField(char *input)
 PRIVATE char *NextRecord(char *input)
 { /* scans the input string to find the next record which is either a null or one
       beyond a new line character */
-    register char srch;
-    register int i;
+    char srch;
+    int i;
 
     for (i = 0; i < 256; i++) {
         if ((srch = input[i]) == '\0' || srch == '\n') {

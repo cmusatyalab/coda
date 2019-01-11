@@ -91,7 +91,7 @@ static int GetVolumeSummary(VolumeId singleVolumeNumber);
 static int SalvageFileSys(char *path, VolumeId singleVolumeNumber);
 static int SalvageVolumeGroup(struct VolumeSummary *vsp, int nVols);
 static int QuickCheck(struct VolumeSummary *vsp, int nVols);
-static int SalvageVolHead(register struct VolumeSummary *vsp);
+static int SalvageVolHead(struct VolumeSummary *vsp);
 static int VnodeInodeCheck(int, struct ViceInodeInfo *, int,
                            struct VolumeSummary *);
 static void DirCompletenessCheck(struct VolumeSummary *vsp);

@@ -69,7 +69,7 @@ static void BuildTable(dumpstream *, vtable *);
 static void ModifyTable(dumpstream *, VnodeClass, vtable *);
 static void WriteTable(DumpBuffer_t *, vtable *, VnodeClass);
 static void WriteVnodeDiskObject(DumpBuffer_t *, VnodeDiskObject *, int);
-static void DumpVolumeDiskData(DumpBuffer_t *, register VolumeDiskData *);
+static void DumpVolumeDiskData(DumpBuffer_t *, VolumeDiskData *);
 static void WriteDumpHeader(DumpBuffer_t *buf, struct DumpHeader *,
                             struct DumpHeader *);
 
@@ -393,7 +393,7 @@ static void WriteVnodeDiskObject(DumpBuffer_t *buf, VnodeDiskObject *v,
     }
 }
 
-static void DumpVolumeDiskData(DumpBuffer_t *buf, register VolumeDiskData *vol)
+static void DumpVolumeDiskData(DumpBuffer_t *buf, VolumeDiskData *vol)
 {
     DumpTag(buf, D_VOLUMEDISKDATA);
     DumpInt32(buf, 'i', vol->id);

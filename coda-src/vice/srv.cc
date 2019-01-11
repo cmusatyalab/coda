@@ -867,7 +867,7 @@ static void ResLWP(void *arg)
     RPC2_Handle mycid;
     RPC2_PacketBuffer *myrequest;
     ProgramType pt;
-    register long rc;
+    long rc;
     rvm_perthread_t rvmptt;
 
     /* using rvm - so set the per thread data structure for executing
@@ -992,7 +992,7 @@ void ViceUpdateDB()
 
 static void ClearCounters()
 {
-    register int i;
+    int i;
 
     for (i = 0; i < MAXCNTRS; i++)
         Counters[i] = 0;

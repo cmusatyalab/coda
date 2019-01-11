@@ -41,7 +41,7 @@ int main(int argc, char **argv)
 {
     struct timeval t1, t2;
     PROCESS pid, otherpid;
-    register long i, count, x;
+    long i, count, x;
     static char c[] = "OtherProcess";
 
     count = argc > 1 ? atoi(argv[1]) : 10000;

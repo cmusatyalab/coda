@@ -271,7 +271,7 @@ void DP_PrintStats(FILE *fp)
 
 void DP_LockPartition(char *name)
 {
-    register struct DiskPartition *dp = DP_Get(name);
+    struct DiskPartition *dp = DP_Get(name);
     CODA_ASSERT(dp != NULL);
     if (dp->lock_fd == -1) {
         /* Cannot writelock a directory using fcntl, disabling for now --JH */
@@ -285,7 +285,7 @@ void DP_LockPartition(char *name)
 
 void DP_UnlockPartition(char *name)
 {
-    register struct DiskPartition *dp = DP_Get(name);
+    struct DiskPartition *dp = DP_Get(name);
     CODA_ASSERT(dp != NULL);
     if (dp->lock_fd != -1)
         close(dp->lock_fd);

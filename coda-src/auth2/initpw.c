@@ -73,7 +73,7 @@ static RPC2_EncryptionKey EKey;
 
 int main(int argc, char **argv)
 {
-    register int i;
+    int i;
     char thisline[1000], *lastpart;
     RPC2_EncryptionKey thispw;
     PROCESS mypid;

@@ -862,8 +862,8 @@ static int GetDirRes(DirResStats *DirRes)
 
 static int GetHistogram(long *size, HistoElem **hist)
 {
-    register int sum = 0;
-    register HistoElem *newhist;
+    int sum = 0;
+    HistoElem *newhist;
     sum += GetLong(size);
     newhist = new HistoElem[*size];
     for (int i = 0; i < *size; i++)

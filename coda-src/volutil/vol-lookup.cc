@@ -122,9 +122,9 @@ long int S_VolLookup(RPC2_Handle rpcid, RPC2_String formal_vol,
                vol);
         goto exit;
     } else {
-        register VolumeId *p;
+        VolumeId *p;
         int printed, i;
-        register RPC2_Unsigned *sptr;
+        RPC2_Unsigned *sptr;
         RPC2_Unsigned s;
         fprintf(infofile, "Info for vol \"%s\": volume id %08x, %s volume\n",
                 vol, info.Vid, voltypes[info.Type]);

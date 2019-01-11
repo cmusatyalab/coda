@@ -191,8 +191,8 @@ void Lock_Init(struct Lock *lock);
  * @param lock_2 pointer to the second lock
  * @param how_2  second lock's type
  */
-void ObtainDualLock(register struct Lock *lock_1, enum lock_how how_1,
-                    register struct Lock *lock_2, enum lock_how how_2);
+void ObtainDualLock(struct Lock *lock_1, enum lock_how how_1,
+                    struct Lock *lock_2, enum lock_how how_2);
 
 /**
  * Safely release two simultaneous locks
@@ -202,8 +202,8 @@ void ObtainDualLock(register struct Lock *lock_1, enum lock_how how_1,
  * @param lock_2 pointer to the second lock
  * @param how_2  second lock's type
  */
-void ReleaseDualLock(register struct Lock *lock_1, enum lock_how how_1,
-                     register struct Lock *lock_2, enum lock_how how_2);
+void ReleaseDualLock(struct Lock *lock_1, enum lock_how how_1,
+                     struct Lock *lock_2, enum lock_how how_2);
 
 #ifdef __cplusplus
 }

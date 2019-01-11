@@ -102,12 +102,11 @@ void main(int argc, char **argv)
     int size          = 8; /* Current size of VLDB array */
     int nentries      = 0; /* Number of valid records in VLDB */
     struct vldb *VLDB = (struct vldb *)malloc(size * sizeof(struct vldb));
-    register int i;
+    int i;
 
     for (;;) {
-        int n;
-        register nRecords = 0;
-        n                 = read(VLDB_fd, (char *)buffer, sizeof(buffer));
+        int nRecords = 0;
+        int n        = read(VLDB_fd, (char *)buffer, sizeof(buffer));
         if (n < 0) {
             printf("VLDBPrint: read failed for VLDB\n");
             exit(EXIT_FAILURE);
@@ -141,7 +140,7 @@ void main(int argc, char **argv)
 
     heapsort(VLDB, nentries);
     for (i = 0; i < nentries; i++) {
-        register struct vldb *vldp = &VLDB[i];
+        struct vldb *vldp = &VLDB[i];
         printf("VID =%x, key = %s, type = %x, servers = (%x", VID(vldp),
                vldp->key, vldp->volumeType, vldp->serverNumber[0]);
 

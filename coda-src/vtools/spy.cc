@@ -162,7 +162,7 @@ static void CheckMariner(FILE *fp)
 {
     static char buf[MAXPATHLEN];
     static char *fillptr = buf;
-    register int c;
+    int c;
 
     /*    errno = 0;*/
     while ((c = getc(fp)) != EOF) {

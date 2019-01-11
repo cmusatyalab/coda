@@ -46,7 +46,7 @@ Pittsburgh, PA.
 #include "lwp.private.h"
 
 /* null out a lock */
-void Lock_Init(register struct Lock *lock)
+void Lock_Init(struct Lock *lock)
 {
     lock->readers_reading = 0;
     lock->excl_locked     = 0;
@@ -55,7 +55,7 @@ void Lock_Init(register struct Lock *lock)
     lock->excl_locker     = NULL;
 }
 
-void Lock_Obtain(register struct Lock *lock, int how)
+void Lock_Obtain(struct Lock *lock, int how)
 {
     PROCESS me = LWP_ThisProcess();
 
@@ -188,7 +188,7 @@ void ReleaseDualLock(struct Lock *lock_1, enum lock_how how_1,
 }
 
 /* release a lock, giving preference to new readers */
-void Lock_ReleaseR(register struct Lock *lock)
+void Lock_ReleaseR(struct Lock *lock)
 {
     PROCESS me = LWP_ThisProcess();
 
@@ -207,7 +207,7 @@ void Lock_ReleaseR(register struct Lock *lock)
 }
 
 /* release a lock, giving preference to new writers */
-void Lock_ReleaseW(register struct Lock *lock)
+void Lock_ReleaseW(struct Lock *lock)
 {
     PROCESS me = LWP_ThisProcess();
 

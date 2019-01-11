@@ -895,7 +895,7 @@ static void SetSystemStats_bsd44(ViceStatistics *stats)
 {
     static kvm_t *kd     = (kvm_t *)NULL;
     static int kd_opened = 0;
-    register int i;
+    int i;
     long busy[CPUSTATES];
     struct timeval bootTime;
     int dk_ndrive;

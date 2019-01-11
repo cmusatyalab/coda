@@ -39,14 +39,14 @@ listed in the file CREDITS.
 #define NEGATE_CLASS '^'
 
 /* Forward declaration. */
-static int DoMatch(register char *text, register char *p);
+static int DoMatch(char *text, char *p);
 
 /*
 **  See if the text matches the p, which has an implied leading asterisk.
 */
-static int Star(register char *text, char *p)
+static int Star(char *text, char *p)
 {
-    register int ret;
+    int ret;
 
     do {
         ret = DoMatch(text++, p);
@@ -57,11 +57,11 @@ static int Star(register char *text, char *p)
 /*
 **  Match text and p, return TRUE, FALSE, or ABORT.
 */
-static int DoMatch(register char *text, register char *p)
+static int DoMatch(char *text, char *p)
 {
-    register int last;
-    register int matched;
-    register int reverse;
+    int last;
+    int matched;
+    int reverse;
 
     for (; *p; text++, p++) {
         if (*text == '\0' && *p != '*')

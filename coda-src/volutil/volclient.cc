@@ -649,7 +649,7 @@ static void VolDumpLWP(void *arg)
     RPC2_RequestFilter myfilter;
     RPC2_PacketBuffer *myrequest;
     RPC2_Handle mycid;
-    register long rc;
+    long rc;
 
     RPC2_SubsysIdent subsysid;
 

@@ -55,7 +55,7 @@ int main(int argc, char **argv)
     struct timeval t1, t2;
     struct timeval sleeptime;
     PROCESS pid, otherpid;
-    register long i, count, x;
+    long i, count, x;
     int j;
     const void *waitarray[2];
     static char c[] = "OtherProcess";

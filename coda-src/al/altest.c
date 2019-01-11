@@ -396,8 +396,8 @@ static void Op_3(
 
         case 3: /* Fill External Alist */
         {
-            register int i;
-            register char *s;
+            int i;
+            char *s;
             int w, m, p;
             FILE *myin, *myout;
 
