@@ -884,7 +884,7 @@ int fsobj::IsValid(int rcrights)
 
     /* Replicated objects must be considered valid when we are either
      * unreachable or reachable and the object is dirty. */
-    if (vol->IsReplicated() || vol->IsNonReplicated()) {
+    if (vol->IsReadWrite()) {
         if (vol->IsUnreachable())
             return 1;
         if (vol->IsReachable() && flags.dirty)
@@ -899,7 +899,7 @@ int fsobj::IsValid(int rcrights)
 
     /* Now if we still have the volume callback, we can't lose.
      * also update VCB statistics -- valid due to VCB */
-    if (!(vol->IsReplicated() || vol->IsNonReplicated()))
+    if (!vol->IsReadWrite())
         return 0;
 
     reintvol *vp = (reintvol *)vol;

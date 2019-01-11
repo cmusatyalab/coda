@@ -1060,7 +1060,7 @@ int volent::Enter(int mode, uid_t uid)
         LOG(1, ("volent::Enter: demoting %s\n", name));
         flags.demotion_pending = 0;
 
-        if (IsReplicated() || IsNonReplicated())
+        if (IsReadWrite())
             ((reintvol *)this)->ClearCallBack();
 
         struct dllist_head *p;
@@ -1095,7 +1095,7 @@ int volent::Enter(int mode, uid_t uid)
     vproc *vp = VprocSelf();
 
     reintvol *rv = (reintvol *)this;
-    if (VCBEnabled && (IsReplicated() || IsNonReplicated()) && IsReachable() &&
+    if (VCBEnabled && IsReadWrite() && IsReachable() &&
         rv->WantCallBack()) {
         if ((!rv->HaveStamp() && vp->type == VPT_HDBDaemon) ||
             (rv->HaveStamp() &&
