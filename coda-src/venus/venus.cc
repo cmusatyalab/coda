@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -700,6 +700,10 @@ static void ParseCmdline(int argc, char **argv)
                 nofork = true;
             } else if (STREQ(argv[i], "-wfmax")) {
                 i++, WholeFileMaxSize = ParseSizeWithUnits(argv[i]);
+            } else if (STREQ(argv[i], "-wfmin")) {
+                i++, WholeFileMinSize = ParseSizeWithUnits(argv[i]);
+            } else if (STREQ(argv[i], "-wfstall")) {
+                i++, WholeFileMaxStall = ParseSizeWithUnits(argv[i]);
             } else if (STREQ(argv[i], "-ccbs")) {
                 i++, ParseCacheChunkBlockSize(argv[i]);
             } else {
@@ -741,6 +745,7 @@ static void DefaultCmdlineParms()
     const char *CacheSize              = NULL;
     const char *TmpCacheChunkBlockSize = NULL;
     const char *TmpWFMax               = NULL;
+    const char *TmpWFMin               = NULL;
 
     /* Load the "venus.conf" configuration file */
     codaconf_init("venus.conf");
@@ -782,6 +787,13 @@ static void DefaultCmdlineParms()
         CODACONF_STR(TmpWFMax, "wholefilemaxsize", "50MB");
         WholeFileMaxSize = ParseSizeWithUnits(TmpWFMax);
     }
+
+    if (!WholeFileMinSize) {
+        CODACONF_STR(TmpWFMin, "wholefileminsize", "4MB");
+        WholeFileMinSize = ParseSizeWithUnits(TmpWFMin);
+    }
+
+    CODACONF_INT(WholeFileMaxStall, "wholefilemaxstall", "10");
 
     CODACONF_STR(CacheDir, "cachedir", DFLT_CD);
     CODACONF_STR(SpoolDir, "checkpointdir", "/usr/coda/spool");

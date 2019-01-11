@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -726,6 +726,8 @@ public:
 
 extern unsigned int CacheFiles;
 extern uint64_t WholeFileMaxSize;
+extern uint64_t WholeFileMinSize;
+extern uint64_t WholeFileMaxStall;
 extern int FSO_SWT;
 extern int FSO_MWT;
 extern int FSO_SSF;

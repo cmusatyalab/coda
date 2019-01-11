@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -62,11 +62,13 @@ extern "C" {
 #include "vproc.h"
 #include "worker.h"
 
-unsigned int CacheFiles   = 0;
-uint64_t WholeFileMaxSize = 0;
-int FSO_SWT               = UNSET_SWT;
-int FSO_MWT               = UNSET_MWT;
-int FSO_SSF               = UNSET_SSF;
+unsigned int CacheFiles    = 0;
+uint64_t WholeFileMaxSize  = 0;
+uint64_t WholeFileMinSize  = 0;
+uint64_t WholeFileMaxStall = 0;
+int FSO_SWT                = UNSET_SWT;
+int FSO_MWT                = UNSET_MWT;
+int FSO_SSF                = UNSET_SSF;
 
 /* Call with CacheDir the current directory. */
 void FSOInit()

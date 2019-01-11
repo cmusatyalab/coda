@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -2548,21 +2548,23 @@ void fsobj::CacheReport(int fd, int level)
 
 void fsobj::UpdateVastroFlag(uid_t uid)
 {
-    int ph_ix             = 0;
-    struct in_addr *phost = NULL;
-    srvent *s             = NULL;
-    mgrpent *m            = NULL;
-    connent *c            = NULL;
-    int code              = 0;
-    repvol *rv            = NULL;
-    volrep *vr            = NULL;
+    int ph_ix                = 0;
+    struct in_addr *phost    = NULL;
+    srvent *s                = NULL;
+    mgrpent *m               = NULL;
+    connent *c               = NULL;
+    int code                 = 0;
+    repvol *rv               = NULL;
+    volrep *vr               = NULL;
+    unsigned long bw         = INIT_BW;
+    unsigned long stall_time = 0;
 
     if (GetKernelModuleVersion() < 5) {
         flags.vastro = 0x0;
         return;
     }
 
-    /* Limit the VASTRO flagging to first opener only*/
+    /* Limit the VASTRO flagging to first opener only */
     if (openers > 0) {
         return;
     }
@@ -2580,6 +2582,12 @@ void fsobj::UpdateVastroFlag(uid_t uid)
 
     if (!REACHABLE(this)) {
         LOG(0, ("fsobj::UpdateVastroFlag: %s is unreachable\n", GetComp()));
+        return;
+    }
+
+    /* With size below WholeFileMinSize it's never treated as a VASTRO */
+    if (Size() <= (WholeFileMinSize * 1024)) {
+        flags.vastro = 0x0;
         return;
     }
 
@@ -2619,7 +2627,23 @@ void fsobj::UpdateVastroFlag(uid_t uid)
         }
     }
 
-    flags.vastro = Size() >= (WholeFileMaxSize * 1024) ? 0x1 : 0x0;
+    if (Size() >= (WholeFileMaxSize * 1024)) {
+        flags.vastro = 0x1;
+        goto PutAll;
+    }
+
+    /* Calculate the expected stall time and flag as VASTRO if exceeds 
+     * WholeFileMaxStall */
+    code = s->GetBandwidth(&bw);
+    if (code != 0)
+        goto PutAll;
+    /* If Bandwidth couldn't be obtained assume a slow connection 
+     * (1B/s) (worse case) */
+    if (INIT_BW == bw) {
+        bw = 1;
+    }
+    stall_time   = Size() / bw;
+    flags.vastro = stall_time > WholeFileMaxStall ? 0x1 : 0x0;
 
 PutAll:
     if (s)

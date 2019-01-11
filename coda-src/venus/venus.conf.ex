@@ -326,3 +326,24 @@ mapprivate=1
 # the UNIX or TCP port that is configured as the mariner port.
 #
 #plan9server=0
+
+
+#
+# Size of files above which it's partial-cached, regardless of bandwidth.
+# The default value is 50MB.
+#
+#wholefilemaxsize=50MB
+
+#
+# Size of files below which it's NEVER partial-cached, regardless of 
+# bandwidth. The default value is 4MB.
+#
+#wholefileminsize=4MB
+
+# 
+# If the file's size is between wholefileminsize and wholefilemaxsize then
+# wholefilemaxstall is the maximum time to wait for whole file fetch in 
+# seconds. This quantity depends on the bandwidth between the client and the 
+# server hosting the corresponding file. The default value is 10 seconds.
+#
+wholefilemaxstall=10
