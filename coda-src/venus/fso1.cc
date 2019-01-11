@@ -2627,7 +2627,14 @@ void fsobj::UpdateVastroFlag(uid_t uid)
         }
     }
 
+    /* With size above WholeFileMaxSize it's always treated as a VASTRO */
     if (Size() >= (WholeFileMaxSize * 1024)) {
+        flags.vastro = 0x1;
+        goto PutAll;
+    }
+
+    /* If not enough space left treat it as VASTRO */
+    if (Size() > (unsigned long)FSDB->FreeBlockCount() * 1024) {
         flags.vastro = 0x1;
         goto PutAll;
     }
