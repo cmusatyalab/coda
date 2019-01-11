@@ -37,7 +37,6 @@ Pittsburgh, PA.
 
 */
 
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -47,52 +46,51 @@ Pittsburgh, PA.
 #include "lwp.private.h"
 
 /* null out a lock */
-void Lock_Init(register struct Lock *lock)
+void Lock_Init(struct Lock *lock)
 {
-	lock -> readers_reading = 0;
-	lock -> excl_locked = 0;
-	lock -> wait_states = 0;
-	lock -> num_waiting = 0;
-	lock -> excl_locker = NULL;
+    lock->readers_reading = 0;
+    lock->excl_locked     = 0;
+    lock->wait_states     = 0;
+    lock->num_waiting     = 0;
+    lock->excl_locker     = NULL;
 }
 
-void Lock_Obtain(register struct Lock *lock, int how)
+void Lock_Obtain(struct Lock *lock, int how)
 {
-	PROCESS me = LWP_ThisProcess();
+    PROCESS me = LWP_ThisProcess();
 
-	switch (how) {
-	case READ_LOCK:
-		lock->num_waiting++;
-		do {
-			lock -> wait_states |= READ_LOCK;
-			LWP_WaitProcess(&lock->readers_reading);
-		} while ((lock->excl_locker != me) && 
-			 (lock->excl_locked & WRITE_LOCK));
-		lock->num_waiting--;
-		lock->readers_reading++;
-		break;
+    switch (how) {
+    case READ_LOCK:
+        lock->num_waiting++;
+        do {
+            lock->wait_states |= READ_LOCK;
+            LWP_WaitProcess(&lock->readers_reading);
+        } while ((lock->excl_locker != me) && (lock->excl_locked & WRITE_LOCK));
+        lock->num_waiting--;
+        lock->readers_reading++;
+        break;
 
-	case WRITE_LOCK:
-		lock->num_waiting++;
-		do {
-			lock -> wait_states |= WRITE_LOCK;
-			LWP_WaitProcess(&lock->excl_locked);
-		} while ( (lock->excl_locked  && lock->excl_locker != me)
-			  || lock->readers_reading);
-		lock->num_waiting--;
-		lock->excl_locked = WRITE_LOCK;
-		lock->excl_locker = me;
-		break;
+    case WRITE_LOCK:
+        lock->num_waiting++;
+        do {
+            lock->wait_states |= WRITE_LOCK;
+            LWP_WaitProcess(&lock->excl_locked);
+        } while ((lock->excl_locked && lock->excl_locker != me) ||
+                 lock->readers_reading);
+        lock->num_waiting--;
+        lock->excl_locked = WRITE_LOCK;
+        lock->excl_locker = me;
+        break;
 
-	case SHARED_LOCK:	
-		lock->num_waiting++;
-		do {
-			lock->wait_states |= SHARED_LOCK;
-			LWP_WaitProcess(&lock->excl_locked);
-		} while (lock->excl_locked);
-		lock->num_waiting--;
-		lock->excl_locked = SHARED_LOCK;
-		break;
+    case SHARED_LOCK:
+        lock->num_waiting++;
+        do {
+            lock->wait_states |= SHARED_LOCK;
+            LWP_WaitProcess(&lock->excl_locked);
+        } while (lock->excl_locked);
+        lock->num_waiting--;
+        lock->excl_locked = SHARED_LOCK;
+        break;
 
 #if 0
 	case BOOSTED_LOCK:	
@@ -107,198 +105,200 @@ void Lock_Obtain(register struct Lock *lock, int how)
 		break;
 #endif
 
-	default:
-		fprintf(stderr, "Can't happen, bad LOCK type: %d\n", how);
-		abort();
-	}
+    default:
+        fprintf(stderr, "Can't happen, bad LOCK type: %d\n", how);
+        abort();
+    }
 }
 
-void ObtainDualLock(struct Lock *lock_1, enum lock_how how_1, struct Lock *lock_2, enum lock_how how_2)
+void ObtainDualLock(struct Lock *lock_1, enum lock_how how_1,
+                    struct Lock *lock_2, enum lock_how how_2)
 {
     struct Lock *lock_lower = lock_1;
     struct Lock *lock_upper = lock_2;
     enum lock_how how_lower = how_1;
     enum lock_how how_upper = how_2;
 
-	if (((unsigned long) lock_1) > ((unsigned long) lock_2)) {
+    if (((unsigned long)lock_1) > ((unsigned long)lock_2)) {
         lock_lower = lock_2;
         lock_upper = lock_1;
-        how_lower = how_2;
-        how_upper = how_1;
+        how_lower  = how_2;
+        how_upper  = how_1;
     }
 
     switch (how_lower) {
-        case READ_LOCK:
-            ObtainReadLock(lock_lower);
-            break;
-        case WRITE_LOCK:
-            ObtainWriteLock(lock_lower);
-            break;
-        case SHARED_LOCK:
-            ObtainSharedLock(lock_lower);
-            break;
-        default:
-            break;
+    case READ_LOCK:
+        ObtainReadLock(lock_lower);
+        break;
+    case WRITE_LOCK:
+        ObtainWriteLock(lock_lower);
+        break;
+    case SHARED_LOCK:
+        ObtainSharedLock(lock_lower);
+        break;
+    default:
+        break;
     }
 
     switch (how_upper) {
-        case READ_LOCK:
-            ObtainReadLock(lock_upper);
-            break;
-        case WRITE_LOCK:
-            ObtainWriteLock(lock_upper);
-            break;
-        case SHARED_LOCK:
-            ObtainSharedLock(lock_upper);
-            break;
-        default:
-            break;
+    case READ_LOCK:
+        ObtainReadLock(lock_upper);
+        break;
+    case WRITE_LOCK:
+        ObtainWriteLock(lock_upper);
+        break;
+    case SHARED_LOCK:
+        ObtainSharedLock(lock_upper);
+        break;
+    default:
+        break;
     }
 }
 
-void ReleaseDualLock(struct Lock *lock_1, enum lock_how how_1, struct Lock *lock_2, enum lock_how how_2) {
+void ReleaseDualLock(struct Lock *lock_1, enum lock_how how_1,
+                     struct Lock *lock_2, enum lock_how how_2)
+{
     switch (how_1) {
-        case READ_LOCK:
-            ReleaseReadLock(lock_1);
-            break;
-        case WRITE_LOCK:
-            ReleaseWriteLock(lock_1);
-            break;
-        case SHARED_LOCK:
-            ReleaseSharedLock(lock_1);
-            break;
-        default:
-            break;
+    case READ_LOCK:
+        ReleaseReadLock(lock_1);
+        break;
+    case WRITE_LOCK:
+        ReleaseWriteLock(lock_1);
+        break;
+    case SHARED_LOCK:
+        ReleaseSharedLock(lock_1);
+        break;
+    default:
+        break;
     }
 
     switch (how_2) {
-        case READ_LOCK:
-            ReleaseReadLock(lock_2);
-            break;
-        case WRITE_LOCK:
-            ReleaseWriteLock(lock_2);
-            break;
-        case SHARED_LOCK:
-            ReleaseSharedLock(lock_2);
-            break;
-        default:
-            break;
+    case READ_LOCK:
+        ReleaseReadLock(lock_2);
+        break;
+    case WRITE_LOCK:
+        ReleaseWriteLock(lock_2);
+        break;
+    case SHARED_LOCK:
+        ReleaseSharedLock(lock_2);
+        break;
+    default:
+        break;
     }
 }
 
 /* release a lock, giving preference to new readers */
-void Lock_ReleaseR(register struct Lock *lock)
+void Lock_ReleaseR(struct Lock *lock)
 {
-	PROCESS me = LWP_ThisProcess();
+    PROCESS me = LWP_ThisProcess();
 
-	if (lock->excl_locked & WRITE_LOCK) {
-		assert(lock->excl_locker == me);
-		lock->excl_locker = NULL;
-	}
+    if (lock->excl_locked & WRITE_LOCK) {
+        assert(lock->excl_locker == me);
+        lock->excl_locker = NULL;
+    }
 
-	if (lock->wait_states & READ_LOCK) {
-		lock->wait_states &= ~READ_LOCK;
-		LWP_NoYieldSignal(&lock->readers_reading);
-	} else {
-		lock->wait_states &= ~EXCL_LOCKS;
-		LWP_NoYieldSignal(&lock->excl_locked);
-	}
+    if (lock->wait_states & READ_LOCK) {
+        lock->wait_states &= ~READ_LOCK;
+        LWP_NoYieldSignal(&lock->readers_reading);
+    } else {
+        lock->wait_states &= ~EXCL_LOCKS;
+        LWP_NoYieldSignal(&lock->excl_locked);
+    }
 }
 
 /* release a lock, giving preference to new writers */
-void Lock_ReleaseW(register struct Lock *lock)
+void Lock_ReleaseW(struct Lock *lock)
 {
-	PROCESS me = LWP_ThisProcess();
+    PROCESS me = LWP_ThisProcess();
 
-	if (lock->excl_locked & WRITE_LOCK) {
-		assert(lock->excl_locker == me);
-		lock->excl_locker = NULL;
-	}
+    if (lock->excl_locked & WRITE_LOCK) {
+        assert(lock->excl_locker == me);
+        lock->excl_locker = NULL;
+    }
 
-	if (lock->wait_states & EXCL_LOCKS) {
-		lock->wait_states &= ~EXCL_LOCKS;
-		LWP_NoYieldSignal(&lock->excl_locked);
-	} else {
-		lock->wait_states &= ~READ_LOCK;
-		LWP_NoYieldSignal(&lock->readers_reading);
-	}
+    if (lock->wait_states & EXCL_LOCKS) {
+        lock->wait_states &= ~EXCL_LOCKS;
+        LWP_NoYieldSignal(&lock->excl_locked);
+    } else {
+        lock->wait_states &= ~READ_LOCK;
+        LWP_NoYieldSignal(&lock->readers_reading);
+    }
 }
-
 
 /*  Previously these were macros. You can't stop a debugger on a macro, 
     so I changed them to inline functions.
 */
 
-void  ObtainReadLock(struct Lock *lock)
+void ObtainReadLock(struct Lock *lock)
 {
-	PROCESS me = LWP_ThisProcess();
+    PROCESS me = LWP_ThisProcess();
 
-	if (!(lock->excl_locked & WRITE_LOCK) && !(lock)->wait_states) {
-		lock->readers_reading++;
-		return;
-	}
-	if ( (lock->excl_locked & WRITE_LOCK) && lock->excl_locker == me) {
-		lock->readers_reading++;
-		return;
-	} else
-		Lock_Obtain(lock, READ_LOCK);
+    if (!(lock->excl_locked & WRITE_LOCK) && !(lock)->wait_states) {
+        lock->readers_reading++;
+        return;
+    }
+    if ((lock->excl_locked & WRITE_LOCK) && lock->excl_locker == me) {
+        lock->readers_reading++;
+        return;
+    } else
+        Lock_Obtain(lock, READ_LOCK);
 }
 
-void  ObtainWriteLock(struct Lock *lock)
+void ObtainWriteLock(struct Lock *lock)
 {
-	PROCESS me = LWP_ThisProcess();
+    PROCESS me = LWP_ThisProcess();
 
-	if (!(lock)->excl_locked && !(lock)->readers_reading) {
-		lock->excl_locked = WRITE_LOCK;
-		lock->excl_locker = me;
-		return;
-	} 
-	if ( (lock->excl_locked & WRITE_LOCK)  && lock->excl_locker == me)
-		return; 
-	Lock_Obtain(lock, WRITE_LOCK);
-	return;
+    if (!(lock)->excl_locked && !(lock)->readers_reading) {
+        lock->excl_locked = WRITE_LOCK;
+        lock->excl_locker = me;
+        return;
+    }
+    if ((lock->excl_locked & WRITE_LOCK) && lock->excl_locker == me)
+        return;
+    Lock_Obtain(lock, WRITE_LOCK);
+    return;
 }
 
-void  ObtainSharedLock(struct Lock *lock)
+void ObtainSharedLock(struct Lock *lock)
 {
     if (!(lock)->excl_locked && !(lock)->wait_states)
-	    (lock) -> excl_locked = SHARED_LOCK;
+        (lock)->excl_locked = SHARED_LOCK;
     else
-	    Lock_Obtain(lock, SHARED_LOCK);
+        Lock_Obtain(lock, SHARED_LOCK);
 }
 
-void  ReleaseReadLock(struct Lock *lock)
+void ReleaseReadLock(struct Lock *lock)
 {
     if (!--(lock)->readers_reading && (lock)->wait_states)
-	Lock_ReleaseW(lock) ; 
+        Lock_ReleaseW(lock);
 }
 
-void  ReleaseWriteLock(struct Lock *lock)
+void ReleaseWriteLock(struct Lock *lock)
 {
-	if ((lock)->wait_states) 
-		Lock_ReleaseR(lock);
-	(lock)->excl_locked &= ~WRITE_LOCK;
+    if ((lock)->wait_states)
+        Lock_ReleaseR(lock);
+    (lock)->excl_locked &= ~WRITE_LOCK;
 }
 
 /* can be used on shared or boosted (write) locks */
-void  ReleaseSharedLock(struct Lock *lock)
+void ReleaseSharedLock(struct Lock *lock)
 {
-	if ((lock)->wait_states) 
-		Lock_ReleaseR(lock);
-	(lock)->excl_locked &= ~(SHARED_LOCK | WRITE_LOCK);
+    if ((lock)->wait_states)
+        Lock_ReleaseR(lock);
+    (lock)->excl_locked &= ~(SHARED_LOCK | WRITE_LOCK);
 }
 
-int  CheckLock(struct Lock *lock)
+int CheckLock(struct Lock *lock)
 {
-	if ((lock)->excl_locked)
-		return -1;
-	else
-		return (lock)->readers_reading;
+    if ((lock)->excl_locked)
+        return -1;
+    else
+        return (lock)->readers_reading;
 }
 
-int  WriteLocked(struct Lock *lock)
+int WriteLocked(struct Lock *lock)
 {
-	return ((lock)->excl_locked != 0);
+    return ((lock)->excl_locked != 0);
 }
 
 #if 0

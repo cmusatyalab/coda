@@ -27,17 +27,18 @@ Coda are listed in the file CREDITS.
 #include <stddef.h>
 
 #if defined(CODA_OFFSETOF_OFFSETOF)
-#define coda_offsetof(type,member) offsetof(type,member)
+#define coda_offsetof(type, member) offsetof(type, member)
 
 #elif defined(CODA_OFFSETOF_PTR_TO_MEMBER)
-#define coda_offsetof(type,member) ((size_t)(&type::member))
+#define coda_offsetof(type, member) ((size_t)(&type::member))
 
 #elif defined(CODA_OFFSETOF_REINTERPRET_CAST)
-#define coda_offsetof(type,member) ((size_t)(&(reinterpret_cast<type*>(__alignof__(type*)))->member)-__alignof__(type*))
+#define coda_offsetof(type, member)                                       \
+    ((size_t)(&(reinterpret_cast<type *>(__alignof__(type *)))->member) - \
+     __alignof__(type *))
 
 #else /* default should work most of the time but might get compile warnings */
-#define coda_offsetof(type,member) offsetof(type,member)
+#define coda_offsetof(type, member) offsetof(type, member)
 #endif
 
 #endif /* _CODA_OFFSETOF_H_ */
-

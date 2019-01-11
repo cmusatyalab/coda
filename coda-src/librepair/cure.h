@@ -20,8 +20,8 @@ listed in the file CREDITS.
 
 /* routines included in other files */
 int ObjExists(resreplica *dir, VnodeId vnode, Unique_t unique);
-int RepairRename (int , resreplica *, resdir_entry **, int, listhdr **,
-		  VolumeId, char *realm);
-int RepairSubsetCreate (int , resreplica *, resdir_entry **, int , listhdr **,
-			VolumeId);
-int RepairSubsetRemove (int, resreplica *, resdir_entry **, int , listhdr **);
+int RepairRename(int, resreplica *, resdir_entry **, int, listhdr **, VolumeId,
+                 char *realm);
+int RepairSubsetCreate(int, resreplica *, resdir_entry **, int, listhdr **,
+                       VolumeId);
+int RepairSubsetRemove(int, resreplica *, resdir_entry **, int, listhdr **);

@@ -26,14 +26,14 @@ listed in the file CREDITS.
 #include <dllist.h>
 
 /* bytes per page */
-#define DIR_PAGESIZE 2048	
+#define DIR_PAGESIZE 2048
 
 /* maximum pages of a directory */
-#define DIR_MAXPAGES  128
+#define DIR_MAXPAGES 128
 
 /* where is directory data */
 #define DIR_DATA_IN_RVM 1
-#define DIR_DATA_IN_VM  0
+#define DIR_DATA_IN_VM 0
 
 typedef struct DirEntry *PDirEntry;
 typedef struct DirFid *PDirFid;
@@ -41,11 +41,10 @@ typedef struct DirHeader *PDirHeader;
 typedef struct DirHandle *PDirHandle;
 typedef struct DCEntry *PDCEntry;
 
-
 struct DirHandle {
-	Lock              dh_lock;
-	PDirHeader        dh_data;
-	int               dh_dirty;  /* used by server only */
+    Lock dh_lock;
+    PDirHeader dh_data;
+    int dh_dirty; /* used by server only */
 };
 
 #if 0 /* moved to vcrcommon.rpc2 */
@@ -58,20 +57,19 @@ struct DirFid {
 
 /* File identifier in network order */
 struct DirNFid {
-	int dnf_vnode;	/* file's vnode slot */
-	int dnf_unique;	/* the slot incarnation number */
+    int dnf_vnode; /* file's vnode slot */
+    int dnf_unique; /* the slot incarnation number */
 };
 
 /* A directory entry */
-struct DirEntry    {
+struct DirEntry {
     char flag;
-    char length;	/* currently unused */
+    char length; /* currently unused */
     short next;
     struct DirNFid fid;
-    char name[16];   /* 16 is deceiving; actual name[] arrays
+    char name[16]; /* 16 is deceiving; actual name[] arrays
 			have extra blobs appended to make name[]
 			as long as needed  (Satya, May 04) */
-			
 };
 
 int DIR_Init(int data_loc);
@@ -91,8 +89,9 @@ int DH_Length(PDirHandle dh);
 int DH_Convert(PDirHandle dh, char *file, VolumeId vol, RealmId realm);
 int DH_Create(PDirHandle dh, const char *entry, struct ViceFid *vfid);
 int DH_IsEmpty(PDirHandle dh);
-int DH_Lookup(PDirHandle dh, const char *entry, struct ViceFid *vfid,int flags);
-char * DH_FindName(PDirHandle dh, struct DirFid *fid, char *name, int len);
+int DH_Lookup(PDirHandle dh, const char *entry, struct ViceFid *vfid,
+              int flags);
+char *DH_FindName(PDirHandle dh, struct DirFid *fid, char *name, int len);
 int DH_LookupByFid(PDirHandle dh, char *entry, struct ViceFid *vfid);
 int DH_Delete(PDirHandle dh, const char *entry);
 int DH_DirOK(PDirHandle dh);
@@ -100,7 +99,9 @@ void DH_Free(PDirHandle dh, int in_rvm);
 void DH_Print(PDirHandle dh, FILE *f);
 void DH_PrintStats(FILE *fp);
 int DH_MakeDir(PDirHandle dh, struct ViceFid *vme, struct ViceFid *vparent);
-int DH_EnumerateDir(PDirHandle dh, int (*hookproc)(struct DirEntry *de, void *hook), void *hook);
+int DH_EnumerateDir(PDirHandle dh,
+                    int (*hookproc)(struct DirEntry *de, void *hook),
+                    void *hook);
 int DH_Commit(PDirHandle dh);
 void DH_Get(PDirHandle, PDirHeader);
 void DH_Put(PDirHandle);
@@ -108,39 +109,35 @@ void DH_Init(PDirHandle dh);
 
 /* fid support */
 
-#define	ISDIR(fid)  ((fid).Vnode & 1)	     /* Directory fids are odd */
+#define ISDIR(fid) ((fid).Vnode & 1) /* Directory fids are odd */
 
-#define FID_LT(a, b)\
-    /* Assumes that ((a).Volume == (b).Volume)! */\
-    ((((a).Vnode) < ((b).Vnode)) || ((a).Vnode == (b).Vnode && ((a).Unique) < ((b).Unique)))
+#define FID_LT(a, b)                               \
+    /* Assumes that ((a).Volume == (b).Volume)! */ \
+    ((((a).Vnode) < ((b).Vnode)) ||                \
+     ((a).Vnode == (b).Vnode && ((a).Unique) < ((b).Unique)))
 
-#define FID_LTE(a, b)\
-    /* Assumes that ((a).Volume == (b).Volume)! */\
-    ((((a).Vnode) < ((b).Vnode)) || ((a).Vnode == (b).Vnode && ((a).Unique) <= ((b).Unique)))
-
+#define FID_LTE(a, b)                              \
+    /* Assumes that ((a).Volume == (b).Volume)! */ \
+    ((((a).Vnode) < ((b).Vnode)) ||                \
+     ((a).Vnode == (b).Vnode && ((a).Unique) <= ((b).Unique)))
 
 /* local fid and local volume related stuff */
 int FID_IsVolRoot(const struct ViceFid *fid);
 void FID_MakeRoot(struct ViceFid *fid);
 
-
-
 /* check if this is a local directory or file */
 int FID_IsDisco(const struct ViceFid *x);
 int FID_IsLocalDir(const struct ViceFid *fid);
 int FID_IsLocalFile(const struct ViceFid *fid);
-void FID_MakeDiscoFile(struct ViceFid *fid, VolumeId vid, 
-			      Unique_t unique);
-void FID_MakeDiscoDir(struct ViceFid *fid, VolumeId vid,
-			     Unique_t unique);
+void FID_MakeDiscoFile(struct ViceFid *fid, VolumeId vid, Unique_t unique);
+void FID_MakeDiscoDir(struct ViceFid *fid, VolumeId vid, Unique_t unique);
 
 /* directory vnode number for dangling links during conflicts - 
    two versions, one for the remote copy one for the local oopy*/
 
 /* make the root of a repair subtree residing on the server */
 int FID_IsFakeRoot(struct ViceFid *fid);
-void FID_MakeSubtreeRoot(struct ViceFid *fid, VolumeId vid, 
-				Unique_t unique);
+void FID_MakeSubtreeRoot(struct ViceFid *fid, VolumeId vid, Unique_t unique);
 /* fill fids residing in the local tree */
 void FID_MakeLocalDir(struct ViceFid *fid, Unique_t unique);
 void FID_MakeLocalFile(struct ViceFid *fid, Unique_t unique);
@@ -164,18 +161,17 @@ char *FID_(const struct ViceFid *fid);
 
 /* extern definitions for dirbody.c */
 int DIR_init(int);
-int DIR_Compare (PDirHeader, PDirHeader);
+int DIR_Compare(PDirHeader, PDirHeader);
 int DIR_Length(PDirHeader);
 void DIR_Print(PDirHeader, FILE *f);
-#define DIR_intrans()  DIR_check_trans(__FUNCTION__, __FILE__)
+#define DIR_intrans() DIR_check_trans(__FUNCTION__, __FILE__)
 void DIR_check_trans(const char *where, const char *file);
 struct PageHeader *DIR_Page(struct DirHeader *dirh, int page);
 
-
 /* Directory Inode interface */
 struct DirInode {
-	void *di_pages[DIR_MAXPAGES];
-	int  di_refcount;             /* for copy on write */
+    void *di_pages[DIR_MAXPAGES];
+    int di_refcount; /* for copy on write */
 };
 typedef struct DirInode *PDirInode;
 
@@ -199,7 +195,7 @@ PDirInode DC_DC2DI(PDCEntry pdce);
 int DC_Refcount(PDCEntry);
 void DC_Put(PDCEntry);
 void DC_Drop(PDCEntry);
-int DC_Count(PDCEntry pdce) ;
+int DC_Count(PDCEntry pdce);
 void DC_SetDirh(PDCEntry pdce, PDirHeader pdh);
 PDirInode DC_Cowpdi(PDCEntry);
 void DC_SetCowpdi(PDCEntry, PDirInode);
@@ -211,6 +207,5 @@ PDirHandle DC_DC2DH(PDCEntry);
 PDCEntry DC_DH2DC(PDirHandle pdh);
 void DC_Rehash(PDCEntry);
 void DC_HashInit();
-
 
 #endif /* _DIR_H_ */

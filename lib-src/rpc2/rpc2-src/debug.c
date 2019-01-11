@@ -38,15 +38,15 @@ Pittsburgh, PA.
 */
 
 #ifdef RPC2DEBUG
-#include "rpc2.private.h"
-#include "trace.h"
-#include <assert.h>
-#include <rpc2/se.h>
 #include <stdio.h>
+#include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/time.h>
-#include <sys/types.h>
 #include <time.h>
+#include <assert.h>
+#include "rpc2.private.h"
+#include <rpc2/se.h>
+#include "trace.h"
 
 #ifndef INET_ADDRSTRLEN
 #define INET_ADDRSTRLEN 16

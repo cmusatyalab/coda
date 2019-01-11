@@ -28,20 +28,19 @@ Coda are listed in the file CREDITS.
  */
 
 struct dllist_head {
-	struct dllist_head *next, *prev;
+    struct dllist_head *next, *prev;
 };
 
-#define INIT_LIST_HEAD(name) \
-    struct dllist_head name = { &name, &name }
+#define INIT_LIST_HEAD(name) struct dllist_head name = { &name, &name }
 
 #define list_entry(ptr, type, member) \
-	((type *)((char *)(ptr)-offsetof(type, member)))
+    ((type *)((char *)(ptr)-offsetof(type, member)))
 
 #define list_entry_plusplus(ptr, type, member) \
-	((type *)((char *)(ptr)-coda_offsetof(type, member)))
+    ((type *)((char *)(ptr)-coda_offsetof(type, member)))
 
 #define list_for_each(ptr, head) \
-        for (ptr = (head).next; ptr != &(head); ptr = ptr->next)
+    for (ptr = (head).next; ptr != &(head); ptr = ptr->next)
 
 #ifdef __cplusplus
 extern "C" {
@@ -57,4 +56,3 @@ void list_head_init(struct dllist_head *ptr);
 #endif
 
 #endif /* _DLLIST_H_ */
-

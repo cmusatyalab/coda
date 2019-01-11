@@ -1,26 +1,26 @@
 /* BLURB lgpl
 
-                           Coda File System
-                              Release 5
+	                   Coda File System
+	                      Release 5
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
-                  Additional copyrights listed below
+	  Copyright (c) 1987-1999 Carnegie Mellon University
+	          Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
 the  terms of the  GNU  Library General Public Licence  Version 2,  as
 shown in the file LICENSE. The technical and financial contributors to
 Coda are listed in the file CREDITS.
 
-                        Additional copyrights
+	                Additional copyrights
 
 #*/
 
 /*
-                         IBM COPYRIGHT NOTICE
+	                 IBM COPYRIGHT NOTICE
 
-                          Copyright (C) 1986
-             International Business Machines Corporation
-                         All Rights Reserved
+	                  Copyright (C) 1986
+	     International Business Machines Corporation
+	                 All Rights Reserved
 
 This  file  contains  some  code identical to or derived from the 1986
 version of the Andrew File System ("AFS"), which is owned by  the  IBM
@@ -49,19 +49,19 @@ Pittsburgh, PA.
   or by rpc2_MSendPacketsReliably() on client-initiated timeout.
 */
 
-#include "rpc2.private.h"
-#include "trace.h"
-#include <assert.h>
-#include <netinet/in.h>
-#include <rpc2/se.h>
-#include <rpc2/secure.h>
 #include <stdio.h>
-#include <string.h>
-#include <sys/ioctl.h>
-#include <sys/socket.h>
-#include <sys/time.h>
-#include <sys/types.h>
 #include <unistd.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/ioctl.h>
+#include <netinet/in.h>
+#include <sys/time.h>
+#include <assert.h>
+#include "rpc2.private.h"
+#include <rpc2/secure.h>
+#include <rpc2/se.h>
+#include "trace.h"
 
 void rpc2_IncrementSeqNumber();
 static void DelayedAck(struct SL_Entry *sle);
@@ -83,18 +83,18 @@ static void DecodePacket(), HandleCurrentReply(), SendBusy(), HandleBusy(),
 
 static void SendNak(RPC2_PacketBuffer *pb);
 
-#define BOGUS(p, msg)                                                          \
-    do { /* bogus packet; throw it away */                                     \
-        say(9, RPC2_DebugLevel, (msg));                                        \
-        rpc2_Recvd.Bogus++;                                                    \
-        RPC2_FreeBuffer(&p);                                                   \
+#define BOGUS(p, msg)                      \
+    do { /* bogus packet; throw it away */ \
+        say(9, RPC2_DebugLevel, (msg));    \
+        rpc2_Recvd.Bogus++;                \
+        RPC2_FreeBuffer(&p);               \
     } while (0)
 
-#define NAKIT(p)                                                               \
-    do { /* bogus packet; NAK it and then throw it away */                     \
-        rpc2_Recvd.Bogus++;                                                    \
-        SendNak(p);                                                            \
-        RPC2_FreeBuffer(&p);                                                   \
+#define NAKIT(p)                                           \
+    do { /* bogus packet; NAK it and then throw it away */ \
+        rpc2_Recvd.Bogus++;                                \
+        SendNak(p);                                        \
+        RPC2_FreeBuffer(&p);                               \
     } while (0)
 
 /* Multiple transports can register a handler with the rpc2 socketlistener
@@ -150,9 +150,9 @@ int rpc2_MorePackets(void)
 {
     struct timeval tv = { 0, 0 };
 
-/* This ioctl peeks into the socket's receive queue, and reports the amount
- * of data ready to be read. Linux officially uses TIOCINQ, but it's an
- * alias for FIONREAD, so this should work too. --JH */
+    /* This ioctl peeks into the socket's receive queue, and reports the amount
+     * of data ready to be read. Linux officially uses TIOCINQ, but it's an
+     * alias for FIONREAD, so this should work too. --JH */
 #if defined(FIONREAD)
     int amount_ready = 0, rc, select_poll = 0;
 
@@ -1081,8 +1081,8 @@ static struct CEntry *MakeConn(struct RPC2_PacketBuffer *pb)
 
     ib1 = (struct Init1Body *)(pb->Body);
 
-#define INIT1LENGTH                                                            \
-    (sizeof(struct RPC2_PacketHeader) + sizeof(struct Init1Body) -             \
+#define INIT1LENGTH                                                \
+    (sizeof(struct RPC2_PacketHeader) + sizeof(struct Init1Body) - \
      sizeof(ib1->Text))
 
     if (pb->Prefix.LengthOfPacket < INIT1LENGTH ||

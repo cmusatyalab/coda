@@ -56,14 +56,14 @@ returnto(struct lwp_context *savearea);
     and return to the restored C frame.
 */
 
-static struct lwp_context {	/* saved context for dispatcher */
-    void *topstack;	/* ptr to top of process stack */
-    void *returnadd;	/* return address ? */
-    void *ccr;		/* Condition code register */
+static struct lwp_context { /* saved context for dispatcher */
+    void *topstack; /* ptr to top of process stack */
+    void *returnadd; /* return address ? */
+    void *ccr; /* Condition code register */
 } parent;
 
-int savecontext (void (*f)(int), struct lwp_context *ctx, char *stack);
-int returnto (struct lwp_context *ctx);
+int savecontext(void (*f)(int), struct lwp_context *ctx, char *stack);
+int returnto(struct lwp_context *ctx);
 #endif
 
 /* make stacks 16-byte aligned and leave space for silly LinuxPPC lunkage, or
@@ -79,19 +79,19 @@ static void *child_arg;
 static void _thread(int sig)
 {
     struct lwp_ucontext *this = child;
-    void (*func)(void *) = child_func;
-    void *arg = child_arg;
+    void (*func)(void *)      = child_func;
+    void *arg                 = child_arg;
 
     /* indicate that we copied all arguments from global state */
     child = NULL;
 
     if (SETJMP(this->uc_mcontext, 0) == 0)
-	returnto(&parent);
+        returnto(&parent);
 
     func(arg);
 
     if (this->uc_link)
-	lwp_setcontext(this->uc_link);
+        lwp_setcontext(this->uc_link);
 
     /* this 'thread' now exits. But we don't know which other context we
      * should jump to... */
@@ -107,7 +107,7 @@ int lwp_setcontext(const struct lwp_ucontext *ucp)
 int lwp_swapcontext(struct lwp_ucontext *oucp, const struct lwp_ucontext *ucp)
 {
     if (SETJMP(oucp->uc_mcontext, 1) != 0)
-	return 0;
+        return 0;
     return lwp_setcontext(ucp);
 }
 
@@ -123,9 +123,9 @@ void lwp_makecontext(struct lwp_ucontext *ucp, void (*func)(void *), void *arg)
 #endif
 
     /* set up state to pass to the new thread */
-    child = ucp;
+    child      = ucp;
     child_func = func;
-    child_arg = arg;
+    child_arg  = arg;
 
 #ifdef HAVE_SIGALTSTACK
     /* we use a signal to jump onto the new stack */
@@ -135,7 +135,7 @@ void lwp_makecontext(struct lwp_ucontext *ucp, void (*func)(void *), void *arg)
     sigaltstack(&ucp->uc_stack, &oldstack);
 
     action.sa_handler = _thread;
-    action.sa_flags = SA_ONSTACK;
+    action.sa_flags   = SA_ONSTACK;
     sigemptyset(&action.sa_mask);
     sigaction(SIGUSR1, &action, &oldaction);
 
@@ -145,8 +145,8 @@ void lwp_makecontext(struct lwp_ucontext *ucp, void (*func)(void *), void *arg)
     /* and allow the signal handler to run */
     sigdelset(&sigs, SIGUSR1);
     if (!SETJMP(parent, 0))
-	while (child)
-	    sigsuspend(&sigs);
+        while (child)
+            sigsuspend(&sigs);
 
     /* The new context should be set up, remove our signal handler */
     sigaltstack(&oldstack, NULL);
@@ -157,10 +157,9 @@ void lwp_makecontext(struct lwp_ucontext *ucp, void (*func)(void *), void *arg)
     /* The old lwp technique looks a lot simpler now. However it requires
      * processor specific assembly which is a PITA */
 #ifndef STACK_GROWS_UP
-    stack += (ucp->uc_stack.ss_size-1) & ~(STACK_PAD-1);
+    stack += (ucp->uc_stack.ss_size - 1) & ~(STACK_PAD - 1);
 #endif
 
     savecontext(_thread, &parent, stack);
 #endif /* ~HAVE_SIGALTSTACK */
 }
-

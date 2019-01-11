@@ -25,8 +25,8 @@ listed in the file CREDITS.
 typedef struct rmBlk {
     struct VListStruct *vlist;
     long VolumeId;
-    Volume  *volptr;
-    ViceStoreId	*StoreId;
+    Volume *volptr;
+    ViceStoreId *StoreId;
     ClientEntry *client;
 } rmBlk;
 
@@ -36,6 +36,5 @@ typedef struct semBlk {
     ClientEntry *client;
     Volume *volptr;
     ViceFid pFid;
-    int	error;
+    int error;
 } semBlk;
-

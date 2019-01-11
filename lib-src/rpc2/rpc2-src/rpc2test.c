@@ -43,18 +43,18 @@ int lwp_nextindex;
 /* Produces: rpc2.log, rpc2.trace and sftp.trace in the directory
    specified by the user. Also creates junk data files in that directory */
 
-#include <assert.h>
-#include <fcntl.h>
-#include <netdb.h>
-#include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <sys/file.h>
-#include <sys/stat.h>
-#include <sys/time.h>
+#include <fcntl.h>
 #include <sys/types.h>
+#include <sys/time.h>
 #include <time.h>
+#include <sys/stat.h>
+#include <sys/file.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#include <assert.h>
+#include <string.h>
 #include <unistd.h>
 
 #include <lwp/lwp.h>
@@ -78,7 +78,7 @@ static long MaxThinkTime, MaxComputeTime, MaxListenPause;
 static long AvoidUnbinds, Announce, AvoidBulk;
 static long rpc2rc;
 
-#define WhatHappened(X)                                                        \
+#define WhatHappened(X) \
     ((rpc2rc = X), printf("%s\n", RPC2_ErrorMsg(rpc2rc)), rpc2rc)
 #define FLUSH() (fflush(stdout))
 #define MYNAME (LWP_Name())
@@ -441,15 +441,15 @@ static void ClientBody(void *arg)
     RPC2_BindParms bp;
     SE_Descriptor sed;
 
-#define MakeTimedCall(whichse)                                                 \
-    if (VerboseFlag)                                                           \
-        gettimeofday(&t1, 0);                                                  \
-    retcode = RPC2_MakeRPC(ConnVector[thisconn].ConnHandle, request, whichse,  \
-                           &reply, NULL, 0);                                   \
-    if (VerboseFlag)                                                           \
-        gettimeofday(&t2, 0);                                                  \
-    if (VerboseFlag)                                                           \
-        rpctime = ((t2.tv_sec - t1.tv_sec) * 1000) +                           \
+#define MakeTimedCall(whichse)                                                \
+    if (VerboseFlag)                                                          \
+        gettimeofday(&t1, 0);                                                 \
+    retcode = RPC2_MakeRPC(ConnVector[thisconn].ConnHandle, request, whichse, \
+                           &reply, NULL, 0);                                  \
+    if (VerboseFlag)                                                          \
+        gettimeofday(&t2, 0);                                                 \
+    if (VerboseFlag)                                                          \
+        rpctime = ((t2.tv_sec - t1.tv_sec) * 1000) +                          \
                   ((t2.tv_usec - t1.tv_usec) / 1000);
 
     memset(&sed, 0, sizeof(SE_Descriptor));
@@ -725,7 +725,7 @@ static time_t mytime(void)
 static void MakeFiles(void)
 {
     /* Variety of sizes to test file transfer ability
-      Files get created in test directory  */
+	Files get created in test directory  */
 
     static char *fsize[] = { "10", "235", "1310", "14235", "100234", "1048576" };
     static char *fname[sizeof(fsize) / sizeof(char *)];

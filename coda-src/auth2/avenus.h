@@ -20,9 +20,8 @@ listed in the file CREDITS.
 
 int U_DeleteLocalTokens(const char *realm);
 int U_GetLocalTokens(ClearToken *cToken, EncryptedSecretToken sToken,
-		     const char *realm);
+                     const char *realm);
 int U_SetLocalTokens(int setPag, ClearToken *cToken,
-		     EncryptedSecretToken sToken, const char *realm);
+                     EncryptedSecretToken sToken, const char *realm);
 
 #endif /* _AVENUS_H_ */
-

@@ -37,35 +37,31 @@ Pittsburgh, PA.
 
 */
 
-
-
 /* This is the salvage test program. */
 
-main (argc, argv)
-    int argc;
-    char **argv;
-    {long ofid, nfid, code;
+main(argc, argv) int argc;
+char **argv;
+{
+    long ofid, nfid, code;
     DInit(20);
-    if (argc == 2)
-        {ofid = atoi(argv[1]);
+    if (argc == 2) {
+        ofid = atoi(argv[1]);
         nfid = 0;
-        }
-    else if (argc == 3)
-        {ofid = atoi(argv[1]);
+    } else if (argc == 3) {
+        ofid = atoi(argv[1]);
         nfid = atoi(argv[2]);
-        }
-    else
-        {printf("usage is: test <ofid> <optional new fid>\n");
+    } else {
+        printf("usage is: test <ofid> <optional new fid>\n");
         exit(EXIT_FAILURE);
-        }
+    }
     code = DirOK(&ofid);
     printf("DirOK returned %d.\n");
-    if (nfid)
-        {printf("Salvaging from fid %d into fid %d.\n", ofid, nfid);
+    if (nfid) {
+        printf("Salvaging from fid %d into fid %d.\n", ofid, nfid);
         code = DirSalvage(&ofid, &nfid);
         printf("DirSalvage returned %d.\n", code);
-        }
-    DFlush();
     }
+    DFlush();
+}
 
 /* the end */

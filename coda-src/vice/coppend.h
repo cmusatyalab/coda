@@ -16,10 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
 /*
  *
  * Specification of the Cop Pending table entries
@@ -42,24 +38,23 @@ extern "C" {
 }
 #endif
 
-
 #include <ohash.h>
 
-#define	MAXFIDS	4	/* The most fids used by any operation. */
+#define MAXFIDS 4 /* The most fids used by any operation. */
 #define CPENTMAGIC 0x202842
 /* cop pending entry */
-class cpent : public olink { 
+class cpent : public olink {
     friend void AddPairToCopPendingTable(ViceStoreId *, ViceFid *);
-    friend long InternalCOP2(RPC2_Handle , ViceStoreId *, ViceVersionVector *);
+    friend long InternalCOP2(RPC2_Handle, ViceStoreId *, ViceVersionVector *);
     friend class cpman;
 
-    ViceStoreId StoreId;	
-    ViceFid fids[MAXFIDS]; /* fids of all objects mutated in operation */ 
-    long time;		   /* expiration time for entry */
-    int deqing;	
+    ViceStoreId StoreId;
+    ViceFid fids[MAXFIDS]; /* fids of all objects mutated in operation */
+    long time; /* expiration time for entry */
+    int deqing;
     int id;
 
-  public:
+public:
     cpent(ViceStoreId *, ViceFid *);
     ~cpent();
     void print();
@@ -67,7 +62,7 @@ class cpent : public olink {
     void print(int);
 };
 
-#define	COPHASHSIZE 128 /* size of objects hash table */
+#define COPHASHSIZE 128 /* size of objects hash table */
 
 /* daemon to maintain entries for pending cop's */
 class cpman {
@@ -76,18 +71,18 @@ class cpman {
     PROCESS pid;
     ohashtab objects;
 
-    cpman(const char * ="anonymous coppendbuster");
+    cpman(const char * = "anonymous coppendbuster");
     ~cpman();
 
     friend void cpman_func(void *);
     void func(int);
-    
+
     friend void InitCopPendingTable();
     friend class cpent;
     friend void AddPairToCopPendingTable(ViceStoreId *, ViceFid *);
     cpent *find(ViceStoreId *);
 
-  public:
+public:
     void add(cpent *);
     void remove(cpent *);
     // cpent *find(ViceFid *);

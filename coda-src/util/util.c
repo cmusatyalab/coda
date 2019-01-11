@@ -36,7 +36,6 @@ Pittsburgh, PA.
 
 */
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -62,50 +61,53 @@ extern "C" {
 }
 #endif
 
-
 /* This is probably not the right place for these globals.
    But this works, and I am too tired to figure out a better
    home for them right now (Satya 2/11/92).
    They are all used in conjunction with LogMsg() and extern
    declarations for them are in util.h
 */
-int SrvDebugLevel = 0;		/* Server */
-int VolDebugLevel = 0;		/* Vol package */
-int SalvageDebugLevel = 0;	/* Salvager */
-int DirDebugLevel = 0;		/* Dir package */
-int AL_DebugLevel = 0;		/* ACL package */
-int AuthDebugLevel = 0;		/* Auth package */
+int SrvDebugLevel     = 0; /* Server */
+int VolDebugLevel     = 0; /* Vol package */
+int SalvageDebugLevel = 0; /* Salvager */
+int DirDebugLevel     = 0; /* Dir package */
+int AL_DebugLevel     = 0; /* ACL package */
+int AuthDebugLevel    = 0; /* Auth package */
 
 int HashString(char *s, unsigned int size)
 {
-	unsigned int sum;
-	int n;
+    unsigned int sum;
+    int n;
 
-	/* Sum the string in reverse so that consecutive integers, as
+    /* Sum the string in reverse so that consecutive integers, as
 	   strings, do not hash to consecutive locations */
 
-	for (sum = 0, n = strlen(s), s += n-1; n--; s--)
-		sum = (sum*31) + (*s-31);
-	return ((sum % size) + 1);
+    for (sum = 0, n = strlen(s), s += n - 1; n--; s--)
+        sum = (sum * 31) + (*s - 31);
+    return ((sum % size) + 1);
 }
 
 void PrintTimeStamp(FILE *f)
-    /* Prints current timestamp on f; 
-       Keeps track of when last invocation was;
-       If a day boundary is crossed (i.e., midnight),
-          prints out date first.
-       CAVEAT: uses static locals to remember when last called.
-       There should really be one such local per FILE * used, otherwise
-       new date will appear on only one of the log files being used.
-       I can't figure out how to do this cleanly, short of adding
-       yet another required parameter or keeping a list of FILE *'s
-       seen so far, and a separate oldyear and oldday for each. This
-       seems overkill for now.
-    */
+/* Prints current timestamp on f;
+   Keeps track of when last invocation was;
+   If a day boundary is crossed (i.e., midnight),
+      prints out date first.
+   CAVEAT: uses static locals to remember when last called.
+   There should really be one such local per FILE * used, otherwise
+   new date will appear on only one of the log files being used.
+   I can't figure out how to do this cleanly, short of adding
+   yet another required parameter or keeping a list of FILE *'s
+   seen so far, and a separate oldyear and oldday for each. This
+   seems overkill for now.
+*/
 {
 #define NLOGS 5
     /* these are used for keeping track of when we last logged a message */
-    static struct { FILE *file; int year; int yday; } logs[NLOGS];
+    static struct {
+        FILE *file;
+        int year;
+        int yday;
+    } logs[NLOGS];
 
     struct tm *t;
     time_t clock;
@@ -116,40 +118,41 @@ void PrintTimeStamp(FILE *f)
 
     /* try to find the last time we wrote to this log */
     for (i = 0; i < NLOGS; i++) {
-	if (f == logs[i].file) break;
-	/* remember the first empty position we see */
-	if (empty == NLOGS && !logs[i].file)
-	    empty = i;
+        if (f == logs[i].file)
+            break;
+        /* remember the first empty position we see */
+        if (empty == NLOGS && !logs[i].file)
+            empty = i;
     }
     /* log entry not found? use the empty slot */
-    if (i == NLOGS) i = empty;
+    if (i == NLOGS)
+        i = empty;
 
     if (i != NLOGS &&
-	(t->tm_year > logs[i].year || t->tm_yday > logs[i].yday))
-    {
-	char datestr[80];
+        (t->tm_year > logs[i].year || t->tm_yday > logs[i].yday)) {
+        char datestr[80];
 
-	strftime(datestr, sizeof(datestr), "\nDate: %a %m/%d/%Y\n\n", t);
-	fputs(datestr, f);
+        strftime(datestr, sizeof(datestr), "\nDate: %a %m/%d/%Y\n\n", t);
+        fputs(datestr, f);
 
-	/* remember when we were last called */
-	logs[i].file = f;
-	logs[i].year = t->tm_year;
-	logs[i].yday = t->tm_yday;
+        /* remember when we were last called */
+        logs[i].file = f;
+        logs[i].year = t->tm_year;
+        logs[i].yday = t->tm_yday;
     }
 
     fprintf(f, "%02d:%02d:%02d ", t->tm_hour, t->tm_min, t->tm_sec);
 }
 
-void LogMsg(int msglevel, int debuglevel, FILE *fout, const char *fmt,  ...)
+void LogMsg(int msglevel, int debuglevel, FILE *fout, const char *fmt, ...)
 {
     va_list ap;
 
     if (debuglevel < msglevel)
-	    return;
+        return;
 
     PrintTimeStamp(fout);
-    
+
     va_start(ap, fmt);
     vfprintf(fout, fmt, ap);
     fprintf(fout, "\n");
@@ -166,7 +169,7 @@ void LogMsg(int msglevel, int debuglevel, FILE *fout, const char *fmt,  ...)
 
 long int gethostid(void)
 {
-	return 4711;
+    return 4711;
 }
 
 #endif
@@ -179,42 +182,41 @@ void fdprint(long afd, const char *fmt, ...)
     va_start(ap, fmt);
     vsnprintf(buf, 239, fmt, ap);
     va_end(ap);
-    write((int) afd, buf, (int) strlen(buf));
+    write((int)afd, buf, (int)strlen(buf));
 }
 
 /* message to stderr */
 void eprint(const char *fmt, ...)
 {
-	va_list ap;
+    va_list ap;
 
-	/* Construct message in buffer and add newline */
-	va_start(ap, fmt);
+    /* Construct message in buffer and add newline */
+    va_start(ap, fmt);
 
-	/* Write to stderr & stdout*/
-	PrintTimeStamp(stdout); 
-        vfprintf(stdout, fmt, ap);
-        fprintf(stdout, "\n");
-	fflush(stdout);
-        va_end(ap);
+    /* Write to stderr & stdout*/
+    PrintTimeStamp(stdout);
+    vfprintf(stdout, fmt, ap);
+    fprintf(stdout, "\n");
+    fflush(stdout);
+    va_end(ap);
 
-	va_start(ap, fmt);
-	PrintTimeStamp(stderr);
-        vfprintf(stderr, fmt, ap);
-        fprintf(stderr, "\n");
-	fflush(stderr);
-        va_end(ap);
+    va_start(ap, fmt);
+    PrintTimeStamp(stderr);
+    vfprintf(stderr, fmt, ap);
+    fprintf(stderr, "\n");
+    fflush(stderr);
+    va_end(ap);
 }
-
 
 /* hostname returns name of this host */
 char *hostname(char *name)
 {
     struct utsname id;
-    
-    if ( uname(&id) >= 0 ) 
-	return strcpy(name, id.nodename);
-    else 
-	return NULL;
+
+    if (uname(&id) >= 0)
+        return strcpy(name, id.nodename);
+    else
+        return NULL;
 }
 
 /* return 1 if hosts have same first address in h_addr_list */
@@ -227,14 +229,14 @@ int UtilHostEq(const char *name1, const char *name2)
     /* Validity check */
     if (!name1 || !name2)
         return 0;
-    
+
     host = gethostbyname(name1);
-    if ( ! host ) 
+    if (!host)
         return 0;
 
     len = host->h_length;
 
-    addr = (char *) malloc(len);
+    addr = (char *)malloc(len);
     if (!addr)
         return 0;
 
@@ -243,7 +245,7 @@ int UtilHostEq(const char *name1, const char *name2)
     host = gethostbyname(name2);
 
     if (host && host->h_length == len)
-	ret = memcmp(addr, host->h_addr_list[0], len) == 0;
+        ret = memcmp(addr, host->h_addr_list[0], len) == 0;
 
     free(addr);
 
@@ -252,24 +254,23 @@ int UtilHostEq(const char *name1, const char *name2)
 
 void UtilDetach(void)
 {
-    pid_t child; 
+    pid_t child;
     int rc;
 
     child = fork();
-    
-    if ( child < 0 ) { 
-	fprintf(stderr, "Cannot fork: exiting.\n");
-	exit(EXIT_FAILURE);
+
+    if (child < 0) {
+        fprintf(stderr, "Cannot fork: exiting.\n");
+        exit(EXIT_FAILURE);
     }
 
-    if ( child != 0 ) /* parent */
-	exit(EXIT_SUCCESS);
+    if (child != 0) /* parent */
+        exit(EXIT_SUCCESS);
 
     rc = setsid();
 
-    if ( rc < 0 ) {
-	fprintf(stderr, "Error detaching from terminal.\n");
-	exit(EXIT_FAILURE);
+    if (rc < 0) {
+        fprintf(stderr, "Error detaching from terminal.\n");
+        exit(EXIT_FAILURE);
     }
-
 }

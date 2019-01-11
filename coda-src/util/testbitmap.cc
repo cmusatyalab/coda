@@ -16,16 +16,12 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif __cplusplus
 
 #include <stdio.h>
-   
+
 #ifdef __cplusplus
 }
 #endif __cplusplus
@@ -34,21 +30,23 @@ extern "C" {
 
 int RvmType = 3;
 
-main() {
+main()
+{
     char *c;
     c = new char[100];
     delete[100] c;
     bitmap *b = new bitmap(32);
-    delete(b);
+    delete (b);
     printf("Just deleted b\n");
     b = new bitmap(32);
     b->print();
-    
+
     for (int i = 0; i < 32; i++) {
-	printf("Allocating %d\n", i);
-	b->SetIndex(i);
-	if (i != 0 && (i % 2 != 0) ) b->FreeIndex(i - 1);
-	b->print();
+        printf("Allocating %d\n", i);
+        b->SetIndex(i);
+        if (i != 0 && (i % 2 != 0))
+            b->FreeIndex(i - 1);
+        b->print();
     }
 
     b->Grow(48);
@@ -58,10 +56,10 @@ main() {
     b->print();
 
     while ((alloc = b->GetFreeIndex()) != -1) {
-	printf("got one more index %d\n", alloc);
-	b->print();
+        printf("got one more index %d\n", alloc);
+        b->print();
     }
-    
+
     printf("deleting b\n");
     delete b;
 }

@@ -16,17 +16,15 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
 /* context declarations */
-#define FILE_NAME_CTXT	1001
-#define DEP_CTXT	1002
-#define CMD_CTXT	1003
-#define ARG_CTXT	1004
+#define FILE_NAME_CTXT 1001
+#define DEP_CTXT 1002
+#define CMD_CTXT 1003
+#define ARG_CTXT 1004
 
 extern int context;
 extern int debug;
 
-#define DEBUG(a)	if (debug) fprintf a
+#define DEBUG(a) \
+    if (debug)   \
+    fprintf a

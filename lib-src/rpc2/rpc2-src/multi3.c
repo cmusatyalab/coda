@@ -41,15 +41,15 @@ Pittsburgh, PA.
         Multicast Utility Routines for MultiRPC
 */
 
-#include <assert.h>
-#include <netdb.h>
-#include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/socket.h>
-#include <sys/time.h>
 #include <sys/types.h>
+#include <netinet/in.h>
+#include <sys/time.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <assert.h>
 
 #include <rpc2/se.h>
 
@@ -63,9 +63,9 @@ void rpc2_DeleteMgrp();
 extern void SavePacketForRetry(); /* rpc2a.c */
 
 /* this definition was taken from sl.c */
-#define BOGUS(p) /* bogus packet; throw it away */                             \
-    say(9, RPC2_DebugLevel, "Bogus packet, discarding\n");                     \
-    rpc2_MRecvd.Bogus++;                                                       \
+#define BOGUS(p) /* bogus packet; throw it away */         \
+    say(9, RPC2_DebugLevel, "Bogus packet, discarding\n"); \
+    rpc2_MRecvd.Bogus++;                                   \
     RPC2_FreeBuffer(&p);
 
 #define MGRPHASHLENGTH 256 /* must be power of 2 */
@@ -346,7 +346,7 @@ long RPC2_AddToMgrp(IN RPC2_Handle MgroupHandle, IN RPC2_Handle ConnHandle)
     }
 
     /* Check that the connection has the same side-effect type as the
-     multicast group */
+       multicast group */
     if (me->SEProcs != ce->SEProcs)
         rpc2_Quit(RPC2_BADMGROUP);
 

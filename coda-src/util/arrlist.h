@@ -16,23 +16,19 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
 #ifndef _ARRLIST_H_
 #define _ARRLIST_H_ 1
-// arrlist: 
-//	pointers to any type stored as an array 
+// arrlist:
+//	pointers to any type stored as an array
 class arrlist {
-  public:
+public:
     void **list;
-    int	maxsize;
+    int maxsize;
     int cursize;
 
-    int Grow(int =0);
+    int Grow(int = 0);
     void init(int);
-//  public:
+    //  public:
     arrlist();
     arrlist(int);
     ~arrlist();
@@ -41,12 +37,12 @@ class arrlist {
 
 class arrlist_iterator {
     arrlist *alp;
-    int	previndex;
+    int previndex;
 
-  public:
+public:
     arrlist_iterator(arrlist *);
     ~arrlist_iterator();
-    void *operator()();         /* Does *not* support safe deletion of
+    void *operator()(); /* Does *not* support safe deletion of
                                    currently returned entry.  See
                                    dlist.h for more explanation */
 };

@@ -43,12 +43,12 @@ Pittsburgh, PA.
 *								    *
 \*******************************************************************/
 
-#include <ctype.h>
-#include <rpc2/pack_helper.h>
-#include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <stdio.h>
+#include <ctype.h>
 #include <sys/param.h>
+#include <string.h>
+#include <rpc2/pack_helper.h>
 
 #include "rp2.h"
 
@@ -438,11 +438,11 @@ void copcodes(PROC *head, WHO who, FILE *where)
     VAR **var;
     char msg[100];
 
-#define PUTPARMS()                                                             \
-    fprintf(where, "RPC2_Handle cid");                                         \
-    for (var = head->formals; *var != NIL; var++) {                            \
-        fprintf(where, ", ");                                                  \
-        spit_parm(*var, RP2_CLIENT, where, RP2_TRUE);                          \
+#define PUTPARMS()                                    \
+    fprintf(where, "RPC2_Handle cid");                \
+    for (var = head->formals; *var != NIL; var++) {   \
+        fprintf(where, ", ");                         \
+        spit_parm(*var, RP2_CLIENT, where, RP2_TRUE); \
     }
 
     macro_define(where);
@@ -1759,8 +1759,8 @@ static void dump_procs(PROC *head, FILE *where)
     /* Preliminary stuff */
     common(where);
     /*    version_check(where);
-  WhatAmIDoing = NEITHER;
-      */
+    WhatAmIDoing = NEITHER;
+	*/
     print_dump(head, where);
 }
 

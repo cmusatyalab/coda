@@ -21,96 +21,92 @@ listed in the file CREDITS.
 #include <codadir.h>
 #include <util.h>
 
-
 #include <srv.h>
 #include <dllist.h>
 #include "objlist.h"
 
 /* XXX map  vle     to   struct obj  */
 
-int OBJ_Cmp(struct fsobj *a, struct fsobj *b) 
+int OBJ_Cmp(struct fsobj *a, struct fsobj *b)
 {
-	CODA_ASSERT(FID_VolEQ(&a->fid, &b->fid));
-	return FID_Cmp(&a->fid, &b-fid);
+    CODA_ASSERT(FID_VolEQ(&a->fid, &b->fid));
+    return FID_Cmp(&a->fid, &b - fid);
 }
 
 struct objlist *OBJ_NewList()
 {
-	struct objlist *l;
-	l = (struct objlist *) malloc(sizeof(*l));
-	CODA_ASSERT(l);
-	INIT_LIST_HEAD(&l->objl_lh);
+    struct objlist *l;
+    l = (struct objlist *)malloc(sizeof(*l));
+    CODA_ASSERT(l);
+    INIT_LIST_HEAD(&l->objl_lh);
 
-	return l;
+    return l;
 }
 
 void OBJ_FreeList(struct objlist *list)
 {
-	free(l);
+    free(l);
 }
 
-struct  fsobj *OBJ_Find(struct fsobjlist *objlist, ViceFid *fid) 
+struct fsobj *OBJ_Find(struct fsobjlist *objlist, ViceFid *fid)
 {
-	struct list_head *lh = &objlist->lh;
-	struct list_chain *tmp = lh->next;
-	struct fsobj *obj;
+    struct list_head *lh   = &objlist->lh;
+    struct list_chain *tmp = lh->next;
+    struct fsobj *obj;
 
-	while (tmp != lh) {
-		obj = list_entry(tmp, struct fsobj, obj_chain);
-		if (FID_EQ(&obj->fid, fid)) 
-			return(obj);
-		tmp = tmp->next;
-	}
-	return NULL;
+    while (tmp != lh) {
+        obj = list_entry(tmp, struct fsobj, obj_chain);
+        if (FID_EQ(&obj->fid, fid))
+            return (obj);
+        tmp = tmp->next;
+    }
+    return NULL;
 }
-
 
 struct fsobj *OBJ_GetFree(ViceFid *fid)
 {
-	struct fsobj *obj;
-	
-	obj = (struct fsobj *) malloc(sizeof(*obj));
-	CODA_ASSERT(obj);
+    struct fsobj *obj;
 
-	INIT_LIST_HEAD(obj->obj_chain);
-	obj->obj_fid = *Fid;
-	obj->obj_vptr = 0;
+    obj = (struct fsobj *)malloc(sizeof(*obj));
+    CODA_ASSERT(obj);
 
-	if (!ISDIR(fid)) {
-		obj->f_sid = NullSid;
-		obj->f_sinode = 0;
-		obj->f_finode = 0;
-		obj->f_tinode = 0;
-		obj->f_tlength = 0;
-	} else {
-		obj->d_cinode = 0;
-		obj->d_inodemod = 0;
-		obj->d_needsres = 0;
-		obj->d_needslogpurge = 0;
-		obj->d_needslogtrunc = 0;
-		obj->d_reintupdate = 0;
-		obj->d_reintstale = 0;
-	}
+    INIT_LIST_HEAD(obj->obj_chain);
+    obj->obj_fid  = *Fid;
+    obj->obj_vptr = 0;
+
+    if (!ISDIR(fid)) {
+        obj->f_sid     = NullSid;
+        obj->f_sinode  = 0;
+        obj->f_finode  = 0;
+        obj->f_tinode  = 0;
+        obj->f_tlength = 0;
+    } else {
+        obj->d_cinode        = 0;
+        obj->d_inodemod      = 0;
+        obj->d_needsres      = 0;
+        obj->d_needslogpurge = 0;
+        obj->d_needslogtrunc = 0;
+        obj->d_reintupdate   = 0;
+        obj->d_reintstale    = 0;
+    }
 }
 
-void OBJ_Free(struct fsobject *obj) 
+void OBJ_Free(struct fsobject *obj)
 {
-	CODA_ASSERT(list_empty(&obj->obj_chain));
-	CODA_ASSERT(obj->obj_vptr == 0);
-	free(obj);
+    CODA_ASSERT(list_empty(&obj->obj_chain));
+    CODA_ASSERT(obj->obj_vptr == 0);
+    free(obj);
 };
 
-
-struct fsobj *OBJ_Add(struct fsobjlist *objlist, ViceFid *fid) 
+struct fsobj *OBJ_Add(struct fsobjlist *objlist, ViceFid *fid)
 {
-	struct list_head *lh = &objlist->lh;
-	struct fsobj *obj;
+    struct list_head *lh = &objlist->lh;
+    struct fsobj *obj;
 
-
-	obj = OBJ_Find(objlist, fid);
-	if (obj == 0) {
-		obj = OBJ_GetFree();
-		list_add(&objlist->objl_lh, &obj->obj_obj_chain);
-	}
-	return(obj);
+    obj = OBJ_Find(objlist, fid);
+    if (obj == 0) {
+        obj = OBJ_GetFree();
+        list_add(&objlist->objl_lh, &obj->obj_obj_chain);
+    }
+    return (obj);
 }

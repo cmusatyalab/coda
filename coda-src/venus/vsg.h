@@ -43,8 +43,8 @@ class vsgent : private RefCountedObject {
 private:
     unsigned int nhosts; /* number of replica servers in this VSG */
     unsigned int max_vsg; /* highest used index in the hosts array */
-    struct in_addr hosts[VSG_MEMBERS];  /* hosts in this VSG */
-    struct dllist_head mgrpents;        /* list of mgroups for this VSG */
+    struct in_addr hosts[VSG_MEMBERS]; /* hosts in this VSG */
+    struct dllist_head mgrpents; /* list of mgroups for this VSG */
     RealmId realmid;
 
 protected:
@@ -53,8 +53,10 @@ protected:
     vsgent(struct in_addr Hosts[VSG_MEMBERS], RealmId realmid);
     ~vsgent(void);
 
-    int CmpHosts(struct in_addr Hosts[VSG_MEMBERS]) {
-      return (memcmp(hosts, Hosts, VSG_MEMBERS * sizeof(struct in_addr)) == 0);
+    int CmpHosts(struct in_addr Hosts[VSG_MEMBERS])
+    {
+        return (memcmp(hosts, Hosts, VSG_MEMBERS * sizeof(struct in_addr)) ==
+                0);
     }
 
 public:
@@ -71,16 +73,17 @@ public:
 
     unsigned int NHosts(void) { return nhosts; }
     unsigned int MaxVSG(void) { return max_vsg; }
-    void GetHosts(struct in_addr Hosts[VSG_MEMBERS]) {
-      memcpy(Hosts, hosts, VSG_MEMBERS * sizeof(struct in_addr));
+    void GetHosts(struct in_addr Hosts[VSG_MEMBERS])
+    {
+        memcpy(Hosts, hosts, VSG_MEMBERS * sizeof(struct in_addr));
     }
 
     void print(FILE *f);
 };
-    
+
 class vsgdb {
 private:
-    struct dllist_head vsgents;        /* list of VSGs */
+    struct dllist_head vsgents; /* list of VSGs */
 
 public:
     vsgdb(void);
@@ -98,4 +101,3 @@ extern vsgdb *VSGDB;
 void VSGDBInit(void);
 
 #endif /* _VSG_H_ */
-

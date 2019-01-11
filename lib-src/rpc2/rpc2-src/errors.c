@@ -16,10 +16,10 @@ Coda are listed in the file CREDITS.
 
 #*/
 
+#include <unistd.h>
+#include <stdlib.h>
 #include <rpc2/errors.h>
 #include <rpc2/rpc2.h>
-#include <stdlib.h>
-#include <unistd.h>
 
 /* translate RPC2 error to System Error */
 int RPC2_R2SError(int rpc2_err)

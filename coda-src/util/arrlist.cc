@@ -34,56 +34,61 @@ extern "C" {
 #include "util.h"
 #include "arrlist.h"
 
-arrlist::arrlist(int msz) {
+arrlist::arrlist(int msz)
+{
     init(msz);
 }
-arrlist::~arrlist() {
+arrlist::~arrlist()
+{
     if (list)
-	free(list);
-    list = NULL;
+        free(list);
+    list    = NULL;
     maxsize = 0;
     cursize = 0;
 }
 
-arrlist::arrlist() {
+arrlist::arrlist()
+{
     init(32);
 }
-void arrlist::init(int msz) {
+void arrlist::init(int msz)
+{
     maxsize = msz;
     cursize = 0;
     if (maxsize > 0) {
-	list = (void **)malloc(sizeof(void *) * maxsize);
-	CODA_ASSERT(list);
-    }
-    else list = NULL;
+        list = (void **)malloc(sizeof(void *) * maxsize);
+        CODA_ASSERT(list);
+    } else
+        list = NULL;
 
     for (int i = 0; i < maxsize; i++)
-	list[i] = NULL;
-
+        list[i] = NULL;
 }
-int arrlist::Grow(int increase) {
+int arrlist::Grow(int increase)
+{
     int i, newsize;
     if (increase == 0)
-	newsize = maxsize ? (maxsize * 2) : 32;
-    else 
-	newsize = maxsize + increase;
+        newsize = maxsize ? (maxsize * 2) : 32;
+    else
+        newsize = maxsize + increase;
     void **newlist = (void **)malloc(sizeof(void *) * newsize);
     CODA_ASSERT(newlist);
     for (i = 0; i < maxsize; i++)
-	newlist[i] = list[i];
-    for (; i < newsize; i++) 
-	newlist[i] = NULL;
+        newlist[i] = list[i];
+    for (; i < newsize; i++)
+        newlist[i] = NULL;
     free(list);
 
-    list = newlist;
+    list    = newlist;
     maxsize = newsize;
-    return(newsize);
+    return (newsize);
 }
 
-void arrlist::add(void *p) {
-    if (cursize >= maxsize) 
-	// array is full - need to grow
-	Grow();
+void arrlist::add(void *p)
+{
+    if (cursize >= maxsize)
+        // array is full - need to grow
+        Grow();
 
     CODA_ASSERT(cursize < maxsize);
 
@@ -91,20 +96,23 @@ void arrlist::add(void *p) {
     cursize++;
 }
 
-arrlist_iterator::arrlist_iterator(arrlist *p) {
-    alp = p;
+arrlist_iterator::arrlist_iterator(arrlist *p)
+{
+    alp       = p;
     previndex = -1;
 }
 
-arrlist_iterator::~arrlist_iterator() {
-    alp = NULL;
+arrlist_iterator::~arrlist_iterator()
+{
+    alp       = NULL;
     previndex = -1;
 }
 
-void *arrlist_iterator::operator()() {
+void *arrlist_iterator::operator()()
+{
     if (previndex < (alp->cursize - 1)) {
-	previndex++;
-	return(alp->list[previndex]);
-    }
-    else  return(NULL); 
+        previndex++;
+        return (alp->list[previndex]);
+    } else
+        return (NULL);
 }

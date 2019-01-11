@@ -37,28 +37,26 @@ Pittsburgh, PA.
 
 */
 
-
 #ifndef _DIR_H_
 #define _DIR_H_ 1
 
 /* extern definitions for dir.c */
-extern int NameBlobs (char *);
-extern int Create (long *, char *, long *);
-extern int Delete (long *, char *);
-extern int MakeDir (long *, long *, long *);
-extern int Lookup (long *, char *, long *);
-extern struct DirEntry *GetBlob (long *, long);
-extern int DirHash (char *);
-extern int EnumerateDir (long *, int (*)(void *par1,...), long);
+extern int NameBlobs(char *);
+extern int Create(long *, char *, long *);
+extern int Delete(long *, char *);
+extern int MakeDir(long *, long *, long *);
+extern int Lookup(long *, char *, long *);
+extern struct DirEntry *GetBlob(long *, long);
+extern int DirHash(char *);
+extern int EnumerateDir(long *, int (*)(void *par1, ...), long);
 extern int DirToNetBuf(long *, char *, int, int *);
 extern char *FindName(long *, long, long, char *);
-extern int IsEmpty (long *);
-extern int Length (long *);
+extern int IsEmpty(long *);
+extern int Length(long *);
 
 /* extern definitions for buffer.c */
-struct buffer
-    {
-    int fid[5];	/* Unique cache key + i/o addressing */
+struct buffer {
+    int fid[5]; /* Unique cache key + i/o addressing */
     int page;
     int accesstime;
     struct buffer *hashNext;
@@ -66,24 +64,24 @@ struct buffer
     char lockers;
     char dirty;
     char hashIndex;
-    };
+};
 
-#ifdef	__linux__
+#ifdef __linux__
 typedef struct buffer buffer;
 #endif
 
-extern void DStat (int *, int *, int *);
-extern int DInit (int );
+extern void DStat(int *, int *, int *);
+extern int DInit(int);
 extern char *DRead(long *, int);
-extern void DRelease (struct buffer *, int);
-extern int DVOffset (struct buffer *);
-extern void DFlush ();
-extern char *DNew (long *, int);
-extern void DZap (long *);
-extern void DFlushEntry (long *);
+extern void DRelease(struct buffer *, int);
+extern int DVOffset(struct buffer *);
+extern void DFlush();
+extern char *DNew(long *, int);
+extern void DZap(long *);
+extern void DFlushEntry(long *);
 
 /* extern definitions for salvage.c */
-extern int DirOK (long *);
-extern int DirSalvage (long *, long *);
+extern int DirOK(long *);
+extern int DirSalvage(long *, long *);
 
 #endif _DIR_H_

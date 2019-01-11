@@ -16,14 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
-
-
 /*
  *
  * dlist.h -- Specification of  doubly-linked list type where list elements
@@ -44,32 +36,34 @@ extern "C" {
 }
 #endif
 
-
-
 class dlink;
 class dlist;
 class dhashtab;
 typedef int (*CFN)(dlink *, dlink *);
 
-enum DlGetType { DlGetMin, DlGetMax };
+enum DlGetType
+{
+    DlGetMin,
+    DlGetMax
+};
 
 class dlist {
-  friend class dhashtab;
-    dlink *head;	    // head of list 
+    friend class dhashtab;
+    dlink *head; // head of list
     int cnt;
-    CFN	CmpFn;		    // function to order the elements 
-  public:
-    dlist();		    // default init with NULL compare func
+    CFN CmpFn; // function to order the elements
+public:
+    dlist(); // default init with NULL compare func
     dlist(CFN);
     virtual ~dlist();
-    void insert(dlink *);   // insert in sorted order 
-    void prepend(dlink *);  // add at beginning of list 
-    void append(dlink *);   // add at end of list 
-    dlink *remove(dlink	*); // remove specified entry
-    dlink *first();	    // return head of list
-    dlink *last();	    // return tail of list
-    dlink *get(DlGetType =DlGetMin);	// return and remove head or tail of list
-    void clear();	    // remove all entries
+    void insert(dlink *); // insert in sorted order
+    void prepend(dlink *); // add at beginning of list
+    void append(dlink *); // add at end of list
+    dlink *remove(dlink *); // remove specified entry
+    dlink *first(); // return head of list
+    dlink *last(); // return tail of list
+    dlink *get(DlGetType = DlGetMin); // return and remove head or tail of list
+    void clear(); // remove all entries
     int count();
     int IsMember(dlink *);
     virtual void print();
@@ -77,26 +71,31 @@ class dlist {
     virtual void print(int);
 };
 
-enum DlIterOrder { DlAscending, DlDescending };
-
-class dlist_iterator {
-    dlist *cdlist;	    // current dlist
-    dlink *cdlink;	    // current dlink
-    DlIterOrder	order;	    // iteration order
-  public:
-    dlist_iterator(dlist&, DlIterOrder =DlAscending);
-    dlink *operator()();    // return next object or 0.
-                            // Does *not* support safe deletion
-                            // of currently returned entry.  See the 
-                            // comment below for more explanation.
+enum DlIterOrder
+{
+    DlAscending,
+    DlDescending
 };
 
-class dlink {		    // objects are derived from this class
-  friend class dlist;
-  friend class dlist_iterator;
+class dlist_iterator {
+    dlist *cdlist; // current dlist
+    dlink *cdlink; // current dlink
+    DlIterOrder order; // iteration order
+public:
+    dlist_iterator(dlist &, DlIterOrder = DlAscending);
+    dlink *operator()(); // return next object or 0.
+        // Does *not* support safe deletion
+        // of currently returned entry.  See the
+        // comment below for more explanation.
+};
+
+class dlink { // objects are derived from this class
+    friend class dlist;
+    friend class dlist_iterator;
     dlink *next;
     dlink *prev;
-  public:
+
+public:
     dlink();
     void clear() { next = prev = NULL; };
     int is_linked() { return next != NULL; };

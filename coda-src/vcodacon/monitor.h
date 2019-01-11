@@ -24,19 +24,18 @@
 
 #include "Inet.h"
 
-#define CODACONPORT	2430
-#define LINESIZE	1024
+#define CODACONPORT 2430
+#define LINESIZE 1024
 
 class monitor {
-
-  public:
-
-    monitor() {
-      actcolor = 255;
-      browsersize = 100;
-      StoreCount = 0;
-      ReintCount = 0;
-      DisFsCount = 0;
+public:
+    monitor()
+    {
+        actcolor    = 255;
+        browsersize = 100;
+        StoreCount  = 0;
+        ReintCount  = 0;
+        DisFsCount  = 0;
     }
 
     void Start();
@@ -47,12 +46,13 @@ class monitor {
 
     void AgeActColor();
 
-    void SetBrowserSize (int x) {
-      if (x > 10)
-	browsersize = x;
+    void SetBrowserSize(int x)
+    {
+        if (x > 10)
+            browsersize = x;
     }
 
-  private:
+private:
     Inet conn;
     int actcolor;
     int browsersize;

@@ -41,34 +41,36 @@ extern "C" {
 #include "vproc.h"
 #include "venus.private.h"
 
-
 static struct TM_Elem *DaemonList;
 
 void InitOneADay();
 
-struct DaemonInfo { 
-	unsigned long interval;  /* in seconds */
-	char *sync;              /* who to signal, if anyone */
+struct DaemonInfo {
+    unsigned long interval; /* in seconds */
+    char *sync; /* who to signal, if anyone */
 };
 
-void DaemonInit() {
+void DaemonInit()
+{
     if (TM_Init(&DaemonList))
-	CHOKE("Couldn't create DaemonList!");
+        CHOKE("Couldn't create DaemonList!");
 
     /* set timer for once-a-day log messages */
-    InitOneADay(); 
+    InitOneADay();
 }
 
-void RegisterDaemon(unsigned long interval, char *sync) {
+void RegisterDaemon(unsigned long interval, char *sync)
+{
     LOG(100, ("RegisterDaemon:\n"));
 
-    struct TM_Elem *tp = (struct TM_Elem *) malloc(sizeof(struct TM_Elem));
-    tp->TotalTime.tv_sec = interval;
+    struct TM_Elem *tp    = (struct TM_Elem *)malloc(sizeof(struct TM_Elem));
+    tp->TotalTime.tv_sec  = interval;
     tp->TotalTime.tv_usec = 0;
 
-    struct DaemonInfo *dp = (struct DaemonInfo *) malloc(sizeof(struct DaemonInfo));
+    struct DaemonInfo *dp =
+        (struct DaemonInfo *)malloc(sizeof(struct DaemonInfo));
     dp->interval = interval;
-    dp->sync = sync;
+    dp->sync     = sync;
 
     tp->BackPointer = (char *)dp;
     TM_Insert(DaemonList, tp);
@@ -76,46 +78,50 @@ void RegisterDaemon(unsigned long interval, char *sync) {
 
 #define SECSPERDAY 86400
 
-void InitOneADay() {    
+void InitOneADay()
+{
     /* want once-a-day tasks to run around midnight */
     time_t curr_time = Vtime();
 
     /* figure out when midnight is */
-    struct tm *lt = localtime((time_t *) &curr_time);
-    lt->tm_sec = lt->tm_min = lt->tm_hour = 0;       /* midnight today */
+    struct tm *lt = localtime((time_t *)&curr_time);
+    lt->tm_sec = lt->tm_min = lt->tm_hour = 0; /* midnight today */
 
     unsigned long midnight = mktime(lt) + SECSPERDAY; /* midnight tomorrow */
-    struct TM_Elem *tp = (struct TM_Elem *) malloc(sizeof(struct TM_Elem));
-    tp->TotalTime.tv_sec = midnight - curr_time;       /* time until then */
-    tp->TotalTime.tv_usec = 0;
+    struct TM_Elem *tp     = (struct TM_Elem *)malloc(sizeof(struct TM_Elem));
+    tp->TotalTime.tv_sec   = midnight - curr_time; /* time until then */
+    tp->TotalTime.tv_usec  = 0;
 
-    struct DaemonInfo *dp = (struct DaemonInfo *) malloc(sizeof(struct DaemonInfo));
+    struct DaemonInfo *dp =
+        (struct DaemonInfo *)malloc(sizeof(struct DaemonInfo));
     dp->interval = SECSPERDAY;
-    dp->sync = NULL;
+    dp->sync     = NULL;
 
     tp->BackPointer = (char *)dp;
-    TM_Insert(DaemonList, tp);	
+    TM_Insert(DaemonList, tp);
 }
 
-void DispatchDaemons() {
+void DispatchDaemons()
+{
     time_t curr_time = Vtime();
 
     int num_expired = TM_Rescan(DaemonList);
     for (int i = 0; i < num_expired; i++) {
-	    struct TM_Elem *tp = TM_GetExpired(DaemonList);
-	    TM_Remove(DaemonList, tp);
+        struct TM_Elem *tp = TM_GetExpired(DaemonList);
+        TM_Remove(DaemonList, tp);
 
-	    tp->TotalTime.tv_sec = ((struct DaemonInfo *)tp->BackPointer)->interval;
-	    tp->TotalTime.tv_usec = 0;
-	    TM_Insert(DaemonList, tp);
+        tp->TotalTime.tv_sec = ((struct DaemonInfo *)tp->BackPointer)->interval;
+        tp->TotalTime.tv_usec = 0;
+        TM_Insert(DaemonList, tp);
 
-	    if (((struct DaemonInfo *)tp->BackPointer)->sync) 
-		    VprocSignal(((struct DaemonInfo *)tp->BackPointer)->sync);
-	    else {  /* once a day task */
-		    LOG(0, ("At the tone the time will be %s", ctime((time_t *)&curr_time)));
-		    RusagePrint(fileno(logFile));
-		    MallocPrint(fileno(logFile));
-	    }
+        if (((struct DaemonInfo *)tp->BackPointer)->sync)
+            VprocSignal(((struct DaemonInfo *)tp->BackPointer)->sync);
+        else { /* once a day task */
+            LOG(0, ("At the tone the time will be %s",
+                    ctime((time_t *)&curr_time)));
+            RusagePrint(fileno(logFile));
+            MallocPrint(fileno(logFile));
+        }
     }
 }
 
@@ -134,9 +140,8 @@ private:
     void main(void);
 };
 
-
-Daemon::Daemon(const char *name, PROCBODY f, int i, int stacksize) :
-    vproc(name, NULL, VPT_Daemon, stacksize)
+Daemon::Daemon(const char *name, PROCBODY f, int i, int stacksize)
+    : vproc(name, NULL, VPT_Daemon, stacksize)
 {
     function = f;
     interval = i;
@@ -153,21 +158,20 @@ void Daemon::main(void)
 
     RegisterDaemon(interval, &sync);
 
-    while(1) {
-	VprocWait(&sync);
-	
-	LOG(10, ("%s: running\n", name));
+    while (1) {
+        VprocWait(&sync);
 
-	START_TIMING();
-	function();
-	END_TIMING();
+        LOG(10, ("%s: running\n", name));
 
-	LOG(10, ("%s: elapsed = %3.1f\n", name, elapsed));
+        START_TIMING();
+        function();
+        END_TIMING();
 
-	seq++;
+        LOG(10, ("%s: elapsed = %3.1f\n", name, elapsed));
+
+        seq++;
     }
 }
-
 
 /* helper to run trivial daemon threads */
 void FireAndForget(const char *name, PROCBODY function, int interval, int stack)
@@ -175,4 +179,3 @@ void FireAndForget(const char *name, PROCBODY function, int interval, int stack)
     Daemon *d = new Daemon(name, function, interval, stack);
     VprocWait(&d->sync);
 }
-

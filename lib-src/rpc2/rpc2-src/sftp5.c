@@ -42,12 +42,12 @@ Pittsburgh, PA.
         --sftp.h contains some macros too
 */
 
-#include <assert.h>
 #include <stdio.h>
-#include <string.h>
-#include <sys/socket.h>
-#include <sys/time.h>
 #include <sys/types.h>
+#include <sys/time.h>
+#include <sys/socket.h>
+#include <assert.h>
+#include <string.h>
 
 #include <rpc2/se.h>
 #include <rpc2/sftp.h>

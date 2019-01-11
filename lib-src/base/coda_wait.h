@@ -37,11 +37,10 @@ Coda are listed in the file CREDITS.
 #define WEXITSTATUS(x)  ((unsigned(x) >> 8)
 #endif
 #ifndef WTERMSIG
-#define WTERMSIG(x)     ((x) & 255)
+#define WTERMSIG(x) ((x)&255)
 #endif
 #ifndef WCOREDUMP
-#define WCOREDUMP(x)    ((x) & 0200)
+#define WCOREDUMP(x) ((x)&0200)
 #endif
 
 #endif /* CODA_WAIT_H */
-

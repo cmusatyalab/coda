@@ -18,8 +18,8 @@ Coda are listed in the file CREDITS.
 #ifndef _RPC2_ADDRINFO_H_
 #define _RPC2_ADDRINFO_H_
 
-#include <netinet/in.h>
 #include <sys/types.h>
+#include <netinet/in.h>
 
 /* struct addrinfo wrappers, by using our own versions we can support systems
  * that don't have these useful functions yet and can avoid allocation problems

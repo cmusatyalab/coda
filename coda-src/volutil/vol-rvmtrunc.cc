@@ -45,10 +45,10 @@ void TruncProcess(void *)
 {
     PROCESS mypid;
     LogMsg(0, VolDebugLevel, stdout,
-	   "TruncProcess: Going to Truncate RVM log \n");
+           "TruncProcess: Going to Truncate RVM log \n");
     rvm_truncate();
     LogMsg(0, VolDebugLevel, stdout,
-	   "TruncProcess: Finished truncating rvm log \n");
+           "TruncProcess: Finished truncating rvm log \n");
     LWP_CurrentProcess(&mypid);
     LWP_DestroyProcess(mypid);
 }
@@ -59,16 +59,13 @@ long S_TruncateRVMLog(RPC2_Handle rpcid)
     long rc = 0;
     PROCESS truncpid;
 
+    LogMsg(1, VolDebugLevel, stdout, "Entering S_TrucateRVMLog\n");
     LogMsg(1, VolDebugLevel, stdout,
-	   "Entering S_TrucateRVMLog\n");
-    LogMsg(1, VolDebugLevel, stdout,
-	   "Forking New Thread to Truncate RVM Log\n");
+           "Forking New Thread to Truncate RVM Log\n");
     // give this thread a bigger stack(1Meg) since it is going to truncate the log
-    rc = LWP_CreateProcess(TruncProcess, rvm_truncate_stack * 1024, 
-			   LWP_NORMAL_PRIORITY,
-			   (char *)&rc/*dummy*/, "SynchronousRVMTrunc", 
-			   &truncpid);
-    LogMsg(1, VolDebugLevel, stdout, 
-	   "Returning to volutil client\n");
-    return(rc);
+    rc = LWP_CreateProcess(TruncProcess, rvm_truncate_stack * 1024,
+                           LWP_NORMAL_PRIORITY, (char *)&rc /*dummy*/,
+                           "SynchronousRVMTrunc", &truncpid);
+    LogMsg(1, VolDebugLevel, stdout, "Returning to volutil client\n");
+    return (rc);
 }

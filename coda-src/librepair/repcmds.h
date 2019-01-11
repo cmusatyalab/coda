@@ -62,24 +62,24 @@ extern "C" {
 #include <resolve.h>
 #include <venusioctl.h>
 
-#define MAXVOLNAME     32
-#define MAXHOSTS       8     /* XXXX --- get the true definition for this */
-#define HOSTNAMLEN     64    /* XXXX -- get the true definition for this */
+#define MAXVOLNAME 32
+#define MAXHOSTS 8 /* XXXX --- get the true definition for this */
+#define HOSTNAMLEN 64 /* XXXX -- get the true definition for this */
 /* MAXPATHLEN defined in <sys/param.h>, length in bytes of OUT path parameters */
-#define DEF_BUF        2048  /* XXXX -- temporary buffer size */
+#define DEF_BUF 2048 /* XXXX -- temporary buffer size */
 
-#define LOCAL_GLOBAL   1
-#define SERVER_SERVER  2
+#define LOCAL_GLOBAL 1
+#define SERVER_SERVER 2
 #define MIXED_CONFLICT 3
 
 /* Replicated filesystem object under repair */
 struct conflict {
     ViceFid fid;
     ViceVersionVector VV;
-    struct replica *head;  /* Singly-linked list of volume replicas */
+    struct replica *head; /* Singly-linked list of volume replicas */
     char rodir[MAXPATHLEN]; /* directory where replicas are mounted */
     char realm[HOSTNAMLEN];
-    char local;	  /* a flag indicating whether this is a local volume entry
+    char local; /* a flag indicating whether this is a local volume entry
 		   * 0: server/server conflict
 		   * 1: local/global conflict
 		   * 2: mixed lg/ss XXX This comment is all wrong*/
@@ -89,20 +89,22 @@ struct conflict {
 
 /* Element in singly-linked list of volume replicas of a replicated volume */
 struct replica {
-    ViceFid fid;                  /* fid of this replica*/
+    ViceFid fid; /* fid of this replica*/
     ViceVersionVector VV;
-    char realmname[HOSTNAMLEN];   /* realm name of this object */
-    char srvname[HOSTNAMLEN]; /* XXX: name of server on which this replica is located? */
+    char realmname[HOSTNAMLEN]; /* realm name of this object */
+    char srvname
+        [HOSTNAMLEN]; /* XXX: name of server on which this replica is located? */
     char compname[NAME_MAX]; /* component name corresponding to this rw id */
-    struct replica *next;     /* next replica ptr */
+    struct replica *next; /* next replica ptr */
 };
 
 /* Non-interactive repair calls */
 int BeginRepair(char *pathname, struct conflict **conf, char *msg, int msgsize);
 int ClearInc(struct conflict *conf, char *msg, int msgsize);
 int CompareDirs(struct conflict *conf, const char *fixfile, struct repinfo *inf,
-		char *msg, int msgsize);
-int DoRepair(struct conflict *conf, char *ufixpath, FILE *res, char *msg, int msgsize);
+                char *msg, int msgsize);
+int DoRepair(struct conflict *conf, char *ufixpath, FILE *res, char *msg,
+             int msgsize);
 int EndRepair(struct conflict *conf, int commit, char *msg, int msgsize);
 int RemoveInc(struct conflict *conf, char *msg, int msgsize);
 
@@ -111,27 +113,30 @@ int dorep(struct conflict *conf, char *fixpath, char *buf, int len);
 int makedff(char *extfile, char *intfile, char *msg, int msgsize);
 
 /* Volume data structure manipulation routines -- rvol.cc */
-int  repair_newrep(char *reppath, struct conflict **conf, char *msg, int msgsize);
-int  repair_mountrw(struct conflict *conf, char *msg, int msgsize);
+int repair_newrep(char *reppath, struct conflict **conf, char *msg,
+                  int msgsize);
+int repair_mountrw(struct conflict *conf, char *msg, int msgsize);
 void repair_finish(struct conflict *conf);
 
 /* Path processing routines -- path.cc */
-int  repair_getfid(char *path, ViceFid *outfid, char *outrealm, ViceVersionVector *outvv, char *msg, int msgsize);
-int  repair_inconflict(char *name, ViceFid *conflictfid, char *conflictrealm);
-int  repair_isleftmost(char *path,char *realpath, int len, char *msg, int msgsize);
+int repair_getfid(char *path, ViceFid *outfid, char *outrealm,
+                  ViceVersionVector *outvv, char *msg, int msgsize);
+int repair_inconflict(char *name, ViceFid *conflictfid, char *conflictrealm);
+int repair_isleftmost(char *path, char *realpath, int len, char *msg,
+                      int msgsize);
 
-#define freeif(pointer)				\
-do {						\
- if (pointer != NULL) {				\
-   free(pointer);				\
-   pointer = NULL;				\
- } 						\
-} while (0)
+#define freeif(pointer)        \
+    do {                       \
+        if (pointer != NULL) { \
+            free(pointer);     \
+            pointer = NULL;    \
+        }                      \
+    } while (0)
 
-#define strerr(str, len, msg...)		\
-do {						\
-  if (str != NULL) 				\
-    snprintf(str, len, ##msg);			\
-} while (0)
+#define strerr(str, len, msg...)       \
+    do {                               \
+        if (str != NULL)               \
+            snprintf(str, len, ##msg); \
+    } while (0)
 
 #endif /* _REPCMDS_H_ */

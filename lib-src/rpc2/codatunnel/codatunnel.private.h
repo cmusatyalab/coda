@@ -18,10 +18,10 @@ Coda are listed in the file CREDITS.
 #ifndef _CODATUNNEL_PRIVATE_H_
 #define _CODATUNNEL_PRIVATE_H_
 
-#include <assert.h>
-#include <sys/socket.h>
-#include <sys/time.h>
 #include <sys/types.h>
+#include <sys/socket.h>
+#include <assert.h>
+#include <sys/time.h>
 
 #if 0
 #define DEBUG(...)                                                             \
@@ -37,11 +37,11 @@ Coda are listed in the file CREDITS.
 #define DEBUG(...)
 #endif
 
-#define ERROR(...)                                                             \
-    do {                                                                       \
-        fprintf(stderr, "%s:%d ", __FUNCTION__, __LINE__);                     \
-        fprintf(stderr, __VA_ARGS__);                                          \
-        fflush(stderr);                                                        \
+#define ERROR(...)                                         \
+    do {                                                   \
+        fprintf(stderr, "%s:%d ", __FUNCTION__, __LINE__); \
+        fprintf(stderr, __VA_ARGS__);                      \
+        fflush(stderr);                                    \
     } while (0)
 
 /* the actual tunnel daemon (defined in codatunneld.c) */
@@ -80,11 +80,11 @@ enum deststate
 { /* NEW: 2018-5-29 */
   FREE      = 0, /* this entry is not allocated */
   ALLOCATED = 1, /* entry allocated, but TCP is not active; UDP works */
-  TCPATTEMPTING =
-      2, /* entry allocated, tcp connect is being attempted; UDP works */
+  TCPATTEMPTING = 2, /* entry allocated, tcp connect is being attempted;
+                        UDP works */
   TCPACTIVE = 3, /* entry allocated, and its tcphandle is good */
-  TCPCLOSING =
-      4, /* this entry used to be TCPACTIVE; now closing, and waiting to become FREE */
+  TCPCLOSING = 4, /* this entry used to be TCPACTIVE;
+                     now closing, and waiting to become FREE */
 };
 
 typedef struct remotedest {

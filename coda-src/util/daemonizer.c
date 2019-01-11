@@ -47,14 +47,14 @@ static int check_child_completion(int fd)
     FD_ZERO(&efds);
     FD_SET(fd, &efds);
 
-    n = select(fd+1, &rfds, NULL, &efds, NULL);
+    n = select(fd + 1, &rfds, NULL, &efds, NULL);
     if (n > 0 && FD_ISSET(fd, &rfds))
-	n = read(fd, &check, 1);
+        n = read(fd, &check, 1);
 
     return (n && check) ? 0 : 1;
 }
 
-#if !defined (__CYGWIN32__)
+#if !defined(__CYGWIN32__)
 static int pidfd = -1;
 #else
 static int lockfd = -1;
@@ -69,15 +69,15 @@ void update_pidfile(const char *pidfile)
 
     pidfd = open(pidfile, O_WRONLY | O_CREAT, 0640);
     if (pidfd < 0) {
-	fprintf(stderr, "Can't open pidfile \"%s\"\n", pidfile);
-	exit(EXIT_FAILURE);
+        fprintf(stderr, "Can't open pidfile \"%s\"\n", pidfile);
+        exit(EXIT_FAILURE);
     }
 
     rc = myflock(pidfd, MYFLOCK_EX, MYFLOCK_NB);
     if (rc < 0) {
-	fprintf(stderr, "Can't lock pidfile \"%s\", am I already running?\n",
-		pidfile);
-	exit(EXIT_FAILURE);
+        fprintf(stderr, "Can't lock pidfile \"%s\", am I already running?\n",
+                pidfile);
+        exit(EXIT_FAILURE);
     }
 
 #else
@@ -87,34 +87,34 @@ void update_pidfile(const char *pidfile)
        lock file. */
 
     char lockname[MAXPATHLEN];
-    int  pidfd;
-    int  namelen = strlen(pidfile);
+    int pidfd;
+    int namelen = strlen(pidfile);
 
-    if ((namelen+4) > MAXPATHLEN) {
-      fprintf(stderr, "pid file name too long.\n");
-      exit(EXIT_FAILURE);
+    if ((namelen + 4) > MAXPATHLEN) {
+        fprintf(stderr, "pid file name too long.\n");
+        exit(EXIT_FAILURE);
     }
 
-    n = snprintf (lockname, MAXPATHLEN, "%s.lk", pidfile);
+    n = snprintf(lockname, MAXPATHLEN, "%s.lk", pidfile);
     assert(n > namelen);
-    
+
     lockfd = open(lockname, O_WRONLY | O_CREAT, 0640);
     if (lockfd < 0) {
-	fprintf(stderr, "Can't open lock file \"%s\"\n", lockname);
-	exit(EXIT_FAILURE);
+        fprintf(stderr, "Can't open lock file \"%s\"\n", lockname);
+        exit(EXIT_FAILURE);
     }
 
     rc = myflock(lockfd, MYFLOCK_EX, MYFLOCK_NB);
     if (rc < 0) {
-	fprintf(stderr, "Can't lock lock file \"%s\", am I already running?\n",
-		lockname);
-	exit(EXIT_FAILURE);
+        fprintf(stderr, "Can't lock lock file \"%s\", am I already running?\n",
+                lockname);
+        exit(EXIT_FAILURE);
     }
 
     pidfd = open(pidfile, O_WRONLY | O_CREAT, 0640);
     if (pidfd < 0) {
-	fprintf(stderr, "Can't open pidfile \"%s\"\n", pidfile);
-	exit(EXIT_FAILURE);
+        fprintf(stderr, "Can't open pidfile \"%s\"\n", pidfile);
+        exit(EXIT_FAILURE);
     }
 
 #endif
@@ -126,8 +126,8 @@ void update_pidfile(const char *pidfile)
     ftruncate(pidfd, 0);
     rc = write(pidfd, str, n);
     if (rc != n) {
-	fprintf(stderr, "Can't update pidfile \"%s\"\n", pidfile);
-	exit(EXIT_FAILURE);
+        fprintf(stderr, "Can't update pidfile \"%s\"\n", pidfile);
+        exit(EXIT_FAILURE);
     }
 
 #if !defined(__CYGWIN32__)
@@ -138,7 +138,6 @@ void update_pidfile(const char *pidfile)
 #endif
 }
 
-
 int daemonize(void)
 {
     int fds[2];
@@ -148,24 +147,24 @@ int daemonize(void)
     /* grab a pipe so that the child can inform the parent when it is ready */
     rc = pipe(fds);
     if (rc) {
-	fprintf(stderr, "daemonize: failed to create pipe\n");
-	exit(EXIT_FAILURE);
+        fprintf(stderr, "daemonize: failed to create pipe\n");
+        exit(EXIT_FAILURE);
     }
 
     /* fork into background */
     pid = fork();
     if (pid > 0) {
-	close(fds[1]);
-	rc = check_child_completion(fds[0]);
-	exit(rc);
+        close(fds[1]);
+        rc = check_child_completion(fds[0]);
+        exit(rc);
     }
 
     if (pid < 0) {
-	close(fds[0]);
-	close(fds[1]);
-	fprintf(stderr, "daemonize: failed to fork\n");
-	/* should we continue in the foreground? */
-	return -1;
+        close(fds[0]);
+        close(fds[1]);
+        fprintf(stderr, "daemonize: failed to fork\n");
+        /* should we continue in the foreground? */
+        return -1;
     }
 
     /* obtain a new process group, change cwd, clear umask */
@@ -175,12 +174,12 @@ int daemonize(void)
     /* second part of the double fork */
     pid = fork();
     if (pid != 0)
-	exit(EXIT_SUCCESS);
+        exit(EXIT_SUCCESS);
 
     /* close almost all filedescriptors (except for the pipe to the parent). */
     for (fd = 3; fd < FD_SETSIZE; fd++)
-	if (fd != fds[1])
-	    close(fd);
+        if (fd != fds[1])
+            close(fd);
 
     /* detach stdin by redirecting from /dev/null. */
     freopen("/dev/null", "r", stdin);
@@ -193,12 +192,12 @@ int daemonize(void)
 void gogogo(int parent_fd)
 {
     if (parent_fd < 0)
-	return;
+        return;
 
     /* write anything as long as it isn't \0 */
     if (write(parent_fd, "1", 1) != 1) {
-	/* something must have gone wrong with the parent */
-	exit(EXIT_FAILURE);
+        /* something must have gone wrong with the parent */
+        exit(EXIT_FAILURE);
     }
 
     close(parent_fd);
@@ -214,8 +213,8 @@ int main(int argc, char **argv)
     sleep(5);
 
     if (argc > 1) {
-	gogogo(parent);
-	sleep(30);
+        gogogo(parent);
+        sleep(30);
     }
 
     exit(EXIT_SUCCESS);

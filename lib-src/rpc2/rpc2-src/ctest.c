@@ -38,15 +38,15 @@ Pittsburgh, PA.
 */
 
 #define DEBUG
-#include <assert.h>
-#include <netinet/in.h>
-#include <signal.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/socket.h>
-#include <sys/stat.h>
-#include <sys/time.h>
 #include <sys/types.h>
+#include <sys/time.h>
+#include <sys/stat.h>
+#include <sys/socket.h>
+#include <signal.h>
+#include <netinet/in.h>
+#include <assert.h>
 
 #include <lwp/lwp.h>
 #include <lwp/timer.h>
@@ -90,7 +90,7 @@ long VMCurrFileSize; /* amount of useful data in VMFileBuf */
 char *VMFileBuf; /* for FILEINVM transfers */
 
 long rpc2rc;
-#define WhatHappened(X, Y)                                                     \
+#define WhatHappened(X, Y) \
     ((rpc2rc = X), printf("%s: %s\n", Y, RPC2_ErrorMsg(rpc2rc)), rpc2rc)
 
 FILE *ifd;
@@ -380,8 +380,7 @@ int main(int arg, char **argv)
 
             if (!qflag)
                 printf(
-                    "Remote file name ('-' for stdin/stdout, '/dev/mem' for VM "
-                    "file): ");
+                    "Remote file name ('-' for stdin/stdout, '/dev/mem' for VM file): ");
             (void)fscanf(ifd, "%s", (char *)Buff1->Body + 1 + 3 * sizeof(long));
             if (!qflag && fflag)
                 printf(" %s\n", (char *)Buff1->Body + 1 + 3 * sizeof(long));
@@ -423,7 +422,7 @@ int main(int arg, char **argv)
                 rpctime = ((t2.tv_sec - t1.tv_sec) * 1000) +
                           ((t2.tv_usec - t1.tv_usec) / 1000);
                 printf(
-                    "%ld bytes transferred in %ld milliseconds (%ld kbytes/second) \n",
+                    "%ld bytes transferred in %ld milliseconds (%ld kbytes/second)\n",
                     sed.Value.SmartFTPD.BytesTransferred, rpctime,
                     sed.Value.SmartFTPD.BytesTransferred / rpctime);
                 printf("QuotaExceeded = %ld\n",
@@ -564,8 +563,7 @@ static void PrintStats()
 {
     printf("RPC2:\n");
     printf(
-        "Packets Sent = %lu\tPacket Retries = %lu (of %lu)\tPackets Received "
-        "= %lu\n",
+        "Packets Sent = %lu\tPacket Retries = %lu (of %lu)\tPackets Received = %lu\n",
         rpc2_Sent.Total, rpc2_Sent.Retries,
         rpc2_Sent.Retries + rpc2_Sent.Cancelled, rpc2_Recvd.Total);
     printf("Bytes sent = %lu\tBytes received = %lu\n", rpc2_Sent.Bytes,

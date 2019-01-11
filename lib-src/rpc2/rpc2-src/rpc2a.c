@@ -37,15 +37,15 @@ Pittsburgh, PA.
 
 */
 
-#include <assert.h>
-#include <netdb.h>
-#include <netinet/in.h>
 #include <stdio.h>
-#include <string.h>
-#include <sys/socket.h>
-#include <sys/time.h>
-#include <sys/types.h>
 #include <unistd.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#include <sys/time.h>
+#include <assert.h>
 
 #include <lwp/lwp.h>
 #include <lwp/timer.h>
@@ -379,12 +379,12 @@ long RPC2_GetRequest(IN RPC2_RequestFilter *Filter, OUT RPC2_Handle *ConnHandle,
     TR_GETREQUEST();
 
 /* worthless request */
-#define DROPIT()                                                               \
-    do {                                                                       \
-        rpc2_SetConnError(ce);                                                 \
-        RPC2_FreeBuffer(Request);                                              \
-        (void)RPC2_Unbind(*ConnHandle);                                        \
-        goto ScanWorkList;                                                     \
+#define DROPIT()                        \
+    do {                                \
+        rpc2_SetConnError(ce);          \
+        RPC2_FreeBuffer(Request);       \
+        (void)RPC2_Unbind(*ConnHandle); \
+        goto ScanWorkList;              \
     } while (0)
 
     if (!GetFilter(Filter, &myfilter))
@@ -673,10 +673,10 @@ long RPC2_MakeRPC(RPC2_Handle ConnHandle, RPC2_PacketBuffer *Request,
         assert(FALSE);
     }
 
-/* At this point, if rc == RPC2_SUCCESS, the final reply has been received.
-   SocketListener has already decrypted it */
+    /* At this point, if rc == RPC2_SUCCESS, the final reply has been received.
+	SocketListener has already decrypted it */
 
-/* Notify side effect routine, if any.  It may modify the received packet. */
+    /* Notify side effect routine, if any.  It may modify the received packet. */
 SendReliablyError:
     if (SDesc && HAVE_SE_FUNC(SE_MakeRPC2)) {
         secode = (*ce->SEProcs->SE_MakeRPC2)(
@@ -733,11 +733,11 @@ long RPC2_NewBinding(IN RPC2_HostIdent *Host, IN RPC2_PortIdent *Port,
     uint32_t rpc2sec_version       = 0;
     size_t keylen                  = 0;
 
-#define DROPCONN()                                                             \
-    {                                                                          \
-        rpc2_SetConnError(ce);                                                 \
-        (void)RPC2_Unbind(*ConnHandle);                                        \
-        *ConnHandle = 0;                                                       \
+#define DROPCONN()                      \
+    {                                   \
+        rpc2_SetConnError(ce);          \
+        (void)RPC2_Unbind(*ConnHandle); \
+        *ConnHandle = 0;                \
     }
 
     rpc2_Enter();
@@ -1404,7 +1404,7 @@ static long MakeFake(RPC2_PacketBuffer *pb, struct CEntry *ce,
     cident->SeqBody = (RPC2_ByteSeq)&ncb->ClientIdent_SeqBody;
 
     /* check ClientIdent length since we're pointing the cident body back into
-   * the received packet buffer */
+     * the received packet buffer */
     if ((char *)&ib1->Text + cident->SeqLen >
         (char *)&pb->Header + pb->Prefix.LengthOfPacket) {
         return (RPC2_FAIL);
@@ -1539,9 +1539,9 @@ static RPC2_PacketBuffer *Send2Get3(struct CEntry *ce, RPC2_EncryptionKey key,
     RPC2_AllocBuffer(bodylen, &pb2);
     rpc2_InitPacket(pb2, ce, bodylen);
 
-    pb2->Header.Opcode = RPC2_INIT2;
-    pb2->Header.ReturnCode =
-        (ce->Flags & CE_OLDV) ? RPC2_OLDVERSION : RPC2_SUCCESS;
+    pb2->Header.Opcode     = RPC2_INIT2;
+    pb2->Header.ReturnCode = (ce->Flags & CE_OLDV) ? RPC2_OLDVERSION :
+                                                     RPC2_SUCCESS;
 
     if (ce->TimeStampEcho) /* service time is now-requesttime */
         rpc2_StampPacket(ce, pb2);

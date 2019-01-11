@@ -46,17 +46,17 @@ Pittsburgh, PA.
  * routine which gets its type information from definitions in RP2GEN
  * generated include files and client side interface.  */
 
-#include <assert.h>
-#include <errno.h>
-#include <netinet/in.h>
-#include <stdarg.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <sys/file.h>
-#include <sys/socket.h>
-#include <sys/time.h>
 #include <sys/types.h>
+#include <sys/time.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <errno.h>
+#include <stdarg.h>
+#include <stdlib.h>
+#include <assert.h>
 
 #include <rpc2/multi.h>
 #include <rpc2/se.h>
@@ -112,17 +112,17 @@ long MRPC_MakeMulti(int ServerOp, ARG ArgTypes[], RPC2_Integer HowMany,
     va_list ap;
 
     /* first we need to know how many arguments in the variable-length
-     argument lists */
+       argument lists */
     for (a_types = ArgTypes, i = 0; a_types->mode != C_END; a_types++)
         i++;
     va_array = malloc((i * sizeof(PARM)) + 1); /* and then malloc the storage
-                                               (add one to avoid malloc(0)
-                                               when i == 0) */
+						 (add one to avoid malloc(0)
+						 when i == 0) */
     assert(
         (va_array != 0)); /* don't know better way to handle "Can't malloc" */
 
     /* the followings are safe and standard way to get those
-     variable-length arguments */
+       variable-length arguments */
     va_start(ap, Timeout);
     for (a_types = ArgTypes, i = 0; a_types->mode != C_END; a_types++, i++) {
         switch (a_types->type) {
@@ -768,8 +768,7 @@ int get_len(ARG **a_types, PARM **args, MODE mode)
 }
 
 /* Returns an array size. It is assumed that an array size of an array is
- * declared
- * in front of array declaration.
+ * declared in front of array declaration.
  */
 static unsigned int get_arraylen_pack(ARG *a_types, PARM *args)
 {
@@ -804,10 +803,10 @@ static unsigned int get_arraylen_unpack(ARG *a_types, unsigned char *ptr)
     /*NOTREACHED*/
 }
 
-#define CHECK(size)                                                            \
-    do {                                                                       \
-        if (((char *)*_ptr + (size)) > _end)                                   \
-            return EINVAL;                                                     \
+#define CHECK(size)                          \
+    do {                                     \
+        if (((char *)*_ptr + (size)) > _end) \
+            return EINVAL;                   \
     } while (0)
 
 /* buggy but needed, codasrv calls this function directly to unpack the CML */

@@ -37,17 +37,17 @@ Pittsburgh, PA.
 
 */
 
-#include <assert.h>
 #include <limits.h>
-#include <netinet/in.h>
 #include <stdio.h>
+#include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/socket.h>
-#include <sys/time.h>
 #include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <sys/time.h>
 #include <time.h>
-#include <unistd.h>
+#include <assert.h>
 
 #include <rpc2/rpc2.h>
 #include <rpc2/secure.h>

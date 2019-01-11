@@ -36,305 +36,290 @@ listed in the file CREDITS.
 */
 /* directory handle cache entry */
 struct DCEntry {
-	struct dllist_head    dc_hash;
-	struct dllist_head    dc_list;
-	int                   dc_count;/* number of VM vnodes referencing us */
-	int                   dc_refcount; /* new refcount upon commit */
-	struct DirHandle      dc_dh;
-	PDirInode             dc_pdi;
-	PDirInode             dc_cowpdi;
+    struct dllist_head dc_hash;
+    struct dllist_head dc_list;
+    int dc_count; /* number of VM vnodes referencing us */
+    int dc_refcount; /* new refcount upon commit */
+    struct DirHandle dc_dh;
+    PDirInode dc_pdi;
+    PDirInode dc_cowpdi;
 };
 
 #define DCGROWTH 8
 #define DCSIZE 256
 #define DHLOGCACHESIZE 8
 
-static Lock               dlock;
+static Lock dlock;
 static struct dllist_head dcache[DCSIZE];
-static struct dllist_head dfreelist; 
-static struct dllist_head dnewlist; 
+static struct dllist_head dfreelist;
+static struct dllist_head dnewlist;
 
-
-static inline int  DC_Hash(PDirInode pdi) 
+static inline int DC_Hash(PDirInode pdi)
 {
-	return ((int) ((unsigned long)pdi >> 5) % DCSIZE);
+    return ((int)((unsigned long)pdi >> 5) % DCSIZE);
 }
-
 
 /* get more free entries in case freelist is empty */
 static void dc_Grow(int count)
 {
-	PDCEntry pdce;
-	int i;
+    PDCEntry pdce;
+    int i;
 
-	for ( i = 0 ; i < count ; i++ ) {
-		pdce = malloc(sizeof(*pdce));
-		CODA_ASSERT(pdce);
-		memset(pdce, 0, sizeof(*pdce));
+    for (i = 0; i < count; i++) {
+        pdce = malloc(sizeof(*pdce));
+        CODA_ASSERT(pdce);
+        memset(pdce, 0, sizeof(*pdce));
 
-		list_head_init(&pdce->dc_hash);
-		list_head_init(&pdce->dc_list);
+        list_head_init(&pdce->dc_hash);
+        list_head_init(&pdce->dc_list);
 
-		ObtainWriteLock(&dlock); 
-		list_add(&pdce->dc_list, &dfreelist);
-		ReleaseWriteLock(&dlock);
-	}	
+        ObtainWriteLock(&dlock);
+        list_add(&pdce->dc_list, &dfreelist);
+        ReleaseWriteLock(&dlock);
+    }
 }
 
 /* get a free cache entry; clean it up before handing it out */
 static PDCEntry dc_GetFree(void)
 {
-	PDCEntry pdce = NULL;
+    PDCEntry pdce = NULL;
 
- again:
-	ObtainWriteLock(&dlock); 
-	if ( !list_empty(&dfreelist) ) {
-		pdce = list_entry(dfreelist.next, struct DCEntry, dc_list);
-		list_del(&pdce->dc_list);
-		list_del(&pdce->dc_hash);
+again:
+    ObtainWriteLock(&dlock);
+    if (!list_empty(&dfreelist)) {
+        pdce = list_entry(dfreelist.next, struct DCEntry, dc_list);
+        list_del(&pdce->dc_list);
+        list_del(&pdce->dc_hash);
 
-		/* clean it up before use */
-		if ( DH_Data(&pdce->dc_dh) )
-			DH_FreeData(&pdce->dc_dh);
-		memset(pdce, 0, sizeof(*pdce));
-		list_head_init(&pdce->dc_list);
-		list_head_init(&pdce->dc_hash);
-		DH_Init(&pdce->dc_dh);
-	}
-	ReleaseWriteLock(&dlock);
-	if ( pdce ) 
-		return pdce;
+        /* clean it up before use */
+        if (DH_Data(&pdce->dc_dh))
+            DH_FreeData(&pdce->dc_dh);
+        memset(pdce, 0, sizeof(*pdce));
+        list_head_init(&pdce->dc_list);
+        list_head_init(&pdce->dc_hash);
+        DH_Init(&pdce->dc_dh);
+    }
+    ReleaseWriteLock(&dlock);
+    if (pdce)
+        return pdce;
 
-	dc_Grow(DCGROWTH);
-	goto again;
+    dc_Grow(DCGROWTH);
+    goto again;
 }
 
 PDCEntry DC_Get(PDirInode pdi)
 {
-	int hash;
-	struct DCEntry *pdce;
-	struct dllist_head *lh, *tmp;
-	
-	CODA_ASSERT(pdi);
-	hash = DC_Hash(pdi);
+    int hash;
+    struct DCEntry *pdce;
+    struct dllist_head *lh, *tmp;
 
-	/* see if it is hashed already */
-	ObtainWriteLock(&dlock); 
-	lh = &dcache[hash]; 
-	tmp = lh;
-	while ( (tmp = tmp->next) != lh ) {
-		pdce = list_entry(tmp, struct DCEntry, dc_hash);
-		if ( pdi == pdce->dc_pdi ) {
-			pdce->dc_count++;
-			/* remove from freelist if first user */
-			if ( pdce->dc_count == 1 ) {
-				list_del(&pdce->dc_list);
-				CODA_ASSERT(!DC_Dirty(pdce));
-			}
+    CODA_ASSERT(pdi);
+    hash = DC_Hash(pdi);
 
-			/* if data was flushed, refresh it */
-			if ( !pdce->dc_dh.dh_data) {
-				pdce->dc_dh.dh_data = DI_DiToDh(pdi);
-				pdce->dc_refcount = pdi->di_refcount;
-			}
+    /* see if it is hashed already */
+    ObtainWriteLock(&dlock);
+    lh  = &dcache[hash];
+    tmp = lh;
+    while ((tmp = tmp->next) != lh) {
+        pdce = list_entry(tmp, struct DCEntry, dc_hash);
+        if (pdi == pdce->dc_pdi) {
+            pdce->dc_count++;
+            /* remove from freelist if first user */
+            if (pdce->dc_count == 1) {
+                list_del(&pdce->dc_list);
+                CODA_ASSERT(!DC_Dirty(pdce));
+            }
 
-			ReleaseWriteLock(&dlock);
-			return pdce;
-		}
-	}
+            /* if data was flushed, refresh it */
+            if (!pdce->dc_dh.dh_data) {
+                pdce->dc_dh.dh_data = DI_DiToDh(pdi);
+                pdce->dc_refcount   = pdi->di_refcount;
+            }
 
-	/* release the lock since we are out of the hash table */
-	ReleaseWriteLock(&dlock);
+            ReleaseWriteLock(&dlock);
+            return pdce;
+        }
+    }
 
-	/* not found use a new one */
-	pdce = dc_GetFree();
-	pdce->dc_count = 1;
-	pdce->dc_pdi = pdi;
+    /* release the lock since we are out of the hash table */
+    ReleaseWriteLock(&dlock);
 
-	/* re-lock since we want to mess with the lists again */
-	ObtainWriteLock(&dlock); 
-	list_add(&pdce->dc_hash, &dcache[hash]);
+    /* not found use a new one */
+    pdce           = dc_GetFree();
+    pdce->dc_count = 1;
+    pdce->dc_pdi   = pdi;
 
-	/* copy in the directory handle, init lock, and copy data */
-	pdce->dc_dh.dh_data = DI_DiToDh(pdi);
-	CODA_ASSERT(!DC_Dirty(pdce));
-	pdce->dc_refcount = pdi->di_refcount;
+    /* re-lock since we want to mess with the lists again */
+    ObtainWriteLock(&dlock);
+    list_add(&pdce->dc_hash, &dcache[hash]);
 
-	ReleaseWriteLock(&dlock);
-	return pdce;
+    /* copy in the directory handle, init lock, and copy data */
+    pdce->dc_dh.dh_data = DI_DiToDh(pdi);
+    CODA_ASSERT(!DC_Dirty(pdce));
+    pdce->dc_refcount = pdi->di_refcount;
+
+    ReleaseWriteLock(&dlock);
+    return pdce;
 }
-
-
 
 /* Commit a DirInode - if new move it from the dnewlist to the hash list */
 /* called by VN_DCommit when the RVM Dir Inode for mkdir is created */
 void DC_Rehash(PDCEntry pdce)
 {
-	int hash;
+    int hash;
 
-	CODA_ASSERT(pdce);
+    CODA_ASSERT(pdce);
 
-	hash = DC_Hash(pdce->dc_pdi);
+    hash = DC_Hash(pdce->dc_pdi);
 
-	ObtainWriteLock(&dlock); 
+    ObtainWriteLock(&dlock);
 
-	list_del(&pdce->dc_hash);
-	list_add(&pdce->dc_hash, &dcache[hash]);
-	ReleaseWriteLock(&dlock);
+    list_del(&pdce->dc_hash);
+    list_add(&pdce->dc_hash, &dcache[hash]);
+    ReleaseWriteLock(&dlock);
 }
 
 /* totally remove a cache entry & its data;
    careful - we are calling free! */
 void DC_Drop(PDCEntry pdce)
 {
-	if ( pdce == NULL )
-		return ;
-	
-	ObtainWriteLock(&dlock); 
-	list_del(&pdce->dc_hash);
-	list_del(&pdce->dc_list);
-	ReleaseWriteLock(&dlock);
+    if (pdce == NULL)
+        return;
 
-	DH_FreeData(&pdce->dc_dh);
-	free(pdce);
+    ObtainWriteLock(&dlock);
+    list_del(&pdce->dc_hash);
+    list_del(&pdce->dc_list);
+    ReleaseWriteLock(&dlock);
+
+    DH_FreeData(&pdce->dc_dh);
+    free(pdce);
 }
 
 void DC_HashInit(void)
 {
-	int i;
+    int i;
 
-	Lock_Init(&dlock);
+    Lock_Init(&dlock);
 
-	for ( i=0 ; i < DCSIZE ; i++ ) {
-		list_head_init(&dcache[i]);
-	}
-	list_head_init(&dfreelist);
-	list_head_init(&dnewlist);
+    for (i = 0; i < DCSIZE; i++) {
+        list_head_init(&dcache[i]);
+    }
+    list_head_init(&dfreelist);
+    list_head_init(&dnewlist);
 }
-	
 
 void DC_Put(PDCEntry pdce)
 {
+    ObtainWriteLock(&dlock);
 
-	ObtainWriteLock(&dlock); 
+    if (pdce->dc_count == 1) {
+        list_add(&pdce->dc_list, dfreelist.prev);
+        CODA_ASSERT(!DC_Dirty(pdce));
+    }
+    pdce->dc_count--;
 
-	if ( pdce->dc_count == 1 ) {
-		list_add(&pdce->dc_list, dfreelist.prev);
-		CODA_ASSERT(!DC_Dirty(pdce));
-	} 
-	pdce->dc_count--;
-
-	ReleaseWriteLock(&dlock);
-	return;
+    ReleaseWriteLock(&dlock);
+    return;
 }
 
-int DC_Count(PDCEntry pdce) 
+int DC_Count(PDCEntry pdce)
 {
-	return pdce->dc_count;
+    return pdce->dc_count;
 }
 
-void DC_SetCount(PDCEntry pdce, int count) 
+void DC_SetCount(PDCEntry pdce, int count)
 {
-	pdce->dc_count = count; 
+    pdce->dc_count = count;
 }
-
-
 
 /* called by ViceMakedir */
 PDCEntry DC_New(void)
 {
-	PDCEntry pdce;
+    PDCEntry pdce;
 
-	pdce = dc_GetFree();
-	pdce->dc_count = 1;
-	pdce->dc_pdi = NULL;
-	pdce->dc_refcount = 1;
-	DC_SetDirty(pdce, 1);
+    pdce              = dc_GetFree();
+    pdce->dc_count    = 1;
+    pdce->dc_pdi      = NULL;
+    pdce->dc_refcount = 1;
+    DC_SetDirty(pdce, 1);
 
-	ObtainWriteLock(&dlock); 
-	list_add(&pdce->dc_hash, &dnewlist);
-	ReleaseWriteLock(&dlock);
+    ObtainWriteLock(&dlock);
+    list_add(&pdce->dc_hash, &dnewlist);
+    ReleaseWriteLock(&dlock);
 
-	return pdce;
+    return pdce;
 }
-
 
 /* utility functions for setting/getting fields */
 inline int DC_Refcount(PDCEntry pdc)
 {
-	return pdc->dc_refcount;
+    return pdc->dc_refcount;
 }
 
 inline void DC_SetRefcount(PDCEntry pdc, int count)
 {
-	pdc->dc_refcount = count;
+    pdc->dc_refcount = count;
 }
 
 PDirHandle DC_DC2DH(PDCEntry pdce)
 {
-	CODA_ASSERT(pdce);
-	return &pdce->dc_dh;
+    CODA_ASSERT(pdce);
+    return &pdce->dc_dh;
 }
 
 PDCEntry DC_DH2DC(PDirHandle pdh)
 {
-	CODA_ASSERT(pdh);
-	return list_entry(pdh, struct DCEntry, dc_dh);
+    CODA_ASSERT(pdh);
+    return list_entry(pdh, struct DCEntry, dc_dh);
 }
-
 
 PDirInode DC_DC2DI(PDCEntry pdce)
 {
-	CODA_ASSERT(pdce);
-	return pdce->dc_pdi;
+    CODA_ASSERT(pdce);
+    return pdce->dc_pdi;
 }
 
 void DC_SetDirh(PDCEntry pdce, PDirHeader pdh)
 {
-	CODA_ASSERT(pdce);
-	pdce->dc_dh.dh_data = pdh;
+    CODA_ASSERT(pdce);
+    pdce->dc_dh.dh_data = pdh;
 }
 
 void DC_SetDI(PDCEntry pdce, PDirInode pdi)
 {
-	CODA_ASSERT(pdce);
-	pdce->dc_pdi = pdi;
+    CODA_ASSERT(pdce);
+    pdce->dc_pdi = pdi;
 }
-
 
 void DC_SetCowpdi(PDCEntry pdce, PDirInode pdi)
 {
-	CODA_ASSERT(pdce);
-	pdce->dc_cowpdi = pdi;
-	pdce->dc_pdi = NULL;
+    CODA_ASSERT(pdce);
+    pdce->dc_cowpdi = pdi;
+    pdce->dc_pdi    = NULL;
 }
 
 PDirInode DC_Cowpdi(PDCEntry pdce)
 {
-	CODA_ASSERT(pdce);
-	return pdce->dc_cowpdi;
+    CODA_ASSERT(pdce);
+    return pdce->dc_cowpdi;
 }
-
 
 void DC_SetDirty(PDCEntry pdce, int flag)
 {
-	if ( !pdce ) 
-		return;
-	pdce->dc_dh.dh_dirty = flag;
+    if (!pdce)
+        return;
+    pdce->dc_dh.dh_dirty = flag;
 }
 
 int DC_Dirty(PDCEntry pdce)
 {
-	CODA_ASSERT(pdce);
-	return pdce->dc_dh.dh_dirty;
+    CODA_ASSERT(pdce);
+    return pdce->dc_dh.dh_dirty;
 }
-		
 
 /* called by PutObjects to move the directory handle after copy on write */
 void DC_MoveDH(PDCEntry source, PDCEntry target)
 {
-	target->dc_dh.dh_data = source->dc_dh.dh_data;
-	source->dc_dh.dh_data = NULL;
+    target->dc_dh.dh_data = source->dc_dh.dh_data;
+    source->dc_dh.dh_data = NULL;
 }
-
-

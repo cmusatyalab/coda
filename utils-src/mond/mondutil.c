@@ -30,8 +30,6 @@ Mellon the rights to redistribute these changes without encumbrance.
 */
 #endif /*_BLURB_*/
 
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif __cplusplus
@@ -63,7 +61,7 @@ extern "C" {
 #include "ohash.h"
 #include "version.h"
 
-static int Curr_Mon = -1;
+static int Curr_Mon  = -1;
 static int Curr_Mday = -1;
 static MUTEX DateLock;
 static CONDITION DoLobotomy;
@@ -88,80 +86,80 @@ extern PutMagicNumber(void);
 bool lobotomy = mfalse;
 struct sigcontext OldContext;
 
-void SetDate() {
+void SetDate()
+{
     long curr_time = time(0);
-    struct tm *lt = localtime(&curr_time);
+    struct tm *lt  = localtime(&curr_time);
 
-    Curr_Mon = lt->tm_mon;
+    Curr_Mon  = lt->tm_mon;
     Curr_Mday = lt->tm_mday;
-
 }
-
 
 int DateChanged()
 {
     /* only one thread can switch logs per day */
     ObtainWriteLock(&DateLock);
     long curr_time = time(0);
-    struct tm *lt = localtime(&curr_time);
-    
+    struct tm *lt  = localtime(&curr_time);
+
     if (Curr_Mon == lt->tm_mon && Curr_Mday == lt->tm_mday) {
-	ReleaseWriteLock(&DateLock);
-	return(0);
+        ReleaseWriteLock(&DateLock);
+        return (0);
     }
 
-    Curr_Mon = lt->tm_mon;
+    Curr_Mon  = lt->tm_mon;
     Curr_Mday = lt->tm_mday;
     ReleaseWriteLock(&DateLock);
-    return(1);
+    return (1);
 }
 
-
-void InitRPC(int VmonPort) {
-    long rc = 0;
+void InitRPC(int VmonPort)
+{
+    long rc          = 0;
     int RPC2_TimeOut = 30;
     int RPC2_Retries = 5;
 
     /* Initialize LWP. */
     PROCESS lwpid;
 
-    if ((rc = LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, &lwpid)) != LWP_SUCCESS)
-	Die("InitRPC: LWP_Init failed (%d)\n", rc);
+    if ((rc = LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, &lwpid)) !=
+        LWP_SUCCESS)
+        Die("InitRPC: LWP_Init failed (%d)\n", rc);
 
     if ((rc = IOMGR_Initialize()) != LWP_SUCCESS)
-	Die("InitRPC: IOMGR Init failed (%d)\n", rc);
+        Die("InitRPC: IOMGR Init failed (%d)\n", rc);
 
     RPC2_PortalIdent portal1;
-    portal1.Tag = RPC2_PORTALBYINETNUMBER;
+    portal1.Tag                  = RPC2_PORTALBYINETNUMBER;
     portal1.Value.InetPortNumber = htons(VmonPort);
     RPC2_PortalIdent *portallist[1];
     portallist[0] = &portal1;
     struct timeval tv;
-    tv.tv_sec = RPC2_TimeOut;
+    tv.tv_sec  = RPC2_TimeOut;
     tv.tv_usec = 0;
-    rc = RPC2_Init(RPC2_VERSION, 0, portallist, 1, RPC2_Retries,&tv);
+    rc         = RPC2_Init(RPC2_VERSION, 0, portallist, 1, RPC2_Retries, &tv);
     if (rc <= RPC2_ELIMIT)
-	Die("InitRPC: RPC2_Init failed (%d)", rc);
+        Die("InitRPC: RPC2_Init failed (%d)", rc);
     if (rc != RPC2_SUCCESS) {
-	LogMsg(0,LogLevel,LogFile, "InitRPC: RPC2_Init warning (%d)", rc);
-	rc = 0;
+        LogMsg(0, LogLevel, LogFile, "InitRPC: RPC2_Init warning (%d)", rc);
+        rc = 0;
     }
 
     /* set debug level in lwp */
     if (LogLevel >= 1010)
-	lwp_debug = 1;
+        lwp_debug = 1;
 
     /* Export the mond service. */
     RPC2_SubsysIdent server;
-    server.Tag = RPC2_SUBSYSBYID;
+    server.Tag            = RPC2_SUBSYSBYID;
     server.Value.SubsysId = MondSubsysId;
     if ((rc = RPC2_Export(&server)) != RPC2_SUCCESS)
-	Die("InitRPC: RPC2_Export failed (%d)", rc);
+        Die("InitRPC: RPC2_Export failed (%d)", rc);
     /* get our portal number */
     if (rpc2_LocalPortal.Tag != RPC2_PORTALBYINETNUMBER)
-	Die("No portal number.  Tag value (%d)\n",rpc2_LocalPortal.Tag);
-    LogMsg(0,LogLevel,LogFile,
-	   "My portnum is %d",ntohs(rpc2_LocalPortal.Value.InetPortNumber));
+        Die("No portal number.  Tag value (%d)\n", rpc2_LocalPortal.Tag);
+    LogMsg(0, LogLevel, LogFile, "My portnum is %d",
+           ntohs(rpc2_LocalPortal.Value.InetPortNumber));
 }
 
 /*
@@ -180,36 +178,40 @@ void InitRPC(int VmonPort) {
 ** SIGKILL...
 */
 
-void InitSignals() {
+void InitSignals()
+{
     DoLobotomy = new char;
     signal(SIGQUIT, (void (*)(int))QuitSignal);
     signal(SIGTERM, (void (*)(int))TermSignal);
     signal(SIGCHLD, (void (*)(int))ChildSignal);
     signal(SIGTRAP, (void (*)(int))zombie);
-    signal(SIGILL,  (void (*)(int))zombie);
-    signal(SIGBUS,  (void (*)(int))zombie);
+    signal(SIGILL, (void (*)(int))zombie);
+    signal(SIGBUS, (void (*)(int))zombie);
     signal(SIGSEGV, (void (*)(int))zombie);
-    signal(SIGFPE,  (void (*)(int))zombie);  // software exception
+    signal(SIGFPE, (void (*)(int))zombie); // software exception
 }
 
-static void RestoreSignals() {
+static void RestoreSignals()
+{
     signal(SIGTRAP, (void (*)(int))SIG_DFL);
-    signal(SIGILL,  (void (*)(int))SIG_DFL);
-    signal(SIGBUS,  (void (*)(int))SIG_DFL);
+    signal(SIGILL, (void (*)(int))SIG_DFL);
+    signal(SIGBUS, (void (*)(int))SIG_DFL);
     signal(SIGSEGV, (void (*)(int))SIG_DFL);
-    signal(SIGFPE,  (void (*)(int))SIG_DFL);
+    signal(SIGFPE, (void (*)(int))SIG_DFL);
 }
 
-static void QuitSignal() {
-    LogMsg(0,LogLevel,LogFile, "Quit signal caught");
-    LogMsg(0,LogLevel,LogFile, "***** Terminating");
+static void QuitSignal()
+{
+    LogMsg(0, LogLevel, LogFile, "Quit signal caught");
+    LogMsg(0, LogLevel, LogFile, "***** Terminating");
     Data_Done();
     Log_Done();
     exit(EXIT_SUCCESS);
 }
 
-static void TermSignal() {
-    LogMsg(0,LogLevel,LogFile, "Term signal caught");
+static void TermSignal()
+{
+    LogMsg(0, LogLevel, LogFile, "Term signal caught");
     lobotomy = mtrue;
     /* wake up the BrainSurgeon */
     lwp_debug = 1;
@@ -217,15 +219,15 @@ static void TermSignal() {
     return;
 }
 
-static void ChildSignal() {
+static void ChildSignal()
+{
     /* just wait on it and bail */
     union wait status;
     int pid;
-    pid = wait3(&status,WNOHANG,0);
+    pid = wait3(&status, WNOHANG, 0);
     if (pid == -1)
-	LogMsg(0,LogLevel,LogFile,
-	       "Wait3 on SigChld failed: errno (%d)",
-	       errno);
+        LogMsg(0, LogLevel, LogFile, "Wait3 on SigChld failed: errno (%d)",
+               errno);
     started = 0;
 }
 
@@ -233,10 +235,10 @@ bbuf *Buff_Init()
 {
     bbuf *buffer;
     if (BufSize < 1)
-	Die("Buff_Init: Buffer Size too small (%d)", BufSize);
+        Die("Buff_Init: Buffer Size too small (%d)", BufSize);
     if (LowWater < 0)
-	Die("Buff_Init: Low Water Mark negative (%d)", LowWater);
-    buffer = new bbuf(BufSize,LowWater);
+        Die("Buff_Init: Low Water Mark negative (%d)", LowWater);
+    buffer = new bbuf(BufSize, LowWater);
 
     session_pool.putSlot(session_pool.getSlot());
     comm_pool.putSlot(comm_pool.getSlot());
@@ -258,43 +260,45 @@ bbuf *Buff_Init()
     return buffer;
 }
 
-void Log_Init() {
-    char LogFileName[256];	/* "WORKINGDIR/LOGFILE_PREFIX.MMDD" */
+void Log_Init()
+{
+    char LogFileName[256]; /* "WORKINGDIR/LOGFILE_PREFIX.MMDD" */
     {
-	strcpy(LogFileName, WorkingDir);
-	strcat(LogFileName, "/");
-	strcat(LogFileName, LOGFILE_PREFIX);
-	strcat(LogFileName, ".");
-	char mon_mday[5];
-	sprintf(mon_mday, "%02d%02d", Curr_Mon + 1, Curr_Mday);
-	strcat(LogFileName, mon_mday);
+        strcpy(LogFileName, WorkingDir);
+        strcat(LogFileName, "/");
+        strcat(LogFileName, LOGFILE_PREFIX);
+        strcat(LogFileName, ".");
+        char mon_mday[5];
+        sprintf(mon_mday, "%02d%02d", Curr_Mon + 1, Curr_Mday);
+        strcat(LogFileName, mon_mday);
     }
 
     LogFile = fopen(LogFileName, "a");
     if (LogFile == NULL) {
-	fprintf(stderr, "LOGFILE (%s) initialization failed\n", LogFileName);
-	exit(EXIT_FAILURE);
+        fprintf(stderr, "LOGFILE (%s) initialization failed\n", LogFileName);
+        exit(EXIT_FAILURE);
     }
 
     struct timeval now;
     gettimeofday(&now, 0);
     char *s = ctime(&now.tv_sec);
-    LogMsg(0,LogLevel,LogFile,"LOGFILE initialized with LogLevel = %d at %s",
-	   LogLevel,ctime(&now.tv_sec));
-    LogMsg(0,LogLevel,LogFile,"My pid is %d",getpid());
+    LogMsg(0, LogLevel, LogFile, "LOGFILE initialized with LogLevel = %d at %s",
+           LogLevel, ctime(&now.tv_sec));
+    LogMsg(0, LogLevel, LogFile, "My pid is %d", getpid());
 }
 
-void Log_Done() {
+void Log_Done()
+{
     struct timeval now;
     gettimeofday(&now, 0);
-    ClientTable->LogConnections(0,LogFile);
+    ClientTable->LogConnections(0, LogFile);
     ClientTable->PurgeConnections();
-    LogMsg(0, LogLevel, LogFile,"LOGFILE terminated at %s", ctime(&now.tv_sec));
+    LogMsg(0, LogLevel, LogFile, "LOGFILE terminated at %s",
+           ctime(&now.tv_sec));
 
     fclose(LogFile);
     LogFile = 0;
 }
-
 
 void Data_Init()
 {
@@ -306,11 +310,11 @@ void Data_Init()
     char mon_mday[5];
     sprintf(mon_mday, "%02d%02d", Curr_Mon + 1, Curr_Mday);
     strcat(DataFileName, mon_mday);
-    
+
     DataFile = fopen(DataFileName, "a");
     PutMagicNumber();
     if (DataFile == NULL) {
-	Die("Data_Init(): Open on %s failed\n",DataFileName);
+        Die("Data_Init(): Open on %s failed\n", DataFileName);
     }
 }
 
@@ -323,18 +327,18 @@ void Data_Done()
 void BrainSurgeon()
 {
     bool rc;
-    
-    LogMsg(1000,LogLevel,LogFile,"Starting Brain Surgeon thread");
+
+    LogMsg(1000, LogLevel, LogFile, "Starting Brain Surgeon thread");
     if (lobotomy == mfalse)
-	LWP_WaitProcess(DoLobotomy);
+        LWP_WaitProcess(DoLobotomy);
     /* we only get here if a lobotomy has been arranged */
-    LogMsg(0,LogLevel,LogFile, "***** Lobotomizing");
+    LogMsg(0, LogLevel, LogFile, "***** Lobotomizing");
     extern bbuf *buffer;
     buffer->flush_the_tank();
-    while((rc = buffer->empty()) != mtrue) {
-	LWP_DispatchProcess();
+    while ((rc = buffer->empty()) != mtrue) {
+        LWP_DispatchProcess();
     }
-/*
+    /*
 ** if we've gotten here, we know that no new requests have
 ** entered the buffer, and the buffer is empty, so die
 ** gracefully.
@@ -349,61 +353,60 @@ void PrintPinged(RPC2_Handle cid)
 {
     char *Hostname;
     Hostname = HostNameOfConn(cid);
-    LogMsg(0,LogLevel,LogFile,"Pinged by %s",Hostname);
-    delete [] Hostname;
+    LogMsg(0, LogLevel, LogFile, "Pinged by %s", Hostname);
+    delete[] Hostname;
 }
 
-int CheckCVResult(RPC2_Handle cid, int code, const char *operation, 
-		  const char *badClientType)
+int CheckCVResult(RPC2_Handle cid, int code, const char *operation,
+                  const char *badClientType)
 {
     char *hostname = HostNameOfConn(cid);
     if (code == MOND_NOTCONNECTED) {
-	LogMsg(0,LogLevel,LogFile,
-	       "Unknown host %s tried to report a %s",
-	       hostname,operation);
+        LogMsg(0, LogLevel, LogFile, "Unknown host %s tried to report a %s",
+               hostname, operation);
     } else if (code == MOND_BADCONNECTION) {
-	LogMsg(0,LogLevel,LogFile,
-	       "Host %s claims to be a %s, but tried to report a %s",
-	       hostname,badClientType,operation);
-	LogMsg(0,LogLevel,LogFile,
-	       "Dropping connection with %s",hostname);
-	ClientTable->RemoveConnection(cid);
+        LogMsg(0, LogLevel, LogFile,
+               "Host %s claims to be a %s, but tried to report a %s", hostname,
+               badClientType, operation);
+        LogMsg(0, LogLevel, LogFile, "Dropping connection with %s", hostname);
+        ClientTable->RemoveConnection(cid);
     } else {
-	LogMsg(0,LogLevel,LogFile,
-	       "Unkown return code (%d) looking up connection to %s",
-	       code,hostname);
-	LogMsg(0,LogLevel,LogFile,
-	       "Dropping connection with %s",hostname);
-	ClientTable->RemoveConnection(cid);
+        LogMsg(0, LogLevel, LogFile,
+               "Unkown return code (%d) looking up connection to %s", code,
+               hostname);
+        LogMsg(0, LogLevel, LogFile, "Dropping connection with %s", hostname);
+        ClientTable->RemoveConnection(cid);
     }
-    delete [] hostname;
+    delete[] hostname;
     return code;
 }
 
-			       
-void zombie(int sig, int code, struct sigcontext *scp) {
-    static death=0;
+void zombie(int sig, int code, struct sigcontext *scp)
+{
+    static death = 0;
     if (!death) {
-	death = 1;
-	memcpy(&OldContext, scp, sizeof(struct sigcontext));
-	LogMsg(0, 0, LogFile,  "****** INTERRUPTED BY SIGNAL %d CODE %d ******", sig, code);
-	LogMsg(0, 0, LogFile,  "****** Aborting outstanding transactions, stand by...");
-	
-	LogMsg(0, 0, LogFile, "To debug via gdb: attach %d, setcontext OldContext", getpid());
-	LogMsg(0, 0, LogFile, "Becoming a zombie now ........");
-	task_suspend(task_self());
+        death = 1;
+        memcpy(&OldContext, scp, sizeof(struct sigcontext));
+        LogMsg(0, 0, LogFile, "****** INTERRUPTED BY SIGNAL %d CODE %d ******",
+               sig, code);
+        LogMsg(0, 0, LogFile,
+               "****** Aborting outstanding transactions, stand by...");
+
+        LogMsg(0, 0, LogFile,
+               "To debug via gdb: attach %d, setcontext OldContext", getpid());
+        LogMsg(0, 0, LogFile, "Becoming a zombie now ........");
+        task_suspend(task_self());
     }
-    death =0;
+    death = 0;
 }
 
 void LogEventArray(VmonSessionEventArray *events)
 {
-    LogMsg(1000,LogLevel,LogFile,"Current event array contents");
-    for (int i=0;i<nVSEs;i++) {
-	VmonSessionEvent *se = &((&events->Event0)[i]);
-	LogMsg(1000,LogLevel,LogFile,"\t%d\t%d\t%d\t%d\t%d",
-	       se->Opcode,se->SuccessCount,
-	       se->SigmaT,se->SigmaTSquared,
-	       se->FailureCount);
+    LogMsg(1000, LogLevel, LogFile, "Current event array contents");
+    for (int i = 0; i < nVSEs; i++) {
+        VmonSessionEvent *se = &((&events->Event0)[i]);
+        LogMsg(1000, LogLevel, LogFile, "\t%d\t%d\t%d\t%d\t%d", se->Opcode,
+               se->SuccessCount, se->SigmaT, se->SigmaTSquared,
+               se->FailureCount);
     }
 }

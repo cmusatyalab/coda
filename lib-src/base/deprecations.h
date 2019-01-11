@@ -28,5 +28,4 @@ Coda are listed in the file CREDITS.
  */
 #define WARN_SINGLE_HOMING //__attribute__ ((deprecated ("Prevents having multihomed servers")))
 
-#endif  /* _CODA_DEPRECATIONS_H_ */
-
+#endif /* _CODA_DEPRECATIONS_H_ */

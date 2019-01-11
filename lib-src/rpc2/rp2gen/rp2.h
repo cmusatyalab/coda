@@ -57,8 +57,7 @@ struct subsystem {
     char *timeout;
 };
 
-/* This structure is used for typed variables (this includes structure fields)
- */
+/* This structure is used for typed variables (this includes structure fields) */
 
 typedef struct {
     char *name;

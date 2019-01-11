@@ -1,23 +1,23 @@
 /* BLURB lgpl
-                        Coda File System
-                            Release 6
+			Coda File System
+			    Release 6
 
-          Copyright (c) 2005-2017 Carnegie Mellon University
-                  Additional copyrights listed below
+	  Copyright (c) 2005-2017 Carnegie Mellon University
+		  Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
 the  terms of the  GNU  Library General Public Licence  Version 2,  as
 shown in the file LICENSE. The technical and financial contributors to
 Coda are listed in the file CREDITS.
 
-                        Additional copyrights
+			Additional copyrights
 #*/
 
 #include <arpa/inet.h>
-#include <assert.h>
-#include <errno.h>
 #include <netinet/in.h>
 #include <string.h>
+#include <errno.h>
+#include <assert.h>
 
 #include <rpc2/secure.h>
 

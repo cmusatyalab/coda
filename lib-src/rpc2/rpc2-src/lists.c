@@ -37,15 +37,15 @@ Pittsburgh, PA.
 
 */
 
-#include <assert.h>
-#include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <sys/socket.h>
-#include <sys/time.h>
-#include <sys/types.h>
 #include <unistd.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <sys/time.h>
+#include <assert.h>
 
 #include "rpc2.private.h"
 
@@ -216,8 +216,8 @@ void rpc2_ActivateSle(struct SL_Entry *selem, struct timeval *exptime)
 
     oldt = TM_GetEarliest(rpc2_TimerQueue);
     /* if the new entry expires before any previous timeout, signal the socket
-   * listener to recheck the timerqueue (being able to rely on the
-   * availability of timercmp would be nice) */
+     * listener to recheck the timerqueue (being able to rely on the
+     * availability of timercmp would be nice) */
     if (!oldt || oldt->TimeLeft.tv_sec > t->TotalTime.tv_sec ||
         (oldt->TimeLeft.tv_sec == t->TotalTime.tv_sec &&
          oldt->TimeLeft.tv_usec > t->TotalTime.tv_usec))

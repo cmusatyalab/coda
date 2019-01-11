@@ -54,36 +54,37 @@ extern int wildmat(char *text, char *pattern);
    Garbage may be copied into outvv for non-replicated files
    
    Returns -1 after printing error msg on failures. */
-int getfid(char *path, ViceFid *outfid, char *outrealm, ViceVersionVector *outvv)
+int getfid(char *path, ViceFid *outfid, char *outrealm,
+           ViceVersionVector *outvv)
 {
     int rc;
     struct ViceIoctl vi;
     char junk[2048];
 
-    vi.in = NULL;
-    vi.in_size = 0;
-    vi.out = junk;
-    vi.out_size = (short) sizeof(junk);
-    memset(junk, 0, (int) sizeof(junk));
+    vi.in       = NULL;
+    vi.in_size  = 0;
+    vi.out      = junk;
+    vi.out_size = (short)sizeof(junk);
+    memset(junk, 0, (int)sizeof(junk));
 
     rc = pioctl(path, _VICEIOCTL(_VIOC_GETFID), &vi, 0);
 
     /* Easy: no conflicts */
     if (!rc) {
-	memcpy(outfid, junk, sizeof(ViceFid));
-	memcpy(outvv, junk+sizeof(ViceFid), sizeof(ViceVersionVector));
-	strcpy(outrealm, junk+sizeof(ViceFid)+sizeof(ViceVersionVector));
-	return(0);
+        memcpy(outfid, junk, sizeof(ViceFid));
+        memcpy(outvv, junk + sizeof(ViceFid), sizeof(ViceVersionVector));
+        strcpy(outrealm, junk + sizeof(ViceFid) + sizeof(ViceVersionVector));
+        return (0);
     }
 
     /* if there are conflicts then can't use this object for the
        repair anyway.  A begin repair should have been done by this
        point. */
-    return(-1);
+    return (-1);
 }
 
-
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     struct stat statbuf;
     int rc;
     ViceFid fixfid;
@@ -94,38 +95,41 @@ int main(int argc, char **argv) {
     char space[2048];
 
     if (argc != 3) {
-	fprintf(stderr, "Usage: %s <inc-file-name> <merged-file-name>\n", argv[0]);
-	exit(EXIT_FAILURE);
+        fprintf(stderr, "Usage: %s <inc-file-name> <merged-file-name>\n",
+                argv[0]);
+        exit(EXIT_FAILURE);
     }
 
     /*  make sure repair file exists  */
     rc = stat(argv[2], &statbuf);
     if (rc != 0) {
-	fprintf(stderr, "Couldn't find %s(errno = %d)\n", argv[2], errno);
-	exit(EXIT_FAILURE);
+        fprintf(stderr, "Couldn't find %s(errno = %d)\n", argv[2], errno);
+        exit(EXIT_FAILURE);
     }
     if (!(statbuf.st_mode & S_IFREG)) {
-	fprintf(stderr, "File %s cannot be used for repair\n", argv[2]);
-	exit(EXIT_FAILURE);
+        fprintf(stderr, "File %s cannot be used for repair\n", argv[2]);
+        exit(EXIT_FAILURE);
     }
 
     if (!getfid(argv[2], &fixfid, fixrealm, &fixvv))
-	sprintf(fixpath, "@%08x.%08x.%08x@%s", fixfid.Volume, fixfid.Vnode, fixfid.Unique, fixrealm);
-    else strcpy(fixpath, argv[2]);
-	
+        sprintf(fixpath, "@%08x.%08x.%08x@%s", fixfid.Volume, fixfid.Vnode,
+                fixfid.Unique, fixrealm);
+    else
+        strcpy(fixpath, argv[2]);
+
     /* do the repair */
-    vioc.in_size = (short)(1+strlen(fixpath));
-    vioc.in = fixpath;
+    vioc.in_size  = (short)(1 + strlen(fixpath));
+    vioc.in       = fixpath;
     vioc.out_size = (short)sizeof(space);
-    vioc.out = space;
+    vioc.out      = space;
     memset(space, 0, sizeof(space));
     rc = pioctl(argv[1], _VICEIOCTL(_VIOC_REPAIR), &vioc, 0);
     if (rc < 0 && errno != ETOOMANYREFS) {
-	fprintf(stderr, "Error %d for repair\n", errno);
-	exit(EXIT_FAILURE);
+        fprintf(stderr, "Error %d for repair\n", errno);
+        exit(EXIT_FAILURE);
     }
-	
-    if (stat(argv[1], &statbuf)) 
-	exit(EXIT_FAILURE);
+
+    if (stat(argv[1], &statbuf))
+        exit(EXIT_FAILURE);
     exit(EXIT_SUCCESS);
 }

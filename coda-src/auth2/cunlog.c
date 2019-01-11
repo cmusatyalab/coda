@@ -57,14 +57,14 @@ extern "C" {
 }
 #endif
 
-
 int main(int argc, char **argv)
 {
     const char *realm = "", *p = NULL;
 
     if (argc == 2) {
-	SplitRealmFromName(argv[1], &p);
-	if (p) realm = p;
+        SplitRealmFromName(argv[1], &p);
+        if (p)
+            realm = p;
     }
 
     codaconf_init("venus.conf");

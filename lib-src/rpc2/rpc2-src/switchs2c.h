@@ -1,6 +1,7 @@
-/* This file was generated from errordb.txt at Mon May 21 22:31:27 EDT 2007 */
-/* It translates from system errno values to on-the-wire RPC2 errors */
 // clang-format off
+/* This file was generated from errordb.txt at Thu Jan 10 15:42:30 EST 2019 */
+/* It translates from system errno values to on-the-wire RPC2 errors */
+
 /* Translations for common UNIX errno values */
   case EPERM:	rpc2_err = 1; break;
   case ENOENT:	rpc2_err = 2; break;

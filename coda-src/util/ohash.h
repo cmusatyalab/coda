@@ -16,14 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
-
-
 /*
  *
  * ohash.h -- Specification of hash-table type where each bucket is a singly-linked
@@ -33,7 +25,6 @@ listed in the file CREDITS.
 
 #ifndef _UTIL_HTAB_H_
 #define _UTIL_HTAB_H_ 1
-
 
 #ifdef __cplusplus
 extern "C" {
@@ -48,32 +39,31 @@ extern "C" {
 
 #include "olist.h"
 
-
 class ohashtab;
 class ohashtab_iterator;
 
-
 class ohashtab {
-  friend class ohashtab_iterator;
-    int sz;		        // size of the array
-    olist *a;			// array of olists
-    intptr_t (*hfn)(void *);	// the hash function
+    friend class ohashtab_iterator;
+    int sz; // size of the array
+    olist *a; // array of olists
+    intptr_t (*hfn)(void *); // the hash function
     int cnt;
-  public:
+
+public:
     ohashtab(int size, intptr_t (*hashfn)(void *));
-    ohashtab(ohashtab&);	    // not supported!
-    int operator=(ohashtab&);	    // not supported!
+    ohashtab(ohashtab &); // not supported!
+    int operator=(ohashtab &); // not supported!
     virtual ~ohashtab();
-    void insert(void *,	olink *);   // add at head of list
-    void append(void *,	olink *);   // add at tail of list
-    olink *remove(void *, olink	*); // remove specified entry
-    olink *first();		    // return first element of table
-    olink *last();		    // return last element of table
-    olink *get(void *);		    // return and remove head of list
-    void clear();		    // remove all entries
+    void insert(void *, olink *); // add at head of list
+    void append(void *, olink *); // add at tail of list
+    olink *remove(void *, olink *); // remove specified entry
+    olink *first(); // return first element of table
+    olink *last(); // return last element of table
+    olink *get(void *); // return and remove head of list
+    void clear(); // remove all entries
     int count();
     int IsMember(void *, olink *);
-    int bucket(void *);		    // returns bucket number of key
+    int bucket(void *); // returns bucket number of key
     virtual void print();
     virtual void print(FILE *);
     virtual void print(int);
@@ -84,16 +74,15 @@ class ohashtab {
     olink *FindObject(void *key, void *tag, otagcompare_t cmpfn);
 };
 
-
 class ohashtab_iterator {
-    ohashtab *chashtab;		    // current ohashtab
-    int	allbuckets;		    // iterate over all or single bucket
-    int cbucket;		    // current bucket
-    olist_iterator *nextlink;	    // current olist iterator
-  public:
-    ohashtab_iterator(ohashtab&, void * =(void *)-1);
+    ohashtab *chashtab; // current ohashtab
+    int allbuckets; // iterate over all or single bucket
+    int cbucket; // current bucket
+    olist_iterator *nextlink; // current olist iterator
+public:
+    ohashtab_iterator(ohashtab &, void * = (void *)-1);
     ~ohashtab_iterator();
-    olink *operator()();	    // return next object or 0
+    olink *operator()(); // return next object or 0
 };
 
 #endif /* _UTIL_HTAB_H_ */

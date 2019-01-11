@@ -37,8 +37,6 @@ Pittsburgh, PA.
 
 */
 
-
-
 /************************************************************************/
 /*  physio.c	- Physical I/O routines for the buffer package		*/
 /*  *********THIS VERSION ADAPTED FOR USE BY THE SALVAGER****************/
@@ -68,77 +66,77 @@ extern "C" {
 
 void SetDirHandle(DirHandle *dir, Vnode *vnode);
 
-
-int ReallyRead (void *formal_file, long block, char *data)
+int ReallyRead(void *formal_file, long block, char *data)
 {
     DirHandle *file = (DirHandle *)formal_file; /* keeps C++ happy */
 
-    if (!file->inode){
-	printf("ReallyRead: no inode allocated for vnode %d\n", file->vnode);
-	return 0;
+    if (!file->inode) {
+        printf("ReallyRead: no inode allocated for vnode %d\n", file->vnode);
+        return 0;
     }
     /* check hash table for page first */
     {
-	struct VFid fid;
-	fid.volume = file->volume;
-	fid.vnode = file->vnode;
-	fid.vunique = file->unique;	
-	    
-	shadowDirPage tempsdp(fid, block, data);
-	dhashtab_iterator next(*DirHtb, (void *)&fid);
-	shadowDirPage *nsdp;
-	while (nsdp = (shadowDirPage *)next()) {
-	    if (!FidCmp(nsdp, &tempsdp)) {
-		printf("WARNING: ReallyRead page %d for directory %x.%x in hashtable\n",
-		       block, file->vnode, file->unique);
-		break;
-	    }
-	}
-	if (nsdp) {
-	    memcpy(data, nsdp->Data, PAGESIZE);
-	    return PAGESIZE;
-	}
+        struct VFid fid;
+        fid.volume  = file->volume;
+        fid.vnode   = file->vnode;
+        fid.vunique = file->unique;
+
+        shadowDirPage tempsdp(fid, block, data);
+        dhashtab_iterator next(*DirHtb, (void *)&fid);
+        shadowDirPage *nsdp;
+        while (nsdp = (shadowDirPage *)next()) {
+            if (!FidCmp(nsdp, &tempsdp)) {
+                printf(
+                    "WARNING: ReallyRead page %d for directory %x.%x in hashtable\n",
+                    block, file->vnode, file->unique);
+                break;
+            }
+        }
+        if (nsdp) {
+            memcpy(data, nsdp->Data, PAGESIZE);
+            return PAGESIZE;
+        }
     }
 
     DirInode *dinode = (DirInode *)(file->inode);
-    if ((dinode->Pages)[block]){
-/*	printf("ReallyRead: page number	%d, vnode %d \n", block,
+    if ((dinode->Pages)[block]) {
+        /*	printf("ReallyRead: page number	%d, vnode %d \n", block,
 	       file->vnode);
-*/	
-	memcpy(data, (dinode->Pages)[block], PAGESIZE);
-	return PAGESIZE;
-    }
-    else {
-	printf("ReallyRead: vnode %d pagenum %d not allocated\n", file->vnode, block);
-	return 0;
+*/
+        memcpy(data, (dinode->Pages)[block], PAGESIZE);
+        return PAGESIZE;
+    } else {
+        printf("ReallyRead: vnode %d pagenum %d not allocated\n", file->vnode,
+               block);
+        return 0;
     }
 }
 
 /* Inserts the page into the commit hash table from which pages are */
 /* written to recoverable storage on a DCommit */
-int ReallyWrite (void *formal_file, long block, char *data)
+int ReallyWrite(void *formal_file, long block, char *data)
 {
     DirHandle *file = (DirHandle *)formal_file; /* keeps C++ happy */
 
     extern VolumeChanged;
-    struct VFid	fid;
-    fid.volume = file->volume;
-    fid.vnode = file->vnode;
-    fid.vunique = file->unique;
+    struct VFid fid;
+    fid.volume         = file->volume;
+    fid.vnode          = file->vnode;
+    fid.vunique        = file->unique;
     shadowDirPage *sdp = new shadowDirPage(fid, block, data);
     /* add page to hashtable */
 
     if (DirHtb->IsMember(&fid, sdp)) {
-	/* first remove old page */
-	dhashtab_iterator next(*DirHtb, (void *)&fid);
-	shadowDirPage *tmpsdp;
-	while (tmpsdp = (shadowDirPage *)next()) {
-	    if (!FidCmp(tmpsdp, sdp))
-		break;
-	}
-	CODA_ASSERT(tmpsdp);
-	DirHtb->remove(&fid, tmpsdp);
-	delete tmpsdp;
+        /* first remove old page */
+        dhashtab_iterator next(*DirHtb, (void *)&fid);
+        shadowDirPage *tmpsdp;
+        while (tmpsdp = (shadowDirPage *)next()) {
+            if (!FidCmp(tmpsdp, sdp))
+                break;
+        }
+        CODA_ASSERT(tmpsdp);
+        DirHtb->remove(&fid, tmpsdp);
+        delete tmpsdp;
     }
     DirHtb->insert(&fid, sdp);
 
@@ -147,24 +145,24 @@ int ReallyWrite (void *formal_file, long block, char *data)
     /* the volume changed flag should be set in the ReallyFlush call */
 }
 
-void FidZap (void *formal_file)
+void FidZap(void *formal_file)
 {
     DirHandle *file = (DirHandle *)formal_file;
     memset((char *)file, 0, sizeof(DirHandle));
 }
 
-int FidEq (void *formal_afile, void *formal_bfile)
+int FidEq(void *formal_afile, void *formal_bfile)
 {
     DirHandle *afile = (DirHandle *)formal_afile;
     DirHandle *bfile = (DirHandle *)formal_bfile;
     return (memcmp((char *)afile, (char *)bfile, sizeof(DirHandle)) == 0);
 }
 
-void FidCpy (void *formal_tofile, void *formal_fromfile)
+void FidCpy(void *formal_tofile, void *formal_fromfile)
 {
-    DirHandle *tofile = (DirHandle *)formal_tofile;
+    DirHandle *tofile   = (DirHandle *)formal_tofile;
     DirHandle *fromfile = (DirHandle *)formal_fromfile;
-    *tofile = *fromfile;
+    *tofile             = *fromfile;
 }
 
 /* 
@@ -174,5 +172,3 @@ void Die (char *msg)
     CODA_ASSERT(0);
 }
 */
-
-

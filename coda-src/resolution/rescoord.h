@@ -20,11 +20,10 @@ listed in the file CREDITS.
 #define _RESCOORD_H_
 
 int IsWeaklyEqual(ViceVersionVector **VV, int nvvs);
-int WEResPhase1(ViceFid *Fid, ViceVersionVector **VV,
-		res_mgrpent *mgrp, unsigned long *hosts,
-		ViceStoreId *stid, ResStatus **rstatusp);
+int WEResPhase1(ViceFid *Fid, ViceVersionVector **VV, res_mgrpent *mgrp,
+                unsigned long *hosts, ViceStoreId *stid, ResStatus **rstatusp);
 int CompareDirContents(SE_Descriptor *sid_bufs, ViceFid *fid);
 int RegDirResolution(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV,
-		     ResStatus **rstatusp, int *logresreq);
+                     ResStatus **rstatusp, int *logresreq);
 
 #endif /* _RESCOORD_H_ */

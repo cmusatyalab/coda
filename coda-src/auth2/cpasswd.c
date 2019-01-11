@@ -77,148 +77,152 @@ extern "C" {
 
 int main(int argc, char **argv)
 {
-	char *p;
-	int insist;
-	int flags;
-	int c, pwlen;
-	char oldpw[128], newpw[128];
-	int ok, rc;
-	char *username = NULL;
-	const char *realm = NULL;
-	char *host = NULL;
-	struct RPC2_addrinfo *srvs;
+    char *p;
+    int insist;
+    int flags;
+    int c, pwlen;
+    char oldpw[128], newpw[128];
+    int ok, rc;
+    char *username    = NULL;
+    const char *realm = NULL;
+    char *host        = NULL;
+    struct RPC2_addrinfo *srvs;
 
-	if (argc > 1) {
-	    if (strcmp(argv[1], "-h") == 0) {
-	        if (argc < 3) {
-		    printf("Usage: %s [-h SCM-host-name] [coda-user-name][@realm]\n", argv[0]);
-                    exit(EXIT_FAILURE);
- 	        }
+    if (argc > 1) {
+        if (strcmp(argv[1], "-h") == 0) {
+            if (argc < 3) {
+                printf(
+                    "Usage: %s [-h SCM-host-name] [coda-user-name][@realm]\n",
+                    argv[0]);
+                exit(EXIT_FAILURE);
+            }
 
-	        host = argv[2];
-	        argv += 2;
-	        argc -= 2;
- 	    }
-	}
-	
-	insist = 0;
-	if (argc >= 2) {
-		username = argv[1];
-		SplitRealmFromName(username, &realm);
-	}
+            host = argv[2];
+            argv += 2;
+            argc -= 2;
+        }
+    }
 
-	if (!username || *username == '\0') {
+    insist = 0;
+    if (argc >= 2) {
+        username = argv[1];
+        SplitRealmFromName(username, &realm);
+    }
+
+    if (!username || *username == '\0') {
 #ifdef __CYGWIN32__
-	    username = getlogin();   
+        username = getlogin();
 #else
-	    struct passwd *pw = getpwuid(geteuid());
-	    if (pw) {
-		username=pw->pw_name;
-	    }
+        struct passwd *pw = getpwuid(geteuid());
+        if (pw) {
+            username = pw->pw_name;
+        }
 #endif
-	}
+    }
 
-	codaconf_init("venus.conf");
-	codaconf_init("auth2.conf");
+    codaconf_init("venus.conf");
+    codaconf_init("auth2.conf");
 
-	CODACONF_STR(realm, "realm", NULL);
+    CODACONF_STR(realm, "realm", NULL);
 
-	if (!username || !realm) {
-	    fprintf (stderr, "Can't figure out your username or realm.\n");
-	    fprintf (stderr, "Try \"cpasswd user[@realm]\"\n");
-	    exit(EXIT_FAILURE);
-	}
+    if (!username || !realm) {
+        fprintf(stderr, "Can't figure out your username or realm.\n");
+        fprintf(stderr, "Try \"cpasswd user[@realm]\"\n");
+        exit(EXIT_FAILURE);
+    }
 
-	/* Make sure our arrays don't overflow. */
-	if (strlen(username) > 20) {
-	    fprintf(stderr, "User name is invalid.\n");
-	    exit(EXIT_FAILURE);
-	}
+    /* Make sure our arrays don't overflow. */
+    if (strlen(username) > 20) {
+        fprintf(stderr, "User name is invalid.\n");
+        exit(EXIT_FAILURE);
+    }
 
-	printf("Changing password for %s@%s\n", username, realm);
-/*
+    printf("Changing password for %s@%s\n", username, realm);
+    /*
 	if (U_InitRPC() != 0) {
 		fprintf(stderr, "Internal error: RPC or vstab problems.\n");
 		exit(EXIT_FAILURE);
 	}
 */
-	U_InitRPC();
-	strncpy(oldpw, getpass("Old password: "), sizeof(oldpw)-1);
+    U_InitRPC();
+    strncpy(oldpw, getpass("Old password: "), sizeof(oldpw) - 1);
 tryagain:
-	memset(newpw, 0, sizeof(newpw));
-	strncpy(newpw, getpass("New password: "), sizeof(newpw)-1);
-	pwlen = strlen(newpw);
-	if (pwlen == 0) {
-		printf("Password unchanged.\n");
-		exit(EXIT_FAILURE);
-	}
+    memset(newpw, 0, sizeof(newpw));
+    strncpy(newpw, getpass("New password: "), sizeof(newpw) - 1);
+    pwlen = strlen(newpw);
+    if (pwlen == 0) {
+        printf("Password unchanged.\n");
+        exit(EXIT_FAILURE);
+    }
 
-	/*
+    /*
 	 * Insure password is of reasonable length and
 	 * composition.  If we really wanted to make things
 	 * sticky, we could check the dictionary for common
 	 * words, but then things would really be slow.
 	 */
-	ok = 0;
-	flags = 0;
-	p = newpw;
-	while (( c = *p++) ) {
-		if (c >= 'a' && c <= 'z')
-			flags |= 2;
-		else if (c >= 'A' && c <= 'Z')
-			flags |= 4;
-		else if (c >= '0' && c <= '9')
-			flags |= 1;
-		else
-			flags |= 8;
-	}
-	if (flags >= 7 && pwlen >= 4)
-		ok = 1;
-	if ((flags == 2 || flags == 4) && pwlen >= 6)
-		ok = 1;
-	if ((flags == 3 || flags == 5 || flags == 6) && pwlen >= 5)
-		ok = 1;
-	if (!ok && insist < 2) {
-		printf("Please use %s.\n", flags == 1 ?
-			"at least one non-numeric character" :
-			"a longer password");
-		insist++;
-		goto tryagain;
-	}
+    ok    = 0;
+    flags = 0;
+    p     = newpw;
+    while ((c = *p++)) {
+        if (c >= 'a' && c <= 'z')
+            flags |= 2;
+        else if (c >= 'A' && c <= 'Z')
+            flags |= 4;
+        else if (c >= '0' && c <= '9')
+            flags |= 1;
+        else
+            flags |= 8;
+    }
+    if (flags >= 7 && pwlen >= 4)
+        ok = 1;
+    if ((flags == 2 || flags == 4) && pwlen >= 6)
+        ok = 1;
+    if ((flags == 3 || flags == 5 || flags == 6) && pwlen >= 5)
+        ok = 1;
+    if (!ok && insist < 2) {
+        printf("Please use %s.\n", flags == 1 ?
+                                       "at least one non-numeric character" :
+                                       "a longer password");
+        insist++;
+        goto tryagain;
+    }
 
-	if (strcmp(newpw, getpass("Retype new password: ")) != 0) {
-		printf("Mismatch - password unchanged.\n");
-		exit(EXIT_FAILURE);
-	}
-	srvs = U_GetAuthServers(realm, host);
-	rc = U_ChangePassword(srvs, username, newpw, username, strlen(username)+1, oldpw, strlen(oldpw)+1);
-	RPC2_freeaddrinfo(srvs);
+    if (strcmp(newpw, getpass("Retype new password: ")) != 0) {
+        printf("Mismatch - password unchanged.\n");
+        exit(EXIT_FAILURE);
+    }
+    srvs = U_GetAuthServers(realm, host);
+    rc = U_ChangePassword(srvs, username, newpw, username, strlen(username) + 1,
+                          oldpw, strlen(oldpw) + 1);
+    RPC2_freeaddrinfo(srvs);
 
-	switch(rc) {
-	    case RPC2_DEAD:
-		printf("Server to change passwords down, try again later\n");
-		break;
-	    case AUTH_DENIED:
-		printf("authentication failed, unable to change passwd for %s\n", username);
-		break;
-	    case AUTH_SUCCESS:
-		printf("Password changed\n");
-		break;
-	    case AUTH_BADKEY:
-		printf("Bad new password. Try again\n");
-		break;
-	    case AUTH_READONLY:
-		printf("Auth server is read-only\n");
-		break;
-	    case AUTH_FAILED:
-		printf("Auth failed\n");
-		break;
-	    case RPC2_NOTAUTHENTICATED:
-		printf("bind failed; user unauthenticated\n");
-		break;
-	    default:
-		printf("Authentication Failed: %s\n", RPC2_ErrorMsg(rc));
-	}
-	fflush(stdout);
-	exit(EXIT_SUCCESS);
+    switch (rc) {
+    case RPC2_DEAD:
+        printf("Server to change passwords down, try again later\n");
+        break;
+    case AUTH_DENIED:
+        printf("authentication failed, unable to change passwd for %s\n",
+               username);
+        break;
+    case AUTH_SUCCESS:
+        printf("Password changed\n");
+        break;
+    case AUTH_BADKEY:
+        printf("Bad new password. Try again\n");
+        break;
+    case AUTH_READONLY:
+        printf("Auth server is read-only\n");
+        break;
+    case AUTH_FAILED:
+        printf("Auth failed\n");
+        break;
+    case RPC2_NOTAUTHENTICATED:
+        printf("bind failed; user unauthenticated\n");
+        break;
+    default:
+        printf("Authentication Failed: %s\n", RPC2_ErrorMsg(rc));
+    }
+    fflush(stdout);
+    exit(EXIT_SUCCESS);
 }

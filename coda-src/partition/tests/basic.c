@@ -20,56 +20,52 @@ listed in the file CREDITS.
 #include <util.h>
 #include <partition.h>
 #include <vicetab.h>
-extern void  printnames(struct DiskPartition *dp, int low, int step, int high);
+extern void printnames(struct DiskPartition *dp, int low, int step, int high);
 
-int
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
     struct DiskPartition *dp;
     Inode testcreate;
     Device devno;
     int fd, count;
-    char *buff="This is a test string";
+    char *buff = "This is a test string";
 
     InitPartitions("vicetab");
-    dp = VGetPartition("simpled");
+    dp    = VGetPartition("simpled");
     devno = dp->device;
 
     testcreate = icreate(devno, 0, 0, 0, 0, 0);
     printf("icreate returned: %d\n", testcreate);
-    if ( testcreate == 0 )
-	exit(EXIT_FAILURE);
-    
+    if (testcreate == 0)
+        exit(EXIT_FAILURE);
+
     fd = iopen(devno, testcreate, O_RDONLY);
     printf("iopen returned: %d\n", fd);
-    if ( fd != -1 ) 
-	close(fd);
-    else 
-	exit(EXIT_FAILURE);
+    if (fd != -1)
+        close(fd);
+    else
+        exit(EXIT_FAILURE);
 
     count = iwrite(devno, testcreate, 0, 0, buff, strlen(buff));
     printf("iwrite returned %d (of %d)\n", count, strlen(buff));
 
     printnames(VGetPartition("/tmp/f"), 0, 1, 64);
-    dp = VGetPartition("/tmp/f");
-    devno = dp->device;
+    dp         = VGetPartition("/tmp/f");
+    devno      = dp->device;
     testcreate = icreate(devno, 0, 0, 0, 0, 0);
     printf("icreate returned: %d\n", testcreate);
-    if ( testcreate == 0 )
-	exit(EXIT_FAILURE);
-    
+    if (testcreate == 0)
+        exit(EXIT_FAILURE);
+
     fd = iopen(devno, testcreate, O_RDONLY);
     printf("iopen returned: %d\n", fd);
-    if ( fd != -1 ) 
-	close(fd);
-    else 
-	exit(EXIT_FAILURE);
+    if (fd != -1)
+        close(fd);
+    else
+        exit(EXIT_FAILURE);
 
     count = iwrite(devno, testcreate, 0, 0, buff, strlen(buff));
     printf("iwrite returned %d (of %d)\n", count, strlen(buff));
-    
+
     return 0;
 }
-
-    
-    

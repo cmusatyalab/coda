@@ -41,15 +41,15 @@ Pittsburgh, PA.
         -- SFTP routines related to tracing
 */
 
-#include <assert.h>
-#include <netinet/in.h>
 #include <stdio.h>
+#include <sys/types.h>
 #include <sys/file.h>
-#include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/time.h>
-#include <sys/types.h>
+#include <netinet/in.h>
 #include <sys/uio.h>
+#include <sys/socket.h>
+#include <assert.h>
 
 #include <rpc2/se.h>
 #include <rpc2/sftp.h>

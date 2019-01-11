@@ -15,9 +15,8 @@ Coda are listed in the file CREDITS.
 
 #*/
 
-#include <sys/socket.h>
 #include <sys/types.h>
-
+#include <sys/socket.h>
 #include <rpc2/codatunnel.h>
 #include "wrapper.h"
 

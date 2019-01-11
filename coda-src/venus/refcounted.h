@@ -52,7 +52,12 @@ public:
     void GetRef(void) { refcount++; }
 
     /* Put a reference, destroying the object when the last reference is put */
-    void PutRef(void) { assert(refcount > 0); if (!(--refcount)) delete this; }
+    void PutRef(void)
+    {
+        assert(refcount > 0);
+        if (!(--refcount))
+            delete this;
+    }
 
     /* Print the current reference count */
     void PrintRef(FILE *f) { fprintf(f, "\trefcount %u\n", refcount); }

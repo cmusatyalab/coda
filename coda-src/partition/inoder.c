@@ -38,121 +38,127 @@ listed in the file CREDITS.
 void dosubs(int *, int, int);
 int mdirs(int);
 
-int
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
     char myname[256];
     int rc, dev;
     struct DiskPartition *dp;
 
-    if ( argc < 4 ) {
-	printf("Usage %s <vicetab> <dir> {icreate,iinc,idec,header,setheader} opts\n", argv[0]);
-	exit(EXIT_FAILURE);
+    if (argc < 4) {
+        printf(
+            "Usage %s <vicetab> <dir> {icreate,iinc,idec,header,setheader} opts\n",
+            argv[0]);
+        exit(EXIT_FAILURE);
     }
-    
+
     DP_Init(argv[1], hostname(myname));
 
     dp = DP_Get(argv[2]);
-    
-    if ( !dp ) {
-	printf("Error getting partition named %s. Check vicetab.\n", argv[2]);
-	exit(EXIT_FAILURE);
+
+    if (!dp) {
+        printf("Error getting partition named %s. Check vicetab.\n", argv[2]);
+        exit(EXIT_FAILURE);
     }
 
     dev = dp->device;
-    
-    if ( strcmp(argv[3], "icreate") == 0 ){
-	if ( argc == 8 ) {
-	    u_long vol, vnode, uniq, vers;
-	    Inode ino;
 
-	    vol = atoi(argv[4]);
-	    vnode = atoi(argv[5]);
-	    uniq = atoi(argv[6]);
-	    vers = atoi(argv[7]);
-	    ino = icreate(dev, vol, vnode, uniq, vers);
-	    printf("Created inode %u (error if <=0)\n", ino);
-	    if ( ino > 0 ) 
-		exit(EXIT_SUCCESS);
-	    else 
-		exit(EXIT_FAILURE);
-	} else {
-	    printf("Usage %s <vicetab> <dir> icreate <vol> <vnode> <uniq> <vers>\n", argv[0]);
-	    exit(EXIT_FAILURE);
-	}
+    if (strcmp(argv[3], "icreate") == 0) {
+        if (argc == 8) {
+            u_long vol, vnode, uniq, vers;
+            Inode ino;
 
-    } else if ( strcmp(argv[3], "header") == 0 ) { 
-	if ( argc == 5 ) {
-	    Inode ino= atoi(argv[4]);
-	    struct i_header header;
-	    int rc;
+            vol   = atoi(argv[4]);
+            vnode = atoi(argv[5]);
+            uniq  = atoi(argv[6]);
+            vers  = atoi(argv[7]);
+            ino   = icreate(dev, vol, vnode, uniq, vers);
+            printf("Created inode %u (error if <=0)\n", ino);
+            if (ino > 0)
+                exit(EXIT_SUCCESS);
+            else
+                exit(EXIT_FAILURE);
+        } else {
+            printf(
+                "Usage %s <vicetab> <dir> icreate <vol> <vnode> <uniq> <vers>\n",
+                argv[0]);
+            exit(EXIT_FAILURE);
+        }
 
-	    rc = dp->ops->get_header(dp, &header, ino);
-	    
-	    if ( rc == 0 ) {
-		printf("Header for inode %u\n", ino);
-		printf(" lnk   %d\n", header.lnk);
-		printf(" vol   %x\n", header.volume);
-		printf(" vnode %x\n", header.vnode);
-		printf(" uniq  %x\n", header.unique);
-		printf(" vers  %u\n", header.dataversion);
-		printf(" magic %d\n", header.magic);
-		exit(EXIT_SUCCESS);
-	    } else {
-		printf("Error getting inode header %u\n", ino);
-		exit(EXIT_FAILURE);
-	    }
-	} else {
-	    printf("Usage %s <vicetab> <dir> header <ino>\n", argv[0]);
-	    exit(EXIT_FAILURE);
-	}
+    } else if (strcmp(argv[3], "header") == 0) {
+        if (argc == 5) {
+            Inode ino = atoi(argv[4]);
+            struct i_header header;
+            int rc;
 
-    } else if ( strcmp(argv[3], "iinc") == 0 ) { 
-	if ( argc == 5 ) {
-	    int ino = atoi(argv[4]);
-	    iinc(dev, ino, 0);
-	} else {
-	    printf("Usage %s <vicetab> <dir> iinc <ino>\n", argv[0]);
-	    exit(EXIT_FAILURE);
-	}
+            rc = dp->ops->get_header(dp, &header, ino);
 
-    } else if ( strcmp(argv[3], "idec") == 0 ) { 
-	if ( argc == 5  ) {
-	    int ino = atoi(argv[4]);
-	    idec(dev, ino, 0);
-	    exit(EXIT_SUCCESS);
-	} else {
-	    printf("Usage %s <vicetab> <dir> idec <ino>\n", argv[0]);
-	    exit(EXIT_FAILURE);
-	}
-	    
-    } else if ( strcmp(argv[3], "setheader") == 0 ) { 
-	if ( argc == 10 ) {
-	    int magic = dp->ops->magic();
-	    Inode ino = atoi(argv[4]);
-	    int lnk = atoi(argv[5]);
-	    int vol = atoi(argv[6]);
-	    int vnode = atoi(argv[7]);
-	    int unique = atoi(argv[8]);
-	    int version = atoi(argv[9]);
-	    struct i_header header={lnk, vol, vnode, unique, version, magic};
-	    
-	    rc = dp->ops->put_header(dp, &header, ino);
-	    if ( rc != 0 ) {
-		printf("Could not put header for ino %u\n", ino);
-		exit(EXIT_FAILURE);
-	    }
-	    exit(EXIT_SUCCESS);
+            if (rc == 0) {
+                printf("Header for inode %u\n", ino);
+                printf(" lnk   %d\n", header.lnk);
+                printf(" vol   %x\n", header.volume);
+                printf(" vnode %x\n", header.vnode);
+                printf(" uniq  %x\n", header.unique);
+                printf(" vers  %u\n", header.dataversion);
+                printf(" magic %d\n", header.magic);
+                exit(EXIT_SUCCESS);
+            } else {
+                printf("Error getting inode header %u\n", ino);
+                exit(EXIT_FAILURE);
+            }
+        } else {
+            printf("Usage %s <vicetab> <dir> header <ino>\n", argv[0]);
+            exit(EXIT_FAILURE);
+        }
 
-	} else {
-	    printf("Usage %s <vicetab> <dir> setheader <ino> <lnk> <vol> <vnode> <uniq> <vers>\n", argv[0]);
-	    exit(EXIT_FAILURE);
-	}
+    } else if (strcmp(argv[3], "iinc") == 0) {
+        if (argc == 5) {
+            int ino = atoi(argv[4]);
+            iinc(dev, ino, 0);
+        } else {
+            printf("Usage %s <vicetab> <dir> iinc <ino>\n", argv[0]);
+            exit(EXIT_FAILURE);
+        }
+
+    } else if (strcmp(argv[3], "idec") == 0) {
+        if (argc == 5) {
+            int ino = atoi(argv[4]);
+            idec(dev, ino, 0);
+            exit(EXIT_SUCCESS);
+        } else {
+            printf("Usage %s <vicetab> <dir> idec <ino>\n", argv[0]);
+            exit(EXIT_FAILURE);
+        }
+
+    } else if (strcmp(argv[3], "setheader") == 0) {
+        if (argc == 10) {
+            int magic              = dp->ops->magic();
+            Inode ino              = atoi(argv[4]);
+            int lnk                = atoi(argv[5]);
+            int vol                = atoi(argv[6]);
+            int vnode              = atoi(argv[7]);
+            int unique             = atoi(argv[8]);
+            int version            = atoi(argv[9]);
+            struct i_header header = { lnk, vol, vnode, unique, version, magic };
+
+            rc = dp->ops->put_header(dp, &header, ino);
+            if (rc != 0) {
+                printf("Could not put header for ino %u\n", ino);
+                exit(EXIT_FAILURE);
+            }
+            exit(EXIT_SUCCESS);
+
+        } else {
+            printf(
+                "Usage %s <vicetab> <dir> setheader <ino> <lnk> <vol> <vnode> <uniq> <vers>\n",
+                argv[0]);
+            exit(EXIT_FAILURE);
+        }
     } else {
-	printf("Usage %s <vicetab> <dir> {icreate,iinc,idec,header,setheader} opts\n", argv[0]);
-	exit(EXIT_FAILURE);
+        printf(
+            "Usage %s <vicetab> <dir> {icreate,iinc,idec,header,setheader} opts\n",
+            argv[0]);
+        exit(EXIT_FAILURE);
     }
 
     return 0;
 }
-

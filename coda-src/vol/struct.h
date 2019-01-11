@@ -24,6 +24,6 @@ listed in the file CREDITS.
 
 #include <coda_offsetof.h>
 
-#define fldsiz(type, member)       (sizeof(((type *)0)->member))
-#define strbase(type, p, member)   ((type *)((char *)(p) - coda_offsetof(type,member)))
-
+#define fldsiz(type, member) (sizeof(((type *)0)->member))
+#define strbase(type, p, member) \
+    ((type *)((char *)(p)-coda_offsetof(type, member)))

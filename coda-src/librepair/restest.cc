@@ -16,12 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif __cplusplus
@@ -38,31 +32,32 @@ extern "C" {
 #include "resolve.h"
 #include "repio.h"
 
-extern int getunixdirreps (int , char **, resreplica **);
-extern int dirresolve (int , resreplica *, int (*)(char *), struct listhdr **);
+extern int getunixdirreps(int, char **, resreplica **);
+extern int dirresolve(int, resreplica *, int (*)(char *), struct listhdr **);
 
-void main (int argc, char **argv)
+void main(int argc, char **argv)
 {
-    int	nreplicas;
+    int nreplicas;
     resreplica *dirs;
     struct listhdr *k;
 
     if (argc < 5) {
-	printf("There must be atleast 2 directories to resolve \n");
-	printf("Usage: resolve <number of dirs> <replicatedVolumeNumber> <dir1> <dir2> ...\n");
-	exit(EXIT_FAILURE);
+        printf("There must be atleast 2 directories to resolve \n");
+        printf(
+            "Usage: resolve <number of dirs> <replicatedVolumeNumber> <dir1> <dir2> ...\n");
+        exit(EXIT_FAILURE);
     }
-    
+
     nreplicas = atoi(argv[1]);
     RepVolume = atoi(argv[2]);
     getunixdirreps(nreplicas, &(argv[3]), &dirs);
     dirresolve(nreplicas, dirs, NULL, &k);
     printf("There are %d conflicts \n", nConflicts);
     /* print the listhdr structure */
-    for(int i = 0; i < nreplicas; i++){
-	printf("\nreplica %lu \n", k[i].replicaId);
-	for (int j = 0; j < k[i].repairCount; j++)
-	    repair_printline(&(k[i].repairList[j]), stdout);
+    for (int i = 0; i < nreplicas; i++) {
+        printf("\nreplica %lu \n", k[i].replicaId);
+        for (int j = 0; j < k[i].repairCount; j++)
+            repair_printline(&(k[i].repairList[j]), stdout);
     }
     resClean(nreplicas, dirs, k);
 }

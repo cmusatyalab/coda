@@ -21,18 +21,17 @@ listed in the file CREDITS.
 #include <sys/types.h>
 #include <stdio.h>
 
-#define TAR_TAR   0 /* only supports 100 character path names */
+#define TAR_TAR 0 /* only supports 100 character path names */
 #define TAR_USTAR 1 /* up to 255 character path, only 100 character component */
-#define CPIO_ODC  2 /* short inode/uid numbers */
+#define CPIO_ODC 2 /* short inode/uid numbers */
 #define CPIO_NEWC 3 /* 32-bit file size */
 
 extern int archive_type;
 
 int archive_write_entry(FILE *fp, ino_t inode, mode_t mode, uid_t uid,
-			nlink_t nlink, time_t mtime, size_t filesize,
-			const char *name, const char *linkname);
+                        nlink_t nlink, time_t mtime, size_t filesize,
+                        const char *name, const char *linkname);
 int archive_write_data(FILE *fp, const char *container);
 int archive_write_trailer(FILE *fp);
 
 #endif /* _ARCHIVE_H_ */
-

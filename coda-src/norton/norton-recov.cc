@@ -24,35 +24,34 @@ listed in the file CREDITS.
 #include <coda_globals.h>
 
 /* Return the MaxVolId from recoverable storage */
-int GetMaxVolId() 
+int GetMaxVolId()
 {
-	return(SRV_RVM(MaxVolId) & 0x00FFFFFF);
+    return (SRV_RVM(MaxVolId) & 0x00FFFFFF);
 }
 
 /* Get a volume from recoverable storage 
  * Returns pointer to volume if successful, NULL otherwise 
  */
 
-VolHead *VolByIndex(int myind) 
+VolHead *VolByIndex(int myind)
 {
-	int maxid = GetMaxVolId();
+    int maxid = GetMaxVolId();
 
-	if ((myind < 0) || (myind >= maxid) || (myind >= MAXVOLS))
-	    return(NULL);
+    if ((myind < 0) || (myind >= maxid) || (myind >= MAXVOLS))
+        return (NULL);
 
-	return(&SRV_RVM(VolumeList[myind]));
+    return (&SRV_RVM(VolumeList[myind]));
 }
 
 /* Get a volume header from recoverable storage given the appropriate index 
  * Returns pointer to header if successful, NULL otherwise
  */
-VolumeHeader *VolHeaderByIndex(int myind) 
+VolumeHeader *VolHeaderByIndex(int myind)
 {
-	VolHead *vol = VolByIndex(myind);
+    VolHead *vol = VolByIndex(myind);
 
-	if (!vol)
-	    return NULL;
+    if (!vol)
+        return NULL;
 
-	return &(vol->header);
+    return &(vol->header);
 }
-

@@ -37,15 +37,15 @@ Pittsburgh, PA.
 
 */
 
-#include "rpc2.private.h"
-#include <errno.h>
-#include <netdb.h>
-#include <netinet/in.h>
-#include <rpc2/se.h>
 #include <stdio.h>
-#include <sys/socket.h>
-#include <sys/time.h>
 #include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#include <sys/time.h>
+#include <errno.h>
+#include "rpc2.private.h"
+#include <rpc2/se.h>
 
 /* Contains the storage for all globals used in rpc2; see
    rpc2.private.h for descriptions */

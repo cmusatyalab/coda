@@ -95,9 +95,8 @@ void VPurgeVolume(Volume *vp)
     /* get rid of all traces of the volume in vm */
     DeleteVolumeFromHashTable(vp);
     vp->shuttingDown = 1;
-    VPutVolume(vp);	    /* this frees the volume since shutting down = 1 */
+    VPutVolume(vp); /* this frees the volume since shutting down = 1 */
     vp = 0;
 }
 
 /* NEED TO REVIEW THIS CODE -- WRITTEN UNDER HASTE */
-

@@ -58,9 +58,9 @@ extern "C" {
 /* always useful to have a page of zero's ready */
 static char zeropage[4096];
 
-uint64_t CacheChunkBlockSize = 0;
-uint64_t CacheChunkBlockSizeMax = 0;
-uint64_t CacheChunkBlockSizeBits = 0;
+uint64_t CacheChunkBlockSize       = 0;
+uint64_t CacheChunkBlockSizeMax    = 0;
+uint64_t CacheChunkBlockSizeBits   = 0;
 uint64_t CacheChunkBlockBitmapSize = 0;
 
 /*  *****  CacheFile Members  *****  */
@@ -71,30 +71,30 @@ CacheFile::CacheFile(int i, int recoverable)
 {
     /* Assume caller has done RVMLIB_REC_OBJECT! */
     /* RVMLIB_REC_OBJECT(*this); */
-    sprintf(name, "%02X/%02X/%02X/%02X",
-	    (i>>24) & 0xff, (i>>16) & 0xff, (i>>8) & 0xff, i & 0xff);
-            
+    sprintf(name, "%02X/%02X/%02X/%02X", (i >> 24) & 0xff, (i >> 16) & 0xff,
+            (i >> 8) & 0xff, i & 0xff);
+
     length = validdata = 0;
-    refcnt = 1;
-    numopens = 0;
-    this->recoverable = recoverable;
-    cached_chunks = new(recoverable) bitmap7(CacheChunkBlockBitmapSize, recoverable);
+    refcnt             = 1;
+    numopens           = 0;
+    this->recoverable  = recoverable;
+    cached_chunks      = new (recoverable)
+        bitmap7(CacheChunkBlockBitmapSize, recoverable);
     Lock_Init(&rw_lock);
     /* Container reset will be done by eventually by FSOInit()! */
     LOG(100, ("CacheFile::CacheFile(%d): %s (this=0x%x)\n", i, name, this));
 }
 
-
 CacheFile::CacheFile()
 {
     length = validdata = 0;
-    refcnt = 1;
-    numopens = 0;
-    this->recoverable = 1;
+    refcnt             = 1;
+    numopens           = 0;
+    this->recoverable  = 1;
     Lock_Init(&rw_lock);
-    cached_chunks = new(recoverable) bitmap7(CacheChunkBlockBitmapSize, recoverable);
+    cached_chunks = new (recoverable)
+        bitmap7(CacheChunkBlockBitmapSize, recoverable);
 }
-
 
 CacheFile::~CacheFile()
 {
@@ -103,22 +103,20 @@ CacheFile::~CacheFile()
     delete cached_chunks;
 }
 
-
 /* MUST NOT be called from within transaction! */
 void CacheFile::Validate()
 {
     if (!ValidContainer())
-	   Reset();
+        Reset();
 }
-
 
 /* MUST NOT be called from within transaction! */
 void CacheFile::Reset()
 {
     if (access(name, F_OK) == 0 && length != 0) {
-	Recov_BeginTrans();
-	Truncate(0);
-	Recov_EndTrans(MAXFP);
+        Recov_BeginTrans();
+        Truncate(0);
+        Recov_EndTrans(MAXFP);
     }
 }
 
@@ -126,26 +124,25 @@ int CacheFile::ValidContainer()
 {
     struct stat tstat;
     int rc;
-    
+
     rc = ::stat(name, &tstat);
-    if (rc) return 0;
+    if (rc)
+        return 0;
 
     int valid =
 #ifndef __CYGWIN32__
-      tstat.st_uid == (uid_t)V_UID &&
-      tstat.st_gid == (gid_t)V_GID &&
-      (tstat.st_mode & ~S_IFMT) == V_MODE &&
+        tstat.st_uid == (uid_t)V_UID && tstat.st_gid == (gid_t)V_GID &&
+        (tstat.st_mode & ~S_IFMT) == V_MODE &&
 #endif
-      tstat.st_size == (off_t)length;
+        tstat.st_size == (off_t)length;
 
     if (!valid && LogLevel >= 0) {
-	dprint("CacheFile::ValidContainer: %s invalid\n", name);
-	dprint("\t(%u, %u), (%u, %u), (%o, %o), (%d, %d)\n",
-	       tstat.st_uid, (uid_t)V_UID, tstat.st_gid, (gid_t)V_GID,
-	       (tstat.st_mode & ~S_IFMT), V_MODE,
-	       tstat.st_size, length);
+        dprint("CacheFile::ValidContainer: %s invalid\n", name);
+        dprint("\t(%u, %u), (%u, %u), (%o, %o), (%d, %d)\n", tstat.st_uid,
+               (uid_t)V_UID, tstat.st_gid, (gid_t)V_GID,
+               (tstat.st_mode & ~S_IFMT), V_MODE, tstat.st_size, length);
     }
-    return(valid);
+    return (valid);
 }
 
 /* Must be called from within a transaction!  Assume caller has done
@@ -157,10 +154,10 @@ void CacheFile::Create(int newlength)
 
     int tfd;
     struct stat tstat;
-    if (mkpath(name, V_MODE | 0100)<0)
-	CHOKE("CacheFile::Create: could not make path for %s", name);
+    if (mkpath(name, V_MODE | 0100) < 0)
+        CHOKE("CacheFile::Create: could not make path for %s", name);
     if ((tfd = ::open(name, O_RDWR | O_CREAT | O_TRUNC | O_BINARY, V_MODE)) < 0)
-	CHOKE("CacheFile::Create: open failed (%d)", errno);
+        CHOKE("CacheFile::Create: open failed (%d)", errno);
 
 #ifdef __CYGWIN32__
     ::chown(name, (uid_t)V_UID, (gid_t)V_GID);
@@ -168,18 +165,17 @@ void CacheFile::Create(int newlength)
     ::fchown(tfd, (uid_t)V_UID, (gid_t)V_GID);
 #endif
     if (::ftruncate(tfd, newlength) < 0)
-      CHOKE("CacheFile::Create: ftruncate failed (%d)", errno);
+        CHOKE("CacheFile::Create: ftruncate failed (%d)", errno);
     if (::fstat(tfd, &tstat) < 0)
-	CHOKE("CacheFile::ResetContainer: fstat failed (%d)", errno);
+        CHOKE("CacheFile::ResetContainer: fstat failed (%d)", errno);
     if (::close(tfd) < 0)
-	CHOKE("CacheFile::ResetContainer: close failed (%d)", errno);
+        CHOKE("CacheFile::ResetContainer: close failed (%d)", errno);
 
     validdata = 0;
-    length = newlength;
-    refcnt = 1;
-    numopens = 0;
+    length    = newlength;
+    refcnt    = 1;
+    numopens  = 0;
 }
-
 
 /*
  * copies a cache file, data and attributes, to a new one.
@@ -188,9 +184,9 @@ int CacheFile::Copy(CacheFile *destination)
 {
     Copy(destination->name);
 
-    destination->length = length;
+    destination->length    = length;
     destination->validdata = validdata;
-    
+
     ObtainDualLock(&rw_lock, READ_LOCK, &destination->rw_lock, WRITE_LOCK);
 
     *(destination->cached_chunks) = *cached_chunks;
@@ -202,19 +198,20 @@ int CacheFile::Copy(CacheFile *destination)
 
 int CacheFile::Copy(char *destname, int recovering)
 {
-    LOG(10, ("CacheFile::Copy: from %s, %d/%d, to %s\n",
-	     name, validdata, length, destname));
+    LOG(10, ("CacheFile::Copy: from %s, %d/%d, to %s\n", name, validdata,
+             length, destname));
 
     int tfd, ffd;
     struct stat tstat;
 
     if (mkpath(destname, V_MODE | 0100) < 0) {
-	LOG(0, ("CacheFile::Copy: could not make path for %s\n", name));
-	return -1;
+        LOG(0, ("CacheFile::Copy: could not make path for %s\n", name));
+        return -1;
     }
-    if ((tfd = ::open(destname, O_RDWR|O_CREAT|O_TRUNC|O_BINARY, V_MODE)) < 0) {
-	LOG(0, ("CacheFile::Copy: open failed (%d)\n", errno));
-	return -1;
+    if ((tfd = ::open(destname, O_RDWR | O_CREAT | O_TRUNC | O_BINARY,
+                      V_MODE)) < 0) {
+        LOG(0, ("CacheFile::Copy: open failed (%d)\n", errno));
+        return -1;
     }
     ::fchmod(tfd, V_MODE);
 #ifdef __CYGWIN32__
@@ -222,40 +219,37 @@ int CacheFile::Copy(char *destname, int recovering)
 #else
     ::fchown(tfd, (uid_t)V_UID, (gid_t)V_GID);
 #endif
-    if ((ffd = ::open(name, O_RDONLY| O_BINARY, V_MODE)) < 0)
-	CHOKE("CacheFile::Copy: source open failed (%d)\n", errno);
+    if ((ffd = ::open(name, O_RDONLY | O_BINARY, V_MODE)) < 0)
+        CHOKE("CacheFile::Copy: source open failed (%d)\n", errno);
 
     if (copyfile(ffd, tfd) < 0) {
-	LOG(0, ("CacheFile::Copy failed! (%d)\n", errno));
-	::close(ffd);
-	::close(tfd);
-	return -1;
+        LOG(0, ("CacheFile::Copy failed! (%d)\n", errno));
+        ::close(ffd);
+        ::close(tfd);
+        return -1;
     }
     if (::close(ffd) < 0)
-	CHOKE("CacheFile::Copy: source close failed (%d)\n", errno);
+        CHOKE("CacheFile::Copy: source close failed (%d)\n", errno);
 
     if (::fstat(tfd, &tstat) < 0)
-	CHOKE("CacheFile::Copy: fstat failed (%d)\n", errno);
+        CHOKE("CacheFile::Copy: fstat failed (%d)\n", errno);
     if (::close(tfd) < 0)
-	CHOKE("CacheFile::Copy: close failed (%d)\n", errno);
-    
+        CHOKE("CacheFile::Copy: close failed (%d)\n", errno);
+
     CODA_ASSERT(recovering || (off_t)length == tstat.st_size);
 
     return 0;
 }
 
-
 int CacheFile::DecRef()
 {
-    if (--refcnt == 0)
-    {
-	length = validdata = 0;
-	if (::unlink(name) < 0)
-	    CHOKE("CacheFile::DecRef: unlink failed (%d)", errno);
+    if (--refcnt == 0) {
+        length = validdata = 0;
+        if (::unlink(name) < 0)
+            CHOKE("CacheFile::DecRef: unlink failed (%d)", errno);
     }
     return refcnt;
 }
-
 
 /* N.B. length member is NOT updated as side-effect! */
 void CacheFile::Stat(struct stat *tstat)
@@ -263,12 +257,10 @@ void CacheFile::Stat(struct stat *tstat)
     CODA_ASSERT(::stat(name, tstat) == 0);
 }
 
-
 void CacheFile::Utimes(const struct timeval times[2])
 {
     CODA_ASSERT(::utimes(name, times) == 0);
 }
-
 
 /* MUST be called from within transaction! */
 void CacheFile::Truncate(uint64_t newlen)
@@ -280,33 +272,33 @@ void CacheFile::Truncate(uint64_t newlen)
 
     /* ISR tweak, write zeros to data area before truncation */
     if (option_isr && newlen < length) {
-	size_t len = sizeof(zeropage), n = length - newlen;
+        size_t len = sizeof(zeropage), n = length - newlen;
 
-	lseek(fd, newlen, SEEK_SET);
+        lseek(fd, newlen, SEEK_SET);
 
-	while (n) {
-	    if (n < len) len = n;
-	    write(fd, zeropage, len);
-	    n -= len;
-	}
-	/* we have to force these writes to disk, otherwise the following
+        while (n) {
+            if (n < len)
+                len = n;
+            write(fd, zeropage, len);
+            n -= len;
+        }
+        /* we have to force these writes to disk, otherwise the following
 	 * truncate would simply drop any unwritten data */
-	fdatasync(fd);
+        fdatasync(fd);
     }
 
     if (length != newlen) {
-        if (recoverable) RVMLIB_REC_OBJECT(*this);
-    
-        
+        if (recoverable)
+            RVMLIB_REC_OBJECT(*this);
 
         if (newlen < length) {
             ObtainWriteLock(&rw_lock);
-            
-            cached_chunks->FreeRange(bytes_to_ccblocks_floor(newlen), 
-                bytes_to_ccblocks_ceil(length - newlen));
-                
+
+            cached_chunks->FreeRange(bytes_to_ccblocks_floor(newlen),
+                                     bytes_to_ccblocks_ceil(length - newlen));
+
             ReleaseWriteLock(&rw_lock);
-        } 
+        }
 
         length = newlen;
 
@@ -319,9 +311,11 @@ void CacheFile::Truncate(uint64_t newlen)
 }
 
 /* Update the valid data*/
-void CacheFile::UpdateValidData() {
-    uint64_t length_cb = bytes_to_ccblocks_ceil(length); /* Floor length in blocks */
-    
+void CacheFile::UpdateValidData()
+{
+    uint64_t length_cb =
+        bytes_to_ccblocks_ceil(length); /* Floor length in blocks */
+
     ObtainReadLock(&rw_lock);
 
     validdata = ccblocks_to_bytes(cached_chunks->Count());
@@ -330,32 +324,33 @@ void CacheFile::UpdateValidData() {
     if (cached_chunks->Value(length_cb - 1)) {
         validdata -= ccblocks_to_bytes(length_cb) - length;
     }
-    
+
     ReleaseReadLock(&rw_lock);
 }
 
 /* MUST be called from within transaction! */
 void CacheFile::SetLength(uint64_t newlen)
-{    
+{
     if (length != newlen) {
-        if (recoverable) RVMLIB_REC_OBJECT(*this);
+        if (recoverable)
+            RVMLIB_REC_OBJECT(*this);
 
         if (newlen < length) {
             ObtainWriteLock(&rw_lock);
-            
-            cached_chunks->FreeRange(bytes_to_ccblocks_floor(newlen), 
-                bytes_to_ccblocks_ceil(length - newlen));
-                
+
+            cached_chunks->FreeRange(bytes_to_ccblocks_floor(newlen),
+                                     bytes_to_ccblocks_ceil(length - newlen));
+
             ReleaseWriteLock(&rw_lock);
         }
 
         length = newlen;
 
         UpdateValidData();
-
     }
 
-    LOG(60, ("CacheFile::SetLength: New Length: %d, Validata %d\n", newlen, validdata));
+    LOG(60, ("CacheFile::SetLength: New Length: %d, Validata %d\n", newlen,
+             validdata));
 }
 
 /* MUST be called from within transaction! */
@@ -367,10 +362,10 @@ void CacheFile::SetValidData(uint64_t len)
 /* MUST be called from within transaction! */
 void CacheFile::SetValidData(uint64_t start, int64_t len)
 {
-    uint64_t start_cb = ccblock_start(start);
-    uint64_t end_cb = ccblock_end(start, len);
+    uint64_t start_cb     = ccblock_start(start);
+    uint64_t end_cb       = ccblock_end(start, len);
     uint64_t newvaliddata = 0;
-    uint64_t length_cb = bytes_to_ccblocks_ceil(length);
+    uint64_t length_cb    = bytes_to_ccblocks_ceil(length);
 
     if (len < 0) {
         end_cb = length_cb;
@@ -380,8 +375,9 @@ void CacheFile::SetValidData(uint64_t start, int64_t len)
         end_cb = length_cb;
     }
 
-    if (recoverable) RVMLIB_REC_OBJECT(validdata);
-    
+    if (recoverable)
+        RVMLIB_REC_OBJECT(validdata);
+
     ObtainWriteLock(&rw_lock);
 
     for (uint64_t i = start_cb; i < end_cb; i++) {
@@ -400,14 +396,15 @@ void CacheFile::SetValidData(uint64_t start, int64_t len)
             continue;
         }
     }
-    
+
     ReleaseWriteLock(&rw_lock);
 
     validdata += newvaliddata;
 
     LOG(60, ("CacheFile::SetValidData: { validdata: %d }\n", validdata));
-    LOG(60, ("CacheFile::SetValidData: { fetchedblocks: %d, totalblocks: %d }\n",
-            cached_chunks->Count(), length_cb));
+    LOG(60,
+        ("CacheFile::SetValidData: { fetchedblocks: %d, totalblocks: %d }\n",
+         cached_chunks->Count(), length_cb));
 }
 
 void CacheFile::print(int fdes)
@@ -419,9 +416,9 @@ int CacheFile::Open(int flags)
 {
     int fd = ::open(name, flags | O_BINARY, V_MODE);
 
-    CODA_ASSERT (fd != -1);
+    CODA_ASSERT(fd != -1);
     numopens++;
-    
+
     return fd;
 }
 
@@ -440,7 +437,7 @@ FILE *CacheFile::FOpen(const char *mode)
     if (strcmp(mode, "r") == 0)
         flags = O_RDONLY;
     else if (strcmp(mode, "w") == 0)
-        flags = O_WRONLY|O_TRUNC;
+        flags = O_WRONLY | O_TRUNC;
     else
         CODA_ASSERT(0);
 
@@ -459,7 +456,8 @@ uint64_t CacheFile::ConsecutiveValidData(void)
 {
     /* Use the start of the first hole */
     uint64_t start = 0;
-    uint64_t length_ccb = bytes_to_ccblocks_ceil(length);  // Ceil length in blocks
+    uint64_t length_ccb =
+        bytes_to_ccblocks_ceil(length); // Ceil length in blocks
 
     /* Find the first 0 in the bitmap */
     for (start = 0; start < length_ccb; start++) {
@@ -474,28 +472,30 @@ uint64_t CacheFile::ConsecutiveValidData(void)
     return start;
 }
 
-int64_t CacheFile::CopySegment(CacheFile * from, CacheFile * to, uint64_t pos, int64_t count)
+int64_t CacheFile::CopySegment(CacheFile *from, CacheFile *to, uint64_t pos,
+                               int64_t count)
 {
-    uint32_t byte_start = pos_align_to_ccblock(pos);
+    uint32_t byte_start  = pos_align_to_ccblock(pos);
     uint32_t block_start = bytes_to_ccblocks(byte_start);
-    uint32_t byte_len = length_align_to_ccblock(pos, count);
+    uint32_t byte_len    = length_align_to_ccblock(pos, count);
     int tfd, ffd;
     struct stat tstat;
-    CacheChunkList * c_list;
+    CacheChunkList *c_list;
     CacheChunk chunk;
-    
-    LOG(300, ("CacheFile::CopySegment: from %s [%d, %d], to %s\n",
-             from->name, byte_start, byte_len, to->name));
+
+    LOG(300, ("CacheFile::CopySegment: from %s [%d, %d], to %s\n", from->name,
+              byte_start, byte_len, to->name));
 
     if (mkpath(to->name, V_MODE | 0100) < 0) {
-        LOG(0, ("CacheFile::CopySegment: could not make path for %s\n", to->name));
+        LOG(0,
+            ("CacheFile::CopySegment: could not make path for %s\n", to->name));
         return -1;
     }
-    
-    tfd = to->Open(O_RDWR|O_CREAT);
-    
+
+    tfd = to->Open(O_RDWR | O_CREAT);
+
     ::fchmod(tfd, V_MODE);
-    
+
 #ifdef __CYGWIN32__
     ::chown(name, (uid_t)V_UID, (gid_t)V_GID);
 #else
@@ -519,15 +519,14 @@ int64_t CacheFile::CopySegment(CacheFile * from, CacheFile * to, uint64_t pos, i
     delete c_list;
 
     if (from->Close(ffd) < 0) {
-        CHOKE("CacheFile::CopySegment: source close failed (%d)\n", 
-              errno);
+        CHOKE("CacheFile::CopySegment: source close failed (%d)\n", errno);
     }
 
     if (::fstat(tfd, &tstat) < 0) {
         CHOKE("CacheFile::CopySegment: fstat failed (%d)\n", errno);
     }
 
-    if (to->Close(tfd) < 0){
+    if (to->Close(tfd) < 0) {
         CHOKE("CacheFile::CopySegment: close failed (%d)\n", errno);
     }
 
@@ -535,7 +534,8 @@ int64_t CacheFile::CopySegment(CacheFile * from, CacheFile * to, uint64_t pos, i
 
     ObtainDualLock(&from->rw_lock, READ_LOCK, &to->rw_lock, WRITE_LOCK);
 
-    from->cached_chunks->CopyRange(block_start, bytes_to_ccblocks(byte_len), *(to->cached_chunks));
+    from->cached_chunks->CopyRange(block_start, bytes_to_ccblocks(byte_len),
+                                   *(to->cached_chunks));
 
     ReleaseDualLock(&from->rw_lock, READ_LOCK, &to->rw_lock, WRITE_LOCK);
 
@@ -551,25 +551,25 @@ CacheChunkList::CacheChunkList()
 
 CacheChunkList::~CacheChunkList()
 {
-    CacheChunk * curr = NULL;
+    CacheChunk *curr = NULL;
 
     while ((curr = (CacheChunk *)this->first())) {
         this->remove((dlink *)curr);
     }
 }
 
-
-CacheChunk CacheFile::GetNextHole(uint64_t start_b, uint64_t end_b) {
+CacheChunk CacheFile::GetNextHole(uint64_t start_b, uint64_t end_b)
+{
     /* Floor length in blocks */
     uint64_t length_b_f = bytes_to_ccblocks_floor(length);
     /* Ceil length in blocks */
-    uint64_t length_b = bytes_to_ccblocks_ceil(length);
+    uint64_t length_b  = bytes_to_ccblocks_ceil(length);
     uint64_t holestart = start_b;
-    int64_t holesize = 0;
+    int64_t holesize   = 0;
 
     for (uint64_t i = start_b; i < end_b; i++) {
         if (cached_chunks->Value(i)) {
-            holesize = 0;
+            holesize  = 0;
             holestart = i + 1;
             continue;
         }
@@ -578,7 +578,6 @@ CacheChunk CacheFile::GetNextHole(uint64_t start_b, uint64_t end_b) {
         if (i + 1 == length_b) {
             holesize += length - (length_b_f << CacheChunkBlockSizeBits);
             return (CacheChunk(holestart * CacheChunkBlockSize, holesize));
-
         }
 
         /* Add a full block */
@@ -592,27 +591,29 @@ CacheChunk CacheFile::GetNextHole(uint64_t start_b, uint64_t end_b) {
     return (CacheChunk());
 }
 
-CacheChunkList * CacheFile::GetHoles(uint64_t start, int64_t len) {
-    uint64_t start_b = ccblock_start(start);
-    uint64_t end_b = ccblock_end(start, len);
-    uint64_t length_b = bytes_to_ccblocks_ceil(length);  // Ceil length in blocks
-    CacheChunkList * clist = new CacheChunkList();
+CacheChunkList *CacheFile::GetHoles(uint64_t start, int64_t len)
+{
+    uint64_t start_b  = ccblock_start(start);
+    uint64_t end_b    = ccblock_end(start, len);
+    uint64_t length_b = bytes_to_ccblocks_ceil(length); // Ceil length in blocks
+    CacheChunkList *clist = new CacheChunkList();
     CacheChunk currc;
 
     if (len < 0) {
         end_b = length_b;
     }
 
-    LOG(100, ("CacheFile::GetHoles Range [%lu - %lu]\n", ccblocks_to_bytes(start_b), 
-              ccblocks_to_bytes(end_b) - 1));
+    LOG(100, ("CacheFile::GetHoles Range [%lu - %lu]\n",
+              ccblocks_to_bytes(start_b), ccblocks_to_bytes(end_b) - 1));
 
     for (uint64_t i = start_b; i < end_b; i++) {
         currc = GetNextHole(i, end_b);
 
-        if (!currc.isValid()) break;
+        if (!currc.isValid())
+            break;
 
         LOG(100, ("CacheFile::GetHoles Found [%d, %d]\n", currc.GetStart(),
-                currc.GetLength()));
+                  currc.GetLength()));
 
         clist->AddChunk(currc.GetStart(), currc.GetLength());
         i = bytes_to_ccblocks(currc.GetStart() + currc.GetLength() - 1);
@@ -621,12 +622,13 @@ CacheChunkList * CacheFile::GetHoles(uint64_t start, int64_t len) {
     return clist;
 }
 
-CacheChunkList * CacheFile::GetValidChunks(uint64_t start, int64_t len) {
-    uint64_t start_b = ccblock_start(start);
+CacheChunkList *CacheFile::GetValidChunks(uint64_t start, int64_t len)
+{
+    uint64_t start_b     = ccblock_start(start);
     uint64_t start_bytes = 0;
-    uint64_t end_b = ccblock_end(start, len);
-    uint64_t length_b = bytes_to_ccblocks_ceil(length);  // Ceil length in blocks
-    CacheChunkList * clist = new CacheChunkList();
+    uint64_t end_b       = ccblock_end(start, len);
+    uint64_t length_b = bytes_to_ccblocks_ceil(length); // Ceil length in blocks
+    CacheChunkList *clist = new CacheChunkList();
     CacheChunk currc;
     uint64_t i = start_b;
 
@@ -634,16 +636,17 @@ CacheChunkList * CacheFile::GetValidChunks(uint64_t start, int64_t len) {
         end_b = length_b;
     }
 
-    LOG(100, ("CacheFile::GetValidChunks Range [%lu - %lu]\n", ccblocks_to_bytes(start_b), 
-              ccblocks_to_bytes(end_b) - 1));
+    LOG(100, ("CacheFile::GetValidChunks Range [%lu - %lu]\n",
+              ccblocks_to_bytes(start_b), ccblocks_to_bytes(end_b) - 1));
 
     for (i = start_b; i < end_b; i++) {
         currc = GetNextHole(i, end_b);
 
-        if (!currc.isValid()) break;
+        if (!currc.isValid())
+            break;
 
-        LOG(100, ("CacheFile::GetValidChunks Found [%d, %d]\n", currc.GetStart(),
-                currc.GetLength()));
+        LOG(100, ("CacheFile::GetValidChunks Found [%d, %d]\n",
+                  currc.GetStart(), currc.GetLength()));
 
         start_bytes = ccblocks_to_bytes(i);
 
@@ -656,8 +659,8 @@ CacheChunkList * CacheFile::GetValidChunks(uint64_t start, int64_t len) {
 
     /* Is case de range ends with valid data */
     if (i < end_b) {
-       start_bytes = ccblocks_to_bytes(i);
-       clist->AddChunk(i, end_b - i + 1);
+        start_bytes = ccblocks_to_bytes(i);
+        clist->AddChunk(i, end_b - i + 1);
     }
 
     return clist;
@@ -666,8 +669,8 @@ CacheChunkList * CacheFile::GetValidChunks(uint64_t start, int64_t len) {
 void CacheChunkList::AddChunk(uint64_t start, int64_t len)
 {
     WriteLock();
-    CacheChunk * new_chunk = new CacheChunk(start, len);
-    this->insert((dlink *) new_chunk);
+    CacheChunk *new_chunk = new CacheChunk(start, len);
+    this->insert((dlink *)new_chunk);
     WriteUnlock();
 }
 
@@ -681,7 +684,6 @@ void CacheChunkList::WriteLock()
     ObtainWriteLock(&rd_wr_lock);
 }
 
-
 void CacheChunkList::ReadUnlock()
 {
     ReleaseReadLock(&rd_wr_lock);
@@ -694,8 +696,8 @@ void CacheChunkList::WriteUnlock()
 
 bool CacheChunkList::ReverseCheck(uint64_t start, int64_t len)
 {
-    dlink * curr = NULL;
-    CacheChunk * curr_cc = NULL;
+    dlink *curr         = NULL;
+    CacheChunk *curr_cc = NULL;
 
     ReadLock();
 
@@ -704,11 +706,14 @@ bool CacheChunkList::ReverseCheck(uint64_t start, int64_t len)
     while ((curr = previous())) {
         curr_cc = (CacheChunk *)curr;
 
-        if (!curr_cc->isValid()) continue;
+        if (!curr_cc->isValid())
+            continue;
 
-        if (start != curr_cc->GetStart()) continue;
+        if (start != curr_cc->GetStart())
+            continue;
 
-        if (len != curr_cc->GetLength()) continue;
+        if (len != curr_cc->GetLength())
+            continue;
 
         ReadUnlock();
 
@@ -722,8 +727,8 @@ bool CacheChunkList::ReverseCheck(uint64_t start, int64_t len)
 
 void CacheChunkList::ReverseRemove(uint64_t start, int64_t len)
 {
-    dlink * curr = NULL;
-    CacheChunk * curr_cc = NULL;
+    dlink *curr         = NULL;
+    CacheChunk *curr_cc = NULL;
 
     WriteLock();
 
@@ -732,11 +737,14 @@ void CacheChunkList::ReverseRemove(uint64_t start, int64_t len)
     while ((curr = previous())) {
         curr_cc = (CacheChunk *)curr;
 
-        if (!curr_cc->isValid()) continue;
+        if (!curr_cc->isValid())
+            continue;
 
-        if (start != curr_cc->GetStart()) continue;
+        if (start != curr_cc->GetStart())
+            continue;
 
-        if (len != curr_cc->GetLength()) continue;
+        if (len != curr_cc->GetLength())
+            continue;
 
         this->remove(curr);
         break;
@@ -745,13 +753,15 @@ void CacheChunkList::ReverseRemove(uint64_t start, int64_t len)
     WriteUnlock();
 }
 
-void CacheChunkList::ForEach(void (*foreachcb)(uint64_t start, int64_t len, 
-    void * usr_data_cb), void * usr_data)
+void CacheChunkList::ForEach(void (*foreachcb)(uint64_t start, int64_t len,
+                                               void *usr_data_cb),
+                             void *usr_data)
 {
-    dlink * curr = NULL;
-    CacheChunk * curr_cc = NULL;
+    dlink *curr         = NULL;
+    CacheChunk *curr_cc = NULL;
 
-    if (!foreachcb) return;
+    if (!foreachcb)
+        return;
 
     ReadLock();
 
@@ -767,13 +777,13 @@ void CacheChunkList::ForEach(void (*foreachcb)(uint64_t start, int64_t len,
 
 CacheChunk CacheChunkList::pop()
 {
-    dlink * curr_first = NULL;
-    CacheChunk * tmp = NULL;
+    dlink *curr_first = NULL;
+    CacheChunk *tmp   = NULL;
 
     WriteLock();
 
     curr_first = this->first();
-    tmp = (CacheChunk *)curr_first; 
+    tmp        = (CacheChunk *)curr_first;
 
     if (!curr_first) {
         WriteUnlock();
@@ -790,13 +800,15 @@ CacheChunk CacheChunkList::pop()
 }
 
 /* MUST be called from within transaction! */
-SegmentedCacheFile::SegmentedCacheFile(int i) : CacheFile(i, 0) 
+SegmentedCacheFile::SegmentedCacheFile(int i)
+    : CacheFile(i, 0)
 {
-    sprintf(name, "%02X/%02X/%02X/%02X.seg",
-            (i>>24) & 0xff, (i>>16) & 0xff, (i>>8) & 0xff, i & 0xff);
+    sprintf(name, "%02X/%02X/%02X/%02X.seg", (i >> 24) & 0xff, (i >> 16) & 0xff,
+            (i >> 8) & 0xff, i & 0xff);
 }
 
-SegmentedCacheFile::~SegmentedCacheFile() {
+SegmentedCacheFile::~SegmentedCacheFile()
+{
     this->Truncate(0);
     DecRef();
 }

@@ -38,27 +38,27 @@ Pittsburgh, PA.
 */
 
 /*
-        Routines for MultiRPC
+	Routines for MultiRPC
 */
 
-#include <assert.h>
-#include <errno.h>
-#include <netdb.h>
-#include <netinet/in.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <string.h>
 #include <sys/file.h>
-#include <sys/socket.h>
-#include <sys/time.h>
 #include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#include <sys/time.h>
+#include <errno.h>
+#include <stdlib.h>
+#include <assert.h>
+#include <string.h>
 
-#include "cbuf.h"
 #include "rpc2.private.h"
-#include "trace.h"
-#include <rpc2/multi.h>
 #include <rpc2/se.h>
+#include "trace.h"
+#include "cbuf.h"
+#include <rpc2/multi.h>
 
 extern void rpc2_IncrementSeqNumber();
 extern long HandleResult();
@@ -129,7 +129,7 @@ long RPC2_MultiRPC(
     SetupPackets(HowMany, mcon, ConnHandleList, SDescList, Request);
 
     /* call UnpackMulti on all bad connections;
-     if there are NO good connections, exit */
+       if there are NO good connections, exit */
     SomeConnsOK = FALSE;
     for (host = 0; host < HowMany; host++) {
         if (mcon[host].retcode > RPC2_ELIMIT) {
@@ -223,8 +223,7 @@ static void SetupConns(int HowMany, MultiCon *mcon,
             break;
 
         default:
-            /* This isn't the behavior the manual claims, but it's what I need. -JJK
-            */
+            /* This isn't the behavior the manual claims, but it's what I need. -JJK */
             {
                 if (TRUE /*EnqueueRequest*/) {
                     say(1, RPC2_DebugLevel, "Enqueuing on connection %#x\n",
@@ -411,7 +410,7 @@ static long mrpc_SendPacketsReliably(
     int HowMany, MultiCon *mcon,
     RPC2_Handle ConnHandleList[], /* array of connection ids */
     ARG_INFO *ArgInfo, /* Structure of client information
-                                                      (built in MakeMulti) */
+                          (built in MakeMulti) */
     SE_Descriptor SDescList[], /* array of side effect descriptors */
     long (*UnpackMulti)(), /* pointer to unpacking routine */
     struct timeval *TimeOut) /* client specified timeout */
@@ -428,10 +427,10 @@ static long mrpc_SendPacketsReliably(
     unsigned long timestamp;
     int rc;
 
-#define EXIT_MRPC_SPR(rc)                                                      \
-    {                                                                          \
-        MSend_Cleanup(HowMany, mcon, SDescList, TimeOut, pcon);                \
-        return (rc);                                                           \
+#define EXIT_MRPC_SPR(rc)                                       \
+    {                                                           \
+        MSend_Cleanup(HowMany, mcon, SDescList, TimeOut, pcon); \
+        return (rc);                                            \
     }
 
     say(1, RPC2_DebugLevel, "mrpc_SendPacketsReliably()\n");
@@ -439,18 +438,16 @@ static long mrpc_SendPacketsReliably(
     TR_MSENDRELIABLY();
 
     /* find a context */
-    /* the packet_con management should be redone to ensure that allocation never
-   * fails! */
+    /* the packet_con management should be redone to ensure that allocation never fails! */
     pcon = InitPacketCon(HowMany);
     /*
-       if((pcon = InitPacketCon(HowMany)) == NULL) {
-           for(i = 0; i < HowMany; i++) {
-               if (mcon[i].sle == NULL) continue;
-               if ((*UnpackMulti)(HowMany, ConnHandleList, ArgInfo, NULL,
-                                 RPC2_FAIL, i) == -1)
-                  return(RPC2_FAIL);
-           }
-       }
+    if((pcon = InitPacketCon(HowMany)) == NULL)
+	for(i = 0; i < HowMany; i++)
+	    {
+	    if (mcon[i].sle == NULL) continue;
+	    if ((*UnpackMulti)(HowMany, ConnHandleList, ArgInfo, NULL, RPC2_FAIL, i) == -1) 
+		return(RPC2_FAIL);
+	    }
     */
 
     if (TimeOut) { /* create a time bomb */

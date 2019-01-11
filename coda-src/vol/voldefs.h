@@ -44,29 +44,29 @@ Pittsburgh, PA.
    volumeWriteable in volume.h */
 
 #define readwriteVolume RWVOL
-#define readonlyVolume  ROVOL
-#define backupVolume	   BACKVOL
-#define replicatedVolume	REPVOL
-#define nonReplicatedVolume	NONREPVOL
+#define readonlyVolume ROVOL
+#define backupVolume BACKVOL
+#define replicatedVolume REPVOL
+#define nonReplicatedVolume NONREPVOL
 
-#define RWVOL			0
-#define ROVOL			1
-#define BACKVOL			2
-#define	REPVOL			3
-#define	NONREPVOL		4
+#define RWVOL 0
+#define ROVOL 1
+#define BACKVOL 2
+#define REPVOL 3
+#define NONREPVOL 4
 
 /* All volumes will have a volume header name in this format */
 /*#define VFORMAT "V%010lu.vol"*/
 #define VFORMAT "V%010u"
 
 /* Pathname for the maximum volume id ever created by this server */
-#define MAXVOLIDPATH	vice_config_path("vol/maxvolid")
+#define MAXVOLIDPATH vice_config_path("vol/maxvolid")
 
 /* Pathname for server id definitions--the server id is used to allocate volume numbers */
-#define SERVERLISTPATH	vice_config_path("db/servers")
+#define SERVERLISTPATH vice_config_path("db/servers")
 
 /* Values for connect parameter to VInitVolumePackage */
-#define CONNECT_FS	1
-#define DONT_CONNECT_FS	0
+#define CONNECT_FS 1
+#define DONT_CONNECT_FS 0
 
 #endif /* _VOLDEFS_H_ */

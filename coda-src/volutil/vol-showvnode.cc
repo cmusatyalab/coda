@@ -83,16 +83,16 @@ static FILE *infofile;
 /*
   S_VolShowVnode: Print out the specified vnode
 */
-long S_VolShowVnode(RPC2_Handle rpcid, RPC2_Unsigned formal_volid, 
-		    RPC2_Unsigned vnodeid, RPC2_Unsigned unique, 
-		    SE_Descriptor *formal_sed)
+long S_VolShowVnode(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
+                    RPC2_Unsigned vnodeid, RPC2_Unsigned unique,
+                    SE_Descriptor *formal_sed)
 {
     Volume *vp;
     Vnode *vnp = 0;
     Error error;
     SE_Descriptor sed;
     rvm_return_t status = RVM_SUCCESS;
-    long rc = 0;
+    long rc             = 0;
     VolumeId tmpvolid;
     time_t timestamp;
 
@@ -104,92 +104,98 @@ long S_VolShowVnode(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
     /* first check if it is replicated */
     tmpvolid = volid;
     if (!XlateVid(&volid))
-	volid = tmpvolid;
+        volid = tmpvolid;
 
     rvmlib_begin_transaction(restore);
     VInitVolUtil(volumeUtility);
-/*    vp = VAttachVolume(&error, volid, V_READONLY); */
+    /*    vp = VAttachVolume(&error, volid, V_READONLY); */
     vp = VGetVolume(&error, volid);
     if (error) {
-	VLog(0, "S_VolInfo: failure attaching volume %d", volid);
-	if (error != VNOVOL) {
-	    VPutVolume(vp);
-	}
+        VLog(0, "S_VolInfo: failure attaching volume %d", volid);
+        if (error != VNOVOL) {
+            VPutVolume(vp);
+        }
         rvmlib_abort(error);
-	goto exit;
+        goto exit;
     }
     /* VGetVnode moved from after VOffline to here 11/88 ***/
     vnp = VGetVnode(&error, vp, vnodeid, unique, READ_LOCK, 1, 1);
     if (error) {
-	VLog(0, "S_VolShowVnode: VGetVnode failed with %d", error);
-	VPutVolume(vp);
-	rvmlib_abort(VFAIL);
-	goto exit;
+        VLog(0, "S_VolShowVnode: VGetVnode failed with %d", error);
+        VPutVolume(vp);
+        rvmlib_abort(VFAIL);
+        goto exit;
     }
 
     infofile = fopen(INFOFILE, "w");
-    fprintf(infofile, "%08x.%08x (%x), %s, cloned=%d, mode=%o, links=%d, length=%d\n",
-	vnodeid, vnp->disk.uniquifier, vnp->disk.dataVersion,
-	vnp->disk.type == vFile? "file": vnp->disk.type == vDirectory? "directory":
-	vnp->disk.type == vSymlink? "symlink" : "unknown type",
-	vnp->disk.cloned, vnp->disk.modeBits, vnp->disk.linkCount,
-	vnp->disk.length);
+    fprintf(infofile,
+            "%08x.%08x (%x), %s, cloned=%d, mode=%o, links=%d, length=%d\n",
+            vnodeid, vnp->disk.uniquifier, vnp->disk.dataVersion,
+            vnp->disk.type == vFile ?
+                "file" :
+                vnp->disk.type == vDirectory ?
+                "directory" :
+                vnp->disk.type == vSymlink ? "symlink" : "unknown type",
+            vnp->disk.cloned, vnp->disk.modeBits, vnp->disk.linkCount,
+            vnp->disk.length);
     timestamp = (time_t)vnp->disk.serverModifyTime;
     fprintf(infofile, "inode=%p, parent=%08x.%08x, serverTime=%s",
-	vnp->disk.node.dirNode, vnp->disk.vparent, vnp->disk.uparent, ctime(&timestamp));
+            vnp->disk.node.dirNode, vnp->disk.vparent, vnp->disk.uparent,
+            ctime(&timestamp));
     timestamp = (time_t)vnp->disk.unixModifyTime;
     fprintf(infofile, "author=%u, owner=%u, modifyTime=%s, volumeindex = %d",
-        vnp->disk.author, vnp->disk.owner, ctime(&timestamp), vnp->disk.vol_index);
+            vnp->disk.author, vnp->disk.owner, ctime(&timestamp),
+            vnp->disk.vol_index);
     FPrintVV(infofile, &(vnp->disk.versionvector));
 
     if (vnp->disk.type == vDirectory) {
-	PDCEntry pdce;
-	pdce = DC_Get(vnp->disk.node.dirNode);
-	if (pdce) {
-	    DH_Print(DC_DC2DH(pdce), infofile);
-	    DC_Put(pdce);
-	}
+        PDCEntry pdce;
+        pdce = DC_Get(vnp->disk.node.dirNode);
+        if (pdce) {
+            DH_Print(DC_DC2DH(pdce), infofile);
+            DC_Put(pdce);
+        }
     }
-    
-    if (AllowResolution && V_RVMResOn(vp) && vnp->disk.type == vDirectory) 
-	PrintLog(vnp, infofile);
+
+    if (AllowResolution && V_RVMResOn(vp) && vnp->disk.type == vDirectory)
+        PrintLog(vnp, infofile);
 
     VPutVolume(vp);
 
     fclose(infofile);
-    
+
     /* set up SE_Descriptor for transfer */
     memset(&sed, 0, sizeof(SE_Descriptor));
-    sed.Tag = SMARTFTP;
-    sed.Value.SmartFTPD.Tag = FILEBYNAME;
+    sed.Tag                                   = SMARTFTP;
+    sed.Value.SmartFTPD.Tag                   = FILEBYNAME;
     sed.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
     strcpy(sed.Value.SmartFTPD.FileInfo.ByName.LocalFileName, INFOFILE);
     sed.Value.SmartFTPD.FileInfo.ByName.ProtectionBits = 0755;
 
     if ((rc = RPC2_InitSideEffect(rpcid, &sed)) <= RPC2_ELIMIT) {
-	VLog(0, "VolShowVnode: InitSideEffect failed with %s", RPC2_ErrorMsg(rc));
-	rvmlib_abort(VFAIL);
-	goto exit;
+        VLog(0, "VolShowVnode: InitSideEffect failed with %s",
+             RPC2_ErrorMsg(rc));
+        rvmlib_abort(VFAIL);
+        goto exit;
     }
 
     if ((rc = RPC2_CheckSideEffect(rpcid, &sed, SE_AWAITLOCALSTATUS)) <=
-		RPC2_ELIMIT) {
-	VLog(0, "VolShowVnode: CheckSideEffect failed with %s", RPC2_ErrorMsg(rc));
-	rvmlib_abort(VFAIL);
+        RPC2_ELIMIT) {
+        VLog(0, "VolShowVnode: CheckSideEffect failed with %s",
+             RPC2_ErrorMsg(rc));
+        rvmlib_abort(VFAIL);
     }
 
     rvmlib_end_transaction(flush, &(status));
- exit:
+exit:
 
-    if (vnp){
-	VPutVnode(&error, vnp);
-	if (error) 
-	    VLog(0, "S_VolShowVnode: Error occured while putting vnode ");
+    if (vnp) {
+        VPutVnode(&error, vnp);
+        if (error)
+            VLog(0, "S_VolShowVnode: Error occured while putting vnode ");
     }
     VDisconnectFS();
     if (status)
-	VLog(0, "S_VolShowVnode failed with %d", status);
-    return (status?status:rc);
+        VLog(0, "S_VolShowVnode failed with %d", status);
+    return (status ? status : rc);
 }
-
-

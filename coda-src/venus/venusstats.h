@@ -24,7 +24,6 @@ listed in the file CREDITS.
 #ifndef _VENUS_STATS_H_
 #define _VENUS_STATS_H_ 1
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -36,12 +35,10 @@ extern "C" {
 }
 #endif
 
-
-
-#define	NVFSOPS	40	/* XXX -JJK */
+#define NVFSOPS 40 /* XXX -JJK */
 #define VFSSTATNAMELEN 13
 typedef struct VFSStat {
-    char name[VFSSTATNAMELEN];	    /* XXX -JJK */
+    char name[VFSSTATNAMELEN]; /* XXX -JJK */
     int success;
     int retry;
     int timeout;
@@ -50,11 +47,9 @@ typedef struct VFSStat {
     double time2;
 } VFSStat;
 
-
 typedef struct VFSStatistics {
     struct VFSStat VFSOps[NVFSOPS];
 } VFSStatistics;
-
 
 typedef struct FSOStatistics {
     int FSO1;
@@ -63,14 +58,12 @@ typedef struct FSOStatistics {
     int FSO4;
 } FSOStatistics;
 
-
 typedef struct VolStatistics {
     int Vol1;
     int Vol2;
     int Vol3;
     int Vol4;
 } VolStatistics;
-
 
 typedef struct ConnStatistics {
     int Conn1;
@@ -79,14 +72,12 @@ typedef struct ConnStatistics {
     int Conn4;
 } ConnStatistics;
 
-
 typedef struct MgrpStatistics {
     int Mgrp1;
     int Mgrp2;
     int Mgrp3;
     int Mgrp4;
 } MgrpStatistics;
-
 
 typedef struct ServerStatistics {
     int Server1;
@@ -95,7 +86,6 @@ typedef struct ServerStatistics {
     int Server4;
 } ServerStatistics;
 
-
 typedef struct VSGStatistics {
     int VSG1;
     int VSG2;
@@ -103,11 +93,10 @@ typedef struct VSGStatistics {
     int VSG4;
 } VSGStatistics;
 
-
 #define RPCOPSTATNAMELEN 20
 
 typedef struct RPCOpStat {
-    char name[RPCOPSTATNAMELEN];	    /* XXX -JJK */
+    char name[RPCOPSTATNAMELEN]; /* XXX -JJK */
     int good;
     int bad;
     float time;
@@ -118,11 +107,9 @@ typedef struct RPCOpStat {
     int Mrpc_retries;
 } RPCOpStat;
 
-
 typedef struct RPCOpStatistics {
     RPCOpStat RPCOps[srvOPARRAYSIZE];
 } RPCOpStatistics;
-
 
 typedef struct RPCPktStatistics {
     struct SStats RPC2_SStats_Uni;
@@ -135,7 +122,6 @@ typedef struct RPCPktStatistics {
     struct sftpStats SFTP_RStats_Multi;
 } RPCPktStatistics;
 
-
 typedef struct CommStatistics {
     ConnStatistics ConnStats;
     MgrpStatistics MgrpStats;
@@ -144,7 +130,6 @@ typedef struct CommStatistics {
     RPCOpStatistics RPCOpStats;
     RPCPktStatistics RPCPktStats;
 } CommStatistics;
-
 
 typedef struct VenusStatistics {
     VFSStatistics VFSStats;

@@ -50,12 +50,12 @@ extern "C" {
 #include "venus.private.h"
 
 class userent {
-  friend void UserInit();
-  friend void PutUser(userent **);
-  friend void UserPrint(int);
-  friend class user_iterator;
-  friend class fsdb;
-  friend class Realm; /* ~Realm, ResetTransient, GetUser, NewUserToken */
+    friend void UserInit();
+    friend void PutUser(userent **);
+    friend void UserPrint(int);
+    friend class user_iterator;
+    friend class fsdb;
+    friend class Realm; /* ~Realm, ResetTransient, GetUser, NewUserToken */
 
     /* The user list. */
     static olist *usertab;
@@ -74,37 +74,34 @@ class userent {
 
     /* Constructors, destructors, and private utility routines. */
     userent(RealmId realmid, uid_t userid);
-    userent(userent&);	    /* not supported! */
-    int operator=(userent&);    /* not supported! */
+    userent(userent &); /* not supported! */
+    int operator=(userent &); /* not supported! */
     ~userent();
 
-  public:
+public:
     long SetTokens(SecretToken *, ClearToken *);
     long GetTokens(SecretToken *, ClearToken *);
     int TokensValid();
     void CheckTokenExpiry();
     void Invalidate();
     void Reset();
-    int CheckFetchPartialSupport(RPC2_Handle *cid, srvent *sv, int * retry_cnt);
+    int CheckFetchPartialSupport(RPC2_Handle *cid, srvent *sv, int *retry_cnt);
     int Connect(RPC2_Handle *, int *, struct in_addr *);
     int GetWaitForever();
     void SetWaitForever(int);
 
-    uid_t GetUid() { return(uid); }
+    uid_t GetUid() { return (uid); }
 
     void print();
     void print(FILE *);
     void print(int);
 };
 
-
 class user_iterator : public olist_iterator {
-
-  public:
+public:
     user_iterator();
     userent *operator()();
 };
-
 
 /*  *****  Functions/Routines  *****  */
 

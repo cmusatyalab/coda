@@ -41,24 +41,24 @@ Pittsburgh, PA.
 #define _VOLTYPES_H_ 1
 
 #ifndef NULL
-#define NULL	0
+#define NULL 0
 #endif
 #ifndef TRUE
-#define TRUE	1
+#define TRUE 1
 #endif
 #ifndef FALSE
-#define FALSE	0
+#define FALSE 0
 #endif
 
 #include <rpc2/rpc2.h>
 #include <stdint.h>
 
-typedef uint32_t bit32;	/* Unsigned, 32 bits */
-typedef uint16_t bit16;	/* Unsigned, 16 bits */
-typedef uint8_t  byte;	/* Unsigned, 8 bits */
+typedef uint32_t bit32; /* Unsigned, 32 bits */
+typedef uint16_t bit16; /* Unsigned, 16 bits */
+typedef uint8_t byte; /* Unsigned, 8 bits */
 
-typedef bit32	Device;		/* Unix device number */
-typedef bit32	Inode;		/* Unix inode number */
-typedef bit32	Error;		/* Error return code */
+typedef bit32 Device; /* Unix device number */
+typedef bit32 Inode; /* Unix inode number */
+typedef bit32 Error; /* Error return code */
 
 #endif

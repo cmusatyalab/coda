@@ -1,6 +1,7 @@
-/* This file was generated from errordb.txt at Mon May 21 22:31:27 EDT 2007 */
-/* It translates from system (and Coda) errno values to error messages */
 // clang-format off
+/* This file was generated from errordb.txt at Thu Jan 10 15:42:30 EST 2019 */
+/* It translates from system (and Coda) errno values to error messages */
+
 /* Translations for common UNIX errno values */
   case EPERM:	txt = "Operation not permitted"; break;
   case ENOENT:	txt = "No such file or directory"; break;

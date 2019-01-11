@@ -37,7 +37,7 @@ Pittsburgh, PA.
 
 */
 
-#include "coda_assert.h" 
+#include "coda_assert.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -48,13 +48,12 @@ extern "C" {
 #include <signal.h>
 #include <stdio.h>
 
-#ifndef IN  /* rpc2.private.h also defines these */
+#ifndef IN /* rpc2.private.h also defines these */
 /* Parameter usage */
-#define	IN	/* Input parameter */
-#define OUT	/* Output parameter */
-#define INOUT	/* Obvious */
+#define IN /* Input parameter */
+#define OUT /* Output parameter */
+#define INOUT /* Obvious */
 #endif /* !IN */
-
 
 #define TRUE 1
 #define FALSE 0
@@ -65,12 +64,13 @@ void eprint(const char *, ...);
 void fdprint(long afd, const char *fmt, ...);
 
 /* Routine for conditionally printing timestamped log messages */
-extern void LogMsg(int msglevel, int debuglevel, FILE *fout, const char *fmt, ...);
-#define VLog(level, fmt, a...) LogMsg(level, VolDebugLevel, stdout, fmt, ## a)
-#define SLog(level, fmt, a...) LogMsg(level, SrvDebugLevel, stdout, fmt, ## a)
-#define DLog(level, fmt, a...) LogMsg(level, DirDebugLevel, stdout, fmt, ## a)
-#define ALog(level, fmt, a...) LogMsg(level, VolDebugLevel, stdout, fmt, ## a)
-#define CLog(level, fmt, a...) LogMsg(level, VolDebugLevel, stdout, fmt, ## a)
+extern void LogMsg(int msglevel, int debuglevel, FILE *fout, const char *fmt,
+                   ...);
+#define VLog(level, fmt, a...) LogMsg(level, VolDebugLevel, stdout, fmt, ##a)
+#define SLog(level, fmt, a...) LogMsg(level, SrvDebugLevel, stdout, fmt, ##a)
+#define DLog(level, fmt, a...) LogMsg(level, DirDebugLevel, stdout, fmt, ##a)
+#define ALog(level, fmt, a...) LogMsg(level, VolDebugLevel, stdout, fmt, ##a)
+#define CLog(level, fmt, a...) LogMsg(level, VolDebugLevel, stdout, fmt, ##a)
 
 /* The routine that prints the timestamp */
 extern void PrintTimeStamp(FILE *fout);
@@ -79,28 +79,28 @@ extern void PrintTimeStamp(FILE *fout);
 int UtilHostEq(const char *name1, const char *name2);
 char *hostname(char *name);
 
-  /* Process releted utilities */
+/* Process releted utilities */
 void UtilDetach();
 
 /* Useful locking macros */
-#define U_wlock(b)      ObtainWriteLock(&((b)->lock))
-#define U_rlock(b)      ObtainReadLock(&((b)->lock))
-#define U_wunlock(b)    ReleaseWriteLock(&((b)->lock))
-#define U_runlock(b)    ReleaseReadLock(&((b)->lock))
+#define U_wlock(b) ObtainWriteLock(&((b)->lock))
+#define U_rlock(b) ObtainReadLock(&((b)->lock))
+#define U_wunlock(b) ReleaseWriteLock(&((b)->lock))
+#define U_runlock(b) ReleaseReadLock(&((b)->lock))
 
 /* Extern decls for variables used in Coda to control verbosity of
    messages from LogMsg(). Should these be here?
 */
 
-extern int SrvDebugLevel;	/* Server */
-extern int VolDebugLevel;	/* Vol package */
-extern int DirDebugLevel;	/* Dir package */
-extern int AL_DebugLevel;	/* ACL package */
-extern int AuthDebugLevel;	/* Auth package */
+extern int SrvDebugLevel; /* Server */
+extern int VolDebugLevel; /* Vol package */
+extern int DirDebugLevel; /* Dir package */
+extern int AL_DebugLevel; /* ACL package */
+extern int AuthDebugLevel; /* Auth package */
 
 #ifdef __CYGWIN32__
 #include <stdarg.h>
-  /* int vsnprintf(char *buf, size_t len, char *fmt, va_list ap); */
+/* int vsnprintf(char *buf, size_t len, char *fmt, va_list ap); */
 int snprintf(char *buf, size_t len, const char *fmt, ...);
 long int gethostid(void);
 #endif
@@ -108,4 +108,3 @@ long int gethostid(void);
 #ifdef __cplusplus
 }
 #endif
-

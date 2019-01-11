@@ -80,31 +80,30 @@ static int GetTokens(const char *realm)
     /* Get the tokens.  */
     rc = U_GetLocalTokens(&clear, secret, realm);
     if (rc < 0) {
-	if (rc == -ENOTCONN)
-	    fprintf(stdout, "\tNot Authenticated\n");
-	else
-	    fprintf(stdout, "\tGetLocalTokens error (%d)\n", -rc);
-	return -1;
+        if (rc == -ENOTCONN)
+            fprintf(stdout, "\tNot Authenticated\n");
+        else
+            fprintf(stdout, "\tGetLocalTokens error (%d)\n", -rc);
+        return -1;
     }
 
     fprintf(stdout, "\tCoda user id:\t %d\n", clear.ViceId);
 
     /* Check for expiration. */
     if (clear.EndTimestamp <= time(NULL)) {
-	fprintf(stdout, "\tThis token has expired.\n");
-	return -2;
+        fprintf(stdout, "\tThis token has expired.\n");
+        return -2;
     }
     endtimestamp = (time_t)clear.EndTimestamp;
     fprintf(stdout, "\tExpiration time: %s", ctime(&endtimestamp));
     return 0;
 }
 
-
 int main(int argc, char *argv[])
 {
     const char *realm = NULL;
-    char *username = NULL;
-    int rc = 0;
+    char *username    = NULL;
+    int rc            = 0;
 
 #ifdef __CYGWIN__
     username = getlogin();
@@ -115,42 +114,41 @@ int main(int argc, char *argv[])
 #endif
 
     if (argc == 2)
-	SplitRealmFromName(argv[1], &realm);
+        SplitRealmFromName(argv[1], &realm);
 
     /* Header. */
     fprintf(stdout, "Tokens held by the Cache Manager for %s:\n", username);
 
     if (!realm) {
-	const char *mountpoint = NULL;
-	struct dirent *entry;
-	DIR *dir;
+        const char *mountpoint = NULL;
+        struct dirent *entry;
+        DIR *dir;
 
-	codaconf_init("venus.conf");
+        codaconf_init("venus.conf");
 
 #ifdef __CYGWIN__
-	char *winmount = NULL;
-	char cygwinmount[15];
-	CODACONF_STR(winmount, "mountpoint", "N:");
-	snprintf(cygwinmount,15,"/cygdrive/%c", winmount[0]);
-	mountpoint = cygwinmount;
+        char *winmount = NULL;
+        char cygwinmount[15];
+        CODACONF_STR(winmount, "mountpoint", "N:");
+        snprintf(cygwinmount, 15, "/cygdrive/%c", winmount[0]);
+        mountpoint = cygwinmount;
 #else
-	CODACONF_STR(mountpoint, "mountpoint", "/coda");
+        CODACONF_STR(mountpoint, "mountpoint", "/coda");
 #endif
 
-	dir = opendir(mountpoint);
-	if (!dir) {
-	    perror("Failed to get list of realms");
-	    exit(EXIT_FAILURE);
-	}
+        dir = opendir(mountpoint);
+        if (!dir) {
+            perror("Failed to get list of realms");
+            exit(EXIT_FAILURE);
+        }
 
-	while ((entry = readdir(dir)) != NULL)
-	    if (entry->d_name[0] != '.')
-		(void)GetTokens(entry->d_name);
+        while ((entry = readdir(dir)) != NULL)
+            if (entry->d_name[0] != '.')
+                (void)GetTokens(entry->d_name);
 
-	closedir(dir);
+        closedir(dir);
     } else
-	rc = GetTokens(realm);
+        rc = GetTokens(realm);
 
     exit(rc ? EXIT_FAILURE : EXIT_SUCCESS);
 }
-

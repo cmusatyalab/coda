@@ -42,9 +42,9 @@ Pittsburgh, PA.
 *	Utility routines for RP2GEN				    *
 * 								    *
 \*******************************************************************/
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "rp2.h"
 

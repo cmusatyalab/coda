@@ -1,26 +1,26 @@
 /* BLURB lgpl
-                        Coda File System
-                            Release 6
+			Coda File System
+			    Release 6
 
-          Copyright (c) 2005-2017 Carnegie Mellon University
-                  Additional copyrights listed below
+	  Copyright (c) 2005-2017 Carnegie Mellon University
+		  Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
 the  terms of the  GNU  Library General Public Licence  Version 2,  as
 shown in the file LICENSE. The technical and financial contributors to
 Coda are listed in the file CREDITS.
 
-                        Additional copyrights
+			Additional copyrights
 #*/
 
+#include <sys/types.h>
+#include <sys/socket.h>
 #include <arpa/inet.h>
-#include <assert.h>
-#include <errno.h>
 #include <netinet/in.h>
 #include <stdint.h>
 #include <string.h>
-#include <sys/socket.h>
-#include <sys/types.h>
+#include <errno.h>
+#include <assert.h>
 
 #include <rpc2/secure.h>
 
@@ -57,10 +57,10 @@ ssize_t secure_sendto(int s, const void *buf, size_t len, int flags,
     }
 
     /* calculate the amount of padding we will need */
-    pad_align =
-        (sa->encrypt->blocksize > sizeof(uint32_t) ? sa->encrypt->blocksize :
-                                                     sizeof(uint32_t)) -
-        1;
+    pad_align = (sa->encrypt->blocksize > sizeof(uint32_t) ?
+                     sa->encrypt->blocksize :
+                     sizeof(uint32_t)) -
+                1;
     padded_size = (len + 2 * sizeof(uint8_t) + pad_align) & ~pad_align;
     assert(padded_size - len >= 2 * sizeof(uint8_t));
     padding = padded_size - 2 * sizeof(uint8_t) - len;

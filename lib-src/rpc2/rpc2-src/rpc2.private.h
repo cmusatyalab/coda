@@ -125,7 +125,7 @@ OBJ_HENTRY = 48127
 #define SetRole(e, role) (e->State = role)
 #define SetState(e, new) (e->State = (e->State & 0xffff0000) | (new))
 #define TestRole(e, role) ((e->State & 0xffff0000) == role)
-#define TestState(e, role, smask)                                              \
+#define TestState(e, role, smask) \
     (TestRole(e, role) && ((e->State & 0x0000ffff) & (smask)))
 
 #ifndef O_BINARY
@@ -318,9 +318,9 @@ struct SL_Entry {
     enum SL_Type Type;
 
     /* Timeout-related fields */
-    struct TM_Elem TElem; /* element  to be inserted into  timer chain;
-                                    The BackPointer field of TElem will
-                                    point to this SL_Entry */
+    struct TM_Elem TElem; /* element to be inserted into timer chain;
+                             The BackPointer field of TElem will
+                             point to this SL_Entry */
     enum RetVal ReturnCode; /* SocketListener changes this from WAITING */
 
     /* Other fields */
@@ -340,8 +340,8 @@ struct SubsysEntry /* Defines a subsystem being actively serviced by a server */
         OBJ_SSENTRY = 34079
     } MagicNumber;
     struct SubsysEntry *Qname; /* LinkEntry field */
-    long Id; /* using a struct is a little excessive, but it makes things uniform
-             */
+    long Id; /* using a struct is a little excessive, but it makes things
+                uniform */
 };
 
 /* extend with other side effect types */
@@ -364,19 +364,19 @@ struct HEntry {
     struct HEntry *HLink; /* for host hash */
     int RefCount; /* # connections that have a reference */
     struct RPC2_addrinfo *Addr; /* network address */
-    struct timeval LastWord; /* Most recent time we've heard from this host*/
+    struct timeval LastWord; /* Most recent time we've heard from this host */
     unsigned RPC2_NumEntries; /* number of observations recorded */
     RPC2_NetLogEntry RPC2_Log[RPC2_MAXLOGLENGTH];
-    /* circular buffer for recent observations on
-                               * round trip times and packet sizes */
+    /* circular buffer for recent observations on round trip times
+     * and packet sizes */
     unsigned SE_NumEntries; /* number of sideeffect observations recorded */
     RPC2_NetLogEntry SE_Log[RPC2_MAXLOGLENGTH];
 
 /* the RTT is shifted analogous to Jacobson's article in SIGCOMM'88 */
 #define RPC2_RTT_SHIFT 3 /* Bits to right of binary point of RTT */
 #define RPC2_RTTVAR_SHIFT 2 /* Bits to right of binary point of RTTvar */
-    unsigned long RTT; /* RTT		(us<<RPC2_RTT_SHIFT) */
-    unsigned long RTTvar; /* RTT variance	(us<<RPC2_RTTVAR_SHIFT) */
+    unsigned long RTT; /* RTT (us<<RPC2_RTT_SHIFT) */
+    unsigned long RTTvar; /* RTT variance (us<<RPC2_RTTVAR_SHIFT) */
 
 #define RPC2_INITIAL_BW 100000
 #define RPC2_BW_SHIFT 4
@@ -460,7 +460,7 @@ struct InitMulticastBody /* Client to Server */
 /* Macros for manipulating color field of packets */
 #define htonPktColor(p) (p->Header.Flags = htonl(p->Header.Flags))
 #define ntohPktColor(p) (p->Header.Flags = ntohl(p->Header.Flags))
-#define SetPktColor(p, c)                                                      \
+#define SetPktColor(p, c) \
     (p->Header.Flags = (p->Header.Flags & 0xff00ffff) | ((c & 0xff) << 16))
 #define GetPktColor(p) ((p->Header.Flags >> 16) & 0x000000ff)
 
@@ -616,8 +616,8 @@ int mkcall(RPC2_HandleResult_func *ClientHandler, int ArgCount, int HowMany,
 
 /* Macros to work with preemption package */
 /* #define rpc2_Enter() (PRE_BeginCritical()) */
-#define rpc2_Enter()                                                           \
-    do {                                                                       \
+#define rpc2_Enter() \
+    do {             \
     } while (0)
 /*#define rpc2_Quit(rc) return(PRE_EndCritical(), (long)rc) */
 #define rpc2_Quit(rc) return ((long)rc)
@@ -674,15 +674,15 @@ void rpc2_formataddrinfo(const struct RPC2_addrinfo *ai, char *buf,
 /* Conditional debugging output macros: no side effect in these! */
 char *rpc2_timestring();
 #ifdef RPC2DEBUG
-#define say(when, what, how...)                                                \
-    do {                                                                       \
-        if (when < what) {                                                     \
-            fprintf(rpc2_logfile,                                              \
-                    "[%s]%s: \"%s\", line %d:    ", rpc2_timestring(),         \
-                    LWP_Name(), __FILE__, __LINE__);                           \
-            fprintf(rpc2_logfile, ##how);                                      \
-            (void)fflush(rpc2_logfile);                                        \
-        }                                                                      \
+#define say(when, what, how...)                                        \
+    do {                                                               \
+        if (when < what) {                                             \
+            fprintf(rpc2_logfile,                                      \
+                    "[%s]%s: \"%s\", line %d:    ", rpc2_timestring(), \
+                    LWP_Name(), __FILE__, __LINE__);                   \
+            fprintf(rpc2_logfile, ##how);                              \
+            (void)fflush(rpc2_logfile);                                \
+        }                                                              \
     } while (0);
 #else
 #define say(when, what, how...)
@@ -696,44 +696,44 @@ char *rpc2_timestring();
 /*--------- End stuff from util.h ------------*/
 
 /* macro to subtract one timeval from another */
-#define SUBTIME(fromp, subp)                                                   \
-    do {                                                                       \
-        if ((subp)->tv_usec > (fromp)->tv_usec) {                              \
-            (fromp)->tv_sec--;                                                 \
-            (fromp)->tv_usec += 1000000;                                       \
-        }                                                                      \
-        (fromp)->tv_sec -= (subp)->tv_sec;                                     \
-        (fromp)->tv_usec -= (subp)->tv_usec;                                   \
+#define SUBTIME(fromp, subp)                      \
+    do {                                          \
+        if ((subp)->tv_usec > (fromp)->tv_usec) { \
+            (fromp)->tv_sec--;                    \
+            (fromp)->tv_usec += 1000000;          \
+        }                                         \
+        (fromp)->tv_sec -= (subp)->tv_sec;        \
+        (fromp)->tv_usec -= (subp)->tv_usec;      \
     } while (0);
 
 /* add one timeval to another */
-#define ADDTIME(top, fromp)                                                    \
-    do {                                                                       \
-        (top)->tv_sec += (fromp)->tv_sec;                                      \
-        (top)->tv_usec += (fromp)->tv_usec;                                    \
-        if ((top)->tv_usec >= 1000000) {                                       \
-            (top)->tv_sec++;                                                   \
-            (top)->tv_usec -= 1000000;                                         \
-        }                                                                      \
+#define ADDTIME(top, fromp)                 \
+    do {                                    \
+        (top)->tv_sec += (fromp)->tv_sec;   \
+        (top)->tv_usec += (fromp)->tv_usec; \
+        if ((top)->tv_usec >= 1000000) {    \
+            (top)->tv_sec++;                \
+            (top)->tv_usec -= 1000000;      \
+        }                                   \
     } while (0);
 
-#define CMPTIME(a, b, CMP)                                                     \
-    (((a)->tv_sec == (b)->tv_sec) ? ((a)->tv_usec CMP(b)->tv_usec) :           \
+#define CMPTIME(a, b, CMP)                                           \
+    (((a)->tv_sec == (b)->tv_sec) ? ((a)->tv_usec CMP(b)->tv_usec) : \
                                     ((a)->tv_sec CMP(b)->tv_sec))
 
 #define CLRTIME(tm) ((tm)->tv_sec = 0, (tm)->tv_usec = 0)
 #define TIMERISSET(tm) ((tm)->tv_sec || (tm)->tv_usec)
 
 /* macros to convert between timeval and timestamp */
-#define TVTOTS(_tvp_, _ts_)                                                    \
-    do {                                                                       \
-        _ts_ = ((_tvp_)->tv_sec * 1000000 + (_tvp_)->tv_usec);                 \
+#define TVTOTS(_tvp_, _ts_)                                    \
+    do {                                                       \
+        _ts_ = ((_tvp_)->tv_sec * 1000000 + (_tvp_)->tv_usec); \
     } while (0);
 
-#define TSTOTV(_tvp_, _ts_)                                                    \
-    do {                                                                       \
-        (_tvp_)->tv_sec  = (_ts_) / 1000000;                                   \
-        (_tvp_)->tv_usec = (_ts_) % 1000000;                                   \
+#define TSTOTV(_tvp_, _ts_)                  \
+    do {                                     \
+        (_tvp_)->tv_sec  = (_ts_) / 1000000; \
+        (_tvp_)->tv_usec = (_ts_) % 1000000; \
     } while (0);
 
 #define TSDELTA(_ts1_, _ts2_) ((int)(_ts1_) - (int)(_ts2_))

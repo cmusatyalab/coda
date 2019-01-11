@@ -58,29 +58,31 @@ static void ObtainLock(struct Lock *lock, char type)
     assert(LWP_CurrentProcess(&pid) == 0);
 
     if (!lock->initialized)
-	Lock_Init(lock);
+        Lock_Init(lock);
 
     lwp_LEAVE(pid);
     lwp_mutex_lock(&lock->_access);
     {
-	/* now start waiting, writers wait until all readers have left, all
+        /* now start waiting, writers wait until all readers have left, all
 	 * lockers wait for the excl flag to be cleared */
-	/* this is a safe cancellation point because we (should) only hold
+        /* this is a safe cancellation point because we (should) only hold
 	 * the access mutex, and we take ourselves off the pending list in the
 	 * cleanup handler */
-	while (lock->excl || (type == 'W' && lock->readers))
-	    pthread_cond_wait(&lock->wakeup, &lock->_access);
+        while (lock->excl || (type == 'W' && lock->readers))
+            pthread_cond_wait(&lock->wakeup, &lock->_access);
 
-	/* Obtain the correct lock flags, read locks increment readers, write
+        /* Obtain the correct lock flags, read locks increment readers, write
 	 * locks set the excl flag and shared locks do both */
-	if (type != 'R') lock->excl = pid;
-	if (type != 'W') lock->readers++;
+        if (type != 'R')
+            lock->excl = pid;
+        if (type != 'W')
+            lock->readers++;
 
-	    /* signal other threads, there might be more readers */
-	if (type == 'R')
-	    pthread_cond_broadcast(&lock->wakeup);
+        /* signal other threads, there might be more readers */
+        if (type == 'R')
+            pthread_cond_broadcast(&lock->wakeup);
 
-	lwp_dbg(LWP_DBG_LOCKS, "%c+ pid %p lock %p\n", type, pid, lock);
+        lwp_dbg(LWP_DBG_LOCKS, "%c+ pid %p lock %p\n", type, pid, lock);
     }
     lwp_mutex_unlock(&lock->_access);
     lwp_YIELD(pid);
@@ -103,20 +105,42 @@ static void ReleaseLock(struct Lock *lock, char type)
 
     lwp_dbg(LWP_DBG_LOCKS, "%c- pid %p lock %p\n", type, pid, lock)
 
-    /* if we cleared the lock, signal the next pending locker */
-    if (!lock->excl && !lock->readers)
-        pthread_cond_signal(&lock->wakeup);
+        /* if we cleared the lock, signal the next pending locker */
+        if (!lock->excl && !lock->readers) pthread_cond_signal(&lock->wakeup);
 
     /* and release the lock-access mutex */
     lwp_mutex_unlock(&lock->_access);
 }
 
-void ObtainReadLock(struct Lock *lock)    { ObtainLock(lock, 'R'); }
-void ObtainWriteLock(struct Lock *lock)   { ObtainLock(lock, 'W'); }
-void ObtainSharedLock(struct Lock *lock)  { ObtainLock(lock, 'S'); }
-void ReleaseReadLock(struct Lock *lock)   { ReleaseLock(lock, 'R'); }
-void ReleaseWriteLock(struct Lock *lock)  { ReleaseLock(lock, 'W'); }
-void ReleaseSharedLock(struct Lock *lock) { ReleaseLock(lock, 'S'); }
+void ObtainReadLock(struct Lock *lock)
+{
+    ObtainLock(lock, 'R');
+}
+
+void ObtainWriteLock(struct Lock *lock)
+{
+    ObtainLock(lock, 'W');
+}
+
+void ObtainSharedLock(struct Lock *lock)
+{
+    ObtainLock(lock, 'S');
+}
+
+void ReleaseReadLock(struct Lock *lock)
+{
+    ReleaseLock(lock, 'R');
+}
+
+void ReleaseWriteLock(struct Lock *lock)
+{
+    ReleaseLock(lock, 'W');
+}
+
+void ReleaseSharedLock(struct Lock *lock)
+{
+    ReleaseLock(lock, 'S');
+}
 
 /* This function is silly anyway you look at it.
  * Think 2 concurrent threads trying to get a lock, that would use
@@ -124,8 +148,10 @@ void ReleaseSharedLock(struct Lock *lock) { ReleaseLock(lock, 'S'); }
  * Accidents waiting to happen? */
 int CheckLock(struct Lock *lock)
 {
-    if (lock->readers)     return lock->readers;
-    if (WriteLocked(lock)) return -1;
+    if (lock->readers)
+        return lock->readers;
+    if (WriteLocked(lock))
+        return -1;
     return 0;
 }
 
@@ -138,4 +164,3 @@ int WriteLocked(struct Lock *lock)
 {
     return (lock->excl != NULL);
 }
-

@@ -34,7 +34,7 @@ void lwp_stacktrace(FILE *fp, void *top, stack_t *stack)
     register_t ebp;
     register_t *esp;
     int count;
-    
+
     /* Set current stack pointer to top */
     /* top is the address of the first parameter on the stack and it is an
      * integer. Next to this _should_ be the return address and the previous
@@ -44,22 +44,22 @@ void lwp_stacktrace(FILE *fp, void *top, stack_t *stack)
 
     fprintf(fp, "Call Trace:\n [<unknown>]");
     while (esp) {
-	ebp = *(esp++); /* LEAVE */
-	ip  = *(esp++); /* RET */
-	
-	/* make sure we stay within the allocated stack frame */
-	if ((register_t *)ebp <= esp ||
-	   (stack && stack->ss_sp &&
-	    (char *)ebp >= (char *)stack->ss_sp+stack->ss_size))
-	    break;
+        ebp = *(esp++); /* LEAVE */
+        ip  = *(esp++); /* RET */
 
-	//for (count = 0; count < 6 && esp < (register_t *)ebp; count++)
-	for (count = 0; esp < (register_t *)ebp; count++)
-	    fprintf(fp, " <%08x>", *(esp++));
+        /* make sure we stay within the allocated stack frame */
+        if ((register_t *)ebp <= esp ||
+            (stack && stack->ss_sp &&
+             (char *)ebp >= (char *)stack->ss_sp + stack->ss_size))
+            break;
 
-	fprintf(fp, "\n [<%08x>] ", ip);
+        //for (count = 0; count < 6 && esp < (register_t *)ebp; count++)
+        for (count = 0; esp < (register_t *)ebp; count++)
+            fprintf(fp, " <%08x>", *(esp++));
 
-	esp = (register_t *)ebp;
+        fprintf(fp, "\n [<%08x>] ", ip);
+
+        esp = (register_t *)ebp;
     }
     fprintf(fp, "\n");
 #endif

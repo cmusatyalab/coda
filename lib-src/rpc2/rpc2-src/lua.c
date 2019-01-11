@@ -1,31 +1,31 @@
 /* BLURB lgpl
 
-                           Coda File System
-                              Release 6
+			   Coda File System
+			      Release 6
 
-            Copyright (c) 2006-2016 Carnegie Mellon University
-                  Additional copyrights listed below
+	    Copyright (c) 2006-2016 Carnegie Mellon University
+		  Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
 the  terms of the  GNU  Library General Public Licence  Version 2,  as
 shown in the file LICENSE. The technical and financial contributors to
 Coda are listed in the file CREDITS.
 
-                        Additional copyrights
+			Additional copyrights
 #*/
 
 #include "rpc2.private.h"
 
 #ifdef USE_LUA
 
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <sys/stat.h>
 #include <sys/time.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <math.h>
 
-#include "lauxlib.h"
 #include "lua.h"
+#include "lauxlib.h"
 #include "lualib.h"
 
 static char *lua_script = "/etc/rpc2.lua";
@@ -433,7 +433,7 @@ void LUA_clocktick(void)
     L = luaL_newstate();
 
     /* Load default libraries. Maybe this is a bit too much, we probably
-   * really only need math and string. */
+     * really only need math and string. */
     luaL_openlibs(L);
 
     /* make sure print sends it's output to rpc2_logfile */

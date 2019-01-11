@@ -16,14 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
-
-
 /*
  *
  * olist.h -- Specification of singly-linked list type where list elements
@@ -44,32 +36,31 @@ extern "C" {
 }
 #endif
 
-
 class olist;
 class olist_iterator;
 class olink;
 
 /* function to examine tag value in object derived from olink;
    returns 1 on match and 0 on mismatch (Satya, May04) */
-typedef   int (*otagcompare_t)(void *tag, void *object);
-
+typedef int (*otagcompare_t)(void *tag, void *object);
 
 class olist {
-  friend class olist_iterator;
-    olink *tail;	    // tail->next is head of list
+    friend class olist_iterator;
+    olink *tail; // tail->next is head of list
     int cnt;
-  public:
+
+public:
     olist();
-    olist(olist&);	    // not supported!
-    int operator= (olist&);	    // not supported!
+    olist(olist &); // not supported!
+    int operator=(olist &); // not supported!
     virtual ~olist();
-    void insert(olink *);   // add at head of list
-    void append(olink *);   // add at tail of list
-    olink *remove(olink	*); // remove specified entry
-    olink *first();	    // return head of list
-    olink *last();	    // return tail of list
-    olink *get();	    // return and remove head of list
-    void clear();	    // remove all entries
+    void insert(olink *); // add at head of list
+    void append(olink *); // add at tail of list
+    olink *remove(olink *); // remove specified entry
+    olink *first(); // return head of list
+    olink *last(); // return tail of list
+    olink *get(); // return and remove head of list
+    void clear(); // remove all entries
     int count();
     int IsMember(olink *);
     virtual void print();
@@ -81,27 +72,26 @@ class olist {
     olink *FindObject(void *tag, otagcompare_t cmpfn);
 };
 
-
 class olist_iterator {
-    olist *clist;	    // current olist
-  public:
-    olink *clink;	    // current olink
-    olist_iterator(olist&);
-    olink *operator()();    // return next object or 0
-                            // Does NOT support safe deletion of currently
-                            // returned entry.
-    void reset();           // allow re-use of iterator (Satya, 5/04)
+    olist *clist; // current olist
+public:
+    olink *clink; // current olink
+    olist_iterator(olist &);
+    olink *operator()(); // return next object or 0
+        // Does NOT support safe deletion of currently
+        // returned entry.
+    void reset(); // allow re-use of iterator (Satya, 5/04)
 };
 
-
-class olink {		    // objects are derived from this class
-  friend class olist;
-  friend class olist_iterator;
+class olink { // objects are derived from this class
+    friend class olist;
+    friend class olist_iterator;
     olink *next;
-  public:
+
+public:
     olink();
-    olink(olink&);	    // not supported!
-    int operator=(olink&);	    // not supported!
+    olink(olink &); // not supported!
+    int operator=(olink &); // not supported!
     virtual ~olink();
     virtual void print();
     virtual void print(FILE *);
@@ -112,7 +102,7 @@ class olink {		    // objects are derived from this class
        Allows generalization of classes olist and ohash to test for
         presence of object with an arbitrary tag, rather than just 
           match on object pointer */
-    int otagmatch (void *otag, otagcompare_t cmpfn);
+    int otagmatch(void *otag, otagcompare_t cmpfn);
 };
 
 #endif /* _UTIL_LIST_H_ */

@@ -16,14 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
-
-
 /*
  *
  *    rec_olist.h -- Specification of a recoverable singly-linked list type
@@ -47,34 +39,32 @@ extern "C" {
 #include "olist.h"
 #include "rvmlib.h"
 
-
 class rec_olist;
 class rec_olist_iterator;
 class rec_olink;
 
-
 class rec_olist {
-  friend class rec_olist_iterator;
-    rec_olink *tail;				    /* tail->next is head of list */
+    friend class rec_olist_iterator;
+    rec_olink *tail; /* tail->next is head of list */
     int cnt;
 
-  public:
+public:
     void *operator new(size_t);
     void operator delete(void *);
 
     rec_olist();
-    rec_olist(rec_olist&);			    /* not supported! */
+    rec_olist(rec_olist &); /* not supported! */
     void Init();
-    int operator=(rec_olist&);			    /* not supported! */
+    int operator=(rec_olist &); /* not supported! */
     ~rec_olist();
     void DeInit();
 
-    void insert(rec_olink *);			    /* add at head of list */
-    void append(rec_olink *);			    /* add at tail of list */
-    rec_olink *remove(rec_olink	*);		    /* remove specified entry */
-    rec_olink *first();				    /* return head of list */
-    rec_olink *last();				    /* return tail of list */
-    rec_olink *get();				    /* return and remove head of list */
+    void insert(rec_olink *); /* add at head of list */
+    void append(rec_olink *); /* add at tail of list */
+    rec_olink *remove(rec_olink *); /* remove specified entry */
+    rec_olink *first(); /* return head of list */
+    rec_olink *last(); /* return tail of list */
+    rec_olink *get(); /* return and remove head of list */
 
     int count();
     int IsMember(rec_olink *);
@@ -83,31 +73,27 @@ class rec_olist {
     /*virtual*/ void print(int);
 };
 
-
 class rec_olist_iterator {
-    rec_olist *clist;				    /* current rec_olist */
+    rec_olist *clist; /* current rec_olist */
 
-  public:
-    rec_olink *clink;				    /* current rec_olink */
-    rec_olist_iterator(rec_olist&);
-    rec_olink *operator()();                        /* return next object or 0 */
-                                                    /* Support safe deletion 
-                                                     * of currently returned 
-                                                     * entry. See dlist.h also */
+public:
+    rec_olink *clink; /* current rec_olink */
+    rec_olist_iterator(rec_olist &);
+    rec_olink *operator()(); /* return next object or 0 */
+    /* Support safe deletion of currently returned entry. See dlist.h also */
 };
 
-
-class rec_olink	{				    /* objects are derived from this class */
-  friend class rec_olist;
-  friend class rec_olist_iterator;
+class rec_olink { /* objects are derived from this class */
+    friend class rec_olist;
+    friend class rec_olist_iterator;
     rec_olink *next;
 
-  public:
+public:
     rec_olink();
     void Init();
-    rec_olink(rec_olink&);			    /* not supported! */
-    int operator=(rec_olink&);			    /* not supported! */
-/*
+    rec_olink(rec_olink &); /* not supported! */
+    int operator=(rec_olink &); /* not supported! */
+    /*
     ~rec_olink();
     void DeInit();
 */

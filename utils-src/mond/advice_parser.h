@@ -30,8 +30,6 @@ Mellon the rights to redistribute these changes without encumbrance.
 */
 #endif /*_BLURB_*/
 
-
-
 #ifndef _ADVICE_PARSER_H_
 #define _ADVICE_PARSER_H_
 

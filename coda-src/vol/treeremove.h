@@ -24,7 +24,7 @@ listed in the file CREDITS.
 #include <dlist.h>
 
 class TreeRmBlk {
-  public:
+public:
     ClientEntry *client;
     VolumeId VSGVnum;
     Volume *volptr;
@@ -34,31 +34,31 @@ class TreeRmBlk {
     int IsResolve;
     olist *hvlog;
     unsigned long srvrid;
-    int	*blocks;
+    int *blocks;
 
-  TreeRmBlk(){ }
-  int init(ClientEntry *cl, VolumeId vnum, Volume *vptr, ViceStatus *st,
-		  ViceStoreId *stid, dlist *vl, int resolve, olist *logtree, 
-		  unsigned long svid, int *blks) {
-      client = cl;
-      VSGVnum = vnum;
-      volptr = vptr;
-      status = st;
-      storeid = stid;
-      vlist = vl;
-      blocks = blks;
-      *blocks = 0;
-      IsResolve = resolve;
-      if (IsResolve) {
-	  hvlog = logtree;
-	  srvrid = svid;
-      }
-      else {
-	  hvlog = NULL;
-	  srvrid = 0;
-      }
-  return(0); /* keep C++ happy */
-  }
+    TreeRmBlk() {}
+    int init(ClientEntry *cl, VolumeId vnum, Volume *vptr, ViceStatus *st,
+             ViceStoreId *stid, dlist *vl, int resolve, olist *logtree,
+             unsigned long svid, int *blks)
+    {
+        client    = cl;
+        VSGVnum   = vnum;
+        volptr    = vptr;
+        status    = st;
+        storeid   = stid;
+        vlist     = vl;
+        blocks    = blks;
+        *blocks   = 0;
+        IsResolve = resolve;
+        if (IsResolve) {
+            hvlog  = logtree;
+            srvrid = svid;
+        } else {
+            hvlog  = NULL;
+            srvrid = 0;
+        }
+        return (0); /* keep C++ happy */
+    }
 };
 
 extern int PerformTreeRemoval(PDirEntry, void *);

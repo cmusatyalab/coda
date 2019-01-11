@@ -1,26 +1,26 @@
 /* BLURB lgpl
 
-                        Coda File System
-                            Release 6
+			Coda File System
+			    Release 6
 
-            Copyright (c) 1987-2016 Carnegie Mellon University
-                    Additional copyrights listed below
+	    Copyright (c) 1987-2016 Carnegie Mellon University
+		    Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
 the  terms of the  GNU  Library General Public Licence  Version 2,  as
 shown in the file LICENSE. The technical and financial contributors to
 Coda are listed in the file CREDITS.
 
-                        Additional copyrights
+			Additional copyrights
 
 #*/
 
 /*
-                        IBM COPYRIGHT NOTICE
+			IBM COPYRIGHT NOTICE
 
-                          Copyright (C) 1986
-               International Business Machines Corporation
-                          All Rights Reserved
+			  Copyright (C) 1986
+	       International Business Machines Corporation
+			  All Rights Reserved
 
 This  file  contains  some  code identical to or derived from the 1986
 version of the Andrew File System ("AFS"), which is owned by  the  IBM
@@ -37,15 +37,15 @@ Pittsburgh, PA.
 
 */
 
-#include <assert.h>
-#include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <sys/socket.h>
-#include <sys/time.h>
 #include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <sys/time.h>
 #include <unistd.h>
+#include <assert.h>
+#include <string.h>
 
 #include "rpc2.private.h"
 
@@ -378,17 +378,17 @@ void RPC2_UpdateEstimates(struct HEntry *host, RPC2_Unsigned elapsed_us,
         return;
 
     /* account for IP/UDP header overhead
-   * an IPv4 header is (typically) 20 bytes but can be up to 60 bytes, IPv6
-   * headers are 40 bytes but could include additional headers such as an 8
-   * byte fragment header. In addition the UDP header adds another 8 bytes.
-   * And then there is an additional 18 bytes ethernet header, but that may
-   * not exist on PPP links. And of course if we have some compression layer
-   * below us none of these numbers make any sense.
-   * If we pick 40 we will be slightly reasonably close for a IPv4 ethernet
-   * network but underestimate the packet size over a v6 network. At least it
-   * brings us a bit closer to reality. If we don't account for this
-   * overhead, the delay of a 60 byte RPC2 ping packet is considerably
-   * underestimated, which leads to an incorrect bandwidth estimate. */
+     * an IPv4 header is (typically) 20 bytes but can be up to 60 bytes, IPv6
+     * headers are 40 bytes but could include additional headers such as an 8
+     * byte fragment header. In addition the UDP header adds another 8 bytes.
+     * And then there is an additional 18 bytes ethernet header, but that may
+     * not exist on PPP links. And of course if we have some compression layer
+     * below us none of these numbers make any sense.
+     * If we pick 40 we will be slightly reasonably close for a IPv4 ethernet
+     * network but underestimate the packet size over a v6 network. At least it
+     * brings us a bit closer to reality. If we don't account for this
+     * overhead, the delay of a 60 byte RPC2 ping packet is considerably
+     * underestimated, which leads to an incorrect bandwidth estimate. */
     InBytes += 40;
     OutBytes += 40;
     if ((int32_t)elapsed_us < 0)
@@ -487,7 +487,7 @@ int rpc2_RetryInterval(struct CEntry *ce, int retry, struct timeval *tv,
 
     /* clamp retry estimate */
     /* we shouldn't need a lower bound because we already account for the
-   * server processing delay */
+     * server processing delay */
     if (rto > RPC2_MAXRTO)
         rto = RPC2_MAXRTO;
 

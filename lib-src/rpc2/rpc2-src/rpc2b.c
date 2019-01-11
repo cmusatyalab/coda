@@ -43,23 +43,22 @@ Pittsburgh, PA.
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <sys/socket.h>
-#include <sys/types.h>
 #include <unistd.h>
-#include <assert.h>
-#include <errno.h>
-#include <net/if.h>
-#include <netdb.h>
-#include <netinet/in.h>
-#include <sys/file.h>
-#include <sys/ioctl.h>
-#include <sys/time.h>
-#include <time.h>
-
+#include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 #ifdef HAVE_SYS_STREAM_H
 #include <sys/stream.h>
 #endif
+#include <sys/ioctl.h>
+#include <net/if.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#include <sys/time.h>
+#include <time.h>
+#include <errno.h>
+#include <assert.h>
+#include <sys/file.h>
 
 #include <rpc2/se.h>
 #include <rpc2/secure.h>
@@ -115,7 +114,7 @@ long RPC2_Init(
         RPC2_Preferred_Keysize /= 8;
 
     /* Do we accept only secure connections, default is yes. This can be
-   * disabled by setting the RPC2SEC_ONLY to 0, false, no, (nada, forgetit) */
+     * disabled by setting the RPC2SEC_ONLY to 0, false, no, (nada, forgetit) */
     env              = getenv("RPC2SEC_ONLY");
     RPC2_secure_only = !env || (env && memchr("0fFnN", *env, 5) == NULL);
 
@@ -166,7 +165,7 @@ long RPC2_Init(
     TM_Init(&rpc2_TimerQueue);
 
     /* Register rpc2 packet handler with rpc2_SocketListener before
-   * initializing the sideeffects */
+     * initializing the sideeffects */
     SL_RegisterHandler(RPC2_PROTOVERSION, rpc2_HandlePacket);
 
     /* Call side effect initialization routines */

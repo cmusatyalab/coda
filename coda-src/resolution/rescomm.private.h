@@ -27,17 +27,17 @@ extern "C" {
 extern void ResProcWait(char *);
 extern void ResProcSignal(char *, int = 0);
 
-#define	CONDITION_INIT(c)   
-#define	CONDITION_WAIT(c, m)	ResProcWait((char *)(c))
-#define	CONDITION_SIGNAL(c)	ResProcSignal((char *)(c))
+#define CONDITION_INIT(c)
+#define CONDITION_WAIT(c, m) ResProcWait((char *)(c))
+#define CONDITION_SIGNAL(c) ResProcSignal((char *)(c))
 
-#define TRANSLATE_TO_LOWER(s)\
-{\
-    for (char *c = s; *c; c++)\
-	if (isupper(*c)) *c = tolower(*c);\
-}
+#define TRANSLATE_TO_LOWER(s)      \
+    {                              \
+        for (char *c = s; *c; c++) \
+            if (isupper(*c))       \
+                *c = tolower(*c);  \
+    }
 
 #ifdef __cplusplus
 }
 #endif
-

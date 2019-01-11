@@ -37,15 +37,15 @@ Pittsburgh, PA.
 
 */
 
-#include <assert.h>
-#include <math.h>
-#include <netinet/in.h>
 #include <stdio.h>
-#include <string.h>
-#include <sys/socket.h>
-#include <sys/stat.h>
-#include <sys/time.h>
 #include <sys/types.h>
+#include <sys/time.h>
+#include <sys/stat.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <math.h>
+#include <assert.h>
+#include <string.h>
 
 #include <lwp/lwp.h>
 #include <lwp/timer.h>
@@ -339,14 +339,12 @@ static long ProcessPacket(RPC2_Handle cIn, RPC2_PacketBuffer *pIn,
         LWP_StackUsed(rpc2_SocketListenerPID, &smax, &sused);
         printf("SL stack used: %d of %d\n", sused, smax);
         printf(
-            "\tCreation:    Spkts = %ld  Mpkts = %ld  Lpkts = %ld  SLEs = %ld  "
-            "Conns = %ld\n",
+            "\tCreation:    Spkts = %ld  Mpkts = %ld  Lpkts = %ld  SLEs = %ld  Conns = %ld\n",
             rpc2_PBSmallCreationCount, rpc2_PBMediumCreationCount,
             rpc2_PBLargeCreationCount, rpc2_SLCreationCount,
             rpc2_ConnCreationCount);
         printf(
-            "\nFree:    Spkts = %ld  Mpkts = %ld  Lpkts = %ld  SLEs = %ld  "
-            "Conns = %ld\n",
+            "\nFree:    Spkts = %ld  Mpkts = %ld  Lpkts = %ld  SLEs = %ld  Conns = %ld\n",
             rpc2_PBSmallFreeCount, rpc2_PBMediumFreeCount,
             rpc2_PBLargeFreeCount, rpc2_SLFreeCount, rpc2_ConnFreeCount);
 
@@ -484,8 +482,7 @@ static long ProcessPacket(RPC2_Handle cIn, RPC2_PacketBuffer *pIn,
     case RPC2_NEWCONNECTION: /* new connection */
         newconnbody = (RPC2_NewConnectionBody *)pIn->Body;
         printf(
-            "New connection %#x:   SideEffectType = %u  SecurityLevel = %u  "
-            "ClientIdent = \"%s\"\n",
+            "New connection %#x:   SideEffectType = %u  SecurityLevel = %u  ClientIdent = \"%s\"\n",
             cIn, ntohl(newconnbody->SideEffectType),
             ntohl(newconnbody->SecurityLevel),
             (char *)&newconnbody->ClientIdent_SeqBody);
@@ -540,8 +537,7 @@ static void GetParms(long argc, char *argv[], SFTP_Initializer *sftpI)
         }
 
         printf(
-            "Usage: stest [-x debuglevel] [-sx sftpdebuglevel]  [-l maxlwps] "
-            "[-v verboseflag] [-p port]\n");
+            "Usage: stest [-x debuglevel] [-sx sftpdebuglevel]  [-l maxlwps] [-v verboseflag] [-p port]\n");
         exit(EXIT_FAILURE);
     }
 }
@@ -582,8 +578,7 @@ static void PrintStats(void)
 {
     printf("RPC2:\n");
     printf(
-        "Packets Sent = %lu\tPacket Retries = %lu (of %lu)\tPackets Received "
-        "= %lu\n",
+        "Packets Sent = %lu\tPacket Retries = %lu (of %lu)\tPackets Received = %lu\n",
         rpc2_Sent.Total, rpc2_Sent.Retries,
         rpc2_Sent.Retries + rpc2_Sent.Cancelled, rpc2_Recvd.Total);
     printf("Bytes sent = %lu\tBytes received = %lu\n", rpc2_Sent.Bytes,

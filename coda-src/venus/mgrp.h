@@ -36,13 +36,13 @@ class ClientModifyLog;
 class cmlent;
 
 class RepOpCommCtxt {
-  friend class mgrpent;
-  friend class fsobj;
-  friend class repvol;
-  friend class volent;
-  friend class vsgent;
-  friend class ClientModifyLog;
-  friend class cmlent;
+    friend class mgrpent;
+    friend class fsobj;
+    friend class repvol;
+    friend class volent;
+    friend class vsgent;
+    friend class ClientModifyLog;
+    friend class cmlent;
 
     RPC2_Integer HowMany;
     RPC2_Handle handles[VSG_MEMBERS];
@@ -52,30 +52,37 @@ class RepOpCommCtxt {
     RPC2_Multicast *MIp;
     unsigned dying[VSG_MEMBERS];
 
-  public:
+public:
     RepOpCommCtxt();
-    RepOpCommCtxt(RepOpCommCtxt&) { abort(); }  /* not supported! */
-    int operator=(RepOpCommCtxt&) { abort(); return(0); }	    /* not supported! */
+    RepOpCommCtxt(RepOpCommCtxt &) { abort(); } /* not supported! */
+    int operator=(RepOpCommCtxt &)
+    {
+        abort();
+        return (0);
+    } /* not supported! */
     ~RepOpCommCtxt() {}
 
     int AnyReturned(int code);
 
-    void print(FILE *f) { fprintf(f, "%p : HowMany = %d\n", this, (int)HowMany); }
+    void print(FILE *f)
+    {
+        fprintf(f, "%p : HowMany = %d\n", this, (int)HowMany);
+    }
     void print() { print(stdout); }
 };
 
 class mgrpent : private RefCountedObject {
-  friend void MallocPrint(int fd);
-  friend void CommInit();
-  friend void Mgrp_Wait();
-  friend void Mgrp_Signal();
-  friend class mgrp_iterator;
-  friend class fsobj;
-  friend class repvol;
-  friend class volent;
-  friend class vsgent;
-  friend class ClientModifyLog;
-  friend class cmlent;
+    friend void MallocPrint(int fd);
+    friend void CommInit();
+    friend void Mgrp_Wait();
+    friend void Mgrp_Signal();
+    friend class mgrp_iterator;
+    friend class fsobj;
+    friend class repvol;
+    friend class volent;
+    friend class vsgent;
+    friend class ClientModifyLog;
+    friend class cmlent;
 
     /* mgrp syncronization. */
     static char mgrp_sync;
@@ -83,7 +90,7 @@ class mgrpent : private RefCountedObject {
     /* Static state; immutable after construction. */
     vsgent *vsg;
     struct dllist_head vsghandle;
-    uid_t uid;				/* UID to validate with respect to. */
+    uid_t uid; /* UID to validate with respect to. */
     RPC2_Multicast McastInfo;
     unsigned authenticated : 1;
     unsigned disconnectfs : 1;
@@ -91,7 +98,7 @@ class mgrpent : private RefCountedObject {
     /* Dynamic state; varies with each call. */
     RepOpCommCtxt rocc;
 
-#ifdef	VENUSDEBUG
+#ifdef VENUSDEBUG
     static int allocs;
     static int deallocs;
 #endif /* VENUSDEBUG */
@@ -99,8 +106,8 @@ class mgrpent : private RefCountedObject {
     /* Constructors, destructors, and private utility routines. */
     mgrpent(vsgent *, uid_t, RPC2_Handle, int);
     ~mgrpent();
-    
-  public:
+
+public:
     void Put(void);
     void Kill(int tellservers);
 
@@ -115,16 +122,19 @@ class mgrpent : private RefCountedObject {
 
     void CheckResult();
     int CheckNonMutating(int);
-    int CheckCOP1(int, ViceVersionVector *, int =1);
+    int CheckCOP1(int, ViceVersionVector *, int = 1);
     int CheckReintegrate(int, ViceVersionVector *);
     int RVVCheck(ViceVersionVector **, int);
-    int DHCheck(ViceVersionVector **, int, int *,  int =0);
+    int DHCheck(ViceVersionVector **, int, int *, int = 0);
     int PickDH(ViceVersionVector **RVVs);
-    struct in_addr *GetPrimaryHost(int *ph_ixp=NULL);
+    struct in_addr *GetPrimaryHost(int *ph_ixp = NULL);
 
-    void print(FILE *f) {     
-	    fprintf(f, "%p : uid = %d, mid = %d, auth = %d, ref = %d, detached = %d\n",
-		    this, uid, (int)McastInfo.Mgroup, authenticated, refcount, list_empty(&vsghandle));
+    void print(FILE *f)
+    {
+        fprintf(f,
+                "%p : uid = %d, mid = %d, auth = %d, ref = %d, detached = %d\n",
+                this, uid, (int)McastInfo.Mgroup, authenticated, refcount,
+                list_empty(&vsghandle));
     }
 };
 

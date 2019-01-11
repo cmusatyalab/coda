@@ -66,81 +66,79 @@
 #include <sys/un.h>
 #endif
 
-
 class Inet {
-
-  public:
-
+public:
     // Constructor, destructor ...
     Inet();
     ~Inet();
 
     // Weird assignment ... moves data and invalidates right side.
-    Inet &operator = (Inet &From)
-      { // Copy ...
-	fd      = From.fd;
-	neterr  = From.neterr;
-	server  = From.server;
-	remname = From.remname;
-	remaddr = From.remaddr;
-	remlen  = From.remlen;
-	unixlines = From.unixlines;
-	// Invalidate from ...
-	From.fd = -1;
-	From.remname = (char *)0;
-	return *this;
-      }
+    Inet &operator=(Inet &From)
+    { // Copy ...
+        fd        = From.fd;
+        neterr    = From.neterr;
+        server    = From.server;
+        remname   = From.remname;
+        remaddr   = From.remaddr;
+        remlen    = From.remlen;
+        unixlines = From.unixlines;
+        // Invalidate from ...
+        From.fd      = -1;
+        From.remname = (char *)0;
+        return *this;
+    }
 
     // Open a tcp connection.  Return false on failure.
-    bool TcpOpen (char *host, int port);
+    bool TcpOpen(char *host, int port);
 
 #if defined(HAVE_SYS_UN_H) && !defined(WIN32)
-    bool TcpOpen (const char *socketpath);
+    bool TcpOpen(const char *socketpath);
 #endif
 
     // Open a tcp server socket.  Return false on failure.
-    bool TcpServer (int port, int qlen);
+    bool TcpServer(int port, int qlen);
 
     // Accept a connect and return a new Inet
-    bool Accept (Inet &newn);
+    bool Accept(Inet &newn);
 
     // Close the connection
-    void Close ();
+    void Close();
 
     // Read a line of data.  (max characters is length);
     // Returns number of characters read.
-    int Readline (char *data, int length);
+    int Readline(char *data, int length);
 
     // Write a line of data.  (adds the \r \n.)
-    int Writeline (char *data);
+    int Writeline(char *data);
 
     // Write characters and integers ...
-    int Write (char *data);
-    int Write (int data);
+    int Write(char *data);
+    int Write(int data);
 
     // isOpen -- is a network connection open.
-    bool isOpen() { return fd >= 0;} ;
+    bool isOpen() { return fd >= 0; };
 
     // ErrNo -- the error number
-    int ErrNo () { return neterr; }
+    int ErrNo() { return neterr; }
 
     // FileNo -- the file number
-    int FileNo () { return fd; }
+    int FileNo() { return fd; }
 
     // RemoteName -- the host name of the remote machine
-    char *RemoteName () { return remname; }
+    char *RemoteName() { return remname; }
 
     // RemoteAddr -- the text address form of the remote machine
-    char *RemoteAddr () {
-      struct sockaddr_in *addr = (struct sockaddr_in*)&remaddr;
-      return inet_ntoa(addr->sin_addr);
+    char *RemoteAddr()
+    {
+        struct sockaddr_in *addr = (struct sockaddr_in *)&remaddr;
+        return inet_ntoa(addr->sin_addr);
     }
 
     // Options set ..
-    void SetUnix () { unixlines = true; }
-    void SetNet () { unixlines = false; }
+    void SetUnix() { unixlines = true; }
+    void SetNet() { unixlines = false; }
 
-  private:
+private:
     int fd;
     int neterr;
     bool server;
@@ -149,8 +147,6 @@ class Inet {
     REMLENTYPE remlen;
 
     bool unixlines;
-
 };
 
 #endif
-

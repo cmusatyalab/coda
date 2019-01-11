@@ -1,16 +1,16 @@
 /* BLURB lgpl
-                        Coda File System
-                            Release 6
+			Coda File System
+			    Release 6
 
-            Copyright (c) 2006 Carnegie Mellon University
-                  Additional copyrights listed below
+	    Copyright (c) 2006 Carnegie Mellon University
+		  Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
 the  terms of the  GNU  Library General Public Licence  Version 2,  as
 shown in the file LICENSE. The technical and financial contributors to
 Coda are listed in the file CREDITS.
 
-                        Additional copyrights
+			Additional copyrights
 #*/
 
 /* helpers and private functions */
@@ -18,11 +18,11 @@ Coda are listed in the file CREDITS.
 #ifndef _GRUNT_H_
 #define _GRUNT_H_
 
+#include <sys/types.h>
+#include <sys/socket.h>
 #include <arpa/inet.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <sys/socket.h>
-#include <sys/types.h>
 
 #include "aes.h"
 

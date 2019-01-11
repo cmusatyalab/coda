@@ -38,20 +38,21 @@ Pittsburgh, PA.
 */
 
 /*
- -- SFTP: a smart file transfer protocol using windowing and piggybacking
- -- sftp2.c contains SFTP listener-related routines
+	-- SFTP: a smart file transfer protocol using windowing and piggybacking
+	-- sftp2.c contains SFTP listener-related routines
+
 */
 
-#include <assert.h>
-#include <errno.h>
-#include <netinet/in.h>
 #include <stdio.h>
+#include <sys/types.h>
 #include <sys/file.h>
-#include <sys/ioctl.h>
-#include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/time.h>
-#include <sys/types.h>
+#include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <errno.h>
+#include <assert.h>
 
 #include <rpc2/se.h>
 #include <rpc2/sftp.h>
@@ -62,7 +63,7 @@ static void ClientPacket();
 static void ServerPacket();
 static void SFSendNAK(RPC2_PacketBuffer *pb);
 
-#define BOGUS(pb)                                                              \
+#define BOGUS(pb) \
     (sftp_TraceBogus(2, __LINE__), sftp_bogus++, SFTP_FreeBuffer(&pb))
 
 #ifndef MAX

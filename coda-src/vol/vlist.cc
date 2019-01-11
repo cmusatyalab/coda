@@ -16,11 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -36,27 +31,26 @@ extern "C" {
 #include <srv.h>
 #include "vlist.h"
 
-int VLECmp(vle *a, vle *b) 
+int VLECmp(vle *a, vle *b)
 {
-	CODA_ASSERT(FID_VolEQ(&a->fid, &b->fid));
-	return FID_Cmp(&a->fid, &b->fid);
+    CODA_ASSERT(FID_VolEQ(&a->fid, &b->fid));
+    return FID_Cmp(&a->fid, &b->fid);
 }
 
-
-vle *FindVLE(dlist& dl, ViceFid *fid) 
+vle *FindVLE(dlist &dl, ViceFid *fid)
 {
     dlist_iterator next(dl);
     vle *v;
     while ((v = (vle *)next()))
-	if (FID_EQ(&v->fid, fid)) return(v);
-    return(0);
+        if (FID_EQ(&v->fid, fid))
+            return (v);
+    return (0);
 }
 
-
-vle *AddVLE(dlist& dl, ViceFid *fid) 
+vle *AddVLE(dlist &dl, ViceFid *fid)
 {
     vle *v = FindVLE(dl, fid);
     if (v == 0)
-	dl.insert((v = new vle(fid)));
-    return(v);
+        dl.insert((v = new vle(fid)));
+    return (v);
 }

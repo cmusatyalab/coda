@@ -80,115 +80,113 @@ extern "C" {
 
 void printusage(void)
 {
-		    fprintf(stderr,
-                            "Usage clog [-q] [-test] [-host authserver]"
-                            "\t[-tofile <file>] [-fromfile <file>]\n"
-			    "\t[-as username] [Coda username][@realm]\n");
+    fprintf(stderr,
+            "Usage clog [-q] [-test] [-host authserver]"
+            "\t[-tofile <file>] [-fromfile <file>]\n"
+            "\t[-as username] [Coda username][@realm]\n");
 }
 
 int main(int argc, char **argv)
 {
-    EncryptedSecretToken    sToken;
-    int                     verbose = 1;
-    int                     interactive = 1;
-    ClearToken		    cToken;
-    EncryptedSecretToken    testSTok;
-    ClearToken		    testCTok;
-    char *hostname=NULL;
-    char *username=NULL;
+    EncryptedSecretToken sToken;
+    int verbose     = 1;
+    int interactive = 1;
+    ClearToken cToken;
+    EncryptedSecretToken testSTok;
+    ClearToken testCTok;
+    char *hostname    = NULL;
+    char *username    = NULL;
     const char *realm = NULL;
     long rc;
     int i;
-    int testing = 0;
+    int testing    = 0;
     char *tofile   = NULL;
     char *fromfile = NULL;
-    char *runas = NULL;
+    char *runas    = NULL;
 
     i = 1;
     while (i < argc) {
-	    if ( strcmp(argv[i], "-?") == 0 ||
-                 strcmp(argv[i], "-h") == 0 ||
-                 strcmp(argv[i], "--help") == 0 ) {
-		    printusage();
-		    exit(EXIT_SUCCESS);
-	    } else if ( strcmp(argv[i], "-test") == 0 ) {
-		    testing =1;
-		    i++;
-	    }  else if ( strcmp(argv[i], "-q") == 0 ) {
-		    verbose = 0;
-		    i++;
-	    }  else if ( strcmp(argv[i], "-pipe") == 0 ) {
-		    /* obsolete option -pipe used to mainly reduce verbosity */
-		    interactive = 0;
-		    verbose = 0;
-		    i++;
-	    }  else if ( strcmp(argv[i], "-tofile") == 0 ) {
-		    i++;
-		    if (i >= argc) {
-			    fprintf(stderr, "Missing file to write token to\n");
-			    printusage();
-			    exit(EXIT_FAILURE);
-		    }
-                    tofile = argv[i++];
-	    }  else if ( strcmp(argv[i], "-fromfile") == 0 ) {
-		    i++;
-		    if (i >= argc) {
-			    fprintf(stderr,"Missing file to read token from\n");
-			    printusage();
-			    exit(EXIT_FAILURE);
-		    }
-                    fromfile = argv[i++];
-	    } else if ( strncmp(argv[i], "-h", 2) == 0) {
-		    i++;
-		    if (i >= argc) {
-			    fprintf(stderr, "Missing host\n");
-			    printusage();
-			    exit(EXIT_FAILURE);
-		    }
-		    hostname = argv[i];
-		    i++;
-	    }  else if ( strcmp(argv[i], "-as") == 0 ) {
-		    i++;
-		    if (i >= argc) {
-			    fprintf(stderr, "Missing -as username\n");
-			    printusage();
-			    exit(EXIT_FAILURE);
-		    }
-		    runas = argv[i];
-		    i++;
-	    } else if ( i == argc-1 ) {
-                    username = argv[i];
-		    SplitRealmFromName(username, &realm);
-                    i++;
-	    }
-	    /* still coming: 
-	       -e ".............": newpag, authenticate, exec
-	       -u unsafe, tell Venus to use uid instead of pag.
-	    */
-	    else {
-		    fprintf(stderr, "Wrong argument: %s\n", argv[i]);
-		    printusage();
-		    exit(EXIT_FAILURE);
-	    }
-
+        if (strcmp(argv[i], "-?") == 0 || strcmp(argv[i], "-h") == 0 ||
+            strcmp(argv[i], "--help") == 0) {
+            printusage();
+            exit(EXIT_SUCCESS);
+        } else if (strcmp(argv[i], "-test") == 0) {
+            testing = 1;
+            i++;
+        } else if (strcmp(argv[i], "-q") == 0) {
+            verbose = 0;
+            i++;
+        } else if (strcmp(argv[i], "-pipe") == 0) {
+            /* obsolete option -pipe used to mainly reduce verbosity */
+            interactive = 0;
+            verbose     = 0;
+            i++;
+        } else if (strcmp(argv[i], "-tofile") == 0) {
+            i++;
+            if (i >= argc) {
+                fprintf(stderr, "Missing file to write token to\n");
+                printusage();
+                exit(EXIT_FAILURE);
+            }
+            tofile = argv[i++];
+        } else if (strcmp(argv[i], "-fromfile") == 0) {
+            i++;
+            if (i >= argc) {
+                fprintf(stderr, "Missing file to read token from\n");
+                printusage();
+                exit(EXIT_FAILURE);
+            }
+            fromfile = argv[i++];
+        } else if (strncmp(argv[i], "-h", 2) == 0) {
+            i++;
+            if (i >= argc) {
+                fprintf(stderr, "Missing host\n");
+                printusage();
+                exit(EXIT_FAILURE);
+            }
+            hostname = argv[i];
+            i++;
+        } else if (strcmp(argv[i], "-as") == 0) {
+            i++;
+            if (i >= argc) {
+                fprintf(stderr, "Missing -as username\n");
+                printusage();
+                exit(EXIT_FAILURE);
+            }
+            runas = argv[i];
+            i++;
+        } else if (i == argc - 1) {
+            username = argv[i];
+            SplitRealmFromName(username, &realm);
+            i++;
+        }
+        /* still coming:
+         *   -e ".............": newpag, authenticate, exec
+         *   -u unsafe, tell Venus to use uid instead of pag.
+         */
+        else {
+            fprintf(stderr, "Wrong argument: %s\n", argv[i]);
+            printusage();
+            exit(EXIT_FAILURE);
+        }
     }
 
 #ifndef __CYGWIN32__
     if (runas) {
-	struct passwd *pw = getpwnam(runas);
-	if (pw) 
-	    setuid(pw->pw_uid);
+        struct passwd *pw = getpwnam(runas);
+        if (pw)
+            setuid(pw->pw_uid);
     }
 #endif
-    
+
     if (!username || *username == '\0') {
 #ifdef __CYGWIN32__
-	username = getlogin();	 
+        username = getlogin();
 #else
-	struct passwd *pw = getpwuid(geteuid());
-	if (pw) {
-	    username=pw->pw_name;
-	}
+        struct passwd *pw = getpwuid(geteuid());
+        if (pw) {
+            username = pw->pw_name;
+        }
 #endif
     }
 
@@ -198,71 +196,70 @@ int main(int argc, char **argv)
     CODACONF_STR(realm, "realm", NULL);
 
     if (!username || !realm) {
-	    fprintf (stderr, "Can't figure out your username or realm.\n");
-	    fprintf (stderr, "Try \"clog user[@realm]\"\n");
-	    exit(EXIT_FAILURE);
+        fprintf(stderr, "Can't figure out your username or realm.\n");
+        fprintf(stderr, "Try \"clog user[@realm]\"\n");
+        exit(EXIT_FAILURE);
     }
 
     if (!isatty(0)) {
-	verbose = 0;
-	interactive = 0;
+        verbose     = 0;
+        interactive = 0;
     }
 
     if (verbose)
-	printf("username: %s@%s\n", username, realm);
+        printf("username: %s@%s\n", username, realm);
 
     U_InitRPC();
 
     if (fromfile) {
         ReadTokenFromFile(fromfile, &cToken, sToken);
     } else {
-	struct RPC2_addrinfo *srvs = U_GetAuthServers(realm, hostname);
-	rc = U_Authenticate(srvs, username, strlen(username)+1,
-			    &cToken, sToken, verbose, interactive);
-	RPC2_freeaddrinfo(srvs);
-	if (rc != 0) {
-	    fprintf (stderr, "Invalid login (%s).\n", RPC2_ErrorMsg(rc));
-	    exit(EXIT_FAILURE);
-	}
+        struct RPC2_addrinfo *srvs = U_GetAuthServers(realm, hostname);
+        rc = U_Authenticate(srvs, username, strlen(username) + 1, &cToken,
+                            sToken, verbose, interactive);
+        RPC2_freeaddrinfo(srvs);
+        if (rc != 0) {
+            fprintf(stderr, "Invalid login (%s).\n", RPC2_ErrorMsg(rc));
+            exit(EXIT_FAILURE);
+        }
     }
 
     if (testing)
-	    printf ("Sending token to venus\n");
+        printf("Sending token to venus\n");
 
     if (tofile)
-	WriteTokenToFile(tofile, &cToken, sToken);
+        WriteTokenToFile(tofile, &cToken, sToken);
 
     if (U_SetLocalTokens(0, &cToken, sToken, realm))
-	printf("Local login only, could not contact venus\n");
+        printf("Local login only, could not contact venus\n");
 
     if (testing) {
-	    printf("Getting tokens back from venus\n");
-	    if (U_GetLocalTokens(&testCTok, testSTok, realm) < 0)
-		    perror("U_GetLocalTokens");
+        printf("Getting tokens back from venus\n");
+        if (U_GetLocalTokens(&testCTok, testSTok, realm) < 0)
+            perror("U_GetLocalTokens");
 
-	    printf("Comparing clear token\n");
-	    if(memcmp(&cToken, &testCTok, sizeof(ClearToken)) != 0) {
-		    printf("Bad ClearToken\n");
-	    }
-	    printf("Comparing secret token\n");
-	    if(memcmp(sToken, testSTok, sizeof(EncryptedSecretToken)) != 0) {
-		printf("Bad SecretToken\n");
-	    }
+        printf("Comparing clear token\n");
+        if (memcmp(&cToken, &testCTok, sizeof(ClearToken)) != 0) {
+            printf("Bad ClearToken\n");
+        }
+        printf("Comparing secret token\n");
+        if (memcmp(sToken, testSTok, sizeof(EncryptedSecretToken)) != 0) {
+            printf("Bad SecretToken\n");
+        }
 
-	    fprintf(stderr,"net order:\n");		
-	    fprintf(stderr,"\tAuthHandle = %d\n",testCTok.AuthHandle);
-	    fprintf(stderr,"\tViceId = %d\n",testCTok.ViceId);
-	    fprintf(stderr,"\tBeginTimestamp = %d\n",testCTok.BeginTimestamp);
-	    fprintf(stderr,"\tEndTimestamp = %d\n",testCTok.EndTimestamp);
-	    U_NetToHostClearToken(&testCTok);
-	    fprintf(stderr,"host order:\n");
-	    fprintf(stderr,"\tAuthHandle = %d\n",testCTok.AuthHandle);
-	    fprintf(stderr,"\tViceId = %d\n",testCTok.ViceId);
-	    fprintf(stderr,"\tBeginTimestamp = %d\n",testCTok.BeginTimestamp);
-	    fprintf(stderr,"\tEndTimestamp = %d\n",testCTok.EndTimestamp);
+        fprintf(stderr, "net order:\n");
+        fprintf(stderr, "\tAuthHandle = %d\n", testCTok.AuthHandle);
+        fprintf(stderr, "\tViceId = %d\n", testCTok.ViceId);
+        fprintf(stderr, "\tBeginTimestamp = %d\n", testCTok.BeginTimestamp);
+        fprintf(stderr, "\tEndTimestamp = %d\n", testCTok.EndTimestamp);
+        U_NetToHostClearToken(&testCTok);
+        fprintf(stderr, "host order:\n");
+        fprintf(stderr, "\tAuthHandle = %d\n", testCTok.AuthHandle);
+        fprintf(stderr, "\tViceId = %d\n", testCTok.ViceId);
+        fprintf(stderr, "\tBeginTimestamp = %d\n", testCTok.BeginTimestamp);
+        fprintf(stderr, "\tEndTimestamp = %d\n", testCTok.EndTimestamp);
 
-	    printf("Done ! ! ! !\n");
+        printf("Done ! ! ! !\n");
     }
     return 0;
 }
-

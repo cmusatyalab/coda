@@ -20,13 +20,12 @@ listed in the file CREDITS.
  * Routines for accessing volume abstractions in recoverable storage
  */
 
-
 #ifndef _RECOV_H_
 #define _RECOV_H_ 1
 
 #include <volume.h>
 
-#define HASHTABLESIZE	512	/* Number of buckets in volume hash table */
+#define HASHTABLESIZE 512 /* Number of buckets in volume hash table */
 
 extern int coda_init();
 
@@ -48,13 +47,14 @@ extern void ReplaceVolDiskInfo(Error *ec, int volindex, VolumeDiskData *vol);
 extern VnodeDiskObject *FindVnode(rec_smolist *, Unique_t);
 extern int ActiveVnodes(int volindex, int vclass);
 extern int AllocatedVnodes(int volindex, int vclass);
-extern int AvailVnode(int volindex, int vclass, VnodeId vnodeindex, Unique_t =0);
+extern int AvailVnode(int volindex, int vclass, VnodeId vnodeindex,
+                      Unique_t = 0);
 extern int GetVolType(Error *ec, VolumeId volid);
-extern void GetVolPartition(Error *, VolumeId, int, char partition[V_MAXPARTNAMELEN]);
+extern void GetVolPartition(Error *, VolumeId, int,
+                            char partition[V_MAXPARTNAMELEN]);
 extern void SetupVolCache();
 extern VolumeId VAllocateVolumeId(Error *ec);
 extern VolumeId VGetMaxVolumeId();
 extern void VSetMaxVolumeId(VolumeId newid);
 
 #endif /* _RECOV_H_ */
-

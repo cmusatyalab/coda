@@ -37,46 +37,42 @@ extern "C" {
 #include "inconsist.h"
 #include "nettohost.h"
 
-void
-ntohsid(ViceStoreId *insid, ViceStoreId *outsid)
+void ntohsid(ViceStoreId *insid, ViceStoreId *outsid)
 {
-  outsid->HostId = ntohl(insid->HostId);
-  outsid->Uniquifier = ntohl(insid->Uniquifier);
+    outsid->HostId     = ntohl(insid->HostId);
+    outsid->Uniquifier = ntohl(insid->Uniquifier);
 }
 
-void
-htonsid(ViceStoreId *insid, ViceStoreId *outsid)
+void htonsid(ViceStoreId *insid, ViceStoreId *outsid)
 {
-  outsid->HostId = htonl(insid->HostId);
-  outsid->Uniquifier = htonl(insid->Uniquifier);
+    outsid->HostId     = htonl(insid->HostId);
+    outsid->Uniquifier = htonl(insid->Uniquifier);
 }
 
-void
-ntohvv(ViceVersionVector *invv, ViceVersionVector *outvv)
+void ntohvv(ViceVersionVector *invv, ViceVersionVector *outvv)
 {
-  RPC2_Integer  *in_ptr = &( invv->Versions.Site0);
-  RPC2_Integer *out_ptr = &(outvv->Versions.Site0);
-  for (int i = 0; i < VSG_MEMBERS; i++)
-    out_ptr[i] = ntohl(in_ptr[i]);
+    RPC2_Integer *in_ptr  = &(invv->Versions.Site0);
+    RPC2_Integer *out_ptr = &(outvv->Versions.Site0);
+    for (int i = 0; i < VSG_MEMBERS; i++)
+        out_ptr[i] = ntohl(in_ptr[i]);
 
-  ntohsid(&(invv->StoreId), &(outvv->StoreId));
+    ntohsid(&(invv->StoreId), &(outvv->StoreId));
 
-  /* Also assume the flags are really a long integer */
-  outvv->Flags = ntohl(invv->Flags);
+    /* Also assume the flags are really a long integer */
+    outvv->Flags = ntohl(invv->Flags);
 }
 
-void
-htonvv(ViceVersionVector *invv, ViceVersionVector *outvv)
+void htonvv(ViceVersionVector *invv, ViceVersionVector *outvv)
 {
-  /* Assume that the entries in a version vector array are integers */
-  
-  RPC2_Integer  *in_ptr = &( invv->Versions.Site0);
-  RPC2_Integer *out_ptr = &(outvv->Versions.Site0);
-  for (int i = 0; i < VSG_MEMBERS; i++)
-    out_ptr[i] = htonl(in_ptr[i]);
+    /* Assume that the entries in a version vector array are integers */
 
-  htonsid(&(invv->StoreId), &(outvv->StoreId));
+    RPC2_Integer *in_ptr  = &(invv->Versions.Site0);
+    RPC2_Integer *out_ptr = &(outvv->Versions.Site0);
+    for (int i = 0; i < VSG_MEMBERS; i++)
+        out_ptr[i] = htonl(in_ptr[i]);
 
-  /* Also assume the flags are really a long integer */
-  outvv->Flags = htonl(invv->Flags);
+    htonsid(&(invv->StoreId), &(outvv->StoreId));
+
+    /* Also assume the flags are really a long integer */
+    outvv->Flags = htonl(invv->Flags);
 }

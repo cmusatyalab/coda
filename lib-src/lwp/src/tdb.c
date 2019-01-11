@@ -51,15 +51,15 @@ int tdb(int e);
 static void count();
 static void count2();
 int Global;
-char	c, d;
-PROCESS	A_pid, B_pid, C_pid;
+char c, d;
+PROCESS A_pid, B_pid, C_pid;
 
 int main(int argc, char **argv)
 {
     PROCESS mainthread;
     char b;
 
-    LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY+1, &mainthread);
+    LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY + 1, &mainthread);
     IOMGR_Initialize();
     printf("Main thread going to create procA\n");
     LWP_CreateProcess(procA, 8192, LWP_NORMAL_PRIORITY, NULL, "procA", &A_pid);
@@ -74,83 +74,81 @@ int main(int argc, char **argv)
 
 static void procA(void *dummy)
 {
-    int    i;
+    int i;
     struct timeval t;
     int n;
 
-    t.tv_sec = 5;
+    t.tv_sec  = 5;
     t.tv_usec = 0;
 
-    while(1)
-    {
-	count();
-	Global = 1;
-	printf("procA starting ...\n");
-	printf("procA:please input a number");
-	while (scanf("%d", &i) != 1);
-	if (Global != 1) {
-	    printf("Sorry - ProcA had the Global clobbered ... \n");
-	}
+    while (1) {
+        count();
+        Global = 1;
+        printf("procA starting ...\n");
+        printf("procA:please input a number");
+        while (scanf("%d", &i) != 1)
+            ;
+        if (Global != 1) {
+            printf("Sorry - ProcA had the Global clobbered ... \n");
+        }
 
-	n = IOMGR_Select(1, 0, 0, 0, &t);
-	printf("procA: select returned %d\n", n);
-	if (n < 0)
-	    perror("select");
+        n = IOMGR_Select(1, 0, 0, 0, &t);
+        printf("procA: select returned %d\n", n);
+        if (n < 0)
+            perror("select");
 
-
-	//printf("procA waiting on d...\n");
-	//LWP_WaitProcess(&d);
-	printf("procA doing a no yield signal on c...\n");
-	LWP_NoYieldSignal(&c);
-	printf("procA: going to wait via QWait \n");
-	LWP_QWait();
-	printf("procA just woken up from QWait\n");
-	printf("procA yielding ...\n");
-	LWP_DispatchProcess();
+        //printf("procA waiting on d...\n");
+        //LWP_WaitProcess(&d);
+        printf("procA doing a no yield signal on c...\n");
+        LWP_NoYieldSignal(&c);
+        printf("procA: going to wait via QWait \n");
+        LWP_QWait();
+        printf("procA just woken up from QWait\n");
+        printf("procA yielding ...\n");
+        LWP_DispatchProcess();
     }
 }
 
 static void procB(void *dummy)
 {
-    while(1)
-    {
-	count();
-	Global = 2;
-	printf("procB starting ...\n");
-	if (Global != 2) {
-	    printf("Sorry - ProcB had the Global clobbered ... \n");
-	}
-	printf("procB waiting on d...\n");
-	LWP_WaitProcess(&d);
-	printf("procB waiting via QWait \n");
-	LWP_QWait();
-	printf("procB just woken up from QWait \n");
-	}
+    while (1) {
+        count();
+        Global = 2;
+        printf("procB starting ...\n");
+        if (Global != 2) {
+            printf("Sorry - ProcB had the Global clobbered ... \n");
+        }
+        printf("procB waiting on d...\n");
+        LWP_WaitProcess(&d);
+        printf("procB waiting via QWait \n");
+        LWP_QWait();
+        printf("procB just woken up from QWait \n");
     }
+}
 
 static void procC(void *dummy)
 {
     int i;
-    while(1)
-    {
-	count();
-	Global = 3;
-	printf("procC starting ...\n");
-	printf("procC:please input a number");
-	while (scanf("%d", &i) != 1);
-	printf("\n");
-	if (Global != 3) {
-	    printf("Sorry - ProcC had the Global clobbered ... \n");
-	}
-	printf("procC doing a no yield signal on char d...\n");
-	LWP_SignalProcess(&d);
-	printf("procC yielding by waiting for char c ...\n");
-	LWP_WaitProcess(&c);
-	printf("procC: going to Qsignal procA \n");
-	LWP_QSignal(A_pid);
-	LWP_DispatchProcess();
-	printf("procC: going to Qsignal procB \n");
-	LWP_QSignal(B_pid);
+    while (1) {
+        count();
+        Global = 3;
+        printf("procC starting ...\n");
+        printf("procC:please input a number");
+        while (scanf("%d", &i) != 1)
+            ;
+        printf("\n");
+        if (Global != 3) {
+            printf("Sorry - ProcC had the Global clobbered ... \n");
+        }
+        printf("procC doing a no yield signal on char d...\n");
+        LWP_SignalProcess(&d);
+        printf("procC yielding by waiting for char c ...\n");
+        LWP_WaitProcess(&c);
+        printf("procC: going to Qsignal procA \n");
+        LWP_QSignal(A_pid);
+        LWP_DispatchProcess();
+        printf("procC: going to Qsignal procB \n");
+        LWP_QSignal(B_pid);
     }
 }
 
@@ -162,5 +160,6 @@ static void count()
 static void count2()
 {
     int i;
-    for (i = 0; i < 10000; i++)getpid();
+    for (i = 0; i < 10000; i++)
+        getpid();
 }

@@ -16,14 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
-
-
 /*
  *
  * ohash.c -- Implementation of ohashtab type.
@@ -52,12 +44,15 @@ extern FILE *logFile;
 extern void Die(char * ...);
 */
 
-
-ohashtab::ohashtab(int size, intptr_t (*hashfn)(void *)) {
+ohashtab::ohashtab(int size, intptr_t (*hashfn)(void *))
+{
     /* Ensure that size is a power of 2 so that we can use "AND" for modulus division. */
-    /*CODA_ASSERT(size > 0);*/ if (size <= 0) abort();
-    for (sz = 1; sz < size; sz *= 2) ;
-    /*CODA_ASSERT(sz == size);*/ if (sz != size) abort();
+    /*CODA_ASSERT(size > 0);*/ if (size <= 0)
+        abort();
+    for (sz = 1; sz < size; sz *= 2)
+        ;
+    /*CODA_ASSERT(sz == size);*/ if (sz != size)
+        abort();
 
     /* Allocate and initialize the array. */
     a = new olist[sz];
@@ -68,19 +63,19 @@ ohashtab::ohashtab(int size, intptr_t (*hashfn)(void *)) {
     cnt = 0;
 }
 
-
-ohashtab::ohashtab(ohashtab& ht) {
+ohashtab::ohashtab(ohashtab &ht)
+{
     abort();
 }
 
-
-int ohashtab::operator=(ohashtab& ht) {
+int ohashtab::operator=(ohashtab &ht)
+{
     abort();
-    return(0);	/* to keep C++ happy !! */
+    return (0); /* to keep C++ happy !! */
 }
 
-
-ohashtab::~ohashtab() {
+ohashtab::~ohashtab()
+{
     /* This is dangerous! */
     /* Perhaps we should abort() if count() != 0?  -JJK */
     clear();
@@ -88,138 +83,148 @@ ohashtab::~ohashtab() {
     delete[] a;
 }
 
-
-void ohashtab::insert(void *key, olink *p) {
+void ohashtab::insert(void *key, olink *p)
+{
     unsigned int bucket = hfn(key) & (sz - 1);
     a[bucket].insert(p);
     cnt++;
 }
 
-
-void ohashtab::append(void *key, olink *p) {
+void ohashtab::append(void *key, olink *p)
+{
     unsigned int bucket = hfn(key) & (sz - 1);
     a[bucket].append(p);
     cnt++;
 }
 
-
-olink *ohashtab::remove(void *key, olink *p) {
+olink *ohashtab::remove(void *key, olink *p)
+{
     unsigned int bucket = hfn(key) & (sz - 1);
-    return(cnt--, a[bucket].remove(p));
+    return (cnt--, a[bucket].remove(p));
 }
 
-
-olink *ohashtab::first() {
-    if (cnt == 0) return(0);
+olink *ohashtab::first()
+{
+    if (cnt == 0)
+        return (0);
 
     for (int i = 0; i < sz; i++) {
-	olink *p = a[i].first();
-	if (p != 0) return(p);
+        olink *p = a[i].first();
+        if (p != 0)
+            return (p);
     }
     abort();
-    return(0); /* dummy to keep g++ happy */
-/*    print(logFile); Die("ohashtab::first: cnt > 0 but no object found");*/
+    return (0); /* dummy to keep g++ happy */
+    /*    print(logFile); Die("ohashtab::first: cnt > 0 but no object found");*/
 }
 
-
-olink *ohashtab::last() {
-    if (cnt == 0) return(0);
+olink *ohashtab::last()
+{
+    if (cnt == 0)
+        return (0);
 
     for (int i = sz - 1; i >= 0; i--) {
-	olink *p = a[i].last();
-	if (p != 0) return(p);
+        olink *p = a[i].last();
+        if (p != 0)
+            return (p);
     }
     abort();
-    return(0); /* dummy to keep g++ happy */
-/*    print(logFile); Die("ohashtab::last: cnt > 0 but no object found");*/
+    return (0); /* dummy to keep g++ happy */
+    /*    print(logFile); Die("ohashtab::last: cnt > 0 but no object found");*/
 }
 
-
-olink *ohashtab::get(void *key) {
+olink *ohashtab::get(void *key)
+{
     int bucket = hfn(key) & (sz - 1);
-    return(cnt--, a[bucket].get());
+    return (cnt--, a[bucket].get());
 }
 
-
-void ohashtab::clear() {
+void ohashtab::clear()
+{
     /* Clear all the olists. */
-    for (int i = 0; i < sz; i++) a[i].clear();
+    for (int i = 0; i < sz; i++)
+        a[i].clear();
     cnt = 0;
 }
 
-
-int ohashtab::count() {
-    return(cnt);
+int ohashtab::count()
+{
+    return (cnt);
 }
 
-
-int ohashtab::IsMember(void *key, olink *p) {
+int ohashtab::IsMember(void *key, olink *p)
+{
     int bucket = hfn(key) & (sz - 1);
-    return(a[bucket].IsMember(p));
+    return (a[bucket].IsMember(p));
 }
 
-olink *ohashtab::FindObject(void *key, void *tag, otagcompare_t cmpfn) {
+olink *ohashtab::FindObject(void *key, void *tag, otagcompare_t cmpfn)
+{
     int bucket;
     olink *obj;
 
     bucket = hfn(key) & (sz - 1);
-    obj = a[bucket].FindObject(tag, cmpfn);
-    return(obj);
+    obj    = a[bucket].FindObject(tag, cmpfn);
+    return (obj);
 }
 
-
-int ohashtab::bucket(void *key) {
-    return(hfn(key) & (sz - 1));
+int ohashtab::bucket(void *key)
+{
+    return (hfn(key) & (sz - 1));
 }
 
-
-void ohashtab::print() {
+void ohashtab::print()
+{
     print(stderr);
 }
 
-
-void ohashtab::print(FILE *fp) {
+void ohashtab::print(FILE *fp)
+{
     fflush(fp);
     print(fileno(fp));
 }
 
-
-void ohashtab::print(int fd) {
+void ohashtab::print(int fd)
+{
     /* first print out the ohashtab header */
     char buf[40];
     sprintf(buf, "%p : Default Ohashtab\n", this);
     write(fd, buf, strlen(buf));
 
     /* then print out all of the olists */
-    for (int i = 0; i < sz; i++) a[i].print(fd);
+    for (int i = 0; i < sz; i++)
+        a[i].print(fd);
 }
 
-
-ohashtab_iterator::ohashtab_iterator(ohashtab& ht, void *key) {
-    chashtab = &ht;
+ohashtab_iterator::ohashtab_iterator(ohashtab &ht, void *key)
+{
+    chashtab   = &ht;
     allbuckets = (key == (void *)-1);
-    cbucket = allbuckets ? 0 : (chashtab->hfn)(key) & (chashtab->sz - 1);
-    nextlink = new olist_iterator(chashtab->a[cbucket]);
+    cbucket    = allbuckets ? 0 : (chashtab->hfn)(key) & (chashtab->sz - 1);
+    nextlink   = new olist_iterator(chashtab->a[cbucket]);
 }
 
-
-ohashtab_iterator::~ohashtab_iterator() {
+ohashtab_iterator::~ohashtab_iterator()
+{
     delete nextlink;
 }
 
-
-olink *ohashtab_iterator::operator()() {
+olink *ohashtab_iterator::operator()()
+{
     for (;;) {
-	/* Take next entry from the current bucket. */
-	olink *l = (*nextlink)();
-	if (l) return(l);
+        /* Take next entry from the current bucket. */
+        olink *l = (*nextlink)();
+        if (l)
+            return (l);
 
-	/* Can we continue with the next bucket? */
-	if (!allbuckets) return(0);
+        /* Can we continue with the next bucket? */
+        if (!allbuckets)
+            return (0);
 
-	/* Try the next bucket. */
-	if (++cbucket >= chashtab->sz) return(0);
-	delete nextlink;
-	nextlink = new olist_iterator(chashtab->a[cbucket]);
+        /* Try the next bucket. */
+        if (++cbucket >= chashtab->sz)
+            return (0);
+        delete nextlink;
+        nextlink = new olist_iterator(chashtab->a[cbucket]);
     }
 }

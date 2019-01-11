@@ -30,17 +30,18 @@ extern "C" {
 #include <cvnode.h>
 #include <vlist.h>
 
-extern vle *FindVLE(dlist& dl, ViceFid *fid);
+extern vle *FindVLE(dlist &dl, ViceFid *fid);
 
-int AllowResolution = 1;
-int DumpVM = 0;
-int large = 500;
-int small = 500;
+int AllowResolution   = 1;
+int DumpVM            = 0;
+int large             = 500;
+int small             = 500;
 const char *CodaSrvIp = NULL;
 
-ViceVersionVector NullVV = {{0, 0, 0, 0, 0, 0, 0, 0}, {0, 0}, 0};
+ViceVersionVector NullVV = { { 0, 0, 0, 0, 0, 0, 0, 0 }, { 0, 0 }, 0 };
 
-void PollAndYield() {
+void PollAndYield()
+{
     dlist dl;
     ViceFid fid;
 
@@ -49,19 +50,16 @@ void PollAndYield() {
     return;
 }
 
-void Die(const char *msg) {
+void Die(const char *msg)
+{
     fprintf(stderr, "%s\n", msg);
     CODA_ASSERT(0);
     return;
 }
 
-int GetFsObj(ViceFid *fid, Volume **volptr, Vnode **vptr,
-	     int lock, int VolumeLock, int ignoreIncon, int ignoreBQ,
-	     int getdirhandle)
+int GetFsObj(ViceFid *fid, Volume **volptr, Vnode **vptr, int lock,
+             int VolumeLock, int ignoreIncon, int ignoreBQ, int getdirhandle)
 {
     CODA_ASSERT(0);
-    return(0);
+    return (0);
 }
-
-    
-

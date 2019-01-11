@@ -64,19 +64,19 @@ extern void PutServer(srvent **);
 extern void ServerPrint(int);
 extern void ServerPrint();
 extern void ServerPrint(FILE *);
-extern  void ResMgrpPrint(int);
+extern void ResMgrpPrint(int);
 extern void ResMgrpPrint();
 extern void ResMgrpPrint(FILE *);
 extern long ViceResolve(RPC2_Handle, ViceFid *);
 extern conninfo *GetConnectionInfo(RPC2_Handle);
 
 class srvent {
-  friend void ResCommInit();
-  friend srvent *FindServer(unsigned long);
-  friend void GetServer(srvent **, unsigned long);
-  friend void ServerPrint(int);
-  friend class srv_iterator;
-  friend void ResCheckServerLWP_worker(void *);
+    friend void ResCommInit();
+    friend srvent *FindServer(unsigned long);
+    friend void GetServer(srvent **, unsigned long);
+    friend void ServerPrint(int);
+    friend class srv_iterator;
+    friend void ResCheckServerLWP_worker(void *);
     /* The server list. */
     static olist *srvtab;
 
@@ -87,16 +87,22 @@ class srvent {
     olink tblhandle;
     char *name;
     unsigned long host;
-    unsigned binding : 1;	/* 1 --> BINDING, 0 --> NOT_BINDING */
-    enum state {up, down, unknown} srvrstate;
+    unsigned binding : 1; /* 1 --> BINDING, 0 --> NOT_BINDING */
+    enum state
+    {
+        up,
+        down,
+        unknown
+    } srvrstate;
 
     /* Constructors, destructors, and private utility routines. */
     srvent(unsigned long);
     ~srvent();
-  public:
+
+public:
     int Connect(RPC2_Handle *, int);
     void Reset();
-    int	ServerIsDown();
+    int ServerIsDown();
     int ServerIsUp();
     void ServerError(int *);
     void print();
@@ -105,49 +111,48 @@ class srvent {
 };
 
 class srv_iterator : public olist_iterator {
-
-  public:
+public:
     srv_iterator();
     srvent *operator()();
 };
 
 class RepResCommCtxt {
-  public:
+public:
     RPC2_Integer HowMany;
     RPC2_Handle handles[VSG_MEMBERS];
     unsigned long hosts[VSG_MEMBERS];
-    RPC2_Integer retcodes[VSG_MEMBERS];	
+    RPC2_Integer retcodes[VSG_MEMBERS];
     unsigned long primaryhost;
     RPC2_Multicast *MIp;
     unsigned dying[VSG_MEMBERS];
-    
+
     RepResCommCtxt();
     ~RepResCommCtxt();
-    
+
     void print();
     void print(FILE *);
     void print(int);
 };
-  
+
 class res_mgrpent {
-  public:
+public:
     /* the mgrp list */
     static dlist *ResMgrpTab;
-    
+
     /* shared data */
     static int resmgrps;
-    
+
     /* transient members */
     dlink tblhandle;
-    
+
     /* Static state; immutable after construction */
     RPC2_Multicast McastInfo;
-    unsigned long Hosts[VSG_MEMBERS];	/* All VSG hosts in canonical order */
-    
+    unsigned long Hosts[VSG_MEMBERS]; /* All VSG hosts in canonical order */
+
     /* Dynamic state */
-    unsigned inuse  : 1;
-    unsigned dying  : 1;
-    RepResCommCtxt  rrcc;
+    unsigned inuse : 1;
+    unsigned dying : 1;
+    RepResCommCtxt rrcc;
 
     /* Constructors, Destructors */
     res_mgrpent(unsigned long hosts[VSG_MEMBERS], RPC2_Handle);
@@ -169,40 +174,42 @@ class resmgrp_iterator : public dlist_iterator {
     unsigned long Hosts[VSG_MEMBERS];
     int allhosts;
 
-  public:
+public:
     resmgrp_iterator(unsigned long hosts[VSG_MEMBERS] = ALL_VSGS);
     res_mgrpent *operator()();
 };
 
 class conninfo {
-  friend class conninfo_iterator;
-  friend void srvent::Reset();
-  friend void ResCommInit();
-  friend long RS_NewConnection(RPC2_Handle , RPC2_Integer, RPC2_Integer,RPC2_Integer, RPC2_Integer, RPC2_CountedBS *);
+    friend class conninfo_iterator;
+    friend void srvent::Reset();
+    friend void ResCommInit();
+    friend long RS_NewConnection(RPC2_Handle, RPC2_Integer, RPC2_Integer,
+                                 RPC2_Integer, RPC2_Integer, RPC2_CountedBS *);
     /* globals state */
-    static  olist *CInfoTab;
-    static  int ncinfos;
+    static olist *CInfoTab;
+    static int ncinfos;
 
-    olink   tblhandle;
+    olink tblhandle;
     /* immutable info once created */
     unsigned long RemoteAddr;
     unsigned short RemotePortNum;
-    int	SecLevel;
-    RPC2_Handle	cid;
+    int SecLevel;
+    RPC2_Handle cid;
 
     /* constructors and destructors */
     conninfo(RPC2_Handle, int);
     ~conninfo();
 
-  public:
+public:
     unsigned long GetRemoteHost() WARN_SINGLE_HOMING;
-    int	GetSecLevel();
+    int GetSecLevel();
     unsigned short GetRemotePort();
 };
 
 class conninfo_iterator : public olist_iterator {
     RPC2_Handle key;
-  public:
+
+public:
     conninfo_iterator(RPC2_Handle = 0);
     conninfo *operator()();
 };

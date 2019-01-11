@@ -21,7 +21,6 @@ listed in the file CREDITS.
 
 #include <stdio.h>
 
-
 /* this file is used for parsing routines of /vice/vicetab, the file
  * describing server partitions.
  * Its structure is similar to fstab: 
@@ -38,15 +37,12 @@ listed in the file CREDITS.
  * However, for increased sanity the structure is not exposed.
  */
 
-#define VICETAB  "/vice/vicetab"
-#define VICETAB_MAXSTR  256    /* max line length in VICETAB */
-
+#define VICETAB "/vice/vicetab"
+#define VICETAB_MAXSTR 256 /* max line length in VICETAB */
 
 /* supported types of server partitions */
-#define PTYPE_SIMPLE     "simple"
-#define PTYPE_FTREE      "ftree"
-
-
+#define PTYPE_SIMPLE "simple"
+#define PTYPE_FTREE "ftree"
 
 typedef struct Partent_s *Partent;
 
@@ -63,6 +59,5 @@ char *Partent_dir(Partent p);
 char *Partent_type(Partent p);
 char *Partent_host(Partent p);
 Partent Partent_create(char *host, char *dir, char *type, char *opts);
-
 
 #endif /* _VICETAB_H_ */

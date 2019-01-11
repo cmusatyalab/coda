@@ -39,10 +39,10 @@ Pittsburgh, PA.
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <sys/socket.h>
-#include <sys/time.h>
 #include <unistd.h>
+#include <sys/time.h>
+#include <sys/socket.h>
+#include <string.h>
 
 #include "cbuf.h"
 #include "rpc2.private.h"

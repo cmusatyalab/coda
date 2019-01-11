@@ -16,12 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
 /* 
  * Created 09/16/89 - Puneet Kumar
  * 
@@ -37,22 +31,21 @@ extern "C" {
 }
 #endif __cplusplus
 
-
-main(argc, argv)
-     int argc;
-     char *argv[];
+main(argc, argv) int argc;
+char *argv[];
 {
-  DIR *dirp;
-  struct direct *dp;
+    DIR *dirp;
+    struct direct *dp;
 
-  printf("Looking at directory %s \n", argv[1]);
-  dirp = opendir(argv[1]);
-  if (dirp == NULL) {
-    perror("opendir");
-    exit(EXIT_FAILURE);
-  }
-  for (dp = readdir(dirp); dp != NULL; dp = readdir(dirp))
-    printf("inode_number = %d; rec_len = %d; namelen = %d; name = %s \n\n", dp->d_ino, dp->d_reclen, dp->d_namlen, dp->d_name);
+    printf("Looking at directory %s \n", argv[1]);
+    dirp = opendir(argv[1]);
+    if (dirp == NULL) {
+        perror("opendir");
+        exit(EXIT_FAILURE);
+    }
+    for (dp = readdir(dirp); dp != NULL; dp = readdir(dirp))
+        printf("inode_number = %d; rec_len = %d; namelen = %d; name = %s \n\n",
+               dp->d_ino, dp->d_reclen, dp->d_namlen, dp->d_name);
 
-  printf("\n\n END OF DIRECTORY \n");
+    printf("\n\n END OF DIRECTORY \n");
 }

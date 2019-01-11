@@ -1,27 +1,27 @@
 /* BLURB lgpl
 
-                           Coda File System
-                              Release 6
+			   Coda File System
+			      Release 6
 
           Copyright (c) 2006-2016 Carnegie Mellon University
-                  Additional copyrights listed below
+		  Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
 the  terms of the  GNU  Library General Public Licence  Version 2,  as
 shown in the file LICENSE. The technical and financial contributors to
 Coda are listed in the file CREDITS.
 
-                        Additional copyrights
+			Additional copyrights
 #*/
 
 /* Implementation of AES modes of operation and test vectors */
 
-#include <assert.h>
+#include <sys/time.h>
+#include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/time.h>
-#include <time.h>
+#include <assert.h>
 
 #include <rpc2/secure.h>
 
@@ -234,8 +234,8 @@ static void check_aes_variable_key(int verbose)
     aes_encrypt_ctx ctx;
 
     /* annoyingly there are only 128 tests for the 128-bit key, but up to 256
-   * for the 256-bit keys. So we have to do some figuring out how many loops
-   * we should really make */
+     * for the 256-bit keys. So we have to do some figuring out how many loops
+     * we should really make */
     tests = sizeof(aes_ecb_vk) / sizeof(aes_block);
     if (tests <= 384)
         runs = tests / 3;
@@ -462,7 +462,7 @@ void secure_aes_init(int verbose)
         return;
     initialized++;
 
-/* Initialize */
+    /* Initialize */
 #ifdef AES_INIT_FUNC
     AES_INIT_FUNC;
 #endif

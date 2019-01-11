@@ -24,14 +24,12 @@ listed in the file CREDITS.
 #define AUTH2KEYSIZE 48
 
 int getauth2key(uint8_t *token, size_t token_size,
-		uint8_t auth2key[AUTH2KEYSIZE]);
+                uint8_t auth2key[AUTH2KEYSIZE]);
 int generate_CodaToken(uint8_t auth2key[AUTH2KEYSIZE], uint32_t viceid,
-		       uint32_t lifetime, ClearToken *ctoken,
-		       EncryptedSecretToken estoken);
+                       uint32_t lifetime, ClearToken *ctoken,
+                       EncryptedSecretToken estoken);
 int validate_CodaToken(uint8_t auth2key[AUTH2KEYSIZE],
-		       EncryptedSecretToken estoken,
-		       uint32_t *viceid, time_t *endtime,
-		       RPC2_EncryptionKey *sessionkey);
+                       EncryptedSecretToken estoken, uint32_t *viceid,
+                       time_t *endtime, RPC2_EncryptionKey *sessionkey);
 
 #endif /* _CODATOKEN_H_ */
-

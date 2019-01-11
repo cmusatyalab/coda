@@ -57,26 +57,25 @@ long S_PrintStats(RPC2_Handle rpcid, SE_Descriptor *formal_sed)
     PrintCounters(statsfile);
     PrintCallBackState(statsfile);
 
-    // ship the file back 
+    // ship the file back
     fd = fileno(statsfile);
     lseek(fd, 0, SEEK_SET);
     memset(&sed, 0, sizeof(SE_Descriptor));
-    sed.Tag = SMARTFTP;
+    sed.Tag                                   = SMARTFTP;
     sed.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
-    sed.Value.SmartFTPD.Tag = FILEBYFD;
-    sed.Value.SmartFTPD.FileInfo.ByFD.fd = fd;
+    sed.Value.SmartFTPD.Tag                   = FILEBYFD;
+    sed.Value.SmartFTPD.FileInfo.ByFD.fd      = fd;
 
-    if ((rc = RPC2_InitSideEffect(rpcid, &sed)) <= RPC2_ELIMIT) 
-	LogMsg(0, VolDebugLevel, stdout, 
-	       "PrintStats: InitSideEffect failed with %s", RPC2_ErrorMsg(rc));
+    if ((rc = RPC2_InitSideEffect(rpcid, &sed)) <= RPC2_ELIMIT)
+        LogMsg(0, VolDebugLevel, stdout,
+               "PrintStats: InitSideEffect failed with %s", RPC2_ErrorMsg(rc));
 
     if (!rc && ((rc = RPC2_CheckSideEffect(rpcid, &sed, SE_AWAITLOCALSTATUS)) <=
-		RPC2_ELIMIT)) 
-	LogMsg(0, VolDebugLevel, stdout, 
-	       "PrintStats: CheckSideEffect failed with %s", RPC2_ErrorMsg(rc));
+                RPC2_ELIMIT))
+        LogMsg(0, VolDebugLevel, stdout,
+               "PrintStats: CheckSideEffect failed with %s", RPC2_ErrorMsg(rc));
 
     fclose(statsfile);
     LogMsg(1, VolDebugLevel, stdout, "PrintStats returns %d\n", rc);
-    return(rc);
+    return (rc);
 }
-

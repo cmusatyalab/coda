@@ -26,9 +26,13 @@ listed in the file CREDITS.
 #include "codaconf.h"
 
 #define MAXLINELEN 256
-#define FAILIF(cond, what...) do { \
-	if (cond) { fprintf(stderr, ## what); exit(EXIT_FAILURE); } \
-    } while(0)
+#define FAILIF(cond, what...)        \
+    do {                             \
+        if (cond) {                  \
+            fprintf(stderr, ##what); \
+            exit(EXIT_FAILURE);      \
+        }                            \
+    } while (0)
 
 static void write_val(FILE *outf, int argc, char **argv)
 {
@@ -40,22 +44,24 @@ static void write_val(FILE *outf, int argc, char **argv)
     /* and dump the value */
     argc--; /* argv starts at '0' */
     for (i = 3; i < argc; i++)
-	fprintf(outf, "%s ", argv[i]);
+        fprintf(outf, "%s ", argv[i]);
     fprintf(outf, "%s\"\n", argv[argc]);
 }
 
 static int match_var(const char *p, const char *var, int len)
 {
     /* skip whitespace */
-    while (*p == ' ' || *p == '\t') p++;
+    while (*p == ' ' || *p == '\t')
+        p++;
 
     /* match variable name */
     if (strncmp(p, var, len) != 0)
-	return 0;
+        return 0;
     p += len;
 
     /* skip more whitespace */
-    while (*p == ' ' || *p == '\t') p++;
+    while (*p == ' ' || *p == '\t')
+        p++;
 
     /* final match */
     return (*p == '=');
@@ -64,7 +70,7 @@ static int match_var(const char *p, const char *var, int len)
 static void do_rewrite(const char *conffile, int argc, char **argv)
 {
     FILE *inf, *outf;
-    char line[MAXLINELEN], tmpname[MAXPATHLEN+1], *p;
+    char line[MAXLINELEN], tmpname[MAXPATHLEN + 1], *p;
     int ret, len = strlen(argv[2]), lineno = 0, last_line = 0;
 
     inf = fopen(conffile, "r");
@@ -80,16 +86,20 @@ static void do_rewrite(const char *conffile, int argc, char **argv)
     FAILIF(!outf, "Failed to open '%s' for writing\n", tmpname);
 
     lineno = 0;
-    while(fgets(line, MAXLINELEN, inf)) {
-	fputs(line, outf);
-	lineno++; p = line;
-	/* skip whitespace and comment characters */
-	while (*p == ' ' || *p == '\t') p++;
-	if (*p == '#') p++;
-	if (match_var(p, argv[2], len))
-		last_line = lineno;
+    while (fgets(line, MAXLINELEN, inf)) {
+        fputs(line, outf);
+        lineno++;
+        p = line;
+        /* skip whitespace and comment characters */
+        while (*p == ' ' || *p == '\t')
+            p++;
+        if (*p == '#')
+            p++;
+        if (match_var(p, argv[2], len))
+            last_line = lineno;
     }
-    if (!last_line) last_line = lineno;
+    if (!last_line)
+        last_line = lineno;
 
     fclose(outf);
 
@@ -103,18 +113,18 @@ static void do_rewrite(const char *conffile, int argc, char **argv)
 
     rewind(inf);
     lineno = 0;
-    while(fgets(line, MAXLINELEN, inf)) {
-	lineno++;
+    while (fgets(line, MAXLINELEN, inf)) {
+        lineno++;
 
-	/* comment any lines that were defining this variable */
-	if (match_var(line, argv[2], len))
-	    fputs("# ", outf);
-	fputs(line, outf);
+        /* comment any lines that were defining this variable */
+        if (match_var(line, argv[2], len))
+            fputs("# ", outf);
+        fputs(line, outf);
 
-	/* append the new value after the last found (possibly commented)
+        /* append the new value after the last found (possibly commented)
 	 * definition */
-	if (lineno == last_line)
-	    write_val(outf, argc, argv);
+        if (lineno == last_line)
+            write_val(outf, argc, argv);
     }
 
     fclose(outf);
@@ -137,10 +147,10 @@ static void copy_template(char *confbase)
     free(tmpname);
 
     FAILIF(!conffile, "Configuration file template '%s.ex' not found\n",
-	   confbase);
+           confbase);
 
     /* strip the '.ex' */
-    len = strlen(conffile);
+    len     = strlen(conffile);
     tmpname = malloc(len + 1);
     FAILIF(!tmpname, "Allocation failed");
     strcpy(tmpname, conffile);
@@ -151,7 +161,6 @@ static void copy_template(char *confbase)
     FAILIF(ret, "Failed to copy template file to '%s'\n", tmpname);
     free(tmpname);
 }
-    
 
 int main(int argc, char **argv)
 {
@@ -163,12 +172,12 @@ int main(int argc, char **argv)
     conffile = codaconf_file(argv[1]);
 
     if (argc < 3) {
-	if (!conffile) {
-	    fprintf(stdout, "/dev/null\n");
-	    exit(EXIT_FAILURE);
-	}
-	fprintf(stdout, "%s\n", conffile);
-	exit(EXIT_SUCCESS);
+        if (!conffile) {
+            fprintf(stdout, "/dev/null\n");
+            exit(EXIT_FAILURE);
+        }
+        fprintf(stdout, "%s\n", conffile);
+        exit(EXIT_SUCCESS);
     }
 
     /* Hmm, should we really copy the template file on lookups as well. On one
@@ -176,39 +185,39 @@ int main(int argc, char **argv)
      * there would otherwise be no other way to use the default template
      * without modifications */
     if (!conffile) {
-	copy_template(argv[1]);
-	conffile = codaconf_file(argv[1]);
-	FAILIF(!conffile, "Failed to copy template file to '%s'\n", argv[1]);
+        copy_template(argv[1]);
+        conffile = codaconf_file(argv[1]);
+        FAILIF(!conffile, "Failed to copy template file to '%s'\n", argv[1]);
     }
 
     codaconf_init_one(conffile);
     val = codaconf_lookup(argv[2], NULL);
 
     if (argc < 4) {
-	FAILIF(!val, "Variable '%s' not found in '%s'\n", argv[2], conffile);
+        FAILIF(!val, "Variable '%s' not found in '%s'\n", argv[2], conffile);
 
-	fprintf(stdout, "%s\n", val);
-	exit(EXIT_SUCCESS);
+        fprintf(stdout, "%s\n", val);
+        exit(EXIT_SUCCESS);
     }
 
     /* argc >= 4 */
     /* check if this value was already set */
     if (val) {
-	p = val;
-	for (i = 3; i <= argc; i++) {
-	    len = strlen(argv[i]);
-	    if (strncmp(argv[i], p, len) != 0)
-		break;
-	    p = p + len;
-	    if (*p != ' ') break;
-	    p++;
-	}
-	if (i == argc-1 && *p == '\0')
-	    exit(EXIT_SUCCESS);
+        p = val;
+        for (i = 3; i <= argc; i++) {
+            len = strlen(argv[i]);
+            if (strncmp(argv[i], p, len) != 0)
+                break;
+            p = p + len;
+            if (*p != ' ')
+                break;
+            p++;
+        }
+        if (i == argc - 1 && *p == '\0')
+            exit(EXIT_SUCCESS);
     }
 
     do_rewrite(conffile, argc, argv);
 
     exit(EXIT_SUCCESS);
 }
-

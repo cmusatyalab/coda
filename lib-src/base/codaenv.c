@@ -24,10 +24,10 @@ Coda are listed in the file CREDITS.
 #include <unistd.h>
 #include "codaenv.h"
 
-char * codaenv_find(const char * var_name)
+char *codaenv_find(const char *var_name)
 {
     char env_var[256];
-    char * val = NULL;
+    char *val = NULL;
 
     snprintf(env_var, sizeof(env_var), "CODA_%s", var_name);
 
@@ -40,9 +40,9 @@ char * codaenv_find(const char * var_name)
     return strdup(val);
 }
 
-int codaenv_int(const char * var_name, const int prev_val)
+int codaenv_int(const char *var_name, const int prev_val)
 {
-    char * val = codaenv_find(var_name);
+    char *val = codaenv_find(var_name);
 
     if (!val) {
         return prev_val;
@@ -51,10 +51,9 @@ int codaenv_int(const char * var_name, const int prev_val)
     return atoi(val);
 }
 
-
-const char * codaenv_str(const char * var_name, const char * prev_val)
+const char *codaenv_str(const char *var_name, const char *prev_val)
 {
-    char * val = codaenv_find(var_name);
+    char *val = codaenv_find(var_name);
 
     if (!val) {
         return prev_val;

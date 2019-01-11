@@ -16,8 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
 #include <cvnode.h>
 #include <volume.h>
 #include <index.h>
@@ -33,7 +31,7 @@ extern void NortonInit(char *log_dev, char *data_dev, int data_len);
 extern void InitParsing();
 extern void notyet(int, char **);
 extern void examine(int argc, char *argv[]);
-extern void show_debug(int, char**);
+extern void show_debug(int, char **);
 extern void set_debug(int, char **);
 
 /* norton-volume.c */
@@ -75,7 +73,6 @@ extern void show_dir(int, char **);
 extern void show_dir(VolumeId, VnodeId, Unique_t);
 extern void delete_name(int, char **);
 extern void sh_create_name(int, char **);
-
 
 /* norton-rds.c */
 extern void show_heap(int, char **);

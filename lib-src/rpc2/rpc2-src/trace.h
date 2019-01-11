@@ -263,323 +263,323 @@ struct TraceElem {
 #define TR_REMOVEFROMMGRP()
 #define TR_XLATEMCASTPACKET()
 #else
-#define TR_SENDRESPONSE()                                                      \
-    do {                                                                       \
-        if (RPC2_Trace && rpc2_TraceBuffHeader) {                              \
-            struct TraceElem *te;                                              \
-            struct te_SENDRESPONSE *tea;                                       \
-            te  = (struct TraceElem *)CBUF_NextSlot(rpc2_TraceBuffHeader);     \
-            tea = &te->Args.SendResponseEntry;                                 \
-            te->CallCode = SENDRESPONSE;                                       \
-            strncpy(te->ActiveLWP, LWP_Name(), sizeof(te->ActiveLWP) - 1);     \
-            tea->ConnHandle    = ConnHandle;                                   \
-            tea->Reply_Address = Reply;                                        \
-            tea->Reply         = *Reply; /* structure assignment */            \
-        }                                                                      \
+#define TR_SENDRESPONSE()                                                  \
+    do {                                                                   \
+        if (RPC2_Trace && rpc2_TraceBuffHeader) {                          \
+            struct TraceElem *te;                                          \
+            struct te_SENDRESPONSE *tea;                                   \
+            te  = (struct TraceElem *)CBUF_NextSlot(rpc2_TraceBuffHeader); \
+            tea = &te->Args.SendResponseEntry;                             \
+            te->CallCode = SENDRESPONSE;                                   \
+            strncpy(te->ActiveLWP, LWP_Name(), sizeof(te->ActiveLWP) - 1); \
+            tea->ConnHandle    = ConnHandle;                               \
+            tea->Reply_Address = Reply;                                    \
+            tea->Reply         = *Reply; /* structure assignment */        \
+        }                                                                  \
     } while (0)
 
-#define TR_GETREQUEST()                                                        \
-    do {                                                                       \
-        if (RPC2_Trace && rpc2_TraceBuffHeader) {                              \
-            struct TraceElem *te;                                              \
-            struct te_GETREQUEST *tea;                                         \
-            te  = (struct TraceElem *)CBUF_NextSlot(rpc2_TraceBuffHeader);     \
-            tea = &te->Args.GetRequestEntry;                                   \
-            te->CallCode = GETREQUEST;                                         \
-            strncpy(te->ActiveLWP, LWP_Name(), sizeof(te->ActiveLWP) - 1);     \
-            tea->Filter = *Filter; /* structure assignment */                  \
-            if (BreathOfLife == NULL)                                          \
-                tea->IsNullBreathOfLife = TRUE;                                \
-            else {                                                             \
-                tea->IsNullBreathOfLife = FALSE;                               \
-                tea->BreathOfLife = *BreathOfLife; /* structure assignment */  \
-            }                                                                  \
-            tea->GetKeys            = GetKeys;                                 \
-            tea->EncryptionTypeMask = EncryptionTypeMask;                      \
-        }                                                                      \
+#define TR_GETREQUEST()                                                       \
+    do {                                                                      \
+        if (RPC2_Trace && rpc2_TraceBuffHeader) {                             \
+            struct TraceElem *te;                                             \
+            struct te_GETREQUEST *tea;                                        \
+            te  = (struct TraceElem *)CBUF_NextSlot(rpc2_TraceBuffHeader);    \
+            tea = &te->Args.GetRequestEntry;                                  \
+            te->CallCode = GETREQUEST;                                        \
+            strncpy(te->ActiveLWP, LWP_Name(), sizeof(te->ActiveLWP) - 1);    \
+            tea->Filter = *Filter; /* structure assignment */                 \
+            if (BreathOfLife == NULL)                                         \
+                tea->IsNullBreathOfLife = TRUE;                               \
+            else {                                                            \
+                tea->IsNullBreathOfLife = FALSE;                              \
+                tea->BreathOfLife = *BreathOfLife; /* structure assignment */ \
+            }                                                                 \
+            tea->GetKeys            = GetKeys;                                \
+            tea->EncryptionTypeMask = EncryptionTypeMask;                     \
+        }                                                                     \
     } while (0)
 
-#define TR_MAKERPC()                                                           \
-    do {                                                                       \
-        if (RPC2_Trace && rpc2_TraceBuffHeader) {                              \
-            struct TraceElem *te;                                              \
-            struct te_MAKERPC *tea;                                            \
-            te  = (struct TraceElem *)CBUF_NextSlot(rpc2_TraceBuffHeader);     \
-            tea = &te->Args.MakeRPCEntry;                                      \
-            te->CallCode = MAKERPC;                                            \
-            strncpy(te->ActiveLWP, LWP_Name(), sizeof(te->ActiveLWP) - 1);     \
-            tea->ConnHandle      = ConnHandle;                                 \
-            tea->Request_Address = Request;                                    \
-            tea->Request         = *Request; /* structure assignment */        \
-            if (SDesc == NULL)                                                 \
-                tea->IsNullSDesc = TRUE;                                       \
-            else {                                                             \
-                tea->IsNullSDesc = FALSE;                                      \
-                tea->SDesc       = *SDesc; /* structure assignment */          \
-            }                                                                  \
-            if (BreathOfLife == NULL)                                          \
-                tea->IsNullBreathOfLife = TRUE;                                \
-            else {                                                             \
-                tea->IsNullBreathOfLife = FALSE;                               \
-                tea->BreathOfLife = *BreathOfLife; /* structure assignment */  \
-            }                                                                  \
-            tea->EnqueueRequest = EnqueueRequest;                              \
-        }                                                                      \
+#define TR_MAKERPC()                                                          \
+    do {                                                                      \
+        if (RPC2_Trace && rpc2_TraceBuffHeader) {                             \
+            struct TraceElem *te;                                             \
+            struct te_MAKERPC *tea;                                           \
+            te  = (struct TraceElem *)CBUF_NextSlot(rpc2_TraceBuffHeader);    \
+            tea = &te->Args.MakeRPCEntry;                                     \
+            te->CallCode = MAKERPC;                                           \
+            strncpy(te->ActiveLWP, LWP_Name(), sizeof(te->ActiveLWP) - 1);    \
+            tea->ConnHandle      = ConnHandle;                                \
+            tea->Request_Address = Request;                                   \
+            tea->Request         = *Request; /* structure assignment */       \
+            if (SDesc == NULL)                                                \
+                tea->IsNullSDesc = TRUE;                                      \
+            else {                                                            \
+                tea->IsNullSDesc = FALSE;                                     \
+                tea->SDesc       = *SDesc; /* structure assignment */         \
+            }                                                                 \
+            if (BreathOfLife == NULL)                                         \
+                tea->IsNullBreathOfLife = TRUE;                               \
+            else {                                                            \
+                tea->IsNullBreathOfLife = FALSE;                              \
+                tea->BreathOfLife = *BreathOfLife; /* structure assignment */ \
+            }                                                                 \
+            tea->EnqueueRequest = EnqueueRequest;                             \
+        }                                                                     \
     } while (0)
 
-#define TR_BIND()                                                              \
-    do {                                                                       \
-        if (RPC2_Trace && rpc2_TraceBuffHeader) {                              \
-            struct TraceElem *te;                                              \
-            struct te_BIND *tea;                                               \
-            te  = (struct TraceElem *)CBUF_NextSlot(rpc2_TraceBuffHeader);     \
-            tea = &te->Args.BindEntry;                                         \
-            te->CallCode = BIND;                                               \
-            strncpy(te->ActiveLWP, LWP_Name(), sizeof(te->ActiveLWP) - 1);     \
-            tea->SecurityLevel  = Bparms->SecurityLevel;                       \
-            tea->EncryptionType = Bparms->EncryptionType;                      \
-            tea->Host           = *Host; /* structure assignment */            \
-            tea->Port           = *Port; /* structure assignment */            \
-            tea->Subsys         = *Subsys; /* structure assignment */          \
-            tea->SideEffectType = Bparms->SideEffectType;                      \
-            if (Bparms->ClientIdent == NULL)                                   \
-                tea->IsNullClientIdent = TRUE;                                 \
-            else {                                                             \
-                tea->IsNullClientIdent = FALSE;                                \
-                tea->ClientIdent.SeqLen =                                      \
-                    Bparms->ClientIdent                                        \
-                        ->SeqLen; /* not actual length, could be truncated */  \
-                if (Bparms->ClientIdent->SeqLen <                              \
-                    sizeof(tea->ClientIdent_Value))                            \
-                    memcpy(tea->ClientIdent_Value,                             \
-                           Bparms->ClientIdent->SeqBody,                       \
-                           Bparms->ClientIdent->SeqLen);                       \
-                else                                                           \
-                    memcpy(tea->ClientIdent_Value,                             \
-                           Bparms->ClientIdent->SeqBody,                       \
-                           sizeof(tea->ClientIdent_Value));                    \
-            }                                                                  \
-        }                                                                      \
+#define TR_BIND()                                                             \
+    do {                                                                      \
+        if (RPC2_Trace && rpc2_TraceBuffHeader) {                             \
+            struct TraceElem *te;                                             \
+            struct te_BIND *tea;                                              \
+            te  = (struct TraceElem *)CBUF_NextSlot(rpc2_TraceBuffHeader);    \
+            tea = &te->Args.BindEntry;                                        \
+            te->CallCode = BIND;                                              \
+            strncpy(te->ActiveLWP, LWP_Name(), sizeof(te->ActiveLWP) - 1);    \
+            tea->SecurityLevel  = Bparms->SecurityLevel;                      \
+            tea->EncryptionType = Bparms->EncryptionType;                     \
+            tea->Host           = *Host; /* structure assignment */           \
+            tea->Port           = *Port; /* structure assignment */           \
+            tea->Subsys         = *Subsys; /* structure assignment */         \
+            tea->SideEffectType = Bparms->SideEffectType;                     \
+            if (Bparms->ClientIdent == NULL)                                  \
+                tea->IsNullClientIdent = TRUE;                                \
+            else {                                                            \
+                tea->IsNullClientIdent = FALSE;                               \
+                tea->ClientIdent.SeqLen =                                     \
+                    Bparms->ClientIdent                                       \
+                        ->SeqLen; /* not actual length, could be truncated */ \
+                if (Bparms->ClientIdent->SeqLen <                             \
+                    sizeof(tea->ClientIdent_Value))                           \
+                    memcpy(tea->ClientIdent_Value,                            \
+                           Bparms->ClientIdent->SeqBody,                      \
+                           Bparms->ClientIdent->SeqLen);                      \
+                else                                                          \
+                    memcpy(tea->ClientIdent_Value,                            \
+                           Bparms->ClientIdent->SeqBody,                      \
+                           sizeof(tea->ClientIdent_Value));                   \
+            }                                                                 \
+        }                                                                     \
     } while (0)
 
-#define TR_INITSE()                                                            \
-    do {                                                                       \
-        if (RPC2_Trace && rpc2_TraceBuffHeader) {                              \
-            struct TraceElem *te;                                              \
-            struct te_INITSIDEEFFECT *tea;                                     \
-            te  = (struct TraceElem *)CBUF_NextSlot(rpc2_TraceBuffHeader);     \
-            tea = &te->Args.InitSideEffectEntry;                               \
-            te->CallCode = INITSIDEEFFECT;                                     \
-            strncpy(te->ActiveLWP, LWP_Name(), sizeof(te->ActiveLWP) - 1);     \
-            tea->ConnHandle = ConnHandle;                                      \
-            if (SDesc == NULL)                                                 \
-                tea->IsNullSDesc = TRUE;                                       \
-            else {                                                             \
-                tea->IsNullSDesc = FALSE;                                      \
-                tea->SDesc       = *SDesc; /* structure assignment */          \
-            }                                                                  \
-        }                                                                      \
+#define TR_INITSE()                                                        \
+    do {                                                                   \
+        if (RPC2_Trace && rpc2_TraceBuffHeader) {                          \
+            struct TraceElem *te;                                          \
+            struct te_INITSIDEEFFECT *tea;                                 \
+            te  = (struct TraceElem *)CBUF_NextSlot(rpc2_TraceBuffHeader); \
+            tea = &te->Args.InitSideEffectEntry;                           \
+            te->CallCode = INITSIDEEFFECT;                                 \
+            strncpy(te->ActiveLWP, LWP_Name(), sizeof(te->ActiveLWP) - 1); \
+            tea->ConnHandle = ConnHandle;                                  \
+            if (SDesc == NULL)                                             \
+                tea->IsNullSDesc = TRUE;                                   \
+            else {                                                         \
+                tea->IsNullSDesc = FALSE;                                  \
+                tea->SDesc       = *SDesc; /* structure assignment */      \
+            }                                                              \
+        }                                                                  \
     } while (0)
 
-#define TR_CHECKSE()                                                           \
-    do {                                                                       \
-        if (RPC2_Trace && rpc2_TraceBuffHeader) {                              \
-            struct TraceElem *te;                                              \
-            struct te_CHECKSIDEEFFECT *tea;                                    \
-            te  = (struct TraceElem *)CBUF_NextSlot(rpc2_TraceBuffHeader);     \
-            tea = &te->Args.CheckSideEffectEntry;                              \
-            te->CallCode = CHECKSIDEEFFECT;                                    \
-            strncpy(te->ActiveLWP, LWP_Name(), sizeof(te->ActiveLWP) - 1);     \
-            tea->ConnHandle = ConnHandle;                                      \
-            if (SDesc == NULL)                                                 \
-                tea->IsNullSDesc = TRUE;                                       \
-            else {                                                             \
-                tea->IsNullSDesc = FALSE;                                      \
-                tea->SDesc       = *SDesc; /* structure assignment */          \
-            }                                                                  \
-            tea->Flags = Flags;                                                \
-        }                                                                      \
+#define TR_CHECKSE()                                                       \
+    do {                                                                   \
+        if (RPC2_Trace && rpc2_TraceBuffHeader) {                          \
+            struct TraceElem *te;                                          \
+            struct te_CHECKSIDEEFFECT *tea;                                \
+            te  = (struct TraceElem *)CBUF_NextSlot(rpc2_TraceBuffHeader); \
+            tea = &te->Args.CheckSideEffectEntry;                          \
+            te->CallCode = CHECKSIDEEFFECT;                                \
+            strncpy(te->ActiveLWP, LWP_Name(), sizeof(te->ActiveLWP) - 1); \
+            tea->ConnHandle = ConnHandle;                                  \
+            if (SDesc == NULL)                                             \
+                tea->IsNullSDesc = TRUE;                                   \
+            else {                                                         \
+                tea->IsNullSDesc = FALSE;                                  \
+                tea->SDesc       = *SDesc; /* structure assignment */      \
+            }                                                              \
+            tea->Flags = Flags;                                            \
+        }                                                                  \
     } while (0)
 
-#define TR_UNBIND()                                                            \
-    do {                                                                       \
-        if (RPC2_Trace && rpc2_TraceBuffHeader) {                              \
-            struct TraceElem *te;                                              \
-            struct te_UNBIND *tea;                                             \
-            te  = (struct TraceElem *)CBUF_NextSlot(rpc2_TraceBuffHeader);     \
-            tea = &te->Args.UnbindEntry;                                       \
-            te->CallCode = UNBIND;                                             \
-            strncpy(te->ActiveLWP, LWP_Name(), sizeof(te->ActiveLWP) - 1);     \
-            tea->whichConn = whichConn;                                        \
-        }                                                                      \
+#define TR_UNBIND()                                                        \
+    do {                                                                   \
+        if (RPC2_Trace && rpc2_TraceBuffHeader) {                          \
+            struct TraceElem *te;                                          \
+            struct te_UNBIND *tea;                                         \
+            te  = (struct TraceElem *)CBUF_NextSlot(rpc2_TraceBuffHeader); \
+            tea = &te->Args.UnbindEntry;                                   \
+            te->CallCode = UNBIND;                                         \
+            strncpy(te->ActiveLWP, LWP_Name(), sizeof(te->ActiveLWP) - 1); \
+            tea->whichConn = whichConn;                                    \
+        }                                                                  \
     } while (0)
 
-#define TR_MULTI()                                                             \
-    do {                                                                       \
-        if (RPC2_Trace && rpc2_TraceBuffHeader) {                              \
-            struct TraceElem *te;                                              \
-            struct te_MULTIRPC *tea;                                           \
-            te  = (struct TraceElem *)CBUF_NextSlot(rpc2_TraceBuffHeader);     \
-            tea = &te->Args.MultiRPCEntry;                                     \
-            te->CallCode = MULTIRPC;                                           \
-            strncpy(te->ActiveLWP, LWP_Name(), sizeof(te->ActiveLWP) - 1);     \
-            tea->ConnHandle      = ConnHandleList;                             \
-            tea->Request_Address = Request;                                    \
-            tea->Request         = *Request; /* structure assignment */        \
-            if (SDescList == NULL)                                             \
-                tea->IsNullSDesc = TRUE;                                       \
-            else {                                                             \
-                tea->IsNullSDesc = FALSE;                                      \
-                tea->SDesc       = SDescList[0]; /* structure assignment */    \
-            }                                                                  \
-            tea->HandleResult = ArgInfo->HandleResult;                         \
-            if (BreathOfLife == NULL)                                          \
-                tea->IsNullBreathOfLife = TRUE;                                \
-            else {                                                             \
-                tea->IsNullBreathOfLife = FALSE;                               \
-                tea->BreathOfLife = *BreathOfLife; /* structure assignment */  \
-            }                                                                  \
-        }                                                                      \
+#define TR_MULTI()                                                            \
+    do {                                                                      \
+        if (RPC2_Trace && rpc2_TraceBuffHeader) {                             \
+            struct TraceElem *te;                                             \
+            struct te_MULTIRPC *tea;                                          \
+            te  = (struct TraceElem *)CBUF_NextSlot(rpc2_TraceBuffHeader);    \
+            tea = &te->Args.MultiRPCEntry;                                    \
+            te->CallCode = MULTIRPC;                                          \
+            strncpy(te->ActiveLWP, LWP_Name(), sizeof(te->ActiveLWP) - 1);    \
+            tea->ConnHandle      = ConnHandleList;                            \
+            tea->Request_Address = Request;                                   \
+            tea->Request         = *Request; /* structure assignment */       \
+            if (SDescList == NULL)                                            \
+                tea->IsNullSDesc = TRUE;                                      \
+            else {                                                            \
+                tea->IsNullSDesc = FALSE;                                     \
+                tea->SDesc       = SDescList[0]; /* structure assignment */   \
+            }                                                                 \
+            tea->HandleResult = ArgInfo->HandleResult;                        \
+            if (BreathOfLife == NULL)                                         \
+                tea->IsNullBreathOfLife = TRUE;                               \
+            else {                                                            \
+                tea->IsNullBreathOfLife = FALSE;                              \
+                tea->BreathOfLife = *BreathOfLife; /* structure assignment */ \
+            }                                                                 \
+        }                                                                     \
     } while (0)
 
-#define TR_MSENDRELIABLY()                                                     \
-    do {                                                                       \
-        if (RPC2_Trace && rpc2_TraceBuffHeader) {                              \
-            struct TraceElem *te;                                              \
-            struct te_MSENDPACKETSRELIABLY *tea;                               \
-            int idx;                                                           \
-            te  = (struct TraceElem *)CBUF_NextSlot(rpc2_TraceBuffHeader);     \
-            tea = &te->Args.MSendPacketsReliablyEntry;                         \
-            te->CallCode = MSENDPACKETSRELIABLY;                               \
-            strncpy(te->ActiveLWP, LWP_Name(), sizeof(te->ActiveLWP) - 1);     \
-            tea->HowMany = HowMany;                                            \
-            for (idx = 0; !ConnHandleList[idx] && idx < HowMany;               \
-                 idx++) /*loop*/                                               \
-                ;                                                              \
-            tea->ConnArray0           = mcon[idx].ceaddr;                      \
-            tea->ConnArray0_UniqueCID = (mcon[idx].ceaddr)->UniqueCID;         \
-            tea->PacketArray0_Address = mcon[idx].req;                         \
-            if (mcon[idx].req)                                                 \
-                tea->PacketArray0 =                                            \
-                    *(mcon[idx].req); /* structure assignment */               \
-            if (TimeOut == NULL)                                               \
-                tea->IsNullTimeout = 1;                                        \
-            else {                                                             \
-                tea->IsNullTimeout = 0;                                        \
-                tea->Timeout       = *TimeOut; /* structure assignment */      \
-            }                                                                  \
-        }                                                                      \
+#define TR_MSENDRELIABLY()                                                 \
+    do {                                                                   \
+        if (RPC2_Trace && rpc2_TraceBuffHeader) {                          \
+            struct TraceElem *te;                                          \
+            struct te_MSENDPACKETSRELIABLY *tea;                           \
+            int idx;                                                       \
+            te  = (struct TraceElem *)CBUF_NextSlot(rpc2_TraceBuffHeader); \
+            tea = &te->Args.MSendPacketsReliablyEntry;                     \
+            te->CallCode = MSENDPACKETSRELIABLY;                           \
+            strncpy(te->ActiveLWP, LWP_Name(), sizeof(te->ActiveLWP) - 1); \
+            tea->HowMany = HowMany;                                        \
+            for (idx = 0; !ConnHandleList[idx] && idx < HowMany;           \
+                 idx++) /*loop*/                                           \
+                ;                                                          \
+            tea->ConnArray0           = mcon[idx].ceaddr;                  \
+            tea->ConnArray0_UniqueCID = (mcon[idx].ceaddr)->UniqueCID;     \
+            tea->PacketArray0_Address = mcon[idx].req;                     \
+            if (mcon[idx].req)                                             \
+                tea->PacketArray0 =                                        \
+                    *(mcon[idx].req); /* structure assignment */           \
+            if (TimeOut == NULL)                                           \
+                tea->IsNullTimeout = 1;                                    \
+            else {                                                         \
+                tea->IsNullTimeout = 0;                                    \
+                tea->Timeout       = *TimeOut; /* structure assignment */  \
+            }                                                              \
+        }                                                                  \
     } while (0)
 
-#define TR_XMIT()                                                              \
-    do {                                                                       \
-        if (RPC2_Trace && rpc2_TraceBuffHeader) {                              \
-            struct TraceElem *te;                                              \
-            struct te_XMITPACKET *tea;                                         \
-            te  = (struct TraceElem *)CBUF_NextSlot(rpc2_TraceBuffHeader);     \
-            tea = &te->Args.XmitPacketEntry;                                   \
-            te->CallCode = XMITPACKET;                                         \
-            strncpy(te->ActiveLWP, LWP_Name(), sizeof(te->ActiveLWP) - 1);     \
-            tea->whichSocket     = whichSocket;                                \
-            tea->whichPB_Address = pb;                                         \
-            tea->whichPB         = *pb; /* structure assignment */             \
-            rpc2_htonp(&tea->whichPB);                                         \
-            tea->whichAddr         = *addr; /* BAD! structure assignment */    \
-            tea->whichAddr.ai_next = NULL;                                     \
-        }                                                                      \
+#define TR_XMIT()                                                           \
+    do {                                                                    \
+        if (RPC2_Trace && rpc2_TraceBuffHeader) {                           \
+            struct TraceElem *te;                                           \
+            struct te_XMITPACKET *tea;                                      \
+            te  = (struct TraceElem *)CBUF_NextSlot(rpc2_TraceBuffHeader);  \
+            tea = &te->Args.XmitPacketEntry;                                \
+            te->CallCode = XMITPACKET;                                      \
+            strncpy(te->ActiveLWP, LWP_Name(), sizeof(te->ActiveLWP) - 1);  \
+            tea->whichSocket     = whichSocket;                             \
+            tea->whichPB_Address = pb;                                      \
+            tea->whichPB         = *pb; /* structure assignment */          \
+            rpc2_htonp(&tea->whichPB);                                      \
+            tea->whichAddr         = *addr; /* BAD! structure assignment */ \
+            tea->whichAddr.ai_next = NULL;                                  \
+        }                                                                   \
     } while (0)
 
-#define TR_RECV()                                                              \
-    do {                                                                       \
-        if (RPC2_Trace && rpc2_TraceBuffHeader) {                              \
-            struct TraceElem *te;                                              \
-            struct te_SLNEWPACKET *tea;                                        \
-            te  = (struct TraceElem *)CBUF_NextSlot(rpc2_TraceBuffHeader);     \
-            tea = &te->Args.SLNewPacketEntry;                                  \
-            te->CallCode = SLNEWPACKET;                                        \
-            strncpy(te->ActiveLWP, LWP_Name(), sizeof(te->ActiveLWP) - 1);     \
-            tea->pb_Address = whichBuff;                                       \
-            tea->pb         = *whichBuff; /* Structure assignment */           \
-            rpc2_ntohp(&tea->pb);                                              \
-        }                                                                      \
+#define TR_RECV()                                                          \
+    do {                                                                   \
+        if (RPC2_Trace && rpc2_TraceBuffHeader) {                          \
+            struct TraceElem *te;                                          \
+            struct te_SLNEWPACKET *tea;                                    \
+            te  = (struct TraceElem *)CBUF_NextSlot(rpc2_TraceBuffHeader); \
+            tea = &te->Args.SLNewPacketEntry;                              \
+            te->CallCode = SLNEWPACKET;                                    \
+            strncpy(te->ActiveLWP, LWP_Name(), sizeof(te->ActiveLWP) - 1); \
+            tea->pb_Address = whichBuff;                                   \
+            tea->pb         = *whichBuff; /* Structure assignment */       \
+            rpc2_ntohp(&tea->pb);                                          \
+        }                                                                  \
     } while (0)
 
-#define TR_SENDRELIABLY()                                                      \
-    do {                                                                       \
-        if (RPC2_Trace && rpc2_TraceBuffHeader) {                              \
-            struct TraceElem *te;                                              \
-            struct te_SENDRELIABLY *tea;                                       \
-            te  = (struct TraceElem *)CBUF_NextSlot(rpc2_TraceBuffHeader);     \
-            tea = &te->Args.SendReliablyEntry;                                 \
-            te->CallCode = SENDRELIABLY;                                       \
-            strncpy(te->ActiveLWP, LWP_Name(), sizeof(te->ActiveLWP) - 1);     \
-            tea->Conn           = Conn;                                        \
-            tea->Conn_UniqueCID = Conn->UniqueCID;                             \
-            tea->Packet_Address = Packet;                                      \
-            tea->Packet         = *Packet; /* structure assignment */          \
-            if (TimeOut == NULL)                                               \
-                tea->IsNullTimeout = 1;                                        \
-            else {                                                             \
-                tea->IsNullTimeout = 0;                                        \
-                tea->Timeout       = *TimeOut; /* structure assignment */      \
-            }                                                                  \
-        }                                                                      \
+#define TR_SENDRELIABLY()                                                  \
+    do {                                                                   \
+        if (RPC2_Trace && rpc2_TraceBuffHeader) {                          \
+            struct TraceElem *te;                                          \
+            struct te_SENDRELIABLY *tea;                                   \
+            te  = (struct TraceElem *)CBUF_NextSlot(rpc2_TraceBuffHeader); \
+            tea = &te->Args.SendReliablyEntry;                             \
+            te->CallCode = SENDRELIABLY;                                   \
+            strncpy(te->ActiveLWP, LWP_Name(), sizeof(te->ActiveLWP) - 1); \
+            tea->Conn           = Conn;                                    \
+            tea->Conn_UniqueCID = Conn->UniqueCID;                         \
+            tea->Packet_Address = Packet;                                  \
+            tea->Packet         = *Packet; /* structure assignment */      \
+            if (TimeOut == NULL)                                           \
+                tea->IsNullTimeout = 1;                                    \
+            else {                                                         \
+                tea->IsNullTimeout = 0;                                    \
+                tea->Timeout       = *TimeOut; /* structure assignment */  \
+            }                                                              \
+        }                                                                  \
     } while (0)
 
-#define TR_CREATEMGRP()                                                        \
-    do {                                                                       \
-        if (RPC2_Trace && rpc2_TraceBuffHeader) {                              \
-            struct TraceElem *te;                                              \
-            struct te_CREATEMGRP *tea;                                         \
-            te  = (struct TraceElem *)CBUF_NextSlot(rpc2_TraceBuffHeader);     \
-            tea = &te->Args.CreateMgrpEntry;                                   \
-            te->CallCode = CREATEMGRP;                                         \
-            strncpy(te->ActiveLWP, LWP_Name(), sizeof(te->ActiveLWP) - 1);     \
-            tea->MgroupHandle = *MgroupHandle;                                 \
-            tea->McastHost    = *MulticastHost; /* structure assignment */     \
-            tea->Subsys       = *Subsys; /* structure assignment */            \
-        }                                                                      \
+#define TR_CREATEMGRP()                                                    \
+    do {                                                                   \
+        if (RPC2_Trace && rpc2_TraceBuffHeader) {                          \
+            struct TraceElem *te;                                          \
+            struct te_CREATEMGRP *tea;                                     \
+            te  = (struct TraceElem *)CBUF_NextSlot(rpc2_TraceBuffHeader); \
+            tea = &te->Args.CreateMgrpEntry;                               \
+            te->CallCode = CREATEMGRP;                                     \
+            strncpy(te->ActiveLWP, LWP_Name(), sizeof(te->ActiveLWP) - 1); \
+            tea->MgroupHandle = *MgroupHandle;                             \
+            tea->McastHost    = *MulticastHost; /* structure assignment */ \
+            tea->Subsys       = *Subsys; /* structure assignment */        \
+        }                                                                  \
     } while (0)
 
-#define TR_ADDTOMGRP()                                                         \
-    do {                                                                       \
-        if (RPC2_Trace && rpc2_TraceBuffHeader) {                              \
-            struct TraceElem *te;                                              \
-            struct te_ADDTOMGRP *tea;                                          \
-            te  = (struct TraceElem *)CBUF_NextSlot(rpc2_TraceBuffHeader);     \
-            tea = &te->Args.AddToMgrpEntry;                                    \
-            te->CallCode      = ADDTOMGRP;                                     \
-            tea->MgroupHandle = MgroupHandle;                                  \
-            tea->ConnHandle   = ConnHandle;                                    \
-        }                                                                      \
+#define TR_ADDTOMGRP()                                                     \
+    do {                                                                   \
+        if (RPC2_Trace && rpc2_TraceBuffHeader) {                          \
+            struct TraceElem *te;                                          \
+            struct te_ADDTOMGRP *tea;                                      \
+            te  = (struct TraceElem *)CBUF_NextSlot(rpc2_TraceBuffHeader); \
+            tea = &te->Args.AddToMgrpEntry;                                \
+            te->CallCode      = ADDTOMGRP;                                 \
+            tea->MgroupHandle = MgroupHandle;                              \
+            tea->ConnHandle   = ConnHandle;                                \
+        }                                                                  \
     } while (0)
 
-#define TR_REMOVEFROMMGRP()                                                    \
-    do {                                                                       \
-        if (RPC2_Trace && rpc2_TraceBuffHeader) {                              \
-            struct TraceElem *te;                                              \
-            struct te_REMOVEFROMMGRP *tea;                                     \
-            te  = (struct TraceElem *)CBUF_NextSlot(rpc2_TraceBuffHeader);     \
-            tea = &te->Args.RemoveFromMgrpEntry;                               \
-            te->CallCode = REMOVEFROMMGRP;                                     \
-            tea->me      = *me; /* structure assignment */                     \
-            tea->ce      = *ce; /* structure assignment */                     \
-        }                                                                      \
+#define TR_REMOVEFROMMGRP()                                                \
+    do {                                                                   \
+        if (RPC2_Trace && rpc2_TraceBuffHeader) {                          \
+            struct TraceElem *te;                                          \
+            struct te_REMOVEFROMMGRP *tea;                                 \
+            te  = (struct TraceElem *)CBUF_NextSlot(rpc2_TraceBuffHeader); \
+            tea = &te->Args.RemoveFromMgrpEntry;                           \
+            te->CallCode = REMOVEFROMMGRP;                                 \
+            tea->me      = *me; /* structure assignment */                 \
+            tea->ce      = *ce; /* structure assignment */                 \
+        }                                                                  \
     } while (0)
 
-#define TR_XLATEMCASTPACKET()                                                  \
-    do {                                                                       \
-        if (RPC2_Trace && rpc2_TraceBuffHeader) {                              \
-            struct TraceElem *te;                                              \
-            struct te_XLATEMCASTPACKET *tea;                                   \
-            te  = (struct TraceElem *)CBUF_NextSlot(rpc2_TraceBuffHeader);     \
-            tea = &te->Args.XlateMcastPacketEntry;                             \
-            te->CallCode    = XLATEMCASTPACKET;                                \
-            tea->pb         = *pb; /* structure assignment */                  \
-            tea->pb_address = (long)pb;                                        \
-            tea->ThisAddr =                                                    \
-                *pb->Prefix.PeerAddr; /* BAD! structure assignment */          \
-            tea->ThisAddr.ai_next = NULL;                                      \
-        }                                                                      \
+#define TR_XLATEMCASTPACKET()                                              \
+    do {                                                                   \
+        if (RPC2_Trace && rpc2_TraceBuffHeader) {                          \
+            struct TraceElem *te;                                          \
+            struct te_XLATEMCASTPACKET *tea;                               \
+            te  = (struct TraceElem *)CBUF_NextSlot(rpc2_TraceBuffHeader); \
+            tea = &te->Args.XlateMcastPacketEntry;                         \
+            te->CallCode    = XLATEMCASTPACKET;                            \
+            tea->pb         = *pb; /* structure assignment */              \
+            tea->pb_address = (long)pb;                                    \
+            tea->ThisAddr =                                                \
+                *pb->Prefix.PeerAddr; /* BAD! structure assignment */      \
+            tea->ThisAddr.ai_next = NULL;                                  \
+        }                                                                  \
     } while (0)
 #endif

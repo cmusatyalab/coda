@@ -7,7 +7,7 @@
 
 #include <odytypes.h>
 
-#include "ds_list.h"  /* public parts */
+#include "ds_list.h" /* public parts */
 
 /* magic numbers for structures */
 extern const magic_t ds_list_magic;
@@ -16,18 +16,16 @@ extern const magic_t ds_list_iter_magic;
 
 /* the structures themselves. */
 
-
 /* 
  * An element has a magic number, a next and prev link, and the contents.
  * The contents themselves are untyped.
  */
 
-
 typedef struct ds_list_elt_t {
-    magic_t              magic;
+    magic_t magic;
     struct ds_list_elt_t *n;
     struct ds_list_elt_t *p;
-    void                 *contents;
+    void *contents;
 } ds_list_elt_t;
 
 /* 
@@ -41,21 +39,21 @@ typedef struct ds_list_elt_t {
  */
 
 struct ds_list_t {
-    magic_t                magic;
-    COMPFN                 cmpfn;
-    bool                   is_safe;
-    bool                   has_dups;
-    int                    count;
-    struct ds_list_elt_t  *head;
-    struct ds_list_elt_t  *tail;
+    magic_t magic;
+    COMPFN cmpfn;
+    bool is_safe;
+    bool has_dups;
+    int count;
+    struct ds_list_elt_t *head;
+    struct ds_list_elt_t *tail;
     struct ds_list_iter_t *iter_list;
 };
 
 struct ds_list_iter_t {
-    magic_t                 magic;
-    ds_list_t              *list;
-    ds_list_elt_t          *next_elt;
-    struct ds_list_iter_t  *next_iter;
+    magic_t magic;
+    ds_list_t *list;
+    ds_list_elt_t *next_elt;
+    struct ds_list_iter_t *next_iter;
 };
 
 #define DS_LIST_VALID(lp) ((lp) && ((lp)->magic == ds_list_magic))
@@ -63,4 +61,3 @@ struct ds_list_iter_t {
 #define DS_LIST_ITER_VALID(ip) ((ip) && ((ip)->magic == ds_list_iter_magic))
 
 #endif /* _DS_LIST_PRIVATE_H_ */
-

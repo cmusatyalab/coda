@@ -37,7 +37,6 @@ Pittsburgh, PA.
 
 */
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -86,7 +85,8 @@ extern "C" {
 #include "volutil.private.h"
 
 Error error;
-extern void PrintVnode(FILE *outfile, VnodeDiskObject *vnode, VnodeId vnodeNumber);
+extern void PrintVnode(FILE *outfile, VnodeDiskObject *vnode,
+                       VnodeId vnodeNumber);
 static int ViceCreateRoot(Volume *vp);
 
 /* Create a new volume (readwrite or replicated). Invoked through rpc2
@@ -98,124 +98,123 @@ static int ViceCreateRoot(Volume *vp);
 */
 
 long S_VolCreate(RPC2_Handle rpcid, RPC2_String formal_partition,
-		 RPC2_String formal_volname, VolumeId *volid, 
-		 RPC2_Integer repvol,
-		 VolumeId grpId) 
+                 RPC2_String formal_volname, VolumeId *volid,
+                 RPC2_Integer repvol, VolumeId grpId)
 {
-	VolumeId volumeId = 0;
-	VolumeId parentId = 0;
-	Volume *vp = NULL;
-	rvm_return_t status = RVM_SUCCESS;    /* transaction status variable */
-	int rc = 0;
-	int resflag = repvol ? RVMRES : 0;
-        int rvmlogsize = 4096; /* when resolution is enabled, default to 4k
+    VolumeId volumeId   = 0;
+    VolumeId parentId   = 0;
+    Volume *vp          = NULL;
+    rvm_return_t status = RVM_SUCCESS; /* transaction status variable */
+    int rc              = 0;
+    int resflag         = repvol ? RVMRES : 0;
+    int rvmlogsize      = 4096; /* when resolution is enabled, default to 4k
                                   log entries */
 
-	/* To keep C++ 2.0 happy */
-	char *partition = (char *)formal_partition;
-	char *volname = (char *)formal_volname;    
+    /* To keep C++ 2.0 happy */
+    char *partition = (char *)formal_partition;
+    char *volname   = (char *)formal_volname;
 
-	error = 0;
+    error = 0;
 
-	VLog(9, "Entering S_VolCreate: rpcid = %d, partition = %s," 
-	     "volname = %s, volumeid = %x, repvol = %d, grpid = %x",
-	     rpcid, partition, volname, volid ? *volid : 0, repvol, grpId);
-	rvmlib_begin_transaction(restore);
+    VLog(9,
+         "Entering S_VolCreate: rpcid = %d, partition = %s,"
+         "volname = %s, volumeid = %x, repvol = %d, grpid = %x",
+         rpcid, partition, volname, volid ? *volid : 0, repvol, grpId);
+    rvmlib_begin_transaction(restore);
 
-	rc = VInitVolUtil(volumeUtility);
-	if (rc != 0) {
-		rvmlib_abort(rc);
-		status = rc;
-		goto exit;
-	}
+    rc = VInitVolUtil(volumeUtility);
+    if (rc != 0) {
+        rvmlib_abort(rc);
+        status = rc;
+        goto exit;
+    }
 
-	/* Use a new volumeId only if the user didn't specify any */
-	if (!volid  || !(*volid) )
-		volumeId = VAllocateVolumeId(&error);
-	else {
-		volumeId = *volid;
-		/* check that volume id is legal */
-		if (volumeId > VGetMaxVolumeId()) {
-			SLog(0, "Warning: %x is > MaxVolID; setting MaxVolID to %x\n",
-			     volumeId, volumeId);
-			VSetMaxVolumeId(volumeId);
-		}
-	}
-	VLog(9, "VolCreate: VAllocateVolumeId returns %x", volumeId);
-	if (error) {
-		VLog(0, "Unable to allocate a volume number; not created");
-		rvmlib_abort(VNOVOL);
-		status = VNOVOL;
-		goto exit;
-	}
+    /* Use a new volumeId only if the user didn't specify any */
+    if (!volid || !(*volid))
+        volumeId = VAllocateVolumeId(&error);
+    else {
+        volumeId = *volid;
+        /* check that volume id is legal */
+        if (volumeId > VGetMaxVolumeId()) {
+            SLog(0, "Warning: %x is > MaxVolID; setting MaxVolID to %x\n",
+                 volumeId, volumeId);
+            VSetMaxVolumeId(volumeId);
+        }
+    }
+    VLog(9, "VolCreate: VAllocateVolumeId returns %x", volumeId);
+    if (error) {
+        VLog(0, "Unable to allocate a volume number; not created");
+        rvmlib_abort(VNOVOL);
+        status = VNOVOL;
+        goto exit;
+    }
 
-	/* we are creating a readwrite (or replicated) volume */
-	parentId = volumeId;    
+    /* we are creating a readwrite (or replicated) volume */
+    parentId = volumeId;
 
-	if (repvol && grpId == 0) {
-		VLog(0, "S_VolCreate: can't create replicated volume without group id");
-		rvmlib_abort(VFAIL);
-		status = VFAIL;
-		goto exit;
-	}
+    if (repvol && grpId == 0) {
+        VLog(0, "S_VolCreate: can't create replicated volume without group id");
+        rvmlib_abort(VFAIL);
+        status = VFAIL;
+        goto exit;
+    }
 
     /* If we are creating a replicated volume, pass along group id */
-	vp = VCreateVolume(&error, partition, volumeId, parentId, 
-			   repvol ? grpId : 0, readwriteVolume, 
-			   resflag ? rvmlogsize : 0);
-	if (error) {
-		VLog(0, "Unable to create the volume; aborted");
-		rvmlib_abort(VNOVOL);
-		status = VNOVOL;
-		goto exit;
-	}
-	V_uniquifier(vp) = 1;
-	V_creationDate(vp) = V_copyDate(vp);
-	V_inService(vp) = V_blessed(vp) = 1;
-	V_type(vp) = readwriteVolume;
-	AssignVolumeName(&V_disk(vp), volname, 0);
+    vp = VCreateVolume(&error, partition, volumeId, parentId,
+                       repvol ? grpId : 0, readwriteVolume,
+                       resflag ? rvmlogsize : 0);
+    if (error) {
+        VLog(0, "Unable to create the volume; aborted");
+        rvmlib_abort(VNOVOL);
+        status = VNOVOL;
+        goto exit;
+    }
+    V_uniquifier(vp)   = 1;
+    V_creationDate(vp) = V_copyDate(vp);
+    V_inService(vp) = V_blessed(vp) = 1;
+    V_type(vp)                      = readwriteVolume;
+    AssignVolumeName(&V_disk(vp), volname, 0);
 
-	/* could probably begin transaction here instead of at beginning */
-	/* must include both ViceCreateRoot and VUpdateVolume for vv atomicity */
-	if (!ViceCreateRoot(vp)) {
-		VLog(0, "Unable to create the volume root; aborted");
-		rvmlib_abort(VNOVOL);
-		status = VNOVOL;
-		goto exit;
-	}
+    /* could probably begin transaction here instead of at beginning */
+    /* must include both ViceCreateRoot and VUpdateVolume for vv atomicity */
+    if (!ViceCreateRoot(vp)) {
+        VLog(0, "Unable to create the volume root; aborted");
+        rvmlib_abort(VNOVOL);
+        status = VNOVOL;
+        goto exit;
+    }
 
-	V_destroyMe(vp) = V_needsSalvaged(vp) = 0;
-	V_linkcount(vp) = 1;
-	V_volumeindex(vp);
-	VUpdateVolume(&error, vp);
-	VDetachVolume(&error, vp);	/* Allow file server to grab it */
-	CODA_ASSERT(error == 0);
-	rvmlib_end_transaction(flush, &(status));
- exit: 
+    V_destroyMe(vp) = V_needsSalvaged(vp) = 0;
+    V_linkcount(vp)                       = 1;
+    V_volumeindex(vp);
+    VUpdateVolume(&error, vp);
+    VDetachVolume(&error, vp); /* Allow file server to grab it */
+    CODA_ASSERT(error == 0);
+    rvmlib_end_transaction(flush, &(status));
+exit:
 
-	/* to make sure that rvm records are getting flushed 
+    /* to make sure that rvm records are getting flushed
 	   - to find this bug */
-	CODA_ASSERT(rvm_flush() == RVM_SUCCESS);
-	VDisconnectFS();
-	if (status == 0) {
-		VLog(0, "create: volume %x (%s) created", volumeId, volname);
-		*volid = volumeId;	    /* set value of out parameter */
-	}
-	else {
-		VLog(0, "create: volume creation failed for volume %x", volumeId);
-		VLog(0, "status = (%d) ", status);
-	}
-	return(status?status:rc);
+    CODA_ASSERT(rvm_flush() == RVM_SUCCESS);
+    VDisconnectFS();
+    if (status == 0) {
+        VLog(0, "create: volume %x (%s) created", volumeId, volname);
+        *volid = volumeId; /* set value of out parameter */
+    } else {
+        VLog(0, "create: volume creation failed for volume %x", volumeId);
+        VLog(0, "status = (%d) ", status);
+    }
+    return (status ? status : rc);
 }
 
 /* Adapted from the file server; create a root directory for a new volume */
 static int ViceCreateRoot(Volume *vp)
 {
     PDirHandle dir;
-    AL_AccessList * ACL;
-    ViceFid	did;
+    AL_AccessList *ACL;
+    ViceFid did;
     char buf[SIZEOF_LARGEDISKVNODE];
-    VnodeDiskObject *vnode = (VnodeDiskObject *) buf;
+    VnodeDiskObject *vnode     = (VnodeDiskObject *)buf;
     struct VnodeClassInfo *vcp = &VnodeClassInfo_Array[vLarge];
     char buf3[sizeof(Vnode)];
     Vnode *vn = (Vnode *)buf3;
@@ -223,13 +222,13 @@ static int ViceCreateRoot(Volume *vp)
     int adminid;
 
     if (AL_NameToId(PRS_ADMINGROUP, &adminid) == -1) {
-	fprintf(stderr, "Cannot find group id for '" PRS_ADMINGROUP
-		"', check pdb databases!\n");
-	return 0;
+        fprintf(stderr, "Cannot find group id for '" PRS_ADMINGROUP
+                        "', check pdb databases!\n");
+        return 0;
     }
 
     memset((void *)vn, 0, sizeof(Vnode));
-    memset((char *)vnode, 0, SIZEOF_LARGEDISKVNODE);    
+    memset((char *)vnode, 0, SIZEOF_LARGEDISKVNODE);
 
     /* SetSalvageDirHandle(&dir, V_id(vp), vp->device, 0); */
     dir = VN_SetDirHandle(vn);
@@ -242,71 +241,69 @@ static int ViceCreateRoot(Volume *vp)
     CODA_ASSERT(!(DH_MakeDir(dir, &did, &did)));
 
     /* build an ACL that gives all rights to System:Administrators */
-    ACL = VVnodeDiskACL(vnode);
-    ACL->MySize = sizeof(AL_AccessList);
-    ACL->Version = AL_ALISTVERSION;
-    ACL->TotalNoOfEntries = 1;
-    ACL->PlusEntriesInUse = 1;
+    ACL                    = VVnodeDiskACL(vnode);
+    ACL->MySize            = sizeof(AL_AccessList);
+    ACL->Version           = AL_ALISTVERSION;
+    ACL->TotalNoOfEntries  = 1;
+    ACL->PlusEntriesInUse  = 1;
     ACL->MinusEntriesInUse = 0;
 
     /* ACL's are assumed to be going from lower to higher id number.
      * This makes the AL_CheckRights function more efficient.
      * Luckily, we only have to insert one admin ACL. */
-    ACL->ActualEntries[0].Id = adminid;
+    ACL->ActualEntries[0].Id     = adminid;
     ACL->ActualEntries[0].Rights = PRSFS_ALL;
 
     /* set up vnode info */
-    vnode->type = vDirectory;
-    vnode->cloned = 0;
-    vnode->modeBits = 0755;
-    vnode->linkCount = 2;
-    vnode->length = DH_Length(dir);
-    vnode->uniquifier = 1;
-    V_uniquifier(vp) = vnode->uniquifier+1;
-    vnode->dataVersion = 1;
+    vnode->type         = vDirectory;
+    vnode->cloned       = 0;
+    vnode->modeBits     = 0755;
+    vnode->linkCount    = 2;
+    vnode->length       = DH_Length(dir);
+    vnode->uniquifier   = 1;
+    V_uniquifier(vp)    = vnode->uniquifier + 1;
+    vnode->dataVersion  = 1;
     vnode->node.dirNode = NULL;
     /* we need to simultaneously update vv in VolumeDiskData struct ***/
     InitVV(&vnode->versionvector);
-    vnode->vol_index = vp->vol_index;	/* index of vnode's volume in recoverable storage */
+    vnode->vol_index =
+        vp->vol_index; /* index of vnode's volume in recoverable storage */
     vnode->unixModifyTime = vnode->serverModifyTime = V_creationDate(vp);
-    vnode->author = 0;
-    vnode->owner = 0;
-    vnode->vparent = 0;
-    vnode->uparent = 0;
-    vnode->vnodeMagic = vcp->magic;
+    vnode->author                                   = 0;
+    vnode->owner                                    = 0;
+    vnode->vparent                                  = 0;
+    vnode->uparent                                  = 0;
+    vnode->vnodeMagic                               = vcp->magic;
 
     /* write out the directory in rvm - that will create the inode */
     /* set up appropriate fields in a vnode for DCommit */
-    vn->changed = 1;
-    vn->delete_me = 0;
+    vn->changed     = 1;
+    vn->delete_me   = 0;
     vn->vnodeNumber = (VnodeId)bitNumberToVnodeNumber(0, vLarge);
-    vn->volumePtr = vp;
+    vn->volumePtr   = vp;
     memcpy((void *)&vn->disk, (const void *)vnode, sizeof(VnodeDiskObject));
     VN_DCommit(vn);
     DC_SetDirty(vn->dh, 0);
     VN_PutDirHandle(vn);
 
-    memcpy((void *) vnode, (const void *)&(vn->disk), sizeof(VnodeDiskObject));
+    memcpy((void *)vnode, (const void *)&(vn->disk), sizeof(VnodeDiskObject));
     CODA_ASSERT(vnode->node.dirNode);
     CODA_ASSERT(vnode->uniquifier == 1);
 
     /* create the resolution log for this vnode if rvm resolution is
        turned on */
     if (AllowResolution && V_RVMResOn(vp)) {
-	VLog(0, "Creating new log for root vnode\n");
-	CreateRootLog(vp, vn);
-	vnode->log = VnLog(vn);
+        VLog(0, "Creating new log for root vnode\n");
+        CreateRootLog(vp, vn);
+        vnode->log = VnLog(vn);
     }
     /* write out the new vnode */
     if (VolDebugLevel >= 9) {
-	PrintVnode(stdout, vnode, bitNumberToVnodeNumber(0, vLarge));
+        PrintVnode(stdout, vnode, bitNumberToVnodeNumber(0, vLarge));
     }
-    CODA_ASSERT(v_index.oput((bit32) 0, 1, vnode) == 0);
+    CODA_ASSERT(v_index.oput((bit32)0, 1, vnode) == 0);
 
     V_diskused(vp) = nBlocks(vnode->length);
-    
+
     return (1);
 }
-
-
-

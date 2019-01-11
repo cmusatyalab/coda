@@ -1,25 +1,25 @@
 /* BLURB lgpl
 
-                        Coda File System
-                            Release 6
+			Coda File System
+			    Release 6
 
-            Copyright (c) 1987-2018 Carnegie Mellon University
-                Additional copyrights listed below
+	    Copyright (c) 1987-2018 Carnegie Mellon University
+		Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
 the  terms of the  GNU  Library General Public Licence  Version 2,  as
 shown in the file LICENSE. The technical and financial contributors to
 Coda are listed in the file CREDITS.
 
-                    Additional copyrights
+		    Additional copyrights
 #*/
 
 /*
-                        IBM COPYRIGHT NOTICE
+			IBM COPYRIGHT NOTICE
 
-                        Copyright (C) 1986
-              International Business Machines Corporation
-                        All Rights Reserved
+			Copyright (C) 1986
+	      International Business Machines Corporation
+			All Rights Reserved
 
 This  file  contains  some  code identical to or derived from the 1986
 version of the Andrew File System ("AFS"), which is owned by  the  IBM
@@ -36,18 +36,18 @@ Pittsburgh, PA.
 
 */
 
-#include <assert.h>
-#include <errno.h>
-#include <netinet/in.h>
 #include <stdio.h>
+#include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <sys/time.h>
 #include <sys/file.h>
 #include <sys/ioctl.h>
-#include <sys/socket.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <unistd.h>
+#include <errno.h>
+#include <assert.h>
 
 #include <rpc2/se.h>
 #include <rpc2/secure.h>
@@ -303,8 +303,8 @@ long rpc2_RecvPacket(IN long whichSocket, OUT RPC2_PacketBuffer *whichBuff)
         return (-3);
     }
 
-/* Try to get an accurate arrival time estimate for this packet */
-/* This ioctl might be used on linux systems only, but you never know */
+    /* Try to get an accurate arrival time estimate for this packet */
+    /* This ioctl might be used on linux systems only, but you never know */
 #if 0 // defined(SIOCGSTAMP)
 /* Very nice for accurate network RTT estimates, but we don't measure the time
  * it takes for the server to wake up and send back the response. i.e. The

@@ -47,20 +47,19 @@ Pittsburgh, PA.
 #endif
 
 #include <stdio.h>
+#include <sys/types.h>
 #include <sys/file.h>
-#include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/time.h>
-#include <sys/types.h>
-#include <assert.h>
-#include <netdb.h>
-#include <netinet/in.h>
-#include <string.h>
-#include <unistd.h>
-
+#include <sys/socket.h>
 #ifdef HAVE_SYS_STREAM_H
 #include <sys/stream.h>
 #endif
+#include <netinet/in.h>
+#include <netdb.h>
+#include <assert.h>
+#include <string.h>
+#include <unistd.h>
 
 #include <rpc2/se.h>
 #include <rpc2/sftp.h>

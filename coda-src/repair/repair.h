@@ -31,32 +31,32 @@ listed in the file CREDITS.
 
 #include "repcmds.h"
 
-#define NOT_IN_SESSION      0
-#define FILE_SESSION        1
-#define DIRECTORY_SESSION   2
+#define NOT_IN_SESSION 0
+#define FILE_SESSION 1
+#define DIRECTORY_SESSION 2
 
 extern struct conflict *ConflictObj; /* conflict under repair */
 extern int allowclear, interactive, repair_DebugFlag, session;
 
 void GetArgs(int argc, char *argv[]);
-int  getcompareargs(int, char **, char **, char **, char **, char **, char **);
-int  getrepairargs(int, char **, char *);
-int  GetTokens(void);
+int getcompareargs(int, char **, char **, char **, char **, char **, char **);
+int getrepairargs(int, char **, char *);
+int GetTokens(void);
 void INT(int, int, struct sigcontext *);
 
 /* User-visible parser commands (possibly interactive) */
-void rep_BeginRepair     (int largc, char **largv);
-void rep_ClearInc        (int largc, char **largv);
-void rep_CompareDirs     (int largc, char **largv);
-void rep_DoRepair        (int largc, char **largv);
-void rep_EndRepair       (int largc, char **largv);
-void rep_Exit            (int largc, char **largv);
-void rep_Help            (int largc, char **largv);
-void rep_RemoveInc       (int largc, char **largv);
-void rep_ReplaceInc      (int largc, char **largv);
+void rep_BeginRepair(int largc, char **largv);
+void rep_ClearInc(int largc, char **largv);
+void rep_CompareDirs(int largc, char **largv);
+void rep_DoRepair(int largc, char **largv);
+void rep_EndRepair(int largc, char **largv);
+void rep_Exit(int largc, char **largv);
+void rep_Help(int largc, char **largv);
+void rep_RemoveInc(int largc, char **largv);
+void rep_ReplaceInc(int largc, char **largv);
 
-#define INITHELPMSG 	\
-"This repair tool can be used to manually repair server/server \n\
+#define INITHELPMSG \
+    "This repair tool can be used to manually repair server/server \n\
 or local/global conflicts on files and directories. \n\
 You will first need to do a \"beginrepair\" to start a repair\n\
 session where messages about the nature of the conflict and\n\

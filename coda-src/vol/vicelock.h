@@ -37,16 +37,14 @@ Pittsburgh, PA.
 
 */
 
-
 #ifndef ViceLockInclude
 #define ViceLockInclude
 
-#define VICELOCKWAIT (30*60)	/* wait 30 minutes */
+#define VICELOCKWAIT (30 * 60) /* wait 30 minutes */
 
-typedef struct ViceLock
-{
-    int		lockCount;
-    int		lockTime;
+typedef struct ViceLock {
+    int lockCount;
+    int lockTime;
 } ViceLock;
 
 #define ViceLockCheckLocked(vptr) ((vptr)->lockTime == 0)

@@ -1,3 +1,4 @@
+// clang-format off
 // Spooky Hash
 // A 128-bit noncryptographic hash, for checksums and table lookup
 // By Bob Jenkins.  Public domain.

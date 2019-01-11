@@ -30,8 +30,6 @@ Mellon the rights to redistribute these changes without encumbrance.
 */
 #endif /*_BLURB_*/
 
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif __cplusplus
@@ -53,20 +51,20 @@ extern int LogLevel;
 extern void Log_Done(void);
 
 /* Print an error message and then exit. */
-void Die(char *fmt ...) {
+void Die(char *fmt...)
+{
     static int dying = 0;
 
     if (!dying) {
-	/* Avoid recursive death. */
-	dying = 1;
+        /* Avoid recursive death. */
+        dying = 1;
 
-	/* Log the message, with an indication that it is fatal. */
-	LogMsg(-1,LogLevel,LogFile," ***** Fatal Error");
-	va_list ap;
-	va_start(ap, fmt);
-	LogMsg(-1,LogLevel,LogFile,fmt,ap);
-	va_end(ap);
-
+        /* Log the message, with an indication that it is fatal. */
+        LogMsg(-1, LogLevel, LogFile, " ***** Fatal Error");
+        va_list ap;
+        va_start(ap, fmt);
+        LogMsg(-1, LogLevel, LogFile, fmt, ap);
+        va_end(ap);
     }
 
     /* Leave a core file. */
@@ -74,4 +72,3 @@ void Die(char *fmt ...) {
 
     /* NOTREACHED */
 }
-

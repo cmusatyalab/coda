@@ -16,7 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
 /*
  * coda_globals.h -- header file for the CODA file server.
  */
@@ -29,15 +28,15 @@ listed in the file CREDITS.
  */
 
 /* Maximum number of volumes in recoverable storage (in any partitions) */
-#define MAXVOLS		1024	    /* make this a power of 2 */
+#define MAXVOLS 1024 /* make this a power of 2 */
 
 /* size of large and small vnode free lists */
-#define LARGEFREESIZE	MAXVOLS / 8
-#define SMALLFREESIZE	MAXVOLS / 2
+#define LARGEFREESIZE MAXVOLS / 8
+#define SMALLFREESIZE MAXVOLS / 2
 
 /* incremental growth of large and small vnode arrays */
-#define LARGEGROWSIZE	128
-#define SMALLGROWSIZE	256
+#define LARGEGROWSIZE 128
+#define SMALLGROWSIZE 256
 
 /*
  * Recoverable Object Declarations
@@ -45,31 +44,31 @@ listed in the file CREDITS.
 typedef int bool_t;
 
 struct camlib_recoverable_segment {
-	/* flag to determine whether or not initialization is required */
-	bool_t  already_initialized;
+    /* flag to determine whether or not initialization is required */
+    bool_t already_initialized;
 
-	/* Array of headers for all volumes on this server */
-	struct VolHead VolumeList[MAXVOLS];
+    /* Array of headers for all volumes on this server */
+    struct VolHead VolumeList[MAXVOLS];
 
-	/* Free list for VnodeDiskObject structures; prevents excessive */
-	/* malloc/free calls */
-	VnodeDiskObject    *SmallVnodeFreeList[SMALLFREESIZE];
-	VnodeDiskObject    *LargeVnodeFreeList[LARGEFREESIZE];
+    /* Free list for VnodeDiskObject structures; prevents excessive */
+    /* malloc/free calls */
+    VnodeDiskObject *SmallVnodeFreeList[SMALLFREESIZE];
+    VnodeDiskObject *LargeVnodeFreeList[LARGEFREESIZE];
 
-	/* pointer to last index in free list containing available */
-	/* vnodediskdata object */
-	short    SmallVnodeIndex;
-	short    LargeVnodeIndex;
+    /* pointer to last index in free list containing available */
+    /* vnodediskdata object */
+    short SmallVnodeIndex;
+    short LargeVnodeIndex;
 
-	/* MaxVolId: Maximum volume id allocated on this server */
-	VolumeId    MaxVolId;
+    /* MaxVolId: Maximum volume id allocated on this server */
+    VolumeId MaxVolId;
 
-	long    Reserved[MAXVOLS];
-	int	camlibDummy;		
+    long Reserved[MAXVOLS];
+    int camlibDummy;
 };
 
 extern struct camlib_recoverable_segment *camlibRecoverableSegment;
 #define SRV_RVM(name) \
-    (((struct camlib_recoverable_segment *) (camlibRecoverableSegment))->name)
+    (((struct camlib_recoverable_segment *)(camlibRecoverableSegment))->name)
 
 #endif /* _CODA_GLOBALS_H_ */

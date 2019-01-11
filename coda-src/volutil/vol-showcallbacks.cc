@@ -41,7 +41,8 @@ extern "C" {
   <a name="S_ShowCallbacks"><strong>Print out all the callbacks for a specific fid</strong></a>
   END_HTML
 */
-long S_ShowCallbacks(RPC2_Handle rpcid, ViceFid *fid, SE_Descriptor *formal_sed) {
+long S_ShowCallbacks(RPC2_Handle rpcid, ViceFid *fid, SE_Descriptor *formal_sed)
+{
     FILE *cbfile;
     SE_Descriptor sed;
     long rc = 0;
@@ -55,26 +56,27 @@ long S_ShowCallbacks(RPC2_Handle rpcid, ViceFid *fid, SE_Descriptor *formal_sed)
     PrintCallBacks(fid, cbfile);
     PrintCallBackState(cbfile);
 
-    // ship the file back 
+    // ship the file back
     fd = fileno(cbfile);
     lseek(fd, 0, SEEK_SET);
     memset(&sed, 0, sizeof(SE_Descriptor));
-    sed.Tag = SMARTFTP;
+    sed.Tag                                   = SMARTFTP;
     sed.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
-    sed.Value.SmartFTPD.Tag = FILEBYFD;
-    sed.Value.SmartFTPD.FileInfo.ByFD.fd = fd;
+    sed.Value.SmartFTPD.Tag                   = FILEBYFD;
+    sed.Value.SmartFTPD.FileInfo.ByFD.fd      = fd;
 
-    if ((rc = RPC2_InitSideEffect(rpcid, &sed)) <= RPC2_ELIMIT) 
-	LogMsg(0, VolDebugLevel, stdout, 
-	       "PrintCallbacks: InitSideEffect failed with %s", RPC2_ErrorMsg(rc));
+    if ((rc = RPC2_InitSideEffect(rpcid, &sed)) <= RPC2_ELIMIT)
+        LogMsg(0, VolDebugLevel, stdout,
+               "PrintCallbacks: InitSideEffect failed with %s",
+               RPC2_ErrorMsg(rc));
 
     if (!rc && ((rc = RPC2_CheckSideEffect(rpcid, &sed, SE_AWAITLOCALSTATUS)) <=
-		RPC2_ELIMIT)) 
-	LogMsg(0, VolDebugLevel, stdout, 
-	       "PrintCallbacks: CheckSideEffect failed with %s", RPC2_ErrorMsg(rc));
+                RPC2_ELIMIT))
+        LogMsg(0, VolDebugLevel, stdout,
+               "PrintCallbacks: CheckSideEffect failed with %s",
+               RPC2_ErrorMsg(rc));
 
     fclose(cbfile);
     LogMsg(1, VolDebugLevel, stdout, "PrintCallbacks: returns %d\n", rc);
-    return(rc);
+    return (rc);
 }
-

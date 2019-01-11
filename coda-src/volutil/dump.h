@@ -16,36 +16,31 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
 #ifndef _DUMP_H_
 #define _DUMP_H_ 1
 
-#define DUMPVERSION	2
+#define DUMPVERSION 2
 
-#define DUMPENDMAGIC	0x3A214B6E
-#define DUMPBEGINMAGIC	0xB3A11322
+#define DUMPENDMAGIC 0x3A214B6E
+#define DUMPBEGINMAGIC 0xB3A11322
 
-#define D_DUMPHEADER	1
-#define D_VOLUMEHEADER  2
-#define	D_SMALLINDEX	3
-#define	D_LARGEINDEX	4
-#define D_VNODE		5
-#define	D_VV		6
-#define	D_ENDVV		7
-#define D_DUMPEND	8
+#define D_DUMPHEADER 1
+#define D_VOLUMEHEADER 2
+#define D_SMALLINDEX 3
+#define D_LARGEINDEX 4
+#define D_VNODE 5
+#define D_VV 6
+#define D_ENDVV 7
+#define D_DUMPEND 8
 #define D_VOLUMEDISKDATA 9
-#define	D_NULLVNODE	10
-#define D_DIRPAGES	11
-#define D_FILEDATA	12
-#define D_RMVNODE	13
-#define D_BADINODE	14
-#define D_MAX		20
+#define D_NULLVNODE 10
+#define D_DIRPAGES 11
+#define D_FILEDATA 12
+#define D_RMVNODE 13
+#define D_BADINODE 14
+#define D_MAX 20
 
-#define MAXDUMPTIMES	50
+#define MAXDUMPTIMES 50
 
 struct DumpHeader {
     int version;
@@ -58,20 +53,20 @@ struct DumpHeader {
 };
 
 typedef struct {
-    char *DumpBuf;		/* Start of buffer for spooling */
-    char *DumpBufPtr;		/* Current position in buffer */
-    char *DumpBufEnd;		/* End of buffer */
-    unsigned long offset;	/* Number of bytes read or written so far. */
-    RPC2_Handle rpcid;		/* RPCid of connection, NULL if dumping to file */
-    int DumpFd;			/* fd to which to flush or VolId if using RPC */
-    unsigned long nbytes;	/* Count of total bytes transferred. */
-    unsigned long secs;		/* Elapsed time for transfers -- not whole op */
+    char *DumpBuf; /* Start of buffer for spooling */
+    char *DumpBufPtr; /* Current position in buffer */
+    char *DumpBufEnd; /* End of buffer */
+    unsigned long offset; /* Number of bytes read or written so far. */
+    RPC2_Handle rpcid; /* RPCid of connection, NULL if dumping to file */
+    int DumpFd; /* fd to which to flush or VolId if using RPC */
+    unsigned long nbytes; /* Count of total bytes transferred. */
+    unsigned long secs; /* Elapsed time for transfers -- not whole op */
 } DumpBuffer_t;
-#define VOLID DumpFd		/* Overload this field if using newstyle dump */
-    
+#define VOLID DumpFd /* Overload this field if using newstyle dump */
+
 /* Exported Routines (from dumpstuff.c) */
 extern DumpBuffer_t *InitDumpBuf(char *buf, long size, VolumeId volid,
-				 RPC2_Handle rpcid);
+                                 RPC2_Handle rpcid);
 extern DumpBuffer_t *InitDumpBuf(char *buf, long size, int fd);
 extern int DumpDouble(DumpBuffer_t *, char, unsigned int, unsigned int);
 extern int DumpInt32(DumpBuffer_t *, char tag, unsigned int value);
@@ -89,7 +84,7 @@ extern int DumpEnd(DumpBuffer_t *);
 /* Exported Routines (from readstuff.c) */
 extern signed char ReadTag(DumpBuffer_t *);
 extern int PutTag(char, DumpBuffer_t *);
-extern int ReadShort(DumpBuffer_t *,  unsigned short *sp); 
+extern int ReadShort(DumpBuffer_t *, unsigned short *sp);
 extern int ReadInt32(DumpBuffer_t *, unsigned int *lp);
 extern int ReadString(DumpBuffer_t *, char *to, int max);
 extern int ReadByteString(DumpBuffer_t *, char *to, int size);

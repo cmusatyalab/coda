@@ -37,10 +37,10 @@ Pittsburgh, PA.
 
 */
 
-#include <errno.h>
 #include <stdio.h>
-#include <sys/time.h>
 #include <sys/types.h>
+#include <sys/time.h>
+#include <errno.h>
 
 #include <lwp/lwp.h>
 #include <lwp/timer.h>

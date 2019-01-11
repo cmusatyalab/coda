@@ -67,7 +67,7 @@ extern "C" {
 #include <fcntl.h>
 
 #include <lwp/lwp.h>
-#include <pioctl.h> 
+#include <pioctl.h>
 #include <rpc2/rpc2.h>
 #include <util.h>
 #include <prs.h>
@@ -83,93 +83,86 @@ extern "C" {
 
 void U_HostToNetClearToken(ClearToken *cToken)
 {
-	cToken->AuthHandle = htonl(cToken->AuthHandle);
-	cToken->ViceId = htonl(cToken->ViceId);
-	cToken->BeginTimestamp = htonl(cToken->BeginTimestamp);
-	cToken->EndTimestamp = htonl(cToken->EndTimestamp);
+    cToken->AuthHandle     = htonl(cToken->AuthHandle);
+    cToken->ViceId         = htonl(cToken->ViceId);
+    cToken->BeginTimestamp = htonl(cToken->BeginTimestamp);
+    cToken->EndTimestamp   = htonl(cToken->EndTimestamp);
 }
-
 
 void U_NetToHostClearToken(ClearToken *cToken)
 {
-	cToken->AuthHandle = ntohl(cToken->AuthHandle);
-	cToken->ViceId = ntohl(cToken->ViceId);
-	cToken->BeginTimestamp = ntohl(cToken->BeginTimestamp);
-	cToken->EndTimestamp = ntohl(cToken->EndTimestamp);
+    cToken->AuthHandle     = ntohl(cToken->AuthHandle);
+    cToken->ViceId         = ntohl(cToken->ViceId);
+    cToken->BeginTimestamp = ntohl(cToken->BeginTimestamp);
+    cToken->EndTimestamp   = ntohl(cToken->EndTimestamp);
 }
-
 
 /* Talks to an authentication server and obtains tokens on behalf of user uName.
    Gets back the viceId and clear and secretTokens for this user    */
-int U_Authenticate(struct RPC2_addrinfo *srvs,
-		   const char *uName, const int uNamelen,
-		   OUT ClearToken *cToken, 
-		   OUT EncryptedSecretToken sToken, 
-		   const int verbose, const int interactive)
+int U_Authenticate(struct RPC2_addrinfo *srvs, const char *uName,
+                   const int uNamelen, OUT ClearToken *cToken,
+                   OUT EncryptedSecretToken sToken, const int verbose,
+                   const int interactive)
 {
-	RPC2_Handle	RPCid;
-	int		rc = 0;
-	int             bound = 0;
-	char            passwd[128];
-	int		secretlen;
-        size_t          len;
+    RPC2_Handle RPCid;
+    int rc    = 0;
+    int bound = 0;
+    char passwd[128];
+    int secretlen;
+    size_t len;
 
-	memset(passwd, 0, sizeof(passwd));
+    memset(passwd, 0, sizeof(passwd));
 
-        if (!interactive) {
-                fgets(passwd, sizeof(passwd), stdin);
-                len = strlen(passwd);
-                if ( passwd[len-1] == '\n' )
-                        passwd[len-1] = 0;
-        } else {
-                strncpy (passwd, getpass ("Password: "),
-                         sizeof(passwd)-1);
-                passwd[sizeof(passwd)-1] ='\0';
-        }
+    if (!interactive) {
+        fgets(passwd, sizeof(passwd), stdin);
+        len = strlen(passwd);
+        if (passwd[len - 1] == '\n')
+            passwd[len - 1] = 0;
+    } else {
+        strncpy(passwd, getpass("Password: "), sizeof(passwd) - 1);
+        passwd[sizeof(passwd) - 1] = '\0';
+    }
 
-	secretlen = strlen(passwd);
-	rc = U_BindToServer(srvs, uName, uNamelen,
-			    passwd, secretlen, &RPCid, interactive);
-	if(rc == 0) {
-		bound = 1;
-		rc = AuthGetTokens(RPCid, sToken, cToken);
-		if ( rc >= 0 ) 
-			/* return irrelevant */
-			AuthQuit(RPCid);
-	}
+    secretlen = strlen(passwd);
+    rc        = U_BindToServer(srvs, uName, uNamelen, passwd, secretlen, &RPCid,
+                        interactive);
+    if (rc == 0) {
+        bound = 1;
+        rc    = AuthGetTokens(RPCid, sToken, cToken);
+        if (rc >= 0)
+            /* return irrelevant */
+            AuthQuit(RPCid);
+    }
 
-        if (bound)
-		RPC2_Unbind(RPCid);
+    if (bound)
+        RPC2_Unbind(RPCid);
 
-	return(rc);
+    return (rc);
 }
 
-
- /* Talks to the central authentication server and changes the password for
+/* Talks to the central authentication server and changes the password for
   * uName to newPasswd if myName is the same as uName or a system
   * administrator. MyPasswd is used to validate myName. */
 int U_ChangePassword(struct RPC2_addrinfo *srvs, const char *uName,
-		     const char *newPasswd,
-		     const char *myName, const int myNamelen,
-		     const char *myPasswd, const int myPasswdlen)
+                     const char *newPasswd, const char *myName,
+                     const int myNamelen, const char *myPasswd,
+                     const int myPasswdlen)
 {
     int rc;
     RPC2_Integer cpid;
     RPC2_Handle RPCid;
     RPC2_EncryptionKey ek;
 
-    if(!(rc = U_BindToServer(srvs, myName, myNamelen,
-			     myPasswd, myPasswdlen, &RPCid, 0)))
-    {
-	memset ((char *)ek, 0, RPC2_KEYSIZE);
-	strncpy((char *)ek, newPasswd, RPC2_KEYSIZE);
-	if(!(rc = AuthNameToId(RPCid, (RPC2_String) uName, &cpid))) {
-	    rc = AuthChangePasswd(RPCid, cpid, ek);
-	}
+    if (!(rc = U_BindToServer(srvs, myName, myNamelen, myPasswd, myPasswdlen,
+                              &RPCid, 0))) {
+        memset((char *)ek, 0, RPC2_KEYSIZE);
+        strncpy((char *)ek, newPasswd, RPC2_KEYSIZE);
+        if (!(rc = AuthNameToId(RPCid, (RPC2_String)uName, &cpid))) {
+            rc = AuthChangePasswd(RPCid, cpid, ek);
+        }
     }
-    return(rc);
+    return (rc);
 }
-
 
 void U_InitRPC()
 {
@@ -178,32 +171,36 @@ void U_InitRPC()
     struct timeval tout;
     RPC2_Options options;
 
-
-    CODA_ASSERT(LWP_Init(LWP_VERSION, LWP_MAX_PRIORITY-1, &mylpid) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_Init(LWP_VERSION, LWP_MAX_PRIORITY - 1, &mylpid) ==
+                LWP_SUCCESS);
     memset(&options, 0, sizeof(options));
     options.Flags = RPC2_OPTION_IPV6;
 
-    tout.tv_sec = 15;
+    tout.tv_sec  = 15;
     tout.tv_usec = 0;
 
     rc = RPC2_Init(RPC2_VERSION, &options, NULL, -1, &tout);
-    if ( rc != RPC2_SUCCESS ) {
-	    fprintf(stderr, "Cannot initialize RPC2 (error %d). ! Exiting.\n",
-		    rc);
-	    exit(EXIT_FAILURE);
+    if (rc != RPC2_SUCCESS) {
+        fprintf(stderr, "Cannot initialize RPC2 (error %d). ! Exiting.\n", rc);
+        exit(EXIT_FAILURE);
     }
 }
 
-
 char *U_AuthErrorMsg(const int rc)
 {
-    switch(rc) {
-    case AUTH_SUCCESS:	return("AUTH_SUCCESS");
-    case AUTH_FAILED:	return("AUTH_FAILED");
-    case AUTH_DENIED:	return("AUTH_DENIED");
-    case AUTH_BADKEY:	return("AUTH_BADKEY");
-    case AUTH_READONLY:	return("AUTH_READONLY");
-    default:		return("Unknown Auth Return Code");
+    switch (rc) {
+    case AUTH_SUCCESS:
+        return ("AUTH_SUCCESS");
+    case AUTH_FAILED:
+        return ("AUTH_FAILED");
+    case AUTH_DENIED:
+        return ("AUTH_DENIED");
+    case AUTH_BADKEY:
+        return ("AUTH_BADKEY");
+    case AUTH_READONLY:
+        return ("AUTH_READONLY");
+    default:
+        return ("Unknown Auth Return Code");
     }
 }
 
@@ -214,14 +211,17 @@ static struct RPC2_addrinfo *GetAuthServers(const char *realm)
     GetRealmServers(realm, "codaauth2", &res);
 
     if (!res) {
-	fprintf(stderr, "Unable to resolve addresses for Coda auth2 servers in realm '%s'\n", realm);
+        fprintf(
+            stderr,
+            "Unable to resolve addresses for Coda auth2 servers in realm '%s'\n",
+            realm);
     }
     return res;
 }
 
 static int TryBinding(const char *viceName, const int viceNamelen,
-		      const char *vicePasswd, const int vicePasswdlen,
-		      const struct RPC2_addrinfo *AuthHost, RPC2_Handle *RPCid)
+                      const char *vicePasswd, const int vicePasswdlen,
+                      const struct RPC2_addrinfo *AuthHost, RPC2_Handle *RPCid)
 {
     RPC2_BindParms bp;
     RPC2_HostIdent hident;
@@ -231,27 +231,27 @@ static int TryBinding(const char *viceName, const int viceNamelen,
     long rc;
     int len;
 
-    hident.Tag = RPC2_HOSTBYADDRINFO;
+    hident.Tag            = RPC2_HOSTBYADDRINFO;
     hident.Value.AddrInfo = RPC2_copyaddrinfo(AuthHost);
 
-    sident.Tag = RPC2_SUBSYSBYID;
+    sident.Tag            = RPC2_SUBSYSBYID;
     sident.Value.SubsysId = htonl(AUTH_SUBSYSID);
 
-    cident.SeqLen = viceNamelen;
+    cident.SeqLen  = viceNamelen;
     cident.SeqBody = (RPC2_ByteSeq)viceName;
 
     len = vicePasswdlen;
-    if ( len > RPC2_KEYSIZE) 
-	len = RPC2_KEYSIZE; 
+    if (len > RPC2_KEYSIZE)
+        len = RPC2_KEYSIZE;
     memset(hkey, 0, RPC2_KEYSIZE);
     memcpy(hkey, vicePasswd, len);
 
-    bp.SecurityLevel = RPC2_SECURE;
-    bp.EncryptionType = RPC2_XOR;
-    bp.SideEffectType = 0;
+    bp.SecurityLevel      = RPC2_SECURE;
+    bp.EncryptionType     = RPC2_XOR;
+    bp.SideEffectType     = 0;
     bp.AuthenticationType = AUTH_METHOD_CODAUSERNAME;
-    bp.ClientIdent = &cident;
-    bp.SharedSecret = &hkey;
+    bp.ClientIdent        = &cident;
+    bp.SharedSecret       = &hkey;
 
     rc = RPC2_NewBinding(&hident, NULL, &sident, &bp, RPCid);
 
@@ -266,7 +266,7 @@ struct RPC2_addrinfo *U_GetAuthServers(const char *realm, const char *host)
     int rc;
 
     if (!host)
-	return GetAuthServers(realm);
+        return GetAuthServers(realm);
 
     memset(&hints, 0, sizeof(hints));
     hints.ai_family   = PF_UNSPEC;
@@ -280,37 +280,36 @@ struct RPC2_addrinfo *U_GetAuthServers(const char *realm, const char *host)
 
 /* Binds to Auth Server on behalf of uName using uPasswd as password.
    Sets RPCid to the value of the connection id.    */
-int U_BindToServer(struct RPC2_addrinfo *srvs,
-		   const char *uName, const int uNamelen,
-		   const char *uPasswd, const int uPasswdlen,
-		   RPC2_Handle *RPCid, const int interactive)
+int U_BindToServer(struct RPC2_addrinfo *srvs, const char *uName,
+                   const int uNamelen, const char *uPasswd,
+                   const int uPasswdlen, RPC2_Handle *RPCid,
+                   const int interactive)
 {
-	struct RPC2_addrinfo AuthHost, *p;
-	int bound = RPC2_FAIL;
+    struct RPC2_addrinfo AuthHost, *p;
+    int bound = RPC2_FAIL;
 
-	/* try all valid entries until we are rejected or accepted */
-	for (p = srvs; p; p = p->ai_next)
-	{
-	    /* struct assignment, we only want to try the hosts one by one
+    /* try all valid entries until we are rejected or accepted */
+    for (p = srvs; p; p = p->ai_next) {
+        /* struct assignment, we only want to try the hosts one by one
 	     * instead of having rpc2 walk the whole chain on each call to
 	     * RPC2_NewBinding. */
-	    AuthHost = *p;
-	    AuthHost.ai_next = NULL;
+        AuthHost         = *p;
+        AuthHost.ai_next = NULL;
 
-	    bound = TryBinding(uName, uNamelen, uPasswd, uPasswdlen, &AuthHost, RPCid);
+        bound =
+            TryBinding(uName, uNamelen, uPasswd, uPasswdlen, &AuthHost, RPCid);
 
-	    /* break when we are successful or a server rejects our secret */
-	    if (bound == 0 || bound == RPC2_NOTAUTHENTICATED)
-		break;
-	}
-	return bound;
+        /* break when we are successful or a server rejects our secret */
+        if (bound == 0 || bound == RPC2_NOTAUTHENTICATED)
+            break;
+    }
+    return bound;
 }
 
 char *U_Error(const int rc)
 {
-    if(rc < 0)
-	return((char *)RPC2_ErrorMsg(rc));
+    if (rc < 0)
+        return ((char *)RPC2_ErrorMsg(rc));
     else
-	return((char *)U_AuthErrorMsg(rc));
+        return ((char *)U_AuthErrorMsg(rc));
 }
-

@@ -29,34 +29,34 @@ Coda are listed in the file CREDITS.
 #include "lwp.private_pt.h"
 
 /* BEGIN - NOT USED exported variables */
-int          lwp_debug;	          /* ON = show LWP debugging trace */
-int          lwp_overflowAction;  /* Action to take on stack overflow. */
-int          lwp_stackUseEnabled; /* Tells if stack size counting is enabled. */
+int lwp_debug; /* ON = show LWP debugging trace */
+int lwp_overflowAction; /* Action to take on stack overflow. */
+int lwp_stackUseEnabled; /* Tells if stack size counting is enabled. */
 /* variables used for checking work time of an lwp */
 struct timeval last_context_switch; /* how long a lwp was running */
-struct timeval cont_sw_threshold;  /* how long a lwp is allowed to run */
+struct timeval cont_sw_threshold; /* how long a lwp is allowed to run */
 struct timeval run_wait_threshold;
 /* END - NOT USED exported variables */
 
 FILE *lwp_logfile = NULL; /* where to log debug messages to */
-int   lwp_loglevel = 0;   /* which messages to log */
+int lwp_loglevel  = 0; /* which messages to log */
 
-static pthread_key_t    lwp_private; /* thread specific data */
-static struct list_head lwp_list;    /* list of all threads */
+static pthread_key_t lwp_private; /* thread specific data */
+static struct list_head lwp_list; /* list of all threads */
 
 /* information passed to a child process */
 struct lwp_forkinfo {
-    void  (*func)(void *);
-    char   *parm; 
-    char   *name;
-    int     prio;
+    void (*func)(void *);
+    char *parm;
+    char *name;
+    int prio;
     PROCESS pid;
 };
 
 /* mutexes to block concurrent threads & various run queues */
 static pthread_mutex_t run_mutex = PTHREAD_MUTEX_INITIALIZER;
-static pthread_cond_t run_cond = PTHREAD_COND_INITIALIZER;
-PROCESS lwp_cpptr = NULL; /* the currently running LWP thread */
+static pthread_cond_t run_cond   = PTHREAD_COND_INITIALIZER;
+PROCESS lwp_cpptr                = NULL; /* the currently running LWP thread */
 
 /* Short explanation of the scheduling
  * 
@@ -102,17 +102,15 @@ int lwp_threads_waiting(void)
     return ret;
 }
 
-static void _SCHEDULE(PROCESS pid, int leave)
-{
-}
+static void _SCHEDULE(PROCESS pid, int leave) {}
 
 void lwp_LEAVE(PROCESS pid)
 {
     if (pid == lwp_cpptr) {
-	lwp_mutex_lock(&run_mutex);
-	lwp_cpptr = NULL;
-	pthread_cond_signal(&run_cond);
-	lwp_mutex_unlock(&run_mutex);
+        lwp_mutex_lock(&run_mutex);
+        lwp_cpptr = NULL;
+        pthread_cond_signal(&run_cond);
+        lwp_mutex_unlock(&run_mutex);
     }
     pthread_testcancel();
 }
@@ -122,27 +120,26 @@ void lwp_YIELD(PROCESS pid)
     lwp_LEAVE(pid);
 
     if (pid->concurrent)
-	return;
+        return;
 
     lwp_mutex_lock(&run_mutex);
     if (lwp_cpptr || lwp_waiting) {
-	lwp_waiting++;
-	pid->waiting = 1;
+        lwp_waiting++;
+        pid->waiting = 1;
 
-	/* block at least once to give others a chance to run */
-	do {
-	    pthread_cond_wait(&run_cond, &run_mutex);
-	} while(lwp_cpptr);
+        /* block at least once to give others a chance to run */
+        do {
+            pthread_cond_wait(&run_cond, &run_mutex);
+        } while (lwp_cpptr);
 
-	lwp_waiting--;
-	pid->waiting = 0;
+        lwp_waiting--;
+        pid->waiting = 0;
     }
     lwp_cpptr = pid;
     lwp_mutex_unlock(&run_mutex);
 }
 
 /*-------------END SCHEDULER CODE------------*/
-
 
 /* this function is called when a thread is cancelled and the thread specific
  * data is going to be destroyed */
@@ -153,14 +150,14 @@ static void lwp_cleanup_process(void *data)
     /* now we need the run_mutex to fiddle around with the process list */
     lwp_mutex_lock(&run_mutex);
     {
-	if (pid == lwp_cpptr) {
-	    lwp_cpptr = NULL;
-	    pthread_cond_signal(&run_cond);
-	}
-	if (pid->waiting)
-	    lwp_waiting--;
+        if (pid == lwp_cpptr) {
+            lwp_cpptr = NULL;
+            pthread_cond_signal(&run_cond);
+        }
+        if (pid->waiting)
+            lwp_waiting--;
 
-	list_del(&pid->list);
+        list_del(&pid->list);
     }
     lwp_mutex_unlock(&run_mutex);
 
@@ -168,28 +165,30 @@ static void lwp_cleanup_process(void *data)
     sem_destroy(&pid->waitq);
     pthread_cond_destroy(&pid->event);
 
-    if (pid->name)   free(pid->name);
-    if (pid->evlist) free(pid->evlist);
+    if (pid->name)
+        free(pid->name);
+    if (pid->evlist)
+        free(pid->evlist);
     free(data);
 }
 
 static int lwp_inited = 0;
-int LWP_Init (int version, int priority, PROCESS *ret)
+int LWP_Init(int version, int priority, PROCESS *ret)
 {
     PROCESS pid;
 
     if (version != LWP_VERSION) {
-	fprintf(stderr, "**** FATAL ERROR: LWP VERSION MISMATCH ****\n");
-	exit(EXIT_FAILURE);
+        fprintf(stderr, "**** FATAL ERROR: LWP VERSION MISMATCH ****\n");
+        exit(EXIT_FAILURE);
     }
 
     if (lwp_inited)
-	return LWP_SUCCESS;
+        return LWP_SUCCESS;
 
     lwp_logfile = stderr;
 
     if (priority < 0 || priority > LWP_MAX_PRIORITY)
-	return LWP_EBADPRI;
+        return LWP_EBADPRI;
 
     assert(pthread_key_create(&lwp_private, lwp_cleanup_process) == 0);
 
@@ -200,7 +199,7 @@ int LWP_Init (int version, int priority, PROCESS *ret)
     /* now set up our private process structure */
     assert(LWP_CurrentProcess(&pid) == 0);
 
-    pid->name = strdup("Main Process");
+    pid->name     = strdup("Main Process");
     pid->priority = priority;
 
     /* As we're still initializing (and therefore the first LWP thread) we
@@ -208,7 +207,8 @@ int LWP_Init (int version, int priority, PROCESS *ret)
     list_add(&pid->list, &lwp_list);
     lwp_cpptr = pid;
 
-    if (ret) *ret = pid;
+    if (ret)
+        *ret = pid;
 
     return LWP_SUCCESS;
 }
@@ -216,23 +216,25 @@ int LWP_Init (int version, int priority, PROCESS *ret)
 int LWP_CurrentProcess(PROCESS *pid)
 {
     /* normally this is a short function */
-    if (!pid) return LWP_EBADPID;
+    if (!pid)
+        return LWP_EBADPID;
     *pid = (PROCESS)pthread_getspecific(lwp_private);
-    if (*pid) return LWP_SUCCESS;
+    if (*pid)
+        return LWP_SUCCESS;
 
     /* but if there wasn't any thread specific data yet, we need to
      * initialize it now */
     *pid = (PROCESS)malloc(sizeof(struct lwp_pcb));
 
     if (!*pid) {
-	fprintf(lwp_logfile, "Couldn't allocate thread specific data\n");
-	return LWP_ENOMEM;
+        fprintf(lwp_logfile, "Couldn't allocate thread specific data\n");
+        return LWP_ENOMEM;
     }
     memset(*pid, 0, sizeof(struct lwp_pcb));
 
-    (*pid)->thread   = pthread_self();
-    (*pid)->evsize   = 5;
-    (*pid)->evlist   = (char **)malloc((*pid)->evsize * sizeof(char*));
+    (*pid)->thread = pthread_self();
+    (*pid)->evsize = 5;
+    (*pid)->evlist = (char **)malloc((*pid)->evsize * sizeof(char *));
 
     list_init(&(*pid)->list);
     assert(sem_init(&(*pid)->waitq, 0, 0) == 0);
@@ -248,7 +250,7 @@ int LWP_CurrentProcess(PROCESS *pid)
 static void *lwp_newprocess(void *arg)
 {
     struct lwp_forkinfo *newproc = (struct lwp_forkinfo *)arg;
-    PROCESS              pid, parent = newproc->pid;
+    PROCESS pid, parent = newproc->pid;
 
     /* block incoming signals to this thread */
     sigset_t mask;
@@ -269,10 +271,10 @@ static void *lwp_newprocess(void *arg)
     /* Initialize the thread specific data */
     LWP_CurrentProcess(&pid);
 
-    pid->func = newproc->func;
-    pid->parm = newproc->parm;
+    pid->func     = newproc->func;
+    pid->parm     = newproc->parm;
     pid->priority = newproc->prio;
-    pid->name = strdup(newproc->name);
+    pid->name     = strdup(newproc->name);
 
     /* Tell the parent thread that he's off the hook (although the caller
      * of LWP_CreateProcess isn't if any volatile parameters were passed,
@@ -295,16 +297,16 @@ static void *lwp_newprocess(void *arg)
 }
 
 int LWP_CreateProcess(void (*ep)(void *), int stacksize, int priority,
-		      void *parm, char *name, PROCESS *ret)
+                      void *parm, char *name, PROCESS *ret)
 {
-    PROCESS             pid;
+    PROCESS pid;
     struct lwp_forkinfo newproc;
-    pthread_attr_t      attr;
-    pthread_t           threadid;
-    int                 err;
+    pthread_attr_t attr;
+    pthread_t threadid;
+    int err;
 
     if (priority < 0 || priority > LWP_MAX_PRIORITY)
-	return LWP_EBADPRI;
+        return LWP_EBADPRI;
 
     assert(LWP_CurrentProcess(&pid) == 0);
 
@@ -320,32 +322,33 @@ int LWP_CreateProcess(void (*ep)(void *), int stacksize, int priority,
 
     err = pthread_create(&threadid, &attr, lwp_newprocess, &newproc);
     if (err) {
-	fprintf(lwp_logfile, "Thread %s creation failed, error %s",
-		name, strerror(errno));
-	return LWP_EMAXPROC;
+        fprintf(lwp_logfile, "Thread %s creation failed, error %s", name,
+                strerror(errno));
+        return LWP_EMAXPROC;
     }
 
     /* Wait until the new thread has finished initialization. */
     LWP_QWait();
-    if (ret) *ret = newproc.pid;
+    if (ret)
+        *ret = newproc.pid;
 
     return LWP_SUCCESS;
 }
 
-static void _LWP_DestroyProcess (PROCESS pid)
+static void _LWP_DestroyProcess(PROCESS pid)
 {
     pthread_cancel(pid->thread);
     if (pid->waitcnt) {
-	pid->waitcnt = 0;
-	pthread_cond_signal(&pid->event);
+        pid->waitcnt = 0;
+        pthread_cond_signal(&pid->event);
     }
 }
 
-int LWP_DestroyProcess (PROCESS pid)
+int LWP_DestroyProcess(PROCESS pid)
 {
     lwp_mutex_lock(&run_mutex);
     {
-	_LWP_DestroyProcess(pid);
+        _LWP_DestroyProcess(pid);
     }
     lwp_mutex_unlock(&run_mutex);
     return LWP_SUCCESS;
@@ -354,26 +357,26 @@ int LWP_DestroyProcess (PROCESS pid)
 int LWP_TerminateProcessSupport()
 {
     struct list_head *ptr;
-    PROCESS           this, pid;
+    PROCESS this, pid;
 
     assert(LWP_CurrentProcess(&this) == 0);
 
     lwp_mutex_lock(&run_mutex);
     {
-	/* I should not kill myself. */
-	list_del(&this->list);
+        /* I should not kill myself. */
+        list_del(&this->list);
 
-	for (ptr = lwp_list.next; ptr != &lwp_list; ptr = ptr->next) {
-	    pid = list_entry(ptr, struct lwp_pcb, list);
-	    _LWP_DestroyProcess(pid);
-	}
+        for (ptr = lwp_list.next; ptr != &lwp_list; ptr = ptr->next) {
+            pid = list_entry(ptr, struct lwp_pcb, list);
+            _LWP_DestroyProcess(pid);
+        }
     }
     lwp_mutex_unlock(&run_mutex);
 
     /* Threads should be cancelled by now, we just have to wait for them to
      * terminate. */
-    while(!list_empty(&lwp_list))
-	lwp_YIELD(this);
+    while (!list_empty(&lwp_list))
+        lwp_YIELD(this);
 
     /* We can start cleaning. */
     lwp_cleanup_process(this);
@@ -388,7 +391,7 @@ int LWP_DispatchProcess(void)
     PROCESS pid;
 
     if (LWP_CurrentProcess(&pid))
-	return LWP_EBADPID;
+        return LWP_EBADPID;
 
     lwp_YIELD(pid);
 
@@ -411,7 +414,7 @@ int LWP_QWait()
     PROCESS pid;
 
     if (LWP_CurrentProcess(&pid))
-	return LWP_EBADPID;
+        return LWP_EBADPID;
 
     lwp_LEAVE(pid);
     sem_wait(&pid->waitq); /* wait until we get signalled */
@@ -423,34 +426,36 @@ int LWP_QWait()
 int LWP_INTERNALSIGNAL(void *event, int yield)
 {
     struct list_head *ptr;
-    PROCESS           this, pid;
-    int               i;
+    PROCESS this, pid;
+    int i;
 
     assert(LWP_CurrentProcess(&this) == 0);
 
     lwp_mutex_lock(&run_mutex);
     {
-	list_for_each(ptr, &lwp_list)
-	{
-	    pid = list_entry(ptr, struct lwp_pcb, list);
-	    if (pid == this) continue;
-	    if (!pid->waitcnt) continue;
+        list_for_each(ptr, &lwp_list)
+        {
+            pid = list_entry(ptr, struct lwp_pcb, list);
+            if (pid == this)
+                continue;
+            if (!pid->waitcnt)
+                continue;
 
-	    for (i = 0; i < pid->eventcnt; i++) {
-		if (pid->evlist[i] == event) {
-		    pid->evlist[i] = NULL;
-		    pid->waitcnt--;
-		    break;
-		}
-	    }
-	    if (pid->eventcnt && !pid->waitcnt)
-		pthread_cond_signal(&pid->event);
-	}
+            for (i = 0; i < pid->eventcnt; i++) {
+                if (pid->evlist[i] == event) {
+                    pid->evlist[i] = NULL;
+                    pid->waitcnt--;
+                    break;
+                }
+            }
+            if (pid->eventcnt && !pid->waitcnt)
+                pthread_cond_signal(&pid->event);
+        }
     }
     lwp_mutex_unlock(&run_mutex);
 
     if (yield)
-	lwp_YIELD(this);
+        lwp_YIELD(this);
 
     return LWP_SUCCESS;
 }
@@ -460,27 +465,31 @@ int LWP_INTERNALSIGNAL(void *event, int yield)
  * cleanup handler if we get cancelled while waiting on the condition
  * variable. (cleanup needs to lock the run_mutex to removing us from the
  * list of threads, but we're already sort of `joined') */
-int LWP_MwaitProcess (int wcount, char *evlist[])
+int LWP_MwaitProcess(int wcount, char *evlist[])
 {
     PROCESS pid;
-    int     entries, i;
+    int entries, i;
 
-    if (!evlist) return LWP_EBADCOUNT;
+    if (!evlist)
+        return LWP_EBADCOUNT;
 
     /* count number of entries in the eventlist */
-    for (entries = 0; evlist[entries] != NULL; entries++) /* loop */;
-    if (wcount <= 0 || wcount > entries) return LWP_EBADCOUNT;
+    for (entries = 0; evlist[entries] != NULL; entries++) /* loop */
+        ;
+    if (wcount <= 0 || wcount > entries)
+        return LWP_EBADCOUNT;
 
-    if (LWP_CurrentProcess(&pid)) return LWP_EBADPID;
+    if (LWP_CurrentProcess(&pid))
+        return LWP_EBADPID;
 
     /* copy the events */
     if (entries > pid->evsize) {
         pid->evlist = (char **)realloc(pid->evlist, entries * sizeof(*evlist));
-	assert(pid->evlist != NULL);
+        assert(pid->evlist != NULL);
         pid->evsize = entries;
     }
     memcpy(pid->evlist, evlist, entries * sizeof(*evlist));
-    pid->waitcnt = wcount;
+    pid->waitcnt  = wcount;
     pid->eventcnt = entries;
 
     lwp_LEAVE(pid);
@@ -488,7 +497,7 @@ int LWP_MwaitProcess (int wcount, char *evlist[])
     /* wait until we received enough events */
     lwp_mutex_lock(&run_mutex);
     while (pid->waitcnt)
-	pthread_cond_wait(&pid->event, &run_mutex);
+        pthread_cond_wait(&pid->event, &run_mutex);
     lwp_mutex_unlock(&run_mutex);
 
     lwp_YIELD(pid);
@@ -496,22 +505,23 @@ int LWP_MwaitProcess (int wcount, char *evlist[])
     return LWP_SUCCESS;
 }
 
-int LWP_WaitProcess (void *event)
+int LWP_WaitProcess(void *event)
 {
     void *evlist[2];
 
-    evlist[0] = event; evlist[1] = NULL;
-    return LWP_MwaitProcess(1, (char**)evlist);
+    evlist[0] = event;
+    evlist[1] = NULL;
+    return LWP_MwaitProcess(1, (char **)evlist);
 }
 
-int LWP_NewRock (int Tag, char *Value)
+int LWP_NewRock(int Tag, char *Value)
 {
     PROCESS pid;
-    int     i;
-    
+    int i;
+
     if (LWP_CurrentProcess(&pid))
         return LWP_EBADPID;
-    
+
     for (i = 0; i < pid->nrocks; i++)
         if (Tag == pid->rock[i].tag)
             return LWP_EBADROCK;
@@ -522,18 +532,18 @@ int LWP_NewRock (int Tag, char *Value)
     pid->rock[pid->nrocks].tag   = Tag;
     pid->rock[pid->nrocks].value = Value;
     pid->nrocks++;
-    
+
     return LWP_SUCCESS;
 }
 
-int LWP_GetRock (int Tag,  char **Value)
+int LWP_GetRock(int Tag, char **Value)
 {
     PROCESS pid;
-    int     i;
-    
+    int i;
+
     if (LWP_CurrentProcess(&pid))
         return LWP_EBADPID;
-    
+
     for (i = 0; i < pid->nrocks; i++) {
         if (Tag == pid->rock[i].tag) {
             *Value = pid->rock[i].value;
@@ -547,13 +557,15 @@ int LWP_GetRock (int Tag,  char **Value)
 char *LWP_Name(void)
 {
     PROCESS pid;
-    if (LWP_CurrentProcess(&pid)) return NULL;
+    if (LWP_CurrentProcess(&pid))
+        return NULL;
     return pid->name;
 }
 
-int LWP_GetProcessPriority (PROCESS pid, int *priority)
+int LWP_GetProcessPriority(PROCESS pid, int *priority)
 {
-    if (priority) *priority = pid->priority;
+    if (priority)
+        *priority = pid->priority;
     return LWP_SUCCESS;
 }
 
@@ -567,20 +579,36 @@ void LWP_SetLog(FILE *file, int level)
 PROCESS LWP_ThisProcess(void)
 {
     PROCESS pid;
-    int     err;
+    int err;
     err = LWP_CurrentProcess(&pid);
     return (err ? NULL : pid);
 }
 
-int LWP_StackUsed (PROCESS pid, int *max, int *used)
+int LWP_StackUsed(PROCESS pid, int *max, int *used)
 {
-    if (max)  max  = 0;
-    if (used) used = 0;
+    if (max)
+        max = 0;
+    if (used)
+        used = 0;
     return LWP_SUCCESS;
 }
 
-int LWP_Index()            { return 0; }
-int LWP_HighestIndex()     { return 0; }
-void LWP_UnProtectStacks() { return; } /* only available for newlwp */
-void LWP_ProtectStacks()   { return; }
+int LWP_Index()
+{
+    return 0;
+}
 
+int LWP_HighestIndex()
+{
+    return 0;
+}
+
+void LWP_UnProtectStacks() /* only available for newlwp */
+{
+    return;
+}
+
+void LWP_ProtectStacks()
+{
+    return;
+}

@@ -31,35 +31,32 @@ listed in the file CREDITS.
 
 static char vicedir[MAXPATHLEN];
 
-void
-vice_dir_init (const char *dirname)
+void vice_dir_init(const char *dirname)
 {
-    strncpy(vicedir, dirname, MAXPATHLEN-1);
-    vicedir[MAXPATHLEN-1] = '\0';
+    strncpy(vicedir, dirname, MAXPATHLEN - 1);
+    vicedir[MAXPATHLEN - 1] = '\0';
 }
 
-static const char *
-vice_filepath (const char *dir, const char *name)
+static const char *vice_filepath(const char *dir, const char *name)
 {
-	static char volpath[2][MAXPATHLEN];
-	static int vpidx = 0;
-        int n;
+    static char volpath[2][MAXPATHLEN];
+    static int vpidx = 0;
+    int n;
 
-	if (!name)
-		return dir; 
+    if (!name)
+        return dir;
 
-	/* We need at least 2 static volpaths to be able to handle:
+    /* We need at least 2 static volpaths to be able to handle:
 	 *   rename(Vol_vicefile(p1), Vol_vicefile(p2);
 	 * the following indexing takes care of that. -JH */
-	vpidx = 1 - vpidx;
-	n = snprintf(volpath[vpidx], MAXPATHLEN, "%s/%s",  dir, name);
-        CODA_ASSERT(n < MAXPATHLEN);
+    vpidx = 1 - vpidx;
+    n     = snprintf(volpath[vpidx], MAXPATHLEN, "%s/%s", dir, name);
+    CODA_ASSERT(n < MAXPATHLEN);
 
-	return volpath[vpidx];
+    return volpath[vpidx];
 }
 
-const char *
-vice_config_path(const char *name)
+const char *vice_config_path(const char *name)
 {
-	return vice_filepath(vicedir, name);
+    return vice_filepath(vicedir, name);
 }

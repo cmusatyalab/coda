@@ -49,8 +49,8 @@ Coda are listed in the file CREDITS.
    network order
 */
 
-#include <stdio.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <uv.h>
 

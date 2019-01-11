@@ -38,12 +38,11 @@ extern "C" {
 
 #include <sys/types.h>
 
-int quote  (char *dest, char *src, size_t n);
+int quote(char *dest, char *src, size_t n);
 int unquote(char *dest, char *src, size_t n);
 
 #ifdef __cplusplus
 }
 #endif
-
 
 #endif /* _URLQUOTE_H_ */

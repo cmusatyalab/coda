@@ -54,15 +54,16 @@ long S_NewVolMarkAsAncient(RPC2_Handle rpcid, VolumeId backupId)
     long volnum = 0, retcode;
     Error error;
 
-    vp = VGetVolume(&error, backupId);    
+    vp = VGetVolume(&error, backupId);
     if (error) {
-	SLog(0, "Unable to get the volume %x",backupId);
-	return (long)error;
+        SLog(0, "Unable to get the volume %x", backupId);
+        return (long)error;
     }
 
     /* Find the vrdb entry for the parent volume */
     vre = VRDB.ReverseFind(V_parentId(vp), NULL);
-    if (vre) volnum = vre->volnum;
+    if (vre)
+        volnum = vre->volnum;
 
     retcode = S_VolMarkAsAncient(rpcid, volnum, V_parentId(vp));
 
@@ -74,13 +75,14 @@ long S_VolMarkAsAncient(RPC2_Handle rpcid, VolumeId groupId, VolumeId repId)
 {
     int rc = 0;
     char *errstr;
-    
-    LogMsg(9, VolDebugLevel, stdout, "Entering S_VolMarkAsAncient: rpcid = %d, groupId = %x, repId = %x",
-	rpcid, groupId, repId);
+
+    LogMsg(9, VolDebugLevel, stdout,
+           "Entering S_VolMarkAsAncient: rpcid = %d, groupId = %x, repId = %x",
+           rpcid, groupId, repId);
 
     rc = VInitVolUtil(volumeUtility);
     if (rc != 0)
-	return rc;
+        return rc;
 
     char listfile[PATH_MAX];
     getlistfilename(listfile, groupId, repId, "newlist");
@@ -89,12 +91,12 @@ long S_VolMarkAsAncient(RPC2_Handle rpcid, VolumeId groupId, VolumeId repId)
     getlistfilename(newlistfile, groupId, repId, "ancient");
 
     if (rename(listfile, newlistfile) < 0) {
-	errstr = strerror(errno);
-	LogMsg(0, VolDebugLevel, stdout,
-	       "MarkAsAncient: rename %s->%s failed, %s",
-	       listfile, newlistfile, errstr != NULL ? errstr: "Cannot rename");
-	VDisconnectFS();
-	return VFAIL;
+        errstr = strerror(errno);
+        LogMsg(0, VolDebugLevel, stdout,
+               "MarkAsAncient: rename %s->%s failed, %s", listfile, newlistfile,
+               errstr != NULL ? errstr : "Cannot rename");
+        VDisconnectFS();
+        return VFAIL;
     }
 
     VDisconnectFS();

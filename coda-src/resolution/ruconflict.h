@@ -16,10 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
 #ifndef _RUCONFLICT_H_
 #define _RUCONFLICT_H_ 1
 #include <olist.h>
@@ -28,27 +24,26 @@ listed in the file CREDITS.
 #include <cvnode.h>
 class rsle;
 
-
 class RUParm {
-  public:
-    dlist *vlist;		// list of vnodes of all objects 
-    olist *AllLogs;		// remote log grouped by host and object 
-    unsigned long srvrid;  	// serverid where rm happened 
-    unsigned long vid;		// volume id 
-    int	rcode;			// return code: 0 -> no conflicts 
-    
-    RUParm(dlist *vl, olist *rmtlog, unsigned long id, unsigned long v) {
-	vlist = vl;
-	AllLogs = rmtlog;
-	srvrid = id;
-	vid = v;
-	rcode = 0;
+public:
+    dlist *vlist; // list of vnodes of all objects
+    olist *AllLogs; // remote log grouped by host and object
+    unsigned long srvrid; // serverid where rm happened
+    unsigned long vid; // volume id
+    int rcode; // return code: 0 -> no conflicts
+
+    RUParm(dlist *vl, olist *rmtlog, unsigned long id, unsigned long v)
+    {
+        vlist   = vl;
+        AllLogs = rmtlog;
+        srvrid  = id;
+        vid     = v;
+        rcode   = 0;
     }
 };
 extern int RUConflict(rsle *, dlist *, olist *, ViceFid *);
 extern int FileRUConf(rsle *, Vnode *);
 extern int FileRUConf(ViceVersionVector *, Vnode *);
-int NewDirRUConf(RUParm *, char *, long , long );
+int NewDirRUConf(RUParm *, char *, long, long);
 
 #endif /* _RUCONFLICT_H_ */
-

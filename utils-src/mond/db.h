@@ -30,54 +30,52 @@ Mellon the rights to redistribute these changes without encumbrance.
 */
 #endif /*_BLURB_*/
 
-
-
-
-
 #ifdef __cplusplus
 
-extern int ReportSession(VmonVenusId *, VmonSessionId, VolumeId, UserId, 
-			  VmonAVSG *, RPC2_Unsigned, RPC2_Unsigned, RPC2_Unsigned,
-			  VmonSessionEventArray *, SessionStatistics*, CacheStatistics*);
+extern int ReportSession(VmonVenusId *, VmonSessionId, VolumeId, UserId,
+                         VmonAVSG *, RPC2_Unsigned, RPC2_Unsigned,
+                         RPC2_Unsigned, VmonSessionEventArray *,
+                         SessionStatistics *, CacheStatistics *);
 extern int ReportCommEvent(VmonVenusId *, RPC2_Unsigned, RPC2_Integer,
-			   RPC2_Unsigned, VmonCommEventType);
+                           RPC2_Unsigned, VmonCommEventType);
 
-extern int ReportClientCall(VmonVenusId *, long, unsigned long, 
-			    CallCountEntry*);
+extern int ReportClientCall(VmonVenusId *, long, unsigned long,
+                            CallCountEntry *);
 
-extern int ReportClientMCall(VmonVenusId *, long, unsigned long, 
-			     MultiCallEntry*);
+extern int ReportClientMCall(VmonVenusId *, long, unsigned long,
+                             MultiCallEntry *);
 
-extern int ReportClientRVM(VmonVenusId *, long, RvmStatistics*);
+extern int ReportClientRVM(VmonVenusId *, long, RvmStatistics *);
 
 extern int ReportVCB(VmonVenusId *, long, long, VolumeId, VCBStatistics *);
 
-extern int ReportAdviceCall(VmonVenusId*, long, UserId, AdviceStatistics*,
-                             unsigned long, AdviceCalls*, unsigned long, AdviceResults*);
+extern int ReportAdviceCall(VmonVenusId *, long, UserId, AdviceStatistics *,
+                            unsigned long, AdviceCalls *, unsigned long,
+                            AdviceResults *);
 
 extern int ReportMiniCache(VmonVenusId *, RPC2_Integer, RPC2_Unsigned,
-			   VmonMiniCacheStat *, RPC2_Unsigned, 
-			   VmonMiniCacheStat *);
-extern int ReportOverflow(VmonVenusId *, RPC2_Unsigned, 
-			  RPC2_Unsigned, RPC2_Integer, RPC2_Unsigned,
-			  RPC2_Unsigned, RPC2_Integer);
-extern int ReportSrvCall(SmonViceId*,unsigned long, unsigned long, CallCountEntry*,
-			  unsigned long, CallCountEntry*, unsigned long, 
-			  CallCountEntry*, unsigned long,
-			  CallCountEntry*, unsigned long, MultiCallEntry*, 
-			  SmonStatistics*);
-extern int ReportResEvent(SmonViceId*,unsigned long, VolumeId, long,
-			   long, long, long, ResOpEntry*);
-extern int ReportRvmResEvent(SmonViceId*, unsigned long, unsigned long,
-			     FileResStats*, DirResStats*, long, HistoElem*,
-			     long, HistoElem*,
-			     ResConflictStats*, long, HistoElem*, long,
-			     HistoElem*, ResLogStats*, long, HistoElem*,
-			     long, HistoElem*);
-extern int ReportSrvOvrflw(SmonViceId*,unsigned long, unsigned long,
-			   unsigned long, long);
+                           VmonMiniCacheStat *, RPC2_Unsigned,
+                           VmonMiniCacheStat *);
+extern int ReportOverflow(VmonVenusId *, RPC2_Unsigned, RPC2_Unsigned,
+                          RPC2_Integer, RPC2_Unsigned, RPC2_Unsigned,
+                          RPC2_Integer);
+extern int ReportSrvCall(SmonViceId *, unsigned long, unsigned long,
+                         CallCountEntry *, unsigned long, CallCountEntry *,
+                         unsigned long, CallCountEntry *, unsigned long,
+                         CallCountEntry *, unsigned long, MultiCallEntry *,
+                         SmonStatistics *);
+extern int ReportResEvent(SmonViceId *, unsigned long, VolumeId, long, long,
+                          long, long, ResOpEntry *);
+extern int ReportRvmResEvent(SmonViceId *, unsigned long, unsigned long,
+                             FileResStats *, DirResStats *, long, HistoElem *,
+                             long, HistoElem *, ResConflictStats *, long,
+                             HistoElem *, long, HistoElem *, ResLogStats *,
+                             long, HistoElem *, long, HistoElem *);
+extern int ReportSrvOvrflw(SmonViceId *, unsigned long, unsigned long,
+                           unsigned long, long);
 
-extern int ReportIotInfoCall(VmonVenusId *, IOT_INFO *, RPC2_Integer, RPC2_String);
+extern int ReportIotInfoCall(VmonVenusId *, IOT_INFO *, RPC2_Integer,
+                             RPC2_String);
 
 extern int ReportIotStatsCall(VmonVenusId *, RPC2_Integer, IOT_STAT *);
 
@@ -85,7 +83,8 @@ extern int ReportSubtreeCall(VmonVenusId *, RPC2_Integer, LocalSubtreeStats *);
 
 extern int ReportRepairCall(VmonVenusId *, RPC2_Integer, RepairSessionStats *);
 
-extern int ReportRwsStatsCall(VmonVenusId *, RPC2_Integer, ReadWriteSharingStats *);
+extern int ReportRwsStatsCall(VmonVenusId *, RPC2_Integer,
+                              ReadWriteSharingStats *);
 
 extern int ReportDiscoQ(DiscoMissQ *);
 extern int ReportReconnQ(ReconnQ *);

@@ -16,7 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
 /*  updatefetch.cc - Client fetch files from the server  */
 
 #ifdef __cplusplus
@@ -60,7 +59,7 @@ extern "C" {
 #include "update.h"
 #include "getsecret.h"
 
-extern char *ViceErrorMsg(int errorCode);   /* should be in libutil */
+extern char *ViceErrorMsg(int errorCode); /* should be in libutil */
 
 static int FetchFile(char *, char *, int);
 static void Connect();
@@ -79,8 +78,7 @@ static struct timezone tsp; */
 
 static char s_hostname[100];
 
-static void
-ReadConfigFile()
+static void ReadConfigFile()
 {
     const char *vicedir;
 
@@ -93,7 +91,7 @@ ReadConfigFile()
 
 int main(int argc, char **argv)
 {
-    FILE * file = NULL;
+    FILE *file = NULL;
     int rc;
 
     host[0] = '\0';
@@ -102,7 +100,7 @@ int main(int argc, char **argv)
 
     ProcessArgs(argc, argv);
 
-    gethostname(s_hostname, sizeof(s_hostname) -1);
+    gethostname(s_hostname, sizeof(s_hostname) - 1);
     CODA_ASSERT(s_hostname != NULL);
 
     RPC2_DebugLevel = SrvDebugLevel;
@@ -120,39 +118,34 @@ int main(int argc, char **argv)
 
     /* off we go */
     rc = FetchFile(RemoteFileName, LocalFileName, 0600);
-    if ( rc ) {
-      fprintf(stderr, "%s failed with %s\n", argv[0], ViceErrorMsg((int) rc));
+    if (rc) {
+        fprintf(stderr, "%s failed with %s\n", argv[0], ViceErrorMsg((int)rc));
     }
     return rc;
-
 }
 
 static void ProcessArgs(int argc, char **argv)
 {
     int i;
     for (i = 1; i < argc; i++) {
-	if (!strcmp(argv[i], "-d"))
-	    SrvDebugLevel = atoi(argv[++i]);
-	else
-	    if (!strcmp(argv[i], "-h"))
-		strcpy(host, argv[++i]);
-	else
-	    if (!strcmp(argv[i], "-r"))
-	      RemoteFileName = argv[++i];
-	else
-	    if (!strcmp(argv[i], "-l"))
-		LocalFileName = argv[++i];
-        else
-            if (!strcmp(argv[i], "-port"))
-                port = atoi(argv[++i]);
-	else {
-	    PrintHelp();
-	    exit(EXIT_FAILURE);
-	}
+        if (!strcmp(argv[i], "-d"))
+            SrvDebugLevel = atoi(argv[++i]);
+        else if (!strcmp(argv[i], "-h"))
+            strcpy(host, argv[++i]);
+        else if (!strcmp(argv[i], "-r"))
+            RemoteFileName = argv[++i];
+        else if (!strcmp(argv[i], "-l"))
+            LocalFileName = argv[++i];
+        else if (!strcmp(argv[i], "-port"))
+            port = atoi(argv[++i]);
+        else {
+            PrintHelp();
+            exit(EXIT_FAILURE);
+        }
     }
     if (host[0] == '\0' || (!LocalFileName) || (!RemoteFileName)) {
-	PrintHelp();
-	exit(EXIT_FAILURE);
+        PrintHelp();
+        exit(EXIT_FAILURE);
     }
 }
 
@@ -167,37 +160,41 @@ static int FetchFile(char *RemoteFileName, char *LocalFileName, int mode)
 {
     RPC2_Unsigned time, newtime, currentsecs;
     RPC2_Integer currentusecs;
-    long     rc;
+    long rc;
     SE_Descriptor sed;
 
     time = 0; /* tell server to just ship the file, without checking on times */
 
     memset(&sed, 0, sizeof(SE_Descriptor));
-    sed.Tag = SMARTFTP;
+    sed.Tag                        = SMARTFTP;
     sed.Value.SmartFTPD.SeekOffset = 0;
-    sed.Value.SmartFTPD.Tag = FILEBYNAME;
+    sed.Value.SmartFTPD.Tag        = FILEBYNAME;
     if (SrvDebugLevel > 0)
-	sed.Value.SmartFTPD.hashmark = '#';
+        sed.Value.SmartFTPD.hashmark = '#';
     else
-	sed.Value.SmartFTPD.hashmark = '\0';
+        sed.Value.SmartFTPD.hashmark = '\0';
     sed.Value.SmartFTPD.FileInfo.ByName.ProtectionBits = 0666;
-    sed.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
+    sed.Value.SmartFTPD.TransmissionDirection          = SERVERTOCLIENT;
     strcpy(sed.Value.SmartFTPD.FileInfo.ByName.LocalFileName, LocalFileName);
 
-    rc = UpdateFetch(con, (RPC2_String)RemoteFileName, time, &newtime, &currentsecs, &currentusecs, &sed);
+    rc = UpdateFetch(con, (RPC2_String)RemoteFileName, time, &newtime,
+                     &currentsecs, &currentusecs, &sed);
 
     if (rc) {
-	unlink(LocalFileName);
-	LogMsg(0, SrvDebugLevel, stdout, "Fetch failed with %s\n", ViceErrorMsg((int)rc));
-    } 
+        unlink(LocalFileName);
+        LogMsg(0, SrvDebugLevel, stdout, "Fetch failed with %s\n",
+               ViceErrorMsg((int)rc));
+    }
 
-    return(rc);
+    return (rc);
 }
 
 static void Connect()
 {
-    static struct secret_state state = { 0, };
-    long     rc;
+    static struct secret_state state = {
+        0,
+    };
+    long rc;
     RPC2_SubsysIdent ssid;
     RPC2_HostIdent hident;
     RPC2_PortIdent pident;
@@ -206,26 +203,27 @@ static void Connect()
     char hostname[64];
 
     if (!port) {
-	struct servent *s = coda_getservbyname("codasrv-se", "udp");
-	port = ntohs(s->s_port);
+        struct servent *s = coda_getservbyname("codasrv-se", "udp");
+        port              = ntohs(s->s_port);
     }
 
     hident.Tag = RPC2_HOSTBYNAME;
     strcpy(hident.Value.Name, host);
-    pident.Tag = RPC2_PORTBYINETNUMBER;
+    pident.Tag                  = RPC2_PORTBYINETNUMBER;
     pident.Value.InetPortNumber = htons(port);
-    ssid.Tag = RPC2_SUBSYSBYID;
-    ssid.Value.SubsysId = SUBSYS_UPDATE;
+    ssid.Tag                    = RPC2_SUBSYSBYID;
+    ssid.Value.SubsysId         = SUBSYS_UPDATE;
 
     RPC2_BindParms bparms;
     memset((void *)&bparms, 0, sizeof(bparms));
-    bparms.SecurityLevel = RPC2_AUTHONLY;
+    bparms.SecurityLevel  = RPC2_AUTHONLY;
     bparms.EncryptionType = RPC2_XOR;
     bparms.SideEffectType = SMARTFTP;
 
-    gethostname(hostname, 63); hostname[63] = '\0';
-    cident.SeqBody = (RPC2_ByteSeq)&hostname;
-    cident.SeqLen = strlen(hostname) + 1;
+    gethostname(hostname, 63);
+    hostname[63]       = '\0';
+    cident.SeqBody     = (RPC2_ByteSeq)&hostname;
+    cident.SeqLen      = strlen(hostname) + 1;
     bparms.ClientIdent = &cident;
 
     GetSecret(vice_config_path("db/update.tk"), secret, &state);
@@ -233,12 +231,11 @@ static void Connect()
 
     rc = RPC2_NewBinding(&hident, &pident, &ssid, &bparms, &con);
     if (rc) {
-	LogMsg(0, SrvDebugLevel, stdout, "Bind failed with %s\n", (char *)ViceErrorMsg((int)rc));
-	exit(EXIT_FAILURE);
+        LogMsg(0, SrvDebugLevel, stdout, "Bind failed with %s\n",
+               (char *)ViceErrorMsg((int)rc));
+        exit(EXIT_FAILURE);
     }
 }
-
-
 
 static void U_InitRPC()
 {
@@ -247,13 +244,14 @@ static void U_InitRPC()
     long rcode;
     RPC2_Options options;
 
-    CODA_ASSERT(LWP_Init(LWP_VERSION, LWP_MAX_PRIORITY-1, &mylpid) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_Init(LWP_VERSION, LWP_MAX_PRIORITY - 1, &mylpid) ==
+                LWP_SUCCESS);
 
     SFTP_SetDefaults(&sftpi);
     sftpi.PacketSize = 1024;
     sftpi.WindowSize = 16;
-    sftpi.SendAhead = 4;
-    sftpi.AckPoint = 4;
+    sftpi.SendAhead  = 4;
+    sftpi.AckPoint   = 4;
     SFTP_Activate(&sftpi);
 
     memset(&options, 0, sizeof(options));
@@ -261,8 +259,8 @@ static void U_InitRPC()
 
     rcode = RPC2_Init(RPC2_VERSION, &options, NULL, -1, 0);
     if (rcode != RPC2_SUCCESS) {
-	LogMsg(0, SrvDebugLevel, stdout, "RPC2_Init failed with %s\n", RPC2_ErrorMsg((int)rcode));
-	exit(EXIT_FAILURE);
+        LogMsg(0, SrvDebugLevel, stdout, "RPC2_Init failed with %s\n",
+               RPC2_ErrorMsg((int)rcode));
+        exit(EXIT_FAILURE);
     }
 }
-

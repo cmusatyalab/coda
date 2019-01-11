@@ -16,13 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
-
 /*
  *
  * rec_smolist.h -- Specification of a recoverable singly-linked list type 
@@ -63,43 +56,38 @@ extern "C" {
 }
 #endif
 
-
-
 class rec_smolist;
 class rec_smolist_iterator;
 struct rec_smolink;
 
-
 class rec_smolist {
     friend class rec_smolist_iterator;
-    struct rec_smolink *last;	    // last->next is head of list
+    struct rec_smolink *last; // last->next is head of list
 
-  public:
+public:
     rec_smolist();
     ~rec_smolist();
-    void insert(struct rec_smolink *);	// add at head of list
-    void append(struct rec_smolink *);	// add at tail of list
+    void insert(struct rec_smolink *); // add at head of list
+    void append(struct rec_smolink *); // add at tail of list
     struct rec_smolink *remove(struct rec_smolink *); // remove specified entry
-    struct rec_smolink *get(void);	// return and remove head of list
-    int	IsEmpty(void);		// 1 if list is empty
+    struct rec_smolink *get(void); // return and remove head of list
+    int IsEmpty(void); // 1 if list is empty
     void print(void);
     void print(FILE *);
     void print(int);
 };
 
-
 class rec_smolist_iterator {
-    rec_smolist *clist;		// current olist
-    struct rec_smolink *clink;	// current olink
-    struct rec_smolink *nlink;	// next olink (in case they remove the object)
-	
-  public:
-    rec_smolist_iterator(rec_smolist&);
-    rec_smolink *operator()();  // return next object or 0
-                                // Support safe deletion of currently
-                                // returned entry.  See dlist.h also.
-};
+    rec_smolist *clist; // current olist
+    struct rec_smolink *clink; // current olink
+    struct rec_smolink *nlink; // next olink (in case they remove the object)
 
+public:
+    rec_smolist_iterator(rec_smolist &);
+    rec_smolink *operator()(); // return next object or 0
+        // Support safe deletion of currently
+        // returned entry.  See dlist.h also.
+};
 
 struct rec_smolink {
     struct rec_smolink *next;

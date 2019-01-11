@@ -22,7 +22,6 @@ listed in the file CREDITS.
  *
  */
 
-
 #ifndef _VENUS_WORKER_H_
 #define _VENUS_WORKER_H_ 1
 
@@ -54,29 +53,29 @@ class worker_iterator;
 int WorkerCloseMuxfd(void);
 void ReadUpcallMsg(int fd, size_t size);
 
-const int DFLT_MAXWORKERS = 20;
-const int UNSET_MAXWORKERS = -1;
+const int DFLT_MAXWORKERS     = 20;
+const int UNSET_MAXWORKERS    = -1;
 const int DFLT_MAXPREFETCHERS = 1;
 
 class msgent : public olink {
-  friend msgent *FindMsg(olist&, u_long);
-  friend worker *FindWorker(u_long);
-  friend msgent *AllocMsgent(void);
-  friend void ReadUpcallMsg(int fd, size_t size);
-  friend void DispatchWorker(msgent *);
-  friend int IsAPrefetch(msgent *);
-  friend class worker;
-  friend class vproc;
-  friend int k_Purge();
-  friend int k_Purge(VenusFid *, int);
-  friend int k_Purge(uid_t);
-  friend int k_Replace(VenusFid *, VenusFid *);
-  friend class fsobj;
+    friend msgent *FindMsg(olist &, u_long);
+    friend worker *FindWorker(u_long);
+    friend msgent *AllocMsgent(void);
+    friend void ReadUpcallMsg(int fd, size_t size);
+    friend void DispatchWorker(msgent *);
+    friend int IsAPrefetch(msgent *);
+    friend class worker;
+    friend class vproc;
+    friend int k_Purge();
+    friend int k_Purge(VenusFid *, int);
+    friend int k_Purge(uid_t);
+    friend int k_Replace(VenusFid *, VenusFid *);
+    friend class fsobj;
 
     char msg_buf[VC_MAXMSGSIZE];
     int return_fd;
 
-  public:
+public:
     msgent();
     ~msgent();
 
@@ -85,29 +84,28 @@ class msgent : public olink {
 };
 
 class msg_iterator : public olist_iterator {
-
-  public:
-    msg_iterator(olist&);
+public:
+    msg_iterator(olist &);
     msgent *operator()();
 };
 
 class worker : public vproc {
-  friend void WorkerInit();
-  friend worker *FindWorker(u_long);
-  friend worker *GetIdleWorker();
-  friend void DispatchWorker(msgent *);
-  friend msgent *AllocMsgent(void);
-  friend void ReadUpcallMsg(int fd, size_t size);
-  friend ssize_t WriteDowncallMsg(int fd, const char *buf, size_t size);
-  friend ssize_t MsgWrite(const char *msg, size_t size);
-  friend void WorkerMux(int fd, void *udata);
-  friend time_t GetWorkerIdleTime();
-  friend void PrintWorkers(int);
-  friend int WorkerCloseMuxfd(void);
-  friend void VFSMount();
-  friend class vproc;
-  friend class fsobj;
-  friend int GetKernelModuleVersion();
+    friend void WorkerInit();
+    friend worker *FindWorker(u_long);
+    friend worker *GetIdleWorker();
+    friend void DispatchWorker(msgent *);
+    friend msgent *AllocMsgent(void);
+    friend void ReadUpcallMsg(int fd, size_t size);
+    friend ssize_t WriteDowncallMsg(int fd, const char *buf, size_t size);
+    friend ssize_t MsgWrite(const char *msg, size_t size);
+    friend void WorkerMux(int fd, void *udata);
+    friend time_t GetWorkerIdleTime();
+    friend void PrintWorkers(int);
+    friend int WorkerCloseMuxfd(void);
+    friend void VFSMount();
+    friend class vproc;
+    friend class fsobj;
+    friend int GetKernelModuleVersion();
 
     static int muxfd;
     static int nworkers;
@@ -119,61 +117,61 @@ class worker : public vproc {
     static int kernel_version;
 
     unsigned returned : 1;
-    msgent *msg;			/* For communication with the kernel */
+    msgent *msg; /* For communication with the kernel */
     int opcode;
     VenusFid StoreFid;
 
     inline void op_coda_access(union inputArgs *in, union outputArgs *out,
-        int *msg_size);
+                               int *msg_size);
     inline void op_coda_close(union inputArgs *in, union outputArgs *out,
-        int *msg_size);
+                              int *msg_size);
     inline void op_coda_create(union inputArgs *in, union outputArgs *out,
-        int *msg_size);
+                               int *msg_size);
     inline void op_coda_fsync(union inputArgs *in, union outputArgs *out,
-        int *msg_size);
+                              int *msg_size);
     inline void op_coda_getattr(union inputArgs *in, union outputArgs *out,
-        int *msg_size);
+                                int *msg_size);
     inline void op_coda_ioctl(union inputArgs *in, union outputArgs *out,
-        int *msg_size);
+                              int *msg_size);
     inline void op_coda_link(union inputArgs *in, union outputArgs *out,
-        int *msg_size);
+                             int *msg_size);
     inline void op_coda_lookup(union inputArgs *in, union outputArgs *out,
-        int *msg_size);
+                               int *msg_size);
     inline void op_coda_mkdir(union inputArgs *in, union outputArgs *out,
-        int *msg_size);
+                              int *msg_size);
     inline void op_coda_open(union inputArgs *in, union outputArgs *out,
-        int *msg_size, CodaFid *saveFid, int *saveFlags);
+                             int *msg_size, CodaFid *saveFid, int *saveFlags);
     inline void op_coda_open_by_fd(union inputArgs *in, union outputArgs *out,
-        int *msg_size, int *openfd, CodaFid *saveFid, int *saveFlags,
-        struct venus_cnode *vtarget);
-    inline void op_coda_open_by_path(union inputArgs *in,
-        union outputArgs *out, int *msg_size, CodaFid *saveFid,
-        int *saveFlags);
+                                   int *msg_size, int *openfd, CodaFid *saveFid,
+                                   int *saveFlags, struct venus_cnode *vtarget);
+    inline void op_coda_open_by_path(union inputArgs *in, union outputArgs *out,
+                                     int *msg_size, CodaFid *saveFid,
+                                     int *saveFlags);
     inline void op_coda_readlink(union inputArgs *in, union outputArgs *out,
-        int *msg_size);
+                                 int *msg_size);
     inline void op_coda_remove(union inputArgs *in, union outputArgs *out,
-        int *msg_size);
+                               int *msg_size);
     inline void op_coda_rename(union inputArgs *in, union outputArgs *out,
-        int *msg_size);
+                               int *msg_size);
     inline void op_coda_rmdir(union inputArgs *in, union outputArgs *out,
-        int *msg_size);
+                              int *msg_size);
     inline void op_coda_root(union inputArgs *in, union outputArgs *out,
-        int *msg_size);
+                             int *msg_size);
     inline void op_coda_setattr(union inputArgs *in, union outputArgs *out,
-        int *msg_size);
+                                int *msg_size);
     inline void op_coda_symlink(union inputArgs *in, union outputArgs *out,
-        int *msg_size);
+                                int *msg_size);
     inline void op_coda_vget(union inputArgs *in, union outputArgs *out,
-        int *msg_size);
+                             int *msg_size);
     inline void op_coda_statfs(union inputArgs *in, union outputArgs *out,
-        int *msg_size);
+                               int *msg_size);
     inline void op_coda_access_intent(union inputArgs *in,
-        union outputArgs *out, int *msg_size);
+                                      union outputArgs *out, int *msg_size);
 
-  public:
+public:
     worker();
-    worker(worker&);	    /* not supported! */
-    int operator=(worker&);	    /* not supported! */
+    worker(worker &); /* not supported! */
+    int operator=(worker &); /* not supported! */
     virtual ~worker();
 
     void AwaitRequest();
@@ -183,24 +181,22 @@ class worker : public vproc {
 
     static int isReady() { return (muxfd != -1); }
 
-  protected:
+protected:
     virtual void main(void);
 };
 
 class worker_iterator : public vproc_iterator {
-
-  public:
+public:
     worker_iterator();
     worker *operator()();
 };
 
-
 extern int MaxWorkers;
 extern int MaxPrefetchers;
 
-extern msgent *FindMsg(olist&, u_long);
+extern msgent *FindMsg(olist &, u_long);
 extern int k_Purge();
-extern int k_Purge(VenusFid *, int =0);
+extern int k_Purge(VenusFid *, int = 0);
 extern int k_Purge(uid_t);
 extern int k_Replace(VenusFid *, VenusFid *);
 extern void VFSMount();
@@ -215,6 +211,5 @@ extern void PrintWorkers();
 extern void PrintWorkers(FILE *);
 extern void PrintWorkers(int);
 extern int GetKernelModuleVersion();
-
 
 #endif /* _VENUS_WORKER_H_ */

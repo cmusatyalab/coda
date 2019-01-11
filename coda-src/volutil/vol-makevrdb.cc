@@ -43,85 +43,88 @@ extern "C" {
 #include <cvnode.h>
 #include <volume.h>
 
-
 /* S_VolMakeVRDB: Rebuild the VRDB from the file listed as parameter */
 // This routine parses a text file, VRList, and translates it into a binary
 // format. The format of the text file is:
 //      <Group-volname, Group-volid, VSGsize, RWVol0, ... , RWVol7, VSGAddr>
 
-long S_VolMakeVRDB(RPC2_Handle rpcid, RPC2_String formal_infile) {
+long S_VolMakeVRDB(RPC2_Handle rpcid, RPC2_String formal_infile)
+{
     /* To keep C++ 2.0 happy */
     char *infile = (char *)formal_infile;
     FILE *vrlist = NULL;
-    int err = 0;
+    int err      = 0;
     char line[500];
     int lineno = 0;
-    int fd = 0;
+    int fd     = 0;
 
-    LogMsg(9, VolDebugLevel, stdout, "Entering S_VolMakeVRDB; infile %s", infile);
+    LogMsg(9, VolDebugLevel, stdout, "Entering S_VolMakeVRDB; infile %s",
+           infile);
 
-    fd = open(VRDB_TEMP, O_TRUNC|O_WRONLY|O_CREAT, 0644);
+    fd = open(VRDB_TEMP, O_TRUNC | O_WRONLY | O_CREAT, 0644);
     if (fd == -1) {
-	LogMsg(0, VolDebugLevel, stdout,
-	       "S_VolMakeVRDB:  Unable to create %s; aborted", VRDB_TEMP);
-	err = VFAIL;
-	goto Exit;
+        LogMsg(0, VolDebugLevel, stdout,
+               "S_VolMakeVRDB:  Unable to create %s; aborted", VRDB_TEMP);
+        err = VFAIL;
+        goto Exit;
     }
 
     vrlist = fopen(infile, "r");
     if (vrlist == NULL) {
-	LogMsg(0, VolDebugLevel, stdout,
-	       "S_VolMakeVRDB: unable to open file %s", infile);
-	err = VFAIL;
-	goto Exit;
+        LogMsg(0, VolDebugLevel, stdout,
+               "S_VolMakeVRDB: unable to open file %s", infile);
+        err = VFAIL;
+        goto Exit;
     }
     while (fgets(line, sizeof(line), vrlist) != NULL) {
-	unsigned int unused;
-	int servercount, n;
-	vrent *vre = new vrent();
-	CODA_ASSERT(vre);
+        unsigned int unused;
+        int servercount, n;
+        vrent *vre = new vrent();
+        CODA_ASSERT(vre);
 
-	lineno++;
-	n = sscanf(line, "%s %x %d %x %x %x %x %x %x %x %x %x",
-		   vre->key, &vre->volnum, &servercount,
-		   &vre->ServerVolnum[0], &vre->ServerVolnum[1],
-		   &vre->ServerVolnum[2], &vre->ServerVolnum[3],
-		   &vre->ServerVolnum[4], &vre->ServerVolnum[5],
-		   &vre->ServerVolnum[6], &vre->ServerVolnum[7],
-		   &unused);
-	if (n < 3 || n > 12 || strlen(vre->key) >= V_MAXVOLNAMELEN) {
-	    LogMsg(0, VolDebugLevel, stdout, "Bad input line(%d): %s", lineno, line);
-	    LogMsg(0, VolDebugLevel, stdout, "makevrdb aborted");
-	    err = VFAIL;
-	    goto Exit;
-	}
-	vre->nServers = servercount;
-	vre->hton();
+        lineno++;
+        n = sscanf(line, "%s %x %d %x %x %x %x %x %x %x %x %x", vre->key,
+                   &vre->volnum, &servercount, &vre->ServerVolnum[0],
+                   &vre->ServerVolnum[1], &vre->ServerVolnum[2],
+                   &vre->ServerVolnum[3], &vre->ServerVolnum[4],
+                   &vre->ServerVolnum[5], &vre->ServerVolnum[6],
+                   &vre->ServerVolnum[7], &unused);
+        if (n < 3 || n > 12 || strlen(vre->key) >= V_MAXVOLNAMELEN) {
+            LogMsg(0, VolDebugLevel, stdout, "Bad input line(%d): %s", lineno,
+                   line);
+            LogMsg(0, VolDebugLevel, stdout, "makevrdb aborted");
+            err = VFAIL;
+            goto Exit;
+        }
+        vre->nServers = servercount;
+        vre->hton();
 
-	if (write(fd, vre, sizeof(struct vrent)) != sizeof(struct vrent)) {
-	    LogMsg(0, VolDebugLevel, stdout, "write error on input line(%d): %s", lineno, line);
-	    LogMsg(0, VolDebugLevel, stdout, "makevrdb aborted");
-	    delete vre;
-	    err = VFAIL;
-	    goto Exit;
-	}
-	delete vre;
+        if (write(fd, vre, sizeof(struct vrent)) != sizeof(struct vrent)) {
+            LogMsg(0, VolDebugLevel, stdout,
+                   "write error on input line(%d): %s", lineno, line);
+            LogMsg(0, VolDebugLevel, stdout, "makevrdb aborted");
+            delete vre;
+            err = VFAIL;
+            goto Exit;
+        }
+        delete vre;
     }
 
     /* Make temporary VRDB permanent. */
     if (rename(VRDB_TEMP, VRDB_PATH) == -1) {
-	LogMsg(0, VolDebugLevel, stdout,
-	       "Unable to rename %s to %s; new vrdb not created",
-	       VRDB_TEMP, VRDB_PATH);
-	err = 1;
-    }
-    else
-	LogMsg(0, VolDebugLevel, stdout, "VRDB created, %d entries", lineno);
+        LogMsg(0, VolDebugLevel, stdout,
+               "Unable to rename %s to %s; new vrdb not created", VRDB_TEMP,
+               VRDB_PATH);
+        err = 1;
+    } else
+        LogMsg(0, VolDebugLevel, stdout, "VRDB created, %d entries", lineno);
 
     /* Tell fileserver to read in new database. */
     CheckVRDB();
-  Exit:
-    if (vrlist) fclose(vrlist);
-    if (fd > 0) close(fd);
-    return(err ? VFAIL : 0);
+Exit:
+    if (vrlist)
+        fclose(vrlist);
+    if (fd > 0)
+        close(fd);
+    return (err ? VFAIL : 0);
 }

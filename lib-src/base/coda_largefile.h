@@ -31,7 +31,6 @@ extern "C" {
 #endif
 
 #ifndef HAVE_FSEEKO
-#define fseeko(stream,offset,whence) fseek((stream),(long)(offset),(whence))
-#define ftello(stream) (off_t)ftell((stream))
+#define fseeko(stream, offset, whence) fseek((stream), (long)(offset), (whence))
+#define ftello(stream) (off_t) ftell((stream))
 #endif
-

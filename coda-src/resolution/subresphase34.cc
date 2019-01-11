@@ -45,64 +45,64 @@ extern "C" {
 // ******* Private Routines ***********
 static void ProcessIncList(ViceFid *, dlist *, dlist *);
 
-
 //RS_HandleInc
-//	called between phase 3 and phase 4 of resolution 
+//	called between phase 3 and phase 4 of resolution
 //		only if needed i.e. if there are inconsistencies
-long RS_HandleInc(RPC2_Handle RPCid, ViceFid *Fid, ViceStoreId *logid, 
-		    ViceStatus *status, RPC2_BoundedBS *piggyinc) {
+long RS_HandleInc(RPC2_Handle RPCid, ViceFid *Fid, ViceStoreId *logid,
+                  ViceStatus *status, RPC2_BoundedBS *piggyinc)
+{
     PROBE(tpinfo, RecovSubP34Begin);
-    Volume *volptr = 0;
-    int errorCode = 0;
-    int blocks = 0;
+    Volume *volptr     = 0;
+    int errorCode      = 0;
+    int blocks         = 0;
     VolumeId VSGVolnum = Fid->Volume;
-    dlist *inclist = new dlist((CFN)CompareIlinkEntry);
-    
-    // validate parms 
+    dlist *inclist     = new dlist((CFN)CompareIlinkEntry);
+
+    // validate parms
     {
-	if (!XlateVid(&Fid->Volume)) {
-	    LogMsg(0, SrvDebugLevel, stdout,  
-		   "RS_HandleInc: Coudnt Xlate VSG %x", Fid->Volume);
-	    //PROBE(tpinfo, CPHASE2END);
-	    return(EINVAL);
-	}
+        if (!XlateVid(&Fid->Volume)) {
+            LogMsg(0, SrvDebugLevel, stdout,
+                   "RS_HandleInc: Coudnt Xlate VSG %x", Fid->Volume);
+            //PROBE(tpinfo, CPHASE2END);
+            return (EINVAL);
+        }
     }
-    
-    // parse the inconsisteny list 
+
+    // parse the inconsisteny list
     {
-	BSToDlist(piggyinc, inclist);
+        BSToDlist(piggyinc, inclist);
     }
-    
+
     dlist *vlist = 0;
-    // get the objects 
+    // get the objects
     {
-	vlist = new dlist((CFN) VLECmp);
-	
-	if ((errorCode = GetPhase2Objects(Fid, vlist, inclist, &volptr))) {
-	    LogMsg(0, SrvDebugLevel, stdout,  
-		   "RS_HandleInc: Error getting objects");
-	    goto Exit;
-	}
+        vlist = new dlist((CFN)VLECmp);
+
+        if ((errorCode = GetPhase2Objects(Fid, vlist, inclist, &volptr))) {
+            LogMsg(0, SrvDebugLevel, stdout,
+                   "RS_HandleInc: Error getting objects");
+            goto Exit;
+        }
     }
-    
-    // create nonexistent objects 
+
+    // create nonexistent objects
     {
-	if ((errorCode = CreateResPhase2Objects(Fid, vlist, inclist, volptr, 
-					       VSGVolnum, &blocks))) {
-	    LogMsg(0, SrvDebugLevel, stdout,  "DirResPhase2: Error %d in create objects",
-		    errorCode);
-	    goto Exit;
-	}
+        if ((errorCode = CreateResPhase2Objects(Fid, vlist, inclist, volptr,
+                                                VSGVolnum, &blocks))) {
+            LogMsg(0, SrvDebugLevel, stdout,
+                   "DirResPhase2: Error %d in create objects", errorCode);
+            goto Exit;
+        }
     }
-    
-    // Process all inclist entries 
+
+    // Process all inclist entries
     {
-	ProcessIncList(Fid, inclist, vlist);
+        ProcessIncList(Fid, inclist, vlist);
     }
-	
+
     // spool a resolution record and set status
     {
-	vle *ov = FindVLE(*vlist, Fid);
+        vle *ov = FindVLE(*vlist, Fid);
         if (!ov) {
             SLog(0, "RS_HandleInc - no vle for %s\n", FID_(Fid));
             errorCode = EINVAL;
@@ -110,77 +110,76 @@ long RS_HandleInc(RPC2_Handle RPCid, ViceFid *Fid, ViceStoreId *logid,
         }
         if ((errorCode = SpoolVMLogRecord(vlist, ov, volptr, logid,
                                           ResolveNULL_OP, 0))) {
-	    if (errorCode == ENOSPC) {
-		LogMsg(0, SrvDebugLevel, stdout, 
-		       "RS_HandleInc - no space for spooling log record - ignoring\n");
-		errorCode = 0;
-	    }
-	    else {
-		LogMsg(0, SrvDebugLevel, stdout, 
-		       "RS_HandleInc - error during SpoolVMLogRecord\n");
-		goto Exit;
-	    }
-	}
-	SetStatus(ov->vptr, status, 0, 0);
+            if (errorCode == ENOSPC) {
+                LogMsg(
+                    0, SrvDebugLevel, stdout,
+                    "RS_HandleInc - no space for spooling log record - ignoring\n");
+                errorCode = 0;
+            } else {
+                LogMsg(0, SrvDebugLevel, stdout,
+                       "RS_HandleInc - error during SpoolVMLogRecord\n");
+                goto Exit;
+            }
+        }
+        SetStatus(ov->vptr, status, 0, 0);
     }
-    
-  Exit:
-    // put all objects 
+
+Exit:
+    // put all objects
     PutObjects(errorCode, volptr, NO_LOCK, vlist, blocks, 1);
-    
+
     // clean up
     CleanIncList(inclist);
-    
-    LogMsg(9, SrvDebugLevel, stdout,  "DirResPhase2 returns %d", errorCode);
+
+    LogMsg(9, SrvDebugLevel, stdout, "DirResPhase2 returns %d", errorCode);
     PROBE(tpinfo, RecovSubP34End);
-    return(errorCode);
+    return (errorCode);
 }
 
 // ProcessIncList
-//	For each entry in the inclist 
+//	For each entry in the inclist
 //		If object exists in the same directory
-//			as specified in the ilist entry then 
+//			as specified in the ilist entry then
 //			mark the object inconsistent
 //		Otherwise mark real parent, object and parent specified
 //			in the ilist entry are marked inconsistent
-//		If Object doesn't exist at all then try to mark the 
-//			parent directory in conflict 
+//		If Object doesn't exist at all then try to mark the
+//			parent directory in conflict
 
-static void ProcessIncList(ViceFid *Fid, dlist *inclist, 
-			    dlist *vlist) {
+static void ProcessIncList(ViceFid *Fid, dlist *inclist, dlist *vlist)
+{
     dlist_iterator next(*inclist);
     ilink *il;
     while ((il = (ilink *)next())) {
-	ViceFid cfid;
-	ViceFid ipfid;
-	FormFid(cfid, Fid->Volume, il->vnode, il->unique);
-	FormFid(ipfid, Fid->Volume, il->pvnode, il->punique);
-	
-	vle *v = FindVLE(*vlist, &cfid);
-	if (v) {
-	    if (!strcmp(il->name, ".")) 
-		MarkObjInc(&cfid, v->vptr);
-	    else if((long)v->vptr->disk.vparent == il->pvnode &&
-		    (long)v->vptr->disk.uparent == il->punique)
-		MarkObjInc(&cfid, v->vptr);
-	    else {
-		// parents are different - mark both parents inc 
-		vle *ipv = FindVLE(*vlist, &ipfid);
-		if (ipv && ipv->vptr)
-		    MarkObjInc(&ipfid, ipv->vptr);
-		
-		ViceFid vpfid;
-		FormFid(vpfid, Fid->Volume, v->vptr->disk.vparent, 
-			v->vptr->disk.uparent);
-		vle *vpv = FindVLE(*vlist, &vpfid);
-		if (vpv && vpv->vptr)
-		    MarkObjInc(&vpfid, vpv->vptr);
-	    }
-	}
-	else { // object couldn't be found/created - mark parent inc
-	    vle *ipv = FindVLE(*vlist, &ipfid);
-	    if (ipv && ipv->vptr)
-		MarkObjInc(&ipfid, ipv->vptr);
-	}
+        ViceFid cfid;
+        ViceFid ipfid;
+        FormFid(cfid, Fid->Volume, il->vnode, il->unique);
+        FormFid(ipfid, Fid->Volume, il->pvnode, il->punique);
+
+        vle *v = FindVLE(*vlist, &cfid);
+        if (v) {
+            if (!strcmp(il->name, "."))
+                MarkObjInc(&cfid, v->vptr);
+            else if ((long)v->vptr->disk.vparent == il->pvnode &&
+                     (long)v->vptr->disk.uparent == il->punique)
+                MarkObjInc(&cfid, v->vptr);
+            else {
+                // parents are different - mark both parents inc
+                vle *ipv = FindVLE(*vlist, &ipfid);
+                if (ipv && ipv->vptr)
+                    MarkObjInc(&ipfid, ipv->vptr);
+
+                ViceFid vpfid;
+                FormFid(vpfid, Fid->Volume, v->vptr->disk.vparent,
+                        v->vptr->disk.uparent);
+                vle *vpv = FindVLE(*vlist, &vpfid);
+                if (vpv && vpv->vptr)
+                    MarkObjInc(&vpfid, vpv->vptr);
+            }
+        } else { // object couldn't be found/created - mark parent inc
+            vle *ipv = FindVLE(*vlist, &ipfid);
+            if (ipv && ipv->vptr)
+                MarkObjInc(&ipfid, ipv->vptr);
+        }
     }
 }

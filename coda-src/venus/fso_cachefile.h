@@ -24,7 +24,6 @@ listed in the file CREDITS.
  *
  */
 
-
 #ifndef _VENUS_FSO_CACHEFILE_H_
 #define _VENUS_FSO_CACHEFILE_H_ 1
 
@@ -71,7 +70,8 @@ extern uint64_t CacheChunkBlockBitmapSize;
  *
  * @return bytes amount
  */
-static inline uint64_t ccblocks_to_bytes(uint64_t ccblocks) {
+static inline uint64_t ccblocks_to_bytes(uint64_t ccblocks)
+{
     return ccblocks << CacheChunkBlockSizeBits;
 }
 
@@ -82,7 +82,8 @@ static inline uint64_t ccblocks_to_bytes(uint64_t ccblocks) {
  *
  * @return cache chunk block amount
  */
-static inline uint64_t bytes_to_ccblocks(uint64_t bytes) {
+static inline uint64_t bytes_to_ccblocks(uint64_t bytes)
+{
     return bytes >> CacheChunkBlockSizeBits;
 }
 
@@ -93,7 +94,8 @@ static inline uint64_t bytes_to_ccblocks(uint64_t bytes) {
  *
  * @return cache chunk block amount
  */
-static inline uint64_t bytes_to_ccblocks_floor(uint64_t bytes) {
+static inline uint64_t bytes_to_ccblocks_floor(uint64_t bytes)
+{
     return bytes_to_ccblocks(bytes);
 }
 
@@ -104,7 +106,8 @@ static inline uint64_t bytes_to_ccblocks_floor(uint64_t bytes) {
  *
  * @return cache chunk block amount
  */
-static inline uint64_t bytes_to_ccblocks_ceil(uint64_t bytes) {
+static inline uint64_t bytes_to_ccblocks_ceil(uint64_t bytes)
+{
     return bytes_to_ccblocks(bytes + CacheChunkBlockSizeMax);
 }
 
@@ -197,9 +200,10 @@ static inline uint64_t length_align_to_ccblock(uint64_t b_pos, int64_t b_count)
     return ccblocks_to_bytes(ccblock_length(b_pos, b_count));
 }
 
-#define FS_BLOCKS_SIZE_MAX    (4095)
-#define FS_BLOCKS_SIZE_MASK   (~FS_BLOCKS_SIZE_MAX)
-#define FS_BLOCKS_ALIGN(size) ((size + FS_BLOCKS_SIZE_MAX) & FS_BLOCKS_SIZE_MASK)
+#define FS_BLOCKS_SIZE_MAX (4095)
+#define FS_BLOCKS_SIZE_MASK (~FS_BLOCKS_SIZE_MAX)
+#define FS_BLOCKS_ALIGN(size) \
+    ((size + FS_BLOCKS_SIZE_MAX) & FS_BLOCKS_SIZE_MASK)
 
 class CacheChunk : private dlink {
 private:
@@ -214,34 +218,43 @@ public:
      * @param start the chunk's start
      * @param len   the chunk's length
      */
-    CacheChunk(uint64_t start, int64_t len) : start(start), len(len),
-        valid(true) {}
+    CacheChunk(uint64_t start, int64_t len)
+        : start(start)
+        , len(len)
+        , valid(true)
+    {
+    }
 
     /**
      * Constructor
      */
-    CacheChunk() : start(0), len(0), valid(false) {}
+    CacheChunk()
+        : start(0)
+        , len(0)
+        , valid(false)
+    {
+    }
 
     /**
      * Chunk's start getter
      *
      * @return the chunk's start
      */
-    uint64_t GetStart() {return start;}
+    uint64_t GetStart() { return start; }
 
     /**
      * Chunk's length getter
      *
      * @return the chunk's length
      */
-    int64_t GetLength() {return len;}
+    int64_t GetLength() { return len; }
 
     /**
      * Check wether the object represents a valid chunk
      *
      * @return true if object represents a valid chunk and false otherwise
      */
-    bool isValid() {return valid;}
+    bool isValid() { return valid; }
 };
 
 class CacheChunkList : private dlist {
@@ -251,7 +264,7 @@ public:
      * Constructor
      */
     CacheChunkList();
-    
+
     /**
      * Destructor
      */
@@ -289,8 +302,9 @@ public:
      * @param foreachcb for each callback
      * @param usr_data  user closure to be passed to the callback
      */
-    void ForEach(void (*foreachcb)(uint64_t start, int64_t len, 
-        void * usr_data_cb), void * usr_data = NULL);
+    void ForEach(void (*foreachcb)(uint64_t start, int64_t len,
+                                   void *usr_data_cb),
+                 void *usr_data = NULL);
 
     /**
      * Acquire the lock object's for reading
@@ -324,18 +338,19 @@ public:
      *
      * @return number of list elements
      */
-    uint Length() {return (uint) this->count();}
+    uint Length() { return (uint)this->count(); }
 };
 
 class CacheFile {
     friend class SegmentedCacheFile;
-    uint64_t length;  /**< Length of the container file */
-    uint64_t validdata; /**< Amount of actual and valid data in the container file */
-    int  refcnt; /**< Reference counter */
+    uint64_t length; /**< Length of the container file */
+    uint64_t
+        validdata; /**< Amount of actual and valid data in the container file */
+    int refcnt; /**< Reference counter */
     int numopens; /**< Number of openers */
     bitmap7 *cached_chunks; /**< Bitmap of actual cached data */
-    int recoverable;  /**< Recoverable flag (RVM) */
-    Lock rw_lock;  /**< Read/Write Lock */
+    int recoverable; /**< Recoverable flag (RVM) */
+    Lock rw_lock; /**< Read/Write Lock */
 
     /**
      * Validate the container file
@@ -343,7 +358,7 @@ class CacheFile {
      * @return zero if file is invalid and different than zero otherwise
      */
     int ValidContainer();
-    
+
     /**
      * Calculate the actual valid data based on the caching bitmap
      */
@@ -359,6 +374,7 @@ class CacheFile {
      *         by calling isValid())
      */
     CacheChunk GetNextHole(uint64_t start_b, uint64_t end_b);
+
 protected:
     char name[CACHEFILENAMELEN]; /**< Container file path ("xx/xx/xx/xx") */
 
@@ -372,11 +388,10 @@ protected:
      * 
      * @return amount of bytes copied
      */
-    static int64_t CopySegment(CacheFile * from, CacheFile * to, 
-                               uint64_t pos, int64_t count);
+    static int64_t CopySegment(CacheFile *from, CacheFile *to, uint64_t pos,
+                               int64_t count);
 
 public:
-
     /**
      * Constructor
      *
@@ -389,13 +404,12 @@ public:
      * Constructor
      */
     CacheFile();
-    
+
     /**
      * Destructor
      */
     ~CacheFile();
 
-    
     /**
      * Create and initialize a new cachefile (container file will be also 
      * created)
@@ -445,12 +459,12 @@ public:
      * Validate the container file (Resets the container file if invalid)
      */
     void Validate();
-    
+
     /**
      * Reset the container file to zero length and no data
      */
     void Reset();
-    
+
     /**
      * Copy the container file and metadata to another object
      *
@@ -459,7 +473,7 @@ public:
      * @return zero on success or -1 on error
      */
     int Copy(CacheFile *destination);
-    
+
     /**
      * Copy the container file (only) to a specified location
      *
@@ -468,13 +482,13 @@ public:
      *
      * @return zero on success or -1 on error
      */
-    int  Copy(char *destname, int recovering = 0);
+    int Copy(char *destname, int recovering = 0);
 
     /**
      * Increment reference counter. Creation already does an implicit IncRef() 
      */
     void IncRef() { refcnt++; }
-    
+
     /**
      * Decrements reference counter
      *
@@ -488,7 +502,7 @@ public:
      * @param stat output stat structure
      */
     void Stat(struct stat *tstat);
-    
+
     /**
      * Change container file's last access and modification times
      *
@@ -496,28 +510,28 @@ public:
      *        respectively.
      */
     void Utimes(const struct timeval times[2]);
-    
+
     /**
      * Truncate file to a new size
      *
      * @param newlen size to which the file will be truncated to
      */
     void Truncate(uint64_t newlen);
-    
+
     /**
      * Set the cache file length without truncating the container file
      *
      * @param newlen new cache file metadata size
      */
     void SetLength(uint64_t newlen);
-    
+
     /**
      * Set cache file's valid data (consecutive from beginning of the file)
      *
      * @param len amount of valid data
      */
     void SetValidData(uint64_t len);
-    
+
     /**
      * Set cache file's valid data (within a range)
      *
@@ -534,7 +548,7 @@ public:
      * 
      * @return holes list
      */
-    CacheChunkList * GetHoles(uint64_t start, int64_t len);
+    CacheChunkList *GetHoles(uint64_t start, int64_t len);
 
     /**
      * Get the valid data of the file within a range
@@ -544,29 +558,29 @@ public:
      * 
      * @return valid ranges chunks list
      */
-    CacheChunkList * GetValidChunks(uint64_t start, int64_t len);
+    CacheChunkList *GetValidChunks(uint64_t start, int64_t len);
 
     /**
      * Get the name of the container file
      *
      * @return name of the container file
      */
-    char *Name()         { return(name); }
-    
+    char *Name() { return (name); }
+
     /**
      * Get the length of the cache file
      *
      * @return length of the cache file in bytes
      */
-    uint64_t Length()        { return(length); }
-    
+    uint64_t Length() { return (length); }
+
     /**
      * Get the amount of valid data of the cache file
      *
      * @return amount of valid data of the cache file in bytes
      */
-    uint64_t ValidData() { return(validdata); }
-    
+    uint64_t ValidData() { return (validdata); }
+
     /**
      * Get the amount of consecutive valid data starting from beginning of the 
      * file
@@ -574,26 +588,30 @@ public:
      * @return amount of valid data of the cache file in bytes
      */
     uint64_t ConsecutiveValidData();
-    
+
     /**
      * Check if file is partially cached
      *
      * @return zero if file is fully cached or 1 otherwise
      */
-    int IsPartial() { return(length != validdata); }
+    int IsPartial() { return (length != validdata); }
 
     /**
      * Print the metadata to the standard output
      */
-    void print() { print (stdout); }
-    
+    void print() { print(stdout); }
+
     /**
      * Print the metadata to the specified file
      *
      * @param fp FILE structure of the output file
      */
-    void print(FILE *fp) { fflush(fp); print(fileno(fp)); }
-    
+    void print(FILE *fp)
+    {
+        fflush(fp);
+        print(fileno(fp));
+    }
+
     /**
      * Print the metadata to the specified file
      *
@@ -606,7 +624,7 @@ public:
  * Segmented cache file
  */
 class SegmentedCacheFile : public CacheFile {
-    CacheFile * cf; /**< Associated cache file */
+    CacheFile *cf; /**< Associated cache file */
 
 public:
     /**
@@ -645,4 +663,4 @@ public:
     int64_t InjectSegment(uint64_t pos, int64_t count);
 };
 
-#endif	/* _VENUS_FSO_CACHEFILE_H_ */
+#endif /* _VENUS_FSO_CACHEFILE_H_ */

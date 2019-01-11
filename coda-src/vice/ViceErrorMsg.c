@@ -37,7 +37,6 @@ Pittsburgh, PA.
 
 */
 
-
 /************************************************************************/
 /*									*/
 /*  ViceErrorMsg - Change a vice error code to a string			*/
@@ -66,19 +65,28 @@ extern "C" {
 
 char *ViceErrorMsg(int errorCode)
 {
-    if(errorCode < 0)
-	return(RPC2_ErrorMsg((long)errorCode));
+    if (errorCode < 0)
+        return (RPC2_ErrorMsg((long)errorCode));
 
-    switch(errorCode) {
-	case 0:			return("Success");
-	case VSALVAGE:		return("Volume needs to be salvaged");
-	case VNOVNODE:		return("Bad vnode number");
-	case VNOVOL:		return("Volume not online");
-	case VVOLEXISTS:	return("Volume already exists");
-	case VNOSERVICE:	return("Volume is not in service");
-	case VOFFLINE:		return("Volume offline");
-	case VONLINE:		return("Volume is already online");
-	case EINCONS:		return("Inconsistent Object");
+    switch (errorCode) {
+    case 0:
+        return ("Success");
+    case VSALVAGE:
+        return ("Volume needs to be salvaged");
+    case VNOVNODE:
+        return ("Bad vnode number");
+    case VNOVOL:
+        return ("Volume not online");
+    case VVOLEXISTS:
+        return ("Volume already exists");
+    case VNOSERVICE:
+        return ("Volume is not in service");
+    case VOFFLINE:
+        return ("Volume offline");
+    case VONLINE:
+        return ("Volume is already online");
+    case EINCONS:
+        return ("Inconsistent Object");
     }
 
     return strerror(errorCode);

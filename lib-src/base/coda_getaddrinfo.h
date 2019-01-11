@@ -35,8 +35,8 @@ extern "C" {
 #define CODA_AI_RES_SRV 0x8000
 
 int coda_getaddrinfo(const char *node, const char *service,
-		     const struct RPC2_addrinfo *hints,
-		     struct RPC2_addrinfo **res);
+                     const struct RPC2_addrinfo *hints,
+                     struct RPC2_addrinfo **res);
 void coda_reorder_addrinfo(struct RPC2_addrinfo **res);
 
 #ifdef __cplusplus
@@ -44,4 +44,3 @@ void coda_reorder_addrinfo(struct RPC2_addrinfo **res);
 #endif
 
 #endif /* _CODA_GETADDRINFO_H_ */
-

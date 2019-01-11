@@ -29,45 +29,43 @@ Coda are listed in the file CREDITS.
 #define RVM_SEGMENT_HDR_SIZE RVM_PAGE_SIZE /* length of segment header */
 
 /* region definition descriptor */
-typedef struct
-    {
-    rvm_offset_t        offset;         /* region's offset in segment */
-    rvm_length_t        length;         /* region length */
-    char                *vmaddr;        /* mapping address for region */
-    }
-rvm_region_def_t;
+typedef struct {
+    rvm_offset_t offset; /* region's offset in segment */
+    rvm_length_t length; /* region length */
+    char *vmaddr; /* mapping address for region */
+} rvm_region_def_t;
 
 /* initializer for region definition descriptor */
-#define RVM_INIT_REGION(region,off,len,addr) \
-    (region).length = (len); \
-    (region).vmaddr = (addr); \
+#define RVM_INIT_REGION(region, off, len, addr) \
+    (region).length = (len);                    \
+    (region).vmaddr = (addr);                   \
     (region).offset = (off);
 
 /* error code for damaged segment header */
 #define RVM_ESEGMENT_HDR 2000
 
 /* define regions within a segment for segement loader */
-extern rvm_return_t rvm_create_segment (
-    char                *DevName,       /* pointer to data device name */
-    rvm_offset_t        DevLength,      /* Length of dataDev if really a device */
-    rvm_options_t       *options,       /* options record for RVM */
-    rvm_length_t        nregions,       /* number of regions defined for segment*/
-    rvm_region_def_t    *region_defs    /* array of region defs for segment */
-    );
+rvm_return_t rvm_create_segment(
+    char *DevName, /* pointer to data device name */
+    rvm_offset_t DevLength, /* Length of dataDev if really a device */
+    rvm_options_t *options, /* options record for RVM */
+    rvm_length_t nregions, /* number of regions defined for segment*/
+    rvm_region_def_t *region_defs /* array of region defs for segment */
+);
 
 /* load regions of a segment */
-extern rvm_return_t rvm_load_segment (
-    char                *DevName,       /* pointer to data device name */
-    rvm_offset_t        DevLength,      /* Length of dataDev if really a device */
-    rvm_options_t       *options,       /* options record for RVM */
-    unsigned long       *nregions,      /* returned -- number of regions mapped */
-    rvm_region_def_t    *regions[]      /* returned array of region descriptors */
-    );
+rvm_return_t rvm_load_segment(
+    char *DevName, /* pointer to data device name */
+    rvm_offset_t DevLength, /* Length of dataDev if really a device */
+    rvm_options_t *options, /* options record for RVM */
+    unsigned long *nregions, /* returned -- number of regions mapped */
+    rvm_region_def_t *regions[] /* returned array of region descriptors */
+);
 
 /* release regions of a segment */
-extern rvm_return_t rvm_release_segment (
-    unsigned long       nregions,      /* number of regions mapped */
-    rvm_region_def_t    **regions      /* array of region descriptors */
-    );
+rvm_return_t
+rvm_release_segment(unsigned long nregions, /* number of regions mapped */
+                    rvm_region_def_t **regions /* array of region descriptors */
+);
 
 #endif /* _RVM_SEGMENT_H_ */

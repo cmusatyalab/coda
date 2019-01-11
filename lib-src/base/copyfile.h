@@ -30,7 +30,7 @@ Coda are listed in the file CREDITS.
 #include <unistd.h>
 #include <stdint.h>
 
-#define BUF_SIZE 8192  /* size of buffer for looping copy */
+#define BUF_SIZE 8192 /* size of buffer for looping copy */
 
 #ifdef __cplusplus
 extern "C" {
@@ -73,4 +73,3 @@ int copyfile_byname(const char *fromname, const char *toname);
 #endif
 
 #endif /* _COPYFILE_H_ */
-

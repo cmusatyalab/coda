@@ -49,9 +49,10 @@ extern "C" {
 /**
  * Locking type
  */
-enum lock_how {
-    READ_LOCK = 1,  /**< lock for reading */
-    WRITE_LOCK = 2, /**< lock for writting */
+enum lock_how
+{
+    READ_LOCK   = 1, /**< lock for reading */
+    WRITE_LOCK  = 2, /**< lock for writing */
     SHARED_LOCK = 4 /**< as a shared lock */
 };
 
@@ -65,15 +66,15 @@ enum lock_how {
  * Lock structure
  */
 struct Lock {
-	unsigned char   wait_states;	/**< type of lockers waiting */
-	unsigned char   excl_locked;	/**< exclusive lock flag */
-	unsigned char   readers_reading;/**< amount of readers actually with read locks */
-	unsigned char   num_waiting;	/**< waiting lockers counter */
-	PROCESS         excl_locker;    /**< exclusive locker */
+    unsigned char wait_states; /**< type of lockers waiting */
+    unsigned char excl_locked; /**< exclusive lock flag */
+    unsigned char readers_reading; /**< number of readers with read locks */
+    unsigned char num_waiting; /**< waiting lockers counter */
+    PROCESS excl_locker; /**< exclusive locker */
 };
 
 /* next defines wait_states for which we wait on excl_locked */
-#define EXCL_LOCKS (WRITE_LOCK|SHARED_LOCK)
+#define EXCL_LOCKS (WRITE_LOCK | SHARED_LOCK)
 
 /**
  * Obtain the lock
@@ -81,31 +82,31 @@ struct Lock {
  * @param lock pointer to the lock
  * @param how  locking type
  */
-void Lock_Obtain (struct Lock* lock, int how);
+void Lock_Obtain(struct Lock *lock, int how);
 
 /**
  * Release lock obtained for reading
  *
  * @param lock pointer to the lock
  */
-void Lock_ReleaseR (struct Lock * lock);
+void Lock_ReleaseR(struct Lock *lock);
 
 /**
  * Release lock obtained for writting
  *
  * @param lock pointer to the lock
  */
-void Lock_ReleaseW (struct Lock * lock);
+void Lock_ReleaseW(struct Lock *lock);
 
 #else /* _REENTRANT || _THREAD_SAFE */
 #include <pthread.h>
 
 struct Lock {
-    char             initialized;
-    char             readers;
-    PROCESS          excl;
-    pthread_mutex_t  _access;
-    pthread_cond_t   wakeup;
+    char initialized;
+    char readers;
+    PROCESS excl;
+    pthread_mutex_t _access;
+    pthread_cond_t wakeup;
 };
 #endif /* _REENTRANT || _THREAD_SAFE */
 
@@ -180,7 +181,7 @@ int WriteLocked(struct Lock *lock);
  *
  * @param lock pointer to the lock
  */
-void Lock_Init (struct Lock *lock);
+void Lock_Init(struct Lock *lock);
 
 /**
  * Safely obtain two simultaneous locks
@@ -190,7 +191,8 @@ void Lock_Init (struct Lock *lock);
  * @param lock_2 pointer to the second lock
  * @param how_2  second lock's type
  */
-void ObtainDualLock(register struct Lock *lock_1, enum lock_how how_1, register struct Lock *lock_2, enum lock_how how_2);
+void ObtainDualLock(struct Lock *lock_1, enum lock_how how_1,
+                    struct Lock *lock_2, enum lock_how how_2);
 
 /**
  * Safely release two simultaneous locks
@@ -200,11 +202,11 @@ void ObtainDualLock(register struct Lock *lock_1, enum lock_how how_1, register 
  * @param lock_2 pointer to the second lock
  * @param how_2  second lock's type
  */
-void ReleaseDualLock(register struct Lock *lock_1, enum lock_how how_1, register struct Lock *lock_2, enum lock_how how_2);
+void ReleaseDualLock(struct Lock *lock_1, enum lock_how how_1,
+                     struct Lock *lock_2, enum lock_how how_2);
 
 #ifdef __cplusplus
 }
 #endif
 
 #endif /* _LWP_LOCK_H_ */
-

@@ -7,8 +7,8 @@
 
 #include <odytypes.h>
 
-#include "ds_list.h"  /* we're a client of lists */
-#include "ds_hash.h"  /* public parts */
+#include "ds_list.h" /* we're a client of lists */
+#include "ds_hash.h" /* public parts */
 
 /* magic numbers for structures */
 
@@ -27,22 +27,21 @@ extern const magic_t ds_hash_iter_magic;
 */
 
 struct ds_hash_t {
-    magic_t       magic;
-    HFN           hfn;
-    int           nbuckets;
-    ds_list_t   **buckets;
-    int           count;
+    magic_t magic;
+    HFN hfn;
+    int nbuckets;
+    ds_list_t **buckets;
+    int count;
 };
 
 struct ds_hash_iter_t {
-    magic_t         magic;
-    ds_hash_t      *table;
-    int             curbucket;
+    magic_t magic;
+    ds_hash_t *table;
+    int curbucket;
     ds_list_iter_t *curiter;
 };
 
-#define DS_HASH_VALID(tp)      ((tp) && ((tp)->magic == ds_hash_magic))
+#define DS_HASH_VALID(tp) ((tp) && ((tp)->magic == ds_hash_magic))
 #define DS_HASH_ITER_VALID(ip) ((ip) && ((ip)->magic == ds_hash_iter_magic))
 
 #endif /* _DS_HASH_PRIVATE_H_ */
-

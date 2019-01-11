@@ -16,7 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
 /* this file contains code for local repair routines */
 
 #ifdef __cplusplus
@@ -55,13 +54,13 @@ void ClientModifyLog::CheckCMLHead(char *msg)
 
     OBJ_ASSERT(this, msg != NULL);
 
-    if(!m) {
-      if(msg)
-	sprintf(msg, "no local mutations\n");
-      return;
+    if (!m) {
+        if (msg)
+            sprintf(msg, "no local mutations\n");
+        return;
     }
 
-    {   /* perform local mutation checks, produce repair tool message */
+    { /* perform local mutation checks, produce repair tool message */
         char opmsg[1024];
         char checkmsg[1024];
         int mcode, rcode;
@@ -85,23 +84,26 @@ int ClientModifyLog::DiscardLocalMutation(char *msg)
 
     cml_iterator next(*this, CommitOrder);
     cmlent *m = next();
-    if(!m) {
-      if(msg) sprintf(msg, "no local mutations for this volume\n");
-      return EINVAL;
+    if (!m) {
+        if (msg)
+            sprintf(msg, "no local mutations for this volume\n");
+        return EINVAL;
     }
 
     m->GetLocalOpMsg(opmsg);
 
-    if(!m->IsToBeRepaired()) {
-      if(msg) sprintf(msg, "\tLocal mutation:\n\t%s\n\tnot in conflict!\n",
-		      opmsg);
-      return EINVAL;
+    if (!m->IsToBeRepaired()) {
+        if (msg)
+            sprintf(msg, "\tLocal mutation:\n\t%s\n\tnot in conflict!\n",
+                    opmsg);
+        return EINVAL;
     }
 
     /* XXX: Dependencies need to be checked here! */
 
     LOG(0, ("ClientModifyLog::DiscardLocalMutation: dropping head of CML:"
-	    "%s\n", opmsg));
+            "%s\n",
+            opmsg));
     CODA_ASSERT(m->IsFrozen());
     Recov_BeginTrans();
     cancelFreezes(1);
@@ -109,13 +111,13 @@ int ClientModifyLog::DiscardLocalMutation(char *msg)
     cancelFreezes(0);
     Recov_EndTrans(CMFP);
 
-    if(rc != 1) {
-      LOG(0, ("ClientModifyLog::DiscardLocalMutation: cancel failed: %d\n", rc));
-      sprintf(msg, "discard of local mutation failed");
-    }
-    else {
-      sprintf(msg, "discarded local mutation %s\n", opmsg);
-      rc = 0;
+    if (rc != 1) {
+        LOG(0,
+            ("ClientModifyLog::DiscardLocalMutation: cancel failed: %d\n", rc));
+        sprintf(msg, "discard of local mutation failed");
+    } else {
+        sprintf(msg, "discarded local mutation %s\n", opmsg);
+        rc = 0;
     }
 
     return rc;
@@ -148,26 +150,25 @@ void ClientModifyLog::PreserveLocalMutation(char *msg)
     cml_iterator next(*this, CommitOrder);
     cmlent *m;
 
-    if((m = next())) {
-      int rc;
-      m->GetLocalOpMsg(opmsg);
-      m->CheckRepair(checkmsg, &mcode, &rcode);
-      if (rcode == REPAIR_FAILURE) {
-	/* it is impossible to perform the original local mutation */
-	sprintf(msg, "impossible to reintegrate %s\n", checkmsg);
-	return;
-      }
-      rc = m->DoRepair(msg, rcode);
-      if(!rc) { /* success! get rid of it locally, or it'll hang around */
-	Recov_BeginTrans();
-	cancelFreezes(1);
-	rc = m->cancel();
-	cancelFreezes(0);
-	Recov_EndTrans(CMFP);
-	sprintf(msg, "reintegrated:\n\t%s\n", opmsg);
-      }
-      else
-	sprintf(msg, "%s\ncould not reintegrate %s\n", checkmsg, opmsg);
+    if ((m = next())) {
+        int rc;
+        m->GetLocalOpMsg(opmsg);
+        m->CheckRepair(checkmsg, &mcode, &rcode);
+        if (rcode == REPAIR_FAILURE) {
+            /* it is impossible to perform the original local mutation */
+            sprintf(msg, "impossible to reintegrate %s\n", checkmsg);
+            return;
+        }
+        rc = m->DoRepair(msg, rcode);
+        if (!rc) { /* success! get rid of it locally, or it'll hang around */
+            Recov_BeginTrans();
+            cancelFreezes(1);
+            rc = m->cancel();
+            cancelFreezes(0);
+            Recov_EndTrans(CMFP);
+            sprintf(msg, "reintegrated:\n\t%s\n", opmsg);
+        } else
+            sprintf(msg, "%s\ncould not reintegrate %s\n", checkmsg, opmsg);
     }
 }
 
@@ -188,26 +189,35 @@ void ClientModifyLog::PreserveAllLocalMutation(char *msg)
     cml_iterator next(*this, CommitOrder);
     cmlent *m;
 
-    while((m = next())) {
-	m->GetLocalOpMsg(opmsg);
-	if (m->GetTid() > 0) {
-	    sprintf(msg, "%s belongs to transaction %d\n %d local mutation(s) replayed\n", opmsg, m->GetTid(), opcnt);
-	    return;
-	}
-	mcode = 0;
-	m->CheckRepair(checkmsg, &mcode, &rcode);
-	if (rcode == REPAIR_FAILURE) {
-	    /* it is impossible to perform the original local mutation */
-	    sprintf(msg, "%d local mutation(s) reintegrated \n %s\n cannot reintegrate %s\n", opcnt, checkmsg, opmsg);
-	    return;
-	}
-	/* mcode is left set when CheckRepair found a non-fatal error */
-	if (mcode || !(rc = m->DoRepair(checkmsg, rcode))) {
-	    opcnt++;
-	} else {
-	    sprintf(msg, "%d local mutation(s) reintegrated\n %s\n cannot reintegrate %s\n", opcnt, checkmsg, opmsg);
-	    return;
-	}
+    while ((m = next())) {
+        m->GetLocalOpMsg(opmsg);
+        if (m->GetTid() > 0) {
+            sprintf(
+                msg,
+                "%s belongs to transaction %d\n %d local mutation(s) replayed\n",
+                opmsg, m->GetTid(), opcnt);
+            return;
+        }
+        mcode = 0;
+        m->CheckRepair(checkmsg, &mcode, &rcode);
+        if (rcode == REPAIR_FAILURE) {
+            /* it is impossible to perform the original local mutation */
+            sprintf(
+                msg,
+                "%d local mutation(s) reintegrated \n %s\n cannot reintegrate %s\n",
+                opcnt, checkmsg, opmsg);
+            return;
+        }
+        /* mcode is left set when CheckRepair found a non-fatal error */
+        if (mcode || !(rc = m->DoRepair(checkmsg, rcode))) {
+            opcnt++;
+        } else {
+            sprintf(
+                msg,
+                "%d local mutation(s) reintegrated\n %s\n cannot reintegrate %s\n",
+                opcnt, checkmsg, opmsg);
+            return;
+        }
     }
     sprintf(msg, "All %d local mutation(s) reintegrated\n", opcnt);
 }
@@ -226,9 +236,9 @@ int ClientModifyLog::ListCML(FILE *fp)
     int count = 0;
     CODA_ASSERT(fp);
 
-    while((m = next())) {
-      m->writeops(fp);
-      count++;
+    while ((m = next())) {
+        m->writeops(fp);
+        count++;
     }
 
     return count;

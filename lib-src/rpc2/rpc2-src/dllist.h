@@ -32,7 +32,7 @@ struct dllist_head {
 
 #define DLLIST_HEAD(x) struct dllist_head x = { &x, &x }
 
-#define list_entry(ptr, type, member)                                          \
+#define list_entry(ptr, type, member) \
     ((type *)((char *)(ptr) - (unsigned long)(&((type *)0)->member)))
 
 #ifdef __cplusplus

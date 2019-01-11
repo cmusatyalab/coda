@@ -16,16 +16,10 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
 /*
  * Vlist.h -- Created October 1989
  * Author Puneet Kumar
  */
-
 
 #ifndef _VICE_VLIST_H_
 #define _VICE_VLIST_H_ 1
@@ -50,79 +44,76 @@ extern "C" {
 #include "cvnode.h"
 
 extern int VLECmp(vle *, vle *);
-extern vle *FindVLE(dlist&, ViceFid *);
-extern vle *AddVLE(dlist&, ViceFid *);
+extern vle *FindVLE(dlist &, ViceFid *);
+extern vle *AddVLE(dlist &, ViceFid *);
 
-#define	f_sid	        u.file.sid
-#define	f_sinode        u.file.sinode
-#define	f_finode        u.file.finode
-#define	f_tinode        u.file.tinode
-#define	f_tlength       u.file.tlength
-#define d_inodemod      u.dir.inodemod
-#define	d_cinode        u.dir.cinode
-#define	d_needsres      u.dir.needsres
+#define f_sid u.file.sid
+#define f_sinode u.file.sinode
+#define f_finode u.file.finode
+#define f_tinode u.file.tinode
+#define f_tlength u.file.tlength
+#define d_inodemod u.dir.inodemod
+#define d_cinode u.dir.cinode
+#define d_needsres u.dir.needsres
 #define d_needslogpurge u.dir.purgelog
 #define d_needslogtrunc u.dir.trunclog
-#define d_reintupdate   u.dir.rupdate
-#define d_reintstale    u.dir.rstale
+#define d_reintupdate u.dir.rupdate
+#define d_reintstale u.dir.rstale
 
 /* The data structure we want here is a binary search tree, but we use a list instead. -JJK */
-struct vle : public dlink 
-{
-	ViceFid fid;
-	Vnode *vptr;
-	olist sl;   /* list of spooled log records - for res logs in vm only */
-	olist rsl;  /* list of spooled log records - for res logs in rvm */
-	union {
-		struct {
-			ViceStoreId	sid;   /* sid of LAST data
+struct vle : public dlink {
+    ViceFid fid;
+    Vnode *vptr;
+    olist sl; /* list of spooled log records - for res logs in vm only */
+    olist rsl; /* list of spooled log records - for res logs in rvm */
+    union {
+        struct {
+            ViceStoreId sid; /* sid of LAST data
 			store (used to avoid multiple bulk transfers) */
-			Inode sinode;    /* inode to dec on success */
-			Inode finode;  /* inode to dec on failure */
-			Inode tinode;  /* inode to trunc on success */
-			unsigned tlength; /* length to trunc t_inode
+            Inode sinode; /* inode to dec on success */
+            Inode finode; /* inode to dec on failure */
+            Inode tinode; /* inode to trunc on success */
+            unsigned tlength; /* length to trunc t_inode
 					     to (on success) */
-		} file;
-		struct {
-			PDirInode cinode;  /* cloned inode (in RVM)  */
-			int inodemod;      /* inode or pages modified */
-			int needsres;      /* does directory need to
+        } file;
+        struct {
+            PDirInode cinode; /* cloned inode (in RVM)  */
+            int inodemod; /* inode or pages modified */
+            int needsres; /* does directory need to
 			be resolved at end of reintegration? */
-			int purgelog;      /* should directory log be purged */
-			int trunclog;  	   /* should log be truncated */
-			unsigned rupdate : 1;  /* was directory
+            int purgelog; /* should directory log be purged */
+            int trunclog; /* should log be truncated */
+            unsigned rupdate : 1; /* was directory
 						  updated during
 						  reintegration */
-			unsigned rstale : 1;   /* reintegration: is
+            unsigned rstale : 1; /* reintegration: is
 			client's directory version info stale? */
-		} dir;
-	} u;
+        } dir;
+    } u;
 
-	vle(ViceFid *Fid)  {
-		fid = *Fid;
-		vptr = 0;
+    vle(ViceFid *Fid)
+    {
+        fid  = *Fid;
+        vptr = 0;
 
-		if (!ISDIR(fid)) {
-			f_sid = NullSid;
-			f_sinode = 0;
-			f_finode = 0;
-			f_tinode = 0;
-			f_tlength = 0;
-		} else {
-			d_cinode = 0;
-			d_inodemod = 0;
-			d_needsres = 0;
-			d_needslogpurge = 0;
-			d_needslogtrunc = 0;
-			d_reintupdate = 0;
-			d_reintstale = 0;
-		}
-	};
-	
-	~vle() {
-		CODA_ASSERT(vptr == 0);
-	};
+        if (!ISDIR(fid)) {
+            f_sid     = NullSid;
+            f_sinode  = 0;
+            f_finode  = 0;
+            f_tinode  = 0;
+            f_tlength = 0;
+        } else {
+            d_cinode        = 0;
+            d_inodemod      = 0;
+            d_needsres      = 0;
+            d_needslogpurge = 0;
+            d_needslogtrunc = 0;
+            d_reintupdate   = 0;
+            d_reintstale    = 0;
+        }
+    };
+
+    ~vle() { CODA_ASSERT(vptr == 0); };
 };
-
 
 #endif /* _VICE_VLIST_H_ */

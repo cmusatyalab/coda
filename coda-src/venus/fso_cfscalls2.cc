@@ -22,7 +22,6 @@ listed in the file CREDITS.
  *
  */
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -43,7 +42,7 @@ extern "C" {
 #include <vice.h>
 
 #include <pioctl.h> /* from kerndep */
-#include <prs.h>    /* from libal */
+#include <prs.h> /* from libal */
 
 #ifdef __cplusplus
 }
@@ -63,9 +62,8 @@ extern "C" {
 #include "worker.h"
 
 #ifndef MIN
-#define MIN(a,b)  ( ((a) < (b)) ? (a) : (b) )
+#define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #endif
-
 
 /* Call with object write-locked. */
 /* MUST NOT be called from within a transaction. */
@@ -74,29 +72,27 @@ int fsobj::OpenPioctlFile(void)
     unsigned int nr, plen, follow, in_size, out_size;
     vproc *vp = VprocSelf();
     FILE *f;
-    char in_buffer[MAX(CFS_PIOBUFSIZE, CODA_MAXPATHLEN+1)];
+    char in_buffer[MAX(CFS_PIOBUFSIZE, CODA_MAXPATHLEN + 1)];
     char out_buffer[CFS_PIOBUFSIZE];
     int n, code;
 
     /* read pioctl input */
     f = data.file->FOpen("r");
 
-    n = fscanf(f, "%u\n%u\n%u\n%u\n%u\n%*c",
-               &nr, &plen, &follow, &in_size, &out_size);
-    if (n != 5)
-    {
+    n = fscanf(f, "%u\n%u\n%u\n%u\n%u\n%*c", &nr, &plen, &follow, &in_size,
+               &out_size);
+    if (n != 5) {
         LOG(0, ("fsobj::OpenPioctlFile: failed to parse data header\n"));
         code = EIO;
-PioctlErrOut:
+    PioctlErrOut:
         data.file->FClose(f);
         return code;
     }
 
-    LOG(0, ("fsobj::Open: got pioctl %u (%u, %u, %u, %u)\n",
-            nr, plen, follow, in_size, out_size));
+    LOG(0, ("fsobj::Open: got pioctl %u (%u, %u, %u, %u)\n", nr, plen, follow,
+            in_size, out_size));
 
-    if (nr > 255 || in_size > CFS_PIOBUFSIZE || out_size > CFS_PIOBUFSIZE)
-    {
+    if (nr > 255 || in_size > CFS_PIOBUFSIZE || out_size > CFS_PIOBUFSIZE) {
         LOG(0, ("fsobj::OpenPioctlFile: unexpected data header value\n"));
         code = EINVAL;
         goto PioctlErrOut;
@@ -106,9 +102,7 @@ PioctlErrOut:
     int flags = TRAVERSE_MTPTS | (follow ? FOLLOW_SYMLINKS : 0);
     struct venus_cnode vnp;
 
-    if (plen > CODA_MAXPATHLEN ||
-        fread(in_buffer, 1, plen, f) != plen)
-    {
+    if (plen > CODA_MAXPATHLEN || fread(in_buffer, 1, plen, f) != plen) {
         LOG(0, ("fsobj::OpenPioctlFile: failed to read path\n"));
         code = EINVAL;
         goto PioctlErrOut;
@@ -116,24 +110,22 @@ PioctlErrOut:
     in_buffer[plen] = '\0';
 
     vp->u.u_cdir = rootfid;
-    vp->u.u_nc = NULL;
-    if (!vp->namev(in_buffer, flags, &vnp))
-    {
+    vp->u.u_nc   = NULL;
+    if (!vp->namev(in_buffer, flags, &vnp)) {
         LOG(10, ("fsobj::OpenPioctlFile: namev failed to traverse\n"));
         code = vp->u.u_error;
         goto PioctlErrOut;
     }
 
     /* read the pioctl input data */
-    if (in_size > CFS_PIOBUFSIZE || out_size > CFS_PIOBUFSIZE)
-    {
-        LOG(0, ("fsobj::OpenPioctlFile: unexpected request or response size\n"));
+    if (in_size > CFS_PIOBUFSIZE || out_size > CFS_PIOBUFSIZE) {
+        LOG(0,
+            ("fsobj::OpenPioctlFile: unexpected request or response size\n"));
         code = ENOBUFS;
         goto PioctlErrOut;
     }
 
-    if (fread(in_buffer, 1, in_size, f) != in_size)
-    {
+    if (fread(in_buffer, 1, in_size, f) != in_size) {
         LOG(0, ("fsobj::OpenPioctlFile: failed to read request data\n"));
         code = EFAULT;
         goto PioctlErrOut;
@@ -149,10 +141,10 @@ PioctlErrOut:
 
     /* get arguments ready for the ioctl */
     struct ViceIoctl vidata;
-    vidata.in_size = in_size;
+    vidata.in_size  = in_size;
     vidata.out_size = out_size;
-    vidata.in = in_buffer;
-    vidata.out = out_buffer;
+    vidata.in       = in_buffer;
+    vidata.out      = out_buffer;
 
     /* We're pretty much guaranteed to be in the wrong context, so we have
      * to switch context before we can call vp->ioctl */
@@ -160,23 +152,22 @@ PioctlErrOut:
     /* Preserve the user context. */
     struct uarea saved_ctxt = vp->u;
     vp->u.Init();
-    vp->u.u_uid = saved_ctxt.u_uid;
+    vp->u.u_uid      = saved_ctxt.u_uid;
     vp->u.u_priority = saved_ctxt.u_priority;
-    vp->u.u_flags = saved_ctxt.u_flags;
-    vp->u.u_pid = saved_ctxt.u_pid;
-    vp->u.u_pgid = saved_ctxt.u_pgid;
+    vp->u.u_flags    = saved_ctxt.u_flags;
+    vp->u.u_pid      = saved_ctxt.u_pid;
+    vp->u.u_pgid     = saved_ctxt.u_pgid;
 
     vp->ioctl(&vnp, nr, &vidata, 0);
 
     int error = vp->u.u_error;
-    vp->u = saved_ctxt;
+    vp->u     = saved_ctxt;
 
     /* write pioctl output */
     f = data.file->FOpen("w");
 
     if (fprintf(f, "%d\n%u\n%c", error, vidata.out_size, '\0') == -1 ||
-        fwrite(vidata.out, 1, vidata.out_size, f) != vidata.out_size)
-    {
+        fwrite(vidata.out, 1, vidata.out_size, f) != vidata.out_size) {
         LOG(0, ("fsobj::OpenPioctlFile: failed to write result\n"));
         code = ENOSPC;
         goto PioctlErrOut;
@@ -194,21 +185,20 @@ PioctlErrOut:
     return 0;
 }
 
-
 /* Call with object write-locked. */
 /* MUST NOT be called from within a transaction. */
-int fsobj::Open(int writep, int truncp, struct venus_cnode *cp, uid_t uid) 
+int fsobj::Open(int writep, int truncp, struct venus_cnode *cp, uid_t uid)
 {
-    LOG(10, ("fsobj::Open: (%s, %d, %d), uid = %d\n",
-	      GetComp(), writep, truncp, uid));
+    LOG(10, ("fsobj::Open: (%s, %d, %d), uid = %d\n", GetComp(), writep, truncp,
+             uid));
 
     int code = 0;
 
     if (IsSymLink())
-	return ELOOP;
-    
+        return ELOOP;
+
     UpdateVastroFlag(uid);
-    
+
     /* In of opening a file previously handled as VASTRO */
     if (!ISVASTRO(this) && !HAVEALLDATA(this)) {
         Fetch(uid, cf.ConsecutiveValidData(), -1);
@@ -217,7 +207,7 @@ int fsobj::Open(int writep, int truncp, struct venus_cnode *cp, uid_t uid)
     /*  write lock the object if we might diddle it below.  Disabling
      * replacement and bumping reference counts are performed
      * elsewhere under read lock. */
-    if (writep || truncp || 
+    if (writep || truncp ||
         (IsDir() && (!data.dir->udcf || !data.dir->udcfvalid)) ||
         IsPioctlFile())
         PromoteLock();
@@ -227,32 +217,30 @@ int fsobj::Open(int writep, int truncp, struct venus_cnode *cp, uid_t uid)
         DisableReplacement();
     }
 
-    FSO_HOLD(this);			/* Pin object until close arrives. */
+    FSO_HOLD(this); /* Pin object until close arrives. */
     openers++;
     if (writep) {
-	FSO_ASSERT(this, IsFile());
-	Writers++;
-	if (!flags.owrite) {
-	    Recov_BeginTrans();
-	    FSDB->FreeBlocks((int) BLOCKS(this));
-	    FSDB->owriteq->append(&owrite_handle);
-	    RVMLIB_REC_OBJECT(flags);
-	    flags.owrite = 1;
-	    Recov_EndTrans(DMFP);
-	}
-	/* Do truncate if necessary. */
-	if (truncp) {
-	    struct coda_vattr va;
-	    va_init(&va);
-	    va.va_size = 0;
-	    if ((code = SetAttr(&va, uid)) != 0)
-		goto Exit;
-	}
-	/* set the container file timestamp */
-	data.file->Utimes(NULL);
-    }
-    else if (IsPioctlFile())
-    {
+        FSO_ASSERT(this, IsFile());
+        Writers++;
+        if (!flags.owrite) {
+            Recov_BeginTrans();
+            FSDB->FreeBlocks((int)BLOCKS(this));
+            FSDB->owriteq->append(&owrite_handle);
+            RVMLIB_REC_OBJECT(flags);
+            flags.owrite = 1;
+            Recov_EndTrans(DMFP);
+        }
+        /* Do truncate if necessary. */
+        if (truncp) {
+            struct coda_vattr va;
+            va_init(&va);
+            va.va_size = 0;
+            if ((code = SetAttr(&va, uid)) != 0)
+                goto Exit;
+        }
+        /* set the container file timestamp */
+        data.file->Utimes(NULL);
+    } else if (IsPioctlFile()) {
         /* Virtual pioctls are implemented by the application first opening a
          * virtual file for writing, and writing the request. Then when the
          * file is re-opened for reading we actually execute the pioctl and
@@ -264,21 +252,20 @@ int fsobj::Open(int writep, int truncp, struct venus_cnode *cp, uid_t uid)
 
     /* If object is directory make sure Unix-format contents are valid. */
     if (IsDir()) {
-	if (data.dir->udcf == 0) {
-	    Recov_BeginTrans();
+        if (data.dir->udcf == 0) {
+            Recov_BeginTrans();
             RVMLIB_REC_OBJECT(cf);
-	    data.dir->udcf = &cf;
+            data.dir->udcf = &cf;
             data.dir->udcf->Create();
-	    data.dir->udcfvalid = 0;
-	    Recov_EndTrans(MAXFP);
-	}
+            data.dir->udcfvalid = 0;
+            Recov_EndTrans(MAXFP);
+        }
 
-	/* Recompute udir contents if necessary. */
-	if (!data.dir->udcfvalid) {
-	    LOG(100, ("fsobj::Open: recomputing udir\n"));
+        /* Recompute udir contents if necessary. */
+        if (!data.dir->udcfvalid) {
+            LOG(100, ("fsobj::Open: recomputing udir\n"));
 
-
-	    /* XXX I reactivated this code. It seems a good idea
+            /* XXX I reactivated this code. It seems a good idea
 	       pjb 9/21/98 */
 #if 0
 	    /* Reset a cache entry that others are still reading, but
@@ -306,49 +293,53 @@ int fsobj::Open(int writep, int truncp, struct venus_cnode *cp, uid_t uid)
 		data.dir->udcf->inode = tstat.st_ino;
 	    }
 #endif
-	    /* (Re)Build the Unix-format directory. */
-	    dir_Rebuild();
-	    struct stat tstat;
-	    data.dir->udcf->Stat(&tstat);
-	    FSDB->ChangeDiskUsage((int) NBLOCKS(tstat.st_size) - NBLOCKS(data.dir->udcf->Length()));
-	    Recov_BeginTrans();
-	    data.dir->udcf->SetLength((int) tstat.st_size);
-        data.dir->udcf->SetValidData((int) tstat.st_size);
-	    Recov_EndTrans(MAXFP);
-	}
+            /* (Re)Build the Unix-format directory. */
+            dir_Rebuild();
+            struct stat tstat;
+            data.dir->udcf->Stat(&tstat);
+            FSDB->ChangeDiskUsage((int)NBLOCKS(tstat.st_size) -
+                                  NBLOCKS(data.dir->udcf->Length()));
+            Recov_BeginTrans();
+            data.dir->udcf->SetLength((int)tstat.st_size);
+            data.dir->udcf->SetValidData((int)tstat.st_size);
+            Recov_EndTrans(MAXFP);
+        }
     }
 
     if (cp) {
-	cp->c_cf = IsDir() ? data.dir->udcf : data.file;
-	if (!cp->c_cf) code = EIO;
+        cp->c_cf = IsDir() ? data.dir->udcf : data.file;
+        if (!cp->c_cf)
+            code = EIO;
     }
 
 Exit:
     if (code != 0) {
-	/* Back out transaction if truncate failed! */
-	openers--;
-	if (writep) {
-	    Writers--;
-	    if (!WRITING(this)) {
-		Recov_BeginTrans();
-		if (FSDB->owriteq->remove(&owrite_handle) != &owrite_handle)
-			{ print(logFile); CHOKE("fsobj::Open: owriteq remove"); }
-		RVMLIB_REC_OBJECT(flags);
-		flags.owrite = 0;
-		FSDB->ChangeDiskUsage((int) BLOCKS(this));
-		Recov_EndTrans(0);
-	    }
-	}
-	FSO_RELE(this);
-	EnableReplacement();
+        /* Back out transaction if truncate failed! */
+        openers--;
+        if (writep) {
+            Writers--;
+            if (!WRITING(this)) {
+                Recov_BeginTrans();
+                if (FSDB->owriteq->remove(&owrite_handle) != &owrite_handle) {
+                    print(logFile);
+                    CHOKE("fsobj::Open: owriteq remove");
+                }
+                RVMLIB_REC_OBJECT(flags);
+                flags.owrite = 0;
+                FSDB->ChangeDiskUsage((int)BLOCKS(this));
+                Recov_EndTrans(0);
+            }
+        }
+        FSO_RELE(this);
+        EnableReplacement();
     }
-    return(code);
+    return (code);
 }
 
 /* Sync file to the servers */
 /* Call with object write-locked. */
 /* We CANNOT return ERETRY from this routine! */
-int fsobj::Sync(uid_t uid) 
+int fsobj::Sync(uid_t uid)
 {
     LOG(10, ("fsobj::Sync: (%s), uid = %d\n", GetComp(), uid));
 
@@ -357,9 +348,10 @@ int fsobj::Sync(uid_t uid)
     FSO_ASSERT(this, openers != 0 && WRITING(this));
 
     /* Don't do store on files that were deleted. */
-    if (DYING(this)) return 0;
+    if (DYING(this))
+        return 0;
 
-    PromoteLock();    
+    PromoteLock();
 
     /* We need to send the new mtime to Vice in the RPC call, so we get the
      * status off the disk.  If the file was freshly created and there were no
@@ -370,23 +362,25 @@ int fsobj::Sync(uid_t uid)
     unsigned long NewLength;
     Date_t NewDate;
     {
-	struct stat tstat;
-	data.file->Stat(&tstat);
-	NewLength = tstat.st_size;
-	NewDate = tstat.st_mtime;
+        struct stat tstat;
+        data.file->Stat(&tstat);
+        NewLength = tstat.st_size;
+        NewDate   = tstat.st_mtime;
     }
-    int old_blocks = (int) BLOCKS(this);
-    int new_blocks = (int) NBLOCKS(NewLength);
+    int old_blocks = (int)BLOCKS(this);
+    int new_blocks = (int)NBLOCKS(NewLength);
     UpdateCacheStats(&FSDB->FileDataStats, WRITE, MIN(old_blocks, new_blocks));
     if (NewLength < stat.Length)
-        UpdateCacheStats(&FSDB->FileDataStats, REMOVE, (old_blocks - new_blocks));
+        UpdateCacheStats(&FSDB->FileDataStats, REMOVE,
+                         (old_blocks - new_blocks));
     else if (NewLength > stat.Length)
-        UpdateCacheStats(&FSDB->FileDataStats, CREATE, (new_blocks - old_blocks));
-    FSDB->ChangeDiskUsage((int) NBLOCKS(NewLength));
+        UpdateCacheStats(&FSDB->FileDataStats, CREATE,
+                         (new_blocks - old_blocks));
+    FSDB->ChangeDiskUsage((int)NBLOCKS(NewLength));
 
     Recov_BeginTrans();
-    data.file->SetLength((unsigned int) NewLength);
-    data.file->SetValidData((unsigned int) NewLength);
+    data.file->SetLength((unsigned int)NewLength);
+    data.file->SetValidData((unsigned int)NewLength);
     Recov_EndTrans(MAXFP);
 
     /* Attempt the Store. */
@@ -399,16 +393,26 @@ int fsobj::Sync(uid_t uid)
     if (code) {
         eprint("failed to store %s on server", GetComp());
         switch (code) {
-        case ENOSPC: eprint("server partition full"); break;
-        case EDQUOT: eprint("over your disk quota"); break;
-        case EACCES: eprint("protection failure"); break;
-        case ERETRY: print(logFile); CHOKE("fsobj::Close: Store returns ERETRY");
-        default: eprint("unknown store error %d", code); break;
+        case ENOSPC:
+            eprint("server partition full");
+            break;
+        case EDQUOT:
+            eprint("over your disk quota");
+            break;
+        case EACCES:
+            eprint("protection failure");
+            break;
+        case ERETRY:
+            print(logFile);
+            CHOKE("fsobj::Close: Store returns ERETRY");
+        default:
+            eprint("unknown store error %d", code);
+            break;
         }
     }
-    DemoteLock();    
+    DemoteLock();
 
-    return(code);
+    return (code);
 }
 
 /* Call with object write-locked. */
@@ -425,26 +429,32 @@ void fsobj::Release(int writep)
     if (!openers) {
         /* Remove all active active segments in case there are some left 
          * behind */
-        for (currc = active_segments.pop(); currc.isValid(); currc = active_segments.pop()) {
-            LOG(0, ("fsobj::Release: Warning active segment [%d, %d] being removed. (%s)\n",
-                    currc.GetStart(), currc.GetLength(), FID_(&fid)));
+        for (currc = active_segments.pop(); currc.isValid();
+             currc = active_segments.pop()) {
+            LOG(0,
+                ("fsobj::Release: Warning active segment [%d, %d] being removed. (%s)\n",
+                 currc.GetStart(), currc.GetLength(), FID_(&fid)));
         }
     }
 
     if (writep) {
-	PromoteLock();    
+        PromoteLock();
 
-	if (!WRITING(this))
-	    { print(logFile); CHOKE("fsobj::Release: !WRITING"); }
-	Writers--;
+        if (!WRITING(this)) {
+            print(logFile);
+            CHOKE("fsobj::Release: !WRITING");
+        }
+        Writers--;
 
         /* The object only gets removed from the owrite queue if we were the
          * last writer to close. */
-	if (!WRITING(this)) {
+        if (!WRITING(this)) {
             Recov_BeginTrans();
             /* Last writer: remove from owrite queue. */
-            if (FSDB->owriteq->remove(&owrite_handle) != &owrite_handle)
-            { print(logFile); CHOKE("fsobj::Release: owriteq remove"); }
+            if (FSDB->owriteq->remove(&owrite_handle) != &owrite_handle) {
+                print(logFile);
+                CHOKE("fsobj::Release: owriteq remove");
+            }
             RVMLIB_REC_OBJECT(flags);
             flags.owrite = 0;
 
@@ -453,7 +463,7 @@ void fsobj::Release(int writep)
                 LOG(0, ("fsobj::Release: last writer && dying (%s)\n",
                         FID_(&fid)));
                 RVMLIB_REC_OBJECT(stat.Length);
-                stat.Length = 0;	    /* Necessary for blocks maintenance! */
+                stat.Length = 0; /* Necessary for blocks maintenance! */
             }
             Recov_EndTrans(DMFP);
         }
@@ -464,12 +474,12 @@ void fsobj::Release(int writep)
         Recov_EndTrans(DMFP);
     }
 
-    FSO_RELE(this);	    /* Unpin object. */
-    EnableReplacement();    /* Won't enable as long as object is in use */
+    FSO_RELE(this); /* Unpin object. */
+    EnableReplacement(); /* Won't enable as long as object is in use */
     return;
 }
 
-int fsobj::Close(int writep, uid_t uid) 
+int fsobj::Close(int writep, uid_t uid)
 {
     int code = 0;
 
@@ -481,19 +491,17 @@ int fsobj::Close(int writep, uid_t uid)
     return code;
 }
 
-
 /* local-repair modification */
 /* Need to incorporate System:Administrator knowledge here! -JJK */
-int fsobj::Access(int rights, int modes, uid_t uid) 
+int fsobj::Access(int rights, int modes, uid_t uid)
 {
-    LOG(10, ("fsobj::Access : (%s, %d, %d), uid = %d\n",
-	      GetComp(), rights, modes, uid));
+    LOG(10, ("fsobj::Access : (%s, %d, %d), uid = %d\n", GetComp(), rights,
+             modes, uid));
 
     int code = 0, connected;
 
     /* check for pioctl objects */
-    if (IsPioctlFile())
-    {
+    if (IsPioctlFile()) {
         /* only the user who created a pioctl object may access it */
         if (uid == stat.Owner)
             return 0;
@@ -503,18 +511,18 @@ int fsobj::Access(int rights, int modes, uid_t uid)
 #define PRSFS_MUTATE (PRSFS_WRITE | PRSFS_DELETE | PRSFS_INSERT | PRSFS_LOCK)
     /* Disallow mutation of backup, rw-replica, zombie volumes and Vastros. */
     if (vol->IsBackup() || vol->IsReadWriteReplica() || ISVASTRO(this)) {
-	if (rights & PRSFS_MUTATE)
-	    return(EROFS);
-	/* But don't allow reading unless the acl allows us to. */
+        if (rights & PRSFS_MUTATE)
+            return (EROFS);
+        /* But don't allow reading unless the acl allows us to. */
     }
 
     /* Disallow mutation of fake directories and mtpts.  Always permit
        reading of the same. */
     if (IsFake() || IsLocalObj()) {
-	if (rights & PRSFS_MUTATE)
-	    return(EROFS);
+        if (rights & PRSFS_MUTATE)
+            return (EROFS);
 
-	return(0);
+        return (0);
     }
 
     /* If the object is not a directory, the access check must be made
@@ -524,22 +532,22 @@ int fsobj::Access(int rights, int modes, uid_t uid)
        lsmount"! -JJK
      */
     if (!IsDir() || IsMtPt()) {
-	LockLevel level;
-	VenusFid parent_fid;
+        LockLevel level;
+        VenusFid parent_fid;
 
-	/* Check mode bits if necessary. */
-	/* There should be a special case if this user is the creator.
+        /* Check mode bits if necessary. */
+        /* There should be a special case if this user is the creator.
 	   This code used to have a test for `virginity', but only the kernel
 	   can decide on this, asking Venus to do so leads to a race condition.
 	   --JH
 	*/
-	if (!(modes & C_A_C_OK))
-	    if (((modes & C_A_X_OK) && !(stat.Mode & OWNEREXEC)) ||
-		((modes & C_A_W_OK) && !(stat.Mode & OWNERWRITE)) ||
-		((modes & C_A_R_OK) && !(stat.Mode & OWNERREAD)))
-		return EACCES;
+        if (!(modes & C_A_C_OK))
+            if (((modes & C_A_X_OK) && !(stat.Mode & OWNEREXEC)) ||
+                ((modes & C_A_W_OK) && !(stat.Mode & OWNERWRITE)) ||
+                ((modes & C_A_R_OK) && !(stat.Mode & OWNERREAD)))
+                return EACCES;
 
-	/* Refine the permissions according to the file mode bits. */
+                /* Refine the permissions according to the file mode bits. */
 #if 0
 	static char fileModeMap[8] = {
 	    PRSFS_INSERT | PRSFS_DELETE	| PRSFS_ADMINISTER,				* --- *
@@ -554,40 +562,42 @@ int fsobj::Access(int rights, int modes, uid_t uid)
 	rights &= fileModeMap[(stat.Mode & OWNERBITS) >> 6];
 #endif
 
-	/* Pin the object and record the lock level. */
-	FSO_HOLD(this);
-	level = (writers > 0 ? WR : RD);
+        /* Pin the object and record the lock level. */
+        FSO_HOLD(this);
+        level = (writers > 0 ? WR : RD);
 
-	/* Record the parent fid and release the object. */
-	parent_fid = pfid;
-	if (FID_EQ(&NullFid, &parent_fid))
-	    { print(logFile); CHOKE("fsobj::Access: pfid == Null"); }
+        /* Record the parent fid and release the object. */
+        parent_fid = pfid;
+        if (FID_EQ(&NullFid, &parent_fid)) {
+            print(logFile);
+            CHOKE("fsobj::Access: pfid == Null");
+        }
 
-	UnLock(level);
+        UnLock(level);
 
-	//FSO_RELE(this); this was moved up here by someone to avoid problems
-	//in FSDB->Get. But it's really bad, because we lose the guarantee that
-	//the current object doesn't get swept from under us while we release
-	//the lock. --JH
+        //FSO_RELE(this); this was moved up here by someone to avoid problems
+        //in FSDB->Get. But it's really bad, because we lose the guarantee that
+        //the current object doesn't get swept from under us while we release
+        //the lock. --JH
 
-	/* Get the parent object, make the check, and put the parent. */
-	fsobj *parent_fso = 0;
-	code = FSDB->Get(&parent_fso, &parent_fid, uid, RC_STATUS);
-	if (code == 0)
-	    code = parent_fso->Access(rights, C_A_F_OK, uid);
-	FSDB->Put(&parent_fso);
+        /* Get the parent object, make the check, and put the parent. */
+        fsobj *parent_fso = 0;
+        code              = FSDB->Get(&parent_fso, &parent_fid, uid, RC_STATUS);
+        if (code == 0)
+            code = parent_fso->Access(rights, C_A_F_OK, uid);
+        FSDB->Put(&parent_fso);
 
-	/* Reacquire the child at the appropriate level and unpin it. */
-	Lock(level);
-	FSO_RELE(this);
+        /* Reacquire the child at the appropriate level and unpin it. */
+        Lock(level);
+        FSO_RELE(this);
 
-	return(code);
+        return (code);
     }
 
     connected = REACHABLE(this) && !DIRTY(this); /* use FETCHABLE here? */
-    code = CheckAcRights(uid, rights, connected);
+    code      = CheckAcRights(uid, rights, connected);
     if (code != ENOENT)
-	return code;
+        return code;
 
     /* ENOENT should only be returned when we are connected */
     FSO_ASSERT(this, connected);
@@ -595,186 +605,193 @@ int fsobj::Access(int rights, int modes, uid_t uid)
     /* We must re-fetch status; rights will be returned as a side-effect. */
     /* Promote the lock level if necessary. */
     if (FETCHABLE(this)) {
-	LockLevel level = (writers > 0 ? WR : RD);
-	if (level == RD) PromoteLock();
-	code = GetAttr(uid);
-	if (level == RD) DemoteLock();
+        LockLevel level = (writers > 0 ? WR : RD);
+        if (level == RD)
+            PromoteLock();
+        code = GetAttr(uid);
+        if (level == RD)
+            DemoteLock();
 
-	/* In case we got disconnected during the getattr it returns ERETRY.
+        /* In case we got disconnected during the getattr it returns ERETRY.
 	 * As a result we will repeat the operation (allowing the volume to
 	 * transition to disconnected state) but then the disconnected flag
 	 * will be set when checking access rights. */
-	if (code != 0) return(code);
+        if (code != 0)
+            return (code);
     }
 
     code = CheckAcRights(uid, rights, 0);
     return (code == 0) ? 0 : EACCES;
 }
 
-
 /* local-repair modification */
 /* inc_fid is an OUT parameter which allows caller to form "fake symlink" if it desires. */
 /* Explicit parameter for TRAVERSE_MTPTS? -JJK */
-int fsobj::Lookup(fsobj **target_fso_addr, VenusFid *inc_fid, const char *name, uid_t uid, int flags, int GetInconsistent)
+int fsobj::Lookup(fsobj **target_fso_addr, VenusFid *inc_fid, const char *name,
+                  uid_t uid, int flags, int GetInconsistent)
 {
-    LOG(10, ("fsobj::Lookup: (%s/%s), uid = %d, GetInconsistent = %d\n", GetComp(), name, uid, GetInconsistent));
+    LOG(10, ("fsobj::Lookup: (%s/%s), uid = %d, GetInconsistent = %d\n",
+             GetComp(), name, uid, GetInconsistent));
 
     /* We're screwed if (name == "." or ".."). -JJK */
     CODA_ASSERT(!STREQ(name, ".") && !STREQ(name, ".."));
 
-    int code = 0;
-    *target_fso_addr = 0;
-    int	traverse_mtpts = flags & CLU_TRAVERSE_MTPT;
-    Realm *realm = NULL;
+    int code           = 0;
+    *target_fso_addr   = 0;
+    int traverse_mtpts = flags & CLU_TRAVERSE_MTPT;
+    Realm *realm       = NULL;
 
     fsobj *target_fso = 0;
     VenusFid target_fid;
 
-    vproc *v = VprocSelf();
+    vproc *v          = VprocSelf();
     const char *subst = NULL;
-    char *expand = NULL;
+    char *expand      = NULL;
 
     /* Map name --> fid. */
     {
-	/* Verify that we have lookup permission. */
-	/* Access will never return EINCONS here as we are a directory and
+        /* Verify that we have lookup permission. */
+        /* Access will never return EINCONS here as we are a directory and
 	 * will not recurse up to our parent. */
-	code = Access(PRSFS_LOOKUP, C_A_F_OK, uid);
-	if (code) return(code);
+        code = Access(PRSFS_LOOKUP, C_A_F_OK, uid);
+        if (code)
+            return (code);
 
-	/* Check for @cpu/@sys expansion. */
-	subst = v->expansion(name);
-	if (subst)
-	{
-	    size_t len = strlen(name) - 4;
-	    size_t slen = strlen(subst);
+        /* Check for @cpu/@sys expansion. */
+        subst = v->expansion(name);
+        if (subst) {
+            size_t len  = strlen(name) - 4;
+            size_t slen = strlen(subst);
 
-	    expand = (char *)malloc(len + slen + 1);
-	    memcpy(expand, name, len);
-	    strcpy(expand + len, subst);
-	    expand[len+slen] = '\0';
-	    name = expand;
-	}
+            expand = (char *)malloc(len + slen + 1);
+            memcpy(expand, name, len);
+            strcpy(expand + len, subst);
+            expand[len + slen] = '\0';
+            name               = expand;
+        }
 
-	/* Lookup the target object. */
-	{
-	    code = dir_Lookup(name, &target_fid, flags & CLU_CASE_MASK);
+        /* Lookup the target object. */
+        {
+            code = dir_Lookup(name, &target_fid, flags & CLU_CASE_MASK);
 
-	    if (code) {
-		if (vol->GetRealmId() != LocalRealm->Id() ||
-		    vol->GetVolumeId() != FakeRootVolumeId)
-		    goto done;
+            if (code) {
+                if (vol->GetRealmId() != LocalRealm->Id() ||
+                    vol->GetVolumeId() != FakeRootVolumeId)
+                    goto done;
 
-		/* regular lookup failed, but if we are in the fake root
+                /* regular lookup failed, but if we are in the fake root
 		 * volume, we can try to check for a new realm */
 
-		// don't even bother to follow lookups of dangling symlinks
-		if (name[0] == '#' || name[0] == '@') {
-		    code = ENOENT;
-		    goto done;
-		}
+                // don't even bother to follow lookups of dangling symlinks
+                if (name[0] == '#' || name[0] == '@') {
+                    code = ENOENT;
+                    goto done;
+                }
 
                 if (strncmp(name, PIOCTL_PREFIX, strlen(PIOCTL_PREFIX)) == 0) {
                     const char *unique = &name[strlen(PIOCTL_PREFIX)];
-                    target_fid = fid;
-                    target_fid.Vnode = 0xfffffffa;
-                    target_fid.Unique = strtol(unique, NULL, 16);
+                    target_fid         = fid;
+                    target_fid.Vnode   = 0xfffffffa;
+                    target_fid.Unique  = strtol(unique, NULL, 16);
                 } else {
                     // Try to get and mount the realm.
-                    realm = REALMDB->GetRealm(name);
-                    target_fid = fid;
-                    target_fid.Vnode = 0xfffffffc;
+                    realm             = REALMDB->GetRealm(name);
+                    target_fid        = fid;
+                    target_fid.Vnode  = 0xfffffffc;
                     target_fid.Unique = realm->Id();
                 }
-	    }
-	}
+            }
+        }
     }
 
     /* Map fid --> fso. */
     {
-	int status = RC_STATUS;
-get_object:
-	code = FSDB->Get(&target_fso, &target_fid, uid, status, name, NULL, NULL, GetInconsistent);
-	if (code && !(GetInconsistent && code == EINCONS)) {
-	    if (code == EINCONS && inc_fid != 0)
-		*inc_fid = target_fid;
-	    goto done;
-	}
+        int status = RC_STATUS;
+    get_object:
+        code = FSDB->Get(&target_fso, &target_fid, uid, status, name, NULL,
+                         NULL, GetInconsistent);
+        if (code && !(GetInconsistent && code == EINCONS)) {
+            if (code == EINCONS && inc_fid != 0)
+                *inc_fid = target_fid;
+            goto done;
+        }
 
-	/* Handle mount points. */
-	if (traverse_mtpts) {
-	    /* If the target is a covered mount point and it needs checked, uncover it (and unmount the root). */
-	    if (target_fso->IsMtPt() && target_fso->flags.ckmtpt)
-	    {
-		fsobj *root_fso = target_fso->u.root;
-		FSO_ASSERT(target_fso, (root_fso != 0 && root_fso->u.mtpoint == target_fso));
-		Recov_BeginTrans();
-		root_fso->UnmountRoot();
-		target_fso->UncoverMtPt();
-		Recov_EndTrans(MAXFP);
-		target_fso->flags.ckmtpt = 0;
-	    }
+        /* Handle mount points. */
+        if (traverse_mtpts) {
+            /* If the target is a covered mount point and it needs checked, uncover it (and unmount the root). */
+            if (target_fso->IsMtPt() && target_fso->flags.ckmtpt) {
+                fsobj *root_fso = target_fso->u.root;
+                FSO_ASSERT(target_fso, (root_fso != 0 &&
+                                        root_fso->u.mtpoint == target_fso));
+                Recov_BeginTrans();
+                root_fso->UnmountRoot();
+                target_fso->UncoverMtPt();
+                Recov_EndTrans(MAXFP);
+                target_fso->flags.ckmtpt = 0;
+            }
 
-	    /* If the target is an uncovered mount point, try to cover it. */
-	    if (target_fso->IsMTLink()) {
-		/* We must have the data here. */
-		if (!HAVEALLDATA(target_fso)) {
-		    FSDB->Put(&target_fso);
-		    status |= RC_DATA;
-		    goto get_object;
-		}
+            /* If the target is an uncovered mount point, try to cover it. */
+            if (target_fso->IsMTLink()) {
+                /* We must have the data here. */
+                if (!HAVEALLDATA(target_fso)) {
+                    FSDB->Put(&target_fso);
+                    status |= RC_DATA;
+                    goto get_object;
+                }
 
-		target_fso->PromoteLock();
-		code = target_fso->TryToCover(inc_fid, uid);
-		if (code == EINCONS || code == ERETRY) {
-		    FSDB->Put(&target_fso);
-		    goto done;
-		}
-		code = 0;
-		target_fso->DemoteLock();
-	    }
+                target_fso->PromoteLock();
+                code = target_fso->TryToCover(inc_fid, uid);
+                if (code == EINCONS || code == ERETRY) {
+                    FSDB->Put(&target_fso);
+                    goto done;
+                }
+                code = 0;
+                target_fso->DemoteLock();
+            }
 
-	    /* If the target is a covered mount point, cross it. */
-	    if (target_fso->IsMtPt()) {
-		/* Get the volume root, and release the mount point. */
-		fsobj *root_fso = target_fso->u.root;
-		root_fso->Lock(RD);
-		FSDB->Put(&target_fso);
-		target_fso = root_fso;
-	    }
-	}
+            /* If the target is a covered mount point, cross it. */
+            if (target_fso->IsMtPt()) {
+                /* Get the volume root, and release the mount point. */
+                fsobj *root_fso = target_fso->u.root;
+                root_fso->Lock(RD);
+                FSDB->Put(&target_fso);
+                target_fso = root_fso;
+            }
+        }
     }
 
-    code = 0;
+    code             = 0;
     *target_fso_addr = target_fso;
 
 done:
     if (realm) {
-	realm->PutRef();
-	realm = NULL;
+        realm->PutRef();
+        realm = NULL;
     }
     if (expand)
-	free(expand);
+        free(expand);
 
-    return(code);
+    return (code);
 }
 
 /* Call with the link contents fetched already. */
 /* Call with object read-locked. */
 int fsobj::Readlink(char *buf, unsigned long len, int *cc, uid_t uid)
 {
-    LOG(10, ("fsobj::Readlink : (%s, %x, %d, %x), uid = %d\n",
-	      GetComp(), buf, len, cc, uid));
+    LOG(10, ("fsobj::Readlink : (%s, %x, %d, %x), uid = %d\n", GetComp(), buf,
+             len, cc, uid));
 
-    if (!HAVEALLDATA(this))
-	{ print(logFile); CHOKE("fsobj::Readlink: called without data and isn't fake!"); }
+    if (!HAVEALLDATA(this)) {
+        print(logFile);
+        CHOKE("fsobj::Readlink: called without data and isn't fake!");
+    }
 
     if (!IsSymLink() && !IsMtPt())
-	  return(EINVAL);
+        return (EINVAL);
 
     if (stat.Length > len) {
-	  eprint("readlink: contents > bufsize");
-	  return(EINVAL);
+        eprint("readlink: contents > bufsize");
+        return (EINVAL);
     }
 
     /* Fill in the buffer. */
@@ -785,5 +802,5 @@ int fsobj::Readlink(char *buf, unsigned long len, int *cc, uid_t uid)
      * are not supposed to return it, but we need it to log the content. */
     buf[stat.Length] = '\0';
     LOG(100, ("fsobj::Readlink: contents = %s\n", buf));
-    return(0);
+    return (0);
 }

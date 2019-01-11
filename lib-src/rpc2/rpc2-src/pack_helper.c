@@ -13,10 +13,10 @@ Coda are listed in the file CREDITS.
 
 #*/
 
-#include <assert.h>
 #include <rpc2/pack_helper.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 #define _PAD(n) ((((n)-1) | 3) + 1)
 
@@ -153,9 +153,9 @@ int unpack_string(BUFFER *buf, RPC2_String *ptr)
     assert(buf->who != RP2_CLIENT);
     /* it's very dangerous to do memcpy in client mode */
     /* if (who == RP2_CLIENT) {
-      memcpy(*ptr, buf->buffer, length);
-      *ptr[length] = '\0';
-  */
+        memcpy(*ptr, buf->buffer, length);
+        *ptr[length] = '\0';
+    */
     *ptr = (RPC2_String)(buf->buffer);
     buf->buffer += _PAD(length + 1);
     return 0;

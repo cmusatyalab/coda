@@ -16,7 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
 #ifndef _LKA_PRIVATE_H_INCLUDED_
 #define _LKA_PRIVATE_H_INCLUDED_ 1
 
@@ -28,17 +27,17 @@ listed in the file CREDITS.
    Venus has a doubly linked list of these entries  */
 struct lkdb {
     struct dllist_head chain;
-    struct rwcdb dbh;  /* database handle initialized by rwcdb_init() */
-    char *dbname;  /* malloc'ed string with name of this db */
+    struct rwcdb dbh; /* database handle initialized by rwcdb_init() */
+    char *dbname; /* malloc'ed string with name of this db */
     char *dblocation; /* malloc'ed string of getwd() for this db */
     int entrycount; /* number of entries in database */
 
     /* various statistics */
     int attempts; /* number of lookaside attempts */
-    int hits;     /* how many successful */
+    int hits; /* how many successful */
     int shafails; /* how many hits failed sha verification */
 };
-  
+
 /* First part of descriptor record is always the version string;
    Update the version number as code evolves */
 #define LKA_VERSION_STRING "Coda LookAside Database, Version 1.1"

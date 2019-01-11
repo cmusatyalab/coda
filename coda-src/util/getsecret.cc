@@ -51,7 +51,7 @@ void HashSecret(unsigned char *secret, int len, RPC2_EncryptionKey key)
 }
 
 int GetSecret(const char *file, RPC2_EncryptionKey key,
-	      struct secret_state *state)
+              struct secret_state *state)
 {
     struct stat statbuf;
     time_t now;
@@ -61,34 +61,33 @@ int GetSecret(const char *file, RPC2_EncryptionKey key,
     /* check if the cached key we have is still valid */
     n = stat(file, &statbuf);
     if (n < 0)
-	return -1;
+        return -1;
 
-    if (statbuf.st_mtime != state->mtime)
-    {
-	now = time(NULL);
-	fd = open(file, O_RDONLY);
-	if (fd < 0) {
-	    LogMsg(0, SrvDebugLevel, stdout, "Could not open %s", file);
-	    return -1;
-	}
+    if (statbuf.st_mtime != state->mtime) {
+        now = time(NULL);
+        fd  = open(file, O_RDONLY);
+        if (fd < 0) {
+            LogMsg(0, SrvDebugLevel, stdout, "Could not open %s", file);
+            return -1;
+        }
 
-	/* better be safe than sorry, make sure the buffer is padded with 0 */
-	memset(buf, 0, 512);
-	n = read(fd, buf, 512);
-	if (n < 0) {
-	    LogMsg(0, SrvDebugLevel, stdout, "Could not read %s", file);
-	    close(fd);
-	    return -1;
-	}
-	close(fd);
+        /* better be safe than sorry, make sure the buffer is padded with 0 */
+        memset(buf, 0, 512);
+        n = read(fd, buf, 512);
+        if (n < 0) {
+            LogMsg(0, SrvDebugLevel, stdout, "Could not read %s", file);
+            close(fd);
+            return -1;
+        }
+        close(fd);
 
-	HashSecret(buf, n, state->key);
+        HashSecret(buf, n, state->key);
 
-	/* update mtime after when we read the cached key, but not if the
+        /* update mtime after when we read the cached key, but not if the
 	 * change very recent otherwise we could miss a following update
 	 * if it occurs in the same second as well. */
-	if (statbuf.st_mtime != now)
-	    state->mtime = statbuf.st_mtime;
+        if (statbuf.st_mtime != now)
+            state->mtime = statbuf.st_mtime;
     }
     memcpy(key, state->key, RPC2_KEYSIZE);
 
@@ -101,4 +100,3 @@ void GenerateSecret(RPC2_EncryptionKey key)
     for (i = 0; i < RPC2_KEYSIZE; i++)
         key[i] = rpc2_NextRandom(NULL) & 0xff;
 }
-

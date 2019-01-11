@@ -14,7 +14,7 @@
 
 extern const magic_t ds_rrlist_magic;
 
-#define DS_RRLIST_VALID(rp)   ((rp) && ((rp)->magic == ds_rrlist_magic))
+#define DS_RRLIST_VALID(rp) ((rp) && ((rp)->magic == ds_rrlist_magic))
 
 /*
    Each request node is placed in four different structures for
@@ -26,12 +26,12 @@ extern const magic_t ds_rrlist_magic;
 */
 
 struct ds_rrlist_t {
-    magic_t          magic;          /* magic number */
-    long             value;          /* current value */
-    ds_hash_t       *pidhash;        /* hash table on pids */
-    ds_hash_t       *reqhash;        /* hash table on request id's */
-    ds_list_t       *less;           /* list for lower bounds */
-    ds_list_t       *greater;        /* list for upper bounds */
+    magic_t magic; /* magic number */
+    long value; /* current value */
+    ds_hash_t *pidhash; /* hash table on pids */
+    ds_hash_t *reqhash; /* hash table on request id's */
+    ds_list_t *less; /* list for lower bounds */
+    ds_list_t *greater; /* list for upper bounds */
 };
 
 /* size of hash tables */
@@ -44,14 +44,13 @@ struct ds_rrlist_t {
 
 extern const magic_t ds_rrlist_reqtab_elt_magic;
 
-#define DS_RRLIST_REQTAB_ELT_VALID(rre)   \
-         ((rre) && ((rre)->magic == ds_rrlist_reqtab_elt_magic))
-
+#define DS_RRLIST_REQTAB_ELT_VALID(rre) \
+    ((rre) && ((rre)->magic == ds_rrlist_reqtab_elt_magic))
 
 typedef struct ds_rrlist_reqtab_elt_t {
-    magic_t          magic;
-    long             reqid;
-    ds_rrlist_t     *list;
+    magic_t magic;
+    long reqid;
+    ds_rrlist_t *list;
 } ds_rrlist_reqtab_elt_t;
 
 /* 
@@ -60,21 +59,21 @@ typedef struct ds_rrlist_reqtab_elt_t {
  */
 
 /* ds_rrlist_reqtab_elt_t *rre, long rqid, ds_rrlist_t *lst */
-#define DS_RRLIST_REQTAB_ELT_CREATE(rre,rqid,lst)  \
-do {                                               \
-    ALLOC(rre,ds_rrlist_reqtab_elt_t);             \
-    (rre)->magic = ds_rrlist_reqtab_elt_magic;     \
-    (rre)->reqid = rqid;                           \
-    (rre)->list = lst;                             \
-} while (0)
+#define DS_RRLIST_REQTAB_ELT_CREATE(rre, rqid, lst) \
+    do {                                            \
+        ALLOC(rre, ds_rrlist_reqtab_elt_t);         \
+        (rre)->magic = ds_rrlist_reqtab_elt_magic;  \
+        (rre)->reqid = rqid;                        \
+        (rre)->list  = lst;                         \
+    } while (0)
 
-#define DS_RRLIST_REQTAB_ELT_DESTROY(rre)     \
-do {                                          \
-    CODA_ASSERT(DS_RRLIST_REQTAB_ELT_VALID(rre));  \
-    (rre)->magic = 0;                         \
-    (rre)->reqid = 0;                         \
-    (rre)->list = NULL;                       \
-    FREE(rre);                                \
-} while (0)
+#define DS_RRLIST_REQTAB_ELT_DESTROY(rre)             \
+    do {                                              \
+        CODA_ASSERT(DS_RRLIST_REQTAB_ELT_VALID(rre)); \
+        (rre)->magic = 0;                             \
+        (rre)->reqid = 0;                             \
+        (rre)->list  = NULL;                          \
+        FREE(rre);                                    \
+    } while (0)
 
 #endif /* _DS_RRLIST_PRIVATE_H_ */

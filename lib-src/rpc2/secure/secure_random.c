@@ -1,29 +1,29 @@
 /* BLURB lgpl
-                        Coda File System
-                            Release 6
+			Coda File System
+			    Release 6
 
-            Copyright (c) 2006 Carnegie Mellon University
-                  Additional copyrights listed below
+	    Copyright (c) 2006 Carnegie Mellon University
+		  Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
 the  terms of the  GNU  Library General Public Licence  Version 2,  as
 shown in the file LICENSE. The technical and financial contributors to
 Coda are listed in the file CREDITS.
 
-                        Additional copyrights
+			Additional copyrights
 #*/
 
-#include <assert.h>
-#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/times.h>
+#include <sys/time.h>
+#include <time.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/time.h>
-#include <sys/times.h>
-#include <sys/types.h>
-#include <time.h>
+#include <fcntl.h>
 #include <unistd.h>
+#include <assert.h>
 
 #include <rpc2/secure.h>
 
@@ -252,7 +252,7 @@ static void check_random(int verbose)
     secure_random_bytes(data, sizeof(data));
 
     /* the tests do not define the 'endianess' of the stream, so
-   * I assume little endian */
+     * I assume little endian */
 
     /* Monobit Test */
     for (ones = 0, i = 0; i < TESTSIZE; i++) {

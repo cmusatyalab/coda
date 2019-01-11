@@ -57,14 +57,14 @@ documentation and/or software.
  */
 
 typedef struct MD5Context {
-    uint32_t state[4];   /* state (ABCD) */
-    uint32_t count[2];   /* number of bits, modulo 2^64 (lsb first) */
-    unsigned char buffer[64];     /* input buffer */
+    uint32_t state[4]; /* state (ABCD) */
+    uint32_t count[2]; /* number of bits, modulo 2^64 (lsb first) */
+    unsigned char buffer[64]; /* input buffer */
 } MD5_CTX;
 
 void MD5_Init(MD5_CTX *);
 void MD5_Update(MD5_CTX *, const unsigned char *, unsigned int);
-void MD5_Final(unsigned char [16], MD5_CTX *);
+void MD5_Final(unsigned char[16], MD5_CTX *);
 
 #endif
 
@@ -84,5 +84,4 @@ void SHA1_Final(unsigned char sha[SHA_DIGEST_LENGTH], SHA_CTX *ctx);
 }
 #endif
 
-#endif  /* _CODA_HASH_H_ */
-
+#endif /* _CODA_HASH_H_ */

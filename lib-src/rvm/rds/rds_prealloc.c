@@ -16,11 +16,10 @@ Coda are listed in the file CREDITS.
 
 #*/
 
-
 #include <stdio.h>
 #include "rds_private.h"
 
-	    /************** NOTE: ***************/
+/************** NOTE: ***************/
 /* we create our own transactions in the following routines, even
  * though there is a tid in the interface. This might result in unreferenced
  * objects if the thread which malloc'ed the object decides to abort. These
@@ -37,58 +36,55 @@ Coda are listed in the file CREDITS.
  * of appropriate size so splits won't happen during rds_malloc().
  */
 
-int
-rds_prealloc(size, nblocks, tid, err)
-     unsigned long size, nblocks;
-     rvm_tid_t     *tid;
-     int	   *err;
+int rds_prealloc(unsigned long size, unsigned long nblocks, rvm_tid_t *tid,
+                 int *err)
 {
     free_block_t *bp;
     rvm_tid_t *atid;
     int i;
     rvm_return_t rvmerr;
-    
-    if (!HEAP_INIT) {  /* Make sure the heap is initialized */
-	(*err) = EHEAP_INIT;    
-	return -1;
+
+    if (!HEAP_INIT) { /* Make sure the heap is initialized */
+        (*err) = EHEAP_INIT;
+        return -1;
     }
 
     /* Reserve bytes to hold the block's size and 2 guards, hidden from user */
     /* Calculate the chunk size which holds that many bytes. */
     size = ((size + RDS_BLOCK_HDR_SIZE) / RDS_CHUNK_SIZE) + 1;
-    
+
     /*
      * if size == maxlist, then preallocing is pointless. The new object
      * is placed on the beginning of the list, then every split after that
      * will return that same block, and put_block will put it back at the head.
      */
     if (size == RDS_MAXLIST) {
-	*err = SUCCESS;
-	return -1;
+        *err = SUCCESS;
+        return -1;
     }
 
-    if (tid == NULL) {		     /* Use input tid if non-null */
-	atid = rvm_malloc_tid();
-	rvmerr = rvm_begin_transaction(atid, restore);
-	if (rvmerr != RVM_SUCCESS) {
-	    (*err) = (int) rvmerr;
-	    rvm_free_tid(atid);
-	    return -1;
-	}
+    if (tid == NULL) { /* Use input tid if non-null */
+        atid   = rvm_malloc_tid();
+        rvmerr = rvm_begin_transaction(atid, restore);
+        if (rvmerr != RVM_SUCCESS) {
+            (*err) = (int)rvmerr;
+            rvm_free_tid(atid);
+            return -1;
+        }
     } else
-	atid = tid;
+        atid = tid;
 
     /* Update statistics */
     rvmerr = rvm_set_range(atid, &RDS_STATS, sizeof(rds_stats_t));
     if ((rvmerr != RVM_SUCCESS) && (tid == NULL)) {
-	rvm_abort_transaction(atid);
-	(*err) = (int)rvmerr;
-	rvm_free_tid(atid);
-	return -1;
+        rvm_abort_transaction(atid);
+        (*err) = (int)rvmerr;
+        rvm_free_tid(atid);
+        return -1;
     }
-    RDS_STATS.prealloc++;	/* Update statistics. */
+    RDS_STATS.prealloc++; /* Update statistics. */
 
-    *err = SUCCESS; 		/* Initialize the error value */
+    *err = SUCCESS; /* Initialize the error value */
 
     /*
      * Here I put the critical section within the loop. I don't think prealloc
@@ -96,40 +92,37 @@ rds_prealloc(size, nblocks, tid, err)
      */
 
     for (i = 0; i < nblocks; i++) {
-	START_CRITICAL;
-	{
-	    /* Get a block */	
-	    bp = split(size, atid, err); 
-	    if (bp != NULL) { 
-		/* Add the block to the appropriate list. */
-		put_block(bp, atid, err);
-	    }
-	}
-	END_CRITICAL;
+        START_CRITICAL;
+        {
+            /* Get a block */
+            bp = split(size, atid, err);
+            if (bp != NULL) {
+                /* Add the block to the appropriate list. */
+                put_block(bp, atid, err);
+            }
+        }
+        END_CRITICAL;
 
-	if (*err != SUCCESS) {
-	    if (tid == NULL) {
-		rvm_abort_transaction(atid);
-		rvm_free_tid(atid);
-	    }
-	    return -1;
-	}
+        if (*err != SUCCESS) {
+            if (tid == NULL) {
+                rvm_abort_transaction(atid);
+                rvm_free_tid(atid);
+            }
+            return -1;
+        }
     }
 
     if (tid == NULL) {
-	rvmerr = rvm_end_transaction(atid, no_flush);
-	if (rvmerr != RVM_SUCCESS) {
-	    (*err) = (int) rvmerr;
-	    rvm_free_tid(atid);
-	    return -1;
-	}
-	
-	rvm_free_tid(atid);
+        rvmerr = rvm_end_transaction(atid, no_flush);
+        if (rvmerr != RVM_SUCCESS) {
+            (*err) = (int)rvmerr;
+            rvm_free_tid(atid);
+            return -1;
+        }
+
+        rvm_free_tid(atid);
     }
-    
+
     *err = SUCCESS;
     return 0;
 }
-
-
-

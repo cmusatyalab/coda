@@ -41,9 +41,9 @@ Pittsburgh, PA.
    number of INOUT and OUT args in a call should not exceed max in case below.
 */
 
+#include <stdio.h>
 #include <assert.h>
 #include <rpc2/rpc2.h>
-#include <stdio.h>
 
 int mkcall(RPC2_HandleResult_func *ClientHandler, int ArgCount, int HowMany,
            RPC2_Handle ConnList[], long offset, long rpcval, int *args)

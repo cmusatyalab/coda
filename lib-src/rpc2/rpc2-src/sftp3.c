@@ -45,18 +45,18 @@ Pittsburgh, PA.
 #include <config.h>
 #endif
 
-#include <assert.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <netinet/in.h>
 #include <stdio.h>
-#include <string.h>
+#include <fcntl.h>
+#include <sys/types.h>
 #include <sys/file.h>
-#include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/time.h>
-#include <sys/types.h>
+#include <netinet/in.h>
 #include <sys/uio.h>
+#include <sys/socket.h>
+#include <errno.h>
+#include <assert.h>
+#include <string.h>
 #include <unistd.h>
 
 #include <rpc2/se.h>
@@ -103,9 +103,9 @@ void B_CopyFromPacket(RPC2_PacketBuffer *whichPacket, unsigned int *bMask);
 
 #ifdef RPC2DEBUG
 static void PrintDb(struct SFTP_Entry *se, RPC2_PacketBuffer *pb);
-#define BOGOSITY(se, pb)                                                       \
-    (fprintf(rpc2_tracefile, "SFTP bogosity:  file %s, line %d\n", __FILE__,   \
-             __LINE__),                                                        \
+#define BOGOSITY(se, pb)                                                     \
+    (fprintf(rpc2_tracefile, "SFTP bogosity:  file %s, line %d\n", __FILE__, \
+             __LINE__),                                                      \
      PrintDb(se, pb))
 #else
 #define BOGOSITY(se, pb)
@@ -952,8 +952,8 @@ static int SendFirstUnacked(struct SFTP_Entry *sEntry, int winopen)
             htonl(sEntry->TimeEcho + (long)TSDELTA(now, sEntry->RequestTime)) :
             htonl(0);
 #else
-    pb->Header.TimeEcho =
-        VALID_TIMEECHO(sEntry) ? htonl(sEntry->TimeEcho) : htonl(0);
+    pb->Header.TimeEcho = VALID_TIMEECHO(sEntry) ? htonl(sEntry->TimeEcho) :
+                                                   htonl(0);
 #endif
 
     say(/*9*/ 4, SFTP_DebugLevel, "First Unacked S-%lu [%lu] {%lu}\n",
@@ -1024,8 +1024,8 @@ static int SendSendAhead(struct SFTP_Entry *sEntry)
                       (long)TSDELTA(now, sEntry->RequestTime)) :
                 htonl(0);
 #else
-        pb->Header.TimeEcho =
-            VALID_TIMEECHO(sEntry) ? htonl(sEntry->TimeEcho) : htonl(0);
+        pb->Header.TimeEcho = VALID_TIMEECHO(sEntry) ? htonl(sEntry->TimeEcho) :
+                                                       htonl(0);
 #endif
 
         sftp_XmitPacket(sEntry, pb, 1);

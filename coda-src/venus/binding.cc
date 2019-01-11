@@ -20,35 +20,39 @@ listed in the file CREDITS.
 #include "binding.h"
 #include "venus.private.h"
 
-
 #ifdef VENUSDEBUG
-int binding::allocs = 0;
+int binding::allocs   = 0;
 int binding::deallocs = 0;
 #endif /* VENUSDEBUG */
 
-binding::binding() {
-
-    binder = 0;
-    bindee = 0;
+binding::binding()
+{
+    binder         = 0;
+    bindee         = 0;
     referenceCount = 0;
 
-#ifdef	VENUSDEBUG
+#ifdef VENUSDEBUG
     allocs++;
 #endif
 }
 
-binding::~binding() {
-#ifdef	VENUSDEBUG
+binding::~binding()
+{
+#ifdef VENUSDEBUG
     deallocs++;
 #endif
     if (referenceCount != 0)
-      LOG(0, ("binding::~binding:  somebody forgot to decrement before delete\n"));
+        LOG(0,
+            ("binding::~binding:  somebody forgot to decrement before delete\n"));
 
-    if (binder != 0 || bindee != 0)
-	{ print(logFile); CHOKE("binding::~binding: something bogus");}
+    if (binder != 0 || bindee != 0) {
+        print(logFile);
+        CHOKE("binding::~binding: something bogus");
+    }
 }
 
-
-void binding::print(int fd) {
-    fdprint(fd, "%p: binder = %p, bindee = %p, refCount = %d\n", this, binder, bindee, referenceCount);
+void binding::print(int fd)
+{
+    fdprint(fd, "%p: binder = %p, bindee = %p, refCount = %d\n", this, binder,
+            bindee, referenceCount);
 }

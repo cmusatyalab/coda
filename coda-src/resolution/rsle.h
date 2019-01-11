@@ -17,7 +17,7 @@ listed in the file CREDITS.
 #*/
 
 #ifndef _RSLE_H
-#define _RSLE_H 	1
+#define _RSLE_H 1
 
 /* 
  * class SpoolListEntry(rsle - r stands for rvm to 
@@ -43,38 +43,39 @@ extern "C" {
 #include "recle.h"
 
 class rsle : public olink {
-  public:
-    int index;		/* index of log entry when it will be placed in rvm */
+public:
+    int index; /* index of log entry when it will be placed in rvm */
     int seqno;
     ViceStoreId storeid;
     VnodeId dvn;
     Unique_t du;
     RPC2_Unsigned opcode;
     union {
-	aclstore	acl;
-	ststore		st;
-	newstore        newst;
-	create_rle	create;
-	symlink_rle	slink;
-	link_rle	link;
-	mkdir_rle	mkdir;
-	rm_rle		rm;
-	rmdir_rle	rmdir;
-	rename_rle	mv;
-	setquota_rle	sq;
+        aclstore acl;
+        ststore st;
+        newstore newst;
+        create_rle create;
+        symlink_rle slink;
+        link_rle link;
+        mkdir_rle mkdir;
+        rm_rle rm;
+        rmdir_rle rmdir;
+        rename_rle mv;
+        setquota_rle sq;
     } u;
     /* keep upto two names in a separate structure */
     char *name1;
     char *name2;
-    int namesalloced;	// flag used to free space at destruction
-  //public:
-    rsle(ViceStoreId *, VnodeId, Unique_t, int op, int index =-1, int sno = -1);
+    int namesalloced; // flag used to free space at destruction
+    //public:
+    rsle(ViceStoreId *, VnodeId, Unique_t, int op, int index = -1,
+         int sno = -1);
     rsle();
     ~rsle();
-    void init(int op ...);
+    void init(int op...);
     void init(int op, va_list ap);
-    void CommitInRVM(Volume *, Vnode *); 
-    void Abort(Volume *);	
+    void CommitInRVM(Volume *, Vnode *);
+    void Abort(Volume *);
     void InitFromRecleBuf(char **);
     void print();
     void print(FILE *);
@@ -86,4 +87,3 @@ extern void ExtractChildFidFromrsle(rsle *, ViceFid *);
 extern char *ExtractNameFromrsle(rsle *);
 
 #endif /* _RSLE_H_ */
-

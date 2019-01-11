@@ -39,27 +39,26 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #define AL_VERSION "AL v2003.05.23"
 
 typedef struct {
-        int Id;         /*internally-used ID of user or group*/
-        int Rights;     /*mask*/
+    int Id; /*internally-used ID of user or group*/
+    int Rights; /*mask*/
 } AL_AccessEntry;
 /* The above access list entry format is used in VICE */
 
-
-#define AL_ALISTVERSION  1 /*Identifies current format of access lists*/
+#define AL_ALISTVERSION 1 /*Identifies current format of access lists*/
 typedef struct {
-        int MySize;     /*size of this access list in bytes, including MySize itself*/
-        int Version;    /*to deal with upward compatibility */
-        int TotalNoOfEntries; /*no of slots in ActualEntries[ ]; redundant, but convenient */
-        int PlusEntriesInUse; /*stored forwards from ActualEntries[0]*/
-        int MinusEntriesInUse; /*stored forwards from ActualEntries[PlusEntriesInUse]*/
-        AL_AccessEntry ActualEntries[1]; /*Actual array bound is TotalNoOfEntries*/
+    int MySize; /*size of this access list in bytes, including MySize itself*/
+    int Version; /*to deal with upward compatibility */
+    int TotalNoOfEntries; /*no of slots in ActualEntries[ ]; redundant, but convenient */
+    int PlusEntriesInUse; /*stored forwards from ActualEntries[0]*/
+    int MinusEntriesInUse; /*stored forwards from ActualEntries[PlusEntriesInUse]*/
+    AL_AccessEntry ActualEntries[1]; /*Actual array bound is TotalNoOfEntries*/
 } AL_AccessList;
 /* Used in VICE. This is how acccess lists are stored on secondary storage. */
 
-
-extern int AL_MaxExtEntries;	/* Max number of entries in an external
+extern int AL_MaxExtEntries; /* Max number of entries in an external
 				   access list */
-#define AL_MAXEXTENTRIES	20	/* Default initial value for
+#define AL_MAXEXTENTRIES \
+    20 /* Default initial value for
 					   AL_MaxExtEntries */
 
 typedef char *AL_ExternalAccessList;
@@ -75,25 +74,25 @@ typedef char *AL_ExternalAccessList;
    AL_MaxExtEntries, which has the default of AL_MAXEXTENTRIES. You can change
    this limit at any time by changing AL_MaxExtEntries. */
 
-extern int AL_DebugLevel;   /* set for debugging info */
+extern int AL_DebugLevel; /* set for debugging info */
 
 /* Interface definition */
-extern int AL_NewAlist(int  MinNoOfEntries,  AL_AccessList **Al);
+extern int AL_NewAlist(int MinNoOfEntries, AL_AccessList **Al);
 extern int AL_FreeAlist(AL_AccessList **Al);
 extern int AL_htonAlist(AL_AccessList *Al);
 extern int AL_ntohAlist(AL_AccessList *Al);
-extern int AL_NewExternalAlist(int MinNoOfEntries,  AL_ExternalAccessList *R);
+extern int AL_NewExternalAlist(int MinNoOfEntries, AL_ExternalAccessList *R);
 extern int AL_FreeExternalAlist(AL_ExternalAccessList *R);
-extern int AL_NewCPS(int MinNoOfEntries,  PRS_InternalCPS **ICPS);
+extern int AL_NewCPS(int MinNoOfEntries, PRS_InternalCPS **ICPS);
 extern int AL_FreeCPS(PRS_InternalCPS **C);
 extern int AL_htonCPS(PRS_InternalCPS *C);
 extern int AL_ntohCPS(PRS_InternalCPS *C);
-extern int AL_NewExternalCPS(int MinNoOfEntries,  PRS_ExternalCPS *R);
+extern int AL_NewExternalCPS(int MinNoOfEntries, PRS_ExternalCPS *R);
 extern int AL_FreeExternalCPS(PRS_ExternalCPS *R);
 extern int AL_Externalize(AL_AccessList *Alist, AL_ExternalAccessList *Elist);
 extern int AL_Internalize(AL_ExternalAccessList Elist, AL_AccessList **Alist);
 extern int AL_CheckRights(AL_AccessList *Alist, PRS_InternalCPS *CPS,
-			  int *WhichRights);
+                          int *WhichRights);
 extern int AL_Initialize(const char *Version);
 extern int AL_NameToId(const char *Name, int *Id);
 extern int AL_IdToName(int Id, char *Name);
@@ -109,4 +108,3 @@ int CmpPlus(AL_AccessEntry *a, AL_AccessEntry *b);
 int CmpMinus(AL_AccessEntry *a, AL_AccessEntry *b);
 
 #endif
-

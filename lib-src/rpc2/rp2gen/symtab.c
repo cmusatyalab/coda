@@ -77,9 +77,7 @@ static struct {
     { "RPC2_String", RPC2_STRING_TAG },
     { "RPC2_CountedBS", RPC2_COUNTEDBS_TAG },
     { "RPC2_BoundedBS", RPC2_BOUNDEDBS_TAG },
-    /*
-        { "RPC2_BulkDescriptor",	RPC2_BULKDESCRIPTOR_TAG },
-*/
+    // { "RPC2_BulkDescriptor",	RPC2_BULKDESCRIPTOR_TAG },
     { "SE_Descriptor", RPC2_BULKDESCRIPTOR_TAG },
     { "RPC2_EncryptionKey", RPC2_ENCRYPTIONKEY_TAG },
     { "RPC2_Double", RPC2_DOUBLE_TAG },

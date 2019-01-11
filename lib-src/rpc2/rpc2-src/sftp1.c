@@ -48,21 +48,20 @@ Pittsburgh, PA.
 #endif
 
 #include <stdio.h>
+#include <sys/types.h>
 #include <sys/file.h>
-#include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/time.h>
-#include <sys/types.h>
-#include <assert.h>
-#include <limits.h>
-#include <netdb.h>
-#include <netinet/in.h>
-#include <string.h>
-#include <unistd.h>
-
+#include <sys/socket.h>
 #ifdef HAVE_SYS_STREAM_H
 #include <sys/stream.h>
 #endif
+#include <netinet/in.h>
+#include <netdb.h>
+#include <assert.h>
+#include <string.h>
+#include <limits.h>
+#include <unistd.h>
 
 #include <rpc2/se.h>
 #include <rpc2/sftp.h>
@@ -78,26 +77,26 @@ static RPC2_PacketBuffer *AwaitPacket(struct SFTP_Entry *sEntry, int retry,
 static long MakeBigEnough();
 
 /*---------------------------  Local macros ---------------------------*/
-#define FAIL(se, rCode)                                                        \
-    {                                                                          \
-        sftp_vfclose(se);                                                      \
-        se->SDesc = NULL;                                                      \
-        return (rCode);                                                        \
+#define FAIL(se, rCode)   \
+    {                     \
+        sftp_vfclose(se); \
+        se->SDesc = NULL; \
+        return (rCode);   \
     }
 
-#define QUIT(se, RC1, RC2)                                                     \
-    do {                                                                       \
-        while (se->RecvQueue) {                                                \
-            RPC2_PacketBuffer *pb = sftp_DequeuePacket(se);                    \
-            SFTP_FreeBuffer(&pb);                                              \
-        }                                                                      \
-        se->SDesc->LocalStatus = RC1;                                          \
-        sftp_vfclose(se);                                                      \
-        se->SDesc = NULL;                                                      \
-        return (RC2);                                                          \
+#define QUIT(se, RC1, RC2)                                  \
+    do {                                                    \
+        while (se->RecvQueue) {                             \
+            RPC2_PacketBuffer *pb = sftp_DequeuePacket(se); \
+            SFTP_FreeBuffer(&pb);                           \
+        }                                                   \
+        se->SDesc->LocalStatus = RC1;                       \
+        sftp_vfclose(se);                                   \
+        se->SDesc = NULL;                                   \
+        return (RC2);                                       \
     } while (0)
 
-#define BOGUS(pb)                                                              \
+#define BOGUS(pb) \
     (sftp_TraceBogus(1, __LINE__), sftp_bogus++, SFTP_FreeBuffer(&pb))
 
 /*------------- Procedures directly invoked by RPC2 ---------------*/

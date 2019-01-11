@@ -40,8 +40,8 @@ Pittsburgh, PA.
 #ifndef _SFTP
 #define _SFTP
 
-#include <stdlib.h>
 #include <unistd.h>
+#include <stdlib.h>
 /*
     Features:
     1. Windowing with bit masks to avoid unnecessary retransmissions
@@ -142,30 +142,30 @@ The interpretation of header fields is similar to that in RPC:
 /* Values of Flags field in header */
 #define SFTP_ACKME 0x80000000
 /* on data packets: acknowledge this packet.
-                                Located in Flags rather than SEFlags so that
-   retransmits
-                                can turn off this bit without decryption and
-   re-encryption */
+   Located in Flags rather than SEFlags so that retransmits
+   can turn off this bit without decryption and re-encryption */
 
 /* Values of SEFlags field in header */
 #define SFTP_MOREDATA 0x1 /* on data packets, indicates more data to come */
-#define SFTP_PIGGY 0x2
-/* on RPC packets: piggybacked info present on this packet */
-#define SFTP_ALLOVER 0x4
-/* on RPC reply packets: indicates server got all data packets */
-#define SFTP_TRIGGER 0x8
-/* on ack packets: distinguishes a server "triggered" ack from a real one. Necessary only for compatibility, triggers now send null timestamp echos */
-#define SFTP_FIRST 0x10
-/* on data packets, indicates first of group sent by source */
-#define SFTP_COUNTED 0x20
-/* on data packets: arrived or acked before last round */
+#define SFTP_PIGGY 0x2 /* on RPC packets: piggybacked info present on this
+                          packet */
+#define SFTP_ALLOVER 0x4 /* on RPC reply packets: indicates server got all
+                            data packets */
+#define SFTP_TRIGGER 0x8 /* on ack packets: distinguishes a server "triggered"
+                            ack from a real one. Necessary only for
+                            compatibility, triggers now send null timestamp
+                            echos */
+#define SFTP_FIRST 0x10 /* on data packets, indicates first of group sent by
+                           source */
+#define SFTP_COUNTED 0x20 /* on data packets: arrived or acked before last
+                             round */
 
 /* SFTP Opcodes */
-#define SFTP_START 1
-/* Control: start sending data (flow is from RPC client to server)*/
+#define SFTP_START 1 /* Control: start sending data (flow is from RPC client
+                        to server)*/
 #define SFTP_ACK 2 /* Control: acknowledgement you had requested */
-#define SFTP_DATA 3
-/* Data: next chunk; MOREDATA flag indicates whether EOF has been seen */
+#define SFTP_DATA 3 /* Data: next chunk; MOREDATA flag indicates whether EOF
+                       has been seen */
 #define SFTP_NAK 4 /* Control: got a bogus packet from you */
 #define SFTP_RESET 5 /* Control: reset transmission parameters */
 #define SFTP_BUSY 6 /* Control: momentarily busy; reset your timeout counter */
@@ -339,16 +339,16 @@ int sftp_XmitPacket(struct SFTP_Entry *sentry, RPC2_PacketBuffer *pb,
 void sftp_Timer(void);
 void sftp_ExaminePacket(RPC2_PacketBuffer *pb);
 
-#define IsSource(sfe)                                                          \
-    ((sfe->WhoAmI == SFCLIENT && sfe->SDesc &&                                 \
-      sfe->SDesc->Value.SmartFTPD.TransmissionDirection == CLIENTTOSERVER) ||  \
-     (sfe->WhoAmI == SFSERVER && sfe->SDesc &&                                 \
+#define IsSource(sfe)                                                         \
+    ((sfe->WhoAmI == SFCLIENT && sfe->SDesc &&                                \
+      sfe->SDesc->Value.SmartFTPD.TransmissionDirection == CLIENTTOSERVER) || \
+     (sfe->WhoAmI == SFSERVER && sfe->SDesc &&                                \
       sfe->SDesc->Value.SmartFTPD.TransmissionDirection == SERVERTOCLIENT))
 
-#define IsSink(sfe)                                                            \
-    ((sfe->WhoAmI == SFCLIENT && sfe->SDesc &&                                 \
-      sfe->SDesc->Value.SmartFTPD.TransmissionDirection == SERVERTOCLIENT) ||  \
-     (sfe->WhoAmI == SFSERVER && sfe->SDesc &&                                 \
+#define IsSink(sfe)                                                           \
+    ((sfe->WhoAmI == SFCLIENT && sfe->SDesc &&                                \
+      sfe->SDesc->Value.SmartFTPD.TransmissionDirection == SERVERTOCLIENT) || \
+     (sfe->WhoAmI == SFSERVER && sfe->SDesc &&                                \
       sfe->SDesc->Value.SmartFTPD.TransmissionDirection == CLIENTTOSERVER))
 
 /* Operations on integer array bitmask; leftmost position is 1, rightmost is
@@ -459,16 +459,16 @@ extern long SFTP_MaxPackets;
 #define SFTP_FreeBuffer(x) (sftp_PacketsInUse--, RPC2_FreeBuffer(x))
 
 /* For encryption and decryption */
-#define sftp_Encrypt(pb, sfe)                                                  \
-    rpc2_Encrypt((char *)&pb->Header.BodyLength,                               \
-                 (char *)&pb->Header.BodyLength,                               \
-                 pb->Prefix.LengthOfPacket - 4 * sizeof(RPC2_Integer),         \
+#define sftp_Encrypt(pb, sfe)                                          \
+    rpc2_Encrypt((char *)&pb->Header.BodyLength,                       \
+                 (char *)&pb->Header.BodyLength,                       \
+                 pb->Prefix.LengthOfPacket - 4 * sizeof(RPC2_Integer), \
                  sfe->PInfo.SessionKey, sfe->PInfo.EncryptionType)
 
-#define sftp_Decrypt(pb, sfe)                                                  \
-    rpc2_Decrypt((char *)&pb->Header.BodyLength,                               \
-                 (char *)&pb->Header.BodyLength,                               \
-                 pb->Prefix.LengthOfPacket - 4 * sizeof(RPC2_Integer),         \
+#define sftp_Decrypt(pb, sfe)                                          \
+    rpc2_Decrypt((char *)&pb->Header.BodyLength,                       \
+                 (char *)&pb->Header.BodyLength,                       \
+                 pb->Prefix.LengthOfPacket - 4 * sizeof(RPC2_Integer), \
                  sfe->PInfo.SessionKey, sfe->PInfo.EncryptionType)
 #endif /* _SFTP */
 
@@ -478,7 +478,7 @@ extern long SFTP_MaxPackets;
 
 /* test if we can send an TimeEcho reponse */
 #ifdef VERY_FAST_SERVERS
-#define VALID_TIMEECHO(se)                                                     \
+#define VALID_TIMEECHO(se) \
     (!(se)->Retransmitting && (se)->TimeEcho != 0 && (se)->RequestTime != 0)
 #else
 #define VALID_TIMEECHO(se) (!(se)->Retransmitting && (se)->TimeEcho != 0)

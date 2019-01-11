@@ -48,9 +48,8 @@ Pittsburgh, PA.
 typedef long RPC2_HandleResult_func(int HowMany, RPC2_Handle ConnList[],
                                     long offset, long rpcval, ...);
 
-/* union for packing and unpacking unspecified arguments (identified by parallel
- * ARG
- * structure
+/* union for packing and unpacking unspecified arguments (identified by
+ * parallel ARG structure
  */
 typedef union PARM { /* PARM will always be 4 bytes */
     RPC2_Integer integer;
@@ -86,70 +85,70 @@ typedef struct arg_info {
    in Coda; moved them here since they are really not
    Coda-specific (Satya, 5/23/95) */
 
-#define ARG_MARSHALL(mode, type, name, object, howmany)                        \
-    type *name##_ptrs[howmany] __attribute__((unused));                        \
-    type name##_bufs[howmany];                                                 \
-    {                                                                          \
-        memset(&name##_bufs, 0, sizeof(type) * howmany);                       \
-        for (unsigned int name##_local_i = 0; name##_local_i < howmany;        \
-             name##_local_i++) {                                               \
-            name##_ptrs[name##_local_i] = &name##_bufs[name##_local_i];        \
-            if (mode == IN_OUT_MODE)                                           \
-                name##_bufs[name##_local_i] = (object);                        \
-        }                                                                      \
+#define ARG_MARSHALL(mode, type, name, object, howmany)                 \
+    type *name##_ptrs[howmany] __attribute__((unused));                 \
+    type name##_bufs[howmany];                                          \
+    {                                                                   \
+        memset(&name##_bufs, 0, sizeof(type) * howmany);                \
+        for (unsigned int name##_local_i = 0; name##_local_i < howmany; \
+             name##_local_i++) {                                        \
+            name##_ptrs[name##_local_i] = &name##_bufs[name##_local_i]; \
+            if (mode == IN_OUT_MODE)                                    \
+                name##_bufs[name##_local_i] = (object);                 \
+        }                                                               \
     }
 
-#define ARG_MARSHALL_BS(mode, type, name, object, howmany, maxbslen)           \
-    type *name##_ptrs[howmany];                                                \
-    type name##_bufs[howmany];                                                 \
-    char name##_data[maxbslen * howmany];                                      \
-    {                                                                          \
-        for (int name##_local_i = 0; name##_local_i < howmany;                 \
-             name##_local_i++) {                                               \
-            name##_ptrs[name##_local_i] = &name##_bufs[name##_local_i];        \
-            if (mode == OUT_MODE)                                              \
-                (object).SeqLen = 0;                                           \
-            name##_bufs[name##_local_i] = (object);                            \
-            name##_bufs[name##_local_i].SeqBody =                              \
-                (RPC2_ByteSeq)&name##_data[name##_local_i * maxbslen];         \
-            if ((object).SeqLen > 0)                                           \
-                memcpy(name##_bufs[name##_local_i].SeqBody, (object).SeqBody,  \
-                       (int)(object).SeqLen);                                  \
-        }                                                                      \
+#define ARG_MARSHALL_BS(mode, type, name, object, howmany, maxbslen)          \
+    type *name##_ptrs[howmany];                                               \
+    type name##_bufs[howmany];                                                \
+    char name##_data[maxbslen * howmany];                                     \
+    {                                                                         \
+        for (int name##_local_i = 0; name##_local_i < howmany;                \
+             name##_local_i++) {                                              \
+            name##_ptrs[name##_local_i] = &name##_bufs[name##_local_i];       \
+            if (mode == OUT_MODE)                                             \
+                (object).SeqLen = 0;                                          \
+            name##_bufs[name##_local_i] = (object);                           \
+            name##_bufs[name##_local_i].SeqBody =                             \
+                (RPC2_ByteSeq)&name##_data[name##_local_i * maxbslen];        \
+            if ((object).SeqLen > 0)                                          \
+                memcpy(name##_bufs[name##_local_i].SeqBody, (object).SeqBody, \
+                       (int)(object).SeqLen);                                 \
+        }                                                                     \
     }
 
-#define ARG_MARSHALL_ARRAY(mode, type, name, numelts, maxelts, object,         \
-                           howmany)                                            \
-    type *name##_ptrs[howmany];                                                \
-    type name##_bufs[howmany][maxelts]; /* maxelts must be a constant */       \
-    {                                                                          \
-        for (unsigned int name##_local_i = 0; name##_local_i < howmany;        \
-             name##_local_i++) {                                               \
-            name##_ptrs[name##_local_i] = name##_bufs[name##_local_i];         \
-            if (mode == IN_OUT_MODE) {                                         \
-                for (unsigned int name##_local_j = 0;                          \
-                     name##_local_j < numelts; name##_local_j++)               \
-                    name##_bufs[name##_local_i][name##_local_j] =              \
-                        (object)[name##_local_j];                              \
-            }                                                                  \
-        }                                                                      \
+#define ARG_MARSHALL_ARRAY(mode, type, name, numelts, maxelts, object,   \
+                           howmany)                                      \
+    type *name##_ptrs[howmany];                                          \
+    type name##_bufs[howmany][maxelts]; /* maxelts must be a constant */ \
+    {                                                                    \
+        for (unsigned int name##_local_i = 0; name##_local_i < howmany;  \
+             name##_local_i++) {                                         \
+            name##_ptrs[name##_local_i] = name##_bufs[name##_local_i];   \
+            if (mode == IN_OUT_MODE) {                                   \
+                for (unsigned int name##_local_j = 0;                    \
+                     name##_local_j < numelts; name##_local_j++)         \
+                    name##_bufs[name##_local_i][name##_local_j] =        \
+                        (object)[name##_local_j];                        \
+            }                                                            \
+        }                                                                \
     }
 
 #define ARG_UNMARSHALL(name, object, ix) (object) = name##_bufs[ix];
 
-#define ARG_UNMARSHALL_BS(name, object, ix)                                    \
-    {                                                                          \
-        RPC2_Integer seqlen = name##_bufs[ix].SeqLen;                          \
-        (object).SeqLen     = seqlen;                                          \
-        if (seqlen > 0)                                                        \
-            memcpy((object).SeqBody, name##_bufs[ix].SeqBody, (int)seqlen);    \
+#define ARG_UNMARSHALL_BS(name, object, ix)                                 \
+    {                                                                       \
+        RPC2_Integer seqlen = name##_bufs[ix].SeqLen;                       \
+        (object).SeqLen     = seqlen;                                       \
+        if (seqlen > 0)                                                     \
+            memcpy((object).SeqBody, name##_bufs[ix].SeqBody, (int)seqlen); \
     }
 
-#define ARG_UNMARSHALL_ARRAY(name, numelts, object, ix)                        \
-    {                                                                          \
-        for (unsigned int name##_local_i = 0; name##_local_i < (numelts);      \
-             name##_local_i++)                                                 \
-            (object)[name##_local_i] = name##_bufs[ix][name##_local_i];        \
+#define ARG_UNMARSHALL_ARRAY(name, numelts, object, ix)                   \
+    {                                                                     \
+        for (unsigned int name##_local_i = 0; name##_local_i < (numelts); \
+             name##_local_i++)                                            \
+            (object)[name##_local_i] = name##_bufs[ix][name##_local_i];   \
     }
 
 #endif /* _MULTI_H_ */

@@ -39,40 +39,38 @@ rvm_bool_t rvm_unregister_page(char *vmaddr, rvm_length_t length);
 
 /* Routine to check if regions will overlap in memory. */
 
-int overlap(nregions, regionDefs)
-     unsigned long      nregions; 
-     rvm_region_def_t   regionDefs[];
+int overlap(unsigned long nregions, rvm_region_def_t regionDefs[])
 {
-    int i,j;
+    int i, j;
     rvm_region_def_t temp;
 
     /* sort array */
     for (i = 0; i < (nregions - 1); i++) {
-	for (j = i + 1; j < nregions; j++) {
-	    if (regionDefs[j].vmaddr < regionDefs[i].vmaddr) {
-		temp.vmaddr = regionDefs[i].vmaddr;
-		temp.length = regionDefs[i].length;
-		temp.offset = regionDefs[i].offset;
+        for (j = i + 1; j < nregions; j++) {
+            if (regionDefs[j].vmaddr < regionDefs[i].vmaddr) {
+                temp.vmaddr = regionDefs[i].vmaddr;
+                temp.length = regionDefs[i].length;
+                temp.offset = regionDefs[i].offset;
 
-		regionDefs[i].vmaddr = regionDefs[j].vmaddr;
-		regionDefs[i].length = regionDefs[j].length;
-		regionDefs[i].offset = regionDefs[j].offset;
+                regionDefs[i].vmaddr = regionDefs[j].vmaddr;
+                regionDefs[i].length = regionDefs[j].length;
+                regionDefs[i].offset = regionDefs[j].offset;
 
-		regionDefs[j].vmaddr = temp.vmaddr;
-		regionDefs[j].length = temp.length;
-		regionDefs[j].offset = temp.offset;
-	    }
-	}
+                regionDefs[j].vmaddr = temp.vmaddr;
+                regionDefs[j].length = temp.length;
+                regionDefs[j].offset = temp.offset;
+            }
+        }
     }
 
     for (i = 0; i < (nregions - 1); i++) {
-	if (regionDefs[i].vmaddr + regionDefs[i].length > regionDefs[i+1].vmaddr)
-	    return(TRUE);
+        if (regionDefs[i].vmaddr + regionDefs[i].length >
+            regionDefs[i + 1].vmaddr)
+            return (TRUE);
     }
 
     return FALSE;
-}     
-
+}
 
 /* BSD44 memory allocation; uses mmap as an allocator.  Any mmap-aware
    system should be able to use this code */
@@ -83,13 +81,9 @@ int overlap(nregions, regionDefs)
 #include <errno.h>
 #define ALLOCATE_VM_DEFINED
 
-
-rvm_return_t    
-allocate_vm(addr, length)
-     char **addr;
-     unsigned long length;
+rvm_return_t allocate_vm(char **addr, unsigned long length)
 {
-    rvm_return_t  ret = RVM_SUCCESS;
+    rvm_return_t ret     = RVM_SUCCESS;
     char *requested_addr = *addr; /* save this so that we can check it
 				     against the address location
 				     returned by mmap. this is
@@ -100,34 +94,35 @@ allocate_vm(addr, length)
 #ifdef HAVE_MMAP
     mmap_anon(*addr, *addr, length, (PROT_READ | PROT_WRITE));
 #else
-    { 
-      HANDLE hMap = CreateFileMapping((HANDLE)0xFFFFFFFF, NULL,
-                                      PAGE_READWRITE, 0, length, NULL);
-      if (hMap == NULL)
-          return(RVM_EINTERNAL);
-      *addr = MapViewOfFileEx(hMap, FILE_MAP_READ | FILE_MAP_WRITE, 0, 0, 0, *addr);
-      if (*addr == NULL) {
+    {
+        HANDLE hMap = CreateFileMapping((HANDLE)0xFFFFFFFF, NULL,
+                                        PAGE_READWRITE, 0, length, NULL);
+        if (hMap == NULL)
+            return (RVM_EINTERNAL);
+        *addr = MapViewOfFileEx(hMap, FILE_MAP_READ | FILE_MAP_WRITE, 0, 0, 0,
+                                *addr);
+        if (*addr == NULL) {
 #if 0
 	  DWORD errnum;
 	  errnum = GetLastError();
 	  printf ("allocate_vm: errnum = %d\n", errnum);
 #endif
-          *addr = (char *)-1;
-      }
-      CloseHandle(hMap);
+            *addr = (char *)-1;
+        }
+        CloseHandle(hMap);
     }
 #endif
 
-    if (*addr == (char*)-1) {
-	if (errno == ENOMEM) {
-	    ret = RVM_ENO_MEMORY;
-	} else {
-	    ret = RVM_EINTERNAL;
-	}
+    if (*addr == (char *)-1) {
+        if (errno == ENOMEM) {
+            ret = RVM_ENO_MEMORY;
+        } else {
+            ret = RVM_EINTERNAL;
+        }
     }
 
     if (requested_addr != 0 && *addr != requested_addr) {
-	ret = RVM_EINTERNAL;	/* couldn't allocated requested memory. */
+        ret = RVM_EINTERNAL; /* couldn't allocated requested memory. */
     }
 
     /* modified by tilt, Nov 19 1996.
@@ -139,32 +134,27 @@ allocate_vm(addr, length)
        actually allocated in the RVM heap!!], but doesn't
        work with mmap()). */
     if (rvm_register_page(*addr, length) == rvm_false) {
-	ret = RVM_EINTERNAL;
+        ret = RVM_EINTERNAL;
     }
-    
+
     return ret;
 }
 
-rvm_return_t    
-deallocate_vm(addr, length)
-     char *addr;
-     unsigned long length;
+rvm_return_t deallocate_vm(char *addr, unsigned long length)
 {
-    rvm_return_t   ret = RVM_SUCCESS;
+    rvm_return_t ret = RVM_SUCCESS;
 
 #ifdef HAVE_MMAP
     if (munmap(addr, length)) {
-	ret = RVM_EINTERNAL;
+        ret = RVM_EINTERNAL;
     }
 #else
     UnmapViewOfFile(addr);
 #endif
 
     if (rvm_unregister_page(addr, length) == rvm_false) {
-	ret = RVM_EINTERNAL;
+        ret = RVM_EINTERNAL;
     }
 
     return ret;
 }
-
-

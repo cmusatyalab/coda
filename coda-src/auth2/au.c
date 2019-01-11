@@ -41,7 +41,6 @@ Pittsburgh, PA.
 au.c -- authentication client program
 */
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -73,7 +72,6 @@ extern "C" {
 }
 #endif
 
-
 static void SetGlobals(int argc, char **argv);
 static int GetVid(char *s, int *id);
 
@@ -89,11 +87,10 @@ static int ChangePasswordFlag;
 
 static RPC2_Handle AuthCid;
 
-
 int main(int argc, char **argv)
 {
     struct RPC2_addrinfo *srvs = NULL;
-    const char *realm = NULL;
+    const char *realm          = NULL;
     int rc;
     char MyViceName[PRS_MAXNAMELEN];
     char MyPassword[100];
@@ -103,18 +100,18 @@ int main(int argc, char **argv)
     memset(ek, 0, sizeof(ek));
     memset(cname, 0, sizeof(cname));
     memset(MyViceName, 0, sizeof(MyViceName));
-    memset(MyPassword, 0, sizeof(MyPassword));    
-    
+    memset(MyPassword, 0, sizeof(MyPassword));
+
     SetGlobals(argc, argv);
 
     U_InitRPC();
 
     printf("Your Vice name: ");
     fgets(MyViceName, sizeof(MyViceName), stdin);
-    if (MyViceName[strlen(MyViceName)-1] == '\n' ){
-	    MyViceName[strlen(MyViceName)-1] = '\0';
+    if (MyViceName[strlen(MyViceName) - 1] == '\n') {
+        MyViceName[strlen(MyViceName) - 1] = '\0';
     }
-    strncpy(MyPassword, getpass("Your password: "), sizeof(MyPassword)-1);
+    strncpy(MyPassword, getpass("Your password: "), sizeof(MyPassword) - 1);
 
     /* get realm information */
     SplitRealmFromName(MyViceName, &realm);
@@ -123,95 +120,101 @@ int main(int argc, char **argv)
     CODACONF_STR(realm, "realm", NULL);
 
     srvs = U_GetAuthServers(realm, host);
-    rc = U_BindToServer(srvs, MyViceName, strlen(MyViceName)+1, MyPassword, strlen(MyPassword), &AuthCid, 1);
+    rc   = U_BindToServer(srvs, MyViceName, strlen(MyViceName) + 1, MyPassword,
+                        strlen(MyPassword), &AuthCid, 1);
     RPC2_freeaddrinfo(srvs);
 
     printf("RPC2_Bind() --> %s\n", RPC2_ErrorMsg(rc));
-    if (rc < RPC2_ELIMIT) exit(EXIT_FAILURE);
+    if (rc < RPC2_ELIMIT)
+        exit(EXIT_FAILURE);
 
     if (ChangePasswordFlag) {
-	char buf[100];
-	int rc;
-	int cpid;
+        char buf[100];
+        int rc;
+        int cpid;
 
-	memset(buf, 0, sizeof(buf));
+        memset(buf, 0, sizeof(buf));
 
-	printf("User name: ");
-	fgets(cname, sizeof(cname), stdin);
-	if ( cname[strlen(cname)-1] == '\n' ) 
-		cname[strlen(cname)-1] = '\0';
-	printf("New password: ");
-	fgets(buf, sizeof(buf), stdin);
-	if ( buf[strlen(buf)-1] == '\n' ) 
-		buf[strlen(buf)-1] = '\0';
-	
-	strncpy((char *)ek, buf, RPC2_KEYSIZE);
-	
-	if (GetVid(cname, &cpid) < 0) goto Done;
+        printf("User name: ");
+        fgets(cname, sizeof(cname), stdin);
+        if (cname[strlen(cname) - 1] == '\n')
+            cname[strlen(cname) - 1] = '\0';
+        printf("New password: ");
+        fgets(buf, sizeof(buf), stdin);
+        if (buf[strlen(buf) - 1] == '\n')
+            buf[strlen(buf) - 1] = '\0';
 
-	rc = AuthChangePasswd(AuthCid, cpid, ek);
-	if (rc < 0)
-	    printf("AuthChangePasswd() --> %s\n", RPC2_ErrorMsg(rc));
-	else printf("AuthChangePasswd() --> %s\n", U_AuthErrorMsg(rc));
+        strncpy((char *)ek, buf, RPC2_KEYSIZE);
+
+        if (GetVid(cname, &cpid) < 0)
+            goto Done;
+
+        rc = AuthChangePasswd(AuthCid, cpid, ek);
+        if (rc < 0)
+            printf("AuthChangePasswd() --> %s\n", RPC2_ErrorMsg(rc));
+        else
+            printf("AuthChangePasswd() --> %s\n", U_AuthErrorMsg(rc));
     }
-	
+
     if (DeleteUserFlag) {
-	int vid;
+        int vid;
 
-	printf("Vice user to delete: ");
-	fgets(cname, sizeof(cname), stdin);
-	if ( cname[strlen(cname)-1] == '\n' ) 
-		cname[strlen(cname)-1] = '\0';
+        printf("Vice user to delete: ");
+        fgets(cname, sizeof(cname), stdin);
+        if (cname[strlen(cname) - 1] == '\n')
+            cname[strlen(cname) - 1] = '\0';
 
-	if (GetVid(cname, &vid) < 0) 
-		goto Done;
+        if (GetVid(cname, &vid) < 0)
+            goto Done;
 
-	rc = AuthDeleteUser(AuthCid, vid);
-	if (rc < 0)
-	    printf("AuthDeleteUser() --> %s\n", RPC2_ErrorMsg(rc));
-	else 
-	    printf("AuthDeleteUser() --> %s\n", U_AuthErrorMsg(rc));
+        rc = AuthDeleteUser(AuthCid, vid);
+        if (rc < 0)
+            printf("AuthDeleteUser() --> %s\n", RPC2_ErrorMsg(rc));
+        else
+            printf("AuthDeleteUser() --> %s\n", U_AuthErrorMsg(rc));
     }
 
-    if (ChangeUserFlag || NewUserFlag)	{
-	char buf[100];
-	int rc, cpid;
-	char otherinfo[200];
+    if (ChangeUserFlag || NewUserFlag) {
+        char buf[100];
+        int rc, cpid;
+        char otherinfo[200];
 
-	memset(otherinfo, 0, sizeof(otherinfo));
-	printf("Vice user: ");
-	fgets(cname, sizeof(cname), stdin);
-	if ( cname[strlen(cname)-1] == '\n' ) 
-		cname[strlen(cname)-1] = '\0';
+        memset(otherinfo, 0, sizeof(otherinfo));
+        printf("Vice user: ");
+        fgets(cname, sizeof(cname), stdin);
+        if (cname[strlen(cname) - 1] == '\n')
+            cname[strlen(cname) - 1] = '\0';
 
-	printf("New password: ");
-	fgets(buf, sizeof(buf), stdin);
-	if ( buf[strlen(buf)-1] == '\n' ) 
-		buf[strlen(buf)-1] = '\0';
-	strncpy((char *)ek, buf, RPC2_KEYSIZE);
-	printf("New info: ");
-	fgets(otherinfo, sizeof(otherinfo), stdin);
-	if ( otherinfo[strlen(otherinfo)-1] == '\n' ) 
-		otherinfo[strlen(otherinfo)-1] = '\0';
-	
-	if (GetVid(cname, &cpid) < 0) goto Done;
-	if (ChangeUserFlag) {
-	    rc = AuthChangeUser(AuthCid, cpid, ek, (RPC2_String)otherinfo);
-	    if (rc < 0)
-		printf("AuthChangeUser() --> %s\n", RPC2_ErrorMsg(rc));
-	    else printf("AuthChangeUser() --> %s\n", U_AuthErrorMsg(rc));
-	} else {
-	    rc = AuthNewUser(AuthCid, cpid, ek, (RPC2_String)otherinfo);
-	    if (rc < 0)
-		printf("AuthNewUser() --> %s\n", RPC2_ErrorMsg(rc));
-	    else printf("AuthNewUser() --> %s\n", U_AuthErrorMsg(rc));
-	    
-	}
+        printf("New password: ");
+        fgets(buf, sizeof(buf), stdin);
+        if (buf[strlen(buf) - 1] == '\n')
+            buf[strlen(buf) - 1] = '\0';
+        strncpy((char *)ek, buf, RPC2_KEYSIZE);
+        printf("New info: ");
+        fgets(otherinfo, sizeof(otherinfo), stdin);
+        if (otherinfo[strlen(otherinfo) - 1] == '\n')
+            otherinfo[strlen(otherinfo) - 1] = '\0';
+
+        if (GetVid(cname, &cpid) < 0)
+            goto Done;
+        if (ChangeUserFlag) {
+            rc = AuthChangeUser(AuthCid, cpid, ek, (RPC2_String)otherinfo);
+            if (rc < 0)
+                printf("AuthChangeUser() --> %s\n", RPC2_ErrorMsg(rc));
+            else
+                printf("AuthChangeUser() --> %s\n", U_AuthErrorMsg(rc));
+        } else {
+            rc = AuthNewUser(AuthCid, cpid, ek, (RPC2_String)otherinfo);
+            if (rc < 0)
+                printf("AuthNewUser() --> %s\n", RPC2_ErrorMsg(rc));
+            else
+                printf("AuthNewUser() --> %s\n", U_AuthErrorMsg(rc));
+        }
     }
-	
+
 Done:
     RPC2_Unbind(AuthCid);
-    return(0);
+    return (0);
 }
 
 /* Set globals from command line args */
@@ -219,65 +222,55 @@ static void SetGlobals(int argc, char **argv)
 {
     int i;
 
-    for (i = 1; i < argc; i++)
-	{
-	if (strcmp(argv[i], "-x") == 0)
-	    {
-	    DebugLevel++;
-	    continue;
-	    }
+    for (i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "-x") == 0) {
+            DebugLevel++;
+            continue;
+        }
 
-	if (strcmp(argv[i], "-h") == 0 && i < argc - 1)
-	    {
-	    host = argv[++i];
-	    continue;
-	    }
+        if (strcmp(argv[i], "-h") == 0 && i < argc - 1) {
+            host = argv[++i];
+            continue;
+        }
 
-	if (strcmp(argv[i], "-p") == 0 && i < argc - 1)
-	    {
-	    AuthPortal = argv[++i];
-	    continue;
-	    }
+        if (strcmp(argv[i], "-p") == 0 && i < argc - 1) {
+            AuthPortal = argv[++i];
+            continue;
+        }
 
-	if (strcmp(argv[i], "cu") == 0)
-	    {
-	    ChangeUserFlag = TRUE;
-	    break;
-	    }
-	if (strcmp(argv[i], "nu") == 0)
-	    {
-	    NewUserFlag = TRUE;
-	    break;
-	    }
-	if (strcmp(argv[i], "cp") == 0)
-	    {
-	    ChangePasswordFlag = TRUE;
-	    break;
-	    }
-	if (strcmp(argv[i], "du") == 0)
-	    {
-	    DeleteUserFlag = TRUE;
-	    break;
-	    }
+        if (strcmp(argv[i], "cu") == 0) {
+            ChangeUserFlag = TRUE;
+            break;
+        }
+        if (strcmp(argv[i], "nu") == 0) {
+            NewUserFlag = TRUE;
+            break;
+        }
+        if (strcmp(argv[i], "cp") == 0) {
+            ChangePasswordFlag = TRUE;
+            break;
+        }
+        if (strcmp(argv[i], "du") == 0) {
+            DeleteUserFlag = TRUE;
+            break;
+        }
+    }
+    if (ChangePasswordFlag || ChangeUserFlag || NewUserFlag || DeleteUserFlag)
+        return;
 
-	}
-	if (ChangePasswordFlag || ChangeUserFlag || NewUserFlag || DeleteUserFlag)
-	    return;
-
-	printf("Usage: au [-x] [-h host] [-p portal]  {cp,cu,nu,du}\n");
-	exit(EXIT_FAILURE);
+    printf("Usage: au [-x] [-h host] [-p portal]  {cp,cu,nu,du}\n");
+    exit(EXIT_FAILURE);
 }
-
 
 static int GetVid(char *s, int *id)
 {
-	int rc;
-	rc = AuthNameToId(AuthCid, (RPC2_String)s, (RPC2_Integer *)id);
-	if (rc == AUTH_SUCCESS) 
-		return(0);
-	if (rc < 0)
-		printf("AuthNameToId() --> %s\n", RPC2_ErrorMsg(rc));
-	else   
-		printf("AuthNameToId() --> %s\n", U_AuthErrorMsg(rc));
-	return(-1);
+    int rc;
+    rc = AuthNameToId(AuthCid, (RPC2_String)s, (RPC2_Integer *)id);
+    if (rc == AUTH_SUCCESS)
+        return (0);
+    if (rc < 0)
+        printf("AuthNameToId() --> %s\n", RPC2_ErrorMsg(rc));
+    else
+        printf("AuthNameToId() --> %s\n", U_AuthErrorMsg(rc));
+    return (-1);
 }

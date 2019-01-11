@@ -33,23 +33,25 @@ class Realm {
     friend class fsobj; // Fakeify
 
 public:
-    void *operator new(size_t size) { /*T*/
-	void *p = rvmlib_rec_malloc(size);
-	CODA_ASSERT(p);
-	return p;
+    void *operator new(size_t size)
+    { /*T*/
+        void *p = rvmlib_rec_malloc(size);
+        CODA_ASSERT(p);
+        return p;
     }
     void operator delete(void *p) { rvmlib_rec_free(p); } /*T*/
 
-    Realm(const RealmId id, const char *realm);	/*T*/
-    ~Realm(void);		/*T*/
+    Realm(const RealmId id, const char *realm); /*T*/
+    ~Realm(void); /*T*/
 
     void ResetTransient(void);
 
-    void Rec_GetRef(void) {	/*T*/
-	RVMLIB_REC_OBJECT(rec_refcount);
-	rec_refcount++;
+    void Rec_GetRef(void)
+    { /*T*/
+        RVMLIB_REC_OBJECT(rec_refcount);
+        rec_refcount++;
     }
-    void Rec_PutRef(void);	/*T*/
+    void Rec_PutRef(void); /*T*/
     void GetRef(void) { refcount++; }
     void PutRef(void);
 
@@ -77,10 +79,9 @@ private:
     char *rootvolname;
     struct dllist_head realms;
 
-/*T*/unsigned int refcount;
-/*T*/int generation;
-/*T*/struct RPC2_addrinfo *rootservers;
+    /*T*/ unsigned int refcount;
+    /*T*/ int generation;
+    /*T*/ struct RPC2_addrinfo *rootservers;
 };
 
 #endif /* _REALM_H_ */
-

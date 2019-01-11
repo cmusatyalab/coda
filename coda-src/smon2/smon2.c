@@ -56,15 +56,14 @@ listed in the file CREDITS.
 
 #include "vice.h"
 
-struct server
-{
+struct server {
     PROCESS pid; /* process id of lwp for this server */
     char *srvname;
     RPC2_Handle cid;
-    long binds;  /* since starting of monitor */
-    long probe;  /* time when server was last probed */
-    long succ;   /* time of last successful probe */
-    struct ViceStatistics vs;  /* result of call */
+    long binds; /* since starting of monitor */
+    long probe; /* time when server was last probed */
+    long succ; /* time of last successful probe */
+    struct ViceStatistics vs; /* result of call */
 };
 
 #define MAXSRV 16
@@ -83,101 +82,102 @@ PROCESS parent;
 static void RRDCreate(struct server *s)
 {
     printf("create %s.rrd ", s->srvname);
-    
-    puts("DS:conns:GAUGE:600:0:U "
-	 "DS:nrpcs:COUNTER:600:0:100000 "
-	 "DS:ftotl:COUNTER:600:0:100000 "
-	 "DS:fdata:COUNTER:600:0:100000 "
-	 "DS:fsize:COUNTER:600:U:5000000 "
-	 "DS:frate:GAUGE:600:0:U:5000000 "
-	 "DS:stotl:COUNTER:600:0:100000 "
-	 "DS:sdata:COUNTER:600:U:100000 "
-	 "DS:ssize:COUNTER:600:U:5000000 "
-	 "DS:srate:GAUGE:600:0:U:5000000 "
-	 "DS:rbsnd:COUNTER:600:U:5000000 "
-	 "DS:rbrcv:COUNTER:600:U:5000000 "
-	 "DS:rpsnd:COUNTER:600:0:100000 "
-	 "DS:rprcv:COUNTER:600:0:100000 "
-	 "DS:rplst:COUNTER:600:0:100000 "
-	 "DS:rperr:COUNTER:600:0:100000 "
-	 "DS:sscpu:COUNTER:600:0:2000 "
-	 "DS:sucpu:COUNTER:600:0:2000 "
-	 "DS:sncpu:COUNTER:600:0:2000 "
-	 "DS:sicpu:COUNTER:600:0:2000 "
-	 "DS:totio:COUNTER:600:U:100000 "
-	 "DS:vmuse:GAUGE:600:0:U "
-	 "DS:vmmax:GAUGE:600:0:U "
-	 "DS:eerrs:COUNTER:600:0:1000000 "
-	 "DS:epsnd:COUNTER:600:0:1000000 "
-	 "DS:ecols:COUNTER:600:0:1000000 "
-	 "DS:eprcv:COUNTER:600:0:1000000 "
-	 "DS:ebsnd:COUNTER:600:0:13000000 "
-	 "DS:ebrcv:COUNTER:600:0:13000000 "
-	 "DS:vmsiz:GAUGE:600:0:U "
-	 "DS:clnts:GAUGE:600:0:10000 "
-	 "DS:aclnt:GAUGE:600:0:10000 "
-	 "DS:mnflt:COUNTER:600:U:1000000 "
-	 "DS:mjflt:COUNTER:600:U:1000000 "
-	 "DS:nswap:COUNTER:600:U:1000000 "
-	 "DS:utime:COUNTER:600:U:100 "
-	 "DS:stime:COUNTER:600:U:100 "
-	 "DS:vmrss:GAUGE:600:0:U "
-	 "DS:vmdat:GAUGE:600:0:U "
-	 "DS:d1avl:GAUGE:600:0:U "
-	 "DS:d1tot:GAUGE:600:0:U "
-	 "DS:d2avl:GAUGE:600:0:U "
-	 "DS:d2tot:GAUGE:600:0:U "
-	 "DS:d3avl:GAUGE:600:0:U "
-	 "DS:d3tot:GAUGE:600:0:U "
-	 "DS:d4avl:GAUGE:600:0:U "
-	 "DS:d4tot:GAUGE:600:0:U "
 
-    /* store averages & maximum values */
-    /* 600 5-minute samples   (+/- 2 days)  */
-    /* 600 30-minute averages (+/- 2 weeks)  */
-    /* 600 2-hour averages    (+/- 2 months) */
-    /* 732 1-day averages     (+/- 2 years)  */
+    puts(
+        "DS:conns:GAUGE:600:0:U "
+        "DS:nrpcs:COUNTER:600:0:100000 "
+        "DS:ftotl:COUNTER:600:0:100000 "
+        "DS:fdata:COUNTER:600:0:100000 "
+        "DS:fsize:COUNTER:600:U:5000000 "
+        "DS:frate:GAUGE:600:0:U:5000000 "
+        "DS:stotl:COUNTER:600:0:100000 "
+        "DS:sdata:COUNTER:600:U:100000 "
+        "DS:ssize:COUNTER:600:U:5000000 "
+        "DS:srate:GAUGE:600:0:U:5000000 "
+        "DS:rbsnd:COUNTER:600:U:5000000 "
+        "DS:rbrcv:COUNTER:600:U:5000000 "
+        "DS:rpsnd:COUNTER:600:0:100000 "
+        "DS:rprcv:COUNTER:600:0:100000 "
+        "DS:rplst:COUNTER:600:0:100000 "
+        "DS:rperr:COUNTER:600:0:100000 "
+        "DS:sscpu:COUNTER:600:0:2000 "
+        "DS:sucpu:COUNTER:600:0:2000 "
+        "DS:sncpu:COUNTER:600:0:2000 "
+        "DS:sicpu:COUNTER:600:0:2000 "
+        "DS:totio:COUNTER:600:U:100000 "
+        "DS:vmuse:GAUGE:600:0:U "
+        "DS:vmmax:GAUGE:600:0:U "
+        "DS:eerrs:COUNTER:600:0:1000000 "
+        "DS:epsnd:COUNTER:600:0:1000000 "
+        "DS:ecols:COUNTER:600:0:1000000 "
+        "DS:eprcv:COUNTER:600:0:1000000 "
+        "DS:ebsnd:COUNTER:600:0:13000000 "
+        "DS:ebrcv:COUNTER:600:0:13000000 "
+        "DS:vmsiz:GAUGE:600:0:U "
+        "DS:clnts:GAUGE:600:0:10000 "
+        "DS:aclnt:GAUGE:600:0:10000 "
+        "DS:mnflt:COUNTER:600:U:1000000 "
+        "DS:mjflt:COUNTER:600:U:1000000 "
+        "DS:nswap:COUNTER:600:U:1000000 "
+        "DS:utime:COUNTER:600:U:100 "
+        "DS:stime:COUNTER:600:U:100 "
+        "DS:vmrss:GAUGE:600:0:U "
+        "DS:vmdat:GAUGE:600:0:U "
+        "DS:d1avl:GAUGE:600:0:U "
+        "DS:d1tot:GAUGE:600:0:U "
+        "DS:d2avl:GAUGE:600:0:U "
+        "DS:d2tot:GAUGE:600:0:U "
+        "DS:d3avl:GAUGE:600:0:U "
+        "DS:d3tot:GAUGE:600:0:U "
+        "DS:d4avl:GAUGE:600:0:U "
+        "DS:d4tot:GAUGE:600:0:U "
 
-	 "RRA:AVERAGE:0.5:1:600 "
-	 "RRA:AVERAGE:0.5:6:600 "
-	 "RRA:AVERAGE:0.5:24:600 "
-	 "RRA:AVERAGE:0.5:288:732 "
-	 "RRA:MAX:0.5:1:600 "
-	 "RRA:MAX:0.5:6:600 "
-	 "RRA:MAX:0.5:24:600 "
-	 "RRA:MAX:0.5:288:732 ");
+        /* store averages & maximum values */
+        /* 600 5-minute samples   (+/- 2 days)  */
+        /* 600 30-minute averages (+/- 2 weeks)  */
+        /* 600 2-hour averages    (+/- 2 months) */
+        /* 732 1-day averages     (+/- 2 years)  */
+
+        "RRA:AVERAGE:0.5:1:600 "
+        "RRA:AVERAGE:0.5:6:600 "
+        "RRA:AVERAGE:0.5:24:600 "
+        "RRA:AVERAGE:0.5:288:732 "
+        "RRA:MAX:0.5:1:600 "
+        "RRA:MAX:0.5:6:600 "
+        "RRA:MAX:0.5:24:600 "
+        "RRA:MAX:0.5:288:732 ");
 
     fflush(stdout);
 }
 
 static void RRDUpdate(struct server *s)
 {
-    printf("update %s.rrd %u:%u:", s->srvname,
-           s->vs.CurrentTime, s->vs.CurrentConnections);
+    printf("update %s.rrd %u:%u:", s->srvname, s->vs.CurrentTime,
+           s->vs.CurrentConnections);
 
-    printf("%u:%u:%u:%u:%u:%u:0:%u:%u:",
-           s->vs.TotalViceCalls, s->vs.TotalFetches, s->vs.FetchDatas,
-           s->vs.FetchedBytes, s->vs.FetchDataRate, s->vs.TotalStores,
-           s->vs.StoredBytes, s->vs.StoreDataRate);
+    printf("%u:%u:%u:%u:%u:%u:0:%u:%u:", s->vs.TotalViceCalls,
+           s->vs.TotalFetches, s->vs.FetchDatas, s->vs.FetchedBytes,
+           s->vs.FetchDataRate, s->vs.TotalStores, s->vs.StoredBytes,
+           s->vs.StoreDataRate);
 
-    printf("%u:%u:%u:%u:%u:%u:",
-           s->vs.TotalRPCBytesSent, s->vs.TotalRPCBytesReceived,
-           s->vs.TotalRPCPacketsSent, s->vs.TotalRPCPacketsReceived,
-           s->vs.TotalRPCPacketsLost, s->vs.TotalRPCBogusPackets);
+    printf("%u:%u:%u:%u:%u:%u:", s->vs.TotalRPCBytesSent,
+           s->vs.TotalRPCBytesReceived, s->vs.TotalRPCPacketsSent,
+           s->vs.TotalRPCPacketsReceived, s->vs.TotalRPCPacketsLost,
+           s->vs.TotalRPCBogusPackets);
 
-    printf("%u:%u:%u:%u:%u:%u:%u:",
-           s->vs.SystemCPU, s->vs.UserCPU, s->vs.NiceCPU, s->vs.IdleCPU,
-           s->vs.TotalIO, s->vs.ActiveVM, s->vs.TotalVM);
+    printf("%u:%u:%u:%u:%u:%u:%u:", s->vs.SystemCPU, s->vs.UserCPU,
+           s->vs.NiceCPU, s->vs.IdleCPU, s->vs.TotalIO, s->vs.ActiveVM,
+           s->vs.TotalVM);
 
-    printf("%u:%u:%u:%u:%u:%u:",
-           s->vs.EtherNetTotalErrors, s->vs.EtherNetTotalWrites,
-           s->vs.EtherNetTotalInterupts, s->vs.EtherNetGoodReads,
-           s->vs.EtherNetTotalBytesWritten, s->vs.EtherNetTotalBytesRead);
+    printf("%u:%u:%u:%u:%u:%u:", s->vs.EtherNetTotalErrors,
+           s->vs.EtherNetTotalWrites, s->vs.EtherNetTotalInterupts,
+           s->vs.EtherNetGoodReads, s->vs.EtherNetTotalBytesWritten,
+           s->vs.EtherNetTotalBytesRead);
 
-    printf("%u:%u:%u:%u:%u:%u:%u:%u:%u:%u:",
-           s->vs.ProcessSize, s->vs.WorkStations, s->vs.ActiveWorkStations,
-           s->vs.MinFlt, s->vs.MajFlt, s->vs.NSwaps, s->vs.UsrTime,
-           s->vs.SysTime, s->vs.VmRSS, s->vs.VmData);
+    printf("%u:%u:%u:%u:%u:%u:%u:%u:%u:%u:", s->vs.ProcessSize,
+           s->vs.WorkStations, s->vs.ActiveWorkStations, s->vs.MinFlt,
+           s->vs.MajFlt, s->vs.NSwaps, s->vs.UsrTime, s->vs.SysTime,
+           s->vs.VmRSS, s->vs.VmData);
 
     printf("%u:%u:%u:%u:%u:%u:%u:%u",
            s->vs.Disk1.Name ? s->vs.Disk1.BlocksAvailable : 0,
@@ -216,48 +216,50 @@ static void GetArgs(int argc, char *argv[])
     int c, next, usage = 0;
 
     while ((c = getopt(argc, argv, "t:1")) != EOF) {
-	switch(c) {
-	case 't':
-	    probeinterval = atoi(optarg);
-	    break;
+        switch (c) {
+        case 't':
+            probeinterval = atoi(optarg);
+            break;
 
-	case '1':
-	    loop = 0;
-	    break;
+        case '1':
+            loop = 0;
+            break;
 
-	default:
-	    usage = 1;
-	    break;
-	}
+        default:
+            usage = 1;
+            break;
+        }
     }
 
     if (usage) {
-	fprintf(stderr, "Usage: %s [-1] [-t probeinterval] server [server]* | rrdtool -\n", argv[0]);
-	exit(EXIT_SUCCESS);
+        fprintf(
+            stderr,
+            "Usage: %s [-1] [-t probeinterval] server [server]* | rrdtool -\n",
+            argv[0]);
+        exit(EXIT_SUCCESS);
     }
 
     memset(srv, 0, sizeof(struct server) * MAXSRV);
 
     for (next = optind; next < argc; next++) {
-	if (SrvCount >= MAXSRV) {
-	    fprintf(stderr, "Too many servers: should be %d or less\n",
-		    MAXSRV);
-	    exit(EXIT_FAILURE);
-	}
+        if (SrvCount >= MAXSRV) {
+            fprintf(stderr, "Too many servers: should be %d or less\n", MAXSRV);
+            exit(EXIT_FAILURE);
+        }
 
-	srv[SrvCount].srvname = argv[next];
-	if (!ValidServer(srv[SrvCount].srvname)) {
-	    fprintf(stderr, "%s is not a valid server\n",
-		    srv[SrvCount].srvname);
-	    exit(EXIT_FAILURE);
-	}
+        srv[SrvCount].srvname = argv[next];
+        if (!ValidServer(srv[SrvCount].srvname)) {
+            fprintf(stderr, "%s is not a valid server\n",
+                    srv[SrvCount].srvname);
+            exit(EXIT_FAILURE);
+        }
 
-	SrvCount++;
+        SrvCount++;
     }
 
     if (!SrvCount) {
-	fprintf(stderr, "no servers specified\n");
-	exit(EXIT_FAILURE);
+        fprintf(stderr, "no servers specified\n");
+        exit(EXIT_FAILURE);
     }
 }
 
@@ -271,13 +273,13 @@ static void InitRPC(void)
     /* Init RPC2 */
     rc = LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, &parent);
     if (rc != LWP_SUCCESS) {
-	fprintf(stderr, "LWP_Init() failed\n");
-	exit(EXIT_FAILURE);
+        fprintf(stderr, "LWP_Init() failed\n");
+        exit(EXIT_FAILURE);
     }
 
     SFTP_SetDefaults(&sei);
     SFTP_Activate(&sei);
-    tv.tv_sec = 15;
+    tv.tv_sec  = 15;
     tv.tv_usec = 0;
 
     memset(&options, 0, sizeof(options));
@@ -286,50 +288,48 @@ static void InitRPC(void)
     RPC2_Init(RPC2_VERSION, &options, NULL, -1, &tv);
 }
 
-
 static void DoProbe(struct server *srv)
 {
     int rc;
 
     srv->probe = time(NULL);
-    if (!srv->cid)
-    {
-	RPC2_HostIdent hi;
-	RPC2_PortIdent pi;
-	RPC2_SubsysIdent si;
-	RPC2_BindParms bparms;
-	struct servent *s = coda_getservbyname("codasrv", "udp");
+    if (!srv->cid) {
+        RPC2_HostIdent hi;
+        RPC2_PortIdent pi;
+        RPC2_SubsysIdent si;
+        RPC2_BindParms bparms;
+        struct servent *s = coda_getservbyname("codasrv", "udp");
 
-	hi.Tag = RPC2_HOSTBYNAME;
-	strcpy(hi.Value.Name, srv->srvname);
+        hi.Tag = RPC2_HOSTBYNAME;
+        strcpy(hi.Value.Name, srv->srvname);
 
-	pi.Tag = RPC2_PORTBYINETNUMBER;
-	pi.Value.InetPortNumber = s->s_port;
+        pi.Tag                  = RPC2_PORTBYINETNUMBER;
+        pi.Value.InetPortNumber = s->s_port;
 
-	si.Tag = RPC2_SUBSYSBYID;
-	si.Value.SubsysId= SUBSYS_SRV;
+        si.Tag            = RPC2_SUBSYSBYID;
+        si.Value.SubsysId = SUBSYS_SRV;
 
-	bparms.SideEffectType = 0;
-	bparms.SecurityLevel = RPC2_OPENKIMONO;
-	bparms.ClientIdent = NULL;
+        bparms.SideEffectType = 0;
+        bparms.SecurityLevel  = RPC2_OPENKIMONO;
+        bparms.ClientIdent    = NULL;
 
-	rc = (int) RPC2_NewBinding(&hi, &pi, &si, &bparms, &srv->cid);
-	if (rc == RPC2_SUCCESS)
-	    srv->binds++;
-	else
-	    srv->cid = 0;
+        rc = (int)RPC2_NewBinding(&hi, &pi, &si, &bparms, &srv->cid);
+        if (rc == RPC2_SUCCESS)
+            srv->binds++;
+        else
+            srv->cid = 0;
     }
 
     if (!srv->cid)
-	return;
+        return;
 
-    rc = (int) ViceGetStatistics(srv->cid, &srv->vs);
+    rc = (int)ViceGetStatistics(srv->cid, &srv->vs);
 
     if (rc != RPC2_SUCCESS) {
-	RPC2_Unbind(srv->cid);
-	srv->cid = 0;
+        RPC2_Unbind(srv->cid);
+        srv->cid = 0;
     } else
-	srv->succ = srv->probe; /* ignoring RPC call delays */
+        srv->succ = srv->probe; /* ignoring RPC call delays */
 }
 
 static void DoSleep(struct server *srv)
@@ -338,27 +338,27 @@ static void DoSleep(struct server *srv)
 
     /* Compensate the waiting time for the time it took to do the RPC */
     if (srv->succ == srv->probe)
-	NextProbe.tv_sec = (srv->probe + probeinterval) - time(NULL);
+        NextProbe.tv_sec = (srv->probe + probeinterval) - time(NULL);
 
     if (NextProbe.tv_sec > 0)
-	IOMGR_Select(0, NULL, NULL, NULL, &NextProbe);  /* sleep */
+        IOMGR_Select(0, NULL, NULL, NULL, &NextProbe); /* sleep */
 }
 
 static void srvlwp(void *arg)
 {
-    int slot = *(int *)arg;
+    int slot      = *(int *)arg;
     srv[slot].cid = 0;
 
-    while (1)
-    {
-	DoProbe(&srv[slot]);
+    while (1) {
+        DoProbe(&srv[slot]);
 
-	if (srv[slot].cid)
-	    RRDUpdate(&srv[slot]);
+        if (srv[slot].cid)
+            RRDUpdate(&srv[slot]);
 
-	if (!loop) break;
+        if (!loop)
+            break;
 
-	DoSleep(&srv[slot]);
+        DoSleep(&srv[slot]);
     }
     SrvCount--;
     LWP_QSignal(parent);
@@ -373,25 +373,25 @@ int main(int argc, char *argv[])
 
     /* create missing rrd databases */
     for (i = 0; i < SrvCount; i++) {
-	sprintf(buf, "%s.rrd", srv[i].srvname);
-	if (access(buf, F_OK) == 0) continue;
+        sprintf(buf, "%s.rrd", srv[i].srvname);
+        if (access(buf, F_OK) == 0)
+            continue;
 
-	RRDCreate(&srv[i]);
+        RRDCreate(&srv[i]);
     }
 
     InitRPC();
 
     /* start monitoring */
     for (i = 0; i < SrvCount; i++) {
-        LWP_CreateProcess(srvlwp, 0x8000, LWP_NORMAL_PRIORITY,
-                          (void *)&i, srv[i].srvname, &srv[i].pid);
+        LWP_CreateProcess(srvlwp, 0x8000, LWP_NORMAL_PRIORITY, (void *)&i,
+                          srv[i].srvname, &srv[i].pid);
     }
 
     /* QSignal/QWait doesn't actually queue anything so we still have to rely
      * on a counter to catch possibly missed events */
     while (SrvCount)
-	LWP_QWait();
+        LWP_QWait();
 
     exit(EXIT_SUCCESS);
 }
-

@@ -16,11 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
 /*
  *
  * Specification of the Volume Lock Queue facility
@@ -45,12 +40,12 @@ extern "C" {
 #include <vice.h>
 #include <dlist.h>
 
-#define NO_LOCK		0	/* remains for compatibility */
-#define VOL_NO_LOCK	NO_LOCK
-#define VOL_SHARED_LOCK	SHARED_LOCK
-#define VOL_EXCL_LOCK	WRITE_LOCK
+#define NO_LOCK 0 /* remains for compatibility */
+#define VOL_NO_LOCK NO_LOCK
+#define VOL_SHARED_LOCK SHARED_LOCK
+#define VOL_EXCL_LOCK WRITE_LOCK
 
-void ForceUnlockVol(VolumeId );
+void ForceUnlockVol(VolumeId);
 
 class lq_iterator;
 class lqent;
@@ -64,7 +59,7 @@ class lqman {
     friend void LQman_init(void *);
     int func(void);
 
-  public:
+public:
     lqman(const char *name = "anonymous lqman");
     ~lqman();
     void add(lqent *);
@@ -77,26 +72,26 @@ class lqman {
 };
 
 class lq_iterator : public dlist_iterator {
-  public:
-    lq_iterator(dlist&);
+public:
+    lq_iterator(dlist &);
     lqent *operator()();
 };
 
-class lqent : public dlink{
-  friend class lqman;
-  friend int GetVolObj(VolumeId, Volume **, int, int, unsigned);
-  friend void PutVolObj(Volume **, int, int);
-  friend long ViceLockVol(RPC2_Handle, VolumeId, UserId *, RPC2_Unsigned *);
-  friend long ViceUnlockVol(RPC2_Handle, VolumeId);
+class lqent : public dlink {
+    friend class lqman;
+    friend int GetVolObj(VolumeId, Volume **, int, int, unsigned);
+    friend void PutVolObj(Volume **, int, int);
+    friend long ViceLockVol(RPC2_Handle, VolumeId, UserId *, RPC2_Unsigned *);
+    friend long ViceUnlockVol(RPC2_Handle, VolumeId);
 
     VolumeId Vid;
     time_t Time;
     int deqing;
-    
+
     lqent(VolumeId);
     ~lqent();
 
-  public:
+public:
     void print();
     void print(FILE *);
     void print(int);

@@ -37,14 +37,14 @@ Pittsburgh, PA.
 
 */
 
-#include <netdb.h>
-#include <netinet/in.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/file.h>
-#include <sys/socket.h>
-#include <sys/time.h>
 #include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#include <sys/file.h>
+#include <sys/time.h>
 
 #include <rpc2/se.h>
 

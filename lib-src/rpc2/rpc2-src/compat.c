@@ -19,12 +19,12 @@ Coda are listed in the file CREDITS.
 #include <config.h>
 #endif
 
-#include <errno.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 #include <netinet/in.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/socket.h>
-#include <sys/types.h>
+#include <errno.h>
 
 #ifdef HAVE_ARPA_INET_H
 #include <arpa/inet.h>

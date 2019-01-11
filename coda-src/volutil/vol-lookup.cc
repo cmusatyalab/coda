@@ -75,108 +75,115 @@ extern "C" {
 #include <volhash.h>
 #include <coda_globals.h>
 
-#define INFOFILE    "/tmp/vollookup.tmp"
-static FILE * infofile;    // descriptor for info file
+#define INFOFILE "/tmp/vollookup.tmp"
+static FILE *infofile; // descriptor for info file
 
 struct hostent *gethostent();
 
-const char *voltypes[] = {
-    "read/write", "read only", "backup", "unknown type", "unknown type"
-};
+const char *voltypes[] = { "read/write", "read only", "backup", "unknown type",
+                           "unknown type" };
 
 /*
   S_VolLookup: Return information for a volume specified 
   by name or volume-id
 */
-long int S_VolLookup(RPC2_Handle rpcid, RPC2_String formal_vol, SE_Descriptor *formal_sed) {
+long int S_VolLookup(RPC2_Handle rpcid, RPC2_String formal_vol,
+                     SE_Descriptor *formal_sed)
+{
     VolumeInfo info;
     Error error = 0;
-    int status = 0;
-    long rc = 0;
+    int status  = 0;
+    long rc     = 0;
     SE_Descriptor sed;
 
     /* To keep C++ 2.0 happy */
     char *vol = (char *)formal_vol;
 
-    LogMsg(9, VolDebugLevel, stdout, "Entering S_VolLookup(%u, %s)", rpcid, vol);
+    LogMsg(9, VolDebugLevel, stdout, "Entering S_VolLookup(%u, %s)", rpcid,
+           vol);
 
     VInitVolUtil(volumeUtility);
 
-    infofile = fopen (INFOFILE, "w");
+    infofile = fopen(INFOFILE, "w");
 
     /* See if user passed in volid rather than volname */
     long volid, index = 0;
-    if ((sscanf(vol, "%lX", &volid) ==  1) && ((index = HashLookup(volid)) > 0)) {
-	VolumeDiskData *vp = SRV_RVM(VolumeList[index]).data.volumeInfo;
-	VGetVolumeInfo(&error, vp->name, &info);
+    if ((sscanf(vol, "%lX", &volid) == 1) &&
+        ((index = HashLookup(volid)) > 0)) {
+        VolumeDiskData *vp = SRV_RVM(VolumeList[index]).data.volumeInfo;
+        VGetVolumeInfo(&error, vp->name, &info);
     } else {
-	VGetVolumeInfo(&error, vol, &info);
+        VGetVolumeInfo(&error, vol, &info);
     }
 
     if (error) {
-	LogMsg(0, VolDebugLevel, stdout, "SVolLookup: error code %d returned for volume \"%s\"",
-		    error, vol);
-	goto exit;
-    }    else {
-        register VolumeId *p;
-	int printed, i;
-	register RPC2_Unsigned *sptr;
-	RPC2_Unsigned s;
-	fprintf(infofile, "Info for vol \"%s\": volume id %08x, %s volume\n", vol, info.Vid, voltypes[info.Type]);
-    	fprintf(infofile, "Associates: ");
-	for (printed=0, p = &info.Type0, i = 0; i<MAXVOLTYPES; i++, p++) {
-	    if (*p) {
-		if (printed)
-		    fprintf(infofile, ",");
-		fprintf(infofile, " %s volume %08x", voltypes[i], *p);
-		printed++;
-	    }
-	}
-	fprintf(infofile, "\nOn servers: ");
-	for (i = 0, sptr = &info.Server0; i< (int) info.ServerCount; i++,sptr++) {
-	    struct hostent *h;
-	    s = htonl(*sptr);
-	    h = gethostbyaddr((char *)&s, sizeof(s), AF_INET);
-	    if (h)
-	        fprintf(infofile, "%s", h->h_name);
-	    if (i < (int)info.ServerCount-1)
-	        fprintf(infofile, ", ");
-	}
-	fprintf(infofile, "\n");
+        LogMsg(0, VolDebugLevel, stdout,
+               "SVolLookup: error code %d returned for volume \"%s\"", error,
+               vol);
+        goto exit;
+    } else {
+        VolumeId *p;
+        int printed, i;
+        RPC2_Unsigned *sptr;
+        RPC2_Unsigned s;
+        fprintf(infofile, "Info for vol \"%s\": volume id %08x, %s volume\n",
+                vol, info.Vid, voltypes[info.Type]);
+        fprintf(infofile, "Associates: ");
+        for (printed = 0, p = &info.Type0, i = 0; i < MAXVOLTYPES; i++, p++) {
+            if (*p) {
+                if (printed)
+                    fprintf(infofile, ",");
+                fprintf(infofile, " %s volume %08x", voltypes[i], *p);
+                printed++;
+            }
+        }
+        fprintf(infofile, "\nOn servers: ");
+        for (i = 0, sptr = &info.Server0; i < (int)info.ServerCount;
+             i++, sptr++) {
+            struct hostent *h;
+            s = htonl(*sptr);
+            h = gethostbyaddr((char *)&s, sizeof(s), AF_INET);
+            if (h)
+                fprintf(infofile, "%s", h->h_name);
+            if (i < (int)info.ServerCount - 1)
+                fprintf(infofile, ", ");
+        }
+        fprintf(infofile, "\n");
     }
 
     fclose(infofile);
 
     /* set up SE_Descriptor for transfer */
     memset(&sed, 0, sizeof(SE_Descriptor));
-    sed.Tag = SMARTFTP;
-    sed.Value.SmartFTPD.Tag = FILEBYNAME;
+    sed.Tag                                   = SMARTFTP;
+    sed.Value.SmartFTPD.Tag                   = FILEBYNAME;
     sed.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
     strcpy(sed.Value.SmartFTPD.FileInfo.ByName.LocalFileName, INFOFILE);
     sed.Value.SmartFTPD.FileInfo.ByName.ProtectionBits = 0755;
 
     if ((rc = RPC2_InitSideEffect(rpcid, &sed)) <= RPC2_ELIMIT) {
-	LogMsg(0, VolDebugLevel, stdout, "VolLookup: InitSideEffect failed with %s", RPC2_ErrorMsg(rc));
-	rc = VFAIL;
-	goto exit;
+        LogMsg(0, VolDebugLevel, stdout,
+               "VolLookup: InitSideEffect failed with %s", RPC2_ErrorMsg(rc));
+        rc = VFAIL;
+        goto exit;
     }
 
     if ((rc = RPC2_CheckSideEffect(rpcid, &sed, SE_AWAITLOCALSTATUS)) <=
-		RPC2_ELIMIT) {
-	LogMsg(0, VolDebugLevel, stdout, "VolLookup: CheckSideEffect failed with %s", RPC2_ErrorMsg(rc));
-	rc = VFAIL;
-	goto exit;
+        RPC2_ELIMIT) {
+        LogMsg(0, VolDebugLevel, stdout,
+               "VolLookup: CheckSideEffect failed with %s", RPC2_ErrorMsg(rc));
+        rc = VFAIL;
+        goto exit;
     }
 
- exit: 
+exit:
     VDisconnectFS();
 
     if (status)
-	LogMsg(0, VolDebugLevel, stdout, "SVolLookup failed with %d", status);
+        LogMsg(0, VolDebugLevel, stdout, "SVolLookup failed with %d", status);
     else
-	LogMsg(9, VolDebugLevel, stdout, "SVolLookup returns %s", RPC2_ErrorMsg(rc));
+        LogMsg(9, VolDebugLevel, stdout, "SVolLookup returns %s",
+               RPC2_ErrorMsg(rc));
 
-    return (status?status:rc);
-
+    return (status ? status : rc);
 }
-

@@ -58,43 +58,44 @@ int use_tcp = 0;
 int main(int argc, char **argv)
 {
     char *host = 0;
-    char *uid = 0;
+    char *uid  = 0;
 
     /* Parse args. */
     for (argc--, argv++; argc > 0; argc--, argv++) {
-	if (strcmp(argv[0], "-host") == 0) {
-	    if (argc == 1) usage();
-	    argc--; argv++;
-	    host = argv[0];
-	}
-	else if (strcmp(argv[0], "-tcp") == 0) {
+        if (strcmp(argv[0], "-host") == 0) {
+            if (argc == 1)
+                usage();
+            argc--;
+            argv++;
+            host = argv[0];
+        } else if (strcmp(argv[0], "-tcp") == 0) {
             use_tcp = 1;
-	}
-	else if (strcmp(argv[0], "-uid") == 0) {
-	    if (argc == 1) usage();
-	    argc--; argv++;
-	    uid = argv[0];
-	}
-	else
-	    usage();
+        } else if (strcmp(argv[0], "-uid") == 0) {
+            if (argc == 1)
+                usage();
+            argc--;
+            argv++;
+            uid = argv[0];
+        } else
+            usage();
     }
 
     /* Bind to Venus and ask it to send us Reports of open files. */
     int venusSocket = Bind(host);
     if (venusSocket < 0) {
-	fprintf(stderr, "spy: bind(%s) failed\n", host);
-	exit(EXIT_FAILURE);
+        fprintf(stderr, "spy: bind(%s) failed\n", host);
+        exit(EXIT_FAILURE);
     }
     FILE *fp = fdopen(venusSocket, "r");
     char buf[32];
     if (uid == 0)
-	strcpy(buf, "reporton\n");
+        strcpy(buf, "reporton\n");
     else
-	sprintf(buf, "reporton %s\n", uid);
+        sprintf(buf, "reporton %s\n", uid);
     ssize_t len = strlen(buf);
     if (write(venusSocket, buf, len) != len) {
-	fprintf(stderr, "spy: reporton command failed (%d)\n", errno);
-	exit(EXIT_FAILURE);
+        fprintf(stderr, "spy: reporton command failed (%d)\n", errno);
+        exit(EXIT_FAILURE);
     }
 
     /* Flush output on termination. */
@@ -104,89 +105,90 @@ int main(int argc, char **argv)
     CheckMariner(fp);
 }
 
-
 static int Bind(const char *host)
 {
     int s = -1;
 
 #ifdef HAVE_SYS_UN_H
     if (!use_tcp) {
-	struct sockaddr_un s_un;
-	const char *MarinerSocketPath;
+        struct sockaddr_un s_un;
+        const char *MarinerSocketPath;
 
-	codaconf_init("venus.conf");
-	MarinerSocketPath = codaconf_lookup("marinersocket",
-					    "/usr/coda/spool/mariner");
-	memset(&s_un, 0, sizeof(s_un));
-	s_un.sun_family = AF_UNIX;
-	strcpy(s_un.sun_path, MarinerSocketPath);
+        codaconf_init("venus.conf");
+        MarinerSocketPath =
+            codaconf_lookup("marinersocket", "/usr/coda/spool/mariner");
+        memset(&s_un, 0, sizeof(s_un));
+        s_un.sun_family = AF_UNIX;
+        strcpy(s_un.sun_path, MarinerSocketPath);
 
-	if ((s = socket(AF_UNIX, SOCK_STREAM, 0)) < 0){
-	    return(-1);
-	}
-	if (connect(s, (sockaddr *)&s_un, sizeof(s_un)) < 0) {
-	    close(s);
-	    return(-1);
-	}
+        if ((s = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
+            return (-1);
+        }
+        if (connect(s, (sockaddr *)&s_un, sizeof(s_un)) < 0) {
+            close(s);
+            return (-1);
+        }
     } else
 #endif /* !HAVE_SYS_UN_H */
     {
-	struct RPC2_addrinfo hints, *p, *ai = NULL;
-	int rc;
+        struct RPC2_addrinfo hints, *p, *ai = NULL;
+        int rc;
 
-	memset(&hints, 0, sizeof(struct RPC2_addrinfo));
-	hints.ai_family   = AF_UNSPEC;
-	hints.ai_socktype = SOCK_STREAM;
+        memset(&hints, 0, sizeof(struct RPC2_addrinfo));
+        hints.ai_family   = AF_UNSPEC;
+        hints.ai_socktype = SOCK_STREAM;
 
-	rc = coda_getaddrinfo(NULL, "venus", &hints, &ai);
-	if (rc) return -1;
+        rc = coda_getaddrinfo(NULL, "venus", &hints, &ai);
+        if (rc)
+            return -1;
 
-	for (p = ai; p != NULL; p = p->ai_next) {
-	    s = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
-	    if (s < 0) continue;
+        for (p = ai; p != NULL; p = p->ai_next) {
+            s = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
+            if (s < 0)
+                continue;
 
-	    if (connect(s, p->ai_addr, p->ai_addrlen) == 0) break;
+            if (connect(s, p->ai_addr, p->ai_addrlen) == 0)
+                break;
 
-	    close(s);
-	    s = -1;
-	}
-	RPC2_freeaddrinfo(ai);
+            close(s);
+            s = -1;
+        }
+        RPC2_freeaddrinfo(ai);
     }
     return s;
 }
-
 
 static void CheckMariner(FILE *fp)
 {
     static char buf[MAXPATHLEN];
     static char *fillptr = buf;
-    register int c;
+    int c;
 
-/*    errno = 0;*/
-    while ((c = getc(fp)) != EOF)  {
-	if (c != '\n')  {
-	    *fillptr++ = c;
-	}
-	if (c == '\n' || fillptr == buf + sizeof(buf) - 2)  {
-	    *fillptr++ = '\n';
-	    *fillptr = '\0';
+    /*    errno = 0;*/
+    while ((c = getc(fp)) != EOF) {
+        if (c != '\n') {
+            *fillptr++ = c;
+        }
+        if (c == '\n' || fillptr == buf + sizeof(buf) - 2) {
+            *fillptr++ = '\n';
+            *fillptr   = '\0';
 
-	    printf("%s", buf);
+            printf("%s", buf);
 
-	    fillptr = buf;
-	}
+            fillptr = buf;
+        }
     }
 }
 
-
-static void TERM(int sig, int code, struct sigcontext *contextPtr) {
+static void TERM(int sig, int code, struct sigcontext *contextPtr)
+{
     fflush(stdout);
     fflush(stderr);
     exit(EXIT_SUCCESS);
 }
 
-
-void usage() {
+void usage()
+{
     fprintf(stderr, "usage: spy [-tcp] [-host host] [-uid uid]\n");
     exit(EXIT_FAILURE);
 }

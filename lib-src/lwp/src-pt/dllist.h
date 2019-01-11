@@ -22,32 +22,37 @@ Coda are listed in the file CREDITS.
 /* based on linux kernel code lists. */
 
 struct list_head {
-	struct list_head *next, *prev;
+    struct list_head *next, *prev;
 };
 
 #define list_entry(ptr, type, member) \
-	((type *)((char *)(ptr)-(unsigned long)(&((type *)0)->member)))
+    ((type *)((char *)(ptr) - (unsigned long)(&((type *)0)->member)))
 
-#define list_init(head) do { \
-    struct list_head *h = head; \
-    h->prev = h->next = h; } while(0);
+#define list_init(head)             \
+    do {                            \
+        struct list_head *h = head; \
+        h->prev = h->next = h;      \
+    } while (0);
 
-#define list_add(entry, head) do { \
-    struct list_head *h = head, *e = entry; \
-    h->next->prev = e; \
-    e->next = h->next; \
-    e->prev = h; \
-    h->next = e; } while(0);
+#define list_add(entry, head)                   \
+    do {                                        \
+        struct list_head *h = head, *e = entry; \
+        h->next->prev = e;                      \
+        e->next       = h->next;                \
+        e->prev       = h;                      \
+        h->next       = e;                      \
+    } while (0);
 
-#define list_del(entry) do { \
-    struct list_head *e = entry; \
-    e->prev->next = e->next; \
-    e->next->prev = e->prev; \
-    e->prev = e->next = e; } while(0);
+#define list_del(entry)                \
+    do {                               \
+        struct list_head *e = entry;   \
+        e->prev->next       = e->next; \
+        e->next->prev       = e->prev; \
+        e->prev = e->next = e;         \
+    } while (0);
 
 #define list_empty(head) ((head)->next == head)
 #define list_for_each(ptr, head) \
     for (ptr = (head)->next; ptr != head; ptr = ptr->next)
 
 #endif /* _DLLIST_H_ */
-
