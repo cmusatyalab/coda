@@ -1060,8 +1060,8 @@ int volent::Enter(int mode, uid_t uid)
         LOG(1, ("volent::Enter: demoting %s\n", name));
         flags.demotion_pending = 0;
 
-        if (IsReplicated())
-            ((repvol *)this)->ClearCallBack();
+        if (IsReplicated() || IsNonReplicated())
+            ((reintvol *)this)->ClearCallBack();
 
         struct dllist_head *p;
         list_for_each(p, fso_list)
@@ -1093,9 +1093,10 @@ int volent::Enter(int mode, uid_t uid)
      * only if a request arrives in the next few (5) seconds!
      */
     vproc *vp = VprocSelf();
-    if (VCBEnabled && IsReplicated() && IsReachable() &&
-        ((repvol *)this)->WantCallBack()) {
-        repvol *rv = (repvol *)this;
+
+    reintvol *rv = (reintvol *)this;
+    if (VCBEnabled && (IsReplicated() || IsNonReplicated()) && IsReachable() &&
+        rv->WantCallBack()) {
         if ((!rv->HaveStamp() && vp->type == VPT_HDBDaemon) ||
             (rv->HaveStamp() &&
              (vp->type != VPT_VolDaemon || !just_transitioned))) {
@@ -1133,8 +1134,6 @@ int volent::Enter(int mode, uid_t uid)
              * mutator needs to aquire exclusive CML ownership
              */
             if (IsReadWrite()) {
-                reintvol *rv = (reintvol *)this;
-
                 /*
                  * Claim ownership if the volume is free.
                  * The CML lock is used to prevent checkpointers and
