@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-             Copyright (c) 2018 Carnegie Mellon University
+          Copyright (c) 2018-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -1677,6 +1677,7 @@ ssize_t plan9server::plan9_read(struct fidmap *fm, unsigned char *buf,
     fsobj *f;
     int fd;
     ssize_t n = 0;
+    int ret   = 0;
 
     if (fm->cnode.c_type == C_VREG) {
         f = FSDB->Find(&fm->cnode.c_fid);
@@ -1688,12 +1689,36 @@ ssize_t plan9server::plan9_read(struct fidmap *fm, unsigned char *buf,
             return -1;
         }
 
+        ret = f->Open(0, 0, &fm->cnode, fm->root->userid);
+        if (ret) {
+            conn->u.u_error = ret;
+            n               = -1;
+            goto CloseContainerFile;
+        }
+
+        ret =
+            f->ReadIntent(fm->root->userid, conn->u.u_priority, offset, count);
+        if (ret) {
+            conn->u.u_error = ret;
+            n               = -1;
+            goto CloseFsobj;
+        }
+
         n = ::pread(fd, buf, count, offset);
         if (n < 0) {
             conn->u.u_error = errno;
             n               = -1;
         }
 
+        ret = f->ReadIntentFinish(offset, count);
+        if (ret) {
+            conn->u.u_error = ret;
+            n               = -1;
+        }
+
+    CloseFsobj:
+        f->Close(0, conn->u.u_uid);
+    CloseContainerFile:
         f->data.file->Close(fd);
     } else if (fm->cnode.c_type == C_VDIR) {
         f = FSDB->Find(&fm->cnode.c_fid);

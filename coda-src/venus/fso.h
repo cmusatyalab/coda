@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -630,6 +630,8 @@ public:
 #define CLU_TRAVERSE_MTPT 0x04
     int Readdir(char *, int, int, int *, uid_t);
     int Readlink(char *, unsigned long, int *, uid_t);
+    int ReadIntent(uid_t uid, int priority, uint64_t pos, int64_t count);
+    int ReadIntentFinish(uint64_t pos, int64_t count);
 
     /* Miscellaneous utility routines. */
     int dir_Lookup(const char *, VenusFid *, int);

@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -1609,12 +1609,7 @@ void vproc::read(struct venus_cnode *node, uint64_t pos, int64_t count)
     LOG(1, ("vproc::read: fid = %s, pos = %d, count = %d\n", FID_(&node->c_fid),
             pos, count));
 
-    int code                 = 0;
-    uint64_t actual_count    = 0;
-    uint64_t blocks_to_alloc = 0;
-    fsobj *f                 = NULL;
-    CacheChunkList *clist    = NULL;
-    CacheChunk currc;
+    fsobj *f = NULL;
 
     Begin_VFS(&node->c_fid, CODA_ACCESS_INTENT, VM_OBSERVING);
 
@@ -1625,68 +1620,8 @@ void vproc::read(struct venus_cnode *node, uint64_t pos, int64_t count)
         goto FreeVFS;
     }
 
-    if (f->IsPioctlFile())
-        goto FreeVFS;
-
-    if (!ISVASTRO(f)) {
-        u.u_error = EOPNOTSUPP;
-        goto FreeVFS;
-    }
-
-    if (pos > f->Size()) {
-        u.u_error = EIO;
-        goto FreeVFS;
-    }
-
-    /* Check if the amount of bytes being read can be allocated within the 
-     * cache */
-    actual_count    = count < 0 ? f->Size() - pos : count;
-    blocks_to_alloc = NBLOCKS(length_align_to_ccblock(pos, actual_count));
-    if (blocks_to_alloc > (FSDB->MaxBlocks - FSDB->FreeBlockMargin)) {
-        u.u_error = EIO;
-        return;
-    }
-
-    /* Get the holes */
-    clist = f->GetHoles(pos, count);
-
-    /* Temporary add the chunk to the active segment to prevent 
-     * it to be discarded. Note that we only remove it from the list
-     * the fetching or allocation fails. */
-    if (clist->Length() > 0) {
-        f->active_segments.AddChunk(pos, count);
-    }
-
-    /* Go thru the list of holes */
-    for (currc = clist->pop(); currc.isValid(); currc = clist->pop()) {
-        /* Blocks needed for the current hole. Note that holes are
-         * align with cache blocks. */
-        blocks_to_alloc = NBLOCKS(FS_BLOCKS_ALIGN(currc.GetLength()));
-
-        /* First pre-allocate the blocks */
-        code = FSDB->AllocBlocks(u.u_priority, blocks_to_alloc);
-        if (code != 0) {
-            u.u_error = ENOSPC;
-            break;
-        }
-
-        /* Fetch the data */
-        code = f->Fetch(u.u_uid, currc.GetStart(), currc.GetLength());
-        if (code < 0) {
-            /* Don't forget to remove the allocated blocks if not fetched */
-            FSDB->FreeBlocks(blocks_to_alloc);
-            u.u_error = EIO;
-            break;
-        }
-    }
-
-    if (code < 0) {
-        u.u_error = EIO;
-        /* Since we failed remove it from the active segment */
-        f->active_segments.ReverseRemove(pos, count);
-    }
-
-    delete clist;
+    /* Perform the read access intent */
+    u.u_error = f->ReadIntent(u.u_uid, u.u_priority, pos, count);
 
 FreeVFS:
     End_VFS(NULL);
@@ -1739,21 +1674,7 @@ void vproc::read_finish(struct venus_cnode *node, uint64_t pos, int64_t count)
         goto FreeVFS;
     }
 
-    if (f->IsPioctlFile())
-        goto FreeVFS;
-
-    if (!ISVASTRO(f)) {
-        u.u_error = EOPNOTSUPP;
-        goto FreeVFS;
-    }
-
-    if (pos > f->Size()) {
-        u.u_error = EIO;
-        goto FreeVFS;
-    }
-
-    /* No errors. The chunk (no longer in use) can be safely removed. */
-    f->active_segments.ReverseRemove(pos, count);
+    u.u_error = f->ReadIntentFinish(pos, count);
 
 FreeVFS:
     End_VFS(NULL);
