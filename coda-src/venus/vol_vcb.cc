@@ -85,25 +85,45 @@ int reintvol::GetVolAttr(uid_t uid)
     CallBackStatus CBStatus;
     nonrepvol_iterator next;
     reintvol *rv = NULL;
+    repvol *repv = (repvol *)this;
     int nVols    = 0;
     ViceVolumeIdStruct VidList[MAX_PIGGY_VALIDATIONS];
-    long cbtemp = cbbreaks;
-    volent *v   = NULL;
+    long cbtemp    = cbbreaks;
+    volent *v      = NULL;
+    mgrpent *m     = 0;
+    unsigned int i = 0;
+    struct RPC2_common_params rpc_common;
+    struct in_addr ph_addr;
+    int ret_code = 0;
     Volid volid;
     LOG(100, ("reintvol::GetVolAttr: %s, vid = 0x%x\n", name, vid));
 
     VOL_ASSERT(this, IsReachable());
 
-    unsigned int i;
-
     /* Acquire an Mgroup. */
-    mgrpent *m = 0;
-    code       = GetMgrp(&m, uid);
+    code = GetConn(&c, uid, &m, NULL, NULL);
     if (code != 0)
         goto RepExit;
 
-    long cbtemp;
-    cbtemp = cbbreaks;
+    cbtemp        = cbbreaks;
+    rpc_common.ph = ntohl(ph_addr.s_addr);
+
+    if (IsReplicated()) {
+        rpc_common.nservers = VSG_MEMBERS;
+        rpc_common.hosts    = m->rocc.hosts;
+        rpc_common.retcodes = m->rocc.retcodes;
+        rpc_common.handles  = m->rocc.handles;
+        rpc_common.MIp      = m->rocc.MIp;
+
+    } else if (IsNonReplicated()) { // Non-replicated
+
+        rpc_common.nservers = 1;
+        rpc_common.hosts    = &ph_addr;
+        rpc_common.retcodes = &ret_code;
+        rpc_common.handles  = &c->connid;
+        rpc_common.MIp      = 0;
+    }
+
     {
         /*
 	 * if we're fetching (as opposed to validating) volume state, 
@@ -117,31 +137,38 @@ int reintvol::GetVolAttr(uid_t uid)
                 goto RepExit;
 
             RPC2_Integer VS;
-            ARG_MARSHALL(OUT_MODE, RPC2_Integer, VSvar, VS, VSG_MEMBERS);
+            ARG_MARSHALL(OUT_MODE, RPC2_Integer, VSvar, VS,
+                         rpc_common.nservers);
 
             CallBackStatus CBStatus;
             ARG_MARSHALL(OUT_MODE, CallBackStatus, CBStatusvar, CBStatus,
-                         VSG_MEMBERS);
+                         rpc_common.nservers);
 
             /* Make the RPC call. */
             MarinerLog("store::GetVolVS %s\n", name);
             MULTI_START_MESSAGE(ViceGetVolVS_OP);
             code = (int)MRPC_MakeMulti(ViceGetVolVS_OP, ViceGetVolVS_PTR,
-                                       VSG_MEMBERS, m->rocc.handles,
-                                       m->rocc.retcodes, m->rocc.MIp, 0, 0, vid,
-                                       VSvar_ptrs, CBStatusvar_ptrs);
+                                       rpc_common.nservers, rpc_common.handles,
+                                       rpc_common.retcodes, rpc_common.MIp, 0,
+                                       0, vid, VSvar_ptrs, CBStatusvar_ptrs);
             MULTI_END_MESSAGE(ViceGetVolVS_OP);
             MarinerLog("store::getvolvs done\n");
 
             /* Collate responses from individual servers and decide what to do next. */
-            code = Collate_NonMutating(m, code);
+            if (IsReplicated())
+                code = repv->Collate_NonMutating(m, code);
+            else
+                code = Collate(c, code);
             MULTI_RECORD_STATS(ViceGetVolVS_OP);
 
             if (code != 0)
                 goto RepExit;
 
             if (cbtemp == cbbreaks)
-                CollateVCB(m, VSvar_bufs, CBStatusvar_bufs);
+                if (IsReplicated())
+                    repv->CollateVCB(m, VSvar_bufs, CBStatusvar_bufs);
+                else if (IsNonReplicated())
+                    UpdateVCBInfo(VSvar_bufs[0], CBStatusvar_bufs[0]);
         } else {
             /*
 	     * Figure out how many volumes to validate.
@@ -165,8 +192,9 @@ int reintvol::GetVolAttr(uid_t uid)
 	     */
             RPC2_CountedBS VSBS;
             VSBS.SeqLen  = 0;
-            VSBS.SeqBody = (RPC2_ByteSeq)malloc(
-                MAX_PIGGY_VALIDATIONS * VSG_MEMBERS * sizeof(RPC2_Integer));
+            VSBS.SeqBody = (RPC2_ByteSeq)malloc(MAX_PIGGY_VALIDATIONS *
+                                                rpc_common.nservers *
+                                                sizeof(RPC2_Integer));
 
             /*
 	     * this is a BS instead of an array because the RPC2 array
@@ -208,7 +236,7 @@ int reintvol::GetVolAttr(uid_t uid)
             while ((rv = next()) && (nVols < MAX_PIGGY_VALIDATIONS)) {
                 /* Check whether the volume is hosted by the same VSG as the
                  * current volume */
-                if (vsg != rv->vsg)
+                if (repv->vsg != rv->vsg)
                     continue;
 
                 if ((!rv->IsReachable()) || !rv->WantCallBack() ||
@@ -222,7 +250,7 @@ int reintvol::GetVolAttr(uid_t uid)
                     FPrintVV(logFile, &rv->VVV);
 
                 VidList[nVols].Vid = rv->GetVolumeId();
-                for (i = 0; i < vsg->MaxVSG(); i++) {
+                for (i = 0; i < repv->vsg->MaxVSG(); i++) {
                     *((RPC2_Unsigned *)&((char *)VSBS.SeqBody)[VSBS.SeqLen]) =
                         htonl((&rv->VVV.Versions.Site0)[i]);
                     VSBS.SeqLen += sizeof(RPC2_Unsigned);
@@ -245,21 +273,24 @@ int reintvol::GetVolAttr(uid_t uid)
                       name, nVols));
 
             ARG_MARSHALL_BS(IN_OUT_MODE, RPC2_BoundedBS, VFlagvar, VFlagBS,
-                            VSG_MEMBERS, VENUS_MAXBSLEN);
+                            rpc_common.nservers, VENUS_MAXBSLEN);
 
             /* Make the RPC call. */
             MarinerLog("store::ValidateVols %s [%d]\n", name, nVols);
             MULTI_START_MESSAGE(ViceValidateVols_OP);
             code = (int)MRPC_MakeMulti(ViceValidateVols_OP,
-                                       ViceValidateVols_PTR, VSG_MEMBERS,
-                                       m->rocc.handles, m->rocc.retcodes,
-                                       m->rocc.MIp, 0, 0, nVols, VidList, &VSBS,
-                                       VFlagvar_ptrs);
+                                       ViceValidateVols_PTR,
+                                       rpc_common.nservers, rpc_common.handles,
+                                       rpc_common.retcodes, rpc_common.MIp, 0,
+                                       0, nVols, VidList, &VSBS, VFlagvar_ptrs);
             MULTI_END_MESSAGE(ViceValidateVols_OP);
             MarinerLog("store::validatevols done\n");
 
             /* Collate responses from individual servers and decide what to do next. */
-            code = Collate_NonMutating(m, code);
+            if (IsReplicated())
+                code = repv->Collate_NonMutating(m, code);
+            else if (IsNonReplicated())
+                code = Collate(c, code);
             MULTI_RECORD_STATS(ViceValidateVols_OP);
             free(VSBS.SeqBody);
 
@@ -273,8 +304,8 @@ int reintvol::GetVolAttr(uid_t uid)
             }
 
             unsigned int numVFlags = 0;
-            for (i = 0; i < vsg->MaxVSG(); i++) {
-                if (m->rocc.hosts[i].s_addr != 0) {
+            for (i = 0; i < repv->vsg->MaxVSG(); i++) {
+                if (rpc_common.hosts[i].s_addr != 0) {
                     if (numVFlags == 0) {
                         /* unset, copy in one response */
                         ARG_UNMARSHALL_BS(VFlagvar, VFlagBS, i);
@@ -311,7 +342,7 @@ int reintvol::GetVolAttr(uid_t uid)
                     continue;
                 }
 
-                CODA_ASSERT(v->IsReplicated());
+                CODA_ASSERT(v->IsReadWrite());
                 repvol *vp = (repvol *)v;
 
                 switch (VFlags[i]) {

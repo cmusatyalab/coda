@@ -920,6 +920,7 @@ public:
 class repvol : public reintvol {
     friend class cmlent;
     friend class fsobj;
+    friend class reintvol;
     friend class vdb;
     friend class volent; /* CML_Lock */
     friend long VENUS_CallBackFetch(RPC2_Handle, ViceFid *, SE_Descriptor *);
