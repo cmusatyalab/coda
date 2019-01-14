@@ -2342,7 +2342,9 @@ int ClientModifyLog::COP1_NR(char *buf, int bufsize,
         code != EWOULDBLOCK && code != ETIMEDOUT)
         MarkFailedMLE((int)Index);
 
-    if (code == EASYRESOLVE) { code = 0; }
+    if (code == EASYRESOLVE) {
+        code = 0;
+    }
     if (code != 0) {
         PutConn(&c);
         goto ExitNonRep;
