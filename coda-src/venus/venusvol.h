@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -766,6 +766,11 @@ protected:
     /*T*/ long BytesBackFetched;
     /*?*/ cmlent *reintegrate_done; /* WriteBack Caching */
 
+    /* Callback stuff */
+    /*T*/ CallBackStatus VCBStatus; /* do we have a volume callback? */
+    /*T*/ int VCBHits; /* # references hitting this callback */
+    ViceVersionVector VVV; /* (maximal) volume version vector */
+
 public:
     reintvol(Realm *r, VolumeId volid, const char *volname);
 
@@ -849,6 +854,18 @@ public:
     void PreserveLocalMutation(char *msg);
     void DiscardAllLocalMutation(char *msg);
     void DiscardLocalMutation(char *msg);
+
+    /* Callbacks routines */
+    int HaveCallBack() { return (VCBStatus == CallBackSet); }
+    int CallBackBreak();
+    void ClearCallBack();
+    void SetCallBack();
+    int WantCallBack();
+    int ValidateFSOs();
+    int GetVolAttr(uid_t);
+    void UpdateVCBInfo(RPC2_Integer VS, CallBackStatus CBStatus);
+    void PackVS(int, RPC2_CountedBS *);
+    int HaveStamp() { return (VV_Cmp(&VVV, &NullVV) != VV_EQ); }
 };
 
 class srvent;
@@ -919,11 +936,6 @@ class repvol : public reintvol {
     /* COP2 stuff. */
     /*T*/ dlist *cop2_list;
 
-    /* Callback stuff */
-    /*T*/ CallBackStatus VCBStatus; /* do we have a volume callback? */
-    /*T*/ int VCBHits; /* # references hitting this callback */
-    ViceVersionVector VVV; /* (maximal) volume version vector */
-
     repvol(Realm *r, VolumeId vid, const char *name, volrep *reps[VSG_MEMBERS]);
     ~repvol();
     void ResetTransient();
@@ -983,17 +995,7 @@ public:
     void ClearCOP2(RPC2_CountedBS *);
     void ClearCOP2(void);
 
-    /* Callback routines */
-    int GetVolAttr(uid_t);
     void CollateVCB(mgrpent *, RPC2_Integer *, CallBackStatus *);
-    void PackVS(int, RPC2_CountedBS *);
-    int HaveStamp() { return (VV_Cmp(&VVV, &NullVV) != VV_EQ); }
-    int HaveCallBack() { return (VCBStatus == CallBackSet); }
-    int CallBackBreak();
-    void ClearCallBack();
-    void SetCallBack();
-    int WantCallBack();
-    int ValidateFSOs();
 
     void print_repvol(int);
 };
