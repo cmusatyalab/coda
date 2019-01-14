@@ -343,18 +343,17 @@ int reintvol::GetVolAttr(uid_t uid)
                 }
 
                 CODA_ASSERT(v->IsReadWrite());
-                repvol *vp = (repvol *)v;
 
                 switch (VFlags[i]) {
                 case 1: /* OK, callback */
                     if (cbtemp == cbbreaks) {
                         LOG(1000, ("volent::GetVolAttr: vid 0x%x valid\n",
-                                   vp->GetVolumeId()));
-                        vp->SetCallBack();
+                                   GetVolumeId()));
+                        SetCallBack();
 
                         /* validate cached access rights for the caller */
                         struct dllist_head *p;
-                        list_for_each(p, vp->fso_list)
+                        list_for_each(p, fso_list)
                         {
                             fsobj *f =
                                 list_entry_plusplus(p, fsobj, vol_handle);
@@ -369,16 +368,16 @@ int reintvol::GetVolAttr(uid_t uid)
                 case 0: /* OK, no callback */
                     LOG(0, ("volent::GetVolAttr: vid 0x%x valid, no "
                             "callback\n",
-                            vp->GetVolumeId()));
-                    vp->ClearCallBack();
+                            GetVolumeId()));
+                    ClearCallBack();
                     break;
                 default: /* not OK */
                     LOG(1, ("volent::GetVolAttr: vid 0x%x invalid\n",
-                            vp->GetVolumeId()));
-                    vp->ClearCallBack();
+                            GetVolumeId()));
+                    ClearCallBack();
                     Recov_BeginTrans();
-                    RVMLIB_REC_OBJECT(vp->VVV);
-                    vp->VVV = NullVV;
+                    RVMLIB_REC_OBJECT(VVV);
+                    VVV = NullVV;
                     Recov_EndTrans(MAXFP);
                     break;
                 }
