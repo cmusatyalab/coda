@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -594,7 +594,6 @@ class fsobj {
                      int64_t len, RPC2_CountedBS *PiggyBS, SE_Descriptor *sed);
     int OpenPioctlFile(void);
 
-    inline bool CompareVersion(ViceStatus *vstat, VenusStat *stat = NULL);
     void UpdateVastroFlag(uid_t uid);
 
 public:

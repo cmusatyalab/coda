@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -457,7 +457,7 @@ int fsobj::Fetch(uid_t uid, uint64_t pos, int64_t count)
             }
 
             /* Handle failed validations. */
-            if (!CompareVersion(&status)) {
+            if (VV_Cmp(&status.VV, &stat.VV) != VV_EQ) {
                 if (LogLevel >= 1) {
                     dprint("fsobj::Fetch: failed validation\n");
                     int *r = ((int *)&status.VV);
@@ -522,7 +522,7 @@ int fsobj::Fetch(uid_t uid, uint64_t pos, int64_t count)
         }
 
         /* Handle failed validations. */
-        if (HAVESTATUS(this) && !CompareVersion(&status)) {
+        if (HAVESTATUS(this) && status.DataVersion != stat.DataVersion) {
             LOG(1, ("fsobj::Fetch: failed validation (%d, %d)\n",
                     status.DataVersion, stat.DataVersion));
             if (LogLevel >= 1) {
@@ -987,7 +987,7 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
 #endif
 
             /* Handle failed validations. */
-            if (HAVESTATUS(this) && !CompareVersion(&status)) {
+            if (HAVESTATUS(this) && VV_Cmp(&status.VV, &stat.VV) != VV_EQ) {
                 if (LogLevel >= 1) {
                     dprint("fsobj::GetAttr: failed validation\n");
                     int *r = ((int *)&status.VV);
@@ -1139,7 +1139,7 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
             goto NonRepExit;
 
         /* Handle failed validations. */
-        if (HAVESTATUS(this) && !CompareVersion(&status)) {
+        if (HAVESTATUS(this) && status.DataVersion != stat.DataVersion) {
             LOG(1, ("fsobj::GetAttr: failed validation (%d, %d)\n",
                     status.DataVersion, stat.DataVersion));
             if (LogLevel >= 1) {
@@ -1762,20 +1762,4 @@ int fsobj::Create(char *name, fsobj **target_fso_addr, uid_t uid,
         Demote();
     }
     return (code);
-}
-
-bool fsobj::CompareVersion(ViceStatus *status, VenusStat *venus_stat)
-{
-    if (!venus_stat)
-        venus_stat = &(this->stat);
-
-    if (VV_Cmp(&status->VV, &venus_stat->VV) != VV_EQ)
-        return false;
-
-    if (vol->IsNonReplicated()) {
-        if (status->DataVersion != venus_stat->DataVersion)
-            return false;
-    }
-
-    return true;
 }
