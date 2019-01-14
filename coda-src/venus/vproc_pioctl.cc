@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -485,7 +485,7 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
             }
             }
         O_FreeLocks:
-            if (!ISVASTRO(f) || !ACTIVE(f))
+            if (f && (!ISVASTRO(f) || !ACTIVE(f)))
                 FSDB->Put(&f);
             int retry_call = 0;
             End_VFS(&retry_call);
