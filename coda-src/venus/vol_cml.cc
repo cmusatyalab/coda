@@ -1,9 +1,9 @@
 /* BLURB gpl
 
 			    Coda File System
-				Release 6
+				Release 7
 
-	    Copyright (c) 1987-2018 Carnegie Mellon University
+	    Copyright (c) 1987-2019 Carnegie Mellon University
 		    Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -2309,6 +2309,7 @@ int ClientModifyLog::COP1_NR(char *buf, int bufsize,
     /* don't bother with VCBs, will lose them on resolve anyway */
     RPC2_CountedBS OldVS;
     OldVS.SeqLen = 0;
+    vol->ClearCallBack();
 
     /* Make the RPC call. */
     MarinerLog("store::Reintegrate %s, (%d, %d)\n", vol->name, count(),
@@ -2345,13 +2346,11 @@ int ClientModifyLog::COP1_NR(char *buf, int bufsize,
     }
 
     /* Update volume callback information */
-#if TOBEDONE
     if (cbtemp == cbbreaks && VCBStatus == CallBackSet) {
         vol->SetCallBack();
-        vol->VVV.Site0 = VS;
+        vol->VVV.Versions.Site0 = VS;
     } else
         vol->CallBackBreak();
-#endif
 
     bufsize += sed.Value.SmartFTPD.BytesTransferred;
     LOG(10, ("ViceReintegrate: transferred %d bytes\n",
