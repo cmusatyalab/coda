@@ -1452,6 +1452,7 @@ int fsobj::SetACL(RPC2_CountedBS *acl, uid_t uid)
     LOG(10, ("fsobj::SetACL: (%s), uid = %d\n", GetComp(), uid));
 
     ViceVersionVector UpdateSet;
+    long cbtemp = 0;
 
     if (!REACHABLE(this))
         return ETIMEDOUT;
@@ -1512,7 +1513,6 @@ int fsobj::SetACL(RPC2_CountedBS *acl, uid_t uid)
             goto RepExit;
 
         /* The COP1 call. */
-        long cbtemp;
         cbtemp = cbbreaks;
 
         Recov_BeginTrans();
@@ -1543,7 +1543,6 @@ int fsobj::SetACL(RPC2_CountedBS *acl, uid_t uid)
             MULTI_END_MESSAGE(ViceSetACL_OP);
             CFSOP_POSTLUDE("store::setacl done\n");
 
-            free(OldVS.SeqBody);
             /* Collate responses from individual servers and decide what to
 	     * do next. */
             code = vp->Collate_COP1(m, code, &UpdateSet);
@@ -1606,6 +1605,11 @@ int fsobj::SetACL(RPC2_CountedBS *acl, uid_t uid)
         if (code != 0)
             goto NonRepExit;
 
+        vp->PackVS(1, &OldVS);
+
+        /* The COP1 call. */
+        cbtemp = cbbreaks;
+
         /* Make the RPC call. */
         CFSOP_PRELUDE("store::setacl %s\n", comp, fid);
         UNI_START_MESSAGE(ViceSetACL_OP);
@@ -1621,7 +1625,11 @@ int fsobj::SetACL(RPC2_CountedBS *acl, uid_t uid)
         if (code != 0)
             goto NonRepExit;
 
-        /* Non-replicated volumes stil use the first slot */
+        /* Update volume callback information */
+        if (cbtemp == cbbreaks)
+            vp->UpdateVCBInfo(VS, VCBStatus);
+
+        /* Non-replicated volumes still use the first slot */
         InitVV(&UpdateSet);
         if (vol->IsNonReplicated())
             (&(UpdateSet.Versions.Site0))[0] = 1;
@@ -1638,6 +1646,9 @@ int fsobj::SetACL(RPC2_CountedBS *acl, uid_t uid)
     /* Cached rights are suspect now! */
     if (code == 0)
         Demote();
+
+    if (OldVS.SeqBody)
+        free(OldVS.SeqBody);
 
     return (code);
 }
