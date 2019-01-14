@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -56,16 +56,14 @@ char VCBEnabled = 1; /* use VCBs by default */
 
 int vdb::CallBackBreak(Volid *volid)
 {
-    int rc    = 0;
-    volent *v = VDB->Find(volid);
+    int rc       = 0;
+    volent *v    = VDB->Find(volid);
+    reintvol *vp = (reintvol *)v;
 
     if (!v)
         return 0;
 
-    if (v->IsReplicated()) {
-        repvol *vp = (repvol *)v;
-        rc         = vp->CallBackBreak();
-    }
+    rc = vp->CallBackBreak();
     if (rc)
         vcbbreaks++;
 
@@ -79,9 +77,20 @@ int vdb::CallBackBreak(Volid *volid)
  * present) and get a callback.  If validating, and there are
  * other volumes that need validating, do them too.
  */
-int repvol::GetVolAttr(uid_t uid)
+int reintvol::GetVolAttr(uid_t uid)
 {
-    LOG(100, ("repvol::GetVolAttr: %s, vid = 0x%x\n", name, vid));
+    int code        = 0;
+    connent *c      = NULL;
+    RPC2_Integer VS = 0;
+    CallBackStatus CBStatus;
+    nonrepvol_iterator next;
+    reintvol *rv = NULL;
+    int nVols    = 0;
+    ViceVolumeIdStruct VidList[MAX_PIGGY_VALIDATIONS];
+    long cbtemp = cbbreaks;
+    volent *v   = NULL;
+    Volid volid;
+    LOG(100, ("reintvol::GetVolAttr: %s, vid = 0x%x\n", name, vid));
 
     VOL_ASSERT(this, IsReachable());
 
@@ -356,21 +365,46 @@ RepExit:
 }
 
 /* collate version stamp and callback status out parameters from servers */
+void reintvol::UpdateVCBInfo(RPC2_Integer VS, CallBackStatus CBStatus)
+{
+    /* This is the single server version of CollateVCB */
+    if (CBStatus == CallBackSet) {
+        SetCallBack();
+        Recov_BeginTrans();
+        RVMLIB_REC_OBJECT(VVV);
+        memset(&VVV.Versions.Site0, 0, sizeof(ViceVersionVector));
+        VVV.Versions.Site0 = VS;
+        Recov_EndTrans(MAXFP);
+    } else {
+        ClearCallBack();
+
+        /* check if any of the returned stamp is zero.
+               If so, server said stamp invalid. */
+        if (VS == 0) {
+            Recov_BeginTrans();
+            RVMLIB_REC_OBJECT(VVV);
+            VVV = NullVV;
+            Recov_EndTrans(MAXFP);
+        }
+    }
+}
+
+/* collate version stamp and callback status out parameters from servers */
 void repvol::CollateVCB(mgrpent *m, RPC2_Integer *sbufs, CallBackStatus *cbufs)
 {
-    unsigned int i;
+    unsigned int i            = 0;
     CallBackStatus collatedCB = CallBackSet;
 
     if (LogLevel >= 100) {
-        fprintf(logFile, "volent::CollateVCB: vid %08x Current VVV:\n", vid);
+        fprintf(logFile, "repvol::CollateVCB: vid %08x Current VVV:\n", vid);
         FPrintVV(logFile, &VVV);
 
-        fprintf(logFile, "volent::CollateVCB: Version stamps returned:");
+        fprintf(logFile, "repvol::CollateVCB: Version stamps returned:");
         for (i = 0; i < vsg->MaxVSG(); i++)
             if (m->rocc.hosts[i].s_addr != 0)
                 fprintf(logFile, " %u", sbufs[i]);
 
-        fprintf(logFile, "\nvolent::CollateVCB: Callback status returned:");
+        fprintf(logFile, "\nrepvol::CollateVCB: Callback status returned:");
         for (i = 0; i < vsg->MaxVSG(); i++)
             if (m->rocc.hosts[i].s_addr != 0)
                 fprintf(logFile, " %u", cbufs[i]);
@@ -423,11 +457,11 @@ void repvol::CollateVCB(mgrpent *m, RPC2_Integer *sbufs, CallBackStatus *cbufs)
  *   unless the target fid is known, because this routine calls
  *   fsdb::Get on potentially everything.
  */
-int repvol::ValidateFSOs()
+int reintvol::ValidateFSOs()
 {
     int code = 0;
 
-    LOG(100, ("repvol::ValidateFSOs: vid = 0x%x\n", vid));
+    LOG(100, ("reintvol::ValidateFSOs: vid = 0x%x\n", vid));
 
     vproc *vp = VprocSelf();
 
@@ -451,7 +485,7 @@ int repvol::ValidateFSOs()
         if (HAVEDATA(f) && !DATAVALID(f))
             whatToGet |= RC_DATA;
 
-        LOG(100, ("volent::ValidateFSOs: vget(%s, %x, %d)\n", FID_(&f->fid),
+        LOG(100, ("reintvol::ValidateFSOs: vget(%s, %x, %d)\n", FID_(&f->fid),
                   whatToGet, f->stat.Length));
 
         fsobj *tf = 0;
@@ -462,7 +496,7 @@ int repvol::ValidateFSOs()
             FSO_RELE(n);
 
         LOG(100,
-            ("volent::ValidateFSOs: vget returns %s\n", VenusRetStr(code)));
+            ("reintvol::ValidateFSOs: vget returns %s\n", VenusRetStr(code)));
         if (code == EINCONS)
             k_Purge(&f->fid, 1);
         if (code)
@@ -471,7 +505,7 @@ int repvol::ValidateFSOs()
     return (code);
 }
 
-void repvol::PackVS(int nstamps, RPC2_CountedBS *BS)
+void reintvol::PackVS(int nstamps, RPC2_CountedBS *BS)
 {
     BS->SeqLen  = 0;
     BS->SeqBody = (RPC2_ByteSeq)malloc(nstamps * sizeof(RPC2_Integer));
@@ -484,7 +518,7 @@ void repvol::PackVS(int nstamps, RPC2_CountedBS *BS)
     return;
 }
 
-int repvol::CallBackBreak()
+int reintvol::CallBackBreak()
 {
     /*
      * Track vcb's broken for this volume. Total vcb's broken is 
@@ -505,17 +539,17 @@ int repvol::CallBackBreak()
     return (rc);
 }
 
-void repvol::ClearCallBack()
+void reintvol::ClearCallBack()
 {
     VCBStatus = NoCallBack;
 }
 
-void repvol::SetCallBack()
+void reintvol::SetCallBack()
 {
     VCBStatus = CallBackSet;
 }
 
-int repvol::WantCallBack()
+int reintvol::WantCallBack()
 {
     /* 
      * This is a policy module that decides if a volume 
