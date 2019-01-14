@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -384,5 +384,15 @@ extern void MakeUserSpoolDir(char *, uid_t);
 extern pid_t ASRpid;
 extern VenusFid ASRfid;
 extern uid_t ASRuid;
+
+struct RPC2_common_params {
+    RPC2_Integer nservers;
+    RPC2_Handle *handles;
+    struct in_addr *hosts;
+    RPC2_Integer *retcodes;
+    int ph_ix;
+    unsigned long ph;
+    RPC2_Multicast *MIp;
+};
 
 #endif /* _VENUS_PRIVATE_H_ */
