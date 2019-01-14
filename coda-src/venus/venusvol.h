@@ -488,6 +488,7 @@ class vdb {
     friend class cmlent;
     friend class volrep; /* for hashtab insert/remove */
     friend class repvol; /* for hashtab insert/remove */
+    friend class nonrepvol_iterator;
     friend class repvol_iterator;
     friend class volrep_iterator;
     friend class fsobj;
@@ -1011,6 +1012,12 @@ class repvol_iterator : public volent_iterator {
 public:
     repvol_iterator(Volid * = (Volid *)-1);
     repvol *operator()();
+};
+
+class nonrepvol_iterator : public volent_iterator {
+public:
+    nonrepvol_iterator(Volid * = (Volid *)-1);
+    reintvol *operator()();
 };
 
 class volrep_iterator : public volent_iterator {

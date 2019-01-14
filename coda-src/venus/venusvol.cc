@@ -2884,6 +2884,11 @@ repvol_iterator::repvol_iterator(Volid *key)
 {
 }
 
+nonrepvol_iterator::nonrepvol_iterator(Volid *key)
+    : volent_iterator(VDB->volrep_hash, key)
+{
+}
+
 volrep_iterator::volrep_iterator(Volid *key)
     : volent_iterator(VDB->volrep_hash, key)
 {
@@ -2937,6 +2942,18 @@ volrep *volrep_iterator::operator()()
         return (0);
     assert(!v->IsReplicated());
     return (volrep *)v;
+}
+
+reintvol *nonrepvol_iterator::operator()()
+{
+    volent *v;
+
+    while ((v = volent_iterator::operator()())) {
+        if (v->IsNonReplicated())
+            return (reintvol *)v;
+    }
+
+    return (0);
 }
 
 reintvol::reintvol(Realm *r, VolumeId volid, const char *volname)
