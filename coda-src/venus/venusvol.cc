@@ -1094,8 +1094,7 @@ int volent::Enter(int mode, uid_t uid)
     vproc *vp = VprocSelf();
 
     reintvol *rv = (reintvol *)this;
-    if (VCBEnabled && IsReadWrite() && IsReachable() &&
-        rv->WantCallBack()) {
+    if (VCBEnabled && IsReadWrite() && IsReachable() && rv->WantCallBack()) {
         if ((!rv->HaveStamp() && vp->type == VPT_HDBDaemon) ||
             (rv->HaveStamp() &&
              (vp->type != VPT_VolDaemon || !just_transitioned))) {

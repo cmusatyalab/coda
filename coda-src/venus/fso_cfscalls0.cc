@@ -767,10 +767,10 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
                 MULTI_START_MESSAGE(ViceValidateAttrsPlusSHA_OP);
                 code = (int)MRPC_MakeMulti(
                     ViceValidateAttrsPlusSHA_OP, ViceValidateAttrsPlusSHA_PTR,
-                    rpc_common.nservers, rpc_common.handles, rpc_common.retcodes,
-                    rpc_common.MIp, 0, 0, rpc_common.ph, MakeViceFid(&fid),
-                    statusvar_ptrs, myshavar_ptrs, numPiggyFids, FAVs,
-                    VFlagvar_ptrs, &PiggyBS);
+                    rpc_common.nservers, rpc_common.handles,
+                    rpc_common.retcodes, rpc_common.MIp, 0, 0, rpc_common.ph,
+                    MakeViceFid(&fid), statusvar_ptrs, myshavar_ptrs,
+                    numPiggyFids, FAVs, VFlagvar_ptrs, &PiggyBS);
                 MULTI_END_MESSAGE(ViceValidateAttrsPlusSHA_OP);
                 CFSOP_POSTLUDE("fetch::ValidateAttrsPlusSHA done\n");
 
@@ -910,12 +910,11 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
                     */
 
                     MULTI_START_MESSAGE(ViceGetACL_OP);
-                    code = (int)MRPC_MakeMulti(ViceGetACL_OP, ViceGetACL_PTR,
-                                               rpc_common.nservers, rpc_common.handles,
-                                               rpc_common.retcodes, rpc_common.MIp, 0,
-                                               0, MakeViceFid(&fid), inconok,
-                                               aclvar_ptrs, statusvar_ptrs,
-                                               rpc_common.ph, &PiggyBS);
+                    code = (int)MRPC_MakeMulti(
+                        ViceGetACL_OP, ViceGetACL_PTR, rpc_common.nservers,
+                        rpc_common.handles, rpc_common.retcodes, rpc_common.MIp,
+                        0, 0, MakeViceFid(&fid), inconok, aclvar_ptrs,
+                        statusvar_ptrs, rpc_common.ph, &PiggyBS);
                     MULTI_END_MESSAGE(ViceGetACL_OP);
                     CFSOP_POSTLUDE(post_str);
 
@@ -934,9 +933,10 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
                     MULTI_START_MESSAGE(ViceGetAttrPlusSHA_OP);
                     code = (int)MRPC_MakeMulti(
                         ViceGetAttrPlusSHA_OP, ViceGetAttrPlusSHA_PTR,
-                        rpc_common.nservers, rpc_common.handles, rpc_common.retcodes,
-                        rpc_common.MIp, 0, 0, MakeViceFid(&fid), inconok,
-                        statusvar_ptrs, myshavar_ptrs, rpc_common.ph, &PiggyBS);
+                        rpc_common.nservers, rpc_common.handles,
+                        rpc_common.retcodes, rpc_common.MIp, 0, 0,
+                        MakeViceFid(&fid), inconok, statusvar_ptrs,
+                        myshavar_ptrs, rpc_common.ph, &PiggyBS);
                     MULTI_END_MESSAGE(ViceGetAttrPlusSHA_OP);
                     CFSOP_POSTLUDE(post_str);
 
