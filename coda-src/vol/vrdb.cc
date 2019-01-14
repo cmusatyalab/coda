@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -218,20 +218,20 @@ bool IsReplicated(VolumeId *vidp)
     return false;
 }
 
-int XlateVid(VolumeId *vidp, int *count, int *pos, bool *isReplicated)
+int XlateVid(VolumeId *vidp, int *count, int *pos, int *voltype)
 {
     if (!IsReplicated(vidp)) {
         if (count)
             *count = 1;
         if (pos)
             *pos = 0;
-        if (isReplicated)
-            *isReplicated = false;
+        if (voltype)
+            *voltype = NONREPVOL;
         return (1);
     }
 
-    if (isReplicated)
-        *isReplicated = true;
+    if (voltype)
+        *voltype = 0;
 
     vrent *vre = VRDB.find(*vidp);
     if (!vre)
@@ -240,6 +240,9 @@ int XlateVid(VolumeId *vidp, int *count, int *pos, bool *isReplicated)
     int ix = vre->index();
     if (ix == -1)
         return (0);
+
+    if (voltype)
+        *voltype = REPVOL;
 
     *vidp = vre->ServerVolnum[ix];
     if (count)

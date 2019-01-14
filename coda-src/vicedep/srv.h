@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -239,9 +239,9 @@ extern void COP2Update(Volume *, Vnode *, ViceVersionVector *);
 extern long InternalCOP2(RPC2_Handle, ViceStoreId *, ViceVersionVector *);
 extern void PollAndYield();
 extern int GetSubTree(ViceFid *, Volume *, dlist *);
-extern void GetMyVS(Volume *, RPC2_CountedBS *, RPC2_Integer *);
+extern void GetMyVS(Volume *, RPC2_CountedBS *, RPC2_Integer *, int voltype);
 extern void SetVSStatus(ClientEntry *, Volume *, RPC2_Integer *,
-                        CallBackStatus *);
+                        CallBackStatus *, int voltype);
 
 /* codaproc2.c */
 extern int LookupChild(Volume *, Vnode *, char *, ViceFid *);

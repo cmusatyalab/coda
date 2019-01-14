@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -2515,23 +2515,32 @@ Exit:
     return (errorCode);
 }
 
-void GetMyVS(Volume *volptr, RPC2_CountedBS *VSList, RPC2_Integer *MyVS)
+void GetMyVS(Volume *volptr, RPC2_CountedBS *VSList, RPC2_Integer *MyVS,
+             int voltype)
 {
     vrent *vre;
+    int ix;
 
     *MyVS = 0;
     if (VSList->SeqLen == 0)
         return;
 
-    /* Look up the VRDB entry. */
-    vre = VRDB.find(V_groupId(volptr));
-    if (!vre)
-        Die("GetMyVS: VSG not found!");
+    if (voltype & REPVOL) {
+        /* Look up the VRDB entry. */
+        vre = VRDB.find(V_groupId(volptr));
+        if (!vre)
+            Die("GetMyVS: VSG not found!");
 
-    /* Look up the index of this host. */
-    int ix = vre->index();
-    if (ix < 0)
-        Die("GetMyVS: this host not found!");
+        /* Look up the index of this host. */
+        ix = vre->index();
+        if (ix < 0)
+            Die("GetMyVS: this host not found!");
+
+    } else if (voltype & NONREPVOL) {
+        ix = 0;
+    } else {
+        return;
+    }
 
     /* get the version stamp from our slot in the vector */
     *MyVS = ((RPC2_Unsigned *)VSList->SeqBody)[ix];
@@ -2542,17 +2551,25 @@ void GetMyVS(Volume *volptr, RPC2_CountedBS *VSList, RPC2_Integer *MyVS)
 }
 
 void SetVSStatus(ClientEntry *client, Volume *volptr, RPC2_Integer *NewVS,
-                 CallBackStatus *VCBStatus)
+                 CallBackStatus *VCBStatus, int voltype)
 {
-    /* Look up the VRDB entry. */
-    vrent *vre = VRDB.find(V_groupId(volptr));
-    if (!vre)
-        Die("SetVSStatus: VSG not found!");
+    int ix = 0;
+    if (voltype & REPVOL) {
+        /* Look up the VRDB entry. */
+        vrent *vre = VRDB.find(V_groupId(volptr));
+        if (!vre)
+            Die("SetVSStatus: VSG not found!");
 
-    /* Look up the index of this host. */
-    int ix = vre->index();
-    if (ix < 0)
-        Die("SetVSStatus: this host not found!");
+        /* Look up the index of this host. */
+        ix = vre->index();
+        if (ix < 0)
+            Die("SetVSStatus: this host not found!");
+
+    } else if (voltype & NONREPVOL) {
+        ix = 0;
+    } else {
+        return;
+    }
 
     *VCBStatus = NoCallBack;
 
@@ -2569,8 +2586,9 @@ void SetVSStatus(ClientEntry *client, Volume *volptr, RPC2_Integer *NewVS,
         fid.Volume = V_id(volptr);
         fid.Vnode = fid.Unique = 0;
         *VCBStatus             = AddCallBack(client->VenusId, &fid);
-    } else
+    } else {
         *NewVS = 0;
+    }
 
     SLog(1, "SetVSStatus: 0x%x, NewVS %d, CBstatus %d", V_id(volptr), *NewVS,
          *VCBStatus);
