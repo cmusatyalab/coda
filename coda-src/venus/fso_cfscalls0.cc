@@ -1431,8 +1431,13 @@ int fsobj::SetAttr(struct coda_vattr *vap, uid_t uid)
     int code     = 0;
     Date_t Mtime = Vtime();
 
-    code =
-        DisconnectedSetAttr(Mtime, uid, NewLength, NewDate, NewOwner, NewMode);
+    if (IsPioctlFile()) {
+        Recov_BeginTrans();
+        LocalSetAttr(Mtime, NewLength, NewDate, NewOwner, NewMode);
+        Recov_EndTrans(DMFP);
+    } else
+        code = DisconnectedSetAttr(Mtime, uid, NewLength, NewDate, NewOwner,
+                                   NewMode);
 
     if (code != 0) {
         Demote();
