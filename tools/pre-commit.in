@@ -117,7 +117,7 @@ then
         *) continue;;
         esac
 
-        if test $(git cat-file -p ":$single_file" | 
+        if test $(git cat-file -p ":$single_file" |
                   ${CLANG_FORMAT_COMMAND} -style=file -output-replacements-xml |
                   wc -l) != 3
         then
