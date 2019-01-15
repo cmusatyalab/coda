@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -610,7 +610,7 @@ int cmlent::DoRepair(char *msg, int rcode)
             vproc *vp = VprocSelf();
 
             VDB->Get(&vol, MakeVolid(fid));
-            CODA_ASSERT(vol && vol->IsReplicated());
+            CODA_ASSERT(vol && vol->IsReadWrite());
 
             repvol *rv = (repvol *)vol;
 

@@ -478,7 +478,7 @@ void fsobj::Recover()
         goto FailSafe;
     }
 
-    if (!vol->IsReplicated() && !IsLocalObj()) {
+    if (!vol->IsReadWrite() && !IsLocalObj()) {
         LOG(0, ("fsobj::Recover: (%s) is probably in a backup volume\n",
                 FID_(&fid)));
         goto Failure;
@@ -849,7 +849,7 @@ int fsobj::CheckRcRights(int rights)
 
 void fsobj::SetRcRights(int rights)
 {
-    if (!vol->IsReplicated() || IsFake())
+    if (!vol->IsReadWrite() || IsFake())
         return;
 
     if (!HAVEALLDATA(this))
@@ -2621,16 +2621,17 @@ void fsobj::print(int fdes)
                     SpecificUser[i].valid);
         fdprint(fdes, " }\n");
     }
-    fdprint(fdes,
-            "\tvoltype = [%d %d %d], fake = %d, fetching = %d local = %d\n",
-            vol->IsBackup(), vol->IsReplicated(), vol->IsReadWriteReplica(),
-            flags.fake, flags.fetching, flags.local);
-    fdprint(fdes,
-            "\texpanded = %d, rep = %d, data = %d, owrite = %d, dirty = %d\n",
-            flags.expanded, REPLACEABLE(this), HAVEDATA(this), flags.owrite,
-            flags.dirty);
-    fdprint(fdes, "\tshadow = %d, ckmtpt = %d, vastro = %d\n", shadow != 0,
-            flags.ckmtpt, flags.vastro);
+    fdprint(
+        fdes,
+        "\tvoltype = [%d %d %d %d], fake = %d, fetching = %d local = %d, expanded = %d\n",
+        vol->IsBackup(), vol->IsReplicated(), vol->IsReadWriteReplica(),
+        vol->IsReadWrite(), flags.fake, flags.fetching, flags.local,
+        flags.expanded);
+    fdprint(
+        fdes,
+        "\trep = %d, data = %d, owrite = %d, dirty = %d, shadow = %d ckmtpt\n",
+        REPLACEABLE(this), HAVEDATA(this), flags.owrite, flags.dirty,
+        shadow != 0, flags.ckmtpt);
 
     /* < mvstat [rootfid | mtptfid] > */
     fdprint(fdes, "\tmvstat = %s", PrintMvStat(mvstat));

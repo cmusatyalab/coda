@@ -368,7 +368,7 @@ int ClientModifyLog::GetReintegrateable(int tid, unsigned long *reint_time,
  */
 cmlent *ClientModifyLog::GetFatHead(int tid)
 {
-    repvol *vol = strbase(repvol, this, CML);
+    reintvol *vol = strbase(reintvol, this, CML);
     cmlent *m;
     cml_iterator next(*this, CommitOrder);
     unsigned long bw; /* bandwidth in bytes/sec */
@@ -3097,7 +3097,7 @@ int cmlent::CloseReintegrationHandle(char *buf, int bufsize,
     /* don't bother with VCBs, will lose them on resolve anyway */
     RPC2_CountedBS OldVS;
     OldVS.SeqLen = 0;
-    if (vol->IsReplicated())
+    if (vol->IsReadWrite())
         rv->ClearCallBack();
 
     /* Make the RPC call. */
@@ -3715,7 +3715,7 @@ void cmlent::AttachFidBindings()
         fsobj *f = FSDB->Find(fidp);
         if (f == 0) {
             print(logFile);
-            (strbase(repvol, log, CML))->print(logFile);
+            (strbase(reintvol, log, CML))->print(logFile);
             CHOKE("cmlent::AttachFidBindings: can't find (%s)", FID_(fidp));
         }
 

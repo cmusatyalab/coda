@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -811,8 +811,8 @@ void reintegrator::main(void)
             CHOKE("reintegrator::main: signalled but not dispatched!");
 
         /* Do the reintegration. */
-        if (u.u_vol && u.u_vol->IsReplicated())
-            ((repvol *)u.u_vol)->Reintegrate();
+        if (u.u_vol && u.u_vol->IsReadWrite())
+            ((reintvol *)u.u_vol)->Reintegrate();
 
         seq++;
         idle = 1;
