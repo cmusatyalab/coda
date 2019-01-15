@@ -979,7 +979,7 @@ int SetRights(Vnode *vptr, char *name, int rights)
 {
     int Id;
     AL_AccessList *aCL = 0;
-    int aCLSize        = 0;
+    // int aCLSize        = 0;
 
     SLog(9, "Entering SetRights(%s %d)", name, rights);
     if (AL_NameToId(name, &Id) < 0) {
@@ -988,7 +988,7 @@ int SetRights(Vnode *vptr, char *name, int rights)
     }
     /* set the ACL */
     aCL     = VVnodeACL(vptr);
-    aCLSize = VAclSize(vptr);
+    // aCLSize = VAclSize(vptr);
 
     /* find the entry */
     for (int i = 0; i < aCL->PlusEntriesInUse; i++) {
@@ -1038,7 +1038,7 @@ int SetNRights(Vnode *vptr, char *name, int rights)
 {
     int Id;
     AL_AccessList *aCL = 0;
-    int aCLSize        = 0;
+    // int aCLSize        = 0;
     int p, m, t;
 
     SLog(9, "Entering SetNRights(%s %d)", name, rights);
@@ -1048,7 +1048,7 @@ int SetNRights(Vnode *vptr, char *name, int rights)
     }
     /* set the ACL */
     aCL     = VVnodeACL(vptr);
-    aCLSize = VAclSize(vptr);
+    // aCLSize = VAclSize(vptr);
 
     p = aCL->PlusEntriesInUse;
     m = aCL->MinusEntriesInUse;
