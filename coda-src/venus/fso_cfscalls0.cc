@@ -606,7 +606,7 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
 {
     repvol *vp           = (repvol *)vol;
     connent *c           = NULL;
-    mgrpent *m           = 0;
+    mgrpent *m           = NULL;
     int code             = 0;
     int ret_code         = 0;
     int getacl           = (acl != 0);
@@ -662,11 +662,11 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
     PiggyBS.SeqBody = (RPC2_ByteSeq)PiggyData;
 
     if (vol->IsReadWrite()) {
-        cbtemp = cbbreaks;
-
         code = vp->GetConn(&c, uid, &m, &rpc_common.ph_ix, &ph_addr);
         if (code != 0)
             goto RepExit;
+
+        cbtemp = cbbreaks;
 
         rpc_common.ph = ntohl(ph_addr.s_addr);
 
@@ -1486,10 +1486,18 @@ int fsobj::SetAttr(struct coda_vattr *vap, uid_t uid)
 
 int fsobj::SetACL(RPC2_CountedBS *acl, uid_t uid)
 {
-    LOG(10, ("fsobj::SetACL: (%s), uid = %d\n", GetComp(), uid));
-
+    struct RPC2_common_params rpc_common;
+    struct in_addr ph_addr;
     ViceVersionVector UpdateSet;
-    long cbtemp = 0;
+    ViceStoreId sid;
+    long cbtemp     = 0;
+    int ret_code    = 0;
+    connent *c      = NULL;
+    mgrpent *m      = NULL;
+    int asy_resolve = 0;
+    repvol *vp      = (repvol *)vol;
+
+    LOG(10, ("fsobj::SetACL: (%s), uid = %d\n", GetComp(), uid));
 
     if (!REACHABLE(this))
         return ETIMEDOUT;
@@ -1538,51 +1546,65 @@ int fsobj::SetACL(RPC2_CountedBS *acl, uid_t uid)
     OldVS.SeqLen  = 0;
     OldVS.SeqBody = 0;
 
-    if (vol->IsReplicated()) {
-        ViceStoreId sid;
-        mgrpent *m      = 0;
-        int asy_resolve = 0;
-        repvol *vp      = (repvol *)vol;
-
-        /* Acquire an Mgroup. */
-        code = vp->GetMgrp(&m, uid, (PIGGYCOP2 ? &PiggyBS : 0));
+    if (vol->IsReadWrite()) {
+        code = vp->GetConn(&c, uid, &m, &rpc_common.ph_ix, &ph_addr);
         if (code != 0)
             goto RepExit;
 
-        /* The COP1 call. */
         cbtemp = cbbreaks;
+
+        rpc_common.ph = ntohl(ph_addr.s_addr);
+
+        if (vol->IsReplicated()) {
+            rpc_common.nservers = VSG_MEMBERS;
+            rpc_common.hosts    = m->rocc.hosts;
+            rpc_common.retcodes = m->rocc.retcodes;
+            rpc_common.handles  = m->rocc.handles;
+            rpc_common.MIp      = m->rocc.MIp;
+
+        } else { // Non-replicated
+
+            rpc_common.nservers = 1;
+            rpc_common.hosts    = &ph_addr;
+            rpc_common.retcodes = &ret_code;
+            rpc_common.handles  = &c->connid;
+            rpc_common.MIp      = 0;
+        }
 
         Recov_BeginTrans();
         Recov_GenerateStoreId(&sid);
         Recov_EndTrans(MAXFP);
         {
-            /* Make multiple copies of the IN/OUT and OUT parameters. */
-            int ph_ix;
-            unsigned long ph;
-            ph = ntohl(m->GetPrimaryHost(&ph_ix)->s_addr);
-            vp->PackVS(VSG_MEMBERS, &OldVS);
+            vp->PackVS(rpc_common.nservers, &OldVS);
 
             ARG_MARSHALL(IN_OUT_MODE, ViceStatus, statusvar, status,
-                         VSG_MEMBERS);
-            ARG_MARSHALL(OUT_MODE, RPC2_Integer, VSvar, VS, VSG_MEMBERS);
+                         rpc_common.nservers);
+            ARG_MARSHALL(OUT_MODE, RPC2_Integer, VSvar, VS,
+                         rpc_common.nservers);
             ARG_MARSHALL(OUT_MODE, CallBackStatus, VCBStatusvar, VCBStatus,
-                         VSG_MEMBERS)
+                         rpc_common.nservers)
 
             /* Make the RPC call. */
             CFSOP_PRELUDE("store::setacl %s\n", comp, fid);
             MULTI_START_MESSAGE(ViceSetACL_OP);
-            code = (int)MRPC_MakeMulti(ViceSetACL_OP, ViceSetACL_PTR,
-                                       VSG_MEMBERS, m->rocc.handles,
-                                       m->rocc.retcodes, m->rocc.MIp, 0, 0,
-                                       MakeViceFid(&fid), acl, statusvar_ptrs,
-                                       ph, &sid, &OldVS, VSvar_ptrs,
-                                       VCBStatusvar_ptrs, &PiggyBS);
+            code = (int)MRPC_MakeMulti(
+                ViceSetACL_OP, ViceSetACL_PTR, rpc_common.nservers,
+                rpc_common.handles, rpc_common.retcodes, rpc_common.MIp, 0, 0,
+                MakeViceFid(&fid), acl, statusvar_ptrs, rpc_common.ph, &sid,
+                &OldVS, VSvar_ptrs, VCBStatusvar_ptrs, &PiggyBS);
             MULTI_END_MESSAGE(ViceSetACL_OP);
             CFSOP_POSTLUDE("store::setacl done\n");
 
             /* Collate responses from individual servers and decide what to
-	     * do next. */
-            code = vp->Collate_COP1(m, code, &UpdateSet);
+             * do next. */
+            if (vol->IsReplicated()) {
+                code = vp->Collate_COP1(m, code, &UpdateSet);
+            } else {
+                code = vol->Collate(c, ret_code);
+                InitVV(&UpdateSet);
+                if (ret_code == 0)
+                    (&(UpdateSet.Versions.Site0))[0] = 1;
+            }
             MULTI_RECORD_STATS(ViceSetACL_OP);
 
             if (code == EASYRESOLVE) {
@@ -1592,28 +1614,35 @@ int fsobj::SetACL(RPC2_CountedBS *acl, uid_t uid)
             if (code != 0)
                 goto RepExit;
 
-            /* Collate volume callback information */
-            if (cbtemp == cbbreaks)
-                vp->CollateVCB(m, VSvar_bufs, VCBStatusvar_bufs);
+            if (vol->IsReplicated()) {
+                /* Collate volume callback information */
+                if (cbtemp == cbbreaks)
+                    vp->CollateVCB(m, VSvar_bufs, VCBStatusvar_bufs);
 
-            /* Finalize COP2 Piggybacking. */
-            if (PIGGYCOP2)
-                vp->ClearCOP2(&PiggyBS);
+                /* Finalize COP2 Piggybacking. */
+                if (PIGGYCOP2)
+                    vp->ClearCOP2(&PiggyBS);
 
-            /* Manually compute the OUT parameters from the mgrpent::SetAttr()
-	     * call! -JJK */
-            int dh_ix;
-            dh_ix = -1;
-            (void)m->DHCheck(0, ph_ix, &dh_ix);
-            ARG_UNMARSHALL(statusvar, status, dh_ix);
+                /* Manually compute the OUT parameters from the mgrpent::SetAttr()
+                 * call! -JJK */
+                int dh_ix;
+                dh_ix = -1;
+                (void)m->DHCheck(0, rpc_common.ph_ix, &dh_ix);
+                ARG_UNMARSHALL(statusvar, status, dh_ix);
+            } else { // IsNonReplicated
+                if (cbtemp == cbbreaks)
+                    ((reintvol *)this)
+                        ->UpdateVCBInfo(VSvar_bufs[0], VCBStatusvar_bufs[0]);
+            }
         }
 
         Recov_BeginTrans();
         UpdateStatus(&status, &UpdateSet, uid);
         Recov_EndTrans(CMFP);
-
-        /* Send the COP2 message or add an entry for piggybacking. */
-        vp->COP2(m, &sid, &UpdateSet);
+        if (vol->IsReplicated()) {
+            /* Send the COP2 message or add an entry for piggybacking. */
+            vp->COP2(m, &sid, &UpdateSet);
+        }
 
     RepExit:
         if (m)
@@ -1633,7 +1662,7 @@ int fsobj::SetACL(RPC2_CountedBS *acl, uid_t uid)
         default:
             break;
         }
-    } else {
+    } else { // !IsReadWrite
         /* Acquire a Connection. */
         connent *c;
         ViceStoreId Dummy; /* ViceStore needs an address for indirection */
@@ -1641,8 +1670,6 @@ int fsobj::SetACL(RPC2_CountedBS *acl, uid_t uid)
         code       = vp->GetConn(&c, uid);
         if (code != 0)
             goto NonRepExit;
-
-        vp->PackVS(1, &OldVS);
 
         /* The COP1 call. */
         cbtemp = cbbreaks;
@@ -1662,18 +1689,9 @@ int fsobj::SetACL(RPC2_CountedBS *acl, uid_t uid)
         if (code != 0)
             goto NonRepExit;
 
-        /* Update volume callback information */
-        if (cbtemp == cbbreaks)
-            vp->UpdateVCBInfo(VS, VCBStatus);
-
-        /* Non-replicated volumes still use the first slot */
-        InitVV(&UpdateSet);
-        if (vol->IsNonReplicated())
-            (&(UpdateSet.Versions.Site0))[0] = 1;
-
         /* Do setattr locally. */
         Recov_BeginTrans();
-        UpdateStatus(&status, &UpdateSet, uid);
+        UpdateStatus(&status, NULL, uid);
         Recov_EndTrans(CMFP);
 
     NonRepExit:
