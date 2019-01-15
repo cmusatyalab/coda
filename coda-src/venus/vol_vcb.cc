@@ -81,27 +81,20 @@ int reintvol::GetVolAttr(uid_t uid)
 {
     int code        = 0;
     connent *c      = NULL;
-    RPC2_Integer VS = 0;
-    CallBackStatus CBStatus;
     nonrepvol_iterator next;
-    reintvol *rv = NULL;
     repvol *repv = (repvol *)this;
-    int nVols    = 0;
-    ViceVolumeIdStruct VidList[MAX_PIGGY_VALIDATIONS];
     long cbtemp    = cbbreaks;
-    volent *v      = NULL;
     mgrpent *m     = 0;
     unsigned int i = 0;
     struct RPC2_common_params rpc_common;
     struct in_addr ph_addr;
     int ret_code = 0;
-    Volid volid;
     LOG(100, ("reintvol::GetVolAttr: %s, vid = 0x%x\n", name, vid));
 
     VOL_ASSERT(this, IsReachable());
 
     /* Acquire an Mgroup. */
-    code = GetConn(&c, uid, &m, NULL, NULL);
+    code = GetConn(&c, uid, &m, &rpc_common.ph_ix, &ph_addr);
     if (code != 0)
         goto RepExit;
 
@@ -138,11 +131,11 @@ int reintvol::GetVolAttr(uid_t uid)
 
             RPC2_Integer VS;
             ARG_MARSHALL(OUT_MODE, RPC2_Integer, VSvar, VS,
-                         rpc_common.nservers);
+                         (unsigned int)rpc_common.nservers);
 
             CallBackStatus CBStatus;
             ARG_MARSHALL(OUT_MODE, CallBackStatus, CBStatusvar, CBStatus,
-                         rpc_common.nservers);
+                         (unsigned int)rpc_common.nservers);
 
             /* Make the RPC call. */
             MarinerLog("store::GetVolVS %s\n", name);
@@ -164,11 +157,12 @@ int reintvol::GetVolAttr(uid_t uid)
             if (code != 0)
                 goto RepExit;
 
-            if (cbtemp == cbbreaks)
+            if (cbtemp == cbbreaks) {
                 if (IsReplicated())
                     repv->CollateVCB(m, VSvar_bufs, CBStatusvar_bufs);
                 else if (IsNonReplicated())
                     UpdateVCBInfo(VSvar_bufs[0], CBStatusvar_bufs[0]);
+            }
         } else {
             /*
 	     * Figure out how many volumes to validate.
