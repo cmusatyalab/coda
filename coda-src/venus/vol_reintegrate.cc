@@ -165,9 +165,9 @@ void reintvol::Reintegrate()
         code = IncReintegrate(thisTid);
 
         /* Log how many entries are left to reintegrate */
-        MarinerLog("reintegrate::%s, 0/%d\n", name, CML.count());
-        eprint("Reintegrate: %s, %d/%d records, result = %s", name, nrecs,
-               startedrecs, VenusRetStr(code));
+        MarinerLog("reintegrate::%s, 0/%d\n", name, startedrecs);
+        eprint("Reintegrate: %s, 0/%d records, result = %s", name, startedrecs,
+               VenusRetStr(code));
 
         /*
          * Keep going as long as we managed to reintegrate records without
