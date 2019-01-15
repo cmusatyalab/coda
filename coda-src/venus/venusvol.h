@@ -743,6 +743,7 @@ class reintvol : public volent {
     friend class volent;
     friend class cmlent;
     friend class vdb;
+    friend long VENUS_CallBackFetch(RPC2_Handle, ViceFid *, SE_Descriptor *);
 
 private:
 protected:

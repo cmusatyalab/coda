@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -474,7 +474,7 @@ void fsobj::Recover()
         goto FailSafe;
     }
 
-    if (!vol->IsReplicated() && !IsLocalObj()) {
+    if (!vol->IsReadWrite() && !IsLocalObj()) {
         LOG(0, ("fsobj::Recover: (%s) is probably in a backup volume\n",
                 FID_(&fid)));
         goto Failure;
@@ -845,7 +845,7 @@ int fsobj::CheckRcRights(int rights)
 
 void fsobj::SetRcRights(int rights)
 {
-    if (!vol->IsReplicated() || IsFake())
+    if (!vol->IsReadWrite() || IsFake())
         return;
 
     if (!HAVEALLDATA(this))
@@ -2661,9 +2661,10 @@ void fsobj::print(int fdes)
     }
     fdprint(
         fdes,
-        "\tvoltype = [%d %d %d], fake = %d, fetching = %d local = %d, expanded = %d\n",
+        "\tvoltype = [%d %d %d %d], fake = %d, fetching = %d local = %d, expanded = %d\n",
         vol->IsBackup(), vol->IsReplicated(), vol->IsReadWriteReplica(),
-        flags.fake, flags.fetching, flags.local, flags.expanded);
+        vol->IsReadWrite(), flags.fake, flags.fetching, flags.local,
+        flags.expanded);
     fdprint(
         fdes,
         "\trep = %d, data = %d, owrite = %d, dirty = %d, shadow = %d ckmtpt\n",

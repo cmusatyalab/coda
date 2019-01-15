@@ -1296,8 +1296,8 @@ void volent::Exit(int mode, uid_t uid)
         LOG(1, ("volent::Exit: demoting %s\n", name));
         flags.demotion_pending = 0;
 
-        if (IsReplicated())
-            ((repvol *)this)->ClearCallBack();
+        if (IsReadWrite())
+            ((reintvol *)this)->ClearCallBack();
 
         struct dllist_head *p;
         list_for_each(p, fso_list)
@@ -1889,6 +1889,8 @@ int reintvol::GetConn(connent **c, uid_t uid, mgrpent **m, int *ph_ix,
     struct in_addr *phost_tmp = NULL;
     struct in_addr phost_tmp2;
     int ph_ix_tmp = 0;
+
+    CODA_ASSERT(IsReadWrite());
 
     *c = NULL;
     if (m)
