@@ -46,3 +46,4 @@ ylwrap
 unittest.xml
 test-src/unit/unit
 tools/pre-commit
+tools/reformat.sh

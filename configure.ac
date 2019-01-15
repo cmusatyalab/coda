@@ -38,8 +38,8 @@ CLANG_FORMAT_VERSION=['6\.[0-9]*\.[0-9]*']
 AC_CHECK_PROGS([CLANG_FORMAT], [clang-format-6.0 clang-format])
 
 dnl Verify that the version matches in case clang-format is found
-if test "x$CLANG_FORMAT" != xclang-format; then
-    if test ["$(${CLANG_FORMAT} --version | grep $CLANG_FORMAT_VERSION | wc -l)"] == 0; then
+if test "x$CLANG_FORMAT" != x ; then
+    if ${CLANG_FORMAT} --version | grep -vq ${CLANG_FORMAT_VERSION} ; then
         CLANG_FORMAT=""
     fi
 fi
@@ -193,6 +193,7 @@ AM_COND_IF(HAVE_VALGRIND,, [
     )]
 )
 
+AC_CONFIG_FILES([tools/reformat.sh], [chmod +x tools/reformat.sh])
 AC_CONFIG_FILES([tools/pre-commit], [chmod +x tools/pre-commit])
 AC_CONFIG_LINKS([.git/hooks/pre-commit:tools/pre-commit])
 

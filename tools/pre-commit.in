@@ -98,15 +98,15 @@ else
         echo ""
         printf "    %s\n" $need_copyright_update
     fi
+    echo ""
 fi
 
 # If there are whitespace errors, print the offending file names and fail.
 echo "Pre-commit hook - Checking staged files indentation"
 
-if test "$(command -v ${CLANG_FORMAT_COMMAND})" != ""
+if test "x${CLANG_FORMAT_COMMAND}" != "x"
 then
-
-    # Find the offending files
+    # Find files which need to be reformatted
     for single_file in $staged_files
     do
         # Check if it's a C/C++ source or header
@@ -147,7 +147,6 @@ then
 
         exit_code=1
     fi
-
 else
     echo ""
     printf "${YELLOW}[WARNING]${NC} Required clang-format version not installed. Skipping indentation check!"

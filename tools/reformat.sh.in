@@ -1,0 +1,2 @@
+#!/bin/sh
+@CLANG_FORMAT@ -style=file -i $(git ls-files . | grep '\.[ch]c\?$')
