@@ -926,7 +926,7 @@ class repvol : public reintvol {
     friend class volent; /* CML_Lock */
     friend long VENUS_CallBackFetch(RPC2_Handle, ViceFid *, SE_Descriptor *);
     friend void Resolve(volent *);
-    friend void Reintegrate(repvol *);
+    friend void Reintegrate(reintvol *);
     friend void VolInit(void);
 
     volrep *volreps[VSG_MEMBERS]; /* underlying volume replicas */
@@ -1109,7 +1109,7 @@ const unsigned int COP2SIZE = 1024;
 extern void VOLD_Init(void);
 
 /* vol_reintegrate.c */
-extern void Reintegrate(repvol *);
+void Reintegrate(reintvol *);
 
 /* vol_resolve.c */
 extern void Resolve(volent *);

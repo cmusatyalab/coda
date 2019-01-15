@@ -722,7 +722,7 @@ static const int ReintegratorPriority  = LWP_NORMAL_PRIORITY - 2;
 
 /* local-repair modification */
 class reintegrator : public vproc {
-    friend void Reintegrate(repvol *);
+    friend void Reintegrate(reintvol *);
 
     static olist freelist;
     olink handle;
@@ -746,7 +746,7 @@ olist reintegrator::freelist;
 /* This is the entry point for reintegration. */
 /* It finds a free reintegrator (or creates a new one), 
    sets up its context, and gives it a poke. */
-void Reintegrate(repvol *v)
+void Reintegrate(reintvol *v)
 {
     LOG(0, ("Reintegrate\n"));
     /* Get a free reintegrator. */

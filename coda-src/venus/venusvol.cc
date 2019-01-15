@@ -1436,7 +1436,7 @@ void volent::TakeTransition()
         if (rv->IsSync())
             rv->Reintegrate();
         else if (rv->ReadyToReintegrate() && IsReplicated())
-            ::Reintegrate((repvol *)rv);
+            ::Reintegrate(rv);
         // Fall through
 
     case Unreachable:
