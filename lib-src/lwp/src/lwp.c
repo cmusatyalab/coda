@@ -226,9 +226,9 @@ int LWP_TerminateProcessSupport(void) /* terminate all LWP support */
         Abort_LWP("Terminate_Process_Support invoked from wrong process!");
     /* free all space allocated */
     for (i = 0; i < MAX_PRIORITIES; i++)
-        for_all_elts(cur, runnable[i], { Free_PCB(cur); })
-            for_all_elts(cur, blocked, { Free_PCB(cur); })
-                free((char *)lwp_init);
+        for_all_elts(cur, runnable[i], { Free_PCB(cur); });
+    for_all_elts(cur, blocked, { Free_PCB(cur); });
+    free((char *)lwp_init);
     lwp_init = NULL;
     return LWP_SUCCESS;
 }
@@ -593,11 +593,13 @@ static void lwp_Tracer(void *arg)
             fprintf(lwp_logfile, "[Priority %d]\n", i);
             Dump_One_Process(x, lwp_logfile);
             fflush(lwp_logfile);
-        }) for_all_elts(x, blocked, {
-            fprintf(lwp_logfile, "[Blocked]\n");
-            Dump_One_Process(x, lwp_logfile);
-            fflush(lwp_logfile);
-        }) fprintf(lwp_logfile, "Trace done\n");
+        });
+    for_all_elts(x, blocked, {
+        fprintf(lwp_logfile, "[Blocked]\n");
+        Dump_One_Process(x, lwp_logfile);
+        fflush(lwp_logfile);
+    });
+    fprintf(lwp_logfile, "Trace done\n");
 
     /* jump back to the thread that called us */
     lwp_setcontext(&lwp_cpptr->ctx);
@@ -804,11 +806,12 @@ static int lwp_DispatchProcess(int dummy)
     if (LWP_TraceProcesses > 0) {
         for (i = 0; i < MAX_PRIORITIES; i++) {
             printf("[Priority %d, runnable (%d):", i, runnable[i].count);
-            for_all_elts(p, runnable[i], { printf(" \"%s\"", p->name); })
-                puts("]");
+            for_all_elts(p, runnable[i], { printf(" \"%s\"", p->name); });
+            puts("]");
         }
         printf("[Blocked (%d):", blocked.count);
-        for_all_elts(p, blocked, { printf(" \"%s\"", p->name); }) puts("]");
+        for_all_elts(p, blocked, { printf(" \"%s\"", p->name); });
+        puts("]");
     }
 
     /* Check for stack overflowif this lwp has a stack.  Check for
@@ -955,7 +958,8 @@ static int Internal_Signal(const void *event)
                            }
                        }
                    }
-                 }) return rc;
+                 });
+    return rc;
 }
 
 int LWP_INTERNALSIGNAL(const void *event, int yield)

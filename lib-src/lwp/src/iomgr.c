@@ -522,7 +522,8 @@ int IOMGR_Finalize()
 {
     int status;
 
-    Purge(Requests) TM_Final(&Requests);
+    Purge(Requests);
+    TM_Final(&Requests);
     status   = LWP_DestroyProcess(IOMGR_Id);
     IOMGR_Id = NULL;
     return status;
