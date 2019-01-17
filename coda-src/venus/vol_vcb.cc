@@ -79,10 +79,10 @@ int vdb::CallBackBreak(Volid *volid)
  */
 int reintvol::GetVolAttr(uid_t uid)
 {
-    int code        = 0;
-    connent *c      = NULL;
+    int code   = 0;
+    connent *c = NULL;
     nonrepvol_iterator next;
-    repvol *repv = (repvol *)this;
+    repvol *repv   = (repvol *)this;
     long cbtemp    = cbbreaks;
     mgrpent *m     = 0;
     unsigned int i = 0;
@@ -119,10 +119,10 @@ int reintvol::GetVolAttr(uid_t uid)
 
     {
         /*
-	 * if we're fetching (as opposed to validating) volume state, 
-	 * we must first ensure all cached file state from this volume 
-	 * is valid (i.e., our cached state corresponds to the version 
-	 * information we will get).  If the file state can't be 
+	 * if we're fetching (as opposed to validating) volume state,
+	 * we must first ensure all cached file state from this volume
+	 * is valid (i.e., our cached state corresponds to the version
+	 * information we will get).  If the file state can't be
 	 * validated, we bail.
 	 */
         if (VV_Cmp(&VVV, &NullVV) == VV_EQ) {
@@ -216,7 +216,7 @@ int reintvol::GetVolAttr(uid_t uid)
 	     * demotion, it may appear to still have a callback when viewed
 	     * "externally" as we do here. This does not violate correctness,
 	     * because if an object is referenced in the volume the demotion
-	     * will be taken first.  
+	     * will be taken first.
 	     *
 	     * We do not bother checking the stamps for volumes not in the
 	     * hoarding state; when the transition is taken to the hoarding
@@ -487,9 +487,9 @@ void repvol::CollateVCB(mgrpent *m, RPC2_Integer *sbufs, CallBackStatus *cbufs)
  *
  * Error handling is simple: if one occurs, quit and propagate.
  * There's no volume synchronization because we've already
- * done it. 
- * 
- * complications: 
+ * done it.
+ *
+ * complications:
  * - this can't be called from fsdb::Get (a reasonable place)
  *   unless the target fid is known, because this routine calls
  *   fsdb::Get on potentially everything.
@@ -558,7 +558,7 @@ void reintvol::PackVS(int nstamps, RPC2_CountedBS *BS)
 int reintvol::CallBackBreak()
 {
     /*
-     * Track vcb's broken for this volume. Total vcb's broken is 
+     * Track vcb's broken for this volume. Total vcb's broken is
      * accumulated in vdb::CallbackBreak.
      */
 
@@ -588,13 +588,13 @@ void reintvol::SetCallBack()
 
 int reintvol::WantCallBack()
 {
-    /* 
-     * This is a policy module that decides if a volume 
+    /*
+     * This is a policy module that decides if a volume
      * callback is worth acquiring.  This is a naive policy,
      * with a minimal threshold for files.  One could use
      * CallBackClears as an approximation to the partition
      * rate (p), and CallbackBreaks as an approximation
-     * to the mutation rate (m). 
+     * to the mutation rate (m).
      */
     struct dllist_head *p;
     int count = 0;
