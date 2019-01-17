@@ -65,6 +65,8 @@ extern "C" {
 unsigned int CacheFiles             = 0;
 unsigned int PartialCacheFilesRatio = 0;
 uint64_t WholeFileMaxSize           = 0;
+uint64_t WholeFileMinSize           = 0;
+uint64_t WholeFileMaxStall          = 0;
 int FSO_SWT                         = UNSET_SWT;
 int FSO_MWT                         = UNSET_MWT;
 int FSO_SSF                         = UNSET_SSF;
@@ -199,7 +201,7 @@ void FSOInit()
         /* This MUST wait until all fsobj's have been recovered/reset! */
         /*
 	 * Need not be in a transaction for the call to SetParent, because
-	 * the parent vnode and unique arguments are the very ones in the fsobj 
+	 * the parent vnode and unique arguments are the very ones in the fsobj
 	 * (no recoverable store gets changed).
 	 */
         {
@@ -379,9 +381,9 @@ void fsdb::ResetTransient()
     Recomputes = 0;
     Reorders   = 0;
 
-    /* 
-     * matriculation_sync doesn't need to be initialized. 
-     * It's used only for LWP_Wait and LWP_Signal. 
+    /*
+     * matriculation_sync doesn't need to be initialized.
+     * It's used only for LWP_Wait and LWP_Signal.
      */
     matriculation_count = 0;
 }
@@ -478,7 +480,7 @@ fsobj *fsdb::Create(VenusFid *key, int priority, const char *comp,
     return (f);
 }
 
-/* 
+/*
  * Problem here is that we *must* have a volent pointer.  If a miss is on the
  * volume itself, we don't have that pointer.  Where do we put the info?
  */
@@ -493,10 +495,10 @@ fsobj *fsdb::Create(VenusFid *key, int priority, const char *comp,
 /* argument "rcode" added for local-repair */
 /* MUST NOT be called from within transaction! */
 /* Returns object READ-locked on success. */
-/* 
- * Should NOT call with FSO_HOLD on object.  Venus will be unable to 
- * correctly handle objects which go inconsistent incorrectly forcing a 
- * return value of ETOOMANYREFS to the user when there is *nothing* the 
+/*
+ * Should NOT call with FSO_HOLD on object.  Venus will be unable to
+ * correctly handle objects which go inconsistent incorrectly forcing a
+ * return value of ETOOMANYREFS to the user when there is *nothing* the
  * poor user can do about it.
  */
 int fsdb::Get(fsobj **f_addr, VenusFid *key, uid_t uid, int rights,
@@ -515,7 +517,7 @@ int fsdb::Get(fsobj **f_addr, VenusFid *key, uid_t uid, int rights,
      *  NotifyUserOfProgramAccess(uid, vp->u.u_pid, vp->u.u_pgid, key); */
 
     /* Volume state synchronization. */
-    /* If a thread is already "in" one volume, we must switch contexts 
+    /* If a thread is already "in" one volume, we must switch contexts
      * before entering another. */
     if (vp->u.u_vol && !(vp->u.u_vol->GetRealmId() == key->Realm &&
                          vp->u.u_vol->GetVolumeId() == key->Volume)) {
@@ -989,8 +991,8 @@ void fsdb::Flush()
     /*
      * don't flush volume root only because some cached objects may
      * not be reachable.  If the flush actually works, the object
-     * will disappear, and some number of descendants may 
-     * disappear as well.  In this case, the iterator must be 
+     * will disappear, and some number of descendants may
+     * disappear as well.  In this case, the iterator must be
      * restarted. We're done when there's nothing flushable left.
      */
     int restart = 1;
@@ -1062,15 +1064,15 @@ void fsdb::Flush(Volid *vid)
     v->release();
 }
 
-/* This is supports translation of "local" to "remote" Fids during 
+/* This is supports translation of "local" to "remote" Fids during
    reintegration.  Note that given a fid it can appear in several
    directories:
    - in itself (if a directory fid) for the "." entries
    - in its directory children as ".."
-   - in its parent as the named entry 
+   - in its parent as the named entry
    so we must do 3 replacements
 
-   MUST be called from within transaction! 
+   MUST be called from within transaction!
 
    This routine can als replace local fids with global ones and
    then, exceptionally, they appear as cross volume replacements.

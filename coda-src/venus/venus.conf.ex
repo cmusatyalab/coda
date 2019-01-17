@@ -169,7 +169,7 @@ marinersocket=/var/run/coda-client.mariner
 # memory when memory gets tight. Private mappings do not work when rvm
 # data is stored on a raw partition on Linux. Set to 1 to use private
 # mappings, 0 to use anonymous mappings.
-# 
+#
 # We enabled this setting because venus uses files for RVM and the
 # faster startup times and reduced memory pressure are very noticable.
 #
@@ -326,6 +326,26 @@ mapprivate=1
 # the UNIX or TCP port that is configured as the mariner port.
 #
 #plan9server=0
+
+#
+# Size of files above which it's partially cached, regardless of bandwidth.
+# The default value is 50MB.
+#
+#wholefilemaxsize=50MB
+
+#
+# Size of files below which it's NEVER partially cached, regardless of
+# bandwidth. The default value is 4MB.
+#
+#wholefileminsize=4MB
+
+#
+# If the file's size is between wholefileminsize and wholefilemaxsize then
+# wholefilemaxstall is the maximum time to wait for whole file fetch in
+# seconds. This quantity depends on the bandwidth between the client and the
+# server hosting the corresponding file. The default value is 10 seconds.
+#
+#wholefilemaxstall=10
 
 #
 # Ratio of cache files that can be handle as partially cached files in

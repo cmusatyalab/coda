@@ -726,6 +726,8 @@ public:
 extern unsigned int CacheFiles;
 extern unsigned int PartialCacheFilesRatio;
 extern uint64_t WholeFileMaxSize;
+extern uint64_t WholeFileMinSize;
+extern uint64_t WholeFileMaxStall;
 extern int FSO_SWT;
 extern int FSO_MWT;
 extern int FSO_SSF;

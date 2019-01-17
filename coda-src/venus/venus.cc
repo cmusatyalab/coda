@@ -494,8 +494,8 @@ static void Usage(char *argv0)
         " -cf <n>\t\t\t# of cache files\n"
         " -pcfr <n>\t\t\t% of files that could be partially cached out \n"
         "\t\t\t\tof the total cache files\n"
-        " -c <n>[KB|MB|GB|TB]\t\t\t\tcache size in the given units (e.g. 10MB)\n"
-        " -ccbs <n>[KB|MB|GB|TB]\t\t\t\tcache chunk block size (shall be power of 2)\n"
+        " -c <n>[KB|MB|GB|TB]\t\tcache size in the given units (e.g. 10MB)\n"
+        " -ccbs <n>[KB|MB|GB|TB]\t\tcache chunk block size (shall be power of 2)\n"
         " -mles <n>\t\t\t# of CML entries\n"
         " -hdbes <n>\t\t\t# of hoard database entries\n"
         " -rdstrace\t\t\tenable RDS heap tracing\n"
@@ -544,10 +544,13 @@ static void Usage(char *argv0)
         " -codatunnel\t\t\tenable codatunneld helper\n"
         " -no-codatunnel\t\t\tdisable codatunneld helper\n"
         " -onlytcp\t\t\tonly use TCP tunnel connections to servers\n"
-        " -9pfs\t\t\tenable embedded 9pfs server (experimental, INSECURE!)\n"
+        " -9pfs\t\t\t\tenable embedded 9pfs server (experimental, INSECURE!)\n"
         " -no-codafs\t\t\tdo not automatically mount /coda\n"
-        " -nofork\t\t\tdo not daemonize the process\n\n"
-        " -wfmax\t\t\tmaximum file size to allow whole-file caching\n\n"
+        " -nofork\t\t\tdo not daemonize the process\n"
+        " -wfmax\t\t\t\tsize of files above which it's partially cached\n"
+        " -wfmin\t\t\t\tsize of files below which it's NEVER partially cached\n"
+        " -wfstall\t\t\tmaximum time to wait for a whole file caching. If \n"
+        "\t\t\t\texceeded it's partially cached\n\n"
         "For more information see http://www.coda.cs.cmu.edu/\n"
         "Report bugs to <bugs@coda.cs.cmu.edu>.\n",
         argv0);
@@ -704,6 +707,10 @@ static void ParseCmdline(int argc, char **argv)
                 nofork = true;
             } else if (STREQ(argv[i], "-wfmax")) {
                 i++, WholeFileMaxSize = ParseSizeWithUnits(argv[i]);
+            } else if (STREQ(argv[i], "-wfmin")) {
+                i++, WholeFileMinSize = ParseSizeWithUnits(argv[i]);
+            } else if (STREQ(argv[i], "-wfstall")) {
+                i++, WholeFileMaxStall = atoi(argv[i]);
             } else if (STREQ(argv[i], "-ccbs")) {
                 i++, ParseCacheChunkBlockSize(argv[i]);
             } else {
@@ -745,6 +752,7 @@ static void DefaultCmdlineParms()
     const char *CacheSize              = NULL;
     const char *TmpCacheChunkBlockSize = NULL;
     const char *TmpWFMax               = NULL;
+    const char *TmpWFMin               = NULL;
 
     /* Load the "venus.conf" configuration file */
     codaconf_init("venus.conf");
@@ -786,6 +794,13 @@ static void DefaultCmdlineParms()
         CODACONF_STR(TmpWFMax, "wholefilemaxsize", "50MB");
         WholeFileMaxSize = ParseSizeWithUnits(TmpWFMax);
     }
+
+    if (!WholeFileMinSize) {
+        CODACONF_STR(TmpWFMin, "wholefileminsize", "4MB");
+        WholeFileMinSize = ParseSizeWithUnits(TmpWFMin);
+    }
+
+    CODACONF_INT(WholeFileMaxStall, "wholefilemaxstall", 10);
 
     CODACONF_INT(PartialCacheFilesRatio, "partialcachefilesratio", 1);
 
