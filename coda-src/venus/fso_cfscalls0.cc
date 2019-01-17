@@ -22,7 +22,7 @@ listed in the file CREDITS.
  *
  *    ToDo:
  *       1. All mutating Vice calls should have the following IN arguments:
- *            NewSid, NewMutator (implicit from connection), NewMtime, 
+ *            NewSid, NewMutator (implicit from connection), NewMtime,
  *            OldVV and DataVersion (for each object), NewStatus (for each object)
  */
 
@@ -703,11 +703,11 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
                 ViceFidAndVV FAVs[MAX_PIGGY_VALIDATIONS];
 
                 /*
-		 * pack piggyback fids and version vectors from this volume. 
+		 * pack piggyback fids and version vectors from this volume.
 		 * We exclude busy objects because if their validation fails,
 		 * they end up in the same state (demoted) that they are now.
-		 * A nice optimization would be to pack them highest priority 
-		 * first, from the priority queue. Unfortunately this may not 
+		 * A nice optimization would be to pack them highest priority
+		 * first, from the priority queue. Unfortunately this may not
 		 * result in the most efficient packing because only
 		 * _replaceable_ objects are in the priority queue (duh).
 		 * So others that need to be checked may be missed,
@@ -746,7 +746,7 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
                 (void)qsort((char *)FAVs, numPiggyFids, sizeof(ViceFidAndVV),
                             (int (*)(const void *, const void *))FAV_Compare);
 
-                /* 
+                /*
                  * another OUT parameter. We don't use an array here
                  * because each char would be embedded in a struct that
                  * would be longword aligned. Ugh.
@@ -789,7 +789,7 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
                     asy_resolve = 1;
                     code        = 0;
                 } else if (code == 0 || code == ERETRY) {
-                    /* 
+                    /*
                      * collate flags from vsg members. even if the return
                      * is ERETRY we can (and should) grab the flags.
                      */
@@ -802,8 +802,8 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
                                 ARG_UNMARSHALL_BS(VFlagvar, VFlagBS, i);
                                 numVFlags = (unsigned)VFlagBS.SeqLen;
                             } else {
-                                /* 
-                                 * "and" in results from other servers. 
+                                /*
+                                 * "and" in results from other servers.
                                  * Remember that VFlagBS.SeqBody == VFlags.
                                  */
                                 for (int j = 0; j < numPiggyFids; j++)
@@ -816,11 +816,11 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
                          GetComp(), numPiggyFids, numVFlags));
 
                     nchecked += numPiggyFids;
-                    /* 
-                     * now set status of piggybacked objects 
+                    /*
+                     * now set status of piggybacked objects
                      */
                     for (i = 0; i < numVFlags; i++) {
-                        /* 
+                        /*
                          * lookup this object. It may have been flushed and
                          * reincarnated as a runt in the while we were out,
                          * so we check status again.
@@ -844,8 +844,8 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
                                     pobj->SetRcRights(RC_STATUS);
                                 else
                                     pobj->SetRcRights(RC_STATUS | RC_DATA);
-                                /* 
-                                 * if the object matched, the access rights 
+                                /*
+                                 * if the object matched, the access rights
                                  * cached for this object are still good.
                                  */
                                 if (pobj->IsDir()) {
@@ -869,7 +869,7 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
                                     pobj->Demote();
 
                                 nfailed++;
-                                /* 
+                                /*
                                  * If we have data, it is stale and must be
                                  * discarded, unless someone is writing or
                                  * executing it, or it is a fake directory.
@@ -983,9 +983,9 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
                 if (code != 0)
                     goto RepExit;
 
-                /* 
-                 * Compute the dominant host set.  
-                 * The index of a dominant host is returned as a side-effect. 
+                /*
+                 * Compute the dominant host set.
+                 * The index of a dominant host is returned as a side-effect.
                  */
 
                 dh_ix = -1;

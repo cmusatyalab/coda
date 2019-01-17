@@ -987,7 +987,7 @@ int SetRights(Vnode *vptr, char *name, int rights)
         return -1;
     }
     /* set the ACL */
-    aCL     = VVnodeACL(vptr);
+    aCL = VVnodeACL(vptr);
     // aCLSize = VAclSize(vptr);
 
     /* find the entry */
@@ -1047,7 +1047,7 @@ int SetNRights(Vnode *vptr, char *name, int rights)
         return -1;
     }
     /* set the ACL */
-    aCL     = VVnodeACL(vptr);
+    aCL = VVnodeACL(vptr);
     // aCLSize = VAclSize(vptr);
 
     p = aCL->PlusEntriesInUse;
