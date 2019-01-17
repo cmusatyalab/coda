@@ -1671,9 +1671,6 @@ int fsobj::SetACL(RPC2_CountedBS *acl, uid_t uid)
         if (code != 0)
             goto NonRepExit;
 
-        /* The COP1 call. */
-        cbtemp = cbbreaks;
-
         /* Make the RPC call. */
         CFSOP_PRELUDE("store::setacl %s\n", comp, fid);
         UNI_START_MESSAGE(ViceSetACL_OP);
