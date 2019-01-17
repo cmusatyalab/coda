@@ -629,6 +629,8 @@ public:
 #define CLU_TRAVERSE_MTPT 0x04
     int Readdir(char *, int, int, int *, uid_t);
     int Readlink(char *, unsigned long, int *, uid_t);
+    int ReadIntent(uid_t uid, int priority, uint64_t pos, int64_t count);
+    int ReadIntentFinish(uint64_t pos, int64_t count);
 
     /* Miscellaneous utility routines. */
     int dir_Lookup(const char *, VenusFid *, int);

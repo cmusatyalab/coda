@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -803,4 +803,92 @@ int fsobj::Readlink(char *buf, unsigned long len, int *cc, uid_t uid)
     buf[stat.Length] = '\0';
     LOG(100, ("fsobj::Readlink: contents = %s\n", buf));
     return (0);
+}
+
+int fsobj::ReadIntent(uid_t uid, int priority, uint64_t pos, int64_t count)
+{
+    int code                 = 0;
+    uint64_t actual_count    = 0;
+    uint64_t blocks_to_alloc = 0;
+    CacheChunkList *clist    = NULL;
+    CacheChunk currc;
+
+    if (IsPioctlFile())
+        return 0;
+
+    if (!ISVASTRO(this)) {
+        return EOPNOTSUPP;
+    }
+
+    if (pos > Size()) {
+        return EIO;
+    }
+
+    /* Check if the amount of bytes being read can be allocated within the 
+     * cache */
+    actual_count    = count < 0 ? Size() - pos : count;
+    blocks_to_alloc = NBLOCKS(length_align_to_ccblock(pos, actual_count));
+    if (blocks_to_alloc > (FSDB->MaxBlocks - FSDB->FreeBlockMargin)) {
+        return EIO;
+    }
+
+    /* Get the holes */
+    clist = GetHoles(pos, count);
+
+    /* Temporary add the chunk to the active segment to prevent 
+     * it to be discarded. Note that we only remove it from the list
+     * the fetching or allocation fails. */
+    if (clist->Length() > 0) {
+        active_segments.AddChunk(pos, count);
+    }
+
+    /* Go thru the list of holes */
+    for (currc = clist->pop(); currc.isValid(); currc = clist->pop()) {
+        /* Blocks needed for the current hole. Note that holes are
+         * align with cache blocks. */
+        blocks_to_alloc = NBLOCKS(FS_BLOCKS_ALIGN(currc.GetLength()));
+
+        /* First pre-allocate the blocks */
+        code = FSDB->AllocBlocks(priority, blocks_to_alloc);
+        if (code != 0) {
+            code = ENOSPC;
+            break;
+        }
+
+        /* Fetch the data */
+        code = Fetch(uid, currc.GetStart(), currc.GetLength());
+        if (code < 0) {
+            /* Don't forget to remove the allocated blocks if not fetched */
+            FSDB->FreeBlocks(blocks_to_alloc);
+            code = EIO;
+            break;
+        }
+    }
+
+    if (code < 0) {
+        code = EIO;
+        /* Since we failed remove it from the active segment */
+        active_segments.ReverseRemove(pos, count);
+    }
+
+    delete clist;
+
+    return code;
+}
+
+int fsobj::ReadIntentFinish(uint64_t pos, int64_t count)
+{
+    if (IsPioctlFile())
+        return 0;
+
+    if (!ISVASTRO(this)) {
+        return EOPNOTSUPP;
+    }
+
+    if (pos > Size()) {
+        return EIO;
+    }
+
+    /* No errors. The chunk (no longer in use) can be safely removed. */
+    active_segments.ReverseRemove(pos, count);
 }
