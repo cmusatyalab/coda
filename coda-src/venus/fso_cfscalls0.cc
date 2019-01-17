@@ -616,7 +616,7 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
     const char *post_str = getacl ? "fetch::GetACL done\n" :
                                     "fetch::GetAttr done\n";
     int i = 0;
-    struct RPC2_common_params rpc_common;
+    struct MRPC_common_params rpc_common;
     struct in_addr ph_addr;
 
     /*
@@ -1486,7 +1486,7 @@ int fsobj::SetAttr(struct coda_vattr *vap, uid_t uid)
 
 int fsobj::SetACL(RPC2_CountedBS *acl, uid_t uid)
 {
-    struct RPC2_common_params rpc_common;
+    struct MRPC_common_params rpc_common;
     struct in_addr ph_addr;
     ViceVersionVector UpdateSet;
     ViceStoreId sid;

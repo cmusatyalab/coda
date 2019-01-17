@@ -86,7 +86,7 @@ int reintvol::GetVolAttr(uid_t uid)
     long cbtemp    = cbbreaks;
     mgrpent *m     = 0;
     unsigned int i = 0;
-    struct RPC2_common_params rpc_common;
+    struct MRPC_common_params rpc_common;
     struct in_addr ph_addr;
     int ret_code = 0;
     LOG(100, ("reintvol::GetVolAttr: %s, vid = 0x%x\n", name, vid));
