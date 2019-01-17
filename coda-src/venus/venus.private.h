@@ -385,7 +385,7 @@ extern pid_t ASRpid;
 extern VenusFid ASRfid;
 extern uid_t ASRuid;
 
-struct RPC2_common_params {
+struct MRPC_common_params {
     RPC2_Integer nservers;
     RPC2_Handle *handles;
     struct in_addr *hosts;
