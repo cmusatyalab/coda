@@ -22,7 +22,7 @@ listed in the file CREDITS.
  *
  *    ToDo:
  *       1. All mutating Vice calls should have the following IN arguments:
- *            NewSid, NewMutator (implicit from connection), NewMtime, 
+ *            NewSid, NewMutator (implicit from connection), NewMtime,
  *            OldVV and DataVersion (for each object), NewStatus (for each object)
  */
 
@@ -606,6 +606,31 @@ int fsobj::Fetch(uid_t uid, uint64_t pos, int64_t count)
 
 int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
 {
+    repvol *vp           = (repvol *)vol;
+    connent *c           = NULL;
+    mgrpent *m           = NULL;
+    int code             = 0;
+    int ret_code         = 0;
+    int getacl           = (acl != 0);
+    int inconok          = !vol->IsReplicated();
+    const char *prel_str = getacl ? "fetch::GetACL %s\n" :
+                                    "fetch::GetAttr %s\n";
+    const char *post_str = getacl ? "fetch::GetACL done\n" :
+                                    "fetch::GetAttr done\n";
+    int i = 0;
+    struct MRPC_common_params rpc_common;
+    struct in_addr ph_addr;
+
+    /*
+     * these fields are for tracking vcb acquisition.  Since we
+     * use vcbs on replicated volumes only, the data collection
+     * goes in this branch of GetAttr.
+     */
+    int nchecked = 0, nfailed = 0;
+    long cbtemp = cbbreaks;
+    char val_prel_str[256];
+    int asy_resolve = 0;
+
     LOG(10, ("fsobj::GetAttr: (%s), uid = %d\n", GetComp(), uid));
 
     CODA_ASSERT(!IsLocalObj());
@@ -615,14 +640,6 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
         /* Better not be disconnected or dirty! */
         FSO_ASSERT(this, (REACHABLE(this) && !DIRTY(this)));
     }
-
-    int code             = 0;
-    int getacl           = (acl != 0);
-    int inconok          = !vol->IsReplicated();
-    const char *prel_str = getacl ? "fetch::GetACL %s\n" :
-                                    "fetch::GetAttr %s\n";
-    const char *post_str = getacl ? "fetch::GetACL done\n" :
-                                    "fetch::GetAttr done\n";
 
     /* Dummy argument for ACL */
     RPC2_BoundedBS dummybs;
@@ -646,52 +663,53 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
     PiggyBS.SeqLen  = 0;
     PiggyBS.SeqBody = (RPC2_ByteSeq)PiggyData;
 
-    if (vol->IsReplicated()) {
-        mgrpent *m      = 0;
-        int asy_resolve = 0;
-        repvol *vp      = (repvol *)vol;
-
-        /*
-	 * these fields are for tracking vcb acquisition.  Since we
-	 * use vcbs on replicated volumes only, the data collection
-	 * goes in this branch of GetAttr.
-	 */
-        int nchecked = 0, nfailed = 0;
-        long cbtemp = cbbreaks;
-        char val_prel_str[256];
-
-        /* Acquire an Mgroup. */
-        code = vp->GetMgrp(&m, uid, (PIGGYCOP2 ? &PiggyBS : 0));
+    if (vol->IsReadWrite()) {
+        code = vp->GetConn(&c, uid, &m, &rpc_common.ph_ix, &ph_addr);
         if (code != 0)
             goto RepExit;
 
-        nchecked++; /* we're going to check at least the primary fid */
-        int i;
-        {
-            /* Make multiple copies of the IN/OUT and OUT parameters. */
-            int ph_ix;
-            unsigned long ph;
-            ph = ntohl(m->GetPrimaryHost(&ph_ix)->s_addr);
+        cbtemp = cbbreaks;
 
+        rpc_common.ph = ntohl(ph_addr.s_addr);
+
+        if (vol->IsReplicated()) {
+            rpc_common.nservers = VSG_MEMBERS;
+            rpc_common.hosts    = m->rocc.hosts;
+            rpc_common.retcodes = m->rocc.retcodes;
+            rpc_common.handles  = m->rocc.handles;
+            rpc_common.MIp      = m->rocc.MIp;
+
+        } else { // Non-replicated
+
+            rpc_common.nservers = 1;
+            rpc_common.hosts    = &ph_addr;
+            rpc_common.retcodes = &ret_code;
+            rpc_common.handles  = &c->connid;
+            rpc_common.MIp      = 0;
+        }
+
+        nchecked++; /* we're going to check at least the primary fid */
+        {
             /* unneccesary in validation case but it beats duplicating code. */
             if (acl->MaxSeqLen > VENUS_MAXBSLEN)
                 CHOKE("fsobj::GetAttr: BS len too large (%d)", acl->MaxSeqLen);
             ARG_MARSHALL_BS(IN_OUT_MODE, RPC2_BoundedBS, aclvar, *acl,
-                            VSG_MEMBERS, VENUS_MAXBSLEN);
-            ARG_MARSHALL(OUT_MODE, ViceStatus, statusvar, status, VSG_MEMBERS);
+                            rpc_common.nservers, VENUS_MAXBSLEN);
+            ARG_MARSHALL(OUT_MODE, ViceStatus, statusvar, status,
+                         rpc_common.nservers);
 
             ARG_MARSHALL_BS(OUT_MODE, RPC2_BoundedBS, myshavar, mysha,
-                            VSG_MEMBERS, SHA_DIGEST_LENGTH);
+                            rpc_common.nservers, SHA_DIGEST_LENGTH);
 
             if (HAVESTATUS(this) && !getacl) {
                 ViceFidAndVV FAVs[MAX_PIGGY_VALIDATIONS];
 
                 /*
-		 * pack piggyback fids and version vectors from this volume. 
+		 * pack piggyback fids and version vectors from this volume.
 		 * We exclude busy objects because if their validation fails,
 		 * they end up in the same state (demoted) that they are now.
-		 * A nice optimization would be to pack them highest priority 
-		 * first, from the priority queue. Unfortunately this may not 
+		 * A nice optimization would be to pack them highest priority
+		 * first, from the priority queue. Unfortunately this may not
 		 * result in the most efficient packing because only
 		 * _replaceable_ objects are in the priority queue (duh).
 		 * So others that need to be checked may be missed,
@@ -715,7 +733,7 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
                         continue;
 
                     /* paranoia check */
-                    FSO_ASSERT(this, f->vol->IsReplicated());
+                    FSO_ASSERT(this, f->vol->IsReadWrite());
 
                     LOG(1000,
                         ("fsobj::GetAttr: packing piggy fid (%s) comp = %s\n",
@@ -731,10 +749,10 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
                             (int (*)(const void *, const void *))FAV_Compare);
 
                 /*
-		 * another OUT parameter. We don't use an array here
-		 * because each char would be embedded in a struct that
-		 * would be longword aligned. Ugh.
-		 */
+                 * another OUT parameter. We don't use an array here
+                 * because each char would be embedded in a struct that
+                 * would be longword aligned. Ugh.
+                 */
                 char VFlags[MAX_PIGGY_VALIDATIONS];
                 RPC2_BoundedBS VFlagBS;
 
@@ -743,7 +761,7 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
                 VFlagBS.SeqBody   = (RPC2_ByteSeq)VFlags;
 
                 ARG_MARSHALL_BS(IN_OUT_MODE, RPC2_BoundedBS, VFlagvar, VFlagBS,
-                                VSG_MEMBERS, MAX_PIGGY_VALIDATIONS);
+                                rpc_common.nservers, MAX_PIGGY_VALIDATIONS);
 
                 /* make the RPC */
                 sprintf(val_prel_str,
@@ -753,14 +771,20 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
                 MULTI_START_MESSAGE(ViceValidateAttrsPlusSHA_OP);
                 code = (int)MRPC_MakeMulti(
                     ViceValidateAttrsPlusSHA_OP, ViceValidateAttrsPlusSHA_PTR,
-                    VSG_MEMBERS, m->rocc.handles, m->rocc.retcodes, m->rocc.MIp,
-                    0, 0, ph, MakeViceFid(&fid), statusvar_ptrs, myshavar_ptrs,
+                    rpc_common.nservers, rpc_common.handles,
+                    rpc_common.retcodes, rpc_common.MIp, 0, 0, rpc_common.ph,
+                    MakeViceFid(&fid), statusvar_ptrs, myshavar_ptrs,
                     numPiggyFids, FAVs, VFlagvar_ptrs, &PiggyBS);
                 MULTI_END_MESSAGE(ViceValidateAttrsPlusSHA_OP);
                 CFSOP_POSTLUDE("fetch::ValidateAttrsPlusSHA done\n");
 
                 /* Collate */
-                code = vp->Collate_NonMutating(m, code);
+                if (vp->IsReplicated()) {
+                    code = vp->Collate_NonMutating(m, code);
+                } else {
+                    code = vp->Collate(c, code);
+                }
+
                 MULTI_RECORD_STATS(ViceValidateAttrsPlusSHA_OP);
 
                 if (code == EASYRESOLVE) {
@@ -768,22 +792,22 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
                     code        = 0;
                 } else if (code == 0 || code == ERETRY) {
                     /*
-		     * collate flags from vsg members. even if the return
-		     * is ERETRY we can (and should) grab the flags.
-		     */
+                     * collate flags from vsg members. even if the return
+                     * is ERETRY we can (and should) grab the flags.
+                     */
                     int numVFlags = 0;
 
-                    for (i = 0; i < VSG_MEMBERS; i++)
-                        if (m->rocc.hosts[i].s_addr != 0) {
+                    for (i = 0; i < rpc_common.nservers; i++)
+                        if (rpc_common.hosts[i].s_addr != 0) {
                             if (numVFlags == 0) {
                                 /* unset, copy in one response */
                                 ARG_UNMARSHALL_BS(VFlagvar, VFlagBS, i);
                                 numVFlags = (unsigned)VFlagBS.SeqLen;
                             } else {
                                 /*
-				 * "and" in results from other servers. 
-				 * Remember that VFlagBS.SeqBody == VFlags.
-				 */
+                                 * "and" in results from other servers.
+                                 * Remember that VFlagBS.SeqBody == VFlags.
+                                 */
                                 for (int j = 0; j < numPiggyFids; j++)
                                     VFlags[j] &= VFlagvar_bufs[i].SeqBody[j];
                             }
@@ -795,14 +819,14 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
 
                     nchecked += numPiggyFids;
                     /*
-		     * now set status of piggybacked objects 
-		     */
+                     * now set status of piggybacked objects
+                     */
                     for (i = 0; i < numVFlags; i++) {
                         /*
-			 * lookup this object. It may have been flushed and
-			 * reincarnated as a runt in the while we were out,
-			 * so we check status again.
-			 */
+                         * lookup this object. It may have been flushed and
+                         * reincarnated as a runt in the while we were out,
+                         * so we check status again.
+                         */
                         fsobj *pobj;
                         VenusFid vf;
                         MakeVenusFid(&vf, vol->GetRealmId(), &FAVs[i].Fid);
@@ -814,7 +838,7 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
                                     ("fsobj::GetAttr: ValidateAttrs (%s), fid (%s) valid\n",
                                      pobj->GetComp(), FID_(&FAVs[i].Fid)));
                                 /* callbacks broken during validation make
-				 * any positive return codes suspect. */
+                                 * any positive return codes suspect. */
                                 if (cbtemp != cbbreaks)
                                     continue;
 
@@ -823,9 +847,9 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
                                 else
                                     pobj->SetRcRights(RC_STATUS | RC_DATA);
                                 /*
-				 * if the object matched, the access rights 
-				 * cached for this object are still good.
-				 */
+                                 * if the object matched, the access rights
+                                 * cached for this object are still good.
+                                 */
                                 if (pobj->IsDir()) {
                                     pobj->PromoteAcRights(ANYUSER_UID);
                                     pobj->PromoteAcRights(uid);
@@ -848,16 +872,16 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
 
                                 nfailed++;
                                 /*
-				 * If we have data, it is stale and must be
-				 * discarded, unless someone is writing or
-				 * executing it, or it is a fake directory.
-				 * In that case, we wait and rely on the
-				 * destructor to discard the data.
-				 *
-				 * We don't restart from the beginning,
-				 * since the validation of piggybacked fids
-				 * is a side-effect.
-				 */
+                                 * If we have data, it is stale and must be
+                                 * discarded, unless someone is writing or
+                                 * executing it, or it is a fake directory.
+                                 * In that case, we wait and rely on the
+                                 * destructor to discard the data.
+                                 *
+                                 * We don't restart from the beginning,
+                                 * since the validation of piggybacked fids
+                                 * is a side-effect.
+                                 */
                                 if (HAVEDATA(pobj) && !ACTIVE(pobj) &&
                                     !pobj->IsFakeDir() &&
                                     !pobj->IsExpandedDir() && !DIRTY(pobj)) {
@@ -887,21 +911,24 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
                        Side note: ACL's only exist for directory objects, and
                        lookaside only works for file objects, so it really
                        shouldn't matter right now -JH.
-                     */
+                    */
 
                     MULTI_START_MESSAGE(ViceGetACL_OP);
-                    code = (int)MRPC_MakeMulti(ViceGetACL_OP, ViceGetACL_PTR,
-                                               VSG_MEMBERS, m->rocc.handles,
-                                               m->rocc.retcodes, m->rocc.MIp, 0,
-                                               0, MakeViceFid(&fid), inconok,
-                                               aclvar_ptrs, statusvar_ptrs, ph,
-                                               &PiggyBS);
+                    code = (int)MRPC_MakeMulti(
+                        ViceGetACL_OP, ViceGetACL_PTR, rpc_common.nservers,
+                        rpc_common.handles, rpc_common.retcodes, rpc_common.MIp,
+                        0, 0, MakeViceFid(&fid), inconok, aclvar_ptrs,
+                        statusvar_ptrs, rpc_common.ph, &PiggyBS);
                     MULTI_END_MESSAGE(ViceGetACL_OP);
                     CFSOP_POSTLUDE(post_str);
 
                     /* Collate responses from individual servers and decide
-		     * what to do next. */
-                    code = vp->Collate_NonMutating(m, code);
+                     * what to do next. */
+                    if (vp->IsReplicated()) {
+                        code = vp->Collate_NonMutating(m, code);
+                    } else {
+                        code = vp->Collate(c, code);
+                    }
                     MULTI_RECORD_STATS(ViceGetACL_OP);
                 } else {
                     /* get attributes from replicated servers */
@@ -910,15 +937,20 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
                     MULTI_START_MESSAGE(ViceGetAttrPlusSHA_OP);
                     code = (int)MRPC_MakeMulti(
                         ViceGetAttrPlusSHA_OP, ViceGetAttrPlusSHA_PTR,
-                        VSG_MEMBERS, m->rocc.handles, m->rocc.retcodes,
-                        m->rocc.MIp, 0, 0, MakeViceFid(&fid), inconok,
-                        statusvar_ptrs, myshavar_ptrs, ph, &PiggyBS);
+                        rpc_common.nservers, rpc_common.handles,
+                        rpc_common.retcodes, rpc_common.MIp, 0, 0,
+                        MakeViceFid(&fid), inconok, statusvar_ptrs,
+                        myshavar_ptrs, rpc_common.ph, &PiggyBS);
                     MULTI_END_MESSAGE(ViceGetAttrPlusSHA_OP);
                     CFSOP_POSTLUDE(post_str);
 
                     /* Collate responses from individual servers and decide
                      * what to do next. */
-                    code = vp->Collate_NonMutating(m, code);
+                    if (vp->IsReplicated()) {
+                        code = vp->Collate_NonMutating(m, code);
+                    } else {
+                        code = vp->Collate(c, code);
+                    }
                     MULTI_RECORD_STATS(ViceGetAttrPlusSHA_OP);
                 }
 
@@ -932,33 +964,39 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
 
             /* common code for replicated case */
 
-            /* Finalize COP2 Piggybacking. */
-            if (PIGGYCOP2)
-                vp->ClearCOP2(&PiggyBS);
+            int dh_ix = -1;
 
-            /* Collect the OUT VVs in an array so that they can be checked. */
-            ViceVersionVector *vv_ptrs[VSG_MEMBERS];
-            for (int j = 0; j < VSG_MEMBERS; j++)
-                vv_ptrs[j] = &((statusvar_ptrs[j])->VV);
+            /* Finalize COP2 Piggybacking. There's no COP2 for non-replicated volumes */
+            if (vol->IsReplicated()) {
+                if (PIGGYCOP2)
+                    vp->ClearCOP2(&PiggyBS);
 
-            /* Check the version vectors for consistency. */
-            code = m->RVVCheck(vv_ptrs, (int)ISDIR(fid));
-            if (code == EASYRESOLVE) {
-                asy_resolve = 1;
-                code        = 0;
+                /* Collect the OUT VVs in an array so that they can be checked. */
+                ViceVersionVector *vv_ptrs[VSG_MEMBERS];
+                for (int j = 0; j < rpc_common.nservers; j++)
+                    vv_ptrs[j] = &((statusvar_ptrs[j])->VV);
+
+                /* Check the version vectors for consistency. */
+                code = m->RVVCheck(vv_ptrs, (int)ISDIR(fid));
+                if (code == EASYRESOLVE) {
+                    asy_resolve = 1;
+                    code        = 0;
+                }
+                if (code != 0)
+                    goto RepExit;
+
+                /*
+                 * Compute the dominant host set.
+                 * The index of a dominant host is returned as a side-effect.
+                 */
+
+                dh_ix = -1;
+                code  = m->DHCheck(vv_ptrs, rpc_common.ph_ix, &dh_ix, 1);
+                if (code != 0)
+                    goto RepExit;
+            } else {
+                dh_ix = 0;
             }
-            if (code != 0)
-                goto RepExit;
-
-            /*
-	     * Compute the dominant host set.  
-	     * The index of a dominant host is returned as a side-effect. 
-	     */
-            int dh_ix;
-            dh_ix = -1;
-            code  = m->DHCheck(vv_ptrs, ph_ix, &dh_ix, 1);
-            if (code != 0)
-                goto RepExit;
 
             /* Manually compute the OUT parameters from the mgrpent::GetAttr() call! -JJK */
             if (getacl) {
@@ -1076,7 +1114,7 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
                     f        = list_entry_plusplus(p, fsobj, vol_handle);
 
                     /* Kill is scary, so we make sure we keep an active
-			 * reference to the ->next object */
+                     * reference to the ->next object */
                     next = p->next;
                     if (next != &vol->fso_list) {
                         n = list_entry_plusplus(next, fsobj, vol_handle);
@@ -1102,16 +1140,15 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
         default:
             break;
         }
-    } else {
+    } else { // !IsReadWrite()
         /* Acquire a Connection. */
-        connent *c;
+        connent *c = NULL;
         volrep *vp = (volrep *)vol;
         code       = vp->GetConn(&c, uid);
         if (code != 0)
             goto NonRepExit;
 
         /* Make the RPC call. */
-        long cbtemp;
         cbtemp = cbbreaks;
         CFSOP_PRELUDE(prel_str, comp, fid);
         if (getacl) {
@@ -1451,9 +1488,18 @@ int fsobj::SetAttr(struct coda_vattr *vap, uid_t uid)
 
 int fsobj::SetACL(RPC2_CountedBS *acl, uid_t uid)
 {
-    LOG(10, ("fsobj::SetACL: (%s), uid = %d\n", GetComp(), uid));
-
+    struct MRPC_common_params rpc_common;
+    struct in_addr ph_addr;
     ViceVersionVector UpdateSet;
+    ViceStoreId sid;
+    long cbtemp     = 0;
+    int ret_code    = 0;
+    connent *c      = NULL;
+    mgrpent *m      = NULL;
+    int asy_resolve = 0;
+    repvol *vp      = (repvol *)vol;
+
+    LOG(10, ("fsobj::SetACL: (%s), uid = %d\n", GetComp(), uid));
 
     if (!REACHABLE(this))
         return ETIMEDOUT;
@@ -1502,53 +1548,65 @@ int fsobj::SetACL(RPC2_CountedBS *acl, uid_t uid)
     OldVS.SeqLen  = 0;
     OldVS.SeqBody = 0;
 
-    if (vol->IsReplicated()) {
-        ViceStoreId sid;
-        mgrpent *m      = 0;
-        int asy_resolve = 0;
-        repvol *vp      = (repvol *)vol;
-
-        /* Acquire an Mgroup. */
-        code = vp->GetMgrp(&m, uid, (PIGGYCOP2 ? &PiggyBS : 0));
+    if (vol->IsReadWrite()) {
+        code = vp->GetConn(&c, uid, &m, &rpc_common.ph_ix, &ph_addr);
         if (code != 0)
             goto RepExit;
 
-        /* The COP1 call. */
-        long cbtemp;
         cbtemp = cbbreaks;
+
+        rpc_common.ph = ntohl(ph_addr.s_addr);
+
+        if (vol->IsReplicated()) {
+            rpc_common.nservers = VSG_MEMBERS;
+            rpc_common.hosts    = m->rocc.hosts;
+            rpc_common.retcodes = m->rocc.retcodes;
+            rpc_common.handles  = m->rocc.handles;
+            rpc_common.MIp      = m->rocc.MIp;
+
+        } else { // Non-replicated
+
+            rpc_common.nservers = 1;
+            rpc_common.hosts    = &ph_addr;
+            rpc_common.retcodes = &ret_code;
+            rpc_common.handles  = &c->connid;
+            rpc_common.MIp      = 0;
+        }
 
         Recov_BeginTrans();
         Recov_GenerateStoreId(&sid);
         Recov_EndTrans(MAXFP);
         {
-            /* Make multiple copies of the IN/OUT and OUT parameters. */
-            int ph_ix;
-            unsigned long ph;
-            ph = ntohl(m->GetPrimaryHost(&ph_ix)->s_addr);
-            vp->PackVS(VSG_MEMBERS, &OldVS);
+            vp->PackVS(rpc_common.nservers, &OldVS);
 
             ARG_MARSHALL(IN_OUT_MODE, ViceStatus, statusvar, status,
-                         VSG_MEMBERS);
-            ARG_MARSHALL(OUT_MODE, RPC2_Integer, VSvar, VS, VSG_MEMBERS);
+                         rpc_common.nservers);
+            ARG_MARSHALL(OUT_MODE, RPC2_Integer, VSvar, VS,
+                         rpc_common.nservers);
             ARG_MARSHALL(OUT_MODE, CallBackStatus, VCBStatusvar, VCBStatus,
-                         VSG_MEMBERS)
+                         rpc_common.nservers)
 
             /* Make the RPC call. */
             CFSOP_PRELUDE("store::setacl %s\n", comp, fid);
             MULTI_START_MESSAGE(ViceSetACL_OP);
-            code = (int)MRPC_MakeMulti(ViceSetACL_OP, ViceSetACL_PTR,
-                                       VSG_MEMBERS, m->rocc.handles,
-                                       m->rocc.retcodes, m->rocc.MIp, 0, 0,
-                                       MakeViceFid(&fid), acl, statusvar_ptrs,
-                                       ph, &sid, &OldVS, VSvar_ptrs,
-                                       VCBStatusvar_ptrs, &PiggyBS);
+            code = (int)MRPC_MakeMulti(
+                ViceSetACL_OP, ViceSetACL_PTR, rpc_common.nservers,
+                rpc_common.handles, rpc_common.retcodes, rpc_common.MIp, 0, 0,
+                MakeViceFid(&fid), acl, statusvar_ptrs, rpc_common.ph, &sid,
+                &OldVS, VSvar_ptrs, VCBStatusvar_ptrs, &PiggyBS);
             MULTI_END_MESSAGE(ViceSetACL_OP);
             CFSOP_POSTLUDE("store::setacl done\n");
 
-            free(OldVS.SeqBody);
             /* Collate responses from individual servers and decide what to
-	     * do next. */
-            code = vp->Collate_COP1(m, code, &UpdateSet);
+             * do next. */
+            if (vol->IsReplicated()) {
+                code = vp->Collate_COP1(m, code, &UpdateSet);
+            } else {
+                code = vol->Collate(c, ret_code);
+                InitVV(&UpdateSet);
+                if (ret_code == 0)
+                    (&(UpdateSet.Versions.Site0))[0] = 1;
+            }
             MULTI_RECORD_STATS(ViceSetACL_OP);
 
             if (code == EASYRESOLVE) {
@@ -1558,30 +1616,38 @@ int fsobj::SetACL(RPC2_CountedBS *acl, uid_t uid)
             if (code != 0)
                 goto RepExit;
 
-            /* Collate volume callback information */
-            if (cbtemp == cbbreaks)
-                vp->CollateVCB(m, VSvar_bufs, VCBStatusvar_bufs);
+            if (vol->IsReplicated()) {
+                /* Collate volume callback information */
+                if (cbtemp == cbbreaks)
+                    vp->CollateVCB(m, VSvar_bufs, VCBStatusvar_bufs);
 
-            /* Finalize COP2 Piggybacking. */
-            if (PIGGYCOP2)
-                vp->ClearCOP2(&PiggyBS);
+                /* Finalize COP2 Piggybacking. */
+                if (PIGGYCOP2)
+                    vp->ClearCOP2(&PiggyBS);
 
-            /* Manually compute the OUT parameters from the mgrpent::SetAttr()
-	     * call! -JJK */
-            int dh_ix;
-            dh_ix = -1;
-            (void)m->DHCheck(0, ph_ix, &dh_ix);
-            ARG_UNMARSHALL(statusvar, status, dh_ix);
+                /* Manually compute the OUT parameters from the mgrpent::SetAttr()
+                 * call! -JJK */
+                int dh_ix;
+                dh_ix = -1;
+                (void)m->DHCheck(0, rpc_common.ph_ix, &dh_ix);
+                ARG_UNMARSHALL(statusvar, status, dh_ix);
+            } else { // IsNonReplicated
+                if (cbtemp == cbbreaks)
+                    ((reintvol *)this)
+                        ->UpdateVCBInfo(VSvar_bufs[0], VCBStatusvar_bufs[0]);
+            }
         }
 
         Recov_BeginTrans();
         UpdateStatus(&status, &UpdateSet, uid);
         Recov_EndTrans(CMFP);
-        if (ASYNCCOP2)
-            ReturnEarly();
+        if (vol->IsReplicated()) {
+            if (ASYNCCOP2)
+                ReturnEarly();
 
-        /* Send the COP2 message or add an entry for piggybacking. */
-        vp->COP2(m, &sid, &UpdateSet);
+            /* Send the COP2 message or add an entry for piggybacking. */
+            vp->COP2(m, &sid, &UpdateSet);
+        }
 
     RepExit:
         if (m)
@@ -1601,7 +1667,7 @@ int fsobj::SetACL(RPC2_CountedBS *acl, uid_t uid)
         default:
             break;
         }
-    } else {
+    } else { // !IsReadWrite
         /* Acquire a Connection. */
         connent *c;
         ViceStoreId Dummy; /* ViceStore needs an address for indirection */
@@ -1625,14 +1691,9 @@ int fsobj::SetACL(RPC2_CountedBS *acl, uid_t uid)
         if (code != 0)
             goto NonRepExit;
 
-        /* Non-replicated volumes stil use the first slot */
-        InitVV(&UpdateSet);
-        if (vol->IsNonReplicated())
-            (&(UpdateSet.Versions.Site0))[0] = 1;
-
         /* Do setattr locally. */
         Recov_BeginTrans();
-        UpdateStatus(&status, &UpdateSet, uid);
+        UpdateStatus(&status, NULL, uid);
         Recov_EndTrans(CMFP);
 
     NonRepExit:
@@ -1642,6 +1703,9 @@ int fsobj::SetACL(RPC2_CountedBS *acl, uid_t uid)
     /* Cached rights are suspect now! */
     if (code == 0)
         Demote();
+
+    if (OldVS.SeqBody)
+        free(OldVS.SeqBody);
 
     return (code);
 }

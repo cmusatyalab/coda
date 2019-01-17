@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -174,7 +174,7 @@ struct rle {
 static int ValidateReintegrateParms(RPC2_Handle, VolumeId *, Volume **,
                                     ClientEntry **, unsigned int,
                                     struct dllist_head *, RPC2_Integer *,
-                                    ViceReintHandle *, bool *);
+                                    ViceReintHandle *, int *);
 static int GetReintegrateObjects(ClientEntry *, struct dllist_head *, dlist *,
                                  int *, RPC2_Integer *);
 static int CheckSemanticsAndPerform(ClientEntry *, VolumeId, VolumeId,
@@ -184,7 +184,7 @@ static void PutReintegrateObjects(int, Volume *, struct dllist_head *, dlist *,
                                   int, RPC2_Integer, ClientEntry *,
                                   RPC2_Unsigned, RPC2_Unsigned *, ViceFid *,
                                   RPC2_CountedBS *, RPC2_Integer *,
-                                  CallBackStatus *, bool);
+                                  CallBackStatus *, int);
 
 static int AllocReintegrateVnode(Volume **, dlist *, ViceFid *, ViceFid *,
                                  ViceDataType, UserId, int *);
@@ -193,7 +193,7 @@ static int AddParent(Volume **, dlist *, ViceFid *);
 static int ReintNormalVCmp(int, VnodeType, void *, void *);
 static void ReintPrelimCOP(vle *, const ViceStoreId *oldSID,
                            const ViceStoreId *newSID);
-static void ReintFinalCOP(vle *, Volume *, RPC2_Integer *, bool isReplicated);
+static void ReintFinalCOP(vle *, Volume *, RPC2_Integer *, int voltype);
 static int ValidateRHandle(VolumeId, ViceReintHandle *);
 
 /*
@@ -214,9 +214,9 @@ long FS_ViceReintegrate(RPC2_Handle RPCid, VolumeId Vid, RPC2_Integer LogSize,
     VolumeId VSGVolnum  = Vid;
     Volume *volptr      = 0;
     INIT_LIST_HEAD(rlog);
-    dlist *vlist      = new dlist((CFN)VLECmp);
-    int blocks        = 0;
-    bool isReplicated = true;
+    dlist *vlist = new dlist((CFN)VLECmp);
+    int blocks   = 0;
+    int voltype  = 0;
 
     if (NumDirs)
         *NumDirs = 0; /* check for compatibility */
@@ -233,7 +233,7 @@ long FS_ViceReintegrate(RPC2_Handle RPCid, VolumeId Vid, RPC2_Integer LogSize,
     /* Phase I. */
     if ((errorCode = ValidateReintegrateParms(RPCid, &Vid, &volptr, &client,
                                               LogSize, &rlog, Index, 0,
-                                              &isReplicated)))
+                                              &voltype)))
         goto FreeLocks;
 
     SLog(1, "Starting GetReintegrateObjects for %x", Vid);
@@ -257,7 +257,7 @@ FreeLocks:
 
     PutReintegrateObjects(errorCode, volptr, &rlog, vlist, blocks, OutOfOrder,
                           client, MaxDirs, NumDirs, StaleDirs, OldVS, NewVS,
-                          VCBStatus, isReplicated);
+                          VCBStatus, voltype);
 
     SLog(1, "ViceReintegrate returns %s", ViceErrorMsg(errorCode));
     END_TIMING(Reintegrate_Total);
@@ -477,9 +477,9 @@ long FS_ViceCloseReintHandle(RPC2_Handle RPCid, VolumeId Vid,
     VolumeId VSGVolnum  = Vid;
     Volume *volptr      = 0;
     INIT_LIST_HEAD(rlog);
-    dlist *vlist      = new dlist((CFN)VLECmp);
-    int blocks        = 0;
-    bool isReplicated = true;
+    dlist *vlist = new dlist((CFN)VLECmp);
+    int blocks   = 0;
+    int voltype  = 0;
 
     SLog(0 /*1*/, "ViceCloseReintHandle for volume 0x%x", Vid);
 
@@ -493,7 +493,7 @@ long FS_ViceCloseReintHandle(RPC2_Handle RPCid, VolumeId Vid,
     /* Phase I. */
     if ((errorCode = ValidateReintegrateParms(RPCid, &Vid, &volptr, &client,
                                               LogSize, &rlog, 0, RHandle,
-                                              &isReplicated)))
+                                              &voltype)))
         goto FreeLocks;
 
     /* Phase II. */
@@ -508,7 +508,7 @@ long FS_ViceCloseReintHandle(RPC2_Handle RPCid, VolumeId Vid,
 FreeLocks:
     /* Phase IV. */
     PutReintegrateObjects(errorCode, volptr, &rlog, vlist, blocks, 0, client, 0,
-                          NULL, NULL, OldVS, NewVS, VCBStatus, isReplicated);
+                          NULL, NULL, OldVS, NewVS, VCBStatus, voltype);
 
     SLog(0 /*2*/, "ViceCloseReintHandle returns %s", ViceErrorMsg(errorCode));
 
@@ -531,8 +531,7 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
                                     Volume **volptr, ClientEntry **client,
                                     unsigned int rlen, struct dllist_head *rlog,
                                     RPC2_Integer *Index,
-                                    ViceReintHandle *RHandle,
-                                    bool *isReplicated)
+                                    ViceReintHandle *RHandle, int *voltype)
 {
     START_TIMING(Reintegrate_ValidateParms);
     SLog(10, "ValidateReintegrateParms: RPCid = %d, *Vid = %x", RPCid, *Vid);
@@ -554,7 +553,7 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
     VolumeId VSGVolnum = *Vid;
 
     /* Translate the GroupVol into this host's RWVol. */
-    if (!XlateVid(Vid, &count, &ix, isReplicated)) {
+    if (!XlateVid(Vid, &count, &ix, voltype)) {
         SLog(0, "ValidateReintegrateParms: failed to translate VSG %x",
              VSGVolnum);
         errorCode = EINVAL;
@@ -1895,7 +1894,7 @@ static void PutReintegrateObjects(int errorCode, Volume *volptr,
                                   ClientEntry *client, RPC2_Unsigned MaxDirs,
                                   RPC2_Unsigned *NumDirs, ViceFid *StaleDirs,
                                   RPC2_CountedBS *OldVS, RPC2_Integer *NewVS,
-                                  CallBackStatus *VCBStatus, bool isReplicated)
+                                  CallBackStatus *VCBStatus, int voltype)
 {
     START_TIMING(Reintegrate_PutObjects);
     SLog(10, "PutReintegrateObjects: Vid = %x, errorCode = %d",
@@ -1931,7 +1930,7 @@ static void PutReintegrateObjects(int errorCode, Volume *volptr,
         PollAndYield();
 
     if (errorCode == 0 && vlist && volptr) {
-        GetMyVS(volptr, OldVS, NewVS);
+        GetMyVS(volptr, OldVS, NewVS, voltype);
 
         dlist_iterator next(*vlist);
         vle *v;
@@ -1942,7 +1941,7 @@ static void PutReintegrateObjects(int errorCode, Volume *volptr,
                 SLog(2, "PutReintegrateObjects: un-mutated or deleted fid %s",
                      FID_(&v->fid));
             }
-            ReintFinalCOP(v, volptr, NewVS, isReplicated);
+            ReintFinalCOP(v, volptr, NewVS, voltype);
 
             /* write down stale directory fids */
             if (StaleDirs && v->vptr->disk.type == vDirectory &&
@@ -1960,8 +1959,7 @@ static void PutReintegrateObjects(int errorCode, Volume *volptr,
                 }
             }
         }
-        if (isReplicated)
-            SetVSStatus(client, volptr, NewVS, VCBStatus);
+        SetVSStatus(client, volptr, NewVS, VCBStatus, voltype);
     }
 
     /* Release the objects. */
@@ -2194,8 +2192,7 @@ static void ReintPrelimCOP(vle *v, const ViceStoreId *OldSid,
     *current = *NewSid;
 }
 
-static void ReintFinalCOP(vle *v, Volume *volptr, RPC2_Integer *VS,
-                          bool isReplicated)
+static void ReintFinalCOP(vle *v, Volume *volptr, RPC2_Integer *VS, int voltype)
 {
     ViceStoreId *FinalSid;
     ViceStoreId UniqueSid;
@@ -2208,7 +2205,7 @@ static void ReintFinalCOP(vle *v, Volume *volptr, RPC2_Integer *VS,
     }
 
     /* 1. Record COP1 (for final update). */
-    NewCOP1Update(volptr, v->vptr, FinalSid, VS, isReplicated);
+    NewCOP1Update(volptr, v->vptr, FinalSid, VS, (voltype & REPVOL));
 
     /* 2. Record COP2 pending (for final update). */
     /* Note that for directories that "need-resolved", 

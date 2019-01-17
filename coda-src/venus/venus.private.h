@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -79,7 +79,7 @@ extern "C" {
 #define	EINCOMPATIBLE	198
 #define	EINCONS		199
 */
-/* added for implementing ASRs.  Used to tell the vfs layer that 
+/* added for implementing ASRs.  Used to tell the vfs layer that
    an ASR was started and it should block */
 #define EASRSTARTED 200
 
@@ -115,7 +115,7 @@ extern uid_t V_UID; /* UID that the venus process runs under. */
 #else
 const uid_t V_UID = (uid_t)0; /* UID that the venus process runs under. */
 #endif
-/* Group id fields are 32 bits in BSD44 (not 16 bits); the use of a small 
+/* Group id fields are 32 bits in BSD44 (not 16 bits); the use of a small
    negative number (-2) means its unsigned long representation is huge
    (4294967294).  This causes the "ar" program to screw up because it
    blindly does a sprintf() of the gid into the ".a" file. (Satya, 1/11/97) */
@@ -384,5 +384,15 @@ extern void MakeUserSpoolDir(char *, uid_t);
 extern pid_t ASRpid;
 extern VenusFid ASRfid;
 extern uid_t ASRuid;
+
+struct MRPC_common_params {
+    RPC2_Integer nservers;
+    RPC2_Handle *handles;
+    struct in_addr *hosts;
+    RPC2_Integer *retcodes;
+    int ph_ix;
+    unsigned long ph;
+    RPC2_Multicast *MIp;
+};
 
 #endif /* _VENUS_PRIVATE_H_ */

@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -101,7 +101,7 @@ public
 extern vrtab VRDB;
 extern void CheckVRDB();
 extern int DumpVRDB(int outfd);
-extern int XlateVid(VolumeId *, int * = NULL, int * = NULL, bool * = NULL);
+int XlateVid(VolumeId *, int * = NULL, int * = NULL, int *voltype = NULL);
 extern int ReverseXlateVid(VolumeId *, int * = NULL);
 
 #endif /* _VICE_VRDB_H_ */

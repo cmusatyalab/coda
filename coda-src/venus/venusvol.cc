@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -754,19 +754,33 @@ void vdb::UpEvent(struct in_addr *host)
 /* MUST be called from within transaction! */
 void vdb::AttachFidBindings()
 {
-    repvol_iterator next;
-    repvol *v;
-    while ((v = next()))
+    repvol_iterator r_next;
+    nonrepvol_iterator nr_next;
+    reintvol *v;
+
+    while ((v = (reintvol *)r_next())) {
         v->CML.AttachFidBindings();
+    }
+
+    while ((v = nr_next())) {
+        v->CML.AttachFidBindings();
+    }
 }
 
 int vdb::WriteDisconnect(unsigned int age, unsigned int time)
 {
-    repvol_iterator next;
-    repvol *v;
+    repvol_iterator r_next;
+    nonrepvol_iterator nr_next;
+    reintvol *v;
     int code = 0;
 
-    while ((v = next())) {
+    while ((v = (reintvol *)r_next())) {
+        code = v->WriteDisconnect(age, time);
+        if (code)
+            break;
+    }
+
+    while ((v = nr_next())) {
         code = v->WriteDisconnect(age, time);
         if (code)
             break;
@@ -776,24 +790,19 @@ int vdb::WriteDisconnect(unsigned int age, unsigned int time)
 
 int vdb::SyncCache()
 {
-    repvol_iterator next;
-    volrep_iterator nrnext;
-    repvol *v;
-    volrep *nrv;
+    repvol_iterator r_next;
+    nonrepvol_iterator nr_next;
+    reintvol *v;
     int code = 0;
 
-    while ((v = next())) {
+    while ((v = (reintvol *)r_next())) {
         code = v->SyncCache();
         if (code)
             break;
     }
 
-    while ((nrv = nrnext())) {
-        if (!nrv->IsNonReplicated())
-            continue;
-
-        code = nrv->SyncCache();
-
+    while ((v = nr_next())) {
+        code = v->SyncCache();
         if (code)
             break;
     }
@@ -804,9 +813,18 @@ int vdb::SyncCache()
 void vdb::GetCmlStats(cmlstats &total_current, cmlstats &total_cancelled)
 {
     /* N.B.  We assume that caller has passed in zeroed-out structures! */
-    repvol_iterator next;
-    repvol *v;
-    while ((v = next())) {
+    repvol_iterator r_next;
+    nonrepvol_iterator nr_next;
+    reintvol *v;
+
+    while ((v = (reintvol *)r_next())) {
+        cmlstats current, cancelled;
+        v->CML.IncGetStats(current, cancelled);
+        total_current += current;
+        total_cancelled += cancelled;
+    }
+
+    while ((v = nr_next())) {
         cmlstats current, cancelled;
         v->CML.IncGetStats(current, cancelled);
         total_current += current;
@@ -822,10 +840,12 @@ void vdb::print(int fd, int SummaryOnly)
     fdprint(fd, "volume callbacks broken = %d, total callbacks broken = %d\n",
             vcbbreaks, cbbreaks);
     if (!SummaryOnly) {
-        repvol_iterator rvnext;
-        volrep_iterator vrnext;
-        volent *v;
-        while ((v = rvnext()) || (v = vrnext()))
+        repvol_iterator r_next;
+        nonrepvol_iterator nr_next;
+        reintvol *v;
+        while ((v = (reintvol *)r_next()))
+            v->print(fd);
+        while ((v = nr_next()))
             v->print(fd);
     }
 
@@ -834,11 +854,13 @@ void vdb::print(int fd, int SummaryOnly)
 
 void vdb::ListCache(FILE *fp, int long_format, unsigned int valid)
 {
-    repvol_iterator rvnext;
-    volrep_iterator vrnext;
-    volent *v = 0;
+    repvol_iterator r_next;
+    nonrepvol_iterator nr_next;
+    reintvol *v;
 
-    while ((v = rvnext()) || (v = vrnext()))
+    while ((v = (reintvol *)r_next()))
+        v->ListCache(fp, long_format, valid);
+    while ((v = nr_next()))
         v->ListCache(fp, long_format, valid);
 }
 
@@ -1059,8 +1081,8 @@ int volent::Enter(int mode, uid_t uid)
         LOG(1, ("volent::Enter: demoting %s\n", name));
         flags.demotion_pending = 0;
 
-        if (IsReplicated())
-            ((repvol *)this)->ClearCallBack();
+        if (IsReadWrite())
+            ((reintvol *)this)->ClearCallBack();
 
         struct dllist_head *p;
         list_for_each(p, fso_list)
@@ -1092,9 +1114,9 @@ int volent::Enter(int mode, uid_t uid)
      * only if a request arrives in the next few (5) seconds!
      */
     vproc *vp = VprocSelf();
-    if (VCBEnabled && IsReplicated() && IsReachable() &&
-        ((repvol *)this)->WantCallBack()) {
-        repvol *rv = (repvol *)this;
+
+    reintvol *rv = (reintvol *)this;
+    if (VCBEnabled && IsReadWrite() && IsReachable() && rv->WantCallBack()) {
         if ((!rv->HaveStamp() && vp->type == VPT_HDBDaemon) ||
             (rv->HaveStamp() &&
              (vp->type != VPT_VolDaemon || !just_transitioned))) {
@@ -1132,8 +1154,6 @@ int volent::Enter(int mode, uid_t uid)
              * mutator needs to aquire exclusive CML ownership
              */
             if (IsReadWrite()) {
-                reintvol *rv = (reintvol *)this;
-
                 /*
                  * Claim ownership if the volume is free.
                  * The CML lock is used to prevent checkpointers and
@@ -1276,8 +1296,8 @@ void volent::Exit(int mode, uid_t uid)
         LOG(1, ("volent::Exit: demoting %s\n", name));
         flags.demotion_pending = 0;
 
-        if (IsReplicated())
-            ((repvol *)this)->ClearCallBack();
+        if (IsReadWrite())
+            ((reintvol *)this)->ClearCallBack();
 
         struct dllist_head *p;
         list_for_each(p, fso_list)
@@ -1416,7 +1436,7 @@ void volent::TakeTransition()
         if (rv->IsSync())
             rv->Reintegrate();
         else if (rv->ReadyToReintegrate() && IsReplicated())
-            ::Reintegrate((repvol *)rv);
+            ::Reintegrate(rv);
         // Fall through
 
     case Unreachable:
@@ -1869,6 +1889,8 @@ int reintvol::GetConn(connent **c, uid_t uid, mgrpent **m, int *ph_ix,
     struct in_addr *phost_tmp = NULL;
     struct in_addr phost_tmp2;
     int ph_ix_tmp = 0;
+
+    CODA_ASSERT(IsReadWrite());
 
     *c = NULL;
     if (m)
@@ -2884,6 +2906,11 @@ repvol_iterator::repvol_iterator(Volid *key)
 {
 }
 
+nonrepvol_iterator::nonrepvol_iterator(Volid *key)
+    : volent_iterator(VDB->volrep_hash, key)
+{
+}
+
 volrep_iterator::volrep_iterator(Volid *key)
     : volent_iterator(VDB->volrep_hash, key)
 {
@@ -2937,6 +2964,18 @@ volrep *volrep_iterator::operator()()
         return (0);
     assert(!v->IsReplicated());
     return (volrep *)v;
+}
+
+reintvol *nonrepvol_iterator::operator()()
+{
+    volent *v;
+
+    while ((v = volent_iterator::operator()())) {
+        if (v->IsNonReplicated())
+            return (reintvol *)v;
+    }
+
+    return (0);
 }
 
 reintvol::reintvol(Realm *r, VolumeId volid, const char *volname)

@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -165,9 +165,9 @@ void reintvol::Reintegrate()
         code = IncReintegrate(thisTid);
 
         /* Log how many entries are left to reintegrate */
-        MarinerLog("reintegrate::%s, 0/%d\n", name, CML.count());
-        eprint("Reintegrate: %s, %d/%d records, result = %s", name, nrecs,
-               startedrecs, VenusRetStr(code));
+        MarinerLog("reintegrate::%s, 0/%d\n", name, startedrecs);
+        eprint("Reintegrate: %s, 0/%d records, result = %s", name, startedrecs,
+               VenusRetStr(code));
 
         /*
          * Keep going as long as we managed to reintegrate records without
@@ -722,7 +722,7 @@ static const int ReintegratorPriority  = LWP_NORMAL_PRIORITY - 2;
 
 /* local-repair modification */
 class reintegrator : public vproc {
-    friend void Reintegrate(repvol *);
+    friend void Reintegrate(reintvol *);
 
     static olist freelist;
     olink handle;
@@ -746,7 +746,7 @@ olist reintegrator::freelist;
 /* This is the entry point for reintegration. */
 /* It finds a free reintegrator (or creates a new one), 
    sets up its context, and gives it a poke. */
-void Reintegrate(repvol *v)
+void Reintegrate(reintvol *v)
 {
     LOG(0, ("Reintegrate\n"));
     /* Get a free reintegrator. */
@@ -811,8 +811,8 @@ void reintegrator::main(void)
             CHOKE("reintegrator::main: signalled but not dispatched!");
 
         /* Do the reintegration. */
-        if (u.u_vol && u.u_vol->IsReplicated())
-            ((repvol *)u.u_vol)->Reintegrate();
+        if (u.u_vol && u.u_vol->IsReadWrite())
+            ((reintvol *)u.u_vol)->Reintegrate();
 
         seq++;
         idle = 1;

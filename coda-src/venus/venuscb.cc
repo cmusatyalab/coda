@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -297,8 +297,8 @@ long VENUS_CallBackFetch(RPC2_Handle RPCid, ViceFid *Fid, SE_Descriptor *BD)
 
         LOG(100, ("CallBackFetch: transferred %d bytes\n",
                   sid.Value.SmartFTPD.BytesTransferred));
-        if (f->vol->IsReplicated())
-            ((repvol *)f->vol)->BytesBackFetched +=
+        if (f->vol->IsReadWrite())
+            ((reintvol *)f->vol)->BytesBackFetched +=
                 sid.Value.SmartFTPD.BytesTransferred;
     }
 

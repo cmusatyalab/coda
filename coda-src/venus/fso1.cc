@@ -474,7 +474,7 @@ void fsobj::Recover()
         goto FailSafe;
     }
 
-    if (!vol->IsReplicated() && !IsLocalObj()) {
+    if (!vol->IsReadWrite() && !IsLocalObj()) {
         LOG(0, ("fsobj::Recover: (%s) is probably in a backup volume\n",
                 FID_(&fid)));
         goto Failure;
@@ -845,7 +845,7 @@ int fsobj::CheckRcRights(int rights)
 
 void fsobj::SetRcRights(int rights)
 {
-    if (!vol->IsReplicated() || IsFake())
+    if (!vol->IsReadWrite() || IsFake())
         return;
 
     if (!HAVEALLDATA(this))
@@ -880,7 +880,7 @@ int fsobj::IsValid(int rcrights)
 
     /* Replicated objects must be considered valid when we are either
      * unreachable or reachable and the object is dirty. */
-    if (vol->IsReplicated()) {
+    if (vol->IsReadWrite()) {
         if (vol->IsUnreachable())
             return 1;
         if (vol->IsReachable() && flags.dirty)
@@ -895,10 +895,10 @@ int fsobj::IsValid(int rcrights)
 
     /* Now if we still have the volume callback, we can't lose.
      * also update VCB statistics -- valid due to VCB */
-    if (!vol->IsReplicated())
+    if (!vol->IsReadWrite())
         return 0;
 
-    repvol *vp = (repvol *)vol;
+    reintvol *vp = (reintvol *)vol;
     if (vp->HaveCallBack()) {
         vp->VCBHits++;
         return 1;
@@ -2620,6 +2620,7 @@ void fsobj::UpdateVastroFlag(uid_t uid)
             goto PutAll;
 
         s = c->srv;
+        s->GetRef();
 
         if (!s->fetchpartial_support) {
             flags.vastro = 0x0;
@@ -2701,9 +2702,10 @@ void fsobj::print(int fdes)
     }
     fdprint(
         fdes,
-        "\tvoltype = [%d %d %d], fake = %d, fetching = %d local = %d, expanded = %d\n",
+        "\tvoltype = [%d %d %d %d], fake = %d, fetching = %d local = %d, expanded = %d\n",
         vol->IsBackup(), vol->IsReplicated(), vol->IsReadWriteReplica(),
-        flags.fake, flags.fetching, flags.local, flags.expanded);
+        vol->IsReadWrite(), flags.fake, flags.fetching, flags.local,
+        flags.expanded);
     fdprint(
         fdes,
         "\trep = %d, data = %d, owrite = %d, dirty = %d, shadow = %d ckmtpt\n",

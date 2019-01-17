@@ -39,6 +39,7 @@ class RepOpCommCtxt {
     friend class mgrpent;
     friend class fsobj;
     friend class repvol;
+    friend class reintvol;
     friend class volent;
     friend class vsgent;
     friend class ClientModifyLog;
@@ -79,6 +80,7 @@ class mgrpent : private RefCountedObject {
     friend class mgrp_iterator;
     friend class fsobj;
     friend class repvol;
+    friend class reintvol;
     friend class volent;
     friend class vsgent;
     friend class ClientModifyLog;

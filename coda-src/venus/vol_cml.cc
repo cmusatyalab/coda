@@ -1,9 +1,9 @@
 /* BLURB gpl
 
 			    Coda File System
-				Release 6
+				Release 7
 
-	    Copyright (c) 1987-2018 Carnegie Mellon University
+	    Copyright (c) 1987-2019 Carnegie Mellon University
 		    Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -157,12 +157,12 @@ void ClientModifyLog::IncGetStats(cmlstats &current, cmlstats &cancelled,
     cancelled = cancellations;
 }
 
-/* 
+/*
  * called after a reintegration failure to remove cmlents that would
  * have been cancelled had reintegration not been in progress.
  * Unfreezes records; cancel requires this.  Since this routine is
  * called only if the failure involved receiving a response from the
- * server (i.e., outcome is known), it is safe to unfreeze the records.  
+ * server (i.e., outcome is known), it is safe to unfreeze the records.
  */
 void ClientModifyLog::CancelPending()
 {
@@ -189,7 +189,7 @@ void ClientModifyLog::CancelPending()
 
 /*
  * called after reintegration success to clear cancellations
- * pending failure.  this is necessary because records in 
+ * pending failure.  this is necessary because records in
  * the log tail (not involved in reintegration) may be marked.
  */
 void ClientModifyLog::ClearPending()
@@ -206,8 +206,8 @@ void ClientModifyLog::ClearPending()
         }
 }
 
-/* 
- * Scans the log, cancelling stores for open-for-write files. 
+/*
+ * Scans the log, cancelling stores for open-for-write files.
  * Note it might delete a record out from under itself.
  */
 void ClientModifyLog::CancelStores()
@@ -281,7 +281,7 @@ void cmlent::Thaw()
     flags.frozen = 0;
 }
 
-/* 
+/*
  * Scan the log for reintegrateable records, subject to the
  * reintegration time limit, and mark them with the given
  * tid. Note the time limit does not apply to ASRs.
@@ -368,7 +368,7 @@ int ClientModifyLog::GetReintegrateable(int tid, unsigned long *reint_time,
  */
 cmlent *ClientModifyLog::GetFatHead(int tid)
 {
-    repvol *vol = strbase(repvol, this, CML);
+    reintvol *vol = strbase(reintvol, this, CML);
     cmlent *m;
     cml_iterator next(*this, CommitOrder);
     unsigned long bw; /* bandwidth in bytes/sec */
@@ -469,9 +469,9 @@ void ClientModifyLog::MarkCommittedMLE(RPC2_Unsigned Uniquifier)
   failedmle - the entry point of handling reintegration failure or
   local-global conflicts
 */
-/* 
+/*
  * Handle a non-retryable failure.  The offending record
- * was marked and may or may not still be there. 
+ * was marked and may or may not still be there.
  * Note that an abort may delete a record out from under us.
  */
 void ClientModifyLog::HandleFailedMLE(void)
@@ -1176,14 +1176,14 @@ int reintvol::LogRemove(time_t Mtime, uid_t uid, VenusFid *PFid, char *Name,
     if (LogOpts && !prepend) {
         if (LinkCount == 1) {
             /*
-	     * if the object was created here, we may be able to do an 
-	     * identity cancellation.  However, if the create is frozen,
-	     * we cannot cancel records involved in an identity cancellation,
-	     * because the create may have already become visible at the servers.
-	     * Mark such records in case reintegration fails.  Records for which 
-	     * this remove is an overwrite may be cancelled either way.  If they 
-	     * are frozen cmlent::cancel does the right thing.
-	     */
+             * if the object was created here, we may be able to do an
+             * identity cancellation.  However, if the create is frozen,
+             * we cannot cancel records involved in an identity cancellation,
+             * because the create may have already become visible at the servers.
+             * Mark such records in case reintegration fails.  Records for which
+             * this remove is an overwrite may be cancelled either way. If they
+             * are frozen cmlent::cancel does the right thing.
+             */
             int CreateReintegrating = 0;
             {
                 cml_iterator next(CML, CommitOrder, CFid);
@@ -1195,11 +1195,11 @@ int reintvol::LogRemove(time_t Mtime, uid_t uid, VenusFid *PFid, char *Name,
                         CreateReintegrating = 1;
                 }
                 /*
-		if (ObjectCreated) {
-		    int code = LogUtimes(Mtime, uid, PFid, Mtime);
-		    if (code != 0) return(code);
-		}
-*/
+                if (ObjectCreated) {
+                    int code = LogUtimes(Mtime, uid, PFid, Mtime);
+                    if (code != 0) return(code);
+                }
+                */
             }
 
             int cancellation;
@@ -1585,7 +1585,7 @@ int cmlent::cancel()
         }
     }
 
-    /* 
+    /*
      * If this record is being reintegrated, just mark it for
      * cancellation and we'll get to it later.
      */
@@ -1816,7 +1816,7 @@ int cmlent::cancel()
     return 1;
 }
 
-/* 
+/*
  * If this record is a store corresponding to an open-for-write file,
  * cancel it and restore the object's attributes to their old values.
  */
@@ -2079,11 +2079,11 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet,
         UNI_RECORD_STATS(ViceReintegrate_OP);
 
         /*
-	 * if the return code is EALREADY, the log records up to and
-	 * including the one with the storeid that matches the 
-	 * uniquifier in Index have been committed at the server.  
-	 * Mark the last of those records.
-	 */
+         * if the return code is EALREADY, the log records up to and
+         * including the one with the storeid that matches the
+         * uniquifier in Index have been committed at the server.
+         * Mark the last of those records.
+         */
         if (code == EALREADY)
             MarkCommittedMLE((RPC2_Unsigned)Index);
 
@@ -2166,8 +2166,8 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet,
         free(OldVS.SeqBody);
 
         /* Collate the failure index.  Grab the smallest one. Take special
-	 * care to treat the index different when an error is returned.
-	 * This double usage of the index is really asking for trouble! */
+         * care to treat the index different when an error is returned.
+         * This double usage of the index is really asking for trouble! */
         for (i = 0; i < VSG_MEMBERS; i++) {
             if (m->rocc.hosts[i].s_addr != 0) {
                 if ((code != EALREADY || m->rocc.retcodes[i] == EALREADY) &&
@@ -2177,11 +2177,11 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet,
         }
 
         /*
-	 * if the return code is EALREADY, the log records up to and
-	 * including the one with the storeid that matches the 
-	 * uniquifier in Index have been committed at the server.  
-	 * Mark the last of those records.
-	 */
+         * if the return code is EALREADY, the log records up to and
+         * including the one with the storeid that matches the
+         * uniquifier in Index have been committed at the server.
+         * Mark the last of those records.
+         */
         if (code == EALREADY)
             MarkCommittedMLE((RPC2_Unsigned)Index);
 
@@ -2214,12 +2214,12 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet,
                  sedvar_bufs[dh_ix].Value.SmartFTPD.BytesTransferred));
 
         /*
-	 * Deal with stale directory fids, if any.  If the client
-	 * has a volume callback, stale directories must be purged.
-	 * If not, purging the directories saves an inevitable 
-	 * validation.  Finally, if the number of stale directories
-	 * found is at maximum, clear the volume callback to be safe.
-	 */
+         * Deal with stale directory fids, if any.  If the client
+         * has a volume callback, stale directories must be purged.
+         * If not, purging the directories saves an inevitable
+         * validation.  Finally, if the number of stale directories
+         * found is at maximum, clear the volume callback to be safe.
+         */
         for (unsigned int rep = 0; rep < VSG_MEMBERS; rep++)
             /* did this server participate? */
             if (m->rocc.hosts[rep].s_addr != 0) {
@@ -2309,6 +2309,7 @@ int ClientModifyLog::COP1_NR(char *buf, int bufsize,
     /* don't bother with VCBs, will lose them on resolve anyway */
     RPC2_CountedBS OldVS;
     OldVS.SeqLen = 0;
+    vol->PackVS(1, &OldVS);
 
     /* Make the RPC call. */
     MarinerLog("store::Reintegrate %s, (%d, %d)\n", vol->name, count(),
@@ -2325,10 +2326,12 @@ int ClientModifyLog::COP1_NR(char *buf, int bufsize,
     code = vol->Collate(c, code, 0);
     UNI_RECORD_STATS(ViceReintegrate_OP);
 
+    free(OldVS.SeqBody);
+
     /*
      * if the return code is EALREADY, the log records up to and
-     * including the one with the storeid that matches the 
-     * uniquifier in Index have been committed at the server.  
+     * including the one with the storeid that matches the
+     * uniquifier in Index have been committed at the server.
      * Mark the last of those records.
      */
     if (code == EALREADY)
@@ -2339,19 +2342,18 @@ int ClientModifyLog::COP1_NR(char *buf, int bufsize,
         code != EWOULDBLOCK && code != ETIMEDOUT)
         MarkFailedMLE((int)Index);
 
+    if (code == EASYRESOLVE) {
+        code = 0;
+    }
     if (code != 0) {
         PutConn(&c);
         goto ExitNonRep;
     }
 
     /* Update volume callback information */
-#if TOBEDONE
-    if (cbtemp == cbbreaks && VCBStatus == CallBackSet) {
-        vol->SetCallBack();
-        vol->VVV.Site0 = VS;
-    } else
-        vol->CallBackBreak();
-#endif
+    if (cbtemp == cbbreaks) {
+        vol->UpdateVCBInfo(VS, VCBStatus);
+    }
 
     bufsize += sed.Value.SmartFTPD.BytesTransferred;
     LOG(10, ("ViceReintegrate: transferred %d bytes\n",
@@ -2359,6 +2361,10 @@ int ClientModifyLog::COP1_NR(char *buf, int bufsize,
 
     /* Purge off stale directory fids, if any. fsobj::Kill is idempotent. */
     LOG(0, ("ClientModifyLog::COP1_NR: %d stale dirs\n", NumStaleDirs));
+
+    /* server may have found more stale dirs */
+    if (NumStaleDirs == MaxStaleDirs)
+        vol->ClearCallBack();
 
     for (unsigned int d = 0; d < NumStaleDirs; d++) {
         VenusFid StaleDir;
@@ -2422,7 +2428,7 @@ void ClientModifyLog::IncCommit(ViceVersionVector *UpdateSet, int Tid)
     LOG(0, ("ClientModifyLog::IncCommit: (%s)\n", vol->name));
 }
 
-/* Allocate a real fid for a locally created one, and translate all 
+/* Allocate a real fid for a locally created one, and translate all
    references. */
 /* Must NOT be called from within transaction! */
 int cmlent::realloc()
@@ -2741,10 +2747,10 @@ void cmlent::commit(ViceVersionVector *UpdateSet)
     vol->RecordsCommitted++;
 
     /*
-     * Record StoreId/UpdateSet for objects involved in this operation ONLY 
-     * when this is the  FINAL mutation of the object.  Record a COP2 entry 
-     * only if this operation was final for ANY object! 
-     * Because of the addition of incremental reintegration, the final 
+     * Record StoreId/UpdateSet for objects involved in this operation ONLY
+     * when this is the  FINAL mutation of the object. Record a COP2 entry
+     * only if this operation was final for ANY object!
+     * Because of the addition of incremental reintegration, the final
      * mutation should be checked only within the bound of a single unit
      * (identified by cmlent::tid) -luqi
      */
@@ -2774,9 +2780,9 @@ void cmlent::commit(ViceVersionVector *UpdateSet)
         if (FinalCmlent == this) {
             LOG(10, ("cmlent::commit: FinalCmlent for %s\n", FID_(&f->fid)));
             /*
-	     * if the final update removed the object, don't bother adding the
-	     * COP2, but do update the version vector as in connected mode.
-	     */
+             * if the final update removed the object, don't bother adding the
+             * COP2, but do update the version vector as in connected mode.
+             */
             if (!(opcode == CML_Remove_OP &&
                   FID_EQ(&u.u_remove.CFid, &f->fid)) &&
                 !(opcode == CML_RemoveDir_OP &&
@@ -3091,7 +3097,7 @@ int cmlent::CloseReintegrationHandle(char *buf, int bufsize,
     /* don't bother with VCBs, will lose them on resolve anyway */
     RPC2_CountedBS OldVS;
     OldVS.SeqLen = 0;
-    if (vol->IsReplicated())
+    if (vol->IsReadWrite())
         rv->ClearCallBack();
 
     /* Make the RPC call. */
@@ -3709,7 +3715,7 @@ void cmlent::AttachFidBindings()
         fsobj *f = FSDB->Find(fidp);
         if (f == 0) {
             print(logFile);
-            (strbase(repvol, log, CML))->print(logFile);
+            (strbase(reintvol, log, CML))->print(logFile);
             CHOKE("cmlent::AttachFidBindings: can't find (%s)", FID_(fidp));
         }
 
@@ -3883,9 +3889,9 @@ int cmlent::Aged()
     return 0;
 }
 
-/* 
+/*
  * simpleminded routine to estimate the amount of time to reintegrate
- * this record (in milleseconds), given an estimate of bandwidth in 
+ * this record (in milleseconds), given an estimate of bandwidth in
  * bytes/second.
  */
 unsigned long cmlent::ReintTime(unsigned long bw)
