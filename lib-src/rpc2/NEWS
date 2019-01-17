@@ -1,3 +1,7 @@
+New in 2.25
+
+* Cleaned up code formatting, any code changes are likely accidental.
+
 New in 2.24
 
 * Just some compiler warning fixes, no actual code changes.

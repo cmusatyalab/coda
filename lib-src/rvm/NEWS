@@ -1,3 +1,11 @@
+New in 1.24:
+
+* Cleaned up code formatting.
+* Using proper function prototypes which uncovered several places where
+  functions were called with insufficient arguments. The result was mostly
+  harmless, randomly walking the RVM log either backward or forward depending
+  on uninitialized state on the stack.
+
 New in 1.23:
 
 * Fixed buffer overflow in rvmutl command. No library code changes.

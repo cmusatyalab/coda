@@ -1,3 +1,7 @@
+New in 2.12:
+
+ * Cleaned up code formatting, any code changes are likely accidental.
+
 New in 2.11:
 
  * Add functions to safely lock two locks, ObtainDualLock/ReleaseDualLock.
