@@ -326,3 +326,10 @@ mapprivate=1
 # the UNIX or TCP port that is configured as the mariner port.
 #
 #plan9server=0
+
+#
+# Ratio of cache files that can be handle as partially cached files in
+# percentage. The default value is 1. A value of 1 means that 1% of the total
+# number of cache files could be partially cached.
+#
+#partialcachefilesratio=1
