@@ -171,6 +171,9 @@ void CacheFile::Create(int newlength)
     if (::close(tfd) < 0)
         CHOKE("CacheFile::ResetContainer: close failed (%d)", errno);
 
+    // clear bitmap
+    cached_chunks->FreeRange(0, -1);
+
     validdata = 0;
     length    = newlength;
     refcnt    = 1;
