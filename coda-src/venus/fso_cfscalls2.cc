@@ -718,11 +718,12 @@ int fsobj::Lookup(fsobj **target_fso_addr, VenusFid *inc_fid, const char *name,
 
         /* Handle mount points. */
         if (traverse_mtpts) {
-            /* If the target is a covered mount point and it needs checked, uncover it (and unmount the root). */
+            /* If the target is a covered mount point and it needs checked,
+             * uncover it (and unmount the root). */
             if (target_fso->IsMtPt() && target_fso->flags.ckmtpt) {
                 fsobj *root_fso = target_fso->u.root;
-                FSO_ASSERT(target_fso, (root_fso != 0 &&
-                                        root_fso->u.mtpoint == target_fso));
+                FSO_ASSERT(target_fso,
+                           (root_fso && root_fso->u.mtpoint == target_fso));
                 Recov_BeginTrans();
                 root_fso->UnmountRoot();
                 target_fso->UncoverMtPt();
