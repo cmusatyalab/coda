@@ -3,7 +3,7 @@
                            Coda File System
                               Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -469,7 +469,7 @@ uint64_t CacheFile::ConsecutiveValidData(void)
     if (start != 0)
         start--;
 
-    return start;
+    return ccblocks_to_bytes(start);
 }
 
 int64_t CacheFile::CopySegment(CacheFile *from, CacheFile *to, uint64_t pos,
