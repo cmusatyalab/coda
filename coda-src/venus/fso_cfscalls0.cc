@@ -243,14 +243,14 @@ static int CheckTransferredData(uint64_t pos, int64_t count, uint64_t length,
     /* If reaching EOF */
     if (pos + count > length) {
         if (transfred != (length - pos)) {
-            LOG(0, ("fsobj::Fetch: fetched data amount mismatch (%lu, %lu)",
+            LOG(0, ("fsobj::Fetch: fetched data amount mismatch (%lu, %lu)\n",
                     transfred, (length - pos)));
             return ERETRY;
         }
     }
 
     if (transfred != (uint64_t)count) {
-        LOG(0, ("fsobj::Fetch: fetched data amount mismatch (%lu, %lu)",
+        LOG(0, ("fsobj::Fetch: fetched data amount mismatch (%lu, %lu)\n",
                 transfred, count));
         return ERETRY;
     }
@@ -261,7 +261,7 @@ TillEndFetching:
     /* If not VASTRO or Fetch till the end */
     if ((pos + transfred) != length) {
         // print(logFile);
-        LOG(0, ("fsobj::Fetch: fetched file length mismatch (%lu, %lu)",
+        LOG(0, ("fsobj::Fetch: fetched file length mismatch (%lu, %lu)\n",
                 pos + transfred, length));
         return ERETRY;
     }
@@ -324,17 +324,15 @@ int fsobj::Fetch(uid_t uid, uint64_t pos, int64_t count)
         len    = align_to_ccblock_ceil(pos + count) - offset;
 
         /* If reading out-of-bound read missing file part */
-        if (pos + count > Size()) {
+        if ((offset + len) > Size())
             len = -1;
-        }
-
     } else if (IsFile()) {
         offset = cf.ConsecutiveValidData();
         len    = -1;
     }
 
     GotThisDataStart = offset;
-    GotThisDataEnd   = len > 0 ? offset + len : Size();
+    GotThisDataEnd   = len < 0 ? Size() : offset + len;
 
     /* C++ 3.0 whines if the following decls moved closer to use  -- Satya */
     {
@@ -394,8 +392,7 @@ int fsobj::Fetch(uid_t uid, uint64_t pos, int64_t count)
             CODA_ASSERT(!data.symlink);
 
             RVMLIB_REC_OBJECT(data.symlink);
-            /* Malloc one extra byte in case length is 0
-		     * (as for runts)! */
+            /* Malloc one extra byte in case length is 0 (as for runts)! */
             data.symlink = (char *)rvmlib_rec_malloc((unsigned)stat.Length + 1);
             sei->Tag     = FILEINVM;
             sei->FileInfo.ByAddr.vmfile.MaxSeqLen = stat.Length;
@@ -450,9 +447,8 @@ int fsobj::Fetch(uid_t uid, uint64_t pos, int64_t count)
                 goto RepExit;
 
             {
-                unsigned long bytes =
-                    (unsigned long)sed->Value.SmartFTPD.BytesTransferred;
-                code = CheckTransferredData(pos, count, status.Length, bytes,
+                unsigned long bytes = sed->Value.SmartFTPD.BytesTransferred;
+                code = CheckTransferredData(offset, len, status.Length, bytes,
                                             ISVASTRO(this));
             }
 
@@ -517,7 +513,7 @@ int fsobj::Fetch(uid_t uid, uint64_t pos, int64_t count)
 
         {
             unsigned long bytes = sed->Value.SmartFTPD.BytesTransferred;
-            code = CheckTransferredData(pos, count, status.Length, bytes,
+            code = CheckTransferredData(offset, len, status.Length, bytes,
                                         ISVASTRO(this));
         }
 
