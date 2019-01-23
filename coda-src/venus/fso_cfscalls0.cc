@@ -1570,13 +1570,6 @@ int fsobj::SetACL(RPC2_CountedBS *acl, uid_t uid)
         UpdateStatus(&status, &UpdateSet, uid);
         Recov_EndTrans(CMFP);
 
-        /* Disabled this because we used to call SetACL from a CODA_IOCTL
-         * upcall which is a call where we accept early returns. But with
-         * file-based ioctls we get here from a CODA_OPEN which is not an
-         * operation from which we can return early. -JH */
-        //if (ASYNCCOP2)
-        //    ReturnEarly();
-
         /* Send the COP2 message or add an entry for piggybacking. */
         vp->COP2(m, &sid, &UpdateSet);
 

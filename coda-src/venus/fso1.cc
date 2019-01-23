@@ -2306,68 +2306,6 @@ void fsobj::GetVattr(struct coda_vattr *vap)
     VPROC_printvattr(vap);
 }
 
-void fsobj::ReturnEarly()
-{
-    /* Only mutations on replicated objects can return early. */
-    if (!vol->IsReplicated())
-        return;
-
-    /* Only makes sense to return early to user requests. */
-    vproc *v = VprocSelf();
-    if (v->type != VPT_Worker)
-        return;
-
-    /* Oh man is this ugly. Why is this here and not in worker? -- DCS */
-    /* Assumption: the opcode and unique fields of the w->msg->msg_ent are already filled in */
-    worker *w = (worker *)v;
-    switch (w->opcode) {
-        union outputArgs *out;
-    case CODA_CREATE:
-    case CODA_MKDIR: { /* create and mkdir use exactly the same sized output structure */
-        if (w->msg == 0)
-            CHOKE("fsobj::ReturnEarly: w->msg == 0");
-
-        out                        = (union outputArgs *)w->msg->msg_buf;
-        out->coda_create.oh.result = 0;
-        out->coda_create.Fid       = *VenusToKernelFid(&fid);
-        DemoteLock();
-        GetVattr(&out->coda_create.attr);
-        PromoteLock();
-        w->Return(w->msg, sizeof(struct coda_create_out));
-        break;
-    }
-
-    case CODA_CLOSE: {
-        /* Don't return early here if we already did so in a callback handler! */
-        if (!FID_EQ(&w->StoreFid, &NullFid))
-            w->Return(0);
-        break;
-    }
-
-    case CODA_IOCTL: {
-        /* Huh. IOCTL in the kernel thinks there may be return data. Assume not. */
-        out                       = (union outputArgs *)w->msg->msg_buf;
-        out->coda_ioctl.data      = (char *)sizeof(struct coda_ioctl_out);
-        out->coda_ioctl.len       = 0;
-        out->coda_ioctl.oh.result = 0;
-        w->Return(w->msg, sizeof(struct coda_ioctl_out));
-        break;
-    }
-
-    case CODA_LINK:
-    case CODA_REMOVE:
-    case CODA_RENAME:
-    case CODA_RMDIR:
-    case CODA_SETATTR:
-    case CODA_SYMLINK:
-        w->Return(0);
-        break;
-
-    default:
-        CHOKE("fsobj::ReturnEarly: bogus opcode (%d)", w->opcode);
-    }
-}
-
 /* Need not be called from within transaction! */
 void fsobj::GetPath(char *buf, int scope)
 {
