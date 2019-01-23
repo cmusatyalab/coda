@@ -87,14 +87,14 @@ CacheFile::CacheFile(int i, int recoverable)
 
 CacheFile::CacheFile()
 {
-    // clear bitmap
-    cached_chunks->FreeRange(0, -1);
-
     length = validdata = 0;
     refcnt             = 1;
     numopens           = 0;
     this->recoverable  = 1;
     Lock_Init(&rw_lock);
+
+    cached_chunks = new (recoverable)
+        bitmap7(CacheChunkBlockBitmapSize, recoverable);
 }
 
 CacheFile::~CacheFile()
