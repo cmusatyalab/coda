@@ -187,11 +187,10 @@ void FSOInit()
                        (FSDB->freelist).count());
             }
 
-            if ((FSDB->htab).count() + (FSDB->freelist).count() !=
-                FSDB->MaxFiles)
+            if (FSDB->htab.count() + FSDB->freelist.count() != FSDB->MaxFiles)
                 CHOKE("FSOInit: missing %d cache files",
                       FSDB->MaxFiles -
-                          ((FSDB->htab).count() + (FSDB->freelist).count()));
+                          (FSDB->htab.count() + FSDB->freelist.count()));
         }
 
         /* Recover parent <--> child bindings. */
