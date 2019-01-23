@@ -458,21 +458,23 @@ int CacheFile::FClose(FILE *f)
 uint64_t CacheFile::ConsecutiveValidData(void)
 {
     /* Use the start of the first hole */
-    uint64_t start = 0;
+    uint64_t index = 0;
     uint64_t length_ccb =
         bytes_to_ccblocks_ceil(length); // Ceil length in blocks
 
     /* Find the first 0 in the bitmap */
-    for (start = 0; start < length_ccb; start++) {
-        if (!cached_chunks->Value(start)) {
+    for (index = 0; index < length_ccb; index++) {
+        if (!cached_chunks->Value(index)) {
             break;
         }
     }
 
-    if (start != 0)
-        start--;
+    /* In case we reached the last cache block */
+    if (index == length_ccb) {
+        return length;
+    }
 
-    return ccblocks_to_bytes(start);
+    return ccblocks_to_bytes(index);
 }
 
 int64_t CacheFile::CopySegment(CacheFile *from, CacheFile *to, uint64_t pos,
