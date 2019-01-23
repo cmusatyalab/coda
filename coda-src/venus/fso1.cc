@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -227,9 +227,9 @@ void fsobj::ResetTransient()
     mle_bindings = 0;
     shadow       = 0;
 
-    /* 
-     * sync doesn't need to be initialized. 
-     * It's used only for LWP_Wait and LWP_Signal. 
+    /*
+     * sync doesn't need to be initialized.
+     * It's used only for LWP_Wait and LWP_Signal.
      */
     readers = 0;
     writers = 0;
@@ -806,7 +806,7 @@ void fsobj::ReplaceStatus(ViceStatus *vstat, ViceVersionVector *UpdateSet)
 {
     RVMLIB_REC_OBJECT(stat);
 
-    /* We're changing the length? 
+    /* We're changing the length?
      * Then the cached data is probably no longer useable! But try to fix up
      * the cachefile so that we can at least give a stale copy. */
     if (HAVEDATA(this) && stat.Length != vstat->Length) {
@@ -2277,7 +2277,7 @@ void fsobj::GetVattr(struct coda_vattr *vap)
     vap->va_blocksize = V_BLKSIZE;
     vap->va_rdev      = 1;
 
-    /* If the object is currently open for writing we must physically 
+    /* If the object is currently open for writing we must physically
        stat it to get its size and time info. */
     if (WRITING(this)) {
         struct stat tstat;
