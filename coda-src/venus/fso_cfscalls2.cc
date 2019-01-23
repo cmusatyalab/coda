@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -136,7 +136,7 @@ int fsobj::OpenPioctlFile(void)
     /* truncate pioctl container file */
     FSDB->ChangeDiskUsage(-NBLOCKS(data.file->Length()));
     Recov_BeginTrans();
-    data.file->SetLength(0);
+    data.file->Truncate(0);
     Recov_EndTrans(MAXFP);
 
     /* get arguments ready for the ioctl */
@@ -181,6 +181,7 @@ int fsobj::OpenPioctlFile(void)
     FSDB->ChangeDiskUsage(NBLOCKS(tstat.st_size));
     Recov_BeginTrans();
     data.file->SetLength(tstat.st_size);
+    data.file->SetValidData(tstat.st_size);
     Recov_EndTrans(MAXFP);
     return 0;
 }

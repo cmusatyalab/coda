@@ -267,7 +267,7 @@ void vproc::close(struct venus_cnode *cp, int flags)
     if (u.u_error)
         goto FreeLocks;
 
-    if (!DYING(f) && !HAVEALLDATA(f) && !ISVASTRO(f) && !f->IsPioctlFile())
+    if (!DYING(f) && !HAVEALLDATA(f) && !ISVASTRO(f))
         LOG(0, ("vproc::close: Don't have DATA and not DYING! "
                 "(fid = %s, flags = %x)\n",
                 FID_(&cp->c_fid), flags));
