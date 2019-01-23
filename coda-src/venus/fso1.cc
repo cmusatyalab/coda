@@ -207,6 +207,7 @@ void fsobj::ResetTransient()
     DemoteAcRights(ANYUSER_UID);
     flags.ckmtpt   = 0;
     flags.fetching = 0;
+    flags.vastro   = 0;
     flags.random   = ::random();
 
     memset((void *)&u, 0, (int)sizeof(u));
@@ -2660,9 +2661,9 @@ void fsobj::print(int fdes)
     }
     fdprint(
         fdes,
-        "\tvoltype = [%d %d %d], fake = %d, fetching = %d local = %d, expanded = %d\n",
+        "\tvoltype = [%d %d %d], fake = %d, fetching = %d local = %d, expanded = %d, vastro = %d\n",
         vol->IsBackup(), vol->IsReplicated(), vol->IsReadWriteReplica(),
-        flags.fake, flags.fetching, flags.local, flags.expanded);
+        flags.fake, flags.fetching, flags.local, flags.expanded, flags.vastro);
     fdprint(
         fdes,
         "\trep = %d, data = %d, owrite = %d, dirty = %d, shadow = %d ckmtpt\n",
