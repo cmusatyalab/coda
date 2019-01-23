@@ -216,6 +216,12 @@ int fsobj::FetchFileRPC(connent *con, ViceStatus *status, uint64_t offset,
     code = vp->Collate(con, code);
     UNI_RECORD_STATS(viceop);
 
+    if (IsFile()) {
+        Recov_BeginTrans();
+        cf.SetValidData(offset, len);
+        Recov_EndTrans(CMFP);
+    }
+
     return code;
 }
 
@@ -446,12 +452,6 @@ int fsobj::Fetch(uid_t uid, uint64_t pos, int64_t count)
                                             ISVASTRO(this));
             }
 
-            if (!code && IsFile()) {
-                Recov_BeginTrans();
-                cf.SetValidData(offset, len);
-                Recov_EndTrans(CMFP);
-            }
-
             /* Handle failed validations. */
             if (VV_Cmp(&status.VV, &stat.VV) != VV_EQ) {
                 if (LogLevel >= 1) {
@@ -515,12 +515,6 @@ int fsobj::Fetch(uid_t uid, uint64_t pos, int64_t count)
             unsigned long bytes = sed->Value.SmartFTPD.BytesTransferred;
             code = CheckTransferredData(offset, len, status.Length, bytes,
                                         ISVASTRO(this));
-        }
-
-        if (!code && IsFile()) {
-            Recov_BeginTrans();
-            cf.SetValidData(offset, len);
-            Recov_EndTrans(CMFP);
         }
 
         /* Handle failed validations. */
