@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -20,11 +20,14 @@ listed in the file CREDITS.
  *    Implementation of the Venus File-System Object (fso) abstraction.
  *
  *    ToDo:
- *       1. Need to allocate meta-data by priority (escpecially in the case of dir pages and modlog entries)
+ *       1. Need to allocate meta-data by priority (escpecially in the case
+ *          of dir pages and modlog entries)
  */
 
 /* Following block is shared with worker.c. */
-/* It is needed to ensure that C++ makes up "anonymous types" in the same order.  It sucks! */
+/* It is needed to ensure that C++ makes up "anonymous types" in the same
+ * order.  It sucks! */
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -2658,16 +2661,16 @@ void fsobj::print(int fdes)
                     SpecificUser[i].valid);
         fdprint(fdes, " }\n");
     }
-    fdprint(
-        fdes,
-        "\tvoltype = [%d %d %d], fake = %d, fetching = %d local = %d, expanded = %d\n",
-        vol->IsBackup(), vol->IsReplicated(), vol->IsReadWriteReplica(),
-        flags.fake, flags.fetching, flags.local, flags.expanded);
-    fdprint(
-        fdes,
-        "\trep = %d, data = %d, owrite = %d, dirty = %d, shadow = %d ckmtpt\n",
-        REPLACEABLE(this), HAVEDATA(this), flags.owrite, flags.dirty,
-        shadow != 0, flags.ckmtpt);
+    fdprint(fdes,
+            "\tvoltype = [%d %d %d], fake = %d, fetching = %d local = %d\n",
+            vol->IsBackup(), vol->IsReplicated(), vol->IsReadWriteReplica(),
+            flags.fake, flags.fetching, flags.local);
+    fdprint(fdes,
+            "\texpanded = %d, rep = %d, data = %d, owrite = %d, dirty = %d\n",
+            flags.expanded, REPLACEABLE(this), HAVEDATA(this), flags.owrite,
+            flags.dirty);
+    fdprint(fdes, "\tshadow = %d, ckmtpt = %d, vastro = %d\n", shadow != 0,
+            flags.ckmtpt, flags.vastro);
 
     /* < mvstat [rootfid | mtptfid] > */
     fdprint(fdes, "\tmvstat = %s", PrintMvStat(mvstat));
