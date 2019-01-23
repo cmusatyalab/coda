@@ -87,12 +87,14 @@ CacheFile::CacheFile(int i, int recoverable)
 
 CacheFile::CacheFile()
 {
+    // clear bitmap
+    cached_chunks->FreeRange(0, -1);
+
     length = validdata = 0;
     refcnt             = 1;
     numopens           = 0;
     this->recoverable  = 1;
     Lock_Init(&rw_lock);
-    cached_chunks->FreeRange(0, -1);
 }
 
 CacheFile::~CacheFile()
@@ -246,6 +248,9 @@ int CacheFile::Copy(char *destname, int recovering)
 int CacheFile::DecRef()
 {
     if (--refcnt == 0) {
+        // clear bitmap
+        cached_chunks->FreeRange(0, -1);
+
         length = validdata = 0;
         if (::unlink(name) < 0)
             CHOKE("CacheFile::DecRef: unlink failed (%d)", errno);
@@ -315,16 +320,16 @@ void CacheFile::Truncate(uint64_t newlen)
 /* Update the valid data*/
 void CacheFile::UpdateValidData()
 {
-    uint64_t length_cb =
-        bytes_to_ccblocks_ceil(length); /* Floor length in blocks */
+    uint64_t length_cb = bytes_to_ccblocks_ceil(length);
 
     ObtainReadLock(&rw_lock);
 
     validdata = ccblocks_to_bytes(cached_chunks->Count());
 
     /* In case the the last block is set */
-    if (cached_chunks->Value(length_cb - 1)) {
-        validdata -= ccblocks_to_bytes(length_cb) - length;
+    if (length_cb && cached_chunks->Value(length_cb - 1)) {
+        uint64_t empty_tail = ccblocks_to_bytes(length_cb) - length;
+        validdata -= empty_tail;
     }
 
     ReleaseReadLock(&rw_lock);
@@ -456,22 +461,18 @@ int CacheFile::FClose(FILE *f)
 
 uint64_t CacheFile::ConsecutiveValidData(void)
 {
-    /* Use the start of the first hole */
-    uint64_t index = 0;
-    uint64_t length_ccb =
-        bytes_to_ccblocks_ceil(length); // Ceil length in blocks
+    /* Find the start of the first hole */
+    uint64_t index      = 0;
+    uint64_t length_ccb = bytes_to_ccblocks_ceil(length);
 
     /* Find the first 0 in the bitmap */
-    for (index = 0; index < length_ccb; index++) {
-        if (!cached_chunks->Value(index)) {
+    for (index = 0; index < length_ccb; index++)
+        if (!cached_chunks->Value(index))
             break;
-        }
-    }
 
     /* In case we reached the last cache block */
-    if (index == length_ccb) {
+    if (index == length_ccb)
         return length;
-    }
 
     return ccblocks_to_bytes(index);
 }
