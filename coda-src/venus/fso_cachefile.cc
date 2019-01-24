@@ -373,15 +373,14 @@ void CacheFile::SetValidData(uint64_t len)
 /* MUST be called from within transaction! */
 void CacheFile::SetValidData(uint64_t start, int64_t len)
 {
-    uint64_t start_cb = ccblock_start(start);
-    uint64_t end_cb;
+    uint64_t start_cb     = bytes_to_ccblocks_ceil(start);
+    uint64_t end_cb       = bytes_to_ccblocks_floor(start + len);
+    uint64_t last_cb      = bytes_to_ccblocks_ceil(start + len);
     uint64_t length_cb    = bytes_to_ccblocks_ceil(length);
     uint64_t newvaliddata = 0;
 
-    end_cb = len < 0 ? length_cb : ccblock_end(start, len);
-
-    if (end_cb > length_cb)
-        end_cb = length_cb;
+    if (len < 0 || end_cb > length_cb)
+        end_cb = last_cb = length_cb;
 
     if (recoverable)
         RVMLIB_REC_OBJECT(validdata);
@@ -395,11 +394,14 @@ void CacheFile::SetValidData(uint64_t start, int64_t len)
         /* Add a full block */
         cached_chunks->SetIndex(i);
         newvaliddata += CacheChunkBlockSize;
+    }
 
-        /* End of file? The last block may not be full */
-        if (i + 1 == length_cb) {
-            uint64_t empty_tail = ccblocks_to_bytes(length_cb) - length;
-            newvaliddata -= empty_tail;
+    /* End of file? The last block may not be full */
+    if (last_cb == length_cb && !cached_chunks->Value(last_cb - 1)) {
+        if (len < 0 || (start + len) == length) {
+            uint64_t tail = length - ccblocks_to_bytes(end_cb);
+            cached_chunks->SetIndex(last_cb - 1);
+            newvaliddata += tail;
         }
     }
 
