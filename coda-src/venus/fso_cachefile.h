@@ -151,7 +151,7 @@ static inline uint64_t ccblock_start(uint64_t b_pos)
  * Align the end of range in bytes to the corresponding cache chunk block
  *
  * @param b_pos   start of the range in bytes
- * @param b_count lenght of the range in bytes
+ * @param b_count length of the range in bytes
  *
  * @return cache chunk block in which the range ends
  */
