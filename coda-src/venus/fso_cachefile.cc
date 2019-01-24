@@ -82,11 +82,14 @@ CacheFile::CacheFile(int i, int recoverable)
         bitmap7(CacheChunkBlockBitmapSize, recoverable);
     Lock_Init(&rw_lock);
     /* Container reset will be done by eventually by FSOInit()! */
+
     LOG(100, ("CacheFile::CacheFile(%d): %s (this=0x%x)\n", i, name, this));
 }
 
 CacheFile::CacheFile()
 {
+    LOG(10, ("CacheFile::CacheFile: %s (this=0x%x)\n", name, this));
+
     length = validdata = 0;
     refcnt             = 1;
     numopens           = 0;
@@ -301,8 +304,9 @@ void CacheFile::Truncate(uint64_t newlen)
         if (newlen < length) {
             ObtainWriteLock(&rw_lock);
 
-            cached_chunks->FreeRange(bytes_to_ccblocks_floor(newlen),
-                                     bytes_to_ccblocks_ceil(length - newlen));
+            cached_chunks->FreeRange(bytes_to_ccblocks_ceil(newlen),
+                                     bytes_to_ccblocks_ceil(length) -
+                                         bytes_to_ccblocks_ceil(newlen));
 
             ReleaseWriteLock(&rw_lock);
         }
@@ -356,7 +360,7 @@ void CacheFile::SetLength(uint64_t newlen)
         UpdateValidData();
     }
 
-    LOG(60, ("CacheFile::SetLength: New Length: %d, Validata %d\n", newlen,
+    LOG(60, ("CacheFile::SetLength: New Length: %d, Validdata %d\n", newlen,
              validdata));
 }
 
@@ -369,18 +373,15 @@ void CacheFile::SetValidData(uint64_t len)
 /* MUST be called from within transaction! */
 void CacheFile::SetValidData(uint64_t start, int64_t len)
 {
-    uint64_t start_cb     = ccblock_start(start);
-    uint64_t end_cb       = ccblock_end(start, len);
-    uint64_t newvaliddata = 0;
+    uint64_t start_cb = ccblock_start(start);
+    uint64_t end_cb;
     uint64_t length_cb    = bytes_to_ccblocks_ceil(length);
+    uint64_t newvaliddata = 0;
 
-    if (len < 0) {
-        end_cb = length_cb;
-    }
+    end_cb = len < 0 ? length_cb : ccblock_end(start, len);
 
-    if (end_cb > length_cb) {
+    if (end_cb > length_cb)
         end_cb = length_cb;
-    }
 
     if (recoverable)
         RVMLIB_REC_OBJECT(validdata);
@@ -388,30 +389,27 @@ void CacheFile::SetValidData(uint64_t start, int64_t len)
     ObtainWriteLock(&rw_lock);
 
     for (uint64_t i = start_cb; i < end_cb; i++) {
-        if (cached_chunks->Value(i)) {
+        if (cached_chunks->Value(i))
             continue;
-        }
-
-        cached_chunks->SetIndex(i);
 
         /* Add a full block */
+        cached_chunks->SetIndex(i);
         newvaliddata += CacheChunkBlockSize;
 
-        /* The last block might not be full */
+        /* End of file? The last block may not be full */
         if (i + 1 == length_cb) {
-            newvaliddata -= ccblocks_to_bytes(length_cb) - length;
-            continue;
+            uint64_t empty_tail = ccblocks_to_bytes(length_cb) - length;
+            newvaliddata -= empty_tail;
         }
     }
-
-    ReleaseWriteLock(&rw_lock);
 
     validdata += newvaliddata;
 
     LOG(60, ("CacheFile::SetValidData: { validdata: %d }\n", validdata));
-    LOG(60,
-        ("CacheFile::SetValidData: { fetchedblocks: %d, totalblocks: %d }\n",
-         cached_chunks->Count(), length_cb));
+    LOG(60, ("CacheFile::SetValidData: { cachedblocks: %d, totalblocks: %d }\n",
+             cached_chunks->Count(), length_cb));
+
+    ReleaseWriteLock(&rw_lock);
 }
 
 void CacheFile::print(int fdes)
