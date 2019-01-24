@@ -112,8 +112,9 @@ bitmap7::bitmap7(int inputmapsize, int recable)
 
         memset(map, 0, mapsize);
     } else {
-        mapsize = 0;
-        map     = NULL;
+        indexsize = 0;
+        mapsize   = 0;
+        map       = NULL;
     }
 }
 
@@ -131,8 +132,9 @@ bitmap7::~bitmap7()
         if (map)
             delete[] map;
     }
-    map     = NULL;
-    mapsize = 0;
+    map       = NULL;
+    mapsize   = 0;
+    indexsize = 0;
 }
 
 void bitmap7::Resize(int newsize)
@@ -260,7 +262,8 @@ void bitmap7::CopyRange(int start, int len, bitmap7 &b)
 
     /* Copy all the bytes in between */
     memcpy(&b.map[start_byte], &map[start_byte], bulk_len);
-    if (recoverable) rvmlib_set_range(&b.map[start_byte], sizeof(char) * bulk_len);
+    if (recoverable)
+        rvmlib_set_range(&b.map[start_byte], sizeof(char) * bulk_len);
 
     /* Copy the values from before the first copied byte */
     for (int i = start; i & 0x7; i++) {
@@ -293,7 +296,8 @@ void bitmap7::SetRangeValue(int start, int len, int value)
 
     /* Copy all the bytes in between */
     memset(&map[start_byte], bulk_value, bulk_len);
-    if (recoverable) rvmlib_set_range(&map[start_byte], sizeof(char) * bulk_len);
+    if (recoverable)
+        rvmlib_set_range(&map[start_byte], sizeof(char) * bulk_len);
 
     /* Copy the values from before the first copied byte */
     for (int i = start; i & 0x7; i++) {
@@ -368,8 +372,9 @@ void bitmap7::purge()
         if (map)
             delete[] map;
     }
-    map     = NULL;
-    mapsize = 0;
+    map       = NULL;
+    mapsize   = 0;
+    indexsize = 0;
 }
 
 void bitmap7::operator=(bitmap7 &b)
@@ -383,7 +388,8 @@ void bitmap7::operator=(bitmap7 &b)
                 delete[] map;
         }
 
-        mapsize = b.mapsize;
+        mapsize   = b.mapsize;
+        indexsize = b.indexsize;
 
         /* allocate new map */
         if (recoverable) {
