@@ -373,17 +373,16 @@ void CacheFile::SetValidData(uint64_t len)
 /* MUST be called from within transaction! */
 void CacheFile::SetValidData(uint64_t start, int64_t len)
 {
+    // Negative length indicates we wanted (or got) to end of file
+    CODA_ASSERT(start <= length);
+    if (len < 0)
+        len = length - start;
+
+    // Skip partial blocks at the start or end
     uint64_t start_cb     = bytes_to_ccblocks_ceil(start);
     uint64_t end_cb       = bytes_to_ccblocks_floor(start + len);
-    uint64_t last_cb      = bytes_to_ccblocks_ceil(start + len);
     uint64_t length_cb    = bytes_to_ccblocks_ceil(length);
     uint64_t newvaliddata = 0;
-
-    if (len < 0 || end_cb > length_cb)
-        end_cb = last_cb = length_cb;
-
-    if (recoverable)
-        RVMLIB_REC_OBJECT(validdata);
 
     ObtainWriteLock(&rw_lock);
 
@@ -391,19 +390,23 @@ void CacheFile::SetValidData(uint64_t start, int64_t len)
         if (cached_chunks->Value(i))
             continue;
 
-        /* Add a full block */
+        /* Account for a full block */
         cached_chunks->SetIndex(i);
         newvaliddata += CacheChunkBlockSize;
     }
 
-    /* End of file? The last block may not be full */
-    if (last_cb == length_cb && !cached_chunks->Value(last_cb - 1)) {
-        if (len < 0 || (start + len) == length) {
-            uint64_t tail = length - ccblocks_to_bytes(end_cb);
-            cached_chunks->SetIndex(last_cb - 1);
-            newvaliddata += tail;
-        }
+    /* End of file? The last block is allowed to not be full */
+    if (length && start + len == length &&
+        !cached_chunks->Value(length_cb - 1)) {
+        uint64_t tail = length - ccblocks_to_bytes(length_cb - 1);
+
+        /* Account for a last partial block */
+        cached_chunks->SetIndex(length_cb - 1);
+        newvaliddata += tail;
     }
+
+    if (recoverable)
+        RVMLIB_REC_OBJECT(validdata);
 
     validdata += newvaliddata;
 
