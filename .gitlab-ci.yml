@@ -24,7 +24,8 @@ test_build:
     - make all
   except:
     - tags
-    - rc
+    - master
+    - /^coda-.*$/
 
 build_source:
   stage: build
@@ -39,7 +40,8 @@ build_source:
       - "coda-*.tar*"
   only:
     - tags
-    - rc
+    - master
+    - /^coda-.*$/
 
 test_doc:
   stage: build
