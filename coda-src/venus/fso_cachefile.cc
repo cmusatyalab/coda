@@ -373,10 +373,17 @@ void CacheFile::SetValidData(uint64_t len)
 /* MUST be called from within transaction! */
 void CacheFile::SetValidData(uint64_t start, int64_t len)
 {
-    // Negative length indicates we wanted (or got) to end of file
     CODA_ASSERT(start <= length);
+
+    // Negative length indicates we wanted (or got) to end of file
     if (len < 0)
         len = length - start;
+
+    CODA_ASSERT(start + len <= length);
+
+    // Empty received range implies we won't need to mark anything as cached
+    if (len == 0) // this implicitly covers 'length == 0' as well
+        return;
 
     // Skip partial blocks at the start or end
     uint64_t start_cb     = bytes_to_ccblocks_ceil(start);
@@ -396,8 +403,8 @@ void CacheFile::SetValidData(uint64_t start, int64_t len)
     }
 
     /* End of file? The last block is allowed to not be full */
-    if (length && start + len == length &&
-        !cached_chunks->Value(length_cb - 1)) {
+    CODA_ASSERT(length_cb > 0);
+    if (start + len == length && !cached_chunks->Value(length_cb - 1)) {
         uint64_t tail = length - ccblocks_to_bytes(length_cb - 1);
 
         /* Account for a last partial block */
