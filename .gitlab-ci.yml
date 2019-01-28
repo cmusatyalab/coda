@@ -45,6 +45,7 @@ build_source:
 
 test_doc:
   stage: build
+  before_script:
   script:
     - doxygen doxygen/Doxyfile
   except:
@@ -52,6 +53,7 @@ test_doc:
 
 pages:
   stage: build
+  before_script:
   script:
     - doxygen doxygen/Doxyfile
     - mv doxygen/html/ public/
