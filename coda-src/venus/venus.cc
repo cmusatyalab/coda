@@ -492,7 +492,7 @@ static void Usage(char *argv0)
         " -rpcdebug <n>\t\t\trpc2 debug level\n"
         " -lwpdebug <n>\t\t\tlwp debug level\n"
         " -cf <n>\t\t\t# of cache files\n"
-        " -pcfr <n>\t\t\t% of files that could be partially cached out \n"
+        " -pcfr <n>\t\t\t%% of files that could be partially cached out \n"
         "\t\t\t\tof the total cache files\n"
         " -c <n>[KB|MB|GB|TB]\t\tcache size in the given units (e.g. 10MB)\n"
         " -ccbs <n>[KB|MB|GB|TB]\t\tcache chunk block size (shall be power of 2)\n"

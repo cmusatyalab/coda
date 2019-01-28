@@ -136,7 +136,7 @@ int fsobj::OpenPioctlFile(void)
     /* truncate pioctl container file */
     FSDB->ChangeDiskUsage(-NBLOCKS(data.file->Length()));
     Recov_BeginTrans();
-    data.file->SetLength(0);
+    data.file->Truncate(0);
     Recov_EndTrans(MAXFP);
 
     /* get arguments ready for the ioctl */
@@ -181,6 +181,7 @@ int fsobj::OpenPioctlFile(void)
     FSDB->ChangeDiskUsage(NBLOCKS(tstat.st_size));
     Recov_BeginTrans();
     data.file->SetLength(tstat.st_size);
+    data.file->SetValidData(tstat.st_size);
     Recov_EndTrans(MAXFP);
     return 0;
 }
@@ -197,7 +198,8 @@ int fsobj::Open(int writep, int truncp, struct venus_cnode *cp, uid_t uid)
     if (IsSymLink())
         return ELOOP;
 
-    UpdateVastroFlag(uid);
+    /* Force disable VASTRO flag if writting to the file */
+    UpdateVastroFlag(uid, writep | truncp, 0x0);
 
     /* In of opening a file previously handled as VASTRO */
     if (!ISVASTRO(this) && !HAVEALLDATA(this)) {
@@ -427,8 +429,7 @@ void fsobj::Release(int writep)
     openers--;
 
     if (!openers) {
-        /* Remove all active active segments in case there are some left 
-         * behind */
+        /* Remove all active segments in case there are some left behind */
         for (currc = active_segments.pop(); currc.isValid();
              currc = active_segments.pop()) {
             LOG(0,
@@ -718,11 +719,12 @@ int fsobj::Lookup(fsobj **target_fso_addr, VenusFid *inc_fid, const char *name,
 
         /* Handle mount points. */
         if (traverse_mtpts) {
-            /* If the target is a covered mount point and it needs checked, uncover it (and unmount the root). */
+            /* If the target is a covered mount point and it needs checked,
+             * uncover it (and unmount the root). */
             if (target_fso->IsMtPt() && target_fso->flags.ckmtpt) {
                 fsobj *root_fso = target_fso->u.root;
-                FSO_ASSERT(target_fso, (root_fso != 0 &&
-                                        root_fso->u.mtpoint == target_fso));
+                FSO_ASSERT(target_fso,
+                           (root_fso && root_fso->u.mtpoint == target_fso));
                 Recov_BeginTrans();
                 root_fso->UnmountRoot();
                 target_fso->UncoverMtPt();
@@ -891,4 +893,6 @@ int fsobj::ReadIntentFinish(uint64_t pos, int64_t count)
 
     /* No errors. The chunk (no longer in use) can be safely removed. */
     active_segments.ReverseRemove(pos, count);
+
+    return 0;
 }

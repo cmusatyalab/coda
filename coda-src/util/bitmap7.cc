@@ -86,9 +86,8 @@ void bitmap7::operator delete(void *ptr)
 
 bitmap7::bitmap7(int inputmapsize, int recable)
 {
-    CODA_ASSERT(
-        malloced !=
-        BITMAP_NOTVIANEW); /* ensure malloced is undefined if via stack! */
+    /* ensure malloced is undefined if via stack! */
+    CODA_ASSERT(malloced != BITMAP_NOTVIANEW);
     if (malloced != BITMAP_VIANEW)
         malloced = BITMAP_NOTVIANEW; /* infer I must be on the stack */
     /* From this point on, malloced is definitely defined */
@@ -112,8 +111,9 @@ bitmap7::bitmap7(int inputmapsize, int recable)
 
         memset(map, 0, mapsize);
     } else {
-        mapsize = 0;
-        map     = NULL;
+        indexsize = 0;
+        mapsize   = 0;
+        map       = NULL;
     }
 }
 
@@ -131,8 +131,9 @@ bitmap7::~bitmap7()
         if (map)
             delete[] map;
     }
-    map     = NULL;
-    mapsize = 0;
+    map       = NULL;
+    mapsize   = 0;
+    indexsize = 0;
 }
 
 void bitmap7::Resize(int newsize)
@@ -370,8 +371,9 @@ void bitmap7::purge()
         if (map)
             delete[] map;
     }
-    map     = NULL;
-    mapsize = 0;
+    map       = NULL;
+    mapsize   = 0;
+    indexsize = 0;
 }
 
 void bitmap7::operator=(bitmap7 &b)
@@ -385,7 +387,8 @@ void bitmap7::operator=(bitmap7 &b)
                 delete[] map;
         }
 
-        mapsize = b.mapsize;
+        mapsize   = b.mapsize;
+        indexsize = b.indexsize;
 
         /* allocate new map */
         if (recoverable) {

@@ -20,11 +20,14 @@ listed in the file CREDITS.
  *    Implementation of the Venus File-System Object (fso) abstraction.
  *
  *    ToDo:
- *       1. Need to allocate meta-data by priority (escpecially in the case of dir pages and modlog entries)
+ *       1. Need to allocate meta-data by priority (especially in the case
+ *          of dir pages and modlog entries)
  */
 
 /* Following block is shared with worker.c. */
-/* It is needed to ensure that C++ makes up "anonymous types" in the same order.  It sucks! */
+/* It is needed to ensure that C++ makes up "anonymous types" in the same
+ * order.  It sucks! */
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -207,6 +210,7 @@ void fsobj::ResetTransient()
     DemoteAcRights(ANYUSER_UID);
     flags.ckmtpt   = 0;
     flags.fetching = 0;
+    flags.vastro   = 0;
     flags.random   = ::random();
 
     memset((void *)&u, 0, (int)sizeof(u));
@@ -2303,68 +2307,6 @@ void fsobj::GetVattr(struct coda_vattr *vap)
     VPROC_printvattr(vap);
 }
 
-void fsobj::ReturnEarly()
-{
-    /* Only mutations on replicated objects can return early. */
-    if (!vol->IsReplicated())
-        return;
-
-    /* Only makes sense to return early to user requests. */
-    vproc *v = VprocSelf();
-    if (v->type != VPT_Worker)
-        return;
-
-    /* Oh man is this ugly. Why is this here and not in worker? -- DCS */
-    /* Assumption: the opcode and unique fields of the w->msg->msg_ent are already filled in */
-    worker *w = (worker *)v;
-    switch (w->opcode) {
-        union outputArgs *out;
-    case CODA_CREATE:
-    case CODA_MKDIR: { /* create and mkdir use exactly the same sized output structure */
-        if (w->msg == 0)
-            CHOKE("fsobj::ReturnEarly: w->msg == 0");
-
-        out                        = (union outputArgs *)w->msg->msg_buf;
-        out->coda_create.oh.result = 0;
-        out->coda_create.Fid       = *VenusToKernelFid(&fid);
-        DemoteLock();
-        GetVattr(&out->coda_create.attr);
-        PromoteLock();
-        w->Return(w->msg, sizeof(struct coda_create_out));
-        break;
-    }
-
-    case CODA_CLOSE: {
-        /* Don't return early here if we already did so in a callback handler! */
-        if (!FID_EQ(&w->StoreFid, &NullFid))
-            w->Return(0);
-        break;
-    }
-
-    case CODA_IOCTL: {
-        /* Huh. IOCTL in the kernel thinks there may be return data. Assume not. */
-        out                       = (union outputArgs *)w->msg->msg_buf;
-        out->coda_ioctl.data      = (char *)sizeof(struct coda_ioctl_out);
-        out->coda_ioctl.len       = 0;
-        out->coda_ioctl.oh.result = 0;
-        w->Return(w->msg, sizeof(struct coda_ioctl_out));
-        break;
-    }
-
-    case CODA_LINK:
-    case CODA_REMOVE:
-    case CODA_RENAME:
-    case CODA_RMDIR:
-    case CODA_SETATTR:
-    case CODA_SYMLINK:
-        w->Return(0);
-        break;
-
-    default:
-        CHOKE("fsobj::ReturnEarly: bogus opcode (%d)", w->opcode);
-    }
-}
-
 /* Need not be called from within transaction! */
 void fsobj::GetPath(char *buf, int scope)
 {
@@ -2546,7 +2488,7 @@ void fsobj::CacheReport(int fd, int level)
     }
 }
 
-void fsobj::UpdateVastroFlag(uid_t uid)
+void fsobj::UpdateVastroFlag(uid_t uid, int force, int state)
 {
     int ph_ix                = 0;
     struct in_addr *phost    = NULL;
@@ -2564,30 +2506,35 @@ void fsobj::UpdateVastroFlag(uid_t uid)
         goto ConfigCacheFile;
     }
 
-    /* Limit the VASTRO flagging to first opener only */
-    if (openers > 0) {
+    /* Limit the VASTRO flagging to first opener only. If force is set
+     * all checks are performed again to allow checking for all the conditions
+     * that might allow an fsobj to be flagged as VASTRO.
+     * However we should not disable VASTRO if there are already openers
+     * because their reads will not be able to complete if the (large) file
+     * is not completely cached. */
+    if (openers > 0 && (!force || (force && !state)))
         return;
-    }
 
-    /* Only files might be VASTROS */
-    if (!IsFile()) {
+    /* It can always be disabled by force. */
+    if (force && !state) {
         flags.vastro = 0x0;
         goto ConfigCacheFile;
     }
 
-    if (IsPioctlFile()) {
+    /* Directories, symlinks and pioctl files are never VASTRO */
+    if (!IsFile() || IsPioctlFile()) {
+        flags.vastro = 0x0;
+        goto ConfigCacheFile;
+    }
+
+    /* With size below WholeFileMinSize it's never treated as a VASTRO */
+    if (Size() <= (WholeFileMinSize * 1024) && !force) {
         flags.vastro = 0x0;
         goto ConfigCacheFile;
     }
 
     if (!REACHABLE(this)) {
         LOG(0, ("fsobj::UpdateVastroFlag: %s is unreachable\n", GetComp()));
-        return;
-    }
-
-    /* With size below WholeFileMinSize it's never treated as a VASTRO */
-    if (Size() <= (WholeFileMinSize * 1024)) {
-        flags.vastro = 0x0;
         return;
     }
 
@@ -2598,21 +2545,14 @@ void fsobj::UpdateVastroFlag(uid_t uid)
     if (vol->IsReplicated()) {
         /* Acquire an Mgroup. */
         code = rv->GetMgrp(&m, uid, 0);
-        if (code != 0) {
+        if (code != 0)
             goto PutAll;
-        }
 
         /* Get the server */
         phost = m->GetPrimaryHost(&ph_ix);
         CODA_ASSERT(phost);
         s = GetServer(phost, vol->GetRealmId());
         CODA_ASSERT(s);
-
-        if (!s->fetchpartial_support) {
-            flags.vastro = 0x0;
-            goto PutAll;
-        }
-
     } else {
         /* Acquire a Connection. */
         code = vr->GetConn(&c, uid);
@@ -2621,43 +2561,42 @@ void fsobj::UpdateVastroFlag(uid_t uid)
 
         s = c->srv;
         s->GetRef();
+    }
 
-        if (!s->fetchpartial_support) {
-            flags.vastro = 0x0;
+    if (!s->fetchpartial_support)
+        flags.vastro = 0x0;
+
+    else if (force && state)
+        /* We're forcing VASTRO for this file */
+        flags.vastro = 0x1;
+
+    else if (Size() >= (WholeFileMaxSize * 1024))
+        /* With size above WholeFileMaxSize it's always treated as a VASTRO */
+        flags.vastro = 0x1;
+
+    else if (Size() > (FSDB->FreeBlockCount() * 1024))
+        /* If not enough space left treat it as VASTRO */
+        flags.vastro = 0x1;
+
+    else {
+        /* Calculate the expected stall time and flag as VASTRO if it
+         * exceeds WholeFileMaxStall */
+        code = s->GetBandwidth(&bw);
+        if (code != 0)
             goto PutAll;
-        }
-    }
 
-    /* With size above WholeFileMaxSize it's always treated as a VASTRO */
-    if (Size() >= (WholeFileMaxSize * 1024)) {
-        flags.vastro = 0x1;
-        goto PutAll;
-    }
+        /* If Bandwidth couldn't be obtained assume a slow connection
+         * (1B/s) (worst case) */
+        if (INIT_BW == bw)
+            bw = 1;
 
-    /* If not enough space left treat it as VASTRO */
-    if (Size() > (unsigned long)FSDB->FreeBlockCount() * 1024) {
-        flags.vastro = 0x1;
-        goto PutAll;
-    }
+        /* Prevent zero division */
+        if (0 == bw)
+            bw = 1;
 
-    /* Calculate the expected stall time and flag as VASTRO if exceeds
-     * WholeFileMaxStall */
-    code = s->GetBandwidth(&bw);
-    if (code != 0)
-        goto PutAll;
-    /* If Bandwidth couldn't be obtained assume a slow connection
-     * (1B/s) (worse case) */
-    if (INIT_BW == bw) {
-        bw = 1;
+        stall_time   = Size() / bw;
+        flags.vastro = stall_time > WholeFileMaxStall ? 0x1 : 0x0;
     }
-
-    /* Prevent zero division */
-    if (0 == bw) {
-        bw = 1;
-    }
-
-    stall_time   = Size() / bw;
-    flags.vastro = stall_time > WholeFileMaxStall ? 0x1 : 0x0;
 
 PutAll:
     if (s)
@@ -2666,6 +2605,7 @@ PutAll:
         PutConn(&c);
     if (m)
         m->Put();
+
 ConfigCacheFile:
     Recov_BeginTrans();
     cf.SetPartial(flags.vastro);
@@ -2700,17 +2640,17 @@ void fsobj::print(int fdes)
                     SpecificUser[i].valid);
         fdprint(fdes, " }\n");
     }
-    fdprint(
-        fdes,
-        "\tvoltype = [%d %d %d %d], fake = %d, fetching = %d local = %d, expanded = %d\n",
-        vol->IsBackup(), vol->IsReplicated(), vol->IsReadWriteReplica(),
-        vol->IsReadWrite(), flags.fake, flags.fetching, flags.local,
-        flags.expanded);
-    fdprint(
-        fdes,
-        "\trep = %d, data = %d, owrite = %d, dirty = %d, shadow = %d ckmtpt\n",
-        REPLACEABLE(this), HAVEDATA(this), flags.owrite, flags.dirty,
-        shadow != 0, flags.ckmtpt);
+
+    fdprint(fdes,
+            "\tvoltype = [%d %d %d], fake = %d, fetching = %d local = %d\n",
+            vol->IsBackup(), vol->IsReplicated(), vol->IsReadWriteReplica(),
+            flags.fake, flags.fetching, flags.local);
+    fdprint(fdes,
+            "\texpanded = %d, rep = %d, data = %d, owrite = %d, dirty = %d\n",
+            flags.expanded, REPLACEABLE(this), HAVEDATA(this), flags.owrite,
+            flags.dirty);
+    fdprint(fdes, "\tshadow = %d, ckmtpt = %d, vastro = %d\n", shadow != 0,
+            flags.ckmtpt, flags.vastro);
 
     /* < mvstat [rootfid | mtptfid] > */
     fdprint(fdes, "\tmvstat = %s", PrintMvStat(mvstat));

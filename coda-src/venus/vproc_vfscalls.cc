@@ -268,9 +268,9 @@ void vproc::close(struct venus_cnode *cp, int flags)
         goto FreeLocks;
 
     if (!DYING(f) && !HAVEALLDATA(f) && !ISVASTRO(f))
-        LOG(0,
-            ("vproc::close: Don't have DATA and not DYING! (fid = %s, flags = %x)\n",
-             FID_(&cp->c_fid), flags));
+        LOG(0, ("vproc::close: Don't have DATA and not DYING! "
+                "(fid = %s, flags = %x)\n",
+                FID_(&cp->c_fid), flags));
 
     /* Do the operation. */
     u.u_error = f->Close(writep, u.u_uid /*, not_written */);

@@ -77,7 +77,7 @@ CacheFile::CacheFile(int i, int recoverable, int partial)
     length = validdata = 0;
     refcnt             = 1;
     numopens           = 0;
-    this->isPartial    = partial;
+    isPartial          = partial;
     this->recoverable  = recoverable;
     if (isPartial) {
         cached_chunks = new (recoverable)
@@ -86,16 +86,19 @@ CacheFile::CacheFile(int i, int recoverable, int partial)
     }
 
     /* Container reset will be done by eventually by FSOInit()! */
+
     LOG(100, ("CacheFile::CacheFile(%d): %s (this=0x%x)\n", i, name, this));
 }
 
 CacheFile::CacheFile()
 {
+    LOG(10, ("CacheFile::CacheFile: %s (this=0x%x)\n", name, this));
+
     length = validdata = 0;
     refcnt             = 1;
     numopens           = 0;
-    this->recoverable  = 1;
-    this->isPartial    = 0;
+    isPartial          = 0;
+    recoverable        = 1;
 }
 
 CacheFile::~CacheFile()
@@ -202,6 +205,9 @@ void CacheFile::Create(int newlength)
     if (::close(tfd) < 0)
         CHOKE("CacheFile::ResetContainer: close failed (%d)", errno);
 
+    // clear bitmap
+    cached_chunks->FreeRange(0, -1);
+
     validdata = 0;
     length    = newlength;
     refcnt    = 1;
@@ -280,6 +286,9 @@ int CacheFile::Copy(char *destname, int recovering)
 int CacheFile::DecRef()
 {
     if (--refcnt == 0) {
+        // clear bitmap
+        cached_chunks->FreeRange(0, -1);
+
         length = validdata = 0;
         if (::unlink(name) < 0)
             CHOKE("CacheFile::DecRef: unlink failed (%d)", errno);
@@ -331,9 +340,9 @@ void CacheFile::Truncate(uint64_t newlen)
             if (newlen < length) {
                 ObtainWriteLock(&rw_lock);
 
-                cached_chunks->FreeRange(
-                    bytes_to_ccblocks_floor(newlen),
-                    bytes_to_ccblocks_ceil(length - newlen));
+                cached_chunks->FreeRange(bytes_to_ccblocks_ceil(newlen),
+                                         bytes_to_ccblocks_ceil(length) -
+                                             bytes_to_ccblocks_ceil(newlen));
 
                 ReleaseWriteLock(&rw_lock);
             }
@@ -353,8 +362,7 @@ void CacheFile::Truncate(uint64_t newlen)
 /* Update the valid data*/
 void CacheFile::UpdateValidData()
 {
-    uint64_t length_cb =
-        bytes_to_ccblocks_ceil(length); /* Floor length in blocks */
+    uint64_t length_cb = bytes_to_ccblocks_ceil(length);
 
     CODA_ASSERT(isPartial);
 
@@ -363,8 +371,9 @@ void CacheFile::UpdateValidData()
     validdata = ccblocks_to_bytes(cached_chunks->Count());
 
     /* In case the the last block is set */
-    if (cached_chunks->Value(length_cb - 1)) {
-        validdata -= ccblocks_to_bytes(length_cb) - length;
+    if (length_cb && cached_chunks->Value(length_cb - 1)) {
+        uint64_t empty_tail = ccblocks_to_bytes(length_cb) - length;
+        validdata -= empty_tail;
     }
 
     ReleaseReadLock(&rw_lock);
@@ -397,7 +406,7 @@ void CacheFile::SetLength(uint64_t newlen)
         }
     }
 
-    LOG(60, ("CacheFile::SetLength: New Length: %d, Validata %d\n", newlen,
+    LOG(60, ("CacheFile::SetLength: New Length: %d, Validdata %d\n", newlen,
              validdata));
 }
 
@@ -410,50 +419,56 @@ void CacheFile::SetValidData(uint64_t len)
 /* MUST be called from within transaction! */
 void CacheFile::SetValidData(uint64_t start, int64_t len)
 {
-    uint64_t start_cb     = ccblock_start(start);
-    uint64_t end_cb       = ccblock_end(start, len);
-    uint64_t newvaliddata = 0;
+    CODA_ASSERT(start <= length);
+
+    // Negative length indicates we wanted (or got) to end of file
+    if (len < 0)
+        len = length - start;
+
+    CODA_ASSERT(start + len <= length);
+
+    // Empty received range implies we won't need to mark anything as cached
+    if (len == 0) // this implicitly covers 'length == 0' as well
+        return;
+
+    // Skip partial blocks at the start or end
+    uint64_t start_cb     = bytes_to_ccblocks_ceil(start);
+    uint64_t end_cb       = bytes_to_ccblocks_floor(start + len);
     uint64_t length_cb    = bytes_to_ccblocks_ceil(length);
-
-    if (len < 0) {
-        end_cb = length_cb;
-    }
-
-    if (end_cb > length_cb) {
-        end_cb = length_cb;
-    }
+    uint64_t newvaliddata = 0;
 
     if (recoverable)
-        RVMLIB_REC_OBJECT(*this);
+        RVMLIB_REC_OBJECT(validdata);
 
     if (isPartial) {
         ObtainWriteLock(&rw_lock);
 
         for (uint64_t i = start_cb; i < end_cb; i++) {
-            if (cached_chunks->Value(i)) {
+            if (cached_chunks->Value(i))
                 continue;
-            }
 
+            /* Account for a full block */
             cached_chunks->SetIndex(i);
-
-            /* Add a full block */
             newvaliddata += CacheChunkBlockSize;
-
-            /* The last block might not be full */
-            if (i + 1 == length_cb) {
-                newvaliddata -= ccblocks_to_bytes(length_cb) - length;
-                continue;
-            }
         }
 
-        ReleaseWriteLock(&rw_lock);
+        /* End of file? The last block is allowed to not be full */
+        CODA_ASSERT(length_cb > 0);
+        if (start + len == length && !cached_chunks->Value(length_cb - 1)) {
+            uint64_t tail = length - ccblocks_to_bytes(length_cb - 1);
+
+            /* Account for a last partial block */
+            cached_chunks->SetIndex(length_cb - 1);
+            newvaliddata += tail;
+        }
 
         validdata += newvaliddata;
 
         LOG(60,
-            ("CacheFile::SetValidData: { fetchedblocks: %d, totalblocks: %d }\n",
+            ("CacheFile::SetValidData: { cachedblocks: %d, totalblocks: %d }\n",
              cached_chunks->Count(), length_cb));
 
+        ReleaseWriteLock(&rw_lock);
     } else {
         validdata = len < 0 ? length : len;
     }
@@ -508,25 +523,23 @@ int CacheFile::FClose(FILE *f)
 
 uint64_t CacheFile::ConsecutiveValidData(void)
 {
-    /* Use the start of the first hole */
-    uint64_t start = 0;
-    uint64_t length_ccb =
-        bytes_to_ccblocks_ceil(length); // Ceil length in blocks
+    /* Find the start of the first hole */
+    uint64_t index      = 0;
+    uint64_t length_ccb = bytes_to_ccblocks_ceil(length);
 
     if (!isPartial)
         return validdata;
 
     /* Find the first 0 in the bitmap */
-    for (start = 0; start < length_ccb; start++) {
-        if (!cached_chunks->Value(start)) {
+    for (index = 0; index < length_ccb; index++)
+        if (!cached_chunks->Value(index))
             break;
-        }
-    }
 
-    if (start != 0)
-        start--;
+    /* In case we reached the last cache block */
+    if (index == length_ccb)
+        return length;
 
-    return start;
+    return ccblocks_to_bytes(index);
 }
 
 int64_t CacheFile::CopySegment(CacheFile *from, CacheFile *to, uint64_t pos,
@@ -620,40 +633,55 @@ CacheChunkList::~CacheChunkList()
 
 CacheChunk CacheFile::GetNextHole(uint64_t start_b, uint64_t end_b)
 {
-    /* Floor length in blocks */
-    uint64_t length_b_f = bytes_to_ccblocks_floor(length);
-    /* Ceil length in blocks */
-    uint64_t length_b  = bytes_to_ccblocks_ceil(length);
-    uint64_t holestart = start_b;
-    int64_t holesize   = 0;
+    CODA_ASSERT(start_b <= end_b);
+    /* Number of blocks of the cache file */
+    uint64_t nblocks = bytes_to_ccblocks_ceil(length);
+    /* Number of full blocks */
+    uint64_t nblocks_full   = bytes_to_ccblocks_floor(length);
+    uint64_t hole_start_idx = 0;
+    uint64_t hole_end_idx   = 0;
+    uint64_t hole_size      = 0;
 
     CODA_ASSERT(isPartial);
+    CODA_ASSERT(start_b <= nblocks);
 
-    for (uint64_t i = start_b; i < end_b; i++) {
-        if (cached_chunks->Value(i)) {
-            holesize  = 0;
-            holestart = i + 1;
-            continue;
-        }
+    if (end_b > nblocks) {
+        end_b = nblocks;
+    }
 
-        if (ccblocks_to_bytes(i) > length)
+    /* Find the start of the hole */
+    for (hole_start_idx = start_b; hole_start_idx < end_b; hole_start_idx++) {
+        if (!cached_chunks->Value(hole_start_idx)) {
             break;
-
-        /* The last block might not be full */
-        if (i + 1 == length_b) {
-            holesize += length - (length_b_f << CacheChunkBlockSizeBits);
-            return (CacheChunk(holestart * CacheChunkBlockSize, holesize));
-        }
-
-        /* Add a full block */
-        holesize += CacheChunkBlockSize;
-
-        if ((i + 1 == end_b) || cached_chunks->Value(i + 1)) {
-            return (CacheChunk(holestart * CacheChunkBlockSize, holesize));
         }
     }
 
-    return (CacheChunk());
+    /* No hole */
+    if (hole_start_idx == end_b)
+        return CacheChunk();
+
+    /* Find the end of the hole */
+    for (hole_end_idx = hole_start_idx; hole_end_idx < end_b; hole_end_idx++) {
+        if (cached_chunks->Value(hole_end_idx)) {
+            break;
+        }
+    }
+
+    CODA_ASSERT(hole_end_idx > hole_start_idx);
+
+    hole_size = ccblocks_to_bytes(hole_end_idx - hole_start_idx - 1);
+
+    /* If the hole ends at EOF and it has a tail */
+    if (hole_end_idx == nblocks && nblocks_full != nblocks) {
+        /* Add the tail */
+        uint64_t tail = length - ccblocks_to_bytes(nblocks - 1);
+        hole_size += tail;
+    } else {
+        /* Add the last accounted block as a whole block*/
+        hole_size += CacheChunkBlockSize;
+    }
+
+    return (CacheChunk(ccblocks_to_bytes(hole_start_idx), hole_size));
 }
 
 CacheChunkList *CacheFile::GetHoles(uint64_t start, int64_t len)
@@ -666,7 +694,7 @@ CacheChunkList *CacheFile::GetHoles(uint64_t start, int64_t len)
 
     CODA_ASSERT(isPartial);
 
-    if (len < 0) {
+    if (len < 0 || end_b > length_b) {
         end_b = length_b;
     }
 

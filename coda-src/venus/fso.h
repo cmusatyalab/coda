@@ -594,7 +594,7 @@ class fsobj {
                      int64_t len, RPC2_CountedBS *PiggyBS, SE_Descriptor *sed);
     int OpenPioctlFile(void);
 
-    void UpdateVastroFlag(uid_t uid);
+    void UpdateVastroFlag(uid_t uid, int force = 0, int state = 0x0);
 
 public:
     /* The public CFS interface (Vice portion). */
@@ -637,7 +637,6 @@ public:
     int CheckAcRights(uid_t uid, long rights, int connected);
     void GetVattr(struct coda_vattr *); /* translate attributes to VFS format */
     void GetFid(VenusFid *f) { *f = fid; }
-    void ReturnEarly();
 
 #define PATH_VOLUME 0
 #define PATH_FULL 1
