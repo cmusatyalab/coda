@@ -5,6 +5,7 @@ variables:
 
 before_script:
   - mkdir -p ccache
+  - ccache -M 500M
   - export CCACHE_BASEDIR="${PWD}"
   - export CCACHE_DIR="${PWD}/ccache"
   - export CCACHE_NOHASHDIR=true
@@ -45,7 +46,6 @@ build_source:
 
 test_doc:
   stage: build
-  cache:
   script:
     - doxygen doxygen/Doxyfile
   except:
@@ -53,7 +53,6 @@ test_doc:
 
 pages:
   stage: build
-  cache:
   script:
     - doxygen doxygen/Doxyfile
     - mv doxygen/html/ public/
