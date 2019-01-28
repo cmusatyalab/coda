@@ -331,10 +331,10 @@ void CacheFile::Truncate(uint64_t newlen)
         fdatasync(fd);
     }
 
-    if (length != newlen) {
-        if (recoverable)
-            RVMLIB_REC_OBJECT(*this);
+    if (recoverable)
+        RVMLIB_REC_OBJECT(*this);
 
+    if (length != newlen) {
         if (isPartial) {
             if (newlen < length) {
                 ObtainWriteLock(&rw_lock);
@@ -349,6 +349,9 @@ void CacheFile::Truncate(uint64_t newlen)
             length = newlen;
             UpdateValidData();
         } else {
+            /* Keep what is still valid data while shrinking */
+            if (newlen < length)
+                validdata = newlen;
             length = newlen;
         }
     }
