@@ -206,15 +206,13 @@ void CacheFile::Create(int newlength)
         CHOKE("CacheFile::ResetContainer: close failed (%d)", errno);
 
     // clear bitmap
-    cached_chunks->FreeRange(0, -1);
+    if (isPartial)
+        cached_chunks->FreeRange(0, -1);
 
     validdata = 0;
     length    = newlength;
     refcnt    = 1;
     numopens  = 0;
-
-    if (isPartial)
-        cached_chunks->FreeRange(0, -1);
 }
 
 /*
@@ -287,7 +285,8 @@ int CacheFile::DecRef()
 {
     if (--refcnt == 0) {
         // clear bitmap
-        cached_chunks->FreeRange(0, -1);
+        if (isPartial)
+            cached_chunks->FreeRange(0, -1);
 
         length = validdata = 0;
         if (::unlink(name) < 0)
