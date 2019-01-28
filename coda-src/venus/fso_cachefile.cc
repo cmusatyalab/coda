@@ -102,7 +102,9 @@ CacheFile::~CacheFile()
 {
     LOG(10, ("CacheFile::~CacheFile: %s (this=0x%x)\n", name, this));
     CODA_ASSERT(length == 0);
-    delete cached_chunks;
+
+    if (isPartial)
+        delete cached_chunks;
 }
 
 /* MUST NOT be called from within transaction! */
@@ -204,6 +206,9 @@ void CacheFile::Create(int newlength)
     length    = newlength;
     refcnt    = 1;
     numopens  = 0;
+
+    if (isPartial)
+        cached_chunks->FreeRange(0, -1);
 }
 
 /*

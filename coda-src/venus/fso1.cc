@@ -2473,7 +2473,7 @@ int fsobj::MakeShadow()
      * be garbage collected at startup.
      */
     if (!shadow)
-        shadow = new CacheFile(-(ix + 1), 0);
+        shadow = new CacheFile(-(ix + 1), 0, cf.IsPartial());
     else
         shadow->IncRef();
 
