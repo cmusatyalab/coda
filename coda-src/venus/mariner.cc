@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -325,6 +325,7 @@ mariner::mariner(int afd)
     want_volstate = 0;
     uid           = ANYUSER_UID;
     fd            = afd;
+    p9srv         = NULL;
     memset(commbuf, 0, MWBUFSIZE);
 
     Lock_Init(&write_lock);
