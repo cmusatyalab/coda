@@ -466,6 +466,7 @@ static char *getusername(uid_t uid)
 }
 
 plan9server::plan9server(mariner *m)
+    : fids()
 {
     conn      = m;
     max_msize = P9_BUFSIZE;
