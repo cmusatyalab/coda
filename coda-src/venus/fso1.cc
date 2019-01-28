@@ -2488,7 +2488,7 @@ void fsobj::CacheReport(int fd, int level)
     }
 }
 
-void fsobj::UpdateVastroFlag(uid_t uid)
+void fsobj::UpdateVastroFlag(uid_t uid, int force, int state)
 {
     int ph_ix             = 0;
     struct in_addr *phost = NULL;
@@ -2504,8 +2504,20 @@ void fsobj::UpdateVastroFlag(uid_t uid)
         return;
     }
 
-    /* Limit the VASTRO flagging to first opener only*/
-    if (openers > 0) {
+    /* It can always be disabled by force. But for force enable it we'd also need to know;
+         1. fsobj is a file
+         2. fsobj is NOT a pioctl file
+         3. Server is reachable
+         4. Sever supports VASTROs. */
+    if (force && !state) {
+        flags.vastro = state ? 0x1 : 0x0;
+        return;
+    }
+
+    /* Limit the VASTRO flagging to first opener only. If force is set
+       all checks are performed again to allow checking for all the conditions
+       that might allow an fsobj to be flagged as VASTRO. */
+    if (openers > 0 && !force) {
         return;
     }
 
@@ -2545,6 +2557,10 @@ void fsobj::UpdateVastroFlag(uid_t uid)
         if (!s->fetchpartial_support) {
             flags.vastro = 0x0;
             goto PutAll;
+        } else {
+            if (force && state)
+                flags.vastro = 0x1;
+            goto PutAll;
         }
 
     } else {
@@ -2557,6 +2573,10 @@ void fsobj::UpdateVastroFlag(uid_t uid)
 
         if (!s->fetchpartial_support) {
             flags.vastro = 0x0;
+            goto PutAll;
+        } else {
+            if (force && state)
+                flags.vastro = 0x1;
             goto PutAll;
         }
     }

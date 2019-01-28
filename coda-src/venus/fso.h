@@ -594,7 +594,7 @@ class fsobj {
                      int64_t len, RPC2_CountedBS *PiggyBS, SE_Descriptor *sed);
     int OpenPioctlFile(void);
 
-    void UpdateVastroFlag(uid_t uid);
+    void UpdateVastroFlag(uid_t uid, int force = 0, int state = 0x0);
 
 public:
     /* The public CFS interface (Vice portion). */
