@@ -5,9 +5,9 @@ variables:
 
 before_script:
   - mkdir -p ccache
-  - ccache -M 500M
   - export CCACHE_BASEDIR="${PWD}"
   - export CCACHE_DIR="${PWD}/ccache"
+  - export CCACHE_MAXSIZE="500M"
   - export CCACHE_NOHASHDIR=true
   - export CC="/usr/bin/ccache gcc"
   - export CXX="/usr/bin/ccache g++"
