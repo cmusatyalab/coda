@@ -2793,6 +2793,11 @@ void cmlent::commit(ViceVersionVector *UpdateSet)
             f->stat.VV.StoreId = sid;
             AddVVs(&f->stat.VV, UpdateSet);
         }
+
+        if (vol->IsNonReplicated()) {
+            RVMLIB_REC_OBJECT(f->stat.VV);
+            AddVVs(&f->stat.VV, UpdateSet);
+        }
     }
 
     if (vol->IsReplicated() /* FinalMutationForAnyObject */) {
