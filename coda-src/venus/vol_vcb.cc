@@ -384,6 +384,8 @@ RepExit:
     if (m)
         m->Put();
 
+    if (c)
+        PutConn(&c);
     return (code);
 }
 

@@ -1087,6 +1087,10 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
     RepExit:
         if (m)
             m->Put();
+
+        if (c)
+            PutConn(&c);
+
         switch (code) {
         case 0:
             if (asy_resolve)
@@ -1651,6 +1655,8 @@ int fsobj::SetACL(RPC2_CountedBS *acl, uid_t uid)
     RepExit:
         if (m)
             m->Put();
+        if (c)
+            PutConn(&c);
         switch (code) {
         case 0:
             if (asy_resolve)
