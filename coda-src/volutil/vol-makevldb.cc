@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -132,7 +132,7 @@ long S_VolMakeVLDB(RPC2_Handle rpcid, RPC2_String formal_infile)
     int nentries;
     struct vldbHeader *head;
     int fd;
-    int MaxRO, MaxBK, MaxRW;
+    int MaxRO, MaxBK, MaxRW, MaxNR;
     int err = 0;
 
     /* To keep C++ 2.0 happy */
@@ -163,7 +163,9 @@ long S_VolMakeVLDB(RPC2_Handle rpcid, RPC2_String formal_infile)
     Pass('R'); /* Read only (cloned) volumes */
     MaxRO = MaxStride;
     Pass('B'); /* Backup volumes */
-    MaxBK          = MaxStride;
+    MaxBK = MaxStride;
+    Pass('N'); /* Non-replicated volumes */
+    MaxNR          = MaxStride;
     head           = (struct vldbHeader *)vldb_array;
     head->magic    = htonl(VLDB_MAGIC);
     head->hashSize = htonl(vldbHashSize);
@@ -192,8 +194,8 @@ long S_VolMakeVLDB(RPC2_Handle rpcid, RPC2_String formal_infile)
                VLDB_PATH);
         err = 1;
     } else
-        printf("VLDB created.  Search lengths: RO %d, RW %d, BK %d.\n", MaxRO,
-               MaxRW, MaxBK);
+        printf("VLDB created.  Search lengths: RO %d, RW %d, BK %d, NR %d.\n",
+               MaxRO, MaxRW, MaxBK, MaxNR);
 
     /* tell fileserver to read in new database */
     VCheckVLDB();
@@ -248,6 +250,7 @@ static int Pass(char type)
             case 'C':
                 sscanf(&(*argp)[1], "%x", &creationdate);
                 break;
+            case 'N': /**/
             case 'P': /* partition = &(*argp)[1]; */
             case 'm': /* sscanf(&(*argp)[1], "%x", &minquota); */
             case 'M': /* sscanf(&(*argp)[1], "%x", &maxquota); */
@@ -276,9 +279,26 @@ int (*AddEntry[MAXVOLTYPES])(...);
 
 static void InitAddEntry()
 {
-    AddEntry[backupVolume]    = (int (*)(...))AddBackupEntry;
-    AddEntry[readonlyVolume]  = (int (*)(...))AddReadOnlyEntry;
-    AddEntry[readwriteVolume] = (int (*)(...))AddReadWriteEntry;
+    AddEntry[backupVolume]        = (int (*)(...))AddBackupEntry;
+    AddEntry[readonlyVolume]      = (int (*)(...))AddReadOnlyEntry;
+    AddEntry[readwriteVolume]     = (int (*)(...))AddReadWriteEntry;
+    AddEntry[nonReplicatedVolume] = (int (*)(...))AddReadWriteEntry;
+}
+
+static const int char2Voltype(char voltype_char)
+{
+    switch (voltype_char) {
+    case 'B':
+        return backupVolume;
+    case 'R':
+        return readonlyVolume;
+    case 'W':
+        return readwriteVolume;
+    case 'N':
+        return nonReplicatedVolume;
+    default:
+        return readonlyVolume;
+    }
 }
 
 static void VolumeEntry(char type, int byname, char *name, unsigned long volume,
@@ -290,9 +310,7 @@ static void VolumeEntry(char type, int byname, char *name, unsigned long volume,
     memset((char *)&vnew, 0, sizeof(vnew));
     strncpy(vnew.key, name, sizeof(vnew.key) - 1);
     vnew.hashNext                  = 0;
-    vnew.volumeType                = (type == 'B' ?
-                           backupVolume :
-                           type == 'R' ? readonlyVolume : readwriteVolume);
+    vnew.volumeType                = char2Voltype(type);
     vnew.nServers                  = 1;
     vnew.volumeId[readwriteVolume] = htonl(readwrite);
     vnew.volumeId[vnew.volumeType] = htonl(volume);
@@ -310,7 +328,9 @@ static void AddReadWriteEntry(struct vldb *vnew, int byname, char *name,
     long olddate;
     old = Lookup(name, &olddate);
     if (old) {
-        if (old->volumeType != readwriteVolume || copydate > olddate)
+        if ((old->volumeType != readwriteVolume &&
+             old->volumeType != nonReplicatedVolume) ||
+            copydate > olddate)
             Replace(old, vnew, copydate);
     } else {
         Add(vnew, copydate);
@@ -457,8 +477,10 @@ static void CheckRWindex(unsigned long volume, char *name)
     namep = Lookup(name, &date);
     if (idp == 0 || namep == 0)
         return;
-    if (idp->volumeType != readwriteVolume ||
-        namep->volumeType != readwriteVolume)
+    if ((idp->volumeType != readwriteVolume &&
+         idp->volumeType != nonReplicatedVolume) ||
+        (namep->volumeType != readwriteVolume &&
+         namep->volumeType != nonReplicatedVolume))
         return;
     RWindex[vldbindex(idp)] = namep;
 }
