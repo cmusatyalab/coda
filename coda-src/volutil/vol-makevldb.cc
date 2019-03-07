@@ -97,6 +97,7 @@ static int vldbSize; /* array size, in elements */
 static int vldbHashSize; /* Hash index space (1 to vldbHashSize) */
 static int haveEntry = 0;
 static int MaxStride;
+static int AddedEntries = 0;
 static FILE *volumelist;
 
 #define vldbindex(p) ((p) - &vldb_array[0])
@@ -158,14 +159,18 @@ long S_VolMakeVLDB(RPC2_Handle rpcid, RPC2_String formal_infile)
     Dates      = (long *)calloc(vldbSize, sizeof(*Dates));
     RWindex    = (struct vldb **)calloc(vldbSize, sizeof(*RWindex));
 
+    AddedEntries = 0;
     Pass('W'); /* Read-write volumes */
-    MaxRW = MaxStride;
+    MaxRW        = AddedEntries;
+    AddedEntries = 0;
     Pass('R'); /* Read only (cloned) volumes */
-    MaxRO = MaxStride;
+    MaxRO        = AddedEntries;
+    AddedEntries = 0;
     Pass('B'); /* Backup volumes */
-    MaxBK = MaxStride;
+    MaxBK        = AddedEntries;
+    AddedEntries = 0;
     Pass('N'); /* Non-replicated volumes */
-    MaxNR          = MaxStride;
+    MaxNR          = AddedEntries;
     head           = (struct vldbHeader *)vldb_array;
     head->magic    = htonl(VLDB_MAGIC);
     head->hashSize = htonl(vldbHashSize);
@@ -442,6 +447,9 @@ static void Add(struct vldb *vnew, long date)
     if (MaxStride < p - first)
         MaxStride = p - first;
     Dates[vldbindex(p)] = date;
+
+    AddedEntries++;
+
     return;
 }
 
