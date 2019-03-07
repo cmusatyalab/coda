@@ -608,6 +608,9 @@ static void VListVolume(char **buf, unsigned int *buflen, unsigned int *offset,
     case backupVolume:
         type = 'B';
         break;
+    case nonReplicatedVolume:
+        type = 'N';
+        break;
     }
 
 retry:
