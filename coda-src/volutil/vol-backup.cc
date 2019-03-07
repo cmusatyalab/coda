@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -176,8 +176,11 @@ long S_VolMakeBackups(RPC2_Handle rpcid, VolumeId originalId,
         return error;
     }
 
-    if (V_type(originalvp) != readwriteVolume) {
-        VLog(0, "S_VolMakeBackups: Can only backup ReadWrite vols; aborting");
+    if (V_type(originalvp) != readwriteVolume &&
+        V_type(originalvp) != nonReplicatedVolume) {
+        VLog(
+            0,
+            "S_VolMakeBackups: Can only backup ReadWrite or non-replicated vols; aborting");
         cleanup(originalvp);
         return VFAIL;
     }

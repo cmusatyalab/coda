@@ -566,7 +566,7 @@ long S_VolNewDump(RPC2_Handle rpcid, RPC2_Unsigned formal_volumeNumber,
         return (int)error;
     }
 
-    if (V_type(vp) == RWVOL) {
+    if (V_type(vp) == RWVOL || V_type(vp) == nonReplicatedVolume) {
         SLog(0, "Volume is read-write.  Dump not allowed");
         retcode = VFAIL;
         goto failure;
@@ -736,7 +736,7 @@ long S_VolDumpEstimate(RPC2_Handle rpcid, RPC2_Unsigned formal_volumeNumber,
         return (int)error;
     }
 
-    if (V_type(vp) == RWVOL) {
+    if (V_type(vp) == RWVOL || V_type(vp) == nonReplicatedVolume) {
         SLog(0, "Volume is read-write.  Dump not allowed");
         retcode = VFAIL;
         goto failure;
