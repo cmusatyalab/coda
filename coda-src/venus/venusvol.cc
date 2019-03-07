@@ -239,7 +239,7 @@ void VolInit(void)
     /* Create/reinstall local fake volumes */
     VolumeInfo LocalVol;
     memset(&LocalVol, 0, sizeof(VolumeInfo));
-    LocalVol.Type = BACKVOL; /* backup volume == read-only replica */
+    LocalVol.Type = ReadOnly;
 
     /* Fake root volume, contains available realms */
     LocalVol.Vid = FakeRootVolumeId;
@@ -2369,7 +2369,7 @@ void repvol::SetStagingServer(struct in_addr *srvr)
 
         memset(&StagingVol, 0, sizeof(VolumeInfo));
         StagingVol.Vid                        = stagingvid++;
-        StagingVol.Type                       = BACKVOL;
+        StagingVol.Type                       = ReadOnly;
         (&StagingVol.Type0)[replicatedVolume] = vid;
         StagingVol.Server0                    = ntohl(srvr->s_addr);
 
