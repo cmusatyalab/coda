@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -69,12 +69,6 @@ static void SFSendNAK(RPC2_PacketBuffer *pb);
 #ifndef MAX
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 #endif
-
-/* This function is not called by the sftp code itself */
-void SFTP_DispatchProcess(void)
-{
-    RPC2_DispatchProcess();
-}
 
 void sftp_ExaminePacket(RPC2_PacketBuffer *pb)
 {
