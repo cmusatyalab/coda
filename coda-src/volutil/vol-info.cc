@@ -173,10 +173,21 @@ exit:
     return (status ? status : rc);
 }
 
-#define typestring(type) \
-    (type == RWVOL ?     \
-         "read/write" :  \
-         type == ROVOL ? "readonly" : type == BACKVOL ? "backup" : "unknown")
+static inline const char *typestring(int type)
+{
+    switch (type) {
+    case RWVOL:
+        return "read/write";
+    case ROVOL:
+        return "readonly";
+    case BACKVOL:
+        return "backup";
+    case NONREPVOL:
+        return "non-replicated";
+    default:
+        return "unknown";
+    }
+}
 
 static void PrintHeader(Volume *vp)
 {

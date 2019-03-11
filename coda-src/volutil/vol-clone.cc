@@ -159,13 +159,15 @@ long S_VolClone(RPC2_Handle rpcid, RPC2_Unsigned formal_ovolid,
     }
 
     if (V_type(originalvp) != readonlyVolume &&
-        V_type(originalvp) != readwriteVolume) {
+        V_type(originalvp) != readwriteVolume &&
+        V_type(originalvp) != nonReplicatedVolume) {
         VLog(0, "S_VolClone: volume to be cloned must be RW or RO; aborting");
         VPutVolume(originalvp);
         VDisconnectFS();
         return VFAIL;
     }
-    if (V_type(originalvp) == readwriteVolume) {
+    if (V_type(originalvp) == readwriteVolume ||
+        V_type(originalvp) == nonReplicatedVolume) {
         VLog(29, "Cloning RW volume - trying to lock ");
         /* lock the whole volume for the duration of the clone */
         if (V_VolLock(originalvp).IPAddress) {
@@ -245,7 +247,8 @@ exit1:
         return error;
     }
 
-    if (V_type(originalvp) == readwriteVolume)
+    if (V_type(originalvp) == readwriteVolume ||
+        V_type(originalvp) == nonReplicatedVolume)
         V_cloneId(originalvp) = newId;
 
     /* assign a name to the clone. if the user requested a name then
