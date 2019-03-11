@@ -514,6 +514,7 @@ volent *vdb::Create(Realm *realm, VolumeInfo *volinfo, const char *volname)
     }
 
     case RWVOL:
+    case NONREPVOL:
     case ROVOL:
     case BACKVOL: {
         volrep *vp;
@@ -523,7 +524,7 @@ volent *vdb::Create(Realm *realm, VolumeInfo *volinfo, const char *volname)
         /* instantiate the new volume replica */
         Recov_BeginTrans();
         vp = new volrep(realm, volinfo->Vid, volname, &srvaddr,
-                        volinfo->Type != RWVOL,
+                        volinfo->Type != RWVOL && volinfo->Type != NONREPVOL,
                         (&volinfo->Type0)[replicatedVolume]);
         v  = vp;
         Recov_EndTrans(MAXFP);
