@@ -22,7 +22,7 @@ listed in the file CREDITS.
  *
  *    ToDo:
  *       1. All mutating Vice calls should have the following IN arguments:
- *            NewSid, NewMutator (implicit from connection), NewMtime,
+ *            NewSid, NewMutator (implicit from connection), NewMtime, 
  *            OldVV and DataVersion (for each object), NewStatus (for each object)
  */
 
@@ -693,64 +693,35 @@ int fsobj::SetVV(ViceVersionVector *newvv, uid_t uid)
     PiggyBS.SeqLen  = 0;
     PiggyBS.SeqBody = (RPC2_ByteSeq)PiggyData;
 
-    if (vol->IsReadWrite()) {
-        mgrpent *m = NULL;
+    if (vol->IsReplicated()) {
+        mgrpent *m = 0;
         repvol *vp = (repvol *)vol;
-        connent *c = NULL;
-        struct MRPC_common_params rpc_common;
-        struct in_addr ph_addr;
-        int ret_code;
 
-        /* Non-replicated volumes don't know about inconsistency */
-        if (vol->IsNonReplicated() && IsIncon(*newvv)) {
-            return EINVAL;
-        }
-
-        code = vp->GetConn(&c, uid, &m, &rpc_common.ph_ix, &ph_addr);
+        /* Acquire an Mgroup. */
+        code = vp->GetMgrp(&m, uid, (PIGGYCOP2 ? &PiggyBS : 0));
         if (code != 0)
             goto RepExit;
-
-        rpc_common.ph = ntohl(ph_addr.s_addr);
-
-        if (vol->IsReplicated()) {
-            rpc_common.nservers = VSG_MEMBERS;
-            rpc_common.hosts    = m->rocc.hosts;
-            rpc_common.retcodes = m->rocc.retcodes;
-            rpc_common.handles  = m->rocc.handles;
-            rpc_common.MIp      = m->rocc.MIp;
-
-        } else { // Non-replicated
-
-            rpc_common.nservers = 1;
-            rpc_common.hosts    = &ph_addr;
-            rpc_common.retcodes = &ret_code;
-            rpc_common.handles  = &c->connid;
-            rpc_common.MIp      = 0;
-        }
 
         /* The SetVV call. */
         {
             /* Make the RPC call. */
             CFSOP_PRELUDE("store::SetVV %-30s\n", comp, fid);
             MULTI_START_MESSAGE(ViceSetVV_OP);
-            code = (int)MRPC_MakeMulti(ViceSetVV_OP, ViceSetVV_PTR,
-                                       rpc_common.nservers, rpc_common.handles,
-                                       rpc_common.retcodes, rpc_common.MIp, 0,
-                                       0, MakeViceFid(&fid), newvv, &PiggyBS);
+            code = (int)MRPC_MakeMulti(ViceSetVV_OP, ViceSetVV_PTR, VSG_MEMBERS,
+                                       m->rocc.handles, m->rocc.retcodes,
+                                       m->rocc.MIp, 0, 0, MakeViceFid(&fid),
+                                       newvv, &PiggyBS);
             MULTI_END_MESSAGE(ViceSetVV_OP);
             CFSOP_POSTLUDE("store::setvv done\n");
 
             /* Collate responses from individual servers and decide what to do next. */
-            if (vol->IsReplicated())
-                code = vp->Collate_COP2(m, code);
-            else
-                code = vp->Collate(c, code);
+            code = vp->Collate_COP2(m, code);
             MULTI_RECORD_STATS(ViceSetVV_OP);
             if (code != 0)
                 goto RepExit;
 
             /* Finalize COP2 Piggybacking. */
-            if (PIGGYCOP2 && vol->IsReplicated())
+            if (PIGGYCOP2)
                 vp->ClearCOP2(&PiggyBS);
         }
 
@@ -763,8 +734,6 @@ int fsobj::SetVV(ViceVersionVector *newvv, uid_t uid)
     RepExit:
         if (m)
             m->Put();
-        if (c)
-            PutConn(&c);
         switch (code) {
         case 0:
             break;
