@@ -3921,7 +3921,7 @@ unsigned long cmlent::ReintTime(unsigned long bw)
 
 unsigned long cmlent::ReintAmount(unsigned long *reint_time)
 {
-    repvol *vol = strbase(repvol, log, CML);
+    reintvol *vol = strbase(reintvol, log, CML);
     unsigned long amount, offset;
     unsigned long bw; /* bandwidth, in bytes/sec */
 
