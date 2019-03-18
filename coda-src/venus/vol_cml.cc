@@ -3091,8 +3091,9 @@ int cmlent::CloseReintegrationHandle(char *buf, int bufsize,
     }
 
     if (vol->IsNonReplicated()) {
-        vr   = (volrep *)vol;
-        code = vr->GetConn(&c, log->owner);
+        vr                  = (volrep *)vol;
+        code                = vr->GetConn(&c, log->owner);
+        u.u_store.ReintPHix = 0;
         if (code != 0)
             goto Exit;
     }
