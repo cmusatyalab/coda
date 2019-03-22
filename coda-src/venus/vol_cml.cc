@@ -2383,8 +2383,6 @@ int ClientModifyLog::COP1_NR(char *buf, int bufsize,
     InitVV(UpdateSet);
     (&(UpdateSet->Versions.Site0))[0] = 1;
 
-    /* Indicate that objects should be resolved on commit. */
-    vol->flags.resolve_me = 1;
     PutConn(&c);
 
 ExitNonRep:
@@ -2745,6 +2743,7 @@ void cmlent::commit(ViceVersionVector *UpdateSet)
     reintvol *vol = strbase(reintvol, log, CML);
     repvol *rv    = (repvol *)vol;
     vol->RecordsCommitted++;
+    ViceVersionVector renameUpdateSet = *UpdateSet;
 
     /*
      * Record StoreId/UpdateSet for objects involved in this operation ONLY
@@ -2777,7 +2776,35 @@ void cmlent::commit(ViceVersionVector *UpdateSet)
         }
 
         cmlent *FinalCmlent = f->FinalCmlent(tid);
-        if (FinalCmlent == this) {
+        if (vol->IsNonReplicated()) {
+            RVMLIB_REC_OBJECT(f->stat.VV);
+
+            switch (opcode) {
+            case CML_MakeDir_OP:
+            case CML_SymLink_OP:
+                /* Compensate for the version being initialized to NullVV insted of
+                     * 1 for the first slot as the server does. */
+                if (FID_EQ(&u.u_mkdir.CFid, &f->fid)) {
+                    AddVVs(&f->stat.VV, UpdateSet);
+                }
+                break;
+            case CML_Rename_OP:
+                /* For rename within same directory only increment version once */
+                if (FID_EQ(&u.u_rename.TPFid, &u.u_rename.SPFid) &&
+                    FID_EQ(&u.u_rename.TPFid, &f->fid)) {
+                    f->stat.VV.StoreId = sid;
+                    AddVVs(&f->stat.VV, &renameUpdateSet);
+                    renameUpdateSet = NullVV;
+                    continue;
+                }
+            default:
+                break;
+            }
+
+            f->stat.VV.StoreId = sid;
+            AddVVs(&f->stat.VV, UpdateSet);
+
+        } else if (FinalCmlent == this) {
             LOG(10, ("cmlent::commit: FinalCmlent for %s\n", FID_(&f->fid)));
             /*
              * if the final update removed the object, don't bother adding the
@@ -2791,11 +2818,6 @@ void cmlent::commit(ViceVersionVector *UpdateSet)
 
             RVMLIB_REC_OBJECT(f->stat.VV);
             f->stat.VV.StoreId = sid;
-            AddVVs(&f->stat.VV, UpdateSet);
-        }
-
-        if (vol->IsNonReplicated()) {
-            RVMLIB_REC_OBJECT(f->stat.VV);
             AddVVs(&f->stat.VV, UpdateSet);
         }
     }
