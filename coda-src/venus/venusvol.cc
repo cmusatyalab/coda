@@ -1587,10 +1587,14 @@ void volent::Wait()
             name, PRINT_VOLSTATE(state), flags.transition_pending,
             flags.demotion_pending, observer_count, mutator_count, waiter_count,
             resolver_count));
-    if (IsReadWrite()) {
+    if (IsReplicated()) {
         repvol *rv = (repvol *)this;
         LOG(0, ("CML= [%d, %d], Res = %d\n", rv->GetCML()->count(),
                 rv->GetCML()->Owner(), rv->ResListCount()));
+    } else if (IsNonReplicated()) {
+        reintvol *rv = (reintvol *)this;
+        LOG(0,
+            ("CML= [%d, %d]\n", rv->GetCML()->count(), rv->GetCML()->Owner()));
     }
     LOG(0, ("WAITING(VOL): shrd_count = %d, excl_count = %d, excl_pgid = %d\n",
             shrd_count, excl_count, excl_pgid));
