@@ -72,8 +72,6 @@ int StringKeyValueStore::add_key_alias(const char *key, const char *key_alias)
 
     if (has_key(key_alias))
         return EEXIST;
-    if (is_key_alias(key_alias))
-        return EEXIST;
 
     n = (item_t)malloc(sizeof(struct _item));
     assert(n != NULL);
@@ -141,7 +139,15 @@ bool StringKeyValueStore::has_key(const char *key)
 {
     const char *store_key = unalias_key(key);
     item_t cp             = find(store_key);
-    return ((cp == NULL) ? false : true);
+
+    if (cp != NULL)
+        return true;
+
+    cp = find_alias(key);
+    if (cp != NULL)
+        return true;
+
+    return false;
 }
 
 bool StringKeyValueStore::is_key_alias(const char *key)
