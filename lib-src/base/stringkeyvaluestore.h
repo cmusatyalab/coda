@@ -39,14 +39,16 @@ private:
 protected:
     bool quiet;
     item_t find(const char *key);
+    item_t find_alias(const char *key_alias);
 
 public:
     StringKeyValueStore();
     ~StringKeyValueStore();
 
-    void add(const char *key, const char *value);
-    void set_key_alias(const char *key, const char *key_alias);
+    int add(const char *key, const char *value);
+    int add_key_alias(const char *key, const char *key_alias);
     bool has_key(const char *key);
+    bool is_key_alias(const char *key);
     const char *get_value(const char *key);
     void replace(const char *key, const char *value);
     void purge();

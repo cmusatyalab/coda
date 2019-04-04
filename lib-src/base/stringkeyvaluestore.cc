@@ -25,6 +25,7 @@ extern "C" {
 #endif
 
 #include <sys/param.h>
+#include <asm/errno.h>
 #include <stdio.h>
 #include "coda_string.h"
 #include <assert.h>
@@ -43,9 +44,12 @@ StringKeyValueStore::~StringKeyValueStore()
     purge();
 }
 
-void StringKeyValueStore::add(const char *key, const char *value)
+int StringKeyValueStore::add(const char *key, const char *value)
 {
     item_t n;
+
+    if (has_key(unalias_key(key)))
+        return EEXIST;
 
     n = (item_t)malloc(sizeof(struct _item));
     assert(n != NULL);
@@ -58,11 +62,18 @@ void StringKeyValueStore::add(const char *key, const char *value)
 
     n->next = table;
     table   = n;
+
+    return 0;
 }
 
-void StringKeyValueStore::set_key_alias(const char *key, const char *key_alias)
+int StringKeyValueStore::add_key_alias(const char *key, const char *key_alias)
 {
     item_t n;
+
+    if (has_key(key_alias))
+        return EEXIST;
+    if (is_key_alias(key_alias))
+        return EEXIST;
 
     n = (item_t)malloc(sizeof(struct _item));
     assert(n != NULL);
@@ -75,19 +86,14 @@ void StringKeyValueStore::set_key_alias(const char *key, const char *key_alias)
 
     n->next     = alias_table;
     alias_table = n;
+
+    return (0);
 }
 
 const char *StringKeyValueStore::unalias_key(const char *key_alias)
 {
-    item_t cp;
-
-    for (cp = alias_table; cp; cp = cp->next) {
-        if (strcmp(key_alias, cp->name) == 0) {
-            return cp->value;
-        }
-    }
-
-    return key_alias;
+    item_t cp = find_alias(key_alias);
+    return ((cp != NULL) ? cp->value : key_alias);
 }
 
 void StringKeyValueStore::replace(const char *key, const char *value)
@@ -118,11 +124,30 @@ item_t StringKeyValueStore::find(const char *key)
     return NULL;
 }
 
+item_t StringKeyValueStore::find_alias(const char *key_alias)
+{
+    item_t cp;
+
+    for (cp = alias_table; cp; cp = cp->next) {
+        if (strcmp(key_alias, cp->name) == 0) {
+            return cp;
+        }
+    }
+
+    return NULL;
+}
+
 bool StringKeyValueStore::has_key(const char *key)
 {
     const char *store_key = unalias_key(key);
     item_t cp             = find(store_key);
     return ((cp == NULL) ? false : true);
+}
+
+bool StringKeyValueStore::is_key_alias(const char *key)
+{
+    item_t aliased_key = find_alias(key);
+    return ((aliased_key != NULL) ? true : false);
 }
 
 const char *StringKeyValueStore::get_value(const char *key)
