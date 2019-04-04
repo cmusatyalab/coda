@@ -23,19 +23,26 @@ Coda are listed in the file CREDITS.
 extern "C" {
 #endif
 
-#include "codaconfdb.h"
+#include "coda_config.h"
 
 #ifdef __cplusplus
 }
 #endif
 
-/* nobody outside of this file needs to be exposed to these structures. */
+#include "codaconfdb.h"
 
 class CodaConfFileParser : public CodaConfDB {
 private:
+    /* buffer to read lines of config data */
+    static const int MAXLINELEN = 256;
+    char line[MAXLINELEN];
+    char conffile[MAXPATHLEN + 1];
+
     void parse_line(char *line, int lineno, char **name, char **value);
 
 public:
+    void replace(const char *name, const char *value);
+
     /* conf_init reads (or merges) the name=value tuples from the conffile. If a
     * name is seen multiple times, only the last value is remembered. Empty lines
     * and lines starting with '#' are ignored. */

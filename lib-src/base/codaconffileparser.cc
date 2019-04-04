@@ -38,16 +38,9 @@ extern "C" {
 #undef CONFDEBUG
 #undef CONFWRITE
 
-/* default configuration file search path used by init */
 static const char *default_codaconfpath = SYSCONFDIR
     ":/usr/local/etc/coda:/etc/coda:";
 
-/* buffer to read lines of config data */
-#define MAXLINELEN 256
-static char line[MAXLINELEN];
-static char conffile[MAXPATHLEN + 1];
-
-/* parse a configuration line */
 void CodaConfFileParser::parse_line(char *line, int lineno, char **name,
                                     char **value)
 {
@@ -222,4 +215,24 @@ int CodaConfFileParser::init(const char *confname)
         return -1;
 
     return 0;
+}
+
+void CodaConfFileParser::replace(const char *name, const char *value)
+{
+#ifdef CONFWRITE
+    FILE *conf;
+#endif
+
+    CodaConfDB::replace(name, value);
+
+#ifdef CONFWRITE
+    conf = fopen(conffile, "a");
+    if (conf) {
+        fputs(name, conf);
+        fputs("=\"", conf);
+        fputs(value, conf);
+        fputs("\"\n", conf);
+        fclose(conf);
+    }
+#endif
 }

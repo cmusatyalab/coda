@@ -14,8 +14,7 @@ protected:
 // codaconf.
 TEST_F(codaconfdb, get_non_added_value)
 {
-    const char *key            = "key1";
-    const char *expected_value = "value1";
+    const char *key = "key1";
     const char *actual_value;
 
     actual_value = conf->get_value(key);
