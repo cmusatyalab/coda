@@ -30,33 +30,35 @@ extern "C" {
 }
 #endif
 
-#include "stringkeyvaluestore.h"
+#include "codaconfparser.h"
 
-class CodaConfFileParser {
+class CodaConfFileParser : private CodaConfParser {
 private:
     /* buffer to read lines of config data */
     static const int MAXLINELEN = 256;
     char line[MAXLINELEN];
     char conffile[MAXPATHLEN + 1];
 
-    StringKeyValueStore &store;
     bool quiet;
 
     void parse_line(char *line, int lineno, char **name, char **value);
-
-    int parse_full_path_conffile(const char *conffile);
 
     void replace_in_file(const char *name, const char *value);
 
 public:
     CodaConfFileParser(StringKeyValueStore &s)
-        : store(s)
+        : CodaConfParser(s)
         , quiet(true)
     {
     }
 
-    int parse(const char *confname);
-    char *get_conffile_full_path(const char *confname);
+    void set_conffile(const char *confname);
+
+    void parse();
+
+    void set_quiet(bool quiet_val) { quiet = quiet_val; }
+
+    char *format_conffile_full_path(const char *confname);
 };
 
 #endif /* _CODACONFFILEPARSER_H_ */

@@ -111,26 +111,22 @@ void CodaConfFileParser::parse_line(char *line, int lineno, char **name,
 /* init_one reads (or merges) the name=value tuples from the conffile.
  * If a name is seen multiple times, only the last value is remembered. Empty
  * lines and lines starting with '#' are ignored. */
-int CodaConfFileParser::parse_full_path_conffile(const char *cf)
+void CodaConfFileParser::parse()
 {
     FILE *conf;
     int lineno = 0;
     char *name, *value;
     const char *stored_value = NULL;
 
-    conf = fopen(cf, "r");
+    conf = fopen(conffile, "r");
     if (!conf) {
         if (!quiet)
             fprintf(stderr,
                     "Cannot read configuration file '%s', "
                     "will use default values.\n",
-                    cf);
-        return (-1);
+                    conffile);
+        return;
     }
-
-    /* remember the last read configuration file */
-    if (cf != conffile)
-        strcpy(conffile, cf);
 
     while (fgets(line, MAXLINELEN, conf)) {
         lineno++;
@@ -158,8 +154,6 @@ int CodaConfFileParser::parse_full_path_conffile(const char *cf)
         free(value);
     }
     fclose(conf);
-
-    return (0);
 }
 
 /* file searches all directories specified by the environment variable
@@ -168,7 +162,7 @@ int CodaConfFileParser::parse_full_path_conffile(const char *cf)
  * If the CODACONFPATH is not present the search defaults to,
  *	@sysconfdir@:/usr/local/etc/coda:/etc/coda
  */
-char *CodaConfFileParser::get_conffile_full_path(const char *confname)
+char *CodaConfFileParser::format_conffile_full_path(const char *confname)
 {
     const char *codaconfpath, *end;
     int pathlen, filelen = strlen(confname);
@@ -208,14 +202,9 @@ char *CodaConfFileParser::get_conffile_full_path(const char *confname)
 
 /* init tries to load the first file that matches 'confname' in
  * CODACONFPATH */
-int CodaConfFileParser::parse(const char *confname)
+void CodaConfFileParser::set_conffile(const char *confname)
 {
-    char *cf = get_conffile_full_path(confname);
-
-    if (!cf || parse_full_path_conffile(cf) != 0)
-        return -1;
-
-    return 0;
+    format_conffile_full_path(confname);
 }
 
 void CodaConfFileParser::replace_in_file(const char *name, const char *value)
