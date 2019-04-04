@@ -3,7 +3,7 @@
 check_PROGRAMS = unit
 
 LIB_TESTS = lib/rvm/rvm_ut.cc lib/lwp/lwp_ut.cc
-UTIL_TESTS = util/u_bitmap.cc
+UTIL_TESTS = util/u_bitmap.cc lib/base/codaconf_ut.cc
 
 unit_SOURCES = main.cc $(UTIL_TESTS) $(LIB_TESTS)
 
@@ -29,8 +29,6 @@ UNIT_BIN = $(top_builddir)/test-src/unit/unit
 
 $(GTEST_DIR)/lib/libgtest.la:
 	$(MAKE) -C $(GTEST_DIR) lib/libgtest.la
-
-unit: $(GTEST_DIR)/lib/libgtest.la
 
 clean-local:
 	if test -f "${GTEST_DIR}/Makefile"; then make -C $(GTEST_DIR) clean; fi
