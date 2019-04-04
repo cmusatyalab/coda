@@ -217,14 +217,14 @@ int CodaConfFileParser::parse(const char *confname)
     return 0;
 }
 
-/* Overrides CodaConfDB::replace */
+/* Overrides StringKeyValueStore::replace */
 void CodaConfFileParser::replace(const char *name, const char *value)
 {
 #ifdef CONFWRITE
     FILE *conf;
 #endif
 
-    CodaConfDB::replace(name, value);
+    StringKeyValueStore::replace(name, value);
 
 #ifdef CONFWRITE
     conf = fopen(conffile, "a");

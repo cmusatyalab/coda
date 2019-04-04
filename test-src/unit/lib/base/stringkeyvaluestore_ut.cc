@@ -1,18 +1,17 @@
-#include <codaconfdb.h>
+#include <stringkeyvaluestore.h>
 #include "gtest/gtest.h"
 
 namespace
 {
-class codaconfdb : public ::testing::Test {
+class StringKeyValueStoreTest : public ::testing::Test {
 protected:
-    CodaConfDB *conf;
-    void SetUp() override { conf = new CodaConfDB(); }
+    StringKeyValueStore *conf;
+    void SetUp() override { conf = new StringKeyValueStore(); }
 
     void TearDown() override { delete (conf); }
 };
 
-// codaconf.
-TEST_F(codaconfdb, get_non_added_value)
+TEST_F(StringKeyValueStoreTest, get_non_added_value)
 {
     const char *key = "key1";
     const char *actual_value;
@@ -21,7 +20,7 @@ TEST_F(codaconfdb, get_non_added_value)
     ASSERT_FALSE(actual_value);
 }
 
-TEST_F(codaconfdb, add)
+TEST_F(StringKeyValueStoreTest, add)
 {
     const char *key            = "key1";
     const char *expected_value = "value1";
@@ -33,7 +32,7 @@ TEST_F(codaconfdb, add)
     ASSERT_STREQ(expected_value, actual_value);
 }
 
-TEST_F(codaconfdb, replace)
+TEST_F(StringKeyValueStoreTest, replace)
 {
     const char *key          = "key1";
     const char *first_value  = "value1";

@@ -16,37 +16,35 @@ Coda are listed in the file CREDITS.
 
 #*/
 
-#ifndef _CODACONFFILEPARSER_H_
-#define _CODACONFFILEPARSER_H_
+#ifndef _CODACONFDB_H_
+#define _CODACONFDB_H_
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include "coda_config.h"
+#include "codaconf.h"
 
 #ifdef __cplusplus
 }
 #endif
 
-#include "stringkeyvaluestore.h"
-
-class CodaConfFileParser : public StringKeyValueStore {
+class StringKeyValueStore {
 private:
-    /* buffer to read lines of config data */
-    static const int MAXLINELEN = 256;
-    char line[MAXLINELEN];
-    char conffile[MAXPATHLEN + 1];
+    item_t table;
 
-    void parse_line(char *line, int lineno, char **name, char **value);
-
-    int parse_full_path_conffile(const char *conffile);
+protected:
+    bool quiet;
 
 public:
-    void replace(const char *name, const char *value);
+    StringKeyValueStore();
+    ~StringKeyValueStore();
 
-    int parse(const char *confname);
-    char *get_conffile_full_path(const char *confname);
+    void add(const char *name, const char *value);
+    item_t find(const char *name);
+    const char *get_value(const char *name);
+    void replace(const char *name, const char *value);
+    void purge(void);
 };
 
-#endif /* _CODACONFFILEPARSER_H_ */
+#endif /* _CODACONFDB_H_ */
