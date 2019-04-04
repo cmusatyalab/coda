@@ -138,4 +138,11 @@ void StringKeyValueStore::purge(void)
         free(cp->value);
         free(cp);
     }
+
+    while ((cp = alias_table) != NULL) {
+        alias_table = cp->next;
+        free(cp->name);
+        free(cp->value);
+        free(cp);
+    }
 }
