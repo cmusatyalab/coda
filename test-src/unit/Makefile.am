@@ -3,9 +3,11 @@
 check_PROGRAMS = unit
 
 LIB_TESTS = lib/rvm/rvm_ut.cc lib/lwp/lwp_ut.cc
-UTIL_TESTS = util/u_bitmap.cc lib/base/codaconf_ut.cc
+LIB_BASE_TESTS = lib/base/codaconf_ut.cc lib/base/codaconfdb_ut.cc
+UTIL_TESTS = util/u_bitmap.cc
 
-unit_SOURCES = main.cc $(UTIL_TESTS) $(LIB_TESTS)
+unit_SOURCES = main.cc $(UTIL_TESTS) $(LIB_TESTS) $(LIB_BASE_TESTS)
+
 
 GTEST_DIR = $(top_builddir)/external-src/googletest/googletest
 
