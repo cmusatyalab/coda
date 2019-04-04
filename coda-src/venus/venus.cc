@@ -46,6 +46,8 @@ extern "C" {
 /* interfaces */
 #include <vice.h>
 #include <stringkeyvaluestore.h>
+#include <codaconffileparser.h>
+#include <codaconfcmdlineparser.h>
 
 /* from venus */
 #include "comm.h"
@@ -136,6 +138,8 @@ static int codatunnel_enabled;
 static int codatunnel_onlytcp;
 
 StringKeyValueStore venus_global_config;
+CodaConfFileParser config_file_parser(venus_global_config);
+CodaConfCmdLineParser cmlline_parser(venus_global_config);
 
 /* *****  Private constants  ***** */
 
@@ -144,6 +148,7 @@ struct timeval DaemonExpiry = { TIMERINTERVAL, 0 };
 /* *****  Private routines  ***** */
 
 static void LoadDefaultValuesIntoConfig();
+static void AddCmdLineOptionsToConfigurationParametersMapping();
 static void ParseCmdline(int, char **);
 static void DefaultCmdlineParms();
 static void CdToCacheDir();
@@ -351,9 +356,17 @@ int main(int argc, char **argv)
     coda_assert_cleanup = VFSUnmount;
 
     LoadDefaultValuesIntoConfig();
+    AddCmdLineOptionsToConfigurationParametersMapping();
 
     ParseCmdline(argc, argv);
     DefaultCmdlineParms(); /* read /etc/coda/venus.conf */
+
+    cmlline_parser.set_args(argc, argv);
+    cmlline_parser.parse();
+    venus_global_config.print();
+
+    config_file_parser.set_conffile("venus.conf");
+    config_file_parser.parse();
 
     // Cygwin runs as a service and doesn't need to daemonize.
 #ifndef __CYGWIN__
@@ -645,7 +658,7 @@ static void ParseCmdline(int argc, char **argv)
             else if (STREQ(argv[i], "-rdsnl"))
                 i++, RdsNlists = atoi(argv[i]);
             else if (STREQ(argv[i], "-logopts"))
-                i++, LogOpts = atoi(argv[i]);
+                i++, LogOpts = atoi(argv[i]); // Continue mapping here
             else if (STREQ(argv[i], "-swt")) /* short term pri weight */
                 i++, FSO_SWT = atoi(argv[i]);
             else if (STREQ(argv[i], "-mwt")) /* med term priority weight */
@@ -785,8 +798,7 @@ static void LoadDefaultValuesIntoConfig()
     venus_global_config.add("rvm_data", "/usr/coda/DATA");
     venus_global_config.add("RPC2_timeout", itoa(DFLT_TO, tmp));
     venus_global_config.add("RPC2_retries", itoa(DFLT_RT, tmp));
-    venus_global_config.add("serverprobe",
-                            itoa(150, tmp)); // used to be 12 minutes
+    venus_global_config.add("serverprobe", itoa(150, tmp));
     venus_global_config.add("reintegration_age", itoa(0, tmp));
     venus_global_config.add("reintegration_time", itoa(15, tmp));
     venus_global_config.add("dontuservm", itoa(0, tmp));
@@ -804,6 +816,97 @@ static void LoadDefaultValuesIntoConfig()
     venus_global_config.add("onlytcp", itoa(0, tmp));
     venus_global_config.add("detect_reintegration_retry", itoa(1, tmp));
     venus_global_config.add("checkpointformat", "newc");
+
+    //Newly added
+    venus_global_config.add("initmetadata", "0");
+    venus_global_config.add("loglevel", "0");
+    venus_global_config.add("rpc2loglevel", "0");
+    venus_global_config.add("lwploglevel", "0");
+    venus_global_config.add("rdstrace", "0");
+    venus_global_config.add("copmodes", "6");
+    venus_global_config.add("maxworkers", itoa(UNSET_MAXWORKERS, tmp));
+    venus_global_config.add("maxcbservers", itoa(UNSET_MAXCBSERVERS, tmp));
+    venus_global_config.add("maxprefetchers", itoa(UNSET_MAXWORKERS, tmp));
+    venus_global_config.add("sftp_windowsize", itoa(UNSET_WS, tmp));
+    venus_global_config.add("sftp_sendahead", itoa(UNSET_SA, tmp));
+    venus_global_config.add("sftp_ackpoint", itoa(UNSET_AP, tmp));
+    venus_global_config.add("sftp_packetsize", itoa(UNSET_PS, tmp));
+    venus_global_config.add("rvmtype", itoa(UNSET, tmp));
+    venus_global_config.add("rvm_log_size", itoa(UNSET_VLDS, tmp));
+    venus_global_config.add("rvm_data_size", itoa(UNSET_VDDS, tmp));
+    venus_global_config.add("rds_chunk_size", itoa(UNSET_RDSCS, tmp));
+    venus_global_config.add("rds_list_size", itoa(UNSET_RDSNL, tmp));
+    venus_global_config.add("log_optimization", "1");
+
+    // ???
+    // CODACONF_STR(x, "relay", NULL, "127.0.0.1");
+}
+
+static void AddCmdLineOptionsToConfigurationParametersMapping()
+{
+    char tmp[256];
+
+    venus_global_config.add_key_alias("cachesize", "-c");
+    venus_global_config.add_key_alias("cachefiles", "-cf");
+    venus_global_config.add_key_alias("cachechunkblocksize", "-ccbs");
+    venus_global_config.add_key_alias("wholefilemaxsize", "-wfmax");
+    venus_global_config.add_key_alias("wholefileminsize", "-wfmin");
+    venus_global_config.add_key_alias("wholefilemaxstall", "-wfstall");
+    venus_global_config.add_key_alias("partialcachefilesratio", "-pcfr");
+    venus_global_config.add_key_alias("initmetadata", "-init");
+    venus_global_config.add_key_alias("cachedir", "-f");
+    //venus_global_config.add_key_alias("checkpointdir", "");
+    //venus_global_config.add_key_alias("logfile", "");
+    venus_global_config.add_key_alias("errorlog", "-console");
+    venus_global_config.add_key_alias("kerneldevice", "-k");
+    //venus_global_config.add_key_alias("mapprivate", "");
+    //venus_global_config.add_key_alias("marinersocket", "");
+    //venus_global_config.add_key_alias("masquerade_port", "");
+    //venus_global_config.add_key_alias("allow_backfetch", "");
+    //venus_global_config.add_key_alias("mountpoint", "");
+    //venus_global_config.add_key_alias("primaryuser", "");
+    //venus_global_config.add_key_alias("realmtab", "");
+    venus_global_config.add_key_alias("rvm_log", "-vld");
+    venus_global_config.add_key_alias("rvm_log_size", "-vlds");
+    venus_global_config.add_key_alias("rvm_data", "-vdd");
+    venus_global_config.add_key_alias("rvm_data_size", "-vdds");
+    venus_global_config.add_key_alias("RPC2_timeout", "-timeout");
+    venus_global_config.add_key_alias("RPC2_retries", "-retries");
+    //venus_global_config.add_key_alias("serverprobe", "");
+    //venus_global_config.add_key_alias("reintegration_age", "");
+    //venus_global_config.add_key_alias("reintegration_time", "");
+    //venus_global_config.add_key_alias("dontuservm", "");
+    venus_global_config.add_key_alias("cml_entries", "-mles");
+    venus_global_config.add_key_alias("hoard_entries", "-hdbes");
+    //venus_global_config.add_key_alias("pid_file", "");
+    //venus_global_config.add_key_alias("run_control_file", "");
+    //venus_global_config.add_key_alias("asrlauncher_path", "");
+    //venus_global_config.add_key_alias("asrpolicy_path", "");
+    //venus_global_config.add_key_alias("validateattrs", "");
+    //venus_global_config.add_key_alias("isr", "");
+    //venus_global_config.add_key_alias("codafs", "");
+    venus_global_config.add_key_alias("9pfs", "-9pfs");
+    //venus_global_config.add_key_alias("codatunnel", "");
+    venus_global_config.add_key_alias("onlytcp", "-onlytcp");
+    //venus_global_config.add_key_alias("detect_reintegration_retry", "");
+    //venus_global_config.add_key_alias("checkpointformat", "");
+
+    venus_global_config.add_key_alias("loglevel", "-d");
+    venus_global_config.add_key_alias("rpc2loglevel", "-rpcdebug");
+    venus_global_config.add_key_alias("lwploglevel", "-lwpdebug");
+    venus_global_config.add_key_alias("rdstrace", "-rdstrace");
+    venus_global_config.add_key_alias("copmodes", "-m");
+    venus_global_config.add_key_alias("maxworkers", "-maxworkers");
+    venus_global_config.add_key_alias("maxcbservers", "-maxcbservers");
+    venus_global_config.add_key_alias("maxprefetchers", "-maxprefetchers");
+    venus_global_config.add_key_alias("sftp_windowsize", "-ws");
+    venus_global_config.add_key_alias("sftp_sendahead", "-sa");
+    venus_global_config.add_key_alias("sftp_ackpoint", "-ap");
+    venus_global_config.add_key_alias("sftp_packetsize", "-ps");
+    venus_global_config.add_key_alias("rvmtype", "-rvmt");
+    venus_global_config.add_key_alias("rds_chunk_size", "-rdscs");
+    venus_global_config.add_key_alias("rds_list_size", "-rdsnl");
+    venus_global_config.add_key_alias("log_optimization", "-logopts");
 }
 
 /* Initialize "general" unset command-line parameters to user specified values
