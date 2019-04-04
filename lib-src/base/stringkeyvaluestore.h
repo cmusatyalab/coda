@@ -38,6 +38,7 @@ private:
 
 protected:
     bool quiet;
+    item_t find(const char *key);
 
 public:
     StringKeyValueStore();
@@ -45,7 +46,6 @@ public:
 
     void add(const char *key, const char *value);
     void set_key_alias(const char *key, const char *key_alias);
-    item_t find(const char *key);
     const char *get_value(const char *key);
     void replace(const char *key, const char *value);
     void purge();
