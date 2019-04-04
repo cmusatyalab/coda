@@ -34,8 +34,9 @@ extern "C" {
 
 StringKeyValueStore::StringKeyValueStore()
 {
-    quiet = true;
-    table = NULL;
+    quiet       = true;
+    table       = NULL;
+    alias_table = NULL;
 }
 
 StringKeyValueStore::~StringKeyValueStore()
@@ -60,30 +61,57 @@ void StringKeyValueStore::add(const char *name, const char *value)
     table   = n;
 }
 
+void StringKeyValueStore::set_key_alias(const char *key, const char *key_alias)
+{
+    item_t n;
+
+    n = (item_t)malloc(sizeof(struct _item));
+    assert(n != NULL);
+
+    n->name = strdup(key_alias);
+    assert(n->name != NULL);
+
+    n->value = strdup(key);
+    assert(n->value != NULL);
+
+    n->next     = alias_table;
+    alias_table = n;
+}
+
+const char *StringKeyValueStore::translate_alias_into_key(const char *key_alias)
+{
+    item_t cp;
+
+    for (cp = alias_table; cp; cp = cp->next) {
+        if (strcmp(key_alias, cp->name) == 0) {
+            return cp->value;
+        }
+    }
+
+    return key_alias;
+}
+
 void StringKeyValueStore::replace(const char *name, const char *value)
 {
     item_t cp;
     if (!value)
         return;
 
-    for (cp = table; cp; cp = cp->next) {
-        if (strcmp(name, cp->name) == 0) {
-            if (value) {
-                free(cp->value);
-                cp->value = strdup(value);
-                assert(cp->value != NULL);
-            }
-            break;
-        }
+    cp = find(name);
+    if (cp) {
+        free(cp->value);
+        cp->value = strdup(value);
+        assert(cp->value != NULL);
     }
 }
 
 item_t StringKeyValueStore::find(const char *name)
 {
     item_t cp;
+    const char *store_key = translate_alias_into_key(name);
 
     for (cp = table; cp; cp = cp->next) {
-        if (strcmp(name, cp->name) == 0) {
+        if (strcmp(store_key, cp->name) == 0) {
             return cp;
         }
     }

@@ -32,6 +32,9 @@ extern "C" {
 class StringKeyValueStore {
 private:
     item_t table;
+    item_t alias_table;
+
+    const char *translate_alias_into_key(const char *key_alias);
 
 protected:
     bool quiet;
@@ -41,6 +44,7 @@ public:
     ~StringKeyValueStore();
 
     void add(const char *name, const char *value);
+    void set_key_alias(const char *key, const char *key_alias);
     item_t find(const char *name);
     const char *get_value(const char *name);
     void replace(const char *name, const char *value);

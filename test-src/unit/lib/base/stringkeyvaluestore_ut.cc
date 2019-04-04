@@ -50,4 +50,21 @@ TEST_F(StringKeyValueStoreTest, replace)
     ASSERT_STREQ(second_value, actual_value);
 }
 
+TEST_F(StringKeyValueStoreTest, set_key_alias)
+{
+    const char *key            = "key1";
+    const char *alias_key      = "key_alias";
+    const char *expected_value = "value1";
+    const char *actual_value;
+
+    conf->add(key, expected_value);
+    conf->set_key_alias(key, alias_key);
+
+    actual_value = conf->get_value(key);
+    ASSERT_STREQ(expected_value, actual_value);
+
+    actual_value = conf->get_value(alias_key);
+    ASSERT_STREQ(expected_value, actual_value);
+}
+
 } // namespace
