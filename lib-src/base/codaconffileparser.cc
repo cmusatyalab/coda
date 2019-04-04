@@ -108,9 +108,6 @@ void CodaConfFileParser::parse_line(char *line, int lineno, char **name,
     assert(*value != NULL);
 }
 
-/* init_one reads (or merges) the name=value tuples from the conffile.
- * If a name is seen multiple times, only the last value is remembered. Empty
- * lines and lines starting with '#' are ignored. */
 void CodaConfFileParser::parse()
 {
     FILE *conf;
@@ -156,12 +153,6 @@ void CodaConfFileParser::parse()
     fclose(conf);
 }
 
-/* file searches all directories specified by the environment variable
- * CODACONFPATH for 'confname'
- *
- * If the CODACONFPATH is not present the search defaults to,
- *	@sysconfdir@:/usr/local/etc/coda:/etc/coda
- */
 char *CodaConfFileParser::format_conffile_full_path(const char *confname)
 {
     const char *codaconfpath, *end;
@@ -200,8 +191,6 @@ char *CodaConfFileParser::format_conffile_full_path(const char *confname)
     return NULL;
 }
 
-/* init tries to load the first file that matches 'confname' in
- * CODACONFPATH */
 void CodaConfFileParser::set_conffile(const char *confname)
 {
     format_conffile_full_path(confname);
