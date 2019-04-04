@@ -40,26 +40,13 @@ private:
 
     void parse_line(char *line, int lineno, char **name, char **value);
 
+    int parse_full_path_conffile(const char *conffile);
+
 public:
     void replace(const char *name, const char *value);
 
-    /* conf_init reads (or merges) the name=value tuples from the conffile. If a
-    * name is seen multiple times, only the last value is remembered. Empty lines
-    * and lines starting with '#' are ignored. */
-    int init_one(const char *conffile);
-
-    /* helpers */
-
-    /* file searches all directories specified by the environment variable
-    *		 CODACONFPATH for 'confname'.
-    * init uses file to find a configuration file and then calls
-    *		 conf_init on this file.
-    *
-    * If the CODACONFPATH is not present the search defaults to,
-    *	@sysconfdir@:/usr/local/etc/coda:/etc/coda
-    */
-    int init(const char *confname);
-    char *file(const char *confname);
+    int parse(const char *confname);
+    char *get_conffile_full_path(const char *confname);
 };
 
 #endif /* _CODACONFFILEPARSER_H_ */

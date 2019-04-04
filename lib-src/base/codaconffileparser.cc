@@ -111,7 +111,7 @@ void CodaConfFileParser::parse_line(char *line, int lineno, char **name,
 /* init_one reads (or merges) the name=value tuples from the conffile.
  * If a name is seen multiple times, only the last value is remembered. Empty
  * lines and lines starting with '#' are ignored. */
-int CodaConfFileParser::init_one(const char *cf)
+int CodaConfFileParser::parse_full_path_conffile(const char *cf)
 {
     FILE *conf;
     int lineno = 0;
@@ -167,7 +167,7 @@ int CodaConfFileParser::init_one(const char *cf)
  * If the CODACONFPATH is not present the search defaults to,
  *	@sysconfdir@:/usr/local/etc/coda:/etc/coda
  */
-char *CodaConfFileParser::file(const char *confname)
+char *CodaConfFileParser::get_conffile_full_path(const char *confname)
 {
     const char *codaconfpath, *end;
     int pathlen, filelen = strlen(confname);
@@ -207,16 +207,17 @@ char *CodaConfFileParser::file(const char *confname)
 
 /* init tries to load the first file that matches 'confname' in
  * CODACONFPATH */
-int CodaConfFileParser::init(const char *confname)
+int CodaConfFileParser::parse(const char *confname)
 {
-    char *cf = file(confname);
+    char *cf = get_conffile_full_path(confname);
 
-    if (!cf || init_one(cf) != 0)
+    if (!cf || parse_full_path_conffile(cf) != 0)
         return -1;
 
     return 0;
 }
 
+/* Overrides CodaConfDB::replace */
 void CodaConfFileParser::replace(const char *name, const char *value)
 {
 #ifdef CONFWRITE
