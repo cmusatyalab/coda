@@ -191,3 +191,12 @@ void StringKeyValueStore::purge(void)
         free(cp);
     }
 }
+
+void StringKeyValueStore::print()
+{
+    item_t cp;
+
+    for (cp = table; cp; cp = cp->next) {
+        printf("\"%s\" : \"%s\"\n", cp->name, cp->value);
+    }
+}

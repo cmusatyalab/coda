@@ -53,6 +53,8 @@ public:
     const char *get_value(const char *key);
     void replace(const char *key, const char *value);
     void purge();
+
+    void print();
 };
 
 #endif /* _CODACONFDB_H_ */
