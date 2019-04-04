@@ -43,12 +43,12 @@ public:
     StringKeyValueStore();
     ~StringKeyValueStore();
 
-    void add(const char *name, const char *value);
+    void add(const char *key, const char *value);
     void set_key_alias(const char *key, const char *key_alias);
-    item_t find(const char *name);
-    const char *get_value(const char *name);
-    void replace(const char *name, const char *value);
-    void purge(void);
+    item_t find(const char *key);
+    const char *get_value(const char *key);
+    void replace(const char *key, const char *value);
+    void purge();
 };
 
 #endif /* _CODACONFDB_H_ */

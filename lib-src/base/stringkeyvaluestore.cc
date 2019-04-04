@@ -44,14 +44,14 @@ StringKeyValueStore::~StringKeyValueStore()
     purge();
 }
 
-void StringKeyValueStore::add(const char *name, const char *value)
+void StringKeyValueStore::add(const char *key, const char *value)
 {
     item_t n;
 
     n = (item_t)malloc(sizeof(struct _item));
     assert(n != NULL);
 
-    n->name = strdup(name);
+    n->name = strdup(key);
     assert(n->name != NULL);
 
     n->value = strdup(value);
@@ -91,13 +91,13 @@ const char *StringKeyValueStore::translate_alias_into_key(const char *key_alias)
     return key_alias;
 }
 
-void StringKeyValueStore::replace(const char *name, const char *value)
+void StringKeyValueStore::replace(const char *key, const char *value)
 {
     item_t cp;
     if (!value)
         return;
 
-    cp = find(name);
+    cp = find(key);
     if (cp) {
         free(cp->value);
         cp->value = strdup(value);
@@ -105,10 +105,10 @@ void StringKeyValueStore::replace(const char *name, const char *value)
     }
 }
 
-item_t StringKeyValueStore::find(const char *name)
+item_t StringKeyValueStore::find(const char *key)
 {
     item_t cp;
-    const char *store_key = translate_alias_into_key(name);
+    const char *store_key = translate_alias_into_key(key);
 
     for (cp = table; cp; cp = cp->next) {
         if (strcmp(store_key, cp->name) == 0) {
@@ -119,11 +119,11 @@ item_t StringKeyValueStore::find(const char *name)
     return NULL;
 }
 
-const char *StringKeyValueStore::get_value(const char *name)
+const char *StringKeyValueStore::get_value(const char *key)
 {
     item_t cp;
 
-    cp = find(name);
+    cp = find(key);
 
     return cp ? cp->value : NULL;
 }
