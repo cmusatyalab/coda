@@ -45,6 +45,7 @@ extern "C" {
 
 /* interfaces */
 #include <vice.h>
+#include <stringkeyvaluestore.h>
 
 /* from venus */
 #include "comm.h"
@@ -134,12 +135,15 @@ int redzone_limit = -1, yellowzone_limit = -1;
 static int codatunnel_enabled;
 static int codatunnel_onlytcp;
 
+StringKeyValueStore venus_global_config;
+
 /* *****  Private constants  ***** */
 
 struct timeval DaemonExpiry = { TIMERINTERVAL, 0 };
 
 /* *****  Private routines  ***** */
 
+static void LoadDefaultValuesIntoConfig();
 static void ParseCmdline(int, char **);
 static void DefaultCmdlineParms();
 static void CdToCacheDir();
@@ -345,6 +349,8 @@ int main(int argc, char **argv)
 {
     coda_assert_action  = CODA_ASSERT_SLEEP;
     coda_assert_cleanup = VFSUnmount;
+
+    LoadDefaultValuesIntoConfig();
 
     ParseCmdline(argc, argv);
     DefaultCmdlineParms(); /* read /etc/coda/venus.conf */
@@ -740,6 +746,64 @@ static unsigned int CalculateCacheFiles(unsigned int CacheBlocks)
     static const double x_scale_down = 500000;
 
     return (unsigned int)(y_scale * log(CacheBlocks / x_scale_down + 1));
+}
+
+#ifndef itoa
+static char *itoa(int value, char *str, int base = 10)
+{
+    sprintf(str, "%d", value);
+    return str;
+}
+#endif
+
+static void LoadDefaultValuesIntoConfig()
+{
+    char tmp[256];
+
+    venus_global_config.add("cachesize", MIN_CS);
+    venus_global_config.add("cacheblocks",
+                            itoa(ParseSizeWithUnits(MIN_CS), tmp));
+    venus_global_config.add("cachefiles", itoa(MIN_CF, tmp));
+    venus_global_config.add("cachechunkblocksize", "32KB");
+    venus_global_config.add("wholefilemaxsize", "50MB");
+    venus_global_config.add("wholefileminsize", "4MB");
+    venus_global_config.add("wholefilemaxstall", "10");
+    venus_global_config.add("partialcachefilesratio", "1");
+    venus_global_config.add("cachedir", DFLT_CD);
+    venus_global_config.add("checkpointdir", "/usr/coda/spool");
+    venus_global_config.add("logfile", DFLT_LOGFILE);
+    venus_global_config.add("errorlog", DFLT_ERRLOG);
+    venus_global_config.add("kerneldevice", "/dev/cfs0,/dev/coda/0");
+    venus_global_config.add("mapprivate", itoa(0, tmp));
+    venus_global_config.add("marinersocket", "/usr/coda/spool/mariner");
+    venus_global_config.add("masquerade_port", itoa(0, tmp));
+    venus_global_config.add("allow_backfetch", itoa(0, tmp));
+    venus_global_config.add("mountpoint", DFLT_VR);
+    venus_global_config.add("primaryuser", itoa(UNSET_PRIMARYUSER, tmp));
+    venus_global_config.add("realmtab", "/etc/coda/realms");
+    venus_global_config.add("rvm_log", "/usr/coda/LOG");
+    venus_global_config.add("rvm_data", "/usr/coda/DATA");
+    venus_global_config.add("RPC2_timeout", itoa(DFLT_TO, tmp));
+    venus_global_config.add("RPC2_retries", itoa(DFLT_RT, tmp));
+    venus_global_config.add("serverprobe",
+                            itoa(150, tmp)); // used to be 12 minutes
+    venus_global_config.add("reintegration_age", itoa(0, tmp));
+    venus_global_config.add("reintegration_time", itoa(15, tmp));
+    venus_global_config.add("dontuservm", itoa(0, tmp));
+    venus_global_config.add("cml_entries", itoa(0, tmp));
+    venus_global_config.add("hoard_entries", itoa(0, tmp));
+    venus_global_config.add("pid_file", DFLT_PIDFILE);
+    venus_global_config.add("run_control_file", DFLT_CTRLFILE);
+    venus_global_config.add("asrlauncher_path", "");
+    venus_global_config.add("asrpolicy_path", "");
+    venus_global_config.add("validateattrs", itoa(15, tmp));
+    venus_global_config.add("isr", itoa(0, tmp));
+    venus_global_config.add("codafs", itoa(1, tmp));
+    venus_global_config.add("9pfs", itoa(0, tmp));
+    venus_global_config.add("codatunnel", itoa(1, tmp));
+    venus_global_config.add("onlytcp", itoa(0, tmp));
+    venus_global_config.add("detect_reintegration_retry", itoa(1, tmp));
+    venus_global_config.add("checkpointformat", "newc");
 }
 
 /* Initialize "general" unset command-line parameters to user specified values
