@@ -93,4 +93,19 @@ TEST_F(StringKeyValueStoreTest, replace_aliased_key)
     ASSERT_STREQ(new_expected_value, actual_value);
 }
 
+TEST_F(StringKeyValueStoreTest, has_key)
+{
+    const char *key1        = "key1";
+    const char *key2        = "key2";
+    const char *dummy_value = "dummy_value";
+
+    ASSERT_FALSE(conf->has_key(key1));
+    ASSERT_FALSE(conf->has_key(key2));
+
+    conf->add(key1, dummy_value);
+
+    ASSERT_TRUE(conf->has_key(key1));
+    ASSERT_FALSE(conf->has_key(key2));
+}
+
 } // namespace

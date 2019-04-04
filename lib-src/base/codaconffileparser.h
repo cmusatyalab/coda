@@ -23,6 +23,7 @@ Coda are listed in the file CREDITS.
 extern "C" {
 #endif
 
+#include <sys/param.h>
 #include "coda_config.h"
 
 #ifdef __cplusplus
@@ -31,19 +32,28 @@ extern "C" {
 
 #include "stringkeyvaluestore.h"
 
-class CodaConfFileParser : public StringKeyValueStore {
+class CodaConfFileParser {
 private:
     /* buffer to read lines of config data */
     static const int MAXLINELEN = 256;
     char line[MAXLINELEN];
     char conffile[MAXPATHLEN + 1];
 
+    StringKeyValueStore &store;
+    bool quiet;
+
     void parse_line(char *line, int lineno, char **name, char **value);
 
     int parse_full_path_conffile(const char *conffile);
 
+    void replace_in_file(const char *name, const char *value);
+
 public:
-    void replace(const char *name, const char *value);
+    CodaConfFileParser(StringKeyValueStore &s)
+        : store(s)
+        , quiet(true)
+    {
+    }
 
     int parse(const char *confname);
     char *get_conffile_full_path(const char *confname);

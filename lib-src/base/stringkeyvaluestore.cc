@@ -34,7 +34,6 @@ extern "C" {
 
 StringKeyValueStore::StringKeyValueStore()
 {
-    quiet       = true;
     table       = NULL;
     alias_table = NULL;
 }
@@ -117,6 +116,13 @@ item_t StringKeyValueStore::find(const char *key)
     }
 
     return NULL;
+}
+
+bool StringKeyValueStore::has_key(const char *key)
+{
+    const char *store_key = unalias_key(key);
+    item_t cp             = find(store_key);
+    return ((cp == NULL) ? false : true);
 }
 
 const char *StringKeyValueStore::get_value(const char *key)

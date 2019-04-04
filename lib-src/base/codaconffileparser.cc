@@ -116,7 +116,7 @@ int CodaConfFileParser::parse_full_path_conffile(const char *cf)
     FILE *conf;
     int lineno = 0;
     char *name, *value;
-    item_t item __attribute__((unused));
+    const char *stored_value = NULL;
 
     conf = fopen(cf, "r");
     if (!conf) {
@@ -138,18 +138,19 @@ int CodaConfFileParser::parse_full_path_conffile(const char *cf)
         if (name == NULL)
             continue; /* skip comments and blank lines */
 
-        item = find(name);
-        if (item == NULL)
-            add(name, value);
-        else
-            replace(name, value);
+        if (store.has_key(name)) {
+            store.replace(name, value);
+            replace_in_file(name, value);
+        } else {
+            store.add(name, value);
+        }
 
-        item = find(name);
+        stored_value = store.get_value(name);
 
 #ifdef CONFDEBUG
         printf("line: %d, name: '%s', value: '%s'", lineno, name, value);
-        if (item)
-            printf("stored-value: '%s'\n", item->value);
+        if (stored_value)
+            printf("stored-value: '%s'\n", stored_value);
         else
             printf("not found?\n");
 #endif
@@ -217,16 +218,11 @@ int CodaConfFileParser::parse(const char *confname)
     return 0;
 }
 
-/* Overrides StringKeyValueStore::replace */
-void CodaConfFileParser::replace(const char *name, const char *value)
+void CodaConfFileParser::replace_in_file(const char *name, const char *value)
 {
 #ifdef CONFWRITE
     FILE *conf;
-#endif
 
-    StringKeyValueStore::replace(name, value);
-
-#ifdef CONFWRITE
     conf = fopen(conffile, "a");
     if (conf) {
         fputs(name, conf);

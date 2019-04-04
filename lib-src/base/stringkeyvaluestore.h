@@ -46,6 +46,7 @@ public:
 
     void add(const char *key, const char *value);
     void set_key_alias(const char *key, const char *key_alias);
+    bool has_key(const char *key);
     const char *get_value(const char *key);
     void replace(const char *key, const char *value);
     void purge();
