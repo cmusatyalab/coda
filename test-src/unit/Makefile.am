@@ -30,14 +30,16 @@ UNIT_BIN = $(top_builddir)/test-src/unit/unit
 $(GTEST_DIR)/lib/libgtest.la:
 	$(MAKE) -C $(GTEST_DIR) lib/libgtest.la
 
+unit: $(GTEST_DIR)/lib/libgtest.la
+
 clean-local:
 	if test -f "${GTEST_DIR}/Makefile"; then make -C $(GTEST_DIR) clean; fi
 
 distclean-local:
 	if test -f "${GTEST_DIR}/Makefile"; then make -C $(GTEST_DIR) distclean; fi
 
-check-local: unit
+check-local: unit $(GTEST_DIR)/lib/libgtest.la
 	${LIBTOOL} ${UNIT_BIN} ${GTEST_FLAGS} ${GTEST_EXTRA_FLAGS}
 
-memcheck: unit
+memcheck: unit $(GTEST_DIR)/lib/libgtest.la
 	${LIBTOOL} valgrind ${VALGRIND_FLAGS} ${UNIT_BIN} ${GTEST_FLAGS} ${GTEST_EXTRA_FLAGS}
