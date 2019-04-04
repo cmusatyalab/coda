@@ -34,7 +34,7 @@ private:
     item_t table;
     item_t alias_table;
 
-    const char *translate_alias_into_key(const char *key_alias);
+    const char *unalias_key(const char *key_alias);
 
 protected:
     bool quiet;

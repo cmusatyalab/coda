@@ -78,7 +78,7 @@ void StringKeyValueStore::set_key_alias(const char *key, const char *key_alias)
     alias_table = n;
 }
 
-const char *StringKeyValueStore::translate_alias_into_key(const char *key_alias)
+const char *StringKeyValueStore::unalias_key(const char *key_alias)
 {
     item_t cp;
 
@@ -108,7 +108,7 @@ void StringKeyValueStore::replace(const char *key, const char *value)
 item_t StringKeyValueStore::find(const char *key)
 {
     item_t cp;
-    const char *store_key = translate_alias_into_key(key);
+    const char *store_key = unalias_key(key);
 
     for (cp = table; cp; cp = cp->next) {
         if (strcmp(store_key, cp->name) == 0) {
