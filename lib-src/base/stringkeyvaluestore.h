@@ -46,6 +46,7 @@ public:
     ~StringKeyValueStore();
 
     int add(const char *key, const char *value);
+    void set(const char *key, const char *value);
     int add_key_alias(const char *key, const char *key_alias);
     bool has_key(const char *key);
     bool is_key_alias(const char *key);

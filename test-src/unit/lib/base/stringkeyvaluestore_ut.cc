@@ -178,4 +178,33 @@ TEST_F(StringKeyValueStoreTest, is_key_alias)
     ASSERT_FALSE(conf->is_key_alias(other_key));
 }
 
+TEST_F(StringKeyValueStoreTest, set_value)
+{
+    const char *key            = "key1";
+    const char *expected_value = "val";
+    const char *actual_value;
+
+    conf->set(key, expected_value);
+
+    actual_value = conf->get_value(key);
+    ASSERT_STREQ(expected_value, actual_value);
+}
+
+TEST_F(StringKeyValueStoreTest, set_value_for_existing_key)
+{
+    const char *key            = "key1";
+    const char *initial_value  = "val";
+    const char *expected_value = "val2";
+    const char *actual_value;
+    int ret_code = 0;
+
+    ret_code = conf->add(key, initial_value);
+    ASSERT_FALSE(ret_code);
+
+    conf->set(key, expected_value);
+
+    actual_value = conf->get_value(key);
+    ASSERT_STREQ(expected_value, actual_value);
+}
+
 } // namespace

@@ -66,6 +66,14 @@ int StringKeyValueStore::add(const char *key, const char *value)
     return 0;
 }
 
+void StringKeyValueStore::set(const char *key, const char *value)
+{
+    if (has_key(unalias_key(key)))
+        replace(key, value);
+    else
+        add(key, value);
+}
+
 int StringKeyValueStore::add_key_alias(const char *key, const char *key_alias)
 {
     item_t n;
