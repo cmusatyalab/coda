@@ -137,9 +137,9 @@ int redzone_limit = -1, yellowzone_limit = -1;
 static int codatunnel_enabled;
 static int codatunnel_onlytcp;
 
-StringKeyValueStore venus_global_config;
-CodaConfFileParser config_file_parser(venus_global_config);
-CodaConfCmdLineParser cmlline_parser(venus_global_config);
+StringKeyValueStore global_config;
+CodaConfFileParser config_file_parser(global_config);
+CodaConfCmdLineParser cmlline_parser(global_config);
 
 /* *****  Private constants  ***** */
 
@@ -149,6 +149,7 @@ struct timeval DaemonExpiry = { TIMERINTERVAL, 0 };
 
 static void LoadDefaultValuesIntoConfig();
 static void AddCmdLineOptionsToConfigurationParametersMapping();
+static void ApplyConsistencyRules();
 static void ParseCmdline(int, char **);
 static void DefaultCmdlineParms();
 static void CdToCacheDir();
@@ -354,19 +355,24 @@ int main(int argc, char **argv)
 {
     coda_assert_action  = CODA_ASSERT_SLEEP;
     coda_assert_cleanup = VFSUnmount;
+    int ret_code        = 0;
 
     LoadDefaultValuesIntoConfig();
     AddCmdLineOptionsToConfigurationParametersMapping();
 
-    ParseCmdline(argc, argv);
-    DefaultCmdlineParms(); /* read /etc/coda/venus.conf */
-
-    cmlline_parser.set_args(argc, argv);
-    cmlline_parser.parse();
-    venus_global_config.print();
+    // ParseCmdline(argc, argv);
+    // DefaultCmdlineParms(); /* read /etc/coda/venus.conf */
 
     config_file_parser.set_conffile("venus.conf");
     config_file_parser.parse();
+
+    cmlline_parser.set_args(argc, argv);
+    ret_code = cmlline_parser.parse();
+    if (!ret_code)
+        exit(EXIT_INVALID_ARG);
+    global_config.print();
+
+    ApplyConsistencyRules();
 
     // Cygwin runs as a service and doesn't need to daemonize.
 #ifndef __CYGWIN__
@@ -575,173 +581,6 @@ static void Usage(char *argv0)
         argv0);
 }
 
-static void ParseCmdline(int argc, char **argv)
-{
-    int i, done = 0;
-
-    for (i = 1; i < argc; i++) {
-        if (argv[i][0] == '-') {
-            if (STREQ(argv[i], "-h") || STREQ(argv[i], "--help") ||
-                STREQ(argv[i], "-?"))
-                done = 1, Usage(argv[0]);
-            else if (STREQ(argv[i], "--version"))
-                done = 1, printf("Venus " PACKAGE_VERSION "\n");
-
-            else if (STREQ(argv[i], "-relay")) { /* default is 127.0.0.1 */
-                i++;
-                inet_aton(argv[i], &venus_relay_addr);
-            } else if (STREQ(argv[i], "-k")) /* default is /dev/cfs0 */
-                i++, kernDevice = argv[i];
-            else if (STREQ(argv[i], "-mles")) /* total number of CML entries */
-                i++, MLEs = atoi(argv[i]);
-            else if (STREQ(argv[i], "-cf")) /* number of cache files */
-                i++, CacheFiles = atoi(argv[i]);
-            else if (STREQ(argv[i], "-pcfr")) /* partial cache files ratio */
-                i++, PartialCacheFilesRatio = atoi(argv[i]);
-            else if (STREQ(argv[i], "-c")) /* cache block size */
-                i++, CacheBlocks = ParseSizeWithUnits(argv[i]);
-            else if (STREQ(argv[i], "-hdbes")) /* hoard DB entries */
-                i++, HDBEs = atoi(argv[i]);
-            else if (STREQ(argv[i], "-d")) /* debugging */
-                i++, LogLevel = atoi(argv[i]);
-            else if (STREQ(argv[i], "-rpcdebug")) { /* debugging */
-                i++;
-                RPC2_DebugLevel = atoi(argv[i]);
-                RPC2_Trace      = 1;
-            } else if (STREQ(argv[i], "-lwpdebug")) { /* debugging */
-                i++;
-                lwp_debug = atoi(argv[i]);
-            } else if (STREQ(argv[i], "-rdstrace")) /* RDS heap tracing */
-                MallocTrace = 1;
-            else if (STREQ(argv[i], "-f")) /* location of cache files */
-                i++, CacheDir = argv[i];
-            else if (STREQ(argv[i], "-m"))
-                i++, COPModes = atoi(argv[i]);
-            else if (STREQ(argv[i],
-                           "-maxworkers")) /* number of worker threads */
-                i++, MaxWorkers = atoi(argv[i]);
-            else if (STREQ(argv[i], "-maxcbservers"))
-                i++, MaxCBServers = atoi(argv[i]);
-            else if (STREQ(argv[i],
-                           "-maxprefetchers")) /* max number of threads */
-                i++, MaxPrefetchers = atoi(argv[i]); /* doing prefetch ioctl */
-            else if (STREQ(argv[i], "-console")) /* location of console file */
-                i++, consoleFile = argv[i];
-            else if (STREQ(argv[i], "-retries")) /* number of rpc2 retries */
-                i++, rpc2_retries = atoi(argv[i]);
-            else if (STREQ(argv[i], "-timeout")) /* rpc timeout */
-                i++, rpc2_timeout = atoi(argv[i]);
-            else if (STREQ(argv[i], "-ws")) /* sftp window size */
-                i++, sftp_windowsize = atoi(argv[i]);
-            else if (STREQ(argv[i], "-sa")) /* sftp send ahead */
-                i++, sftp_sendahead = atoi(argv[i]);
-            else if (STREQ(argv[i], "-ap")) /* sftp ack point */
-                i++, sftp_ackpoint = atoi(argv[i]);
-            else if (STREQ(argv[i], "-ps")) /* sftp packet size */
-                i++, sftp_packetsize = atoi(argv[i]);
-            else if (STREQ(argv[i], "-init")) /* brain wipe rvm */
-                InitMetaData = 1;
-            else if (STREQ(argv[i], "-newinstance")) /* fake a 'reinit' */
-                InitNewInstance = 1;
-            else if (STREQ(argv[i], "-rvmt"))
-                i++, RvmType = (rvm_type_t)(atoi(argv[i]));
-            else if (STREQ(argv[i], "-vld")) /* location of log device */
-                i++, VenusLogDevice = argv[i]; /* normally /usr/coda/LOG */
-            else if (STREQ(argv[i], "-vlds")) /* log device size */
-                i++, VenusLogDeviceSize = atoi(argv[i]);
-            else if (STREQ(argv[i], "-vdd")) /* location of data device */
-                i++, VenusDataDevice = argv[i]; /* normally /usr/coda/DATA */
-            else if (STREQ(argv[i], "-vdds")) /* meta-data device size */
-                i++, VenusDataDeviceSize = atoi(argv[i]);
-            else if (STREQ(argv[i], "-rdscs"))
-                i++, RdsChunkSize = atoi(argv[i]);
-            else if (STREQ(argv[i], "-rdsnl"))
-                i++, RdsNlists = atoi(argv[i]);
-            else if (STREQ(argv[i], "-logopts"))
-                i++, LogOpts = atoi(argv[i]); // Continue mapping here
-            else if (STREQ(argv[i], "-swt")) /* short term pri weight */
-                i++, FSO_SWT = atoi(argv[i]);
-            else if (STREQ(argv[i], "-mwt")) /* med term priority weight */
-                i++, FSO_MWT = atoi(argv[i]);
-            else if (STREQ(argv[i], "-ssf")) /* short term scale factor */
-                i++, FSO_SSF = atoi(argv[i]);
-            else if (STREQ(argv[i],
-                           "-primaryuser")) /* primary user of this machine */
-                i++, PrimaryUser = atoi(argv[i]);
-            else if (STREQ(argv[i], "-von"))
-                rpc2_timeflag = 1;
-            else if (STREQ(argv[i], "-voff"))
-                rpc2_timeflag = 0;
-            else if (STREQ(argv[i], "-vmon"))
-                mrpc2_timeflag = 1;
-            else if (STREQ(argv[i], "-vmoff"))
-                mrpc2_timeflag = 0;
-            else if (STREQ(argv[i], "-SearchForNOreFind"))
-                SearchForNOreFind = 1;
-            else if (STREQ(argv[i], "-noasr"))
-                ASRallowed = 0;
-            else if (STREQ(argv[i], "-novcb"))
-                VCBEnabled = 0;
-            else if (STREQ(argv[i], "-nowalk")) {
-                extern char PeriodicWalksAllowed;
-                PeriodicWalksAllowed = 0;
-            } else if (STREQ(argv[i], "-spooldir")) {
-                i++, SpoolDir = argv[i];
-            }
-            /* let venus listen to tcp port `venus', as mariner port, normally
-             * it only listens to a unix domain socket */
-            else if (STREQ(argv[i], "-MarinerTcp"))
-                mariner_tcp_enable = 1;
-            else if (STREQ(argv[i], "-noMarinerTcp"))
-                mariner_tcp_enable = 0;
-            else if (STREQ(argv[i], "-allow-reattach"))
-                allow_reattach = 1;
-            else if (STREQ(argv[i], "-masquerade")) /* always on */
-                ;
-            else if (STREQ(argv[i], "-nomasquerade")) /* always on */
-                ;
-            /* Private mapping ... */
-            else if (STREQ(argv[i], "-mapprivate"))
-                MapPrivate = true;
-            else if (STREQ(argv[i], "-codatunnel")) {
-                codatunnel_enabled = 1;
-                eprint("codatunnel enabled");
-            } else if (STREQ(argv[i], "-no-codatunnel")) {
-                codatunnel_enabled = -1;
-                eprint("codatunnel disabled");
-            } else if (STREQ(argv[i], "-onlytcp")) {
-                codatunnel_onlytcp = 1;
-                eprint("codatunnel_onlytcp set");
-            } else if (STREQ(argv[i], "-codafs")) {
-                codafs_enabled = true;
-            } else if (STREQ(argv[i], "-no-codafs")) {
-                codafs_enabled = -1;
-            } else if (STREQ(argv[i], "-9pfs")) {
-                plan9server_enabled = true;
-                eprint("9pfs enabled");
-            } else if (STREQ(argv[i], "-no-9pfs")) {
-                plan9server_enabled = -1;
-                eprint("9pfs disabled");
-            } else if (STREQ(argv[i], "-nofork")) {
-                nofork = true;
-            } else if (STREQ(argv[i], "-wfmax")) {
-                i++, WholeFileMaxSize = ParseSizeWithUnits(argv[i]);
-            } else if (STREQ(argv[i], "-wfmin")) {
-                i++, WholeFileMinSize = ParseSizeWithUnits(argv[i]);
-            } else if (STREQ(argv[i], "-wfstall")) {
-                i++, WholeFileMaxStall = atoi(argv[i]);
-            } else if (STREQ(argv[i], "-ccbs")) {
-                i++, ParseCacheChunkBlockSize(argv[i]);
-            } else {
-                eprint("bad command line option %-4s", argv[i]);
-                done = -1;
-            }
-        }
-    }
-    if (done)
-        exit(done < 0 ? EXIT_INVALID_ARG : EXIT_SUCCESS);
-}
-
 /*
  * Use an adjusted logarithmic function experimentally linearlized around
  * the following points;
@@ -773,224 +612,210 @@ static void LoadDefaultValuesIntoConfig()
 {
     char tmp[256];
 
-    venus_global_config.add("cachesize", MIN_CS);
-    venus_global_config.add("cacheblocks",
-                            itoa(ParseSizeWithUnits(MIN_CS), tmp));
-    venus_global_config.add("cachefiles", itoa(MIN_CF, tmp));
-    venus_global_config.add("cachechunkblocksize", "32KB");
-    venus_global_config.add("wholefilemaxsize", "50MB");
-    venus_global_config.add("wholefileminsize", "4MB");
-    venus_global_config.add("wholefilemaxstall", "10");
-    venus_global_config.add("partialcachefilesratio", "1");
-    venus_global_config.add("cachedir", DFLT_CD);
-    venus_global_config.add("checkpointdir", "/usr/coda/spool");
-    venus_global_config.add("logfile", DFLT_LOGFILE);
-    venus_global_config.add("errorlog", DFLT_ERRLOG);
-    venus_global_config.add("kerneldevice", "/dev/cfs0,/dev/coda/0");
-    venus_global_config.add("mapprivate", itoa(0, tmp));
-    venus_global_config.add("marinersocket", "/usr/coda/spool/mariner");
-    venus_global_config.add("masquerade_port", itoa(0, tmp));
-    venus_global_config.add("allow_backfetch", itoa(0, tmp));
-    venus_global_config.add("mountpoint", DFLT_VR);
-    venus_global_config.add("primaryuser", itoa(UNSET_PRIMARYUSER, tmp));
-    venus_global_config.add("realmtab", "/etc/coda/realms");
-    venus_global_config.add("rvm_log", "/usr/coda/LOG");
-    venus_global_config.add("rvm_data", "/usr/coda/DATA");
-    venus_global_config.add("RPC2_timeout", itoa(DFLT_TO, tmp));
-    venus_global_config.add("RPC2_retries", itoa(DFLT_RT, tmp));
-    venus_global_config.add("serverprobe", itoa(150, tmp));
-    venus_global_config.add("reintegration_age", itoa(0, tmp));
-    venus_global_config.add("reintegration_time", itoa(15, tmp));
-    venus_global_config.add("dontuservm", itoa(0, tmp));
-    venus_global_config.add("cml_entries", itoa(0, tmp));
-    venus_global_config.add("hoard_entries", itoa(0, tmp));
-    venus_global_config.add("pid_file", DFLT_PIDFILE);
-    venus_global_config.add("run_control_file", DFLT_CTRLFILE);
-    venus_global_config.add("asrlauncher_path", "");
-    venus_global_config.add("asrpolicy_path", "");
-    venus_global_config.add("validateattrs", itoa(15, tmp));
-    venus_global_config.add("isr", itoa(0, tmp));
-    venus_global_config.add("codafs", itoa(1, tmp));
-    venus_global_config.add("no-codafs", itoa(0, tmp));
-    venus_global_config.add("9pfs", itoa(0, tmp));
-    venus_global_config.add("no-9pfs", itoa(1, tmp));
-    venus_global_config.add("codatunnel", itoa(1, tmp));
-    venus_global_config.add("no-codatunnel", itoa(0, tmp));
-    venus_global_config.add("onlytcp", itoa(0, tmp));
-    venus_global_config.add("detect_reintegration_retry", itoa(1, tmp));
-    venus_global_config.add("checkpointformat", "newc");
+    global_config.add("cachesize", MIN_CS);
+    global_config.add("cacheblocks", itoa(0, tmp));
+    global_config.add("cachefiles", itoa(0, tmp));
+    global_config.add("cachechunkblocksize", "32KB");
+    global_config.add("wholefilemaxsize", "50MB");
+    global_config.add("wholefileminsize", "4MB");
+    global_config.add("wholefilemaxstall", "10");
+    global_config.add("partialcachefilesratio", "1");
+    global_config.add("cachedir", DFLT_CD);
+    global_config.add("checkpointdir", "/usr/coda/spool");
+    global_config.add("logfile", DFLT_LOGFILE);
+    global_config.add("errorlog", DFLT_ERRLOG);
+    global_config.add("kerneldevice", "/dev/cfs0,/dev/coda/0");
+    global_config.add("mapprivate", itoa(0, tmp));
+    global_config.add("marinersocket", "/usr/coda/spool/mariner");
+    global_config.add("masquerade_port", itoa(0, tmp));
+    global_config.add("allow_backfetch", itoa(0, tmp));
+    global_config.add("mountpoint", DFLT_VR);
+    global_config.add("primaryuser", itoa(UNSET_PRIMARYUSER, tmp));
+    global_config.add("realmtab", "/etc/coda/realms");
+    global_config.add("rvm_log", "/usr/coda/LOG");
+    global_config.add("rvm_data", "/usr/coda/DATA");
+    global_config.add("RPC2_timeout", itoa(DFLT_TO, tmp));
+    global_config.add("RPC2_retries", itoa(DFLT_RT, tmp));
+    global_config.add("serverprobe", itoa(150, tmp));
+    global_config.add("reintegration_age", itoa(0, tmp));
+    global_config.add("reintegration_time", itoa(15, tmp));
+    global_config.add("dontuservm", itoa(0, tmp));
+    global_config.add("cml_entries", itoa(0, tmp));
+    global_config.add("hoard_entries", itoa(0, tmp));
+    global_config.add("pid_file", DFLT_PIDFILE);
+    global_config.add("run_control_file", DFLT_CTRLFILE);
+    global_config.add("asrlauncher_path", "");
+    global_config.add("asrpolicy_path", "");
+    global_config.add("validateattrs", itoa(15, tmp));
+    global_config.add("isr", itoa(0, tmp));
+    global_config.add("codafs", itoa(1, tmp));
+    global_config.add("no-codafs", itoa(0, tmp));
+    global_config.add("9pfs", itoa(0, tmp));
+    global_config.add("no-9pfs", itoa(1, tmp));
+    global_config.add("codatunnel", itoa(1, tmp));
+    global_config.add("no-codatunnel", itoa(0, tmp));
+    global_config.add("onlytcp", itoa(0, tmp));
+    global_config.add("detect_reintegration_retry", itoa(1, tmp));
+    global_config.add("checkpointformat", "newc");
 
     //Newly added
-    venus_global_config.add("initmetadata", "0");
-    venus_global_config.add("loglevel", "0");
-    venus_global_config.add("rpc2loglevel", "0");
-    venus_global_config.add("lwploglevel", "0");
-    venus_global_config.add("rdstrace", "0");
-    venus_global_config.add("copmodes", "6");
-    venus_global_config.add("maxworkers", itoa(UNSET_MAXWORKERS, tmp));
-    venus_global_config.add("maxcbservers", itoa(UNSET_MAXCBSERVERS, tmp));
-    venus_global_config.add("maxprefetchers", itoa(UNSET_MAXWORKERS, tmp));
-    venus_global_config.add("sftp_windowsize", itoa(UNSET_WS, tmp));
-    venus_global_config.add("sftp_sendahead", itoa(UNSET_SA, tmp));
-    venus_global_config.add("sftp_ackpoint", itoa(UNSET_AP, tmp));
-    venus_global_config.add("sftp_packetsize", itoa(UNSET_PS, tmp));
-    venus_global_config.add("rvmtype", itoa(UNSET, tmp));
-    venus_global_config.add("rvm_log_size", itoa(UNSET_VLDS, tmp));
-    venus_global_config.add("rvm_data_size", itoa(UNSET_VDDS, tmp));
-    venus_global_config.add("rds_chunk_size", itoa(UNSET_RDSCS, tmp));
-    venus_global_config.add("rds_list_size", itoa(UNSET_RDSNL, tmp));
-    venus_global_config.add("log_optimization", "1");
+    global_config.add("initmetadata", "0");
+    global_config.add("loglevel", "0");
+    global_config.add("rpc2loglevel", "0");
+    global_config.add("lwploglevel", "0");
+    global_config.add("rdstrace", "0");
+    global_config.add("copmodes", "6");
+    global_config.add("maxworkers", itoa(UNSET_MAXWORKERS, tmp));
+    global_config.add("maxcbservers", itoa(UNSET_MAXCBSERVERS, tmp));
+    global_config.add("maxprefetchers", itoa(UNSET_MAXWORKERS, tmp));
+    global_config.add("sftp_windowsize", itoa(UNSET_WS, tmp));
+    global_config.add("sftp_sendahead", itoa(UNSET_SA, tmp));
+    global_config.add("sftp_ackpoint", itoa(UNSET_AP, tmp));
+    global_config.add("sftp_packetsize", itoa(UNSET_PS, tmp));
+    global_config.add("rvmtype", itoa(UNSET, tmp));
+    global_config.add("rvm_log_size", itoa(UNSET_VLDS, tmp));
+    global_config.add("rvm_data_size", itoa(UNSET_VDDS, tmp));
+    global_config.add("rds_chunk_size", itoa(UNSET_RDSCS, tmp));
+    global_config.add("rds_list_size", itoa(UNSET_RDSNL, tmp));
+    global_config.add("log_optimization", "1");
 
-    venus_global_config.add("swt", itoa(UNSET_SWT, tmp));
-    venus_global_config.add("mwt", itoa(UNSET_MWT, tmp));
-    venus_global_config.add("ssf", itoa(UNSET_SSF, tmp));
-    venus_global_config.add("von", itoa(UNSET_RT, tmp));
-    venus_global_config.add("voff", itoa(UNSET_RT, tmp));
-    venus_global_config.add("vmon", itoa(UNSET_MT, tmp));
-    venus_global_config.add("vmoff", itoa(UNSET_MT, tmp));
-    venus_global_config.add("SearchForNOreFind", "0");
-    venus_global_config.add("noasr", "0");
-    venus_global_config.add("novcb", "0");
-    venus_global_config.add("nowalk", "0");
+    global_config.add("swt", itoa(UNSET_SWT, tmp));
+    global_config.add("mwt", itoa(UNSET_MWT, tmp));
+    global_config.add("ssf", itoa(UNSET_SSF, tmp));
+    global_config.add("von", itoa(UNSET_RT, tmp));
+    global_config.add("voff", itoa(UNSET_RT, tmp));
+    global_config.add("vmon", itoa(UNSET_MT, tmp));
+    global_config.add("vmoff", itoa(UNSET_MT, tmp));
+    global_config.add("SearchForNOreFind", "0");
+    global_config.add("noasr", "0");
+    global_config.add("novcb", "0");
+    global_config.add("nowalk", "0");
 #if defined(HAVE_SYS_UN_H) && !defined(__CYGWIN32__)
-    venus_global_config.add("MarinerTcp", "0");
-    venus_global_config.add("noMarinerTcp", "1");
+    global_config.add("MarinerTcp", "0");
+    global_config.add("noMarinerTcp", "1");
 #else
-    venus_global_config.add("MarinerTcp", "1");
-    venus_global_config.add("noMarinerTcp", "0");
+    global_config.add("MarinerTcp", "1");
+    global_config.add("noMarinerTcp", "0");
 #endif
-    venus_global_config.add("allow-reattach", "0");
-    venus_global_config.add("nofork", "0");
-
-    // ???
-    // CODACONF_STR(x, "relay", NULL, "127.0.0.1");
+    global_config.add("allow-reattach", "0");
+    global_config.add("nofork", "0");
 }
 
 static void AddCmdLineOptionsToConfigurationParametersMapping()
 {
     char tmp[256];
 
-    venus_global_config.add_key_alias("cachesize", "-c");
-    venus_global_config.add_key_alias("cachefiles", "-cf");
-    venus_global_config.add_key_alias("cachechunkblocksize", "-ccbs");
-    venus_global_config.add_key_alias("wholefilemaxsize", "-wfmax");
-    venus_global_config.add_key_alias("wholefileminsize", "-wfmin");
-    venus_global_config.add_key_alias("wholefilemaxstall", "-wfstall");
-    venus_global_config.add_key_alias("partialcachefilesratio", "-pcfr");
-    venus_global_config.add_key_alias("initmetadata", "-init");
-    venus_global_config.add_key_alias("cachedir", "-f");
-    venus_global_config.add_key_alias("checkpointdir", "-spooldir");
-    //venus_global_config.add_key_alias("logfile", "");
-    venus_global_config.add_key_alias("errorlog", "-console");
-    venus_global_config.add_key_alias("kerneldevice", "-k");
-    venus_global_config.add_key_alias("mapprivate", "-mapprivate");
-    //venus_global_config.add_key_alias("marinersocket", "");
-    //venus_global_config.add_key_alias("masquerade_port", "");
-    //venus_global_config.add_key_alias("allow_backfetch", "");
-    //venus_global_config.add_key_alias("mountpoint", "");
-    venus_global_config.add_key_alias("primaryuser", "-primaryuser");
-    //venus_global_config.add_key_alias("realmtab", "");
-    venus_global_config.add_key_alias("rvm_log", "-vld");
-    venus_global_config.add_key_alias("rvm_log_size", "-vlds");
-    venus_global_config.add_key_alias("rvm_data", "-vdd");
-    venus_global_config.add_key_alias("rvm_data_size", "-vdds");
-    venus_global_config.add_key_alias("RPC2_timeout", "-timeout");
-    venus_global_config.add_key_alias("RPC2_retries", "-retries");
-    //venus_global_config.add_key_alias("serverprobe", "");
-    //venus_global_config.add_key_alias("reintegration_age", "");
-    //venus_global_config.add_key_alias("reintegration_time", "");
-    //venus_global_config.add_key_alias("dontuservm", "");
-    venus_global_config.add_key_alias("cml_entries", "-mles");
-    venus_global_config.add_key_alias("hoard_entries", "-hdbes");
-    //venus_global_config.add_key_alias("pid_file", "");
-    //venus_global_config.add_key_alias("run_control_file", "");
-    //venus_global_config.add_key_alias("asrlauncher_path", "");
-    //venus_global_config.add_key_alias("asrpolicy_path", "");
-    //venus_global_config.add_key_alias("validateattrs", "");
-    //venus_global_config.add_key_alias("isr", "");
-    venus_global_config.add_key_alias("codafs", "-codafs");
-    venus_global_config.add_key_alias("no-codafs", "-no-codafs");
-    venus_global_config.add_key_alias("9pfs", "-9pfs");
-    venus_global_config.add_key_alias("no-9pfs", "-no-9pfs");
-    venus_global_config.add_key_alias("codatunnel", "-codatunnel");
-    venus_global_config.add_key_alias("no-codatunnel", "-no-codatunnel");
-    venus_global_config.add_key_alias("onlytcp", "-onlytcp");
-    //venus_global_config.add_key_alias("detect_reintegration_retry", "");
-    //venus_global_config.add_key_alias("checkpointformat", "");
+    global_config.add_key_alias("cachesize", "-c");
+    global_config.add_key_alias("cachefiles", "-cf");
+    global_config.add_key_alias("cachechunkblocksize", "-ccbs");
+    global_config.add_key_alias("wholefilemaxsize", "-wfmax");
+    global_config.add_key_alias("wholefileminsize", "-wfmin");
+    global_config.add_key_alias("wholefilemaxstall", "-wfstall");
+    global_config.add_key_alias("partialcachefilesratio", "-pcfr");
+    global_config.add_key_alias("initmetadata", "-init");
+    global_config.add_key_alias("cachedir", "-f");
+    global_config.add_key_alias("checkpointdir", "-spooldir");
+    //global_config.add_key_alias("logfile", "");
+    global_config.add_key_alias("errorlog", "-console");
+    global_config.add_key_alias("kerneldevice", "-k");
+    global_config.add_key_alias("mapprivate", "-mapprivate");
+    //global_config.add_key_alias("marinersocket", "");
+    //global_config.add_key_alias("masquerade_port", "");
+    //global_config.add_key_alias("allow_backfetch", "");
+    //global_config.add_key_alias("mountpoint", "");
+    global_config.add_key_alias("primaryuser", "-primaryuser");
+    //global_config.add_key_alias("realmtab", "");
+    global_config.add_key_alias("rvm_log", "-vld");
+    global_config.add_key_alias("rvm_log_size", "-vlds");
+    global_config.add_key_alias("rvm_data", "-vdd");
+    global_config.add_key_alias("rvm_data_size", "-vdds");
+    global_config.add_key_alias("RPC2_timeout", "-timeout");
+    global_config.add_key_alias("RPC2_retries", "-retries");
+    //global_config.add_key_alias("serverprobe", "");
+    //global_config.add_key_alias("reintegration_age", "");
+    //global_config.add_key_alias("reintegration_time", "");
+    //global_config.add_key_alias("dontuservm", "");
+    global_config.add_key_alias("cml_entries", "-mles");
+    global_config.add_key_alias("hoard_entries", "-hdbes");
+    //global_config.add_key_alias("pid_file", "");
+    //global_config.add_key_alias("run_control_file", "");
+    //global_config.add_key_alias("asrlauncher_path", "");
+    //global_config.add_key_alias("asrpolicy_path", "");
+    //global_config.add_key_alias("validateattrs", "");
+    //global_config.add_key_alias("isr", "");
+    global_config.add_key_alias("codafs", "-codafs");
+    global_config.add_key_alias("no-codafs", "-no-codafs");
+    global_config.add_key_alias("9pfs", "-9pfs");
+    global_config.add_key_alias("no-9pfs", "-no-9pfs");
+    global_config.add_key_alias("codatunnel", "-codatunnel");
+    global_config.add_key_alias("no-codatunnel", "-no-codatunnel");
+    global_config.add_key_alias("onlytcp", "-onlytcp");
+    //global_config.add_key_alias("detect_reintegration_retry", "");
+    //global_config.add_key_alias("checkpointformat", "");
 
-    venus_global_config.add_key_alias("loglevel", "-d");
-    venus_global_config.add_key_alias("rpc2loglevel", "-rpcdebug");
-    venus_global_config.add_key_alias("lwploglevel", "-lwpdebug");
-    venus_global_config.add_key_alias("rdstrace", "-rdstrace");
-    venus_global_config.add_key_alias("copmodes", "-m");
-    venus_global_config.add_key_alias("maxworkers", "-maxworkers");
-    venus_global_config.add_key_alias("maxcbservers", "-maxcbservers");
-    venus_global_config.add_key_alias("maxprefetchers", "-maxprefetchers");
-    venus_global_config.add_key_alias("sftp_windowsize", "-ws");
-    venus_global_config.add_key_alias("sftp_sendahead", "-sa");
-    venus_global_config.add_key_alias("sftp_ackpoint", "-ap");
-    venus_global_config.add_key_alias("sftp_packetsize", "-ps");
-    venus_global_config.add_key_alias("rvmtype", "-rvmt");
-    venus_global_config.add_key_alias("rds_chunk_size", "-rdscs");
-    venus_global_config.add_key_alias("rds_list_size", "-rdsnl");
-    venus_global_config.add_key_alias("log_optimization", "-logopts");
+    global_config.add_key_alias("loglevel", "-d");
+    global_config.add_key_alias("rpc2loglevel", "-rpcdebug");
+    global_config.add_key_alias("lwploglevel", "-lwpdebug");
+    global_config.add_key_alias("rdstrace", "-rdstrace");
+    global_config.add_key_alias("copmodes", "-m");
+    global_config.add_key_alias("maxworkers", "-maxworkers");
+    global_config.add_key_alias("maxcbservers", "-maxcbservers");
+    global_config.add_key_alias("maxprefetchers", "-maxprefetchers");
+    global_config.add_key_alias("sftp_windowsize", "-ws");
+    global_config.add_key_alias("sftp_sendahead", "-sa");
+    global_config.add_key_alias("sftp_ackpoint", "-ap");
+    global_config.add_key_alias("sftp_packetsize", "-ps");
+    global_config.add_key_alias("rvmtype", "-rvmt");
+    global_config.add_key_alias("rds_chunk_size", "-rdscs");
+    global_config.add_key_alias("rds_list_size", "-rdsnl");
+    global_config.add_key_alias("log_optimization", "-logopts");
 
-    venus_global_config.add_key_alias("swt", "-swt");
-    venus_global_config.add_key_alias("mwt", "-mwt");
-    venus_global_config.add_key_alias("ssf", "-ssf");
-    venus_global_config.add_key_alias("von", "-von");
-    venus_global_config.add_key_alias("voff", "-voff");
-    venus_global_config.add_key_alias("vmon", "-vmon");
-    venus_global_config.add_key_alias("vmoff", "-vmoff");
-    venus_global_config.add_key_alias("SearchForNOreFind",
-                                      "-SearchForNOreFind");
-    venus_global_config.add_key_alias("noasr", "-noasr");
-    venus_global_config.add_key_alias("novcb", "-novcb");
-    venus_global_config.add_key_alias("nowalk", "-nowalk");
-    venus_global_config.add_key_alias("MarinerTcp", "-MarinerTcp");
-    venus_global_config.add_key_alias("noMarinerTcp", "-noMarinerTcp");
-    venus_global_config.add_key_alias("allow-reattach", "-allow-reattach");
-    venus_global_config.add_key_alias("masquerade", "-masquerade");
-    venus_global_config.add_key_alias("nomasquerade", "-nomasquerade");
-    venus_global_config.add_key_alias("nofork", "-nofork");
+    global_config.add_key_alias("swt", "-swt");
+    global_config.add_key_alias("mwt", "-mwt");
+    global_config.add_key_alias("ssf", "-ssf");
+    global_config.add_key_alias("von", "-von");
+    global_config.add_key_alias("voff", "-voff");
+    global_config.add_key_alias("vmon", "-vmon");
+    global_config.add_key_alias("vmoff", "-vmoff");
+    global_config.add_key_alias("SearchForNOreFind", "-SearchForNOreFind");
+    global_config.add_key_alias("noasr", "-noasr");
+    global_config.add_key_alias("novcb", "-novcb");
+    global_config.add_key_alias("nowalk", "-nowalk");
+    global_config.add_key_alias("MarinerTcp", "-MarinerTcp");
+    global_config.add_key_alias("noMarinerTcp", "-noMarinerTcp");
+    global_config.add_key_alias("allow-reattach", "-allow-reattach");
+    global_config.add_key_alias("masquerade", "-masquerade");
+    global_config.add_key_alias("nomasquerade", "-nomasquerade");
+    global_config.add_key_alias("nofork", "-nofork");
 }
 
-/* Initialize "general" unset command-line parameters to user specified values
- * or hard-wired defaults. */
-/* Note that individual modules initialize their own unset command-line
- * parameters as appropriate. */
-static void DefaultCmdlineParms()
+/* TODO: This functions should be removed once all the gets are
+ * moved to the corresponding subsystems */
+static void ApplyConsistencyRules()
 {
-    int DontUseRVM                     = 0;
-    const char *CacheSize              = NULL;
-    const char *TmpCacheChunkBlockSize = NULL;
-    const char *TmpWFMax               = NULL;
-    const char *TmpWFMin               = NULL;
-
-    /* Load the "venus.conf" configuration file */
-    codaconf_init("venus.conf");
+    int DontUseRVM       = 0;
+    const char *TmpChar  = NULL;
+    const char *TmpWFMax = NULL;
+    const char *TmpWFMin = NULL;
 
     /* we will prefer the deprecated "cacheblocks" over "cachesize" */
-    if (!CacheBlocks) {
-        CODACONF_INT(CacheBlocks, "cacheblocks", 0);
-        if (CacheBlocks)
-            eprint(
-                "Using deprecated config 'cacheblocks', try the more flexible 'cachesize'");
+    CacheBlocks = atoi(global_config.get_value("cacheblocks"));
+    if (CacheBlocks)
+        eprint(
+            "Using deprecated config 'cacheblocks', try the more flexible 'cachesize'");
+    else {
+        CacheBlocks = ParseSizeWithUnits(global_config.get_value("cachesize"));
     }
-
-    if (!CacheBlocks) {
-        CODACONF_STR(CacheSize, "cachesize", MIN_CS);
-        CacheBlocks = ParseSizeWithUnits(CacheSize);
-    }
-
-    /* In case of user misconfiguration */
     if (CacheBlocks < MIN_CB) {
         eprint("Cannot start: minimum cache size is %s", "2MB");
         exit(EXIT_UNCONFIGURED);
     }
 
-    CODACONF_INT(CacheFiles, "cachefiles",
-                 (int)CalculateCacheFiles(CacheBlocks));
+    CacheFiles = atoi(global_config.get_value("cachefiles"));
+    if (CacheFiles == 0) {
+        CacheFiles = (int)CalculateCacheFiles(CacheBlocks);
+    }
+
     if (CacheFiles < MIN_CF) {
         eprint("Cannot start: minimum number of cache files is %d",
                CalculateCacheFiles(CacheBlocks));
@@ -998,64 +823,55 @@ static void DefaultCmdlineParms()
         exit(EXIT_UNCONFIGURED);
     }
 
-    if (!CacheChunkBlockSize) {
-        CODACONF_STR(TmpCacheChunkBlockSize, "cachechunkblocksize", "32KB");
-        ParseCacheChunkBlockSize(TmpCacheChunkBlockSize);
-    }
+    ParseCacheChunkBlockSize(global_config.get_value("cachechunkblocksize"));
 
-    if (!WholeFileMaxSize) {
-        CODACONF_STR(TmpWFMax, "wholefilemaxsize", "50MB");
-        WholeFileMaxSize = ParseSizeWithUnits(TmpWFMax);
-    }
+    WholeFileMaxSize =
+        ParseSizeWithUnits(global_config.get_value("wholefilemaxsize"));
+    WholeFileMinSize =
+        ParseSizeWithUnits(global_config.get_value("wholefileminsize"));
+    WholeFileMaxStall =
+        ParseSizeWithUnits(global_config.get_value("wholefilemaxstall"));
 
-    if (!WholeFileMinSize) {
-        CODACONF_STR(TmpWFMin, "wholefileminsize", "4MB");
-        WholeFileMinSize = ParseSizeWithUnits(TmpWFMin);
-    }
+    PartialCacheFilesRatio =
+        atoi(global_config.get_value("partialcachefilesratio"));
 
-    CODACONF_INT(WholeFileMaxStall, "wholefilemaxstall", 10);
+    CacheDir            = global_config.get_value("cachedir");
+    SpoolDir            = global_config.get_value("checkpointdir");
+    VenusLogFile        = global_config.get_value("logfile");
+    consoleFile         = global_config.get_value("errorlog");
+    kernDevice          = global_config.get_value("kerneldevice");
+    MapPrivate          = atoi(global_config.get_value("mapprivate"));
+    MarinerSocketPath   = global_config.get_value("marinersocket");
+    masquerade_port     = atoi(global_config.get_value("masquerade_port"));
+    allow_backfetch     = atoi(global_config.get_value("allow_backfetch"));
+    venusRoot           = global_config.get_value("mountpoint");
+    PrimaryUser         = atoi(global_config.get_value("primaryuser"));
+    realmtab            = global_config.get_value("realmtab");
+    VenusLogDevice      = global_config.get_value("rvm_log");
+    VenusLogDeviceSize  = atoi(global_config.get_value("rvm_log_size"));
+    VenusDataDevice     = global_config.get_value("rvm_data");
+    VenusDataDeviceSize = atoi(global_config.get_value("rvm_data_size"));
 
-    CODACONF_INT(PartialCacheFilesRatio, "partialcachefilesratio", 1);
+    rpc2_timeout = atoi(global_config.get_value("RPC2_timeout"));
+    rpc2_retries = atoi(global_config.get_value("RPC2_retries"));
 
-    CODACONF_STR(CacheDir, "cachedir", DFLT_CD);
-    CODACONF_STR(SpoolDir, "checkpointdir", "/usr/coda/spool");
-    CODACONF_STR(VenusLogFile, "logfile", DFLT_LOGFILE);
-    CODACONF_STR(consoleFile, "errorlog", DFLT_ERRLOG);
-    CODACONF_STR(kernDevice, "kerneldevice", "/dev/cfs0,/dev/coda/0");
-    CODACONF_INT(MapPrivate, "mapprivate", 0);
-    CODACONF_STR(MarinerSocketPath, "marinersocket", "/usr/coda/spool/mariner");
-    CODACONF_INT(masquerade_port, "masquerade_port", 0);
-    CODACONF_INT(allow_backfetch, "allow_backfetch", 0);
-    CODACONF_STR(venusRoot, "mountpoint", DFLT_VR);
-    CODACONF_INT(PrimaryUser, "primaryuser", UNSET_PRIMARYUSER);
-    CODACONF_STR(realmtab, "realmtab", "/etc/coda/realms");
-    CODACONF_STR(VenusLogDevice, "rvm_log", "/usr/coda/LOG");
-    CODACONF_STR(VenusDataDevice, "rvm_data", "/usr/coda/DATA");
+    T1Interval = atoi(global_config.get_value("serverprobe"));
 
-    CODACONF_INT(rpc2_timeout, "RPC2_timeout", DFLT_TO);
-    CODACONF_INT(rpc2_retries, "RPC2_retries", DFLT_RT);
-
-    CODACONF_INT(T1Interval, "serverprobe", 150); // used to be 12 minutes
-
-    CODACONF_INT(default_reintegration_age, "reintegration_age", 0);
-    CODACONF_INT(default_reintegration_time, "reintegration_time", 15);
+    default_reintegration_age =
+        atoi(global_config.get_value("reintegration_age"));
+    default_reintegration_time =
+        atoi(global_config.get_value("reintegration_time"));
     default_reintegration_time *= 1000; /* reintegration time is in msec */
 
-#if defined(__CYGWIN32__)
-    CODACONF_STR(CachePrefix, "cache_prefix",
-                 "/?"
-                 "?/C:/cygwin");
-#else
     CachePrefix = "";
-#endif
 
-    CODACONF_INT(DontUseRVM, "dontuservm", 0);
+    DontUseRVM = atoi(global_config.get_value("dontuservm"));
     {
         if (DontUseRVM)
             RvmType = VM;
     }
 
-    CODACONF_INT(MLEs, "cml_entries", 0);
+    MLEs = atoi(global_config.get_value("cml_entries"));
     {
         if (!MLEs)
             MLEs = CacheFiles * MLES_PER_FILE;
@@ -1067,7 +883,7 @@ static void DefaultCmdlineParms()
         }
     }
 
-    CODACONF_INT(HDBEs, "hoard_entries", 0);
+    HDBEs = atoi(global_config.get_value("hoard_entries"));
     {
         if (!HDBEs)
             HDBEs = CacheFiles / FILES_PER_HDBE;
@@ -1079,28 +895,32 @@ static void DefaultCmdlineParms()
         }
     }
 
-    CODACONF_STR(VenusPidFile, "pid_file", DFLT_PIDFILE);
-    if (*VenusPidFile != '/') {
-        char *tmp = (char *)malloc(strlen(CacheDir) + strlen(VenusPidFile) + 2);
+    TmpChar = global_config.get_value("pid_file");
+    if (*TmpChar != '/') {
+        char *tmp = (char *)malloc(strlen(CacheDir) + strlen(TmpChar) + 2);
         CODA_ASSERT(tmp);
-        sprintf(tmp, "%s/%s", CacheDir, VenusPidFile);
+        sprintf(tmp, "%s/%s", CacheDir, TmpChar);
+        printf("%s\n", tmp);
         VenusPidFile = tmp;
+    } else {
+        VenusPidFile = TmpChar;
     }
 
-    CODACONF_STR(VenusControlFile, "run_control_file", DFLT_CTRLFILE);
-    if (*VenusControlFile != '/') {
-        char *tmp =
-            (char *)malloc(strlen(CacheDir) + strlen(VenusControlFile) + 2);
+    TmpChar = global_config.get_value("run_control_file");
+    if (*TmpChar != '/') {
+        char *tmp = (char *)malloc(strlen(CacheDir) + strlen(TmpChar) + 2);
         CODA_ASSERT(tmp);
-        sprintf(tmp, "%s/%s", CacheDir, VenusControlFile);
+        sprintf(tmp, "%s/%s", CacheDir, TmpChar);
         VenusControlFile = tmp;
+    } else {
+        VenusControlFile = TmpChar;
     }
 
-    CODACONF_STR(ASRLauncherFile, "asrlauncher_path", NULL);
+    ASRLauncherFile = global_config.get_value("asrlauncher_path");
 
-    CODACONF_STR(ASRPolicyFile, "asrpolicy_path", NULL);
+    ASRPolicyFile = global_config.get_value("asrpolicy_path");
 
-    CODACONF_INT(PiggyValidations, "validateattrs", 15);
+    PiggyValidations = atoi(global_config.get_value("validateattrs"));
     {
         if (PiggyValidations > MAX_PIGGY_VALIDATIONS)
             PiggyValidations = MAX_PIGGY_VALIDATIONS;
@@ -1109,11 +929,15 @@ static void DefaultCmdlineParms()
     /* Enable special tweaks for running in a VM
      * - Write zeros to container file contents before truncation.
      * - Disable reintegration replay detection. */
-    CODACONF_INT(option_isr, "isr", 0);
+    option_isr = atoi(global_config.get_value("isr"));
 
     /* Kernel filesystem support */
-    CODACONF_INT(codafs_enabled, "codafs", 1);
-    CODACONF_INT(plan9server_enabled, "9pfs", 0);
+    codafs_enabled = atoi(global_config.get_value("codafs"));
+    codafs_enabled = atoi(global_config.get_value("nocodafs")) ? 0 :
+                                                                 codafs_enabled;
+    plan9server_enabled = atoi(global_config.get_value("9pfs"));
+    plan9server_enabled =
+        atoi(global_config.get_value("no9pfs")) ? 0 : plan9server_enabled;
 
     /* Allow overriding of the default setting from command line */
     if (codafs_enabled == -1)
@@ -1122,8 +946,10 @@ static void DefaultCmdlineParms()
         plan9server_enabled = false;
 
     /* Enable client-server communication helper process */
-    CODACONF_INT(codatunnel_enabled, "codatunnel", 1);
-    CODACONF_INT(codatunnel_onlytcp, "onlytcp", 0);
+    codatunnel_enabled = atoi(global_config.get_value("codatunnel"));
+    codatunnel_enabled =
+        atoi(global_config.get_value("no-codatunnel")) ? 0 : codatunnel_enabled;
+    codatunnel_onlytcp = atoi(global_config.get_value("onlytcp"));
 
     if (codatunnel_onlytcp && codatunnel_enabled != -1)
         codatunnel_enabled = 1;
@@ -1132,12 +958,13 @@ static void DefaultCmdlineParms()
         codatunnel_enabled = 0;
     }
 
-    CODACONF_INT(detect_reintegration_retry, "detect_reintegration_retry", 1);
+    detect_reintegration_retry =
+        atoi(global_config.get_value("detect_reintegration_retry"));
     if (option_isr) {
         detect_reintegration_retry = 0;
     }
 
-    CODACONF_STR(CheckpointFormat, "checkpointformat", "newc");
+    CheckpointFormat = global_config.get_value("checkpointformat");
     if (strcmp(CheckpointFormat, "tar") == 0)
         archive_type = TAR_TAR;
     if (strcmp(CheckpointFormat, "ustar") == 0)
@@ -1147,11 +974,42 @@ static void DefaultCmdlineParms()
     if (strcmp(CheckpointFormat, "newc") == 0)
         archive_type = CPIO_NEWC;
 
-#ifdef moremoremore
-    char *x = NULL;
-    CODACONF_STR(x, "relay", NULL, "127.0.0.1");
-    inet_aton(x, &venus_relay_addr);
-#endif
+    // Command line only
+    LogLevel          = atoi(global_config.get_value("loglevel"));
+    RPC2_Trace        = atoi(global_config.get_value("loglevel")) ? 1 : 0;
+    RPC2_DebugLevel   = atoi(global_config.get_value("rpc2loglevel"));
+    lwp_debug         = atoi(global_config.get_value("lwploglevel"));
+    MallocTrace       = atoi(global_config.get_value("rdstrace"));
+    COPModes          = atoi(global_config.get_value("copmodes"));
+    MaxWorkers        = atoi(global_config.get_value("maxworkers"));
+    MaxCBServers      = atoi(global_config.get_value("maxcbservers"));
+    MaxPrefetchers    = atoi(global_config.get_value("maxprefetchers"));
+    sftp_windowsize   = atoi(global_config.get_value("sftp_windowsize"));
+    sftp_sendahead    = atoi(global_config.get_value("sftp_sendahead"));
+    sftp_ackpoint     = atoi(global_config.get_value("sftp_ackpoint"));
+    sftp_packetsize   = atoi(global_config.get_value("sftp_packetsize"));
+    RvmType           = (rvm_type_t)atoi(global_config.get_value("rvmtype"));
+    RdsChunkSize      = atoi(global_config.get_value("rds_chunk_size"));
+    RdsNlists         = atoi(global_config.get_value("rds_list_size"));
+    LogOpts           = atoi(global_config.get_value("log_optimization"));
+    FSO_SWT           = atoi(global_config.get_value("swt"));
+    FSO_MWT           = atoi(global_config.get_value("mwt"));
+    FSO_SSF           = atoi(global_config.get_value("ssf"));
+    rpc2_timeflag     = atoi(global_config.get_value("von")) ? 1 : 0;
+    rpc2_timeflag     = atoi(global_config.get_value("voff")) ? 0 : 0;
+    mrpc2_timeflag    = atoi(global_config.get_value("vmon")) ? 1 : 0;
+    mrpc2_timeflag    = atoi(global_config.get_value("vmoff")) ? 0 : 0;
+    SearchForNOreFind = atoi(global_config.get_value("SearchForNOreFind"));
+    ASRallowed        = atoi(global_config.get_value("noasr")) ? 0 : 1;
+    VCBEnabled        = atoi(global_config.get_value("novcb")) ? 0 : 1;
+    extern char PeriodicWalksAllowed;
+    PeriodicWalksAllowed = atoi(global_config.get_value("nowalk")) ? 0 : 1;
+    mariner_tcp_enable   = atoi(global_config.get_value("MarinerTcp")) ? 1 : 1;
+    mariner_tcp_enable = atoi(global_config.get_value("noMarinerTcp")) ? 0 : 1;
+    allow_reattach     = atoi(global_config.get_value("allow-reattach"));
+    nofork             = atoi(global_config.get_value("nofork"));
+
+    InitMetaData = atoi(global_config.get_value("-init"));
 }
 
 static const char CACHEDIR_TAG[] =
