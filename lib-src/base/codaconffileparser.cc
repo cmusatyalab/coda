@@ -20,6 +20,8 @@ Coda are listed in the file CREDITS.
 extern "C" {
 #endif
 
+#include <errno.h>
+
 #ifdef __cplusplus
 }
 #endif
@@ -108,22 +110,30 @@ void CodaConfFileParser::parse_line(char *line, int lineno, char **name,
     assert(*value != NULL);
 }
 
-void CodaConfFileParser::parse()
+FILE *CodaConfFileParser::open_conffile()
+{
+    FILE *conf = fopen(conffile, "r");
+    if (conf)
+        return conf;
+
+    if (!quiet)
+        fprintf(stderr,
+                "Cannot read configuration file '%s', "
+                "will use default values.\n",
+                conffile);
+}
+
+int CodaConfFileParser::parse()
 {
     FILE *conf;
     int lineno = 0;
     char *name, *value;
     const char *stored_value = NULL;
+    int ret_code             = 0;
 
-    conf = fopen(conffile, "r");
-    if (!conf) {
-        if (!quiet)
-            fprintf(stderr,
-                    "Cannot read configuration file '%s', "
-                    "will use default values.\n",
-                    conffile);
-        return;
-    }
+    conf = open_conffile();
+    if (!conf)
+        return EIO;
 
     while (fgets(line, MAXLINELEN, conf)) {
         lineno++;
@@ -134,6 +144,7 @@ void CodaConfFileParser::parse()
         if (store.has_key(name)) {
             store.replace(name, value);
             replace_in_file(name, value);
+            ret_code = EEXIST;
         } else {
             store.add(name, value);
         }
@@ -151,6 +162,8 @@ void CodaConfFileParser::parse()
         free(value);
     }
     fclose(conf);
+
+    return ret_code;
 }
 
 char *CodaConfFileParser::format_conffile_full_path(const char *confname)

@@ -20,6 +20,8 @@ Coda are listed in the file CREDITS.
 extern "C" {
 #endif
 
+#include <errno.h>
+
 #ifdef __cplusplus
 }
 #endif
@@ -79,12 +81,28 @@ int CodaConfCmdLineParser::get_next_option_index(int i)
     return i + 1;
 }
 
-void CodaConfCmdLineParser::parse()
+int CodaConfCmdLineParser::parse()
 {
-    int i = 1;
+    int i        = 1;
+    int ret_code = check_collisions();
+
     for (i = 1; i < _argc; i = get_next_option_index(i)) {
         store.set(get_option(i), get_value(i));
     }
+
+    return ret_code;
+}
+
+int CodaConfCmdLineParser::check_collisions()
+{
+    int i = 1;
+    for (i = 1; i < _argc; i = get_next_option_index(i)) {
+        if (store.has_key(get_option(i))) {
+            return EEXIST;
+        }
+    }
+
+    return 0;
 }
 
 void CodaConfCmdLineParser::set_args(int argc, char **argv)

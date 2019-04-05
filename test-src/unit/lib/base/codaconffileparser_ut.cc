@@ -54,4 +54,47 @@ TEST_F(CodaConffileParserTest, persistance_parsed_values_after_destroy)
     ASSERT_STREQ(expected_value, actual_value);
 }
 
+TEST_F(CodaConffileParserTest, check_collisions_when_parsed_twice)
+{
+    const char *key                   = "cachesize";
+    const char *original_value        = "200MB";
+    const char *expected_parsed_value = "100MB";
+    const char *actual_value;
+    int ret_code = 0;
+    StringKeyValueStore original_store;
+    CodaConfFileParser parser(original_store);
+
+    parser.set_conffile(conf_path);
+
+    ret_code = parser.parse();
+    ASSERT_FALSE(ret_code);
+
+    ret_code = parser.parse();
+    ASSERT_EQ(ret_code, EEXIST);
+}
+
+TEST_F(CodaConffileParserTest, check_collisions_after_add)
+{
+    const char *key                   = "cachesize";
+    const char *original_value        = "200MB";
+    const char *expected_parsed_value = "100MB";
+    const char *actual_value;
+    int ret_code = 0;
+    StringKeyValueStore original_store;
+    CodaConfFileParser parser(original_store);
+
+    parser.set_conffile(conf_path);
+
+    original_store.add("cachesize", original_value);
+    actual_value = original_store.get_value(key);
+    ASSERT_STREQ(original_value, actual_value);
+
+    ret_code = parser.parse();
+    ASSERT_EQ(ret_code, EEXIST);
+
+    original_store.add("cachesize", original_value);
+    actual_value = original_store.get_value(key);
+    ASSERT_STREQ(expected_parsed_value, actual_value);
+}
+
 } // namespace

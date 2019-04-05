@@ -24,6 +24,7 @@ extern "C" {
 #endif
 
 #include <sys/param.h>
+#include <stdio.h>
 #include "coda_config.h"
 
 #ifdef __cplusplus
@@ -45,6 +46,8 @@ private:
 
     void replace_in_file(const char *name, const char *value);
 
+    FILE *open_conffile();
+
 public:
     CodaConfFileParser(StringKeyValueStore &s)
         : CodaConfParser(s)
@@ -54,7 +57,7 @@ public:
 
     void set_conffile(const char *confname);
 
-    void parse();
+    int parse();
 
     void set_quiet(bool quiet_val) { quiet = quiet_val; }
 

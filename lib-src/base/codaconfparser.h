@@ -42,7 +42,7 @@ public:
     {
     }
 
-    void parse() {}
+    int parse() {}
 };
 
 #endif /* _CODACONFPARSER_H_ */

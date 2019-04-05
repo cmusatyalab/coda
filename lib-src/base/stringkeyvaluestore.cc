@@ -25,7 +25,7 @@ extern "C" {
 #endif
 
 #include <sys/param.h>
-#include <asm/errno.h>
+#include <errno.h>
 #include <stdio.h>
 #include "coda_string.h"
 #include <assert.h>

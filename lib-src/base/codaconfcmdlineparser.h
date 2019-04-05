@@ -43,6 +43,7 @@ private:
     const char *get_value(int i);
     const char *get_option(int i);
     int get_next_option_index(int i);
+    int check_collisions();
 
 public:
     CodaConfCmdLineParser(StringKeyValueStore &s)
@@ -52,7 +53,7 @@ public:
 
     void set_args(int argc, char **argv);
 
-    void parse();
+    int parse();
 };
 
 #endif /* _CODACONFCMDLINEPARSER_H_ */
