@@ -811,8 +811,11 @@ static void LoadDefaultValuesIntoConfig()
     venus_global_config.add("validateattrs", itoa(15, tmp));
     venus_global_config.add("isr", itoa(0, tmp));
     venus_global_config.add("codafs", itoa(1, tmp));
+    venus_global_config.add("no-codafs", itoa(0, tmp));
     venus_global_config.add("9pfs", itoa(0, tmp));
+    venus_global_config.add("no-9pfs", itoa(1, tmp));
     venus_global_config.add("codatunnel", itoa(1, tmp));
+    venus_global_config.add("no-codatunnel", itoa(0, tmp));
     venus_global_config.add("onlytcp", itoa(0, tmp));
     venus_global_config.add("detect_reintegration_retry", itoa(1, tmp));
     venus_global_config.add("checkpointformat", "newc");
@@ -838,6 +841,27 @@ static void LoadDefaultValuesIntoConfig()
     venus_global_config.add("rds_list_size", itoa(UNSET_RDSNL, tmp));
     venus_global_config.add("log_optimization", "1");
 
+    venus_global_config.add("swt", itoa(UNSET_SWT, tmp));
+    venus_global_config.add("mwt", itoa(UNSET_MWT, tmp));
+    venus_global_config.add("ssf", itoa(UNSET_SSF, tmp));
+    venus_global_config.add("von", itoa(UNSET_RT, tmp));
+    venus_global_config.add("voff", itoa(UNSET_RT, tmp));
+    venus_global_config.add("vmon", itoa(UNSET_MT, tmp));
+    venus_global_config.add("vmoff", itoa(UNSET_MT, tmp));
+    venus_global_config.add("SearchForNOreFind", "0");
+    venus_global_config.add("noasr", "0");
+    venus_global_config.add("novcb", "0");
+    venus_global_config.add("nowalk", "0");
+#if defined(HAVE_SYS_UN_H) && !defined(__CYGWIN32__)
+    venus_global_config.add("MarinerTcp", "0");
+    venus_global_config.add("noMarinerTcp", "1");
+#else
+    venus_global_config.add("MarinerTcp", "1");
+    venus_global_config.add("noMarinerTcp", "0");
+#endif
+    venus_global_config.add("allow-reattach", "0");
+    venus_global_config.add("nofork", "0");
+
     // ???
     // CODACONF_STR(x, "relay", NULL, "127.0.0.1");
 }
@@ -855,16 +879,16 @@ static void AddCmdLineOptionsToConfigurationParametersMapping()
     venus_global_config.add_key_alias("partialcachefilesratio", "-pcfr");
     venus_global_config.add_key_alias("initmetadata", "-init");
     venus_global_config.add_key_alias("cachedir", "-f");
-    //venus_global_config.add_key_alias("checkpointdir", "");
+    venus_global_config.add_key_alias("checkpointdir", "-spooldir");
     //venus_global_config.add_key_alias("logfile", "");
     venus_global_config.add_key_alias("errorlog", "-console");
     venus_global_config.add_key_alias("kerneldevice", "-k");
-    //venus_global_config.add_key_alias("mapprivate", "");
+    venus_global_config.add_key_alias("mapprivate", "-mapprivate");
     //venus_global_config.add_key_alias("marinersocket", "");
     //venus_global_config.add_key_alias("masquerade_port", "");
     //venus_global_config.add_key_alias("allow_backfetch", "");
     //venus_global_config.add_key_alias("mountpoint", "");
-    //venus_global_config.add_key_alias("primaryuser", "");
+    venus_global_config.add_key_alias("primaryuser", "-primaryuser");
     //venus_global_config.add_key_alias("realmtab", "");
     venus_global_config.add_key_alias("rvm_log", "-vld");
     venus_global_config.add_key_alias("rvm_log_size", "-vlds");
@@ -884,9 +908,12 @@ static void AddCmdLineOptionsToConfigurationParametersMapping()
     //venus_global_config.add_key_alias("asrpolicy_path", "");
     //venus_global_config.add_key_alias("validateattrs", "");
     //venus_global_config.add_key_alias("isr", "");
-    //venus_global_config.add_key_alias("codafs", "");
+    venus_global_config.add_key_alias("codafs", "-codafs");
+    venus_global_config.add_key_alias("no-codafs", "-no-codafs");
     venus_global_config.add_key_alias("9pfs", "-9pfs");
-    //venus_global_config.add_key_alias("codatunnel", "");
+    venus_global_config.add_key_alias("no-9pfs", "-no-9pfs");
+    venus_global_config.add_key_alias("codatunnel", "-codatunnel");
+    venus_global_config.add_key_alias("no-codatunnel", "-no-codatunnel");
     venus_global_config.add_key_alias("onlytcp", "-onlytcp");
     //venus_global_config.add_key_alias("detect_reintegration_retry", "");
     //venus_global_config.add_key_alias("checkpointformat", "");
@@ -907,6 +934,25 @@ static void AddCmdLineOptionsToConfigurationParametersMapping()
     venus_global_config.add_key_alias("rds_chunk_size", "-rdscs");
     venus_global_config.add_key_alias("rds_list_size", "-rdsnl");
     venus_global_config.add_key_alias("log_optimization", "-logopts");
+
+    venus_global_config.add_key_alias("swt", "-swt");
+    venus_global_config.add_key_alias("mwt", "-mwt");
+    venus_global_config.add_key_alias("ssf", "-ssf");
+    venus_global_config.add_key_alias("von", "-von");
+    venus_global_config.add_key_alias("voff", "-voff");
+    venus_global_config.add_key_alias("vmon", "-vmon");
+    venus_global_config.add_key_alias("vmoff", "-vmoff");
+    venus_global_config.add_key_alias("SearchForNOreFind",
+                                      "-SearchForNOreFind");
+    venus_global_config.add_key_alias("noasr", "-noasr");
+    venus_global_config.add_key_alias("novcb", "-novcb");
+    venus_global_config.add_key_alias("nowalk", "-nowalk");
+    venus_global_config.add_key_alias("MarinerTcp", "-MarinerTcp");
+    venus_global_config.add_key_alias("noMarinerTcp", "-noMarinerTcp");
+    venus_global_config.add_key_alias("allow-reattach", "-allow-reattach");
+    venus_global_config.add_key_alias("masquerade", "-masquerade");
+    venus_global_config.add_key_alias("nomasquerade", "-nomasquerade");
+    venus_global_config.add_key_alias("nofork", "-nofork");
 }
 
 /* Initialize "general" unset command-line parameters to user specified values
