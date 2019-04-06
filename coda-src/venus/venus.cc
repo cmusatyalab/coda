@@ -45,7 +45,7 @@ extern "C" {
 
 /* interfaces */
 #include <vice.h>
-#include <stringkeyvaluestore.h>
+#include <venusconf.h>
 #include <codaconffileparser.h>
 #include <codaconfcmdlineparser.h>
 
@@ -137,7 +137,7 @@ int redzone_limit = -1, yellowzone_limit = -1;
 static int codatunnel_enabled;
 static int codatunnel_onlytcp;
 
-StringKeyValueStore global_config;
+VenusConf global_config;
 CodaConfFileParser config_file_parser(global_config);
 CodaConfCmdLineParser cmlline_parser(global_config);
 
@@ -799,7 +799,7 @@ static void ApplyConsistencyRules()
     const char *TmpWFMin = NULL;
 
     /* we will prefer the deprecated "cacheblocks" over "cachesize" */
-    CacheBlocks = atoi(global_config.get_value("cacheblocks"));
+    CacheBlocks = global_config.get_int_value("cacheblocks");
     if (CacheBlocks)
         eprint(
             "Using deprecated config 'cacheblocks', try the more flexible 'cachesize'");
@@ -811,7 +811,7 @@ static void ApplyConsistencyRules()
         exit(EXIT_UNCONFIGURED);
     }
 
-    CacheFiles = atoi(global_config.get_value("cachefiles"));
+    CacheFiles = global_config.get_int_value("cachefiles");
     if (CacheFiles == 0) {
         CacheFiles = (int)CalculateCacheFiles(CacheBlocks);
     }
@@ -833,45 +833,45 @@ static void ApplyConsistencyRules()
         ParseSizeWithUnits(global_config.get_value("wholefilemaxstall"));
 
     PartialCacheFilesRatio =
-        atoi(global_config.get_value("partialcachefilesratio"));
+        global_config.get_int_value("partialcachefilesratio");
 
     CacheDir            = global_config.get_value("cachedir");
     SpoolDir            = global_config.get_value("checkpointdir");
     VenusLogFile        = global_config.get_value("logfile");
     consoleFile         = global_config.get_value("errorlog");
     kernDevice          = global_config.get_value("kerneldevice");
-    MapPrivate          = atoi(global_config.get_value("mapprivate"));
+    MapPrivate          = global_config.get_int_value("mapprivate");
     MarinerSocketPath   = global_config.get_value("marinersocket");
-    masquerade_port     = atoi(global_config.get_value("masquerade_port"));
-    allow_backfetch     = atoi(global_config.get_value("allow_backfetch"));
+    masquerade_port     = global_config.get_int_value("masquerade_port");
+    allow_backfetch     = global_config.get_int_value("allow_backfetch");
     venusRoot           = global_config.get_value("mountpoint");
-    PrimaryUser         = atoi(global_config.get_value("primaryuser"));
+    PrimaryUser         = global_config.get_int_value("primaryuser");
     realmtab            = global_config.get_value("realmtab");
     VenusLogDevice      = global_config.get_value("rvm_log");
-    VenusLogDeviceSize  = atoi(global_config.get_value("rvm_log_size"));
+    VenusLogDeviceSize  = global_config.get_int_value("rvm_log_size");
     VenusDataDevice     = global_config.get_value("rvm_data");
-    VenusDataDeviceSize = atoi(global_config.get_value("rvm_data_size"));
+    VenusDataDeviceSize = global_config.get_int_value("rvm_data_size");
 
-    rpc2_timeout = atoi(global_config.get_value("RPC2_timeout"));
-    rpc2_retries = atoi(global_config.get_value("RPC2_retries"));
+    rpc2_timeout = global_config.get_int_value("RPC2_timeout");
+    rpc2_retries = global_config.get_int_value("RPC2_retries");
 
-    T1Interval = atoi(global_config.get_value("serverprobe"));
+    T1Interval = global_config.get_int_value("serverprobe");
 
     default_reintegration_age =
-        atoi(global_config.get_value("reintegration_age"));
+        global_config.get_int_value("reintegration_age");
     default_reintegration_time =
-        atoi(global_config.get_value("reintegration_time"));
+        global_config.get_int_value("reintegration_time");
     default_reintegration_time *= 1000; /* reintegration time is in msec */
 
     CachePrefix = "";
 
-    DontUseRVM = atoi(global_config.get_value("dontuservm"));
+    DontUseRVM = global_config.get_int_value("dontuservm");
     {
         if (DontUseRVM)
             RvmType = VM;
     }
 
-    MLEs = atoi(global_config.get_value("cml_entries"));
+    MLEs = global_config.get_int_value("cml_entries");
     {
         if (!MLEs)
             MLEs = CacheFiles * MLES_PER_FILE;
@@ -883,7 +883,7 @@ static void ApplyConsistencyRules()
         }
     }
 
-    HDBEs = atoi(global_config.get_value("hoard_entries"));
+    HDBEs = global_config.get_int_value("hoard_entries");
     {
         if (!HDBEs)
             HDBEs = CacheFiles / FILES_PER_HDBE;
@@ -920,7 +920,7 @@ static void ApplyConsistencyRules()
 
     ASRPolicyFile = global_config.get_value("asrpolicy_path");
 
-    PiggyValidations = atoi(global_config.get_value("validateattrs"));
+    PiggyValidations = global_config.get_int_value("validateattrs");
     {
         if (PiggyValidations > MAX_PIGGY_VALIDATIONS)
             PiggyValidations = MAX_PIGGY_VALIDATIONS;
@@ -929,15 +929,15 @@ static void ApplyConsistencyRules()
     /* Enable special tweaks for running in a VM
      * - Write zeros to container file contents before truncation.
      * - Disable reintegration replay detection. */
-    option_isr = atoi(global_config.get_value("isr"));
+    option_isr = global_config.get_int_value("isr");
 
     /* Kernel filesystem support */
-    codafs_enabled = atoi(global_config.get_value("codafs"));
-    codafs_enabled = atoi(global_config.get_value("nocodafs")) ? 0 :
-                                                                 codafs_enabled;
-    plan9server_enabled = atoi(global_config.get_value("9pfs"));
+    codafs_enabled = global_config.get_int_value("codafs");
+    codafs_enabled = global_config.get_int_value("nocodafs") ? 0 :
+                                                               codafs_enabled;
+    plan9server_enabled = global_config.get_int_value("9pfs");
     plan9server_enabled =
-        atoi(global_config.get_value("no9pfs")) ? 0 : plan9server_enabled;
+        global_config.get_int_value("no9pfs") ? 0 : plan9server_enabled;
 
     /* Allow overriding of the default setting from command line */
     if (codafs_enabled == -1)
@@ -946,10 +946,10 @@ static void ApplyConsistencyRules()
         plan9server_enabled = false;
 
     /* Enable client-server communication helper process */
-    codatunnel_enabled = atoi(global_config.get_value("codatunnel"));
+    codatunnel_enabled = global_config.get_int_value("codatunnel");
     codatunnel_enabled =
-        atoi(global_config.get_value("no-codatunnel")) ? 0 : codatunnel_enabled;
-    codatunnel_onlytcp = atoi(global_config.get_value("onlytcp"));
+        global_config.get_int_value("no-codatunnel") ? 0 : codatunnel_enabled;
+    codatunnel_onlytcp = global_config.get_int_value("onlytcp");
 
     if (codatunnel_onlytcp && codatunnel_enabled != -1)
         codatunnel_enabled = 1;
@@ -959,7 +959,7 @@ static void ApplyConsistencyRules()
     }
 
     detect_reintegration_retry =
-        atoi(global_config.get_value("detect_reintegration_retry"));
+        global_config.get_int_value("detect_reintegration_retry");
     if (option_isr) {
         detect_reintegration_retry = 0;
     }
@@ -975,41 +975,41 @@ static void ApplyConsistencyRules()
         archive_type = CPIO_NEWC;
 
     // Command line only
-    LogLevel          = atoi(global_config.get_value("loglevel"));
-    RPC2_Trace        = atoi(global_config.get_value("loglevel")) ? 1 : 0;
-    RPC2_DebugLevel   = atoi(global_config.get_value("rpc2loglevel"));
-    lwp_debug         = atoi(global_config.get_value("lwploglevel"));
-    MallocTrace       = atoi(global_config.get_value("rdstrace"));
-    COPModes          = atoi(global_config.get_value("copmodes"));
-    MaxWorkers        = atoi(global_config.get_value("maxworkers"));
-    MaxCBServers      = atoi(global_config.get_value("maxcbservers"));
-    MaxPrefetchers    = atoi(global_config.get_value("maxprefetchers"));
-    sftp_windowsize   = atoi(global_config.get_value("sftp_windowsize"));
-    sftp_sendahead    = atoi(global_config.get_value("sftp_sendahead"));
-    sftp_ackpoint     = atoi(global_config.get_value("sftp_ackpoint"));
-    sftp_packetsize   = atoi(global_config.get_value("sftp_packetsize"));
-    RvmType           = (rvm_type_t)atoi(global_config.get_value("rvmtype"));
-    RdsChunkSize      = atoi(global_config.get_value("rds_chunk_size"));
-    RdsNlists         = atoi(global_config.get_value("rds_list_size"));
-    LogOpts           = atoi(global_config.get_value("log_optimization"));
-    FSO_SWT           = atoi(global_config.get_value("swt"));
-    FSO_MWT           = atoi(global_config.get_value("mwt"));
-    FSO_SSF           = atoi(global_config.get_value("ssf"));
-    rpc2_timeflag     = atoi(global_config.get_value("von")) ? 1 : 0;
-    rpc2_timeflag     = atoi(global_config.get_value("voff")) ? 0 : 0;
-    mrpc2_timeflag    = atoi(global_config.get_value("vmon")) ? 1 : 0;
-    mrpc2_timeflag    = atoi(global_config.get_value("vmoff")) ? 0 : 0;
-    SearchForNOreFind = atoi(global_config.get_value("SearchForNOreFind"));
-    ASRallowed        = atoi(global_config.get_value("noasr")) ? 0 : 1;
-    VCBEnabled        = atoi(global_config.get_value("novcb")) ? 0 : 1;
+    LogLevel          = global_config.get_int_value("loglevel");
+    RPC2_Trace        = global_config.get_bool_value("loglevel") ? 1 : 0;
+    RPC2_DebugLevel   = global_config.get_int_value("rpc2loglevel");
+    lwp_debug         = global_config.get_int_value("lwploglevel");
+    MallocTrace       = global_config.get_int_value("rdstrace");
+    COPModes          = global_config.get_int_value("copmodes");
+    MaxWorkers        = global_config.get_int_value("maxworkers");
+    MaxCBServers      = global_config.get_int_value("maxcbservers");
+    MaxPrefetchers    = global_config.get_int_value("maxprefetchers");
+    sftp_windowsize   = global_config.get_int_value("sftp_windowsize");
+    sftp_sendahead    = global_config.get_int_value("sftp_sendahead");
+    sftp_ackpoint     = global_config.get_int_value("sftp_ackpoint");
+    sftp_packetsize   = global_config.get_int_value("sftp_packetsize");
+    RvmType           = (rvm_type_t)global_config.get_int_value("rvmtype");
+    RdsChunkSize      = global_config.get_int_value("rds_chunk_size");
+    RdsNlists         = global_config.get_int_value("rds_list_size");
+    LogOpts           = global_config.get_int_value("log_optimization");
+    FSO_SWT           = global_config.get_int_value("swt");
+    FSO_MWT           = global_config.get_int_value("mwt");
+    FSO_SSF           = global_config.get_int_value("ssf");
+    rpc2_timeflag     = global_config.get_int_value("von") ? 1 : 0;
+    rpc2_timeflag     = global_config.get_int_value("voff") ? 0 : 0;
+    mrpc2_timeflag    = global_config.get_int_value("vmon") ? 1 : 0;
+    mrpc2_timeflag    = global_config.get_int_value("vmoff") ? 0 : 0;
+    SearchForNOreFind = global_config.get_int_value("SearchForNOreFind");
+    ASRallowed        = global_config.get_int_value("noasr") ? 0 : 1;
+    VCBEnabled        = global_config.get_int_value("novcb") ? 0 : 1;
     extern char PeriodicWalksAllowed;
-    PeriodicWalksAllowed = atoi(global_config.get_value("nowalk")) ? 0 : 1;
-    mariner_tcp_enable   = atoi(global_config.get_value("MarinerTcp")) ? 1 : 1;
-    mariner_tcp_enable = atoi(global_config.get_value("noMarinerTcp")) ? 0 : 1;
-    allow_reattach     = atoi(global_config.get_value("allow-reattach"));
-    nofork             = atoi(global_config.get_value("nofork"));
+    PeriodicWalksAllowed = global_config.get_int_value("nowalk") ? 0 : 1;
+    mariner_tcp_enable   = global_config.get_int_value("MarinerTcp") ? 1 : 1;
+    mariner_tcp_enable   = global_config.get_int_value("noMarinerTcp") ? 0 : 1;
+    allow_reattach       = global_config.get_int_value("allow-reattach");
+    nofork               = global_config.get_int_value("nofork");
 
-    InitMetaData = atoi(global_config.get_value("-init"));
+    InitMetaData = global_config.get_int_value("-init");
 }
 
 static const char CACHEDIR_TAG[] =
