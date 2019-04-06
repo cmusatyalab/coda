@@ -648,12 +648,9 @@ static void LoadDefaultValuesIntoConfig()
     global_config.add("asrpolicy_path", "");
     global_config.add("validateattrs", itoa(15, tmp));
     global_config.add("isr", itoa(0, tmp));
-    global_config.add("codafs", itoa(1, tmp));
-    global_config.add("no-codafs", itoa(0, tmp));
-    global_config.add("9pfs", itoa(0, tmp));
-    global_config.add("no-9pfs", itoa(1, tmp));
-    global_config.add("codatunnel", itoa(1, tmp));
-    global_config.add("no-codatunnel", itoa(0, tmp));
+    global_config.add_on_off_pair("codafs", "no-codafs", true);
+    global_config.add_on_off_pair("9pfs", "no-9pfs", true);
+    global_config.add_on_off_pair("codatunnel", "no-codatunnel", true);
     global_config.add("onlytcp", itoa(0, tmp));
     global_config.add("detect_reintegration_retry", itoa(1, tmp));
     global_config.add("checkpointformat", "newc");
@@ -682,20 +679,16 @@ static void LoadDefaultValuesIntoConfig()
     global_config.add("swt", itoa(UNSET_SWT, tmp));
     global_config.add("mwt", itoa(UNSET_MWT, tmp));
     global_config.add("ssf", itoa(UNSET_SSF, tmp));
-    global_config.add("von", itoa(UNSET_RT, tmp));
-    global_config.add("voff", itoa(UNSET_RT, tmp));
-    global_config.add("vmon", itoa(UNSET_MT, tmp));
-    global_config.add("vmoff", itoa(UNSET_MT, tmp));
+    global_config.add_on_off_pair("von", "no-voff", false);
+    global_config.add_on_off_pair("vmon", "vmoff", false);
     global_config.add("SearchForNOreFind", "0");
     global_config.add("noasr", "0");
     global_config.add("novcb", "0");
     global_config.add("nowalk", "0");
 #if defined(HAVE_SYS_UN_H) && !defined(__CYGWIN32__)
-    global_config.add("MarinerTcp", "0");
-    global_config.add("noMarinerTcp", "1");
+    global_config.add_on_off_pair("MarinerTcp", "noMarinerTcp", false);
 #else
-    global_config.add("MarinerTcp", "1");
-    global_config.add("noMarinerTcp", "0");
+    global_config.add_on_off_pair("MarinerTcp", "noMarinerTcp", true);
 #endif
     global_config.add("allow-reattach", "0");
     global_config.add("nofork", "0");
@@ -932,12 +925,8 @@ static void ApplyConsistencyRules()
     option_isr = global_config.get_int_value("isr");
 
     /* Kernel filesystem support */
-    codafs_enabled = global_config.get_int_value("codafs");
-    codafs_enabled = global_config.get_int_value("nocodafs") ? 0 :
-                                                               codafs_enabled;
+    codafs_enabled      = global_config.get_int_value("codafs");
     plan9server_enabled = global_config.get_int_value("9pfs");
-    plan9server_enabled =
-        global_config.get_int_value("no9pfs") ? 0 : plan9server_enabled;
 
     /* Allow overriding of the default setting from command line */
     if (codafs_enabled == -1)
@@ -947,8 +936,6 @@ static void ApplyConsistencyRules()
 
     /* Enable client-server communication helper process */
     codatunnel_enabled = global_config.get_int_value("codatunnel");
-    codatunnel_enabled =
-        global_config.get_int_value("no-codatunnel") ? 0 : codatunnel_enabled;
     codatunnel_onlytcp = global_config.get_int_value("onlytcp");
 
     if (codatunnel_onlytcp && codatunnel_enabled != -1)
@@ -995,17 +982,14 @@ static void ApplyConsistencyRules()
     FSO_SWT           = global_config.get_int_value("swt");
     FSO_MWT           = global_config.get_int_value("mwt");
     FSO_SSF           = global_config.get_int_value("ssf");
-    rpc2_timeflag     = global_config.get_int_value("von") ? 1 : 0;
-    rpc2_timeflag     = global_config.get_int_value("voff") ? 0 : 0;
-    mrpc2_timeflag    = global_config.get_int_value("vmon") ? 1 : 0;
-    mrpc2_timeflag    = global_config.get_int_value("vmoff") ? 0 : 0;
+    rpc2_timeflag     = global_config.get_int_value("von");
+    mrpc2_timeflag    = global_config.get_int_value("vmon");
     SearchForNOreFind = global_config.get_int_value("SearchForNOreFind");
     ASRallowed        = global_config.get_int_value("noasr") ? 0 : 1;
     VCBEnabled        = global_config.get_int_value("novcb") ? 0 : 1;
     extern char PeriodicWalksAllowed;
     PeriodicWalksAllowed = global_config.get_int_value("nowalk") ? 0 : 1;
-    mariner_tcp_enable   = global_config.get_int_value("MarinerTcp") ? 1 : 1;
-    mariner_tcp_enable   = global_config.get_int_value("noMarinerTcp") ? 0 : 1;
+    mariner_tcp_enable   = global_config.get_int_value("MarinerTcp");
     allow_reattach       = global_config.get_int_value("allow-reattach");
     nofork               = global_config.get_int_value("nofork");
 
