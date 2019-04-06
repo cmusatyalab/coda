@@ -55,6 +55,9 @@ extern "C" {
 #include "venusstats.h"
 #include "venusfid.h"
 
+/* from util */
+#include <venusconf.h>
+
 #ifndef O_BINARY
 #define O_BINARY 0
 #endif
@@ -85,17 +88,6 @@ extern "C" {
 
 #define ASR_INTERVAL 300
 
-/*  *****  parameter defaults.  ***** */
-#define DFLT_VR "/coda" /* venus root */
-#define DFLT_CD "/usr/coda/venus.cache" /* cache directory */
-/* the next two are relative to cachedir if they do not start with '/' */
-#define DFLT_PIDFILE "pid" /* default pid file */
-#define DFLT_CTRLFILE "VENUS_CTRL" /* default control file */
-
-#define DFLT_LOGFILE "/usr/coda/etc/venus.log" /* venus log file */
-#define DFLT_ERRLOG "/usr/coda/etc/console" /* venus error log */
-#define MIN_CS "2MB"
-
 /* rule of thumb */
 const int BLOCKS_PER_FILE = 24;
 const int MLES_PER_FILE   = 4;
@@ -106,7 +98,6 @@ const int MIN_CF   = MIN_CB / BLOCKS_PER_FILE;
 const int MIN_MLE  = MIN_CF * MLES_PER_FILE;
 const int MIN_HDBE = MIN_CF / FILES_PER_HDBE;
 
-#define UNSET_PRIMARYUSER 0 /* primary user of this machine */
 const int FREE_FACTOR = 16;
 
 /*  *****  Manifest constants for Venus.  *****  */

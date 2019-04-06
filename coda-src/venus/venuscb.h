@@ -39,9 +39,6 @@ extern "C" {
 /* from venus */
 #include "vproc.h"
 
-const int DFLT_MAXCBSERVERS  = 5;
-const int UNSET_MAXCBSERVERS = -1;
-
 class callbackserver : public vproc {
     friend void CallBackInit();
 

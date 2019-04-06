@@ -95,12 +95,6 @@ const int MAX_PIGGY_VALIDATIONS = 50;
 /* Priorities. */
 const int FSO_MAX_SPRI = H_MAX_PRI;
 const int FSO_MAX_MPRI = H_MAX_PRI;
-const int DFLT_SWT     = 25;
-const int UNSET_SWT    = -1;
-const int DFLT_MWT     = 75;
-const int UNSET_MWT    = -1;
-const int DFLT_SSF     = 4;
-const int UNSET_SSF    = -1;
 
 const int CPSIZE = 8;
 

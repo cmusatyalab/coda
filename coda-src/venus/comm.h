@@ -55,7 +55,6 @@ extern "C" {
 #include "refcounted.h"
 #include "fso.h"
 #include "venusrecov.h"
-#include "venus.private.h"
 #include "vproc.h"
 
 /* Forward declarations. */
@@ -78,35 +77,6 @@ extern void ConnPrint(FILE *);
 extern void ConnPrint(int);
 extern void ServerPrint();
 extern void ServerPrint(FILE *);
-
-/*  *****  Constants  *****  */
-
-const int DFLT_RT  = 5; /* rpc2 retries */
-const int UNSET_RT = 0;
-const int DFLT_TO  = 60; /* rpc2 timeout */
-const int UNSET_TO = 0;
-const int DFLT_WS  = 32; /* sftp window size */
-const int UNSET_WS = 0;
-const int DFLT_SA  = 8; /* sftp send ahead */
-const int UNSET_SA = -1;
-const int DFLT_AP  = 8; /* sftp ack point */
-const int UNSET_AP = -1;
-const int DFLT_PS  = (1024 /*body*/ + 60 /*header*/); /* sftp packet size */
-const int UNSET_PS = -1;
-const int UNSET_ST = -1; /* do we time rpcs? */
-const int UNSET_MT = -1; /* do we time mrpcs? */
-#ifdef TIMING
-const int DFLT_ST = 1;
-const int DFLT_MT = 1;
-#else
-const int DFLT_ST = 0;
-const int DFLT_MT = 0;
-#endif
-const unsigned int INIT_BW   = 10000000;
-const unsigned int UNSET_WCT = 0;
-const unsigned int DFLT_WCT  = 50000;
-const int UNSET_WCS          = -1;
-const int DFLT_WCS           = 1800; /* 30 minutes */
 
 /*  *****  Types  *****  */
 

@@ -1,5 +1,5 @@
-#include <venusconf.h>
 #include "gtest/gtest.h"
+#include <venusconf.h>
 
 namespace
 {
