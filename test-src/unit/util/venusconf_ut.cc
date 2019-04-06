@@ -43,4 +43,28 @@ TEST_F(VenusConfTest, get_bool_value)
     ASSERT_FALSE(conf->get_bool_value(key));
 }
 
+TEST_F(VenusConfTest, add_on_off_pair)
+{
+    const char *on_key  = "on";
+    const char *off_key = "off";
+
+    conf->add_on_off_pair(on_key, off_key, "1");
+    ASSERT_TRUE(conf->get_bool_value(on_key));
+    ASSERT_FALSE(conf->get_bool_value(off_key));
+}
+
+TEST_F(VenusConfTest, add_and_set_on_off_pair)
+{
+    const char *on_key  = "on";
+    const char *off_key = "off";
+
+    conf->add_on_off_pair(on_key, off_key, "1");
+    ASSERT_TRUE(conf->get_bool_value(on_key));
+    ASSERT_FALSE(conf->get_bool_value(off_key));
+
+    conf->set(on_key, "0");
+    ASSERT_FALSE(conf->get_bool_value(on_key));
+    ASSERT_TRUE(conf->get_bool_value(off_key));
+}
+
 } // namespace

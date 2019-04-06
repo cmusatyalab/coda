@@ -34,12 +34,11 @@ private:
     item_t table;
     item_t alias_table;
 
-    const char *unalias_key(const char *key_alias);
-
 protected:
     bool quiet;
     item_t find(const char *key);
     item_t find_alias(const char *key_alias);
+    const char *unalias_key(const char *key_alias);
 
 public:
     StringKeyValueStore();
