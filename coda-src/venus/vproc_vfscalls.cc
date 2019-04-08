@@ -47,7 +47,7 @@ listed in the file CREDITS.
  *
  *
  *    ToDo:
- *        1. Decide whether or not data is needed in the following 
+ *        1. Decide whether or not data is needed in the following
  *           cases (under all COP modes):
  *          - object have its attributes set
  *          - target object of a hard link
@@ -210,10 +210,10 @@ void vproc::open(struct venus_cnode *cp, int flags)
 
             /* Special modes to pass:
                 Truncating requires write permission.
-		  Newly created stuff is writeable if parent allows it, 
+		  Newly created stuff is writeable if parent allows it,
                    modebits are ignored for new files: C_A_C_OK
 	         Otherwise, either write or insert suffices (to support
-                   insert only directories). 
+                   insert only directories).
 	    */
             int rights = truncp ? PRSFS_WRITE : (PRSFS_WRITE | PRSFS_INSERT);
             int modes  = createp ? C_A_C_OK : C_A_W_OK;
@@ -260,8 +260,8 @@ void vproc::close(struct venus_cnode *cp, int flags)
      * if you are in the DYING state and you have an active reference to
      * the file (since you cannot fetch and you cannot garbage collect).
      * We're reasonably confident that closing an object without having
-     * the DATA causes no problems; however, we'll leave a zero-level 
-     * log statement in as evidence to the contrary... (mre:6/14/94) 
+     * the DATA causes no problems; however, we'll leave a zero-level
+     * log statement in as evidence to the contrary... (mre:6/14/94)
      */
     u.u_error = FSDB->Get(&f, &cp->c_fid, u.u_uid, RC_STATUS);
     if (u.u_error)
@@ -380,9 +380,9 @@ void vproc::setattr(struct venus_cnode *cp, struct coda_vattr *vap)
     int rcrights;
 
     /*
-     * BSD44 supports chflags, which sets the va_flags field of 
+     * BSD44 supports chflags, which sets the va_flags field of
      * the vattr.  Coda doesn't support these flags, but we will
-     * allow calls that clear the field.  
+     * allow calls that clear the field.
      */
     /* Cannot set these attributes. */
     if (vap->va_fileid != VA_IGNORE_ID || vap->va_nlink != VA_IGNORE_NLINK ||
@@ -1067,9 +1067,9 @@ void vproc::rename(struct venus_cnode *spcp, char *name,
 	 * process read-lock) both child objects.  To avoid deadlock, this
 	 * should be done in fid-order, unfortunately we do not know
 	 * the fids of the objects yet.  We have to look them up to find
-	 * out.  We get away with avoiding deadlock with the reintegrator 
+	 * out.  We get away with avoiding deadlock with the reintegrator
 	 * thread here because it only read-locks leaf nodes, so these
-	 * lookups will go through.  
+	 * lookups will go through.
 	 */
         {
             fsobj *f  = (SameParent ? t_parent_fso : s_parent_fso);
@@ -1222,7 +1222,7 @@ void vproc::rename(struct venus_cnode *spcp, char *name,
 
         /*
 	 * To avoid potential deadlock with the reintegrator thread,
-	 * we must promote the locks of the child objects in fid 
+	 * we must promote the locks of the child objects in fid
 	 * order if the target exists.
 	 */
         if (!TargetExists)

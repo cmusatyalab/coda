@@ -80,9 +80,9 @@ void VprocInit()
 {
     vproc::counter = 0;
 
-    /* 
+    /*
      * Create main process.
-     * This call initializes LWP and IOMGR support. 
+     * This call initializes LWP and IOMGR support.
      * That's why it doesn't pass in a function.
      */
     Main = new vproc("Main", &DoNothing, VPT_Main);
@@ -445,7 +445,7 @@ void vproc::main(void)
     func();
 }
 
-/* 
+/*
  * we don't support assignments to objects of this type.
  * bomb in an obvious way if it inadvertently happens.
  */
