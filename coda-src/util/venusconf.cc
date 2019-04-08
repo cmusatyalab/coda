@@ -27,6 +27,8 @@ extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <stdint.h>
+#include <math.h>
 
 #ifdef __cplusplus
 }
@@ -34,6 +36,86 @@ extern "C" {
 
 #include "venusconf.h"
 #include "dlist.h"
+
+static VenusConf global_conf;
+
+/* Bytes units convertion */
+static const char *KBYTES_UNIT[] = { "KB", "kb", "Kb", "kB", "K", "k" };
+static const unsigned int KBYTE_UNIT_SCALE = 1;
+static const char *MBYTES_UNIT[] = { "MB", "mb", "Mb", "mB", "M", "m" };
+static const unsigned int MBYTE_UNIT_SCALE = 1024 * KBYTE_UNIT_SCALE;
+static const char *GBYTES_UNIT[] = { "GB", "gb", "Gb", "gB", "G", "g" };
+static const unsigned int GBYTE_UNIT_SCALE = 1024 * MBYTE_UNIT_SCALE;
+static const char *TBYTES_UNIT[] = { "TB", "tb", "Tb", "tB", "T", "t" };
+static const unsigned int TBYTE_UNIT_SCALE = 1024 * GBYTE_UNIT_SCALE;
+
+/*
+ * Use an adjusted logarithmic function experimentally linearlized around
+ * the following points;
+ * 2MB -> 85 cache files
+ * 100MB -> 4166 cache files
+ * 200MB -> 8333 cache files
+ * With the logarithmic function the following values are obtained
+ * 2MB -> 98 cache files
+ * 100MB -> 4412 cache files
+ * 200MB -> 8142 cache files
+ */
+static unsigned int CalculateCacheFiles(unsigned int CacheBlocks)
+{
+    static const int y_scale         = 24200;
+    static const double x_scale_down = 500000;
+
+    return (unsigned int)(y_scale * log(CacheBlocks / x_scale_down + 1));
+}
+
+/*
+ * Parse size value and converts into amount of 1K-Blocks
+ */
+uint64_t ParseSizeWithUnits(const char *SizeWUnits)
+{
+    const char *units = NULL;
+    int scale_factor  = 1;
+    char SizeWOUnits[256];
+    size_t size_len   = 0;
+    uint64_t size_int = 0;
+
+    /* Locate the units and determine the scale factor */
+    for (int i = 0; i < 6; i++) {
+        if ((units = strstr(SizeWUnits, KBYTES_UNIT[i]))) {
+            scale_factor = KBYTE_UNIT_SCALE;
+            break;
+        }
+
+        if ((units = strstr(SizeWUnits, MBYTES_UNIT[i]))) {
+            scale_factor = MBYTE_UNIT_SCALE;
+            break;
+        }
+
+        if ((units = strstr(SizeWUnits, GBYTES_UNIT[i]))) {
+            scale_factor = GBYTE_UNIT_SCALE;
+            break;
+        }
+
+        if ((units = strstr(SizeWUnits, TBYTES_UNIT[i]))) {
+            scale_factor = TBYTE_UNIT_SCALE;
+            break;
+        }
+    }
+
+    /* Strip the units from string */
+    if (units) {
+        size_len = (size_t)((units - SizeWUnits) / sizeof(char));
+        strncpy(SizeWOUnits, SizeWUnits, size_len);
+        SizeWOUnits[size_len] = 0; // Make it null-terminated
+    } else {
+        snprintf(SizeWOUnits, sizeof(SizeWOUnits), "%s", SizeWUnits);
+    }
+
+    /* Scale the value */
+    size_int = scale_factor * atof(SizeWOUnits);
+
+    return size_int;
+}
 
 VenusConf::~VenusConf()
 {
@@ -221,8 +303,6 @@ void VenusConf::configure_cmdline_options()
     add_key_alias("no-codafs", "-no-codafs");
     add_key_alias("9pfs", "-9pfs");
     add_key_alias("no-9pfs", "-no-9pfs");
-    add_key_alias("codatunnel", "-codatunnel");
-    add_key_alias("no-codatunnel", "-no-codatunnel");
     add_key_alias("onlytcp", "-onlytcp");
     add_key_alias("loglevel", "-d");
     add_key_alias("rpc2loglevel", "-rpcdebug");
@@ -258,6 +338,58 @@ void VenusConf::configure_cmdline_options()
     add_key_alias("masquerade", "-masquerade");
     add_key_alias("nomasquerade", "-nomasquerade");
     add_key_alias("nofork", "-nofork");
+    add_on_off_pair("-codatunnel", "-no-codatunnel", true);
+}
+
+void VenusConf::apply_consistency_rules()
+{
+    int cacheblock                  = get_int_value("cacheblocks");
+    int cachefiles                  = get_int_value("cachefiles");
+    bool codatunnel_cmdline_defined = false;
+    char buffer[256];
+
+    /* we will prefer the deprecated "cacheblocks" over "cachesize" */
+    if (get_int_value("cacheblocks"))
+        eprint(
+            "Using deprecated config 'cacheblocks', try the more flexible 'cachesize'");
+    else {
+        cacheblock = ParseSizeWithUnits(get_value("cachesize"));
+        set_int("cacheblocks", cacheblock);
+    }
+
+    if (cachefiles == 0) {
+        cachefiles = (int)CalculateCacheFiles(cacheblock);
+        set_int("cachefiles", cachefiles);
+    }
+
+    if (!get_int_value("cml_entries"))
+        set_int("cml_entries", cachefiles * MLES_PER_FILE);
+
+    if (!get_int_value("hoard_entries"))
+        set_int("hoard_entries", cachefiles / FILES_PER_HDBE);
+
+    handle_relative_path("pid_file");
+    handle_relative_path("run_control_file");
+
+    /* Enable special tweaks for running in a VM
+     * - Write zeros to container file contents before truncation.
+     * - Disable reintegration replay detection. */
+    if (get_bool_value("isr")) {
+        set_int("detect_reintegration_retry", 0);
+    }
+
+    if (get_int_value("validateattrs") > MAX_PIGGY_VALIDATIONS)
+        set_int("validateattrs", MAX_PIGGY_VALIDATIONS);
+
+    if (get_bool_value("onlytcp")) {
+        set("codatunnel", "1");
+    }
+
+    // /* If explicitly disabled thru the command line */
+    if (get_bool_value("-no-codatunnel")) {
+        set("codatunnel", "0");
+        set("onlytcp", "0");
+    }
 }
 
 int VenusConf::check()
@@ -345,4 +477,9 @@ VenusConf::on_off_pair::~on_off_pair()
 {
     free((void *)on_val);
     free((void *)off_val);
+}
+
+VenusConf &GetVenusConf()
+{
+    return global_conf;
 }

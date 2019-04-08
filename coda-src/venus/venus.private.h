@@ -88,16 +88,6 @@ extern "C" {
 
 #define ASR_INTERVAL 300
 
-/* rule of thumb */
-const int BLOCKS_PER_FILE = 24;
-const int MLES_PER_FILE   = 4;
-const int FILES_PER_HDBE  = 2;
-
-const int MIN_CB   = 2048;
-const int MIN_CF   = MIN_CB / BLOCKS_PER_FILE;
-const int MIN_MLE  = MIN_CF * MLES_PER_FILE;
-const int MIN_HDBE = MIN_CF / FILES_PER_HDBE;
-
 const int FREE_FACTOR = 16;
 
 /*  *****  Manifest constants for Venus.  *****  */

@@ -19,10 +19,27 @@ listed in the file CREDITS.
 #ifndef _VENUSCONF_H_
 #define _VENUSCONF_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <stdint.h>
+
+#ifdef __cplusplus
+}
+#endif
+
 #include <stringkeyvaluestore.h>
 #include "dlist.h"
-#include <stdlib.h>
 #include "rvmlib.h"
+
 /*  *****  parameter defaults.  ***** */
 #define DFLT_VR "/coda" /* venus root */
 #define DFLT_CD "/usr/coda/venus.cache" /* cache directory */
@@ -101,26 +118,24 @@ const unsigned long UNSET_MAXFS = (unsigned long)-1;
 const unsigned long DFLT_MAXTS  = 256 * 1024; /* Maximum Truncate Size */
 const unsigned long UNSET_MAXTS = (unsigned long)-1;
 
-// int InitMetaData = UNSET_IMD, InitNewInstance = UNSET_IMD;
-// const char *VenusLogDevice        = NULL;
-// unsigned long VenusLogDeviceSize  = UNSET_VLDS;
-// const char *VenusDataDevice       = NULL;
-// unsigned long VenusDataDeviceSize = UNSET_VDDS;
-// int RdsChunkSize                  = UNSET_RDSCS;
-// int RdsNlists                     = UNSET_RDSNL;
-// int CMFP                          = UNSET_CMFP;
-// int DMFP                          = UNSET_DMFP;
-// int MAXFP                         = UNSET_MAXFP;
-// int WITT                          = UNSET_WITT;
-// unsigned long MAXFS               = UNSET_MAXFS;
-// unsigned long MAXTS               = UNSET_MAXTS;
-
 const int DFLT_SWT  = 25;
 const int UNSET_SWT = -1;
 const int DFLT_MWT  = 75;
 const int UNSET_MWT = -1;
 const int DFLT_SSF  = 4;
 const int UNSET_SSF = -1;
+
+/* rule of thumb */
+const int BLOCKS_PER_FILE = 24;
+const int MLES_PER_FILE   = 4;
+const int FILES_PER_HDBE  = 2;
+
+const int MAX_PIGGY_VALIDATIONS = 50;
+
+const int MIN_CB   = 2048;
+const int MIN_CF   = MIN_CB / BLOCKS_PER_FILE;
+const int MIN_MLE  = MIN_CF * MLES_PER_FILE;
+const int MIN_HDBE = MIN_CF / FILES_PER_HDBE;
 
 class VenusConf : public StringKeyValueStore {
 private:
@@ -149,7 +164,12 @@ public:
     void set(const char *key, const char *value);
     void load_default_config();
     void configure_cmdline_options();
+    void apply_consistency_rules();
     int check();
 };
+
+uint64_t ParseSizeWithUnits(const char *SizeWUnits);
+
+VenusConf &GetVenusConf();
 
 #endif /* _VENUSCONF_H_ */

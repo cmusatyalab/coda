@@ -90,8 +90,6 @@ const int FSDB_MagicNumber = 3620289;
 const int FSDB_NBUCKETS    = 2048;
 const int FSO_MagicNumber  = 2687694;
 
-const int MAX_PIGGY_VALIDATIONS = 50;
-
 /* Priorities. */
 const int FSO_MAX_SPRI = H_MAX_PRI;
 const int FSO_MAX_MPRI = H_MAX_PRI;

@@ -53,6 +53,7 @@ public:
         : CodaConfParser(s)
         , quiet(true)
     {
+        conffile[0] = '\0';
     }
 
     void set_conffile(const char *confname);

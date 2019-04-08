@@ -34,7 +34,6 @@ extern "C" {
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <math.h>
 #include <rpc2/codatunnel.h>
 
 #include "archive.h"
@@ -137,9 +136,8 @@ int redzone_limit = -1, yellowzone_limit = -1;
 static int codatunnel_enabled;
 static int codatunnel_onlytcp;
 
-VenusConf global_config;
-CodaConfFileParser config_file_parser(global_config);
-CodaConfCmdLineParser cmlline_parser(global_config);
+CodaConfFileParser config_file_parser(GetVenusConf());
+CodaConfCmdLineParser cmlline_parser(GetVenusConf());
 
 /* *****  Private constants  ***** */
 
@@ -147,9 +145,7 @@ struct timeval DaemonExpiry = { TIMERINTERVAL, 0 };
 
 /* *****  Private routines  ***** */
 
-static void LoadDefaultValuesIntoConfig();
-static void AddCmdLineOptionsToConfigurationParametersMapping();
-static void ApplyConsistencyRules();
+static void MapToLegacyVariables();
 static void ParseCmdline(int, char **);
 static void DefaultCmdlineParms();
 static void CdToCacheDir();
@@ -165,16 +161,6 @@ struct in_addr venus_relay_addr = { INADDR_LOOPBACK };
 
 /* socket connecting us back to our parent */
 int parent_fd = -1;
-
-/* Bytes units convertion */
-static const char *KBYTES_UNIT[] = { "KB", "kb", "Kb", "kB", "K", "k" };
-static const unsigned int KBYTE_UNIT_SCALE = 1;
-static const char *MBYTES_UNIT[] = { "MB", "mb", "Mb", "mB", "M", "m" };
-static const unsigned int MBYTE_UNIT_SCALE = 1024 * KBYTE_UNIT_SCALE;
-static const char *GBYTES_UNIT[] = { "GB", "gb", "Gb", "gB", "G", "g" };
-static const unsigned int GBYTE_UNIT_SCALE = 1024 * MBYTE_UNIT_SCALE;
-static const char *TBYTES_UNIT[] = { "TB", "tb", "Tb", "tB", "T", "t" };
-static const unsigned int TBYTE_UNIT_SCALE = 1024 * GBYTE_UNIT_SCALE;
 
 /* Some helpers to add fd/callbacks to the inner select loop */
 struct mux_cb_entry {
@@ -254,55 +240,6 @@ void MUX_add_callback(int fd, void (*cb)(int fd, void *udata), void *udata)
     _MUX_CBEs = cbe;
 }
 
-/*
- * Parse size value and converts into amount of 1K-Blocks
- */
-static uint64_t ParseSizeWithUnits(const char *SizeWUnits)
-{
-    const char *units = NULL;
-    int scale_factor  = 1;
-    char SizeWOUnits[256];
-    size_t size_len   = 0;
-    uint64_t size_int = 0;
-
-    /* Locate the units and determine the scale factor */
-    for (int i = 0; i < 6; i++) {
-        if ((units = strstr(SizeWUnits, KBYTES_UNIT[i]))) {
-            scale_factor = KBYTE_UNIT_SCALE;
-            break;
-        }
-
-        if ((units = strstr(SizeWUnits, MBYTES_UNIT[i]))) {
-            scale_factor = MBYTE_UNIT_SCALE;
-            break;
-        }
-
-        if ((units = strstr(SizeWUnits, GBYTES_UNIT[i]))) {
-            scale_factor = GBYTE_UNIT_SCALE;
-            break;
-        }
-
-        if ((units = strstr(SizeWUnits, TBYTES_UNIT[i]))) {
-            scale_factor = TBYTE_UNIT_SCALE;
-            break;
-        }
-    }
-
-    /* Strip the units from string */
-    if (units) {
-        size_len = (size_t)((units - SizeWUnits) / sizeof(char));
-        strncpy(SizeWOUnits, SizeWUnits, size_len);
-        SizeWOUnits[size_len] = 0; // Make it null-terminated
-    } else {
-        snprintf(SizeWOUnits, sizeof(SizeWOUnits), "%s", SizeWUnits);
-    }
-
-    /* Scale the value */
-    size_int = scale_factor * atof(SizeWOUnits);
-
-    return size_int;
-}
-
 static int power_of_2(uint64_t num)
 {
     int power = 0;
@@ -357,11 +294,8 @@ int main(int argc, char **argv)
     coda_assert_cleanup = VFSUnmount;
     int ret_code        = 0;
 
-    global_config.load_default_config();
-    global_config.add_cmd_line_to_config_params_mapping();
-
-    // ParseCmdline(argc, argv);
-    // DefaultCmdlineParms(); /* read /etc/coda/venus.conf */
+    GetVenusConf().load_default_config();
+    GetVenusConf().configure_cmdline_options();
 
     config_file_parser.set_conffile("venus.conf");
     config_file_parser.parse();
@@ -370,9 +304,16 @@ int main(int argc, char **argv)
     ret_code = cmlline_parser.parse();
     if (!ret_code)
         exit(EXIT_INVALID_ARG);
-    global_config.print();
 
-    ApplyConsistencyRules();
+    GetVenusConf().apply_consistency_rules();
+
+    GetVenusConf().print();
+
+    ret_code = GetVenusConf().check();
+    if (ret_code)
+        exit(EXIT_UNCONFIGURED);
+
+    MapToLegacyVariables();
 
     // Cygwin runs as a service and doesn't need to daemonize.
 #ifndef __CYGWIN__
@@ -581,195 +522,81 @@ static void Usage(char *argv0)
         argv0);
 }
 
-/*
- * Use an adjusted logarithmic function experimentally linearlized around
- * the following points;
- * 2MB -> 85 cache files
- * 100MB -> 4166 cache files
- * 200MB -> 8333 cache files
- * With the logarithmic function the following values are obtained
- * 2MB -> 98 cache files
- * 100MB -> 4412 cache files
- * 200MB -> 8142 cache files
- */
-static unsigned int CalculateCacheFiles(unsigned int CacheBlocks)
-{
-    static const int y_scale         = 24200;
-    static const double x_scale_down = 500000;
-
-    return (unsigned int)(y_scale * log(CacheBlocks / x_scale_down + 1));
-}
-
 /* TODO: This functions should be removed once all the gets are
  * moved to the corresponding subsystems */
-static void ApplyConsistencyRules()
+static void MapToLegacyVariables()
 {
-    int DontUseRVM       = 0;
-    const char *TmpChar  = NULL;
-    const char *TmpWFMax = NULL;
-    const char *TmpWFMin = NULL;
+    int DontUseRVM = 0;
 
-    /* we will prefer the deprecated "cacheblocks" over "cachesize" */
-    CacheBlocks = global_config.get_int_value("cacheblocks");
-    if (CacheBlocks)
-        eprint(
-            "Using deprecated config 'cacheblocks', try the more flexible 'cachesize'");
-    else {
-        CacheBlocks = ParseSizeWithUnits(global_config.get_value("cachesize"));
-    }
-    if (CacheBlocks < MIN_CB) {
-        eprint("Cannot start: minimum cache size is %s", "2MB");
-        exit(EXIT_UNCONFIGURED);
-    }
-
-    CacheFiles = global_config.get_int_value("cachefiles");
-    if (CacheFiles == 0) {
-        CacheFiles = (int)CalculateCacheFiles(CacheBlocks);
-    }
-
-    if (CacheFiles < MIN_CF) {
-        eprint("Cannot start: minimum number of cache files is %d",
-               CalculateCacheFiles(CacheBlocks));
-        eprint("Cannot start: minimum number of cache files is %d", MIN_CF);
-        exit(EXIT_UNCONFIGURED);
-    }
-
-    ParseCacheChunkBlockSize(global_config.get_value("cachechunkblocksize"));
+    ParseCacheChunkBlockSize(GetVenusConf().get_value("cachechunkblocksize"));
 
     WholeFileMaxSize =
-        ParseSizeWithUnits(global_config.get_value("wholefilemaxsize"));
+        ParseSizeWithUnits(GetVenusConf().get_value("wholefilemaxsize"));
     WholeFileMinSize =
-        ParseSizeWithUnits(global_config.get_value("wholefileminsize"));
+        ParseSizeWithUnits(GetVenusConf().get_value("wholefileminsize"));
     WholeFileMaxStall =
-        ParseSizeWithUnits(global_config.get_value("wholefilemaxstall"));
+        ParseSizeWithUnits(GetVenusConf().get_value("wholefilemaxstall"));
 
     PartialCacheFilesRatio =
-        global_config.get_int_value("partialcachefilesratio");
+        GetVenusConf().get_int_value("partialcachefilesratio");
 
-    CacheDir            = global_config.get_value("cachedir");
-    SpoolDir            = global_config.get_value("checkpointdir");
-    VenusLogFile        = global_config.get_value("logfile");
-    consoleFile         = global_config.get_value("errorlog");
-    kernDevice          = global_config.get_value("kerneldevice");
-    MapPrivate          = global_config.get_int_value("mapprivate");
-    MarinerSocketPath   = global_config.get_value("marinersocket");
-    masquerade_port     = global_config.get_int_value("masquerade_port");
-    allow_backfetch     = global_config.get_int_value("allow_backfetch");
-    venusRoot           = global_config.get_value("mountpoint");
-    PrimaryUser         = global_config.get_int_value("primaryuser");
-    realmtab            = global_config.get_value("realmtab");
-    VenusLogDevice      = global_config.get_value("rvm_log");
-    VenusLogDeviceSize  = global_config.get_int_value("rvm_log_size");
-    VenusDataDevice     = global_config.get_value("rvm_data");
-    VenusDataDeviceSize = global_config.get_int_value("rvm_data_size");
+    SpoolDir            = GetVenusConf().get_value("checkpointdir");
+    VenusLogFile        = GetVenusConf().get_value("logfile");
+    consoleFile         = GetVenusConf().get_value("errorlog");
+    MapPrivate          = GetVenusConf().get_int_value("mapprivate");
+    MarinerSocketPath   = GetVenusConf().get_value("marinersocket");
+    masquerade_port     = GetVenusConf().get_int_value("masquerade_port");
+    allow_backfetch     = GetVenusConf().get_int_value("allow_backfetch");
+    venusRoot           = GetVenusConf().get_value("mountpoint");
+    PrimaryUser         = GetVenusConf().get_int_value("primaryuser");
+    realmtab            = GetVenusConf().get_value("realmtab");
+    VenusLogDevice      = GetVenusConf().get_value("rvm_log");
+    VenusLogDeviceSize  = GetVenusConf().get_int_value("rvm_log_size");
+    VenusDataDevice     = GetVenusConf().get_value("rvm_data");
+    VenusDataDeviceSize = GetVenusConf().get_int_value("rvm_data_size");
 
-    rpc2_timeout = global_config.get_int_value("RPC2_timeout");
-    rpc2_retries = global_config.get_int_value("RPC2_retries");
+    rpc2_timeout = GetVenusConf().get_int_value("RPC2_timeout");
+    rpc2_retries = GetVenusConf().get_int_value("RPC2_retries");
 
-    T1Interval = global_config.get_int_value("serverprobe");
+    T1Interval = GetVenusConf().get_int_value("serverprobe");
 
     default_reintegration_age =
-        global_config.get_int_value("reintegration_age");
+        GetVenusConf().get_int_value("reintegration_age");
     default_reintegration_time =
-        global_config.get_int_value("reintegration_time");
+        GetVenusConf().get_int_value("reintegration_time");
     default_reintegration_time *= 1000; /* reintegration time is in msec */
 
     CachePrefix = "";
 
-    DontUseRVM = global_config.get_int_value("dontuservm");
-    {
-        if (DontUseRVM)
-            RvmType = VM;
-    }
+    if (GetVenusConf().get_bool_value("dontuservm"))
+        RvmType = VM;
 
-    MLEs = global_config.get_int_value("cml_entries");
-    {
-        if (!MLEs)
-            MLEs = CacheFiles * MLES_PER_FILE;
+    MLEs = GetVenusConf().get_int_value("cml_entries");
 
-        if (MLEs < MIN_MLE) {
-            eprint("Cannot start: minimum number of cml entries is %d",
-                   MIN_MLE);
-            exit(EXIT_UNCONFIGURED);
-        }
-    }
+    HDBEs = GetVenusConf().get_int_value("hoard_entries");
 
-    HDBEs = global_config.get_int_value("hoard_entries");
-    {
-        if (!HDBEs)
-            HDBEs = CacheFiles / FILES_PER_HDBE;
+    VenusPidFile     = GetVenusConf().get_value("pid_file");
+    VenusControlFile = GetVenusConf().get_value("run_control_file");
 
-        if (HDBEs < MIN_HDBE) {
-            eprint("Cannot start: minimum number of hoard entries is %d",
-                   MIN_HDBE);
-            exit(EXIT_UNCONFIGURED);
-        }
-    }
+    ASRLauncherFile = GetVenusConf().get_value("asrlauncher_path");
 
-    TmpChar = global_config.get_value("pid_file");
-    if (*TmpChar != '/') {
-        char *tmp = (char *)malloc(strlen(CacheDir) + strlen(TmpChar) + 2);
-        CODA_ASSERT(tmp);
-        sprintf(tmp, "%s/%s", CacheDir, TmpChar);
-        printf("%s\n", tmp);
-        VenusPidFile = tmp;
-    } else {
-        VenusPidFile = TmpChar;
-    }
+    ASRPolicyFile = GetVenusConf().get_value("asrpolicy_path");
 
-    TmpChar = global_config.get_value("run_control_file");
-    if (*TmpChar != '/') {
-        char *tmp = (char *)malloc(strlen(CacheDir) + strlen(TmpChar) + 2);
-        CODA_ASSERT(tmp);
-        sprintf(tmp, "%s/%s", CacheDir, TmpChar);
-        VenusControlFile = tmp;
-    } else {
-        VenusControlFile = TmpChar;
-    }
+    PiggyValidations = GetVenusConf().get_int_value("validateattrs");
 
-    ASRLauncherFile = global_config.get_value("asrlauncher_path");
-
-    ASRPolicyFile = global_config.get_value("asrpolicy_path");
-
-    PiggyValidations = global_config.get_int_value("validateattrs");
-    {
-        if (PiggyValidations > MAX_PIGGY_VALIDATIONS)
-            PiggyValidations = MAX_PIGGY_VALIDATIONS;
-    }
-
-    /* Enable special tweaks for running in a VM
-     * - Write zeros to container file contents before truncation.
-     * - Disable reintegration replay detection. */
-    option_isr = global_config.get_int_value("isr");
+    option_isr = GetVenusConf().get_int_value("isr");
+    detect_reintegration_retry =
+        GetVenusConf().get_int_value("detect_reintegration_retry");
 
     /* Kernel filesystem support */
-    codafs_enabled      = global_config.get_int_value("codafs");
-    plan9server_enabled = global_config.get_int_value("9pfs");
-
-    /* Allow overriding of the default setting from command line */
-    if (codafs_enabled == -1)
-        codafs_enabled = false;
-    if (plan9server_enabled == -1)
-        plan9server_enabled = false;
+    codafs_enabled      = GetVenusConf().get_int_value("codafs");
+    plan9server_enabled = GetVenusConf().get_int_value("9pfs");
 
     /* Enable client-server communication helper process */
-    codatunnel_enabled = global_config.get_int_value("codatunnel");
-    codatunnel_onlytcp = global_config.get_int_value("onlytcp");
+    codatunnel_enabled = GetVenusConf().get_int_value("codatunnel");
+    codatunnel_onlytcp = GetVenusConf().get_int_value("onlytcp");
 
-    if (codatunnel_onlytcp && codatunnel_enabled != -1)
-        codatunnel_enabled = 1;
-    if (codatunnel_enabled == -1) {
-        codatunnel_onlytcp = 0;
-        codatunnel_enabled = 0;
-    }
-
-    detect_reintegration_retry =
-        global_config.get_int_value("detect_reintegration_retry");
-    if (option_isr) {
-        detect_reintegration_retry = 0;
-    }
-
-    CheckpointFormat = global_config.get_value("checkpointformat");
+    CheckpointFormat = GetVenusConf().get_value("checkpointformat");
     if (strcmp(CheckpointFormat, "tar") == 0)
         archive_type = TAR_TAR;
     if (strcmp(CheckpointFormat, "ustar") == 0)
@@ -780,38 +607,38 @@ static void ApplyConsistencyRules()
         archive_type = CPIO_NEWC;
 
     // Command line only
-    LogLevel          = global_config.get_int_value("loglevel");
-    RPC2_Trace        = global_config.get_bool_value("loglevel") ? 1 : 0;
-    RPC2_DebugLevel   = global_config.get_int_value("rpc2loglevel");
-    lwp_debug         = global_config.get_int_value("lwploglevel");
-    MallocTrace       = global_config.get_int_value("rdstrace");
-    COPModes          = global_config.get_int_value("copmodes");
-    MaxWorkers        = global_config.get_int_value("maxworkers");
-    MaxCBServers      = global_config.get_int_value("maxcbservers");
-    MaxPrefetchers    = global_config.get_int_value("maxprefetchers");
-    sftp_windowsize   = global_config.get_int_value("sftp_windowsize");
-    sftp_sendahead    = global_config.get_int_value("sftp_sendahead");
-    sftp_ackpoint     = global_config.get_int_value("sftp_ackpoint");
-    sftp_packetsize   = global_config.get_int_value("sftp_packetsize");
-    RvmType           = (rvm_type_t)global_config.get_int_value("rvmtype");
-    RdsChunkSize      = global_config.get_int_value("rds_chunk_size");
-    RdsNlists         = global_config.get_int_value("rds_list_size");
-    LogOpts           = global_config.get_int_value("log_optimization");
-    FSO_SWT           = global_config.get_int_value("swt");
-    FSO_MWT           = global_config.get_int_value("mwt");
-    FSO_SSF           = global_config.get_int_value("ssf");
-    rpc2_timeflag     = global_config.get_int_value("von");
-    mrpc2_timeflag    = global_config.get_int_value("vmon");
-    SearchForNOreFind = global_config.get_int_value("SearchForNOreFind");
-    ASRallowed        = global_config.get_int_value("noasr") ? 0 : 1;
-    VCBEnabled        = global_config.get_int_value("novcb") ? 0 : 1;
+    LogLevel          = GetVenusConf().get_int_value("loglevel");
+    RPC2_Trace        = GetVenusConf().get_bool_value("loglevel") ? 1 : 0;
+    RPC2_DebugLevel   = GetVenusConf().get_int_value("rpc2loglevel");
+    lwp_debug         = GetVenusConf().get_int_value("lwploglevel");
+    MallocTrace       = GetVenusConf().get_int_value("rdstrace");
+    COPModes          = GetVenusConf().get_int_value("copmodes");
+    MaxWorkers        = GetVenusConf().get_int_value("maxworkers");
+    MaxCBServers      = GetVenusConf().get_int_value("maxcbservers");
+    MaxPrefetchers    = GetVenusConf().get_int_value("maxprefetchers");
+    sftp_windowsize   = GetVenusConf().get_int_value("sftp_windowsize");
+    sftp_sendahead    = GetVenusConf().get_int_value("sftp_sendahead");
+    sftp_ackpoint     = GetVenusConf().get_int_value("sftp_ackpoint");
+    sftp_packetsize   = GetVenusConf().get_int_value("sftp_packetsize");
+    RvmType           = (rvm_type_t)GetVenusConf().get_int_value("rvmtype");
+    RdsChunkSize      = GetVenusConf().get_int_value("rds_chunk_size");
+    RdsNlists         = GetVenusConf().get_int_value("rds_list_size");
+    LogOpts           = GetVenusConf().get_int_value("log_optimization");
+    FSO_SWT           = GetVenusConf().get_int_value("swt");
+    FSO_MWT           = GetVenusConf().get_int_value("mwt");
+    FSO_SSF           = GetVenusConf().get_int_value("ssf");
+    rpc2_timeflag     = GetVenusConf().get_int_value("von");
+    mrpc2_timeflag    = GetVenusConf().get_int_value("vmon");
+    SearchForNOreFind = GetVenusConf().get_int_value("SearchForNOreFind");
+    ASRallowed        = GetVenusConf().get_int_value("noasr") ? 0 : 1;
+    VCBEnabled        = GetVenusConf().get_int_value("novcb") ? 0 : 1;
     extern char PeriodicWalksAllowed;
-    PeriodicWalksAllowed = global_config.get_int_value("nowalk") ? 0 : 1;
-    mariner_tcp_enable   = global_config.get_int_value("MarinerTcp");
-    allow_reattach       = global_config.get_int_value("allow-reattach");
-    nofork               = global_config.get_int_value("nofork");
+    PeriodicWalksAllowed = GetVenusConf().get_int_value("nowalk") ? 0 : 1;
+    mariner_tcp_enable   = GetVenusConf().get_int_value("MarinerTcp");
+    allow_reattach       = GetVenusConf().get_int_value("allow-reattach");
+    nofork               = GetVenusConf().get_int_value("nofork");
 
-    InitMetaData = global_config.get_int_value("-init");
+    InitMetaData = GetVenusConf().get_int_value("-init");
 }
 
 static const char CACHEDIR_TAG[] =
