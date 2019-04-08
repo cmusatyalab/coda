@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -240,58 +240,6 @@ ssize_t WriteDowncallMsg(int fd, const char *buf, size_t size)
 ssize_t MsgWrite(const char *buf, size_t size)
 {
     return WriteDowncallMsg(worker::muxfd, buf, size);
-}
-
-/* test if we can open the kernel device and purge the cache,
-   BSD systems like to purge that cache */
-void testKernDevice()
-{
-#ifdef __CYGWIN32__
-    return;
-#else
-    int fd = -1;
-    char *str, *p, *q = NULL;
-    CODA_ASSERT((str = p = strdup(kernDevice)) != NULL);
-
-    for (p = strtok(p, ","); p && fd == -1; p = strtok(NULL, ",")) {
-        fd = ::open(p, O_RDWR, 0);
-        if (fd >= 0)
-            q = p;
-    }
-
-    /* If the open of the kernel device succeeds we know that there is
-	   no other living venus. */
-    if (fd < 0) {
-        eprint("Probably another Venus is running! open failed for %s, exiting",
-               kernDevice);
-        free(str);
-        exit(EXIT_FAILURE);
-    }
-
-    CODA_ASSERT(q);
-    kernDevice = strdup(q);
-    free(str);
-
-    /* Construct a purge message */
-    union outputArgs msg;
-    memset(&msg, 0, sizeof(msg));
-
-    msg.oh.opcode = CODA_FLUSH;
-    msg.oh.unique = 0;
-
-    /* Send the message. */
-    if (write(fd, (const void *)&msg, sizeof(struct coda_out_hdr)) !=
-        sizeof(struct coda_out_hdr)) {
-        eprint("Write for flush failed (%d), exiting", errno);
-        exit(EXIT_FAILURE);
-    }
-
-    /* Close the kernel device. */
-    if (close(fd) < 0) {
-        eprint("close of %s failed (%d), exiting", kernDevice, errno);
-        exit(EXIT_FAILURE);
-    }
-#endif
 }
 
 void VFSMount()

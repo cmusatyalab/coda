@@ -151,8 +151,6 @@ static void CdToCacheDir();
 static void CheckInitFile();
 static void UnsetInitFile();
 static void SetRlimits();
-/* **** defined in worker.c **** */
-extern int testKernDevice();
 
 struct in_addr venus_relay_addr = { INADDR_LOOPBACK };
 
@@ -284,6 +282,59 @@ void ParseCacheChunkBlockSize(const char *ccblocksize)
     CacheChunkBlockSize       = 1 << CacheChunkBlockSizeBits;
     CacheChunkBlockSizeMax    = CacheChunkBlockSize - 1;
     CacheChunkBlockBitmapSize = (UINT_MAX >> CacheChunkBlockSizeBits) + 1;
+}
+
+/* test if we can open the kernel device and purge the cache,
+   BSD systems like to purge that cache */
+void testKernDevice()
+{
+#ifdef __CYGWIN32__
+    return;
+#else
+    const char *kernDevice = GetVenusConf().get_value("kerneldevice");
+    int fd                 = -1;
+    char *str, *p, *q = NULL;
+    CODA_ASSERT((str = p = strdup(kernDevice)) != NULL);
+
+    for (p = strtok(p, ","); p && fd == -1; p = strtok(NULL, ",")) {
+        fd = ::open(p, O_RDWR, 0);
+        if (fd >= 0)
+            q = p;
+    }
+
+    /* If the open of the kernel device succeeds we know that there is
+	   no other living venus. */
+    if (fd < 0) {
+        eprint("Probably another Venus is running! open failed for %s, exiting",
+               kernDevice);
+        free(str);
+        exit(EXIT_FAILURE);
+    }
+
+    CODA_ASSERT(q);
+    kernDevice = strdup(q);
+    free(str);
+
+    /* Construct a purge message */
+    union outputArgs msg;
+    memset(&msg, 0, sizeof(msg));
+
+    msg.oh.opcode = CODA_FLUSH;
+    msg.oh.unique = 0;
+
+    /* Send the message. */
+    if (write(fd, (const void *)&msg, sizeof(struct coda_out_hdr)) !=
+        sizeof(struct coda_out_hdr)) {
+        eprint("Write for flush failed (%d), exiting", errno);
+        exit(EXIT_FAILURE);
+    }
+
+    /* Close the kernel device. */
+    if (close(fd) < 0) {
+        eprint("close of %s failed (%d), exiting", kernDevice, errno);
+        exit(EXIT_FAILURE);
+    }
+#endif
 }
 
 /* local-repair modification */
