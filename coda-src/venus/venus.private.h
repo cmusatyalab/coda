@@ -327,7 +327,6 @@ extern int parent_fd;
 extern long rootnodeid;
 extern int CleanShutDown;
 extern const char *venusRoot;
-extern const char *kernDevice;
 extern const char *realmtab;
 extern const char *CacheDir;
 extern const char *CachePrefix;

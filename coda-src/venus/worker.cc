@@ -106,7 +106,8 @@ extern int venus_relay_addr;
 int worker::muxfd = -1;
 int worker::nworkers;
 int worker::nprefetchers;
-int worker::kernel_version = 0;
+int worker::kernel_version      = 0;
+const char *worker::kernDevice  = "";
 time_t worker::lastresign;
 olist worker::FreeMsgs;
 olist worker::QueuedMsgs;
@@ -349,28 +350,31 @@ void VFSMount()
             md[3].iov_len  = strlen((char *)venusRoot) + 1;
             md[4].iov_base = (char *)"from";
             md[4].iov_len  = sizeof("from");
-            md[5].iov_base = (char *)kernDevice;
-            md[5].iov_len  = strlen((char *)kernDevice) + 1;
+            md[5].iov_base = (char *)worker::kernDevice;
+            md[5].iov_len  = strlen((char *)worker::kernDevice) + 1;
             error          = nmount(md, 6, 0);
         }
 #endif
 
 #if defined(__NetBSD__) && __NetBSD_Version__ >= 499002400 /* 4.99.24 */
         if (error < 0)
-            error = mount("coda", venusRoot, 0, (void *)kernDevice, 256);
+            error =
+                mount("coda", venusRoot, 0, (void *)worker::kernDevice, 256);
         if (error < 0)
-            error = mount("cfs", venusRoot, 0, (void *)kernDevice, 256);
+            error = mount("cfs", venusRoot, 0, (void *)worker::kernDevice, 256);
 #else
         if (error < 0)
-            error = mount("coda", (char *)venusRoot, 0, (char *)kernDevice);
+            error =
+                mount("coda", (char *)venusRoot, 0, (char *)worker::kernDevice);
         if (error < 0)
-            error = mount("cfs", (char *)venusRoot, 0, (char *)kernDevice);
+            error =
+                mount("cfs", (char *)venusRoot, 0, (char *)worker::kernDevice);
 #endif
 
 #if defined(__FreeBSD__) && !defined(__FreeBSD_version)
 #define MOUNT_CFS 19
         if (error < 0)
-            error = mount(MOUNT_CFS, venusRoot, 0, kernDevice);
+            error = mount(MOUNT_CFS, venusRoot, 0, worker::kernDevice);
 #endif
 #endif /* __BSD44__ */
 
@@ -379,9 +383,10 @@ void VFSMount()
         mountdata.version = CODA_MOUNT_VERSION;
         mountdata.fd      = worker::muxfd;
 
-        error = mount("coda", venusRoot, "coda",
-                      MS_MGC_VAL | MS_NOATIME | MS_NODEV | MS_NOSUID,
-                      islinux20 ? (void *)&kernDevice : (void *)&mountdata);
+        error =
+            mount("coda", venusRoot, "coda",
+                  MS_MGC_VAL | MS_NOATIME | MS_NODEV | MS_NOSUID,
+                  islinux20 ? (void *)&worker::kernDevice : (void *)&mountdata);
 
         if (!error) {
             FILE *fd = setmntent("/etc/mtab", "a");
@@ -434,7 +439,8 @@ void VFSMount()
             eprint("unmount(%s) succeeded, continuing", venusRoot);
     }
     /* New mount */
-    CODA_ASSERT(!mount(kernDevice, venusRoot, MS_DATA, "coda", NULL, 0));
+    CODA_ASSERT(
+        !mount(worker::kernDevice, venusRoot, MS_DATA, "coda", NULL, 0));
     /* Update the /etc mount table entry */
     {
         int lfd, mfd;
@@ -742,9 +748,9 @@ void WorkerInit()
     dprint("WorkerInit: muxfd = %d\n", worker::muxfd);
 #else
     /* Open the communications channel. */
-    worker::muxfd = ::open(kernDevice, O_RDWR, 0);
+    worker::muxfd = ::open(worker::kernDevice, O_RDWR, 0);
     if (worker::muxfd == -1) {
-        eprint("WorkerInit: open %s failed", kernDevice);
+        eprint("WorkerInit: open %s failed", worker::kernDevice);
         exit(EXIT_FAILURE);
     }
 #endif
@@ -779,6 +785,7 @@ void WorkerInit()
     worker::nworkers     = 0;
     worker::nprefetchers = 0;
     worker::lastresign   = Vtime();
+    worker::kernDevice   = GetVenusConf().get_value("kerneldevice");
 
     /* Allows the MessageMux to distribute incoming messages to us. */
     MUX_add_callback(worker::muxfd, WorkerMux, NULL);

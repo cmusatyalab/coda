@@ -90,7 +90,6 @@ int ASRallowed = 1;
 /* Command-line/venus.conf parameters. */
 const char *consoleFile;
 const char *venusRoot;
-const char *kernDevice;
 const char *realmtab;
 const char *CacheDir;
 const char *CachePrefix;
