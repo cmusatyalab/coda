@@ -578,13 +578,6 @@ static void MapToLegacyVariables()
 
     ParseCacheChunkBlockSize(GetVenusConf().get_value("cachechunkblocksize"));
 
-    WholeFileMaxSize =
-        ParseSizeWithUnits(GetVenusConf().get_value("wholefilemaxsize"));
-    WholeFileMinSize =
-        ParseSizeWithUnits(GetVenusConf().get_value("wholefileminsize"));
-    WholeFileMaxStall =
-        ParseSizeWithUnits(GetVenusConf().get_value("wholefilemaxstall"));
-
     PartialCacheFilesRatio =
         GetVenusConf().get_int_value("partialcachefilesratio");
 

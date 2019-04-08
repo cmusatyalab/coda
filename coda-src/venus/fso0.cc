@@ -63,9 +63,6 @@ extern "C" {
 #include "worker.h"
 
 unsigned int PartialCacheFilesRatio = 0;
-uint64_t WholeFileMaxSize           = 0;
-uint64_t WholeFileMinSize           = 0;
-uint64_t WholeFileMaxStall          = 0;
 int FSO_SWT                         = UNSET_SWT;
 int FSO_MWT                         = UNSET_MWT;
 int FSO_SSF                         = UNSET_SSF;
@@ -344,10 +341,15 @@ fsdb::fsdb()
 {
     /* Initialize the persistent members. */
     RVMLIB_REC_OBJECT(*this);
-    MagicNumber             = FSDB_MagicNumber;
-    MaxFiles                = GetVenusConf().get_int_value("cachefiles");
-    WholeFileCachingMaxSize = WholeFileMaxSize;
-    FreeFileMargin          = MaxFiles / FREE_FACTOR;
+    MagicNumber = FSDB_MagicNumber;
+    MaxFiles    = GetVenusConf().get_int_value("cachefiles");
+    WholeFileCachingMaxSize =
+        ParseSizeWithUnits(GetVenusConf().get_value("wholefilemaxsize"));
+    WholeFileCachingMinSize =
+        ParseSizeWithUnits(GetVenusConf().get_value("wholefileminsize"));
+    WholeFileCachingMaxStall =
+        ParseSizeWithUnits(GetVenusConf().get_value("wholefilemaxstall"));
+    FreeFileMargin = MaxFiles / FREE_FACTOR;
 
     LastRef = (long *)rvmlib_rec_malloc(MaxFiles * (int)sizeof(long));
     rvmlib_set_range(LastRef, MaxFiles * (int)sizeof(long));

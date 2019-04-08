@@ -128,6 +128,8 @@ class fsdb {
     /* Size parameters. */
     unsigned int MaxFiles;
     uint64_t WholeFileCachingMaxSize;
+    uint64_t WholeFileCachingMinSize;
+    uint32_t WholeFileCachingMaxStall;
 
     /* "files" is kept as count member of htab */
     int FreeFileMargin;
@@ -205,6 +207,9 @@ class fsdb {
 public:
     uint64_t GetMaxBlocks() { return MaxBlocks; }
     unsigned int GetMaxFiles() { return MaxFiles; }
+    uint64_t GetWholeFileMaxSize() { return WholeFileCachingMaxSize; }
+    uint64_t GetWholeFileMinSize() { return WholeFileCachingMinSize; }
+    uint64_t GetWholeFileMaxStall() { return WholeFileCachingMaxStall; }
 
     fsobj *Find(const VenusFid *);
     /* rcode arg added for local repair */
@@ -720,9 +725,6 @@ public:
 /*  *****  Variables  ***** */
 
 extern unsigned int PartialCacheFilesRatio;
-extern uint64_t WholeFileMaxSize;
-extern uint64_t WholeFileMinSize;
-extern uint64_t WholeFileMaxStall;
 extern int FSO_SWT;
 extern int FSO_MWT;
 extern int FSO_SSF;

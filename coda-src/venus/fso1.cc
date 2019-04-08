@@ -2528,7 +2528,7 @@ void fsobj::UpdateVastroFlag(uid_t uid, int force, int state)
     }
 
     /* With size below WholeFileMinSize it's never treated as a VASTRO */
-    if (Size() <= (WholeFileMinSize * 1024) && !force) {
+    if (Size() <= (FSDB->GetWholeFileMinSize() * 1024) && !force) {
         flags.vastro = 0x0;
         goto ConfigCacheFile;
     }
@@ -2570,7 +2570,7 @@ void fsobj::UpdateVastroFlag(uid_t uid, int force, int state)
         /* We're forcing VASTRO for this file */
         flags.vastro = 0x1;
 
-    else if (Size() >= (WholeFileMaxSize * 1024))
+    else if (Size() >= (FSDB->GetWholeFileMaxSize() * 1024))
         /* With size above WholeFileMaxSize it's always treated as a VASTRO */
         flags.vastro = 0x1;
 
@@ -2595,7 +2595,7 @@ void fsobj::UpdateVastroFlag(uid_t uid, int force, int state)
             bw = 1;
 
         stall_time   = Size() / bw;
-        flags.vastro = stall_time > WholeFileMaxStall ? 0x1 : 0x0;
+        flags.vastro = stall_time > FSDB->GetWholeFileMaxStall() ? 0x1 : 0x0;
     }
 
 PutAll:
