@@ -101,8 +101,8 @@ void VenusConf::load_default_config()
     char tmp[256];
 
     add("cachesize", MIN_CS);
-    add("cacheblocks", itoa(0, tmp));
-    add("cachefiles", itoa(0, tmp));
+    add_int("cacheblocks", 0);
+    add_int("cachefiles", 0);
     add("cachechunkblocksize", "32KB");
     add("wholefilemaxsize", "50MB");
     add("wholefileminsize", "4MB");
@@ -113,34 +113,34 @@ void VenusConf::load_default_config()
     add("logfile", DFLT_LOGFILE);
     add("errorlog", DFLT_ERRLOG);
     add("kerneldevice", "/dev/cfs0,/dev/coda/0");
-    add("mapprivate", itoa(0, tmp));
+    add_int("mapprivate", 0);
     add("marinersocket", "/usr/coda/spool/mariner");
-    add("masquerade_port", itoa(0, tmp));
-    add("allow_backfetch", itoa(0, tmp));
+    add_int("masquerade_port", 0);
+    add_int("allow_backfetch", 0);
     add("mountpoint", DFLT_VR);
-    add("primaryuser", itoa(UNSET_PRIMARYUSER, tmp));
+    add_int("primaryuser", UNSET_PRIMARYUSER);
     add("realmtab", "/etc/coda/realms");
     add("rvm_log", "/usr/coda/LOG");
     add("rvm_data", "/usr/coda/DATA");
-    add("RPC2_timeout", itoa(DFLT_TO, tmp));
-    add("RPC2_retries", itoa(DFLT_RT, tmp));
-    add("serverprobe", itoa(150, tmp));
-    add("reintegration_age", itoa(0, tmp));
-    add("reintegration_time", itoa(15, tmp));
-    add("dontuservm", itoa(0, tmp));
-    add("cml_entries", itoa(0, tmp));
-    add("hoard_entries", itoa(0, tmp));
+    add_int("RPC2_timeout", DFLT_TO);
+    add_int("RPC2_retries", DFLT_RT);
+    add_int("serverprobe", 150);
+    add_int("reintegration_age", 0);
+    add_int("reintegration_time", 15);
+    add_int("dontuservm", 0);
+    add_int("cml_entries", 0);
+    add_int("hoard_entries", 0);
     add("pid_file", DFLT_PIDFILE);
     add("run_control_file", DFLT_CTRLFILE);
     add("asrlauncher_path", "");
     add("asrpolicy_path", "");
-    add("validateattrs", itoa(15, tmp));
-    add("isr", itoa(0, tmp));
+    add_int("validateattrs", 15);
+    add_int("isr", 0);
     add_on_off_pair("codafs", "no-codafs", true);
     add_on_off_pair("9pfs", "no-9pfs", true);
     add_on_off_pair("codatunnel", "no-codatunnel", true);
-    add("onlytcp", itoa(0, tmp));
-    add("detect_reintegration_retry", itoa(1, tmp));
+    add_int("onlytcp", 0);
+    add_int("detect_reintegration_retry", 1);
     add("checkpointformat", "newc");
 
     //Newly added
@@ -150,23 +150,23 @@ void VenusConf::load_default_config()
     add("lwploglevel", "0");
     add("rdstrace", "0");
     add("copmodes", "6");
-    add("maxworkers", itoa(UNSET_MAXWORKERS, tmp));
-    add("maxcbservers", itoa(UNSET_MAXCBSERVERS, tmp));
-    add("maxprefetchers", itoa(UNSET_MAXWORKERS, tmp));
-    add("sftp_windowsize", itoa(UNSET_WS, tmp));
-    add("sftp_sendahead", itoa(UNSET_SA, tmp));
-    add("sftp_ackpoint", itoa(UNSET_AP, tmp));
-    add("sftp_packetsize", itoa(UNSET_PS, tmp));
-    add("rvmtype", itoa(UNSET, tmp));
-    add("rvm_log_size", itoa(UNSET_VLDS, tmp));
-    add("rvm_data_size", itoa(UNSET_VDDS, tmp));
-    add("rds_chunk_size", itoa(UNSET_RDSCS, tmp));
-    add("rds_list_size", itoa(UNSET_RDSNL, tmp));
+    add_int("maxworkers", UNSET_MAXWORKERS);
+    add_int("maxcbservers", UNSET_MAXCBSERVERS);
+    add_int("maxprefetchers", UNSET_MAXWORKERS);
+    add_int("sftp_windowsize", UNSET_WS);
+    add_int("sftp_sendahead", UNSET_SA);
+    add_int("sftp_ackpoint", UNSET_AP);
+    add_int("sftp_packetsize", UNSET_PS);
+    add_int("rvmtype", UNSET);
+    add_int("rvm_log_size", UNSET_VLDS);
+    add_int("rvm_data_size", UNSET_VDDS);
+    add_int("rds_chunk_size", UNSET_RDSCS);
+    add_int("rds_list_size", UNSET_RDSNL);
     add("log_optimization", "1");
 
-    add("swt", itoa(UNSET_SWT, tmp));
-    add("mwt", itoa(UNSET_MWT, tmp));
-    add("ssf", itoa(UNSET_SSF, tmp));
+    add_int("swt", UNSET_SWT);
+    add_int("mwt", UNSET_MWT);
+    add_int("ssf", UNSET_SSF);
     add_on_off_pair("von", "no-voff", false);
     add_on_off_pair("vmon", "vmoff", false);
     add("SearchForNOreFind", "0");
@@ -253,6 +253,20 @@ void VenusConf::add_cmd_line_to_config_params_mapping()
     add_key_alias("masquerade", "-masquerade");
     add_key_alias("nomasquerade", "-nomasquerade");
     add_key_alias("nofork", "-nofork");
+}
+
+void VenusConf::set_int(const char *key, int value)
+{
+    char buffer[256];
+    itoa(value, buffer, 10);
+    set(key, buffer);
+}
+
+int VenusConf::add_int(const char *key, int value)
+{
+    char buffer[256];
+    itoa(value, buffer, 10);
+    return add(key, buffer);
 }
 
 VenusConf::on_off_pair *VenusConf::find_on_off_pair(const char *key)
