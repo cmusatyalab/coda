@@ -260,6 +260,31 @@ void VenusConf::configure_cmdline_options()
     add_key_alias("nofork", "-nofork");
 }
 
+int VenusConf::check()
+{
+    if (get_int_value("cacheblocks") < MIN_CB) {
+        eprint("Cannot start: minimum cache size is %s", "2MB");
+        return EINVAL;
+    }
+
+    if (get_int_value("cachefiles") < MIN_CF) {
+        eprint("Cannot start: minimum number of cache files is %d", MIN_CF);
+        return EINVAL;
+    }
+
+    if (get_int_value("cml_entries") < MIN_MLE) {
+        eprint("Cannot start: minimum number of cml entries is %d", MIN_MLE);
+        return EINVAL;
+    }
+
+    if (get_int_value("hoard_entries") < MIN_HDBE) {
+        eprint("Cannot start: minimum number of hoard entries is %d", MIN_HDBE);
+        return EINVAL;
+    }
+
+    return 0;
+}
+
 void VenusConf::set_int(const char *key, int value)
 {
     char buffer[256];

@@ -149,6 +149,7 @@ public:
     void set(const char *key, const char *value);
     void load_default_config();
     void configure_cmdline_options();
+    int check();
 };
 
 #endif /* _VENUSCONF_H_ */
