@@ -274,6 +274,19 @@ int VenusConf::add_int(const char *key, int value)
     return add(key, buffer);
 }
 
+void VenusConf::handle_relative_path(const char *key)
+{
+    const char *TmpChar  = get_value(key);
+    const char *cachedir = get_value("cachedir");
+    if (*TmpChar != '/') {
+        char *tmp = (char *)malloc(strlen(cachedir) + strlen(TmpChar) + 2);
+        CODA_ASSERT(tmp);
+        sprintf(tmp, "%s/%s", cachedir, TmpChar);
+        set(key, tmp);
+        free(tmp);
+    }
+}
+
 VenusConf::on_off_pair *VenusConf::find_on_off_pair(const char *key)
 {
     dlist_iterator next(on_off_pairs_list);
