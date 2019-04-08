@@ -99,6 +99,11 @@ static char *itoa(int value, char *str, int base)
 void VenusConf::load_default_config()
 {
     char tmp[256];
+    static bool already_loaded = false;
+
+    if (already_loaded)
+        return;
+    already_loaded = true;
 
     add("cachesize", MIN_CS);
     add_int("cacheblocks", 0);
@@ -184,11 +189,11 @@ void VenusConf::load_default_config()
 
 void VenusConf::add_cmd_line_to_config_params_mapping()
 {
-    static bool map_added = false;
+    static bool already_configured = false;
 
-    if (map_added)
+    if (already_configured)
         return;
-    map_added = true;
+    already_configured = true;
 
     add_key_alias("cachesize", "-c");
     add_key_alias("cachefiles", "-cf");
