@@ -27,7 +27,9 @@ TEST(bitmap7, assign)
         EXPECT_EQ(src->Value(i), dst->Value(i));
     }
 
-    EXPECT_FALSE(*dst != *src);
+    if (bitmap_size > 0) {
+        EXPECT_FALSE(*dst != *src);
+    }
 
     delete (src);
     delete (dst);
