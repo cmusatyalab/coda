@@ -47,7 +47,9 @@ VenusConf::~VenusConf()
 
 int VenusConf::get_int_value(const char *key)
 {
-    return atoi(get_value(key));
+    const char *value = get_value(key);
+    CODA_ASSERT(value);
+    return atoi(value);
 }
 
 const char *VenusConf::get_string_value(const char *key)
@@ -57,7 +59,7 @@ const char *VenusConf::get_string_value(const char *key)
 
 bool VenusConf::get_bool_value(const char *key)
 {
-    return (atoi(get_value(key)) ? 1 : 0);
+    return (get_int_value(key) ? 1 : 0);
 }
 
 int VenusConf::add_on_off_pair(const char *on_key, const char *off_key,
@@ -87,7 +89,7 @@ void VenusConf::set(const char *key, const char *value)
 }
 
 #ifndef itoa
-static char *itoa(int value, char *str, int base = 10)
+static char *itoa(int value, char *str, int base)
 {
     sprintf(str, "%d", value);
     return str;
