@@ -203,6 +203,9 @@ class fsdb {
     void FlushRefVec();
 
 public:
+    uint64_t GetMaxBlocks() { return MaxBlocks; }
+    unsigned int GetMaxFiles() { return MaxFiles; }
+
     fsobj *Find(const VenusFid *);
     /* rcode arg added for local repair */
     int Get(fsobj **fso, VenusFid *fid, uid_t uid, int rights,
@@ -716,7 +719,6 @@ public:
 
 /*  *****  Variables  ***** */
 
-extern unsigned int CacheFiles;
 extern unsigned int PartialCacheFilesRatio;
 extern uint64_t WholeFileMaxSize;
 extern uint64_t WholeFileMinSize;

@@ -94,7 +94,6 @@ const char *kernDevice;
 const char *realmtab;
 const char *CacheDir;
 const char *CachePrefix;
-uint64_t CacheBlocks;
 uid_t PrimaryUser = UNSET_PRIMARYUSER;
 const char *SpoolDir;
 const char *CheckpointFormat;

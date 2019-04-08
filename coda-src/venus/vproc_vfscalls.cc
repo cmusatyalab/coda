@@ -97,10 +97,10 @@ void vproc::statfs(struct coda_statfs *sfs)
 {
     LOG(1, ("vproc::statfs\n"));
 
-    sfs->f_blocks = CacheBlocks;
-    sfs->f_bfree  = CacheBlocks - FSDB->DirtyBlockCount();
+    sfs->f_blocks = FSDB->GetMaxBlocks();
+    sfs->f_bfree  = FSDB->GetMaxBlocks() - FSDB->DirtyBlockCount();
     sfs->f_bavail = FSDB->FreeBlockCount() - FSDB->FreeBlockMargin;
-    sfs->f_files  = CacheFiles;
+    sfs->f_files  = FSDB->GetMaxFiles();
     sfs->f_ffree  = FSDB->FreeFsoCount();
 
     /* Compensate block size since Cacheblocks is in 1K-Blocks and

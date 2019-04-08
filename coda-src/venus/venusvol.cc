@@ -173,6 +173,8 @@ int default_reintegration_time; /* how long a reintegration attempt may take */
 /* local-repair modification */
 void VolInit(void)
 {
+    unsigned int CacheFiles = GetVenusConf().get_int_value("cachefiles");
+
     /* Allocate the database if requested. */
     if (InitMetaData) { /* <==> VDB == 0 */
         Recov_BeginTrans();

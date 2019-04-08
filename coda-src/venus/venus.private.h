@@ -331,7 +331,6 @@ extern const char *kernDevice;
 extern const char *realmtab;
 extern const char *CacheDir;
 extern const char *CachePrefix;
-extern uint64_t CacheBlocks;
 extern const char *SpoolDir;
 extern uid_t PrimaryUser;
 extern const char *VenusPidFile;

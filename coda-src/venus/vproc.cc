@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -619,21 +619,22 @@ void vproc::Begin_VFS(Volid *volid, int vfsop, int volmode)
     wait_for_reintegration:
         free_fsos   = FSDB->FreeFsoCount();
         free_mles   = VDB->FreeMLECount();
-        free_blocks = CacheBlocks - FSDB->DirtyBlockCount();
+        free_blocks = FSDB->GetMaxBlocks() - FSDB->DirtyBlockCount();
         cml_length  = ((repvol *)u.u_vol)->LengthOfCML();
 
         /* the redzone and yellow zone thresholds are pretty arbitrary at the
 	 * moment. I am guessing that the number of worker threads might be a
-	 * useful metric for redzoning on CML entries. 
-         * Explicit CML length checks added by Satya (2016-12-28).  
+	 * useful metric for redzoning on CML entries.
+         * Explicit CML length checks added by Satya (2016-12-28).
          */
         inredzone = !free_fsos || free_mles <= MaxWorkers ||
-                    free_blocks <= (CacheBlocks >> 4) || /* ~94% cache dirty */
+                    free_blocks <=
+                        (FSDB->GetMaxBlocks() >> 4) || /* ~94% cache dirty */
                     (redzone_limit > 0 && cml_length >= redzone_limit);
         inyellowzone = free_fsos <= MaxWorkers ||
                        free_mles <= (MLEs >> 3) || /* ~88% CMLs used */
                        free_blocks <=
-                           (CacheBlocks >> 2) || /* ~75% cache dirty */
+                           (FSDB->GetMaxBlocks() >> 2) || /* ~75% cache dirty */
                        (yellowzone_limit > 0 && cml_length >= yellowzone_limit);
 
         if (inredzone)

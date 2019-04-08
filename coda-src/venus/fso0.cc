@@ -62,7 +62,6 @@ extern "C" {
 #include "vproc.h"
 #include "worker.h"
 
-unsigned int CacheFiles             = 0;
 unsigned int PartialCacheFilesRatio = 0;
 uint64_t WholeFileMaxSize           = 0;
 uint64_t WholeFileMinSize           = 0;
@@ -75,6 +74,7 @@ int FSO_SSF                         = UNSET_SSF;
 void FSOInit()
 {
     unsigned int i;
+    uint64_t CacheBlocks = GetVenusConf().get_int_value("cacheblocks");
 
     /* Allocate the database if requested. */
     if (InitMetaData) { /* <==> FSDB == 0 */
@@ -345,7 +345,7 @@ fsdb::fsdb()
     /* Initialize the persistent members. */
     RVMLIB_REC_OBJECT(*this);
     MagicNumber             = FSDB_MagicNumber;
-    MaxFiles                = CacheFiles;
+    MaxFiles                = GetVenusConf().get_int_value("cachefiles");
     WholeFileCachingMaxSize = WholeFileMaxSize;
     FreeFileMargin          = MaxFiles / FREE_FACTOR;
 

@@ -226,6 +226,7 @@ static void RecovNewInstance(void)
 
 void RecovInit(void)
 {
+    unsigned int CacheFiles = GetVenusConf().get_int_value("cachefiles");
     /* Set unset parameters to defaults (as appropriate). */
     Recov_CheckParms();
 
@@ -290,6 +291,7 @@ void RecovInit(void)
 
 static void Recov_CheckParms()
 {
+    unsigned int CacheFiles = GetVenusConf().get_int_value("cachefiles");
     /* From recov module. */
     if (RvmType == UNSET)
         RvmType = DFLT_RVMT;
