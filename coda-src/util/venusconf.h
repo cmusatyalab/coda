@@ -147,7 +147,7 @@ public:
     int add_on_off_pair(const char *on_key, const char *off_key, bool on_value);
     void set(const char *key, const char *value);
     void load_default_config();
-    void add_cmd_line_to_config_params_mapping();
+    void configure_cmdline_options();
 };
 
 #endif /* _VENUSCONF_H_ */

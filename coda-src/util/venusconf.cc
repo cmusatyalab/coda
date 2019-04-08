@@ -187,7 +187,7 @@ void VenusConf::load_default_config()
     add("nofork", "0");
 }
 
-void VenusConf::add_cmd_line_to_config_params_mapping()
+void VenusConf::configure_cmdline_options()
 {
     static bool already_configured = false;
 
