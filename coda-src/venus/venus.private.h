@@ -328,8 +328,6 @@ extern long rootnodeid;
 extern int CleanShutDown;
 extern const char *venusRoot;
 extern const char *realmtab;
-extern const char *CacheDir;
-extern const char *CachePrefix;
 extern const char *SpoolDir;
 extern uid_t PrimaryUser;
 extern const char *VenusPidFile;

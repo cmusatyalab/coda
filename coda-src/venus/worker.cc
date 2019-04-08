@@ -107,6 +107,8 @@ int worker::muxfd = -1;
 int worker::nworkers;
 int worker::nprefetchers;
 int worker::kernel_version      = 0;
+const char *worker::CacheDir    = "";
+const char *worker::CachePrefix = "";
 const char *worker::kernDevice  = "";
 time_t worker::lastresign;
 olist worker::FreeMsgs;
@@ -785,6 +787,7 @@ void WorkerInit()
     worker::nworkers     = 0;
     worker::nprefetchers = 0;
     worker::lastresign   = Vtime();
+    worker::CacheDir     = GetVenusConf().get_value("cachedir");
     worker::kernDevice   = GetVenusConf().get_value("kerneldevice");
 
     /* Allows the MessageMux to distribute incoming messages to us. */

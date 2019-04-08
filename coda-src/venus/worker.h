@@ -111,6 +111,8 @@ class worker : public vproc {
     static olist QueuedMsgs;
     static olist ActiveMsgs;
     static int kernel_version;
+    static const char *CacheDir;
+    static const char *CachePrefix;
     static const char *kernDevice;
 
     unsigned returned : 1;

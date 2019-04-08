@@ -91,7 +91,6 @@ int ASRallowed = 1;
 const char *consoleFile;
 const char *venusRoot;
 const char *realmtab;
-const char *CacheDir;
 const char *CachePrefix;
 uid_t PrimaryUser = UNSET_PRIMARYUSER;
 const char *SpoolDir;
@@ -700,6 +699,7 @@ static void CdToCacheDir()
 {
     struct stat statbuf;
     int fd;
+    const char *CacheDir = GetVenusConf().get_value("cachedir");
 
     if (stat(CacheDir, &statbuf) != 0) {
         if (errno != ENOENT) {
@@ -732,6 +732,7 @@ static void CheckInitFile()
 {
     char initPath[MAXPATHLEN];
     struct stat tstat;
+    const char *CacheDir = GetVenusConf().get_value("cachedir");
 
     /* Construct name for INIT file */
     snprintf(initPath, MAXPATHLEN, "%s/INIT", CacheDir);
@@ -755,6 +756,7 @@ static void CheckInitFile()
 static void UnsetInitFile()
 {
     char initPath[MAXPATHLEN];
+    const char *CacheDir = GetVenusConf().get_value("cachedir");
 
     /* Create the file, if it doesn't already exist */
     snprintf(initPath, MAXPATHLEN, "%s/INIT", CacheDir);
