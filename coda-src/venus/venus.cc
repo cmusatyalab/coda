@@ -310,7 +310,7 @@ void testKernDevice()
     }
 
     CODA_ASSERT(q);
-    kernDevice = strdup(q);
+    GetVenusConf().set("kerneldevice", q);
     free(str);
 
     /* Construct a purge message */

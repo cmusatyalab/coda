@@ -725,6 +725,9 @@ int k_Replace(VenusFid *fid_1, VenusFid *fid_2)
 /* -------------------------------------------------- */
 void WorkerInit()
 {
+    worker::kernDevice = GetVenusConf().get_value("kerneldevice");
+    worker::CacheDir   = GetVenusConf().get_value("cachedir");
+
     if (MaxWorkers == UNSET_MAXWORKERS)
         MaxWorkers = DFLT_MAXWORKERS;
 
@@ -787,8 +790,6 @@ void WorkerInit()
     worker::nworkers     = 0;
     worker::nprefetchers = 0;
     worker::lastresign   = Vtime();
-    worker::CacheDir     = GetVenusConf().get_value("cachedir");
-    worker::kernDevice   = GetVenusConf().get_value("kerneldevice");
 
     /* Allows the MessageMux to distribute incoming messages to us. */
     MUX_add_callback(worker::muxfd, WorkerMux, NULL);
