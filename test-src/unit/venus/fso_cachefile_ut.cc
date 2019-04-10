@@ -43,8 +43,7 @@ void get_container_file_root_path(int i, char name[300])
 {
     char cwd[256];
     getcwd(cwd, 256);
-    sprintf(name, "%s/%02X", cwd, (i >> 24) & 0xff, (i >> 16) & 0xff,
-            (i >> 8) & 0xff, i & 0xff);
+    sprintf(name, "%s/%02X", cwd, (i >> 24) & 0xff);
 }
 
 void delete_container_root_path(int i)
@@ -72,7 +71,6 @@ TEST_F(CacheFileTest, construct)
 {
     int idx = rand() & 0x7FF;
     char cachefile_path[300];
-    struct stat stat_b;
     CacheFile *cf = new CacheFile(idx, 0);
 
     get_container_file_path(idx, cachefile_path);

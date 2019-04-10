@@ -121,15 +121,20 @@ FILE *CodaConfFileParser::open_conffile()
                 "Cannot read configuration file '%s', "
                 "will use default values.\n",
                 conffile);
+
+    return NULL;
 }
 
 int CodaConfFileParser::parse()
 {
     FILE *conf;
-    int lineno = 0;
-    char *name, *value;
+    int lineno  = 0;
+    char *name  = NULL;
+    char *value = NULL;
+#ifdef CONFDEBUG
     const char *stored_value = NULL;
-    int ret_code             = 0;
+#endif
+    int ret_code = 0;
 
     conf = open_conffile();
     if (!conf)
@@ -149,9 +154,8 @@ int CodaConfFileParser::parse()
             store.add(name, value);
         }
 
-        stored_value = store.get_value(name);
-
 #ifdef CONFDEBUG
+        stored_value = store.get_value(name);
         printf("line: %d, name: '%s', value: '%s'", lineno, name, value);
         if (stored_value)
             printf("stored-value: '%s'\n", stored_value);

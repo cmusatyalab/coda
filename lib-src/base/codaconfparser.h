@@ -23,6 +23,7 @@ Coda are listed in the file CREDITS.
 extern "C" {
 #endif
 
+#include <errno.h>
 #include <sys/param.h>
 #include "coda_config.h"
 
@@ -42,7 +43,7 @@ public:
     {
     }
 
-    int parse() {}
+    int parse() { return ENOTSUP; }
 };
 
 #endif /* _CODACONFPARSER_H_ */

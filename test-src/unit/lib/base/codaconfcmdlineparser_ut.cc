@@ -1,6 +1,7 @@
 #include <stringkeyvaluestore.h>
 #include <codaconfcmdlineparser.h>
 #include "gtest/gtest.h"
+#include <string>
 
 namespace
 {
@@ -11,11 +12,12 @@ protected:
     const int argc = 3;
     void SetUp() override
     {
-        getcwd(conf_path, 100);
-        sprintf(conf_path, "%s/%s", conf_path, "lib/base/venus.conf.sample");
-        argv[0] = "unit";
-        argv[1] = "cachesize";
-        argv[2] = "100MB";
+        char cwd[100];
+        snprintf(conf_path, 200, "%s/%s", getcwd(cwd, 100),
+                 "lib/base/venus.conf.sample");
+        argv[0] = (char *)"unit";
+        argv[1] = (char *)"cachesize";
+        argv[2] = (char *)"100MB";
     }
 
     void TearDown() override {}
@@ -61,10 +63,6 @@ TEST_F(CodaConfCmdLineParserTest, persistance_parsed_values_after_destroy)
 
 TEST_F(CodaConfCmdLineParserTest, check_collisions_when_parsed_twice)
 {
-    const char *key                   = "cachesize";
-    const char *original_value        = "200MB";
-    const char *expected_parsed_value = "100MB";
-    const char *actual_value;
     int ret_code = 0;
     StringKeyValueStore original_store;
     CodaConfCmdLineParser parser(original_store);

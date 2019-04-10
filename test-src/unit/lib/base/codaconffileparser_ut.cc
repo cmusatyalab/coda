@@ -56,10 +56,6 @@ TEST_F(CodaConffileParserTest, persistance_parsed_values_after_destroy)
 
 TEST_F(CodaConffileParserTest, check_collisions_when_parsed_twice)
 {
-    const char *key                   = "cachesize";
-    const char *original_value        = "200MB";
-    const char *expected_parsed_value = "100MB";
-    const char *actual_value;
     int ret_code = 0;
     StringKeyValueStore original_store;
     CodaConfFileParser parser(original_store);

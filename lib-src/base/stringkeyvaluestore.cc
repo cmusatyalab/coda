@@ -194,9 +194,14 @@ void StringKeyValueStore::purge(void)
 
 void StringKeyValueStore::print()
 {
+    print(fileno(stdout));
+}
+
+void StringKeyValueStore::print(int fd)
+{
     item_t cp;
 
     for (cp = table; cp; cp = cp->next) {
-        printf("\"%s\" : \"%s\"\n", cp->name, cp->value);
+        dprintf(fd, "\"%s\" : \"%s\"\n", cp->name, cp->value);
     }
 }

@@ -54,6 +54,7 @@ public:
     void purge();
 
     void print();
+    void print(int fd);
 };
 
 #endif /* _CODACONFDB_H_ */
