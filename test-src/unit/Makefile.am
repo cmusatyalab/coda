@@ -7,13 +7,15 @@ LIB_BASE_TESTS = lib/base/codaconf_ut.cc lib/base/stringkeyvaluestore_ut.cc \
                  lib/base/codaconffileparser_ut.cc \
                  lib/base/codaconfcmdlineparser_ut.cc
 UTIL_TESTS = util/u_bitmap.cc util/venusconf_ut.cc
+VENUS_TESTS = venus/fso_cachefile_ut.cc
 
-unit_SOURCES = main.cc $(UTIL_TESTS) $(LIB_TESTS) $(LIB_BASE_TESTS)
+unit_SOURCES = main.cc $(UTIL_TESTS) $(LIB_TESTS) $(LIB_BASE_TESTS) $(VENUS_TESTS)
 
 GTEST_DIR = $(top_builddir)/external-src/googletest/googletest
 
 unit_LDADD = $(top_builddir)/coda-src/util/libutil.la \
              $(top_builddir)/lib-src/base/libbase.la \
+             $(top_builddir)/coda-src/venus/libvenus.la \
              $(GTEST_DIR)/lib/libgtest.la \
              $(RVM_RPC2_LIBS)
 
