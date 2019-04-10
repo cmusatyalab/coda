@@ -154,6 +154,8 @@ private:
     };
     on_off_pair *find_on_off_pair(const char *key);
     int add_int(const char *key, int64_t value);
+    bool check_if_value_is_int(const char *key);
+    bool check_all_int_values();
     void handle_relative_path(const char *key);
 
 public:

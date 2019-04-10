@@ -154,12 +154,30 @@ VenusConf::~VenusConf()
     }
 }
 
+bool VenusConf::check_if_value_is_int(const char *key)
+{
+    const char *value = get_value(key);
+    int64_t ret_val   = 0;
+    int read_vals     = 0;
+
+    if (!value)
+        return true;
+
+    read_vals = sscanf(value, "%" PRId64, &ret_val);
+    if (read_vals != 1)
+        eprint("Cannot start: %s is not an integer, it's set to %s", key,
+               value);
+    return (read_vals == 1);
+}
+
 int64_t VenusConf::get_int_value(const char *key)
 {
     const char *value = get_value(key);
     int64_t ret_val   = 0;
+    int read_vals     = 0;
     CODA_ASSERT(value);
-    sscanf(value, "%" PRId64, &ret_val);
+    read_vals = sscanf(value, "%" PRId64, &ret_val);
+    CODA_ASSERT(read_vals == 1);
     return ret_val;
 }
 
@@ -418,6 +436,69 @@ void VenusConf::apply_consistency_rules()
     }
 }
 
+bool VenusConf::check_all_int_values()
+{
+    bool all_ok = true;
+
+    all_ok &= check_if_value_is_int("codatunnel");
+    all_ok &= check_if_value_is_int("cacheblocks");
+    all_ok &= check_if_value_is_int("cachefiles");
+    all_ok &= check_if_value_is_int("wholefilemaxstall");
+    all_ok &= check_if_value_is_int("partialcachefilesratio");
+    all_ok &= check_if_value_is_int("mapprivate");
+    all_ok &= check_if_value_is_int("masquerade_port");
+    all_ok &= check_if_value_is_int("allow_backfetch");
+    all_ok &= check_if_value_is_int("primaryuser");
+    all_ok &= check_if_value_is_int("RPC2_timeout");
+    all_ok &= check_if_value_is_int("RPC2_retries");
+    all_ok &= check_if_value_is_int("serverprobe");
+    all_ok &= check_if_value_is_int("reintegration_age");
+    all_ok &= check_if_value_is_int("reintegration_time");
+    all_ok &= check_if_value_is_int("dontuservm");
+    all_ok &= check_if_value_is_int("cml_entries");
+    all_ok &= check_if_value_is_int("hoard_entries");
+    all_ok &= check_if_value_is_int("validateattrs");
+    all_ok &= check_if_value_is_int("isr");
+    all_ok &= check_if_value_is_int("codafs");
+    all_ok &= check_if_value_is_int("9pfs");
+    all_ok &= check_if_value_is_int("codatunnel");
+    all_ok &= check_if_value_is_int("onlytcp");
+    all_ok &= check_if_value_is_int("detect_reintegration_retry");
+    all_ok &= check_if_value_is_int("initmetadata");
+    all_ok &= check_if_value_is_int("loglevel");
+    all_ok &= check_if_value_is_int("rpc2loglevel");
+    all_ok &= check_if_value_is_int("lwploglevel");
+    all_ok &= check_if_value_is_int("rdstrace");
+    all_ok &= check_if_value_is_int("copmodes");
+    all_ok &= check_if_value_is_int("maxworkers");
+    all_ok &= check_if_value_is_int("maxcbservers");
+    all_ok &= check_if_value_is_int("maxprefetchers");
+    all_ok &= check_if_value_is_int("sftp_windowsize");
+    all_ok &= check_if_value_is_int("sftp_sendahead");
+    all_ok &= check_if_value_is_int("sftp_ackpoint");
+    all_ok &= check_if_value_is_int("sftp_packetsize");
+    all_ok &= check_if_value_is_int("rvmtype");
+    all_ok &= check_if_value_is_int("rvm_log_size");
+    all_ok &= check_if_value_is_int("rvm_data_size");
+    all_ok &= check_if_value_is_int("rds_chunk_size");
+    all_ok &= check_if_value_is_int("rds_list_size");
+    all_ok &= check_if_value_is_int("log_optimization");
+    all_ok &= check_if_value_is_int("swt");
+    all_ok &= check_if_value_is_int("mwt");
+    all_ok &= check_if_value_is_int("ssf");
+    all_ok &= check_if_value_is_int("von");
+    all_ok &= check_if_value_is_int("vmon");
+    all_ok &= check_if_value_is_int("SearchForNOreFind");
+    all_ok &= check_if_value_is_int("asr");
+    all_ok &= check_if_value_is_int("vcb");
+    all_ok &= check_if_value_is_int("nowalk");
+    all_ok &= check_if_value_is_int("MarinerTcp");
+    all_ok &= check_if_value_is_int("allow-reattach");
+    all_ok &= check_if_value_is_int("nofork");
+
+    return all_ok;
+}
+
 int VenusConf::check()
 {
     if (get_int_value("cacheblocks") < MIN_CB) {
@@ -450,6 +531,10 @@ int VenusConf::check()
     if (get_int_value("cachechunkblockbitsize") < 12) {
         /* Smaller than minimum FAIL*/
         eprint("Cannot start: minimum cache chunk block size is 4KB");
+        return EINVAL;
+    }
+
+    if (!check_all_int_values()) {
         return EINVAL;
     }
 
