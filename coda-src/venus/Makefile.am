@@ -26,7 +26,7 @@ venus_SOURCES = binding.cc binding.h comm.cc comm.h comm_daemon.cc daemon.cc \
     vproc_vfscalls.cc vsg.cc vsg.h worker.cc worker.h sighand.cc sighand.h \
     spool.cc tallyent.cc tallyent.h user.cc user.h nt_util.cc nt_util.h \
     realmdb.cc realmdb.h realm.cc realm.h rec_dllist.h refcounted.h archive.c \
-    archive.h 9pfs.cc 9pfs.h SpookyV2.cc SpookyV2.h
+    archive.h 9pfs.cc 9pfs.h SpookyV2.cc SpookyV2.h venusmux.cc venusmux.h
 vutil_SOURCES = vutil.cc
 
 AM_CPPFLAGS = $(RVM_RPC2_CFLAGS) -DVENUS -DTIMING -DVENUSDEBUG \
