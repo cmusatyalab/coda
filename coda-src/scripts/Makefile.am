@@ -1,12 +1,13 @@
 ## Process this file with automake to produce Makefile.in
 
 sbin_SCRIPTS =
+dist_bin_SCRIPTS =
 dist_sbin_SCRIPTS =
 dist_man_MANS =
 if BUILD_CLIENT
 sbin_SCRIPTS += coda-client-setup
-dist_sbin_SCRIPTS += volmunge
-dist_man_MANS += coda-client-setup.8 volmunge.8
+dist_bin_SCRIPTS += volmunge
+dist_man_MANS += coda-client-setup.8 volmunge.1
 endif
 if BUILD_SERVER
 sbin_SCRIPTS += bldvldb.sh createvol_rep purgevol_rep startserver vice-setup \
