@@ -139,6 +139,8 @@ const int MIN_HDBE = MIN_CF / FILES_PER_HDBE;
 
 class VenusConf : public StringKeyValueStore {
 private:
+    bool already_loaded     = false;
+    bool already_configured = false;
     dlist on_off_pairs_list;
 
     class on_off_pair : dlink {
@@ -151,13 +153,13 @@ private:
         ~on_off_pair();
     };
     on_off_pair *find_on_off_pair(const char *key);
-    int add_int(const char *key, int value);
+    int add_int(const char *key, int64_t value);
     void handle_relative_path(const char *key);
 
 public:
     ~VenusConf();
-    int get_int_value(const char *key);
-    void set_int(const char *key, int value);
+    int64_t get_int_value(const char *key);
+    void set_int(const char *key, int64_t value);
     const char *get_string_value(const char *key);
     bool get_bool_value(const char *key);
     int add_on_off_pair(const char *on_key, const char *off_key, bool on_value);

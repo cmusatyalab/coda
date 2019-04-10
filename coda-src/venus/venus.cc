@@ -118,37 +118,19 @@ int option_isr;
 #define EXIT_UNCONFIGURED 6 /* program is not configured */
 #define EXIT_NOT_RUNNING 7 /* program is not running */
 
-#if defined(HAVE_SYS_UN_H) && !defined(__CYGWIN32__)
-int mariner_tcp_enable = 0;
-#else
-int mariner_tcp_enable = 1;
-#endif
-static int codafs_enabled;
-int plan9server_enabled;
-int nofork;
-
 /* Global red and yellow zone limits on CML length; default is infinite */
-int redzone_limit = -1, yellowzone_limit = -1;
-
-static int codatunnel_enabled;
-static int codatunnel_onlytcp;
-
 CodaConfFileParser config_file_parser(GetVenusConf());
 CodaConfCmdLineParser cmlline_parser(GetVenusConf());
 
 /* *****  Private constants  ***** */
-
 struct timeval DaemonExpiry = { TIMERINTERVAL, 0 };
 
 /* *****  Private routines  ***** */
-
-static void MapToLegacyVariables();
-static void ParseCmdline(int, char **);
-static void DefaultCmdlineParms();
 static void CdToCacheDir();
 static void CheckInitFile();
 static void UnsetInitFile();
 static void SetRlimits();
+static void Usage(char *argv0);
 
 struct in_addr venus_relay_addr = { INADDR_LOOPBACK };
 
@@ -233,53 +215,6 @@ void MUX_add_callback(int fd, void (*cb)(int fd, void *udata), void *udata)
 
     cbe->next = _MUX_CBEs;
     _MUX_CBEs = cbe;
-}
-
-static int power_of_2(uint64_t num)
-{
-    int power = 0;
-
-    if (!num)
-        return -1;
-
-    /*Find the first 1 */
-    while (!(num & 0x1)) {
-        num = num >> 1;
-        power++;
-    }
-
-    /* Shift the first 1 */
-    num = num >> 1;
-
-    /* Any other 1 means not power of 2 */
-    if (num)
-        return -1;
-
-    return power;
-}
-
-void ParseCacheChunkBlockSize(const char *ccblocksize)
-{
-    uint64_t TmpCacheChunkBlockSize = ParseSizeWithUnits(ccblocksize) * 1024;
-    int TmpCacheChunkBlockSizeBit   = power_of_2(TmpCacheChunkBlockSize);
-
-    if (TmpCacheChunkBlockSizeBit < 0) {
-        /* Not a power of 2 FAIL!!! */
-        eprint(
-            "Cannot start: provided cache chunk block size is not a power of 2");
-        exit(EXIT_UNCONFIGURED);
-    }
-
-    if (TmpCacheChunkBlockSizeBit < 12) {
-        /* Smaller than minimum FAIL*/
-        eprint("Cannot start: minimum cache chunk block size is 4KB");
-        exit(EXIT_UNCONFIGURED);
-    }
-
-    CacheChunkBlockSizeBits   = TmpCacheChunkBlockSizeBit;
-    CacheChunkBlockSize       = 1 << CacheChunkBlockSizeBits;
-    CacheChunkBlockSizeMax    = CacheChunkBlockSize - 1;
-    CacheChunkBlockBitmapSize = (UINT_MAX >> CacheChunkBlockSizeBits) + 1;
 }
 
 /* test if we can open the kernel device and purge the cache,

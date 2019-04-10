@@ -29,6 +29,8 @@ extern "C" {
 #include <errno.h>
 #include <stdint.h>
 #include <math.h>
+#include <string.h>
+#include <inttypes.h>
 
 #ifdef __cplusplus
 }
@@ -38,6 +40,8 @@ extern "C" {
 #include "dlist.h"
 
 static VenusConf global_conf;
+
+static const unsigned int max_int64_string_length = 23;
 
 /* Bytes units convertion */
 static const char *KBYTES_UNIT[] = { "KB", "kb", "Kb", "kB", "K", "k" };
@@ -117,21 +121,46 @@ uint64_t ParseSizeWithUnits(const char *SizeWUnits)
     return size_int;
 }
 
+static int power_of_2(uint64_t num)
+{
+    int power = 0;
+
+    if (!num)
+        return -1;
+
+    /*Find the first 1 */
+    while (!(num & 0x1)) {
+        num = num >> 1;
+        power++;
+    }
+
+    /* Shift the first 1 */
+    num = num >> 1;
+
+    /* Any other 1 means not power of 2 */
+    if (num)
+        return -1;
+
+    return power;
+}
+
 VenusConf::~VenusConf()
 {
     dlist_iterator next(on_off_pairs_list);
     on_off_pair *curr_pair = NULL;
 
-    while (curr_pair = (on_off_pair *)next()) {
+    while ((curr_pair = (on_off_pair *)next())) {
         delete curr_pair;
     }
 }
 
-int VenusConf::get_int_value(const char *key)
+int64_t VenusConf::get_int_value(const char *key)
 {
     const char *value = get_value(key);
+    int64_t ret_val   = 0;
     CODA_ASSERT(value);
-    return atoi(value);
+    sscanf(value, "%" PRId64, &ret_val);
+    return ret_val;
 }
 
 const char *VenusConf::get_string_value(const char *key)
@@ -155,6 +184,8 @@ int VenusConf::add_on_off_pair(const char *on_key, const char *off_key,
     add(off_key, on_value ? "0" : "1");
 
     on_off_pairs_list.insert((dlink *)new on_off_pair(on_key, off_key));
+
+    return 0;
 }
 
 void VenusConf::set(const char *key, const char *value)
@@ -170,19 +201,8 @@ void VenusConf::set(const char *key, const char *value)
     }
 }
 
-#ifndef itoa
-static char *itoa(int value, char *str, int base)
-{
-    sprintf(str, "%d", value);
-    return str;
-}
-#endif
-
 void VenusConf::load_default_config()
 {
-    char tmp[256];
-    static bool already_loaded = false;
-
     if (already_loaded)
         return;
     already_loaded = true;
@@ -237,13 +257,13 @@ void VenusConf::load_default_config()
     add("lwploglevel", "0");
     add("rdstrace", "0");
     add("copmodes", "6");
-    add_int("maxworkers", UNSET_MAXWORKERS);
-    add_int("maxcbservers", UNSET_MAXCBSERVERS);
-    add_int("maxprefetchers", UNSET_MAXWORKERS);
-    add_int("sftp_windowsize", UNSET_WS);
-    add_int("sftp_sendahead", UNSET_SA);
-    add_int("sftp_ackpoint", UNSET_AP);
-    add_int("sftp_packetsize", UNSET_PS);
+    add_int("maxworkers", DFLT_MAXWORKERS);
+    add_int("maxcbservers", DFLT_MAXCBSERVERS);
+    add_int("maxprefetchers", DFLT_MAXPREFETCHERS);
+    add_int("sftp_windowsize", DFLT_WS);
+    add_int("sftp_sendahead", DFLT_SA);
+    add_int("sftp_ackpoint", DFLT_AP);
+    add_int("sftp_packetsize", DFLT_PS);
     add_int("rvmtype", UNSET);
     add_int("rvm_log_size", UNSET_VLDS);
     add_int("rvm_data_size", UNSET_VDDS);
@@ -251,14 +271,14 @@ void VenusConf::load_default_config()
     add_int("rds_list_size", UNSET_RDSNL);
     add("log_optimization", "1");
 
-    add_int("swt", UNSET_SWT);
-    add_int("mwt", UNSET_MWT);
-    add_int("ssf", UNSET_SSF);
-    add_on_off_pair("von", "no-voff", false);
-    add_on_off_pair("vmon", "vmoff", false);
+    add_int("swt", DFLT_SWT);
+    add_int("mwt", DFLT_MWT);
+    add_int("ssf", DFLT_SSF);
+    add_on_off_pair("von", "no-voff", DFLT_ST);
+    add_on_off_pair("vmon", "vmoff", DFLT_MT);
     add("SearchForNOreFind", "0");
-    add("noasr", "0");
-    add("novcb", "0");
+    add_on_off_pair("asr", "noasr", true);
+    add_on_off_pair("vcb", "novcb", true);
     add("nowalk", "0");
 #if defined(HAVE_SYS_UN_H) && !defined(__CYGWIN32__)
     add_on_off_pair("MarinerTcp", "noMarinerTcp", false);
@@ -271,8 +291,6 @@ void VenusConf::load_default_config()
 
 void VenusConf::configure_cmdline_options()
 {
-    static bool already_configured = false;
-
     if (already_configured)
         return;
     already_configured = true;
@@ -343,10 +361,10 @@ void VenusConf::configure_cmdline_options()
 
 void VenusConf::apply_consistency_rules()
 {
-    int cacheblock                  = get_int_value("cacheblocks");
-    int cachefiles                  = get_int_value("cachefiles");
-    bool codatunnel_cmdline_defined = false;
-    char buffer[256];
+    uint64_t cacheblock = get_int_value("cacheblocks");
+    int cachefiles      = get_int_value("cachefiles");
+    uint64_t cachechunkblocksize =
+        ParseSizeWithUnits(get_value("cachechunkblocksize")) * 1024;
 
     /* we will prefer the deprecated "cacheblocks" over "cachesize" */
     if (get_int_value("cacheblocks"))
@@ -361,6 +379,14 @@ void VenusConf::apply_consistency_rules()
         cachefiles = (int)CalculateCacheFiles(cacheblock);
         set_int("cachefiles", cachefiles);
     }
+
+    add_int("cachechunkblockbitsize", power_of_2(cachechunkblocksize));
+
+    if (get_bool_value("dontuservm"))
+        set_int("rvmtype", VM);
+
+    /* reintegration time is in msec */
+    set_int("reintegration_time", get_int_value("reintegration_time") * 1000);
 
     if (!get_int_value("cml_entries"))
         set_int("cml_entries", cachefiles * MLES_PER_FILE);
@@ -414,20 +440,33 @@ int VenusConf::check()
         return EINVAL;
     }
 
+    if (get_int_value("cachechunkblockbitsize") < 0) {
+        /* Not a power of 2 FAIL!!! */
+        eprint(
+            "Cannot start: provided cache chunk block size is not a power of 2");
+        return EINVAL;
+    }
+
+    if (get_int_value("cachechunkblockbitsize") < 12) {
+        /* Smaller than minimum FAIL*/
+        eprint("Cannot start: minimum cache chunk block size is 4KB");
+        return EINVAL;
+    }
+
     return 0;
 }
 
-void VenusConf::set_int(const char *key, int value)
+void VenusConf::set_int(const char *key, int64_t value)
 {
-    char buffer[256];
-    itoa(value, buffer, 10);
+    char buffer[max_int64_string_length];
+    snprintf(buffer, max_int64_string_length, "%" PRId64, value);
     set(key, buffer);
 }
 
-int VenusConf::add_int(const char *key, int value)
+int VenusConf::add_int(const char *key, int64_t value)
 {
-    char buffer[256];
-    itoa(value, buffer, 10);
+    char buffer[max_int64_string_length];
+    snprintf(buffer, max_int64_string_length, "%" PRId64, value);
     return add(key, buffer);
 }
 
@@ -449,7 +488,7 @@ VenusConf::on_off_pair *VenusConf::find_on_off_pair(const char *key)
     dlist_iterator next(on_off_pairs_list);
     on_off_pair *curr_pair = NULL;
 
-    while (curr_pair = (on_off_pair *)next()) {
+    while ((curr_pair = (on_off_pair *)next())) {
         if (curr_pair->is_in_pair(key))
             return curr_pair;
     }
