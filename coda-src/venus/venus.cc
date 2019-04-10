@@ -206,12 +206,12 @@ int main(int argc, char **argv)
 
     cmlline_parser.set_args(argc, argv);
     ret_code = cmlline_parser.parse();
-    if (!ret_code)
+    if (!ret_code) {
+        Usage(argv[0]);
         exit(EXIT_INVALID_ARG);
+    }
 
     GetVenusConf().apply_consistency_rules();
-
-    GetVenusConf().print();
 
     ret_code = GetVenusConf().check();
     if (ret_code)
@@ -249,6 +249,9 @@ int main(int argc, char **argv)
 
     /* test mismatch with kernel before doing real work */
     testKernDevice();
+
+    int conf_fd = open("run.conf", O_WRONLY | O_CREAT, 644);
+    GetVenusConf().print(conf_fd);
 
     if (codatunnel_enabled) {
         int rc;
