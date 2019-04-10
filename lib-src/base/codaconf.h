@@ -23,12 +23,6 @@ Coda are listed in the file CREDITS.
 extern "C" {
 #endif
 
-typedef struct _item {
-    struct _item *next;
-    char *name;
-    char *value;
-} * item_t;
-
 /* Useful globals,
  * codaconf_quiet, make conf_init shut up about not finding the configuration
  *		   file. */
