@@ -82,6 +82,42 @@ TEST_F(VenusConfTest, set_int)
     ASSERT_EQ(int_val, actual_val);
 }
 
+TEST_F(VenusConfTest, set_int64_t_max)
+{
+    const char *key       = "int_key";
+    const int64_t int_val = INT64_MAX;
+    int64_t actual_val    = 0;
+
+    conf->set_int(key, int_val);
+
+    actual_val = conf->get_int_value(key);
+    ASSERT_EQ(int_val, actual_val);
+}
+
+TEST_F(VenusConfTest, set_int64_t_min)
+{
+    const char *key       = "int_key";
+    const int64_t int_val = INT64_MIN;
+    int64_t actual_val    = 0;
+
+    conf->set_int(key, int_val);
+
+    actual_val = conf->get_int_value(key);
+    ASSERT_EQ(int_val, actual_val);
+}
+
+TEST_F(VenusConfTest, set_uint64_t_max)
+{
+    const char *key        = "int_key";
+    const uint64_t int_val = UINT64_MAX;
+    uint64_t actual_val    = 0;
+
+    conf->set_int(key, int_val);
+
+    actual_val = conf->get_int_value(key);
+    ASSERT_EQ(int_val, actual_val);
+}
+
 TEST_F(VenusConfTest, relative_path_handling)
 {
     const char *actual_value = NULL;
