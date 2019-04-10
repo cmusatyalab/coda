@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -79,11 +79,8 @@ extern "C" {
 
 /* *****  Exported variables  ***** */
 
-FILE *logFile;
-int LogLevel                   = 0;
-int MallocTrace                = 0;
-const VenusFid NullFid         = { 0, 0, 0, 0 };
-const ViceVersionVector NullVV = { { 0, 0, 0, 0, 0, 0, 0, 0 }, { 0, 0 }, 0 };
+static FILE *logFile;
+static int LogLevel = 0;
 VFSStatistics VFSStats;
 RPCOpStatistics RPCOpStats;
 
@@ -99,6 +96,8 @@ static const char *VFSOpsNameTemplate[NVFSOPS] = {
     "PurgeFid", "OpenByPath",   "Resolve",   "Reintegrate", "Statfs", "Store",
     "Release",  "AccessIntent", "No-Op",     "No-Op"
 };
+
+extern long int RPC2_Trace;
 
 /* *****  util.c  ***** */
 
@@ -531,7 +530,7 @@ int binaryfloor(int n)
 
 void LogInit()
 {
-    logFile = fopen(VenusLogFile, "a+");
+    logFile = fopen(GetVenusConf().get_value("logfile"), "a+");
     if (logFile == NULL) {
         eprint("LogInit failed");
         exit(EXIT_FAILURE);
@@ -539,10 +538,16 @@ void LogInit()
     LogInited = 1;
     LOG(0, ("Coda Venus, version " PACKAGE_VERSION "\n"));
 
+    LogLevel = GetVenusConf().get_int_value("loglevel");
+
     struct timeval now;
     gettimeofday(&now, 0);
     LOG(0, ("Logfile initialized with LogLevel = %d at %s\n", LogLevel,
             ctime((time_t *)&now.tv_sec)));
+
+    RPC2_Trace      = LogLevel ? 1 : 0;
+    RPC2_DebugLevel = GetVenusConf().get_int_value("rpc2loglevel");
+    lwp_debug       = GetVenusConf().get_int_value("lwploglevel");
 }
 
 void DebugOn()
@@ -832,14 +837,14 @@ void StatsInit()
 
 void ToggleMallocTrace()
 {
-    if (MallocTrace) {
+    if (GetVenusConf().get_bool_value("rdstrace")) {
         rds_trace_dump_heap();
         rds_trace_off();
-        MallocTrace = FALSE;
+        GetVenusConf().set("rdstrace", "0");
     } else {
         rds_trace_on(logFile);
         rds_trace_dump_heap();
-        MallocTrace = TRUE;
+        GetVenusConf().set("rdstrace", "1");
     }
 }
 
@@ -853,9 +858,10 @@ void SwapLog()
     struct timeval now;
     gettimeofday(&now, 0);
 
-    freopen(VenusLogFile, "a+", logFile);
-    if (!nofork) /* only redirect stderr when daemonizing */
-        freopen(consoleFile, "a+", stderr);
+    freopen(GetVenusConf().get_value("logfile"), "a+", logFile);
+    if (!GetVenusConf().get_bool_value(
+            "nofork")) /* only redirect stderr when daemonizing */
+        freopen(GetVenusConf().get_value("errorlog"), "a+", stderr);
 
     LOG(0, ("New Logfile started at %s", ctime((time_t *)&now.tv_sec)));
 }
@@ -886,8 +892,8 @@ time_t Vtime()
     return (::time(0));
 }
 
-/* 
- * compares fids embedded in a VenusFidAndVersionVector. 
+/*
+ * compares fids embedded in a VenusFidAndVersionVector.
  * assumes that the fids are in the same volume.
  */
 int FAV_Compare(ViceFidAndVV *fav1, ViceFidAndVV *fav2)
@@ -903,4 +909,20 @@ int FAV_Compare(ViceFidAndVV *fav1, ViceFidAndVV *fav2)
         return (1);
 
     return (0); /* this shouldn't happen */
+}
+
+FILE *GetLogFile()
+{
+    return logFile;
+}
+
+int GetLogLevel()
+{
+    return LogLevel;
+}
+
+void SetLogLevel(int loglevel)
+{
+    LogLevel = loglevel;
+    GetVenusConf().set_int("loglevel", loglevel);
 }

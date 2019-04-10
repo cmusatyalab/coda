@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 2003 Carnegie Mellon University
+          Copyright (c) 2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -144,6 +144,15 @@ static void RealmDB_GetDown(void)
 
 void RealmDBInit(void)
 {
+    static bool InitMetaData = GetVenusConf().get_bool_value("initmetadata");
+    const char *dummy        = NULL;
+
+    /* lib-src/base/parse_realms.c depends on us and this value to be set to
+       the legacy codaconf db */
+    CODACONF_STR(dummy, "realmtab", GetVenusConf().get_value("realmtab"));
+    dummy = NULL;
+    CODACONF_STR(dummy, "realm", GetVenusConf().get_value("realm"));
+
     if (InitMetaData) {
         Recov_BeginTrans();
         RVMLIB_REC_OBJECT(REALMDB);

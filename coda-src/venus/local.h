@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -127,7 +127,7 @@ public:
 #define OBJ_ASSERT(o, ex)                                               \
     {                                                                   \
         if (!(ex)) {                                                    \
-            (o)->print(logFile);                                        \
+            (o)->print(GetLogFile());                                   \
             CHOKE("Assertion failed: file \"%s\", line %d\n", __FILE__, \
                   __LINE__);                                            \
         }                                                               \

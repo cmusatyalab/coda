@@ -66,10 +66,16 @@ extern "C" {
 olist vproc::tbl;
 int vproc::counter;
 char vproc::rtry_sync;
+const char *vproc::venusRoot = "";
+int vproc::MaxWorkers        = UNSET_MAXWORKERS;
+int vproc::MaxPrefetchers    = UNSET_MAXWORKERS;
+int vproc::redzone_limit     = -1;
+int vproc::yellowzone_limit  = -1;
+VenusFid vproc::rootfid;
 
 extern const int RVM_THREAD_DATA_ROCK_TAG;
-
 static const int VPROC_ROCK_TAG = 1776;
+static vproc *Main              = NULL;
 
 static void DoNothing(void)
 {
@@ -78,7 +84,11 @@ static void DoNothing(void)
 
 void VprocInit()
 {
-    vproc::counter = 0;
+    /* Get configuration */
+    vproc::counter        = 0;
+    vproc::venusRoot      = GetVenusConf().get_string_value("mountpoint");
+    vproc::MaxWorkers     = GetVenusConf().get_int_value("maxworkers");
+    vproc::MaxPrefetchers = GetVenusConf().get_int_value("maxprefetchers");
 
     /*
      * Create main process.
@@ -462,8 +472,8 @@ int vproc::operator=(vproc &vp)
 
 vproc::~vproc()
 {
-    if (LogLevel >= 1)
-        print(logFile);
+    if (GetLogLevel() >= 1)
+        print(GetLogFile());
 
     if (!idle)
         CHOKE("vproc::~vproc: not idle!");
@@ -627,15 +637,15 @@ void vproc::Begin_VFS(Volid *volid, int vfsop, int volmode)
 	 * useful metric for redzoning on CML entries.
          * Explicit CML length checks added by Satya (2016-12-28).
          */
-        inredzone = !free_fsos || free_mles <= MaxWorkers ||
+        inredzone = !free_fsos || free_mles <= vproc::MaxWorkers ||
                     free_blocks <=
                         (FSDB->GetMaxBlocks() >> 4) || /* ~94% cache dirty */
                     (redzone_limit > 0 && cml_length >= redzone_limit);
-        inyellowzone = free_fsos <= MaxWorkers ||
-                       free_mles <= (MLEs >> 3) || /* ~88% CMLs used */
-                       free_blocks <=
-                           (FSDB->GetMaxBlocks() >> 2) || /* ~75% cache dirty */
-                       (yellowzone_limit > 0 && cml_length >= yellowzone_limit);
+        inyellowzone =
+            free_fsos <= vproc::MaxWorkers ||
+            free_mles <= (VDB->GetMaxMLEs() >> 3) || /* ~88% CMLs used */
+            free_blocks <= (FSDB->GetMaxBlocks() >> 2) || /* ~75% cache dirty */
+            (yellowzone_limit > 0 && cml_length >= yellowzone_limit);
 
         if (inredzone)
             MarinerLog("progress::Red zone, stalling writer\n");
@@ -885,7 +895,7 @@ void va_init(struct coda_vattr *vap)
 
 void VPROC_printvattr(struct coda_vattr *vap)
 {
-    if (LogLevel >= 1000) {
+    if (GetLogLevel() >= 1000) {
         dprint("\tmode = %#o, uid = %d, gid = %d, rdev = %d\n", vap->va_mode,
                vap->va_uid, vap->va_gid, vap->va_rdev);
         dprint(

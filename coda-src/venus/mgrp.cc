@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -230,7 +230,7 @@ void mgrpent::Put()
          list_empty(&vsghandle)));
 
     if (!InUse()) {
-        print(logFile);
+        print(GetLogFile());
         CHOKE("mgrpent::Put mgrp not in use");
     }
 
@@ -645,15 +645,15 @@ int mgrpent::RVVCheck(ViceVersionVector **RVVs, int EqReq)
     for (int j = 0; j < VSG_MEMBERS; j++)
         if (!rocc.hosts[j].s_addr || rocc.retcodes[j])
             RVVs[j] = 0;
-    if (LogLevel >= 100)
-        VVPrint(logFile, RVVs);
+    if (GetLogLevel() >= 100)
+        VVPrint(GetLogFile(), RVVs);
 
     int dom_cnt = 0;
     if (!VV_Check(&dom_cnt, RVVs, EqReq))
         return (ESYNRESOLVE);
 
     if (dom_cnt <= 0 || dom_cnt > rocc.HowMany) {
-        print(logFile);
+        print(GetLogFile());
         CHOKE("mgrpent::RVVCheck: bogus dom_cnt (%d)", dom_cnt);
     }
 

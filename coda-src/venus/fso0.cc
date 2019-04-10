@@ -62,16 +62,29 @@ extern "C" {
 #include "vproc.h"
 #include "worker.h"
 
-unsigned int PartialCacheFilesRatio = 0;
-int FSO_SWT                         = UNSET_SWT;
-int FSO_MWT                         = UNSET_MWT;
-int FSO_SSF                         = UNSET_SSF;
+static int FSO_SWT       = UNSET_SWT;
+static int FSO_MWT       = UNSET_MWT;
+static int FSO_SSF       = UNSET_SSF;
+static bool InitMetaData = false;
 
 /* Call with CacheDir the current directory. */
 void FSOInit()
 {
     unsigned int i;
     uint64_t CacheBlocks = GetVenusConf().get_int_value("cacheblocks");
+    FSO_SWT              = GetVenusConf().get_int_value("swt");
+    FSO_MWT              = GetVenusConf().get_int_value("mwt");
+    FSO_SSF              = GetVenusConf().get_int_value("ssf");
+    InitMetaData         = GetVenusConf().get_bool_value("initmetadata");
+
+    cachechunksutil::CacheChunkBlockSizeBits =
+        GetVenusConf().get_bool_value("cachechunkblockbitsize");
+    cachechunksutil::CacheChunkBlockSize =
+        1 << cachechunksutil::CacheChunkBlockSizeBits;
+    cachechunksutil::CacheChunkBlockSizeMax =
+        cachechunksutil::CacheChunkBlockSize - 1;
+    cachechunksutil::CacheChunkBlockBitmapSize =
+        (UINT_MAX >> cachechunksutil::CacheChunkBlockSizeBits) + 1;
 
     /* Allocate the database if requested. */
     if (InitMetaData) { /* <==> FSDB == 0 */
@@ -94,12 +107,12 @@ void FSOInit()
     }
     FSDB->FreeBlockMargin = FSDB->MaxBlocks / FREE_FACTOR;
 
-    if (InitMetaData || (FSO_SWT != UNSET_SWT && FSDB->swt != FSO_SWT))
-        FSDB->swt = (FSO_SWT == UNSET_SWT ? DFLT_SWT : FSO_SWT);
-    if (InitMetaData || (FSO_MWT != UNSET_MWT && FSDB->mwt != FSO_MWT))
-        FSDB->mwt = (FSO_MWT == UNSET_MWT ? DFLT_MWT : FSO_MWT);
-    if (InitMetaData || (FSO_SSF != UNSET_SSF && FSDB->ssf != FSO_SSF))
-        FSDB->ssf = (FSO_SSF == UNSET_SSF ? DFLT_SSF : FSO_SSF);
+    if (InitMetaData || FSDB->swt != FSO_SWT)
+        FSDB->swt = FSO_SWT;
+    if (InitMetaData || FSDB->mwt != FSO_MWT)
+        FSDB->mwt = FSO_MWT;
+    if (InitMetaData || FSDB->ssf != FSO_SSF)
+        FSDB->ssf = FSO_SSF;
     FSDB->maxpri    = FSDB->MakePri(FSO_MAX_SPRI, FSO_MAX_MPRI);
     FSDB->stdpri    = FSDB->MakePri(FSO_MAX_SPRI, FSO_MAX_MPRI / 2);
     FSDB->marginpri = FSDB->MakePri(FSO_MAX_SPRI, 0);
@@ -435,7 +448,7 @@ fsobj *fsdb::Create(VenusFid *key, int priority, const char *comp,
 
     /* Check whether the key is already in the database. */
     if ((f = Find(key)) != NULL) {
-        f->print(logFile);
+        f->print(GetLogFile());
         CHOKE("fsdb::Create: key found");
     }
 
@@ -893,16 +906,17 @@ RestartFind:
 	 * 5.) The timeout interval for ASR launching has expired.
 	 */
 
-        ASRInvokable = ((ASRLauncherFile != NULL) && (vp->type == VPT_Worker) &&
-                        v->IsASRAllowed() && !v->asr_running() &&
+        ASRInvokable = ((VDB->GetASRLauncherFile() != NULL) &&
+                        (vp->type == VPT_Worker) && v->IsASRAllowed() &&
+                        !v->asr_running() &&
                         ((tv.tv_sec - realobj->lastresolved) > ASR_INTERVAL) &&
-                        v->IsASREnabled() && (ASRPolicyFile != NULL));
+                        v->IsASREnabled() && (VDB->GetASRPolicyFile() != NULL));
 
-        if (ASRLauncherFile == NULL)
+        if (VDB->GetASRLauncherFile() == NULL)
             LOG(0,
                 ("fsdb::Get: asrlauncher_file not specified in venus.conf!\n"));
 
-        if (ASRPolicyFile == NULL)
+        if (VDB->GetASRPolicyFile() == NULL)
             LOG(0,
                 ("fsdb::Get: asrpolicy_file not specified in venus.conf!\n"));
 
@@ -968,7 +982,7 @@ void fsdb::Put(fsobj **f_addr)
          FID_(&f->fid), f->refcnt, f->readers, f->writers, f->openers));
 
     if (f->readers == 0 && f->writers == 0) {
-        f->print(logFile);
+        f->print(GetLogFile());
         CHOKE("fsdb::Put: no locks!");
     }
     LockLevel level = (f->readers > 0 ? RD : WR);
@@ -1104,7 +1118,7 @@ int fsdb::TranslateFid(VenusFid *OldFid, VenusFid *NewFid)
     /* Can't handle any case but reintegration. */
     /* in old versions we would choke too  if (!DIRTY(f)) */
     if (!HAVESTATUS(f)) {
-        f->print(logFile);
+        f->print(GetLogFile());
         CHOKE("fsdb::TranslateFid: !HAVESTATUS");
     }
 
@@ -1114,14 +1128,14 @@ int fsdb::TranslateFid(VenusFid *OldFid, VenusFid *NewFid)
     /* Check that the NewFid is not already known! */
     fsobj *Newf = Find(NewFid);
     if (Newf != 0) {
-        f->print(logFile);
-        Newf->print(logFile);
+        f->print(GetLogFile());
+        Newf->print(GetLogFile());
         CHOKE("fsdb::TranslateFid: NewFid found");
     }
 
     /* Remove OldObject from table. */
     if (htab.remove(&f->fid, &f->primary_handle) != &f->primary_handle) {
-        f->print(logFile);
+        f->print(GetLogFile());
         CHOKE("fsdb::TranslateFid: old object remove");
     }
 
@@ -1300,7 +1314,7 @@ void fsdb::ReclaimFsos(int priority, int count)
         fsobj *f = strbase(fsobj, b, prio_handle);
 
         if (!REPLACEABLE(f)) {
-            f->print(logFile);
+            f->print(GetLogFile());
             CHOKE("fsdb::ReclaimFsos: !REPLACEABLE");
         }
 
@@ -1351,7 +1365,7 @@ int fsdb::FreeBlockCount()
             fsobj *f = strbase(fsobj, o, owrite_handle);
 
             if (f->flags.owrite == 0) {
-                f->print(logFile);
+                f->print(GetLogFile());
                 CHOKE("fsdb::FreeBlockCount: on owriteq && !owrite");
             }
 
@@ -1439,7 +1453,7 @@ void fsdb::ReclaimBlocks(int priority, int nblocks)
         fsobj *f = strbase(fsobj, b, prio_handle);
 
         if (!REPLACEABLE(f)) {
-            f->print(logFile);
+            f->print(GetLogFile());
             CHOKE("fsdb::ReclaimBlocks: !REPLACEABLE");
         }
 
@@ -1549,7 +1563,7 @@ void fsdb::print(int fd, int SummaryOnly)
                     break;
 
                 case Invalid:
-                    f->print(logFile);
+                    f->print(GetLogFile());
                     CHOKE("fsdb::print: bogus vnode type");
                 }
             }

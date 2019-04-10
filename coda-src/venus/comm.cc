@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -80,16 +80,12 @@ extern void SFTP_Activate(SFTP_Initializer *initPtr);
 #include "venusvol.h"
 #include "vproc.h"
 
-int COPModes = 6; /* ASYNCCOP2 | PIGGYCOP2 */
+static int COPModes = 6; /* ASYNCCOP2 | PIGGYCOP2 */
 char myHostName[MAXHOSTNAMELEN];
-int rpc2_retries    = UNSET_RT;
-int rpc2_timeout    = UNSET_TO;
-int sftp_windowsize = UNSET_WS;
-int sftp_sendahead  = UNSET_SA;
-int sftp_ackpoint   = UNSET_AP;
-int sftp_packetsize = UNSET_PS;
-int rpc2_timeflag   = UNSET_ST;
-int mrpc2_timeflag  = UNSET_MT;
+static int sftp_windowsize = UNSET_WS;
+static int sftp_sendahead  = UNSET_SA;
+static int sftp_ackpoint   = UNSET_AP;
+static int sftp_packetsize = UNSET_PS;
 
 extern long RPC2_Perror;
 struct CommQueueStruct CommQueue;
@@ -108,23 +104,13 @@ int srvent::deallocs  = 0;
 
 void CommInit()
 {
-    /* Initialize unset command-line parameters. */
-    if (sftp_windowsize == UNSET_WS)
-        sftp_windowsize = DFLT_WS;
-    if (sftp_sendahead == UNSET_SA)
-        sftp_sendahead = DFLT_SA;
-    if (sftp_ackpoint == UNSET_AP)
-        sftp_ackpoint = DFLT_AP;
-    if (sftp_packetsize == UNSET_PS)
-        sftp_packetsize = DFLT_PS;
-    if (rpc2_timeflag == UNSET_ST)
-        srv_ElapseSwitch = DFLT_ST;
-    else
-        srv_ElapseSwitch = rpc2_timeflag;
-    if (mrpc2_timeflag == UNSET_MT)
-        srv_MultiStubWork[0].opengate = DFLT_MT;
-    else
-        srv_MultiStubWork[0].opengate = mrpc2_timeflag;
+    COPModes         = GetVenusConf().get_int_value("copmodes");
+    sftp_windowsize  = GetVenusConf().get_int_value("sftp_windowsize");
+    sftp_sendahead   = GetVenusConf().get_int_value("sftp_sendahead");
+    sftp_ackpoint    = GetVenusConf().get_int_value("sftp_ackpoint");
+    sftp_packetsize  = GetVenusConf().get_int_value("sftp_packetsize");
+    srv_ElapseSwitch = GetVenusConf().get_int_value("von");
+    srv_MultiStubWork[0].opengate = GetVenusConf().get_int_value("vmon");
 
     /* Sanity check COPModes. */
     if ((ASYNCCOP1 && !ASYNCCOP2) || (PIGGYCOP2 && !ASYNCCOP2))
@@ -147,8 +133,9 @@ void CommInit()
 
     /* Port initialization. */
     RPC2_PortIdent port1;
-    port1.Tag                  = RPC2_PORTBYINETNUMBER;
-    port1.Value.InetPortNumber = htons(masquerade_port);
+    port1.Tag = RPC2_PORTBYINETNUMBER;
+    port1.Value.InetPortNumber =
+        htons(GetVenusConf().get_int_value("masquerade_port"));
 
     /* SFTP initialization. */
     SFTP_Initializer sei;
@@ -163,13 +150,25 @@ void CommInit()
 
     /* RPC2 initialization. */
     struct timeval tv;
-    tv.tv_sec  = rpc2_timeout;
+    tv.tv_sec  = GetVenusConf().get_int_value("RPC2_timeout");
     tv.tv_usec = 0;
-    if (RPC2_Init(RPC2_VERSION, 0, &port1, rpc2_retries, &tv) != RPC2_SUCCESS)
+    if (RPC2_Init(RPC2_VERSION, 0, &port1,
+                  GetVenusConf().get_int_value("RPC2_retries"),
+                  &tv) != RPC2_SUCCESS)
         CHOKE("CommInit: RPC2_Init failed");
 
     /* Fire up the probe daemon. */
     PROD_Init();
+}
+
+int GetCOPModes()
+{
+    return COPModes;
+}
+
+void SetCOPModes(int copmodes)
+{
+    COPModes = copmodes;
 }
 
 /* *****  Connection  ***** */
@@ -532,13 +531,13 @@ void PutServer(srvent **spp)
 /*
  *    The probe routines exploit parallelism in three ways:
  *       1. MultiRPC is used to perform the Probe RPC (actually, a ViceGetTime)
- *       2. Slave vprocs are used to overlap the probing of "up" servers and 
+ *       2. Slave vprocs are used to overlap the probing of "up" servers and
  * 	    the binding/probing of "down" servers.  Otherwise probing of "up"
  *	    servers may be delayed for the binding to "down" servers.
- *       3. (Additional) slave vprocs are used to overlap the binding of 
+ *       3. (Additional) slave vprocs are used to overlap the binding of
  *          "down" servers
  *
- *    Note that item 3 is only needed because MultiBind functionality is not 
+ *    Note that item 3 is only needed because MultiBind functionality is not
  *    yet a part of MultiRPC.
  */
 
@@ -673,11 +672,11 @@ void DoProbes(int HowMany, struct in_addr *Hosts)
 
 void MultiBind(int HowMany, struct in_addr *Hosts, connent **Connections)
 {
-    if (LogLevel >= 1) {
+    if (GetLogLevel() >= 1) {
         dprint("MultiBind: HowMany = %d\n\tHosts = [ ", HowMany);
         for (int i = 0; i < HowMany; i++)
-            fprintf(logFile, "%s ", inet_ntoa(Hosts[i]));
-        fprintf(logFile, "]\n");
+            fprintf(GetLogFile(), "%s ", inet_ntoa(Hosts[i]));
+        fprintf(GetLogFile(), "]\n");
     }
 
     int ix, slaves = 0;
@@ -718,11 +717,11 @@ void MultiBind(int HowMany, struct in_addr *Hosts, connent **Connections)
 
 void MultiProbe(int HowMany, RPC2_Handle *Handles)
 {
-    if (LogLevel >= 1) {
+    if (GetLogLevel() >= 1) {
         dprint("MultiProbe: HowMany = %d\n\tHandles = [ ", HowMany);
         for (int i = 0; i < HowMany; i++)
-            fprintf(logFile, "%x ", Handles[i]);
-        fprintf(logFile, "]\n");
+            fprintf(GetLogFile(), "%x ", Handles[i]);
+        fprintf(GetLogFile(), "]\n");
     }
 
     /* Make multiple copies of the IN/OUT and OUT parameters. */
@@ -858,7 +857,7 @@ void DownServers(int nservers, struct in_addr *hostids, char *buf,
     *bufsize = (cp - buf);
 }
 
-/* 
+/*
  * Update bandwidth estimates for all up servers.
  * Reset estimates and declare connectivity strong if there are
  * no recent observations.  Called by the probe daemon.
@@ -1183,7 +1182,7 @@ long srvent::GetLiveness(struct timeval *tp)
     return (0);
 }
 
-/* 
+/*
  * calculates current bandwidth to server, taking the current estimates from
  * RPC2/SFTP.
  *

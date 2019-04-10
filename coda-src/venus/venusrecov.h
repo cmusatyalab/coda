@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -103,16 +103,7 @@ extern RecovVenusGlobals *rvg;
 extern int TransCount;
 extern float TransElapsed;
 extern int RecovTimeToFlush;
-extern int MapPrivate;
 
-extern int InitMetaData, InitNewInstance;
-extern rvm_type_t RvmType;
-extern const char *VenusLogDevice;
-extern unsigned long VenusLogDeviceSize;
-extern const char *VenusDataDevice;
-extern unsigned long VenusDataDeviceSize;
-extern int RdsChunkSize;
-extern int RdsNlists;
 extern int CMFP;
 extern int DMFP;
 extern int WITT;
@@ -135,6 +126,7 @@ RPC2_String Copy_RPC2_String(RPC2_String &);
 void Free_RPC2_String(RPC2_String &);
 void RECOVD_Init(void);
 void RecovDaemon(void);
+rvm_type_t GetRvmType();
 
 void Recov_GenerateStoreId(ViceStoreId *sid);
 

@@ -650,7 +650,7 @@ public:
     int IsSymLink() { return (stat.VnodeType == (int)SymbolicLink); }
     int IsNormal() { return (mvstat == NORMAL); }
     int IsRoot() { return (mvstat == ROOT); }
-    int IsVenusRoot() { return (FID_EQ(&fid, &rootfid)); }
+    int IsVenusRoot() { return (FID_EQ(&fid, &vproc::GetRootFid())); }
     int IsMtPt() { return (mvstat == MOUNTPOINT); } /* covered mount point */
     int IsMTLink() { return (IsSymLink() && stat.Mode == 0644 && IsNormal()); }
     /* uncovered mount point */
@@ -722,13 +722,6 @@ public:
     fsobj *operator()();
 };
 
-/*  *****  Variables  ***** */
-
-extern unsigned int PartialCacheFilesRatio;
-extern int FSO_SWT;
-extern int FSO_MWT;
-extern int FSO_SSF;
-
 /*  *****  Functions/Procedures  *****  */
 
 /* fso0.c */
@@ -786,7 +779,7 @@ void FSOD_ReclaimFSOs(void);
 #define FSO_ASSERT(f, ex)                                               \
     {                                                                   \
         if (!(ex)) {                                                    \
-            (f)->print(logFile);                                        \
+            (f)->print(GetLogFile());                                   \
             CHOKE("Assertion failed: file \"%s\", line %d\n", __FILE__, \
                   __LINE__);                                            \
         }                                                               \

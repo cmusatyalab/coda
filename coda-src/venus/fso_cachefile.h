@@ -58,147 +58,159 @@ extern "C" {
 
 #define CACHEFILENAMELEN 16
 
-extern uint64_t CacheChunkBlockSize;
-extern uint64_t CacheChunkBlockSizeBits;
-extern uint64_t CacheChunkBlockSizeMax;
-extern uint64_t CacheChunkBlockBitmapSize;
+class cachechunksutil {
+    friend void FSOInit();
+    static uint64_t CacheChunkBlockSize;
+    static uint64_t CacheChunkBlockSizeBits;
+    static uint64_t CacheChunkBlockSizeMax;
+    static uint64_t CacheChunkBlockBitmapSize;
 
-/**
- * Convert cache chunk block amount to bytes
- *
- * @param ccblocks cache chunk block amount
- *
- * @return bytes amount
- */
-static inline uint64_t ccblocks_to_bytes(uint64_t ccblocks)
-{
-    return ccblocks << CacheChunkBlockSizeBits;
-}
+public:
+    /**
+     * Convert cache chunk block amount to bytes
+     *
+     * @param ccblocks cache chunk block amount
+     *
+     * @return bytes amount
+     */
+    static inline uint64_t ccblocks_to_bytes(uint64_t ccblocks)
+    {
+        return ccblocks << CacheChunkBlockSizeBits;
+    }
 
-/**
- * Convert bytes amount to cache chunk block amount (rounded down)
- *
- * @param bytes bytes amount
- *
- * @return cache chunk block amount
- */
-static inline uint64_t bytes_to_ccblocks(uint64_t bytes)
-{
-    return bytes >> CacheChunkBlockSizeBits;
-}
+    /**
+     * Convert bytes amount to cache chunk block amount (rounded down)
+     *
+     * @param bytes bytes amount
+     *
+     * @return cache chunk block amount
+     */
+    static inline uint64_t bytes_to_ccblocks(uint64_t bytes)
+    {
+        return bytes >> CacheChunkBlockSizeBits;
+    }
 
-/**
- * Convert bytes amount to cache chunk block amount (rounded down)
- *
- * @param bytes bytes amount
- *
- * @return cache chunk block amount
- */
-static inline uint64_t bytes_to_ccblocks_floor(uint64_t bytes)
-{
-    return bytes_to_ccblocks(bytes);
-}
+    /**
+     * Convert bytes amount to cache chunk block amount (rounded down)
+     *
+     * @param bytes bytes amount
+     *
+     * @return cache chunk block amount
+     */
+    static inline uint64_t bytes_to_ccblocks_floor(uint64_t bytes)
+    {
+        return bytes_to_ccblocks(bytes);
+    }
 
-/**
- * Convert bytes amount to cache chunk block amount (rounded up)
- *
- * @param bytes bytes amount
- *
- * @return cache chunk block amount
- */
-static inline uint64_t bytes_to_ccblocks_ceil(uint64_t bytes)
-{
-    return bytes_to_ccblocks(bytes + CacheChunkBlockSizeMax);
-}
+    /**
+     * Convert bytes amount to cache chunk block amount (rounded up)
+     *
+     * @param bytes bytes amount
+     *
+     * @return cache chunk block amount
+     */
+    static inline uint64_t bytes_to_ccblocks_ceil(uint64_t bytes)
+    {
+        return bytes_to_ccblocks(bytes + CacheChunkBlockSizeMax);
+    }
 
-/**
- * Align a bytes amount to the cache chunk block's upper-bound
- *
- * @param bytes bytes amount
- *
- * @return align amount in bytes
- */
-static inline uint64_t align_to_ccblock_ceil(uint64_t bytes)
-{
-    return (bytes + CacheChunkBlockSizeMax) & ~CacheChunkBlockSizeMax;
-}
+    /**
+     * Align a bytes amount to the cache chunk block's upper-bound
+     *
+     * @param bytes bytes amount
+     *
+     * @return align amount in bytes
+     */
+    static inline uint64_t align_to_ccblock_ceil(uint64_t bytes)
+    {
+        return (bytes + CacheChunkBlockSizeMax) & ~CacheChunkBlockSizeMax;
+    }
 
-/**
- * Align a bytes amount to the cache chunk block's lower-bound
- *
- * @param bytes bytes amount
- *
- * @return align amount in bytes
- */
-static inline uint64_t align_to_ccblock_floor(uint64_t bytes)
-{
-    return (bytes & ~CacheChunkBlockSizeMax);
-}
+    /**
+     * Align a bytes amount to the cache chunk block's lower-bound
+     *
+     * @param bytes bytes amount
+     *
+     * @return align amount in bytes
+     */
+    static inline uint64_t align_to_ccblock_floor(uint64_t bytes)
+    {
+        return (bytes & ~CacheChunkBlockSizeMax);
+    }
 
-/**
- * Align a file position in bytes to the corresponding cache chunk block
- *
- * @param b_pos file position in bytes
- *
- * @return cache chunk block in which the file position is
- */
-static inline uint64_t ccblock_start(uint64_t b_pos)
-{
-    return bytes_to_ccblocks_floor(b_pos);
-}
+    /**
+     * Align a file position in bytes to the corresponding cache chunk block
+     *
+     * @param b_pos file position in bytes
+     *
+     * @return cache chunk block in which the file position is
+     */
+    static inline uint64_t ccblock_start(uint64_t b_pos)
+    {
+        return bytes_to_ccblocks_floor(b_pos);
+    }
 
-/**
- * Align the end of range in bytes to the corresponding cache chunk block
- *
- * @param b_pos   start of the range in bytes
- * @param b_count length of the range in bytes
- *
- * @return cache chunk block in which the range ends
- */
-static inline uint64_t ccblock_end(uint64_t b_pos, int64_t b_count)
-{
-    return bytes_to_ccblocks_ceil(b_pos + b_count);
-}
+    /**
+     * Align the end of range in bytes to the corresponding cache chunk block
+     *
+     * @param b_pos   start of the range in bytes
+     * @param b_count length of the range in bytes
+     *
+     * @return cache chunk block in which the range ends
+     */
+    static inline uint64_t ccblock_end(uint64_t b_pos, int64_t b_count)
+    {
+        return bytes_to_ccblocks_ceil(b_pos + b_count);
+    }
 
-/**
- * Calculate the amount of cache chunk blocks of a range (aligned)
- *
- * @param b_pos   start of the range in bytes
- * @param b_count lenght of the range in bytes
- *
- * @return amount of the cache chunk blocks
- */
-static inline uint64_t ccblock_length(uint64_t b_pos, int64_t b_count)
-{
-    return ccblock_end(b_pos, b_count) - ccblock_start(b_pos);
-}
+    /**
+     * Calculate the amount of cache chunk blocks of a range (aligned)
+     *
+     * @param b_pos   start of the range in bytes
+     * @param b_count lenght of the range in bytes
+     *
+     * @return amount of the cache chunk blocks
+     */
+    static inline uint64_t ccblock_length(uint64_t b_pos, int64_t b_count)
+    {
+        return ccblock_end(b_pos, b_count) - ccblock_start(b_pos);
+    }
 
-/**
- * Align a file position in bytes to the start of the corresponding cache 
- * chunk block
- *
- * @param b_pos file position in bytes
- *
- * @return start of the corresponding cache chunk block in bytes
- */
-static inline uint64_t pos_align_to_ccblock(uint64_t b_pos)
-{
-    return (b_pos & ~CacheChunkBlockSizeMax);
-}
+    /**
+     * Align a file position in bytes to the start of the corresponding cache
+     * chunk block
+     *
+     * @param b_pos file position in bytes
+     *
+     * @return start of the corresponding cache chunk block in bytes
+     */
+    static inline uint64_t pos_align_to_ccblock(uint64_t b_pos)
+    {
+        return (b_pos & ~CacheChunkBlockSizeMax);
+    }
 
-/**
- * Align a the end of a range in bytes to the end of the corresponding cache 
- * chunk block
- *
- * @param b_pos   start of the range in bytes
- * @param b_count lenght of the range in bytes
- *
- * @return end of the corresponding cache chunk block in bytes
- */
-static inline uint64_t length_align_to_ccblock(uint64_t b_pos, int64_t b_count)
-{
-    return ccblocks_to_bytes(ccblock_length(b_pos, b_count));
-}
+    /**
+     * Align a the end of a range in bytes to the end of the corresponding cache
+     * chunk block
+     *
+     * @param b_pos   start of the range in bytes
+     * @param b_count lenght of the range in bytes
+     *
+     * @return end of the corresponding cache chunk block in bytes
+     */
+    static inline uint64_t length_align_to_ccblock(uint64_t b_pos,
+                                                   int64_t b_count)
+    {
+        return ccblocks_to_bytes(ccblock_length(b_pos, b_count));
+    }
+
+    static inline uint64_t get_ccblocks_bitmap_size()
+    {
+        return CacheChunkBlockBitmapSize;
+    }
+
+    static inline uint64_t get_ccblocks_size() { return CacheChunkBlockSize; }
+};
 
 #define FS_BLOCKS_SIZE_MAX (4095)
 #define FS_BLOCKS_SIZE_MASK (~FS_BLOCKS_SIZE_MAX)
@@ -386,7 +398,7 @@ protected:
      * @param to    destination cache file pointer
      * @param pos   offset within the file
      * @param count amount of bytes to be copied
-     * 
+     *
      * @return amount of bytes copied
      */
     static int64_t CopySegment(CacheFile *from, CacheFile *to, uint64_t pos,
@@ -413,7 +425,7 @@ public:
     ~CacheFile();
 
     /**
-     * Create and initialize a new cachefile (container file will be also 
+     * Create and initialize a new cachefile (container file will be also
      * created)
      *
      * @param newlength length of the container file in bytes
@@ -487,7 +499,7 @@ public:
     int Copy(char *destname, int recovering = 0);
 
     /**
-     * Increment reference counter. Creation already does an implicit IncRef() 
+     * Increment reference counter. Creation already does an implicit IncRef()
      */
     void IncRef() { refcnt++; }
 
@@ -508,7 +520,7 @@ public:
     /**
      * Change container file's last access and modification times
      *
-     * @param times time array of last access time and modification time, 
+     * @param times time array of last access time and modification time,
      *        respectively.
      */
     void Utimes(const struct timeval times[2]);
@@ -547,7 +559,7 @@ public:
      *
      * @param start start of the search range
      * @param len   length of the search range
-     * 
+     *
      * @return holes list
      */
     CacheChunkList *GetHoles(uint64_t start, int64_t len);
@@ -557,7 +569,7 @@ public:
      *
      * @param start start of the search range
      * @param len   length of the search range
-     * 
+     *
      * @return valid ranges chunks list
      */
     CacheChunkList *GetValidChunks(uint64_t start, int64_t len);
@@ -584,7 +596,7 @@ public:
     uint64_t ValidData() { return (validdata); }
 
     /**
-     * Get the amount of consecutive valid data starting from beginning of the 
+     * Get the amount of consecutive valid data starting from beginning of the
      * file
      *
      * @return amount of valid data of the cache file in bytes

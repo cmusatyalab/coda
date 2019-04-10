@@ -49,7 +49,6 @@ extern "C" {
 /* from venus */
 #include "fso_cachefile.h"
 #include "venusrecov.h"
-#include "venus.private.h"
 
 #ifndef fdatasync
 #define fdatasync(fd) fsync(fd)
@@ -58,10 +57,10 @@ extern "C" {
 /* always useful to have a page of zero's ready */
 static char zeropage[4096];
 
-uint64_t CacheChunkBlockSize       = 0;
-uint64_t CacheChunkBlockSizeMax    = 0;
-uint64_t CacheChunkBlockSizeBits   = 0;
-uint64_t CacheChunkBlockBitmapSize = 0;
+uint64_t cachechunksutil::CacheChunkBlockSize       = 0;
+uint64_t cachechunksutil::CacheChunkBlockSizeBits   = 0;
+uint64_t cachechunksutil::CacheChunkBlockSizeMax    = 0;
+uint64_t cachechunksutil::CacheChunkBlockBitmapSize = 0;
 
 /*  *****  CacheFile Members  *****  */
 
@@ -81,7 +80,7 @@ CacheFile::CacheFile(int i, int recoverable, int partial)
     this->recoverable  = recoverable;
     if (isPartial) {
         cached_chunks = new (recoverable)
-            bitmap7(CacheChunkBlockBitmapSize, recoverable);
+            bitmap7(cachechunksutil::get_ccblocks_bitmap_size(), recoverable);
         Lock_Init(&rw_lock);
     }
 
@@ -108,6 +107,8 @@ CacheFile::~CacheFile()
 
     if (isPartial)
         delete cached_chunks;
+
+    ::unlink(name);
 }
 
 /* MUST NOT be called from within transaction! */
@@ -128,8 +129,8 @@ void CacheFile::SetPartial(bool is_partial)
         RVMLIB_REC_OBJECT(*this);
 
     if (is_partial) {
-        cached_chunks = new (recoverable)
-            bitmap7(CacheChunkBlockBitmapSize, this->recoverable);
+        cached_chunks = new (recoverable) bitmap7(
+            cachechunksutil::get_ccblocks_bitmap_size(), this->recoverable);
         Lock_Init(&this->rw_lock);
 
         /* If there's valid data set it to the bitmap */
@@ -170,7 +171,7 @@ int CacheFile::ValidContainer()
 #endif
         tstat.st_size == (off_t)length;
 
-    if (!valid && LogLevel >= 0) {
+    if (!valid && GetLogLevel() >= 0) {
         dprint("CacheFile::ValidContainer: %s invalid\n", name);
         dprint("\t(%u, %u), (%u, %u), (%o, %o), (%d, %d)\n", tstat.st_uid,
                (uid_t)V_UID, tstat.st_gid, (gid_t)V_GID,
@@ -309,6 +310,7 @@ void CacheFile::Utimes(const struct timeval times[2])
 /* MUST be called from within transaction! */
 void CacheFile::Truncate(uint64_t newlen)
 {
+    static bool option_isr = GetVenusConf().get_bool_value("isr");
     int fd;
 
     fd = open(name, O_WRONLY | O_BINARY);
@@ -339,9 +341,10 @@ void CacheFile::Truncate(uint64_t newlen)
             if (newlen < length) {
                 ObtainWriteLock(&rw_lock);
 
-                cached_chunks->FreeRange(bytes_to_ccblocks_ceil(newlen),
-                                         bytes_to_ccblocks_ceil(length) -
-                                             bytes_to_ccblocks_ceil(newlen));
+                cached_chunks->FreeRange(
+                    cachechunksutil::bytes_to_ccblocks_ceil(newlen),
+                    cachechunksutil::bytes_to_ccblocks_ceil(length) -
+                        cachechunksutil::bytes_to_ccblocks_ceil(newlen));
 
                 ReleaseWriteLock(&rw_lock);
             }
@@ -364,17 +367,18 @@ void CacheFile::Truncate(uint64_t newlen)
 /* Update the valid data*/
 void CacheFile::UpdateValidData()
 {
-    uint64_t length_cb = bytes_to_ccblocks_ceil(length);
+    uint64_t length_cb = cachechunksutil::bytes_to_ccblocks_ceil(length);
 
     CODA_ASSERT(isPartial);
 
     ObtainReadLock(&rw_lock);
 
-    validdata = ccblocks_to_bytes(cached_chunks->Count());
+    validdata = cachechunksutil::ccblocks_to_bytes(cached_chunks->Count());
 
     /* In case the the last block is set */
     if (length_cb && cached_chunks->Value(length_cb - 1)) {
-        uint64_t empty_tail = ccblocks_to_bytes(length_cb) - length;
+        uint64_t empty_tail =
+            cachechunksutil::ccblocks_to_bytes(length_cb) - length;
         validdata -= empty_tail;
     }
 
@@ -393,8 +397,8 @@ void CacheFile::SetLength(uint64_t newlen)
                 ObtainWriteLock(&rw_lock);
 
                 cached_chunks->FreeRange(
-                    bytes_to_ccblocks_floor(newlen),
-                    bytes_to_ccblocks_ceil(length - newlen));
+                    cachechunksutil::bytes_to_ccblocks_floor(newlen),
+                    cachechunksutil::bytes_to_ccblocks_ceil(length - newlen));
 
                 ReleaseWriteLock(&rw_lock);
             }
@@ -434,9 +438,9 @@ void CacheFile::SetValidData(uint64_t start, int64_t len)
         return;
 
     // Skip partial blocks at the start or end
-    uint64_t start_cb     = bytes_to_ccblocks_ceil(start);
-    uint64_t end_cb       = bytes_to_ccblocks_floor(start + len);
-    uint64_t length_cb    = bytes_to_ccblocks_ceil(length);
+    uint64_t start_cb  = cachechunksutil::bytes_to_ccblocks_ceil(start);
+    uint64_t end_cb    = cachechunksutil::bytes_to_ccblocks_floor(start + len);
+    uint64_t length_cb = cachechunksutil::bytes_to_ccblocks_ceil(length);
     uint64_t newvaliddata = 0;
 
     if (recoverable)
@@ -451,13 +455,14 @@ void CacheFile::SetValidData(uint64_t start, int64_t len)
 
             /* Account for a full block */
             cached_chunks->SetIndex(i);
-            newvaliddata += CacheChunkBlockSize;
+            newvaliddata += cachechunksutil::get_ccblocks_size();
         }
 
         /* End of file? The last block is allowed to not be full */
         CODA_ASSERT(length_cb > 0);
         if (start + len == length && !cached_chunks->Value(length_cb - 1)) {
-            uint64_t tail = length - ccblocks_to_bytes(length_cb - 1);
+            uint64_t tail =
+                length - cachechunksutil::ccblocks_to_bytes(length_cb - 1);
 
             /* Account for a last partial block */
             cached_chunks->SetIndex(length_cb - 1);
@@ -527,7 +532,7 @@ uint64_t CacheFile::ConsecutiveValidData(void)
 {
     /* Find the start of the first hole */
     uint64_t index      = 0;
-    uint64_t length_ccb = bytes_to_ccblocks_ceil(length);
+    uint64_t length_ccb = cachechunksutil::bytes_to_ccblocks_ceil(length);
 
     if (!isPartial)
         return validdata;
@@ -541,15 +546,15 @@ uint64_t CacheFile::ConsecutiveValidData(void)
     if (index == length_ccb)
         return length;
 
-    return ccblocks_to_bytes(index);
+    return cachechunksutil::ccblocks_to_bytes(index);
 }
 
 int64_t CacheFile::CopySegment(CacheFile *from, CacheFile *to, uint64_t pos,
                                int64_t count)
 {
-    uint32_t byte_start  = pos_align_to_ccblock(pos);
-    uint32_t block_start = bytes_to_ccblocks(byte_start);
-    uint32_t byte_len    = length_align_to_ccblock(pos, count);
+    uint32_t byte_start  = cachechunksutil::pos_align_to_ccblock(pos);
+    uint32_t block_start = cachechunksutil::bytes_to_ccblocks(byte_start);
+    uint32_t byte_len    = cachechunksutil::length_align_to_ccblock(pos, count);
     int tfd, ffd;
     struct stat tstat;
     CacheChunkList *c_list;
@@ -609,7 +614,8 @@ int64_t CacheFile::CopySegment(CacheFile *from, CacheFile *to, uint64_t pos,
 
     ObtainDualLock(&from->rw_lock, READ_LOCK, &to->rw_lock, WRITE_LOCK);
 
-    from->cached_chunks->CopyRange(block_start, bytes_to_ccblocks(byte_len),
+    from->cached_chunks->CopyRange(block_start,
+                                   cachechunksutil::bytes_to_ccblocks(byte_len),
                                    *(to->cached_chunks));
 
     ReleaseDualLock(&from->rw_lock, READ_LOCK, &to->rw_lock, WRITE_LOCK);
@@ -637,9 +643,9 @@ CacheChunk CacheFile::GetNextHole(uint64_t start_b, uint64_t end_b)
 {
     CODA_ASSERT(start_b <= end_b);
     /* Number of blocks of the cache file */
-    uint64_t nblocks = bytes_to_ccblocks_ceil(length);
+    uint64_t nblocks = cachechunksutil::bytes_to_ccblocks_ceil(length);
     /* Number of full blocks */
-    uint64_t nblocks_full   = bytes_to_ccblocks_floor(length);
+    uint64_t nblocks_full   = cachechunksutil::bytes_to_ccblocks_floor(length);
     uint64_t hole_start_idx = 0;
     uint64_t hole_end_idx   = 0;
     uint64_t hole_size      = 0;
@@ -671,26 +677,30 @@ CacheChunk CacheFile::GetNextHole(uint64_t start_b, uint64_t end_b)
 
     CODA_ASSERT(hole_end_idx > hole_start_idx);
 
-    hole_size = ccblocks_to_bytes(hole_end_idx - hole_start_idx - 1);
+    hole_size =
+        cachechunksutil::ccblocks_to_bytes(hole_end_idx - hole_start_idx - 1);
 
     /* If the hole ends at EOF and it has a tail */
     if (hole_end_idx == nblocks && nblocks_full != nblocks) {
         /* Add the tail */
-        uint64_t tail = length - ccblocks_to_bytes(nblocks - 1);
+        uint64_t tail =
+            length - cachechunksutil::ccblocks_to_bytes(nblocks - 1);
         hole_size += tail;
     } else {
         /* Add the last accounted block as a whole block*/
-        hole_size += CacheChunkBlockSize;
+        hole_size += cachechunksutil::get_ccblocks_size();
     }
 
-    return (CacheChunk(ccblocks_to_bytes(hole_start_idx), hole_size));
+    return (CacheChunk(cachechunksutil::ccblocks_to_bytes(hole_start_idx),
+                       hole_size));
 }
 
 CacheChunkList *CacheFile::GetHoles(uint64_t start, int64_t len)
 {
-    uint64_t start_b  = ccblock_start(start);
-    uint64_t end_b    = ccblock_end(start, len);
-    uint64_t length_b = bytes_to_ccblocks_ceil(length); // Ceil length in blocks
+    uint64_t start_b  = cachechunksutil::ccblock_start(start);
+    uint64_t end_b    = cachechunksutil::ccblock_end(start, len);
+    uint64_t length_b = cachechunksutil::bytes_to_ccblocks_ceil(
+        length); // Ceil length in blocks
     CacheChunkList *clist = new CacheChunkList();
     CacheChunk currc;
 
@@ -701,7 +711,8 @@ CacheChunkList *CacheFile::GetHoles(uint64_t start, int64_t len)
     }
 
     LOG(100, ("CacheFile::GetHoles Range [%lu - %lu]\n",
-              ccblocks_to_bytes(start_b), ccblocks_to_bytes(end_b) - 1));
+              cachechunksutil::ccblocks_to_bytes(start_b),
+              cachechunksutil::ccblocks_to_bytes(end_b) - 1));
 
     for (uint64_t i = start_b; i < end_b; i++) {
         currc = GetNextHole(i, end_b);
@@ -713,7 +724,8 @@ CacheChunkList *CacheFile::GetHoles(uint64_t start, int64_t len)
                   currc.GetLength()));
 
         clist->AddChunk(currc.GetStart(), currc.GetLength());
-        i = bytes_to_ccblocks(currc.GetStart() + currc.GetLength() - 1);
+        i = cachechunksutil::bytes_to_ccblocks(currc.GetStart() +
+                                               currc.GetLength() - 1);
     }
 
     return clist;
@@ -721,10 +733,11 @@ CacheChunkList *CacheFile::GetHoles(uint64_t start, int64_t len)
 
 CacheChunkList *CacheFile::GetValidChunks(uint64_t start, int64_t len)
 {
-    uint64_t start_b     = ccblock_start(start);
+    uint64_t start_b     = cachechunksutil::ccblock_start(start);
     uint64_t start_bytes = 0;
-    uint64_t end_b       = ccblock_end(start, len);
-    uint64_t length_b = bytes_to_ccblocks_ceil(length); // Ceil length in blocks
+    uint64_t end_b       = cachechunksutil::ccblock_end(start, len);
+    uint64_t length_b    = cachechunksutil::bytes_to_ccblocks_ceil(
+        length); // Ceil length in blocks
     CacheChunkList *clist = new CacheChunkList();
     CacheChunk currc;
     uint64_t i = start_b;
@@ -736,7 +749,8 @@ CacheChunkList *CacheFile::GetValidChunks(uint64_t start, int64_t len)
     }
 
     LOG(100, ("CacheFile::GetValidChunks Range [%lu - %lu]\n",
-              ccblocks_to_bytes(start_b), ccblocks_to_bytes(end_b) - 1));
+              cachechunksutil::ccblocks_to_bytes(start_b),
+              cachechunksutil::ccblocks_to_bytes(end_b) - 1));
 
     for (i = start_b; i < end_b; i++) {
         currc = GetNextHole(i, end_b);
@@ -747,18 +761,19 @@ CacheChunkList *CacheFile::GetValidChunks(uint64_t start, int64_t len)
         LOG(100, ("CacheFile::GetValidChunks Found [%d, %d]\n",
                   currc.GetStart(), currc.GetLength()));
 
-        start_bytes = ccblocks_to_bytes(i);
+        start_bytes = cachechunksutil::ccblocks_to_bytes(i);
 
         if (start_bytes != currc.GetStart()) {
             clist->AddChunk(start_bytes, currc.GetStart() - start_bytes + 1);
         }
 
-        i = bytes_to_ccblocks(currc.GetStart() + currc.GetLength() - 1);
+        i = cachechunksutil::bytes_to_ccblocks(currc.GetStart() +
+                                               currc.GetLength() - 1);
     }
 
     /* Is case de range ends with valid data */
     if (i < end_b) {
-        start_bytes = ccblocks_to_bytes(i);
+        start_bytes = cachechunksutil::ccblocks_to_bytes(i);
         clist->AddChunk(i, end_b - i + 1);
     }
 

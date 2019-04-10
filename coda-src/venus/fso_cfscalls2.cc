@@ -109,7 +109,7 @@ int fsobj::OpenPioctlFile(void)
     }
     in_buffer[plen] = '\0';
 
-    vp->u.u_cdir = rootfid;
+    vp->u.u_cdir = vproc::GetRootFid();
     vp->u.u_nc   = NULL;
     if (!vp->namev(in_buffer, flags, &vnp)) {
         LOG(10, ("fsobj::OpenPioctlFile: namev failed to traverse\n"));
@@ -323,7 +323,7 @@ Exit:
             if (!WRITING(this)) {
                 Recov_BeginTrans();
                 if (FSDB->owriteq->remove(&owrite_handle) != &owrite_handle) {
-                    print(logFile);
+                    print(GetLogFile());
                     CHOKE("fsobj::Open: owriteq remove");
                 }
                 RVMLIB_REC_OBJECT(flags);
@@ -405,7 +405,7 @@ int fsobj::Sync(uid_t uid)
             eprint("protection failure");
             break;
         case ERETRY:
-            print(logFile);
+            print(GetLogFile());
             CHOKE("fsobj::Close: Store returns ERETRY");
         default:
             eprint("unknown store error %d", code);
@@ -442,7 +442,7 @@ void fsobj::Release(int writep)
         PromoteLock();
 
         if (!WRITING(this)) {
-            print(logFile);
+            print(GetLogFile());
             CHOKE("fsobj::Release: !WRITING");
         }
         Writers--;
@@ -453,7 +453,7 @@ void fsobj::Release(int writep)
             Recov_BeginTrans();
             /* Last writer: remove from owrite queue. */
             if (FSDB->owriteq->remove(&owrite_handle) != &owrite_handle) {
-                print(logFile);
+                print(GetLogFile());
                 CHOKE("fsobj::Release: owriteq remove");
             }
             RVMLIB_REC_OBJECT(flags);
@@ -570,7 +570,7 @@ int fsobj::Access(int rights, int modes, uid_t uid)
         /* Record the parent fid and release the object. */
         parent_fid = pfid;
         if (FID_EQ(&NullFid, &parent_fid)) {
-            print(logFile);
+            print(GetLogFile());
             CHOKE("fsobj::Access: pfid == Null");
         }
 
@@ -784,7 +784,7 @@ int fsobj::Readlink(char *buf, unsigned long len, int *cc, uid_t uid)
              len, cc, uid));
 
     if (!HAVEALLDATA(this)) {
-        print(logFile);
+        print(GetLogFile());
         CHOKE("fsobj::Readlink: called without data and isn't fake!");
     }
 
@@ -826,10 +826,11 @@ int fsobj::ReadIntent(uid_t uid, int priority, uint64_t pos, int64_t count)
         return EIO;
     }
 
-    /* Check if the amount of bytes being read can be allocated within the 
+    /* Check if the amount of bytes being read can be allocated within the
      * cache */
-    actual_count    = count < 0 ? Size() - pos : count;
-    blocks_to_alloc = NBLOCKS(length_align_to_ccblock(pos, actual_count));
+    actual_count = count < 0 ? Size() - pos : count;
+    blocks_to_alloc =
+        NBLOCKS(cachechunksutil::length_align_to_ccblock(pos, actual_count));
     if (blocks_to_alloc > (FSDB->MaxBlocks - FSDB->FreeBlockMargin)) {
         return EIO;
     }
@@ -837,7 +838,7 @@ int fsobj::ReadIntent(uid_t uid, int priority, uint64_t pos, int64_t count)
     /* Get the holes */
     clist = GetHoles(pos, count);
 
-    /* Temporary add the chunk to the active segment to prevent 
+    /* Temporary add the chunk to the active segment to prevent
      * it to be discarded. Note that we only remove it from the list
      * the fetching or allocation fails. */
     if (clist->Length() > 0) {

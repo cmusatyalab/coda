@@ -190,9 +190,6 @@ public:
     worker *operator()();
 };
 
-extern int MaxWorkers;
-extern int MaxPrefetchers;
-
 extern msgent *FindMsg(olist &, u_long);
 extern int k_Purge();
 extern int k_Purge(VenusFid *, int = 0);

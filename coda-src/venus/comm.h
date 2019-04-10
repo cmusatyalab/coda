@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -291,24 +291,17 @@ public:
 };
 
 /*  *****  Variables  *****  */
-
-extern int COPModes;
 extern char myHostName[];
-extern int rpc2_retries;
-extern int rpc2_timeout;
-extern int sftp_windowsize;
-extern int sftp_sendahead;
-extern int sftp_ackpoint;
-extern int sftp_packetsize;
-extern int rpc2_timeflag;
-extern int mrpc2_timeflag;
 
 /*  *****  Functions  *****  */
 
 /* (ASYNCCOP1 || PIGGYCOP2) --> ASYNCCOP2 */
-#define ASYNCCOP1 (COPModes & 1)
-#define ASYNCCOP2 (COPModes & 2)
-#define PIGGYCOP2 (COPModes & 4)
+#define HAS_ASYNCCOP1(copmodes) (copmodes & 1)
+#define HAS_ASYNCCOP2(copmodes) (copmodes & 2)
+#define HAS_PIGGYCOP2(copmodes) (copmodes & 4)
+#define ASYNCCOP1 (HAS_ASYNCCOP1(GetCOPModes()))
+#define ASYNCCOP2 (HAS_ASYNCCOP2(GetCOPModes()))
+#define PIGGYCOP2 (HAS_PIGGYCOP2(GetCOPModes()))
 
 /* comm.c */
 void CommInit();
@@ -332,10 +325,12 @@ void DownServers(int, struct in_addr *, char *, unsigned int *);
 void CheckServerBW(long);
 int FailDisconnect(int, struct in_addr *);
 int FailReconnect(int, struct in_addr *);
+int GetCOPModes();
+void SetCOPModes(int copmodes);
 
 /* comm_daemon.c */
-extern void PROD_Init(void);
-extern void ProbeDaemon(void);
+void PROD_Init(void);
+void ProbeDaemon(void);
 
 /* comm synchronization */
 struct CommQueueStruct {
@@ -394,7 +389,7 @@ extern struct CommQueueStruct CommQueue;
     RPCPktStatistics startCS, endCS; \
     GetCSS(&startCS);
 #define END_COMMSTATS()            \
-    if (LogLevel >= 1000) {        \
+    if (GetLogLevel() >= 1000) {   \
         GetCSS(&endCS);            \
         SubCSSs(&endCS, &startCS); \
     }

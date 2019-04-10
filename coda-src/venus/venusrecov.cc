@@ -74,21 +74,24 @@ int RecovInited        = 0;
 RecovVenusGlobals *rvg = 0;
 int TransCount         = 0;
 float TransElapsed     = 0.0;
-int MapPrivate         = 0;
 
-int InitMetaData = UNSET_IMD, InitNewInstance = UNSET_IMD;
-const char *VenusLogDevice        = NULL;
-unsigned long VenusLogDeviceSize  = UNSET_VLDS;
-const char *VenusDataDevice       = NULL;
-unsigned long VenusDataDeviceSize = UNSET_VDDS;
-int RdsChunkSize                  = UNSET_RDSCS;
-int RdsNlists                     = UNSET_RDSNL;
-int CMFP                          = UNSET_CMFP;
-int DMFP                          = UNSET_DMFP;
-int MAXFP                         = UNSET_MAXFP;
-int WITT                          = UNSET_WITT;
-unsigned long MAXFS               = UNSET_MAXFS;
-unsigned long MAXTS               = UNSET_MAXTS;
+static int InitMetaData = UNSET_IMD, InitNewInstance = UNSET_IMD;
+static const char *VenusLogDevice        = NULL;
+static unsigned long VenusLogDeviceSize  = UNSET_VLDS;
+static const char *VenusDataDevice       = NULL;
+static unsigned long VenusDataDeviceSize = UNSET_VDDS;
+static unsigned int CacheFiles           = 0;
+static unsigned int MLEs                 = 0;
+static unsigned int HDBEs                = 0;
+static int detect_reintegration_retry    = 0;
+static int RdsChunkSize                  = UNSET_RDSCS;
+static int RdsNlists                     = UNSET_RDSNL;
+int CMFP                                 = UNSET_CMFP;
+int DMFP                                 = UNSET_DMFP;
+int MAXFP                                = UNSET_MAXFP;
+int WITT                                 = UNSET_WITT;
+unsigned long MAXFS                      = UNSET_MAXFS;
+unsigned long MAXTS                      = UNSET_MAXTS;
 
 #ifndef MAX
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
@@ -136,6 +139,8 @@ static void Recov_InitRVM();
 static void Recov_InitRDS();
 static void Recov_LoadRDS();
 static void Recov_GetStatistics();
+
+int CleanShutDown;
 
 /* Crude formula for estimating recoverable data requirements! */
 /* (assuming worst case 4k chunk size for VASTRO object bitmaps) */
@@ -224,10 +229,27 @@ static void RecovNewInstance(void)
     Recov_EndTrans(0);
 }
 
+static void RecovLoadConfiguration()
+{
+    CacheFiles          = GetVenusConf().get_int_value("cachefiles");
+    MLEs                = GetVenusConf().get_int_value("cml_entries");
+    HDBEs               = GetVenusConf().get_int_value("hoard_entries");
+    VenusLogDevice      = GetVenusConf().get_value("rvm_log");
+    VenusLogDeviceSize  = GetVenusConf().get_int_value("rvm_log_size");
+    VenusDataDevice     = GetVenusConf().get_value("rvm_data");
+    VenusDataDeviceSize = GetVenusConf().get_int_value("rvm_data_size");
+    detect_reintegration_retry =
+        GetVenusConf().get_int_value("detect_reintegration_retry");
+    RvmType      = (rvm_type_t)GetVenusConf().get_int_value("rvmtype");
+    RdsChunkSize = GetVenusConf().get_int_value("rds_chunk_size");
+    RdsNlists    = GetVenusConf().get_int_value("rds_list_size");
+    InitMetaData = GetVenusConf().get_bool_value("initmetadata");
+}
+
 void RecovInit(void)
 {
-    unsigned int CacheFiles = GetVenusConf().get_int_value("cachefiles");
-    /* Set unset parameters to defaults (as appropriate). */
+    /* Configuration */
+    RecovLoadConfiguration();
     Recov_CheckParms();
 
     if (RvmType == VM) {
@@ -291,7 +313,8 @@ void RecovInit(void)
 
 static void Recov_CheckParms()
 {
-    unsigned int CacheFiles = GetVenusConf().get_int_value("cachefiles");
+    unsigned int PartialCacheFilesRatio =
+        GetVenusConf().get_int_value("partialcachefilesratio");
     /* From recov module. */
     if (RvmType == UNSET)
         RvmType = DFLT_RVMT;
@@ -393,7 +416,8 @@ static void Recov_InitRVM()
     Recov_Options.truncate = 0;
     //Recov_Options.flags = RVM_COALESCE_TRANS;  /* oooh, daring */
     Recov_Options.flags = RVM_ALL_OPTIMIZATIONS;
-    if (MapPrivate)
+
+    if (GetVenusConf().get_bool_value("mapprivate"))
         Recov_Options.flags |= RVM_MAP_PRIVATE;
 
     rvm_init_statistics(&Recov_Statistics);
@@ -563,8 +587,8 @@ static void Recov_LoadRDS()
         RecovNewInstance();
 
     /* Plumb the heap here? */
-    if (MallocTrace) {
-        rds_trace_on(logFile);
+    if (GetVenusConf().get_bool_value("rdstrace")) {
+        rds_trace_on(GetLogFile());
         rds_trace_dump_heap();
     }
 }
@@ -725,8 +749,8 @@ void RecovPrint(int fd)
 
     fdprint(fd, "***RVM Statistics***\n");
     Recov_GetStatistics();
-    rvm_return_t ret = rvm_print_statistics(&Recov_Statistics, logFile);
-    fflush(logFile);
+    rvm_return_t ret = rvm_print_statistics(&Recov_Statistics, GetLogFile());
+    fflush(GetLogFile());
     if (ret != RVM_SUCCESS)
         CHOKE("Recov_PrintStatistics: rvm_print_statistics failed (%d)", ret);
 
@@ -829,4 +853,9 @@ void Recov_GenerateStoreId(ViceStoreId *sid)
 
     RVMLIB_REC_OBJECT(rvg->recov_StoreId);
     rvg->recov_StoreId++;
+}
+
+rvm_type_t GetRvmType()
+{
+    return RvmType;
 }

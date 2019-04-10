@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -300,13 +300,13 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
         status.VV          = tvv;
 
         /* A little debugging help. */
-        if (LogLevel >= 1) {
-            fprintf(logFile, "Repairing %s:\n", FID_(rFid));
-            fprintf(logFile,
+        if (GetLogLevel() >= 1) {
+            fprintf(GetLogFile(), "Repairing %s:\n", FID_(rFid));
+            fprintf(GetLogFile(),
                     "\tIV = %d, VT = %d, LC = %d, LE = %d, DV = %d, DA = %d\n",
                     status.InterfaceVersion, status.VnodeType, status.LinkCount,
                     status.Length, status.DataVersion, status.Date);
-            fprintf(logFile,
+            fprintf(GetLogFile(),
                     "\tAU = %d, OW = %d, CB = %d, MA = %x, AA = %x, MO = %o\n",
                     status.Author, status.Owner, status.CallBack,
                     (int)status.MyAccess, (int)status.AnyAccess, status.Mode);
@@ -314,8 +314,8 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
             memset((void *)tvvs, 0,
                    VSG_MEMBERS * (int)sizeof(ViceVersionVector *));
             tvvs[0] = &status.VV;
-            VVPrint(logFile, tvvs);
-            fflush(logFile);
+            VVPrint(GetLogFile(), tvvs);
+            fflush(GetLogFile());
         }
 
         /* Set up the SE descriptor. */
@@ -877,7 +877,7 @@ int repvol::DisconnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 	    * a ViceRepair() call will be made, therefore the inconsistent
 	    * file object on servers will get the new data and its inconsistent
 	    * bit will be cleared. Because the VV of the file object is
-	    * incremented as a result, the next FSDB::get() tries to get 
+	    * incremented as a result, the next FSDB::get() tries to get
 	    * it, it will fetch the new clean server version and throw
 	    * away the local fakeified object.
 	    */

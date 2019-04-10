@@ -79,36 +79,6 @@ uid_t V_UID;
 #define INADDR_LOOPBACK 0x7f000001
 #endif
 
-/* *****  Exported variables  ***** */
-/* globals in the .bss are implicitly initialized to 0 according to ANSI-C standards */
-vproc *Main;
-VenusFid rootfid;
-long rootnodeid;
-int CleanShutDown;
-int SearchForNOreFind; // Look for better detection method for iterrupted hoard walks. mre 1/18/93
-int ASRallowed = 1;
-
-/* Command-line/venus.conf parameters. */
-const char *consoleFile;
-const char *venusRoot;
-const char *realmtab;
-const char *CachePrefix;
-uid_t PrimaryUser = UNSET_PRIMARYUSER;
-const char *SpoolDir;
-const char *CheckpointFormat;
-const char *VenusPidFile;
-const char *VenusControlFile;
-const char *VenusLogFile;
-const char *ASRLauncherFile;
-const char *ASRPolicyFile;
-const char *MarinerSocketPath;
-int masquerade_port;
-int PiggyValidations;
-pid_t ASRpid;
-VenusFid ASRfid;
-uid_t ASRuid;
-int detect_reintegration_retry;
-int option_isr;
 /* exit codes (http://refspecs.linuxbase.org/LSB_3.1.1/LSB-Core-generic/LSB-Core-generic/iniscrptact.html) */
 // EXIT_SUCCESS             0   /* stdlib.h - success */
 // EXIT_FAILURE             1   /* stdlib.h - generic or unspecified error */
@@ -217,19 +187,18 @@ int main(int argc, char **argv)
     if (ret_code)
         exit(EXIT_UNCONFIGURED);
 
-    MapToLegacyVariables();
-
-    // Cygwin runs as a service and doesn't need to daemonize.
+        // Cygwin runs as a service and doesn't need to daemonize.
 #ifndef __CYGWIN__
-    if (!nofork && LogLevel == 0)
+    if (!GetVenusConf().get_bool_value("nofork") && GetLogLevel() == 0)
         parent_fd = daemonize();
 #endif
 
-    update_pidfile(VenusPidFile);
+    update_pidfile(GetVenusConf().get_value("pid_file"));
 
     /* open the console file and print vital info */
-    if (!nofork) /* only redirect stderr when daemonizing */
-        freopen(consoleFile, "a+", stderr);
+    if (!GetVenusConf().get_bool_value(
+            "nofork")) /* only redirect stderr when daemonizing */
+        freopen(GetVenusConf().get_value("errorlog"), "a+", stderr);
     eprint("Coda Venus, version " PACKAGE_VERSION);
 
     CdToCacheDir();
@@ -239,10 +208,10 @@ int main(int argc, char **argv)
     /* RecovInit < VSGInit < VolInit < FSOInit < HDB_Init */
 
 #ifdef __CYGWIN32__
-    /* MapPrivate does not work on Cygwin */
-    if (MapPrivate) {
+    /* mapprivate does not work on Cygwin */
+    if (GetVenusConf().get_bool_value("mapprivate")) {
         eprint("Private mapping turned off, does not work on CYGWIN.");
-        MapPrivate = 0;
+        GetVenusConf().set("mapprivate", "0");
     }
     V_UID = getuid();
 #endif
@@ -253,13 +222,14 @@ int main(int argc, char **argv)
     int conf_fd = open("run.conf", O_WRONLY | O_CREAT, 644);
     GetVenusConf().print(conf_fd);
 
-    if (codatunnel_enabled) {
+    if (GetVenusConf().get_int_value("codatunnel")) {
         int rc;
         /* masquerade_port is the UDP portnum specified via venus.conf */
         char service[6];
-        sprintf(service, "%hu", masquerade_port);
+        snprintf(service, 6, "%hu",
+                 (int)GetVenusConf().get_int_value("masquerade_port"));
         rc = codatunnel_fork(argc, argv, NULL, "0.0.0.0", service,
-                             codatunnel_onlytcp);
+                             GetVenusConf().get_int_value("onlytcp"));
         if (rc < 0) {
             perror("codatunnel_fork: ");
             exit(-1);
@@ -277,13 +247,14 @@ int main(int argc, char **argv)
     VprocInit(); /* init LWP/IOMGR support */
     LogInit(); /* move old Venus log and create a new one */
 
-    LWP_SetLog(logFile, lwp_debug);
-    RPC2_SetLog(logFile, RPC2_DebugLevel);
+    LWP_SetLog(GetLogFile(), GetVenusConf().get_int_value("lwploglevel"));
+    RPC2_SetLog(GetLogFile(), GetVenusConf().get_int_value("rpc2loglevel"));
     DaemonInit(); /* before any Daemons initialize and after LogInit */
     StatsInit();
     SigInit(); /* set up signal handlers */
 
-    DIR_Init(RvmType == VM ? DIR_DATA_IN_VM : DIR_DATA_IN_RVM);
+    DIR_Init(GetVenusConf().get_int_value("rvmtype") == VM ? DIR_DATA_IN_VM :
+                                                             DIR_DATA_IN_RVM);
     RecovInit(); /* set up RVM and recov daemon */
     CommInit(); /* set up RPC2, {connection,server,mgroup} lists, probe daemon */
     UserInit(); /* fire up user daemon */
@@ -298,7 +269,7 @@ int main(int argc, char **argv)
     CallBackInit(); /* set up callback subsystem and create callback server threads */
 
     /* Get the Root Volume. */
-    if (codafs_enabled) {
+    if (GetVenusConf().get_bool_value("codafs")) {
         eprint("Mounting root volume...");
         VFSMount();
     }
@@ -309,7 +280,7 @@ int main(int argc, char **argv)
     freopen("/dev/null", "w", stdout);
 
     /* allow the daemonization to complete */
-    if (!codafs_enabled)
+    if (!GetVenusConf().get_bool_value("codafs"))
         kill(getpid(), SIGUSR1);
 
     /* Act as message-multiplexor/daemon-dispatcher. */
@@ -337,7 +308,7 @@ int main(int argc, char **argv)
     RecovFlush(1);
     RecovTerminate();
     VFSUnmount();
-    fflush(logFile);
+    fflush(GetLogFile());
     fflush(stderr);
 
     MarinerLog("shutdown in progress\n");
@@ -429,118 +400,6 @@ static void Usage(char *argv0)
         argv0);
 }
 
-/* TODO: This functions should be removed once all the gets are
- * moved to the corresponding subsystems */
-static void MapToLegacyVariables()
-{
-    int DontUseRVM = 0;
-
-    ParseCacheChunkBlockSize(GetVenusConf().get_value("cachechunkblocksize"));
-
-    PartialCacheFilesRatio =
-        GetVenusConf().get_int_value("partialcachefilesratio");
-
-    SpoolDir            = GetVenusConf().get_value("checkpointdir");
-    VenusLogFile        = GetVenusConf().get_value("logfile");
-    consoleFile         = GetVenusConf().get_value("errorlog");
-    MapPrivate          = GetVenusConf().get_int_value("mapprivate");
-    MarinerSocketPath   = GetVenusConf().get_value("marinersocket");
-    masquerade_port     = GetVenusConf().get_int_value("masquerade_port");
-    allow_backfetch     = GetVenusConf().get_int_value("allow_backfetch");
-    venusRoot           = GetVenusConf().get_value("mountpoint");
-    PrimaryUser         = GetVenusConf().get_int_value("primaryuser");
-    realmtab            = GetVenusConf().get_value("realmtab");
-    VenusLogDevice      = GetVenusConf().get_value("rvm_log");
-    VenusLogDeviceSize  = GetVenusConf().get_int_value("rvm_log_size");
-    VenusDataDevice     = GetVenusConf().get_value("rvm_data");
-    VenusDataDeviceSize = GetVenusConf().get_int_value("rvm_data_size");
-
-    rpc2_timeout = GetVenusConf().get_int_value("RPC2_timeout");
-    rpc2_retries = GetVenusConf().get_int_value("RPC2_retries");
-
-    T1Interval = GetVenusConf().get_int_value("serverprobe");
-
-    default_reintegration_age =
-        GetVenusConf().get_int_value("reintegration_age");
-    default_reintegration_time =
-        GetVenusConf().get_int_value("reintegration_time");
-    default_reintegration_time *= 1000; /* reintegration time is in msec */
-
-    CachePrefix = "";
-
-    if (GetVenusConf().get_bool_value("dontuservm"))
-        RvmType = VM;
-
-    MLEs = GetVenusConf().get_int_value("cml_entries");
-
-    HDBEs = GetVenusConf().get_int_value("hoard_entries");
-
-    VenusPidFile     = GetVenusConf().get_value("pid_file");
-    VenusControlFile = GetVenusConf().get_value("run_control_file");
-
-    ASRLauncherFile = GetVenusConf().get_value("asrlauncher_path");
-
-    ASRPolicyFile = GetVenusConf().get_value("asrpolicy_path");
-
-    PiggyValidations = GetVenusConf().get_int_value("validateattrs");
-
-    option_isr = GetVenusConf().get_int_value("isr");
-    detect_reintegration_retry =
-        GetVenusConf().get_int_value("detect_reintegration_retry");
-
-    /* Kernel filesystem support */
-    codafs_enabled      = GetVenusConf().get_int_value("codafs");
-    plan9server_enabled = GetVenusConf().get_int_value("9pfs");
-
-    /* Enable client-server communication helper process */
-    codatunnel_enabled = GetVenusConf().get_int_value("codatunnel");
-    codatunnel_onlytcp = GetVenusConf().get_int_value("onlytcp");
-
-    CheckpointFormat = GetVenusConf().get_value("checkpointformat");
-    if (strcmp(CheckpointFormat, "tar") == 0)
-        archive_type = TAR_TAR;
-    if (strcmp(CheckpointFormat, "ustar") == 0)
-        archive_type = TAR_USTAR;
-    if (strcmp(CheckpointFormat, "odc") == 0)
-        archive_type = CPIO_ODC;
-    if (strcmp(CheckpointFormat, "newc") == 0)
-        archive_type = CPIO_NEWC;
-
-    // Command line only
-    LogLevel          = GetVenusConf().get_int_value("loglevel");
-    RPC2_Trace        = GetVenusConf().get_bool_value("loglevel") ? 1 : 0;
-    RPC2_DebugLevel   = GetVenusConf().get_int_value("rpc2loglevel");
-    lwp_debug         = GetVenusConf().get_int_value("lwploglevel");
-    MallocTrace       = GetVenusConf().get_int_value("rdstrace");
-    COPModes          = GetVenusConf().get_int_value("copmodes");
-    MaxWorkers        = GetVenusConf().get_int_value("maxworkers");
-    MaxCBServers      = GetVenusConf().get_int_value("maxcbservers");
-    MaxPrefetchers    = GetVenusConf().get_int_value("maxprefetchers");
-    sftp_windowsize   = GetVenusConf().get_int_value("sftp_windowsize");
-    sftp_sendahead    = GetVenusConf().get_int_value("sftp_sendahead");
-    sftp_ackpoint     = GetVenusConf().get_int_value("sftp_ackpoint");
-    sftp_packetsize   = GetVenusConf().get_int_value("sftp_packetsize");
-    RvmType           = (rvm_type_t)GetVenusConf().get_int_value("rvmtype");
-    RdsChunkSize      = GetVenusConf().get_int_value("rds_chunk_size");
-    RdsNlists         = GetVenusConf().get_int_value("rds_list_size");
-    LogOpts           = GetVenusConf().get_int_value("log_optimization");
-    FSO_SWT           = GetVenusConf().get_int_value("swt");
-    FSO_MWT           = GetVenusConf().get_int_value("mwt");
-    FSO_SSF           = GetVenusConf().get_int_value("ssf");
-    rpc2_timeflag     = GetVenusConf().get_int_value("von");
-    mrpc2_timeflag    = GetVenusConf().get_int_value("vmon");
-    SearchForNOreFind = GetVenusConf().get_int_value("SearchForNOreFind");
-    ASRallowed        = GetVenusConf().get_int_value("noasr") ? 0 : 1;
-    VCBEnabled        = GetVenusConf().get_int_value("novcb") ? 0 : 1;
-    extern char PeriodicWalksAllowed;
-    PeriodicWalksAllowed = GetVenusConf().get_int_value("nowalk") ? 0 : 1;
-    mariner_tcp_enable   = GetVenusConf().get_int_value("MarinerTcp");
-    allow_reattach       = GetVenusConf().get_int_value("allow-reattach");
-    nofork               = GetVenusConf().get_int_value("nofork");
-
-    InitMetaData = GetVenusConf().get_int_value("-init");
-}
-
 static const char CACHEDIR_TAG[] =
     "Signature: 8a477f597d28d172789f06886806bc55\n"
     "# This file is a cache directory tag created by the Coda client (venus).\n"
@@ -592,8 +451,9 @@ static void CheckInitFile()
     /* See if it's there */
     if (stat(initPath, &tstat) == 0) {
         /* If so, set InitMetaData */
-        InitMetaData = 1;
-    } else if ((errno == ENOENT) && (InitMetaData == 1)) {
+        GetVenusConf().set("initmetadata", "1");
+    } else if ((errno == ENOENT) &&
+               GetVenusConf().get_bool_value("initmetadata")) {
         int initFD;
 
         /* If not and it should be, create it. */

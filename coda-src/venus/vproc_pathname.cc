@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -115,7 +115,7 @@ int vproc::namev(char *path, int flags, struct venus_cnode *vpp)
     /* Each loop iteration moves down through one pathname component. */
     for (;;) {
         if (plen <= 0) {
-            print(logFile);
+            print(GetLogFile());
             CHOKE("vproc::namev: plen <= 0");
         }
 
@@ -272,7 +272,7 @@ int vproc::namev(char *path, int flags, struct venus_cnode *vpp)
         }
 
         default: {
-            print(logFile);
+            print(GetLogFile());
             CHOKE("vproc::namev: bogus vnode type (%d)!", vp.c_type);
         }
         }

@@ -486,8 +486,8 @@ class vdb {
     friend void VOLD_Init(void);
     friend void VolDaemon(void);
     friend class cmlent;
-    friend class volrep; /* for hashtab insert/remove */
     friend class repvol; /* for hashtab insert/remove */
+    friend class volrep; /* for hashtab insert/remove */
     friend class nonrepvol_iterator;
     friend class repvol_iterator;
     friend class volrep_iterator;
@@ -499,7 +499,7 @@ class vdb {
     int MagicNumber;
 
     /* Size parameters. */
-    int MaxMLEs; /* Limit on number of MLE's over _all_ volumes */
+    unsigned int MaxMLEs; /* Limit on number of MLE's over _all_ volumes */
     int AllocatedMLEs;
 
     /* The hash tables for replicated volumes and volume replicas. */
@@ -508,6 +508,9 @@ class vdb {
 
     /* The mle free list. */
     rec_dlist mlefreelist;
+
+    static const char *ASRPolicyFile;
+    static const char *ASRLauncherFile;
 
     /* Constructors, destructors. */
     void *operator new(size_t);
@@ -554,6 +557,9 @@ public:
 
     void ListCache(FILE *, int long_format = 1, unsigned int valid = 3);
     int FreeMLECount(void) { return MaxMLEs - AllocatedMLEs; }
+    int GetMaxMLEs(void) { return MaxMLEs; }
+    const char *GetASRPolicyFile() { return vdb::ASRPolicyFile; }
+    const char *GetASRLauncherFile() { return vdb::ASRLauncherFile; }
 };
 
 /* A volume is in exactly one of these states. */
@@ -744,9 +750,12 @@ class reintvol : public volent {
     friend class cmlent;
     friend class vdb;
     friend long VENUS_CallBackFetch(RPC2_Handle, ViceFid *, SE_Descriptor *);
+    friend void VolInit(void);
 
 private:
 protected:
+    static bool LogOpts;
+    static bool VCBEnabled;
     /* Preallocated Fids. */
     FidRange FileFids;
     FidRange DirFids;
@@ -1097,16 +1106,8 @@ public:
 };
 
 /*  *****  Variables  *****  */
-extern int MLEs;
-extern int LogOpts;
-extern int allow_backfetch;
 extern int vcbbreaks;
 extern char voldaemon_sync;
-extern char VCBEnabled;
-
-/* reintegration parameters, see venusvol.cc */
-extern int default_reintegration_age;
-extern int default_reintegration_time;
 
 /*  *****  Functions/Procedures  *****  */
 
@@ -1134,7 +1135,7 @@ extern int PathAltered(VenusFid *, char *, ClientModifyLog *, cmlent *);
 #define VOL_ASSERT(v, ex)                                               \
     {                                                                   \
         if (!(ex)) {                                                    \
-            (v)->print(logFile);                                        \
+            (v)->print(GetLogFile());                                   \
             CHOKE("Assertion failed: file \"%s\", line %d\n", __FILE__, \
                   __LINE__);                                            \
         }                                                               \

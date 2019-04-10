@@ -62,14 +62,12 @@ extern void rpc2_PrintSEDesc(SE_Descriptor *, FILE *);
 const char CBSubsys[]             = "Vice2-CallBack";
 const int CallBackServerStackSize = 65536;
 
-int MaxCBServers = UNSET_MAXCBSERVERS;
-int cbbreaks     = 0; /* count of broken callbacks */
+static int MaxCBServers = UNSET_MAXCBSERVERS;
+int cbbreaks            = 0; /* count of broken callbacks */
 
 void CallBackInit()
 {
-    if (MaxCBServers == UNSET_MAXCBSERVERS)
-        MaxCBServers = DFLT_MAXCBSERVERS;
-
+    MaxCBServers = GetVenusConf().get_int_value("maxcbservers");
     /* Export the service. */
     RPC2_SubsysIdent server;
     server.Tag            = RPC2_SUBSYSBYID;
@@ -98,7 +96,7 @@ callbackserver::callbackserver()
     start_thread();
 }
 
-/* 
+/*
  * we don't support assignments to objects of this type.
  * bomb in an obvious way if it inadvertently happens.
  */
@@ -239,7 +237,7 @@ long VENUS_CallBackFetch(RPC2_Handle RPCid, ViceFid *Fid, SE_Descriptor *BD)
         goto GetLost;
     }
 
-    /* 
+    /*
      * We do not lock the object, because the reintegrator thread has already
      * created a shadow copy. However, we check to make sure there is a shadow
      * file just in case. This is a choke for now, because it really is not
@@ -268,7 +266,7 @@ long VENUS_CallBackFetch(RPC2_Handle RPCid, ViceFid *Fid, SE_Descriptor *BD)
         sid.Tag                     = SMARTFTP;
         struct SFTP_Descriptor *sei = &sid.Value.SmartFTPD;
         sei->TransmissionDirection  = SERVERTOCLIENT;
-        sei->hashmark               = (LogLevel >= 10 ? '#' : '\0');
+        sei->hashmark               = (GetLogLevel() >= 10 ? '#' : '\0');
         sei->SeekOffset             = 0;
         sei->ByteQuota              = -1;
 
@@ -278,8 +276,8 @@ long VENUS_CallBackFetch(RPC2_Handle RPCid, ViceFid *Fid, SE_Descriptor *BD)
         sei->Tag              = FILEBYFD;
         sei->FileInfo.ByFD.fd = fd;
 
-        if (LogLevel >= 1000) {
-            rpc2_PrintSEDesc(&sid, logFile);
+        if (GetLogLevel() >= 1000) {
+            rpc2_PrintSEDesc(&sid, GetLogFile());
         }
 
         if ((code = RPC2_InitSideEffect(RPCid, &sid)) <= RPC2_ELIMIT) {
