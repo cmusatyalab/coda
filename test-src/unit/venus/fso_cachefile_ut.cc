@@ -71,7 +71,7 @@ TEST_F(CacheFileTest, construct)
 {
     int idx = rand() & 0x7FF;
     char cachefile_path[300];
-    CacheFile *cf = new CacheFile(idx, 0);
+    CacheFile *cf = new CacheFile(idx, 0, rand() % 2);
 
     get_container_file_path(idx, cachefile_path);
 
@@ -94,7 +94,7 @@ TEST_F(CacheFileTest, create)
 {
     int idx       = rand() & 0x7FF;
     int size      = rand() & 0x7FF;
-    CacheFile *cf = new CacheFile(idx, 0);
+    CacheFile *cf = new CacheFile(idx, 0, rand() % 2);
     char cachefile_path[300];
     struct stat stat_b;
 
@@ -130,7 +130,7 @@ TEST_F(CacheFileTest, create_ref_cnt)
 {
     int idx       = rand() & 0x7FF;
     int size      = rand() & 0x7FF;
-    CacheFile *cf = new CacheFile(idx, 0);
+    CacheFile *cf = new CacheFile(idx, 0, rand() % 2);
     char cachefile_path[300];
     struct stat stat_b;
 
