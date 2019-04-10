@@ -173,7 +173,8 @@ int CodaConfFileParser::parse()
 char *CodaConfFileParser::format_conffile_full_path(const char *confname)
 {
     const char *codaconfpath, *end;
-    int pathlen, filelen = strlen(confname);
+    int pathlen = 0;
+    int filelen = strlen(confname);
 
     codaconfpath = getenv("CODACONFPATH");
     if (!codaconfpath)
@@ -191,7 +192,7 @@ char *CodaConfFileParser::format_conffile_full_path(const char *confname)
             memcpy(conffile, codaconfpath, pathlen);
 
             /* don't append an additional one if the path ends in a '/' */
-            if (conffile[pathlen - 1] != '/')
+            if (codaconfpath[pathlen - 1] != '/')
                 conffile[pathlen++] = '/';
 
             strcpy(conffile + pathlen, confname);

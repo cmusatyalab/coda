@@ -25,6 +25,7 @@ extern "C" {
 
 #include <sys/param.h>
 #include <stdio.h>
+#include <string.h>
 #include "coda_config.h"
 
 #ifdef __cplusplus
@@ -53,7 +54,7 @@ public:
         : CodaConfParser(s)
         , quiet(true)
     {
-        conffile[0] = '\0';
+        memset(conffile, 0, MAXPATHLEN + 1);
     }
 
     void set_conffile(const char *confname);

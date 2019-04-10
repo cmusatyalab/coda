@@ -190,7 +190,7 @@ static void purge_table(table_t *f_table)
 {
     element_t cp;
 
-    if (!list_empty(f_table)) {
+    while (!list_empty(f_table)) {
         cp = list_entry(f_table->next, element, link);
         list_del(&cp->link);
         free_element(cp);

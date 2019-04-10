@@ -146,10 +146,10 @@ static int power_of_2(uint64_t num)
 
 VenusConf::~VenusConf()
 {
-    dlist_iterator next(on_off_pairs_list);
     on_off_pair *curr_pair = NULL;
 
-    while ((curr_pair = (on_off_pair *)next())) {
+    while ((curr_pair = (on_off_pair *)on_off_pairs_list.first())) {
+        on_off_pairs_list.remove((dlink *)curr_pair);
         delete curr_pair;
     }
 }
