@@ -35,8 +35,8 @@ extern "C" {
 
 StringKeyValueStore::StringKeyValueStore()
 {
-    table       = NULL;
-    alias_table = NULL;
+    list_head_init(&table);
+    list_head_init(&alias_table);
 }
 
 StringKeyValueStore::~StringKeyValueStore()
@@ -44,24 +44,62 @@ StringKeyValueStore::~StringKeyValueStore()
     purge();
 }
 
-int StringKeyValueStore::add(const char *key, const char *value)
+static element_t find_in_table(const char *key, table_t *f_table)
 {
-    item_t n;
+    element_t cp;
+    struct dllist_head *p;
 
-    if (has_key(unalias_key(key)))
-        return EEXIST;
+    if (!key)
+        return NULL;
 
-    n = (item_t)malloc(sizeof(struct _item));
+    if (list_empty(f_table))
+        return NULL;
+
+    list_for_each(p, *f_table)
+    {
+        cp = list_entry(p, element, link);
+        if (strcmp(key, cp->key) == 0) {
+            return cp;
+        }
+    }
+
+    return NULL;
+}
+
+static element_t alloc_element(const char *key, const char *value)
+{
+    struct element *n;
+
+    n = (element_t)malloc(sizeof(struct element));
     assert(n != NULL);
 
-    n->name = strdup(key);
-    assert(n->name != NULL);
+    n->key = strdup(key);
+    assert(n->key != NULL);
 
     n->value = strdup(value);
     assert(n->value != NULL);
 
-    n->next = table;
-    table   = n;
+    list_head_init(&n->link);
+
+    return n;
+}
+
+static void free_element(element_t e)
+{
+    free(e->key);
+    free(e->value);
+    free(e);
+}
+
+int StringKeyValueStore::add(const char *key, const char *value)
+{
+    element_t n;
+    if (has_key(unalias_key(key)))
+        return EEXIST;
+
+    n = alloc_element(key, value);
+
+    list_add(&n->link, &table);
 
     return 0;
 }
@@ -76,35 +114,27 @@ void StringKeyValueStore::set(const char *key, const char *value)
 
 int StringKeyValueStore::add_key_alias(const char *key, const char *key_alias)
 {
-    item_t n;
+    element_t n;
 
     if (has_key(key_alias))
         return EEXIST;
 
-    n = (item_t)malloc(sizeof(struct _item));
-    assert(n != NULL);
+    n = alloc_element(key_alias, key);
 
-    n->name = strdup(key_alias);
-    assert(n->name != NULL);
-
-    n->value = strdup(key);
-    assert(n->value != NULL);
-
-    n->next     = alias_table;
-    alias_table = n;
+    list_add(&n->link, &alias_table);
 
     return (0);
 }
 
 const char *StringKeyValueStore::unalias_key(const char *key_alias)
 {
-    item_t cp = find_alias(key_alias);
+    element_t cp = find_alias(key_alias);
     return ((cp != NULL) ? cp->value : key_alias);
 }
 
 void StringKeyValueStore::replace(const char *key, const char *value)
 {
-    item_t cp;
+    element_t cp;
     if (!value)
         return;
 
@@ -116,37 +146,20 @@ void StringKeyValueStore::replace(const char *key, const char *value)
     }
 }
 
-item_t StringKeyValueStore::find(const char *key)
+element_t StringKeyValueStore::find(const char *key)
 {
-    item_t cp;
-    const char *store_key = unalias_key(key);
-
-    for (cp = table; cp; cp = cp->next) {
-        if (strcmp(store_key, cp->name) == 0) {
-            return cp;
-        }
-    }
-
-    return NULL;
+    return find_in_table(unalias_key(key), &table);
 }
 
-item_t StringKeyValueStore::find_alias(const char *key_alias)
+element_t StringKeyValueStore::find_alias(const char *key_alias)
 {
-    item_t cp;
-
-    for (cp = alias_table; cp; cp = cp->next) {
-        if (strcmp(key_alias, cp->name) == 0) {
-            return cp;
-        }
-    }
-
-    return NULL;
+    return find_in_table(key_alias, &alias_table);
 }
 
 bool StringKeyValueStore::has_key(const char *key)
 {
     const char *store_key = unalias_key(key);
-    item_t cp             = find(store_key);
+    element_t cp          = find(store_key);
 
     if (cp != NULL)
         return true;
@@ -160,36 +173,34 @@ bool StringKeyValueStore::has_key(const char *key)
 
 bool StringKeyValueStore::is_key_alias(const char *key)
 {
-    item_t aliased_key = find_alias(key);
+    element_t aliased_key = find_alias(key);
     return ((aliased_key != NULL) ? true : false);
 }
 
 const char *StringKeyValueStore::get_value(const char *key)
 {
-    item_t cp;
+    element_t cp;
 
     cp = find(key);
 
     return cp ? cp->value : NULL;
 }
 
+static void purge_table(table_t *f_table)
+{
+    element_t cp;
+
+    if (!list_empty(f_table)) {
+        cp = list_entry(f_table->next, element, link);
+        list_del(&cp->link);
+        free_element(cp);
+    }
+}
+
 void StringKeyValueStore::purge(void)
 {
-    item_t cp;
-
-    while ((cp = table) != NULL) {
-        table = cp->next;
-        free(cp->name);
-        free(cp->value);
-        free(cp);
-    }
-
-    while ((cp = alias_table) != NULL) {
-        alias_table = cp->next;
-        free(cp->name);
-        free(cp->value);
-        free(cp);
-    }
+    purge_table(&table);
+    purge_table(&alias_table);
 }
 
 void StringKeyValueStore::print()
@@ -199,9 +210,12 @@ void StringKeyValueStore::print()
 
 void StringKeyValueStore::print(int fd)
 {
-    item_t cp;
+    element_t cp;
+    struct dllist_head *p;
 
-    for (cp = table; cp; cp = cp->next) {
-        dprintf(fd, "\"%s\" : \"%s\"\n", cp->name, cp->value);
+    list_for_each(p, table)
+    {
+        cp = list_entry(p, element, link);
+        dprintf(fd, "\"%s\" : \"%s\"\n", cp->key, cp->value);
     }
 }

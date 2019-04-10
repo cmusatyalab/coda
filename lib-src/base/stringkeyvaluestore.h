@@ -23,21 +23,30 @@ Coda are listed in the file CREDITS.
 extern "C" {
 #endif
 
-#include "codaconf.h"
+#include "dllist.h"
 
 #ifdef __cplusplus
 }
 #endif
 
+struct element {
+    struct dllist_head link;
+    char *key;
+    char *value;
+};
+
+typedef struct element *element_t;
+typedef struct dllist_head table_t;
+
 class StringKeyValueStore {
 private:
-    item_t table;
-    item_t alias_table;
+    table_t table;
+    table_t alias_table;
 
 protected:
     bool quiet;
-    item_t find(const char *key);
-    item_t find_alias(const char *key_alias);
+    element_t find(const char *key);
+    element_t find_alias(const char *key_alias);
     const char *unalias_key(const char *key_alias);
 
 public:

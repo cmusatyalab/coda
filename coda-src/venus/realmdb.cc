@@ -19,6 +19,7 @@ listed in the file CREDITS.
 #include "realmdb.h"
 #include "fso.h"
 #include "rec_dllist.h"
+#include "codaconf.h"
 
 /* This is initialized by RealmDBInit() */
 Realm *LocalRealm;
