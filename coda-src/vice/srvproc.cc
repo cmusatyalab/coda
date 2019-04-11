@@ -248,7 +248,7 @@ long FS_ViceFetchPartial(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
 
     /* Perform operation. */
     {
-        if (!(voltype & REPVOL) || !PrimaryHost || PrimaryHost == ThisHostAddr)
+        if (!(voltype == REPVOL) || !PrimaryHost || PrimaryHost == ThisHostAddr)
             if ((errorCode = FetchBulkTransfer(RPCid, client, volptr, v->vptr,
                                                Offset, Count, VV)))
                 goto FreeLocks;
@@ -644,7 +644,7 @@ long FS_ViceSetACL(RPC2_Handle RPCid, ViceFid *Fid, RPC2_CountedBS *AccessList,
 
     /* Perform operation. */
     {
-        if (voltype & (REPVOL | NONREPVOL)) {
+        if (voltype == REPVOL || voltype == NONREPVOL) {
             GetMyVS(volptr, OldVS, NewVS, voltype);
         }
 
@@ -655,7 +655,7 @@ long FS_ViceSetACL(RPC2_Handle RPCid, ViceFid *Fid, RPC2_CountedBS *AccessList,
         SetVSStatus(client, volptr, NewVS, VCBStatus, voltype);
     }
 
-    if ((voltype & REPVOL) && !errorCode) {
+    if ((voltype == REPVOL) && !errorCode) {
         if ((errorCode = SpoolVMLogRecord(vlist, v, volptr, StoreId,
                                           RES_NewStore_OP, ACLSTORE, newACL)))
             SLog(0, "ViceSetACL: error %d during SpoolVMLogRecord\n",
@@ -1057,12 +1057,18 @@ int ValidateParms(RPC2_Handle RPCid, ClientEntry **client, int *voltype,
     GroupVid  = *Vidp;
     errorCode = XlateVid(Vidp, &count, &pos, &voltype_tmp);
 
-    if (voltype_tmp & REPVOL) {
+    switch (voltype_tmp) {
+    case REPVOL:
         SLog(10, "ValidateParms: %x --> %x", GroupVid, *Vidp);
-    } else if (voltype_tmp & NONREPVOL) {
+        break;
+    case NONREPVOL:
         SLog(10, "ValidateParms: using non-replicated vol --> %x", *Vidp);
-    } else if (!errorCode) {
+        break;
+    case RWVOL:
         SLog(10, "ValidateParms: using replica %x", *Vidp);
+        break;
+    default:
+        break;
     }
 
     if (voltype)
@@ -2633,10 +2639,10 @@ void PerformSetACL(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
     CODA_ASSERT(aCLSize >= newACL->MySize);
     memcpy(aCL, newACL, newACL->MySize);
 
-    NewCOP1Update(volptr, vptr, StoreId, vsptr, (voltype & REPVOL));
+    NewCOP1Update(volptr, vptr, StoreId, vsptr, (voltype == REPVOL));
 
     /* Just needed for replicated volumes */
-    if ((voltype & REPVOL)) {
+    if (voltype == REPVOL) {
         /* Await COP2 message. */
         ViceFid fids[MAXFIDS];
         memset((void *)fids, 0, (int)(MAXFIDS * sizeof(ViceFid)));

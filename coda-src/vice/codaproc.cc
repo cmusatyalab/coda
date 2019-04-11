@@ -2519,13 +2519,14 @@ void GetMyVS(Volume *volptr, RPC2_CountedBS *VSList, RPC2_Integer *MyVS,
              int voltype)
 {
     vrent *vre;
-    int ix;
+    int ix = 0;
 
     *MyVS = 0;
     if (VSList->SeqLen == 0)
         return;
 
-    if (voltype & REPVOL) {
+    switch (voltype) {
+    case REPVOL:
         /* Look up the VRDB entry. */
         vre = VRDB.find(V_groupId(volptr));
         if (!vre)
@@ -2535,10 +2536,11 @@ void GetMyVS(Volume *volptr, RPC2_CountedBS *VSList, RPC2_Integer *MyVS,
         ix = vre->index();
         if (ix < 0)
             Die("GetMyVS: this host not found!");
-
-    } else if (voltype & NONREPVOL) {
-        ix = 0;
-    } else {
+        break;
+    case NONREPVOL:
+    case RWVOL:
+        break;
+    default:
         return;
     }
 
@@ -2553,8 +2555,12 @@ void GetMyVS(Volume *volptr, RPC2_CountedBS *VSList, RPC2_Integer *MyVS,
 void SetVSStatus(ClientEntry *client, Volume *volptr, RPC2_Integer *NewVS,
                  CallBackStatus *VCBStatus, int voltype)
 {
+    *VCBStatus = NoCallBack;
+    *NewVS     = 0;
+
     int ix = 0;
-    if (voltype & REPVOL) {
+    switch (voltype) {
+    case REPVOL: {
         /* Look up the VRDB entry. */
         vrent *vre = VRDB.find(V_groupId(volptr));
         if (!vre)
@@ -2564,14 +2570,13 @@ void SetVSStatus(ClientEntry *client, Volume *volptr, RPC2_Integer *NewVS,
         ix = vre->index();
         if (ix < 0)
             Die("SetVSStatus: this host not found!");
-
-    } else if (voltype & NONREPVOL) {
-        ix = 0;
-    } else {
+    } break;
+    case NONREPVOL:
+    case RWVOL:
+        break;
+    default:
         return;
     }
-
-    *VCBStatus = NoCallBack;
 
     SLog(1, "SetVSStatus: 0x%x, client %d, server %d", V_id(volptr), *NewVS,
          (&(V_versionvector(volptr).Versions.Site0))[ix]);

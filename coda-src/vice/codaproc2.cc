@@ -2205,7 +2205,7 @@ static void ReintFinalCOP(vle *v, Volume *volptr, RPC2_Integer *VS, int voltype)
     }
 
     /* 1. Record COP1 (for final update). */
-    NewCOP1Update(volptr, v->vptr, FinalSid, VS, (voltype & REPVOL));
+    NewCOP1Update(volptr, v->vptr, FinalSid, VS, (voltype == REPVOL));
 
     /* 2. Record COP2 pending (for final update). */
     /* Note that for directories that "need-resolved", 
