@@ -444,7 +444,7 @@ long FS_ViceResolve(RPC2_Handle cid, ViceFid *Fid)
 
 /*
   BEGIN_HTML
-  <a name="ViceSetVV"><strong>Sets the version vector for an object</strong></a> 
+  <a name="ViceSetVV"><strong>Sets the version vector for an object</strong></a>
   END_HTML
 */
 // THIS CODE IS NEEDED TO DO A CLEARINC FROM THE REPAIR TOOL FOR QUOTA REPAIRS
@@ -538,14 +538,14 @@ long FS_ViceRepair(RPC2_Handle cid, ViceFid *Fid, ViceStatus *status,
     /*
   BEGIN_HTML
   <a name="ObtainObj"> <strong> Obtain the necessary objects for the
-  repair actions </strong></a> 
+  repair actions </strong></a>
   END_HTML
 */
 
     /* 2. Get top level object being repaired  */
     {
         /* Need to get volume in SHARED LOCK mode,
-	   but vnode with a  READLOCK because later on we 
+	   but vnode with a  READLOCK because later on we
 	   will get it with a WRITELOCK */
         ov = AddVLE(*vlist, Fid);
         if (ISDIR(*Fid))
@@ -756,8 +756,8 @@ int GetMyRepairList(ViceFid *Fid, struct listhdr *replicaList, int replicaCount,
 /*
   BEGIN_HTML
   <a name="CheckRepairSemantics"> <strong> Check whether the repair
-  mutation operations satisfy the necessary semantic requirements. 
-  </strong> </a> 
+  mutation operations satisfy the necessary semantic requirements.
+  </strong> </a>
   END_HTML
 */
 int CheckRepairSemantics(vle *ov, Volume *volptr, dlist *vlist,
@@ -806,7 +806,7 @@ int CheckRepairSemantics(vle *ov, Volume *volptr, dlist *vlist,
 /*
   BEGIN_HTML
   <a name="CheckFileRepairSemantics"> <strong> Check whether semantic
-  constraints are satisfied for file repair operation </strong></a> 
+  constraints are satisfied for file repair operation </strong></a>
   END_HTML
 */
 int CheckFileRepairSemantics(vle *ov, vle *pv, Volume *volptr,
@@ -822,7 +822,7 @@ int CheckFileRepairSemantics(vle *ov, vle *pv, Volume *volptr,
 
     /* Perform the following check:
 	  Client must have write access in the parent directory.
-	  Client shouldnt be changing the ownership of the object 
+	  Client shouldnt be changing the ownership of the object
 	  unless client is system administrator.
 	  File should be writable by the client.
 	  */
@@ -1097,7 +1097,7 @@ int SetNRights(Vnode *vptr, char *name, int rights)
 /*
   BEGIN_HTML
   <a name="CheckDirRepairSemantics"> <strong> Check semantic
-  constraints for the directory repair operations </strong></a> 
+  constraints for the directory repair operations </strong></a>
   END_HTML
 */
 int CheckDirRepairSemantics(vle *ov, dlist *vlist, Volume *volptr,
@@ -1301,14 +1301,14 @@ int CheckDirRepairSemantics(vle *ov, dlist *vlist, Volume *volptr,
     return (0);
 }
 /*
- * data structure used to pass arguments 
- * for the recursive tree removal routines 
+ * data structure used to pass arguments
+ * for the recursive tree removal routines
  */
 #include "treeremove.h"
 /*
   BEGIN_HTML
   <a name="PerformDirRepair"> <strong> Perform the actions for
-  reparing a directory object </strong></a> 
+  reparing a directory object </strong></a>
   END_HTML
 */
 static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
@@ -1790,7 +1790,7 @@ static int GetRepairObjects(Volume *volptr, vle *ov, dlist *vlist,
     return (errorCode);
 }
 
-/* 
+/*
     Get all the fids in a subtree - deadlock free solution
     add the fids to the vlist
 */
@@ -1973,8 +1973,8 @@ static int RecursiveCheckRemoveSemantics(PDirEntry de, void *data)
 }
 
 /*
-  CheckTreeRemoveSemantics: Check the semantic constraints for 
-  removing a subtree 
+  CheckTreeRemoveSemantics: Check the semantic constraints for
+  removing a subtree
 */
 static int CheckTreeRemoveSemantics(ClientEntry *client, Volume *volptr,
                                     ViceFid *tFid, dlist *vlist)
@@ -2217,7 +2217,7 @@ long InternalCOP2(RPC2_Handle cid, ViceStoreId *StoreId,
 
     if ((status == 0) && !errorCode && vollog) {
         /* the transaction was successful -
-	   free up vm bitmap corresponding to 
+	   free up vm bitmap corresponding to
 	   log records that were truncated */
         vmindex_iterator next(&freed_indices);
         unsigned long ind;
@@ -2356,7 +2356,7 @@ void NewCOP1Update(Volume *volptr, Vnode *vptr, ViceStoreId *StoreId,
 
 /*
   COP2Update: Increment the version vector of an object.
-  Only increment slots for servers that succeeded in COP1. 
+  Only increment slots for servers that succeeded in COP1.
 */
 
 static void COP2Update(Volume *volptr, Vnode *vptr,
@@ -2454,7 +2454,7 @@ void PollAndYield()
 /*
   BEGIN_HTML
   <a name="ViceGetVolVS"><strong>Return the volume version vector for the specified
-  volume, and establish a volume callback on it</strong></a> 
+  volume, and establish a volume callback on it</strong></a>
   END_HTML
 */
 long FS_ViceGetVolVS(RPC2_Handle cid, VolumeId Vid, RPC2_Integer *VS,
@@ -2498,7 +2498,7 @@ long FS_ViceGetVolVS(RPC2_Handle cid, VolumeId Vid, RPC2_Integer *VS,
     *VS = (&(V_versionvector(volptr).Versions.Site0))[ix];
     VPutVolume(volptr);
 
-    /* 
+    /*
      * add a volume callback. don't need to use CodaAddCallBack
      * because we always send in the VSG volume id.
      */
@@ -2583,9 +2583,9 @@ void SetVSStatus(ClientEntry *client, Volume *volptr, RPC2_Integer *NewVS,
 
     /* check the version stamp in our slot in the vector */
     if (*NewVS == (&(V_versionvector(volptr).Versions.Site0))[ix]) {
-        /* 
-	 * add a volume callback. don't need to use CodaAddCallBack because 
-	 * we always send in the VSG volume id.  
+        /*
+	 * add a volume callback. don't need to use CodaAddCallBack because
+	 * we always send in the VSG volume id.
 	 */
         ViceFid fid;
         fid.Volume = V_id(volptr);
@@ -2604,8 +2604,8 @@ void SetVSStatus(ClientEntry *client, Volume *volptr, RPC2_Integer *NewVS,
   BEGIN_HTML
   <a name="ViceValidateVols"><strong>Takes a list of volumes and
   corresponding version stamps from a client, and returns a vector indicating
-  for each volume whether or the version stamp supplied is current, and whether or not 
-  a callback was established for it.</strong></a> 
+  for each volume whether or the version stamp supplied is current, and whether or not
+  a callback was established for it.</strong></a>
   END_HTML
 */
 long FS_ViceValidateVols(RPC2_Handle cid, RPC2_Unsigned numVids,
@@ -2672,9 +2672,9 @@ long FS_ViceValidateVols(RPC2_Handle cid, RPC2_Unsigned numVids,
 
         if ((long)ntohl(((RPC2_Unsigned *)VSBS->SeqBody)[index]) == myVS) {
             SLog(8, "ValidateVolumes: 0x%x ok, adding callback", Vids[i].Vid);
-            /* 
-	     * add a volume callback. don't need to use CodaAddCallBack because 
-	     * we always send in the VSG volume id.  
+            /*
+	     * add a volume callback. don't need to use CodaAddCallBack because
+	     * we always send in the VSG volume id.
 	     */
             ViceFid fid;
             fid.Volume = Vids[i].Vid;

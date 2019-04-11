@@ -201,8 +201,8 @@ void vdb::TakeTransition()
 }
 
 /* local-repair modification */
-/* 
- * periodically checkpoint any volumes with non-empty CMLs 
+/*
+ * periodically checkpoint any volumes with non-empty CMLs
  * if the CML has changed since the last checkpoint interval.
  */
 void vdb::CheckPoint(unsigned long curr_time)
