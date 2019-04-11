@@ -755,33 +755,21 @@ void vdb::UpEvent(struct in_addr *host)
 /* MUST be called from within transaction! */
 void vdb::AttachFidBindings()
 {
-    repvol_iterator r_next;
-    nonrepvol_iterator nr_next;
+    reintvol_iterator next;
     reintvol *v;
 
-    while ((v = (reintvol *)r_next())) {
-        v->CML.AttachFidBindings();
-    }
-
-    while ((v = nr_next())) {
+    while ((v = next())) {
         v->CML.AttachFidBindings();
     }
 }
 
 int vdb::WriteDisconnect(unsigned int age, unsigned int time)
 {
-    repvol_iterator r_next;
-    nonrepvol_iterator nr_next;
+    reintvol_iterator next;
     reintvol *v;
     int code = 0;
 
-    while ((v = (reintvol *)r_next())) {
-        code = v->WriteDisconnect(age, time);
-        if (code)
-            break;
-    }
-
-    while ((v = nr_next())) {
+    while ((v = next())) {
         code = v->WriteDisconnect(age, time);
         if (code)
             break;
@@ -791,18 +779,11 @@ int vdb::WriteDisconnect(unsigned int age, unsigned int time)
 
 int vdb::SyncCache()
 {
-    repvol_iterator r_next;
-    nonrepvol_iterator nr_next;
+    reintvol_iterator next;
     reintvol *v;
     int code = 0;
 
-    while ((v = (reintvol *)r_next())) {
-        code = v->SyncCache();
-        if (code)
-            break;
-    }
-
-    while ((v = nr_next())) {
+    while ((v = next())) {
         code = v->SyncCache();
         if (code)
             break;
@@ -814,18 +795,10 @@ int vdb::SyncCache()
 void vdb::GetCmlStats(cmlstats &total_current, cmlstats &total_cancelled)
 {
     /* N.B.  We assume that caller has passed in zeroed-out structures! */
-    repvol_iterator r_next;
-    nonrepvol_iterator nr_next;
+    reintvol_iterator next;
     reintvol *v;
 
-    while ((v = (reintvol *)r_next())) {
-        cmlstats current, cancelled;
-        v->CML.IncGetStats(current, cancelled);
-        total_current += current;
-        total_cancelled += cancelled;
-    }
-
-    while ((v = nr_next())) {
+    while ((v = next())) {
         cmlstats current, cancelled;
         v->CML.IncGetStats(current, cancelled);
         total_current += current;
@@ -841,12 +814,9 @@ void vdb::print(int fd, int SummaryOnly)
     fdprint(fd, "volume callbacks broken = %d, total callbacks broken = %d\n",
             vcbbreaks, cbbreaks);
     if (!SummaryOnly) {
-        repvol_iterator r_next;
-        nonrepvol_iterator nr_next;
+        reintvol_iterator next;
         reintvol *v;
-        while ((v = (reintvol *)r_next()))
-            v->print(fd);
-        while ((v = nr_next()))
+        while ((v = next()))
             v->print(fd);
     }
 
@@ -855,13 +825,10 @@ void vdb::print(int fd, int SummaryOnly)
 
 void vdb::ListCache(FILE *fp, int long_format, unsigned int valid)
 {
-    repvol_iterator r_next;
-    nonrepvol_iterator nr_next;
+    reintvol_iterator next;
     reintvol *v;
 
-    while ((v = (reintvol *)r_next()))
-        v->ListCache(fp, long_format, valid);
-    while ((v = nr_next()))
+    while ((v = next()))
         v->ListCache(fp, long_format, valid);
 }
 
@@ -2977,6 +2944,15 @@ reintvol *nonrepvol_iterator::operator()()
     }
 
     return (0);
+}
+
+reintvol *reintvol_iterator::operator()()
+{
+    reintvol *v;
+    while ((v = non_rep_iterator()) || (v = (reintvol *)rep_iterator())) {
+        return v;
+    }
+    return NULL;
 }
 
 reintvol::reintvol(Realm *r, VolumeId volid, const char *volname)

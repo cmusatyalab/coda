@@ -1028,6 +1028,19 @@ public:
     volrep *operator()();
 };
 
+class reintvol_iterator {
+    nonrepvol_iterator non_rep_iterator;
+    repvol_iterator rep_iterator;
+
+public:
+    reintvol_iterator(Volid *key = (Volid *)-1)
+        : non_rep_iterator(key)
+        , rep_iterator(key)
+    {
+    }
+    reintvol *operator()();
+};
+
 /* Entries representing pending COP2 events. */
 class cop2ent : public dlink {
     friend class repvol;

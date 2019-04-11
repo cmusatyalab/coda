@@ -241,20 +241,10 @@ void TrickleReintegrate()
     LOG(100, ("TrickleReintegrate(): \n"));
 
     /* For each volume. */
-    repvol_iterator r_next;
-    nonrepvol_iterator nr_next;
+    reintvol_iterator next;
     reintvol *v;
-    while ((v = (reintvol *)r_next())) {
-        LOG(1000, ("TrickleReintegrate: checking %s\n", v->GetName()));
-        if (v->Enter((VM_OBSERVING | VM_NDELAY), V_UID) == 0) {
-            /* force a connectivity check? */
-            /* try to propagate updates from this volume.  */
-            if (v->ReadyToReintegrate())
-                ::Reintegrate(v);
-            v->Exit(VM_OBSERVING, V_UID);
-        }
-    }
-    while ((v = nr_next())) {
+
+    while ((v = next())) {
         LOG(1000, ("TrickleReintegrate: checking %s\n", v->GetName()));
         if (v->Enter((VM_OBSERVING | VM_NDELAY), V_UID) == 0) {
             /* force a connectivity check? */
