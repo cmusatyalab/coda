@@ -208,48 +208,50 @@ int DumpVRDB(int outfd)
     return VRDB.dump(outfd);
 }
 
-bool IsReplicated(VolumeId *vidp)
+static bool IsReplicated(VolumeId *vidp)
 {
-    uint8_t *vid = (uint8_t *)vidp;
-
-    if (vid[3] == 0x7f)
-        return true;
-
-    return false;
+    return (*vidp & 0xff000000) == 0x7f000000;
 }
 
 int XlateVid(VolumeId *vidp, int *count, int *pos, int *voltype)
 {
+    if (voltype)
+        *voltype = 0;
+
     if (!IsReplicated(vidp)) {
+        /* not a replicated volume! is this a volume replica? */
+        if (VRDB.ReverseFind(*vidp, NULL))
+            return 1;
+
+        /* neither replicated, nor a replica. this must be a
+         * readwrite, non-replicated volume. */
         if (count)
             *count = 1;
         if (pos)
             *pos = 0;
         if (voltype)
             *voltype = NONREPVOL;
-        return (1);
+        return 1;
     }
 
-    if (voltype)
-        *voltype = 0;
-
+    /* this is a replicated volume id, but do we know about it */
     vrent *vre = VRDB.find(*vidp);
     if (!vre)
-        return (0);
+        return 0;
 
     int ix = vre->index();
     if (ix == -1)
-        return (0);
-
-    if (voltype)
-        *voltype = REPVOL;
+        return 0;
 
     *vidp = vre->ServerVolnum[ix];
+
     if (count)
         *count = vre->nServers;
     if (pos)
         *pos = ix;
-    return (1);
+    if (voltype)
+        *voltype = REPVOL;
+    return 1;
 }
 
 int ReverseXlateVid(VolumeId *vidp, int *idx)
