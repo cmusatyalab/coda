@@ -1,16 +1,16 @@
-#include <util/bitmap.h>
+#include <util/bitmap7.h>
 #include "gtest/gtest.h"
 
 namespace
 {
-// bitmap.
-TEST(bitmap, assign)
+// bitmap7.
+TEST(bitmap7, assign)
 {
     int16_t bitmap_size = rand() & 0x7FFF;
     int16_t i           = 0;
 
-    bitmap *src = new (0) bitmap(bitmap_size, 0);
-    bitmap *dst = new (0) bitmap(bitmap_size, 0);
+    bitmap7 *src = new (0) bitmap7(bitmap_size, 0);
+    bitmap7 *dst = new (0) bitmap7(bitmap_size, 0);
     EXPECT_GE(src->Size(), bitmap_size);
     EXPECT_GE(dst->Size(), bitmap_size);
 
@@ -33,15 +33,15 @@ TEST(bitmap, assign)
     delete (dst);
 }
 
-TEST(bitmap, copy)
+TEST(bitmap7, copy)
 {
     int16_t bitmap_size = rand() & 0x7FFF;
     int16_t i           = 0;
     int16_t start       = rand() % bitmap_size;
     int16_t len         = rand() % bitmap_size;
 
-    bitmap *src = new (0) bitmap(bitmap_size, 0);
-    bitmap *dst = new (0) bitmap(bitmap_size, 0);
+    bitmap7 *src = new (0) bitmap7(bitmap_size, 0);
+    bitmap7 *dst = new (0) bitmap7(bitmap_size, 0);
 
     EXPECT_GE(src->Size(), bitmap_size);
     EXPECT_GE(dst->Size(), bitmap_size);
@@ -68,14 +68,14 @@ TEST(bitmap, copy)
     delete (dst);
 }
 
-TEST(bitmap, assign_different_size)
+TEST(bitmap7, assign_different_size)
 {
     int16_t bitmap_size_1 = rand() & 0x7FFF;
     int16_t bitmap_size_2 = rand() & 0x7FFF;
     int16_t i             = 0;
 
-    bitmap *src = new (0) bitmap(bitmap_size_1, 0);
-    bitmap *dst = new (0) bitmap(bitmap_size_2, 0);
+    bitmap7 *src = new (0) bitmap7(bitmap_size_1, 0);
+    bitmap7 *dst = new (0) bitmap7(bitmap_size_2, 0);
 
     EXPECT_GE(src->Size(), bitmap_size_1);
     EXPECT_GE(dst->Size(), bitmap_size_2);
@@ -101,13 +101,13 @@ TEST(bitmap, assign_different_size)
     delete (dst);
 }
 
-TEST(bitmap, resize)
+TEST(bitmap7, resize)
 {
     int16_t bitmap_size_start = rand() & 0x7FFF;
     int16_t bitmap_size_end   = rand() & 0x7FFF;
     int16_t i                 = 0;
 
-    bitmap *bm = new (0) bitmap(bitmap_size_start, 0);
+    bitmap7 *bm = new (0) bitmap7(bitmap_size_start, 0);
 
     EXPECT_GE(bm->Size(), bitmap_size_start);
 
@@ -129,17 +129,17 @@ TEST(bitmap, resize)
     delete (bm);
 }
 
-TEST(bitmap, set_range)
+TEST(bitmap7, set_range)
 {
     int16_t bitmap_size = rand() & 0x7FFF;
     int16_t start       = rand() % bitmap_size;
     int16_t len         = rand() % bitmap_size;
 
-    bitmap *bm = new (0) bitmap(bitmap_size, 0);
+    bitmap7 *bm = new (0) bitmap7(bitmap_size, 0);
 
     EXPECT_GE(bm->Size(), bitmap_size);
 
-    /* Clean then bitmap */
+    /* Clean then bitmap7 */
     bm->FreeRange(0, bitmap_size);
     EXPECT_EQ(bm->Count(), 0);
 
@@ -161,19 +161,19 @@ TEST(bitmap, set_range)
     delete (bm);
 }
 
-TEST(bitmap, set_range_and_copy_till_end)
+TEST(bitmap7, set_range_and_copy_till_end)
 {
     int16_t bitmap_size = rand() & 0x7FFF;
     int16_t start       = rand() % bitmap_size;
     int16_t len         = -1;
 
-    bitmap *bm     = new (0) bitmap(bitmap_size, 0);
-    bitmap *bm_cpy = new (0) bitmap(bitmap_size, 0);
+    bitmap7 *bm     = new (0) bitmap7(bitmap_size, 0);
+    bitmap7 *bm_cpy = new (0) bitmap7(bitmap_size, 0);
 
     EXPECT_GE(bm->Size(), bitmap_size);
     EXPECT_GE(bm_cpy->Size(), bitmap_size);
 
-    /* Clean the bitmap */
+    /* Clean the bitmap7 */
     bm->FreeRange(0, bitmap_size);
     bm_cpy->FreeRange(0, bitmap_size);
     EXPECT_EQ(bm->Count(), 0);
@@ -191,11 +191,11 @@ TEST(bitmap, set_range_and_copy_till_end)
     delete (bm_cpy);
 }
 
-TEST(bitmap, purge_delete)
+TEST(bitmap7, purge_delete)
 {
     int16_t bitmap_size = rand() & 0x7FFF;
 
-    bitmap *bm = new (0) bitmap(bitmap_size, 0);
+    bitmap7 *bm = new (0) bitmap7(bitmap_size, 0);
 
     EXPECT_GE(bm->Size(), bitmap_size);
 
@@ -204,13 +204,13 @@ TEST(bitmap, purge_delete)
     delete (bm);
 }
 
-TEST(bitmap, get_free_index)
+TEST(bitmap7, get_free_index)
 {
     int16_t bitmap_size   = rand() & 0x7FFF;
     int16_t i             = 0;
     int16_t current_index = 0;
 
-    bitmap *bm = new (0) bitmap(bitmap_size, 0);
+    bitmap7 *bm = new (0) bitmap7(bitmap_size, 0);
 
     EXPECT_GE(bm->Size(), bitmap_size);
     bm->FreeRange(0, bitmap_size);
@@ -224,7 +224,7 @@ TEST(bitmap, get_free_index)
     delete (bm);
 }
 
-static void check_range(bitmap *bm, int start, int len, int value)
+static void check_range(bitmap7 *bm, int start, int len, int value)
 {
     int i          = 0;
     int actual_val = 0;
@@ -234,12 +234,12 @@ static void check_range(bitmap *bm, int start, int len, int value)
     }
 }
 
-TEST(bitmap, ranges_cases)
+TEST(bitmap7, ranges_cases)
 {
     int16_t bitmap_size = 333; // Simply need an unaligned size
-    bitmap *ones        = new (0) bitmap(bitmap_size, 0);
-    bitmap *zeros       = new (0) bitmap(bitmap_size, 0);
-    bitmap *test_bm     = new (0) bitmap(bitmap_size, 0);
+    bitmap7 *ones       = new (0) bitmap7(bitmap_size, 0);
+    bitmap7 *zeros      = new (0) bitmap7(bitmap_size, 0);
+    bitmap7 *test_bm    = new (0) bitmap7(bitmap_size, 0);
     int start           = 0;
     int len             = 0;
 
