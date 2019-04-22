@@ -7,7 +7,6 @@
 int main(int argc, char **argv)
 {
     int32_t seed = 0;
-    printf("Running main() from %s\n", __FILE__);
     testing::InitGoogleTest(&argc, argv);
 
     /* Get the random seed used by gtest */

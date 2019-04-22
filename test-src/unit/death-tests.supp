@@ -1,0 +1,717 @@
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:re_node_set_alloc
+   fun:register_state
+   fun:create_cd_newstate
+   fun:re_acquire_state_context
+   fun:create_initial_state
+   fun:re_compile_internal
+   fun:regcomp
+   fun:_ZN7testing8internal2RE4InitEPKc
+   fun:RE
+   ...
+   fun:HandleSehExceptionsInMethodIfSupported<testing::Test, void>
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+   fun:_ZN7testing8TestCase3RunEv
+   fun:_ZN7testing8internal12UnitTestImpl11RunAllTestsEv
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:strdup
+   fun:StrDup
+   fun:_ZN7testing8internal2RE4InitEPKc
+   fun:RE
+   ...
+   fun:HandleSehExceptionsInMethodIfSupported<testing::Test, void>
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+   fun:_ZN7testing8TestCase3RunEv
+   fun:_ZN7testing8internal12UnitTestImpl11RunAllTestsEv
+   fun:HandleSehExceptionsInMethodIfSupported<testing::internal::UnitTestImpl, bool>
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8UnitTest3RunEv
+   fun:RUN_ALL_TESTS
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:re_node_set_alloc
+   fun:calc_eclosure_iter
+   fun:calc_eclosure
+   fun:analyze
+   fun:re_compile_internal
+   fun:regcomp
+   fun:_ZN7testing8internal2RE4InitEPKc
+   fun:RE
+   ...
+   fun:HandleSehExceptionsInMethodIfSupported<testing::Test, void>
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+   fun:_ZN7testing8TestCase3RunEv
+   fun:_ZN7testing8internal12UnitTestImpl11RunAllTestsEv
+   fun:HandleSehExceptionsInMethodIfSupported<testing::internal::UnitTestImpl, bool>
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:re_node_set_alloc
+   fun:calc_eclosure_iter
+   fun:calc_eclosure_iter
+   fun:calc_eclosure_iter
+   fun:calc_eclosure
+   fun:analyze
+   fun:re_compile_internal
+   fun:regcomp
+   fun:_ZN7testing8internal2RE4InitEPKc
+   fun:RE
+   ...
+   fun:HandleSehExceptionsInMethodIfSupported<testing::Test, void>
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+   fun:_ZN7testing8TestCase3RunEv
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:re_node_set_alloc
+   fun:calc_eclosure_iter
+   fun:calc_eclosure_iter
+   fun:calc_eclosure_iter
+   fun:calc_eclosure_iter
+   fun:calc_eclosure_iter
+   fun:calc_eclosure_iter
+   fun:calc_eclosure
+   fun:analyze
+   fun:re_compile_internal
+   fun:regcomp
+   fun:_ZN7testing8internal2RE4InitEPKc
+   fun:RE
+   ...
+   fun:HandleSehExceptionsInMethodIfSupported<testing::Test, void>
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:re_node_set_alloc
+   fun:calc_eclosure_iter
+   fun:calc_eclosure_iter
+   fun:calc_eclosure
+   fun:analyze
+   fun:re_compile_internal
+   fun:regcomp
+   fun:_ZN7testing8internal2RE4InitEPKc
+   fun:RE
+   ...
+   fun:HandleSehExceptionsInMethodIfSupported<testing::Test, void>
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+   fun:_ZN7testing8TestCase3RunEv
+   fun:_ZN7testing8internal12UnitTestImpl11RunAllTestsEv
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:re_node_set_init_2
+   fun:link_nfa_nodes
+   fun:preorder
+   fun:analyze
+   fun:re_compile_internal
+   fun:regcomp
+   fun:_ZN7testing8internal2RE4InitEPKc
+   fun:RE
+   ...
+   fun:HandleSehExceptionsInMethodIfSupported<testing::Test, void>
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+   fun:_ZN7testing8TestCase3RunEv
+   fun:_ZN7testing8internal12UnitTestImpl11RunAllTestsEv
+   fun:HandleSehExceptionsInMethodIfSupported<testing::internal::UnitTestImpl, bool>
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8UnitTest3RunEv
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:realloc
+   fun:re_node_set_insert
+   fun:duplicate_node_closure
+   fun:calc_eclosure_iter
+   fun:calc_eclosure
+   fun:analyze
+   fun:re_compile_internal
+   fun:regcomp
+   fun:_ZN7testing8internal2RE4InitEPKc
+   fun:RE
+   ...
+   fun:HandleSehExceptionsInMethodIfSupported<testing::Test, void>
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+   fun:_ZN7testing8TestCase3RunEv
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:analyze
+   fun:re_compile_internal
+   fun:regcomp
+   fun:_ZN7testing8internal2RE4InitEPKc
+   fun:RE
+   ...
+   fun:HandleSehExceptionsInMethodIfSupported<testing::Test, void>
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+   fun:_ZN7testing8TestCase3RunEv
+   fun:_ZN7testing8internal12UnitTestImpl11RunAllTestsEv
+   fun:HandleSehExceptionsInMethodIfSupported<testing::internal::UnitTestImpl, bool>
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8UnitTest3RunEv
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:re_node_set_init_copy
+   fun:create_cd_newstate
+   fun:re_acquire_state_context
+   fun:create_initial_state
+   fun:re_compile_internal
+   fun:regcomp
+   fun:_ZN7testing8internal2RE4InitEPKc
+   fun:RE
+   ...
+   fun:HandleSehExceptionsInMethodIfSupported<testing::Test, void>
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+   fun:_ZN7testing8TestCase3RunEv
+   fun:_ZN7testing8internal12UnitTestImpl11RunAllTestsEv
+   fun:HandleSehExceptionsInMethodIfSupported<testing::internal::UnitTestImpl, bool>
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:re_node_set_alloc
+   fun:calc_eclosure_iter
+   fun:calc_eclosure_iter
+   fun:calc_eclosure_iter
+   fun:calc_eclosure_iter
+   fun:calc_eclosure
+   fun:analyze
+   fun:re_compile_internal
+   fun:regcomp
+   fun:_ZN7testing8internal2RE4InitEPKc
+   fun:RE
+   ...
+   fun:HandleSehExceptionsInMethodIfSupported<testing::Test, void>
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:re_node_set_alloc
+   fun:calc_eclosure_iter
+   fun:calc_eclosure_iter
+   fun:calc_eclosure_iter
+   fun:calc_eclosure_iter
+   fun:calc_eclosure_iter
+   fun:calc_eclosure
+   fun:analyze
+   fun:re_compile_internal
+   fun:regcomp
+   fun:_ZN7testing8internal2RE4InitEPKc
+   fun:RE
+   ...
+   fun:HandleSehExceptionsInMethodIfSupported<testing::Test, void>
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:re_node_set_init_1
+   fun:re_node_set_insert
+   fun:duplicate_node_closure
+   fun:calc_eclosure_iter
+   fun:calc_eclosure
+   fun:analyze
+   fun:re_compile_internal
+   fun:regcomp
+   fun:_ZN7testing8internal2RE4InitEPKc
+   fun:RE
+   ...
+   fun:HandleSehExceptionsInMethodIfSupported<testing::Test, void>
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+   fun:_ZN7testing8TestCase3RunEv
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:_Znwm
+   ...
+   fun:HandleSehExceptionsInMethodIfSupported<testing::internal::TestFactoryBase, testing::Test*>
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS0_15TestFactoryBaseEPNS_4TestEEET0_PT_MS6_FS5_vEPKc
+   fun:_ZN7testing8TestInfo3RunEv
+   fun:_ZN7testing8TestCase3RunEv
+   fun:_ZN7testing8internal12UnitTestImpl11RunAllTestsEv
+   fun:HandleSehExceptionsInMethodIfSupported<testing::internal::UnitTestImpl, bool>
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8UnitTest3RunEv
+   fun:RUN_ALL_TESTS
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:create_cd_newstate
+   fun:re_acquire_state_context
+   fun:create_initial_state
+   fun:re_compile_internal
+   fun:regcomp
+   fun:_ZN7testing8internal2RE4InitEPKc
+   fun:RE
+   ...
+   fun:HandleSehExceptionsInMethodIfSupported<testing::Test, void>
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+   fun:_ZN7testing8TestCase3RunEv
+   fun:_ZN7testing8internal12UnitTestImpl11RunAllTestsEv
+   fun:HandleSehExceptionsInMethodIfSupported<testing::internal::UnitTestImpl, bool>
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:realloc
+   fun:register_state
+   fun:create_cd_newstate
+   fun:re_acquire_state_context
+   fun:create_initial_state
+   fun:re_compile_internal
+   fun:regcomp
+   fun:_ZN7testing8internal2RE4InitEPKc
+   fun:RE
+   ...
+   fun:HandleSehExceptionsInMethodIfSupported<testing::Test, void>
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+   fun:_ZN7testing8TestCase3RunEv
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:re_node_set_init_1
+   fun:link_nfa_nodes
+   fun:preorder
+   fun:analyze
+   fun:re_compile_internal
+   fun:regcomp
+   fun:_ZN7testing8internal2RE4InitEPKc
+   fun:RE
+   ...
+   fun:HandleSehExceptionsInMethodIfSupported<testing::Test, void>
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+   fun:_ZN7testing8TestCase3RunEv
+   fun:_ZN7testing8internal12UnitTestImpl11RunAllTestsEv
+   fun:HandleSehExceptionsInMethodIfSupported<testing::internal::UnitTestImpl, bool>
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8UnitTest3RunEv
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:_Znwm
+   fun:_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEE9_M_assignERKS4_
+   fun:assign
+   fun:operator=
+   fun:GTestFlagSaver
+   fun:_ZN7testing4TestC1Ev
+   ...
+   fun:HandleSehExceptionsInMethodIfSupported<testing::internal::TestFactoryBase, testing::Test*>
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS0_15TestFactoryBaseEPNS_4TestEEET0_PT_MS6_FS5_vEPKc
+   fun:_ZN7testing8TestInfo3RunEv
+   fun:_ZN7testing8TestCase3RunEv
+   fun:_ZN7testing8internal12UnitTestImpl11RunAllTestsEv
+   fun:HandleSehExceptionsInMethodIfSupported<testing::internal::UnitTestImpl, bool>
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8UnitTest3RunEv
+   fun:RUN_ALL_TESTS
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:_Znwm
+   fun:_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEE9_M_mutateEmmPKcm
+   fun:_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEE10_M_replaceEmmPKcm
+   fun:assign
+   fun:operator=
+   fun:CapturedStream
+   fun:_ZN7testing8internalL13CaptureStreamEiPKcPPNS0_14CapturedStreamE
+   fun:_ZN7testing8internal15NoExecDeathTest10AssumeRoleEv
+   ...
+   fun:HandleSehExceptionsInMethodIfSupported<testing::Test, void>
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+   fun:_ZN7testing8TestCase3RunEv
+   fun:_ZN7testing8internal12UnitTestImpl11RunAllTestsEv
+   fun:HandleSehExceptionsInMethodIfSupported<testing::internal::UnitTestImpl, bool>
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:realloc
+   fun:re_node_set_merge
+   fun:calc_eclosure_iter
+   fun:calc_eclosure_iter
+   fun:calc_eclosure_iter
+   fun:calc_eclosure_iter
+   fun:calc_eclosure
+   fun:analyze
+   fun:re_compile_internal
+   fun:regcomp
+   fun:_ZN7testing8internal2RE4InitEPKc
+   fun:RE
+   ...
+   fun:HandleSehExceptionsInMethodIfSupported<testing::Test, void>
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:_Znwm
+   fun:_ZN7testing8internalL13CaptureStreamEiPKcPPNS0_14CapturedStreamE
+   fun:_ZN7testing8internal15NoExecDeathTest10AssumeRoleEv
+   ...
+   fun:HandleSehExceptionsInMethodIfSupported<testing::Test, void>
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+   fun:_ZN7testing8TestCase3RunEv
+   fun:_ZN7testing8internal12UnitTestImpl11RunAllTestsEv
+   fun:HandleSehExceptionsInMethodIfSupported<testing::internal::UnitTestImpl, bool>
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8UnitTest3RunEv
+   fun:RUN_ALL_TESTS
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:realloc
+   fun:re_node_set_insert_last
+   fun:calc_inveclosure
+   fun:analyze
+   fun:re_compile_internal
+   fun:regcomp
+   fun:_ZN7testing8internal2RE4InitEPKc
+   fun:RE
+   ...
+   fun:HandleSehExceptionsInMethodIfSupported<testing::Test, void>
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+   fun:_ZN7testing8TestCase3RunEv
+   fun:_ZN7testing8internal12UnitTestImpl11RunAllTestsEv
+   fun:HandleSehExceptionsInMethodIfSupported<testing::internal::UnitTestImpl, bool>
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:init_dfa
+   fun:re_compile_internal
+   fun:regcomp
+   fun:_ZN7testing8internal2RE4InitEPKc
+   fun:RE
+   ...
+   fun:HandleSehExceptionsInMethodIfSupported<testing::Test, void>
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+   fun:_ZN7testing8TestCase3RunEv
+   fun:_ZN7testing8internal12UnitTestImpl11RunAllTestsEv
+   fun:HandleSehExceptionsInMethodIfSupported<testing::internal::UnitTestImpl, bool>
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8UnitTest3RunEv
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:_Znwm
+   fun:_ZN7testing8internal23DefaultDeathTestFactory6CreateEPKcPKNS0_2REES3_iPPNS0_9DeathTestE
+   ...
+   fun:HandleSehExceptionsInMethodIfSupported<testing::Test, void>
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+   fun:_ZN7testing8TestCase3RunEv
+   fun:_ZN7testing8internal12UnitTestImpl11RunAllTestsEv
+   fun:HandleSehExceptionsInMethodIfSupported<testing::internal::UnitTestImpl, bool>
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8UnitTest3RunEv
+   fun:RUN_ALL_TESTS
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:realloc
+   fun:re_dfa_add_node
+   fun:duplicate_node
+   fun:duplicate_node_closure
+   fun:calc_eclosure_iter
+   fun:calc_eclosure
+   fun:analyze
+   fun:re_compile_internal
+   fun:regcomp
+   fun:_ZN7testing8internal2RE4InitEPKc
+   fun:RE
+   ...
+   fun:HandleSehExceptionsInMethodIfSupported<testing::Test, void>
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+   fun:_ZN7testing8TestCase3RunEv
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:calloc
+   fun:init_dfa
+   fun:re_compile_internal
+   fun:regcomp
+   fun:_ZN7testing8internal2RE4InitEPKc
+   fun:RE
+   ...
+   fun:HandleSehExceptionsInMethodIfSupported<testing::Test, void>
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+   fun:_ZN7testing8TestCase3RunEv
+   fun:_ZN7testing8internal12UnitTestImpl11RunAllTestsEv
+   fun:HandleSehExceptionsInMethodIfSupported<testing::internal::UnitTestImpl, bool>
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8UnitTest3RunEv
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:realloc
+   fun:re_node_set_merge
+   fun:calc_eclosure_iter
+   fun:calc_eclosure_iter
+   fun:calc_eclosure_iter
+   fun:calc_eclosure
+   fun:analyze
+   fun:re_compile_internal
+   fun:regcomp
+   fun:_ZN7testing8internal2RE4InitEPKc
+   fun:RE
+   ...
+   fun:HandleSehExceptionsInMethodIfSupported<testing::Test, void>
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+   fun:_ZN7testing8TestCase3RunEv
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:calloc
+   fun:create_cd_newstate
+   fun:re_acquire_state_context
+   fun:create_initial_state
+   fun:re_compile_internal
+   fun:regcomp
+   fun:_ZN7testing8internal2RE4InitEPKc
+   fun:RE
+   ...
+   fun:HandleSehExceptionsInMethodIfSupported<testing::Test, void>
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+   fun:_ZN7testing8TestCase3RunEv
+   fun:_ZN7testing8internal12UnitTestImpl11RunAllTestsEv
+   fun:HandleSehExceptionsInMethodIfSupported<testing::internal::UnitTestImpl, bool>
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:realloc
+   fun:re_node_set_merge
+   fun:calc_eclosure_iter
+   fun:calc_eclosure_iter
+   fun:calc_eclosure
+   fun:analyze
+   fun:re_compile_internal
+   fun:regcomp
+   fun:_ZN7testing8internal2RE4InitEPKc
+   fun:RE
+   ...
+   fun:HandleSehExceptionsInMethodIfSupported<testing::Test, void>
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+   fun:_ZN7testing8TestCase3RunEv
+   fun:_ZN7testing8internal12UnitTestImpl11RunAllTestsEv
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:realloc
+   fun:re_node_set_merge
+   fun:calc_eclosure_iter
+   fun:calc_eclosure
+   fun:analyze
+   fun:re_compile_internal
+   fun:regcomp
+   fun:_ZN7testing8internal2RE4InitEPKc
+   fun:RE
+   ...
+   fun:HandleSehExceptionsInMethodIfSupported<testing::Test, void>
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+   fun:_ZN7testing8TestCase3RunEv
+   fun:_ZN7testing8internal12UnitTestImpl11RunAllTestsEv
+   fun:HandleSehExceptionsInMethodIfSupported<testing::internal::UnitTestImpl, bool>
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:realloc
+   fun:re_node_set_insert_last
+   fun:calc_inveclosure
+   fun:analyze
+   fun:re_compile_internal
+   fun:regcomp
+   fun:_ZN7testing8internal2RE4InitEPKc
+   fun:RE
+   ...
+   fun:HandleSehExceptionsInMethodIfSupported<testing::Test, void>
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+   fun:_ZN7testing8TestCase3RunEv
+   fun:_ZN7testing8internal12UnitTestImpl11RunAllTestsEv
+   fun:HandleSehExceptionsInMethodIfSupported<testing::internal::UnitTestImpl, bool>
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8UnitTest3RunEv
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:realloc
+   fun:re_compile_internal
+   fun:regcomp
+   fun:_ZN7testing8internal2RE4InitEPKc
+   fun:RE
+   ...
+   fun:HandleSehExceptionsInMethodIfSupported<testing::Test, void>
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+   fun:_ZN7testing8TestCase3RunEv
+   fun:_ZN7testing8internal12UnitTestImpl11RunAllTestsEv
+   fun:HandleSehExceptionsInMethodIfSupported<testing::internal::UnitTestImpl, bool>
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:regcomp
+   fun:_ZN7testing8internal2RE4InitEPKc
+   fun:RE
+   ...
+   fun:HandleSehExceptionsInMethodIfSupported<testing::Test, void>
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+   fun:_ZN7testing8TestCase3RunEv
+   fun:_ZN7testing8internal12UnitTestImpl11RunAllTestsEv
+   fun:HandleSehExceptionsInMethodIfSupported<testing::internal::UnitTestImpl, bool>
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8UnitTest3RunEv
+   fun:RUN_ALL_TESTS
+   fun:main
+}

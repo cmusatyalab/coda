@@ -2,9 +2,10 @@
 
 check_PROGRAMS = unit
 
+LIB_TESTS = lib/rvm/rvm_ut.cc
 UTIL_TESTS = util/u_bitmap.cc
 
-unit_SOURCES = main.cc $(UTIL_TESTS)
+unit_SOURCES = main.cc $(UTIL_TESTS) $(LIB_TESTS)
 
 GTEST_DIR = $(top_builddir)/external-src/googletest/googletest
 
@@ -16,11 +17,12 @@ unit_LDADD = $(top_builddir)/coda-src/util/libutil.la \
 AM_CPPFLAGS = $(RVM_RPC2_CFLAGS) -DVENUS -DTIMING -DVENUSDEBUG \
               -I$(top_srcdir)/lib-src/base \
               -I$(top_srcdir)/coda-src \
-              -I$(top_builddir)/coda-src
+              -I$(top_builddir)/coda-src \
+              -I$(top_builddir)/test-src/unit/include
 
 LIBTOOL = libtool --mode=execute
-GTEST_FLAGS = --gtest_output="xml:$(top_builddir)/unittest.xml" --gtest_shuffle
-VALGRIND_FLAGS = --leak-check=full --show-leak-kinds=all
+GTEST_FLAGS = --gtest_output="xml:$(top_builddir)/unittest.xml" --gtest_shuffle --gtest_death_test_style=threadsafe
+VALGRIND_FLAGS = --leak-check=full --show-leak-kinds=all --trace-children=yes --child-silent-after-fork=yes --suppressions=death-tests.supp
 UNIT_BIN = $(top_builddir)/test-src/unit/unit
 
 
