@@ -102,16 +102,11 @@ RVM_TEST_F(RvmDeathTest, create_log_dev)
     ret_val = rvm_create_log(init_options, &offset, 0644);
     EXPECT_EQ(ret_val, RVM_SUCCESS);
 
-    printf("%s %d\n", __FILE__, __LINE__);
-
     ret_val = rvm_set_options(init_options);
     EXPECT_EQ(ret_val, RVM_SUCCESS);
 
-    printf("%s %d\n", __FILE__, __LINE__);
-
     rvm_free_options(init_options);
 
-    printf("%s %d\n", __FILE__, __LINE__);
     EXPECT_EQ(rvm_terminate(), RVM_SUCCESS);
 }
 
