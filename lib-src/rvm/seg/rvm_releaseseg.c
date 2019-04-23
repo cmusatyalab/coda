@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 5
+                              Release 7
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -41,8 +41,10 @@ rvm_return_t rvm_release_segment(
         if (err != RVM_SUCCESS)
             printf("release_segment unmap failed %s\n", rvm_return(err));
 
+        rvm_unregister_page(region->vmaddr, region->length);
         deallocate_vm(region->vmaddr, region->length);
     }
+
     rvm_free_region(region);
     free(*regions);
     return err;

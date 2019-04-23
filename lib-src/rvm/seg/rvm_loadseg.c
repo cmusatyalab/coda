@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 5
+                              Release 7
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -53,7 +53,7 @@ rvm_return_t rvm_load_segment(char *DevName, rvm_offset_t DevLength,
     /* HACK */ rds_rvmsize = 0; /* HACK */
 
     /* Read in the header region of the segment. */
-    hdr_region->data_dev   = DevName;
+    hdr_region->data_dev   = strdup(DevName);
     hdr_region->dev_length = DevLength; /* Struct assignment */
     RVM_ZERO_OFFSET(hdr_region->offset);
     hdr_region->length = RVM_SEGMENT_HDR_SIZE;
@@ -87,7 +87,7 @@ rvm_return_t rvm_load_segment(char *DevName, rvm_offset_t DevLength,
         return RVM_EVM_OVERLAP;
 
     /* Map in the regions */
-    region->data_dev   = DevName;
+    region->data_dev   = strdup(DevName);
     region->dev_length = DevLength; /* Struct assignment */
 
     /* Setup return region definition array */
@@ -134,5 +134,6 @@ rvm_return_t rvm_load_segment(char *DevName, rvm_offset_t DevLength,
     err = deallocate_vm(hdr_region->vmaddr, hdr_region->length);
 
     rvm_free_region(hdr_region);
+    rvm_free_region(region);
     return err;
 }

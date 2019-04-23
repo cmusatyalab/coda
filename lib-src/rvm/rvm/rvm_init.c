@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 5
+                              Release 7
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -136,7 +136,11 @@ rvm_return_t rvm_terminate(void)
                  inited     = rvm_false;
                  terminated = rvm_true;
 
-             err_exit:;
+                 cthread_exit();
+
+             err_exit:
+                 /* Clean free lists */
+                 clear_free_lists();
              }); /* end init_lock crit sec */
 
     return retval;

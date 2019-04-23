@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
 			Coda File System
-			    Release 6
+			    Release 7
 
-	Copyright (c) 1987-2018 Carnegie Mellon University
+	Copyright (c) 1987-2019 Carnegie Mellon University
 		Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -230,6 +230,10 @@ int LWP_TerminateProcessSupport(void) /* terminate all LWP support */
     for_all_elts(cur, blocked, { Free_PCB(cur); });
     free((char *)lwp_init);
     lwp_init = NULL;
+
+    free(reaper.uc_stack.ss_sp);
+    free(tracer.uc_stack.ss_sp);
+
     return LWP_SUCCESS;
 }
 
