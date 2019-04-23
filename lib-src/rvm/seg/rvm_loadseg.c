@@ -35,9 +35,9 @@ long rds_rvmsize;
 char *rds_startaddr;
 
 /*
- * rvm_load_segment 
+ * rvm_load_segment
  * - locates the place in the process's address where to load segments
- * - then maps in the recoverable regions at that point. 
+ * - then maps in the recoverable regions at that point.
  * - it returns an array of the region descriptors.
  */
 rvm_return_t rvm_load_segment(char *DevName, rvm_offset_t DevLength,

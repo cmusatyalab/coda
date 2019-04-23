@@ -801,7 +801,7 @@ establish_range(rvm_region_t *rvm_region /* user request region descriptor */,
     return retval;
 }
 
-/* check for mapping dependencies on previously 
+/* check for mapping dependencies on previously
    mapped regions, or conflict with presently mapped region
    -- caller provides list locking
    returns true if dependency detected

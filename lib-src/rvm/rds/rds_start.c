@@ -51,7 +51,7 @@ rvm_bool_t rds_testsw = rvm_false; /* switch to allow special test modes */
  * Global lock for the heap. See comment in rds_private.h.
  */
 
-/* 
+/*
  * Cannot statically initialize locks in pthreads.  So, we also need a flag
  * for double initialization.
  */
