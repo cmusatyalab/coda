@@ -46,11 +46,13 @@ static inline PROCESS cthread_fork(void (*fname)(void *), void *arg)
         LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, NULL); \
         IOMGR_Initialize();                               \
     } while (0)
-#define cthread_exit(retval)           \
+#define cthread_uninit(retval)         \
     do {                               \
         IOMGR_Finalize();              \
         LWP_TerminateProcessSupport(); \
     } while (0)
+#define cthread_exit(retval) (0)
+
 #define cthread_yield()        \
     do {                       \
         IOMGR_Poll();          \

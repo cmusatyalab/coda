@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 5
+                              Release 7
 
-          Copyright (c) 1987-2010 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -76,6 +76,10 @@ extern int rvm_join_res;
 #define cthread_init() \
     do {               \
     } while (0)
+
+#define cthread_uninit(retval) \
+    {                          \
+    } /* nop */
 
 #define cthread_exit(retval) (pthread_exit((void *)(retval)))
 

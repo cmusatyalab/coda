@@ -2784,6 +2784,7 @@ void log_daemon(void *arg)
             daemon->thread = NULL;
 #endif
             cthread_exit(RVM_SUCCESS); /* normal exit */
+            return;
 
         default:
             assert(rvm_false); /* error */

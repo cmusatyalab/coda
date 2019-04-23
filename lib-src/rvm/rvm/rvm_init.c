@@ -136,7 +136,7 @@ rvm_return_t rvm_terminate(void)
                  inited     = rvm_false;
                  terminated = rvm_true;
 
-                 cthread_exit();
+                 cthread_uninit();
 
              err_exit:
                  /* Clean free lists */
