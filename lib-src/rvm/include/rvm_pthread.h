@@ -35,7 +35,7 @@ extern int rvm_join_res;
 #define RVM_MUTEX pthread_mutex_t
 #define RVM_CONDITION pthread_cond_t
 
-/* 
+/*
  * Unfortunately, pthread mutexes cannot be initialized statically: they
  * must be initialized by a call to pthread_mutex_init.  Oh well.
  * This means that some locking situations won't work properly.
@@ -44,12 +44,12 @@ extern int rvm_join_res;
  */
 
 /* That's nonsense, the following is from pthread_mutex(3):
- * 
+ *
  *    Variables of type pthread_mutex_t can also be initialized statically
  *    using the constants PTHREAD_MUTEX_INITIALIZER (for fast mutexes),
  *    PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP (for recursive mutexes), and
  *    PTHREADS_ERRORCHECK_MUTEX_INITIALIZER_MP (for error checking mutexes).
- *    
+ *
  * --JH
  */
 
@@ -63,7 +63,7 @@ extern int rvm_join_res;
     (pthread_create(&rvm_pthreadid, NULL, (void *(*)(void *))(fname), (arg)), \
      &rvm_pthreadid)
 
-/* 
+/*
  * Returns either NULL or the address of the pthread_status block.
  * Unfortunately, it appears that chtread_join didn't have a way of
  * saying "badthread, can't do it," so I'm not sure of the best way to

@@ -97,7 +97,7 @@ typedef struct condition {
 typedef int cthread;
 
 /* What should be type of cthread_t ?
- * In rvm_lwp.h, it is type (PROCESS)   (eq. to (struct lwp_pcb *)),  
+ * In rvm_lwp.h, it is type (PROCESS)   (eq. to (struct lwp_pcb *)),
  * In rvm_pthread.h, it is type (pthread_t *),
  * Here, I leave it untouch as type (int) but we may need to modify this
  * in future.  -- 3/18/97 Clement

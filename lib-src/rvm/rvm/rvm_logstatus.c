@@ -95,10 +95,10 @@ void init_log_list()
 }
 
 /* enter new log in log list and establish default log if necessary */
-/* 
+/*
   if we are looking for the RVM_LOG_TAIL_BUG, there can only ever
   be one log.  I *believe* that it is possibly to only have one log
-  open at a time.  But, I'm not going to coda_assert that in the general 
+  open at a time.  But, I'm not going to coda_assert that in the general
   case -bnoble 7/30/94
 */
 
@@ -115,9 +115,9 @@ void enter_log(log_t *log /* log descriptor */)
     });
 
 #ifdef RVM_LOG_TAIL_BUG
-    /* 
+    /*
       this is massively unportable: for the moment, coda_assert we are
-      on pmax_mach. 
+      on pmax_mach.
     */
 #ifndef __MACH__
     assert(0);
@@ -1019,8 +1019,8 @@ rvm_create_log(rvm_options_t *rvm_options /* ptr to options record */,
     if ((log = make_log(rvm_options->log_dev, &retval)) == NULL)
         return retval;
 #ifdef RVM_LOG_TAIL_BUG
-    /* 
-      We only need to track the log descriptor while we are 
+    /*
+      We only need to track the log descriptor while we are
       building it.  It isn't going to be inserted into the list
       until later, so ClobberAddress won't be set properly.
     */

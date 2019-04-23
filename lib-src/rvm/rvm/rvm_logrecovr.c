@@ -882,8 +882,8 @@ scan_wrap_reverse(log_t *log /* log descriptor */,
     /* scan for wrap marker */
     /* for the purpose of locating the wrap marker, we use the (duplicated)
        struct_id2 which, while positions at the end of the record, guarantees
-       that we must interpret it first, otherwise, we may possibly 
-       mis-interpret other field of the record to have a struct_id of 
+       that we must interpret it first, otherwise, we may possibly
+       mis-interpret other field of the record to have a struct_id of
        log_wrap_id ! */
     for (tmp_ptr = (log_buf->ptr - sizeof(log_wrap_t)); tmp_ptr >= 0;
          tmp_ptr -= sizeof(rvm_length_t)) {
@@ -1273,7 +1273,7 @@ rvm_return_t locate_tail(log_t *log /* log descriptor */)
                     goto err_exit;
         } while (log_buf->ptr != -1); /* tail found, no transactions */
 
-    /* re-init scanner sequence checking state since small logs can cause 
+    /* re-init scanner sequence checking state since small logs can cause
        a few records to be rescanned and re-init read buffer at tail
     */
     tail = status->log_tail;
