@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 5
+                              Release 7
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -44,7 +44,7 @@ heap_header_t *RecoverableHeapStartAddress;
  * avoid casts in comparisons.
  */
 free_block_t *RecoverableHeapHighAddress;
-rvm_region_def_t *RegionDefs;
+rvm_region_def_t *RegionDefs = NULL;
 unsigned long NRegionDefs;
 rvm_bool_t rds_testsw = rvm_false; /* switch to allow special test modes */
 /*
@@ -94,6 +94,18 @@ int rds_load_heap(char *DevName, rvm_offset_t DevLength,
     return 0;
 }
 
+int rds_unload_heap(int *err)
+{
+    rvm_flush();
+    rvm_truncate();
+
+    rvm_release_segment(NRegionDefs, &RegionDefs);
+
+    rds_stop_heap(err);
+
+    return 0;
+}
+
 /*
  * Provide an interface which doesn't know about the segment layout.
  */
@@ -124,6 +136,14 @@ int rds_start_heap(char *startAddr, int *err)
                          ((RDS_HEAPLENGTH - heap_hdr_len) / RDS_CHUNK_SIZE) *
                              RDS_CHUNK_SIZE +
                          heap_hdr_len);
+
+    *err = SUCCESS;
+    return -1;
+}
+
+int rds_stop_heap(int *err)
+{
+    RecoverableHeapStartAddress = 0;
 
     *err = SUCCESS;
     return -1;

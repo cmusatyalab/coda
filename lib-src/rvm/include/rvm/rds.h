@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 5
+                              Release 7
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -51,7 +51,11 @@ int rds_init_heap(char *base, rvm_length_t length, unsigned long chunkSize,
 int rds_load_heap(char *DevName, rvm_offset_t DevLength, char **staticAddr,
                   int *err);
 
+int rds_unload_heap(int *err);
+
 int rds_start_heap(char *startAddr, int *err);
+
+int rds_stop_heap(int *err);
 
 int rds_prealloc(unsigned long size, unsigned long nblocks, rvm_tid_t *tid,
                  int *err);
