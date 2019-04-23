@@ -663,13 +663,14 @@ static int InitializeProcessSupport(int priority, PROCESS *pid)
     if (lwp_init)
         return LWP_SUCCESS;
 
+    if (priority >= MAX_PRIORITIES)
+        return LWP_EBADPRI;
+
     init_contexts();
 
     timerclear(&last_context_switch);
     cont_sw_id = NULL;
 
-    if (priority >= MAX_PRIORITIES)
-        return LWP_EBADPRI;
     for (i = 0; i < MAX_PRIORITIES; i++) {
         runnable[i].head  = NULL;
         runnable[i].count = 0;

@@ -2,7 +2,7 @@
 
 check_PROGRAMS = unit
 
-LIB_TESTS = lib/rvm/rvm_ut.cc
+LIB_TESTS = lib/rvm/rvm_ut.cc lib/lwp/lwp_ut.cc
 UTIL_TESTS = util/u_bitmap.cc
 
 unit_SOURCES = main.cc $(UTIL_TESTS) $(LIB_TESTS)
