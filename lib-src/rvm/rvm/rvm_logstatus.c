@@ -185,6 +185,8 @@ static rvm_return_t join_daemon(log_t *log)
         /* terminate the daemon */
         CRITICAL(daemon->lock, /* begin daemon lock crit sec */
                  {
+                     condition_wait(&daemon->wake_up, &daemon->lock);
+
                      if (daemon->state != error) {
                          daemon->state = terminate;
                          condition_signal(&daemon->code);
