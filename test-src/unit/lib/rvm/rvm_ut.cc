@@ -70,7 +70,49 @@ RVM_TEST_F(RvmDeathTest, init_minimal)
     EXPECT_EQ(rvm_initialize(RVM_VERSION, init_options), RVM_SUCCESS);
 
     rvm_free_options(init_options);
+    EXPECT_EQ(rvm_terminate(), RVM_SUCCESS);
+}
+
+RVM_TEST_F(RvmDeathTest, init_default_alloc)
+{
+    rvm_region_t *rvm_reg = NULL;
+    ASSERT_EQ(rvm_initialize(RVM_VERSION, NULL), RVM_SUCCESS);
+    rvm_reg = rvm_malloc_region();
+    ASSERT_TRUE(rvm_reg);
+    rvm_free_region(rvm_reg);
+
     ASSERT_EQ(rvm_terminate(), RVM_SUCCESS);
+}
+
+RVM_TEST_F(RvmDeathTest, create_log_dev)
+{
+    rvm_return_t ret_val        = 0;
+    rvm_options_t *init_options = rvm_malloc_options();
+    rvm_offset_t offset;
+
+    ASSERT_EQ(rvm_initialize(RVM_VERSION, NULL), RVM_SUCCESS);
+
+    remove("rvm_test.log");
+    init_options->log_dev  = "rvm_test.log";
+    init_options->truncate = 30;
+    init_options->flags |= RVM_ALL_OPTIMIZATIONS;
+    // init_options->flags |= RVM_MAP_PRIVATE;
+    offset = RVM_MK_OFFSET(0, 4096);
+
+    ret_val = rvm_create_log(init_options, &offset, 0644);
+    EXPECT_EQ(ret_val, RVM_SUCCESS);
+
+    printf("%s %d\n", __FILE__, __LINE__);
+
+    ret_val = rvm_set_options(init_options);
+    EXPECT_EQ(ret_val, RVM_SUCCESS);
+
+    printf("%s %d\n", __FILE__, __LINE__);
+
+    rvm_free_options(init_options);
+
+    printf("%s %d\n", __FILE__, __LINE__);
+    EXPECT_EQ(rvm_terminate(), RVM_SUCCESS);
 }
 
 } // namespace
