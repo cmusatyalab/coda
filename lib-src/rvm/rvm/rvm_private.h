@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 5
+                              Release 7
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -41,6 +41,11 @@ Coda are listed in the file CREDITS.
 #include <assert.h>
 #include <rvm/rvm.h>
 #include <rvm/rvm_statistics.h>
+
+#ifndef HAVE_GETPAGESIZE /* defined(__linux__) && defined(sparc) */
+#include <asm/page.h>
+#define getpagesize() PAGE_SIZE
+#endif
 
 #include <fcntl.h>
 #ifndef O_BINARY
@@ -1236,5 +1241,21 @@ rvm_offset_t rvm_rnd_offset_to_sector(rvm_offset_t *x);
 
 /* debug support [rvm_debug] */
 void rvm_debug(rvm_length_t val);
+
+static inline void getpagesizeandmask(rvm_length_t *page_size,
+                                      rvm_length_t *page_mask)
+{
+#ifdef HAVE_MMAP
+    /* get page size */
+    *page_size = (rvm_length_t)getpagesize();
+#else
+    {
+        SYSTEM_INFO nt_info;
+        GetSystemInfo(&nt_info);
+        *page_size = (rvm_length_t)nt_info.dwAllocationGranularity;
+    }
+#endif
+    *page_mask = ~(*page_size - 1);
+}
 
 #endif /* _RVM_PRIVATE_ */

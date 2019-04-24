@@ -36,10 +36,6 @@ Coda are listed in the file CREDITS.
 #include <fcntl.h>
 #include <sys/file.h>
 #include <sys/mman.h>
-#ifndef HAVE_GETPAGESIZE /* defined(__linux__) && defined(sparc) */
-#include <asm/page.h>
-#define getpagesize() PAGE_SIZE
-#endif
 #if defined(hpux) || defined(__hpux)
 #include <hp_bsd.h>
 #endif /* hpux */
@@ -89,17 +85,8 @@ void init_map_roots()
     init_tree_root(&region_tree);
     mutex_init(&seg_code_lock);
 
-#ifdef HAVE_MMAP
-    /* get page size */
-    page_size = (rvm_length_t)getpagesize();
-#else
-    {
-        SYSTEM_INFO nt_info;
-        GetSystemInfo(&nt_info);
-        page_size = (rvm_length_t)nt_info.dwAllocationGranularity;
-    }
-#endif
-    page_mask = ~(page_size - 1);
+    getpagesizeandmask(&page_size, &page_mask);
+
     mutex_init(&page_list_lock);
     init_list_header(&page_list, free_page_id);
 }

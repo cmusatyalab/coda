@@ -37,6 +37,8 @@ rvm_return_t rvm_unmap(rvm_region_t *rvm_region /* region to unmap */)
     rvm_return_t retval;
     region_t *region; /* internal region descriptor */
     seg_t *seg; /* internal segment descriptor */
+    rvm_length_t page_size; /* system page size */
+    rvm_length_t page_mask; /* mask for rounding down to page size */
 
     if (bad_init())
         return RVM_EINIT;
@@ -70,6 +72,9 @@ rvm_return_t rvm_unmap(rvm_region_t *rvm_region /* region to unmap */)
     rw_unlock(&region_tree_lock, w); /* end region_tree_lock crit sect */
     rw_unlock(&region->region_lock, w); /* end region_lock crit sect */
 
+    /* Needed for unregistering the mapped pages */
+    getpagesizeandmask(&page_size, &page_mask);
+
     /* unlink from seg's map_list */
     seg = region->seg;
     CRITICAL(seg->seg_lock, /* begin seg_lock critical section */
@@ -83,6 +88,8 @@ rvm_return_t rvm_unmap(rvm_region_t *rvm_region /* region to unmap */)
                      (void)move_list_entry(NULL, &seg->unmap_list,
                                            (list_entry_t *)region);
                  } else {
+                     rvm_unregister_page(region->vmaddr,
+                                         ROUND_TO_PAGE_SIZE(region->length));
                      free_mem_region(region->mem_region);
                      free_region(region);
                  }
