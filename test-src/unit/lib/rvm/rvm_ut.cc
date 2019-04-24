@@ -9,6 +9,7 @@ extern "C" {
 #endif
 
 #include <rvm/rvm.h>
+#include <lwp/lwp.h>
 #include <unistd.h> // fork()
 #include <sys/wait.h> // WIFEXITED, etc.
 

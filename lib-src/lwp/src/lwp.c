@@ -96,11 +96,13 @@ struct QUEUE {
     int count;
 } runnable[MAX_PRIORITIES], blocked;
 
-static struct lwp_ucontext reaper; /* reaper context, see lwp_Reaper() */
-static struct lwp_ucontext tracer; /* context for the stack tracing thread */
-
 #define REAPER_STACKSIZE 32768
 #define TRACER_STACKSIZE 32768
+
+static struct lwp_ucontext reaper; /* reaper context, see lwp_Reaper() */
+static char reaper_stack[REAPER_STACKSIZE];
+static struct lwp_ucontext tracer; /* context for the stack tracing thread */
+static char tracer_stack[TRACER_STACKSIZE];
 
 /* Invariant for runnable queues: The head of each queue points to the
 currently running process if it is in that queue, or it points to the
@@ -230,9 +232,6 @@ int LWP_TerminateProcessSupport(void) /* terminate all LWP support */
     for_all_elts(cur, blocked, { Free_PCB(cur); });
     free((char *)lwp_init);
     lwp_init = NULL;
-
-    free(reaper.uc_stack.ss_sp);
-    free(tracer.uc_stack.ss_sp);
 
     return LWP_SUCCESS;
 }
@@ -612,12 +611,12 @@ static void lwp_Tracer(void *arg)
 static void init_contexts(void)
 {
     lwp_getcontext(&reaper);
-    reaper.uc_stack.ss_sp   = malloc(REAPER_STACKSIZE);
+    reaper.uc_stack.ss_sp   = reaper_stack;
     reaper.uc_stack.ss_size = REAPER_STACKSIZE;
     lwp_makecontext(&reaper, lwp_Reaper, NULL);
 
     lwp_getcontext(&tracer);
-    tracer.uc_stack.ss_sp   = malloc(TRACER_STACKSIZE);
+    tracer.uc_stack.ss_sp   = tracer_stack;
     tracer.uc_stack.ss_size = TRACER_STACKSIZE;
     lwp_makecontext(&tracer, lwp_Tracer, NULL);
 }

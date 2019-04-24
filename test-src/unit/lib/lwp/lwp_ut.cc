@@ -9,8 +9,8 @@ extern "C" {
 #endif
 
 #include <lwp/lwp.h>
-#include <unistd.h> // fork()
-#include <sys/wait.h> // WIFEXITED, etc.
+#include <unistd.h>
+#include <sys/wait.h>
 
 #ifdef __cplusplus
 }
@@ -129,6 +129,52 @@ RVM_TEST_F(LwpDeathTest, dispatch_process)
     EXPECT_EQ(ret_val, LWP_SUCCESS);
 
     ret_val = LWP_DestroyProcess(sec_proc);
+    EXPECT_EQ(ret_val, LWP_SUCCESS);
+
+    ret_val = LWP_TerminateProcessSupport();
+    EXPECT_EQ(ret_val, LWP_SUCCESS);
+}
+
+static void dummy_main_non_exiting(void *p)
+{
+    while (1) {
+        ;
+    }
+}
+
+RVM_TEST_F(LwpDeathTest, non_exiting_proccess)
+{
+    PROCESS main;
+    PROCESS sec_proc;
+    int ret_val = 0;
+
+    ret_val = LWP_Init(LWP_VERSION, LWP_MAX_PRIORITY, &main);
+    EXPECT_EQ(ret_val, LWP_SUCCESS);
+
+    ret_val = LWP_CreateProcess(dummy_main_non_exiting, 1, 1, NULL, "dummy",
+                                &sec_proc);
+    EXPECT_EQ(ret_val, LWP_SUCCESS);
+
+    ret_val = LWP_TerminateProcessSupport();
+    EXPECT_EQ(ret_val, LWP_SUCCESS);
+}
+
+static void dummy_main_exiting(void *p)
+{
+    return;
+}
+
+RVM_TEST_F(LwpDeathTest, exiting_proccess)
+{
+    PROCESS main;
+    PROCESS sec_proc;
+    int ret_val = 0;
+
+    ret_val = LWP_Init(LWP_VERSION, LWP_MAX_PRIORITY, &main);
+    EXPECT_EQ(ret_val, LWP_SUCCESS);
+
+    ret_val =
+        LWP_CreateProcess(dummy_main_exiting, 1, 1, NULL, "dummy", &sec_proc);
     EXPECT_EQ(ret_val, LWP_SUCCESS);
 
     ret_val = LWP_TerminateProcessSupport();
