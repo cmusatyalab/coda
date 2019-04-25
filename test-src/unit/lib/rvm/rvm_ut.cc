@@ -223,6 +223,38 @@ RVM_TEST(RvmDeathTest, write_to_mapped_region)
     create_and_populate_rvm();
 }
 
+RVM_TEST(RvmDeathTest, DISABLED_cancel_transaction)
+{
+    rvm_return_t ret_val = 0;
+    rvm_tid_t *tid       = NULL;
+    char *rvm_data       = NULL;
+
+    create_region();
+    populate_segment(populated_value, 128);
+
+    rvm_data = rvm_reg->vmaddr;
+
+    tid = rvm_malloc_tid();
+    EXPECT_TRUE(tid);
+
+    ret_val = rvm_begin_transaction(tid, rvm_mode_t::restore);
+    EXPECT_EQ(ret_val, RVM_SUCCESS);
+
+    EXPECT_EQ(rvm_data[0], populated_value);
+    rvm_data[0] = 0x5;
+    ret_val     = rvm_set_range(tid, rvm_reg->vmaddr, 128);
+    EXPECT_EQ(ret_val, RVM_SUCCESS);
+
+    EXPECT_EQ(rvm_data[0], 0x5);
+    ret_val = rvm_abort_transaction(tid);
+    EXPECT_EQ(ret_val, RVM_SUCCESS);
+    EXPECT_EQ(rvm_reg->vmaddr[0], populated_value);
+
+    rvm_free_tid(tid);
+
+    destroy_region();
+}
+
 static void recover_and_check_rvm()
 {
     char *rvm_data;
