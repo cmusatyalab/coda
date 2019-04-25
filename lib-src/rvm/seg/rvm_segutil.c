@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 5
+                              Release 7
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -151,10 +151,6 @@ rvm_return_t deallocate_vm(char *addr, unsigned long length)
 #else
     UnmapViewOfFile(addr);
 #endif
-
-    if (rvm_unregister_page(addr, length) == rvm_false) {
-        ret = RVM_EINTERNAL;
-    }
 
     return ret;
 }
