@@ -185,8 +185,6 @@ static rvm_return_t join_daemon(log_t *log)
         /* terminate the daemon */
         CRITICAL(daemon->lock, /* begin daemon lock crit sec */
                  {
-                     condition_wait(&daemon->wake_up, &daemon->lock);
-
                      if (daemon->state != error) {
                          daemon->state = terminate;
                          condition_signal(&daemon->code);
@@ -195,9 +193,19 @@ static rvm_return_t join_daemon(log_t *log)
 
         /* wait for daemon thread to terminate */
         retval = (rvm_return_t)cthread_join(daemon->thread);
+
 #ifdef RVM_USELWP
-        while (daemon->thread)
+        while (daemon->thread) {
+            /* Keep signaling in case the signal was lost */
+            CRITICAL(daemon->lock, {
+                if (daemon->state != error) {
+                    daemon->state = terminate;
+                    condition_signal(&daemon->code);
+                }
+            }); /* end daemon lock crit sec */
+
             cthread_yield();
+        }
 #endif
         daemon->thread = (cthread_t)NULL;
     }
