@@ -21,6 +21,7 @@ extern "C" {
 
 namespace
 {
+static const int populated_value   = 0xa;
 static const int region_size       = 4096;
 static const char *data_dev        = "rvm_test.data";
 static const char *log_dev         = "rvm_test.log";
@@ -213,7 +214,7 @@ RVM_TEST(RvmDeathTest, map_region)
 static void create_and_populate_rvm()
 {
     create_region();
-    populate_segment(0xa, 128);
+    populate_segment(populated_value, 128);
     destroy_region();
 }
 
@@ -230,7 +231,7 @@ static void recover_and_check_rvm()
 
     rvm_data = rvm_reg->vmaddr;
     for (int i = 0; i < 128; i++) {
-        EXPECT_EQ(rvm_data[i], 0xa);
+        EXPECT_EQ(rvm_data[i], populated_value);
     }
 
     destroy_region();
