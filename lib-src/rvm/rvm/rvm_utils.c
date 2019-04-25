@@ -250,7 +250,7 @@ static void free_list_entry(list_entry_t *cell)
 }
 
 /* clear free lists */
-void clear_free_list(struct_id_t id /* type of free list */)
+static void clear_free_list(struct_id_t id /* type of free list */)
 {
     list_entry_t *cell;
 

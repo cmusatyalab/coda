@@ -1069,7 +1069,7 @@ void init_list_header(list_entry_t *whichlist, struct_id_t struct_id);
 list_entry_t *move_list_entry(list_entry_t *fromptr, list_entry_t *toptr,
                               list_entry_t *cell);
 list_entry_t *alloc_list_entry(struct_id_t id);
-void clear_free_list(struct_id_t id);
+void clear_free_lists(void);
 
 /* internal type allocators/deallocators [rvm_utils.c] */
 region_t *make_region(void);
