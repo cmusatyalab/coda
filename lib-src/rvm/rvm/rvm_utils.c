@@ -493,10 +493,30 @@ void free_seg(seg_t *seg)
     mutex_clear(&seg->seg_lock);
     mutex_clear(&seg->dev_lock);
     if (seg->dev.name != NULL) {
+        // printf("Freeing from seg %p\n",seg);
+        // printf("Freeing %p\n", seg->dev.name);
         free(seg->dev.name); /* free device name char array */
         seg->dev.name = NULL;
     }
     free_list_entry(&seg->links);
+}
+
+void free_seg_dict(seg_dict_t *seg_dict)
+{
+    seg_t *seg = NULL;
+    // clang-format off
+    /* search segment list for full_name */
+    UNLINK_NODES_OF(seg_dict->mod_tree, seg_t, seg)
+        free_seg(seg);
+    // clang-format on
+
+    if (seg_dict->seg)
+        free_seg(seg_dict->seg);
+
+    if (seg_dict->dev.name)
+        free(seg_dict->dev.name);
+
+    clear_tree_root(&seg_dict->mod_tree);
 }
 
 /* segment dictionary finalizer */
@@ -506,8 +526,9 @@ void free_seg_dict_vec(log_t *log)
 
     if (log->seg_dict_vec != NULL) {
         /* free tree roots */
-        for (i = 0; i < log->seg_dict_len; i++)
-            clear_tree_root(&log->seg_dict_vec[i].mod_tree);
+        for (i = 0; i < log->seg_dict_len; i++) {
+            free_seg_dict(&log->seg_dict_vec[i]);
+        }
 
         free((char *)log->seg_dict_vec);
         log->seg_dict_vec = NULL;
