@@ -83,7 +83,7 @@ static rvm_bool_t in_wrt_buf(char *addr, rvm_length_t len)
     return rvm_false;
 }
 
-/* seek to position if required: raw devices must 
+/* seek to position if required: raw devices must
    seek to a sector index. Sanity checks size of
    device against offset. */
 static long chk_seek(device_t *dev, rvm_offset_t *offset)
@@ -142,11 +142,11 @@ long set_dev_char(device_t *dev, rvm_offset_t *dev_length)
         break;
         /* Linux doesn't have BSD style raw character devices.
 	   However, one can write to the block device directly.
-	   This takes care, since we must sync it as if we 
-	   do file IO.  We use dev->type == S_IFBLK 
+	   This takes care, since we must sync it as if we
+	   do file IO.  We use dev->type == S_IFBLK
 	   to achieve this. The result could be good, since the
-	   buffer cache will flush the blocks to the disk more 
-	   efficiently than individual synchronous writes would 
+	   buffer cache will flush the blocks to the disk more
+	   efficiently than individual synchronous writes would
 	   take place.
                      */
     case S_IFBLK:

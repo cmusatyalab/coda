@@ -356,8 +356,8 @@ typedef struct {
 
 /* Synchronization and Threads support */
 
-/* 
- * We can have one of three thread models: 
+/*
+ * We can have one of three thread models:
  *          cthreads:         Mach threads (kernel or coroutine)
  *          lwp:              Coda's lightweight process package
  *          pthreads:         POSIX threads
@@ -368,7 +368,7 @@ typedef struct {
  *
  * It is assumed in the rds package that cthreads and pthreads use
  * preemptive scheduling, and they are synchronized appropriately.
- * 
+ *
  * You must define only one of the above targets, and it must be defined
  * consistently across the following packages: RVM, RDS, and URT
  */
@@ -489,7 +489,7 @@ typedef struct /* tree root structure */
 } tree_root_t;
 
 #define TRAVERSE_LEN_INCR 15 /* allocate 15 slots at a time */
-/* tree structure iterators 
+/* tree structure iterators
      -- nodes are delinked as traversed
      -- do not use tree_insert or tree_delete or otherwise change
         tree shape in body of iterators if iteration is to be continued
@@ -557,7 +557,7 @@ typedef long cmp_func_t(tree_node_t *node1, tree_node_t *node2);
 /* log records written by commit, and associated with new value records */
 
 /* generic record header; not actually allocated, but any record header
-   can be cast to this to get its type & length for detailed analysis 
+   can be cast to this to get its type & length for detailed analysis
 */
 typedef struct {
     struct_id_t struct_id; /* type of entry */
