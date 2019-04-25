@@ -42,8 +42,6 @@ void populate_segment(int value, int length)
     rvm_return_t ret_val = 0;
     rvm_tid_t *tid       = NULL;
 
-    memset(rvm_reg->vmaddr, value, length);
-
     tid = rvm_malloc_tid();
     EXPECT_TRUE(tid);
 
@@ -52,6 +50,8 @@ void populate_segment(int value, int length)
 
     ret_val = rvm_set_range(tid, rvm_reg->vmaddr, length);
     EXPECT_EQ(ret_val, RVM_SUCCESS);
+
+    memset(rvm_reg->vmaddr, value, length);
 
     ret_val = rvm_end_transaction(tid, rvm_mode_t::flush);
     EXPECT_EQ(ret_val, RVM_SUCCESS);
@@ -223,7 +223,7 @@ RVM_TEST(RvmDeathTest, write_to_mapped_region)
     create_and_populate_rvm();
 }
 
-RVM_TEST(RvmDeathTest, DISABLED_cancel_transaction)
+RVM_TEST(RvmDeathTest, abort_transaction)
 {
     rvm_return_t ret_val = 0;
     rvm_tid_t *tid       = NULL;
@@ -241,11 +241,12 @@ RVM_TEST(RvmDeathTest, DISABLED_cancel_transaction)
     EXPECT_EQ(ret_val, RVM_SUCCESS);
 
     EXPECT_EQ(rvm_data[0], populated_value);
-    rvm_data[0] = 0x5;
-    ret_val     = rvm_set_range(tid, rvm_reg->vmaddr, 128);
+    ret_val = rvm_set_range(tid, rvm_reg->vmaddr, 1);
     EXPECT_EQ(ret_val, RVM_SUCCESS);
 
+    rvm_data[0] = 0x5;
     EXPECT_EQ(rvm_data[0], 0x5);
+
     ret_val = rvm_abort_transaction(tid);
     EXPECT_EQ(ret_val, RVM_SUCCESS);
     EXPECT_EQ(rvm_reg->vmaddr[0], populated_value);
