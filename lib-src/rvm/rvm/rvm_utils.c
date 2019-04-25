@@ -493,8 +493,6 @@ void free_seg(seg_t *seg)
     mutex_clear(&seg->seg_lock);
     mutex_clear(&seg->dev_lock);
     if (seg->dev.name != NULL) {
-        // printf("Freeing from seg %p\n",seg);
-        // printf("Freeing %p\n", seg->dev.name);
         free(seg->dev.name); /* free device name char array */
         seg->dev.name = NULL;
     }
