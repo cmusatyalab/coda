@@ -196,14 +196,6 @@ static rvm_return_t join_daemon(log_t *log)
 
 #ifdef RVM_USELWP
         while (daemon->thread) {
-            /* Keep signaling in case the signal was lost */
-            CRITICAL(daemon->lock, {
-                if (daemon->state != error) {
-                    daemon->state = terminate;
-                    condition_signal(&daemon->code);
-                }
-            }); /* end daemon lock crit sec */
-
             cthread_yield();
         }
 #endif

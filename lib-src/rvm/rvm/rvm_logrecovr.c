@@ -2759,10 +2759,12 @@ void log_daemon(void *arg)
         /* wait to be awakened by request */
         CRITICAL(daemon->lock, /* begin daemon lock crit sec */
                  {
-                     daemon->state = rvm_idle;
-                     condition_broadcast(&daemon->wake_up);
-                     while (daemon->state == rvm_idle) {
-                         condition_wait(&daemon->code, &daemon->lock);
+                     if (daemon->state != terminate) {
+                         daemon->state = rvm_idle;
+                         condition_broadcast(&daemon->wake_up);
+                         while (daemon->state == rvm_idle) {
+                             condition_wait(&daemon->code, &daemon->lock);
+                         }
                      }
                      state = daemon->state; /* end daemon lock crit sec */
                  });
