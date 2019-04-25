@@ -15,6 +15,7 @@ unit_LDADD = $(top_builddir)/coda-src/util/libutil.la \
              $(RVM_RPC2_LIBS)
 
 AM_CPPFLAGS = $(RVM_RPC2_CFLAGS) -DVENUS -DTIMING -DVENUSDEBUG \
+              -I$(GTEST_DIR)/include \
               -I$(top_srcdir)/lib-src/base \
               -I$(top_srcdir)/coda-src \
               -I$(top_builddir)/coda-src \

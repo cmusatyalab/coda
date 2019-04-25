@@ -21,26 +21,115 @@ extern "C" {
 
 namespace
 {
-class RvmTest : public ::testing::Test {
-};
+static const int region_size       = 4096;
+static const char *data_dev        = "rvm_test.data";
+static const char *log_dev         = "rvm_test.log";
+static rvm_region_t *rvm_reg       = NULL;
+static rvm_options_t *init_options = NULL;
 
-class RvmDeathTest : public ::testing::Test {
-public:
-    char *tmp_data;
-    int tmp_data_size;
-    static char *data_dev;
+static void create_data_device(const char *name, int size)
+{
+    int trunc_ret = 0;
+    FILE *fptr    = fopen(name, "w+");
+    trunc_ret     = ftruncate(fileno(fptr), size);
+    EXPECT_EQ(trunc_ret, 0);
+    fclose(fptr);
+}
 
-    static void create_data_device(const char *name, int size)
-    {
-        FILE *fptr = fopen(name, "w+");
-        ftruncate(fileno(fptr), size);
-        fclose(fptr);
-    }
+void populate_segment(int value, int length)
+{
+    rvm_return_t ret_val = 0;
+    rvm_tid_t *tid       = NULL;
 
-    void map_and_populate_region();
-};
+    memset(rvm_reg->vmaddr, value, length);
 
-char *RvmDeathTest::data_dev = "rvm_test.data";
+    tid = rvm_malloc_tid();
+    EXPECT_TRUE(tid);
+
+    ret_val = rvm_begin_transaction(tid, rvm_mode_t::restore);
+    EXPECT_EQ(ret_val, RVM_SUCCESS);
+
+    ret_val = rvm_set_range(tid, rvm_reg->vmaddr, length);
+    EXPECT_EQ(ret_val, RVM_SUCCESS);
+
+    ret_val = rvm_end_transaction(tid, rvm_mode_t::flush);
+    EXPECT_EQ(ret_val, RVM_SUCCESS);
+
+    rvm_free_tid(tid);
+}
+
+void init_options_init()
+{
+    init_options           = rvm_malloc_options();
+    init_options->log_dev  = (char *)log_dev;
+    init_options->truncate = 30;
+    init_options->flags |= RVM_ALL_OPTIMIZATIONS;
+    init_options->flags |= RVM_MAP_PRIVATE;
+}
+
+/* create a log file and run with it */
+void create_region()
+{
+    rvm_return_t ret_val = 0;
+    rvm_offset_t offset;
+
+    remove(log_dev);
+    remove(data_dev);
+
+    init_options_init();
+
+    ASSERT_EQ(rvm_initialize(RVM_VERSION, NULL), RVM_SUCCESS);
+
+    offset  = RVM_MK_OFFSET(0, 4096);
+    ret_val = rvm_create_log(init_options, &offset, 0644);
+    EXPECT_EQ(ret_val, RVM_SUCCESS);
+
+    ret_val = rvm_set_options(init_options);
+    EXPECT_EQ(ret_val, RVM_SUCCESS);
+
+    rvm_reg = rvm_malloc_region();
+    EXPECT_TRUE(rvm_reg);
+
+    rvm_reg->length   = region_size;
+    rvm_reg->data_dev = (char *)data_dev;
+    create_data_device(rvm_reg->data_dev, rvm_reg->length);
+
+    ret_val = rvm_map(rvm_reg, NULL);
+    EXPECT_EQ(ret_val, RVM_SUCCESS);
+}
+
+/* create a log file and run with it */
+void load_region()
+{
+    rvm_return_t ret_val = 0;
+
+    init_options_init();
+
+    ASSERT_EQ(rvm_initialize(RVM_VERSION, init_options), RVM_SUCCESS);
+
+    rvm_reg = rvm_malloc_region();
+    EXPECT_TRUE(rvm_reg);
+
+    rvm_reg->length   = region_size;
+    rvm_reg->data_dev = (char *)data_dev;
+
+    ret_val = rvm_map(rvm_reg, NULL);
+    EXPECT_EQ(ret_val, RVM_SUCCESS);
+}
+
+/* create a log file and run with it */
+void destroy_region()
+{
+    rvm_return_t ret_val = 0;
+
+    ret_val = rvm_unmap(rvm_reg);
+    EXPECT_EQ(ret_val, RVM_SUCCESS);
+
+    rvm_free_region(rvm_reg);
+    rvm_free_options(init_options);
+
+    EXPECT_EQ(rvm_terminate(), RVM_SUCCESS);
+}
 
 TEST(RvmTest, alloc_options)
 {
@@ -59,13 +148,13 @@ TEST(RvmTest, terminate)
     ASSERT_EQ(rvm_terminate(), RVM_EINIT);
 }
 
-RVM_TEST_F(RvmDeathTest, init_default)
+RVM_TEST(RvmDeathTest, init_default)
 {
     EXPECT_EQ(rvm_initialize(RVM_VERSION, NULL), RVM_SUCCESS);
     EXPECT_EQ(rvm_terminate(), RVM_SUCCESS);
 }
 
-RVM_TEST_F(RvmDeathTest, init_minimal)
+RVM_TEST(RvmDeathTest, init_minimal)
 {
     const int TRUNCATE_VAL      = 30; /* truncate threshold */
     rvm_options_t *init_options = rvm_malloc_options();
@@ -81,7 +170,7 @@ RVM_TEST_F(RvmDeathTest, init_minimal)
     EXPECT_EQ(rvm_terminate(), RVM_SUCCESS);
 }
 
-RVM_TEST_F(RvmDeathTest, init_default_alloc)
+RVM_TEST(RvmDeathTest, init_default_alloc)
 {
     rvm_region_t *rvm_reg = NULL;
     ASSERT_EQ(rvm_initialize(RVM_VERSION, NULL), RVM_SUCCESS);
@@ -92,21 +181,18 @@ RVM_TEST_F(RvmDeathTest, init_default_alloc)
     ASSERT_EQ(rvm_terminate(), RVM_SUCCESS);
 }
 
-RVM_TEST_F(RvmDeathTest, create_log_dev)
+RVM_TEST(RvmDeathTest, create_log_dev)
 {
-    rvm_return_t ret_val        = 0;
-    rvm_options_t *init_options = rvm_malloc_options();
+    rvm_return_t ret_val = 0;
     rvm_offset_t offset;
 
     ASSERT_EQ(rvm_initialize(RVM_VERSION, NULL), RVM_SUCCESS);
 
-    remove("rvm_test.log");
-    init_options->log_dev  = "rvm_test.log";
-    init_options->truncate = 30;
-    init_options->flags |= RVM_ALL_OPTIMIZATIONS;
-    // init_options->flags |= RVM_MAP_PRIVATE;
-    offset = RVM_MK_OFFSET(0, 4096);
+    remove(log_dev);
 
+    init_options_init();
+
+    offset  = RVM_MK_OFFSET(0, 4096);
     ret_val = rvm_create_log(init_options, &offset, 0644);
     EXPECT_EQ(ret_val, RVM_SUCCESS);
 
@@ -118,48 +204,42 @@ RVM_TEST_F(RvmDeathTest, create_log_dev)
     EXPECT_EQ(rvm_terminate(), RVM_SUCCESS);
 }
 
-RVM_TEST_F(RvmDeathTest, map_region)
+RVM_TEST(RvmDeathTest, map_region)
 {
-    rvm_region_t *rvm_reg       = NULL;
-    rvm_return_t ret_val        = 0;
-    rvm_options_t *init_options = rvm_malloc_options();
-    rvm_offset_t offset;
-
-    ASSERT_EQ(rvm_initialize(RVM_VERSION, NULL), RVM_SUCCESS);
-
-    remove("rvm_test.log");
-    remove(RvmDeathTest::data_dev);
-
-    init_options->log_dev  = "rvm_test.log";
-    init_options->truncate = 30;
-    init_options->flags |= RVM_ALL_OPTIMIZATIONS;
-    init_options->flags |= RVM_MAP_PRIVATE;
-    offset = RVM_MK_OFFSET(0, 4096);
-
-    ret_val = rvm_create_log(init_options, &offset, 0644);
-    EXPECT_EQ(ret_val, RVM_SUCCESS);
-
-    ret_val = rvm_set_options(init_options);
-    EXPECT_EQ(ret_val, RVM_SUCCESS);
-
-    rvm_reg = rvm_malloc_region();
-    EXPECT_TRUE(rvm_reg);
-
-    rvm_reg->length   = 4096;
-    rvm_reg->data_dev = RvmDeathTest::data_dev;
-    RvmDeathTest::create_data_device(rvm_reg->data_dev, rvm_reg->length);
-
-    ret_val = rvm_map(rvm_reg, NULL);
-    EXPECT_EQ(ret_val, RVM_SUCCESS);
-
-    ret_val = rvm_unmap(rvm_reg);
-    EXPECT_EQ(ret_val, RVM_SUCCESS);
-
-    rvm_free_region(rvm_reg);
-    rvm_free_options(init_options);
-    EXPECT_EQ(rvm_terminate(), RVM_SUCCESS);
+    create_region();
+    destroy_region();
 }
 
-/* create a log file and run with it */
+static void create_and_populate_rvm()
+{
+    create_region();
+    populate_segment(0xa, 128);
+    destroy_region();
+}
+
+RVM_TEST(RvmDeathTest, write_to_mapped_region)
+{
+    create_and_populate_rvm();
+}
+
+static void recover_and_check_rvm()
+{
+    char *rvm_data;
+
+    load_region();
+
+    rvm_data = rvm_reg->vmaddr;
+    for (int i = 0; i < 128; i++) {
+        EXPECT_EQ(rvm_data[i], 0xa);
+    }
+
+    destroy_region();
+}
+
+TEST(RvmDeathTest, map_and_recover_region)
+{
+    RVM_LAUNCH_IN_INSTANCE(create_and_populate_rvm);
+    RVM_LAUNCH_IN_INSTANCE(recover_and_check_rvm);
+}
 
 } // namespace
