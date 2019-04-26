@@ -6,7 +6,7 @@ noinst_HEADERS = coda_largefile.h coda_string.h coda_wait.h coda_offsetof.h
 
 libbase_la_SOURCES = base64.h base64.c coda_assert.h coda_assert.c \
     codaconf.c codaconf.h stringkeyvaluestore.cc stringkeyvaluestore.h \
-    coda_flock.c codaconfparser.cc codaconfparser.h codaconffileparser.cc \
+    coda_flock.c codaconfparser.h codaconffileparser.cc \
     codaconffileparser.h codaconfcmdlineparser.cc codaconfcmdlineparser.h \
     coda_flock.h coda_hash.h md5c.c sha1.c coda_getaddrinfo.h \
     coda_getaddrinfo.c coda_getservbyname.h coda_getservbyname.c \

@@ -10,7 +10,7 @@ libutil_la_SOURCES = arrlist.h arrlist.cc bitmap.h bitmap.cc bitvect.h \
     rec_ohash.h rec_ohash.cc rec_olist.h rec_olist.cc rec_smolist.h \
     rec_smolist.cc recvarl.h recvarl.cc rvmlib.h rvmlib.c rvmtesting.h \
     rvmtesting.cc util.h util.c vice_file.h vice_file.c vmindex.h vmindex.cc \
-    bitmap7.h bitmap7.cc venusconf.cc venusconf.h
+    bitmap7.h bitmap7.cc
 
 AM_CPPFLAGS = $(RVM_RPC2_CFLAGS) -I$(top_srcdir)/lib-src/base
 

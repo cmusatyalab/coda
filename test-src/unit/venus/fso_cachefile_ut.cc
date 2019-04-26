@@ -18,7 +18,7 @@ listed in the file CREDITS.
 
 /* from coda-src */
 #include <venus/fso_cachefile.h>
-#include <util/venusconf.h>
+#include <venus/venusconf.h>
 
 using namespace std;
 

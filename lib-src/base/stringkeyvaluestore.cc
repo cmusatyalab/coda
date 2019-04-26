@@ -205,7 +205,7 @@ void StringKeyValueStore::purge(void)
 
 void StringKeyValueStore::print()
 {
-    print(fileno(stdout));
+    print(STDOUT_FILENO);
 }
 
 void StringKeyValueStore::print(int fd)
