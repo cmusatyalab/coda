@@ -23,7 +23,8 @@ endif
 		$< > $@
 
 CLEANFILES = coda-client.service coda-server.service coda-auth2.service \
-	     coda-update-master.service coda-update-slave.service reformat.sh
+	     coda-update-master.service coda-update-slave.service
+DISTCLEANFILES = reformat.sh
 EXTRA_DIST = coda-server-nt-50x.wse coda-server-nt-52x.wse PACKAGING.README \
 	     pkg-readme windows-socket-extension.wse \
 	     coda-client.init coda-server.init coda-update.init \
