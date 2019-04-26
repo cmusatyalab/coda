@@ -394,12 +394,12 @@ int main(int argc, char **argv)
         printf("codatunneld started\n");
     }
 
-    /* 
+    /*
      * VprocInit MUST precede LogInit. Log messages are stamped
      * with the id of the vproc that writes them, so log messages
      * can't be properly stamped until the vproc class is initialized.
-     * The logging routines return without doing anything if LogInit 
-     * hasn't yet been called. 
+     * The logging routines return without doing anything if LogInit
+     * hasn't yet been called.
      */
     VprocInit(); /* init LWP/IOMGR support */
     LogInit(); /* move old Venus log and create a new one */

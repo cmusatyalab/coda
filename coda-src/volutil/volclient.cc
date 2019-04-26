@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -1110,7 +1110,7 @@ static void dumpvrdb(void)
  * Print in ascii the contents of a volume to stdout (or the file as specified
  * by -o). The volume can be specified by its name, or by the volume-ID,
  * specified in Hex. If -all is specified, contents of both large and small
- * vnodes in that volume are also printed. 
+ * vnodes in that volume are also printed.
  */
 static void info(void)
 {
@@ -1213,7 +1213,7 @@ static void showvnode(void)
 }
 /*
   BEGIN_HTML
-  <a name="setvv"><strong>Client end of the <tt>setvv</tt> request</strong></a> 
+  <a name="setvv"><strong>Client end of the <tt>setvv</tt> request</strong></a>
   END_HTML
 */
 static void setvv(void)
@@ -1267,7 +1267,7 @@ static void setvv(void)
 
 /*
   BEGIN_HTML
-  <a name="purge"><strong>Client end of the <tt>purge</tt> request</strong></a> 
+  <a name="purge"><strong>Client end of the <tt>purge</tt> request</strong></a>
   END_HTML
 */
 static void purge(void)
@@ -1411,7 +1411,7 @@ static void updatedb(void)
 
 /*
   BEGIN_HTML
-  <a name="shutdown"><strong>Client end of the <tt>shutdown</tt> request</strong></a> 
+  <a name="shutdown"><strong>Client end of the <tt>shutdown</tt> request</strong></a>
   END_HTML
 */
 static void shutdown(void)
@@ -1432,7 +1432,7 @@ static void shutdown(void)
 
 /*
   BEGIN_HTML
-  <a name="swaplog"><strong>Client end of the <tt>swaplog</tt> request</strong></a> 
+  <a name="swaplog"><strong>Client end of the <tt>swaplog</tt> request</strong></a>
   END_HTML
 */
 static void swaplog(void)
@@ -1453,7 +1453,7 @@ static void swaplog(void)
 
 /*
   BEGIN_HTML
-  <a name="swapmalloc"><strong>Client end of the <tt>togglemalloc</tt> request</strong></a> 
+  <a name="swapmalloc"><strong>Client end of the <tt>togglemalloc</tt> request</strong></a>
   END_HTML
 */
 static void swapmalloc(void)
@@ -1715,7 +1715,7 @@ static void showcallbacks(void)
 
 /*
   BEGIN_HTML
-  <a name="truncatervmlog"><strong>Client end of the <tt>truncatervmlog</tt> request</strong></a> 
+  <a name="truncatervmlog"><strong>Client end of the <tt>truncatervmlog</tt> request</strong></a>
   END_HTML
 */
 static void truncatervmlog(void)
@@ -1733,7 +1733,7 @@ static void truncatervmlog(void)
 
 /*
   BEGIN_HTML
-  <a name="getmaxvol"><strong>Client end of the getmaxvol request</strong></a> 
+  <a name="getmaxvol"><strong>Client end of the getmaxvol request</strong></a>
   END_HTML
 */
 static void getmaxvol(void)
@@ -1756,7 +1756,7 @@ static void getmaxvol(void)
 
 /*
   BEGIN_HTML
-  <a name="setmaxvol"><strong>Client end of the setmaxvol request</strong></a> 
+  <a name="setmaxvol"><strong>Client end of the setmaxvol request</strong></a>
   END_HTML
 */
 static void setmaxvol(void)
@@ -1827,7 +1827,7 @@ static int sscani(char *s, RPC2_Unsigned *px)
 
 /*
   BEGIN_HTML
-  <a name="peekint"><strong>Client end of the peek request</strong></a> 
+  <a name="peekint"><strong>Client end of the peek request</strong></a>
   END_HTML
 */
 static void peekint(void)
@@ -1846,7 +1846,7 @@ static void peekint(void)
 
 /*
   BEGIN_HTML
-  <a name="pokeint"><strong>Client end of the poke request</strong></a> 
+  <a name="pokeint"><strong>Client end of the poke request</strong></a>
   END_HTML
 */
 static void pokeint(void)
@@ -1865,7 +1865,7 @@ static void pokeint(void)
 
 /*
   BEGIN_HTML
-  <a name="peekmem"><strong>Client end of the <tt>peeks()</tt> request</strong></a> 
+  <a name="peekmem"><strong>Client end of the <tt>peeks()</tt> request</strong></a>
   END_HTML
 */
 static void peekmem(void)
@@ -1893,7 +1893,7 @@ static void peekmem(void)
 
 /*
   BEGIN_HTML
-  <a name="pokemem"><strong>Client end of the <tt>pokes()</tt> request</strong></a> 
+  <a name="pokemem"><strong>Client end of the <tt>pokes()</tt> request</strong></a>
   END_HTML
 */
 static void pokemem(void)
@@ -1916,7 +1916,7 @@ static void pokemem(void)
 
 /*
   BEGIN_HTML
-  <a name="peekxmem"><strong>Client end of the <tt>peekx()</tt> request</strong></a> 
+  <a name="peekxmem"><strong>Client end of the <tt>peekx()</tt> request</strong></a>
   END_HTML
 */
 static void peekxmem(void)
@@ -1946,7 +1946,7 @@ static void peekxmem(void)
 
 /*
   BEGIN_HTML
-  <a name="pokexmem"><strong>Client end of the <tt>pokex()</tt> request</strong></a> 
+  <a name="pokexmem"><strong>Client end of the <tt>pokex()</tt> request</strong></a>
   END_HTML
 */
 static void pokexmem(void)

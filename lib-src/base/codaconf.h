@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -22,6 +22,12 @@ Coda are listed in the file CREDITS.
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+typedef struct _item {
+    struct _item *next;
+    char *name;
+    char *value;
+} * item_t;
 
 /* Useful globals,
  * codaconf_quiet, make conf_init shut up about not finding the configuration
