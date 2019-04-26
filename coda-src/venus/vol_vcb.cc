@@ -383,6 +383,8 @@ RepExit:
     if (m)
         m->Put();
 
+    if (c)
+        PutConn(&c);
     return (code);
 }
 
@@ -409,7 +411,7 @@ void reintvol::UpdateVCBInfo(RPC2_Integer VS, CallBackStatus CBStatus)
         Recov_BeginTrans();
         RVMLIB_REC_OBJECT(VVV);
         memset(&VVV.Versions.Site0, 0, sizeof(ViceVersionVector));
-        VVV.Versions.Site0 = VS;
+        (&(VVV.Versions.Site0))[0] = VS;
         Recov_EndTrans(MAXFP);
     } else {
         ClearCallBack();

@@ -186,7 +186,6 @@ int fsobj::FetchFileRPC(connent *con, ViceStatus *status, uint64_t offset,
     char prel_str[256];
     const char *partial_sel   = nonpartial;
     int inconok               = !vol->IsReplicated();
-    repvol *vp                = (repvol *)vol;
     uint viceop               = 0;
     bool fetchpartial_support = con->srv->fetchpartial_support;
 
@@ -213,7 +212,7 @@ int fsobj::FetchFileRPC(connent *con, ViceStatus *status, uint64_t offset,
              GetComp(), offset, len, code));
 
     /* Examine the return code to decide what to do next. */
-    code = vp->Collate(con, code);
+    code = vol->Collate(con, code);
     UNI_RECORD_STATS(viceop);
 
     return code;
@@ -549,7 +548,8 @@ int fsobj::Fetch(uid_t uid, uint64_t pos, int64_t count)
         Recov_EndTrans(CMFP);
 
     NonRepExit:
-        PutConn(&c);
+        if (c)
+            PutConn(&c);
     }
 
     if (fd != -1)
@@ -1087,6 +1087,10 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
     RepExit:
         if (m)
             m->Put();
+
+        if (c)
+            PutConn(&c);
+
         switch (code) {
         case 0:
             if (asy_resolve)
@@ -1651,6 +1655,8 @@ int fsobj::SetACL(RPC2_CountedBS *acl, uid_t uid)
     RepExit:
         if (m)
             m->Put();
+        if (c)
+            PutConn(&c);
         switch (code) {
         case 0:
             if (asy_resolve)
