@@ -9,6 +9,7 @@ autom4te.cache
 aclocal.m4
 coda_config.h
 compile
+config.cache
 config.h
 config.h.in
 config.guess
@@ -45,5 +46,7 @@ ylwrap
 *~
 unittest.xml
 test-src/unit/unit
+test-src/unit/rvm_test.data
+test-src/unit/rvm_test.log
 tools/pre-commit
 tools/reformat.sh
