@@ -619,7 +619,7 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
                                     "fetch::GetAttr %s\n";
     const char *post_str = getacl ? "fetch::GetACL done\n" :
                                     "fetch::GetAttr done\n";
-    int i = 0;
+    unsigned int i = 0;
     struct MRPC_common_params rpc_common;
     struct in_addr ph_addr;
 
@@ -975,7 +975,7 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
 
                 /* Collect the OUT VVs in an array so that they can be checked. */
                 ViceVersionVector *vv_ptrs[VSG_MEMBERS];
-                for (int j = 0; j < rpc_common.nservers; j++)
+                for (unsigned int j = 0; j < rpc_common.nservers; j++)
                     vv_ptrs[j] = &((statusvar_ptrs[j])->VV);
 
                 /* Check the version vectors for consistency. */

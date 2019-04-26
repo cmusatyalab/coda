@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 5
+                              Release 7
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -103,7 +103,7 @@ typedef struct arg_info {
     type name##_bufs[howmany];                                                \
     char name##_data[maxbslen * howmany];                                     \
     {                                                                         \
-        for (int name##_local_i = 0; name##_local_i < howmany;                \
+        for (unsigned int name##_local_i = 0; name##_local_i < howmany;       \
              name##_local_i++) {                                              \
             name##_ptrs[name##_local_i] = &name##_bufs[name##_local_i];       \
             if (mode == OUT_MODE)                                             \
