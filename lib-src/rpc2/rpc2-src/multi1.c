@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 5
+                              Release 7
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -117,7 +117,7 @@ long RPC2_MultiRPC(
     TR_MULTI();
 
     /* perform sanity checks */
-    assert(Request->Prefix.MagicNumber == OBJ_PACKETBUFFER);
+    assert(Request->LE.MagicNumber == OBJ_PACKETBUFFER);
 
     /* get context pointer */
     mcon = InitMultiCon(HowMany);

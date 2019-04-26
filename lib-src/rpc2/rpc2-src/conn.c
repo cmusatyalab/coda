@@ -267,7 +267,7 @@ void rpc2_FreeConn(RPC2_Handle whichConn)
     }
 
     /* Scan the hold queue and purge the request for this connection */
-    pb = rpc2_PBHoldList;
+    pb = rpc2_LE2PB(rpc2_PBHoldList);
     for (i = 0; i < rpc2_PBHoldCount; i++) {
         if (pb->Header.RemoteHandle == ce->UniqueCID) {
             say(9, RPC2_DebugLevel, "Purging request from hold queue\n");

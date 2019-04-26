@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 5
+                              Release 7
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -394,27 +394,23 @@ typedef struct /* data structure filled by RPC2_GetPeerInfo() call */
     RPC2_EncryptionKey SessionKey;
 } RPC2_PeerInfo;
 
+/* Basic data structure for RPC2's internal doubly linked lists */
+struct RPC2_LinkEntry {
+    struct RPC2_LinkEntry *Next, *Prev;
+    long MagicNumber; /* unique for object type; NEVER altered */
+    struct RPC2_LinkEntry **Queue; /* pointer to the queue this packet is on */
+};
+
 /* The RPC2_PacketBuffer definition below deals with both requests and
 replies.  The runtime system provides efficient buffer storage
 management routines --- use them!  */
-
 typedef struct RPC2_PacketBuffer {
-    struct RPC2_PacketBufferPrefix {
-        /*
- * NOTE: The Prefix is only used by the runtime system on the local machine.
- *	 Neither clients nor servers ever deal with it.
- *	 It is never transmitted.
+    /*
+ * NOTE: LE and Prefix are only used by the runtime system on the local machine.
+ *	 Neither clients nor servers ever deal with it. It is never transmitted.
  */
-        /* these four elements are used by the list routines */
-        struct RPC2_PacketBuffer *Next; /* next element in buffer chain */
-        struct RPC2_PacketBuffer *Prev; /* prev element in buffer chain */
-        enum
-        {
-            OBJ_PACKETBUFFER = 3247517
-        } MagicNumber; /* to detect corruption */
-        struct RPC2_PacketBuffer **Qname; /* pointer to the queue this packet
-                                             is on */
-
+    struct RPC2_LinkEntry LE;
+    struct RPC2_PacketBufferPrefix {
         long BufferSize; /* Set at malloc() time; size of
                             entire packet, including prefix. */
         long LengthOfPacket; /* size of data actually

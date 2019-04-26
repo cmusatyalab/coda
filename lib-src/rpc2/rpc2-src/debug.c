@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 5
+                              Release 7
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -140,10 +140,10 @@ void rpc2_PrintSLEntry(struct SL_Entry *slPtr, FILE *tFile)
         tFile = rpc2_logfile;
 
     fprintf(tFile,
-            "MyAddr: 0x%lx\n\tNextEntry = 0x%lx PrevEntry = 0x%lx  "
+            "MyAddr: %p\n\tNextEntry = %p PrevEntry = %p  "
             "MagicNumber = %s  ReturnCode = %s\n\tTElem==>  ",
-            (long)slPtr, (long)slPtr->NextEntry, (long)slPtr->PrevEntry,
-            WhichMagic(slPtr->MagicNumber),
+            slPtr, slPtr->LE.Next, slPtr->LE.Prev,
+            WhichMagic(slPtr->LE.MagicNumber),
             slPtr->ReturnCode == WAITING ?
                 "WAITING" :
                 slPtr->ReturnCode == ARRIVED ?
@@ -216,11 +216,10 @@ void rpc2_PrintHEntry(struct HEntry *hPtr, FILE *tFile)
     if (tFile == NULL)
         tFile = rpc2_logfile; /* it's ok, call-by-value */
 
-    fprintf(tFile,
-            "\nHost 0x%lx state is...\n\tNextEntry = 0x%lx  PrevEntry = "
-            "0x%lx  MagicNumber = %s\n",
-            (long)hPtr, (long)hPtr->Next, (long)hPtr->Prev,
-            WhichMagic(hPtr->MagicNumber));
+    fprintf(
+        tFile,
+        "\nHost %p state is...\n\tNextEntry = %p PrevEntry = %p MagicNumber = %s\n",
+        hPtr, hPtr->LE.Next, hPtr->LE.Prev, WhichMagic(hPtr->LE.MagicNumber));
 
     rpc2_printaddrinfo(hPtr->Addr, tFile);
 
@@ -341,10 +340,10 @@ void rpc2_PrintMEntry(struct MEntry *mPtr, FILE *tFile)
     if (tFile == NULL)
         tFile = rpc2_logfile; /* it's ok, call-by-value */
     fprintf(tFile,
-            "MyAddr: 0x%lx\n\tNextEntry = 0x%lx  PrevEntry = 0x%lx  "
+            "MyAddr: %p\n\tNextEntry = %p  PrevEntry = %p  "
             "MagicNumber = %s  Role = %s  State = ",
-            (long)mPtr, (long)mPtr->Next, (long)mPtr->Prev,
-            WhichMagic(mPtr->MagicNumber),
+            mPtr, mPtr->LE.Next, mPtr->LE.Prev,
+            WhichMagic(mPtr->LE.MagicNumber),
             TestRole(mPtr, FREE) ?
                 "FREE" :
                 (TestRole(mPtr, CLIENT) ?
@@ -494,8 +493,8 @@ void rpc2_PrintPacketHeader(RPC2_PacketBuffer *pb, FILE *tFile)
 
     fprintf(tFile, "\tPrefix: BufferSize = %ld  LengthOfPacket = %ld  ",
             pb->Prefix.BufferSize, pb->Prefix.LengthOfPacket);
-    fprintf(tFile, "MagicNumber = %ld\n", (long)pb->Prefix.MagicNumber);
-    fprintf(tFile, "Q = %p, RecvStamp = %ld.%06ld\n", pb->Prefix.Qname,
+    fprintf(tFile, "MagicNumber = %ld\n", pb->LE.MagicNumber);
+    fprintf(tFile, "Q = %p, RecvStamp = %ld.%06ld\n", pb->LE.Queue,
             pb->Prefix.RecvStamp.tv_sec, pb->Prefix.RecvStamp.tv_usec);
     fprintf(tFile, "\tHeader: ProtoVersion = 0x%lx  RemoteHandle = 0x%lx  ",
             (unsigned long)ntohl(pb->Header.ProtoVersion),

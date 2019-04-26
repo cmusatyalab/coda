@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -228,7 +228,7 @@ struct SFTP_Entry /* per-connection data structure */
                         within the file after each read/write */
     struct SL_Entry *Sleeper; /* SL_Entry of LWP sleeping on this connection,
                                  or NULL */
-    RPC2_PacketBuffer *RecvQueue;
+    struct RPC2_LinkEntry *RecvQueue; /* queue of received packet buffers */
     long RecvQueueLen;
     uint32_t PacketSize; /* Amount of  data in each packet */
     uint32_t WindowSize; /* Max Number of outstanding packets without

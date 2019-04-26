@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
 			Coda File System
-			    Release 6
+			    Release 7
 
-	    Copyright (c) 1987-2016 Carnegie Mellon University
+	    Copyright (c) 1987-2019 Carnegie Mellon University
 		    Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -48,6 +48,9 @@ Pittsburgh, PA.
 #include <string.h>
 
 #include "rpc2.private.h"
+
+/* free and in-use lists for struct HEntry */
+static struct RPC2_LinkEntry *rpc2_HostFreeList, *rpc2_HostList;
 
 /* Code to track host liveness
 
@@ -113,7 +116,7 @@ struct HEntry *rpc2_GetHost(struct RPC2_addrinfo *addr)
 
     for (; he; he = he->HLink) {
         if (RPC2_cmpaddrinfo(he->Addr, addr)) {
-            assert(he->MagicNumber == OBJ_HENTRY);
+            assert(he->LE.MagicNumber == OBJ_HENTRY);
             he->RefCount++;
             return (he);
         }
@@ -125,10 +128,8 @@ struct HEntry *rpc2_GetHost(struct RPC2_addrinfo *addr)
                        sizeof(struct HEntry), &rpc2_HostCreationCount,
                        OBJ_HENTRY);
 
-    he = (struct HEntry *)rpc2_MoveEntry(&rpc2_HostFreeList, &rpc2_HostList,
-                                         (struct HEntry *)NULL,
-                                         &rpc2_HostFreeCount, &rpc2_HostCount);
-    assert(he->MagicNumber == OBJ_HENTRY);
+    he = rpc2_LE2HE(rpc2_MoveEntry(&rpc2_HostFreeList, &rpc2_HostList, NULL,
+                                   &rpc2_HostFreeCount, &rpc2_HostCount));
 
     /* Initialize */
     he->Addr            = RPC2_copyaddrinfo(addr);
@@ -157,7 +158,7 @@ void rpc2_FreeHost(struct HEntry **whichHost)
     long bucket;
     struct HEntry **link;
 
-    assert((*whichHost)->MagicNumber == OBJ_HENTRY);
+    assert((*whichHost)->LE.MagicNumber == OBJ_HENTRY);
 
     if (--(*whichHost)->RefCount > 0) {
         *whichHost = NULL;
@@ -180,7 +181,7 @@ void rpc2_FreeHost(struct HEntry **whichHost)
     RPC2_freeaddrinfo((*whichHost)->Addr);
     (*whichHost)->Addr = NULL;
 
-    rpc2_MoveEntry(&rpc2_HostList, &rpc2_HostFreeList, *whichHost,
+    rpc2_MoveEntry(&rpc2_HostList, &rpc2_HostFreeList, &(*whichHost)->LE,
                    &rpc2_HostCount, &rpc2_HostFreeCount);
 
     /* remove from hash table */
@@ -206,7 +207,7 @@ void rpc2_GetHostLog(struct HEntry *whichHost, RPC2_NetLog *log,
     RPC2_NetLogEntry *Log;
     unsigned int NumEntries;
 
-    assert(whichHost->MagicNumber == OBJ_HENTRY);
+    assert(whichHost->LE.MagicNumber == OBJ_HENTRY);
 
     if (type == RPC2_MEASUREMENT) {
         Log        = whichHost->RPC2_Log;
@@ -267,7 +268,7 @@ int rpc2_AppendHostLog(struct HEntry *whichHost, RPC2_NetLogEntry *entry,
     RPC2_NetLogEntry *Log;
     unsigned int *NumEntries;
 
-    assert(whichHost->MagicNumber == OBJ_HENTRY);
+    assert(whichHost->LE.MagicNumber == OBJ_HENTRY);
 
     if (!GOOD_NLE(entry))
         return (0);
@@ -293,7 +294,7 @@ int rpc2_AppendHostLog(struct HEntry *whichHost, RPC2_NetLogEntry *entry,
 /* clear the log */
 void rpc2_ClearHostLog(struct HEntry *whichHost, NetLogEntryType type)
 {
-    assert(whichHost->MagicNumber == OBJ_HENTRY);
+    assert(whichHost->LE.MagicNumber == OBJ_HENTRY);
 
     if (type == RPC2_MEASUREMENT) {
         whichHost->RPC2_NumEntries = 0;

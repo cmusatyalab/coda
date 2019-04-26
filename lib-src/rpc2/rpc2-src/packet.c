@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
 			Coda File System
-			    Release 6
+			    Release 7
 
-	    Copyright (c) 1987-2018 Carnegie Mellon University
+	    Copyright (c) 1987-2019 Carnegie Mellon University
 		Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -123,6 +123,7 @@ void rpc2_XmitPacket(RPC2_PacketBuffer *pb, struct RPC2_addrinfo *addr,
     int rc;
 
     say(1, RPC2_DebugLevel, "rpc2_XmitPacket()\n");
+    assert(pb->LE.MagicNumber == OBJ_PACKETBUFFER);
 
 #ifdef RPC2DEBUG
     if (RPC2_DebugLevel > 9) {
@@ -134,8 +135,6 @@ void rpc2_XmitPacket(RPC2_PacketBuffer *pb, struct RPC2_addrinfo *addr,
         rpc2_PrintPacketHeader(pb, rpc2_logfile);
     }
 #endif
-
-    assert(pb->Prefix.MagicNumber == OBJ_PACKETBUFFER);
 
     whichSocket = rpc2_v6RequestSocket;
 
@@ -251,7 +250,7 @@ long rpc2_RecvPacket(IN long whichSocket, OUT RPC2_PacketBuffer *whichBuff)
     struct sockaddr_storage ss;
 
     say(1, RPC2_DebugLevel, "rpc2_RecvPacket()\n");
-    assert(whichBuff->Prefix.MagicNumber == OBJ_PACKETBUFFER);
+    assert(whichBuff->LE.MagicNumber == OBJ_PACKETBUFFER);
 
     len = whichBuff->Prefix.BufferSize - (long)(&whichBuff->Header) +
           (long)(whichBuff);

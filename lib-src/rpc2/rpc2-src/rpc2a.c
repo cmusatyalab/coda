@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 5
+                              Release 7
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -174,7 +174,7 @@ long RPC2_SendResponse(IN RPC2_Handle ConnHandle, IN RPC2_PacketBuffer *Reply)
 
     rpc2_Enter();
     say(1, RPC2_DebugLevel, "RPC2_SendResponse()\n");
-    assert(!Reply || Reply->Prefix.MagicNumber == OBJ_PACKETBUFFER);
+    assert(!Reply || Reply->LE.MagicNumber == OBJ_PACKETBUFFER);
 
     /* Perform sanity checks */
     ce = rpc2_GetConn(ConnHandle);
@@ -561,7 +561,7 @@ long RPC2_MakeRPC(RPC2_Handle ConnHandle, RPC2_PacketBuffer *Request,
     TR_MAKERPC();
 
     /* Perform sanity checks */
-    assert(Request->Prefix.MagicNumber == OBJ_PACKETBUFFER);
+    assert(Request->LE.MagicNumber == OBJ_PACKETBUFFER);
 
     /* Zero out reply pointer */
     *Reply = NULL;
@@ -1270,9 +1270,13 @@ static int GetFilter(RPC2_RequestFilter *inf, RPC2_RequestFilter *outf)
         break;
 
     case ONESUBSYS:
-        for (i = 0, ss = rpc2_SSList; i < rpc2_SSCount; i++, ss = ss->Next)
+        ss = rpc2_LE2SS(rpc2_SSList);
+        for (i = 0; i < rpc2_SSCount; i++) {
             if (ss->Id == outf->ConnOrSubsys.SubsysId)
                 break;
+
+            ss = rpc2_LE2SS(ss->LE.Next);
+        }
         if (i >= rpc2_SSCount)
             return (FALSE); /* no such subsystem */
         break;
@@ -1297,12 +1301,12 @@ static RPC2_PacketBuffer *HeldReq(RPC2_RequestFilter *filter,
 
     do {
         say(9, RPC2_DebugLevel, "Scanning hold queue\n");
-        pb = rpc2_PBHoldList;
+        pb = rpc2_LE2PB(rpc2_PBHoldList);
         for (i = 0; i < rpc2_PBHoldCount; i++) {
-            if (rpc2_FilterMatch(filter, pb))
+            if (!rpc2_FilterMatch(filter, pb))
                 break;
-            else
-                pb = (RPC2_PacketBuffer *)pb->Prefix.Next;
+
+            pb = rpc2_LE2PB(pb->LE.Next);
         }
         if (i >= rpc2_PBHoldCount)
             return (NULL);

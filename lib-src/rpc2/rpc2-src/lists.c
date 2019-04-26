@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 5
+                              Release 7
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -49,10 +49,15 @@ Pittsburgh, PA.
 
 #include "rpc2.private.h"
 
+/* various free and in-use lists */
+static struct RPC2_LinkEntry *rpc2_SLFreeList, /* free SL_Entry entries */
+    *rpc2_SLList; /* in use, of types REPLY or OTHER */
+static struct RPC2_LinkEntry *rpc2_SSFreeList; /* free SubsysEntry entries */
+
 /* Routines to allocate and manipulate the doubly-linked circular lists
    used elsewhere in rpc2 */
 
-void rpc2_Replenish(struct LinkEntry **whichList, long *whichCount,
+void rpc2_Replenish(struct RPC2_LinkEntry **whichList, long *whichCount,
                     long elemSize, /* size of each element in the list */
                     long *creationCount, long magicNumber)
 /* Routine to avoid using malloc() too often.
@@ -61,13 +66,13 @@ void rpc2_Replenish(struct LinkEntry **whichList, long *whichCount,
    Bumps creationCount by 1.
 */
 {
-    *whichList = (struct LinkEntry *)malloc(elemSize);
+    *whichList = (struct RPC2_LinkEntry *)malloc(elemSize);
     assert(*whichList != NULL);
     memset(*whichList, 0, elemSize);
-    (*whichList)->NextEntry = (*whichList)->PrevEntry =
+    (*whichList)->Next = (*whichList)->Prev =
         *whichList; /* 1-element circular list */
     (*whichList)->MagicNumber = magicNumber;
-    (*whichList)->Qname       = whichList;
+    (*whichList)->Queue       = whichList;
     *whichCount               = 1;
     (*creationCount)++;
 }
@@ -84,37 +89,37 @@ void rpc2_Replenish(struct LinkEntry **whichList, long *whichCount,
         *toCount is incremented by one.
 
    Frequently used routine -- optimize the hell out of it.  */
-struct LinkEntry *rpc2_MoveEntry(
+struct RPC2_LinkEntry *rpc2_MoveEntry(
     /* pointers to header pointers of from and to lists */
-    struct LinkEntry **fromPtr, struct LinkEntry **toPtr,
-    struct LinkEntry *p, /* pointer to entry to be moved */
+    struct RPC2_LinkEntry **fromPtr, struct RPC2_LinkEntry **toPtr,
+    struct RPC2_LinkEntry *p, /* pointer to entry to be moved */
     long *fromCount, /* pointer to count of entries in from list */
     long *toCount /* pointer to count of entries in to list */
 )
 {
-    struct LinkEntry *victim;
+    struct RPC2_LinkEntry *victim;
 
     if (p == NULL)
         victim = *fromPtr;
     else
         victim = p;
-    assert(victim->Qname == fromPtr); /* sanity check for list corruption */
+    assert(victim->Queue == fromPtr); /* sanity check for list corruption */
 
     /* first remove element from the first list */
     if (victim == *fromPtr)
-        *fromPtr = victim->NextEntry;
+        *fromPtr = victim->Next;
 
     /* remque(victim); */
-    victim->PrevEntry->NextEntry = victim->NextEntry;
-    victim->NextEntry->PrevEntry = victim->PrevEntry;
-    victim->PrevEntry = victim->NextEntry = victim;
+    victim->Prev->Next = victim->Next;
+    victim->Next->Prev = victim->Prev;
+    victim->Prev = victim->Next = victim;
 
     if (victim == *fromPtr)
         *fromPtr = NULL;
     (*fromCount)--;
 
     /* make victim a singleton list */
-    victim->NextEntry = victim->PrevEntry = victim;
+    victim->Next = victim->Prev = victim;
 
     /* then insert into second list */
     if (*toPtr == NULL)
@@ -122,12 +127,12 @@ struct LinkEntry *rpc2_MoveEntry(
     else {
         /* PrevEntry because semantics of insque() causes non-FIFO queue */
         /* insque(victim, (*toPtr)->PrevEntry); */
-        victim->PrevEntry              = (*toPtr)->PrevEntry;
-        victim->NextEntry              = *toPtr;
-        (*toPtr)->PrevEntry->NextEntry = victim;
-        (*toPtr)->PrevEntry            = victim;
+        victim->Prev         = (*toPtr)->Prev;
+        victim->Next         = *toPtr;
+        (*toPtr)->Prev->Next = victim;
+        (*toPtr)->Prev       = victim;
     }
-    victim->Qname = toPtr;
+    victim->Queue = toPtr;
     (*toCount)++;
     return (victim);
 }
@@ -135,7 +140,8 @@ struct LinkEntry *rpc2_MoveEntry(
 /* Allocates an SL entry and binds it to slConn */
 struct SL_Entry *rpc2_AllocSle(enum SL_Type slType, struct CEntry *slConn)
 {
-    struct SL_Entry *sl, **tolist;
+    struct SL_Entry *sl;
+    struct RPC2_LinkEntry **tolist;
     long *tocount;
 
     if (rpc2_SLFreeCount == 0) {
@@ -152,10 +158,9 @@ struct SL_Entry *rpc2_AllocSle(enum SL_Type slType, struct CEntry *slConn)
         tocount = &rpc2_SLCount;
     }
 
-    sl = (struct SL_Entry *)rpc2_MoveEntry(&rpc2_SLFreeList, tolist, NULL,
-                                           &rpc2_SLFreeCount, tocount);
+    sl = rpc2_LE2SL(rpc2_MoveEntry(&rpc2_SLFreeList, tolist, NULL,
+                                   &rpc2_SLFreeCount, tocount));
 
-    assert(sl->MagicNumber == OBJ_SLENTRY);
     sl->Type = slType;
     if (slType != REQ && slConn != NULL) {
         slConn->MySl = sl;
@@ -163,19 +168,20 @@ struct SL_Entry *rpc2_AllocSle(enum SL_Type slType, struct CEntry *slConn)
     } else
         sl->Conn = 0;
 
-    return (sl);
+    return sl;
 }
 
 void rpc2_FreeSle(INOUT struct SL_Entry **sl)
 /* Releases the SL_Entry pointed to by sl. Sets sl to NULL.
    Removes binding between sl and its connection */
 {
-    struct SL_Entry *tsl, **fromlist;
+    struct SL_Entry *tsl;
+    struct RPC2_LinkEntry **fromlist;
     long *fromcount;
     struct CEntry *ce;
 
     tsl = *sl;
-    assert(tsl->MagicNumber == OBJ_SLENTRY);
+    assert(tsl->LE.MagicNumber == OBJ_SLENTRY);
 
     if (tsl->Conn != 0) {
         ce = __rpc2_GetConn(tsl->Conn);
@@ -191,7 +197,7 @@ void rpc2_FreeSle(INOUT struct SL_Entry **sl)
         fromcount = &rpc2_SLCount;
     }
 
-    rpc2_MoveEntry(fromlist, &rpc2_SLFreeList, tsl, fromcount,
+    rpc2_MoveEntry(fromlist, &rpc2_SLFreeList, &tsl->LE, fromcount,
                    &rpc2_SLFreeCount);
     *sl = NULL;
 }
@@ -200,7 +206,7 @@ void rpc2_ActivateSle(struct SL_Entry *selem, struct timeval *exptime)
 {
     struct TM_Elem *t, *oldt;
 
-    assert(selem->MagicNumber == OBJ_SLENTRY);
+    assert(selem->LE.MagicNumber == OBJ_SLENTRY);
     selem->TElem.BackPointer = (char *)selem;
     selem->ReturnCode        = WAITING;
 
@@ -230,7 +236,7 @@ void rpc2_DeactivateSle(struct SL_Entry *sl, enum RetVal rc)
 {
     struct timeval *t;
 
-    assert(sl->MagicNumber == OBJ_SLENTRY);
+    assert(sl->LE.MagicNumber == OBJ_SLENTRY);
 
     sl->ReturnCode = rc;
     t              = &sl->TElem.TotalTime;
@@ -252,27 +258,26 @@ struct SubsysEntry *rpc2_AllocSubsys()
         rpc2_Replenish(&rpc2_SSFreeList, &rpc2_SSFreeCount,
                        sizeof(struct SubsysEntry), &rpc2_SSCreationCount,
                        OBJ_SSENTRY);
-    ss = (struct SubsysEntry *)rpc2_MoveEntry(
-        &rpc2_SSFreeList, &rpc2_SSList, NULL, &rpc2_SSFreeCount, &rpc2_SSCount);
-    assert(ss->MagicNumber == OBJ_SSENTRY);
-    return (ss);
+    ss = rpc2_LE2SS(rpc2_MoveEntry(&rpc2_SSFreeList, &rpc2_SSList, NULL,
+                                   &rpc2_SSFreeCount, &rpc2_SSCount));
+    return ss;
 }
 
 void rpc2_FreeSubsys(struct SubsysEntry **whichSubsys)
 /* Releases the subsystem  entry pointed to by whichSubsys.
    Sets whichSubsys to NULL;  */
 {
-    assert((*whichSubsys)->MagicNumber == OBJ_SSENTRY);
-    rpc2_MoveEntry(&rpc2_SSList, &rpc2_SSFreeList, whichSubsys, &rpc2_SSCount,
-                   &rpc2_SSFreeCount);
+    assert((*whichSubsys)->LE.MagicNumber == OBJ_SSENTRY);
+    rpc2_MoveEntry(&rpc2_SSList, &rpc2_SSFreeList, &(*whichSubsys)->LE,
+                   &rpc2_SSCount, &rpc2_SSFreeCount);
     *whichSubsys = NULL;
 }
 
 /* Moves packet whichPB to hold list from inuse list */
 void rpc2_HoldPacket(RPC2_PacketBuffer *whichPB)
 {
-    assert(whichPB->Prefix.MagicNumber == OBJ_PACKETBUFFER);
-    rpc2_MoveEntry(&rpc2_PBList, &rpc2_PBHoldList, whichPB, &rpc2_PBCount,
+    assert(whichPB->LE.MagicNumber == OBJ_PACKETBUFFER);
+    rpc2_MoveEntry(&rpc2_PBList, &rpc2_PBHoldList, &whichPB->LE, &rpc2_PBCount,
                    &rpc2_PBHoldCount);
     if (rpc2_HoldHWMark < rpc2_PBHoldCount)
         rpc2_HoldHWMark = rpc2_PBHoldCount;
@@ -281,7 +286,7 @@ void rpc2_HoldPacket(RPC2_PacketBuffer *whichPB)
 /* Moves packet whichPB to inuse list from hold list */
 void rpc2_UnholdPacket(RPC2_PacketBuffer *whichPB)
 {
-    assert(whichPB->Prefix.MagicNumber == OBJ_PACKETBUFFER);
-    rpc2_MoveEntry(&rpc2_PBHoldList, &rpc2_PBList, whichPB, &rpc2_PBHoldCount,
-                   &rpc2_PBCount);
+    assert(whichPB->LE.MagicNumber == OBJ_PACKETBUFFER);
+    rpc2_MoveEntry(&rpc2_PBHoldList, &rpc2_PBList, &whichPB->LE,
+                   &rpc2_PBHoldCount, &rpc2_PBCount);
 }

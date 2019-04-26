@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -827,9 +827,9 @@ static long PutFile(struct SFTP_Entry *sEntry)
 
 static RPC2_PacketBuffer *sftp_DequeuePacket(struct SFTP_Entry *sEntry)
 {
-    RPC2_PacketBuffer *victim = sEntry->RecvQueue;
+    RPC2_PacketBuffer *victim = rpc2_LE2PB(sEntry->RecvQueue);
     if (victim)
-        rpc2_MoveEntry(&sEntry->RecvQueue, &rpc2_PBList, victim,
+        rpc2_MoveEntry(&sEntry->RecvQueue, &rpc2_PBList, &victim->LE,
                        &sEntry->RecvQueueLen, &rpc2_PBCount);
     return victim;
 }

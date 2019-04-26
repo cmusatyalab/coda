@@ -195,8 +195,8 @@ static void ServerPacket(RPC2_PacketBuffer *whichPacket,
     }
 
     /* queue packet */
-    rpc2_MoveEntry(&rpc2_PBList, &sEntry->RecvQueue, whichPacket, &rpc2_PBCount,
-                   &sEntry->RecvQueueLen);
+    rpc2_MoveEntry(&rpc2_PBList, &sEntry->RecvQueue, &whichPacket->LE,
+                   &rpc2_PBCount, &sEntry->RecvQueueLen);
 
     sl = sEntry->Sleeper;
     if (!sl || (sl->ReturnCode != WAITING && sl->ReturnCode != TIMEOUT)) {

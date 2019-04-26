@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 5
+                              Release 7
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -57,10 +57,10 @@ Pittsburgh, PA.
 #include "rpc2.private.h"
 #include "trace.h"
 
-void rpc2_RemoveFromMgrp();
-void rpc2_DeleteMgrp();
+struct RPC2_LinkEntry *rpc2_MgrpFreeList; /* free mgrp blocks */
 
-extern void SavePacketForRetry(); /* rpc2a.c */
+void rpc2_RemoveFromMgrp(struct MEntry *me, struct CEntry *ce);
+void rpc2_DeleteMgrp(struct MEntry *me);
 
 /* this definition was taken from sl.c */
 #define BOGUS(p) /* bogus packet; throw it away */         \
@@ -70,8 +70,8 @@ extern void SavePacketForRetry(); /* rpc2a.c */
 
 #define MGRPHASHLENGTH 256 /* must be power of 2 */
 static struct bucket {
-    struct MEntry *chain;
-    int count;
+    struct RPC2_LinkEntry *chain;
+    long count;
 } MgrpHashTable[MGRPHASHLENGTH];
 static RPC2_Handle LastMgrpidAllocated;
 #define LISTENERALLOCSIZE 8 /* malloc/realloc granularity */
@@ -115,7 +115,7 @@ static struct bucket *rpc2_GetBucket(struct RPC2_addrinfo *addr,
         assert(addr->ai_next == NULL);
         index = HASHMGRP(addr, mgrpid);
     }
-    say(9, RPC2_DebugLevel, "bucket = %d, count = %d\n", index,
+    say(9, RPC2_DebugLevel, "bucket = %d, count = %ld\n", index,
         MgrpHashTable[index].count);
     return (&MgrpHashTable[index]);
 }
@@ -146,10 +146,9 @@ struct MEntry *rpc2_AllocMgrp(struct RPC2_addrinfo *addr, RPC2_Handle handle)
         mgrpid);
     bucket = rpc2_GetBucket(addr, mgrpid);
 
-    me = (struct MEntry *)rpc2_MoveEntry(&rpc2_MgrpFreeList, &bucket->chain,
-                                         NULL, &rpc2_MgrpFreeCount,
-                                         &bucket->count);
-    assert(me->MagicNumber == OBJ_MENTRY);
+    me = rpc2_LE2ME(rpc2_MoveEntry(&rpc2_MgrpFreeList, &bucket->chain, NULL,
+                                   &rpc2_MgrpFreeCount, &bucket->count));
+
     me->ClientAddr    = RPC2_copyaddrinfo(addr);
     me->MgroupID      = mgrpid;
     me->SEProcs       = NULL;
@@ -199,7 +198,7 @@ void rpc2_FreeMgrp(me) struct MEntry *me;
         RPC2_freeaddrinfo(me->ClientAddr);
     me->ClientAddr = NULL;
 
-    rpc2_MoveEntry(&bucket->chain, &rpc2_MgrpFreeList, me, &bucket->count,
+    rpc2_MoveEntry(&bucket->chain, &rpc2_MgrpFreeList, &me->LE, &bucket->count,
                    &rpc2_MgrpFreeCount);
 }
 
@@ -211,7 +210,8 @@ struct MEntry *rpc2_GetMgrp(struct RPC2_addrinfo *addr, RPC2_Handle handle,
     int i;
 
     bucket = rpc2_GetBucket(addr, handle);
-    for (me = bucket->chain, i = 0; i < bucket->count; me = me->Next, i++) {
+    me     = rpc2_LE2ME(bucket->chain);
+    for (i = 0; i < bucket->count; i++) {
         char buf[RPC2_ADDRSTRLEN];
 
         RPC2_formataddrinfo(me->ClientAddr, buf, RPC2_ADDRSTRLEN);
@@ -219,9 +219,10 @@ struct MEntry *rpc2_GetMgrp(struct RPC2_addrinfo *addr, RPC2_Handle handle,
 
         if (RPC2_cmpaddrinfo(me->ClientAddr, addr) && me->MgroupID == handle &&
             TestRole(me, role)) {
-            assert(me->MagicNumber == OBJ_MENTRY);
             return (me);
         }
+
+        me = rpc2_LE2ME(me->LE.Next);
     }
 
     return ((struct MEntry *)NULL);

@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 5
+                              Release 7
 
-          Copyright (c) 1987-2017 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -67,6 +67,10 @@ Pittsburgh, PA.
 #include "codatunnel/wrapper.h"
 #include "rpc2.private.h"
 #include "trace.h"
+
+/* free lists for different size packets. */
+static struct RPC2_LinkEntry *rpc2_PBSmallFreeList, *rpc2_PBMediumFreeList,
+    *rpc2_PBLargeFreeList;
 
 RPC2_HostIdent rpc2_bindhost = {
     .Tag = RPC2_DUMMYHOST,
@@ -222,7 +226,7 @@ void RPC2_setbindaddr(RPC2_HostIdent *host)
 long RPC2_Export(IN RPC2_SubsysIdent *Subsys)
 {
     long i, myid = 0;
-    struct SubsysEntry *sp;
+    struct SubsysEntry *ss;
 
     rpc2_Enter();
     say(1, RPC2_DebugLevel, "RPC2_Export()\n");
@@ -242,20 +246,24 @@ long RPC2_Export(IN RPC2_SubsysIdent *Subsys)
     }
 
     /* Verify this subsystem not already exported */
-    for (i = 0, sp = rpc2_SSList; i < rpc2_SSCount; i++, sp = sp->Next)
-        if (sp->Id == myid)
+    ss = rpc2_LE2SS(rpc2_SSList);
+    for (i = 0; i < rpc2_SSCount; i++) {
+        if (ss->Id == myid)
             rpc2_Quit(RPC2_DUPLICATESERVER);
 
+        ss = rpc2_LE2SS(ss->LE.Next);
+    }
+
     /* Mark this subsystem as exported */
-    sp     = rpc2_AllocSubsys();
-    sp->Id = myid;
+    ss     = rpc2_AllocSubsys();
+    ss->Id = myid;
     rpc2_Quit(RPC2_SUCCESS);
 }
 
 long RPC2_DeExport(IN RPC2_SubsysIdent *Subsys)
 {
     long i, myid = 0;
-    struct SubsysEntry *sp;
+    struct SubsysEntry *ss;
 
     rpc2_Enter();
     say(1, RPC2_DebugLevel, "RPC2_DeExport()\n");
@@ -283,17 +291,21 @@ long RPC2_DeExport(IN RPC2_SubsysIdent *Subsys)
     }
 
     /* Verify this subsystem is indeed exported */
-    for (i = 0, sp = rpc2_SSList; i < rpc2_SSCount; i++, sp = sp->Next)
-        if (sp->Id == myid)
+    ss = rpc2_LE2SS(rpc2_SSList);
+    for (i = 0; i < rpc2_SSCount; i++) {
+        if (ss->Id == myid)
             break;
+
+        ss = rpc2_LE2SS(ss->LE.Next);
+    }
     if (i >= rpc2_SSCount)
         rpc2_Quit(RPC2_BADSERVER);
 
-    rpc2_FreeSubsys(&sp);
+    rpc2_FreeSubsys(&ss);
     rpc2_Quit(RPC2_SUCCESS);
 }
 
-static RPC2_PacketBuffer *Gimme(long size, RPC2_PacketBuffer **flist,
+static RPC2_PacketBuffer *Gimme(long size, struct RPC2_LinkEntry **flist,
                                 long *count, long *creacount)
 {
     RPC2_PacketBuffer *pb;
@@ -301,29 +313,30 @@ static RPC2_PacketBuffer *Gimme(long size, RPC2_PacketBuffer **flist,
     if (*flist == NULL) {
         rpc2_Replenish(flist, count, size, creacount, OBJ_PACKETBUFFER);
         assert(*flist);
-        (*flist)->Prefix.BufferSize = size;
+        rpc2_LE2PB(*flist)->Prefix.BufferSize = size;
     }
-    pb = (RPC2_PacketBuffer *)rpc2_MoveEntry(flist, &rpc2_PBList, NULL, count,
-                                             &rpc2_PBCount);
-    assert(pb->Prefix.Qname == &rpc2_PBList);
-    return (pb);
+
+    pb = rpc2_LE2PB(
+        rpc2_MoveEntry(flist, &rpc2_PBList, NULL, count, &rpc2_PBCount));
+    assert(pb->LE.Queue == &rpc2_PBList);
+    return pb;
 }
 
 static RPC2_PacketBuffer *GetPacket(long psize)
 {
     if (psize <= SMALLPACKET) {
-        return (Gimme(SMALLPACKET, &rpc2_PBSmallFreeList,
-                      &rpc2_PBSmallFreeCount, &rpc2_PBSmallCreationCount));
+        return Gimme(SMALLPACKET, &rpc2_PBSmallFreeList, &rpc2_PBSmallFreeCount,
+                     &rpc2_PBSmallCreationCount);
     }
     if (psize <= MEDIUMPACKET) {
-        return (Gimme(MEDIUMPACKET, &rpc2_PBMediumFreeList,
-                      &rpc2_PBMediumFreeCount, &rpc2_PBMediumCreationCount));
+        return Gimme(MEDIUMPACKET, &rpc2_PBMediumFreeList,
+                     &rpc2_PBMediumFreeCount, &rpc2_PBMediumCreationCount);
     }
     if (psize <= LARGEPACKET) {
-        return (Gimme(LARGEPACKET, &rpc2_PBLargeFreeList,
-                      &rpc2_PBLargeFreeCount, &rpc2_PBLargeCreationCount));
+        return Gimme(LARGEPACKET, &rpc2_PBLargeFreeList, &rpc2_PBLargeFreeCount,
+                     &rpc2_PBLargeCreationCount);
     }
-    return (NULL);
+    return NULL;
 }
 
 /* Allocates a packet buffer whose body is at least MinBodySize bytes,
@@ -342,7 +355,6 @@ long rpc2_AllocBuffer(IN long MinBodySize, OUT RPC2_PacketBuffer **BuffPtr,
 
     *BuffPtr = GetPacket(thissize);
     assert(*BuffPtr);
-    assert((*BuffPtr)->Prefix.MagicNumber == OBJ_PACKETBUFFER);
     (*BuffPtr)->Prefix.sa = NULL;
 
     memset(&(*BuffPtr)->Header, 0, sizeof(struct RPC2_PacketHeader));
@@ -358,15 +370,15 @@ long rpc2_AllocBuffer(IN long MinBodySize, OUT RPC2_PacketBuffer **BuffPtr,
 
 long RPC2_FreeBuffer(INOUT RPC2_PacketBuffer **BuffPtr)
 {
-    RPC2_PacketBuffer **tolist = NULL;
-    long *tocount              = NULL;
+    struct RPC2_LinkEntry **tolist = NULL;
+    long *tocount                  = NULL;
 
     rpc2_Enter();
     assert(BuffPtr);
     if (!*BuffPtr)
         return (RPC2_SUCCESS);
 
-    assert((*BuffPtr)->Prefix.MagicNumber == OBJ_PACKETBUFFER);
+    assert((*BuffPtr)->LE.MagicNumber == OBJ_PACKETBUFFER);
 
     if ((*BuffPtr)->Prefix.PeerAddr) {
         RPC2_freeaddrinfo((*BuffPtr)->Prefix.PeerAddr);
@@ -392,8 +404,9 @@ long RPC2_FreeBuffer(INOUT RPC2_PacketBuffer **BuffPtr)
     default:
         assert(FALSE);
     }
-    assert((*BuffPtr)->Prefix.Qname == &rpc2_PBList);
-    rpc2_MoveEntry(&rpc2_PBList, tolist, *BuffPtr, &rpc2_PBCount, tocount);
+    assert((*BuffPtr)->LE.Queue == &rpc2_PBList);
+    rpc2_MoveEntry(&rpc2_PBList, tolist, &(*BuffPtr)->LE, &rpc2_PBCount,
+                   tocount);
     *BuffPtr = NULL;
     rpc2_Quit(RPC2_SUCCESS);
 }

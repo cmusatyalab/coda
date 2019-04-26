@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 5
+                              Release 7
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -74,20 +74,18 @@ long rpc2_ConnFreeCount, rpc2_ConnCount = -1, rpc2_ConnCreationCount;
 struct MEntry *rpc2_MgrpFreeList;
 long rpc2_MgrpFreeCount, rpc2_MgrpCreationCount;
 
-struct SL_Entry *rpc2_SLFreeList, *rpc2_SLReqList, *rpc2_SLList;
+struct RPC2_LinkEntry *rpc2_SLReqList;
 long rpc2_SLFreeCount, rpc2_SLReqCount, rpc2_SLCount, rpc2_SLCreationCount;
 
-RPC2_PacketBuffer *rpc2_PBSmallFreeList, *rpc2_PBMediumFreeList,
-    *rpc2_PBLargeFreeList, *rpc2_PBList, *rpc2_PBHoldList;
+struct RPC2_LinkEntry *rpc2_PBList, *rpc2_PBHoldList;
 long rpc2_PBSmallFreeCount, rpc2_PBSmallCreationCount, rpc2_PBMediumFreeCount,
     rpc2_PBMediumCreationCount, rpc2_PBLargeFreeCount,
     rpc2_PBLargeCreationCount;
 long rpc2_PBCount, rpc2_PBHoldCount, rpc2_PBFreezeCount;
 
-struct SubsysEntry *rpc2_SSFreeList, *rpc2_SSList;
+struct RPC2_LinkEntry *rpc2_SSList;
 long rpc2_SSFreeCount, rpc2_SSCount, rpc2_SSCreationCount;
 
-struct HEntry *rpc2_HostFreeList, *rpc2_HostList;
 long rpc2_HostFreeCount, rpc2_HostCount, rpc2_HostCreationCount;
 
 /* Packet transmission statistics */

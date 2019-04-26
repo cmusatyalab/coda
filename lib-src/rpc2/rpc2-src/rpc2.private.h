@@ -44,8 +44,10 @@ Pittsburgh, PA.
 #include <config.h>
 #endif
 
+#include <assert.h>
 #include <netinet/in.h>
 #include <signal.h>
+#include <stddef.h>
 #include <string.h>
 
 #include <lwp/lwp.h>
@@ -83,15 +85,14 @@ struct sockaddr_in6 {
 /*
 Magic Number assignments for runtime system objects.
 Truly random values to allow easy detection of storage corruption.
-
-OBJ_PACKETBUFFER = 3247517
-OBJ_CENTRY = 868
-OBJ_MENTRY = 69743
-OBJ_SLENTRY = 107
-OBJ_SSENTRY = 34079
-OBJ_HENTRY = 48127
-
 */
+
+//#define OBJ_CENTRY 868
+#define OBJ_HENTRY 48127
+#define OBJ_MENTRY 69743
+#define OBJ_PACKETBUFFER 3247517
+#define OBJ_SLENTRY 107
+#define OBJ_SSENTRY 34079
 
 /* Role and state determination:
    Top 2 bytes (0x0088 or 0x0044) determine client or server
@@ -142,17 +143,6 @@ OBJ_HENTRY = 48127
 #define CE_OLDV 0x1 /* old version detected during bind */
 
 /*---------------- Data Structures ----------------*/
-struct LinkEntry /* form of entries in doubly-linked lists */
-{
-    struct LinkEntry *NextEntry; /* in accordance with insque(3) */
-    struct LinkEntry *PrevEntry;
-    long MagicNumber; /* unique for object type; NEVER altered */
-    struct LinkEntry **Qname;
-    /* head pointer of queue on which this element should be */
-    /* body comes here, but is irrelevant for list manipulation and object
-     * validation */
-};
-
 struct CEntry /* describes a single RPC connection */
 {
     /* Link Entry Fields */
@@ -217,14 +207,7 @@ struct CEntry /* describes a single RPC connection */
 
 struct MEntry /* describes an RPC multicast connection */
 {
-    /* Link Entry Pointers */
-    struct MEntry *Next;
-    struct MEntry *Prev;
-    enum
-    {
-        OBJ_MENTRY = 69743
-    } MagicNumber;
-    struct MEntry *Qname;
+    struct RPC2_LinkEntry LE;
 
     /* Multicast Group Connection info */
     RPC2_Integer State; /* eg {C,S}_AWAITREQUEST */
@@ -306,14 +289,7 @@ enum RetVal
 
 /* data structure for communication with SocketListener */
 struct SL_Entry {
-    /* LinkEntry fields */
-    struct SL_Entry *NextEntry;
-    struct SL_Entry *PrevEntry;
-    enum
-    {
-        OBJ_SLENTRY = 107
-    } MagicNumber;
-    struct SL_Entry *Qname;
+    struct RPC2_LinkEntry LE;
 
     enum SL_Type Type;
 
@@ -333,13 +309,7 @@ struct SL_Entry {
 
 struct SubsysEntry /* Defines a subsystem being actively serviced by a server */
 { /* Created by RPC2_InitSubsys(); destroyed by RPC2_EndSubsys() */
-    struct SubsysEntry *Next; /* LinkEntry field */
-    struct SubsysEntry *Prev; /* LinkEntry field */
-    enum
-    {
-        OBJ_SSENTRY = 34079
-    } MagicNumber;
-    struct SubsysEntry *Qname; /* LinkEntry field */
+    struct RPC2_LinkEntry LE;
     long Id; /* using a struct is a little excessive, but it makes things
                 uniform */
 };
@@ -353,14 +323,8 @@ typedef enum
 } HEType;
 
 struct HEntry {
-    /* Link Entry Pointers */
-    struct HEntry *Next; /* LinkEntry field */
-    struct HEntry *Prev; /* LinkEntry field */
-    enum
-    {
-        OBJ_HENTRY = 48127
-    } MagicNumber;
-    struct HEntry *Qname; /* LinkEntry field */
+    struct RPC2_LinkEntry LE;
+
     struct HEntry *HLink; /* for host hash */
     int RefCount; /* # connections that have a reference */
     struct RPC2_addrinfo *Addr; /* network address */
@@ -469,27 +433,20 @@ struct InitMulticastBody /* Client to Server */
 /* NOTE: all these lists are doubly-linked and circular */
 
 /* The multicast group abstraction */
-extern struct MEntry *rpc2_MgrpFreeList; /* free mgrp blocks */
 extern long rpc2_MgrpFreeCount, rpc2_MgrpCreationCount;
 
 /* Items for SocketListener */
 
-extern struct SL_Entry *rpc2_SLFreeList, /* free entries */
-    *rpc2_SLReqList, /* in use, of type REQ */
-    *rpc2_SLList; /* in use, of types REPLY or OTHER */
+extern struct RPC2_LinkEntry *rpc2_SLReqList; /* SL_Entry in use, of type REQ */
 extern long rpc2_SLReqCount, rpc2_SLCount;
 
-/* Packet buffers */
-extern RPC2_PacketBuffer *rpc2_PBList, *rpc2_PBHoldList;
-extern RPC2_PacketBuffer *rpc2_PBSmallFreeList, *rpc2_PBMediumFreeList,
-    *rpc2_PBLargeFreeList;
+/* Lists holding allocated and free packet buffers */
+extern struct RPC2_LinkEntry *rpc2_PBList, *rpc2_PBHoldList;
 
 /* Subsystem definitions */
-extern struct SubsysEntry *rpc2_SSFreeList, /* free entries */
-    *rpc2_SSList; /* subsystems in active use */
+extern struct RPC2_LinkEntry *rpc2_SSList; /* subsystems in active use */
 
 /* Host info definitions */
-extern struct HEntry *rpc2_HostFreeList, *rpc2_HostList;
 extern long rpc2_HostFreeCount, rpc2_HostCount, rpc2_HostCreationCount;
 
 /*------------- Miscellaneous  global data  ------------*/
@@ -506,8 +463,13 @@ extern struct timeval KeepAlive;
 extern uint32_t *rpc2_RTTvals;
 
 /* List manipulation routines */
-void rpc2_Replenish();
-struct LinkEntry *rpc2_MoveEntry();
+void rpc2_Replenish(struct RPC2_LinkEntry **whichList, long *whichCount,
+                    long elemSize, long *creationCount, long magicNumber);
+struct RPC2_LinkEntry *rpc2_MoveEntry(struct RPC2_LinkEntry **fromPtr,
+                                      struct RPC2_LinkEntry **toPtr,
+                                      struct RPC2_LinkEntry *p, long *fromCount,
+                                      long *toCount);
+
 struct SL_Entry *rpc2_AllocSle(enum SL_Type slType, struct CEntry *slConn);
 void rpc2_FreeSle(struct SL_Entry **sl);
 void rpc2_ActivateSle(struct SL_Entry *selem, struct timeval *exptime);
@@ -516,6 +478,20 @@ struct SubsysEntry *rpc2_AllocSubsys(void);
 void rpc2_FreeSubsys(struct SubsysEntry **whichSubsys);
 
 void FreeHeld(struct SL_Entry *sle);
+
+/* Helpers to reliably convert LinkEntry pointers to rpc2 objects */
+#define LE2(func, type, magic)                            \
+    static inline type *func(struct RPC2_LinkEntry *le)   \
+    {                                                     \
+        assert(le->MagicNumber == magic);                 \
+        return (void *)((char *)le - offsetof(type, LE)); \
+    }
+LE2(rpc2_LE2HE, struct HEntry, OBJ_HENTRY)
+LE2(rpc2_LE2ME, struct MEntry, OBJ_MENTRY)
+LE2(rpc2_LE2PB, RPC2_PacketBuffer, OBJ_PACKETBUFFER)
+LE2(rpc2_LE2SL, struct SL_Entry, OBJ_SLENTRY)
+LE2(rpc2_LE2SS, struct SubsysEntry, OBJ_SSENTRY)
+#undef LE2
 
 /* Socket creation */
 
@@ -534,6 +510,7 @@ void rpc2_ntohp(RPC2_PacketBuffer *p);
 long rpc2_CancelRetry(struct CEntry *Conn, struct SL_Entry *Sle);
 void rpc2_UpdateRTT(RPC2_PacketBuffer *pb, struct CEntry *ceaddr);
 void rpc2_ExpireEvents();
+void SavePacketForRetry(RPC2_PacketBuffer *pb, struct CEntry *ce);
 
 /* Connection manipulation routines  */
 int rpc2_InitConn(void);
@@ -569,7 +546,8 @@ struct MEntry *rpc2_GetMgrp(struct RPC2_addrinfo *addr, RPC2_Handle handle,
                             long role);
 
 /* Hold queue routines */
-void rpc2_HoldPacket(), rpc2_UnholdPacket();
+void rpc2_HoldPacket(RPC2_PacketBuffer *whichPB);
+void rpc2_UnholdPacket(RPC2_PacketBuffer *whichPB);
 
 /* RPC2_GetRequest() filter matching function */
 int rpc2_FilterMatch();

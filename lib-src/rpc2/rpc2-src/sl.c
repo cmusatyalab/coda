@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
 	                   Coda File System
-	                      Release 5
+	                      Release 7
 
-	  Copyright (c) 1987-1999 Carnegie Mellon University
+	  Copyright (c) 1987-2019 Carnegie Mellon University
 	          Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -218,14 +218,13 @@ static void rpc2_ProcessPacket(int fd)
        buffer at this point */
     RPC2_AllocBuffer(RPC2_MAXPACKETSIZE - sizeof(RPC2_PacketBuffer), &pb);
     assert(pb != NULL);
-    assert(pb->Prefix.Qname == &rpc2_PBList);
+    assert(pb->LE.Queue == &rpc2_PBList);
 
     if (rpc2_RecvPacket(fd, pb) < 0) {
         say(9, RPC2_DebugLevel, "Recv error, ignoring.\n");
         RPC2_FreeBuffer(&pb);
         return;
     }
-    assert(pb->Prefix.Qname == &rpc2_PBList);
 
 #ifdef RPC2DEBUG
     if (RPC2_DebugLevel > 9) {
@@ -236,7 +235,6 @@ static void rpc2_ProcessPacket(int fd)
         fprintf(rpc2_tracefile, "\n");
     }
 #endif
-    assert(pb->Prefix.Qname == &rpc2_PBList);
 
     if (pb->Prefix.LengthOfPacket < (ssize_t)sizeof(struct RPC2_PacketHeader)) {
         /* avoid memory reference errors */
@@ -306,7 +304,7 @@ void RPC2_DispatchProcess()
 void rpc2_HandlePacket(RPC2_PacketBuffer *pb)
 {
     struct CEntry *ce = NULL;
-    assert(pb->Prefix.Qname == &rpc2_PBList);
+    assert(pb->LE.Queue == &rpc2_PBList);
 
     rpc2_Recvd.Total++;
     rpc2_Recvd.Bytes += pb->Prefix.LengthOfPacket;
@@ -793,7 +791,6 @@ static void HandleNewRequest(RPC2_PacketBuffer *pb, struct CEntry *ce)
     /* Look for a waiting recipient */
     sl = FindRecipient(pb);
     if (sl != NULL) {
-        assert(sl->MagicNumber == OBJ_SLENTRY);
         SetState(ce, S_PROCESS);
         rpc2_DeactivateSle(sl, ARRIVED);
         sl->data = pb;
@@ -811,16 +808,15 @@ static struct SL_Entry *FindRecipient(RPC2_PacketBuffer *pb)
     long i;
     struct SL_Entry *sl;
 
-    sl = rpc2_SLReqList;
+    sl = rpc2_LE2SL(rpc2_SLReqList);
     for (i = 0; i < rpc2_SLReqCount; i++) {
-        if (sl->ReturnCode == WAITING && rpc2_FilterMatch(&sl->Filter, pb)) {
-            return (sl);
-        } else
-            sl = sl->NextEntry;
+        if (sl->ReturnCode == WAITING && rpc2_FilterMatch(&sl->Filter, pb))
+            return sl;
+
+        sl = rpc2_LE2SL(sl->LE.Next);
     }
     return (NULL);
 }
-
 static void HandleCurrentRequest(RPC2_PacketBuffer *pb, struct CEntry *ce)
 {
     say(1, RPC2_DebugLevel, "HandleCurrentRequest()\n");
@@ -904,7 +900,6 @@ static void HandleInit1(RPC2_PacketBuffer *pb)
     /* Now fix packet header so that it has a real RemoteHandle */
     pb->Header.RemoteHandle = ce->UniqueCID;
 
-    assert(sl->MagicNumber == OBJ_SLENTRY);
     rpc2_DeactivateSle(sl, ARRIVED);
     sl->data            = pb;
     ce->Filter          = sl->Filter; /* struct assignment */
