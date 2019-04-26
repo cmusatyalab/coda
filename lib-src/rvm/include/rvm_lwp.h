@@ -51,7 +51,7 @@ static inline PROCESS cthread_fork(void (*fname)(void *), void *arg)
         IOMGR_Finalize();              \
         LWP_TerminateProcessSupport(); \
     } while (0)
-#define cthread_exit(retval) (0)
+#define cthread_exit(retval)
 
 #define cthread_yield()        \
     do {                       \

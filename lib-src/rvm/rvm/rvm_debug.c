@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 5
+                              Release 7
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -45,7 +45,6 @@ extern long cache_type_sizes[NUM_CACHE_TYPES];
 
 /* main structures roots */
 extern list_entry_t seg_root; /* segment list */
-extern tree_root_t region_tree; /* mapped regions tree */
 extern list_entry_t page_list; /* free page list */
 extern list_entry_t log_root; /* log list */
 
@@ -533,13 +532,15 @@ rvm_bool_t chk_node(tree_node_t *node, struct_id_t struct_id)
 
 /* search mem_region tree node */
 rvm_bool_t search_mem_region(rvm_length_t addr /* address to search for */,
-                             mem_region_t *node /* mem_region node to search */)
+                             tree_node_t *root /* mem_region node to search */)
 {
     rvm_bool_t retval = rvm_false;
 
     /* check tree node */
-    if (!chk_node((tree_node_t *)node, mem_region_id))
+    if (!chk_node(root, mem_region_id))
         return rvm_false;
+
+    mem_region_t *node = (mem_region_t *)root;
 
     /* see if address is in node */
     if ((addr >= (rvm_length_t)node) &&
@@ -559,10 +560,10 @@ rvm_bool_t search_mem_region(rvm_length_t addr /* address to search for */,
 
     /* check lower branches */
     if (node->links.node.lss != NULL)
-        if (search_mem_region(addr, (mem_region_t *)node->links.node.lss))
+        if (search_mem_region(addr, node->links.node.lss))
             retval = rvm_true;
     if (node->links.node.gtr != NULL)
-        if (search_mem_region(addr, (mem_region_t *)node->links.node.gtr))
+        if (search_mem_region(addr, node->links.node.gtr))
             retval = rvm_true;
 
     return retval;
@@ -573,7 +574,7 @@ rvm_bool_t in_region_tree(rvm_length_t addr /* address to search for */)
 {
     printf("Searching mapped region tree\n");
 
-    return search_mem_region(addr, (mem_region_t *)region_tree);
+    return search_mem_region(addr, region_tree.root);
 }
 
 /* */

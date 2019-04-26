@@ -488,6 +488,9 @@ typedef struct /* tree root structure */
     rvm_bool_t unlink; /* unlink nodes as traversed */
 } tree_root_t;
 
+extern tree_root_t region_tree; /* root of mapped region tree */
+extern rw_lock_t region_tree_lock; /* lock for region tree */
+
 #define TRAVERSE_LEN_INCR 15 /* allocate 15 slots at a time */
 /* tree structure iterators
      -- nodes are delinked as traversed

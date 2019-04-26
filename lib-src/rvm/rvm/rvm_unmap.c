@@ -29,8 +29,6 @@ Coda are listed in the file CREDITS.
 extern log_t *default_log; /* default log descriptor ptr */
 extern char *rvm_errmsg; /* internal error message buffer */
 
-extern rw_lock_t region_tree_lock; /* lock for region tree */
-extern tree_node_t *region_tree; /* root of mapped region tree */
 /* rvm_unmap */
 rvm_return_t rvm_unmap(rvm_region_t *rvm_region /* region to unmap */)
 {
