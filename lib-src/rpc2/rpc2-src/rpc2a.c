@@ -1303,7 +1303,7 @@ static RPC2_PacketBuffer *HeldReq(RPC2_RequestFilter *filter,
         say(9, RPC2_DebugLevel, "Scanning hold queue\n");
         pb = rpc2_LE2PB(rpc2_PBHoldList);
         for (i = 0; i < rpc2_PBHoldCount; i++) {
-            if (!rpc2_FilterMatch(filter, pb))
+            if (rpc2_FilterMatch(filter, pb))
                 break;
 
             pb = rpc2_LE2PB(pb->LE.Next);
