@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 5
+                              Release 7
 
-          Copyright (c) 1987-2008 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -508,11 +508,12 @@ extern uint32_t *rpc2_RTTvals;
 /* List manipulation routines */
 void rpc2_Replenish();
 struct LinkEntry *rpc2_MoveEntry();
-struct SL_Entry *rpc2_AllocSle();
+struct SL_Entry *rpc2_AllocSle(enum SL_Type slType, struct CEntry *slConn);
 void rpc2_FreeSle(struct SL_Entry **sl);
-void rpc2_ActivateSle(), rpc2_DeactivateSle();
-struct SubsysEntry *rpc2_AllocSubsys();
-void rpc2_FreeSubsys();
+void rpc2_ActivateSle(struct SL_Entry *selem, struct timeval *exptime);
+void rpc2_DeactivateSle(struct SL_Entry *sl, enum RetVal rc);
+struct SubsysEntry *rpc2_AllocSubsys(void);
+void rpc2_FreeSubsys(struct SubsysEntry **whichSubsys);
 
 void FreeHeld(struct SL_Entry *sle);
 

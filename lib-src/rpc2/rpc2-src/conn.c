@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 5
+                              Release 7
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -260,8 +260,9 @@ void rpc2_FreeConn(RPC2_Handle whichConn)
 
     if (ce->HeldPacket != NULL)
         RPC2_FreeBuffer(&ce->HeldPacket);
-    if (ce->MySl != NULL) {
-        rpc2_DeactivateSle(ce->MySl);
+
+    if (ce->MySl) {
+        rpc2_DeactivateSle(ce->MySl, RPC2_ABANDONED);
         rpc2_FreeSle(&ce->MySl);
     }
 
