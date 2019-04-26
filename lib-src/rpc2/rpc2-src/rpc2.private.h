@@ -479,10 +479,12 @@ void rpc2_FreeSubsys(struct SubsysEntry **whichSubsys);
 
 void FreeHeld(struct SL_Entry *sle);
 
-/* Helpers to reliably convert LinkEntry pointers to rpc2 objects */
+/* Helpers to convert LinkEntry pointers to rpc2 objects */
 #define LE2(func, type, magic)                            \
     static inline type *func(struct RPC2_LinkEntry *le)   \
     {                                                     \
+        if (!le)                                          \
+            return NULL;                                  \
         assert(le->MagicNumber == magic);                 \
         return (void *)((char *)le - offsetof(type, LE)); \
     }
