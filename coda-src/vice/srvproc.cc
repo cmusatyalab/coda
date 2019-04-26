@@ -248,7 +248,7 @@ long FS_ViceFetchPartial(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
 
     /* Perform operation. */
     {
-        if (!(voltype & REPVOL) || !PrimaryHost || PrimaryHost == ThisHostAddr)
+        if (!(voltype == REPVOL) || !PrimaryHost || PrimaryHost == ThisHostAddr)
             if ((errorCode = FetchBulkTransfer(RPCid, client, volptr, v->vptr,
                                                Offset, Count, VV)))
                 goto FreeLocks;
@@ -289,7 +289,7 @@ long FS_ViceGetAttr(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Unsigned InconOK,
 
 /* ViceGetAttrPlusSHA() is a replacement for ViceGetAttr().  It does
    everything that ViceGetAttr() does and, in addition, returns the SHA
-   value of the object.   Original is retained temporarily for upward 
+   value of the object.   Original is retained temporarily for upward
    compatibility with  old clients.  Delete ViceGetAttr() as soon
    as possible. (Satya, 12/02)
 */
@@ -346,9 +346,9 @@ long FS_ViceGetAttrPlusSHA(RPC2_Handle RPCid, ViceFid *Fid,
 
     /* Obtain SHA if requested.  For now, we simplify the code by
        (a) re-computing SHA each time, and (b) only computing SHA for
-       files.  Assumption (a) is wasteful of server CPU cycles, but 
+       files.  Assumption (a) is wasteful of server CPU cycles, but
        avoids changes to RVM data layout on servers.  A better approach
-       would be to compute the SHA of a file lazily (i.e., on first 
+       would be to compute the SHA of a file lazily (i.e., on first
        ViceGetAttrPlusSHA() for it) and then saving it in persistent state.
        A server could also check its CPU load and decline to compute
        the SHA if too heavily loaded.  Assumption (b) is less clear.
@@ -415,9 +415,9 @@ long FS_ViceValidateAttrs(RPC2_Handle RPCid, RPC2_Unsigned Unused,
     return (rc);
 }
 
-/* 
- * assumes fids are given in order. a return of 1 in flags means that the 
- * client status is valid for that object, and that callback is set. 
+/*
+ * assumes fids are given in order. a return of 1 in flags means that the
+ * client status is valid for that object, and that callback is set.
  */
 
 /*
@@ -595,7 +595,7 @@ FreeLocks:
 
 /*
   BEGIN_HTML
-  <a name="ViceSetACL"><strong>Set the Access Control List for a directory</strong></a> 
+  <a name="ViceSetACL"><strong>Set the Access Control List for a directory</strong></a>
   END_HTML
 */
 long FS_ViceSetACL(RPC2_Handle RPCid, ViceFid *Fid, RPC2_CountedBS *AccessList,
@@ -644,7 +644,7 @@ long FS_ViceSetACL(RPC2_Handle RPCid, ViceFid *Fid, RPC2_CountedBS *AccessList,
 
     /* Perform operation. */
     {
-        if (voltype & (REPVOL | NONREPVOL)) {
+        if (voltype == REPVOL || voltype == NONREPVOL) {
             GetMyVS(volptr, OldVS, NewVS, voltype);
         }
 
@@ -655,7 +655,7 @@ long FS_ViceSetACL(RPC2_Handle RPCid, ViceFid *Fid, RPC2_CountedBS *AccessList,
         SetVSStatus(client, volptr, NewVS, VCBStatus, voltype);
     }
 
-    if ((voltype & REPVOL) && !errorCode) {
+    if ((voltype == REPVOL) && !errorCode) {
         if ((errorCode = SpoolVMLogRecord(vlist, v, volptr, StoreId,
                                           RES_NewStore_OP, ACLSTORE, newACL)))
             SLog(0, "ViceSetACL: error %d during SpoolVMLogRecord\n",
@@ -1057,12 +1057,18 @@ int ValidateParms(RPC2_Handle RPCid, ClientEntry **client, int *voltype,
     GroupVid  = *Vidp;
     errorCode = XlateVid(Vidp, &count, &pos, &voltype_tmp);
 
-    if (voltype_tmp & REPVOL) {
+    switch (voltype_tmp) {
+    case REPVOL:
         SLog(10, "ValidateParms: %x --> %x", GroupVid, *Vidp);
-    } else if (voltype_tmp & NONREPVOL) {
+        break;
+    case NONREPVOL:
         SLog(10, "ValidateParms: using non-replicated vol --> %x", *Vidp);
-    } else if (!errorCode) {
+        break;
+    case RWVOL:
         SLog(10, "ValidateParms: using replica %x", *Vidp);
+        break;
+    default:
+        break;
     }
 
     if (voltype)
@@ -1823,7 +1829,7 @@ int CheckRenameSemantics(ClientEntry *client, Vnode **s_dirvptr,
                         CODA_ASSERT(errorCode == 0);
                     } else {
                         CODA_ASSERT(errorCode == EWOULDBLOCK);
-                        /* 
+                        /*
 			 * Someone has the object locked.  If this is part of a
 			 * reintegration, check the supplied vlist for the vnode.
 			 * If it has already been locked (by us) the vnode number
@@ -2633,10 +2639,10 @@ void PerformSetACL(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
     CODA_ASSERT(aCLSize >= newACL->MySize);
     memcpy(aCL, newACL, newACL->MySize);
 
-    NewCOP1Update(volptr, vptr, StoreId, vsptr, (voltype & REPVOL));
+    NewCOP1Update(volptr, vptr, StoreId, vsptr, (voltype == REPVOL));
 
     /* Just needed for replicated volumes */
-    if ((voltype & REPVOL)) {
+    if (voltype == REPVOL) {
         /* Await COP2 message. */
         ViceFid fids[MAXFIDS];
         memset((void *)fids, 0, (int)(MAXFIDS * sizeof(ViceFid)));
@@ -2756,7 +2762,7 @@ void PerformRename(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
     }
     sd_vptr->disk.length = sd_newlength;
 
-    /*XXXXX this seems against unix semantics: the target should only 
+    /*XXXXX this seems against unix semantics: the target should only
      be removed if it is not a directory. Probably the client's kernel
     will protect us, but it is worrying */
     /* Remove the target name from its parent (if it exists). */
@@ -2903,7 +2909,7 @@ int PerformSymlink(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
 }
 
 /*
-  Perform_CLMS: Perform the create, link, mkdir or  
+  Perform_CLMS: Perform the create, link, mkdir or
   symlink operation on a VM copy of the object.
 */
 

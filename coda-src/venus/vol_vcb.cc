@@ -108,8 +108,7 @@ int reintvol::GetVolAttr(uid_t uid)
         rpc_common.handles  = m->rocc.handles;
         rpc_common.MIp      = m->rocc.MIp;
 
-    } else if (IsNonReplicated()) { // Non-replicated
-
+    } else {
         rpc_common.nservers = 1;
         rpc_common.hosts    = &ph_addr;
         rpc_common.retcodes = &ret_code;

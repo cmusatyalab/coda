@@ -21,7 +21,7 @@ listed in the file CREDITS.
  *         mechanism for changing this binding over time, due to:
  *
  *          - commencement of a new "epoch" for a ReplicatedVolume
- *            (i.e., adding/deleting a replica)  
+ *            (i.e., adding/deleting a replica)
  *          - movement of a volume from one host to another
  *
  *
@@ -755,33 +755,21 @@ void vdb::UpEvent(struct in_addr *host)
 /* MUST be called from within transaction! */
 void vdb::AttachFidBindings()
 {
-    repvol_iterator r_next;
-    nonrepvol_iterator nr_next;
+    reintvol_iterator next;
     reintvol *v;
 
-    while ((v = (reintvol *)r_next())) {
-        v->CML.AttachFidBindings();
-    }
-
-    while ((v = nr_next())) {
+    while ((v = next())) {
         v->CML.AttachFidBindings();
     }
 }
 
 int vdb::WriteDisconnect(unsigned int age, unsigned int time)
 {
-    repvol_iterator r_next;
-    nonrepvol_iterator nr_next;
+    reintvol_iterator next;
     reintvol *v;
     int code = 0;
 
-    while ((v = (reintvol *)r_next())) {
-        code = v->WriteDisconnect(age, time);
-        if (code)
-            break;
-    }
-
-    while ((v = nr_next())) {
+    while ((v = next())) {
         code = v->WriteDisconnect(age, time);
         if (code)
             break;
@@ -791,18 +779,11 @@ int vdb::WriteDisconnect(unsigned int age, unsigned int time)
 
 int vdb::SyncCache()
 {
-    repvol_iterator r_next;
-    nonrepvol_iterator nr_next;
+    reintvol_iterator next;
     reintvol *v;
     int code = 0;
 
-    while ((v = (reintvol *)r_next())) {
-        code = v->SyncCache();
-        if (code)
-            break;
-    }
-
-    while ((v = nr_next())) {
+    while ((v = next())) {
         code = v->SyncCache();
         if (code)
             break;
@@ -814,18 +795,10 @@ int vdb::SyncCache()
 void vdb::GetCmlStats(cmlstats &total_current, cmlstats &total_cancelled)
 {
     /* N.B.  We assume that caller has passed in zeroed-out structures! */
-    repvol_iterator r_next;
-    nonrepvol_iterator nr_next;
+    reintvol_iterator next;
     reintvol *v;
 
-    while ((v = (reintvol *)r_next())) {
-        cmlstats current, cancelled;
-        v->CML.IncGetStats(current, cancelled);
-        total_current += current;
-        total_cancelled += cancelled;
-    }
-
-    while ((v = nr_next())) {
+    while ((v = next())) {
         cmlstats current, cancelled;
         v->CML.IncGetStats(current, cancelled);
         total_current += current;
@@ -841,12 +814,9 @@ void vdb::print(int fd, int SummaryOnly)
     fdprint(fd, "volume callbacks broken = %d, total callbacks broken = %d\n",
             vcbbreaks, cbbreaks);
     if (!SummaryOnly) {
-        repvol_iterator r_next;
-        nonrepvol_iterator nr_next;
+        reintvol_iterator next;
         reintvol *v;
-        while ((v = (reintvol *)r_next()))
-            v->print(fd);
-        while ((v = nr_next()))
+        while ((v = next()))
             v->print(fd);
     }
 
@@ -855,13 +825,10 @@ void vdb::print(int fd, int SummaryOnly)
 
 void vdb::ListCache(FILE *fp, int long_format, unsigned int valid)
 {
-    repvol_iterator r_next;
-    nonrepvol_iterator nr_next;
+    reintvol_iterator next;
     reintvol *v;
 
-    while ((v = (reintvol *)r_next()))
-        v->ListCache(fp, long_format, valid);
-    while ((v = nr_next()))
+    while ((v = next()))
         v->ListCache(fp, long_format, valid);
 }
 
@@ -923,9 +890,9 @@ void volent::ResetVolTransients()
 
     list_head_init(&fso_list);
 
-    /* 
-     * sync doesn't need to be initialized. 
-     * It's used only for LWP_Wait and LWP_Signal. 
+    /*
+     * sync doesn't need to be initialized.
+     * It's used only for LWP_Wait and LWP_Signal.
      */
     refcnt = 1;
 }
@@ -1059,7 +1026,7 @@ void reintvol::ReportVolState(void)
  *        volume at a time; this is to avoid nasty interdependencies
  *        that might otherwise arise during reintegration; note that
  *        a user is still the owner as long as he has active mutating
- *        threads or records in the ModifyLog.  
+ *        threads or records in the ModifyLog.
 */
 
 #define VOLBUSY(vol) \
@@ -1076,7 +1043,7 @@ int volent::Enter(int mode, uid_t uid)
     /*  Step 1 is to demote objects in volume if AVSG enlargement or
      * shrinking has made this necessary.  The two cases that require
      * this are:
-     *    1. |AVSG| for read-write replicated volume increasing. 
+     *    1. |AVSG| for read-write replicated volume increasing.
      *    2. |AVSG| for non-replicated volume falling to 0.  */
     if (flags.demotion_pending) {
         LOG(1, ("volent::Enter: demoting %s\n", name));
@@ -1105,7 +1072,7 @@ int volent::Enter(int mode, uid_t uid)
     /* Step 3 is to try to get a volume callback. */
     /* We allow only the hoard thread to fetch new version stamps if we do not
      * already have one. If we do have stamps, we let other threads validate
-     * them with one condition.  
+     * them with one condition.
      * The wierd condition below is to prevent the vol daemon from validating
      * volumes one at a time.  That is, if the volume has just taken a
      * transition or was just demoted, there is a good chance some other
@@ -1287,11 +1254,11 @@ void volent::Exit(int mode, uid_t uid)
          vid, PRINT_VOLSTATE(state), flags.transition_pending,
          flags.demotion_pending, PRINT_VOLMODE(mode)));
 
-    /* 
+    /*
      * Step 1 is to demote objects in volume if AVSG enlargement or shrinking
-     * has made this necessary.  The two cases that require this are: 
-     *    1. |AVSG| for read-write replicated volume increasing. 
-     *    2. |AVSG| for non-replicated volume falling to 0. 
+     * has made this necessary.  The two cases that require this are:
+     *    1. |AVSG| for read-write replicated volume increasing.
+     *    2. |AVSG| for non-replicated volume falling to 0.
      */
     if (flags.demotion_pending) {
         LOG(1, ("volent::Exit: demoting %s\n", name));
@@ -2174,7 +2141,7 @@ int repvol::AllocFid(ViceDataType Type, VenusFid *target_fid, uid_t uid,
 
     int code = 0;
 
-    /* 
+    /*
      * While the volume is reachable we usually want to generate a local fid.
      * This defers the latency of contacting the servers for fids until
      * reintegrate time.  However, reintegrators MUST contact the servers
@@ -2182,7 +2149,7 @@ int repvol::AllocFid(ViceDataType Type, VenusFid *target_fid, uid_t uid,
      * reintegrated. The "force" parameter defaults to 0, in which case the
      * decision is based on state.  Reintegrators call this routine with
      * "force" set.  Note that we do not simply check IsReintegrating because
-     * a mutator executing during reintegration need not (and should not) 
+     * a mutator executing during reintegration need not (and should not)
      * be required to contact the servers.
      */
     if (IsUnreachable() || (IsReachable() && !force)) {
@@ -2977,6 +2944,15 @@ reintvol *nonrepvol_iterator::operator()()
     }
 
     return (0);
+}
+
+reintvol *reintvol_iterator::operator()()
+{
+    reintvol *v;
+    while ((v = non_rep_iterator()) || (v = (reintvol *)rep_iterator())) {
+        return v;
+    }
+    return NULL;
 }
 
 reintvol::reintvol(Realm *r, VolumeId volid, const char *volname)
