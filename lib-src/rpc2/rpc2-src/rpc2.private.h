@@ -87,7 +87,8 @@ Magic Number assignments for runtime system objects.
 Truly random values to allow easy detection of storage corruption.
 */
 
-//#define OBJ_CENTRY 868
+#define OBJ_CENTRY 868
+#define OBJ_FREE_CENTRY 686
 #define OBJ_HENTRY 48127
 #define OBJ_MENTRY 69743
 #define OBJ_PACKETBUFFER 3247517
@@ -147,11 +148,7 @@ struct CEntry /* describes a single RPC connection */
 {
     /* Link Entry Fields */
     struct dllist_head connlist;
-    enum
-    {
-        OBJ_CENTRY      = 868,
-        OBJ_FREE_CENTRY = 686
-    } MagicNumber;
+    long MagicNumber;
     struct CEntry *Qname;
 
     struct dllist_head Chain;

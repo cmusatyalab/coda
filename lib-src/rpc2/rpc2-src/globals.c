@@ -71,7 +71,6 @@ long rpc2_Bandwidth = 10485760; /* bandwidth hint supplied externally */
 /* Doubly-linked lists and counts */
 long rpc2_ConnFreeCount, rpc2_ConnCount = -1, rpc2_ConnCreationCount;
 
-struct MEntry *rpc2_MgrpFreeList;
 long rpc2_MgrpFreeCount, rpc2_MgrpCreationCount;
 
 struct RPC2_LinkEntry *rpc2_SLReqList;

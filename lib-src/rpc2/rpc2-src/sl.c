@@ -817,6 +817,7 @@ static struct SL_Entry *FindRecipient(RPC2_PacketBuffer *pb)
     }
     return (NULL);
 }
+
 static void HandleCurrentRequest(RPC2_PacketBuffer *pb, struct CEntry *ce)
 {
     say(1, RPC2_DebugLevel, "HandleCurrentRequest()\n");

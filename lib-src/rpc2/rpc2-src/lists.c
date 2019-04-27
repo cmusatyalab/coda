@@ -112,14 +112,13 @@ struct RPC2_LinkEntry *rpc2_MoveEntry(
     /* remque(victim); */
     victim->Prev->Next = victim->Next;
     victim->Next->Prev = victim->Prev;
+
+    /* make victim a singleton list */
     victim->Prev = victim->Next = victim;
 
     if (victim == *fromPtr)
         *fromPtr = NULL;
     (*fromCount)--;
-
-    /* make victim a singleton list */
-    victim->Next = victim->Prev = victim;
 
     /* then insert into second list */
     if (*toPtr == NULL)
