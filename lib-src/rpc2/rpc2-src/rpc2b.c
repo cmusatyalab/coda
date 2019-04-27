@@ -318,7 +318,7 @@ static RPC2_PacketBuffer *Gimme(long size, struct RPC2_LinkEntry **flist,
 
     pb = rpc2_LE2PB(
         rpc2_MoveEntry(flist, &rpc2_PBList, NULL, count, &rpc2_PBCount));
-    assert(pb->LE.Queue == &rpc2_PBList);
+    assert(pb->Prefix.LE.Queue == &rpc2_PBList);
     return pb;
 }
 
@@ -378,7 +378,7 @@ long RPC2_FreeBuffer(INOUT RPC2_PacketBuffer **BuffPtr)
     if (!*BuffPtr)
         return (RPC2_SUCCESS);
 
-    assert((*BuffPtr)->LE.MagicNumber == OBJ_PACKETBUFFER);
+    assert((*BuffPtr)->Prefix.LE.MagicNumber == OBJ_PACKETBUFFER);
 
     if ((*BuffPtr)->Prefix.PeerAddr) {
         RPC2_freeaddrinfo((*BuffPtr)->Prefix.PeerAddr);
@@ -404,8 +404,8 @@ long RPC2_FreeBuffer(INOUT RPC2_PacketBuffer **BuffPtr)
     default:
         assert(FALSE);
     }
-    assert((*BuffPtr)->LE.Queue == &rpc2_PBList);
-    rpc2_MoveEntry(&rpc2_PBList, tolist, &(*BuffPtr)->LE, &rpc2_PBCount,
+    assert((*BuffPtr)->Prefix.LE.Queue == &rpc2_PBList);
+    rpc2_MoveEntry(&rpc2_PBList, tolist, &(*BuffPtr)->Prefix.LE, &rpc2_PBCount,
                    tocount);
     *BuffPtr = NULL;
     rpc2_Quit(RPC2_SUCCESS);

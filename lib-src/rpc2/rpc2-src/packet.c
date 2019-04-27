@@ -123,7 +123,7 @@ void rpc2_XmitPacket(RPC2_PacketBuffer *pb, struct RPC2_addrinfo *addr,
     int rc;
 
     say(1, RPC2_DebugLevel, "rpc2_XmitPacket()\n");
-    assert(pb->LE.MagicNumber == OBJ_PACKETBUFFER);
+    assert(pb->Prefix.LE.MagicNumber == OBJ_PACKETBUFFER);
 
 #ifdef RPC2DEBUG
     if (RPC2_DebugLevel > 9) {
@@ -250,7 +250,7 @@ long rpc2_RecvPacket(IN long whichSocket, OUT RPC2_PacketBuffer *whichBuff)
     struct sockaddr_storage ss;
 
     say(1, RPC2_DebugLevel, "rpc2_RecvPacket()\n");
-    assert(whichBuff->LE.MagicNumber == OBJ_PACKETBUFFER);
+    assert(whichBuff->Prefix.LE.MagicNumber == OBJ_PACKETBUFFER);
 
     len = whichBuff->Prefix.BufferSize - (long)(&whichBuff->Header) +
           (long)(whichBuff);

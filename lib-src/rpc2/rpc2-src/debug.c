@@ -493,8 +493,8 @@ void rpc2_PrintPacketHeader(RPC2_PacketBuffer *pb, FILE *tFile)
 
     fprintf(tFile, "\tPrefix: BufferSize = %ld  LengthOfPacket = %ld  ",
             pb->Prefix.BufferSize, pb->Prefix.LengthOfPacket);
-    fprintf(tFile, "MagicNumber = %ld\n", pb->LE.MagicNumber);
-    fprintf(tFile, "Q = %p, RecvStamp = %ld.%06ld\n", pb->LE.Queue,
+    fprintf(tFile, "MagicNumber = %ld\n", pb->Prefix.LE.MagicNumber);
+    fprintf(tFile, "Q = %p, RecvStamp = %ld.%06ld\n", pb->Prefix.LE.Queue,
             pb->Prefix.RecvStamp.tv_sec, pb->Prefix.RecvStamp.tv_usec);
     fprintf(tFile, "\tHeader: ProtoVersion = 0x%lx  RemoteHandle = 0x%lx  ",
             (unsigned long)ntohl(pb->Header.ProtoVersion),

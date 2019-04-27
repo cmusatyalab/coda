@@ -174,7 +174,7 @@ long RPC2_SendResponse(IN RPC2_Handle ConnHandle, IN RPC2_PacketBuffer *Reply)
 
     rpc2_Enter();
     say(1, RPC2_DebugLevel, "RPC2_SendResponse()\n");
-    assert(!Reply || Reply->LE.MagicNumber == OBJ_PACKETBUFFER);
+    assert(!Reply || Reply->Prefix.LE.MagicNumber == OBJ_PACKETBUFFER);
 
     /* Perform sanity checks */
     ce = rpc2_GetConn(ConnHandle);
@@ -561,7 +561,7 @@ long RPC2_MakeRPC(RPC2_Handle ConnHandle, RPC2_PacketBuffer *Request,
     TR_MAKERPC();
 
     /* Perform sanity checks */
-    assert(Request->LE.MagicNumber == OBJ_PACKETBUFFER);
+    assert(Request->Prefix.LE.MagicNumber == OBJ_PACKETBUFFER);
 
     /* Zero out reply pointer */
     *Reply = NULL;
@@ -1306,7 +1306,7 @@ static RPC2_PacketBuffer *HeldReq(RPC2_RequestFilter *filter,
             if (rpc2_FilterMatch(filter, pb))
                 break;
 
-            pb = rpc2_LE2PB(pb->LE.Next);
+            pb = rpc2_LE2PB(pb->Prefix.LE.Next);
         }
         if (i >= rpc2_PBHoldCount)
             return (NULL);

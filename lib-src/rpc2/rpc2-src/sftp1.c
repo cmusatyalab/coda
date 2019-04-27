@@ -829,7 +829,7 @@ static RPC2_PacketBuffer *sftp_DequeuePacket(struct SFTP_Entry *sEntry)
 {
     RPC2_PacketBuffer *victim = rpc2_LE2PB(sEntry->RecvQueue);
     if (victim)
-        rpc2_MoveEntry(&sEntry->RecvQueue, &rpc2_PBList, &victim->LE,
+        rpc2_MoveEntry(&sEntry->RecvQueue, &rpc2_PBList, &victim->Prefix.LE,
                        &sEntry->RecvQueueLen, &rpc2_PBCount);
     return victim;
 }

@@ -406,11 +406,12 @@ replies.  The runtime system provides efficient buffer storage
 management routines --- use them!  */
 typedef struct RPC2_PacketBuffer {
     /*
- * NOTE: LE and Prefix are only used by the runtime system on the local machine.
- *	 Neither clients nor servers ever deal with it. It is never transmitted.
- */
-    struct RPC2_LinkEntry LE;
+     * NOTE: Prefix is only used by the runtime system on the local machine.
+     * Neither clients nor servers ever deal with it. It is never transmitted.
+     */
     struct RPC2_PacketBufferPrefix {
+        struct RPC2_LinkEntry LE;
+
         long BufferSize; /* Set at malloc() time; size of
                             entire packet, including prefix. */
         long LengthOfPacket; /* size of data actually

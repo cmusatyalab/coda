@@ -275,9 +275,9 @@ void rpc2_FreeSubsys(struct SubsysEntry **whichSubsys)
 /* Moves packet whichPB to hold list from inuse list */
 void rpc2_HoldPacket(RPC2_PacketBuffer *whichPB)
 {
-    assert(whichPB->LE.MagicNumber == OBJ_PACKETBUFFER);
-    rpc2_MoveEntry(&rpc2_PBList, &rpc2_PBHoldList, &whichPB->LE, &rpc2_PBCount,
-                   &rpc2_PBHoldCount);
+    assert(whichPB->Prefix.LE.MagicNumber == OBJ_PACKETBUFFER);
+    rpc2_MoveEntry(&rpc2_PBList, &rpc2_PBHoldList, &whichPB->Prefix.LE,
+                   &rpc2_PBCount, &rpc2_PBHoldCount);
     if (rpc2_HoldHWMark < rpc2_PBHoldCount)
         rpc2_HoldHWMark = rpc2_PBHoldCount;
 }
@@ -285,7 +285,7 @@ void rpc2_HoldPacket(RPC2_PacketBuffer *whichPB)
 /* Moves packet whichPB to inuse list from hold list */
 void rpc2_UnholdPacket(RPC2_PacketBuffer *whichPB)
 {
-    assert(whichPB->LE.MagicNumber == OBJ_PACKETBUFFER);
-    rpc2_MoveEntry(&rpc2_PBHoldList, &rpc2_PBList, &whichPB->LE,
+    assert(whichPB->Prefix.LE.MagicNumber == OBJ_PACKETBUFFER);
+    rpc2_MoveEntry(&rpc2_PBHoldList, &rpc2_PBList, &whichPB->Prefix.LE,
                    &rpc2_PBHoldCount, &rpc2_PBCount);
 }

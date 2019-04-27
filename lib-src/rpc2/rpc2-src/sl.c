@@ -218,7 +218,7 @@ static void rpc2_ProcessPacket(int fd)
        buffer at this point */
     RPC2_AllocBuffer(RPC2_MAXPACKETSIZE - sizeof(RPC2_PacketBuffer), &pb);
     assert(pb != NULL);
-    assert(pb->LE.Queue == &rpc2_PBList);
+    assert(pb->Prefix.LE.Queue == &rpc2_PBList);
 
     if (rpc2_RecvPacket(fd, pb) < 0) {
         say(9, RPC2_DebugLevel, "Recv error, ignoring.\n");
@@ -304,7 +304,7 @@ void RPC2_DispatchProcess()
 void rpc2_HandlePacket(RPC2_PacketBuffer *pb)
 {
     struct CEntry *ce = NULL;
-    assert(pb->LE.Queue == &rpc2_PBList);
+    assert(pb->Prefix.LE.Queue == &rpc2_PBList);
 
     rpc2_Recvd.Total++;
     rpc2_Recvd.Bytes += pb->Prefix.LengthOfPacket;

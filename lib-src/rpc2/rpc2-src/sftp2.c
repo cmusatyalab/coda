@@ -195,7 +195,7 @@ static void ServerPacket(RPC2_PacketBuffer *whichPacket,
     }
 
     /* queue packet */
-    rpc2_MoveEntry(&rpc2_PBList, &sEntry->RecvQueue, &whichPacket->LE,
+    rpc2_MoveEntry(&rpc2_PBList, &sEntry->RecvQueue, &whichPacket->Prefix.LE,
                    &rpc2_PBCount, &sEntry->RecvQueueLen);
 
     sl = sEntry->Sleeper;

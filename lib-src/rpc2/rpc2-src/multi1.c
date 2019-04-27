@@ -117,7 +117,7 @@ long RPC2_MultiRPC(
     TR_MULTI();
 
     /* perform sanity checks */
-    assert(Request->LE.MagicNumber == OBJ_PACKETBUFFER);
+    assert(Request->Prefix.LE.MagicNumber == OBJ_PACKETBUFFER);
 
     /* get context pointer */
     mcon = InitMultiCon(HowMany);

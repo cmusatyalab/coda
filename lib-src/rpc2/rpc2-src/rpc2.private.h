@@ -477,19 +477,19 @@ void rpc2_FreeSubsys(struct SubsysEntry **whichSubsys);
 void FreeHeld(struct SL_Entry *sle);
 
 /* Helpers to convert LinkEntry pointers to rpc2 objects */
-#define LE2(func, type, magic)                            \
-    static inline type *func(struct RPC2_LinkEntry *le)   \
-    {                                                     \
-        if (!le)                                          \
-            return NULL;                                  \
-        assert(le->MagicNumber == magic);                 \
-        return (void *)((char *)le - offsetof(type, LE)); \
+#define LE2(func, type, magic, member)                        \
+    static inline type *func(struct RPC2_LinkEntry *le)       \
+    {                                                         \
+        if (!le)                                              \
+            return NULL;                                      \
+        assert(le->MagicNumber == magic);                     \
+        return (void *)((char *)le - offsetof(type, member)); \
     }
-LE2(rpc2_LE2HE, struct HEntry, OBJ_HENTRY)
-LE2(rpc2_LE2ME, struct MEntry, OBJ_MENTRY)
-LE2(rpc2_LE2PB, RPC2_PacketBuffer, OBJ_PACKETBUFFER)
-LE2(rpc2_LE2SL, struct SL_Entry, OBJ_SLENTRY)
-LE2(rpc2_LE2SS, struct SubsysEntry, OBJ_SSENTRY)
+LE2(rpc2_LE2HE, struct HEntry, OBJ_HENTRY, LE)
+LE2(rpc2_LE2ME, struct MEntry, OBJ_MENTRY, LE)
+LE2(rpc2_LE2PB, RPC2_PacketBuffer, OBJ_PACKETBUFFER, Prefix.LE)
+LE2(rpc2_LE2SL, struct SL_Entry, OBJ_SLENTRY, LE)
+LE2(rpc2_LE2SS, struct SubsysEntry, OBJ_SSENTRY, LE)
 #undef LE2
 
 /* Socket creation */
