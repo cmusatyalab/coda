@@ -228,7 +228,7 @@ struct SFTP_Entry /* per-connection data structure */
                         within the file after each read/write */
     struct SL_Entry *Sleeper; /* SL_Entry of LWP sleeping on this connection,
                                  or NULL */
-    struct RPC2_LinkEntry *RecvQueue; /* queue of received packet buffers */
+    struct rpc2_LinkEntry *RecvQueue; /* queue of received packet buffers */
     long RecvQueueLen;
     uint32_t PacketSize; /* Amount of  data in each packet */
     uint32_t WindowSize; /* Max Number of outstanding packets without

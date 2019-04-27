@@ -395,10 +395,10 @@ typedef struct /* data structure filled by RPC2_GetPeerInfo() call */
 } RPC2_PeerInfo;
 
 /* Basic data structure for RPC2's internal doubly linked lists */
-struct RPC2_LinkEntry {
-    struct RPC2_LinkEntry *Next, *Prev;
+struct rpc2_LinkEntry {
+    struct rpc2_LinkEntry *Next, *Prev;
     long MagicNumber; /* unique for object type; NEVER altered */
-    struct RPC2_LinkEntry **Queue; /* pointer to the queue this packet is on */
+    struct rpc2_LinkEntry **Queue; /* pointer to the queue this packet is on */
 };
 
 /* The RPC2_PacketBuffer definition below deals with both requests and
@@ -410,7 +410,7 @@ typedef struct RPC2_PacketBuffer {
      * Neither clients nor servers ever deal with it. It is never transmitted.
      */
     struct RPC2_PacketBufferPrefix {
-        struct RPC2_LinkEntry LE;
+        struct rpc2_LinkEntry LE;
 
         long BufferSize; /* Set at malloc() time; size of
                             entire packet, including prefix. */

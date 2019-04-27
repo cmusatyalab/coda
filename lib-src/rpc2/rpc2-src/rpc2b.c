@@ -69,7 +69,7 @@ Pittsburgh, PA.
 #include "trace.h"
 
 /* free lists for different size packets. */
-static struct RPC2_LinkEntry *rpc2_PBSmallFreeList, *rpc2_PBMediumFreeList,
+static struct rpc2_LinkEntry *rpc2_PBSmallFreeList, *rpc2_PBMediumFreeList,
     *rpc2_PBLargeFreeList;
 
 RPC2_HostIdent rpc2_bindhost = {
@@ -305,7 +305,7 @@ long RPC2_DeExport(IN RPC2_SubsysIdent *Subsys)
     rpc2_Quit(RPC2_SUCCESS);
 }
 
-static RPC2_PacketBuffer *Gimme(long size, struct RPC2_LinkEntry **flist,
+static RPC2_PacketBuffer *Gimme(long size, struct rpc2_LinkEntry **flist,
                                 long *count, long *creacount)
 {
     RPC2_PacketBuffer *pb;
@@ -370,7 +370,7 @@ long rpc2_AllocBuffer(IN long MinBodySize, OUT RPC2_PacketBuffer **BuffPtr,
 
 long RPC2_FreeBuffer(INOUT RPC2_PacketBuffer **BuffPtr)
 {
-    struct RPC2_LinkEntry **tolist = NULL;
+    struct rpc2_LinkEntry **tolist = NULL;
     long *tocount                  = NULL;
 
     rpc2_Enter();

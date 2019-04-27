@@ -73,16 +73,16 @@ long rpc2_ConnFreeCount, rpc2_ConnCount = -1, rpc2_ConnCreationCount;
 
 long rpc2_MgrpFreeCount, rpc2_MgrpCreationCount;
 
-struct RPC2_LinkEntry *rpc2_SLReqList;
+struct rpc2_LinkEntry *rpc2_SLReqList;
 long rpc2_SLFreeCount, rpc2_SLReqCount, rpc2_SLCount, rpc2_SLCreationCount;
 
-struct RPC2_LinkEntry *rpc2_PBList, *rpc2_PBHoldList;
+struct rpc2_LinkEntry *rpc2_PBList, *rpc2_PBHoldList;
 long rpc2_PBSmallFreeCount, rpc2_PBSmallCreationCount, rpc2_PBMediumFreeCount,
     rpc2_PBMediumCreationCount, rpc2_PBLargeFreeCount,
     rpc2_PBLargeCreationCount;
 long rpc2_PBCount, rpc2_PBHoldCount, rpc2_PBFreezeCount;
 
-struct RPC2_LinkEntry *rpc2_SSList;
+struct rpc2_LinkEntry *rpc2_SSList;
 long rpc2_SSFreeCount, rpc2_SSCount, rpc2_SSCreationCount;
 
 long rpc2_HostFreeCount, rpc2_HostCount, rpc2_HostCreationCount;

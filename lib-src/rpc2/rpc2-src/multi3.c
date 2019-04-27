@@ -57,7 +57,7 @@ Pittsburgh, PA.
 #include "rpc2.private.h"
 #include "trace.h"
 
-struct RPC2_LinkEntry *rpc2_MgrpFreeList; /* free mgrp blocks */
+struct rpc2_LinkEntry *rpc2_MgrpFreeList; /* free mgrp blocks */
 
 void rpc2_RemoveFromMgrp(struct MEntry *me, struct CEntry *ce);
 void rpc2_DeleteMgrp(struct MEntry *me);
@@ -70,7 +70,7 @@ void rpc2_DeleteMgrp(struct MEntry *me);
 
 #define MGRPHASHLENGTH 256 /* must be power of 2 */
 static struct bucket {
-    struct RPC2_LinkEntry *chain;
+    struct rpc2_LinkEntry *chain;
     long count;
 } MgrpHashTable[MGRPHASHLENGTH];
 static RPC2_Handle LastMgrpidAllocated;

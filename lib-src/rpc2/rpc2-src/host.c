@@ -50,7 +50,7 @@ Pittsburgh, PA.
 #include "rpc2.private.h"
 
 /* free and in-use lists for struct HEntry */
-static struct RPC2_LinkEntry *rpc2_HostFreeList, *rpc2_HostList;
+static struct rpc2_LinkEntry *rpc2_HostFreeList, *rpc2_HostList;
 
 /* Code to track host liveness
 

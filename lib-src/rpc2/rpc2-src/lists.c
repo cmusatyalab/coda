@@ -50,14 +50,14 @@ Pittsburgh, PA.
 #include "rpc2.private.h"
 
 /* various free and in-use lists */
-static struct RPC2_LinkEntry *rpc2_SLFreeList, /* free SL_Entry entries */
+static struct rpc2_LinkEntry *rpc2_SLFreeList, /* free SL_Entry entries */
     *rpc2_SLList; /* in use, of types REPLY or OTHER */
-static struct RPC2_LinkEntry *rpc2_SSFreeList; /* free SubsysEntry entries */
+static struct rpc2_LinkEntry *rpc2_SSFreeList; /* free SubsysEntry entries */
 
 /* Routines to allocate and manipulate the doubly-linked circular lists
    used elsewhere in rpc2 */
 
-void rpc2_Replenish(struct RPC2_LinkEntry **whichList, long *whichCount,
+void rpc2_Replenish(struct rpc2_LinkEntry **whichList, long *whichCount,
                     long elemSize, /* size of each element in the list */
                     long *creationCount, long magicNumber)
 /* Routine to avoid using malloc() too often.
@@ -66,7 +66,7 @@ void rpc2_Replenish(struct RPC2_LinkEntry **whichList, long *whichCount,
    Bumps creationCount by 1.
 */
 {
-    *whichList = (struct RPC2_LinkEntry *)malloc(elemSize);
+    *whichList = (struct rpc2_LinkEntry *)malloc(elemSize);
     assert(*whichList != NULL);
     memset(*whichList, 0, elemSize);
     (*whichList)->Next = (*whichList)->Prev =
@@ -89,15 +89,15 @@ void rpc2_Replenish(struct RPC2_LinkEntry **whichList, long *whichCount,
         *toCount is incremented by one.
 
    Frequently used routine -- optimize the hell out of it.  */
-struct RPC2_LinkEntry *rpc2_MoveEntry(
+struct rpc2_LinkEntry *rpc2_MoveEntry(
     /* pointers to header pointers of from and to lists */
-    struct RPC2_LinkEntry **fromPtr, struct RPC2_LinkEntry **toPtr,
-    struct RPC2_LinkEntry *p, /* pointer to entry to be moved */
+    struct rpc2_LinkEntry **fromPtr, struct rpc2_LinkEntry **toPtr,
+    struct rpc2_LinkEntry *p, /* pointer to entry to be moved */
     long *fromCount, /* pointer to count of entries in from list */
     long *toCount /* pointer to count of entries in to list */
 )
 {
-    struct RPC2_LinkEntry *victim;
+    struct rpc2_LinkEntry *victim;
 
     if (p == NULL)
         victim = *fromPtr;
@@ -140,7 +140,7 @@ struct RPC2_LinkEntry *rpc2_MoveEntry(
 struct SL_Entry *rpc2_AllocSle(enum SL_Type slType, struct CEntry *slConn)
 {
     struct SL_Entry *sl;
-    struct RPC2_LinkEntry **tolist;
+    struct rpc2_LinkEntry **tolist;
     long *tocount;
 
     if (rpc2_SLFreeCount == 0) {
@@ -175,7 +175,7 @@ void rpc2_FreeSle(INOUT struct SL_Entry **sl)
    Removes binding between sl and its connection */
 {
     struct SL_Entry *tsl;
-    struct RPC2_LinkEntry **fromlist;
+    struct rpc2_LinkEntry **fromlist;
     long *fromcount;
     struct CEntry *ce;
 

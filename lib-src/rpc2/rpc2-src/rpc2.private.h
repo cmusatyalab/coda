@@ -204,7 +204,7 @@ struct CEntry /* describes a single RPC connection */
 
 struct MEntry /* describes an RPC multicast connection */
 {
-    struct RPC2_LinkEntry LE;
+    struct rpc2_LinkEntry LE;
 
     /* Multicast Group Connection info */
     RPC2_Integer State; /* eg {C,S}_AWAITREQUEST */
@@ -286,7 +286,7 @@ enum RetVal
 
 /* data structure for communication with SocketListener */
 struct SL_Entry {
-    struct RPC2_LinkEntry LE;
+    struct rpc2_LinkEntry LE;
 
     enum SL_Type Type;
 
@@ -306,7 +306,7 @@ struct SL_Entry {
 
 struct SubsysEntry /* Defines a subsystem being actively serviced by a server */
 { /* Created by RPC2_InitSubsys(); destroyed by RPC2_EndSubsys() */
-    struct RPC2_LinkEntry LE;
+    struct rpc2_LinkEntry LE;
     long Id; /* using a struct is a little excessive, but it makes things
                 uniform */
 };
@@ -320,7 +320,7 @@ typedef enum
 } HEType;
 
 struct HEntry {
-    struct RPC2_LinkEntry LE;
+    struct rpc2_LinkEntry LE;
 
     struct HEntry *HLink; /* for host hash */
     int RefCount; /* # connections that have a reference */
@@ -434,14 +434,14 @@ extern long rpc2_MgrpFreeCount, rpc2_MgrpCreationCount;
 
 /* Items for SocketListener */
 
-extern struct RPC2_LinkEntry *rpc2_SLReqList; /* SL_Entry in use, of type REQ */
+extern struct rpc2_LinkEntry *rpc2_SLReqList; /* SL_Entry in use, of type REQ */
 extern long rpc2_SLReqCount, rpc2_SLCount;
 
 /* Lists holding allocated and free packet buffers */
-extern struct RPC2_LinkEntry *rpc2_PBList, *rpc2_PBHoldList;
+extern struct rpc2_LinkEntry *rpc2_PBList, *rpc2_PBHoldList;
 
 /* Subsystem definitions */
-extern struct RPC2_LinkEntry *rpc2_SSList; /* subsystems in active use */
+extern struct rpc2_LinkEntry *rpc2_SSList; /* subsystems in active use */
 
 /* Host info definitions */
 extern long rpc2_HostFreeCount, rpc2_HostCount, rpc2_HostCreationCount;
@@ -460,11 +460,11 @@ extern struct timeval KeepAlive;
 extern uint32_t *rpc2_RTTvals;
 
 /* List manipulation routines */
-void rpc2_Replenish(struct RPC2_LinkEntry **whichList, long *whichCount,
+void rpc2_Replenish(struct rpc2_LinkEntry **whichList, long *whichCount,
                     long elemSize, long *creationCount, long magicNumber);
-struct RPC2_LinkEntry *rpc2_MoveEntry(struct RPC2_LinkEntry **fromPtr,
-                                      struct RPC2_LinkEntry **toPtr,
-                                      struct RPC2_LinkEntry *p, long *fromCount,
+struct rpc2_LinkEntry *rpc2_MoveEntry(struct rpc2_LinkEntry **fromPtr,
+                                      struct rpc2_LinkEntry **toPtr,
+                                      struct rpc2_LinkEntry *p, long *fromCount,
                                       long *toCount);
 
 struct SL_Entry *rpc2_AllocSle(enum SL_Type slType, struct CEntry *slConn);
@@ -478,7 +478,7 @@ void FreeHeld(struct SL_Entry *sle);
 
 /* Helpers to convert LinkEntry pointers to rpc2 objects */
 #define LE2(func, type, magic, member)                        \
-    static inline type *func(struct RPC2_LinkEntry *le)       \
+    static inline type *func(struct rpc2_LinkEntry *le)       \
     {                                                         \
         if (!le)                                              \
             return NULL;                                      \
