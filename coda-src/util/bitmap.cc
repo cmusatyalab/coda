@@ -86,9 +86,8 @@ void bitmap::operator delete(void *ptr)
 
 bitmap::bitmap(int inputmapsize, int recable)
 {
-    CODA_ASSERT(
-        malloced !=
-        BITMAP_NOTVIANEW); /* ensure malloced is undefined if via stack! */
+    /* ensure malloced is undefined if via stack! */
+    CODA_ASSERT(malloced != BITMAP_NOTVIANEW);
     if (malloced != BITMAP_VIANEW)
         malloced = BITMAP_NOTVIANEW; /* infer I must be on the stack */
     /* From this point on, malloced is definitely defined */
