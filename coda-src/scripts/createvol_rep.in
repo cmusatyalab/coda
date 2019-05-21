@@ -204,7 +204,7 @@ rm -f "/tmp/out.$$"
 # HACK, disable resolution on singly replicated volumes. The server should
 # really be doing this.
 if [ $NSERVERS -eq 1 ] ; then
-    volutil -h "$SERVERS" setlogparms "$volnum" reson 0
+    volutil -h $SERVERS setlogparms "$volnum" reson 0
 fi
 
 # Rebuild the VLDB
