@@ -1944,14 +1944,17 @@ int plan9server::recv_setattr(unsigned char *buf, size_t len, uint16_t tag)
         stat.st_size, stat.st_atime_sec, stat.st_atime_nsec, stat.st_mtime_sec,
         stat.st_mtime_nsec);
 
-    struct timespec atime       = { (time_t)stat.st_atime_sec,
-                              (long)stat.st_atime_nsec };
-    struct timespec mtime       = { (time_t)stat.st_mtime_sec,
-                              (long)stat.st_mtime_nsec };
-    struct timespec ignore_time = { VA_IGNORE_TIME1, VA_IGNORE_TIME1 };
-    struct timespec now_time;
+    struct coda_timespec atime       = { (time_t)stat.st_atime_sec,
+                                   (long)stat.st_atime_nsec };
+    struct coda_timespec mtime       = { (time_t)stat.st_mtime_sec,
+                                   (long)stat.st_mtime_nsec };
+    struct coda_timespec ignore_time = { VA_IGNORE_TIME1, VA_IGNORE_TIME1 };
+    struct coda_timespec now_time;
 #ifdef HAVE_CLOCK_GETTIME
-    ::clock_gettime(CLOCK_REALTIME, &now_time);
+    struct timespec now;
+    ::clock_gettime(CLOCK_REALTIME, &now);
+    now_time.tv_sec  = now.tv_sec;
+    now_time.tv_nsec = now.tv_nsec;
 #else
     struct timeval tv;
     ::gettimeofday(&tv, NULL);

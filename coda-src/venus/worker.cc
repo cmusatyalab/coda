@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -805,19 +805,23 @@ void WorkerInit()
     if (::ioctl(worker::muxfd, CIOC_KERNEL_VERSION, &worker::kernel_version) >=
         0) {
         switch (worker::kernel_version) {
-        case 5:
-            eprint("Kernel module IS VASTRO-enabled");
+        case 5: /* VASTRO */
+            eprint("Kernel module is VASTRO-enabled");
             break;
-        case 4:
+        case 4: /* 64-bit time_t in timespec */
+            break;
         case 3:
-            eprint("Kernel module IS NOT VASTRO-enabled");
-            break;
+            /* using long for time_t in timespec. Our 64-bit time_t will be
+             * fine on a 64-bit system, but breaks on a 32-bit */
+            if (sizeof(long) == sizeof(uint64_t))
+                break;
+
+            eprint("Kernel module does not yet use 64-bit time_t in timespec");
         case 2: /* 1 & 2 are upwards compatible, but 3 introduced the realms */
         case 1:
         default:
-            eprint("WorkerInit: Version Skew with kernel! Get a newer kernel!");
-            eprint("WorkerInit: Kernel version is %d\n.",
-                   worker::kernel_version);
+            eprint("Version Skew with kernel, get a newer kernel");
+            eprint("Kernel module version is %d\n.", worker::kernel_version);
             exit(EXIT_FAILURE);
         }
     } else {

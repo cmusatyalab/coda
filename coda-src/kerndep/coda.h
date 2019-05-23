@@ -24,9 +24,9 @@ CREDITS.
 /*
 
             Coda: an Experimental Distributed File System
-                             Release 6
+                             Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                          All Rights Reserved
 
 Permission  to  use, copy, modify and distribute this software and its
@@ -72,10 +72,6 @@ typedef u_long dev_t;
 typedef void * caddr_t;
 #endif
 
-struct timespec {
-        long       ts_sec;
-        long       ts_nsec;
-};
 #endif /* !__CYGWIN32__ */
 
 
@@ -218,6 +214,11 @@ static __inline__ ino_t coda_f2i(struct CodaFid *fid)
  */
 enum coda_vtype	{ C_VNON, C_VREG, C_VDIR, C_VBLK, C_VCHR, C_VLNK, C_VSOCK, C_VFIFO, C_VBAD };
 
+struct coda_timespec {
+	int64_t		tv_sec;		/* seconds */
+	long		tv_nsec;	/* nanoseconds */
+};
+
 /* we set this bit in va_flags if we still have to fetch the file's contents
  * from the servers */
 #define SF_UNCACHED	0x80000000
@@ -231,9 +232,9 @@ struct coda_vattr {
 	unsigned long	va_fileid;	/* file id */
 	uint64_t	va_size;	/* file size in bytes */
 	long		va_blocksize;	/* blocksize preferred for i/o */
-	struct timespec	va_atime;	/* time of last access */
-	struct timespec	va_mtime;	/* time of last modification */
-	struct timespec	va_ctime;	/* time file changed */
+	struct coda_timespec va_atime;	/* time of last access */
+	struct coda_timespec va_mtime;	/* time of last modification */
+	struct coda_timespec va_ctime;	/* time file changed */
 	u_long		va_gen;		/* generation number of file */
 	u_long		va_flags;	/* flags defined for file */
 	cdev_t	        va_rdev;	/* device special file represents */
@@ -308,13 +309,11 @@ struct coda_statfs {
 
 #define CIOC_KERNEL_VERSION _IOWR('c', 10, size_t)
 
-#if 0
-#define CODA_KERNEL_VERSION 0 /* don't care about kernel version number */
-#define CODA_KERNEL_VERSION 1 /* The old venus 4.6 compatible interface */
-#define CODA_KERNEL_VERSION 2 /* venus_lookup gets an extra parameter */
-#define CODA_KERNEL_VERSION 3 /* 128-bit file identifiers */
-#define CODA_KERNEL_VERSION 4 /* 64-bit time_t on a 32-bit system */
-#endif
+//      CODA_KERNEL_VERSION 0 /* don't care about kernel version number */
+//      CODA_KERNEL_VERSION 1 /* The old venus 4.6 compatible interface */
+//      CODA_KERNEL_VERSION 2 /* venus_lookup gets an extra parameter */
+//      CODA_KERNEL_VERSION 3 /* 128-bit file identifiers */
+//      CODA_KERNEL_VERSION 4 /* 64-bit timespec */
 #define CODA_KERNEL_VERSION 5 /* access intent support */
 
 
