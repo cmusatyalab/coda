@@ -805,6 +805,19 @@ void WorkerInit()
     if (::ioctl(worker::muxfd, CIOC_KERNEL_VERSION, &worker::kernel_version) >=
         0) {
         switch (worker::kernel_version) {
+#ifdef NO_64BIT_TIMESPEC
+        case 5: /* VASTRO */
+            eprint("Kernel module is VASTRO-enabled");
+        case 4: /* 64-bit time_t in timespec */
+            /* using 64-bit time_t in timespec. But we're using long so this
+             * it fine on a 64-bit system, but breaks on a 32-bit */
+            if (sizeof(long) != sizeof(uint64_t)) {
+                eprint("Kernel module is using 64-bit time_t in timespec");
+                exit(EXIT_FAILURE);
+            }
+        case 3:
+            break;
+#else
         case 5: /* VASTRO */
             eprint("Kernel module is VASTRO-enabled");
             break;
@@ -817,6 +830,7 @@ void WorkerInit()
                 break;
 
             eprint("Kernel module does not yet use 64-bit time_t in timespec");
+#endif
         case 2: /* 1 & 2 are upwards compatible, but 3 introduced the realms */
         case 1:
         default:

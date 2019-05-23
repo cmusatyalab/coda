@@ -59,8 +59,15 @@ AC_ARG_ENABLE(venus, [  --enable-client-only	  build only Coda client],
     buildvenus="$enableval", buildvenus="no")
 AC_ARG_ENABLE(vcodacon, [  --enable-vcodacon	  build graphical Coda console],
     buildvcodacon="$enableval", buildvcodacon="no")
-AC_ARG_ENABLE(unit_test, [  --enable-unit-test	run unit tests],
+
+AC_ARG_ENABLE(unit_test, [  --disable-unit-test      run unit tests],
     run_unit="$enableval", run_unit="yes")
+AC_ARG_ENABLE(coda_timespec, [  --disable-coda-timespec build client for old Coda kernel module on 32-bit],
+    coda_timespec="$enableval", coda_timespec="yes")
+
+if test "x$coda_timespec" != xyes ; then
+    AC_DEFINE([NO_64BIT_TIMESPEC], [1], [Define to use long for time_t in coda.h])
+fi
 
 dnl Make sure we configure any sub-projects before checking with pkg-config
 test -f "${srcdir}/lib-src/lwp/configure.ac" && AC_CONFIG_SUBDIRS([lib-src/lwp])

@@ -60,6 +60,10 @@ Mellon the rights to redistribute these changes without encumbrance.
 #ifndef _CODA_HEADER_
 #define _CODA_HEADER_
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <sys/types.h>
 #include <sys/time.h>
 #include <stdint.h>
@@ -215,7 +219,11 @@ static __inline__ ino_t coda_f2i(struct CodaFid *fid)
 enum coda_vtype	{ C_VNON, C_VREG, C_VDIR, C_VBLK, C_VCHR, C_VLNK, C_VSOCK, C_VFIFO, C_VBAD };
 
 struct coda_timespec {
+#ifdef NO_64BIT_TIMESPEC
+	long		tv_sec;		/* seconds */
+#else
 	int64_t		tv_sec;		/* seconds */
+#endif
 	long		tv_nsec;	/* nanoseconds */
 };
 
