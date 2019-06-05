@@ -34,7 +34,7 @@ build_source:
     - tools/version_check.sh
     - ./bootstrap.sh --fix-versions
     - ./configure --prefix=/usr --with-lua
-    - make distcheck dist-xz
+    - make distcheck
   artifacts:
     expire_in: 1 week
     paths:

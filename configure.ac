@@ -6,7 +6,7 @@ AC_INIT(Coda, 7.0.5, [bugs@coda.cs.cmu.edu])
 AC_CONFIG_AUX_DIR([.])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_SRCDIR([coda-src/librepair/resolve.h])
-AM_INIT_AUTOMAKE([foreign subdir-objects])
+AM_INIT_AUTOMAKE([foreign subdir-objects dist-xz])
 AC_CONFIG_HEADERS([config.h])
 
 CODA_RELEASE=`echo $PACKAGE_VERSION | cut -d. -f1`
