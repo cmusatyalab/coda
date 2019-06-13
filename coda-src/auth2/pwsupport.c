@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -284,7 +284,7 @@ static void AppendPW(int vId, RPC2_EncryptionKey eKey, char *otherInfo,
         bnext += 2;
     }
     sprintf(bnext, "\t%s", otherInfo);
-    bnext += strlen(otherInfo);
+    bnext += sizeof('\t') + strlen(otherInfo);
     cl = time(NULL);
     sprintf(bnext, "\t# By %d at %s", agentId, ctime(&cl));
 
