@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 2004-2016 Carnegie Mellon University
+          Copyright (c) 2004-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -558,7 +558,8 @@ int ProcessFileOrSymlink()
         CODA_ASSERT(buff);
         rc = DStream->CopyBytesToMemory(buff, smallv.length);
         if (rc < 0) {
-            fprintf(stderr, "ERROR: Couldn't get sym link from dump file\n");
+            fprintf(stderr, "ERROR: Couldn't get symlink from dump (%s)\n",
+                    TarObj.tr_name);
             exit(EXIT_FAILURE);
         }
         memcpy(TarObj.tr_linkname, buff,
