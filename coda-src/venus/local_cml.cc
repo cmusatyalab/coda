@@ -562,7 +562,7 @@ static int DoRepair_GetObjects(VenusFid *fid, fsobj **global, fsobj **local)
   the current mutation operation </strong></a>
   END_HTML
 */
-/* must not be called from within a transaction */
+/* MUST NOT be called from within a transaction */
 int cmlent::DoRepair(char *msg, int rcode)
 {
     OBJ_ASSERT(this, msg != NULL);

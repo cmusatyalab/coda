@@ -117,6 +117,7 @@ void CacheFile::Validate()
         Reset();
 }
 
+/* MUST be called from within transaction! */
 void CacheFile::SetPartial(bool is_partial)
 {
     if (is_partial == this->isPartial)
@@ -218,6 +219,7 @@ void CacheFile::Create(int newlength)
 /*
  * copies a cache file, data and attributes, to a new one.
  */
+/* MUST be called from within transaction! */
 int CacheFile::Copy(CacheFile *destination)
 {
     Copy(destination->name);
