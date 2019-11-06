@@ -674,13 +674,17 @@ void RecovTerminate()
             rvm_tid_t tid;
             rvm_init_tid(&tid);
             rvm_return_t ret;
+
             ret = rvm_begin_transaction(&tid, no_restore);
             CODA_ASSERT(ret == RVM_SUCCESS);
+
             ret = rvm_set_range(&tid, (char *)&rvg->recov_CleanShutDown,
                                 sizeof(rvg->recov_CleanShutDown));
             CODA_ASSERT(ret == RVM_SUCCESS);
+
             rvg->recov_CleanShutDown = 1;
-            ret                      = rvm_end_transaction(&tid, flush);
+
+            ret = rvm_end_transaction(&tid, flush);
             CODA_ASSERT(ret == RVM_SUCCESS);
         }
 
