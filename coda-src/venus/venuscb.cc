@@ -248,7 +248,9 @@ long VENUS_CallBackFetch(RPC2_Handle RPCid, ViceFid *Fid, SE_Descriptor *BD)
     if (!f->shadow) {
         eprint("CallBackFetch: no shadow file! (%s). Attempting to fix up.\n",
                FID_(&f->fid));
+        Recov_BeginTrans();
         f->MakeShadow();
+        Recov_EndTrans(MAXFP);
     }
 
     /* Sanity checks. */

@@ -2407,6 +2407,7 @@ int fsobj::IsVirgin()
     return (virginal);
 }
 
+/* MUST be called from within a transaction */
 int fsobj::MakeShadow()
 {
     int err = 0;

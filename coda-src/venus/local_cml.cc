@@ -640,7 +640,9 @@ int cmlent::DoRepair(char *msg, int rcode)
                 }
 
                 /* copy the local-obj cache file into the global-obj cache */
+                Recov_BeginTrans();
                 LObj->data.file->Copy(replicas[i]->data.file);
+                Recov_EndTrans(MAXFP);
 
                 code = replicas[i]->RepairStore();
                 LOG(0, ("cmlent::DoRepair: repair-storing (%s) %s\n",
