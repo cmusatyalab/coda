@@ -1,3 +1,7 @@
+New in 2.13:
+
+ * Fixed memory leak when exiting. (Pedro Cuadra)
+
 New in 2.12:
 
  * Cleaned up code formatting, any code changes are likely accidental.

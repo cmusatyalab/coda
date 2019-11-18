@@ -1,3 +1,8 @@
+New in 1.25:
+
+* Fixed some memory leaks in RVM. (Pedro Cuadra)
+* Fixed daemon thread synchronization during shutdown. (Pedro Cuadra)
+
 New in 1.24:
 
 * Cleaned up code formatting.

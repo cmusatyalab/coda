@@ -1,3 +1,8 @@
+New in 2.26
+
+* Fixed up function prototypes to catch any instances where we are passing
+  insufficient or incorrect arguments.
+
 New in 2.25
 
 * Cleaned up code formatting, any code changes are likely accidental.
