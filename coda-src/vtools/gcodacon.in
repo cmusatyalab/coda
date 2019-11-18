@@ -1,9 +1,9 @@
-#!@PYTHON@2
+#!@PYTHON@3
 #
-#			   Coda File System
-#			      Release 6
+# 			   Coda File System
+# 			      Release 7
 #
-#		Copyright (c) 2007 Carnegie Mellon University
+# 	    Copyright (c) 2007-2019 Carnegie Mellon University
 #
 # This  code  is  distributed "AS IS" without warranty of any kind under
 # the terms of the GNU General Public License Version 2, as shown in the
@@ -13,644 +13,715 @@
 #
 # gcodacon - Show the Coda client's volume/reintegration state
 
-import pygtk
-pygtk.require('2.0')
-import gtk, gobject
-import os, socket, re, time
+import os
+import re
+import socket
+import time
+
+import gi
+
+gi.require_version("Gtk", "3.0")
+gi.require_version("GdkPixbuf", "2.0")
+gi.require_version("Notify", "0.7")
+from gi.repository import GLib, GObject, Gtk, Gdk, GdkPixbuf, Notify  # noqa: E402
 
 # send no more than 20 updates per second to the notification daemon
 NOTIFICATION_INTERVAL = 0.05
 
-try:
-    from pynotify import Notification, init as notify_init, \
-	URGENCY_LOW, URGENCY_NORMAL, URGENCY_CRITICAL
-    if not notify_init("GCodacon"):
-	print "*** failed to initialize pynotify"
-	Notification = None
-except ImportError:
-    print "*** failed to import pynotify"
-    Notification = None
-    URGENCY_LOW, URGENCY_NORMAL, URGENCY_CRITICAL = 0, 1, 2
+Notify.init("gcodacon")
+URGENCY_LOW = Notify.Urgency.LOW
+URGENCY_NORMAL = Notify.Urgency.NORMAL
+URGENCY_CRITICAL = Notify.Urgency.CRITICAL
 
-venus_conf=os.path.join('@sysconfdirx@', 'venus.conf')
-dirty_threshold=100 # At what point do we start to worry about pending changes
+venus_conf = os.path.join("/etc/coda", "venus.conf")
+dirty_threshold = 100  # When do we start to worry about queued changes
 
 ##########################################################################
-### Icon
+# Icon
 ##########################################################################
 # bunch of colors
-black  = "#000000"
-dblue  = "#4E3691"
-lblue  = "#754FC6"
-dred   = "#C40B0B"
-lred   = "#FF2222"
+black = "#000000"
+dblue = "#4E3691"
+lblue = "#754FC6"
+dred = "#C40B0B"
+lred = "#FF2222"
 orange = "#FFA61B"
 yellow = "#FFEA00"
 dgreen = "#55C155"
 lgreen = "#6EFB6E"
-white  = "#FFFFFF"
+white = "#FFFFFF"
 transp = "None"
 
 # places we can change the color of
-backgr  = ' '
-circle  = '@'
-server  = '$'
-edges   = '.'
-top     = '#'
-topedge = '+'
+backgr = " "
+circle = "@"
+server = "$"
+edges = "."
+top = "#"
+topedge = "+"
 
 # default color mapping
-ICON_XPM_COLORMAP = { backgr : transp, circle : transp, edges : black,
-    server : white, topedge : dblue, top : lblue }
+ICON_XPM_COLORMAP = {
+    backgr: transp,
+    circle: transp,
+    edges: black,
+    server: white,
+    topedge: dblue,
+    top: lblue,
+}
 
 # actual image data
 ICON_XPM_DATA = [
-#/* XPM */
-#static char * icon_xpm[] = {
-#"64 64 6 1",
-#" 	c None",
-#".	c #000000",
-#"+	c #4E3691",
-#"@	c #FF2222",
-#"#	c #754FC6",
-#"$	c #FFFFFF",
-"                                                                ",
-"                          @@@@@@@@@@@@                          ",
-"                      @@@@@@@@@@@@@@@@@@@@                      ",
-"                    @@@@@@@@@@@@@@@@@#@@@@@@                    ",
-"                  @@@@@@@@@@@@@@@@######@@@@@@                  ",
-"                @@@@@@@@@@@@@@@###########@@@@@@                ",
-"              @@@@@@@@@@@@@@################@@@@@@              ",
-"             @@@@@@@@@@@@#####################@@@@@             ",
-"            @@@@@@@@@@##########################@@@@            ",
-"           @@@@@@@@##############################@@@@           ",
-"          @@@@@@##################################@@@@          ",
-"         @@@@@@###############################+++++@@@@         ",
-"        @@@@@@#############################++++++++@@@@@        ",
-"       @@@@@@+++########################++++++++++.@@@@@@       ",
-"      @@@@@@@+++++###################++++++++++$...@@@@@@@      ",
-"      @@@@@@@+++++++##############++++++++++$$$$...@@@@@@@      ",
-"     @@@@@@@@..+++++++#########++++++++++$$$$$$$...@@@@@@@@     ",
-"     @@@@@@@@...$+++++++####++++++++++$$$$$$$$$$...@@@@@@@@     ",
-"    @@@@@@@@@...$$$++++++++++++++++$$$$$$$$$$$$$...@@@@@@@@@    ",
-"    @@@@@@@@@...$$$$$+++++++++++$$$$$$$$$$....$$...@@@@@@@@@    ",
-"   @@@@@@@@@@...$$$$$$$++++++$$$$$$$$$$.......$$...@@@@@@@@@@   ",
-"   @@@@@@@@@@...$$$$$$$$.+.$$$$$$$$$........$$$$...@@@@@@@@@@   ",
-"  @@@@@@@@@@@...$$$$$$$$...$$$$$$$.......$$$$$$$...@@@@@@@@@@@  ",
-"  @@@@@@@@@@@...$$$$$$$$...$$$$$$$....$$$$$$$$$$...@@@@@@@@@@@  ",
-"  @@@@@@@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$$...@@@@@@@@@@@  ",
-"  @@@@@@@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$$...@@@@@@@@@@@  ",
-" @@@@@@@@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$$...@@@@@@@@@@@@ ",
-" @@@@@@@@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$$...@@@@@@@@@@@@ ",
-" @@@@@@@@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$$...@@@@@@@@@@@@ ",
-" @@@@@@@@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$$...@@@@@@@@@@@@ ",
-" @@@@@@@@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$$...@@@@@@@@@@@@ ",
-" @@@@@@@@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$$...@@@@@@@@@@@@ ",
-" @@@@@@@@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$$...@@@@@@@@@@@@ ",
-" @@@@@@@@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$$...@@@@@@@@@@@@ ",
-" @@@@@@@@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$$...@@@@@@@@@@@@ ",
-" @@@@@@@@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$$...@@@@@@@@@@@@ ",
-" @@@@@@@@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$$...@@@@@@@@@@@@ ",
-" @@@@@@@@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$$...@@@@@@@@@@@@ ",
-"  @@@@@@@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$$...@@@@@@@@@@@  ",
-"  @@@@@@@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$$...@@@@@@@@@@@  ",
-"  @@@@@@@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$$...@@@@@@@@@@@  ",
-"  @@@@@@@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$$...@@@@@@@@@@@  ",
-"   @@@@@@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$$...@@@@@@@@@@   ",
-"   @@@@@@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$$...@@@@@@@@@@   ",
-"    @@@@@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$$...@@@@@@@@@    ",
-"    @@@@@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$$...@@@@@@@@@    ",
-"     @@@@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$$...@@@@@@@@     ",
-"     @@@@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$$...@@@@@@@@     ",
-"      @@@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$$...@@@@@@@      ",
-"      @@@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$$...@@@@@@@      ",
-"       @@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$....@@@@@@       ",
-"        @@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$.......@@@@@        ",
-"         @@@@...$$$$$$$$...$$$$$$$$$$$$$$.........@@@@@         ",
-"          @@@....$$$$$$$...$$$$$$$$$$$..........@@@@@@          ",
-"           @@......$$$$$...$$$$$$$$..........@@@@@@@@           ",
-"            @@.......$$$...$$$$$..........@@@@@@@@@@            ",
-"             @@@.......$...$$..........@@@@@@@@@@@@             ",
-"              @@@@..................@@@@@@@@@@@@@@              ",
-"                @@@@.............@@@@@@@@@@@@@@@                ",
-"                  @@@@........@@@@@@@@@@@@@@@@                  ",
-"                    @@@@...@@@@@@@@@@@@@@@@@                    ",
-"                      @@@@@@@@@@@@@@@@@@@@                      ",
-"                          @@@@@@@@@@@@                          ",
-"                                                                "
-#};
+    # /* XPM */
+    # static char * icon_xpm[] = {
+    # "64 64 6 1",
+    # " 	c None",
+    # ".	c #000000",
+    # "+	c #4E3691",
+    # "@	c #FF2222",
+    # "#	c #754FC6",
+    # "$	c #FFFFFF",
+    "                                                                ",
+    "                          @@@@@@@@@@@@                          ",
+    "                      @@@@@@@@@@@@@@@@@@@@                      ",
+    "                    @@@@@@@@@@@@@@@@@#@@@@@@                    ",
+    "                  @@@@@@@@@@@@@@@@######@@@@@@                  ",
+    "                @@@@@@@@@@@@@@@###########@@@@@@                ",
+    "              @@@@@@@@@@@@@@################@@@@@@              ",
+    "             @@@@@@@@@@@@#####################@@@@@             ",
+    "            @@@@@@@@@@##########################@@@@            ",
+    "           @@@@@@@@##############################@@@@           ",
+    "          @@@@@@##################################@@@@          ",
+    "         @@@@@@###############################+++++@@@@         ",
+    "        @@@@@@#############################++++++++@@@@@        ",
+    "       @@@@@@+++########################++++++++++.@@@@@@       ",
+    "      @@@@@@@+++++###################++++++++++$...@@@@@@@      ",
+    "      @@@@@@@+++++++##############++++++++++$$$$...@@@@@@@      ",
+    "     @@@@@@@@..+++++++#########++++++++++$$$$$$$...@@@@@@@@     ",
+    "     @@@@@@@@...$+++++++####++++++++++$$$$$$$$$$...@@@@@@@@     ",
+    "    @@@@@@@@@...$$$++++++++++++++++$$$$$$$$$$$$$...@@@@@@@@@    ",
+    "    @@@@@@@@@...$$$$$+++++++++++$$$$$$$$$$....$$...@@@@@@@@@    ",
+    "   @@@@@@@@@@...$$$$$$$++++++$$$$$$$$$$.......$$...@@@@@@@@@@   ",
+    "   @@@@@@@@@@...$$$$$$$$.+.$$$$$$$$$........$$$$...@@@@@@@@@@   ",
+    "  @@@@@@@@@@@...$$$$$$$$...$$$$$$$.......$$$$$$$...@@@@@@@@@@@  ",
+    "  @@@@@@@@@@@...$$$$$$$$...$$$$$$$....$$$$$$$$$$...@@@@@@@@@@@  ",
+    "  @@@@@@@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$$...@@@@@@@@@@@  ",
+    "  @@@@@@@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$$...@@@@@@@@@@@  ",
+    " @@@@@@@@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$$...@@@@@@@@@@@@ ",
+    " @@@@@@@@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$$...@@@@@@@@@@@@ ",
+    " @@@@@@@@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$$...@@@@@@@@@@@@ ",
+    " @@@@@@@@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$$...@@@@@@@@@@@@ ",
+    " @@@@@@@@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$$...@@@@@@@@@@@@ ",
+    " @@@@@@@@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$$...@@@@@@@@@@@@ ",
+    " @@@@@@@@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$$...@@@@@@@@@@@@ ",
+    " @@@@@@@@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$$...@@@@@@@@@@@@ ",
+    " @@@@@@@@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$$...@@@@@@@@@@@@ ",
+    " @@@@@@@@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$$...@@@@@@@@@@@@ ",
+    " @@@@@@@@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$$...@@@@@@@@@@@@ ",
+    " @@@@@@@@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$$...@@@@@@@@@@@@ ",
+    "  @@@@@@@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$$...@@@@@@@@@@@  ",
+    "  @@@@@@@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$$...@@@@@@@@@@@  ",
+    "  @@@@@@@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$$...@@@@@@@@@@@  ",
+    "  @@@@@@@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$$...@@@@@@@@@@@  ",
+    "   @@@@@@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$$...@@@@@@@@@@   ",
+    "   @@@@@@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$$...@@@@@@@@@@   ",
+    "    @@@@@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$$...@@@@@@@@@    ",
+    "    @@@@@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$$...@@@@@@@@@    ",
+    "     @@@@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$$...@@@@@@@@     ",
+    "     @@@@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$$...@@@@@@@@     ",
+    "      @@@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$$...@@@@@@@      ",
+    "      @@@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$$...@@@@@@@      ",
+    "       @@@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$$$$....@@@@@@       ",
+    "        @@@@@...$$$$$$$$...$$$$$$$$$$$$$$$$$.......@@@@@        ",
+    "         @@@@...$$$$$$$$...$$$$$$$$$$$$$$.........@@@@@         ",
+    "          @@@....$$$$$$$...$$$$$$$$$$$..........@@@@@@          ",
+    "           @@......$$$$$...$$$$$$$$..........@@@@@@@@           ",
+    "            @@.......$$$...$$$$$..........@@@@@@@@@@            ",
+    "             @@@.......$...$$..........@@@@@@@@@@@@             ",
+    "              @@@@..................@@@@@@@@@@@@@@              ",
+    "                @@@@.............@@@@@@@@@@@@@@@                ",
+    "                  @@@@........@@@@@@@@@@@@@@@@                  ",
+    "                    @@@@...@@@@@@@@@@@@@@@@@                    ",
+    "                      @@@@@@@@@@@@@@@@@@@@                      ",
+    "                          @@@@@@@@@@@@                          ",
+    "                                                                "
+    # };
 ]
 
 ##########################################################################
-### Define states
+# Define states
 ##########################################################################
 # We add states to a global list 'STATES'. Each state contains,
-#	desc    - description of the state (for tooltips and such)
-#	test    - function which is passed # cmls and a list of volume flags
-#		  and should return true if this state is active
+# 	desc    - description of the state (for tooltips and such)
+# 	test    - function which is passed # cmls and a list of volume flags
+# 		  and should return true if this state is active
 #
 # When picking a volume state we walk the global list in order and return
 # the first where 'test' returns true.
 STATES = []
-class State: # really used as a 'struct' to hold all state specific data
-    def __init__(self, desc, urgency, cmap={}, test=None):
-	colormap = ICON_XPM_COLORMAP.copy()
-	colormap.update(cmap)
-	xpm_hdr = ["64 64 6 1"] + map(lambda c: "%s\tc %s" %c, colormap.items())
-	image = gtk.gdk.pixbuf_new_from_xpm_data(xpm_hdr + ICON_XPM_DATA)
 
-	self.desc = desc
-	self.urgency = urgency
-	self.image = image
-	self.icon = image.scale_simple(24, 24, gtk.gdk.INTERP_HYPER)
-	self.test = test
-	STATES.append(self)
+
+class State:  # really used as a 'struct' to hold all state specific data
+    def __init__(self, desc, urgency, cmap={}, test=None):
+        colormap = ICON_XPM_COLORMAP.copy()
+        colormap.update(cmap)
+        xpm_hdr = ["64 64 6 1"] + ["%s\tc %s" % c for c in colormap.items()]
+        image = GdkPixbuf.Pixbuf.new_from_xpm_data(xpm_hdr + ICON_XPM_DATA)
+
+        self.desc = desc
+        self.urgency = urgency
+        self.image = image
+        self.icon = image.scale_simple(24, 24, GdkPixbuf.InterpType.BILINEAR)
+        self.test = test
+        STATES.append(self)
+
 
 ##########################################################################
 # Actual states follow
-NO_MARINER = \
-State(desc="Unable to communicate with venus",
-      urgency=URGENCY_CRITICAL,
-      cmap = { circle : black, server : black, top : black, topedge : black })
+NO_MARINER = State(
+    desc="Unable to communicate with venus",
+    urgency=URGENCY_CRITICAL,
+    cmap={circle: black, server: black, top: black, topedge: black},
+)
 
-State(desc="%(cmls)d operations pending: Not authenticated",
-      urgency=URGENCY_CRITICAL,
-      test=lambda cmls,flags: cmls and 'unauth' in flags,
-      cmap = { circle : lred, server : yellow })
+State(
+    desc="%(cmls)d operations pending: Not authenticated",
+    urgency=URGENCY_CRITICAL,
+    test=lambda cmls, flags: cmls and "unauth" in flags,
+    cmap={circle: lred, server: yellow},
+)
 
-State(desc="%(cmls)d operations pending: Conflict detected",
-      urgency=URGENCY_CRITICAL,
-      test=lambda cmls,flags: 'conflict' in flags,
-      cmap = { circle : lred, server : dred })
+State(
+    desc="%(cmls)d operations pending: Conflict detected",
+    urgency=URGENCY_CRITICAL,
+    test=lambda cmls, flags: "conflict" in flags,
+    cmap={circle: lred, server: dred},
+)
 
-State(desc="%(cmls)d operations pending: Servers unreachable",
-      urgency=URGENCY_CRITICAL,
-      test=lambda cmls,flags: cmls and 'unreachable' in flags,
-      cmap = { circle : black, server : orange })
+State(
+    desc="%(cmls)d operations pending: Servers unreachable",
+    urgency=URGENCY_CRITICAL,
+    test=lambda cmls, flags: cmls and "unreachable" in flags,
+    cmap={circle: black, server: orange},
+)
 
-State(desc="%(cmls)d operations pending: Application Specific Resolver active",
-      urgency=URGENCY_NORMAL,
-      test=lambda cmls,flags: 'asr' in flags,
-      cmap = { circle : yellow, server : orange })
+State(
+    desc="%(cmls)d operations pending: Application Specific Resolver active",
+    urgency=URGENCY_NORMAL,
+    test=lambda cmls, flags: "asr" in flags,
+    cmap={circle: yellow, server: orange},
+)
 
-State(desc="%(cmls)d operations pending",
-      urgency=URGENCY_NORMAL,
-      test=lambda cmls,flags: cmls > dirty_threshold and \
-	not 'resolve' in flags and not 'reint' in flags,
-      cmap = { circle : transp, server : orange })
+State(
+    desc="%(cmls)d operations pending",
+    urgency=URGENCY_NORMAL,
+    test=lambda cmls, flags: (
+        cmls > dirty_threshold and "resolve" not in flags and "reint" not in flags
+    ),
+    cmap={circle: transp, server: orange},
+)
 
-UNREACH = \
-State(desc="Servers unreachable",
-      urgency=URGENCY_NORMAL,
-      test=lambda cmls,flags: 'unreachable' in flags,
-      cmap = { circle : black, server : white })
+UNREACH = State(
+    desc="Servers unreachable",
+    urgency=URGENCY_NORMAL,
+    test=lambda cmls, flags: "unreachable" in flags,
+    cmap={circle: black, server: white},
+)
 
-State(desc="%(cmls)d operations pending: Resolving",
-      urgency=URGENCY_NORMAL,
-      test=lambda cmls,flags: 'resolve' in flags,
-      cmap = { circle : orange, server : dgreen })
+State(
+    desc="%(cmls)d operations pending: Resolving",
+    urgency=URGENCY_NORMAL,
+    test=lambda cmls, flags: "resolve" in flags,
+    cmap={circle: orange, server: dgreen},
+)
 
-State(desc="%(cmls)d operations pending: Reintegrating",
-      urgency=URGENCY_LOW,
-      test=lambda cmls,flags: 'reint' in flags,
-      cmap = { circle : lgreen, server : dgreen })
+State(
+    desc="%(cmls)d operations pending: Reintegrating",
+    urgency=URGENCY_LOW,
+    test=lambda cmls, flags: "reint" in flags,
+    cmap={circle: lgreen, server: dgreen},
+)
 
-State(desc="%(cmls)d operations pending",
-      urgency=URGENCY_LOW,
-      test=lambda cmls,flags: cmls,
-      cmap = { circle : transp, server : dgreen })
+State(
+    desc="%(cmls)d operations pending",
+    urgency=URGENCY_LOW,
+    test=lambda cmls, flags: cmls != 0,
+    cmap={circle: transp, server: dgreen},
+)
 
-CLEAN = \
-State(desc="No local changes",
-      urgency=URGENCY_LOW,
-      test=lambda cmls,flags: 1)
+CLEAN = State(
+    desc="No local changes", urgency=URGENCY_LOW, test=lambda cmls, flags: True, cmap={}
+)
+
 
 ##########################################################################
-### Coda specific helper functions
+# Coda specific helper functions
 ##########################################################################
 # Read Coda configuration files
 def parse_codaconf(conffile):
     settings = {}
     for line in open(conffile):
-	# Skip anything starting with '#', lines should look like <key>=<value>
-	m = re.match("^([^#][^=]+)=(.*)[ \t]*$", line)
-	if not m: continue
-	key, value = m.groups()
+        # Skip anything starting with '#', lines should look like <key>=<value>
+        m = re.match("^([^#][^=]+)=(.*)[ \t]*$", line)
+        if not m:
+            continue
+        key, value = m.groups()
 
-	# The value may be quoted, strip balanced quotes
-	m = re.match('^"(.*)"$', value)
-	if m: value = m.group(1)
+        # The value may be quoted, strip balanced quotes
+        m = re.match('^"(.*)"$', value)
+        if m:
+            value = m.group(1)
 
-	settings[key] = value
+        settings[key] = value
     return settings
+
 
 ##########################################################################
 # Base class that handles the connection to venus's mariner port
 class MarinerListener:
     def __init__(self, use_tcp=0, debug=0):
-	self.use_tcp = use_tcp
-	self.debug = debug
+        self.use_tcp = use_tcp
+        self.debug = debug
 
-	if not self.use_tcp:
-	    venusconf = parse_codaconf(venus_conf)
-	    mariner = venusconf.get("marinersocket", "/usr/coda/spool/mariner")
-	    self.addrs = [(socket.AF_UNIX, socket.SOCK_STREAM, 0, 0, mariner)]
-	else:
-	    self.addrs = socket.getaddrinfo(None, 'venus', socket.AF_INET,
-					 socket.SOCK_STREAM, 0)
-	self.__reconnect()
+        if not self.use_tcp:
+            venusconf = parse_codaconf(venus_conf)
+            mariner = venusconf.get("marinersocket", "/usr/coda/spool/mariner")
+            self.addrs = [(socket.AF_UNIX, socket.SOCK_STREAM, 0, 0, mariner)]
+        else:
+            self.addrs = socket.getaddrinfo(
+                None, "venus", socket.AF_INET, socket.SOCK_STREAM, 0
+            )
+        self.__reconnect()
 
-    # callbacks which can be overridden by subclasses
-    def connected(self):	pass
-    def disconnected(self):	pass
-    def data_ready(self, line): pass
-    def data_done(self):	pass
+        # callbacks which can be overridden by subclasses
+
+    def connected(self):
+        pass
+
+    def disconnected(self):
+        pass
+
+    def data_ready(self, line):
+        pass
+
+    def data_done(self):
+        pass
 
     def __reconnect(self):
-	if self.__connect() == False: return # false == connected
-	self.disconnected()
-	gobject.timeout_add(5000, self.__connect)
+        if self.__connect() is False:
+            return  # false == connected
+        self.disconnected()
+        GLib.timeout_add(5000, self.__connect)
 
     def __connect(self):
-	for host in self.addrs:
-	    try:
-		s = socket.socket(host[0], host[1], host[2])
-		s.connect(host[4])
-		s.send('set:volstate\n')
-		break
-	    except socket.error:
-		continue
-	else:
-	    return True # we end up here if we couldn't connect
+        for host in self.addrs:
+            try:
+                s = socket.socket(host[0], host[1], host[2])
+                s.connect(host[4])
+                s.send(b"set:volstate\n")
+                break
+            except socket.error:
+                continue
+        else:
+            return True  # we end up here if we couldn't connect
 
-	self.connected()
-	gobject.io_add_watch(s, gobject.IO_IN | gobject.IO_ERR | gobject.IO_HUP,
-			     self.__data_ready)
-	return False
+        self.connected()
+        GLib.io_add_watch(
+            s,
+            GLib.PRIORITY_DEFAULT,
+            GLib.IOCondition.IN | GLib.IOCondition.ERR | GLib.IOCondition.HUP,
+            self.__data_ready,
+        )
+        return False
 
     def __data_ready(self, fd, condition):
-	# socket error, maybe venus died?
-	if condition & (gobject.IO_ERR | gobject.IO_HUP):
-	    self.__reconnect()
-	    return False
+        # socket error, maybe venus died?
+        if condition & (GLib.IOCondition.ERR | GLib.IOCondition.HUP):
+            self.__reconnect()
+            return False
 
-	data = fd.recv(8192)
-	if not data:
-	    self.__reconnect()
-	    return False
+        data = fd.recv(8192)
+        if not data:
+            self.__reconnect()
+            return False
 
-	self.buf += data
-	while self.buf:
-	    try:
-		line, self.buf = self.buf.split('\n', 1)
-	    except ValueError:
-		break
+        self.buf += data.decode("ascii")
+        while "\n" in self.buf:
+            try:
+                line, self.buf = self.buf.split("\n", 1)
+            except ValueError:
+                break
 
-	    if self.debug:
-		print line
-	    self.data_ready(line)
-	self.data_done()
-	return True
+            if self.debug:
+                print(line)
+            self.data_ready(line)
+        self.data_done()
+        return True
+
 
 ##########################################################################
-### Wrappers around GTK objects
+# Wrappers around GTK objects
 ##########################################################################
 # About dialog
-class About(gtk.AboutDialog):
+class About(Gtk.AboutDialog):
     def __init__(self):
-	gtk.AboutDialog.__init__(self)
-	self.set_comments("Show the Coda client's volume/reintegration state")
-	self.set_copyright("Copyright (c) 2007 Carnegie Mellon University")
-	self.set_website("http://www.coda.cs.cmu.edu/")
-	self.set_website_label("Coda Distributed File System")
-	self.set_license(' '.join("""\
+        Gtk.AboutDialog.__init__(self)
+        self.set_comments("Show the Coda client's volume/reintegration state")
+        self.set_copyright("Copyright (c) 2007-2019 Carnegie Mellon University")
+        self.set_website("http://www.coda.cs.cmu.edu/")
+        self.set_website_label("Coda Distributed File System")
+        self.set_license(
+            " ".join(
+                """\
     This code is distributed "AS IS" without warranty of any kind under the
     terms of the GNU General Public License Version 2, as shown in the file
     LICENSE. The technical and financial contributors to Coda are listed in
-    the file CREDITS.""".split()))
-	self.set_wrap_license(1)
+    the file CREDITS.""".split()
+            )
+        )
+        self.set_wrap_license(1)
 
-	gtk.AboutDialog.run(self)
-	self.destroy()
+        Gtk.AboutDialog.run(self)
+        self.destroy()
+
 
 ##########################################################################
 # wrapper around ListStore to provide transparent State -> state_idx mapping
-class VolumeList(gtk.ListStore):
+class VolumeList(Gtk.ListStore):
     def __init__(self):
-	gtk.ListStore.__init__(self, str, int, int)
-	self.set_sort_column_id(1, gtk.SORT_ASCENDING)
+        Gtk.ListStore.__init__(self, str, int, int)
+        self.set_sort_column_id(1, Gtk.SortType.ASCENDING)
 
     def __get(self, volname):
-	for row in self:
-	    if row[0] == volname:
-		return row
-	raise KeyError
+        for row in self:
+            if row[0] == volname:
+                return row
+        raise KeyError
 
     def __setitem__(self, volname, state, cmls):
-	try:
-	    row = self.__get(volname)
-	    row[1] = state
-	    row[2] = cmls
-	except KeyError:
-	    self.append([volname, state, cmls])
+        try:
+            row = self.__get(volname)
+            row[1] = state
+            row[2] = cmls
+        except KeyError:
+            self.append([volname, state, cmls])
 
     def __getitem__(self, volname):
-	return STATES[self.__get(volname)[1]]
+        return STATES[self.__get(volname)[1]]
 
     def __delitem__(self, volname):
-	row = self.__get(volname)
-	self.remove(row.iter)
+        row = self.__get(volname)
+        self.remove(row.iter)
 
     def values(self):
-	return [ STATES(row[1]) for row in self ]
+        return [STATES(row[1]) for row in self]
 
     def update(self, volname, cmls, flags):
-	for idx, state in enumerate(STATES):
-	    if state.test and state.test(cmls, flags):
-		self.__setitem__(volname, idx, cmls)
-		break
+        for idx, state in enumerate(STATES):
+            if state.test and state.test(cmls, flags):
+                self.__setitem__(volname, idx, cmls)
+                break
 
     def first(self):
-	iter = self.get_iter_first()
-	if not iter: return CLEAN
-	return STATES[self.get_value(iter, 1)]
+        iter = self.get_iter_first()
+        if not iter:
+            return CLEAN
+        return STATES[self.get_value(iter, 1)]
 
     def cmls(self):
-	return reduce(lambda x,y:x+y, [ row[2] for row in self ])
+        return sum(row[2] for row in self)
+
 
 ##########################################################################
 # scrolled treeview widget to present the list of volumes and states
-class VolumeView(gtk.TreeView):
+class VolumeView(Gtk.TreeView):
     def __init__(self, store):
-	gtk.TreeView.__init__(self, store)
+        Gtk.TreeView.__init__(self)
+        self.set_model(store)
 
-	def update_icon(column, cell, store, iter, arg=None):
-	    state = STATES[store.get_value(iter, 1)]
-	    cell.set_property('pixbuf', state.icon)
+        def update_icon(column, cell, store, iter, arg=None):
+            state = STATES[store.get_value(iter, 1)]
+            cell.set_property("pixbuf", state.icon)
 
-	cell = gtk.CellRendererPixbuf()
-	column = gtk.TreeViewColumn('', cell)
-	column.set_cell_data_func(cell, update_icon)
-	self.append_column(column)
+        cell = Gtk.CellRendererPixbuf()
+        column = Gtk.TreeViewColumn("", cell)
+        column.set_cell_data_func(cell, update_icon)
+        self.append_column(column)
 
-	def update_realm(column, cell, store, iter, arg=None):
-	    volume = store.get_value(iter, 0)
-	    cell.set_property('text', volume.split('@')[1])
+        def update_realm(column, cell, store, iter, arg=None):
+            volume = store.get_value(iter, 0)
+            cell.set_property("text", volume.split("@")[1])
 
-	cell = gtk.CellRendererText()
-	column = gtk.TreeViewColumn('Realm', cell)
-	column.set_cell_data_func(cell, update_realm)
-	column.set_resizable(1)
-	self.append_column(column)
+        cell = Gtk.CellRendererText()
+        column = Gtk.TreeViewColumn("Realm", cell)
+        column.set_cell_data_func(cell, update_realm)
+        column.set_resizable(1)
+        self.append_column(column)
 
-	def update_volume(column, cell, store, iter, arg=None):
-	    volume = store.get_value(iter, 0)
-	    cell.set_property('text', volume.split('@')[0])
+        def update_volume(column, cell, store, iter, arg=None):
+            volume = store.get_value(iter, 0)
+            cell.set_property("text", volume.split("@")[0])
 
-	cell = gtk.CellRendererText()
-	column = gtk.TreeViewColumn('Volume', cell, text=0)
-	column.set_cell_data_func(cell, update_volume)
-	column.set_resizable(1)
-	self.append_column(column)
+        cell = Gtk.CellRendererText()
+        column = Gtk.TreeViewColumn("Volume", cell, text=0)
+        column.set_cell_data_func(cell, update_volume)
+        column.set_resizable(1)
+        self.append_column(column)
 
-	def update_desc(column, cell, store, iter, arg=None):
-	    state = STATES[store.get_value(iter, 1)]
-	    cmls = store.get_value(iter, 2)
-	    cell.set_property('text', state.desc  % {'cmls' : cmls})
+        def update_desc(column, cell, store, iter, arg=None):
+            state = STATES[store.get_value(iter, 1)]
+            cmls = store.get_value(iter, 2)
+            cell.set_property("text", state.desc % {"cmls": cmls})
 
-	cell = gtk.CellRendererText()
-	column = gtk.TreeViewColumn('State', cell)
-	column.set_cell_data_func(cell, update_desc)
-	self.append_column(column)
+        cell = Gtk.CellRendererText()
+        column = Gtk.TreeViewColumn("State", cell)
+        column.set_cell_data_func(cell, update_desc)
+        self.append_column(column)
 
-	# search on volume name
-	def search(store, column, key, iter, data=None):
-	    volume = store.get_value(iter, column)
-	    return not key in volume # return false when the row matches
+        # search on volume name
+        def search(store, column, key, iter, data=None):
+            volume = store.get_value(iter, column)
+            return key not in volume  # return false when the row matches
 
-	self.set_search_column(0)
-	self.set_search_equal_func(search)
+        self.set_search_column(0)
+        self.set_search_equal_func(search)
+
 
 class GlobalState:
-    def __init__(self, activate, menu, enable_popups):
-	self.popups = enable_popups
-	self.next_time = 0
-	self.next_message = self.next_urgency = None
-	self.state = self.tray = self.notification = None
-	if hasattr(gtk, "StatusIcon"):
-	    self.tray = gtk.StatusIcon()
-	    self.tray.connect("activate", activate)
-	    self.tray.connect("popup_menu", menu)
-	    self.set_state(CLEAN, 0)
-	    self.tray.set_visible(1)
+    def __init__(self, activate, menu, enable_popups, window):
+        self.popups = enable_popups
+        self.window = window
+        self.next_time = 0
+        self.next_message = self.next_urgency = None
+        self.state = self.notification = None
+        self.set_state(CLEAN, 0)
 
-	if Notification:
-	    self.notification = Notification("Coda Status")
-	    if self.tray and hasattr(self.notification,"attach_to_status_icon"):
-		self.notification.attach_to_status_icon(self.tray)
-
-    def is_embedded(self):
-	return self.tray and self.tray.is_embedded()
+        if Notify.is_initted():
+            self.notification = Notify.Notification.new("Coda Status")
 
     def set_state(self, state, cmls=0):
-	if not self.tray and not self.notification:
-	    return
+        if not self.notification:
+            return
 
-	if self.state != state:
-	    self.state = state
-	    if self.tray:
-		self.tray.set_from_pixbuf(state.image)
-	elif self.cmls == cmls:
-	    return
+        if self.state != state:
+            self.state = state
+            self.window.set_default_icon(state.icon)
+        elif self.cmls == cmls:
+            return
 
-	self.cmls = cmls
-	desc = state.desc % {'cmls' : cmls}
+        self.cmls = cmls
+        desc = state.desc % {"cmls": cmls}
 
-	if self.tray:
-	    self.tray.set_tooltip(desc)
-
-	if self.notification and self.popups:
-	    now = time.time()
-	    notify_queued = self.next_message is not None
-	    self.next_message = desc
-	    self.next_urgency = state.urgency
-	    if notify_queued: return
-	    elif now < self.next_time:
-		gobject.timeout_add(int((self.next_time - now) * 1000),
-					self.__show_notification)
-	    else:
-	        self.__show_notification()
+        if self.notification and self.popups:
+            now = time.time()
+            notify_queued = self.next_message is not None
+            self.next_message = desc
+            self.next_urgency = state.urgency
+            if notify_queued:
+                return
+            elif now < self.next_time:
+                GLib.timeout_add(
+                    int((self.next_time - now) * 1000), self.__show_notification
+                )
+            else:
+                self.__show_notification()
 
     def __show_notification(self):
-	self.notification.update("Coda Status", self.next_message)
-	self.notification.set_urgency(self.next_urgency)
-	self.next_message = self.next_urgency = None
-	self.next_time = time.time() + NOTIFICATION_INTERVAL
-	# catch errors when notification-daemon is not running
-	try: self.notification.show()
-	except gobject.GError: pass
-	return False
+        self.notification.update("Coda Status", self.next_message)
+        self.notification.set_urgency(self.next_urgency)
+        self.next_message = self.next_urgency = None
+        self.next_time = time.time() + NOTIFICATION_INTERVAL
+        # catch errors when notification-daemon is not running
+        try:
+            self.notification.show()
+        except GLib.Error:
+            pass
+        return False
+
 
 class App(MarinerListener):
     def __init__(self, options):
-	self.buf = ''
-	self.hide = options.dirty_only
+        self.buf = ""
+        self.hide = options.dirty_only
 
-	self.vols = VolumeList()
+        self.vols = VolumeList()
 
-	def row_filter(store, iter, app):
-	    if app.hide and STATES[store.get_value(iter, 1)] in [CLEAN,UNREACH]:
-		    return False
-	    return True
+        def row_filter(store, iter, app):
+            if app.hide and STATES[store.get_value(iter, 1)] in [CLEAN, UNREACH]:
+                return False
+            return True
 
-	self.shown = self.vols.filter_new()
-	self.shown.set_visible_func(row_filter, self)
+        self.shown = self.vols.filter_new()
+        self.shown.set_visible_func(row_filter, self)
 
-	self.window = gtk.Window()
-	self.window.connect("delete_event", self.delete_event)
-	self.window.set_title('Coda volume/reintegration state')
-	self.window.set_size_request(400, -1)
-	self.window.set_default_size(-1, 200)
+        self.window = Gtk.Window()
+        self.window.connect("delete_event", self.delete_event)
+        self.window.set_title("Coda volume/reintegration state")
+        self.window.set_size_request(400, -1)
+        self.window.set_default_size(-1, 200)
+        self.window.set_default_icon(CLEAN.image)
 
-	self.treeview = VolumeView(self.shown)
-	self.treeview.connect("button_press_event", self.button_event)
+        self.treeview = VolumeView(self.shown)
+        self.treeview.connect("button_press_event", self.button_event)
 
-	scrolled = gtk.ScrolledWindow()
-	scrolled.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
-	scrolled.add(self.treeview)
-	scrolled.show_all()
+        scrolled = Gtk.ScrolledWindow()
+        scrolled.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        scrolled.add(self.treeview)
+        scrolled.show_all()
 
-	self.window.add(scrolled)
+        self.window.add(scrolled)
 
-	self.menu = gtk.Menu()
-	item = gtk.CheckMenuItem(label="Show only dirty volumes")
-	item.set_active(self.hide)
-	item.connect("activate", self.toggle_filter)
-	self.menu.append(item)
-	item.show()
+        self.menu = Gtk.Menu()
+        item = Gtk.CheckMenuItem(label="Show only dirty volumes")
+        item.set_active(self.hide)
+        item.connect("activate", self.toggle_filter)
+        self.menu.append(item)
+        item.show()
 
-	if Notification:
-	    item = gtk.CheckMenuItem(label="Enable notifications")
-	    item.set_active(not not options.enable_popups)
-	    item.connect("activate", self.toggle_notifications)
-	    self.menu.append(item)
-	    item.show()
+        if Notify.is_initted():
+            item = Gtk.CheckMenuItem(label="Enable notifications")
+            item.set_active(not not options.notify)
+            item.connect("activate", self.toggle_notifications)
+            self.menu.append(item)
+            item.show()
 
-	item = gtk.SeparatorMenuItem()
-	self.menu.append(item)
-	item.show()
+        item = Gtk.SeparatorMenuItem()
+        self.menu.append(item)
+        item.show()
 
-	item = gtk.ImageMenuItem(stock_id=gtk.STOCK_ABOUT)
-	item.connect("activate", lambda x: About())
-	self.menu.append(item)
-	item.show()
+        item = Gtk.MenuItem.new_with_mnemonic("_About")
+        item.connect("activate", lambda x: About())
+        self.menu.append(item)
+        item.show()
 
-	item = gtk.ImageMenuItem(stock_id=gtk.STOCK_QUIT)
-	item.connect_object("activate", gtk.main_quit, "popup.quit")
-	self.menu.append(item)
-	item.show()
+        item = Gtk.MenuItem.new_with_mnemonic("_Quit")
+        item.connect_data(
+            "activate",
+            Gtk.main_quit,
+            "popup.quit",
+            connect_flags=GObject.ConnectFlags.SWAPPED,
+        )
+        self.menu.append(item)
+        item.show()
 
-	self.status = GlobalState(self.activate, lambda icon, button, time:
-		self.menu.popup(None, None, gtk.status_icon_position_menu,
-				button, time, icon), options.enable_popups)
+        self.status = GlobalState(
+            self.activate,
+            lambda icon, button, time: self.menu.popup(
+                None, None, Gtk.status_icon_position_menu, button, time, icon
+            ),
+            options.notify,
+            self.window,
+        )
 
-	self.test_idx = 0
-	if options.test:
-	    self.connected()
-	    gobject.timeout_add(5000, self.test)
-	else:
-	    MarinerListener.__init__(self, options.use_tcp, options.debug)
+        self.test_idx = 0
+        if options.test:
+            self.connected()
+            GLib.timeout_add(1000, self.test)
+        else:
+            MarinerListener.__init__(self, options.use_tcp, options.debug)
 
-	# allow the statusicon to get embedded into the systray/panel
-	gobject.timeout_add(1000, self.window_show)
+        self.window_show()
 
     def window_show(self, *args):
-	if not self.status.is_embedded():
-	    self.window.show()
-	return False
+        self.window.show()
+        return False
 
     def test(self):
-	try:
-	    self.status.set_state(STATES[self.test_idx])
-	    self.test_idx = self.test_idx + 1
-	except IndexError:
-	    self.test_idx = 0
-	return True
+        try:
+            self.status.set_state(STATES[self.test_idx])
+            self.test_idx = self.test_idx + 1
+        except IndexError:
+            self.test_idx = 0
+        return True
 
     # MarinerListener callbacks
     def connected(self):
-	self.status.set_state(CLEAN)
+        self.status.set_state(CLEAN)
 
     def disconnected(self):
-	self.status.set_state(NO_MARINER)
+        self.status.set_state(NO_MARINER)
 
     def data_ready(self, line):
-	m = re.match('^volstate::(.*) ([^ ]*) (\d+)(.*)$', line)
-	if not m: return
+        m = re.match(r"^volstate::(.*) ([^ ]*) (\d+)(.*)$", line)
+        if not m:
+            return
 
-	vol, volstate, cmls, flags = m.groups()
-	if volstate != 'deleted':
-	    flags = flags.split()
-	    flags.append(volstate)
-	    self.vols.update(vol, int(cmls), flags)
-	else:
-	    self.vols.__delitem__(vol)
+        vol, volstate, cmls, flags = m.groups()
+        if volstate != "deleted":
+            flags = flags.split()
+            flags.append(volstate)
+            self.vols.update(vol, int(cmls), flags)
+        else:
+            self.vols.__delitem__(vol)
 
     def data_done(self):
-	sysstate, cmls = self.vols.first(), self.vols.cmls()
-	self.status.set_state(sysstate, cmls)
+        sysstate, cmls = self.vols.first(), self.vols.cmls()
+        self.status.set_state(sysstate, cmls)
 
     # callbacks for gtk events
     def toggle_filter(self, widget):
-	self.hide = not self.hide
-	self.shown.refilter()
-	return True
+        self.hide = not self.hide
+        self.shown.refilter()
+        return True
 
     def toggle_notifications(self, widget):
-	self.status.popups = not self.status.popups
-	return True
+        self.status.popups = not self.status.popups
+        return True
 
     def button_event(self, widget, event):
-	if event.type == gtk.gdk.BUTTON_PRESS and event.button == 3:
-	    self.menu.popup(None, None, None, event.button, event.time)
-	    return True
-	return False
+        if event.type == Gdk.EventType.BUTTON_PRESS and event.button == 3:
+            self.menu.popup_at_pointer(event)
+            return True
+        return False
 
     def delete_event(self, widget, event=None, user_data=None):
-	widget.hide()
-	if not self.status.is_embedded():
-	    gtk.main_quit()
-	return True
+        widget.hide()
+        Gtk.main_quit()
+        return True
 
     def activate(self, *args):
-	#if not self.window.get_property('visible'):
-	if not self.window.is_active():
-	      self.window.present()
-	else: self.window.hide()
-	return True
+        # if not self.window.get_property('visible'):
+        if not self.window.is_active():
+            self.window.present()
+        else:
+            self.window.hide()
+        return True
 
 
-if __name__ == '__main__':
-    from optparse import OptionParser
+if __name__ == "__main__":
+    import argparse
 
-    parser = OptionParser()
-    parser.add_option("-d", "--debug", dest="debug", action="store_true",
-		      help="Show updates as they are received from venus")
-    parser.add_option("-n", "--notify", dest="enable_popups", action="store_true",
-		      help="Enable notification popups by default")
-    parser.add_option("-o", "--only-dirty", dest="dirty_only",
-		      default=False, action="store_true",
-		      help="Show only dirty volumes in status window by default")
-    parser.add_option("-t", "--use-tcp", dest="use_tcp", action="store_true",
-		      help="Use tcp to connect to venus")
-    parser.add_option("--test", dest="test", action="store_true",
-		      help="Run a test which cycles through all states")
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-d",
+        "--debug",
+        action="store_true",
+        help="Show updates as they are received from venus",
+    )
+    parser.add_argument(
+        "-n",
+        "--notify",
+        action="store_true",
+        help="Enable notification popups by default",
+    )
+    parser.add_argument(
+        "-o",
+        "--only-dirty",
+        dest="dirty_only",
+        action="store_true",
+        help="Show only dirty volumes in status window by default",
+    )
+    parser.add_argument(
+        "-t", "--use-tcp", action="store_true", help="Use tcp to connect to venus"
+    )
+    parser.add_argument(
+        "--test", action="store_true", help="Run a test which cycles through all states"
+    )
 
-    options, args = parser.parse_args()
+    args = parser.parse_args()
 
     try:
-	app = App(options)
-	gtk.main()
+        app = App(args)
+        Gtk.main()
     except KeyboardInterrupt:
-	pass
-
+        pass
