@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -166,6 +166,8 @@ private:
     static olist tbl;
     static int counter;
     static char rtry_sync;
+    static int redzone_limit;
+    static int yellowzone_limit;
 
     void do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data);
 
@@ -178,6 +180,10 @@ protected:
     int vpid;
     rvm_perthread_t rvm_data;
     struct Lock init_lock;
+    static const char *venusRoot;
+    static VenusFid rootfid;
+    static int MaxWorkers;
+    static int MaxPrefetchers;
 
     /* derived classes should call this function once they have finished their
      * constructor. */
@@ -289,6 +295,7 @@ public:
     /* Pathname translation. */
     int namev(char *, int, struct venus_cnode *);
     void GetPath(VenusFid *, char *, int *, int = 1);
+    static VenusFid &GetRootFid() { return vproc::rootfid; }
     const char *expansion(const char *path);
     void verifyname(char *name, int flags);
 #define NAME_NO_DOTS 1 /* don't allow '.', '..', '/' */

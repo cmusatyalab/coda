@@ -76,9 +76,6 @@ extern "C" {
 #include "vproc.h"
 #include "worker.h"
 
-int LogOpts = 1; /* perform log optimizations? */
-int allow_backfetch; /* allow backfetches during reintegration */
-
 /*  *****  Client Modify Log Basic Routines  *****  */
 
 void ClientModifyLog::ResetTransient()
@@ -290,6 +287,8 @@ void cmlent::Thaw()
 int ClientModifyLog::GetReintegrateable(int tid, unsigned long *reint_time,
                                         int *nrecs)
 {
+    static bool allow_backfetch =
+        GetVenusConf().get_bool_value("allow_backfetch");
     reintvol *vol = strbase(reintvol, this, CML);
     cmlent *m;
     cml_iterator next(*this, CommitOrder);
@@ -368,6 +367,8 @@ int ClientModifyLog::GetReintegrateable(int tid, unsigned long *reint_time,
  */
 cmlent *ClientModifyLog::GetFatHead(int tid)
 {
+    static bool allow_backfetch =
+        GetVenusConf().get_bool_value("allow_backfetch");
     reintvol *vol = strbase(reintvol, this, CML);
     cmlent *m;
     cml_iterator next(*this, CommitOrder);
@@ -656,7 +657,7 @@ cmlent::cmlent(ClientModifyLog *Log, time_t Mtime, uid_t Uid, int op,
         break;
 
     default:
-        print(logFile);
+        print(GetLogFile());
         CHOKE("cmlent::cmlent: bogus opcode (%d)", op);
     }
     va_end(ap);
@@ -749,7 +750,7 @@ void cmlent::ResetTransient()
         break;
 
     default:
-        print(logFile);
+        print(GetLogFile());
         CHOKE("cmlent::ResetTransient: bogus opcode (%d)", opcode);
     }
 }
@@ -1597,8 +1598,8 @@ int cmlent::cancel()
     }
 
     LOG(10, ("cmlent::cancel: age = %d\n", curTime - time));
-    if (LogLevel >= 10)
-        print(logFile);
+    if (GetLogLevel() >= 10)
+        print(GetLogFile());
 
     /* Parameters for possible utimes to be done AFTER cancelling this record. */
     struct {
@@ -1910,8 +1911,8 @@ void ClientModifyLog::IncThread(int tid)
                 m->thread();
     }
 
-    if (LogLevel >= 10)
-        print(logFile);
+    if (GetLogLevel() >= 10)
+        print(GetLogFile());
 
     LOG(0, ("ClientModifyLog::IncThread: (%s)\n", vol->name));
 }
@@ -2603,7 +2604,7 @@ void cmlent::translatefid(VenusFid *OldFid, VenusFid *NewFid)
         CHOKE("cmlent::translatefid: bogus opcode (%d)", opcode);
     }
     if (!found) {
-        print(logFile);
+        print(GetLogFile());
         CHOKE("cmlent::translatefid: (%s) not matched", FID_(OldFid));
     }
 }
@@ -2622,8 +2623,8 @@ void cmlent::thread()
 
         fsobj *f = FSDB->Find(fidp);
         if (f == 0) {
-            print(logFile);
-            (strbase(repvol, log, CML))->print(logFile);
+            print(GetLogFile());
+            (strbase(repvol, log, CML))->print(GetLogFile());
             CHOKE("cmlent::thread: can't find (%s)", FID_(fidp));
         }
 
@@ -3678,7 +3679,7 @@ void ClientModifyLog::IncAbort(int Tid)
             break; /* list exhausted */
         cmlent *m = strbase(cmlent, d, handle);
         if (m->GetTid() == Tid) {
-            m->print(logFile);
+            m->print(GetLogFile());
             d = next(); /* advance d before it is un-listed by m->abort() */
             m->abort();
         } else {
@@ -3742,8 +3743,8 @@ void cmlent::AttachFidBindings()
 
         fsobj *f = FSDB->Find(fidp);
         if (f == 0) {
-            print(logFile);
-            (strbase(reintvol, log, CML))->print(logFile);
+            print(GetLogFile());
+            (strbase(reintvol, log, CML))->print(GetLogFile());
             CHOKE("cmlent::AttachFidBindings: can't find (%s)", FID_(fidp));
         }
 
@@ -3936,8 +3937,8 @@ unsigned long cmlent::ReintTime(unsigned long bw)
 
     LOG(10, ("cmlent::ReintTime: bandwidth = %d bytes/sec, time = %d msec\n",
              bw, (unsigned long)time));
-    if (LogLevel >= 10)
-        print(logFile);
+    if (GetLogLevel() >= 10)
+        print(GetLogFile());
 
     return ((unsigned long)time);
 }

@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -52,10 +52,6 @@ class worker_iterator;
 
 int WorkerCloseMuxfd(void);
 void ReadUpcallMsg(int fd, size_t size);
-
-const int DFLT_MAXWORKERS     = 20;
-const int UNSET_MAXWORKERS    = -1;
-const int DFLT_MAXPREFETCHERS = 1;
 
 class msgent : public olink {
     friend msgent *FindMsg(olist &, u_long);
@@ -115,6 +111,9 @@ class worker : public vproc {
     static olist QueuedMsgs;
     static olist ActiveMsgs;
     static int kernel_version;
+    static const char *CacheDir;
+    static const char *CachePrefix;
+    static const char *kernDevice;
 
     unsigned returned : 1;
     msgent *msg; /* For communication with the kernel */
@@ -190,9 +189,6 @@ public:
     worker_iterator();
     worker *operator()();
 };
-
-extern int MaxWorkers;
-extern int MaxPrefetchers;
 
 extern msgent *FindMsg(olist &, u_long);
 extern int k_Purge();

@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -156,7 +156,7 @@ void fsdb::GarbageCollect()
             fsobj *f = strbase(fsobj, d, del_handle);
 
             if (!DYING(f)) {
-                f->print(logFile);
+                f->print(GetLogFile());
                 CHOKE("fsdb::GarbageCollect: !dying");
             }
 

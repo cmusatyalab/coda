@@ -28,7 +28,7 @@ listed in the file CREDITS.
  *
 
 
- * Specific details of our implementation are the following: 
+ * Specific details of our implementation are the following:
 
  *       1. the unit of logging and reintegration is the volume; this
  *       follows from: - a "transaction" may reference objects in only
@@ -82,9 +82,9 @@ void reintvol::Reintegrate()
     if (DisableASR(V_UID))
         return;
 
-    /* 
+    /*
      * this flag keeps multiple reintegrators from interfering with
-     * each other in the same volume.  This is necessary even with 
+     * each other in the same volume.  This is necessary even with
      * the cur_reint_tid field, because the latter is reset between
      * iterations of the loop below.  Without the flag, other threads
      * may slip in between commit or abort of a record.
@@ -247,7 +247,7 @@ void reintvol::Reintegrate()
 	 * 4.) An ASR is not currently running within this volume.
 	 * 5.) The timeout interval for ASR launching has expired.
 	 */
-        if (!ASRLauncherFile) {
+        if (!VDB->GetASRLauncherFile()) {
             LOG(0, ("ClientModifyLog::HandleFailedMLE: No ASRLauncher "
                     "specified in venus.conf!\n"));
             goto Done;
@@ -267,7 +267,7 @@ void reintvol::Reintegrate()
             goto Done;
         }
 
-        ASRInvokable = ASRPolicyFile && v->IsASREnabled();
+        ASRInvokable = VDB->GetASRPolicyFile() && v->IsASREnabled();
         /* Send in any conflict type, it will get changed later. */
         if (ASRInvokable) /* Execute ASR. */
             conflict->LaunchASR(LOCAL_GLOBAL, DIRECTORY_CONFLICT);
@@ -331,7 +331,7 @@ int reintvol::IncReintegrate(int tid)
         {
             START_TIMING();
             /*
-	     * Step 1 is to reallocate real fids for new client-log 
+	     * Step 1 is to reallocate real fids for new client-log
 	     * objects that were created with "local" fids.
 	     */
             code = CML.IncReallocFids(tid);
@@ -339,7 +339,7 @@ int reintvol::IncReintegrate(int tid)
                 goto CheckResult;
 
             /*
-	     * Step 3 is to "thread" the log and pack it into a buffer 
+	     * Step 3 is to "thread" the log and pack it into a buffer
 	     * (buffer is allocated with new[] by pack routine).
 	     */
             CML.IncThread(tid);
@@ -350,8 +350,8 @@ int reintvol::IncReintegrate(int tid)
         }
 
         /*
-	 * Step 4 is to have the server(s) replay the client modify log 
-	 * via a Reintegrate RPC. 
+	 * Step 4 is to have the server(s) replay the client modify log
+	 * via a Reintegrate RPC.
 	 */
         {
             START_TIMING();
@@ -387,8 +387,8 @@ int reintvol::IncReintegrate(int tid)
 
             case ETIMEDOUT:
                 /*
-		 * We cannot cancel pending records because we do not know if 
-		 * the reintegration actually occurred at the server.  If the 
+		 * We cannot cancel pending records because we do not know if
+		 * the reintegration actually occurred at the server.  If the
 		 * RPC reply was lost it is possible that it succeeded.  Note
 		 * the next attempt may involve a different set of records.
 		 */
@@ -397,19 +397,19 @@ int reintvol::IncReintegrate(int tid)
             case ERETRY:
             case EWOULDBLOCK:
                 /*
-		 * if any cmlents we were working on are still around and 
+		 * if any cmlents we were working on are still around and
 		 * should now be cancelled, do it.
 		 */
                 CML.CancelPending();
 
                 /*
-		 * We do our own retrying here, because the code in 
-		 * vproc::End_VFS() causes an entirely new vproc to start 
-		 * up for each transition into reintegrating state (and 
-		 * thus it has no knowledge of how many "waits" have already 
-		 * been done).  Unfortunately, that means we end up 
-		 * duplicating some code here.  Finally, if a transition is 
-		 * pending, we'd better take it. 
+		 * We do our own retrying here, because the code in
+		 * vproc::End_VFS() causes an entirely new vproc to start
+		 * up for each transition into reintegrating state (and
+		 * thus it has no knowledge of how many "waits" have already
+		 * been done).  Unfortunately, that means we end up
+		 * duplicating some code here.  Finally, if a transition is
+		 * pending, we'd better take it.
 		 */
                 if (flags.transition_pending) {
                     break;
@@ -446,7 +446,7 @@ int reintvol::IncReintegrate(int tid)
                 /* non-retryable failures */
 
                 LOG(0, ("volent::IncReintegrate: fail code = %d\n", code));
-                CML.print(logFile);
+                CML.print(GetLogFile());
                 /*
                  * checkpoint the log before localizing or aborting.
 		 * release read lock; it will be boosted in CML.Checkpoint.
@@ -527,7 +527,7 @@ int reintvol::PartialReintegrate(int tid, unsigned long *reint_time)
             goto CheckResult;
     }
 
-    /* 
+    /*
      * If we have a handle, check the status.
      * If this is a new transfer, get a handle from the server.
      */
@@ -611,7 +611,7 @@ CheckResult:
         m->flags.failed = 1;
 
         LOG(0, ("volent::PartialReintegrate: fail code = %d\n", code));
-        CML.print(logFile);
+        CML.print(GetLogFile());
 
         /* checkpoint the log */
         ReleaseReadLock(&CML_lock);
@@ -629,9 +629,9 @@ CheckResult:
     return (code);
 }
 
-/* 
+/*
  * determine if a volume has updates that may be reintegrated,
- * and return the number. humongous predicate check here.  
+ * and return the number. humongous predicate check here.
  */
 int reintvol::ReadyToReintegrate()
 {
@@ -640,12 +640,12 @@ int reintvol::ReadyToReintegrate()
     cmlent *m;
     int rc;
 
-    /* 
+    /*
      * we're a bit draconian about ASRs.  We want to avoid reintegrating
      * while an ASR is in progress, because the ASR uses the write
      * disconnected state in place of transactional support -- it requires
-     * control of when its updates are sent back.  The ASRinProgress flag 
-     * is Venus-wide, so the check is correct but more conservative than 
+     * control of when its updates are sent back.  The ASRinProgress flag
+     * is Venus-wide, so the check is correct but more conservative than
      * we would like.
      */
     if (IsReintegrating() || !IsReachable() || CML.count() == 0)
@@ -744,7 +744,7 @@ protected:
 olist reintegrator::freelist;
 
 /* This is the entry point for reintegration. */
-/* It finds a free reintegrator (or creates a new one), 
+/* It finds a free reintegrator (or creates a new one),
    sets up its context, and gives it a poke. */
 void Reintegrate(reintvol *v)
 {
@@ -788,13 +788,13 @@ reintegrator::~reintegrator()
         ("reintegrator::~reintegrator: %-16s : lwpid = %d\n", name, lwpid));
 }
 
-/* 
+/*
  * N.B. Vproc synchronization is not done in the usual way, with
  * the constructor signalling, and the new vproc waiting in its
- * main procedure for the constructor to poke it.  This handshake 
+ * main procedure for the constructor to poke it.  This handshake
  * assumes that the new vproc has a thread priority greater than or
- * equal to its creator; only then does the a thread run when 
- * LWP_CreateProcess is called.  If the creator has a higher 
+ * equal to its creator; only then does the a thread run when
+ * LWP_CreateProcess is called.  If the creator has a higher
  * priority, the new reintegrator runs only when the creator is
  * suspended.  Otherwise, the reintegrator will run when created.
  * This can happen if a reintegrator creates another reintegrator.

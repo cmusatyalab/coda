@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -61,7 +61,7 @@ extern "C" {
 void fsobj::dir_Rebuild()
 {
     if (!HAVEALLDATA(this)) {
-        print(logFile);
+        print(GetLogFile());
         CHOKE("fsobj::dir_Rebuild: no data");
     }
 
@@ -79,7 +79,7 @@ void fsobj::dir_Rebuild()
 void fsobj::dir_Create(const char *Name, VenusFid *Fid)
 {
     if (!HAVEALLDATA(this)) {
-        print(logFile);
+        print(GetLogFile());
         CHOKE("fsobj::dir_Create: (%s, %s) no data", Name, FID_(Fid));
     }
 
@@ -90,7 +90,7 @@ void fsobj::dir_Create(const char *Name, VenusFid *Fid)
     CODA_ASSERT(entry);
     rc = DH_Create(&data.dir->dh, entry, MakeViceFid(Fid));
     if (rc) {
-        print(logFile);
+        print(GetLogFile());
         CHOKE("fsobj::dir_Create: (%s, %s) Create failed %d!", Name, FID_(Fid),
               rc);
     }
@@ -106,7 +106,7 @@ void fsobj::dir_Create(const char *Name, VenusFid *Fid)
 int fsobj::dir_Length()
 {
     if (!HAVEALLDATA(this)) {
-        print(logFile);
+        print(GetLogFile());
         CHOKE("fsobj::dir_Length: no data");
     }
 
@@ -157,7 +157,7 @@ static void clear_dir_container_entry(CacheFile *cf, const char *name)
 void fsobj::dir_Delete(const char *Name)
 {
     if (!HAVEALLDATA(this)) {
-        print(logFile);
+        print(GetLogFile());
         CHOKE("fsobj::dir_Delete: (%s) no data", Name);
     }
 
@@ -166,7 +166,7 @@ void fsobj::dir_Delete(const char *Name)
     char *entry = strdup(Name);
     CODA_ASSERT(entry);
     if (DH_Delete(&data.dir->dh, entry)) {
-        print(logFile);
+        print(GetLogFile());
         CHOKE("fsobj::dir_Delete: (%s) Delete failed!", Name);
     }
     free(entry);
@@ -191,7 +191,7 @@ void fsobj::dir_MakeDir()
     DH_Init(&data.dir->dh);
 
     if (DH_MakeDir(&data.dir->dh, MakeViceFid(&fid), MakeViceFid(&pfid)) != 0) {
-        print(logFile);
+        print(GetLogFile());
         CHOKE("fsobj::dir_MakeDir: MakeDir failed!");
     }
 
@@ -204,7 +204,7 @@ void fsobj::dir_MakeDir()
 int fsobj::dir_Lookup(const char *Name, VenusFid *Fid, int flags)
 {
     if (!HAVEALLDATA(this)) {
-        print(logFile);
+        print(GetLogFile());
         CHOKE("fsobj::dir_Lookup: (%s) no data", Name);
     }
 
@@ -221,7 +221,7 @@ int fsobj::dir_Lookup(const char *Name, VenusFid *Fid, int flags)
 int fsobj::dir_LookupByFid(char *Name, VenusFid *Fid)
 {
     if (!HAVEALLDATA(this)) {
-        print(logFile);
+        print(GetLogFile());
         CHOKE("fsobj::dir_LookupByFid: %s no data", FID_(Fid));
     }
 
@@ -232,7 +232,7 @@ int fsobj::dir_LookupByFid(char *Name, VenusFid *Fid)
 int fsobj::dir_IsEmpty()
 {
     if (!HAVEALLDATA(this)) {
-        print(logFile);
+        print(GetLogFile());
         CHOKE("fsobj::dir_IsEmpty: no data");
     }
 
@@ -243,7 +243,7 @@ int fsobj::dir_IsEmpty()
 int fsobj::dir_IsParent(VenusFid *target_fid)
 {
     if (!HAVEALLDATA(this)) {
-        print(logFile);
+        print(GetLogFile());
         CHOKE("fsobj::dir_IsParent: (%s) no data", FID_(target_fid));
     }
 
@@ -268,7 +268,7 @@ void fsobj::dir_TranslateFid(VenusFid *OldFid, VenusFid *NewFid)
     char *Name = NULL;
 
     if (!HAVEALLDATA(this)) {
-        print(logFile);
+        print(GetLogFile());
         CHOKE("fsobj::dir_TranslateFid: %s -> %s no data", FID_(OldFid),
               FID_(NewFid));
     }
@@ -277,7 +277,7 @@ void fsobj::dir_TranslateFid(VenusFid *OldFid, VenusFid *NewFid)
          !FID_IsLocalFake(&fid)) ||
         (!FID_VolEQ(&fid, NewFid) && !FID_IsLocalFake(NewFid) &&
          !FID_IsLocalFake(&fid))) {
-        print(logFile);
+        print(GetLogFile());
         CHOKE("fsobj::dir_TranslateFid: %s -> %s cross-volume", FID_(OldFid),
               FID_(NewFid));
     }
@@ -298,11 +298,11 @@ void fsobj::dir_TranslateFid(VenusFid *OldFid, VenusFid *NewFid)
 void fsobj::dir_Print()
 {
     if (!HAVEALLDATA(this)) {
-        print(logFile);
+        print(GetLogFile());
         CHOKE("fsobj::dir_Print: no data");
     }
 
-    if (LogLevel >= 1000) {
+    if (GetLogLevel() >= 1000) {
         LOG(1000, ("fsobj::dir_Print: %s, %d, %d\n", data.dir->udcf->Name(),
                    data.dir->udcf->Length(), data.dir->udcfvalid));
 

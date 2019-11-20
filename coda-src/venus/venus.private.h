@@ -55,6 +55,9 @@ extern "C" {
 #include "venusstats.h"
 #include "venusfid.h"
 
+/* from util */
+#include <venusconf.h>
+
 #ifndef O_BINARY
 #define O_BINARY 0
 #endif
@@ -85,28 +88,6 @@ extern "C" {
 
 #define ASR_INTERVAL 300
 
-/*  *****  parameter defaults.  ***** */
-#define DFLT_VR "/coda" /* venus root */
-#define DFLT_CD "/usr/coda/venus.cache" /* cache directory */
-/* the next two are relative to cachedir if they do not start with '/' */
-#define DFLT_PIDFILE "pid" /* default pid file */
-#define DFLT_CTRLFILE "VENUS_CTRL" /* default control file */
-
-#define DFLT_LOGFILE "/usr/coda/etc/venus.log" /* venus log file */
-#define DFLT_ERRLOG "/usr/coda/etc/console" /* venus error log */
-#define MIN_CS "2MB"
-
-/* rule of thumb */
-const int BLOCKS_PER_FILE = 24;
-const int MLES_PER_FILE   = 4;
-const int FILES_PER_HDBE  = 2;
-
-const int MIN_CB   = 2048;
-const int MIN_CF   = MIN_CB / BLOCKS_PER_FILE;
-const int MIN_MLE  = MIN_CF * MLES_PER_FILE;
-const int MIN_HDBE = MIN_CF / FILES_PER_HDBE;
-
-#define UNSET_PRIMARYUSER 0 /* primary user of this machine */
 const int FREE_FACTOR = 16;
 
 /*  *****  Manifest constants for Venus.  *****  */
@@ -155,10 +136,10 @@ typedef void (*PROC_V_UL)(unsigned long);
 
 /*  *****  Debugging macros.  *****  */
 #ifdef VENUSDEBUG
-#define LOG(level, stmt)         \
-    do {                         \
-        if (LogLevel >= (level)) \
-            dprint stmt;         \
+#define LOG(level, stmt)              \
+    do {                              \
+        if (GetLogLevel() >= (level)) \
+            dprint stmt;              \
     } while (0)
 #else
 #define LOG(level, stmt)
@@ -326,53 +307,21 @@ void DispatchDaemons();
 /* Helper to add a file descriptor with callback to main select loop. */
 void MUX_add_callback(int fd, void (*cb)(int fd, void *udata), void *udata);
 
-extern FILE *logFile;
-extern int LogLevel;
-extern long int RPC2_DebugLevel;
-extern long int SFTP_DebugLevel;
-extern long int RPC2_Trace;
-extern int MallocTrace;
-extern const VenusFid NullFid;
-extern const ViceVersionVector NullVV;
+static const VenusFid NullFid         = { 0, 0, 0, 0 };
+static const ViceVersionVector NullVV = { { 0, 0, 0, 0, 0, 0, 0, 0 },
+                                          { 0, 0 },
+                                          0 };
 extern VFSStatistics VFSStats;
 extern RPCOpStatistics RPCOpStats;
 extern struct timeval DaemonExpiry;
 
 /* venus.c */
 class vproc;
-extern vproc *Main;
-extern VenusFid rootfid;
 extern int parent_fd;
 extern long rootnodeid;
-extern int CleanShutDown;
-extern const char *venusRoot;
-extern const char *kernDevice;
-extern const char *realmtab;
-extern const char *CacheDir;
-extern const char *CachePrefix;
-extern uint64_t CacheBlocks;
-extern const char *SpoolDir;
-extern uid_t PrimaryUser;
-extern const char *VenusPidFile;
-extern const char *VenusControlFile;
-extern const char *VenusLogFile;
-extern const char *consoleFile;
-extern const char *MarinerSocketPath;
-extern int mariner_tcp_enable;
-extern int plan9server_enabled;
-extern int nofork;
-extern int allow_reattach;
-extern int masquerade_port;
-extern int PiggyValidations;
-extern int T1Interval;
-extern const char *ASRLauncherFile;
-extern const char *ASRPolicyFile;
-extern int option_isr;
-extern int detect_reintegration_retry;
-extern int redzone_limit, yellowzone_limit;
 
 /* spool.cc */
-extern void MakeUserSpoolDir(char *, uid_t);
+void MakeUserSpoolDir(char *, uid_t);
 
 /* ASR misc */
 /* Note: At some point, it would be nice to run ASRs in different
@@ -380,10 +329,6 @@ extern void MakeUserSpoolDir(char *, uid_t);
  * below with a table or other data structure. Due to token
  * assignment constraints, though, this is not possible as of 06/2006.
  */
-
-extern pid_t ASRpid;
-extern VenusFid ASRfid;
-extern uid_t ASRuid;
 
 struct MRPC_common_params {
     RPC2_Unsigned nservers;
@@ -394,5 +339,9 @@ struct MRPC_common_params {
     unsigned long ph;
     RPC2_Multicast *MIp;
 };
+
+FILE *GetLogFile();
+int GetLogLevel();
+void SetLogLevel(int loglevel);
 
 #endif /* _VENUS_PRIVATE_H_ */

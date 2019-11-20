@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -111,7 +111,7 @@ void HDBDaemon(void)
         HDBD_HandleRequests();
 
         /* Periodic events. */
-        if (PeriodicWalksAllowed) {
+        if (!GetVenusConf().get_bool_value("nowalk")) {
             /* Walk HDB. */
             if (curr_time - LastHdbWalk >= HdbWalkInterval) {
                 (void)HDB->Walk(NULL, V_UID);

@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -53,12 +53,14 @@ class userent {
     friend void UserInit();
     friend void PutUser(userent **);
     friend void UserPrint(int);
+    friend int AuthorizedUser(uid_t thisUser);
     friend class user_iterator;
     friend class fsdb;
     friend class Realm; /* ~Realm, ResetTransient, GetUser, NewUserToken */
 
     /* The user list. */
     static olist *usertab;
+    static uid_t PrimaryUser;
 
     /* Transient members. */
     olink tblhandle;

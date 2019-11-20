@@ -967,7 +967,7 @@ static void ShutDown()
 /*
   BEGIN_HTML
   <a name="ViceUpdateDB"><strong>Ensure the incore copy of the databases is up to date.
-  </strong></a> 
+  </strong></a>
   END_HTML
 */
 void ViceUpdateDB()
@@ -1236,7 +1236,7 @@ static void ResetDebug(int ign)
 
 /*
   BEGIN_HTML
-  <a name="SwapMalloc"><strong>Toggle tracing of recoverable(rds) mallocs  </strong></a> 
+  <a name="SwapMalloc"><strong>Toggle tracing of recoverable(rds) mallocs  </strong></a>
   END_HTML
 */
 void SwapMalloc()
@@ -1336,8 +1336,8 @@ static void FileMsg()
 
 /*
   BEGIN_HTML
-  <a name="ViceTerminate"><strong>Request a shutdown by setting a global flag. 
-  </strong></a> 
+  <a name="ViceTerminate"><strong>Request a shutdown by setting a global flag.
+  </strong></a>
   END_HTML
 */
 void ViceTerminate()

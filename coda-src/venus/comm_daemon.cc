@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -43,7 +43,7 @@ extern "C" {
 /*  *****  Probe Daemon  *****  */
 
 static const int ProbeDaemonStackSize = 40960;
-int T1Interval                        = 0; /* "up" server probe interval
+static int T1Interval                 = 0; /* "up" server probe interval
 				    initialized in venus.cc as 12 * 60 */
 static int T2Interval                 = 4 * 60; /* "down" servers */
 static const int CommCheckInterval    = 5;
@@ -53,6 +53,7 @@ static char probe_sync;
 
 void PROD_Init(void)
 {
+    T1Interval = GetVenusConf().get_int_value("serverprobe");
     /* force the down server probe to be more frequent as well when the
      * 'serverprobe' option in venus.conf is low enough. */
     if (T1Interval < T2Interval)
@@ -104,10 +105,10 @@ void ProbeDaemon(void)
 
 /*
  * Determine which servers should be probed, and probe them.
- * lasttupp and lastdownp, if set, contain the last probe times of up 
- * and down servers, respectively (down servers are probed more often 
- * than up servers).  The probe of a given server may be suppressed if 
- * the last probe time is recent enough.  
+ * lasttupp and lastdownp, if set, contain the last probe times of up
+ * and down servers, respectively (down servers are probed more often
+ * than up servers).  The probe of a given server may be suppressed if
+ * the last probe time is recent enough.
  *
  * This routine updates the last probe times.
  */
@@ -130,8 +131,8 @@ void ServerProbe(long *lastupp, long *lastdownp)
         srvent *s;
         while ((s = next())) {
             /*
-	     * We will probe the server if the check is being forced (no 
-	     * times sent in), or if the server has not been heard from 
+	     * We will probe the server if the check is being forced (no
+	     * times sent in), or if the server has not been heard from
 	     * within the appropriate interval. Otherwise, pretend a probe
 	     * occurred at the "last live" time.
 	     */

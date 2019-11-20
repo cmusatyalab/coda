@@ -51,8 +51,7 @@ extern "C" {
 #include "vproc.h"
 #include "worker.h"
 
-int vcbbreaks   = 0; /* count of broken volume callbacks */
-char VCBEnabled = 1; /* use VCBs by default */
+int vcbbreaks = 0; /* count of broken volume callbacks */
 
 int vdb::CallBackBreak(Volid *volid)
 {
@@ -239,8 +238,8 @@ int reintvol::GetVolAttr(uid_t uid)
                 LOG(1000,
                     ("volent::GetVolAttr: packing volume %s, vid %p, vvv:\n",
                      rv->GetName(), rv->GetVolumeId()));
-                if (LogLevel >= 1000)
-                    FPrintVV(logFile, &rv->VVV);
+                if (GetLogLevel() >= 1000)
+                    FPrintVV(GetLogFile(), &rv->VVV);
 
                 VidList[nVols].Vid = rv->GetVolumeId();
                 for (i = 0; i < repv->vsg->MaxVSG(); i++) {
@@ -391,18 +390,18 @@ RepExit:
 /* collate version stamp and callback status out parameters from servers */
 void reintvol::UpdateVCBInfo(RPC2_Integer VS, CallBackStatus CBStatus)
 {
-    if (LogLevel >= 100) {
-        fprintf(logFile, "reintvol::UpdateVCBInfo: vid %08x Current VVV:\n",
-                vid);
-        FPrintVV(logFile, &VVV);
+    if (GetLogLevel() >= 100) {
+        fprintf(GetLogFile(),
+                "reintvol::UpdateVCBInfo: vid %08x Current VVV:\n", vid);
+        FPrintVV(GetLogFile(), &VVV);
 
-        fprintf(logFile,
+        fprintf(GetLogFile(),
                 "reintvol::UpdateVCBInfo: Version stamps returned: %d\n", VS);
 
-        fprintf(logFile,
+        fprintf(GetLogFile(),
                 "reintvol::UpdateVCBInfo: Callback status returned: %d\n",
                 CBStatus);
-        fflush(logFile);
+        fflush(GetLogFile());
     }
 
     /* This is the single server version of CollateVCB */
@@ -433,22 +432,24 @@ void repvol::CollateVCB(mgrpent *m, RPC2_Integer *sbufs, CallBackStatus *cbufs)
     unsigned int i            = 0;
     CallBackStatus collatedCB = CallBackSet;
 
-    if (LogLevel >= 100) {
-        fprintf(logFile, "repvol::CollateVCB: vid %08x Current VVV:\n", vid);
-        FPrintVV(logFile, &VVV);
+    if (GetLogLevel() >= 100) {
+        fprintf(GetLogFile(), "repvol::CollateVCB: vid %08x Current VVV:\n",
+                vid);
+        FPrintVV(GetLogFile(), &VVV);
 
-        fprintf(logFile, "repvol::CollateVCB: Version stamps returned:");
+        fprintf(GetLogFile(), "repvol::CollateVCB: Version stamps returned:");
         for (i = 0; i < vsg->MaxVSG(); i++)
             if (m->rocc.hosts[i].s_addr != 0)
-                fprintf(logFile, " %u", sbufs[i]);
+                fprintf(GetLogFile(), " %u", sbufs[i]);
 
-        fprintf(logFile, "\nrepvol::CollateVCB: Callback status returned:");
+        fprintf(GetLogFile(),
+                "\nrepvol::CollateVCB: Callback status returned:");
         for (i = 0; i < vsg->MaxVSG(); i++)
             if (m->rocc.hosts[i].s_addr != 0)
-                fprintf(logFile, " %u", cbufs[i]);
+                fprintf(GetLogFile(), " %u", cbufs[i]);
 
-        fprintf(logFile, "\n");
-        fflush(logFile);
+        fprintf(GetLogFile(), "\n");
+        fflush(GetLogFile());
     }
 
     for (i = 0; i < vsg->MaxVSG(); i++) {

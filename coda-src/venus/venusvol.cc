@@ -156,8 +156,6 @@ extern "C" {
 #include "codaconf.h"
 #include "realmdb.h"
 
-int MLEs = 0;
-
 #ifdef VENUSDEBUG
 unsigned int volrep::allocs   = 0;
 unsigned int volrep::deallocs = 0;
@@ -167,12 +165,34 @@ unsigned int repvol::deallocs = 0;
 
 #define ASR_UID 0 /* XXX: To be changed! */
 
-int default_reintegration_age; /* how long a CML entry must exist before reint*/
-int default_reintegration_time; /* how long a reintegration attempt may take */
+/* Configuration Parameters */
+const char *vdb::ASRLauncherFile = NULL;
+const char *vdb::ASRPolicyFile   = NULL;
+static int
+    default_reintegration_age; /* how long a CML entry must exist before reint*/
+static int
+    default_reintegration_time; /* how long a reintegration attempt may take */
+static unsigned int CacheFiles = 0;
+bool reintvol::VCBEnabled      = true;
+bool reintvol::LogOpts         = true; /* perform log optimizations? */
+static bool InitMetaData       = false;
 
 /* local-repair modification */
 void VolInit(void)
 {
+    /* Get configuration parameters */
+    CacheFiles = GetVenusConf().get_int_value("cachefiles");
+    default_reintegration_age =
+        GetVenusConf().get_int_value("reintegration_age");
+    default_reintegration_time =
+        GetVenusConf().get_int_value("reintegration_time");
+
+    vdb::ASRLauncherFile = GetVenusConf().get_value("asrlauncher_path");
+    vdb::ASRPolicyFile   = GetVenusConf().get_value("asrpolicy_path");
+    reintvol::LogOpts    = GetVenusConf().get_bool_value("log_optimization");
+    reintvol::VCBEnabled = GetVenusConf().get_bool_value("novcb");
+    InitMetaData         = GetVenusConf().get_bool_value("initmetadata");
+
     /* Allocate the database if requested. */
     if (InitMetaData) { /* <==> VDB == 0 */
         Recov_BeginTrans();
@@ -246,10 +266,10 @@ void VolInit(void)
     VDB->Create(LocalRealm, &LocalVol, "CodaRoot")->hold();
 
     /* update the global 'rootfid' variable */
-    rootfid.Realm  = LocalRealm->Id();
-    rootfid.Volume = FakeRootVolumeId;
-    rootfid.Vnode  = 0x1;
-    rootfid.Unique = 0x1;
+    vproc::GetRootFid().Realm  = LocalRealm->Id();
+    vproc::GetRootFid().Volume = FakeRootVolumeId;
+    vproc::GetRootFid().Vnode  = 0x1;
+    vproc::GetRootFid().Unique = 0x1;
 
     /* Fake repair volume to expand objects in conflict during repair */
     LocalVol.Vid = FakeRepairVolumeId;
@@ -342,7 +362,7 @@ vdb::vdb()
     /* Initialize the persistent members. */
     RVMLIB_REC_OBJECT(*this);
     MagicNumber   = VDB_MagicNumber;
-    MaxMLEs       = MLEs;
+    MaxMLEs       = GetVenusConf().get_int_value("cml_entries");
     AllocatedMLEs = 0;
 }
 
@@ -914,7 +934,7 @@ volent::~volent()
     rvmlib_rec_free(name);
 
     if (refcnt != 0) {
-        print(logFile);
+        print(GetLogFile());
         CHOKE("volent::~volent: non-zero refcnt");
     }
 }
@@ -1084,7 +1104,8 @@ int volent::Enter(int mode, uid_t uid)
     vproc *vp = VprocSelf();
 
     reintvol *rv = (reintvol *)this;
-    if (VCBEnabled && IsReadWrite() && IsReachable() && rv->WantCallBack()) {
+    if (reintvol::VCBEnabled && IsReadWrite() && IsReachable() &&
+        rv->WantCallBack()) {
         if ((!rv->HaveStamp() && vp->type == VPT_HDBDaemon) ||
             (rv->HaveStamp() &&
              (vp->type != VPT_VolDaemon || !just_transitioned))) {
@@ -1135,7 +1156,7 @@ int volent::Enter(int mode, uid_t uid)
                 if (rv->GetCML()->Owner() == UNSET_UID) {
                     if (mutator_count != 0 || rv->GetCML()->count() != 0 ||
                         rv->IsReintegrating()) {
-                        print(logFile);
+                        print(GetLogFile());
                         CHOKE("volent::Enter: mutating, CML owner == %d\n",
                               rv->GetCML()->Owner());
                     }
@@ -1153,7 +1174,7 @@ int volent::Enter(int mode, uid_t uid)
                 if (rv->GetCML()->Owner() == uid) {
                     if (mutator_count == 0 && rv->GetCML()->count() == 0 &&
                         !rv->IsReintegrating()) {
-                        print(logFile);
+                        print(GetLogFile());
                         CHOKE("volent::Enter: mutating, CML owner == %d\n",
                               rv->GetCML()->Owner());
                     }
@@ -1238,7 +1259,7 @@ int volent::Enter(int mode, uid_t uid)
     }
 
     default:
-        print(logFile);
+        print(GetLogFile());
         CHOKE("volent::Enter: bogus mode %d", mode);
     }
 
@@ -1281,7 +1302,7 @@ void volent::Exit(int mode, uid_t uid)
     switch (mode & (VM_MUTATING | VM_OBSERVING | VM_RESOLVING)) {
     case VM_MUTATING: {
         if (IsResolving() || mutator_count <= 0) {
-            print(logFile);
+            print(GetLogFile());
             CHOKE("volent::Exit: mutating");
         }
 
@@ -1310,7 +1331,7 @@ void volent::Exit(int mode, uid_t uid)
 
     case VM_OBSERVING: {
         if (IsResolving() || observer_count <= 0) {
-            print(logFile);
+            print(GetLogFile());
             CHOKE("volent::Exit: observing");
         }
 
@@ -1323,7 +1344,7 @@ void volent::Exit(int mode, uid_t uid)
         CODA_ASSERT(IsReplicated());
         if (!IsResolving() || resolver_count == 0 ||
             !flags.transition_pending) {
-            print(logFile);
+            print(GetLogFile());
             CHOKE("volent::Exit: resolving");
         }
 
@@ -1336,7 +1357,7 @@ void volent::Exit(int mode, uid_t uid)
     }
 
     default:
-        print(logFile);
+        print(GetLogFile());
         CHOKE("volent::Exit: bogus mode %d", mode);
     }
 
@@ -1581,7 +1602,7 @@ void volent::Lock(VolLockType l, int pgid)
 {
     /* Sanity Check */
     if (l != EX_VOL_LK && l != SH_VOL_LK) {
-        print(logFile);
+        print(GetLogFile());
         CHOKE("volent::Lock: bogus lock type");
     }
 
@@ -1609,12 +1630,12 @@ void volent::UnLock(VolLockType l)
 
     /* Sanity Check */
     if (l != EX_VOL_LK && l != SH_VOL_LK) {
-        print(logFile);
+        print(GetLogFile());
         CHOKE("volent::UnLock bogus lock type");
     }
 
     if (excl_count < 0 || shrd_count < 0) {
-        print(logFile);
+        print(GetLogFile());
         CHOKE("volent::UnLock pgid = %d excl_count = %d shrd_count = %d",
               excl_pgid, excl_count, shrd_count);
     }
@@ -1661,7 +1682,7 @@ volrep::~volrep()
     volid.Realm  = realm->Id();
     volid.Volume = vid;
     if (VDB->volrep_hash.remove(&volid, &handle) != &handle) {
-        print(logFile);
+        print(GetLogFile());
         CHOKE("volrep::~volrep: htab remove");
     }
 
@@ -1683,6 +1704,7 @@ void volrep::ResetTransient(void)
 
 void repvol::ResetTransient(void)
 {
+    extern int CleanShutDown;
     struct in_addr hosts[VSG_MEMBERS];
 
     res_list  = new olist;
@@ -1796,7 +1818,7 @@ repvol::~repvol()
     volid.Realm  = realm->Id();
     volid.Volume = vid;
     if (VDB->repvol_hash.remove(&volid, &handle) != &handle) {
-        print(logFile);
+        print(GetLogFile());
         CHOKE("repvol::~repvol: htab remove");
     }
 
@@ -2027,7 +2049,7 @@ int reintvol::AllocFid(ViceDataType Type, VenusFid *target_fid, uid_t uid,
 
         case Invalid:
         default:
-            print(logFile);
+            print(GetLogFile());
             CHOKE("reintvol::AllocFid: bogus Type (%d)", Type);
         }
 
@@ -2113,7 +2135,7 @@ int reintvol::AllocFid(ViceDataType Type, VenusFid *target_fid, uid_t uid,
 
     case Invalid:
     default:
-        print(logFile);
+        print(GetLogFile());
         CHOKE("reintvol::AllocFid: bogus Type (%d)", Type);
     }
 
@@ -2233,7 +2255,7 @@ int repvol::AllocFid(ViceDataType Type, VenusFid *target_fid, uid_t uid,
 
                 case Invalid:
                 default:
-                    print(logFile);
+                    print(GetLogFile());
                     CHOKE("repvol::AllocFid: bogus Type (%d)", Type);
                 }
 

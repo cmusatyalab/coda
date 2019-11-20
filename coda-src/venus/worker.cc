@@ -106,7 +106,10 @@ extern int venus_relay_addr;
 int worker::muxfd = -1;
 int worker::nworkers;
 int worker::nprefetchers;
-int worker::kernel_version = 0;
+int worker::kernel_version      = 0;
+const char *worker::CacheDir    = "";
+const char *worker::CachePrefix = "";
+const char *worker::kernDevice  = "";
 time_t worker::lastresign;
 olist worker::FreeMsgs;
 olist worker::QueuedMsgs;
@@ -117,14 +120,7 @@ int msgent::deallocs = 0;
 
 const int WorkerStackSize = 131072;
 
-int MaxWorkers     = UNSET_MAXWORKERS;
-int MaxPrefetchers = UNSET_MAXWORKERS;
 static int Mounted = 0;
-
-/* Only for the crazy people among us.
- * Many things can and will go wrong when venus reattaches to a previously
- * mounted mountpoint. But it does help during development ;) --JH */
-int allow_reattach = 0;
 
 /* -------------------------------------------------- */
 
@@ -242,58 +238,6 @@ ssize_t MsgWrite(const char *buf, size_t size)
     return WriteDowncallMsg(worker::muxfd, buf, size);
 }
 
-/* test if we can open the kernel device and purge the cache,
-   BSD systems like to purge that cache */
-void testKernDevice()
-{
-#ifdef __CYGWIN32__
-    return;
-#else
-    int fd = -1;
-    char *str, *p, *q = NULL;
-    CODA_ASSERT((str = p = strdup(kernDevice)) != NULL);
-
-    for (p = strtok(p, ","); p && fd == -1; p = strtok(NULL, ",")) {
-        fd = ::open(p, O_RDWR, 0);
-        if (fd >= 0)
-            q = p;
-    }
-
-    /* If the open of the kernel device succeeds we know that there is
-	   no other living venus. */
-    if (fd < 0) {
-        eprint("Probably another Venus is running! open failed for %s, exiting",
-               kernDevice);
-        free(str);
-        exit(EXIT_FAILURE);
-    }
-
-    CODA_ASSERT(q);
-    kernDevice = strdup(q);
-    free(str);
-
-    /* Construct a purge message */
-    union outputArgs msg;
-    memset(&msg, 0, sizeof(msg));
-
-    msg.oh.opcode = CODA_FLUSH;
-    msg.oh.unique = 0;
-
-    /* Send the message. */
-    if (write(fd, (const void *)&msg, sizeof(struct coda_out_hdr)) !=
-        sizeof(struct coda_out_hdr)) {
-        eprint("Write for flush failed (%d), exiting", errno);
-        exit(EXIT_FAILURE);
-    }
-
-    /* Close the kernel device. */
-    if (close(fd) < 0) {
-        eprint("close of %s failed (%d), exiting", kernDevice, errno);
-        exit(EXIT_FAILURE);
-    }
-#endif
-}
-
 void VFSMount()
 {
     /* Linux (and NetBSD) Coda filesystems are mounted through forking since
@@ -303,10 +247,10 @@ void VFSMount()
 #ifdef __BSD44__ /* BSD specific preamble */
     /* Silently unmount the root node in case an earlier venus exited without
      * successfully unmounting. */
-    unmount(venusRoot, 0);
+    unmount(vproc::venusRoot, 0);
     switch (errno) {
     case 0:
-        eprint("unmount(%s) succeeded, continuing", venusRoot);
+        eprint("unmount(%s) succeeded, continuing", vproc::venusRoot);
         break;
 
     case EINVAL:
@@ -315,14 +259,14 @@ void VFSMount()
 
     case EBUSY:
     default:
-        eprint("unmount(%s) failed (%d), exiting", venusRoot, errno);
+        eprint("unmount(%s) failed (%d), exiting", vproc::venusRoot, errno);
         exit(EXIT_FAILURE);
     }
 
     /* Deduce rootnodeid. */
     struct stat tstat;
-    if (::stat(venusRoot, &tstat) < 0) {
-        eprint("stat(%s) failed (%d), exiting", venusRoot, errno);
+    if (::stat(vproc::venusRoot, &tstat) < 0) {
+        eprint("stat(%s) failed (%d), exiting", vproc::venusRoot, errno);
         exit(EXIT_FAILURE);
     }
     rootnodeid = tstat.st_ino;
@@ -349,7 +293,7 @@ void VFSMount()
 
             if ((STREQ(ent->mnt_fsname, "Coda") ||
                  STREQ(ent->mnt_fsname, "coda")) &&
-                STREQ(ent->mnt_dir, venusRoot)) {
+                STREQ(ent->mnt_dir, vproc::venusRoot)) {
                 mounted = 1;
                 break;
             }
@@ -357,8 +301,8 @@ void VFSMount()
         endmntent(fd);
 
         if (mounted) {
-            eprint("%s already mounted", venusRoot);
-            if (allow_reattach) {
+            eprint("%s already mounted", vproc::venusRoot);
+            if (GetVenusConf().get_bool_value("allow-reattach")) {
                 kill(getpid(), SIGUSR1);
                 return;
             }
@@ -397,32 +341,36 @@ void VFSMount()
             md[1].iov_len  = sizeof("coda");
             md[2].iov_base = (char *)"fspath";
             md[2].iov_len  = sizeof("fspath");
-            md[3].iov_base = (char *)venusRoot;
-            md[3].iov_len  = strlen((char *)venusRoot) + 1;
+            md[3].iov_base = (char *)vproc::venusRoot;
+            md[3].iov_len  = strlen((char *)vproc::venusRoot) + 1;
             md[4].iov_base = (char *)"from";
             md[4].iov_len  = sizeof("from");
-            md[5].iov_base = (char *)kernDevice;
-            md[5].iov_len  = strlen((char *)kernDevice) + 1;
+            md[5].iov_base = (char *)worker::kernDevice;
+            md[5].iov_len  = strlen((char *)worker::kernDevice) + 1;
             error          = nmount(md, 6, 0);
         }
 #endif
 
 #if defined(__NetBSD__) && __NetBSD_Version__ >= 499002400 /* 4.99.24 */
         if (error < 0)
-            error = mount("coda", venusRoot, 0, (void *)kernDevice, 256);
+            error = mount("coda", vproc::venusRoot, 0,
+                          (void *)worker::kernDevice, 256);
         if (error < 0)
-            error = mount("cfs", venusRoot, 0, (void *)kernDevice, 256);
+            error = mount("cfs", vproc::venusRoot, 0,
+                          (void *)worker::kernDevice, 256);
 #else
         if (error < 0)
-            error = mount("coda", (char *)venusRoot, 0, (char *)kernDevice);
+            error = mount("coda", (char *)vproc::venusRoot, 0,
+                          (char *)worker::kernDevice);
         if (error < 0)
-            error = mount("cfs", (char *)venusRoot, 0, (char *)kernDevice);
+            error = mount("cfs", (char *)vproc::venusRoot, 0,
+                          (char *)worker::kernDevice);
 #endif
 
 #if defined(__FreeBSD__) && !defined(__FreeBSD_version)
 #define MOUNT_CFS 19
         if (error < 0)
-            error = mount(MOUNT_CFS, venusRoot, 0, kernDevice);
+            error = mount(MOUNT_CFS, vproc::venusRoot, 0, worker::kernDevice);
 #endif
 #endif /* __BSD44__ */
 
@@ -431,16 +379,17 @@ void VFSMount()
         mountdata.version = CODA_MOUNT_VERSION;
         mountdata.fd      = worker::muxfd;
 
-        error = mount("coda", venusRoot, "coda",
-                      MS_MGC_VAL | MS_NOATIME | MS_NODEV | MS_NOSUID,
-                      islinux20 ? (void *)&kernDevice : (void *)&mountdata);
+        error =
+            mount("coda", vproc::venusRoot, "coda",
+                  MS_MGC_VAL | MS_NOATIME | MS_NODEV | MS_NOSUID,
+                  islinux20 ? (void *)&worker::kernDevice : (void *)&mountdata);
 
         if (!error) {
             FILE *fd = setmntent("/etc/mtab", "a");
             struct mntent ent;
             if (fd) {
                 ent.mnt_fsname = (char *)"coda";
-                ent.mnt_dir    = (char *)venusRoot;
+                ent.mnt_dir    = (char *)vproc::venusRoot;
                 ent.mnt_type   = (char *)"coda";
                 ent.mnt_opts   = (char *)"rw,noatime,nosuid,nodev";
                 ent.mnt_freq   = 0;
@@ -456,7 +405,7 @@ void VFSMount()
             eprint("CHILD: mount system call failed. Killing parent.\n");
             kill(parent, SIGKILL);
         } else {
-            eprint("%s now mounted.", venusRoot);
+            eprint("%s now mounted.", vproc::venusRoot);
             kill(parent, SIGUSR1);
         }
 
@@ -476,17 +425,19 @@ void VFSMount()
     {
         int error;
         /* Do a umount just in case it is mounted. */
-        error = umount(venusRoot);
+        error = umount(vproc::venusRoot);
         if (error) {
             if (errno != EINVAL) {
-                eprint("unmount(%s) failed (%d), exiting", venusRoot, errno);
+                eprint("unmount(%s) failed (%d), exiting", vproc::venusRoot,
+                       errno);
                 exit(EXIT_FAILURE);
             }
         } else
-            eprint("unmount(%s) succeeded, continuing", venusRoot);
+            eprint("unmount(%s) succeeded, continuing", vproc::venusRoot);
     }
     /* New mount */
-    CODA_ASSERT(!mount(kernDevice, venusRoot, MS_DATA, "coda", NULL, 0));
+    CODA_ASSERT(
+        !mount(worker::kernDevice, vproc::venusRoot, MS_DATA, "coda", NULL, 0));
     /* Update the /etc mount table entry */
     {
         int lfd, mfd;
@@ -502,7 +453,7 @@ void VFSMount()
                 mnttab = fopen(MNTTAB, "a+");
                 if (mnttab != NULL) {
                     mt.mnt_special = "CODA";
-                    mt.mnt_mountp  = (char *)venusRoot;
+                    mt.mnt_mountp  = (char *)vproc::venusRoot;
                     mt.mnt_fstype  = "CODA";
                     mt.mnt_mntopts = "rw";
                     mt.mnt_time    = tm;
@@ -524,8 +475,8 @@ void VFSMount()
 
 #ifdef __CYGWIN32__
     /* Mount by starting another thread. */
-    eprint("Mounting on %s", venusRoot);
-    nt_mount(venusRoot);
+    eprint("Mounting on %s", vproc::venusRoot);
+    nt_mount(vproc::venusRoot);
 #endif
 
     Mounted = 1;
@@ -546,8 +497,8 @@ void VFSUnmount()
        nail us. */
 #ifndef __BSD44__
     /* Issue the VFS unmount request. */
-    if (unmount(venusRoot, 0) < 0) {
-        eprint("vfsunmount(%s) failed (%d)", venusRoot, errno);
+    if (unmount(vproc::venusRoot, 0) < 0) {
+        eprint("vfsunmount(%s) failed (%d)", vproc::venusRoot, errno);
         return;
     }
 #else
@@ -568,7 +519,7 @@ void VFSUnmount()
         FILE *mnttab;
         FILE *newtab;
 
-        res = umount(venusRoot);
+        res = umount(vproc::venusRoot);
         if (res)
             eprint("Unmount failed.");
         /* Remove CODA entry from /etc/mnttab */
@@ -607,8 +558,8 @@ void VFSUnmount()
 #endif
 
 #ifdef __CYGWIN32__
-    eprint("Unmounting %s", venusRoot);
-    nt_umount(venusRoot);
+    eprint("Unmounting %s", vproc::venusRoot);
+    nt_umount(vproc::venusRoot);
 #endif
 }
 
@@ -729,6 +680,7 @@ int k_Purge(uid_t uid)
 
 int k_Replace(VenusFid *fid_1, VenusFid *fid_2)
 {
+    static bool plan9server_enabled = GetVenusConf().get_bool_value("9pfs");
     if (!fid_1 || !fid_2)
         CHOKE("k_Replace: nil fids");
 
@@ -769,14 +721,12 @@ int k_Replace(VenusFid *fid_1, VenusFid *fid_2)
 /* -------------------------------------------------- */
 void WorkerInit()
 {
-    if (MaxWorkers == UNSET_MAXWORKERS)
-        MaxWorkers = DFLT_MAXWORKERS;
+    worker::kernDevice = GetVenusConf().get_value("kerneldevice");
+    worker::CacheDir   = GetVenusConf().get_value("cachedir");
 
-    if (MaxPrefetchers == UNSET_MAXWORKERS)
-        MaxPrefetchers = DFLT_MAXPREFETCHERS;
-    else if (MaxPrefetchers > MaxWorkers) { /* whoa */
+    if (vproc::MaxPrefetchers > vproc::MaxWorkers) { /* whoa */
         eprint("WorkerInit: MaxPrefetchers %d, MaxWorkers only %d!",
-               MaxPrefetchers, MaxWorkers);
+               vproc::MaxPrefetchers, vproc::MaxWorkers);
         exit(EXIT_FAILURE);
     }
 
@@ -794,9 +744,9 @@ void WorkerInit()
     dprint("WorkerInit: muxfd = %d\n", worker::muxfd);
 #else
     /* Open the communications channel. */
-    worker::muxfd = ::open(kernDevice, O_RDWR, 0);
+    worker::muxfd = ::open(worker::kernDevice, O_RDWR, 0);
     if (worker::muxfd == -1) {
-        eprint("WorkerInit: open %s failed", kernDevice);
+        eprint("WorkerInit: open %s failed", worker::kernDevice);
         exit(EXIT_FAILURE);
     }
 #endif
@@ -891,7 +841,7 @@ worker *GetIdleWorker()
             return (w);
 
     /* No idle workers; can we create a new one? */
-    if (worker::nworkers < MaxWorkers) {
+    if (worker::nworkers < vproc::MaxWorkers) {
         return (new worker);
     }
 
@@ -946,7 +896,7 @@ void DispatchWorker(msgent *m)
      * a separate (lower priority) queue for these requests. -- lily
      */
     if (IsAPrefetch(m)) {
-        if (worker::nprefetchers >= MaxPrefetchers) {
+        if (worker::nprefetchers >= vproc::MaxPrefetchers) {
             LOG(1,
                 ("DispatchWorker: queuing prefetch (%d workers, %d prefetching)\n",
                  worker::nworkers, worker::nprefetchers));
@@ -968,7 +918,7 @@ void DispatchWorker(msgent *m)
 
     /* No one is able to handle this message now; queue it up for the next free worker. */
     LOG(0, ("DispatchWorker: out of workers (max %d), queueing message\n",
-            MaxWorkers));
+            vproc::MaxWorkers));
     worker::QueuedMsgs.append(m);
 }
 
@@ -1077,7 +1027,7 @@ void worker::AwaitRequest()
     msgent *m = (msgent *)QueuedMsgs.get();
 
     /* limit the number of workers handling prefetches. see DispatchWorker. */
-    if (m && IsAPrefetch(m) && worker::nprefetchers >= MaxPrefetchers) {
+    if (m && IsAPrefetch(m) && worker::nprefetchers >= vproc::MaxPrefetchers) {
         /* re-queue and look for a non-prefetch message */
         LOG(1,
             ("worker::AwaitRequest: requeueing prefetch (%d workers, %d prefetching)\n",
@@ -1293,7 +1243,7 @@ inline void worker::op_coda_ioctl(union inputArgs *in, union outputArgs *out,
         RecovFlush(1);
         RecovTerminate();
         VFSUnmount();
-        fflush(logFile);
+        fflush(GetLogFile());
         fflush(stderr);
 
         exit(EXIT_SUCCESS);

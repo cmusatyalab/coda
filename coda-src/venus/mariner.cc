@@ -72,13 +72,16 @@ extern "C" {
 typedef int socklen_t;
 #endif
 
-const int MarinerStackSize = 65536;
-const int MaxMariners      = 25;
+const int MarinerStackSize      = 65536;
+const int MaxMariners           = 25;
+static bool plan9server_enabled = false;
 
 int mariner::nmariners;
 
 void MarinerInit()
 {
+    const char *MarinerSocketPath = GetVenusConf().get_value("marinersocket");
+    plan9server_enabled           = GetVenusConf().get_bool_value("9pfs");
     int sock, rc, opt = 1;
 
     mariner::nmariners = 0;
@@ -122,7 +125,7 @@ void MarinerInit()
 #endif /* HAVE_SYS_UN_H */
 
 Next:
-    if (!mariner_tcp_enable)
+    if (!GetVenusConf().get_bool_value("MarinerTcp"))
         return;
 
     struct RPC2_addrinfo hints, *result = NULL, *ai;
@@ -334,7 +337,7 @@ mariner::mariner(int afd)
     start_thread();
 }
 
-/* 
+/*
  * we don't support assignments to objects of this type.
  * bomb in an obvious way if it inadvertently happens.
  */
@@ -527,17 +530,18 @@ void mariner::main(void)
                 "\tfidstat <fid>, rpc2stat, print <args>\n");
         } else if (STREQ(argv[0], "debugon")) {
             DebugOn();
-            Write("LogLevel is now %d\n", LogLevel);
+            Write("GetLogLevel() is now %d\n", GetLogLevel());
         } else if (STREQ(argv[0], "debugoff")) {
             DebugOff();
-            Write("LogLevel is now %d\n", LogLevel);
+            Write("GetLogLevel() is now %d\n", GetLogLevel());
         } else if (STREQ(argv[0], "dumpcore")) {
             CHOKE("Telnet");
         } else if (STREQ(argv[0], "quit")) {
             dying = 1;
         } else if (STREQ(argv[0], "rpc2t")) {
             if (rpc2trace == 0) { /* Turn on rpc2 tracing. */
-                rpc2trace  = fopen("rpc.trace", "w+");
+                rpc2trace = fopen("rpc.trace", "w+");
+                extern long int RPC2_Trace;
                 RPC2_Trace = 1;
                 RPC2_InitTraceBuffer(500);
                 Write("tracing on\n");
@@ -549,13 +553,13 @@ void mariner::main(void)
             }
         } else if (STREQ(argv[0], "cop") && argc == 2) {
             /* This is a hack! -JJK */
-            int OldModes = COPModes;
-            COPModes     = atoi(argv[1]);
-            if ((ASYNCCOP1 || PIGGYCOP2) && !ASYNCCOP2) {
+            int COPModes = atoi(argv[1]);
+            if ((HAS_ASYNCCOP1(COPModes) || HAS_PIGGYCOP2(COPModes)) &&
+                !HAS_ASYNCCOP2(COPModes)) {
                 Write("Bogus modes (%x)\n", COPModes);
-                COPModes = OldModes;
             }
             Write("COPModes = %x\n", COPModes);
+            SetCOPModes(COPModes);
         } else if (STREQ(argv[0], "set:fetch")) {
             logging = 1;
         } else if (STREQ(argv[0], "clear:fetch")) {

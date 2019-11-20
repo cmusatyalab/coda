@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -70,11 +70,13 @@ extern "C" {
 #define CLOCK_SKEW 120 /* seconds */
 
 olist *userent::usertab;
+uid_t userent::PrimaryUser = UNSET_PRIMARYUSER;
 
 void UserInit()
 {
     /* Initialize static members. */
-    userent::usertab = new olist;
+    userent::usertab     = new olist;
+    userent::PrimaryUser = GetVenusConf().get_int_value("primaryuser");
 
     USERD_Init();
 }
@@ -144,17 +146,17 @@ void UserPrint(int fd)
     fdprint(fd, "\n");
 }
 
-/* 
+/*
  *  An authorized user is either:
- *    logged into the console, or 
+ *    logged into the console, or
  *    the primary user of this machine (as defined by a run-time switch).
  */
 int AuthorizedUser(uid_t thisUser)
 {
     /* If this user is the primary user of this machine, then this user is
      * authorized */
-    if (PrimaryUser != UNSET_PRIMARYUSER) {
-        if (PrimaryUser == thisUser) {
+    if (userent::PrimaryUser != UNSET_PRIMARYUSER) {
+        if (userent::PrimaryUser == thisUser) {
             LOG(100,
                 ("AuthorizedUser: User (%d) --> authorized as primary user.\n",
                  thisUser));

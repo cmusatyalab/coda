@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -158,13 +158,6 @@ enum hdbd_request
     HdbDisable
 };
 
-/*
- * Allow user to specify if periodic hoard walks should happen. I put this outside
- * of the hdb class to avoid the necessity of a reinit. -- DCS 5/5/94
- */
-
-extern char PeriodicWalksAllowed;
-
 void HDBDaemon(void) /* used to be member of class hdb (Satya 3/31/95) */;
 
 class hdb {
@@ -176,10 +169,12 @@ class hdb {
     friend class namectxt;
     friend void RecovInit();
 
+    static uid_t PrimaryUser;
+
     int MagicNumber;
 
     /* Size parameters. */
-    int MaxHDBEs;
+    unsigned int MaxHDBEs;
 
     /* The table. */
     rec_ohashtab htab;
@@ -407,7 +402,6 @@ extern int NameCtxt_deallocs;
 
 /*  *****  Variables  *****  */
 
-extern int HDBEs;
 extern int IndigentCount;
 
 /*  *****  Functions/Procedures  *****  */

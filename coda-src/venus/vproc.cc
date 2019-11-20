@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -66,10 +66,16 @@ extern "C" {
 olist vproc::tbl;
 int vproc::counter;
 char vproc::rtry_sync;
+const char *vproc::venusRoot = "";
+int vproc::MaxWorkers        = UNSET_MAXWORKERS;
+int vproc::MaxPrefetchers    = UNSET_MAXWORKERS;
+int vproc::redzone_limit     = -1;
+int vproc::yellowzone_limit  = -1;
+VenusFid vproc::rootfid;
 
 extern const int RVM_THREAD_DATA_ROCK_TAG;
-
 static const int VPROC_ROCK_TAG = 1776;
+static vproc *Main              = NULL;
 
 static void DoNothing(void)
 {
@@ -78,11 +84,15 @@ static void DoNothing(void)
 
 void VprocInit()
 {
-    vproc::counter = 0;
+    /* Get configuration */
+    vproc::counter        = 0;
+    vproc::venusRoot      = GetVenusConf().get_string_value("mountpoint");
+    vproc::MaxWorkers     = GetVenusConf().get_int_value("maxworkers");
+    vproc::MaxPrefetchers = GetVenusConf().get_int_value("maxprefetchers");
 
-    /* 
+    /*
      * Create main process.
-     * This call initializes LWP and IOMGR support. 
+     * This call initializes LWP and IOMGR support.
      * That's why it doesn't pass in a function.
      */
     Main = new vproc("Main", &DoNothing, VPT_Main);
@@ -445,7 +455,7 @@ void vproc::main(void)
     func();
 }
 
-/* 
+/*
  * we don't support assignments to objects of this type.
  * bomb in an obvious way if it inadvertently happens.
  */
@@ -462,8 +472,8 @@ int vproc::operator=(vproc &vp)
 
 vproc::~vproc()
 {
-    if (LogLevel >= 1)
-        print(logFile);
+    if (GetLogLevel() >= 1)
+        print(GetLogFile());
 
     if (!idle)
         CHOKE("vproc::~vproc: not idle!");
@@ -619,22 +629,23 @@ void vproc::Begin_VFS(Volid *volid, int vfsop, int volmode)
     wait_for_reintegration:
         free_fsos   = FSDB->FreeFsoCount();
         free_mles   = VDB->FreeMLECount();
-        free_blocks = CacheBlocks - FSDB->DirtyBlockCount();
+        free_blocks = FSDB->GetMaxBlocks() - FSDB->DirtyBlockCount();
         cml_length  = ((repvol *)u.u_vol)->LengthOfCML();
 
         /* the redzone and yellow zone thresholds are pretty arbitrary at the
 	 * moment. I am guessing that the number of worker threads might be a
-	 * useful metric for redzoning on CML entries. 
-         * Explicit CML length checks added by Satya (2016-12-28).  
+	 * useful metric for redzoning on CML entries.
+         * Explicit CML length checks added by Satya (2016-12-28).
          */
-        inredzone = !free_fsos || free_mles <= MaxWorkers ||
-                    free_blocks <= (CacheBlocks >> 4) || /* ~94% cache dirty */
+        inredzone = !free_fsos || free_mles <= vproc::MaxWorkers ||
+                    free_blocks <=
+                        (FSDB->GetMaxBlocks() >> 4) || /* ~94% cache dirty */
                     (redzone_limit > 0 && cml_length >= redzone_limit);
-        inyellowzone = free_fsos <= MaxWorkers ||
-                       free_mles <= (MLEs >> 3) || /* ~88% CMLs used */
-                       free_blocks <=
-                           (CacheBlocks >> 2) || /* ~75% cache dirty */
-                       (yellowzone_limit > 0 && cml_length >= yellowzone_limit);
+        inyellowzone =
+            free_fsos <= vproc::MaxWorkers ||
+            free_mles <= (VDB->GetMaxMLEs() >> 3) || /* ~88% CMLs used */
+            free_blocks <= (FSDB->GetMaxBlocks() >> 2) || /* ~75% cache dirty */
+            (yellowzone_limit > 0 && cml_length >= yellowzone_limit);
 
         if (inredzone)
             MarinerLog("progress::Red zone, stalling writer\n");
@@ -884,7 +895,7 @@ void va_init(struct coda_vattr *vap)
 
 void VPROC_printvattr(struct coda_vattr *vap)
 {
-    if (LogLevel >= 1000) {
+    if (GetLogLevel() >= 1000) {
         dprint("\tmode = %#o, uid = %d, gid = %d, rdev = %d\n", vap->va_mode,
                vap->va_uid, vap->va_gid, vap->va_rdev);
         dprint(

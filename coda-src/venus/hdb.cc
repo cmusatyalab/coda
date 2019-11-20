@@ -29,9 +29,9 @@ listed in the file CREDITS.
  *	 Enable - Enable the periodic hoard walks
  *	 Disable - Disable the periodic hoard walks
  *
- *    The protection restrictions enforced by this code are that the real uid of the 
+ *    The protection restrictions enforced by this code are that the real uid of the
  *    issuer must be root or an authorized user in order to add entries or walk the
- *    database or to delete, clear, list or verify entries other than his/her own.  
+ *    database or to delete, clear, list or verify entries other than his/her own.
  *    An authorized user is a user who is either logged into the console or who is
  *    considered the primary user of this workstation (as set by a runtime switch).
  *
@@ -83,11 +83,7 @@ extern "C" {
 #include "worker.h"
 #include "realmdb.h"
 
-int HDBEs = 0;
 int MetaExpand(struct DirEntry *entry, long hook);
-
-/* ***** Allow periodic hoard walks ***** */
-char PeriodicWalksAllowed = 1;
 
 #ifdef VENUSDEBUG
 int NameCtxt_allocs   = 0;
@@ -108,12 +104,16 @@ static int InconsistentCount = 0; /* number of inconsistent name-ctxts */
 static int MetaNameCtxts     = 0; /* number of outstanding meta name-ctxts */
 static int MetaExpansions    = 0; /* number of meta-expansions performed */
 
-extern int SearchForNOreFind;
+static int SearchForNOreFind;
+
+uid_t hdb::PrimaryUser = UNSET_PRIMARYUSER;
 
 /*  *****  HDB Maintenance  ******  */
 
 void HDB_Init()
 {
+    static bool InitMetaData = GetVenusConf().get_bool_value("initmetadata");
+    SearchForNOreFind = GetVenusConf().get_int_value("SearchForNOreFind");
     /* Allocate the database if requested. */
     if (InitMetaData) { /* <==> HDB == 0 */
         Recov_BeginTrans();
@@ -121,6 +121,8 @@ void HDB_Init()
         HDB = new hdb;
         Recov_EndTrans(0);
     }
+
+    hdb::PrimaryUser = GetVenusConf().get_int_value("primaryuser");
 
     /* Initialize transient members. */
     HDB->ResetTransient();
@@ -206,7 +208,7 @@ hdb::hdb()
     /* Initialize the persistent members. */
     RVMLIB_REC_OBJECT(*this);
     MagicNumber          = HDB_MagicNumber;
-    MaxHDBEs             = HDBEs;
+    MaxHDBEs             = GetVenusConf().get_int_value("hoard_entries");
     TimeOfLastDemandWalk = 0;
 }
 
@@ -248,7 +250,7 @@ hdbent *hdb::Create(VolumeId vid, char *realm, char *name, uid_t local_id,
 
     /* Check whether the key is already in the database. */
     if ((h = Find(vid, realm, name)) != 0) {
-        h->print(logFile);
+        h->print(GetLogFile());
         CHOKE("hdb::Create: key exists");
     }
 
@@ -333,7 +335,7 @@ int hdb::Delete(hdb_delete_msg *m, uid_t local_id)
 }
 
 /* cuid = ANYUSER_UID is a wildcard meaning "clear all entries." */
-extern FILE *logFile;
+extern FILE *GetLogFile();
 int hdb::Clear(hdb_clear_msg *m, uid_t local_id)
 {
     LOG(10, ("hdb::Clear: <%d, %d>\n", m->cuid, local_id));
@@ -488,9 +490,9 @@ void hdb::ValidateCacheStatus(vproc *vp, int *interrupt_failures,
         LOG(0, ("Number of interrupt failures = %d\n", *interrupt_failures));
 
         /*
-	 * Find some interesting info.  My goal is to see if there 
-	 * might be a way we can test for the missing object without 
-	 * having to reFind the object. 
+	 * Find some interesting info.  My goal is to see if there
+	 * might be a way we can test for the missing object without
+	 * having to reFind the object.
 	 */
         if (SearchForNOreFind) {
             if (!f)
@@ -516,7 +518,7 @@ void hdb::ListPriorityQueue()
     bsnode *b;
     while ((b = next())) {
         namectxt *n = strbase(namectxt, b, prio_handle);
-        n->print(logFile);
+        n->print(GetLogFile());
     }
 }
 
@@ -690,7 +692,7 @@ void hdb::DataWalk(vproc *vp, int TotalBytesToFetch, int BytesFetched)
         LOG(0,
             ("DataWalk:  Restarting Iterator!!!!  Reset availability status information.\n"));
         InitTally(); // Delete old list and start over
-        TallyPrint(PrimaryUser);
+        TallyPrint(hdb::PrimaryUser);
 
         bstree_iterator next(*FSDB->prioq, BstDescending);
         bsnode *b = 0;
@@ -802,8 +804,8 @@ void hdb::DataWalk(vproc *vp, int TotalBytesToFetch, int BytesFetched)
     strcpy(ibuf, "\n");
     if (enospc_failure) {
         /*
-	 * Count the number of indigent fsobjs/blocks and find the 
-         * find first one (for informational purposes only). 
+	 * Count the number of indigent fsobjs/blocks and find the
+         * find first one (for informational purposes only).
 	 */
         bstree_iterator next(*FSDB->prioq, BstDescending);
         bsnode *b = 0;
@@ -877,7 +879,7 @@ void hdb::PostWalkStatus()
         }
     }
 
-    TallyPrint(PrimaryUser);
+    TallyPrint(hdb::PrimaryUser);
 
     /* NotifyUsersTaskAvailability(); */
 
@@ -977,7 +979,7 @@ int hdb::Enable(hdb_walk_msg *m, uid_t local_id)
     LOG(10, ("hdb::Enable: <%d>\n", local_id));
 
     eprint("Enabling periodic hoard walks");
-    PeriodicWalksAllowed = 1;
+    GetVenusConf().set("nowalk", "0");
     /* NotifyUsersOfHoardWalkPeriodicOn(); */
     return 0;
 }
@@ -987,7 +989,7 @@ int hdb::Disable(hdb_walk_msg *m, uid_t local_id)
     LOG(10, ("hdb::Disable: <%d>\n", local_id));
 
     eprint("Disabling periodic hoard walks");
-    PeriodicWalksAllowed = 0;
+    GetVenusConf().set("nowalk", "1");
     /* NotifyUsersOfHoardWalkPeriodicOff(); */
     return 0;
 }
@@ -1087,7 +1089,7 @@ void hdbent::ResetTransient()
 {
     /* Sanity checks. */
     if (MagicNumber != HDBENT_MagicNumber) {
-        print(logFile);
+        print(GetLogFile());
         CHOKE("hdbent::ResetTransient: bogus MagicNumber");
     }
 
@@ -1112,7 +1114,7 @@ hdbent::~hdbent()
     /* Remove from the hash table. */
     hdb_key key(vid, realm, name);
     if (HDB->htab.remove(&key, &tbl_handle) != &tbl_handle) {
-        print(logFile);
+        print(GetLogFile());
         CHOKE("hdbent::~hdbent: htab remove");
     }
 
@@ -1385,7 +1387,7 @@ namectxt::namectxt(namectxt *Parent, char *Component)
 #endif
 }
 
-/* 
+/*
  * we don't support assignments to objects of this type.
  * bomb in an obvious way if it inadvertently happens.
  */
@@ -1411,7 +1413,7 @@ namectxt::~namectxt()
 
     /* Context must not be busy! */
     if (inuse) {
-        print(logFile);
+        print(GetLogFile());
         CHOKE("namectxt::~namectxt: context inuse");
     }
 
@@ -1432,7 +1434,7 @@ namectxt::~namectxt()
     case PeIndigent:
     case PeInconsistent:
         if (HDB->prioq->remove(&prio_handle) != &prio_handle) {
-            print(logFile);
+            print(GetLogFile());
             CHOKE("namectxt::~namectxt: prioq remove");
         }
         if (state == PeSuspect)
@@ -1444,7 +1446,7 @@ namectxt::~namectxt()
         break;
 
     default:
-        print(logFile);
+        print(GetLogFile());
         CHOKE("namectxt::~namectxt: bogus state");
     }
 
@@ -1462,7 +1464,7 @@ namectxt::~namectxt()
 
             /* Detach the binder. */
             if (expansion.remove(&b->binder_handle) != &b->binder_handle) {
-                print(logFile);
+                print(GetLogFile());
                 CHOKE("namectxt::~namectxt: remove failed");
             }
 
@@ -1479,13 +1481,13 @@ namectxt::~namectxt()
         }
 
         if (next != 0) {
-            print(logFile);
+            print(GetLogFile());
             CHOKE("namectxt::~namectxt: next != 0");
         }
     }
 
     if (children != 0 || parent != 0) {
-        print(logFile);
+        print(GetLogFile());
         CHOKE("namectxt::~namectxt: links still active");
     }
 }
@@ -1505,7 +1507,7 @@ void namectxt::operator delete(void *deadobj)
 void namectxt::hold()
 {
     if (inuse) {
-        print(logFile);
+        print(GetLogFile());
         CHOKE("namectxt::hold: already inuse");
     }
 
@@ -1519,7 +1521,7 @@ void namectxt::hold()
 void namectxt::release()
 {
     if (!inuse) {
-        print(logFile);
+        print(GetLogFile());
         CHOKE("namectxt::release: not inuse");
     }
 
@@ -1560,7 +1562,7 @@ void namectxt::Transit(enum pestate new_state)
             SuspectCount--;
             if (new_state == PeValid) {
                 if (HDB->prioq->remove(&prio_handle) != &prio_handle) {
-                    print(logFile);
+                    print(GetLogFile());
                     CHOKE("namectxt::Transit: prioq remove");
                 }
                 state = PeValid;
@@ -1587,7 +1589,7 @@ void namectxt::Transit(enum pestate new_state)
             IndigentCount--;
             if (new_state == PeValid) {
                 if (HDB->prioq->remove(&prio_handle) != &prio_handle) {
-                    print(logFile);
+                    print(GetLogFile());
                     CHOKE("namectxt::Transit: prioq remove");
                 }
                 state = PeValid;
@@ -1614,7 +1616,7 @@ void namectxt::Transit(enum pestate new_state)
             InconsistentCount--;
             if (new_state == PeValid) {
                 if (HDB->prioq->remove(&prio_handle) != &prio_handle) {
-                    print(logFile);
+                    print(GetLogFile());
                     CHOKE("namectxt::Transit: prioq remove");
                 }
                 state = PeValid;
@@ -1633,11 +1635,11 @@ void namectxt::Transit(enum pestate new_state)
     }
 
     default:
-        print(logFile);
+        print(GetLogFile());
         CHOKE("namectxt::Transit: bogus state");
     }
 
-    print(logFile);
+    print(GetLogFile());
     CHOKE("namectxt::Transit: illegal transition %s --> %s",
           PRINT_PESTATE(state), PRINT_PESTATE(new_state));
 }
@@ -1660,13 +1662,13 @@ void namectxt::Kill()
     /* Discard association between this context and its parent. */
     if (meta_expanded) {
         if (parent == 0) {
-            print(logFile);
+            print(GetLogFile());
             CHOKE("namectxt::Kill: parent == 0");
         }
 
         if (parent->children->remove(&child_link) != &child_link) {
-            print(logFile);
-            parent->print(logFile);
+            print(GetLogFile());
+            parent->print(GetLogFile());
             CHOKE("namectxt::Kill: parent->children remove");
         }
         parent = 0;
@@ -1682,7 +1684,7 @@ void namectxt::Kill()
 void namectxt::KillChildren()
 {
     if (children == 0) {
-        print(logFile);
+        print(GetLogFile());
         CHOKE("namectxt::KillChildren: children == 0");
     }
 
@@ -1707,7 +1709,7 @@ void namectxt::Demote(int recursive)
     if (recursive) {
         if (expand_children || expand_descendents) {
             if (children == 0) {
-                print(logFile);
+                print(GetLogFile());
                 CHOKE("namectxt::Demote: children == 0");
             }
 
@@ -1732,9 +1734,9 @@ void namectxt::Demote(int recursive)
     demote_pending = 0;
 }
 
-/* 
+/*
  * CheckExpansion()expands the path of the namectxt.  The call to namev
- * does a component-by-component lookup of the path.  Each of these 
+ * does a component-by-component lookup of the path.  Each of these
  * lookups causes us to call CheckComponent.  Each call to CheckComponent
  * results in...???
  * If the call to namev succeeds, then we attempt to MetaExpand this
@@ -1961,8 +1963,8 @@ int MetaExpand(PDirEntry entry, void *hook)
         if (STREQ(name, c)) {
             if (parent->children->remove(&child->child_link) !=
                 &child->child_link) {
-                parent->print(logFile);
-                child->print(logFile);
+                parent->print(GetLogFile());
+                child->print(GetLogFile());
                 CHOKE("MetaExpand: children->remove failed");
             }
             new_children->insert(&child->child_link);
@@ -1978,7 +1980,7 @@ int MetaExpand(PDirEntry entry, void *hook)
     return 0;
 }
 
-/* 
+/*
  * MetaExpand() controls the meta-expansion of a namectxt.  We only expand
  * an entry when there is good reason to do so.  The real work of meta-expansion
  * is done by dir/dir.c's DH_EnumerateDir() routine, which calls MetaExpand(<with args>)
@@ -1993,12 +1995,12 @@ void namectxt::MetaExpand()
 
     LOG(10, ("namectxt::MetaExpand: (%s, %s)\n", FID_(&cdir), path));
 
-    /* ?MARIA?  So what's the order of the expansion list.  
+    /* ?MARIA?  So what's the order of the expansion list.
        Why is the last element the interesting one?
     */
     dlink *d = expansion.last();
     if (d == 0) {
-        print(logFile);
+        print(GetLogFile());
         CHOKE("namectxt::MetaExpand: no bindings");
     }
     binding *b = strbase(binding, d, binder_handle);
@@ -2025,8 +2027,8 @@ void namectxt::MetaExpand()
     if ((f->vol->IsReplicated() &&
          VV_Cmp(&expander_vv, &f->stat.VV) != VV_EQ) ||
         (!f->vol->IsReplicated() && expander_dv != f->stat.DataVersion)) {
-        /* 
-	 ?MARIA?:  Why doesn't the KillChildren above appear here??? 
+        /*
+	 ?MARIA?:  Why doesn't the KillChildren above appear here???
 	 Hmm.. Perhaps the difference is that if the FID has changed, we can't
 	 believe the old children list.  If the fid hasn't changed but the vv
 	 has (or the data version has), we have some reason to suspect that the
@@ -2106,11 +2108,11 @@ void namectxt::CheckComponent(fsobj *f)
               path, PRINT_PESTATE(state), f));
 
     if (state != PeSuspect && state != PeIndigent && state != PeInconsistent) {
-        print(logFile);
+        print(GetLogFile());
         CHOKE("namectxt::CheckComponent: bogus state");
     }
 
-    /* 
+    /*
      * Note that next was setup before CheckExpansion called namev, which called
      * lookup, which called us.  Next is an iterator over the expansion list of
      * this namectxt.
@@ -2136,7 +2138,7 @@ void namectxt::CheckComponent(fsobj *f)
             /* Detach the binder. */
             if (expansion.remove(&old_b->binder_handle) !=
                 &old_b->binder_handle) {
-                print(logFile);
+                print(GetLogFile());
                 CHOKE("namectxt::CheckComponent: remove failed");
             }
             old_b->binder = 0;
@@ -2271,7 +2273,7 @@ int NC_PriorityFN(bsnode *b1, bsnode *b2)
     namectxt *n2 = strbase(namectxt, b2, prio_handle);
     /*
     if ((char *)n1 == (char *)n2)
-	{ n1->print(logFile); CHOKE("NC_PriorityFN: n1 == n2\n"); }
+	{ n1->print(GetLogFile()); CHOKE("NC_PriorityFN: n1 == n2\n"); }
     */
 
     /* First determinant is explicit priority. */

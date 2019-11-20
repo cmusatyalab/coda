@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -119,8 +119,8 @@ void DispatchDaemons()
         else { /* once a day task */
             LOG(0, ("At the tone the time will be %s",
                     ctime((time_t *)&curr_time)));
-            RusagePrint(fileno(logFile));
-            MallocPrint(fileno(logFile));
+            RusagePrint(fileno(GetLogFile()));
+            MallocPrint(fileno(GetLogFile()));
         }
     }
 }

@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -58,11 +58,18 @@ static void SigExit(int);
 static void SigMounted(int);
 static void SigASR(int);
 
+static const char *VenusControlFile;
+
 int TerminateVenus;
 int mount_done;
 
+extern long int RPC2_Trace;
+extern pid_t ASRpid;
+extern VenusFid ASRfid;
+
 void SigInit(void)
 {
+    VenusControlFile = GetVenusConf().get_value("run_control_file");
     /* Establish/Join our own process group to avoid extraneous signals. */
     if (setpgid(0, 0) < 0)
         eprint("SigInit: setpgid failed (%d)", errno);
@@ -170,19 +177,7 @@ static void SigControl(int sig)
     (void)fscanf(fp, "%79s", command);
 
     if (STREQ(command, "COPMODES")) {
-#if 0
-	int NewModes = 0;
-	(void)fscanf(fp, "%d", &NewModes);
-
-	/* This is a hack! -JJK */
-	int OldModes = COPModes;
-	COPModes = NewModes;
-	if ((ASYNCCOP1 || PIGGYCOP2) && !ASYNCCOP2) {
-	    eprint("Bogus modes (%x)\n", COPModes);
-	    COPModes = OldModes;
-	}
-#endif
-        LOG(100, ("COPModes = %x\n", COPModes));
+        LOG(100, ("COPModes = %x\n", GetCOPModes()));
     }
 
     if (STREQ(command, "DEBUG")) {
@@ -191,7 +186,7 @@ static void SigControl(int sig)
         found = fscanf(fp, "%d %d %d", &loglevel, &rpc2level, &lwplevel);
 
         if (found > 0 && loglevel >= 0)
-            LogLevel = loglevel;
+            SetLogLevel(loglevel);
 
         if (found > 1 && rpc2level >= 0) {
             RPC2_DebugLevel = rpc2level;
@@ -201,7 +196,7 @@ static void SigControl(int sig)
         if (found > 2 && lwplevel >= 0)
             lwp_debug = lwplevel;
 
-        LOG(0, ("LogLevel is now %d.\n", LogLevel));
+        LOG(0, ("LogLevel is now %d.\n", GetLogLevel()));
         LOG(0, ("RPC2_DebugLevel is now %d.\n", RPC2_DebugLevel));
         LOG(0, ("lwp_debug is now %d.\n", lwp_debug));
     }
@@ -256,7 +251,7 @@ static void SigExit(int sig)
     RecovFlush(1);
     RecovTerminate();
     VFSUnmount();
-    fflush(logFile);
+    fflush(GetLogFile());
     fflush(stderr);
     exit(EXIT_SUCCESS);
 }

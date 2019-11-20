@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -27,11 +27,6 @@ extern "C" {
  * codaconf_quiet, make conf_init shut up about not finding the configuration
  *		   file. */
 extern int codaconf_quiet;
-
-/* conf_init reads (or merges) the name=value tuples from the conffile. If a
- * name is seen multiple times, only the last value is remembered. Empty lines
- * and lines starting with '#' are ignored. */
-int codaconf_init_one(const char *conffile);
 
 /* conf_lookup returns the value associated with name, or NULL on error. */
 const char *codaconf_lookup(const char *name, const char *defaultvalue);

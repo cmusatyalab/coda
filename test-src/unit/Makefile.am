@@ -3,14 +3,19 @@
 check_PROGRAMS = unit
 
 LIB_TESTS = lib/rvm/rvm_ut.cc lib/lwp/lwp_ut.cc
-UTIL_TESTS = util/u_bitmap.cc
+LIB_BASE_TESTS = lib/base/codaconf_ut.cc lib/base/stringkeyvaluestore_ut.cc \
+                 lib/base/codaconffileparser_ut.cc \
+                 lib/base/codaconfcmdlineparser_ut.cc
+UTIL_TESTS = util/u_bitmap.cc util/venusconf_ut.cc
+VENUS_TESTS = venus/fso_cachefile_ut.cc
 
-unit_SOURCES = main.cc $(UTIL_TESTS) $(LIB_TESTS)
+unit_SOURCES = main.cc $(UTIL_TESTS) $(LIB_TESTS) $(LIB_BASE_TESTS) $(VENUS_TESTS)
 
 GTEST_DIR = $(top_builddir)/external-src/googletest/googletest
 
 unit_LDADD = $(top_builddir)/coda-src/util/libutil.la \
              $(top_builddir)/lib-src/base/libbase.la \
+             $(top_builddir)/coda-src/venus/libvenus.la \
              $(GTEST_DIR)/lib/libgtest.la \
              $(RVM_RPC2_LIBS)
 
@@ -18,6 +23,8 @@ AM_CPPFLAGS = $(RVM_RPC2_CFLAGS) -DVENUS -DTIMING -DVENUSDEBUG \
               -I$(GTEST_DIR)/include \
               -I$(top_srcdir)/lib-src/base \
               -I$(top_srcdir)/coda-src \
+              -I$(top_srcdir)/coda-src/venus \
+              -I$(top_srcdir)/coda-src/util \
               -I$(top_builddir)/coda-src \
               -I$(top_builddir)/test-src/unit/include
 
@@ -36,8 +43,8 @@ clean-local:
 distclean-local:
 	if test -f "${GTEST_DIR}/Makefile"; then make -C $(GTEST_DIR) distclean; fi
 
-check-local: unit
+check-local: unit $(GTEST_DIR)/lib/libgtest.la
 	${LIBTOOL} ${UNIT_BIN} ${GTEST_FLAGS} ${GTEST_EXTRA_FLAGS}
 
-memcheck: unit
+memcheck: unit $(GTEST_DIR)/lib/libgtest.la
 	${LIBTOOL} valgrind ${VALGRIND_FLAGS} ${UNIT_BIN} ${GTEST_FLAGS} ${GTEST_EXTRA_FLAGS}

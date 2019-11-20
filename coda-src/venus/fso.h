@@ -90,17 +90,9 @@ const int FSDB_MagicNumber = 3620289;
 const int FSDB_NBUCKETS    = 2048;
 const int FSO_MagicNumber  = 2687694;
 
-const int MAX_PIGGY_VALIDATIONS = 50;
-
 /* Priorities. */
 const int FSO_MAX_SPRI = H_MAX_PRI;
 const int FSO_MAX_MPRI = H_MAX_PRI;
-const int DFLT_SWT     = 25;
-const int UNSET_SWT    = -1;
-const int DFLT_MWT     = 75;
-const int UNSET_MWT    = -1;
-const int DFLT_SSF     = 4;
-const int UNSET_SSF    = -1;
 
 const int CPSIZE = 8;
 
@@ -136,6 +128,8 @@ class fsdb {
     /* Size parameters. */
     unsigned int MaxFiles;
     uint64_t WholeFileCachingMaxSize;
+    uint64_t WholeFileCachingMinSize;
+    uint32_t WholeFileCachingMaxStall;
 
     /* "files" is kept as count member of htab */
     int FreeFileMargin;
@@ -211,6 +205,12 @@ class fsdb {
     void FlushRefVec();
 
 public:
+    uint64_t GetMaxBlocks() { return MaxBlocks; }
+    unsigned int GetMaxFiles() { return MaxFiles; }
+    uint64_t GetWholeFileMaxSize() { return WholeFileCachingMaxSize; }
+    uint64_t GetWholeFileMinSize() { return WholeFileCachingMinSize; }
+    uint64_t GetWholeFileMaxStall() { return WholeFileCachingMaxStall; }
+
     fsobj *Find(const VenusFid *);
     /* rcode arg added for local repair */
     int Get(fsobj **fso, VenusFid *fid, uid_t uid, int rights,
@@ -650,7 +650,7 @@ public:
     int IsSymLink() { return (stat.VnodeType == (int)SymbolicLink); }
     int IsNormal() { return (mvstat == NORMAL); }
     int IsRoot() { return (mvstat == ROOT); }
-    int IsVenusRoot() { return (FID_EQ(&fid, &rootfid)); }
+    int IsVenusRoot() { return (FID_EQ(&fid, &vproc::GetRootFid())); }
     int IsMtPt() { return (mvstat == MOUNTPOINT); } /* covered mount point */
     int IsMTLink() { return (IsSymLink() && stat.Mode == 0644 && IsNormal()); }
     /* uncovered mount point */
@@ -722,17 +722,6 @@ public:
     fsobj *operator()();
 };
 
-/*  *****  Variables  ***** */
-
-extern unsigned int CacheFiles;
-extern unsigned int PartialCacheFilesRatio;
-extern uint64_t WholeFileMaxSize;
-extern uint64_t WholeFileMinSize;
-extern uint64_t WholeFileMaxStall;
-extern int FSO_SWT;
-extern int FSO_MWT;
-extern int FSO_SSF;
-
 /*  *****  Functions/Procedures  *****  */
 
 /* fso0.c */
@@ -790,7 +779,7 @@ void FSOD_ReclaimFSOs(void);
 #define FSO_ASSERT(f, ex)                                               \
     {                                                                   \
         if (!(ex)) {                                                    \
-            (f)->print(logFile);                                        \
+            (f)->print(GetLogFile());                                   \
             CHOKE("Assertion failed: file \"%s\", line %d\n", __FILE__, \
                   __LINE__);                                            \
         }                                                               \

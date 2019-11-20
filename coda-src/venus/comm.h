@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -55,7 +55,6 @@ extern "C" {
 #include "refcounted.h"
 #include "fso.h"
 #include "venusrecov.h"
-#include "venus.private.h"
 #include "vproc.h"
 
 /* Forward declarations. */
@@ -78,35 +77,6 @@ extern void ConnPrint(FILE *);
 extern void ConnPrint(int);
 extern void ServerPrint();
 extern void ServerPrint(FILE *);
-
-/*  *****  Constants  *****  */
-
-const int DFLT_RT  = 5; /* rpc2 retries */
-const int UNSET_RT = 0;
-const int DFLT_TO  = 60; /* rpc2 timeout */
-const int UNSET_TO = 0;
-const int DFLT_WS  = 32; /* sftp window size */
-const int UNSET_WS = 0;
-const int DFLT_SA  = 8; /* sftp send ahead */
-const int UNSET_SA = -1;
-const int DFLT_AP  = 8; /* sftp ack point */
-const int UNSET_AP = -1;
-const int DFLT_PS  = (1024 /*body*/ + 60 /*header*/); /* sftp packet size */
-const int UNSET_PS = -1;
-const int UNSET_ST = -1; /* do we time rpcs? */
-const int UNSET_MT = -1; /* do we time mrpcs? */
-#ifdef TIMING
-const int DFLT_ST = 1;
-const int DFLT_MT = 1;
-#else
-const int DFLT_ST = 0;
-const int DFLT_MT = 0;
-#endif
-const unsigned int INIT_BW   = 10000000;
-const unsigned int UNSET_WCT = 0;
-const unsigned int DFLT_WCT  = 50000;
-const int UNSET_WCS          = -1;
-const int DFLT_WCS           = 1800; /* 30 minutes */
 
 /*  *****  Types  *****  */
 
@@ -321,24 +291,17 @@ public:
 };
 
 /*  *****  Variables  *****  */
-
-extern int COPModes;
 extern char myHostName[];
-extern int rpc2_retries;
-extern int rpc2_timeout;
-extern int sftp_windowsize;
-extern int sftp_sendahead;
-extern int sftp_ackpoint;
-extern int sftp_packetsize;
-extern int rpc2_timeflag;
-extern int mrpc2_timeflag;
 
 /*  *****  Functions  *****  */
 
 /* (ASYNCCOP1 || PIGGYCOP2) --> ASYNCCOP2 */
-#define ASYNCCOP1 (COPModes & 1)
-#define ASYNCCOP2 (COPModes & 2)
-#define PIGGYCOP2 (COPModes & 4)
+#define HAS_ASYNCCOP1(copmodes) (copmodes & 1)
+#define HAS_ASYNCCOP2(copmodes) (copmodes & 2)
+#define HAS_PIGGYCOP2(copmodes) (copmodes & 4)
+#define ASYNCCOP1 (HAS_ASYNCCOP1(GetCOPModes()))
+#define ASYNCCOP2 (HAS_ASYNCCOP2(GetCOPModes()))
+#define PIGGYCOP2 (HAS_PIGGYCOP2(GetCOPModes()))
 
 /* comm.c */
 void CommInit();
@@ -362,10 +325,12 @@ void DownServers(int, struct in_addr *, char *, unsigned int *);
 void CheckServerBW(long);
 int FailDisconnect(int, struct in_addr *);
 int FailReconnect(int, struct in_addr *);
+int GetCOPModes();
+void SetCOPModes(int copmodes);
 
 /* comm_daemon.c */
-extern void PROD_Init(void);
-extern void ProbeDaemon(void);
+void PROD_Init(void);
+void ProbeDaemon(void);
 
 /* comm synchronization */
 struct CommQueueStruct {
@@ -424,7 +389,7 @@ extern struct CommQueueStruct CommQueue;
     RPCPktStatistics startCS, endCS; \
     GetCSS(&startCS);
 #define END_COMMSTATS()            \
-    if (LogLevel >= 1000) {        \
+    if (GetLogLevel() >= 1000) {   \
         GetCSS(&endCS);            \
         SubCSSs(&endCS, &startCS); \
     }

@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -202,7 +202,7 @@ int repvol::FlushCOP2(mgrpent *m, RPC2_CountedBS *PiggyBS)
         BS.SeqBody = (RPC2_ByteSeq)buf;
         GetCOP2(&BS);
         if (BS.SeqLen == 0) {
-            print(logFile);
+            print(GetLogFile());
             CHOKE("volent::FlushCOP2(Piggy): No Entries!\n");
         }
 
@@ -287,7 +287,7 @@ void repvol::ClearCOP2(RPC2_CountedBS *BS)
         cop2ent *c = FindCOP2(&sid);
         if (c) {
             if (cop2_list->remove(c) != c) {
-                print(logFile);
+                print(GetLogFile());
                 CHOKE("volent::ClearCOP2: remove");
             }
             delete c;
@@ -334,7 +334,7 @@ cop2ent::cop2ent(ViceStoreId *Sid, ViceVersionVector *UpdateSet)
 #endif
 }
 
-/* 
+/*
  * we don't support assignments to objects of this type.
  * bomb in an obvious way if it inadvertently happens.
  */

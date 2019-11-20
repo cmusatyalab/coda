@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -53,6 +53,7 @@ static void ValidateDir(const char *dir, uid_t owner, mode_t mode)
 
 void MakeUserSpoolDir(char *usd, uid_t owner)
 {
+    static const char *SpoolDir = GetVenusConf().get_value("checkpointdir");
     // Ensure that the spool directory exists...
     ValidateDir(SpoolDir, V_UID, 0755);
 

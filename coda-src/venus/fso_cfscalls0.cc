@@ -112,6 +112,8 @@ int fsobj::GetContainerFD(void)
 
 int fsobj::LookAside(void)
 {
+    static const char *venusRoot =
+        GetVenusConf().get_string_value("mountpoint");
     long cbtemp = cbbreaks;
     int fd = -1, lka_successful = 0;
     char emsg[256];
@@ -253,7 +255,7 @@ static int CheckTransferredData(uint64_t pos, int64_t count, uint64_t length,
 TillEndFetching:
     /* If not VASTRO or Fetch till the end */
     if ((pos + transfred) != length) {
-        // print(logFile);
+        // print(GetLogFile());
         LOG(0, ("fsobj::Fetch: fetched file length mismatch (%lu, %lu)\n",
                 pos + transfred, length));
         return ERETRY;
@@ -283,13 +285,13 @@ int fsobj::Fetch(uid_t uid, uint64_t pos, int64_t count)
 
         /* We never fetch data if we don't already have status. */
         if (!HAVESTATUS(this)) {
-            print(logFile);
+            print(GetLogFile());
             CHOKE("fsobj::Fetch: !HAVESTATUS");
         }
 
         /* We never fetch data if we already have the file. */
         if (HAVEALLDATA(this) && !ISVASTRO(this)) {
-            print(logFile);
+            print(GetLogFile());
             CHOKE("fsobj::Fetch: HAVEALLDATA");
         }
     }
@@ -313,8 +315,8 @@ int fsobj::Fetch(uid_t uid, uint64_t pos, int64_t count)
     int64_t len     = -1;
 
     if (ISVASTRO(this)) {
-        offset = align_to_ccblock_floor(pos);
-        len    = align_to_ccblock_ceil(pos + count) - offset;
+        offset = cachechunksutil::align_to_ccblock_floor(pos);
+        len    = cachechunksutil::align_to_ccblock_ceil(pos + count) - offset;
 
         /* If reading out-of-bound read missing file part */
         if ((offset + len) > Size())
@@ -375,7 +377,7 @@ int fsobj::Fetch(uid_t uid, uint64_t pos, int64_t count)
 
                 RVMLIB_REC_OBJECT(*data.dir);
                 DH_Alloc(&data.dir->dh, dirlen,
-                         RvmType == VM ? DIR_DATA_IN_VM : DIR_DATA_IN_RVM);
+                         GetRvmType() == VM ? DIR_DATA_IN_VM : DIR_DATA_IN_RVM);
                 /* DH_Alloc already clears dh to zero */
             }
 
@@ -457,7 +459,7 @@ int fsobj::Fetch(uid_t uid, uint64_t pos, int64_t count)
 
             /* Handle failed validations. */
             if (VV_Cmp(&status.VV, &stat.VV) != VV_EQ) {
-                if (LogLevel >= 1) {
+                if (GetLogLevel() >= 1) {
                     dprint("fsobj::Fetch: failed validation\n");
                     int *r = ((int *)&status.VV);
                     dprint(
@@ -530,7 +532,7 @@ int fsobj::Fetch(uid_t uid, uint64_t pos, int64_t count)
         if (HAVESTATUS(this) && status.DataVersion != stat.DataVersion) {
             LOG(1, ("fsobj::Fetch: failed validation (%d, %d)\n",
                     status.DataVersion, stat.DataVersion));
-            if (LogLevel >= 1) {
+            if (GetLogLevel() >= 1) {
                 int *r = ((int *)&status.VV);
                 dprint("\tremote = [%x %x %x %x %x %x %x %x] [%x %x] [%x]\n",
                        r[0], r[1], r[2], r[3], r[4], r[5], r[6], r[7], r[8],
@@ -608,14 +610,15 @@ int fsobj::Fetch(uid_t uid, uint64_t pos, int64_t count)
 
 int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
 {
-    repvol *vp           = (repvol *)vol;
-    connent *c           = NULL;
-    mgrpent *m           = NULL;
-    int code             = 0;
-    int ret_code         = 0;
-    int getacl           = (acl != 0);
-    int inconok          = !vol->IsReplicated();
-    const char *prel_str = getacl ? "fetch::GetACL %s\n" :
+    static int PiggyValidations = GetVenusConf().get_int_value("validateattrs");
+    repvol *vp                  = (repvol *)vol;
+    connent *c                  = NULL;
+    mgrpent *m                  = NULL;
+    int code                    = 0;
+    int ret_code                = 0;
+    int getacl                  = (acl != 0);
+    int inconok                 = !vol->IsReplicated();
+    const char *prel_str        = getacl ? "fetch::GetACL %s\n" :
                                     "fetch::GetAttr %s\n";
     const char *post_str = getacl ? "fetch::GetACL done\n" :
                                     "fetch::GetAttr done\n";
@@ -1008,7 +1011,7 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
 
             ARG_UNMARSHALL_BS(myshavar, mysha, dh_ix);
 
-            if (LogLevel >= 10 && mysha.SeqLen == SHA_DIGEST_LENGTH) {
+            if (GetLogLevel() >= 10 && mysha.SeqLen == SHA_DIGEST_LENGTH) {
                 char printbuf[2 * SHA_DIGEST_LENGTH + 1];
                 ViceSHAtoHex(VenusSHA, printbuf, sizeof(printbuf));
                 dprint("mysha(%d, %d) = %s\n.", mysha.MaxSeqLen, mysha.SeqLen,
@@ -1032,7 +1035,7 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
 
             /* Handle failed validations. */
             if (HAVESTATUS(this) && VV_Cmp(&status.VV, &stat.VV) != VV_EQ) {
-                if (LogLevel >= 1) {
+                if (GetLogLevel() >= 1) {
                     dprint("fsobj::GetAttr: failed validation\n");
                     int *r = ((int *)&status.VV);
                     dprint(
@@ -1189,7 +1192,7 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
         if (HAVESTATUS(this) && status.DataVersion != stat.DataVersion) {
             LOG(1, ("fsobj::GetAttr: failed validation (%d, %d)\n",
                     status.DataVersion, stat.DataVersion));
-            if (LogLevel >= 1) {
+            if (GetLogLevel() >= 1) {
                 int *r = ((int *)&status.VV);
                 dprint("\tremote = [%x %x %x %x %x %x %x %x] [%x %x] [%x]\n",
                        r[0], r[1], r[2], r[3], r[4], r[5], r[6], r[7], r[8],
