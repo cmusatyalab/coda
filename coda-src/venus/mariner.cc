@@ -361,10 +361,15 @@ ssize_t mariner::read_until_done(void *buf, size_t len)
     fd_set fds;
     ssize_t n;
 
+    FD_ZERO(&fds);
     while (bytes_read < len) {
         n = ::read(fd, ptr + bytes_read, len - bytes_read);
         if (n < 0 && errno != EAGAIN)
             return -1;
+
+        /* select returned with fd marked as readable, but we got not data? */
+        if (n == 0 && FD_ISSET(fd, &fds))
+            break;
 
         if (n > 0) {
             bytes_read += n;
@@ -375,7 +380,6 @@ ssize_t mariner::read_until_done(void *buf, size_t len)
         }
 
         /* wait for more */
-        FD_ZERO(&fds);
         FD_SET(fd, &fds);
         n = ::IOMGR_Select(fd + 1, &fds, NULL, NULL, NULL);
         if (n < 0)
