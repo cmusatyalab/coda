@@ -1,18 +1,8 @@
 dnl Macro to run configure on subprojects before continuing. This way we are
 dnl assured that generated files like uninstalled pkg-config files are
-dnl present. We also extend the pkg-config search path to look in the
-dnl sub-project directories.
+dnl present.
 AC_DEFUN([CODA_CONFIG_SUBDIRS],
-  [if test -z "${PKG_CONFIG_PATH}" ; then
-     PKG_CONFIG_PATH="${libdir}/pkgconfig:/usr/local/lib/pkgconfig"
-   fi
-   pc_pfx=
-   for subdir in ${subdirs} ; do
-     pc_pfx="${pc_pfx}${ac_pwd}/${subdir}:"
-   done
-   PKG_CONFIG_PATH="${pc_pfx}${PKG_CONFIG_PATH}"
-   export PKG_CONFIG_PATH
-   _AC_OUTPUT_SUBDIRS()
+  [_AC_OUTPUT_SUBDIRS()
    no_recursion=yes])
 
 dnl Check for a curses library, and if it needs termcap

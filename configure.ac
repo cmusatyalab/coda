@@ -76,6 +76,7 @@ test -f "${srcdir}/lib-src/rvm/configure.ac" && AC_CONFIG_SUBDIRS([lib-src/rvm])
 CODA_CONFIG_SUBDIRS
 
 dnl pkg-config stuff
+CODA_PKG_CONFIG
 PKG_CHECK_MODULES([RVM_RPC2], [rvmlwp rpc2])
 PKG_CHECK_MODULES([LWP], [lwp >= 2.11])
 PKG_CHECK_MODULES([RPC2], [rpc2 >= 2.20])

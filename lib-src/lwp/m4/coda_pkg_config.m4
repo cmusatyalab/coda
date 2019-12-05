@@ -1,8 +1,8 @@
-#serial 2
+#serial 3
 dnl ---------------------------------------------
 dnl Make sure we remember the PKG_CONFIG_PATH environment variable during
-dnl automatic reconfiguation extend the search path to also search in
-dnl ${prefix}/lib/pkgconfig and /usr/local/lib/pkgconfig if it wasn't set
+dnl automatic reconfiguration and extend the search path to also search in
+dnl ${prefix}/lib/pkgconfig and /usr/local/lib/pkgconfig if it wasn't set.
 dnl
 AC_DEFUN([CODA_PKG_CONFIG],
     [AC_ARG_VAR([PKG_CONFIG_PATH], [directories searched by pkg-config.])
