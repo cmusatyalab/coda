@@ -89,8 +89,8 @@ int fsobj::OpenPioctlFile(void)
         return code;
     }
 
-    LOG(0, ("fsobj::Open: got pioctl %u (%u, %u, %u, %u)\n", nr, plen, follow,
-            in_size, out_size));
+    LOG(10, ("fsobj::Open: got pioctl %u (%u, %u, %u, %u)\n", nr, plen, follow,
+             in_size, out_size));
 
     if (nr > 255 || in_size > CFS_PIOBUFSIZE || out_size > CFS_PIOBUFSIZE) {
         LOG(0, ("fsobj::OpenPioctlFile: unexpected data header value\n"));

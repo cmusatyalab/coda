@@ -626,8 +626,8 @@ RestartFind:
         /* The first clause catches the /coda root, the second catches
 	   realms as they are demand loaded */
         if (FID_IsLocalFake(key) || FID_IsFakeRoot(MakeViceFid(key))) {
-            LOG(0, ("fsdb::Get: transforming %s (%s) with Fakeify()\n",
-                    f->GetComp(), FID_(&f->fid)));
+            LOG(10, ("fsdb::Get: transforming %s (%s) with Fakeify()\n",
+                     f->GetComp(), FID_(&f->fid)));
             if (f->Fakeify(uid)) {
                 LOG(0, ("fsdb::Get: can't transform %s (%s) into fake mt pt\n",
                         f->GetComp(), FID_(&f->fid)));
