@@ -1612,6 +1612,8 @@ void vproc::read(struct venus_cnode *node, uint64_t pos, int64_t count)
     fsobj *f = NULL;
 
     Begin_VFS(&node->c_fid, CODA_ACCESS_INTENT, VM_OBSERVING);
+    if (u.u_error)
+        return;
 
     /* Get the object. */
     f = FSDB->Find(&node->c_fid);
@@ -1635,6 +1637,8 @@ void vproc::write(struct venus_cnode *node, uint64_t pos, int64_t count)
     fsobj *f = NULL;
 
     Begin_VFS(&node->c_fid, CODA_ACCESS_INTENT, VM_MUTATING);
+    if (u.u_error)
+        return;
 
     /* Get the object. */
     f = FSDB->Find(&node->c_fid);
@@ -1666,6 +1670,8 @@ void vproc::read_finish(struct venus_cnode *node, uint64_t pos, int64_t count)
     fsobj *f = NULL;
 
     Begin_VFS(&node->c_fid, CODA_ACCESS_INTENT, VM_OBSERVING);
+    if (u.u_error)
+        return;
 
     /* Get the object. */
     f = FSDB->Find(&node->c_fid);
@@ -1688,6 +1694,8 @@ void vproc::write_finish(struct venus_cnode *node, uint64_t pos, int64_t count)
     fsobj *f = NULL;
 
     Begin_VFS(&node->c_fid, CODA_ACCESS_INTENT, VM_OBSERVING);
+    if (u.u_error)
+        return;
 
     /* Get the object. */
     f = FSDB->Find(&node->c_fid);
@@ -1719,6 +1727,8 @@ void vproc::mmap(struct venus_cnode *node, uint64_t pos, int64_t count)
     fsobj *f = NULL;
 
     Begin_VFS(&node->c_fid, CODA_ACCESS_INTENT, VM_OBSERVING);
+    if (u.u_error)
+        return;
 
     /* Get the object. */
     f = FSDB->Find(&node->c_fid);

@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2019 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -581,7 +581,7 @@ static int VolModeMap[NVFSOPS] = {
     VM_OBSERVING, /* CODA_STATFS */
     /*VM_UNSET*/ -1, /* CODA_STORE */
     /*VM_UNSET*/ -1, /* CODA_RELEASE */
-    VM_MUTATING, /* UNUSED */
+    /*VM_UNSET*/ -1, /* CODA_ACCESS_INTENT */
     VM_MUTATING, /* UNUSED */
     VM_MUTATING, /* UNUSED */
 };
