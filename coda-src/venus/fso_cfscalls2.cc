@@ -74,7 +74,7 @@ int fsobj::OpenPioctlFile(void)
     FILE *f;
     char in_buffer[MAX(CFS_PIOBUFSIZE, CODA_MAXPATHLEN + 1)];
     char out_buffer[CFS_PIOBUFSIZE];
-    int n, code;
+    int n, code, error;
 
     /* read pioctl input */
     f = data.file->FOpen("r");
@@ -109,11 +109,28 @@ int fsobj::OpenPioctlFile(void)
     }
     in_buffer[plen] = '\0';
 
-    vp->u.u_cdir = rootfid;
-    vp->u.u_nc   = NULL;
-    if (!vp->namev(in_buffer, flags, &vnp)) {
+    {
+        /* Preserve the user context. */
+        struct uarea saved_ctxt = vp->u;
+        vp->u.Init();
+        vp->u.u_uid      = saved_ctxt.u_uid;
+        vp->u.u_priority = saved_ctxt.u_priority;
+        vp->u.u_flags    = saved_ctxt.u_flags;
+        vp->u.u_pid      = saved_ctxt.u_pid;
+        vp->u.u_pgid     = saved_ctxt.u_pgid;
+
+        vp->u.u_cdir = rootfid;
+        vp->u.u_nc   = NULL;
+        n            = vp->namev(in_buffer, flags, &vnp);
+
+        /* Restore the user context. */
+        error = vp->u.u_error;
+        vp->u = saved_ctxt;
+    }
+
+    if (n == 0) {
         LOG(10, ("fsobj::OpenPioctlFile: namev failed to traverse\n"));
-        code = vp->u.u_error;
+        code = error;
         goto PioctlErrOut;
     }
 
@@ -149,19 +166,22 @@ int fsobj::OpenPioctlFile(void)
     /* We're pretty much guaranteed to be in the wrong context, so we have
      * to switch context before we can call vp->ioctl */
 
-    /* Preserve the user context. */
-    struct uarea saved_ctxt = vp->u;
-    vp->u.Init();
-    vp->u.u_uid      = saved_ctxt.u_uid;
-    vp->u.u_priority = saved_ctxt.u_priority;
-    vp->u.u_flags    = saved_ctxt.u_flags;
-    vp->u.u_pid      = saved_ctxt.u_pid;
-    vp->u.u_pgid     = saved_ctxt.u_pgid;
+    {
+        /* Preserve the user context. */
+        struct uarea saved_ctxt = vp->u;
+        vp->u.Init();
+        vp->u.u_uid      = saved_ctxt.u_uid;
+        vp->u.u_priority = saved_ctxt.u_priority;
+        vp->u.u_flags    = saved_ctxt.u_flags;
+        vp->u.u_pid      = saved_ctxt.u_pid;
+        vp->u.u_pgid     = saved_ctxt.u_pgid;
 
-    vp->ioctl(&vnp, nr, &vidata, 0);
+        vp->ioctl(&vnp, nr, &vidata, 0);
 
-    int error = vp->u.u_error;
-    vp->u     = saved_ctxt;
+        /* Restore the user context. */
+        error = vp->u.u_error;
+        vp->u = saved_ctxt;
+    }
 
     /* write pioctl output */
     f = data.file->FOpen("w");

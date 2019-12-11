@@ -1211,6 +1211,11 @@ int volent::Enter(int mode, uid_t uid)
                     return (EINTR);
             }
 
+#ifdef VENUSDEBUG
+            /* log observer counts when they get unusually large */
+            if (observer_count >= 1000)
+                LOG(0, ("volent::Enter observer_count=%d\n", observer_count));
+#endif
             observer_count++;
             shrd_count++;
             return (0);
