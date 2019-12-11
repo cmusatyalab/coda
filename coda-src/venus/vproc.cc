@@ -602,10 +602,7 @@ void vproc::Begin_VFS(Volid *volid, int vfsop, int volmode)
             return;
         }
     }
-    u.u_volmode = (volmode ==
-                           /*VM_UNSET*/ -1 ?
-                       VFSOP_TO_VOLMODE(vfsop) :
-                       volmode);
+    u.u_volmode = (volmode == -1 ? VFSOP_TO_VOLMODE(vfsop) : volmode);
     u.u_vfsop   = vfsop;
 
     if (u.u_volmode == VM_MUTATING && u.u_vol->IsReplicated() &&

@@ -492,8 +492,8 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
             if (!retry_call)
                 break;
         }
-    }
         return;
+    }
 
     /* Object-based. Allowing access to inconsistent objects. */
     case _VIOC_ENABLEREPAIR:
@@ -698,8 +698,8 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
             if (!retry_call)
                 break;
         }
-    }
         return;
+    }
 
     /* Volume-based. */
     case _VIOCGETVOLSTAT:

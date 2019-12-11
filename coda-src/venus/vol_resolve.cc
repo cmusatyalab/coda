@@ -154,12 +154,13 @@ void repvol::Resolve()
             r->HandleResult(code);
     }
 
-Exit : {
+Exit:
     /* Release pending resents.  Waiters can retry if they wish. */
-    resent *r;
-    while ((r = (resent *)res_list->get()))
-        r->HandleResult(ERETRY);
-}
+    {
+        resent *r;
+        while ((r = (resent *)res_list->get()))
+            r->HandleResult(ERETRY);
+    }
 
     /* Surrender control of the volume. */
     VOL_ASSERT(this, v->u.u_error == 0);
@@ -168,6 +169,7 @@ Exit : {
        resolve to inc fail count rather than success count */
     if (code)
         v->u.u_error = EINVAL;
+
     v->End_VFS();
     /* reset it, 'cause we can't leave errors just laying around */
     v->u.u_error = 0;

@@ -453,9 +453,9 @@ void hdb::ValidateCacheStatus(vproc *vp, int *interrupt_failures,
                 statusBytesFetched += tf->stat.Length;
 
             FSDB->Put(&tf);
+
             int retry_call;
             vp->End_VFS(&retry_call);
-
             if (!retry_call)
                 break;
         }
@@ -734,6 +734,7 @@ void hdb::DataWalk(vproc *vp, int TotalBytesToFetch, int BytesFetched)
                 fsobj *tf     = 0;
                 vp->u.u_error = FSDB->Get(&tf, &tfid, vp->u.u_uid, RC_DATA);
                 FSDB->Put(&tf);
+
                 int retry_call = 0;
                 vp->End_VFS(&retry_call);
                 if (!retry_call)
