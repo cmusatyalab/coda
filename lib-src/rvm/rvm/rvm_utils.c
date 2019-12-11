@@ -485,8 +485,16 @@ void free_seg(seg_t *seg)
     assert(seg->links.struct_id == seg_id);
 
     /* all lists should be empty and locks free */
-    assert(LIST_EMPTY(seg->map_list));
-    assert(LIST_EMPTY(seg->unmap_list));
+    if (!LIST_EMPTY(seg->map_list)) {
+        fprintf(stderr, "Freeing segment with %u mapped regions\n",
+                seg->map_list.list.length);
+        //assert(0);  /* Looks like this happens during abort() handling */
+    }
+    if (!LIST_EMPTY(seg->unmap_list)) {
+        fprintf(stderr, "Freeing segment with %u dirty unmapped regions\n",
+                seg->unmap_list.list.length);
+        //assert(0);
+    }
     assert(LOCK_FREE(seg->seg_lock));
     assert(LOCK_FREE(seg->dev_lock));
 
