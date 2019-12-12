@@ -1,3 +1,7 @@
+New in 2.14:
+
+ * Bumped library version, which wasn't done for 2.13.
+
 New in 2.13:
 
  * Fixed memory leak when exiting. (Pedro Cuadra)

@@ -1,3 +1,8 @@
+New in 1.26:
+
+* Fixed how we handle PKG_CONFIG_PATH when looking for lwp.
+* Revert a memory leak fix that lead to assertions during Coda client shutdown.
+
 New in 1.25:
 
 * Fixed some memory leaks in RVM. (Pedro Cuadra)

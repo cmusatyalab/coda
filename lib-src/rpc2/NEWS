@@ -1,3 +1,9 @@
+New in 2.27
+
+* Changed how we handle PKG_CONFIG_PATH to find the lwp library.
+* Make sure rp2gen is built when we are running 'make dist' in a clean
+  source tree so that rpc2 stubs can be built in later stages.
+
 New in 2.26
 
 * Fixed up function prototypes to catch any instances where we are passing
