@@ -144,7 +144,7 @@ const char *CodaSrvIp; // default NULL ('ipaddress' in server.conf)
 
 /* local */
 static int MapPrivate; // default 0
-static int codatunnel_enabled; // default 0
+static int codatunnel_enabled = 1; // Enable now by default (Satya, 12/27/2019)
 static int codatunnel_onlytcp; // default 0
 static int nofork; // default 0
 

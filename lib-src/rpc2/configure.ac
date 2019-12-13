@@ -40,6 +40,7 @@ AC_CHECK_PROG(CP, cp, cp)
 dnl pkg-config stuff
 CODA_PKG_CONFIG
 PKG_CHECK_MODULES([LWP], [lwp])
+PKG_CHECK_MODULES([GNUTLS], [gnutls])
 
 AC_ARG_WITH([libuv],
     [AS_HELP_STRING([--without-libuv],

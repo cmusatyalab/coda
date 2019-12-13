@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 2017-2018 Carnegie Mellon University
+          Copyright (c) 2017-2020 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -20,9 +20,10 @@ Coda are listed in the file CREDITS.
    Created via fork() by Venus or codasrv.
 
    Uses single Unix domain socket to talk to Venus or codasrv on
-   localhost, and one TCP-tunneled socket to talk to each distinct
-   remote Coda server or client.  Also has one UDP socket for backward
-   compatibility with legacy servers and clients.
+   localhost, and one TCP-tunneled socket (with TLS end-to-end
+   security) to talk to each distinct remote Coda server or client.
+   Also has one UDP socket for backward compatibility with legacy
+   servers and clients.
 
    This code layers UDP socket primitives on top of TCP connections.
    Maintains a single TCP connection for each (host, port) pair.
@@ -31,7 +32,7 @@ Coda are listed in the file CREDITS.
    All RPC2 connections to/from that (host, port) pair are multiplexed
    on this connection.
    Minimal changes to rest of the RPC2 code.
-   Discards all packets with "RETRY" bit set.
+   Discards all packets with "RETRY" bit set.  (Is this still true? Satya 12/23/2019)
 
    Possible negative consequences:
    (a) serializes all transmissions to each (host,port) pair
@@ -40,19 +41,24 @@ Coda are listed in the file CREDITS.
        (since RETRY flag triggered sendahead)
 
    (Satya, 2017-01-04)
-*/
 
-/* Encapsulation rules: Is ctp_t packet present as prefix to UDP packet?
+   Encapsulation rules: Is ctp_t packet present as prefix to UDP packet?
    (1) Venus/CodaSrv to/from codatunnel daemon:  yes; ctp_t fields in host order
    (2) codatunnel daemon to/from network via udpsocket:  no
    (3) codatunnel daemon to/from network via tcpsocket: yes; ctp_t fields in
    network order
+
+   The addition of TLS security uses the uv layer as the transport for the 
+   push and pull functions of the TLS engine. Use of TLS is not an option.
+   It is implemented on all the TCP connections.  So the only two choices are
+   TLS-encapsulated TCP tunnel  or legacy UDP.    (Satya 2019-12-23)
 */
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <uv.h>
+#include <gnutls/gnutls.h>
 
 #include "codatunnel.private.h"
 
@@ -62,7 +68,7 @@ static int codatunnel_I_am_server = 0; /* only clients initiate;
 static int codatunnel_onlytcp     = 0; /* whether to use UDP fallback;
                                           default is yes */
 
-static uv_loop_t *codatunnel_main_loop = 0;
+uv_loop_t *codatunnel_main_loop = 0; /* not static; eat_uv_bytes() needs it */
 static uv_udp_t codatunnel; /* facing Venus or CodaSrv */
 static uv_udp_t udpsocket; /* facing the network */
 static uv_tcp_t tcplistener; /* facing the network, only on servers */
@@ -76,7 +82,9 @@ typedef struct {
 
 typedef struct {
     uv_write_t req;
+    uv_buf_t msg[1];
     dest_t *dest;
+    char bytecount_bytes[1]; /* really "bytecount" bytes come here from malloc */
 } minicb_tcp_req_t; /* used to be tcp_send_req_t */
 
 /* forward refs for workhorse functions; many are cb functions */
@@ -85,12 +93,42 @@ static void recv_codatunnel_cb(uv_udp_t *, ssize_t, const uv_buf_t *,
 static void send_to_udp_dest(ssize_t, const uv_buf_t *,
                              const struct sockaddr *saddr, socklen_t slen);
 static void send_to_tcp_dest(dest_t *, ssize_t, const uv_buf_t *);
+static ssize_t send_to_tcp_dest_bottom(gnutls_transport_ptr_t, const void *,
+                                       size_t);
 static void try_creating_tcp_connection(dest_t *);
 static void recv_tcp_cb(uv_stream_t *, ssize_t, const uv_buf_t *);
+static void recv_tcp_cb_handoff(dest_t *, void *, size_t);
 static void tcp_connect_cb(uv_connect_t *, int);
 static void recv_udpsocket_cb(uv_udp_t *, ssize_t, const uv_buf_t *,
                               const struct sockaddr *, unsigned);
 static void tcp_newconnection_cb(uv_stream_t *, int);
+
+/* Global that holds TLS-related stuff such as where to find server
+   certificates (on client) and private key (on server). gnutls.h
+   defines this as a pointer to a private structure.  It is malloced
+   and filled shortly after codatunneld() is forked.  It is then used
+   in all the gnutls-related calls for handshake, etc. */
+static gnutls_certificate_credentials_t x509_cred;
+
+/* Whether to verify identity of peer via X509 certificate
+   Only the client side of RPC2 bothers to verify identify of server side
+*/
+typedef enum
+{
+    IGNORE,
+    VERIFY
+} peercheck_t;
+
+/* For use with uv_queue_work() in async TLS calls */
+typedef struct {
+    dest_t *d;
+    gnutls_init_flags_t tlsflags;
+    peercheck_t certverify;
+} async_tls_parms_t;
+
+/* async worker functions */
+static void setuptls(uv_work_t *);
+static void peeloff_and_decrypt(uv_work_t *);
 
 static socklen_t sockaddr_len(const struct sockaddr *addr)
 {
@@ -139,8 +177,7 @@ static void minicb_tcp(uv_write_t *arg, int status)
         d->packets_sent++; /* one more was sent out! */
     }
 
-    free(arg->data);
-    free(arg);
+    free(req); /* was malloced  in send_to_tcp_dest_bottom () */
 }
 
 static void recv_codatunnel_cb(uv_udp_t *codatunnel, ssize_t nread,
@@ -212,9 +249,7 @@ static void recv_codatunnel_cb(uv_udp_t *codatunnel, ssize_t nread,
 
     /* what do we do with packet p for destination d? */
 
-    if (d && d->state == TCPACTIVE) {
-        DEBUG("d->state == TCPACTIVE\n");
-
+    if (d && (d->state == TCPACTIVE)) {
         /* Changed this to always send retries so we get RPC2_BUSY as a keep
          * alive on long running operations -JH */
         if (0) { // p->is_retry && (d->packets_sent > 0)) {
@@ -288,28 +323,15 @@ static void send_to_udp_dest(ssize_t nread, const uv_buf_t *buf,
     }
 }
 
+/* To accommodate TLS, send_to_tcp_dest() has been split;
+   top half invokes TLS; upcall from TLS engine invokes bottom half which
+   does the actual sending on TCP */
 static void send_to_tcp_dest(dest_t *d, ssize_t nread, const uv_buf_t *buf)
 {
-    minicb_tcp_req_t *req; /* req can't be local because of use in callback */
-    uv_buf_t msg;
     int rc;
-
     DEBUG("send_to_tcp_dest(%p, %ld, %p)\n", d, nread, buf);
 
-    req = malloc(sizeof(*req));
-    if (!req) {
-        /* unable to allocate, free buffer and trigger a disconnection
-         * because we have no other way to force a retry. */
-        ERROR("malloc() failed\n");
-        free(buf->base);
-        free_dest(d);
-        return;
-    }
-    req->dest = d;
-    msg       = uv_buf_init(buf->base, nread); /* no stripping; send entire
-                                                  codatunnel packet */
-
-    /* Convert ctp_d fields to network order */
+    /* Convert ctp_d fields to network order, before encryption */
     ctp_t *p = (ctp_t *)buf->base;
     DEBUG("is_retry = %u  is_init1 = %u  msglen = %u\n", p->is_retry,
           p->is_init1, p->msglen);
@@ -320,51 +342,216 @@ static void send_to_tcp_dest(dest_t *d, ssize_t nread, const uv_buf_t *buf)
     /* ignoring addr and addrlen; will be clobbered by dest_t->destaddr and
      * dest_t->destlen on the other side of the tunnel */
 
-    /* make sure the buffer is released when the send completes */
-    req->req.data = buf->base;
+    /* We assume that TLS is in use; code does not work without TLS
+       Using asserts for now; perhaps we need to be less brutal? */
+
+    assert(d->my_tls_session);
+    assert(d->state == TCPACTIVE); /* never reach here in TLSHANDSHAKE */
+
+    /* VERIFY:  WHO WILL FREE buf->base ? */
+    uv_mutex_lock(&d->tls_send_record_mutex);
+    DEBUG("About to call gnutls_record_send()\n");
+    rc = gnutls_record_send(d->my_tls_session, buf->base, nread);
+    DEBUG("Just returned from gnutls_record_send()\n");
+    uv_mutex_unlock(&d->tls_send_record_mutex);
+    /* actual sending of bytes happens in upcall of above  */
+
+    if (rc != nread) { /* something went wrong */
+        ERROR("gnutls_record_send(): rc = %d\n", rc);
+    }
+}
+
+/* Upcall handler for TLS to send encrypted packet using uv as transport;
+   returns bytes sent*/
+static ssize_t send_to_tcp_dest_bottom(gnutls_transport_ptr_t gtp,
+                                       const void *encrypted_bytearray,
+                                       size_t bytecount)
+{
+    minicb_tcp_req_t *
+        mtr; /* mtr object can't be local because of use in callback after uv_write() */
+    int rc;
+    dest_t *d = gtp;
+
+    DEBUG("send_to_tcp_dest_bottom(%p, %p, %d)\n", gtp, encrypted_bytearray,
+          (int)bytecount);
+
+    mtr = malloc(sizeof(*mtr) + bytecount);
+    if (!mtr) {
+        /* unable to allocate, free buffer and trigger a disconnection
+         * because we have no other way to force a retry. */
+        ERROR("malloc() failed\n");
+        /* who should free_dest(d)? */
+        return (-1);
+    }
+    mtr->dest = d;
+    /* GNUTLS expects to free encrypted_bytearray when this call ends,
+       but uv_write() is asynchronous;  only solution is to memcpy the data to
+       a safe place */
+
+    char *temp = &mtr->bytecount_bytes[0];
+    memcpy(temp, encrypted_bytearray, bytecount);
+    mtr->msg[0] = uv_buf_init(temp, bytecount);
 
     /* forward packet to the remote host */
-    DEBUG("Going to do uv_write(%p, %p, %p,...)\n", req, req->req.data,
-          d->tcphandle);
-    rc = uv_write((uv_write_t *)req, (uv_stream_t *)d->tcphandle, &msg, 1,
+    DEBUG("Going to do uv_write(%p, %p, ,...)\n", mtr, d->tcphandle);
+    rc = uv_write((uv_write_t *)mtr, (uv_stream_t *)d->tcphandle, mtr->msg, 1,
                   minicb_tcp);
+    DEBUG("Just completed uv_write() --> %d\n", rc);
     if (rc) {
         /* unable to send on tcp connection, free buffer and trigger a
          * disconnection because we have no other way to force a retry. */
         ERROR("uv_write(): rc = %d\n", rc);
-        free(req);
-        free(buf->base);
-        free_dest(d);
-    }
+        free(mtr);
+        /* WHO SHOULD FREE?  free_dest(d); */
+        return (-1);
+    } else
+        return (bytecount); /* sent all bytes successfully */
 }
 
 static void tcp_connect_cb(uv_connect_t *req, int status)
 {
+    int rc;
+
     DEBUG("tcp_connect_cb(%p, %d)\n", req, status);
     dest_t *d = req->data;
+    free(req); /* no further use */
 
-    if (status == 0) { /* connection successful */
-        DEBUG("tcp_connect_cb(%p, %d) --> %p\n", d, status, d->tcphandle);
-        d->tcphandle->data = d; /* point back, for use in upcalls */
-        d->received_packet =
-            calloc(1, MAXRECEIVE); /* freed in uv_udp_sent_cb() */
-        d->nextbyte     = 0;
-        d->packets_sent = 0;
-        d->ntoh_done    = 0;
-        d->state        = TCPACTIVE; /* commit point */
-
-        /* disable Nagle */
-        uv_tcp_nodelay(d->tcphandle, 1);
-
-        int rc =
-            uv_read_start((uv_stream_t *)d->tcphandle, alloc_cb, recv_tcp_cb);
-        DEBUG("uv_read_start() --> %d\n", rc);
-    } else { /* connection attempt failed */
+    if (status != 0) { /* connection unsuccessful */
         d->state = ALLOCATED;
         free(d->tcphandle);
         d->tcphandle = NULL;
+        return;
     }
-    free(req);
+
+    /* TCP connection successful */
+    DEBUG("tcp_connect_cb(%p, %d) --> %p\n", d, status, d->tcphandle);
+    d->tcphandle->data = d; /* point back, for use in upcalls */
+    d->uvcount         = 0;
+    d->uvoffset        = 0;
+    for (int i = 0; i < UVBUFLIMIT; i++) {
+        ((d->enqarray)[i].b).base = NULL;
+        ((d->enqarray)[i].b).len  = 0;
+        (d->enqarray)[i].numbytes = 0;
+    }
+    d->decrypted_record = NULL;
+    d->packets_sent     = 0;
+    d->ntoh_done        = 0;
+    d->state            = TLSHANDSHAKE;
+
+    /* disable Nagle */
+    uv_tcp_nodelay(d->tcphandle, 1);
+
+    rc = uv_read_start((uv_stream_t *)d->tcphandle, alloc_cb, recv_tcp_cb);
+    DEBUG("uv_read_start() --> %d\n", rc);
+
+    /* Prepare and launch TLS setup;
+      awork and ap  can't be local variables because their lifetimes
+      are longer than this function; who will free() them? mem leak? */
+
+    async_tls_parms_t *ap = malloc(sizeof(async_tls_parms_t));
+    ap->d                 = d;
+    if (codatunnel_I_am_server) {
+        DEBUG("codatunnel_I_am_server\n");
+        ap->tlsflags = (GNUTLS_SERVER | GNUTLS_NONBLOCK);
+    } else {
+        DEBUG("codatunnel_I_am_client\n");
+        ap->tlsflags = (GNUTLS_CLIENT | GNUTLS_NONBLOCK);
+    }
+
+    ap->certverify   = VERIFY;
+    uv_work_t *awork = malloc(sizeof(uv_work_t));
+    awork->data      = ap;
+
+    DEBUG("about to call uv_queue_work()\n");
+    rc = uv_queue_work(codatunnel_main_loop, awork, setuptls, NULL);
+    DEBUG("after call to uv_queue_work()  -> %d\n", rc);
+}
+
+static void setuptls(uv_work_t *w)
+{
+    /* 
+       setuptls() is done in a separate thread in the uv thread pool,
+       via uv_queue_work(),  because of blocking in handshake;
+       w->data is really of type (async_tls_parms_t *ap);
+  
+       Encapsulate all the set up of TLS for destination ap->d;
+       ap->certverify  indicates whether setup includes verification of peer
+       identify Coda clients always insist on verifying server's identity;
+       Coda servers don't care about Coda client identity;
+       However, Coda servers connect to each other for resolution, etc.  and
+       in those cases, both sides verify the other's identitify.
+    */
+
+    int rc;
+
+    async_tls_parms_t *ap        = (async_tls_parms_t *)(w->data);
+    dest_t *d                    = ap->d;
+    gnutls_init_flags_t tlsflags = ap->tlsflags;
+    peercheck_t certverify       = ap->certverify;
+
+#define GNUTLSERROR(op, retcode)                                            \
+    {                                                                       \
+        ERROR("%s() --> %d (%s)\n", op, retcode, gnutls_strerror(retcode)); \
+        d->state = ALLOCATED;                                               \
+        free(d->tcphandle);                                                 \
+        d->tcphandle = NULL;                                                \
+        return;                                                             \
+    }
+
+    rc = gnutls_init(&d->my_tls_session, tlsflags);
+    if (rc != GNUTLS_E_SUCCESS)
+        GNUTLSERROR("gnutls_init", rc);
+
+    rc = gnutls_set_default_priority(d->my_tls_session);
+    if (rc != GNUTLS_E_SUCCESS)
+        GNUTLSERROR("gnutls_set_default_priority", rc);
+
+    /* per-session data and methods; methods all return void */
+    gnutls_handshake_set_timeout(d->my_tls_session,
+                                 GNUTLS_DEFAULT_HANDSHAKE_TIMEOUT);
+    gnutls_transport_set_ptr(d->my_tls_session, d);
+    gnutls_transport_set_push_function(d->my_tls_session,
+                                       send_to_tcp_dest_bottom);
+    gnutls_transport_set_pull_function(d->my_tls_session, eat_uvbytes);
+
+    rc = gnutls_credentials_set(d->my_tls_session, GNUTLS_CRD_CERTIFICATE,
+                                x509_cred);
+    if (rc != GNUTLS_E_SUCCESS)
+        GNUTLSERROR("gnutls_credentials_set", rc);
+
+    DEBUG("gnutls_credentials_set() successful\n");
+
+    if (certverify == IGNORE) { /* don't bother checking client identity */
+        gnutls_certificate_server_set_request(d->my_tls_session,
+                                              GNUTLS_CERT_IGNORE);
+    } else { /* I am a server; verify peer identify */
+        gnutls_session_set_verify_cert(d->my_tls_session, d->fqdn, 0);
+    }
+
+    /* Everything has been setup; do the TLS handshake */
+    DEBUG("About to do gnutls_handshake()\n");
+    rc = gnutls_handshake(d->my_tls_session);
+
+    switch (rc) {
+    case GNUTLS_E_SUCCESS:
+        DEBUG("gnutls_handshake() successful\n");
+        d->state = TCPACTIVE; /* commit point for encrypted TCP tunnel */
+        return;
+
+    case GNUTLS_E_CERTIFICATE_VERIFICATION_ERROR:
+        DEBUG(
+            "gnutls_handshake() --> GNUTLS_E_CERTIFICATE_VERIFICATION_ERROR\n");
+        rc = gnutls_session_get_verify_cert_status(d->my_tls_session);
+        DEBUG("gnutls_session_get_verify_cert_status() --> 0x%x\n", rc);
+        assert(0); /* just for now: handle better */
+
+    default: /* some other error */
+        GNUTLSERROR("gnutls_handshake", rc);
+        free_dest(d);
+        return;
+    }
+
+#undef GNUTLSERROR
 }
 
 static void try_creating_tcp_connection(dest_t *d)
@@ -384,14 +571,105 @@ static void try_creating_tcp_connection(dest_t *d)
     DEBUG("uv_tcp_connect --> %d\n", rc);
 }
 
+static void peeloff_and_decrypt(uv_work_t *w)
+{
+    /* Asynchronous worker invoked via uv_queue_work();
+       Try to peel off bytes, decrypt them and hand them off;
+       We don't know yet if we have all the bytes of even one gnutls record.
+       We rely on gnutls to reassemble, and then decrypt the record
+       (reasembly used to be our job, pre-tls).
+    */
+
+    DEBUG("peeloff_and_decrypt()\n");
+
+    dest_t *d = (dest_t *)(w->data);
+    if (!d->decrypted_record) {
+        DEBUG("Allocating d->decrypted_record\n");
+        d->decrypted_record = malloc(MAXRECEIVE); /* space for next record */
+        if (!d->decrypted_record) {
+            ERROR("malloc() failed\n");
+            free_dest(d);
+            return;
+        }
+    }
+    /* else partially assembled TLS record already exists; just extend it */
+
+    /* Assemble at most one gnutls_record at a time */
+    uv_mutex_lock(&d->tls_receive_record_mutex);
+
+    /* We use d->uvcount only as advisory information here;
+     Don't bother with mutex because eat_uv_bytes() called 
+     by gnutls_record_recv() does the definitive check 
+  */
+    DEBUG("d->uvcount = %d\n", d->uvcount);
+    while (d->uvcount) {
+        /* bytes still left to be consumed by eat_uvbytes() */
+        DEBUG("d->uvcount = %d\n", d->uvcount);
+
+        /* Try to peel off a complete encrypted record */
+        DEBUG("About to call gnutls_record_recv()\n");
+        int rc = gnutls_record_recv(d->my_tls_session, d->decrypted_record,
+                                    MAXRECEIVE);
+        DEBUG("Just returned from gnutls_record_recv(), rc = %d\n", rc);
+
+        if (rc == GNUTLS_E_INTERRUPTED) {
+            DEBUG("gnutls_record_recv() --> GNUTLS_E_INTERRUPTED\n");
+            continue; /* as if nothing had happened */
+        }
+
+        if (rc == GNUTLS_E_AGAIN) {
+            /* eat_uvbytes() ran out of bytes;
+	 need to continue when more bytes are received in next uv upcall;
+	 leave current d->decrypted_record undisturbed for continuation */
+            uv_mutex_unlock(&d->tls_receive_record_mutex);
+            return;
+        }
+        if (rc <= 0) { /* something went wrong */
+            ERROR("gnutls_record_recv(): rc = %d\n", rc);
+            d->state = TCPCLOSING; /* all hope is lost */
+            uv_mutex_unlock(&d->tls_receive_record_mutex);
+            return;
+        }
+        if (rc >= MAXRECEIVE) {
+            ERROR("Monster packet: gnutls_record_recv() --> %lu\n", MAXRECEIVE);
+            d->state = TCPCLOSING; /* all hope is lost */
+            uv_mutex_unlock(&d->tls_receive_record_mutex);
+            return;
+        }
+
+        /* Yay!  We have a complete gnutls record of length rc;
+       Hand it off to codasrv/Venus;
+       Then carry on with this loop */
+
+        DEBUG("Yay!  we have a complete gnutls record of length %d\n", rc);
+
+        /* Unhook this record from d */
+        void *justreceived = d->decrypted_record;
+
+        /* Now allocate a new buffer for next gnutls record */
+        d->decrypted_record = malloc(MAXRECEIVE); /* clobber */
+        if (!d->decrypted_record) {
+            ERROR("malloc() failed\n");
+            d->state = TCPCLOSING;
+            uv_mutex_unlock(&d->tls_receive_record_mutex);
+            return;
+        }
+        recv_tcp_cb_handoff(d, justreceived, rc);
+        /* free of record just received  will happen in handoff code */
+    }
+    uv_mutex_unlock(&d->tls_receive_record_mutex);
+}
+
 static void recv_tcp_cb(uv_stream_t *tcphandle, ssize_t nread,
                         const uv_buf_t *buf)
 {
     DEBUG("recv_tcp_cb (%p, %d, %p)\n", tcphandle, (int)nread, buf);
 
+    DEBUG("buf->base = %p  buf->len = %lu\n", buf->base, buf->len);
+    /* hexdump ("buf->base", buf->base, 64);  */
+
     dest_t *d = tcphandle->data;
     DEBUG("d = %p\n", d);
-    DEBUG("d->nextbyte = %d  d->ntoh_done = %d\n", d->nextbyte, d->ntoh_done);
 
     if (nread < 0) {
         DEBUG("recv_tcp_cb() --> %s\n", uv_strerror(nread));
@@ -407,157 +685,81 @@ static void recv_tcp_cb(uv_stream_t *tcphandle, ssize_t nread,
         return;
     }
 
-    /* else nread > 0: many possible cases
+    /* else nread > 0: we have successfully received some bytes;
+       note that any freeing of buf happens inside enq_uvbuf() or later */
+    enq_element(d, (uv_buf_t *)buf,
+                nread); /* append to list of bufs for this dest */
 
-       Case 1: (best case) nread corresponds to exactly one full packet
-       to handoff; life is good!
+    if (d->state == TLSHANDSHAKE) {
+        DEBUG(
+            "recv_tcp_cb() just called enq_element() in TLSHANDSHAKE state \n");
+        /* rely on internal gnutls_handshake() state machine to trigger
+	 call to eat_uvbytes(); no way to force this */
+        return;
+    }
 
-       Case 2: nread is just few bytes, and not even enough to complete
-       the codatunnel packet header; we have to wait to complete it in
-       one or more future reads, then discover UDP packet len, and thus
-       discover how many more bytes we need; may take many future upcalls
+    if (d->state != TCPACTIVE) {
+        /* used to be assert(d->state == TCPACTIVE) */
+        DEBUG("Dest state is %s rather than TCPACTIVE; giving up\n",
+              tcpstatename(d->state));
+        return;
+    }
 
-       Case 3: nread is a huge number of bytes;  many back-to-back UDP
-       packets have arrived bunched together as one large read upcall;
-       many UDP packets peeled off from this one upcall
+    /* Do peeling off and decrypting on async thread to
+       avoid blocking due to TLS */
+    uv_work_t *w = malloc(sizeof(uv_work_t));
+    w->data      = d;
+    uv_queue_work(codatunnel_main_loop, w, peeloff_and_decrypt, NULL);
+}
 
-       Case 4, 5, 6 ...:  variants of above
+static void recv_tcp_cb_handoff(dest_t *d, void *received_packet, size_t nread)
+{ /* received_packet points to decrypted packet of length nread;
+     prep it, and then hand it off to codasrv/Venus */
 
-       Regardless of case, the requirement is that all nread bytes
-       be consumed in this upcall; any future work has to be set up
-       in the dest_t data structure.
-    */
-    DEBUG("buf->base = %p  buf->len = %lu\n", buf->base, buf->len);
-    /* hexdump ("buf->base", buf->base, 64);  */
+    int rc;
+    ctp_t *p;
+    minicb_udp_req_t *req;
+    uv_buf_t msg;
 
-    int bytesleft = nread;
-    do { /* each iteration does one memcpy() from src to tgt */
-        DEBUG("bytesleft = %d  nextbyte = %d  ntoh_done = %d\n", bytesleft,
-              d->nextbyte, d->ntoh_done);
-        char *tgt = &((d->received_packet)[d->nextbyte]);
-        char *src = (char *)&((buf->base)[nread - bytesleft]);
-        int needed, msgsize;
+    /* Replace recipient address with sender's address, so that
+       recvfrom() can provide the "from" address. */
+    p = (ctp_t *)received_packet;
+    memcpy(&p->addr, &d->destaddr, d->destlen);
+    p->addrlen = d->destlen;
 
-        if (d->nextbyte < sizeof(ctp_t)) {
-            /* CASE 1: we don't even have a full ctp_t yet */
-            needed = sizeof(ctp_t) - d->nextbyte;
+    /* Prepare to send  */
+    struct sockaddr_in dummy_peer = {
+        .sin_family = AF_INET,
+    };
 
-            if (bytesleft < needed)
-                needed = bytesleft;
+    req = malloc(sizeof(*req));
+    if (!req) {
+        /* unable to allocate, free buffers and trigger a disconnection
+         * because we have no other way to force a retry. */
+        ERROR("malloc() failed\n");
+        free(d->decrypted_record);
+        free_dest(d);
+        return;
+    }
 
-            memcpy(tgt, src, needed);
-            d->nextbyte += needed;
-            bytesleft -= needed;
-            continue; /* back to the outer loop; */
-        }
+    msg = uv_buf_init(received_packet, nread); /* to send */
 
-        /* CASE 2 (else part): If we reach here, we have
-           a complete ctp_t at the head of d->received_packet */
+    /* make sure the buffer is released when the send completes */
+    req->req.data = msg.base;
 
-        ctp_t *p = (ctp_t *)d->received_packet;
-
-        /* Convert fields to host order; but only do it once; we may
-           encounter this ctp_t many times if a big packet is fragmented into
-           tiny pieces and we have to do many recv_tcp_cb() operations to
-           reassemble it
-        */
-        if (d->ntoh_done == 0) {
-            p->is_retry  = ntohl(p->is_retry);
-            p->is_init1  = ntohl(p->is_init1);
-            p->msglen    = ntohl(p->msglen);
-            d->ntoh_done = 1;
-
-            if (strncmp(p->magic, "magic01", 8) != 0) {
-                DEBUG("Bad packet header, giving up\n");
-                free(buf->base);
-                free_dest(d);
-                return;
-            }
-
-            DEBUG("is_retry = %u  is_init1 = %u  msglen = %u\n", p->is_retry,
-                  p->is_init1, p->msglen);
-        }
-
-        msgsize = sizeof(ctp_t) + p->msglen;
-        if (msgsize > MAXRECEIVE || p->msglen == 0) {
-            /* we can't handle this packet (too big, or too small) */
-            DEBUG("Packet of size %u, giving up\n", p->msglen);
-            free(buf->base);
-            free_dest(d);
-            return;
-        }
-
-        needed = msgsize - d->nextbyte;
-        DEBUG("needed = %d\n", needed);
-
-        if (bytesleft < needed)
-            needed = bytesleft;
-
-        memcpy(tgt, src, needed);
-        d->nextbyte += needed;
-        bytesleft -= needed;
-
-        /* Check whether we have a complete packet to handoff now */
-        needed = msgsize - d->nextbyte;
-        DEBUG("Complete packet check, needed = %d\n", needed);
-
-        if (needed > 0)
-            continue; /* not complete yet */
-
-        /* Victory: we have assembled a complete packet to handoff to
-           venus or codasrv; no stripping of ctp_t needed */
-        DEBUG("Full packet assembled, handing off\n");
-
-        /* Replace recipient address with sender's address, so that
-           recvfrom() can provide the "from" address. */
-        memcpy(&p->addr, &d->destaddr, d->destlen);
-        p->addrlen = d->destlen;
-
-        minicb_udp_req_t *req;
-        uv_buf_t msg;
-        struct sockaddr_in dummy_peer = {
-            .sin_family = AF_INET,
-        };
-        int rc;
-
-        req = malloc(sizeof(*req));
-        if (!req) {
-            /* unable to allocate, free buffers and trigger a disconnection
-             * because we have no other way to force a retry. */
-            ERROR("malloc() failed\n");
-            free(buf->base);
-            free_dest(d);
-            return;
-        }
-        msg = uv_buf_init(d->received_packet, msgsize); /* to send */
-
-        /* make sure the buffer is released when the send completes */
-        req->req.data = d->received_packet;
-
-        /* forward packet to venus/codasrv */
-        rc = uv_udp_send((uv_udp_send_t *)req, &codatunnel, &msg, 1,
-                         (struct sockaddr *)&dummy_peer, minicb_udp);
-        DEBUG("codatunnel.send_queue_count = %lu\n",
-              codatunnel.send_queue_count);
-        if (rc) {
-            /* unable to forward packet from tcp connection to venus/codasrv.
-             * free buffers and trigger a disconnection */
-            ERROR("uv_udp_send(): rc = %d\n", rc);
-            free(req);
-            free(buf->base);
-            free_dest(d); /* will free d->received_packet */
-            return;
-        }
-
-        /* Now prepare for read of a new packet */
-        d->received_packet = calloc(1, MAXRECEIVE);
-        d->nextbyte        = 0;
-        d->ntoh_done       = 0;
-
-    } while (bytesleft > 0);
-
-    /* We have now consumed all the bytes associated with this upcall */
-    free(buf->base);
+    /* forward packet to venus/codasrv */
+    rc = uv_udp_send((uv_udp_send_t *)req, &codatunnel, &msg, 1,
+                     (struct sockaddr *)&dummy_peer, minicb_udp);
+    DEBUG("codatunnel.send_queue_count = %lu\n", codatunnel.send_queue_count);
+    if (rc) {
+        /* unable to forward packet from tcp connection to venus/codasrv.
+         * free buffers and trigger a disconnection */
+        ERROR("uv_udp_send(): rc = %d\n", rc);
+        free(req);
+        free(received_packet);
+        free_dest(d); /* will free d->decrypted_record */
+        return;
+    }
 }
 
 static void recv_udpsocket_cb(uv_udp_t *udpsocket, ssize_t nread,
@@ -672,10 +874,9 @@ static void tcp_newconnection_cb(uv_stream_t *bindhandle, int status)
     /* Bind this TCP handle and dest */
     clienthandle->data = d;
 
-    d->tcphandle       = clienthandle;
-    d->received_packet = malloc(MAXRECEIVE);
+    d->tcphandle = clienthandle;
     /* all other fields of *d set by cleardest() in createdest() */
-    d->state = TCPACTIVE; /* commit point */
+    d->state = TLSHANDSHAKE;
 
     /* disable Nagle */
     uv_tcp_nodelay(d->tcphandle, 1);
@@ -684,6 +885,28 @@ static void tcp_newconnection_cb(uv_stream_t *bindhandle, int status)
     DEBUG("About to call uv_read_start()\n");
     rc = uv_read_start((uv_stream_t *)d->tcphandle, alloc_cb, recv_tcp_cb);
     DEBUG("uv_read_start() --> %d\n", rc);
+
+    /* Prepare and launch TLS setup;
+      awork and ap  can't be local variables because their lifetimes
+      are longer than this function; who will free() them? mem leak? */
+
+    async_tls_parms_t *ap = malloc(sizeof(async_tls_parms_t));
+    ap->d                 = d;
+    if (codatunnel_I_am_server) {
+        DEBUG("codatunnel_I_am_server\n");
+        ap->tlsflags = (GNUTLS_SERVER | GNUTLS_NONBLOCK);
+    } else {
+        DEBUG("codatunnel_I_am_client\n");
+        ap->tlsflags = (GNUTLS_CLIENT | GNUTLS_NONBLOCK);
+    }
+
+    ap->certverify   = IGNORE;
+    uv_work_t *awork = malloc(sizeof(uv_work_t));
+    awork->data      = ap;
+
+    DEBUG("about to call uv_queue_work()");
+    rc = uv_queue_work(codatunnel_main_loop, awork, setuptls, NULL);
+    DEBUG("after call to uv_queue_work()  -> %d\n", rc);
 }
 
 /* main routine of coda tunnel daemon */
@@ -699,7 +922,15 @@ void codatunneld(int codatunnel_sockfd, const char *tcp_bindaddr,
     };
     int rc;
 
-    fprintf(stderr, "codatunneld: starting\n");
+#define GNUTLSERROR(op, retcode)                                            \
+    {                                                                       \
+        ERROR("%s() --> %d (%s)\n", op, retcode, gnutls_strerror(retcode)); \
+        assert(0);                                                          \
+    }
+
+    DEBUG("codatunneld: starting\n");
+
+    fprintf(stderr, "codatunneld fprintf: starting\n");
 
     if (tcp_bindaddr)
         codatunnel_I_am_server = 1; /* remember who I am */
@@ -710,6 +941,50 @@ void codatunneld(int codatunnel_sockfd, const char *tcp_bindaddr,
     signal(SIGPIPE, SIG_IGN);
 
     initdestarray(); /* do this before any IP addresses are encountered */
+
+    /* Define GNUTLS settings before libuv to avoid race condition */
+
+    rc = gnutls_global_init();
+    if (rc != GNUTLS_E_SUCCESS) {
+        GNUTLSERROR("gnutls_global_init()", rc);
+        exit(-1);
+    }
+
+    DEBUG("gnutls_global_init() successful\n");
+
+    gnutls_global_set_log_level(1000); /* Only for debugging */
+
+    rc = gnutls_certificate_allocate_credentials(&x509_cred);
+    if (rc != GNUTLS_E_SUCCESS)
+        GNUTLSERROR("gnutls_certificate_allocate_credentials", rc);
+
+    DEBUG("gnutls_certificate_allocate_credentials successful\n");
+
+    /* Trust dir of certificates is defined both for clients and
+       servers; on servers these are needed for server-to-server
+       communication such as directory resolution and update */
+    const char *ca_dir =
+        "/etc/coda/ssl"; /* where X.509 certificates are stored */
+    rc = gnutls_certificate_set_x509_trust_dir(x509_cred, ca_dir,
+                                               GNUTLS_X509_FMT_PEM);
+    if (rc >= 0) { /* count of certificates found in trusted directory */
+        DEBUG("gnutls_certificate_set_x509_trust_dir() --> %d\n", rc);
+    } else { /* GNU TLS error occurred */
+        GNUTLSERROR("gnutls_certificate_set_x509_trust_dir", rc);
+    }
+
+    if (codatunnel_I_am_server) {
+        /* Define where the server's private key can be found */
+        const char *mycert    = "/etc/coda/ssl/rime.elijah.cs.cmu.edu.crt";
+        const char *mykeyfile = "/etc/coda/ssl/rime.elijah.cs.cmu.edu.key";
+        rc = gnutls_certificate_set_x509_key_file(x509_cred, mycert, mykeyfile,
+                                                  GNUTLS_X509_FMT_PEM);
+        if (rc != GNUTLS_E_SUCCESS)
+            GNUTLSERROR("gnutls_certificate_set_x509_key_file", rc);
+        DEBUG("gnutls_certificate_set_x509_key_file() successful\n");
+    }
+
+    /* GNUTLS is done, proceed to set up libuv */
 
     codatunnel_main_loop = uv_default_loop();
 
@@ -778,6 +1053,8 @@ void codatunneld(int codatunnel_sockfd, const char *tcp_bindaddr,
     uv_run(codatunnel_main_loop, UV_RUN_DEFAULT);
     uv_loop_close(codatunnel_main_loop);
     exit(0);
+
+#undef GNUTLSERROR
 }
 
 /* from Internet example */

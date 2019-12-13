@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 2017-2018 Carnegie Mellon University
+          Copyright (c) 2017-2020 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -22,16 +22,21 @@ Coda are listed in the file CREDITS.
 #include <sys/socket.h>
 #include <assert.h>
 #include <sys/time.h>
+#include <uv.h>
+#include <gnutls/gnutls.h>
 
-#if 0
-#define DEBUG(...)                                                             \
-    do {                                                                       \
-        struct timeval tt;                                                     \
-        gettimeofday(&tt, 0);                                                  \
-        fprintf(stderr, "%ld:%ld %s:%d ", tt.tv_sec, tt.tv_usec, __FUNCTION__, \
-                __LINE__);                                                     \
-        fprintf(stderr, __VA_ARGS__);                                          \
-        fflush(stderr);                                                        \
+extern int mapthread(uv_thread_t);
+
+#if 1
+#define DEBUG(...)                                                          \
+    do {                                                                    \
+        struct timeval tt;                                                  \
+        gettimeofday(&tt, 0);                                               \
+        int myid = mapthread(uv_thread_self());                             \
+        fprintf(stderr, "[%d] %ld:%ld %s:%d ", myid, tt.tv_sec, tt.tv_usec, \
+                __FUNCTION__, __LINE__);                                    \
+        fprintf(stderr, __VA_ARGS__);                                       \
+        fflush(stderr);                                                     \
     } while (0)
 #else
 #define DEBUG(...)
@@ -75,39 +80,75 @@ typedef struct codatunnel_packet {
 */
 
 /* Transitions always:  FREE --> ALLOCATED --> (optionally)TCPATTEMPTING -->
- * TCPACTIVE --> TCPCLOSING --> FREE */
+ * TLSHANDSHAKE --> TCPACTIVE --> TCPCLOSING --> FREE */
 enum deststate
-{ /* NEW: 2018-5-29 */
-  FREE          = 0, /* this entry is not allocated */
-  ALLOCATED     = 1, /* entry allocated, but TCP is not active; UDP works */
-  TCPATTEMPTING = 2, /* entry allocated, tcp connect is being attempted;
-                        UDP works */
-  TCPACTIVE     = 3, /* entry allocated, and its tcphandle is good */
-  TCPCLOSING    = 4, /* this entry used to be TCPACTIVE;
-                     now closing, and waiting to become FREE */
+{
+    FREE          = 0, /* this entry is not allocated */
+    ALLOCATED     = 1, /* entry allocated, but TCP is not active; UDP works */
+    TCPATTEMPTING = 2, /* entry allocated, tcp connect is being attempted;
+                          UDP works */
+    TLSHANDSHAKE  = 3, /* tcp connection is good; TLS handshake in progress */
+    TCPACTIVE     = 4, /* entry allocated, its tcphandle is good, and TLS
+                          handshake successful */
+    TCPCLOSING    = 5, /* now closing, and waiting to become FREE */
 };
+
+extern char *tcpstatename(enum deststate);
+
+typedef struct {
+    uv_buf_t b; /* b.len is max size of buffer, not useful bytes */
+    int numbytes; /* number of useful bytes pointed to by b->base */
+} enq_data_t;
 
 typedef struct remotedest {
     struct sockaddr_storage destaddr;
     socklen_t destlen;
+    char fqdn[NI_MAXHOST]; /* obtained via getnameinfo() from destaddr */
 
-    enum deststate state;
-    /* All destinations are assumed to be capable of becoming TCPACTIVE;
-       Setting TCPACTIVE should be a commit point:  all fields below
-       should have been set before that happens, to avoid race conditions */
+    enum deststate state; /* All destinations are assumed to be capable of
+                             becoming TCPACTIVE; Setting TCPACTIVE should be a
+                             commit point: all fields below should have been
+                             set before that happens, to avoid race conditions */
 
-    uv_tcp_t *tcphandle; /* only valid if state is TCPACTIVE*/
+    uv_tcp_t *tcphandle; /* only valid if state is TCPACTIVE or TLSHANDSHAKE */
     int packets_sent; /* for help with INIT1 retries */
-    int nextbyte; /* index in received_packet[] into which next byte will be read;
-                     needed because multiple read calls may be needed to obtain a
-                     complete UDP packet that has been tunneled in TCP */
-    int ntoh_done; /* whether ntohl() has already been done on
-                      the header of this packet */
-    char *received_packet; /* malloced array of size MAXRECEIVE; initial
-                              malloc when TCPACTIVE is set; after that a
-                              new malloc is done for each received
-                              packet; free() happens in
-                              uv_udp_sent_cb() */
+    int ntoh_done; /* whether ntohl() has already been done on the header of
+                      this packet */
+
+    gnutls_session_t my_tls_session;
+
+    char *decrypted_record; /* pointer to malloced array of size MAXRECEIVE;
+			     filled by gnutls_record_recv() by reassembly from
+                             calls to eat_uvbytes(); must be preserved across
+			     successive calls to gnutls_record_recv() for 
+			     reassembly to work properly */
+
+    /* Space to buffer packets from recv_tcp_cb() en route to
+       gnutls_record_recv(). enq_uvbuf() appends packets to this list.
+       eat_uvbytes() peels off bytes in these packets.  We use a simple
+       array, because we don't expect this queue to get very long.  Most
+       common case will be an exact match: one input packet waiting,
+       that is completely consumed in one call.  If the future proves
+       otherwise, change to a linked list structure instead of array. */
+
+#define UVBUFLIMIT 10 /* drop packets beyond this limit */
+    enq_data_t enqarray[UVBUFLIMIT]; /* array of structures */
+    int uvcount; /* how many elements in use in above array */
+    uv_mutex_t uvcount_mutex; /* protects uvcount */
+    uv_cond_t uvcount_nonzero; /* signaled when uvcount goes above zero */
+    int uvoffset; /* array index of next unused byte in ((enqarray[0].b)->base[]  */
+
+    /* Mutexes below ensure that only one gnutls_recv_record() and 
+     one gnutls_send_record() can be in progress at a time; this is needed because
+     gnutls serializes data records on the TCP stream; currently, this appears to be 
+     a 5-byte header that indicates a length, followed by that many bytes; however,
+     this may change in the future to be something more complex; use of a mutex eliminates
+     dependence on the exact serialization format; it is essential that
+     all the pieces of  a serialized record appear consecutively in the TCP stream;
+     interleaving in an multi-threaded environment could be disastrous */
+    uv_mutex_t tls_receive_record_mutex;
+    uv_mutex_t tls_send_record_mutex;
+
 } dest_t;
 
 /* Stuff for destination management */
@@ -117,8 +158,20 @@ dest_t *getdest(const struct sockaddr_storage *, socklen_t);
 dest_t *createdest(const struct sockaddr_storage *, socklen_t);
 void free_dest(dest_t *d);
 
+/* Procedures to add and remove buffered data from a dest.
+   These operate in producer-consumer manner.
+   recv_tcp_cb() calls enq_uvbuf() as producer.
+   gnutls_record_recv() calls eat_uvbytes() as consumer.
+   During TLS handshake, eat_uvbytes() is also called as consumer.
+*/
+void enq_element(dest_t *, uv_buf_t *, int);
+ssize_t eat_uvbytes(gnutls_transport_ptr_t, void *, size_t);
+
 /* Helper/debugging functions */
 void hexdump(char *desc, void *addr, int len);
 void printsockaddr(const struct sockaddr_storage *, socklen_t);
+
+/* for use in uv_queue_work() */
+extern uv_loop_t *codatunnel_main_loop;
 
 #endif /* _CODATUNNEL_PRIVATE_H_ */

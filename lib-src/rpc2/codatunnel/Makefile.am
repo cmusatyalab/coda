@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-AM_CPPFLAGS = -I$(top_srcdir)/include $(LIBUV_CFLAGS)
+AM_CPPFLAGS = -I$(top_srcdir)/include $(LIBUV_CFLAGS) $(GNUTLS_CFLAGS)
 
 noinst_LTLIBRARIES = libcodatunnel.la
 
@@ -10,7 +10,7 @@ else
 CODATUNNEL_SOURCES = codatunnel.stub.c
 endif
 libcodatunnel_la_SOURCES = $(CODATUNNEL_SOURCES) wrapper.h
-libcodatunnel_la_LIBADD = $(LIBUV_LIBS)
+libcodatunnel_la_LIBADD = $(LIBUV_LIBS) $(GNUTLS_LIBS)
 
 MAINTAINERCLEANFILES = Makefile.in
 
