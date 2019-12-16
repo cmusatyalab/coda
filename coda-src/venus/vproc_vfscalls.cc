@@ -1737,16 +1737,8 @@ void vproc::mmap(struct venus_cnode *node, uint64_t pos, int64_t count)
         goto FreeVFS;
     }
 
-    if (f->IsPioctlFile())
-        goto FreeVFS;
-
-    if (!ISVASTRO(f)) {
-        u.u_error = EOPNOTSUPP;
-        goto FreeVFS;
-    }
-
-    /* No errors. Assume the chunk is being used. */
-    f->active_segments.AddChunk(pos, count);
+    /* Perform a read access intent to make sure the file content is cached */
+    u.u_error = f->ReadIntent(u.u_uid, u.u_priority, pos, count);
 
 FreeVFS:
     End_VFS(NULL);
