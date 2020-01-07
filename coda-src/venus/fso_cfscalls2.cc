@@ -3,7 +3,7 @@
                            Coda File System
                               Release 7
 
-          Copyright (c) 1987-2019 Carnegie Mellon University
+          Copyright (c) 1987-2020 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -223,7 +223,9 @@ int fsobj::Open(int writep, int truncp, struct venus_cnode *cp, uid_t uid)
 
     /* In of opening a file previously handled as VASTRO */
     if (!ISVASTRO(this) && !HAVEALLDATA(this)) {
-        Fetch(uid, cf.ConsecutiveValidData(), -1);
+        code = Fetch(uid, cf.ConsecutiveValidData(), -1);
+        if (code)
+            return code;
     }
 
     /*  write lock the object if we might diddle it below.  Disabling
