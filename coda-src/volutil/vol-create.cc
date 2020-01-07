@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2020 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -172,7 +172,8 @@ long S_VolCreate(RPC2_Handle rpcid, RPC2_String formal_partition,
     V_uniquifier(vp)   = 1;
     V_creationDate(vp) = V_copyDate(vp);
     V_inService(vp) = V_blessed(vp) = 1;
-    V_type(vp)                      = nonReplicatedVolume;
+
+    V_type(vp) = repvol ? readwriteVolume : nonReplicatedVolume;
     AssignVolumeName(&V_disk(vp), volname, 0);
 
     /* could probably begin transaction here instead of at beginning */
