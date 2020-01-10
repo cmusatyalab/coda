@@ -25,9 +25,9 @@ Coda are listed in the file CREDITS.
 #include <uv.h>
 #include <gnutls/gnutls.h>
 
-extern int mapthread(uv_thread_t);
+int mapthread(uv_thread_t);
 
-#if 1
+#if 0
 #define DEBUG(...)                                                          \
     do {                                                                    \
         struct timeval tt;                                                  \
@@ -93,7 +93,7 @@ enum deststate
     TCPCLOSING    = 5, /* now closing, and waiting to become FREE */
 };
 
-extern char *tcpstatename(enum deststate);
+const char *tcpstatename(enum deststate);
 
 typedef struct {
     uv_buf_t b; /* b.len is max size of buffer, not useful bytes */
@@ -112,15 +112,13 @@ typedef struct remotedest {
 
     uv_tcp_t *tcphandle; /* only valid if state is TCPACTIVE or TLSHANDSHAKE */
     int packets_sent; /* for help with INIT1 retries */
-    int ntoh_done; /* whether ntohl() has already been done on the header of
-                      this packet */
 
     gnutls_session_t my_tls_session;
 
     char *decrypted_record; /* pointer to malloced array of size MAXRECEIVE;
 			     filled by gnutls_record_recv() by reassembly from
                              calls to eat_uvbytes(); must be preserved across
-			     successive calls to gnutls_record_recv() for 
+			     successive calls to gnutls_record_recv() for
 			     reassembly to work properly */
 
     /* Space to buffer packets from recv_tcp_cb() en route to
@@ -138,9 +136,9 @@ typedef struct remotedest {
     uv_cond_t uvcount_nonzero; /* signaled when uvcount goes above zero */
     int uvoffset; /* array index of next unused byte in ((enqarray[0].b)->base[]  */
 
-    /* Mutexes below ensure that only one gnutls_recv_record() and 
+    /* Mutexes below ensure that only one gnutls_recv_record() and
      one gnutls_send_record() can be in progress at a time; this is needed because
-     gnutls serializes data records on the TCP stream; currently, this appears to be 
+     gnutls serializes data records on the TCP stream; currently, this appears to be
      a 5-byte header that indicates a length, followed by that many bytes; however,
      this may change in the future to be something more complex; use of a mutex eliminates
      dependence on the exact serialization format; it is essential that
@@ -152,7 +150,6 @@ typedef struct remotedest {
 } dest_t;
 
 /* Stuff for destination management */
-void cleardest(dest_t *);
 void initdestarray();
 dest_t *getdest(const struct sockaddr_storage *, socklen_t);
 dest_t *createdest(const struct sockaddr_storage *, socklen_t);
@@ -170,8 +167,5 @@ ssize_t eat_uvbytes(gnutls_transport_ptr_t, void *, size_t);
 /* Helper/debugging functions */
 void hexdump(char *desc, void *addr, int len);
 void printsockaddr(const struct sockaddr_storage *, socklen_t);
-
-/* for use in uv_queue_work() */
-extern uv_loop_t *codatunnel_main_loop;
 
 #endif /* _CODATUNNEL_PRIVATE_H_ */

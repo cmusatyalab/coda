@@ -31,9 +31,9 @@ Coda are listed in the file CREDITS.
 
 #define DESTARRAY_SIZE 100 /* should be plenty for early debugging */
 dest_t destarray[DESTARRAY_SIZE]; /* only 0..hilimit-1 are in use */
-int hilimit = 0; /* one plus highest index in use in destarray */
+static int hilimit = 0; /* one plus highest index in use in destarray */
 
-void cleardest(dest_t *d)
+static void cleardest(dest_t *d)
 {
     memset(&d->destaddr, 0, sizeof(struct sockaddr_storage));
     d->destlen = 0;
@@ -41,7 +41,6 @@ void cleardest(dest_t *d)
     d->state          = FREE;
     d->tcphandle      = NULL;
     d->packets_sent   = 0;
-    d->ntoh_done      = 0;
     d->my_tls_session = NULL;
     d->uvcount        = 0;
     uv_mutex_init(&d->uvcount_mutex);
@@ -64,8 +63,12 @@ void initdestarray()
 
     hilimit = 0;
 
-    for (i = 0; i < DESTARRAY_SIZE; i++)
-        cleardest(&destarray[i]);
+    for (i = 0; i < DESTARRAY_SIZE; i++) {
+        dest_t *d = &destarray[i];
+        cleardest(d);
+        uv_mutex_init(&d->tls_receive_record_mutex);
+        uv_mutex_init(&d->tls_send_record_mutex);
+    }
 }
 
 static int sockaddr_equal(const struct sockaddr_storage *a,
@@ -151,13 +154,9 @@ dest_t *createdest(const struct sockaddr_storage *x, socklen_t xlen)
     rc = getnameinfo((struct sockaddr *)x, xlen, d->fqdn, sizeof(d->fqdn), NULL,
                      0, NI_NAMEREQD);
     if (rc) { /* something went wrong */
-        printf("getnameinfo() --> %d (%s)\n", rc, gai_strerror(rc));
+        fprintf(stderr, "getnameinfo() --> %d (%s)\n", rc, gai_strerror(rc));
         return (NULL);
-    } else { /* for debugging only */
-        printf("getnameinfo() --> %s\n", d->fqdn);
-        fflush(stdout);
     }
-
     return d;
 }
 
@@ -210,9 +209,9 @@ void enq_element(dest_t *d, uv_buf_t *thisbuf, int nb)
 
 /* Upcall function to give gnutls_record_recv() bytes on demand.
    Puts nread bytes into buffer at tlsbuf; return actual bytes filled
-   (which may be less than nread; in that case, GNUTLS is expected 
+   (which may be less than nread; in that case, GNUTLS is expected
    to make multiple calls to obtain correct number of bytes)
-   GNUTLS specs require this call to return 0 on connection termination 
+   GNUTLS specs require this call to return 0 on connection termination
    and -1 on error of any kind
    Therefore, this has to be a blocking call if no data is available
 */
@@ -249,23 +248,18 @@ TryAgain:
             (d->enqarray[0]).b.len, (d->enqarray[0]).numbytes, found,
             stillneeded);
 
-        here = (d->enqarray[0]).numbytes -
-               d->uvoffset; /* still available in first buf */
+        here = (d->enqarray[0]).numbytes - d->uvoffset; /* available in buf */
 
         char *src = &(((char *)(((d->enqarray[0]).b).base))[d->uvoffset]);
         DEBUG("here = %d  src = %p\n", here, src);
 
-        if (here >= stillneeded) {
-            memcpy(((char *)tlsbuf) + found, src, stillneeded);
-            d->uvoffset += stillneeded;
-            found += stillneeded;
-            stillneeded = 0;
-        } else {
-            memcpy(((char *)tlsbuf) + found, src, here);
-            d->uvoffset += here;
-            found += here;
-            stillneeded -= here;
-        }
+        if (here > stillneeded)
+            here = stillneeded;
+
+        memcpy(((char *)tlsbuf) + found, src, here);
+        d->uvoffset += here;
+        found += here;
+        stillneeded -= here;
 
         DEBUG(
             "d->uvcount = %d  d->uvoffset = %d  (d->enqarray[0]).numbytes = %d  found = %d  stillneeded = %d\n",
@@ -317,7 +311,7 @@ int mapthread(uv_thread_t t)
     return (thread_count - 1); /* thread numbers start at 0 */
 }
 
-char *tcpstatename(enum deststate mystate)
+const char *tcpstatename(enum deststate mystate)
 {
     switch (mystate) {
     case FREE:

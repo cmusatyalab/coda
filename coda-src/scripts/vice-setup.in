@@ -109,19 +109,6 @@ fi
 "@sbindir@/codaconfedit" server.conf rvmtruncate 5
 "@sbindir@/codaconfedit" server.conf trace 100
 
-# Check whether codatunnel should be enabled (Satya, 2019-12-27)
-    yesno=""
-    while [ "$yesno" = "" ]; do
-	echon "Would you like codatunnel enabled? [yes/no] "
-	read -r yesno
-
-        case "$(echo "$yesno" | tr '[:upper:]' '[:lower:]')" in
-        y|yes)  "${exec_prefix}/sbin/codaconfedit" server.conf codatunnel 1 ;;
-        n|no)   "${exec_prefix}/sbin/codaconfedit" server.conf codatunnel 0 ;;
-        *) yesno="" ; echo "Please answer yes or no." ;;
-	esac
-    done
-
 
 echo "Setting up $vicedir."
 

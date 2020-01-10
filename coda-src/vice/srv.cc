@@ -3,7 +3,7 @@
                            Coda File System
                               Release 7
 
-          Copyright (c) 1987-2019 Carnegie Mellon University
+          Copyright (c) 1987-2020 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -144,7 +144,7 @@ const char *CodaSrvIp; // default NULL ('ipaddress' in server.conf)
 
 /* local */
 static int MapPrivate; // default 0
-static int codatunnel_enabled = 1; // Enable now by default (Satya, 12/27/2019)
+static int codatunnel_enabled; // default 1
 static int codatunnel_onlytcp; // default 0
 static int nofork; // default 0
 
@@ -391,7 +391,7 @@ int main(int argc, char *argv[])
         SLog(0, "[-nodebarrenize] [-dir workdir] [-srvhost host]");
         SLog(0, " [-rvmopt] [-usenscclock]");
         SLog(0, " [-mapprivate] [-zombify]");
-        SLog(0, " [-codatunnel] [-onlytcp] [-nofork]");
+        SLog(0, " [-codatunnel] [-no-codatunnel] [-onlytcp] [-nofork]");
 
         exit(EXIT_FAILURE);
     }
@@ -1485,7 +1485,7 @@ static int ReadConfigFile(void)
         vicetab = strdup(vice_config_path("db/vicetab"));
 
     CODACONF_INT(check_reintegration_retry, "check_reintegration_retry", 1);
-    CODACONF_INT(codatunnel_enabled, "codatunnel", 0);
+    CODACONF_INT(codatunnel_enabled, "codatunnel", 1);
     CODACONF_INT(codatunnel_onlytcp, "onlytcp", 0);
     CODACONF_INT(nofork, "nofork", 0);
     return 0;
@@ -1612,6 +1612,9 @@ static int ParseArgs(int argc, char *argv[])
         } else if (!strcmp(argv[i], "-codatunnel")) {
             codatunnel_enabled = true;
             eprint("codatunnel enabled");
+        } else if (!strcmp(argv[i], "-no-codatunnel")) {
+            codatunnel_enabled = false;
+            eprint("codatunnel disabled");
         } else if (!strcmp(argv[i], "-onlytcp")) {
             codatunnel_onlytcp = true;
             eprint("codatunnel_onlytcp set");

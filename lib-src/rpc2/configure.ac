@@ -40,7 +40,6 @@ AC_CHECK_PROG(CP, cp, cp)
 dnl pkg-config stuff
 CODA_PKG_CONFIG
 PKG_CHECK_MODULES([LWP], [lwp])
-PKG_CHECK_MODULES([GNUTLS], [gnutls])
 
 AC_ARG_WITH([libuv],
     [AS_HELP_STRING([--without-libuv],
@@ -49,8 +48,9 @@ AC_ARG_WITH([libuv],
 AS_IF([test "x$with_libuv" != "xno"],
   [PKG_CHECK_EXISTS([libuv >= 1.4.0],
      [PKG_CHECK_MODULES([LIBUV], [libuv])
+      PKG_CHECK_MODULES([GNUTLS], [gnutls])
       AC_DEFINE(USE_CODATUNNEL, 1, [Define this when linking against libuv])],
-     [AC_MSG_WARN([LIBUV not found, disabling codatunneld build])
+     [AC_MSG_WARN([LIBUV or GNUTLS not found, disabling codatunneld build])
       with_libuv=no])])
 
 AC_ARG_WITH(lua,

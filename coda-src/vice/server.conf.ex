@@ -96,7 +96,7 @@ allow_sha=1
 #
 # Fork a helper process to handle client-server communication.
 #
-#codatunnel=0
+#codatunnel=1
 
 
 #authenticate=1

@@ -48,7 +48,7 @@ Coda are listed in the file CREDITS.
    (3) codatunnel daemon to/from network via tcpsocket: yes; ctp_t fields in
    network order
 
-   The addition of TLS security uses the uv layer as the transport for the 
+   The addition of TLS security uses the uv layer as the transport for the
    push and pull functions of the TLS engine. Use of TLS is not an option.
    It is implemented on all the TCP connections.  So the only two choices are
    TLS-encapsulated TCP tunnel  or legacy UDP.    (Satya 2019-12-23)
@@ -68,7 +68,7 @@ static int codatunnel_I_am_server = 0; /* only clients initiate;
 static int codatunnel_onlytcp     = 0; /* whether to use UDP fallback;
                                           default is yes */
 
-uv_loop_t *codatunnel_main_loop = 0; /* not static; eat_uv_bytes() needs it */
+static uv_loop_t *codatunnel_main_loop;
 static uv_udp_t codatunnel; /* facing Venus or CodaSrv */
 static uv_udp_t udpsocket; /* facing the network */
 static uv_tcp_t tcplistener; /* facing the network, only on servers */
@@ -435,7 +435,6 @@ static void tcp_connect_cb(uv_connect_t *req, int status)
     }
     d->decrypted_record = NULL;
     d->packets_sent     = 0;
-    d->ntoh_done        = 0;
     d->state            = TLSHANDSHAKE;
 
     /* disable Nagle */
@@ -469,11 +468,11 @@ static void tcp_connect_cb(uv_connect_t *req, int status)
 
 static void setuptls(uv_work_t *w)
 {
-    /* 
+    /*
        setuptls() is done in a separate thread in the uv thread pool,
        via uv_queue_work(),  because of blocking in handshake;
        w->data is really of type (async_tls_parms_t *ap);
-  
+
        Encapsulate all the set up of TLS for destination ap->d;
        ap->certverify  indicates whether setup includes verification of peer
        identify Coda clients always insist on verifying server's identity;
@@ -975,8 +974,8 @@ void codatunneld(int codatunnel_sockfd, const char *tcp_bindaddr,
 
     if (codatunnel_I_am_server) {
         /* Define where the server's private key can be found */
-        const char *mycert    = "/etc/coda/ssl/rime.elijah.cs.cmu.edu.crt";
-        const char *mykeyfile = "/etc/coda/ssl/rime.elijah.cs.cmu.edu.key";
+        const char *mycert    = "/etc/coda/ssl/server.crt";
+        const char *mykeyfile = "/etc/coda/ssl/server.key";
         rc = gnutls_certificate_set_x509_key_file(x509_cred, mycert, mykeyfile,
                                                   GNUTLS_X509_FMT_PEM);
         if (rc != GNUTLS_E_SUCCESS)
