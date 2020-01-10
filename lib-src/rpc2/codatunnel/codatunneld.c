@@ -73,15 +73,21 @@ static uv_udp_t codatunnel; /* facing Venus or CodaSrv */
 static uv_udp_t udpsocket; /* facing the network */
 static uv_tcp_t tcplistener; /* facing the network, only on servers */
 
+static uv_async_t async_forward;
+static uv_mutex_t async_forward_mutex;
+
 /* Useful data structures for callbacks; these minicbs do little real work
  * and are mainly used to free malloc'ed data structures after transmission */
-typedef struct {
+typedef struct minicb_udp_req {
     uv_udp_send_t req;
+    struct minicb_udp_req *qnext;
     ctp_t ctp;
+    uv_buf_t msg;
 } minicb_udp_req_t; /* used to be udp_send_req_t */
 
-typedef struct {
+typedef struct minicb_tcp_req {
     uv_write_t req;
+    struct minicb_tcp_req *qnext;
     uv_buf_t msg[1];
     dest_t *dest;
     char bytecount_bytes[1]; /* really "bytecount" bytes come here from malloc */
@@ -121,6 +127,7 @@ typedef enum
 
 /* For use with uv_queue_work() in async TLS calls */
 typedef struct {
+    uv_work_t work;
     dest_t *d;
     gnutls_init_flags_t tlsflags;
     peercheck_t certverify;
@@ -128,6 +135,7 @@ typedef struct {
 
 /* async worker functions */
 static void setuptls(uv_work_t *);
+static void cleanup_work(uv_work_t *, int status);
 static void peeloff_and_decrypt(uv_work_t *);
 
 static socklen_t sockaddr_len(const struct sockaddr *addr)
@@ -311,15 +319,14 @@ static void send_to_udp_dest(ssize_t nread, const uv_buf_t *buf,
     req->req.data = buf->base;
 
     /* forward packet to the remote host */
-    rc = uv_udp_send((uv_udp_send_t *)req, &udpsocket, &msg, 1,
+    rc = uv_udp_send(&req->req, &udpsocket, &msg, 1,
                      (struct sockaddr *)&p->addr, minicb_udp);
     DEBUG("udpsocket.send_queue_count = %lu\n", udpsocket.send_queue_count);
     if (rc) {
         /* unable to forward packet to udp destination.
          * free buffers and continue, the RPC2 layer will retry. */
         ERROR("uv_udp_send(): rc = %d\n", rc);
-        free(req);
-        free(buf->base);
+        minicb_udp(&req->req, rc);
     }
 }
 
@@ -367,9 +374,7 @@ static ssize_t send_to_tcp_dest_bottom(gnutls_transport_ptr_t gtp,
                                        const void *encrypted_bytearray,
                                        size_t bytecount)
 {
-    minicb_tcp_req_t *
-        mtr; /* mtr object can't be local because of use in callback after uv_write() */
-    int rc;
+    minicb_tcp_req_t *mtr;
     dest_t *d = gtp;
 
     DEBUG("send_to_tcp_dest_bottom(%p, %p, %d)\n", gtp, encrypted_bytearray,
@@ -391,21 +396,49 @@ static ssize_t send_to_tcp_dest_bottom(gnutls_transport_ptr_t gtp,
     char *temp = &mtr->bytecount_bytes[0];
     memcpy(temp, encrypted_bytearray, bytecount);
     mtr->msg[0] = uv_buf_init(temp, bytecount);
+    mtr->qnext  = NULL;
 
-    /* forward packet to the remote host */
-    DEBUG("Going to do uv_write(%p, %p, ,...)\n", mtr, d->tcphandle);
-    rc = uv_write((uv_write_t *)mtr, (uv_stream_t *)d->tcphandle, mtr->msg, 1,
-                  minicb_tcp);
-    DEBUG("Just completed uv_write() --> %d\n", rc);
-    if (rc) {
-        /* unable to send on tcp connection, free buffer and trigger a
-         * disconnection because we have no other way to force a retry. */
-        ERROR("uv_write(): rc = %d\n", rc);
-        free(mtr);
-        /* WHO SHOULD FREE?  free_dest(d); */
-        return (-1);
-    } else
-        return (bytecount); /* sent all bytes successfully */
+    /* queue mtr */
+    uv_mutex_lock(&d->outbound_mutex);
+    minicb_tcp_req_t **p = &d->outbound_queue;
+    while (*p != NULL)
+        p = &((*p)->qnext);
+    *p = mtr;
+    uv_mutex_unlock(&d->outbound_mutex);
+
+    /* kick off sender */
+    uv_async_send(&d->outbound_worker);
+
+    return (bytecount); /* assume we sent all bytes successfully */
+}
+
+void outbound_worker_cb(uv_async_t *async)
+{
+    minicb_tcp_req_t *mtr;
+    dest_t *d = async->data;
+    int rc;
+
+    while (1) {
+        uv_mutex_lock(&d->outbound_mutex);
+        mtr               = d->outbound_queue;
+        d->outbound_queue = mtr ? mtr->qnext : NULL;
+        uv_mutex_unlock(&d->outbound_mutex);
+
+        if (!mtr) /* queue empty, nothing left to do */
+            return;
+
+        /* forward packet to the remote host */
+        DEBUG("Going to do uv_write(%p, %p, ,...)\n", mtr, d->tcphandle);
+        rc = uv_write(&mtr->req, (uv_stream_t *)d->tcphandle, mtr->msg, 1,
+                      minicb_tcp);
+        DEBUG("Just completed uv_write() --> %d\n", rc);
+        if (rc) {
+            /* unable to send on tcp connection, free buffer and trigger a
+             * disconnection because we have no other way to force a retry. */
+            ERROR("uv_write(): rc = %d\n", rc);
+            minicb_tcp(&mtr->req, rc);
+        }
+    }
 }
 
 static void tcp_connect_cb(uv_connect_t *req, int status)
@@ -444,11 +477,12 @@ static void tcp_connect_cb(uv_connect_t *req, int status)
     DEBUG("uv_read_start() --> %d\n", rc);
 
     /* Prepare and launch TLS setup;
-      awork and ap  can't be local variables because their lifetimes
-      are longer than this function; who will free() them? mem leak? */
+      ap can't be a local variable because their lifetime is
+      longer than this function; */
 
     async_tls_parms_t *ap = malloc(sizeof(async_tls_parms_t));
-    ap->d                 = d;
+
+    ap->d = d;
     if (codatunnel_I_am_server) {
         DEBUG("codatunnel_I_am_server\n");
         ap->tlsflags = (GNUTLS_SERVER | GNUTLS_NONBLOCK);
@@ -457,13 +491,17 @@ static void tcp_connect_cb(uv_connect_t *req, int status)
         ap->tlsflags = (GNUTLS_CLIENT | GNUTLS_NONBLOCK);
     }
 
-    ap->certverify   = VERIFY;
-    uv_work_t *awork = malloc(sizeof(uv_work_t));
-    awork->data      = ap;
+    ap->certverify = VERIFY;
+    ap->work.data  = ap;
 
     DEBUG("about to call uv_queue_work()\n");
-    rc = uv_queue_work(codatunnel_main_loop, awork, setuptls, NULL);
+    rc = uv_queue_work(codatunnel_main_loop, &ap->work, setuptls, cleanup_work);
     DEBUG("after call to uv_queue_work()  -> %d\n", rc);
+}
+
+static void cleanup_work(uv_work_t *w, int status)
+{
+    free(w);
 }
 
 static void setuptls(uv_work_t *w)
@@ -483,7 +521,7 @@ static void setuptls(uv_work_t *w)
 
     int rc;
 
-    async_tls_parms_t *ap        = (async_tls_parms_t *)(w->data);
+    async_tls_parms_t *ap        = (async_tls_parms_t *)w->data;
     dest_t *d                    = ap->d;
     gnutls_init_flags_t tlsflags = ap->tlsflags;
     peercheck_t certverify       = ap->certverify;
@@ -597,9 +635,9 @@ static void peeloff_and_decrypt(uv_work_t *w)
     uv_mutex_lock(&d->tls_receive_record_mutex);
 
     /* We use d->uvcount only as advisory information here;
-     Don't bother with mutex because eat_uv_bytes() called 
-     by gnutls_record_recv() does the definitive check 
-  */
+       Don't bother with mutex because eat_uv_bytes() called
+       by gnutls_record_recv() does the definitive check
+    */
     DEBUG("d->uvcount = %d\n", d->uvcount);
     while (d->uvcount) {
         /* bytes still left to be consumed by eat_uvbytes() */
@@ -618,8 +656,9 @@ static void peeloff_and_decrypt(uv_work_t *w)
 
         if (rc == GNUTLS_E_AGAIN) {
             /* eat_uvbytes() ran out of bytes;
-	 need to continue when more bytes are received in next uv upcall;
-	 leave current d->decrypted_record undisturbed for continuation */
+               need to continue when more bytes are received in next uv upcall;
+               leave current d->decrypted_record undisturbed for continuation
+            */
             uv_mutex_unlock(&d->tls_receive_record_mutex);
             return;
         }
@@ -637,8 +676,8 @@ static void peeloff_and_decrypt(uv_work_t *w)
         }
 
         /* Yay!  We have a complete gnutls record of length rc;
-       Hand it off to codasrv/Venus;
-       Then carry on with this loop */
+           Hand it off to codasrv/Venus;
+           Then carry on with this loop */
 
         DEBUG("Yay!  we have a complete gnutls record of length %d\n", rc);
 
@@ -693,7 +732,7 @@ static void recv_tcp_cb(uv_stream_t *tcphandle, ssize_t nread,
         DEBUG(
             "recv_tcp_cb() just called enq_element() in TLSHANDSHAKE state \n");
         /* rely on internal gnutls_handshake() state machine to trigger
-	 call to eat_uvbytes(); no way to force this */
+	   call to eat_uvbytes(); no way to force this */
         return;
     }
 
@@ -714,50 +753,72 @@ static void recv_tcp_cb(uv_stream_t *tcphandle, ssize_t nread,
 static void recv_tcp_cb_handoff(dest_t *d, void *received_packet, size_t nread)
 { /* received_packet points to decrypted packet of length nread;
      prep it, and then hand it off to codasrv/Venus */
-
-    int rc;
-    ctp_t *p;
     minicb_udp_req_t *req;
-    uv_buf_t msg;
 
     /* Replace recipient address with sender's address, so that
        recvfrom() can provide the "from" address. */
-    p = (ctp_t *)received_packet;
+    ctp_t *p = (ctp_t *)received_packet;
     memcpy(&p->addr, &d->destaddr, d->destlen);
     p->addrlen = d->destlen;
 
     /* Prepare to send  */
-    struct sockaddr_in dummy_peer = {
-        .sin_family = AF_INET,
-    };
-
     req = malloc(sizeof(*req));
     if (!req) {
         /* unable to allocate, free buffers and trigger a disconnection
          * because we have no other way to force a retry. */
         ERROR("malloc() failed\n");
-        free(d->decrypted_record);
+        free(received_packet);
         free_dest(d);
         return;
     }
 
-    msg = uv_buf_init(received_packet, nread); /* to send */
+    req->msg = uv_buf_init(received_packet, nread); /* to send */
 
     /* make sure the buffer is released when the send completes */
-    req->req.data = msg.base;
+    req->req.data = received_packet;
+    req->qnext    = NULL;
 
-    /* forward packet to venus/codasrv */
-    rc = uv_udp_send((uv_udp_send_t *)req, &codatunnel, &msg, 1,
-                     (struct sockaddr *)&dummy_peer, minicb_udp);
-    DEBUG("codatunnel.send_queue_count = %lu\n", codatunnel.send_queue_count);
-    if (rc) {
-        /* unable to forward packet from tcp connection to venus/codasrv.
-         * free buffers and trigger a disconnection */
-        ERROR("uv_udp_send(): rc = %d\n", rc);
-        free(req);
-        free(received_packet);
-        free_dest(d); /* will free d->decrypted_record */
-        return;
+    /* append packet to queue of pending packets */
+    uv_mutex_lock(&async_forward_mutex);
+    minicb_udp_req_t **q = (minicb_udp_req_t **)&async_forward.data;
+    while (*q != NULL)
+        q = &(*q)->qnext;
+    *q = req;
+    uv_mutex_unlock(&async_forward_mutex);
+
+    /* signal mainloop to send this packet */
+    uv_async_send(&async_forward);
+}
+
+void async_send_codatunnel(uv_async_t *async)
+{
+    minicb_udp_req_t *req;
+    struct sockaddr_in dummy_peer = {
+        .sin_family = AF_INET,
+    };
+    int rc;
+
+    /* pop request off the queue */
+    while (1) {
+        uv_mutex_lock(&async_forward_mutex);
+        req                = async_forward.data;
+        async_forward.data = req ? req->qnext : NULL;
+        uv_mutex_unlock(&async_forward_mutex);
+
+        if (!req) /* queue emptied, nothing to do */
+            return;
+
+        /* forward packet to venus/codasrv */
+        rc = uv_udp_send(&req->req, &codatunnel, &req->msg, 1,
+                         (struct sockaddr *)&dummy_peer, minicb_udp);
+
+        DEBUG("codatunnel.send_queue_count = %lu\n",
+              codatunnel.send_queue_count);
+        if (rc) {
+            /* unable to forward packet from tcp connection to venus/codasrv */
+            ERROR("uv_udp_send(): rc = %d\n", rc);
+            minicb_udp(&req->req, rc);
+        }
     }
 }
 
@@ -886,11 +947,12 @@ static void tcp_newconnection_cb(uv_stream_t *bindhandle, int status)
     DEBUG("uv_read_start() --> %d\n", rc);
 
     /* Prepare and launch TLS setup;
-      awork and ap  can't be local variables because their lifetimes
-      are longer than this function; who will free() them? mem leak? */
+      ap can't be a local variable because their lifetime is longer
+      than this function; */
 
     async_tls_parms_t *ap = malloc(sizeof(async_tls_parms_t));
-    ap->d                 = d;
+
+    ap->d = d;
     if (codatunnel_I_am_server) {
         DEBUG("codatunnel_I_am_server\n");
         ap->tlsflags = (GNUTLS_SERVER | GNUTLS_NONBLOCK);
@@ -899,12 +961,11 @@ static void tcp_newconnection_cb(uv_stream_t *bindhandle, int status)
         ap->tlsflags = (GNUTLS_CLIENT | GNUTLS_NONBLOCK);
     }
 
-    ap->certverify   = IGNORE;
-    uv_work_t *awork = malloc(sizeof(uv_work_t));
-    awork->data      = ap;
+    ap->certverify = IGNORE;
+    ap->work.data  = ap;
 
     DEBUG("about to call uv_queue_work()");
-    rc = uv_queue_work(codatunnel_main_loop, awork, setuptls, NULL);
+    rc = uv_queue_work(codatunnel_main_loop, &ap->work, setuptls, cleanup_work);
     DEBUG("after call to uv_queue_work()  -> %d\n", rc);
 }
 
@@ -938,8 +999,6 @@ void codatunneld(int codatunnel_sockfd, const char *tcp_bindaddr,
 
     /* make sure that writing to closed pipes doesn't kill us */
     signal(SIGPIPE, SIG_IGN);
-
-    initdestarray(); /* do this before any IP addresses are encountered */
 
     /* Define GNUTLS settings before libuv to avoid race condition */
 
@@ -987,6 +1046,9 @@ void codatunneld(int codatunnel_sockfd, const char *tcp_bindaddr,
 
     codatunnel_main_loop = uv_default_loop();
 
+    /* do this before any IP addresses are encountered */
+    initdestarray(codatunnel_main_loop);
+
     /* bind codatunnel_sockfd */
     uv_udp_init(codatunnel_main_loop, &codatunnel);
     uv_udp_open(&codatunnel, codatunnel_sockfd);
@@ -1012,6 +1074,10 @@ void codatunneld(int codatunnel_sockfd, const char *tcp_bindaddr,
         exit(-1);
     } else
         uv_freeaddrinfo(gai_req.addrinfo);
+
+    /* set up async callback for forwarding decrypted packets */
+    uv_async_init(codatunnel_main_loop, &async_forward, async_send_codatunnel);
+    uv_mutex_init(&async_forward_mutex);
 
     uv_udp_recv_start(&codatunnel, alloc_cb, recv_codatunnel_cb);
     uv_udp_recv_start(&udpsocket, alloc_cb, recv_udpsocket_cb);

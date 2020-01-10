@@ -43,9 +43,8 @@ static void cleardest(dest_t *d)
     d->packets_sent   = 0;
     d->my_tls_session = NULL;
     d->uvcount        = 0;
-    uv_mutex_init(&d->uvcount_mutex);
-    uv_cond_init(&d->uvcount_nonzero);
-    d->uvoffset = 0;
+    d->uvoffset       = 0;
+    d->outbound_queue = NULL;
     for (int i = 0; i < UVBUFLIMIT; i++) {
         ((d->enqarray[i]).b).base = NULL;
         ((d->enqarray[i]).b).len  = 0;
@@ -54,7 +53,7 @@ static void cleardest(dest_t *d)
     d->decrypted_record = NULL;
 }
 
-void initdestarray()
+void initdestarray(uv_loop_t *mainloop)
 { /* initialize the global data structure, so that
      the destaddr fields are completely zeroed for memcmp()
      comparisons in later getdest() calls; otherwise padding
@@ -66,8 +65,13 @@ void initdestarray()
     for (i = 0; i < DESTARRAY_SIZE; i++) {
         dest_t *d = &destarray[i];
         cleardest(d);
+        uv_mutex_init(&d->uvcount_mutex);
+        uv_cond_init(&d->uvcount_nonzero);
         uv_mutex_init(&d->tls_receive_record_mutex);
         uv_mutex_init(&d->tls_send_record_mutex);
+        uv_mutex_init(&d->outbound_mutex);
+        uv_async_init(mainloop, &d->outbound_worker, outbound_worker_cb);
+        d->outbound_worker.data = d;
     }
 }
 

@@ -147,7 +147,12 @@ typedef struct remotedest {
     uv_mutex_t tls_receive_record_mutex;
     uv_mutex_t tls_send_record_mutex;
 
+    struct minicb_tcp_req *outbound_queue;
+    uv_async_t outbound_worker;
+    uv_mutex_t outbound_mutex;
 } dest_t;
+
+void outbound_worker_cb(uv_async_t *async);
 
 /* Stuff for destination management */
 void initdestarray();
