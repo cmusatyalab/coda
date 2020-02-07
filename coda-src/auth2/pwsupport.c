@@ -3,7 +3,7 @@
                            Coda File System
                               Release 7
 
-          Copyright (c) 1987-2019 Carnegie Mellon University
+          Copyright (c) 1987-2020 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -39,6 +39,7 @@ extern "C" {
 #include <fcntl.h>
 #include "coda_flock.h"
 #include <rpc2/secure.h>
+#include <ctype.h>
 
 #ifdef __cplusplus
 }
@@ -260,33 +261,50 @@ static void AppendPW(int vId, RPC2_EncryptionKey eKey, char *otherInfo,
        Also updates PWArray, enlarging it if necessary.
        A periodic offline program should be run to squish old entries. */
 
-    int fd, i;
-    char buf[100], *bnext;
+    int fd, i, n;
+    char buf[100];
     RPC2_EncryptionKey tempkey;
+    char hexkey[2 * RPC2_KEYSIZE + 1];
     struct stat buff;
     time_t cl;
 
-    /* Encrypt the key first */
+    /* Make sure otherInfo is properly formatted (maybe being too limited?) */
+    n = strlen(otherInfo);
+    for (i = 0; i < n; i++) {
+        char c = otherInfo[i];
+        if (!isgraph(c) || c != ' ')
+            break;
+    }
+    if (i != n) {
+        LogMsg(-1, 0, stdout, "Bad otherInfo in AppendPW by %d, not updating",
+               agentId);
+        return;
+    }
+
+    /* "Encrypt" the key */
     rpc2_Encrypt((char *)eKey, (char *)tempkey, RPC2_KEYSIZE, FileKey,
                  RPC2_XOR);
+
+    /* hex-encode encrypted key */
+    for (i = 0; i < RPC2_KEYSIZE; i++) {
+        int x = tempkey[i];
+        sprintf(&hexkey[i * 2], "%02x", x);
+    }
+
+    /* Build an image of the line to be appended */
+    cl = time(NULL);
+    n  = snprintf(buf, sizeof(buf), "%d\t%s\t%s\t# By %d at %s", vId, hexkey,
+                 otherInfo, agentId, ctime(&cl));
+    if (n >= sizeof(buf)) {
+        LogMsg(-1, 0, stdout, "Overflow in AppendPW by %d, not updating",
+               agentId);
+        return;
+    }
 
     /* Update PWArray after enlarging it */
     if (vId >= PWLen)
         EnlargePW(2 * vId);
     memcpy(PWArray[vId], tempkey, RPC2_KEYSIZE); /* overwrite existing key */
-
-    /* Build an image of the line to be appended */
-    sprintf(buf, "%d\t", vId);
-    bnext = &buf[strlen(buf)];
-    for (i = 0; i < RPC2_KEYSIZE; i++) {
-        int x = tempkey[i];
-        sprintf(bnext, "%02x", x);
-        bnext += 2;
-    }
-    sprintf(bnext, "\t%s", otherInfo);
-    bnext += sizeof('\t') + strlen(otherInfo);
-    cl = time(NULL);
-    sprintf(bnext, "\t# By %d at %s", agentId, ctime(&cl));
 
     /* Now lock the file and append the line */
     if ((fd = open(PWFile, O_WRONLY | O_APPEND, 0)) < 0 ||
