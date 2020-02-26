@@ -1,6 +1,7 @@
 [Unit]
 Description=Coda Update Master Server
 ConditionPathExists=/vice/db/scm
+After=network.target
 
 [Service]
 Type=forking

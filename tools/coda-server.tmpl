@@ -2,6 +2,9 @@
 Description=Coda File Server
 ConditionPathExists=@SYSCONFDIR@/server.conf
 ConditionPathExists=!/vice/srv/CRASH
+# Coda servers need working DNS during startup
+After=network-online.target
+Wants=network-online.target
 
 [Service]
 Type=forking

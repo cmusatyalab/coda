@@ -1,6 +1,7 @@
 [Unit]
 Description=Coda Authentication Server
 ConditionPathExists=/vice/db/auth2.tk
+After=network.target
 
 [Service]
 Type=forking
