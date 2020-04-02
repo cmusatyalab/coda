@@ -274,9 +274,11 @@ static void recv_codatunnel_cb(uv_udp_t *codatunnel, ssize_t nread,
                (Satya, 1/20/2018)
             */
             free(buf->base); /* do this now since no cascaded cb */
-        } else
-            send_to_tcp_dest(d, nread, buf); /* free buf only in cascaded cb */
-        return;
+        } else {
+            send_to_tcp_dest(d, nread, buf);
+            /* free buf only in cascaded cb */
+            return;
+        }
     }
 
     /* Two possibile states for destination d: ALLOCATED or TCPBROKEN;
@@ -294,7 +296,9 @@ static void recv_codatunnel_cb(uv_udp_t *codatunnel, ssize_t nread,
     if (!codatunnel_onlytcp) {
         send_to_udp_dest(nread, buf, addr, flags);
         /* free buf only in cascaded cb */
-    }
+        return;
+    } else
+        free(buf->base); /* packet dropped, no cascaded cb */
 }
 
 static void send_to_udp_dest(ssize_t nread, const uv_buf_t *buf,
