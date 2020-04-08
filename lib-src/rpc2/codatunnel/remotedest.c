@@ -35,6 +35,8 @@ static int hilimit = 0; /* one plus highest index in use in destarray */
 
 static void cleardest(dest_t *d)
 {
+    int i;
+
     memset(&d->destaddr, 0, sizeof(struct sockaddr_storage));
     d->destlen = 0;
     memset(&d->fqdn, 0, NI_MAXHOST);
@@ -45,7 +47,7 @@ static void cleardest(dest_t *d)
     d->uvcount        = 0;
     d->uvoffset       = 0;
     d->outbound_queue = NULL;
-    for (int i = 0; i < UVBUFLIMIT; i++) {
+    for (i = 0; i < UVBUFLIMIT; i++) {
         ((d->enqarray[i]).b).base = NULL;
         ((d->enqarray[i]).b).len  = 0;
         (d->enqarray[i]).numbytes = 0;
@@ -221,7 +223,7 @@ void enq_element(dest_t *d, uv_buf_t *thisbuf, int nb)
 */
 ssize_t eat_uvbytes(gnutls_transport_ptr_t gtp, void *tlsbuf, size_t nread)
 {
-    int found, stillneeded, here;
+    int i, found, stillneeded, here;
 
     DEBUG("eat_uvbytes(%p, %p, %d)\n", gtp, tlsbuf, (int)nread);
 
@@ -279,7 +281,7 @@ TryAgain:
             d->uvcount--;
             d->uvoffset = 0;
 
-            for (int i = 0; i < d->uvcount; i++) { /* shift left */
+            for (i = 0; i < d->uvcount; i++) { /* shift left */
                 (d->enqarray)[i] = (d->enqarray)[i + 1];
             }
         }

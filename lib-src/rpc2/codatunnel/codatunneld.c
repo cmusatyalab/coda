@@ -128,6 +128,10 @@ typedef enum
     VERIFY
 } peercheck_t;
 
+#if GNUTLS_VERSION_NUMBER < 0x030500
+typedef unsigned int gnutls_init_flags_t;
+#endif
+
 /* For use with uv_queue_work() in async TLS calls */
 typedef struct {
     uv_work_t work;
@@ -450,7 +454,7 @@ void outbound_worker_cb(uv_async_t *async)
 
 static void tcp_connect_cb(uv_connect_t *req, int status)
 {
-    int rc;
+    int i, rc;
 
     DEBUG("tcp_connect_cb(%p, %d)\n", req, status);
     dest_t *d = req->data;
@@ -468,7 +472,7 @@ static void tcp_connect_cb(uv_connect_t *req, int status)
     d->tcphandle->data = d; /* point back, for use in upcalls */
     d->uvcount         = 0;
     d->uvoffset        = 0;
-    for (int i = 0; i < UVBUFLIMIT; i++) {
+    for (i = 0; i < UVBUFLIMIT; i++) {
         ((d->enqarray)[i].b).base = NULL;
         ((d->enqarray)[i].b).len  = 0;
         (d->enqarray)[i].numbytes = 0;
@@ -573,7 +577,9 @@ static void setuptls(uv_work_t *w)
         gnutls_certificate_server_set_request(d->my_tls_session,
                                               GNUTLS_CERT_IGNORE);
     } else { /* I am a server; verify peer identify */
+#if GNUTLS_VERSION_NUMBER >= 0x030406
         gnutls_session_set_verify_cert(d->my_tls_session, d->fqdn, 0);
+#endif
     }
 
     /* Everything has been setup; do the TLS handshake */
@@ -588,12 +594,14 @@ static void setuptls(uv_work_t *w)
         d->state = TCPACTIVE; /* commit point for encrypted TCP tunnel */
         return;
 
+#if GNUTLS_VERSION_NUMBER >= 0x030406
     case GNUTLS_E_CERTIFICATE_VERIFICATION_ERROR:
         DEBUG(
             "gnutls_handshake() --> GNUTLS_E_CERTIFICATE_VERIFICATION_ERROR\n");
         rc = gnutls_session_get_verify_cert_status(d->my_tls_session);
         DEBUG("gnutls_session_get_verify_cert_status() --> 0x%x\n", rc);
         assert(0); /* just for now: handle better */
+#endif
 
     default: /* some other error */
         GNUTLSERROR("gnutls_handshake", rc);
