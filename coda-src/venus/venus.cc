@@ -1,7 +1,7 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 7
+                              Release 8
 
           Copyright (c) 1987-2020 Carnegie Mellon University
                   Additional copyrights listed below
