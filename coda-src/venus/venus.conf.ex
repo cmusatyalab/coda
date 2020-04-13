@@ -353,3 +353,8 @@ mapprivate=1
 # number of cache files could be partially cached.
 #
 #partialcachefilesratio=1
+
+#
+# Directory containing Coda CA certificates
+#
+#sslcertdir=/etc/coda/ssl

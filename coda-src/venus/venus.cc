@@ -3,7 +3,7 @@
                            Coda File System
                               Release 7
 
-          Copyright (c) 1987-2019 Carnegie Mellon University
+          Copyright (c) 1987-2020 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -90,6 +90,7 @@ const char *consoleFile;
 const char *venusRoot;
 const char *kernDevice;
 const char *realmtab;
+const char *sslcertdir;
 const char *CacheDir;
 const char *CachePrefix;
 uint64_t CacheBlocks;
@@ -386,7 +387,7 @@ int main(int argc, char **argv)
         char service[6];
         sprintf(service, "%hu", masquerade_port);
         rc = codatunnel_fork(argc, argv, NULL, "0.0.0.0", service,
-                             codatunnel_onlytcp);
+                             codatunnel_onlytcp, sslcertdir);
         if (rc < 0) {
             perror("codatunnel_fork: ");
             exit(-1);
@@ -818,6 +819,7 @@ static void DefaultCmdlineParms()
     CODACONF_STR(realmtab, "realmtab", "/etc/coda/realms");
     CODACONF_STR(VenusLogDevice, "rvm_log", "/usr/coda/LOG");
     CODACONF_STR(VenusDataDevice, "rvm_data", "/usr/coda/DATA");
+    CODACONF_STR(sslcertdir, "sslcertdir", "/etc/coda/ssl");
 
     CODACONF_INT(rpc2_timeout, "RPC2_timeout", DFLT_TO);
     CODACONF_INT(rpc2_retries, "RPC2_retries", DFLT_RT);

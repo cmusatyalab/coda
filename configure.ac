@@ -79,7 +79,7 @@ dnl pkg-config stuff
 CODA_PKG_CONFIG
 PKG_CHECK_MODULES([RVM_RPC2], [rvmlwp rpc2])
 PKG_CHECK_MODULES([LWP], [lwp >= 2.11])
-PKG_CHECK_MODULES([RPC2], [rpc2 >= 2.20])
+PKG_CHECK_MODULES([RPC2], [rpc2 >= 2.28])
 PKG_CHECK_MODULES([RVM], [rvmlwp])
 
 RP2GEN="`pkg-config --variable=RP2GEN rpc2`"

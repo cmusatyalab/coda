@@ -98,6 +98,11 @@ allow_sha=1
 #
 #codatunnel=1
 
+#
+# Directory containing server.crt, server.key and Coda CA certificates
+#
+#sslcertdir=/etc/coda/ssl
+
 
 #authenticate=1
 #cbwait=240

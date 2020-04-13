@@ -147,6 +147,7 @@ static int MapPrivate; // default 0
 static int codatunnel_enabled; // default 1
 static int codatunnel_onlytcp; // default 0
 static int nofork; // default 0
+static const char *sslcertdir;
 
 /* imported */
 extern rvm_length_t rvm_test;
@@ -422,7 +423,7 @@ int main(int argc, char *argv[])
             bindaddr = CodaSrvIp ? CodaSrvIp : srvhost;
         }
         int rc = codatunnel_fork(argc, argv, bindaddr, bindaddr, "codasrv",
-                                 codatunnel_onlytcp);
+                                 codatunnel_onlytcp, sslcertdir);
         if (rc < 0) {
             perror("codatunnel_fork: "); /* hopefully errno still meaningful */
             exit(EXIT_FAILURE);
@@ -1488,6 +1489,8 @@ static int ReadConfigFile(void)
     CODACONF_INT(codatunnel_enabled, "codatunnel", 1);
     CODACONF_INT(codatunnel_onlytcp, "onlytcp", 0);
     CODACONF_INT(nofork, "nofork", 0);
+
+    CODACONF_STR(sslcertdir, "sslcertdir", "/etc/coda/ssl");
     return 0;
 }
 

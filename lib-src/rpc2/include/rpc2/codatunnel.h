@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 2017-2018 Carnegie Mellon University
+          Copyright (c) 2017-2020 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -20,6 +20,6 @@ Coda are listed in the file CREDITS.
 
 int codatunnel_fork(int argc, char **argv, const char *tcp_bindaddr,
                     const char *udp_bindaddr, const char *bind_service,
-                    int onlytcp);
+                    int onlytcp, const char *sslcertdir);
 
 #endif /* _CODATUNNEL_H_ */

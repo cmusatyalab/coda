@@ -52,7 +52,7 @@ int mapthread(uv_thread_t);
 /* the actual tunnel daemon (defined in codatunneld.c) */
 void codatunneld(int codatunnel_sockfd, const char *tcp_bindaddr,
                  const char *udp_bindaddr, const char *bind_service,
-                 int onlytcp) __attribute__((noreturn));
+                 int onlytcp, const char *sslcertdir) __attribute__((noreturn));
 
 /* Format of encapsulated UDP packets sent on Unix domain connections
    (i.e., between Venus and codatunneld, and between codasrv and

@@ -79,6 +79,9 @@ static uv_mutex_t async_forward_mutex;
 static uv_rwlock_t
     credential_load_lock; /* protecting the x509_creds during handshakes */
 
+/* directory containing CA and server certificates */
+static const char *sslcert_dir;
+
 /* Useful data structures for callbacks; these minicbs do little real work
  * and are mainly used to free malloc'ed data structures after transmission */
 typedef struct minicb_udp_req {
@@ -991,6 +994,18 @@ static void tcp_newconnection_cb(uv_stream_t *bindhandle, int status)
     DEBUG("after call to uv_queue_work()  -> %d\n", rc);
 }
 
+static char *path_join(const char *dir, const char *file)
+{
+    unsigned int pathlen = strlen(dir) + strlen(file) + 2; /* '/' and '\0' */
+    char *path           = malloc(pathlen);
+    int n;
+
+    assert(*path);
+    n = snprintf(path, pathlen, "%s/%s", dir, file);
+    assert(n >= 0 && n < pathlen);
+    return path;
+}
+
 static void cert_reload_credentials(gnutls_certificate_credentials_t *sc)
 {
     int rc;
@@ -1013,9 +1028,8 @@ static void cert_reload_credentials(gnutls_certificate_credentials_t *sc)
     /* Trust dir of certificates is defined both for clients and
        servers; on servers these are needed for server-to-server
        communication such as directory resolution and update */
-    const char *ca_dir = "/etc/coda/ssl"; /* where certificates are stored */
-    rc =
-        gnutls_certificate_set_x509_trust_dir(*sc, ca_dir, GNUTLS_X509_FMT_PEM);
+    rc = gnutls_certificate_set_x509_trust_dir(*sc, sslcert_dir,
+                                               GNUTLS_X509_FMT_PEM);
     if (rc < 0) {
         ERROR("gnutls_certificate_set_x509_trust_dir() --> %d (%s)\n", rc,
               gnutls_strerror(rc));
@@ -1025,10 +1039,14 @@ static void cert_reload_credentials(gnutls_certificate_credentials_t *sc)
 
     if (codatunnel_I_am_server) {
         /* Define where the server's private key can be found */
-        const char *mycert    = "/etc/coda/ssl/server.crt";
-        const char *mykeyfile = "/etc/coda/ssl/server.key";
-        rc = gnutls_certificate_set_x509_key_file(*sc, mycert, mykeyfile,
+        char *mycrt = path_join(sslcert_dir, "server.crt");
+        char *mykey = path_join(sslcert_dir, "server.key");
+
+        rc = gnutls_certificate_set_x509_key_file(*sc, mycrt, mykey,
                                                   GNUTLS_X509_FMT_PEM);
+        free(mykey);
+        free(mycrt);
+
         if (rc != GNUTLS_E_SUCCESS) {
             ERROR("gnutls_certificate_set_x509_key_file() --> %d (%s)\n", rc,
                   gnutls_strerror(rc));
@@ -1051,7 +1069,7 @@ static void reload_signal_handler(uv_signal_t *handle, int signum)
 /* main routine of coda tunnel daemon */
 void codatunneld(int codatunnel_sockfd, const char *tcp_bindaddr,
                  const char *udp_bindaddr, const char *bind_service,
-                 int onlytcp)
+                 int onlytcp, const char *sslcertdir)
 {
     uv_getaddrinfo_t gai_req;
     const struct addrinfo *ai, gai_hints = {
@@ -1078,6 +1096,9 @@ void codatunneld(int codatunnel_sockfd, const char *tcp_bindaddr,
 
     /* make sure that writing to closed pipes doesn't kill us */
     signal(SIGPIPE, SIG_IGN);
+
+    /* copy sslcertdir */
+    sslcert_dir = strdup(sslcertdir);
 
     uv_rwlock_init(&credential_load_lock);
 

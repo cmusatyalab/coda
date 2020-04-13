@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 6
+                              Release 7
 
-          Copyright (c) 2017-2018 Carnegie Mellon University
+          Copyright (c) 2017-2020 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -33,7 +33,7 @@ static int codatunnel_vside_sockfd = -1; /* v2t: venus to tunnel */
 
 int codatunnel_fork(int argc, char **argv, const char *tcp_bindaddr,
                     const char *udp_bindaddr, const char *bind_service,
-                    int onlytcp)
+                    int onlytcp, const char *sslcertdir)
 {
     /*
      Create the Coda tunnel process.  Returns 0 on success, -1 on error.
@@ -100,7 +100,8 @@ int codatunnel_fork(int argc, char **argv, const char *tcp_bindaddr,
     }
 
     /* launch the tunnel and never return */
-    codatunneld(sockfd[1], tcp_bindaddr, udp_bindaddr, bind_service, onlytcp);
+    codatunneld(sockfd[1], tcp_bindaddr, udp_bindaddr, bind_service, onlytcp,
+                sslcertdir);
     __builtin_unreachable(); /* should never reach here */
 }
 
