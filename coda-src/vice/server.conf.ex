@@ -96,7 +96,7 @@ allow_sha=1
 #
 # Fork a helper process to handle client-server communication.
 #
-#codatunnel=1
+#codatunnel=0
 
 #
 # Directory containing server.crt, server.key and Coda CA certificates

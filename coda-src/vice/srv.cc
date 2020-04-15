@@ -144,7 +144,7 @@ const char *CodaSrvIp; // default NULL ('ipaddress' in server.conf)
 
 /* local */
 static int MapPrivate; // default 0
-static int codatunnel_enabled; // default 1
+static int codatunnel_enabled; // default 0
 static int codatunnel_onlytcp; // default 0
 static int nofork; // default 0
 static const char *sslcertdir;
@@ -1486,7 +1486,7 @@ static int ReadConfigFile(void)
         vicetab = strdup(vice_config_path("db/vicetab"));
 
     CODACONF_INT(check_reintegration_retry, "check_reintegration_retry", 1);
-    CODACONF_INT(codatunnel_enabled, "codatunnel", 1);
+    CODACONF_INT(codatunnel_enabled, "codatunnel", 0);
     CODACONF_INT(codatunnel_onlytcp, "onlytcp", 0);
     CODACONF_INT(nofork, "nofork", 0);
 
