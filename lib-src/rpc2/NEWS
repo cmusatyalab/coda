@@ -1,3 +1,9 @@
+New in 2.28
+
+* Added GnuTLS support to secure traffic through a codatunnel.
+* Changed codatunnel_fork prototype to include location of a ssl
+  certificate directory.
+
 New in 2.27
 
 * Changed how we handle PKG_CONFIG_PATH to find the lwp library.
@@ -19,7 +25,7 @@ New in 2.24
 
 New in 2.23
 
-* Do not supress retransmissions over the TCP tunnel. Although we have
+* Do not suppress retransmissions over the TCP tunnel. Although we have
   reliable delivery, we still need to see RPC2_BUSY responses as a keepalive
   during long running operations.
 
