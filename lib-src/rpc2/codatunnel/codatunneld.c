@@ -750,8 +750,7 @@ static void recv_tcp_cb(uv_stream_t *tcphandle, ssize_t nread,
 
     /* else nread > 0: we have successfully received some bytes;
        note that any freeing of buf happens inside enq_uvbuf() or later */
-    enq_element(d, (uv_buf_t *)buf,
-                nread); /* append to list of bufs for this dest */
+    enq_element(d, buf, nread); /* append to list of bufs for this dest */
 
     if (d->state == TLSHANDSHAKE) {
         DEBUG(

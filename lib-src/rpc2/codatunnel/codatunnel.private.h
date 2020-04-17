@@ -166,7 +166,7 @@ void free_dest(dest_t *d);
    gnutls_record_recv() calls eat_uvbytes() as consumer.
    During TLS handshake, eat_uvbytes() is also called as consumer.
 */
-void enq_element(dest_t *, uv_buf_t *, int);
+void enq_element(dest_t *, const uv_buf_t *, int);
 ssize_t eat_uvbytes(gnutls_transport_ptr_t, void *, size_t);
 
 /* Helper/debugging functions */

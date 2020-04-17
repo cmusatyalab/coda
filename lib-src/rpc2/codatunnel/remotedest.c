@@ -180,20 +180,46 @@ static void _free_dest_cb(uv_handle_t *handle)
 /* Release resources allocated for the specified dest_t */
 void free_dest(dest_t *d)
 {
+    int i;
+
     DEBUG("free_dest(%p)\n", d);
-    if (d->state == TCPCLOSING)
+    uv_mutex_lock(&d->uvcount_mutex);
+    if (d->state == TCPCLOSING) {
+        uv_mutex_unlock(&d->uvcount_mutex);
         return;
+    }
 
     d->state = TCPCLOSING;
+
+    /* drain queue */
+    for (i = 0; i < d->uvcount; i++)
+        free(d->enqarray[i].b.base);
+    d->uvcount = -1;
+
+    uv_cond_signal(&d->uvcount_nonzero); /* wake blocked sleepers, if any */
+    uv_mutex_unlock(&d->uvcount_mutex);
+
     uv_close((uv_handle_t *)d->tcphandle, _free_dest_cb);
 }
 
 /* nb is number of useful bytes in thisbuf->base */
-void enq_element(dest_t *d, uv_buf_t *thisbuf, int nb)
+void enq_element(dest_t *d, const uv_buf_t *thisbuf, int nb)
 {
     DEBUG("enq_element(%p, %p, %d)\n", d, thisbuf, nb);
 
     uv_mutex_lock(&d->uvcount_mutex);
+    if (d->state != TLSHANDSHAKE && d->state != TCPACTIVE) {
+        /* destination is not in a state to pick buffer off of the queue */
+        DEBUG("dest state is %s, not queueing buffer\n",
+              tcpstatename(d->state));
+        free(thisbuf->base);
+        uv_mutex_unlock(&d->uvcount_mutex);
+        return;
+    }
+
+    /* make sure we don't try to queue when we're draining */
+    assert(d->uvcount != -1);
+
     DEBUG("d->uvcount = %d\n", d->uvcount);
     if (d->uvcount >= UVBUFLIMIT) { /* no space; drop packet */
         DEBUG("Dropping packet\n");
@@ -206,8 +232,8 @@ void enq_element(dest_t *d, uv_buf_t *thisbuf, int nb)
         if (d->uvcount == 1) { /* zero to one transition */
             DEBUG("Zero to one transition\n");
             d->uvoffset = 0;
-            uv_cond_signal(
-                &d->uvcount_nonzero); /* wake blocked sleeper, if any */
+            /* wake blocked sleeper, if any */
+            uv_cond_signal(&d->uvcount_nonzero);
         }
     }
     uv_mutex_unlock(&d->uvcount_mutex);
@@ -233,19 +259,18 @@ ssize_t eat_uvbytes(gnutls_transport_ptr_t gtp, void *tlsbuf, size_t nread)
 
     uv_mutex_lock(&d->uvcount_mutex);
 
-TryAgain:
     DEBUG("d->uvcount = %d\n", d->uvcount);
-    if (d->uvcount == 0) { /* block until something arrives */
+    while (d->uvcount == 0) { /* block until something arrives */
         DEBUG("going to sleep\n");
         uv_cond_wait(&d->uvcount_nonzero, &d->uvcount_mutex);
-        DEBUG("just woke up\n");
-        goto TryAgain;
+        DEBUG("just woke up, uvcount = %d\n", d->uvcount);
     }
 
     /* I hold d->uvcount_mutex, and d->uvcount is nonzero */
     assert(d->uvcount);
 
-    while (stillneeded && d->uvcount) {
+    /* negative uvcount indicates this connection is closing/draining */
+    while (stillneeded && d->uvcount > 0) {
         /* consume as many buffered packets as possible until sated */
 
         DEBUG(
