@@ -1000,7 +1000,7 @@ static char *path_join(const char *dir, const char *file)
     char *path           = malloc(pathlen);
     int n;
 
-    assert(*path);
+    assert(path);
     n = snprintf(path, pathlen, "%s/%s", dir, file);
     assert(n >= 0 && n < pathlen);
     return path;
