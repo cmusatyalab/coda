@@ -15,7 +15,7 @@ dnl - when interfaces were added/removed changed, increment second and set
 dnl   first to 0
 dnl - if any interfaces were added, increment third
 dnl - if any interfaces were removed, set third to 0
-CODA_LIBRARY_VERSION(0, 14, 8)
+CODA_LIBRARY_VERSION(1, 14, 8)
 
 CONFIG_DATE=`date +"%a, %d %b %Y %T %z"`
 AC_SUBST(CONFIG_DATE, "$CONFIG_DATE", [Date when configure was last run])
