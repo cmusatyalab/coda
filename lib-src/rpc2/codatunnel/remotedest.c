@@ -199,7 +199,8 @@ void free_dest(dest_t *d)
     uv_cond_signal(&d->uvcount_nonzero); /* wake blocked sleepers, if any */
     uv_mutex_unlock(&d->uvcount_mutex);
 
-    uv_close((uv_handle_t *)d->tcphandle, _free_dest_cb);
+    if (d->tcphandle)
+        uv_close((uv_handle_t *)d->tcphandle, _free_dest_cb);
 }
 
 /* nb is number of useful bytes in thisbuf->base */
