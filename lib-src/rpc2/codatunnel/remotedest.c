@@ -191,7 +191,9 @@ void free_dest(dest_t *d)
 
     d->state = TCPCLOSING;
 
-    /* drain queue */
+    uv_read_stop((uv_stream_t *)d->tcphandle);
+
+    /* drain received buffer queue */
     for (i = 0; i < d->uvcount; i++)
         free(d->enqarray[i].b.base);
     d->uvcount = -1;
