@@ -240,6 +240,25 @@ void enq_element(dest_t *d, const uv_buf_t *thisbuf, int nb)
     uv_mutex_unlock(&d->uvcount_mutex);
 }
 
+/* Callback function to check if any buffers are available */
+int poll_uvbytes(gnutls_transport_ptr_t gtp, unsigned int ms)
+{
+    dest_t *d = (dest_t *)gtp;
+    int ret;
+
+    uv_mutex_lock(&d->uvcount_mutex);
+
+    while (d->uvcount == 0 && ms) {
+        ret = uv_cond_timedwait(&d->uvcount_nonzero, &d->uvcount_mutex,
+                                ((uint64_t)ms) * 1000);
+    }
+    ret = d->uvcount;
+
+    uv_mutex_unlock(&d->uvcount_mutex);
+
+    return ret > 0 ? 1 : ret;
+}
+
 /* Upcall function to give gnutls_record_recv() bytes on demand.
    Puts nread bytes into buffer at tlsbuf; return actual bytes filled
    (which may be less than nread; in that case, GNUTLS is expected

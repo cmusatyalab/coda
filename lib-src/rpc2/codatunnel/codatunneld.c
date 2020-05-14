@@ -505,6 +505,7 @@ static void setuptls(uv_work_t *w)
     gnutls_transport_set_push_function(d->my_tls_session,
                                        send_to_tcp_dest_bottom);
     gnutls_transport_set_pull_function(d->my_tls_session, eat_uvbytes);
+    gnutls_transport_set_pull_timeout_function(d->my_tls_session, poll_uvbytes);
 
     rc = gnutls_credentials_set(d->my_tls_session, GNUTLS_CRD_CERTIFICATE,
                                 x509_cred);
