@@ -88,13 +88,23 @@ typedef struct minicb_udp_req {
     uv_buf_t msg;
 } minicb_udp_req_t; /* used to be udp_send_req_t */
 
+#define MTR_MAXBUFS 6
 typedef struct minicb_tcp_req {
     uv_write_t req;
-    struct minicb_tcp_req *qnext;
-    uv_buf_t msg[1];
     dest_t *dest;
-    char bytecount_bytes[1]; /* really "bytecount" bytes come here from malloc */
+    struct minicb_tcp_req *qnext;
+    uv_sem_t write_done;
+    ssize_t write_status;
+    uv_buf_t msg[MTR_MAXBUFS];
+    unsigned int msglen;
 } minicb_tcp_req_t; /* used to be tcp_send_req_t */
+
+typedef struct gnutls_send_req {
+    uv_work_t req;
+    dest_t *dest;
+    uv_buf_t buf;
+    ssize_t len;
+} gnutls_send_req_t;
 
 /* forward refs for workhorse functions; many are cb functions */
 static void recv_codatunnel_cb(uv_udp_t *, ssize_t, const uv_buf_t *,
@@ -102,8 +112,6 @@ static void recv_codatunnel_cb(uv_udp_t *, ssize_t, const uv_buf_t *,
 static void send_to_udp_dest(ssize_t, const uv_buf_t *,
                              const struct sockaddr *saddr, socklen_t slen);
 static void send_to_tcp_dest(dest_t *, ssize_t, const uv_buf_t *);
-static ssize_t send_to_tcp_dest_bottom(gnutls_transport_ptr_t, const void *,
-                                       size_t);
 static void try_creating_tcp_connection(dest_t *);
 static void recv_tcp_cb(uv_stream_t *, ssize_t, const uv_buf_t *);
 static void recv_tcp_cb_handoff(dest_t *, void *, size_t);
@@ -174,22 +182,18 @@ static void minicb_udp(uv_udp_send_t *arg, int status)
 }
 
 static void minicb_tcp(uv_write_t *arg, int status)
-/* used to tcp_send_req() */
+/* used to be tcp_send_req() */
 {
     minicb_tcp_req_t *req = (minicb_tcp_req_t *)arg;
     dest_t *d             = req->dest;
 
     DEBUG("minicb_tcp(%p, %p, %d)\n", arg, arg->data, status);
 
-    if (status != 0) {
-        DEBUG("tcp connection error: %s after %d packets\n",
-              uv_strerror(status), d->packets_sent);
-        free_dest(d);
-    } else {
-        d->packets_sent++; /* one more was sent out! */
-    }
+    if (status == 0)
+        d->packets_sent += req->msglen;
 
-    free(req); /* was malloced  in send_to_tcp_dest_bottom () */
+    req->write_status = status;
+    uv_sem_post(&req->write_done);
 }
 
 /* called when we're about to free dest_t, dequeue any pending writes */
@@ -288,14 +292,12 @@ static void recv_codatunnel_cb(uv_udp_t *codatunnel, ssize_t nread,
                retries will be dropped;  no harm if earlier retries got through
                (Satya, 1/20/2018)
             */
-            free(buf->base); /* do this now since no cascaded cb */
+            free(buf->base);
         } else {
             send_to_tcp_dest(d, nread, buf);
-            /* free buf only in cascaded cb */
-            return;
+            /* free buf in cascaded cb */
         }
     }
-
     /* Two possibile states for destination d: ALLOCATED or TCPBROKEN;
        In either case just UDP
 
@@ -308,10 +310,9 @@ static void recv_codatunnel_cb(uv_udp_t *codatunnel, ssize_t nread,
        ensure at-most-once semantics regardless of how the packet
        traveled (Satya, 1/20/2018)
     */
-    if (!codatunnel_onlytcp) {
+    else if (!codatunnel_onlytcp) {
         send_to_udp_dest(nread, buf, addr, flags);
         /* free buf only in cascaded cb */
-        return;
     } else
         free(buf->base); /* packet dropped, no cascaded cb */
 }
@@ -352,12 +353,40 @@ static void send_to_udp_dest(ssize_t nread, const uv_buf_t *buf,
     }
 }
 
+/* worker thread function to send packet with TLS */
+static void _send_to_tls_dest(uv_work_t *req)
+{
+    gnutls_send_req_t *w = (gnutls_send_req_t *)req->data;
+    dest_t *d            = w->dest;
+    int rc;
+
+    if (d->state != TCPACTIVE || !d->my_tls_session) {
+        ERROR("about to send packet, but we have no active tls session\n");
+        return;
+    }
+
+    DEBUG("About to call gnutls_record_send()\n");
+    rc = gnutls_record_send(d->my_tls_session, w->buf.base, w->len);
+    DEBUG("Just returned from gnutls_record_send()\n");
+    /* actual sending of bytes happens in upcall of above  */
+
+    if (rc != w->len) { /* something went wrong */
+        ERROR("gnutls_record_send(): rc = %d\n", rc);
+    }
+}
+
+static void _send_to_tls_done(uv_work_t *req, int status)
+{
+    gnutls_send_req_t *w = (gnutls_send_req_t *)req->data;
+    free(w->buf.base);
+    free(w);
+}
+
 /* To accommodate TLS, send_to_tcp_dest() has been split;
    top half invokes TLS; upcall from TLS engine invokes bottom half which
    does the actual sending on TCP */
 static void send_to_tcp_dest(dest_t *d, ssize_t nread, const uv_buf_t *buf)
 {
-    int rc;
     DEBUG("send_to_tcp_dest(%p, %ld, %p)\n", d, nread, buf);
 
     /* Convert ctp_d fields to network order, before encryption */
@@ -377,61 +406,57 @@ static void send_to_tcp_dest(dest_t *d, ssize_t nread, const uv_buf_t *buf)
     assert(d->my_tls_session);
     assert(d->state == TCPACTIVE); /* never reach here in TLSHANDSHAKE */
 
-    /* VERIFY:  WHO WILL FREE buf->base ? */
-    uv_mutex_lock(&d->tls_send_record_mutex);
-    DEBUG("About to call gnutls_record_send()\n");
-    rc = gnutls_record_send(d->my_tls_session, buf->base, nread);
-    DEBUG("Just returned from gnutls_record_send()\n");
-    uv_mutex_unlock(&d->tls_send_record_mutex);
-    /* actual sending of bytes happens in upcall of above  */
-
-    if (rc != nread) { /* something went wrong */
-        ERROR("gnutls_record_send(): rc = %d\n", rc);
-    }
+    /* Do gnutls operations on separate thread to avoid blocking
+     * due to TLS */
+    gnutls_send_req_t *w = malloc(sizeof(gnutls_send_req_t));
+    w->dest              = d;
+    w->buf               = uv_buf_init(buf->base, buf->len);
+    w->len               = nread;
+    w->req.data          = w;
+    uv_queue_work(codatunnel_main_loop, &w->req, _send_to_tls_dest,
+                  _send_to_tls_done);
 }
 
 /* Upcall handler for TLS to send encrypted packet using uv as transport;
    returns bytes sent*/
-static ssize_t send_to_tcp_dest_bottom(gnutls_transport_ptr_t gtp,
-                                       const void *encrypted_bytearray,
-                                       size_t bytecount)
+static ssize_t vec_push_func(gnutls_transport_ptr_t gtp, const giovec_t *iov,
+                             int iovcnt)
 {
-    minicb_tcp_req_t *mtr;
-    dest_t *d = gtp;
+    dest_t *d = (dest_t *)gtp;
+    minicb_tcp_req_t mtr;
+    unsigned int i;
+    ssize_t bytecount = 0;
 
-    DEBUG("send_to_tcp_dest_bottom(%p, %p, %d)\n", gtp, encrypted_bytearray,
-          (int)bytecount);
+    DEBUG("vec_push_func(%p, %p, %d)\n", gtp, iov, iovcnt);
+    if (iovcnt <= 0)
+        return 0;
 
-    mtr = malloc(sizeof(*mtr) + bytecount);
-    if (!mtr) {
-        /* unable to allocate, free buffer and trigger a disconnection
-         * because we have no other way to force a retry. */
-        ERROR("malloc() failed\n");
-        /* who should free_dest(d)? */
-        return (-1);
+    assert(iovcnt <= MTR_MAXBUFS);
+    for (i = 0; i < iovcnt; i++) {
+        mtr.msg[i] = uv_buf_init(iov[i].iov_base, iov[i].iov_len);
+        bytecount += iov[i].iov_len;
     }
-    mtr->dest = d;
-    /* GNUTLS expects to free encrypted_bytearray when this call ends,
-       but uv_write() is asynchronous;  only solution is to memcpy the data to
-       a safe place */
-
-    char *temp = &mtr->bytecount_bytes[0];
-    memcpy(temp, encrypted_bytearray, bytecount);
-    mtr->msg[0] = uv_buf_init(temp, bytecount);
-    mtr->qnext  = NULL;
+    mtr.msglen       = iovcnt;
+    mtr.dest         = d;
+    mtr.qnext        = NULL;
+    mtr.write_status = -EINTR;
+    uv_sem_init(&mtr.write_done, 0);
 
     /* queue mtr */
     uv_mutex_lock(&d->outbound_mutex);
     minicb_tcp_req_t **p = &d->outbound_queue;
     while (*p != NULL)
         p = &((*p)->qnext);
-    *p = mtr;
+    *p = &mtr;
     uv_mutex_unlock(&d->outbound_mutex);
 
     /* kick off sender */
+    DEBUG("waking outbound_worker %p\n", &d->outbound_worker);
     uv_async_send(&d->outbound_worker);
+    uv_sem_wait(&mtr.write_done);
 
-    return (bytecount); /* assume we sent all bytes successfully */
+    uv_sem_destroy(&mtr.write_done);
+    return (mtr.write_status == 0) ? bytecount : mtr.write_status;
 }
 
 void outbound_worker_cb(uv_async_t *async)
@@ -450,13 +475,12 @@ void outbound_worker_cb(uv_async_t *async)
             return;
 
         /* forward packet to the remote host */
-        DEBUG("Going to do uv_write(%p, %p, ,...)\n", mtr, d->tcphandle);
-        rc = uv_write(&mtr->req, (uv_stream_t *)d->tcphandle, mtr->msg, 1,
-                      minicb_tcp);
+        DEBUG("Going to do uv_write(%p, %p, ...)\n", mtr, d->tcphandle);
+        rc = uv_write(&mtr->req, (uv_stream_t *)d->tcphandle, mtr->msg,
+                      mtr->msglen, minicb_tcp);
         DEBUG("Just completed uv_write() --> %d\n", rc);
         if (rc) {
-            /* unable to send on tcp connection, free buffer and trigger a
-             * disconnection because we have no other way to force a retry. */
+            /* unable to send on tcp connection, pass back failure */
             ERROR("uv_write(): rc = %d\n", rc);
             minicb_tcp(&mtr->req, rc);
         }
@@ -516,8 +540,7 @@ static void setuptls(uv_work_t *w)
     gnutls_handshake_set_timeout(d->my_tls_session,
                                  GNUTLS_DEFAULT_HANDSHAKE_TIMEOUT);
     gnutls_transport_set_ptr(d->my_tls_session, d);
-    gnutls_transport_set_push_function(d->my_tls_session,
-                                       send_to_tcp_dest_bottom);
+    gnutls_transport_set_vec_push_function(d->my_tls_session, vec_push_func);
     gnutls_transport_set_pull_function(d->my_tls_session, eat_uvbytes);
     gnutls_transport_set_pull_timeout_function(d->my_tls_session, poll_uvbytes);
 
