@@ -191,7 +191,8 @@ void free_dest(dest_t *d)
 
     d->state = TCPCLOSING;
 
-    uv_read_stop((uv_stream_t *)d->tcphandle);
+    if (d->tcphandle)
+        uv_read_stop((uv_stream_t *)d->tcphandle);
 
     /* drain received buffer queue */
     for (i = 0; i < d->uvcount; i++)
@@ -201,6 +202,7 @@ void free_dest(dest_t *d)
     uv_cond_signal(&d->uvcount_nonzero); /* wake blocked sleepers, if any */
     uv_mutex_unlock(&d->uvcount_mutex);
 
+    drain_outbound_queue(d);
     if (d->tcphandle)
         uv_close((uv_handle_t *)d->tcphandle, _free_dest_cb);
 }

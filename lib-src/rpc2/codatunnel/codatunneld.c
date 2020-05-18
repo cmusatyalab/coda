@@ -192,6 +192,20 @@ static void minicb_tcp(uv_write_t *arg, int status)
     free(req); /* was malloced  in send_to_tcp_dest_bottom () */
 }
 
+/* called when we're about to free dest_t, dequeue any pending writes */
+void drain_outbound_queue(dest_t *d)
+{
+    minicb_tcp_req_t *mtr;
+
+    uv_mutex_lock(&d->outbound_mutex);
+    while (d->outbound_queue) {
+        mtr               = d->outbound_queue;
+        d->outbound_queue = mtr->qnext;
+        minicb_tcp(&mtr->req, -EPIPE);
+    }
+    uv_mutex_unlock(&d->outbound_mutex);
+}
+
 static void recv_codatunnel_cb(uv_udp_t *codatunnel, ssize_t nread,
                                const uv_buf_t *buf, const struct sockaddr *addr,
                                unsigned flags)
