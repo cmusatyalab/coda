@@ -202,8 +202,15 @@ void free_dest(dest_t *d)
     uv_mutex_unlock(&d->uvcount_mutex);
 
     drain_outbound_queue(d);
-    if (d->tcphandle)
+
+    if (d->tcphandle) {
         uv_close((uv_handle_t *)d->tcphandle, _free_dest_cb);
+    } else {
+        if (d->decrypted_record)
+            free(d->decrypted_record);
+        d->decrypted_record = NULL;
+        cleardest(d);
+    }
 }
 
 /* nb is number of useful bytes in thisbuf->base */
