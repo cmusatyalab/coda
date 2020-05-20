@@ -1,3 +1,13 @@
+New in 2.29
+
+* Fixed bad assert in codatunneld.
+* Improve error paths when TLS handshake fails.
+* Make sure we deallocate queued buffers and wake up blocked readers
+  when a remote peer has gone away.
+* Change Coda root CA to a 2048-bit certificate, which turned out to be
+  a better fit for the secure hardware key.
+* Fix compatiblity with the older gnutls on Debian-jessie and Ubuntu-trusty
+
 New in 2.28
 
 * Added GnuTLS support to secure traffic through a codatunnel.
