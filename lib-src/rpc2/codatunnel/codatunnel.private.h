@@ -169,7 +169,9 @@ void free_dest(dest_t *d);
 void enq_element(dest_t *, const uv_buf_t *, int);
 ssize_t eat_uvbytes(gnutls_transport_ptr_t, void *, size_t);
 int poll_uvbytes(gnutls_transport_ptr_t gtp, unsigned int ms);
+
 void drain_outbound_queue(dest_t *d);
+void wait_for_handshakes(void);
 
 /* Helper/debugging functions */
 void hexdump(char *desc, void *addr, int len);

@@ -169,6 +169,10 @@ static void _free_dest_cb(uv_handle_t *handle)
 {
     dest_t *d = handle->data;
     DEBUG("_free_dest_cb(%p)\n", d);
+
+    /* barrier wait to make sure gnutls_handshake has finished */
+    wait_for_handshakes();
+
     if (d->decrypted_record)
         free(d->decrypted_record);
     d->decrypted_record = NULL;

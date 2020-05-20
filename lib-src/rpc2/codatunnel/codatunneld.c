@@ -126,8 +126,7 @@ static void tcp_newconnection_cb(uv_stream_t *, int);
    and filled shortly after codatunneld() is forked.  It is then used
    in all the gnutls-related calls for handshake, etc. */
 static gnutls_certificate_credentials_t x509_cred;
-static uv_rwlock_t
-    credential_load_lock; /* protects x509_creds during handshakes */
+static uv_rwlock_t credential_load_lock; /* protect x509_creds during handshake */
 
 /* Whether to verify identity of peer via X509 certificate
    Only the client side of RPC2 bothers to verify identify of server side
@@ -492,6 +491,11 @@ static void cleanup_work(uv_work_t *w, int status)
     free(w);
 }
 
+static void free_tcphandle(uv_handle_t *handle)
+{
+    free(handle);
+}
+
 static void setuptls(uv_work_t *w)
 {
     /*
@@ -518,14 +522,22 @@ static void setuptls(uv_work_t *w)
     uv_rwlock_rdlock(&credential_load_lock);
 
     /* local TLS setup errors, fall back on UDP connection */
-#define GNUTLSERROR(op, retcode)                                            \
-    {                                                                       \
-        ERROR("%s() --> %d (%s)\n", op, retcode, gnutls_strerror(retcode)); \
-        d->state = ALLOCATED;                                               \
-        free(d->tcphandle);                                                 \
-        d->tcphandle = NULL;                                                \
-        uv_rwlock_rdunlock(&credential_load_lock);                          \
-        return;                                                             \
+#define GNUTLSERROR(op, retcode)                                       \
+    {                                                                  \
+        ERROR("%s(%s) --> %d (%s)\n", op, d->fqdn, retcode,            \
+              gnutls_strerror(retcode));                               \
+        if (d->state != TCPCLOSING) {                                  \
+            if (certverify == IGNORE) {                                \
+                free_dest(d);                                          \
+            } else {                                                   \
+                d->state = ALLOCATED;                                  \
+                uv_read_stop((uv_stream_t *)d->tcphandle);             \
+                uv_close((uv_handle_t *)d->tcphandle, free_tcphandle); \
+                d->tcphandle = NULL;                                   \
+            }                                                          \
+        }                                                              \
+        uv_rwlock_rdunlock(&credential_load_lock);                     \
+        return;                                                        \
     }
 
     rc = gnutls_init(&d->my_tls_session, tlsflags);
@@ -563,41 +575,37 @@ static void setuptls(uv_work_t *w)
 #endif
     }
 
-#undef GNUTLSERROR
     /* Any errors after this point make the remote we're connecting to
      * suspicious, so we should probably not fall back on UDP on errors */
 
     /* Everything has been setup; do the TLS handshake */
-    DEBUG("About to do gnutls_handshake()\n");
+    DEBUG("About to do gnutls_handshake(%s)\n", d->fqdn);
 eagain:
     rc = gnutls_handshake(d->my_tls_session);
 
     if (rc == GNUTLS_E_INTERRUPTED || rc == GNUTLS_E_AGAIN)
     /* || rc == GNUTLS_E_WARNING_ALERT_RECEIVED */
     {
-        DEBUG("gnutls_handshake() got non-fatal error, trying again\n");
+        DEBUG("gnutls_handshake(%s) got non-fatal error, trying again\n",
+              d->fqdn);
         goto eagain;
     }
 
-    uv_rwlock_rdunlock(&credential_load_lock);
-
-    if (rc == GNUTLS_E_SUCCESS) {
-        DEBUG("gnutls_handshake() successful\n");
-        d->state = TCPACTIVE; /* commit point for encrypted TCP tunnel */
-        return;
-    }
-
-    ERROR("gnutls_handshake() --> %d (%s)\n", rc, gnutls_strerror(rc));
-
 #if GNUTLS_VERSION_NUMBER >= 0x030406
     if (rc == GNUTLS_E_CERTIFICATE_VERIFICATION_ERROR) {
-        rc = gnutls_session_get_verify_cert_status(d->my_tls_session);
-        ERROR("gnutls_session_get_verify_cert_status() --> %d (%s)\n", rc,
-              gnutls_strerror(rc));
+        int vrc = gnutls_session_get_verify_cert_status(d->my_tls_session);
+        ERROR("gnutls_session_get_verify_cert_status() --> %d (%s)\n", vrc,
+              gnutls_strerror(vrc));
     }
 #endif
-    free_dest(d);
-    return;
+
+    if (rc != GNUTLS_E_SUCCESS)
+        GNUTLSERROR("gnutls_handshake", rc);
+#undef GNUTLSERROR
+
+    DEBUG("gnutls_handshake(%s) successful\n", d->fqdn);
+    d->state = TCPACTIVE; /* commit point for encrypted TCP tunnel */
+    uv_rwlock_rdunlock(&credential_load_lock);
 }
 
 static void tcp_connect_cb(uv_connect_t *req, int status)
@@ -1045,6 +1053,13 @@ static char *path_join(const char *dir, const char *file)
     n = snprintf(path, pathlen, "%s/%s", dir, file);
     assert(n >= 0 && n < pathlen);
     return path;
+}
+
+/* barrier wait to make sure gnutls_handshake has finished */
+void wait_for_handshakes(void)
+{
+    uv_rwlock_wrlock(&credential_load_lock);
+    uv_rwlock_wrunlock(&credential_load_lock);
 }
 
 static void cert_reload_credentials(gnutls_certificate_credentials_t *sc)
