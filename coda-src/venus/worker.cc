@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 7
+                              Release 8
 
-          Copyright (c) 1987-2019 Carnegie Mellon University
+          Copyright (c) 1987-2020 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -1758,7 +1758,7 @@ void worker::main(void)
             if (interrupted && u.u_error == 0) {
                 VenusFid fid;
                 KernelToVenusFid(&fid, &saveFid);
-                eprint("worker::main: aborting open (%s)", &fid);
+                eprint("worker::main: aborting open (%s)", FID_(&fid));
 
                 /* NOTE: This may be bogus. It will definately cause a
                  * "message write error" since the uniquifier is bogus. No
