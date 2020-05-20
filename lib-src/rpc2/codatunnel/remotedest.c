@@ -40,13 +40,14 @@ static void cleardest(dest_t *d)
     memset(&d->destaddr, 0, sizeof(struct sockaddr_storage));
     d->destlen = 0;
     memset(&d->fqdn, 0, NI_MAXHOST);
-    d->state          = FREE;
-    d->tcphandle      = NULL;
-    d->packets_sent   = 0;
-    d->my_tls_session = NULL;
-    d->uvcount        = 0;
-    d->uvoffset       = 0;
-    d->outbound_queue = NULL;
+    d->state                 = FREE;
+    d->certvalidation_failed = 0;
+    d->tcphandle             = NULL;
+    d->packets_sent          = 0;
+    d->my_tls_session        = NULL;
+    d->uvcount               = 0;
+    d->uvoffset              = 0;
+    d->outbound_queue        = NULL;
     for (i = 0; i < UVBUFLIMIT; i++) {
         ((d->enqarray[i]).b).base = NULL;
         ((d->enqarray[i]).b).len  = 0;

@@ -109,6 +109,9 @@ typedef struct remotedest {
                              becoming TCPACTIVE; Setting TCPACTIVE should be a
                              commit point: all fields below should have been
                              set before that happens, to avoid race conditions */
+    char certvalidation_failed; /* when certificate validation fails we
+                                   suppress UDP, but will retry TLS connections
+                                   for INIT1 packets*/
 
     uv_tcp_t *tcphandle; /* only valid if state is TCPACTIVE or TLSHANDSHAKE */
     int packets_sent; /* for help with INIT1 retries */

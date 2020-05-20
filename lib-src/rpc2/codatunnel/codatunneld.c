@@ -297,8 +297,9 @@ static void recv_codatunnel_cb(uv_udp_t *codatunnel, ssize_t nread,
             /* free buf in cascaded cb */
         }
     }
-    /* Two possibile states for destination d: ALLOCATED or TCPBROKEN;
-       In either case just UDP
+    /* Possibile states for destination d: ALLOCATED, TCPATTEMPTING, and
+       TLSHANDSHAKE. In all of these cases we'll fall back to UDP as long as
+       we have not yet had a gnutls certificate validation error.
 
        UDP fallback: always forward UDP packets if TCPACTIVE is not true; RPC2
        duplicate elimination at higher level will drop as needed for
@@ -309,7 +310,7 @@ static void recv_codatunnel_cb(uv_udp_t *codatunnel, ssize_t nread,
        ensure at-most-once semantics regardless of how the packet
        traveled (Satya, 1/20/2018)
     */
-    else if (!codatunnel_onlytcp) {
+    else if (!codatunnel_onlytcp && !(d && d->certvalidation_failed)) {
         send_to_udp_dest(nread, buf, addr, flags);
         /* free buf only in cascaded cb */
     } else
@@ -596,6 +597,7 @@ eagain:
         int vrc = gnutls_session_get_verify_cert_status(d->my_tls_session);
         ERROR("gnutls_session_get_verify_cert_status() --> %d (%s)\n", vrc,
               gnutls_strerror(vrc));
+        d->certvalidation_failed = 1;
     }
 #endif
 
@@ -604,6 +606,7 @@ eagain:
 #undef GNUTLSERROR
 
     DEBUG("gnutls_handshake(%s) successful\n", d->fqdn);
+    d->certvalidation_failed = 0;
     d->state = TCPACTIVE; /* commit point for encrypted TCP tunnel */
     uv_rwlock_rdunlock(&credential_load_lock);
 }
