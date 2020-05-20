@@ -160,7 +160,7 @@ dest_t *createdest(const struct sockaddr_storage *x, socklen_t xlen)
                      0, NI_NAMEREQD);
     if (rc) { /* something went wrong */
         fprintf(stderr, "getnameinfo() --> %d (%s)\n", rc, gai_strerror(rc));
-        return (NULL);
+        d->fqdn[0] = '\0';
     }
     return d;
 }
