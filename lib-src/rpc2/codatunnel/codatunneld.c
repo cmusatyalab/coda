@@ -1126,8 +1126,19 @@ unlock_out:
     uv_rwlock_wrunlock(&credential_load_lock);
 }
 
-static void reload_signal_handler(uv_signal_t *handle, int signum)
+#define CERT_POLL_INTERVAL 30000 /* check server.crt every 30 seconds */
+static void server_cert_poll_cb(uv_fs_poll_t *handle, int status,
+                                const uv_stat_t *prev, const uv_stat_t *curr)
 {
+    /* path does not exist */
+    if (status < 0)
+        return;
+
+    /* file created, but has no content yet */
+    if (status == 0 && curr->st_size == 0)
+        return;
+
+    /* at this point the certificate should be updated */
     printf("codatunneld: reloading x509 certificates\n");
     fflush(stdout);
 
@@ -1188,13 +1199,17 @@ void codatunneld(int codatunnel_sockfd, const char *tcp_bindaddr,
 
     codatunnel_main_loop = uv_default_loop();
 
-    /* setup SIGHUP handler to reload x509 credentials */
-    uv_signal_t reload_signal;
-    uv_signal_init(codatunnel_main_loop, &reload_signal);
-    reload_signal.data = &x509_cred;
-    uv_signal_start(&reload_signal, reload_signal_handler, SIGHUP);
+    /* setup poll handler to check for changes to /etc/coda/ssl/server.crt */
+    uv_fs_poll_t server_cert_poll;
+    uv_fs_poll_init(codatunnel_main_loop, &server_cert_poll);
+    server_cert_poll.data = &x509_cred;
 
-    /* do this before any IP addresses are encountered */
+    char *server_cert_path = path_join(sslcert_dir, "server.crt");
+    uv_fs_poll_start(&server_cert_poll, server_cert_poll_cb, server_cert_path,
+                     CERT_POLL_INTERVAL);
+    free(server_cert_path);
+
+    /* setup remotedest array before any IP addresses are encountered */
     initdestarray(codatunnel_main_loop);
 
     /* bind codatunnel_sockfd */
@@ -1262,7 +1277,7 @@ void codatunneld(int codatunnel_sockfd, const char *tcp_bindaddr,
     uv_run(codatunnel_main_loop, UV_RUN_DEFAULT);
 
     /* cleanup any remaining open handles */
-    uv_signal_stop(&reload_signal);
+    uv_fs_poll_stop(&server_cert_poll);
     uv_walk(codatunnel_main_loop, (uv_walk_cb)uv_close, NULL);
     uv_run(codatunnel_main_loop, UV_RUN_DEFAULT);
     uv_loop_close(codatunnel_main_loop);
