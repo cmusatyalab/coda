@@ -365,10 +365,14 @@ static void _send_to_tls_dest(uv_work_t *req)
         return;
     }
 
+resend:
     DEBUG("About to call gnutls_record_send()\n");
     rc = gnutls_record_send(d->my_tls_session, w->buf.base, w->len);
     DEBUG("Just returned from gnutls_record_send()\n");
     /* actual sending of bytes happens in upcall of above  */
+
+    if (rc == GNUTLS_E_INTERRUPTED || rc == GNUTLS_E_AGAIN)
+        goto resend;
 
     if (rc != w->len) { /* something went wrong */
         ERROR("gnutls_record_send(): rc = %d\n", rc);
