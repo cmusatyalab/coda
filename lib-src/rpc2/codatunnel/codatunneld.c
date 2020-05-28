@@ -802,7 +802,7 @@ static void recv_tcp_cb(uv_stream_t *tcphandle, ssize_t nread,
     dest_t *d = tcphandle->data;
     DEBUG("d = %p\n", d);
 
-    if (nread < 0) {
+    if (nread < 0 && nread != UV_EOF) {
         DEBUG("recv_tcp_cb() --> %s\n", uv_strerror(nread));
         free(buf->base);
         free_dest(d);

@@ -308,12 +308,14 @@ ssize_t eat_uvbytes(gnutls_transport_ptr_t gtp, void *tlsbuf, size_t nread)
     /* negative uvcount indicates this connection is closing/draining */
     while (stillneeded && d->uvcount > 0) {
         /* consume as many buffered packets as possible until sated */
-
         DEBUG(
             "d->uvcount = %d  d->uvoffset = %d  (d->enqarray[0]).b = %p,%lu (d->enqarray[0]).numbytes = %d  found = %d  stillneeded = %d\n",
             d->uvcount, d->uvoffset, (d->enqarray[0]).b.base,
             (d->enqarray[0]).b.len, (d->enqarray[0]).numbytes, found,
             stillneeded);
+
+        if ((d->enqarray[0]).numbytes == UV_EOF)
+            break;
 
         here = (d->enqarray[0]).numbytes - d->uvoffset; /* available in buf */
 
