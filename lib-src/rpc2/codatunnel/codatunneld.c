@@ -374,8 +374,13 @@ resend:
     if (rc == GNUTLS_E_INTERRUPTED || rc == GNUTLS_E_AGAIN)
         goto resend;
 
-    if (rc != w->len) { /* something went wrong */
-        ERROR("gnutls_record_send(): rc = %d\n", rc);
+    if (rc < 0) { /* something went wrong */
+        ERROR("gnutls_record_send(%s): rc = %d (%s)\n", d->fqdn, rc,
+              gnutls_strerror(rc));
+        free_dest(d);
+    } else if (rc != w->len) { /* something went wrong */
+        ERROR("gnutls_record_send(%s): short write %d, expected %ld\n", d->fqdn,
+              rc, w->len);
     }
 }
 
@@ -746,14 +751,13 @@ static void peeloff_and_decrypt(uv_work_t *w)
             goto unlock_out;
         }
         if (rc <= 0) { /* something went wrong */
-            ERROR("gnutls_record_recv(): rc = %d\n", rc);
-            d->state = TCPCLOSING; /* all hope is lost */
-            goto unlock_out;
+            ERROR("gnutls_record_recv(%s): rc = %d (%s)\n", d->fqdn, rc,
+                  gnutls_strerror(rc));
+            goto unlock_err;
         }
         if (rc >= MAXRECEIVE) {
             ERROR("Monster packet: gnutls_record_recv() --> %lu\n", MAXRECEIVE);
-            d->state = TCPCLOSING; /* all hope is lost */
-            goto unlock_out;
+            goto unlock_err;
         }
 
         /* Yay!  We have a complete gnutls record of length rc;
@@ -769,8 +773,7 @@ static void peeloff_and_decrypt(uv_work_t *w)
         d->decrypted_record = malloc(MAXRECEIVE); /* clobber */
         if (!d->decrypted_record) {
             ERROR("malloc() failed\n");
-            d->state = TCPCLOSING;
-            goto unlock_out;
+            goto unlock_err;
         }
         recv_tcp_cb_handoff(d, justreceived, rc);
         /* free of record just received  will happen in handoff code */
@@ -778,6 +781,11 @@ static void peeloff_and_decrypt(uv_work_t *w)
 
 unlock_out:
     uv_mutex_unlock(&d->tls_receive_record_mutex);
+    return;
+
+unlock_err:
+    uv_mutex_unlock(&d->tls_receive_record_mutex);
+    free_dest(d);
 }
 
 static void recv_tcp_cb(uv_stream_t *tcphandle, ssize_t nread,
