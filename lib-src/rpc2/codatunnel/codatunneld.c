@@ -365,6 +365,7 @@ static void _send_to_tls_dest(uv_work_t *req)
         return;
     }
 
+    uv_mutex_lock(&d->tls_send_record_mutex);
 resend:
     DEBUG("About to call gnutls_record_send()\n");
     rc = gnutls_record_send(d->my_tls_session, w->buf.base, w->len);
@@ -373,6 +374,8 @@ resend:
 
     if (rc == GNUTLS_E_INTERRUPTED || rc == GNUTLS_E_AGAIN)
         goto resend;
+
+    uv_mutex_unlock(&d->tls_send_record_mutex);
 
     if (rc < 0) { /* something went wrong */
         ERROR("gnutls_record_send(%s): rc = %d (%s)\n", d->fqdn, rc,

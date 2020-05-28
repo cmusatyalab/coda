@@ -71,6 +71,7 @@ void initdestarray(uv_loop_t *mainloop)
         uv_mutex_init(&d->uvcount_mutex);
         uv_cond_init(&d->uvcount_nonzero);
         uv_mutex_init(&d->tls_receive_record_mutex);
+        uv_mutex_init(&d->tls_send_record_mutex);
         uv_mutex_init(&d->outbound_mutex);
         uv_async_init(mainloop, &d->outbound_worker, outbound_worker_cb);
         d->outbound_worker.data = d;
