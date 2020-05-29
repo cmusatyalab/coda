@@ -1,3 +1,15 @@
+New in 2.30
+
+* Automatically reload certificate store whenever /etc/coda/server.crt
+  file is modified.
+* Fix queuing of packets for gnutls_record_send workers to prevent one
+  destination from using up all available worker threads.
+* Pass socket EOF to the receiver thread so that we will process all
+  received packets up to the point the socket is closed instead of
+  throwing received but unencrypted packets away.
+* Make sure we retransmit packet when gnutls_record_send got interrupted.
+* Be more proactive about cleaning up dead TLS connections.
+
 New in 2.29
 
 * Fixed bad assert in codatunneld.
