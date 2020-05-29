@@ -47,6 +47,7 @@ static void cleardest(dest_t *d)
     d->my_tls_session        = NULL;
     d->uvcount               = 0;
     d->uvoffset              = 0;
+    d->tls_send_queue        = NULL;
     d->outbound_queue        = NULL;
     for (i = 0; i < UVBUFLIMIT; i++) {
         ((d->enqarray[i]).b).base = NULL;
@@ -71,7 +72,7 @@ void initdestarray(uv_loop_t *mainloop)
         uv_mutex_init(&d->uvcount_mutex);
         uv_cond_init(&d->uvcount_nonzero);
         uv_mutex_init(&d->tls_receive_record_mutex);
-        uv_mutex_init(&d->tls_send_record_mutex);
+        uv_mutex_init(&d->tls_send_mutex);
         uv_mutex_init(&d->outbound_mutex);
         uv_async_init(mainloop, &d->outbound_worker, outbound_worker_cb);
         d->outbound_worker.data = d;
@@ -207,7 +208,7 @@ void free_dest(dest_t *d)
     uv_cond_signal(&d->uvcount_nonzero); /* wake blocked sleepers, if any */
     uv_mutex_unlock(&d->uvcount_mutex);
 
-    drain_outbound_queue(d);
+    drain_outbound_queues(d);
 
     if (d->tcphandle) {
         uv_close((uv_handle_t *)d->tcphandle, _free_dest_cb);

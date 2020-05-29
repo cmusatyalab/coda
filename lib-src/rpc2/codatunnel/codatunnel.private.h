@@ -148,7 +148,8 @@ typedef struct remotedest {
      all the pieces of  a serialized record appear consecutively in the TCP stream;
      interleaving in an multi-threaded environment could be disastrous */
     uv_mutex_t tls_receive_record_mutex;
-    uv_mutex_t tls_send_record_mutex;
+    uv_mutex_t tls_send_mutex;
+    void *tls_send_queue;
 
     struct minicb_tcp_req *outbound_queue;
     uv_async_t outbound_worker;
@@ -173,7 +174,7 @@ void enq_element(dest_t *, const uv_buf_t *, int);
 ssize_t eat_uvbytes(gnutls_transport_ptr_t, void *, size_t);
 int poll_uvbytes(gnutls_transport_ptr_t gtp, unsigned int ms);
 
-void drain_outbound_queue(dest_t *d);
+void drain_outbound_queues(dest_t *d);
 void wait_for_handshakes(void);
 
 /* Helper/debugging functions */

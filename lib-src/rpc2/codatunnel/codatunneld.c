@@ -100,6 +100,7 @@ typedef struct minicb_tcp_req {
 } minicb_tcp_req_t; /* used to be tcp_send_req_t */
 
 typedef struct gnutls_send_req {
+    struct gnutls_send_req *qnext;
     uv_work_t req;
     dest_t *dest;
     uv_buf_t buf;
@@ -112,6 +113,7 @@ static void recv_codatunnel_cb(uv_udp_t *, ssize_t, const uv_buf_t *,
 static void send_to_udp_dest(ssize_t, const uv_buf_t *,
                              const struct sockaddr *saddr, socklen_t slen);
 static void send_to_tcp_dest(dest_t *, ssize_t, const uv_buf_t *);
+static void _send_to_tls_done(uv_work_t *req, int status);
 static void try_creating_tcp_connection(dest_t *);
 static void recv_tcp_cb(uv_stream_t *, ssize_t, const uv_buf_t *);
 static void recv_tcp_cb_handoff(dest_t *, void *, size_t);
@@ -196,10 +198,29 @@ static void minicb_tcp(uv_write_t *arg, int status)
 }
 
 /* called when we're about to free dest_t, dequeue any pending writes */
-void drain_outbound_queue(dest_t *d)
+void drain_outbound_queues(dest_t *d)
 {
+    gnutls_send_req_t *cur, *next = NULL;
     minicb_tcp_req_t *mtr;
 
+    /* drain tls_send_queue (to send_to_tls_dest) */
+    uv_mutex_lock(&d->tls_send_mutex);
+    cur               = (gnutls_send_req_t *)d->tls_send_queue;
+    d->tls_send_queue = NULL;
+    if (cur) { /* first entry was queued for a worker thread */
+        next       = cur->qnext;
+        cur->qnext = NULL;
+        uv_cancel((uv_req_t *)&cur->req);
+    }
+    while (next != NULL) { /* the rest was not queued yet */
+        cur        = next;
+        next       = cur->qnext;
+        cur->qnext = NULL;
+        _send_to_tls_done(&cur->req, UV_ECANCELED);
+    }
+    uv_mutex_unlock(&d->tls_send_mutex);
+
+    /* drain outbound_queue (from send_to_tls_dest) */
     uv_mutex_lock(&d->outbound_mutex);
     while (d->outbound_queue) {
         mtr               = d->outbound_queue;
@@ -354,19 +375,18 @@ static void send_to_udp_dest(ssize_t nread, const uv_buf_t *buf,
 }
 
 /* worker thread function to send packet with TLS */
-static void _send_to_tls_dest(uv_work_t *req)
+static void send_to_tls_dest(uv_work_t *req)
 {
     gnutls_send_req_t *w = (gnutls_send_req_t *)req->data;
     dest_t *d            = w->dest;
     int rc;
 
+resend:
     if (d->state != TCPACTIVE || !d->my_tls_session) {
         ERROR("about to send packet, but we have no active tls session\n");
         return;
     }
 
-    uv_mutex_lock(&d->tls_send_record_mutex);
-resend:
     DEBUG("About to call gnutls_record_send()\n");
     rc = gnutls_record_send(d->my_tls_session, w->buf.base, w->len);
     DEBUG("Just returned from gnutls_record_send()\n");
@@ -374,8 +394,6 @@ resend:
 
     if (rc == GNUTLS_E_INTERRUPTED || rc == GNUTLS_E_AGAIN)
         goto resend;
-
-    uv_mutex_unlock(&d->tls_send_record_mutex);
 
     if (rc < 0) { /* something went wrong */
         ERROR("gnutls_record_send(%s): rc = %d (%s)\n", d->fqdn, rc,
@@ -390,8 +408,22 @@ resend:
 static void _send_to_tls_done(uv_work_t *req, int status)
 {
     gnutls_send_req_t *w = (gnutls_send_req_t *)req->data;
+    dest_t *d            = w->dest;
+
+    uv_mutex_lock(&d->tls_send_mutex);
+
+    d->tls_send_queue = w->qnext;
     free(w->buf.base);
     free(w);
+
+    uv_mutex_unlock(&d->tls_send_mutex);
+
+    /* if there is stuff queued, fire off the next job */
+    if (d->tls_send_queue != NULL) {
+        gnutls_send_req_t *w = d->tls_send_queue;
+        uv_queue_work(codatunnel_main_loop, &w->req, send_to_tls_dest,
+                      _send_to_tls_done);
+    }
 }
 
 /* To accommodate TLS, send_to_tcp_dest() has been split;
@@ -425,8 +457,20 @@ static void send_to_tcp_dest(dest_t *d, ssize_t nread, const uv_buf_t *buf)
     w->buf               = uv_buf_init(buf->base, buf->len);
     w->len               = nread;
     w->req.data          = w;
-    uv_queue_work(codatunnel_main_loop, &w->req, _send_to_tls_dest,
-                  _send_to_tls_done);
+    w->qnext             = NULL;
+
+    uv_mutex_lock(&d->tls_send_mutex);
+    gnutls_send_req_t **q = (gnutls_send_req_t **)&d->tls_send_queue;
+
+    if (*q == NULL) /* if there was nothing queued, kick off a worker */
+        uv_queue_work(codatunnel_main_loop, &w->req, send_to_tls_dest,
+                      _send_to_tls_done);
+
+    /* append to end of queue */
+    while (*q != NULL)
+        q = &((*q)->qnext);
+    *q = w;
+    uv_mutex_unlock(&d->tls_send_mutex);
 }
 
 /* Upcall handler for TLS to send encrypted packet using uv as transport;
