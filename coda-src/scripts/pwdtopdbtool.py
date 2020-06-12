@@ -1,6 +1,6 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
-import sys, string, os
+import sys, os
 
 #************** these will probably need to be configured
 # the `System' user initially owns all groups.
@@ -11,9 +11,8 @@ oldgroups  = "/vice/db/group.coda"
 #**************
 
 # Remove existing pdbtool databases, extreme, but simple
-if os.path.exists('/vice/db/prot_users.db'):
-  os.unlink('/vice/db/prot_users.db')
-  os.unlink('/vice/db/prot_index.db')
+if os.path.exists('/vice/db/prot_users.cdb'):
+  os.unlink('/vice/db/prot_users.cdb')
 
 # Start a pipe to the pdbtool
 pdbtool = os.popen('pdbtool', 'w')
@@ -38,15 +37,15 @@ pdbtool.write("ci System:AnyUser -101\n")
 # Add all existing users
 names = {}
 for line in open(oldusers).readlines():
-  (name, x, uid, y, fullname) = string.splitfields(line, ':')[:5]
+  (name, x, uid, y, fullname) = line.split(':')[:5]
   names[name] = uid
   pdbtool.write("nui %(name)s %(uid)s\n" % vars())
   
 # Add all existing groups
 for line in open(oldgroups).readlines():
-  group, gid = string.split(line)[:2]
-  members   = string.split(line)[2:]
-  gid = string.atoi(gid)
+  group, gid = line.split()[:2]
+  members = line.split()[2:]
+  gid = int(gid)
   pdbtool.write("ng %(group)s %(groupownid)d\n" % vars())
   pdbtool.write("ci %(group)s %(gid)d\n" % vars())
   for user in members:
@@ -54,5 +53,4 @@ for line in open(oldgroups).readlines():
     pdbtool.write("ag %(gid)s %(uid)s\n" % vars())
 
 pdbtool.close()
-print
-
+print()
