@@ -49,7 +49,7 @@ m4_include(configs/codaconf.m4)
 
 AC_PATH_PROG(PERL, perl, "")
 AC_PATH_PROG(FLUID, fluid, "")
-AM_PATH_PYTHON(,,[:])
+AM_PATH_PYTHON([3])
 
 AC_ARG_ENABLE(client, [  --enable-client	  build Coda client components],
     buildclient="$enableval", buildclient="no")
