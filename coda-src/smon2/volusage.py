@@ -1,37 +1,35 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
-import sys, popen2, string
+import argparse
+import subprocess
 
-if not sys.argv[1:]:
-  print sys.argv[0], "<host> [volutil-cmd]"
+parser = argparse.ArgumentParser()
+parser.add_argument("host")
+parser.add_argument("--volutil", default="volutil",
+                    help="Path to volutil command")
+args = parser.parse_args()
 
-host = sys.argv[1]
 
-volutil = "volutil"
-if sys.argv[2:]:
-  volutil = sys.argv[2]
-
-fin, fout = popen2.popen2('%s -h %s getvolumelist' % (volutil, host))
-fout.close()
+stdout = subprocess.check_output(
+    [ args.volutil, "-h", args.host, "getvolumelist" ],
+    universal_newlines=True
+)
 
 vollist = []
 
-while 1:
-  l = string.strip(fin.readline())
-  if not l: break
-
-  parts = string.split(l)
+for line in stdout.split('\n'):
+  parts = line.split()
   if len(parts) < 7: continue
 
   volume = parts[0][1:]
-  usage = long(parts[6][1:], 16)
+  usage = int(parts[6][1:], 16)
   partition = parts[3][1:]
-  activity = long(parts[11][1:], 16)
+  activity = int(parts[11][1:], 16)
   
   vollist.append((partition, usage, volume, activity))
 
 vollist.sort()
 
 for partition, usage, volume, activity in vollist:
-  print "%s\t%-40s\t%6d\t%6d" % (partition, volume, usage, activity)
+  print("{}\t{:40}\t{:8}\t{:6}".format(partition, volume, usage, activity))
 

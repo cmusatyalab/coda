@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #                            Coda File System
 #                               Release 6
 # 
@@ -24,14 +24,13 @@ srvmap = [ "verdi", "mozart", "marais", "vivaldi", "mahler", "viotti",
 
 import cgi, sys, traceback, os
 
-print """\
-Content-type: text/html
-
+print("""Content-type: text/html\n
 <HTML><HEAD><TITLE>Server statistics</TITLE></HEAD>
 <BODY BGCOLOR="#FFFFFF">
-"""
+""")
 sys.stderr = sys.stdout
-hell="freezing"
+class hell(BaseException):
+    freezing="over"
 
 statmap = {
     "clients" 	: ( "Workstations", """\
@@ -171,52 +170,50 @@ timemap = {
 
 try:
     form = cgi.FieldStorage()
-    if not form.has_key("servers") or not form.has_key("stats"):
-	raise hell
+    if "servers" not in form or "stats" not in form:
+        raise hell
     
     servers = form["servers"]
     stats   = form["stats"]
     period  = form["period"]
 
     if type(servers) != type([]):
-	servers = [ servers ]
+        servers = [ servers ]
     if type(stats) != type([]):
-	stats = [ stats ]
+        stats = [ stats ]
     if type(period) == type([]):
-	raise hell
+        raise hell
 
     for server in servers:
-	if not server.value in srvmap:
-	    raise hell, server.value
+        if not server.value in srvmap:
+            raise(hell, server.value)
 
     period  = timemap[period.value]
     if form.has_key("logscale"):
-	logscale = "--logarithmic "
-	lapp = "_l"
+        logscale = "--logarithmic "
+        lapp = "_l"
     else:
-	logscale = ""
-	lapp = ""
+        logscale = ""
+        lapp = ""
 
     os.chdir(LOGDIR)
     rrdtool = os.popen("%s - > /dev/null 2>&1" % RRDTOOL, "w")
 
     for stat in stats:
-	for server in servers:
-	    srv = server.value
-	    img = "%s_%s%s.gif" % ( srv, stat.value, lapp )
-	    desc, ops = statmap[stat.value]
-	    cmd = "graph %s/%s -w 640 -h 200 %s" % ( IMGDIR, img, period ) + logscale + ops % vars() + "\n"
-	    rrdtool.write(cmd)
-	    rrdtool.flush()
-	    print "<H2>%s - %s</H2>" % ( srv, desc )
-	    #print cmd
-	    print "<IMG SRC=\"%s%s\">" % ( IMGURL, img )
+        for server in servers:
+            srv = server.value
+            img = "%s_%s%s.gif" % ( srv, stat.value, lapp )
+            desc, ops = statmap[stat.value]
+            cmd = "graph %s/%s -w 640 -h 200 %s" % ( IMGDIR, img, period ) + logscale + ops % vars() + "\n"
+            rrdtool.write(cmd)
+            rrdtool.flush()
+            print("<H2>%s - %s</H2>" % ( srv, desc ))
+            #print(cmd)
+            print('<IMG SRC="%s%s">' % ( IMGURL, img ))
     rrdtool.close()
 
 except:
-    print """
-
-<PRE>"""
+    print("\n\n<PRE>")
     traceback.print_exc()
 
-print "</BODY></HTML>"
+print("</BODY></HTML>")
