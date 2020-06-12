@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Find functions that are exported but not used, which may be an indication of
 # dead code.  Should be run from the top of the Coda build tree otherwise it
@@ -27,7 +27,7 @@ def demangle(names):
     """Turn mangled C++ names back into something humans can understand."""
     if not names:
         return []
-    output = subprocess.check_output(['c++filt'] + list(names))
+    output = subprocess.check_output(['c++filt'] + list(names)).decode('ascii')
     demangled = [ name for name in output.split('\n') if name ]
     return demangled
 
@@ -36,7 +36,7 @@ def extract_symbols(filename):
     """Extract defined/used function names from object files"""
     defined, used = set(), set()
 
-    output = subprocess.check_output(['nm', filename])
+    output = subprocess.check_output(['nm', filename]).decode('ascii')
     for sym in output.split('\n'):
         if not sym:
             continue
