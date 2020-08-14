@@ -1,3 +1,9 @@
+New in 2.31
+
+* Validate received header magic after gnutls_record_receive so we drop
+  random SSL connection attempts early.
+* Make sure msglen in the header matches the received packet size.
+
 New in 2.30
 
 * Automatically reload certificate store whenever /etc/coda/server.crt
