@@ -894,8 +894,17 @@ static void recv_tcp_cb_handoff(dest_t *d, void *received_packet, size_t nread)
     /* Replace recipient address with sender's address, so that
        recvfrom() can provide the "from" address. */
     ctp_t *p = (ctp_t *)received_packet;
+
+    if (nread < sizeof(ctp_t) || strncmp(p->magic, "magic01", 8) != 0) {
+        DEBUG("unexpected packet header received, dropping connection\n");
+        free(received_packet);
+        free_dest(d);
+        return;
+    }
+
     memcpy(&p->addr, &d->destaddr, d->destlen);
     p->addrlen = d->destlen;
+    p->msglen  = nread - sizeof(ctp_t);
 
     /* Prepare to send  */
     req = malloc(sizeof(*req));
