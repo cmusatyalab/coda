@@ -90,7 +90,8 @@ enum deststate
     TLSHANDSHAKE  = 3, /* tcp connection is good; TLS handshake in progress */
     TCPACTIVE     = 4, /* entry allocated, its tcphandle is good, and TLS
                           handshake successful */
-    TCPCLOSING    = 5, /* now closing, and waiting to become FREE */
+    TLSERROR      = 5, /* an error occurred in TLS worker threads */
+    TCPCLOSING    = 6, /* now closing, and waiting to become FREE */
 };
 
 const char *tcpstatename(enum deststate);
@@ -151,8 +152,8 @@ typedef struct remotedest {
     uv_mutex_t tls_send_mutex;
     void *tls_send_queue;
 
+    uv_async_t wakeup; /* wakeup for outgoing packets or dest_t teardown */
     struct minicb_tcp_req *outbound_queue;
-    uv_async_t outbound_worker;
     uv_mutex_t outbound_mutex;
 } dest_t;
 

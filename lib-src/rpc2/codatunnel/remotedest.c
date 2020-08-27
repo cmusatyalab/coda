@@ -74,8 +74,8 @@ void initdestarray(uv_loop_t *mainloop)
         uv_mutex_init(&d->tls_receive_record_mutex);
         uv_mutex_init(&d->tls_send_mutex);
         uv_mutex_init(&d->outbound_mutex);
-        uv_async_init(mainloop, &d->outbound_worker, outbound_worker_cb);
-        d->outbound_worker.data = d;
+        uv_async_init(mainloop, &d->wakeup, outbound_worker_cb);
+        d->wakeup.data = d;
     }
 }
 
@@ -392,6 +392,8 @@ const char *tcpstatename(enum deststate mystate)
         return ("TLSHANDSHAKE");
     case TCPACTIVE:
         return ("TCPACTIVE");
+    case TLSERROR:
+        return ("TLSERROR");
     case TCPCLOSING:
         return ("TCPCLOSING");
     default:

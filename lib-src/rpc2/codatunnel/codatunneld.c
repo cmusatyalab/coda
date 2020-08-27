@@ -116,7 +116,6 @@ static void send_to_tcp_dest(dest_t *, ssize_t, const uv_buf_t *);
 static void _send_to_tls_done(uv_work_t *req, int status);
 static void try_creating_tcp_connection(dest_t *);
 static void recv_tcp_cb(uv_stream_t *, ssize_t, const uv_buf_t *);
-static void recv_tcp_cb_handoff(dest_t *, void *, size_t);
 static void tcp_connect_cb(uv_connect_t *, int);
 static void recv_udpsocket_cb(uv_udp_t *, ssize_t, const uv_buf_t *,
                               const struct sockaddr *, unsigned);
@@ -374,7 +373,19 @@ static void send_to_udp_dest(ssize_t nread, const uv_buf_t *buf,
     }
 }
 
-/* worker thread function to send packet with TLS */
+/* mark connection as an error and wake up main loop to call free_dest */
+/* this has to be used in worker threads */
+static void async_free_dest(dest_t *d)
+{
+    uv_mutex_lock(&d->uvcount_mutex);
+    d->state = TLSERROR;
+    uv_mutex_unlock(&d->uvcount_mutex);
+
+    /* wake up main loop so it can call free_dest */
+    uv_async_send(&d->wakeup);
+}
+
+/* running on worker thread, should only use limited set of libuv functions */
 static void send_to_tls_dest(uv_work_t *req)
 {
     send_to_tls_req_t *w = req->data;
@@ -395,14 +406,19 @@ resend:
     if (rc == GNUTLS_E_INTERRUPTED || rc == GNUTLS_E_AGAIN)
         goto resend;
 
-    if (rc < 0) { /* something went wrong */
+    /* everything went well, we're done */
+    if (rc == w->len)
+        return;
+
+    /* something went wrong */
+    if (rc < 0) {
         ERROR("gnutls_record_send(%s): rc = %ld (%s)\n", d->fqdn, rc,
               gnutls_strerror(rc));
-        free_dest(d);
-    } else if (rc != w->len) { /* something went wrong */
+    } else if (rc != w->len) {
         ERROR("gnutls_record_send(%s): short write %ld, expected %lu\n",
               d->fqdn, rc, w->len);
     }
+    async_free_dest(d);
 }
 
 static void _send_to_tls_done(uv_work_t *req, int status)
@@ -508,7 +524,7 @@ static ssize_t vec_push_func(gnutls_transport_ptr_t gtp, const giovec_t *iov,
 
     /* kick off sender */
     DEBUG("waking outbound_worker %p\n", &d->outbound_worker);
-    uv_async_send(&d->outbound_worker);
+    uv_async_send(&d->wakeup);
     uv_sem_wait(&mtr.write_done);
 
     uv_sem_destroy(&mtr.write_done);
@@ -522,6 +538,12 @@ void outbound_worker_cb(uv_async_t *async)
     int rc;
 
     while (1) {
+        /* in case an error occurred, we can safely tear down here */
+        if (d->state == TLSERROR) {
+            free_dest(d);
+            return;
+        }
+
         uv_mutex_lock(&d->outbound_mutex);
         mtr               = d->outbound_queue;
         d->outbound_queue = mtr ? mtr->qnext : NULL;
@@ -539,6 +561,7 @@ void outbound_worker_cb(uv_async_t *async)
             /* unable to send on tcp connection, pass back failure */
             ERROR("uv_write(): rc = %d\n", rc);
             minicb_tcp(&mtr->req, rc);
+            async_free_dest(d);
         }
     }
 }
@@ -553,6 +576,7 @@ static void free_tcphandle(uv_handle_t *handle)
     free(handle);
 }
 
+/* running on worker thread, should only use limited set of libuv functions */
 static void setuptls(uv_work_t *w)
 {
     /*
@@ -585,7 +609,7 @@ static void setuptls(uv_work_t *w)
               gnutls_strerror(retcode));                               \
         if (d->state != TCPCLOSING) {                                  \
             if (certverify == IGNORE) {                                \
-                free_dest(d);                                          \
+                async_free_dest(d);                                    \
             } else {                                                   \
                 d->state = ALLOCATED;                                  \
                 uv_read_stop((uv_stream_t *)d->tcphandle);             \
@@ -744,6 +768,7 @@ static void try_creating_tcp_connection(dest_t *d)
         DEBUG("uv_tcp_connect --> %d\n", rc);
 }
 
+/* running on worker thread, should only use limited set of libuv functions */
 static void peeloff_and_decrypt(uv_work_t *w)
 {
     /* Asynchronous worker invoked via uv_queue_work();
@@ -756,16 +781,6 @@ static void peeloff_and_decrypt(uv_work_t *w)
     DEBUG("peeloff_and_decrypt()\n");
 
     dest_t *d = (dest_t *)(w->data);
-    if (!d->decrypted_record) {
-        DEBUG("Allocating d->decrypted_record\n");
-        d->decrypted_record = malloc(MAXRECEIVE); /* space for next record */
-        if (!d->decrypted_record) {
-            ERROR("malloc() failed\n");
-            free_dest(d);
-            return;
-        }
-    }
-    /* else partially assembled TLS record already exists; just extend it */
 
     /* Assemble at most one gnutls_record at a time */
     uv_mutex_lock(&d->tls_receive_record_mutex);
@@ -779,10 +794,22 @@ static void peeloff_and_decrypt(uv_work_t *w)
         /* bytes still left to be consumed by eat_uvbytes() */
         DEBUG("d->uvcount = %d\n", d->uvcount);
 
+        if (!d->decrypted_record) {
+            DEBUG("Allocating d->decrypted_record\n");
+            d->decrypted_record =
+                malloc(MAXRECEIVE); /* space for next record */
+            if (!d->decrypted_record) {
+                ERROR("malloc() failed\n");
+                async_free_dest(d);
+                break;
+            }
+        }
+        /* else partially assembled TLS record already exists; just extend it */
+
         /* Try to peel off a complete encrypted record */
         DEBUG("About to call gnutls_record_recv()\n");
-        int rc = gnutls_record_recv(d->my_tls_session, d->decrypted_record,
-                                    MAXRECEIVE);
+        ssize_t rc = gnutls_record_recv(d->my_tls_session, d->decrypted_record,
+                                        MAXRECEIVE);
         DEBUG("Just returned from gnutls_record_recv(), rc = %d\n", rc);
 
         if (rc == GNUTLS_E_INTERRUPTED) {
@@ -795,16 +822,18 @@ static void peeloff_and_decrypt(uv_work_t *w)
                need to continue when more bytes are received in next uv upcall;
                leave current d->decrypted_record undisturbed for continuation
             */
-            goto unlock_out;
+            break;
         }
         if (rc <= 0) { /* something went wrong */
-            ERROR("gnutls_record_recv(%s): rc = %d (%s)\n", d->fqdn, rc,
+            ERROR("gnutls_record_recv(%s): rc = %ld (%s)\n", d->fqdn, rc,
                   gnutls_strerror(rc));
-            goto unlock_err;
+            async_free_dest(d);
+            break;
         }
         if (rc >= MAXRECEIVE) {
-            ERROR("Monster packet: gnutls_record_recv() --> %lu\n", MAXRECEIVE);
-            goto unlock_err;
+            ERROR("Monster packet: gnutls_record_recv() --> %ld\n", rc);
+            async_free_dest(d);
+            break;
         }
 
         /* Yay!  We have a complete gnutls record of length rc;
@@ -813,26 +842,49 @@ static void peeloff_and_decrypt(uv_work_t *w)
 
         DEBUG("Yay!  we have a complete gnutls record of length %d\n", rc);
 
-        /* Unhook this record from d */
-        void *justreceived = d->decrypted_record;
-
-        /* Now allocate a new buffer for next gnutls record */
-        d->decrypted_record = malloc(MAXRECEIVE); /* clobber */
-        if (!d->decrypted_record) {
-            ERROR("malloc() failed\n");
-            goto unlock_err;
+        ctp_t *packet = (ctp_t *)d->decrypted_record;
+        if (rc < sizeof(ctp_t) || strncmp(packet->magic, "magic01", 8) != 0) {
+            DEBUG("unexpected packet header received, dropping connection\n");
+            async_free_dest(d);
+            break;
         }
-        recv_tcp_cb_handoff(d, justreceived, rc);
-        /* free of record just received  will happen in handoff code */
+
+        /* Replace recipient address with sender's address, so that
+           recvfrom() can provide the "from" address. */
+        memcpy(&packet->addr, &d->destaddr, d->destlen);
+        packet->addrlen = d->destlen;
+        packet->msglen  = rc - sizeof(ctp_t);
+
+        /* Prepare to send  */
+        minicb_udp_req_t *req = malloc(sizeof(*req));
+        if (!req) {
+            /* unable to allocate, free buffers and trigger a disconnection
+             * because we have no other way to force a retry. */
+            ERROR("malloc() failed\n");
+            async_free_dest(d);
+            break;
+        }
+
+        /* queue packet to forward to codatunnel */
+        req->msg      = uv_buf_init(d->decrypted_record, rc); /* to send */
+        req->req.data = d->decrypted_record;
+        req->qnext    = NULL;
+
+        /* make sure we allocate a new decryption buffer */
+        d->decrypted_record = NULL;
+
+        /* append packet to queue of pending packets */
+        uv_mutex_lock(&async_forward_mutex);
+        minicb_udp_req_t **q = (minicb_udp_req_t **)&async_forward.data;
+        while (*q != NULL)
+            q = &(*q)->qnext;
+        *q = req;
+        uv_mutex_unlock(&async_forward_mutex);
+
+        /* signal mainloop to send this packet */
+        uv_async_send(&async_forward);
     }
-
-unlock_out:
     uv_mutex_unlock(&d->tls_receive_record_mutex);
-    return;
-
-unlock_err:
-    uv_mutex_unlock(&d->tls_receive_record_mutex);
-    free_dest(d);
 }
 
 static void recv_tcp_cb(uv_stream_t *tcphandle, ssize_t nread,
@@ -883,56 +935,7 @@ static void recv_tcp_cb(uv_stream_t *tcphandle, ssize_t nread,
        avoid blocking due to TLS */
     uv_work_t *w = malloc(sizeof(uv_work_t));
     w->data      = d;
-    uv_queue_work(codatunnel_main_loop, w, peeloff_and_decrypt, NULL);
-}
-
-static void recv_tcp_cb_handoff(dest_t *d, void *received_packet, size_t nread)
-{ /* received_packet points to decrypted packet of length nread;
-     prep it, and then hand it off to codasrv/Venus */
-    minicb_udp_req_t *req;
-
-    /* Replace recipient address with sender's address, so that
-       recvfrom() can provide the "from" address. */
-    ctp_t *p = (ctp_t *)received_packet;
-
-    if (nread < sizeof(ctp_t) || strncmp(p->magic, "magic01", 8) != 0) {
-        DEBUG("unexpected packet header received, dropping connection\n");
-        free(received_packet);
-        free_dest(d);
-        return;
-    }
-
-    memcpy(&p->addr, &d->destaddr, d->destlen);
-    p->addrlen = d->destlen;
-    p->msglen  = nread - sizeof(ctp_t);
-
-    /* Prepare to send  */
-    req = malloc(sizeof(*req));
-    if (!req) {
-        /* unable to allocate, free buffers and trigger a disconnection
-         * because we have no other way to force a retry. */
-        ERROR("malloc() failed\n");
-        free(received_packet);
-        free_dest(d);
-        return;
-    }
-
-    req->msg = uv_buf_init(received_packet, nread); /* to send */
-
-    /* make sure the buffer is released when the send completes */
-    req->req.data = received_packet;
-    req->qnext    = NULL;
-
-    /* append packet to queue of pending packets */
-    uv_mutex_lock(&async_forward_mutex);
-    minicb_udp_req_t **q = (minicb_udp_req_t **)&async_forward.data;
-    while (*q != NULL)
-        q = &(*q)->qnext;
-    *q = req;
-    uv_mutex_unlock(&async_forward_mutex);
-
-    /* signal mainloop to send this packet */
-    uv_async_send(&async_forward);
+    uv_queue_work(codatunnel_main_loop, w, peeloff_and_decrypt, cleanup_work);
 }
 
 void async_send_codatunnel(uv_async_t *async)
