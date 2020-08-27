@@ -213,10 +213,8 @@ void free_dest(dest_t *d)
     if (d->tcphandle) {
         uv_close((uv_handle_t *)d->tcphandle, _free_dest_cb);
     } else {
-        if (d->decrypted_record)
-            free(d->decrypted_record);
-        d->decrypted_record = NULL;
-        cleardest(d);
+        uv_handle_t handle = { .data = d };
+        _free_dest_cb(&handle);
     }
 }
 
