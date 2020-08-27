@@ -99,13 +99,13 @@ typedef struct minicb_tcp_req {
     unsigned int msglen;
 } minicb_tcp_req_t; /* used to be tcp_send_req_t */
 
-typedef struct gnutls_send_req {
-    struct gnutls_send_req *qnext;
+typedef struct send_to_tls_req {
+    struct send_to_tls_req *qnext;
     uv_work_t req;
     dest_t *dest;
     uv_buf_t buf;
-    ssize_t len;
-} gnutls_send_req_t;
+    size_t len;
+} send_to_tls_req_t;
 
 /* forward refs for workhorse functions; many are cb functions */
 static void recv_codatunnel_cb(uv_udp_t *, ssize_t, const uv_buf_t *,
@@ -200,12 +200,12 @@ static void minicb_tcp(uv_write_t *arg, int status)
 /* called when we're about to free dest_t, dequeue any pending writes */
 void drain_outbound_queues(dest_t *d)
 {
-    gnutls_send_req_t *cur, *next = NULL;
+    send_to_tls_req_t *cur, *next = NULL;
     minicb_tcp_req_t *mtr;
 
     /* drain tls_send_queue (to send_to_tls_dest) */
     uv_mutex_lock(&d->tls_send_mutex);
-    cur               = (gnutls_send_req_t *)d->tls_send_queue;
+    cur               = d->tls_send_queue;
     d->tls_send_queue = NULL;
     if (cur) { /* first entry was queued for a worker thread */
         next       = cur->qnext;
@@ -377,9 +377,9 @@ static void send_to_udp_dest(ssize_t nread, const uv_buf_t *buf,
 /* worker thread function to send packet with TLS */
 static void send_to_tls_dest(uv_work_t *req)
 {
-    gnutls_send_req_t *w = (gnutls_send_req_t *)req->data;
+    send_to_tls_req_t *w = req->data;
     dest_t *d            = w->dest;
-    int rc;
+    ssize_t rc;
 
 resend:
     if (d->state != TCPACTIVE || !d->my_tls_session) {
@@ -396,18 +396,18 @@ resend:
         goto resend;
 
     if (rc < 0) { /* something went wrong */
-        ERROR("gnutls_record_send(%s): rc = %d (%s)\n", d->fqdn, rc,
+        ERROR("gnutls_record_send(%s): rc = %ld (%s)\n", d->fqdn, rc,
               gnutls_strerror(rc));
         free_dest(d);
     } else if (rc != w->len) { /* something went wrong */
-        ERROR("gnutls_record_send(%s): short write %d, expected %ld\n", d->fqdn,
-              rc, w->len);
+        ERROR("gnutls_record_send(%s): short write %ld, expected %lu\n",
+              d->fqdn, rc, w->len);
     }
 }
 
 static void _send_to_tls_done(uv_work_t *req, int status)
 {
-    gnutls_send_req_t *w = (gnutls_send_req_t *)req->data;
+    send_to_tls_req_t *w = req->data;
     dest_t *d            = w->dest;
 
     uv_mutex_lock(&d->tls_send_mutex);
@@ -420,7 +420,7 @@ static void _send_to_tls_done(uv_work_t *req, int status)
 
     /* if there is stuff queued, fire off the next job */
     if (d->tls_send_queue != NULL) {
-        gnutls_send_req_t *w = d->tls_send_queue;
+        send_to_tls_req_t *w = d->tls_send_queue;
         uv_queue_work(codatunnel_main_loop, &w->req, send_to_tls_dest,
                       _send_to_tls_done);
     }
@@ -452,7 +452,7 @@ static void send_to_tcp_dest(dest_t *d, ssize_t nread, const uv_buf_t *buf)
 
     /* Do gnutls operations on separate thread to avoid blocking
      * due to TLS */
-    gnutls_send_req_t *w = malloc(sizeof(gnutls_send_req_t));
+    send_to_tls_req_t *w = malloc(sizeof(send_to_tls_req_t));
     w->dest              = d;
     w->buf               = uv_buf_init(buf->base, buf->len);
     w->len               = nread;
@@ -460,7 +460,7 @@ static void send_to_tcp_dest(dest_t *d, ssize_t nread, const uv_buf_t *buf)
     w->qnext             = NULL;
 
     uv_mutex_lock(&d->tls_send_mutex);
-    gnutls_send_req_t **q = (gnutls_send_req_t **)&d->tls_send_queue;
+    send_to_tls_req_t **q = (send_to_tls_req_t **)&d->tls_send_queue;
 
     if (*q == NULL) /* if there was nothing queued, kick off a worker */
         uv_queue_work(codatunnel_main_loop, &w->req, send_to_tls_dest,
