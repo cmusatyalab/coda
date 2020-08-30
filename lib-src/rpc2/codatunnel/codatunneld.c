@@ -1197,6 +1197,15 @@ unlock_out:
     uv_rwlock_wrunlock(&credential_load_lock);
 }
 
+static void reload_signal_handler(uv_signal_t *handle, int signum)
+{
+    printf("codatunneld: reloading x509 certificates\n");
+    fflush(stdout);
+
+    gnutls_certificate_credentials_t *sc = handle->data;
+    cert_reload_credentials(sc);
+}
+
 #define CERT_POLL_INTERVAL 30000 /* check server.crt every 30 seconds */
 static void server_cert_poll_cb(uv_fs_poll_t *handle, int status,
                                 const uv_stat_t *prev, const uv_stat_t *curr)
@@ -1269,6 +1278,12 @@ void codatunneld(int codatunnel_sockfd, const char *tcp_bindaddr,
     /* GNUTLS is done, proceed to set up libuv */
 
     codatunnel_main_loop = uv_default_loop();
+
+    /* SIGHUP handler to reload certificates in /etc/coda/ssl */
+    uv_signal_t reload_signal;
+    uv_signal_init(codatunnel_main_loop, &reload_signal);
+    reload_signal.data = &x509_cred;
+    uv_signal_start(&reload_signal, reload_signal_handler, SIGHUP);
 
     /* setup poll handler to check for changes to /etc/coda/ssl/server.crt */
     uv_fs_poll_t server_cert_poll;
@@ -1349,6 +1364,8 @@ void codatunneld(int codatunnel_sockfd, const char *tcp_bindaddr,
 
     /* cleanup any remaining open handles */
     uv_fs_poll_stop(&server_cert_poll);
+    uv_signal_stop(&reload_signal);
+
     uv_walk(codatunnel_main_loop, (uv_walk_cb)uv_close, NULL);
     uv_run(codatunnel_main_loop, UV_RUN_DEFAULT);
     uv_loop_close(codatunnel_main_loop);
