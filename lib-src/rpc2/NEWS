@@ -1,3 +1,12 @@
+New in 2.32
+
+* Avoid tearing down libuv tunnels from worker threads, now signalling the
+  mainloop to do it for us.
+* Fix memory leak when firing off the gnutls_record_recv worker thread.
+* Update Coda CA certificate.
+* Re-introduce SIGHUP handler in codatunneld to reload certificates because
+  that is the easiest way to force a reload on Coda clients.
+
 New in 2.31
 
 * Validate received header magic after gnutls_record_receive so we drop
