@@ -12,6 +12,9 @@
 #
 #
 # coda-make-certs - Generate X509 certificates for Coda realms and servers
+#
+# depends on pyyaml for parsing the config file and certtool from gnutls-bin
+# to perform the actual X509 related operations.
 
 import argparse
 from contextlib import closing
@@ -81,7 +84,7 @@ logging.basicConfig(
 )
 if args.dry_run:
     def dry_runner(args, stderr=None):
-        logging.info(">>> " + " ".join(str(arg) for arg in args))
+        print(" ".join(str(arg) for arg in args))
     subprocess.run = dry_runner
 
 
@@ -279,9 +282,9 @@ def generate_privkey(key):
         ], stderr=subprocess.DEVNULL)
 
 
-def generate_signrequest(realm):
-    logging.info("generating {}".format(realm.csr))
+def generate_realmcerts(realm):
     with realm.template() as template:
+        logging.info("generating {}".format(realm.csr))
         subprocess.run([
             "certtool", "--generate-request",
             "--template", template.name,
@@ -289,20 +292,18 @@ def generate_signrequest(realm):
             "--outfile", realm.csr
         ], stderr=subprocess.DEVNULL)
 
-def generate_selfsigned(realm):
-    if not realm.crt.exists():
-        logging.info("generating self-signed {}".format(realm.crt))
-        with realm.template() as template:
+        if not realm.crt.exists():
+            logging.info("generating self-signed {}".format(realm.crt))
             subprocess.run([
                 "certtool", "--generate-self-signed",
                 "--template", template.name,
                 "--load-privkey", realm.key,
                 "--outfile", realm.crt
             ], stderr=subprocess.DEVNULL)
-    else:
-        logging.info("not replacing existing {} with self-signed certificate".format(realm.crt))
+        else:
+            logging.info("not replacing existing {} with self-signed certificate".format(realm.crt))
 
-def generate_certificate(realm, server):
+def generate_servercert(realm, server):
     logging.info("generating {}".format(server.crt))
     with server.template() as template:
         subprocess.run([
@@ -314,8 +315,11 @@ def generate_certificate(realm, server):
             "--outfile", server.crt
         ], stderr=subprocess.DEVNULL)
     # append realm certificate to server certificate
-    with server.crt.open("a") as f:
-        f.write(realm.crt.read_text())
+    if not args.dry_run:
+        with server.crt.open("a") as f:
+            f.write(realm.crt.read_text())
+    else:
+        print("cat {} >> {}".format(realm.crt, server.crt))
 
 
 def main():
@@ -333,16 +337,17 @@ def main():
     if not args.dry_run:
         REALMDIR.mkdir(mode=0o700, exist_ok=True)
         SERVERDIR.mkdir(mode=0o700, exist_ok=True)
+    else:
+        print("mkdir -p {} {}".format(REALMDIR, SERVERDIR))
 
     ## create keys and certificates
     for realm in realms:
         generate_privkey(realm.key)
-        generate_signrequest(realm)
-        generate_selfsigned(realm)
+        generate_realmcerts(realm)
 
         for server in realm:
             generate_privkey(server.key)
-            generate_certificate(realm, server);
+            generate_servercert(realm, server);
 
     ## and copy to servers
     if args.scp:
