@@ -12,7 +12,6 @@ endif
 if BUILD_SERVER
 sbin_SCRIPTS += bldvldb.sh createvol_rep purgevol_rep startserver vice-setup \
 		vice-setup-rvm
-dist_bin_SCRIPTS += coda_make_realm_certs
 dist_sbin_SCRIPTS += codastart coda-server-logrotate \
 		     partial-reinit.sh vice-killvolumes vice-setup-scm \
 		     vice-setup-srvdir vice-setup-user

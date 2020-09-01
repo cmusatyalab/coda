@@ -6,6 +6,10 @@ dist_noinst_SCRIPTS = make-split-dist.sh maketags pkg-bsd.sh \
 certificatedir = $(sysconfdir)/ssl
 dist_certificate_DATA = Coda_CA.crt
 
+if HAVE_PYTHON
+bin_SCRIPTS = coda-make-certs
+endif
+
 if HAVE_SYSTEMD
 dist_modulesload_DATA =
 systemdsystemunit_DATA =
