@@ -215,7 +215,9 @@ void drain_outbound_queues(dest_t *d)
         cur        = next;
         next       = cur->qnext;
         cur->qnext = NULL;
-        _send_to_tls_done(&cur->req, UV_ECANCELED);
+
+        free(cur->buf.base);
+        free(cur);
     }
     uv_mutex_unlock(&d->tls_send_mutex);
 
