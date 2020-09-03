@@ -268,6 +268,21 @@ esac
 echo "$hn" > "$vicedir/hostname"
 
 #
+# Check whether codatunnel should be enabled (Satya, 2019-12-27)
+#
+yesno=""
+while [ "$yesno" = "" ]; do
+    echon "Would you like codatunnel enabled? [yes/no] "
+    read -r yesno
+
+    case "$(echo "$yesno" | tr '[:upper:]' '[:lower:]')" in
+    y|yes) "@sbindir@/codaconfedit" server.conf codatunnel 1 ;;
+    n|no)  "@sbindir@/codaconfedit" server.conf codatunnel 0 ;;
+    *) yesno="" ; echo "Please answer yes or no." ;;
+    esac
+done
+
+#
 # end of common setup area, now specialize to scm or non scm
 #
 if [ "$isscm" = Y ]; then
