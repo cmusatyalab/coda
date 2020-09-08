@@ -1,3 +1,7 @@
+New in 2.33
+
+* Fix occasional deadlock on while tearing down a tunnel.
+
 New in 2.32
 
 * Avoid tearing down libuv tunnels from worker threads, now signalling the
