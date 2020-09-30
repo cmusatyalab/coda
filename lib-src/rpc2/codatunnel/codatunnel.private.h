@@ -64,7 +64,8 @@ void codatunneld(int codatunnel_sockfd, const char *tcp_bindaddr,
 typedef struct codatunnel_packet {
     char magic[8];
     uint32_t is_retry; /* 1 if this is a resend, 0 otherwise */
-    uint32_t is_init1; /* 1 if this is an Init1 opcode,0 otherwise */
+    uint32_t
+        is_init0; /* 1 if this packet identifies peer hostname, 0 otherwise */
     uint32_t msglen; /* actual number of bytes in the packet */
     uint32_t addrlen; /* verbatim from sendto() or recvfrom () */
     struct sockaddr_storage addr; /* verbatim from sendto() or recvfrom () */
@@ -104,7 +105,7 @@ typedef struct {
 typedef struct remotedest {
     struct sockaddr_storage destaddr;
     socklen_t destlen;
-    char fqdn[NI_MAXHOST]; /* obtained via getnameinfo() from destaddr */
+    const char *fqdn; /* passed by INIT0 packet on client, NULL on server */
 
     enum deststate state; /* All destinations are assumed to be capable of
                              becoming TCPACTIVE; Setting TCPACTIVE should be a
@@ -112,10 +113,9 @@ typedef struct remotedest {
                              set before that happens, to avoid race conditions */
     char certvalidation_failed; /* when certificate validation fails we
                                    suppress UDP, but will retry TLS connections
-                                   for INIT1 packets*/
+                                   for INIT0 packets*/
 
     uv_tcp_t *tcphandle; /* only valid if state is TCPACTIVE or TLSHANDSHAKE */
-    int packets_sent; /* for help with INIT1 retries */
 
     gnutls_session_t my_tls_session;
 
@@ -162,7 +162,8 @@ void outbound_worker_cb(uv_async_t *async);
 /* Stuff for destination management */
 void initdestarray();
 dest_t *getdest(const struct sockaddr_storage *, socklen_t);
-dest_t *createdest(const struct sockaddr_storage *, socklen_t);
+dest_t *createdest(const struct sockaddr_storage *, socklen_t,
+                   const char *peername);
 void free_dest(dest_t *d);
 
 /* Procedures to add and remove buffered data from a dest.

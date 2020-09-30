@@ -110,6 +110,19 @@ int codatunnel_socket()
     return codatunnel_vside_sockfd; /* already created by socketpair () */
 }
 
+void codatunnel_init0(const struct sockaddr *addr, socklen_t addrlen,
+                      const char *peername)
+{
+    if (codatunnel_enable_codatunnel) {
+        if (!peername)
+            peername = "";
+
+        codatunnel_sendto(codatunnel_vside_sockfd, peername,
+                          strlen(peername) + 1, CODATUNNEL_ISINIT0_HINT, addr,
+                          addrlen);
+    }
+}
+
 ssize_t codatunnel_sendto(int sockfd, const void *buf, size_t len, int flags,
                           const struct sockaddr *addr, socklen_t addrlen)
 {
@@ -131,7 +144,7 @@ ssize_t codatunnel_sendto(int sockfd, const void *buf, size_t len, int flags,
     memcpy(&p.addr, addr, addrlen);
     p.addrlen  = addrlen;
     p.is_retry = (flags & CODATUNNEL_ISRETRY_HINT) ? 1 : 0;
-    p.is_init1 = (flags & CODATUNNEL_ISINIT1_HINT) ? 1 : 0;
+    p.is_init0 = (flags & CODATUNNEL_ISINIT0_HINT) ? 1 : 0;
     p.msglen   = len;
 
     iov[0].iov_base = &p;
@@ -191,7 +204,7 @@ ssize_t codatunnel_recvfrom(int sockfd, void *buf, size_t len, int flags,
         return -1;
     }
 
-    DEBUG("is_retry = %u  is_init1 = %u  msglen = %u\n", p.is_retry, p.is_init1,
+    DEBUG("is_retry = %u  is_init0 = %u  msglen = %u\n", p.is_retry, p.is_init0,
           p.msglen);
     /* hexdump("ctp_t", &p, sizeof(ctp_t));
        hexdump("packet bytes", buf, ((len < 64) ? len : 64)); */

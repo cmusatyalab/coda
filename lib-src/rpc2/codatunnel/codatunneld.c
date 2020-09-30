@@ -57,6 +57,7 @@ Coda are listed in the file CREDITS.
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/param.h>
 #include <uv.h>
 #include <gnutls/gnutls.h>
 
@@ -185,12 +186,8 @@ static void minicb_tcp(uv_write_t *arg, int status)
 /* used to be tcp_send_req() */
 {
     minicb_tcp_req_t *req = (minicb_tcp_req_t *)arg;
-    dest_t *d             = req->dest;
 
     DEBUG("minicb_tcp(%p, %p, %d)\n", arg, arg->data, status);
-
-    if (status == 0)
-        d->packets_sent += req->msglen;
 
     req->write_status = status;
     uv_sem_post(&req->write_done);
@@ -253,8 +250,7 @@ static void recv_codatunnel_cb(uv_udp_t *codatunnel, ssize_t nread,
             uv_stop(codatunnel_main_loop);
             uv_close((uv_handle_t *)codatunnel, NULL);
         }
-        free(buf->base);
-        return;
+        goto exit_drop;
     }
     empties = 0;
 
@@ -263,13 +259,11 @@ static void recv_codatunnel_cb(uv_udp_t *codatunnel, ssize_t nread,
         /* if we close the socketpair endpoint, we might just as well stop */
         uv_stop(codatunnel_main_loop);
         uv_close((uv_handle_t *)codatunnel, NULL);
-        free(buf->base);
-        return;
+        goto exit_drop;
     }
     if (nread < sizeof(ctp_t)) {
         DEBUG("short packet received from codatunnel\n");
-        free(buf->base);
-        return;
+        goto exit_drop;
     }
 
     /* We have a legit packet; it was already been read into buf before this
@@ -279,18 +273,27 @@ static void recv_codatunnel_cb(uv_udp_t *codatunnel, ssize_t nread,
 
     if (nread != (sizeof(ctp_t) + p->msglen)) {
         DEBUG("incomplete packet received from codatunnel\n");
-        free(buf->base);
-        return;
+        goto exit_drop;
     }
 
     dest_t *d = getdest(&p->addr, p->addrlen);
 
     /* Try to establish a new TCP connection for future use;
-     * do this only once per INIT1 (avoiding retries) to avoid TCP SYN flood;
+     * do this only once per INIT0 to avoid TCP SYN flood;
      * Only clients should attempt this, because of NAT firewalls */
-    if (p->is_init1 && !p->is_retry && !codatunnel_I_am_server) {
-        if (!d) /* new destination */
-            d = createdest(&p->addr, p->addrlen);
+    if (p->is_init0 && !codatunnel_I_am_server) {
+        const char *msgbody = buf->base + sizeof(ctp_t);
+        if (!d) { /* new destination */
+            const char *peername = strndup(msgbody, p->msglen);
+
+            DEBUG("createdest(%s)\n", peername ? peername : "<undefined>");
+            d = createdest(&p->addr, p->addrlen, peername);
+        }
+        /* make sure we're still validating the right peer name? */
+        else if (!d->fqdn || strncmp(d->fqdn, msgbody, p->msglen) != 0) {
+            ERROR("INIT0 hostname mismatch on remotedest %s\n",
+                  d->fqdn ? d->fqdn : "<undefined>");
+        }
 
         if (d->state == ALLOCATED) {
             d->state = TCPATTEMPTING;
@@ -298,12 +301,17 @@ static void recv_codatunnel_cb(uv_udp_t *codatunnel, ssize_t nread,
         }
     }
 
+    /* we never actually send an INIT0 across the wire, it is just to notify
+     * codatunneld of our intended destination.. */
+    if (p->is_init0)
+        goto exit_drop;
+
     /* what do we do with packet p for destination d? */
 
     if (d && (d->state == TCPACTIVE)) {
         /* Changed this to always send retries so we get RPC2_BUSY as a keep
          * alive on long running operations -JH */
-        if (0) { // p->is_retry && (d->packets_sent > 0)) {
+        if (0) { // p->is_retry) {
             /* drop retry packet;
                only exception is when nothing has yet been sent on new TCP
                connection; the state may have become TCPACTIVE after most
@@ -313,10 +321,11 @@ static void recv_codatunnel_cb(uv_udp_t *codatunnel, ssize_t nread,
                retries will be dropped;  no harm if earlier retries got through
                (Satya, 1/20/2018)
             */
-            free(buf->base);
+            goto exit_drop;
         } else {
             send_to_tcp_dest(d, nread, buf);
             /* free buf in cascaded cb */
+            return;
         }
     }
     /* Possibile states for destination d: ALLOCATED, TCPATTEMPTING, and
@@ -335,8 +344,11 @@ static void recv_codatunnel_cb(uv_udp_t *codatunnel, ssize_t nread,
     else if (!codatunnel_onlytcp && !(d && d->certvalidation_failed)) {
         send_to_udp_dest(nread, buf, addr, flags);
         /* free buf only in cascaded cb */
-    } else
-        free(buf->base); /* packet dropped, no cascaded cb */
+        return;
+    }
+
+exit_drop:
+    free(buf->base); /* packet dropped, no cascaded cb */
 }
 
 static void send_to_udp_dest(ssize_t nread, const uv_buf_t *buf,
@@ -414,11 +426,11 @@ resend:
 
     /* something went wrong */
     if (rc < 0) {
-        ERROR("gnutls_record_send(%s): rc = %ld (%s)\n", d->fqdn, rc,
-              gnutls_strerror(rc));
+        ERROR("gnutls_record_send(%s): rc = %ld (%s)\n", d->fqdn ? d->fqdn : "",
+              rc, gnutls_strerror(rc));
     } else if (rc != w->len) {
         ERROR("gnutls_record_send(%s): short write %ld, expected %lu\n",
-              d->fqdn, rc, w->len);
+              d->fqdn ? d->fqdn : "", rc, w->len);
     }
     async_free_dest(d);
 }
@@ -451,13 +463,13 @@ static void send_to_tcp_dest(dest_t *d, ssize_t nread, const uv_buf_t *buf)
 {
     DEBUG("send_to_tcp_dest(%p, %ld, %p)\n", d, nread, buf);
 
-    /* Convert ctp_d fields to network order, before encryption */
+    /* Convert ctp_t fields to network order, before encryption */
     ctp_t *p = (ctp_t *)buf->base;
-    DEBUG("is_retry = %u  is_init1 = %u  msglen = %u\n", p->is_retry,
-          p->is_init1, p->msglen);
+    DEBUG("is_retry = %u  msglen = %u\n", p->is_retry, p->msglen);
+    assert(p->is_init0 == 0);
 
+    p->is_init0 = 0;
     p->is_retry = htonl(p->is_retry);
-    p->is_init1 = htonl(p->is_init1);
     p->msglen   = htonl(p->msglen);
     /* ignoring addr and addrlen; will be clobbered by dest_t->destaddr and
      * dest_t->destlen on the other side of the tunnel */
@@ -605,22 +617,22 @@ static void setuptls(uv_work_t *w)
     uv_rwlock_rdlock(&credential_load_lock);
 
     /* local TLS setup errors, fall back on UDP connection */
-#define GNUTLSERROR(op, retcode)                                       \
-    {                                                                  \
-        ERROR("%s(%s) --> %d (%s)\n", op, d->fqdn, retcode,            \
-              gnutls_strerror(retcode));                               \
-        if (d->state != TCPCLOSING) {                                  \
-            if (certverify == IGNORE) {                                \
-                async_free_dest(d);                                    \
-            } else {                                                   \
-                d->state = ALLOCATED;                                  \
-                uv_read_stop((uv_stream_t *)d->tcphandle);             \
-                uv_close((uv_handle_t *)d->tcphandle, free_tcphandle); \
-                d->tcphandle = NULL;                                   \
-            }                                                          \
-        }                                                              \
-        uv_rwlock_rdunlock(&credential_load_lock);                     \
-        return;                                                        \
+#define GNUTLSERROR(op, retcode)                                           \
+    {                                                                      \
+        ERROR("%s(%s) --> %d (%s)\n", op, d->fqdn ? d->fqdn : "", retcode, \
+              gnutls_strerror(retcode));                                   \
+        if (d->state != TCPCLOSING) {                                      \
+            if (certverify == IGNORE) {                                    \
+                async_free_dest(d);                                        \
+            } else {                                                       \
+                d->state = ALLOCATED;                                      \
+                uv_read_stop((uv_stream_t *)d->tcphandle);                 \
+                uv_close((uv_handle_t *)d->tcphandle, free_tcphandle);     \
+                d->tcphandle = NULL;                                       \
+            }                                                              \
+        }                                                                  \
+        uv_rwlock_rdunlock(&credential_load_lock);                         \
+        return;                                                            \
     }
 
     rc = gnutls_init(&d->my_tls_session, tlsflags);
@@ -645,10 +657,11 @@ static void setuptls(uv_work_t *w)
         GNUTLSERROR("gnutls_credentials_set", rc);
     DEBUG("gnutls_credentials_set() successful\n");
 
-    if (certverify == IGNORE) { /* don't bother checking client identity */
+    if (certverify == IGNORE ||
+        d->fqdn == NULL) { /* don't bother checking peer identity */
         gnutls_certificate_server_set_request(d->my_tls_session,
                                               GNUTLS_CERT_IGNORE);
-    } else { /* I am a server; verify peer identify */
+    } else { /* I am a client; verify server identify */
 #if GNUTLS_VERSION_NUMBER >= 0x030406
         gnutls_session_set_verify_cert(d->my_tls_session, d->fqdn, 0);
 #else
@@ -662,7 +675,7 @@ static void setuptls(uv_work_t *w)
      * suspicious, so we should probably not fall back on UDP on errors */
 
     /* Everything has been setup; do the TLS handshake */
-    DEBUG("About to do gnutls_handshake(%s)\n", d->fqdn);
+    DEBUG("About to do gnutls_handshake(%s)\n", d->fqdn ? d->fqdn : "");
 eagain:
     rc = gnutls_handshake(d->my_tls_session);
 
@@ -670,7 +683,7 @@ eagain:
     /* || rc == GNUTLS_E_WARNING_ALERT_RECEIVED */
     {
         DEBUG("gnutls_handshake(%s) got non-fatal error, trying again\n",
-              d->fqdn);
+              d->fqdn ? d->fqdn : "");
         goto eagain;
     }
 
@@ -687,7 +700,7 @@ eagain:
         GNUTLSERROR("gnutls_handshake", rc);
 #undef GNUTLSERROR
 
-    DEBUG("gnutls_handshake(%s) successful\n", d->fqdn);
+    DEBUG("gnutls_handshake(%s) successful\n", d->fqdn ? d->fqdn : "");
     d->certvalidation_failed = 0;
     d->state = TCPACTIVE; /* commit point for encrypted TCP tunnel */
     uv_rwlock_rdunlock(&credential_load_lock);
@@ -719,7 +732,6 @@ static void tcp_connect_cb(uv_connect_t *req, int status)
         (d->enqarray)[i].numbytes = 0;
     }
     d->decrypted_record = NULL;
-    d->packets_sent     = 0;
     d->state            = TLSHANDSHAKE;
 
     /* disable Nagle */
@@ -827,13 +839,14 @@ static void peeloff_and_decrypt(uv_work_t *w)
             break;
         }
         if (rc <= 0) { /* something went wrong */
-            ERROR("gnutls_record_recv(%s): rc = %ld (%s)\n", d->fqdn, rc,
-                  gnutls_strerror(rc));
+            ERROR("gnutls_record_recv(%s): rc = %ld (%s)\n",
+                  d->fqdn ? d->fqdn : "", rc, gnutls_strerror(rc));
             async_free_dest(d);
             break;
         }
         if (rc >= MAXRECEIVE) {
-            ERROR("Monster packet: gnutls_record_recv() --> %ld\n", rc);
+            ERROR("Monster packet: gnutls_record_recv(%s) --> %ld\n",
+                  d->fqdn ? d->fqdn : "", rc);
             async_free_dest(d);
             break;
         }
@@ -1016,7 +1029,7 @@ static void recv_udpsocket_cb(uv_udp_t *udpsocket, ssize_t nread,
     req->ctp.addrlen = sockaddr_len(addr);
     memcpy(&req->ctp.addr, addr, req->ctp.addrlen);
     req->ctp.msglen   = nread;
-    req->ctp.is_retry = req->ctp.is_init1 = 0;
+    req->ctp.is_retry = req->ctp.is_init0 = 0;
     strncpy(req->ctp.magic, "magic01", 8);
 
     /* move buffer from reader to writer */
@@ -1078,7 +1091,7 @@ static void tcp_newconnection_cb(uv_stream_t *bindhandle, int status)
 
     d = getdest(&peeraddr, peerlen);
     if (!d) { /* new destination */
-        d = createdest(&peeraddr, peerlen);
+        d = createdest(&peeraddr, peerlen, NULL);
     }
 
     /* Bind this TCP handle and dest */

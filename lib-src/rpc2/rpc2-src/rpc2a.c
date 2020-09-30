@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 7
+                              Release 8
 
-          Copyright (c) 1987-2019 Carnegie Mellon University
+          Copyright (c) 1987-2020 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -53,6 +53,8 @@ Pittsburgh, PA.
 #include <rpc2/rpc2.h>
 #include <rpc2/se.h>
 #include <rpc2/secure.h>
+
+#include <codatunnel/wrapper.h>
 
 #include "cbuf.h"
 #include "rpc2.private.h"
@@ -707,6 +709,36 @@ QuitMRPC: /* finalrc has been correctly set by now */
     rpc2_Quit(finalrc);
 }
 
+static void rpc2_SendInit0(struct RPC2_addrinfo *addr, RPC2_HostIdent *Host)
+{
+    const char *peername;
+    char peerbuf[NI_MAXHOST];
+    switch (Host->Tag) {
+    case RPC2_HOSTBYNAME:
+        peername = Host->Value.Name;
+        break;
+    case RPC2_HOSTBYINETADDR:
+        inet_ntop(AF_INET, &Host->Value.InetAddress, peerbuf,
+                  sizeof(peerbuf) - 1);
+        peername = peerbuf;
+        break;
+    case RPC2_HOSTBYADDRINFO:
+        if (Host->Value.AddrInfo->ai_canonname) {
+            peername = Host->Value.AddrInfo->ai_canonname;
+        } else {
+            inet_ntop(Host->Value.AddrInfo->ai_family,
+                      Host->Value.AddrInfo->ai_addr, peerbuf,
+                      sizeof(peerbuf) - 1);
+            peername = peerbuf;
+        }
+        break;
+    default:
+        peername = NULL;
+    }
+
+    codatunnel_init0(addr->ai_addr, addr->ai_addrlen, peername);
+}
+
 long RPC2_NewBinding(IN RPC2_HostIdent *Host, IN RPC2_PortIdent *Port,
                      IN RPC2_SubsysIdent *Subsys, IN RPC2_BindParms *Bparms,
                      IN RPC2_Handle *ConnHandle)
@@ -776,6 +808,9 @@ try_next_addr:
     addr          = peeraddrs;
     peeraddrs     = addr->ai_next;
     addr->ai_next = NULL;
+
+    /* signal codatunneld that we want to set up a new connection */
+    rpc2_SendInit0(addr, Host);
 
     /* Step 1: Obtain and initialize a new connection */
     ce          = rpc2_AllocConn(addr);

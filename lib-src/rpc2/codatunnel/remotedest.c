@@ -38,12 +38,11 @@ static void cleardest(dest_t *d)
     int i;
 
     memset(&d->destaddr, 0, sizeof(struct sockaddr_storage));
-    d->destlen = 0;
-    memset(&d->fqdn, 0, NI_MAXHOST);
+    d->destlen               = 0;
+    d->fqdn                  = NULL;
     d->state                 = FREE;
     d->certvalidation_failed = 0;
     d->tcphandle             = NULL;
-    d->packets_sent          = 0;
     d->my_tls_session        = NULL;
     d->uvcount               = 0;
     d->uvoffset              = 0;
@@ -130,15 +129,15 @@ dest_t *getdest(const struct sockaddr_storage *x, socklen_t xlen)
     return NULL; /* dest not found */
 }
 
-dest_t *createdest(const struct sockaddr_storage *x, socklen_t xlen)
+dest_t *createdest(const struct sockaddr_storage *x, socklen_t xlen,
+                   const char *peername)
 {
     /* assumes that x refers to a destination that doesn't
        already exist in destarray[];
        creates a new entry for x and returns pointer to it
        xlen says how many bytes of *x to use in comparisons
-       Returns NULL if fqdn of x cannot be obtained
     */
-    int i, rc;
+    int i;
 
     for (i = 0; i < hilimit; i++) {
         if (destarray[i].state == FREE)
@@ -157,14 +156,8 @@ dest_t *createdest(const struct sockaddr_storage *x, socklen_t xlen)
     d->state = ALLOCATED;
     memcpy(&d->destaddr, x, xlen);
     d->destlen = xlen;
+    d->fqdn    = peername;
 
-    /* get fqdn of desired destination, for use in GNUTLS certificate check */
-    rc = getnameinfo((struct sockaddr *)x, xlen, d->fqdn, sizeof(d->fqdn), NULL,
-                     0, NI_NAMEREQD);
-    if (rc) { /* something went wrong */
-        fprintf(stderr, "getnameinfo() --> %d (%s)\n", rc, gai_strerror(rc));
-        d->fqdn[0] = '\0';
-    }
     return d;
 }
 
@@ -180,6 +173,7 @@ static void _free_dest_cb(uv_handle_t *handle)
         free(d->decrypted_record);
     d->decrypted_record = NULL;
     free(d->tcphandle);
+    free((void *)d->fqdn);
     cleardest(d); /* make slot FREE again */
 }
 

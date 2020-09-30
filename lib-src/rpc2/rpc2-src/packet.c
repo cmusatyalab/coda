@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
 			Coda File System
-			    Release 7
+			    Release 8
 
-	    Copyright (c) 1987-2019 Carnegie Mellon University
+	    Copyright (c) 1987-2020 Carnegie Mellon University
 		Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -53,7 +53,7 @@ Pittsburgh, PA.
 #include <rpc2/secure.h>
 
 #include "cbuf.h"
-#include "codatunnel/wrapper.h" /* for CODATUNNEL_{ISRETRY,INIT1}_HINT */
+#include "codatunnel/wrapper.h" /* for CODATUNNEL_ISRETRY_HINT */
 #include "rpc2.private.h"
 #include "trace.h"
 
@@ -182,14 +182,6 @@ void rpc2_XmitPacket(RPC2_PacketBuffer *pb, struct RPC2_addrinfo *addr,
         */
         if (ntohl(pb->Header.Flags) & RPC2_RETRY)
             flags |= CODATUNNEL_ISRETRY_HINT;
-
-        /* Now test if INIT1 flag should be set */
-        int thisop = ntohl(pb->Header.Opcode);
-
-        if ((thisop == RPC2_INIT1OPENKIMONO) ||
-            (thisop == RPC2_INIT1AUTHONLY) ||
-            (thisop == RPC2_INIT1HEADERSONLY) || (thisop == RPC2_INIT1SECURE))
-            flags |= CODATUNNEL_ISINIT1_HINT;
     }
 
     n = secure_sendto(whichSocket, &pb->Header, pb->Prefix.LengthOfPacket,

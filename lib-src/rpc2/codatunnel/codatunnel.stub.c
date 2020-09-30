@@ -36,6 +36,11 @@ int codatunnel_socket()
     return -1;
 }
 
+void codatunnel_init0(const struct sockaddr *addr, socklen_t addrlen,
+                      const char *peername)
+{
+}
+
 ssize_t codatunnel_sendto(int sockfd, const void *buf, size_t len, int flags,
                           const struct sockaddr *addr, socklen_t addrlen)
 {
