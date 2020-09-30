@@ -537,7 +537,7 @@ static ssize_t vec_push_func(gnutls_transport_ptr_t gtp, const giovec_t *iov,
     uv_mutex_unlock(&d->outbound_mutex);
 
     /* kick off sender */
-    DEBUG("waking outbound_worker %p\n", &d->outbound_worker);
+    DEBUG("waking outbound_worker\n");
     uv_async_send(&d->wakeup);
     uv_sem_wait(&mtr.write_done);
 
@@ -824,7 +824,7 @@ static void peeloff_and_decrypt(uv_work_t *w)
         DEBUG("About to call gnutls_record_recv()\n");
         ssize_t rc = gnutls_record_recv(d->my_tls_session, d->decrypted_record,
                                         MAXRECEIVE);
-        DEBUG("Just returned from gnutls_record_recv(), rc = %d\n", rc);
+        DEBUG("Just returned from gnutls_record_recv(), rc = %ld\n", rc);
 
         if (rc == GNUTLS_E_INTERRUPTED) {
             DEBUG("gnutls_record_recv() --> GNUTLS_E_INTERRUPTED\n");
@@ -855,7 +855,7 @@ static void peeloff_and_decrypt(uv_work_t *w)
            Hand it off to codasrv/Venus;
            Then carry on with this loop */
 
-        DEBUG("Yay!  we have a complete gnutls record of length %d\n", rc);
+        DEBUG("Yay!  we have a complete gnutls record of length %ld\n", rc);
 
         ctp_t *packet = (ctp_t *)d->decrypted_record;
         if (rc < sizeof(ctp_t) || strncmp(packet->magic, "magic01", 8) != 0) {
