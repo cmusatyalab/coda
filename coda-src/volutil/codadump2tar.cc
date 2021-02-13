@@ -161,7 +161,7 @@ VolumeDiskData ThisVDD; /* info pertaining to entire volume */
 
 /* Array of all directory vnodes */
 DumpObject **LVNlist; /* malloc'ed when no. of large vnodes known */
-int LVNfillcount; /* no of entries filled in LVNlist */
+unsigned int LVNfillcount; /* no of entries filled in LVNlist */
 
 /* TarObj is used to create and write out tar records */
 TarRecd TarObj;
@@ -193,9 +193,10 @@ void CreateHardLinkRecd(DumpObject *, int idx);
 
 int main(int argc, char **argv)
 {
-    int i, rc;
-    long vLargeCount, vLargeSize;
-    long vSmallCount, vSmallSize;
+    unsigned int vLargeCount, vLargeSize;
+    unsigned int vSmallCount, vSmallSize;
+    unsigned int i;
+    int rc;
 
     /* initialize globals */
     memset(DumpFileName, 0, sizeof(DumpFileName));
@@ -238,7 +239,7 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
     if (DEBUG_HEAVY) {
-        fprintf(stderr, "vLargeCount = %ld    vLargeSize = %ld\n", vLargeCount,
+        fprintf(stderr, "vLargeCount = %u    vLargeSize = %u\n", vLargeCount,
                 vLargeSize);
     }
 
@@ -288,7 +289,7 @@ int main(int argc, char **argv)
 
     DStream->getVnodeIndex(vSmall, &vSmallCount, &vSmallSize);
     if (DEBUG_HEAVY) {
-        fprintf(stderr, "vSmallCount = %ld    vSmallSize = %ld\n", vSmallCount,
+        fprintf(stderr, "vSmallCount = %u    vSmallSize = %u\n", vSmallCount,
                 vSmallSize);
     }
 
@@ -519,7 +520,7 @@ void CreateDirectories()
 {
     /* output tar commands to create skeleton of tree */
 
-    int lvn;
+    unsigned int lvn;
     DumpObject *thisd; /* object being handled now */
 
     /* Loop through directories, creating tar record for each */
@@ -567,7 +568,7 @@ static ssize_t CollectACLs(FILE *out)
         return -1;
     length += rc;
 
-    for (int lvn = 0; lvn < LVNfillcount; lvn++) {
+    for (unsigned int lvn = 0; lvn < LVNfillcount; lvn++) {
         DumpObject *thisd = LVNlist[lvn]; /* next dump object */
         CODA_ASSERT(thisd->isdir); /* sheer paranoia */
 

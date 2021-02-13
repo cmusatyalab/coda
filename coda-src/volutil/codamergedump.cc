@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -60,7 +60,7 @@ typedef struct entry {
 
 typedef struct {
     ventry **table;
-    long nvnodes, nslots;
+    unsigned int nvnodes, nslots;
 } vtable;
 
 int DumpFd = -1;
@@ -218,7 +218,7 @@ static void BuildTable(dumpstream *dump, vtable *table)
     table->table = (ventry **)malloc(sizeof(ventry *) * table->nslots);
     CODA_ASSERT(table->table != NULL);
     memset((void *)table->table, 0, sizeof(ventry *) * table->nslots);
-    for (int i = 0; i < table->nvnodes; i++) {
+    for (unsigned int i = 0; i < table->nvnodes; i++) {
         off_t offset;
         int deleted;
         if (dump->getNextVnode(vdo, &vnodeNumber, &deleted, &offset) == -1) {
@@ -253,7 +253,7 @@ static void ModifyTable(dumpstream *dump, VnodeClass vclass, vtable *Table)
 {
     char buf[SIZEOF_LARGEDISKVNODE];
     VnodeDiskObject *vdo = (VnodeDiskObject *)buf;
-    long nvnodes, nslots;
+    unsigned int nvnodes, nslots;
     VnodeId vnodeNumber;
 
     if (dump->getVnodeIndex(vclass, &nvnodes, &nslots) == -1)
@@ -277,7 +277,7 @@ static void ModifyTable(dumpstream *dump, VnodeClass vclass, vtable *Table)
     int deleted;
     off_t offset;
     while (dump->getNextVnode(vdo, &vnodeNumber, &deleted, &offset) != -1) {
-        int vnum = vnodeIdToBitNumber(vnodeNumber);
+        unsigned int vnum = vnodeIdToBitNumber(vnodeNumber);
         CODA_ASSERT(vnum >= 0);
         if (vnum > Table->nslots) {
             LogMsg(0, VolDebugLevel, stderr, "vnum %d > nslots %d!", vnum,
@@ -351,7 +351,7 @@ static void WriteTable(DumpBuffer_t *buf, vtable *table, VnodeClass vclass)
     DumpInt32(buf, 'v', table->nvnodes);
     DumpInt32(buf, 's', table->nslots);
 
-    for (int i = 0; i < table->nslots; i++) {
+    for (unsigned int i = 0; i < table->nslots; i++) {
         ventry *ptr = table->table[i];
         while (ptr) {
             long vnum = bitNumberToVnodeNumber(i, vclass);

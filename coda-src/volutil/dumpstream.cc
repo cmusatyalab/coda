@@ -435,7 +435,8 @@ int dumpstream::EndOfDump()
     return 0;
 }
 
-int dumpstream::getVnodeIndex(VnodeClass Type, long *nVnodes, long *listsize)
+int dumpstream::getVnodeIndex(VnodeClass Type, unsigned int *nVnodes,
+                              unsigned int *listsize)
 {
     signed char tag;
     /* Skip over whatever garbage exists on the stream (remains of last vnode) */
@@ -464,11 +465,11 @@ int dumpstream::getVnodeIndex(VnodeClass Type, long *nVnodes, long *listsize)
     while ((tag = fgetc(stream)) > D_MAX && tag != EOF) {
         switch (tag) {
         case 'v':
-            if (!GetInt32(stream, (unsigned int *)nVnodes))
+            if (!GetInt32(stream, nVnodes))
                 return -1;
             break;
         case 's':
-            if (!GetInt32(stream, (unsigned int *)listsize))
+            if (!GetInt32(stream, listsize))
                 return -1;
             break;
         default:
@@ -598,7 +599,7 @@ int dumpstream::readDirectory(PDirInode *dip)
 /*
  * fseek to offset and read in the Vnode there. Assume IndexType is set correctly.
  */
-int dumpstream::getVnode(int vnum, long unique, off_t offset,
+int dumpstream::getVnode(int vnum, int unique, off_t offset,
                          VnodeDiskObject *vdo)
 {
     LogMsg(10, VolDebugLevel, stdout,

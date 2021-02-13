@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -89,7 +89,7 @@ void OpenDumpFile(int largc, char **largv)
             printf("openDumpFile <num>\n");
             return;
         }
-        strncpy(filename, largv[1], MAXPATHLEN);
+        strncpy(filename, largv[1], MAXPATHLEN - 1);
     }
 
     strcpy(DefaultDumpFile, filename);
@@ -288,7 +288,7 @@ void setIndex(int largc, char **largv)
             printf("setIndex <size>\n");
             return;
         }
-        strncpy(vnodeType, largv[1], 10);
+        strncpy(vnodeType, largv[1], 9);
     }
 
     /* Case insensitize the input. */
@@ -321,7 +321,7 @@ void setIndex(int largc, char **largv)
     }
 
     /* Large index */
-    long nvnodes, nslots;
+    unsigned int nvnodes, nslots;
     if (DumpStream->getVnodeIndex(vLarge, &nvnodes, &nslots) == -1) {
         printf("Large Index header is not valid.\n");
         return;
@@ -333,14 +333,14 @@ void setIndex(int largc, char **largv)
         VnodeDiskObject *vnode = (VnodeDiskObject *)buf;
         VnodeId vn;
         off_t offset;
-        int del, count = 0;
+        int del;
+        unsigned int count = 0;
 
         while (DumpStream->getNextVnode(vnode, &vn, &del, &offset) != -1) {
             count++;
         }
 
-        CODA_ASSERT(nvnodes >=
-                    count); /* May have less if dump is incremental */
+        CODA_ASSERT(nvnodes >= count); /* less if dump is incremental */
 
         /* We should have read all the Large Vnodes now, get the small index */
         if (DumpStream->getVnodeIndex(vSmall, &nvnodes, &nslots) == -1) {
@@ -349,7 +349,7 @@ void setIndex(int largc, char **largv)
         }
     }
 
-    printf("There are %ld vnodes in %ld slots.\n", nvnodes, nslots);
+    printf("There are %u vnodes in %u slots.\n", nvnodes, nslots);
     return;
 }
 
@@ -460,7 +460,7 @@ int main(int argc, char **argv)
     }
 
     if (argc > 1) /* Use any argument as the default dumpfile. */
-        strncpy(DefaultDumpFile, argv[1], sizeof(DefaultDumpFile));
+        strncpy(DefaultDumpFile, argv[1], sizeof(DefaultDumpFile) - 1);
 
     strcpy(DefaultSize, "Large");
     Parser_init("dump> ", list);

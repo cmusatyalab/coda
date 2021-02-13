@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -52,9 +52,9 @@ public:
     int isopen(); /* 1 if dumpstream is open; 0 otherwise */
     int getDumpHeader(struct DumpHeader *);
     int getVolDiskData(VolumeDiskData *);
-    int getVnodeIndex(VnodeClass, long *, long *);
+    int getVnodeIndex(VnodeClass, unsigned int *, unsigned int *);
     int getNextVnode(VnodeDiskObject *, VnodeId *, int *, off_t *offset);
-    int getVnode(int vnum, long unique, off_t offset, VnodeDiskObject *vdo);
+    int getVnode(int vnum, int unique, off_t offset, VnodeDiskObject *vdo);
     int copyVnodeData(DumpBuffer_t *); /* Copy entire vnode into DumpFd*/
     int EndOfDump(); /* See if ENDDUMP is present */
     void setIndex(VnodeClass);
