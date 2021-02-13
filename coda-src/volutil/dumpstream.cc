@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -710,8 +710,20 @@ int dumpstream::getNextVnode(VnodeDiskObject *vdop, VnodeId *vnodeNumber,
             break;
         case 'A':
             CODA_ASSERT(vdop->type == vDirectory);
-            GetByteString(stream, (byte *)VVnodeDiskACL(vdop),
-                          VAclDiskSize(vdop));
+            {
+                int size = 384; /* VAclDiskSize on 64-bit systems */
+                GetByteString(stream, (byte *)VVnodeDiskACL(vdop), size);
+
+                /* if the dump came from a 32-bit system, there should be
+                 * 16 extra null-bytes... */
+                for (size = 0; size < 16; size++) {
+                    tag = fgetc(stream);
+                    if (tag != '\0') {
+                        ungetc(tag, stream);
+                        break;
+                    }
+                }
+            }
             break;
 
         default:

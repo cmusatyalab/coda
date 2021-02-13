@@ -58,11 +58,13 @@ codamergedump_LDADD = libdumpstuff.la \
 	      $(RPC2_LIBS)
 
 codadump2tar_LDADD = libdumpstuff.la \
+		     $(top_builddir)/coda-src/al/libal.la \
 		     $(top_builddir)/coda-src/vol/libvol.la \
 		     $(top_builddir)/coda-src/vv/libvv.la \
 		     $(top_builddir)/coda-src/dir/libcodadir.la \
 		     $(top_builddir)/coda-src/vicedep/libvicedep.la \
 		     $(top_builddir)/coda-src/util/libutil.la \
 		     $(top_builddir)/lib-src/base/libbase.la \
+		     $(top_builddir)/lib-src/rwcdb/librwcdb.la \
 		     $(RVM_RPC2_LIBS)
 

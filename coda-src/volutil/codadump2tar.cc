@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 7
+                              Release 8
 
-          Copyright (c) 2004-2019 Carnegie Mellon University
+          Copyright (c) 2004-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -45,6 +45,7 @@ extern "C" {
 #include <lwp/lwp.h>
 #include <lwp/lock.h>
 
+#include <pdb.h>
 #include "olist.h"
 #include "ohash.h"
 
@@ -92,12 +93,16 @@ public:
     unsigned int owner;
     unsigned int dir_mtime;
 
+    uint8_t ACL_PosEntries;
+    uint8_t ACL_NegEntries;
+    int ACL_Id[AL_MAXEXTENTRIES];
+    uint8_t ACL_Rights[AL_MAXEXTENTRIES];
+
     DumpObject(VnodeId, Unique_t);
     void AddParent(DumpObject *parent, const char *component);
     size_t GetFullPath(char *buf, size_t len, int idx = 0); /* full path */
     size_t GetComponent(char *buf, size_t len, int idx); /* last path element */
-    size_t GetPrefix(char *buf, size_t len,
-                     int idx); /* full path of our parent */
+    size_t GetPrefix(char *buf, size_t len, int idx); /* full path of parent */
 };
 
 /* tar record and associated routines */
@@ -138,7 +143,7 @@ FILE *TarFile = stdout; /* open file handle for output */
 
 /* from "-rn xxx" on command line; if not specified, uses
    volume name from dump */
-char *RootName;
+const char *RootName;
 
 int DebugLevel = 0; /* set by "-d xxx" command line switch */
 #define DEBUG_HEAVY (DebugLevel >= 10)
@@ -173,6 +178,7 @@ int ProcessDirectory();
 void DiscoverPathnames();
 void VerifyEverythingNamed();
 void CreateDirectories();
+static void DumpACLs();
 int ProcessFileOrSymlink();
 void ProcessHardLinks();
 
@@ -246,7 +252,9 @@ int main(int argc, char **argv)
     for (i = 0; i < vLargeCount; i++) {
         if (DEBUG_HEAVY)
             fprintf(stderr, "Starting directory #%i:\n", i);
+
         rc = ProcessDirectory();
+
         if (DEBUG_HEAVY)
             fprintf(stderr, "Ending directory #%i\n\n", i);
         if (rc == -1)
@@ -258,9 +266,9 @@ int main(int argc, char **argv)
         fprintf(stderr, "\n\n");
 
     /* At this point we should meet these conditions:
-     (a) DumpTable has one entry for every object in dump
-     (b) LVNlist has exactly one entry per directory
-  */
+     * (a) DumpTable has one entry for every object in dump
+     * (b) LVNlist has exactly one entry per directory
+     */
 
     if (DEBUG_HEAVY) {
         fprintf(stderr, "\n\n **** Large Vnodes ***\n\n");
@@ -286,6 +294,7 @@ int main(int argc, char **argv)
 
     if (DEBUG_LIGHT)
         fprintf(stderr, "Reading and processing small vnodes: ");
+
     for (i = 0; i < vSmallCount; i++) {
         if (DEBUG_HEAVY)
             fprintf(stderr, "Starting small vnode #%i:\n", i);
@@ -302,6 +311,16 @@ int main(int argc, char **argv)
 
     /* last step is to find hard links and output tar recds for them */
     ProcessHardLinks();
+
+    /* write meta file with acl data so we can recreate them */
+    {
+        const char *saved_rootname = RootName;
+        RootName = "."; /* ACL file stored in the root, keep paths relative */
+
+        DumpACLs();
+
+        RootName = saved_rootname;
+    }
 
     /* Success */
     delete DStream;
@@ -444,6 +463,34 @@ int ProcessDirectory()
     CurrentDir->owner     = (unsigned int)vdo->owner;
     CurrentDir->dir_mtime = (unsigned int)vdo->unixModifyTime;
 
+    /* extract ACL */
+    AL_AccessList *acl = VVnodeDiskACL(vdo);
+    /* VAclSize(vptr)
+     * = SIZEOF_LARGEVNODE - SIZEOF_SMALLVNODE
+     * = SIZEOF_LARGEDISKVNODE - sizeof(VnodeDiskObject)
+     * = 512 - [112 (32-bit) | 128 (64-bit)] */
+    int acl_size = VAclSize(NULL);
+
+    if (acl->Version == (int)ntohl(AL_ALISTVERSION))
+        AL_ntohAlist(acl);
+
+    if (acl->Version == AL_ALISTVERSION &&
+        acl->MySize >= (int)(5 * sizeof(int)) && acl->MySize <= acl_size &&
+        acl->MySize >= (int)(5 * sizeof(int) +
+                             acl->TotalNoOfEntries * sizeof(AL_AccessEntry)) &&
+        acl->TotalNoOfEntries >=
+            acl->PlusEntriesInUse + acl->MinusEntriesInUse) {
+        CurrentDir->ACL_PosEntries = acl->PlusEntriesInUse;
+        CurrentDir->ACL_NegEntries = acl->MinusEntriesInUse;
+        for (int i = 0; i < acl->PlusEntriesInUse + acl->MinusEntriesInUse;
+             i++) {
+            CurrentDir->ACL_Id[i]     = acl->ActualEntries[i].Id;
+            CurrentDir->ACL_Rights[i] = acl->ActualEntries[i].Rights;
+        }
+    } else
+        fprintf(stderr, "Ignoring unexpected acl (version %d / size %d)\n",
+                acl->Version, acl->MySize);
+
     /* add pointer to this object in list of large vnodes */
     LVNlist[LVNfillcount++] = CurrentDir;
 
@@ -488,11 +535,11 @@ void CreateDirectories()
         }
 
         /* Fill entries unique to this directory.
-       Use 0755 for all directories rather than vdo->modeBits because
-       many directories in /coda have bogus mode bits;  causes protection
-       failures when trying to create subdirectories via "tar xvf" of output
-       tarball in normal Unix systems.
-    */
+         *  Use 0755 for all directories rather than vdo->modeBits because
+         *  many directories in /coda have bogus mode bits;  causes protection
+         *  failures when trying to create subdirectories via "tar xvf" of output
+         *  tarball in normal Unix systems.
+         */
         TarObj.Reset();
         TarObj.tr_type  = DIRTYPE;
         TarObj.tr_mode  = 0755;
@@ -505,6 +552,109 @@ void CreateDirectories()
         TarObj.Format();
         TarObj.Output();
     }
+}
+
+static ssize_t CollectACLs(FILE *out)
+{
+    char buf[8194];
+    ssize_t length = 0;
+    int rc;
+
+    /* Loop through directories, if tarfile is not specified we are just trying
+     * to get an estimate of the final file size */
+    rc = snprintf(buf, sizeof(buf), "acls:\n");
+    if (rc == -1 || (out && fwrite(buf, rc, 1, out) == 0))
+        return -1;
+    length += rc;
+
+    for (int lvn = 0; lvn < LVNfillcount; lvn++) {
+        DumpObject *thisd = LVNlist[lvn]; /* next dump object */
+        CODA_ASSERT(thisd->isdir); /* sheer paranoia */
+
+        char path[CODA_MAXPATHLEN];
+        thisd->GetFullPath(path, CODA_MAXPATHLEN);
+
+        if (DEBUG_HEAVY)
+            fprintf(stderr, "[%d]: dumping ACLs for %s\n", lvn, path);
+
+        rc = snprintf(buf, sizeof(buf), "- path: \"%s\"\n  acl:\n", path);
+        if (rc == -1 || (out && fwrite(buf, rc, 1, out) == 0))
+            return -1;
+        length += rc;
+
+        int nacls = thisd->ACL_PosEntries + thisd->ACL_NegEntries;
+        for (int i = 0; i < nacls; i++) {
+            bool is_negative = i >= thisd->ACL_PosEntries;
+            int coda_id      = thisd->ACL_Id[i];
+            uint8_t rights   = thisd->ACL_Rights[i];
+
+            rc = snprintf(buf, sizeof(buf),
+                          "  - coda_id: %d\n"
+                          "    acl: \"%s%s%s%s%s%s%s%s\"\n",
+                          coda_id, is_negative ? "-" : "",
+                          rights & PRSFS_READ ? "r" : "",
+                          rights & PRSFS_LOOKUP ? "l" : "",
+                          rights & PRSFS_INSERT ? "i" : "",
+                          rights & PRSFS_DELETE ? "d" : "",
+                          rights & PRSFS_WRITE ? "w" : "",
+                          rights & PRSFS_LOCK ? "k" : "",
+                          rights & PRSFS_ADMINISTER ? "a" : "");
+            if (rc == -1 || (out && fwrite(buf, rc, 1, out) == 0))
+                return -1;
+            length += rc;
+
+#if 0 /* XXX need pdb database */
+            char *name = NULL;
+            PDB_lookupById(coda_id, &name);
+            if (name != NULL) {
+                rc = snprintf(buf, sizeof(buf), "    name: \"%s\"\n", name);
+                free(name);
+                if (rc == -1 || (out && fwrite(buf, rc, 1, out) == 0))
+                    return -1;
+                length += rc;
+            }
+#endif
+        }
+    }
+    if (out) {
+        /* pad to multiple of BLOCKSIZE (512) */
+        memset(buf, 0, BLOCKSIZE);
+        if (fwrite(buf, BLOCKSIZE - length % BLOCKSIZE, 1, out) == 0)
+            return -1;
+    }
+    return length;
+}
+
+static void DumpACLs()
+{
+    ssize_t length, rc;
+
+    /* First get an idea of the file size */
+    length = CollectACLs(NULL);
+    if (length < 0) {
+        fprintf(stderr, "Failed to collect ACLs\n");
+        return;
+    }
+    if (DEBUG_HEAVY)
+        fprintf(stderr, "CodaACLs.yaml size %ld\n", length);
+
+    /* Obtain tar record fields for this object */
+    TarObj.Reset();
+    TarObj.tr_type  = REGTYPE;
+    TarObj.tr_mode  = 0400;
+    TarObj.tr_uid   = 0;
+    TarObj.tr_size  = length;
+    TarObj.tr_mtime = time(NULL);
+    strncpy(TarObj.tr_prefix, RootName, 154);
+    strncpy(TarObj.tr_name, "..CodaACLs.yaml", 99);
+    TarObj.Format();
+    TarObj.Output();
+
+    /* Second, collect acls and write to output */
+    rc = CollectACLs(TarFile);
+    CODA_ASSERT(rc == length);
+
+    Bytes += length;
 }
 
 int ProcessFileOrSymlink()
@@ -645,6 +795,9 @@ DumpObject::DumpObject(VnodeId v, Unique_t uq)
 
     isdir    = 0;
     children = 0;
+
+    ACL_PosEntries = 0;
+    ACL_NegEntries = 0;
 }
 
 void DumpObject::AddParent(DumpObject *parent, const char *component)
@@ -701,16 +854,18 @@ size_t DumpObject::GetComponent(char *buf, size_t len, int idx)
         return 0;
 
     if (idx >= links) {
-        if (oid.vnode == 1 && oid.uniquifier == 1)
+        if (oid.vnode == 1 && oid.uniquifier == 1) {
             n = snprintf(buf, len, "%s", RootName);
-        else
+        } else {
             n = snprintf(buf, len, "%s/lost+found/%08x.%08x", RootName,
                          oid.vnode, oid.uniquifier);
+        }
         if (n < 0) {
             *buf = '\0';
             ret  = 0;
-        } else
+        } else {
             ret = (size_t)n;
+        }
     } else {
         strncpy(buf, components[idx], len);
         ret = strlen(buf);
