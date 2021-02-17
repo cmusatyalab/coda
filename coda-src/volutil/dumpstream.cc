@@ -638,8 +638,12 @@ int dumpstream::getVnode(int vnum, int unique, off_t offset,
  */
 
 int dumpstream::getNextVnode(VnodeDiskObject *vdop, VnodeId *vnodeNumber,
-                             int *deleted, off_t *offset)
+                             int *deleted, off_t *offset,
+                             AL_ExternalAccessList *ACL)
 {
+    if (ACL)
+        *ACL = NULL;
+
     *deleted = 0;
     /* Skip over whatever garbage exists on the stream (remains of last vnode) */
     skip_vnode_garbage();
@@ -723,6 +727,39 @@ int dumpstream::getNextVnode(VnodeDiskObject *vdop, VnodeId *vnodeNumber,
                         ungetc(tag, stream);
                         break;
                     }
+                }
+            }
+            break;
+        case 'X':
+            CODA_ASSERT(vdop->type == vDirectory);
+            {
+                AL_ExternalAccessList eacl = NULL;
+                AL_AccessList *iacl        = NULL;
+                unsigned int size          = 0;
+                int rc;
+
+                /* read external acccess list */
+                GetInt32(stream, &size);
+                eacl = (AL_ExternalAccessList)malloc(size);
+                GetByteString(stream, (byte *)eacl, size);
+
+                if (ACL) {
+                    /* return externalaccesslist to caller */
+                    if (*ACL)
+                        free(*ACL);
+                    *ACL = eacl;
+                } else {
+                    /* convert to internal acl */
+                    rc = AL_Internalize(eacl, &iacl);
+                    if (rc || iacl->MySize > VAclDiskSize(vdop)) {
+                        LogMsg(0, VolDebugLevel, stderr,
+                               "failed to parse ExternalAccessList (%s)",
+                               strerror(rc));
+                    } else {
+                        memcpy(VVnodeDiskACL(vdop), iacl, iacl->MySize);
+                        AL_FreeAlist(&iacl);
+                    }
+                    free(eacl);
                 }
             }
             break;

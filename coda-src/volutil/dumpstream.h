@@ -53,7 +53,8 @@ public:
     int getDumpHeader(struct DumpHeader *);
     int getVolDiskData(VolumeDiskData *);
     int getVnodeIndex(VnodeClass, unsigned int *, unsigned int *);
-    int getNextVnode(VnodeDiskObject *, VnodeId *, int *, off_t *offset);
+    int getNextVnode(VnodeDiskObject *, VnodeId *, int *, off_t *offset,
+                     AL_ExternalAccessList *ACL = NULL);
     int getVnode(int vnum, int unique, off_t offset, VnodeDiskObject *vdo);
     int copyVnodeData(DumpBuffer_t *); /* Copy entire vnode into DumpFd*/
     int EndOfDump(); /* See if ENDDUMP is present */
