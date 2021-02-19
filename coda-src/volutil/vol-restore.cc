@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -664,6 +664,37 @@ static int ReadVnodeDiskObject(DumpBuffer_t *buf, VnodeDiskObject *vdop,
             CODA_ASSERT(vdop->type == vDirectory);
             ReadByteString(buf, (char *)VVnodeDiskACL(vdop),
                            VAclDiskSize(vdop));
+            break;
+        case 'X':
+            CODA_ASSERT(vdop->type == vDirectory);
+            {
+                AL_ExternalAccessList eacl = NULL;
+                unsigned int size          = 0;
+
+                /* read external access list */
+                ReadInt32(buf, &size);
+                eacl = (AL_ExternalAccessList)malloc(size);
+                ReadByteString(buf, eacl, size);
+
+                /* convert ExternalAccessList to VnodeDiskObject acl */
+                {
+                    AL_AccessList *iacl = NULL;
+                    /* convert to internal acl */
+                    int rc = AL_Internalize(eacl, &iacl);
+                    if (rc == 0 && iacl->MySize <= VAclDiskSize(vdop)) {
+                        /* clear any old state and copy the new ACL */
+                        memset(VVnodeDiskACL(vdop), 0, VAclDiskSize(vdop));
+                        memcpy(VVnodeDiskACL(vdop), iacl, iacl->MySize);
+                    } else {
+                        LogMsg(
+                            0, VolDebugLevel, stderr,
+                            "failed to parse ExternalAccessList (%s) or ACL too large",
+                            strerror(rc));
+                    }
+                    AL_FreeAlist(&iacl);
+                }
+                free(eacl);
+            }
             break;
         }
     }

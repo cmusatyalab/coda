@@ -600,7 +600,7 @@ int dumpstream::readDirectory(PDirInode *dip)
  * fseek to offset and read in the Vnode there. Assume IndexType is set correctly.
  */
 int dumpstream::getVnode(int vnum, int unique, off_t offset,
-                         VnodeDiskObject *vdo)
+                         VnodeDiskObject *vdo, AL_ExternalAccessList *ACL)
 {
     LogMsg(10, VolDebugLevel, stdout,
            "getVnode: vnum %d unique %d offset %x Stream %s", vnum, unique,
@@ -617,7 +617,7 @@ int dumpstream::getVnode(int vnum, int unique, off_t offset,
     off_t pos;
     VnodeId vnodeNumber;
 
-    int result = getNextVnode(vdo, &vnodeNumber, &deleted, &pos);
+    int result = getNextVnode(vdo, &vnodeNumber, &deleted, &pos, ACL);
 
     if (result)
         return result;
@@ -715,6 +715,8 @@ int dumpstream::getNextVnode(VnodeDiskObject *vdop, VnodeId *vnodeNumber,
             break;
         case 'A':
             CODA_ASSERT(vdop->type == vDirectory);
+            LogMsg(0, VolDebugLevel, stderr,
+                   "encountered old-style internal ACL");
             {
                 int size = 384; /* VAclDiskSize on 64-bit systems */
                 GetByteString(stream, (byte *)VVnodeDiskACL(vdop), size);
@@ -734,33 +736,20 @@ int dumpstream::getNextVnode(VnodeDiskObject *vdop, VnodeId *vnodeNumber,
             CODA_ASSERT(vdop->type == vDirectory);
             {
                 AL_ExternalAccessList eacl = NULL;
-                AL_AccessList *iacl        = NULL;
                 unsigned int size          = 0;
-                int rc;
 
-                /* read external acccess list */
+                /* read external access list */
                 GetInt32(stream, &size);
                 eacl = (AL_ExternalAccessList)malloc(size);
                 GetByteString(stream, (byte *)eacl, size);
 
                 if (ACL) {
-                    /* return externalaccesslist to caller */
                     if (*ACL)
                         free(*ACL);
+                    /* return externalaccesslist to caller */
                     *ACL = eacl;
-                } else {
-                    /* convert to internal acl */
-                    rc = AL_Internalize(eacl, &iacl);
-                    if (rc || iacl->MySize > VAclDiskSize(vdop)) {
-                        LogMsg(0, VolDebugLevel, stderr,
-                               "failed to parse ExternalAccessList (%s)",
-                               strerror(rc));
-                    } else {
-                        memcpy(VVnodeDiskACL(vdop), iacl, iacl->MySize);
-                        AL_FreeAlist(&iacl);
-                    }
+                } else
                     free(eacl);
-                }
             }
             break;
 

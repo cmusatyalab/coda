@@ -68,7 +68,8 @@ int DumpFd = -1;
 static void BuildTable(dumpstream *, vtable *);
 static void ModifyTable(dumpstream *, VnodeClass, vtable *);
 static void WriteTable(DumpBuffer_t *, vtable *, VnodeClass);
-static void WriteVnodeDiskObject(DumpBuffer_t *, VnodeDiskObject *, int);
+static void WriteVnodeDiskObject(DumpBuffer_t *, VnodeDiskObject *, int,
+                                 AL_ExternalAccessList);
 static void DumpVolumeDiskData(DumpBuffer_t *, VolumeDiskData *);
 static void WriteDumpHeader(DumpBuffer_t *buf, struct DumpHeader *,
                             struct DumpHeader *);
@@ -354,25 +355,31 @@ static void WriteTable(DumpBuffer_t *buf, vtable *table, VnodeClass vclass)
     for (unsigned int i = 0; i < table->nslots; i++) {
         ventry *ptr = table->table[i];
         while (ptr) {
-            long vnum = bitNumberToVnodeNumber(i, vclass);
+            AL_ExternalAccessList eacl = NULL;
+            long vnum;
+            int rc;
+
             (ptr->dump)->setIndex(vclass);
-            if ((ptr->dump)->getVnode(vnum, ptr->unique, ptr->offset, vdo) ==
-                -1) {
+            vnum = bitNumberToVnodeNumber(i, vclass);
+            rc   = (ptr->dump)->getVnode(vnum, ptr->unique, ptr->offset, vdo,
+                                       &eacl);
+            if (rc == -1) {
                 LogMsg(0, VolDebugLevel, stderr,
                        "Couldn't get Vnode %d 2nd time, offset %x.", vnum,
                        ptr->offset);
                 exit(EXIT_FAILURE);
             }
 
-            WriteVnodeDiskObject(buf, vdo, vnum); /* Write out the Vnode */
+            WriteVnodeDiskObject(buf, vdo, vnum, eacl);
             (ptr->dump)->copyVnodeData(buf);
+            free(eacl);
             ptr = ptr->next;
         }
     }
 }
 
 static void WriteVnodeDiskObject(DumpBuffer_t *buf, VnodeDiskObject *v,
-                                 int vnodeNumber)
+                                 int vnodeNumber, AL_ExternalAccessList eacl)
 {
     DumpDouble(buf, D_VNODE, vnodeNumber, v->uniquifier);
     DumpByte(buf, 't', v->type);
@@ -389,7 +396,7 @@ static void WriteVnodeDiskObject(DumpBuffer_t *buf, VnodeDiskObject *v,
 
     if (v->type == vDirectory) {
         /* Dump the Access Control List */
-        DumpByteString(buf, 'A', (char *)VVnodeDiskACL(v), VAclDiskSize(v));
+        DumpString(buf, 'X', eacl);
     }
 }
 

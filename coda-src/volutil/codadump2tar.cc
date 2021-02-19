@@ -438,10 +438,11 @@ int ProcessDirectory()
     int rc, deleted;
     VnodeId vn;
     DumpObject *CurrentDir;
+    AL_ExternalAccessList eacl = NULL;
 
     /* First get the large vnode */
     memset(vdo, 0, SIZEOF_LARGEDISKVNODE); /* clear to simplify debugging */
-    rc = DStream->getNextVnode(vdo, &vn, &deleted, &offset);
+    rc = DStream->getNextVnode(vdo, &vn, &deleted, &offset, &eacl);
     if (rc < 0)
         return -1;
 
@@ -465,16 +466,8 @@ int ProcessDirectory()
     CurrentDir->dir_mtime = (unsigned int)vdo->unixModifyTime;
 
     /* extract ACL */
-    AL_AccessList *acl = VVnodeDiskACL(vdo);
-    /* VAclSize(vptr)
-     * = SIZEOF_LARGEVNODE - SIZEOF_SMALLVNODE
-     * = SIZEOF_LARGEDISKVNODE - sizeof(VnodeDiskObject)
-     * = 512 - [112 (32-bit) | 128 (64-bit)] */
-    int acl_size = VAclSize(NULL);
-
-    if (acl->Version == (int)ntohl(AL_ALISTVERSION))
-        AL_ntohAlist(acl);
-
+#if 0 /* XXX */
+    if (eacl) {
     if (acl->Version == AL_ALISTVERSION &&
         acl->MySize >= (int)(5 * sizeof(int)) && acl->MySize <= acl_size &&
         acl->MySize >= (int)(5 * sizeof(int) +
@@ -491,6 +484,7 @@ int ProcessDirectory()
     } else
         fprintf(stderr, "Ignoring unexpected acl (version %d / size %d)\n",
                 acl->Version, acl->MySize);
+#endif
 
     /* add pointer to this object in list of large vnodes */
     LVNlist[LVNfillcount++] = CurrentDir;

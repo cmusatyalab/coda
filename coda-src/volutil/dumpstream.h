@@ -55,7 +55,8 @@ public:
     int getVnodeIndex(VnodeClass, unsigned int *, unsigned int *);
     int getNextVnode(VnodeDiskObject *, VnodeId *, int *, off_t *offset,
                      AL_ExternalAccessList *ACL = NULL);
-    int getVnode(int vnum, int unique, off_t offset, VnodeDiskObject *vdo);
+    int getVnode(int vnum, int unique, off_t offset, VnodeDiskObject *vdo,
+                 AL_ExternalAccessList *ACL);
     int copyVnodeData(DumpBuffer_t *); /* Copy entire vnode into DumpFd*/
     int EndOfDump(); /* See if ENDDUMP is present */
     void setIndex(VnodeClass);
