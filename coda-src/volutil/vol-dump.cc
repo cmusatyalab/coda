@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -208,14 +208,22 @@ static int DumpVnodeDiskObject(DumpBuffer_t *dbuf, VnodeDiskObject *v,
         }
     } else {
         PDirInode dip = v->node.dirNode;
-        int size;
+        AL_ExternalAccessList eacl;
+        int rc, size;
 
         CODA_ASSERT(dip);
 
         /* Dump the Access Control List */
-        if (DumpByteString(dbuf, 'A', (char *)VVnodeDiskACL(v),
-                           VAclDiskSize(v)) == -1) {
-            SLog(0, "DumpVnode: BumpByteString failed.");
+        rc = AL_Externalize(VVnodeDiskACL(v), &eacl);
+        if (rc) {
+            SLog(0, "DumpVnode: failed to convert ACL to ExternalAccessList.");
+            return -1;
+        }
+
+        rc = DumpString(dbuf, 'X', eacl);
+        AL_FreeExternalAlist(&eacl);
+        if (rc) {
+            SLog(0, "DumpVnode: failed to dump ExternalAccessList.");
             return -1;
         }
 
