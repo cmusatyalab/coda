@@ -92,11 +92,7 @@ public:
     unsigned int children;
     unsigned int owner;
     unsigned int dir_mtime;
-
-    uint8_t ACL_PosEntries;
-    uint8_t ACL_NegEntries;
-    int ACL_Id[AL_MAXEXTENTRIES];
-    uint8_t ACL_Rights[AL_MAXEXTENTRIES];
+    AL_ExternalAccessList eacl;
 
     DumpObject(VnodeId, Unique_t);
     void AddParent(DumpObject *parent, const char *component);
@@ -464,27 +460,7 @@ int ProcessDirectory()
     CurrentDir->isdir     = 1;
     CurrentDir->owner     = (unsigned int)vdo->owner;
     CurrentDir->dir_mtime = (unsigned int)vdo->unixModifyTime;
-
-    /* extract ACL */
-#if 0 /* XXX */
-    if (eacl) {
-    if (acl->Version == AL_ALISTVERSION &&
-        acl->MySize >= (int)(5 * sizeof(int)) && acl->MySize <= acl_size &&
-        acl->MySize >= (int)(5 * sizeof(int) +
-                             acl->TotalNoOfEntries * sizeof(AL_AccessEntry)) &&
-        acl->TotalNoOfEntries >=
-            acl->PlusEntriesInUse + acl->MinusEntriesInUse) {
-        CurrentDir->ACL_PosEntries = acl->PlusEntriesInUse;
-        CurrentDir->ACL_NegEntries = acl->MinusEntriesInUse;
-        for (int i = 0; i < acl->PlusEntriesInUse + acl->MinusEntriesInUse;
-             i++) {
-            CurrentDir->ACL_Id[i]     = acl->ActualEntries[i].Id;
-            CurrentDir->ACL_Rights[i] = acl->ActualEntries[i].Rights;
-        }
-    } else
-        fprintf(stderr, "Ignoring unexpected acl (version %d / size %d)\n",
-                acl->Version, acl->MySize);
-#endif
+    CurrentDir->eacl      = eacl;
 
     /* add pointer to this object in list of large vnodes */
     LVNlist[LVNfillcount++] = CurrentDir;
@@ -572,43 +548,51 @@ static ssize_t CollectACLs(FILE *out)
         if (DEBUG_HEAVY)
             fprintf(stderr, "[%d]: dumping ACLs for %s\n", lvn, path);
 
-        rc = snprintf(buf, sizeof(buf), "- path: \"%s\"\n  acl:\n", path);
-        if (rc == -1 || (out && fwrite(buf, rc, 1, out) == 0))
-            return -1;
-        length += rc;
+        /* extract ACL */
+        unsigned int plus_entries, minus_entries;
 
-        int nacls = thisd->ACL_PosEntries + thisd->ACL_NegEntries;
-        for (int i = 0; i < nacls; i++) {
-            bool is_negative = i >= thisd->ACL_PosEntries;
-            int coda_id      = thisd->ACL_Id[i];
-            uint8_t rights   = thisd->ACL_Rights[i];
-
-            rc = snprintf(buf, sizeof(buf),
-                          "  - coda_id: %d\n"
-                          "    acl: \"%s%s%s%s%s%s%s%s\"\n",
-                          coda_id, is_negative ? "-" : "",
-                          rights & PRSFS_READ ? "r" : "",
-                          rights & PRSFS_LOOKUP ? "l" : "",
-                          rights & PRSFS_INSERT ? "i" : "",
-                          rights & PRSFS_DELETE ? "d" : "",
-                          rights & PRSFS_WRITE ? "w" : "",
-                          rights & PRSFS_LOCK ? "k" : "",
-                          rights & PRSFS_ADMINISTER ? "a" : "");
+        if (thisd->eacl && sscanf(thisd->eacl, "%u\n%u\n", &plus_entries,
+                                  &minus_entries) == 2) {
+            rc = snprintf(buf, sizeof(buf), "- path: \"%s\"\n  acl:\n", path);
             if (rc == -1 || (out && fwrite(buf, rc, 1, out) == 0))
                 return -1;
             length += rc;
 
-#if 0 /* XXX need pdb database */
-            char *name = NULL;
-            PDB_lookupById(coda_id, &name);
-            if (name != NULL) {
-                rc = snprintf(buf, sizeof(buf), "    name: \"%s\"\n", name);
+            /* skip the two lines we just read */
+            char *nextc;
+            nextc = strchr(thisd->eacl, '\n') + 1;
+            nextc = strchr(nextc, '\n') + 1;
+
+            for (unsigned int i = 0; i < plus_entries + minus_entries; i++) {
+                char *name = NULL;
+                int rights;
+                bool is_negative = i >= plus_entries;
+
+                if (sscanf(nextc, "%ms\t%d\n", &name, &rights) == 2) {
+                    rc = snprintf(buf, sizeof(buf),
+                                  "  - name: \"%s\"\n"
+                                  "    acl: \"%s%s%s%s%s%s%s%s\"\n",
+                                  name, is_negative ? "-" : "",
+                                  rights & PRSFS_READ ? "r" : "",
+                                  rights & PRSFS_LOOKUP ? "l" : "",
+                                  rights & PRSFS_INSERT ? "i" : "",
+                                  rights & PRSFS_DELETE ? "d" : "",
+                                  rights & PRSFS_WRITE ? "w" : "",
+                                  rights & PRSFS_LOCK ? "k" : "",
+                                  rights & PRSFS_ADMINISTER ? "a" : "");
+                    if (rc == -1 || (out && fwrite(buf, rc, 1, out) == 0))
+                        return -1;
+                    length += rc;
+                } else {
+                    /* parse error */
+                    fprintf(stderr, "Failed to parse acl entry\n");
+                }
                 free(name);
-                if (rc == -1 || (out && fwrite(buf, rc, 1, out) == 0))
-                    return -1;
-                length += rc;
+                nextc = strchr(nextc, '\n') + 1;
             }
-#endif
+        } else {
+            /* parse error */
+            fprintf(stderr, "Failed to parse external acl\n");
         }
     }
     if (out) {
@@ -791,8 +775,7 @@ DumpObject::DumpObject(VnodeId v, Unique_t uq)
     isdir    = 0;
     children = 0;
 
-    ACL_PosEntries = 0;
-    ACL_NegEntries = 0;
+    eacl = NULL;
 }
 
 void DumpObject::AddParent(DumpObject *parent, const char *component)
