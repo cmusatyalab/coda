@@ -46,9 +46,10 @@ char *yaml_encode_double_quoted_string(char *string)
 {
     size_t len    = 0;
     int do_encode = 0;
+    char *c;
 
     /* first check if we need to actually do anything... */
-    for (char *c = string; *c != '\0'; c++) {
+    for (c = string; *c != '\0'; c++) {
         if (!is_ascii_printable(*c) || yaml_should_escape(*c)) {
             do_encode = 1;
             len += 4; /* worst case */
@@ -63,7 +64,7 @@ char *yaml_encode_double_quoted_string(char *string)
     char *encoded    = malloc(len + 1);
     unsigned int idx = 0;
 
-    for (char *c = string; *c != '\0'; c++) {
+    for (c = string; *c != '\0'; c++) {
         if (!is_ascii_printable(*c) || yaml_should_escape(*c)) {
             encoded[idx++] = '\\';
             switch (*c) {
