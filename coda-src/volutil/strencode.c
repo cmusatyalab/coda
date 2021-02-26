@@ -28,7 +28,8 @@ static int is_ascii_printable(unsigned char c)
 
 static int yaml_should_escape(unsigned char c)
 {
-    return (c == '\t' || c == '\n' || c == '\r' || c == '"' || c == '\\');
+    return (c == '\t' || c == '\n' || c == '\r' || c == '"' || c == '/' ||
+            c == '\\');
 }
 
 static unsigned char hex_nibble(unsigned char v)
@@ -91,8 +92,14 @@ char *yaml_encode_double_quoted_string(char *string)
             case '\r':
                 encoded[idx++] = 'r';
                 break;
+            case 0x1B:
+                encoded[idx++] = 'e';
+                break;
             case '"':
                 encoded[idx++] = '"';
+                break;
+            case '/':
+                encoded[idx++] = '/';
                 break;
             case '\\':
                 encoded[idx++] = '\\';
