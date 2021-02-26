@@ -19,7 +19,7 @@ libvolserv_la_SOURCES = volutil.cc
 volutil_SOURCES = volclient.cc
 codareaddump_SOURCES = codareaddump.cc
 codamergedump_SOURCES =	codamergedump.cc
-codadump2tar_SOURCES = codadump2tar.cc tar-FromRedHatCD.h
+codadump2tar_SOURCES = codadump2tar.cc strencode.c tar-FromRedHatCD.h
 
 AM_CPPFLAGS = $(RVM_RPC2_CFLAGS) -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 \
 	      -I$(top_srcdir)/lib-src/base \

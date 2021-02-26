@@ -542,7 +542,7 @@ static ssize_t CollectACLs(FILE *out)
         DumpObject *thisd = LVNlist[lvn]; /* next dump object */
         CODA_ASSERT(thisd->isdir); /* sheer paranoia */
 
-        char path[CODA_MAXPATHLEN];
+        char path[CODA_MAXPATHLEN], *tmp;
         thisd->GetFullPath(path, CODA_MAXPATHLEN);
 
         if (DEBUG_HEAVY)
@@ -553,7 +553,10 @@ static ssize_t CollectACLs(FILE *out)
 
         if (thisd->eacl && sscanf(thisd->eacl, "%u\n%u\n", &plus_entries,
                                   &minus_entries) == 2) {
-            rc = snprintf(buf, sizeof(buf), "- path: \"%s\"\n  acl:\n", path);
+            tmp = yaml_encode_double_quoted_string(path);
+            rc  = snprintf(buf, sizeof(buf), "- path: \"%s\"\n  acl:\n", tmp);
+            free(tmp);
+
             if (rc == -1 || (out && fwrite(buf, rc, 1, out) == 0))
                 return -1;
             length += rc;
@@ -569,10 +572,11 @@ static ssize_t CollectACLs(FILE *out)
                 bool is_negative = i >= plus_entries;
 
                 if (sscanf(nextc, "%ms\t%d\n", &name, &rights) == 2) {
-                    rc = snprintf(buf, sizeof(buf),
+                    tmp = yaml_encode_double_quoted_string(name);
+                    rc  = snprintf(buf, sizeof(buf),
                                   "  - name: \"%s\"\n"
                                   "    acl: \"%s%s%s%s%s%s%s%s\"\n",
-                                  name, is_negative ? "-" : "",
+                                  tmp, is_negative ? "-" : "",
                                   rights & PRSFS_READ ? "r" : "",
                                   rights & PRSFS_LOOKUP ? "l" : "",
                                   rights & PRSFS_INSERT ? "i" : "",
@@ -580,6 +584,7 @@ static ssize_t CollectACLs(FILE *out)
                                   rights & PRSFS_WRITE ? "w" : "",
                                   rights & PRSFS_LOCK ? "k" : "",
                                   rights & PRSFS_ADMINISTER ? "a" : "");
+                    free(tmp);
                     if (rc == -1 || (out && fwrite(buf, rc, 1, out) == 0))
                         return -1;
                     length += rc;

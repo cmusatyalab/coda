@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -64,7 +64,7 @@ typedef struct {
 } DumpBuffer_t;
 #define VOLID DumpFd /* Overload this field if using newstyle dump */
 
-/* Exported Routines (from dumpstuff.c) */
+/* Exported Routines (from dumpstuff.cc) */
 extern DumpBuffer_t *InitDumpBuf(char *buf, long size, VolumeId volid,
                                  RPC2_Handle rpcid);
 extern DumpBuffer_t *InitDumpBuf(char *buf, long size, int fd);
@@ -81,7 +81,7 @@ extern int DumpFile(DumpBuffer_t *, char tag, int fd, int vnode);
 extern int DumpTag(DumpBuffer_t *, char tag);
 extern int DumpEnd(DumpBuffer_t *);
 
-/* Exported Routines (from readstuff.c) */
+/* Exported Routines (from readstuff.cc) */
 extern signed char ReadTag(DumpBuffer_t *);
 extern int PutTag(char, DumpBuffer_t *);
 extern int ReadShort(DumpBuffer_t *, unsigned short *sp);
@@ -93,5 +93,16 @@ extern int ReadVolumeDiskData(DumpBuffer_t *, VolumeDiskData *vol);
 extern int ReadVV(DumpBuffer_t *, ViceVersionVector *vv);
 extern int ReadFile(DumpBuffer_t *, FILE *);
 extern int EndOfDump(DumpBuffer_t *);
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/* from strencode.c */
+char *yaml_encode_double_quoted_string(char *string);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _DUMP_H_ */
