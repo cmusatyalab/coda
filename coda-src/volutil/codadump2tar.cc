@@ -310,14 +310,7 @@ int main(int argc, char **argv)
     ProcessHardLinks();
 
     /* write meta file with acl data so we can recreate them */
-    {
-        const char *saved_rootname = RootName;
-        RootName = "."; /* ACL file stored in the root, keep paths relative */
-
-        DumpACLs();
-
-        RootName = saved_rootname;
-    }
+    DumpACLs();
 
     /* Success */
     delete DStream;
@@ -612,10 +605,13 @@ static ssize_t CollectACLs(FILE *out)
 static void DumpACLs()
 {
     ssize_t length, rc;
+    const char *saved_rootname = RootName;
+    RootName = "."; /* ACL file stored in the root, keep paths relative */
 
-    /* First get an idea of the file size */
     length = CollectACLs(NULL);
+
     if (length < 0) {
+        RootName = saved_rootname;
         fprintf(stderr, "Failed to collect ACLs\n");
         return;
     }
@@ -629,7 +625,7 @@ static void DumpACLs()
     TarObj.tr_uid   = 0;
     TarObj.tr_size  = length;
     TarObj.tr_mtime = time(NULL);
-    strncpy(TarObj.tr_prefix, RootName, 154);
+    strncpy(TarObj.tr_prefix, saved_rootname, 154);
     strncpy(TarObj.tr_name, "..CodaACLs.yaml", 99);
     TarObj.Format();
     TarObj.Output();
@@ -639,6 +635,8 @@ static void DumpACLs()
     CODA_ASSERT(rc == length);
 
     Bytes += length;
+
+    RootName = saved_rootname;
 }
 
 int ProcessFileOrSymlink()

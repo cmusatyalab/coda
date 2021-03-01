@@ -28,8 +28,9 @@ static int is_ascii_printable(unsigned char c)
 
 static int yaml_should_escape(unsigned char c)
 {
-    return (c == '\t' || c == '\n' || c == '\r' || c == '"' || c == '/' ||
-            c == '\\');
+    return (c == '\t' || c == '\n' || c == '\r' || c == '"' || c == '\\');
+    /* forward slash escaping seems not required  c == '/'
+     * not escaping those helps path name readability */
 }
 
 static unsigned char hex_nibble(unsigned char v)
