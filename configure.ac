@@ -215,6 +215,8 @@ AC_CONFIG_FILES([coda-src/scripts/startserver],
        [chmod +x coda-src/scripts/startserver])
 AC_CONFIG_FILES([coda-src/scripts/coda-client-setup],
        [chmod +x coda-src/scripts/coda-client-setup])
+AC_CONFIG_FILES([coda-src/scripts/coda-sync-acls],
+       [chmod +x coda-src/scripts/coda-sync-acls])
 AC_CONFIG_FILES([coda-src/scripts/vice-setup],
        [chmod +x coda-src/scripts/vice-setup])
 AC_CONFIG_FILES([coda-src/scripts/vice-setup-rvm],

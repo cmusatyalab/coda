@@ -1,0 +1,187 @@
+#!@PYTHON@
+#
+#                          Coda File System
+#                             Release 8
+#
+#             Copyright (c) 2021 Carnegie Mellon University
+#
+# This  code  is  distributed "AS IS" without warranty of any kind under
+# the terms of the GNU General Public License Version 2, as shown in the
+# file  LICENSE.  The  technical and financial  contributors to Coda are
+# listed in the file CREDITS.
+#
+#
+# coda-copy-acls - Copy Coda ACLs from a source directory tree or a
+#                  serialized ..CodaACLs.yaml file
+#
+# depends on pyyaml for parsing the yaml file.
+# depends on the 'cfs' executable to set the actual ACLs.
+# optional dependencies on jsonschema (validation) and tqdm (progressbar)
+
+import argparse
+from distutils.spawn import find_executable
+import itertools
+import logging
+from operator import itemgetter
+import pathlib
+import subprocess
+import sys
+import yaml
+
+# optional dependency, tqdm for a nice progressbar
+try:
+  from tqdm import tqdm
+except ImportError:
+  from contextlib import contextmanager
+  @contextmanager
+  def tqdm(*args, **kwargs):
+    yield args[0]
+
+
+## argument parsing
+def DirPath(string):
+    path = pathlib.Path(string)
+    if not path.is_dir():
+        raise argparse.ArgumentTypeError(f"{path} is not a directory")
+    return path
+
+parser = argparse.ArgumentParser()
+parser.add_argument(
+    "-q", "--quiet", action="store_true", help="only display error messages"
+)
+parser.add_argument(
+    "-n", "--dry-run", action="store_true", help="avoid running commands that alter state"
+)
+parser.add_argument(
+    "-o", "-d", "--destination", type=DirPath, default=".", help="root of destination to change"
+)
+parser.add_argument(
+    "source",
+    type=pathlib.Path,
+    #default="..CodaACLs.yaml",
+    help="directory or yaml file"
+)
+args = parser.parse_args()
+
+
+## set up logging
+logging.basicConfig(
+    format="%(levelname)s - %(message)s",
+    level=logging.ERROR if args.quiet else logging.INFO,
+)
+
+## test if required binaries exist
+def which(name, hint):
+    path = find_executable(name)
+    if path is None:
+        logging.critical("Cannot find %s, %s", name, hint)
+        sys.exit(1)
+    return path
+
+cfs = which("cfs", "check your Coda client installation")
+
+
+## jsonschema for validation
+CODA_ACLS_SCHEMA = {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "http://coda.cs.cmu.edu/schemas/coda_acls.json",
+    "$defs": {
+        "fspath": {"type": "string"},
+        "user_or_group": {"type": "string"},
+        "acl_rights": {
+            "type": "string",
+            "pattern": "^-?r?l?i?d?w?k?a?$"
+        },
+        "acl_entry": {
+            "type": "object",
+            "properties": {
+                "name": {"$ref": "#/$defs/user_or_group"},
+                "rights": {"$ref": "#/$defs/acl_rights"}
+            },
+            "required": ["name", "rights"]
+        },
+        "acl": {
+            "type": "object",
+            "properties": {
+                "path": {"$ref": "#/$defs/fspath"},
+                "acl": {
+                    "type": "array",
+                    "items": {"$ref": "#/$defs/acl_entry"}
+                }
+            },
+            "required": ["path", "acl"]
+        }
+    },
+    "type": "object",
+    "properties": {
+        "acls": {
+            "type": "array",
+            "items": {"$ref": "#/$defs/acl"}
+        }
+    },
+    "required": ["acls"]
+}
+
+def validate(codaacls):
+    try:
+        import jsonschema
+    except ImportError:
+        logging.warning("missing jsonschema, not validating CodaACLs.yaml")
+        return
+    try:
+        jsonschema.validate(codaacls, CODA_ACLS_SCHEMA)
+    except jsonschema.exceptions.ValidationError as e:
+        print(e)
+        sys.exit(1)
+
+    return codaacls
+
+if args.source.is_file():
+    with open(args.source) as acl_file:
+        logging.info("Loading %s", args.source)
+        acls = yaml.safe_load(acl_file)
+
+        logging.info("Validating %s format", args.source)
+        acls = validate(acls)['acls']
+else:
+    logging.error("Reading ACLs from existing file system tree not implemented yet")
+    sys.exit(1)
+
+if args.dry_run:
+    def dry_runner(args, **kwargs):
+        print(" ".join(str(arg) for arg in args))
+    subprocess.run = dry_runner
+
+# sort alphabetically, from leafs to root
+logging.info("Sorting alphabetically, leafs first")
+acls.sort(key=itemgetter('path'))
+acls.sort(key=lambda acl: acl['path'].count('/'), reverse=True)
+
+with tqdm(acls) as pbar:
+    for acl in pbar:
+        path = args.destination / acl['path']
+
+        if not path.exists():
+            logging.warning("Skipping non-existent path %s", path)
+            continue
+
+        if not path.is_dir():
+            logging.warning("Skipping non-directory %s", path)
+            continue
+
+        positives = [
+            (entry['name'], entry['rights'])
+            for entry in acl['acl'] if not entry['rights'].startswith('-')
+        ]
+        negatives = [
+            '"{}" {}'.format(entry['name'], entry['rights'][1:])
+            for entry in acl['acl'] if entry['rights'].startswith('-')
+        ]
+
+        subprocess.run(
+            itertools.chain([cfs, "sa", "-clear", path], *positives)
+        )
+        if negatives:
+            subprocess.run(
+                itertools.chain([cfs, "sa", "-negative", path], *negatives)
+            )
