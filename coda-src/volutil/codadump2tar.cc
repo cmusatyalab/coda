@@ -568,7 +568,7 @@ static ssize_t CollectACLs(FILE *out)
                     tmp = yaml_encode_double_quoted_string(name);
                     rc  = snprintf(buf, sizeof(buf),
                                   "  - name: \"%s\"\n"
-                                  "    acl: \"%s%s%s%s%s%s%s%s\"\n",
+                                  "    rights: \"%s%s%s%s%s%s%s%s\"\n",
                                   tmp, is_negative ? "-" : "",
                                   rights & PRSFS_READ ? "r" : "",
                                   rights & PRSFS_LOOKUP ? "l" : "",
