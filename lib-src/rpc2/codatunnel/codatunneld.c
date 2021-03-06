@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 2017-2020 Carnegie Mellon University
+          Copyright (c) 2017-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -956,9 +956,14 @@ static void recv_tcp_cb(uv_stream_t *tcphandle, ssize_t nread,
 void async_send_codatunnel(uv_async_t *async)
 {
     minicb_udp_req_t *req;
+#if UV_VERSION_HEX < 0x011b00
     struct sockaddr_in dummy_peer = {
         .sin_family = AF_INET,
     };
+    struct sockaddr *peer = (struct sockaddr *)&dummy_peer;
+#else
+    struct sockaddr *peer = NULL;
+#endif
     int rc;
 
     /* pop request off the queue */
@@ -972,8 +977,8 @@ void async_send_codatunnel(uv_async_t *async)
             return;
 
         /* forward packet to venus/codasrv */
-        rc = uv_udp_send(&req->req, &codatunnel, &req->msg, 1,
-                         (struct sockaddr *)&dummy_peer, minicb_udp);
+        rc =
+            uv_udp_send(&req->req, &codatunnel, &req->msg, 1, peer, minicb_udp);
 
         DEBUG("codatunnel.send_queue_count = %lu\n",
               codatunnel.send_queue_count);
@@ -991,9 +996,14 @@ static void recv_udpsocket_cb(uv_udp_t *udpsocket, ssize_t nread,
 {
     minicb_udp_req_t *req;
     uv_buf_t msg[2];
+#if UV_VERSION_HEX < 0x011b00
     struct sockaddr_in dummy_peer = {
         .sin_family = AF_INET,
     };
+    struct sockaddr *peer = (struct sockaddr *)&dummy_peer;
+#else
+    struct sockaddr *peer = NULL;
+#endif
     int rc;
 
     DEBUG("packet received from udpsocket nread=%ld buf=%p addr=%p flags=%u\n",
@@ -1039,8 +1049,8 @@ static void recv_udpsocket_cb(uv_udp_t *udpsocket, ssize_t nread,
     req->req.data = buf->base;
 
     /* forward packet to venus/codasrv */
-    rc = uv_udp_send((uv_udp_send_t *)req, &codatunnel, msg, 2,
-                     (struct sockaddr *)&dummy_peer, minicb_udp);
+    rc = uv_udp_send((uv_udp_send_t *)req, &codatunnel, msg, 2, peer,
+                     minicb_udp);
     DEBUG("codatunnel.send_queue_count = %lu\n", codatunnel.send_queue_count);
     if (rc) {
         /* unable to forward packet from udp socket to venus/codasrv.
