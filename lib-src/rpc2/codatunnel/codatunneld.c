@@ -68,6 +68,8 @@ static int codatunnel_I_am_server = 0; /* only clients initiate;
                                           only servers accept */
 static int codatunnel_onlytcp     = 0; /* whether to use UDP fallback;
                                           default is yes */
+static int libuv_accept_null_peer = 0; /* libuv < 1.27 does not accept a NULL
+                                          peer ptr argument in uv_udp_send*/
 
 static uv_loop_t *codatunnel_main_loop;
 static uv_udp_t codatunnel; /* facing Venus or CodaSrv */
@@ -956,14 +958,11 @@ static void recv_tcp_cb(uv_stream_t *tcphandle, ssize_t nread,
 void async_send_codatunnel(uv_async_t *async)
 {
     minicb_udp_req_t *req;
-#if UV_VERSION_HEX < 0x011b00
     struct sockaddr_in dummy_peer = {
         .sin_family = AF_INET,
     };
-    struct sockaddr *peer = (struct sockaddr *)&dummy_peer;
-#else
-    struct sockaddr *peer = NULL;
-#endif
+    struct sockaddr *peer =
+        libuv_accept_null_peer ? NULL : (struct sockaddr *)&dummy_peer;
     int rc;
 
     /* pop request off the queue */
@@ -996,14 +995,11 @@ static void recv_udpsocket_cb(uv_udp_t *udpsocket, ssize_t nread,
 {
     minicb_udp_req_t *req;
     uv_buf_t msg[2];
-#if UV_VERSION_HEX < 0x011b00
     struct sockaddr_in dummy_peer = {
         .sin_family = AF_INET,
     };
-    struct sockaddr *peer = (struct sockaddr *)&dummy_peer;
-#else
-    struct sockaddr *peer = NULL;
-#endif
+    struct sockaddr *peer =
+        libuv_accept_null_peer ? NULL : (struct sockaddr *)&dummy_peer;
     int rc;
 
     DEBUG("packet received from udpsocket nread=%ld buf=%p addr=%p flags=%u\n",
@@ -1273,6 +1269,8 @@ void codatunneld(int codatunnel_sockfd, const char *tcp_bindaddr,
     DEBUG("codatunneld: starting\n");
 
     fprintf(stderr, "codatunneld: starting\n");
+
+    libuv_accept_null_peer = uv_version() >= 0x011b00;
 
     if (tcp_bindaddr)
         codatunnel_I_am_server = 1; /* remember who I am */
