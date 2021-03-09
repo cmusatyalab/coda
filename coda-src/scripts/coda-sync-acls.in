@@ -22,20 +22,24 @@ import argparse
 from distutils.spawn import find_executable
 import itertools
 import logging
+import re
 from operator import itemgetter
+import os
 import pathlib
 import subprocess
 import sys
 import yaml
 
+
 # optional dependency, tqdm for a nice progressbar
 try:
-  from tqdm import tqdm
+    from tqdm import tqdm
 except ImportError:
-  from contextlib import contextmanager
-  @contextmanager
-  def tqdm(*args, **kwargs):
-    yield args[0]
+    from contextlib import contextmanager
+
+    @contextmanager
+    def tqdm(*args, **kwargs):
+        yield args[0]
 
 
 ## argument parsing
@@ -45,21 +49,42 @@ def DirPath(string):
         raise argparse.ArgumentTypeError(f"{path} is not a directory")
     return path
 
+
 parser = argparse.ArgumentParser()
 parser.add_argument(
     "-q", "--quiet", action="store_true", help="only display error messages"
 )
 parser.add_argument(
-    "-n", "--dry-run", action="store_true", help="avoid running commands that alter state"
+    "-v", "--verbose", action="store_true", help="display extra messages"
 )
 parser.add_argument(
-    "-o", "-d", "--destination", type=DirPath, default=".", help="root of destination to change"
+    "-x",
+    "--cross-volumes",
+    action="store_true",
+    help="traverse into other Coda volumes",
+)
+parser.add_argument(
+    "--write-aclfile", help="write collected acls to a new CodaACLs file"
+)
+parser.add_argument(
+    "-n",
+    "--dry-run",
+    action="store_true",
+    help="avoid running commands that alter state",
+)
+parser.add_argument(
+    "-o",
+    "-d",
+    "--destination",
+    type=DirPath,
+    default=".",
+    help="root of destination to change",
 )
 parser.add_argument(
     "source",
     type=pathlib.Path,
-    #default="..CodaACLs.yaml",
-    help="directory or yaml file"
+    # default="..CodaACLs.yaml",
+    help="directory or yaml file",
 )
 args = parser.parse_args()
 
@@ -67,8 +92,13 @@ args = parser.parse_args()
 ## set up logging
 logging.basicConfig(
     format="%(levelname)s - %(message)s",
-    level=logging.ERROR if args.quiet else logging.INFO,
+    level=logging.DEBUG
+    if args.verbose
+    else logging.ERROR
+    if args.quiet
+    else logging.INFO,
 )
+
 
 ## test if required binaries exist
 def which(name, hint):
@@ -78,7 +108,19 @@ def which(name, hint):
         sys.exit(1)
     return path
 
+
 cfs = which("cfs", "check your Coda client installation")
+
+# helper functions wrapping around cfs commands
+def coda_listvol(path):
+    r = subprocess.run([cfs, "listvol", path], capture_output=True)
+    m = re.search(' volume ([0-9a-fA-F]+) .* named "([^"]+)"', r.stdout.decode("ascii"))
+    return m.groups() if m is not None else None
+
+
+def coda_listacl(path):
+    r = subprocess.run([cfs, "listacl", path], capture_output=True)
+    return re.findall("\s*(\S+)\s+(r?l?i?d?w?k?a?)", r.stdout.decode("ascii"))
 
 
 ## jsonschema for validation
@@ -88,39 +130,29 @@ CODA_ACLS_SCHEMA = {
     "$defs": {
         "fspath": {"type": "string"},
         "user_or_group": {"type": "string"},
-        "acl_rights": {
-            "type": "string",
-            "pattern": "^-?r?l?i?d?w?k?a?$"
-        },
+        "acl_rights": {"type": "string", "pattern": "^-?r?l?i?d?w?k?a?$"},
         "acl_entry": {
             "type": "object",
             "properties": {
                 "name": {"$ref": "#/$defs/user_or_group"},
-                "rights": {"$ref": "#/$defs/acl_rights"}
+                "rights": {"$ref": "#/$defs/acl_rights"},
             },
-            "required": ["name", "rights"]
+            "required": ["name", "rights"],
         },
         "acl": {
             "type": "object",
             "properties": {
                 "path": {"$ref": "#/$defs/fspath"},
-                "acl": {
-                    "type": "array",
-                    "items": {"$ref": "#/$defs/acl_entry"}
-                }
+                "acl": {"type": "array", "items": {"$ref": "#/$defs/acl_entry"}},
             },
-            "required": ["path", "acl"]
-        }
+            "required": ["path", "acl"],
+        },
     },
     "type": "object",
-    "properties": {
-        "acls": {
-            "type": "array",
-            "items": {"$ref": "#/$defs/acl"}
-        }
-    },
-    "required": ["acls"]
+    "properties": {"acls": {"type": "array", "items": {"$ref": "#/$defs/acl"}}},
+    "required": ["acls"],
 }
+
 
 def validate(codaacls):
     try:
@@ -136,30 +168,100 @@ def validate(codaacls):
 
     return codaacls
 
+
+# path walking, but with Coda volume aware termination
+def walk_volume_directories(path, volume=None):
+    yield path.resolve()
+
+    for p in path.iterdir():
+        if not p.is_dir():
+            continue
+
+        # don't cross volume boundaries when volume is specified
+        volume_id, volume_name = coda_listvol(p)
+        if volume is not None and volume_id != volume:
+            logging.info("Skipping volume '%s' at %s", volume_name, p)
+            continue
+
+        try:
+            yield from walk_volume_directories(p, volume)
+        except PermissionError:
+            log.warning("Unable to iterate over %s", p)
+
+
 if args.source.is_file():
-    with open(args.source) as acl_file:
+    with args.source.open() as acl_file:
         logging.info("Loading %s", args.source)
         acls = yaml.safe_load(acl_file)
 
-        logging.info("Validating %s format", args.source)
-        acls = validate(acls)['acls']
+elif args.source.is_dir():
+    directory_acls = []
+    root_volume = None
+
+    if not args.cross_volumes:
+        listvol_out = coda_listvol(args.source)
+        if listvol_out is None:
+            print(f"Unable to get Coda volume information for {args.source}")
+            sys.exit(1)
+        root_volume = listvol_out[0]
+
+    for p in walk_volume_directories(args.source, root_volume):
+        logging.info("Getting ACL for %s", p)
+
+        acl = [dict(name=entry[0], rights=entry[1]) for entry in coda_listacl(p)]
+        path = str(pathlib.Path(p).relative_to(args.source))
+
+        directory_acls.append(dict(path=path, acl=acl))
+
+    acls = dict(acls=directory_acls)
 else:
-    logging.error("Reading ACLs from existing file system tree not implemented yet")
+    logging.error("Source not a file or directory?")
     sys.exit(1)
 
+
+logging.debug("Validating ACLs read from %s", args.source)
+acls = validate(acls)["acls"]
+
+
+# get some interesting statistics
+if not args.quiet:
+    print("---")
+    print("# of acls:", len(acls))
+
+    users = set()
+    admins = set()
+    for acl in acls:
+        for entry in acl["acl"]:
+            users.add(entry["name"])
+            if "a" in entry["rights"]:
+                admins.add(entry["name"])
+
+    print("Users with some ACL rights:", users)
+    print("Users granted admin rights:", admins)
+    print("---")
+
+if args.write_aclfile:
+    with open(args.write_aclfile, "w") as f:
+        yaml.dump(dict(acls=acls), f)
+    sys.exit(0)
+
+# replace subprocess run with a noop for dry runs
 if args.dry_run:
+
     def dry_runner(args, **kwargs):
         print(" ".join(str(arg) for arg in args))
+
     subprocess.run = dry_runner
 
+
 # sort alphabetically, from leafs to root
-logging.info("Sorting alphabetically, leafs first")
-acls.sort(key=itemgetter('path'))
-acls.sort(key=lambda acl: acl['path'].count('/'), reverse=True)
+logging.debug("Sorting alphabetically, leafs first")
+acls.sort(key=itemgetter("path"))
+acls.sort(key=lambda acl: acl["path"].count("/"), reverse=True)
 
 with tqdm(acls) as pbar:
     for acl in pbar:
-        path = args.destination / acl['path']
+        path = args.destination / acl["path"]
 
         if not path.exists():
             logging.warning("Skipping non-existent path %s", path)
@@ -170,18 +272,16 @@ with tqdm(acls) as pbar:
             continue
 
         positives = [
-            (entry['name'], entry['rights'])
-            for entry in acl['acl'] if not entry['rights'].startswith('-')
+            (entry["name"], entry["rights"])
+            for entry in acl["acl"]
+            if not entry["rights"].startswith("-")
         ]
         negatives = [
-            '"{}" {}'.format(entry['name'], entry['rights'][1:])
-            for entry in acl['acl'] if entry['rights'].startswith('-')
+            '"{}" {}'.format(entry["name"], entry["rights"][1:])
+            for entry in acl["acl"]
+            if entry["rights"].startswith("-")
         ]
 
-        subprocess.run(
-            itertools.chain([cfs, "sa", "-clear", path], *positives)
-        )
+        subprocess.run(itertools.chain([cfs, "sa", "-clear", path], *positives))
         if negatives:
-            subprocess.run(
-                itertools.chain([cfs, "sa", "-negative", path], *negatives)
-            )
+            subprocess.run(itertools.chain([cfs, "sa", "-negative", path], *negatives))
