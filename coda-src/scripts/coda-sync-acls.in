@@ -120,7 +120,7 @@ def coda_listvol(path):
 
 def coda_listacl(path):
     r = subprocess.run([cfs, "listacl", path], capture_output=True)
-    return re.findall("\s*(\S+)\s+(r?l?i?d?w?k?a?)", r.stdout.decode("ascii"))
+    return re.findall("\s*(\S+)\s+(-?r?l?i?d?w?k?a?)", r.stdout.decode("ascii"))
 
 
 ## jsonschema for validation
