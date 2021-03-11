@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 7
+                              Release 8
 
-          Copyright (c) 1987-2019 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -198,6 +198,7 @@ void VolInit(void)
                     v->ResetTransient();
                     /* grab extra reference until all fsos are initialized */
                     v->hold();
+                    FoundMLEs += v->CML.count();
                 }
             }
             eprint("\t%d volume replicas", VDB->volrep_hash.count());
