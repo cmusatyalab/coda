@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -46,8 +46,8 @@ Pittsburgh, PA.
 #include <partition.h>
 #include "voldefs.h"
 
-#define VolumeWriteable(vp) (V_type(vp) == readwriteVolume)
-#define VolumeWriteable2(vol) (vol.type == readwriteVolume)
+#define VolumeWriteable(vp) \
+    (V_type(vp) == readwriteVolume || V_type(vp) == nonReplicatedVolume)
 
 #define FSTAG 84597 /* Unique tag for fileserver lwp rocks */
 
