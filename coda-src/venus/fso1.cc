@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 7
+                              Release 8
 
-          Copyright (c) 1987-2019 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -2642,14 +2642,14 @@ void fsobj::print(int fdes)
         fdprint(fdes, " }\n");
     }
 
-    fdprint(fdes,
-            "\tvoltype = [%d %d %d], fake = %d, fetching = %d local = %d\n",
-            vol->IsBackup(), vol->IsReplicated(), vol->IsReadWriteReplica(),
-            flags.fake, flags.fetching, flags.local);
-    fdprint(fdes,
-            "\texpanded = %d, rep = %d, data = %d, owrite = %d, dirty = %d\n",
-            flags.expanded, REPLACEABLE(this), HAVEDATA(this), flags.owrite,
-            flags.dirty);
+    if (vol) {
+        fdprint(fdes, "\tvoltype = [%d %d %d]\n", vol->IsBackup(),
+                vol->IsReplicated(), vol->IsReadWriteReplica());
+    }
+    fdprint(fdes, "\tfake = %d, fetching = %d local = %d expanded = %d\n",
+            flags.fake, flags.fetching, flags.local, flags.expanded);
+    fdprint(fdes, "\trep = %d, data = %d, owrite = %d, dirty = %d\n",
+            REPLACEABLE(this), HAVEDATA(this), flags.owrite, flags.dirty);
     fdprint(fdes, "\tshadow = %d, ckmtpt = %d, vastro = %d\n", shadow != 0,
             flags.ckmtpt, flags.vastro);
 
