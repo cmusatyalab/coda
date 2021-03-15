@@ -1,9 +1,9 @@
 /* BLURB gpl
 
 			    Coda File System
-				Release 7
+				Release 8
 
-	    Copyright (c) 1987-2019 Carnegie Mellon University
+	    Copyright (c) 1987-2021 Carnegie Mellon University
 		    Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -3310,10 +3310,16 @@ int reintvol::PurgeMLEs(uid_t uid)
 {
     if (CML.count() == 0)
         return (ENOENT);
-    if (CML.owner != uid && uid != V_UID)
+    if (CML.owner != uid && uid != V_UID) {
+        LOG(0, ("volent::PurgeMLEs:(%s) (%x.%x) not owner\n", name, realm->Id(),
+                vid));
         return (EACCES);
-    if (IsReadWrite() && ((reintvol *)this)->IsReintegrating())
+    }
+    if (IsReadWrite() && ((reintvol *)this)->IsReintegrating()) {
+        LOG(0, ("volent::PurgeMLEs:(%s) (%x.%x) isreintegrating\n", name,
+                realm->Id(), vid));
         return EACCES;
+    }
 
     LOG(0, ("volent::PurgeMLEs:(%s) (%x.%x)\n", name, realm->Id(), vid));
 
