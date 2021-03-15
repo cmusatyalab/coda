@@ -1674,38 +1674,8 @@ volrep::~volrep()
     PutServer(&volserver);
 }
 
-void volrep::ResetTransient(void)
+void reintvol::ResetCMLTransients(void)
 {
-    list_head_init(&vollist);
-
-    volserver = NULL;
-    if (host.s_addr) {
-        volserver = GetServer(&host, GetRealmId());
-        CODA_ASSERT(volserver);
-    }
-
-    ResetVolTransients();
-}
-
-void repvol::ResetTransient(void)
-{
-    struct in_addr hosts[VSG_MEMBERS];
-
-    res_list  = new olist;
-    cop2_list = new dlist;
-
-    /* don't grab a refcount to the staging server volume, it will get
-     * purged by the VolDaemon automatically */
-    ro_replica = NULL;
-
-    /* do grab refcounts on the underlying replicas */
-    for (int i = 0; i < VSG_MEMBERS; i++)
-        if (volreps[i])
-            volreps[i]->hold();
-
-    GetHosts(hosts);
-    vsg = VSGDB->GetVSG(hosts, GetRealmId());
-
     Lock_Init(&CML_lock);
     CML.ResetTransient();
 
@@ -1734,7 +1704,42 @@ void repvol::ResetTransient(void)
         SymlinkFids.Count = 0;
         Recov_EndTrans(MAXFP);
     }
+}
 
+void volrep::ResetTransient(void)
+{
+    list_head_init(&vollist);
+
+    volserver = NULL;
+    if (host.s_addr) {
+        volserver = GetServer(&host, GetRealmId());
+        CODA_ASSERT(volserver);
+    }
+
+    ResetCMLTransients();
+    ResetVolTransients();
+}
+
+void repvol::ResetTransient(void)
+{
+    struct in_addr hosts[VSG_MEMBERS];
+
+    res_list  = new olist;
+    cop2_list = new dlist;
+
+    /* don't grab a refcount to the staging server volume, it will get
+     * purged by the VolDaemon automatically */
+    ro_replica = NULL;
+
+    /* do grab refcounts on the underlying replicas */
+    for (int i = 0; i < VSG_MEMBERS; i++)
+        if (volreps[i])
+            volreps[i]->hold();
+
+    GetHosts(hosts);
+    vsg = VSGDB->GetVSG(hosts, GetRealmId());
+
+    ResetCMLTransients();
     ResetVolTransients();
 }
 

@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 7
+                              Release 8
 
-          Copyright (c) 1987-2019 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -772,6 +772,8 @@ protected:
     /*T*/ CallBackStatus VCBStatus; /* do we have a volume callback? */
     /*T*/ int VCBHits; /* # references hitting this callback */
     ViceVersionVector VVV; /* (maximal) volume version vector */
+
+    void ResetCMLTransients();
 
 public:
     reintvol(Realm *r, VolumeId volid, const char *volname);
