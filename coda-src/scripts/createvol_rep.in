@@ -232,3 +232,5 @@ fi
 mv $vicedir/db/VRList $vicedir/db/VRList.old
 mv $vicedir/db/VRList.new $vicedir/db/VRList
 
+# locally trigger reading of the new VRList file (or VRDB on older servers)
+volutil updatedb

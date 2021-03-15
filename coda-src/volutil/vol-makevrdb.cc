@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -119,7 +119,8 @@ long S_VolMakeVRDB(RPC2_Handle rpcid, RPC2_String formal_infile)
     } else
         LogMsg(0, VolDebugLevel, stdout, "VRDB created, %d entries", lineno);
 
-    /* Tell fileserver to read in new database. */
+    /* Tell fileserver to read in new database.
+     * (this will currently re-read old VRList until temporary VRList file is renamed) */
     CheckVRDB();
 Exit:
     if (vrlist)

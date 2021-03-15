@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 7
+                              Release 8
 
-          Copyright (c) 1987-2019 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -185,22 +185,40 @@ int vrtab::dump(int afd)
 
 void CheckVRDB()
 {
-    int VRDB_fd = open(VRDB_PATH, O_RDONLY, 0);
-    if (VRDB_fd < 0) {
-        LogMsg(0, VolDebugLevel, stdout, "CheckVRDB: could not open VRDB");
+    FILE *VRLIST = fopen(VRLIST_PATH, "r");
+    if (VRLIST == NULL) {
+        LogMsg(0, VolDebugLevel, stdout,
+               "CheckVRDB: could not open VRList file");
         return;
     }
 
     VRDB.clear();
 
     /* Build the new VRDB. */
-    vrent vre;
-    while (read(VRDB_fd, &vre, sizeof(vrent)) == sizeof(vrent)) {
-        vre.ntoh();
-        VRDB.add(new vrent(vre));
+    char line[500];
+
+    while (fgets(line, sizeof(line), VRLIST) != NULL) {
+        unsigned int unused;
+        int nservers, n;
+        vrent *vre = new vrent();
+        CODA_ASSERT(vre);
+
+        static_assert(
+            (V_MAXVOLNAMELEN - 1) == 31,
+            "expecting volume names to be 32 characters including '\\0'");
+        n = sscanf(line, "%31s %x %d %x %x %x %x %x %x %x %x %x", vre->key,
+                   &vre->volnum, &nservers, &vre->ServerVolnum[0],
+                   &vre->ServerVolnum[1], &vre->ServerVolnum[2],
+                   &vre->ServerVolnum[3], &vre->ServerVolnum[4],
+                   &vre->ServerVolnum[5], &vre->ServerVolnum[6],
+                   &vre->ServerVolnum[7], &unused);
+        CODA_ASSERT(n >= 3 && n >= (3 + nservers));
+
+        vre->nServers = nservers;
+        VRDB.add(vre);
     }
 
-    close(VRDB_fd);
+    fclose(VRLIST);
 }
 
 int DumpVRDB(int outfd)

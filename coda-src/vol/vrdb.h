@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 7
+                              Release 8
 
-          Copyright (c) 1987-2019 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -39,6 +39,7 @@ extern "C" {
 
 #define VRDB_PATH vice_config_path("db/VRDB")
 #define VRDB_TEMP vice_config_path("db/VRDB.new")
+#define VRLIST_PATH vice_config_path("db/VRList")
 
 #define VRTABHASHSIZE 128
 
