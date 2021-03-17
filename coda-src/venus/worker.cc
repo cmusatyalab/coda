@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2020 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -1613,10 +1613,12 @@ inline void worker::op_coda_access_intent(union inputArgs *in,
     case CODA_ACCESS_TYPE_READ_FINISH:
         read_finish(&vtarget, coda_access_intent->pos,
                     coda_access_intent->count);
+        returned = 1; /* this was a notification, no need to reply */
         break;
     case CODA_ACCESS_TYPE_WRITE_FINISH:
         write_finish(&vtarget, coda_access_intent->pos,
                      coda_access_intent->count);
+        returned = 1; /* this was a notification, no need to reply */
         break;
     default:
         // Do nothing
