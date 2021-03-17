@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 7
+                              Release 8
 
-          Copyright (c) 1987-2019 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -797,14 +797,14 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
                      * collate flags from vsg members. even if the return
                      * is ERETRY we can (and should) grab the flags.
                      */
-                    int numVFlags = 0;
+                    unsigned int numVFlags = 0;
 
                     for (i = 0; i < rpc_common.nservers; i++)
                         if (rpc_common.hosts[i].s_addr != 0) {
                             if (numVFlags == 0) {
                                 /* unset, copy in one response */
                                 ARG_UNMARSHALL_BS(VFlagvar, VFlagBS, i);
-                                numVFlags = (unsigned)VFlagBS.SeqLen;
+                                numVFlags = VFlagBS.SeqLen;
                             } else {
                                 /*
                                  * "and" in results from other servers.
@@ -816,7 +816,7 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
                         }
 
                     LOG(10,
-                        ("fsobj::GetAttr: ValidateAttrs (%s), %d fids sent, %d checked\n",
+                        ("fsobj::GetAttr: ValidateAttrs (%s), %d fids sent, %u checked\n",
                          GetComp(), numPiggyFids, numVFlags));
 
                     nchecked += numPiggyFids;
@@ -1641,6 +1641,9 @@ int fsobj::SetACL(RPC2_CountedBS *acl, uid_t uid)
                 if (cbtemp == cbbreaks)
                     ((reintvol *)this)
                         ->UpdateVCBInfo(VSvar_bufs[0], VCBStatusvar_bufs[0]);
+
+                /* Copy the OUT parameter */
+                ARG_UNMARSHALL(statusvar, status, 0);
             }
         }
 
