@@ -58,6 +58,12 @@ parser.add_argument(
     "-v", "--verbose", action="store_true", help="display extra messages"
 )
 parser.add_argument(
+    "-n",
+    "--dry-run",
+    action="store_true",
+    help="avoid running commands that alter state",
+)
+parser.add_argument(
     "-x",
     "--cross-volumes",
     action="store_true",
@@ -65,12 +71,6 @@ parser.add_argument(
 )
 parser.add_argument(
     "--write-aclfile", help="write collected acls to a new CodaACLs file"
-)
-parser.add_argument(
-    "-n",
-    "--dry-run",
-    action="store_true",
-    help="avoid running commands that alter state",
 )
 parser.add_argument(
     "-o",
@@ -121,6 +121,15 @@ def coda_listvol(path):
 def coda_listacl(path):
     r = subprocess.run([cfs, "listacl", path], capture_output=True)
     return re.findall("\s*(\S+)\s+(-?r?l?i?d?w?k?a?)", r.stdout.decode("ascii"))
+
+
+def coda_setacl(path, acl):
+    positives = [entry for entry in acl if not entry[1].startswith("-")]
+    negatives = [(entry[0], entry[1][1:]) for entry in acl if entry[1].startswith("-")]
+
+    subprocess.run(itertools.chain([cfs, "sa", "-clear", path], *positives))
+    if negatives:
+        subprocess.run(itertools.chain([cfs, "sa", "-negative", path], *negatives))
 
 
 ## jsonschema for validation
@@ -245,14 +254,6 @@ if args.write_aclfile:
         yaml.dump(dict(acls=acls), f)
     sys.exit(0)
 
-# replace subprocess run with a noop for dry runs
-if args.dry_run:
-
-    def dry_runner(args, **kwargs):
-        print(" ".join(str(arg) for arg in args))
-
-    subprocess.run = dry_runner
-
 
 # sort alphabetically, from leafs to root
 logging.debug("Sorting alphabetically, leafs first")
@@ -271,17 +272,12 @@ with tqdm(acls) as pbar:
             logging.warning("Skipping non-directory %s", path)
             continue
 
-        positives = [
-            (entry["name"], entry["rights"])
-            for entry in acl["acl"]
-            if not entry["rights"].startswith("-")
-        ]
-        negatives = [
-            '"{}" {}'.format(entry["name"], entry["rights"][1:])
-            for entry in acl["acl"]
-            if entry["rights"].startswith("-")
-        ]
+        cur_acl = coda_listacl(path)
+        new_acl = [(entry["name"], entry["rights"]) for entry in acl["acl"]]
 
-        subprocess.run(itertools.chain([cfs, "sa", "-clear", path], *positives))
-        if negatives:
-            subprocess.run(itertools.chain([cfs, "sa", "-negative", path], *negatives))
+        if cur_acl == new_acl:
+            logging.debug("Skipping already set acl at %s", path)
+            continue
+
+        if not args.dry_run:
+            coda_setacl(path, new_acl)
