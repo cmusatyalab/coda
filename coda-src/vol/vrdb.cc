@@ -203,9 +203,11 @@ void CheckVRDB()
         vrent *vre = new vrent();
         CODA_ASSERT(vre);
 
+#if defined(static_assert)
         static_assert(
             (V_MAXVOLNAMELEN - 1) == 31,
             "expecting volume names to be 32 characters including '\\0'");
+#endif
         n = sscanf(line, "%31s %x %d %x %x %x %x %x %x %x %x %x", vre->key,
                    &vre->volnum, &nservers, &vre->ServerVolnum[0],
                    &vre->ServerVolnum[1], &vre->ServerVolnum[2],
