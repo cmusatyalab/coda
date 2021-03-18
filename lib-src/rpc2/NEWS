@@ -1,3 +1,11 @@
+New in 2.34
+
+* Add a way to pass the hostname we are trying to connect to from venus to
+  codatunneld so that we can properly check if the x509 certificate matches
+  the host we're trying to connect to.
+* Fix uv_udp_send regression in libuv-1.27.0 when we're passing a message back
+  to venus/codasrv over the unix domain socket.
+
 New in 2.33
 
 * Fix occasional deadlock on while tearing down a tunnel.
