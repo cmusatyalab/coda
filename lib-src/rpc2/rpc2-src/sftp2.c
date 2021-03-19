@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 7
+                              Release 8
 
-          Copyright (c) 1987-2019 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -188,11 +188,16 @@ static void ServerPacket(RPC2_PacketBuffer *whichPacket,
      * if no LWP yields control while its SLSlot state is TIMEOUT.  There
      * could be serious hard-to-find bugs if this assumption is violated. */
 
-    if (sEntry->XferState != XferInProgress) {
+    if (sEntry->XferState == XferNotStarted) {
         fprintf(stderr, "No active SFTP transfer, dropping incoming packet\n");
         BOGUS(whichPacket);
         return;
+    } else if (sEntry->XferState == XferCompleted) {
+        /* drop retransmissions arriving after the transfer has completed */
+        BOGUS(whichPacket);
+        return;
     }
+    assert(sEntry->XferState == XferInProgress);
 
     /* queue packet */
     rpc2_MoveEntry(&rpc2_PBList, &sEntry->RecvQueue, &whichPacket->Prefix.LE,
