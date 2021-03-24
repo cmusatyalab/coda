@@ -19,16 +19,14 @@
 # optional dependencies on jsonschema (validation) and tqdm (progressbar)
 
 import argparse
-from distutils.spawn import find_executable
-import itertools
 import logging
-import re
 from operator import itemgetter
-import os
 import pathlib
-import subprocess
 import sys
 import yaml
+
+import codafs
+from codafs.structs import AclEntry
 
 
 # optional dependency, tqdm for a nice progressbar
@@ -42,7 +40,7 @@ except ImportError:
         yield args[0]
 
 
-## argument parsing
+# argument parsing
 def DirPath(string):
     path = pathlib.Path(string)
     if not path.is_dir():
@@ -89,7 +87,7 @@ parser.add_argument(
 args = parser.parse_args()
 
 
-## set up logging
+# set up logging
 logging.basicConfig(
     format="%(levelname)s - %(message)s",
     level=logging.DEBUG
@@ -100,39 +98,7 @@ logging.basicConfig(
 )
 
 
-## test if required binaries exist
-def which(name, hint):
-    path = find_executable(name)
-    if path is None:
-        logging.critical("Cannot find %s, %s", name, hint)
-        sys.exit(1)
-    return path
-
-
-cfs = which("cfs", "check your Coda client installation")
-
-# helper functions wrapping around cfs commands
-def coda_listvol(path):
-    r = subprocess.run([cfs, "listvol", path], capture_output=True)
-    m = re.search(' volume ([0-9a-fA-F]+) .* named "([^"]+)"', r.stdout.decode("ascii"))
-    return m.groups() if m is not None else None
-
-
-def coda_listacl(path):
-    r = subprocess.run([cfs, "listacl", path], capture_output=True)
-    return re.findall("\s*(\S+)\s+(-?r?l?i?d?w?k?a?)", r.stdout.decode("ascii"))
-
-
-def coda_setacl(path, acl):
-    positives = [entry for entry in acl if not entry[1].startswith("-")]
-    negatives = [(entry[0], entry[1][1:]) for entry in acl if entry[1].startswith("-")]
-
-    subprocess.run(itertools.chain([cfs, "sa", "-clear", path], *positives))
-    if negatives:
-        subprocess.run(itertools.chain([cfs, "sa", "-negative", path], *negatives))
-
-
-## jsonschema for validation
+# jsonschema for validation
 CODA_ACLS_SCHEMA = {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "$id": "http://coda.cs.cmu.edu/schemas/coda_acls.json",
@@ -187,7 +153,7 @@ def walk_volume_directories(path, volume=None):
             continue
 
         # don't cross volume boundaries when volume is specified
-        volume_id, volume_name = coda_listvol(p)
+        volume_id, volume_name = codafs.listvol(p)
         if volume is not None and volume_id != volume:
             logging.info("Skipping volume '%s' at %s", volume_name, p)
             continue
@@ -195,7 +161,7 @@ def walk_volume_directories(path, volume=None):
         try:
             yield from walk_volume_directories(p, volume)
         except PermissionError:
-            log.warning("Unable to iterate over %s", p)
+            logging.warning("Unable to iterate over %s", p)
 
 
 if args.source.is_file():
@@ -208,7 +174,7 @@ elif args.source.is_dir():
     root_volume = None
 
     if not args.cross_volumes:
-        listvol_out = coda_listvol(args.source)
+        listvol_out = codafs.listvol(args.source)
         if listvol_out is None:
             print(f"Unable to get Coda volume information for {args.source}")
             sys.exit(1)
@@ -217,7 +183,7 @@ elif args.source.is_dir():
     for p in walk_volume_directories(args.source, root_volume):
         logging.info("Getting ACL for %s", p)
 
-        acl = [dict(name=entry[0], rights=entry[1]) for entry in coda_listacl(p)]
+        acl = [dict(name=entry[0], rights=entry[1]) for entry in codafs.listacl(p)]
         path = str(pathlib.Path(p).relative_to(args.source))
 
         directory_acls.append(dict(path=path, acl=acl))
@@ -272,12 +238,12 @@ with tqdm(acls) as pbar:
             logging.warning("Skipping non-directory %s", path)
             continue
 
-        cur_acl = coda_listacl(path)
-        new_acl = [(entry["name"], entry["rights"]) for entry in acl["acl"]]
+        cur_acl = codafs.listacl(path)
+        new_acl = [AclEntry(**entry) for entry in acl["acl"]]
 
         if cur_acl == new_acl:
             logging.debug("Skipping already set acl at %s", path)
             continue
 
         if not args.dry_run:
-            coda_setacl(path, new_acl)
+            codafs.setacl(path, new_acl)
