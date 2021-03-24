@@ -201,10 +201,7 @@ def validate(configuration):
     # jsonschema doesn't set defaults because it avoids modifying the validated
     # datastructure. It seems easier to fold them in ourselves than to override
     # the validator behavior.
-    REALM_CONFIG_DEFAULTS = dict(
-        realm_expiration_days=365,
-        server_expiration_days=7,
-    )
+    REALM_CONFIG_DEFAULTS = dict(realm_expiration_days=365, server_expiration_days=7)
     return {**REALM_CONFIG_DEFAULTS, **configuration}
 
 

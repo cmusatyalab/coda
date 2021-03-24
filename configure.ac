@@ -36,6 +36,7 @@ AC_PROG_AWK
 
 CLANG_FORMAT_VERSION=['6\.[0-9]*\.[0-9]*']
 AC_CHECK_PROGS([CLANG_FORMAT], [clang-format-6.0 clang-format])
+AC_CHECK_PROGS([BLACK], [black true])
 
 dnl Verify that the version matches in case clang-format is found
 if test "x$CLANG_FORMAT" != x ; then

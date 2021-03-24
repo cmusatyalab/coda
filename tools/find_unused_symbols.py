@@ -17,18 +17,22 @@ import os
 import subprocess
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--all", action='store_true',
-                    help="include object files that define a 'main' function.")
-parser.add_argument("root", nargs='?', default=".",
-                    help="root of build tree with object files.")
+parser.add_argument(
+    "--all",
+    action="store_true",
+    help="include object files that define a 'main' function.",
+)
+parser.add_argument(
+    "root", nargs="?", default=".", help="root of build tree with object files."
+)
 
 
 def demangle(names):
     """Turn mangled C++ names back into something humans can understand."""
     if not names:
         return []
-    output = subprocess.check_output(['c++filt'] + list(names)).decode('ascii')
-    demangled = [ name for name in output.split('\n') if name ]
+    output = subprocess.check_output(["c++filt"] + list(names)).decode("ascii")
+    demangled = [name for name in output.split("\n") if name]
     return demangled
 
 
@@ -36,16 +40,16 @@ def extract_symbols(filename):
     """Extract defined/used function names from object files"""
     defined, used = set(), set()
 
-    output = subprocess.check_output(['nm', filename]).decode('ascii')
-    for sym in output.split('\n'):
+    output = subprocess.check_output(["nm", filename]).decode("ascii")
+    for sym in output.split("\n"):
         if not sym:
             continue
         addr, t, symbol = sym[:16], sym[17], sym[19:]
 
-        if t == 'T':
+        if t == "T":
             defined.add(symbol)
 
-        elif t == 'U':
+        elif t == "U":
             used.add(symbol)
 
     return demangle(defined), demangle(used)
@@ -54,17 +58,17 @@ def extract_symbols(filename):
 def enumerate_objects(root):
     """Walk tree from root and return names of object files."""
     for root, dirs, files in os.walk(root):
-        if '.libs' in dirs:
-            dirs.remove('.libs')
+        if ".libs" in dirs:
+            dirs.remove(".libs")
 
         for name in files:
-            if not name.endswith('.o'):
+            if not name.endswith(".o"):
                 continue
 
             yield os.path.join(root, name)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     args = parser.parse_args()
 
     syms_defined = {}
@@ -77,10 +81,10 @@ if __name__ == '__main__':
         for symbol in used:
             syms_used.add(symbol)
 
-        if 'main' in defined:
+        if "main" in defined:
             if not args.all:
                 continue
-            defined.remove('main')
+            defined.remove("main")
 
         for symbol in defined:
             syms_defined.setdefault(symbol, []).append(filename)
@@ -98,4 +102,3 @@ if __name__ == '__main__':
         for symbol in sorted(unused[filename]):
             print("    {}".format(symbol))
         print()
-
