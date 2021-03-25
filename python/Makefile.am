@@ -1,7 +1,10 @@
 ## Process this file with automake to produce Makefile.in
 
 EXTRA_DIST = setup.py \
-	codafs/__init__.py codafs/cfs.py codafs/structs.py
+	codafs/__init__.py \
+	codafs/cfs.py \
+	codafs/optional.py \
+	codafs/structs.py
 
 # configure gets some installation paths wrong
 # - Debian uses a non-standard installation location
