@@ -6,7 +6,6 @@ dist_bin_SCRIPTS =
 dist_sbin_SCRIPTS =
 dist_man_MANS =
 if BUILD_CLIENT
-bin_SCRIPTS += coda-sync-acls
 sbin_SCRIPTS += coda-client-setup
 dist_bin_SCRIPTS += volmunge
 dist_man_MANS += coda-client-setup.8 volmunge.1

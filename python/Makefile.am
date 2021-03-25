@@ -1,5 +1,10 @@
 ## Process this file with automake to produce Makefile.in
 
+bin_SCRIPTS =
+if BUILD_CLIENT
+bin_SCRIPTS += coda-sync-acls
+endif
+
 EXTRA_DIST = setup.py \
 	codafs/__init__.py \
 	codafs/cfs.py \

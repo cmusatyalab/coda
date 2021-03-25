@@ -1,6 +1,5 @@
 bldvldb.sh
 coda-client-setup
-coda-sync-acls
 createvol_rep
 purgevol_rep
 rc.vice
