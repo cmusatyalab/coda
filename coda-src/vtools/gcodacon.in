@@ -23,7 +23,7 @@ import gi
 gi.require_version("Gtk", "3.0")
 gi.require_version("GdkPixbuf", "2.0")
 gi.require_version("Notify", "0.7")
-from gi.repository import GLib, GObject, Gtk, Gdk, GdkPixbuf, Notify  # noqa: E402
+from gi.repository import Gdk, GdkPixbuf, GLib, GObject, Gtk, Notify  # noqa: E402
 
 # send no more than 20 updates per second to the notification daemon
 NOTIFICATION_INTERVAL = 0.05

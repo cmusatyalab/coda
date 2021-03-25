@@ -20,14 +20,13 @@
 
 import argparse
 import logging
-from operator import itemgetter
 import pathlib
 import sys
-import yaml
+from operator import itemgetter
 
 import codafs
+import yaml
 from codafs.structs import AclEntry
-
 
 # optional dependency, tqdm for a nice progressbar
 try:

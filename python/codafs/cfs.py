@@ -19,7 +19,6 @@ from distutils.spawn import find_executable
 
 from .structs import new_aclentry
 
-
 _commands = {}
 
 

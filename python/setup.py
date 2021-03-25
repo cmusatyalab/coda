@@ -1,5 +1,5 @@
-from setuptools import setup
 from codafs import __version__
+from setuptools import setup
 
 setup(
     name="codafs",

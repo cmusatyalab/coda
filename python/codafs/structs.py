@@ -12,9 +12,8 @@
 #
 """ Data structures used in the Python API """
 
-from collections import namedtuple
 import re
-
+from collections import namedtuple
 
 AclEntry = namedtuple("AclEntry", ["name", "rights"])
 

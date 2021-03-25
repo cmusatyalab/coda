@@ -34,7 +34,10 @@ srvmap = [
 
 ##########################################################################
 
-import cgi, sys, traceback, os
+import cgi
+import os
+import sys
+import traceback
 
 print(
     """Content-type: text/html\n
