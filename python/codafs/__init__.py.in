@@ -13,5 +13,6 @@
 """ Helper functions to access the Coda file system """
 
 from .cfs import listacl, listvol, setacl  # noqa
+from .walk import walk_volume  # noqa
 
 __version__ = "@CODAFS_PY_VERSION@"

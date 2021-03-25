@@ -19,6 +19,11 @@ from distutils.spawn import find_executable
 
 from .structs import new_aclentry
 
+
+class NotCodaFS(FileNotFoundError):
+    """ Exception 'trying to do Coda operation on non-Coda file system' """
+
+
 _commands = {}
 
 
@@ -40,7 +45,7 @@ def listvol(path):
         r' volume ([0-9a-fA-F]+) .* named "([^"]+)"', result.stdout.decode("ascii")
     )
     if match is None:
-        return None
+        raise NotCodaFS(f"cfs listvol failed on {path}")
     return match.group(0), match.group(1)
 
 

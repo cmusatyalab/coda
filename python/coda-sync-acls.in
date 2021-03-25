@@ -105,39 +105,6 @@ CODA_ACLS_SCHEMA = {
 }
 
 
-def walk_volume(root, volume_callback=None, parent_volume_id=None):
-    """ path walking, but with Coda volume awareness """
-
-    listvol_out = codafs.listvol(root)
-    if listvol_out is None:
-        logging.critical("%s is not a path in Coda", root)
-        return
-
-    volume_id, volume_name = listvol_out
-    if parent_volume_id is None:
-        parent_volume_id = volume_id
-
-    elif volume_id != parent_volume_id:
-        if volume_callback is not None:
-            try:
-                volume_callback(root, volume_name, volume_id)
-            except StopIteration:
-                return
-
-    yield root
-
-    for path in root.iterdir():
-        if path.is_dir():
-            try:
-                yield from walk_volume(
-                    path, volume_callback=volume_callback, parent_volume_id=volume_id
-                )
-            except PermissionError:
-                logging.warning("Unable to iterate over %s", path)
-        # else:
-        #    yield path
-
-
 def collect_acls(root, cross_volume=False):
     """ Walk directory tree in Coda, collecting ACLs """
 
@@ -152,7 +119,7 @@ def collect_acls(root, cross_volume=False):
     else:
         volume_callback = None
 
-    for directory in walk_volume(root, volume_callback=volume_callback):
+    for directory in codafs.walk_volume(root, volume_callback=volume_callback):
         logging.info("Getting ACL for %s", directory)
 
         path = str(directory.relative_to(root))
@@ -250,7 +217,7 @@ def main():
         print("---")
 
     if args.write_aclfile is not None:
-        with args.write_aclfile.expanduser().open("w") as acl_file:
+        with Path(args.write_aclfile).expanduser().open("w") as acl_file:
             yaml.dump(dict(acls=acls), acl_file)
     else:
         update_acls(args.destination, acls, dry_run=args.dry_run)
