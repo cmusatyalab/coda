@@ -546,6 +546,7 @@ uint64_t CacheFile::ConsecutiveValidData(void)
     return ccblocks_to_bytes(index);
 }
 
+/* MUST be called from within transaction! */
 int64_t CacheFile::CopySegment(CacheFile *from, CacheFile *to, uint64_t pos,
                                int64_t count)
 {
@@ -920,11 +921,13 @@ void SegmentedCacheFile::Associate(CacheFile *cf)
     this->cf = cf;
 }
 
+/* MUST be called from within transaction! */
 int64_t SegmentedCacheFile::ExtractSegment(uint64_t pos, int64_t count)
 {
     return CopySegment(cf, this, pos, count);
 }
 
+/* MUST be called from within transaction! */
 int64_t SegmentedCacheFile::InjectSegment(uint64_t pos, int64_t count)
 {
     return CopySegment(this, cf, pos, count);

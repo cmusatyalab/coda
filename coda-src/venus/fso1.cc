@@ -1903,12 +1903,14 @@ void fsobj::DetachMleBinding(binding *b)
     }
 }
 
+/* MUST be called from within transaction! */
 void ExtractSegmentCallback(uint64_t start, int64_t len, void *usr_data_cb)
 {
     SegmentedCacheFile *tmpcpy = (SegmentedCacheFile *)usr_data_cb;
     tmpcpy->ExtractSegment(start, len);
 }
 
+/* MUST be called from within transaction! */
 void InjectSegmentCallback(uint64_t start, int64_t len, void *usr_data_cb)
 {
     SegmentedCacheFile *tmpcpy = (SegmentedCacheFile *)usr_data_cb;
