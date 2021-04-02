@@ -1,8 +1,10 @@
 ## Process this file with automake to produce Makefile.in
 
 bin_SCRIPTS =
+dist_man_MANS =
 if BUILD_CLIENT
-bin_SCRIPTS += coda-sync-acls
+bin_SCRIPTS += coda-sync-acls volmunge
+dist_man_MANS += volmunge.1
 endif
 
 EXTRA_DIST = setup.py \

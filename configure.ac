@@ -239,6 +239,8 @@ AC_CONFIG_FILES([coda-src/vtools/gcodacon],
        [chmod +x coda-src/vtools/gcodacon])
 AC_CONFIG_FILES([python/coda-sync-acls],
        [chmod +x python/coda-sync-acls])
+AC_CONFIG_FILES([python/volmunge],
+       [chmod +x python/volmunge])
 AC_CONFIG_FILES([tools/coda-make-certs],
        [chmod +x tools/coda-make-certs])
 AC_CONFIG_FILES([
