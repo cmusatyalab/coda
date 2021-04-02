@@ -16,6 +16,7 @@ import re
 from collections import namedtuple
 
 AclEntry = namedtuple("AclEntry", ["name", "rights"])
+CodaFID = namedtuple("CodaFID", ["volume", "vnode", "uniquifier", "realm"])
 
 
 def new_aclentry(name, rights):

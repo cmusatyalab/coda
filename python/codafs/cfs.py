@@ -17,7 +17,7 @@ import re
 import subprocess
 from distutils.spawn import find_executable
 
-from .structs import new_aclentry
+from .structs import CodaFID, new_aclentry
 
 
 class NotCodaFS(FileNotFoundError):
@@ -35,6 +35,19 @@ def _which(name, hint):
             raise FileNotFoundError("Cannot find {}, {}".format(name, hint))
         _commands[name] = path
     return _commands[name]
+
+
+def getfid(path):
+    """ return Coda file identifier for specified path """
+    cfs = _which("cfs", "check your Coda client installation")
+    result = subprocess.run([cfs, "getfid", path], capture_output=True, check=False)
+    match = re.match(
+        r"^FID = ([0-9a-fA-F]+)\.([0-9a-fA-F]+)\.([0-9a-fA-F]+)@(\S+)",
+        result.stdout.decode("ascii"),
+    )
+    if match is None:
+        raise NotCodaFS(f"cfs getfid failed on {path}")
+    return CodaFID(*match.groups())
 
 
 def listvol(path):

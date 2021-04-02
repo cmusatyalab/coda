@@ -14,22 +14,22 @@
 
 import logging
 
-from .cfs import NotCodaFS, listvol
+from .cfs import NotCodaFS, getfid, listvol
 
 
-def volume_callback(_root, _volume_name, _volume_id):
+def default_volume_callback(_root, _volume_name, _volume_id):
     """ Example volume callback, this just avoids crossing volume boundaries """
     raise StopIteration
 
 
-def walk_volume(root, volume_callback=volume_callback, parent_volume_id=None):
+def walk_volume(root, volume_callback=default_volume_callback, parent_volume_id=None):
     """ Path walking, but with Coda volume awareness
 
     The volume_callback will be called whenever a volume mountpoint is found,
     it may raise a StopIteration exception to avoid cross-volume crawling.
     """
     try:
-        volume_id, volume_name = listvol(root)
+        volume_id, _, _, _ = getfid(root)
     except NotCodaFS:
         logging.critical("%s is not a path in Coda", root)
         return
@@ -40,6 +40,7 @@ def walk_volume(root, volume_callback=volume_callback, parent_volume_id=None):
     elif volume_id != parent_volume_id:
         if volume_callback is not None:
             try:
+                _, volume_name = listvol(root)
                 volume_callback(root, volume_name, volume_id)
             except StopIteration:
                 return
@@ -47,12 +48,11 @@ def walk_volume(root, volume_callback=volume_callback, parent_volume_id=None):
     yield root
 
     for path in root.iterdir():
-        if path.is_dir():
-            try:
-                yield from walk_volume(
-                    path, volume_callback=volume_callback, parent_volume_id=volume_id
-                )
-            except PermissionError:
-                logging.warning("Unable to iterate over %s", path)
-        # else:
-        #    yield path
+        if not path.is_dir():
+            continue
+        try:
+            yield from walk_volume(
+                path, volume_callback=volume_callback, parent_volume_id=volume_id
+            )
+        except PermissionError:
+            logging.warning("Unable to iterate over %s", path)
