@@ -92,7 +92,7 @@ def main():
         cross_volume=args.cross_volume,
     ):
         if mountpoints:
-            tqdm.write(f"M {root} ({volume_name})")
+            tqdm.write("M {} ({})".format(root, volume_name))
         if not cross_volume:
             raise StopIteration
 
@@ -103,7 +103,7 @@ def main():
         disable=None,
     ):
         if args.directories:
-            tqdm.write(f"D {directory}")
+            tqdm.write("D {}".format(directory))
 
         # yeah, we end up iterating each directory twice
         # hopefully Coda's caching helps here...
@@ -112,7 +112,7 @@ def main():
                 # directories and mountpoints are handled by walk_volume
                 if path.is_file():
                     if args.files:
-                        tqdm.write(f"F {path}")
+                        tqdm.write("F {}".format(path))
                     if args.open_files:
                         with open(path) as f:
                             pass
@@ -121,14 +121,14 @@ def main():
                         link = os.readlink(path)
                         if link[0] == "@":
                             if args.inconsistent:
-                                tqdm.write(f"I {path}")
+                                tqdm.write("I {}".format(path))
                         elif link[0] == "#":
                             if args.mountlinks:
-                                tqdm.write(f"U {path}")
+                                tqdm.write("U {}".format(path))
                         else:
                             logging.critical("Unknown mountlink at %s (%s)", path, link)
                     elif args.links:
-                        tqdm.write(f"L {path}")
+                        tqdm.write("L {}".format(path))
 
         except PermissionError:
             continue

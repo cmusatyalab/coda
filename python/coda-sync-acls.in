@@ -36,7 +36,7 @@ def is_directory(path):
 
     path = Path(path)
     if not path.is_dir():
-        raise ValueError(f"{path} is not a directory")
+        raise ValueError("{} is not a directory".format(path))
     return path
 
 

@@ -46,7 +46,7 @@ def getfid(path):
         result.stdout.decode("ascii"),
     )
     if match is None:
-        raise NotCodaFS(f"cfs getfid failed on {path}")
+        raise NotCodaFS("cfs getfid failed on {}".format(path))
     return CodaFID(*match.groups())
 
 
@@ -58,7 +58,7 @@ def listvol(path):
         r' volume ([0-9a-fA-F]+) .* named "([^"]+)"', result.stdout.decode("ascii")
     )
     if match is None:
-        raise NotCodaFS(f"cfs listvol failed on {path}")
+        raise NotCodaFS("cfs listvol failed on {}".format(path))
     return match.group(0), match.group(1)
 
 
