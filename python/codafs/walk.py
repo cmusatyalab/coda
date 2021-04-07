@@ -29,7 +29,7 @@ def walk_volume(root, volume_callback=default_volume_callback, parent_volume_id=
     it may raise a StopIteration exception to avoid cross-volume crawling.
     """
     try:
-        volume_id, _, _, _ = getfid(root)
+        volume_id = getfid(root).volume
     except NotCodaFS:
         logging.critical("%s is not a path in Coda", root)
         return

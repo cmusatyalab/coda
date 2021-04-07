@@ -2,5 +2,3 @@ __pycache__/
 build/
 *.egg_info/
 codafs/__init__.py
-coda-sync-acls
-volmunge

@@ -1,4 +1,4 @@
-#!@PYTHON@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
 #                          Coda File System
@@ -134,11 +134,11 @@ def update_acls(dest, acls, dry_run=True):
     """ Update Coda ACLs under 'dest' """
 
     # sort alphabetically, from leaf to root
-    logging.debug("Sorting alphabetically, leafs first")
+    logging.debug("Sorting alphabetically, leaves first")
     acls.sort(key=itemgetter("path"))
     acls.sort(key=lambda acl: acl["path"].count("/"), reverse=True)
 
-    with tqdm(acls) as pbar:
+    with tqdm(acls, unit=" acls") as pbar:
         for acl in pbar:
             path = dest / acl["path"]
 

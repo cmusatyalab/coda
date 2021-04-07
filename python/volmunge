@@ -1,4 +1,4 @@
-#!@PYTHON@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
 #                          Coda File System
@@ -70,9 +70,8 @@ def main():
     args = parser.parse_args()
 
     if args.all:
-        args.directories = (
-            args.files
-        ) = args.links = args.inconsistent = args.mountpoints = args.mountlinks = True
+        args.directories = args.files = args.links = True
+        args.mountpoints = args.inconsistent = args.mountlinks = True
 
     # Set up logging
     logging.basicConfig(
@@ -114,9 +113,11 @@ def main():
                     if args.files:
                         tqdm.write("F {}".format(path))
                     if args.open_files:
-                        with open(path) as f:
+                        with open(path) as _:
                             pass
                 elif path.is_symlink():
+                    # Normal symlinks have mode 0777
+                    # Coda's mount/conflict links have mode 0755
                     if not path.lstat().st_mode & 0o033:
                         link = os.readlink(path)
                         if link[0] == "@":
