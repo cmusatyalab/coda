@@ -17,7 +17,7 @@ import re
 import subprocess
 from distutils.spawn import find_executable
 
-from .structs import CodaFID, new_aclentry
+from .structs import AclEntry, CodaFID
 
 
 class NotCodaFS(FileNotFoundError):
@@ -67,7 +67,7 @@ def listacl(path):
     cfs = _which("cfs", "check your Coda client installation")
     result = subprocess.run([cfs, "listacl", path], capture_output=True, check=True)
     return [
-        new_aclentry(*entry)
+        AclEntry(*entry)
         for entry in re.findall(
             r"\s*(\S+)\s+(-?r?l?i?d?w?k?a?)", result.stdout.decode("ascii")
         )
@@ -77,13 +77,11 @@ def listacl(path):
 def setacl(path, acl):
     """ Replaces ACL on specified path """
     cfs = _which("cfs", "check your Coda client installation")
-    _acl = [new_aclentry(*entry) for entry in acl]
+    _acl = [AclEntry.from_user(*entry) for entry in acl]
 
-    positives = [
-        (entry.name, entry.rights) for entry in _acl if not entry.rights.startswith("-")
-    ]
+    positives = [(entry.name, entry.rights) for entry in _acl if entry.is_positive()]
     negatives = [
-        (entry.name, entry.rights[1:]) for entry in _acl if entry.rights.startswith("-")
+        (entry.name, entry.rights[1:]) for entry in _acl if entry.is_negative()
     ]
 
     subprocess.run(

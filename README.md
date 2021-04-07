@@ -42,7 +42,7 @@ $ yum install gcc gcc-c++ autoconf automake libtool pkgconfig flex bison readlin
 
 On Debian/Ubuntu and derived systems
 ```sh
-$ apt-get install build-essential automake libtool pkg-config flex bison libreadline-dev libncurses5-dev liblua5.1-0-dev clang-format-6.0 valgrind
+$ apt-get install build-essential automake libtool pkg-config flex bison libreadline-dev libncurses5-dev liblua5.1-0-dev clang-format-6.0 valgrind python3-attr python3-setuptools
 ```
 
 ### Build

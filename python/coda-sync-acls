@@ -26,6 +26,7 @@ import sys
 from operator import itemgetter
 from pathlib import Path
 
+import attr
 import codafs
 import yaml
 from codafs.optional import ValidationError, jsonschema_validate, tqdm
@@ -123,7 +124,7 @@ def collect_acls(root, cross_volume=False):
         logging.info("Getting ACL for %s", directory)
 
         path = str(directory.relative_to(root))
-        acl = [entry._asdict() for entry in codafs.listacl(directory)]
+        acl = [attr.asdict(entry) for entry in codafs.listacl(directory)]
 
         directory_acls.append(dict(path=path, acl=acl))
 
