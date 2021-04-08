@@ -36,13 +36,18 @@ try:
     from tqdm import tqdm
 except ImportError:
     import sys
-    from contextlib import AbstractContextManager
 
-    class tqdm(AbstractContextManager):  # pylint: disable=invalid-name
+    class tqdm:  # pylint: disable=invalid-name
         """ progress bar wrapper that doesn't actually display progress """
 
         def __init__(self, iterable, *_args, **_kwargs):
             self.iterable = iterable
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self):
+            return None
 
         def __iter__(self):
             for obj in self.iterable:

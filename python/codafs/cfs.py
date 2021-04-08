@@ -40,36 +40,52 @@ def _which(name, hint):
 def getfid(path):
     """ return Coda file identifier for specified path """
     cfs = _which("cfs", "check your Coda client installation")
-    result = subprocess.run([cfs, "getfid", path], capture_output=True, check=False)
+    try:
+        result = subprocess.check_output([cfs, "getfid", str(path)])
+    except subprocess.CalledProcessError:
+        raise NotCodaFS("cfs getfid failed on {}".format(path))
+
     match = re.match(
         r"^FID = ([0-9a-fA-F]+)\.([0-9a-fA-F]+)\.([0-9a-fA-F]+)@(\S+)",
-        result.stdout.decode("ascii"),
+        result.decode("ascii"),
     )
     if match is None:
-        raise NotCodaFS("cfs getfid failed on {}".format(path))
+        raise NotCodaFS("cfs getfid unexpected output on {}".format(path))
     return CodaFID(*match.groups())
 
 
 def listvol(path):
     """ return volume_id, name tuple for specified path """
     cfs = _which("cfs", "check your Coda client installation")
-    result = subprocess.run([cfs, "listvol", path], capture_output=True, check=False)
-    match = re.search(
-        r' volume ([0-9a-fA-F]+) .* named "([^"]+)"', result.stdout.decode("ascii")
-    )
-    if match is None:
+    try:
+        result = subprocess.check_output(
+            [cfs, "listvol", str(path)], stderr=subprocess.STDOUT
+        )
+    except subprocess.CalledProcessError:
         raise NotCodaFS("cfs listvol failed on {}".format(path))
-    return match.group(0), match.group(1)
+
+    result = result.decode("ascii")
+    if result.endswith(": Permission denied\n"):
+        raise PermissionError("cfs listvol permission denied on {}".format(path))
+
+    match = re.search(r' volume ([0-9a-fA-F]+) .* named "([^"]+)"', result)
+    if match is None:
+        raise NotCodaFS("cfs listvol unexpected output on {}".format(path))
+    return match.groups()
 
 
 def listacl(path):
     """ returns an ACL (list of user/group, rights tuples) for the specified path """
     cfs = _which("cfs", "check your Coda client installation")
-    result = subprocess.run([cfs, "listacl", path], capture_output=True, check=True)
+    try:
+        result = subprocess.check_output([cfs, "listacl", str(path)])
+    except subprocess.CalledProcessError:
+        raise NotCodaFS("cfs listvol failed on {}".format(path))
+
     return [
         AclEntry(*entry)
         for entry in re.findall(
-            r"\s*(\S+)\s+(-?r?l?i?d?w?k?a?)", result.stdout.decode("ascii")
+            r"\s*(\S+)\s+(-?r?l?i?d?w?k?a?)", result.decode("ascii")
         )
     ]
 
@@ -84,11 +100,8 @@ def setacl(path, acl):
         (entry.name, entry.rights[1:]) for entry in _acl if entry.is_negative()
     ]
 
-    subprocess.run(
-        list(itertools.chain([cfs, "sa", "-clear", path], *positives)), check=True
-    )
+    subprocess.call(list(itertools.chain([cfs, "sa", "-clear", str(path)], *positives)))
     if negatives:
-        subprocess.run(
-            list(itertools.chain([cfs, "sa", "-negative", path], *negatives)),
-            check=True,
+        subprocess.call(
+            list(itertools.chain([cfs, "sa", "-negative", str(path)], *negatives))
         )
