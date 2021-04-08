@@ -79,14 +79,14 @@ def listacl(path):
     result = cfs("listacl", str(path))
 
     return [
-        AclEntry(*entry)
-        for entry in re.findall(r"\s*(\S+)\s+(-?r?l?i?d?w?k?a?)", result)
+        AclEntry(name, rights)
+        for name, rights in re.findall(r"\s*(\S+)\s+(-?r?l?i?d?w?k?a?)", result)
     ]
 
 
 def setacl(path, acl):
     """ Replaces ACL on specified path """
-    _acl = [AclEntry.from_user(*entry) for entry in acl]
+    _acl = [AclEntry.from_user(name, rights) for name, rights in acl]
 
     positives = [(entry.name, entry.rights) for entry in _acl if entry.is_positive()]
     negatives = [
