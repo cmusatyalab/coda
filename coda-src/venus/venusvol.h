@@ -915,6 +915,7 @@ public:
     {
         return (addr->s_addr == host.s_addr);
     }
+    int OnSameHost(const volrep *v) { return volserver == v->volserver; }
 
     void print_volrep(int);
 };

@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 7
+                              Release 8
 
-          Copyright (c) 1987-2019 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -79,9 +79,8 @@ int vdb::CallBackBreak(Volid *volid)
  */
 int reintvol::GetVolAttr(uid_t uid)
 {
-    int code   = 0;
-    connent *c = NULL;
-    nonrepvol_iterator next;
+    int code       = 0;
+    connent *c     = NULL;
     repvol *repv   = (repvol *)this;
     long cbtemp    = cbbreaks;
     mgrpent *m     = 0;
@@ -127,6 +126,10 @@ int reintvol::GetVolAttr(uid_t uid)
         if (VV_Cmp(&VVV, &NullVV) == VV_EQ) {
             if ((code = ValidateFSOs()))
                 goto RepExit;
+
+            LOG(100,
+                ("reintvol::GetVolAttr(%x) Fetching volume version vector\n",
+                 vid));
 
             RPC2_Integer VS;
             ARG_MARSHALL(OUT_MODE, RPC2_Integer, VSvar, VS,
@@ -222,34 +225,62 @@ int reintvol::GetVolAttr(uid_t uid)
 	     * state the volume will be demoted and the callback cleared
 	     * anyway.
 	     */
-            repvol_iterator next;
-            repvol *rv;
+            repvol_iterator rvnext;
+            volrep_iterator vrnext;
 
-            /* one of the following should be this volume. */
-            while ((rv = next()) && (nVols < MAX_PIGGY_VALIDATIONS)) {
-                /* Check whether the volume is hosted by the same VSG as the
-                 * current volume */
-                if (repv->vsg != rv->vsg)
-                    continue;
+            unsigned int max_vsg = IsReplicated() ? repv->vsg->MaxVSG() : 1;
 
-                if ((!rv->IsReachable()) || !rv->WantCallBack() ||
-                    VV_Cmp(&rv->VVV, &NullVV) == VV_EQ)
+            /* one of the following is hopefully this volume. */
+            while (nVols < MAX_PIGGY_VALIDATIONS) {
+                reintvol *v;
+
+                /* Check whether the volume is hosted by the same VSG or server
+                 * as the current volume */
+                if (IsReplicated()) {
+                    repvol *rv = rvnext();
+                    if (rv == NULL)
+                        break;
+
+                    if (repv->vsg != rv->vsg)
+                        continue;
+
+                    v = (reintvol *)rv;
+                } else if (IsNonReplicated()) {
+                    volrep *thisvol = (volrep *)this;
+                    volrep *vr      = vrnext();
+                    if (vr == NULL)
+                        break;
+
+                    if (!vr->OnSameHost(thisvol))
+                        continue;
+
+                    v = (reintvol *)vr;
+                } else {
+                    /* unexpected, getting volattr for a readonly replica? */
+                    break;
+                }
+
+                if ((!v->IsReachable()) || !v->WantCallBack() ||
+                    VV_Cmp(&v->VVV, &NullVV) == VV_EQ)
                     continue;
 
                 LOG(1000,
-                    ("volent::GetVolAttr: packing volume %s, vid %p, vvv:\n",
-                     rv->GetName(), rv->GetVolumeId()));
+                    ("reintvol::GetVolAttr: packing volume %s, vid %p, vvv:\n",
+                     v->GetName(), v->GetVolumeId()));
                 if (LogLevel >= 1000)
-                    FPrintVV(logFile, &rv->VVV);
+                    FPrintVV(logFile, &v->VVV);
 
-                VidList[nVols].Vid = rv->GetVolumeId();
-                for (i = 0; i < repv->vsg->MaxVSG(); i++) {
+                VidList[nVols].Vid = v->GetVolumeId();
+                for (i = 0; i < max_vsg; i++) {
                     *((RPC2_Unsigned *)&((char *)VSBS.SeqBody)[VSBS.SeqLen]) =
-                        htonl((&rv->VVV.Versions.Site0)[i]);
+                        htonl((&v->VVV.Versions.Site0)[i]);
                     VSBS.SeqLen += sizeof(RPC2_Unsigned);
                 }
                 nVols++;
             }
+
+            LOG(100, ("reintvol::GetVolAttr: %s, sending %d version stamps\n",
+                      name, nVols));
 
             /*
 	     * nVols could be 0 here if someone else got into this routine and
@@ -261,9 +292,6 @@ int reintvol::GetVolAttr(uid_t uid)
             }
 
             VFlagBS.MaxSeqLen = nVols;
-
-            LOG(100, ("volent::GetVolAttr: %s, sending %d version stamps\n",
-                      name, nVols));
 
             ARG_MARSHALL_BS(IN_OUT_MODE, RPC2_BoundedBS, VFlagvar, VFlagBS,
                             rpc_common.nservers, VENUS_MAXBSLEN);
@@ -297,7 +325,7 @@ int reintvol::GetVolAttr(uid_t uid)
             }
 
             unsigned int numVFlags = 0;
-            for (i = 0; i < repv->vsg->MaxVSG(); i++) {
+            for (i = 0; i < max_vsg; i++) {
                 if (rpc_common.hosts[i].s_addr != 0) {
                     if (numVFlags == 0) {
                         /* unset, copy in one response */
@@ -318,7 +346,7 @@ int reintvol::GetVolAttr(uid_t uid)
             }
 
             LOG(10,
-                ("volent::GetVolAttr: ValidateVols (%s), %d vids sent, %d checked\n",
+                ("reintvol::GetVolAttr: ValidateVols (%s), %d vids sent, %d checked\n",
                  name, nVols, numVFlags));
 
             volent *v;
@@ -330,23 +358,24 @@ int reintvol::GetVolAttr(uid_t uid)
                 volid.Volume = VidList[i].Vid;
                 v            = VDB->Find(&volid);
                 if (!v) {
-                    LOG(0, ("volent::GetVolAttr: couldn't find vid 0x%x\n",
+                    LOG(0, ("reintvol::GetVolAttr: couldn't find vid 0x%x\n",
                             VidList[i].Vid));
                     continue;
                 }
 
                 CODA_ASSERT(v->IsReadWrite());
+                reintvol *vp = (reintvol *)v;
 
                 switch (VFlags[i]) {
                 case 1: /* OK, callback */
                     if (cbtemp == cbbreaks) {
-                        LOG(1000, ("volent::GetVolAttr: vid 0x%x valid\n",
-                                   GetVolumeId()));
-                        SetCallBack();
+                        LOG(1000, ("reintvol::GetVolAttr: vid 0x%x valid\n",
+                                   vp->GetVolumeId()));
+                        vp->SetCallBack();
 
                         /* validate cached access rights for the caller */
                         struct dllist_head *p;
-                        list_for_each(p, fso_list)
+                        list_for_each(p, vp->fso_list)
                         {
                             fsobj *f =
                                 list_entry_plusplus(p, fsobj, vol_handle);
@@ -359,18 +388,18 @@ int reintvol::GetVolAttr(uid_t uid)
                     }
                     break;
                 case 0: /* OK, no callback */
-                    LOG(0, ("volent::GetVolAttr: vid 0x%x valid, no "
+                    LOG(0, ("reintvol::GetVolAttr: vid 0x%x valid, no "
                             "callback\n",
-                            GetVolumeId()));
-                    ClearCallBack();
+                            vp->GetVolumeId()));
+                    vp->ClearCallBack();
                     break;
                 default: /* not OK */
-                    LOG(1, ("volent::GetVolAttr: vid 0x%x invalid\n",
-                            GetVolumeId()));
-                    ClearCallBack();
+                    LOG(1, ("reintvol::GetVolAttr: vid 0x%x invalid\n",
+                            vp->GetVolumeId()));
+                    vp->ClearCallBack();
                     Recov_BeginTrans();
-                    RVMLIB_REC_OBJECT(VVV);
-                    VVV = NullVV;
+                    RVMLIB_REC_OBJECT(vp->VVV);
+                    vp->VVV = NullVV;
                     Recov_EndTrans(MAXFP);
                     break;
                 }
