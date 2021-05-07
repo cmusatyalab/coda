@@ -154,9 +154,11 @@ dnl Checks for structures.
 
 dnl Checks for compiler characteristics.
 CODA_CC_FEATURE_TEST([Wall], wall)
+CODA_CC_FEATURE_TEST([Wthread-safety], wthreadsafety)
 CODA_CC_FEATURE_TEST([fno-exceptions], fnoexceptions)
 CODA_CC_FEATURE_TEST([rdynamic], rdynamic)
 CODA_CXX_FEATURE_TEST([Wall], wall)
+CODA_CXX_FEATURE_TEST([Wthread-safety], wthreadsafety)
 CODA_CXX_FEATURE_TEST([fno-exceptions], fnoexceptions)
 CODA_CXX_FEATURE_TEST([fcheck-new], fchecknew)
 CODA_CXX_FEATURE_TEST([rdynamic], rdynamic)

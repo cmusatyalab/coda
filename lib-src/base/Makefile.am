@@ -7,7 +7,7 @@ libbase_la_SOURCES = base64.h base64.c coda_assert.h coda_assert.c \
     codaconf.c codaconf.h coda_flock.c coda_flock.h coda_hash.h md5c.c sha1.c \
     coda_getaddrinfo.h coda_getaddrinfo.c coda_getservbyname.h \
     coda_getservbyname.c coda_malloc.c copyfile.h copyfile.c deprecations.h \
-    dllist.h dllist.c getpeereid.h getpeereid.c \
+    dllist.h dllist.c getpeereid.h getpeereid.c coda_tsa.h \
     parse_realms.h parse_realms.c urlquote.h urlquote.c codaenv.c codaenv.h
 
 if HAVE_READLINE
