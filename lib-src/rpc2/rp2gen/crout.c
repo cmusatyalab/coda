@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 5
+                              Release 8
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -1047,7 +1047,7 @@ static void one_client_proc(PROC *proc, FILE *where)
     fprintf(where, "    struct timeval %s, %s;\n", timestart, timeend);
     /* Packet Buffer */
     fprintf(where, "    RPC2_PacketBuffer *%s = NULL;\n", reqbuffer);
-    if (proc->timeout == NIL && !subsystem.timeout != NIL)
+    if (proc->timeout == NIL && subsystem.timeout == NIL)
         fprintf(where, "    struct timeval *%s;\n", timeout);
     else
         fprintf(where, "    struct timeval %s, *%s;\n", timeoutval, timeout);
@@ -1188,7 +1188,7 @@ static void one_client_proc(PROC *proc, FILE *where)
 
 static void set_timeout(PROC *proc, FILE *where)
 {
-    if (proc->timeout == NIL && !subsystem.timeout != NIL) {
+    if (proc->timeout == NIL && subsystem.timeout == NIL) {
         fprintf(where, "%s = NULL;\n", timeout);
         return;
     }
@@ -1514,7 +1514,8 @@ static void one_server_proc(PROC *proc, FILE *where)
             alloc_dynamicarray(*parm, RP2_SERVER, where);
     }
 
-    fprintf(where, "    %s = %s;\n", bd, bd);
+    /* avoids unused parameter warning in the generated source */
+    fprintf(where, "    (void)(%s);\n", bd);
 
     /* Call the user's routine */
     fprintf(where, "\n    %s = ", code);

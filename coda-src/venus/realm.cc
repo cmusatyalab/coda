@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 2003 Carnegie Mellon University
+          Copyright (c) 2003-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -249,7 +249,7 @@ retry:
                 Fid.Unique = 1;
 
                 f = FSDB->Find(&Fid);
-                if (f && !f->dir_Lookup(name, &Fid, CLU_CASE_SENSITIVE) == 0) {
+                if (f && f->dir_Lookup(name, &Fid, CLU_CASE_SENSITIVE) != 0) {
                     Recov_BeginTrans();
 
                     Fid.Vnode  = 0xfffffffc;

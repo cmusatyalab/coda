@@ -641,7 +641,8 @@ long S_VolNewDump(RPC2_Handle rpcid, RPC2_Unsigned formal_volumeNumber,
     }
 
     /* Set up a connection with the client. */
-    if ((rc = RPC2_GetPeerInfo(rpcid, &peerinfo)) != RPC2_SUCCESS) {
+    rc = RPC2_GetPeerInfo(rpcid, &peerinfo);
+    if (rc != RPC2_SUCCESS) {
         SLog(0, "VolDump: GetPeerInfo failed with %s", RPC2_ErrorMsg((int)rc));
         retcode = rc;
         goto failure;
@@ -657,8 +658,8 @@ long S_VolNewDump(RPC2_Handle rpcid, RPC2_Unsigned formal_volumeNumber,
     bparms.ClientIdent    = NULL;
     bparms.SharedSecret   = NULL;
 
-    if ((rc = RPC2_NewBinding(&hid, &pid, &sid, &bparms, &cid)) !=
-        RPC2_SUCCESS) {
+    rc = RPC2_NewBinding(&hid, &pid, &sid, &bparms, &cid);
+    if (rc != RPC2_SUCCESS) {
         SLog(0, "VolDump: Bind to client failed, %s!", RPC2_ErrorMsg((int)rc));
         retcode = rc;
         goto failure;
@@ -677,6 +678,10 @@ long S_VolNewDump(RPC2_Handle rpcid, RPC2_Unsigned formal_volumeNumber,
         (DumpEnd(dbuf) == -1)) {
         SLog(0, "Dump failed due to FlushBuf failure.");
         retcode = VFAIL;
+    }
+
+    if (RPC2_Unbind(cid) != RPC2_SUCCESS) {
+        SLog(0, "S_VolNewDump: Can't close binding %s", RPC2_ErrorMsg((int)rc));
     }
 
 failure:
@@ -698,10 +703,6 @@ failure:
     }
     if (DumpBuf)
         free(DumpBuf);
-
-    if (RPC2_Unbind(cid) != RPC2_SUCCESS) {
-        SLog(0, "S_VolNewDump: Can't close binding %s", RPC2_ErrorMsg((int)rc));
-    }
 
     if (retcode == 0) {
         SLog(0, "S_VolNewDump: %svolume dump succeeded",

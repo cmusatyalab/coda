@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -365,7 +365,7 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
             }
 
             for (i = 0; i < hcount; i++)
-                if ((hlist[i].replicaFid.Volume == RepairFid->Volume)) {
+                if (hlist[i].replicaFid.Volume == RepairFid->Volume) {
                     l = &(hlist[i]);
                     break;
                 } /* localhost */

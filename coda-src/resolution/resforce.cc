@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -348,14 +348,13 @@ long RS_GetForceDirOps(RPC2_Handle RPCid, ViceFid *Fid, ViceStatus *status,
 
     if (!XlateVid(&Fid->Volume)) {
         SLog(0, "RS_GetForceDirOps: Couldnt Xlate VSG %x", Fid->Volume);
-        return (EINVAL);
+        return EINVAL;
     }
 
-    if ((errorcode =
-             GetFsObj(Fid, &volptr, &vptr, READ_LOCK, NO_LOCK, 0, 0, 0))) {
+    errorcode = GetFsObj(Fid, &volptr, &vptr, READ_LOCK, NO_LOCK, 0, 0, 0);
+    if (errorcode) {
         SLog(0, "RS_GetForceDirOps:GetFsObj returns error %d", errorcode);
-        errorcode = EINVAL;
-        goto FreeLocks;
+        return EINVAL;
     }
 
     if (VAclSize(vptr) > (unsigned int)AccessList->MaxSeqLen) {

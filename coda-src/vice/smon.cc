@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -258,7 +258,7 @@ static void CheckRVMResStat()
             resstats *s;
             /* We don't need to check the size -- we know that only
 	       one set of stats will exist in the queue at any one time */
-            while ((s = (struct resstats *)next())) {
+            while ((s = (resstats *)next())) {
                 struct rvmrese *e =
                     (struct rvmrese *)malloc(sizeof(struct rvmrese));
                 s->precollect();

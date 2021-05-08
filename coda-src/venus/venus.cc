@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2020 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -385,7 +385,7 @@ int main(int argc, char **argv)
         int rc;
         /* masquerade_port is the UDP portnum specified via venus.conf */
         char service[6];
-        sprintf(service, "%hu", masquerade_port);
+        sprintf(service, "%d", masquerade_port);
         rc = codatunnel_fork(argc, argv, NULL, "0.0.0.0", service,
                              codatunnel_onlytcp, sslcertdir);
         if (rc < 0) {

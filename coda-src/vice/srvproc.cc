@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 7
+                              Release 8
 
-          Copyright (c) 1987-2019 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -3406,7 +3406,7 @@ void PutObjects(int errorCode, Volume *volptr, int LockLevel, dlist *vlist,
         while ((v = (vle *)vlist->get())) {
             if (!ISDIR(v->fid)) {
                 count++;
-                if ((count && Yield_PutInodes_Mask) == 0)
+                if ((count & Yield_PutInodes_Mask) == 0)
                     PollAndYield();
                 if (errorCode == 0) {
                     if (v->f_sinode) {

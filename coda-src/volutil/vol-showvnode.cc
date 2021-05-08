@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -172,15 +172,16 @@ long S_VolShowVnode(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
     strcpy(sed.Value.SmartFTPD.FileInfo.ByName.LocalFileName, INFOFILE);
     sed.Value.SmartFTPD.FileInfo.ByName.ProtectionBits = 0755;
 
-    if ((rc = RPC2_InitSideEffect(rpcid, &sed)) <= RPC2_ELIMIT) {
+    rc = RPC2_InitSideEffect(rpcid, &sed);
+    if (rc <= RPC2_ELIMIT) {
         VLog(0, "VolShowVnode: InitSideEffect failed with %s",
              RPC2_ErrorMsg(rc));
         rvmlib_abort(VFAIL);
         goto exit;
     }
 
-    if ((rc = RPC2_CheckSideEffect(rpcid, &sed, SE_AWAITLOCALSTATUS)) <=
-        RPC2_ELIMIT) {
+    rc = RPC2_CheckSideEffect(rpcid, &sed, SE_AWAITLOCALSTATUS);
+    if (rc <= RPC2_ELIMIT) {
         VLog(0, "VolShowVnode: CheckSideEffect failed with %s",
              RPC2_ErrorMsg(rc));
         rvmlib_abort(VFAIL);

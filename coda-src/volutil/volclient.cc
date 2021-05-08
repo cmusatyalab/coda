@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                               Release 8
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -1851,13 +1851,13 @@ static void peekint(void)
 */
 static void pokeint(void)
 {
-    RPC2_Unsigned value;
+    RPC2_Unsigned value = 0;
 
-    if ((these_args != 4) || (sscani(this_argp[3], &value) != 1))
+    if (these_args != 4 || sscani(this_argp[3], &value) != 1)
         usageerr("<address> <value>");
 
-    if ((rc = VolPokeInt(rpcid, (RPC2_String)this_argp[2], value)) !=
-        RPC2_SUCCESS)
+    rc = VolPokeInt(rpcid, (RPC2_String)this_argp[2], value);
+    if (rc != RPC2_SUCCESS)
         peekpokeerr();
     fprintf(stderr, "%x stored at %s\n", value, this_argp[2]);
     exit(EXIT_SUCCESS);
@@ -1871,20 +1871,21 @@ static void pokeint(void)
 static void peekmem(void)
 {
     RPC2_BoundedBS buf;
-    RPC2_Unsigned tmp;
+    RPC2_Unsigned tmp = 0;
 
-    if ((these_args != 4) || (sscani(this_argp[3], &tmp) != 1))
+    if (these_args != 4 || sscani(this_argp[3], &tmp) != 1)
         usageerr("<address> <size>");
     buf.MaxSeqLen = tmp;
 
-    if ((buf.SeqBody = (RPC2_String)malloc((int)buf.MaxSeqLen + 1)) == NULL) {
+    buf.SeqBody = (RPC2_String)malloc((int)buf.MaxSeqLen + 1);
+    if (buf.SeqBody == NULL) {
         fprintf(stderr, "volutil: Out of memory\n");
         exit(EXIT_FAILURE);
     }
     buf.SeqLen = 0;
 
-    if ((rc = VolPeekMem(rpcid, (RPC2_String)this_argp[2], &buf)) !=
-        RPC2_SUCCESS)
+    rc = VolPeekMem(rpcid, (RPC2_String)this_argp[2], &buf);
+    if (rc != RPC2_SUCCESS)
         peekpokeerr();
     buf.SeqBody[(int)buf.SeqLen] = '\0';
     printf("%s contains %s\n", this_argp[2], buf.SeqBody);
@@ -1899,15 +1900,15 @@ static void peekmem(void)
 static void pokemem(void)
 {
     RPC2_CountedBS buf;
-    RPC2_Unsigned tmp;
+    RPC2_Unsigned tmp = 0;
 
-    if ((these_args != 5) || (sscani(this_argp[3], &tmp) != 1))
+    if (these_args != 5 || sscani(this_argp[3], &tmp) != 1)
         usageerr("<address> <size> <value>");
     buf.SeqLen  = tmp;
     buf.SeqBody = (RPC2_String)this_argp[4];
 
-    if ((rc = VolPokeMem(rpcid, (RPC2_String)this_argp[2], &buf)) !=
-        RPC2_SUCCESS)
+    rc = VolPokeMem(rpcid, (RPC2_String)this_argp[2], &buf);
+    if (rc != RPC2_SUCCESS)
         peekpokeerr();
     printf("%s stored at %s\n", buf.SeqBody, this_argp[2]);
 
@@ -1922,20 +1923,21 @@ static void pokemem(void)
 static void peekxmem(void)
 {
     RPC2_BoundedBS buf;
-    RPC2_Unsigned tmp;
+    RPC2_Unsigned tmp = 0;
 
-    if ((these_args != 4) || (sscani(this_argp[3], &tmp) != 1))
+    if (these_args != 4 || sscani(this_argp[3], &tmp) != 1)
         usageerr("<address> <size>");
     buf.MaxSeqLen = tmp;
 
-    if ((buf.SeqBody = (RPC2_String)malloc((int)buf.MaxSeqLen)) == NULL) {
+    buf.SeqBody = (RPC2_String)malloc((int)buf.MaxSeqLen);
+    if (buf.SeqBody == NULL) {
         fprintf(stderr, "volutil: Out of memory\n");
         exit(EXIT_FAILURE);
     }
     buf.SeqLen = 0;
 
-    if ((rc = VolPeekMem(rpcid, (RPC2_String)this_argp[2], &buf)) !=
-        RPC2_SUCCESS)
+    rc = VolPeekMem(rpcid, (RPC2_String)this_argp[2], &buf);
+    if (rc != RPC2_SUCCESS)
         peekpokeerr();
     printf("%s contains 0x", this_argp[2]);
     while (buf.SeqLen--)
@@ -1954,13 +1956,14 @@ static void pokexmem(void)
     RPC2_CountedBS buf;
     char *t, *s;
     RPC2_Integer size;
-    RPC2_Unsigned tmp;
+    RPC2_Unsigned tmp = 0;
 
-    if ((these_args != 5) || (sscani(this_argp[3], &tmp) != 1))
+    if (these_args != 5 || sscani(this_argp[3], &tmp) != 1)
         usageerr("<address> <size> <hexvalue>");
     buf.SeqLen = tmp;
 
-    if ((buf.SeqBody = (RPC2_String)malloc((int)buf.SeqLen)) == NULL) {
+    buf.SeqBody = (RPC2_String)malloc((int)buf.SeqLen);
+    if (buf.SeqBody == NULL) {
         fprintf(stderr, "volutil: Out of memory\n");
         exit(EXIT_FAILURE);
     }
@@ -1982,8 +1985,8 @@ static void pokexmem(void)
         *t++ = (vh << 4) + vl;
     }
 
-    if ((rc = VolPokeMem(rpcid, (RPC2_String)this_argp[2], &buf)) !=
-        RPC2_SUCCESS)
+    rc = VolPokeMem(rpcid, (RPC2_String)this_argp[2], &buf);
+    if (rc != RPC2_SUCCESS)
         peekpokeerr();
     printf("0x%s stored at %s\n",
            (this_argp[4][0] == '0' && this_argp[4][1] == 'x') ?

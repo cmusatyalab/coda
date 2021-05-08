@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 7
+                              Release 8
 
-          Copyright (c) 1987-2019 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -3147,7 +3147,7 @@ static rvm_bool_t show_mods(FILE *out_stream /* output stream */,
 
     /* scan format specifier */
     skip_white(&cmd_cur);
-    if ((*cmd_cur == '/')) {
+    if (*cmd_cur == '/') {
         if (!scan_num_format()) {
             bad_num_format(stderr);
             return rvm_false;
@@ -3161,7 +3161,7 @@ static rvm_bool_t show_mods(FILE *out_stream /* output stream */,
 
     /* pre-scan modification values */
     skip_white(&cmd_cur);
-    if ((*cmd_cur == '=')) {
+    if (*cmd_cur == '=') {
         incr_cur(1);
         skip_white(&cmd_cur);
         mod_cur = cmd_cur;

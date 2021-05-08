@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -140,7 +140,7 @@ int coda_init()
 {
     rvm_return_t status = RVM_SUCCESS;
 
-    if (ThisServerId == -1) {
+    if (ThisServerId == 0) {
         VLog(0, "ThisServerId is uninitialized!!! Exiting.");
         exit(EXIT_FAILURE);
     }
@@ -315,7 +315,7 @@ VolumeId VAllocateVolumeId(Error *ec)
         unsigned long temp = SRV_RVM(MaxVolId) + 1;
         RVMLIB_MODIFY(SRV_RVM(MaxVolId), temp);
     }
-    return (status ? (long unsigned int)-1 : SRV_RVM(MaxVolId));
+    return (status ? -1 : SRV_RVM(MaxVolId));
 }
 
 /*

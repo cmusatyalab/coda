@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -316,7 +316,7 @@ static int GetResObjs(arrlist *ops, ViceFid *Fid, Volume **volptr, dlist *vlist)
             errorCode = GetFsObj(&v->fid, volptr, &v->vptr, WRITE_LOCK, NO_LOCK,
                                  1, 0, v->d_inodemod);
             count++;
-            if ((count && Yield_rp3GetResObjMask) == 0)
+            if ((count & Yield_rp3GetResObjMask) == 0)
                 PollAndYield();
         }
     }

@@ -99,7 +99,7 @@ long S_VolMakeVRDB(RPC2_Handle rpcid, RPC2_String formal_infile)
         vre->nServers = servercount;
         vre->hton();
 
-        if (write(fd, vre, sizeof(struct vrent)) != sizeof(struct vrent)) {
+        if (write(fd, vre, sizeof(vrent)) != sizeof(vrent)) {
             LogMsg(0, VolDebugLevel, stdout,
                    "write error on input line(%d): %s", lineno, line);
             LogMsg(0, VolDebugLevel, stdout, "makevrdb aborted");
