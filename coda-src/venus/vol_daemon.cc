@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 7
+                              Release 8
 
-          Copyright (c) 1987-2019 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -53,12 +53,10 @@ static const int VolDaemonStackSize    = 0xffff; /* 64k stack, because of all
 						   the MAXPATHLEN stuff in
 						   vdb::CheckPoint. JH */
 static const int VolDaemonInterval     = 5;
-static const int VolumeCheckInterval   = 120 * 60;
 static const int VolGetDownInterval    = 5 * 60;
 static const int COP2CheckInterval     = 5;
 static const int COP2Window            = 10;
 static const int VolCheckPointInterval = 10 * 60;
-static const int LocalSubtreeCheckInterval     = 10 * 60;
 static const int VolTrickleReintegrateInterval = 10;
 
 char voldaemon_sync;

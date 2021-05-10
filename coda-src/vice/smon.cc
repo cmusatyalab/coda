@@ -56,7 +56,6 @@ extern "C" {
 #define DFLT_MONDHOST "barber.coda.cs.cmu.edu"
 #define DFLT_MONDPORT 1356
 
-static const int SmonMaxDataSize      = 1024 * 1024;
 static const int SmonBindInterval     = 300;
 static const int TIMERINTERVAL        = 3600;
 static const int callReportInterval   = 4 * 60 * 60;

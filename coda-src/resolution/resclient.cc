@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -82,18 +82,12 @@ public:
 
 /* Yield parameters */
 /* N.B.  Yield "periods" MUST all be power of two so that AND'ing can be used! */
-const int Yield_GetResObjPeriod          = 8;
-const int Yield_GetResObjMask            = (Yield_GetResObjPeriod - 1);
-const int Yield_CollectFidPeriod         = 256;
-const int Yield_CollectFidMask           = (Yield_CollectFidPeriod - 1);
-const int Yield_CheckSemPerformResPeriod = 8;
-const int Yield_CheckSemPerformRes_Mask  = (Yield_CheckSemPerformResPeriod - 1);
-const int Yield_GetP2ObjFids_Period      = 256;
-const int Yield_GetP2ObjFids_Mask        = (Yield_GetP2ObjFids_Period - 1);
-const int Yield_GetP2Obj_Period          = 8;
-const int Yield_GetP2Obj_Mask            = (Yield_GetP2Obj_Period - 1);
-const int Yield_CreateP2Obj_Period       = 8;
-const int Yield_CreateP2Obj_Mask         = (Yield_CreateP2Obj_Period - 1);
+const int Yield_GetP2ObjFids_Period = 256;
+const int Yield_GetP2ObjFids_Mask   = (Yield_GetP2ObjFids_Period - 1);
+const int Yield_GetP2Obj_Period     = 8;
+const int Yield_GetP2Obj_Mask       = (Yield_GetP2Obj_Period - 1);
+const int Yield_CreateP2Obj_Period  = 8;
+const int Yield_CreateP2Obj_Mask    = (Yield_CreateP2Obj_Period - 1);
 extern void PollAndYield();
 
 /* definitions of OPS returned by CheckResSemantics */

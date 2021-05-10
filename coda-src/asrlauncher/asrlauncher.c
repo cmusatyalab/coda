@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -253,7 +253,7 @@ int checkRulesFile(char *pathname)
     FILE *allow_list;
     char allow_path[MAXPATHLEN], rules_path[MAXPATHLEN], *error, *last_slash;
 
-    if (Local_Policy_Path == NULL)
+    if (Local_Policy_Path[0] == '\0')
         return 1;
 
     if (pathname == NULL)

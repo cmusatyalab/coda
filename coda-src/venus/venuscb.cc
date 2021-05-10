@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 7
+                              Release 8
 
-          Copyright (c) 1987-2019 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -59,7 +59,6 @@ extern void rpc2_PrintSEDesc(SE_Descriptor *, FILE *);
 #include "venusvol.h"
 #include "worker.h"
 
-const char CBSubsys[]             = "Vice2-CallBack";
 const int CallBackServerStackSize = 65536;
 
 int MaxCBServers = UNSET_MAXCBSERVERS;

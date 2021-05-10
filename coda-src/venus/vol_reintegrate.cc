@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 7
+                              Release 8
 
-          Copyright (c) 1987-2019 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -726,7 +726,6 @@ class reintegrator : public vproc {
 
     static olist freelist;
     olink handle;
-    struct Lock run_lock;
 
     reintegrator();
     reintegrator(reintegrator &); /* not supported! */

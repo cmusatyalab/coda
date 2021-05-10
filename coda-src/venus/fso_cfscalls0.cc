@@ -184,12 +184,13 @@ int fsobj::FetchFileRPC(connent *con, ViceStatus *status, uint64_t offset,
 {
     int code = 0;
     char prel_str[256];
-    const char *partial_sel   = nonpartial;
+    const char *partial_sel;
     int inconok               = !vol->IsReplicated();
     uint viceop               = 0;
     bool fetchpartial_support = con->srv->fetchpartial_support;
 
-    viceop = fetchpartial_support ? ViceFetchPartial_OP : ViceFetch_OP;
+    viceop      = fetchpartial_support ? ViceFetchPartial_OP : ViceFetch_OP;
+    partial_sel = fetchpartial_support ? partial : nonpartial;
 
     snprintf(prel_str, sizeof(prel_str), "fetch::Fetch%s %%s [%ld]\n",
              partial_sel, BLOCKS(this));

@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -180,14 +180,14 @@ static void RRDUpdate(struct server *s)
            s->vs.VmRSS, s->vs.VmData);
 
     printf("%u:%u:%u:%u:%u:%u:%u:%u",
-           s->vs.Disk1.Name ? s->vs.Disk1.BlocksAvailable : 0,
-           s->vs.Disk1.Name ? s->vs.Disk1.TotalBlocks : 0,
-           s->vs.Disk2.Name ? s->vs.Disk2.BlocksAvailable : 0,
-           s->vs.Disk2.Name ? s->vs.Disk2.TotalBlocks : 0,
-           s->vs.Disk3.Name ? s->vs.Disk3.BlocksAvailable : 0,
-           s->vs.Disk3.Name ? s->vs.Disk3.TotalBlocks : 0,
-           s->vs.Disk4.Name ? s->vs.Disk4.BlocksAvailable : 0,
-           s->vs.Disk4.Name ? s->vs.Disk4.TotalBlocks : 0);
+           s->vs.Disk1.Name[0] ? s->vs.Disk1.BlocksAvailable : 0,
+           s->vs.Disk1.Name[0] ? s->vs.Disk1.TotalBlocks : 0,
+           s->vs.Disk2.Name[0] ? s->vs.Disk2.BlocksAvailable : 0,
+           s->vs.Disk2.Name[0] ? s->vs.Disk2.TotalBlocks : 0,
+           s->vs.Disk3.Name[0] ? s->vs.Disk3.BlocksAvailable : 0,
+           s->vs.Disk3.Name[0] ? s->vs.Disk3.TotalBlocks : 0,
+           s->vs.Disk4.Name[0] ? s->vs.Disk4.BlocksAvailable : 0,
+           s->vs.Disk4.Name[0] ? s->vs.Disk4.TotalBlocks : 0);
 
     printf("\n");
     fflush(stdout);
