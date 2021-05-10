@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -53,7 +53,7 @@ PDirHeader DI_DiToDh(PDirInode pdi)
 }
 
 /* allocate a new directory inode in RVM */
-static PDirInode DI_New(void)
+static PDirInode DI_New(void) REQUIRES_TRANSACTION
 {
     PDirInode newinode;
     DIR_intrans();

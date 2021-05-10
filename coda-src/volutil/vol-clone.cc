@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -90,13 +90,11 @@ extern "C" {
 #include <vldb.h>
 #include <rec_smolist.h>
 #include <inconsist.h>
+#include <volutil.private.h>
 
 extern void PollAndYield();
 
 static void VUCloneIndex(Error *, Volume *, Volume *, VnodeClass);
-
-int CloneVnode(Volume *rwVp, Volume *cloneVp, int vnodeIndex,
-               rec_smolist *vlist, VnodeDiskObject *rwVnode, VnodeClass vclass);
 
 /*
     S_VolClone: Create a new readonly clone of a volume.

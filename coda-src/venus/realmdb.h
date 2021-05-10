@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 2003 Carnegie Mellon University
+          Copyright (c) 2003-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -34,29 +34,24 @@ class RealmDB {
     friend class fsobj; // Fakeify
 
 public:
-    /* MUST be called from within a transaction */
-    void *operator new(size_t size)
+    void *operator new(size_t size) REQUIRES_TRANSACTION
     {
         void *p = rvmlib_rec_malloc(size);
         CODA_ASSERT(p);
         return p;
     }
 
-    /* MUST be called from within a transaction */
-    void operator delete(void *p) { rvmlib_rec_free(p); }
+    void operator delete(void *p)REQUIRES_TRANSACTION { rvmlib_rec_free(p); }
 
-    /* MUST be called from within a transaction */
-    RealmDB(void);
+    RealmDB(void) REQUIRES_TRANSACTION;
     ~RealmDB(void);
 
-    /* MAY be called from within a transaction */
     void ResetTransient(void);
 
-    Realm *GetRealm(const char *realm);
+    Realm *GetRealm(const char *realm) EXCLUDES_TRANSACTION;
     Realm *GetRealm(const RealmId realmid);
 
-    /* MUST NOT be called from within a transaction */
-    void GetDown(void);
+    void GetDown(void) EXCLUDES_TRANSACTION;
 
     void print(FILE *f);
     void print(void) { print(stdout); }
@@ -66,6 +61,6 @@ private:
     RealmId max_realmid; /*T*/
 };
 
-void RealmDBInit(void);
+void RealmDBInit(void) EXCLUDES_TRANSACTION;
 
 #endif /* _REALMDB_H_ */

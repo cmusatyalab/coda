@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -316,12 +316,13 @@ extern void Rtry_Wait();
 extern void Rtry_Signal();
 extern vproc *FindVproc(int);
 extern vproc *VprocSelf();
-extern void VprocWait(const void *);
-extern void VprocMwait(int, const void **);
-extern void VprocSignal(const void *, int = 0);
-extern void VprocSleep(struct timeval *);
-extern void VprocYield();
-extern int VprocSelect(int, fd_set *, fd_set *, fd_set *, struct timeval *);
+void VprocWait(const void *) EXCLUDES_TRANSACTION;
+void VprocMwait(int, const void **) EXCLUDES_TRANSACTION;
+void VprocSignal(const void *, int = 0);
+void VprocSleep(struct timeval *) EXCLUDES_TRANSACTION;
+void VprocYield() EXCLUDES_TRANSACTION;
+int VprocSelect(int, fd_set *, fd_set *, fd_set *,
+                struct timeval *) EXCLUDES_TRANSACTION;
 extern void VprocSetRetry(int = -1, struct timeval * = 0);
 extern int VprocIdle();
 extern int VprocInterrupted();

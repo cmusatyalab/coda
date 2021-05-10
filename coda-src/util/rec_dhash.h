@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -53,25 +53,29 @@ class rec_dhashtab {
     int cnt;
 
 public:
-    void *operator new(size_t);
-    void operator delete(void *);
+    void *operator new(size_t) REQUIRES_TRANSACTION;
+    void operator delete(void *)REQUIRES_TRANSACTION;
 
     rec_dhashtab(int, RHFN, RCFN = 0);
     rec_dhashtab(rec_dhashtab &); // not supported!
-    void Init(int, RHFN, RCFN);
+    void Init(int, RHFN, RCFN) REQUIRES_TRANSACTION;
     int operator=(rec_dhashtab &); // not supported!
     ~rec_dhashtab();
-    void DeInit();
+    void DeInit() REQUIRES_TRANSACTION;
     void SetHFn(RHFN);
     void SetCmpFn(RCFN);
-    void insert(void *, rec_dlink *); /* add in sorted order */
-    void prepend(void *, rec_dlink *); /* add at head of list */
-    void append(void *, rec_dlink *); /* add at tail of list */
-    rec_dlink *remove(void *, rec_dlink *); /* remove specified entry */
+    void insert(void *,
+                rec_dlink *) REQUIRES_TRANSACTION; /* add in sorted order */
+    void prepend(void *,
+                 rec_dlink *) REQUIRES_TRANSACTION; /* add at head of list */
+    void append(void *,
+                rec_dlink *) REQUIRES_TRANSACTION; /* add at tail of list */
+    rec_dlink *remove(void *, rec_dlink *)
+        REQUIRES_TRANSACTION; /* remove specified entry */
     rec_dlink *first(); /* return first element of table */
     rec_dlink *last(); /* return last element of table */
-    rec_dlink *
-    get(void *, DlGetType = DlGetMin); // return and remove head or tail of list
+    rec_dlink *get(void *, DlGetType = DlGetMin)
+        REQUIRES_TRANSACTION; // return and remove head or tail of list
 
     int count();
     int IsMember(void *, rec_dlink *);

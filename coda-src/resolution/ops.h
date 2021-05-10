@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -48,9 +48,9 @@ class res_mgrpent;
 extern int SpoolVMLogRecord(dlist *, vle *, Volume *, ViceStoreId *, int op...);
 extern int SpoolRenameLogRecord(int, dlist *, vle *, vle *, vle *, vle *,
                                 Volume *, char *, char *, ViceStoreId *);
-extern void TruncateLog(Volume *, Vnode *, vmindex *);
+extern void TruncateLog(Volume *, Vnode *, vmindex *) REQUIRES_TRANSACTION;
 extern void FreeVMIndices(Volume *, vmindex *);
-extern void PurgeLog(rec_dlist *, Volume *, vmindex *);
+extern void PurgeLog(rec_dlist *, Volume *, vmindex *) REQUIRES_TRANSACTION;
 extern void PrintLog(rec_dlist *, FILE *);
 extern void PrintLog(Vnode *, FILE *);
 extern void DumpLog(rec_dlist *, Volume *, char **, int *, int *);

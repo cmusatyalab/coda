@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -261,7 +261,6 @@ fsobj *volent::NewFakeMountLinkObj(VenusFid *fid, const char *comp)
 }
 
 /// Set the (fake) symlink contents for mount-links */
-/* MUST be called from within a transaction */
 void fsobj::SetMtLinkContents(VenusFid *fid)
 {
     Realm *realm;
@@ -479,7 +478,6 @@ uid_t fsobj::WhoIsLastAuthor(void)
     return (uid_t)-1;
 }
 
-/* must be called from within transaction */
 void fsobj::ExpandCMLEntries(void)
 {
     if (mle_bindings) {
@@ -498,7 +496,6 @@ void fsobj::ExpandCMLEntries(void)
     }
 }
 
-/* must be called from within transaction */
 void fsobj::CollapseCMLEntries(void)
 {
     if (mle_bindings) {

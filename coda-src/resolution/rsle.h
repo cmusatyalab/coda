@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -74,7 +74,7 @@ public:
     ~rsle();
     void init(int op...);
     void init(int op, va_list ap);
-    void CommitInRVM(Volume *, Vnode *);
+    void CommitInRVM(Volume *, Vnode *) REQUIRES_TRANSACTION;
     void Abort(Volume *);
     void InitFromRecleBuf(char **);
     void print();

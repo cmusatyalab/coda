@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -120,7 +120,7 @@ int rec_ohashtab::operator=(rec_ohashtab &ht)
 }
 
 /* The hash function is not necessarily recoverable, so don't insist on an enclosing transaction! */
-void rec_ohashtab::SetHFn(RHFN hashfn)
+void rec_ohashtab::SetHFn(RHFN hashfn) TRANSACTION_OPTIONAL
 {
     if (rvmlib_thread_data()->tid != 0)
         RVMLIB_REC_OBJECT(*this);

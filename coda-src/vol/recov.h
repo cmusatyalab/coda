@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -24,12 +24,14 @@ listed in the file CREDITS.
 #define _RECOV_H_ 1
 
 #include <volume.h>
+#include <coda_tsa.h>
 
 #define HASHTABLESIZE 512 /* Number of buckets in volume hash table */
 
 extern int coda_init();
 
-extern int NewVolHeader(struct VolumeHeader *header, Error *err);
+extern int NewVolHeader(struct VolumeHeader *header,
+                        Error *err) REQUIRES_TRANSACTION;
 extern int DeleteVolume(Volume *vp);
 extern int DeleteRvmVolume(unsigned int, Device);
 extern int ExtractVolHeader(VolumeId volid, struct VolumeHeader *header);
@@ -38,12 +40,16 @@ extern void CheckVolData(Error *ec, int volindex);
 extern void CheckSmallVnodeHeader(Error *ec, int volindex);
 extern void CheckLargeVnodeHeader(Error *ec, int volindex);
 extern int ExtractVnode(int, int, VnodeId, Unique_t, VnodeDiskObject *);
-extern int ReplaceVnode(int, int, VnodeId, Unique_t, VnodeDiskObject *);
-extern void GrowVnodes(VolumeId volid, int vclass, unsigned short newsize);
-extern void NewVolDiskInfo(Error *ec, int volindex, VolumeDiskData *vol);
+extern int ReplaceVnode(int, int, VnodeId, Unique_t,
+                        VnodeDiskObject *) REQUIRES_TRANSACTION;
+extern void GrowVnodes(VolumeId volid, int vclass,
+                       unsigned short newsize) REQUIRES_TRANSACTION;
+extern void NewVolDiskInfo(Error *ec, int volindex,
+                           VolumeDiskData *vol) REQUIRES_TRANSACTION;
 extern int VolDiskInfoById(Error *ec, VolumeId volid, VolumeDiskData *vol);
 extern void ExtractVolDiskInfo(Error *ec, int volindex, VolumeDiskData *vol);
-extern void ReplaceVolDiskInfo(Error *ec, int volindex, VolumeDiskData *vol);
+extern void ReplaceVolDiskInfo(Error *ec, int volindex,
+                               VolumeDiskData *vol) REQUIRES_TRANSACTION;
 extern VnodeDiskObject *FindVnode(rec_smolist *, Unique_t);
 extern int ActiveVnodes(int volindex, int vclass);
 extern int AllocatedVnodes(int volindex, int vclass);
@@ -53,8 +59,8 @@ extern int GetVolType(Error *ec, VolumeId volid);
 extern void GetVolPartition(Error *, VolumeId, int,
                             char partition[V_MAXPARTNAMELEN]);
 extern void SetupVolCache();
-extern VolumeId VAllocateVolumeId(Error *ec);
+extern VolumeId VAllocateVolumeId(Error *ec) REQUIRES_TRANSACTION;
 extern VolumeId VGetMaxVolumeId();
-extern void VSetMaxVolumeId(VolumeId newid);
+extern void VSetMaxVolumeId(VolumeId newid) REQUIRES_TRANSACTION;
 
 #endif /* _RECOV_H_ */

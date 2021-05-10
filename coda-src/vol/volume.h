@@ -365,8 +365,9 @@ extern void VGetVolumeInfo(Error *ec, char *key, VolumeInfo *info);
 extern const char *VGetVolumeLocation(VolumeId vid);
 extern Volume *VGetVolume(Error *ec, VolumeId volumeId);
 extern void VPutVolume(Volume *vp);
-extern Volume *VAttachVolume(Error *ec, VolumeId volumeId, int mode);
-extern void VDetachVolume(Error *ec, Volume *vp);
+extern Volume *VAttachVolume(Error *ec, VolumeId volumeId,
+                             int mode) REQUIRES_TRANSACTION;
+extern void VDetachVolume(Error *ec, Volume *vp) REQUIRES_TRANSACTION;
 extern void VUpdateVolume(Error *ec, Volume *vp);
 extern int VAllocBitmapEntry(Error *ec, Volume *vp, struct vnodeIndex *index,
                              int stride, int ix, int count);
@@ -377,7 +378,7 @@ extern void VFreeBitMapEntry(Error *ec, struct vnodeIndex *index,
 extern int VolumeNumber(char *name);
 extern char *VolumeExternalName(VolumeId volumeId);
 extern Volume *VAttachVolumeById(Error *ec, char *partition, VolumeId volid,
-                                 int mode);
+                                 int mode) REQUIRES_TRANSACTION;
 extern void VOffline(Volume *vp, const char *message);
 extern void VForceOffline(Volume *vp);
 extern void VPurgeVolume(Volume *vp);

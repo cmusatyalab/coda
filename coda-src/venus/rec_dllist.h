@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 2003 Carnegie Mellon University
+          Copyright (c) 2003-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -23,13 +23,15 @@ listed in the file CREDITS.
 
 /* persistent dllist helpers */
 
-static inline void rec_list_head_init(struct dllist_head *p)
+static inline void
+rec_list_head_init(struct dllist_head *p) REQUIRES_TRANSACTION
 {
     RVMLIB_REC_OBJECT(*p);
     list_head_init(p);
 }
 
-static inline void rec_list_add(struct dllist_head *p, struct dllist_head *h)
+static inline void rec_list_add(struct dllist_head *p,
+                                struct dllist_head *h) REQUIRES_TRANSACTION
 {
     RVMLIB_REC_OBJECT(*p);
     RVMLIB_REC_OBJECT(h->next);
@@ -37,7 +39,7 @@ static inline void rec_list_add(struct dllist_head *p, struct dllist_head *h)
     list_add(p, h);
 }
 
-static inline void rec_list_del(struct dllist_head *p)
+static inline void rec_list_del(struct dllist_head *p) REQUIRES_TRANSACTION
 {
     RVMLIB_REC_OBJECT(*p);
     if (!list_empty(p)) {

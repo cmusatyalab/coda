@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -56,6 +56,8 @@ extern "C" {
 }
 #endif
 
+#include <coda_tsa.h>
+
 class rec_smolist;
 class rec_smolist_iterator;
 struct rec_smolink;
@@ -67,10 +69,14 @@ class rec_smolist {
 public:
     rec_smolist();
     ~rec_smolist();
-    void insert(struct rec_smolink *); // add at head of list
-    void append(struct rec_smolink *); // add at tail of list
-    struct rec_smolink *remove(struct rec_smolink *); // remove specified entry
-    struct rec_smolink *get(void); // return and remove head of list
+    void
+    insert(struct rec_smolink *) REQUIRES_TRANSACTION; // add at head of list
+    void
+    append(struct rec_smolink *) REQUIRES_TRANSACTION; // add at tail of list
+    struct rec_smolink *
+    remove(struct rec_smolink *) REQUIRES_TRANSACTION; // remove specified entry
+    struct rec_smolink *
+    get(void) REQUIRES_TRANSACTION; // return and remove head of list
     int IsEmpty(void); // 1 if list is empty
     void print(void);
     void print(FILE *);

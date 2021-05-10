@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -52,23 +52,27 @@ class rec_ohashtab {
     int cnt;
 
 public:
-    void *operator new(size_t);
-    void operator delete(void *);
+    void *operator new(size_t) REQUIRES_TRANSACTION;
+    void operator delete(void *)REQUIRES_TRANSACTION;
 
     rec_ohashtab(int, RHFN);
     rec_ohashtab(rec_ohashtab &); // not supported!
-    void Init(int, RHFN);
+    void Init(int, RHFN) REQUIRES_TRANSACTION;
     int operator=(rec_ohashtab &); /* not supported! */
     ~rec_ohashtab();
-    void DeInit();
+    void DeInit() REQUIRES_TRANSACTION;
     void SetHFn(RHFN);
 
-    void insert(void *, rec_olink *); /* add at head of list */
-    void append(void *, rec_olink *); /* add at tail of list */
-    rec_olink *remove(void *, rec_olink *); /* remove specified entry */
+    void insert(void *,
+                rec_olink *) REQUIRES_TRANSACTION; /* add at head of list */
+    void append(void *,
+                rec_olink *) REQUIRES_TRANSACTION; /* add at tail of list */
+    rec_olink *remove(void *, rec_olink *)
+        REQUIRES_TRANSACTION; /* remove specified entry */
     rec_olink *first(); /* return first element of table */
     rec_olink *last(); /* return last element of table */
-    rec_olink *get(void *); /* return and remove head of list */
+    rec_olink *
+    get(void *) REQUIRES_TRANSACTION; /* return and remove head of list */
 
     int count();
     int IsMember(void *, rec_olink *);

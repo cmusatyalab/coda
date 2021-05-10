@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -196,14 +196,15 @@ class hdb {
     int SolicitAdvice;
 
     /* Constructors, destructors. */
-    void *operator new(size_t);
+    void *operator new(size_t) REQUIRES_TRANSACTION;
     void operator delete(void *);
     hdb();
     void ResetTransient();
     ~hdb() { abort(); }
 
     /* Allocation/Deallocation routines. */
-    hdbent *Create(VolumeId, char *realm, char *name, uid_t, int, int, int);
+    hdbent *Create(VolumeId, char *realm, char *name, uid_t, int, int,
+                   int) EXCLUDES_TRANSACTION;
 
 public:
     hdbent *Find(VolumeId, char *realm, char *name);
@@ -282,10 +283,10 @@ class hdbent {
     rec_olink tbl_handle; /* link for {allocated-table, free-list} */
 
     /* Constructors, destructors. */
-    void *operator new(size_t);
-    hdbent(VolumeId, char *, char *, uid_t, int, int, int);
+    void *operator new(size_t) REQUIRES_TRANSACTION;
+    hdbent(VolumeId, char *, char *, uid_t, int, int, int) REQUIRES_TRANSACTION;
     void ResetTransient();
-    ~hdbent();
+    ~hdbent() REQUIRES_TRANSACTION;
     void operator delete(void *);
 
 public:

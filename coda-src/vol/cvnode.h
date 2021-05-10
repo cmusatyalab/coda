@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -39,6 +39,7 @@ extern "C" {
 }
 #endif
 
+#include <coda_tsa.h>
 #include <voltypes.h>
 #include <inconsist.h>
 #include <rec_smolist.h>
@@ -200,8 +201,8 @@ extern int VolumeHashOffset();
 extern void VInitVnodes(VnodeClass, int);
 extern Vnode *VGetVnode(Error *, Volume *, VnodeId, Unique_t, int, int,
                         int = 0);
-extern void VPutVnode(Error *ec, Vnode *vnp);
-extern void VFlushVnode(Error *, Vnode *);
+extern void VPutVnode(Error *ec, Vnode *vnp) REQUIRES_TRANSACTION;
+extern void VFlushVnode(Error *, Vnode *) REQUIRES_TRANSACTION;
 extern int VAllocFid(Volume *vp, VnodeType type, ViceFidRange *Range,
                      int stride = 1, int ix = 0);
 extern int VAllocFid(Volume *vp, VnodeType type, VnodeId vnode,
@@ -212,7 +213,7 @@ extern Vnode *VAllocVnode(Error *ec, Volume *vp, VnodeType type, VnodeId vnode,
                           Unique_t unique);
 extern int ObjectExists(int, int, VnodeId, Unique_t, ViceFid * = NULL);
 
-int VN_DCommit(Vnode *vnp);
+int VN_DCommit(Vnode *vnp) REQUIRES_TRANSACTION;
 int VN_DAbort(Vnode *vnp);
 PDirHandle VN_SetDirHandle(struct Vnode *vn);
 void VN_PutDirHandle(struct Vnode *vn);

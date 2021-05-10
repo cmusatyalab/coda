@@ -172,29 +172,24 @@ class ClientModifyLog {
     long _bytes();
 
 public:
-    ClientModifyLog()
-    {
-        ResetTransient();
-    } /* MUST be called within transaction! */
-    ~ClientModifyLog()
-    {
-        CODA_ASSERT(count() == 0);
-    } /* MUST be called within transaction! */
+    ClientModifyLog() REQUIRES_TRANSACTION { ResetTransient(); }
+    ~ClientModifyLog() { CODA_ASSERT(count() == 0); }
     void ResetTransient();
     void ResetHighWater()
     {
         entriesHighWater = entries;
         bytesHighWater   = bytes;
     }
-    void Clear();
+    void Clear() REQUIRES_TRANSACTION;
 
     /* Log optimization routines. */
     cmlent *LengthWriter(VenusFid *);
     cmlent *UtimesWriter(VenusFid *);
 
     /* Reintegration routines. */
-    void TranslateFid(VenusFid *, VenusFid *);
-    int COP1(char *, int, ViceVersionVector *, int outoforder);
+    void TranslateFid(VenusFid *, VenusFid *) REQUIRES_TRANSACTION;
+    int COP1(char *, int, ViceVersionVector *,
+             int outoforder) EXCLUDES_TRANSACTION;
     int COP1_NR(char *buf, int bufsize, ViceVersionVector *, int outoforder);
     void UnLockObjs(int);
     void MarkFailedMLE(int);
@@ -202,7 +197,7 @@ public:
     void MarkCommittedMLE(RPC2_Unsigned);
     void CancelPending();
     void ClearPending();
-    void ClearToBeRepaired(); /* must not be called within transaction! */
+    void ClearToBeRepaired() EXCLUDES_TRANSACTION;
     void CancelStores();
 
     int GetReintegrateable(int, unsigned long *, int *);
@@ -215,7 +210,7 @@ public:
     void MakeUsrSpoolDir(char *);
     int CheckPoint(char *);
 
-    void AttachFidBindings();
+    void AttachFidBindings() REQUIRES_TRANSACTION;
 
     long logBytes() { return bytes; }
     long logBytesHighWater() { return bytesHighWater; }
@@ -235,16 +230,16 @@ public:
     void IncThread(int); /*N*/
     void IncPack(char **, int *, int); /*N*/
     int OutOfOrder(int tid); /*N*/
-    void IncCommit(ViceVersionVector *, int); /*U*/
+    void IncCommit(ViceVersionVector *, int) EXCLUDES_TRANSACTION; /*U*/
     void IncAbort(int = UNSET_TID); /*U*/
     void IncGetStats(cmlstats &, cmlstats &, int = UNSET_TID); /*N*/
-    int IncReallocFids(int); /*U*/
-    int HaveElements(int); /*N*/
+    int IncReallocFids(int) EXCLUDES_TRANSACTION; /*U*/
+    int HaveElements(int) EXCLUDES_TRANSACTION; /*N*/
     int DiscardLocalMutation(char *); /*U*/
     void PreserveLocalMutation(char *); /*U*/
     void PreserveAllLocalMutation(char *); /*U*/
     void CheckCMLHead(char *msg); /*U*/
-    int ListCML(FILE *); /*N*/
+    int ListCML(FILE *) EXCLUDES_TRANSACTION; /*N*/
 };
 
 /* local-repair addition */
@@ -381,39 +376,39 @@ class cmlent {
     /*T*/ dlist *succ; /* list of (bindings to) successor cmlents */
 
 public:
-    void *operator new(size_t);
+    void *operator new(size_t) REQUIRES_TRANSACTION;
     cmlent(ClientModifyLog *, time_t, uid_t, int,
-           int...); /* local-repair modification */
+           int...) REQUIRES_TRANSACTION; /* local-repair modification */
     void ResetTransient();
-    ~cmlent();
-    void operator delete(void *);
+    ~cmlent() REQUIRES_TRANSACTION;
+    void operator delete(void *)REQUIRES_TRANSACTION;
 
     /* Size of an entry */
     long bytes();
 
     /* Log optimization routines. */
-    int cancel();
+    int cancel() REQUIRES_TRANSACTION;
 
     /* Reintegration routines. */
-    int realloc();
-    void translatefid(VenusFid *, VenusFid *);
+    int realloc() EXCLUDES_TRANSACTION;
+    void translatefid(VenusFid *, VenusFid *) REQUIRES_TRANSACTION;
     void thread();
     int size();
     void pack(BUFFER *);
-    void commit(ViceVersionVector *);
+    void commit(ViceVersionVector *) REQUIRES_TRANSACTION;
     int cancelstore();
     int Aged();
     unsigned long ReintTime(unsigned long bw);
     unsigned long ReintAmount(unsigned long *reint_time);
 
-    int Freeze();
+    int Freeze() REQUIRES_TRANSACTION;
     int IsReintegrating();
     int IsFrozen() { return flags.frozen; }
-    void Thaw();
+    void Thaw() REQUIRES_TRANSACTION;
 
     /* for partial reintegration */
     int HaveReintegrationHandle();
-    void ClearReintegrationHandle();
+    void ClearReintegrationHandle() EXCLUDES_TRANSACTION;
     int DoneSending();
     int GetReintegrationHandle();
     int ValidateReintegrationHandle();
@@ -421,14 +416,14 @@ public:
     int CloseReintegrationHandle(char *, int, ViceVersionVector *);
 
     /* Routines for handling inconsistencies and safeguarding against catastrophe! */
-    void abort();
+    void abort() REQUIRES_TRANSACTION;
     int checkpoint(FILE *);
     void writeops(FILE *);
 
     void getfids(VenusFid fid[3]);
 
-    void AttachFidBindings();
-    void DetachFidBindings();
+    void AttachFidBindings() REQUIRES_TRANSACTION;
+    void DetachFidBindings() REQUIRES_TRANSACTION;
 
     void print() { print(stdout); }
     void print(FILE *fp)
@@ -440,14 +435,14 @@ public:
 
     /* local-repair addition */
     int GetTid() { return tid; } /*N*/
-    void SetTid(int); /*U*/
+    void SetTid(int) EXCLUDES_TRANSACTION; /*U*/
     int ReintReady(); /*U*/
     int ContainLocalFid(); /*N*/
     void TranslateFid(VenusFid *, VenusFid *); /*T*/
     void CheckRepair(char *, int *, int *); /*N*/
-    int DoRepair(char *, int); /*U*/
+    int DoRepair(char *, int) EXCLUDES_TRANSACTION; /*U*/
     void GetLocalOpMsg(char *); /*N*/
-    void SetRepairFlag(); /*U*/
+    void SetRepairFlag() EXCLUDES_TRANSACTION; /*U*/
     void SetRepairMutationFlag(); /*U*/
     int IsToBeRepaired() { return flags.to_be_repaired; } /*N*/
     int IsExpanded() { return expansions; } /*T*/
@@ -510,14 +505,15 @@ class vdb {
     rec_dlist mlefreelist;
 
     /* Constructors, destructors. */
-    void *operator new(size_t);
+    void *operator new(size_t) REQUIRES_TRANSACTION;
     vdb();
     void ResetTransient();
     ~vdb() { abort(); }
     void operator delete(void *);
 
     /* Allocation/Deallocation routines. */
-    volent *Create(Realm *realm, VolumeInfo *, const char *);
+    volent *Create(Realm *realm, VolumeInfo *,
+                   const char *) EXCLUDES_TRANSACTION;
 
     /* Daemon functions. */
     void GetDown();
@@ -528,14 +524,14 @@ class vdb {
 public:
     volent *Find(Volid *);
     volent *Find(Realm *, const char *);
-    int Get(volent **, Volid *);
-    int Get(volent **, Realm *, const char *, fsobj *f);
+    int Get(volent **, Volid *) EXCLUDES_TRANSACTION;
+    int Get(volent **, Realm *, const char *, fsobj *f) EXCLUDES_TRANSACTION;
     void Put(volent **);
 
     void DownEvent(struct in_addr *host);
     void UpEvent(struct in_addr *host);
 
-    void AttachFidBindings(void);
+    void AttachFidBindings(void) REQUIRES_TRANSACTION;
     int WriteDisconnect(unsigned int age  = V_UNSETAGE,
                         unsigned int time = V_UNSETREINTLIMIT);
     int SyncCache(void);
@@ -641,7 +637,7 @@ class volent {
 
     /* Constructors, destructors, and private utility routines. */
     volent(volent &) { abort(); } /* not supported! */
-    void *operator new(size_t);
+    void *operator new(size_t) REQUIRES_TRANSACTION;
     int operator=(volent &)
     {
         abort();
@@ -669,9 +665,9 @@ protected:
     /*T*/ short shrd_count; /* for volume pgid locking */
     /*T*/ int pgid; /* pgid of ASRLauncher and children (0 if none) */
 
-    void operator delete(void *);
-    volent(Realm *r, VolumeId vid, const char *name);
-    ~volent();
+    void operator delete(void *)REQUIRES_TRANSACTION;
+    volent(Realm *r, VolumeId vid, const char *name) REQUIRES_TRANSACTION;
+    ~volent() REQUIRES_TRANSACTION;
     void ResetVolTransients();
     ViceVolumeType VolStatType(void);
 
@@ -679,8 +675,8 @@ public:
     /* Volume synchronization. */
     void hold();
     void release();
-    int Enter(int, uid_t);
-    void Exit(int, uid_t);
+    int Enter(int, uid_t) EXCLUDES_TRANSACTION;
+    void Exit(int, uid_t) EXCLUDES_TRANSACTION;
     void TakeTransition();
     int TransitionPending() { return flags.transition_pending; }
     void Wait();
@@ -714,13 +710,14 @@ public:
     void GetBandwidth(unsigned long *bw);
 
     /* local-repair addition */
-    VenusFid GenerateFakeFid();
+    VenusFid GenerateFakeFid() REQUIRES_TRANSACTION;
     RealmId GetRealmId() { return realm->Id(); } /*N*/
     VolumeId GetVolumeId() { return vid; } /*N*/
     const char *GetName() { return name; } /*N*/
 
-    fsobj *NewFakeDirObj(const char *comp);
-    fsobj *NewFakeMountLinkObj(VenusFid *fid, const char *comp);
+    fsobj *NewFakeDirObj(const char *comp) REQUIRES_TRANSACTION;
+    fsobj *NewFakeMountLinkObj(VenusFid *fid,
+                               const char *comp) REQUIRES_TRANSACTION;
     int IsRepairVol(void)
     {
         return (realm->Id() == LocalRealm->Id() && vid == FakeRepairVolumeId);
@@ -790,14 +787,14 @@ public:
                         unsigned int time = V_UNSETREINTLIMIT);
 
     /* Reintegration routines. */
-    void Reintegrate();
-    int IncReintegrate(int);
+    void Reintegrate() EXCLUDES_TRANSACTION;
+    int IncReintegrate(int) EXCLUDES_TRANSACTION;
     int PartialReintegrate(int, unsigned long *reint_time);
     int IsReintegrating() { return flags.reintegrating; }
     int ReadyToReintegrate();
-    int GetReintId(); /*U*/
+    int GetReintId() EXCLUDES_TRANSACTION; /*U*/
     void CheckTransition(); /*N*/
-    void IncAbort(int); /*U*/
+    void IncAbort(int) EXCLUDES_TRANSACTION; /*U*/
     int SyncCache(VenusFid *fid = NULL);
 
     void ReportVolState(void);
@@ -824,33 +821,39 @@ public:
 
     /* local-repair modifications to the following methods */
     /* Modlog routines. */
-    int LogStore(time_t, uid_t, VenusFid *, RPC2_Unsigned, int prepend);
+    int LogStore(time_t, uid_t, VenusFid *, RPC2_Unsigned,
+                 int prepend) REQUIRES_TRANSACTION;
     int LogSetAttr(time_t, uid_t, VenusFid *, RPC2_Unsigned, Date_t, UserId,
-                   RPC2_Unsigned, int prepend);
-    int LogTruncate(time_t, uid_t, VenusFid *, RPC2_Unsigned, int prepend);
-    int LogUtimes(time_t, uid_t, VenusFid *, Date_t, int prepend);
-    int LogChown(time_t, uid_t, VenusFid *, UserId, int prepend);
-    int LogChmod(time_t, uid_t, VenusFid *, RPC2_Unsigned, int prepend);
+                   RPC2_Unsigned, int prepend) REQUIRES_TRANSACTION;
+    int LogTruncate(time_t, uid_t, VenusFid *, RPC2_Unsigned,
+                    int prepend) REQUIRES_TRANSACTION;
+    int LogUtimes(time_t, uid_t, VenusFid *, Date_t,
+                  int prepend) REQUIRES_TRANSACTION;
+    int LogChown(time_t, uid_t, VenusFid *, UserId,
+                 int prepend) REQUIRES_TRANSACTION;
+    int LogChmod(time_t, uid_t, VenusFid *, RPC2_Unsigned,
+                 int prepend) REQUIRES_TRANSACTION;
     int LogCreate(time_t, uid_t, VenusFid *, char *, VenusFid *, RPC2_Unsigned,
-                  int prepend);
+                  int prepend) REQUIRES_TRANSACTION;
     int LogRemove(time_t, uid_t, VenusFid *, char *, const VenusFid *, int,
-                  int prepend);
+                  int prepend) REQUIRES_TRANSACTION;
     int LogLink(time_t, uid_t, VenusFid *, char *, VenusFid *, int prepend);
     int LogRename(time_t, uid_t, VenusFid *, char *, VenusFid *, char *,
-                  VenusFid *, const VenusFid *, int, int prepend);
+                  VenusFid *, const VenusFid *, int,
+                  int prepend) REQUIRES_TRANSACTION;
     int LogMkdir(time_t, uid_t, VenusFid *, char *, VenusFid *, RPC2_Unsigned,
-                 int prepend);
+                 int prepend) REQUIRES_TRANSACTION;
     int LogRmdir(time_t, uid_t, VenusFid *, char *, const VenusFid *,
-                 int prepend);
+                 int prepend) REQUIRES_TRANSACTION;
     int LogSymlink(time_t, uid_t, VenusFid *, char *, char *, VenusFid *,
-                   RPC2_Unsigned, int prepend);
+                   RPC2_Unsigned, int prepend) REQUIRES_TRANSACTION;
     int LogRepair(time_t, uid_t, VenusFid *, RPC2_Unsigned, Date_t, UserId,
-                  RPC2_Unsigned, int prepend);
+                  RPC2_Unsigned, int prepend) REQUIRES_TRANSACTION;
     /* local-repair modifications to the above methods */
 
     int CheckPointMLEs(uid_t, char *);
     int LastMLETime(unsigned long *);
-    int PurgeMLEs(uid_t);
+    int PurgeMLEs(uid_t) EXCLUDES_TRANSACTION;
 
     /* CML routines */
     void ListCML(FILE *fp);
@@ -975,13 +978,14 @@ public:
     void Reconfigure(void);
 
     /* Allocation routines. */
-    void RestoreObj(VenusFid *);
+    void RestoreObj(VenusFid *) REQUIRES_TRANSACTION;
 
     /* Repair routines. */
     int Repair(VenusFid *, char *, uid_t, VolumeId *, int *);
     int ConnectedRepair(VenusFid *, char *, uid_t, VolumeId *, int *);
     int DisconnectedRepair(VenusFid *, char *, uid_t, VolumeId *, int *);
-    int LocalRepair(fsobj *, ViceStatus *, char *fname, VenusFid *);
+    int LocalRepair(fsobj *, ViceStatus *, char *fname,
+                    VenusFid *) REQUIRES_TRANSACTION;
 
     /* Resolution routines */
     void Resolve();

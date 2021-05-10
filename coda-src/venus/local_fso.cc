@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -46,7 +46,6 @@ extern "C" {
 #include "venusvol.h"
 #include "worker.h"
 
-/* MUST be called from within a transaction */
 void fsobj::SetComp(const char *name)
 {
     RVMLIB_REC_OBJECT(comp);
@@ -66,14 +65,12 @@ const char *fsobj::GetComp(void)
         return FID_(&fid);
 }
 
-/* must be called from within a transaction */
 void fsobj::SetLocalObj()
 {
     RVMLIB_REC_OBJECT(flags);
     flags.local = 1;
 }
 
-/* must be called from within a transaction */
 void fsobj::UnsetLocalObj()
 {
     RVMLIB_REC_OBJECT(flags);

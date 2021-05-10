@@ -104,7 +104,7 @@ inline void DIR_check_trans(const char *where, const char *file)
     }
 }
 
-static void DIR_SetRange(struct DirHeader *dir)
+static void DIR_SetRange(struct DirHeader *dir) TRANSACTION_OPTIONAL
 {
     if (DIR_rvm())
         rvmlib_set_range((void *)dir, DIR_Length(dir));
@@ -184,7 +184,7 @@ static int dir_FindBlobs(struct DirHeader **dh, int nblobs)
 }
 
 /* Add a page to a directory. */
-static int dir_AddPage(struct DirHeader **dh)
+static int dir_AddPage(struct DirHeader **dh) TRANSACTION_OPTIONAL
 {
     int i;
     int page;
@@ -219,7 +219,7 @@ static int dir_AddPage(struct DirHeader **dh)
 }
 
 /* allocate a one page directory */
-static struct DirHeader *dir_New(int in_rvm)
+static struct DirHeader *dir_New(int in_rvm) TRANSACTION_OPTIONAL
 {
     struct DirHeader *dirh;
 
@@ -237,7 +237,8 @@ static struct DirHeader *dir_New(int in_rvm)
 }
 
 /* extend a dir by one page */
-static struct DirHeader *dir_Extend(struct DirHeader *olddir, int in_rvm)
+static struct DirHeader *dir_Extend(struct DirHeader *olddir,
+                                    int in_rvm) TRANSACTION_OPTIONAL
 {
     struct DirHeader *dirh;
     int oldsize, newsize;
@@ -584,7 +585,8 @@ int DIR_Delete(struct DirHeader *dir, const char *entry)
    We don't do this in conjunction with the parent, to flexibly create
    root directories too. Maybe MakeSubDir is a good idea? 
 */
-int DIR_MakeDir(struct DirHeader **dir, DirFid *me, DirFid *parent)
+int DIR_MakeDir(struct DirHeader **dir, DirFid *me,
+                DirFid *parent) TRANSACTION_OPTIONAL
 {
     int i;
     struct DirHeader *dhp;
@@ -642,7 +644,7 @@ void DIR_Setpages(PDirHeader dirh, int pages)
 }
 
 /* will release the directory pages from memory or RVM */
-void DIR_Free(struct DirHeader *dir, int in_rvm)
+void DIR_Free(struct DirHeader *dir, int in_rvm) TRANSACTION_OPTIONAL
 {
     if (!dir)
         return;
@@ -925,7 +927,7 @@ int DIR_Compare(PDirHeader d1, PDirHeader d2)
 
 #define TO_RVM 1
 #define TO_VM 0
-void dir_Copy(PDirHeader old, PDirHeader *new, int to_rvm)
+void dir_Copy(PDirHeader old, PDirHeader *new, int to_rvm) TRANSACTION_OPTIONAL
 {
     int size;
 

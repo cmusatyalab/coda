@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -49,22 +49,23 @@ class rec_olist {
     int cnt;
 
 public:
-    void *operator new(size_t);
-    void operator delete(void *);
+    void *operator new(size_t) REQUIRES_TRANSACTION;
+    void operator delete(void *)REQUIRES_TRANSACTION;
 
     rec_olist();
     rec_olist(rec_olist &); /* not supported! */
-    void Init();
+    void Init() REQUIRES_TRANSACTION;
     int operator=(rec_olist &); /* not supported! */
     ~rec_olist();
     void DeInit();
 
-    void insert(rec_olink *); /* add at head of list */
-    void append(rec_olink *); /* add at tail of list */
-    rec_olink *remove(rec_olink *); /* remove specified entry */
+    void insert(rec_olink *) REQUIRES_TRANSACTION; /* add at head of list */
+    void append(rec_olink *) REQUIRES_TRANSACTION; /* add at tail of list */
+    rec_olink *
+    remove(rec_olink *) REQUIRES_TRANSACTION; /* remove specified entry */
     rec_olink *first(); /* return head of list */
     rec_olink *last(); /* return tail of list */
-    rec_olink *get(); /* return and remove head of list */
+    rec_olink *get() REQUIRES_TRANSACTION; /* return and remove head of list */
 
     int count();
     int IsMember(rec_olink *);
@@ -90,7 +91,7 @@ class rec_olink { /* objects are derived from this class */
 
 public:
     rec_olink();
-    void Init();
+    void Init() REQUIRES_TRANSACTION;
     rec_olink(rec_olink &); /* not supported! */
     int operator=(rec_olink &); /* not supported! */
     /*

@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -71,44 +71,44 @@ class recov_vol_log {
     int max_seqno;
 
     // private routines
-    int Grow(int = -1);
-    void FreeBlock(int);
+    int Grow(int = -1) REQUIRES_TRANSACTION;
+    void FreeBlock(int) REQUIRES_TRANSACTION;
     void Increase_rec_max_seqno(int i = SEQNO_GROWSIZE);
     void *IndexToAddr(int); // given an index, returns the address of block
     void PrintUnreachableRecords(bitmap *);
-    int ChooseWrapAroundVnode(Volume *, int different = 0);
+    int ChooseWrapAroundVnode(Volume *, int different = 0) EXCLUDES_TRANSACTION;
 
 public:
     resstats *vmrstats; // res statistics (only in VM)
     int reserved[10]; // for future use
 
-    void *operator new(size_t);
+    void *operator new(size_t) REQUIRES_TRANSACTION;
     recov_vol_log(VolumeId = 0, int adm = 4096); // default: max 4k log entries
     ~recov_vol_log();
-    void operator delete(void *);
+    void operator delete(void *)REQUIRES_TRANSACTION;
     int init(int);
     void ResetTransients(VolumeId = 0);
 
-    void Increase_Admin_Limit(int);
+    void Increase_Admin_Limit(int) REQUIRES_TRANSACTION;
 
     int AllocRecord(int *index, int *seqno); // in vm only
     void DeallocRecord(int index); // in vm only
     int AllocViaWrapAround(int *, int *, Volume *,
                            dlist * = NULL); // reuse record
-    recle *RecovPutRecord(int index); // in rvm
-    void RecovFreeRecord(int index); // in rvm
+    recle *RecovPutRecord(int index) REQUIRES_TRANSACTION; // in rvm
+    void RecovFreeRecord(int index) REQUIRES_TRANSACTION; // in rvm
     int bmsize();
     int LogSize();
 
-    void purge(); // purge all the logs
-    void SalvageLog(bitmap *);
+    void purge() REQUIRES_TRANSACTION; // purge all the logs
+    void SalvageLog(bitmap *) REQUIRES_TRANSACTION;
     void print();
     void print(FILE *);
     void print(int);
 };
 
 /* export definitions */
-extern void CreateRootLog(Volume *, Vnode *);
+extern void CreateRootLog(Volume *, Vnode *) REQUIRES_TRANSACTION;
 extern void CreateResLog(Volume *, Vnode *);
 
 // subresphase3.c

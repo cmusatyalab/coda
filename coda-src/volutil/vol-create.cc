@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 7
+                              Release 8
 
-          Copyright (c) 1987-2020 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -87,7 +87,7 @@ extern "C" {
 Error error;
 extern void PrintVnode(FILE *outfile, VnodeDiskObject *vnode,
                        VnodeId vnodeNumber);
-static int ViceCreateRoot(Volume *vp);
+static int ViceCreateRoot(Volume *vp) REQUIRES_TRANSACTION;
 
 /* Create a new volume (readwrite or replicated). Invoked through rpc2
    by volume utility. */

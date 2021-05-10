@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -47,9 +47,10 @@ public:
     int seqno; /* monotonically increasing number for log records */
     recle();
     ~recle();
-    int FreeVarl(); /* free variable length part */
+    int FreeVarl() REQUIRES_TRANSACTION; /* free variable length part */
     rec_dlist *HasList(); /* returns head of list of removed child's log */
-    void InitFromsle(rsle *); /* from another already initialized rsle */
+    void InitFromsle(rsle *)
+        REQUIRES_TRANSACTION; /* from another already initialized rsle */
     char *DumpToBuf(int *);
     void print();
     void print(FILE *);

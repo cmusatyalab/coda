@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -24,6 +24,7 @@ listed in the file CREDITS.
 #include <coda.h>
 #include <vcrcommon.h>
 #include <dllist.h>
+#include <coda_tsa.h>
 
 /* bytes per page */
 #define DIR_PAGESIZE 2048
@@ -177,10 +178,10 @@ typedef struct DirInode *PDirInode;
 
 void DC_SetDI(PDCEntry pdce, PDirInode pdi);
 PDirHeader DI_DiToDh(PDirInode pdi);
-void DI_DhToDi(PDCEntry pdce);
-void DI_Copy(PDirInode oldinode, PDirInode *newinode);
-void DI_Dec(PDirInode pdi);
-void DI_Inc(PDirInode pdi);
+void DI_DhToDi(PDCEntry pdce) REQUIRES_TRANSACTION;
+void DI_Copy(PDirInode oldinode, PDirInode *newinode) REQUIRES_TRANSACTION;
+void DI_Dec(PDirInode pdi) REQUIRES_TRANSACTION;
+void DI_Inc(PDirInode pdi) REQUIRES_TRANSACTION;
 int DI_Count(PDirInode);
 int DI_Pages(PDirInode);
 void *DI_Page(PDirInode, int);

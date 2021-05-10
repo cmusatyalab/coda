@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -63,6 +63,7 @@ void rvmlib_set_thread_data(void *p)
 }
 
 void _rvmlib_begin_transaction(int restore_mode, const char file[], int line)
+    TRANSACTION_OPTIONAL // we don't (need to) begin transaction when RvmType==VM
 {
     rvm_perthread_t *_rvm_data;
     rvm_return_t _status;
@@ -106,6 +107,7 @@ void _rvmlib_begin_transaction(int restore_mode, const char file[], int line)
 }
 
 void rvmlib_end_transaction(int flush_mode, rvm_return_t *statusp)
+    TRANSACTION_OPTIONAL // we don't (need to) end transaction when RvmType==VM
 {
     rvm_perthread_t *_rvm_data;
     rvm_return_t _status = RVM_SUCCESS;

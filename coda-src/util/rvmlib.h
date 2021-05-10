@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -44,6 +44,8 @@ extern "C" {
 }
 #endif
 
+#include <coda_tsa.h>
+
 /*  *****  Types  *****  */
 
 typedef enum
@@ -77,14 +79,17 @@ extern "C" {
 #endif
 
 int rvmlib_in_transaction(void);
-void rvmlib_abort(int);
+void rvmlib_abort(int) ENDS_TRANSACTION;
 
-void rvmlib_set_range(void *base, unsigned long size);
-void rvmlib_modify_bytes(void *dest, const void *newval, int len);
-char *rvmlib_strdup(const char *src, const char *file, int line);
+void rvmlib_set_range(void *base, unsigned long size) REQUIRES_TRANSACTION;
+void rvmlib_modify_bytes(void *dest, const void *newval,
+                         int len) REQUIRES_TRANSACTION;
+char *rvmlib_strdup(const char *src, const char *file,
+                    int line) REQUIRES_TRANSACTION;
 
-void *rvmlib_malloc(unsigned long size, const char *file, int line);
-void rvmlib_free(void *p, const char *file, int line);
+void *rvmlib_malloc(unsigned long size, const char *file,
+                    int line) REQUIRES_TRANSACTION;
+void rvmlib_free(void *p, const char *file, int line) REQUIRES_TRANSACTION;
 
 void rvmlib_init_threaddata(rvm_perthread_t *rvmptt);
 extern void rvmlib_set_thread_data(void *);
@@ -92,8 +97,10 @@ rvm_perthread_t *rvmlib_thread_data(void);
 
 #define rvmlib_begin_transaction(restore_mode) \
     _rvmlib_begin_transaction(restore_mode, __FILE__, __LINE__);
-void _rvmlib_begin_transaction(int restore_mode, const char file[], int line);
-void rvmlib_end_transaction(int flush_mode, rvm_return_t *statusp);
+void _rvmlib_begin_transaction(int restore_mode, const char file[],
+                               int line) BEGINS_TRANSACTION;
+void rvmlib_end_transaction(int flush_mode,
+                            rvm_return_t *statusp) ENDS_TRANSACTION;
 
 #ifdef __cplusplus
 }

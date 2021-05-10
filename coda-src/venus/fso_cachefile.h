@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 7
+                              Release 8
 
-          Copyright (c) 1987-2019 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -390,7 +390,7 @@ protected:
      * @return amount of bytes copied
      */
     static int64_t CopySegment(CacheFile *from, CacheFile *to, uint64_t pos,
-                               int64_t count);
+                               int64_t count) REQUIRES_TRANSACTION;
 
 public:
     /**
@@ -400,7 +400,7 @@ public:
      * @param recoverable  set cachefile to be recoverable from RVM
      * @param partial      set cachefile to be partially cached
      */
-    CacheFile(int i, int recoverable = 1, int partial = 0);
+    CacheFile(int i, int recoverable = 1, int partial = 0) REQUIRES_TRANSACTION;
 
     /**
      * Constructor
@@ -418,7 +418,7 @@ public:
      *
      * @param newlength length of the container file in bytes
      */
-    void Create(int newlength = 0);
+    void Create(int newlength = 0) REQUIRES_TRANSACTION;
 
     /**
      * Open the container file (with open sys call)
@@ -460,12 +460,12 @@ public:
     /**
      * Validate the container file (Resets the container file if invalid)
      */
-    void Validate();
+    void Validate() EXCLUDES_TRANSACTION;
 
     /**
      * Reset the container file to zero length and no data
      */
-    void Reset();
+    void Reset() EXCLUDES_TRANSACTION;
 
     /**
      * Copy the container file and metadata to another object
@@ -474,7 +474,7 @@ public:
      *
      * @return zero on success or -1 on error
      */
-    int Copy(CacheFile *destination);
+    int Copy(CacheFile *destination) REQUIRES_TRANSACTION;
 
     /**
      * Copy the container file (only) to a specified location
@@ -518,21 +518,21 @@ public:
      *
      * @param newlen size to which the file will be truncated to
      */
-    void Truncate(uint64_t newlen);
+    void Truncate(uint64_t newlen) REQUIRES_TRANSACTION;
 
     /**
      * Set the cache file length without truncating the container file
      *
      * @param newlen new cache file metadata size
      */
-    void SetLength(uint64_t newlen);
+    void SetLength(uint64_t newlen) REQUIRES_TRANSACTION;
 
     /**
      * Set cache file's valid data (consecutive from beginning of the file)
      *
      * @param len amount of valid data
      */
-    void SetValidData(uint64_t len);
+    void SetValidData(uint64_t len) REQUIRES_TRANSACTION;
 
     /**
      * Set cache file's valid data (within a range)
@@ -540,7 +540,7 @@ public:
      * @param start start of the valid data's range
      * @param len   length of the valid data's range
      */
-    void SetValidData(uint64_t start, int64_t len);
+    void SetValidData(uint64_t start, int64_t len) REQUIRES_TRANSACTION;
 
     /**
      * Get the holes of the file within a range
@@ -610,7 +610,7 @@ public:
      *
      * @param is_partial partial cache enable status
      */
-    void SetPartial(bool is_partial);
+    void SetPartial(bool is_partial) REQUIRES_TRANSACTION;
 
     /**
      * Print the metadata to the standard output
@@ -648,7 +648,7 @@ public:
      *
      * @param i cache file identifier
      */
-    SegmentedCacheFile(int i);
+    SegmentedCacheFile(int i) REQUIRES_TRANSACTION;
 
     /**
      * Destructor
@@ -660,7 +660,7 @@ public:
      *
      * @param cf cache file pointer
      */
-    void Associate(CacheFile *cf);
+    void Associate(CacheFile *cf) REQUIRES_TRANSACTION;
 
     /**
      * Extract a segment from the associated cache file
@@ -668,7 +668,7 @@ public:
      * @param pos   offset within the file
      * @param count amount of bytes to be extracted
      */
-    int64_t ExtractSegment(uint64_t pos, int64_t count);
+    int64_t ExtractSegment(uint64_t pos, int64_t count) REQUIRES_TRANSACTION;
 
     /**
      * Inject a segment to the associated cache file
@@ -676,7 +676,7 @@ public:
      * @param pos   offset within the file
      * @param count amount of bytes to be injected
      */
-    int64_t InjectSegment(uint64_t pos, int64_t count);
+    int64_t InjectSegment(uint64_t pos, int64_t count) REQUIRES_TRANSACTION;
 };
 
 #endif /* _VENUS_FSO_CACHEFILE_H_ */

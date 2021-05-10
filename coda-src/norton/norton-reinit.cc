@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -216,7 +216,7 @@ static int DumpResLog(int fd, struct VolumeData *voldata,
 }
 
 // Must be called withing a transaction.
-static recle *AllocLogEntry(Volume *vp, rsle *entry)
+static recle *AllocLogEntry(Volume *vp, rsle *entry) REQUIRES_TRANSACTION
 {
     recle *rle;
     int index = -1;
@@ -246,7 +246,8 @@ static recle *AllocLogEntry(Volume *vp, rsle *entry)
 static int BuildResLog(Volume *vp, rec_dlist *log,
                        VnodeId pvn, /*Parent vnode */
                        Unique_t pu, /*parent uniquifier */
-                       int nentries, int start, rsle *logentries, int *err)
+                       int nentries, int start, rsle *logentries,
+                       int *err) REQUIRES_TRANSACTION
 {
     recle *rle;
     int i = start;
@@ -425,7 +426,7 @@ static int DumpVolVnodes(int fd, struct VolumeData *vol, int vol_index)
     return 1;
 }
 
-int CopyDirInode(PDirInode oldinode, PDirInode *newinode)
+int CopyDirInode(PDirInode oldinode, PDirInode *newinode) REQUIRES_TRANSACTION
 {
     struct DirInode shadowInode;
 

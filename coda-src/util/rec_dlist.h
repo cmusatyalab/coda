@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -53,24 +53,26 @@ class rec_dlist {
     RCFN CmpFn; /* function to order the elements  */
 
 public:
-    void *operator new(size_t);
-    void operator delete(void *);
+    void *operator new(size_t) REQUIRES_TRANSACTION;
+    void operator delete(void *)REQUIRES_TRANSACTION;
 
     rec_dlist(RCFN = 0);
     ~rec_dlist();
 
-    void Init(RCFN);
+    void Init(RCFN) REQUIRES_TRANSACTION;
     void SetCmpFn(RCFN);
     void DeInit();
 
-    void insert(rec_dlink *); /* insert in sorted order */
-    void prepend(rec_dlink *); /* add at beginning of list */
-    void append(rec_dlink *); /* add at end of list */
-    rec_dlink *remove(rec_dlink *); /* remove specified entry */
+    void insert(rec_dlink *) REQUIRES_TRANSACTION; /* insert in sorted order */
+    void
+    prepend(rec_dlink *) REQUIRES_TRANSACTION; /* add at beginning of list */
+    void append(rec_dlink *) REQUIRES_TRANSACTION; /* add at end of list */
+    rec_dlink *
+    remove(rec_dlink *) REQUIRES_TRANSACTION; /* remove specified entry */
     rec_dlink *first(); /* return head of list */
     rec_dlink *last(); /* return tail of list */
-    rec_dlink *
-        get(DlGetType = DlGetMin); /* return and remove head or tail of list */
+    rec_dlink *get(DlGetType = DlGetMin)
+        REQUIRES_TRANSACTION; /* return and remove head or tail of list */
     int count();
     int IsMember(rec_dlink *);
     /*virtual*/ void print();
@@ -100,10 +102,8 @@ class rec_dlink { /* objects are derived from this class */
 
 public:
     rec_dlink();
-    void Init();
-    /*
-    ~rec_dlink();
-*/
+    void Init() REQUIRES_TRANSACTION;
+    /* ~rec_dlink(); */
     /*virtual*/ void print();
     /*virtual*/ void print(FILE *);
     /*virtual*/ void print(int);

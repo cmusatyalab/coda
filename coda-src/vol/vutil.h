@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -39,11 +39,14 @@ Pittsburgh, PA.
 
 #ifndef _VUTIL_H_
 #define _VUTIL_H_ 1
+
+#include <coda_tsa.h>
 #include "voldefs.h"
 
 extern Volume *VCreateVolume(Error *ec, char *partition, VolumeId volumeId,
                              VolumeId parentId, VolumeId groupId,
-                             int type = readwriteVolume, int rvmlogsize = 0);
+                             int type       = readwriteVolume,
+                             int rvmlogsize = 0) REQUIRES_TRANSACTION;
 extern Volume *MakeBackupVolume(Volume *vp, Volume *sacrifice, int verbose);
 extern void AssignVolumeName(VolumeDiskData *vol, char *name, const char *ext);
 extern void CopyVolumeHeader(VolumeDiskData *from, VolumeDiskData *to);

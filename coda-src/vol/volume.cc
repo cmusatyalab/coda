@@ -142,8 +142,9 @@ static int VolumeCacheSize = 50, VolumeGets = 0, VolumeReplacements = 0;
 
 static void WriteVolumeHeader(Error *ec, Volume *vp);
 static Volume *attach2(Error *ec, char *path, struct VolumeHeader *header,
-                       struct DiskPartition *dp);
-static void GetBitmap(Error *ec, Volume *vp, VnodeClass vclass);
+                       struct DiskPartition *dp) REQUIRES_TRANSACTION;
+static void GetBitmap(Error *ec, Volume *vp,
+                      VnodeClass vclass) REQUIRES_TRANSACTION;
 static void VAdjustVolumeStatistics(Volume *vp);
 static void VScanUpdateList();
 static int GetVolumeHeader(Volume *vp);
@@ -715,6 +716,7 @@ void dumpvm()
 }
 
 void VShutdown()
+    TRANSACTION_OPTIONAL // We're aborting uncommitted transactions here
 {
     int i;
     rvm_return_t camstatus;
@@ -782,7 +784,7 @@ void VShutdown()
     VLog(0, "VShutdown:  complete.");
 }
 
-static void WriteVolumeHeader(Error *ec, Volume *vp)
+static void WriteVolumeHeader(Error *ec, Volume *vp) TRANSACTION_OPTIONAL
 {
     rvm_return_t status = RVM_SUCCESS;
     *ec                 = 0;

@@ -139,3 +139,27 @@ release so it is better to update early. Developers also don't have to care as
 much because they can run their binaries directly from the build tree in which
 case libtool will make sure the right library is used, or will use `make install`
 which updates everything at the same time.
+
+### Tracing RVM transactions
+
+Although RVM in general is (should be?) able to deal with multiple threads, the
+particular usage in the Coda client and server is single thread only. So there
+are a few strict requirements.
+
+  - We must have an active RVM transaction whenever we modify data that was
+    allocated in RVM and that we want to persist across application restarts.
+  - We cannot begin a new transaction while there is an active one.
+  - We should not yield our LWP thread during a transaction, because we don't
+    know if another scheduled thread might need to start a new transaction.
+
+Some of these constraints are now declared for function prototypes by using
+annotations `REQUIRES_TRANSACTION`, `EXCLUDES_TRANSACTION`, etc.
+These annotations can then be validated by using clang's thread safety
+analysis.
+
+    ./configure CC=clang CXX=clang++
+    make
+
+There will be compiler warnings that indicate when functions or methods are
+called in the wrong context, when transactions are not terminated in all
+possible exit branches from a function, etc.

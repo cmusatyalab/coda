@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -44,12 +44,17 @@ Pittsburgh, PA.
 #ifndef _VOLUTIL_PRIVATE_H_
 #define _VOLUTIL_PRIVATE_H_ 1
 
+#include <coda_tsa.h>
+
 #define VOLUTIL_TIMEOUT 15 /* Timeout period for a remote host */
 
 /* Exit codes -- see comments in tcp/exits.h */
 #define VOLUTIL_RESTART 64 /* please restart this job later */
 #define VOLUTIL_ABORT 1 /* do not restart this job */
 
+int CloneVnode(Volume *rwVp, Volume *cloneVp, int vnodeIndex,
+               rec_smolist *vlist, VnodeDiskObject *rwVnode,
+               VnodeClass vclass) REQUIRES_TRANSACTION;
 void PrintVersionVector(FILE *outfile, ViceVersionVector vv);
 
 #endif /* _VOLUTIL_PRIVATE_H_ */

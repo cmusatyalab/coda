@@ -64,7 +64,8 @@ extern void PrintCamVnode(int, int, int, VnodeId, Unique_t);
 extern void print_VnodeDiskObject(VnodeDiskObject *);
 extern void PrintCamDiskData(int, int, VolumeDiskData *);
 
-static int DeleteVnode(int, int, VnodeId, Unique_t, VnodeDiskObject *);
+static int DeleteVnode(int, int, VnodeId, Unique_t,
+                       VnodeDiskObject *) REQUIRES_TRANSACTION;
 
 /* Copy the specified vnode into the structure provided. Returns 0 if */
 /* successful, -1 if an error occurs. */

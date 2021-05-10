@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 7
+                              Release 8
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -34,6 +34,8 @@ extern "C" {
 }
 #endif
 
+#include <coda_tsa.h>
+
 #define ALLOCMASK 255
 #define HIGHBIT 128
 /* Bitmap for keeping status of N elements of an array.
@@ -60,7 +62,7 @@ class bitmap {
      * @param index  index of the bit to be set
      * @param value  value to set to bit
      */
-    inline void SetValue(int index, int value);
+    void SetValue(int index, int value) TRANSACTION_OPTIONAL;
 
     /**
      * Set the value of bit range
@@ -80,7 +82,7 @@ public:
      *
      * @return pointer to the new allocated object
      */
-    void *operator new(size_t size, int recable = 0);
+    void *operator new(size_t size, int recable = 0) TRANSACTION_OPTIONAL;
 
     /**
      * Delete operator overloading
@@ -88,7 +90,7 @@ public:
      * @param ptr     Pointer of the object to be deleted
      *
      */
-    void operator delete(void *ptr);
+    void operator delete(void *ptr)TRANSACTION_OPTIONAL;
 
     /**
      * Constructor
@@ -108,7 +110,7 @@ public:
      *
      * @param newsize  bitmap's new size
      */
-    void Resize(int newsize);
+    void Resize(int newsize) TRANSACTION_OPTIONAL;
 
     /**
      * Grow the bitmap to a new size
@@ -122,7 +124,7 @@ public:
      *
      * @return index obtained
      */
-    int GetFreeIndex();
+    int GetFreeIndex() TRANSACTION_OPTIONAL;
 
     /**
      * Unset the bit at a particular index
@@ -144,7 +146,7 @@ public:
      *
      * @param index  index of the bit to be set
      */
-    void SetIndex(int index);
+    void SetIndex(int index) TRANSACTION_OPTIONAL;
 
     /**
      * Set all the bits at a particular range
@@ -188,14 +190,14 @@ public:
     /**
      * Delete the map
      */
-    void purge();
+    void purge() TRANSACTION_OPTIONAL;
 
     /**
      * Deep copy the entire bitmap
      *
      * @param b  input bitmap
      */
-    void operator=(bitmap &b);
+    void operator=(bitmap &b) TRANSACTION_OPTIONAL;
 
     /**
      * Test for inequality

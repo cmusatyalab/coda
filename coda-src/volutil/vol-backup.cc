@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 7
+                              Release 8
 
-          Copyright (c) 1987-2019 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -83,10 +83,9 @@ extern "C" {
 #include <codadir.h>
 #include <volhash.h>
 #include <coda_globals.h>
+#include <volutil.private.h>
 
 extern void PollAndYield();
-extern int CloneVnode(Volume *, Volume *, int, rec_smolist *, VnodeDiskObject *,
-                      VnodeClass);
 
 /* Temp check for debugging. */
 void checklists(int vol_index)
@@ -102,11 +101,12 @@ void checklists(int vol_index)
     }
 }
 
-static int MakeNewClone(Volume *rwvp, VolumeId *backupId, Volume **backupvp);
+static int MakeNewClone(Volume *rwvp, VolumeId *backupId,
+                        Volume **backupvp) EXCLUDES_TRANSACTION;
 static void ModifyIndex(Volume *rwvp, Volume *backupvp, VnodeClass vclass);
 static void purgeDeadVnodes(Volume *backupvp, rec_smolist *BackupLists,
                             rec_smolist *RWLists, VnodeClass vclass,
-                            bit32 *nBackupVnodes);
+                            bit32 *nBackupVnodes) EXCLUDES_TRANSACTION;
 
 static void updateBackupVnodes(Volume *rwvp, Volume *backupvp,
                                rec_smolist *BackupLists, VnodeClass vclass,
@@ -490,7 +490,7 @@ static void ModifyIndex(Volume *rwvp, Volume *backupvp, VnodeClass vclass)
 extern int MaxVnodesPerTransaction;
 
 static void deleteDeadVnode(rec_smolist *list, VnodeDiskObject *vdop,
-                            bit32 *nBackupVnodes)
+                            bit32 *nBackupVnodes) REQUIRES_TRANSACTION
 {
     /* Make sure remove doesn't return null */
     CODA_ASSERT(list->remove(&(vdop->nextvn)));

@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -183,7 +183,7 @@ int DH_Delete(PDirHandle dh, const char *entry)
 }
 
 /* the end of the data */
-void DH_FreeData(PDirHandle dh)
+void DH_FreeData(PDirHandle dh) TRANSACTION_OPTIONAL
 {
     DH_LockW(dh);
 
@@ -201,7 +201,7 @@ void DH_FreeData(PDirHandle dh)
 }
 
 /* alloc a directory buffer for the DH */
-void DH_Alloc(PDirHandle dh, int size, int in_rvm)
+void DH_Alloc(PDirHandle dh, int size, int in_rvm) TRANSACTION_OPTIONAL
 {
     CODA_ASSERT(dh);
     DH_LockW(dh);

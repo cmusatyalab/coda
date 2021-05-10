@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -37,8 +37,8 @@ public:
     int IsEmpty(VnodeId);
     int get(VnodeId, Unique_t, VnodeDiskObject *);
     int oget(bit32, Unique_t, VnodeDiskObject *);
-    int put(VnodeId, Unique_t, VnodeDiskObject *);
-    int oput(bit32, Unique_t, VnodeDiskObject *);
+    int put(VnodeId, Unique_t, VnodeDiskObject *) REQUIRES_TRANSACTION;
+    int oput(bit32, Unique_t, VnodeDiskObject *) REQUIRES_TRANSACTION;
 };
 
 class vindex_iterator {

@@ -396,7 +396,7 @@ volent *vdb::Find(Realm *realm, const char *volname)
 
 /* must NOT be called from within a transaction */
 static int GetVolReps(RealmId realm, VolumeInfo *volinfo,
-                      volrep *volreps[VSG_MEMBERS])
+                      volrep *volreps[VSG_MEMBERS]) EXCLUDES_TRANSACTION
 {
     int i   = 0;
     int err = 0;
@@ -932,7 +932,7 @@ void volent::hold(void)
     refcnt++;
 }
 
-void volent::release(void)
+void volent::release(void) TRANSACTION_OPTIONAL
 {
     refcnt--;
 

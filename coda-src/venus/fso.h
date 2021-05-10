@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 7
+                              Release 8
 
-          Copyright (c) 1987-2019 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -182,7 +182,7 @@ class fsdb {
     /*T*/ int matriculation_count;
 
     /* Constructors, destructors. */
-    void *operator new(size_t);
+    void *operator new(size_t) REQUIRES_TRANSACTION;
     void operator delete(void *);
 
     fsdb();
@@ -190,36 +190,37 @@ class fsdb {
     ~fsdb() { abort(); }
 
     /* Allocation/Deallocation routines. */
-    fsobj *Create(VenusFid *, int, const char *comp, VenusFid *parent);
+    fsobj *Create(VenusFid *, int, const char *comp,
+                  VenusFid *parent) EXCLUDES_TRANSACTION;
     int FreeFsoCount();
-    int AllocFso(int, fsobj **);
-    int GrabFreeFso(int, fsobj **);
-    void ReclaimFsos(int, int);
-    void FreeFso(fsobj *);
+    int AllocFso(int, fsobj **) REQUIRES_TRANSACTION;
+    int GrabFreeFso(int, fsobj **) REQUIRES_TRANSACTION;
+    void ReclaimFsos(int, int) REQUIRES_TRANSACTION;
+    void FreeFso(fsobj *) REQUIRES_TRANSACTION;
     int FreeBlockCount();
     int DirtyBlockCount();
-    int AllocBlocks(int, int);
+    int AllocBlocks(int, int) EXCLUDES_TRANSACTION;
     int GrabFreeBlocks(int, int);
-    void ReclaimBlocks(int, int);
+    void ReclaimBlocks(int, int) REQUIRES_TRANSACTION;
     void FreeBlocks(int);
     void ChangeDiskUsage(int);
 
     /* Daemon. */
     void RecomputePriorities(int = 0);
-    void GarbageCollect();
-    void GetDown();
-    void FlushRefVec();
+    void GarbageCollect() REQUIRES_TRANSACTION;
+    void GetDown() REQUIRES_TRANSACTION;
+    void FlushRefVec() EXCLUDES_TRANSACTION;
 
 public:
     fsobj *Find(const VenusFid *);
     /* rcode arg added for local repair */
     int Get(fsobj **fso, VenusFid *fid, uid_t uid, int rights,
             const char *comp = NULL, VenusFid *parent = NULL, int *rcode = NULL,
-            int GetInconsistent = 0);
-    void Put(fsobj **);
-    void Flush();
-    void Flush(Volid *);
-    int TranslateFid(VenusFid *, VenusFid *);
+            int GetInconsistent = 0) EXCLUDES_TRANSACTION;
+    void Put(fsobj **) EXCLUDES_TRANSACTION;
+    void Flush() EXCLUDES_TRANSACTION;
+    void Flush(Volid *) EXCLUDES_TRANSACTION;
+    int TranslateFid(VenusFid *, VenusFid *) REQUIRES_TRANSACTION;
     int CallBackBreak(const VenusFid *);
     void ResetUser(uid_t);
     void ClearPriorities();
@@ -446,14 +447,15 @@ class fsobj {
     /*T*/ long lastresolved; // time when object was last resolved
 
     /* Constructors, destructors. */
-    void *operator new(size_t, fso_alloc_t,
-                       int); /* for allocation from freelist */
-    void *operator new(size_t, fso_alloc_t); /* for allocation from heap */
+    void *operator new(size_t, fso_alloc_t, int)
+        REQUIRES_TRANSACTION; /* for allocation from freelist */
+    void *operator new(size_t, fso_alloc_t)
+        REQUIRES_TRANSACTION; /* for allocation from heap */
     void *operator new(size_t); /* dummy to pacify g++ */
-    void operator delete(void *);
-    fsobj(int);
-    fsobj(VenusFid *, const char *);
-    void ResetPersistent();
+    void operator delete(void *)REQUIRES_TRANSACTION;
+    fsobj(int) REQUIRES_TRANSACTION;
+    fsobj(VenusFid *, const char *) REQUIRES_TRANSACTION;
+    void ResetPersistent() REQUIRES_TRANSACTION;
     void ResetTransient();
     fsobj(fsobj &) { abort(); } /* not supported! */
     int operator=(fsobj &)
@@ -461,36 +463,38 @@ class fsobj {
         abort();
         return (0);
     } /* not supported! */
-    ~fsobj();
-    void Recover();
+    ~fsobj() REQUIRES_TRANSACTION;
+    void Recover() EXCLUDES_TRANSACTION;
 
     /* General status. */
-    void Matriculate();
+    void Matriculate() REQUIRES_TRANSACTION;
     void Demote(void);
-    void Kill(int = 1);
-    void GC();
-    int Flush();
-    void UpdateStatus(ViceStatus *, ViceVersionVector *, uid_t);
+    void Kill(int = 1) REQUIRES_TRANSACTION;
+    void GC() REQUIRES_TRANSACTION;
+    int Flush() EXCLUDES_TRANSACTION;
+    void UpdateStatus(ViceStatus *, ViceVersionVector *,
+                      uid_t) REQUIRES_TRANSACTION;
     int StatusEq(ViceStatus *);
-    void ReplaceStatus(ViceStatus *, ViceVersionVector *);
+    void ReplaceStatus(ViceStatus *, ViceVersionVector *) REQUIRES_TRANSACTION;
     int CheckRcRights(int);
     void SetRcRights(int);
     void ClearRcRights();
     int IsValid(int);
-    void SetAcRights(uid_t uid, long my_rights, long any_rights);
+    void SetAcRights(uid_t uid, long my_rights,
+                     long any_rights) REQUIRES_TRANSACTION;
     void DemoteAcRights(uid_t);
     void PromoteAcRights(uid_t);
-    void ClearAcRights(uid_t);
-    void SetParent(VnodeId, Unique_t);
-    void MakeDirty();
-    void MakeClean();
+    void ClearAcRights(uid_t) REQUIRES_TRANSACTION;
+    void SetParent(VnodeId, Unique_t) REQUIRES_TRANSACTION;
+    void MakeDirty() REQUIRES_TRANSACTION;
+    void MakeClean() REQUIRES_TRANSACTION;
 
     /* Mount state. */
-    int TryToCover(VenusFid *, uid_t);
-    void CoverMtPt(fsobj *);
-    void UncoverMtPt();
-    void MountRoot(fsobj *);
-    void UnmountRoot();
+    int TryToCover(VenusFid *, uid_t) EXCLUDES_TRANSACTION;
+    void CoverMtPt(fsobj *) REQUIRES_TRANSACTION;
+    void UncoverMtPt() REQUIRES_TRANSACTION;
+    void MountRoot(fsobj *) REQUIRES_TRANSACTION;
+    void UnmountRoot() REQUIRES_TRANSACTION;
 
     /* Child/Parent linkage. */
     void AttachChild(fsobj *);
@@ -508,15 +512,15 @@ class fsobj {
     void DetachHdbBinding(binding *, int = 0);
 
     /* MLE Linkage. */
-    void AttachMleBinding(binding *);
-    void DetachMleBinding(binding *);
+    void AttachMleBinding(binding *) REQUIRES_TRANSACTION;
+    void DetachMleBinding(binding *) REQUIRES_TRANSACTION;
 
     /* Data contents. */
-    void DiscardData();
-    void DiscardPartialData();
+    void DiscardData() REQUIRES_TRANSACTION;
+    void DiscardPartialData() REQUIRES_TRANSACTION;
 
     /* Fake object management. */
-    int Fakeify(uid_t uid);
+    int Fakeify(uid_t uid) EXCLUDES_TRANSACTION;
     int IsFake() { return (flags.fake); }
     int IsFakeDir() { return (flags.fake && IsDir() && !IsMtPt()); }
     int IsFakeMtPt() { return (flags.fake && IsMtPt()); }
@@ -529,11 +533,11 @@ class fsobj {
     int IsExpandedDir(void) { return (flags.expanded && IsDir()); }
     int IsExpandedMTLink(void) { return (flags.expanded && IsMTLink()); }
     int IsModifiedObj(void) { return (flags.modified); }
-    void SetMtLinkContents(VenusFid *fid);
+    void SetMtLinkContents(VenusFid *fid) REQUIRES_TRANSACTION;
 
     /* cmlent expansion related functions */
-    void ExpandCMLEntries(void);
-    void CollapseCMLEntries(void);
+    void ExpandCMLEntries(void) REQUIRES_TRANSACTION;
+    void CollapseCMLEntries(void) REQUIRES_TRANSACTION;
     int HasExpandedCMLEntries(void);
 
 #define LOCALCACHE "_localcache" /* implies we have a locally cached copy */
@@ -554,7 +558,7 @@ class fsobj {
     void dir_Create(const char *, VenusFid *);
     int dir_Length();
     void dir_Delete(const char *);
-    void dir_MakeDir();
+    void dir_MakeDir() REQUIRES_TRANSACTION;
     int dir_LookupByFid(char *, VenusFid *);
     void dir_Rebuild();
     int dir_IsEmpty();
@@ -565,34 +569,39 @@ class fsobj {
     void dir_Print();
 
     /* Private portions of the CFS interface. */
-    void LocalStore(Date_t, unsigned long);
+    void LocalStore(Date_t, unsigned long) REQUIRES_TRANSACTION;
     int DisconnectedStore(Date_t, uid_t, unsigned long, int prepend = 0);
-    void LocalSetAttr(Date_t, unsigned long, Date_t, uid_t, unsigned short);
+    void LocalSetAttr(Date_t, unsigned long, Date_t, uid_t,
+                      unsigned short) REQUIRES_TRANSACTION;
     int DisconnectedSetAttr(Date_t, uid_t, unsigned long, Date_t, uid_t,
                             unsigned short, int prepend = 0);
-    void LocalCreate(Date_t, fsobj *, char *, uid_t, unsigned short);
+    void LocalCreate(Date_t, fsobj *, char *, uid_t,
+                     unsigned short) REQUIRES_TRANSACTION;
     int DisconnectedCreate(Date_t, uid_t, fsobj **, char *, unsigned short, int,
                            int prepend = 0);
-    void LocalRemove(Date_t, char *, fsobj *);
+    void LocalRemove(Date_t, char *, fsobj *) REQUIRES_TRANSACTION;
     int DisconnectedRemove(Date_t, uid_t, char *, fsobj *, int prepend = 0);
-    void LocalLink(Date_t, char *, fsobj *);
+    void LocalLink(Date_t, char *, fsobj *) REQUIRES_TRANSACTION;
     int DisconnectedLink(Date_t, uid_t, char *, fsobj *, int prepend = 0);
-    void LocalRename(Date_t, fsobj *, char *, fsobj *, char *, fsobj *);
+    void LocalRename(Date_t, fsobj *, char *, fsobj *, char *,
+                     fsobj *) REQUIRES_TRANSACTION;
     int DisconnectedRename(Date_t, uid_t, fsobj *, char *, fsobj *, char *,
                            fsobj *, int prepend = 0);
-    void LocalMkdir(Date_t, fsobj *, char *, uid_t, unsigned short);
+    void LocalMkdir(Date_t, fsobj *, char *, uid_t,
+                    unsigned short) REQUIRES_TRANSACTION;
     int DisconnectedMkdir(Date_t, uid_t, fsobj **, char *, unsigned short, int,
                           int prepend = 0);
-    void LocalRmdir(Date_t, char *, fsobj *);
+    void LocalRmdir(Date_t, char *, fsobj *) REQUIRES_TRANSACTION;
     int DisconnectedRmdir(Date_t, uid_t, char *, fsobj *, int prepend = 0);
-    void LocalSymlink(Date_t, fsobj *, char *, char *, uid_t, unsigned short);
+    void LocalSymlink(Date_t, fsobj *, char *, char *, uid_t,
+                      unsigned short) REQUIRES_TRANSACTION;
     int DisconnectedSymlink(Date_t, uid_t, fsobj **, char *, char *,
                             unsigned short, int, int prepend = 0);
-    int GetContainerFD(void);
+    int GetContainerFD(void) REQUIRES_TRANSACTION;
     int LookAside(void);
     int FetchFileRPC(connent *con, ViceStatus *status, uint64_t offset,
                      int64_t len, RPC2_CountedBS *PiggyBS, SE_Descriptor *sed);
-    int OpenPioctlFile(void);
+    int OpenPioctlFile(void) EXCLUDES_TRANSACTION;
 
     void UpdateVastroFlag(uid_t uid, int force = 0, int state = 0x0);
 
@@ -615,7 +624,8 @@ public:
     int SetVV(ViceVersionVector *, uid_t);
 
     /* The public CFS interface (non-Vice portion). */
-    int Open(int writep, int truncp, venus_cnode *cp, uid_t uid);
+    int Open(int writep, int truncp, venus_cnode *cp,
+             uid_t uid) EXCLUDES_TRANSACTION;
     int Sync(uid_t uid);
     void Release(int writep);
     int Close(int writep, uid_t uid);
@@ -666,7 +676,7 @@ public:
         lastresolved = t;
         return (0);
     }
-    int MakeShadow();
+    int MakeShadow() REQUIRES_TRANSACTION;
     void RemoveShadow();
     void CacheReport(int, int);
     CacheChunkList *GetHoles(uint64_t start, int64_t len);
@@ -685,10 +695,10 @@ public:
 
     /* local-repair additions */
     cmlent *FinalCmlent(int); /*N*/
-    void SetComp(const char *); /*U*/
+    void SetComp(const char *) REQUIRES_TRANSACTION; /*U*/
     const char *GetComp(void);
-    void SetLocalObj(); /*T*/
-    void UnsetLocalObj(); /*T*/
+    void SetLocalObj() REQUIRES_TRANSACTION; /*T*/
+    void UnsetLocalObj() REQUIRES_TRANSACTION; /*T*/
     int IsLocalObj() { return flags.local; } /*N*/
     int IsAncestor(VenusFid *); /*N*/
 
@@ -736,7 +746,7 @@ extern int FSO_SSF;
 /*  *****  Functions/Procedures  *****  */
 
 /* fso0.c */
-extern void FSOInit();
+void FSOInit() EXCLUDES_TRANSACTION;
 extern int FSO_PriorityFN(bsnode *, bsnode *);
 extern void UpdateCacheStats(CacheStats *c, enum CacheEvent event,
                              unsigned long blocks);

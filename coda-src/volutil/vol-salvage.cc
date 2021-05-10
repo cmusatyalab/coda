@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -873,7 +873,8 @@ static void MarkLogEntries(rec_dlist *loglist, VolumeSummary *vsp)
     VLog(9, "Leaving MarkLogEntries....\n");
 }
 
-static void DistilVnodeEssence(VnodeClass vclass, VolumeId volid)
+static void DistilVnodeEssence(VnodeClass vclass,
+                               VolumeId volid) REQUIRES_TRANSACTION
 {
     struct VnodeInfo *vip      = &vnodeInfo[vclass];
     struct VnodeClassInfo *vcp = &VnodeClassInfo_Array[vclass];

@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 2003 Carnegie Mellon University
+          Copyright (c) 2003-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -34,19 +34,16 @@ listed in the file CREDITS.
 
 class PersistentObject {
 public:
-    /* MUST be called from within a transaction */
-    void *operator new(size_t size)
+    void *operator new(size_t size) REQUIRES_TRANSACION
     {
         void *p = rvmlib_rec_malloc(size);
         CODA_ASSERT(p);
         return p;
     }
 
-    /* MUST be called from within a transaction */
-    void operator delete(void *p) { rvmlib_rec_free(p); }
+    void operator delete(void *p)REQUIRES_TRANSACION { rvmlib_rec_free(p); }
 
-    /* MUST be called from within a transaction */
-    PersistentObject(void)
+    PersistentObject(void) REQUIRES_TRANSACION
     {
         RVMLIB_REC_OBJECT(rec_refcount);
         rec_refcount = 0;
@@ -58,8 +55,7 @@ public:
         CODA_ASSERT(!rec_refcount && refcount <= 1);
     }
 
-    /* MAY be called from within a transaction */
-    virtual void ResetTransient(void)
+    virtual void ResetTransient(void) TRANSACTION_OPTIONAL
     {
         refcount = 0;
         /* If there are no RVM references anymore, delayed destruction. */
@@ -67,15 +63,13 @@ public:
             delete this;
     }
 
-    /* MUST be called from within a transaction */
-    void Rec_GetRef(void)
+    void Rec_GetRef(void) REQUIRES_TRANSACION
     {
         RVMLIB_REC_OBJECT(rec_refcount);
         rec_refcount++;
     }
 
-    /* MUST be called from within a transaction */
-    virtual void Rec_PutRef(void)
+    virtual void Rec_PutRef(void) REQUIRES_TRANSACION
     {
         CODA_ASSERT(rec_refcount);
         RVMLIB_REC_OBJECT(rec_refcount);
@@ -86,8 +80,7 @@ public:
 
     void GetRef(void) { refcount++; }
 
-    /* MAY be called from within a transaction */
-    virtual void PutRef(void)
+    virtual void PutRef(void) TRANSACTION_OPTIONAL
     {
         CODA_ASSERT(refcount);
         refcount--;

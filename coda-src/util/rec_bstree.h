@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -56,24 +56,25 @@ class rec_bstree {
     int gets;
 
 public:
-    void *operator new(size_t);
-    void operator delete(void *);
+    void *operator new(size_t) REQUIRES_TRANSACTION;
+    void operator delete(void *)REQUIRES_TRANSACTION;
 
     rec_bstree(RBSTCFN);
     rec_bstree(rec_bstree &); /* not supported! */
     ~rec_bstree();
-    void Init(RBSTCFN);
+    void Init(RBSTCFN) REQUIRES_TRANSACTION;
     void SetCmpFn(RBSTCFN);
-    void ClearStatistics();
+    void ClearStatistics() REQUIRES_TRANSACTION;
     int operator=(rec_bstree &); /* not supported! */
     void DeInit();
 
-    void insert(rec_bsnode *); /* insert in sorted order */
-    rec_bsnode *remove(rec_bsnode *); /* remove specified entry */
+    void insert(rec_bsnode *) REQUIRES_TRANSACTION; /* insert in sorted order */
+    rec_bsnode *
+    remove(rec_bsnode *) REQUIRES_TRANSACTION; /* remove specified entry */
     rec_bsnode *first(); /* return MINIMUM node */
     rec_bsnode *last(); /* return MAXMIMUM node */
-    rec_bsnode *
-        get(BstGetType = BstGetMin); /* return and remove MIN or MAX node */
+    rec_bsnode *get(BstGetType = BstGetMin)
+        REQUIRES_TRANSACTION; /* return and remove MIN or MAX node */
 
     int count();
     int IsMember(rec_bsnode *);
@@ -93,7 +94,7 @@ class rec_bsnode {
 
 public:
     rec_bsnode();
-    void Init();
+    void Init() REQUIRES_TRANSACTION;
     rec_bsnode(rec_bsnode &); /* not supported! */
     int operator=(rec_bsnode &); /* not supported! */
     /*

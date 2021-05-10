@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2020 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -263,7 +263,7 @@ static void InitializeServerRVM(const char *name);
 
 extern void dumpvm();
 
-void zombie(int sig)
+void zombie(int sig) TRANSACTION_OPTIONAL // for aborting open transactions
 {
     SLog(0, "****** FILE SERVER INTERRUPTED BY SIGNAL %d ******", sig);
     SLog(0, "****** Aborting outstanding transactions, stand by...");

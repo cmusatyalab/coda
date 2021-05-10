@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -52,9 +52,9 @@ void *recvarl::operator new(size_t size, int recvsize)
 
 void *recvarl::operator new(size_t size)
 {
-    CODA_ASSERT(
-        0); /* dummy definition of new() to pacify g++; should never get here*/
-    return 0;
+    /* dummy definition of new() to pacify g++; should never get here*/
+    CODA_ASSERT(0);
+    return NULL;
 }
 
 void recvarl::operator delete(void *deadobj)

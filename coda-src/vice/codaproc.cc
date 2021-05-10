@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 7
+                              Release 8
 
-          Copyright (c) 1987-2019 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -150,7 +150,7 @@ static int GetRepairObjects(Volume *, vle *, dlist *, struct repair *, int);
 static int GetResFlag(VolumeId);
 
 static void COP2Update(Volume *, Vnode *, ViceVersionVector *,
-                       vmindex * = NULL);
+                       vmindex * = NULL) REQUIRES_TRANSACTION;
 
 const int MaxFidAlloc = 32;
 

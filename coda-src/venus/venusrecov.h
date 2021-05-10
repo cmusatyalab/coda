@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -152,20 +152,20 @@ extern unsigned long MAXTS;
 /*  *****  Functions  *****  */
 
 #define Recov_BeginTrans() _Recov_BeginTrans(__FILE__, __LINE__)
-void _Recov_BeginTrans(const char file[], int line);
-void Recov_EndTrans(int);
+void _Recov_BeginTrans(const char file[], int line) BEGINS_TRANSACTION;
+void Recov_EndTrans(int) ENDS_TRANSACTION;
 void Recov_SetBound(int);
 void RecovInit();
 void RecovFlush(int = 0); /* XXX - parameter is now redundant! */
 void RecovTruncate(int = 0); /* XXX - parameter is now redundant! */
 void RecovTerminate();
 void RecovPrint(int);
-RPC2_String Copy_RPC2_String(RPC2_String &);
-void Free_RPC2_String(RPC2_String &);
+RPC2_String Copy_RPC2_String(RPC2_String &) REQUIRES_TRANSACTION;
+void Free_RPC2_String(RPC2_String &) REQUIRES_TRANSACTION;
 void RECOVD_Init(void);
 void RecovDaemon(void);
 
-void Recov_GenerateStoreId(ViceStoreId *sid);
+void Recov_GenerateStoreId(ViceStoreId *sid) REQUIRES_TRANSACTION;
 
 #define VALID_REC_PTR(rec_ptr)                   \
     ((char *)(rec_ptr) >= rvg->recov_HeapAddr && \

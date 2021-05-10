@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -25,6 +25,8 @@ listed in the file CREDITS.
  *
  */
 
+#include <coda_tsa.h>
+
 typedef int recvarl_length_t; // to allow sizeof() in recvarl::new()
 
 class recvarl {
@@ -32,13 +34,13 @@ public:
     recvarl_length_t length; /* end of the class */
     unsigned long vfld[1]; /* beginning of variable length part */
 
-    void *operator new(size_t, int); /* the real new */
+    void *operator new(size_t, int) REQUIRES_TRANSACTION; /* the real new */
     void *operator new(size_t); /* dummy to keep g++ happy */
     void operator delete(void *);
-    recvarl(int);
+    recvarl(int) REQUIRES_TRANSACTION;
     ~recvarl();
     int size(); /* return sizeof(varl) for a particular  class instance */
     void *end(); /* return pointer past end of block */
-    void destroy();
+    void destroy() REQUIRES_TRANSACTION;
 };
 #endif /* _REC_VARL_H */

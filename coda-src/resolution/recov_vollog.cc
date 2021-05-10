@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -165,20 +165,22 @@ void recov_vol_log::FreeBlock(int i)
     rvmlib_set_range(&size, sizeof(int));
     size -= LOGRECORD_BLOCKSIZE;
 }
-/* outside or within a transaction */
-void recov_vol_log::Increase_rec_max_seqno(int i)
-{
-    rvm_return_t status;
 
-    if (!rvmlib_in_transaction()) {
+/* outside or within a transaction */
+void recov_vol_log::Increase_rec_max_seqno(int i) TRANSACTION_OPTIONAL
+{
+    int in_trans = rvmlib_in_transaction();
+
+    if (!in_trans)
         rvmlib_begin_transaction(restore);
-        rvmlib_set_range(&rec_max_seqno, sizeof(int));
-        rec_max_seqno += i;
+
+    rvmlib_set_range(&rec_max_seqno, sizeof(int));
+    rec_max_seqno += i;
+
+    if (!in_trans) {
+        rvm_return_t status;
         rvmlib_end_transaction(flush, &status);
         CODA_ASSERT(status == RVM_SUCCESS);
-    } else {
-        rvmlib_set_range(&rec_max_seqno, sizeof(int));
-        rec_max_seqno += i;
     }
 }
 

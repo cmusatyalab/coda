@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -45,8 +45,7 @@ extern void Die(char * ...);
 
 void *rec_dhashtab::operator new(size_t size)
 {
-    rec_dhashtab *r = 0;
-    r               = (rec_dhashtab *)rvmlib_rec_malloc(sizeof(rec_dhashtab));
+    rec_dhashtab *r = (rec_dhashtab *)rvmlib_rec_malloc(sizeof(rec_dhashtab));
     CODA_ASSERT(r);
     return (r);
 }
@@ -123,7 +122,7 @@ void rec_dhashtab::DeInit()
 }
 
 /* The hash function is not necessarily recoverable, so don't insist on an enclosing transaction! */
-void rec_dhashtab::SetHFn(RHFN hashfn)
+void rec_dhashtab::SetHFn(RHFN hashfn) TRANSACTION_OPTIONAL
 {
     if (rvmlib_thread_data()->tid != 0)
         RVMLIB_REC_OBJECT(*this);

@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -88,18 +88,22 @@ static int GetInodeSummary(char *fspath, char *path,
 static int GetVolumeSummary(VolumeId singleVolumeNumber);
 
 /* the checking routines */
-static int SalvageFileSys(char *path, VolumeId singleVolumeNumber);
-static int SalvageVolumeGroup(struct VolumeSummary *vsp, int nVols);
-static int QuickCheck(struct VolumeSummary *vsp, int nVols);
-static int SalvageVolHead(struct VolumeSummary *vsp);
+static int SalvageFileSys(char *path,
+                          VolumeId singleVolumeNumber) EXCLUDES_TRANSACTION;
+static int SalvageVolumeGroup(struct VolumeSummary *vsp,
+                              int nVols) REQUIRES_TRANSACTION;
+static int QuickCheck(struct VolumeSummary *vsp,
+                      int nVols) REQUIRES_TRANSACTION;
+static int SalvageVolHead(struct VolumeSummary *vsp) REQUIRES_TRANSACTION;
 static int VnodeInodeCheck(int, struct ViceInodeInfo *, int,
-                           struct VolumeSummary *);
-static void DirCompletenessCheck(struct VolumeSummary *vsp);
+                           struct VolumeSummary *) REQUIRES_TRANSACTION;
+static void
+DirCompletenessCheck(struct VolumeSummary *vsp) REQUIRES_TRANSACTION;
 static void SanityCheckFreeLists();
 
 /* correcting/action routines */
 static void CleanInodes(struct InodeSummary *);
-static void ClearROInUseBit(struct VolumeSummary *summary);
+static void ClearROInUseBit(struct VolumeSummary *summary) REQUIRES_TRANSACTION;
 static void FixInodeLinkcount(struct ViceInodeInfo *, struct InodeSummary *);
 static int DestroyBadVolumes();
 

@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -84,7 +84,7 @@ void rec_dlist::DeInit()
 }
 
 /* The compare function is not necessarily recoverable, so don't insist on an enclosing transaction! */
-void rec_dlist::SetCmpFn(RCFN F)
+void rec_dlist::SetCmpFn(RCFN F) TRANSACTION_OPTIONAL
 {
     if (rvmlib_thread_data()->tid != 0)
         RVMLIB_REC_OBJECT(*this);
@@ -326,8 +326,6 @@ rec_dlink *rec_dlist_iterator::operator()()
 
 rec_dlink::rec_dlink()
 {
-    RVMLIB_REC_OBJECT(*this);
-
     Init();
 }
 
