@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 7
+                              Release 8
 
-          Copyright (c) 1987-2019 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -441,8 +441,8 @@ Exit:
             FSO_ASSERT(target_fso, !HAVESTATUS(target_fso));
             Recov_BeginTrans();
             target_fso->Kill();
-            Recov_EndTrans(DMFP);
             FSDB->Put(&target_fso);
+            Recov_EndTrans(DMFP);
         }
     }
     return (code);
@@ -643,8 +643,8 @@ Exit:
             FSO_ASSERT(target_fso, !HAVESTATUS(target_fso));
             Recov_BeginTrans();
             target_fso->Kill();
-            Recov_EndTrans(DMFP);
             FSDB->Put(&target_fso);
+            Recov_EndTrans(DMFP);
         }
     }
     return (code);
@@ -666,7 +666,9 @@ int fsobj::Symlink(char *s_name, char *t_name, uid_t uid, unsigned short Mode,
 
     if (code == 0) {
         /* Target is NOT an OUT parameter. */
+        Recov_BeginTrans();
         FSDB->Put(&target_fso);
+        Recov_EndTrans(DMFP);
     } else {
         Demote();
     }

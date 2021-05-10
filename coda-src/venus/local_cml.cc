@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 7
+                              Release 8
 
-          Copyright (c) 1987-2019 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -93,9 +93,11 @@ static int GetGlobalReplica(fsobj **global, VenusFid *fid)
         /* This will probably be an error point when we get to handling
 	 * mixed local/global and server/server conflicts, where EINCONS
 	 * would be an acceptable error return. */
-        if (*global)
+        if (*global) {
+            Recov_BeginTrans();
             FSDB->Put(global);
-
+            Recov_EndTrans(MAXFP);
+        }
         continue;
     }
 
@@ -105,7 +107,11 @@ static int GetGlobalReplica(fsobj **global, VenusFid *fid)
 
         /* XXX this isn't safe, we drop the lock, but don't have some other
 	 * refcount to pin the object down. */
+
+        Recov_BeginTrans();
         FSDB->Put(global);
+        Recov_EndTrans(MAXFP);
+
         rc      = VFAIL;
         *global = FSDB->Find(&replicafid);
     }
@@ -160,7 +166,10 @@ static int CheckRepair_GetObjects(const char *operation, VenusFid *fid,
         return rc;
     }
 
+    Recov_BeginTrans();
     FSDB->Put(local); /* release RW lock */
+    Recov_EndTrans(MAXFP);
+
     *local = FSDB->Find(fid); /* find the object instead */
 
     rc = GetGlobalReplica(global, fid);
@@ -634,8 +643,11 @@ int cmlent::DoRepair(char *msg, int rcode)
                 if (code || !replicas[i]) {
                     LOG(0, ("cmlent::DoRepair: failed fsdb::Get of %s(%d)\n",
                             FID_(&replicafid), code));
-                    if (replicas[i])
+                    if (replicas[i]) {
+                        Recov_BeginTrans();
                         FSDB->Put(&(replicas[i]));
+                        Recov_EndTrans(MAXFP);
+                    }
                     break;
                 }
 
@@ -648,7 +660,9 @@ int cmlent::DoRepair(char *msg, int rcode)
                 LOG(0, ("cmlent::DoRepair: repair-storing (%s) %s\n",
                         FID_(&replicafid), (code ? "failed" : "succeeded")));
 
+                Recov_BeginTrans();
                 FSDB->Put(&(replicas[i]));
+                Recov_EndTrans(MAXFP);
             }
         }
 #endif

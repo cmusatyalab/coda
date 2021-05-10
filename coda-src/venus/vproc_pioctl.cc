@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 7
+                              Release 8
 
-          Copyright (c) 1987-2019 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -167,7 +167,9 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
             }
 
             case _VIOCFLUSH: {
+                Recov_BeginTrans();
                 FSDB->Put(&f);
+                Recov_EndTrans(MAXFP);
 
                 /* This is drastic, but I'm having trouble getting rid of */
                 /* MiniCache vnodes that have the "wrong" type! -JJK */
@@ -209,7 +211,10 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
                 }
 
                 /* Release and reacquire the target (data this time). */
+                Recov_BeginTrans();
                 FSDB->Put(&f);
+                Recov_EndTrans(MAXFP);
+
                 u.u_error = FSDB->Get(&f, fid, u.u_uid, RC_DATA);
 
                 break;
@@ -253,7 +258,10 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
                 /* Verify that the target doesn't exist. */
                 u.u_error = f->Lookup(&target_fso, NULL, link_name, u.u_uid,
                                       CLU_CASE_SENSITIVE);
+                Recov_BeginTrans();
                 FSDB->Put(&target_fso);
+                Recov_EndTrans(MAXFP);
+
                 if (u.u_error == 0) {
                     u.u_error = EEXIST;
                     break;
@@ -343,7 +351,9 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
 
                 /* Verify that target is a mount point (either valid or dangling). */
                 if (!target_fso->IsMtPt() && !target_fso->IsMTLink()) {
+                    Recov_BeginTrans();
                     FSDB->Put(&target_fso);
+                    Recov_EndTrans(MAXFP);
                     u.u_error = ENOTDIR;
                     break;
                 }
@@ -351,7 +361,9 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
                 /* Verify that we have delete permission for the parent. */
                 u.u_error = f->Access(PRSFS_DELETE, C_A_F_OK, u.u_uid);
                 if (u.u_error) {
+                    Recov_BeginTrans();
                     FSDB->Put(&target_fso);
+                    Recov_EndTrans(MAXFP);
                     break;
                 }
 
@@ -375,7 +387,9 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
                  * the removed volume and it's children */
                 k_Purge(&target_fso->fid, 1);
 
+                Recov_BeginTrans();
                 FSDB->Put(&target_fso);
+                Recov_EndTrans(MAXFP);
                 break;
             }
 
@@ -395,21 +409,27 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
                 u.u_error = f->Lookup(&target_fso, NULL, target_name, u.u_uid,
                                       CLU_CASE_SENSITIVE);
                 if (u.u_error) {
+                    Recov_BeginTrans();
                     FSDB->Put(&target_fso);
+                    Recov_EndTrans(MAXFP);
                     break;
                 }
 
                 /* Verify that target is a mount point (either valid or dangling). */
                 if (!target_fso->IsMtPt() && !target_fso->IsMTLink()) {
-                    u.u_error = ENOTDIR;
+                    Recov_BeginTrans();
                     FSDB->Put(&target_fso);
+                    Recov_EndTrans(MAXFP);
+                    u.u_error = ENOTDIR;
                     break;
                 }
 
                 /*Verify that we have read permission for it. */
                 u.u_error = target_fso->Access(PRSFS_LOOKUP, C_A_F_OK, u.u_uid);
                 if (u.u_error) {
+                    Recov_BeginTrans();
                     FSDB->Put(&target_fso);
+                    Recov_EndTrans(MAXFP);
                     break;
                 }
 
@@ -417,7 +437,9 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
                 u.u_error = target_fso->Readlink(
                     (char *)data->out, CODA_MAXPATHLEN - 1, &out_size, u.u_uid);
                 if (u.u_error) {
+                    Recov_BeginTrans();
                     FSDB->Put(&target_fso);
+                    Recov_EndTrans(MAXFP);
                     break;
                 }
 
@@ -426,7 +448,9 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
                 ((char *)data->out)[data->out_size] = '\0';
                 (data->out_size)++;
 
+                Recov_BeginTrans();
                 FSDB->Put(&target_fso);
+                Recov_EndTrans(MAXFP);
                 break;
             }
 
@@ -445,7 +469,9 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
                 VenusFid vfid;
                 MakeVenusFid(&vfid, realm->Id(), &fid);
 
+                Recov_BeginTrans();
                 FSDB->Put(&f);
+                Recov_EndTrans(MAXFP);
 
                 u.u_error = FSDB->Get(&f, &vfid, u.u_uid, RC_STATUS);
                 if (u.u_error)
@@ -459,7 +485,10 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
                     }
 
                     VenusFid mtptfid = f->u.mtpoint->fid;
+                    Recov_BeginTrans();
                     FSDB->Put(&f);
+                    Recov_EndTrans(MAXFP);
+
                     u.u_error = FSDB->Get(&f, &mtptfid, u.u_uid, RC_STATUS);
                     if (u.u_error)
                         break;
@@ -485,8 +514,11 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
             }
             }
         O_FreeLocks:
-            if (f && (!ISVASTRO(f) || !ACTIVE(f)))
+            if (f && (!ISVASTRO(f) || !ACTIVE(f))) {
+                Recov_BeginTrans();
                 FSDB->Put(&f);
+                Recov_EndTrans(MAXFP);
+            }
             int retry_call = 0;
             End_VFS(&retry_call);
             if (!retry_call)
@@ -583,7 +615,9 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
                         ("VIOC_REPAIR: called on expanded directory (%s)! redirecting to localcache (%s)\n",
                          FID_(&fakedir->fid), FID_(&f->fid)));
 
+                    Recov_BeginTrans();
                     FSDB->Put(&fakedir);
+                    Recov_EndTrans(MAXFP);
                 }
 
 #ifdef TIMING
@@ -614,7 +648,10 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
                     VenusFid fid = f->fid;
                     LOG(0, ("VIOC_REPAIR calling repvol::Repair (%s)\n",
                             FID_(&f->fid)));
+                    Recov_BeginTrans();
                     FSDB->Put(&f);
+                    Recov_EndTrans(MAXFP);
+
                     u.u_error = ((repvol *)v)
                                     ->Repair(&fid, RepairFile, u.u_uid, RWVols,
                                              ReturnCodes);
@@ -663,7 +700,10 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
                     }
 
                     VenusFid mtptfid = f->u.mtpoint->fid;
+                    Recov_BeginTrans();
                     FSDB->Put(&f);
+                    Recov_EndTrans(MAXFP);
+
                     u.u_error = FSDB->Get(&f, &mtptfid, u.u_uid, RC_STATUS,
                                           NULL, NULL, NULL, 1);
                     if (u.u_error)
@@ -691,8 +731,11 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
             }
             }
         OI_FreeLocks:
-            if (f)
+            if (f) {
+                Recov_BeginTrans();
                 FSDB->Put(&f);
+                Recov_EndTrans(MAXFP);
+            }
             int retry_call = 0;
             End_VFS(&retry_call);
             if (!retry_call)
@@ -1161,8 +1204,11 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
                 }
 
             BEGIN_cleanup:
-                if (localcache)
+                if (localcache) {
+                    Recov_BeginTrans();
                     FSDB->Put(&localcache);
+                    Recov_EndTrans(MAXFP);
+                }
 
                 sprintf(msg, "%d", code);
                 data->out_size = (short)sizeof((char *)data->out);

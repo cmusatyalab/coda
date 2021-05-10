@@ -416,9 +416,8 @@ int fsobj::CollapseObject(void)
      * It could be that the FSO_HOLD in ExpandObject
      * is not recorded in RVM and gets lost. This conditional
      * may not fix every case of this problem. -AW */
-    Recov_EndTrans(DMFP);
-
     FSDB->Put(&localcache);
+    Recov_EndTrans(DMFP);
     return rc;
 }
 

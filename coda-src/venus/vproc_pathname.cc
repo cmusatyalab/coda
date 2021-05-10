@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -365,7 +365,10 @@ void vproc::GetPath(VenusFid *fid, char *out, int *outlen, int fullpath)
         have_last = 1;
 
     FreeLocks:
+        Recov_BeginTrans();
         FSDB->Put(&f);
+        Recov_EndTrans(MAXFP);
+
         int retry_call = 0;
         End_VFS(&retry_call);
         if (u.u_error && !retry_call)

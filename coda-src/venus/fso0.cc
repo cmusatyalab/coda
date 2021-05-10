@@ -542,8 +542,11 @@ int fsdb::Get(fsobj **f_addr, VenusFid *key, uid_t uid, int rights,
             vp->u.u_error = Get(f_addr, key, uid, rights, comp, parent, rcode,
                                 GetInconsistent);
 
-            if (vp->u.u_error != 0)
+            if (vp->u.u_error != 0) {
+                Recov_BeginTrans();
                 Put(f_addr);
+                Recov_EndTrans(MAXFP);
+            }
 
             retry_call = 0;
             vp->End_VFS(&retry_call);
@@ -635,8 +638,8 @@ RestartFind:
                         f->GetComp(), FID_(&f->fid)));
                 Recov_BeginTrans();
                 f->Kill();
-                Recov_EndTrans(MAXFP);
                 Put(&f); /* will unlock and garbage collect */
+                Recov_EndTrans(MAXFP);
                 return (EIO);
             }
         }
@@ -737,8 +740,7 @@ RestartFind:
                         LOG(0, ("fsdb::Get: EINCONS after GetAttr\n"));
                     if (code == ETIMEDOUT)
                         LOG(100, ("fsdb::Get: TIMEDOUT after GetAttr\n"));
-                    Put(&f);
-                    return (code);
+                    goto err_out;
                 }
             }
 
@@ -754,8 +756,7 @@ RestartFind:
                 if (f->IsFile() && !HAVEDATA(f) && !ISVASTRO(f)) {
                     code = AllocBlocks(vp->u.u_priority, BLOCKS(f));
                     if (code != 0) {
-                        Put(&f);
-                        return (code);
+                        goto err_out;
                     }
                 }
 
@@ -783,8 +784,7 @@ RestartFind:
                     code = ERETRY;
 
                 if (code != 0) {
-                    Put(&f);
-                    return (code);
+                    goto err_out;
                 }
             }
 
@@ -792,13 +792,13 @@ RestartFind:
         } else { /* !FETCHABLE(f) */
             if (RESOLVING(f)) {
                 LOG(100, ("(MARIA) TIMEOUT !fetchable and resolving...\n"));
-                Put(&f);
-                return (ETIMEDOUT);
+                code = ETIMEDOUT;
+                goto err_out;
             }
 
             if (!HAVESTATUS(f) && !f->IsFake()) {
-                Put(&f);
-                return (ETIMEDOUT);
+                code = ETIMEDOUT;
+                goto err_out;
             }
 
             /*
@@ -813,8 +813,8 @@ RestartFind:
 	     *   if (DYING(f)) {
 	     *     LOG(0, ("Active reference prevents refetching object!  Providing limited access to stale status!\n"));
 	     *     *f_addr = f;
-	     *     Put(&f);
-	     *     return(ETOOMANYREFS);
+             *     code = ETOOMANYREFS;
+             *     goto err_out:
 	     *   }
 	     */
             if (DYING(f))
@@ -831,8 +831,8 @@ RestartFind:
                     LOG(0, ("Active reference prevents refetching object! "
                             "Disallowing access to stale data! (key = <%s>)\n",
                             FID_(key)));
-                    Put(&f);
-                    return (ETOOMANYREFS);
+                    code = ETOOMANYREFS;
+                    goto err_out;
                 }
 
                 if (!HAVEALLDATA(f)) {
@@ -846,8 +846,8 @@ RestartFind:
                     }
 
                     if (!found) {
-                        Put(&f);
-                        return (ETIMEDOUT);
+                        code = ETIMEDOUT;
+                        goto err_out;
                     }
                 }
 
@@ -878,8 +878,8 @@ RestartFind:
         realobj = Find(key);
         if (!realobj) {
             LOG(0, ("fsdb::Get:Find failed!\n"));
-            Put(&f);
-            return EINCONS;
+            code = EINCONS;
+            goto err_out;
         }
 
         v = (repvol *)realobj->vol;
@@ -940,9 +940,7 @@ RestartFind:
             LOG(0, ("fsdb::Get: ASR not invokable for %s\n", FID_(key)));
             code = EINCONS;
         }
-
-        Put(&f);
-        return (code);
+        goto err_out;
     }
 
     /* Update priority. */
@@ -951,10 +949,16 @@ RestartFind:
     f->ComputePriority();
 
     *f_addr = f;
-    return (0);
+    return 0;
+
+err_out:
+    Recov_BeginTrans();
+    Put(&f);
+    Recov_EndTrans(MAXFP);
+    return code;
 }
 
-/* MUST NOT be called from within transaction! */
+/* MUST be called from within transaction! */
 void fsdb::Put(fsobj **f_addr)
 {
     if (!(*f_addr)) {
@@ -977,10 +981,7 @@ void fsdb::Put(fsobj **f_addr)
     /* Perform GC if necessary. */
     if (GCABLE(f)) {
         LOG(10, ("fsdb::Put: GC (%s)\n", FID_(&f->fid)));
-
-        Recov_BeginTrans();
         f->GC();
-        Recov_EndTrans(MAXFP);
     }
 
     (*f_addr) = 0;

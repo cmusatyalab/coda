@@ -217,7 +217,7 @@ public:
     int Get(fsobj **fso, VenusFid *fid, uid_t uid, int rights,
             const char *comp = NULL, VenusFid *parent = NULL, int *rcode = NULL,
             int GetInconsistent = 0) EXCLUDES_TRANSACTION;
-    void Put(fsobj **) EXCLUDES_TRANSACTION;
+    void Put(fsobj **) REQUIRES_TRANSACTION;
     void Flush() EXCLUDES_TRANSACTION;
     void Flush(Volid *) EXCLUDES_TRANSACTION;
     int TranslateFid(VenusFid *, VenusFid *) REQUIRES_TRANSACTION;
