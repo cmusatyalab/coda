@@ -267,6 +267,7 @@ static int RestoreVolume(DumpBuffer_t *buf, char *partition, char *volname,
         if (error) {
             VLog(0, "Unable to allocate volume id; restore aborted");
             rvmlib_abort(VFAIL);
+            status = error;
             goto error;
         }
     }
@@ -279,7 +280,9 @@ static int RestoreVolume(DumpBuffer_t *buf, char *partition, char *volname,
     vp = VCreateVolume(&error, partition, *volid, parentid, 0, volumeType);
     if (error) {
         VLog(0, "Unable to create volume %x; not restored", *volid);
-        rvmlib_abort(-1);
+        rvmlib_abort(VFAIL);
+        status = error;
+        goto error;
     }
 
     V_blessed(vp) = 0;
@@ -287,11 +290,12 @@ static int RestoreVolume(DumpBuffer_t *buf, char *partition, char *volname,
     if (error) {
         VLog(0, "S_VolClone: Trouble updating voldata for %#x!", *volid);
         rvmlib_abort(VFAIL);
+        status = error;
+        goto error;
     }
-
     rvmlib_end_transaction(flush, &status);
 error:
-    if (status == 0)
+    if (status == RVM_SUCCESS)
         VLog(9, "restore createvol of %#x completed successfully", *volid);
     else {
         VLog(0, "restore: createvol failed.");

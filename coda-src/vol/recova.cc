@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -96,10 +96,10 @@ int NewVolHeader(struct VolumeHeader *header, Error *err)
             }
         }
         if (i >= MAXVOLS) {
-            *err = VNOVOL;
             VLog(0,
                  "NewVolHeader: No free volume slots in recoverable storage!!");
-            rvmlib_abort(VFAIL);
+            *err = VNOVOL;
+            return -1;
         }
 
         VLog(29, "NewVolHeader: found empty slot %d", i);
@@ -161,6 +161,7 @@ int NewVolHeader(struct VolumeHeader *header, Error *err)
 
     return (i);
 }
+
 /* Get a volume header from recoverable storage */
 /* corresponding with the given volume id */
 /* Returns 0 if successful, -1 otherwise */

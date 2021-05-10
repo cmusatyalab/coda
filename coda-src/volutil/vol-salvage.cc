@@ -935,7 +935,8 @@ static void DistilVnodeEssence(VnodeClass vclass,
                     vip->volumeBlockCount -= vep->blockCount;
                     memset((void *)vep, 0, sizeof(struct VnodeEssence));
                     vnode->type = vNull;
-                    v_index.oput(vnodeIndex, vnode->uniquifier, vnode);
+                    CODA_ASSERT(v_index.oput(vnodeIndex, vnode->uniquifier,
+                                             vnode) == 0);
                 } else
                     vip->dirnodes[v] = vnode->node.dirNode;
                 vep->log = vnode->log;

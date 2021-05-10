@@ -215,7 +215,6 @@ static int DumpResLog(int fd, struct VolumeData *voldata,
     return ret;
 }
 
-// Must be called withing a transaction.
 static recle *AllocLogEntry(Volume *vp, rsle *entry) REQUIRES_TRANSACTION
 {
     recle *rle;
@@ -318,6 +317,8 @@ static int ReadResLog(int fd, Volume *vp, Vnode *vnp)
 
     ParseRemoteLogs(buf, size, nentries, &hlist, &logentries);
 
+    rvmlib_begin_transaction(no_restore);
+
     // Initialize the log list.
     VnLog(vnp) = new rec_dlist();
 
@@ -325,10 +326,16 @@ static int ReadResLog(int fd, Volume *vp, Vnode *vnp)
     BuildResLog(vp, VnLog(vnp), 0, 0, nentries, 0, logentries, &err);
 
     free(buf);
-    if (err)
+
+    if (err) {
+        rvmlib_abort(VFAIL);
         return 0;
-    else
-        return 1;
+    }
+
+    rvm_return_t status;
+    rvmlib_end_transaction(flush, &status);
+    CODA_ASSERT(status == RVM_SUCCESS);
+    return 1;
 }
 
 #define VNODESIZE(vclass) \
@@ -579,6 +586,7 @@ static int ReadVnodeList(int fd, Volume *vp, VnodeClass vclass, int ResOn)
         if (err) {
             fprintf(stderr, "VPutVnode Error: %d, on vnode 0x%x\n", err,
                     vnp->vnodeNumber);
+            rvmlib_abort(VFAIL);
             return 0;
         }
         rvmlib_end_transaction(flush, &(status));
@@ -810,6 +818,12 @@ static int load_server_state(char *dump_file, VolumeId *skipvols, int nskipvols)
             rvmlib_modify_bytes(&(SRV_RVM(VolumeList[volindex]).header),
                                 &vol_head.header, sizeof(struct VolumeHeader));
             ReplaceVolDiskInfo(&err, volindex, &vp->header->diskstuff);
+            if (err != 0) {
+                fprintf(stderr, "ReplaceVolDiskInfo returned %d, aborting\n",
+                        err);
+                rvmlib_abort(VFAIL);
+                return 0;
+            }
             rvmlib_end_transaction(flush, &(status));
             if (status != 0) {
                 fprintf(stderr,

@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -86,7 +86,6 @@ long S_VolSetVV(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
         tmpvolid = volid;
     }
 
-    rvmlib_begin_transaction(restore);
     VInitVolUtil(volumeUtility);
     /*    vp = VAttachVolume(&error, volid, V_READONLY); */
     /* Ignoring the volume lock for now - assume this will
@@ -97,7 +96,6 @@ long S_VolSetVV(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
         if (error != VNOVOL) {
             VPutVolume(vp);
         }
-        rvmlib_abort(error);
         goto exit;
     }
     /* VGetVnode moved from after VOffline to here 11/88 ***/
@@ -160,12 +158,10 @@ long S_VolSetVV(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
     }
 
     VPutVolume(vp);
-    rvmlib_end_transaction(flush, &(status));
     goto exit; /* hop, skip, and jump */
 
 errorexit:
     VPutVolume(vp);
-    rvmlib_abort(VFAIL);
 
 exit:
     VDisconnectFS();

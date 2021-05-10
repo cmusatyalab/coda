@@ -310,7 +310,6 @@ VolumeId VAllocateVolumeId(Error *ec)
             0, VolDebugLevel, stdout,
             "VAllocateVolumeId: Out of volume numbers for this server; create aborted");
         *ec = VNOVOL;
-        rvmlib_abort(VFAIL);
     } else {
         unsigned long temp = SRV_RVM(MaxVolId) + 1;
         RVMLIB_MODIFY(SRV_RVM(MaxVolId), temp);

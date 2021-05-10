@@ -2181,6 +2181,7 @@ int fsobj::Fakeify(uid_t uid)
     }
 
     LOG(0, ("fsobj::Fakeify: don't know how to fakeify %s\n", FID_(&fid)));
+    Recov_EndTrans(CMFP);
     return ENOENT;
 
 done:

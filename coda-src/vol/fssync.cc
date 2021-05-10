@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -170,7 +170,7 @@ void FSYNC_clientFinis()
 int FSYNC_askfs(VolumeId volume, int command, int reason)
 {
     byte rc = FSYNC_OK;
-    int i;
+    int i, status = 0;
     Error error;
     VolumeId *volumes = NULL;
     VolumeId *v       = NULL;
@@ -190,8 +190,10 @@ int FSYNC_askfs(VolumeId volume, int command, int reason)
     case FSYNC_ON:
         if (v)
             *v = 0;
+        rvmlib_begin_transaction(restore);
         vp = VAttachVolume(&error, volume, V_UPDATE);
-        /*    save any changes */
+        rvmlib_end_transaction(flush, &status);
+        /* save any changes */
         if (vp)
             VPutVolume(vp);
         break;

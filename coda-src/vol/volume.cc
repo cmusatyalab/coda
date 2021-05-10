@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -730,17 +730,17 @@ void VShutdown()
             Error error;
             rvmlib_begin_transaction(restore);
             vp = VGetVolume(&error, p->hashid);
-            if ((error != 0) || (!vp)) {
-                VLog(0, "VShutdown: Error %d getting volume %x!", error,
-                     p->hashid);
-                rvmlib_abort(-1);
-            } else
+            if (!error && vp) {
                 VLog(0, "VShutdown: Taking volume %s(0x%x) offline...",
                      V_name(vp), V_id(vp));
-            if (vp)
                 VOffline(vp, "File server was shut down");
-            VLog(0, "... Done");
-            rvmlib_end_transaction(flush, &(camstatus));
+                VLog(0, "... Done");
+                rvmlib_end_transaction(flush, &(camstatus));
+            } else {
+                VLog(0, "VShutdown: Error %d getting volume %x!", error,
+                     p->hashid);
+                rvmlib_abort(VFAIL);
+            }
             p = p->hashNext;
         }
     }
@@ -788,17 +788,21 @@ static void WriteVolumeHeader(Error *ec, Volume *vp) TRANSACTION_OPTIONAL
 {
     rvm_return_t status = RVM_SUCCESS;
     *ec                 = 0;
+    int in_trans        = rvmlib_in_transaction();
 
     VLog(9, "Entering WriteVolumeHeader for volume %x", V_id(vp));
-    if (rvmlib_in_transaction())
-        ReplaceVolDiskInfo(ec, V_volumeindex(vp), &V_disk(vp));
-    else {
+    if (!in_trans)
         rvmlib_begin_transaction(restore);
-        ReplaceVolDiskInfo(ec, V_volumeindex(vp), &V_disk(vp));
-        rvmlib_end_transaction(flush, &status);
-    }
 
-    if (*ec != 0 || status)
+    ReplaceVolDiskInfo(ec, V_volumeindex(vp), &V_disk(vp));
+
+    if (!in_trans) {
+        if (*ec)
+            rvmlib_abort(VFAIL);
+        else
+            rvmlib_end_transaction(flush, &status);
+    }
+    if (*ec || status)
         *ec = VSALVAGE;
 }
 
@@ -807,7 +811,6 @@ static void WriteVolumeHeader(Error *ec, Volume *vp) TRANSACTION_OPTIONAL
  * pointer to the volume header information.  The volume also
  * normally goes online at this time.  An offline volume
  * must be reattached to make it go online.
- * This must be called from within a transaction.
  */
 Volume *VAttachVolumeById(Error *ec, char *partition, VolumeId volid, int mode)
 {

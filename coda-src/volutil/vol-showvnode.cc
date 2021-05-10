@@ -159,10 +159,15 @@ long S_VolShowVnode(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
 
     if (AllowResolution && V_RVMResOn(vp) && vnp->disk.type == vDirectory)
         PrintLog(vnp, infofile);
+    fclose(infofile);
+
+    VPutVnode(&error, vnp);
+    if (error)
+        VLog(0, "S_VolShowVnode: Error occured while putting vnode ");
 
     VPutVolume(vp);
 
-    fclose(infofile);
+    rvmlib_end_transaction(flush, &(status));
 
     /* set up SE_Descriptor for transfer */
     memset(&sed, 0, sizeof(SE_Descriptor));
@@ -176,7 +181,6 @@ long S_VolShowVnode(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
     if (rc <= RPC2_ELIMIT) {
         VLog(0, "VolShowVnode: InitSideEffect failed with %s",
              RPC2_ErrorMsg(rc));
-        rvmlib_abort(VFAIL);
         goto exit;
     }
 
@@ -184,17 +188,9 @@ long S_VolShowVnode(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
     if (rc <= RPC2_ELIMIT) {
         VLog(0, "VolShowVnode: CheckSideEffect failed with %s",
              RPC2_ErrorMsg(rc));
-        rvmlib_abort(VFAIL);
+        goto exit;
     }
-
-    rvmlib_end_transaction(flush, &(status));
 exit:
-
-    if (vnp) {
-        VPutVnode(&error, vnp);
-        if (error)
-            VLog(0, "S_VolShowVnode: Error occured while putting vnode ");
-    }
     VDisconnectFS();
     if (status)
         VLog(0, "S_VolShowVnode failed with %d", status);
