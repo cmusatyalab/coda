@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -318,7 +318,7 @@ void show_volume(char *name)
         printf("Unable to find volume named %s\n", name);
 }
 
-void delete_volume(VolHead *vol)
+static void delete_volume(VolHead *vol)
 {
     byte destroyflag = 0xD3;
     rvm_return_t status;
@@ -331,7 +331,7 @@ void delete_volume(VolHead *vol)
     }
 }
 
-void delete_volume_byid(VolumeId volid)
+static void delete_volume_byid(VolumeId volid)
 {
     VolHead *vol = NULL;
 
@@ -341,7 +341,8 @@ void delete_volume_byid(VolumeId volid)
     else
         printf("Unable to find volume %08x\n", volid);
 }
-void delete_volume_byname(char *name)
+
+static void delete_volume_byname(char *name)
 {
     VolHead *vol = NULL;
 
@@ -476,7 +477,7 @@ void show_index(int argc, char *argv[])
         show_index(argv[2]);
 }
 
-void rename_volume(VolHead *vol, char *newname)
+static void rename_volume(VolHead *vol, char *newname)
 {
     char namestr[V_MAXVOLNAMELEN];
     rvm_return_t status;
@@ -492,7 +493,7 @@ void rename_volume(VolHead *vol, char *newname)
     rvmlib_end_transaction(flush, &status);
 }
 
-void rename_volume_byid(VolumeId volid, char *newname)
+static void rename_volume_byid(VolumeId volid, char *newname)
 {
     VolHead *vol = NULL;
 
@@ -503,7 +504,7 @@ void rename_volume_byid(VolumeId volid, char *newname)
         printf("Unable to find volume %08x\n", volid);
 }
 
-void rename_volume_byname(char *name, char *newname)
+static void rename_volume_byname(char *name, char *newname)
 {
     VolHead *vol = NULL;
 

@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 7
+                              Release 8
 
-          Copyright (c) 1987-2019 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -134,7 +134,7 @@ static rvm_statistics_t Recov_Statistics;
 static void Recov_CheckParms();
 static void Recov_InitRVM();
 static void Recov_InitRDS();
-static void Recov_LoadRDS();
+static void Recov_LoadRDS() EXCLUDES_TRANSACTION;
 static void Recov_GetStatistics();
 
 /* Crude formula for estimating recoverable data requirements! */
@@ -207,7 +207,7 @@ void RecovVenusGlobals::print(int fd)
     fdprint(fd, "StoreId = %d\n", recov_StoreId);
 }
 
-static void RecovNewInstance(void)
+static void RecovNewInstance(void) EXCLUDES_TRANSACTION
 {
     /* We need to initialize the random number generator before first use */
     rpc2_InitRandom();

@@ -107,7 +107,8 @@ const int CPSIZE = 8;
 /*  *****  Types  ***** */
 /* Cache stuff was removed here to move to venus.private.h  5/14/92 */
 
-void FSODaemon(void); /* used to be member of class fsdb (Satya 3/31/95) */
+void FSODaemon(void)
+    EXCLUDES_TRANSACTION; /* used to be member of class fsdb (Satya 3/31/95) */
 
 #define SERVER_SERVER 1
 #define LOCAL_GLOBAL 2
@@ -222,7 +223,7 @@ public:
     void Flush(Volid *) EXCLUDES_TRANSACTION;
     int TranslateFid(VenusFid *, VenusFid *) REQUIRES_TRANSACTION;
     int CallBackBreak(const VenusFid *);
-    void ResetUser(uid_t);
+    void ResetUser(uid_t) EXCLUDES_TRANSACTION;
     void ClearPriorities();
     void InvalidateMtPts();
     int MakePri(int spri, int mpri) { return (swt * spri + mwt * mpri); }
@@ -527,8 +528,8 @@ class fsobj {
     int IsFakeMTLink() { return (flags.fake && IsMTLink()); }
 
     /* expansion related functions */
-    int ExpandObject(void);
-    int CollapseObject(void);
+    int ExpandObject(void) EXCLUDES_TRANSACTION;
+    int CollapseObject(void) EXCLUDES_TRANSACTION;
     int IsExpandedObj(void) { return (flags.expanded); }
     int IsExpandedDir(void) { return (flags.expanded && IsDir()); }
     int IsExpandedMTLink(void) { return (flags.expanded && IsMTLink()); }
@@ -570,68 +571,79 @@ class fsobj {
 
     /* Private portions of the CFS interface. */
     void LocalStore(Date_t, unsigned long) REQUIRES_TRANSACTION;
-    int DisconnectedStore(Date_t, uid_t, unsigned long, int prepend = 0);
+    int DisconnectedStore(Date_t, uid_t, unsigned long,
+                          int prepend = 0) EXCLUDES_TRANSACTION;
     void LocalSetAttr(Date_t, unsigned long, Date_t, uid_t,
                       unsigned short) REQUIRES_TRANSACTION;
     int DisconnectedSetAttr(Date_t, uid_t, unsigned long, Date_t, uid_t,
-                            unsigned short, int prepend = 0);
+                            unsigned short,
+                            int prepend = 0) EXCLUDES_TRANSACTION;
     void LocalCreate(Date_t, fsobj *, char *, uid_t,
                      unsigned short) REQUIRES_TRANSACTION;
     int DisconnectedCreate(Date_t, uid_t, fsobj **, char *, unsigned short, int,
-                           int prepend = 0);
+                           int prepend = 0) EXCLUDES_TRANSACTION;
     void LocalRemove(Date_t, char *, fsobj *) REQUIRES_TRANSACTION;
-    int DisconnectedRemove(Date_t, uid_t, char *, fsobj *, int prepend = 0);
+    int DisconnectedRemove(Date_t, uid_t, char *, fsobj *,
+                           int prepend = 0) EXCLUDES_TRANSACTION;
     void LocalLink(Date_t, char *, fsobj *) REQUIRES_TRANSACTION;
-    int DisconnectedLink(Date_t, uid_t, char *, fsobj *, int prepend = 0);
+    int DisconnectedLink(Date_t, uid_t, char *, fsobj *,
+                         int prepend = 0) EXCLUDES_TRANSACTION;
     void LocalRename(Date_t, fsobj *, char *, fsobj *, char *,
                      fsobj *) REQUIRES_TRANSACTION;
     int DisconnectedRename(Date_t, uid_t, fsobj *, char *, fsobj *, char *,
-                           fsobj *, int prepend = 0);
+                           fsobj *, int prepend = 0) EXCLUDES_TRANSACTION;
     void LocalMkdir(Date_t, fsobj *, char *, uid_t,
                     unsigned short) REQUIRES_TRANSACTION;
     int DisconnectedMkdir(Date_t, uid_t, fsobj **, char *, unsigned short, int,
-                          int prepend = 0);
+                          int prepend = 0) EXCLUDES_TRANSACTION;
     void LocalRmdir(Date_t, char *, fsobj *) REQUIRES_TRANSACTION;
-    int DisconnectedRmdir(Date_t, uid_t, char *, fsobj *, int prepend = 0);
+    int DisconnectedRmdir(Date_t, uid_t, char *, fsobj *,
+                          int prepend = 0) EXCLUDES_TRANSACTION;
     void LocalSymlink(Date_t, fsobj *, char *, char *, uid_t,
                       unsigned short) REQUIRES_TRANSACTION;
     int DisconnectedSymlink(Date_t, uid_t, fsobj **, char *, char *,
-                            unsigned short, int, int prepend = 0);
+                            unsigned short, int,
+                            int prepend = 0) EXCLUDES_TRANSACTION;
     int GetContainerFD(void) REQUIRES_TRANSACTION;
-    int LookAside(void);
+    int LookAside(void) EXCLUDES_TRANSACTION;
     int FetchFileRPC(connent *con, ViceStatus *status, uint64_t offset,
                      int64_t len, RPC2_CountedBS *PiggyBS, SE_Descriptor *sed);
     int OpenPioctlFile(void) EXCLUDES_TRANSACTION;
 
-    void UpdateVastroFlag(uid_t uid, int force = 0, int state = 0x0);
+    void UpdateVastroFlag(uid_t uid, int force = 0,
+                          int state = 0x0) EXCLUDES_TRANSACTION;
 
 public:
     /* The public CFS interface (Vice portion). */
-    int Fetch(uid_t);
-    int Fetch(uid_t uid, uint64_t pos, int64_t count);
-    int GetAttr(uid_t, RPC2_BoundedBS * = 0);
-    int GetACL(RPC2_BoundedBS *, uid_t);
-    int Store(unsigned long, Date_t, uid_t);
-    int SetAttr(struct coda_vattr *, uid_t);
-    int SetACL(RPC2_CountedBS *, uid_t);
-    int Create(char *, fsobj **, uid_t, unsigned short, int);
-    int Remove(char *, fsobj *, uid_t);
-    int Link(char *, fsobj *, uid_t);
-    int Rename(fsobj *, char *, fsobj *, char *, fsobj *, uid_t);
-    int Mkdir(char *, fsobj **, uid_t, unsigned short, int);
-    int Rmdir(char *, fsobj *, uid_t);
-    int Symlink(char *, char *, uid_t, unsigned short, int);
-    int SetVV(ViceVersionVector *, uid_t);
+    int Fetch(uid_t) EXCLUDES_TRANSACTION;
+    int Fetch(uid_t uid, uint64_t pos, int64_t count) EXCLUDES_TRANSACTION;
+    int GetAttr(uid_t, RPC2_BoundedBS * = 0) EXCLUDES_TRANSACTION;
+    int GetACL(RPC2_BoundedBS *, uid_t) EXCLUDES_TRANSACTION;
+    int Store(unsigned long, Date_t, uid_t) EXCLUDES_TRANSACTION;
+    int SetAttr(struct coda_vattr *, uid_t) EXCLUDES_TRANSACTION;
+    int SetACL(RPC2_CountedBS *, uid_t) EXCLUDES_TRANSACTION;
+    int Create(char *, fsobj **, uid_t, unsigned short,
+               int) EXCLUDES_TRANSACTION;
+    int Remove(char *, fsobj *, uid_t) EXCLUDES_TRANSACTION;
+    int Link(char *, fsobj *, uid_t) EXCLUDES_TRANSACTION;
+    int Rename(fsobj *, char *, fsobj *, char *, fsobj *,
+               uid_t) EXCLUDES_TRANSACTION;
+    int Mkdir(char *, fsobj **, uid_t, unsigned short,
+              int) EXCLUDES_TRANSACTION;
+    int Rmdir(char *, fsobj *, uid_t) EXCLUDES_TRANSACTION;
+    int Symlink(char *, char *, uid_t, unsigned short,
+                int) EXCLUDES_TRANSACTION;
+    int SetVV(ViceVersionVector *, uid_t) EXCLUDES_TRANSACTION;
 
     /* The public CFS interface (non-Vice portion). */
     int Open(int writep, int truncp, venus_cnode *cp,
              uid_t uid) EXCLUDES_TRANSACTION;
-    int Sync(uid_t uid);
-    void Release(int writep);
-    int Close(int writep, uid_t uid);
-    int Access(int rights, int modes, uid_t);
+    int Sync(uid_t uid) EXCLUDES_TRANSACTION;
+    void Release(int writep) EXCLUDES_TRANSACTION;
+    int Close(int writep, uid_t uid) EXCLUDES_TRANSACTION;
+    int Access(int rights, int modes, uid_t) EXCLUDES_TRANSACTION;
     int Lookup(fsobj **, VenusFid *, const char *, uid_t, int flags,
-               int GetInconsistent = 0);
+               int GetInconsistent = 0) EXCLUDES_TRANSACTION;
 // These are defined in coda-src/kerndep/coda.h
 // #define CLU_CASE_SENSITIVE	0x01
 // #define CLU_CASE_INSENSITIVE 0x02
@@ -639,7 +651,8 @@ public:
 #define CLU_TRAVERSE_MTPT 0x04
     int Readdir(char *, int, int, int *, uid_t);
     int Readlink(char *, unsigned long, int *, uid_t);
-    int ReadIntent(uid_t uid, int priority, uint64_t pos, int64_t count);
+    int ReadIntent(uid_t uid, int priority, uint64_t pos,
+                   int64_t count) EXCLUDES_TRANSACTION;
     int ReadIntentFinish(uint64_t pos, int64_t count);
 
     /* Miscellaneous utility routines. */
@@ -705,7 +718,7 @@ public:
     void DeLocalRootParent(fsobj *, VenusFid *, fsobj *); /*U*/
     void RecoverRootParent(VenusFid *, char *); /*U*/
 
-    int SetLocalVV(ViceVersionVector *);
+    int SetLocalVV(ViceVersionVector *) EXCLUDES_TRANSACTION;
 
     int RepairStore();
     int RepairSetAttr(unsigned long, Date_t, uid_t, unsigned short,

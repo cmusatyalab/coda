@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -45,27 +45,27 @@ listed in the file CREDITS.
 #include "codadir.h"
 #include "dirbody.h"
 
-void dt_init(int argc, char **argv);
+void dt_init(int argc, char **argv) EXCLUDES_TRANSACTION;
 void dt_ok(int argc, char **argv);
-void dt_mdir(int argc, char **argv);
+void dt_mdir(int argc, char **argv) EXCLUDES_TRANSACTION;
 void dt_hash(int argc, char **argv);
 void dt_printchain(int argc, char **argv);
-void dt_create(int argc, char **argv);
-void dt_delete(int argc, char **argv);
+void dt_create(int argc, char **argv) EXCLUDES_TRANSACTION;
+void dt_delete(int argc, char **argv) EXCLUDES_TRANSACTION;
 void dt_list(int argc, char **argv);
 void dt_length(int argc, char **argv);
 void dt_convert(int argc, char **argv);
 void dt_empty(int argc, char **argv);
 void dt_lookup(int argc, char **argv);
 void dt_fidlookup(int argc, char **argv);
-void dt_rdsfree(int argc, char **argv);
-void dt_free(int argc, char **argv);
+void dt_rdsfree(int argc, char **argv) EXCLUDES_TRANSACTION;
+void dt_free(int argc, char **argv) EXCLUDES_TRANSACTION;
 void dt_compare(int argc, char **argv);
 void dt_vdir(int argc, char **argv);
 void dt_readargs(int argc, char **argv);
 void dt_quit(int argc, char **argv);
-struct dirdata *dt_initrvm(char *log, char *data);
-void dt_bulktest(int arc, char **argv);
+struct dirdata *dt_initrvm(char *log, char *data) EXCLUDES_TRANSACTION;
+void dt_bulktest(int arc, char **argv) EXCLUDES_TRANSACTION;
 
 #define FLUSH no_flush
 #define RESTORE no_restore

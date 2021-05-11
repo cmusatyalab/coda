@@ -111,7 +111,8 @@ int repvol::Repair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 }
 
 /* Translate RepairFile to cache entry if "REPAIRFILE_BY_FID." */
-static int GetRepairF(char *RepairFile, uid_t uid, fsobj **RepairF)
+static int GetRepairF(char *RepairFile, uid_t uid,
+                      fsobj **RepairF) EXCLUDES_TRANSACTION
 {
     VenusFid RepairFileFid;
     char tmp;

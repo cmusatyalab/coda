@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -76,7 +76,7 @@ void ClientModifyLog::CheckCMLHead(char *msg)
   <a name="discard"><strong> discard the current mutation operation </strong></a>
   END_HTML
 */
-/* need not be called from within a transaction */
+/* MUST NOT be called from within a transaction */
 int ClientModifyLog::DiscardLocalMutation(char *msg)
 {
     int rc;
@@ -179,7 +179,7 @@ void ClientModifyLog::PreserveLocalMutation(char *msg)
   the end </strong></a>
   END_HTML
 */
-/* need not be called from within a transaction */
+/* MUST NOT be called from within a transaction */
 void ClientModifyLog::PreserveAllLocalMutation(char *msg)
 {
     OBJ_ASSERT(this, msg);

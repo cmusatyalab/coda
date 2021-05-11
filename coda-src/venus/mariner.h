@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -89,7 +89,7 @@ class mariner : public vproc {
     int AwaitRequest();
     void Resign(int);
     void PathStat(char *);
-    void FidStat(VenusFid *);
+    void FidStat(VenusFid *) EXCLUDES_TRANSACTION;
     void Rpc2Stat();
 
 protected:

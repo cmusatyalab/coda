@@ -210,9 +210,9 @@ public:
     hdbent *Find(VolumeId, char *realm, char *name);
 
     /* The external interface. */
-    int Add(hdb_add_msg *, uid_t local_id);
-    int Delete(hdb_delete_msg *, uid_t local_id);
-    int Clear(hdb_clear_msg *, uid_t local_id);
+    int Add(hdb_add_msg *, uid_t local_id) EXCLUDES_TRANSACTION;
+    int Delete(hdb_delete_msg *, uid_t local_id) EXCLUDES_TRANSACTION;
+    int Clear(hdb_clear_msg *, uid_t local_id) EXCLUDES_TRANSACTION;
     int List(hdb_list_msg *, uid_t local_id);
     int Walk(hdb_walk_msg *, uid_t local_id);
     int Verify(hdb_verify_msg *, uid_t local_id);
@@ -222,12 +222,12 @@ public:
     void ResetUser(uid_t);
 
     /* Helper Routines hdb::Walk */
-    void ValidateCacheStatus(vproc *, int *, int *);
+    void ValidateCacheStatus(vproc *, int *, int *) EXCLUDES_TRANSACTION;
     void ListPriorityQueue();
     void WalkPriorityQueue(vproc *, int *, int *);
     int CalculateTotalBytesToFetch();
     void StatusWalk(vproc *, int *, int *);
-    void DataWalk(vproc *, int, int);
+    void DataWalk(vproc *, int, int) EXCLUDES_TRANSACTION;
     void PostWalkStatus();
 
     /* Advice Related*/
@@ -369,7 +369,7 @@ class namectxt {
     void Kill(); /* delete this context at first opportunity */
     void KillChildren(); /* delete children contexts at first opportunity */
     pestate CheckExpansion(); /* return next state */
-    void MetaExpand();
+    void MetaExpand() EXCLUDES_TRANSACTION;
 
 public:
     void *operator new(size_t);
@@ -414,7 +414,7 @@ extern int IndigentCount;
 /*  *****  Functions/Procedures  *****  */
 
 /* hdb.c */
-extern void HDB_Init(void);
+void HDB_Init(void) EXCLUDES_TRANSACTION;
 extern int NC_PriorityFN(bsnode *, bsnode *);
 
 /* hdb_daemon.c */

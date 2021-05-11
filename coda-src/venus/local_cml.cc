@@ -57,7 +57,7 @@ extern "C" {
 
 /* Find a consistent server replica to act as our 'global'.
  * All of this is necessary to create these replica objects in fsdb::Get. */
-static int GetGlobalReplica(fsobj **global, VenusFid *fid)
+static int GetGlobalReplica(fsobj **global, VenusFid *fid) EXCLUDES_TRANSACTION
 {
     VolumeId volumeids[VSG_MEMBERS];
     volent *vol;
@@ -126,7 +126,7 @@ unlock_out:
 /* CheckRepair step 1: check mutation operand(s) */
 static int CheckRepair_GetObjects(const char *operation, VenusFid *fid,
                                   fsobj **global, fsobj **local, char *msg,
-                                  int *mcode, int *rcode)
+                                  int *mcode, int *rcode) EXCLUDES_TRANSACTION
 {
     vproc *vp = VprocSelf();
     char path[MAXPATHLEN];

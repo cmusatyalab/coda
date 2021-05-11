@@ -167,7 +167,8 @@ private:
     static int counter;
     static char rtry_sync;
 
-    void do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data);
+    void do_ioctl(VenusFid *fid, unsigned char nr,
+                  struct ViceIoctl *data) EXCLUDES_TRANSACTION;
 
     void init(void);
 
@@ -215,26 +216,34 @@ public:
     void root(struct venus_cnode *);
     void statfs(struct coda_statfs *);
     void sync();
-    void vget(struct venus_cnode *, VenusFid *, int what = RC_STATUS);
-    void open(struct venus_cnode *, int);
-    void close(struct venus_cnode *, int);
+    void vget(struct venus_cnode *, VenusFid *,
+              int what = RC_STATUS) EXCLUDES_TRANSACTION;
+    void open(struct venus_cnode *, int) EXCLUDES_TRANSACTION;
+    void close(struct venus_cnode *, int) EXCLUDES_TRANSACTION;
     void ioctl(struct venus_cnode *, unsigned char nr, struct ViceIoctl *, int);
     void select(struct venus_cnode *, int);
-    void getattr(struct venus_cnode *, struct coda_vattr *);
-    void setattr(struct venus_cnode *, struct coda_vattr *);
-    void access(struct venus_cnode *, int);
-    void lookup(struct venus_cnode *, const char *, struct venus_cnode *, int);
+    void getattr(struct venus_cnode *,
+                 struct coda_vattr *) EXCLUDES_TRANSACTION;
+    void setattr(struct venus_cnode *,
+                 struct coda_vattr *) EXCLUDES_TRANSACTION;
+    void access(struct venus_cnode *, int) EXCLUDES_TRANSACTION;
+    void lookup(struct venus_cnode *, const char *, struct venus_cnode *,
+                int) EXCLUDES_TRANSACTION;
     void create(struct venus_cnode *, char *, struct coda_vattr *, int, int,
-                struct venus_cnode *);
-    void remove(struct venus_cnode *, char *);
-    void link(struct venus_cnode *, struct venus_cnode *, char *);
-    void rename(struct venus_cnode *, char *, struct venus_cnode *, char *);
+                struct venus_cnode *) EXCLUDES_TRANSACTION;
+    void remove(struct venus_cnode *, char *) EXCLUDES_TRANSACTION;
+    void link(struct venus_cnode *, struct venus_cnode *,
+              char *) EXCLUDES_TRANSACTION;
+    void rename(struct venus_cnode *, char *, struct venus_cnode *,
+                char *) EXCLUDES_TRANSACTION;
     void mkdir(struct venus_cnode *, char *, struct coda_vattr *,
-               struct venus_cnode *);
-    void rmdir(struct venus_cnode *, char *);
-    void symlink(struct venus_cnode *, char *, struct coda_vattr *, char *);
-    void readlink(struct venus_cnode *, struct coda_string *);
-    void fsync(struct venus_cnode *);
+               struct venus_cnode *) EXCLUDES_TRANSACTION;
+    void rmdir(struct venus_cnode *, char *) EXCLUDES_TRANSACTION;
+    void symlink(struct venus_cnode *, char *, struct coda_vattr *,
+                 char *) EXCLUDES_TRANSACTION;
+    void readlink(struct venus_cnode *,
+                  struct coda_string *) EXCLUDES_TRANSACTION;
+    void fsync(struct venus_cnode *) EXCLUDES_TRANSACTION;
 
     /**
      * Read file operation
@@ -244,7 +253,8 @@ public:
      * @param count    Number of bytes to be read from the file
      *
      */
-    void read(struct venus_cnode *node, uint64_t pos, int64_t count);
+    void read(struct venus_cnode *node, uint64_t pos,
+              int64_t count) EXCLUDES_TRANSACTION;
 
     /**
      * Write file operation
@@ -284,11 +294,12 @@ public:
      * @param count    Number of bytes mapped into memory
      *
      */
-    void mmap(struct venus_cnode *node, uint64_t pos, int64_t count);
+    void mmap(struct venus_cnode *node, uint64_t pos,
+              int64_t count) EXCLUDES_TRANSACTION;
 
     /* Pathname translation. */
     int namev(char *, int, struct venus_cnode *);
-    void GetPath(VenusFid *, char *, int *, int = 1);
+    void GetPath(VenusFid *, char *, int *, int = 1) EXCLUDES_TRANSACTION;
     const char *expansion(const char *path);
     void verifyname(char *name, int flags);
 #define NAME_NO_DOTS 1 /* don't allow '.', '..', '/' */
