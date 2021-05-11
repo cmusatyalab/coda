@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 7
+                              Release 8
 
-          Copyright (c) 1987-2019 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -2090,9 +2090,15 @@ int AddChild(Volume **volptr, dlist *vlist, ViceFid *Did, char *Name,
 Exit:
     if (vptr) {
         Error fileCode = 0;
+        rvm_return_t rvmstatus;
+        rvmlib_begin_transaction(restore);
+
         VN_PutDirHandle(vptr);
         VPutVnode(&fileCode, vptr);
         CODA_ASSERT(fileCode == 0);
+
+        rvmlib_end_transaction(flush, &rvmstatus);
+        CODA_ASSERT(rvmstatus == RVM_SUCCESS);
     }
 
     SLog(2, "AddChild returns %s", ViceErrorMsg(errorCode));
@@ -2139,8 +2145,14 @@ static int AddParent(Volume **volptr, dlist *vlist, ViceFid *Fid)
 Exit:
     if (vptr) {
         Error fileCode = 0;
+        rvm_return_t rvmstatus;
+        rvmlib_begin_transaction(restore);
+
         VPutVnode(&fileCode, vptr);
         CODA_ASSERT(fileCode == 0);
+
+        rvmlib_end_transaction(flush, &rvmstatus);
+        CODA_ASSERT(rvmstatus == RVM_SUCCESS);
     }
 
     SLog(2, "AddParent returns %s", ViceErrorMsg(errorCode));

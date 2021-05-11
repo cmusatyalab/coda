@@ -150,15 +150,17 @@ long S_VolSetVV(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
     fid.Unique = unique;
     CodaBreakCallBack(0, &fid, formal_volid);
 
+    rvm_return_t rvmstatus;
+    rvmlib_begin_transaction(restore);
+
     VPutVnode((Error *)&error, vnp);
+
+    rvmlib_end_transaction(flush, &rvmstatus);
+    CODA_ASSERT(rvmstatus == RVM_SUCCESS);
 
     if (error) {
         VLog(0, "S_VolSetVV: VPutVnode failed with %d", error);
-        goto errorexit;
     }
-
-    VPutVolume(vp);
-    goto exit; /* hop, skip, and jump */
 
 errorexit:
     VPutVolume(vp);

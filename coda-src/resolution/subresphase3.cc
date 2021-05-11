@@ -299,8 +299,14 @@ static int GetResObjs(arrlist *ops, ViceFid *Fid, Volume **volptr, dlist *vlist)
         SLog(9, "GetResObjs: Putting back parent vnode ");
         if (pvptr) {
             Error error = 0;
+            rvm_return_t rvmstatus;
+            rvmlib_begin_transaction(restore);
+
             VPutVnode(&error, pvptr);
             CODA_ASSERT(error == 0);
+
+            rvmlib_end_transaction(flush, &rvmstatus);
+            CODA_ASSERT(rvmstatus == RVM_SUCCESS);
             pvptr = 0;
         }
     }
@@ -325,8 +331,14 @@ Exit:
     if (pvptr) {
         SLog(9, "GetResObjs: ERROR condition - Putting back parent");
         Error error = 0;
+        rvm_return_t rvmstatus;
+        rvmlib_begin_transaction(restore);
+
         VPutVnode(&error, pvptr);
         CODA_ASSERT(error == 0);
+
+        rvmlib_end_transaction(flush, &rvmstatus);
+        CODA_ASSERT(rvmstatus == RVM_SUCCESS);
         pvptr = 0;
     }
 

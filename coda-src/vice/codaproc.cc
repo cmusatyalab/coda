@@ -1766,12 +1766,17 @@ static int GetRepairObjects(Volume *volptr, vle *ov, dlist *vlist,
     /* put back object being repaired */
     {
         Error fileCode = 0;
+        rvm_return_t rvmstatus;
+        rvmlib_begin_transaction(restore);
 
         if (ov->vptr->dh)
             VN_PutDirHandle(ov->vptr);
 
         VPutVnode(&fileCode, ov->vptr);
         CODA_ASSERT(fileCode == 0);
+
+        rvmlib_end_transaction(flush, &rvmstatus);
+        CODA_ASSERT(rvmstatus == RVM_SUCCESS);
         ov->vptr = 0;
     }
 
@@ -1826,8 +1831,14 @@ int GetSubTree(ViceFid *fid, Volume *volptr, dlist *vlist)
     /* put root's vnode */
     {
         Error error = 0;
+        rvm_return_t rvmstatus;
+        rvmlib_begin_transaction(restore);
+
         VPutVnode(&error, vptr);
         CODA_ASSERT(error == 0);
+
+        rvmlib_end_transaction(flush, &rvmstatus);
+        CODA_ASSERT(rvmstatus == RVM_SUCCESS);
         vptr = 0;
     }
 
@@ -1859,8 +1870,14 @@ Exit : {
 }
     if (vptr) {
         Error error = 0;
+        rvm_return_t rvmstatus;
+        rvmlib_begin_transaction(restore);
+
         VPutVnode(&error, vptr);
         CODA_ASSERT(error = 0);
+
+        rvmlib_end_transaction(flush, &rvmstatus);
+        CODA_ASSERT(rvmstatus == RVM_SUCCESS);
     }
     return (errorCode);
 }

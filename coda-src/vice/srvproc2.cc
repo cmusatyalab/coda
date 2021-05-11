@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -375,8 +375,14 @@ long FS_ViceGetVolumeStatus(RPC2_Handle RPCid, VolumeId vid,
 
 Final:
     if (vptr) {
+        rvm_return_t rvmstatus;
+        rvmlib_begin_transaction(restore);
+
         VPutVnode(&fileCode, vptr);
         CODA_ASSERT(fileCode == 0);
+
+        rvmlib_end_transaction(flush, &rvmstatus);
+        CODA_ASSERT(rvmstatus == RVM_SUCCESS);
     }
     PutVolObj(&volptr, VOL_NO_LOCK, 0);
 

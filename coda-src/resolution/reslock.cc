@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2008 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -134,8 +134,14 @@ long RS_LockAndFetch(RPC2_Handle RPCid, ViceFid *Fid, ResFetchType Request,
 FreeLocks:
     int filecode = 0;
     if (vptr) {
+        rvm_return_t rvmstatus;
+        rvmlib_begin_transaction(restore);
+
         VPutVnode((Error *)&filecode, vptr);
         CODA_ASSERT(filecode == 0);
+
+        rvmlib_end_transaction(flush, &rvmstatus);
+        CODA_ASSERT(rvmstatus == RVM_SUCCESS);
         vptr = 0;
     }
     if (errorcode)
