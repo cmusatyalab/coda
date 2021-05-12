@@ -149,10 +149,7 @@ long S_VolClone(RPC2_Handle rpcid, RPC2_Unsigned formal_ovolid,
     if (error) {
         VLog(0, "S_VolClone: failure attaching volume %x", originalId);
         if (originalvp) {
-            rvmlib_begin_transaction(restore);
-            VPutVolume(originalvp); /* Do these need transactions? */
-            rvmlib_end_transaction(flush, &(status));
-            CODA_ASSERT(status == 0);
+            VPutVolume(originalvp);
         }
         VDisconnectFS();
         return error;
@@ -172,10 +169,7 @@ long S_VolClone(RPC2_Handle rpcid, RPC2_Unsigned formal_ovolid,
         /* lock the whole volume for the duration of the clone */
         if (V_VolLock(originalvp).IPAddress) {
             VLog(0, "S_VolClone: old volume already locked; Aborting... ");
-            rvmlib_begin_transaction(restore);
-            VPutVolume(originalvp); /* Do these need transactions? */
-            rvmlib_end_transaction(flush, &(status));
-            CODA_ASSERT(status == 0);
+            VPutVolume(originalvp);
             VDisconnectFS();
             return EWOULDBLOCK;
         }
@@ -200,12 +194,15 @@ long S_VolClone(RPC2_Handle rpcid, RPC2_Unsigned formal_ovolid,
         status = VNOVOL;
         goto exit1;
     }
+    rvmlib_end_transaction(flush, &(status));
+    if (status)
+        goto exit1;
+
     newvp = VCreateVolume(&error, V_partname(originalvp), newId, originalId, 0,
                           readonlyVolume);
     if (error) {
         VLog(0, "S_VolClone:Unable to create the volume; aborted");
         VPutVolume(originalvp);
-        rvmlib_abort(VNOVOL);
         status = VNOVOL;
         goto exit1;
     }
@@ -215,12 +212,9 @@ long S_VolClone(RPC2_Handle rpcid, RPC2_Unsigned formal_ovolid,
     if (error) {
         VLog(0, "S_VolClone: Volume %x can't be unblessed!", newId);
         VPutVolume(originalvp);
-        rvmlib_abort(VFAIL);
         status = VFAIL;
         goto exit1;
     }
-
-    rvmlib_end_transaction(flush, &(status));
 exit1:
     if (status != 0) {
         VLog(0, "S_VolClone: volume creation failed for volume %x", originalId);
@@ -239,10 +233,7 @@ exit1:
              newId);
         V_VolLock(originalvp).IPAddress = 0;
         ReleaseWriteLock(&(V_VolLock(originalvp).VolumeLock));
-        rvmlib_begin_transaction(restore);
         VPutVolume(originalvp); /* Do these need transactions? */
-        rvmlib_end_transaction(flush, &(status));
-        CODA_ASSERT(status == 0);
         VDisconnectFS();
         return error;
     }
@@ -273,15 +264,14 @@ exit1:
     V_destroyMe(newvp) = 0;
     V_blessed(newvp)   = 1;
 
-    rvmlib_begin_transaction(restore);
     VUpdateVolume(&error, newvp);
     VDetachVolume(&error, newvp);
     VUpdateVolume(&error, originalvp);
     CODA_ASSERT(error == 0);
+
     V_VolLock(originalvp).IPAddress = 0;
     ReleaseWriteLock(&(V_VolLock(originalvp).VolumeLock));
     VPutVolume(originalvp);
-    rvmlib_end_transaction(flush, &(status));
     VDisconnectFS();
 
     if (status == 0) {

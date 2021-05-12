@@ -764,7 +764,7 @@ static int GrabFsObj(ViceFid *fid, Volume **volptr, Vnode **vptr, int lock,
 {
     int GotVolume = 0;
     /* Get the volume. */
-    if ((*volptr) == 0) {
+    if (*volptr == NULL) {
         int errorCode = GetVolObj(fid->Volume, volptr, VolumeLock, 0, 0);
         if (errorCode) {
             SLog(0, "GrabFsObj, GetVolObj error %s", ViceErrorMsg(errorCode));
@@ -774,18 +774,23 @@ static int GrabFsObj(ViceFid *fid, Volume **volptr, Vnode **vptr, int lock,
     }
 
     /* Get the vnode.  */
-    if (*vptr == 0) {
+    if (*vptr == NULL) {
         int errorCode = 0;
+        rvm_return_t status;
+        rvmlib_begin_transaction(restore);
         *vptr = VGetVnode((Error *)&errorCode, *volptr, fid->Vnode, fid->Unique,
                           lock, ignoreIncon, 0);
         if (errorCode) {
             SLog(1, "GrabFsObj: VGetVnode error %s", ViceErrorMsg(errorCode));
+            rvmlib_abort(VFAIL);
             if (GotVolume) {
                 SLog(1, "GrabFsObj: Releasing volume 0x%x", V_id(*volptr));
                 PutVolObj(volptr, VolumeLock, 0);
             }
             return (errorCode);
         }
+        rvmlib_end_transaction(flush, &status);
+        CODA_ASSERT(status == 0);
     }
 
     /* Sanity check the uniquifiers. */
@@ -1823,6 +1828,7 @@ int CheckRenameSemantics(ClientEntry *client, Vnode **s_dirvptr,
                 }
 
                 {
+                    rvmlib_begin_transaction(restore);
                     /* deadlock avoidance */
                     Vnode *testvptr = VGetVnode((Error *)&errorCode, *volptr,
                                                 TestFid.Vnode, TestFid.Unique,
@@ -1832,7 +1838,6 @@ int CheckRenameSemantics(ClientEntry *client, Vnode **s_dirvptr,
                         TestFid.Unique = testvptr->disk.uparent;
 
                         rvm_return_t rvmstatus;
-                        rvmlib_begin_transaction(restore);
 
                         /* this should be unmodified */
                         VPutVnode((Error *)&errorCode, testvptr);
@@ -1842,6 +1847,7 @@ int CheckRenameSemantics(ClientEntry *client, Vnode **s_dirvptr,
                         CODA_ASSERT(rvmstatus == RVM_SUCCESS);
                     } else {
                         CODA_ASSERT(errorCode == EWOULDBLOCK);
+                        rvmlib_abort(VFAIL);
                         /*
 			 * Someone has the object locked.  If this is part of a
 			 * reintegration, check the supplied vlist for the vnode.

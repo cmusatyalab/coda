@@ -3339,8 +3339,7 @@ int reintvol::PurgeMLEs(uid_t uid)
                 break;
             m = strbase(cmlent, d, handle);
             d = next();
-            Recov_BeginTrans();
-            if (m->IsToBeRepaired())
+            if (m->IsToBeRepaired()) {
                 /*
                  * this record must be associated with
                  * some local objects whose subtree root
@@ -3348,10 +3347,11 @@ int reintvol::PurgeMLEs(uid_t uid)
                  * local objects later, we use cmlent destructor
                  * instead of the cmlent::abort().
                  */
+                Recov_BeginTrans();
                 delete m;
-            else
+                Recov_EndTrans(MAXFP);
+            } else
                 m->abort();
-            Recov_EndTrans(MAXFP);
         }
         VOL_ASSERT(this, CML.count() == 0);
     }
@@ -3675,7 +3675,6 @@ void ClientModifyLog::IncAbort(int Tid)
 
     CODA_ASSERT(count() > 0);
 
-    Recov_BeginTrans();
     rec_dlist_iterator next(list, AbortOrder);
     rec_dlink *d = next(); /* get the first (last) element */
 
@@ -3691,10 +3690,9 @@ void ClientModifyLog::IncAbort(int Tid)
             d = next();
         }
     }
-    Recov_EndTrans(DMFP);
 }
 
-/* MUST be called from within transaction! */
+/* MUST NOT be called from within transaction! */
 void cmlent::abort()
 {
     repvol *vol = strbase(repvol, log, CML);
@@ -3716,9 +3714,11 @@ void cmlent::abort()
                     (f->MagicNumber == FSO_MagicNumber)); /* better be an fso */
 
         f->Lock(WR);
-        f->Kill();
 
+        Recov_BeginTrans();
+        f->Kill();
         FSDB->Put(&f);
+        Recov_EndTrans(DMFP);
     }
 
     delete this;

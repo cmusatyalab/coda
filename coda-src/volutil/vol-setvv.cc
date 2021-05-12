@@ -78,6 +78,7 @@ long S_VolSetVV(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
     /* To keep C++ 2.0 happy */
     VolumeId volid = (VolumeId)formal_volid;
     ViceVersionVector UpdateSet;
+    rvm_return_t rvmstatus;
 
     VLog(9, "Entering VolSetVV(%d, %u, %u)", rpcid, volid, vnodeid);
     VolumeId tmpvolid = volid;
@@ -98,10 +99,13 @@ long S_VolSetVV(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
         }
         goto exit;
     }
+
+    rvmlib_begin_transaction(restore);
     /* VGetVnode moved from after VOffline to here 11/88 ***/
     vnp = VGetVnode(&error, vp, vnodeid, unique, WRITE_LOCK, 1);
     if (error && error != EIO) {
         VLog(0, "S_VolSetVV: VGetVnode failed with %d", error);
+        rvmlib_abort(VFAIL);
         goto errorexit;
     }
 
@@ -145,18 +149,15 @@ long S_VolSetVV(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
     (&(UpdateSet.Versions.Site0))[ix] = 1;
     AddVVs(&V_versionvector(vp), &UpdateSet);
 
-    fid.Volume = formal_volid;
-    fid.Vnode  = vnodeid;
-    fid.Unique = unique;
-    CodaBreakCallBack(0, &fid, formal_volid);
-
-    rvm_return_t rvmstatus;
-    rvmlib_begin_transaction(restore);
-
     VPutVnode((Error *)&error, vnp);
 
     rvmlib_end_transaction(flush, &rvmstatus);
     CODA_ASSERT(rvmstatus == RVM_SUCCESS);
+
+    fid.Volume = formal_volid;
+    fid.Vnode  = vnodeid;
+    fid.Unique = unique;
+    CodaBreakCallBack(0, &fid, formal_volid);
 
     if (error) {
         VLog(0, "S_VolSetVV: VPutVnode failed with %d", error);

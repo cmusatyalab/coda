@@ -317,8 +317,6 @@ static int ReadResLog(int fd, Volume *vp, Vnode *vnp) REQUIRES_TRANSACTION
 
     ParseRemoteLogs(buf, size, nentries, &hlist, &logentries);
 
-    rvmlib_begin_transaction(no_restore);
-
     // Initialize the log list.
     VnLog(vnp) = new rec_dlist();
 
@@ -327,15 +325,7 @@ static int ReadResLog(int fd, Volume *vp, Vnode *vnp) REQUIRES_TRANSACTION
 
     free(buf);
 
-    if (err) {
-        rvmlib_abort(VFAIL);
-        return 0;
-    }
-
-    rvm_return_t status;
-    rvmlib_end_transaction(flush, &status);
-    CODA_ASSERT(status == RVM_SUCCESS);
-    return 1;
+    return err ? 0 : 1;
 }
 
 #define VNODESIZE(vclass) \
@@ -523,6 +513,7 @@ static int ReadVnodeList(int fd, Volume *vp, VnodeClass vclass,
         vnp->delete_me = 0;
 
         rvmlib_begin_transaction(restore);
+
         if (vclass == vLarge) {
             memset(inode, 0, sizeof(struct DirInode));
 
@@ -584,13 +575,14 @@ static int ReadVnodeList(int fd, Volume *vp, VnodeClass vclass,
 
         /* Write the vnode to disk */
         VPutVnode(&err, vnp);
+
         if (err) {
             fprintf(stderr, "VPutVnode Error: %d, on vnode 0x%x\n", err,
                     vnp->vnodeNumber);
             rvmlib_abort(VFAIL);
             return 0;
         }
-        rvmlib_end_transaction(flush, &(status));
+        rvmlib_end_transaction(flush, &status);
         if (status != 0) {
             fprintf(stderr, "Transaction exited with status %d!, aborting\n",
                     status);
@@ -781,19 +773,18 @@ static int load_server_state(char *dump_file, VolumeId *skipvols,
             return 0;
         }
 
+        rvmlib_end_transaction(flush, &(status));
+        if (status != 0) {
+            fprintf(stderr, "Transaction exited with status %d!, aborting\n",
+                    status);
+            return 0;
+        }
+
         vp = VAttachVolume(&err, vol_head.header.id, V_SECRETLY);
         if (err) {
             fprintf(stderr,
                     "VAttachVolume returns error %d when attaching 0x%x\n", err,
                     vol_head.header.id);
-            rvmlib_abort(VFAIL);
-            return 0;
-        }
-
-        rvmlib_end_transaction(flush, &(status));
-        if (status != 0) {
-            fprintf(stderr, "Transaction exited with status %d!, aborting\n",
-                    status);
             return 0;
         }
 

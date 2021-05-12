@@ -46,7 +46,7 @@ Pittsburgh, PA.
 extern Volume *VCreateVolume(Error *ec, char *partition, VolumeId volumeId,
                              VolumeId parentId, VolumeId groupId,
                              int type       = readwriteVolume,
-                             int rvmlogsize = 0) REQUIRES_TRANSACTION;
+                             int rvmlogsize = 0) EXCLUDES_TRANSACTION;
 extern Volume *MakeBackupVolume(Volume *vp, Volume *sacrifice, int verbose);
 extern void AssignVolumeName(VolumeDiskData *vol, char *name, const char *ext);
 extern void CopyVolumeHeader(VolumeDiskData *from, VolumeDiskData *to);

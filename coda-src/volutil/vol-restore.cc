@@ -273,6 +273,10 @@ static int RestoreVolume(DumpBuffer_t *buf, char *partition, char *volname,
             goto error;
         }
     }
+    rvmlib_end_transaction(flush, &status);
+    if (status)
+        goto error;
+
     /* NOTE:  Do NOT set the parentId of restore RO volumes to the ORIGINAL
        parentID. If they are the same, then the restored volume will look
        like a RO copy of the parent and it would start being used instead
@@ -282,7 +286,6 @@ static int RestoreVolume(DumpBuffer_t *buf, char *partition, char *volname,
     vp = VCreateVolume(&error, partition, *volid, parentid, 0, volumeType);
     if (error) {
         VLog(0, "Unable to create volume %x; not restored", *volid);
-        rvmlib_abort(VFAIL);
         status = error;
         goto error;
     }
@@ -291,11 +294,9 @@ static int RestoreVolume(DumpBuffer_t *buf, char *partition, char *volname,
     VUpdateVolume(&error, vp);
     if (error) {
         VLog(0, "S_VolClone: Trouble updating voldata for %#x!", *volid);
-        rvmlib_abort(VFAIL);
         status = error;
         goto error;
     }
-    rvmlib_end_transaction(flush, &status);
 error:
     if (status == RVM_SUCCESS)
         VLog(9, "restore createvol of %#x completed successfully", *volid);
@@ -353,19 +354,16 @@ error:
         return -1;
     }
 
+    rvmlib_end_transaction(flush, &status);
+    if (status) {
+        VLog(0, "restore: VUpdateVolume failed ");
+        return status;
+    }
+
     VDetachVolume(&error, vp); /* Let file server get its hands on it */
     if (error) {
         VLog(0, "restore: Unable to detach volume; restore aborted");
-        rvmlib_abort(-1);
         return -1;
-    }
-
-    rvmlib_end_transaction(flush, &status);
-    if (status == 0)
-        VLog(9, "S_VolRestore: VUpdateVolume completed successfully");
-    else {
-        VLog(0, "restore: VUpdateVolume failed ");
-        return status;
     }
 
     VLog(0, "Volume %x (%s) restored successfully", *volid, vol.name);

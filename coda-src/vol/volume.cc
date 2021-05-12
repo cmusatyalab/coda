@@ -279,11 +279,9 @@ void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage)
         VolumeHeader header;
         char thispartition[V_MAXPARTNAMELEN];
         int nAttached = 0, nUnattached = 0;
-        int i = 0;
-        rvm_return_t camstatus;
+        int i     = 0;
         int maxid = (int)(SRV_RVM(MaxVolId) & 0x00FFFFFF);
 
-        rvmlib_begin_transaction(restore);
         for (i = 0; (i < maxid) && (i < MAXVOLS); i++) {
             if (VolHeaderByIndex(i, &header) == -1) {
                 VLog(0, "Bogus volume index %d (shouldn't happen)", i);
@@ -333,7 +331,6 @@ void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage)
         }
         VLog(0, "Attached %d volumes; %d volumes not attached", nAttached,
              nUnattached);
-        rvmlib_end_transaction(flush, &(camstatus));
     }
 
     VInit = 1;
@@ -888,9 +885,14 @@ Volume *VAttachVolumeById(Error *ec, char *partition, VolumeId volid, int mode)
             return NULL;
         }
     }
+    rvm_return_t camstatus;
+    rvmlib_begin_transaction(restore);
+
     vp = attach2(ec, name, &header, dp);
     if (vp == NULL)
         VLog(9, "VAttachVolumeById: attach2 returns vp == NULL");
+
+    rvmlib_end_transaction(flush, &(camstatus));
 
     if (*pt == volumeUtility && vp == NULL && mode != V_SECRETLY) {
         /* masquerade as fileserver for FSYNC_askfs call */

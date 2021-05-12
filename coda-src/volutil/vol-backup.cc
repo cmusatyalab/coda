@@ -253,7 +253,6 @@ long S_VolMakeBackups(RPC2_Handle rpcid, VolumeId originalId,
     V_destroyMe(backupvp) = 0;
     V_blessed(backupvp)   = 1; /* Volume is valid now. */
 
-    rvmlib_begin_transaction(restore);
     volid = V_id(backupvp);
 
     VUpdateVolume(&error, backupvp); /* Write new info to RVM */
@@ -263,7 +262,6 @@ long S_VolMakeBackups(RPC2_Handle rpcid, VolumeId originalId,
     VUpdateVolume(&error, originalvp); /* Update R/W vol data */
     CODA_ASSERT(error == 0);
     VPutVolume(originalvp);
-    rvmlib_end_transaction(flush, &(status));
 
     backupvp = VGetVolume(&error, volid);
     CODA_ASSERT(error == 0);
@@ -299,8 +297,8 @@ static int MakeNewClone(Volume *rwvp, VolumeId *backupId, Volume **backupvp)
     Volume *newvp;
 
     *backupId = 0;
-    rvmlib_begin_transaction(restore);
 
+    rvmlib_begin_transaction(restore);
     newId = VAllocateVolumeId(&error);
 
     if (error) {
@@ -310,12 +308,18 @@ static int MakeNewClone(Volume *rwvp, VolumeId *backupId, Volume **backupvp)
     } else
         VLog(29, "Backup: VAllocateVolumeId returns %x", newId);
 
+    rvmlib_end_transaction(flush, &(status));
+    if (status != 0) {
+        VLog(0, "S_VolMakeBackups: volume backup creation failed for %#x",
+             V_id(rwvp));
+        return status;
+    }
+
     newvp = VCreateVolume(&error, V_partname(rwvp), newId, V_id(rwvp), 0,
                           backupVolume);
 
     if (error) {
         VLog(0, "S_VolMakeBackups:Unable to create the volume; aborted");
-        rvmlib_abort(VNOVOL);
         return VNOVOL;
     }
 
@@ -324,15 +328,7 @@ static int MakeNewClone(Volume *rwvp, VolumeId *backupId, Volume **backupvp)
     VUpdateVolume(&error, newvp);
     if (error) {
         VLog(0, "S_VolMakeBackups: Volume %x can't be unblessed!", newId);
-        rvmlib_abort(VFAIL);
         return VFAIL;
-    }
-
-    rvmlib_end_transaction(flush, &(status));
-    if (status != 0) {
-        VLog(0, "S_VolMakeBackups: volume backup creation failed for %#x",
-             V_id(rwvp));
-        return status;
     }
 
     VLog(9, "S_VolMakeBackups: Created Volume %x; going to clone from %x",

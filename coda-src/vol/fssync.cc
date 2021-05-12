@@ -170,7 +170,7 @@ void FSYNC_clientFinis()
 int FSYNC_askfs(VolumeId volume, int command, int reason)
 {
     byte rc = FSYNC_OK;
-    int i, status = 0;
+    int i;
     Error error;
     VolumeId *volumes = NULL;
     VolumeId *v       = NULL;
@@ -190,9 +190,7 @@ int FSYNC_askfs(VolumeId volume, int command, int reason)
     case FSYNC_ON:
         if (v)
             *v = 0;
-        rvmlib_begin_transaction(restore);
         vp = VAttachVolume(&error, volume, V_UPDATE);
-        rvmlib_end_transaction(flush, &status);
         /* save any changes */
         if (vp)
             VPutVolume(vp);

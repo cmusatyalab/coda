@@ -120,15 +120,14 @@ long S_VolCreate(RPC2_Handle rpcid, RPC2_String formal_partition,
          "Entering S_VolCreate: rpcid = %d, partition = %s,"
          "volname = %s, volumeid = %x, repvol = %d, grpid = %x",
          rpcid, partition, volname, volid ? *volid : 0, repvol, grpId);
-    rvmlib_begin_transaction(restore);
 
     rc = VInitVolUtil(volumeUtility);
     if (rc != 0) {
-        rvmlib_abort(rc);
         status = rc;
         goto exit;
     }
 
+    rvmlib_begin_transaction(restore);
     /* Use a new volumeId only if the user didn't specify any */
     if (!volid || !(*volid))
         volumeId = VAllocateVolumeId(&error);
@@ -158,6 +157,7 @@ long S_VolCreate(RPC2_Handle rpcid, RPC2_String formal_partition,
         status = VFAIL;
         goto exit;
     }
+    rvmlib_end_transaction(flush, &(status));
 
     /* If we are creating a replicated volume, pass along group id */
     vp = VCreateVolume(&error, partition, volumeId, parentId,
@@ -165,7 +165,6 @@ long S_VolCreate(RPC2_Handle rpcid, RPC2_String formal_partition,
                        resflag ? rvmlogsize : 0);
     if (error) {
         VLog(0, "Unable to create the volume; aborted");
-        rvmlib_abort(VNOVOL);
         status = VNOVOL;
         goto exit;
     }
@@ -176,11 +175,11 @@ long S_VolCreate(RPC2_Handle rpcid, RPC2_String formal_partition,
     V_type(vp) = repvol ? readwriteVolume : nonReplicatedVolume;
     AssignVolumeName(&V_disk(vp), volname, 0);
 
-    /* could probably begin transaction here instead of at beginning */
-    /* must include both ViceCreateRoot and VUpdateVolume for vv atomicity */
+    /* transaction must include both ViceCreateRoot and VUpdateVolume for vv atomicity */
+    rvmlib_begin_transaction(restore);
     if (!ViceCreateRoot(vp)) {
         VLog(0, "Unable to create the volume root; aborted");
-        rvmlib_abort(VNOVOL);
+        rvmlib_abort(VFAIL);
         status = VNOVOL;
         goto exit;
     }
@@ -189,13 +188,13 @@ long S_VolCreate(RPC2_Handle rpcid, RPC2_String formal_partition,
     V_linkcount(vp)                       = 1;
     V_volumeindex(vp);
     VUpdateVolume(&error, vp);
+    rvmlib_end_transaction(flush, &(status));
+
     VDetachVolume(&error, vp); /* Allow file server to grab it */
     CODA_ASSERT(error == 0);
-    rvmlib_end_transaction(flush, &(status));
-exit:
 
-    /* to make sure that rvm records are getting flushed
-	   - to find this bug */
+exit:
+    /* to make sure that rvm records are getting flushed - to find this bug */
     CODA_ASSERT(rvm_flush() == RVM_SUCCESS);
     VDisconnectFS();
     if (status == 0) {

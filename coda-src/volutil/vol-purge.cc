@@ -112,15 +112,12 @@ long int S_VolPurge(RPC2_Handle rpcid, RPC2_Unsigned formal_purgeId,
         } else if (error == VNOVOL) {
             /* volume is not attached or is shutting down */
 
-            rvmlib_begin_transaction(restore);
             vp = VAttachVolume(&error2, purgeId, V_UPDATE);
             if (error2) {
                 VLog(0, "Unable to attach volume %x; not purged", purgeId);
-                rvmlib_abort(VFAIL);
                 rc = VNOVOL;
                 goto exit;
             }
-            rvmlib_end_transaction(flush, &status);
             AlreadyOffline = 1;
         } else {
             if (vp)

@@ -2433,9 +2433,10 @@ int fsobj::MakeShadow()
     /* As an optimization (to avoid blocking the reintegration too much) we
      * might want to do this only when we just created the shadow file or when
      * there are no writers to the real container file... Maybe later. -JH */
-    Lock(RD);
+
+    //Lock(RD); // XXX Can't lock here because there is an active RVM transaction
     err = cf.Copy(shadow);
-    UnLock(RD);
+    //UnLock(RD);
 
     return (err);
 }

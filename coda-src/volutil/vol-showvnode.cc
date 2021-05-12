@@ -106,7 +106,6 @@ long S_VolShowVnode(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
     if (!XlateVid(&volid))
         volid = tmpvolid;
 
-    rvmlib_begin_transaction(restore);
     VInitVolUtil(volumeUtility);
     /*    vp = VAttachVolume(&error, volid, V_READONLY); */
     vp = VGetVolume(&error, volid);
@@ -115,15 +114,15 @@ long S_VolShowVnode(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
         if (error != VNOVOL) {
             VPutVolume(vp);
         }
-        rvmlib_abort(error);
         goto exit;
     }
+    rvmlib_begin_transaction(restore);
     /* VGetVnode moved from after VOffline to here 11/88 ***/
     vnp = VGetVnode(&error, vp, vnodeid, unique, READ_LOCK, 1, 1);
     if (error) {
         VLog(0, "S_VolShowVnode: VGetVnode failed with %d", error);
-        VPutVolume(vp);
         rvmlib_abort(VFAIL);
+        VPutVolume(vp);
         goto exit;
     }
 
@@ -162,12 +161,11 @@ long S_VolShowVnode(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
     fclose(infofile);
 
     VPutVnode(&error, vnp);
+    rvmlib_end_transaction(flush, &(status));
     if (error)
         VLog(0, "S_VolShowVnode: Error occured while putting vnode ");
 
     VPutVolume(vp);
-
-    rvmlib_end_transaction(flush, &(status));
 
     /* set up SE_Descriptor for transfer */
     memset(&sed, 0, sizeof(SE_Descriptor));
