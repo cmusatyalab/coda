@@ -65,7 +65,8 @@ extern "C" {
  used during a resolve just after a repair is completed
 */
 long RS_FetchDirContents(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer *length,
-                         ViceStatus *status, SE_Descriptor *sed)
+                         ViceStatus *status,
+                         SE_Descriptor *sed) EXCLUDES_TRANSACTION
 {
     Volume *volptr         = 0;
     Vnode *vptr            = 0;
@@ -147,7 +148,8 @@ Exit:
     return (errorcode);
 }
 
-long RS_ClearIncon(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV)
+long RS_ClearIncon(RPC2_Handle RPCid, ViceFid *Fid,
+                   ViceVersionVector *VV) EXCLUDES_TRANSACTION
 {
     Vnode *vptr         = 0;
     Volume *volptr      = 0;

@@ -340,7 +340,7 @@ class resolver : public vproc {
     ~resolver();
 
 protected:
-    virtual void main(void);
+    virtual void main(void) EXCLUDES_TRANSACTION;
 };
 
 olist resolver::freelist;

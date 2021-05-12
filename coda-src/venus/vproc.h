@@ -182,7 +182,7 @@ protected:
 
     /* derived classes should call this function once they have finished their
      * constructor. */
-    void start_thread(void);
+    void start_thread(void) EXCLUDES_TRANSACTION;
 
     /* entry point, should be overloaded by derived classes */
     virtual void main(void);
@@ -205,12 +205,12 @@ public:
     virtual ~vproc();
 
     /* Volume-level concurrency control. */
-    void Begin_VFS(Volid *, int, int = -1);
-    void Begin_VFS(VenusFid *fid, int op, int arg = -1)
+    void Begin_VFS(Volid *, int, int = -1) EXCLUDES_TRANSACTION;
+    void Begin_VFS(VenusFid *fid, int op, int arg = -1) EXCLUDES_TRANSACTION
     {
         Begin_VFS(MakeVolid(fid), op, arg);
     }
-    void End_VFS(int * = 0);
+    void End_VFS(int * = 0) EXCLUDES_TRANSACTION;
 
     /* The vproc interface: mostly matching kernel requests.  */
     void root(struct venus_cnode *);
@@ -220,7 +220,8 @@ public:
               int what = RC_STATUS) EXCLUDES_TRANSACTION;
     void open(struct venus_cnode *, int) EXCLUDES_TRANSACTION;
     void close(struct venus_cnode *, int) EXCLUDES_TRANSACTION;
-    void ioctl(struct venus_cnode *, unsigned char nr, struct ViceIoctl *, int);
+    void ioctl(struct venus_cnode *, unsigned char nr, struct ViceIoctl *,
+               int) EXCLUDES_TRANSACTION;
     void select(struct venus_cnode *, int);
     void getattr(struct venus_cnode *,
                  struct coda_vattr *) EXCLUDES_TRANSACTION;
@@ -264,7 +265,8 @@ public:
      * @param count    Number of bytes to be written to the file
      *
      */
-    void write(struct venus_cnode *node, uint64_t pos, int64_t count);
+    void write(struct venus_cnode *node, uint64_t pos,
+               int64_t count) EXCLUDES_TRANSACTION;
 
     /**
      * Signal the end of a synchronous read file operation
@@ -274,7 +276,8 @@ public:
      * @param count    Number of bytes read from the file
      *
      */
-    void read_finish(struct venus_cnode *node, uint64_t pos, int64_t count);
+    void read_finish(struct venus_cnode *node, uint64_t pos,
+                     int64_t count) EXCLUDES_TRANSACTION;
 
     /**
      * Signal the end of a synchronous write file operation
@@ -284,7 +287,8 @@ public:
      * @param count    Number of bytes written to the file
      *
      */
-    void write_finish(struct venus_cnode *node, uint64_t pos, int64_t count);
+    void write_finish(struct venus_cnode *node, uint64_t pos,
+                      int64_t count) EXCLUDES_TRANSACTION;
 
     /**
      * Memory map file operation
@@ -298,7 +302,7 @@ public:
               int64_t count) EXCLUDES_TRANSACTION;
 
     /* Pathname translation. */
-    int namev(char *, int, struct venus_cnode *);
+    int namev(char *, int, struct venus_cnode *) EXCLUDES_TRANSACTION;
     void GetPath(VenusFid *, char *, int *, int = 1) EXCLUDES_TRANSACTION;
     const char *expansion(const char *path);
     void verifyname(char *name, int flags);
@@ -323,7 +327,7 @@ public:
 /* *****  Exported routines  ***** */
 void VPROC_printvattr(struct coda_vattr *vap);
 extern void VprocInit();
-extern void Rtry_Wait();
+extern void Rtry_Wait() EXCLUDES_TRANSACTION;
 extern void Rtry_Signal();
 extern vproc *FindVproc(int);
 extern vproc *VprocSelf();

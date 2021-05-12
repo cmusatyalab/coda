@@ -1197,7 +1197,7 @@ void worker::Return(int code)
 }
 
 inline void worker::op_coda_access(union inputArgs *in, union outputArgs *out,
-                                   int *msg_size)
+                                   int *msg_size) EXCLUDES_TRANSACTION
 {
     struct venus_cnode vtarget;
 
@@ -1207,7 +1207,7 @@ inline void worker::op_coda_access(union inputArgs *in, union outputArgs *out,
 }
 
 inline void worker::op_coda_close(union inputArgs *in, union outputArgs *out,
-                                  int *msg_size)
+                                  int *msg_size) EXCLUDES_TRANSACTION
 {
     struct venus_cnode vtarget;
 
@@ -1217,7 +1217,7 @@ inline void worker::op_coda_close(union inputArgs *in, union outputArgs *out,
 }
 
 inline void worker::op_coda_create(union inputArgs *in, union outputArgs *out,
-                                   int *msg_size)
+                                   int *msg_size) EXCLUDES_TRANSACTION
 {
     struct venus_cnode vtarget;
     struct venus_cnode vparent;
@@ -1245,7 +1245,7 @@ inline void worker::op_coda_fsync(union inputArgs *in, union outputArgs *out,
 }
 
 inline void worker::op_coda_getattr(union inputArgs *in, union outputArgs *out,
-                                    int *msg_size)
+                                    int *msg_size) EXCLUDES_TRANSACTION
 {
     struct venus_cnode vtarget;
 
@@ -1257,7 +1257,7 @@ inline void worker::op_coda_getattr(union inputArgs *in, union outputArgs *out,
 }
 
 inline void worker::op_coda_ioctl(union inputArgs *in, union outputArgs *out,
-                                  int *msg_size)
+                                  int *msg_size) EXCLUDES_TRANSACTION
 {
     struct venus_cnode vtarget;
     char outbuf[VC_MAXDATASIZE];
@@ -1319,7 +1319,7 @@ inline void worker::op_coda_ioctl(union inputArgs *in, union outputArgs *out,
 }
 
 inline void worker::op_coda_link(union inputArgs *in, union outputArgs *out,
-                                 int *msg_size)
+                                 int *msg_size) EXCLUDES_TRANSACTION
 {
     struct venus_cnode vparent;
     struct venus_cnode vtarget;
@@ -1332,7 +1332,7 @@ inline void worker::op_coda_link(union inputArgs *in, union outputArgs *out,
 }
 
 inline void worker::op_coda_lookup(union inputArgs *in, union outputArgs *out,
-                                   int *msg_size)
+                                   int *msg_size) EXCLUDES_TRANSACTION
 {
     struct venus_cnode vtarget;
     struct venus_cnode vparent;
@@ -1353,7 +1353,7 @@ inline void worker::op_coda_lookup(union inputArgs *in, union outputArgs *out,
 }
 
 inline void worker::op_coda_mkdir(union inputArgs *in, union outputArgs *out,
-                                  int *msg_size)
+                                  int *msg_size) EXCLUDES_TRANSACTION
 {
     struct venus_cnode vparent;
     struct venus_cnode vtarget;
@@ -1372,7 +1372,7 @@ inline void worker::op_coda_mkdir(union inputArgs *in, union outputArgs *out,
 
 inline void worker::op_coda_open(union inputArgs *in, union outputArgs *out,
                                  int *msg_size, CodaFid *saveFid,
-                                 int *saveFlags)
+                                 int *saveFlags) EXCLUDES_TRANSACTION
 {
     struct venus_cnode vtarget;
 
@@ -1395,11 +1395,11 @@ inline void worker::op_coda_open(union inputArgs *in, union outputArgs *out,
     }
 }
 
-inline void worker::op_coda_open_by_fd(union inputArgs *in,
-                                       union outputArgs *out, int *msg_size,
-                                       int *openfd, CodaFid *saveFid,
-                                       int *saveFlags,
-                                       struct venus_cnode *vtarget)
+inline void
+worker::op_coda_open_by_fd(union inputArgs *in, union outputArgs *out,
+                           int *msg_size, int *openfd, CodaFid *saveFid,
+                           int *saveFlags,
+                           struct venus_cnode *vtarget) EXCLUDES_TRANSACTION
 {
     LOG(100,
         ("CODA_OPEN_BY_FD: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
@@ -1423,7 +1423,8 @@ inline void worker::op_coda_open_by_fd(union inputArgs *in,
 
 inline void worker::op_coda_open_by_path(union inputArgs *in,
                                          union outputArgs *out, int *msg_size,
-                                         CodaFid *saveFid, int *saveFlags)
+                                         CodaFid *saveFid,
+                                         int *saveFlags) EXCLUDES_TRANSACTION
 {
     struct venus_cnode vtarget;
 
@@ -1463,7 +1464,7 @@ inline void worker::op_coda_open_by_path(union inputArgs *in,
 }
 
 inline void worker::op_coda_readlink(union inputArgs *in, union outputArgs *out,
-                                     int *msg_size)
+                                     int *msg_size) EXCLUDES_TRANSACTION
 {
     struct venus_cnode vtarget;
 
@@ -1486,7 +1487,7 @@ inline void worker::op_coda_readlink(union inputArgs *in, union outputArgs *out,
 }
 
 inline void worker::op_coda_remove(union inputArgs *in, union outputArgs *out,
-                                   int *msg_size)
+                                   int *msg_size) EXCLUDES_TRANSACTION
 {
     struct venus_cnode vparent;
 
@@ -1496,7 +1497,7 @@ inline void worker::op_coda_remove(union inputArgs *in, union outputArgs *out,
 }
 
 inline void worker::op_coda_rename(union inputArgs *in, union outputArgs *out,
-                                   int *msg_size)
+                                   int *msg_size) EXCLUDES_TRANSACTION
 {
     struct venus_cnode vparent;
     struct venus_cnode vtarget;
@@ -1510,7 +1511,7 @@ inline void worker::op_coda_rename(union inputArgs *in, union outputArgs *out,
 }
 
 inline void worker::op_coda_rmdir(union inputArgs *in, union outputArgs *out,
-                                  int *msg_size)
+                                  int *msg_size) EXCLUDES_TRANSACTION
 {
     struct venus_cnode vparent;
 
@@ -1533,7 +1534,7 @@ inline void worker::op_coda_root(union inputArgs *in, union outputArgs *out,
 }
 
 inline void worker::op_coda_setattr(union inputArgs *in, union outputArgs *out,
-                                    int *msg_size)
+                                    int *msg_size) EXCLUDES_TRANSACTION
 {
     struct venus_cnode vtarget;
 
@@ -1543,7 +1544,7 @@ inline void worker::op_coda_setattr(union inputArgs *in, union outputArgs *out,
 }
 
 inline void worker::op_coda_symlink(union inputArgs *in, union outputArgs *out,
-                                    int *msg_size)
+                                    int *msg_size) EXCLUDES_TRANSACTION
 {
     struct venus_cnode vtarget;
 
@@ -1555,7 +1556,7 @@ inline void worker::op_coda_symlink(union inputArgs *in, union outputArgs *out,
 }
 
 inline void worker::op_coda_vget(union inputArgs *in, union outputArgs *out,
-                                 int *msg_size)
+                                 int *msg_size) EXCLUDES_TRANSACTION
 {
     struct venus_cnode vtarget;
 
@@ -1585,7 +1586,8 @@ inline void worker::op_coda_statfs(union inputArgs *in, union outputArgs *out,
 }
 
 inline void worker::op_coda_access_intent(union inputArgs *in,
-                                          union outputArgs *out, int *msg_size)
+                                          union outputArgs *out,
+                                          int *msg_size) EXCLUDES_TRANSACTION
 {
     struct venus_cnode vtarget;
     struct coda_access_intent_in *coda_access_intent = &in->coda_access_intent;

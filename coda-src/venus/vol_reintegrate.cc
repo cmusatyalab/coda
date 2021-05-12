@@ -664,7 +664,8 @@ int reintvol::ReadyToReintegrate()
         return 0;
     }
 
-    rc                   = m->ReintReady();
+    rc = m->ReintReady();
+
     flags.reint_conflict = (rc == EINCONS);
 
     if (flags.unauthenticated) {
@@ -737,7 +738,7 @@ class reintegrator : public vproc {
     ~reintegrator();
 
 protected:
-    virtual void main(void);
+    virtual void main(void) EXCLUDES_TRANSACTION;
 };
 
 olist reintegrator::freelist;

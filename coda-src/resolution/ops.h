@@ -45,9 +45,11 @@ class rsle;
 class res_mgrpent;
 
 /* export definitions */
-extern int SpoolVMLogRecord(dlist *, vle *, Volume *, ViceStoreId *, int op...);
+extern int SpoolVMLogRecord(dlist *, vle *, Volume *, ViceStoreId *,
+                            int op...) EXCLUDES_TRANSACTION;
 extern int SpoolRenameLogRecord(int, dlist *, vle *, vle *, vle *, vle *,
-                                Volume *, char *, char *, ViceStoreId *);
+                                Volume *, char *, char *,
+                                ViceStoreId *) EXCLUDES_TRANSACTION;
 extern void TruncateLog(Volume *, Vnode *, vmindex *) REQUIRES_TRANSACTION;
 extern void FreeVMIndices(Volume *, vmindex *);
 extern void PurgeLog(rec_dlist *, Volume *, vmindex *) REQUIRES_TRANSACTION;
@@ -56,7 +58,9 @@ extern void PrintLog(Vnode *, FILE *);
 extern void DumpLog(rec_dlist *, Volume *, char **, int *, int *);
 // temporary  - should go to rvmrescoord.h
 extern long RecovDirResolve(res_mgrpent *, ViceFid *, ViceVersionVector **,
-                            ResStatus **, int *, struct DirFid *);
+                            ResStatus **, int *,
+                            struct DirFid *) EXCLUDES_TRANSACTION;
 extern int CheckAndPerformRename(rsle *, Volume *, VolumeId, ViceFid *, dlist *,
-                                 olist *, dlist *, int *, DirFid *);
+                                 olist *, dlist *, int *,
+                                 DirFid *) EXCLUDES_TRANSACTION;
 #endif /* _OPS_H_ */

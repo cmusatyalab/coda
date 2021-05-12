@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 7
+                              Release 8
 
-          Copyright (c) 2018-2019 Carnegie Mellon University
+          Copyright (c) 2018-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -1598,7 +1598,7 @@ struct filldir_args {
     struct attachment *root;
 };
 
-static int filldir(struct DirEntry *de, void *hook)
+static int filldir(struct DirEntry *de, void *hook) EXCLUDES_TRANSACTION
 {
     struct filldir_args *args = (struct filldir_args *)hook;
     if (strcmp(de->name, ".") == 0 || strcmp(de->name, "..") == 0)

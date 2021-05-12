@@ -70,7 +70,7 @@ extern "C" {
 /* declarations of routines */
 static int IncVVGroup(ViceVersionVector **, int *);
 static void SetResStatus(Vnode *, ResStatus *);
-static void UpdateStats(ViceFid *, fileresstats *);
+static void UpdateStats(ViceFid *, fileresstats *) EXCLUDES_TRANSACTION;
 
 /* FILE RESOLUTION 
  *	Look at Version Vectors from all hosts;
@@ -223,7 +223,7 @@ EndFileResolve:
 
 /* fetch status and data for given fid */
 long RS_FetchFile(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Unsigned Unused,
-                  ResStatus *Status, SE_Descriptor *BD)
+                  ResStatus *Status, SE_Descriptor *BD) EXCLUDES_TRANSACTION
 {
     SE_Descriptor sid;
     Volume *volptr = 0;
@@ -313,7 +313,7 @@ FreeLocks:
 
 long RS_ForceFile(RPC2_Handle RPCid, ViceFid *Fid, ResStoreType Request,
                   RPC2_Integer Length, ViceVersionVector *VV, ResStatus *Status,
-                  SE_Descriptor *BD)
+                  SE_Descriptor *BD) EXCLUDES_TRANSACTION
 {
     Vnode *vptr        = 0;
     Volume *volptr     = 0;
@@ -495,7 +495,7 @@ FreeLocks:
 }
 
 long RS_COP2(RPC2_Handle RPCid, ViceStoreId *StoreId,
-             ViceVersionVector *UpdateSet)
+             ViceVersionVector *UpdateSet) EXCLUDES_TRANSACTION
 {
     return (InternalCOP2(RPCid, StoreId, UpdateSet));
 }

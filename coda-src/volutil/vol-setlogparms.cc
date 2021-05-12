@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -56,7 +56,7 @@ extern PMemMgr *LogStore[];
   S_VolSetLogParms: Set the parameters for the resolution log
 */
 long S_VolSetLogParms(RPC2_Handle rpcid, VolumeId Vid, RPC2_Integer OnFlag,
-                      RPC2_Integer maxlogsize)
+                      RPC2_Integer maxlogsize) EXCLUDES_TRANSACTION
 {
     Volume *volptr = 0;
     Error error;

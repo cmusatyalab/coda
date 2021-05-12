@@ -85,7 +85,7 @@ struct DirSummary {
 /* routines that get summaries */
 static int GetInodeSummary(char *fspath, char *path,
                            VolumeId singleVolumeNumber);
-static int GetVolumeSummary(VolumeId singleVolumeNumber);
+static int GetVolumeSummary(VolumeId singleVolumeNumber) EXCLUDES_TRANSACTION;
 
 /* the checking routines */
 static int SalvageFileSys(char *path,
@@ -99,20 +99,20 @@ static int VnodeInodeCheck(int, struct ViceInodeInfo *, int,
                            struct VolumeSummary *) REQUIRES_TRANSACTION;
 static void
 DirCompletenessCheck(struct VolumeSummary *vsp) REQUIRES_TRANSACTION;
-static void SanityCheckFreeLists();
+static void SanityCheckFreeLists() EXCLUDES_TRANSACTION;
 
 /* correcting/action routines */
 static void CleanInodes(struct InodeSummary *);
 static void ClearROInUseBit(struct VolumeSummary *summary) REQUIRES_TRANSACTION;
 static void FixInodeLinkcount(struct ViceInodeInfo *, struct InodeSummary *);
-static int DestroyBadVolumes();
+static int DestroyBadVolumes() EXCLUDES_TRANSACTION;
 
 /* misc routines */
 int OnlyOneVolume(struct ViceInodeInfo *, VolumeId);
 int InSkipVolumeList(VolumeId, VolumeId *, int);
 static struct VnodeEssence *CheckVnodeNumber(VnodeId vnodeNumber, Unique_t);
-static int AskOffline(VolumeId volumeId);
-static int AskOnline(VolumeId volumeId);
+static int AskOffline(VolumeId volumeId) EXCLUDES_TRANSACTION;
+static int AskOnline(VolumeId volumeId) EXCLUDES_TRANSACTION;
 static void release_locks(int);
 static void GetSkipVolumeNumbers();
 static void zero_globals();

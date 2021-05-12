@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -51,10 +51,12 @@ extern "C" {
 #include "rsle.h"
 #include "resstats.h"
 
-static void AddToIncList(dlist *, dlist *, Volume *, ViceFid *, int = 0);
+static void AddToIncList(dlist *, dlist *, Volume *, ViceFid *,
+                         int = 0) EXCLUDES_TRANSACTION;
 static int CheckResolveRenameSemantics(rsle *, Volume *, ViceFid *, dlist *,
                                        vle **, vle **, vle **, vle **, olist *,
-                                       dlist *, dlist *, int *);
+                                       dlist *, dlist *,
+                                       int *) EXCLUDES_TRANSACTION;
 static int CleanRenameTarget(rsle *, dlist *, Volume *, VolumeId, olist *,
                              int *);
 

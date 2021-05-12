@@ -194,12 +194,12 @@ public:
                 int outoforder) EXCLUDES_TRANSACTION;
     void UnLockObjs(int);
     void MarkFailedMLE(int);
-    void HandleFailedMLE(void);
+    void HandleFailedMLE(void) EXCLUDES_TRANSACTION;
     void MarkCommittedMLE(RPC2_Unsigned);
     void CancelPending() EXCLUDES_TRANSACTION;
     void ClearPending() EXCLUDES_TRANSACTION;
     void ClearToBeRepaired() EXCLUDES_TRANSACTION;
-    void CancelStores();
+    void CancelStores() EXCLUDES_TRANSACTION;
 
     int GetReintegrateable(int, unsigned long *, int *) EXCLUDES_TRANSACTION;
     cmlent *GetFatHead(int) EXCLUDES_TRANSACTION;
@@ -209,7 +209,7 @@ public:
 
     /* Routines for handling inconsistencies and safeguarding against catastrophe! */
     void MakeUsrSpoolDir(char *);
-    int CheckPoint(char *);
+    int CheckPoint(char *) EXCLUDES_TRANSACTION;
 
     void AttachFidBindings() REQUIRES_TRANSACTION;
 
@@ -239,7 +239,7 @@ public:
     int DiscardLocalMutation(char *) EXCLUDES_TRANSACTION; /*U*/
     void PreserveLocalMutation(char *) EXCLUDES_TRANSACTION; /*U*/
     void PreserveAllLocalMutation(char *) EXCLUDES_TRANSACTION; /*U*/
-    void CheckCMLHead(char *msg); /*U*/
+    void CheckCMLHead(char *msg) EXCLUDES_TRANSACTION; /*U*/
     int ListCML(FILE *) EXCLUDES_TRANSACTION; /*N*/
 };
 
@@ -415,10 +415,11 @@ public:
     int ValidateReintegrationHandle() EXCLUDES_TRANSACTION;
     int
     WriteReintegrationHandle(unsigned long *reint_time) EXCLUDES_TRANSACTION;
-    int CloseReintegrationHandle(char *, int, ViceVersionVector *);
+    int CloseReintegrationHandle(char *, int,
+                                 ViceVersionVector *) EXCLUDES_TRANSACTION;
 
     /* Routines for handling inconsistencies and safeguarding against catastrophe! */
-    void abort() REQUIRES_TRANSACTION;
+    void abort() EXCLUDES_TRANSACTION;
     int checkpoint(FILE *);
     void writeops(FILE *);
 
@@ -438,10 +439,10 @@ public:
     /* local-repair addition */
     int GetTid() { return tid; } /*N*/
     void SetTid(int) EXCLUDES_TRANSACTION; /*U*/
-    int ReintReady(); /*U*/
+    int ReintReady() EXCLUDES_TRANSACTION; /*U*/
     int ContainLocalFid(); /*N*/
     void TranslateFid(VenusFid *, VenusFid *); /*T*/
-    void CheckRepair(char *, int *, int *); /*N*/
+    void CheckRepair(char *, int *, int *) EXCLUDES_TRANSACTION; /*N*/
     int DoRepair(char *, int) EXCLUDES_TRANSACTION; /*U*/
     void GetLocalOpMsg(char *); /*N*/
     void SetRepairFlag() EXCLUDES_TRANSACTION; /*U*/
@@ -472,8 +473,11 @@ public:
     cmlent *operator()();
 };
 
-void VolDaemon(void) /* used to be member of class vdb (Satya 3/31/95) */;
-void TrickleReintegrate(); /* used to be in class vdb (Satya 5/20/95) */
+/* used to be member of class vdb (Satya 3/31/95) */
+void VolDaemon(void) EXCLUDES_TRANSACTION;
+
+/* used to be in class vdb (Satya 5/20/95) */
+void TrickleReintegrate() EXCLUDES_TRANSACTION;
 
 class fsobj;
 
@@ -519,8 +523,8 @@ class vdb {
 
     /* Daemon functions. */
     void GetDown() EXCLUDES_TRANSACTION;
-    void FlushCOP2();
-    void CheckPoint(unsigned long);
+    void FlushCOP2() EXCLUDES_TRANSACTION;
+    void CheckPoint(unsigned long) EXCLUDES_TRANSACTION;
     void CheckLocalSubtree();
 
 public:
@@ -537,11 +541,11 @@ public:
     int
     WriteDisconnect(unsigned int age  = V_UNSETAGE,
                     unsigned int time = V_UNSETREINTLIMIT) EXCLUDES_TRANSACTION;
-    int SyncCache(void);
+    int SyncCache(void) EXCLUDES_TRANSACTION;
     void GetCmlStats(cmlstats &, cmlstats &);
 
-    int CallBackBreak(Volid *);
-    void TakeTransition(); /* also a daemon function */
+    int CallBackBreak(Volid *) EXCLUDES_TRANSACTION;
+    void TakeTransition() EXCLUDES_TRANSACTION; /* also a daemon function */
 
     void print() { print(stdout); }
     void print(FILE *fp)
@@ -680,11 +684,11 @@ public:
     void release();
     int Enter(int, uid_t) EXCLUDES_TRANSACTION;
     void Exit(int, uid_t) EXCLUDES_TRANSACTION;
-    void TakeTransition();
+    void TakeTransition() EXCLUDES_TRANSACTION;
     int TransitionPending() { return flags.transition_pending; }
-    void Wait();
+    void Wait() EXCLUDES_TRANSACTION;
     void Signal();
-    void Lock(VolLockType, int = 0);
+    void Lock(VolLockType, int = 0) EXCLUDES_TRANSACTION;
     void UnLock(VolLockType);
     int Collate(connent *, int code, int TranslateEINCOMP = 1);
 
@@ -692,7 +696,8 @@ public:
     int GetVolStat(VolumeStatus *, RPC2_BoundedBS *, VolumeStateType *,
                    unsigned int *age, unsigned int *hogtime, int *conflict,
                    int *cml_size, uint64_t *cml_bytes, RPC2_BoundedBS *,
-                   RPC2_BoundedBS *, uid_t, int local_only);
+                   RPC2_BoundedBS *, uid_t,
+                   int local_only) EXCLUDES_TRANSACTION;
     int SetVolStat(VolumeStatus *, RPC2_BoundedBS *, RPC2_BoundedBS *,
                    RPC2_BoundedBS *, uid_t) EXCLUDES_TRANSACTION;
 
@@ -786,19 +791,20 @@ public:
     ClientModifyLog *GetCML() { return &CML; } /*N*/
     int ContainUnrepairedCML(); /*N*/
     int IsSync(void) { return (flags.sync_reintegrate || ReintLimit == 0); }
-    int WriteDisconnect(unsigned int age  = V_UNSETAGE,
-                        unsigned int time = V_UNSETREINTLIMIT);
+    int
+    WriteDisconnect(unsigned int age  = V_UNSETAGE,
+                    unsigned int time = V_UNSETREINTLIMIT) EXCLUDES_TRANSACTION;
 
     /* Reintegration routines. */
     void Reintegrate() EXCLUDES_TRANSACTION;
     int IncReintegrate(int) EXCLUDES_TRANSACTION;
-    int PartialReintegrate(int, unsigned long *reint_time);
+    int PartialReintegrate(int, unsigned long *reint_time) EXCLUDES_TRANSACTION;
     int IsReintegrating() { return flags.reintegrating; }
-    int ReadyToReintegrate();
+    int ReadyToReintegrate() EXCLUDES_TRANSACTION;
     int GetReintId() EXCLUDES_TRANSACTION; /*U*/
     void CheckTransition(); /*N*/
     void IncAbort(int) EXCLUDES_TRANSACTION; /*U*/
-    int SyncCache(VenusFid *fid = NULL);
+    int SyncCache(VenusFid *fid = NULL) EXCLUDES_TRANSACTION;
 
     void ReportVolState(void);
 
@@ -820,7 +826,7 @@ public:
     VenusFid GenerateLocalFid(ViceDataType) EXCLUDES_TRANSACTION;
 
     int GetConn(connent **c, uid_t uid, mgrpent **m, int *ph_ix,
-                struct in_addr *phost);
+                struct in_addr *phost) EXCLUDES_TRANSACTION;
 
     /* local-repair modifications to the following methods */
     /* Modlog routines. */
@@ -854,7 +860,7 @@ public:
                   RPC2_Unsigned, int prepend) REQUIRES_TRANSACTION;
     /* local-repair modifications to the above methods */
 
-    int CheckPointMLEs(uid_t, char *);
+    int CheckPointMLEs(uid_t, char *) EXCLUDES_TRANSACTION;
     int LastMLETime(unsigned long *);
     int PurgeMLEs(uid_t) EXCLUDES_TRANSACTION;
 
@@ -898,7 +904,7 @@ class volrep : public reintvol {
     volrep(Realm *r, VolumeId vid, const char *name, struct in_addr *addr,
            int readonly, VolumeId parent = 0);
     ~volrep();
-    void ResetTransient();
+    void ResetTransient() EXCLUDES_TRANSACTION;
 
 public:
 #ifdef VENUSDEBUG
@@ -909,7 +915,7 @@ public:
     VolumeId ReplicatedVol() { return replicated; }
     int IsReadWriteReplica() { return (ReplicatedVol() != 0); }
 
-    int GetConn(connent **, uid_t);
+    int GetConn(connent **, uid_t) EXCLUDES_TRANSACTION;
     void GetBandwidth(unsigned long *bw);
 
     void DownMember(struct in_addr *host);
@@ -951,7 +957,7 @@ class repvol : public reintvol {
 
     repvol(Realm *r, VolumeId vid, const char *name, volrep *reps[VSG_MEMBERS]);
     ~repvol();
-    void ResetTransient();
+    void ResetTransient() EXCLUDES_TRANSACTION;
 
 public:
 #ifdef VENUSDEBUG
@@ -959,7 +965,7 @@ public:
     static unsigned int deallocs;
 #endif
 
-    int GetMgrp(mgrpent **, uid_t, RPC2_CountedBS * = 0);
+    int GetMgrp(mgrpent **, uid_t, RPC2_CountedBS * = 0) EXCLUDES_TRANSACTION;
     void GetBandwidth(unsigned long *bw);
 
     void DownMember(struct in_addr *host);
@@ -978,14 +984,15 @@ public:
     void GetVids(VolumeId out[VSG_MEMBERS]);
     int AVSGsize();
     int IsHostedBy(const struct in_addr *addr); /* XXX not called? */
-    void SetStagingServer(struct in_addr *srvr);
+    void SetStagingServer(struct in_addr *srvr) EXCLUDES_TRANSACTION;
     void Reconfigure(void);
 
     /* Allocation routines. */
     void RestoreObj(VenusFid *) REQUIRES_TRANSACTION;
 
     /* Repair routines. */
-    int Repair(VenusFid *, char *, uid_t, VolumeId *, int *);
+    int Repair(VenusFid *, char *, uid_t, VolumeId *,
+               int *) EXCLUDES_TRANSACTION;
     int ConnectedRepair(VenusFid *, char *, uid_t, VolumeId *,
                         int *) EXCLUDES_TRANSACTION;
     int DisconnectedRepair(VenusFid *, char *, uid_t, VolumeId *,
@@ -994,17 +1001,18 @@ public:
                     VenusFid *) REQUIRES_TRANSACTION;
 
     /* Resolution routines */
-    void Resolve();
+    void Resolve() EXCLUDES_TRANSACTION;
     void ResSubmit(char **, VenusFid *, resent **requeue = NULL);
-    int ResAwait(char *);
+    int ResAwait(char *) EXCLUDES_TRANSACTION;
     int RecResolve(connent *, VenusFid *);
     int ResListCount() { return (res_list->count()); }
 
     /* COP2 routines. */
-    int COP2(mgrpent *, RPC2_CountedBS *);
-    int COP2(mgrpent *, ViceStoreId *, ViceVersionVector *, int donotpiggy = 0);
-    int FlushCOP2(time_t = 0);
-    int FlushCOP2(mgrpent *, RPC2_CountedBS *);
+    int COP2(mgrpent *, RPC2_CountedBS *) EXCLUDES_TRANSACTION;
+    int COP2(mgrpent *, ViceStoreId *, ViceVersionVector *,
+             int donotpiggy = 0) EXCLUDES_TRANSACTION;
+    int FlushCOP2(time_t = 0) EXCLUDES_TRANSACTION;
+    int FlushCOP2(mgrpent *, RPC2_CountedBS *) EXCLUDES_TRANSACTION;
     void GetCOP2(RPC2_CountedBS *);
     cop2ent *FindCOP2(ViceStoreId *);
     void AddCOP2(ViceStoreId *, ViceVersionVector *);

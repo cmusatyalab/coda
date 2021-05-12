@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -170,7 +170,7 @@ void show_dir(int argc, char *argv[])
 // remove name from the given directory and mark its vnode in conflict
 // if flag not null, decrease linkCount of directory vnode
 static void delete_name(VolumeId volid, VnodeId vnum, Unique_t unique,
-                        char *name, int flag)
+                        char *name, int flag) EXCLUDES_TRANSACTION
 {
     char buf[SIZEOF_LARGEDISKVNODE];
     VnodeDiskObject *vnode = (VnodeDiskObject *)buf;
@@ -249,7 +249,7 @@ static void delete_name(VolumeId volid, VnodeId vnum, Unique_t unique,
     }
 }
 
-void delete_name(int argc, char *argv[])
+void delete_name(int argc, char *argv[]) EXCLUDES_TRANSACTION
 {
     unsigned int volid, vnode, unique, flag = 0;
 
@@ -266,7 +266,8 @@ void delete_name(int argc, char *argv[])
 }
 
 static void create_name(VolumeId volid, VnodeId vnum, Unique_t unique,
-                        char *name, VnodeId cvnum, Unique_t cunique)
+                        char *name, VnodeId cvnum,
+                        Unique_t cunique) EXCLUDES_TRANSACTION
 {
     /* remove name from the given directory and mark its vnode in conflict */
     char buf[SIZEOF_LARGEDISKVNODE];
@@ -372,7 +373,7 @@ static void create_name(VolumeId volid, VnodeId vnum, Unique_t unique,
     }
 }
 
-void sh_create_name(int argc, char **argv)
+void sh_create_name(int argc, char **argv) EXCLUDES_TRANSACTION
 {
     unsigned int volid, vnode, unique;
     unsigned int cvnode, cunique;

@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -71,7 +71,7 @@ static olist hdbd_msgq;
 
 /*  *****  Private routines  ***** */
 
-static void HDBD_HandleRequests();
+static void HDBD_HandleRequests() EXCLUDES_TRANSACTION;
 
 /*  *****  The HDB Daemon  *****  */
 

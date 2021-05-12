@@ -545,15 +545,15 @@ class fsobj {
 #define LOCALCACHE_HIDDEN ".localcache" /* implies we don't */
 
     /* Local synchronization. */
-    void Lock(LockLevel);
-    void PromoteLock();
-    void DemoteLock();
+    void Lock(LockLevel) EXCLUDES_TRANSACTION;
+    void PromoteLock() EXCLUDES_TRANSACTION;
+    void DemoteLock() EXCLUDES_TRANSACTION;
     void UnLock(LockLevel);
 
     /* Local-global conflict detection */
     int IsToBeRepaired(void);
     uid_t WhoIsLastAuthor(void);
-    int LaunchASR(int, int);
+    int LaunchASR(int, int) EXCLUDES_TRANSACTION;
 
     /* Interface to the dir package. */
     void dir_Create(const char *, VenusFid *);
@@ -607,7 +607,8 @@ class fsobj {
     int GetContainerFD(void) REQUIRES_TRANSACTION;
     int LookAside(void) EXCLUDES_TRANSACTION;
     int FetchFileRPC(connent *con, ViceStatus *status, uint64_t offset,
-                     int64_t len, RPC2_CountedBS *PiggyBS, SE_Descriptor *sed);
+                     int64_t len, RPC2_CountedBS *PiggyBS,
+                     SE_Descriptor *sed) EXCLUDES_TRANSACTION;
     int OpenPioctlFile(void) EXCLUDES_TRANSACTION;
 
     void UpdateVastroFlag(uid_t uid, int force = 0,
@@ -720,16 +721,19 @@ public:
 
     int SetLocalVV(ViceVersionVector *) EXCLUDES_TRANSACTION;
 
-    int RepairStore();
+    int RepairStore() EXCLUDES_TRANSACTION;
     int RepairSetAttr(unsigned long, Date_t, uid_t, unsigned short,
-                      RPC2_CountedBS *);
-    int RepairCreate(fsobj **, char *, unsigned short, int);
-    int RepairRemove(char *, fsobj *);
-    int RepairLink(char *, fsobj *);
-    int RepairRename(fsobj *, char *, fsobj *, char *, fsobj *);
-    int RepairMkdir(fsobj **, char *, unsigned short, int);
-    int RepairRmdir(char *, fsobj *);
-    int RepairSymlink(fsobj **, char *, char *, unsigned short, int);
+                      RPC2_CountedBS *) EXCLUDES_TRANSACTION;
+    int RepairCreate(fsobj **, char *, unsigned short,
+                     int) EXCLUDES_TRANSACTION;
+    int RepairRemove(char *, fsobj *) EXCLUDES_TRANSACTION;
+    int RepairLink(char *, fsobj *) EXCLUDES_TRANSACTION;
+    int RepairRename(fsobj *, char *, fsobj *, char *,
+                     fsobj *) EXCLUDES_TRANSACTION;
+    int RepairMkdir(fsobj **, char *, unsigned short, int) EXCLUDES_TRANSACTION;
+    int RepairRmdir(char *, fsobj *) EXCLUDES_TRANSACTION;
+    int RepairSymlink(fsobj **, char *, char *, unsigned short,
+                      int) EXCLUDES_TRANSACTION;
 
     void FetchProgressIndicator(unsigned long offset);
 

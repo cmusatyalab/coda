@@ -77,21 +77,24 @@ static int AddChildToList(dlist *, Volume *, Vnode *, VnodeId, Unique_t,
                           int = 0);
 static int GatherFids(dlist *, Vnode *, Volume *, arrlist *);
 static int AddRenameChildrenToList(dlist *, Volume *, Vnode *, rsle *);
-static int SetPhase3DirStatus(ViceStatus *, ViceFid *, Volume *, dlist *);
-static int GetResObjs(arrlist *, ViceFid *, Volume **, dlist *);
+static int SetPhase3DirStatus(ViceStatus *, ViceFid *, Volume *,
+                              dlist *) EXCLUDES_TRANSACTION;
+static int GetResObjs(arrlist *, ViceFid *, Volume **,
+                      dlist *) EXCLUDES_TRANSACTION;
 static int CheckSemPerformRes(arrlist *, Volume *, ViceFid *, dlist *, olist *,
-                              dlist *, int *, DirFid *);
+                              dlist *, int *, DirFid *) EXCLUDES_TRANSACTION;
 static int CheckRegularCompOp(rsle *, dlist *, vle *, ViceFid *, Volume *,
                               olist *);
 static int PerformRegularCompOp(int, rsle *, dlist *, dlist *, olist *,
-                                ViceFid *, vle *, Volume *, VolumeId, int *);
+                                ViceFid *, vle *, Volume *, VolumeId,
+                                int *) EXCLUDES_TRANSACTION;
 static int CheckValidityResOp(rsle *, int, int, int, int, dlist *, ViceFid *,
                               olist *, conflictstats *, Volume *);
 static int PerformResOp(rsle *, dlist *, olist *, vle *, Volume *, VolumeId,
-                        int *);
+                        int *) EXCLUDES_TRANSACTION;
 static void PreProcessCompOps(arrlist *);
 static int CmpFidOp(rsle **, rsle **);
-static void UpdateStats(ViceFid *, conflictstats *);
+static void UpdateStats(ViceFid *, conflictstats *) EXCLUDES_TRANSACTION;
 
 /* XXX remember to take this out */
 extern int CmpFid(ViceFid *fa, ViceFid *fb);
@@ -107,7 +110,7 @@ const int Yield_rp3CheckSemPerformRes_Mask =
 long RS_NewShipLogs(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer size,
                     RPC2_Integer nentries, ViceStatus *status,
                     RPC2_BoundedBS *piggyinc, DirFid *HintFid,
-                    SE_Descriptor *sed)
+                    SE_Descriptor *sed) EXCLUDES_TRANSACTION
 {
     SLog(1, "RS_ShipLogs: Entering for Fid (%s)\n", FID_(Fid));
 
@@ -223,7 +226,8 @@ Exit:
 
 long RS_ShipLogs(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer size,
                  RPC2_Integer nentries, ViceStatus *status,
-                 RPC2_BoundedBS *piggyinc, SE_Descriptor *sed)
+                 RPC2_BoundedBS *piggyinc,
+                 SE_Descriptor *sed) EXCLUDES_TRANSACTION
 {
     return RS_NewShipLogs(RPCid, Fid, size, nentries, status, piggyinc, NULL,
                           sed);

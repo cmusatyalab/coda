@@ -279,7 +279,7 @@ int VOL_HashFN(const void *key)
     return volid->Realm + volid->Volume;
 }
 
-static void GetRootVolume(Realm *realm, char **buf)
+static void GetRootVolume(Realm *realm, char **buf) EXCLUDES_TRANSACTION
 {
     connent *c = NULL;
     RPC2_BoundedBS RVN;

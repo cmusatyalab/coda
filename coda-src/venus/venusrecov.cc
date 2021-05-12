@@ -657,7 +657,7 @@ void RecovTruncate(int Force)
             TruncateCount, TruncateSize, elapsed));
 }
 
-void RecovTerminate()
+void RecovTerminate() TRANSACTION_OPTIONAL
 {
     if (RvmType == VM)
         return;

@@ -119,7 +119,7 @@ const char *Server_FQDN[N_SERVERIDS]; /* DNS host name (with optional port) */
 static Volume *VolumeHashTable[VOLUME_HASH_TABLE_SIZE];
 
 extern void dump_storage(int level, const char *s);
-extern void VBumpVolumeUsage(Volume *vp);
+extern void VBumpVolumeUsage(Volume *vp) EXCLUDES_TRANSACTION;
 extern int VCheckVLDB();
 extern int InSkipVolumeList(VolumeId, VolumeId *, int);
 extern void
@@ -146,7 +146,7 @@ static Volume *attach2(Error *ec, char *path, struct VolumeHeader *header,
 static void GetBitmap(Error *ec, Volume *vp,
                       VnodeClass vclass) REQUIRES_TRANSACTION;
 static void VAdjustVolumeStatistics(Volume *vp);
-static void VScanUpdateList();
+static void VScanUpdateList() EXCLUDES_TRANSACTION;
 static int GetVolumeHeader(Volume *vp);
 static int AvailVolumeHeader(Volume *vp);
 static void ReleaseVolumeHeader(struct volHeader *hd);

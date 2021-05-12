@@ -65,7 +65,7 @@ extern "C" {
 */
 long S_VolSetVV(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
                 RPC2_Unsigned vnodeid, RPC2_Unsigned unique,
-                ViceVersionVector *vv)
+                ViceVersionVector *vv) EXCLUDES_TRANSACTION
 {
     Volume *vp;
     Vnode *vnp;

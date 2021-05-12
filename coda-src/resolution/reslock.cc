@@ -59,7 +59,7 @@ extern "C" {
 
 long RS_LockAndFetch(RPC2_Handle RPCid, ViceFid *Fid, ResFetchType Request,
                      ViceVersionVector *VV, ResStatus *rstatus,
-                     RPC2_Integer *logsize)
+                     RPC2_Integer *logsize) EXCLUDES_TRANSACTION
 {
     int errorcode  = 0;
     Volume *volptr = 0;
@@ -155,7 +155,7 @@ FreeLocks:
     return (errorcode);
 }
 
-long RS_UnlockVol(RPC2_Handle RPCid, VolumeId Vid)
+long RS_UnlockVol(RPC2_Handle RPCid, VolumeId Vid) EXCLUDES_TRANSACTION
 {
     Volume *volptr = 0;
     int errorcode  = 0;

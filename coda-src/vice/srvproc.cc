@@ -130,8 +130,10 @@ extern void HandleWeakEquality(Volume *, Vnode *, ViceVersionVector *);
 /* *****  Private routines  ***** */
 
 static int GetFsoAndParent(ViceFid *Fid, dlist *vlist, Volume **volptr, vle **v,
-                           vle **av, int lock, int vollock, int ignoreIncon);
-static int GrabFsObj(ViceFid *, Volume **, Vnode **, int, int, int);
+                           vle **av, int lock, int vollock,
+                           int ignoreIncon) EXCLUDES_TRANSACTION;
+static int GrabFsObj(ViceFid *, Volume **, Vnode **, int, int,
+                     int) EXCLUDES_TRANSACTION;
 static int NormalVCmp(int, VnodeType, void *, void *);
 
 typedef enum
@@ -204,7 +206,7 @@ long FS_ViceFetchPartial(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
                          RPC2_Unsigned InconOK, ViceStatus *Status,
                          RPC2_Unsigned PrimaryHost, RPC2_Unsigned Offset,
                          RPC2_Unsigned Count, RPC2_CountedBS *PiggyBS,
-                         SE_Descriptor *BD)
+                         SE_Descriptor *BD) EXCLUDES_TRANSACTION
 {
     int errorCode       = 0; /* return code to caller */
     Volume *volptr      = 0; /* pointer to the volume */
@@ -297,7 +299,7 @@ long FS_ViceGetAttr(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Unsigned InconOK,
 long FS_ViceGetAttrPlusSHA(RPC2_Handle RPCid, ViceFid *Fid,
                            RPC2_Unsigned InconOK, ViceStatus *Status,
                            RPC2_BoundedBS *MySHA, RPC2_Unsigned Unused,
-                           RPC2_CountedBS *PiggyBS)
+                           RPC2_CountedBS *PiggyBS) EXCLUDES_TRANSACTION
 {
     int errorCode       = 0; /* return code to caller */
     Volume *volptr      = 0; /* pointer to the volume */
@@ -423,10 +425,13 @@ long FS_ViceValidateAttrs(RPC2_Handle RPCid, RPC2_Unsigned Unused,
 /*
   ViceValidateAttrsPlusSHA: A batched version of GetAttrPlusSHA
 */
-long FS_ViceValidateAttrsPlusSHA(
-    RPC2_Handle RPCid, RPC2_Unsigned Unused, ViceFid *PrimaryFid,
-    ViceStatus *Status, RPC2_BoundedBS *MySHA, RPC2_Unsigned NumPiggyFids,
-    ViceFidAndVV Piggies[], RPC2_BoundedBS *VFlagBS, RPC2_CountedBS *PiggyBS)
+long FS_ViceValidateAttrsPlusSHA(RPC2_Handle RPCid, RPC2_Unsigned Unused,
+                                 ViceFid *PrimaryFid, ViceStatus *Status,
+                                 RPC2_BoundedBS *MySHA,
+                                 RPC2_Unsigned NumPiggyFids,
+                                 ViceFidAndVV Piggies[],
+                                 RPC2_BoundedBS *VFlagBS,
+                                 RPC2_CountedBS *PiggyBS) EXCLUDES_TRANSACTION
 {
     long errorCode      = 0; /* return code to caller */
     VolumeId VSGVolnum  = PrimaryFid->Volume;
@@ -535,7 +540,8 @@ Exit:
 */
 long FS_ViceGetACL(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Unsigned InconOK,
                    RPC2_BoundedBS *AccessList, ViceStatus *Status,
-                   RPC2_Unsigned Unused, RPC2_CountedBS *PiggyBS)
+                   RPC2_Unsigned Unused,
+                   RPC2_CountedBS *PiggyBS) EXCLUDES_TRANSACTION
 {
     int errorCode       = 0; /* return code to caller */
     Volume *volptr      = 0; /* pointer to the volume */
@@ -602,7 +608,7 @@ long FS_ViceSetACL(RPC2_Handle RPCid, ViceFid *Fid, RPC2_CountedBS *AccessList,
                    ViceStatus *Status, RPC2_Unsigned Unused,
                    ViceStoreId *StoreId, RPC2_CountedBS *OldVS,
                    RPC2_Integer *NewVS, CallBackStatus *VCBStatus,
-                   RPC2_CountedBS *PiggyBS)
+                   RPC2_CountedBS *PiggyBS) EXCLUDES_TRANSACTION
 {
     int errorCode         = 0; /* return code for caller */
     Volume *volptr        = 0; /* pointer to the volume header */

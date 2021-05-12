@@ -541,7 +541,7 @@ static int DumpVnodeIndex_estimate(Volume *vp, VnodeClass vclass,
   host independent manner
 */
 long S_VolNewDump(RPC2_Handle rpcid, RPC2_Unsigned formal_volumeNumber,
-                  RPC2_Integer *Incremental)
+                  RPC2_Integer *Incremental) EXCLUDES_TRANSACTION
 {
     Volume *vp = 0;
     long rc = 0, retcode = 0;
@@ -721,7 +721,7 @@ failure:
  * S_VolDumpEstimate - estimate the size of a volume dump at various levels. 
  */
 long S_VolDumpEstimate(RPC2_Handle rpcid, RPC2_Unsigned formal_volumeNumber,
-                       VolDumpEstimates *sizes)
+                       VolDumpEstimates *sizes) EXCLUDES_TRANSACTION
 {
     Volume *vp = 0;
     long rc = 0, retcode = 0;

@@ -72,7 +72,7 @@ extern "C" {
   S_VolPurge: Purge the requested volume
 */
 long int S_VolPurge(RPC2_Handle rpcid, RPC2_Unsigned formal_purgeId,
-                    RPC2_String formal_purgeName)
+                    RPC2_String formal_purgeName) EXCLUDES_TRANSACTION
 {
     Error error  = 0;
     Error error2 = 0;

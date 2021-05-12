@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -48,7 +48,8 @@ extern "C" {
   S_VolRVMSize: Returns RVM usage by various components of a Volume
 */
 
-long S_VolRVMSize(RPC2_Handle rpcid, VolumeId VolID, RVMSize_data *data)
+long S_VolRVMSize(RPC2_Handle rpcid, VolumeId VolID,
+                  RVMSize_data *data) EXCLUDES_TRANSACTION
 {
     Volume *vp;
     Error error;

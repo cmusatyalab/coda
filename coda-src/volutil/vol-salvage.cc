@@ -164,7 +164,7 @@ static struct VnodeInfo vnodeInfo[nVNODECLASSES];
 
 long S_VolSalvage(RPC2_Handle rpcid, RPC2_String path,
                   VolumeId singleVolumeNumber, RPC2_Integer force,
-                  RPC2_Integer Debug, RPC2_Integer list)
+                  RPC2_Integer Debug, RPC2_Integer list) EXCLUDES_TRANSACTION
 {
     long rc = 0;
     /* flag specifying whether the salvager may run as a volume utility */
@@ -1683,7 +1683,8 @@ static int GetVolumeSummary(VolumeId singleVolumeNumber)
             if (vsp->header.type ==
                 readwriteVolume) { // simple or replicated readwrite
                 vsp->volindex = i; // set the volume index
-                rc            = AskOffline(
+
+                rc = AskOffline(
                     vsp->header.id); // have the fileserver take it offline
                 if (rc) {
                     VLog(0, "GetVolumeSummary: AskOffline failed, returning");

@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -83,7 +83,8 @@ extern void VAddToVolumeUpdateList(Error *ec, Volume *vp);
 extern void VBumpVolumeUsage(Volume *vp);
 
 static Vnode *VAllocVnodeCommon(Error *ec, Volume *vp, VnodeType type,
-                                VnodeId vnode, Unique_t unique);
+                                VnodeId vnode,
+                                Unique_t unique) EXCLUDES_TRANSACTION;
 static void moveHash(Vnode *vnp, bit32 newHash);
 static void StickOnLruChain(Vnode *vnp, struct VnodeClassInfo *vcp);
 

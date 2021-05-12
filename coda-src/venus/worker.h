@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -174,7 +174,7 @@ public:
     int operator=(worker &); /* not supported! */
     virtual ~worker();
 
-    void AwaitRequest();
+    void AwaitRequest() EXCLUDES_TRANSACTION;
     void Resign(msgent *, int);
     void Return(msgent *, size_t);
     void Return(int);
@@ -182,7 +182,7 @@ public:
     static int isReady() { return (muxfd != -1); }
 
 protected:
-    virtual void main(void);
+    virtual void main(void) EXCLUDES_TRANSACTION;
 };
 
 class worker_iterator : public vproc_iterator {

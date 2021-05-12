@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -49,7 +49,8 @@ static void ProcessIncList(ViceFid *, dlist *, dlist *);
 //	called between phase 3 and phase 4 of resolution
 //		only if needed i.e. if there are inconsistencies
 long RS_HandleInc(RPC2_Handle RPCid, ViceFid *Fid, ViceStoreId *logid,
-                  ViceStatus *status, RPC2_BoundedBS *piggyinc)
+                  ViceStatus *status,
+                  RPC2_BoundedBS *piggyinc) EXCLUDES_TRANSACTION
 {
     PROBE(tpinfo, RecovSubP34Begin);
     Volume *volptr     = 0;

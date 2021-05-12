@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -85,8 +85,9 @@ public:
     void CheckTokenExpiry();
     void Invalidate();
     void Reset();
-    int CheckFetchPartialSupport(RPC2_Handle *cid, srvent *sv, int *retry_cnt);
-    int Connect(RPC2_Handle *, int *, struct in_addr *);
+    int CheckFetchPartialSupport(RPC2_Handle *cid, srvent *sv,
+                                 int *retry_cnt) EXCLUDES_TRANSACTION;
+    int Connect(RPC2_Handle *, int *, struct in_addr *) EXCLUDES_TRANSACTION;
     int GetWaitForever();
     void SetWaitForever(int);
 
@@ -116,6 +117,6 @@ int ConsoleUser(uid_t user);
 
 /* user_daemon.c */
 void USERD_Init(void);
-void UserDaemon(void);
+void UserDaemon(void) EXCLUDES_TRANSACTION;
 
 #endif /* _VENUS_USER_H_ */

@@ -85,7 +85,7 @@ static FILE *infofile;
 */
 long S_VolShowVnode(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
                     RPC2_Unsigned vnodeid, RPC2_Unsigned unique,
-                    SE_Descriptor *formal_sed)
+                    SE_Descriptor *formal_sed) EXCLUDES_TRANSACTION
 {
     Volume *vp;
     Vnode *vnp = 0;

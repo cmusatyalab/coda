@@ -185,7 +185,7 @@ void callbackserver::main(void)
  * broken.  For this then, any callback break that fails to find the fid
  * increments a counter that is compared over the ViceCreate call.  If it
  * changed, we assume it was for us. */
-long VENUS_CallBack(RPC2_Handle RPCid, ViceFid *fid)
+long VENUS_CallBack(RPC2_Handle RPCid, ViceFid *fid) EXCLUDES_TRANSACTION
 {
     ViceFid nullf = { 0, 0, 0 };
     VenusFid vf;
@@ -220,7 +220,8 @@ long VENUS_CallBack(RPC2_Handle RPCid, ViceFid *fid)
     return (0);
 }
 
-long VENUS_CallBackFetch(RPC2_Handle RPCid, ViceFid *Fid, SE_Descriptor *BD)
+long VENUS_CallBackFetch(RPC2_Handle RPCid, ViceFid *Fid,
+                         SE_Descriptor *BD) EXCLUDES_TRANSACTION
 {
     VenusFid vf;
     srvent *s = FindServerByCBCid(RPCid);

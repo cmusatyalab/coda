@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -265,7 +265,7 @@ class srvent : private RefCountedObject {
         return (0);
     } /* not supported! */
     ~srvent();
-    int Connect(RPC2_Handle *, int *, uid_t, int);
+    int Connect(RPC2_Handle *, int *, uid_t, int) EXCLUDES_TRANSACTION;
 
 public:
 #ifdef VENUSDEBUG
@@ -273,9 +273,9 @@ public:
     static int deallocs;
 #endif
 
-    int GetConn(connent **c, uid_t uid, int force = 0);
+    int GetConn(connent **c, uid_t uid, int force = 0) EXCLUDES_TRANSACTION;
 
-    int GetStatistics(ViceStatistics *);
+    int GetStatistics(ViceStatistics *) EXCLUDES_TRANSACTION;
 
     long GetLiveness(struct timeval *);
     long GetBandwidth(unsigned long *);
@@ -314,7 +314,7 @@ class probeslave : public vproc {
     char *sync; /* write TRUE here and signal when finished */
 
 protected:
-    virtual void main(void); /* entry point */
+    virtual void main(void) EXCLUDES_TRANSACTION; /* entry point */
 
 public:
     probeslave(ProbeSlaveTask, void *, void *, char *);
@@ -345,18 +345,18 @@ void CommInit();
 void Conn_Wait();
 void Conn_Signal();
 void PutConn(connent **);
-void Srvr_Wait();
+void Srvr_Wait() EXCLUDES_TRANSACTION;
 void Srvr_Signal();
 srvent *FindServer(struct in_addr *host);
 srvent *FindServerByCBCid(RPC2_Handle);
 srvent *GetServer(struct in_addr *host, RealmId realmid);
 void PutServer(srvent **);
-void ProbeServers(int);
-void DoProbes(int, struct in_addr *);
-void MultiBind(int, struct in_addr *, connent **);
-void MultiProbe(int, RPC2_Handle *);
+void ProbeServers(int) EXCLUDES_TRANSACTION;
+void DoProbes(int, struct in_addr *) EXCLUDES_TRANSACTION;
+void MultiBind(int, struct in_addr *, connent **) EXCLUDES_TRANSACTION;
+void MultiProbe(int, RPC2_Handle *) EXCLUDES_TRANSACTION;
 long HandleProbe(int, RPC2_Handle Handles[], long, long, ...);
-void ServerProbe(long * = 0, long * = 0);
+void ServerProbe(long * = 0, long * = 0) EXCLUDES_TRANSACTION;
 void DownServers(char *, unsigned int *);
 void DownServers(int, struct in_addr *, char *, unsigned int *);
 void CheckServerBW(long);
@@ -365,7 +365,7 @@ int FailReconnect(int, struct in_addr *);
 
 /* comm_daemon.c */
 extern void PROD_Init(void);
-extern void ProbeDaemon(void);
+extern void ProbeDaemon(void) EXCLUDES_TRANSACTION;
 
 /* comm synchronization */
 struct CommQueueStruct {

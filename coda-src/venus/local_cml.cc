@@ -550,7 +550,8 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
             *rcode, msg));
 }
 
-static int DoRepair_GetObjects(VenusFid *fid, fsobj **global, fsobj **local)
+static int DoRepair_GetObjects(VenusFid *fid, fsobj **global,
+                               fsobj **local) EXCLUDES_TRANSACTION
 {
     int rc;
 

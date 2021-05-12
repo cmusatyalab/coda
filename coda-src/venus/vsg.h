@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -66,7 +66,7 @@ public:
 #endif
     void Put(void) { PutRef(); }
 
-    int GetMgrp(mgrpent **m, uid_t uid, int auth = 1);
+    int GetMgrp(mgrpent **m, uid_t uid, int auth = 1) EXCLUDES_TRANSACTION;
     void KillMgrps(void);
     void KillUserMgrps(uid_t uid);
     void KillMgrpMember(struct in_addr *);

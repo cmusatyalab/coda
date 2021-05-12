@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -40,6 +40,7 @@ Pittsburgh, PA.
 #ifndef _FSSYNC_H_
 #define _FSSYNC_H_ 1
 
+#include <coda_tsa.h>
 #include "deprecations.h"
 
 /* FSYNC commands */
@@ -68,7 +69,8 @@ Pittsburgh, PA.
 extern void FSYNC_fsInit();
 extern int FSYNC_clientInit();
 extern void FSYNC_clientFinis();
-extern int FSYNC_askfs(VolumeId volume, int com, int reason);
+extern int FSYNC_askfs(VolumeId volume, int com,
+                       int reason) EXCLUDES_TRANSACTION;
 extern unsigned int
 FSYNC_CheckRelocationSite(VolumeId volumeId) WARN_SINGLE_HOMING;
 

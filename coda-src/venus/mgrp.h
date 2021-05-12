@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -24,7 +24,7 @@ listed in the file CREDITS.
 #include <vcrcommon.h>
 #include "refcounted.h"
 
-void Mgrp_Wait(void);
+void Mgrp_Wait(void) EXCLUDES_TRANSACTION;
 void Mgrp_Signal(void);
 
 class mgrpent;
@@ -117,9 +117,9 @@ public:
     int InUse(void) { return (refcount > 1 || list_empty(&vsghandle)); }
     int IsAuthenticated(void) { return authenticated; }
 
-    int CreateMember(int idx);
+    int CreateMember(int idx) EXCLUDES_TRANSACTION;
     void KillMember(struct in_addr *, int);
-    int GetHostSet();
+    int GetHostSet() EXCLUDES_TRANSACTION;
     void PutHostSet();
 
     void CheckResult();

@@ -93,19 +93,17 @@ ViceVersionVector NullVV = { { 0, 0, 0, 0, 0, 0, 0, 0 }, { 0, 0 }, 0 };
 int OngoingRepairs = 0;
 
 /* external routines */
-extern int CmpPlus(AL_AccessEntry *a, AL_AccessEntry *b);
+int CmpPlus(AL_AccessEntry *a, AL_AccessEntry *b);
 
-extern int CmpMinus(AL_AccessEntry *a, AL_AccessEntry *b);
+int CmpMinus(AL_AccessEntry *a, AL_AccessEntry *b);
 
-extern int CheckWriteMode(ClientEntry *, Vnode *);
+int CheckWriteMode(ClientEntry *, Vnode *);
 
-extern int FetchFileByFD(RPC2_Handle, int fd, ClientEntry *);
+int FetchFileByFD(RPC2_Handle, int fd, ClientEntry *);
 
-extern long FileResolve(res_mgrpent *, ViceFid *, ViceVersionVector **);
+int GetSubTree(ViceFid *, Volume *, dlist *) EXCLUDES_TRANSACTION;
 
-int GetSubTree(ViceFid *, Volume *, dlist *);
-
-int PerformTreeRemoval(struct DirEntry *, void *);
+int PerformTreeRemoval(struct DirEntry *, void *) EXCLUDES_TRANSACTION;
 
 /* ***** Private routines  ***** */
 static int FidSort(ViceFid *);
@@ -113,11 +111,12 @@ void UpdateVVs(ViceVersionVector *, ViceVersionVector *, ViceVersionVector *);
 
 static int PerformDirRepair(ClientEntry *, vle *, Volume *, VolumeId,
                             ViceStatus *, ViceStoreId *, struct repair *, int,
-                            dlist *, Rights, Rights, int *);
+                            dlist *, Rights, Rights,
+                            int *) EXCLUDES_TRANSACTION;
 
 static int CheckDirRepairSemantics(vle *, dlist *, Volume *, ViceStatus *,
                                    ClientEntry *, Rights *, Rights *, int,
-                                   struct repair *);
+                                   struct repair *) EXCLUDES_TRANSACTION;
 
 static int CheckRepairSetNACLSemantics(ClientEntry *, Vnode *, Volume *, char *,
                                        int);
@@ -133,7 +132,7 @@ static int CheckFileRepairSemantics(vle *, vle *, Volume *, ViceStatus *,
 
 static int CheckRepairSemantics(vle *, Volume *, dlist *, ViceStatus *,
                                 ClientEntry *, Rights *, Rights *, int,
-                                struct repair *);
+                                struct repair *) EXCLUDES_TRANSACTION;
 
 static int PerformFileRepair(vle *, Volume *, VolumeId, ViceStatus *,
                              ViceStoreId *, Rights, Rights);
@@ -146,8 +145,9 @@ static int CheckTreeRemoveSemantics(ClientEntry *, Volume *, ViceFid *,
 
 static int getFids(struct DirEntry *dirent, void *data);
 
-static int GetRepairObjects(Volume *, vle *, dlist *, struct repair *, int);
-static int GetResFlag(VolumeId);
+static int GetRepairObjects(Volume *, vle *, dlist *, struct repair *,
+                            int) EXCLUDES_TRANSACTION;
+static int GetResFlag(VolumeId) EXCLUDES_TRANSACTION;
 
 static void COP2Update(Volume *, Vnode *, ViceVersionVector *,
                        vmindex * = NULL) REQUIRES_TRANSACTION;
@@ -158,7 +158,7 @@ const int MaxFidAlloc = 32;
   ViceAllocFids: Allocated a range of fids
 */
 long FS_ViceAllocFids(RPC2_Handle cid, VolumeId Vid, ViceDataType Type,
-                      ViceFidRange *Range)
+                      ViceFidRange *Range) EXCLUDES_TRANSACTION
 {
     long errorCode      = 0;
     VolumeId VSGVolnum  = Vid;
@@ -235,7 +235,7 @@ FreeLocks:
 
 long FS_OldViceAllocFids(RPC2_Handle cid, VolumeId Vid, ViceDataType Type,
                          ViceFidRange *Range, RPC2_Unsigned AllocHost,
-                         RPC2_CountedBS *PiggyBS)
+                         RPC2_CountedBS *PiggyBS) EXCLUDES_TRANSACTION
 {
     long errorCode = 0;
 
@@ -264,7 +264,7 @@ static const int COP2EntrySize =
 /*
   ViceCOP2: Update the VV that was modified during the first phase (COP1)
 */
-long FS_ViceCOP2(RPC2_Handle cid, RPC2_CountedBS *PiggyBS)
+long FS_ViceCOP2(RPC2_Handle cid, RPC2_CountedBS *PiggyBS) EXCLUDES_TRANSACTION
 {
     int errorCode = 0;
     char *cp      = (char *)PiggyBS->SeqBody;
@@ -295,7 +295,8 @@ Exit:
     return (errorCode);
 }
 
-static long ViceResolveOne(vrent *vre, int reson, ViceFid *Fid, DirFid *HintFid)
+static long ViceResolveOne(vrent *vre, int reson, ViceFid *Fid,
+                           DirFid *HintFid) EXCLUDES_TRANSACTION
 {
     int errorCode = 0;
     ViceVersionVector VV;
@@ -401,7 +402,7 @@ FreeGroups:
   ViceResolve: Resolve the diverging replicas of an object
 */
 #define MAX_HINTS 5
-long FS_ViceResolve(RPC2_Handle cid, ViceFid *Fid)
+long FS_ViceResolve(RPC2_Handle cid, ViceFid *Fid) EXCLUDES_TRANSACTION
 {
     DirFid hints[MAX_HINTS];
     int i = 1, j;
@@ -449,7 +450,7 @@ long FS_ViceResolve(RPC2_Handle cid, ViceFid *Fid)
 */
 // THIS CODE IS NEEDED TO DO A CLEARINC FROM THE REPAIR TOOL FOR QUOTA REPAIRS
 long FS_ViceSetVV(RPC2_Handle cid, ViceFid *Fid, ViceVersionVector *VV,
-                  RPC2_CountedBS *PiggyBS)
+                  RPC2_CountedBS *PiggyBS) EXCLUDES_TRANSACTION
 {
     Vnode *vptr            = 0;
     Volume *volptr         = 0;
@@ -508,7 +509,7 @@ FreeLocks:
   ViceRepair: Manually resolve the object
 */
 long FS_ViceRepair(RPC2_Handle cid, ViceFid *Fid, ViceStatus *status,
-                   ViceStoreId *StoreId, SE_Descriptor *BD)
+                   ViceStoreId *StoreId, SE_Descriptor *BD) EXCLUDES_TRANSACTION
 {
     Volume *volptr      = 0; /* pointer to the volume */
     ClientEntry *client = 0; /* pointer to client data */
@@ -954,7 +955,8 @@ int CheckRepairSetNACLSemantics(ClientEntry *client, Vnode *vptr,
 
 static int CheckRepairRenameSemantics(ClientEntry *client, Volume *volptr,
                                       vle *sdv, vle *tdv, vle *sv, vle *tv,
-                                      char *name, char *newname)
+                                      char *name,
+                                      char *newname) EXCLUDES_TRANSACTION
 {
     int errorCode;
     if ((errorCode = CheckRenameSemantics(
@@ -2475,7 +2477,7 @@ void PollAndYield()
   END_HTML
 */
 long FS_ViceGetVolVS(RPC2_Handle cid, VolumeId Vid, RPC2_Integer *VS,
-                     CallBackStatus *CBStatus)
+                     CallBackStatus *CBStatus) EXCLUDES_TRANSACTION
 {
     long errorCode = 0;
     Volume *volptr;
@@ -2627,7 +2629,7 @@ void SetVSStatus(ClientEntry *client, Volume *volptr, RPC2_Integer *NewVS,
 */
 long FS_ViceValidateVols(RPC2_Handle cid, RPC2_Unsigned numVids,
                          ViceVolumeIdStruct Vids[], RPC2_CountedBS *VSBS,
-                         RPC2_BoundedBS *VFlagBS)
+                         RPC2_BoundedBS *VFlagBS) EXCLUDES_TRANSACTION
 {
     long errorCode      = 0;
     ClientEntry *client = 0;

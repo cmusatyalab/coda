@@ -299,7 +299,7 @@ errout:
 long FS_ViceGetVolumeStatus(RPC2_Handle RPCid, VolumeId vid,
                             VolumeStatus *status, RPC2_BoundedBS *name,
                             RPC2_BoundedBS *offlineMsg, RPC2_BoundedBS *motd,
-                            RPC2_Unsigned IsReplicated)
+                            RPC2_Unsigned IsReplicated) EXCLUDES_TRANSACTION
 {
     Vnode *vptr; /* vnode of the new file */
     ViceFid vfid; /* fid of new file */
@@ -424,7 +424,7 @@ long FS_ViceSetVolumeStatus(RPC2_Handle RPCid, VolumeId vid,
                             VolumeStatus *status, RPC2_BoundedBS *name,
                             RPC2_BoundedBS *offlineMsg, RPC2_BoundedBS *motd,
                             RPC2_Unsigned Unused, ViceStoreId *StoreId,
-                            RPC2_CountedBS *PiggyCOP2)
+                            RPC2_CountedBS *PiggyCOP2) EXCLUDES_TRANSACTION
 {
     ViceFid vfid; /* fid of new file */
     long errorCode; /* error code */

@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 7
+                              Release 8
 
-          Copyright (c) 1987-2019 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -319,7 +319,7 @@ time_t Vtime();
 int FAV_Compare(ViceFidAndVV *, ViceFidAndVV *);
 void DaemonInit();
 void FireAndForget(const char *name, void (*f)(void), int interval,
-                   int stacksize = 32 * 1024);
+                   int stacksize = 32 * 1024) EXCLUDES_TRANSACTION;
 void RegisterDaemon(unsigned long, char *);
 void DispatchDaemons();
 

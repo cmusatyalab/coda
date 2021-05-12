@@ -46,7 +46,7 @@ public:
     RealmDB(void) REQUIRES_TRANSACTION;
     ~RealmDB(void);
 
-    void ResetTransient(void);
+    void ResetTransient(void) EXCLUDES_TRANSACTION;
 
     Realm *GetRealm(const char *realm) EXCLUDES_TRANSACTION;
     Realm *GetRealm(const RealmId realmid);

@@ -47,7 +47,7 @@ const int MWBUFSIZE = 80;
 void MarinerInit(void);
 void MarinerMux(int fd, void *udata);
 void MarinerLog(const char *, ...);
-void MarinerReport(VenusFid *, uid_t);
+void MarinerReport(VenusFid *, uid_t) EXCLUDES_TRANSACTION;
 void MarinerReportVolState(const char *volname, const char *realm,
                            const char *state, int cml_entries,
                            const struct VolFlags *vflags);
@@ -86,14 +86,14 @@ class mariner : public vproc {
 
     int Read();
     int Write(const char *buf, ...);
-    int AwaitRequest();
+    int AwaitRequest() EXCLUDES_TRANSACTION;
     void Resign(int);
-    void PathStat(char *);
+    void PathStat(char *) EXCLUDES_TRANSACTION;
     void FidStat(VenusFid *) EXCLUDES_TRANSACTION;
     void Rpc2Stat();
 
 protected:
-    virtual void main(void);
+    virtual void main(void) EXCLUDES_TRANSACTION;
 
 public:
     int IsLogging(void) { return logging; }

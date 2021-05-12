@@ -93,9 +93,10 @@ extern "C" {
 #include <coda_globals.h>
 #include <voldump.h>
 
-static int RestoreVolume(DumpBuffer_t *, char *, char *, VolumeId *);
-static int ReadLargeVnodeIndex(DumpBuffer_t *, Volume *);
-static int ReadSmallVnodeIndex(DumpBuffer_t *, Volume *);
+static int RestoreVolume(DumpBuffer_t *, char *, char *,
+                         VolumeId *) EXCLUDES_TRANSACTION;
+static int ReadLargeVnodeIndex(DumpBuffer_t *, Volume *) EXCLUDES_TRANSACTION;
+static int ReadSmallVnodeIndex(DumpBuffer_t *, Volume *) EXCLUDES_TRANSACTION;
 static int ReadVnodeDiskObject(DumpBuffer_t *, VnodeDiskObject *, PDirInode *,
                                Volume *, long *);
 
@@ -107,7 +108,8 @@ extern void PollAndYield();
   S_VolRestore: Restore a volume from a dump file
 */
 long S_VolRestore(RPC2_Handle rpcid, RPC2_String formal_partition,
-                  RPC2_String formal_volname, RPC2_Unsigned *formal_volid)
+                  RPC2_String formal_volname,
+                  RPC2_Unsigned *formal_volid) EXCLUDES_TRANSACTION
 {
     int status = 0;
     long rc    = 0;
@@ -374,7 +376,7 @@ error:
  * lists are created as well, but no vnodes should be added. So this routine
  * will free up the empty indexes and would delete any vnodes if there are any.
  */
-static void FreeVnodeIndex(Volume *vp, VnodeClass vclass)
+static void FreeVnodeIndex(Volume *vp, VnodeClass vclass) EXCLUDES_TRANSACTION
 {
     rec_smolist *list = NULL;
     bit32 listsize    = 0;

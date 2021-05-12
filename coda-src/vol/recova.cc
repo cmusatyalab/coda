@@ -63,9 +63,9 @@ extern void PrintCamVolume(int, int);
 extern void DeleteVolumeFromHashTable(Volume *);
 extern void PollAndYield();
 
-static int DeleteVolHeader(int);
-static int DeleteVolData(int);
-static int DeleteVnodes(unsigned int, Device, VnodeClass);
+static int DeleteVolHeader(int) EXCLUDES_TRANSACTION;
+static int DeleteVolData(int) EXCLUDES_TRANSACTION;
+static int DeleteVnodes(unsigned int, Device, VnodeClass) EXCLUDES_TRANSACTION;
 
 /* Number of vnodes to delete per transaction. */
 static int MaxVnodesPerTransaction = 8;

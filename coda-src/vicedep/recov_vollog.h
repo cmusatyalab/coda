@@ -94,7 +94,7 @@ public:
     int AllocRecord(int *index, int *seqno); // in vm only
     void DeallocRecord(int index); // in vm only
     int AllocViaWrapAround(int *, int *, Volume *,
-                           dlist * = NULL); // reuse record
+                           dlist * = NULL) EXCLUDES_TRANSACTION; // reuse record
     recle *RecovPutRecord(int index) REQUIRES_TRANSACTION; // in rvm
     void RecovFreeRecord(int index) REQUIRES_TRANSACTION; // in rvm
     int bmsize();

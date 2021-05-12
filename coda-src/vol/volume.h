@@ -354,20 +354,20 @@ extern const char *VSalvageMessage; /* Common message used when the volume goes
 extern int VolDebugLevel; /* Controls level of debugging information */
 extern int AllowResolution; /* global flag to turn on dir. resolution */
 extern void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes,
-                               int DoSalvage);
+                               int DoSalvage) EXCLUDES_TRANSACTION;
 extern int VInitVolUtil(ProgramType pt);
 extern void VInitServerList(const char *host);
 extern int VConnectFS();
 extern void VDisconnectFS();
-extern void VUCloneVolume(Error *, Volume *, Volume *);
-extern void VListVolumes(char **buf, unsigned int *buflen);
+extern void VUCloneVolume(Error *, Volume *, Volume *) EXCLUDES_TRANSACTION;
+extern void VListVolumes(char **buf, unsigned int *buflen) EXCLUDES_TRANSACTION;
 extern void VGetVolumeInfo(Error *ec, char *key, VolumeInfo *info);
 extern const char *VGetVolumeLocation(VolumeId vid);
-extern Volume *VGetVolume(Error *ec, VolumeId volumeId);
+extern Volume *VGetVolume(Error *ec, VolumeId volumeId) EXCLUDES_TRANSACTION;
 extern void VPutVolume(Volume *vp);
 extern Volume *VAttachVolume(Error *ec, VolumeId volumeId,
-                             int mode) REQUIRES_TRANSACTION;
-extern void VDetachVolume(Error *ec, Volume *vp) REQUIRES_TRANSACTION;
+                             int mode) EXCLUDES_TRANSACTION;
+extern void VDetachVolume(Error *ec, Volume *vp) EXCLUDES_TRANSACTION;
 extern void VUpdateVolume(Error *ec, Volume *vp);
 extern int VAllocBitmapEntry(Error *ec, Volume *vp, struct vnodeIndex *index,
                              int stride, int ix, int count);
@@ -378,12 +378,12 @@ extern void VFreeBitMapEntry(Error *ec, struct vnodeIndex *index,
 extern int VolumeNumber(char *name);
 extern char *VolumeExternalName(VolumeId volumeId);
 extern Volume *VAttachVolumeById(Error *ec, char *partition, VolumeId volid,
-                                 int mode) REQUIRES_TRANSACTION;
-extern void VOffline(Volume *vp, const char *message);
+                                 int mode) EXCLUDES_TRANSACTION;
+extern void VOffline(Volume *vp, const char *message) EXCLUDES_TRANSACTION;
 extern void VForceOffline(Volume *vp);
 extern void VPurgeVolume(Volume *vp);
 extern void VShutdown();
-extern void VSetDiskUsage();
+extern void VSetDiskUsage() EXCLUDES_TRANSACTION;
 extern void SetVolDebugLevel(int);
 extern void FreeVolume(Volume *vp);
 extern void DeleteVolumeFromHashTable(Volume *vp);
@@ -429,6 +429,6 @@ Error VAdjustDiskUsage(Volume *vp, int blocks);
 Error VCheckDiskUsage(Volume *vp, int blocks);
 void PutVolObj(Volume **volptr, int LockLevel, int Dequeue);
 int GetVolObj(VolumeId Vid, Volume **volptr, int LockLevel, int Enque,
-              unsigned LockerAddress);
+              unsigned LockerAddress) EXCLUDES_TRANSACTION;
 
 #endif /* VOLUME_INCLUDED */

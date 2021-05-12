@@ -28,12 +28,12 @@ listed in the file CREDITS.
 
 #define HASHTABLESIZE 512 /* Number of buckets in volume hash table */
 
-extern int coda_init();
+extern int coda_init() EXCLUDES_TRANSACTION;
 
 extern int NewVolHeader(struct VolumeHeader *header,
                         Error *err) REQUIRES_TRANSACTION;
-extern int DeleteVolume(Volume *vp);
-extern int DeleteRvmVolume(unsigned int, Device);
+extern int DeleteVolume(Volume *vp) EXCLUDES_TRANSACTION;
+extern int DeleteRvmVolume(unsigned int, Device) EXCLUDES_TRANSACTION;
 extern int ExtractVolHeader(VolumeId volid, struct VolumeHeader *header);
 extern int VolHeaderByIndex(int index, struct VolumeHeader *header);
 extern void CheckVolData(Error *ec, int volindex);

@@ -37,17 +37,19 @@ extern "C" {
 #if defined(__has_attribute)
 #if __has_attribute(acquire_capability)
 
-/* define a dummy global variable to be used as a unique 'lock' to ensure
- * exclusive access to critical regions */
+/* define a dummy global variables to be used as a unique markers to
+ * indicate if we are in a transaction or not. */
 extern struct __attribute__((capability("mutex"))) {
     char x;
-} __rvm_transaction__;
+} __rvm_transaction__, __no_transaction__;
 
 /* Simple begin transaction, end transaction annotations */
-#define BEGINS_TRANSACTION \
-    __attribute__((acquire_capability(__rvm_transaction__)))
-#define ENDS_TRANSACTION \
-    __attribute__((release_capability(__rvm_transaction__)))
+#define BEGINS_TRANSACTION                                  \
+    __attribute__((release_capability(__no_transaction__))) \
+        __attribute__((acquire_capability(__rvm_transaction__)))
+#define ENDS_TRANSACTION                                     \
+    __attribute__((release_capability(__rvm_transaction__))) \
+        __attribute__((acquire_capability(__no_transaction__)))
 
 /* This formalize the existing 'MUST be called from within transaction'
  * comments as a traceable annotation on the function prototype. */
@@ -55,21 +57,28 @@ extern struct __attribute__((capability("mutex"))) {
     __attribute__((requires_capability(__rvm_transaction__)))
 
 /* This indicates the function (or a child) starts a transaction, so we
- * shouldn't be in a transaction already, maybe also useful to tag
- * yielding functions that we don't want to call during a transaction. */
+ * shouldn't be in a transaction already, also useful to tag yielding functions
+ * that we don't want to call during a transaction.
+ *
+ * Use on function prototypes to declare they should not be called when a RVM
+ * transaction is already active, i.e. the function (or children) start their
+ * own transaction or yield to other LWP threads.
+ *
+ * Should be used in the code to mark entry points such as main() and RPC2
+ * server function implementations. */
 #define EXCLUDES_TRANSACTION \
-    __attribute__((locks_excluded(__rvm_transaction__)))
-// we really need a stronger negative requirement, maybe we could add a second
-// 'lock' that is held whenever there is no active transaction?
-//    __attribute__((requires_capability(__no_rvm_transaction__)))
+    __attribute__((requires_capability(__no_transaction__)))
+// this is the weaker version that doesn't rely on a __no_transaction__ lock.
+//    __attribute__((locks_excluded(__rvm_transaction__)))
 
 /* This is more tricky, some functions change their behaviour based on an in
  * place test (rvm_in_trans) or from a passed argument (recoverable=True).
  * The first case is probably ok, for the second case we can't actually prove
- * they were called correctly. Either way, disable analysis to avoid warnings. */
+ * they were called correctly. Either way, disable analysis to avoid warnings.
+ * It may be useful to split these functions into RVM and non-RVM variants. */
 #define TRANSACTION_OPTIONAL __attribute__((no_thread_safety_analysis))
 
-/* And these may be useful to flag specific variable that should only be
+/* And these should be useful to flag specific variables that should only be
  * mutated while within a transaction. */
 #define RVM_OBJECT __attribute__((guarded_by(__rvm_transaction__)))
 #define RVM_OBJECT_PTR __attribute__((pt_guarded_by(__rvm_transaction__)))

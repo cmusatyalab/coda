@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -226,7 +226,8 @@ void show_free(int argc, char *argv[])
 
 // remove name from the given directory and mark its vnode in conflict
 // if flag not null, decrease linkCount of directory vnode
-static void setcount(int volid, int vnum, int unique, int count)
+static void setcount(int volid, int vnum, int unique,
+                     int count) EXCLUDES_TRANSACTION
 {
     char buf[SIZEOF_LARGEDISKVNODE];
     VnodeDiskObject *vnode = (VnodeDiskObject *)buf;
@@ -267,7 +268,7 @@ static void setcount(int volid, int vnum, int unique, int count)
     }
 }
 
-void set_linkcount(int argc, char *argv[])
+void set_linkcount(int argc, char *argv[]) EXCLUDES_TRANSACTION
 {
     unsigned int volid, vnode, unique, count;
 

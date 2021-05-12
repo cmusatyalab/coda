@@ -111,7 +111,7 @@ extern void UpdateVVs(ViceVersionVector *, ViceVersionVector *,
                       ViceVersionVector *);
 
 long RS_InstallVV(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
-                  SE_Descriptor *sed)
+                  SE_Descriptor *sed) EXCLUDES_TRANSACTION
 {
     PROBE(tpinfo, CPHASE3BEGIN);
     Volume *volptr = NULL;

@@ -2990,7 +2990,9 @@ fso_iterator::fso_iterator(LockLevel level, const VenusFid *key)
 }
 
 /* Returns entry locked as specified. */
-fsobj *fso_iterator::operator()()
+/* Maybe we should have a non-locking iterator to improve
+ * checks if we are locking during an rvm transaction */
+fsobj *fso_iterator::operator()() TRANSACTION_OPTIONAL
 {
     for (;;) {
         rec_olink *o = rec_ohashtab_iterator::operator()();

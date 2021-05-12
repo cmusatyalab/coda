@@ -197,21 +197,21 @@ typedef struct Vnode {
 #define VnSHA(vnp) ((vnp)->SHA)
 
 PDirHandle SetDirHandle(struct Vnode *);
-extern int VolumeHashOffset();
-extern void VInitVnodes(VnodeClass, int);
-extern Vnode *VGetVnode(Error *, Volume *, VnodeId, Unique_t, int, int,
-                        int = 0);
-extern void VPutVnode(Error *ec, Vnode *vnp) REQUIRES_TRANSACTION;
-extern void VFlushVnode(Error *, Vnode *) REQUIRES_TRANSACTION;
-extern int VAllocFid(Volume *vp, VnodeType type, ViceFidRange *Range,
-                     int stride = 1, int ix = 0);
-extern int VAllocFid(Volume *vp, VnodeType type, VnodeId vnode,
-                     Unique_t unique);
-extern Vnode *VAllocVnode(Error *ec, Volume *vp, VnodeType type, int stride = 1,
-                          int ix = 0);
-extern Vnode *VAllocVnode(Error *ec, Volume *vp, VnodeType type, VnodeId vnode,
-                          Unique_t unique);
-extern int ObjectExists(int, int, VnodeId, Unique_t, ViceFid * = NULL);
+int VolumeHashOffset();
+void VInitVnodes(VnodeClass, int);
+Vnode *VGetVnode(Error *, Volume *, VnodeId, Unique_t, int, int,
+                 int = 0) REQUIRES_TRANSACTION;
+void VPutVnode(Error *ec, Vnode *vnp) REQUIRES_TRANSACTION;
+void VFlushVnode(Error *, Vnode *) REQUIRES_TRANSACTION;
+int VAllocFid(Volume *vp, VnodeType type, ViceFidRange *Range, int stride = 1,
+              int ix = 0) EXCLUDES_TRANSACTION;
+int VAllocFid(Volume *vp, VnodeType type, VnodeId vnode,
+              Unique_t unique) EXCLUDES_TRANSACTION;
+Vnode *VAllocVnode(Error *ec, Volume *vp, VnodeType type, int stride = 1,
+                   int ix = 0) EXCLUDES_TRANSACTION;
+Vnode *VAllocVnode(Error *ec, Volume *vp, VnodeType type, VnodeId vnode,
+                   Unique_t unique) EXCLUDES_TRANSACTION;
+int ObjectExists(int, int, VnodeId, Unique_t, ViceFid * = NULL);
 
 int VN_DCommit(Vnode *vnp) REQUIRES_TRANSACTION;
 int VN_DAbort(Vnode *vnp);

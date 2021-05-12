@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -163,37 +163,40 @@ struct ilink : public dlink {
     }
 };
 
-extern void GetResStatus(unsigned long *, ResStatus **, ViceStatus *);
-extern void AllocStoreId(ViceStoreId *);
-extern long CheckRetCodes(RPC2_Integer *, unsigned long *, unsigned long *);
-extern long CheckResRetCodes(RPC2_Integer *, unsigned long *, unsigned long *);
-extern void BSToDlist(RPC2_BoundedBS *, dlist *);
-extern void DlistToBS(dlist *, RPC2_BoundedBS *);
-extern void ParseIncBSEntry(char **, char **, long *, long *, long *, long *,
-                            long *);
-extern void AllocIncBSEntry(RPC2_BoundedBS *, char *, ViceFid *, ViceFid *,
-                            long);
-extern int CompareIlinkEntry(ilink *, ilink *);
-extern ilink *AddILE(dlist &, const char *, long, long, long, long, long);
-extern void CleanIncList(dlist *);
-extern void MarkObjInc(ViceFid *, Vnode *);
-extern int CreateObjToMarkInc(Volume *, ViceFid *, ViceFid *, char *, int,
-                              dlist *, int *);
+void GetResStatus(unsigned long *, ResStatus **, ViceStatus *);
+void AllocStoreId(ViceStoreId *);
+long CheckRetCodes(RPC2_Integer *, unsigned long *, unsigned long *);
+long CheckResRetCodes(RPC2_Integer *, unsigned long *, unsigned long *);
+void BSToDlist(RPC2_BoundedBS *, dlist *);
+void DlistToBS(dlist *, RPC2_BoundedBS *);
+void ParseIncBSEntry(char **, char **, long *, long *, long *, long *, long *);
+void AllocIncBSEntry(RPC2_BoundedBS *, char *, ViceFid *, ViceFid *, long);
+int CompareIlinkEntry(ilink *, ilink *);
+ilink *AddILE(dlist &, const char *, long, long, long, long, long);
+void CleanIncList(dlist *);
+void MarkObjInc(ViceFid *, Vnode *);
+int CreateObjToMarkInc(Volume *, ViceFid *, ViceFid *, char *, int, dlist *,
+                       int *) EXCLUDES_TRANSACTION;
 void ObtainResStatus(ResStatus *, VnodeDiskObjectStruct *);
 
-extern int GetPhase2Objects(ViceFid *, dlist *, dlist *, Volume **);
-extern int CreateResPhase2Objects(ViceFid *, dlist *, dlist *, Volume *,
-                                  VolumeId, int *);
-extern void GetRemoteRemoveStoreId(ViceStoreId *, olist *, unsigned long,
-                                   ViceFid *, ViceFid *, char *);
-extern ViceStoreId *GetRemoteRemoveStoreId(olist *, unsigned long, ViceFid *,
-                                           ViceFid *, char *);
-extern int GetNameInParent(Vnode *, dlist *, Volume *, char *);
+int GetPhase2Objects(ViceFid *, dlist *, dlist *,
+                     Volume **) EXCLUDES_TRANSACTION;
+int CreateResPhase2Objects(ViceFid *, dlist *, dlist *, Volume *, VolumeId,
+                           int *) EXCLUDES_TRANSACTION;
+void GetRemoteRemoveStoreId(ViceStoreId *, olist *, unsigned long, ViceFid *,
+                            ViceFid *, char *);
+ViceStoreId *GetRemoteRemoveStoreId(olist *, unsigned long, ViceFid *,
+                                    ViceFid *, char *);
+int GetNameInParent(Vnode *, dlist *, Volume *, char *) EXCLUDES_TRANSACTION;
 
 void *Dir_n_ACL(struct Vnode *vn, int *size);
 
 /* declarations from rescoord.c */
 class res_mgrpent;
-extern long OldDirResolve(res_mgrpent *, ViceFid *, ViceVersionVector **);
+long OldDirResolve(res_mgrpent *, ViceFid *, ViceVersionVector **);
+
+/* from resfile.c */
+long FileResolve(res_mgrpent *, ViceFid *,
+                 ViceVersionVector **) EXCLUDES_TRANSACTION;
 
 #endif /* _RESUTIL_H_ */

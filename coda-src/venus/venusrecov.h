@@ -155,7 +155,7 @@ extern unsigned long MAXTS;
 void _Recov_BeginTrans(const char file[], int line) BEGINS_TRANSACTION;
 void Recov_EndTrans(int) ENDS_TRANSACTION;
 void Recov_SetBound(int);
-void RecovInit();
+void RecovInit() EXCLUDES_TRANSACTION;
 void RecovFlush(int = 0); /* XXX - parameter is now redundant! */
 void RecovTruncate(int = 0); /* XXX - parameter is now redundant! */
 void RecovTerminate();
@@ -163,7 +163,7 @@ void RecovPrint(int);
 RPC2_String Copy_RPC2_String(RPC2_String &) REQUIRES_TRANSACTION;
 void Free_RPC2_String(RPC2_String &) REQUIRES_TRANSACTION;
 void RECOVD_Init(void);
-void RecovDaemon(void);
+void RecovDaemon(void) EXCLUDES_TRANSACTION;
 
 void Recov_GenerateStoreId(ViceStoreId *sid) REQUIRES_TRANSACTION;
 

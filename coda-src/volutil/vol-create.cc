@@ -99,7 +99,7 @@ static int ViceCreateRoot(Volume *vp) REQUIRES_TRANSACTION;
 
 long S_VolCreate(RPC2_Handle rpcid, RPC2_String formal_partition,
                  RPC2_String formal_volname, VolumeId *volid,
-                 RPC2_Integer repvol, VolumeId grpId)
+                 RPC2_Integer repvol, VolumeId grpId) EXCLUDES_TRANSACTION
 {
     VolumeId volumeId   = 0;
     VolumeId parentId   = 0;

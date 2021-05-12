@@ -67,8 +67,9 @@ extern void ChangeDiskUsage(Volume *, int);
 extern int FetchFileByFD(RPC2_Handle, int fd, ClientEntry *);
 
 static int GetOpList(int fd, olist *);
-static int ObtainDirOps(PDirEntry, void *);
-static int ForceDir(vle *, Volume *, VolumeId, olist *, dlist *, int *);
+static int ObtainDirOps(PDirEntry, void *) EXCLUDES_TRANSACTION;
+static int ForceDir(vle *, Volume *, VolumeId, olist *, dlist *,
+                    int *) EXCLUDES_TRANSACTION;
 static int CheckForceDirSemantics(olist *, Volume *, Vnode *);
 
 void UpdateRunts(res_mgrpent *mgrp, ViceVersionVector **VV, ViceFid *Fid)
@@ -179,7 +180,7 @@ void UpdateRunts(res_mgrpent *mgrp, ViceVersionVector **VV, ViceFid *Fid)
 
 long RS_DoForceDirOps(RPC2_Handle RPCid, ViceFid *Fid, ViceStatus *status,
                       RPC2_BoundedBS *AccessList, RPC2_Integer *rstatus,
-                      SE_Descriptor *BD)
+                      SE_Descriptor *BD) EXCLUDES_TRANSACTION
 {
     Vnode *dirvptr     = 0;
     Volume *volptr     = 0;
@@ -332,7 +333,8 @@ FreeLocks:
 /* Given the contents of a directory, derive the ops needed to force this
    directory onto a runt version */
 long RS_GetForceDirOps(RPC2_Handle RPCid, ViceFid *Fid, ViceStatus *status,
-                       RPC2_BoundedBS *AccessList, SE_Descriptor *BD)
+                       RPC2_BoundedBS *AccessList,
+                       SE_Descriptor *BD) EXCLUDES_TRANSACTION
 {
     Vnode *vptr    = 0;
     Volume *volptr = 0;

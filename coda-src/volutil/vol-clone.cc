@@ -94,7 +94,8 @@ extern "C" {
 
 extern void PollAndYield();
 
-static void VUCloneIndex(Error *, Volume *, Volume *, VnodeClass);
+static void VUCloneIndex(Error *, Volume *, Volume *,
+                         VnodeClass) EXCLUDES_TRANSACTION;
 
 /*
     S_VolClone: Create a new readonly clone of a volume.
@@ -103,7 +104,8 @@ static void VUCloneIndex(Error *, Volume *, Volume *, VnodeClass);
  * cloneId: OUT Parameter; Id of cloned volume returned in that param.
  */
 long S_VolClone(RPC2_Handle rpcid, RPC2_Unsigned formal_ovolid,
-                RPC2_String formal_newname, RPC2_Unsigned *formal_cloneId)
+                RPC2_String formal_newname,
+                RPC2_Unsigned *formal_cloneId) EXCLUDES_TRANSACTION
 {
     /* To keep C++ 2.0 happy */
     VolumeId ovolid   = (VolumeId)formal_ovolid;

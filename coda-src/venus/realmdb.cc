@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 2003 Carnegie Mellon University
+         Copyright (c) 2003-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -137,7 +137,7 @@ void RealmDB::print(FILE *f)
     fprintf(f, "*** END RealmDB ***\n");
 }
 
-static void RealmDB_GetDown(void)
+static void RealmDB_GetDown(void) EXCLUDES_TRANSACTION
 {
     REALMDB->GetDown();
 }

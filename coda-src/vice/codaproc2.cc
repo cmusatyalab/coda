@@ -174,12 +174,13 @@ struct rle {
 static int ValidateReintegrateParms(RPC2_Handle, VolumeId *, Volume **,
                                     ClientEntry **, unsigned int,
                                     struct dllist_head *, RPC2_Integer *,
-                                    ViceReintHandle *, int *);
+                                    ViceReintHandle *,
+                                    int *) EXCLUDES_TRANSACTION;
 static int GetReintegrateObjects(ClientEntry *, struct dllist_head *, dlist *,
-                                 int *, RPC2_Integer *);
+                                 int *, RPC2_Integer *) EXCLUDES_TRANSACTION;
 static int CheckSemanticsAndPerform(ClientEntry *, VolumeId, VolumeId,
                                     struct dllist_head *, dlist *, int *,
-                                    RPC2_Integer *);
+                                    RPC2_Integer *) EXCLUDES_TRANSACTION;
 static void PutReintegrateObjects(int, Volume *, struct dllist_head *, dlist *,
                                   int, RPC2_Integer, ClientEntry *,
                                   RPC2_Unsigned, RPC2_Unsigned *, ViceFid *,
@@ -187,14 +188,16 @@ static void PutReintegrateObjects(int, Volume *, struct dllist_head *, dlist *,
                                   CallBackStatus *, int);
 
 static int AllocReintegrateVnode(Volume **, dlist *, ViceFid *, ViceFid *,
-                                 ViceDataType, UserId, int *);
+                                 ViceDataType, UserId,
+                                 int *) EXCLUDES_TRANSACTION;
 
-static int AddParent(Volume **, dlist *, ViceFid *);
+static int AddParent(Volume **, dlist *, ViceFid *) EXCLUDES_TRANSACTION;
 static int ReintNormalVCmp(int, VnodeType, void *, void *);
 static void ReintPrelimCOP(vle *, const ViceStoreId *oldSID,
                            const ViceStoreId *newSID);
-static void ReintFinalCOP(vle *, Volume *, RPC2_Integer *, int voltype);
-static int ValidateRHandle(VolumeId, ViceReintHandle *);
+static void ReintFinalCOP(vle *, Volume *, RPC2_Integer *,
+                          int voltype) EXCLUDES_TRANSACTION;
+static int ValidateRHandle(VolumeId, ViceReintHandle *) EXCLUDES_TRANSACTION;
 
 /*
   ViceReintegrate: Reintegrate disconnected mutations
@@ -204,7 +207,8 @@ long FS_ViceReintegrate(RPC2_Handle RPCid, VolumeId Vid, RPC2_Integer LogSize,
                         RPC2_Unsigned MaxDirs, RPC2_Unsigned *NumDirs,
                         ViceFid StaleDirs[], RPC2_CountedBS *OldVS,
                         RPC2_Integer *NewVS, CallBackStatus *VCBStatus,
-                        RPC2_CountedBS *PiggyBS, SE_Descriptor *BD)
+                        RPC2_CountedBS *PiggyBS,
+                        SE_Descriptor *BD) EXCLUDES_TRANSACTION
 {
     START_TIMING(Reintegrate_Total);
     SLog(1, "ViceReintegrate: Volume = %x", Vid);
@@ -269,7 +273,7 @@ FreeLocks:
   an upcoming reintegration call
 */
 long FS_ViceOpenReintHandle(RPC2_Handle RPCid, ViceFid *Fid,
-                            ViceReintHandle *RHandle)
+                            ViceReintHandle *RHandle) EXCLUDES_TRANSACTION
 {
     int errorCode       = 0; /* return code for caller */
     Volume *volptr      = 0; /* pointer to the volume header */
@@ -313,7 +317,8 @@ FreeLocks:
   but could be expanded to handle negotiation.
 */
 long FS_ViceQueryReintHandle(RPC2_Handle RPCid, VolumeId Vid,
-                             ViceReintHandle *RHandle, RPC2_Unsigned *Length)
+                             ViceReintHandle *RHandle,
+                             RPC2_Unsigned *Length) EXCLUDES_TRANSACTION
 {
     int errorCode = 0;
     int fd        = -1;
@@ -363,7 +368,7 @@ Exit:
 */
 long FS_ViceSendReintFragment(RPC2_Handle RPCid, VolumeId Vid,
                               ViceReintHandle *RHandle, RPC2_Unsigned Length,
-                              SE_Descriptor *BD)
+                              SE_Descriptor *BD) EXCLUDES_TRANSACTION
 {
     int errorCode       = 0; /* return code for caller */
     ClientEntry *client = 0; /* pointer to client structure */
@@ -470,7 +475,7 @@ long FS_ViceCloseReintHandle(RPC2_Handle RPCid, VolumeId Vid,
                              RPC2_Integer LogSize, ViceReintHandle RHandle[],
                              RPC2_CountedBS *OldVS, RPC2_Integer *NewVS,
                              CallBackStatus *VCBStatus, RPC2_CountedBS *PiggyBS,
-                             SE_Descriptor *BD)
+                             SE_Descriptor *BD) EXCLUDES_TRANSACTION
 {
     int errorCode       = 0;
     ClientEntry *client = 0;
@@ -1894,7 +1899,8 @@ static void PutReintegrateObjects(int errorCode, Volume *volptr,
                                   ClientEntry *client, RPC2_Unsigned MaxDirs,
                                   RPC2_Unsigned *NumDirs, ViceFid *StaleDirs,
                                   RPC2_CountedBS *OldVS, RPC2_Integer *NewVS,
-                                  CallBackStatus *VCBStatus, int voltype)
+                                  CallBackStatus *VCBStatus,
+                                  int voltype) EXCLUDES_TRANSACTION
 {
     START_TIMING(Reintegrate_PutObjects);
     SLog(10, "PutReintegrateObjects: Vid = %x, errorCode = %d",
@@ -2131,8 +2137,8 @@ static int AddParent(Volume **volptr, dlist *vlist, ViceFid *Fid)
 
     /* We assume that volume has already been locked in exclusive mode! */
     /* Child must NOT have just been alloc'ed, else this will deadlock! */
-    if ((errorCode =
-             GetFsObj(Fid, volptr, &vptr, READ_LOCK, VOL_NO_LOCK, 0, 0, 0)))
+    errorCode = GetFsObj(Fid, volptr, &vptr, READ_LOCK, VOL_NO_LOCK, 0, 0, 0);
+    if (errorCode)
         goto Exit;
 
     /* Look up the parent, and add a vle. */
@@ -2156,7 +2162,7 @@ Exit:
     }
 
     SLog(2, "AddParent returns %s", ViceErrorMsg(errorCode));
-    return (errorCode);
+    return errorCode;
 }
 
 /* Makes no version check for directories. */

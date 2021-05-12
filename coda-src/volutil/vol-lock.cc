@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -56,7 +56,8 @@ extern "C" {
   Return the VVV for the volume if successful  </strong></a> 
   END_HTML
 */
-long S_VolLock(RPC2_Handle rpcid, VolumeId Vid, ViceVersionVector *VolVV)
+long S_VolLock(RPC2_Handle rpcid, VolumeId Vid,
+               ViceVersionVector *VolVV) EXCLUDES_TRANSACTION
 {
     Volume *volptr = 0;
     Error error;
@@ -113,7 +114,7 @@ long S_VolLock(RPC2_Handle rpcid, VolumeId Vid, ViceVersionVector *VolVV)
   <a name="S_VolUnlock"><strong>Unlock the volume</strong></a> 
   END_HTML
 */
-long S_VolUnlock(RPC2_Handle rpcid, VolumeId Vid)
+long S_VolUnlock(RPC2_Handle rpcid, VolumeId Vid) EXCLUDES_TRANSACTION
 {
     Volume *volptr = 0;
     int rc         = 0;

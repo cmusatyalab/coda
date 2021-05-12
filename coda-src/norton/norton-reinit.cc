@@ -70,7 +70,7 @@ static int DumpGlobalState(int fd)
     return 1;
 }
 
-static int ReadGlobalState(int fd)
+static int ReadGlobalState(int fd) EXCLUDES_TRANSACTION
 {
     VolumeId maxvolid;
     rvm_return_t status;
@@ -282,7 +282,7 @@ static int BuildResLog(Volume *vp, rec_dlist *log,
 /* Warning: ReadResLog better not be called for a volume that does not
  * have resolution turned on.
  */
-static int ReadResLog(int fd, Volume *vp, Vnode *vnp)
+static int ReadResLog(int fd, Volume *vp, Vnode *vnp) REQUIRES_TRANSACTION
 {
     int nentries, size, err;
     char *buf;
@@ -454,7 +454,8 @@ int CopyDirInode(PDirInode oldinode, PDirInode *newinode) REQUIRES_TRANSACTION
     return 0;
 }
 
-static int ReadVnodeList(int fd, Volume *vp, VnodeClass vclass, int ResOn)
+static int ReadVnodeList(int fd, Volume *vp, VnodeClass vclass,
+                         int ResOn) EXCLUDES_TRANSACTION
 {
     char buf[SIZEOF_LARGEDISKVNODE];
     VnodeDiskObject *vnode = (VnodeDiskObject *)buf;
@@ -599,7 +600,7 @@ static int ReadVnodeList(int fd, Volume *vp, VnodeClass vclass, int ResOn)
     return 1;
 }
 
-static int ReadVolVnodes(int fd, Volume *vp, int ResOn)
+static int ReadVolVnodes(int fd, Volume *vp, int ResOn) EXCLUDES_TRANSACTION
 {
     if (!ReadVnodeList(fd, vp, vLarge, ResOn))
         return 0;
@@ -683,7 +684,8 @@ static int HasBackVols(VolumeId *skipvols, int nskipvols)
 // So we can add volume headers back to LRU.
 extern void FreeVolumeHeader(Volume *vp);
 
-static int load_server_state(char *dump_file, VolumeId *skipvols, int nskipvols)
+static int load_server_state(char *dump_file, VolumeId *skipvols,
+                             int nskipvols) EXCLUDES_TRANSACTION
 {
     int dump_fd, volindex;
     int res_adm_limit;
@@ -907,7 +909,7 @@ static int dump_server_state(char *dump_file, VolumeId *skipvols, int nskipvols)
     return 1;
 }
 
-int main(int argc, char *argv[])
+int main(int argc, char *argv[]) EXCLUDES_TRANSACTION
 {
     char *rvm_log;
     char *rvm_data;

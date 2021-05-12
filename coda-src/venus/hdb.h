@@ -165,7 +165,8 @@ enum hdbd_request
 
 extern char PeriodicWalksAllowed;
 
-void HDBDaemon(void) /* used to be member of class hdb (Satya 3/31/95) */;
+/* used to be member of class hdb (Satya 3/31/95) */
+void HDBDaemon(void) EXCLUDES_TRANSACTION;
 
 class hdb {
     friend void HDB_Init(void);
@@ -214,7 +215,7 @@ public:
     int Delete(hdb_delete_msg *, uid_t local_id) EXCLUDES_TRANSACTION;
     int Clear(hdb_clear_msg *, uid_t local_id) EXCLUDES_TRANSACTION;
     int List(hdb_list_msg *, uid_t local_id);
-    int Walk(hdb_walk_msg *, uid_t local_id);
+    int Walk(hdb_walk_msg *, uid_t local_id) EXCLUDES_TRANSACTION;
     int Verify(hdb_verify_msg *, uid_t local_id);
     int Enable(hdb_walk_msg *, uid_t local_id);
     int Disable(hdb_walk_msg *, uid_t local_id);
@@ -224,9 +225,9 @@ public:
     /* Helper Routines hdb::Walk */
     void ValidateCacheStatus(vproc *, int *, int *) EXCLUDES_TRANSACTION;
     void ListPriorityQueue();
-    void WalkPriorityQueue(vproc *, int *, int *);
+    void WalkPriorityQueue(vproc *, int *, int *) EXCLUDES_TRANSACTION;
     int CalculateTotalBytesToFetch();
-    void StatusWalk(vproc *, int *, int *);
+    void StatusWalk(vproc *, int *, int *) EXCLUDES_TRANSACTION;
     void DataWalk(vproc *, int, int) EXCLUDES_TRANSACTION;
     void PostWalkStatus();
 
@@ -237,7 +238,7 @@ public:
         SolicitAdvice = uid;
     }
 
-    void SetDemandWalkTime();
+    void SetDemandWalkTime() EXCLUDES_TRANSACTION;
     long GetDemandWalkTime();
 
     void print() { print(stdout); }
@@ -285,7 +286,7 @@ class hdbent {
     /* Constructors, destructors. */
     void *operator new(size_t) REQUIRES_TRANSACTION;
     hdbent(VolumeId, char *, char *, uid_t, int, int, int) REQUIRES_TRANSACTION;
-    void ResetTransient();
+    void ResetTransient() EXCLUDES_TRANSACTION;
     ~hdbent() REQUIRES_TRANSACTION;
     void operator delete(void *);
 
@@ -368,7 +369,7 @@ class namectxt {
     void Transit(enum pestate); /* transit to specified state */
     void Kill(); /* delete this context at first opportunity */
     void KillChildren(); /* delete children contexts at first opportunity */
-    pestate CheckExpansion(); /* return next state */
+    pestate CheckExpansion() EXCLUDES_TRANSACTION; /* return next state */
     void MetaExpand() EXCLUDES_TRANSACTION;
 
 public:
@@ -419,7 +420,8 @@ extern int NC_PriorityFN(bsnode *, bsnode *);
 
 /* hdb_daemon.c */
 extern void HDBD_Init(void);
-extern int HDBD_Request(hdbd_request, void *, struct uarea *u);
+extern int HDBD_Request(hdbd_request, void *,
+                        struct uarea *u) EXCLUDES_TRANSACTION;
 extern long HDBD_GetNextHoardWalkTime();
 
 #define PRINT_HDBDREQTYPE(type)           \

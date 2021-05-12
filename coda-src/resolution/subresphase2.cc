@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -53,7 +53,8 @@ extern "C" {
 static int rs_ShipLogs(RPC2_Handle, char *, int);
 
 long RS_FetchLogs(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer *size,
-                  RPC2_Integer *nentries, SE_Descriptor *sed)
+                  RPC2_Integer *nentries,
+                  SE_Descriptor *sed) EXCLUDES_TRANSACTION
 {
     SLog(1, "RS_FetchLogs: Entering for Fid = %s\n", FID_(Fid));
     PROBE(tpinfo, RecovSubP2Begin);

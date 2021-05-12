@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -56,6 +56,7 @@ extern "C" {
 #include "resstats.h"
 #include "resolution.h"
 #include "rescoord.h"
+#include "ops.h"
 
 // ********** Private Routines *************
 static int ComparePhase3Status(res_mgrpent *, int *, ViceStatus *);
@@ -70,7 +71,7 @@ static void AllocateBufs(res_mgrpent *, char **, int *);
 static void DeAllocateBufs(char **);
 static char *ConcatLogs(res_mgrpent *, char **, RPC2_Integer *, RPC2_Integer *,
                         int *, int *);
-static void UpdateStats(ViceFid *, dirresstats *);
+static void UpdateStats(ViceFid *, dirresstats *) EXCLUDES_TRANSACTION;
 
 // * Dir Resolution with logs in RVM
 // * This consists of 4 phases

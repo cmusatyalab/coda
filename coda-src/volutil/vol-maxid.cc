@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -63,7 +63,7 @@ long S_VolGetMaxVolId(RPC2_Handle cid, RPC2_Integer *maxid)
 /*
   S_VolSetMaxVolId: Service the setmaxvol request
  */
-long S_VolSetMaxVolId(RPC2_Handle cid, RPC2_Integer newid)
+long S_VolSetMaxVolId(RPC2_Handle cid, RPC2_Integer newid) EXCLUDES_TRANSACTION
 {
     rvm_return_t status;
 

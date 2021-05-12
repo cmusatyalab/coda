@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -39,7 +39,8 @@ extern "C" {
 #include <srv.h>
 
 /* GetVolumeList - Write out the list of volumes in RVM */
-long S_GetVolumeList(RPC2_Handle rpcid, SE_Descriptor *formal_sed)
+long S_GetVolumeList(RPC2_Handle rpcid,
+                     SE_Descriptor *formal_sed) EXCLUDES_TRANSACTION
 {
     SE_Descriptor sed;
     long rc = 0;

@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -47,7 +47,7 @@ extern "C" {
  *	each subordinate forces a  new vector passed to it
  */
 long RS_ForceVV(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
-                ViceStatus *statusp)
+                ViceStatus *statusp) EXCLUDES_TRANSACTION
 {
     VV_Cmp_Result res;
     Vnode *vptr         = 0;

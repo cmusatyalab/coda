@@ -318,7 +318,7 @@ void show_volume(char *name)
         printf("Unable to find volume named %s\n", name);
 }
 
-static void delete_volume(VolHead *vol)
+static void delete_volume(VolHead *vol) EXCLUDES_TRANSACTION
 {
     byte destroyflag = 0xD3;
     rvm_return_t status;
@@ -331,7 +331,7 @@ static void delete_volume(VolHead *vol)
     }
 }
 
-static void delete_volume_byid(VolumeId volid)
+static void delete_volume_byid(VolumeId volid) EXCLUDES_TRANSACTION
 {
     VolHead *vol = NULL;
 
@@ -342,7 +342,7 @@ static void delete_volume_byid(VolumeId volid)
         printf("Unable to find volume %08x\n", volid);
 }
 
-static void delete_volume_byname(char *name)
+static void delete_volume_byname(char *name) EXCLUDES_TRANSACTION
 {
     VolHead *vol = NULL;
 
@@ -354,7 +354,7 @@ static void delete_volume_byname(char *name)
         printf("Unable to find volume named %s\n", name);
 }
 
-void sh_delete_volume(int argc, char **argv)
+void sh_delete_volume(int argc, char **argv) EXCLUDES_TRANSACTION
 {
     unsigned int volid;
 
@@ -477,7 +477,7 @@ void show_index(int argc, char *argv[])
         show_index(argv[2]);
 }
 
-static void rename_volume(VolHead *vol, char *newname)
+static void rename_volume(VolHead *vol, char *newname) EXCLUDES_TRANSACTION
 {
     char namestr[V_MAXVOLNAMELEN];
     rvm_return_t status;
@@ -493,7 +493,8 @@ static void rename_volume(VolHead *vol, char *newname)
     rvmlib_end_transaction(flush, &status);
 }
 
-static void rename_volume_byid(VolumeId volid, char *newname)
+static void rename_volume_byid(VolumeId volid,
+                               char *newname) EXCLUDES_TRANSACTION
 {
     VolHead *vol = NULL;
 
@@ -504,7 +505,7 @@ static void rename_volume_byid(VolumeId volid, char *newname)
         printf("Unable to find volume %08x\n", volid);
 }
 
-static void rename_volume_byname(char *name, char *newname)
+static void rename_volume_byname(char *name, char *newname) EXCLUDES_TRANSACTION
 {
     VolHead *vol = NULL;
 
@@ -516,7 +517,7 @@ static void rename_volume_byname(char *name, char *newname)
         printf("Unable to find volume named %s\n", name);
 }
 
-void sh_rename_volume(int argc, char **argv)
+void sh_rename_volume(int argc, char **argv) EXCLUDES_TRANSACTION
 {
     unsigned int volid;
 

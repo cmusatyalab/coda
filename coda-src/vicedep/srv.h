@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 7
+                              Release 8
 
-          Copyright (c) 1987-2019 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -76,13 +76,13 @@ extern bit32 HostAddress[] WARN_SINGLE_HOMING;
 extern uint8_t ThisServerId;
 extern long rvm_no_yield;
 
-extern void VAdjustDiskUsage(Error *, Volume *, int);
-extern int VCheckVLDB();
-extern void VPrintCacheStats(FILE * = stdout);
-extern void ViceUpdateDB();
-extern void SwapLog(int ign);
-extern void SwapMalloc();
-extern void ViceTerminate();
+void VAdjustDiskUsage(Error *, Volume *, int);
+int VCheckVLDB();
+void VPrintCacheStats(FILE * = stdout);
+void ViceUpdateDB();
+void SwapLog(int ign);
+void SwapMalloc();
+void ViceTerminate();
 
 #define VSLEEP(seconds)                   \
     {                                     \
@@ -228,24 +228,26 @@ typedef struct ClientEntry {
 #endif
 
 /* ViceErrorMsg.c */
-extern char *ViceErrorMsg(int);
+char *ViceErrorMsg(int);
 
 /* codaproc.c */
 extern ViceVersionVector NullVV;
-extern long InternalCOP2(RPC2_Handle, ViceStoreId *, ViceVersionVector *);
-extern void NewCOP1Update(Volume *, Vnode *, ViceStoreId *,
-                          RPC2_Integer * = NULL, bool isReplicated = true);
-extern void COP2Update(Volume *, Vnode *, ViceVersionVector *);
-extern long InternalCOP2(RPC2_Handle, ViceStoreId *, ViceVersionVector *);
-extern void PollAndYield();
-extern int GetSubTree(ViceFid *, Volume *, dlist *);
-extern void GetMyVS(Volume *, RPC2_CountedBS *, RPC2_Integer *, int voltype);
-extern void SetVSStatus(ClientEntry *, Volume *, RPC2_Integer *,
-                        CallBackStatus *, int voltype);
+long InternalCOP2(RPC2_Handle, ViceStoreId *,
+                  ViceVersionVector *) EXCLUDES_TRANSACTION;
+void NewCOP1Update(Volume *, Vnode *, ViceStoreId *, RPC2_Integer * = NULL,
+                   bool isReplicated = true);
+void COP2Update(Volume *, Vnode *, ViceVersionVector *);
+long InternalCOP2(RPC2_Handle, ViceStoreId *, ViceVersionVector *);
+void PollAndYield();
+int GetSubTree(ViceFid *, Volume *, dlist *);
+void GetMyVS(Volume *, RPC2_CountedBS *, RPC2_Integer *, int voltype);
+void SetVSStatus(ClientEntry *, Volume *, RPC2_Integer *, CallBackStatus *,
+                 int voltype);
 
 /* codaproc2.c */
-extern int LookupChild(Volume *, Vnode *, char *, ViceFid *);
-extern int AddChild(Volume **, dlist *, ViceFid *, char *, int = 0);
+int LookupChild(Volume *, Vnode *, char *, ViceFid *);
+int AddChild(Volume **, dlist *, ViceFid *, char *,
+             int = 0) EXCLUDES_TRANSACTION;
 
 /* codasrv.c */
 extern int SystemId, AnyUserId;
@@ -266,20 +268,20 @@ thread_array_t thread_list;
 int thread_count;
 #endif
 
-extern void Die(const char *);
+void Die(const char *);
 
 /* srv.c */
-extern void SetStatus(Vnode *, ViceStatus *, Rights, Rights);
-extern int GetRights(PRS_InternalCPS *, AL_AccessList *, int, Rights *,
-                     Rights *);
-extern int GetFsObj(ViceFid *, Volume **, Vnode **, int, int, int, int, int);
-extern int SystemUser(ClientEntry *);
-extern int AdjustDiskUsage(Volume *, int);
-extern void ChangeDiskUsage(Volume *, int);
-extern int GetVolObj(VolumeId, Volume **, int, int = 0, unsigned = 0);
-extern void PutVolObj(Volume **, int, int = 0);
-extern int CheckDiskUsage(Volume *, int);
-extern void PrintCounters(FILE *fp = stdout);
+void SetStatus(Vnode *, ViceStatus *, Rights, Rights);
+int GetRights(PRS_InternalCPS *, AL_AccessList *, int, Rights *, Rights *);
+int GetFsObj(ViceFid *, Volume **, Vnode **, int, int, int, int,
+             int) EXCLUDES_TRANSACTION;
+int SystemUser(ClientEntry *);
+int AdjustDiskUsage(Volume *, int);
+void ChangeDiskUsage(Volume *, int);
+int GetVolObj(VolumeId, Volume **, int, int = 0, unsigned = 0);
+void PutVolObj(Volume **, int, int = 0);
+int CheckDiskUsage(Volume *, int);
+void PrintCounters(FILE *fp = stdout);
 
 /* srvproc2.c */
 extern int supported;
@@ -289,24 +291,24 @@ extern unsigned int etherInterupts;
 extern unsigned int etherGoodReads;
 extern unsigned int etherBytesRead;
 extern unsigned int etherBytesWritten;
-extern int GetEtherStats();
+int GetEtherStats();
 
 /* vicecb.c */
 extern int CBEs;
 extern int CBEBlocks;
 extern int FEs;
 extern int FEBlocks;
-extern int InitCallBack();
-extern CallBackStatus AddCallBack(HostTable *, ViceFid *);
-extern void BreakCallBack(HostTable *, ViceFid *);
-extern void DeleteCallBack(HostTable *, ViceFid *);
-extern void DeleteVenus(HostTable *);
-extern void DeleteFile(ViceFid *);
-extern void PrintCallBackState(FILE *);
-extern void PrintCallBacks(ViceFid *, FILE *);
-extern CallBackStatus CodaAddCallBack(HostTable *, ViceFid *, VolumeId);
-extern void CodaBreakCallBack(HostTable *, ViceFid *, VolumeId);
-extern void CodaDeleteCallBack(HostTable *, ViceFid *, VolumeId);
+int InitCallBack();
+CallBackStatus AddCallBack(HostTable *, ViceFid *);
+void BreakCallBack(HostTable *, ViceFid *);
+void DeleteCallBack(HostTable *, ViceFid *);
+void DeleteVenus(HostTable *);
+void DeleteFile(ViceFid *);
+void PrintCallBackState(FILE *);
+void PrintCallBacks(ViceFid *, FILE *);
+CallBackStatus CodaAddCallBack(HostTable *, ViceFid *, VolumeId);
+void CodaBreakCallBack(HostTable *, ViceFid *, VolumeId);
+void CodaDeleteCallBack(HostTable *, ViceFid *, VolumeId);
 
 /* resolution */
 extern int AllowResolution;
@@ -315,6 +317,6 @@ extern int AllowResolution;
 extern int AllowSHA;
 
 /* coppend.c */
-extern void AddToCopPendingTable(ViceStoreId *, ViceFid *);
+void AddToCopPendingTable(ViceStoreId *, ViceFid *);
 
 #endif /* _VICE_SRV_H_ */

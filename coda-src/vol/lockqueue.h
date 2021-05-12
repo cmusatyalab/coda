@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -45,10 +45,11 @@ extern "C" {
 #define VOL_SHARED_LOCK SHARED_LOCK
 #define VOL_EXCL_LOCK WRITE_LOCK
 
-void ForceUnlockVol(VolumeId);
+void ForceUnlockVol(VolumeId) EXCLUDES_TRANSACTION;
 
 class lq_iterator;
 class lqent;
+void LQman_init(void *c) EXCLUDES_TRANSACTION;
 
 class lqman {
     char *name;
@@ -57,7 +58,7 @@ class lqman {
     dlist objects;
 
     friend void LQman_init(void *);
-    int func(void);
+    int func(void) EXCLUDES_TRANSACTION;
 
 public:
     lqman(const char *name = "anonymous lqman");

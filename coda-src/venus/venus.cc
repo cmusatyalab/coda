@@ -342,7 +342,7 @@ void ParseCacheChunkBlockSize(const char *ccblocksize)
 }
 
 /* local-repair modification */
-int main(int argc, char **argv)
+int main(int argc, char **argv) EXCLUDES_TRANSACTION
 {
     coda_assert_action  = CODA_ASSERT_SLEEP;
     coda_assert_cleanup = VFSUnmount;

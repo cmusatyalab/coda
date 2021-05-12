@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -72,7 +72,7 @@ long RS_NewConnection(RPC2_Handle RPCid, RPC2_Integer set, RPC2_Integer sl,
 }
 
 /* Mark an object inconsistent */
-long RS_MarkInc(RPC2_Handle RPCid, ViceFid *Fid)
+long RS_MarkInc(RPC2_Handle RPCid, ViceFid *Fid) EXCLUDES_TRANSACTION
 {
     Volume *volptr      = 0;
     Vnode *vptr         = 0;

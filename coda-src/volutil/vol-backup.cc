@@ -103,16 +103,17 @@ void checklists(int vol_index)
 
 static int MakeNewClone(Volume *rwvp, VolumeId *backupId,
                         Volume **backupvp) EXCLUDES_TRANSACTION;
-static void ModifyIndex(Volume *rwvp, Volume *backupvp, VnodeClass vclass);
+static void ModifyIndex(Volume *rwvp, Volume *backupvp,
+                        VnodeClass vclass) EXCLUDES_TRANSACTION;
 static void purgeDeadVnodes(Volume *backupvp, rec_smolist *BackupLists,
                             rec_smolist *RWLists, VnodeClass vclass,
                             bit32 *nBackupVnodes) EXCLUDES_TRANSACTION;
 
 static void updateBackupVnodes(Volume *rwvp, Volume *backupvp,
                                rec_smolist *BackupLists, VnodeClass vclass,
-                               bit32 *nBackupVnodes);
+                               bit32 *nBackupVnodes) EXCLUDES_TRANSACTION;
 
-static void cleanup(struct Volume *vp)
+static void cleanup(struct Volume *vp) EXCLUDES_TRANSACTION
 {
     rvm_return_t status;
     if (vp) {
@@ -123,6 +124,7 @@ static void cleanup(struct Volume *vp)
     }
     VDisconnectFS();
 }
+
 /*
   S_VolMakeBackups: Make backup of a volume
 */
@@ -151,7 +153,7 @@ static void cleanup(struct Volume *vp)
  * backupId (OUT) Id of (possibly new) backup volume.
  */
 long S_VolMakeBackups(RPC2_Handle rpcid, VolumeId originalId,
-                      VolumeId *backupId)
+                      VolumeId *backupId) EXCLUDES_TRANSACTION
 {
     rvm_return_t status = RVM_SUCCESS;
     long result;

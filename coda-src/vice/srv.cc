@@ -241,7 +241,7 @@ static ClientEntry *CurrentClient[MAXLWP];
 static void AuthLWP(void *);
 static void ServerLWP(void *);
 static void ResLWP(void *);
-static void CallBackCheckLWP(void *);
+static void CallBackCheckLWP(void *) EXCLUDES_TRANSACTION;
 
 static void ClearCounters();
 static void FileMsg();
@@ -353,7 +353,7 @@ static inline void SetDebugLevel(int debug_level)
 
 /* The real stuff! */
 
-int main(int argc, char *argv[])
+int main(int argc, char *argv[]) EXCLUDES_TRANSACTION
 {
     char sname[15];
     int i;

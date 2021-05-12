@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-             Copyright (c) 2018 Carnegie Mellon University
+          Copyright (c) 2018-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -353,35 +353,56 @@ class plan9server {
     int send_response(unsigned char *buf, size_t len);
     int send_error(uint16_t tag, const char *error, int errcode);
 
-    int handle_request(unsigned char *buf, size_t len);
-    int recv_version(unsigned char *buf, size_t len, uint16_t tag);
+    int handle_request(unsigned char *buf, size_t len) EXCLUDES_TRANSACTION;
+    int recv_version(unsigned char *buf, size_t len,
+                     uint16_t tag) EXCLUDES_TRANSACTION;
     int recv_auth(unsigned char *buf, size_t len, uint16_t tag);
     int recv_attach(unsigned char *buf, size_t len, uint16_t tag);
     int recv_flush(unsigned char *buf, size_t len, uint16_t tag);
-    int recv_walk(unsigned char *buf, size_t len, uint16_t tag);
-    int recv_open(unsigned char *buf, size_t len, uint16_t tag);
-    int recv_create(unsigned char *buf, size_t len, uint16_t tag);
-    int recv_read(unsigned char *buf, size_t len, uint16_t tag);
+    int recv_walk(unsigned char *buf, size_t len,
+                  uint16_t tag) EXCLUDES_TRANSACTION;
+    int recv_open(unsigned char *buf, size_t len,
+                  uint16_t tag) EXCLUDES_TRANSACTION;
+    int recv_create(unsigned char *buf, size_t len,
+                    uint16_t tag) EXCLUDES_TRANSACTION;
+    int recv_read(unsigned char *buf, size_t len,
+                  uint16_t tag) EXCLUDES_TRANSACTION;
     int recv_write(unsigned char *buf, size_t len, uint16_t tag);
-    int recv_clunk(unsigned char *buf, size_t len, uint16_t tag);
-    int recv_remove(unsigned char *buf, size_t len, uint16_t tag);
-    int recv_stat(unsigned char *buf, size_t len, uint16_t tag);
-    int recv_wstat(unsigned char *buf, size_t len, uint16_t tag);
+    int recv_clunk(unsigned char *buf, size_t len,
+                   uint16_t tag) EXCLUDES_TRANSACTION;
+    int recv_remove(unsigned char *buf, size_t len,
+                    uint16_t tag) EXCLUDES_TRANSACTION;
+    int recv_stat(unsigned char *buf, size_t len,
+                  uint16_t tag) EXCLUDES_TRANSACTION;
+    int recv_wstat(unsigned char *buf, size_t len,
+                   uint16_t tag) EXCLUDES_TRANSACTION;
 
-    int recv_getattr(unsigned char *buf, size_t len, uint16_t tag);
-    int recv_setattr(unsigned char *buf, size_t len, uint16_t tag);
-    int recv_lopen(unsigned char *buf, size_t len, uint16_t tag);
-    int recv_lcreate(unsigned char *buf, size_t len, uint16_t tag);
-    int recv_symlink(unsigned char *buf, size_t len, uint16_t tag);
-    int recv_mkdir(unsigned char *buf, size_t len, uint16_t tag);
-    int recv_readdir(unsigned char *buf, size_t len, uint16_t tag);
-    int recv_readlink(unsigned char *buf, size_t len, uint16_t tag);
+    int recv_getattr(unsigned char *buf, size_t len,
+                     uint16_t tag) EXCLUDES_TRANSACTION;
+    int recv_setattr(unsigned char *buf, size_t len,
+                     uint16_t tag) EXCLUDES_TRANSACTION;
+    int recv_lopen(unsigned char *buf, size_t len,
+                   uint16_t tag) EXCLUDES_TRANSACTION;
+    int recv_lcreate(unsigned char *buf, size_t len,
+                     uint16_t tag) EXCLUDES_TRANSACTION;
+    int recv_symlink(unsigned char *buf, size_t len,
+                     uint16_t tag) EXCLUDES_TRANSACTION;
+    int recv_mkdir(unsigned char *buf, size_t len,
+                   uint16_t tag) EXCLUDES_TRANSACTION;
+    int recv_readdir(unsigned char *buf, size_t len,
+                     uint16_t tag) EXCLUDES_TRANSACTION;
+    int recv_readlink(unsigned char *buf, size_t len,
+                      uint16_t tag) EXCLUDES_TRANSACTION;
     int recv_statfs(unsigned char *buf, size_t len, uint16_t tag);
     int recv_fsync(unsigned char *buf, size_t len, uint16_t tag);
-    int recv_unlinkat(unsigned char *buf, size_t len, uint16_t tag);
-    int recv_link(unsigned char *buf, size_t len, uint16_t tag);
-    int recv_rename(unsigned char *buf, size_t len, uint16_t tag);
-    int recv_renameat(unsigned char *buf, size_t len, uint16_t tag);
+    int recv_unlinkat(unsigned char *buf, size_t len,
+                      uint16_t tag) EXCLUDES_TRANSACTION;
+    int recv_link(unsigned char *buf, size_t len,
+                  uint16_t tag) EXCLUDES_TRANSACTION;
+    int recv_rename(unsigned char *buf, size_t len,
+                    uint16_t tag) EXCLUDES_TRANSACTION;
+    int recv_renameat(unsigned char *buf, size_t len,
+                      uint16_t tag) EXCLUDES_TRANSACTION;
     /* unsupported 9p2000.L operations */
     int recv_mknod(unsigned char *buf, size_t len, uint16_t tag);
     int recv_xattrwalk(unsigned char *buf, size_t len, uint16_t tag);
@@ -392,12 +413,13 @@ class plan9server {
     struct fidmap *find_fid(uint32_t fid);
     struct fidmap *add_fid(uint32_t fid, struct venus_cnode *cnode,
                            struct attachment *root);
-    int del_fid(uint32_t fid);
+    int del_fid(uint32_t fid) EXCLUDES_TRANSACTION;
 
     int plan9_stat(struct venus_cnode *cnode, struct attachment *root,
-                   struct plan9_stat *stat, const char *name = NULL);
+                   struct plan9_stat *stat,
+                   const char *name = NULL) EXCLUDES_TRANSACTION;
     ssize_t plan9_read(struct fidmap *fm, unsigned char *buf, size_t count,
-                       size_t offset);
+                       size_t offset) EXCLUDES_TRANSACTION;
 
     int cnode_linkcount(struct venus_cnode *cnode, uint64_t *linkcount);
     int cnode_getname(struct venus_cnode *cnode, char *name);
@@ -407,10 +429,12 @@ public:
     plan9server(mariner *conn);
     ~plan9server();
 
-    void main_loop(unsigned char *initial_buffer = NULL, size_t len = 0);
+    void main_loop(unsigned char *initial_buffer = NULL,
+                   size_t len                    = 0) EXCLUDES_TRANSACTION;
     int pack_dirent(unsigned char **buf, size_t *len, size_t *offset,
                     size_t *packed_offset, struct venus_cnode *parent,
-                    struct attachment *root, const char *name);
+                    struct attachment *root,
+                    const char *name) EXCLUDES_TRANSACTION;
     int fidmap_replace_cfid(VenusFid *OldFid, VenusFid *NewFid);
 };
 
