@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -116,11 +116,11 @@ int main(int argc, char *argv[])
     if (rc != RPC2_SUCCESS) {
         printf("RPC2 connection to %s:%d failed with %s.\n", host, port,
                RPC2_ErrorMsg(rc));
-        exit(EXIT_FAILURE);
+        exit(2); /* critical */
     }
 
     printf("RPC2 connection to %s:%d successful.\n", host, port);
-    exit(EXIT_SUCCESS);
+    exit(EXIT_SUCCESS); /* success */
 
 badargs:
     printf("Usage %s [-p port] hostname\n", argv[0]);
