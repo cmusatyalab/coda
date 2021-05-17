@@ -308,13 +308,17 @@ ssize_t eat_uvbytes(gnutls_transport_ptr_t gtp, void *tlsbuf, size_t nread)
     if (d->uvoffset >= d->enqarray[0].numbytes) {
         /* We have completely consumed uvbuf at enqarray[0]; advance to next uvbuf */
         free(d->enqarray[0].b.base);
-        d->enqarray[0].b.base   = NULL;
-        d->enqarray[0].b.len    = 0;
-        d->enqarray[0].numbytes = 0;
+
+        d->uvcount--;
+        d->uvoffset = 0;
 
         for (int i = 0; i < d->uvcount; i++) { /* shift left */
             d->enqarray[i] = d->enqarray[i + 1];
         }
+
+        d->enqarray[d->uvcount].b.base   = NULL;
+        d->enqarray[d->uvcount].b.len    = 0;
+        d->enqarray[d->uvcount].numbytes = 0;
     }
 unlock_out:
     uv_mutex_unlock(&d->uvcount_mutex);
