@@ -54,7 +54,7 @@ Pittsburgh, PA.
 
 int CloneVnode(Volume *rwVp, Volume *cloneVp, int vnodeIndex,
                rec_smolist *vlist, VnodeDiskObject *rwVnode,
-               VnodeClass vclass) REQUIRES_TRANSACTION;
+               VnodeClass vclass) EXCLUDES_TRANSACTION;
 void PrintVersionVector(FILE *outfile, ViceVersionVector vv);
 
 #endif /* _VOLUTIL_PRIVATE_H_ */

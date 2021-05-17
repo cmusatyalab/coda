@@ -626,8 +626,6 @@ static void updateBackupVnodes(Volume *rwvp, Volume *backupvp,
         memset((void *)DeadInodes, 0,
                sizeof(Inode) * (MaxVnodesPerTransaction + 1));
 
-        rvmlib_begin_transaction(restore);
-
         /* break out every 8 vnodes, regardless of if they've changed.*/
         for (count = 0; count < MaxVnodesPerTransaction; count++) {
             if ((vnodeIndex = next(rwVnode)) == -1) /* No more vnodes */
@@ -722,6 +720,8 @@ static void updateBackupVnodes(Volume *rwvp, Volume *backupvp,
                         V_id(rwvp), bitNumberToVnodeNumber(vnodeIndex, vclass),
                         rwVnode->uniquifier);
 
+                    rvmlib_begin_transaction(restore);
+
                     /* Save some fields from the backup vnode */
                     rwVnode->cloned = 0; // backupVnodes can't be cloned.
                     rwVnode->versionvector.Flags =
@@ -733,6 +733,9 @@ static void updateBackupVnodes(Volume *rwvp, Volume *backupvp,
                                         (vclass == vLarge) ?
                                             SIZEOF_LARGEDISKVNODE :
                                             SIZEOF_SMALLDISKVNODE);
+
+                    rvmlib_end_transaction(flush, &(status));
+                    CODA_ASSERT(status == 0); /* Do we ever abort? */
                 }
 
                 continue;
@@ -750,11 +753,16 @@ static void updateBackupVnodes(Volume *rwvp, Volume *backupvp,
                      bitNumberToVnodeNumber(vnodeIndex, vclass),
                      bvdop->uniquifier);
 
+                rvmlib_begin_transaction(restore);
+
                 /* Directory Inodes are in RVM so DI_Decs get undone on abort. */
                 if (vclass == vSmall)
                     DeadInodes[count] = bvdop->node.inodeNumber;
 
                 deleteDeadVnode(&BackupLists[vnodeIndex], bvdop, nBackupVnodes);
+
+                rvmlib_end_transaction(flush, &(status));
+                CODA_ASSERT(status == 0); /* Do we ever abort? */
             }
 
             /* Create a new clone of the vnode. */
@@ -764,10 +772,7 @@ static void updateBackupVnodes(Volume *rwvp, Volume *backupvp,
             CloneVnode(rwvp, backupvp, vnodeIndex, BackupLists, rwVnode,
                        vclass);
             (*nBackupVnodes)++;
-
         } /* Inner loop -> less than MaxVnodesPerTransaction times around */
-        rvmlib_end_transaction(flush, &(status));
-        CODA_ASSERT(status == 0); /* Do we ever abort? */
 
         /* Now delete the inodes for the vnodes we already purged. */
         if (vclass == vSmall)

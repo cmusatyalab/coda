@@ -116,12 +116,10 @@ long S_VolShowVnode(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
         }
         goto exit;
     }
-    rvmlib_begin_transaction(restore);
     /* VGetVnode moved from after VOffline to here 11/88 ***/
     vnp = VGetVnode(&error, vp, vnodeid, unique, READ_LOCK, 1, 1);
     if (error) {
         VLog(0, "S_VolShowVnode: VGetVnode failed with %d", error);
-        rvmlib_abort(VFAIL);
         VPutVolume(vp);
         goto exit;
     }
@@ -160,6 +158,7 @@ long S_VolShowVnode(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
         PrintLog(vnp, infofile);
     fclose(infofile);
 
+    rvmlib_begin_transaction(restore);
     VPutVnode(&error, vnp);
     rvmlib_end_transaction(flush, &(status));
     if (error)

@@ -387,7 +387,6 @@ static void VUCloneIndex(Error *error, Volume *rwVp, Volume *cloneVp,
     *error         = 0;
 
     while (moreVnodes) {
-        rvmlib_begin_transaction(restore);
         for (int count = 0; count < MaxVnodesPerTransaction; count++) {
             if ((vnodeindex = vnext(vnode)) == -1) {
                 moreVnodes = FALSE;
@@ -397,17 +396,10 @@ static void VUCloneIndex(Error *error, Volume *rwVp, Volume *cloneVp,
             *error =
                 CloneVnode(rwVp, cloneVp, vnodeindex, rvlist, vnode, vclass);
             if (*error) {
-                status = *error;
-                rvmlib_abort(VFAIL);
-                goto error;
+                VLog(0, "CloneIndex: abort for RW %x RO %x", V_id(rwVp),
+                     V_id(cloneVp));
+                return;
             }
-        }
-        rvmlib_end_transaction(flush, &(status));
-    error:
-        if (status != 0) {
-            VLog(0, "CloneIndex: abort for RW %x RO %x", V_id(rwVp),
-                 V_id(cloneVp));
-            return; /* Error is already set... */
         }
 
         if (moreVnodes) {
@@ -420,11 +412,10 @@ static void VUCloneIndex(Error *error, Volume *rwVp, Volume *cloneVp,
 
         if (!rvm_no_yield) /* DEBUG */
             PollAndYield();
-
     } /* moreVnodes */
 }
 
-/* This must be called from within a transaction! */
+/* MUST NOT be called from within a transaction! */
 /* Create a new vnode in the the new clone volume from the copy of the
  * r/w vnode stored in (vnode). Mark the RW Vnode as cloned.
  */
@@ -435,8 +426,10 @@ int CloneVnode(Volume *rwVp, Volume *cloneVp, int vnodeIndex,
     int vnodeNum = bitNumberToVnodeNumber(vnodeIndex, vclass);
     int size     = (vclass == vSmall) ? SIZEOF_SMALLDISKVNODE :
                                     SIZEOF_LARGEDISKVNODE;
-    VnodeDiskObject *vdo = (VnodeDiskObject *)rvmlib_rec_malloc(size);
-    int docreate         = FALSE;
+    VnodeDiskObject *vdo;
+    int docreate        = FALSE;
+    rvm_return_t status = RVM_SUCCESS;
+    Vnode *tmp          = NULL;
 
     VLog(9, "CloneVnode: Cloning %s vnode %x.%x.%x\n",
          (vclass == vLarge) ? "Large" : "Small", V_id(rwVp), vnodeNum,
@@ -447,13 +440,28 @@ int CloneVnode(Volume *rwVp, Volume *cloneVp, int vnodeIndex,
 
     /* update inode */
 
+    /* Mark the RW vnode as cloned, !docreate ==> vnode was cloned. */
+    if (VolumeWriteable(rwVp) && !docreate) {
+        Vnode *tmp = VGetVnode(&error, rwVp, vnodeNum, vnode->uniquifier,
+                               WRITE_LOCK, 1, 1);
+        if (error) {
+            VLog(0, "CloneVnode(%s): Error %d getting vnode index %d",
+                 (vclass == vLarge) ? "Large" : "Small", error, vnodeIndex);
+            return error;
+        }
+
+        /* this change won't actually commit until VPutVnode is called later */
+        tmp->disk.cloned = 1;
+    }
+
+    rvmlib_begin_transaction(restore);
+
     /* If RWvnode doesn't have an inode (or is BARREN), create a new inode
      * for the clone. Otherwise increment the reference count on the inode.
      * If the iinc fails, something must have trashed it since the server
      * started (otherwise the rwVnode would be BARREN).
      * Inodes for Large Vnodes are in RVM, so should never disappear.
      */
-
     if (vclass == vLarge) { /* Directory -- no way it can be BARREN */
         int linkcount = DI_Count(vnode->node.dirNode);
         CODA_ASSERT(linkcount > 0);
@@ -478,26 +486,19 @@ int CloneVnode(Volume *rwVp, Volume *cloneVp, int vnodeIndex,
                              V_parentId(rwVp)) == 0);
     }
 
-    /* Mark the RW vnode as cloned, !docreate ==> vnode was cloned. */
-    if (VolumeWriteable(rwVp) && !docreate) {
-        Vnode *tmp = VGetVnode(&error, rwVp, vnodeNum, vnode->uniquifier,
-                               WRITE_LOCK, 1, 1);
-        if (error) {
-            VLog(0, "CloneVnode(%s): Error %d getting vnode index %d",
-                 (vclass == vLarge) ? "Large" : "Small", error, vnodeIndex);
-            return error;
-        }
-
-        tmp->disk.cloned = 1;
-        VPutVnode(&error, tmp); /* Check error? */
-        CODA_ASSERT(error == 0);
-    }
-
     /* R/O vnodes should never be marked inconsistent. */
     vnode->versionvector.Flags = 0;
     vnode->cloned = 0; /* R/O Vnode should not be marked as cloned. */
 
+    vdo = (VnodeDiskObject *)rvmlib_rec_malloc(size);
     rvmlib_modify_bytes(vdo, vnode, size);
     rvlist[vnodeIndex].append(&vdo->nextvn);
+
+    if (tmp) {
+        VPutVnode(&error, tmp);
+        CODA_ASSERT(error == 0);
+    }
+    rvmlib_end_transaction(flush, &(status));
+    CODA_ASSERT(status == 0);
     return 0;
 }
