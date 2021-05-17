@@ -602,10 +602,10 @@ static void setuptls(uv_work_t *w)
 
        Encapsulate all the set up of TLS for destination ap->d;
        ap->certverify  indicates whether setup includes verification of peer
-       identify Coda clients always insist on verifying server's identity;
+       identity. Coda clients always insist on verifying server's identity;
        Coda servers don't care about Coda client identity;
        However, Coda servers connect to each other for resolution, etc.  and
-       in those cases, both sides verify the other's identitify.
+       in those cases, both sides verify the other's identity.
     */
 
     int rc;
@@ -801,19 +801,11 @@ static void peeloff_and_decrypt(uv_work_t *w)
     /* Assemble at most one gnutls_record at a time */
     uv_mutex_lock(&d->tls_receive_record_mutex);
 
-    /* We use d->uvcount only as advisory information here;
-       Don't bother with mutex because eat_uv_bytes() called
-       by gnutls_record_recv() does the definitive check
-    */
-    DEBUG("d->uvcount = %d\n", d->uvcount);
-    while (d->uvcount) {
-        /* bytes still left to be consumed by eat_uvbytes() */
-        DEBUG("d->uvcount = %d\n", d->uvcount);
-
+    while (1) {
         if (!d->decrypted_record) {
             DEBUG("Allocating d->decrypted_record\n");
-            d->decrypted_record =
-                malloc(MAXRECEIVE); /* space for next record */
+            d->decrypted_record = malloc(MAXRECEIVE);
+
             if (!d->decrypted_record) {
                 ERROR("malloc() failed\n");
                 async_free_dest(d);
@@ -907,7 +899,7 @@ static void peeloff_and_decrypt(uv_work_t *w)
 static void recv_tcp_cb(uv_stream_t *tcphandle, ssize_t nread,
                         const uv_buf_t *buf)
 {
-    DEBUG("recv_tcp_cb (%p, %d, %p)\n", tcphandle, (int)nread, buf);
+    DEBUG("recv_tcp_cb (%p, %ld, %p)\n", tcphandle, nread, buf);
 
     DEBUG("buf->base = %p  buf->len = %lu\n", buf->base, buf->len);
     /* hexdump ("buf->base", buf->base, 64);  */
@@ -929,7 +921,8 @@ static void recv_tcp_cb(uv_stream_t *tcphandle, ssize_t nread,
         return;
     }
 
-    /* else nread > 0: we have successfully received some bytes;
+    /* else nread > 0: we have successfully received some bytes
+     * or nread == UV_EOF: the other side closed the connection
        note that any freeing of buf happens inside enq_uvbuf() or later */
     enq_element(d, buf, nread); /* append to list of bufs for this dest */
 

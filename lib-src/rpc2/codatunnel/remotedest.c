@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 2017-2020 Carnegie Mellon University
+          Copyright (c) 2017-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -199,7 +199,7 @@ void free_dest(dest_t *d)
         free(d->enqarray[i].b.base);
     d->uvcount = -1;
 
-    uv_cond_signal(&d->uvcount_nonzero); /* wake blocked sleepers, if any */
+    uv_cond_signal(&d->uvcount_nonzero); /* wake blocked poll, if any */
     uv_mutex_unlock(&d->uvcount_mutex);
 
     drain_outbound_queues(d);
@@ -239,12 +239,7 @@ void enq_element(dest_t *d, const uv_buf_t *thisbuf, int nb)
         (d->enqarray)[d->uvcount].b        = *thisbuf;
         (d->enqarray)[d->uvcount].numbytes = nb;
         d->uvcount++;
-        if (d->uvcount == 1) { /* zero to one transition */
-            DEBUG("Zero to one transition\n");
-            d->uvoffset = 0;
-            /* wake blocked sleeper, if any */
-            uv_cond_signal(&d->uvcount_nonzero);
-        }
+        uv_cond_signal(&d->uvcount_nonzero);
     }
     uv_mutex_unlock(&d->uvcount_mutex);
 }
@@ -265,89 +260,65 @@ int poll_uvbytes(gnutls_transport_ptr_t gtp, unsigned int ms)
 
     uv_mutex_unlock(&d->uvcount_mutex);
 
-    return ret > 0 ? 1 : ret;
+    return ret != 0 ? 1 : 0;
 }
 
 /* Upcall function to give gnutls_record_recv() bytes on demand.
    Puts nread bytes into buffer at tlsbuf; return actual bytes filled
    (which may be less than nread; in that case, GNUTLS is expected
    to make multiple calls to obtain correct number of bytes)
-   GNUTLS specs require this call to return 0 on connection termination
-   and -1 on error of any kind
-   Therefore, this has to be a blocking call if no data is available
 */
 ssize_t eat_uvbytes(gnutls_transport_ptr_t gtp, void *tlsbuf, size_t nread)
 {
-    int i, found, stillneeded, here;
-
-    DEBUG("eat_uvbytes(%p, %p, %d)\n", gtp, tlsbuf, (int)nread);
+    DEBUG("eat_uvbytes(%p, %p, %lu)\n", gtp, tlsbuf, nread);
 
     dest_t *d   = (dest_t *)gtp;
-    found       = 0;
-    stillneeded = nread; /* (found + stillneeded) always equals nread */
+    ssize_t len = -1;
 
     uv_mutex_lock(&d->uvcount_mutex);
 
-    DEBUG("d->uvcount = %d\n", d->uvcount);
-    while (d->uvcount == 0) { /* block until something arrives */
-        DEBUG("going to sleep\n");
-        uv_cond_wait(&d->uvcount_nonzero, &d->uvcount_mutex);
-        DEBUG("just woke up, uvcount = %d\n", d->uvcount);
+    /* queue empty? return EAGAIN */
+    if (d->uvcount == 0) {
+        DEBUG("d->uvcount = 0, returning EAGAIN\n");
+        gnutls_transport_set_errno(d->my_tls_session, EAGAIN);
+        errno = EAGAIN;
+        goto unlock_out;
     }
 
     /* I hold d->uvcount_mutex, and d->uvcount is nonzero */
     assert(d->uvcount);
 
     /* negative uvcount indicates this connection is closing/draining */
-    while (stillneeded && d->uvcount > 0) {
-        /* consume as many buffered packets as possible until sated */
-        DEBUG(
-            "d->uvcount = %d  d->uvoffset = %d  (d->enqarray[0]).b = %p,%lu (d->enqarray[0]).numbytes = %d  found = %d  stillneeded = %d\n",
-            d->uvcount, d->uvoffset, (d->enqarray[0]).b.base,
-            (d->enqarray[0]).b.len, (d->enqarray[0]).numbytes, found,
-            stillneeded);
-
-        if ((d->enqarray[0]).numbytes == UV_EOF)
-            break;
-
-        here = (d->enqarray[0]).numbytes - d->uvoffset; /* available in buf */
-
-        char *src = &(((char *)(((d->enqarray[0]).b).base))[d->uvoffset]);
-        DEBUG("here = %d  src = %p\n", here, src);
-
-        if (here > stillneeded)
-            here = stillneeded;
-
-        memcpy(((char *)tlsbuf) + found, src, here);
-        d->uvoffset += here;
-        found += here;
-        stillneeded -= here;
-
-        DEBUG(
-            "d->uvcount = %d  d->uvoffset = %d  (d->enqarray[0]).numbytes = %d  found = %d  stillneeded = %d\n",
-            d->uvcount, d->uvoffset, (d->enqarray[0]).numbytes, found,
-            stillneeded);
-
-        if (d->uvoffset >= (d->enqarray[0]).numbytes) {
-            /* We have completely consumed uvbuf at enqarray[0]; advance to next uvbuf */
-            free((d->enqarray[0]).b.base);
-            (d->enqarray[0].b).base = NULL;
-            (d->enqarray[0].b).len  = 0;
-            d->enqarray[0].numbytes = 0;
-            d->uvcount--;
-            d->uvoffset = 0;
-
-            for (i = 0; i < d->uvcount; i++) { /* shift left */
-                (d->enqarray)[i] = (d->enqarray)[i + 1];
-            }
-        }
+    if (d->uvcount < 0 || d->enqarray[0].numbytes == UV_EOF) {
+        DEBUG("hit EOF, returning 0\n");
+        len = 0;
+        goto unlock_out;
     }
 
-    /* we have run out of uvbufs, but may or may not have found nread bytes */
-    DEBUG("d->uvcount = %d  d->uvoffset = %d  found = %d  nread = %d\n",
-          d->uvcount, d->uvoffset, found, (int)nread);
+    char *src = (char *)d->enqarray[0].b.base + d->uvoffset;
+    len       = d->enqarray[0].numbytes - d->uvoffset; /* available in buf */
+    assert(len >= 0);
+
+    if (len > nread)
+        len = nread;
+
+    memcpy(tlsbuf, src, len);
+    d->uvoffset += len;
+
+    if (d->uvoffset >= d->enqarray[0].numbytes) {
+        /* We have completely consumed uvbuf at enqarray[0]; advance to next uvbuf */
+        free(d->enqarray[0].b.base);
+        d->enqarray[0].b.base   = NULL;
+        d->enqarray[0].b.len    = 0;
+        d->enqarray[0].numbytes = 0;
+
+        for (int i = 0; i < d->uvcount; i++) { /* shift left */
+            d->enqarray[i] = d->enqarray[i + 1];
+        }
+    }
+unlock_out:
     uv_mutex_unlock(&d->uvcount_mutex);
-    return (found);
+    return len;
 }
 
 /* Map current thread id to unique small integer */
