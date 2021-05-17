@@ -593,198 +593,6 @@ static void free_tcphandle(uv_handle_t *handle)
 }
 
 /* running on worker thread, should only use limited set of libuv functions */
-static void setuptls(uv_work_t *w)
-{
-    /*
-       setuptls() is done in a separate thread in the uv thread pool,
-       via uv_queue_work(),  because of blocking in handshake;
-       w->data is really of type (async_tls_parms_t *ap);
-
-       Encapsulate all the set up of TLS for destination ap->d;
-       ap->certverify  indicates whether setup includes verification of peer
-       identity. Coda clients always insist on verifying server's identity;
-       Coda servers don't care about Coda client identity;
-       However, Coda servers connect to each other for resolution, etc.  and
-       in those cases, both sides verify the other's identity.
-    */
-
-    int rc;
-
-    async_tls_parms_t *ap        = (async_tls_parms_t *)w->data;
-    dest_t *d                    = ap->d;
-    gnutls_init_flags_t tlsflags = ap->tlsflags;
-    peercheck_t certverify       = ap->certverify;
-
-    /* make sure credentials are not destroyed/reloaded during the handshake */
-    uv_rwlock_rdlock(&credential_load_lock);
-
-    /* local TLS setup errors, fall back on UDP connection */
-#define GNUTLSERROR(op, retcode)                                           \
-    {                                                                      \
-        ERROR("%s(%s) --> %d (%s)\n", op, d->fqdn ? d->fqdn : "", retcode, \
-              gnutls_strerror(retcode));                                   \
-        if (d->state != TCPCLOSING) {                                      \
-            if (certverify == IGNORE) {                                    \
-                async_free_dest(d);                                        \
-            } else {                                                       \
-                d->state = ALLOCATED;                                      \
-                uv_read_stop((uv_stream_t *)d->tcphandle);                 \
-                uv_close((uv_handle_t *)d->tcphandle, free_tcphandle);     \
-                d->tcphandle = NULL;                                       \
-            }                                                              \
-        }                                                                  \
-        uv_rwlock_rdunlock(&credential_load_lock);                         \
-        return;                                                            \
-    }
-
-    rc = gnutls_init(&d->my_tls_session, tlsflags);
-    if (rc != GNUTLS_E_SUCCESS)
-        GNUTLSERROR("gnutls_init", rc);
-
-    rc = gnutls_set_default_priority(d->my_tls_session);
-    if (rc != GNUTLS_E_SUCCESS)
-        GNUTLSERROR("gnutls_set_default_priority", rc);
-
-    /* per-session data and methods; methods all return void */
-    gnutls_handshake_set_timeout(d->my_tls_session,
-                                 GNUTLS_DEFAULT_HANDSHAKE_TIMEOUT);
-    gnutls_transport_set_ptr(d->my_tls_session, d);
-    gnutls_transport_set_vec_push_function(d->my_tls_session, vec_push_func);
-    gnutls_transport_set_pull_function(d->my_tls_session, eat_uvbytes);
-    gnutls_transport_set_pull_timeout_function(d->my_tls_session, poll_uvbytes);
-
-    rc = gnutls_credentials_set(d->my_tls_session, GNUTLS_CRD_CERTIFICATE,
-                                x509_cred);
-    if (rc != GNUTLS_E_SUCCESS)
-        GNUTLSERROR("gnutls_credentials_set", rc);
-    DEBUG("gnutls_credentials_set() successful\n");
-
-    if (certverify == IGNORE ||
-        d->fqdn == NULL) { /* don't bother checking peer identity */
-        gnutls_certificate_server_set_request(d->my_tls_session,
-                                              GNUTLS_CERT_IGNORE);
-    } else { /* I am a client; verify server identify */
-#if GNUTLS_VERSION_NUMBER >= 0x030406
-        gnutls_session_set_verify_cert(d->my_tls_session, d->fqdn, 0);
-#else
-        /* TODO verify the peer's certificate by setting a callback with
-         * gnutls_certificate_set_verify_function and then using
-         * gnutls_certificate_verify_peers3 from it. */
-#endif
-    }
-
-    /* Any errors after this point make the remote we're connecting to
-     * suspicious, so we should probably not fall back on UDP on errors */
-
-    /* Everything has been setup; do the TLS handshake */
-    DEBUG("About to do gnutls_handshake(%s)\n", d->fqdn ? d->fqdn : "");
-eagain:
-    rc = gnutls_handshake(d->my_tls_session);
-
-    if (rc == GNUTLS_E_INTERRUPTED || rc == GNUTLS_E_AGAIN)
-    /* || rc == GNUTLS_E_WARNING_ALERT_RECEIVED */
-    {
-        DEBUG("gnutls_handshake(%s) got non-fatal error, trying again\n",
-              d->fqdn ? d->fqdn : "");
-        goto eagain;
-    }
-
-#if GNUTLS_VERSION_NUMBER >= 0x030406
-    if (rc == GNUTLS_E_CERTIFICATE_VERIFICATION_ERROR) {
-        int vrc = gnutls_session_get_verify_cert_status(d->my_tls_session);
-        ERROR("gnutls_session_get_verify_cert_status() --> %d (%s)\n", vrc,
-              gnutls_strerror(vrc));
-        d->certvalidation_failed = 1;
-    }
-#endif
-
-    if (rc != GNUTLS_E_SUCCESS)
-        GNUTLSERROR("gnutls_handshake", rc);
-#undef GNUTLSERROR
-
-    DEBUG("gnutls_handshake(%s) successful\n", d->fqdn ? d->fqdn : "");
-    d->certvalidation_failed = 0;
-    d->state = TCPACTIVE; /* commit point for encrypted TCP tunnel */
-    uv_rwlock_rdunlock(&credential_load_lock);
-}
-
-static void tcp_connect_cb(uv_connect_t *req, int status)
-{
-    int i, rc;
-
-    DEBUG("tcp_connect_cb(%p, %d)\n", req, status);
-    dest_t *d = req->data;
-    free(req); /* no further use */
-
-    if (status != 0) { /* connection unsuccessful */
-        d->state = ALLOCATED;
-        free(d->tcphandle);
-        d->tcphandle = NULL;
-        return;
-    }
-
-    /* TCP connection successful */
-    DEBUG("tcp_connect_cb(%p, %d) --> %p\n", d, status, d->tcphandle);
-    d->tcphandle->data = d; /* point back, for use in upcalls */
-    d->uvcount         = 0;
-    d->uvoffset        = 0;
-    for (i = 0; i < UVBUFLIMIT; i++) {
-        ((d->enqarray)[i].b).base = NULL;
-        ((d->enqarray)[i].b).len  = 0;
-        (d->enqarray)[i].numbytes = 0;
-    }
-    d->decrypted_record = NULL;
-    d->state            = TLSHANDSHAKE;
-
-    /* disable Nagle */
-    uv_tcp_nodelay(d->tcphandle, 1);
-
-    rc = uv_read_start((uv_stream_t *)d->tcphandle, alloc_cb, recv_tcp_cb);
-    if (rc)
-        DEBUG("uv_read_start() --> %d\n", rc);
-
-    /* Prepare and launch TLS setup;
-      ap can't be a local variable because their lifetime is
-      longer than this function; */
-
-    async_tls_parms_t *ap = malloc(sizeof(async_tls_parms_t));
-
-    ap->d = d;
-    if (codatunnel_I_am_server) {
-        DEBUG("codatunnel_I_am_server\n");
-        ap->tlsflags = (GNUTLS_SERVER | GNUTLS_NONBLOCK);
-    } else {
-        DEBUG("codatunnel_I_am_client\n");
-        ap->tlsflags = (GNUTLS_CLIENT | GNUTLS_NONBLOCK);
-    }
-
-    ap->certverify = VERIFY;
-    ap->work.data  = ap;
-
-    DEBUG("about to call uv_queue_work()\n");
-    rc = uv_queue_work(codatunnel_main_loop, &ap->work, setuptls, cleanup_work);
-    DEBUG("after call to uv_queue_work()  -> %d\n", rc);
-}
-
-static void try_creating_tcp_connection(dest_t *d)
-{
-    uv_connect_t *req;
-
-    DEBUG("try_creating_tcp_connection(%p)\n", d);
-    d->tcphandle = malloc(sizeof(uv_tcp_t));
-    uv_tcp_init(codatunnel_main_loop, d->tcphandle);
-
-    req = malloc(sizeof(uv_connect_t));
-    assert(req != NULL);
-
-    req->data = d; /* so we can identify dest in upcall */
-    int rc = uv_tcp_connect(req, d->tcphandle, (struct sockaddr *)&d->destaddr,
-                            tcp_connect_cb);
-    if (rc)
-        DEBUG("uv_tcp_connect --> %d\n", rc);
-}
-
-/* running on worker thread, should only use limited set of libuv functions */
 static void peeloff_and_decrypt(uv_work_t *w)
 {
     /* Asynchronous worker invoked via uv_queue_work();
@@ -894,6 +702,208 @@ static void peeloff_and_decrypt(uv_work_t *w)
         uv_async_send(&async_forward);
     }
     uv_mutex_unlock(&d->tls_receive_record_mutex);
+}
+
+/* running on worker thread, should only use limited set of libuv functions */
+static void setuptls(uv_work_t *w)
+{
+    /*
+       setuptls() is done in a separate thread in the uv thread pool,
+       via uv_queue_work(),  because of blocking in handshake;
+       w->data is really of type (async_tls_parms_t *ap);
+
+       Encapsulate all the set up of TLS for destination ap->d;
+       ap->certverify  indicates whether setup includes verification of peer
+       identity. Coda clients always insist on verifying server's identity;
+       Coda servers don't care about Coda client identity;
+       However, Coda servers connect to each other for resolution, etc.  and
+       in those cases, both sides verify the other's identity.
+    */
+
+    int rc;
+
+    async_tls_parms_t *ap        = (async_tls_parms_t *)w->data;
+    dest_t *d                    = ap->d;
+    gnutls_init_flags_t tlsflags = ap->tlsflags;
+    peercheck_t certverify       = ap->certverify;
+
+    /* make sure credentials are not destroyed/reloaded during the handshake */
+    uv_rwlock_rdlock(&credential_load_lock);
+
+    /* local TLS setup errors, fall back on UDP connection */
+#define GNUTLSERROR(op, retcode)                                           \
+    {                                                                      \
+        ERROR("%s(%s) --> %d (%s)\n", op, d->fqdn ? d->fqdn : "", retcode, \
+              gnutls_strerror(retcode));                                   \
+        if (d->state != TCPCLOSING) {                                      \
+            if (certverify == IGNORE) {                                    \
+                async_free_dest(d);                                        \
+            } else {                                                       \
+                d->state = ALLOCATED;                                      \
+                uv_read_stop((uv_stream_t *)d->tcphandle);                 \
+                uv_close((uv_handle_t *)d->tcphandle, free_tcphandle);     \
+                d->tcphandle = NULL;                                       \
+            }                                                              \
+        }                                                                  \
+        uv_rwlock_rdunlock(&credential_load_lock);                         \
+        return;                                                            \
+    }
+
+    rc = gnutls_init(&d->my_tls_session, tlsflags);
+    if (rc != GNUTLS_E_SUCCESS)
+        GNUTLSERROR("gnutls_init", rc);
+
+    rc = gnutls_set_default_priority(d->my_tls_session);
+    if (rc != GNUTLS_E_SUCCESS)
+        GNUTLSERROR("gnutls_set_default_priority", rc);
+
+    /* per-session data and methods; methods all return void */
+    gnutls_handshake_set_timeout(d->my_tls_session,
+                                 GNUTLS_DEFAULT_HANDSHAKE_TIMEOUT);
+    gnutls_transport_set_ptr(d->my_tls_session, d);
+    gnutls_transport_set_vec_push_function(d->my_tls_session, vec_push_func);
+    gnutls_transport_set_pull_function(d->my_tls_session, eat_uvbytes);
+    gnutls_transport_set_pull_timeout_function(d->my_tls_session, poll_uvbytes);
+
+    rc = gnutls_credentials_set(d->my_tls_session, GNUTLS_CRD_CERTIFICATE,
+                                x509_cred);
+    if (rc != GNUTLS_E_SUCCESS)
+        GNUTLSERROR("gnutls_credentials_set", rc);
+    DEBUG("gnutls_credentials_set() successful\n");
+
+    if (certverify == IGNORE ||
+        d->fqdn == NULL) { /* don't bother checking peer identity */
+        gnutls_certificate_server_set_request(d->my_tls_session,
+                                              GNUTLS_CERT_IGNORE);
+    } else { /* I am a client; verify server identify */
+#if GNUTLS_VERSION_NUMBER >= 0x030406
+        gnutls_session_set_verify_cert(d->my_tls_session, d->fqdn, 0);
+#else
+        /* TODO verify the peer's certificate by setting a callback with
+         * gnutls_certificate_set_verify_function and then using
+         * gnutls_certificate_verify_peers3 from it. */
+#endif
+    }
+
+    /* Any errors after this point make the remote we're connecting to
+     * suspicious, so we should probably not fall back on UDP on errors */
+
+    /* Everything has been setup; do the TLS handshake */
+    DEBUG("About to do gnutls_handshake(%s)\n", d->fqdn ? d->fqdn : "");
+eagain:
+    rc = gnutls_handshake(d->my_tls_session);
+
+    if (rc == GNUTLS_E_INTERRUPTED || rc == GNUTLS_E_AGAIN)
+    /* || rc == GNUTLS_E_WARNING_ALERT_RECEIVED */
+    {
+        DEBUG("gnutls_handshake(%s) got non-fatal error, trying again\n",
+              d->fqdn ? d->fqdn : "");
+
+        /* avoid busy looping while waiting for a network response */
+        if (gnutls_record_get_direction(d->my_tls_session) == 0)
+            poll_uvbytes(d, 10);
+
+        goto eagain;
+    }
+
+#if GNUTLS_VERSION_NUMBER >= 0x030406
+    if (rc == GNUTLS_E_CERTIFICATE_VERIFICATION_ERROR) {
+        int vrc = gnutls_session_get_verify_cert_status(d->my_tls_session);
+        ERROR("gnutls_session_get_verify_cert_status() --> %d (%s)\n", vrc,
+              gnutls_strerror(vrc));
+        d->certvalidation_failed = 1;
+    }
+#endif
+
+    if (rc != GNUTLS_E_SUCCESS)
+        GNUTLSERROR("gnutls_handshake", rc);
+#undef GNUTLSERROR
+
+    DEBUG("gnutls_handshake(%s) successful\n", d->fqdn ? d->fqdn : "");
+    d->certvalidation_failed = 0;
+    d->state = TCPACTIVE; /* commit point for encrypted TCP tunnel */
+    uv_rwlock_rdunlock(&credential_load_lock);
+
+    /* Process any received data (or EOF) in case it arrived before we
+     * finished processing the handshake. */
+    w->data = d; /* reuse uv_work_t struct, cleanup_work is the same. */
+    peeloff_and_decrypt(w);
+}
+
+static void tcp_connect_cb(uv_connect_t *req, int status)
+{
+    int i, rc;
+
+    DEBUG("tcp_connect_cb(%p, %d)\n", req, status);
+    dest_t *d = req->data;
+    free(req); /* no further use */
+
+    if (status != 0) { /* connection unsuccessful */
+        d->state = ALLOCATED;
+        free(d->tcphandle);
+        d->tcphandle = NULL;
+        return;
+    }
+
+    /* TCP connection successful */
+    DEBUG("tcp_connect_cb(%p, %d) --> %p\n", d, status, d->tcphandle);
+    d->tcphandle->data = d; /* point back, for use in upcalls */
+    d->uvcount         = 0;
+    d->uvoffset        = 0;
+    for (i = 0; i < UVBUFLIMIT; i++) {
+        ((d->enqarray)[i].b).base = NULL;
+        ((d->enqarray)[i].b).len  = 0;
+        (d->enqarray)[i].numbytes = 0;
+    }
+    d->decrypted_record = NULL;
+    d->state            = TLSHANDSHAKE;
+
+    /* disable Nagle */
+    uv_tcp_nodelay(d->tcphandle, 1);
+
+    rc = uv_read_start((uv_stream_t *)d->tcphandle, alloc_cb, recv_tcp_cb);
+    if (rc)
+        DEBUG("uv_read_start() --> %d\n", rc);
+
+    /* Prepare and launch TLS setup;
+      ap can't be a local variable because their lifetime is
+      longer than this function; */
+
+    async_tls_parms_t *ap = malloc(sizeof(async_tls_parms_t));
+
+    ap->d = d;
+    if (codatunnel_I_am_server) {
+        DEBUG("codatunnel_I_am_server\n");
+        ap->tlsflags = (GNUTLS_SERVER | GNUTLS_NONBLOCK);
+    } else {
+        DEBUG("codatunnel_I_am_client\n");
+        ap->tlsflags = (GNUTLS_CLIENT | GNUTLS_NONBLOCK);
+    }
+
+    ap->certverify = VERIFY;
+    ap->work.data  = ap;
+
+    DEBUG("about to call uv_queue_work()\n");
+    rc = uv_queue_work(codatunnel_main_loop, &ap->work, setuptls, cleanup_work);
+    DEBUG("after call to uv_queue_work()  -> %d\n", rc);
+}
+
+static void try_creating_tcp_connection(dest_t *d)
+{
+    uv_connect_t *req;
+
+    DEBUG("try_creating_tcp_connection(%p)\n", d);
+    d->tcphandle = malloc(sizeof(uv_tcp_t));
+    uv_tcp_init(codatunnel_main_loop, d->tcphandle);
+
+    req = malloc(sizeof(uv_connect_t));
+    assert(req != NULL);
+
+    req->data = d; /* so we can identify dest in upcall */
+    int rc = uv_tcp_connect(req, d->tcphandle, (struct sockaddr *)&d->destaddr,
+                            tcp_connect_cb);
+    if (rc)
+        DEBUG("uv_tcp_connect --> %d\n", rc);
 }
 
 static void recv_tcp_cb(uv_stream_t *tcphandle, ssize_t nread,
