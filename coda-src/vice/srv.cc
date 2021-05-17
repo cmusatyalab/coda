@@ -628,8 +628,6 @@ int main(int argc, char *argv[]) EXCLUDES_TRANSACTION
 
     /* Set up volume utility subsystem (spawns 2 lwps) */
     SLog(29, "fileserver: calling InitvolUtil");
-    extern void InitVolUtil(int stacksize);
-
     InitVolUtil(stack * 1024);
     SLog(29, "fileserver: returning from InitvolUtil");
 

@@ -319,4 +319,7 @@ extern int AllowSHA;
 /* coppend.c */
 void AddToCopPendingTable(ViceStoreId *, ViceFid *);
 
+/* volutil.c */
+void InitVolUtil(int stacksize) EXCLUDES_TRANSACTION;
+
 #endif /* _VICE_SRV_H_ */
