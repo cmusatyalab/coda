@@ -641,8 +641,11 @@ static void peeloff_and_decrypt(uv_work_t *w)
             break;
         }
         if (rc <= 0) { /* something went wrong */
-            ERROR("gnutls_record_recv(%s): rc = %ld (%s)\n",
-                  d->fqdn ? d->fqdn : "", rc, gnutls_strerror(rc));
+            /* when the other side closes the connection right after the
+             * handshake, we see this error. No need to log it. */
+            if (rc != GNUTLS_E_PREMATURE_TERMINATION)
+                ERROR("gnutls_record_recv(%s): rc = %ld (%s)\n",
+                      d->fqdn ? d->fqdn : "", rc, gnutls_strerror(rc));
             async_free_dest(d);
             break;
         }
