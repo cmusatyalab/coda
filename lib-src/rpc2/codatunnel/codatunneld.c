@@ -609,7 +609,7 @@ static void peeloff_and_decrypt(uv_work_t *w)
     /* Assemble at most one gnutls_record at a time */
     uv_mutex_lock(&d->tls_receive_record_mutex);
 
-    while (1) {
+    while (d->state == TCPACTIVE) {
         if (!d->decrypted_record) {
             DEBUG("Allocating d->decrypted_record\n");
             d->decrypted_record = malloc(MAXRECEIVE);
