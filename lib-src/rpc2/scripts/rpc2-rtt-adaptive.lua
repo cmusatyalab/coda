@@ -119,4 +119,3 @@ function rtt_retryinterval(host, attempt, bytes_sent, bytes_recv)
 
     return retry
 end
-

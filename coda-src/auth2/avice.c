@@ -71,7 +71,7 @@ static uint8_t auth2key2[AUTH2KEYSIZE];
     the handshake is to be continued, -1 if not.  The sKey is
     synthesized.  If 0 is returned, cIdent's body has been decrypted
     and converted to host order --- this will be passed on to the new
-    connection routine, which can access the fields of SecretToken.  
+    connection routine, which can access the fields of SecretToken.
 */
 
 long GetKeysFromToken(IN RPC2_Integer *AuthenticationType,

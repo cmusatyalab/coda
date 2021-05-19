@@ -75,4 +75,3 @@
 // #define CAEASRINPROGRESS	306	/* Venus requested an ASR while another one is in progress */
 #define CAEADVICEPENDING	307	/* Advice Monitor requested a new connection while a request is pending */
 #define CAENOSERVERS		308	/* No servers are known to Venus */
-

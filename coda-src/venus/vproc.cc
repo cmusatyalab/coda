@@ -80,9 +80,9 @@ void VprocInit()
 {
     vproc::counter = 0;
 
-    /* 
+    /*
      * Create main process.
-     * This call initializes LWP and IOMGR support. 
+     * This call initializes LWP and IOMGR support.
      * That's why it doesn't pass in a function.
      */
     Main = new vproc("Main", &DoNothing, VPT_Main);
@@ -445,7 +445,7 @@ void vproc::main(void)
     func();
 }
 
-/* 
+/*
  * we don't support assignments to objects of this type.
  * bomb in an obvious way if it inadvertently happens.
  */
@@ -621,8 +621,8 @@ void vproc::Begin_VFS(Volid *volid, int vfsop, int volmode)
 
         /* the redzone and yellow zone thresholds are pretty arbitrary at the
 	 * moment. I am guessing that the number of worker threads might be a
-	 * useful metric for redzoning on CML entries. 
-         * Explicit CML length checks added by Satya (2016-12-28).  
+	 * useful metric for redzoning on CML entries.
+         * Explicit CML length checks added by Satya (2016-12-28).
          */
         inredzone = !free_fsos || free_mles <= MaxWorkers ||
                     free_blocks <= (CacheBlocks >> 4) || /* ~94% cache dirty */

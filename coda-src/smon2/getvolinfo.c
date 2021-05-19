@@ -19,7 +19,7 @@ listed in the file CREDITS.
 /*
  * Very simple program query the volume databases on Coda servers, it sets up
  * an rpc2 connection and performs a ViceGetVolumeInfo query.
- * 
+ *
  *   Jan Harkes, July 2001
  */
 

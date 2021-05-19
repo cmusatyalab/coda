@@ -58,8 +58,8 @@ cmdnamechar	[a-zA-Z0-9\/\.\-\_]
 ":"		{ return(COLON); }
 ";"		{ return(SEMI_COLON); }
 ","		{ return(COMMA); }
-"*"		{ if (context == ARG_CTXT) 
-			return(ALL); 
+"*"		{ if (context == ARG_CTXT)
+			return(ALL);
 		  else { REJECT;}
 		}
 \\\n		;
@@ -74,10 +74,10 @@ cmdnamechar	[a-zA-Z0-9\/\.\-\_]
 			}
 		}
 \n		{ DEBUG((stdout, "Debug: returning new_line\n")); return(NEW_LINE); }
-"["		{ if (context == ARG_CTXT) 
+"["		{ if (context == ARG_CTXT)
 			return('[');
 		  else {
-		     DEBUG((stderr, 
+		     DEBUG((stderr,
                              "error: line %d [ allowed only for args of commands\n",
 			     yylineno));
 		     return(YYERRCODE);
@@ -86,7 +86,7 @@ cmdnamechar	[a-zA-Z0-9\/\.\-\_]
 "]"		{ if (context == ARG_CTXT)
 			return(']');
 		  else {
-		     DEBUG((stderr, 
+		     DEBUG((stderr,
                              "error: line %d ] allowed only for args of commands\n",
 			     yylineno));
 		     return(YYERRCODE);
@@ -111,7 +111,7 @@ cmdnamechar	[a-zA-Z0-9\/\.\-\_]
 			return(OBJECT_NAME);
 		 }
 		 else {
-			DEBUG((stdout, "In depnamechar - couldn't recognize ")); 
+			DEBUG((stdout, "In depnamechar - couldn't recognize "));
 			ECHO;
 		 }
 		}
@@ -123,15 +123,15 @@ cmdnamechar	[a-zA-Z0-9\/\.\-\_]
 		  }
 		}
 
-{filenamechar}+	{ if (context == FILE_NAME_CTXT) 
+{filenamechar}+	{ if (context == FILE_NAME_CTXT)
 			return(OBJECT_NAME);
 		 else {
-			DEBUG((stdout, "In filenamechar - couldn't recognize ")); 
+			DEBUG((stdout, "In filenamechar - couldn't recognize "));
 			ECHO;
 		 }
 		}
 %%
-#ifdef notdef 
+#ifdef notdef
 ^\!.*\n		{
 			/* comment lines */
 			char c;
@@ -143,4 +143,3 @@ cmdnamechar	[a-zA-Z0-9\/\.\-\_]
 			}
 		}
 #endif /* notdef */
-

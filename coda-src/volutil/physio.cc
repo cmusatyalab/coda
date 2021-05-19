@@ -165,7 +165,7 @@ void FidCpy(void *formal_tofile, void *formal_fromfile)
     *tofile             = *fromfile;
 }
 
-/* 
+/*
 void Die (char *msg)
 {
     printf("%s\n", msg);

@@ -26,5 +26,3 @@ AC_DEFUN([CODA_LIBRARY_VERSION],
    FREEBSD_VERSION="$2"
    GENERIC_VERSION="$2.$1"
    LIBTOOL_LDFLAGS="-version-info $2:$1:$3 -no-undefined"])
-
-

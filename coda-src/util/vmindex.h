@@ -19,7 +19,7 @@ listed in the file CREDITS.
 #ifndef _VMINDEX_H
 #define _VMINDEX_H 1
 /* vmindex.h
- * declaration of index class 
+ * declaration of index class
  *	This allows user to keep an array of int sized objects.
  *	This array can grow dynamically as more elements are added.
  *	index_iterator class is used to return the list of elements one at a time.

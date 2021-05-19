@@ -16,8 +16,8 @@ listed in the file CREDITS.
 
 #*/
 
-/* 
- * 
+/*
+ *
  * Implementation of the Volume Lock Queue
  */
 

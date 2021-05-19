@@ -8,7 +8,7 @@
 #include "ds_rrlist.h"
 
 /*
- * ds_rrlist.private.h: implementation-specific details of 
+ * ds_rrlist.private.h: implementation-specific details of
  *                      resource request lists.
  */
 
@@ -53,7 +53,7 @@ typedef struct ds_rrlist_reqtab_elt_t {
     ds_rrlist_t *list;
 } ds_rrlist_reqtab_elt_t;
 
-/* 
+/*
  * Note: ds_rrlist.c is the only entity that sees these monsters,
  * so it is responsible for both allocation and deallocation.
  */

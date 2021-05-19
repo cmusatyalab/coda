@@ -186,4 +186,3 @@ New in 1.0:
 * Creating shared libraries.
 * Added pthreaded version of the lwp library.
 * Fixed some bugs in the included test programs.
-

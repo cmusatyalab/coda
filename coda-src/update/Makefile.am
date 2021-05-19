@@ -27,4 +27,3 @@ LDADD = $(top_builddir)/coda-src/vice/libviceerror.la \
 	$(top_builddir)/coda-src/util/libutil.la \
 	$(top_builddir)/lib-src/base/libbase.la \
 	$(RPC2_LIBS)
-

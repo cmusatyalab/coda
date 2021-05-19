@@ -34,4 +34,3 @@ ${_RP2GEN_GENERATED}: rp2gen.stamp
 		test -f rp2gen.stamp ; exit $$? ; \
 	    fi ; \
 	fi
-

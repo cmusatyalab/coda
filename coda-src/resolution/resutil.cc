@@ -189,7 +189,7 @@ long CheckResRetCodes(RPC2_Integer *rc, unsigned long *rh, unsigned long *hosts)
 }
 
 /**************** ilink class functions *******************/
-/* implmentation of functions that parse the list of inconsistencies 
+/* implmentation of functions that parse the list of inconsistencies
  * at end of phase 1 during resolution and create a unique entry list
  */
 ilink *AddILE(dlist &dl, const char *name, long vnode, long unique, long pvnode,
@@ -275,7 +275,7 @@ void ParseIncBSEntry(char **c, char **name, long *vn, long *unique, long *pvn,
     *c += namelength;
 }
 /* AllocIncBSEntry
- *	Allocates the Piggy Back Entry if there is enough space in buffer 
+ *	Allocates the Piggy Back Entry if there is enough space in buffer
  */
 void AllocIncBSEntry(RPC2_BoundedBS *bbs, char *name, ViceFid *Fid,
                      ViceFid *pFid, long type)

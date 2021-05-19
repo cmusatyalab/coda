@@ -51,4 +51,3 @@ $ gmake install
 
 # Note that one may do both installs with no ill effects, e.g. on a
 # server that is also a client.
-

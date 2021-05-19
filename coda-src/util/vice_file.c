@@ -16,7 +16,7 @@ listed in the file CREDITS.
 */
 
 /* vice_file.c: Routines to find the correct path to files stored in
- *		the "/vice" tree supporting coda servers. 
+ *		the "/vice" tree supporting coda servers.
  */
 
 #ifdef HAVE_CONFIG_H

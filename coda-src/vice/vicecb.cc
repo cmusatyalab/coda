@@ -359,8 +359,8 @@ void BreakCallBack(HostTable *client, ViceFid *afid)
     ViceFid vFid = NullFid;
     vFid.Volume  = afid->Volume;
 
-    /* 
-     * Break all callbacks for this file.  Clean up failed veni. 
+    /*
+     * Break all callbacks for this file.  Clean up failed veni.
      * If the object is a file, remove any volume callbacks that
      * that host may have.
      */
@@ -484,10 +484,10 @@ void BreakCallBack(HostTable *client, ViceFid *afid)
 }
 
 /*
-  
+
   DeleteCallBack : Delete a callback for afid with client connected
   via client
- 
+
 */
 void DeleteCallBack(HostTable *client, ViceFid *afid)
 {
@@ -531,7 +531,7 @@ static void SDeleteCallBack(HostTable *client, struct FileEntry *af)
 }
 
 /*
-  DeleteVenus: Delete all callbacks for a client 
+  DeleteVenus: Delete all callbacks for a client
 */
 void DeleteVenus(HostTable *client)
 {
@@ -594,7 +594,7 @@ CallBackStatus CodaAddCallBack(HostTable *VenusId, ViceFid *Fid,
 }
 
 /*
-  
+
   CodaBreakCallBack: Break the callback with a client, for the
   non-replicated and replicated fid of an object.
 

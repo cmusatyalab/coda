@@ -258,7 +258,7 @@ resent::resent(VenusFid *Fid)
 #endif
 }
 
-/* 
+/*
  * we don't support assignments to objects of this type.
  * bomb in an obvious way if it inadvertently happens.
  */

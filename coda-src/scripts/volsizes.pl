@@ -12,8 +12,8 @@ sub stripleading {
 while (<VRLIST>) {
     chop;
     ($name, $repid, $N, $volid1, $volid2, $volid3, $volid4, $volid5, $volid6, $volid7, $volid8, $storagegroup ) = split ;
-    
-     push @VOLUMENAMES, $name; 
+
+     push @VOLUMENAMES, $name;
      print "Adding $name to VOLUMENAMES\n";
      shift;
 }
@@ -51,7 +51,7 @@ while (<VL>) {
      split ;
     $line = $_;
     $name = &stripleading($name);
-    $name =~ s/\.(\d)$//; 
+    $name =~ s/\.(\d)$//;
     $repno = $1;
     $size = hex(&stripleading($size));
     $id   = &stripleading($id);
@@ -70,12 +70,12 @@ while (<VL>) {
 	   }
       }
     }
-   
+
 }
 
 foreach $name (@VOLUMENAMES) {
   if ( $size0{$name}  != $size1{$name}  ||  $size0{$name}  != $size2{$name} || $size1{$name}  != $size2{$name} ) {
-    $different = "*"; 
+    $different = "*";
   } else {
     $different = "";
   }

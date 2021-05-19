@@ -13,4 +13,3 @@ AM_CPPFLAGS = $(LWP_CFLAGS) \
 LDADD = $(top_builddir)/coda-src/partition/libpartition.la \
 	$(top_builddir)/coda-src/util/libutil.la \
 	$(LWP_LIBS)
-

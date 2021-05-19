@@ -73,4 +73,3 @@ echo "Generating switchs2e.h"
 EOF
 sed 's/^#define \([^\t]*\)[\t]*\([^t]*\)\t\/\* \(.*\) \*\/$/  case \1:\ttxt = \"\3\"; break;/' < errordb.txt
 ) > switchs2e.h
-

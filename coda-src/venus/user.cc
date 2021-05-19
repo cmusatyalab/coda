@@ -144,9 +144,9 @@ void UserPrint(int fd)
     fdprint(fd, "\n");
 }
 
-/* 
+/*
  *  An authorized user is either:
- *    logged into the console, or 
+ *    logged into the console, or
  *    the primary user of this machine (as defined by a run-time switch).
  */
 int AuthorizedUser(uid_t thisUser)

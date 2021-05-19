@@ -164,7 +164,7 @@ typedef struct { /* INTERNAL FIELDS static */
 
 /* offset and length conversion macros */
 
-/* return low-order bits of offset x as length 
+/* return low-order bits of offset x as length
    -- "low-order bits" are the lowest numerically valued bits
    of the same size as rvm_length_t */
 #define RVM_OFFSET_TO_LENGTH(x) ((x).low)
@@ -181,7 +181,7 @@ typedef struct { /* INTERNAL FIELDS static */
 /* rvm_offset_t and rvm_length_t arithmetic support */
 
 /* add rvm_offset to rvm_offset; returns result (x+y)
-   implemented as function call -- or simple add if 
+   implemented as function call -- or simple add if
    machine has 64-bit integer operations */
 #define RVM_ADD_OFFSETS(x, y) rvm_add_offsets(&(x), &(y))
 

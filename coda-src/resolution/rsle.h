@@ -19,9 +19,9 @@ listed in the file CREDITS.
 #ifndef _RSLE_H
 #define _RSLE_H 1
 
-/* 
- * class SpoolListEntry(rsle - r stands for rvm to 
- *			distinguish this from the sle 
+/*
+ * class SpoolListEntry(rsle - r stands for rvm to
+ *			distinguish this from the sle
  *			entry spooled for vm resolution)
  * 	log records spooled for a directory vnode.
  *	These are allocated in VM; only a slot has been reserved in RVM.

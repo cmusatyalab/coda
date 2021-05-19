@@ -68,7 +68,7 @@ typedef RPC2_Unsigned	VnodeId;
 typedef RPC2_Unsigned	Unique_t;
 typedef RPC2_Unsigned	FileVersion;
 
-%{ 
+%{
 #endif
 %}
 
@@ -85,7 +85,7 @@ typedef int vuid_t;
 #define _VICEFID_T_
 %}
 
-typedef RPC2_Struct 
+typedef RPC2_Struct
 {
 	VolumeId	Volume;
 	VnodeId		Vnode;
@@ -98,7 +98,7 @@ typedef RPC2_Struct
 	Unique_t	Unique;
 }	DirFid;
 
-%{ 
+%{
 #endif
 %}
 
@@ -131,12 +131,12 @@ typedef RPC2_Unsigned	UserId;
 typedef RPC2_Unsigned	Date_t;
 typedef RPC2_Integer	Rights;
 
-typedef	RPC2_Enum 
-{ 
+typedef	RPC2_Enum
+{
 	Invalid = 0,
-	File = 1, 
-	Directory = 2, 
-	SymbolicLink = 3 
+	File = 1,
+	Directory = 2,
+	SymbolicLink = 3
 } 	ViceDataType;
 
 typedef RPC2_Enum
@@ -163,5 +163,3 @@ typedef RPC2_Struct
 	VnodeId		vparent;
 	Unique_t	uparent;
 }	ViceStatus;
-
-

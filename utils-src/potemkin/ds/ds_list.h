@@ -7,7 +7,7 @@
 
 #include <odytypes.h>
 
-/* 
+/*
    Lists are an ordered set of elements of type T*.
    They are generic containers.  The only restriction on elements
    is that they not be NULL.
@@ -19,7 +19,7 @@
                <0 if i should be before j
                >0 if i should be after j
    The "orderfulness" of a list affects it's mutators
-   
+
    Lists can be "safe" or "unsafe".  Safe lists cannot be destroyed
    unless they are empty.
 
@@ -40,12 +40,12 @@ typedef struct ds_list_t ds_list_t; /* opaque list */
 
 /*** Observers ***/
 
-/* 
+/*
    ds_list_valid returns TRUE if l has a valid list magic number.
    ds_list_count returns the number of items in l.
    ds_list_first returns the first element of l, or NULL if l is empty.
    ds_list_first returns the last element of l, or NULL if l is empty.
-   ds_list_member returns e if l contains the argument e, NULL otherwise.  
+   ds_list_member returns e if l contains the argument e, NULL otherwise.
                   If the list is sorted, the ordering function is used to
 		  test equality.  If the list is unsorted, pointer-equality
 		  of elements is used.
@@ -65,7 +65,7 @@ extern void *ds_list_member(ds_list_t *l, /* is e in l? */
                     c is the comparison function for this list.
 		        If c is NULL, the list is said to be "unordered"
    		        If c is non-null, c should point to a valid comparison
-			function; it's a good idea for c to dynamically 
+			function; it's a good idea for c to dynamically
 			typecheck it's arguments.
 		    safe_destroy == FALSE; okay to delete a list without
 		        checking to see that it is empty first.
@@ -84,7 +84,7 @@ extern void *ds_list_member(ds_list_t *l, /* is e in l? */
 		        NULL if list is a no-dup list, and i would be a dup.
    ds_list_get_first: Remove and return first element in l, or NULL if empty.
    ds_list_get_first: Remove and return last element in l, or NULL if empty.
-   ds_list_remove:    Remove the element denoted by it's argument.  
+   ds_list_remove:    Remove the element denoted by it's argument.
                       The comparison function is used to test equality if
 		      the list is sorted.  If the list is unsorted, pointer
 		      equality is used.
@@ -104,8 +104,8 @@ extern void ds_list_print(ds_list_t *l, bool forward, void (*printer)(void *));
 
 typedef struct ds_list_iter_t ds_list_iter_t; /* opaque */
 
-/* 
-   You can create an interator, destroy an iterator, 
+/*
+   You can create an interator, destroy an iterator,
    or ask for the "next" element in the sequence.  Iterators and
    lists communicate with one another: if an iterator's "next" element
    is removed from the iterator's list, the iterator will be advanced

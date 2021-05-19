@@ -18,14 +18,14 @@
 .if \\n(t\\n(ll=0 \{.IP \\(bu\}
 .if \\n(t\\n(ll=1 \{.IP \\n+(e\\n(el.\}
 .\}
-.el .sp 
+.el .sp
 .\}
 .el \{\
 .ie \\nh=1 \{\
 .LP
 .nr h 0
 .\}
-.el .PP 
+.el .PP
 .\}
 ..
 .SH "NAME"
@@ -55,7 +55,7 @@ For example, to examine the status of a RVM log (called logfile in the
 example), you can do
 .Pp
 .DS
-.sp 
+.sp
 .ft RR
 .nf
 > rvmutl
@@ -69,7 +69,7 @@ Status of log:           /home/clement/linuxobj8/rvm-src/tests/logfile
   (more display omitted ...)
 * quit
 .DE
-.fi 
+.fi
 .ec
 .ft P
 .sp
@@ -78,33 +78,33 @@ As another example, suppose you want to create a RVM log device on the
 partition /dev/hdc7, of size 1 Megabyte, you can do
 .Pp
 .DS
-.sp 
+.sp
 .ft RR
 .nf
 > rvmutl
 * i /dev/hdc7 1M
 * quit
 .DE
-.fi 
+.fi
 .ec
 .ft P
 .sp
 .Pp
 Note that in the preceding example, we use the abbreviation \&"i\&" for
 the command \&"init_log\&", and we can use the unit \&"M\&" to stand for
-Megabyte. 
+Megabyte.
 .SH "I/O REDIRECTION"
 You can redirect input and output as in typical Unix shells.  For
 example, the following command will have all display redirected to the
 file allrec:
 .DS
-.sp 
+.sp
 .ft RR
 .nf
 * show all > allrec
-* 
+*
 .DE
-.fi 
+.fi
 .ec
 .ft P
 .sp
@@ -250,7 +250,7 @@ the dump should start.  The argument \fIcsf\fP determines how the dump
 should be done, it comprises of three components: \fIc\fP, \fIs\fP and
 \fIf\fP; each of them represents the count, size, and format
 respectively. \fIc\fP is an integer and determines how many units, with
-size specified by \fIs\fP, should be dumped, and \fIf\fP specifies what 
+size specified by \fIs\fP, should be dumped, and \fIf\fP specifies what
 is the dump format."
 .nr bi 1
 .Pp
@@ -259,7 +259,7 @@ eight bytes in hexadecimal format; the second command dumps two
 long integers in decimal format.  Note that how the same file
 content can be dumped into different format.
 .DS
-.sp 
+.sp
 .ft RR
 .nf
 * peek 0 / 8xb
@@ -267,7 +267,7 @@ content can be dumped into different format.
 * peek 0 / 2dl
 00000000000:           24   1662261027
 .DE
-.fi 
+.fi
 .ec
 .ft P
 .sp
@@ -302,7 +302,7 @@ each of them represents the count and size respectively.
 .Pp
 Examples:
 .DS
-.sp 
+.sp
 .ft RR
 .nf
 * poke 512 / 4db = 25
@@ -321,7 +321,7 @@ Examples:
 * peek 512 / 8db
        512:  97  98  99 100 101   0   0   0
 .DE
-.fi 
+.fi
 .ec
 .ft P
 .sp
@@ -387,7 +387,7 @@ use the syntax similar to \fBpoke\fP\&.  The following example shows
 how to use \fBmonitor\fP, \fBshow monitor\fP, as well as how
 \fBrecover\fP prints out the modification.
 .DS
-.sp 
+.sp
 .ft RR
 .nf
 * open_log log3
@@ -396,7 +396,7 @@ how to use \fBmonitor\fP, \fBshow monitor\fP, as well as how
 
   Enter list of addresses/format, terminate with null line
 :  0x200d7550/1l
-: 
+:
 * show monitor
 
 Range    Address/format     Length
@@ -433,7 +433,7 @@ change_tree_insert: inserting entire range
   monitored range 1, 0x200d7550, length 4 matched by
   modified range 0x200cdcc4, length 16
 .DE
-.fi 
+.fi
 .ec
 .ft P
 .sp
@@ -487,7 +487,7 @@ write the in-memory structure (status area) to disk.
 .Pp
 E.g.
 .DS
-.sp 
+.sp
 .ft RR
 .nf
 * show mods 0x2000005c / 8b
@@ -515,7 +515,7 @@ Record number: 40756 assigns specified values
 * show mods 0x2000005c / 1b = 75
   -- no more records
 .DE
-.fi 
+.fi
 .ec
 .ft P
 .sp
@@ -594,14 +594,14 @@ structure.  The unit is byte.  The following structure can be shown:
 \fBLOG_DEV_STATUS_SIZE\fP, \fBlog_dev_status_t\fP, \fBlog_seg_t\fP,
 \fBLOG_SPECIAL_IOV_MAX\fP, \fBLOG_SPECIAL_SIZE\fP, \fBlog_special_t\fP,
 \fBlog_status_t\fP (\fBstatus\fP), \fBlog_wrap_t\fP, \fBlong\fP,
-\fBMAX_READ_LEN\fP, \fBmem_region_t\fP, 
+\fBMAX_READ_LEN\fP, \fBmem_region_t\fP,
 \fBMIN_NV_RANGE_SIZE\fP, \fBMIN_FLUSH_BUF_LEN\fP,
 \fBMIN_RECOVERY_BUF_LEN\fP, \fBMIN_TRANS_SIZE\fP, \fBmutex\fP,
 \fBNUM_CACHE_TYPES\fP, \fBNV_LOCAL_MAX\fP, \fBnv_range_t\fP (\fBnv\fP),
 \fBNV_RANGE_OVERHEAD\fP, \fBpage_size\fP, \fBrange_t\fP, \fBrec_end_t\fP,
 \fBrec_hdr_t\fP, \fBRECOVERY_BUF_LEN\fP, \fBregion_t\fP,
 \fBrvm_length_t\fP, \fBrvm_offset_t\fP, \fBrvm_options_t\fP,
-\fBrvm_region_t\fP, \fBrvm_tid_t\fP, \fBrw_lock_t\fP (\fBrw_lock\fP), 
+\fBrvm_region_t\fP, \fBrvm_tid_t\fP, \fBrw_lock_t\fP (\fBrw_lock\fP),
 \fBrw_lock_mode_t\fP, \fBseg_t\fP, \fBstruct_id_t\fP, \fBint_tid_t\fP,
 \fBtimeval\fP, \fBtrans_hdr_t\fP, \fBTRANS_SIZE\fP, \fBtree_links_t\fP,
 \fBtree_node_t\fP, \fBTRUNCATE\fP, \fBulong\fP, \fBunsigned\fP\&.

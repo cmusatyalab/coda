@@ -74,7 +74,7 @@ struct {
 } unput_stack;
 
 /*
- * i386_nbsd1's flex defines input() as a function which uses the macro 
+ * i386_nbsd1's flex defines input() as a function which uses the macro
  * YY_INPUT rather than using a macro input().
  */
 #undef YY_INPUT
@@ -88,9 +88,9 @@ do {                                                           \
 	c = (file == NULL ? getchar() : getc(file));           \
     }                                                          \
     result = (c == EOF) ? YY_NULL : (buf[0] = c, 1);           \
-} while (0)               
+} while (0)
 
-/* 
+/*
  * But, unput is a macro in both lex and flex.  God only knows what will
  * happen with POSIX.
  */
@@ -222,7 +222,7 @@ SPACE		[ \t\014]
 
 .				{
 				  printf("[Line %d] Illegal character ignored: %3o (octal)\n",
-					 line, 
+					 line,
 					 yytext[0]);
 				}
 

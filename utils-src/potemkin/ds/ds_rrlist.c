@@ -36,7 +36,7 @@ static long comp_reqtab_elt(void *a1, void *a2)
     return (e1->reqid - e2->reqid);
 }
 
-/* 
+/*
    pids and reqids are unique in each structure by invariant,
    so they are sufficient for distinction
 */
@@ -77,7 +77,7 @@ static long compreq(void *a1, void *a2)
     return (r1->reqid - r2->reqid);
 }
 
-/* 
+/*
    lists can contain many elements with the same low/high values.  As
    long as they are ordered correctly with respect to those values, we
    can use the pointers themselves to distinguish equal bounds values.
@@ -309,7 +309,7 @@ ds_rrlist_return_t ds_rrlist_set_value(ds_rrlist_t *l, long newval,
     /* zero the list pointer */
     *to_notify = NULL;
 
-    /* 
+    /*
        check quickly if we have to do anything, and get out if not.
        (the common case)
     */
@@ -327,7 +327,7 @@ ds_rrlist_return_t ds_rrlist_set_value(ds_rrlist_t *l, long newval,
         }
     }
 
-    /* 
+    /*
        there is at least one bound that has been exceeded: req
        currently points to it.  l->value has not yet been set,
        and the to_notify list must be constructed

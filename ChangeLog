@@ -114,7 +114,7 @@
 	  as a result of cache pressure.
 	* Avoid crash when updating cached status for an object and not all
 	  the data is available yet.
-	* Added vcodacon, fltk-based codacon implementation. (Phil Nelson) 
+	* Added vcodacon, fltk-based codacon implementation. (Phil Nelson)
 	* Added CML size in bytes to 'cfs lv' output.
 	* Make sure the servers do not report a conflict for objects when the
 	  parent of those objects is marked as a conflict.
@@ -366,7 +366,7 @@
 	  scripted solution.
 	* cfs disconnect/reconnect now work without libfail.
 	* Moved @sys/@cpu expansion from Lookup to ReadLink and allow
-	  filenames to end with '@xxx'. 
+	  filenames to end with '@xxx'.
 	* Avoid string overflow during backups.
 
 2002-12-13	<jaharkes@cs.cmu.edu>
@@ -389,7 +389,7 @@
 	* Keep the vnode bitmaps on the server small, servers would crash when
 	  more than 30000 files are created in a single volume. Now we should
 	  be ok until we hit about 240000.
-	
+
 2002-03-12	<jaharkes@cs.cmu.edu>
 	* ======== Release 5.3.19 =========
 	* Fixes for createvol_rep script.
@@ -521,7 +521,7 @@
 	* Fixed incorrect ACL creation on new volumes.
 	* Caught memory leak in volutil dumpestimates.
 	* Corrected include file search order to pick up local headers
-	  before system headers. 
+	  before system headers.
 	* Turned off rpc2 packet tracing in the servers.
 	* volutil info now accepts replicated volume names/ids.
 
@@ -698,13 +698,13 @@
 	  acl for user `0' to be added.
 	* Fixed losing files (and possible crash) during venus startup after a
 	  file was opened for writing during reintegration (shadowing).
-	* Fixed losing filedata when a file gets shadowed twice. 
+	* Fixed losing filedata when a file gets shadowed twice.
 	* Didn't resolve the directory owner when doing log based resolution.
 
 1999-10-21    <jaharkes@cs.cmu.edu>
 	* ======== Release 5.3.3 =========
 	* Dumpdir argument of the backup program was not considered optional.
-	* Skip invalid lines while parsing the VSGDB. 
+	* Skip invalid lines while parsing the VSGDB.
 	* Build cleanup, now correctly builds vcrcommon.h.
 	* Setattr sometimes wanted fso data even when it was not required.
 	* Removed broken fcntl locking for directories.
@@ -753,7 +753,7 @@
 	* Some more resolution problems fixed.
 	* Fetch continuations cannot work for directories, forcing a refetch.
 	* Fixed directory resolution bugs introduced in 5.3.0
-	* AutoRequestWBPermit was a used as a reference instead of a 
+	* AutoRequestWBPermit was a used as a reference instead of a
 	  function call. (Nickolai Zeldovich)
 
 1999-08-13    <jaharkes@cs.cmu.edu>
@@ -772,7 +772,7 @@
 	* Applied kerberos5 patch that add -realm and -keytab options to
 	  kauth2. (Nickolai Zeldovich)
 	* Added comments concerning safe-deletion of coda-list items. (Clement)
-	* Solaris patches, the server is working. (Phil Nelson) 
+	* Solaris patches, the server is working. (Phil Nelson)
 	* Fixed directory refcounting during failed repair sessions.
 	* Avoid null-pointer deref when clients disappear from the network.
 	* Fixed pending CML count in 'cfs listvolume'.
@@ -820,7 +820,7 @@
 1999-05-31    <jaharkes@cs.cmu.edu>
 	* ======== Release 5.2.4  =========
 	* Client uniquifiers were not unique, because the random generator
-	  wasn't seeded yet.	
+	  wasn't seeded yet.
 	* Trickle stores were broken, blocking reintegration.
 	* A bunch of repair related changes, mainly simplify porting the
 	  repair tools to windows.
@@ -905,7 +905,7 @@
 	  overall.
 	* Removes venus reinitialization when installing a new rpm.
 	* Fixes several directory refcounting problems in the server.
-	
+
 
 1999-03-04    <jaharkes@cs.cmu.edu>
 	* ======== Release 5.1.0 (5.2.pre1) =========
@@ -1066,9 +1066,9 @@
 
 1998-06-24    <braam@carissimi.coda.cs.cmu.edu>
 	* kernel-src/vfs/linux21: enormous amounts of changes. New
-	Makefiles for the linux-coda module.  Improvements to the 
-	kernel code. 
-	* coda-src/fail: filcon now returns 0. 
+	Makefiles for the linux-coda module.  Improvements to the
+	kernel code.
+	* coda-src/fail: filcon now returns 0.
 	* minor changes for BSD package building.
 
 1998-06-18    <braam@carissimi.coda.cs.cmu.edu>
@@ -1076,22 +1076,22 @@
  	no longer part of Coda building. Too many deps on kernel
  	flags. This has implications for the coda.spec.in file too.
 	* lib-src/mlwp/lwp.c: stacks are now mmapped with guard pages.
-	* rvm-src/rvm/rvm_logrecovr.c: two important bugs were caught in a 
+	* rvm-src/rvm/rvm_logrecovr.c: two important bugs were caught in a
 	large scale debugging effort.  They both resulted from the rvm
 	thread not correctly signalling the other threads in case the log
 	was empty but recover was triggered because a large transaction
 	was pending. Servers now startup fine, even first time around.
-	
+
 1998-06-16  Peter Braam  <braam@motet.coda.cs.cmu.edu>
 	* rvm-src/rvmlwp and rdslwp: Jan fixed building RVM inside the
-	source tree 
+	source tree
 	* coda-src/vice/srv.cc: moved RVM initialization before RPC2
-	startup. 
+	startup.
 	* coda-src/scripts/vutil & venus: Jan: improve signal handling,
 	vutil now  changes the debug level correctly on Linux (at last)
 	* coda-src/vice/srvproc2.cc: Shafeeq and Peter: more changes to
 	connection setup in the server.
-	
+
 1998-06-11  Peter Braam  <braam@motet.coda.cs.cmu.edu>
 	* kernel-src/vfs/linux21: the volroot list off the superblock was
  	being corrupted with stale entries. Fixed.  Also refresh the
@@ -1099,15 +1099,15 @@
 
 1998-06-07    <braam@carissimi.coda.cs.cmu.edu>
 	* kernel-src/vfs/linux21/psdev.c Moved entry for /proc/fs to the
-	proc filesystem directory.  
+	proc filesystem directory.
 	* kernel-src/vsf/linux21/dir.c: fixed the nasty segfault caused by
 	positive error return in coda_lookup. Cleaned up the interruption
-	code.  
+	code.
 
 1998-06-06  Peter Braam  <braam@motet.coda.cs.cmu.edu>
 	* coda-src/scripts/venus-setup: chmod 600 /dev/cfs0 !!!
 	* coda-src/venus/vproc.h: for Linux CRTORUID for Linux should use
-	fsuid. This allows Samba exporting of /coda 
+	fsuid. This allows Samba exporting of /coda
 
 1998-06-03  Peter Braam  <braam@motet.coda.cs.cmu.edu>
 	* Fix to BOGUS/NAKIT macros. There are many unsafe macros in rpc2.
@@ -1117,7 +1117,7 @@
 1998-05-27    <braam@carissimi.coda.cs.cmu.edu>
 	* rvm-src/configure.in/Makeconf: revamped the building process
 	of the threaded rvm/rds libraries to stop using symbolic links.
-	* volutil/vol-setlogparms.cc: VMRES flag was made obsolete, and 
+	* volutil/vol-setlogparms.cc: VMRES flag was made obsolete, and
 	"or-ing" the flags changed to assignment.
 
 1998-05-18    <braam@ptar.stelias.com>
@@ -1125,70 +1125,69 @@
 	must now be equal to those in the VSGDB. This involved minor
 	changes in vol/volume.cc
 	* changed SIGSTP to SIGUSR and added a routine UtilDetach which
-	does setsid  to: updatesrv, updateclnt, auth2. 
+	does setsid  to: updatesrv, updateclnt, auth2.
 	* changed srv to codasrv
 	* vice-setup-rvm exits if srv.conf exists
 
 1998-05-14    <braam@carissimi.coda.cs.cmu.edu>
 	* increased the stack of advice_daemon in Venus to 0x4000. Stack
-	overflow was caused by several char[MAXPATHLEN] on the stack. 
+	overflow was caused by several char[MAXPATHLEN] on the stack.
 	* increased the stacksize of various things in advice_srv
 	* asked advice_srv to exit if Gui falls over
 	* Fixed some missing code in advice/conversions.cc
-	* Guidir: beginning of better handling of PATHS and 
+	* Guidir: beginning of better handling of PATHS and
 	GetServerInformation. advice_srv now works .. at CMU for Peter...
 	* Makeconf Eliots problem with VPATH/INCLFLAGS. fixed.
-	* lwp.c correct initialization of lwp_logfile. 
+	* lwp.c correct initialization of lwp_logfile.
 
 1998-05-01    <braam@carissimi.coda.cs.cmu.edu>
 	* ======== Release 4.6.0 =========
 	* lib-src/mlwp: patches added from Odyssey group to aid in
 	debugging stack problems.
 	* added LWP_SetLog file to set log file and level.
-	* coda-src/rpc2, rp2gen: changes from Odyssey: change time 
+	* coda-src/rpc2, rp2gen: changes from Odyssey: change time
 	measurement units to ms from 10ms; add float type to XDR.
-	* included shrink packet bug fix 
+	* included shrink packet bug fix
 	* CODA_ASSERT: changed to while (1) { sleep(1); } to preserve more
-	stack. 
+	stack.
 	* C++/C: we upgraded libal and auth2 and vicedep to "C". All stub
 	will now appear with C linkage (rules for C++ stub code were
-	removed). 
-	* Changed logging in RPC2 to use a log file rather than stdout. 
-	* rvm-src/seg/rvm_loadseg.c: initialized the hdr_vmaddr pointer to 
-	NULL. 
+	removed).
+	* Changed logging in RPC2 to use a log file rather than stdout.
+	* rvm-src/seg/rvm_loadseg.c: initialized the hdr_vmaddr pointer to
+	NULL.
 	* coda-src/venus/vproc.h: use euid instead of fsuid.  This allows
 	samba to export /coda to my windows machine and I can save files
 	directly into Coda.
 	* coda-src/vice/srvproc.cc ViceNewConnection violated RPC2
 	semantics by making a long running call to set up a callback
 	connection with Venus.  This resulted in Venus retransmitting
-	packets. We moved this setup to ViceNewConnectFS. 
+	packets. We moved this setup to ViceNewConnectFS.
 	* kernel-src/vfs/linux21: added /proc entries in /proc/fs/coda
 	showing statistics.  Fixed a bug in flag_children (dereferenced a
 	NULL in a printk statement).  Took care of O_RDONLY == 0
 	(i.e. it's not a bit which is set).
 	* coda-src/advice: the Coda console is still not operational
 	* coda-src/portmapper: a simple portmapper has been added. We will
-	start using this in the future. 
+	start using this in the future.
 	* coda-src/rpc2/sl.c: ShrinkPacket -- this contained a nasty bug.
 	If a  packet was sent with a wrong length field in it a random pointer
 	to a buffer may have been returned.  This whole area needs more
-	revisiting. 
+	revisiting.
 	* coda-src/scripts/startserver: makes a backup copy of
 	SrvErr. Starts the server with the -debarrenize flag to avoid
 	silly salvage problems.
 	* vice.init: split up into 3 scripts for auth2, update and the
 	server. Should now also stop these correctly.  Did away with
-	STARTFROMBOOT for Linux.     
+	STARTFROMBOOT for Linux.
 	* lwp.c: changed the Logging of errors to write to a FILE
 	*lwp_logfile. LWP_SetLog can set this file and the debug
-	level. 
+	level.
 	* sys/....h: Bob Baron changed a few header orders for
 	compilation on recent FreeBSD's.
 	* kernel-src/vfs/linux21: important bug fix -- the VATRR flag
 	was cleared instead of set in file_write. Fixed.
 	* added suitable RVM addresses for Sparc 1+ machines running
-	Linux. 
+	Linux.
 	* Increased the stack size in the PollServer thread in
-	backup. 
-	
+	backup.

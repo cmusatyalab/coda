@@ -32,4 +32,3 @@ rotate "$authdir/AuthLog"
 #
 # and,
 # killall -HUP auth2
-

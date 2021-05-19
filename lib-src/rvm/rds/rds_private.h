@@ -49,8 +49,8 @@ Coda are listed in the file CREDITS.
 
 /* Synchronization and Threads support */
 
-/* 
- * We can have one of three thread models: 
+/*
+ * We can have one of three thread models:
  *          cthreads:         Mach threads (kernel or coroutine)
  *          lwp:              Coda's lightweight process package
  *          pthreads:         POSIX threads
@@ -61,7 +61,7 @@ Coda are listed in the file CREDITS.
  *
  * It is assumed in the rds package that cthreads and pthreads use
  * preemptive scheduling, and they are synchronized appropriately.
- * 
+ *
  * You must define only one of the above targets, and it must be defined
  * consistently across the following packages: RVM, RDS, and URT
  */

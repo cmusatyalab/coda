@@ -34,7 +34,7 @@ extern "C" {
 #include "volume.h"
 #include "al.h"
 
-/* Debugging routine in file separate from volume.cc to simplify 
+/* Debugging routine in file separate from volume.cc to simplify
 ease of use from other modules (e.g. codadump2tar.cc in volutil).
 Otherwise, a lot of baggage gets linked in (Satya, May 2004) */
 

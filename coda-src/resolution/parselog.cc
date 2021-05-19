@@ -18,7 +18,7 @@ listed in the file CREDITS.
 
 /*
  * compops.c
- *	routines for computing list of 
+ *	routines for computing list of
  *	compensating operations.
  */
 
@@ -43,7 +43,7 @@ extern "C" {
 static void ReadOpsFromBuf(char *, int, int, rsle **);
 
 /* ParseRemoteLogs
- *	Parse the byte stream of log entries shipped 
+ *	Parse the byte stream of log entries shipped
  *	by the coordinator.
  *	Separate out entries by host and by vnode number
  */

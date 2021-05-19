@@ -162,7 +162,7 @@ void LogMsg(int msglevel, int debuglevel, FILE *fout, const char *fmt, ...)
 
 /* Send a message out on a file descriptor. */
 #ifdef __CYGWIN32__
-/* int vsnprintf(char *buf, size_t len, char *fmt, va_list ap) 
+/* int vsnprintf(char *buf, size_t len, char *fmt, va_list ap)
 {
     return vsprintf(buf, fmt, ap);
 } */

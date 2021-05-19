@@ -851,7 +851,7 @@ rvm_bool_t in_tid(rvm_length_t addr /* address to search for */,
     /* check range list and range descriptors */
     printf("    Checking modification ranges\n");
 
-    /* need chk_tree function 
+    /* need chk_tree function
     if (!chk_tree(&tid->range_tree,rvm_true))
         printf("  Tid at %x has damaged range tree\n",tid);
     else

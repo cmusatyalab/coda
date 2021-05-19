@@ -10,4 +10,3 @@ AC_DEFUN([CODA_PKG_CONFIG],
 	PKG_CONFIG_PATH="${libdir}/pkgconfig:/usr/local/lib/pkgconfig"
 	export PKG_CONFIG_PATH
     fi])
-

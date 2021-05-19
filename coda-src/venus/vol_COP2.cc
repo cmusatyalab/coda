@@ -334,7 +334,7 @@ cop2ent::cop2ent(ViceStoreId *Sid, ViceVersionVector *UpdateSet)
 #endif
 }
 
-/* 
+/*
  * we don't support assignments to objects of this type.
  * bomb in an obvious way if it inadvertently happens.
  */

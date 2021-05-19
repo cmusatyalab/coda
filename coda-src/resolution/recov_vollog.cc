@@ -20,7 +20,7 @@ listed in the file CREDITS.
  * recov_logalloc.c
  *	Created 2/13/92 -- Puneet Kumar
  *
- *	Definitions for routines to manage  a volume log in recoverable storage 
+ *	Definitions for routines to manage  a volume log in recoverable storage
  */
 
 #ifdef __cplusplus

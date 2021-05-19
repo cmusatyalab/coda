@@ -97,7 +97,7 @@ callbackserver::callbackserver()
     start_thread();
 }
 
-/* 
+/*
  * we don't support assignments to objects of this type.
  * bomb in an obvious way if it inadvertently happens.
  */
@@ -239,7 +239,7 @@ long VENUS_CallBackFetch(RPC2_Handle RPCid, ViceFid *Fid,
         goto GetLost;
     }
 
-    /* 
+    /*
      * We do not lock the object, because the reintegrator thread has already
      * created a shadow copy. However, we check to make sure there is a shadow
      * file just in case. This is a choke for now, because it really is not

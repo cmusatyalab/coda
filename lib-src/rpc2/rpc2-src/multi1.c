@@ -445,7 +445,7 @@ static long mrpc_SendPacketsReliably(
 	for(i = 0; i < HowMany; i++)
 	    {
 	    if (mcon[i].sle == NULL) continue;
-	    if ((*UnpackMulti)(HowMany, ConnHandleList, ArgInfo, NULL, RPC2_FAIL, i) == -1) 
+	    if ((*UnpackMulti)(HowMany, ConnHandleList, ArgInfo, NULL, RPC2_FAIL, i) == -1)
 		return(RPC2_FAIL);
 	    }
     */

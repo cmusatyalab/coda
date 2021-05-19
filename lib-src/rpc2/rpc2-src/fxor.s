@@ -65,7 +65,7 @@ R2 and R3 are always incremented, R4 is always decremented, and R5 is reset each
 _.fxor:  stm		r6,REG_OFFSET(sp)   # save registers
 	    lis		r6,4		    # Squirrel away valuable constant in R6
 	    lis		r10,8		    # and another in R10
-	    l		r7,0(r5)	    # Prefetch lower part of key in R7 
+	    l		r7,0(r5)	    # Prefetch lower part of key in R7
 	    l		r8,4(r5)	    # ... and upper part in R8
 
 loop:
@@ -82,12 +82,12 @@ loop:
 	    l		r9,4(r2)# get next 4 source bytes
 	    x		r9,r8	# xor it with bottom key half
 	    st		r9,4(r3)# and put it at the destination
-	    
+
 	    a		r2,r10	# bump source pointer
 	    bx		loop
 	    a		r3,r10	# bump dest pointer
-	    
-	    
+
+
 
 	    # End of xoring
 quit:

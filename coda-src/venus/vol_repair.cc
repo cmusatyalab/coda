@@ -916,7 +916,7 @@ int repvol::DisconnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 	    * a ViceRepair() call will be made, therefore the inconsistent
 	    * file object on servers will get the new data and its inconsistent
 	    * bit will be cleared. Because the VV of the file object is
-	    * incremented as a result, the next FSDB::get() tries to get 
+	    * incremented as a result, the next FSDB::get() tries to get
 	    * it, it will fetch the new clean server version and throw
 	    * away the local fakeified object.
 	    */

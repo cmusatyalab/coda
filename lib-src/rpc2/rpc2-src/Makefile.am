@@ -25,4 +25,3 @@ libse_la_LDFLAGS = $(LIBTOOL_LDFLAGS)
 libse_la_LIBADD = librpc2.la $(LWP_LIBS)
 
 MAINTAINERCLEANFILES = Makefile.in
-

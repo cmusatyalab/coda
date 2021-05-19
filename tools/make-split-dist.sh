@@ -12,4 +12,3 @@ make subdirs="" dist
 mv lib-src/lwp/lwp-*.tar.gz .
 mv lib-src/rpc2/rpc2-*.tar.gz .
 mv lib-src/rvm/rvm-*.tar.gz .
-

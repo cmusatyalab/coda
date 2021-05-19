@@ -79,4 +79,3 @@
 // #define CAEASRINPROGRESS	306	/* Venus requested an ASR while another one is in progress */
   case CAEADVICEPENDING:	rpc2_err = 307; break;
   case CAENOSERVERS:	rpc2_err = 308; break;
-

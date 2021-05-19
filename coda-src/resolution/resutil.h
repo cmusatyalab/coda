@@ -16,7 +16,7 @@ listed in the file CREDITS.
 
 #*/
 
-/* 
+/*
  * resutil.h
  */
 #ifndef _RESUTIL_H_
@@ -24,7 +24,7 @@ listed in the file CREDITS.
 
 #include <res.h>
 
-/* 
+/*
  * class he:
  * Elements of a linked list.
  * One element / host in the log buffer.
@@ -132,7 +132,7 @@ he *FindHE(olist *list, long hostaddress);
 #define MAXCOMPS 100
 
 /**************** ilink class functions *******************/
-/* declaration of functions that parse the list of inconsistencies 
+/* declaration of functions that parse the list of inconsistencies
  * at end of phase 1 during resolution and create a unique entry list
  */
 #define SIZEOF_INCFID 5 * sizeof(long)

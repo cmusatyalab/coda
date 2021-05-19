@@ -1,6 +1,6 @@
 /* Written by Philip A. Nelson, March 5, 2000.
 
-   This code is public domain code. 
+   This code is public domain code.
 
 */
 

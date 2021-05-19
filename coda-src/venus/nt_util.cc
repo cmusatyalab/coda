@@ -44,7 +44,7 @@ extern "C" {
 #include "nt_util.h"
 
 /*
- * NT specific routines 
+ * NT specific routines
  *
  */
 

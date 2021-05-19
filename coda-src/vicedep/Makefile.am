@@ -21,4 +21,3 @@ nodist_libvolutildep_la_SOURCES = vcrcommon.h volutil.h voldump.server.c volutil
     volutil.helper.c vcrcommon.helper.c
 
 AM_CPPFLAGS = $(RPC2_CFLAGS)
-

@@ -44,22 +44,22 @@ extern "C" {
 #include "cvnode.h"
 #include "volume.h"
 
-/* 
-   This file manages the directory handle cache in conjunction 
+/*
+   This file manages the directory handle cache in conjunction
    with Vnodes.
 
-   The Directory Handle cache is controlled by the Vnode cache. 
-   When directory content is needed, VN_SetDirHandle must be called. 
+   The Directory Handle cache is controlled by the Vnode cache.
+   When directory content is needed, VN_SetDirHandle must be called.
    When the Vnode goes away is calls DC_Drop to eliminate the cache.
    It could call DC_Put but presently the calls VN_SetDirHandle is not
-   paired with a corresponding VN_PutDirHandle call. 
+   paired with a corresponding VN_PutDirHandle call.
 
    The reference counting done by DC is therefore ignored:
    i.e. VN_SetDirHandle can be called at any time and need not te
    matched by equally many "Puts", when VN_PutDirHandle is called the
    cache entry will go away.
 
-   This would be a good thing to fix, since it would potentially enhance 
+   This would be a good thing to fix, since it would potentially enhance
    performance.
 
 */
@@ -119,8 +119,8 @@ int VN_DAbort(Vnode *vnp)
     return (0);
 }
 
-/* 
-   this hashes the Directory Handle and copies inode pages into the DH. 
+/*
+   this hashes the Directory Handle and copies inode pages into the DH.
    dc_count exceeds the vn->dh_refc if a vnode clone exists in VM.
 */
 PDirHandle VN_SetDirHandle(struct Vnode *vn)
@@ -189,10 +189,10 @@ void VN_DropDirHandle(struct Vnode *vn)
 }
 
 /*
-   - directories: set the disk.inode field to 0 and 
-     create a dcentry with the _old_ contents. 
+   - directories: set the disk.inode field to 0 and
+     create a dcentry with the _old_ contents.
    NOTES:
-   - afterwards the vptr->dh  will have VM data, 
+   - afterwards the vptr->dh  will have VM data,
      but no RVM data.
    - the reference counts of the vnode and the cache entries
      are split appropriately.

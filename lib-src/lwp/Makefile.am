@@ -16,4 +16,3 @@ MAINTAINERCLEANFILES = Makefile.in aclocal.m4 compile config.guess \
 
 distcleancheck_listfiles = \
        find -type f -exec sh -c 'test -f $(srcdir)/{} || echo {}' ';'
-

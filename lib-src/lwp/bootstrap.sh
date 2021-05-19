@@ -1,7 +1,7 @@
 #!/bin/sh
 #
 # Running this should create the following files:
-# 
+#
 # touch      - ChangeLog
 # autoheader - config.h.in
 # aclocal    - aclocal.m4

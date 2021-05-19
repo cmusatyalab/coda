@@ -75,4 +75,3 @@ AC_CONFIG_FILES([Makefile include/Makefile rvm/Makefile seg/Makefile
     rds/Makefile tests/Makefile rvm.pc rvm-uninstalled.pc rvmlwp.pc
     rvmlwp-uninstalled.pc])
 AC_OUTPUT
-

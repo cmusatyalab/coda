@@ -16,10 +16,10 @@ listed in the file CREDITS.
 
 #*/
 
-/* cure.c 
+/* cure.c
  * Created 12/09/89 - Puneet Kumar
  *
- * Procedures to repair inconsistent directories 
+ * Procedures to repair inconsistent directories
  */
 
 #ifdef __cplusplus

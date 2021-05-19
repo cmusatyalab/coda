@@ -2,7 +2,7 @@
 .if t .ds Q ``
 .if n .ds U \&"
 .if t .ds U ''
-.TH "purgevol_rep" 8 
+.TH "purgevol_rep" 8
 .tr \&
 .nr bi 0
 .nr ll 0
@@ -18,17 +18,17 @@
 .if \\n(t\\n(ll=0 \{.IP \\(bu\}
 .if \\n(t\\n(ll=1 \{.IP \\n+(e\\n(el.\}
 .\}
-.el .sp 
+.el .sp
 .\}
 .el \{\
 .ie \\nh=1 \{\
 .LP
 .nr h 0
 .\}
-.el .PP 
+.el .PP
 .\}
 ..
-.SH NAME  
+.SH NAME
 purgevol_rep \- delete a replicated volume
 
 .SH SYNOPSIS
@@ -65,7 +65,7 @@ root.
 .IP "\fI/vice/vol/AllVolumes\fP"
 .nr bi 1
 .Pp
-updated by removing the entries for 
+updated by removing the entries for
 the replicas of the purged volume.
 .Pp
 .if \n(ll>1 .RE
@@ -77,7 +77,7 @@ the replicas of the purged volume.
 .IP "\fI/vice/vol/VolumeList\fP"
 .nr bi 1
 .Pp
-updated by the remote server as a 
+updated by the remote server as a
 side effect of purging the volume.
 .Pp
 .if \n(ll>1 .RE
@@ -89,7 +89,7 @@ side effect of purging the volume.
 .IP "\fI/vice/vol/VRList\fP"
 .nr bi 1
 .Pp
-updated by deleting the entry for the 
+updated by deleting the entry for the
 purged volume.
 .Pp
 .if \n(ll>1 .RE

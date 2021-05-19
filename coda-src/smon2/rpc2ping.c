@@ -20,7 +20,7 @@ listed in the file CREDITS.
  * Very simple program to monitor Coda servers, it only sets up an rpc2
  * connection, so it won't catch internal server problems. But it does
  * detect a crashed server.
- * 
+ *
  *   Jan Harkes, September 1999
  */
 

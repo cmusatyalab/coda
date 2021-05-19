@@ -51,7 +51,7 @@ static enum InitState { notTried, tried, done } initState = notTried;
 /* last time returned by RT_FastTime.  Used to implement FT_ApproxTime */
 struct timeval FT_LastTime;
 
-/* 
+/*
    This routine was used on SUN's to memory map the time.
 */
 int FT_Init(int printErrors, int notReally)

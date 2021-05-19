@@ -22,7 +22,7 @@ listed in the file CREDITS.
  *
  *    ToDo:
  *       1. All mutating Vice calls should have the following IN arguments:
- *            NewSid, NewMutator (implicit from connection), NewMtime, 
+ *            NewSid, NewMutator (implicit from connection), NewMtime,
  *            OldVV and DataVersion (for each object), NewStatus (for each object)
  */
 

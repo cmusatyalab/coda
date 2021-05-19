@@ -15,4 +15,3 @@ AC_DEFUN([CODA_PKG_CONFIG],
     fi
     PKG_CONFIG_PATH="${ac_pwd}/lib-src/lwp:${ac_pwd}/lib-src/rpc2:${ac_pwd}/lib-src/rvm:${PKG_CONFIG_PATH}"
     export PKG_CONFIG_PATH])
-

@@ -16,4 +16,3 @@ AC_DEFUN([CODA_SOFT_CONFIG_SUBDIR], [
         fi
     fi
 ])
-

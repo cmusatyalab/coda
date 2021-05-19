@@ -15,4 +15,3 @@ Version: @VERSION@
 Requires: lwp
 Cflags: -I${includedir}
 Libs: -L${rdslibdir} -lrdslwp -L${seglibdir} -lseglwp -L${rvmlibdir} -lrvmlwp
-

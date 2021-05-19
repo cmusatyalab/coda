@@ -1124,7 +1124,7 @@ static int scan_int(int low_range, int high_range, int default_val,
 #if 0
 /* I guess this code fragment is wrong, under this, when (low_range != 0)
  * val will be return no matter whatever value it is.  More reasonable
- * behaviour should be returning val only when 
+ * behaviour should be returning val only when
  * (either low_range or high_range is non-zero) AND
  * (val fall within range) -- clement
  */

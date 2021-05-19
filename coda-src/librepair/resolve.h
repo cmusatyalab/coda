@@ -20,12 +20,12 @@ listed in the file CREDITS.
 #define _RESOLVE_H_
 
 /*
- * resolve.h 
+ * resolve.h
  * Created 09/18/89  Puneet Kumar
  */
 
-/* Header file for definitions used by the 
- * resolution subsystem  
+/* Header file for definitions used by the
+ * resolution subsystem
  */
 #include <vcrcommon.h>
 

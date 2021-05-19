@@ -14,4 +14,3 @@ AC_DEFUN([CODA_PKG_CONFIG],
     fi
     PKG_CONFIG_PATH="${ac_pwd}/../lwp:${PKG_CONFIG_PATH}"
     export PKG_CONFIG_PATH])
-

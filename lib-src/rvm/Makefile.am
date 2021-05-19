@@ -18,4 +18,3 @@ MAINTAINERCLEANFILES = AUTHORS Makefile.in README compile \
 
 distcleancheck_listfiles = \
        find -type f -exec sh -c 'test -f $(srcdir)/{} || echo {}' ';'
-

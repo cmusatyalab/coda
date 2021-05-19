@@ -89,7 +89,7 @@ static void printvns(Volume *, VnodeClass);
 static void date(time_t, char *);
 
 /*
-  S_VolInfo: Dump out information (in ascii) about a volume 
+  S_VolInfo: Dump out information (in ascii) about a volume
 */
 long int S_VolInfo(RPC2_Handle rpcid, RPC2_String formal_volkey,
                    RPC2_Integer dumpall,

@@ -118,8 +118,8 @@ void printnames(struct DiskPartition *dp, int low, int step, int high)
 
 /*
  * init: do some sanity checks
- * open resource database 
- * set up bitmap 
+ * open resource database
+ * set up bitmap
  */
 static int f_init(union PartitionData **data, Partent partent, Device *dev)
 {
@@ -380,7 +380,7 @@ static int f_get_header(struct DiskPartition *dp, struct i_header *header,
 }
 
 /*
- * change the lnk attribute 
+ * change the lnk attribute
  */
 static int f_change_lnk(struct DiskPartition *dp, Inode ino, long value,
                         int inc)
@@ -516,7 +516,7 @@ static int f_iwrite(struct DiskPartition *dp, Inode inode_number,
  * stat struct.
  *
  */
-static int 
+static int
 istat(struct DiskPartition *dp, Inode  inode_number, struct stat *statbuf)
 {
     char inofile[FNAMESIZE];
@@ -527,10 +527,10 @@ istat(struct DiskPartition *dp, Inode  inode_number, struct stat *statbuf)
     if (stat(inofile, statbuf)<0)
 	return -1;
 
-    if ( f_get_header(dp, &header, inode_number) != 0 ) 
+    if ( f_get_header(dp, &header, inode_number) != 0 )
         return -1;
 
-    /* is this really what we want??? XXXX */	
+    /* is this really what we want??? XXXX */
     (*(long *)&statbuf->st_gid)=header.volume;
     statbuf->st_nlink = header.lnk;
     statbuf->st_size=header.vnode;
@@ -542,10 +542,10 @@ istat(struct DiskPartition *dp, Inode  inode_number, struct stat *statbuf)
 static int inosort(const struct dirent **a, const struct dirent **b)
 {
     Inode inoa, inob;
-    
+
     inoa = atoi((*a)->d_name);
     inob = atoi((*b)->d_name);
-    
+
     if ( inoa == inob ) return 0;
     if ( inoa > inob ) return 1;
     return -1;

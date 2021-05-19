@@ -18,28 +18,28 @@ listed in the file CREDITS.
 
 /*
  *
- * rec_smolist.h -- Specification of a recoverable singly-linked list type 
+ * rec_smolist.h -- Specification of a recoverable singly-linked list type
  * where list elements can be on only one list at a time.
  *
  * NOTE (Satya, 5/31/95)
  * ---------------------
  * The files util/rec_smolist.[ch] were originally called vol/recolist.[ch].
  * The original data structures  recolink and recolist are now
- * called rec_smolink and rec_smolist (for "small" olist and olink).   
+ * called rec_smolink and rec_smolist (for "small" olist and olink).
  * No functional code changes have been made --- just systematic renaming.
- * 
+ *
  * This change was made to reduce confusion with rec_olist and rec_olink.
  * The rec_smo* data structures are very similar to the rec_o* data structures
- * except that the recoverable structures are smaller.  
+ * except that the recoverable structures are smaller.
  * rec_smolist occupies the size of one long  (pointer to the last element)
- * while rec_olist is 12 bytes long.  
- * These data structures were defined as part of a fix to the 
+ * while rec_olist is 12 bytes long.
+ * These data structures were defined as part of a fix to the
  * server a long time ago, avoiding re-initialization.
  * rec_smolist was designed to convert each volume's vnode array from an
  * array of pointers (each to a single vnode) to an array of lists of
  * vnodes without having to reinitialize the servers.  It is now
  * possible to have multiple vnodes with the same vnode number because
- * resolution can recreate a previously deleted vnode. 
+ * resolution can recreate a previously deleted vnode.
  *
  */
 

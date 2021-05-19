@@ -2,7 +2,7 @@
 .if t .ds Q ``
 .if n .ds U \&"
 .if t .ds U ''
-.TH "volumelist" 5 
+.TH "volumelist" 5
 .tr \&
 .nr bi 0
 .nr ll 0
@@ -18,41 +18,41 @@
 .if \\n(t\\n(ll=0 \{.IP \\(bu\}
 .if \\n(t\\n(ll=1 \{.IP \\n+(e\\n(el.\}
 .\}
-.el .sp 
+.el .sp
 .\}
 .el \{\
 .ie \\nh=1 \{\
 .LP
 .nr h 0
 .\}
-.el .PP 
+.el .PP
 .\}
 ..
-.SH NAME  
+.SH NAME
 volumelist \- volumelist file specification
 
 .SH DESCRIPTION
 
 .Pp
-Every server keeps a list of volumes for which it is the custodian. This list 
-is in \fI/vice/vol/VolumeList\fP\&.  Every time a volume is created, an entry 
-corresponding to that volume is made in this list.  \fIbldvldb.sh\fP(8) 
+Every server keeps a list of volumes for which it is the custodian. This list
+is in \fI/vice/vol/VolumeList\fP\&.  Every time a volume is created, an entry
+corresponding to that volume is made in this list.  \fIbldvldb.sh\fP(8)
 uses this list to generate the Volume Location Data Base (VLDB).
 .Pp
-The first few lines of this file contain information pertaining to the 
+The first few lines of this file contain information pertaining to the
 disk partitions.  These lines have the following format:
 .Pp
-P<partition-name> H<hostname> T<total usable space on this 
+P<partition-name> H<hostname> T<total usable space on this
 partition> F<free space on this partition>
 .Pp
-There is one line entry for each volume on the server.  Each line  begins with 
+There is one line entry for each volume on the server.  Each line  begins with
 W, R or B depending on whether the volume is read-Write, Readonly or Backup.
 The format is as follows:
 .Pp
-R\(brW\(brB<volume-name> I<volume-id> H<server id> P<partition 
-name> m<min quota> 
-M<max quota> U<disk space used> W<parent id> C<creation 
-date> D<copy date> 
+R\(brW\(brB<volume-name> I<volume-id> H<server id> P<partition
+name> m<min quota>
+M<max quota> U<disk space used> W<parent id> C<creation
+date> D<copy date>
 B<backup date> A<volume usage>
 .Pp
 .Pp

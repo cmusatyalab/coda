@@ -17,7 +17,7 @@ listed in the file CREDITS.
 #*/
 
 /*
- * definitions used by client processes (such as clog, testlog, au)  
+ * definitions used by client processes (such as clog, testlog, au)
  * to do authentication
  */
 

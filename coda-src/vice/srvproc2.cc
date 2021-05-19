@@ -810,7 +810,7 @@ static void SetRPCStats(ViceStatistics *stats)
     stats->TotalRPCPacketsReceived = rpc2_Recvd.Total + rpc2_MRecvd.Total +
                                      sftp_Recvd.Total + sftp_MRecvd.Total;
 
-    /* 
+    /*
      * Retries and busies appear only in rpc2_Send and rpc2_Recvd, because
      * they aren't multicasted.
      * Sftp is harder -- retries occur because of packet loss _and_ timeouts.

@@ -26,4 +26,3 @@ LDADD = $(top_builddir)/coda-src/librepair/libclnrepair.la \
 	$(top_builddir)/coda-src/kerndep/libkerndep.la \
 	$(top_builddir)/lib-src/base/libbase.la \
 	$(LIBREADLINE) $(LIBTERMCAP)
-

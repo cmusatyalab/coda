@@ -334,7 +334,7 @@ int sftp_DataArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
 #if 0
     /* Harvest the RTT observation if this is the first packet. (And try to
      * get an estimate of the amount of bytes transferred on this roundtrip) */
-    if (pBuff->Header.SEFlags & SFTP_FIRST) 
+    if (pBuff->Header.SEFlags & SFTP_FIRST)
 	sftp_UpdateRTT(pBuff, sEntry, pBuff->Prefix.LengthOfPacket,
 				      sizeof(struct RPC2_PacketHeader));
 #endif

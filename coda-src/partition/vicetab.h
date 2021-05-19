@@ -23,11 +23,11 @@ listed in the file CREDITS.
 
 /* this file is used for parsing routines of /vice/vicetab, the file
  * describing server partitions.
- * Its structure is similar to fstab: 
+ * Its structure is similar to fstab:
  * we have  space or tab separated fields:
  *    part_host hostname of server
  *    part_dir a pathname identifying the server directory or partition
- *    part_type the type of server partition found under part_dir 
+ *    part_type the type of server partition found under part_dir
  *    a comma separated list of options of the form:
  *         opt1=value1,opt2=value2,....
  *

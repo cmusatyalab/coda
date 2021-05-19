@@ -46,4 +46,3 @@ drop table iot_stats;
 drop table repair_stats;
 drop table subtree_stats;
 drop table rws_stats;
-

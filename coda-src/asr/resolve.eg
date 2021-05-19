@@ -1,12 +1,12 @@
 
 
 !foo.o: foo.c foo.h
-!	cc -c bar foo.c 
+!	cc -c bar foo.c
 
-!gorp.dvi: 
+!gorp.dvi:
 !	latex gorp.tex[0] gorp.tex[*]
 
-*.o: 
+*.o:
 	cc -c $*.c
 
 
@@ -23,4 +23,3 @@
 	/bin/cp -p $>[*] $*.inc
 	/usr/coda/bin/merge.csh $</$>[*] /tmp/mergedfile
 	/usr/coda/bin/fileresolve $* /tmp/mergedfile
-	

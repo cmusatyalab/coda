@@ -56,7 +56,7 @@ extern void *ds_hash_remove(ds_hash_t *t, void *e);
 
 typedef struct ds_hash_iter_t ds_hash_iter_t; /* opaque */
 
-/* 
+/*
    You can create an interator, destroy an iterator, or ask for the
    "next" element in the sequence.  Iterators and hash tables
    communicate with one another: if an iterator's "next" element is

@@ -15,9 +15,9 @@ listed in the file CREDITS.
                            none currently
 #*/
 
-/* 
+/*
  * rescoord.c
- *	Implements the coordinator side for 
+ *	Implements the coordinator side for
  *	directory resolution
  */
 
@@ -295,8 +295,8 @@ Exit:
     return (errorcode);
 }
 
-/* two VV's are weakly equal if they have the same store-id: 
-   this means that the files are identical, but the COP2 never made 
+/* two VV's are weakly equal if they have the same store-id:
+   this means that the files are identical, but the COP2 never made
    it to the server
 */
 

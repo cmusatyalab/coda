@@ -111,13 +111,13 @@ here is the list:
 			      directory handling.
 
    Yui-wah Lee (1996-now)     Linux port (rvm). Research on strong clients.
-	
+
    Elliot Lee  (1997-98)      Sparc Linux port, glibc port.
 
    Michael Callahan (1996-now)Windows Client 95 port.
 
    Robert Watson (1998-now)   Kerberos support and portmapper (with Peter).
-   
+
    Shafeeq Sinnamohideen (1998-now) RPC2 improvements.
 
    Jan Harkes (1998-now)      Improvements to weak connectivity.
@@ -132,7 +132,7 @@ here is the list:
    Samuel Ieong,
    Rudi Seitz.
 
-   
+
 Work on Coda has been supported by many funding agencies and
 corporations over its history.  The contributors include: National
 Science Foundation (NSF), Defense Advanced Projects Agency (DARPA),
@@ -146,4 +146,3 @@ parts of the code that are regarded as "derived code".  Carnegie
 Mellon has obtained permission from IBM to freely distribute Coda
 source code under the terms mentioned in the Coda redistribution
 notice.
-

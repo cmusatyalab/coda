@@ -1,20 +1,20 @@
 #!/bin/sh
 # BLURB gpl
-# 
+#
 #                            Coda File System
 #                               Release 6
-# 
+#
 #           Copyright (c) 1987-2016 Carnegie Mellon University
 #                   Additional copyrights listed below
-# 
+#
 # This  code  is  distributed "AS IS" without warranty of any kind under
 # the terms of the GNU General Public Licence Version 2, as shown in the
 # file  LICENSE.  The  technical and financial  contributors to Coda are
 # listed in the file CREDITS.
-# 
+#
 #                         Additional copyrights
 #                            none currently
-# 
+#
 #*/
 
 prefix=@prefix@
@@ -53,7 +53,7 @@ echo "Coda and not for logging into your system (i.e. we don't use"
 echo "/etc/passwd authentication for Coda)"
 echo
 
- 
+
 userid=
 while [ "$userid" = "" ]; do
  	echon "Enter the uid of this user: "
@@ -72,7 +72,7 @@ while [ "$userid" = "" ]; do
             userid=
             continue
         fi
-  
+
  	if [ "$userid" = 0 ] || [ "$userid" = 1 ]; then
  	    echo "Choose a user ID other than 0 or 1"
 	    userid=
@@ -88,7 +88,7 @@ until [ "$username" != "" ]; do
  	    echo "Nothing cannot be a Coda administrator"
 	    continue
  	fi
- 
+
  	if [ "$username" = root ] || [ "$username" = system ]; then
  	    echo "Choose an administrator username other than root or system"
 	    username=
@@ -117,4 +117,3 @@ rm pdbsetup
 echo "$userid	changeme	admin user" > passwd.coda
 "@sbindir@/initpw" -k "drseuss " < passwd.coda > auth2.pw
 rm passwd.coda )
-

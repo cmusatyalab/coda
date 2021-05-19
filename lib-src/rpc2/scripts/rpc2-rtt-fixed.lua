@@ -57,4 +57,3 @@ function rtt_getrto(host, bytes_sent, bytes_recv)
     -- print("est", host.name, bytes_sent, bytes_recv, latency + rtt)
     return latency + rto
 end
-

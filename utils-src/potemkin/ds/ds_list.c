@@ -253,7 +253,7 @@ void *ds_list_append(ds_list_t *l, void *i)
 }
 
 /* helper function to advance iters whose next fields point to
-   dying elements.  "dropping" must not have been pulled off of 
+   dying elements.  "dropping" must not have been pulled off of
    the list when this is called. */
 
 static void ds_list_advance_iters(ds_list_elt_t *dropping, ds_list_iter_t *iter)

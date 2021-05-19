@@ -18,14 +18,14 @@
 .if \\n(t\\n(ll=0 \{.IP \\(bu\}
 .if \\n(t\\n(ll=1 \{.IP \\n+(e\\n(el.\}
 .\}
-.el .sp 
+.el .sp
 .\}
 .el \{\
 .ie \\nh=1 \{\
 .LP
 .nr h 0
 .\}
-.el .PP 
+.el .PP
 .\}
 ..
 .SH "NAME"
@@ -37,7 +37,7 @@ rdsinit \- RDS heap initialization utility
 \fIhlen\fP \fIslen\fP \fInl\fP \fIchunk\fP
 .Pp
 \fBrdsinit\fP \fI-f\fP \fIlog\fP \fIdata_seg\fP \fIdatalen\fP \fIsaddr\fP
-\fIhlen\fP \fIslen\fP \fInl\fP \fIchunk\fP 
+\fIhlen\fP \fIslen\fP \fInl\fP \fIchunk\fP
 .SH "DESCRIPTION"
 \f(CRrdsinit\fP is a utility that constructs an initialized RDS heap in an
 RVM segment.  It is intended to create a structure that can be loaded
@@ -159,7 +159,7 @@ and data segment.  Note in the following example that those numerical
 arguments are presented in both hexidecimal and decimal (in bracket).
 It is safe to quit at this point and no permanent changes will be made.
 .DS
-.sp 
+.sp
 .ft RR
 .nf
 The following parameters are chosen:
@@ -171,7 +171,7 @@ The following parameters are chosen:
                chunk size:       0x20 (        32)
 Do you agree with these parameters ? (y|n|q) y
 .DE
-.fi 
+.fi
 .ec
 .ft P
 .sp
@@ -182,6 +182,6 @@ confirmation will not show up.
 \f(CRrds_init_heap (3)\fP, \f(CRrds_load_heap (3)\fP, \f(CRrds_zap_heap (3)\fP,
 \f(CRrvm_create_segment (3)\fP, \f(CRrvm_load_segment (3)\fP, \f(CRrvmutl (1)\fP
 .SH "AUTHOR"
-David C. Steere, created man page 
+David C. Steere, created man page
 .Pp
 Yui W. Lee, modified (Sept 1997)

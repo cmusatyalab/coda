@@ -124,8 +124,8 @@ static rvm_return_t write_log_wrap(log_t *log)
     if (gather_write_dev(&log->dev, &log->status.log_tail) < 0)
         return RVM_EIO;
 #ifdef RVM_LOG_TAIL_SHADOW
-    /* 
-     * If we've gotten this far, we're going to update the log_tail pointer, 
+    /*
+     * If we've gotten this far, we're going to update the log_tail pointer,
      * so there is a log wrap that we can allow when writing out the status
      * block.
      */

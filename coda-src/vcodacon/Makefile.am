@@ -20,4 +20,3 @@ LDADD = $(top_builddir)/lib-src/base/libbase.la $(FLTKLIBS)
 
 vcodacon.cc vcodacon.h: vcodacon.fl
 	$(FLUID) -c $(srcdir)/vcodacon.fl
-

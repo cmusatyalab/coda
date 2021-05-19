@@ -16,13 +16,13 @@ listed in the file CREDITS.
 
 #*/
 
-/* 
- * resolve.c 
+/*
+ * resolve.c
  * Created 09/18/89  - Puneet Kumar
  */
 
 /* This file contains functions that interface with the
- * manual resolution system 
+ * manual resolution system
  */
 
 #ifdef __cplusplus
@@ -595,7 +595,7 @@ int NameNameResolve(int first, int last, int nreplicas, resreplica *dirs,
     return (0);
 }
 
-/* dirresolve : returns NNCONFLICTS(-1) if this resolve is definitely not the last needed compare/repair 
+/* dirresolve : returns NNCONFLICTS(-1) if this resolve is definitely not the last needed compare/repair
    return 0 if the compare implied that the resulting repair will make the directories equal */
 int dirresolve(int nreplicas, resreplica *dirs, int (*cbfn)(char *),
                struct listhdr **opList, VolumeId RepVolume, struct repinfo *inf,

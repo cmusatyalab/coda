@@ -17,9 +17,9 @@ Coda are listed in the file CREDITS.
 #*/
 %}
 
-/* res.rpc2 
+/* res.rpc2
  * Defines the resolution subsystem interface
- * 
+ *
  * Created Puneet Kumar, June 1990
  */
 server prefix "RS";
@@ -28,7 +28,7 @@ client prefix "Res";
 Subsystem "resolution";
 #define RESOLUTIONSUBSYSID 5893
 
-/* 
+/*
 Return codes from the servers on resolution subsystem
 */
 #define RES_FAILURE	-512
@@ -78,10 +78,10 @@ NewConnection	(IN RPC2_Integer SideEffectType,
 		 IN OUT SE_Descriptor BD);
 
 /* VV should be punted since it is available in ViceStatus */
-3: LockAndFetch	(IN ViceFid Fid, 
-		 IN ResFetchType Request, 
+3: LockAndFetch	(IN ViceFid Fid,
+		 IN ResFetchType Request,
 		 OUT ViceVersionVector VV,
-		 OUT ResStatus rstatus, 
+		 OUT ResStatus rstatus,
 		 OUT RPC2_Integer logsize);
 
 4: UnlockVol   	(IN VolumeId Vid);
@@ -90,7 +90,7 @@ NewConnection	(IN RPC2_Integer SideEffectType,
 
 /* OldPrimaryHost was compared agains ThisHostAddr until 6.9.8 but is
  * unused since then. */
-6: FetchFile	(IN ViceFid Fid, 
+6: FetchFile	(IN ViceFid Fid,
 		 IN RPC2_Unsigned OldPrimaryHost,
 		 OUT ResStatus Status,
 		 IN OUT SE_Descriptor BD);
@@ -106,7 +106,7 @@ NewConnection	(IN RPC2_Integer SideEffectType,
 		  IN OUT SE_Descriptor sed);
 
 9: GetForceDirOps (IN ViceFid Fid,
-		   OUT ViceStatus status, 
+		   OUT ViceStatus status,
 		   IN OUT RPC2_BoundedBS AccessList,
 		   IN OUT SE_Descriptor sed);
 
@@ -117,7 +117,7 @@ NewConnection	(IN RPC2_Integer SideEffectType,
 		 OUT RPC2_Integer logsize,
 		 OUT RPC2_Integer nentries,
 		 IN OUT SE_Descriptor sed);
-		 
+
 15: ShipLogs    (IN ViceFid Fid,
 		 IN RPC2_Integer size,
 		 IN RPC2_Integer totalentries,
@@ -150,4 +150,3 @@ NewConnection	(IN RPC2_Integer SideEffectType,
 		    IN OUT RPC2_BoundedBS piggyinc,
 		    OUT DirFid HintFid,
 		    IN OUT SE_Descriptor sed);
-

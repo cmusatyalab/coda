@@ -63,4 +63,3 @@ dnl Generate output files
 AC_CONFIG_FILES([Makefile include/Makefile src/Makefile src-pt/Makefile
     lwp.pc lwp-uninstalled.pc])
 AC_OUTPUT
-

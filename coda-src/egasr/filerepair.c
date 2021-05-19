@@ -52,7 +52,7 @@ extern int wildmat(char *text, char *pattern);
    for specified Coda path.  If version vector is not accessible,
    the StoreId fields of outvv are set to -1.
    Garbage may be copied into outvv for non-replicated files
-   
+
    Returns -1 after printing error msg on failures. */
 int getfid(char *path, ViceFid *outfid, char *outrealm,
            ViceVersionVector *outvv)

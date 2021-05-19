@@ -42,4 +42,3 @@ end
 -- back on it's own estimator to obtain that value
 function rtt_getbandwidth(host) return avg_send, avg_recv end
 --]]
-

@@ -22,7 +22,7 @@ listed in the file CREDITS.
 
 */
 
-/*  Directory repair data structures and routines 	
+/*  Directory repair data structures and routines
 
     A directory repair involves a list of individual repair operations.
     This list is constructed on the client and executed on the server.
@@ -56,7 +56,7 @@ struct repair {
 
 #define REPAIR_OPBASE 174320 /* random */
 
-/* Creation: 
+/* Creation:
     repair.name  specifies object name
     repair.parms[0..2] specify FID to be associated with this name
 */
@@ -72,7 +72,7 @@ struct repair {
 #define REPAIR_REMOVEFSL REPAIR_OPBASE + 5 /* Remove file or (hard) link */
 #define REPAIR_REMOVED REPAIR_OPBASE + 6 /* Remove dir */
 
-/* ACL mods: 
+/* ACL mods:
     repair.name gives name of user in acl
     repair.parms[0] specifies rights
 */
@@ -92,7 +92,7 @@ struct repair {
 /* Next replica:
     repair.name is the name of the server
        repair.parms[0] is a hex number, giving read-write volid of this replica
-    
+
     Seen only in ASCII input files typed by users
 */
 #define REPAIR_REPLICA REPAIR_OPBASE + 12

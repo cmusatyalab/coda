@@ -39,4 +39,3 @@ end
 
 fail_delay_tx = slow("tx")
 fail_delay_rx = slow("rx")
-

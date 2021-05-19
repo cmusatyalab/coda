@@ -22,7 +22,7 @@ Coda are listed in the file CREDITS.
 #include "coda_offsetof.h"
 
 /*
- * doubly linked list implementation -- based on linux 
+ * doubly linked list implementation -- based on linux
  * kernel code lists.
  *
  */

@@ -334,7 +334,7 @@ mariner::mariner(int afd)
     start_thread();
 }
 
-/* 
+/*
  * we don't support assignments to objects of this type.
  * bomb in an obvious way if it inadvertently happens.
  */

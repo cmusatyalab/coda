@@ -152,10 +152,10 @@ _returnto:
 #include <sys/trap.h>
 #define ENTRY(x) .type x,FUNCTION; .global x; x:
 #endif
-#else	
+#else
 #include <sun4/asm_linkage.h>
 #include <sun4/trap.h>
-#endif	
+#endif
 #endif
 
 SAVED_PC	= (0*4)
@@ -180,7 +180,7 @@ ENTRY(savecontext)
 	call    %l0, 0
 	nop
 	unimp	0
-	
+
 ENTRY(returnto)
 	t	ST_FLUSH_WINDOWS
 	ld	[%o0], %sp
@@ -294,7 +294,7 @@ _.returnto:
 _savecontext:
 	.word 0x0ffc	# Save regs R2-R11
    	pushl	ap			# save old ap
-	pushl	fp			# save old fp    
+	pushl	fp			# save old fp
 	movl	area1(ap),r0		# r0 = base of savearea
 	movl	sp,topstack(r0)		# area->topstack = sp
 	movl	newsp(ap),r0		# Get new sp
@@ -420,7 +420,7 @@ returnto:
 	*area1 will be in %rsi
 	*newsp will be in %rdx
 */
-	
+
         .text
 ENTRY(savecontext)
 	pushq	%rsp
@@ -439,7 +439,7 @@ ENTRY(savecontext)
 	pushq	%r13
 	pushq	%r14
 	pushq	%r15
-		
+
 	movq	%rsp, (%rsi)	/* Store sp in savearea. */
 
 	cmpq	$0, %rdx	/* Check if newsp is NULL */
@@ -483,14 +483,14 @@ ENTRY(returnto)
 #endif /* amd64 */
 
 #if	defined(i386)
-		
+
 /*
    savecontext(f, area1, newsp)
 	int (*f)();
  	struct savearea *area1;
 	char *newsp;
 */
-	
+
 #ifdef __linux__
 /* #include <linux/linkage.h> */
 #define ENTRY(x) .align 4;  .globl x; x:
@@ -524,7 +524,7 @@ x:
 	.text
 ENTRY(savecontext)
 	pusha				/* Save registers on the stack. */
-		
+
 	movl	area1(%esp), %eax	/* Load address of savearea. */
 	movl	%esp, topstack(%eax)	/* Store sp in savearea. */
 
@@ -586,7 +586,7 @@ _savecontext:
 	st	r25, r31, 52
 /* Magic */
 	st	r31, r3, 0	/* area->topstack = sp */
-	bcnd	eq0, r4, @L2	
+	bcnd	eq0, r4, @L2
 	or	r31, r0, r4
 	and	r31, r31, 0xfff8
 @L2:
@@ -624,7 +624,7 @@ _returnto:
 
 #ifdef __ns32k__
 
-#ifdef __STDC__	
+#ifdef __STDC__
 #define SYMB(x)  _##x:
 #define EXT(x)	_##x
 #else
@@ -665,34 +665,34 @@ noswitch:
 /*	should never get here ... */
 /*	.globl	_abort */
 /*	jsr	_abort */
-		
-	
+
+
 /*
   returnto(area2)
      struct savearea *area2;
 */
 area2	=	8
-	
+
 	.globl EXT(returnto)
 SYMB(returnto)
-	enter	[], 0	
+	enter	[], 0
 	movd	area2(fp), r0
 	lprd	sp, 0(r0)
 	movd	tos, r0
 	lprd	fp, r0
 	exit	[r0,r1,r2,r3,r4,r5,r6,r7]
 	ret	0
-		
+
 #endif /* __ns32k__ */
 
 #if defined(__arm32__) || defined(__arm__)
 
 #ifdef	__linux__
-#include <linux/linkage.h>	
+#include <linux/linkage.h>
 #define EXT(x) SYMBOL_NAME(x)
 
 #else
-#ifdef __STDC__	
+#ifdef __STDC__
 #define ENTRY(x)  _##x:
 #define EXT(x)	_##x
 
@@ -750,7 +750,7 @@ ENTRY(savecontext)
 */
 
 /* area2 is in r0. */
-	
+
 	.globl EXT(returnto)
 	.type  EXT(returnto), #function
 ENTRY(returnto)
@@ -759,7 +759,7 @@ ENTRY(returnto)
 	ldmfd	r0, {r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, fp}
 	@ return from function call
 	ldmea	fp, {fp, sp, pc}
-	
+
 #endif /* __arm32__ or __arm__ */
 
 #if defined(__powerpc__) || defined(__ppc__)
@@ -900,7 +900,7 @@ EXT(returnto):
 #endif        /* __powerpc__ */
 
 /* Code for DEC Alpha architecture */
-      
+
 #if defined(__alpha) || defined(__alpha__)
 #if defined(__linux__)
 #include <alpha/regdef.h>
@@ -913,12 +913,12 @@ EXT(returnto):
 
       .globl  savecontext
       .globl  returnto
-      
+
 #define FSIZE ((8+7+1)*8)    /* s0-s6, f0-f7, return */
 #define FOFFSET -FSIZE
 #define REGMASK 0x0400fe00   /* mask for s0-s6 */
 #define FREGMASK 0x000003fc  /* mask for f2-f9 */
-      
+
 #define SAVED_F2(ptr) 0(ptr)
 #define SAVED_F3(ptr) 8(ptr)
 #define SAVED_F4(ptr) 16(ptr)
@@ -944,7 +944,7 @@ savecontext:
 
       .frame  sp, FSIZE, ra
 
-      
+
       ldgp    gp, 0(pv)
       lda     sp, -FSIZE(sp)
 
@@ -977,15 +977,15 @@ savecontext:
       or      a2,zero,sp              /* switch stack */
 samestack:
       jsr     ra,(pv),0               /* off we go */
-      
+
       .end savecontext
 
 
       .align  3
       .text
       .ent    returnto
-returnto:     
-      .frame  sp, 0, ra       
+returnto:
+      .frame  sp, 0, ra
 
       ldgp    gp,0(pv)
       .prologue 1
@@ -1022,4 +1022,3 @@ returnto:
     /* indicate that we do not need an executable stack */
     .section .note.GNU-stack,"",%progbits
 #endif
-

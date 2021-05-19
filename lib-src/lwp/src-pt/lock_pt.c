@@ -24,19 +24,19 @@ Coda are listed in the file CREDITS.
 /**** RW locks *****/
 /* Well, actually Read/Shared/Write locks
  * Read lock   -- obtained when there are no (queued) write lockers.
- * 
+ *
  *                blocks all writers.
  *                 (shares an `exclusive lock' with other readers and at
  *                  most one shared locker)
- *                      
+ *
  * Shared lock -- obtained when there are no (queued) write lockers.
- * 
+ *
  *                blocks all others.
  *                 (shares the lock with readers present when it entered, but
  *                  sets excl to block access for new lockers)
- *                      
+ *
  * Write lock  -- obtained when there are no others holding the lock.
- *                      
+ *
  *                blocks all others.
  *                 (sets the excl flag to block access)
  */

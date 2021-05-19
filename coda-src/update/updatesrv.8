@@ -18,21 +18,21 @@
 .if \\n(t\\n(ll=0 \{.IP \\(bu\}
 .if \\n(t\\n(ll=1 \{.IP \\n+(e\\n(el.\}
 .\}
-.el .sp 
+.el .sp
 .\}
 .el \{\
 .ie \\nh=1 \{\
 .LP
 .nr h 0
 .\}
-.el .PP 
+.el .PP
 .\}
 ..
 .SH "NAME"
 updatesrv \- update server files
 .SH "SYNOPSIS"
 .Pp
-\fBupdatesrv\fP [ \fB\-d\fP debug_level ] [ \fB\-l\fP number_of_lwps ] [ \fB\-p\fP prefix ] [ \fB\-s\fP ] [ \fB\-port\fP listen_port ] 
+\fBupdatesrv\fP [ \fB\-d\fP debug_level ] [ \fB\-l\fP number_of_lwps ] [ \fB\-p\fP prefix ] [ \fB\-s\fP ] [ \fB\-port\fP listen_port ]
 .Pp
 .Pp
 .Pp
@@ -46,7 +46,7 @@ The \fBupdatesrv\fP command is a read\-only server that responds to requests for
 .IP "\fB\-d\fP debug_level"
 .nr bi 1
 .Pp
-This is used to increase the level 
+This is used to increase the level
 of messages written to the log file.
 .Pp
 .if \n(ll>1 .RE
@@ -58,9 +58,9 @@ of messages written to the log file.
 .IP "\fB\-l\fP \fInumber_of_lwps\fP"
 .nr bi 1
 .Pp
-This operand is 
-used to specify how many lwps will be used to answer file requests.  
-Default: 2.  
+This operand is
+used to specify how many lwps will be used to answer file requests.
+Default: 2.
 .Pp
 .if \n(ll>1 .RE
 .nr ll -1
@@ -72,7 +72,7 @@ Default: 2.
 .nr bi 1
 .Pp
 This name, prefixed to all file
-requests, is used to limit the files that can be requested. 
+requests, is used to limit the files that can be requested.
 .Pp
 .if \n(ll>1 .RE
 .nr ll -1
@@ -83,7 +83,7 @@ requests, is used to limit the files that can be requested.
 .IP "\fB\-port\fP \fIlisten_port\fP"
 .nr bi 1
 .Pp
-This is the UDP port on which we should be listening. If not specified updatesrv will use a random port. 
+This is the UDP port on which we should be listening. If not specified updatesrv will use a random port.
 .Pp
 .if \n(ll>1 .RE
 .nr ll -1
@@ -95,7 +95,7 @@ The command \fBupdatesrv \-s \-p /\fP would invoke the updatesrv process
 and cause the files to be served relative to / on the server machine.
 .Pp
 The command \fBupdatesrv \-s \-p /vice/bin\fP would cause the files to be
-served relative to /vice/bin on the server machine.  
+served relative to /vice/bin on the server machine.
 .Pp
 .Pp
 .Pp

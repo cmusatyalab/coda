@@ -19,4 +19,3 @@ filerepair_LDADD = $(top_builddir)/coda-src/kerndep/libkerndep.la \
 removeinc_LDADD = $(top_builddir)/coda-src/dir/libcodadir.la \
 		  $(top_builddir)/coda-src/kerndep/libkerndep.la \
 		  $(top_builddir)/lib-src/base/libbase.la
-

@@ -17,7 +17,7 @@ listed in the file CREDITS.
 #*/
 
 /*
- * removeinc - removes an inconsistent file (after repairing with an empty file) 
+ * removeinc - removes an inconsistent file (after repairing with an empty file)
  */
 
 #ifdef __cplusplus

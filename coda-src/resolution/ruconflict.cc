@@ -47,14 +47,14 @@ static ViceVersionVector *FindDeletedFileVV(olist *, unsigned long, ViceFid *,
 static int ChildDirRUConf(RUParm *, ViceFid *, Vnode *);
 
 /* RUConflict
- *	Check if there is a remove/update conflict for object 
+ *	Check if there is a remove/update conflict for object
  *	referenced in r->u.rm.childfid.
  *	For Files, Symbolic Links:
  *		R/U conflict exists iff VV of deleted obj is inc with
  *			existing object's VV
  *	For Directories:
- *		R/U conflict exists iff an operation  in the 
- *		log of the subtree doesnt exist in the log of deleted 
+ *		R/U conflict exists iff an operation  in the
+ *		log of the subtree doesnt exist in the log of deleted
  *		subtree.
  */
 #define FileRemove 0
@@ -142,7 +142,7 @@ int FileRUConf(ViceVersionVector *DeletedVV, Vnode *vptr)
 }
 
 /* NewDirRUConf:
- *	Called on each child via Enumerate Dir 
+ *	Called on each child via Enumerate Dir
  *	Detects remove/update conflicts on objects.
  */
 int ENewDirRUConf(PDirEntry de, void *data)

@@ -56,4 +56,3 @@ create index i_iotstatsid on iot_stats (venus_index);
 create index i_subtreestatsid on subtree_stats (venus_index);
 create index i_repairid on repair_stats (venus_index);
 create index i_rwsstatsid on rws_stats (venus_index, time, volume_id, rw_sharing_count, disc_read_count, disc_duration);
-

@@ -332,4 +332,3 @@ client->server encryption and authentication keys.
     The server sends back the nonce and an initial sequence number (Nb)
     encrypted with the session key and algorithm it received from the
     client in step 3.
-

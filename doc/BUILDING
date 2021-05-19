@@ -12,7 +12,7 @@ Building the Coda Filesystem.
 
 A networked filesystem will contain a fs layer, which can be addressed
 by the VFS layer (or the IFS manager in Windows 95) to get system
-calls working.  
+calls working.
 
 Additionally coda has operations on inodes, which are simple system
 calls implemented at kernel level.  These we hope to fade out when we
@@ -23,7 +23,7 @@ in the coda-src.
 These system calls have two legs: the kernel implementation of the
 calls and secondly the stub library to make new system calls.
 
-Finally on Mach only, a pioctl system call was implemented.  
+Finally on Mach only, a pioctl system call was implemented.
 
 
 1.2 lib-src
@@ -57,7 +57,7 @@ could provide a major performance boost.).
 A key issue leading to confusion is the file cthreads.h which is
 included by the rvm_basher program.  Since the cthreads version of rvm
 is not used anywhere, we have changed this to a dummy_cthreads. file,
-which is installed when the rvm libraries are built. 
+which is installed when the rvm libraries are built.
 
 The most realist test for rvm is the lwp_basher with runs a threaded
-rvm.  
+rvm.

@@ -8,4 +8,3 @@ AM_CPPFLAGS = $(RPC2_CFLAGS) \
 	      -I$(top_srcdir)/lib-src/base \
 	      -I$(top_srcdir)/coda-src/vicedep \
 	      -I$(top_builddir)/coda-src/vicedep
-

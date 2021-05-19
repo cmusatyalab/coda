@@ -93,7 +93,7 @@ void Lock_Obtain(struct Lock *lock, int how)
         break;
 
 #if 0
-	case BOOSTED_LOCK:	
+	case BOOSTED_LOCK:
 		lock->num_waiting++;
 		do {
 			lock->wait_states |= WRITE_LOCK;
@@ -225,7 +225,7 @@ void Lock_ReleaseW(struct Lock *lock)
     }
 }
 
-/*  Previously these were macros. You can't stop a debugger on a macro, 
+/*  Previously these were macros. You can't stop a debugger on a macro,
     so I changed them to inline functions.
 */
 

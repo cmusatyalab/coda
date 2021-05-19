@@ -14,4 +14,3 @@ LDADD = $(top_builddir)/coda-src/vicedep/libvenusdep.la \
 	$(RPC2_LIBS)
 
 rvmsizer_LDADD = $(top_builddir)/lib-src/base/libbase.la
-

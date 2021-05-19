@@ -2,7 +2,7 @@
 .if t .ds Q ``
 .if n .ds U \&"
 .if t .ds U ''
-.TH "volutil" 8 
+.TH "volutil" 8
 .tr \&
 .nr bi 0
 .nr ll 0
@@ -18,24 +18,24 @@
 .if \\n(t\\n(ll=0 \{.IP \\(bu\}
 .if \\n(t\\n(ll=1 \{.IP \\n+(e\\n(el.\}
 .\}
-.el .sp 
+.el .sp
 .\}
 .el \{\
 .ie \\nh=1 \{\
 .LP
 .nr h 0
 .\}
-.el .PP 
+.el .PP
 .\}
 ..
-.SH NAME  
+.SH NAME
 volutil \- volume utility subsystem
 
 .SH SYNOPSIS
 
 .Pp
-volutil [-h <server>] [ -t timeout] 
-[ -d debuglevel] <command> 
+volutil [-h <server>] [ -t timeout]
+[ -d debuglevel] <command>
 <parameters ... >
 .Pp
 .Pp
@@ -43,15 +43,15 @@ volutil [-h <server>] [ -t timeout]
 .SH DESCRIPTION
 
 .Pp
-\fBVolutil\fP is a RPC interface to the volume utility subsystem of  the 
+\fBVolutil\fP is a RPC interface to the volume utility subsystem of  the
 file server.  The volume utilities are used to perform administrative
 functions like creating, cloning, purging, dumping and restoring volumes.
-Each of these functions can be invoked via the \fB<command>\fP 
-parameter.  Each command has a set of parameters that it expects.  These are 
-listed below along with a short description of each command.  The volutil 
-utility may be instructed to perform the operations on a server at a remote 
-site by specifying the server to which to connect with the -h option.  
-The default is to connect to a server on the local machine.  The -t option 
+Each of these functions can be invoked via the \fB<command>\fP
+parameter.  Each command has a set of parameters that it expects.  These are
+listed below along with a short description of each command.  The volutil
+utility may be instructed to perform the operations on a server at a remote
+site by specifying the server to which to connect with the -h option.
+The default is to connect to a server on the local machine.  The -t option
 may be used to specify the timeout (in seconds) to be used by RPC2.
 .Pp
 .nr ll +1
@@ -88,11 +88,11 @@ be locked for this to succeed.  Backup unlocks the volume as a side effect.
 .IP "\fBclone\fP \fIvolume-ID\fP [-n \fInew-volume-name\fP]"
 .nr bi 1
 .Pp
-Create a read only clone of a read write volume with (replica) ID 
-(\fI<volume-ID>\fP).  The vnodes are actually copied but the inodes 
-are marked copy-on-write i.e. inodes need to be copied only if modified.  
-The name of the new cloned volume can be optionally specified by the 
-\fI<new-volume-name>\fP parameter.  Default value is 
+Create a read only clone of a read write volume with (replica) ID
+(\fI<volume-ID>\fP).  The vnodes are actually copied but the inodes
+are marked copy-on-write i.e. inodes need to be copied only if modified.
+The name of the new cloned volume can be optionally specified by the
+\fI<new-volume-name>\fP parameter.  Default value is
 volume-name.readonly.  The \fIclone\fP(8) command can be used to call
 \fBvolutil clone\fP\&.
 .Pp
@@ -106,8 +106,8 @@ volume-name.readonly.  The \fIclone\fP(8) command can be used to call
 .IP "\fBcreate\fP \fI<partition-path>\fP \fI<volume-name>\fP"
 .nr bi 1
 .Pp
-Create a nonreplicated read-write volume named 
-\fI<volume-name>\fP on partition named 
+Create a nonreplicated read-write volume named
+\fI<volume-name>\fP on partition named
 \fI<partition-path>\fP\&.  The \fIcreatevol\fP(8) command
 is a simplified front-end for this option.
 .Pp
@@ -118,16 +118,16 @@ is a simplified front-end for this option.
 .nr ll +1
 .nr t\n(ll 2
 .if \n(ll>1 .RS
-.IP "\fBcreate_rep\fP \fI<partition-path>\fP 
+.IP "\fBcreate_rep\fP \fI<partition-path>\fP
 \fI<volume-name>\fP \fI<group-ID>\fP"
 .nr bi 1
 .Pp
-Create a 
-replicated read-write volume named \fI<volume-name>\fP on partition 
-named \fI<partition-path>\fP\&.  The \fI<group-ID>\fP 
-parameter is used to specify the ID of the replicated volume to which this 
-replica will belong.  The \fIcreatevol_rep\fP(8) command will also 
-create a replicated volume.  
+Create a
+replicated read-write volume named \fI<volume-name>\fP on partition
+named \fI<partition-path>\fP\&.  The \fI<group-ID>\fP
+parameter is used to specify the ID of the replicated volume to which this
+replica will belong.  The \fIcreatevol_rep\fP(8) command will also
+create a replicated volume.
 .Pp
 .if \n(ll>1 .RE
 .nr ll -1
@@ -136,7 +136,7 @@ create a replicated volume.
 .nr ll +1
 .nr t\n(ll 2
 .if \n(ll>1 .RS
-.IP "\fBdump\fP [-i] \fI<volume-ID>\fP 
+.IP "\fBdump\fP [-i] \fI<volume-ID>\fP
 \fI<file-name>\fP"
 .nr bi 1
 .Pp
@@ -146,7 +146,7 @@ is used, the dump will be incremental, it will only include vnodes which have
 been modified since the last dump was taken.  The dump is not machine
 independent, certain fields in the Vnode are not translated to network order.
 However, dump files can be used to create restored volumes on machines with a
-similar byte-order.  
+similar byte-order.
 .Pp
 .if \n(ll>1 .RE
 .nr ll -1
@@ -176,7 +176,7 @@ Turn on or off timers for the given subsystem.
 .nr ll +1
 .nr t\n(ll 2
 .if \n(ll>1 .RS
-.IP "\fBinfo\fP [-all] \fI<volume-name \(br 
+.IP "\fBinfo\fP [-all] \fI<volume-name \(br
 volume-number>\fP \fI<file-name>\fP"
 .nr bi 1
 .Pp
@@ -184,7 +184,7 @@ Print in ascii the
 contents of a volume into a file (\fI<file-name>)\fP\&. The volume can
 be specified by its name, or by the volume-ID, specified in Hex. If -all is
 specified, contents of both large and small vnodes in that volume are also
-printed.  
+printed.
 .Pp
 .if \n(ll>1 .RE
 .nr ll -1
@@ -204,12 +204,12 @@ it will appear as if the operation would time out.
 .nr ll +1
 .nr t\n(ll 2
 .if \n(ll>1 .RS
-.IP "\fBlookup\fP \fI<volume-name \(br volume-ID>\fP 
+.IP "\fBlookup\fP \fI<volume-name \(br volume-ID>\fP
 \fI<file-name>\fP"
 .nr bi 1
 .Pp
 Print information about a volume (specified
-by \fIvolume-name\fP or \fIvolume-ID\fP specified in Hex) in 
+by \fIvolume-name\fP or \fIvolume-ID\fP specified in Hex) in
 \fIfile-name\fP\&.  Only meta-information, such as replicated group-ID,
 location, etc. is printed.
 .Pp
@@ -222,9 +222,9 @@ location, etc. is printed.
 .IP "\fBmakevldb\fP \fI<VolumeList>\fP"
 .nr bi 1
 .Pp
-Create a new Volume 
-Location Database \fBVLDB\fP\&.  \fIVolumeList\fP names a file containing 
-volume parameters for all volumes in the system.  This command typically is 
+Create a new Volume
+Location Database \fBVLDB\fP\&.  \fIVolumeList\fP names a file containing
+volume parameters for all volumes in the system.  This command typically is
 run on the system control machine.  See also \fIbldvldb\fP(8)
 and \fIvolumelist\fP(5).
 .Pp
@@ -239,9 +239,9 @@ and \fIvolumelist\fP(5).
 .Pp
 Create a new Volume
 Replication Data Base (\fBVRDB\fP).  \fI<vrlist>\fP is a file
-containing entries describing replicated volumes.  Each entry contains the 
-name, group-ID, read-write ids, and the VSG address of a replicated volume.  
-There is one entry per replicated volume in the system.  
+containing entries describing replicated volumes.  Each entry contains the
+name, group-ID, read-write ids, and the VSG address of a replicated volume.
+There is one entry per replicated volume in the system.
 .Pp
 .if \n(ll>1 .RE
 .nr ll -1
@@ -252,9 +252,9 @@ There is one entry per replicated volume in the system.
 .IP "\fBpurge\fP \fI<volume-ID>\fP \fI<volume-name>\fP "
 .nr bi 1
 .Pp
-Delete a volume.  For replicated volumes \fBpurge\fP must be called 
-from each server individually on the replicas at the different servers. (See 
-purgevol-rep(8))  
+Delete a volume.  For replicated volumes \fBpurge\fP must be called
+from each server individually on the replicas at the different servers. (See
+purgevol-rep(8))
 .Pp
 .if \n(ll>1 .RE
 .nr ll -1
@@ -262,7 +262,7 @@ purgevol-rep(8))
 .nr ll +1
 .nr t\n(ll 2
 .if \n(ll>1 .RS
-.IP "\fBrestore\fP \fI<file-name>\fP 
+.IP "\fBrestore\fP \fI<file-name>\fP
 \fI<partition-path>\fP [\fI<volume-name>\fP
 [\fI<volume-ID>\fP ] ]"
 .nr bi 1
@@ -272,7 +272,7 @@ named by \fI<partition-path>\fP and read in the contents from a dump
 in file \fI<file-name>\fP\&. The new volume will be given the name and
 ID specified on the command line. If either is unspecified, or if the Volume
 ID is of illegal form, the server will allocate the ID or name based on
-internal rules. The volume-ID should be specified in Hex.  
+internal rules. The volume-ID should be specified in Hex.
 .Pp
 .if \n(ll>1 .RE
 .nr ll -1
@@ -283,7 +283,7 @@ internal rules. The volume-ID should be specified in Hex.
 .IP "\fBrvmsize\fP \fI<volume-ID>\fP"
 .nr bi 1
 .Pp
-Print the RVM 
+Print the RVM
 statistics for the volume \fI<volume-ID>\fP\&.
 .Pp
 .if \n(ll>1 .RE
@@ -295,7 +295,7 @@ statistics for the volume \fI<volume-ID>\fP\&.
 .IP "\fBsetdebug\fP \fI<level>\fP"
 .nr bi 1
 .Pp
-Set the debug level for the volume and directory packages to \fIlevel\fP\&.  
+Set the debug level for the volume and directory packages to \fIlevel\fP\&.
 To reset it use zero for the \fIlevel\fP argument.  The rpc2 debug level is set to level/10.
 .Pp
 .if \n(ll>1 .RE
@@ -304,8 +304,8 @@ To reset it use zero for the \fIlevel\fP argument.  The rpc2 debug level is set 
 .nr ll +1
 .nr t\n(ll 2
 .if \n(ll>1 .RS
-.IP "\fBsetlogparms\fP \fI<volume-ID>\fP 
-[\fIreson\fP <4 \(br 0>] 
+.IP "\fBsetlogparms\fP \fI<volume-ID>\fP
+[\fIreson\fP <4 \(br 0>]
 [\fIlogsize\fP \fI<size>\fP]"
 .nr bi 1
 .Pp
@@ -315,7 +315,7 @@ the replicated ID or the non-replicated ID.  Resolution is turned on by
 specifying 4 after \fIreson\fP and can be turned off by specifying 0.  The
 size of the log can also be changed for the volume.  The \fIsize\fP
 parameter refers to the number of maximum entries in the log.  This should be
-a multiple of 32.  Typically this is set to 8192.  
+a multiple of 32.  Typically this is set to 8192.
 .Pp
 \fBNOTE:\fP You should in all normal cases keep the resolution turned
 \fBon\fP, and the argument for \fIreson\fP is in that case \fB4\fP!
@@ -326,12 +326,12 @@ a multiple of 32.  Typically this is set to 8192.
 .nr ll +1
 .nr t\n(ll 2
 .if \n(ll>1 .RS
-.IP "\fBsetvv\fP \fI<volumeNumber>\fP \fI<vnodeNumber>\fP 
-\fI<Uniquifier>\fP \fI<version numbers (8)\fP> \fI<host 
+.IP "\fBsetvv\fP \fI<volumeNumber>\fP \fI<vnodeNumber>\fP
+\fI<Uniquifier>\fP \fI<version numbers (8)\fP> \fI<host
 unique flags>\fP"
 .nr bi 1
 .Pp
-Set the version vector for a vnode (with fid = 
+Set the version vector for a vnode (with fid =
 \fI<volumeNumber>\&.<vnodeNumber>\&.<Uniquifier>\fP).
 The new version vector is specified by the \fI<version numbers>\fP
 and the \fI<host unique flags>\fP triple.
@@ -342,8 +342,8 @@ and the \fI<host unique flags>\fP triple.
 .nr ll +1
 .nr t\n(ll 2
 .if \n(ll>1 .RS
-.IP "\fBshowvnode\fP \fI<volumeNumber>\fP 
-\fI<vnodeNumber>\fP \fI<Uniquifier>\fP 
+.IP "\fBshowvnode\fP \fI<volumeNumber>\fP
+\fI<vnodeNumber>\fP \fI<Uniquifier>\fP
 \fI<file-name>\fP"
 .nr bi 1
 .Pp
@@ -361,7 +361,7 @@ into \fI<file-name>\fP\&.
 .IP "\fBshutdown\fP"
 .nr bi 1
 .Pp
-Bring all volumes offline and bring down the 
+Bring all volumes offline and bring down the
 server.
 .Pp
 .if \n(ll>1 .RE
@@ -373,7 +373,7 @@ server.
 .IP "\fBswaplog\fP"
 .nr bi 1
 .Pp
-Save the fileserver log output 
+Save the fileserver log output
 (in \fISrvLog.old\fP) and start a new SrvLog.
 .Pp
 .if \n(ll>1 .RE
@@ -408,7 +408,7 @@ Forcibly truncate the RVM log.
 .nr bi 1
 .Pp
 Unlock a volume
-locked via the \fBvolutil\fP lock command. (\fIvolume-ID) should be in 
+locked via the \fBvolutil\fP lock command. (\fIvolume-ID) should be in
 Hex\fP
 .Pp
 .if \n(ll>1 .RE
@@ -421,8 +421,8 @@ Hex\fP
 .nr bi 1
 .Pp
 Make the file server read in a new VLDB and VRDB.
-The server assumes the databases to exist in \fI/vice/db/VLDB\fP and 
-\fI/vice/db/VRDB\fP\&.  This utility is useful for reading in new databases 
+The server assumes the databases to exist in \fI/vice/db/VLDB\fP and
+\fI/vice/db/VRDB\fP\&.  This utility is useful for reading in new databases
 at non-scm machines.
 .Pp
 .if \n(ll>1 .RE
@@ -433,7 +433,7 @@ at non-scm machines.
 
 .Pp
 This command must be run as root.  It works only on the machine running
-the server. Also, the token file \fI/vice/db/voutil.tk\fP must be 
+the server. Also, the token file \fI/vice/db/voutil.tk\fP must be
 accessible.
 .Pp
 .Pp
@@ -460,7 +460,7 @@ The salvage option to volutil doesn't work right.  Please don't try it.
 .SH SEE ALSO
 
 .Pp
-vrdb(5), volumelist(5), bldvldb(8), createvol(8), createvol_rep(8), 
+vrdb(5), volumelist(5), bldvldb(8), createvol(8), createvol_rep(8),
 purgevol(8), purgevol_rep(8)
 .Pp
 .Pp

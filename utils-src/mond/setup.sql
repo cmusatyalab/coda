@@ -76,7 +76,7 @@ create table session_stats (
 );
 
 create table cache_stats (
-	session_index integer, 
+	session_index integer,
 	h_a_h_count integer,
 	h_a_h_blocks integer,
 	h_a_m_count integer,
@@ -112,7 +112,7 @@ create table cache_stats (
 	uh_d_m_count integer,
 	uh_d_m_blocks integer,
 	uh_d_ns_count integer,
-	uh_d_ns_blocks integer		
+	uh_d_ns_blocks integer
 );
 
 create table advice_stats (
@@ -239,7 +239,7 @@ create table mcache_vnode (
 	unsat_intrn	integer,
 	gen_intrn	integer
 );
-	
+
 create table mcache_vfs (
 	venus_index	integer,
 	opcode		integer,
@@ -248,7 +248,7 @@ create table mcache_vfs (
 	unsat_intrn	integer,
 	gen_intrn	integer
 );
-	
+
 create table mcache_vnode_names (
 	opcode		integer,
 	opname		char(32)
@@ -313,9 +313,9 @@ create table server_stats (
 	vice_index	integer,
 	time		integer,
 	system_cpu	integer,
-	user_cpu	integer,	
-	idle_cpu	integer,	
-	boot_time	integer,	
+	user_cpu	integer,
+	idle_cpu	integer,
+	boot_time	integer,
 	total_io	integer
 );
 
@@ -345,7 +345,7 @@ create table srvr_calls (
 	count_entry	integer,
 	count_exit	integer,
 	tsec		integer,
-	tusec		integer,	
+	tusec		integer,
 	counttime	integer
 );
 
@@ -355,7 +355,7 @@ create table srvr_mltcalls (
 	count_entry	integer,
 	count_exit	integer,
 	tsec		integer,
-	tusec		integer,	
+	tusec		integer,
 	counttime	integer,
 	counthost	integer
 );
@@ -366,7 +366,7 @@ create table clnt_calls (
 	count_entry	integer,
 	count_exit	integer,
 	tsec		integer,
-	tusec		integer,	
+	tusec		integer,
 	counttime	integer
 );
 
@@ -376,7 +376,7 @@ create table clnt_mltcalls (
 	count_entry	integer,
 	count_exit	integer,
 	tsec		integer,
-	tusec		integer,	
+	tusec		integer,
 	counttime	integer,
 	counthost	integer
 );
@@ -585,7 +585,7 @@ create table repair_stats (
 	preserve_num integer,
 	discard_num integer,
 	remove_num integer,
-	global_view_num integer, 
+	global_view_num integer,
 	local_view_num integer,
 	keep_local_num integer,
 	list_local_num integer,
@@ -606,4 +606,3 @@ create table rws_stats (
         disc_read_count integer,
         disc_duration integer
 );
-

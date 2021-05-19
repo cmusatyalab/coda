@@ -16,7 +16,7 @@ listed in the file CREDITS.
 
 #*/
 
-/* 
+/*
    Routines pertaining to pathname processing for repair tool.
    NONE of these routines have any global side effects.
 
@@ -33,7 +33,7 @@ static int repair_getvid(char *path, VolumeId *vid, char *realm, char *msg,
 /* leftmost: check pathname for inconsistent object
  * path:	user-provided path of alleged object in conflict
  * realpath:	true path (sans sym links) of object in conflict
- * 
+ *
  * Returns 0 iff path refers to an object in conflict and this is the
  *           leftmost such object on its true path (as returned by getwd())
  * Returns -1 on error and fills in msg if non-NULL. */
@@ -159,7 +159,7 @@ int repair_getmnt(char *realpath, char *prefix, char *suffix, VolumeId *vid,
        crossed a mount point -- invariant:
        - when leaving slash points to charactar before the suffix,
        which is the relative path withoin the volume, of the
-       object in conflict 
+       object in conflict
        -  will always point at starting char of suffix
     */
     tail  = buf + strlen(buf);
@@ -211,7 +211,7 @@ int repair_getmnt(char *realpath, char *prefix, char *suffix, VolumeId *vid,
     return (0);
 }
 
-/* Assumes no conflicts to left of last component.  This is NOT checked. 
+/* Assumes no conflicts to left of last component.  This is NOT checked.
  * Returns 0 if name refers to an object in conflict and fills in conflictfid if non-NULL.
  * Returns -1 on error */
 int repair_inconflict(char *name, ViceFid *conflictfid, char *conflictrealm)
@@ -304,7 +304,7 @@ static char *repair_abspath(char *result, unsigned int len, char *name)
     return (result);
 }
 
-/* Returns 0 and fills volid with the volume id of path.  
+/* Returns 0 and fills volid with the volume id of path.
  * Returns -1 on error and fills in msg if non-NULL. */
 static int repair_getvid(char *path, VolumeId *vid, char *realm, char *msg,
                          int msgsize)

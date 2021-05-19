@@ -8,4 +8,3 @@ else
 fi
 updateclnt -h "$(cat /vice/db/scm)" &
 startserver
-

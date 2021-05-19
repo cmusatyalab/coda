@@ -129,21 +129,21 @@ password. */
 
 /* Changes entry for a user. Caller must be a system administrator.  */
 
-3: AuthChangeUser (IN RPC2_Integer viceId, IN RPC2_EncryptionKey initKey, 
+3: AuthChangeUser (IN RPC2_Integer viceId, IN RPC2_EncryptionKey initKey,
 		   IN RPC2_String otherInfo);
 
 /* Adds a new user to Vice. Caller must be a system administrator.
    User must not exist already */
 
-4: AuthNewUser (IN RPC2_Integer viceId, IN RPC2_EncryptionKey initKey, 
+4: AuthNewUser (IN RPC2_Integer viceId, IN RPC2_EncryptionKey initKey,
 		IN RPC2_String otherInfo);
-	
+
 /* Deletes a user from vice.  User must exist. Note that viceId
    remains in use.  However the user cannot authenticate himself to
    Vice.  Caller must be a system administrator.  */
 
 5: AuthDeleteUser (IN RPC2_Integer viceId);
-	
+
 /* Returns the vice id corr to vice name.  Returns  AUTHFAILED
    if  viceName is a bogus vice name. Else returns AUTHSUCCESS.
 */
@@ -153,4 +153,4 @@ password. */
 /* Logout from server: marks connection as not in use; gc it
    later. Can't just unbind since response will not get back */
 
-7: AuthQuit();	
+7: AuthQuit();

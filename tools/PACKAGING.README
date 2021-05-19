@@ -36,4 +36,3 @@ NOTE:
 For NetBSD, to make this work you should first create a link to
 the package system mk directory
 	ln -s /usr/pkgsrc/mk mk
-

@@ -57,7 +57,7 @@ extern "C" {
 #include "ops.h"
 
 /* subpreres.c
- 	code executed at each subordinate before 
+ 	code executed at each subordinate before
 	proper phases of resolution begin
 */
 

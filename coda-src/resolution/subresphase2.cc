@@ -43,7 +43,7 @@ extern "C" {
 #include "rvmrestiming.h"
 
 /* resubphase2:
-	Subordinate side of Phase 2 during resolution: 
+	Subordinate side of Phase 2 during resolution:
 		Log Collection and Merging
 		Subordinate returns the log of related objects as a byte stream
 		Coordinator merges these logs together into a big linear buffer

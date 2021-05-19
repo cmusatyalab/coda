@@ -56,4 +56,3 @@ esac
 systype=${cputype}_${shortsys}
 AC_MSG_RESULT(${systype})
 AC_SUBST(systype)
-

@@ -10,7 +10,7 @@
  * ds_log.h: public interface to the logging data structure
  */
 
-/* 
+/*
  * An abstract log:
  *     A log consists of the following abstract entities:
  *           A level of detail, "log_level"
@@ -47,7 +47,7 @@ extern FILE *ds_log_destroy(ds_log_t *lp);
 
 extern void ds_log_setlevel(ds_log_t *lp, int level);
 
-/* 
+/*
  * printmsg appends a newline: you don't need one.
  * It's not a good idea to call this directly.  Use DS_LOG_MSG
  * instead;

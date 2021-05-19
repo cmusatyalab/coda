@@ -21,8 +21,8 @@ Coda are listed in the file CREDITS.
 #include <vicetab.h>
 #include <partition.h>
 
-/* exported routines 
- * these routines access the partition methods through 
+/* exported routines
+ * these routines access the partition methods through
  * the device number of the partition
  * This is done for backward compatibility.
  */

@@ -1,7 +1,7 @@
 
 	      .globl .savecontext
 
-.savecontext: 
+.savecontext:
 	      # Set new stack
 	      subi  1,1,128
               # Save link register
@@ -22,12 +22,12 @@ jump:
               # Jump to the subroutine
 	      lwz 0,0(3)
 	      mtlr 0
-	      blr 
+	      blr
 
 
               .globl .returnto
-	      
-.returnto:  
+
+.returnto:
               # Restore stack
 	      lwz   1,0(3)
 	      # Resore general registers
@@ -40,5 +40,5 @@ jump:
 	      mtlr  0
 	      # Set old stack
 	      addi  1,1,128
-              # Return 
+              # Return
 	      blr

@@ -18,7 +18,7 @@ listed in the file CREDITS.
 
 /*
  *
- * dhash.h -- Specification of recoverable hash-table type where each bucket 
+ * dhash.h -- Specification of recoverable hash-table type where each bucket
  * is a doubly-linked list (a dlist).
  *
  */

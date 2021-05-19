@@ -12,7 +12,7 @@ To be placed in /vice/db/ and distributed by update.
 Entries are of the form:
 
 # comment
-host partpath type opt1=val1,opt2=val2 
+host partpath type opt1=val1,opt2=val2
 host partpath type...
 
 Supported types: ftree and simple.
@@ -25,7 +25,7 @@ Choose a depth of your tree d
 Choose a width of your tree w.  w must a be a power of 2!!
 You will have w^d "inodes" available.
 
-2. Put 
+2. Put
 host path ftree depth=d,width=w
 in /vice/db/vicetab
 on the SCM!!!

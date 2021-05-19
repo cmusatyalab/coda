@@ -6,4 +6,3 @@ pkgdata_DATA = $(LUASCRIPTS)
 endif
 EXTRA_DIST = $(LUASCRIPTS)
 MAINTAINERCLEANFILES = Makefile.in
-

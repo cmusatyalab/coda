@@ -49,7 +49,7 @@ rvmtruncate=5
 # Specify the number of rpc2 buffers to keep in a circular log, this can be
 # useful for debugging.
 #
-#trace=0	
+#trace=0
 trace=100
 
 #
@@ -123,4 +123,3 @@ allow_sha=1
 #retrycnt=5
 #windowsize=32
 #zombify=0
-

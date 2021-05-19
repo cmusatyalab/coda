@@ -79,4 +79,3 @@
 // #define CAEASRINPROGRESS	306	/* Venus requested an ASR while another one is in progress */
   case 307:	sys_err = CAEADVICEPENDING; break;
   case 308:	sys_err = CAENOSERVERS; break;
-

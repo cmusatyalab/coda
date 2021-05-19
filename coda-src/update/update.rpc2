@@ -57,4 +57,3 @@ UpdateNewConnection (IN RPC2_Integer SideEffectType,
 		   IN RPC2_Integer AuthType,
 		   IN RPC2_CountedBS ClientIdent)
 		   NEW_CONNECTION;
-

@@ -54,13 +54,13 @@ int LookAsideAndFillContainer(unsigned char sha[SHA_DIGEST_LENGTH], int cfd,
                               char *emsgbuf, int emsgbuflen)
 {
     /* LookAsideAndFillContainer() takes the SHA of an object and sees if
-   it is able to find its contents via lookaside.  If successful, it 
+   it is able to find its contents via lookaside.  If successful, it
    copies contents of lookaside target into the specified container file.
    As a sanity check, it then computes and verifies the SHA of the container file.
 
    expectedlength is a "belt-and-suspenders" sanity check;  it is ignored
-   if set to a negative value; if zero or positive, it is assumed to be 
-   be the expected length of the file;  in principle, a SHA match on a 
+   if set to a negative value; if zero or positive, it is assumed to be
+   be the expected length of the file;  in principle, a SHA match on a
    wrong length file should be so highly improbable that the length is
    not needed; but it is there to help people sleep better.
 
@@ -69,7 +69,7 @@ int LookAsideAndFillContainer(unsigned char sha[SHA_DIGEST_LENGTH], int cfd,
    deadlock due to recursive Venus invocation.  This will only happen if
    pathnames with this prefix appear in a lookaside database.
 
-   Returns 1 if lookaside,copy and verification were all successful; 
+   Returns 1 if lookaside,copy and verification were all successful;
       0 in all other situations. If emsgbuf is non-empty on return, it
       contains an error message.
 

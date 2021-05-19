@@ -95,7 +95,7 @@ enum dataClass
    set...
    It's probably a good idea to change it everytime you change the format
    of the data file.
-   History:  755515, 
+   History:  755515,
 */
 
 #define MAGIC_NUMBER 425515

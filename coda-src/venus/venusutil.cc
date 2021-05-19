@@ -886,8 +886,8 @@ time_t Vtime()
     return (::time(0));
 }
 
-/* 
- * compares fids embedded in a VenusFidAndVersionVector. 
+/*
+ * compares fids embedded in a VenusFidAndVersionVector.
  * assumes that the fids are in the same volume.
  */
 int FAV_Compare(ViceFidAndVV *fav1, ViceFidAndVV *fav2)

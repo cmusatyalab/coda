@@ -129,7 +129,7 @@ void UpdateHisto(struct hgram *hg, double newval)
 
 void MUpdateHisto(struct hgram *hg, double newval, int number)
 /* hg -- histogram to be updated
-       newval -- value to be entered 
+       newval -- value to be entered
        number -- number of newvals to be entered */
 {
     int i;

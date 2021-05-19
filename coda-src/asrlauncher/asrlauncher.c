@@ -201,8 +201,8 @@ int escapeString(char *str, int maxlen)
  *
  * Takes the pathname of an ASR rules file (or any file),
  * creates the pathname of the rules file scoped up one level in the directory
- * hierarchy, and writes it back into the storage parameter. If the empty 
- * or null string is sent in as the path, then we use Conflict_Path as 
+ * hierarchy, and writes it back into the storage parameter. If the empty
+ * or null string is sent in as the path, then we use Conflict_Path as
  * our pathname.
  *
  * Returns 0 on success, nonzero on failure.
@@ -357,8 +357,8 @@ int replaceEnvVars(char *string, int maxlen)
             /* Compare against known environment variables. */
 
             /* These are the important environment variables that make the
-		 * .asr files much more useful. It's possible that user-defined 
-		 * variables could be set within the .asr file itself and checked 
+		 * .asr files much more useful. It's possible that user-defined
+		 * variables could be set within the .asr file itself and checked
 		 * here for convenience -- however, I haven't come across a case where
 		 * this would be useful yet. */
 
@@ -590,7 +590,7 @@ int executeTriggers(long *cmds)
 
                 /* Now, pipe data to the child shell. */
 
-                /* Expand any environment variables in our 
+                /* Expand any environment variables in our
 		 * command to their appropriate strings. */
 
                 error = replaceEnvVars(trigger, NCARGS);
@@ -733,7 +733,7 @@ int findRule(long *cmds)
         if (checkRulesFile(Rules_File_Path))
             continue;
 
-        /* Open the ASR rules file in Codaland. This could fail with ENOENT or 
+        /* Open the ASR rules file in Codaland. This could fail with ENOENT or
 	 * EACCES at which point we scope to a higher directory and try again. */
         if ((Rules_File = fopen(Rules_File_Path, "r")) == NULL)
             continue;
@@ -834,7 +834,7 @@ int executeCommands(long cmds)
             if (fgets(command, NCARGS, Rules_File) == NULL) /* EOF */
                 break;
 
-            /* Expand any environment variables in our 
+            /* Expand any environment variables in our
 	   * command to their appropriate strings. */
 
             error = replaceEnvVars(command, NCARGS);
@@ -986,7 +986,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    /* 
+    /*
    * Escaping of filename, pathname characters done here. This is necessary
    * because it is possible to hide shell commands within a filename, i.e.
    * a rule that launches for *.odt could run into a conflict named

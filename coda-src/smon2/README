@@ -67,7 +67,7 @@ conns:GAUGE
 
 nrpcs:COUNTER
     Total number of RPC2 calls.
-    
+
 ftotl:COUNTER fdata:COUNTER fsize:COUNTER frate:GAUGE
     Total fetches (ViceFetch+GetAttr+GetACL), data fetches (ViceFetch),
     amount of fetched data, and observed data-rate.

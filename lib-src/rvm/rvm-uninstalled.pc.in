@@ -14,4 +14,3 @@ URL: http://www.coda.cs.cmu.edu/
 Version: @VERSION@
 Cflags: -I${includedir}
 Libs: -L${rdslibdir} -lrds -L${seglibdir} -lseg -L${rvmlibdir} -lrvm
-

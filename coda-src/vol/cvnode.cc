@@ -744,8 +744,8 @@ void VPutVnode(Error *ec, Vnode *vnp)
         ReleaseReadLock(&vnp->lock);
 }
 /*
- * put back a vnode but dont write it to RVM - 
- * simulate an abort with release lock 
+ * put back a vnode but dont write it to RVM -
+ * simulate an abort with release lock
  */
 void VFlushVnode(Error *ec, Vnode *vnp)
 {

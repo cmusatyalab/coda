@@ -17,7 +17,7 @@ listed in the file CREDITS.
 #*/
 
 /*
- * recvarl.c 
+ * recvarl.c
  *	definition of variable length class
  */
 #ifdef __cplusplus
@@ -70,7 +70,7 @@ recvarl::recvarl(int recvarlsize)
     memset(c, 0, recvarlsize);
 }
 
-/* the destructor should never be called 
+/* the destructor should never be called
    because it is possible to call destructor only
    with delete - which calls the c++ delete first */
 recvarl::~recvarl()

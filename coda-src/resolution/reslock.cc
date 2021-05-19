@@ -16,7 +16,7 @@ listed in the file CREDITS.
 
 #*/
 
-/* reslock.c 
+/* reslock.c
  * Implements volume locking for resolution
  */
 

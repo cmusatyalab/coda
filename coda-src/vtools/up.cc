@@ -183,7 +183,7 @@ static void ScanArgs(int argc, char **argv)
 /* 	make sure the parent directory of this file exists	 */
 /* 	true if exists, false if does not exist			 */
 /* 	Owner argument is a hack:all directories made will have this owner. */
-/* 
+/*
 ************************************************************ */
 
 static Boolean MakeParent(char *file, long owner)

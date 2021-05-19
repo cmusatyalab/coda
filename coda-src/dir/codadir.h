@@ -133,7 +133,7 @@ int FID_IsLocalFile(const struct ViceFid *fid);
 void FID_MakeDiscoFile(struct ViceFid *fid, VolumeId vid, Unique_t unique);
 void FID_MakeDiscoDir(struct ViceFid *fid, VolumeId vid, Unique_t unique);
 
-/* directory vnode number for dangling links during conflicts - 
+/* directory vnode number for dangling links during conflicts -
    two versions, one for the remote copy one for the local oopy*/
 
 /* make the root of a repair subtree residing on the server */

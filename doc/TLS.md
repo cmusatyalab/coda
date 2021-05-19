@@ -82,4 +82,3 @@ similar to letsencrypt where the servers have a cronjob to do the
 renewals. I've added a sighup handler to codatunneld that forces a
 reload of any certificates in /etc/coda/ssl/ so that the server does not
 have to be restarted.
-

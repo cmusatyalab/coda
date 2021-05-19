@@ -291,7 +291,7 @@ if [ "$isscm" = Y ]; then
     echo "db" > "$vicedir/db/files.export"
     while read -r n ; do
       echo "db/$n" >>  "$vicedir/db/files.export"
-    done < "$vicedir/db/files" 
+    done < "$vicedir/db/files"
     if ! ( "@sbindir@/vice-setup-scm" && "@sbindir@/vice-setup-user" && \
 	   "@sbindir@/vice-setup-rvm" && "@sbindir@/vice-setup-srvdir" ) ; then
 	echo "Your coda server is not completely setup.  You will need"
@@ -384,4 +384,3 @@ echo "your first replicated volume."
 #echon "Now you can "
 #echo
 #echo " start the fileserver: startserver &"
-

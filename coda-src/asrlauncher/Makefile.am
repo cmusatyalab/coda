@@ -3,4 +3,3 @@
 if BUILD_CLIENT
 sbin_PROGRAMS = asrlauncher
 endif
-

@@ -16,10 +16,10 @@ Coda are listed in the file CREDITS.
 #*/
 %}
 
-/* 
+/*
  * Here we define the operations and arguments of operations that are packed
  * into the CML.
- * 
+ *
  * btw. we only use the generated header file.
  */
 
@@ -42,7 +42,7 @@ Subsystem "cml";
 		 IN ViceStoreId StoreId);
 
 /* 2: CML_BrokenRemove */
-		 
+
 3: CML_Rename	(IN ViceFid OldDid,
 		 IN ViceVersionVector spVV,
 		 IN RPC2_String OldName,
@@ -107,7 +107,7 @@ Subsystem "cml";
 		 IN UserId Owner,
 		 IN RPC2_Unsigned Mode,
 		 IN ViceStoreId StoreId);
-		 
+
 19: CML_RemoveDir(IN ViceFid Did,
 		  IN ViceVersionVector pVV,
 		  IN RPC2_String Name,
@@ -115,10 +115,10 @@ Subsystem "cml";
 		  IN ViceStoreId StoreId);
 
 20: CML_Repair	(IN ViceFid Fid,
-		 IN RPC2_Unsigned length, 
+		 IN RPC2_Unsigned length,
 		 IN Date_t Date,
-		 IN UserId Author, 
-		 IN UserId Owner, 
+		 IN UserId Author,
+		 IN UserId Owner,
 		 IN RPC2_Unsigned Mode,
 		 IN ViceStoreId StoreId);
 

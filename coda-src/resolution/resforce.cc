@@ -768,7 +768,7 @@ int diroplink::write(int fd)
     return (0);
 }
 
-/* 
+/*
 commitlink::commitlink(ViceFid *fid, Vnode *v) {
     Fid = *fid;
     vptr = v;

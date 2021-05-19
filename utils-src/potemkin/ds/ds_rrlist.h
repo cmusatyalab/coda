@@ -34,7 +34,7 @@
 */
 
 /* Individual requests */
-/* 
+/*
    rrlist clients are fully responsible for allocating/deallocating
    these.  They're exposed because they are public, for all intents
    and purposes; there are no real complicated operations on them, and
@@ -95,7 +95,7 @@ extern long ds_rrlist_value(ds_rrlist_t *l);
 
 /*** Mutators ***/
 
-/* 
+/*
    Create a new list: specify the initial value
    of the resource.  It is assumed that no function from this
    package can be (legitimately) called before this one: it does
@@ -117,7 +117,7 @@ void ds_rrlist_destroy(ds_rrlist_t *l);
 
    DS_RRLIST_OUTOFWINDOW      if current value is out of the request's window
    DS_RRLIST_DUPLICATE        if there was an old request for this pid
-   
+
    If the current value is out of the request's window, the OUT parameter
    value is set to the current value.
 
@@ -134,7 +134,7 @@ extern ds_rrlist_return_t ds_rrlist_request(ds_rrlist_t *l, ds_request_t *r,
    DS_RRLIST_NOSUCHREQ        if the request isn't a valid one
 
    If the call is successful, req is filled with the removed request.
-   Note that we don't need to (and often cannot) know what list the 
+   Note that we don't need to (and often cannot) know what list the
    request was granted from.
 */
 extern ds_rrlist_return_t ds_rrlist_cancel(long reqid, ds_request_t **req);

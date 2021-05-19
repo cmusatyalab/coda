@@ -218,7 +218,7 @@ void UtilityLWP(char *p)
 
 void ListenerLWP(char *p)
 {
-    /* the argument, p, is actually an integer which denotes the 
+    /* the argument, p, is actually an integer which denotes the
    number of this thread. */
 
     int listenerNo = (int)p;

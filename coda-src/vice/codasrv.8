@@ -2,7 +2,7 @@
 .if t .ds Q ``
 .if n .ds U \&"
 .if t .ds U ''
-.TH "codasrv" 8 
+.TH "codasrv" 8
 .tr \&
 .nr bi 0
 .nr ll 0
@@ -18,17 +18,17 @@
 .if \\n(t\\n(ll=0 \{.IP \\(bu\}
 .if \\n(t\\n(ll=1 \{.IP \\n+(e\\n(el.\}
 .\}
-.el .sp 
+.el .sp
 .\}
 .el \{\
 .ie \\nh=1 \{\
 .LP
 .nr h 0
 .\}
-.el .PP 
+.el .PP
 .\}
 ..
-.SH NAME  
+.SH NAME
 
 .Pp
 codasrv - CFS file server
@@ -40,21 +40,21 @@ codasrv - CFS file server
 .Pp
 \fBcodasrv\fP [-d (debug level)] [-rpcdebug rpc2debuglevel] [-p (number of processes)]
 .Pp
-[-l (large vnodes)] [-s (small vnodes)] [-k (stack size)] 
+[-l (large vnodes)] [-s (small vnodes)] [-k (stack size)]
 .Pp
-[-w (wait interval)] [-r (RPC retry count)] 
+[-w (wait interval)] [-r (RPC retry count)]
 .Pp
-[-o (RPC timeout)] [-c (check interval)] 
+[-o (RPC timeout)] [-c (check interval)]
 .Pp
-[-t (RPC trace buffers)] [-forcesalvage] 
+[-t (RPC trace buffers)] [-forcesalvage]
 .Pp
-[-quicksalvage] [-rvm logdevice datadevice length] [-nores] 
+[-quicksalvage] [-rvm logdevice datadevice length] [-nores]
 .Pp
-[-trunc percent] [-nocmp] [-nopy] [-nodumpvm] [-nosalvageonshutdown] 
+[-trunc percent] [-nocmp] [-nopy] [-nodumpvm] [-nosalvageonshutdown]
 .Pp
 [-mondhost hostname] [-mondportal port] [-debarrenize] [-optstore]
 .Pp
-[-rvmopt] [-newchecklevel checklevel] 
+[-rvmopt] [-newchecklevel checklevel]
 .Pp
 .Pp
 .Pp
@@ -231,7 +231,7 @@ Turn off resolution on the servers
 .IP "\fB-trunc\fP \fIpercent\fP"
 .nr bi 1
 .Pp
-Specify how full the log can get before 
+Specify how full the log can get before
 it is truncated.  Default is 50%
 .Pp
 .if \n(ll>1 .RE
@@ -254,7 +254,7 @@ Directory replica contents will not be checked for equality at end of resolution
 .IP "\fB-nopy\fP"
 .nr bi 1
 .Pp
-Suppress polling and yielding by threads that run for a long period 
+Suppress polling and yielding by threads that run for a long period
 .Pp
 .if \n(ll>1 .RE
 .nr ll -1
@@ -309,7 +309,7 @@ Port to use when contacting the \fImond\fP host.
 .IP "\fB-debarrenize\fP"
 .nr bi 1
 .Pp
-Create an inode for a vnode if the inode cannot be found by the salvager 
+Create an inode for a vnode if the inode cannot be found by the salvager
 .Pp
 .if \n(ll>1 .RE
 .nr ll -1

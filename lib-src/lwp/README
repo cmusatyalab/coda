@@ -421,4 +421,3 @@ Some design considerations for LWP programming
   For similar reasons, Unix system calls such as read (2), sleep (3),
   and select (2) that may block for a long time should be avoided.
   Instead, use IOMGR_Select.
-

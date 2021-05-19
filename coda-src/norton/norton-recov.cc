@@ -29,8 +29,8 @@ int GetMaxVolId()
     return (SRV_RVM(MaxVolId) & 0x00FFFFFF);
 }
 
-/* Get a volume from recoverable storage 
- * Returns pointer to volume if successful, NULL otherwise 
+/* Get a volume from recoverable storage
+ * Returns pointer to volume if successful, NULL otherwise
  */
 
 VolHead *VolByIndex(int myind)
@@ -43,7 +43,7 @@ VolHead *VolByIndex(int myind)
     return (&SRV_RVM(VolumeList[myind]));
 }
 
-/* Get a volume header from recoverable storage given the appropriate index 
+/* Get a volume header from recoverable storage given the appropriate index
  * Returns pointer to header if successful, NULL otherwise
  */
 VolumeHeader *VolHeaderByIndex(int myind)

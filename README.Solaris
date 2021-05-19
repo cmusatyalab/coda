@@ -10,14 +10,14 @@ Solaris 7 (i386).  The sparc version was tested on both a sparc 5 and
 a sparc Ultra 10.
 
 To build Coda on a Solaris system, you must first make sure
-that C/C++ compiler, perl, GNU make and readline are installed 
+that C/C++ compiler, perl, GNU make and readline are installed
 on your machine. Beware! Solaris make wont' work!
 
 Solaris packages of gcc, perl and GNU make, which can simply be installed
 by pkgadd or admintool, can be downloaded from http://sunfreeware.com/.
 You may also need gzip if it is not installed.
 
-Also, the Solaris package of gdb includes readline.  
+Also, the Solaris package of gdb includes readline.
 
 To install readline and not install gdb:
 	get the readline tar.gz
@@ -50,11 +50,11 @@ Building Coda:
 	Read the build instructions contained in solaris-coda.
 
 3.  Build Coda.
-	
+
 	Similar to liblwp except the installs.
 
 4.  Installing a Server
-	
+
 	In the obj directory of coda, say "make server-install".
 	Follow the documentation on how to set up your server.
 
@@ -64,4 +64,3 @@ Building Coda:
 	Follow the documentation on how to set up your client.
 	You should set up the venus.conf file, usually found in
 	the directory /usr/local/etc/coda.
-

@@ -67,4 +67,3 @@ codadump2tar_LDADD = libdumpstuff.la \
 		     $(top_builddir)/lib-src/base/libbase.la \
 		     $(top_builddir)/lib-src/rwcdb/librwcdb.la \
 		     $(RVM_RPC2_LIBS)
-

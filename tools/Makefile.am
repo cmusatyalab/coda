@@ -39,4 +39,3 @@ EXTRA_DIST = coda-server-nt-50x.wse coda-server-nt-52x.wse PACKAGING.README \
 	     coda-update-master.tmpl coda-update-slave.tmpl
 
 CONFIG_CLEAN_FILES =
-

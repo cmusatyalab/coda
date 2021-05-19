@@ -47,7 +47,7 @@ typedef struct {
     int InclEntries; /* Leading part of IdList */
     int ExclEntries; /* Trailing part of IdList */
     int IdList[1]; /* Actual  bound  is InclEntries+ExclEntries.
-			    The first InclEntries entries are currently 
+			    The first InclEntries entries are currently
 			    included in this CPS: sorted in ascending order.
 			    The last ExclEntries have been excluded from this
 			    CPS: not sorted.*/

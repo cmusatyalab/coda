@@ -53,7 +53,7 @@ extern "C" {
 /*
   BEGIN_HTML
   <a name="S_VolLock"><strong>Lock the volume for backups.
-  Return the VVV for the volume if successful  </strong></a> 
+  Return the VVV for the volume if successful  </strong></a>
   END_HTML
 */
 long S_VolLock(RPC2_Handle rpcid, VolumeId Vid,
@@ -111,7 +111,7 @@ long S_VolLock(RPC2_Handle rpcid, VolumeId Vid,
 
 /*
   BEGIN_HTML
-  <a name="S_VolUnlock"><strong>Unlock the volume</strong></a> 
+  <a name="S_VolUnlock"><strong>Unlock the volume</strong></a>
   END_HTML
 */
 long S_VolUnlock(RPC2_Handle rpcid, VolumeId Vid) EXCLUDES_TRANSACTION

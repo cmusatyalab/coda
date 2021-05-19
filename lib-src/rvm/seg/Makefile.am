@@ -36,4 +36,3 @@ libsegpt_la_LDFLAGS = $(LIBTOOL_LDFLAGS)
 libsegpt_la_LIBADD = $(top_builddir)/rvm/librvmpt.la $(PTHREAD_LIBS)
 
 MAINTAINERCLEANFILES = Makefile.in
-

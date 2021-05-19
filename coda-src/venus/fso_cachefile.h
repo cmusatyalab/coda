@@ -174,7 +174,7 @@ static inline uint64_t ccblock_length(uint64_t b_pos, int64_t b_count)
 }
 
 /**
- * Align a file position in bytes to the start of the corresponding cache 
+ * Align a file position in bytes to the start of the corresponding cache
  * chunk block
  *
  * @param b_pos file position in bytes
@@ -187,7 +187,7 @@ static inline uint64_t pos_align_to_ccblock(uint64_t b_pos)
 }
 
 /**
- * Align a the end of a range in bytes to the end of the corresponding cache 
+ * Align a the end of a range in bytes to the end of the corresponding cache
  * chunk block
  *
  * @param b_pos   start of the range in bytes
@@ -386,7 +386,7 @@ protected:
      * @param to    destination cache file pointer
      * @param pos   offset within the file
      * @param count amount of bytes to be copied
-     * 
+     *
      * @return amount of bytes copied
      */
     static int64_t CopySegment(CacheFile *from, CacheFile *to, uint64_t pos,
@@ -413,7 +413,7 @@ public:
     ~CacheFile();
 
     /**
-     * Create and initialize a new cachefile (container file will be also 
+     * Create and initialize a new cachefile (container file will be also
      * created)
      *
      * @param newlength length of the container file in bytes
@@ -487,7 +487,7 @@ public:
     int Copy(char *destname, int recovering = 0);
 
     /**
-     * Increment reference counter. Creation already does an implicit IncRef() 
+     * Increment reference counter. Creation already does an implicit IncRef()
      */
     void IncRef() { refcnt++; }
 
@@ -508,7 +508,7 @@ public:
     /**
      * Change container file's last access and modification times
      *
-     * @param times time array of last access time and modification time, 
+     * @param times time array of last access time and modification time,
      *        respectively.
      */
     void Utimes(const struct timeval times[2]);
@@ -547,7 +547,7 @@ public:
      *
      * @param start start of the search range
      * @param len   length of the search range
-     * 
+     *
      * @return holes list
      */
     CacheChunkList *GetHoles(uint64_t start, int64_t len);
@@ -557,7 +557,7 @@ public:
      *
      * @param start start of the search range
      * @param len   length of the search range
-     * 
+     *
      * @return valid ranges chunks list
      */
     CacheChunkList *GetValidChunks(uint64_t start, int64_t len);
@@ -584,7 +584,7 @@ public:
     uint64_t ValidData() { return (validdata); }
 
     /**
-     * Get the amount of consecutive valid data starting from beginning of the 
+     * Get the amount of consecutive valid data starting from beginning of the
      * file
      *
      * @return amount of valid data of the cache file in bytes

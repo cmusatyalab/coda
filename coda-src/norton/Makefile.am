@@ -43,4 +43,3 @@ LDADD = libnorton.la \
 	$(top_builddir)/lib-src/rwcdb/librwcdb.la \
 	$(top_builddir)/lib-src/base/libbase.la \
 	$(RVM_RPC2_LIBS) $(LIBREADLINE) $(LIBTERMCAP)
-

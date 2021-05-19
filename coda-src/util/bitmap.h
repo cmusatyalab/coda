@@ -20,8 +20,8 @@ listed in the file CREDITS.
 #define _BITMAP_H_ 1
 /*
  * bitmap.h
- * Created Feb 13, 1992	-- Puneet Kumar 
- * Declaration of a bitmap class 
+ * Created Feb 13, 1992	-- Puneet Kumar
+ * Declaration of a bitmap class
  */
 
 #ifdef __cplusplus

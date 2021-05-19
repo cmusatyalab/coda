@@ -293,8 +293,8 @@ decl_or_proc		: typedef
 
 define			: DEFINE IDENTIFIER NUMBER
 					{ if ($1) spit_define($2, $3); }
-			| DEFINE IDENTIFIER String			
-					{ if ($1) spit_define($2, $3); }		
+			| DEFINE IDENTIFIER String
+					{ if ($1) spit_define($2, $3); }
 			;
 
 typedef			: TYPEDEF rpc2_type IDENTIFIER array_spec ';'
@@ -455,11 +455,11 @@ formal_list		: formal array_spec_var ',' formal_list
 					        if ($1->type->type->tag != RPC2_STRUCT_TAG) {
 						    printf("RP2GEN: array type unimplemented: %s\n", $1->name);
 						    exit(EXIT_FAILURE);
-					        } 
+					        }
 					        formal_list.formals[formal_list.counter++] = $2;
 						$1->array = $2->name = createsize($1->name);
 						$2->mode = $1->mode;
-						if ($1->mode != IN_MODE) { 
+						if ($1->mode != IN_MODE) {
 						    maxvarp = make_var(NIL, NO_MODE, find("RPC2_Unsigned"));
 						    $1->arraymax = maxvarp->name = createmaxsize($1->name);
 						    maxvarp->mode = MAX_BOUND;
@@ -477,11 +477,11 @@ formal_list		: formal array_spec_var ',' formal_list
 						    printf("RP2GEN: array type unimplemented: %s\n",
 						           $1->name);
 						    exit(EXIT_FAILURE);
-					        } 
+					        }
 					        formal_list.formals[formal_list.counter++] = $2;
 						$1->array = $2->name = createsize($1->name);
 						$2->mode = $1->mode;
-						if ($1->mode != IN_MODE) { 
+						if ($1->mode != IN_MODE) {
 						    maxvarp = make_var(NIL, NO_MODE, find("RPC2_Unsigned"));
 						    $1->arraymax = maxvarp->name = createmaxsize($1->name);
 						    maxvarp->mode = IN_MODE;

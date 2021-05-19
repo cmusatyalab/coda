@@ -104,10 +104,10 @@ void ProbeDaemon(void)
 
 /*
  * Determine which servers should be probed, and probe them.
- * lasttupp and lastdownp, if set, contain the last probe times of up 
- * and down servers, respectively (down servers are probed more often 
- * than up servers).  The probe of a given server may be suppressed if 
- * the last probe time is recent enough.  
+ * lasttupp and lastdownp, if set, contain the last probe times of up
+ * and down servers, respectively (down servers are probed more often
+ * than up servers).  The probe of a given server may be suppressed if
+ * the last probe time is recent enough.
  *
  * This routine updates the last probe times.
  */
@@ -130,8 +130,8 @@ void ServerProbe(long *lastupp, long *lastdownp)
         srvent *s;
         while ((s = next())) {
             /*
-	     * We will probe the server if the check is being forced (no 
-	     * times sent in), or if the server has not been heard from 
+	     * We will probe the server if the check is being forced (no
+	     * times sent in), or if the server has not been heard from
 	     * within the appropriate interval. Otherwise, pretend a probe
 	     * occurred at the "last live" time.
 	     */

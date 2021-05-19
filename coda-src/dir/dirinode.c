@@ -227,7 +227,7 @@ void DI_VMCopy(PDirInode oldinode, PDirInode *newinode)
     return;
 }
 
-/* reduce the refcount of a VM directory inode, 
+/* reduce the refcount of a VM directory inode,
    delete it when it falls to 0 */
 void DI_VMDec(PDirInode pdi)
 {

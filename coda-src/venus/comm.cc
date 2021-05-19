@@ -532,13 +532,13 @@ void PutServer(srvent **spp)
 /*
  *    The probe routines exploit parallelism in three ways:
  *       1. MultiRPC is used to perform the Probe RPC (actually, a ViceGetTime)
- *       2. Slave vprocs are used to overlap the probing of "up" servers and 
+ *       2. Slave vprocs are used to overlap the probing of "up" servers and
  * 	    the binding/probing of "down" servers.  Otherwise probing of "up"
  *	    servers may be delayed for the binding to "down" servers.
- *       3. (Additional) slave vprocs are used to overlap the binding of 
+ *       3. (Additional) slave vprocs are used to overlap the binding of
  *          "down" servers
  *
- *    Note that item 3 is only needed because MultiBind functionality is not 
+ *    Note that item 3 is only needed because MultiBind functionality is not
  *    yet a part of MultiRPC.
  */
 
@@ -858,7 +858,7 @@ void DownServers(int nservers, struct in_addr *hostids, char *buf,
     *bufsize = (cp - buf);
 }
 
-/* 
+/*
  * Update bandwidth estimates for all up servers.
  * Reset estimates and declare connectivity strong if there are
  * no recent observations.  Called by the probe daemon.
@@ -1183,7 +1183,7 @@ long srvent::GetLiveness(struct timeval *tp)
     return (0);
 }
 
-/* 
+/*
  * calculates current bandwidth to server, taking the current estimates from
  * RPC2/SFTP.
  *

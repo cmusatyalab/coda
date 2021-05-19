@@ -1074,8 +1074,8 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
             break;
         }
         case _VIOC_WD: {
-            /* 
-		     * Begin logging mutations to this volume. 
+            /*
+		     * Begin logging mutations to this volume.
 		     * This is "pseudo-disconnected" mode, in which
 		     * fetches may be performed but mutations are logged.
 		     */

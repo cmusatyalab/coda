@@ -15,4 +15,3 @@ AM_CPPFLAGS = $(LWP_CFLAGS) \
 LDADD = liblka.la \
 	$(top_builddir)/lib-src/rwcdb/librwcdb.la \
 	$(top_builddir)/lib-src/base/libbase.la
-

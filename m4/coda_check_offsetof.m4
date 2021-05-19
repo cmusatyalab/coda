@@ -30,4 +30,3 @@ AC_DEFUN([CODA_CHECK_OFFSETOF],
     if test "$offsetof" != yes ; then
     CODA_TEST_OFFSETOF(OFFSETOF, [offsetof(type,member)])
     fi ; fi])
-

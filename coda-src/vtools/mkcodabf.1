@@ -11,18 +11,18 @@ mkcodabf \- Make a 'big file' directory tree for Coda
 .PP
 \fBmkcodabf\fR will take an existing large \fIfile\fR and produce
 a directory tree rooted at \fInew-dir\fR of much smaller files,
-called hunks.  Each hunk, except the last hunk, will be an integral 
+called hunks.  Each hunk, except the last hunk, will be an integral
 number of megabytes as controlled by the \fB-s\fR flag.  The number
 of hunk files and subdirectories in each directory is controlled by
 the \fB-f\fR flag.  Also, in the
 directory \fInew-dir\fR, a meta-data
 file, named \fI_Coda_BigFile_\fR, will be created so that \fInew-dir\fR
-will appear as a large, read only, regular file after being written to 
-the Coda Distributed File System.  
+will appear as a large, read only, regular file after being written to
+the Coda Distributed File System.
 .PP
 The reason for these 'big files' is to allow one to write a very
 large file, one that is larger than the \fIvenus cache\fR, to Coda
-and to be able to read it back.  These are primarily expected to 
+and to be able to read it back.  These are primarily expected to
 be some kind of media files which are written once and read many
 times, often in a sequential fashion by a media player.  For this
 reason, \fIfile\fR is expected to not be stored in the Coda file

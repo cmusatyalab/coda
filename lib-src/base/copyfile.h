@@ -19,7 +19,7 @@ Coda are listed in the file CREDITS.
 #ifndef _COPYFILE_H_
 #define _COPYFILE_H_
 
-/* 
+/*
  * functions for copying files around
  */
 
@@ -43,7 +43,7 @@ extern "C" {
  * @param outfd file descriptor of the destination file
  * @param pos   offset within the source file
  * @param count amount of bytes to be copied
- * 
+ *
  * @return -1 on errors and 0 otherwise
  */
 int copyfile_seg(int infd, int outfd, uint64_t pos, int64_t count);
@@ -53,7 +53,7 @@ int copyfile_seg(int infd, int outfd, uint64_t pos, int64_t count);
  *
  * @param fromfd file descriptor of the source file
  * @param tofd   file descriptor of the destination file
- * 
+ *
  * @return -1 on errors and 0 otherwise
  */
 int copyfile(int fromfd, int tofd);
@@ -63,7 +63,7 @@ int copyfile(int fromfd, int tofd);
  *
  * @param fromname file path of the source file
  * @param toname   file path of the destination file
- * 
+ *
  * @return -1 on errors and 0 otherwise
  */
 int copyfile_byname(const char *fromname, const char *toname);

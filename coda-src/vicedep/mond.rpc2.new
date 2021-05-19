@@ -238,5 +238,3 @@ SmonReportOverflow(IN SmonViceId Vice, IN RPC2_Unsigned Time,
 		IN RPC2_Unsigned StartTime,
 		IN RPC2_Unsigned EndTime,
 		IN RPC2_Integer Count);
-
-

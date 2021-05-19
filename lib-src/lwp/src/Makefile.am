@@ -23,4 +23,3 @@ MAINTAINERCLEANFILES = Makefile.in
 
 .S.lo:
 	$(LIBTOOL) --mode=compile $(COMPILE) -DPIC -fPIC -c $<
-

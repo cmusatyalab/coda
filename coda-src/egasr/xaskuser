@@ -22,15 +22,15 @@ exec wish "$0" "$@"
 
 proc mkbuttons {frame} {
    radiobutton $frame.remove -text "Remove inconsistent file" -variable action \
-	-value remove 
+	-value remove
    radiobutton $frame.latest -text "Use one of the replicas as the new version" \
-	-variable action -value latest 
+	-variable action -value latest
 
    #frame for the button and entry for specifying a new file
    frame $frame.newfile
    frame $frame.newfile.fname
    radiobutton $frame.newfile.but -text "Use another file" \
-	-variable action -value name 
+	-variable action -value name
    entry $frame.newfile.fname.ent -width 30 -relief sunken \
 	-xscrollcommand "$frame.newfile.fname.sb set";
    bind $frame.newfile.fname.ent <Return> "set action name; repairwithnamedfile $frame.newfile.fname.ent"
@@ -63,15 +63,15 @@ proc GetIncResp {{w .f}} {
 	-text "repairing inconsistent file $oname"
 
    # frame for making the buttons
-   frame $w.actionbuttons 
+   frame $w.actionbuttons
    mkbuttons $w.actionbuttons
 
    #frame for placing the ok/cancel buttons
-   frame $w.finalize 
+   frame $w.finalize
    button $w.finalize.ok -text "OK" -command { \
 	case $action in {
 	     nothing 	{ exit 0 }
-	     remove 	{ exit 1 } 
+	     remove 	{ exit 1 }
 	     latest 	{ oklistboxcommand .f.actionbuttons.replicas.entries.l }
 	     name 	{ repairwithnamedfile .f.actionbuttons.newfile.fname.ent }
 	     default 	{ exit -1 }
@@ -91,7 +91,7 @@ proc GetIncResp {{w .f}} {
 }
 
 proc getreplicas {frame} {
-   #make a frame 
+   #make a frame
    $frame configure  -width 80c -height 3
 
    #put a frame for displaying the replicas
@@ -104,7 +104,7 @@ proc getreplicas {frame} {
    getentries $frame.entries.l
 }
 
-#make the listbox (and the scrollbar) for displaying the replicas 
+#make the listbox (and the scrollbar) for displaying the replicas
 proc makeentries {entry} {
   listbox $entry.l -relief raised -bd 2 -width 80 -height 3 \
 	-font -Adobe-Courier-medium-r-normal--*-120*
@@ -121,21 +121,21 @@ proc getentries {listbox} {
       $listbox insert end $newentry
    }
    $listbox select set 0 active
-   cd $cwd 
+   cd $cwd
 }
 
 # procedure invoked when ok is pressed
 proc oklistboxcommand {listbox} {
-   global children oname 
+   global children oname
    set cs [$listbox curselection]
-   set howmanyentries [llength $cs] 
+   set howmanyentries [llength $cs]
    if {$howmanyentries == 0} {
-      set echotext "You need to select an entry first" 
+      set echotext "You need to select an entry first"
       set i [.f.actionbuttons.replicas.message create text 6c 0.3c -text "$echotext" -fill red -anchor nw]
       after 1000 ".f.actionbuttons.replicas.message delete $i"
-   } else { 
+   } else {
       if {$howmanyentries > 1} {
-         set echotext "You must select only one entry" 
+         set echotext "You must select only one entry"
          set i [.f.actionbuttons.replicas.message create text 6c 0.3c -text "$echotext" -fill red -anchor nw]
          after 1000 ".f.actionbuttons.replicas.message delete $i"
       } else {
@@ -151,11 +151,11 @@ proc oklistboxcommand {listbox} {
 
 #proc invoked when ok is pressed with the button "use another file" is on
 proc repairwithnamedfile {entry} {
-   global oname 
+   global oname
    set cs [$entry get]
    set fnamelength [llength $cs]
    if {$fnamelength <= 0} {
-      set echotext "You need to enter the name of a file first" 
+      set echotext "You need to enter the name of a file first"
       set i [.f.actionbuttons.replicas.message create text 6c 0.3c -text "$echotext" -fill red -anchor nw]
       after 1000 ".f.actionbuttons.replicas.message delete $i"
    } else {
@@ -166,7 +166,7 @@ proc repairwithnamedfile {entry} {
       } elseif {[file isfile $cs] == 0} {
          set echotext "$cs isn't a file"
          set i [.f.actionbuttons.replicas.message create text 6c 0.3c -text "$echotext" -fill red -anchor nw]
-         after 1000 ".f.actionbuttons.replicas.message delete $i"         
+         after 1000 ".f.actionbuttons.replicas.message delete $i"
       } else {
 	 catch {exec filerepair $oname $cs}
          puts stdout "repaired by $cs"
@@ -175,8 +175,8 @@ proc repairwithnamedfile {entry} {
    }
 }
 
-set action nothing 
-frame .f -bd 2 -relief flat -background black 
+set action nothing
+frame .f -bd 2 -relief flat -background black
 
 set dname [lindex $argv 0]
 set fname [lindex $argv 1]

@@ -74,7 +74,7 @@ case $rc in
 	;;
 
     2)
-	# use one of the replicas for repair, which has already been 
+	# use one of the replicas for repair, which has already been
 	# done by the xaskuer script
 	;;
 

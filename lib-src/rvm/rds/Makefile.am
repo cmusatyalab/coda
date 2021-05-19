@@ -44,4 +44,3 @@ librdspt_la_LIBADD = $(top_builddir)/seg/libsegpt.la \
 	$(top_builddir)/rvm/librvmpt.la $(PTHREAD_LIBS)
 
 MAINTAINERCLEANFILES = Makefile.in
-

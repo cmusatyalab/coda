@@ -32,4 +32,3 @@ LDADD = $(SCYLLALIBS) $(RPC2_LIBS)
 
 db.c: db.ec
 	${ESQL} ${CFLAGS} -e db.ec
-

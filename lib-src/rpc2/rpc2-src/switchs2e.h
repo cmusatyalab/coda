@@ -79,4 +79,3 @@
 // #define CAEASRINPROGRESS	306	/* Venus requested an ASR while another one is in progress */
   case CAEADVICEPENDING:	txt = "Advice Monitor requested a new connection while a request is pending"; break;
   case CAENOSERVERS:	txt = "No servers are known to Venus"; break;
-

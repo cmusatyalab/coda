@@ -1,7 +1,7 @@
 #!/bin/sh
 #
 # Coda client installation script
-# Made for Linux coda-client rpm distribution 
+# Made for Linux coda-client rpm distribution
 # Peter J. Braam, Dec 1996
 # included suggestions from Elliot Lee, may 1997.
 #
@@ -130,7 +130,7 @@ contains () {
 	grep "$2" "$1" > /dev/null 2>&1
 }
 
-# tell the kernel about the new module 
+# tell the kernel about the new module
 if [ "$OS" = "Linux" ] ; then
     # make sure the module dependencies are current
     /sbin/depmod -a
@@ -179,7 +179,7 @@ else
   makedir 755 $mountpoint
 
   # set up the /coda root if it isn't there yet
-  if [ ! -f $mountpoint/NOT_REALLY_CODA ]; then 
+  if [ ! -f $mountpoint/NOT_REALLY_CODA ]; then
     echo 'If you can see this file, venus is not running.' > \
 	$mountpoint/NOT_REALLY_CODA
   fi
@@ -197,4 +197,3 @@ fi
 
 # next run will always initialize
 touch $cachedir/INIT
-

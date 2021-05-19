@@ -13,4 +13,3 @@ libutil_la_SOURCES = arrlist.h arrlist.cc bitmap.h bitmap.cc bitvect.h \
     bitmap7.h bitmap7.cc
 
 AM_CPPFLAGS = $(RVM_RPC2_CFLAGS) -I$(top_srcdir)/lib-src/base
-

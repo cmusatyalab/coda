@@ -224,14 +224,14 @@ rec_dlist *recle::HasList()
         return NULL;
 }
 
-/* recle entries are dumped to a char buffer for shipping 
+/* recle entries are dumped to a char buffer for shipping
    them to remote sites for resolution.
    Each entry is dumped as follows:
       .
       .
       .
    DUMP_ENTRY_BEGIN_STAMP
-   length of this entry 
+   length of this entry
    the fixed length part
    the variable length part
    DUMP_ENTRY_END_STAMP

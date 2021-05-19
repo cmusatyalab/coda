@@ -57,7 +57,7 @@ CLILIST="
     usr/share/man/man8/venus-setup.8
     usr/share/man/man8/venus.8
     usr/share/man/man8/volmunge.8
-    usr/share/man/man8/vutil.8 
+    usr/share/man/man8/vutil.8
  "
 
 SRVLIST="
@@ -165,50 +165,50 @@ fi
 
 echo Building $PKG-$REV cygwin binary and source packages
 
-if $BUILD ; then 
+if $BUILD ; then
     # Bootstrap it !
-    
+
     echo Running bootstrap.sh
     if ! ./bootstrap.sh ; then
 	echo "Can't bootstrap.  Stoppped."
 	exit 1
     fi
-    
+
     # Build it ..  First the client ...
-    
-    if [ ! -d zobj-cygpkg ] ; then 
+
+    if [ ! -d zobj-cygpkg ] ; then
 	if ! mkdir zobj-cygpkg ; then
 	    echo Could not make build directory.
 	    exit 1
 	fi
     fi
-    
+
     if ! cd zobj-cygpkg ; then
 	echo Could not cd to build directory.
 	exit 1
     fi
-    
+
     if ! ../configure --prefix=/usr --enable-client --with-vcodacon ; then
 	echo Could not configure for build.
 	exit 1
     fi
-    
+
     if ! make ; then
 	echo Could not make.
 	exit 1;
     fi
-    
+
     if ! make install ; then
 	echo Could not install.
 	exit 1;
     fi
-    
+
     cd ..
 
     # strip the client
-    
+
     echo Stripping client files.
-    
+
     for f in $CLILIST ; do
 	if [ `basename $f` != `basename $f .exe` ] ; then
 	    echo Stripping /$f
@@ -236,44 +236,44 @@ rm /etc/postinstall/coda-client.sh
 
 
 if $BUILD ; then
-    # Build the server 
+    # Build the server
 
     if ! cd zobj-cygpkg ; then
 	echo Could not cd to zobj-cygpkg
 	exit 1;
     fi
-    
+
     echo "Building the Server"
-    
+
     if ! ../configure --prefix=/usr --enable-server ; then
 	echo Could not configure for build.
 	exit 1
     fi
-    
+
     if ! make ; then
 	echo Could not make.
 	exit 1;
     fi
-    
+
     if ! make install ; then
 	echo Could not install.
 	exit 1;
     fi
-    
+
     cd ..
-    
+
     # strip the server
 
     echo Stripping server files.
-    
-    for f in $SRVLIST ; do 
+
+    for f in $SRVLIST ; do
 	if [ `basename $f` != `basename $f .exe` ] ; then
 	    echo Stripping /$f
 	    strip /$f
 	fi
     done
 fi
-    
+
 # package the server
 
 echo "Creating binary tar.bz2 file for the server."

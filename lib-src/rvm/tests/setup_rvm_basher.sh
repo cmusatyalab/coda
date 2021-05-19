@@ -7,4 +7,3 @@ EOF
 
 ../rds/rdsinit -f basher_log basher_data 51208192 0x50000000 \
     25600000 25600000 80 32
-

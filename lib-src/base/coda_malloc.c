@@ -24,14 +24,14 @@ Coda are listed in the file CREDITS.
 /*
 
 
- void* malloc(long size){  
+ void* malloc(long size){
         return (HeapAlloc(GetProcessHeap(), 0, size));
  }
 
  void free(void *p){
-	 HeapFree(GetProcessHeap(), 0, p); 
+	 HeapFree(GetProcessHeap(), 0, p);
  }
- 
+
 */
 
 #endif

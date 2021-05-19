@@ -396,7 +396,7 @@ int AL_CheckRights(IN AL_AccessList *Alist, IN PRS_InternalCPS *CPS,
 }
 
 /* Initializes the access list package. Version should always be AL_VERSION.
-   
+
    This routine may be called many times -- it will perform reinitialization
    each time.  Synchronization code here guarantees that the .pdb and .pcf
    files are mutually consistent, provided all updaters follow the locking

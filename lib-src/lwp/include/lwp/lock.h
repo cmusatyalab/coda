@@ -159,10 +159,10 @@ void ReleaseSharedLock(struct Lock *lock);
  * Check the status of the lock
  *
  * @param lock pointer to the lock
- * 
+ *
  * @return 0 ff the lock is not acquired. If the lock is currently acquired
  *         for reading returns the amount of readers. And -1 if the lock is
- *         acquired obtained for writting or as a shared lock. 
+ *         acquired obtained for writting or as a shared lock.
  */
 int CheckLock(struct Lock *lock);
 
@@ -170,7 +170,7 @@ int CheckLock(struct Lock *lock);
  * Check if the lock was acquired for reading
  *
  * @param lock pointer to the lock
- * 
+ *
  * @return true (different than zero) if the lock is currently acquired for
  *         writting or as a shared lock. 0 otherwise.
  */

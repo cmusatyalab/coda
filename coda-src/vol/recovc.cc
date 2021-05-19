@@ -70,7 +70,7 @@ NOTE: The Recovery Log stuff in RVM modifies data structures in RVM without
     the use of transaction because the data is transient. Thus we do not need
     transactions for it. This in turn means that checking vm via checkvm()
     will not work, since the state after Salvage *should not* match the dataseg.
-    
+
 extern int nodumpvm;
 extern rvm_offset_t _Rvm_DataLength;
 
@@ -326,7 +326,7 @@ VolumeId VGetMaxVolumeId()
 }
 
 /*
- * Force a new volume MaxVolId.  Return 0 an error occurs or if the new 
+ * Force a new volume MaxVolId.  Return 0 an error occurs or if the new
  * volume id is lower than the current MaxVolId, otherwise, return 1.
  */
 void VSetMaxVolumeId(VolumeId newid)

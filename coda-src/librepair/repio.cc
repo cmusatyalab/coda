@@ -42,13 +42,13 @@ listed in the file CREDITS.
 		unsigned int replicaCount;
 	        struct listhdr replicaList[replicaCount];
 		(Each struct listhdr contains a pointer to its struct repair array.)
-	
+
     repair_parseline()
 	Routine to parse an ASCII line and extract a repair list entry from it.
-	
+
     repair_parsefile()
 	Routine to parse an ASCII file and extract entire set of repair lists from it.
-	
+
     repair_printline()
 	Routine to print out a repair list entry
 
@@ -167,7 +167,7 @@ int repair_getdfile(char *fname, int infd, int *replicaCount,
      *
      *	Returns 0 on success, after malloc'ing and filling replicaList and replicaCount
      *	Returns -1 on failure, after printing msg on stderr.
-     *	
+     *
      *	When done, caller should  release storage malloc'ed here.
      */
 {
@@ -316,13 +316,13 @@ int repair_parseline(char *line, struct repair *rs)
      *  Returns 0 on success, -1 on syntax error, -2 on blankline
      *
      *	Note: line gets clobbered during parsing
-     *	
+     *
      *  Each line is of the form
      *	    "<wsp><opcode><wsp><name>[<wsp><p1><wsp><p2>.....]"
      *	where
      *	    <opcode> and <name> are strings, and <p1>, <p2> etc are in hex
      *	    and <wsp> is whitespace (blanks and tabs)
-     *	For the opcode setacl, p1 should specify rights as [rliwdka]	
+     *	For the opcode setacl, p1 should specify rights as [rliwdka]
      *	Some opcodes don't use a name field
      */
 {

@@ -75,7 +75,7 @@ typedef enum
 #define d_namlen d_reclen
 #endif
 
-/* 
+/*
 
 NOTE: This is a brand new cfs; it has been written from scratch
       and is NOT derived from fs in AFS-2 or AFS-3.  (Satya 3/20/92)
@@ -174,22 +174,22 @@ struct command cmdarray[] =
            "Expose replicas of inc. objects",
            NULL
         },
-        {"checkservers", "cs", CheckServers, 
+        {"checkservers", "cs", CheckServers,
             "cfs checkservers <servernames>",
             "Check up/down status of servers",
             NULL
         },
-        {"checkpointml", "ck", CheckPointML, 
+        {"checkpointml", "ck", CheckPointML,
             "cfs checkpointml <dir> <checkpoint-dir>",
             "Checkpoint volume modify log",
             NULL
         },
-        {"checkvolumes", NULL, CheckVolumes, 
+        {"checkvolumes", NULL, CheckVolumes,
             "cfs checkvolumes",
             "Check volume/name mappings",
             NULL
         },
-        {"clearpriorities", "cp", ClearPriorities, 
+        {"clearpriorities", "cp", ClearPriorities,
             "cfs clearpriorities",
             "Clear short-term priorities (DANGEROUS)",
             "important files may be lost, if disconnected"
@@ -200,7 +200,7 @@ struct command cmdarray[] =
             NULL
         },
         {"enableasr", "easr", EnableASR,
-            "cfs enableasr <dir/file>", 
+            "cfs enableasr <dir/file>",
             "Enable ASR execution in this volume",
             NULL
         },
@@ -209,17 +209,17 @@ struct command cmdarray[] =
            "Hide individual replicas of inc objects",
            NULL
         },
-        {"examineclosure", "ec", ExamineClosure, 
+        {"examineclosure", "ec", ExamineClosure,
             "cfs ec [-c] [<closure> <closure> ...]",
             "Examine reintegration closure",
             NULL
         },
-        {"cpuname", "@cpu", At_CPU, 
+        {"cpuname", "@cpu", At_CPU,
             "cfs {cpuname|@cpu}",
             "print the @cpu expansion for the current platform",
             NULL
         },
-        {"sysname", "@sys", At_SYS, 
+        {"sysname", "@sys", At_SYS,
             "cfs {sysname|@sys}",
             "print the @sys expansion for the current platform",
             NULL
@@ -229,98 +229,98 @@ struct command cmdarray[] =
             "force the asr to get executed on next access",
             NULL
         },
-        {"flushcache", NULL, FlushCache, 
+        {"flushcache", NULL, FlushCache,
             "cfs flushcache",
             "Flush entire cache (DANGEROUS)",
             "all files will be lost, if disconnected"
         },
-        {"flushobject", "fl", FlushObject, 
+        {"flushobject", "fl", FlushObject,
             "cfs flushobject <obj>  [<obj> <obj> ...]",
             "Flush objects from cache ",
             "these files will be lost, if disconnected"
         },
-        {"flushvolume", NULL, FlushVolume, 
+        {"flushvolume", NULL, FlushVolume,
             "cfs flushvolume  <dir> [<dir> <dir> ...]",
             "Flush all data in volumes (DANGEROUS)",
             "important files may be lost, if disconnected"
         },
-        {"getfid", "gf", GetFid, 
+        {"getfid", "gf", GetFid,
             "cfs getfid <path> [<path> <path> ...]",
             "Map path to fid",
             NULL
         },
-        {"getpfid", NULL, GetPFid, 
+        {"getpfid", NULL, GetPFid,
             "cfs getpfid <fid> [<fid> <fid> ...]",
             "Map fid to parent fid",
             NULL
         },
-        {"getpath", "gp", GetPath, 
+        {"getpath", "gp", GetPath,
             "cfs getpath <fid> [<fid> <fid> ...]",
             "Map fid to volume-relative path",
             NULL
         },
-        {"getmountpoint", "gmt", GetMountPoint, 
+        {"getmountpoint", "gmt", GetMountPoint,
             "cfs getmountpoint <volid> [<volid> <volid> ...]",
             "Get mount point pathname for specified volume",
             NULL
         },
 
-        {"help", NULL, Help, 
+        {"help", NULL, Help,
             "cfs help [opcode]",
             "Type \"cfs help <opcode>\" for specific help on <opcode>",
             NULL
         },
-        {"listacl", "la", ListACL, 
+        {"listacl", "la", ListACL,
             "cfs listacl <dir> [<dir> <dir> ...]",
             "List access control list ",
             NULL
         },
-        {"listcache", "lc", ListCache, 
+        {"listcache", "lc", ListCache,
             "cfs listcache [-f <file>] [-l] [-ov] [-onv] [-all] [<vol> <vol> ...]",
             "List cached fsobjs",
             NULL
         },
-        {"listvol", "lv", ListVolume, 
+        {"listvol", "lv", ListVolume,
             "cfs listvol [-local] <dir> [<dir> <dir> ...]",
             "Display volume status (-local avoids querying server)",
             NULL
         },
-        {"lookaside", "lka", LookAside, 
+        {"lookaside", "lka", LookAside,
 	 "cfs lookaside [--clear] +/-<db1> +/-<db2> +/-<db3> ....\n       cfs lookaside --list\n",
             "Add, remove or list cache lookaside databases",
             NULL
         },
-        {"lsmount", NULL, LsMount, 
+        {"lsmount", NULL, LsMount,
             "cfs lsmount <dir> [<dir> <dir> ...]",
             "List mount point",
             NULL
         },
-        {"markincon", NULL, MarkFidIncon, 
+        {"markincon", NULL, MarkFidIncon,
             "cfs markincon <path> [<path> <path> ...]",
             "Mark object in conflict",
             "this meddles with the version vector and can trash the object"
         },
-        {"mkmount", "mkm", MkMount, 
+        {"mkmount", "mkm", MkMount,
             "cfs mkmount <directory> [<volume name>]",
             "Make mount point",
             NULL
         },
-        {"purgeml", NULL, PurgeML, 
+        {"purgeml", NULL, PurgeML,
             "cfs purgeml <dir>",
             "Purge volume modify log (DANGEROUS)",
             "will destroy all changes made while disconnected"
         },
-        {"replayclosure", "rc", ReplayClosure, 
+        {"replayclosure", "rc", ReplayClosure,
             "cfs replayclosure [-i] [-r] [<closure> <closure> ...]",
             "Replay reintegration closure",
             NULL
         },
-        {"rmmount", "rmm", RmMount, 
+        {"rmmount", "rmm", RmMount,
             "cfs rmmount <dir> [<dir> <dir> ...]",
             "Remove mount point ",
             NULL
         },
-        {"setacl", "sa", SetACL, 
+        {"setacl", "sa", SetACL,
             "cfs setacl [-clear] [-negative] <dir> <name> <rights> [<name> <rights> ....]",
             "Set access control list",
             NULL
@@ -330,12 +330,12 @@ struct command cmdarray[] =
              "Set maximum disk quota",
              NULL
         },
-        {"setvol", "sv", SetVolume, 
+        {"setvol", "sv", SetVolume,
             "cfs setvol <dir> [-max <disk space quota in 1K units>] [-min <disk space guaranteed>] [-motd <message of the day>] [-offlinemsg <offline message>]",
             "Set volume status ",
             NULL
         },
-        {"truncatelog", "tl", TruncateLog, 
+        {"truncatelog", "tl", TruncateLog,
             "cfs truncatelog",
             "Truncate the RVM log at this instant",
             NULL
@@ -345,27 +345,27 @@ struct command cmdarray[] =
             "Unloads the kernel module",
             NULL
         },
-        {"waitforever", "wf", WaitForever, 
+        {"waitforever", "wf", WaitForever,
             "cfs waitforever [-on] [-off]",
             "Control waitforever behavior",
             NULL
         },
-        {"whereis", NULL, WhereIs, 
+        {"whereis", NULL, WhereIs,
             "cfs whereis <dir> [<dir> <dir> ...]",
             "List location of object",
             NULL
         },
-        {"redir", NULL, Redir, 
+        {"redir", NULL, Redir,
             "cfs redir <dir> <ip-address>",
             "Redirect volume to a staging server",
             NULL
         },
-        {"disconnect", NULL, Disconnect, 
+        {"disconnect", NULL, Disconnect,
             "cfs disconnect <servernames>",
             "Partition from file servers (A LITTLE RISKY)",
             NULL
         },
-        {"reconnect", NULL, Reconnect, 
+        {"reconnect", NULL, Reconnect,
             "cfs reconnect <servernames>",
             "Heal partition to servers from cfs disconnect",
             NULL
@@ -2965,9 +2965,9 @@ static void CheckLocal(int argc, char *argv[], int opslot)
 
 static void ZoneLimit(int argc, char *argv[], int opslot)
 {
-    /* Currently, we only allow dynamic setting of CML length values for 
-     red zone and yellow zone limits.   The other limits (e.g. cache space) 
-     remain hardwired in vproc.cc.  If the need ever arises, perhaps 
+    /* Currently, we only allow dynamic setting of CML length values for
+     red zone and yellow zone limits.   The other limits (e.g. cache space)
+     remain hardwired in vproc.cc.  If the need ever arises, perhaps
      those should also be settable?  (Satya, 2017-01-02)
   */
     int rzlimit, yzlimit;

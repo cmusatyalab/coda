@@ -9,8 +9,8 @@
 
 typedef struct ds_safeq_t ds_safeq_t;
 
-/* 
- * observer - test that a safeq is a valid structure 
+/*
+ * observer - test that a safeq is a valid structure
  */
 extern bool ds_safeq_valid(ds_safeq_t *q);
 

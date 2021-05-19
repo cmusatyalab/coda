@@ -239,7 +239,7 @@ void MarkObjInc(ViceFid *fid, Vnode *vptr)
 }
 
 /* Create an Object which we are going to mark inconsistent
- * 	If the object doesnt exist already then create it first 
+ * 	If the object doesnt exist already then create it first
  */
 int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid, char *name,
                        int vntype, dlist *vlist, int *blocks)
@@ -350,9 +350,9 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid, char *name,
                     cv->vptr->delete_me = 0;
                     /*
 		    cv->vptr->disk.dataVersion = 1;
-		    cv->f_finode = icreate(V_device(vp), 0, V_id(vp), 
-					   cv->vptr->vnodeNumber, 
-					   cv->vptr->disk.uniquifier, 
+		    cv->f_finode = icreate(V_device(vp), 0, V_id(vp),
+					   cv->vptr->vnodeNumber,
+					   cv->vptr->disk.uniquifier,
 					   cv->vptr->disk.dataVersion);
 		    CODA_ASSERT(cv->f_finode > 0);
 		    cv->vptr->disk.node.inodeNumber = cv->f_finode;
@@ -585,7 +585,7 @@ int GetPhase2Objects(ViceFid *pfid, dlist *vlist, dlist *inclist,
 
 /* CreateResPhase2Objects:
  *	Create vnodes for objects to be marked inconsistent
- *	If vnode exists but name doesnt, create it in the parent 
+ *	If vnode exists but name doesnt, create it in the parent
  */
 int CreateResPhase2Objects(ViceFid *pfid, dlist *vlist, dlist *inclist,
                            Volume *volptr, VolumeId VSGVolnum, int *blocks)

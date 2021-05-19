@@ -15,7 +15,7 @@
 extern const magic_t ds_hash_magic;
 extern const magic_t ds_hash_iter_magic;
 
-/* A hash table has a magic number, an array of ds_list_t's, 
+/* A hash table has a magic number, an array of ds_list_t's,
    and a count of the number of elements.
    The safety and duplicate properties are maintained by the
    table's lists; the table doesn't bother about it.

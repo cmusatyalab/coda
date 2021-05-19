@@ -48,4 +48,3 @@ LDADD = $(LIBAUSER)
 tokentool_LDADD = $(LIBAUTH2)
 auth2_LDADD = $(LIBAUTH2)
 initpw_LDADD = $(LIBBASE)
-

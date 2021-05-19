@@ -99,7 +99,7 @@ void coalesce(rvm_tid_t *tid, int *err)
 
     *err = SUCCESS; /* Initialize the error value */
 
-    /* Go through the lists, examing objects. For each free object, merge it 
+    /* Go through the lists, examing objects. For each free object, merge it
      * with the next consecutive object in memory if it is also free. Continue
      * merging until the next consecutive object is not free. The resulting
      * object is guaranteed to be larger than the original, so put it on a new

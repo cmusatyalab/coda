@@ -16,11 +16,11 @@ listed in the file CREDITS.
 
 #*/
 
-/* timing.c 
+/* timing.c
  * class for recording timevalues stamped with an id
- * 	post processing prints out the delta between the 
- *	different times 
- * This package does not do any locking - external 
+ * 	post processing prints out the delta between the
+ *	different times
+ * This package does not do any locking - external
  *	synchronization is required for correct functionality
  */
 

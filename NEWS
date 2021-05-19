@@ -9,4 +9,3 @@ Incompatible RVM update (Coda client)
 
 2005/06/16 RVM version 37
     Removed fsdb::device and fsobj::inode
-

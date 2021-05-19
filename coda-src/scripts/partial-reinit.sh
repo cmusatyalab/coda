@@ -36,12 +36,12 @@ echo "#!/bin/sh" > $SCRIPT
 echo "" >> $SCRIPT
 touch $NOCREATE
 
-# First remove unwanted entries from VolumeList (egrep), 
+# First remove unwanted entries from VolumeList (egrep),
 # then extract the data we need (awk).
 egrep -v '^P' /vice/vol/VolumeList | egrep -v '\.backup ' | \
 	egrep -v '\.restored ' | \
 	awk '{print substr($4, 2), substr($1, 2), substr($2, 2)}' | \
-    while read part name volid ; do 
+    while read part name volid ; do
 
 	# Get the replicated volume id (repid).
 	repid=`grep $volid /vice/db/VRList | awk '{print $2}'`
@@ -80,5 +80,3 @@ echo "	$REAL_SCRIPT"
 
 mv $SCRIPT $REAL_SCRIPT
 chmod u+x $REAL_SCRIPT
-
-

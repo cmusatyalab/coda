@@ -46,7 +46,7 @@ PRIVATE long GetViceIndex();
 PRIVATE int InsertCallArray();
 PRIVATE int InsertMultiArray();
 PRIVATE long GetCallIndex();
-PRIVATE long GetMultiIndex(); 
+PRIVATE long GetMultiIndex();
 PRIVATE int InsertResOpArray();
 /*PRIVATE int InsertHistogram();*/
 
@@ -103,14 +103,14 @@ CacheStatistics *CacheStats;
     $ long sigma_t;
     $ long sigma_t_squared;
     $ long fail_count;
-    VmonSessionEvent *Event;    
+    VmonSessionEvent *Event;
     int i;
 
     LogMsg(1000,LogLevel,LogFile,
 	   "SpoolSession: Venus = [%x %d], Session = %d, Volume = %x, User = %d, Time = [%d %d]",
-	      Venus->IPAddress, Venus->BirthTime, Session, Volume, User, 
+	      Venus->IPAddress, Venus->BirthTime, Session, Volume, User,
 	      StartTime, EndTime);
-    
+
     inserttime = 0;
     venusindex = GetVenusIndex(Venus);
 
@@ -186,8 +186,8 @@ CacheStatistics *CacheStats;
     }
     $ insert into sessions
 	(venus_index, session, volume, avsgmem1, avsgmem2, avsgmem3,
-	 avsgmem4, avsgmem5, avsgmem6, avsgmem7, avsgmem8, uid, 
-	 start_time, end_time, comm_event_time)	
+	 avsgmem4, avsgmem5, avsgmem6, avsgmem7, avsgmem8, uid,
+	 start_time, end_time, comm_event_time)
 	    values($venusindex, $session, $volume, $avsgmem1, $avsgmem2,
 		   $avsgmem3, $avsgmem4, $avsgmem5, $avsgmem6, $avsgmem7,
 		   $avsgmem8, $uid, $starttime, $endtime, $cetime);
@@ -222,7 +222,7 @@ CacheStatistics *CacheStats;
 		(session_index, opcode,
 		 succ_count, sigma_t, sigma_t_squared, fail_count)
 	      values($sessionindex, $opcode,
-		     $succ_count, $sigma_t, $sigma_t_squared, 
+		     $succ_count, $sigma_t, $sigma_t_squared,
 		     $fail_count);
 	    code += CheckSQL("Insert into normal_events", 1);
 	}
@@ -281,7 +281,7 @@ SessionStatistics *Stats;
 	 records_aborted, fids_realloced, bytes_back_fetched,
 	 system_cpu, user_cpu, idle_cpu, cache_highwater)
 	values ($sessionindex, $entriesstart, $entriesend,
-		$entrieshigh, $bytesstart, $bytesend, $byteshigh, 
+		$entrieshigh, $bytesstart, $bytesend, $byteshigh,
 		$recordscan, $recordscomm,
 		$recordsab, $fidsreall, $bytesbf, $systemcpu,
 		$usercpu, $idlecpu, $cachehighwater);
@@ -370,9 +370,9 @@ CacheStatistics *CacheStats;
     unknownhoarddatanospcb = CacheStats->UnknownHoardDataNoSpace.Blocks;
 
     $ insert into cache_stats
-	(session_index, 
-	h_a_h_count, h_a_h_blocks, 
-	h_a_m_count, h_a_m_blocks, 
+	(session_index,
+	h_a_h_count, h_a_h_blocks,
+	h_a_m_count, h_a_m_blocks,
 	h_a_ns_count, h_a_ns_blocks,
 	h_d_h_count, h_d_h_blocks,
 	h_d_m_count, h_d_m_blocks,
@@ -391,29 +391,29 @@ CacheStatistics *CacheStats;
 	uh_d_ns_count, uh_d_ns_blocks
 	)
 	values ($sessionindex,
-		$hoardattrhitc, $hoardattrhitb, 
-		$hoardattrmissc, $hoardattrmissb, 
-		$hoardattrnospcc, $hoardattrnospcb, 
-		$hoarddatahitc, $hoarddatahitb, 
-		$hoarddatamissc, $hoarddatamissb, 
+		$hoardattrhitc, $hoardattrhitb,
+		$hoardattrmissc, $hoardattrmissb,
+		$hoardattrnospcc, $hoardattrnospcb,
+		$hoarddatahitc, $hoarddatahitb,
+		$hoarddatamissc, $hoarddatamissb,
 		$hoarddatanospcc, $hoarddatanospcb,
-		$nonhoardattrhitc, $nonhoardattrhitb, 
-		$nonhoardattrmissc, $nonhoardattrmissb, 
+		$nonhoardattrhitc, $nonhoardattrhitb,
+		$nonhoardattrmissc, $nonhoardattrmissb,
 		$nonhoardattrnospcc, $nonhoardattrnospcb,
-		$nonhoarddatahitc, $nonhoarddatahitb, 
-		$nonhoarddatamissc, $nonhoarddatamissb, 
+		$nonhoarddatahitc, $nonhoarddatahitb,
+		$nonhoarddatamissc, $nonhoarddatamissb,
 		$nonhoarddatanospcc, $nonhoarddatanospcb,
-		$unknownhoardattrhitc, $unknownhoardattrhitb, 
-		$unknownhoardattrmissc, $unknownhoardattrmissb, 
+		$unknownhoardattrhitc, $unknownhoardattrhitb,
+		$unknownhoardattrmissc, $unknownhoardattrmissb,
 		$unknownhoardattrnospcc, $unknownhoardattrnospcb,
-		$unknownhoarddatahitc, $unknownhoarddatahitb, 
-		$unknownhoarddatamissc, $unknownhoarddatamissb, 
+		$unknownhoarddatahitc, $unknownhoarddatahitb,
+		$unknownhoarddatamissc, $unknownhoarddatamissb,
 		$unknownhoarddatanospcc, $unknownhoarddatanospcb);
 
     return (CheckSQL("Insert into cache_stats",1));
 }
 
-int ReportCommEvent(Venus, ServerIPAddress, SerialNumber, Time, Type) 
+int ReportCommEvent(Venus, ServerIPAddress, SerialNumber, Time, Type)
 VmonVenusId *Venus;
 RPC2_Unsigned ServerIPAddress;
 RPC2_Integer SerialNumber;
@@ -430,7 +430,7 @@ VmonCommEventType Type;
 
     LogMsg(1000, LogLevel,LogFile,
 	   "SpoolCommEvent: Venus = [%x %d], Server = %x, Time = %d, Type = %d",
-	      Venus->IPAddress, Venus->BirthTime, ServerIPAddress, Time, 
+	      Venus->IPAddress, Venus->BirthTime, ServerIPAddress, Time,
 	      Type);
 
     venusindex = GetVenusIndex(Venus);
@@ -478,7 +478,7 @@ CallCountEntry *SrvCount;
     $ select time into $inserttime from client_rvm_stats
 	where venus_index = $venusindex;
     CheckSQL("Looking for entry in client_rvm_stats",0);
-    
+
     if (sqlca.sqlcode != SQLNOTFOUND && time <= inserttime) {
         LogMsg(100,LogLevel,LogFile,
 	       "Duplicate client call event record: venus_index (%d), time (%d)",
@@ -501,7 +501,7 @@ CallCountEntry *SrvCount;
 	    } else
 		$ commit work;
 	}
-    }   
+    }
     $ begin work;
     code = CheckSQL("Begin transaction",1);
     if (code != 0) {
@@ -534,7 +534,7 @@ MultiCallEntry *MSrvCount;
     $ select time into $inserttime from client_rvm_stats
 	where venus_index = $venusindex;
     CheckSQL("Looking for entry in client_rvm_stats",0);
-    
+
     if (sqlca.sqlcode != SQLNOTFOUND && time <= inserttime) {
         LogMsg(100,LogLevel,LogFile,
 	       "Duplicate client call event record: venus_index (%d), time (%d)",
@@ -557,7 +557,7 @@ MultiCallEntry *MSrvCount;
 	    } else
 		$ commit work;
 	}
-    }   
+    }
     $ begin work;
     code = CheckSQL("Begin transaction",1);
     if (code != 0) {
@@ -597,7 +597,7 @@ RvmStatistics *Stats;
     $ select time into $inserttime from client_rvm_stats
 	where venus_index = $venusindex;
     CheckSQL("Looking for entry in client_rvm_stats",0);
-    
+
     if (sqlca.sqlcode != SQLNOTFOUND && time <= inserttime) {
         LogMsg(100,LogLevel,LogFile,
 	       "Duplicate client call event record: venus_index (%d), time (%d)",
@@ -620,7 +620,7 @@ RvmStatistics *Stats;
 	    } else
 		$ commit work;
 	}
-    }   
+    }
     $ begin work;
     code = CheckSQL("Begin transaction",1);
     if (code != 0) {
@@ -693,7 +693,7 @@ VCBStatistics *Stats;
     clearobjs = Stats->ClearObjs;
     clearrefs = Stats->ClearRefs;
     nostamp = Stats->NoStamp;
-    nostampobjs = Stats->NoStampObjs;  	
+    nostampobjs = Stats->NoStampObjs;
 
     $ select time into $inserttime from vcb_stats
 	where venus_index = $venusindex
@@ -723,7 +723,7 @@ VCBStatistics *Stats;
 	    } else
 		$ commit work;
 	}
-    }   
+    }
     $ begin work;
     code = CheckSQL("Begin transaction",1);
     if (code != 0) {
@@ -732,11 +732,11 @@ VCBStatistics *Stats;
     }
     $insert into vcb_stats
 	(venus_index, time, volume, acquires, acquireobjs, acquirechecked,
-	 acquirefailed, acquirenoobjfails, validates, validateobjs, 
+	 acquirefailed, acquirenoobjfails, validates, validateobjs,
 	 failedvalidates, failedvalidateobjs, breaks, breakobjs, breakvolonly,
 	 breakrefs, clears, clearobjs, clearrefs, nostamp, nostampobjs)
 	values ($venusindex, $time, $volume, $acquires, $acquireobjs, $acquirechecked,
-	 $acquirefailed, $acquirenoobjfails, $validates, $validateobjs, 
+	 $acquirefailed, $acquirenoobjfails, $validates, $validateobjs,
 	 $failedvalidates, $failedvalidateobjs, $breaks, $breakobjs, $breakvolonly,
 	 $breakrefs, $clears, $clearobjs, $clearrefs, $nostamp, $nostampobjs);
 
@@ -785,7 +785,7 @@ AdviceResults *Result_Stats;
     $ long lc_s;
     $ long lc_f;
     $ long wcm_s;
-    $ long wcm_f;	
+    $ long wcm_f;
     $ long rpc2_success;
     $ long rpc2_connbusy;
     $ long rpc2_fail;
@@ -838,7 +838,7 @@ AdviceResults *Result_Stats;
 
 
     $ select time into $inserttime from advice_stats
-	where venus_index = $venusindex 
+	where venus_index = $venusindex
 	  and uid = $uid;
     CheckSQL("Looking for entry in advice_stats", 0);
 
@@ -875,18 +875,18 @@ AdviceResults *Result_Stats;
     }
 
     $insert into advice_stats
-	(venus_index, time, uid, not_enabled, not_valid, outstanding, 
+	(venus_index, time, uid, not_enabled, not_valid, outstanding,
 	 asr_not_allowed, asr_interval, volume_null, total_attempts,
 	 pcm_successes, pcm_failures, hwa_successes, hwa_failures,
 	 dm_successes, dm_failures, r_successes, r_failures,
-	 rp_successes, rp_failures, iasr_successes, iasr_failures, 
+	 rp_successes, rp_failures, iasr_successes, iasr_failures,
 	 lc_successes, lc_failures, wcm_successes, wcm_failures,
-	 rpc2_success, rpc2_connbusy, rpc2_fail, rpc2_noconnection, 
+	 rpc2_success, rpc2_connbusy, rpc2_fail, rpc2_noconnection,
 	 rpc2_timeout, rpc2_dead, rpc2_othererrors)
 		values ($venusindex, $time, $uid, $notenabled, $notvalid, $outstanding,
 			$asrnotallowed, $asrinterval, $volumenull, $totalnumberattempts,
 			$pcm_s, $pcm_f, $hwa_s, $hwa_f, $dm_s, $dm_f, $r_s, $r_f,
-			$rp_s, $rp_f, $iasr_s, $iasr_f, $lc_s, $lc_f, $wcm_s, $wcm_f, 
+			$rp_s, $rp_f, $iasr_s, $iasr_f, $lc_s, $lc_f, $wcm_s, $wcm_f,
 			$rpc2_success, $rpc2_connbusy, $rpc2_fail, $rpc2_noconnection,
 			$rpc2_timeout, $rpc2_dead, $rpc2_othererrors);
 
@@ -925,7 +925,7 @@ VmonMiniCacheStat *vfs_stats;
     $ select time into $inserttime from mcache_events
 	where venus_index = $venusindex;
     CheckSQL("Looking for entry in mcache_events",0);
-    
+
     if (sqlca.sqlcode != SQLNOTFOUND && time <= inserttime) {
         LogMsg(100,LogLevel,LogFile,
 	       "Duplicate mini cache event record: venus_index (%d), time (%d)",
@@ -954,7 +954,7 @@ VmonMiniCacheStat *vfs_stats;
 	    } else
 		$ commit work;
 	}
-    }   
+    }
     $ begin work;
     code = CheckSQL("Begin transaction",1);
     if (code != 0) {
@@ -1002,7 +1002,7 @@ VmonMiniCacheStat *vfs_stats;
 
 
 int ReportOverflow(Venus, VMStartTime, VMEndTime, VMCount,
-		   RVMStartTime, RVMEndTime, RVMCount) 
+		   RVMStartTime, RVMEndTime, RVMCount)
 VmonVenusId *Venus;
 RPC2_Unsigned VMStartTime;
 RPC2_Unsigned VMEndTime;
@@ -1072,7 +1072,7 @@ VmonVenusId *Venus;
     $ long host;
     $ long birth;
     $ long venusindex;
-    
+
     host = Venus->IPAddress;
     birth = Venus->BirthTime;
     $ select instance_index into $venusindex
@@ -1104,7 +1104,7 @@ long InitTime;
     $ long host;
     $ long init;
     $ long venusindex;
-    
+
     host = Host;
     init = InitTime;
     $ select instance_index into $venusindex
@@ -1169,11 +1169,11 @@ SmonStatistics *Stats;
 	from server_stats
       where vice_index = $viceindex;
     CheckSQL("Looking for serverstats record",0);
-    
+
     if (sqlca.sqlcode != SQLNOTFOUND && time <= inserttime) {
 	LogMsg(100,LogLevel,LogFile,
            "Duplicate server call event record: vice_index (%ld) time (%ld)",
-	   viceindex,time);     
+	   viceindex,time);
 	return code;
     } else {
 	if (sqlca.sqlcode != SQLNOTFOUND)
@@ -1244,14 +1244,14 @@ ResOpEntry ResOp[];
     $long dealloc;
     $long inserttime;
     $long resindex;
-    
+
     viceindex = GetViceIndex(Vice);
     time = Time;
     volid = Volid;
     highwater = HighWaterMark;
     alloc = AllocNumber;
     dealloc = DeallocNumber;
-    
+
     $select time, res_index
 	into $inserttime, $resindex
         from res_stats
@@ -1259,13 +1259,13 @@ ResOpEntry ResOp[];
           and volume = $volid;
     CheckSQL("Looking for resolution stats record",0);
     if (sqlca.sqlcode != SQLNOTFOUND && time <= inserttime) {
-	LogMsg(100,LogLevel,LogFile,	
+	LogMsg(100,LogLevel,LogFile,
 		 "Duplicate resolution stat record: vice_index (%ld) volid (%ld) time (%ld)",
 		 viceindex,volid,time);
 	return code;
     } else {
 	if (sqlca.sqlcode != SQLNOTFOUND) {
-	    LogMsg(1000,LogLevel,LogFile,"Starting transaction");	
+	    LogMsg(1000,LogLevel,LogFile,"Starting transaction");
 	    $ begin work;
 	    code = CheckSQL("Start transaction",1);
 	    if (code != 0) {
@@ -1287,7 +1287,7 @@ ResOpEntry ResOp[];
 		$commit work;
 	}
     }
-    LogMsg(1000,LogLevel,LogFile,"Starting transaction");	
+    LogMsg(1000,LogLevel,LogFile,"Starting transaction");
     $ begin work;
     code = CheckSQL("Start transaction",1);
     if (code != 0) {
@@ -1296,7 +1296,7 @@ ResOpEntry ResOp[];
     }
     LogMsg(1000,LogLevel,LogFile,"Inserting into res_stats");
     $ insert into res_stats
-	(vice_index, time, volume, high_water, alloc_number, 
+	(vice_index, time, volume, high_water, alloc_number,
 	 dealloc_number)
 	values ($viceindex,$time,$volid,$highwater,
 		$alloc,$dealloc);
@@ -1389,7 +1389,7 @@ HistoElem *LogSize;
     viceindex = GetViceIndex(Vice);
     time = Time;
     volid = VolID;
-    
+
     /* Check to see if we need to outdate old records */
     volid = VolID;
     $select time, rvm_res_index
@@ -1534,7 +1534,7 @@ HistoElem *LogSize;
 	$commit work;
     return code;
 }
-	 
+
 int ReportSrvOvrflw(Vice,Time,StartTime,EndTime,Count)
 SmonViceId *Vice;
 unsigned long Time;
@@ -1626,14 +1626,14 @@ DiscoMissQ *Questionnaire;
     }
 
     $insert into advice_discomiss
-	(hostid, uid, venus_major, venus_minor, admon_version_num, 
-	 adsrv_version, admon_version, q_version_num, 
-	 disco_time, cachemiss_time, 
-	 fid_volume, fid_vnode, fid_uniquifier, 
+	(hostid, uid, venus_major, venus_minor, admon_version_num,
+	 adsrv_version, admon_version, q_version_num,
+	 disco_time, cachemiss_time,
+	 fid_volume, fid_vnode, fid_uniquifier,
 	 practice_session, expected_affect, comments)
 		values ($hostid, $user, $venus_major, $venus_minor, $advice_version_num,
 			$adsrv_version, $admon_version, $q_version_num,
-			$disco_time, $cachemiss_time, 
+			$disco_time, $cachemiss_time,
 			$fid_volume, $fid_vnode, $fid_uniquifier,
 			$practice_session, $expected_affect, $comments_id);
 
@@ -1722,12 +1722,12 @@ ReconnQ *Questionnaire;
     $insert into advice_reconn
 	(hostid, uid, venus_major, venus_minor, admon_version_num,
 	 adsrv_version, admon_version, q_version_num,
-	 volume_id, cml_count, 
+	 volume_id, cml_count,
 	 disco_time, reconn_time, demand_walk_time,
 	 num_reboots, num_cache_hits, num_cache_misses,
 	 num_unique_hits, num_unique_misses, num_objs_not_refd,
 	 aware_of_disco, voluntary_disco, practice_disco,
-	 codacon, sluggish, observed_miss, 
+	 codacon, sluggish, observed_miss,
 	 known_comments, suspected_comments,
 	 no_preparation, hoardwalk, num_pseudo_disco, num_practice_disco,
 	 prep_comments, overall_impression, final_comments)
@@ -1738,7 +1738,7 @@ ReconnQ *Questionnaire;
 			$num_reboots, $num_cache_hits, $num_cache_misses,
 			$num_unique_hits, $num_unique_misses, $num_objs_not_refd,
 			$aware_of_disco, $voluntary_disco, $practice_disco,
-			$codacon, $sluggish, $observed_miss, 
+			$codacon, $sluggish, $observed_miss,
 			$known_comments, $suspected_comments,
 			$no_preparation, $hoardwalk, $num_pseudo_disco, $num_practice_disco,
 			$prep_comments, $overall_impression, $final_comments);
@@ -1757,7 +1757,7 @@ SmonViceId *Vice;
     $ long host;
     $ long birth;
     $ long viceindex;
-    
+
     host = Vice->IPAddress;
     birth = Vice->BirthTime;
     $ select instance_index into $viceindex
@@ -1797,7 +1797,7 @@ int type;
     $ long counttime;
     int i;
     int code =0;
-    
+
     idx = index;
 
     /* check to make sure there are any valid entries */
@@ -1849,7 +1849,7 @@ int type;
     $ long counthost;
     int i;
     int code =0;
-    
+
     idx = index;
 
     /* check to make sure there are any valid entries */
@@ -1880,7 +1880,7 @@ int type;
 			values ($idx,$callindex,$countentry,$countexit,
 				$tsec,$tusec,$counttime,$counthost);
 		code += CheckSQL("Insert into srvr_mltcalls",1);
-	    }		
+	    }
 	}
     }
     return code;
@@ -2077,7 +2077,7 @@ $   database $dbname;
     return (CheckSQL("InitDB", 1));
 }
 
-PRIVATE int CheckSQL(where,fatal) 
+PRIVATE int CheckSQL(where,fatal)
 char *where;
 int fatal;
 {
@@ -2085,7 +2085,7 @@ int fatal;
 	     "Checking: %s",where);
     if (sqlca.sqlcode == 0 || sqlca.sqlcode == SQLNOTFOUND) return 0;
 
-    if (fatal) 
+    if (fatal)
 	LogMsg(0,LogLevel,LogFile,
 	       "%s: Fatal SQL Error %d (%s)", where, sqlca.sqlcode,
 						       sqlca.sqlerrm);
@@ -2162,15 +2162,15 @@ RPC2_String *AppName;
 	$ rollback work;
 	return code;
     }
-	
+
     $ insert into iot_info
       (venus_index, app_name, tid, res_opt, elapsed_time,
        readset_size, writeset_size, readvol_num, writevol_num,
-       validation, invalid_size, backup_obj_num, 
+       validation, invalid_size, backup_obj_num,
        life_cycle, pred_num, succ_num)
 	values ($venus_index, $app_name, $tid, $res_opt, $elapsed_time,
 		$readset_size, $writeset_size, $readvol_num, $writevol_num,
-		$validation, $invalid_size, $backup_obj_num, 
+		$validation, $invalid_size, $backup_obj_num,
 		$life_cycle, $pred_num, $succ_num);
 	  code += CheckSQL("Insert into iot_info", 1);
     if (code != 0)
@@ -2207,7 +2207,7 @@ IOT_STAT *Stats;
 	LogMsg(100, LogLevel,LogFile,
 		"SpoolIotStatsRecord: Venus = [%x %d], Time = %d",
 		Venus->IPAddress, Venus->BirthTime, Time);
-	
+
 	LogMsg(100, LogLevel,LogFile, "SpoolIotStatsRecord: MaxElapsedTime = %d AvgElapsedTime = %d MaxReadSetSize = %d AvgReadSetSize = %d MaxWriteSetSize = %d AvgWriteSetSize = %d MaxReadVolNum = %d AvgReadVolNum = %d MaxWriteVolNum = %d AvgWriteVolNum = %d Committed = %d Pending = %d Resolved = %d Repaired = %d\n", Stats->MaxElapsedTime, Stats->AvgElapsedTime, Stats->MaxReadSetSize, Stats->AvgReadSetSize, Stats->MaxWriteSetSize, Stats->AvgWriteSetSize, Stats->MaxReadVolNum, Stats->AvgReadVolNum, Stats->MaxWriteVolNum, Stats->AvgWriteVolNum, Stats->Committed, Stats->Pending, Stats->Resolved, Stats->Repaired);
 
 	time = Time;
@@ -2219,7 +2219,7 @@ IOT_STAT *Stats;
 	max_writeset_size = Stats->MaxWriteSetSize;
 	avg_writeset_size = Stats->AvgWriteSetSize;
 	max_readvol_num = Stats->MaxReadVolNum;
-	avg_readvol_num = Stats->AvgReadVolNum;	
+	avg_readvol_num = Stats->AvgReadVolNum;
 	max_writevol_num = Stats->MaxWriteVolNum;
 	avg_writevol_num = Stats->AvgWriteVolNum;
 	commited = Stats->Committed;
@@ -2261,16 +2261,16 @@ IOT_STAT *Stats;
 	    $ rollback work;
 	    return code;
     	}
-	
+
 	$ insert into iot_stats
 	  (venus_index, time, max_elapsed_time, avg_elapsed_time,
-	   max_readset_size, avg_readset_size, 
+	   max_readset_size, avg_readset_size,
 	   max_writeset_size, avg_writeset_size,
 	   max_readvol_num, avg_readvol_num,
 	   max_writevol_num, avg_writevol_num,
 	   commited, pending, resolved, repaired)
 	    values ($venus_index, $time, $max_elapsed_time, $avg_elapsed_time,
-		    $max_readset_size, $avg_readset_size, 
+		    $max_readset_size, $avg_readset_size,
 		    $max_writeset_size, $avg_writeset_size,
 		    $max_readvol_num, $avg_readvol_num,
 		    $max_writevol_num, $avg_writevol_num,
@@ -2315,7 +2315,7 @@ LocalSubtreeStats *Stats;
 	avg_subtree_hgt = Stats->AvgSubtreeHgt;
 	max_mutation_num = Stats->MaxMutationNum;
 	avg_mutation_num = Stats->AvgMutationNum;
-	
+
 	$ select time into $inserttime from subtree_stats
 	  where venus_index = $venus_index;
 	CheckSQL("Looking for entry in subtree_stats", 0);
@@ -2350,13 +2350,13 @@ LocalSubtreeStats *Stats;
 	    $ rollback work;
 	    return code;
     	}
-	
+
 	$ insert into subtree_stats
 	  (venus_index, time, subtree_num,
 	   max_subtree_size, avg_subtree_size,
 	   max_subtree_hgt, avg_subtree_hgt,
 	   max_mutation_num, avg_mutation_num)
-	    values 
+	    values
 	      ($venus_index, $time, $subtree_num,
 	       $max_subtree_size, $avg_subtree_size,
 	       $max_subtree_hgt, $avg_subtree_hgt,
@@ -2408,7 +2408,7 @@ RepairSessionStats *Stats;
 	venus_index = GetVenusIndex(Venus);
 	session_num = Stats->SessionNum;
 	commit_num = Stats->CommitNum;
-	abort_num = Stats->AbortNum;	
+	abort_num = Stats->AbortNum;
 	check_num = Stats->CheckNum;
 	preserve_num = Stats->PreserveNum;
 	discard_num = Stats->DiscardNum;
@@ -2424,7 +2424,7 @@ RepairSessionStats *Stats;
 	update_update_num = Stats->UpdateUpdateNum;
 	name_name_num = Stats->NameNameNum;
 	remove_update_num = Stats->RemoveUpdateNum;
-	
+
 	$ select time into $inserttime from repair_stats
 	  where venus_index = $venus_index;
 	CheckSQL("Looking for entry in repair_stats", 0);
@@ -2459,16 +2459,16 @@ RepairSessionStats *Stats;
 	    $ rollback work;
 	    return code;
     	}
-	
+
 	$ insert into repair_stats
 	  (venus_index, time, session_num, commit_num, abort_num,
-	   check_num, preserve_num, discard_num, remove_num,	
+	   check_num, preserve_num, discard_num, remove_num,
 	   global_view_num, local_view_num, keep_local_num, list_local_num,
 	   rep_mutation_num, miss_target_num, miss_parent_num, acl_deny_num,
 	   update_update_num, name_name_num, remove_update_num)
-	    values 
+	    values
 	      ($venus_index, $time, $session_num, $commit_num, $abort_num,
-	       $check_num, $preserve_num, $discard_num, $remove_num,	
+	       $check_num, $preserve_num, $discard_num, $remove_num,
 	       $global_view_num, $local_view_num, $keep_local_num, $list_local_num,
 	       $rep_mutation_num, $miss_target_num, $miss_parent_num, $acl_deny_num,
 	       $update_update_num, $name_name_num, $remove_update_num);
@@ -2498,7 +2498,7 @@ ReadWriteSharingStats *Stats;
 	LogMsg(100, LogLevel,LogFile,
 		"SpoolRwsStatsRecord: Venus = [%x %d], Time = %d",
 		Venus->IPAddress, Venus->BirthTime, Time);
-	
+
 	LogMsg(100, LogLevel,LogFile, "SpoolRwsStatsRecord: Vid = %d RwSharingCount = %d DiscReadCount = %d DiscDuration = %d\n", Stats->Vid, Stats->RwSharingCount, Stats->DiscReadCount, Stats->DiscDuration);
 
 	time = Time;
@@ -2527,7 +2527,7 @@ ReadWriteSharingStats *Stats;
 	    $ rollback work;
 	    return code;
     	}
-	
+
 	$ insert into rws_stats
 	  (venus_index, time, volume_id, rw_sharing_count,
 	   disc_read_count, disc_duration)

@@ -56,4 +56,3 @@ CallBackConnect  (IN RPC2_Integer SideEffectType,
 
 2: CallBackFetch (IN ViceFid Fid,
 		  IN OUT SE_Descriptor BD);
-

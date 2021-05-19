@@ -26,4 +26,3 @@ AM_CPPFLAGS = $(RVM_RPC2_CFLAGS) \
 	      -I$(top_builddir)/coda-src/auth2 \
 	      -I$(top_srcdir)/coda-src/vv \
 	      -I$(top_srcdir)/coda-src/lka
-

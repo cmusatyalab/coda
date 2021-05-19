@@ -539,7 +539,7 @@ int dumpstream::skip_vnode_garbage()
 
 /* next byte should be a D_DIRPAGES; reads the directory pages and
    constructs in VM a directory representation that can be used by the
-   routines in the coddir module 
+   routines in the coddir module
 
    Returns 0 on success, -1 on failure of any kind */
 
@@ -868,7 +868,7 @@ int dumpstream::CopyBytesToMemory(char *membuf, int nbytes)
 
 /* Copy nbytes of file data at current position in dumpstream to outfile in
    512-byte records.  Last block is padded to 512 bytes.
-   Returns 0 on success, -1 on failure 
+   Returns 0 on success, -1 on failure
 */
 int dumpstream::CopyBytesToFile(FILE *outfile, int nbytes)
 {

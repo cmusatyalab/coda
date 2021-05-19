@@ -57,12 +57,12 @@ make BINDIR=TARGET/bin SBINDIR=TARGET/bin server-install
 2 get samba running on that RH machine and export the build area for
 Coda.
 
-3 get the Cygwin kit from 
+3 get the Cygwin kit from
 http://www.cygnus.com/misc/gnu-win32/
 
 - install this on the NT machine, for example in C:\Cygnus
 
-- get a patch to "select" and replace 
+- get a patch to "select" and replace
 
 C:\Cygnus\B19\H-i386-cygwin32\bin\cygwinb19.dll
 
@@ -80,7 +80,7 @@ that can serve as your "Unix" root on NT and type
 
 mount -b //C/coda /
 
-The -b, for binary mounting is vital. 
+The -b, for binary mounting is vital.
 
 mkdir /bin /vice /rvm /vicepa
 We need /bin/sh in several places.
@@ -91,7 +91,7 @@ export PATH=/bin:$PATH
 4 install your Coda stuff.  Suppose the coda-4.5.1 area is a mapped
 drive on the NT machine with drive letter H:
 
-In bash: 
+In bash:
 
 cd //H/
 
@@ -100,14 +100,14 @@ Copy all the .exe files you built above to /bin
 Configuring
 -----------
 
-If all is well you just need to run 
+If all is well you just need to run
 /bin/vice-setup
 
 Choose /rvm/log and /rvm/data as the log and data file.  I recommend
 starting small with 2MB log and 20MB data.
 
 When this script completes startserver should bring up the server.
-However, it may very well not do this. 
+However, it may very well not do this.
 
 
 Now create a volume:
@@ -121,7 +121,7 @@ venus &
 And play around.
 
 
-Credits: 
+Credits:
 --------
 
 Coda was ported to NT by Peter Braam with generous help from Jay
@@ -132,7 +132,7 @@ friend throughout.
 Coda has evolved over a long time and lots of people have made
 contributions. See the CREDITS file in the top directory.
 
-Strategy: 
+Strategy:
 ---------
 
 The Coda filesystem is a large Unix application.  Our porting strategy

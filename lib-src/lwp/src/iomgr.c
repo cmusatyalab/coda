@@ -149,7 +149,7 @@ static struct IoRequest *NewRequest()
 #define Purge(list) FOR_ALL_ELTS(req, list, { free(req->BackPointer); })
 
 /*
- *    The IOMGR module manages three types of IO for the LWPs in the process: 
+ *    The IOMGR module manages three types of IO for the LWPs in the process:
  *       1. Signals
  *       2. Sleeps
  *       3. Descriptors
@@ -263,7 +263,7 @@ static int IOMGR_CheckDescriptors(int PollingCheck)
 
 #if 0
     lwpdebug(0, "[select(%d, 0x%x, 0x%x, 0x%x, <%d, %d>)]\n",
-		 nfds, readfds, writefds, exceptfds, (int)timeout.tv_sec, 
+		 nfds, readfds, writefds, exceptfds, (int)timeout.tv_sec,
 		 (int)timeout.tv_usec);
 #endif
 

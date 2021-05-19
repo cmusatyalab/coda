@@ -59,28 +59,28 @@ static pthread_cond_t run_cond   = PTHREAD_COND_INITIALIZER;
 PROCESS lwp_cpptr                = NULL; /* the currently running LWP thread */
 
 /* Short explanation of the scheduling
- * 
+ *
  * All non-active non-concurrent threads are waiting:
  *  - in SCHEDULE on the pid->run_cond condition variable (runnable threads)
  *  - in LWP_MwaitProcess on the pid->event condition variable, or
  *  - in ObtainLock on the lock->wakeup condition variable
- *  
+ *
  * All these condition variables have run_mutex as their protecting mutex.
  * Whenever a non-concurrent thread is about to block in cond_wait it has
  * to call SIGNAL to unblock the next runnable thread.
- * 
+ *
  * IOMGR_Select and LWP_QWait make a non-concurrent thread temporarily
  * concurrent, using lwp_LEAVE and lwp_YIELD. lwp_LEAVE unblocks a runnable
  * thread before releasing the run_mutex. lwp_LEAVE and lwp_YIELD are the
  * _only_ functions that obtain and release the run_mutex, for the rest it
  * is only implicitly released while waiting on condition variables.
- * 
+ *
  * SCHEDULE links a thread on the tail of it's run-queue, and attempts to
  * unblock a runnable thread. It then starts waiting to get signalled
  * itself. This is a strict priority based roundrobin scheduler, as long as
  * there are runnable higher priority threads, lower queues will not be run
  * at all. All threads on the same queue are scheduled in a roundrobin order.
- * 
+ *
  * Non-concurrent threads have to be very careful not to get cancelled while
  * waiting on condition variables because the cleanup handler needs to get
  * access to the shared list of processes, and therefore needs to lock the

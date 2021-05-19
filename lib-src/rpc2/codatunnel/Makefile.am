@@ -13,4 +13,3 @@ libcodatunnel_la_SOURCES = $(CODATUNNEL_SOURCES) wrapper.h
 libcodatunnel_la_LIBADD = $(LIBUV_LIBS) $(GNUTLS_LIBS)
 
 MAINTAINERCLEANFILES = Makefile.in
-

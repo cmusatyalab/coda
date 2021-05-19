@@ -16,9 +16,9 @@ listed in the file CREDITS.
 
 #*/
 
-/* 
+/*
  * Created 09/16/89 - Puneet Kumar
- * 
+ *
  * Test Program to see how directories work on vice directories on client side
  *
  */

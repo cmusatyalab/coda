@@ -21,4 +21,3 @@ LDADD = libpartition.la \
 	$(top_builddir)/coda-src/util/libutil.la \
 	$(top_builddir)/lib-src/base/libbase.la \
 	$(LWP_LIBS)
-

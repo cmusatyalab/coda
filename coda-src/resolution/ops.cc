@@ -308,7 +308,7 @@ void setquota_rle::print(int fd)
     write(fd, buf, (int)strlen(buf));
 }
 
-/* Create the log list header for the root directory vnode and 
+/* Create the log list header for the root directory vnode and
    spool the "mkdir ."  log record */
 /* called from within the xaction */
 void CreateRootLog(Volume *vol, Vnode *vptr)
@@ -469,7 +469,7 @@ int SpoolRenameLogRecord(int opcode, dlist *vl, vle *svle, vle *tvle,
 }
 
 /* called from within a transaction */
-/* return list of indices (ind parameter below) freed from volume log 
+/* return list of indices (ind parameter below) freed from volume log
    so that the vm bitmap can also be modified if xaction succeeds */
 void TruncateLog(Volume *vol, Vnode *vptr, vmindex *ind)
 {

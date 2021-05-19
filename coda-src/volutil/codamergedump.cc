@@ -134,7 +134,7 @@ int main(int argc, char **argv)
     }
 
 #if 0
-    /* The incremental was taken w.r.t the full if the next test succeeds: */ 
+    /* The incremental was taken w.r.t the full if the next test succeeds: */
     if (idumphead.oldest != fdumphead.latest) {
 	LogMsg(0, VolDebugLevel, stderr, "Error -- %s is not with respect to %s!", argv[3], argv[2]);
 	exit(EXIT_FAILURE);

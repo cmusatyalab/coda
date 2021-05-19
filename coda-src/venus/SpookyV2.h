@@ -295,6 +295,3 @@ private:
     size_t m_length;             // total length of the input so far
     uint8  m_remainder;          // length of unhashed data stashed in m_data
 };
-
-
-

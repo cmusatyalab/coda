@@ -26,7 +26,7 @@ extern "C" {
 
 #include "asr.h"
 #include <stdio.h>
-#include <stdlib.h>	
+#include <stdlib.h>
 #include <sys/param.h>
 #include "coda_string.h"
 #include <vcrcommon.h>
@@ -47,23 +47,23 @@ extern int yylex ( void );
 }
 #endif
 
-#include <olist.h> 
+#include <olist.h>
 #include "ruletypes.h"
 
 extern olist	rules;
-rule_t	*crule;		// current rule 
+rule_t	*crule;		// current rule
 command_t *ccmd = NULL;
 int debug = 0;
 int yyerror(const char *s);
 
-/* This file defines the syntax of the rule language used to specify an ASR 
+/* This file defines the syntax of the rule language used to specify an ASR
    in a ResolveFile. Some macros understood by the language:
    *, ?, [, ], are all understood as wildcards in object names.
    Further, in the args to commands, $*, $<, $# are also understood
    $* stands for the prefix corresponding to the wildcard *
    $< stands for the file name component of the inconsistent object.
    $> stands for the absolute path name of the parent of the inc object
-   $# stands for the number of replicas of an object 
+   $# stands for the number of replicas of an object
 */
 %}
 %token COMMA
@@ -84,13 +84,13 @@ int yyerror(const char *s);
 start		: BLANK_LINE {crule = new rule_t; }rule_list
 		| rule_list
 		;
-rule_list	: rule_list  rule 
-		{	
+rule_list	: rule_list  rule
+		{
 			context = FILE_NAME_CTXT;
 			rules.append(crule);
 			crule = new rule_t;
 		}
-		| rule 	
+		| rule
 		{
 			context = FILE_NAME_CTXT;
 			rules.append(crule);
@@ -98,23 +98,23 @@ rule_list	: rule_list  rule
 		}
 		;
 
-X		: object_list 
-		  {DEBUG((stdout, "Debug: Finding :\n"));} 
+X		: object_list
+		  {DEBUG((stdout, "Debug: Finding :\n"));}
 		  COLON  {context = DEP_CTXT;}
 		dependency_list NEW_LINE {context = CMD_CTXT;} command_list
 		;
 
-rule		: X BLANK_LINE	{DEBUG((stdout, "end of rule\n"));} 
-		| X {DEBUG((stdout, "end of rule\n"));} 
+rule		: X BLANK_LINE	{DEBUG((stdout, "end of rule\n"));}
+		| X {DEBUG((stdout, "end of rule\n"));}
 		;
 
 
-object_list	: object_list COMMA OBJECT_NAME 
-		{ 
+object_list	: object_list COMMA OBJECT_NAME
+		{
 		   DEBUG((stdout, "Debug: Adding object_name %s\n", yytext));
 		   crule->addobject(yytext);
 		}
-		| OBJECT_NAME 
+		| OBJECT_NAME
 		{   DEBUG((stdout, "Debug: Found object_name %s \n", yytext));
 		    crule->addobject(yytext);
 		}
@@ -128,20 +128,20 @@ dependency_list	: dependency_list DEPENDENCY_NAME
 		| /* empty */
 		;
 
-command_list	: command_list command terminator 
-		| command terminator 
+command_list	: command_list command terminator
+		| command terminator
 		;
 
 terminator	: NEW_LINE {crule->addcmd(ccmd); ccmd = NULL;}
 		| SEMI_COLON {crule->addcmd(ccmd); ccmd = NULL; }
 		;
 
-command		: COMMAND_NAME 
-		{  
+command		: COMMAND_NAME
+		{
 		   context = ARG_CTXT;
 		   DEBUG((stdout, "Debug: Adding command name %s\n", yytext));
 		   ccmd = new command_t(yytext);
-		} 
+		}
 		arglist {context = CMD_CTXT;}
 		;
 
@@ -149,8 +149,8 @@ arglist		: /* empty */
 		| arglist arg
 		;
 
-arg		: ARG_NAME 
-		{   
+arg		: ARG_NAME
+		{
 		   DEBUG((stdout, "Debug: adding arg %s \n", yytext));
 		   ccmd->addarg(yytext);
 		}
@@ -159,8 +159,8 @@ arg		: ARG_NAME
 		;
 
 replica_specifier : /* empty */
-		| '[' 
-		index 
+		| '['
+		index
 		{
 		   DEBUG((stdout, "Debug:Adding replicaid %s\n", yytext));
 		   ccmd->addreplicaid(yytext);
@@ -180,4 +180,3 @@ int yyerror(const char *s)
 	   yylineno, yytext, context);
    return(0);
 }
-

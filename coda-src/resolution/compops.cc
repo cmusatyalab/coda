@@ -18,7 +18,7 @@ listed in the file CREDITS.
 
 /*
  * compops.c
- *	routines for computing list of 
+ *	routines for computing list of
  *	compensating operations.
  */
 

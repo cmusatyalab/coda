@@ -19,4 +19,3 @@ dist_man_MANS += bldvldb.sh.8 createvol_rep.8 maxgroupid.5 purgevol_rep.8 \
 endif
 EXTRA_DIST = findparents.sh volinfo.pl volsizes.pl
 CLEANFILES = $(bin_SCRIPTS) $(sbin_SCRIPTS)
-

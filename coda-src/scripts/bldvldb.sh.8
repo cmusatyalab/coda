@@ -2,7 +2,7 @@
 .if t .ds Q ``
 .if n .ds U \&"
 .if t .ds U ''
-.TH "bldvldb.sh" 8 
+.TH "bldvldb.sh" 8
 .tr \&
 .nr bi 0
 .nr ll 0
@@ -18,17 +18,17 @@
 .if \\n(t\\n(ll=0 \{.IP \\(bu\}
 .if \\n(t\\n(ll=1 \{.IP \\n+(e\\n(el.\}
 .\}
-.el .sp 
+.el .sp
 .\}
 .el \{\
 .ie \\nh=1 \{\
 .LP
 .nr h 0
 .\}
-.el .PP 
+.el .PP
 .\}
 ..
-.SH NAME  
+.SH NAME
 bldvldb.sh \- build a new Volume Location Data Base (VLDB)
 
 .SH SYNOPSIS
@@ -41,14 +41,14 @@ bldvldb.sh \- build a new Volume Location Data Base (VLDB)
 .SH DESCRIPTION
 
 .Pp
-\fBbldvldb.sh\fP builds a new volume location data base \fBVLDB\fP\&.  
-It uses the 
+\fBbldvldb.sh\fP builds a new volume location data base \fBVLDB\fP\&.
+It uses the
 \fI/vice/db/hosts\fP file to get a list of servers to use to retrieve
-the current list of volumes.  It gets the list from the 
-\fI/vice/vol/VolumeList\fP file on each server.  It combines the list 
-into \fI/vice/vol/BigVolumeList\fP and 
+the current list of volumes.  It gets the list from the
+\fI/vice/vol/VolumeList\fP file on each server.  It combines the list
+into \fI/vice/vol/BigVolumeList\fP and
 passes the combined list as a parameter to the \fBvolutil makevldb\fP
-command.  This command produces a new \fBVLDB\fP in \fI/vice/db\fP and 
+command.  This command produces a new \fBVLDB\fP in \fI/vice/db\fP and
 updates the files \fIAllVolumes\fP and \fIpartitions\fP in \fI/vice/vol\fP\&.
 You must have root priveledges to run this command.
 .Pp

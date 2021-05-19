@@ -269,7 +269,7 @@ int main(int argc, char **argv)
                        "Time between servers differs, "
                        "use `xntpd' to keep the time synchronized");
                 /*
-		LogMsg(0, SrvDebugLevel, stdout, 
+		LogMsg(0, SrvDebugLevel, stdout,
 		       "Settime to %s", ctime(&tp.tv_sec));
 		settimeofday(&tp, &tsp);
 		*/

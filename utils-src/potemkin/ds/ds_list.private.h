@@ -16,7 +16,7 @@ extern const magic_t ds_list_iter_magic;
 
 /* the structures themselves. */
 
-/* 
+/*
  * An element has a magic number, a next and prev link, and the contents.
  * The contents themselves are untyped.
  */
@@ -28,10 +28,10 @@ typedef struct ds_list_elt_t {
     void *contents;
 } ds_list_elt_t;
 
-/* 
- * A list has a magic number, a comparison function, 
+/*
+ * A list has a magic number, a comparison function,
  * safety and duplicate information, a count of elements, and a pointer
- * to the head  and tail elements.  
+ * to the head  and tail elements.
  * The list is doubly-linked: the head and tail elements each point to
  * null "off the end" of the list.
  * There is also a "list" of active (i.e.: not-destroyed) iterators

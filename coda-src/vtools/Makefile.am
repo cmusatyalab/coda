@@ -48,4 +48,3 @@ spy_LDADD = $(top_builddir)/lib-src/base/libbase.la \
 	    $(RPC2_LIBS)
 
 codaconfedit_LDADD = $(top_builddir)/lib-src/base/libbase.la
-

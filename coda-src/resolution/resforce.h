@@ -41,7 +41,7 @@ public:
     int write(int);
 };
 
-/* 
+/*
 class commitlink : public olink {
   public:
     ViceFid	Fid;

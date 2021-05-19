@@ -16,7 +16,7 @@ listed in the file CREDITS.
 
 #*/
 
-/* implementation of replicated communication for resolve 
+/* implementation of replicated communication for resolve
  * Puneet Kumar, Created June 1990
  */
 

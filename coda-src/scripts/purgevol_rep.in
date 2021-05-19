@@ -1,20 +1,20 @@
-#!/bin/sh 
+#!/bin/sh
 # BLURB gpl
-# 
+#
 #                            Coda File System
 #                               Release 6
-# 
+#
 #           Copyright (c) 1987-2018 Carnegie Mellon University
 #                   Additional copyrights listed below
-# 
+#
 # This  code  is  distributed "AS IS" without warranty of any kind under
 # the terms of the GNU General Public Licence Version 2, as shown in the
 # file  LICENSE.  The  technical and financial  contributors to Coda are
 # listed in the file CREDITS.
-# 
+#
 #                         Additional copyrights
 #                            none currently
-# 
+#
 #*/
 
 prefix=@prefix@
@@ -66,7 +66,7 @@ while [ $N -ne "$NSERVERS" ]
 do
   REP=$(echo $volinfo | sed 's/.* Replica'$N' id 0*\([^,]*\),.*/\1/')
   SRV=$(echo $volinfo | sed 's/.* Server'$N' \([^ ]*\) .*/\1/')
-    
+
   volumelist=$(volutil -h "$SRV" getvolumelist 2>/dev/null)
   volumes=$(echo "$volumelist" | grep " W$REP " | cut -d' ' -f2 | cut -c2-)
 
@@ -100,9 +100,8 @@ if [ $dryrun = 0 ] ; then
 
   # Make sure that the vldb and vrdb are updated.
   volutil -h "$SCM" makevrdb "$vicedir/db/VRList"
-  bldvldb.sh $HOSTS 
+  bldvldb.sh $HOSTS
 else
   echo "Don't forget we were only testing"
   echo "use 'purgevol_rep --kill $1' to really purge the volume"
 fi
-

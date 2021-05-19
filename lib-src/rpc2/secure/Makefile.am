@@ -18,4 +18,3 @@ libsecure_la_SOURCES = secure_init.c secure_setup.c secure_pbkdf.c \
 EXTRA_DIST = README.secure gen_testvectors.sh \
     rijndael-mikescott.h rijndael-mikescott.c
 MAINTAINERCLEANFILES = Makefile.in
-

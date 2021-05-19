@@ -34,7 +34,7 @@ while ( $i < $max)
 		breaksw
 	endsw
 	@ i = $i + 1
-end		
+end
 
 #
 # Check that we are on the SCM
@@ -93,7 +93,7 @@ set i = 1
 
 while ($i <= $lines)
 	set this = `head -$i /tmp/vrlist.$$ | tail -1`
-	set hexvolid = `echo $this[2] | tr a-f A-F `	
+	set hexvolid = `echo $this[2] | tr a-f A-F `
 	cat << EOF > /tmp/tmp.$$
 obase = 10
 ibase = 16
@@ -181,7 +181,7 @@ cat << EOF > /tmp/tmp.$$.sql
 info columns for volume_info
 EOF
 
-$SCYLLA $DATABASE /tmp/tmp.$$ 
+$SCYLLA $DATABASE /tmp/tmp.$$
 
 # if it doesn't, create it; if it does, drop it and create a new one
 
@@ -195,7 +195,7 @@ create table volume_info (
 	type		char(1)
 );
 EOF
-	$SCYLLA $DATABASE /tmp/tmp.$$ 
+	$SCYLLA $DATABASE /tmp/tmp.$$
 else
 	cat << EOF > /tmp/tmp.$$.sql
 drop table volume_info;
@@ -207,7 +207,7 @@ create table volume_info (
 	type		char(1)
 );
 EOF
-	$SCYLLA $DATABASE /tmp/tmp.$$ 
+	$SCYLLA $DATABASE /tmp/tmp.$$
 endif
 
 $SCYLLA $DATABASE /tmp/vrlist.$$.sql
@@ -217,5 +217,3 @@ if ($status != 0) then
 else
 	rm /tmp/*$$*
 endif
-
-

@@ -17,9 +17,9 @@ listed in the file CREDITS.
 #*/
 
 /*
- * bitmap7.c 
+ * bitmap7.c
  * Created Feb 13, 1992	-- Puneet Kumar
- * Definition for the bitmap class 
+ * Definition for the bitmap class
  */
 #ifdef __cplusplus
 extern "C" {
@@ -64,9 +64,9 @@ void *bitmap7::operator new(size_t size, int recable)
        easier and cleaner if delete() took extra args, just like new()
        Obviously, I disagree with Stroustrup's polemic on this topic on
        pg 66 of the CARM (1st edition, 1991).
-       
+
        Satya, 2/95
-       
+
     */
     x->malloced = BITMAP_VIANEW;
     return (x);
@@ -182,7 +182,7 @@ void bitmap7::Resize(int newsize)
     mapsize   = newmapsize;
     indexsize = newsize;
 
-    /* Clean the gap between actual wanted size 
+    /* Clean the gap between actual wanted size
      * and the map size when shrinking */
     for (int i = newsize; i < (newmapsize << 3); i++)
         FreeIndex(i);

@@ -58,4 +58,3 @@ Newly introducted functions and semantics are,
     moves the new database file in place of the old database.
 
     return -1 on critical errors and 1 when the sync succeeded.
-

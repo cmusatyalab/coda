@@ -17,7 +17,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
- * Software Foundation; either version 2 of the License, or (at your option) 
+ * Software Foundation; either version 2 of the License, or (at your option)
  * any later version.
  *
  */
@@ -161,7 +161,7 @@ void SHA1_Final(unsigned char out[SHA_DIGEST_LENGTH], SHA_CTX *sctx)
 	SHA1_Update(sctx, padding, padlen);
 
 	/* Append length */
-	SHA1_Update(sctx, bits, sizeof(bits)); 
+	SHA1_Update(sctx, bits, sizeof(bits));
 
 	/* Store state in digest */
 	for (i = j = 0; i < 5; i++, j += 4) {

@@ -9,7 +9,7 @@ AC_DEFUN([CODA_PTHREAD_FLAGS],
   [ PTHREAD_CFLAGS=error
     PTHREAD_LIBS=error
 
-    dnl If it's error, then the user didn't 
+    dnl If it's error, then the user didn't
     dnl define it.
     if test "x$PTHREAD_LIBS" = xerror; then
 	AC_CHECK_LIB(pthread, pthread_attr_init, [

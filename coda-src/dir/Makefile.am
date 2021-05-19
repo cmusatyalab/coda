@@ -11,4 +11,3 @@ AM_CPPFLAGS = $(RVM_RPC2_CFLAGS) \
 	      -I$(top_srcdir)/coda-src/util \
 	      -I$(top_srcdir)/coda-src/vicedep \
 	      -I$(top_builddir)/coda-src/vicedep
-

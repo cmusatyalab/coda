@@ -85,7 +85,7 @@ struct DirFind {
 /* locking policy: DH_ routines lock.  DIR routines may
    assume directory is locked */
 
-/* 
+/*
  * RVM support
  */
 
@@ -116,7 +116,7 @@ int DIR_rvm(void)
     return dir_data_in_rvm;
 }
 
-/* 
+/*
  * DIR support
  */
 
@@ -128,9 +128,9 @@ static int dir_NameBlobs(const char *name)
     return 1 + ((i + 15) >> LESZ);
 }
 
-/* 
-   Find a bunch of contiguous entries; at least nblobs in a row.  
-   return the blob number (always bigger than DHE+1)  
+/*
+   Find a bunch of contiguous entries; at least nblobs in a row.
+   return the blob number (always bigger than DHE+1)
 */
 static int dir_FindBlobs(struct DirHeader **dh, int nblobs)
 {
@@ -329,7 +329,7 @@ int dir_PrintChar(char *addr, int nbits, char *buff)
     return set;
 }
 
-/* 
+/*
  * Conversion from Coda to BSD dir entry format
  */
 
@@ -419,7 +419,7 @@ void DH_PrintStats(FILE *fp)
             dir_stats.put, dir_stats.flush);
 }
 
-/* Look up the first fid in directory with given name: 
+/* Look up the first fid in directory with given name:
    return 0 if found
    return EONOENT upon failure
 */
@@ -471,9 +471,9 @@ int DIR_Length(struct DirHeader *dir)
     return ctr * DIR_PAGESIZE;
 }
 
-/* the following functions (Create, MkDir, Delete, Setpages) 
+/* the following functions (Create, MkDir, Delete, Setpages)
    modify directory contents.
-   The first two of these may alse need to increase the directory 
+   The first two of these may alse need to increase the directory
    size, so they are passed a pointer to the dirheader address.
      - they must be called from within a transaction (if in RVM) and we
        check for that.
@@ -540,7 +540,7 @@ int DIR_Create(struct DirHeader **dh, const char *entry, DirFid *fid)
 }
 
 /* Delete an entry from a directory, including update of all free
-   entry descriptors. 
+   entry descriptors.
    Return 0 upon success
 */
 int DIR_Delete(struct DirHeader *dir, const char *entry)
@@ -580,10 +580,10 @@ int DIR_Delete(struct DirHeader *dir, const char *entry)
 
 /* Format an empty directory properly.  Note that the first 13 entries
    in a directory header page are allocated, 1 to the page header, 4
-   to the allocation map and 8 to the hash table. 
-   
+   to the allocation map and 8 to the hash table.
+
    We don't do this in conjunction with the parent, to flexibly create
-   root directories too. Maybe MakeSubDir is a good idea? 
+   root directories too. Maybe MakeSubDir is a good idea?
 */
 int DIR_MakeDir(struct DirHeader **dir, DirFid *me,
                 DirFid *parent) TRANSACTION_OPTIONAL
@@ -942,9 +942,9 @@ void dir_Copy(PDirHeader old, PDirHeader *new, int to_rvm) TRANSACTION_OPTIONAL
     memcpy(*new, old, size);
 }
 
-/* IsEmpty 
+/* IsEmpty
    returns 1 when directory is empty
-   returns 0 if directory is nonempty 
+   returns 0 if directory is nonempty
 */
 int DIR_IsEmpty(struct DirHeader *dhp)
 {

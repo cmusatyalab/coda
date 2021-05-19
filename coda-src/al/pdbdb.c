@@ -124,11 +124,11 @@ void PDB_db_reopen(PDB_HANDLE h)
     CODA_ASSERT(rwcdb_sync(&pdb_handle->main) != -1);
 }
 
-/* NOTE: caller must NOT free or modify *id after call, 
+/* NOTE: caller must NOT free or modify *id after call,
    and may not use a returned pointer after this function
-   is called again. 
+   is called again.
 
-   return 0 when no more records are present 
+   return 0 when no more records are present
    return -1 on errors
 */
 int PDB_db_nextkey(PDB_HANDLE h, int *id)

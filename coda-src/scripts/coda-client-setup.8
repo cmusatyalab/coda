@@ -18,17 +18,17 @@
 .if \\n(t\\n(ll=0 \{.IP \\(bu\}
 .if \\n(t\\n(ll=1 \{.IP \\n+(e\\n(el.\}
 .\}
-.el .sp 
+.el .sp
 .\}
 .el \{\
 .ie \\nh=1 \{\
 .LP
 .nr h 0
 .\}
-.el .PP 
+.el .PP
 .\}
 ..
-.SH NAME  
+.SH NAME
 coda-client-setup \- setup a Coda client (venus)
 
 .SH SYNOPSIS
@@ -51,7 +51,7 @@ and a cache size given in kilobytes.
 Creates any missing directories, for example the \fI/coda\fP mount point.
 .nr bi 1
 .Pp
-Creates \fI/etc/coda/venus.conf\fP and sets the cache size given on the 
+Creates \fI/etc/coda/venus.conf\fP and sets the cache size given on the
 command line.
 .nr bi 1
 .Pp
@@ -64,13 +64,13 @@ Creates \fI/dev/cfs0\fP if not already present.
 .Pp
 .Pp
 .DS
-.sp 
+.sp
 .ft RR
 .nf
 
 coda-client-setup testserver.coda.cs.cmu.edu 100000
 .DE
-.fi 
+.fi
 .ec
 .ft P
 .sp

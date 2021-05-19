@@ -456,7 +456,7 @@ static int ReadLargeVnodeIndex(DumpBuffer_t *buf, Volume *vp)
     rvmlib_modify_bytes(rlist, vmrlist, sizeof(rec_smolist) * list_size);
     free(vmrlist);
 
-    /* Update Volume structure to point to new vnode list. 
+    /* Update Volume structure to point to new vnode list.
      * Doing this here so that if an abort happens during the loop the
      * commited vnodes will be scavanged.
      */
@@ -554,7 +554,7 @@ static int ReadSmallVnodeIndex(DumpBuffer_t *buf, Volume *vp)
     rvmlib_modify_bytes(rlist, vmrlist, sizeof(rec_smolist) * list_size);
     free(vmrlist);
 
-    /* Update Volume structure to point to new vnode list. 
+    /* Update Volume structure to point to new vnode list.
      * Doing this here so that if an abort happens during the loop the
      * commited vnodes will be scavanged.
      */

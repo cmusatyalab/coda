@@ -14,7 +14,7 @@ I have changed the log format for the Recoverable Virtual Memory
 necessary because I need to fix the once-in-a-million bug associated
 with log wrapping.
 
-The new binaries for 
+The new binaries for
 
   Venus
   Srv
@@ -42,7 +42,7 @@ and thus can't reintegrate your local changes to server yet.  In this
 case, you can do the following:
 
  a. Truncate (note 2) your old RVM log (/usr/coda/LOG) with rvmutl.  Of
-    course, it has to be the rvmutl with the right RVM log version 1.3.  
+    course, it has to be the rvmutl with the right RVM log version 1.3.
     This can be done
 
     root# cd /usr/coda
@@ -50,9 +50,9 @@ case, you can do the following:
     root# rvmutl.1.3      # the binary may just be named rvmutl
     * open_log LOG        # open the log
     * recover             # truncate it
-    * quit		  
+    * quit
     root#                 # your existing log is successfully truncated
-    root# rm LOG.1.3      # 
+    root# rm LOG.1.3      #
 
  b. Create a new RVM log file using rvmutl.  This time, you have
     to use a version of rvmutl that has RVM log version 1.4.
@@ -95,7 +95,7 @@ and rebuilt rvmutl.
 
 -- Clement [ Oct 17, 97 ]
 
-(note) 
+(note)
 
 1. As of this moment, remember that you need to issue a "umount /coda"
 between two restarts of venus.
@@ -108,4 +108,3 @@ make sure all the effects of committed transactions are reflected to
 the RVM data segment, and your log file can be replaced without losing
 your committed transaction.  In rvmutl, the command to invoke a log
 truncation is, surprisingly, not truncate but *recover*.
-

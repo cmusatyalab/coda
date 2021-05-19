@@ -41,4 +41,3 @@ pt_basher_LDADD = $(top_builddir)/rds/librdspt.la \
 EXTRA_DIST = README basher_parms map_chk_file map_data_file \
     t1_chk_file t3_chk_file t5_chk_file test_data_file
 MAINTAINERCLEANFILES = Makefile.in
-

@@ -21,4 +21,3 @@ LDADD = libal.la \
 	$(top_builddir)/lib-src/rwcdb/librwcdb.la \
 	$(top_builddir)/lib-src/base/libbase.la \
 	$(LIBREADLINE) $(LIBTERMCAP)
-

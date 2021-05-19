@@ -14,7 +14,7 @@ alter table session_stats drop (cache_ns_count);
 alter table session_stats drop (cache_ns_blocks);
 
 create table cache_stats (
-	session_index integer, 
+	session_index integer,
 	h_a_h_count integer,
 	h_a_h_blocks integer,
 	h_a_m_count integer,
@@ -50,7 +50,7 @@ create table cache_stats (
 	uh_d_m_count integer,
 	uh_d_m_blocks integer,
 	uh_d_ns_count integer,
-	uh_d_ns_blocks integer		
+	uh_d_ns_blocks integer
 );
 
 create table advice_stats (
@@ -181,7 +181,7 @@ create table iot_stats (
         resolved integer,
         repaired integer
 );
- 
+
 create table subtree_stats (
         venus_index integer,
         time integer,

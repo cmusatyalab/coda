@@ -24,7 +24,7 @@ in the coda-src/sys, and is used by Linux.
 These system calls have two legs: the kernel implementation of the
 calls and secondly the stub library to make new system calls.
 
-Finally on Mach only, a pioctl system call was implemented.  
+Finally on Mach only, a pioctl system call was implemented.
 
 
 1.2 lib-src
@@ -58,10 +58,10 @@ could provide a major performance boost.).
 A key issue leading to confusion is the file cthreads.h which is
 included by the rvm_basher program.  Since the cthreads version of rvm
 is not used anywhere, we have changed this to a dummy_cthreads. file,
-which is installed when the rvm libraries are built. 
+which is installed when the rvm libraries are built.
 
 The most realistic test for rvm is the lwp_basher with runs a threaded
-rvm.  
+rvm.
 
 1.4 coda-srv
 
@@ -70,4 +70,3 @@ packages are:
 
 rpc2: containing the multirpc package, venus: the client system, vice:
 the server.
-

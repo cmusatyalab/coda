@@ -11,4 +11,3 @@ AM_CPPFLAGS = -I$(top_srcdir)/lib-src/base \
 	      -I$(top_srcdir)/utils-src/potemkin/ds
 
 LDADD = $(top_builddir)/utils-src/potemkin/ds/libds.la
-

@@ -1,20 +1,20 @@
 #! /bin/sh
 # BLURB gpl
-# 
+#
 #                            Coda File System
 #                               Release 6
-# 
+#
 #           Copyright (c) 1987-2016 Carnegie Mellon University
 #                   Additional copyrights listed below
-# 
+#
 # This  code  is  distributed "AS IS" without warranty of any kind under
 # the terms of the GNU General Public Licence Version 2, as shown in the
 # file  LICENSE.  The  technical and financial  contributors to Coda are
 # listed in the file CREDITS.
-# 
+#
 #                         Additional copyrights
 #                            none currently
-# 
+#
 #*/
 
 prefix=@prefix@
@@ -50,7 +50,7 @@ SERVERS=
 NSERVERS=0
 MAXSERVERS=8
 
-# deal with Parameters 
+# deal with Parameters
 VOLNAME="$1"
 
 # The maximum volume name length is really 32 characters, but we have to allow
@@ -106,7 +106,7 @@ while [ $# -gt 1 ]; do
 	PART=$(echo "$1" | sed 's/[^\/]*\(.*\)/\1/')
 
 	# Validate the server
-	grep "$SERVER" "$vicedir/db/servers" > /dev/null 
+	grep "$SERVER" "$vicedir/db/servers" > /dev/null
 	if [ $? -ne 0 ];  then
 		echo "Server $SERVER not in servers file"
 		exit 1
@@ -132,7 +132,7 @@ while [ $# -gt 1 ]; do
 	if [ "$np" -eq 0 ]; then
 	    echo "Found no partitions for server $SERVER."
 	    exit 1
-	fi 
+	fi
         if [ -z "$PART" ]; then
 	    if [ "$np" -gt 1 ]; then
 		echo "Found 2 or more partitions for server $SERVER."
@@ -156,7 +156,7 @@ done
 if [ $NSERVERS -eq 0 ] || [ $NSERVERS -gt $MAXSERVERS ]; then
     echo "Specify 1 - $MAXSERVERS servers"
     exit 1
-fi 
+fi
 
 # Allocate a new groupid if necessary
 if  [ -z "$GROUPID" ]; then
@@ -187,9 +187,9 @@ for SERVER in $SERVERS ; do
         PART=${PARTS%% *}
 	PARTS=${PARTS#* }
 
-	echo "creating volume $VOLNAME.$N on $SERVER (partition $PART)" 
+	echo "creating volume $VOLNAME.$N on $SERVER (partition $PART)"
 	volutil -h "$SERVER" create_rep "$PART" "$VOLNAME.$N" "$GROUPID" > "/tmp/out.$$"
-	if [ $? -ne 0 ]; then 
+	if [ $? -ne 0 ]; then
 		echo "Failure to make volume on $SERVER!. Abort.".
 		exit 1
 	fi

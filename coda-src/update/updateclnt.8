@@ -2,7 +2,7 @@
 .if t .ds Q ``
 .if n .ds U \&"
 .if t .ds U ''
-.TH "updateclnt" 8 
+.TH "updateclnt" 8
 .tr \&
 .nr bi 0
 .nr ll 0
@@ -18,17 +18,17 @@
 .if \\n(t\\n(ll=0 \{.IP \\(bu\}
 .if \\n(t\\n(ll=1 \{.IP \\n+(e\\n(el.\}
 .\}
-.el .sp 
+.el .sp
 .\}
 .el \{\
 .ie \\nh=1 \{\
 .LP
 .nr h 0
 .\}
-.el .PP 
+.el .PP
 .\}
 ..
-.SH NAME  
+.SH NAME
 
 .Pp
 updateclnt - update client executables
@@ -64,8 +64,8 @@ This option changes the debugging level.  The higher the debug_level, the more i
 .IP "\fB-h\fP \fIhost_name\fP"
 .nr bi 1
 .Pp
-This is the hostname of the 
-control machine with which this process keeps up-to-date.  Default: scm.  
+This is the hostname of the
+control machine with which this process keeps up-to-date.  Default: scm.
 .Pp
 .if \n(ll>1 .RE
 .nr ll -1
@@ -76,9 +76,9 @@ control machine with which this process keeps up-to-date.  Default: scm.
 .IP "\fB-q\fP \fIservice_name\fP"
 .nr bi 1
 .Pp
-This is the name in 
-\fI/etc/services\fP that should be used as the connect portal on 
-the machine specified by \fBhost_name\fP above.  Default: rupdsrv.  
+This is the name in
+\fI/etc/services\fP that should be used as the connect portal on
+the machine specified by \fBhost_name\fP above.  Default: rupdsrv.
 .Pp
 .if \n(ll>1 .RE
 .nr ll -1
@@ -89,10 +89,10 @@ the machine specified by \fBhost_name\fP above.  Default: rupdsrv.
 .IP "\fB-w\fP \fIwait_interval\fP"
 .nr bi 1
 .Pp
-The interval 
+The interval
 between probes, in seconds.  The lower this number, the quicker the
 servers will be updated when a change occurs and the more cpu and network
-resources required.  Default: 300s (5min).  
+resources required.  Default: 300s (5min).
 .Pp
 .if \n(ll>1 .RE
 .nr ll -1
@@ -118,13 +118,13 @@ This is the number of wait intervals
 between long checks.  Files are checked at two intervals.  The interval
 specified by \fB-w\fP is used for those files in \fI/vice/db\fP\&.  All
 other files are checked once each \fB-r\fP repetitions of length
-\fB-w\fP\&. Default: 6, so the long interval is 30min.  
+\fB-w\fP\&. Default: 6, so the long interval is 30min.
 .Pp
 .if \n(ll>1 .RE
 .nr ll -1
 .Pp
 \fBUpdateclnt\fP checks \fI/vice/db\fP every
-\fIwait_interval\fP seconds.  This directory contains a file 
+\fIwait_interval\fP seconds.  This directory contains a file
 called \fIfiles\fP\&.  Each file specified in it has its current date
 checked at the server, and a new copy of the file is fetched if the date does
 not match that on the control machine.  The format of the \fIfiles\fP file
@@ -138,7 +138,7 @@ The command \fBupdateclnt -h mahler\fP would cause the client machine to
 check the host \&"mahler\&" every 5 minutes to see if any of the
 \fI/vice/db\fP files have changed and every 30 minutes to see if any other
 files have changed.  Normally the command is invoked by issuing the
-\fBupdatemon (8)\fP command with the same operands.  
+\fBupdatemon (8)\fP command with the same operands.
 .Pp
 .Pp
 .SH FORMAT

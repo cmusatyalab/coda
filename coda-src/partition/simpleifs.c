@@ -454,10 +454,10 @@ static int istat(struct DiskPartition *dp, Inode  inode_number, struct stat *sta
     if (stat(inofile, statbuf)<0)
 	return -1;
 
-    if ( s_get_header(dp, &header, inode_number) != 0 ) 
+    if ( s_get_header(dp, &header, inode_number) != 0 )
         return -1;
 
-    /* is this really what we want??? XXXX */	
+    /* is this really what we want??? XXXX */
     (*(long *)&statbuf->st_gid)=header.volume;
     statbuf->st_nlink = header.lnk;
     statbuf->st_size=header.vnode;

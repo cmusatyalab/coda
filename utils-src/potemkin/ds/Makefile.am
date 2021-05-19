@@ -8,4 +8,3 @@ libds_la_SOURCES = ds_hash.c ds_hash.private.h ds_list.c ds_list.private.h \
 		   ds_safeq.c ds_safeq.private.h
 
 AM_CPPFLAGS = -I$(top_srcdir)/lib-src/base
-

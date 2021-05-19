@@ -86,9 +86,8 @@ for i in lwp rpc2 rvm coda; do
   ./bootstrap.sh && \
   rm -f config.cache && \
   LDFLAGS="-L/usr/pkg/lib -R/usr/pkg/lib" CFLAGS="-I/usr/pkg/include" CXXFLAGS="-I/usr/pkg/include" ./configure --prefix=/usr/local/coda && \
-  gmake -k clean && 
+  gmake -k clean &&
   gmake -k &&
   gmake install)
 done
 (cd coda && gmake -k client-install server-install)
-

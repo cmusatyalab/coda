@@ -98,9 +98,9 @@ public:
     virtual void print(int);
 
     /* Tag matching function for classes derviced from olink;
-       Given pointer to a tag and a compare function, otagmatch() returns 0 or 1 
+       Given pointer to a tag and a compare function, otagmatch() returns 0 or 1
        Allows generalization of classes olist and ohash to test for
-        presence of object with an arbitrary tag, rather than just 
+        presence of object with an arbitrary tag, rather than just
           match on object pointer */
     int otagmatch(void *otag, otagcompare_t cmpfn);
 };

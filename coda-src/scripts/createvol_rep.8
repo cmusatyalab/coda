@@ -2,7 +2,7 @@
 .if t .ds Q ``
 .if n .ds U \&"
 .if t .ds U ''
-.TH "createvol_rep" 8 
+.TH "createvol_rep" 8
 .tr \&
 .nr bi 0
 .nr ll 0
@@ -18,17 +18,17 @@
 .if \\n(t\\n(ll=0 \{.IP \\(bu\}
 .if \\n(t\\n(ll=1 \{.IP \\n+(e\\n(el.\}
 .\}
-.el .sp 
+.el .sp
 .\}
 .el \{\
 .ie \\nh=1 \{\
 .LP
 .nr h 0
 .\}
-.el .PP 
+.el .PP
 .\}
 ..
-.SH NAME  
+.SH NAME
 createvol_rep \- create read-write replicated volume
 
 .SH SYNOPSIS
@@ -48,9 +48,9 @@ volume should be created. (\fI<server>[/<partition>])\fP, the partition name
 is required when the server manages more than one data partition. Finally an
 replicated \fI<volume-id>\fP\& can be specified.
 .Pp
-\fBcreatevol_rep\fP first checks in  \fI/vice/vol/AllVolumes\fP and 
-\fI/vice/vol/VRList\fP to see if the volume name already exists.  If not, 
-it uses the \fIvolutil create_rep\fP command to create the volume at each of 
+\fBcreatevol_rep\fP first checks in  \fI/vice/vol/AllVolumes\fP and
+\fI/vice/vol/VRList\fP to see if the volume name already exists.  If not,
+it uses the \fIvolutil create_rep\fP command to create the volume at each of
 the replication sites.  It then rebuilds the Volume Location Data Base (VLDB)
 and the Volume Replication Data Base (VRDB).
 .Pp
@@ -61,8 +61,8 @@ by adding 1 to it.
 .Pp
 After the replicas are created at each replication site, a new VLDB is built
 automatically using \fIbldvldb.sh\fP(8), and the Volume Replication
-List in \fI/vice/vol/VRList\fP is updated.  The VRList contains one line for 
-each replicated volume.  Each line specifies the replicated volume name, 
+List in \fI/vice/vol/VRList\fP is updated.  The VRList contains one line for
+each replicated volume.  Each line specifies the replicated volume name,
 replicated volume id, number of replication sites, and the local volume id at
 each replication site.  This file is now used to create a new Volume
 Replication Data Base (VRDB) using the \fI\&"volutil makevrdb /vice/vol/VRList\&"\fP command.
@@ -100,10 +100,10 @@ where \&"7F000003\&" is the replicated volume id.
 .SH DIAGNOSTICS
 
 .Pp
-This command must be issued at the System Control Machine (SCM).  Also, it 
-must be invoked with effective user id of root.  This command does not check 
-for return codes from the \fIvolutil create_rep\fP command.  The invoker 
-must check \fI/vice/vol/VRList\fP and \fI/vice/vol/VolumeList\fP at each 
+This command must be issued at the System Control Machine (SCM).  Also, it
+must be invoked with effective user id of root.  This command does not check
+for return codes from the \fIvolutil create_rep\fP command.  The invoker
+must check \fI/vice/vol/VRList\fP and \fI/vice/vol/VolumeList\fP at each
 replication site to see if the volume was created.
 .Pp
 .Pp
@@ -117,7 +117,7 @@ replication site to see if the volume was created.
 .IP "\fI/vice/vol/VRList\fP"
 .nr bi 1
 .Pp
-contains information on replicated volumes 
+contains information on replicated volumes
 .Pp
 .if \n(ll>1 .RE
 .nr ll -1
@@ -128,7 +128,7 @@ contains information on replicated volumes
 .IP "\fI/vice/vol/VolumeList\fP"
 .nr bi 1
 .Pp
-name of volume created at each site is appended to it 
+name of volume created at each site is appended to it
 .Pp
 .if \n(ll>1 .RE
 .nr ll -1
@@ -150,7 +150,7 @@ is used to describe the replicated volumes in terms of its non-replicated member
 .IP "\fI/vice/vol/AllVolumes\fP"
 .nr bi 1
 .Pp
-is used to check if volume exists 
+is used to check if volume exists
 .Pp
 .if \n(ll>1 .RE
 .nr ll -1

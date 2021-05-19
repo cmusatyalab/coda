@@ -2,7 +2,7 @@
 .if t .ds Q ``
 .if n .ds U \&"
 .if t .ds U ''
-.TH "servers" 5 
+.TH "servers" 5
 .tr \&
 .nr bi 0
 .nr ll 0
@@ -18,17 +18,17 @@
 .if \\n(t\\n(ll=0 \{.IP \\(bu\}
 .if \\n(t\\n(ll=1 \{.IP \\n+(e\\n(el.\}
 .\}
-.el .sp 
+.el .sp
 .\}
 .el \{\
 .ie \\nh=1 \{\
 .LP
 .nr h 0
 .\}
-.el .PP 
+.el .PP
 .\}
 ..
-.SH NAME  
+.SH NAME
 
 .Pp
 servers - map server names to numbers
@@ -52,13 +52,13 @@ NOTE: Replicated volume numbers must also be unique, so we reserve part of the r
 0-127 (0-7F hex), for this purpose.  Real server numbers must \fBnot\fP be allocated from
 the other subrange, and vice-versa.
 .Pp
-The format of the file is the full server name (e.g. mahler.coda.cs.cmu.edu) 
-followed by a tab and then the servers number.  Any line beginning with a \&"\e#\&" 
-is considered a comment and is ignored.  The following is an example servers 
+The format of the file is the full server name (e.g. mahler.coda.cs.cmu.edu)
+followed by a tab and then the servers number.  Any line beginning with a \&"\e#\&"
+is considered a comment and is ignored.  The following is an example servers
 file:
 .Pp
 .DS
-.sp 
+.sp
 .ft RR
 .nf
 MAHLER.CODA.CS.CMU.EDU          201
@@ -72,7 +72,7 @@ PUCCINI.CODA.CS.CMU.EDU         216
 GERSHWIN.CODA.CS.CMU.EDU        218
 SCHUMANN.CODA.CS.CMU.EDU        219
 .DE
-.fi 
+.fi
 .ec
 .ft P
 .sp

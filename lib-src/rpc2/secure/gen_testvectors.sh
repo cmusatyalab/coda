@@ -66,4 +66,3 @@ vectors aes_ecb_em testvalues/ecb_e_m.txt CT $limit > testvectors.h
 vectors aes_ecb_dm testvalues/ecb_d_m.txt PT $limit >> testvectors.h
 vectors aes_ecb_vt testvalues/ecb_vt.txt CT $limit >> testvectors.h
 vectors aes_ecb_vk testvalues/ecb_vk.txt CT $limit >> testvectors.h
-

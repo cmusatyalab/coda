@@ -72,10 +72,10 @@ static int IncVVGroup(ViceVersionVector **, int *);
 static void SetResStatus(Vnode *, ResStatus *);
 static void UpdateStats(ViceFid *, fileresstats *) EXCLUDES_TRANSACTION;
 
-/* FILE RESOLUTION 
+/* FILE RESOLUTION
  *	Look at Version Vectors from all hosts;
  *	If the set is weakly equal, set new vv for all sites;
- *	If the set is inconsistent, mark all replicas with special flag 
+ *	If the set is inconsistent, mark all replicas with special flag
  *	If there is a dominant version, distribute it to all sites (COP1)
  *		and perform COP2;
  */
@@ -172,7 +172,7 @@ long FileResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV)
         SLog(9, "FileResolve: Going to force file");
         ARG_MARSHALL(IN_OUT_MODE, SE_Descriptor, sidvar, sid, VSG_MEMBERS);
         {
-            /* 
+            /*
 	     * find the dominant set, and omit the file transfer to hosts
 	     * that already have a dominant copy. VV_Check should find no
 	     * inconsistencies. However, it is possible to have a weakly

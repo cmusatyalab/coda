@@ -867,7 +867,7 @@ int fsobj::ReadIntent(uid_t uid, int priority, uint64_t pos, int64_t count)
         return EIO;
     }
 
-    /* Check if the amount of bytes being read can be allocated within the 
+    /* Check if the amount of bytes being read can be allocated within the
      * cache */
     actual_count    = count < 0 ? Size() - pos : count;
     blocks_to_alloc = NBLOCKS(length_align_to_ccblock(pos, actual_count));
@@ -878,7 +878,7 @@ int fsobj::ReadIntent(uid_t uid, int priority, uint64_t pos, int64_t count)
     /* Get the holes */
     clist = GetHoles(pos, count);
 
-    /* Temporary add the chunk to the active segment to prevent 
+    /* Temporary add the chunk to the active segment to prevent
      * it to be discarded. Note that we only remove it from the list
      * the fetching or allocation fails. */
     if (clist->Length() > 0) {

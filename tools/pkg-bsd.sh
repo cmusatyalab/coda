@@ -97,9 +97,9 @@ MAINTAINER=	coda@cs.cmu.edu
 @NetBSD DEPENDS+=	rvm-1.3:../../devel/rvm
 
 @NetBSD #ONLY_FOR_ARCHS=	arm32 i386 ns32k
-@NetBSD 
+@NetBSD
 @NetBSD LICENSE=	GPL
-@NetBSD 
+@NetBSD
 ALL_TARGET=	coda
 INSTALL_TARGET=	@PKG@-install
 
@@ -139,7 +139,7 @@ function MakeDESCR () {
     cat > /tmp/text << EOF
 Coda is a distributed file system.  Among its features are disconnected
 operation, good security model, server replication and persistent client
-side caching. 
+side caching.
 
 This package builds the entire source tree but only installs(/packages) the
 @PKG@ side programs.
@@ -282,4 +282,3 @@ EOF
 }
 
 MakePortsTree $VERSION $BSD
-

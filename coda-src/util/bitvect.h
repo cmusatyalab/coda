@@ -16,8 +16,8 @@ listed in the file CREDITS.
 
 #*/
 
-/* this code owes several ideas to Hanson's C Interfaces and Implementations, 
- * Addison-Wesley, 1997 
+/* this code owes several ideas to Hanson's C Interfaces and Implementations,
+ * Addison-Wesley, 1997
  */
 
 #ifndef BITVECT_INCLUDED

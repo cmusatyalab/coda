@@ -39,7 +39,7 @@ a little more complicated in that it has both a function to perform
 the command and a table of sub-commands.  If the command "list" is
 entered, the function 'list_vols' will be called, but if the commands
 "list volumes" is entered, the parser will look up "volumes" in the
-'list_cmds' table.  
+'list_cmds' table.
 
 
 Once you have set up your command tables, you can use the parser in
@@ -59,4 +59,3 @@ For example:
 
 To add functionality to any program using the parser, simply add an
 entry to the command table.
-

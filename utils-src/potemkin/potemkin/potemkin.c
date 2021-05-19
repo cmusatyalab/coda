@@ -154,9 +154,9 @@ fid_ent_t *fid_create(char *name, fid_ent_t *parent)
     return result;
 }
 
-/* 
- * Given a fid, construct it's full name relative to the root. 
- * 
+/*
+ * Given a fid, construct it's full name relative to the root.
+ *
  * Caller is responsible for deallocating return value.
  */
 
@@ -170,9 +170,9 @@ char *fid_fullname(fid_ent_t *fep)
     char *src; /* Where to copy component from */
     int i;
 
-    /* 
+    /*
      * We know that we can't have more than MAXPATHLEN entries, 'cause
-     * each entry is minimally "/" 
+     * each entry is minimally "/"
      */
 
     result = malloc(sizeof(char) * MAXNAMLEN);
@@ -201,9 +201,9 @@ char *fid_fullname(fid_ent_t *fep)
     return result;
 }
 
-/* 
+/*
  * fid_assign_type
- * 
+ *
  * takes a fid_ent_t * and a struct stat *, and assigns an appropriate
  * type to the fid_ent_t's type field based on the mode bits of the
  * stat buffer.  Returns nonzero if the stat buffer's mode bit encode
@@ -372,7 +372,7 @@ int MsgWrite(char *buf, int size)
 /************** Initialization */
 /*
  * Setup: -- we need to do the following
- * 
+ *
  *          1) change to the root directory
  *          2) set up the fid<->file table
  *          3) Test kernel
@@ -400,7 +400,7 @@ void Setup()
     /* Step 3: Test the kernel */
     /*
      * Open the kernel.
-     * Construct a purge message and see if we can send it in... 
+     * Construct a purge message and see if we can send it in...
      */
 
 #ifdef __CYGWIN32__
@@ -539,7 +539,7 @@ void Setup()
 
 /*************************************************** utility */
 
-/* 
+/*
  * child_exists:
  *     given a path (assumed to be a directory) and a filename, returns
  *     non-zero if that filename exists in the directory.
@@ -614,7 +614,7 @@ void fill_vattr(struct stat *sbuf, fid_ent_t *fep, struct coda_vattr *vbuf)
 
 /* Phase 1 - opening/closing, naming */
 
-/* 
+/*
  * Root:
  *        in:   nothing
  *        out:  Fid of root vnode
@@ -1065,7 +1065,7 @@ void DoCreate(union inputArgs *in, union outputArgs *out, int *reply)
     /*I'm not currently checking to see that
      * previously-existing-files continue to have the same vtype.
      * (I'll just reset it if it's different, which would be a
-     * rather serious disaster.)  
+     * rather serious disaster.)
      */
     if (child_exists(path, name)) {
         if (exclp) {
@@ -1083,7 +1083,7 @@ void DoCreate(union inputArgs *in, union outputArgs *out, int *reply)
     }
 
     if (!newFep) {
-        /* 
+        /*
 	 * XXX This is either a completely new file, or a file that we
 	 * have not yet created a fid for.  We should create a new
 	 * fid_ent_t for it.
@@ -1092,7 +1092,7 @@ void DoCreate(union inputArgs *in, union outputArgs *out, int *reply)
         created = TRUE;
     }
 
-    /* 
+    /*
      * Now, we have to set the path to it so that the open-for-create
      * and later stat will happen correctly.  (We'll need to do the
      * stat to correctly set the type of the fep.
@@ -1101,11 +1101,11 @@ void DoCreate(union inputArgs *in, union outputArgs *out, int *reply)
         free(path);
     path = fid_fullname(newFep);
 
-    /* 
+    /*
      * Okay, now do the create.
      * I'll be lazy and do so with an actual open.  (Which we have
      * to do eventually anyway if we are truncating.  Should I worry
-     * about this here?  Not sure...)  
+     * about this here?  Not sure...)
      */
 
     /* Set the open flags */
@@ -1238,7 +1238,7 @@ void DoRemove(union inputArgs *in, union outputArgs *out, int *reply)
     ds_list_iter_destroy(iter);
 
     if (!victimFep) {
-        /* 
+        /*
 	 * We're going to create a victimFep as a temporary; this is
 	 * only to make the code simpler.  I know that it isn't
 	 * that efficient, but...
@@ -1247,7 +1247,7 @@ void DoRemove(union inputArgs *in, union outputArgs *out, int *reply)
         created   = TRUE;
     }
 
-    /* 
+    /*
      * Get the path for the unlink call.  Ensure it is a regular file.
      * We are *not* allowed to unlink anything else here.
      */
@@ -1334,14 +1334,14 @@ void DoSetattr(union inputArgs *in, union outputArgs *out, int *reply)
         printf("Doing setattr for fid (%s)\n", FID_(fp));
     }
 
-    /* 
+    /*
      * Check to see that we aren't changing anything we aren't
      * supposed to.  This list came from Venus (vproc_vfscalls.c)
      */
 
-    /* 
+    /*
      * I ignore the following fields, since I'm not sure what to do
-     * about them: va_filerev va_vaflags 
+     * about them: va_filerev va_vaflags
      */
 
     /*
@@ -1349,7 +1349,7 @@ void DoSetattr(union inputArgs *in, union outputArgs *out, int *reply)
      * though we can do nothing about them, since they don't make
      * sense to us.  Hopefully, no one will ever notice, though I'm
      * suspicious.  We only return silently if this is the *only*
-     * thing of interest which we are setattr'ing.  
+     * thing of interest which we are setattr'ing.
      */
     if ((vap->va_flags != (unsigned long)-1) && (vap->va_mode == (u_short)-1) &&
         (vap->va_uid == (uid_t)-1) && (vap->va_gid == (gid_t)-1) &&
@@ -1367,7 +1367,7 @@ void DoSetattr(union inputArgs *in, union outputArgs *out, int *reply)
         goto earlyexit;
     }
 
-    /* 
+    /*
      * Check to make sure at least something we care about is set.
      */
     if ((vap->va_mode == (u_short)-1) && (vap->va_uid == (uid_t)-1) &&
@@ -1385,12 +1385,12 @@ void DoSetattr(union inputArgs *in, union outputArgs *out, int *reply)
     CODA_ASSERT((fep = (fid_ent_t *)ds_hash_member(FidTab, &dummy)) != NULL);
     path = fid_fullname(fep);
 
-    /* 
+    /*
      * Not sure how I want to handle authentication.  For now, let's
      * just use the standard UNIX rules about root being the only one
      * to do certain things, and owner being the only other one to do
      * others.  WARNING: if somethings fail, but others succeed, then
-     * perhaps only part of the setattr will happen...this is bad, but 
+     * perhaps only part of the setattr will happen...this is bad, but
      * we can live with it for the purposes of potemkin.
      */
     setfsuid(in->ih.uid);
@@ -1556,10 +1556,10 @@ void DoRename(union inputArgs *in, union outputArgs *out, int *reply)
     }
     spath = fid_fullname(sfep);
 
-    /* 
+    /*
      * Step 3a: stat the source file for it's type.  Must happen
      * *before* we try to do the rename, 'cause if the stat fails,
-     * we're hosed 
+     * we're hosed
      */
     if (stat(spath, &sbuf)) {
         printf("RENAME: stat of source failed (%s)\n", strerror(errno));
@@ -1606,7 +1606,7 @@ exit:
     if (!out->oh.result) {
         free(tfep);
     } else {
-        /* 
+        /*
 	 * If we failed, then we must remove tfep and sfep if they
 	 * were created as side effects of this operation
 	 */
@@ -1799,7 +1799,7 @@ void DoRmdir(union inputArgs *in, union outputArgs *out, int *reply)
     ds_list_iter_destroy(iter);
 
     if (!victimFep) {
-        /* 
+        /*
 	 * We're going to create a victimFep as a temporary; this is
 	 * only to make the code simpler.  I know that it isn't
 	 * that efficient, but...
@@ -1808,7 +1808,7 @@ void DoRmdir(union inputArgs *in, union outputArgs *out, int *reply)
         created   = TRUE;
     }
 
-    /* 
+    /*
      * Get the path for the rmdir call.  Ensure it is a regular file.
      * We are *not* allowed to unlink anything else here.
      */
@@ -1960,14 +1960,14 @@ void DoLink(union inputArgs *in, union outputArgs *out, int *reply)
         printf(" with name %s\n", name);
     }
 
-    /* 
+    /*
      * For the moment, we'll place the same restrictions on links in
      * potemkin as we do in real Coda; hard links can only be to
      * things in the same directory.  This is more restrictive than is
      * strictly necessary, but so what?  Plus, Coda allows no hard
      * links to directories by anyone, so just in case the person
      * running the process making this request is root, don't let root
-     * do that! 
+     * do that!
      */
 
     /* Get the two fep's */
@@ -2031,10 +2031,10 @@ void DoLink(union inputArgs *in, union outputArgs *out, int *reply)
     /* Touch the file.  Ignore failure */
     utimes(lpath, NULL);
 
-    /* 
+    /*
      * Question: should we represent this as an inc'ed count?  I don't
      * think so.  At least, not for now, and I don't think it'll
-     * matter 
+     * matter
      */
     out->oh.result = 0;
     lfep->type     = tfep->type; /* Whatever we linked to. */
@@ -2100,7 +2100,7 @@ void DoSymlink(union inputArgs *in, union outputArgs *out, int *reply)
     }
 
     /* Create a temporary fid for this entry. */
-    /* 
+    /*
      * We won't look to see if one exists already, since if it does
      * the symlink will fail, and we won't enter it.
      */

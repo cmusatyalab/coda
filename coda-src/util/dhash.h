@@ -20,7 +20,7 @@ listed in the file CREDITS.
  *
  * dhash.h -- Specification of hash-table type where each bucket is a
  * doubly-linked list (a dlist).
- * 
+ *
  */
 
 #ifndef _UTIL_DHTAB_H_

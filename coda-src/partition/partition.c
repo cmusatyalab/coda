@@ -52,7 +52,7 @@ extern "C" {
 static void DP_InitPartition(Partent entry, struct inodeops *operations,
                              union PartitionData *data, Device devno);
 
-/* 
+/*
  * operations on partitions not involving volumes
  * this depends on vicetab.h and inodeops.h
  */
@@ -112,7 +112,7 @@ void DP_Init(const char *tabfile, const char *hostname)
         }
 
         /* the devno is written to RVM storage in the vnodes -
-	   whatever scheme for numbering partitions is used should 
+	   whatever scheme for numbering partitions is used should
 	   take note of this */
         DP_InitPartition(entry, operations, data, devno);
         codadev++;

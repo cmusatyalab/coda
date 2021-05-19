@@ -17,7 +17,7 @@ listed in the file CREDITS.
 #*/
 
 /* lookup.c
-   Manual lookup of volume location data base information 
+   Manual lookup of volume location data base information
    for a particular volume.
  */
 
@@ -84,7 +84,7 @@ const char *voltypes[] = { "read/write", "read only", "backup", "unknown type",
                            "unknown type" };
 
 /*
-  S_VolLookup: Return information for a volume specified 
+  S_VolLookup: Return information for a volume specified
   by name or volume-id
 */
 long int S_VolLookup(RPC2_Handle rpcid, RPC2_String formal_vol,

@@ -29,9 +29,9 @@ listed in the file CREDITS.
  *	 Enable - Enable the periodic hoard walks
  *	 Disable - Disable the periodic hoard walks
  *
- *    The protection restrictions enforced by this code are that the real uid of the 
+ *    The protection restrictions enforced by this code are that the real uid of the
  *    issuer must be root or an authorized user in order to add entries or walk the
- *    database or to delete, clear, list or verify entries other than his/her own.  
+ *    database or to delete, clear, list or verify entries other than his/her own.
  *    An authorized user is a user who is either logged into the console or who is
  *    considered the primary user of this workstation (as set by a runtime switch).
  *
@@ -490,9 +490,9 @@ void hdb::ValidateCacheStatus(vproc *vp, int *interrupt_failures,
         LOG(0, ("Number of interrupt failures = %d\n", *interrupt_failures));
 
         /*
-	 * Find some interesting info.  My goal is to see if there 
-	 * might be a way we can test for the missing object without 
-	 * having to reFind the object. 
+	 * Find some interesting info.  My goal is to see if there
+	 * might be a way we can test for the missing object without
+	 * having to reFind the object.
 	 */
         if (SearchForNOreFind) {
             if (!f)
@@ -808,8 +808,8 @@ void hdb::DataWalk(vproc *vp, int TotalBytesToFetch, int BytesFetched)
     strcpy(ibuf, "\n");
     if (enospc_failure) {
         /*
-	 * Count the number of indigent fsobjs/blocks and find the 
-         * find first one (for informational purposes only). 
+	 * Count the number of indigent fsobjs/blocks and find the
+         * find first one (for informational purposes only).
 	 */
         bstree_iterator next(*FSDB->prioq, BstDescending);
         bsnode *b = 0;
@@ -1391,7 +1391,7 @@ namectxt::namectxt(namectxt *Parent, char *Component)
 #endif
 }
 
-/* 
+/*
  * we don't support assignments to objects of this type.
  * bomb in an obvious way if it inadvertently happens.
  */
@@ -1738,9 +1738,9 @@ void namectxt::Demote(int recursive)
     demote_pending = 0;
 }
 
-/* 
+/*
  * CheckExpansion()expands the path of the namectxt.  The call to namev
- * does a component-by-component lookup of the path.  Each of these 
+ * does a component-by-component lookup of the path.  Each of these
  * lookups causes us to call CheckComponent.  Each call to CheckComponent
  * results in...???
  * If the call to namev succeeds, then we attempt to MetaExpand this
@@ -1984,7 +1984,7 @@ int MetaExpand(PDirEntry entry, void *hook)
     return 0;
 }
 
-/* 
+/*
  * MetaExpand() controls the meta-expansion of a namectxt.  We only expand
  * an entry when there is good reason to do so.  The real work of meta-expansion
  * is done by dir/dir.c's DH_EnumerateDir() routine, which calls MetaExpand(<with args>)
@@ -1999,7 +1999,7 @@ void namectxt::MetaExpand()
 
     LOG(10, ("namectxt::MetaExpand: (%s, %s)\n", FID_(&cdir), path));
 
-    /* ?MARIA?  So what's the order of the expansion list.  
+    /* ?MARIA?  So what's the order of the expansion list.
        Why is the last element the interesting one?
     */
     dlink *d = expansion.last();
@@ -2031,8 +2031,8 @@ void namectxt::MetaExpand()
     if ((f->vol->IsReplicated() &&
          VV_Cmp(&expander_vv, &f->stat.VV) != VV_EQ) ||
         (!f->vol->IsReplicated() && expander_dv != f->stat.DataVersion)) {
-        /* 
-	 ?MARIA?:  Why doesn't the KillChildren above appear here??? 
+        /*
+	 ?MARIA?:  Why doesn't the KillChildren above appear here???
 	 Hmm.. Perhaps the difference is that if the FID has changed, we can't
 	 believe the old children list.  If the fid hasn't changed but the vv
 	 has (or the data version has), we have some reason to suspect that the
@@ -2120,7 +2120,7 @@ void namectxt::CheckComponent(fsobj *f)
         CHOKE("namectxt::CheckComponent: bogus state");
     }
 
-    /* 
+    /*
      * Note that next was setup before CheckExpansion called namev, which called
      * lookup, which called us.  Next is an iterator over the expansion list of
      * this namectxt.

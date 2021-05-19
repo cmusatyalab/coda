@@ -291,7 +291,7 @@ void set_linkcount(int argc, char *argv[]) EXCLUDES_TRANSACTION
 
 #if 0
 // delete the RVM held vnode
-static void 
+static void
 delete_smallvnode(int volid, int vnum, int unique)
 {
     char buf[SIZEOF_SMALLDISKVNODE];
@@ -300,7 +300,7 @@ delete_smallvnode(int volid, int vnum, int unique)
     VnodeId vnodeindex = vnodeIdToBitNumber(vnum);
     int     vclass = vnodeIdToClass(vnum);
     int	    volindex;
-    
+
     volindex = GetVolIndex(volid);
     if (volindex < 0) {
 	fprintf(stderr, "Unable to get volume 0x%x\n", volid);
@@ -308,7 +308,7 @@ delete_smallvnode(int volid, int vnum, int unique)
     }
 
     rvmlib_begin_transaction(restore)
-	    
+
     if (ExtractVnode(&error, volindex, vclass, vnodeindex, unique, vnode) < 0) {
 	fprintf(stderr, "Unable to get vnode 0x%x.0x%x.0x%x\n", volid, vnum,
 		unique);
@@ -322,7 +322,7 @@ delete_smallvnode(int volid, int vnum, int unique)
 	rvmlib_abort(VFAIL);
 	return;
     }
-	    
+
     rvmlib_end_transaction(flush, &(error));
 
     if (error) {

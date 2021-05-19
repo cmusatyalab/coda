@@ -16,14 +16,14 @@ listed in the file CREDITS.
 
 #*/
 
-/* 
+/*
     Repair data structures and routines used only on client.
     The server component of repair does not know of these.
     Data structures shared by client and server are defined in repio.{h,c}
 
     Created:
 	M. Satyanarayanan
-	October 1989	
+	October 1989
 */
 
 #ifndef _REPAIR_H_
