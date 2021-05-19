@@ -1,3 +1,7 @@
+New in 1.27:
+
+* Just some formatting/whitespace cleanups, keeping library version.
+
 New in 1.26:
 
 * Fixed how we handle PKG_CONFIG_PATH when looking for lwp.

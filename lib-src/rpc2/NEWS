@@ -1,3 +1,13 @@
+New in 2.35
+
+* Don't log errors for received retransmitted packets after an SFTP transfer
+  has completed.
+* Some code cleanups, whitespace fixes.
+* Simplify eat_uvbytes in codatunneld, as it does not have to be blocking and
+  doesn't have to process all received buffers at once.
+* Don't leave a codatunnel connection hanging when additional data (or EOF)
+  arrives before the tls handshake has completed.
+
 New in 2.34
 
 * Add a way to pass the hostname we are trying to connect to from venus to
