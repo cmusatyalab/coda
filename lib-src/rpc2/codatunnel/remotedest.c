@@ -312,7 +312,8 @@ ssize_t eat_uvbytes(gnutls_transport_ptr_t gtp, void *tlsbuf, size_t nread)
         d->uvcount--;
         d->uvoffset = 0;
 
-        for (int i = 0; i < d->uvcount; i++) { /* shift left */
+        int i;
+        for (i = 0; i < d->uvcount; i++) { /* shift left */
             d->enqarray[i] = d->enqarray[i + 1];
         }
 
