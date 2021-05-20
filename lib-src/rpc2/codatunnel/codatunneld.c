@@ -448,14 +448,14 @@ static void _send_to_tls_done(uv_work_t *req, int status)
     free(w->buf.base);
     free(w);
 
-    uv_mutex_unlock(&d->tls_send_mutex);
-
     /* if there is stuff queued, fire off the next job */
     if (d->tls_send_queue != NULL) {
         send_to_tls_req_t *w = d->tls_send_queue;
         uv_queue_work(codatunnel_main_loop, &w->req, send_to_tls_dest,
                       _send_to_tls_done);
     }
+
+    uv_mutex_unlock(&d->tls_send_mutex);
 }
 
 /* To accommodate TLS, send_to_tcp_dest() has been split;
@@ -854,9 +854,9 @@ static void tcp_connect_cb(uv_connect_t *req, int status)
     d->uvcount         = 0;
     d->uvoffset        = 0;
     for (i = 0; i < UVBUFLIMIT; i++) {
-        ((d->enqarray)[i].b).base = NULL;
-        ((d->enqarray)[i].b).len  = 0;
-        (d->enqarray)[i].numbytes = 0;
+        d->enqarray[i].b.base   = NULL;
+        d->enqarray[i].b.len    = 0;
+        d->enqarray[i].numbytes = 0;
     }
     d->decrypted_record = NULL;
     d->state            = TLSHANDSHAKE;
