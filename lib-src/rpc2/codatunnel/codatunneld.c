@@ -735,7 +735,7 @@ static void setuptls(uv_work_t *w)
 
     /* local TLS setup errors, fall back on UDP connection */
 #define GNUTLSERROR(op, retcode)                                           \
-    {                                                                      \
+    do {                                                                   \
         ERROR("%s(%s) --> %d (%s)\n", op, d->fqdn ? d->fqdn : "", retcode, \
               gnutls_strerror(retcode));                                   \
         if (d->state != TCPCLOSING) {                                      \
@@ -750,7 +750,7 @@ static void setuptls(uv_work_t *w)
         }                                                                  \
         uv_rwlock_rdunlock(&credential_load_lock);                         \
         return;                                                            \
-    }
+    } while (0)
 
     rc = gnutls_init(&d->my_tls_session, tlsflags);
     if (rc != GNUTLS_E_SUCCESS)
