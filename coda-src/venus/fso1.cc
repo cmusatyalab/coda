@@ -526,7 +526,8 @@ void fsobj::Recover()
         break;
 
     case Invalid:
-        CHOKE("fsobj::Recover: bogus VnodeType (%d)", stat.VnodeType);
+        if (state != FsoDying)
+            CHOKE("fsobj::Recover: bogus VnodeType (%d)", stat.VnodeType);
     }
 
     if (LogLevel >= 1)
