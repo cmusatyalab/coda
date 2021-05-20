@@ -49,9 +49,9 @@ static void cleardest(dest_t *d)
     d->tls_send_queue        = NULL;
     d->outbound_queue        = NULL;
     for (i = 0; i < UVBUFLIMIT; i++) {
-        ((d->enqarray[i]).b).base = NULL;
-        ((d->enqarray[i]).b).len  = 0;
-        (d->enqarray[i]).numbytes = 0;
+        d->enqarray[i].b.base   = NULL;
+        d->enqarray[i].b.len    = 0;
+        d->enqarray[i].numbytes = 0;
     }
     d->decrypted_record = NULL;
 }
@@ -166,8 +166,10 @@ static void _free_dest_cb(uv_handle_t *handle)
     dest_t *d = handle->data;
     DEBUG("_free_dest_cb(%p)\n", d);
 
+    // XXX deadlocks when gnutls is waiting for more data but the current
+    // dest_t should not be involved in an active handshake anyway...
     /* barrier wait to make sure gnutls_handshake has finished */
-    wait_for_handshakes();
+    //wait_for_handshakes();
 
     if (d->decrypted_record)
         free(d->decrypted_record);
@@ -236,8 +238,8 @@ void enq_element(dest_t *d, const uv_buf_t *thisbuf, int nb)
         free(thisbuf->base);
     } else { /* append to list of uvbufs */
         DEBUG("Enqing packet\n");
-        (d->enqarray)[d->uvcount].b        = *thisbuf;
-        (d->enqarray)[d->uvcount].numbytes = nb;
+        d->enqarray[d->uvcount].b        = *thisbuf;
+        d->enqarray[d->uvcount].numbytes = nb;
         d->uvcount++;
         uv_cond_signal(&d->uvcount_nonzero);
     }
