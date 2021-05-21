@@ -23,19 +23,22 @@ endif
 pkgpythondir = ${pythondir}/codafs
 
 all-local:
-	(cd $(srcdir); $(PYTHON) setup.py build \
-		--build-base $(shell readlink -f $(builddir))/build \
-		--verbose)
+	@(cd $(srcdir); if $(AM_V_P); then PYARG=--verbose; set -x; \
+	  else echo "BUILD [python]"; PYARG=--quiet; fi; \
+	  $(PYTHON) setup.py $$PYARG build \
+		--build-base $(shell readlink -f $(builddir))/build)
 
 clean-local:
 	rm -rf build codafs.egg-info
 
 install-exec-local:
-	$(PYTHON) $(srcdir)/setup.py install \
+	@if $(AM_V_P); then PYARG=--verbose; set -x; \
+	 else echo "INSTALL [python]"; fi; \
+	 $(PYTHON) $(srcdir)/setup.py install $$PYARG \
 		--prefix $(DESTDIR)$(prefix) \
 		--single-version-externally-managed \
 		--record $(DESTDIR)$(pkgpythondir)/installed_files.txt \
-		$(SETUP_PY_ARGS) --verbose
+		$(SETUP_PY_ARGS)
 
 uninstall-local:
 	cat $(DESTDIR)$(pkgpythondir)/installed_files.txt | xargs rm -f

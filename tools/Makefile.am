@@ -24,10 +24,8 @@ endif
 endif
 
 %.service: $(srcdir)/%.tmpl $(srcdir)/Makefile.am $(top_builddir)/config.status
-	$(SED) \
-		-e "s|\@SBINDIR\@|@sbindir@|g" \
-		-e "s|\@SYSCONFDIR\@|@sysconfdir@|g" \
-		$< > $@
+	$(AM_V_GEN)
+	$(AM_V_at)$(SED) -e "s|\@SBINDIR\@|@sbindir@|g" -e "s|\@SYSCONFDIR\@|@sysconfdir@|g" $< > $@
 
 CLEANFILES = coda-client.service coda-server.service coda-auth2.service \
 	     coda-update-master.service coda-update-slave.service
