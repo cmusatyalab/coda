@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 2017-2020 Carnegie Mellon University
+          Copyright (c) 2017-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -177,7 +177,6 @@ ssize_t eat_uvbytes(gnutls_transport_ptr_t, void *, size_t);
 int poll_uvbytes(gnutls_transport_ptr_t gtp, unsigned int ms);
 
 void drain_outbound_queues(dest_t *d);
-void wait_for_handshakes(void);
 
 /* Helper/debugging functions */
 void hexdump(char *desc, void *addr, int len);

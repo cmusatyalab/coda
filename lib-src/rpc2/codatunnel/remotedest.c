@@ -166,11 +166,6 @@ static void _free_dest_cb(uv_handle_t *handle)
     dest_t *d = handle->data;
     DEBUG("_free_dest_cb(%p)\n", d);
 
-    // XXX deadlocks when gnutls is waiting for more data but the current
-    // dest_t should not be involved in an active handshake anyway...
-    /* barrier wait to make sure gnutls_handshake has finished */
-    //wait_for_handshakes();
-
     if (d->decrypted_record)
         free(d->decrypted_record);
     d->decrypted_record = NULL;

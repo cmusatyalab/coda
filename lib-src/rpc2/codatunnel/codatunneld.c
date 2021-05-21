@@ -1156,15 +1156,9 @@ static char *path_join(const char *dir, const char *file)
     return path;
 }
 
-/* barrier wait to make sure gnutls_handshake has finished */
-void wait_for_handshakes(void)
+static void _cert_reload(uv_work_t *w)
 {
-    uv_rwlock_wrlock(&credential_load_lock);
-    uv_rwlock_wrunlock(&credential_load_lock);
-}
-
-static void cert_reload_credentials(gnutls_certificate_credentials_t *sc)
-{
+    gnutls_certificate_credentials_t *sc = w->data;
     int rc;
 
     uv_rwlock_wrlock(&credential_load_lock);
@@ -1222,6 +1216,15 @@ unlock_out:
         *sc = NULL;
     }
     uv_rwlock_wrunlock(&credential_load_lock);
+}
+
+static void cert_reload_credentials(gnutls_certificate_credentials_t *sc)
+{
+    /* Schedule a credential reload from a worker thread so that we don't block
+     * the mainloop while waiting for the credential_load_lock. */
+    uv_work_t *w = malloc(sizeof(uv_work_t));
+    w->data      = sc;
+    uv_queue_work(codatunnel_main_loop, w, _cert_reload, cleanup_work);
 }
 
 static void reload_signal_handler(uv_signal_t *handle, int signum)
@@ -1302,7 +1305,10 @@ void codatunneld(int codatunnel_sockfd, const char *tcp_bindaddr,
 
     gnutls_global_set_log_level(1000); /* Only for debugging */
 
-    cert_reload_credentials(&x509_cred);
+    /* since we're not fully up and running yet, run the initial certificate
+     * load from the main thread instead of queueing for a worker. */
+    uv_work_t w = { .data = &x509_cred };
+    _cert_reload(&w);
 
     /* GNUTLS is done, proceed to set up libuv */
 
