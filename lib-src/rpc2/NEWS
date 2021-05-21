@@ -1,3 +1,10 @@
+New in 2.36
+
+* Fix deadlocks between setuptls and free_dest/reload_certificates.
+  Setuptls runs gnutls_handshake which might be waiting for the main thread to
+  get more data off of the tcp socket, so the main thread should avoid waiting
+  for the completion of the handshake.
+
 New in 2.35
 
 * Don't log errors for received retransmitted packets after an SFTP transfer
