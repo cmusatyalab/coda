@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 
 import os
-import sys
 
 # ************** these will probably need to be configured
 # the `System' user initially owns all groups.
