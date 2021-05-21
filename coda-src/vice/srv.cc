@@ -247,7 +247,7 @@ static void ClearCounters();
 static void FileMsg();
 static void SetDebug(int ign);
 static void ResetDebug(int ign);
-static void ShutDown(void);
+static void ShutDown(void) EXCLUDES_TRANSACTION;
 
 static int ReadConfigFile(void);
 static void ParseEnvVars(void);

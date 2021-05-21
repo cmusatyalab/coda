@@ -245,7 +245,7 @@ static int DumpVnodeDiskObject(DumpBuffer_t *dbuf, VnodeDiskObject *v,
 
 static int DumpVnodeIndex(DumpBuffer_t *dbuf, Volume *vp, VnodeClass vclass,
                           RPC2_Unsigned Incremental, int VVListFd,
-                          FILE *Ancient)
+                          FILE *Ancient) EXCLUDES_TRANSACTION
 {
     struct VnodeClassInfo *vcp;
     char buf[SIZEOF_LARGEDISKVNODE];
@@ -434,7 +434,8 @@ static unsigned int DumpVnodeDiskObject_estimate(VnodeDiskObject *v)
 }
 
 static int DumpVnodeIndex_estimate(Volume *vp, VnodeClass vclass,
-                                   RPC2_Unsigned *sizes, FILE *Ancient)
+                                   RPC2_Unsigned *sizes,
+                                   FILE *Ancient) EXCLUDES_TRANSACTION
 {
     struct VnodeClassInfo *vcp;
     char buf[SIZEOF_LARGEDISKVNODE];
