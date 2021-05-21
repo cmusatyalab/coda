@@ -573,19 +573,18 @@ static int ReadVnodeList(int fd, Volume *vp, VnodeClass vclass,
         if (norton_debug)
             PrintVnodeDiskObject(vnode);
 
+        rvmlib_end_transaction(flush, &status);
+        if (status != 0) {
+            fprintf(stderr, "Transaction exited with status %d!, aborting\n",
+                    status);
+            return 0;
+        }
         /* Write the vnode to disk */
         VPutVnode(&err, vnp);
 
         if (err) {
             fprintf(stderr, "VPutVnode Error: %d, on vnode 0x%x\n", err,
                     vnp->vnodeNumber);
-            rvmlib_abort(VFAIL);
-            return 0;
-        }
-        rvmlib_end_transaction(flush, &status);
-        if (status != 0) {
-            fprintf(stderr, "Transaction exited with status %d!, aborting\n",
-                    status);
             return 0;
         }
     }

@@ -345,19 +345,11 @@ error:
     V_inService(vp) = V_blessed(vp) = 1;
 
     VLog(0, "partname -%s-", V_partname(vp));
-    rvmlib_begin_transaction(restore);
 
     VUpdateVolume(&error, vp);
     if (error) {
         VLog(0, "restore: Unable to rewrite volume header; restore aborted");
-        rvmlib_abort(-1);
         return -1;
-    }
-
-    rvmlib_end_transaction(flush, &status);
-    if (status) {
-        VLog(0, "restore: VUpdateVolume failed ");
-        return status;
     }
 
     VDetachVolume(&error, vp); /* Let file server get its hands on it */

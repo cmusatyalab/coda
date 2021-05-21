@@ -189,8 +189,8 @@ long S_VolClone(RPC2_Handle rpcid, RPC2_Unsigned formal_ovolid,
         VLog(0,
              "S_VolClone:Unable to allocate volume number;"
              "volume not cloned");
-        VPutVolume(originalvp);
         rvmlib_abort(VNOVOL);
+        VPutVolume(originalvp);
         status = VNOVOL;
         goto exit1;
     }
@@ -493,12 +493,12 @@ int CloneVnode(Volume *rwVp, Volume *cloneVp, int vnodeIndex,
     vdo = (VnodeDiskObject *)rvmlib_rec_malloc(size);
     rvmlib_modify_bytes(vdo, vnode, size);
     rvlist[vnodeIndex].append(&vdo->nextvn);
+    rvmlib_end_transaction(flush, &(status));
+    CODA_ASSERT(status == 0);
 
     if (tmp) {
         VPutVnode(&error, tmp);
         CODA_ASSERT(error == 0);
     }
-    rvmlib_end_transaction(flush, &(status));
-    CODA_ASSERT(status == 0);
     return 0;
 }

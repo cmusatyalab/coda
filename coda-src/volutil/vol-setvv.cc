@@ -103,7 +103,8 @@ long S_VolSetVV(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
     vnp = VGetVnode(&error, vp, vnodeid, unique, WRITE_LOCK, 1);
     if (error && error != EIO) {
         VLog(0, "S_VolSetVV: VGetVnode failed with %d", error);
-        goto errorexit;
+        VPutVolume(vp);
+        goto exit;
     }
 
     if (!error) {
@@ -146,15 +147,8 @@ long S_VolSetVV(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
     (&(UpdateSet.Versions.Site0))[ix] = 1;
     AddVVs(&V_versionvector(vp), &UpdateSet);
 
-    {
-        rvm_return_t rvmstatus;
-        rvmlib_begin_transaction(no_restore);
-
-        VPutVnode((Error *)&error, vnp);
-
-        rvmlib_end_transaction(flush, &rvmstatus);
-        CODA_ASSERT(rvmstatus == RVM_SUCCESS);
-    }
+    VPutVnode((Error *)&error, vnp);
+    VPutVolume(vp);
 
     fid.Volume = formal_volid;
     fid.Vnode  = vnodeid;
@@ -164,9 +158,6 @@ long S_VolSetVV(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
     if (error) {
         VLog(0, "S_VolSetVV: VPutVnode failed with %d", error);
     }
-
-errorexit:
-    VPutVolume(vp);
 
 exit:
     VDisconnectFS();

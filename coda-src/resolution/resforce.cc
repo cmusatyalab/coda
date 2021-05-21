@@ -423,14 +423,8 @@ FreeLocks:
         fclose(fp);
 
     if (vptr) {
-        rvm_return_t rvmstatus;
-        rvmlib_begin_transaction(restore);
-
         VPutVnode(&filecode, vptr);
         CODA_ASSERT(filecode == 0);
-
-        rvmlib_end_transaction(flush, &rvmstatus);
-        CODA_ASSERT(rvmstatus == RVM_SUCCESS);
     }
     PutVolObj(&volptr, NO_LOCK);
 
@@ -484,14 +478,8 @@ int ObtainDirOps(PDirEntry de, void *data)
     }
     /* put the vnode back */
     int error = 0;
-    rvm_return_t rvmstatus;
-    rvmlib_begin_transaction(restore);
-
     VPutVnode((Error *)&error, vptr);
     CODA_ASSERT(error == 0);
-
-    rvmlib_end_transaction(flush, &rvmstatus);
-    CODA_ASSERT(rvmstatus == RVM_SUCCESS);
 
     CODA_ASSERT(strlen(name) < (DIROPNAMESIZE));
     diroplink *direntry = new diroplink(op, vnode, unique, name);

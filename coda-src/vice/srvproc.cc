@@ -1143,12 +1143,9 @@ FreeLocks:
 
         if (*vptr) {
             START_TIMING(AllocVnode_Transaction);
-            rvm_return_t status = RVM_SUCCESS;
-            rvmlib_begin_transaction(restore);
             VPutVnode(&fileCode, *vptr);
             CODA_ASSERT(fileCode == 0);
             *vptr = 0;
-            rvmlib_end_transaction(flush, &(status));
             END_TIMING(AllocVnode_Transaction);
         }
     }
@@ -1831,15 +1828,9 @@ int CheckRenameSemantics(ClientEntry *client, Vnode **s_dirvptr,
                         TestFid.Vnode  = testvptr->disk.vparent;
                         TestFid.Unique = testvptr->disk.uparent;
 
-                        rvm_return_t rvmstatus;
-                        rvmlib_begin_transaction(no_restore);
-
                         /* this should be unmodified */
                         VPutVnode((Error *)&errorCode, testvptr);
                         CODA_ASSERT(errorCode == 0);
-
-                        rvmlib_end_transaction(flush, &rvmstatus);
-                        CODA_ASSERT(rvmstatus == RVM_SUCCESS);
                     } else {
                         CODA_ASSERT(errorCode == EWOULDBLOCK);
                         /*
@@ -3338,6 +3329,9 @@ void PutObjects(int errorCode, Volume *volptr, int LockLevel, dlist *vlist,
                         }
                     }
 
+                    rvmlib_end_transaction(flush, &(status));
+                    CODA_ASSERT(status == 0);
+
                     /* Vnode. */
                     {
                         Error fileCode = 0;
@@ -3359,9 +3353,6 @@ void PutObjects(int errorCode, Volume *volptr, int LockLevel, dlist *vlist,
                         CODA_ASSERT(fileCode == 0);
                     }
                     v->vptr = 0;
-
-                    rvmlib_end_transaction(flush, &(status));
-                    CODA_ASSERT(status == 0);
                 }
         }
 
@@ -3393,14 +3384,8 @@ void PutObjects(int errorCode, Volume *volptr, int LockLevel, dlist *vlist,
                     {
                         /* Put rather than Flush even on failure since vnode wasn't mutated! */
                         Error fileCode = 0;
-                        rvm_return_t rvmstatus;
-                        rvmlib_begin_transaction(restore);
-
                         VPutVnode(&fileCode, v->vptr);
                         CODA_ASSERT(fileCode == 0);
-
-                        rvmlib_end_transaction(flush, &rvmstatus);
-                        CODA_ASSERT(rvmstatus == RVM_SUCCESS);
                     }
 
                     v->vptr = 0;

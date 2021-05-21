@@ -375,14 +375,8 @@ long FS_ViceGetVolumeStatus(RPC2_Handle RPCid, VolumeId vid,
 
 Final:
     if (vptr) {
-        rvm_return_t rvmstatus;
-        rvmlib_begin_transaction(restore);
-
         VPutVnode(&fileCode, vptr);
         CODA_ASSERT(fileCode == 0);
-
-        rvmlib_end_transaction(flush, &rvmstatus);
-        CODA_ASSERT(rvmstatus == RVM_SUCCESS);
     }
     PutVolObj(&volptr, VOL_NO_LOCK, 0);
 

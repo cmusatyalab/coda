@@ -2100,11 +2100,12 @@ Exit:
         rvmlib_begin_transaction(restore);
 
         VN_PutDirHandle(vptr);
-        VPutVnode(&fileCode, vptr);
-        CODA_ASSERT(fileCode == 0);
 
         rvmlib_end_transaction(flush, &rvmstatus);
         CODA_ASSERT(rvmstatus == RVM_SUCCESS);
+
+        VPutVnode(&fileCode, vptr);
+        CODA_ASSERT(fileCode == 0);
     }
 
     SLog(2, "AddChild returns %s", ViceErrorMsg(errorCode));
@@ -2151,14 +2152,8 @@ static int AddParent(Volume **volptr, dlist *vlist, ViceFid *Fid)
 Exit:
     if (vptr) {
         Error fileCode = 0;
-        rvm_return_t rvmstatus;
-        rvmlib_begin_transaction(restore);
-
         VPutVnode(&fileCode, vptr);
         CODA_ASSERT(fileCode == 0);
-
-        rvmlib_end_transaction(flush, &rvmstatus);
-        CODA_ASSERT(rvmstatus == RVM_SUCCESS);
     }
 
     SLog(2, "AddParent returns %s", ViceErrorMsg(errorCode));

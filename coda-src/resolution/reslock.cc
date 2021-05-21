@@ -132,16 +132,10 @@ long RS_LockAndFetch(RPC2_Handle RPCid, ViceFid *Fid, ResFetchType Request,
     }
 
 FreeLocks:
-    int filecode = 0;
     if (vptr) {
-        rvm_return_t rvmstatus;
-        rvmlib_begin_transaction(restore);
-
+        int filecode = 0;
         VPutVnode((Error *)&filecode, vptr);
         CODA_ASSERT(filecode == 0);
-
-        rvmlib_end_transaction(flush, &rvmstatus);
-        CODA_ASSERT(rvmstatus == RVM_SUCCESS);
         vptr = 0;
     }
     if (errorcode)

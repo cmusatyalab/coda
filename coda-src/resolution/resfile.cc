@@ -297,14 +297,8 @@ FreeLocks:
                 !(idec(V_device(volptr), tmpinode, V_parentId(volptr))));
         }
         Error filecode = 0;
-        rvm_return_t rvmstatus;
-        rvmlib_begin_transaction(restore);
-
         VPutVnode(&filecode, vptr);
         CODA_ASSERT(filecode == 0);
-
-        rvmlib_end_transaction(flush, &rvmstatus);
-        CODA_ASSERT(rvmstatus == RVM_SUCCESS);
     }
     PutVolObj(&volptr, NO_LOCK);
     SLog(9, "RS_FetchFile Returns %d", errorcode);
@@ -320,7 +314,6 @@ long RS_ForceFile(RPC2_Handle RPCid, ViceFid *Fid, ResStoreType Request,
     VolumeId VSGVolnum = Fid->Volume;
     int errorcode      = 0;
     SE_Descriptor sid;
-    rvm_return_t status       = RVM_SUCCESS;
     ViceVersionVector *DiffVV = 0;
     Inode newinode            = 0;
     Inode oldinode            = 0;
@@ -476,9 +469,8 @@ FreeLocks:
 
     device   = (volptr ? V_device(volptr) : 0);
     parentId = (volptr ? V_parentId(volptr) : 0);
-    rvmlib_begin_transaction(restore);
-    Error filecode = 0;
     if (vptr) {
+        Error filecode = 0;
         if (!errorcode)
             VPutVnode(&filecode, vptr);
         else
@@ -486,8 +478,6 @@ FreeLocks:
         CODA_ASSERT(filecode == 0);
     }
     PutVolObj(&volptr, NO_LOCK);
-    rvmlib_end_transaction(flush, &(status));
-    CODA_ASSERT(status == 0);
     if (oldinode && device && parentId)
         CODA_ASSERT(!(idec(device, oldinode, parentId)));
     SLog(9, "RS_ForceFile returns %d", errorcode);

@@ -187,9 +187,10 @@ long S_VolCreate(RPC2_Handle rpcid, RPC2_String formal_partition,
     V_destroyMe(vp) = V_needsSalvaged(vp) = 0;
     V_linkcount(vp)                       = 1;
     V_volumeindex(vp);
-    VUpdateVolume(&error, vp);
     rvmlib_end_transaction(flush, &(status));
 
+    VUpdateVolume(&error, vp);
+    CODA_ASSERT(error == 0);
     VDetachVolume(&error, vp); /* Allow file server to grab it */
     CODA_ASSERT(error == 0);
 

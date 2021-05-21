@@ -158,9 +158,7 @@ long S_VolShowVnode(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
         PrintLog(vnp, infofile);
     fclose(infofile);
 
-    rvmlib_begin_transaction(restore);
     VPutVnode(&error, vnp);
-    rvmlib_end_transaction(flush, &(status));
     if (error)
         VLog(0, "S_VolShowVnode: Error occured while putting vnode ");
 

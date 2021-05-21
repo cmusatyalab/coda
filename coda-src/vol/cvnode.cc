@@ -257,18 +257,10 @@ int VAllocFid(Volume *vp, VnodeType type, ViceFidRange *range, int stride,
     Unique_t BaseUnique = vp->nextVnodeUnique;
     vp->nextVnodeUnique += count;
     if (vp->nextVnodeUnique > V_uniquifier(vp)) {
-        rvm_return_t status;
         SLog(0, "VAllocFid: volume disk uniquifier being extended");
         V_uniquifier(vp) = vp->nextVnodeUnique + 200;
 
-        rvmlib_begin_transaction(restore);
         VUpdateVolume(&ec, vp);
-        rvmlib_end_transaction(flush, &(status));
-
-        if (status) {
-            SLog(0, "VallocFid: rvm Error %d\n", status);
-            ec = VNOVNODE;
-        }
         if (ec)
             return (ec);
     }
@@ -318,11 +310,7 @@ int VAllocFid(Volume *vp, VnodeType type, VnodeId vnode, Unique_t unique)
         SLog(0, "VAllocFid: volume disk uniquifier being extended");
         V_uniquifier(vp) = vp->nextVnodeUnique + 200;
 
-        rvm_return_t camstatus;
-        rvmlib_begin_transaction(restore);
         VUpdateVolume(&ec, vp);
-        rvmlib_end_transaction(flush, &(camstatus));
-
         if (ec)
             return (ec);
     }
@@ -703,8 +691,13 @@ void VPutVnode(Error *ec, Vnode *vnp)
                         CreateResLog(vp, vnp);
                     }
                 }
-                if (v_index.put(vnp->vnodeNumber, vnp->disk.uniquifier,
-                                &vnp->disk) != 0) {
+                int rc;
+                rvm_return_t status;
+                rvmlib_begin_transaction(restore);
+                rc = v_index.put(vnp->vnodeNumber, vnp->disk.uniquifier,
+                                 &vnp->disk);
+                rvmlib_end_transaction(flush, &status);
+                if (rc || status) {
                     LogMsg(0, VolDebugLevel, stdout,
                            "VPutVnode: Couldn't write vnode %08x.%x (%s)",
                            V_id(vnp->volumePtr), vnp->vnodeNumber,

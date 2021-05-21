@@ -115,13 +115,8 @@ static void updateBackupVnodes(Volume *rwvp, Volume *backupvp,
 
 static void cleanup(struct Volume *vp) EXCLUDES_TRANSACTION
 {
-    rvm_return_t status;
-    if (vp) {
-        rvmlib_begin_transaction(restore);
+    if (vp)
         VPutVolume(vp);
-        rvmlib_end_transaction(flush, &(status));
-        CODA_ASSERT(status == 0);
-    }
     VDisconnectFS();
 }
 
@@ -155,7 +150,6 @@ static void cleanup(struct Volume *vp) EXCLUDES_TRANSACTION
 long S_VolMakeBackups(RPC2_Handle rpcid, VolumeId originalId,
                       VolumeId *backupId) EXCLUDES_TRANSACTION
 {
-    rvm_return_t status = RVM_SUCCESS;
     long result;
     Error error;
     int rc;
@@ -224,17 +218,15 @@ long S_VolMakeBackups(RPC2_Handle rpcid, VolumeId originalId,
         V_destroyMe(backupvp) = DESTROY_ME;
         V_blessed(backupvp)   = 0;
 
-        rvmlib_begin_transaction(restore);
         /* Disallow further use of this volume */
         VUpdateVolume(&error, backupvp);
-        rvmlib_end_transaction(flush, &(status));
-        if (error || status) {
+        if (error) {
             VLog(
                 0,
                 "S_VolMakeBackup: Couldn't force old backup clone offline, aborting!");
             cleanup(originalvp);
             S_VolUnlock(rpcid, originalId);
-            return status;
+            return error;
         }
 
         ModifyIndex(originalvp, backupvp, vSmall);
@@ -267,20 +259,17 @@ long S_VolMakeBackups(RPC2_Handle rpcid, VolumeId originalId,
     CODA_ASSERT(error == 0);
     originalvp = VGetVolume(&error, originalId);
     CODA_ASSERT(error == 0);
-    if (status == 0) {
-        VLog(0, "S_VolMakeBackups: backup (%x) made of volume %x ",
-             V_id(backupvp), V_id(originalvp));
-    } else {
-        VLog(0, "S_VolMakeBackups: volume backup failed for volume %x",
-             V_id(originalvp));
-    }
+
+    VLog(0, "S_VolMakeBackups: backup (%x) made of volume %x ", V_id(backupvp),
+         V_id(originalvp));
+
     VPutVolume(originalvp);
     VPutVolume(backupvp);
 
     VDisconnectFS();
     S_VolUnlock(rpcid, originalId);
 
-    return (long)status;
+    return 0;
 }
 
 /*
