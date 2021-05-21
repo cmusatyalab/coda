@@ -66,7 +66,7 @@ parser.add_argument(
 
 
 def main():
-    """ Iterate through a volume in Coda. """
+    """Iterate through a volume in Coda."""
     args = parser.parse_args()
 
     if args.all:

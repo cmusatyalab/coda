@@ -20,16 +20,16 @@ import attr
 
 
 def _aclentry_validate_rights(_instance, _attribute, value):
-    """ rights should be a subset of '-rlidwka' """
+    """rights should be a subset of '-rlidwka'"""
     if not isinstance(value, str) or re.match(r"^-?r?l?i?d?w?k?a?$", value) is None:
         raise ValueError("AclEntry.rights has to be a subset of '-rlidwka'")
 
 
 @attr.s
 class AclEntry:
-    """ Coda ACL entry
-        name   : a user or group name
-        rights : a subset of '-rlidwka' (or 'all' / 'none' when setting)
+    """Coda ACL entry
+    name   : a user or group name
+    rights : a subset of '-rlidwka' (or 'all' / 'none' when setting)
     """
 
     name = attr.ib(validator=attr.validators.instance_of(str))
@@ -37,9 +37,9 @@ class AclEntry:
 
     @classmethod
     def from_user(cls, name, rights):
-        """ Create a new AclEntry instance from user input.
-            Shortcuts like '*', 'all', and 'none' are
-            acceptable as well as a different ordering.
+        """Create a new AclEntry instance from user input.
+        Shortcuts like '*', 'all', and 'none' are
+        acceptable as well as a different ordering.
         """
         canon_rights = ""
         if rights in ["all", "*"]:
@@ -53,21 +53,21 @@ class AclEntry:
         return cls(name=name, rights=canon_rights)
 
     def is_positive(self):
-        """ returns true if this is a positive ACL entry """
+        """returns true if this is a positive ACL entry"""
         return not self.rights.startswith("-")
 
     def is_negative(self):
-        """ returns true if this is a negative ACL entry """
+        """returns true if this is a negative ACL entry"""
         return self.rights.startswith("-")
 
 
 @attr.s
 class CodaFID:
-    """ Coda File identifier
-        volume : volume identifier
-        vnode :  object identifier
-        uniquifier : unique object identifier
-        realm : Coda administrative domain
+    """Coda File identifier
+    volume : volume identifier
+    vnode :  object identifier
+    uniquifier : unique object identifier
+    realm : Coda administrative domain
     """
 
     volume = attr.ib()

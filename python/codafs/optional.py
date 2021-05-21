@@ -21,14 +21,14 @@ try:
 except ImportError:
 
     def jsonschema_validate(_instance, _schema, *_args, **_kwargs):
-        """ validation wrapper that doesn't actually validate """
+        """validation wrapper that doesn't actually validate"""
 
     # we won't actually raise these from our wrapper...
     class ValidationError(Exception):
-        """ Failed to validate provided data against jsonschema """
+        """Failed to validate provided data against jsonschema"""
 
     class SchemaError(Exception):
-        """ Failed to validate the provided jsonschema """
+        """Failed to validate the provided jsonschema"""
 
 
 # tqdm for a nice progressbar
@@ -38,7 +38,7 @@ except ImportError:
     import sys
 
     class tqdm:  # pylint: disable=invalid-name
-        """ progress bar wrapper that doesn't actually display progress """
+        """progress bar wrapper that doesn't actually display progress"""
 
         def __init__(self, iterable, *_args, **_kwargs):
             self.iterable = iterable
@@ -55,6 +55,6 @@ except ImportError:
 
         @classmethod
         def write(cls, msg, file=sys.stdout, end="\n", **_kwargs):
-            """ write that normally avoids conflicting with the progress bar """
+            """write that normally avoids conflicting with the progress bar"""
             file.write(msg)
             file.write(end)

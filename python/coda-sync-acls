@@ -33,7 +33,7 @@ from codafs.optional import ValidationError, jsonschema_validate, tqdm
 
 
 def is_directory(path):
-    """ to make sure the destination argument is a directory """
+    """to make sure the destination argument is a directory"""
 
     path = Path(path)
     if not path.is_dir():
@@ -107,7 +107,7 @@ CODA_ACLS_SCHEMA = {
 
 
 def collect_acls(root, cross_volume=False):
-    """ Walk directory tree in Coda, collecting ACLs """
+    """Walk directory tree in Coda, collecting ACLs"""
 
     directory_acls = []
 
@@ -132,7 +132,7 @@ def collect_acls(root, cross_volume=False):
 
 
 def update_acls(dest, acls, dry_run=True):
-    """ Update Coda ACLs under 'dest' """
+    """Update Coda ACLs under 'dest'"""
 
     # sort alphabetically, from leaf to root
     logging.debug("Sorting alphabetically, leaves first")
@@ -163,8 +163,8 @@ def update_acls(dest, acls, dry_run=True):
 
 
 def main():
-    """ Copy acls from a source yaml file, or directories in Coda, to
-        destination directories in Coda or write to a new yaml file. """
+    """Copy acls from a source yaml file, or directories in Coda, to
+    destination directories in Coda or write to a new yaml file."""
     args = parser.parse_args()
 
     # Set up logging

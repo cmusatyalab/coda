@@ -21,7 +21,7 @@ from .structs import AclEntry, CodaFID
 
 
 class NotCodaFS(FileNotFoundError):
-    """ Exception 'trying to do Coda operation on non-Coda file system' """
+    """Exception 'trying to do Coda operation on non-Coda file system'"""
 
 
 # Cached path to the cfs executable
@@ -29,7 +29,7 @@ _CFS_COMMAND = None
 
 
 def cfs(*args):
-    """ locate cfs command and run it with the given arguments """
+    """locate cfs command and run it with the given arguments"""
     global _CFS_COMMAND  # pylint: disable=global-statement
     if _CFS_COMMAND is None:
         _CFS_COMMAND = find_executable("cfs")
@@ -50,7 +50,7 @@ def cfs(*args):
 
 
 def getfid(path):
-    """ return Coda file identifier for specified path """
+    """return Coda file identifier for specified path"""
     result = cfs("getfid", str(path))
 
     match = re.match(
@@ -62,7 +62,7 @@ def getfid(path):
 
 
 def listvol(path):
-    """ return volume_id, name tuple for specified path """
+    """return volume_id, name tuple for specified path"""
     result = cfs("listvol", str(path))
 
     if result.endswith(": Permission denied\n"):
@@ -75,7 +75,7 @@ def listvol(path):
 
 
 def listacl(path):
-    """ returns an ACL (list of user/group, rights tuples) for the specified path """
+    """returns an ACL (list of user/group, rights tuples) for the specified path"""
     result = cfs("listacl", str(path))
 
     return [
@@ -85,7 +85,7 @@ def listacl(path):
 
 
 def setacl(path, acl):
-    """ Replaces ACL on specified path """
+    """Replaces ACL on specified path"""
     _acl = [AclEntry.from_user(name, rights) for name, rights in acl]
 
     positives = [(entry.name, entry.rights) for entry in _acl if entry.is_positive()]

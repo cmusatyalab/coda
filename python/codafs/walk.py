@@ -18,12 +18,12 @@ from .cfs import NotCodaFS, getfid, listvol
 
 
 def default_volume_callback(_root, _volume_name, _volume_id):
-    """ Example volume callback, this just avoids crossing volume boundaries """
+    """Example volume callback, this just avoids crossing volume boundaries"""
     raise StopIteration
 
 
 def walk_volume(root, volume_callback=default_volume_callback, parent_volume_id=None):
-    """ Path walking, but with Coda volume awareness
+    """Path walking, but with Coda volume awareness
 
     The volume_callback will be called whenever a volume mountpoint is found,
     it may raise a StopIteration exception to avoid cross-volume crawling.
