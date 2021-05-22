@@ -183,7 +183,6 @@ long S_VolShowVnode(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
     if (rc <= RPC2_ELIMIT) {
         VLog(0, "VolShowVnode: CheckSideEffect failed with %s",
              RPC2_ErrorMsg(rc));
-        goto exit;
     }
 exit:
     VDisconnectFS();

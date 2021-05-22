@@ -123,10 +123,10 @@ long S_VolSetLogParms(RPC2_Handle rpcid, VolumeId Vid, RPC2_Integer OnFlag,
                  maxlogsize);
         }
     }
-    rvmlib_end_transaction(flush, &(status));
+    rvmlib_end_transaction(flush, &status);
 
     VUpdateVolume(&error, volptr);
-    if (error)
+    if (error || status)
         VLog(0, "S_VolSetLogParms: Error updating volume %x", Vid);
 
 exit:

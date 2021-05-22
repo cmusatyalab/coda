@@ -157,7 +157,7 @@ long S_VolCreate(RPC2_Handle rpcid, RPC2_String formal_partition,
         status = VFAIL;
         goto exit;
     }
-    rvmlib_end_transaction(flush, &(status));
+    rvmlib_end_transaction(flush, &status);
 
     /* If we are creating a replicated volume, pass along group id */
     vp = VCreateVolume(&error, partition, volumeId, parentId,
@@ -170,12 +170,14 @@ long S_VolCreate(RPC2_Handle rpcid, RPC2_String formal_partition,
     }
     V_uniquifier(vp)   = 1;
     V_creationDate(vp) = V_copyDate(vp);
-    V_inService(vp) = V_blessed(vp) = 1;
+    V_inService(vp)    = 1;
+    V_blessed(vp)      = 1;
 
     V_type(vp) = repvol ? readwriteVolume : nonReplicatedVolume;
     AssignVolumeName(&V_disk(vp), volname, 0);
 
-    /* transaction must include both ViceCreateRoot and VUpdateVolume for vv atomicity */
+    /* transaction must include both ViceCreateRoot and VUpdateVolume for vv atomicity.
+     * but VUpdateVolume can't be called from within a transaction... -JH */
     rvmlib_begin_transaction(restore);
     if (!ViceCreateRoot(vp)) {
         VLog(0, "Unable to create the volume root; aborted");
@@ -184,10 +186,11 @@ long S_VolCreate(RPC2_Handle rpcid, RPC2_String formal_partition,
         goto exit;
     }
 
-    V_destroyMe(vp) = V_needsSalvaged(vp) = 0;
-    V_linkcount(vp)                       = 1;
+    V_destroyMe(vp)     = 0;
+    V_needsSalvaged(vp) = 0;
+    V_linkcount(vp)     = 1;
     V_volumeindex(vp);
-    rvmlib_end_transaction(flush, &(status));
+    rvmlib_end_transaction(flush, &status);
 
     VUpdateVolume(&error, vp);
     CODA_ASSERT(error == 0);
