@@ -429,7 +429,6 @@ int CloneVnode(Volume *rwVp, Volume *cloneVp, int vnodeIndex,
     VnodeDiskObject *vdo;
     int docreate        = FALSE;
     rvm_return_t status = RVM_SUCCESS;
-    Vnode *tmp          = NULL;
 
     VLog(9, "CloneVnode: Cloning %s vnode %x.%x.%x\n",
          (vclass == vLarge) ? "Large" : "Small", V_id(rwVp), vnodeNum,
@@ -439,20 +438,6 @@ int CloneVnode(Volume *rwVp, Volume *cloneVp, int vnodeIndex,
     vnode->vol_index = V_volumeindex(cloneVp);
 
     /* update inode */
-
-    /* Mark the RW vnode as cloned, !docreate ==> vnode was cloned. */
-    if (VolumeWriteable(rwVp) && !docreate) {
-        Vnode *tmp = VGetVnode(&error, rwVp, vnodeNum, vnode->uniquifier,
-                               WRITE_LOCK, 1, 1);
-        if (error) {
-            VLog(0, "CloneVnode(%s): Error %d getting vnode index %d",
-                 (vclass == vLarge) ? "Large" : "Small", error, vnodeIndex);
-            return error;
-        }
-
-        /* this change won't actually commit until VPutVnode is called later */
-        tmp->disk.cloned = 1;
-    }
 
     rvmlib_begin_transaction(restore);
 
@@ -493,11 +478,21 @@ int CloneVnode(Volume *rwVp, Volume *cloneVp, int vnodeIndex,
     vdo = (VnodeDiskObject *)rvmlib_rec_malloc(size);
     rvmlib_modify_bytes(vdo, vnode, size);
     rvlist[vnodeIndex].append(&vdo->nextvn);
-    rvmlib_end_transaction(flush, &(status));
+    rvmlib_end_transaction(flush, &status);
     CODA_ASSERT(status == 0);
 
-    if (tmp) {
-        VPutVnode(&error, tmp);
+    /* Mark the RW vnode as cloned, !docreate ==> vnode was cloned. */
+    if (VolumeWriteable(rwVp) && !docreate) {
+        Vnode *tmp = VGetVnode(&error, rwVp, vnodeNum, vnode->uniquifier,
+                               WRITE_LOCK, 1, 1);
+        if (error) {
+            VLog(0, "CloneVnode(%s): Error %d getting vnode index %d",
+                 (vclass == vLarge) ? "Large" : "Small", error, vnodeIndex);
+            return error;
+        }
+
+        tmp->disk.cloned = 1;
+        VPutVnode(&error, tmp); /* Check error? */
         CODA_ASSERT(error == 0);
     }
     return 0;
