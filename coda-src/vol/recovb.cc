@@ -339,14 +339,14 @@ static int DeleteVnode(int volindex, int vclass, VnodeId vnodeindex, Unique_t u,
     maxid = (SRV_RVM(MaxVolId) & 0x00FFFFFF);
     if (volindex < 0 || volindex > (int)maxid || volindex > MAXVOLS) {
         VLog(0, "DeleteVnode: bogus volume index %d", volindex);
-        return -1;
+        return VNOVOL;
     }
 
     if (vclass == vSmall) {
         if (vnodeindex >= SRV_RVM(VolumeList[volindex]).data.nsmallLists) {
             VLog(0, "DeleteVnode: deleting nonexistent vnode (index %d)",
                  vnodeindex);
-            return -1;
+            return ENOSPC;
         }
         vlist =
             &(SRV_RVM(VolumeList[volindex]).data.smallVnodeLists[vnodeindex]);
@@ -356,7 +356,7 @@ static int DeleteVnode(int volindex, int vclass, VnodeId vnodeindex, Unique_t u,
         if (vnodeindex >= SRV_RVM(VolumeList[volindex]).data.nlargeLists) {
             VLog(0, "DeleteVnode: deleting nonexistent vnode (index %d)",
                  vnodeindex);
-            return -1;
+            return ENOSPC;
         }
         vlist =
             &(SRV_RVM(VolumeList[volindex]).data.largeVnodeLists[vnodeindex]);
