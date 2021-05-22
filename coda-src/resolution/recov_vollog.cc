@@ -608,13 +608,13 @@ int recov_vol_log::AllocViaWrapAround(int *index, int *seqno, Volume *volptr,
             RecovFreeRecord(le->index);
             *index = le->index;
             rvmlib_end_transaction(flush, &status);
-            if (status != RVM_SUCCESS)
-                return (ENOSPC);
 
             Error fileCode = 0;
             VPutVnode(&fileCode, vptr);
             CODA_ASSERT(fileCode == 0);
             vptr = 0;
+            if (status != RVM_SUCCESS)
+                return (ENOSPC);
             FreeVMIndices(volptr, &ind);
             break;
         }
