@@ -558,9 +558,7 @@ int reintvol::ValidateFSOs()
         fsobj *tf = 0;
         code      = FSDB->Get(&tf, &f->fid, vp->u.u_uid, whatToGet);
 
-        Recov_BeginTrans();
         FSDB->Put(&tf);
-        Recov_EndTrans(MAXFP);
 
         if (n)
             FSO_RELE(n);

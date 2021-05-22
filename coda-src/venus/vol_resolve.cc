@@ -295,8 +295,8 @@ void resent::HandleResult(int code)
             f->Lock(WR);
             Recov_BeginTrans();
             f->Kill();
-            FSDB->Put(&f);
             Recov_EndTrans(CMFP);
+            FSDB->Put(&f);
         }
     }
 

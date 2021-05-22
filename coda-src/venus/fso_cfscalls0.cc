@@ -1819,8 +1819,8 @@ Exit:
             FSO_ASSERT(target_fso, !HAVESTATUS(target_fso));
             Recov_BeginTrans();
             target_fso->Kill();
-            FSDB->Put(&target_fso);
             Recov_EndTrans(DMFP);
+            FSDB->Put(&target_fso);
         }
     }
     return (code);

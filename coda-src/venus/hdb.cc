@@ -452,9 +452,7 @@ void hdb::ValidateCacheStatus(vproc *vp, int *interrupt_failures,
             if (tf)
                 statusBytesFetched += tf->stat.Length;
 
-            Recov_BeginTrans();
             FSDB->Put(&tf);
-            Recov_EndTrans(MAXFP);
 
             int retry_call;
             vp->End_VFS(&retry_call);
@@ -735,10 +733,7 @@ void hdb::DataWalk(vproc *vp, int TotalBytesToFetch, int BytesFetched)
 
                 fsobj *tf     = 0;
                 vp->u.u_error = FSDB->Get(&tf, &tfid, vp->u.u_uid, RC_DATA);
-
-                Recov_BeginTrans();
                 FSDB->Put(&tf);
-                Recov_EndTrans(MAXFP);
 
                 int retry_call = 0;
                 vp->End_VFS(&retry_call);
@@ -2060,11 +2055,7 @@ void namectxt::MetaExpand()
 
                 fsobj *tf     = 0;
                 vp->u.u_error = FSDB->Get(&tf, &tfid, vp->u.u_uid, RC_DATA);
-
-                Recov_BeginTrans();
                 FSDB->Put(&tf);
-                Recov_EndTrans(MAXFP);
-
                 int retry_call = 0;
                 vp->End_VFS(&retry_call);
                 if (!retry_call)

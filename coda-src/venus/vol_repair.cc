@@ -139,9 +139,7 @@ static int GetRepairF(char *RepairFile, uid_t uid,
     }
 
     if (!(*RepairF)->IsFile()) {
-        Recov_BeginTrans();
         FSDB->Put(RepairF);
-        Recov_EndTrans(MAXFP);
 
         LOG(0, ("GetRepairF: wasn't a file!\n"));
         return EINVAL;
@@ -184,19 +182,14 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
             }
             LOG(0, ("repvol::Repair: %s (%s) fsdb::Get failed with code %d\n",
                     f->GetComp(), FID_(RepairFid), code));
-            Recov_BeginTrans();
             FSDB->Put(&f);
-            Recov_EndTrans(MAXFP);
             return (code);
         }
 
         localFake = f->IsToBeRepaired();
 
         rFid = RepairFid;
-
-        Recov_BeginTrans();
         FSDB->Put(&f);
-        Recov_EndTrans(MAXFP);
     }
 
     LOG(0, ("repvol::Repair: (%s) inconsistent!\n", FID_(RepairFid)));
@@ -255,10 +248,7 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
                 if (FSDB->Get(&f, &rwfid, uid, RC_STATUS) != 0)
                     continue;
                 RepairVVs[i] = &f->stat.VV; /* XXX */
-
-                Recov_BeginTrans();
                 FSDB->Put(&f);
-                Recov_EndTrans(MAXFP);
             }
         GetMaxVV(&tvv, RepairVVs, -2);
 
@@ -413,9 +403,7 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
                             LOG(0, ("Repair: FSDB->Get(%s) error: %d",
                                     FID_(RepairFid), rep_ent[i].name));
                             if (local) {
-                                Recov_BeginTrans();
                                 FSDB->Put(&local);
-                                Recov_EndTrans(MAXFP);
                             }
                             goto Exit;
                         }
@@ -429,10 +417,7 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
                         }
                         fidarr[i] = e->fid;
                         LCarr[i]  = e->stat.LinkCount;
-
-                        Recov_BeginTrans();
                         FSDB->Put(&e);
-                        Recov_EndTrans(MAXFP);
 
                         if (rep_ent[i].opcode == REPAIR_RENAME) {
                             code = local->Lookup(&e, NULL, rep_ent[i].newname,
@@ -445,15 +430,9 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
                             fidarr[(l->repairCount + i)]       = e->fid;
                             fidarr[((2 * l->repairCount) + i)] = e->pfid;
                             LCarr[(l->repairCount + i)] = e->stat.LinkCount;
-
-                            Recov_BeginTrans();
                             FSDB->Put(&e);
-                            Recov_EndTrans(MAXFP);
                         }
-
-                        Recov_BeginTrans();
                         FSDB->Put(&local);
-                        Recov_EndTrans(MAXFP);
                     }
                 }
             }
@@ -654,9 +633,7 @@ Exit:
     if (m)
         m->Put();
 
-    Recov_BeginTrans();
     FSDB->Put(&RepairF);
-    Recov_EndTrans(MAXFP);
 
     if (LCarr != NULL)
         free(LCarr);
@@ -673,8 +650,8 @@ Exit:
             Recov_BeginTrans();
             f->flags.fake = 0; /* so we can refetch status before death?? */
             f->Kill();
-            FSDB->Put(&f);
             Recov_EndTrans(MAXFP);
+            FSDB->Put(&f);
         }
         /* Invoke an asynchronous resolve for directories. */
         if (ISDIR(*RepairFid)) {
@@ -735,20 +712,14 @@ int repvol::DisconnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
             } else
                 LOG(0, ("DisconnectedRepair: %s (%s) Get failed with code %d\n",
                         f->GetComp(), FID_(RepairFid), code));
-
-            Recov_BeginTrans();
             FSDB->Put(&f);
-            Recov_EndTrans(MAXFP);
             return (code);
         }
 
         /* save the fid of the parent of the inconsistent object */
         tpfid.Vnode  = f->pfid.Vnode;
         tpfid.Unique = f->pfid.Unique;
-
-        Recov_BeginTrans();
         FSDB->Put(&f);
-        Recov_EndTrans(MAXFP);
     }
 
     LOG(0, ("DisconnectedRepair: (%s) inconsistent!\n", FID_(RepairFid)));
@@ -761,21 +732,24 @@ int repvol::DisconnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
                 ("DisconnectedRepair: Parent fid is NULL - cannot check access control\n"));
             return (EACCES);
         }
+
         /* check the parent's rights for write permission*/
         fsobj *parentf = 0;
-        code           = FSDB->Get(&parentf, &tpfid, uid, RC_STATUS);
-        if (code == 0) {
+
+        code = FSDB->Get(&parentf, &tpfid, uid, RC_STATUS);
+        if (code) {
+            LOG(0, ("DisconnectedRepair: Couldn't get parent (%s)\n",
+                    FID_(&tpfid)));
+        } else {
             code = parentf->Access(PRSFS_WRITE, C_A_W_OK, vp->u.u_uid);
             if (code)
                 LOG(0, ("DisconnectedRepair: Access disallowed (%s)\n",
                         FID_(&tpfid)));
-        } else
-            LOG(0, ("DisconnectedRepair: Couldn't get parent (%s)\n",
-                    FID_(&tpfid)));
+        }
 
-        Recov_BeginTrans();
-        FSDB->Put(&parentf);
-        Recov_EndTrans(MAXFP);
+        if (parentf)
+            FSDB->Put(&parentf);
+
         if (code)
             return code;
     }
@@ -806,9 +780,7 @@ int repvol::DisconnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
                     CODA_ASSERT(tpfid.Vnode == f->pfid.Vnode);
                     CODA_ASSERT(tpfid.Unique == f->pfid.Unique);
                 }
-                Recov_BeginTrans();
                 FSDB->Put(&f);
-                Recov_EndTrans(MAXFP);
             }
         GetMaxVV(&tvv, RepairVVs, -2);
         /* don't generate a new storeid yet - LogRepair will do that */
@@ -866,6 +838,7 @@ int repvol::DisconnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 
             Recov_BeginTrans();
             f->Kill();
+            Recov_EndTrans(MAXFP);
 
             if (f->refcnt > 1) {
                 LOG(0,
@@ -875,16 +848,11 @@ int repvol::DisconnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
                  * Instead of failing, put an informative message on console
                  * and ask user to retry */
                 f->ClearRcRights();
+                FSDB->Put(&f);
                 code = ERETRY;
-            } else
-                code = 0;
-
-            FSDB->Put(&f);
-            Recov_EndTrans(MAXFP);
-
-            if (code)
                 goto Exit;
-
+            }
+            FSDB->Put(&f);
             /* Ought to flush its descendents too? XXX -PK */
         }
         /* attempt the create now */
@@ -892,7 +860,7 @@ int repvol::DisconnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
         /* need to get the priority from the vproc pointer */
         f = FSDB->Create(RepairFid, vp->u.u_priority, NULL, NULL);
         /* don't know the component name */
-        if (f == 0) {
+        if (f == NULL) {
             UpdateCacheStats(&FSDB->FileAttrStats, NOSPACE,
                              NBLOCKS(sizeof(fsobj)));
             LOG(0,
@@ -925,19 +893,16 @@ int repvol::DisconnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
                 f, &status, RepairF ? RepairF->data.file->Name() : RepairFile,
                 &tpfid);
 
-        if (code != 0) {
-            /* kill the object? - XXX */
-            f->Kill();
-        }
-        FSDB->Put(&f);
+        if (code != 0)
+            f->Kill(); /* kill the object? - XXX */
+
         Recov_EndTrans(DMFP);
+        FSDB->Put(&f);
     }
 
 Exit:
     if (RepairF) {
-        Recov_BeginTrans();
         FSDB->Put(&RepairF);
-        Recov_EndTrans(MAXFP);
     }
     LOG(0, ("DisconnectedRepair: returns %u\n", code));
     return (code);

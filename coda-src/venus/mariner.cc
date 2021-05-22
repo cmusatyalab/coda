@@ -661,9 +661,7 @@ void mariner::FidStat(VenusFid *fid)
         f->print(fd);
 
     FreeLocks:
-        Recov_BeginTrans();
         FSDB->Put(&f);
-        Recov_EndTrans(MAXFP);
 
         int retry_call = 0;
         End_VFS(&retry_call);

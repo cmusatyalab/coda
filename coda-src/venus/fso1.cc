@@ -1321,9 +1321,9 @@ int fsobj::TryToCover(VenusFid *inc_fid, uid_t uid)
     rf->MountRoot(this);
     CoverMtPt(rf);
 
-    FSDB->Put(&rf);
     Recov_EndTrans(MAXFP);
 
+    FSDB->Put(&rf);
     VDB->Put(&tvol);
     return (0);
 }

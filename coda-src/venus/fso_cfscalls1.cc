@@ -441,8 +441,8 @@ Exit:
             FSO_ASSERT(target_fso, !HAVESTATUS(target_fso));
             Recov_BeginTrans();
             target_fso->Kill();
-            FSDB->Put(&target_fso);
             Recov_EndTrans(DMFP);
+            FSDB->Put(&target_fso);
         }
     }
     return (code);
@@ -643,8 +643,8 @@ Exit:
             FSO_ASSERT(target_fso, !HAVESTATUS(target_fso));
             Recov_BeginTrans();
             target_fso->Kill();
-            FSDB->Put(&target_fso);
             Recov_EndTrans(DMFP);
+            FSDB->Put(&target_fso);
         }
     }
     return (code);
@@ -666,9 +666,7 @@ int fsobj::Symlink(char *s_name, char *t_name, uid_t uid, unsigned short Mode,
 
     if (code == 0) {
         /* Target is NOT an OUT parameter. */
-        Recov_BeginTrans();
         FSDB->Put(&target_fso);
-        Recov_EndTrans(DMFP);
     } else {
         Demote();
     }

@@ -365,9 +365,7 @@ void vproc::GetPath(VenusFid *fid, char *out, int *outlen, int fullpath)
         have_last = 1;
 
     FreeLocks:
-        Recov_BeginTrans();
         FSDB->Put(&f);
-        Recov_EndTrans(MAXFP);
 
         int retry_call = 0;
         End_VFS(&retry_call);

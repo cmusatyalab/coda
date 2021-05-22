@@ -131,7 +131,7 @@ int fsobj::ExpandObject(void)
         fakedir->AttachChild(fakelink);
         LOG(10, ("fsobj::ExpandObject: new entry (%s, %s) -> %s\n", name,
                  FID_(&fakelink->fid), FID_(&fid)));
-        FSDB->Put(&fakelink);
+        FSDB->Put_nogc(&fakelink);
     }
 
     { /* Make entries for each of the rw-replicas. */
@@ -157,7 +157,7 @@ int fsobj::ExpandObject(void)
             fakedir->AttachChild(fakelink);
             LOG(10, ("fsobj::ExpandObject: new entry (%s, %s) -> %s\n", s->name,
                      FID_(&fakelink->fid), FID_(&replicafid)));
-            FSDB->Put(&fakelink);
+            FSDB->Put_nogc(&fakelink);
         }
     }
 
@@ -177,7 +177,7 @@ int fsobj::ExpandObject(void)
         fakelink->pfid = mod_fso->fid;
         mod_fso->dir_Create(name, &fakelink->fid);
         mod_fso->AttachChild(fakelink);
-        FSDB->Put(&fakelink);
+        FSDB->Put_nogc(&fakelink);
     }
 
     RVMLIB_REC_OBJECT(mod_fso->flags);
@@ -193,8 +193,8 @@ int fsobj::ExpandObject(void)
 
     FSO_HOLD(this);
 
-    FSDB->Put(&fakedir);
     Recov_EndTrans(DMFP);
+    FSDB->Put(&fakedir);
 
     /* make sure we tell the kernel about the changes */
     k_Purge(&mod_fso->fid, 1);
@@ -416,8 +416,9 @@ int fsobj::CollapseObject(void)
      * It could be that the FSO_HOLD in ExpandObject
      * is not recorded in RVM and gets lost. This conditional
      * may not fix every case of this problem. -AW */
-    FSDB->Put(&localcache);
     Recov_EndTrans(DMFP);
+
+    FSDB->Put(&localcache);
     return rc;
 }
 

@@ -3717,8 +3717,8 @@ void cmlent::abort()
 
         Recov_BeginTrans();
         f->Kill();
-        FSDB->Put(&f);
         Recov_EndTrans(DMFP);
+        FSDB->Put(&f);
     }
 
     delete this;

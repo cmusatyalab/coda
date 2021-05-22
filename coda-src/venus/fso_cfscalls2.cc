@@ -615,10 +615,7 @@ int fsobj::Access(int rights, int modes, uid_t uid)
         code              = FSDB->Get(&parent_fso, &parent_fid, uid, RC_STATUS);
         if (code == 0)
             code = parent_fso->Access(rights, C_A_F_OK, uid);
-
-        Recov_BeginTrans();
         FSDB->Put(&parent_fso);
-        Recov_EndTrans(MAXFP);
 
         /* Reacquire the child at the appropriate level and unpin it. */
         Lock(level);
@@ -768,10 +765,7 @@ int fsobj::Lookup(fsobj **target_fso_addr, VenusFid *inc_fid, const char *name,
             if (target_fso->IsMTLink()) {
                 /* We must have the data here. */
                 if (!HAVEALLDATA(target_fso)) {
-                    Recov_BeginTrans();
                     FSDB->Put(&target_fso);
-                    Recov_EndTrans(MAXFP);
-
                     status |= RC_DATA;
                     goto get_object;
                 }
@@ -779,9 +773,7 @@ int fsobj::Lookup(fsobj **target_fso_addr, VenusFid *inc_fid, const char *name,
                 target_fso->PromoteLock();
                 code = target_fso->TryToCover(inc_fid, uid);
                 if (code == EINCONS || code == ERETRY) {
-                    Recov_BeginTrans();
                     FSDB->Put(&target_fso);
-                    Recov_EndTrans(MAXFP);
                     goto done;
                 }
                 code = 0;
@@ -793,11 +785,7 @@ int fsobj::Lookup(fsobj **target_fso_addr, VenusFid *inc_fid, const char *name,
                 /* Get the volume root, and release the mount point. */
                 fsobj *root_fso = target_fso->u.root;
                 root_fso->Lock(RD);
-
-                Recov_BeginTrans();
                 FSDB->Put(&target_fso);
-                Recov_EndTrans(MAXFP);
-
                 target_fso = root_fso;
             }
         }

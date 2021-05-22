@@ -157,9 +157,7 @@ void vproc::vget(struct venus_cnode *vpp, VenusFid *vfid, int what)
         if (u.u_error && u.u_nc)
             u.u_nc->CheckComponent(f);
 
-        Recov_BeginTrans();
         FSDB->Put(&f);
-        Recov_EndTrans(MAXFP);
 
         int retry_call = 0;
         End_VFS(&retry_call);
@@ -232,9 +230,7 @@ void vproc::open(struct venus_cnode *cp, int flags)
             goto FreeLocks;
 
     FreeLocks:
-        Recov_BeginTrans();
         FSDB->Put(&f);
-        Recov_EndTrans(MAXFP);
 
         int retry_call = 0;
         End_VFS(&retry_call);
@@ -283,9 +279,7 @@ void vproc::close(struct venus_cnode *cp, int flags)
     u.u_error = f->Close(writep, u.u_uid /*, not_written */);
 
 FreeLocks:
-    Recov_BeginTrans();
     FSDB->Put(&f);
-    Recov_EndTrans(MAXFP);
 
     End_VFS(NULL);
 
@@ -339,9 +333,7 @@ void vproc::getattr(struct venus_cnode *cp, struct coda_vattr *vap)
         f->GetVattr(vap);
 
     FreeLocks:
-        Recov_BeginTrans();
         FSDB->Put(&f);
-        Recov_EndTrans(MAXFP);
 
         int retry_call = 0;
         End_VFS(&retry_call);
@@ -523,9 +515,7 @@ void vproc::setattr(struct venus_cnode *cp, struct coda_vattr *vap)
         u.u_error = f->SetAttr(vap, u.u_uid);
 
     FreeLocks:
-        Recov_BeginTrans();
         FSDB->Put(&f);
-        Recov_EndTrans(MAXFP);
 
         int retry_call = 0;
         End_VFS(&retry_call);
@@ -590,9 +580,7 @@ void vproc::access(struct venus_cnode *cp, int mode)
             goto FreeLocks;
 
     FreeLocks:
-        Recov_BeginTrans();
         FSDB->Put(&f);
-        Recov_EndTrans(MAXFP);
 
         int retry_call = 0;
         End_VFS(&retry_call);
@@ -676,10 +664,8 @@ void vproc::lookup(struct venus_cnode *dcp, const char *name,
         if (u.u_error == 0 && u.u_nc)
             u.u_nc->CheckComponent(target_fso);
 
-        Recov_BeginTrans();
         FSDB->Put(&parent_fso);
         FSDB->Put(&target_fso);
-        Recov_EndTrans(MAXFP);
 
         int retry_call = 0;
         End_VFS(&retry_call);
@@ -736,9 +722,7 @@ void vproc::create(struct venus_cnode *dcp, char *name, struct coda_vattr *vap,
 
         u.u_error = parent_fso->Lookup(&target_fso, NULL, name, u.u_uid, flags);
         if (u.u_error == 0) {
-            Recov_BeginTrans();
             FSDB->Put(&parent_fso); /* avoid deadlock! */
-            Recov_EndTrans(MAXFP);
 
             /* Found target.  Error if EXCL requested. */
             if (exclp) {
@@ -766,9 +750,7 @@ void vproc::create(struct venus_cnode *dcp, char *name, struct coda_vattr *vap,
 
             /* We need the data now. XXX -JJK */
             VenusFid target_fid = target_fso->fid;
-            Recov_BeginTrans();
             FSDB->Put(&target_fso);
-            Recov_EndTrans(MAXFP);
 
             u.u_error = FSDB->Get(&target_fso, &target_fid, u.u_uid, RC_DATA);
             if (u.u_error)
@@ -810,10 +792,8 @@ void vproc::create(struct venus_cnode *dcp, char *name, struct coda_vattr *vap,
         MAKE_CNODE2(*cp, target_fso->fid, C_VREG);
 
     FreeLocks:
-        Recov_BeginTrans();
         FSDB->Put(&parent_fso);
         FSDB->Put(&target_fso);
-        Recov_EndTrans(MAXFP);
 
         int retry_call = 0;
         End_VFS(&retry_call);
@@ -876,10 +856,8 @@ void vproc::remove(struct venus_cnode *dcp, char *name)
         u.u_error = parent_fso->Remove(name, target_fso, u.u_uid);
 
     FreeLocks:
-        Recov_BeginTrans();
         FSDB->Put(&parent_fso);
         FSDB->Put(&target_fso);
-        Recov_EndTrans(MAXFP);
 
         int retry_call = 0;
         End_VFS(&retry_call);
@@ -1004,11 +982,9 @@ void vproc::link(struct venus_cnode *scp, struct venus_cnode *dcp, char *toname)
         u.u_error = parent_fso->Link(toname, source_fso, u.u_uid);
 
     FreeLocks:
-        Recov_BeginTrans();
         FSDB->Put(&source_fso);
         FSDB->Put(&parent_fso);
         FSDB->Put(&target_fso);
-        Recov_EndTrans(MAXFP);
 
         int retry_call = 0;
         End_VFS(&retry_call);
@@ -1132,9 +1108,7 @@ void vproc::rename(struct venus_cnode *spcp, char *name,
             //if (s_fso->IsDir())
             {
                 VenusFid s_fid = s_fso->fid;
-                Recov_BeginTrans();
                 FSDB->Put(&s_fso);
-                Recov_EndTrans(MAXFP);
 
                 u.u_error = FSDB->Get(&s_fso, &s_fid, u.u_uid, RC_DATA, name);
                 if (u.u_error)
@@ -1158,9 +1132,7 @@ void vproc::rename(struct venus_cnode *spcp, char *name,
 
             if (t_fso->IsDir()) {
                 VenusFid t_fid = t_fso->fid;
-                Recov_BeginTrans();
                 FSDB->Put(&t_fso);
-                Recov_EndTrans(MAXFP);
 
                 u.u_error = FSDB->Get(&t_fso, &t_fid, u.u_uid, RC_DATA, toname);
                 if (u.u_error)
@@ -1252,9 +1224,7 @@ void vproc::rename(struct venus_cnode *spcp, char *name,
                         goto FreeLocks;
                     test_fid = test_fso->pfid;
 
-                    Recov_BeginTrans();
                     FSDB->Put(&test_fso);
-                    Recov_EndTrans(MAXFP);
                 }
             }
         }
@@ -1285,12 +1255,10 @@ void vproc::rename(struct venus_cnode *spcp, char *name,
                                          t_fso, u.u_uid);
 
     FreeLocks:
-        Recov_BeginTrans();
         FSDB->Put(&s_parent_fso);
         FSDB->Put(&t_parent_fso);
         FSDB->Put(&s_fso);
         FSDB->Put(&t_fso);
-        Recov_EndTrans(MAXFP);
 
         int retry_call = 0;
         End_VFS(&retry_call);
@@ -1364,10 +1332,8 @@ void vproc::mkdir(struct venus_cnode *dcp, char *name, struct coda_vattr *vap,
         MAKE_CNODE2(*cp, target_fso->fid, C_VDIR);
 
     FreeLocks:
-        Recov_BeginTrans();
         FSDB->Put(&parent_fso);
         FSDB->Put(&target_fso);
-        Recov_EndTrans(MAXFP);
 
         int retry_call = 0;
         End_VFS(&retry_call);
@@ -1435,9 +1401,7 @@ void vproc::rmdir(struct venus_cnode *dcp, char *name)
         /* Must have data for the target. */
         VenusFid target_fid;
         target_fid = target_fso->fid;
-        Recov_BeginTrans();
         FSDB->Put(&target_fso);
-        Recov_EndTrans(MAXFP);
 
         u.u_error = FSDB->Get(&target_fso, &target_fid, u.u_uid, RC_DATA, name);
         if (u.u_error)
@@ -1460,10 +1424,8 @@ void vproc::rmdir(struct venus_cnode *dcp, char *name)
         u.u_error = parent_fso->Rmdir(name, target_fso, u.u_uid);
 
     FreeLocks:
-        Recov_BeginTrans();
         FSDB->Put(&parent_fso);
         FSDB->Put(&target_fso);
-        Recov_EndTrans(MAXFP);
 
         int retry_call = 0;
         End_VFS(&retry_call);
@@ -1533,10 +1495,8 @@ void vproc::symlink(struct venus_cnode *dcp, char *contents,
         /* Target is not an OUT parameter. */
 
     FreeLocks:
-        Recov_BeginTrans();
         FSDB->Put(&parent_fso);
         FSDB->Put(&target_fso);
-        Recov_EndTrans(MAXFP);
 
         int retry_call = 0;
         End_VFS(&retry_call);
@@ -1598,9 +1558,7 @@ void vproc::readlink(struct venus_cnode *cp, struct coda_string *string)
             goto FreeLocks;
 
     FreeLocks:
-        Recov_BeginTrans();
         FSDB->Put(&f);
-        Recov_EndTrans(MAXFP);
 
         int retry_call = 0;
         End_VFS(&retry_call);
@@ -1653,9 +1611,7 @@ void vproc::fsync(struct venus_cnode *cp)
         }
 
     FreeLocks:
-        Recov_BeginTrans();
         FSDB->Put(&f);
-        Recov_EndTrans(MAXFP);
 
         int retry_call = 0;
         End_VFS(&retry_call);

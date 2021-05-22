@@ -543,9 +543,7 @@ int fsdb::Get(fsobj **f_addr, VenusFid *key, uid_t uid, int rights,
                                 GetInconsistent);
 
             if (vp->u.u_error != 0) {
-                Recov_BeginTrans();
                 Put(f_addr);
-                Recov_EndTrans(MAXFP);
             }
 
             retry_call = 0;
@@ -638,8 +636,8 @@ RestartFind:
                         f->GetComp(), FID_(&f->fid)));
                 Recov_BeginTrans();
                 f->Kill();
-                Put(&f); /* will unlock and garbage collect */
                 Recov_EndTrans(MAXFP);
+                Put(&f); /* will unlock and garbage collect */
                 return (EIO);
             }
         }
@@ -952,23 +950,18 @@ RestartFind:
     return 0;
 
 err_out:
-    Recov_BeginTrans();
     Put(&f);
-    Recov_EndTrans(MAXFP);
     return code;
 }
 
-/* MUST be called from within transaction! */
-void fsdb::Put(fsobj **f_addr)
+/* This is mostly the same as fsdb::Put, but it does not trigger
+ * the GC step and... */
+/* MAY be called from within transaction */
+void fsdb::Put_nogc(fsobj **f_addr)
 {
-    if (!(*f_addr)) {
-        LOG(100, ("fsdb::Put: Null FSO\n"));
-        return;
-    }
-
     fsobj *f = *f_addr;
     LOG(100,
-        ("fsdb::Put: (%s), refcnt = %d, readers = %d, writers = %d, openers = %d\n",
+        ("fsdb::Put_nogc: (%s), refcnt = %d, readers = %d, writers = %d, openers = %d\n",
          FID_(&f->fid), f->refcnt, f->readers, f->writers, f->openers));
 
     if (f->readers == 0 && f->writers == 0) {
@@ -978,13 +971,28 @@ void fsdb::Put(fsobj **f_addr)
     LockLevel level = (f->readers > 0 ? RD : WR);
     f->UnLock(level);
 
+    (*f_addr) = 0;
+}
+
+/* MUST NOT be called from within transaction! */
+void fsdb::Put(fsobj **f_addr)
+{
+    fsobj *f = *f_addr;
+    if (f == NULL) {
+        LOG(100, ("fsdb::Put: Null FSO\n"));
+        return;
+    }
+
+    Put_nogc(f_addr); /* will set *f_addr to NULL */
+
     /* Perform GC if necessary. */
     if (GCABLE(f)) {
         LOG(10, ("fsdb::Put: GC (%s)\n", FID_(&f->fid)));
-        f->GC();
-    }
 
-    (*f_addr) = 0;
+        Recov_BeginTrans();
+        f->GC();
+        Recov_EndTrans(MAXFP);
+    }
 }
 
 /* MUST NOT be called from within transaction! */
