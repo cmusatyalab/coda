@@ -44,13 +44,13 @@ def extract_symbols(filename):
     for sym in output.split("\n"):
         if not sym:
             continue
-        addr, t, symbol = sym[:16], sym[17], sym[19:]
+        _addr, symbol_type, symbol_name = sym[:16], sym[17], sym[19:]  # noqa: F841
 
-        if t == "T":
-            defined.add(symbol)
+        if symbol_type == "T":
+            defined.add(symbol_name)
 
-        elif t == "U":
-            used.add(symbol)
+        elif symbol_type == "U":
+            used.add(symbol_name)
 
     return demangle(defined), demangle(used)
 

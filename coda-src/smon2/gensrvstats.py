@@ -12,6 +12,11 @@
 #
 #########################################################################
 
+import cgi
+import os
+import sys
+import traceback
+
 LOGDIR = "/var/log/smon2"
 IMGDIR = "/home/httpd/html/smon2"
 IMGURL = "/smon2/"
@@ -34,11 +39,6 @@ srvmap = [
 
 ##########################################################################
 
-import cgi
-import os
-import sys
-import traceback
-
 print(
     """Content-type: text/html\n
 <HTML><HEAD><TITLE>Server statistics</TITLE></HEAD>
@@ -48,7 +48,7 @@ print(
 sys.stderr = sys.stdout
 
 
-class hell(BaseException):
+class Hell(BaseException):
     freezing = "over"
 
 
@@ -199,7 +199,8 @@ COMMENT:\"Number of blocks available\" \
 GPRINT:d1now:LAST:\"Disk1\\: %%.0lf\" \
 GPRINT:d2now:LAST:\"Disk2\\: %%.0lf\" \
 GPRINT:d3now:LAST:\"Disk3\\: %%.0lf\" \
-GPRINT:d4now:LAST:\"Disk4\\: %%.0lf\"""",
+GPRINT:d4now:LAST:\"Disk4\\: %%.0lf\"
+""",
     ),
 }
 
@@ -218,30 +219,30 @@ timemap = {
 try:
     form = cgi.FieldStorage()
     if "servers" not in form or "stats" not in form:
-        raise hell
+        raise Hell
 
     servers = form["servers"]
     stats = form["stats"]
     period = form["period"]
 
-    if type(servers) != type([]):
+    if not isinstance(servers, list):
         servers = [servers]
-    if type(stats) != type([]):
+    if not isinstance(stats, list):
         stats = [stats]
-    if type(period) == type([]):
-        raise hell
+    if isinstance(period, list):
+        raise Hell
 
     for server in servers:
-        if not server.value in srvmap:
-            raise (hell, server.value)
+        if server.value not in srvmap:
+            raise Hell(server.value)
 
     period = timemap[period.value]
-    if form.has_key("logscale"):
-        logscale = "--logarithmic "
-        lapp = "_l"
+    if "logscale" in form:
+        LOGSCALE = "--logarithmic "
+        LAPP = "_l"
     else:
-        logscale = ""
-        lapp = ""
+        LOGSCALE = ""
+        LAPP = ""
 
     os.chdir(LOGDIR)
     rrdtool = os.popen("%s - > /dev/null 2>&1" % RRDTOOL, "w")
@@ -249,11 +250,11 @@ try:
     for stat in stats:
         for server in servers:
             srv = server.value
-            img = "%s_%s%s.gif" % (srv, stat.value, lapp)
+            img = "%s_%s%s.gif" % (srv, stat.value, LAPP)
             desc, ops = statmap[stat.value]
             cmd = (
                 "graph %s/%s -w 640 -h 200 %s" % (IMGDIR, img, period)
-                + logscale
+                + LOGSCALE
                 + ops % vars()
                 + "\n"
             )
@@ -264,7 +265,7 @@ try:
             print('<IMG SRC="%s%s">' % (IMGURL, img))
     rrdtool.close()
 
-except:
+except:  # noqa
     print("\n\n<PRE>")
     traceback.print_exc()
 
