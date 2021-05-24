@@ -1012,7 +1012,7 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
             if (LogLevel >= 10 && mysha.SeqLen == SHA_DIGEST_LENGTH) {
                 char printbuf[2 * SHA_DIGEST_LENGTH + 1];
                 ViceSHAtoHex(VenusSHA, printbuf, sizeof(printbuf));
-                dprint("mysha(%d, %d) = %s\n.", mysha.MaxSeqLen, mysha.SeqLen,
+                dprint("mysha(%d, %d) = %s\n", mysha.MaxSeqLen, mysha.SeqLen,
                        printbuf);
             }
 
