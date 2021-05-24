@@ -1052,7 +1052,7 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
                 /* If we have data, it is stale and must be discarded. */
                 /* Operation MUST be restarted from beginning since, even though this */
                 /* fetch was for status-only, the operation MAY be requiring data! */
-                if (HAVEDATA(this)) {
+                if (HAVEDATA(this) && !ACTIVE(this)) {
                     Recov_BeginTrans();
                     UpdateCacheStats((IsDir() ? &FSDB->DirDataStats :
                                                 &FSDB->FileDataStats),
