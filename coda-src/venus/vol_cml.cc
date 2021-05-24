@@ -3721,7 +3721,9 @@ void cmlent::abort()
         FSDB->Put(&f);
     }
 
+    Recov_BeginTrans();
     delete this;
+    Recov_EndTrans(DMFP);
 }
 
 /*  *****  Routines for Maintaining fsobj <--> cmlent Bindings  *****  */
