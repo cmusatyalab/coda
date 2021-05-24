@@ -1473,7 +1473,8 @@ void fsdb::ReclaimBlocks(int priority, int nblocks)
         MarinerLog("cache::Replace [data] %s [%d, %d]\n", f->GetComp(),
                    f->priority, ufs_blocks);
 
-        f->DiscardData();
+        if (HAVEDATA(f))
+            f->DiscardData();
 
         reclaimed += ufs_blocks - f->cf.ValidData();
 

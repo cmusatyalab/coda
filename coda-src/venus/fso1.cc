@@ -1927,8 +1927,8 @@ static void InjectSegmentCallback(uint64_t start, int64_t len,
 void fsobj::DiscardData()
 {
     if (!HAVEDATA(this)) {
-        print(logFile);
-        CHOKE("fsobj::DiscardData: !HAVEDATA");
+        LOG(0, ("fsobj::DiscardData: !HAVEDATA for (%s)\n", FID_(&fid)));
+        return;
     }
     if (ACTIVE(this) && !ISVASTRO(this)) {
         print(logFile);
