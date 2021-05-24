@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 5
+                              Release 8
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -43,16 +43,21 @@ Pittsburgh, PA.
 
 #include <sys/time.h>
 #include <stdlib.h>
+#include <assert.h>
 
 #include <lwp/lwp.h>
 #include <lwp/timer.h>
 #include "lwp.private.h"
 
+#if 0
+#define DEBUG(...) fprintf(stderr, __VA_ARGS__)
+#else
+#define DEBUG(...)
+#endif
+
 typedef unsigned char bool;
 
 #define expiration TotalTime
-
-#define new_elem() ((struct TM_Elem *)malloc(sizeof(struct TM_Elem)))
 
 #define MILLION 1000000
 
@@ -111,31 +116,34 @@ int TM_Init(struct TM_Elem **list)
         FT_Init(0, 0);
         globalInitDone = 1;
     }
-    *list = new_elem();
+    *list = malloc(sizeof(struct TM_Elem));
+
     if (*list == NULL)
         return -1;
-    else {
-        (*list)->Next              = *list;
-        (*list)->Prev              = *list;
-        (*list)->TotalTime.tv_sec  = 0;
-        (*list)->TotalTime.tv_usec = 0;
-        (*list)->TimeLeft.tv_sec   = 0;
-        (*list)->TimeLeft.tv_usec  = 0;
-        (*list)->BackPointer       = NULL;
 
-        return 0;
-    }
+    DEBUG("TM_Init(%p)\n", *list);
+
+    (*list)->Next              = *list;
+    (*list)->Prev              = *list;
+    (*list)->TotalTime.tv_sec  = 0;
+    (*list)->TotalTime.tv_usec = 0;
+    (*list)->TimeLeft.tv_sec   = 0;
+    (*list)->TimeLeft.tv_usec  = 0;
+    (*list)->BackPointer       = NULL;
+    return 0;
 }
 
 int TM_Final(struct TM_Elem **list)
 {
     if (list == NULL || *list == NULL)
         return -1;
-    else {
-        free((char *)*list);
-        *list = NULL;
-        return 0;
-    }
+
+    DEBUG("TM_Final(%p)\n", *list);
+    assert((*list)->Next == *list && (*list)->Prev == *list);
+
+    free((char *)*list);
+    *list = NULL;
+    return 0;
 }
 
 /*
@@ -145,6 +153,8 @@ int TM_Final(struct TM_Elem **list)
 void TM_Insert(struct TM_Elem *tlistPtr, struct TM_Elem *elem)
 {
     struct TM_Elem *next;
+
+    DEBUG("TM_Insert(%p, %p)\n", tlistPtr, elem);
 
     /* TimeLeft must be set for function IOMGR with infinite timeouts */
     elem->TimeLeft = elem->TotalTime;
@@ -166,6 +176,7 @@ void TM_Insert(struct TM_Elem *tlistPtr, struct TM_Elem *elem)
     add(&elem->expiration, &elem->TimeLeft);
     next = NULL;
     FOR_ALL_ELTS(p, tlistPtr, {
+        assert(p->Next != p && p->Prev != p);
         if (blocking(p) || !(elem->TimeLeft.tv_sec > p->TimeLeft.tv_sec ||
                              (elem->TimeLeft.tv_sec == p->TimeLeft.tv_sec &&
                               elem->TimeLeft.tv_usec >= p->TimeLeft.tv_usec))) {
@@ -190,6 +201,9 @@ void TM_Insert(struct TM_Elem *tlistPtr, struct TM_Elem *elem)
 */
 void TM_Remove(struct TM_Elem *tlistPtr, struct TM_Elem *elem)
 {
+    DEBUG("TM_Remove(%p, %p)\n", tlistPtr, elem);
+    assert(elem->Next != elem && elem->Prev != elem);
+
     /* remque((struct qelem *)elem); */
     elem->Prev->Next = elem->Next;
     elem->Next->Prev = elem->Prev;
@@ -206,9 +220,12 @@ int TM_Rescan(struct TM_Elem *tlist)
     struct timeval time;
     int expired;
 
+    DEBUG("TM_Rescan(%p)\n", tlist);
+
     FT_GetTimeOfDay(&time, 0);
     expired = 0;
     FOR_ALL_ELTS(e, tlist, {
+        assert(e->Next != e && e->Prev != e);
         if (!blocking(e)) {
             subtract(&e->TimeLeft, &e->expiration, &time);
             if (0 > e->TimeLeft.tv_sec ||
@@ -226,7 +243,10 @@ int TM_Rescan(struct TM_Elem *tlist)
 
 struct TM_Elem *TM_GetExpired(struct TM_Elem *tlist)
 {
+    DEBUG("TM_GetExpired(%p)\n", tlist);
+
     FOR_ALL_ELTS(e, tlist, {
+        assert(e->Next != e && e->Prev != e);
         if (!blocking(e) &&
             (0 > e->TimeLeft.tv_sec ||
              (0 == e->TimeLeft.tv_sec && 0 >= e->TimeLeft.tv_usec)))
@@ -244,6 +264,8 @@ struct TM_Elem *TM_GetExpired(struct TM_Elem *tlist)
 struct TM_Elem *TM_GetEarliest(struct TM_Elem *tlist)
 {
     struct TM_Elem *e;
+
+    DEBUG("TM_GetEarliest(%p)\n", tlist);
 
     e = tlist->Next;
     return (e == tlist ? NULL : e);
