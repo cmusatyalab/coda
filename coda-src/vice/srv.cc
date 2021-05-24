@@ -351,6 +351,12 @@ static inline void SetDebugLevel(int debug_level)
     DirDebugLevel = SrvDebugLevel;
 }
 
+struct timeval *srv_rpc2_timeout()
+{
+    static struct timeval to = { .tv_sec = timeout };
+    return &to;
+}
+
 /* The real stuff! */
 
 int main(int argc, char *argv[]) EXCLUDES_TRANSACTION
@@ -533,11 +539,8 @@ int main(int argc, char *argv[]) EXCLUDES_TRANSACTION
     sei.Port.Value.InetPortNumber = s->s_port;
 
     SFTP_Activate(&sei);
-    struct timeval to;
-    to.tv_sec  = timeout;
-    to.tv_usec = 0;
-    CODA_ASSERT(RPC2_Init(RPC2_VERSION, 0, &port1, retrycnt, &to) ==
-                RPC2_SUCCESS);
+    CODA_ASSERT(RPC2_Init(RPC2_VERSION, 0, &port1, retrycnt,
+                          srv_rpc2_timeout()) == RPC2_SUCCESS);
     RPC2_InitTraceBuffer(trace);
     RPC2_Trace = trace;
 

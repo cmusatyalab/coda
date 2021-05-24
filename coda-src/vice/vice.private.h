@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2008 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -39,3 +39,4 @@ extern void DeleteFile(ViceFid *);
 extern int InitCallBack();
 
 extern int check_reintegration_retry;
+struct timeval *srv_rpc2_timeout();

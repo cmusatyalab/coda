@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -427,7 +427,7 @@ void BreakCallBack(HostTable *client, ViceFid *afid)
     /* assuming no multicast in call below (MCast parameter NULL) */
     if (nhosts > 0) {
         MRPC_MakeMulti(CallBack_OP, CallBack_PTR, nhosts, cidlist, rclist, NULL,
-                       NULL, NULL, afid);
+                       NULL, NULL, srv_rpc2_timeout(), afid);
 
         for (int i = 0, nhosts = 0; i < nhents; i++) {
             if (!helist[i])
