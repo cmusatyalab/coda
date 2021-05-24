@@ -495,7 +495,7 @@ int plan9server::send_response(unsigned char *buf, size_t len)
     pack_le32(&tmpbuf, &tmplen, len);
 
     /* send response */
-    if (conn->write_until_done(buf, len) != (ssize_t)len)
+    if (conn->queue_buffer(buf, len) != (ssize_t)len)
         return -1;
     return 0;
 }

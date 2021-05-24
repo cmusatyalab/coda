@@ -55,6 +55,11 @@ void PrintMariners(void);
 void PrintMariners(FILE *);
 void PrintMariners(int);
 
+struct qentry {
+    char *buf;
+    size_t len;
+};
+
 class mariner : public vproc {
     friend void MarinerInit();
     friend void MarinerMux(int fd, void *udata);
@@ -62,9 +67,14 @@ class mariner : public vproc {
     friend void PrintMariners(int);
     friend int k_Replace(VenusFid *fid_1, VenusFid *fid_2);
     friend class plan9server;
+    friend void queue_writer(void *arg);
 
     static int nmariners;
-    struct Lock write_lock;
+
+#define MARINER_QUEUE_LEN 16
+    PROCESS writer;
+    struct qentry queue[MARINER_QUEUE_LEN];
+    size_t queue_len;
 
     unsigned dying : 1;
     unsigned logging : 1; /* for MarinerLog() */
@@ -82,7 +92,7 @@ class mariner : public vproc {
 
     /* LWP-aware non-blocking read/write functions */
     ssize_t read_until_done(void *buf, size_t len);
-    ssize_t write_until_done(const void *buf, size_t len);
+    ssize_t queue_buffer(const void *buf, size_t len);
 
     int Read();
     int Write(const char *buf, ...);
@@ -94,11 +104,12 @@ class mariner : public vproc {
 
 protected:
     virtual void main(void) EXCLUDES_TRANSACTION;
+    void write_queued();
 
 public:
     int IsLogging(void) { return logging; }
     int WantVolState(void) { return want_volstate; }
-    int write(char *buf, int len) { return write_until_done(buf, len); }
+    int write(char *buf, int len) { return queue_buffer(buf, len); }
 };
 
 class mariner_iterator : public vproc_iterator {

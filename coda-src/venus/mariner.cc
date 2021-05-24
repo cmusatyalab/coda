@@ -44,6 +44,7 @@ extern "C" {
 #include "coda_string.h"
 #include <unistd.h>
 #include <stdlib.h>
+#include <string.h>
 #include <fcntl.h>
 
 #include <lwp/lock.h>
@@ -177,7 +178,7 @@ Next:
 
 void MarinerMux(int fd, void *udata)
 {
-    int newfd = -1, rc, flags;
+    int newfd = -1, rc;
     struct sockaddr_storage sa;
     socklen_t salen = sizeof(sa);
     char host[NI_MAXHOST], port[NI_MAXSERV];
@@ -205,9 +206,10 @@ void MarinerMux(int fd, void *udata)
     }
 
     /* set socket to non-blocking */
-    flags = ::fcntl(newfd, F_GETFL, 0);
-    if (flags != -1)
-        ::fcntl(newfd, F_SETFL, flags | O_NONBLOCK);
+    int flags = ::fcntl(newfd, F_GETFL, 0);
+    if (flags == -1)
+        flags = 0;
+    ::fcntl(newfd, F_SETFL, flags | O_NONBLOCK);
 
     new mariner(newfd);
 }
@@ -311,6 +313,12 @@ void PrintMariners(int fd)
         m->print(fd);
 }
 
+void queue_writer(void *arg)
+{
+    mariner *m = (mariner *)arg;
+    m->write_queued();
+}
+
 mariner::mariner(int afd)
     : vproc("Mariner", NULL, VPT_Mariner, MarinerStackSize)
 {
@@ -328,7 +336,9 @@ mariner::mariner(int afd)
     p9srv         = NULL;
     memset(commbuf, 0, MWBUFSIZE);
 
-    Lock_Init(&write_lock);
+    queue_len = 0;
+    LWP_CreateProcess(queue_writer, 32 * 1024, 0, this, "Mariner writer",
+                      &writer);
 
     /* Poke main procedure. */
     start_thread();
@@ -388,46 +398,85 @@ ssize_t mariner::read_until_done(void *buf, size_t len)
     return bytes_read;
 }
 
-/* non-blocking write everything in the buffer */
-ssize_t mariner::write_until_done(const void *buf, size_t len)
+void mariner::write_queued()
 {
-    unsigned char *ptr   = (unsigned char *)buf;
-    size_t bytes_written = 0;
-    fd_set fds;
-    ssize_t n;
+    struct qentry cur;
+    ssize_t n = 0;
+    int i;
 
-    if (len == 0)
-        return 0;
-
-    ObtainWriteLock(&write_lock);
-
-    while (bytes_written < len) {
-        n = ::write(fd, ptr + bytes_written, len - bytes_written);
-        if (n < 0 && errno != EAGAIN)
-            goto err_out;
-
-        if (n > 0) {
-            bytes_written += n;
-            if (bytes_written >= len) {
-                assert(bytes_written == len);
-                break;
-            }
+    while (n >= 0) {
+        while (queue_len == 0) {
+            LWP_WaitProcess(&queue_len);
         }
 
-        /* wait until the fd becomes writeable again */
-        FD_ZERO(&fds);
-        FD_SET(fd, &fds);
-        n = IOMGR_Select(fd + 1, NULL, &fds, NULL, NULL);
-        if (n < 0)
-            goto err_out;
+        // pop a buffer off of the queue
+        CODA_ASSERT(queue_len >= 1);
+        cur = queue[0];
+        for (i = 1; i < queue_len; i++)
+            queue[i - 1] = queue[i];
+        queue_len--;
+
+        // a NULL buffer indicates dropped messages or EOF
+        if (cur.buf == NULL) {
+            if (cur.len == 0)
+                break; /* EOF */
+
+            char buf[64];
+            snprintf(buf, sizeof(buf), "dropped %lu queued messages\n",
+                     cur.len);
+            cur.buf = strdup(buf);
+            cur.len = strlen(buf);
+        }
+
+        // write the buffer to the mariner socket
+        size_t bytes_written = 0;
+        while (bytes_written < cur.len) {
+            n = ::write(fd, cur.buf + bytes_written, cur.len - bytes_written);
+            if (n < 0 && errno != EAGAIN)
+                break;
+
+            if (n > 0) {
+                bytes_written += n;
+                if (bytes_written >= cur.len) {
+                    assert(bytes_written == cur.len);
+                    break;
+                }
+            }
+
+            /* wait until the fd becomes writeable again */
+            fd_set fds;
+            FD_ZERO(&fds);
+            FD_SET(fd, &fds);
+            n = IOMGR_Select(fd + 1, NULL, &fds, NULL, NULL);
+            if (n < 0)
+                break;
+        }
+        free(cur.buf);
     }
+}
 
-    ReleaseWriteLock(&write_lock);
-    return bytes_written;
+ssize_t mariner::queue_buffer(const void *buf, size_t len)
+{
+    struct qentry *cur;
+    if (queue_len == MARINER_QUEUE_LEN) {
+        LOG(10, ("Dropping queued mariner messages\n"));
+        cur = &queue[queue_len - 1];
+        if (cur->buf) {
+            free(cur->buf);
+            /* we dropped what was in the queue */
+            cur->len = 1;
+        }
+        cur->buf = NULL;
+        /* and the message we're trying to queue now */
+        cur->len++;
+        return 0;
+    }
+    cur      = &queue[queue_len++];
+    cur->buf = buf ? strdup((const char *)buf) : NULL;
+    cur->len = len;
 
-err_out:
-    ReleaseWriteLock(&write_lock);
-    return -1;
+    LWP_NoYieldSignal(&queue_len);
+    return len;
 }
 
 /* Duplicates fdprint(). */
@@ -441,7 +490,8 @@ int mariner::Write(const char *fmt, ...)
     va_end(ap);
 
     int len = strlen(buf);
-    return write_until_done(buf, len);
+    queue_buffer(buf, len);
+    return len;
 }
 
 int mariner::AwaitRequest()
@@ -613,6 +663,7 @@ void mariner::main(void)
         Resign(0);
         seq++;
     }
+    queue_buffer(NULL, 0);
 }
 
 void mariner::PathStat(char *path)
