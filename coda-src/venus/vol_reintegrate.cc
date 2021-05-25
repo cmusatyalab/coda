@@ -719,7 +719,7 @@ int cmlent::ReintReady()
 
 static const int ReintegratorStackSize = 65536;
 static const int MaxFreeReintegrators  = 2;
-static const int ReintegratorPriority  = LWP_NORMAL_PRIORITY - 2;
+static const int ReintegratorPriority  = LWP_NORMAL_PRIORITY;
 
 /* local-repair modification */
 class reintegrator : public vproc {
