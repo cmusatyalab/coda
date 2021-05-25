@@ -97,8 +97,7 @@ static int QuickCheck(struct VolumeSummary *vsp,
 static int SalvageVolHead(struct VolumeSummary *vsp) REQUIRES_TRANSACTION;
 static int VnodeInodeCheck(int, struct ViceInodeInfo *, int,
                            struct VolumeSummary *) REQUIRES_TRANSACTION;
-static void
-DirCompletenessCheck(struct VolumeSummary *vsp) REQUIRES_TRANSACTION;
+static int DirCompletenessCheck(struct VolumeSummary *vsp) REQUIRES_TRANSACTION;
 static void SanityCheckFreeLists() EXCLUDES_TRANSACTION;
 
 /* correcting/action routines */

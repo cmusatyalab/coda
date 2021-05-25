@@ -191,6 +191,7 @@ int FSYNC_askfs(VolumeId volume, int command, int reason)
         if (v)
             *v = 0;
         vp = VAttachVolume(&error, volume, V_UPDATE);
+        /* if (error) rvmlib_abort ?? */
         /* save any changes */
         if (vp)
             VPutVolume(vp);

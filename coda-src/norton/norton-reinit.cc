@@ -726,7 +726,8 @@ static int load_server_state(char *dump_file, VolumeId *skipvols,
             vol_head.header.type = RWVOL;
         }
 
-        if ((volindex = NewVolHeader(&vol_head.header, &err)) == -1) {
+        volindex = NewVolHeader(&vol_head.header, &err);
+        if (volindex == -1) {
             if (err == VVOLEXISTS) {
                 fprintf(stderr, "Volume %08x already exists!  Aborting\n",
                         vol_head.header.id);

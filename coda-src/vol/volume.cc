@@ -302,6 +302,7 @@ void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage)
             GetVolPartition(&error, header.id, i, thispartition);
             if (error != 0)
                 continue; // bogus volume
+
             vp = VAttachVolumeById(&error, thispartition, header.id, V_UPDATE);
             (*(vp ? &nAttached : &nUnattached))++;
             if (error == VOFFLINE)
@@ -786,17 +787,22 @@ void VShutdown()
 static void WriteVolumeHeader(Error *ec, Volume *vp) TRANSACTION_OPTIONAL
 {
     rvm_return_t status = RVM_SUCCESS;
-    *ec                 = 0;
+    int in_trans        = rvmlib_in_transaction();
+
+    *ec = 0;
 
     VLog(9, "Entering WriteVolumeHeader for volume %x", V_id(vp));
-    if (rvmlib_in_transaction())
-        ReplaceVolDiskInfo(ec, V_volumeindex(vp), &V_disk(vp));
-    else {
+    if (!in_trans)
         rvmlib_begin_transaction(restore);
-        ReplaceVolDiskInfo(ec, V_volumeindex(vp), &V_disk(vp));
-        rvmlib_end_transaction(flush, &status);
-    }
 
+    ReplaceVolDiskInfo(ec, V_volumeindex(vp), &V_disk(vp));
+
+    if (!in_trans) {
+        if (ec)
+            rvmlib_abort(VFAIL);
+        else
+            rvmlib_end_transaction(flush, &status);
+    }
     if (*ec != 0 || status)
         *ec = VSALVAGE;
 }

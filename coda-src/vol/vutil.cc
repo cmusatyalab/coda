@@ -142,7 +142,8 @@ Volume *VCreateVolume(Error *ec, char *partition, VolumeId volumeId,
     tempHeader.type   = type;
 
     /* Find an empty slot in recoverable volume header array */
-    if ((volindex = NewVolHeader(&tempHeader, ec)) == -1) {
+    volindex = NewVolHeader(&tempHeader, ec);
+    if (volindex == -1) {
         if (*ec == VVOLEXISTS) {
             LogMsg(0, VolDebugLevel, stdout,
                    "VCreateVolume: volume %x already exists!", vol.id);

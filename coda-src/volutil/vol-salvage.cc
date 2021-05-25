@@ -466,8 +466,10 @@ static int SalvageVolumeGroup(struct VolumeSummary *vsp, int nVols)
         }
 
         /* if debug mode check directory/vnode completeness */
-        if (debug)
-            DirCompletenessCheck(&vsp[i]);
+        if (debug) {
+            if (DirCompletenessCheck(&vsp[i]) != 0)
+                return -1;
+        }
     }
 
     FixInodeLinkcount(inodes, isp);
@@ -499,8 +501,7 @@ static int QuickCheck(struct VolumeSummary *vsp, int nVols)
                 VLog(9, "Setting volHeader.inUse = %d for volume %x",
                      volHeader.inUse, volHeader.id);
                 ReplaceVolDiskInfo(&ec, vsp->volindex, &volHeader);
-                if (ec != 0)
-                    return 0; // write back failed
+                CODA_ASSERT(ec == 0); // or else write back failed
             } else {
                 VLog(9, "QuickCheck: inUse == %d", volHeader.inUse);
             }
@@ -950,7 +951,7 @@ static void DistilVnodeEssence(VnodeClass vclass,
  * For now we are calling this inspite of directories being in rvm.
  * This is not necessary and in later versions should be eliminated
  */
-void DirCompletenessCheck(struct VolumeSummary *vsp)
+int DirCompletenessCheck(struct VolumeSummary *vsp)
 {
     int BlocksInVolume = 0, FilesInVolume = 0;
     int i;
@@ -968,7 +969,7 @@ void DirCompletenessCheck(struct VolumeSummary *vsp)
     ExtractVolDiskInfo(&ec, vsp->volindex, &volHeader);
     if (ec != 0) {
         VLog(0, "DCC: Error during ExtractVolDiskInfo(%#08x)", vid);
-        return;
+        return -1;
     }
 
     CODA_ASSERT(volHeader.destroyMe != DESTROY_ME);
@@ -1086,10 +1087,11 @@ void DirCompletenessCheck(struct VolumeSummary *vsp)
     if (ec != 0) {
         VLog(0, "DCC: Couldnt write the volHeader for volume (%#08x)",
              vsp->header.id);
-        return; /* couldn't write out the volHeader */
+        return -1; /* couldn't write out the volHeader */
     }
     VLog(0, "done:\t%d files/dirs,\t%d blocks", FilesInVolume, BlocksInVolume);
     VLog(9, "Leaving DCC()");
+    return 0;
 }
 
 /* Zero inUse and needsSalvaged fields in VolumeDiskData */
