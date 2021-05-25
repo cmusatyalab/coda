@@ -139,7 +139,7 @@ int TM_Final(struct TM_Elem **list)
         return -1;
 
     DEBUG("TM_Final(%p)\n", *list);
-    assert((*list)->Next == *list && (*list)->Prev == *list);
+    //assert((*list)->Next == *list && (*list)->Prev == *list);
 
     free((char *)*list);
     *list = NULL;
