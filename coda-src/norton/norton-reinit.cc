@@ -579,6 +579,7 @@ static int ReadVnodeList(int fd, Volume *vp, VnodeClass vclass,
         if (err) {
             fprintf(stderr, "VPutVnode Error: %d, on vnode 0x%x\n", err,
                     vnp->vnodeNumber);
+            rvmlib_abort(VFAIL);
             return 0;
         }
         rvmlib_end_transaction(flush, &(status));
