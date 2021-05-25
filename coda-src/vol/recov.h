@@ -28,39 +28,36 @@ listed in the file CREDITS.
 
 #define HASHTABLESIZE 512 /* Number of buckets in volume hash table */
 
-extern int coda_init() EXCLUDES_TRANSACTION;
+int coda_init() EXCLUDES_TRANSACTION;
 
-extern int NewVolHeader(struct VolumeHeader *header,
-                        Error *err) REQUIRES_TRANSACTION;
-extern int DeleteVolume(Volume *vp) EXCLUDES_TRANSACTION;
-extern int DeleteRvmVolume(unsigned int, Device) EXCLUDES_TRANSACTION;
-extern int ExtractVolHeader(VolumeId volid, struct VolumeHeader *header);
-extern int VolHeaderByIndex(int index, struct VolumeHeader *header);
-extern void CheckVolData(Error *ec, int volindex);
-extern void CheckSmallVnodeHeader(Error *ec, int volindex);
-extern void CheckLargeVnodeHeader(Error *ec, int volindex);
-extern int ExtractVnode(int, int, VnodeId, Unique_t, VnodeDiskObject *);
-extern int ReplaceVnode(int, int, VnodeId, Unique_t,
-                        VnodeDiskObject *) REQUIRES_TRANSACTION;
-extern void GrowVnodes(VolumeId volid, int vclass,
-                       unsigned short newsize) REQUIRES_TRANSACTION;
-extern void NewVolDiskInfo(Error *ec, int volindex,
-                           VolumeDiskData *vol) REQUIRES_TRANSACTION;
-extern int VolDiskInfoById(Error *ec, VolumeId volid, VolumeDiskData *vol);
-extern void ExtractVolDiskInfo(Error *ec, int volindex, VolumeDiskData *vol);
-extern void ReplaceVolDiskInfo(Error *ec, int volindex,
-                               VolumeDiskData *vol) REQUIRES_TRANSACTION;
-extern VnodeDiskObject *FindVnode(rec_smolist *, Unique_t);
-extern int ActiveVnodes(int volindex, int vclass);
-extern int AllocatedVnodes(int volindex, int vclass);
-extern int AvailVnode(int volindex, int vclass, VnodeId vnodeindex,
-                      Unique_t = 0);
-extern int GetVolType(Error *ec, VolumeId volid);
-extern void GetVolPartition(Error *, VolumeId, int,
-                            char partition[V_MAXPARTNAMELEN]);
-extern void SetupVolCache();
-extern VolumeId VAllocateVolumeId(Error *ec) REQUIRES_TRANSACTION;
-extern VolumeId VGetMaxVolumeId();
-extern void VSetMaxVolumeId(VolumeId newid) REQUIRES_TRANSACTION;
+int NewVolHeader(struct VolumeHeader *header, Error *err) REQUIRES_TRANSACTION;
+int DeleteVolume(Volume *vp) EXCLUDES_TRANSACTION;
+int DeleteRvmVolume(unsigned int, Device) EXCLUDES_TRANSACTION;
+int ExtractVolHeader(VolumeId volid, struct VolumeHeader *header);
+int VolHeaderByIndex(int index, struct VolumeHeader *header);
+void CheckVolData(Error *ec, int volindex);
+void CheckSmallVnodeHeader(Error *ec, int volindex);
+void CheckLargeVnodeHeader(Error *ec, int volindex);
+int ExtractVnode(int, int, VnodeId, Unique_t, VnodeDiskObject *);
+int ReplaceVnode(int, int, VnodeId, Unique_t,
+                 VnodeDiskObject *) REQUIRES_TRANSACTION;
+void GrowVnodes(VolumeId volid, int vclass,
+                unsigned short newsize) REQUIRES_TRANSACTION;
+void NewVolDiskInfo(Error *ec, int volindex,
+                    VolumeDiskData *vol) REQUIRES_TRANSACTION;
+int VolDiskInfoById(Error *ec, VolumeId volid, VolumeDiskData *vol);
+void ExtractVolDiskInfo(Error *ec, int volindex, VolumeDiskData *vol);
+void ReplaceVolDiskInfo(Error *ec, int volindex,
+                        VolumeDiskData *vol) REQUIRES_TRANSACTION;
+VnodeDiskObject *FindVnode(rec_smolist *, Unique_t);
+int ActiveVnodes(int volindex, int vclass);
+int AllocatedVnodes(int volindex, int vclass);
+int AvailVnode(int volindex, int vclass, VnodeId vnodeindex, Unique_t = 0);
+int GetVolType(Error *ec, VolumeId volid);
+void GetVolPartition(Error *, VolumeId, int, char partition[V_MAXPARTNAMELEN]);
+void SetupVolCache();
+VolumeId VAllocateVolumeId(Error *ec) REQUIRES_TRANSACTION;
+VolumeId VGetMaxVolumeId();
+void VSetMaxVolumeId(VolumeId newid) REQUIRES_TRANSACTION;
 
 #endif /* _RECOV_H_ */

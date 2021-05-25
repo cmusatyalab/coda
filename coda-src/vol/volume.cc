@@ -125,7 +125,7 @@ extern int InSkipVolumeList(VolumeId, VolumeId *, int);
 extern void
 InitVolTable(int); // Setup (volume id -> VolumeList index) hash table
 
-void VAddToVolumeUpdateList(Error *ec, Volume *vp) EXCLUDES_TRANSACTION;
+void VAddToVolumeUpdateList(Error *ec, Volume *vp) REQUIRES_TRANSACTION;
 
 extern int nskipvols;
 extern VolumeId *skipvolnums;
@@ -140,14 +140,14 @@ static int VolumeCacheCheck = 0; /* Incremented everytime a volume
 
 static int VolumeCacheSize = 50, VolumeGets = 0, VolumeReplacements = 0;
 
-static void WriteVolumeHeader(Error *ec, Volume *vp) EXCLUDES_TRANSACTION;
+static void WriteVolumeHeader(Error *ec, Volume *vp);
 static Volume *attach2(Error *ec, char *path, struct VolumeHeader *header,
-                       struct DiskPartition *dp) EXCLUDES_TRANSACTION;
+                       struct DiskPartition *dp) REQUIRES_TRANSACTION;
 static void GetBitmap(Error *ec, Volume *vp,
                       VnodeClass vclass) REQUIRES_TRANSACTION;
 static void VAdjustVolumeStatistics(Volume *vp);
 static void VScanUpdateList() EXCLUDES_TRANSACTION;
-static int GetVolumeHeader(Volume *vp) EXCLUDES_TRANSACTION;
+static int GetVolumeHeader(Volume *vp);
 static void ReleaseVolumeHeader(struct volHeader *hd);
 void FreeVolumeHeader(Volume *vp);
 static void AddVolumeToHashTable(Volume *vp, int hashid);
@@ -783,7 +783,7 @@ void VShutdown()
     VLog(0, "VShutdown:  complete.");
 }
 
-static void WriteVolumeHeader(Error *ec, Volume *vp)
+static void WriteVolumeHeader(Error *ec, Volume *vp) TRANSACTION_OPTIONAL
 {
     rvm_return_t status = RVM_SUCCESS;
     *ec                 = 0;

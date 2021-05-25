@@ -43,23 +43,22 @@ Pittsburgh, PA.
 #include <coda_tsa.h>
 #include "voldefs.h"
 
-extern Volume *VCreateVolume(Error *ec, char *partition, VolumeId volumeId,
-                             VolumeId parentId, VolumeId groupId,
-                             int type       = readwriteVolume,
-                             int rvmlogsize = 0) REQUIRES_TRANSACTION;
-extern Volume *MakeBackupVolume(Volume *vp, Volume *sacrifice, int verbose);
-extern void AssignVolumeName(VolumeDiskData *vol, char *name, const char *ext);
-extern void CopyVolumeHeader(VolumeDiskData *from, VolumeDiskData *to);
-extern void ClearVolumeStats(VolumeDiskData *vol);
+Volume *VCreateVolume(Error *ec, char *partition, VolumeId volumeId,
+                      VolumeId parentId, VolumeId groupId,
+                      int type       = readwriteVolume,
+                      int rvmlogsize = 0) REQUIRES_TRANSACTION;
+Volume *MakeBackupVolume(Volume *vp, Volume *sacrifice, int verbose);
+void AssignVolumeName(VolumeDiskData *vol, char *name, const char *ext);
+void CopyVolumeHeader(VolumeDiskData *from, VolumeDiskData *to);
+void ClearVolumeStats(VolumeDiskData *vol);
 
-extern int ListViceInodes(char *devname, char *mountedOn, char *resultFile,
-                          int (*judgeInode)(struct ViceInodeInfo *, VolumeId),
-                          int judgeParam);
-extern int ListCodaInodes(char *devname, char *mountedOn, char *resultFile,
-                          int (*judgeInode)(struct ViceInodeInfo *, VolumeId),
-                          int judgeParam);
-extern int HashString(char *s, unsigned int size);
-extern void CloneVolume(Error *error, Volume *original, Volume *newv,
-                        Volume *old);
+int ListViceInodes(char *devname, char *mountedOn, char *resultFile,
+                   int (*judgeInode)(struct ViceInodeInfo *, VolumeId),
+                   int judgeParam);
+int ListCodaInodes(char *devname, char *mountedOn, char *resultFile,
+                   int (*judgeInode)(struct ViceInodeInfo *, VolumeId),
+                   int judgeParam);
+int HashString(char *s, unsigned int size);
+void CloneVolume(Error *error, Volume *original, Volume *newv, Volume *old);
 
 #endif /* _VUTIL_H_ */

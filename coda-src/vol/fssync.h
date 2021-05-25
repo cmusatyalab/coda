@@ -69,8 +69,7 @@ Pittsburgh, PA.
 extern void FSYNC_fsInit();
 extern int FSYNC_clientInit();
 extern void FSYNC_clientFinis();
-extern int FSYNC_askfs(VolumeId volume, int com,
-                       int reason) EXCLUDES_TRANSACTION;
+extern int FSYNC_askfs(VolumeId volume, int com, int reason);
 extern unsigned int
 FSYNC_CheckRelocationSite(VolumeId volumeId) WARN_SINGLE_HOMING;
 

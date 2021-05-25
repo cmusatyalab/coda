@@ -353,42 +353,41 @@ extern const char *VSalvageMessage; /* Common message used when the volume goes
 				       off line */
 extern int VolDebugLevel; /* Controls level of debugging information */
 extern int AllowResolution; /* global flag to turn on dir. resolution */
-extern void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes,
-                               int DoSalvage) EXCLUDES_TRANSACTION;
-extern int VInitVolUtil(ProgramType pt);
-extern void VInitServerList(const char *host);
-extern int VConnectFS();
-extern void VDisconnectFS();
-extern void VUCloneVolume(Error *, Volume *, Volume *) EXCLUDES_TRANSACTION;
-extern void VListVolumes(char **buf, unsigned int *buflen) EXCLUDES_TRANSACTION;
-extern void VGetVolumeInfo(Error *ec, char *key, VolumeInfo *info);
-extern const char *VGetVolumeLocation(VolumeId vid);
-extern Volume *VGetVolume(Error *ec, VolumeId volumeId) EXCLUDES_TRANSACTION;
-extern void VPutVolume(Volume *vp) EXCLUDES_TRANSACTION;
-extern Volume *VAttachVolume(Error *ec, VolumeId volumeId,
-                             int mode) EXCLUDES_TRANSACTION;
-extern void VDetachVolume(Error *ec, Volume *vp) EXCLUDES_TRANSACTION;
-extern void VUpdateVolume(Error *ec, Volume *vp) EXCLUDES_TRANSACTION;
-extern int VAllocBitmapEntry(Error *ec, Volume *vp, struct vnodeIndex *index,
-                             int stride, int ix, int count);
-extern int VAllocBitmapEntry(Error *ec, Volume *vp, struct vnodeIndex *index,
-                             VnodeId vnode);
-extern void VFreeBitMapEntry(Error *ec, struct vnodeIndex *index,
-                             int bitNumber);
-extern int VolumeNumber(char *name);
-extern char *VolumeExternalName(VolumeId volumeId);
-extern Volume *VAttachVolumeById(Error *ec, char *partition, VolumeId volid,
-                                 int mode) EXCLUDES_TRANSACTION;
-extern void VOffline(Volume *vp, const char *message) EXCLUDES_TRANSACTION;
-extern void VForceOffline(Volume *vp) EXCLUDES_TRANSACTION;
-extern void VPurgeVolume(Volume *vp);
-extern void VShutdown() EXCLUDES_TRANSACTION;
-extern void VSetDiskUsage() EXCLUDES_TRANSACTION;
-extern void SetVolDebugLevel(int);
-extern void FreeVolume(Volume *vp);
-extern void DeleteVolumeFromHashTable(Volume *vp);
-extern void PrintVolumesInHashTable();
-extern void InitLRU(int howmany);
+void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes,
+                        int DoSalvage) EXCLUDES_TRANSACTION;
+int VInitVolUtil(ProgramType pt);
+void VInitServerList(const char *host);
+int VConnectFS();
+void VDisconnectFS();
+void VUCloneVolume(Error *, Volume *, Volume *) EXCLUDES_TRANSACTION;
+void VListVolumes(char **buf, unsigned int *buflen) EXCLUDES_TRANSACTION;
+void VGetVolumeInfo(Error *ec, char *key, VolumeInfo *info);
+const char *VGetVolumeLocation(VolumeId vid);
+Volume *VGetVolume(Error *ec, VolumeId volumeId);
+void VPutVolume(Volume *vp);
+Volume *VAttachVolume(Error *ec, VolumeId volumeId,
+                      int mode) REQUIRES_TRANSACTION;
+void VDetachVolume(Error *ec, Volume *vp) REQUIRES_TRANSACTION;
+void VUpdateVolume(Error *ec, Volume *vp) REQUIRES_TRANSACTION;
+int VAllocBitmapEntry(Error *ec, Volume *vp, struct vnodeIndex *index,
+                      int stride, int ix, int count);
+int VAllocBitmapEntry(Error *ec, Volume *vp, struct vnodeIndex *index,
+                      VnodeId vnode);
+void VFreeBitMapEntry(Error *ec, struct vnodeIndex *index, int bitNumber);
+int VolumeNumber(char *name);
+char *VolumeExternalName(VolumeId volumeId);
+Volume *VAttachVolumeById(Error *ec, char *partition, VolumeId volid,
+                          int mode) REQUIRES_TRANSACTION;
+void VOffline(Volume *vp, const char *message) REQUIRES_TRANSACTION;
+void VForceOffline(Volume *vp) REQUIRES_TRANSACTION;
+void VPurgeVolume(Volume *vp);
+void VShutdown() EXCLUDES_TRANSACTION;
+void VSetDiskUsage() EXCLUDES_TRANSACTION;
+void SetVolDebugLevel(int);
+void FreeVolume(Volume *vp);
+void DeleteVolumeFromHashTable(Volume *vp);
+void PrintVolumesInHashTable();
+void InitLRU(int howmany);
 
 /* Naive formula relating number of file size to number of 1K blocks in file */
 /* Note:  we charge 1 block for 0 length files so the user can't store
@@ -427,8 +426,7 @@ extern void InitLRU(int howmany);
 /* exported routines */
 Error VAdjustDiskUsage(Volume *vp, int blocks);
 Error VCheckDiskUsage(Volume *vp, int blocks);
-void PutVolObj(Volume **volptr, int LockLevel,
-               int Dequeue) EXCLUDES_TRANSACTION;
+void PutVolObj(Volume **volptr, int LockLevel, int Dequeue);
 int GetVolObj(VolumeId Vid, Volume **volptr, int LockLevel, int Enque,
               unsigned LockerAddress) EXCLUDES_TRANSACTION;
 

@@ -80,7 +80,7 @@ static Vnode *VnodeHashTable[VNODE_HASH_TABLE_SIZE];
 extern int large, small;
 
 void VAddToVolumeUpdateList(Error *ec, Volume *vp);
-void VBumpVolumeUsage(Volume *vp) EXCLUDES_TRANSACTION;
+void VBumpVolumeUsage(Volume *vp);
 
 static Vnode *VAllocVnodeCommon(Error *ec, Volume *vp, VnodeType type,
                                 VnodeId vnode,
