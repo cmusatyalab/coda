@@ -732,26 +732,25 @@ int repvol::DisconnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
                 ("DisconnectedRepair: Parent fid is NULL - cannot check access control\n"));
             return (EACCES);
         }
-
         /* check the parent's rights for write permission*/
         fsobj *parentf = 0;
-
-        code = FSDB->Get(&parentf, &tpfid, uid, RC_STATUS);
-        if (code) {
-            LOG(0, ("DisconnectedRepair: Couldn't get parent (%s)\n",
-                    FID_(&tpfid)));
-        } else {
+        code           = FSDB->Get(&parentf, &tpfid, uid, RC_STATUS);
+        if (code == 0) {
             code = parentf->Access(PRSFS_WRITE, C_A_W_OK, vp->u.u_uid);
-            if (code)
+            if (code) {
                 LOG(0, ("DisconnectedRepair: Access disallowed (%s)\n",
                         FID_(&tpfid)));
+                FSDB->Put(&parentf);
+                return (code);
+            }
+        } else {
+            LOG(0, ("DisconnectedRepair: Couldn't get parent (%s)\n",
+                    FID_(&tpfid)));
+            if (parentf)
+                FSDB->Put(&parentf);
+            return (code);
         }
-
-        if (parentf)
-            FSDB->Put(&parentf);
-
-        if (code)
-            return code;
+        FSDB->Put(&parentf);
     }
     LOG(0, ("DisconnectedRepair: checking repair file %s\n", RepairFile));
     code = GetRepairF(RepairFile, uid, &RepairF);

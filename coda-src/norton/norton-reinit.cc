@@ -215,6 +215,7 @@ static int DumpResLog(int fd, struct VolumeData *voldata,
     return ret;
 }
 
+// Must be called withing a transaction.
 static recle *AllocLogEntry(Volume *vp, rsle *entry) REQUIRES_TRANSACTION
 {
     recle *rle;
@@ -573,15 +574,14 @@ static int ReadVnodeList(int fd, Volume *vp, VnodeClass vclass,
         if (norton_debug)
             PrintVnodeDiskObject(vnode);
 
-        rvmlib_end_transaction(flush, &status);
         /* Write the vnode to disk */
         VPutVnode(&err, vnp);
-
         if (err) {
             fprintf(stderr, "VPutVnode Error: %d, on vnode 0x%x\n", err,
                     vnp->vnodeNumber);
             return 0;
         }
+        rvmlib_end_transaction(flush, &(status));
         if (status != 0) {
             fprintf(stderr, "Transaction exited with status %d!, aborting\n",
                     status);
@@ -772,18 +772,19 @@ static int load_server_state(char *dump_file, VolumeId *skipvols,
             return 0;
         }
 
-        rvmlib_end_transaction(flush, &(status));
-        if (status != 0) {
-            fprintf(stderr, "Transaction exited with status %d!, aborting\n",
-                    status);
-            return 0;
-        }
-
         vp = VAttachVolume(&err, vol_head.header.id, V_SECRETLY);
         if (err) {
             fprintf(stderr,
                     "VAttachVolume returns error %d when attaching 0x%x\n", err,
                     vol_head.header.id);
+            rvmlib_abort(VFAIL);
+            return 0;
+        }
+
+        rvmlib_end_transaction(flush, &(status));
+        if (status != 0) {
+            fprintf(stderr, "Transaction exited with status %d!, aborting\n",
+                    status);
             return 0;
         }
 

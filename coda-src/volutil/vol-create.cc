@@ -157,7 +157,6 @@ long S_VolCreate(RPC2_Handle rpcid, RPC2_String formal_partition,
         status = VFAIL;
         goto exit;
     }
-    rvmlib_end_transaction(flush, &status);
 
     /* If we are creating a replicated volume, pass along group id */
     vp = VCreateVolume(&error, partition, volumeId, parentId,
@@ -165,6 +164,7 @@ long S_VolCreate(RPC2_Handle rpcid, RPC2_String formal_partition,
                        resflag ? rvmlogsize : 0);
     if (error) {
         VLog(0, "Unable to create the volume; aborted");
+        rvmlib_abort(VNOVOL);
         status = VNOVOL;
         goto exit;
     }
@@ -176,12 +176,11 @@ long S_VolCreate(RPC2_Handle rpcid, RPC2_String formal_partition,
     V_type(vp) = repvol ? readwriteVolume : nonReplicatedVolume;
     AssignVolumeName(&V_disk(vp), volname, 0);
 
-    /* transaction must include both ViceCreateRoot and VUpdateVolume for vv atomicity.
-     * but VUpdateVolume can't be called from within a transaction... -JH */
-    rvmlib_begin_transaction(restore);
+    /* could probably begin transaction here instead of at beginning */
+    /* must include both ViceCreateRoot and VUpdateVolume for vv atomicity */
     if (!ViceCreateRoot(vp)) {
         VLog(0, "Unable to create the volume root; aborted");
-        rvmlib_abort(VFAIL);
+        rvmlib_abort(VNOVOL);
         status = VNOVOL;
         goto exit;
     }
@@ -190,15 +189,15 @@ long S_VolCreate(RPC2_Handle rpcid, RPC2_String formal_partition,
     V_needsSalvaged(vp) = 0;
     V_linkcount(vp)     = 1;
     V_volumeindex(vp);
-    rvmlib_end_transaction(flush, &status);
 
     VUpdateVolume(&error, vp);
-    CODA_ASSERT(error == 0);
     VDetachVolume(&error, vp); /* Allow file server to grab it */
     CODA_ASSERT(error == 0);
-
+    rvmlib_end_transaction(flush, &(status));
 exit:
-    /* to make sure that rvm records are getting flushed - to find this bug */
+
+    /* to make sure that rvm records are getting flushed
+	   - to find this bug */
     CODA_ASSERT(rvm_flush() == RVM_SUCCESS);
     VDisconnectFS();
     if (status == 0) {

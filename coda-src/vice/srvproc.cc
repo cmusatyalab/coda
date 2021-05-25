@@ -1143,9 +1143,12 @@ FreeLocks:
 
         if (*vptr) {
             START_TIMING(AllocVnode_Transaction);
+            rvm_return_t status = RVM_SUCCESS;
+            rvmlib_begin_transaction(restore);
             VPutVnode(&fileCode, *vptr);
             CODA_ASSERT(fileCode == 0);
             *vptr = 0;
+            rvmlib_end_transaction(flush, &(status));
             END_TIMING(AllocVnode_Transaction);
         }
     }
@@ -3243,6 +3246,7 @@ void PutObjects(int errorCode, Volume *volptr, int LockLevel, dlist *vlist,
        avoid transaction in the latter. */
     if (TranFlag) {
         rvm_return_t status = RVM_SUCCESS;
+        rvmlib_begin_transaction(restore);
 
         /* Put the directory pages, the vnodes, and the volume. */
         /* Don't mutate inodes until AFTER transaction commits. */
@@ -3258,9 +3262,6 @@ void PutObjects(int errorCode, Volume *volptr, int LockLevel, dlist *vlist,
                         if ((count & Yield_PutObjects_Mask) == 0)
                             PollAndYield();
                     }
-
-                    rvmlib_begin_transaction(restore);
-
                     /* Directory pages.  Be careful with cloned directories! */
                     SLog(10, "--PO: %s", FID_(&v->fid));
                     if (v->vptr->disk.type == vDirectory) {
@@ -3329,9 +3330,6 @@ void PutObjects(int errorCode, Volume *volptr, int LockLevel, dlist *vlist,
                         }
                     }
 
-                    rvmlib_end_transaction(flush, &(status));
-                    CODA_ASSERT(status == 0);
-
                     /* Vnode. */
                     {
                         Error fileCode = 0;
@@ -3368,6 +3366,8 @@ void PutObjects(int errorCode, Volume *volptr, int LockLevel, dlist *vlist,
 
         /* Volume. */
         PutVolObj(&volptr, LockLevel);
+        rvmlib_end_transaction(flush, &(status));
+        CODA_ASSERT(status == 0);
     } else {
         /*  NO transaction */
         if (vlist) {

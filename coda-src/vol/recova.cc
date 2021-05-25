@@ -98,6 +98,7 @@ int NewVolHeader(struct VolumeHeader *header, Error *err)
         if (i >= MAXVOLS) {
             VLog(0,
                  "NewVolHeader: No free volume slots in recoverable storage!!");
+            rvmlib_abort(VFAIL);
             *err = VNOVOL;
             return -1;
         }

@@ -115,8 +115,13 @@ static void updateBackupVnodes(Volume *rwvp, Volume *backupvp,
 
 static void cleanup(struct Volume *vp) EXCLUDES_TRANSACTION
 {
-    if (vp)
+    rvm_return_t status;
+    if (vp) {
+        rvmlib_begin_transaction(restore);
         VPutVolume(vp);
+        rvmlib_end_transaction(flush, &(status));
+        CODA_ASSERT(status == 0);
+    }
     VDisconnectFS();
 }
 
@@ -150,6 +155,7 @@ static void cleanup(struct Volume *vp) EXCLUDES_TRANSACTION
 long S_VolMakeBackups(RPC2_Handle rpcid, VolumeId originalId,
                       VolumeId *backupId) EXCLUDES_TRANSACTION
 {
+    rvm_return_t status = RVM_SUCCESS;
     long result;
     Error error;
     int rc;
@@ -218,15 +224,17 @@ long S_VolMakeBackups(RPC2_Handle rpcid, VolumeId originalId,
         V_destroyMe(backupvp) = DESTROY_ME;
         V_blessed(backupvp)   = 0;
 
+        rvmlib_begin_transaction(restore);
         /* Disallow further use of this volume */
         VUpdateVolume(&error, backupvp);
-        if (error) {
+        rvmlib_end_transaction(flush, &(status));
+        if (error || status) {
             VLog(
                 0,
                 "S_VolMakeBackup: Couldn't force old backup clone offline, aborting!");
             cleanup(originalvp);
             S_VolUnlock(rpcid, originalId);
-            return error;
+            return status;
         }
 
         ModifyIndex(originalvp, backupvp, vSmall);
@@ -245,6 +253,7 @@ long S_VolMakeBackups(RPC2_Handle rpcid, VolumeId originalId,
     V_destroyMe(backupvp) = 0;
     V_blessed(backupvp)   = 1; /* Volume is valid now. */
 
+    rvmlib_begin_transaction(restore);
     volid = V_id(backupvp);
 
     VUpdateVolume(&error, backupvp); /* Write new info to RVM */
@@ -254,22 +263,26 @@ long S_VolMakeBackups(RPC2_Handle rpcid, VolumeId originalId,
     VUpdateVolume(&error, originalvp); /* Update R/W vol data */
     CODA_ASSERT(error == 0);
     VPutVolume(originalvp);
+    rvmlib_end_transaction(flush, &(status));
 
     backupvp = VGetVolume(&error, volid);
     CODA_ASSERT(error == 0);
     originalvp = VGetVolume(&error, originalId);
     CODA_ASSERT(error == 0);
-
-    VLog(0, "S_VolMakeBackups: backup (%x) made of volume %x ", V_id(backupvp),
-         V_id(originalvp));
-
+    if (status == 0) {
+        VLog(0, "S_VolMakeBackups: backup (%x) made of volume %x ",
+             V_id(backupvp), V_id(originalvp));
+    } else {
+        VLog(0, "S_VolMakeBackups: volume backup failed for volume %x",
+             V_id(originalvp));
+    }
     VPutVolume(originalvp);
     VPutVolume(backupvp);
 
     VDisconnectFS();
     S_VolUnlock(rpcid, originalId);
 
-    return 0;
+    return (long)status;
 }
 
 /*
@@ -286,8 +299,8 @@ static int MakeNewClone(Volume *rwvp, VolumeId *backupId, Volume **backupvp)
     Volume *newvp;
 
     *backupId = 0;
-
     rvmlib_begin_transaction(restore);
+
     newId = VAllocateVolumeId(&error);
 
     if (error) {
@@ -297,18 +310,12 @@ static int MakeNewClone(Volume *rwvp, VolumeId *backupId, Volume **backupvp)
     } else
         VLog(29, "Backup: VAllocateVolumeId returns %x", newId);
 
-    rvmlib_end_transaction(flush, &(status));
-    if (status != 0) {
-        VLog(0, "S_VolMakeBackups: volume backup creation failed for %#x",
-             V_id(rwvp));
-        return status;
-    }
-
     newvp = VCreateVolume(&error, V_partname(rwvp), newId, V_id(rwvp), 0,
                           backupVolume);
 
     if (error) {
         VLog(0, "S_VolMakeBackups:Unable to create the volume; aborted");
+        rvmlib_abort(VNOVOL);
         return VNOVOL;
     }
 
@@ -317,7 +324,15 @@ static int MakeNewClone(Volume *rwvp, VolumeId *backupId, Volume **backupvp)
     VUpdateVolume(&error, newvp);
     if (error) {
         VLog(0, "S_VolMakeBackups: Volume %x can't be unblessed!", newId);
+        rvmlib_abort(VFAIL);
         return VFAIL;
+    }
+
+    rvmlib_end_transaction(flush, &(status));
+    if (status != 0) {
+        VLog(0, "S_VolMakeBackups: volume backup creation failed for %#x",
+             V_id(rwvp));
+        return status;
     }
 
     VLog(9, "S_VolMakeBackups: Created Volume %x; going to clone from %x",
@@ -615,6 +630,8 @@ static void updateBackupVnodes(Volume *rwvp, Volume *backupvp,
         memset((void *)DeadInodes, 0,
                sizeof(Inode) * (MaxVnodesPerTransaction + 1));
 
+        rvmlib_begin_transaction(restore);
+
         /* break out every 8 vnodes, regardless of if they've changed.*/
         for (count = 0; count < MaxVnodesPerTransaction; count++) {
             if ((vnodeIndex = next(rwVnode)) == -1) /* No more vnodes */
@@ -709,8 +726,6 @@ static void updateBackupVnodes(Volume *rwvp, Volume *backupvp,
                         V_id(rwvp), bitNumberToVnodeNumber(vnodeIndex, vclass),
                         rwVnode->uniquifier);
 
-                    rvmlib_begin_transaction(restore);
-
                     /* Save some fields from the backup vnode */
                     rwVnode->cloned = 0; // backupVnodes can't be cloned.
                     rwVnode->versionvector.Flags =
@@ -722,9 +737,6 @@ static void updateBackupVnodes(Volume *rwvp, Volume *backupvp,
                                         (vclass == vLarge) ?
                                             SIZEOF_LARGEDISKVNODE :
                                             SIZEOF_SMALLDISKVNODE);
-
-                    rvmlib_end_transaction(flush, &(status));
-                    CODA_ASSERT(status == 0); /* Do we ever abort? */
                 }
 
                 continue;
@@ -742,16 +754,11 @@ static void updateBackupVnodes(Volume *rwvp, Volume *backupvp,
                      bitNumberToVnodeNumber(vnodeIndex, vclass),
                      bvdop->uniquifier);
 
-                rvmlib_begin_transaction(restore);
-
                 /* Directory Inodes are in RVM so DI_Decs get undone on abort. */
                 if (vclass == vSmall)
                     DeadInodes[count] = bvdop->node.inodeNumber;
 
                 deleteDeadVnode(&BackupLists[vnodeIndex], bvdop, nBackupVnodes);
-
-                rvmlib_end_transaction(flush, &(status));
-                CODA_ASSERT(status == 0); /* Do we ever abort? */
             }
 
             /* Create a new clone of the vnode. */
@@ -761,7 +768,10 @@ static void updateBackupVnodes(Volume *rwvp, Volume *backupvp,
             CloneVnode(rwvp, backupvp, vnodeIndex, BackupLists, rwVnode,
                        vclass);
             (*nBackupVnodes)++;
+
         } /* Inner loop -> less than MaxVnodesPerTransaction times around */
+        rvmlib_end_transaction(flush, &(status));
+        CODA_ASSERT(status == 0); /* Do we ever abort? */
 
         /* Now delete the inodes for the vnodes we already purged. */
         if (vclass == vSmall)

@@ -278,9 +278,11 @@ void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage)
         VolumeHeader header;
         char thispartition[V_MAXPARTNAMELEN];
         int nAttached = 0, nUnattached = 0;
-        int i     = 0;
+        int i = 0;
+        rvm_return_t camstatus;
         int maxid = (int)(SRV_RVM(MaxVolId) & 0x00FFFFFF);
 
+        rvmlib_begin_transaction(restore);
         for (i = 0; (i < maxid) && (i < MAXVOLS); i++) {
             if (VolHeaderByIndex(i, &header) == -1) {
                 VLog(0, "Bogus volume index %d (shouldn't happen)", i);
@@ -330,6 +332,7 @@ void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage)
         }
         VLog(0, "Attached %d volumes; %d volumes not attached", nAttached,
              nUnattached);
+        rvmlib_end_transaction(flush, &(camstatus));
     }
 
     VInit = 1;
@@ -715,6 +718,7 @@ void VShutdown()
     TRANSACTION_OPTIONAL // We're aborting uncommitted transactions here
 {
     int i;
+    rvm_return_t camstatus;
 
     VLog(0, "VShutdown:  shutting down on-line volumes...");
 
@@ -723,16 +727,19 @@ void VShutdown()
         p = VolumeHashTable[i];
         while (p) {
             Error error;
+            rvmlib_begin_transaction(restore);
             vp = VGetVolume(&error, p->hashid);
-            if (!error && vp) {
-                VLog(0, "VShutdown: Taking volume %s(0x%x) offline...",
-                     V_name(vp), V_id(vp));
-                VOffline(vp, "File server was shut down");
-                VLog(0, "... Done");
-            } else {
+            if ((error != 0) || (!vp)) {
                 VLog(0, "VShutdown: Error %d getting volume %x!", error,
                      p->hashid);
-            }
+                rvmlib_abort(-1);
+            } else
+                VLog(0, "VShutdown: Taking volume %s(0x%x) offline...",
+                     V_name(vp), V_id(vp));
+            if (vp)
+                VOffline(vp, "File server was shut down");
+            VLog(0, "... Done");
+            rvmlib_end_transaction(flush, &(camstatus));
             p = p->hashNext;
         }
     }
@@ -782,16 +789,15 @@ static void WriteVolumeHeader(Error *ec, Volume *vp)
     *ec                 = 0;
 
     VLog(9, "Entering WriteVolumeHeader for volume %x", V_id(vp));
-    rvmlib_begin_transaction(restore);
-
-    ReplaceVolDiskInfo(ec, V_volumeindex(vp), &V_disk(vp));
-
-    if (*ec)
-        rvmlib_abort(VFAIL);
-    else
+    if (rvmlib_in_transaction())
+        ReplaceVolDiskInfo(ec, V_volumeindex(vp), &V_disk(vp));
+    else {
+        rvmlib_begin_transaction(restore);
+        ReplaceVolDiskInfo(ec, V_volumeindex(vp), &V_disk(vp));
         rvmlib_end_transaction(flush, &status);
+    }
 
-    if (*ec || status)
+    if (*ec != 0 || status)
         *ec = VSALVAGE;
 }
 
@@ -800,6 +806,7 @@ static void WriteVolumeHeader(Error *ec, Volume *vp)
  * pointer to the volume header information.  The volume also
  * normally goes online at this time.  An offline volume
  * must be reattached to make it go online.
+ * This must be called from within a transaction.
  */
 Volume *VAttachVolumeById(Error *ec, char *partition, VolumeId volid, int mode)
 {
@@ -1000,19 +1007,14 @@ static Volume *attach2(Error *ec, char *name, struct VolumeHeader *header,
     vp->vnIndex[vSmall].bitmap = vp->vnIndex[vLarge].bitmap = NULL;
 
     if (VolumeWriteable(vp)) {
-        rvm_return_t status;
-        rvmlib_begin_transaction(restore);
         int i;
         for (i = 0; i < nVNODECLASSES; i++) {
             GetBitmap(ec, vp, i);
             if (*ec) {
                 FreeVolume(vp);
-                rvmlib_abort(VFAIL);
                 return NULL;
             }
         }
-        rvmlib_end_transaction(flush, &status);
-        CODA_ASSERT(status == RVM_SUCCESS);
     }
     VLog(29, "Leaving attach2()");
     return vp;
@@ -1599,6 +1601,7 @@ static void VAdjustVolumeStatistics(Volume *vp)
 void VBumpVolumeUsage(Volume *vp)
 {
     unsigned int now = FT_ApproxTime();
+    rvm_return_t status;
 
     VLog(9, "Entering VBumpVolumeUsage for volume %x", V_id(vp));
     if (now - V_dayUseDate(vp) > OneDay)
@@ -1606,7 +1609,9 @@ void VBumpVolumeUsage(Volume *vp)
     if ((V_dayUse(vp)++ & 127) == 0) {
         Error error;
         VLog(1, "VBumpVolumeUsage: writing out VolDiskInfo (vol %x)", V_id(vp));
+        rvmlib_begin_transaction(restore);
         VUpdateVolume(&error, vp);
+        rvmlib_end_transaction(flush, &(status));
     }
 }
 
@@ -1690,8 +1695,11 @@ static void VScanUpdateList()
         } else if (vp->nUsers == 1 && now - vp->updateTime > SALVAGE_INTERVAL) {
             VLog(29, "ScanUpdateList: Going to set salvage flag for volume %x",
                  V_id(vp));
+            rvm_return_t cstat;
             V_dontSalvage(vp) = DONT_SALVAGE;
+            rvmlib_begin_transaction(restore);
             VUpdateVolume(&error, vp); /* No need to fsync--not critical */
+            rvmlib_end_transaction(flush, &(cstat));
             VLog(29, "ScanUpdateList: Finished UPdating Volume %x", V_id(vp));
             gap++;
         }

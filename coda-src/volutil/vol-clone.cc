@@ -149,7 +149,10 @@ long S_VolClone(RPC2_Handle rpcid, RPC2_Unsigned formal_ovolid,
     if (error) {
         VLog(0, "S_VolClone: failure attaching volume %x", originalId);
         if (originalvp) {
-            VPutVolume(originalvp);
+            rvmlib_begin_transaction(restore);
+            VPutVolume(originalvp); /* Do these need transactions? */
+            rvmlib_end_transaction(flush, &(status));
+            CODA_ASSERT(status == 0);
         }
         VDisconnectFS();
         return error;
@@ -169,7 +172,10 @@ long S_VolClone(RPC2_Handle rpcid, RPC2_Unsigned formal_ovolid,
         /* lock the whole volume for the duration of the clone */
         if (V_VolLock(originalvp).IPAddress) {
             VLog(0, "S_VolClone: old volume already locked; Aborting... ");
-            VPutVolume(originalvp);
+            rvmlib_begin_transaction(restore);
+            VPutVolume(originalvp); /* Do these need transactions? */
+            rvmlib_end_transaction(flush, &(status));
+            CODA_ASSERT(status == 0);
             VDisconnectFS();
             return EWOULDBLOCK;
         }
@@ -189,20 +195,17 @@ long S_VolClone(RPC2_Handle rpcid, RPC2_Unsigned formal_ovolid,
         VLog(0,
              "S_VolClone:Unable to allocate volume number;"
              "volume not cloned");
-        rvmlib_abort(VNOVOL);
         VPutVolume(originalvp);
+        rvmlib_abort(VNOVOL);
         status = VNOVOL;
         goto exit1;
     }
-    rvmlib_end_transaction(flush, &(status));
-    if (status)
-        goto exit1;
-
     newvp = VCreateVolume(&error, V_partname(originalvp), newId, originalId, 0,
                           readonlyVolume);
     if (error) {
         VLog(0, "S_VolClone:Unable to create the volume; aborted");
         VPutVolume(originalvp);
+        rvmlib_abort(VNOVOL);
         status = VNOVOL;
         goto exit1;
     }
@@ -212,9 +215,12 @@ long S_VolClone(RPC2_Handle rpcid, RPC2_Unsigned formal_ovolid,
     if (error) {
         VLog(0, "S_VolClone: Volume %x can't be unblessed!", newId);
         VPutVolume(originalvp);
+        rvmlib_abort(VFAIL);
         status = VFAIL;
         goto exit1;
     }
+
+    rvmlib_end_transaction(flush, &(status));
 exit1:
     if (status != 0) {
         VLog(0, "S_VolClone: volume creation failed for volume %x", originalId);
@@ -233,7 +239,10 @@ exit1:
              newId);
         V_VolLock(originalvp).IPAddress = 0;
         ReleaseWriteLock(&(V_VolLock(originalvp).VolumeLock));
+        rvmlib_begin_transaction(restore);
         VPutVolume(originalvp); /* Do these need transactions? */
+        rvmlib_end_transaction(flush, &(status));
+        CODA_ASSERT(status == 0);
         VDisconnectFS();
         return error;
     }
@@ -264,14 +273,15 @@ exit1:
     V_destroyMe(newvp) = 0;
     V_blessed(newvp)   = 1;
 
+    rvmlib_begin_transaction(restore);
     VUpdateVolume(&error, newvp);
     VDetachVolume(&error, newvp);
     VUpdateVolume(&error, originalvp);
     CODA_ASSERT(error == 0);
-
     V_VolLock(originalvp).IPAddress = 0;
     ReleaseWriteLock(&(V_VolLock(originalvp).VolumeLock));
     VPutVolume(originalvp);
+    rvmlib_end_transaction(flush, &(status));
     VDisconnectFS();
 
     if (status == 0) {
@@ -387,6 +397,7 @@ static void VUCloneIndex(Error *error, Volume *rwVp, Volume *cloneVp,
     *error         = 0;
 
     while (moreVnodes) {
+        rvmlib_begin_transaction(restore);
         for (int count = 0; count < MaxVnodesPerTransaction; count++) {
             if ((vnodeindex = vnext(vnode)) == -1) {
                 moreVnodes = FALSE;
@@ -396,10 +407,17 @@ static void VUCloneIndex(Error *error, Volume *rwVp, Volume *cloneVp,
             *error =
                 CloneVnode(rwVp, cloneVp, vnodeindex, rvlist, vnode, vclass);
             if (*error) {
-                VLog(0, "CloneIndex: abort for RW %x RO %x", V_id(rwVp),
-                     V_id(cloneVp));
-                return;
+                status = *error;
+                rvmlib_abort(VFAIL);
+                goto error;
             }
+        }
+        rvmlib_end_transaction(flush, &(status));
+    error:
+        if (status != 0) {
+            VLog(0, "CloneIndex: abort for RW %x RO %x", V_id(rwVp),
+                 V_id(cloneVp));
+            return; /* Error is already set... */
         }
 
         if (moreVnodes) {
@@ -415,7 +433,7 @@ static void VUCloneIndex(Error *error, Volume *rwVp, Volume *cloneVp,
     } /* moreVnodes */
 }
 
-/* MUST NOT be called from within a transaction! */
+/* This must be called from within a transaction! */
 /* Create a new vnode in the the new clone volume from the copy of the
  * r/w vnode stored in (vnode). Mark the RW Vnode as cloned.
  */
@@ -426,9 +444,8 @@ int CloneVnode(Volume *rwVp, Volume *cloneVp, int vnodeIndex,
     int vnodeNum = bitNumberToVnodeNumber(vnodeIndex, vclass);
     int size     = (vclass == vSmall) ? SIZEOF_SMALLDISKVNODE :
                                     SIZEOF_LARGEDISKVNODE;
-    VnodeDiskObject *vdo;
-    int docreate        = FALSE;
-    rvm_return_t status = RVM_SUCCESS;
+    VnodeDiskObject *vdo = (VnodeDiskObject *)rvmlib_rec_malloc(size);
+    int docreate         = FALSE;
 
     VLog(9, "CloneVnode: Cloning %s vnode %x.%x.%x\n",
          (vclass == vLarge) ? "Large" : "Small", V_id(rwVp), vnodeNum,
@@ -438,8 +455,6 @@ int CloneVnode(Volume *rwVp, Volume *cloneVp, int vnodeIndex,
     vnode->vol_index = V_volumeindex(cloneVp);
 
     /* update inode */
-
-    rvmlib_begin_transaction(restore);
 
     /* If RWvnode doesn't have an inode (or is BARREN), create a new inode
      * for the clone. Otherwise increment the reference count on the inode.
@@ -471,16 +486,6 @@ int CloneVnode(Volume *rwVp, Volume *cloneVp, int vnodeIndex,
                              V_parentId(rwVp)) == 0);
     }
 
-    /* R/O vnodes should never be marked inconsistent. */
-    vnode->versionvector.Flags = 0;
-    vnode->cloned = 0; /* R/O Vnode should not be marked as cloned. */
-
-    vdo = (VnodeDiskObject *)rvmlib_rec_malloc(size);
-    rvmlib_modify_bytes(vdo, vnode, size);
-    rvlist[vnodeIndex].append(&vdo->nextvn);
-    rvmlib_end_transaction(flush, &status);
-    CODA_ASSERT(status == 0);
-
     /* Mark the RW vnode as cloned, !docreate ==> vnode was cloned. */
     if (VolumeWriteable(rwVp) && !docreate) {
         Vnode *tmp = VGetVnode(&error, rwVp, vnodeNum, vnode->uniquifier,
@@ -495,5 +500,12 @@ int CloneVnode(Volume *rwVp, Volume *cloneVp, int vnodeIndex,
         VPutVnode(&error, tmp); /* Check error? */
         CODA_ASSERT(error == 0);
     }
+
+    /* R/O vnodes should never be marked inconsistent. */
+    vnode->versionvector.Flags = 0;
+    vnode->cloned = 0; /* R/O Vnode should not be marked as cloned. */
+
+    rvmlib_modify_bytes(vdo, vnode, size);
+    rvlist[vnodeIndex].append(&vdo->nextvn);
     return 0;
 }

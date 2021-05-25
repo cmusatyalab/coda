@@ -200,9 +200,9 @@ PDirHandle SetDirHandle(struct Vnode *);
 int VolumeHashOffset();
 void VInitVnodes(VnodeClass, int);
 Vnode *VGetVnode(Error *, Volume *, VnodeId, Unique_t, int, int,
-                 int = 0) EXCLUDES_TRANSACTION;
-void VPutVnode(Error *ec, Vnode *vnp) EXCLUDES_TRANSACTION;
-void VFlushVnode(Error *, Vnode *) EXCLUDES_TRANSACTION;
+                 int = 0) REQUIRES_TRANSACTION;
+void VPutVnode(Error *ec, Vnode *vnp) REQUIRES_TRANSACTION;
+void VFlushVnode(Error *, Vnode *) REQUIRES_TRANSACTION;
 int VAllocFid(Volume *vp, VnodeType type, ViceFidRange *Range, int stride = 1,
               int ix = 0) EXCLUDES_TRANSACTION;
 int VAllocFid(Volume *vp, VnodeType type, VnodeId vnode,

@@ -269,14 +269,9 @@ static int RestoreVolume(DumpBuffer_t *buf, char *partition, char *volname,
         if (error) {
             VLog(0, "Unable to allocate volume id; restore aborted");
             rvmlib_abort(VFAIL);
-            status = error;
             goto error;
         }
     }
-    rvmlib_end_transaction(flush, &status);
-    if (status)
-        goto error;
-
     /* NOTE:  Do NOT set the parentId of restore RO volumes to the ORIGINAL
        parentID. If they are the same, then the restored volume will look
        like a RO copy of the parent and it would start being used instead
@@ -286,19 +281,19 @@ static int RestoreVolume(DumpBuffer_t *buf, char *partition, char *volname,
     vp = VCreateVolume(&error, partition, *volid, parentid, 0, volumeType);
     if (error) {
         VLog(0, "Unable to create volume %x; not restored", *volid);
-        status = error;
-        goto error;
+        rvmlib_abort(-1);
     }
 
     V_blessed(vp) = 0;
     VUpdateVolume(&error, vp);
     if (error) {
         VLog(0, "S_VolClone: Trouble updating voldata for %#x!", *volid);
-        status = error;
-        goto error;
+        rvmlib_abort(VFAIL);
     }
+
+    rvmlib_end_transaction(flush, &status);
 error:
-    if (status == RVM_SUCCESS)
+    if (status == 0)
         VLog(9, "restore createvol of %#x completed successfully", *volid);
     else {
         VLog(0, "restore: createvol failed.");
@@ -345,17 +340,28 @@ error:
     V_inService(vp) = V_blessed(vp) = 1;
 
     VLog(0, "partname -%s-", V_partname(vp));
+    rvmlib_begin_transaction(restore);
 
     VUpdateVolume(&error, vp);
     if (error) {
         VLog(0, "restore: Unable to rewrite volume header; restore aborted");
+        rvmlib_abort(-1);
         return -1;
     }
 
     VDetachVolume(&error, vp); /* Let file server get its hands on it */
     if (error) {
         VLog(0, "restore: Unable to detach volume; restore aborted");
+        rvmlib_abort(-1);
         return -1;
+    }
+
+    rvmlib_end_transaction(flush, &status);
+    if (status == 0)
+        VLog(9, "S_VolRestore: VUpdateVolume completed successfully");
+    else {
+        VLog(0, "restore: VUpdateVolume failed ");
+        return status;
     }
 
     VLog(0, "Volume %x (%s) restored successfully", *volid, vol.name);

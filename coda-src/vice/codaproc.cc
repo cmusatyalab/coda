@@ -452,10 +452,11 @@ long FS_ViceResolve(RPC2_Handle cid, ViceFid *Fid) EXCLUDES_TRANSACTION
 long FS_ViceSetVV(RPC2_Handle cid, ViceFid *Fid, ViceVersionVector *VV,
                   RPC2_CountedBS *PiggyBS) EXCLUDES_TRANSACTION
 {
-    Vnode *vptr         = 0;
-    Volume *volptr      = 0;
-    ClientEntry *client = 0;
-    long errorCode      = 0;
+    Vnode *vptr            = 0;
+    Volume *volptr         = 0;
+    ClientEntry *client    = 0;
+    long errorCode         = 0;
+    rvm_return_t camstatus = RVM_SUCCESS;
     char *rock;
 
     SLog(9, "Entering ViceSetVV(%s", FID_(Fid));
@@ -487,6 +488,7 @@ long FS_ViceSetVV(RPC2_Handle cid, ViceFid *Fid, ViceVersionVector *VV,
     memcpy(&(Vnode_vv(vptr)), VV, sizeof(ViceVersionVector));
 
 FreeLocks:
+    rvmlib_begin_transaction(restore);
     int fileCode = 0;
     if (vptr) {
         VPutVnode((Error *)&fileCode, vptr);
@@ -494,6 +496,11 @@ FreeLocks:
     }
     if (volptr)
         PutVolObj(&volptr, NO_LOCK);
+    rvmlib_end_transaction(flush, &(camstatus));
+    if (camstatus) {
+        SLog(0, "ViceSetVV: Error during transaction");
+        return (camstatus);
+    }
     SLog(9, "ViceSetVV finished with errorcode %d", errorCode);
     return (errorCode);
 }
@@ -1761,14 +1768,9 @@ static int GetRepairObjects(Volume *volptr, vle *ov, dlist *vlist,
     /* put back object being repaired */
     {
         Error fileCode = 0;
-        rvm_return_t rvmstatus;
-        rvmlib_begin_transaction(restore);
 
         if (ov->vptr->dh)
             VN_PutDirHandle(ov->vptr);
-
-        rvmlib_end_transaction(flush, &rvmstatus);
-        CODA_ASSERT(rvmstatus == RVM_SUCCESS);
 
         VPutVnode(&fileCode, ov->vptr);
         CODA_ASSERT(fileCode == 0);
@@ -2197,8 +2199,6 @@ long InternalCOP2(RPC2_Handle cid, ViceStoreId *StoreId,
             if (vptrs[i])
                 COP2Update(volptr, vptrs[i], UpdateSet, &freed_indices);
     }
-    rvmlib_end_transaction(flush, &(status));
-
     /* Put the vnodes. */
     for (i = 0; i < nfids; i++)
         if (vptrs[i]) {
@@ -2209,6 +2209,7 @@ long InternalCOP2(RPC2_Handle cid, ViceStoreId *StoreId,
 
     /* Put the volume. */
     PutVolObj(&volptr, NO_LOCK);
+    rvmlib_end_transaction(flush, &(status));
     END_TIMING(COP2_Transaction);
 
     if (cpe) {

@@ -264,6 +264,7 @@ int ReplaceVnode(int volindex, int vclass, VnodeId vnodeindex, Unique_t u,
     maxid = (SRV_RVM(MaxVolId) & 0x00FFFFFF);
     if (volindex < 0 || volindex > (int)maxid || volindex > MAXVOLS) {
         VLog(0, "ReplaceVnode: bogus volume index %d", volindex);
+        rvmlib_abort(VFAIL); // invalid volume index
         return VNOVOL;
     }
 
@@ -273,6 +274,7 @@ int ReplaceVnode(int volindex, int vclass, VnodeId vnodeindex, Unique_t u,
     if (vclass == vSmall) {
         if (vnodeindex >= SRV_RVM(VolumeList[volindex]).data.nsmallLists) {
             VLog(0, "ReplaceVnode: bogus small vnode index %d", vnodeindex);
+            rvmlib_abort(VFAIL); // invalid vnode index
             return ENOSPC;
         }
         vlist =
@@ -283,6 +285,7 @@ int ReplaceVnode(int volindex, int vclass, VnodeId vnodeindex, Unique_t u,
     } else {
         if (vnodeindex >= SRV_RVM(VolumeList[volindex]).data.nlargeLists) {
             VLog(0, "ReplaceVnode: bogus large vnode index %d", vnodeindex);
+            rvmlib_abort(VFAIL); // invalid vnode index
             return ENOSPC;
         }
         vlist =
@@ -339,6 +342,7 @@ static int DeleteVnode(int volindex, int vclass, VnodeId vnodeindex, Unique_t u,
     maxid = (SRV_RVM(MaxVolId) & 0x00FFFFFF);
     if (volindex < 0 || volindex > (int)maxid || volindex > MAXVOLS) {
         VLog(0, "DeleteVnode: bogus volume index %d", volindex);
+        rvmlib_abort(VFAIL); // invalid volume index
         return VNOVOL;
     }
 
@@ -346,6 +350,7 @@ static int DeleteVnode(int volindex, int vclass, VnodeId vnodeindex, Unique_t u,
         if (vnodeindex >= SRV_RVM(VolumeList[volindex]).data.nsmallLists) {
             VLog(0, "DeleteVnode: deleting nonexistent vnode (index %d)",
                  vnodeindex);
+            rvmlib_abort(VFAIL);
             return ENOSPC;
         }
         vlist =
@@ -356,6 +361,7 @@ static int DeleteVnode(int volindex, int vclass, VnodeId vnodeindex, Unique_t u,
         if (vnodeindex >= SRV_RVM(VolumeList[volindex]).data.nlargeLists) {
             VLog(0, "DeleteVnode: deleting nonexistent vnode (index %d)",
                  vnodeindex);
+            rvmlib_abort(VFAIL);
             return ENOSPC;
         }
         vlist =
@@ -433,6 +439,7 @@ void ReplaceVolDiskInfo(Error *ec, int volindex, VolumeDiskData *vol)
         VLog(0, "ReplaceVolDiskInfo: bogus volume index %d for volume %s",
              volindex, volname);
         *ec = VNOVOL; // invalid volume index
+        rvmlib_abort(VFAIL);
         return;
     }
 

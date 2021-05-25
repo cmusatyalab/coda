@@ -568,10 +568,13 @@ int recov_vol_log::AllocViaWrapAround(int *index, int *seqno, Volume *volptr,
                 0,
                 "AllocViaWrapAround: %08x.%x.%x has only single vnode on list\n",
                 V_id(volptr), wrapvn, wrapun);
+            rvmlib_begin_transaction(restore);
             Error fileCode = 0;
             VPutVnode(&fileCode, vptr);
-            CODA_ASSERT(fileCode == 0);
             vptr = 0;
+            CODA_ASSERT(fileCode == 0);
+            rvmlib_end_transaction(flush, &status);
+            CODA_ASSERT(status == RVM_SUCCESS);
 
             different = 1;
             continue;
@@ -606,13 +609,12 @@ int recov_vol_log::AllocViaWrapAround(int *index, int *seqno, Volume *volptr,
 
             le->FreeVarl();
             RecovFreeRecord(le->index);
-            *index = le->index;
-            rvmlib_end_transaction(flush, &status);
-
+            *index         = le->index;
             Error fileCode = 0;
             VPutVnode(&fileCode, vptr);
-            CODA_ASSERT(fileCode == 0);
             vptr = 0;
+            CODA_ASSERT(fileCode == 0);
+            rvmlib_end_transaction(flush, &status);
             if (status != RVM_SUCCESS)
                 return (ENOSPC);
             FreeVMIndices(volptr, &ind);

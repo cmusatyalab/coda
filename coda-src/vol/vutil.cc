@@ -141,8 +141,6 @@ Volume *VCreateVolume(Error *ec, char *partition, VolumeId volumeId,
     tempHeader.parent = vol.parentId;
     tempHeader.type   = type;
 
-    rvm_return_t status;
-    rvmlib_begin_transaction(restore);
     /* Find an empty slot in recoverable volume header array */
     if ((volindex = NewVolHeader(&tempHeader, ec)) == -1) {
         if (*ec == VVOLEXISTS) {
@@ -152,7 +150,6 @@ Volume *VCreateVolume(Error *ec, char *partition, VolumeId volumeId,
             LogMsg(0, VolDebugLevel, stdout,
                    "VCreateVolume: volume %x not created", vol.id);
         }
-        rvmlib_abort(VFAIL);
         return NULL;
     }
 
@@ -163,11 +160,8 @@ Volume *VCreateVolume(Error *ec, char *partition, VolumeId volumeId,
                "VCreateVolume: Unable to write volume %x; volume not created",
                vol.id);
         *ec = VNOVOL;
-        rvmlib_abort(VFAIL);
         return NULL;
     }
-    rvmlib_end_transaction(flush, &status);
-    CODA_ASSERT(status == RVM_SUCCESS);
 
     return (VAttachVolumeById(ec, partition, volumeId, V_SECRETLY));
 }

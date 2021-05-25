@@ -86,6 +86,7 @@ long S_VolSetVV(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
         tmpvolid = volid;
     }
 
+    rvmlib_begin_transaction(restore);
     VInitVolUtil(volumeUtility);
     /*    vp = VAttachVolume(&error, volid, V_READONLY); */
     /* Ignoring the volume lock for now - assume this will
@@ -96,15 +97,14 @@ long S_VolSetVV(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
         if (error != VNOVOL) {
             VPutVolume(vp);
         }
+        rvmlib_abort(error);
         goto exit;
     }
-
     /* VGetVnode moved from after VOffline to here 11/88 ***/
     vnp = VGetVnode(&error, vp, vnodeid, unique, WRITE_LOCK, 1);
     if (error && error != EIO) {
         VLog(0, "S_VolSetVV: VGetVnode failed with %d", error);
-        VPutVolume(vp);
-        goto exit;
+        goto errorexit;
     }
 
     if (!error) {
@@ -147,17 +147,25 @@ long S_VolSetVV(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
     (&(UpdateSet.Versions.Site0))[ix] = 1;
     AddVVs(&V_versionvector(vp), &UpdateSet);
 
-    VPutVnode((Error *)&error, vnp);
-    VPutVolume(vp);
-
     fid.Volume = formal_volid;
     fid.Vnode  = vnodeid;
     fid.Unique = unique;
     CodaBreakCallBack(0, &fid, formal_volid);
 
+    VPutVnode((Error *)&error, vnp);
+
     if (error) {
         VLog(0, "S_VolSetVV: VPutVnode failed with %d", error);
+        goto errorexit;
     }
+
+    VPutVolume(vp);
+    rvmlib_end_transaction(flush, &(status));
+    goto exit; /* hop, skip, and jump */
+
+errorexit:
+    VPutVolume(vp);
+    rvmlib_abort(VFAIL);
 
 exit:
     VDisconnectFS();
