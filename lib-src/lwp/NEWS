@@ -1,3 +1,6 @@
+New in 2.16:
+ * Added asserts to catch linked list issues in the timer queue early.
+
 New in 2.15:
  * Just some whitespace cleanups, keeping same library version.
 
