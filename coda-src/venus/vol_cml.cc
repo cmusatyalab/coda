@@ -1191,7 +1191,7 @@ int reintvol::LogRemove(time_t Mtime, uid_t uid, VenusFid *PFid, char *Name,
                 if (m && (m->opcode == CML_Create_OP ||
                           m->opcode == CML_SymLink_OP)) {
                     ObjectCreated = 1;
-                    if (m->IsFrozen() && !(m->IsToBeRepaired()))
+                    if (m->IsFrozen() && !m->IsToBeRepaired())
                         CreateReintegrating = 1;
                 }
                 /*
@@ -3334,24 +3334,10 @@ int reintvol::PurgeMLEs(uid_t uid)
         cmlent *m;
         rec_dlist_iterator next(CML.list, AbortOrder);
         rec_dlink *d = next(); /* get the first (last) element */
-        while (1) {
-            if (!d)
-                break;
+        while (d != NULL) {
             m = strbase(cmlent, d, handle);
             d = next();
-            Recov_BeginTrans();
-            if (m->IsToBeRepaired())
-                /*
-                 * this record must be associated with
-                 * some local objects whose subtree root
-                 * is not in this volume. since we kill the
-                 * local objects later, we use cmlent destructor
-                 * instead of the cmlent::abort().
-                 */
-                delete m;
-            else
-                m->abort();
-            Recov_EndTrans(MAXFP);
+            m->abort();
         }
         VOL_ASSERT(this, CML.count() == 0);
     }
@@ -3675,26 +3661,21 @@ void ClientModifyLog::IncAbort(int Tid)
 
     CODA_ASSERT(count() > 0);
 
-    Recov_BeginTrans();
     rec_dlist_iterator next(list, AbortOrder);
     rec_dlink *d = next(); /* get the first (last) element */
 
-    while (1) {
-        if (!d)
-            break; /* list exhausted */
+    while (d != NULL) {
         cmlent *m = strbase(cmlent, d, handle);
+
+        d = next(); /* advance d before it is un-listed by m->abort() */
         if (m->GetTid() == Tid) {
             m->print(logFile);
-            d = next(); /* advance d before it is un-listed by m->abort() */
             m->abort();
-        } else {
-            d = next();
         }
     }
-    Recov_EndTrans(DMFP);
 }
 
-/* MUST be called from within transaction! */
+/* MUST NOT be called from within transaction! */
 void cmlent::abort()
 {
     repvol *vol = strbase(repvol, log, CML);
@@ -3704,24 +3685,39 @@ void cmlent::abort()
     CODA_ASSERT(succ == 0 || succ->count() == 0);
 
     /* Step 2:  Kill fsos linked into this record */
-    dlist_iterator next(*fid_bindings);
-    dlink *d;
 
-    while ((d = next())) {
-        binding *b = strbase(binding, d, binder_handle);
-        fsobj *f   = (fsobj *)b->bindee;
+    /* If this record is associated with local objects whose subtree root
+     * is not in this volume, we kill the local objects later and don't need to
+     * kill linked fsos here.
+     */
+    if (!IsToBeRepaired()) {
+        dlist_iterator next(*fid_bindings);
+        dlink *d;
 
-        /* sanity checks */
-        CODA_ASSERT(f &&
-                    (f->MagicNumber == FSO_MagicNumber)); /* better be an fso */
+        while ((d = next())) {
+            binding *b = strbase(binding, d, binder_handle);
+            fsobj *f   = (fsobj *)b->bindee;
 
-        f->Lock(WR);
-        f->Kill();
+            /* sanity checks */
+            CODA_ASSERT(f && (f->MagicNumber ==
+                              FSO_MagicNumber)); /* better be an fso */
 
-        FSDB->Put(&f);
+            f->Lock(WR);
+
+            /* I assume put will start its own transaction as well, maybe kill
+             * should become a flag for put so we can kill the object in a
+             * single transaction --JH */
+            Recov_BeginTrans();
+            f->Kill();
+            Recov_EndTrans(MAXFP);
+
+            FSDB->Put(&f);
+        }
     }
 
+    Recov_BeginTrans();
     delete this;
+    Recov_EndTrans(MAXFP);
 }
 
 /*  *****  Routines for Maintaining fsobj <--> cmlent Bindings  *****  */
