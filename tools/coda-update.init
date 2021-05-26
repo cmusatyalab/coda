@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # coda-update
 #
@@ -14,6 +14,7 @@
 # Short-Description: Start the Coda update daemons.
 ### END INIT INFO
 
+# shellcheck disable=SC1091
 . /lib/lsb/init-functions
 
 subsys=coda-update
@@ -29,10 +30,11 @@ pid_file2=/vice/misc/updateclnt.pid
 
 lockfile=/var/lock/subsys/$subsys
 
+# shellcheck disable=SC1090
 [ -e /etc/sysconfig/$subsys ] && . /etc/sysconfig/$subsys
 
 start () {
-    [ -x $exec1 -a -x $exec2 ] || exit 5
+    [ -x $exec1 ] && [ -x $exec2 ] || exit 5
     [ -f $config ] || exit 6
 
     echo -n $"Starting $subsys:"
@@ -41,7 +43,7 @@ start () {
     allret=0
     anyret=1
 
-    if [ "`cat /vice/hostname`" = "`cat /vice/db/scm`" ] ; then
+    if [ "$(cat /vice/hostname)" = "$(cat /vice/db/scm)" ] ; then
 	echo -n " $prog1"
 	if ! pidofproc -p $pid_file1 $prog1 >/dev/null 2>&1 ; then
 	    start_daemon -p $pid_file1 $exec1
@@ -53,15 +55,15 @@ start () {
 
     echo -n " $prog2"
     if ! pidofproc -p $pid_file2 $prog2 >/dev/null 2>&1 ; then
-	start_daemon -p $pid_file2 $exec2 -h "`cat /vice/db/scm`"
+	start_daemon -p $pid_file2 $exec2 -h "$(cat /vice/db/scm)"
 	retval2=$?
     fi
 
     [ $allret -eq 0 ] && allret=$retval2
     [ $anyret -ne 0 ] && anyret=$retval2
 
-    [ $allret -eq 0 ] && log_success_msg || log_failure_msg
-    [ $anyret -eq 0 -a -d /var/lock/subsys ] && touch $lockfile
+    if [ $allret -eq 0 ] ; then log_success_msg ; else log_failure_msg ; fi
+    [ $anyret -eq 0 ] && [ -d /var/lock/subsys ] && touch $lockfile
     return $allret
 }
 
@@ -77,8 +79,8 @@ stop () {
     retval2=$?
 
     [ $retval1 -eq 0 ] && allret=$retval2 || allret=$retval1
-    [ $allret -eq 0 ] && log_success_msg || log_failure_msg
-    [ $allret -eq 0 -a -d /var/lock/subsys ] && rm -f $lockfile
+    if [ $allret -eq 0 ] ; then log_success_msg ; else log_failure_msg ; fi
+    [ $allret -eq 0 ] && [ -d /var/lock/subsys ] && rm -f $lockfile
     return $allret
 }
 

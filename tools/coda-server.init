@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # coda-server
 #
@@ -14,6 +14,7 @@
 # Short-Description: Start the Coda file system server daemons
 ### END INIT INFO
 
+# shellcheck disable=SC1091
 . /lib/lsb/init-functions
 
 subsys=coda-server
@@ -30,12 +31,13 @@ config2=/etc/coda/server.conf
 
 lockfile=/var/lock/subsys/$subsys
 
+# shellcheck disable=SC1090
 [ -e /etc/sysconfig/$subsys ] && . /etc/sysconfig/$subsys
 
 
 start () {
-    [ -x $exec1 -a -x $exec2 ] || exit 5
-    [ -f $config1 -a -f $config2 ] || exit 6
+    [ -x $exec1 ] && [ -x $exec2 ] || exit 5
+    [ -f $config1 ] && [ -f $config2 ] || exit 6
 
     echo -n $"Starting $subsys:"
     retval1=0
@@ -53,7 +55,7 @@ start () {
 	    start_daemon -p $pid_file2 $exec2
 	    retval2=$?
 	else
-	    echo "`date`: "$"found CRASH file, codasrv not started" >> /vice/srv/SrvErr
+	    echo "$(date): "$"found CRASH file, codasrv not started" >> /vice/srv/SrvErr
 	    echo $"found CRASH file, codasrv not started"
 	    retval2=1
 	fi
@@ -62,8 +64,8 @@ start () {
     [ $retval1 -eq 0 ] && allret=$retval2 || allret=$retval1
     [ $retval1 -ne 0 ] && anyret=$retval2 || anyret=$retval1
 
-    [ $allret -eq 0 ] && log_success_msg || log_failure_msg
-    [ $anyret -eq 0 -a -d /var/lock/subsys ] && touch $lockfile
+    if [ $allret -eq 0 ] ; then log_success_msg ; else log_failure_msg ; fi
+    [ $anyret -eq 0 ] && [ -d /var/lock/subsys ] && touch $lockfile
     return $allret
 }
 
@@ -79,8 +81,8 @@ stop () {
     retval2=$?
 
     [ $retval1 -eq 0 ] && allret=$retval2 || allret=$retval1
-    [ $allret -eq 0 ] && log_success_msg || log_failure_msg
-    [ $allret -eq 0 -a -d /var/lock/subsys ] && rm -f $lockfile
+    if [ $allret -eq 0 ] ; then log_success_msg ; else log_failure_msg ; fi
+    [ $allret -eq 0 ] && [ -d /var/lock/subsys ] && rm -f $lockfile
     return $allret
 }
 

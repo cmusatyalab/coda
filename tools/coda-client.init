@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # coda-client
 #
@@ -16,6 +16,7 @@
 # Short-Description: Start the Coda file system client.
 ### END INIT INFO
 
+# shellcheck disable=SC1091
 . /lib/lsb/init-functions
 
 subsys=coda-client
@@ -27,11 +28,14 @@ config=/etc/coda/venus.conf
 
 lockfile=/var/lock/subsys/$subsys
 
+# shellcheck disable=SC1090
 [ -e /etc/sysconfig/$subsys ] && . /etc/sysconfig/$subsys
 
 # coda-client specific settings
 mountpoint=/coda
-[ -x /usr/sbin/codaconfedit ] && . `/usr/sbin/codaconfedit venus.conf`
+
+# shellcheck disable=SC1090
+[ -x /usr/sbin/codaconfedit ] && . "$(/usr/sbin/codaconfedit venus.conf)"
 
 
 start () {
@@ -44,11 +48,11 @@ start () {
 
     echo -n " $prog"
     /usr/sbin/vutil --swaplogs >/dev/null 2>&1 || true
-    start_daemon -p $pid_file $exec 2>&1 >/dev/null
+    start_daemon -p $pid_file $exec >/dev/null 2>&1
     retval=$?
 
-    [ $retval -eq 0 ] && log_success_msg || log_failure_msg
-    [ $retval -eq 0 -a -d /var/lock/subsys ] && touch $lockfile
+    if [ $retval -eq 0 ] ; then log_success_msg ; else log_failure_msg ; fi
+    [ $retval -eq 0 ] && [ -d /var/lock/subsys ] && touch $lockfile
     return $retval
 }
 
@@ -64,8 +68,8 @@ stop () {
 	retval=$?
     fi
 
-    [ $retval -eq 0 ] && log_success_msg || log_failure_msg
-    [ $retval -eq 0 -a -d /var/lock/subsys ] && rm -f $lockfile
+    if [ $retval -eq 0 ] ; then log_success_msg ; else log_failure_msg ; fi
+    [ $retval -eq 0 ] && [ -d /var/lock/subsys ] && rm -f $lockfile
     return $retval
 }
 

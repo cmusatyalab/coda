@@ -9,29 +9,29 @@ fi
 VERSION=$1
 BSD=$2
 
-function MakePortsTree () {
+MakePortsTree () {
     ver=$1
     bsd=$2
 
     # make ports stuff
     mkdir net
-    MakeSubTree client ${ver} ${bsd}
-    MakeSubTree server ${ver} ${bsd}
+    MakeSubTree client "${ver}" "${bsd}"
+    MakeSubTree server "${ver}" "${bsd}"
 
 #    chown -R root.root net
 }
 
-function MakeSubTree () {
+MakeSubTree () {
     pkg=$1
     ver=$2
     bsd=$3
 
-    mkdir net/coda5_${pkg}
-    MakeMakefile ${pkg} ${ver} net/coda5_${pkg}/Makefile ${bsd}
+    mkdir "net/coda5_${pkg}"
+    MakeMakefile "${pkg}" "${ver}" "net/coda5_${pkg}/Makefile" "${bsd}"
 
-    mkdir net/coda5_${pkg}/files
+    mkdir "net/coda5_${pkg}/files"
 
-    if [ x${bsd} = xNetBSD ]
+    if [ "${bsd}" = NetBSD ]
     then
 	cat > /tmp/mf << EOF
 \$NetBSD\$
@@ -41,23 +41,23 @@ EOF
 	cp /dev/null /tmp/mf
     fi
 
-    if [ -f /coda/project/releases/${ver}/src/coda-${ver}.md5 ] ; then
-	cat /coda/project/releases/${ver}/src/coda-${ver}.md5 >> /tmp/mf
-	mv /tmp/mf net/coda5_${pkg}/files/md5
+    if [ -f "/coda/project/releases/${ver}/src/coda-${ver}.md5" ] ; then
+	cat "/coda/project/releases/${ver}/src/coda-${ver}.md5" >> /tmp/mf
+	mv /tmp/mf "net/coda5_${pkg}/files/md5"
     fi
     rm -f /tmp/mf
 
-    mkdir net/coda5_${pkg}/pkg
-    MakeCOMMENT ${pkg} net/coda5_${pkg}/pkg/COMMENT
-    MakeDESCR ${pkg} net/coda5_${pkg}/pkg/DESCR
-    MakePLIST ${pkg} net/coda5_${pkg}/pkg/PLIST ${bsd}
+    mkdir "net/coda5_${pkg}/pkg"
+    MakeCOMMENT "${pkg}" "net/coda5_${pkg}/pkg/COMMENT"
+    MakeDESCR "${pkg}" "net/coda5_${pkg}/pkg/DESCR"
+    MakePLIST "${pkg}" "net/coda5_${pkg}/pkg/PLIST" "${bsd}"
 }
 
-function MakeMakefile () {
+MakeMakefile () {
   package=$1
   version=$2
   dest=$3
-  if [ x$4 = xNetBSD ]
+  if [ "$4" = NetBSD ]
   then
     REMOVE=FreeBSD
     KEEP=NetBSD
@@ -110,17 +110,17 @@ USE_GMAKE=	yes
 @NetBSD .include "../../mk/bsd.pkg.mk"
 @FreeBSD .include <bsd.port.mk>
 EOF
-
+    # shellcheck disable=SC2002
     cat /tmp/mf | sed -e "s/@PKG@/${package}/" | \
 		  sed -e "s/@VERSION@/${version}/" | \
-		  sed -e "s/@DATE@/`date`/" | \
+		  sed -e "s/@DATE@/$(date)/" | \
 		  sed -e "s/@USER@/${USER}/" | \
 		  sed -e "/^@${REMOVE} .*$/d" | \
-		  sed -e "s/^@${KEEP} \(.*\)$/\1/" > ${dest}
+		  sed -e "s/^@${KEEP} \(.*\)$/\1/" > "${dest}"
     rm /tmp/mf
 }
 
-function MakeCOMMENT () {
+MakeCOMMENT () {
     pkg=$1
     dst=$2
 
@@ -128,11 +128,11 @@ function MakeCOMMENT () {
 @PKG@ programs for a replicated high-performance network file system
 EOF
 
-    sed -e "s/@PKG@/${pkg}/" < /tmp/text > ${dst}
+    sed -e "s/@PKG@/${pkg}/" < /tmp/text > "${dst}"
     rm /tmp/text
 }
 
-function MakeDESCR () {
+MakeDESCR () {
     pkg=$1
     dst=$2
 
@@ -147,27 +147,27 @@ This package builds the entire source tree but only installs(/packages) the
 For more info, contact <coda@cs.cmu.edu> or visit http://www.coda.cs.cmu.edu.
 EOF
 
-    sed -e "s/@PKG@/${pkg}/" < /tmp/text > ${dst}
+    sed -e "s/@PKG@/${pkg}/" < /tmp/text > "${dst}"
     rm /tmp/text
 }
 
-function MakePLIST () {
+MakePLIST () {
     pkg=$1
     dst=$2
     bsd=$3
 
-    if [ x${bsd} = xNetBSD ]
+    if [ "${bsd}" = NetBSD ]
     then
-	cat > ${dst} << EOF
+	cat > "${dst}" << EOF
 @comment \$NetBSD\$
 EOF
     else
-	cp /dev/null ${dst}
+	cp /dev/null "${dst}"
     fi
 
-    if [ x${pkg} = xclient ]
+    if [ "${pkg}" = client ]
     then
-	cat >> ${dst} << EOF
+	cat >> "${dst}" << EOF
 sbin/codaconfedit
 sbin/venus
 sbin/coda-client-setup
@@ -214,9 +214,9 @@ etc/coda/venus.conf.ex
 EOF
     fi
 
-    if [ x${pkg} = xserver ]
+    if [ "${pkg}" = server ]
     then
-	cat >> ${dst} << EOF
+	cat >> "${dst}" << EOF
 bin/getvolinfo
 bin/norton
 bin/norton-reinit
@@ -281,4 +281,4 @@ EOF
     fi
 }
 
-MakePortsTree $VERSION $BSD
+MakePortsTree "$VERSION" "$BSD"

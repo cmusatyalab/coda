@@ -4,8 +4,9 @@ REAL_SCRIPT=/tmp/reinit_script	# The script to be run when done
 SCRIPT=$REAL_SCRIPT.$$		# Build the script here, helps prevent re-runs.
 NOCREATE=/tmp/not_created	# List of volumes not being recreated
 
+# shellcheck disable=SC2039,SC2145,SC1001,SC3037
 echon() {
-    if [ "`echo -n`" ] ; then
+    if [ "$(echo -n)" ] ; then
         echo "$@"\c
     else
         echo -n "$@"
@@ -16,7 +17,7 @@ echon() {
 if [ -f $REAL_SCRIPT ] ; then
     echo "WARNING: $REAL_SCRIPT exists!"
     echon "Are you sure you want to continue? "
-    read _ans_
+    read -r _ans_
     case "$_ans_" in
         [Yy] | [Yy][Ee][Ss])
 	    echo ""
@@ -38,14 +39,14 @@ touch $NOCREATE
 
 # First remove unwanted entries from VolumeList (egrep),
 # then extract the data we need (awk).
-egrep -v '^P' /vice/vol/VolumeList | egrep -v '\.backup ' | \
-	egrep -v '\.restored ' | \
+grep -E -v '^P' /vice/vol/VolumeList | grep -E -v '\.backup ' | \
+	grep -E -v '\.restored ' | \
 	awk '{print substr($4, 2), substr($1, 2), substr($2, 2)}' | \
-    while read part name volid ; do
+    while read -r part name volid ; do
 
 	# Get the replicated volume id (repid).
-	repid=`grep $volid /vice/db/VRList | awk '{print $2}'`
-	if [ "$repid" = "" ] ; then
+	repid=$(grep "$volid" /vice/db/VRList | awk '{print $2}')
+	if [ -z "$repid" ] ; then
 	    echo "WARNING: Cannot find repid for volume \"$name\" ($volid)!"
 	    echo "    Check that you have a backup before reinitializing!"
 	    continue
@@ -57,11 +58,11 @@ egrep -v '^P' /vice/vol/VolumeList | egrep -v '\.backup ' | \
     done
 
 # Create a list of all volumes that are not being recreated.
-egrep -v '^P' /vice/vol/VolumeList  | awk '{print substr($1, 2)}' | \
-    while read name ; do
-	ok=`grep " $name " $SCRIPT`
-	if [ "$ok" = "" ] ; then
-	    echo $name >> $NOCREATE
+grep -E -v '^P' /vice/vol/VolumeList  | awk '{print substr($1, 2)}' | \
+    while read -r name ; do
+	ok=$(grep " $name " "$SCRIPT")
+	if [ -z "$ok" ] ; then
+	    echo "$name" >> "$NOCREATE"
 	fi
     done
 

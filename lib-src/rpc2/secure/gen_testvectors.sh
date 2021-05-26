@@ -1,7 +1,7 @@
-#!/bin/sh
+#!/bin/bash
 #
 # Extract rijndael test values,
-#	http://csrc.nist.gov/CryptoToolkit/aes/rijndael/rijndael-vals.zip
+#	https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Standards-and-Guidelines/documents/aes-development/rijndael-vals.zip
 #
 # Unzip them in a subdirectory 'testvalues' and run this script to build
 # testvectors.h
@@ -43,26 +43,30 @@ vectors () {
     limit=$4
     IFS='='
     echo -n "$array " 1>&2
-    echo "static const char $array[] ="
+    echo -n "static const char ${array}[] ="
     I=0
     keysize=0
-    cat $file | sed 's/\r//' | while read key value
+    sed 's/\r//' < "$file" | while read -r key value
     do
-	if [ "$key" = KEYSIZE -a "$value" != "$keysize" ] ; then
+	if [ "$key" = KEYSIZE ] && [ "$value" != "$keysize" ] ; then
 	    I=0
 	    keysize="$value"
 	fi
-	[ "$I" -ge $limit -o "$key" != $match ] && continue
-	echo "	\""`echo $value | sed 's/\(..\)/\\\x\1/g'`"\""
-	I=`expr $I + 1`
-	[ "`expr $I % 20`"  -eq 0 ] && echo -n "." 1>&2
+	[ "$I" -ge "$limit" ] || [ "$key" != "$match" ] && continue
+        echo
+        # shellcheck disable=SC2001
+	echo -n "    \"$(echo "$value" | sed 's/\(..\)/\\\x\1/g')\""
+	I=$((I + 1))
+	[ "$((I % 20))" -eq 0 ] && echo -n "." 1>&2
     done
     echo ";"
     echo " done" 1>&2
 }
 
 echo "generating testvectors.h " 1>&2
-vectors aes_ecb_em testvalues/ecb_e_m.txt CT $limit > testvectors.h
-vectors aes_ecb_dm testvalues/ecb_d_m.txt PT $limit >> testvectors.h
-vectors aes_ecb_vt testvalues/ecb_vt.txt CT $limit >> testvectors.h
-vectors aes_ecb_vk testvalues/ecb_vk.txt CT $limit >> testvectors.h
+{
+    vectors aes_ecb_em testvalues/ecb_e_m.txt CT "$limit" ;
+    vectors aes_ecb_dm testvalues/ecb_d_m.txt PT "$limit" ;
+    vectors aes_ecb_vt testvalues/ecb_vt.txt CT "$limit" ;
+    vectors aes_ecb_vk testvalues/ecb_vk.txt CT "$limit" ;
+} > testvectors.h

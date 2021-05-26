@@ -1,3 +1,4 @@
+#!/bin/bash
 # Final installation script ... build /usr/coda with proper permissions.
 # Parameters:  None:
 

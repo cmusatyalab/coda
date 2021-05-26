@@ -5,7 +5,7 @@
 # when we're building a new Coda release
 #
 
-TAGGED_SUBSYS=$(echo $CI_COMMIT_TAG | cut -d- -f1)
+TAGGED_SUBSYS=$(echo "$CI_COMMIT_TAG" | cut -d- -f1)
 
 ACINIT_RE='^\(AC_INIT([^,]*, \)\([^,]*\)\(.*)\)'
 
@@ -17,8 +17,8 @@ checkver () {
   # RELEASE is latest git tagged version
   # CONFVER is configure.ac version
   VERSION=$(git describe --match="$SUBSYS-*" | cut -d- -f2-)
-  RELEASE=$(echo $VERSION | cut -d- -f1)
-  CONFVER=$(sed -n "s/$ACINIT_RE/\2/p" $SUBDIR/configure.ac)
+  RELEASE=$(echo "$VERSION" | cut -d- -f1)
+  CONFVER=$(sed -n "s/$ACINIT_RE/\2/p" "$SUBDIR/configure.ac")
 
   # the configure.ac version should match the tagged version
   if [ "$CONFVER" != "$RELEASE" ] ; then
@@ -27,7 +27,7 @@ checkver () {
   fi
 
   # are there changes since the last release tag?
-  if [ -n "$(git diff $SUBSYS-$RELEASE $SUBDIR)" ]
+  if [ -n "$(git diff "$SUBSYS-$RELEASE" "$SUBDIR")" ]
   then
     echo "$SUBSYS: untagged version $VERSION"
     [ "$TAGGED_SUBSYS" = "coda" ] && exit 1

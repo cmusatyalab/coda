@@ -4,6 +4,7 @@
 #
 
 vicedir=/vice
+# shellcheck disable=SC1090
 . "$(codaconfedit server.conf)"
 
 rotate ()

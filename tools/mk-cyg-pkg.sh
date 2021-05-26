@@ -1,9 +1,10 @@
+#!/bin/sh
 # Make a cygwin package.
 #
 
 DOCLEAN=true
 
-if [ x$NOBUILD = x ] ; then
+if [ -z "$NOBUILD" ] ; then
   BUILD=true
 else
   BUILD=false
@@ -132,38 +133,38 @@ SRVLIST="
 
 # Sanity checks ...
 
-if [ `uname -o` != Cygwin ] ; then
+if [ "$(uname -o)" != Cygwin ] ; then
     echo This script must be run under Cygwin
     exit 1
 fi
 
-WD=`pwd`
+WD=$(pwd)
 
-if [ `basename $WD` != $PKG ] ; then
-   DIR=`dirname $WD`
-   if [ `basename $DIR` != $PKG ] ; then
+if [ "$(basename "$WD")" != $PKG ] ; then
+   DIR=$(dirname "$WD")
+   if [ "$(basename "$DIR")" != $PKG ] ; then
        echo This script must be started in $PKG or $PKG/tools
        exit 1
    fi
    cd ..
-   WD=`pwd`
-   if [ `basename $WD` != $PKG ] ; then
+   WD=$(pwd)
+   if [ "$(basename "$WD")" != $PKG ] ; then
        echo This script must be started in $PKG or $PKG/tools
        exit 1
    fi
 fi
 
 # Get the revision number ...
-function AC_INIT() { \
+AC_INIT() { \
   REV=$2; \
 }
-eval `grep AC_INIT\( configure.ac | tr "(,)" "   "`
-if [ x$REV = x ] ; then
+eval "$(grep AC_INIT\( configure.ac | tr "(,)" "   ")"
+if [ -z "$REV" ] ; then
     echo Could not get revision number
     exit 1
 fi
 
-echo Building $PKG-$REV cygwin binary and source packages
+echo "Building $PKG-$REV cygwin binary and source packages"
 
 if $BUILD ; then
     # Bootstrap it !
@@ -210,9 +211,9 @@ if $BUILD ; then
     echo Stripping client files.
 
     for f in $CLILIST ; do
-	if [ `basename $f` != `basename $f .exe` ] ; then
-	    echo Stripping /$f
-	    strip /$f
+	if [ "$(basename "$f")" != "$(basename "$f" .exe)" ] ; then
+	    echo "Stripping /$f"
+	    strip "/$f"
 	fi
     done
 fi
@@ -224,12 +225,12 @@ cp tools/cyg-postinst.sh /etc/postinstall/coda-client.sh
 
 echo "Creating binary tar.bz2 file for the client."
 
-(cd / ; if ! tar -cjf $WD/$PKG-client-$REV-$CYGWINREV.tar.bz2 $CLILIST ; then \
+(cd / ; if ! tar -cjf "$WD/$PKG-client-$REV-$CYGWINREV.tar.bz2" "$CLILIST" ; then \
     echo Could not create the tar file. ; \
-    rm $WD/$PKG-client-$REV-$CYGWINREV.tar.bz2 ; \
+    rm "$WD/$PKG-client-$REV-$CYGWINREV.tar.bz2" ; \
 fi )
-if [ ! -f $PKG-client-$REV-$CYGWINREV.tar.bz2 ] ; then
-    exit 1;
+if [ ! -f "$PKG-client-$REV-$CYGWINREV.tar.bz2" ] ; then
+    exit 1
 fi
 
 rm /etc/postinstall/coda-client.sh
@@ -240,7 +241,7 @@ if $BUILD ; then
 
     if ! cd zobj-cygpkg ; then
 	echo Could not cd to zobj-cygpkg
-	exit 1;
+	exit 1
     fi
 
     echo "Building the Server"
@@ -267,9 +268,9 @@ if $BUILD ; then
     echo Stripping server files.
 
     for f in $SRVLIST ; do
-	if [ `basename $f` != `basename $f .exe` ] ; then
-	    echo Stripping /$f
-	    strip /$f
+	if [ "$(basename "$f")" != "$(basename "$f" .exe)" ] ; then
+	    echo "Stripping /$f"
+	    strip "/$f"
 	fi
     done
 fi
@@ -278,39 +279,39 @@ fi
 
 echo "Creating binary tar.bz2 file for the server."
 
-(cd / ; if ! tar -cjf $WD/$PKG-server-$REV-$CYGWINREV.tar.bz2 $SRVLIST ; then \
+(cd / ; if ! tar -cjf "$WD/$PKG-server-$REV-$CYGWINREV.tar.bz2" "$SRVLIST" ; then \
     echo Could not create the tar file. ; \
-    rm $WD/$PKG-server-$REV-$CYGWINREV.tar.bz2 ; \
+    rm "$WD/$PKG-server-$REV-$CYGWINREV.tar.bz2" ; \
 fi )
-if [ ! -f $PKG-server-$REV-$CYGWINREV.tar.bz2 ] ; then
+if [ ! -f "$PKG-server-$REV-$CYGWINREV.tar.bz2" ] ; then
     exit 1;
 fi
 
 # make source tar
 
-SRCLST=`grep / CVS/Entries  | grep -v .cvsignore | cut -d/ -f2`
+SRCLST=$(grep / CVS/Entries  | grep -v .cvsignore | cut -d/ -f2)
 
 echo "Creating source tar.bz2 file."
 
-if ! mkdir $PKG-server-$REV-$CYGWINREV ; then
+if ! mkdir "$PKG-server-$REV-$CYGWINREV" ; then
     echo Could not make new source dir.
     exit 1
 fi
 
-if ! cp -rp $SRCLST $PKG-server-$REV-$CYGWINREV ; then
+if ! cp -rp "$SRCLST" "$PKG-server-$REV-$CYGWINREV" ; then
     echo Could not copy sources.
     exit 1
 fi
 
-find $PKG-server-$REV-$CYGWINREV -name CVS -exec rm -rf \{\} \;
+find "$PKG-server-$REV-$CYGWINREV" -name CVS -exec rm -rf \{\} \;
 
-tar -cjf $PKG-server-$REV-$CYGWINREV-src.tar.bz2 $PKG-server-$REV-$CYGWINREV
+tar -cjf "$PKG-server-$REV-$CYGWINREV-src.tar.bz2" "$PKG-server-$REV-$CYGWINREV"
 
 # cleanup
 if $DOCLEAN ; then
 
 echo Cleaning ...
 
-rm -rf $PKG-server-$REV-$CYGWINREV zobj-cygpkg
+rm -rf "$PKG-server-$REV-$CYGWINREV" zobj-cygpkg
 
 fi

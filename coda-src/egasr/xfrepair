@@ -23,44 +23,45 @@ CFS=cfs
 
 if [ $# != 1 ]; then
     echo "Usage: $0 <filename>"
-    exit -1
+    exit 1
 fi
 
 # Check coda authentication
-if ! ctokens > /dev/null; then
+if ! "$CTOKENS" > /dev/null; then
     echo "You are not authenticated to the Coda servers"
     exit 1
 fi
 
 fname=$1
 
-if [ "x$DISPLAY" != x ]; then
+if [ -n "$DISPLAY" ]; then
     ASKUSER=xaskuser
 else
     echo "Non-X version of this repair tool isn't available yet"
-    exit -1
+    exit 1
 fi
 
-idir=`dirname $fname`
-ifile=`basename $fname`
+idir=$(dirname "$fname")
+ifile=$(basename "$fname")
 
-trap "$CFS endrepair $idir/$file" 1 2 15
+# shellcheck disable=SC2064
+trap "$CFS endrepair $idir/$ifile" 1 2 15
 
-$CFS beginrepair $idir/$ifile
+"$CFS" beginrepair "$idir/$ifile"
 
 # Check for local/global conflicts
-if [ -e $fname/local -a -e $fname/global ]; then
+if [ -e "$fname/local" ] && [ -e "$fname/global" ]; then
     echo "$fname has a local/global conflict,"
     echo "please use the regular repair tool"
-    $CFS endrepair $idir/$ifile
-    exit -1
+    "$CFS" endrepair "$idir/$ifile"
+    exit 1
 fi
 
 set +e
-$ASKUSER $idir $ifile > /dev/null
+"$ASKUSER" "$idir" "$ifile" > /dev/null
 rc=$?
 set -e
-$CFS endrepair $idir/$ifile
+"$CFS" endrepair "$idir/$ifile"
 
 case $rc in
     0)
@@ -70,7 +71,7 @@ case $rc in
 
     1)
 	# remove the inconsistent object
-	$RMINCFILE $idir/$ifile
+	"$RMINCFILE" "$idir/$ifile"
 	;;
 
     2)
@@ -85,7 +86,7 @@ case $rc in
 
     *)
 	echo "Couldn't figure out what the user wanted to do"
-	exit -1
+	exit 1
 	;;
 esac
 

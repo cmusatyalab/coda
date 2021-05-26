@@ -17,6 +17,7 @@
 #
 #*/
 
+# shellcheck disable=SC2039,SC2145,SC1001,SC3037
 echon() {
     if [ "$(echo -n)" ] ; then
         echo "$@"\c

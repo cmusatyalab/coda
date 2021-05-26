@@ -5,7 +5,7 @@
 # when we're building a new Coda release
 #
 
-TAGGED_SUBSYS=$(echo $CI_COMMIT_TAG | cut -d- -f1)
+TAGGED_SUBSYS=$(echo "$CI_COMMIT_TAG" | cut -d- -f1)
 
 ACINIT_RE='^\(AC_INIT([^,]*, \)\([^,]*\)\(.*)\)'
 
@@ -17,8 +17,8 @@ checkver () {
   # RELEASE is latest git tagged version
   # CONFVER is configure.ac version
   VERSION=$(git describe --match="$SUBSYS-*" | cut -d- -f2-)
-  RELEASE=$(echo $VERSION | cut -d- -f1)
-  CONFVER=$(sed -n "s/$ACINIT_RE/\2/p" $SUBDIR/configure.ac)
+  RELEASE=$(echo "$VERSION" | cut -d- -f1)
+  CONFVER=$(sed -n "s/$ACINIT_RE/\2/p" "$SUBDIR/configure.ac")
 
   # the configure.ac version should match the tagged version
   if [ "$CONFVER" != "$RELEASE" ] ; then
@@ -27,18 +27,18 @@ checkver () {
   fi
 
   # are there changes since the last release tag?
-  if [ -z "$(git diff $SUBSYS-$RELEASE -- $SUBDIR)" ]
+  if [ -z "$(git diff "$SUBSYS-$RELEASE" -- "$SUBDIR")" ]
   then
     VERSION=$RELEASE
   fi
 
   # are there uncommitted changes
-  if [ -n "$(git diff HEAD -- $SUBDIR)" ] ; then
+  if [ -n "$(git diff HEAD -- "$SUBDIR")" ] ; then
     VERSION=$VERSION-dirty
   fi
 
   echo "$SUBSYS-$VERSION"
-  sed -i "s/$ACINIT_RE/\1$VERSION\3/" $SUBDIR/configure.ac
+  sed -i "s/$ACINIT_RE/\1$VERSION\3/" "$SUBDIR/configure.ac"
 }
 
 checkver coda .
