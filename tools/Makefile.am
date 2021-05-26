@@ -1,7 +1,8 @@
 ## Process this file with automake to produce Makefile.in
 
 dist_noinst_SCRIPTS = make-split-dist.sh maketags pkg-bsd.sh \
-	find_unused_symbols.py version_check.sh pre-commit
+	find_unused_symbols.py version_check.sh check-blurb \
+	check-clang-format
 
 certificatedir = $(sysconfdir)/ssl
 dist_certificate_DATA = Coda_CA.crt

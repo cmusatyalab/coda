@@ -48,5 +48,6 @@ unittest.xml
 test-src/unit/unit
 test-src/unit/rvm_test.data
 test-src/unit/rvm_test.log
-tools/pre-commit
+tools/check-blurb
+tools/check-clang-format
 tools/reformat.sh

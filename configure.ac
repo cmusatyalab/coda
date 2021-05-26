@@ -213,10 +213,6 @@ AM_COND_IF(HAVE_VALGRIND,, [
     )]
 )
 
-AC_CONFIG_FILES([tools/reformat.sh], [chmod +x tools/reformat.sh])
-AC_CONFIG_FILES([tools/pre-commit], [chmod +x tools/pre-commit])
-AC_CONFIG_LINKS([.git/hooks/pre-commit:tools/pre-commit])
-
 AC_CONFIG_FILES([coda-src/scripts/bldvldb.sh],
        [chmod +x coda-src/scripts/bldvldb.sh])
 AC_CONFIG_FILES([coda-src/scripts/createvol_rep],
@@ -239,8 +235,14 @@ AC_CONFIG_FILES([coda-src/scripts/vice-setup-user],
        [chmod +x coda-src/scripts/vice-setup-user])
 AC_CONFIG_FILES([coda-src/vtools/gcodacon],
        [chmod +x coda-src/vtools/gcodacon])
+AC_CONFIG_FILES([tools/check-blurb],
+       [chmod +x tools/check-blurb])
+AC_CONFIG_FILES([tools/check-clang-format],
+       [chmod +x tools/check-clang-format])
 AC_CONFIG_FILES([tools/coda-make-certs],
        [chmod +x tools/coda-make-certs])
+AC_CONFIG_FILES([tools/reformat.sh],
+       [chmod +x tools/reformat.sh])
 AC_CONFIG_FILES([
 Makefile
 coda_config.h

@@ -110,13 +110,24 @@ TBD
 
 ## DEVELOPMENT
 
+Pre-commit checks are run with the [pre-commit](pre-commit.com) framework,
+which is not automatically installed. You can install the pre-commit hooks with
+
+```sh
+$ pip3 install --user pre-commit
+$ pre-commit install
+```
+
+It will automatically check and/or correct code-formatting and other issues
+every time a commit is made.
+
 Although the source of LWP, RPC2, and RVM has been merged back into the main
 Coda repository, we are still trying to keep them mostly independent. This
 means that they retain their own build infrastructure and library versioning.
 
 When updating supporting library sources make sure to properly follow the
 libtool library versioning guidelines. The version info is set using the
-CODA_LIBRARY_VERSION macro in configure.ac and consists of
+`CODA_LIBRARY_VERSION` macro in configure.ac and consists of
 `current:revision:age` values which update according to the following basic
 rules.
 
@@ -132,13 +143,15 @@ rules.
 Aside from this, we try to minimize overall version number changes so we skip
 updating if the corresponding version number change has already been applied
 since the last tagged stable release. This is different from libtool guidelines
-where they suggest updating only immediately before a public release.
+where they suggest updating only immediately before a public release, although
+in practice that is typically what happens.
 
-The assumption here is that version updates are easily forgotten right before a
-release so it is better to update early. Developers also don't have to care as
+Version updates are easily forgotten right before a release so it is better to
+update early, there is a helper script `tools/version_check.sh` that will show
+if there are any changes to the libraries. Developers don't have to care as
 much because they can run their binaries directly from the build tree in which
-case libtool will make sure the right library is used, or will use `make install`
-which updates everything at the same time.
+case libtool will make sure the right library is used.
+
 
 ### Tracing RVM transactions
 
