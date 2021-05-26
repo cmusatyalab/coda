@@ -31,9 +31,9 @@ partition of a system that is normally disconnected from the network. It
 will only connect to the network when the encrypted partition is
 'locked' and only to install security updates. Aside from running the
 authority software from the encrypted partition, we can put the actual
-key onto a smartcard or usbkey like the Nitrokey
-(https://github.com/sektioneins/micro-ca-tool) which can be kept
-disconnected from the system during software updates.
+key onto a smartcard or usbkey like the Nitrokey as described here
+[micro-ca-tool](https://github.com/sektioneins/micro-ca-tool) which can
+be kept disconnected from the system during software updates.
 
 The Coda Root CA public key will be included in the Coda source and
 installed into /etc/coda/ssl/.

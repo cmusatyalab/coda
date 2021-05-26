@@ -4,7 +4,7 @@ Coda is an advanced networked filesystem. It has been developed at CMU since
 1987 by the systems group of [M. Satyanarayanan](http://www.cs.cmu.edu/~satya)
 in the SCS department.
 
-### About this repository
+## About this repository
 
 This repository combines, to a best effort, the history from the official CVS
 repositories of Coda, as well as the supporting LWP, RPC2 and RVM libraries.
@@ -36,24 +36,28 @@ development headers for readline, ncurses5, and optionally the lua5.1
 library.
 
 On Redhat/Fedora/CentOS systems
+
 ```sh
-$ yum install gcc gcc-c++ autoconf automake libtool pkgconfig flex bison readline-devel ncurses5-devel lua-devel clang
+yum install gcc gcc-c++ autoconf automake libtool pkgconfig flex bison \
+    readline-devel ncurses5-devel lua-devel clang
 ```
 
 On Debian/Ubuntu and derived systems
+
 ```sh
-$ apt-get install build-essential automake libtool pkg-config flex bison libreadline-dev libncurses5-dev liblua5.1-0-dev clang-format-6.0 valgrind python3-attr python3-setuptools
+apt-get install build-essential automake libtool pkg-config flex bison \
+    libreadline-dev libncurses5-dev liblua5.1-0-dev clang-format-6.0 valgrind \
+    python3-attr python3-setuptools
 ```
 
 ### Build
 
 ```sh
-$ ./bootstrap.sh
-$ ./configure --prefix=/usr --with-lua
-$ make
-$ sudo make install
+./bootstrap.sh
+./configure --prefix=/usr --with-lua
+make
+sudo make install
 ```
-
 
 ## RUNNING CODA
 
@@ -77,8 +81,8 @@ be able to start and will automatically start running in the background as soon
 as it successfully mounts the file system on `/coda`.
 
 ```sh
-$ sudo modprobe coda
-$ sudo venus
+sudo modprobe coda
+sudo venus
 ```
 
 Initially nothing will be visible under the `/coda` mountpoint, however any
@@ -100,13 +104,12 @@ file system and only then stop the daemon process, this way if any process has
 open references to files in Coda the unmount will fail and we avoid lost data.
 
 ```sh
-$ sudo umount /coda && sudo killall venus
+sudo umount /coda && sudo killall venus
 ```
 
 ### Configuring the Coda server
 
 TBD
-
 
 ## DEVELOPMENT
 
@@ -114,8 +117,8 @@ Pre-commit checks are run with the [pre-commit](pre-commit.com) framework,
 which is not automatically installed. You can install the pre-commit hooks with
 
 ```sh
-$ pip3 install --user pre-commit
-$ pre-commit install
+pip3 install --user pre-commit
+pre-commit install
 ```
 
 It will automatically check and/or correct code-formatting and other issues
@@ -152,26 +155,27 @@ if there are any changes to the libraries. Developers don't have to care as
 much because they can run their binaries directly from the build tree in which
 case libtool will make sure the right library is used.
 
-
 ### Tracing RVM transactions
 
 Although RVM in general is (should be?) able to deal with multiple threads, the
 particular usage in the Coda client and server is single thread only. So there
 are a few strict requirements.
 
-  - We must have an active RVM transaction whenever we modify data that was
-    allocated in RVM and that we want to persist across application restarts.
-  - We cannot begin a new transaction while there is an active one.
-  - We should not yield our LWP thread during a transaction, because we don't
-    know if another scheduled thread might need to start a new transaction.
+- We must have an active RVM transaction whenever we modify data that was
+  allocated in RVM and that we want to persist across application restarts.
+- We cannot begin a new transaction while there is an active one.
+- We should not yield our LWP thread during a transaction, because we don't
+  know if another scheduled thread might need to start a new transaction.
 
 Some of these constraints are now declared for function prototypes by using
 annotations `REQUIRES_TRANSACTION`, `EXCLUDES_TRANSACTION`, etc.
 These annotations can then be validated by using clang's thread safety
 analysis.
 
-    ./configure CC=clang CXX=clang++
-    make
+```sh
+./configure CC=clang CXX=clang++
+make
+```
 
 There will be compiler warnings that indicate when functions or methods are
 called in the wrong context, when transactions are not terminated in all
