@@ -1,7 +1,0 @@
-#!/bin/sh
-echo "Reformatting C/C++ sources"
-@CLANG_FORMAT@ -style=file -i $(git ls-files . | grep '\.[ch]c\?$')
-
-echo "Reformatting Python sources"
-@ISORT@ $(git ls-files . | grep '\.py$') $(git grep -l -i '@''PYTHON@')
-@BLACK@ $(git ls-files . | grep '\.py$') $(git grep -l -i '@''PYTHON@')

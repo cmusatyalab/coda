@@ -34,10 +34,9 @@ AC_PROG_MAKE_SET
 AC_PROG_LIBTOOL
 AC_PROG_AWK
 
+AC_CHECK_PROGS([PRE_COMMIT], [pre-commit])
 CLANG_FORMAT_VERSION=['6\.[0-9]*\.[0-9]*']
 AC_CHECK_PROGS([CLANG_FORMAT], [clang-format-6.0 clang-format])
-AC_CHECK_PROGS([BLACK], [black true])
-AC_CHECK_PROGS([ISORT], [isort true])
 
 dnl Verify that the version matches in case clang-format is found
 if test "x$CLANG_FORMAT" != x ; then
@@ -241,8 +240,6 @@ AC_CONFIG_FILES([tools/check-clang-format],
        [chmod +x tools/check-clang-format])
 AC_CONFIG_FILES([tools/coda-make-certs],
        [chmod +x tools/coda-make-certs])
-AC_CONFIG_FILES([tools/reformat.sh],
-       [chmod +x tools/reformat.sh])
 AC_CONFIG_FILES([
 Makefile
 coda_config.h

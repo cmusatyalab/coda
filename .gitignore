@@ -50,4 +50,3 @@ test-src/unit/rvm_test.data
 test-src/unit/rvm_test.log
 tools/check-blurb
 tools/check-clang-format
-tools/reformat.sh
