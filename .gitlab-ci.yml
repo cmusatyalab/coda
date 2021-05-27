@@ -1,12 +1,12 @@
 image: registry.cmusatyalab.org/coda/coda-packaging/coda-build
 
 variables:
-  DOCKER_DRIVER: overlay2
+  CCACHE_DIR: ${CI_PROJECT_DIR}/.cache/ccache
+  PRE_COMMIT_HOME: ${CI_PROJECT_DIR}/.cache/pre-commit
 
 before_script:
-  - mkdir -p ccache
+  - mkdir -p ${CCACHE_DIR}
   - export CCACHE_BASEDIR="${PWD}"
-  - export CCACHE_DIR="${PWD}/ccache"
   - export CCACHE_MAXSIZE="500M"
   - export CCACHE_NOHASHDIR=true
   - export CC="/usr/bin/ccache gcc"
@@ -14,7 +14,8 @@ before_script:
 
 cache:
   paths:
-    - ccache/
+    - ${CCACHE_DIR}
+    - ${PRE_COMMIT_HOME}
 
 test_build:
   stage: build
@@ -22,6 +23,7 @@ test_build:
     - tools/version_check.sh
     - ./bootstrap.sh
     - ./configure --prefix=/usr --with-lua
+    - pre-commit run --all-files
     - make all
   except:
     - tags
@@ -34,6 +36,7 @@ build_source:
     - tools/version_check.sh
     - ./bootstrap.sh --fix-versions
     - ./configure --prefix=/usr --with-lua
+    - pre-commit run --all-files
     - make distcheck
   artifacts:
     expire_in: 1 week
