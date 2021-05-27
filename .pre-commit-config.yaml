@@ -24,8 +24,9 @@ repos:
       - id: clang-format
         name: Format C/C++ source with clang-format
         entry: tools/check-clang-format -style=file -i
-        language: system
+        language: script
         types_or: [c, c++]
+        stages: [commit,merge-commit]
 
   - repo: https://github.com/PyCQA/isort
     rev: 5.8.0
