@@ -1,5 +1,0 @@
-#!/bin/sh
-[ -n "$(command -v @CLANG_FORMAT@)" ] && exec @CLANG_FORMAT@ "$@"
-
-echo "Missing clang-format"
-exit 1

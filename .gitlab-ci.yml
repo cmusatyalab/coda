@@ -21,9 +21,9 @@ test_build:
   stage: build
   script:
     - tools/version_check.sh
+    - pre-commit run --all-files
     - ./bootstrap.sh
     - ./configure --prefix=/usr --with-lua
-    - pre-commit run --all-files
     - make all
   except:
     - tags
@@ -34,9 +34,9 @@ build_source:
   stage: build
   script:
     - tools/version_check.sh
+    - pre-commit run --all-files
     - ./bootstrap.sh --fix-versions
     - ./configure --prefix=/usr --with-lua
-    - pre-commit run --all-files
     - make distcheck
   artifacts:
     expire_in: 1 week

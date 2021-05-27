@@ -1,0 +1,17 @@
+#!/bin/sh
+#
+# Try to do what we normally do in configure so that we can run
+# this as a pre-commit hook from an unconfigured source tree.
+#
+for CLANG_FORMAT in clang-format-6.0 clang-format false ; do
+  [ -n "$(command -v $CLANG_FORMAT)" ] && break
+done
+
+CLANG_FORMAT_VERSION='6\.[0-9]*\.[0-9]*'
+
+if "$CLANG_FORMAT" --version | grep -vq "$CLANG_FORMAT_VERSION" ; then
+    echo "Could not find clang-format v6.0"
+    exit 1
+fi
+
+exec "$CLANG_FORMAT" "$@"

@@ -1,0 +1,31 @@
+#!/bin/sh
+
+CODA_RELEASE=8
+COPYRIGHT_YEAR=$(date +'%Y')
+
+check_release=true
+check_year=true
+[ "$1" = "--release" ] && check_year=false
+[ "$1" = "--year" ] && check_release=false
+
+exit_code=0
+for single_file in "$@"
+do
+    # only check files staged for commit
+    if git diff --cached --quiet -- "$single_file" ; then continue ; fi
+
+    # is there a license blurb?
+    if test -f "$single_file" && head -1 "$single_file" | grep -q gpl ; then
+        # is the release current
+        if $check_release ; then if ! head -10 "$single_file" | grep -q "Release $CODA_RELEASE" ; then
+            echo "$single_file: Update Coda release to $CODA_RELEASE"
+            exit_code=1
+        fi ; fi
+        # is the year current
+        if $check_year ; then if ! head -10 "$single_file" | grep -q "$COPYRIGHT_YEAR" ; then
+            echo "$single_file: Update copyright year to $COPYRIGHT_YEAR"
+            exit_code=1
+        fi ; fi
+    fi
+done
+exit $exit_code
