@@ -1,43 +1,52 @@
 image: registry.cmusatyalab.org/coda/coda-packaging/coda-build
 
-variables:
-  CCACHE_DIR: ${CI_PROJECT_DIR}/.cache/ccache
-  PRE_COMMIT_HOME: ${CI_PROJECT_DIR}/.cache/pre-commit
+# should be a no-op if the submitter used the pre-commit hooks
+post_commit:
+  stage: .pre
+  variables:
+    PRE_COMMIT_HOME: ${CI_PROJECT_DIR}/.cache/pre-commit
+  cache:
+    key: precommit
+    paths:
+      - $PRE_COMMIT_HOME
+  script:
+    - pre-commit run --all-files
+    - tools/version_check.sh
 
-before_script:
-  - mkdir -p ${CCACHE_DIR}
-  - export CCACHE_BASEDIR="${PWD}"
-  - export CCACHE_MAXSIZE="500M"
-  - export CCACHE_NOHASHDIR=true
-  - export CC="/usr/bin/ccache gcc"
-  - export CXX="/usr/bin/ccache g++"
-
-cache:
-  paths:
-    - ${CCACHE_DIR}
-    - ${PRE_COMMIT_HOME}
+.build_template:
+  stage: build
+  variables:
+    CCACHE_DIR: ${CI_PROJECT_DIR}/.cache/ccache
+    FIXVER: ""
+    TARGET: all
+  cache:
+    key: default
+    paths:
+      - $CCACHE_DIR
+  before_script:
+    - mkdir -p "$CCACHE_DIR"
+    - export CCACHE_BASEDIR="${PWD}"
+    - export CCACHE_MAXSIZE="500M"
+    - export CCACHE_NOHASHDIR=true
+    - export CC="/usr/bin/ccache gcc"
+    - export CXX="/usr/bin/ccache g++"
+  script:
+    - ./bootstrap.sh $FIXVER
+    - ./configure --prefix=/usr --with-lua
+    - make $TARGET
 
 test_build:
-  stage: build
-  script:
-    - tools/version_check.sh
-    - pre-commit run --all-files
-    - ./bootstrap.sh
-    - ./configure --prefix=/usr --with-lua
-    - make all
+  extends: .build_template
   except:
     - tags
     - master
     - /^coda-.*$/
 
 build_source:
-  stage: build
-  script:
-    - tools/version_check.sh
-    - pre-commit run --all-files
-    - ./bootstrap.sh --fix-versions
-    - ./configure --prefix=/usr --with-lua
-    - make distcheck
+  extends: .build_template
+  variables:
+    FIXVER: "--fix-versions"
+    TARGET: distcheck
   artifacts:
     expire_in: 1 week
     paths:
