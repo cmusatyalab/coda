@@ -162,9 +162,10 @@ STATES = []
 
 
 class State:  # really used as a 'struct' to hold all state specific data
-    def __init__(self, desc, urgency, cmap={}, test=None):
+    def __init__(self, desc, urgency, cmap=None, test=None):
         colormap = ICON_XPM_COLORMAP.copy()
-        colormap.update(cmap)
+        if cmap is not None:
+            colormap.update(cmap)
         xpm_hdr = ["64 64 6 1"] + ["%s\tc %s" % c for c in colormap.items()]
         image = GdkPixbuf.Pixbuf.new_from_xpm_data(xpm_hdr + ICON_XPM_DATA)
 
