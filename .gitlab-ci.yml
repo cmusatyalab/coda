@@ -17,23 +17,24 @@ post_commit:
   stage: build
   variables:
     CCACHE_DIR: ${CI_PROJECT_DIR}/.cache/ccache
+    CCACHE_BASEDIR: ${CI_PROJECT_DIR}
+    CCACHE_COMPILERCHECK: content
+    CCACHE_NOHASHDIR: "true"
+    CCACHE_MAXSIZE: 1G
+    CC: "/usr/bin/ccache gcc"
+    CXX: "/usr/bin/ccache g++"
     FIXVER: ""
     TARGET: all
   cache:
     key: default
     paths:
       - $CCACHE_DIR
-  before_script:
-    - mkdir -p "$CCACHE_DIR"
-    - export CCACHE_BASEDIR="${PWD}"
-    - export CCACHE_MAXSIZE="500M"
-    - export CCACHE_NOHASHDIR=true
-    - export CC="/usr/bin/ccache gcc"
-    - export CXX="/usr/bin/ccache g++"
+      - ${CI_PROJECT_DIR}/config.cache
   script:
     - ./bootstrap.sh $FIXVER
-    - ./configure --prefix=/usr --with-lua
+    - ./configure -C --prefix=/usr --with-lua
     - make $TARGET
+    - ccache -s
 
 test_build:
   extends: .build_template
