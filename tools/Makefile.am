@@ -7,10 +7,6 @@ dist_noinst_SCRIPTS = make-split-dist.sh maketags pkg-bsd.sh \
 certificatedir = $(sysconfdir)/ssl
 dist_certificate_DATA = Coda_CA.crt
 
-if HAVE_PYTHON
-bin_SCRIPTS = coda-make-certs
-endif
-
 if HAVE_SYSTEMD
 dist_modulesload_DATA =
 systemdsystemunit_DATA =
@@ -30,7 +26,6 @@ endif
 
 CLEANFILES = coda-client.service coda-server.service coda-auth2.service \
 	     coda-update-master.service coda-update-slave.service
-DISTCLEANFILES = coda-make-certs reformat.sh
 EXTRA_DIST = coda-server-nt-50x.wse coda-server-nt-52x.wse PACKAGING.README \
 	     pkg-readme windows-socket-extension.wse \
 	     coda-client.init coda-server.init coda-update.init \

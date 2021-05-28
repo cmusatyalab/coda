@@ -14,44 +14,18 @@
 
 import itertools
 import re
-import subprocess
-from distutils.spawn import find_executable
 
 from .structs import AclEntry, CodaFID
+from .util import ExecutionError, check_output
 
 
-class NotCodaFS(FileNotFoundError):
+class NotCodaFS(ExecutionError):
     """Exception 'trying to do Coda operation on non-Coda file system'"""
-
-
-# Cached path to the cfs executable
-_CFS_COMMAND = None
-
-
-def cfs(*args):
-    """locate cfs command and run it with the given arguments"""
-    global _CFS_COMMAND  # pylint: disable=global-statement
-    if _CFS_COMMAND is None:
-        _CFS_COMMAND = find_executable("cfs")
-        if _CFS_COMMAND is None:
-            raise FileNotFoundError(
-                "Cannot find cfs, check your Coda client installation"
-            )
-
-    # try to run cfs command
-    try:
-        result = subprocess.check_output(
-            (_CFS_COMMAND,) + args, stderr=subprocess.STDOUT
-        )
-    except subprocess.CalledProcessError as exc:
-        raise NotCodaFS("cfs {} failed".format(args[0])) from exc
-
-    return result.decode("ascii")
 
 
 def getfid(path):
     """return Coda file identifier for specified path"""
-    result = cfs("getfid", str(path))
+    result = check_output("cfs", "getfid", str(path))
 
     match = re.match(
         r"^FID = ([0-9a-fA-F]+)\.([0-9a-fA-F]+)\.([0-9a-fA-F]+)@(\S+)", result
@@ -63,7 +37,7 @@ def getfid(path):
 
 def listvol(path):
     """return volume_id, name tuple for specified path"""
-    result = cfs("listvol", str(path))
+    result = check_output("cfs", "listvol", str(path))
 
     if result.endswith(": Permission denied\n"):
         raise PermissionError("cfs listvol permission denied on {}".format(path))
@@ -76,7 +50,7 @@ def listvol(path):
 
 def listacl(path):
     """returns an ACL (list of user/group, rights tuples) for the specified path"""
-    result = cfs("listacl", str(path))
+    result = check_output("cfs", "listacl", str(path))
 
     return [
         AclEntry(name, rights)
@@ -93,6 +67,6 @@ def setacl(path, acl):
         (entry.name, entry.rights[1:]) for entry in _acl if entry.is_negative()
     ]
 
-    cfs("sa", "-clear", str(path), *itertools.chain(*positives))
+    check_output("cfs", "sa", "-clear", str(path), *itertools.chain(*positives))
     if negatives:
-        cfs("sa", "-negative", str(path), *itertools.chain(*negatives))
+        check_output("cfs", "sa", "-negative", str(path), *itertools.chain(*negatives))

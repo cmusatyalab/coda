@@ -158,8 +158,7 @@ def update_acls(dest, acls, dry_run=True):
                 logging.debug("Skipping already set acl at %s", path)
                 continue
 
-            if not dry_run:
-                codafs.setacl(path, new_acl)
+            codafs.setacl(path, new_acl, dry_run=dry_run)
 
 
 def main():

@@ -1,9 +1,10 @@
-#!@PYTHON@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 #
 #                          Coda File System
 #                             Release 8
 #
-#             Copyright (c) 2020 Carnegie Mellon University
+#         Copyright (c) 2020-2021 Carnegie Mellon University
 #
 # This  code  is  distributed "AS IS" without warranty of any kind under
 # the terms of the GNU General Public License Version 2, as shown in the
@@ -11,24 +12,27 @@
 # listed in the file CREDITS.
 #
 #
-# coda-make-certs - Generate X509 certificates for Coda realms and servers
-#
-# depends on pyyaml for parsing the config file and certtool from gnutls-bin
-# to perform the actual X509 related operations.
+"""
+ coda-make-certs - Generate X509 certificates for Coda realms and servers
+
+ depends on pyyaml for parsing the config file.
+ depends on 'certtool' from gnutls-bin to perform the X509 related operations.
+ optional dependencies on jsonschema and ipaddress (for validation)
+"""
 
 import argparse
 import logging
 import pathlib
 import socket
-import subprocess
 import sys
 import tempfile
 from contextlib import closing
-from distutils.spawn import find_executable
 
 import yaml
+from codafs.optional import ValidationError, jsonschema_validate
+from codafs.util import DEVNULL, run
 
-## parse arguments
+# parse arguments
 parser = argparse.ArgumentParser(
     formatter_class=argparse.RawDescriptionHelpFormatter,
     description="""Generate X509 certificates for Coda realms and servers.
@@ -92,28 +96,9 @@ logging.basicConfig(
     format="%(levelname)s - %(message)s",
     level=logging.ERROR if args.quiet else logging.INFO,
 )
-if args.dry_run:
-
-    def dry_runner(args, stderr=None):
-        print(" ".join(str(arg) for arg in args))
-
-    subprocess.run = dry_runner
 
 
-## test if required binaries exist
-def which(name, hint):
-    path = find_executable(name)
-    if path is None:
-        logging.critical("Cannot find %s, %s", name, hint)
-        sys.exit(1)
-    return path
-
-
-certtool = which("certtool", "you may need to install gnutls-bin")
-ssh_copy = which("scp", "you may need to install openssh-client")
-
-
-## jsonschema for validation
+# jsonschema for validation
 REALM_CONFIG_SCHEMA = {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "$id": "http://coda.cs.cmu.edu/schemas/realm_config.json",
@@ -168,44 +153,19 @@ REALM_CONFIG_SCHEMA = {
 
 def validate(configuration):
     try:
-        import jsonschema
-
-        format_checker = jsonschema.draft7_format_checker
-
-        try:  # to define a more specific ipv4network format check
-            import ipaddress
-
-            @format_checker.checks(
-                "ipv4network",
-                (ipaddress.AddressValueError, ipaddress.NetmaskValueError),
-            )
-            def is_ipv4network(instance):
-                if not isinstance(instance, str):
-                    return True
-                return ipaddress.IPv4Network(instance)
-
-        except ImportError:
-            logging.warning(
-                "missing ipaddress module, not validating ipv4 network addresses"
-            )
-
-        jsonschema.validate(
-            configuration, REALM_CONFIG_SCHEMA, format_checker=format_checker
-        )
-    except ImportError:
-        logging.warning("missing jsonschema, not validating realm_config.yaml")
-    except jsonschema.exceptions.ValidationError as e:
-        print(e)
+        jsonschema_validate(configuration, REALM_CONFIG_SCHEMA)
+    except ValidationError as exception:
+        print(exception)
         sys.exit(1)
 
     # jsonschema doesn't set defaults because it avoids modifying the validated
     # datastructure. It seems easier to fold them in ourselves than to override
     # the validator behavior.
-    REALM_CONFIG_DEFAULTS = dict(realm_expiration_days=365, server_expiration_days=7)
-    return {**REALM_CONFIG_DEFAULTS, **configuration}
+    realm_config_defaults = dict(realm_expiration_days=365, server_expiration_days=7)
+    return {**realm_config_defaults, **configuration}
 
 
-## paths and templates for realm and server certificates
+# paths and templates for realm and server certificates
 REALMDIR = pathlib.Path("realms")
 SERVERDIR = pathlib.Path("servers")
 
@@ -229,6 +189,7 @@ encryption_key
 """
 
 
+# pylint: disable=E1101
 class Server(yaml.YAMLObject):
     yaml_tag = "tag:yaml.org,2002:map"
 
@@ -260,11 +221,17 @@ class Server(yaml.YAMLObject):
         return closing(template)
 
     def copy_certificate(self):
-        subprocess.run(
-            [ssh_copy, self.key, "root@{}:/etc/coda/ssl/server.key".format(self.name)]
+        run(
+            "scp",
+            self.key,
+            "root@{}:/etc/coda/ssl/server.key".format(self.name),
+            dry_run=args.dry_run,
         )
-        subprocess.run(
-            [ssh_copy, self.crt, "root@{}:/etc/coda/ssl/server.crt".format(self.name)]
+        run(
+            "scp",
+            self.crt,
+            "root@{}:/etc/coda/ssl/server.crt".format(self.name),
+            dry_run=args.dry_run,
         )
 
     @property
@@ -276,6 +243,7 @@ class Server(yaml.YAMLObject):
         return SERVERDIR / (self.name + ".crt")
 
 
+# pylint: disable=E1101
 class Realm(yaml.YAMLObject):
     yaml_tag = "tag:yaml.org,2002:map"
 
@@ -319,50 +287,47 @@ class Realm(yaml.YAMLObject):
 def generate_privkey(key):
     if not key.exists():
         logging.info("generating %s", key)
-        subprocess.run(
-            [
-                certtool,
-                "--generate-privkey",
-                "--rsa",
-                "--sec-param=medium",  # 2048-bit RSA key
-                "--outfile",
-                key,
-            ],
-            stderr=subprocess.DEVNULL,
+        run(
+            "certtool",
+            "--generate-privkey",
+            "--rsa",
+            "--sec-param=medium",  # 2048-bit RSA key
+            "--outfile",
+            key,
+            stderr=DEVNULL,
+            dry_run=args.dry_run,
         )
 
 
 def generate_realmcerts(realm):
     with realm.template() as template:
         logging.info("generating %s", realm.csr)
-        subprocess.run(
-            [
-                certtool,
-                "--generate-request",
+        run(
+            "certtool",
+            "--generate-request",
+            "--template",
+            template.name,
+            "--load-privkey",
+            realm.key,
+            "--outfile",
+            realm.csr,
+            stderr=DEVNULL,
+            dry_run=args.dry_run,
+        )
+
+        if not realm.crt.exists():
+            logging.info("generating self-signed %s", realm.crt)
+            run(
+                "certtool",
+                "--generate-self-signed",
                 "--template",
                 template.name,
                 "--load-privkey",
                 realm.key,
                 "--outfile",
-                realm.csr,
-            ],
-            stderr=subprocess.DEVNULL,
-        )
-
-        if not realm.crt.exists():
-            logging.info("generating self-signed %s", realm.crt)
-            subprocess.run(
-                [
-                    certtool,
-                    "--generate-self-signed",
-                    "--template",
-                    template.name,
-                    "--load-privkey",
-                    realm.key,
-                    "--outfile",
-                    realm.crt,
-                ],
-                stderr=subprocess.DEVNULL,
+                realm.crt,
+                stderr=DEVNULL,
+                dry_run=args.dry_run,
             )
         else:
             logging.info("not replacing %s with self-signed certificate", realm.crt)
@@ -371,50 +336,50 @@ def generate_realmcerts(realm):
 def generate_servercert(realm, server):
     logging.info("generating %s", server.crt)
     with server.template() as template:
-        subprocess.run(
-            [
-                certtool,
-                "--generate-certificate",
-                "--template",
-                template.name,
-                "--load-ca-certificate",
-                realm.crt,
-                "--load-ca_privkey",
-                realm.key,
-                "--load-privkey",
-                server.key,
-                "--outfile",
-                server.crt,
-            ],
-            stderr=subprocess.DEVNULL,
+        run(
+            "certtool",
+            "--generate-certificate",
+            "--template",
+            template.name,
+            "--load-ca-certificate",
+            realm.crt,
+            "--load-ca_privkey",
+            realm.key,
+            "--load-privkey",
+            server.key,
+            "--outfile",
+            server.crt,
+            stderr=DEVNULL,
+            dry_run=args.dry_run,
         )
+
     # append realm certificate to server certificate
     if not args.dry_run:
-        with server.crt.open("a") as f:
-            f.write(realm.crt.read_text())
+        with server.crt.open("a") as server_cert:
+            server_cert.write(realm.crt.read_text())
     else:
         print("cat {} >> {}".format(realm.crt, server.crt))
 
 
 def main():
-    ## Load realms from configuration file
+    # Load realms from configuration file
     realms = [validate(realm) for realm in yaml.safe_load_all(args.config)]
 
-    ## convert realms to objects
+    # convert realms to objects
     realms = [Realm(realm) for realm in realms]
 
     if args.dump_config:
         yaml.dump_all(realms, sys.stdout)
         sys.exit(0)
 
-    ## Create directories to store certificates and keys
+    # Create directories to store certificates and keys
     if not args.dry_run:
         REALMDIR.mkdir(mode=0o700, exist_ok=True)
         SERVERDIR.mkdir(mode=0o700, exist_ok=True)
     else:
         print("mkdir -p {} {}".format(REALMDIR, SERVERDIR))
 
-    ## create keys and certificates
+    # create keys and certificates
     for realm in realms:
         generate_privkey(realm.key)
         generate_realmcerts(realm)
@@ -423,7 +388,7 @@ def main():
             generate_privkey(server.key)
             generate_servercert(realm, server)
 
-    ## and copy to servers
+    # and copy to servers
     if args.scp:
         for realm in realms:
             for server in realm:

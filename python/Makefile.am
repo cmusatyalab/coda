@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-dist_bin_SCRIPTS =
+dist_bin_SCRIPTS = coda-make-certs
 dist_man_MANS =
 if BUILD_CLIENT
 dist_bin_SCRIPTS += coda-sync-acls volmunge
@@ -12,6 +12,7 @@ EXTRA_DIST = setup.py \
 	codafs/cfs.py \
 	codafs/optional.py \
 	codafs/structs.py \
+	codafs/util.py \
 	codafs/walk.py
 
 # configure gets some installation paths wrong

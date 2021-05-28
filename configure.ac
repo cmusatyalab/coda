@@ -236,8 +236,6 @@ AC_CONFIG_FILES([coda-src/vtools/gcodacon],
        [chmod +x coda-src/vtools/gcodacon])
 AC_CONFIG_FILES([tools/check-blurb],
        [chmod +x tools/check-blurb])
-AC_CONFIG_FILES([tools/coda-make-certs],
-       [chmod +x tools/coda-make-certs])
 AC_CONFIG_FILES([
 Makefile
 coda_config.h

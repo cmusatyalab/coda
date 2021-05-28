@@ -14,10 +14,34 @@
 
 __all__ = ["jsonschema_validate", "ValidationError", "SchemaError", "tqdm"]
 
+import logging
+
 # jsonschema for data validation
 try:
-    from jsonschema import validate as jsonschema_validate
+    from jsonschema import draft7_format_checker, validate
     from jsonschema.exceptions import SchemaError, ValidationError
+
+    try:
+        import ipaddress
+
+        @draft7_format_checker.checks(
+            "ipv4network",
+            (ipaddress.AddressValueError, ipaddress.NetmaskValueError),
+        )
+        def is_ipv4network(instance):
+            if not isinstance(instance, str):
+                return True
+            return ipaddress.IPv4Network(instance)
+
+    except ImportError:
+        logging.debug("missing ipaddress module, not validating ipv4 network addresses")
+
+    def jsonschema_validate(instance, schema, *args, **kwargs):
+        validate(
+            instance, schema, *args, format_checker=draft7_format_checker, **kwargs
+        )
+
+
 except ImportError:
 
     def jsonschema_validate(_instance, _schema, *_args, **_kwargs):
@@ -46,7 +70,7 @@ except ImportError:
         def __enter__(self):
             return self
 
-        def __exit__(self):
+        def __exit__(self, _exc_type, _exc_value, _traceback):
             return None
 
         def __iter__(self):
