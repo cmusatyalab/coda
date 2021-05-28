@@ -250,19 +250,19 @@ try:
     for stat in stats:
         for server in servers:
             srv = server.value
-            img = "%s_%s%s.gif" % (srv, stat.value, LAPP)
+            img = "{}_{}{}.gif".format(srv, stat.value, LAPP)
             desc, ops = statmap[stat.value]
             cmd = (
-                "graph %s/%s -w 640 -h 200 %s" % (IMGDIR, img, period)
+                "graph {}/{} -w 640 -h 200 {}".format(IMGDIR, img, period)
                 + LOGSCALE
                 + ops % vars()
                 + "\n"
             )
             rrdtool.write(cmd)
             rrdtool.flush()
-            print("<H2>%s - %s</H2>" % (srv, desc))
+            print("<H2>{} - {}</H2>".format(srv, desc))
             # print(cmd)
-            print('<IMG SRC="%s%s">' % (IMGURL, img))
+            print('<IMG SRC="{}{}">'.format(IMGURL, img))
     rrdtool.close()
 
 except:  # noqa

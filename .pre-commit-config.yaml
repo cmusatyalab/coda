@@ -28,6 +28,12 @@ repos:
         types_or: [c, c++]
         stages: [commit,merge-commit]
 
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v2.18.3
+    hooks:
+      - id: pyupgrade
+        name: Modernize python code
+
   - repo: https://github.com/PyCQA/isort
     rev: 5.8.0
     hooks:
@@ -62,7 +68,7 @@ repos:
         name: Lint markdown documentation
 
   - repo: https://gitlab.com/devopshq/gitlab-ci-linter
-    rev: v1.0.2
+    rev: v1.0.3
     hooks:
       - id: gitlab-ci-linter
         args: ["--server", "https://git.cmusatyalab.org"]
