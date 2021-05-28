@@ -10,7 +10,6 @@
 #
 # Usage: find_unused_symbols.py
 #
-from __future__ import print_function
 
 import argparse
 import os

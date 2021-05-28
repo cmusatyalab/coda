@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 #                          Coda File System
 #                             Release 8

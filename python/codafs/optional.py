@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 #                          Coda File System
 #                             Release 8
@@ -74,8 +73,7 @@ except ImportError:
             return None
 
         def __iter__(self):
-            for obj in self.iterable:
-                yield obj
+            yield from self.iterable
 
         @classmethod
         def write(cls, msg, file=sys.stdout, end="\n", **_kwargs):
