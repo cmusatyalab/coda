@@ -190,7 +190,7 @@ void UtilityLWP(char *p)
         LWP_WaitProcess(UtilityTimer);
         newPlumber(LogFile);
         fflush(LogFile);
-        LogMsg(100, LogLevel, LogFile, "SIGALARM recieved by utilTimer");
+        LogMsg(100, LogLevel, LogFile, "SIGALARM received by utilTimer");
         /* for now, the only utility task is to startup the unwinder */
         if (NoSpool) {
             LogMsg(1, LogLevel, LogFile,

@@ -64,7 +64,7 @@ if [ -f "$vicedir/srv.conf" ]; then
 fi
 
 echo
-echo A server needs a small log file or disk partition, preferrably on a
+echo A server needs a small log file or disk partition, preferably on a
 echo disk by itself. It also needs a metadata file or partition of approx
 echo 4% of your filespace.
 echo

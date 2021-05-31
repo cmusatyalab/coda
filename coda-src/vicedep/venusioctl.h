@@ -83,7 +83,7 @@ extern "C" {
 #define _VIOCCKCONN (12) /* Check connections for a user */
 #define _VIOCWHEREIS (14) /* Find out where a volume is located */
 #define _VIOCPREFETCH (15) /* Prefetch a file */
-#define _VIOCNOP (16) /* Do nothing (more preformance) */
+#define _VIOCNOP (16) /* Do nothing (more performance) */
 #define _VIOCENGROUP (17) /* Enable group access for a group */
 #define _VIOCDISGROUP (18) /* Disable group access */
 #define _VIOCLISTGROUPS (19) /* List enabled and disabled groups */

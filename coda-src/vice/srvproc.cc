@@ -2247,7 +2247,7 @@ int FetchBulkTransfer(RPC2_Handle RPCid, ClientEntry *client, Volume *volptr,
     unsigned int expected_bytes_transferred = 0;
 
     {
-        /* When we are continueing a trickle/interrupted fetch, the version
+        /* When we are continuing a trickle/interrupted fetch, the version
 	 * vector must be the same */
         if (Offset && VV && (VV_Cmp(VV, &vptr->disk.versionvector) != VV_EQ)) {
             SLog(
@@ -3314,7 +3314,7 @@ void PutObjects(int errorCode, Volume *volptr, int LockLevel, dlist *vlist,
                                 vmle->Abort(volptr);
                         }
 
-                        // truncate/purge log if necessary and no errors have occured
+                        // truncate/purge log if necessary and no errors have occurred
                         if (!errorCode) {
                             if (v->d_needslogpurge) {
                                 CODA_ASSERT(v->vptr->delete_me);

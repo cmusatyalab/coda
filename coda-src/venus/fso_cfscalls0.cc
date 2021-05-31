@@ -693,7 +693,7 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
 
         nchecked++; /* we're going to check at least the primary fid */
         {
-            /* unneccesary in validation case but it beats duplicating code. */
+            /* unnecessary in validation case but it beats duplicating code. */
             if (acl->MaxSeqLen > VENUS_MAXBSLEN)
                 CHOKE("fsobj::GetAttr: BS len too large (%d)", acl->MaxSeqLen);
             ARG_MARSHALL_BS(IN_OUT_MODE, RPC2_BoundedBS, aclvar, *acl,

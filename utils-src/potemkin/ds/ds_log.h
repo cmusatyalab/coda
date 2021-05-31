@@ -26,7 +26,7 @@
  * If a log's level is above the flush level, each statement is followed
  * by an explicit flush on the stream.
  *
- * Each logging statment is stamped with the time of day, and day changes
+ * Each logging statement is stamped with the time of day, and day changes
  * are noted in the log.  Each logging statement is also stamped
  * with the log's name, to allow multiple logs to (unambiguously) share
  * the same stream.  These routines are not thread safe.

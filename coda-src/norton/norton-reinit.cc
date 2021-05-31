@@ -119,7 +119,7 @@ static int ReadVolHead(int fd, VolHead *vol)
     int ret;
 
     if ((ret = read(fd, (void *)vol, (int)sizeof(VolHead))) == -1) {
-        /* An error occured */
+        /* An error occurred */
         perror("Reading volume header");
         return 0;
     } /* We have a header or EOF */
@@ -215,7 +215,7 @@ static int DumpResLog(int fd, struct VolumeData *voldata,
     return ret;
 }
 
-// Must be called withing a transaction.
+// Must be called within a transaction.
 static recle *AllocLogEntry(Volume *vp, rsle *entry) REQUIRES_TRANSACTION
 {
     recle *rle;

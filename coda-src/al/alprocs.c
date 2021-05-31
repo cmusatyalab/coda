@@ -21,7 +21,7 @@ listed in the file CREDITS.
 
 This  file  contains  some  code identical to or derived from the 1986
 version of the Andrew File System ("AFS"), which is owned by  the  IBM
-Corporation.    This  code is provded "AS IS" and IBM does not warrant
+Corporation.    This  code is provided "AS IS" and IBM does not warrant
 that it is free of infringement of  any  intellectual  rights  of  any
 third  party.    IBM  disclaims  liability of any kind for any damages
 whatsoever resulting directly or indirectly from use of this  software
@@ -252,7 +252,7 @@ int AL_FreeExternalCPS(INOUT PRS_ExternalCPS *R)
 }
 
 /* Converts the access list defined by Alist into the newly-created external
-   access list in ExternalRep. Non-translatable Ids are coverted to their Ascii
+   access list in ExternalRep. Non-translatable Ids are converted to their Ascii
    integer representations. Returns  0 on success. Returns -1 if total number
    of entries > AL_MaxExtEntries. */
 int AL_Externalize(IN AL_AccessList *Alist, OUT AL_ExternalAccessList *Elist)

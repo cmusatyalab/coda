@@ -682,7 +682,7 @@ int IOMGR_Signal(int signo, char *event)
     return LWP_SUCCESS;
 }
 
-/* Stop handling occurances of signo. */
+/* Stop handling occurrences of signo. */
 int IOMGR_CancelSignal(int signo)
 {
     if (badsig(signo) || (sigsHandled & mysigmask(signo)) == 0)

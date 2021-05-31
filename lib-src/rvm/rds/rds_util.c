@@ -182,7 +182,7 @@ free_block_t *get_block(int size, rvm_tid_t *tid, int *err)
     else
         RDS_STATS.large_hits++;
 
-    /* Fbp could be null indicating an error occured in dequeue. Let
+    /* Fbp could be null indicating an error occurred in dequeue. Let
        the calling routine handle this error. */
     return dequeue(&RDS_FREE_LIST[list], tid, err);
 }

@@ -85,7 +85,7 @@ int VN_DCommit(Vnode *vnp)
             DI_Dec(pdi);
     } else if (vnp->changed) {
         /* directory was modified - commit the pages */
-        DLog(29, "VN_DCommit: Commiting pages for dir vnode = %x",
+        DLog(29, "VN_DCommit: Committing pages for dir vnode = %x",
              vnp->vnodeNumber);
         /* copy the VM pages into RVM */
         DI_DhToDi(pdce);

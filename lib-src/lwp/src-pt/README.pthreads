@@ -30,7 +30,7 @@ LWP_QSignal/LWP_QWait
   mutex while waiting.
 
 LWP_SignalProcess/LWP_NoYieldSignal/LWP_MwaitProcess/LWP_WaitProcess
-  Concurrent threads need to aquire the run_mutex and will therefore
+  Concurrent threads need to acquire the run_mutex and will therefore
   block until the current non-concurrent thread yields. This affects
   both waiting and signalling threads.
 

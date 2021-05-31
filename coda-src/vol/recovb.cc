@@ -386,7 +386,7 @@ void NewVolDiskInfo(Error *ec, int volindex, VolumeDiskData *vol)
 {
     VLog(9, "Entering NewVolDiskInfo for index %d, volume %x", volindex,
          vol->id);
-    /* how much needs to be initalized here? */
+    /* how much needs to be initialized here? */
     InitVV(&(vol->versionvector));
     vol->stamp.magic   = VOLUMEINFOMAGIC;
     vol->stamp.version = VOLUMEINFOVERSION;

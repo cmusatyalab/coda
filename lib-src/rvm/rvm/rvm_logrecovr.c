@@ -387,7 +387,7 @@ int find_buf_word(rvm_length_t wrd, int disp)
 }
 #endif /* DEBUG_GDB */
 
-/* load log auxillary buffer */
+/* load log auxiliary buffer */
 rvm_return_t
 load_aux_buf(log_t *log /* log descriptor */,
              rvm_offset_t *log_offset /* buffer read offset */,
@@ -1511,7 +1511,7 @@ change_tree_insert(seg_dict_t *seg_dict /* seg_dict for this nv */,
                                     &node->offset, &node->end_offset)) == 0)
         if (RVM_OFFSET_LSS(
                 node->offset,
-                x_node->offset)) { /* make node for preceeding values */
+                x_node->offset)) { /* make node for preceding values */
             if ((split_node = make_dev_region()) == NULL)
                 return RVM_ENO_MEMORY;
             if (node->nv_buf != NULL) {
@@ -1571,7 +1571,7 @@ change_tree_insert(seg_dict_t *seg_dict /* seg_dict for this nv */,
                                          shadow_length + shadow_skew));
         node->vmaddr = RVM_ADD_LENGTH_TO_ADDR(node->vmaddr, shadow_length);
     } else
-    /* new values preceed existing node, but don't span it */
+    /* new values precede existing node, but don't span it */
     { /* reset end offset */
         node->end_offset = x_node->offset;
         shadow_length    = node->length; /* save old length */
@@ -2188,7 +2188,7 @@ update_seg(log_t *log /* log descriptor */,
 {
     log_status_t *status = &log->status; /* status descriptor */
     log_buf_t *log_buf   = &log->log_buf; /* log buffer descriptor */
-    long r_length; /* length of data transfered */
+    long r_length; /* length of data transferred */
     rvm_bool_t preload; /* end sector preload done if true */
     char *addr = NULL; /* monitoring address */
     rvm_offset_t temp; /* offset temporary */
@@ -2695,7 +2695,7 @@ wait_for_truncation(log_t *log /* log descriptor */,
 {
     log_daemon_t *daemon   = &log->daemon; /* deamon control descriptor */
     log_status_t *status   = &log->status; /* log status descriptor */
-    rvm_bool_t force_trunc = rvm_false; /* do syncronous truncation */
+    rvm_bool_t force_trunc = rvm_false; /* do synchronous truncation */
     rvm_bool_t exit_sw     = rvm_false;
     rvm_return_t retval    = RVM_SUCCESS;
 

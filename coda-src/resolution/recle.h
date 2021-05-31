@@ -104,7 +104,7 @@ public:
     VnodeId cvnode;
     Unique_t cunique;
     UserId owner;
-    char name[1]; /* begining of null terminated name of child created */
+    char name[1]; /* beginning of null terminated name of child created */
     void init(VnodeId, Unique_t, UserId, char *);
     void print(int);
 };
@@ -114,7 +114,7 @@ public:
     VnodeId cvnode;
     Unique_t cunique;
     UserId owner;
-    char name[1]; /* begining of null terminated name of child created */
+    char name[1]; /* beginning of null terminated name of child created */
     void init(VnodeId, Unique_t, UserId, char *);
     void print(int);
 };
@@ -124,7 +124,7 @@ public:
     VnodeId cvnode;
     Unique_t cunique;
     ViceVersionVector cvv;
-    char name[1]; /* begining of null terminated name of child created */
+    char name[1]; /* beginning of null terminated name of child created */
     void init(VnodeId, Unique_t, ViceVersionVector *, char *);
     void print(int);
 };
@@ -134,7 +134,7 @@ public:
     VnodeId cvnode;
     Unique_t cunique;
     UserId owner;
-    char name[1]; /* begining of null terminated name of child created */
+    char name[1]; /* beginning of null terminated name of child created */
     void init(VnodeId, Unique_t, UserId, char *);
     void print(int);
 };

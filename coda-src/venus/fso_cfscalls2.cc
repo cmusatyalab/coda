@@ -218,7 +218,7 @@ int fsobj::Open(int writep, int truncp, struct venus_cnode *cp, uid_t uid)
     if (IsSymLink())
         return ELOOP;
 
-    /* Force disable VASTRO flag if writting to the file */
+    /* Force disable VASTRO flag if writing to the file */
     UpdateVastroFlag(uid, writep | truncp, 0x0);
 
     /* In of opening a file previously handled as VASTRO */

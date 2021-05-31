@@ -194,7 +194,7 @@ int RepairSubsetCreate(int nreplicas, resreplica *dirs, resdir_entry **deGroup,
 
     for (i = 0; i < nreplicas; i++)
         ObjFound[i] = 0;
-    /* set flag whereever object exists */
+    /* set flag wherever object exists */
     for (i = 0; i < nDirEntries; i++)
         ObjFound[(deGroup[i]->index)] = 1;
 
@@ -265,7 +265,7 @@ int RepairSubsetRemove(int nreplicas, resreplica *dirs, resdir_entry **deGroup,
 
     for (i = 0; i < nreplicas; i++)
         ObjFound[i] = 0;
-    /* set flag whereever object exists */
+    /* set flag wherever object exists */
     for (i = 0; i < nDirEntries; i++)
         ObjFound[(deGroup[i]->index)] = 1;
 

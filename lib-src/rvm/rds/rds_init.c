@@ -22,7 +22,7 @@ Coda are listed in the file CREDITS.
 /* This routine initializes a region of memory to contain the heap. The
  * calling routine is assumed to have started a transaction and so assumes
  * the responsibility of aborting on error.
- * This routine should run entirely seperately from the other heap operations.
+ * This routine should run entirely separately from the other heap operations.
  * As such it is assumed to never be run concurently with any other rds
  * routine.
  */

@@ -8,11 +8,11 @@
    is made.  The file itself is not made.  It is relative to
    curdir unless the path starts with slash (/).
 
-   Return value:  0 if path is successfuly made or exists and
+   Return value:  0 if path is successfully made or exists and
                     is directories.
 
 		  -1 if path is not made or path contains a file.
-		     errno should be set to an approprate value.
+		     errno should be set to an appropriate value.
 */
 
 #include <string.h>

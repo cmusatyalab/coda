@@ -18,7 +18,7 @@ listed in the file CREDITS.
 
 /*
 *
-*               rvmutl: RVM utility for log and segment maintainance
+*               rvmutl: RVM utility for log and segment maintenance
 *
 */
 
@@ -261,7 +261,7 @@ static unsigned intval(char c)
 }
 
 #ifdef UNUSED_FUNCTIONS
-/* character substitution: locate all occurances of c1, change to c2 */
+/* character substitution: locate all occurrences of c1, change to c2 */
 static void change_to(char c1 /* target character */,
                       char c2 /* substitute character */,
                       char *str /* string */)
@@ -1726,7 +1726,7 @@ static rvm_bool_t scan_poke_val(rvm_offset_t *offset, rvm_bool_t *scanned_str,
             *offset = str2off(cmd_cur, &cmd_cur, NULL);
             break;
         default: /* report error */
-            fprintf(err_stream, "\n? Unknown data type begining with: ");
+            fprintf(err_stream, "\n? Unknown data type beginning with: ");
             pr_char(err_stream, *cmd_cur, NULL);
             putc('\n', err_stream);
             return rvm_false;
@@ -3944,7 +3944,7 @@ static rvm_bool_t do_build_seg_dict(void)
         default:
             assert(rvm_false);
         }
-        /* have log segment dictionary defintion */
+        /* have log segment dictionary definition */
         retval = load_sub_rec(rec_end->rec_hdr.rec_length, REVERSE);
         if (retval != RVM_SUCCESS)
             goto log_err_exit;
@@ -4093,7 +4093,7 @@ static rvm_bool_t do_init_log(void)
     status  = &log->status;
     log_buf = &log->log_buf;
 
-    /* open the file or device and set characteristcs */
+    /* open the file or device and set characteristics */
     if (open_dev(log_dev, O_WRONLY | O_CREAT | O_TRUNC, mode) != 0) {
         perror("? cannot open file/device");
         exit(EXIT_FAILURE);
@@ -4589,7 +4589,7 @@ static rvm_bool_t do_open_log(void)
 {
     log_dev_status_t *log_dev_status = (log_dev_status_t *)status_io;
     rvm_return_t retval; /* rvm return code */
-    char *cmd_save; /* cmd line postion save */
+    char *cmd_save; /* cmd line position save */
     char str_name_buf[STR_NAME_LEN + 1]; /* name buffer */
     long key;
     rvm_bool_t no_tail = rvm_false; /* default: locate the tail */
@@ -4654,8 +4654,8 @@ file_name:
 
         case RVM_EIO:
             switch (errno) {
-            case ENOENT: /* non-existant file/directory/device */
-                fprintf(stderr, "? File or directory \"%s\" non-existant\n",
+            case ENOENT: /* non-existent file/directory/device */
+                fprintf(stderr, "? File or directory \"%s\" non-existent\n",
                         dev_str);
                 if (get_ans("Do you want to create it", rvm_false)) {
                     cmd_cur = cmd_save;
@@ -5380,7 +5380,7 @@ static void do_cmd_switches(int argc, char *argv[])
         if (sw[0] != '-')
             break; /* no more switches */
 
-        /* see if switch name and '-' are seperated */
+        /* see if switch name and '-' are separated */
         if (strlen(sw) == 1) {
             args++;
             if (argc > args) {

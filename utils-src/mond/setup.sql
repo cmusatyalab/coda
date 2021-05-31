@@ -555,7 +555,7 @@ create table iot_stats (
 	avg_readvol_num integer,
 	max_writevol_num integer,
 	avg_writevol_num integer,
-	commited integer,
+	committed integer,
 	pending integer,
 	resolved integer,
 	repaired integer

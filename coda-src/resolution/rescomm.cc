@@ -142,7 +142,7 @@ res_mgrpent::res_mgrpent(unsigned long hosts[VSG_MEMBERS], RPC2_Handle mid)
 
 res_mgrpent::~res_mgrpent()
 {
-    /* kill the member connectins */
+    /* kill the member connections */
     LogMsg(100, SrvDebugLevel, stdout, "~res_mgrpent::");
     for (int i = 0; i < VSG_MEMBERS; i++)
         KillMember(rrcc.hosts[i], 1);

@@ -145,7 +145,7 @@ static void restore_ov(int_tid_t *tid)
             if (TID(RESTORE_FLAG))
                 BCOPY(range->data, range->nv.vmaddr, range->nv.length);
 
-            /* decr uncommited mods cnt */
+            /* decr uncommitted mods cnt */
             assert(range->region->links.struct_id == region_id);
             CRITICAL(range->region->count_lock, range->region->n_uncommit--);
         }
@@ -268,7 +268,7 @@ find_overlap(int_tid_t *tid /* transaction descriptor to search */,
         if ((*cmp_func)(&new_range->links.node, &range->links.node) != 0)
             break;
 
-        /* save overlaping/adjacent ranges */
+        /* save overlapping/adjacent ranges */
         if (!alloc_x_ranges(tid, 1)) {
             *retval = RVM_ENO_MEMORY;
             return rvm_true;
@@ -283,10 +283,10 @@ find_overlap(int_tid_t *tid /* transaction descriptor to search */,
             *overlap = RVM_ADD_LENGTH_TO_OFFSET(*overlap, new_range->nv.length);
             return rvm_true;
         }
-        /* general case: merge all overlaping/adjacent ranges
+        /* general case: merge all overlapping/adjacent ranges
            tally savings and save new bounds of composite range */
 
-        /* test if non-overlaping values preceed new range */
+        /* test if non-overlapping values precede new range */
         if (RVM_OFFSET_LSS(range->nv.offset, new_range->nv.offset)) {
             off_tmp  = RVM_SUB_OFFSETS(range->end_offset, new_range->nv.offset);
             *overlap = RVM_ADD_OFFSETS(*overlap, off_tmp);
@@ -362,7 +362,7 @@ merge_range(int_tid_t *tid, region_t *region,
         for (i = 0; i < tid->x_ranges_len; i++) {
             range = tid->x_ranges[i];
             if (TID(RESTORE_FLAG)) {
-                /* copy old values preceeding existing range to new buffer */
+                /* copy old values preceding existing range to new buffer */
                 if (vmaddr < range->nv.vmaddr) {
                     len = (rvm_length_t)RVM_SUB_LENGTH_FROM_ADDR(
                         range->nv.vmaddr, vmaddr);
@@ -547,7 +547,7 @@ static rvm_return_t save_all_nvs(int_tid_t *tid /* committing transaction */)
         if ((retval = save_nv(range)) != RVM_SUCCESS)
             return retval;
 
-        /* update uncommited count */
+        /* update uncommitted count */
         assert(range->region->links.struct_id == region_id);
         CRITICAL(range->region->count_lock, range->region->n_uncommit--);
     }

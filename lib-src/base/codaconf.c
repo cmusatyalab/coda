@@ -39,7 +39,7 @@ static const char *default_codaconfpath = SYSCONFDIR
 static char line[MAXLINELEN];
 static char conffile[MAXPATHLEN + 1];
 
-/* this global is exported to surpress codaconf_init_one verbosity */
+/* this global is exported to suppress codaconf_init_one verbosity */
 int codaconf_quiet = 0;
 
 /* nobody outside of this file needs to be exposed to these structures. */

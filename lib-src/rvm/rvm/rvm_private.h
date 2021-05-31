@@ -652,7 +652,7 @@ typedef struct {
     long iov_length; /* length of iov array */
     long iov_cnt; /* count of entries used in iov */
     rvm_length_t io_length; /* accumulated length of i/o */
-    rvm_offset_t last_position; /* last location seeked or transfered */
+    rvm_offset_t last_position; /* last location seeked or transferred */
 
     /* the following fields are used for log devices only */
     char *wrt_buf; /* working raw io write buffer base */
@@ -883,7 +883,7 @@ typedef struct {
     long ptr; /* index of present buffer position */
     struct timeval timestamp; /* timestamp of transaction in buffer */
 
-    char *aux_buf; /* working auxillary buffer base */
+    char *aux_buf; /* working auxiliary buffer base */
     long aux_length; /* length of aux_buf */
     rvm_offset_t aux_offset; /* offset of data in buffer */
     long aux_rlength; /* length of data read into buffer */
@@ -914,7 +914,7 @@ typedef struct {
     RVM_MUTEX lock; /* daemon lock -- protects following fields */
     RVM_CONDITION code; /* condition code to signal daemon */
     RVM_CONDITION flush_flag; /* condition code to signal flush */
-    RVM_CONDITION wake_up; /* conditon code to signal threads
+    RVM_CONDITION wake_up; /* condition code to signal threads
                               waiting for truncation completion */
     daemon_state_t state; /* control state */
     long truncate; /* truncation threshold, as % of log */
@@ -1032,7 +1032,7 @@ typedef struct {
     log_t *log; /* back link to log descriptor */
     rvm_offset_t log_size; /* log space required */
     tree_root_t range_tree; /* range tree root */
-    range_t **x_ranges; /* vector of overlaping ranges */
+    range_t **x_ranges; /* vector of overlapping ranges */
     long x_ranges_alloc; /* allocated length of x_ranges */
     long x_ranges_len; /* current length of x_ranges */
     rvm_length_t range_elim; /* ranges eliminated by range coalesce */

@@ -21,7 +21,7 @@ listed in the file CREDITS.
 
 This  file  contains  some  code identical to or derived from the 1986
 version of the Andrew File System ("AFS"), which is owned by  the  IBM
-Corporation.    This  code is provded "AS IS" and IBM does not warrant
+Corporation.    This  code is provided "AS IS" and IBM does not warrant
 that it is free of infringement of  any  intellectual  rights  of  any
 third  party.    IBM  disclaims  liability of any kind for any damages
 whatsoever resulting directly or indirectly from use of this  software

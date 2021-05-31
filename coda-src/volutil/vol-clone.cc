@@ -366,7 +366,7 @@ static void VUCloneIndex(Error *error, Volume *rwVp, Volume *cloneVp,
     free(tmpvlist);
 
     /* Store the new list in the volume structure. Do this now so that
-     * if an abort happens, already commited vnodes will be scavanged.
+     * if an abort happens, already committed vnodes will be scavenged.
      */
     if (vclass == vSmall) {
         RVMLIB_MODIFY(SRV_RVM(VolumeList[cvolInd]).data.smallVnodeLists,

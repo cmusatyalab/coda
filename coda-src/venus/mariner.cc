@@ -141,7 +141,7 @@ Next:
 
     /* try to bind all returned addresses */
     for (ai = result; ai != NULL; ai = ai->ai_next) {
-        /* Socket at which we rendevous with new clients. */
+        /* Socket at which we rendezvous with new clients. */
         sock = ::socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
         if (sock < 0) {
             eprint("MarinerInit: failed to create socket");

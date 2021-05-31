@@ -635,7 +635,7 @@ int sftp_AckArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
             }
 
         if (dataThisRound)
-            /* XXX This is bogus, the succesfully acked data is NOT equal to
+            /* XXX This is bogus, the successfully acked data is NOT equal to
              * the data we actually transferred over the wire! -JH */
             sftp_UpdateBW(pBuff, sizeof(struct RPC2_PacketHeader),
                           dataThisRound, sEntry);
@@ -787,7 +787,7 @@ int sftp_SendStrategy(struct SFTP_Entry *sEntry)
     }
 
     /* Hit EOF, try to flush the last packets to the other side. We should be
-     * able to be more agressive compared to the case where we're in the middle
+     * able to be more aggressive compared to the case where we're in the middle
      * of the transfer with a closed window */
     return ResendWorried(sEntry);
 }

@@ -325,7 +325,7 @@ The Preemption Package
   between light-weight processes without the need for explicit calls to
   LWP_DispatchProcess.  This effect is achieved by periodically
   interrupting the normal flow of control to check if other (higher
-  priority) procesess are ready to run.
+  priority) processes are ready to run.
 
   The package makes use of the interval timer facilities provided by
   4.2BSD, and so will cause programs that make their own use of these

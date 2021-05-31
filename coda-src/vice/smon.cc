@@ -148,7 +148,7 @@ struct rvmrese : public olink {
 };
 
 /* OverflowEvent Entry */
-struct smoe {
+struct smon_entry {
     SmonViceId Vice;
     RPC2_Unsigned Time;
     RPC2_Unsigned StartTime;
@@ -170,7 +170,7 @@ struct smoe {
 
 static int SmonEnabled = 0;
 static int SmonInited  = 0;
-static smoe SOE;
+static smon_entry SOE;
 static olist *RVMResList                 = 0;
 static unsigned long LastSmonBindAttempt = 0;
 static SmonStatistics stats;
@@ -350,7 +350,7 @@ static int ValidateSmonHandle()
     if (code == MOND_OLDVERSION)
         LogMsg(
             0, SrvDebugLevel, stdout,
-            "ValidateSmonHandle: MondEstablishConn recieved MOND_OLDVERSION");
+            "ValidateSmonHandle: MondEstablishConn received MOND_OLDVERSION");
 
     return (1);
 }

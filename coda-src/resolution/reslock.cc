@@ -139,7 +139,7 @@ FreeLocks:
         vptr = 0;
     }
     if (errorcode)
-        /* volume locked but error occured later */
+        /* volume locked but error occurred later */
         /* release the lock */
         PutVolObj(&volptr, VOL_EXCL_LOCK, 1);
     else

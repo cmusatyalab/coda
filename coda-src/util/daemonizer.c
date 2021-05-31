@@ -188,7 +188,7 @@ int daemonize(void)
     return fds[1];
 }
 
-/* let the parent process know that we've succesfully started. */
+/* let the parent process know that we've successfully started. */
 void gogogo(int parent_fd)
 {
     if (parent_fd < 0)

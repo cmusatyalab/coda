@@ -964,7 +964,7 @@ int cmlent::DoRepair(char *msg, int rcode)
         /*
 	     * note that the target object is always NULL here because a disconnected rename
 	     * operation with target object is always split into a rename without a target
-	     * preceeded by a remove operation for that target object.
+	     * preceded by a remove operation for that target object.
 	     */
         char SPath[MAXPATHLEN], TPath[MAXPATHLEN];
         LSPObj->GetPath(SPath, 1);

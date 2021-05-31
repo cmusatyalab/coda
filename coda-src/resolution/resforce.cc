@@ -162,7 +162,7 @@ void UpdateRunts(res_mgrpent *mgrp, ViceVersionVector **VV, ViceFid *Fid)
     for (i = 0; i < VSG_MEMBERS; i++) {
         if (VV[i] && isrunt[i]) {
             if (mgrp->rrcc.retcodes[i] == 0) {
-                SLog(9, "UpdateRunts: Succesfully forced runt %d", i);
+                SLog(9, "UpdateRunts: Successfully forced runt %d", i);
                 /* update the vv[i] slot */
                 *(VV[i]) = vstatus.VV;
             } else
@@ -322,7 +322,7 @@ FreeLocks:
         delete forceList;
     }
     if (dirvptr) {
-        SLog(0, "RS_DoForceDirOps: Owner just before commiting is %d",
+        SLog(0, "RS_DoForceDirOps: Owner just before committing is %d",
              dirvptr->disk.owner);
     }
     PutObjects(errorCode, volptr, NO_LOCK, vlist, deltablocks, 1);

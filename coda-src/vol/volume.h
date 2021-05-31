@@ -122,7 +122,7 @@ typedef struct VolumeDiskData {
                      on line.  Set by a system administrator. Clearing this bit
                      will take the volume offline */
     byte needsSalvaged; /* Volume needs salvaged--an unrecoverable error
-                           occured to the volume.  Note: a volume may still
+                           occurred to the volume.  Note: a volume may still
                            require salvage even if this flag isn't set--e.g. if
                            a system crash occurred while the volume was on
                            line. */

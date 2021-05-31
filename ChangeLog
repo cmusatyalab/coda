@@ -68,7 +68,7 @@
 	* Look for libX11 in /usr/lib as well.
 	* Remove mmap code in rwcdb.
 	* Fix kerberos checks in configure (Maurice van der Pot)
-	* Agressively disconnect client when tokens expire.
+	* Aggressively disconnect client when tokens expire.
 	* Close pipe to the parent when we crash during startup.
 	* Kick the FSO daemon when we hit yellow or red zones.
 	* Set root directory mode-bits on a new volume to 0755.
@@ -644,7 +644,7 @@
 	* Distributing rpc2 and rvm as separate packages.
 	* Removed a bunch of unused code.
 	* Hierarchical file cache for Coda clients (Phil Nelson).
-	* Lazy creation of hierachical directory trees (Phil Nelson).
+	* Lazy creation of hierarchical directory trees (Phil Nelson).
 	* Fixes to cure needless refetching of weakly reintegrated files.
 	* Fixed a bad optimization error in log-based resolution which
 	  occasionally cancelled out the wrong operations.
@@ -715,7 +715,7 @@
 	    - Truncating a file while disconnected caused venus to crash.
 	    - A memory leak was triggered by failing SFTP transfers, this has
 	      been partially fixed.
-	    - Fixed a crash that occured after a double kill of a namecontext
+	    - Fixed a crash that occurred after a double kill of a namecontext
 	      during a hoard walk after token expiry.
 	    - Collapsed hoard namecontexts were never re-expanded due to some
 	      optimizations.

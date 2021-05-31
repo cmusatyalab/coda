@@ -62,7 +62,7 @@ New in 2.29
   when a remote peer has gone away.
 * Change Coda root CA to a 2048-bit certificate, which turned out to be
   a better fit for the secure hardware key.
-* Fix compatiblity with the older gnutls on Debian-jessie and Ubuntu-trusty
+* Fix compatibility with the older gnutls on Debian-jessie and Ubuntu-trusty
 
 New in 2.28
 
@@ -99,7 +99,7 @@ New in 2.22
 
 * In SFTP (the bulk/file transport layer for RPC2), packets that didn't
   arrive when they were expected were assumed to be lost and retransmitted.
-  These retransmissions were too agressive for a non-lossy link, such as the
+  These retransmissions were too aggressive for a non-lossy link, such as the
   reliable, ordered delivery we get from a TCP tunnel. A few retransmissions
   early in a transfer added up to sending data packets multiple times during
   a fetch operation, and could even lead to an exponential increase when
@@ -145,7 +145,7 @@ New in 2.14:
 
 New in 2.13:
 
-* Fixed incorrect packing of an array in an RPC reponse.
+* Fixed incorrect packing of an array in an RPC response.
 * Check the unpack buffer is large enough for a trailing \0 after strings.
 * Limit max boundedbs allocation on the server to RPC2_MAXPACKETSIZE.
 
@@ -303,7 +303,7 @@ New in 1.27:
 
 New in 1.26:
 
-* SFTP was agressively dropping incoming packets that didn't come back
+* SFTP was aggressively dropping incoming packets that didn't come back
   from the correct IP address. However, if there is 6-to-4 translation,
   a request to <ipv4> comes back from [::ffff:<ipv4>]. This could also
   help somewhat on multihomed hosts.

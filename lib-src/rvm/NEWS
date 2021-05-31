@@ -26,7 +26,7 @@ New in 1.23:
 
 New in 1.22:
 
-* Change autoconf to only check for mmap existance. This allows building
+* Change autoconf to only check for mmap existence. This allows building
   the source on file systems that do not support mmap.
 * Fix resource leaks in RVM test programs.
 

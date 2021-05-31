@@ -133,7 +133,7 @@ rvm_return_t bad_region(rvm_region_t *rvm_region)
  * perform in this fashion (it will deallocate whatever was there beforehand,
  * silently), but there is another complication. If the application has
  * allocated memory in that space, it could cause an erroneous result from
- * the mem_chk() function. Since mmap() (if it behaved as originally beleived)
+ * the mem_chk() function. Since mmap() (if it behaved as originally believed)
  * would not be able to allocate the space, it would assume it is a mapped
  * region. But, since it ISN'T a mapped region, just an allocated region,
  * the result is incorrect.

@@ -528,7 +528,7 @@ static void purgeDeadVnodes(Volume *backupvp, rec_smolist *BackupLists,
     if (tmpdebug == NULL)
         tmpdebug = stdout;
 
-    /* Only idec inodes after the transaction has commited in case of abort */
+    /* Only idec inodes after the transaction has committed in case of abort */
     Inode *DeadInodes =
         (Inode *)malloc((MaxVnodesPerTransaction + 1) * sizeof(Inode));
 
@@ -605,7 +605,7 @@ static void purgeDeadVnodes(Volume *backupvp, rec_smolist *BackupLists,
  *	  meta data has changed (as in the case of a res ForceVV). In this case
  *    we don't need to play with the inode, just copy the vnode.
 
- * Only idec inodes after the transaction has commited in case of abort */
+ * Only idec inodes after the transaction has committed in case of abort */
 
 static void updateBackupVnodes(Volume *rwvp, Volume *backupvp,
                                rec_smolist *BackupLists, VnodeClass vclass,

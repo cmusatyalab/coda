@@ -1074,7 +1074,7 @@ int volent::Enter(int mode, uid_t uid)
     /* We allow only the hoard thread to fetch new version stamps if we do not
      * already have one. If we do have stamps, we let other threads validate
      * them with one condition.
-     * The wierd condition below is to prevent the vol daemon from validating
+     * The weird condition below is to prevent the vol daemon from validating
      * volumes one at a time.  That is, if the volume has just taken a
      * transition or was just demoted, there is a good chance some other
      * volumes have as well.
@@ -1120,7 +1120,7 @@ int volent::Enter(int mode, uid_t uid)
             }
 
             /*
-             * mutator needs to aquire exclusive CML ownership
+             * mutator needs to acquire exclusive CML ownership
              */
             if (IsReadWrite()) {
                 /*

@@ -232,7 +232,7 @@ struct security_association *rpc2_GetSA(uint32_t spi)
    returns 0; Returns -3 iff a too-long packet arrived.  Returns -1 on
    any other system call error.
 
-   Note that whichBuff should at least be able to accomodate 1 byte
+   Note that whichBuff should at least be able to accommodate 1 byte
    more than the longest receivable packet.  Only Internet packets are
    dealt with currently.  */
 long rpc2_RecvPacket(IN long whichSocket, OUT RPC2_PacketBuffer *whichBuff)
@@ -376,7 +376,7 @@ long rpc2_CancelRetry(struct CEntry *Conn, struct SL_Entry *Sle)
             Sle->RInterval.tv_sec, Sle->RInterval.tv_usec);
 
         if (CMPTIME(&silence, &Sle->RInterval, <)) {
-            say(/*9*/ 4, RPC2_DebugLevel, "Supressing retry %d at %ld on %#x",
+            say(/*9*/ 4, RPC2_DebugLevel, "Suppressing retry %d at %ld on %#x",
                 Sle->RetryIndex, rpc2_time(), Conn->UniqueCID);
 
             rpc2_Sent.Cancelled++;

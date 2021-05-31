@@ -1723,7 +1723,7 @@ static int getrights(const char *s, int *x)
 }
 
 static void translate(char *s, char oldc, char newc)
-/* Changes every occurence of oldc to newc in s */
+/* Changes every occurrence of oldc to newc in s */
 {
     int i, size;
 

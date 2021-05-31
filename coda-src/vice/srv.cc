@@ -1051,10 +1051,11 @@ void PrintCounters(FILE *fp)
     seconds = Counters[FETCHTIME] / 1000;
     if (seconds <= 0)
         seconds = 1;
-    SLog(0,
-         "Total FetchDatas = %d, bytes transfered = %d, transfer rate = %d bps",
-         Counters[FETCHDATAOP], Counters[FETCHDATA],
-         Counters[FETCHDATA] / seconds);
+    SLog(
+        0,
+        "Total FetchDatas = %d, bytes transferred = %d, transfer rate = %d bps",
+        Counters[FETCHDATAOP], Counters[FETCHDATA],
+        Counters[FETCHDATA] / seconds);
     SLog(0,
          "Fetched files <%dk = %d; <%dk = %d; <%dk = %d; <%dk = %d; >%dk = %d.",
          SIZE1 / 1024, Counters[FETCHD1], SIZE2 / 1024, Counters[FETCHD2],
@@ -1063,10 +1064,11 @@ void PrintCounters(FILE *fp)
     seconds = Counters[STORETIME] / 1000;
     if (seconds <= 0)
         seconds = 1;
-    SLog(0,
-         "Total StoreDatas = %d, bytes transfered = %d, transfer rate = %d bps",
-         Counters[STOREDATAOP], Counters[STOREDATA],
-         Counters[STOREDATA] / seconds);
+    SLog(
+        0,
+        "Total StoreDatas = %d, bytes transferred = %d, transfer rate = %d bps",
+        Counters[STOREDATAOP], Counters[STOREDATA],
+        Counters[STOREDATA] / seconds);
     SLog(0,
          "Stored files <%dk = %d; <%dk = %d; <%dk = %d; <%dk = %d; >%dk = %d.",
          SIZE1 / 1024, Counters[STORED1], SIZE2 / 1024, Counters[STORED2],
@@ -1771,7 +1773,7 @@ static void InitializeServerRVM(const char *name)
         if (prottrunc)
             options->truncate = 0;
         else if (_Rvm_Truncate > 0 && _Rvm_Truncate < 100) {
-            SLog(0, "Setting Rvm Truncate threshhold to %d.\n", _Rvm_Truncate);
+            SLog(0, "Setting Rvm Truncate threshold to %d.\n", _Rvm_Truncate);
             options->truncate = _Rvm_Truncate;
         }
 

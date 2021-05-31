@@ -86,7 +86,7 @@ and receive encrypted and authenticated packets.
 Wrapper around recvfrom to decrypt/validate incoming packets. If the
 packet is smaller than 8 bytes, or the first big-endian 32-bit word is
 less than 256, the packet is considered unencrypted and passed through
-without any futher processing.
+without any further processing.
 
 Otherwise, the GETSA callback is called with the 32-bit identifier (in
 native byte order). If GETSA returns NULL, the packet is dropped and we

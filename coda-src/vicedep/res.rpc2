@@ -88,7 +88,7 @@ NewConnection	(IN RPC2_Integer SideEffectType,
 
 5: MarkInc     	(IN ViceFid Fid);
 
-/* OldPrimaryHost was compared agains ThisHostAddr until 6.9.8 but is
+/* OldPrimaryHost was compared against ThisHostAddr until 6.9.8 but is
  * unused since then. */
 6: FetchFile	(IN ViceFid Fid,
 		 IN RPC2_Unsigned OldPrimaryHost,

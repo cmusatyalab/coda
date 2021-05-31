@@ -473,7 +473,7 @@ int DIR_Length(struct DirHeader *dir)
 
 /* the following functions (Create, MkDir, Delete, Setpages)
    modify directory contents.
-   The first two of these may alse need to increase the directory
+   The first two of these may also need to increase the directory
    size, so they are passed a pointer to the dirheader address.
      - they must be called from within a transaction (if in RVM) and we
        check for that.
@@ -1130,7 +1130,7 @@ int DIR_DirOK(PDirHeader pdh)
 
     /* check the allomap: _in order_ we check for the following pages:
 	   first page: freecount between 0 and EPP-DHE-1
-            allocated pages: freecount betwen 0 and EPP-1
+            allocated pages: freecount between 0 and EPP-1
             free pages: freecount must be EPP
 	*/
 

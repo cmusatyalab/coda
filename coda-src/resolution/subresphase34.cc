@@ -69,7 +69,7 @@ long RS_HandleInc(RPC2_Handle RPCid, ViceFid *Fid, ViceStoreId *logid,
         }
     }
 
-    // parse the inconsisteny list
+    // parse the inconsistency list
     {
         BSToDlist(piggyinc, inclist);
     }

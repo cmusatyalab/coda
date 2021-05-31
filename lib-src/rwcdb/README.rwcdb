@@ -8,12 +8,12 @@ Bernstein.
 
 Functions that only read the database have identical parameters and
 functionality. They have slightly different function naming, rwcdb_
-prefixes instead of cdb_ prefixes. Newly introducted functions try to be
+prefixes instead of cdb_ prefixes. Newly introduced functions try to be
 consistent with the original cdb function's unusual way of returning
 success/failure, i.e. 1 typically indicates success, 0 failure and -1 a
 critical failure.
 
-Newly introducted functions and semantics are,
+Newly introduced functions and semantics are,
 
   int rwcdb_init(struct rwcdb *c, const char *file, const int mode);
 

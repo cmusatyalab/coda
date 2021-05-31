@@ -140,7 +140,7 @@ char *rvm_type(rvm_struct_id_t id);
 typedef unsigned long rvm_length_t;
 
 /*  region offset descriptor: rvm_offset_t supports 64 bit unsigned integers
-    struct unecessary if machine has 64-bit ops */
+    struct unnecessary if machine has 64-bit ops */
 
 typedef struct { /* INTERNAL FIELDS static */
     rvm_length_t high; /* private */

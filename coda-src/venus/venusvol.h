@@ -594,10 +594,10 @@ struct VolFlags {
     unsigned unused5 : 10;
     unsigned reint_conflict : 1; /* set when the head of the CML is marked
 				       as in conflict, should not be used as
-				       authorative information */
+				       authoritative information */
     unsigned unauthenticated : 1; /* set when reintegration fails due to lack
 				       of tokens, should not be used as
-				       authorative information */
+				       authoritative information */
 };
 
 /* Descriptor for a range of pre-allocated fids. */

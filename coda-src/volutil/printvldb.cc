@@ -91,7 +91,7 @@ void heapsort(struct vldb a[], int length)
 void main(int argc, char **argv)
 {
     if (argc > 1)
-        printf("Usage: %s\n", argv[0]); /* code to supress warnings */
+        printf("Usage: %s\n", argv[0]); /* code to suppress warnings */
 
     struct vldb buffer[8];
 

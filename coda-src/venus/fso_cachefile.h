@@ -164,7 +164,7 @@ static inline uint64_t ccblock_end(uint64_t b_pos, int64_t b_count)
  * Calculate the amount of cache chunk blocks of a range (aligned)
  *
  * @param b_pos   start of the range in bytes
- * @param b_count lenght of the range in bytes
+ * @param b_count length of the range in bytes
  *
  * @return amount of the cache chunk blocks
  */
@@ -191,7 +191,7 @@ static inline uint64_t pos_align_to_ccblock(uint64_t b_pos)
  * chunk block
  *
  * @param b_pos   start of the range in bytes
- * @param b_count lenght of the range in bytes
+ * @param b_count length of the range in bytes
  *
  * @return end of the corresponding cache chunk block in bytes
  */

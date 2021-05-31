@@ -15,7 +15,7 @@ supporting libraries can be found in their respective directories under
 
 The reasons the supporting libraries and their history have been merged with the
 Coda source tree are twofold. They were originally part of the Coda source
-tree but were seperated out as over time other non-Coda users of the libraries
+tree but were separated out as over time other non-Coda users of the libraries
 emerged. By now Coda has outlived all other external users and merging them
 back to consolidate the development history seemed to make more sense.
 

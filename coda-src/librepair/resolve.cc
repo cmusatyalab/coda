@@ -778,7 +778,7 @@ int GetParent(char *realm, ViceFid *cfid, ViceFid *dfid, char *dpath,
     vi.out_size = sizeof(tmp);
     rc          = pioctl(NULL, _VICEIOCTL(_VIOC_GETPFID), &vi, 0);
     if (rc) {
-        printf("Error %d occured while trying to get fid of %s's parent\n", rc,
+        printf("Error %d occurred while trying to get fid of %s's parent\n", rc,
                childname);
         return (rc);
     }

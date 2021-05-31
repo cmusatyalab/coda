@@ -330,7 +330,7 @@ static void recv_codatunnel_cb(uv_udp_t *codatunnel, ssize_t nread,
             return;
         }
     }
-    /* Possibile states for destination d: ALLOCATED, TCPATTEMPTING, and
+    /* Possible states for destination d: ALLOCATED, TCPATTEMPTING, and
        TLSHANDSHAKE. In all of these cases we'll fall back to UDP as long as
        we have not yet had a gnutls certificate validation error.
 

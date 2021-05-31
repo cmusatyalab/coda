@@ -155,7 +155,7 @@ typedef struct SE_SideEffectDescriptor {
     } Value;
 
     /* this is a callback function, which is called whenever a block of
-     * data is succesfully transferred (sink side only for now). */
+     * data is successfully transferred (sink side only for now). */
     void (*XferCB)(void *userp, unsigned int offset);
     void *userp;
 } SE_Descriptor;

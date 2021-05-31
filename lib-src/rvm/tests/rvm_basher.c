@@ -257,7 +257,7 @@ typedef struct /* string name vector entry */
 #define SEED_DEFAULT 1
 #define CHK_ALLOC_DEFAULT 0
 #define CHK_RANGE_DEFAULT 0
-/* list maintainance functions */
+/* list maintenance functions */
 
 /* list header initializer */
 static void init_list_head(list_entry_t *whichlist /* pointer to list header */)
@@ -360,7 +360,7 @@ zero_pad(rvm_length_t word /* value to be zero-padded */,
 }
 
 /* checksum function: forms checksum of arbitrarily aligned range
-   by copying preceeding, trailing bytes to make length 0 mod length size */
+   by copying preceding, trailing bytes to make length 0 mod length size */
 static rvm_length_t check_sum(char *nvaddr /* address of 1st byte */,
                               rvm_length_t len /* byte count */)
 {

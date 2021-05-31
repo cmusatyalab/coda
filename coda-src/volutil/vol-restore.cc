@@ -461,7 +461,7 @@ static int ReadLargeVnodeIndex(DumpBuffer_t *buf, Volume *vp)
 
     /* Update Volume structure to point to new vnode list.
      * Doing this here so that if an abort happens during the loop the
-     * commited vnodes will be scavanged.
+     * committed vnodes will be scavenged.
      */
     RVMLIB_MODIFY(SRV_RVM(VolumeList[volindex]).data.nlargevnodes, num_vnodes);
     RVMLIB_MODIFY(SRV_RVM(VolumeList[volindex]).data.nlargeLists, list_size);
@@ -559,7 +559,7 @@ static int ReadSmallVnodeIndex(DumpBuffer_t *buf, Volume *vp)
 
     /* Update Volume structure to point to new vnode list.
      * Doing this here so that if an abort happens during the loop the
-     * commited vnodes will be scavanged.
+     * committed vnodes will be scavenged.
      */
     RVMLIB_MODIFY(SRV_RVM(VolumeList[volindex]).data.nsmallvnodes, num_vnodes);
     RVMLIB_MODIFY(SRV_RVM(VolumeList[volindex]).data.nsmallLists, list_size);

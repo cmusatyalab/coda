@@ -100,8 +100,8 @@ and rebuilt rvmutl.
 1. As of this moment, remember that you need to issue a "umount /coda"
 between two restarts of venus.
 
-2. "Truncate" is an RVM terminology.  Before truncation, the effect of
-of committed transaction are presistence, but they may still be
+2. "Truncate" is an RVM terminology.  Before truncation, the effect
+of committed transactions are persisted, but they may still be
 residing in the sequential write-ahead log and have not yet been
 reflected to the RVM data segment.  By truncating your RVM log, you
 make sure all the effects of committed transactions are reflected to

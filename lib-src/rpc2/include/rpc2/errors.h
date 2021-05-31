@@ -4,7 +4,7 @@
 
 /* RPC2 converts errno values to it's own platform independent numbering
  * - Errors returned by RPC's are platform independent.
- * - Accomodate Coda specific errors (like VSALVAGE) as well as system errors.
+ * - Accommodate Coda specific errors (like VSALVAGE) as well as system errors.
  * - Quick and easy translation of errors:
  *   a) from RPC2/Coda to system errors (typically for clients)
  *   b) from system to RPC2/Coda errors (typically for servers)

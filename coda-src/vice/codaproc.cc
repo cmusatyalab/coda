@@ -889,7 +889,7 @@ int CheckRepairSetACLSemantics(ClientEntry *client, Vnode *vptr, Volume *volptr,
             return (-1);
         }
 
-        /* check if new entry can be accomodated in list */
+        /* check if new entry can be accommodated in list */
         for (int i = 0; i < aCL->PlusEntriesInUse; i++)
             if (aCL->ActualEntries[i].Id == Id) {
                 SLog(
@@ -936,7 +936,7 @@ int CheckRepairSetNACLSemantics(ClientEntry *client, Vnode *vptr,
             SLog(0, "CheckSetACLSemantics: Couldnt convert name to id ");
             return (-1);
         }
-        /* check if new entry can be accomodated in negative rights list */
+        /* check if new entry can be accommodated in negative rights list */
         for (int i = aCL->TotalNoOfEntries - 1;
              i >= aCL->TotalNoOfEntries - aCL->MinusEntriesInUse; i--)
             if (aCL->ActualEntries[i].Id == Id)

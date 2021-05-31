@@ -310,7 +310,7 @@ void my_sigBus(int sig, int code, struct sigcontext *scp)
         } else if (storePC->i_format.opcode == sw_op) {
             int *ptr = (int *)wrAddr;
             *ptr     = value;
-        } else { /* swl or swr, It looks hard/wierd so I'll skip it for now */
+        } else { /* swl or swr, It looks hard/weird so I'll skip it for now */
             LogMsg(0, 0, stdout, "ACKK! Got a swl or swr so I'm aborting!\n");
             zombie(sig, code, scp);
         }

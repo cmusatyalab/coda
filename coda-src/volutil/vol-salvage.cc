@@ -759,7 +759,7 @@ static struct VnodeEssence *CheckVnodeNumber(VnodeId vnodeNumber, Unique_t unq)
 }
 
 /* iterate through entries in a directory and check them for */
-/* validity. This routine is passed as a paramter to EnumerateDir
+/* validity. This routine is passed as a parameter to EnumerateDir
    Checks performed:
    - is there a vnode for the entry with matching unique
    - if the entry is "." is the vnode number right

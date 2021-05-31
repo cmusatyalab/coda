@@ -470,7 +470,7 @@ int ProcessDirectory()
     memset(&dh, 0, sizeof(dh));
     dh.dh_data = DI_DiToDh(nextdir);
 
-    /* Iterate through entries in directory and proces them */
+    /* Iterate through entries in directory and process them */
     DH_EnumerateDir(&dh, AddNameEntry, CurrentDir);
 
     /* Free things allocated in this routine (except vdo) */

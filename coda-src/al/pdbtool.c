@@ -96,7 +96,7 @@ void tool_byNameOrId(int argc, char *argv[])
     PDB_db_close(h);
 }
 
-/* LIST EVERTHING */
+/* LIST EVERYTHING */
 void tool_list(int argc, char *argv[])
 {
     int32_t id;

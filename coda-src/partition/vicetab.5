@@ -5,7 +5,7 @@ vicetab \- information about Coda server data partitions
 .SH "DESCRIPTION"
 .PP
 \fBvicetab\fR is a table of Coda data
-partitions found on individual servers comprising a Coda netowrk
+partitions found on individual servers comprising a Coda network
 server. This includes partition(s) used by the backup coordinator to
 store dump files to placed on a suitable backup media. This file
 must be shared among all machines comprising a Coda hub so edits
@@ -30,7 +30,7 @@ call gethostbyname().
 Column 2 specifies the directory of the Coda data tree which
 must be a local file system partition for optimal performance.
 \fBNOTE: if a server serves than more than one Coda data
-parition, each data partition must have a seperate entry in
+partition, each data partition must have a separate entry in
 vicetab.\fR
 .PP
 Column 3 specifies the Coda partition type.
@@ -42,7 +42,7 @@ file system tree structure: e.g. inode 4711 in base 10 with
 width 1 and depth 5 would become 0/4/7/1/1. So, using the above
 example, a width of 4 and a depth of 2 would make the file name
 4/711.  If this storage type is specified, the width and depth
-must also be given in the 4th column seperated by a comma.
+must also be given in the 4th column separated by a comma.
 .PP
 Column 4 specifies the width and depth of the ftree.
 .TP 0.2i

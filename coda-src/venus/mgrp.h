@@ -86,7 +86,7 @@ class mgrpent : private RefCountedObject {
     friend class ClientModifyLog;
     friend class cmlent;
 
-    /* mgrp syncronization. */
+    /* mgrp synchronization. */
     static char mgrp_sync;
 
     /* Static state; immutable after construction. */

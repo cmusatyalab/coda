@@ -142,7 +142,7 @@ static struct timezone tsp;
 
 static const char *vicedir = NULL;
 
-static RPC2_Unsigned timestamp = 0; /* last transfered time. */
+static RPC2_Unsigned timestamp = 0; /* last transferred time. */
 
 int main(int argc, char **argv)
 {

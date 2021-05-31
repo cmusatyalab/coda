@@ -941,7 +941,7 @@ rvm_bool_t in_log(rvm_length_t addr /* address to search for */,
     else {
         if (in_heap(addr, (rvm_length_t)log->log_buf.aux_buf,
                     log->log_buf.aux_length)) {
-            printf("  ***  Address is in auxillary buffer log at %lx",
+            printf("  ***  Address is in auxiliary buffer log at %lx",
                    (long)log);
             printf(" recovery buffer\n");
             retval = rvm_true;
@@ -950,7 +950,7 @@ rvm_bool_t in_log(rvm_length_t addr /* address to search for */,
     /* check tid and flush lists */
     printf("  Checking uncommitted tids\n");
     if (!chk_list(&log->tid_list, rvm_true))
-        printf("  Log at %lx has damaged uncommited tid list\n", (long)log);
+        printf("  Log at %lx has damaged uncommitted tid list\n", (long)log);
     else {
         i = 0;
         FOR_ENTRIES_OF(log->tid_list, int_tid_t, tid)

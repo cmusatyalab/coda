@@ -14,7 +14,7 @@
 	      stmw  10,40(1)
               # Save stack
 	      stw   1,0(4)
-	      # Set new stack, if neccesary
+	      # Set new stack, if necessary
 	      cmpi  0,5,0
 	      beq   jump
 	      mr    1,5

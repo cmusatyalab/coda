@@ -145,7 +145,7 @@ static int rpc2_CheckFDs(int (*select_func)(int n, fd_set *r, fd_set *w,
     return (-1);
 }
 
-/* Also used by sftp3.c for ack supression */
+/* Also used by sftp3.c for ack suppression */
 int rpc2_MorePackets(void)
 {
     struct timeval tv = { 0, 0 };

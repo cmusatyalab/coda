@@ -532,7 +532,7 @@ void copy_log_stats(log_t *log)
     ZERO_TIME(status->flush_time);
 }
 
-/* clear non-permenant log status area fields */
+/* clear non-permanent log status area fields */
 void clear_log_status(log_t *log)
 {
     log_status_t *status = &log->status; /* status area descriptor */
@@ -1046,7 +1046,7 @@ rvm_create_log(rvm_options_t *rvm_options /* ptr to options record */,
         retval = RVM_EIO;
         goto err_exit;
     }
-    /* force file length to specified size by writting last byte */
+    /* force file length to specified size by writing last byte */
     log->dev.num_bytes = offset;
     offset             = RVM_SUB_LENGTH_FROM_OFFSET(offset, strlen(end_mark));
     if (write_dev(&log->dev, &offset, end_mark, strlen(end_mark), NO_SYNCH) <

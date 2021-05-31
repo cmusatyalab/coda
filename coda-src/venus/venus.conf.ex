@@ -171,7 +171,7 @@ marinersocket=/var/run/coda-client.mariner
 # mappings, 0 to use anonymous mappings.
 #
 # We enabled this setting because venus uses files for RVM and the
-# faster startup times and reduced memory pressure are very noticable.
+# faster startup times and reduced memory pressure are very noticeable.
 #
 #mapprivate=0
 mapprivate=1

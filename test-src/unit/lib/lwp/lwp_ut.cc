@@ -142,7 +142,7 @@ static void dummy_main_non_exiting(void *p)
     }
 }
 
-RVM_TEST_F(LwpDeathTest, non_exiting_proccess)
+RVM_TEST_F(LwpDeathTest, non_exiting_process)
 {
     PROCESS main;
     PROCESS sec_proc;
@@ -164,7 +164,7 @@ static void dummy_main_exiting(void *p)
     return;
 }
 
-RVM_TEST_F(LwpDeathTest, exiting_proccess)
+RVM_TEST_F(LwpDeathTest, exiting_process)
 {
     PROCESS main;
     PROCESS sec_proc;

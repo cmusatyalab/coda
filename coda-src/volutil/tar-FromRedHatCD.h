@@ -20,7 +20,7 @@
 
 /* If OLDGNU_COMPATIBILITY is not zero, tar produces archives which, by
    default, are readable by older versions of GNU tar.  This can be
-   overriden by using --posix; in this case, POSIXLY_CORRECT in environment
+   overridden by using --posix; in this case, POSIXLY_CORRECT in environment
    may be set for enforcing stricter conformance.  If OLDGNU_COMPATIBILITY
    is zero or undefined, tar will eventually produces archives which, by
    default, POSIX compatible; then either using --posix or defining

@@ -1764,7 +1764,7 @@ void worker::main(void)
                 KernelToVenusFid(&fid, &saveFid);
                 eprint("worker::main: aborting open (%s)", FID_(&fid));
 
-                /* NOTE: This may be bogus. It will definately cause a
+                /* NOTE: This may be bogus. It will definitely cause a
                  * "message write error" since the uniquifier is bogus. No
                  * harm done, I guess. But why not just call close directly?
                  * -- DCS */

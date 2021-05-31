@@ -83,7 +83,7 @@ void LoadRVM(char *log_dev, char *data_dev, rvm_offset_t data_len)
     options->log_dev = log_dev;
     options->flags   = (mapprivate ? RVM_MAP_PRIVATE : 0);
 
-    // Supress truncation, do it manually if needed.
+    // Suppress truncation, do it manually if needed.
     options->truncate = 0;
 
     printf("About to call RVM_INIT\n");

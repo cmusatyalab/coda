@@ -73,7 +73,7 @@ typedef struct {
     rvm_length_t n_abort; /* number of transactions aborted */
     rvm_length_t n_flush_commit; /* number of flush mode commits */
     rvm_length_t n_no_flush_commit; /* number of no_flush mode commits */
-    rvm_length_t n_uncommit; /* number of uncommited transactions */
+    rvm_length_t n_uncommit; /* number of uncommitted transactions */
     rvm_length_t n_no_flush; /* number of queued no_flush transactions */
     rvm_length_t n_truncation_wait; /* total transactions delayed by truncation */
     rvm_offset_t no_flush_length; /* length of queued no_flush transactions */

@@ -1140,7 +1140,7 @@ zero_pad_word(rvm_length_t word /* value to be zero-padded */,
 }
 
 /* checksum function: forms checksum of arbitrarily aligned range
-   by copying preceeding, trailing bytes to make length 0 mod length size */
+   by copying preceding, trailing bytes to make length 0 mod length size */
 rvm_length_t chk_sum(char *nvaddr /* address of 1st byte */,
                      rvm_length_t len /* byte count */)
 {

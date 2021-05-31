@@ -191,7 +191,7 @@ exit:
     if (vnp) {
         VPutVnode(&error, vnp);
         if (error)
-            VLog(0, "S_VolShowVnode: Error occured while putting vnode ");
+            VLog(0, "S_VolShowVnode: Error occurred while putting vnode ");
     }
     VDisconnectFS();
     if (status)

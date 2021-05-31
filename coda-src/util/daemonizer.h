@@ -32,7 +32,7 @@ int daemonize(void);
 /* write our pid to pidfile and keep the file locked */
 void update_pidfile(const char *pidfile);
 
-/* Let the parent process know that we've succesfully started. */
+/* Let the parent process know that we've successfully started. */
 void gogogo(int parent_fd);
 
 #ifdef __cplusplus

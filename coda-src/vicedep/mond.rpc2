@@ -414,7 +414,7 @@ typedef RPC2_Struct   /* File resolve statistics */
     RPC2_Integer     NumReg;          /* number of regular resolves */
     RPC2_Integer     UsrResolver;     /* file resolves that invoked a user installed resolver */
     RPC2_Integer     SuccUsrResolver; /* Number of those that succeeded */
-    RPC2_Integer     PartialVSG;      /* number of resovles with only a partial VSG */
+    RPC2_Integer     PartialVSG;      /* number of resolves with only a partial VSG */
 }   FileResStats;
 
 typedef RPC2_Struct   /* Directory resolve statistics */
@@ -424,7 +424,7 @@ typedef RPC2_Struct   /* Directory resolve statistics */
     RPC2_Integer    NumConf;    /* Number of conflicts */
     RPC2_Integer    NumNoWork;  /* Trivial resolves */
     RPC2_Integer    Problems;   /* Number of resolves with lock problems, unequal ancestors, etc. */
-    RPC2_Integer    PartialVSG; /* number of resovles with only a partial VSG */
+    RPC2_Integer    PartialVSG; /* number of resolves with only a partial VSG */
 } DirResStats;
 
 typedef RPC2_Struct /* generic histogram bucket */

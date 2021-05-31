@@ -246,7 +246,7 @@ prefix			: SERVER PREFIX String ';'
 					}
 			;
 
-header_line		: SUBSYSTEM subsystem_name compatability_stuff ';'
+header_line		: SUBSYSTEM subsystem_name compatibility_stuff ';'
 					{
 					    subsystem.subsystem_name = copy($2+1);
 					    subsystem.subsystem_name[strlen(subsystem.subsystem_name)-1] = '\0';
@@ -258,7 +258,7 @@ header_line		: SUBSYSTEM subsystem_name compatability_stuff ';'
 			    }
 			;
 
-compatability_stuff	: id_number protocol_version
+compatibility_stuff	: id_number protocol_version
 					{}
 			| empty
 			;

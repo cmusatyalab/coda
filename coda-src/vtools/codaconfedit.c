@@ -104,8 +104,8 @@ static void do_rewrite(const char *conffile, int argc, char **argv)
     fclose(outf);
 
     /* now create a new configuration file, commenting out all previous
-     * occurences that defined a value to our variable and append a new
-     * define after the last occurence. hopefully this will keep the
+     * occurrences that defined a value to our variable and append a new
+     * define after the last occurrence. hopefully this will keep the
      * new variable definition close to the comments */
     snprintf(tmpname, MAXPATHLEN, "%s.new", conffile);
     outf = fopen(tmpname, "w");

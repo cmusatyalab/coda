@@ -41,7 +41,7 @@ void ds_safeq_destroy(q) ds_safeq_t *q;
     CODA_ASSERT(DS_SAFEQ_VALID(q));
 
     ObtainWriteLock(&q->sq_lock);
-    /* Make sure we do not yeild... */
+    /* Make sure we do not yield... */
     q->sq_magic = 0;
     ds_list_destroy(q->sq_list);
     /* XXX - do we want to leve the lock locked? */

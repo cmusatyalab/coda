@@ -1062,7 +1062,7 @@ try_next_addr:
     if (new_binding) {
         /* keylen, auth and encr were initialized when we handled the secure
          * INIT2 packet. We could choose different algorithms and keylengths,
-         * but that doesn't seem particularily useful.
+         * but that doesn't seem particularly useful.
          * - A good server will already have picked the 'optimal strategy'
          * - MITM shouldn't have been able to send a decryptable INIT2 packet
          * - A rogue server won't care how we encrypt outgoing data, it clearly

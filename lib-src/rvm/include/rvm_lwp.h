@@ -16,7 +16,7 @@ Coda are listed in the file CREDITS.
 
 #*/
 
-/* LWP compatability for RVM */
+/* LWP compatibility for RVM */
 
 #include <lwp/lwp.h>
 #include <lwp/lock.h>

@@ -63,7 +63,7 @@ if ($status != 0) then
 endif
 
 #
-# get the relevent fields from the VRList, and store it in a local temp
+# get the relevant fields from the VRList, and store it in a local temp
 #
 # An entry in the vrlist is:
 # name volid(hex) repfactor vsgmember1 ... vsgmember8 VSGid
@@ -108,10 +108,10 @@ EOF
             goto ENDOFGUESS
 	endif
 	# Now, guess at the volume type...
-	# classes are <u>ser = user volume
-        #             <p>roject = project owned volume
-        #             <s>ystem = system binaries
-        #             <o>ther = test volumes, etc.
+	# classes are <u> = user volume
+        #             <p> = project owned volume
+        #             <s> = system binaries
+        #             <o> = test volumes, etc.
 	# default is o
 	set class = o
 	# if it contains a usr, it's probably a user volume

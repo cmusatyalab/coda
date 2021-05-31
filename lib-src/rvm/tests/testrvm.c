@@ -393,7 +393,7 @@ static rvm_bool_t test_multi_range_commit(rvm_tid_t *tid)
         printf("?  Error in multi-range commit\n");
         return rvm_true;
     }
-    printf("\n  Transaction committed succesfully\n");
+    printf("\n  Transaction committed successfully\n");
 
     return rvm_false;
 }
@@ -503,7 +503,7 @@ static rvm_bool_t test_complex_range_commit(rvm_tid_t *tid)
         printf("?  Error in complex multi-range transaction commit\n");
         return rvm_true;
     }
-    printf("\n  Complex transaction committed succesfully\n");
+    printf("\n  Complex transaction committed successfully\n");
 
     return rvm_false;
 }

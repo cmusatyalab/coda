@@ -225,7 +225,7 @@ static char *command_generator(const char *text, int state)
         len   = (int)strlen(text);
     }
 
-    /* Return the next name in the command list that paritally matches test */
+    /* Return the next name in the command list that partially matches test */
     while ((name = (match_tbl + index)->name) != NULL) {
         index++;
 

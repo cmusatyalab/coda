@@ -2199,7 +2199,7 @@ IOT_STAT *Stats;
 	$ long avg_readvol_num;
 	$ long max_writevol_num;
 	$ long avg_writevol_num;
-	$ long commited;
+	$ long committed;
 	$ long pending;
 	$ long resolved;
 	$ long repaired;
@@ -2222,7 +2222,7 @@ IOT_STAT *Stats;
 	avg_readvol_num = Stats->AvgReadVolNum;
 	max_writevol_num = Stats->MaxWriteVolNum;
 	avg_writevol_num = Stats->AvgWriteVolNum;
-	commited = Stats->Committed;
+	committed = Stats->Committed;
 	pending = Stats->Pending;
 	resolved = Stats->Resolved;
 	repaired = Stats->Repaired;
@@ -2268,13 +2268,13 @@ IOT_STAT *Stats;
 	   max_writeset_size, avg_writeset_size,
 	   max_readvol_num, avg_readvol_num,
 	   max_writevol_num, avg_writevol_num,
-	   commited, pending, resolved, repaired)
+	   committed, pending, resolved, repaired)
 	    values ($venus_index, $time, $max_elapsed_time, $avg_elapsed_time,
 		    $max_readset_size, $avg_readset_size,
 		    $max_writeset_size, $avg_writeset_size,
 		    $max_readvol_num, $avg_readvol_num,
 		    $max_writevol_num, $avg_writevol_num,
-		    $commited, $pending, $resolved, $repaired);
+		    $committed, $pending, $resolved, $repaired);
 	code += CheckSQL("Insert into iot_stats", 1);
 	if (code != 0)
 	  $ rollback work;

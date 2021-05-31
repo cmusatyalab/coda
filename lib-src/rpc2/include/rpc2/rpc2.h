@@ -63,7 +63,7 @@ on RPC2_NewBinding()s. */
 /* Found as the first 4 bytes of EVERY packet.  Change this if you
 change any aspect of the protocol sequence, or if you change the
 packet header, or the body formats of the initialization packets.
-Used in inital packet exchange to verify that the client and server
+Used in initial packet exchange to verify that the client and server
 speak exactly the same protocol.  Orthogonal to RPC2_VERSION.  We need
 this in the header at the very beginning, else we cannot change packet
 formats in a detectable manner.  */

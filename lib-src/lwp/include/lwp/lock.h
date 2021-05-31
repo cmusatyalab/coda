@@ -92,7 +92,7 @@ void Lock_Obtain(struct Lock *lock, int how);
 void Lock_ReleaseR(struct Lock *lock);
 
 /**
- * Release lock obtained for writting
+ * Release lock obtained for writing
  *
  * @param lock pointer to the lock
  */
@@ -121,7 +121,7 @@ typedef struct Lock Lock;
 void ObtainReadLock(struct Lock *lock);
 
 /**
- * Obtain the lock for writting
+ * Obtain the lock for writing
  *
  * @param lock pointer to the lock
  */
@@ -142,7 +142,7 @@ void ObtainSharedLock(struct Lock *lock);
 void ReleaseReadLock(struct Lock *lock);
 
 /**
- * Release the lock obtained for writting
+ * Release the lock obtained for writing
  *
  * @param lock pointer to the lock
  */
@@ -162,7 +162,7 @@ void ReleaseSharedLock(struct Lock *lock);
  *
  * @return 0 ff the lock is not acquired. If the lock is currently acquired
  *         for reading returns the amount of readers. And -1 if the lock is
- *         acquired obtained for writting or as a shared lock.
+ *         acquired obtained for writing or as a shared lock.
  */
 int CheckLock(struct Lock *lock);
 
@@ -172,7 +172,7 @@ int CheckLock(struct Lock *lock);
  * @param lock pointer to the lock
  *
  * @return true (different than zero) if the lock is currently acquired for
- *         writting or as a shared lock. 0 otherwise.
+ *         writing or as a shared lock. 0 otherwise.
  */
 int WriteLocked(struct Lock *lock);
 

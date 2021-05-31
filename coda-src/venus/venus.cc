@@ -157,7 +157,7 @@ struct in_addr venus_relay_addr = { INADDR_LOOPBACK };
 /* socket connecting us back to our parent */
 int parent_fd = -1;
 
-/* Bytes units convertion */
+/* Bytes units conversion */
 static const char *KBYTES_UNIT[] = { "KB", "kb", "Kb", "kB", "K", "k" };
 static const unsigned int KBYTE_UNIT_SCALE = 1;
 static const char *MBYTES_UNIT[] = { "MB", "mb", "Mb", "mB", "M", "m" };

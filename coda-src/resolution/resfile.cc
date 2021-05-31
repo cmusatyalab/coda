@@ -421,7 +421,7 @@ long RS_ForceFile(RPC2_Handle RPCid, ViceFid *Fid, ResStoreType Request,
                 nBlocks(sid.Value.SmartFTPD.BytesTransferred)) {
                 SLog(
                     0,
-                    "Len from res coordinator(%d) != len transfered(%d) for fid %x.%x.%x",
+                    "Len from res coordinator(%d) != len transferred(%d) for fid %x.%x.%x",
                     Length, sid.Value.SmartFTPD.BytesTransferred, Fid->Volume,
                     Fid->Vnode, Fid->Unique);
                 errorcode = EIO;

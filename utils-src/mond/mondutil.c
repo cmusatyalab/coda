@@ -372,7 +372,7 @@ int CheckCVResult(RPC2_Handle cid, int code, const char *operation,
         ClientTable->RemoveConnection(cid);
     } else {
         LogMsg(0, LogLevel, LogFile,
-               "Unkown return code (%d) looking up connection to %s", code,
+               "Unknown return code (%d) looking up connection to %s", code,
                hostname);
         LogMsg(0, LogLevel, LogFile, "Dropping connection with %s", hostname);
         ClientTable->RemoveConnection(cid);

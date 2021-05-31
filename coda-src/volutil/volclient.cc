@@ -294,7 +294,7 @@ bad_options:
 /**
  * ancient - mark backups successful
  * @groupid:	Replicated volume id
- * @repid:	Volume replica id
+ * @rapid:	Volume replica id
  *
  * Tell the server that backup succeeded for this volume. The next dump of this
  * volume, if incremental, will be based on the state represented by this
@@ -1226,7 +1226,7 @@ static void setvv(void)
     if (these_args != 16) {
         fprintf(
             stderr,
-            "Usage: volutil setvv volumeNumber vnodeNumber unique <version nubmers(8)> <StoreId (host) (Uniquifier)> <flags>\n");
+            "Usage: volutil setvv volumeNumber vnodeNumber unique <version numbers(8)> <StoreId (host) (Uniquifier)> <flags>\n");
         exit(EXIT_FAILURE);
     }
 
@@ -1469,7 +1469,7 @@ static void swapmalloc(void)
                 RPC2_ErrorMsg((int)rc));
         exit(EXIT_FAILURE);
     }
-    fprintf(stderr, "Malloc tracing successfuly toggled.\n");
+    fprintf(stderr, "Malloc tracing successfully toggled.\n");
     exit(EXIT_SUCCESS);
 }
 

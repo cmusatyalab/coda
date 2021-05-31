@@ -115,7 +115,7 @@ static long chk_seek(device_t *dev, rvm_offset_t *offset)
 }
 
 /* set device characteristics for device
-   device descriptor mandatory, lenght optional */
+   device descriptor mandatory, length optional */
 long set_dev_char(device_t *dev, rvm_offset_t *dev_length)
 {
     struct stat statbuf; /* status descriptor */

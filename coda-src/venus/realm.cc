@@ -135,7 +135,7 @@ void Realm::PutRef(void)
 
     return;
 
-/* The following code is too agressive at the moment. We end up killing a newly
+/* The following code is too aggressive at the moment. We end up killing a newly
  * created realm mount between the lookup and the getattr. -JH */
 #if 0
     int intrans;
