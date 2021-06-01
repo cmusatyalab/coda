@@ -57,7 +57,7 @@ def listacl(path):
     ]
 
 
-def setacl(path, acl):
+def setacl(path, acl, dry_run=False):
     """Replaces ACL on specified path"""
     _acl = [AclEntry.from_user(name, rights) for name, rights in acl]
 
@@ -66,6 +66,15 @@ def setacl(path, acl):
         (entry.name, entry.rights[1:]) for entry in _acl if entry.is_negative()
     ]
 
-    check_output("cfs", "sa", "-clear", str(path), *itertools.chain(*positives))
+    check_output(
+        "cfs", "sa", "-clear", str(path), *itertools.chain(*positives), dry_run=dry_run
+    )
     if negatives:
-        check_output("cfs", "sa", "-negative", str(path), *itertools.chain(*negatives))
+        check_output(
+            "cfs",
+            "sa",
+            "-negative",
+            str(path),
+            *itertools.chain(*negatives),
+            dry_run=dry_run,
+        )
