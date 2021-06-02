@@ -857,10 +857,10 @@ int dumpstream::CopyBytesToMemory(char *membuf, int nbytes)
         return (-1);
     }
 
-    rc = fread(membuf, nbytes, 1, stream);
-    if (rc != 1) {
+    rc = fread(membuf, 1, nbytes, stream);
+    if (rc != nbytes) {
         LogMsg(0, VolDebugLevel, stderr,
-               "Error reading blob data from dump file");
+               "Error reading blob data from dump file (%d)", rc);
         return (-1);
     }
     return (0);
