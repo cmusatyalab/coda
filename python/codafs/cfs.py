@@ -76,5 +76,5 @@ def setacl(path, acl, dry_run=False):
             "-negative",
             str(path),
             *itertools.chain(*negatives),
-            dry_run=dry_run,
+            dry_run=dry_run
         )

@@ -61,11 +61,7 @@ def check_output(*args, **kwargs):
 
     cmdline = _cached(*args)
     try:
-        result = subprocess.check_output(
-            cmdline,
-            stderr=subprocess.STDOUT,
-            **kwargs,
-        )
+        result = subprocess.check_output(cmdline, stderr=subprocess.STDOUT, **kwargs)
     except subprocess.CalledProcessError as exc:
         raise ExecutionError("{} {} failed".format(args[0], args[1])) from exc
     return result.decode("ascii")
