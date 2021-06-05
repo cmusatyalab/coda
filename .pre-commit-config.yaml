@@ -68,11 +68,11 @@ repos:
       - id: markdownlint
         name: Lint markdown documentation
 
-  - repo: https://gitlab.com/devopshq/gitlab-ci-linter
-    rev: v1.0.3
-    hooks:
-      - id: gitlab-ci-linter
-        args: ["--server", "https://git.cmusatyalab.org"]
+  #- repo: https://gitlab.com/devopshq/gitlab-ci-linter
+  #  rev: v1.0.3
+  #  hooks:
+  #    - id: gitlab-ci-linter
+  #      args: ["--server", "https://git.cmusatyalab.org"]
 
   - repo: meta
     hooks:
