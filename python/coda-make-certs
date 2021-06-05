@@ -220,14 +220,17 @@ class Server(yaml.YAMLObject):
         return closing(template)
 
     def copy_certificate(self):
+        flags = "-Bq" if args.quiet else "-B"
         run(
             "scp",
+            flags,
             self.key,
             "root@{}:/etc/coda/ssl/server.key".format(self.name),
             dry_run=args.dry_run,
         )
         run(
             "scp",
+            flags,
             self.crt,
             "root@{}:/etc/coda/ssl/server.crt".format(self.name),
             dry_run=args.dry_run,
