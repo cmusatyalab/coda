@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 5
+                              Release 8
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -58,6 +58,7 @@ struct lwp_pcb {
 
 void lwp_JOIN(PROCESS pid);
 void lwp_LEAVE(PROCESS pid);
+void lwp_YIELD(PROCESS pid);
 int lwp_threads_waiting(void);
 
 /* logging classes */

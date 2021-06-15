@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 5
+                              Release 8
 
-            Copyright (c) 1999 Carnegie Mellon University
+            Copyright (c) 2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -48,7 +48,7 @@ static struct list_head lwp_list; /* list of all threads */
 struct lwp_forkinfo {
     void (*func)(void *);
     char *parm;
-    char *name;
+    const char *name;
     int prio;
     PROCESS pid;
 };
@@ -101,8 +101,6 @@ int lwp_threads_waiting(void)
 
     return ret;
 }
-
-static void _SCHEDULE(PROCESS pid, int leave) {}
 
 void lwp_LEAVE(PROCESS pid)
 {
@@ -297,7 +295,7 @@ static void *lwp_newprocess(void *arg)
 }
 
 int LWP_CreateProcess(void (*ep)(void *), int stacksize, int priority,
-                      void *parm, char *name, PROCESS *ret)
+                      void *parm, const char *name, PROCESS *ret)
 {
     PROCESS pid;
     struct lwp_forkinfo newproc;
@@ -423,7 +421,7 @@ int LWP_QWait()
     return LWP_SUCCESS;
 }
 
-int LWP_INTERNALSIGNAL(void *event, int yield)
+int LWP_INTERNALSIGNAL(const void *event, int yield)
 {
     struct list_head *ptr;
     PROCESS this, pid;
@@ -465,10 +463,10 @@ int LWP_INTERNALSIGNAL(void *event, int yield)
  * cleanup handler if we get cancelled while waiting on the condition
  * variable. (cleanup needs to lock the run_mutex to removing us from the
  * list of threads, but we're already sort of `joined') */
-int LWP_MwaitProcess(int wcount, char *evlist[])
+int LWP_MwaitProcess(int wcount, const void *evlist[])
 {
     PROCESS pid;
-    int entries, i;
+    int entries;
 
     if (!evlist)
         return LWP_EBADCOUNT;
@@ -505,13 +503,13 @@ int LWP_MwaitProcess(int wcount, char *evlist[])
     return LWP_SUCCESS;
 }
 
-int LWP_WaitProcess(void *event)
+int LWP_WaitProcess(const void *event)
 {
-    void *evlist[2];
+    const void *evlist[2];
 
     evlist[0] = event;
     evlist[1] = NULL;
-    return LWP_MwaitProcess(1, (char **)evlist);
+    return LWP_MwaitProcess(1, evlist);
 }
 
 int LWP_NewRock(int Tag, char *Value)
