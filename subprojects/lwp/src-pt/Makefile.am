@@ -29,7 +29,7 @@ tdb_pt_LDADD = tdb_pt.o liblwp_pt.la
 rw_pt_SOURCES =
 rw_pt_LDADD = rw_pt.o liblwp_pt.la
 
-EXTRA_DIST = README.pthreads
+EXTRA_DIST = README.pthreads meson.build
 MAINTAINERCLEANFILES = Makefile.in
 
 fasttime_pt.lo: fasttime.c

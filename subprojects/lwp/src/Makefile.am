@@ -15,6 +15,8 @@ liblwp_la_LDFLAGS = $(LIBTOOL_LDFLAGS)
 testlwp_static_SOURCES = testlwp.c
 testlwp_static_LDFLAGS = -static
 
+EXTRA_DIST = meson.build
+
 MAINTAINERCLEANFILES = Makefile.in
 
 # Needed for mips, hopefully doesn't affect other platforms
