@@ -34,7 +34,7 @@ lightweight process mechanism reside in the file
 [`<lwp/lwp.h>`][lwp_h]:octicons-link-external-16:. A process is identified by
 an object of type `PROCESS`, which is defined in the include file.
 
-[lwp_h]: https://github.com/cmusatyalab/coda/blob/master/lib-src/lwp/include/lwp/lwp.h
+[lwp_h]: https://github.com/cmusatyalab/coda/blob/master/subprojects/lwp/include/lwp/lwp.h
 
 The process model supported by the operations described here is based on a
 non-preemptive priority dispatching scheme. (A priority is an integer in the

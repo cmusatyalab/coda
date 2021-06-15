@@ -11,7 +11,7 @@ repositories of Coda, as well as the supporting LWP, RPC2 and RVM libraries.
 The CVS repositories are at this point only useful as a historical reference
 and further development will only be committed to the Git repository. The
 supporting libraries can be found in their respective directories under
-`lib-src/`.
+`subprojects/`.
 
 The reasons the supporting libraries and their history have been merged with the
 Coda source tree are twofold. They were originally part of the Coda source

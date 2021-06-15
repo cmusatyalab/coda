@@ -42,6 +42,6 @@ checkver () {
 }
 
 checkver coda .
-checkver lwp lib-src/lwp
-checkver rpc2 lib-src/rpc2
-checkver rvm lib-src/rvm
+checkver lwp subprojects/lwp
+checkver rpc2 subprojects/rpc2
+checkver rvm subprojects/rvm

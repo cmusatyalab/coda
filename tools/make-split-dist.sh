@@ -4,11 +4,11 @@
 #
 set -e
 
-make -C lib-src/lwp dist
-make -C lib-src/rpc2 dist
-make -C lib-src/rvm dist
+make -C subprojects/lwp dist
+make -C subprojects/rpc2 dist
+make -C subprojects/rvm dist
 make subdirs="" dist
 
-mv lib-src/lwp/lwp-*.tar.gz .
-mv lib-src/rpc2/rpc2-*.tar.gz .
-mv lib-src/rvm/rvm-*.tar.gz .
+mv subprojects/lwp/lwp-*.tar.gz .
+mv subprojects/rpc2/rpc2-*.tar.gz .
+mv subprojects/rvm/rvm-*.tar.gz .

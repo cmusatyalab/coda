@@ -25,7 +25,7 @@ _Body_
 that defines the packet format as well as numerous other definitions used in
 the call descriptions that follow.
 
-[rpc2_h]: https://github.com/cmusatyalab/coda/blob/master/lib-src/rpc2/include/rpc2/rpc2.h
+[rpc2_h]: https://github.com/cmusatyalab/coda/blob/master/subprojects/rpc2/include/rpc2/rpc2.h
 
 The following sections define the RPC2 runtime calls.  Some of these calls are
 not relevant to you if you use RP2Gen.  Others, such as the initialization and

@@ -64,7 +64,7 @@ to learn RPC2 is as follows:
 2. Read about the [Runtime System](rpc2_runtime.md) and the
    [LWP manual](http://coda.cs.cmu.edu/docs/lwp/), which describe the RPC2 and
    LWP runtime calls, respectively.  You may need to refer to
-   [HeaderFiles](https://github.com/cmusatyalab/coda/tree/master/lib-src/rpc2/include/rpc2),
+   [HeaderFiles](https://github.com/cmusatyalab/coda/tree/master/subprojects/rpc2/include/rpc2),
    which contains the header files used by these packages.
 3. After you have mastered the basics, you may wish to explore the advanced
    features described in [SFTP](sftp_user.md), [MultiRPC](multi_user.md), and

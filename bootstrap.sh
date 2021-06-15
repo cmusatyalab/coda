@@ -8,10 +8,10 @@ fixver () {
   RELEASE=$(echo "$VERSION" | cut -d- -f1)
 
   # any changes to the subdir since the last release tag?
-  [ -n "$(git diff "$SUBSYS-$RELEASE" "lib-src/$SUBSYS")" ] || VERSION="$RELEASE"
+  [ -n "$(git diff "$SUBSYS-$RELEASE" "subprojects/$SUBSYS")" ] || VERSION="$RELEASE"
 
   echo "$SUBSYS-$VERSION"
-  sed -i "s/$ACINIT_RE/\1$VERSION\3/" "lib-src/$SUBSYS/configure.ac"
+  sed -i "s/$ACINIT_RE/\1$VERSION\3/" "subprojects/$SUBSYS/configure.ac"
 }
 
 # Fix up Coda, LWP, RPC2, and RVM versions

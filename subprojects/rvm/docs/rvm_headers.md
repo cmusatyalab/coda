@@ -14,7 +14,7 @@ should be included as needed.  The order of inclusion is not
 important, but Unix system files are often included first.  Should the
 files be included more than once, only the first is processed.
 
-[rvm_h]: https://github.com/cmusatyalab/coda/blob/master/lib-src/rvm/include/rvm/rvm.h
-[rvm_statistics_h]: https://github.com/cmusatyalab/coda/blob/master/lib-src/rvm/include/rvm/rvm_statistics.h
-[rds_h]: https://github.com/cmusatyalab/coda/blob/master/lib-src/rvm/include/rvm/rds.h
-[rvm_segment_h]: https://github.com/cmusatyalab/coda/blob/master/lib-src/rvm/include/rvm/rvm_segment.h
+[rvm_h]: https://github.com/cmusatyalab/coda/blob/master/subprojects/rvm/include/rvm/rvm.h
+[rvm_statistics_h]: https://github.com/cmusatyalab/coda/blob/master/subprojects/rvm/include/rvm/rvm_statistics.h
+[rds_h]: https://github.com/cmusatyalab/coda/blob/master/subprojects/rvm/include/rvm/rds.h
+[rvm_segment_h]: https://github.com/cmusatyalab/coda/blob/master/subprojects/rvm/include/rvm/rvm_segment.h

@@ -76,9 +76,9 @@ if test "x$coda_timespec" != xyes ; then
 fi
 
 dnl Make sure we configure any sub-projects before checking with pkg-config
-test -f "${srcdir}/lib-src/lwp/configure.ac" && AC_CONFIG_SUBDIRS([lib-src/lwp])
-test -f "${srcdir}/lib-src/rpc2/configure.ac" && AC_CONFIG_SUBDIRS([lib-src/rpc2])
-test -f "${srcdir}/lib-src/rvm/configure.ac" && AC_CONFIG_SUBDIRS([lib-src/rvm])
+test -f "${srcdir}/subprojects/lwp/configure.ac" && AC_CONFIG_SUBDIRS([subprojects/lwp])
+test -f "${srcdir}/subprojects/rpc2/configure.ac" && AC_CONFIG_SUBDIRS([subprojects/rpc2])
+test -f "${srcdir}/subprojects/rvm/configure.ac" && AC_CONFIG_SUBDIRS([subprojects/rvm])
 CODA_CONFIG_SUBDIRS
 
 dnl pkg-config stuff
