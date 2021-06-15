@@ -359,6 +359,8 @@ int LWP_TerminateProcessSupport()
 
     assert(LWP_CurrentProcess(&this) == 0);
 
+    lwp_LEAVE(this);
+
     lwp_mutex_lock(&run_mutex);
     {
         /* I should not kill myself. */
@@ -373,8 +375,12 @@ int LWP_TerminateProcessSupport()
 
     /* Threads should be cancelled by now, we just have to wait for them to
      * terminate. */
-    while (!list_empty(&lwp_list))
-        lwp_YIELD(this);
+    while (!list_empty(&lwp_list)) {
+        struct timeval tv;
+        tv.tv_sec  = 0;
+        tv.tv_usec = 10000;
+        select(0, NULL, NULL, NULL, &tv);
+    }
 
     /* We can start cleaning. */
     lwp_cleanup_process(this);

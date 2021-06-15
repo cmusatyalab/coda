@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -170,6 +170,7 @@ queue *q;
 
 int asleep; /* Number of processes sleeping -- used for
 		   clean termination */
+int writing; /* writer process has not terminated. */
 
 static void read_process(void *arg)
 {
@@ -215,7 +216,7 @@ static void write_process(void *unused)
         LWP_SignalProcess((char *)q);
     }
 
-    asleep++;
+    writing--;
 }
 /*
 	Arguments:
@@ -270,17 +271,21 @@ int main(int argc, char **argv)
     }
     printf("done]\n");
 
-    printf("\t[Creating Writer...\n");
+    printf("[Creating Writer...\n");
+    writing = 1;
     LWP_CreateProcess(write_process, STACK_SIZE, 1, 0, "Writer", &writer);
     printf("done]\n");
 
     /* Now loop until everyone's done */
-    while (asleep != nreaders + 1 || !empty(q))
+    while (writing || !empty(q) || asleep != nreaders)
         LWP_DispatchProcess();
+
+    printf("[Queue emptied]\n");
 
     /* Destroy the readers */
     for (i = nreaders - 1; i >= 0; i--)
         LWP_DestroyProcess(readers[i]);
+
     printf("\n*Exiting*\n");
     LWP_TerminateProcessSupport();
     free(readers);
