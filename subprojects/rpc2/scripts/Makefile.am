@@ -4,5 +4,5 @@ LUASCRIPTS = rpc2-rtt-adaptive.lua rpc2-rtt-fixed.lua rpc2-rtt-vj.lua rpc2-fail.
 if LUA
 pkgdata_DATA = $(LUASCRIPTS)
 endif
-EXTRA_DIST = $(LUASCRIPTS)
+EXTRA_DIST = $(LUASCRIPTS) meson.build
 MAINTAINERCLEANFILES = Makefile.in

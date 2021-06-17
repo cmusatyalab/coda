@@ -1,0 +1,6 @@
+option('with-lua', type : 'feature', value : 'auto',
+  description : 'embed Lua interpreter for network emulation',
+)
+option('install-dev', type : 'boolean', value : true,
+  description : 'Install headers and rp2gen code generator',
+)

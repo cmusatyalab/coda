@@ -15,6 +15,6 @@ libsecure_la_SOURCES = secure_init.c secure_setup.c secure_pbkdf.c \
     rijndael-alg-fst.c
 #libsecure_la_LDFLAGS = $(LIBTOOL_LDFLAGS)
 
-EXTRA_DIST = README.secure gen_testvectors.sh \
+EXTRA_DIST = README.secure gen_testvectors.sh meson.build \
     rijndael-mikescott.h rijndael-mikescott.c
 MAINTAINERCLEANFILES = Makefile.in

@@ -9,7 +9,7 @@ noinst_HEADERS = rpc2.private.h dllist.h test.h \
 		 switchc2s.h switchs2c.h switchs2e.h
 lib_LTLIBRARIES = librpc2.la libse.la
 noinst_PROGRAMS = ctest stest rpc2test
-EXTRA_DIST = makeinc.sh errordb.txt fxor.s
+EXTRA_DIST = makeinc.sh errordb.txt fxor.s meson.build
 
 librpc2_la_SOURCES = rpc2a.c rpc2b.c sl.c packet.c secure.c globals.c se.c \
     lists.c ct.c debug.c conn.c cbuf.c ffs.c host.c multi1.c multi2.c \

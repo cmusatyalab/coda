@@ -7,7 +7,8 @@ ACLOCAL_AMFLAGS = -I m4
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = rpc2.pc
 
-EXTRA_DIST = README.ipv6 bootstrap.sh configure mkdocs.yml docs
+EXTRA_DIST = README.ipv6 bootstrap.sh configure mkdocs.yml docs \
+    meson.build meson.options subprojects/lwp.wrap
 
 MAINTAINERCLEANFILES = AUTHORS Makefile.in README aclocal.m4 \
     compile config.guess config.h.in config.sub configure install-sh libtool \

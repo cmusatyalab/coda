@@ -12,4 +12,6 @@ endif
 libcodatunnel_la_SOURCES = $(CODATUNNEL_SOURCES) wrapper.h
 libcodatunnel_la_LIBADD = $(LIBUV_LIBS) $(GNUTLS_LIBS)
 
+EXTRA_DIST = meson.build
+
 MAINTAINERCLEANFILES = Makefile.in
