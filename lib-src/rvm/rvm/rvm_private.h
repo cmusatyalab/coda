@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 7
+                              Release 8
 
-          Copyright (c) 1987-2019 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -45,6 +45,8 @@ Coda are listed in the file CREDITS.
 #ifndef HAVE_GETPAGESIZE /* defined(__linux__) && defined(sparc) */
 #include <asm/page.h>
 #define getpagesize() PAGE_SIZE
+#else
+#include <unistd.h>
 #endif
 
 #include <fcntl.h>
