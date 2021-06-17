@@ -134,7 +134,7 @@ static char timeend[]    = "_timeend";
 void cinclude(char *filename, WHO who, FILE *where)
 {
     char spitname[MAXPATHLEN + 1];
-    char *p, *s;
+    char *s;
 
     if (filename == NULL)
         return;
