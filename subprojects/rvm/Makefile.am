@@ -10,7 +10,8 @@ if LIBRVM
 pkgconfig_DATA += rvm.pc
 endif
 
-EXTRA_DIST = bootstrap.sh configure mkdocs.yml docs
+EXTRA_DIST = bootstrap.sh configure mkdocs.yml docs \
+    meson.build meson.options subprojects/lwp.wrap
 
 MAINTAINERCLEANFILES = AUTHORS Makefile.in README compile \
     config.guess config.h.in config.sub configure install-sh libtool \

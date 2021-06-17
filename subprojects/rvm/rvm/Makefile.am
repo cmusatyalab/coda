@@ -40,5 +40,5 @@ librvmpt_la_SOURCES = $(librvm_sources) rvm_pthread.c
 librvmpt_la_LDFLAGS = $(LIBTOOL_LDFLAGS)
 librvmpt_la_LIBADD = $(PTHREAD_LIBS)
 
-EXTRA_DIST = README.log1.4 READ_ME
+EXTRA_DIST = README.log1.4 READ_ME meson.build
 MAINTAINERCLEANFILES = Makefile.in

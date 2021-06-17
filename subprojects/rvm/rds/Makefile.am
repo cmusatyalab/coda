@@ -43,4 +43,6 @@ librdspt_la_LDFLAGS = $(LIBTOOL_LDFLAGS)
 librdspt_la_LIBADD = $(top_builddir)/seg/libsegpt.la \
 	$(top_builddir)/rvm/librvmpt.la $(PTHREAD_LIBS)
 
+EXTRA_DIST = meson.build
+
 MAINTAINERCLEANFILES = Makefile.in

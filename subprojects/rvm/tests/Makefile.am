@@ -38,6 +38,6 @@ pt_basher_LDADD = $(top_builddir)/rds/librdspt.la \
 		  $(top_builddir)/rvm/librvmpt.la \
 		  $(PTHREAD_LIBS)
 
-EXTRA_DIST = README basher_parms map_chk_file map_data_file \
+EXTRA_DIST = README basher_parms map_chk_file map_data_file meson.build \
     t1_chk_file t3_chk_file t5_chk_file test_data_file
 MAINTAINERCLEANFILES = Makefile.in

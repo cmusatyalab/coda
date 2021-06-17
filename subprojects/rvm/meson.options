@@ -1,0 +1,8 @@
+option('enable-lwp', type : 'feature', value : 'enabled')
+option('enable-pthread', type : 'feature', value : 'disabled')
+option('install-dev', type : 'boolean', value : true,
+  description : 'Install headers',
+)
+option('install-tools', type : 'boolean', value : true,
+  description : 'Install the rvmutl and rdsinit tools',
+)
