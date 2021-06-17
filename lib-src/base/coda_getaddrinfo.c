@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 2002-2018 Carnegie Mellon University
+          Copyright (c) 2002-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -399,6 +399,7 @@ int coda_getaddrinfo(const char *node, const char *service,
             sprintf(buf, "%d", ntohs(s->s_port));
             err = RPC2_getaddrinfo(node, buf, hints, &srvs);
         }
+        goto Exit;
     }
 
 Exit:
