@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 2003 Carnegie Mellon University
+          Copyright (c) 2003-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -60,15 +60,17 @@ struct rwcdb_tuple {
 static __inline__ void packints(char *buf, const uint32_t a, const uint32_t b)
 {
     struct rwcdb_tuple *p = (struct rwcdb_tuple *)buf;
-    p->a                  = SWAP_OUT(a);
-    p->b                  = SWAP_OUT(b);
+
+    p->a = SWAP_OUT(a);
+    p->b = SWAP_OUT(b);
 }
 
 static __inline__ void unpackints(char *buf, uint32_t *a, uint32_t *b)
 {
     struct rwcdb_tuple *p = (struct rwcdb_tuple *)buf;
-    *a                    = SWAP_IN(p->a);
-    *b                    = SWAP_IN(p->b);
+
+    *a = SWAP_IN(p->a);
+    *b = SWAP_IN(p->b);
 }
 
 #endif /* _RWCDB_PACK_H_ */

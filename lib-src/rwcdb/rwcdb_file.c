@@ -1,8 +1,8 @@
 /* BLURB lgpl
 			   Coda File System
-			      Release 6
+			      Release 8
 
-	  Copyright (c) 2003-2016 Carnegie Mellon University
+	  Copyright (c) 2003-2021 Carnegie Mellon University
 		  Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -19,8 +19,12 @@ Coda are listed in the file CREDITS.
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <errno.h>
 #include <fcntl.h>
-#define __USE_UNIX98 /* to get pread */
+/* one of the following defines should enable pread */
+#define __USE_UNIX98
+#define _POSIX_C_SOURCE 200809L
+#define _XOPEN_SOURCE 500
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>
@@ -65,6 +69,18 @@ int db_file_seek(struct db_file *f, const uint32_t pos)
     return 0;
 }
 
+#ifndef HAVE_PREAD
+/* less efficient and racy when used from multiple threads */
+static ssize_t pread(int fd, void *buf, size_t count, off_t offset)
+{
+    errno = EINVAL;
+    if (lseek(fd, offset, SEEK_SET) != offset)
+        return -1;
+
+    return read(fd, buf, count);
+}
+#endif
+
 int db_file_mread(struct db_file *f, void **data, const uint32_t len,
                   const uint32_t pos)
 {
@@ -77,14 +93,7 @@ int db_file_mread(struct db_file *f, void **data, const uint32_t len,
         if (grow_cache(f, len))
             return -1;
 
-#ifdef HAVE_PREAD
         n = pread(f->fd, f->cache, len, pos);
-#else
-        if (pos != f->pos && lseek(f->fd, pos, SEEK_SET) != pos)
-            return -1;
-
-        n = read(f->fd, f->cache, len);
-#endif
         if (n >= 0)
             f->pos = pos + n;
         if (n != len)
