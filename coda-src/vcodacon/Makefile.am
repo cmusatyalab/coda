@@ -10,7 +10,7 @@ endif
 
 vcodacon_SOURCES = Inet.cc Inet.h monitor.cc monitor.h util.cc util.h
 nodist_vcodacon_SOURCES = vcodacon.cc vcodacon.h
-EXTRA_DIST = vcodacon.fl
+EXTRA_DIST = vcodacon.fl meson.build
 
 CLEANFILES = $(BUILT_SOURCES)
 

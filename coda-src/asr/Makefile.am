@@ -6,7 +6,7 @@ endif
 
 parser_SOURCES = resolver_parser.yy resolver_lexer.l ruletypes.cc ruletypes.h \
 		 resolver.cc wildmat.c path.c asr.h
-EXTRA_DIST = resolve.eg
+EXTRA_DIST = resolve.eg meson.build
 
 AM_YFLAGS = -d
 AM_CPPFLAGS = $(RPC2_CFLAGS) \

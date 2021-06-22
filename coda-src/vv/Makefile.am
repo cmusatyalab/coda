@@ -4,6 +4,8 @@ noinst_LTLIBRARIES = libvv.la
 
 libvv_la_SOURCES = inconsist.cc inconsist.h nettohost.cc nettohost.h
 
+EXTRA_DIST = meson.build
+
 AM_CPPFLAGS = $(RPC2_CFLAGS) \
 	      -I$(top_srcdir)/lib-src/base \
 	      -I$(top_srcdir)/coda-src/vicedep \

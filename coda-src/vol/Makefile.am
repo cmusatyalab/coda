@@ -11,7 +11,7 @@ libvol_la_SOURCES = dirvnode.cc cvnode.cc cvnode.h volume.cc volume.h vutil.cc \
     camprivate.h vrdb.cc vrdb.h vlist.cc vlist.h lockqueue.cc lockqueue.h \
     vollocate.cc vollocate.h vol-debug.cc vicelock.h treeremove.h \
     coda_globals.h voldefs.h volres.h struct.h
-EXTRA_DIST = testvrdb.cc
+EXTRA_DIST = testvrdb.cc meson.build
 
 AM_CPPFLAGS = $(RVM_RPC2_CFLAGS) \
 	      -I$(top_srcdir)/lib-src/base \

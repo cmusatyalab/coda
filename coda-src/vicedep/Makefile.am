@@ -9,7 +9,7 @@ noinst_HEADERS = operations.h recov_vollog.h srv.h venusioctl.h voltypes.h
 RPC2_FILES = callback.rpc2 cml.rpc2 mond.rpc2 res.rpc2 vcrcommon.rpc2 \
 	     vice.rpc2 voldump.rpc2 volutil.rpc2
 include $(top_srcdir)/configs/rpc2_rules.mk
-EXTRA_DIST += mond.rpc2.new
+EXTRA_DIST += mond.rpc2.new meson.build
 
 nodist_libvenusdep_la_SOURCES = vcrcommon.h callback.server.c cml.client.c \
     vice.client.c vice.multi.c callback.helper.c cml.helper.c vice.helper.c vcrcommon.helper.c

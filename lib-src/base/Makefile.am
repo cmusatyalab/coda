@@ -20,4 +20,4 @@ endif
 
 AM_CPPFLAGS = $(RPC2_CFLAGS)
 
-EXTRA_DIST = README.parser
+EXTRA_DIST = README.parser meson.build

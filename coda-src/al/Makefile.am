@@ -11,6 +11,8 @@ libal_la_SOURCES = pdbdb.c pdbpack.c alprocs.c pdb.c pdbdb.c pdbpack.c \
 		   pdbprofile.c pdbarray.c
 pdbtool_SOURCES = pdbtool.c
 
+EXTRA_DIST = meson.build
+
 AM_CPPFLAGS = $(RPC2_CFLAGS) \
 	      -I$(top_srcdir)/lib-src/base \
 	      -I$(top_srcdir)/lib-src/rwcdb \

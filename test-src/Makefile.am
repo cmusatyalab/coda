@@ -5,3 +5,5 @@ if RUN_UNIT
 endif
 
 SUBDIRS = $(INCLUDE_UNIT)
+
+EXTRA_DIST = meson.build

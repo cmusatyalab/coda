@@ -4,4 +4,6 @@ noinst_LTLIBRARIES = libkerndep.la
 
 libkerndep_la_SOURCES = pioctl.c pioctl.h coda.h
 
+EXTRA_DIST = meson.build
+
 AM_CPPFLAGS = -I$(top_srcdir)/lib-src/base

@@ -13,6 +13,8 @@ libnorton_la_SOURCES  = norton-setup.cc commands.cc norton-volume.cc \
 norton_SOURCES	      = norton.cc norton.h dummy.cc
 norton_reinit_SOURCES = norton-reinit.cc dummy.cc
 
+EXTRA_DIST = meson.build
+
 AM_CPPFLAGS = $(RVM_RPC2_CFLAGS) \
 	      -I$(top_srcdir)/lib-src/base \
 	      -I$(top_srcdir)/coda-src/kerndep \

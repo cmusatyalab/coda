@@ -13,6 +13,8 @@ codasrv_SOURCES = srv.cc srvproc.cc srvproc2.cc coppend.cc coppend.h \
 		  smon.cc timecalls.h vice.private.h
 printvrdb_SOURCES = printvrdb.cc
 
+EXTRA_DIST = meson.build
+
 AM_CPPFLAGS = $(RVM_RPC2_CFLAGS) \
 	      -I$(top_srcdir)/lib-src/base \
 	      -I$(top_srcdir)/coda-src/kerndep \

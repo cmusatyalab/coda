@@ -21,6 +21,8 @@ codareaddump_SOURCES = codareaddump.cc
 codamergedump_SOURCES =	codamergedump.cc
 codadump2tar_SOURCES = codadump2tar.cc strencode.c tar-FromRedHatCD.h
 
+EXTRA_DIST = meson.build
+
 AM_CPPFLAGS = $(RVM_RPC2_CFLAGS) -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 \
 	      -I$(top_srcdir)/lib-src/base \
 	      -I$(top_srcdir)/coda-src/kerndep \

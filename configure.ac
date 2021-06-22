@@ -53,10 +53,6 @@ AC_PATH_PROG(FLUID, fluid, "")
 AM_PATH_PYTHON([3])
 AC_PATH_PROG(MKDOCS, mkdocs, "")
 
-# Derive a valid version for codafs Python module
-CODAFS_PY_VERSION="`echo $VERSION|sed 's/~dev/.dev0/'`"
-AC_SUBST(CODAFS_PY_VERSION)
-
 AC_ARG_ENABLE(client, [  --enable-client	  build Coda client components],
     buildclient="$enableval", buildclient="no")
 AC_ARG_ENABLE(server, [  --enable-server	  build Coda server components],
@@ -268,7 +264,6 @@ coda-src/asrlauncher/Makefile
 coda-src/vcodacon/Makefile
 coda-src/smon2/Makefile
 python/Makefile
-python/codafs/__init__.py
 test-src/Makefile
 test-src/unit/Makefile])
 

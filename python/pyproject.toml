@@ -1,6 +1,6 @@
 [project]
 name = "codafs"
-dynamic = ["version"]
+version = "8.1.7"
 authors = [
   {name = "Jan Harkes", email = "jaharkes@cs.cmu.edu"},
 ]
@@ -25,12 +25,9 @@ coda-make-certs = "codafs.cli.make_certs:main"
 coda-sync-acls = "codafs.cli.sync_acls:main"
 coda-volmunge = "codafs.cli.volmunge:main"
 
-[build-system]
-requires = ["setuptools"]
-build-backend = "setuptools.build_meta"
-
 [tool.setuptools]
 packages = ["codafs", "codafs.cli"]
 
-[tool.setuptools.dynamic]
-version = {attr = "codafs.__version__"}
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"

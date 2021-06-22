@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 #                          Coda File System
 #                             Release 8
@@ -10,9 +9,7 @@
 # file  LICENSE.  The  technical and financial  contributors to Coda are
 # listed in the file CREDITS.
 #
-""" Helper functions to access the Coda file system """
+"""Helper functions to access the Coda file system"""
 
 from .cfs import listacl, listvol, setacl  # noqa
 from .walk import walk_volume  # noqa
-
-__version__ = "@CODAFS_PY_VERSION@"

@@ -4,6 +4,8 @@ if BUILD_SERVER
 bin_PROGRAMS = getvolinfo rpc2ping rvmsizer smon2
 endif
 
+EXTRA_DIST = meson.build
+
 AM_CPPFLAGS = $(RPC2_CFLAGS) \
 	      -I$(top_srcdir)/lib-src/base \
 	      -I$(top_srcdir)/coda-src/vicedep \

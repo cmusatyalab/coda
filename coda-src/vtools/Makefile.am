@@ -15,7 +15,7 @@ cmon_SOURCES	    = cmon.cc
 coda_replay_SOURCES = coda_replay.cc coda_replay.h
 hoard_SOURCES	    = hoard.cc
 spy_SOURCES	    = spy.cc
-EXTRA_DIST = logbandwidth.in logcmls.in logreintegration.in logprogress.in
+EXTRA_DIST = logbandwidth.in logcmls.in logreintegration.in logprogress.in meson.build
 CLEANFILES = $(bin_SCRIPTS)
 
 AM_CPPFLAGS = $(RPC2_CFLAGS) \

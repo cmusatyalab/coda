@@ -11,6 +11,8 @@ libpartition_la_SOURCES = vicetab.c vicetab.h partition.c partition.h \
 			  ftreeifs.c ftreeifs.h backupifs.c viceinode.h
 inoder_SOURCES		= inoder.c
 
+EXTRA_DIST = meson.build
+
 AM_CPPFLAGS = $(RPC2_CFLAGS) \
 	      -I$(top_srcdir)/lib-src/base \
 	      -I$(top_srcdir)/coda-src/util \

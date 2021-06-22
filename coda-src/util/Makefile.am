@@ -12,4 +12,6 @@ libutil_la_SOURCES = arrlist.h arrlist.cc bitmap.h bitmap.cc bitvect.h \
     rvmtesting.cc util.h util.c vice_file.h vice_file.c vmindex.h vmindex.cc \
     bitmap7.h bitmap7.cc
 
+EXTRA_DIST = meson.build
+
 AM_CPPFLAGS = $(RVM_RPC2_CFLAGS) -I$(top_srcdir)/lib-src/base

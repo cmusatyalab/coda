@@ -4,7 +4,7 @@ SUBDIRS = ${subdirs} configs lib-src coda-src python tools test-src
 
 ACLOCAL_AMFLAGS = -I m4
 
-EXTRA_DIST = LICENSE LICENSE.lgpl README.BSD README.Solaris README.nt \
+EXTRA_DIST = LICENSE LICENSE.lgpl README.BSD README.Solaris README.nt meson.build meson.options \
 	     bootstrap.sh configure README.md subprojects/gtest.wrap \
 	     mkdocs.yml docs docs-meta
 dist-hook:

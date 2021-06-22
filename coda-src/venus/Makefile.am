@@ -29,6 +29,8 @@ venus_SOURCES = binding.cc binding.h comm.cc comm.h comm_daemon.cc daemon.cc \
     archive.h 9pfs.cc 9pfs.h SpookyV2.cc SpookyV2.h
 vutil_SOURCES = vutil.cc
 
+EXTRA_DIST = meson.build
+
 AM_CPPFLAGS = $(RVM_RPC2_CFLAGS) -DVENUS -DTIMING -DVENUSDEBUG \
 	      -I$(top_srcdir)/lib-src/base \
 	      -I$(top_srcdir)/coda-src/kerndep \

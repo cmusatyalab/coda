@@ -4,7 +4,7 @@ check_PROGRAMS = unit
 
 LIB_TESTS = lib/rvm/rvm_ut.cc lib/lwp/lwp_ut.cc
 UTIL_TESTS = util/u_bitmap.cc
-EXTRA_DIST = death-tests.supp
+EXTRA_DIST = death-tests.supp meson.build
 
 unit_SOURCES = main.cc include/testing/memory.h $(UTIL_TESTS) $(LIB_TESTS)
 

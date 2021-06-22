@@ -1,0 +1,6 @@
+option('build_client', type : 'feature', value : 'enabled',
+  description : 'build Coda client components')
+option('build_server', type : 'feature', value : 'enabled',
+  description : 'build Coda server components')
+option('vcodacon', type : 'feature', value : 'auto',
+  description : 'build graphical vcodacon console')

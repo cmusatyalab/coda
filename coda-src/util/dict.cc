@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2021 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -24,8 +24,9 @@ extern "C" {
 #include <config.h>
 #endif
 
-#include <unistd.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include "coda_string.h"
 
 #ifdef __cplusplus

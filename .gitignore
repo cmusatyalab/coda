@@ -50,3 +50,6 @@ unittest.xml
 test-src/unit/unit
 test-src/unit/rvm_test.data
 test-src/unit/rvm_test.log
+subprojects/.wraplock
+subprojects/googletest-*/
+subprojects/packagecache/

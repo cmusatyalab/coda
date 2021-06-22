@@ -3,3 +3,5 @@
 if BUILD_CLIENT
 sbin_PROGRAMS = asrlauncher
 endif
+
+EXTRA_DIST = meson.build

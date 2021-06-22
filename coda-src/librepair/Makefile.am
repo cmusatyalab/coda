@@ -6,6 +6,8 @@ librepio_la_SOURCES = repio.cc repio.h
 libclnrepair_la_SOURCES = resolve.cc resolve.h cure.cc cure.h predicate.cc \
 			  predicate.h repcmds.cc repcmds.h rvol.cc path.cc
 
+EXTRA_DIST = meson.build
+
 AM_CPPFLAGS = $(RPC2_CFLAGS) \
 	      -I$(top_srcdir)/lib-src/base \
 	      -I$(top_srcdir)/coda-src/kerndep \
