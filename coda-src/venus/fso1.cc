@@ -2540,8 +2540,8 @@ void fsobj::UpdateVastroFlag(uid_t uid, int force, int state)
         goto ConfigCacheFile;
     }
 
-    if (!REACHABLE(this)) {
-        LOG(0, ("fsobj::UpdateVastroFlag: %s is unreachable\n", GetComp()));
+    if (!FETCHABLE(this)) {
+        LOG(0, ("fsobj::UpdateVastroFlag: %s is not fetchable\n", GetComp()));
         return;
     }
 
