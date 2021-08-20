@@ -7,10 +7,11 @@ post_commit:
     PRE_COMMIT_HOME: ${CI_PROJECT_DIR}/.cache/pre-commit
   cache:
     key: precommit
+    policy: pull-push
     paths:
-      - $PRE_COMMIT_HOME
+      - ${CI_PROJECT_DIR}/.cache
   script:
-    - pre-commit run --all-files
+    - pre-commit run -v --all-files
     - tools/version_check.sh
 
 .build_template:

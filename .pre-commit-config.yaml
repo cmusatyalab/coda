@@ -29,20 +29,20 @@ repos:
         stages: [commit,merge-commit]
 
   - repo: https://github.com/asottile/pyupgrade
-    rev: v2.18.3
+    rev: v2.24.0
     hooks:
       - id: pyupgrade
         name: Modernize python code
         args: ["--py3-only"]
 
   - repo: https://github.com/PyCQA/isort
-    rev: 5.8.0
+    rev: 5.9.3
     hooks:
       - id: isort
         name: Reorder python imports with isort
 
   - repo: https://github.com/psf/black
-    rev: 21.5b1
+    rev: 21.7b0
     hooks:
       - id: black
         name: Format python code with black
@@ -63,7 +63,7 @@ repos:
         exclude: ^utils-src/mond/.*\.sh$
 
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.27.1
+    rev: v0.28.1
     hooks:
       - id: markdownlint
         name: Lint markdown documentation
