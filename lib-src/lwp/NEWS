@@ -1,3 +1,8 @@
+New in 2.17:
+ * Fix lwp-pt headers to match changes in lwp.
+ * Fix process termination in rw.c test.
+ * Fix typos and whitespace in source files.
+
 New in 2.16:
  * Added asserts to catch linked list issues in the timer queue early.
 

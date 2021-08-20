@@ -1,3 +1,9 @@
+New in 1.28:
+
+* Fix typos.
+* Add wrapper scripts to run rvmbasher and testrvm tests.
+* Add missing unistd include for getpagesize prototype.
+
 New in 1.27:
 
 * Just some formatting/whitespace cleanups, keeping library version.
