@@ -427,7 +427,7 @@ void BreakCallBack(HostTable *client, ViceFid *afid)
     /* assuming no multicast in call below (MCast parameter NULL) */
     if (nhosts > 0) {
         MRPC_MakeMulti(CallBack_OP, CallBack_PTR, nhosts, cidlist, rclist, NULL,
-                       NULL, NULL, srv_rpc2_timeout(), afid);
+                       NULL, srv_rpc2_timeout(), afid);
 
         for (int i = 0, nhosts = 0; i < nhents; i++) {
             if (!helist[i])
