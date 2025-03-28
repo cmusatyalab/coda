@@ -55,6 +55,8 @@ AS_IF([test "x$with_libuv" != "xno"],
 
 AC_ARG_WITH(lua,
   [AS_HELP_STRING([--with-lua], [embed Lua interpreter])],
+  [], [with_lua=no])
+AS_IF([test "x$with_lua" != "xno"],
   [PKG_CHECK_EXISTS([lua5.1], [ PKG_CHECK_MODULES([LUA], [lua5.1]) ],
 			       [ PKG_CHECK_MODULES([LUA], [lua]) ])
    AC_DEFINE(USE_LUA, 1, [Define this when linking against Lua])
