@@ -1,6 +1,6 @@
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.0.1
+    rev: v5.0.0
     hooks:
       - id: check-added-large-files
       - id: check-merge-conflict
@@ -15,55 +15,55 @@ repos:
         name: Check release version
         entry: tools/check-blurb --release
         language: script
-        stages: [commit,merge-commit]
+        stages: [pre-commit,pre-merge-commit]
       - id: check-year
         name: Check copyright year
         entry: tools/check-blurb --year
         language: script
-        stages: [commit,merge-commit]
+        stages: [pre-commit,pre-merge-commit]
       - id: clang-format
         name: Format C/C++ source with clang-format
         entry: tools/check-clang-format -style=file -i
         language: script
         types_or: [c, c++]
-        stages: [commit,merge-commit]
+        stages: [pre-commit,pre-merge-commit]
 
   - repo: https://github.com/asottile/pyupgrade
-    rev: v2.24.0
+    rev: v3.19.1
     hooks:
       - id: pyupgrade
         name: Modernize python code
         args: ["--py3-only"]
 
   - repo: https://github.com/PyCQA/isort
-    rev: 5.9.3
+    rev: 6.0.1
     hooks:
       - id: isort
         name: Reorder python imports with isort
 
   - repo: https://github.com/psf/black
-    rev: 21.7b0
+    rev: 25.1.0
     hooks:
       - id: black
         name: Format python code with black
         language_version: python3
 
   - repo: https://github.com/PyCQA/flake8
-    rev: 3.9.2
+    rev: 7.2.0
     hooks:
       - id: flake8
         name: Lint python code with flake8
         additional_dependencies: [flake8-bugbear]
 
   - repo: https://github.com/shellcheck-py/shellcheck-py
-    rev: v0.7.2.1
+    rev: v0.10.0.1
     hooks:
       - id: shellcheck
         name: Lint shell scripts with shellcheck
         exclude: ^utils-src/mond/.*\.sh$
 
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.28.1
+    rev: v0.44.0
     hooks:
       - id: markdownlint
         name: Lint markdown documentation
