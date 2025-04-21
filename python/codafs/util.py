@@ -9,13 +9,14 @@
 # file  LICENSE.  The  technical and financial  contributors to Coda are
 # listed in the file CREDITS.
 #
-""" Various helper commands """
+"""Various helper commands"""
 
 import subprocess
 from distutils.spawn import find_executable
 from subprocess import DEVNULL
+from typing import Any
 
-__all__ = ["run", "check_output", "ExecutionError", "DEVNULL"]
+__all__ = ["DEVNULL", "ExecutionError", "check_output", "run"]
 
 
 class ExecutionError(Exception):
@@ -23,12 +24,11 @@ class ExecutionError(Exception):
 
 
 # cache command path lookups
-_COMMAND_CACHE = {}
+_COMMAND_CACHE: dict[str, str] = {}
 
 
-def _cached(command, *args):
-    """locate command and return it path"""
-    global _COMMAND_CACHE  # pylint: disable=global-statement
+def _cached(command: str, *args: str) -> list[str]:
+    """Locate command and return it path"""
     try:
         return (_COMMAND_CACHE[command],) + args
     except KeyError:
@@ -36,12 +36,13 @@ def _cached(command, *args):
 
     filepath = find_executable(command)
     if filepath is None:
-        raise FileNotFoundError("Cannot find {}".format(command))
+        msg = f"Cannot find {command}"
+        raise FileNotFoundError(msg)
     return (_COMMAND_CACHE.setdefault(command, filepath),) + args
 
 
-def run(*args, **kwargs):
-    """locate command and run it with the given arguments"""
+def run(*args: str, **kwargs: dict[str, Any]) -> None:
+    """Locate command and run it with the given arguments"""
     if kwargs.pop("dry_run", False):
         print(" ".join(str(arg) for arg in args))
         return
@@ -50,11 +51,12 @@ def run(*args, **kwargs):
     try:
         subprocess.run(cmdline, check=True, **kwargs)
     except subprocess.CalledProcessError as exc:
-        raise ExecutionError("{} {} failed".format(args[0], args[1])) from exc
+        msg = f"{args[0]} {args[1]} failed"
+        raise ExecutionError(msg) from exc
 
 
-def check_output(*args, **kwargs):
-    """locate command and run it with the given arguments, returning output"""
+def check_output(*args: str, **kwargs: dict[str, Any]) -> str:
+    """Locate command and run it with the given arguments, returning output"""
     if kwargs.pop("dry_run", False):
         print(" ".join(str(arg) for arg in args))
         return ""
@@ -63,5 +65,6 @@ def check_output(*args, **kwargs):
     try:
         result = subprocess.check_output(cmdline, stderr=subprocess.STDOUT, **kwargs)
     except subprocess.CalledProcessError as exc:
-        raise ExecutionError("{} {} failed".format(args[0], args[1])) from exc
+        msg = f"{args[0]} {args[1]} failed"
+        raise ExecutionError(msg) from exc
     return result.decode("ascii")

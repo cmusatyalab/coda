@@ -56,10 +56,6 @@ AM_PATH_PYTHON([3])
 CODAFS_PY_VERSION="`echo $VERSION|sed 's/~dev/.dev0/'`"
 AC_SUBST(CODAFS_PY_VERSION)
 
-# Debian installs python packages in a non-standard location
-AM_CONDITIONAL([DEBIAN_DERIVED], [test -d "${prefix}/lib/python3/dist-packages"])
-AM_COND_IF([DEBIAN_DERIVED], [pythondir="${prefix}/lib/python3/dist-packages"])
-
 AC_ARG_ENABLE(client, [  --enable-client	  build Coda client components],
     buildclient="$enableval", buildclient="no")
 AC_ARG_ENABLE(server, [  --enable-server	  build Coda server components],

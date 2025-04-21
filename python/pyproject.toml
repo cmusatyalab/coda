@@ -1,0 +1,37 @@
+[project]
+name = "codafs"
+dynamic = ["version"]
+authors = [
+  {name = "Jan Harkes", email = "jaharkes@cs.cmu.edu"},
+]
+description = "Python helpers for accessing Coda Distributed File System functionality."
+readme = "README.md"
+requires-python = ">=3.7"
+license = "LGPL-2.0"
+classifiers = [
+    "Programming Language :: Python :: 3",
+]
+dependencies = [
+    "attrs",
+    "pyyaml",
+]
+
+[project.optional-dependencies]
+tqdm = ["tqdm"]
+jsonschema = ["jsonschema"]
+all = ["jsonschema", "tqdm"]
+
+[project.scripts]
+coda-make-certs = "codafs.cli.make_certs:main"
+coda-sync-acls = "codafs.cli.sync_acls:main"
+coda-volmunge = "codafs.cli.volmunge:main"
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["codafs"]
+
+[tool.setuptools.dynamic]
+version = {attr = "codafs.__version__"}

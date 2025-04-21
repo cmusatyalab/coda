@@ -9,46 +9,51 @@
 # file  LICENSE.  The  technical and financial  contributors to Coda are
 # listed in the file CREDITS.
 #
-""" Wrappers around various cfs commands """
+"""Wrappers around various cfs commands."""
 
 import itertools
 import re
+from pathlib import Path
 
 from .structs import AclEntry, CodaFID
 from .util import ExecutionError, check_output
 
 
-class NotCodaFS(ExecutionError):
-    """Exception 'trying to do Coda operation on non-Coda file system'"""
+class NotCodaFSError(ExecutionError):
+    """Exception 'trying to do Coda operation on non-Coda file system'."""
 
 
-def getfid(path):
-    """return Coda file identifier for specified path"""
+def getfid(path: Path) -> CodaFID:
+    """Return Coda file identifier for specified path."""
     result = check_output("cfs", "getfid", str(path))
 
     match = re.match(
-        r"^FID = ([0-9a-fA-F]+)\.([0-9a-fA-F]+)\.([0-9a-fA-F]+)@(\S+)", result
+        r"^FID = ([0-9a-fA-F]+)\.([0-9a-fA-F]+)\.([0-9a-fA-F]+)@(\S+)",
+        result,
     )
     if match is None:
-        raise NotCodaFS("cfs getfid unexpected output on {}".format(path))
+        msg = f"cfs getfid unexpected output on {path}"
+        raise NotCodaFSError(msg)
     return CodaFID(*match.groups())
 
 
-def listvol(path):
-    """return volume_id, name tuple for specified path"""
+def listvol(path: Path) -> list[tuple[str, str]]:
+    """Return volume_id, name tuple for specified path."""
     result = check_output("cfs", "listvol", str(path))
 
     if result.endswith(": Permission denied\n"):
-        raise PermissionError("cfs listvol permission denied on {}".format(path))
+        msg = f"cfs listvol permission denied on {path}"
+        raise PermissionError(msg)
 
     match = re.search(r' volume ([0-9a-fA-F]+) .* named "([^"]+)"', result)
     if match is None:
-        raise NotCodaFS("cfs listvol unexpected output on {}".format(path))
+        msg = f"cfs listvol unexpected output on {path}"
+        raise NotCodaFSError(msg)
     return match.groups()
 
 
-def listacl(path):
-    """returns an ACL (list of user/group, rights tuples) for the specified path"""
+def listacl(path: Path) -> list[AclEntry]:
+    """Returns an ACL (list of user/group, rights tuples) for the specified path."""
     result = check_output("cfs", "listacl", str(path))
 
     return [
@@ -57,8 +62,8 @@ def listacl(path):
     ]
 
 
-def setacl(path, acl, dry_run=False):
-    """Replaces ACL on specified path"""
+def setacl(path: Path, acl: AclEntry, *, dry_run: bool = False) -> None:
+    """Replaces ACL on specified path."""
     _acl = [AclEntry.from_user(name, rights) for name, rights in acl]
 
     positives = [(entry.name, entry.rights) for entry in _acl if entry.is_positive()]
@@ -67,7 +72,12 @@ def setacl(path, acl, dry_run=False):
     ]
 
     check_output(
-        "cfs", "sa", "-clear", str(path), *itertools.chain(*positives), dry_run=dry_run
+        "cfs",
+        "sa",
+        "-clear",
+        str(path),
+        *itertools.chain(*positives),
+        dry_run=dry_run,
     )
     if negatives:
         check_output(
@@ -76,5 +86,5 @@ def setacl(path, acl, dry_run=False):
             "-negative",
             str(path),
             *itertools.chain(*negatives),
-            dry_run=dry_run
+            dry_run=dry_run,
         )

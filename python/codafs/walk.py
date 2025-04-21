@@ -9,20 +9,39 @@
 # file  LICENSE.  The  technical and financial  contributors to Coda are
 # listed in the file CREDITS.
 #
-""" Helper function to walk a volume in the Coda file system """
+"""Helper function to walk a volume in the Coda file system."""
+
+from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING, Callable
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
+    from pathlib import Path
 
 from .cfs import NotCodaFS, getfid, listvol
 
 
-def default_volume_callback(_root, _volume_name, _volume_id):
-    """Example volume callback, this just avoids crossing volume boundaries"""
+def default_volume_callback(_root: Path, _volume_name: str, _volume_id: str) -> None:
+    """Default volume callback, avoids crossing volume boundaries."""
     raise StopIteration
 
 
-def walk_volume(root, volume_callback=default_volume_callback, parent_volume_id=None):
-    """Path walking, but with Coda volume awareness
+def walk_volumes(
+    roots: list[Path],
+    volume_callback: Callable[[Path, str, str], None] | None = default_volume_callback,
+) -> Iterator[Path]:
+    for root in roots:
+        yield from walk_volume(root, volume_callback=volume_callback)
+
+
+def walk_volume(
+    root: Path,
+    volume_callback: Callable[[Path, str, str], None] | None = default_volume_callback,
+    parent_volume_id: str | None = None,
+) -> Iterator[Path]:
+    """Path walking, but with Coda volume awareness.
 
     The volume_callback will be called whenever a volume mountpoint is found,
     it may raise a StopIteration exception to avoid cross-volume crawling.
@@ -36,13 +55,12 @@ def walk_volume(root, volume_callback=default_volume_callback, parent_volume_id=
     if parent_volume_id is None:
         parent_volume_id = volume_id
 
-    elif volume_id != parent_volume_id:
-        if volume_callback is not None:
-            try:
-                _, volume_name = listvol(root)
-                volume_callback(root, volume_name, volume_id)
-            except StopIteration:
-                return
+    elif volume_id != parent_volume_id and volume_callback is not None:
+        try:
+            _, volume_name = listvol(root)
+            volume_callback(root, volume_name, volume_id)
+        except StopIteration:
+            return
 
     yield root
 
@@ -51,7 +69,9 @@ def walk_volume(root, volume_callback=default_volume_callback, parent_volume_id=
             continue
         try:
             yield from walk_volume(
-                path, volume_callback=volume_callback, parent_volume_id=volume_id
+                path,
+                volume_callback=volume_callback,
+                parent_volume_id=volume_id,
             )
         except PermissionError:
             logging.warning("Unable to iterate over %s", path)

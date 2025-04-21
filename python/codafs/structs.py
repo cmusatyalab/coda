@@ -9,33 +9,37 @@
 # file  LICENSE.  The  technical and financial  contributors to Coda are
 # listed in the file CREDITS.
 #
-""" Data structures used in the Python API """
+"""Data structures used in the Python API"""
 
 # pylint: disable=too-few-public-methods
 
+from __future__ import annotations
+
 import re
+from dataclasses import InitVar, dataclass
 
-import attr
 
-
-def _aclentry_validate_rights(_instance, _attribute, value):
-    """rights should be a subset of '-rlidwka'"""
+def _aclentry_validate_rights(_instance: object, _attribute: str, value: str) -> None:
+    """Rights should be a subset of '-rlidwka'"""
     if not isinstance(value, str) or re.match(r"^-?r?l?i?d?w?k?a?$", value) is None:
         raise ValueError("AclEntry.rights has to be a subset of '-rlidwka'")
 
 
-@attr.s
+@dataclass
 class AclEntry:
     """Coda ACL entry
     name   : a user or group name
     rights : a subset of '-rlidwka' (or 'all' / 'none' when setting)
     """
 
-    name = attr.ib(validator=attr.validators.instance_of(str))
-    rights = attr.ib(validator=_aclentry_validate_rights)
+    name: str
+    rights: InitVar[str]
+
+    def __post_init__(self, rights: str) -> None:
+        _aclentry_validate_rights(self, None, rights)
 
     @classmethod
-    def from_user(cls, name, rights):
+    def from_user(cls, name, rights) -> AclEntry:
         """Create a new AclEntry instance from user input.
         Shortcuts like '*', 'all', and 'none' are
         acceptable as well as a different ordering.
@@ -51,16 +55,16 @@ class AclEntry:
 
         return cls(name=name, rights=canon_rights)
 
-    def is_positive(self):
-        """returns true if this is a positive ACL entry"""
-        return not self.rights.startswith("-")
+    def is_positive(self) -> bool:
+        """Returns true if this is a positive ACL entry"""
+        return not self.is_negative()
 
-    def is_negative(self):
-        """returns true if this is a negative ACL entry"""
+    def is_negative(self) -> bool:
+        """Returns true if this is a negative ACL entry"""
         return self.rights.startswith("-")
 
 
-@attr.s
+@dataclass
 class CodaFID:
     """Coda File identifier
     volume : volume identifier
@@ -69,7 +73,7 @@ class CodaFID:
     realm : Coda administrative domain
     """
 
-    volume = attr.ib()
-    vnode = attr.ib()
-    uniquifier = attr.ib()
-    realm = attr.ib()
+    volume: int
+    vnode: int
+    uniquifier: int
+    realm: str

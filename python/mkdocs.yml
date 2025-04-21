@@ -1,0 +1,14 @@
+site_name: CodaFS Python module
+repo_url: https://github.com/cmusatyalab/coda
+repo_name: cmusatyalab/coda
+theme:
+  name: material
+  features:
+    - navigation.expand
+markdown_extensions:
+  - admonition
+  - def_list
+  - pymdownx.details
+  - pymdownx.superfences
+plugins:
+  - privacy

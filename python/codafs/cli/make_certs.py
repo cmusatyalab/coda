@@ -11,12 +11,11 @@
 # listed in the file CREDITS.
 #
 #
-"""
- coda-make-certs - Generate X509 certificates for Coda realms and servers
+"""coda-make-certs - Generate X509 certificates for Coda realms and servers.
 
- depends on pyyaml for parsing the config file.
- depends on 'certtool' from gnutls-bin to perform the X509 related operations.
- optional dependencies on jsonschema and ipaddress (for validation)
+depends on pyyaml for parsing the config file.
+depends on 'certtool' from gnutls-bin to perform the X509 related operations.
+optional dependencies on jsonschema and ipaddress (for validation)
 """
 
 import argparse
@@ -77,7 +76,10 @@ parser.add_argument(
     help="write complete config to stdout and exit",
 )
 parser.add_argument(
-    "-q", "--quiet", action="store_true", help="only display error messages"
+    "-q",
+    "--quiet",
+    action="store_true",
+    help="only display error messages",
 )
 parser.add_argument(
     "-n",
@@ -86,7 +88,9 @@ parser.add_argument(
     help="avoid running commands that alter disk-state",
 )
 parser.add_argument(
-    "--scp", action="store_true", help="copy generated certificates to servers"
+    "--scp",
+    action="store_true",
+    help="copy generated certificates to servers",
 )
 parser.add_argument("config", metavar="realm_config.yaml", type=open)
 args = parser.parse_args()
@@ -131,7 +135,7 @@ REALM_CONFIG_SCHEMA = {
         "server_list": {
             "type": "array",
             "items": {
-                "anyOf": [{"$ref": "#/$defs/server"}, {"$ref": "#/$defs/dnsname"}]
+                "anyOf": [{"$ref": "#/$defs/server"}, {"$ref": "#/$defs/dnsname"}],
             },
         },
     },
@@ -212,10 +216,10 @@ class Server(yaml.YAMLObject):
                 name=self.name,
                 address=self.address,
                 expiration=self.realm.server_expiration_days,
-            ).encode("ascii")
+            ).encode("ascii"),
         )
         for cname in self.__dict__.get("cnames", []):
-            template.write('dns_name = "{}"\n'.format(cname).encode("ascii"))
+            template.write(f'dns_name = "{cname}"\n'.encode("ascii"))
         template.flush()
         return closing(template)
 
@@ -225,14 +229,14 @@ class Server(yaml.YAMLObject):
             "scp",
             flags,
             self.key,
-            "root@{}:/etc/coda/ssl/server.key".format(self.name),
+            f"root@{self.name}:/etc/coda/ssl/server.key",
             dry_run=args.dry_run,
         )
         run(
             "scp",
             flags,
             self.crt,
-            "root@{}:/etc/coda/ssl/server.crt".format(self.name),
+            f"root@{self.name}:/etc/coda/ssl/server.crt",
             dry_run=args.dry_run,
         )
 
@@ -261,12 +265,13 @@ class Realm(yaml.YAMLObject):
         template = tempfile.NamedTemporaryFile()
         template.write(
             REALM_TEMPLATE.format(
-                realm=self.realm, expiration=self.realm_expiration_days
-            ).encode("ascii")
+                realm=self.realm,
+                expiration=self.realm_expiration_days,
+            ).encode("ascii"),
         )
         for key in ["permit_dns", "permit_ip", "exclude_dns", "exclude_ip"]:
             for name in self.__dict__.get(key, []):
-                template.write('nc_{} = "{}"\n'.format(key, name).encode("ascii"))
+                template.write(f'nc_{key} = "{name}"\n'.encode("ascii"))
         template.flush()
         return closing(template)
 
@@ -360,7 +365,7 @@ def generate_servercert(realm, server):
         with server.crt.open("a") as server_cert:
             server_cert.write(realm.crt.read_text())
     else:
-        print("cat {} >> {}".format(realm.crt, server.crt))
+        print(f"cat {realm.crt} >> {server.crt}")
 
 
 def main():
@@ -379,7 +384,7 @@ def main():
         REALMDIR.mkdir(mode=0o700, exist_ok=True)
         SERVERDIR.mkdir(mode=0o700, exist_ok=True)
     else:
-        print("mkdir -p {} {}".format(REALMDIR, SERVERDIR))
+        print(f"mkdir -p {REALMDIR} {SERVERDIR}")
 
     # create keys and certificates
     for realm in realms:

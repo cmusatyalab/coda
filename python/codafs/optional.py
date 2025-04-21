@@ -9,9 +9,9 @@
 # file  LICENSE.  The  technical and financial  contributors to Coda are
 # listed in the file CREDITS.
 #
-""" Optional things that are nice to have, but not strictly necessary. """
+"""Optional things that are nice to have, but not strictly necessary."""
 
-__all__ = ["jsonschema_validate", "ValidationError", "SchemaError", "tqdm"]
+__all__ = ["SchemaError", "ValidationError", "jsonschema_validate", "tqdm"]
 
 import logging
 
@@ -37,14 +37,17 @@ try:
 
     def jsonschema_validate(instance, schema, *args, **kwargs):
         validate(
-            instance, schema, *args, format_checker=draft7_format_checker, **kwargs
+            instance,
+            schema,
+            *args,
+            format_checker=draft7_format_checker,
+            **kwargs,
         )
-
 
 except ImportError:
 
     def jsonschema_validate(_instance, _schema, *_args, **_kwargs):
-        """validation wrapper that doesn't actually validate"""
+        """Validation wrapper that doesn't actually validate"""
 
     # we won't actually raise these from our wrapper...
     class ValidationError(Exception):
@@ -77,6 +80,6 @@ except ImportError:
 
         @classmethod
         def write(cls, msg, file=sys.stdout, end="\n", **_kwargs):
-            """write that normally avoids conflicting with the progress bar"""
+            """Write that normally avoids conflicting with the progress bar"""
             file.write(msg)
             file.write(end)

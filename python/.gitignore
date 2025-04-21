@@ -1,4 +1,7 @@
 __pycache__/
+.cache/
 build/
-*.egg_info/
+codafs.egg-info/
 codafs/__init__.py
+dist/
+site/
