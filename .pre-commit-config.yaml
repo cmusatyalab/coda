@@ -15,18 +15,18 @@ repos:
         name: Check release version
         entry: tools/check-blurb --release
         language: script
-        stages: [commit,merge-commit]
+        stages: [pre-commit,pre-merge-commit]
       - id: check-year
         name: Check copyright year
         entry: tools/check-blurb --year
         language: script
-        stages: [commit,merge-commit]
+        stages: [pre-commit,pre-merge-commit]
       - id: clang-format
         name: Format C/C++ source with clang-format
         entry: tools/check-clang-format -style=file -i
         language: script
         types_or: [c, c++]
-        stages: [commit,merge-commit]
+        stages: [pre-commit,pre-merge-commit]
 
   - repo: https://github.com/asottile/pyupgrade
     rev: v3.19.1
