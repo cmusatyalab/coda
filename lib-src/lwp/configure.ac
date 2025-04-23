@@ -1,8 +1,8 @@
 dnl Process this file with autoconf to produce a configure script
 
 dnl Initialization
-AC_PREREQ(2.50)
-AC_INIT(lwp, 2.17)
+AC_PREREQ([2.71])
+AC_INIT([lwp],[2.17])
 AC_CONFIG_AUX_DIR([.])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_SRCDIR([src/lwp.c])
@@ -31,7 +31,7 @@ AC_PROG_CPP
 AM_PROG_AS
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
-AC_PROG_LIBTOOL
+LT_INIT
 
 dnl pkg-config stuff
 CODA_PKG_CONFIG

@@ -1,8 +1,8 @@
 dnl Process this file with autoconf to produce a configure script.
 
 dnl autoconf 2.5 stuff
-AC_PREREQ(2.50)
-AC_INIT(Coda, 8.1.6~dev, [bugs@coda.cs.cmu.edu])
+AC_PREREQ([2.71])
+AC_INIT([Coda],[8.1.6~dev],[bugs@coda.cs.cmu.edu])
 AC_CONFIG_AUX_DIR([.])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_SRCDIR([coda-src/librepair/resolve.h])
@@ -31,7 +31,7 @@ AC_PROG_LEX
 AC_PROG_YACC
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
-AC_PROG_LIBTOOL
+LT_INIT
 AC_PROG_AWK
 
 AC_CHECK_PROGS([PRE_COMMIT], [pre-commit])

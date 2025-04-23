@@ -17,9 +17,10 @@ AC_DEFUN([CODA_CHECK_LIBCURSES],
 	coda_cv_curses_needs_termcap,
 	[coda_save_LIBS="$LIBS"
 	LIBS="$LIBCURSES $LIBS"
-	AC_TRY_LINK([],[],
-	coda_cv_curses_needs_termcap=no,
-	coda_cv_curses_needs_termcap=yes)
+        AC_LINK_IFELSE(
+          [AC_LANG_PROGRAM([[]],[[]])],
+          [coda_cv_curses_needs_termcap=no],
+          [coda_cv_curses_needs_termcap=yes])
 	LIBS="$coda_save_LIBS"])
   if test $coda_cv_curses_needs_termcap = yes; then
 	LIBCURSES="$LIBCURSES $LIBTERMCAP"
@@ -28,22 +29,26 @@ AC_DEFUN([CODA_CHECK_LIBCURSES],
 
 dnl check wether we have flock or fcntl
 AC_DEFUN([CODA_CHECK_FILE_LOCKING],
-  [AC_CACHE_CHECK(for file locking by fcntl,
-    fu_cv_lib_c_fcntl,
-    [AC_TRY_COMPILE([#include <fcntl.h>
-#include <stdio.h>], [ int fd; struct flock lk; fcntl(fd, F_SETLK, &lk);],
-      fu_cv_lib_c_fcntl=yes,
-      fu_cv_lib_c_fcntl=no)])
+  [AC_CACHE_CHECK(for file locking by fcntl, fu_cv_lib_c_fcntl,
+    [AC_COMPILE_IFELSE(
+     [AC_LANG_PROGRAM(
+      [[#include <fcntl.h>
+#include <stdio.h>]],
+      [[int fd; struct flock lk; fcntl(fd, F_SETLK, &lk);]]
+     )],
+     fu_cv_lib_c_fcntl=yes, fu_cv_lib_c_fcntl=no)])
   if test $fu_cv_lib_c_fcntl = yes; then
     AC_DEFINE(HAVE_FCNTL_LOCKING, 1, [Define if you have fcntl file locking])
   fi
 
-  AC_CACHE_CHECK(for file locking by flock,
-    fu_cv_lib_c_flock,
-    [AC_TRY_COMPILE([#include <sys/file.h>
-#include <stdio.h>], [ int fd; flock(fd, LOCK_SH);],
-      fu_cv_lib_c_flock=yes,
-      fu_cv_lib_c_flock=no)])
+  AC_CACHE_CHECK(for file locking by flock, fu_cv_lib_c_flock,
+    [AC_COMPILE_IFELSE(
+     [AC_LANG_PROGRAM(
+      [[#include <sys/file.h>
+#include <stdio.h>]],
+      [[int fd; flock(fd, LOCK_SH);]]
+     )],
+     fu_cv_lib_c_flock=yes, fu_cv_lib_c_flock=no)])
   if test $fu_cv_lib_c_flock = yes; then
     AC_DEFINE(HAVE_FLOCK_LOCKING, 1, [Define if you have flock file locking])
   fi
@@ -76,7 +81,9 @@ AC_DEFUN([CODA_FIND_LIB],
        CFLAGS="${CFLAGS} -I${path}/include"
        LDFLAGS="${LDFLAGS} -L${path}/lib"
      fi
-     AC_TRY_LINK([$2], [$3], [coda_cv_path_$1=${path} ; break])
+    AC_LINK_IFELSE(
+      [AC_LANG_PROGRAM([[$2]],[[$3]])],
+      [coda_cv_path_$1=${path} ; break], [])
      CFLAGS="${saved_CFLAGS}" ; LDFLAGS="${saved_LDFLAGS}"
    done
    LIBS="${saved_LIBS}"
@@ -106,7 +113,7 @@ AC_DEFUN([CODA_CHECK_FLTK],
      ;;
    esac
    AC_LANG_SAVE
-   AC_LANG_CPLUSPLUS
+   AC_LANG([C++])
    CODA_FIND_LIB(fltk, [#include <Fl/Fl.H>], Fl::run(), "$FLTKLIBS")
    AC_LANG_RESTORE
    AC_MSG_CHECKING([if we can build vcodacon])
