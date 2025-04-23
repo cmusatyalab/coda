@@ -56,7 +56,7 @@ def extract_symbols(filename):
 
 def enumerate_objects(root):
     """Walk tree from root and return names of object files."""
-    for root, dirs, files in os.walk(root):
+    for root, dirs, files in os.walk(root):  # noqa: B020
         if ".libs" in dirs:
             dirs.remove(".libs")
 

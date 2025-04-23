@@ -79,9 +79,9 @@ stop () {
     retval2=$?
 
     [ $retval1 -eq 0 ] && allret=$retval2 || allret=$retval1
-    if [ $allret -eq 0 ] ; then log_success_msg ; else log_failure_msg ; fi
-    [ $allret -eq 0 ] && [ -d /var/lock/subsys ] && rm -f $lockfile
-    return $allret
+    if [ "$allret" -eq 0 ] ; then log_success_msg ; else log_failure_msg ; fi
+    [ "$allret" -eq 0 ] && [ -d /var/lock/subsys ] && rm -f $lockfile
+    return "$allret"
 }
 
 restart() {
@@ -107,7 +107,7 @@ reportstatus() {
     fi
 
     [ $retval1 -eq 0 ] && allret=$retval2 || allret=$retval1
-    return $allret
+    return "$allret"
 }
 
 checkall() {
@@ -122,7 +122,7 @@ checkany() {
     retval2=$?
 
     [ $retval1 -eq 0 ] && anyret=$retval1 || anyret=$retval2
-    return $anyret
+    return "$anyret"
 }
 
 
