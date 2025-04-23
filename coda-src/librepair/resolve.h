@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -36,7 +36,7 @@ listed in the file CREDITS.
 #define AVGDIRENTRYSIZE 12
 #define GROWSIZE 32
 #define MAXHOSTS 8
-#define ISDIRVNODE(vnode) ((vnode)&1) /* directory vnodes are odd */
+#define ISDIRVNODE(vnode) ((vnode) & 1) /* directory vnodes are odd */
 #define NNCONFLICTS -1
 
 struct Acl {

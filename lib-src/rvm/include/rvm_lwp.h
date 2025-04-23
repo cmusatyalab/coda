@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 7
+                              Release 8
 
-          Copyright (c) 1987-2019 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -26,10 +26,7 @@ Coda are listed in the file CREDITS.
 
 #define RVM_MUTEX struct Lock
 #define RVM_CONDITION char
-#define MUTEX_INITIALIZER \
-    {                     \
-        0, 0, 0, 0        \
-    }
+#define MUTEX_INITIALIZER { 0, 0, 0, 0 }
 
 /* Supported cthread definitions */
 

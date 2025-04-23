@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -259,7 +259,7 @@ void PDB_db_write(PDB_HANDLE h, int32_t id, char *name, void *data, size_t size)
 
     namekey = malloc_name(name);
     rc      = rwcdb_insert(&h->main, namekey, strlen(namekey), (char *)&netid,
-                      sizeof(netid));
+                           sizeof(netid));
     free(namekey);
 
     CODA_ASSERT(rc == 1);

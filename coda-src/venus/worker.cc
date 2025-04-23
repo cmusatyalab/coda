@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2021 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -542,7 +542,7 @@ void VFSUnmount()
         return;
 
 #ifdef __BSD44__
-        /* For now we can not unmount, because an coda_root() upcall could
+    /* For now we can not unmount, because an coda_root() upcall could
        nail us. */
 #ifndef __BSD44__
     /* Issue the VFS unmount request. */
@@ -674,20 +674,18 @@ int k_Purge(VenusFid *fid, int severely)
     /* Send the message. */
     if (MsgWrite((char *)&msg, size) != size) {
         retcode = errno;
-        LOG(0,
-            ("k_Purge: %s, message write fails: errno %d\n",
-             msg.oh.opcode == CODA_PURGEFID ?
-                 "CODA_PURGEFID" :
-                 msg.oh.opcode == CODA_ZAPFILE ? "CODA_ZAPFILE" : "CODA_ZAPDIR",
-             retcode));
+        LOG(0, ("k_Purge: %s, message write fails: errno %d\n",
+                msg.oh.opcode == CODA_PURGEFID ? "CODA_PURGEFID" :
+                msg.oh.opcode == CODA_ZAPFILE  ? "CODA_ZAPFILE" :
+                                                 "CODA_ZAPDIR",
+                retcode));
     }
 
-    LOG(100,
-        ("k_Purge: %s, returns %d\n",
-         msg.oh.opcode == CODA_PURGEFID ?
-             "CODA_PURGEFID" :
-             msg.oh.opcode == CODA_ZAPFILE ? "CODA_ZAPFILE" : "CODA_ZAPDIR",
-         retcode));
+    LOG(100, ("k_Purge: %s, returns %d\n",
+              msg.oh.opcode == CODA_PURGEFID ? "CODA_PURGEFID" :
+              msg.oh.opcode == CODA_ZAPFILE  ? "CODA_ZAPFILE" :
+                                               "CODA_ZAPDIR",
+              retcode));
     if (retcode == 0) {
         VFSStats.VFSOps[msg.oh.opcode].success++;
     } else {

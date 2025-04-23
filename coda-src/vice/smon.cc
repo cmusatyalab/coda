@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2021 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -279,7 +279,7 @@ static void CheckSOE()
 
         SOE.EndTime = curr_time;
         long code   = SmonReportOverflow(SmonHandle, &SOE.Vice, curr_time,
-                                       SOE.StartTime, SOE.EndTime, SOE.Count);
+                                         SOE.StartTime, SOE.EndTime, SOE.Count);
         code        = CheckSmonResult(code);
         if (code != 0)
             return;

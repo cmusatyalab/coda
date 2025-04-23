@@ -1,3 +1,20 @@
+/* BLURB gpl
+
+                           Coda File System
+                              Release 8
+
+          Copyright (c) 2018-2025 Carnegie Mellon University
+                  Additional copyrights listed below
+
+This  code  is  distributed "AS IS" without warranty of any kind under
+the terms of the GNU General Public Licence Version 2, as shown in the
+file  LICENSE.  The  technical and financial  contributors to Coda are
+listed in the file CREDITS.
+
+                        Additional copyrights
+                           none currently
+#*/
+
 #include "gtest/gtest.h"
 
 #ifdef __cplusplus
@@ -20,8 +37,7 @@ extern "C" {
 
 namespace
 {
-class LwpTest : public ::testing::Test {
-};
+class LwpTest : public ::testing::Test {};
 
 class LwpDeathTest : public ::testing::Test {
 public:

@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -125,7 +125,7 @@ int U_Authenticate(struct RPC2_addrinfo *srvs, const char *uName,
 
     secretlen = strlen(passwd);
     rc        = U_BindToServer(srvs, uName, uNamelen, passwd, secretlen, &RPCid,
-                        interactive);
+                               interactive);
     if (rc == 0) {
         bound = 1;
         rc    = AuthGetTokens(RPCid, sToken, cToken);

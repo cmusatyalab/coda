@@ -137,7 +137,7 @@ struct logsize {
     int high; // high water mark since previous record was sent
     int highest; // highest water mark since incarnation
     int bucket[SIZEBUCKETS]; // histogram of sizes of log when reported
-        // < 1024, < 2048, < 4096,... <8192*1024, >8192*1024
+    // < 1024, < 2048, < 4096,... <8192*1024, >8192*1024
 
     logsize(int sz = 0);
     void chgsize(int);

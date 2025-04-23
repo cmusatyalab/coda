@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -174,8 +174,7 @@ int main(int argc, char *argv[])
     exit(EXIT_SUCCESS);
 }
 
-static int32_t GetArgs(argc, argv) int32_t argc;
-char *argv[];
+static int32_t GetArgs(int argc, char *argv[])
 {
     register int32_t i;
 
@@ -387,7 +386,7 @@ static int32_t h_hack_begin(FILE *where, char *name)
     return -1;
 }
 
-static int32_t h_hack_end(where) FILE *where;
+static int32_t h_hack_end(FILE *where)
 {
     fprintf(where, "\n#endif /* _%s_ */\n", define_name);
     return -1;

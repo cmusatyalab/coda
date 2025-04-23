@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -214,7 +214,7 @@ static DWORD listen_kernel(void *junk)
         // Do a device ioctl.
         bytesret = 0;
         rc       = DeviceIoControl(h, CODA_FSCTL_FETCH, NULL, 0, outbuf,
-                             VC_MAXMSGSIZE, &bytesret, NULL);
+                                   VC_MAXMSGSIZE, &bytesret, NULL);
         if (rc) {
             if (bytesret > 0) {
                 write(sockfd, (char *)&bytesret, sizeof(bytesret));

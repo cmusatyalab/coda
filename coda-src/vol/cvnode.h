@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2021 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -89,7 +89,7 @@ extern struct VnodeClassInfo VnodeClassInfo_Array[nVNODECLASSES];
 
 #define vnodeTypeToClass(type) ((type) == vDirectory ? vLarge : vSmall)
 #define vnodeIdToClass(vnodeId) ((vnodeId - 1) & VNODECLASSMASK)
-#define vnodeIdToBitNumber(v) (((v)-1) >> VNODECLASSWIDTH)
+#define vnodeIdToBitNumber(v) (((v) - 1) >> VNODECLASSWIDTH)
 #define bitNumberToVnodeNumber(b, vclass) \
     (((b) << VNODECLASSWIDTH) + (vclass) + 1)
 #define vnodeIsDirectory(vnodeNumber) (vnodeIdToClass(vnodeNumber) == vLarge)
@@ -110,7 +110,7 @@ typedef struct VnodeDiskObjectStruct {
     FileVersion dataVersion; /* version number of the data */
 
 /* inode number for a vnode allocated but not used for creation */
-#define NEWVNODEINODE ((PDirInode)-1)
+#define NEWVNODEINODE ((PDirInode) - 1)
 
     union {
         Inode inodeNumber; /* container file containing file/symlink data */

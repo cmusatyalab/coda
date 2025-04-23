@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2021 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -296,9 +296,9 @@ long FS_ViceOpenReintHandle(RPC2_Handle RPCid, ViceFid *Fid,
     RHandle->BirthTime = (RPC2_Integer)StartTime;
     RHandle->Device    = (RPC2_Integer)V_device(volptr);
     RHandle->Inode     = icreate((int)V_device(volptr), (int)V_id(volptr),
-                             (int)v->vptr->vnodeNumber,
-                             (int)v->vptr->disk.uniquifier,
-                             (int)v->vptr->disk.dataVersion + 1);
+                                 (int)v->vptr->vnodeNumber,
+                                 (int)v->vptr->disk.uniquifier,
+                                 (int)v->vptr->disk.dataVersion + 1);
     CODA_ASSERT(RHandle->Inode > 0);
 
 FreeLocks:
@@ -903,13 +903,11 @@ static int GetReintegrateObjects(ClientEntry *client, struct dllist_head *rlog,
         index     = 0;
         list_for_each(p, *rlog)
         {
-            struct rle *r = list_entry(p, struct rle, reint_log);
-            ViceDataType type =
-                (r->opcode == CML_Create_OP) ?
-                    File :
-                    (r->opcode == CML_MakeDir_OP) ?
-                    Directory :
-                    (r->opcode == CML_SymLink_OP) ? SymbolicLink : Invalid;
+            struct rle *r     = list_entry(p, struct rle, reint_log);
+            ViceDataType type = (r->opcode == CML_Create_OP)  ? File :
+                                (r->opcode == CML_MakeDir_OP) ? Directory :
+                                (r->opcode == CML_SymLink_OP) ? SymbolicLink :
+                                                                Invalid;
 
             if (type != Invalid) {
                 int tblocks = 0;
@@ -1197,9 +1195,9 @@ static int CheckSemanticsAndPerform(ClientEntry *client, VolumeId Vid,
                  * code is still present, but disabled --JH */
                 {
                     RPC2_Unsigned Mask =
-                        (r->opcode == CML_Utimes_OP) ?
-                            SET_TIME :
-                            (r->opcode == CML_Chmod_OP) ? SET_MODE : SET_OWNER;
+                        (r->opcode == CML_Utimes_OP) ? SET_TIME :
+                        (r->opcode == CML_Chmod_OP)  ? SET_MODE :
+                                                       SET_OWNER;
 
                     vle *v   = FindVLE(*vlist, &r->Fid[0]);
                     vle *a_v = 0; /* ACL object */
@@ -1313,9 +1311,9 @@ static int CheckSemanticsAndPerform(ClientEntry *client, VolumeId Vid,
                 vle *parent_v = FindVLE(*vlist, &r->Fid[0]);
                 vle *child_v  = FindVLE(*vlist, &r->Fid[1]);
                 errorCode     = CheckCreateSemantics(client, &parent_v->vptr,
-                                                 &child_v->vptr, r->Name[0],
-                                                 &volptr, 1, ReintNormalVCmp,
-                                                 &r->VV[0], &NullVV, 0, 0);
+                                                     &child_v->vptr, r->Name[0],
+                                                     &volptr, 1, ReintNormalVCmp,
+                                                     &r->VV[0], &NullVV, 0, 0);
 
 #if 0
 			if ( errorCode == EEXIST  &&
@@ -1353,9 +1351,9 @@ static int CheckSemanticsAndPerform(ClientEntry *client, VolumeId Vid,
                                                           RES_Create_OP;
                     UserId owner = child_v->vptr->disk.owner;
                     errorCode    = SpoolVMLogRecord(vlist, parent_v, volptr,
-                                                 &r->sid, opcode, r->Name[0],
-                                                 r->Fid[1].Vnode,
-                                                 r->Fid[1].Unique, owner);
+                                                    &r->sid, opcode, r->Name[0],
+                                                    r->Fid[1].Vnode,
+                                                    r->Fid[1].Unique, owner);
                     if (errorCode) {
                         SLog(
                             0,
@@ -1633,9 +1631,9 @@ static int CheckSemanticsAndPerform(ClientEntry *client, VolumeId Vid,
                     int c_opcode = RES_MakeDir_OP;
                     UserId owner = child_v->vptr->disk.owner;
                     errorCode    = SpoolVMLogRecord(vlist, parent_v, volptr,
-                                                 &r->sid, p_opcode, r->Name[0],
-                                                 r->Fid[1].Vnode,
-                                                 r->Fid[1].Unique, owner);
+                                                    &r->sid, p_opcode, r->Name[0],
+                                                    r->Fid[1].Vnode,
+                                                    r->Fid[1].Unique, owner);
                     if (errorCode) {
                         SLog(
                             0,
@@ -1759,14 +1757,14 @@ static int CheckSemanticsAndPerform(ClientEntry *client, VolumeId Vid,
                 ReintPrelimCOP(child_v, &NullSid, &r->sid);
 
                 {
-                    int opcode = (parent_v->d_needsres) ?
-                                     ResolveViceSymLink_OP :
-                                     RES_SymLink_OP;
+                    int opcode   = (parent_v->d_needsres) ?
+                                       ResolveViceSymLink_OP :
+                                       RES_SymLink_OP;
                     UserId owner = child_v->vptr->disk.owner;
                     errorCode    = SpoolVMLogRecord(vlist, parent_v, volptr,
-                                                 &r->sid, opcode, r->Name[0],
-                                                 r->Fid[1].Vnode,
-                                                 r->Fid[1].Unique, owner);
+                                                    &r->sid, opcode, r->Name[0],
+                                                    r->Fid[1].Vnode,
+                                                    r->Fid[1].Unique, owner);
                     if (errorCode) {
                         SLog(
                             0,

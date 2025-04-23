@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -121,7 +121,7 @@ int main(int argc, char **argv)
 
     srvs = U_GetAuthServers(realm, host);
     rc   = U_BindToServer(srvs, MyViceName, strlen(MyViceName) + 1, MyPassword,
-                        strlen(MyPassword), &AuthCid, 1);
+                          strlen(MyPassword), &AuthCid, 1);
     RPC2_freeaddrinfo(srvs);
 
     printf("RPC2_Bind() --> %s\n", RPC2_ErrorMsg(rc));

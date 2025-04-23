@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 7
+                              Release 8
 
-          Copyright (c) 1987-2019 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -952,7 +952,7 @@ rvm_return_t rvm_map(rvm_region_t *rvm_region, rvm_options_t *rvm_options)
     } else
         /* test if segment closed by earlier (failing) rvm_terminate */
         if (seg->dev.handle == 0)
-        return RVM_EIO;
+            return RVM_EIO;
 
     /* check for vm overlap with existing mappings & build descriptors */
     if ((retval = establish_range(rvm_region, &region, &mem_region, seg)) !=

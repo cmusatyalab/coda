@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 5
+                              Release 8
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -154,10 +154,7 @@ typedef struct { /* INTERNAL FIELDS static */
 #define RVM_MK_OFFSET(x, y) rvm_mk_offset((rvm_length_t)(x), (rvm_length_t)(y))
 
 /* offset initializer -- same as RVM_MK_OFFSET, but compile time */
-#define RVM_OFFSET_INITIALIZER(x, y) \
-    {                                \
-        (x), (y)                     \
-    }
+#define RVM_OFFSET_INITIALIZER(x, y) { (x), (y) }
 
 /* Zero an offset: create a zero offset and assign it to the parameter. */
 #define RVM_ZERO_OFFSET(x) (x) = RVM_MK_OFFSET(0, 0)
@@ -234,7 +231,7 @@ typedef struct { /* INTERNAL FIELDS static */
 
 /* return rvm_length x rounded down to integral page-size length */
 #define RVM_ROUND_LENGTH_DOWN_TO_PAGE_SIZE(x) \
-    ((rvm_length_t)((rvm_length_t)(x)&rvm_page_mask()))
+    ((rvm_length_t)((rvm_length_t)(x) & rvm_page_mask()))
 
 /* return address x rounded up to next page boundary */
 #define RVM_ROUND_ADDR_UP_TO_PAGE_SIZE(x) \
@@ -242,7 +239,7 @@ typedef struct { /* INTERNAL FIELDS static */
 
 /* return address x rounded down to page boundary */
 #define RVM_ROUND_ADDR_DOWN_TO_PAGE_SIZE(x) \
-    ((char *)((rvm_length_t)(x)&rvm_page_mask()))
+    ((char *)((rvm_length_t)(x) & rvm_page_mask()))
 
 /* return rvm_offset x rounded up to next integral page-size offset */
 #define RVM_ROUND_OFFSET_UP_TO_PAGE_SIZE(x) rvm_rnd_offset_up_to_page(&(x))

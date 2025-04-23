@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2021 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -283,7 +283,7 @@ static char *CoordPhase2(res_mgrpent *mgrp, ViceFid *fid, int *totalentries,
                                totalsize, totalentries);
     }
 
-Exit : {
+Exit: {
     DeAllocateBufs(bufs);
 }
     if (logbuffer) {

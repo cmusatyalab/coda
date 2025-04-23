@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2021 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -251,10 +251,10 @@ rec_dhashtab_iterator::rec_dhashtab_iterator(rec_dhashtab &ht,
     allbuckets = (key == (void *)-1);
     order      = Order;
     cbucket    = allbuckets ? (order == DhAscending ? 0 : chashtab->sz - 1) :
-                           (chashtab->bucket(key));
-    nextlink = new rec_dlist_iterator(chashtab->a[cbucket],
+                              (chashtab->bucket(key));
+    nextlink   = new rec_dlist_iterator(chashtab->a[cbucket],
                                       order == DhAscending ? DlAscending :
-                                                             DlDescending);
+                                                               DlDescending);
 }
 
 rec_dhashtab_iterator::~rec_dhashtab_iterator()

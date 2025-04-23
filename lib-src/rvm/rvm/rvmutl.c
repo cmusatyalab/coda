@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2021 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -3107,10 +3107,10 @@ match_values(nv_range_t *nv /* range header located */,
             }
         } else /* integer values */
             if ((len = num_format_size(num_format)) <= sizeof(rvm_length_t)) {
-            lword    = RVM_OFFSET_TO_LENGTH(temp);
-            scan_ptr = (char *)&lword;
-        } else
-            scan_ptr = (char *)&temp;
+                lword    = RVM_OFFSET_TO_LENGTH(temp);
+                scan_ptr = (char *)&lword;
+            } else
+                scan_ptr = (char *)&temp;
 
         /* make data addressable and do comparison */
         if ((data_ptr = chk_aux_buf(&cmp_offset, len, err_stream)) == NULL)
@@ -4729,7 +4729,10 @@ static void kill_tree(tree_root_t *tree)
 {
     dev_region_t *node;
 
-    UNLINK_NODES_OF(*tree, dev_region_t, node) { free_dev_region(node); }
+    UNLINK_NODES_OF(*tree, dev_region_t, node)
+    {
+        free_dev_region(node);
+    }
 }
 
 static void clear_cut(void)

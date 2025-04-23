@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2021 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -1097,9 +1097,9 @@ static int PerformResOp(rsle *r, dlist *vlist, olist *AllLogs, vle *pv,
         }
         int tblocks = 0;
         errorCode   = PerformCreate(NULL, VSGVolnum, volptr, pv->vptr, cv->vptr,
-                                  name, pv->vptr->disk.unixModifyTime,
-                                  pv->vptr->disk.modeBits, 0, &r->storeid,
-                                  &pv->d_cinode, &tblocks);
+                                    name, pv->vptr->disk.unixModifyTime,
+                                    pv->vptr->disk.modeBits, 0, &r->storeid,
+                                    &pv->d_cinode, &tblocks);
         *blocks += tblocks;
         CODA_ASSERT(errorCode == 0);
         cv->vptr->disk.owner  = r->u.create.owner; /* sent in a NULL client */

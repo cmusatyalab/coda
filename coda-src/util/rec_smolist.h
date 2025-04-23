@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2021 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -91,8 +91,8 @@ class rec_smolist_iterator {
 public:
     rec_smolist_iterator(rec_smolist &);
     rec_smolink *operator()(); // return next object or 0
-        // Support safe deletion of currently
-        // returned entry.  See dlist.h also.
+    // Support safe deletion of currently
+    // returned entry.  See dlist.h also.
 };
 
 struct rec_smolink {

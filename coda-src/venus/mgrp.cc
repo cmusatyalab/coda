@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -588,19 +588,19 @@ int mgrpent::CheckCOP1(int acode, ViceVersionVector *UpdateSet,
         return (code);
 
     /* Look for unanimity, masking off more and more error types. */
-    static int ErrorMasks[] = { _ETIMEDOUT,
-                                _ETIMEDOUT | _EINVAL,
-                                _ETIMEDOUT | _EINVAL | _ENXIO,
-                                _ETIMEDOUT | _EINVAL | _ENXIO | _EIO,
-                                _ETIMEDOUT | _EINVAL | _ENXIO | _EIO | ENOSPC,
-                                _ETIMEDOUT | _EINVAL | _ENXIO | _EIO | ENOSPC |
-                                    EDQUOT,
-                                _ETIMEDOUT | _EINVAL | _ENXIO | _EIO | ENOSPC |
-                                    EDQUOT | _EACCES,
-                                _ETIMEDOUT | _EINVAL | _ENXIO | _EIO | ENOSPC |
-                                    EDQUOT | _EACCES | _EWOULDBLOCK };
-    static int nErrorMasks  = (int)(sizeof(ErrorMasks) / sizeof(int));
-    int mask                = ErrorMasks[0];
+    static int ErrorMasks[] = {
+        _ETIMEDOUT,
+        _ETIMEDOUT | _EINVAL,
+        _ETIMEDOUT | _EINVAL | _ENXIO,
+        _ETIMEDOUT | _EINVAL | _ENXIO | _EIO,
+        _ETIMEDOUT | _EINVAL | _ENXIO | _EIO | ENOSPC,
+        _ETIMEDOUT | _EINVAL | _ENXIO | _EIO | ENOSPC | EDQUOT,
+        _ETIMEDOUT | _EINVAL | _ENXIO | _EIO | ENOSPC | EDQUOT | _EACCES,
+        _ETIMEDOUT | _EINVAL | _ENXIO | _EIO | ENOSPC | EDQUOT | _EACCES |
+            _EWOULDBLOCK
+    };
+    static int nErrorMasks = (int)(sizeof(ErrorMasks) / sizeof(int));
+    int mask               = ErrorMasks[0];
     for (i = 0; i < nErrorMasks; i++) {
         mask = ErrorMasks[i];
         if (Unanimity(&code, rocc.hosts, rocc.retcodes, mask)) {

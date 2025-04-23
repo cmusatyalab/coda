@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2021 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -1136,7 +1136,9 @@ void hdbent::operator delete(void *deadobj)
 void hdbent::print(int afd)
 {
     fdprint(afd, "<%x@%s, %s>, %d, %d%s\n", vid, realm, name, uid, priority,
-            (expand_children ? ":c+" : expand_descendents ? ":d+" : ""));
+            (expand_children    ? ":c+" :
+             expand_descendents ? ":d+" :
+                                  ""));
 }
 
 void hdbent::printsuspect(int afd, int verbosity)
@@ -1500,7 +1502,7 @@ void namectxt::operator delete(void *deadobj)
     if (freenamectxts.count() < MaxFreeNameCtxts)
         freenamectxts.append(&n->fl_handle);
     else
-        delete[]((char *)deadobj);
+        delete[] ((char *)deadobj);
 }
 
 void namectxt::hold()

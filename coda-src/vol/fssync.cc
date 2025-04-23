@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2021 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -232,10 +232,10 @@ int FSYNC_askfs(VolumeId volume, int command, int reason)
                     0,
                     "FSYNC: Volume %x (%s) was left on line for an external %s request",
                     V_id(vp), V_name(vp),
-                    reason == V_CLONE ? "clone" :
-                                        reason == V_READONLY ?
-                                        "readonly" :
-                                        reason == V_DUMP ? "dump" : "UNKNOWN");
+                    reason == V_CLONE    ? "clone" :
+                    reason == V_READONLY ? "readonly" :
+                    reason == V_DUMP     ? "dump" :
+                                           "UNKNOWN");
             }
             if (vp)
                 VPutVolume(vp);

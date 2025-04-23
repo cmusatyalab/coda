@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2021 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -577,7 +577,7 @@ int fsobj::Access(int rights, int modes, uid_t uid)
                 ((modes & C_A_R_OK) && !(stat.Mode & OWNERREAD)))
                 return EACCES;
 
-                /* Refine the permissions according to the file mode bits. */
+        /* Refine the permissions according to the file mode bits. */
 #if 0
 	static char fileModeMap[8] = {
 	    PRSFS_INSERT | PRSFS_DELETE	| PRSFS_ADMINISTER,				* --- *

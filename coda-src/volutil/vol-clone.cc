@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2021 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -440,10 +440,10 @@ static void VUCloneIndex(Error *error, Volume *rwVp, Volume *cloneVp,
 int CloneVnode(Volume *rwVp, Volume *cloneVp, int vnodeIndex,
                rec_smolist *rvlist, VnodeDiskObject *vnode, VnodeClass vclass)
 {
-    Error error  = 0;
-    int vnodeNum = bitNumberToVnodeNumber(vnodeIndex, vclass);
-    int size     = (vclass == vSmall) ? SIZEOF_SMALLDISKVNODE :
-                                    SIZEOF_LARGEDISKVNODE;
+    Error error          = 0;
+    int vnodeNum         = bitNumberToVnodeNumber(vnodeIndex, vclass);
+    int size             = (vclass == vSmall) ? SIZEOF_SMALLDISKVNODE :
+                                                SIZEOF_LARGEDISKVNODE;
     VnodeDiskObject *vdo = (VnodeDiskObject *)rvmlib_rec_malloc(size);
     int docreate         = FALSE;
 

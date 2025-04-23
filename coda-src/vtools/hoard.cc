@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -73,7 +73,7 @@ extern FILE *_findiop();
 #endif
 #define FATAL 1
 #define MAXCMDLEN (MAXPATHLEN + 1024)
-#define ALL_UIDS ((vuid_t)-1)
+#define ALL_UIDS ((vuid_t) - 1)
 
 /* Global Variables. */
 char cwd[MAXPATHLEN];

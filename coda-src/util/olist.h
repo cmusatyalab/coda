@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -78,8 +78,8 @@ public:
     olink *clink; // current olink
     olist_iterator(olist &);
     olink *operator()(); // return next object or 0
-        // Does NOT support safe deletion of currently
-        // returned entry.
+    // Does NOT support safe deletion of currently
+    // returned entry.
     void reset(); // allow re-use of iterator (Satya, 5/04)
 };
 

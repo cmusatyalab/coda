@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 2018-2021 Carnegie Mellon University
+          Copyright (c) 2018-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -395,13 +395,11 @@ static void cnode2qid(struct venus_cnode *cnode, struct plan9_qid *qid)
 {
     fsobj *f;
 
-    qid->type = (cnode->c_type == C_VDIR) ?
-                    P9_QTDIR :
-                    (cnode->c_type == C_VLNK) ?
-                    P9_QTSYMLINK :
-                    (cnode->c_type == C_VREG) ? P9_QTFILE :
-                                                // P9_QTFILE is defined as 0
-                            0;
+    qid->type = (cnode->c_type == C_VDIR) ? P9_QTDIR :
+                (cnode->c_type == C_VLNK) ? P9_QTSYMLINK :
+                (cnode->c_type == C_VREG) ? P9_QTFILE :
+                                            // P9_QTFILE is defined as 0
+                                            0;
 
     qid->path = SpookyHash::Hash64(&cnode->c_fid, sizeof(VenusFid), 0);
 
@@ -1945,9 +1943,9 @@ int plan9server::recv_setattr(unsigned char *buf, size_t len, uint16_t tag)
         stat.st_mtime_nsec);
 
     struct coda_timespec atime       = { (time_t)stat.st_atime_sec,
-                                   (long)stat.st_atime_nsec };
+                                         (long)stat.st_atime_nsec };
     struct coda_timespec mtime       = { (time_t)stat.st_mtime_sec,
-                                   (long)stat.st_mtime_nsec };
+                                         (long)stat.st_mtime_nsec };
     struct coda_timespec ignore_time = { VA_IGNORE_TIME1, VA_IGNORE_TIME1 };
     struct coda_timespec now_time;
 #ifdef HAVE_CLOCK_GETTIME

@@ -847,8 +847,9 @@ static void PrintCacheEntries(CacheEventEntry entry)
 
 static void PrintVCET(VmonCommEventType Type)
 {
-    printf("%4s  ",
-           Type == ServerDown ? "DOWN" : Type == ServerUp ? "UP" : "???");
+    printf("%4s  ", Type == ServerDown ? "DOWN" :
+                    Type == ServerUp   ? "UP" :
+                                         "???");
 }
 
 static void PrintCallArray(unsigned long size, CallCountEntry *array)

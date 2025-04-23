@@ -3,7 +3,7 @@
 			Coda File System
 			    Release 8
 
-	    Copyright (c) 1987-2020 Carnegie Mellon University
+	    Copyright (c) 1987-2025 Carnegie Mellon University
 		Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -251,8 +251,8 @@ long rpc2_RecvPacket(IN long whichSocket, OUT RPC2_PacketBuffer *whichBuff)
     /* WARNING: only Internet works; no warnings */
     fromlen = sizeof(ss);
     rc      = secure_recvfrom(whichSocket, &whichBuff->Header, len, 0,
-                         (struct sockaddr *)&ss, &fromlen,
-                         &whichBuff->Prefix.sa, rpc2_GetSA);
+                              (struct sockaddr *)&ss, &fromlen,
+                              &whichBuff->Prefix.sa, rpc2_GetSA);
     if (rc > len) {
         errno = ENOMEM;
         rc    = -1;

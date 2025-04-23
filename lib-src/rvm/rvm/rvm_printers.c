@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 5
+                              Release 8
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -332,8 +332,8 @@ pr_log_stats(rvm_statistics_t *stats /* ptr top statistics record */,
     n_recs   = n_trans + stats->n_special + stats->n_wrap;
     tot_recs = tot_trans + stats->tot_special + stats->tot_wrap;
     err      = fprintf(out_stream,
-                  "  Total records:                  %10ld %10ld\n\n", n_recs,
-                  tot_recs + n_recs);
+                       "  Total records:                  %10ld %10ld\n\n", n_recs,
+                       tot_recs + n_recs);
     if (err == EOF)
         return RVM_EIO;
     err = fprintf(out_stream,

@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-             Copyright (c) 2021 Carnegie Mellon University
+          Copyright (c) 2021-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -46,10 +46,10 @@ extern struct __attribute__((capability("mutex"))) {
 /* Simple begin transaction, end transaction annotations */
 #define BEGINS_TRANSACTION                                  \
     __attribute__((release_capability(__no_transaction__))) \
-        __attribute__((acquire_capability(__rvm_transaction__)))
+    __attribute__((acquire_capability(__rvm_transaction__)))
 #define ENDS_TRANSACTION                                     \
     __attribute__((release_capability(__rvm_transaction__))) \
-        __attribute__((acquire_capability(__no_transaction__)))
+    __attribute__((acquire_capability(__no_transaction__)))
 
 /* This formalize the existing 'MUST be called from within transaction'
  * comments as a traceable annotation on the function prototype. */

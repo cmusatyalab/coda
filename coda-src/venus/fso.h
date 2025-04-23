@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2021 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -454,7 +454,7 @@ class fsobj {
     void *operator new(size_t, fso_alloc_t)
         REQUIRES_TRANSACTION; /* for allocation from heap */
     void *operator new(size_t); /* dummy to pacify g++ */
-    void operator delete(void *)REQUIRES_TRANSACTION;
+    void operator delete(void *) REQUIRES_TRANSACTION;
     fsobj(int) REQUIRES_TRANSACTION;
     fsobj(VenusFid *, const char *) REQUIRES_TRANSACTION;
     void ResetPersistent() REQUIRES_TRANSACTION;
@@ -835,20 +835,20 @@ void FSOD_ReclaimFSOs(void);
     }
 #define CFSOP_POSTLUDE(str) MarinerLog((str));
 
-#define PrintFsoState(state) \
-    (state == FsoRunt ?      \
-         "Runt" :            \
-         state == FsoNormal ? "Normal" : state == FsoDying ? "Dying" : "???")
-#define PrintVnodeType(vnodetype)      \
-    (vnodetype == (int)File ?          \
-         "File" :                      \
-         vnodetype == (int)Directory ? \
-         "Directory" :                 \
-         vnodetype == (int)SymbolicLink ? "Symlink" : "???")
-#define PrintMvStat(mvstat)                    \
-    (mvstat == NORMAL ?                        \
-         "Normal" :                            \
-         mvstat == MOUNTPOINT ? "MountPoint" : \
-                                mvstat == ROOT ? "Root" : "???")
+#define PrintFsoState(state)         \
+    (state == FsoRunt   ? "Runt" :   \
+     state == FsoNormal ? "Normal" : \
+     state == FsoDying  ? "Dying" :  \
+                          "???")
+#define PrintVnodeType(vnodetype)                   \
+    (vnodetype == (int)File         ? "File" :      \
+     vnodetype == (int)Directory    ? "Directory" : \
+     vnodetype == (int)SymbolicLink ? "Symlink" :   \
+                                      "???")
+#define PrintMvStat(mvstat)                \
+    (mvstat == NORMAL     ? "Normal" :     \
+     mvstat == MOUNTPOINT ? "MountPoint" : \
+     mvstat == ROOT       ? "Root" :       \
+                            "???")
 
 #endif /* _VENUS_FSO_H_ */

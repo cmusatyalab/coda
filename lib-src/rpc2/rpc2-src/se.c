@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 5
+                              Release 8
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -51,7 +51,7 @@ struct SE_Definition
     *SE_DefSpecs; /* array of definitions, one per activated side-effect */
 long SE_DefCount;
 
-char *SE_ErrorMsg(rc) long rc;
+char *SE_ErrorMsg(long rc)
 /* Returns a pointer to a static string describing error rc. */
 {
     static char msgbuf[100];

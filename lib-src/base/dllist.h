@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -34,10 +34,10 @@ struct dllist_head {
 #define INIT_LIST_HEAD(name) struct dllist_head name = { &name, &name }
 
 #define list_entry(ptr, type, member) \
-    ((type *)((char *)(ptr)-offsetof(type, member)))
+    ((type *)((char *)(ptr) - offsetof(type, member)))
 
 #define list_entry_plusplus(ptr, type, member) \
-    ((type *)((char *)(ptr)-coda_offsetof(type, member)))
+    ((type *)((char *)(ptr) - coda_offsetof(type, member)))
 
 #define list_for_each(ptr, head) \
     for (ptr = (head).next; ptr != &(head); ptr = ptr->next)

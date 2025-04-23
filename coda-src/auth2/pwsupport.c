@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 7
+                              Release 8
 
-          Copyright (c) 1987-2020 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -294,7 +294,7 @@ static void AppendPW(int vId, RPC2_EncryptionKey eKey, char *otherInfo,
     /* Build an image of the line to be appended */
     cl = time(NULL);
     n  = snprintf(buf, sizeof(buf), "%d\t%s\t%s\t# By %d at %s", vId, hexkey,
-                 otherInfo, agentId, ctime(&cl));
+                  otherInfo, agentId, ctime(&cl));
     if (n >= sizeof(buf)) {
         LogMsg(-1, 0, stdout, "Overflow in AppendPW by %d, not updating",
                agentId);

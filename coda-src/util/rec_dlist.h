@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2021 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -54,7 +54,7 @@ class rec_dlist {
 
 public:
     void *operator new(size_t) REQUIRES_TRANSACTION;
-    void operator delete(void *)REQUIRES_TRANSACTION;
+    void operator delete(void *) REQUIRES_TRANSACTION;
 
     rec_dlist(RCFN = 0);
     ~rec_dlist();
@@ -89,9 +89,9 @@ class rec_dlist_iterator {
 public:
     rec_dlist_iterator(rec_dlist &, DlIterOrder = DlAscending);
     rec_dlink *operator()(); // return next object or 0
-        // Does *not* support safe deletion
-        // of currently returned entry.  See the
-        // comment in dlist.h for more explanation.
+    // Does *not* support safe deletion
+    // of currently returned entry.  See the
+    // comment in dlist.h for more explanation.
 };
 
 class rec_dlink { /* objects are derived from this class */

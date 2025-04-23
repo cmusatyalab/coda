@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 5
+                              Release 8
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -101,7 +101,7 @@ struct IoRequest {
 \********************************/
 
 #define badsig(signo) (((signo) <= 0) || ((signo) >= NSIG))
-#define mysigmask(signo) (1 << ((signo)-1))
+#define mysigmask(signo) (1 << ((signo) - 1))
 
 static long sigsHandled; /* sigmask(signo) is on if we handle signo */
 static int anySigsDelivered; /* true if any have been delivered. */

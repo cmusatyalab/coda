@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -37,10 +37,10 @@ Coda are listed in the file CREDITS.
 #define WEXITSTATUS(x)  ((unsigned(x) >> 8)
 #endif
 #ifndef WTERMSIG
-#define WTERMSIG(x) ((x)&255)
+#define WTERMSIG(x) ((x) & 255)
 #endif
 #ifndef WCOREDUMP
-#define WCOREDUMP(x) ((x)&0200)
+#define WCOREDUMP(x) ((x) & 0200)
 #endif
 
 #endif /* CODA_WAIT_H */

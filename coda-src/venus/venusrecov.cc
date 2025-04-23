@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2021 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -606,10 +606,10 @@ void RecovFlush(int Force)
     unsigned long FlushSize =
         RVM_OFFSET_TO_LENGTH(Recov_Statistics.no_flush_length);
 
-    const char *reason = (Force) ? "F" :
-                                   (Recov_TimeToFlush <= 0) ?
-                                   "T" :
-                                   (FlushSize >= MAXFS) ? "S" : "I";
+    const char *reason = (Force)                  ? "F" :
+                         (Recov_TimeToFlush <= 0) ? "T" :
+                         (FlushSize >= MAXFS)     ? "S" :
+                                                    "I";
 
     Recov_TimeToFlush = MAXFP;
     if (FlushSize == 0)

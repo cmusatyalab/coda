@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -182,7 +182,7 @@ int sftp_InitIO(struct SFTP_Entry *sEntry)
 #ifdef HAVE_IOPEN
     case FILEBYINODE:
         sEntry->openfd    = iopen(sftpd->FileInfo.ByInode.Device,
-                               sftpd->FileInfo.ByInode.Inode, oflags);
+                                  sftpd->FileInfo.ByInode.Inode, oflags);
         sEntry->fd_offset = 0;
         if (sEntry->openfd < 0) {
             if (RPC2_Perror)

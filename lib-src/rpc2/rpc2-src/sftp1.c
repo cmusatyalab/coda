@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 7
+                              Release 8
 
-          Copyright (c) 1987-2019 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -301,20 +301,20 @@ long SFTP_MakeRPC1(IN RPC2_Handle ConnHandle, INOUT SE_Descriptor *SDesc,
         /* Try piggybacking file on store */
         if (SDesc->Value.SmartFTPD.TransmissionDirection == CLIENTTOSERVER &&
             SFTP_DoPiggy) {
-        len = sftp_AppendFileToPacket(se, RequestPtr);
-        switch (len) {
-        case -1:
-            FAIL(se, RPC2_SEFAIL4);
+            len = sftp_AppendFileToPacket(se, RequestPtr);
+            switch (len) {
+            case -1:
+                FAIL(se, RPC2_SEFAIL4);
 
-        case -2:
-            break; /* file too big to fit */
+            case -2:
+                break; /* file too big to fit */
 
-        default:
-            sftp_Progress(SDesc, len);
-            sftp_didpiggy++;
-            break;
+            default:
+                sftp_Progress(SDesc, len);
+                sftp_didpiggy++;
+                break;
+            }
         }
-    }
 
     return (RPC2_SUCCESS);
 }
@@ -1237,17 +1237,16 @@ FILE *outFile;
     }
 
     fprintf(outFile, "Tag:    SMARTFTP\n");
-    fprintf(outFile,
-            "TransmissionDirection:    %s    hashmark:    '%c'   "
-            "SeekOffset:    %ld    BytesTransferred:    %ld    "
-            "ByteQuota:    %ld    QuotaExceeded:    %ld\n",
-            (sftpd->TransmissionDirection == CLIENTTOSERVER) ?
-                "CLIENTTOSERVER" :
-                (sftpd->TransmissionDirection == SERVERTOCLIENT) ?
-                "SERVERTOCLIENT" :
-                "??????",
-            sftpd->hashmark, sftpd->SeekOffset, sftpd->BytesTransferred,
-            sftpd->ByteQuota, sftpd->QuotaExceeded);
+    fprintf(
+        outFile,
+        "TransmissionDirection:    %s    hashmark:    '%c'   "
+        "SeekOffset:    %ld    BytesTransferred:    %ld    "
+        "ByteQuota:    %ld    QuotaExceeded:    %ld\n",
+        (sftpd->TransmissionDirection == CLIENTTOSERVER) ? "CLIENTTOSERVER" :
+        (sftpd->TransmissionDirection == SERVERTOCLIENT) ? "SERVERTOCLIENT" :
+                                                           "??????",
+        sftpd->hashmark, sftpd->SeekOffset, sftpd->BytesTransferred,
+        sftpd->ByteQuota, sftpd->QuotaExceeded);
 
     switch (sftpd->Tag) {
     case FILEBYNAME:

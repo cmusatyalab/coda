@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2021 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -86,10 +86,10 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
     case _VIOC_SETVV: {
         fsobj *f = 0;
 
-        int volmode = (nr == _VIOCSETAL || nr == _VIOC_ADD_MT_PT ||
+        int volmode  = (nr == _VIOCSETAL || nr == _VIOC_ADD_MT_PT ||
                        nr == _VIOC_AFS_DELETE_MT_PT || nr == _VIOC_SETVV) ?
-                          VM_MUTATING :
-                          VM_OBSERVING;
+                           VM_MUTATING :
+                           VM_OBSERVING;
         int rcrights = RC_STATUS;
         if (nr == _VIOC_ADD_MT_PT || nr == _VIOC_AFS_DELETE_MT_PT)
             rcrights |= RC_DATA;
@@ -680,7 +680,7 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
                     ViceFid fid;
                     ViceVersionVector vv;
                     char realm[MAXHOSTNAMELEN + 1];
-                } * cp;
+                } *cp;
                 cp = (struct GetFid *)data->out;
 
                 /* Copy out the fid. */
@@ -747,7 +747,7 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
             struct listcache_in {
                 uint8_t long_format;
                 uint8_t valid;
-            } * data_in;
+            } *data_in;
             char listcache_temp[] = "/tmp/listcache-XXXXXX";
             FILE *temp_fp;
             int temp_fd;
@@ -1444,7 +1444,7 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
             struct listcache_in {
                 uint8_t long_format;
                 uint8_t valid;
-            } * data_in;
+            } *data_in;
             char listcache_temp[] = "/tmp/listcache-XXXXXX";
             FILE *temp_fp;
             int temp_fd;

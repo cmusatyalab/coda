@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -84,7 +84,7 @@ class hashent : public olink {
 
 public:
     hashent(VolumeId, int);
-    ~hashent(){};
+    ~hashent() {};
 };
 
 extern int HashInsert(VolumeId, int);

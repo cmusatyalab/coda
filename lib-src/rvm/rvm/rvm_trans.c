@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 7
+                              Release 8
 
-          Copyright (c) 1987-2019 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -294,12 +294,13 @@ find_overlap(int_tid_t *tid /* transaction descriptor to search */,
         } else
             /* test if non-overlapping values follow new range */
             if (RVM_OFFSET_GTR(range->end_offset, new_range->end_offset)) {
-            off_tmp  = RVM_SUB_OFFSETS(new_range->end_offset, range->nv.offset);
-            *overlap = RVM_ADD_OFFSETS(*overlap, off_tmp);
-            new_range->end_offset = range->end_offset;
-        } else
-            /* range completely contained in new range */
-            *overlap = RVM_ADD_LENGTH_TO_OFFSET(*overlap, range->nv.length);
+                off_tmp =
+                    RVM_SUB_OFFSETS(new_range->end_offset, range->nv.offset);
+                *overlap              = RVM_ADD_OFFSETS(*overlap, off_tmp);
+                new_range->end_offset = range->end_offset;
+            } else
+                /* range completely contained in new range */
+                *overlap = RVM_ADD_LENGTH_TO_OFFSET(*overlap, range->nv.length);
 
         /* update length of composite range */
         new_range->nv.length = RVM_OFFSET_TO_LENGTH(

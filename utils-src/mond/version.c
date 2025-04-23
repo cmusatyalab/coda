@@ -192,9 +192,9 @@ long MondEstablishConn(RPC2_Handle cid, unsigned long Version, long clientType,
         LogMsg(0, LogLevel, LogFile,
                "Incompatible Version request: host %s [%s]; version %ld",
                badhost,
-               (clientType == MOND_VENUS_CLIENT) ?
-                   "venus" :
-                   (clientType == MOND_VICE_CLIENT) ? "vice" : "???",
+               (clientType == MOND_VENUS_CLIENT) ? "venus" :
+               (clientType == MOND_VICE_CLIENT)  ? "vice" :
+                                                   "???",
                Version);
         delete[] badhost;
         return MOND_INCOMPATIBLE;

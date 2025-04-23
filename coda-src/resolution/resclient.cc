@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2021 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -418,9 +418,9 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid, char *name,
                     CODA_ASSERT(errorCode == 0);
                     cv->vptr->disk.dataVersion = 1;
                     cv->f_finode               = icreate(V_device(vp), V_id(vp),
-                                           cv->vptr->vnodeNumber,
-                                           cv->vptr->disk.uniquifier,
-                                           cv->vptr->disk.dataVersion);
+                                                         cv->vptr->vnodeNumber,
+                                                         cv->vptr->disk.uniquifier,
+                                                         cv->vptr->disk.dataVersion);
                     CODA_ASSERT(cv->f_finode > 0);
                     cv->vptr->disk.node.inodeNumber = cv->f_finode;
 
@@ -442,17 +442,17 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid, char *name,
                     }
                     int tblocks = 0;
                     errorCode   = PerformSymlink(NULL, VSGVolnum, vp, pv->vptr,
-                                               cv->vptr, name, 0, 0,
-                                               pv->vptr->disk.unixModifyTime,
-                                               pv->vptr->disk.modeBits, 0,
-                                               &stid, &pv->d_cinode, &tblocks);
+                                                 cv->vptr, name, 0, 0,
+                                                 pv->vptr->disk.unixModifyTime,
+                                                 pv->vptr->disk.modeBits, 0,
+                                                 &stid, &pv->d_cinode, &tblocks);
                     *blocks += tblocks;
                     CODA_ASSERT(errorCode == 0);
                     cv->vptr->disk.dataVersion = 1;
                     cv->f_finode               = icreate(V_device(vp), V_id(vp),
-                                           cv->vptr->vnodeNumber,
-                                           cv->vptr->disk.uniquifier,
-                                           cv->vptr->disk.dataVersion);
+                                                         cv->vptr->vnodeNumber,
+                                                         cv->vptr->disk.uniquifier,
+                                                         cv->vptr->disk.dataVersion);
                     CODA_ASSERT(cv->f_finode > 0);
                     cv->vptr->disk.node.inodeNumber = cv->f_finode;
 
@@ -475,10 +475,10 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid, char *name,
                     cv->d_inodemod = 1;
                     int tblocks    = 0;
                     errorCode      = PerformMkdir(NULL, VSGVolnum, vp, pv->vptr,
-                                             cv->vptr, name,
-                                             pv->vptr->disk.unixModifyTime,
-                                             pv->vptr->disk.modeBits, 0, &stid,
-                                             &pv->d_cinode, &tblocks);
+                                                  cv->vptr, name,
+                                                  pv->vptr->disk.unixModifyTime,
+                                                  pv->vptr->disk.modeBits, 0, &stid,
+                                                  &pv->d_cinode, &tblocks);
                     *blocks += tblocks;
                     CODA_ASSERT(errorCode == 0);
                     if ((errorCode = SpoolVMLogRecord(

@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 2004-2021 Carnegie Mellon University
+          Copyright (c) 2004-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -567,9 +567,9 @@ static ssize_t CollectACLs(FILE *out)
                 if (sscanf(nextc, "%ms\t%d\n", &name, &rights) == 2) {
                     tmp = yaml_encode_double_quoted_string(name);
                     rc  = snprintf(buf, sizeof(buf),
-                                  "  - name: \"%s\"\n"
-                                  "    rights: \"%s%s%s%s%s%s%s%s\"\n",
-                                  tmp, is_negative ? "-" : "",
+                                   "  - name: \"%s\"\n"
+                                    "    rights: \"%s%s%s%s%s%s%s%s\"\n",
+                                   tmp, is_negative ? "-" : "",
                                   rights & PRSFS_READ ? "r" : "",
                                   rights & PRSFS_LOOKUP ? "l" : "",
                                   rights & PRSFS_INSERT ? "i" : "",

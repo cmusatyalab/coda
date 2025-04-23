@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -49,7 +49,7 @@ extern "C" {
 #define LEFT(i) 2 * (i);
 #define RIGHT(i) 2 * (i) + 1;
 #define VID(lp) ntohl((lp)->volumeId[(lp)->volumeType])
-#define UNIQUE(vid) ((vid)&0xffffff) /* strip hostid bits */
+#define UNIQUE(vid) ((vid) & 0xffffff) /* strip hostid bits */
 
 void heapify(struct vldb a[], int i, int size)
 {

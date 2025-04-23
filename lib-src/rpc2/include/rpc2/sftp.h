@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 7
+                              Release 8
 
-          Copyright (c) 1987-2019 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -354,8 +354,8 @@ void sftp_ExaminePacket(RPC2_PacketBuffer *pb);
 /* Operations on integer array bitmask; leftmost position is 1, rightmost is
    32*BITMASKWIDTH Choice of 1 rather than 0 is deliberate:
    {Send,Recv}LastContig+1 corresponds to leftmost bit */
-#define WORDOFFSET(pos) (((pos)-1) >> 5) /* avoid / operator */
-#define BITOFFSET(pos) ((((pos)-1) & 31) + 1) /* avoid % operator */
+#define WORDOFFSET(pos) (((pos) - 1) >> 5) /* avoid / operator */
+#define BITOFFSET(pos) ((((pos) - 1) & 31) + 1) /* avoid % operator */
 #define PM(pos) (1L << (32 - (BITOFFSET(pos))))
 #define SETBIT(mask, pos) ((mask)[WORDOFFSET(pos)] |= PM(pos))
 #define TESTBIT(mask, pos) ((mask)[WORDOFFSET(pos)] & PM(pos))

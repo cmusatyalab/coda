@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 7
+                              Release 8
 
-          Copyright (c) 1987-2019 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -144,13 +144,11 @@ void rpc2_PrintSLEntry(struct SL_Entry *slPtr, FILE *tFile)
             "MagicNumber = %s  ReturnCode = %s\n\tTElem==>  ",
             slPtr, slPtr->LE.Next, slPtr->LE.Prev,
             WhichMagic(slPtr->LE.MagicNumber),
-            slPtr->ReturnCode == WAITING ?
-                "WAITING" :
-                slPtr->ReturnCode == ARRIVED ?
-                "ARRIVED" :
-                slPtr->ReturnCode == TIMEOUT ?
-                "TIMEOUT" :
-                slPtr->ReturnCode == NAKED ? "NAKED" : "??????");
+            slPtr->ReturnCode == WAITING ? "WAITING" :
+            slPtr->ReturnCode == ARRIVED ? "ARRIVED" :
+            slPtr->ReturnCode == TIMEOUT ? "TIMEOUT" :
+            slPtr->ReturnCode == NAKED   ? "NAKED" :
+                                           "??????");
     switch (slPtr->Type) {
     case REPLY:
         fprintf(tFile, "\tType = REPLY  Conn = %#x\n", slPtr->Conn);

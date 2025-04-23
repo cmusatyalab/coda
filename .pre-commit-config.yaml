@@ -21,12 +21,12 @@ repos:
         entry: tools/check-blurb --year
         language: script
         stages: [pre-commit,pre-merge-commit]
+
+  - repo: https://github.com/pre-commit/mirrors-clang-format
+    rev: v20.1.0
+    hooks:
       - id: clang-format
-        name: Format C/C++ source with clang-format
-        entry: tools/check-clang-format -style=file -i
-        language: script
-        types_or: [c, c++]
-        stages: [pre-commit,pre-merge-commit]
+        types_or: [c++, c]
 
   - repo: https://github.com/asottile/pyupgrade
     rev: v3.19.1

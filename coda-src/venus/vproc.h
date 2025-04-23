@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2021 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -350,11 +350,11 @@ extern int VprocInterrupted();
 extern void va_init(struct coda_vattr *);
 extern long FidToNodeid(VenusFid *);
 
-#define FTTOVT(ft)                         \
-    ((ft) == (int)File ?                   \
-         C_VREG :                          \
-         (ft) == (int)Directory ? C_VDIR : \
-                                  (ft) == (int)SymbolicLink ? C_VLNK : C_VREG)
+#define FTTOVT(ft)                        \
+    ((ft) == (int)File         ? C_VREG : \
+     (ft) == (int)Directory    ? C_VDIR : \
+     (ft) == (int)SymbolicLink ? C_VLNK : \
+                                 C_VREG)
 
 /* Venus cnodes are a small placeholder structure to pass arguments
    into the output buffer back to the kernel without clobbering the
@@ -393,13 +393,13 @@ struct venus_cnode {
 #define VA_IGNORE_ID ((unsigned long)-1)
 #define VA_IGNORE_NLINK ((short)-1)
 #define VA_IGNORE_BLOCKSIZE ((long)-1)
-#define VA_IGNORE_RDEV ((cdev_t)-1)
+#define VA_IGNORE_RDEV ((cdev_t) - 1)
 #define VA_IGNORE_STORAGE ((uint64_t)-1)
-#define VA_IGNORE_MODE ((u_short)-1)
-#define VA_IGNORE_UID ((uid_t)-1)
-#define VA_IGNORE_GID ((gid_t)-1)
+#define VA_IGNORE_MODE ((u_short) - 1)
+#define VA_IGNORE_UID ((uid_t) - 1)
+#define VA_IGNORE_GID ((gid_t) - 1)
 #define VA_IGNORE_SIZE ((uint64_t)-1)
 #define VA_IGNORE_TIME1 ((time_t)-1)
-#define VA_IGNORE_FLAGS ((u_long)-1)
+#define VA_IGNORE_FLAGS ((u_long) - 1)
 
 #endif /* _VENUS_PROC_H_ */

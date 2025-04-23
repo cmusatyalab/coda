@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2021 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -727,8 +727,8 @@ int cmlent::DoRepair(char *msg, int rcode)
                   FID_(&GObj->fid), FID_(&LObj->fid)));
         Date_t NewDate = LObj->stat.Date; /* use local date */
         code           = LObj->RepairSetAttr((unsigned long)-1, NewDate,
-                                   (unsigned short)-1, (unsigned short)-1,
-                                   NULL);
+                                             (unsigned short)-1, (unsigned short)-1,
+                                             NULL);
         LObj->GetPath(GlobalPath, 1);
         if (code == 0) {
             sprintf(msg, "setattr %s succeeded", LocalPath);

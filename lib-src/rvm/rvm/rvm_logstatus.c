@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 7
+                              Release 8
 
-          Copyright (c) 1987-2019 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -313,7 +313,7 @@ static rvm_return_t preload_wrt_buf(log_t *log /* log descriptor */)
         return RVM_EIO;
 
     dev->ptr         = RVM_ADD_LENGTH_TO_ADDR(dev->wrt_buf,
-                                      OFFSET_TO_SECTOR_INDEX(status->log_tail));
+                                              OFFSET_TO_SECTOR_INDEX(status->log_tail));
     dev->buf_start   = dev->ptr;
     dev->sync_offset = status->log_tail;
 

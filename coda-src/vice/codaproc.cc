@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2021 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -740,9 +740,9 @@ int GetMyRepairList(ViceFid *Fid, struct listhdr *replicaList, int replicaCount,
         else
             /* found an entry */
             if (found == -1)
-            found = i;
-        else /* duplicate entry */
-            return EINVAL;
+                found = i;
+            else /* duplicate entry */
+                return EINVAL;
     if (found != -1) {
         SLog(9, "GetMyRepairList found an entry ");
         *myCount = replicaList[found].repairCount;
@@ -1853,7 +1853,7 @@ int GetSubTree(ViceFid *fid, Volume *volptr, dlist *vlist)
     /* add object's fid into list */
     v             = AddVLE(*vlist, fid);
     v->d_inodemod = 1;
-Exit : {
+Exit: {
     vle *v;
     while ((v = (vle *)tmplist->get()))
         delete v;

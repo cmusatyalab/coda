@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 5
+                              Release 8
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -33,12 +33,12 @@ extern char *rvm_errmsg; /* internal error message buffer */
 extern rvm_bool_t rvm_utlsw; /* running under rvmutl */
 extern rvm_length_t rvm_optimizations; /* optimization switches */
 
-rvm_length_t flush_times_vec[flush_times_len]         = { flush_times_dist };
-rvm_length_t range_lengths_vec[range_lengths_len]     = { range_lengths_dist };
-rvm_length_t range_overlaps_vec[range_overlaps_len]   = { range_overlaps_dist };
-rvm_length_t trans_overlaps_vec[trans_overlaps_len]   = { trans_overlaps_dist };
-rvm_length_t range_elims_vec[range_elims_len]         = { range_elims_dist };
-rvm_length_t trans_elims_vec[trans_elims_len]         = { trans_elims_dist };
+rvm_length_t flush_times_vec[flush_times_len]       = { flush_times_dist };
+rvm_length_t range_lengths_vec[range_lengths_len]   = { range_lengths_dist };
+rvm_length_t range_overlaps_vec[range_overlaps_len] = { range_overlaps_dist };
+rvm_length_t trans_overlaps_vec[trans_overlaps_len] = { trans_overlaps_dist };
+rvm_length_t range_elims_vec[range_elims_len]       = { range_elims_dist };
+rvm_length_t trans_elims_vec[trans_elims_len]       = { trans_elims_dist };
 rvm_length_t trans_coalesces_vec[trans_coalesces_len] = { trans_coalesces_dist };
 
 /* forward decl */

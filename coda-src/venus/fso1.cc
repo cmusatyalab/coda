@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2021 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -548,7 +548,7 @@ FailSafe:
         eprint("\t(lost file data backed up to %s)", spoolfile);
     }
 
-Failure : {
+Failure: {
     LOG(0, ("fsobj::Recover: invalid fso (%s, %s), attempting to GC...\n", comp,
             FID_(&fid)));
     print(logFile);
@@ -1532,7 +1532,7 @@ void fsobj::ComputePriority(int Force)
                 static int initialized = 0;
                 static int RightShift;
                 if (!initialized) {
-#define log_2(x) (ffs(binaryfloor((x) + (x)-1) - 1))
+#define log_2(x) (ffs(binaryfloor((x) + (x) - 1) - 1))
                     int LOG_MAXFILES = log_2(FSDB->MaxFiles);
                     int LOG_SSF      = log_2(FSDB->ssf);
                     int LOG_MAX_SPRI = log_2(FSO_MAX_SPRI);

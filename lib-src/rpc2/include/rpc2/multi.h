@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 7
+                              Release 8
 
-          Copyright (c) 1987-2019 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -110,7 +110,7 @@ typedef struct arg_info {
                 (object).SeqLen = 0;                                          \
             name##_bufs[name##_local_i] = (object);                           \
             name##_bufs[name##_local_i].SeqBody =                             \
-                (RPC2_ByteSeq)&name##_data[name##_local_i * maxbslen];        \
+                (RPC2_ByteSeq) & name##_data[name##_local_i * maxbslen];      \
             if ((object).SeqLen > 0)                                          \
                 memcpy(name##_bufs[name##_local_i].SeqBody, (object).SeqBody, \
                        (int)(object).SeqLen);                                 \

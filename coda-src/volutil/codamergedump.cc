@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2021 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -362,7 +362,7 @@ static void WriteTable(DumpBuffer_t *buf, vtable *table, VnodeClass vclass)
             (ptr->dump)->setIndex(vclass);
             vnum = bitNumberToVnodeNumber(i, vclass);
             rc   = (ptr->dump)->getVnode(vnum, ptr->unique, ptr->offset, vdo,
-                                       &eacl);
+                                         &eacl);
             if (rc == -1) {
                 LogMsg(0, VolDebugLevel, stderr,
                        "Couldn't get Vnode %d 2nd time, offset %x.", vnum,

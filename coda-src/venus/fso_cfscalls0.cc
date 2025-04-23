@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2021 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -620,7 +620,7 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
                                     "fetch::GetAttr %s\n";
     const char *post_str = getacl ? "fetch::GetACL done\n" :
                                     "fetch::GetAttr done\n";
-    unsigned int i = 0;
+    unsigned int i       = 0;
     struct MRPC_common_params rpc_common;
     struct in_addr ph_addr;
 

@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2021 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -57,7 +57,7 @@ class recov_vol_log {
     int admin_limit; // absolute limit on # of log entries changed by volutil
     int size; // <= admin_limit; number of entries in volume log
     recle **index; // array of ptrs to log record blocks :
-        // size = admin_limit/LOGRECORD_BLOCKSIZE
+    // size = admin_limit/LOGRECORD_BLOCKSIZE
     int rec_max_seqno;
     bitmap
         recov_inuse; // bitmap in rvm to indicate if an index in the log is being used
@@ -85,7 +85,7 @@ public:
     void *operator new(size_t) REQUIRES_TRANSACTION;
     recov_vol_log(VolumeId = 0, int adm = 4096); // default: max 4k log entries
     ~recov_vol_log();
-    void operator delete(void *)REQUIRES_TRANSACTION;
+    void operator delete(void *) REQUIRES_TRANSACTION;
     int init(int);
     void ResetTransients(VolumeId = 0);
 

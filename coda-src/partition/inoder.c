@@ -1,10 +1,9 @@
-
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -131,13 +130,13 @@ int main(int argc, char **argv)
 
     } else if (strcmp(argv[3], "setheader") == 0) {
         if (argc == 10) {
-            int magic              = dp->ops->magic();
-            Inode ino              = atoi(argv[4]);
-            int lnk                = atoi(argv[5]);
-            int vol                = atoi(argv[6]);
-            int vnode              = atoi(argv[7]);
-            int unique             = atoi(argv[8]);
-            int version            = atoi(argv[9]);
+            int magic   = dp->ops->magic();
+            Inode ino   = atoi(argv[4]);
+            int lnk     = atoi(argv[5]);
+            int vol     = atoi(argv[6]);
+            int vnode   = atoi(argv[7]);
+            int unique  = atoi(argv[8]);
+            int version = atoi(argv[9]);
             struct i_header header = { lnk, vol, vnode, unique, version, magic };
 
             rc = dp->ops->put_header(dp, &header, ino);

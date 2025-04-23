@@ -49,8 +49,7 @@ void ds_safeq_destroy(q) ds_safeq_t *q;
     FREE(q);
 }
 
-void ds_safeq_enq(q, i) ds_safeq_t *q;
-void *i;
+void ds_safeq_enq(ds_safeq_t *q, void *i)
 {
     CODA_ASSERT(DS_SAFEQ_VALID(q));
     ObtainWriteLock(&q->sq_lock);
@@ -59,7 +58,7 @@ void *i;
     ReleaseWriteLock(&q->sq_lock);
 }
 
-void *ds_safeq_deq(q) ds_safeq_t *q;
+void *ds_safeq_deq(ds_safeq_t *q)
 {
     void *result;
 

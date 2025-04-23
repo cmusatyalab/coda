@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2021 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -90,7 +90,7 @@ public:
      * @param ptr     Pointer of the object to be deleted
      *
      */
-    void operator delete(void *ptr)TRANSACTION_OPTIONAL;
+    void operator delete(void *ptr) TRANSACTION_OPTIONAL;
 
     /**
      * Constructor

@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 5
+                              Release 8
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -18,7 +18,7 @@ Coda are listed in the file CREDITS.
 #include <string.h>
 #include <assert.h>
 
-#define _PAD(n) ((((n)-1) | 3) + 1)
+#define _PAD(n) ((((n) - 1) | 3) + 1)
 
 int pack_integer(BUFFER *buf, RPC2_Integer value)
 {

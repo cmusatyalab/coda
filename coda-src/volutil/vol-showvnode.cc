@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2021 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -131,11 +131,10 @@ long S_VolShowVnode(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
     fprintf(infofile,
             "%08x.%08x (%x), %s, cloned=%d, mode=%o, links=%d, length=%d\n",
             vnodeid, vnp->disk.uniquifier, vnp->disk.dataVersion,
-            vnp->disk.type == vFile ?
-                "file" :
-                vnp->disk.type == vDirectory ?
-                "directory" :
-                vnp->disk.type == vSymlink ? "symlink" : "unknown type",
+            vnp->disk.type == vFile      ? "file" :
+            vnp->disk.type == vDirectory ? "directory" :
+            vnp->disk.type == vSymlink   ? "symlink" :
+                                           "unknown type",
             vnp->disk.cloned, vnp->disk.modeBits, vnp->disk.linkCount,
             vnp->disk.length);
     timestamp = (time_t)vnp->disk.serverModifyTime;

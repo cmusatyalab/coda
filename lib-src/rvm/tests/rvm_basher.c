@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 7
+                              Release 8
 
-          Copyright (c) 1987-2019 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -328,7 +328,7 @@ move_list_ent(list_entry_t *fromptr /* from list header */,
 #define ROUND_TO_LENGTH(len)                                            \
     (((rvm_length_t)((rvm_length_t)(len) + sizeof(rvm_length_t) - 1)) & \
      LENGTH_MASK)
-#define CHOP_TO_LENGTH(len) ((rvm_length_t)((rvm_length_t)(len)&LENGTH_MASK))
+#define CHOP_TO_LENGTH(len) ((rvm_length_t)((rvm_length_t)(len) & LENGTH_MASK))
 #define ALIGNED_LEN(addr, len)                                     \
     (ROUND_TO_LENGTH((rvm_length_t)(addr) + (rvm_length_t)(len)) - \
      CHOP_TO_LENGTH(addr))
@@ -1365,7 +1365,7 @@ static void set_priority(void)
 #ifdef PRIO_PROCESS
     err = setpriority(PRIO_PROCESS, 0, priority);
 #else
-    err      = 0;
+    err = 0;
 #endif
     if (err != 0)
         printf("?  Error setting process priority, err = %d\n", err);

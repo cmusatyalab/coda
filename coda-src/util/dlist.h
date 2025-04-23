@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -84,9 +84,9 @@ class dlist_iterator {
 public:
     dlist_iterator(dlist &, DlIterOrder = DlAscending);
     dlink *operator()(); // return next object or 0.
-        // Does *not* support safe deletion
-        // of currently returned entry.  See the
-        // comment below for more explanation.
+    // Does *not* support safe deletion
+    // of currently returned entry.  See the
+    // comment below for more explanation.
 };
 
 class dlink { // objects are derived from this class

@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 2003-2021 Carnegie Mellon University
+          Copyright (c) 2003-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -39,7 +39,7 @@ public:
         CODA_ASSERT(p);
         return p;
     }
-    void operator delete(void *p)REQUIRES_TRANSACTION
+    void operator delete(void *p) REQUIRES_TRANSACTION
     {
         rvmlib_rec_free(p);
     } /*T*/

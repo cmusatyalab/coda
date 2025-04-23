@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -206,10 +206,10 @@ dhashtab_iterator::dhashtab_iterator(dhashtab &ht, void *key)
     allbuckets = (key == (void *)-1);
     order      = DhAscending;
     cbucket    = allbuckets ? (order == DhAscending ? 0 : chashtab->sz - 1) :
-                           (chashtab->hfn)(key) & (chashtab->sz - 1);
-    nextlink = new dlist_iterator(chashtab->a[cbucket],
-                                  ((order == DhAscending) ? DlAscending :
-                                                            DlDescending));
+                              (chashtab->hfn)(key) & (chashtab->sz - 1);
+    nextlink   = new dlist_iterator(chashtab->a[cbucket],
+                                    ((order == DhAscending) ? DlAscending :
+                                                              DlDescending));
 }
 
 dhashtab_iterator::dhashtab_iterator(dhashtab &ht, DhIterOrder Order, void *key)
@@ -218,10 +218,10 @@ dhashtab_iterator::dhashtab_iterator(dhashtab &ht, DhIterOrder Order, void *key)
     allbuckets = (key == (void *)-1);
     order      = Order;
     cbucket    = allbuckets ? (order == DhAscending ? 0 : chashtab->sz - 1) :
-                           (chashtab->hfn)(key) & (chashtab->sz - 1);
-    nextlink = new dlist_iterator(chashtab->a[cbucket], order == DhAscending ?
-                                                            DlAscending :
-                                                            DlDescending);
+                              (chashtab->hfn)(key) & (chashtab->sz - 1);
+    nextlink   = new dlist_iterator(chashtab->a[cbucket], order == DhAscending ?
+                                                              DlAscending :
+                                                              DlDescending);
 }
 
 dhashtab_iterator::~dhashtab_iterator()

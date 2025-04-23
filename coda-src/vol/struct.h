@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -26,4 +26,4 @@ listed in the file CREDITS.
 
 #define fldsiz(type, member) (sizeof(((type *)0)->member))
 #define strbase(type, p, member) \
-    ((type *)((char *)(p)-coda_offsetof(type, member)))
+    ((type *)((char *)(p) - coda_offsetof(type, member)))

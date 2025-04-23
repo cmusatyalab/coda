@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -67,11 +67,11 @@ VV_Cmp_Result VV_Cmp_IgnoreInc(const ViceVersionVector *a,
                 return (VV_INC); /* inconsistency! */
         else /* a_val < b_val */
             if (res != VV_DOM) {
-            res = VV_SUB;
-            continue;
-        } /* b dominates a so far */
-        else
-            return (VV_INC); /* inconsistency! */
+                res = VV_SUB;
+                continue;
+            } /* b dominates a so far */
+            else
+                return (VV_INC); /* inconsistency! */
     }
 
     return (res);

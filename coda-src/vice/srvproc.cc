@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2021 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -948,7 +948,7 @@ static void CopyOnWrite(Vnode *vptr, Volume *volptr)
              vptr->vnodeNumber);
         size = (int)vptr->disk.length;
         ino  = icreate(V_device(volptr), V_id(volptr), vptr->vnodeNumber,
-                      vptr->disk.uniquifier, vptr->disk.dataVersion);
+                       vptr->disk.uniquifier, vptr->disk.dataVersion);
         CODA_ASSERT(ino > 0);
         if (size > 0) {
             int infd, outfd, rc;
@@ -1104,9 +1104,9 @@ int AllocVnode(Vnode **vptr, Volume *volptr, ViceDataType vtype, ViceFid *Fid,
     CODA_ASSERT(vtype == vFile || vtype == vDirectory || vtype == vSymlink);
 
     /* Allocate/Retrieve the new vnode. */
-    int tblocks = (vtype == vFile) ? EMPTYFILEBLOCKS :
-                                     (vtype == vDirectory) ? EMPTYDIRBLOCKS :
-                                                             EMPTYSYMLINKBLOCKS;
+    int tblocks = (vtype == vFile)      ? EMPTYFILEBLOCKS :
+                  (vtype == vDirectory) ? EMPTYDIRBLOCKS :
+                                          EMPTYSYMLINKBLOCKS;
 
     if ((errorCode = AdjustDiskUsage(volptr, tblocks)))
         goto FreeLocks;
@@ -1982,13 +1982,11 @@ static int Check_CLMS_Semantics(ClientEntry *client, Vnode **dirvptr,
                                 void *dirVersion, void *Version, Rights *rights,
                                 Rights *anyrights, int MakeProtChecks)
 {
-    const char *ProcName = (opcode == CLMS_Create) ? "CheckCreateSemantics" :
-                                                     (opcode == CLMS_MakeDir) ?
-                                                     "CheckMkdirSemantics" :
-                                                     (opcode == CLMS_SymLink) ?
-                                                     "CheckSymlinkSemantics" :
-                                                     "CheckLinkSemantics";
-    int errorCode = 0;
+    const char *ProcName = (opcode == CLMS_Create)  ? "CheckCreateSemantics" :
+                           (opcode == CLMS_MakeDir) ? "CheckMkdirSemantics" :
+                           (opcode == CLMS_SymLink) ? "CheckSymlinkSemantics" :
+                                                      "CheckLinkSemantics";
+    int errorCode        = 0;
     ViceFid Did;
     Did.Volume = V_id(*volptr);
     Did.Vnode  = (*dirvptr)->vnodeNumber;
@@ -2119,7 +2117,7 @@ static int Check_RR_Semantics(ClientEntry *client, Vnode **dirvptr,
 {
     const char *ProcName = (type == vDirectory) ? "CheckRmdirSemantics" :
                                                   "CheckRemoveSemantics";
-    int errorCode = 0;
+    int errorCode        = 0;
     ViceFid Did;
     ViceFid Fid;
 

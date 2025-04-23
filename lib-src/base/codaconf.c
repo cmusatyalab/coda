@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -47,7 +47,7 @@ typedef struct _item {
     struct _item *next;
     char *name;
     char *value;
-} * item_t;
+} *item_t;
 
 static item_t codaconf_table = NULL;
 

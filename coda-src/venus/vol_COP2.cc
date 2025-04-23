@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -364,7 +364,7 @@ void cop2ent::operator delete(void *deadobj)
     if (freecop2ents.count() < MaxFreeCOP2ents)
         freecop2ents.append(c);
     else
-        delete[](char *) deadobj;
+        delete[] (char *)deadobj;
 }
 
 void cop2ent::print()

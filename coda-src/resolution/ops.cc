@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -363,7 +363,7 @@ int SpoolVMLogRecord(dlist *vlist, vle *v, Volume *vol, ViceStoreId *stid,
     if (v->vptr->disk.type != vDirectory)
         return 0;
 
-        /* Check whether resolution is required/allowed/requested for this volume */
+    /* Check whether resolution is required/allowed/requested for this volume */
 #if 0
     /* We only need to spool when the volume is replicated on >= 2 servers */
     if (vol->replication <= 1) return 0;

@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2021 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -50,7 +50,7 @@ class rec_olist {
 
 public:
     void *operator new(size_t) REQUIRES_TRANSACTION;
-    void operator delete(void *)REQUIRES_TRANSACTION;
+    void operator delete(void *) REQUIRES_TRANSACTION;
 
     rec_olist();
     rec_olist(rec_olist &); /* not supported! */

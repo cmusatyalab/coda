@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 7
+                              Release 8
 
-          Copyright (c) 1987-2019 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -910,9 +910,9 @@ scan_wrap_reverse(log_t *log /* log descriptor */,
     } else
         /* no wrap marker found */
         if (rvm_utlsw)
-        log_buf->ptr = -1; /* utility can deal with it */
-    else
-        assert(rvm_false);
+            log_buf->ptr = -1; /* utility can deal with it */
+        else
+            assert(rvm_false);
 
     return RVM_SUCCESS;
 }
@@ -1793,9 +1793,9 @@ chk_wrap(log_t *log /* log descriptor */,
     } else
         /* header is at start of aux_buf or recovery buffer */
         if (RVM_OFFSET_LSS(offset, log_buf->offset))
-        trans_hdr = (trans_hdr_t *)log_buf->aux_buf;
-    else
-        trans_hdr = (trans_hdr_t *)log_buf->buf;
+            trans_hdr = (trans_hdr_t *)log_buf->aux_buf;
+        else
+            trans_hdr = (trans_hdr_t *)log_buf->buf;
 
     /* check for split transaction */
     assert(trans_hdr->rec_hdr.struct_id == trans_hdr_id);
@@ -2166,7 +2166,7 @@ merge_node(log_t *log /* log descriptor */,
         dest_aligned_bcopy(node->nv_ptr, &log_buf->buf[temp], node->length);
     } else /* data on disk -- use aux_buf */
         if ((retval = disk_merge(log, node, preload)) != RVM_SUCCESS)
-        return retval;
+            return retval;
 
     /* free node and check for yield */
     (void)free_dev_region(node);

@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2021 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -610,7 +610,7 @@ static int ForceDir(vle *pv, Volume *volptr, VolumeId repvolid,
             int tblocks = 0;
             vle *cv     = AddVLE(*vlist, &cFid);
             errorCode   = AllocVnode(&cv->vptr, volptr, (ViceDataType)vFile,
-                                   &cFid, &parentFid, 0, &tblocks);
+                                     &cFid, &parentFid, 0, &tblocks);
             if (errorCode)
                 return errorCode;
             *deltablocks += tblocks;
@@ -652,7 +652,7 @@ static int ForceDir(vle *pv, Volume *volptr, VolumeId repvolid,
             int tblocks = 0;
             vle *cv     = AddVLE(*vlist, &cFid);
             errorCode   = AllocVnode(&cv->vptr, volptr, (ViceDataType)vSymlink,
-                                   &cFid, &parentFid, 0, &tblocks);
+                                     &cFid, &parentFid, 0, &tblocks);
             if (errorCode)
                 return errorCode;
             *deltablocks += tblocks;

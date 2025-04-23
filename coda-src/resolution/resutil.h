@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2021 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -70,46 +70,28 @@ he *FindHE(olist *list, long hostaddress);
 
 #define ResolveAfterCrash_OP RESOLVE_OPERATION_BASE - 1
 
-#define PRINTOPCODE(op)                          \
-    ((op) == RES_Create_OP ?                     \
-         "Create" :                              \
-         (op) == ResolveViceCreate_OP ?          \
-         "ResolveCreate" :                       \
-         (op) == RES_Remove_OP ?                 \
-         "Remove" :                              \
-         (op) == ResolveViceRemove_OP ?          \
-         "ResolveRemove" :                       \
-         (op) == RES_Link_OP ?                   \
-         "Link" :                                \
-         (op) == ResolveViceLink_OP ?            \
-         "ResolveLink" :                         \
-         (op) == RES_Rename_OP ?                 \
-         "Rename" :                              \
-         (op) == ResolveViceRename_OP ?          \
-         "ResolveRename" :                       \
-         (op) == RES_MakeDir_OP ?                \
-         "Mkdir" :                               \
-         (op) == ResolveViceMakeDir_OP ?         \
-         "ResolveMkdir" :                        \
-         (op) == RES_RemoveDir_OP ?              \
-         "Rmdir" :                               \
-         (op) == ResolveViceRemoveDir_OP ?       \
-         "ResolveRmdir" :                        \
-         (op) == RES_SymLink_OP ?                \
-         "Symlink" :                             \
-         (op) == ResolveViceSymLink_OP ?         \
-         "ResolveSymlink" :                      \
-         (op) == ResolveNULL_OP ?                \
-         "ResolveNULL_OP" :                      \
-         (op) == RES_Repair_OP ?                 \
-         "Repair_OP" :                           \
-         (op) == ResolveViceSetVolumeStatus_OP ? \
-         "ResolveViceSetVolumeStatus_OP" :       \
-         (op) == RES_SetVolumeStatus_OP ?        \
-         "SetVolumeStatus_OP" :                  \
-         (op) == RES_NewStore_OP ?               \
-         "NewStore" :                            \
-         (op) == ResolveViceNewStore_OP ? "ResolveNewStore" : "???")
+#define PRINTOPCODE(op)                                                        \
+    ((op) == RES_Create_OP                 ? "Create" :                        \
+     (op) == ResolveViceCreate_OP          ? "ResolveCreate" :                 \
+     (op) == RES_Remove_OP                 ? "Remove" :                        \
+     (op) == ResolveViceRemove_OP          ? "ResolveRemove" :                 \
+     (op) == RES_Link_OP                   ? "Link" :                          \
+     (op) == ResolveViceLink_OP            ? "ResolveLink" :                   \
+     (op) == RES_Rename_OP                 ? "Rename" :                        \
+     (op) == ResolveViceRename_OP          ? "ResolveRename" :                 \
+     (op) == RES_MakeDir_OP                ? "Mkdir" :                         \
+     (op) == ResolveViceMakeDir_OP         ? "ResolveMkdir" :                  \
+     (op) == RES_RemoveDir_OP              ? "Rmdir" :                         \
+     (op) == ResolveViceRemoveDir_OP       ? "ResolveRmdir" :                  \
+     (op) == RES_SymLink_OP                ? "Symlink" :                       \
+     (op) == ResolveViceSymLink_OP         ? "ResolveSymlink" :                \
+     (op) == ResolveNULL_OP                ? "ResolveNULL_OP" :                \
+     (op) == RES_Repair_OP                 ? "Repair_OP" :                     \
+     (op) == ResolveViceSetVolumeStatus_OP ? "ResolveViceSetVolumeStatus_OP" : \
+     (op) == RES_SetVolumeStatus_OP        ? "SetVolumeStatus_OP" :            \
+     (op) == RES_NewStore_OP               ? "NewStore" :                      \
+     (op) == ResolveViceNewStore_OP        ? "ResolveNewStore" :               \
+                                             "???")
 
 #define ISNONRESOLVEOP(a) \
     (((a) < RESOLVE_OPERATION_BASE) || ((a) == ResolveNULL_OP))

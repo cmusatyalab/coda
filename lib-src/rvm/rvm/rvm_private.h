@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2021 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -129,7 +129,7 @@ typedef void rvm_monitor_call_t();
 #define ROUND_TO_LENGTH(len)                                            \
     (((rvm_length_t)((rvm_length_t)(len) + sizeof(rvm_length_t) - 1)) & \
      LENGTH_MASK)
-#define CHOP_TO_LENGTH(len) ((rvm_length_t)((rvm_length_t)(len)&LENGTH_MASK))
+#define CHOP_TO_LENGTH(len) ((rvm_length_t)((rvm_length_t)(len) & LENGTH_MASK))
 #define ALIGNED_LEN(addr, len)                                     \
     (ROUND_TO_LENGTH((rvm_length_t)(addr) + (rvm_length_t)(len)) - \
      CHOP_TO_LENGTH(addr))
@@ -139,7 +139,7 @@ typedef void rvm_monitor_call_t();
 #define SECTOR_MASK ((rvm_length_t)(~(SECTOR_SIZE - 1)))
 #define ROUND_TO_SECTOR_SIZE(x) \
     (((rvm_length_t)(x) + SECTOR_SIZE - 1) & SECTOR_MASK)
-#define CHOP_TO_SECTOR_SIZE(x) ((rvm_length_t)(x)&SECTOR_MASK)
+#define CHOP_TO_SECTOR_SIZE(x) ((rvm_length_t)(x) & SECTOR_MASK)
 
 #define SECTOR_INDEX(x) ((x) & (SECTOR_SIZE - 1))
 
@@ -156,7 +156,7 @@ typedef void rvm_monitor_call_t();
                    CHOP_TO_LENGTH(RVM_OFFSET_TO_LENGTH(x))))
 
 #define ROUND_TO_PAGE_SIZE(x) (((rvm_length_t)(x) + page_size - 1) & page_mask)
-#define CHOP_TO_PAGE_SIZE(x) ((rvm_length_t)(x)&page_mask)
+#define CHOP_TO_PAGE_SIZE(x) ((rvm_length_t)(x) & page_mask)
 
 /* other stuff... */
 
@@ -991,7 +991,7 @@ struct seg_dict_s {
 
 typedef struct seg_dict_s seg_dict_t;
 
-#define SEG_DICT_INDEX(x) ((x)-1) /* index of segemnt in seg_dict_vec */
+#define SEG_DICT_INDEX(x) ((x) - 1) /* index of segemnt in seg_dict_vec */
 /* region descriptor: region_t */
 typedef struct region_s {
     list_entry_t links; /* list links and struct id --

@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2005 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -344,7 +344,7 @@ int MsgRead(char *m)
     struct sockaddr_in addr;
     int len = sizeof(addr);
     int cc  = recvfrom(KernFD, m, (int)(VC_MAXMSGSIZE), 0,
-                      (struct sockaddr *)&addr, &len);
+                       (struct sockaddr *)&addr, &len);
 #else
     int cc = read(KernFD, m, (int)(VC_MAXMSGSIZE));
 #endif
@@ -415,7 +415,7 @@ void Setup()
         exit(EXIT_FAILURE);
     }
 #else
-    KernFD                = open(KernDevice, O_RDWR, 0);
+    KernFD = open(KernDevice, O_RDWR, 0);
 #endif
 
     CODA_ASSERT(KernFD >= 0);

@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2021 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -2796,7 +2796,10 @@ void volent::print(int afd)
     struct dllist_head *p;
     int nfsos = 0;
 
-    list_for_each(p, fso_list) { nfsos++; }
+    list_for_each(p, fso_list)
+    {
+        nfsos++;
+    }
 
     fdprint(afd, "%#08x : %-16s : vol = %x @%s\n", (long)this, name, vid,
             realm->Name());

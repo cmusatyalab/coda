@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2021 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -382,7 +382,7 @@ public:
            int...) REQUIRES_TRANSACTION; /* local-repair modification */
     void ResetTransient();
     ~cmlent() REQUIRES_TRANSACTION;
-    void operator delete(void *)REQUIRES_TRANSACTION;
+    void operator delete(void *) REQUIRES_TRANSACTION;
 
     /* Size of an entry */
     long bytes();
@@ -449,8 +449,8 @@ public:
     void SetRepairMutationFlag(); /*U*/
     int IsToBeRepaired() { return flags.to_be_repaired; } /*N*/
     int IsExpanded() { return expansions; } /*T*/
-    void GetVVandFids(ViceVersionVector * [3], VenusFid * [3]); /*N*/
-    void GetAllFids(VenusFid * [3]); /*N*/
+    void GetVVandFids(ViceVersionVector *[3], VenusFid *[3]); /*N*/
+    void GetAllFids(VenusFid *[3]); /*N*/
 };
 
 #define CmlIterOrder DlIterOrder
@@ -672,7 +672,7 @@ protected:
     /*T*/ short shrd_count; /* for volume pgid locking */
     /*T*/ int pgid; /* pgid of ASRLauncher and children (0 if none) */
 
-    void operator delete(void *)REQUIRES_TRANSACTION;
+    void operator delete(void *) REQUIRES_TRANSACTION;
     volent(Realm *r, VolumeId vid, const char *name) REQUIRES_TRANSACTION;
     ~volent() REQUIRES_TRANSACTION;
     void ResetVolTransients();
@@ -1162,41 +1162,31 @@ extern int PathAltered(VenusFid *, char *, ClientModifyLog *, cmlent *);
         }                                                               \
     }
 
-#define PRINT_VOLSTATE(state)                     \
-    ((state) == Resolving ?                       \
-         "Resolving" :                            \
-         (state) == Unreachable ? "Unreachable" : \
-                                  (state) == Reachable ? "Reachable" : "???")
+#define PRINT_VOLSTATE(state)                 \
+    ((state) == Resolving   ? "Resolving" :   \
+     (state) == Unreachable ? "Unreachable" : \
+     (state) == Reachable   ? "Reachable" :   \
+                              "???")
 #define PRINT_VOLMODE(mode)                \
-    ((mode)&VM_OBSERVING ?                 \
-         "Observing" :                     \
-         (mode)&VM_MUTATING ? "Mutating" : \
-                              (mode)&VM_RESOLVING ? "Resolving" : "???")
-#define PRINT_MLETYPE(op)                     \
-    ((op) == CML_Store_OP ?                   \
-         "Store" :                            \
-         (op) == CML_Truncate_OP ?            \
-         "Truncate" :                         \
-         (op) == CML_Utimes_OP ?              \
-         "Utimes" :                           \
-         (op) == CML_Chown_OP ?               \
-         "Chown" :                            \
-         (op) == CML_Chmod_OP ?               \
-         "Chmod" :                            \
-         (op) == CML_Create_OP ?              \
-         "Create" :                           \
-         (op) == CML_Remove_OP ?              \
-         "Remove" :                           \
-         (op) == CML_Link_OP ?                \
-         "Link" :                             \
-         (op) == CML_Rename_OP ?              \
-         "Rename" :                           \
-         (op) == CML_MakeDir_OP ?             \
-         "Mkdir" :                            \
-         (op) == CML_RemoveDir_OP ?           \
-         "Rmdir" :                            \
-         (op) == CML_SymLink_OP ? "Symlink" : \
-                                  (op) == CML_Repair_OP ? "Repair" : "???")
+    ((mode) & VM_OBSERVING ? "Observing" : \
+     (mode) & VM_MUTATING  ? "Mutating" :  \
+     (mode) & VM_RESOLVING ? "Resolving" : \
+                             "???")
+#define PRINT_MLETYPE(op)                    \
+    ((op) == CML_Store_OP     ? "Store" :    \
+     (op) == CML_Truncate_OP  ? "Truncate" : \
+     (op) == CML_Utimes_OP    ? "Utimes" :   \
+     (op) == CML_Chown_OP     ? "Chown" :    \
+     (op) == CML_Chmod_OP     ? "Chmod" :    \
+     (op) == CML_Create_OP    ? "Create" :   \
+     (op) == CML_Remove_OP    ? "Remove" :   \
+     (op) == CML_Link_OP      ? "Link" :     \
+     (op) == CML_Rename_OP    ? "Rename" :   \
+     (op) == CML_MakeDir_OP   ? "Mkdir" :    \
+     (op) == CML_RemoveDir_OP ? "Rmdir" :    \
+     (op) == CML_SymLink_OP   ? "Symlink" :  \
+     (op) == CML_Repair_OP    ? "Repair" :   \
+                                "???")
 
 #define FAKEROOTFID(fid) \
     ((fid).Vnode == 0xffffffff) /* && ((fid).Unique == 0x80000)) */

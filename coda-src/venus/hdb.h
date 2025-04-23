@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2021 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -424,29 +424,23 @@ extern int HDBD_Request(hdbd_request, void *,
                         struct uarea *u) EXCLUDES_TRANSACTION;
 extern long HDBD_GetNextHoardWalkTime();
 
-#define PRINT_HDBDREQTYPE(type)           \
-    ((type) == HdbAdd ?                   \
-         "Add" :                          \
-         (type) == HdbDelete ?            \
-         "Delete" :                       \
-         (type) == HdbClear ?             \
-         "Clear" :                        \
-         (type) == HdbList ?              \
-         "List" :                         \
-         (type) == HdbWalk ?              \
-         "Walk" :                         \
-         (type) == HdbVerify ?            \
-         "Verify" :                       \
-         (type) == HdbEnable ? "Enable" : \
-                               (type) == HdbDisable ? "Disable" : "???")
+#define PRINT_HDBDREQTYPE(type)         \
+    ((type) == HdbAdd     ? "Add" :     \
+     (type) == HdbDelete  ? "Delete" :  \
+     (type) == HdbClear   ? "Clear" :   \
+     (type) == HdbList    ? "List" :    \
+     (type) == HdbWalk    ? "Walk" :    \
+     (type) == HdbVerify  ? "Verify" :  \
+     (type) == HdbEnable  ? "Enable" :  \
+     (type) == HdbDisable ? "Disable" : \
+                            "???")
 
 #define PRINT_PESTATE(state)                      \
-    ((state) == PeValid ? "Valid" :               \
-                          (state) == PeSuspect ?  \
-                          "Suspect" :             \
-                          (state) == PeIndigent ? \
-                          "Indigent" :            \
-                          (state) == PeInconsistent ? "Inconsistent" : "???")
+    ((state) == PeValid        ? "Valid" :        \
+     (state) == PeSuspect      ? "Suspect" :      \
+     (state) == PeIndigent     ? "Indigent" :     \
+     (state) == PeInconsistent ? "Inconsistent" : \
+                                 "???")
 
 #endif /* VENUS */
 

@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 5
+                              Release 8
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -63,7 +63,7 @@ Pittsburgh, PA.
 
 #include "rpc2.private.h"
 
-#define _ROUND(n, a) (n) = (void *)((((intptr_t)n) + ((a)-1)) & ~((a)-1))
+#define _ROUND(n, a) (n) = (void *)((((intptr_t)n) + ((a) - 1)) & ~((a) - 1))
 #define _INCR(n, a) (n) = (void *)((intptr_t)(n) + a)
 
 #define _PAD(n) (((n) + 3) & ~3)

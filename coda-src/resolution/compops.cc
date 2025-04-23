@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2025 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -116,7 +116,7 @@ arrlist *ComputeCompOps(olist *AllLogs, ViceFid *Fid)
     }
 
     // Clean up
-Exit : {
+Exit: {
     if (sllog)
         delete sllog;
     if (rmtlogs)
@@ -225,7 +225,7 @@ static arrlist *FindRemoteOps(arrlist *sllog, olist **rlogs, int nrmtsites)
     }
 
     // Clean up
-Exit : {
+Exit: {
     if (srlogs)
         delete[] srlogs;
     if (CommonPoints)
