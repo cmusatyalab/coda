@@ -1,8 +1,8 @@
 dnl Process this file with autoconf to produce a configure script
 
 dnl Initialization
-AC_PREREQ([2.71])
-AC_INIT([rpc2],[2.37])
+AC_PREREQ(2.50)
+AC_INIT(rpc2, 2.37)
 AC_CONFIG_AUX_DIR([.])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_SRCDIR([rpc2-src/rpc2.private.h])
@@ -34,7 +34,7 @@ if test -z "${ac_cv_prog_YACC}" ; then
 fi
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
-LT_INIT
+AC_PROG_LIBTOOL
 AC_CHECK_PROG(CP, cp, cp)
 
 dnl pkg-config stuff

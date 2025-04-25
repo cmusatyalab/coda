@@ -1,8 +1,8 @@
 dnl Process this file with autoconf to produce a configure script
 
 dnl Initialization
-AC_PREREQ([2.71])
-AC_INIT([rvm],[1.28])
+AC_PREREQ(2.50)
+AC_INIT(rvm, 1.28)
 AC_CONFIG_AUX_DIR([.])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_SRCDIR([rvm/rvm_private.h])
@@ -36,7 +36,7 @@ AC_PROG_CC
 AC_PROG_CPP
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
-LT_INIT
+AM_PROG_LIBTOOL
 
 dnl pkg-config stuff
 if test $librvmlwp != "no" ; then
