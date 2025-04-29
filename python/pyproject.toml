@@ -31,7 +31,7 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["codafs"]
+packages = ["codafs", "codafs.cli"]
 
 [tool.setuptools.dynamic]
 version = {attr = "codafs.__version__"}
