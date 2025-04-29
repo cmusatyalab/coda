@@ -8,23 +8,24 @@ in the SCS department.
 
 This repository combines, to a best effort, the history from the official CVS
 repositories of Coda, as well as the supporting LWP, RPC2 and RVM libraries.
-The CVS repositories at this point only useful as a historical reference and
-further development will only be committed to the Git repository. The
+The CVS repositories are at this point only useful as a historical reference
+and further development will only be committed to the Git repository. The
 supporting libraries can be found in their respective directories under
 `lib-src/`.
 
 The reasons the supporting libraries and their history have been merged with the
 Coda source tree are twofold. They were originally part of the Coda source
-tree but were separated out as over time other non-Coda users of the libraries
-emerged. By now Coda has outlived all other external users and merging them
-back to consolidate the development history seemed to make more sense.
+tree and were separated out when other non-Coda users of the LWP, RPC2, and RVM
+libraries emerged. However, by now Coda has outlived all those external users
+and merging the libraries back to consolidate their development history seemed
+to make more sense.
 
-For the past several Coda releases there have been new releases of the LWP,
-RPC2 and RVM libraries. Coordinating building and packaging of a single source
-tree is more straightforward than building four different ones, especially when
-there is a specific build/install ordering dependency and a new build could
-break a currently installed version. The current combined tree will ensure that
-everything builds and installs with the same library versions.
+Second, for the past several Coda releases there have been new releases of the
+LWP, RPC2, and RVM libraries. Coordinating building and packaging of a single
+monorepo is more straightforward than building four different ones, especially
+when there are specific build/install ordering dependencies and a new build
+could break a currently installed version. The current combined tree will
+ensure that everything builds and installs with the same library versions.
 
 ## BUILDING CODA
 
@@ -39,15 +40,15 @@ On Redhat/Fedora/CentOS systems
 
 ```sh
 yum install gcc gcc-c++ autoconf automake libtool pkgconfig flex bison \
-    readline-devel ncurses5-devel lua-devel clang
+    readline-devel ncurses5-devel lua-devel clang gnutls-devel libuv-devel
 ```
 
 On Debian/Ubuntu and derived systems
 
 ```sh
-apt-get install build-essential automake libtool pkg-config flex bison \
-    libreadline-dev libncurses5-dev liblua5.1-0-dev clang-format-6.0 valgrind \
-    python3-attr python3-setuptools
+apt-get install build-essential automake libtool-bin pkg-config flex bison \
+    libreadline-dev libncurses5-dev liblua5.1-0-dev libffi8 libuv1-dev \
+    libgnutls28-dev valgrind python3-build
 ```
 
 ### Build
