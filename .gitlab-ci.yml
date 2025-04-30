@@ -1,4 +1,4 @@
-image: registry.cmusatyalab.org/coda/coda-packaging/coda-build
+image: registry.cmusatyalab.org/coda/coda-packaging/coda-build-src
 
 # should be a no-op if the submitter used the pre-commit hooks
 post_commit:
