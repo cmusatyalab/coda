@@ -44,3 +44,9 @@ from Coda to set the actual ACLs.
 -o, -d, \-\-destination DESTINATION
 
 :   Destination where ACLs should be updated.
+
+## INSTALLATION
+
+This command is part of the CodaFS Python module which can be installed
+directly from PyPI.org. For detailed instructions see
+<http://coda.cs.cmu.edu/docs/python/>.

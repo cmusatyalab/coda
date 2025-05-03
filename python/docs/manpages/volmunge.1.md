@@ -77,12 +77,17 @@ readdir() result so any volume traversal will trigger automatic resolution.
 
 :   Prints out those objects which are empty files or directories.
 
+## INSTALLATION
+
+This command is part of the CodaFS Python module which can be installed
+directly from PyPI.org. For detailed instructions see
+<http://coda.cs.cmu.edu/docs/python/>.
+
 ## SEE ALSO
 
 **find**(1)
 
 ## AUTHOR
 
-Henry M. Pierce, 1998, created.
-
-Jan Harkes, 2021, rewrote volmunge to Python.
+- Henry M. Pierce, 1998, created.
+- Jan Harkes, 2021, rewrote volmunge to Python.

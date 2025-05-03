@@ -1,0 +1,3 @@
+# Bibliography
+
+\full_bibliography

@@ -73,3 +73,9 @@ servers:
 \-\-dump-config
 
 :   Write complete config to stdout and exit.
+
+## INSTALLATION
+
+This command is part of the CodaFS Python module which can be installed
+directly from PyPI.org. For detailed instructions see
+<http://coda.cs.cmu.edu/docs/python/>.

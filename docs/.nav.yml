@@ -1,0 +1,23 @@
+nav:
+ - Overview: index.md
+ - manual
+ - manpages
+
+ - Additional Documentation:
+   - "*"
+   - Scientific papers from the Coda project: http://www.cs.cmu.edu/afs/cs/project/coda-www/ResearchWebPages/docs-coda.html
+
+ - Legacy Documentation:
+   - Introductory Paper: http://coda.cs.cmu.edu/ljpaper/lj.html
+   - Coda HOWTO: http://coda.cs.cmu.edu/doc/html/coda-howto.html
+   - RVM Manual: http://coda.cs.cmu.edu/doc/html/rvm_manual.html
+   - RPC2 Manual: http://coda.cs.cmu.edu/doc/html/rpc2_manual.html
+
+   - Various notes and papers about the implementation:
+     - Linux Virtual File System: http://coda.cs.cmu.edu/doc/talks/linuxvfs
+     - Some short scribbles about the volume databases.: http://coda.cs.cmu.edu/doc/html/admin.html
+     - Notes and explanations about Coda securtiy.: http://coda.cs.cmu.edu/doc/html/sec.html
+     - A detailed document about the kernel Venus interaction.: http://coda.cs.cmu.edu/doc/html/kernel-venus-protocol.html
+     - A document describing the new directory system implemented (around 1998): http://coda.cs.cmu.edu/doc/html/codadir.html
+     - A few of the server internals, to be extended.: http://coda.cs.cmu.edu/doc/html/server.html
+     - A document describing the main Venus data structures.: http://coda.cs.cmu.edu/doc/html/venus-ds.html

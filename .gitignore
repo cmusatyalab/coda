@@ -1,3 +1,4 @@
+.cache
 .cvsignore
 .deps
 .dotest
@@ -33,6 +34,7 @@ rp2gen.stamp
 stamp-h1
 tags
 test-driver
+site/
 ylwrap
 *.[ao]
 *.l[ao]

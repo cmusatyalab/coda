@@ -60,6 +60,18 @@ make
 sudo make install
 ```
 
+### Building the documentation
+
+```sh
+pipx install mkdocs
+pipx inject mkdocs mkdocs-material
+pipx inject mkdocs mkdocs-awesome-nav
+pipx inject mkdocs mkdocs-bibtex
+pipx inject mkdocs mkdocs-minify-plugin
+
+mkdocs serve
+```
+
 ## RUNNING CODA
 
 ### Configuring the Coda client

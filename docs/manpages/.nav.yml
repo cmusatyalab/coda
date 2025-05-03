@@ -1,0 +1,8 @@
+title: Manual Pages
+nav:
+ - man1:
+   - "*.1.md"
+ - man5:
+   - "*.5.md"
+ - man8:
+   - "*.8.md"

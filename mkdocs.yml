@@ -1,0 +1,64 @@
+site_name: Coda File System Documentation
+site_url: http://coda.cs.cmu.edu/docs
+repo_name: cmusatyalab/coda
+repo_url: https://github.com/cmusatyalab/coda
+theme:
+  name: material
+  logo: images/coda.png
+  favicon: images/favicon.ico
+  icon:
+    repo: fontawesome/brands/git-alt
+  palette:
+    primary: white
+    accent: deep purple
+  features:
+    - content.tabs.link
+    - navigation.indexes
+    - navigation.top
+    #- navigation.tracking
+
+extra:
+  homepage: http://coda.cs.cmu.edu
+
+copyright: Copyright 1995-2025 Carnegie Mellon University, Coda Group
+
+plugins:
+  - search
+  - privacy
+  - awesome-nav
+  - bibtex:
+      bib_file: "docs-meta/references.bib"
+      csl_file: "docs-meta/ieee-with-pdf.csl"
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - pymdownx.blocks.caption
+  - pymdownx.details
+  - pymdownx.caret
+  - pymdownx.mark
+  - pymdownx.tilde
+  - pymdownx.keys
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.snippets:
+      auto_append:
+        - docs-meta/abbreviations.md
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+
+watch:
+  - docs-meta
+
+exclude_docs: |
+  *.swp
