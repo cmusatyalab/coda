@@ -63,12 +63,11 @@ sudo make install
 ### Building the documentation
 
 ```sh
+# install mkdocs-material and other plugin dependencies in an isolated environment
 pipx install mkdocs
-pipx inject mkdocs mkdocs-material
-pipx inject mkdocs mkdocs-awesome-nav
-pipx inject mkdocs mkdocs-bibtex
-pipx inject mkdocs mkdocs-minify-plugin
+pipx inject mkdocs mkdocs-material mkdocs-awesome-nav mkdocs-bibtex mkdocs-minify-plugin
 
+# run a local webserver that updates whenever documentation is edited
 mkdocs serve
 ```
 

@@ -17,5 +17,5 @@ dist_sbin_SCRIPTS += codastart coda-server-logrotate \
 dist_man_MANS += bldvldb.sh.8 createvol_rep.8 maxgroupid.5 purgevol_rep.8 \
 		 startserver.8 vice-setup.8 volumelist.5
 endif
-EXTRA_DIST = findparents.sh volinfo.pl volsizes.pl
+EXTRA_DIST = findparents.sh volinfo.pl volsizes.pl pwdtopdbtool.py
 CLEANFILES = $(bin_SCRIPTS) $(sbin_SCRIPTS)

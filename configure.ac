@@ -2,7 +2,7 @@ dnl Process this file with autoconf to produce a configure script.
 
 dnl autoconf 2.5 stuff
 AC_PREREQ(2.50)
-AC_INIT(Coda, 8.1.6, [bugs@coda.cs.cmu.edu])
+AC_INIT(Coda, 8.1.7~dev0, [bugs@coda.cs.cmu.edu])
 AC_CONFIG_AUX_DIR([.])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_SRCDIR([coda-src/librepair/resolve.h])
@@ -51,6 +51,7 @@ m4_include(configs/codaconf.m4)
 AC_PATH_PROG(PERL, perl, "")
 AC_PATH_PROG(FLUID, fluid, "")
 AM_PATH_PYTHON([3])
+AC_PATH_PROG(MKDOCS, mkdocs, "")
 
 # Derive a valid version for codafs Python module
 CODAFS_PY_VERSION="`echo $VERSION|sed 's/~dev/.dev0/'`"
