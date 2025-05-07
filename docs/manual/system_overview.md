@@ -2,24 +2,24 @@
 
 Each Coda client sees the Coda File System as a single tree, `/coda`.  In
 reality this tree is an illusion supported by _System Control Machine (SCM)_,
-several dedicated file servers, and a local area network.  One of the servers
-may double as the (SCM).  Figure 2 illustrates the server organization.
+several dedicated file servers, and a local area network.  One of the file
+servers may double as the SCM.  Figure 2 illustrates the server organization.
 
 _Figure 2: Typical Coda server organization_
 
 ``` mermaid
 architecture-beta
-  group server1(server)[Coda Server]
-  service file1(disk)[File Server] in server1
-  service auth1(database)[Readonly Authentication Server] in server1
-  service update1(disk)[Update Client] in server1
-  service kernel1(server)[Kernel] in server1
-
   group scm(server)[SCM Coda Server]
   service file(disk)[File Server] in scm
   service auth(database)[Read Write Authentication Server] in scm
   service update(disk)[Update Server] in scm
   service kernel(server)[Kernel] in scm
+
+  group server1(server)[Coda Server]
+  service file1(disk)[File Server] in server1
+  service auth1(database)[Readonly Authentication Server] in server1
+  service update1(disk)[Update Client] in server1
+  service kernel1(server)[Kernel] in server1
 
   group server2(server)[Coda Server]
   service file2(disk)[File Server] in server2
@@ -45,7 +45,7 @@ authenticated user. Server machines are secure, trusted machines whose purpose
 is to service client requests for shared data.  As the custodians of shared
 information, servers must require authentication of each user before releasing
 shared data to the users client workstation.  The third machine type is the
-system control machine  (SCM).  The purpose of the SCM is to provide a single
+system control machine (SCM).  The purpose of the SCM is to provide a single
 point of control for ease of administration.  Logically, the SCM is distinct
 from the servers, but, physically, the SCM can also act as a server.
 
