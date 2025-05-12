@@ -1,0 +1,27 @@
+site_name: LWP Manual
+repo_url: https://github.com/cmusatyalab/coda
+repo_name: cmusatyalab/coda
+theme:
+  name: material
+
+extra:
+  homepage: http://coda.cs.cmu.edu
+
+copyright: Copyright 1995-2025 Carnegie Mellon University, Coda Group
+
+plugins:
+  - search
+  - privacy
+  - awesome-nav
+
+markdown_extensions:
+  - admonition
+  - def_list
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+exclude_docs: |
+  *.swp
