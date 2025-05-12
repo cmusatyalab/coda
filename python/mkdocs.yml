@@ -5,10 +5,18 @@ theme:
   name: material
   features:
     - navigation.expand
+
+extra:
+  homepage: http://coda.cs.cmu.edu
+
+copyright: Copyright 1995-2025 Carnegie Mellon University, Coda Group
+
+plugins:
+  - privacy
+  - awesome-nav
+
 markdown_extensions:
   - admonition
   - def_list
   - pymdownx.details
   - pymdownx.superfences
-plugins:
-  - privacy
