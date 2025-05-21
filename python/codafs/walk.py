@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterator
     from pathlib import Path
 
-from .cfs import NotCodaFS, getfid, listvol
+from .cfs import NotCodaFSError, getfid, listvol
 
 
 def default_volume_callback(_root: Path, _volume_name: str, _volume_id: str) -> None:
@@ -48,7 +48,7 @@ def walk_volume(
     """
     try:
         volume_id = getfid(root).volume
-    except NotCodaFS:
+    except NotCodaFSError:
         logging.critical("%s is not a path in Coda", root)
         return
 
