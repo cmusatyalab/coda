@@ -36,13 +36,15 @@ in using AFS.
 
 We have also assumed that you are familiar with the design goals and
 architecture of Coda.  The best way to learn about these is to read the
-overview and design rationale papers on Coda
-[[satya90z](bibliography.md#fn:satya90z)]
-[[satya90y](bibliography.md#fn:satya90y)]
-[[kistler92](bibliography.md#fn:kistler92)].  We urge you to obtain copies of
-these papers and to read them before attempting to use Coda.  Those papers
-provide context and information upon which this manual relies and does not
-repeat.
+overview and design rationale papers on Coda.
+
+- @satya90z
+- @satya90y
+- @kistler92
+
+We urge you to obtain copies of these papers and to read them before attempting
+to use Coda.  Those papers provide context and information upon which this
+manual relies and does not repeat.
 
 Since Coda is an experimental system and not a commercial product, you will
 inevitably encounter rough edges.  Within the limits of our resources, we will
@@ -58,23 +60,39 @@ feedback.  We would like to improve both the system and this manual.
 Besides the three papers mentioned above, there are a number of papers that
 address specific aspects of Coda. These include:
 
-1. A description of the MiniCache, which allows the client manager to reside
-   outside the kernel without excessive loss of performance
-   [[steere90](bibliography.md#fn:steere90)].
-1. A description and performance analysis of the technique used in Coda for
-   transparent directory resolution [[kumar93](bibliography.md#fn:kumar93)].
-1. A manual on the remote procedure call, RPC2, and threading, LWP, mechanisms
-   used in Coda [[satya91](bibliography.md#fn:satya91)].
-1. A paper and manual on the transactional facility, RVM, used on Coda clients
-   and servers [[satya93](bibliography.md#fn:satya93)]
-   [[mashburn92](bibliography.md#fn:mashburn92)].
-1. A detailed description of support for disconnected operation in Coda
-   [[kistler93](bibliography.md#fn:kistler93)].  Chapter 4 in that document
-   offers an excellent overview of the implementation structure of clients and
-   servers.
-1. A discussion of relevant security issues and mechanisms to address them
-   [[satya89c](bibliography.md#fn:satya89c)].  This paper discusses security in
-   AFS v2, but the mechanisms in Coda are virtually identical.
+ 1. @steere90
+
+    A description of the MiniCache, which allows the client manager to reside
+    outside the kernel without excessive loss of performance.
+
+ 1. @kumar93
+
+    A description and performance analysis of the technique used in Coda for
+    transparent directory resolution.
+
+ 1. @satya91 [[HTML (LWP)]](http://coda.cs.cmu.edu/docs/lwp/)
+
+    Manuals on the remote procedure call (RPC2), and threading (LWP),
+    mechanisms used in Coda.
+
+ 1. @satya93
+
+    @mashburn92
+
+    A paper and manual on the transactional facility, RVM, used on Coda clients
+    and servers.
+
+ 1. @kistler93
+
+    A detailed description of support for disconnected operation in Coda.
+    Chapter 4 in that document offers an excellent overview of the
+    implementation structure of clients and servers.
+
+ 1. @satya89c
+
+    A discussion of relevant security issues and mechanisms to address them.
+    This paper discusses security in AFS v2, but the mechanisms in Coda are
+    virtually identical.
 
 ## Acknowledgments
 

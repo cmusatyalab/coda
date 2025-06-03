@@ -1,0 +1,43 @@
+site_name: RPC2 User Guide and Reference Manual
+repo_url: https://github.com/cmusatyalab/coda
+repo_name: cmusatyalab/coda
+theme:
+  name: material
+
+extra:
+  homepage: http://coda.cs.cmu.edu
+
+copyright: Copyright 1995-2025 Carnegie Mellon University, Coda Group
+
+plugins:
+  - search
+  - privacy
+  - awesome-nav
+  - bibtex:
+      bib_file: "docs/references.bib"
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - pymdownx.blocks.caption
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+extra_javascript:
+  - javascripts/katex.js
+  - https://unpkg.com/katex@0/dist/katex.min.js
+  - https://unpkg.com/katex@0/dist/contrib/auto-render.min.js
+
+extra_css:
+  - https://unpkg.com/katex@0/dist/katex.min.css
+
+exclude_docs: |
+  *.swp

@@ -18,6 +18,9 @@ The following will be your primary resources for getting up and running:
   are mostly optional but can be helpful for users and administrators.
 - [Scientific papers from the Coda project][coda-papers]
   :octicons-link-external-16: - The original design and studies that were done.
+- [LWP Manual](lwp/index.md) - The LWP library documentation.
+- [RPC2 Manual](rpc2/index.md) - The RPC2 library documentation.
+<!-- - [RVM Manual](rvm/index.md) - The RVM library documentation. -->
 
 [coda-papers]: https://www.cs.cmu.edu/afs/cs/project/coda-www/ResearchWebPages/docs-coda.html
 

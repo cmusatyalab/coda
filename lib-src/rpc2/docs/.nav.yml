@@ -1,0 +1,21 @@
+title: RPC2 Manual
+
+nav:
+  - index.md
+  #- RPC2 Reference:
+  - rpc2_user.md
+  - rp2gen_user.md
+  - rpc2_runtime.md
+  - sftp_user.md
+  - multi_user.md
+  - multicast.md
+  #- RPC2 Internals:
+  - rpc2_internals.md
+  - failure.md
+  - sftp_internals.md
+  - se_internals.md
+  - multi_internals.md
+  - usagenotes.md
+  #- headerfiles.md
+  #- bibliography.md
+  - "*"

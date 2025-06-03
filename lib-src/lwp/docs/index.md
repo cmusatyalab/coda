@@ -1,4 +1,4 @@
-# LWP Library
+# LWP User Guide
 
 The LWP library implements primitive functions providing basic facilities that
 enable procedures written in C, to proceed in an unsynchronized fashion.  These
@@ -609,6 +609,21 @@ Recovers information hidden by a `LWP_NewRock` call.
     `LWP_EBADROCK`
 
     :   Specified rock does not exist.
+
+## Debugging
+
+A global variable `lwp_debug` can be set to activate or deactivate debugging
+messages tracing the flow of control within the LWP routines.  To activate
+debugging messages, set `lwp_debug` to a non-zero value.  To deactivate, reset
+it to zero.  All debugging output from the LWP routines is sent to stdout.
+
+The LWP package checks for stack overflows at each context switch.  The
+`lwp_overflowAction` variable controls the action of the package when an
+overflow occurs.  If it is set to `LWP_SOMESSAGE`, then LWP will print a
+message on stderr telling of the overflow and will then be quiet.  If it is set
+to `LWP_SOABORT`, LWP will call the `abort()` subroutine.  Finally, if it is
+set to `LWP_SOQUIET`, LWP will ignore the errors.  The `LWP_SOABORT` setting is
+the default.
 
 ## Acknowledgements
 

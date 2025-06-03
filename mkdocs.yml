@@ -27,7 +27,7 @@ plugins:
   - privacy
   - awesome-nav
   - bibtex:
-      bib_file: "docs-meta/references.bib"
+      bib_dir: "docs-meta/"
       csl_file: "docs-meta/ieee-with-pdf.csl"
 
 markdown_extensions:
@@ -36,15 +36,17 @@ markdown_extensions:
   - attr_list
   - def_list
   - footnotes
+  - md_in_html
+  - pymdownx.arithmatex:
+      generic: true
   - pymdownx.blocks.caption
-  - pymdownx.details
   - pymdownx.caret
-  - pymdownx.mark
-  - pymdownx.tilde
-  - pymdownx.keys
+  - pymdownx.details
   - pymdownx.emoji:
       emoji_index: !!python/name:material.extensions.emoji.twemoji
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.keys
+  - pymdownx.mark
   - pymdownx.snippets:
       auto_append:
         - docs-meta/abbreviations.md
@@ -55,7 +57,16 @@ markdown_extensions:
           format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.tabbed:
       alternate_style: true
+  - pymdownx.tilde
   - tables
+
+extra_javascript:
+  - javascripts/katex.js
+  - https://unpkg.com/katex@0/dist/katex.min.js
+  - https://unpkg.com/katex@0/dist/contrib/auto-render.min.js
+
+extra_css:
+  - https://unpkg.com/katex@0/dist/katex.min.css
 
 watch:
   - docs-meta
