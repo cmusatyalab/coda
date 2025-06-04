@@ -4,10 +4,10 @@ nav:
  - manpages
 
  - Additional Documentation:
-   - CodaFS Python module: python
-   - LWP Manual: lwp
-   - RPC2 Manual: rpc2
+   - python
    - Scientific papers from the Coda project: http://www.cs.cmu.edu/afs/cs/project/coda-www/ResearchWebPages/docs-coda.html
+   - lwp
+   - rpc2
    - bibliography.md
 
  - Legacy Documentation:

@@ -1,4 +1,4 @@
-title: RPC2 Manual
+title: RPC2 User Guide
 
 nav:
   - index.md
@@ -16,6 +16,4 @@ nav:
   - se_internals.md
   - multi_internals.md
   - usagenotes.md
-  #- headerfiles.md
-  #- bibliography.md
   - "*"
