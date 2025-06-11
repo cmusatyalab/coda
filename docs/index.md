@@ -46,12 +46,12 @@
 
 - [System Administration Slides](http://coda.cs.cmu.edu/doc/ppt/sysad1.ppt):
   These slides provide an overview of Coda's system administration aspects.
-- [RPC2 Internals Slides (in progress)](http://coda.cs.cmu.edu/doc/ppt/rpc2.ppt):
+- [RPC2 Internals (in progress)](http://coda.cs.cmu.edu/doc/ppt/rpc2.ppt):
   This presentation gives insights into the internal working of the RPC2 library.
-- [RDS Internals Slides](http://coda.cs.cmu.edu/doc/ppt/rdsseg40.ppt):
+- [RDS Internals](http://coda.cs.cmu.edu/doc/ppt/rdsseg40.ppt):
   RDS (Recoverable Data Segment) is a key component of Coda. These slides
   explain its internals and how it functions.
-- [Server Internals Slides](http://coda.cs.cmu.edu/doc/ppt/server.ppt):
+- [Server Internals](http://coda.cs.cmu.edu/doc/ppt/server.ppt):
   For a detailed understanding of how Coda servers work, refer to these slides.
-- [New Directory System Summary Slides](http://coda.cs.cmu.edu/doc/ppt/directories.ppt):
+- [New Directory System Summary](http://coda.cs.cmu.edu/doc/ppt/directories.ppt):
   This presentation summarizes the new directory system implemented in Coda.
