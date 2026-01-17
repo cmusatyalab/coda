@@ -8,12 +8,12 @@ nav:
    - Scientific papers from the Coda project: http://www.cs.cmu.edu/afs/cs/project/coda-www/ResearchWebPages/docs-coda.html
    - lwp
    - rpc2
+   - rvm
    - bibliography.md
 
  - Legacy Documentation:
    - Introductory Paper: http://coda.cs.cmu.edu/ljpaper/lj.html
    - Coda HOWTO: http://coda.cs.cmu.edu/doc/html/coda-howto.html
-   - RVM Manual: http://coda.cs.cmu.edu/doc/html/rvm_manual.html
 
    - Various notes and papers about the implementation:
      - Linux Virtual File System: http://coda.cs.cmu.edu/doc/talks/linuxvfs

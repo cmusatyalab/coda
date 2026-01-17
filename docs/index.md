@@ -25,13 +25,13 @@
   :octicons-link-external-16:: For a deep dive in the original design,
   implementation, and studies of the Coda project, refer to these scientific
   papers.
-- [LWP Manual](lwp/index.md): LWP (Lightweight Process) is a library used in
+- [LWP User Guide](lwp/index.md): LWP (Lightweight Process) is a library used in
   Coda. Its documentation provides detailed information about its functionality
   and usage.
-- [RPC2 Manual](rpc2/index.md): RPC2 is the remote procedure call library used
+- [RPC2 User Guide](rpc2/index.md): RPC2 is the remote procedure call library used
   in Coda. Its documentation offers insights into its implementation and how to
   use it effectively.
-<!-- - [RVM Manual](rvm/index.md): The RVM library documentation. -->
+- [RVM User Guide](rvm/index.md): The RVM library documentation.
 
 [coda-papers]: https://www.cs.cmu.edu/afs/cs/project/coda-www/ResearchWebPages/docs-coda.html
 

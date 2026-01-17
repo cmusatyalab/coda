@@ -1,0 +1,6 @@
+title: RVM Manual Pages
+nav:
+ - man1:
+   - "*.1.md"
+ - man3:
+   - "*.3.md"

@@ -1,0 +1,15 @@
+title: RVM User Guide
+
+nav:
+  - index.md
+  - rvm_design.md
+  - rvm_library.md
+  - rvm_functions.md
+  - rvm_segment_loader.md
+  - rds_allocator.md
+  - rvm_internals.md
+  - rvmutl.md
+  # appendixes
+  - rvm_install.md
+  - rvm_headers.md
+  - manpages
