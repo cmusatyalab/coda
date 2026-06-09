@@ -7,7 +7,7 @@ theme:
 extra:
   homepage: http://coda.cs.cmu.edu
 
-copyright: Copyright 1995-2026 Carnegie Mellon University, Coda Group
+copyright: Copyright 1992-2026 Carnegie Mellon University, Coda Group
 
 plugins:
   - search
