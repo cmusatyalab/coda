@@ -29,7 +29,7 @@ rvm_region_def_t *regions[]; /* pointer to array of region descriptors  */
 `rvm_load_segment` is used to automatically map the regions of a
 segment prepared with `rvm_create_segment`.  The name of the file or
 partition for the segment is specified by `DevName`, and the
-length of the partition is specified in `DevLength`.  If the heap 
+length of the partition is specified in `DevLength`.  If the heap
 is in a file, `DevLength` should be zero.
 
 `rvm_load_segment` will first to load the
@@ -49,9 +49,9 @@ After the header is verified, each of the regions will be mapped via
 the error `RVM_ERANGE` will result.
 Regions whose virtual memory address is non-zero will be
 automatically mapped to that address.  Regions with zero virtual
-memory addresses 
+memory addresses
 will have space allocated by RVM, and the allocated address will be
-returned in the `vmaddr` field of the descriptor.  
+returned in the `vmaddr` field of the descriptor.
 After successful completion of
 `rvm_load_segment`, all data specified by the header is addressable
 to the application.
@@ -62,7 +62,7 @@ memory.  If this condition is not met, the error codes
 appropriate.
 
 Since it is an initialization function, `rvm_load_segment`
-performs no internal synchronization, so if there 
+performs no internal synchronization, so if there
 is a possibility of concurrent access to the segment,
 the application must do appropriate serialization.
 

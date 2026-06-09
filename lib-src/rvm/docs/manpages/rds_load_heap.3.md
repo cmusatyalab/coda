@@ -25,7 +25,7 @@ int          *err;      /* pointer to error return location */
 `rds_load_heap` provides a convenient method of mapping the heap
 segment and initializing RDS.  The name of the file or partition
 containing the recoverable heap is specified by `DevName`, and the
-length of the partition is specified in `DevLength`.  If the heap 
+length of the partition is specified in `DevLength`.  If the heap
 is in a file, `DevLength` should be zero.
 
 `rds_load_heap` calls `rvm_load_segment` to map the heap.  This
@@ -42,7 +42,7 @@ case, the address of the static region must be specified to RDS in the
 `staticAddr` parameter.
 
 With either function, the version of RDS that the heap was built with
-is compared with the version of the currently linked RDS library.  
+is compared with the version of the currently linked RDS library.
 If there is a mismatch, the error code `EHEAP_VERSION_SKEW` is returned.
 
 Since these functions are called only to initialize the application,

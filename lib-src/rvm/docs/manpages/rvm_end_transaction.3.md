@@ -44,7 +44,9 @@ for a new transaction.
 
 ## SEE ALSO
 
-[rvm_begin_transaction](rvm_begin_transaction.3.md), [rvm_abort_transaction](rvm_abort_transaction.3.md), [rvm_flush](rvm_flush.3.md)
+[rvm_begin_transaction](rvm_begin_transaction.3.md),
+[rvm_abort_transaction](rvm_abort_transaction.3.md),
+[rvm_flush](rvm_flush.3.md)
 
 ## AUTHOR
 

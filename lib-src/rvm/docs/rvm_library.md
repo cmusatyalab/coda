@@ -117,49 +117,49 @@ The function specifications are:
 rvm_options_t *opt;                   /* pointer to option descriptor      */
 
 rvm_options_t *rvm_malloc_options();  /* allocate, initialize opt. desptr. */
-                                       /* return pointer                    */
+                                      /* return pointer                    */
 
 rvm_free_options(opt);                /* free the opt. desptr. pointed to  */
-                                       /* by opt                            */
+                                      /* by opt                            */
 
 rvm_init_options(opt);                /* initialize non-heap allocated     */
-                                       /* opt. desptr.                      */
+                                      /* opt. desptr.                      */
 
 rvm_options_t *rvm_copy_options(opt); /* copy opt. desptr. pointed to by   */
-                                       /* opt to a newly allocated opt.     */
-                                       /* desptr., return pointer           */
+                                      /* opt to a newly allocated opt.     */
+                                      /* desptr., return pointer           */
 /********/
 /* utility routines for rvm_region_t (region descriptor, or reg. desptr.)  */
 /********/
 rvm_region_t *reg;                    /* pointer to region descriptor      */
 
 rvm_region_t *rvm_malloc_region();    /* allocate, initialize reg. desptr. */
-                                       /* return pointer                    */
+                                      /* return pointer                    */
 
 rvm_free_region(reg);                 /* free the reg. desptr. pointed to  */
-                                       /* by reg                            */
+                                      /* by reg                            */
 
 rvm_init_region(reg);                 /* initialize non-heap allocated     */
-                                       /* reg. desptr.                      */
+                                      /* reg. desptr.                      */
 
 rvm_region_t *rvm_copy_region(reg);   /* copy reg. desptr. pointed to by   */
-                                       /* reg to a newly allocated reg.     */
-                                       /* desptr., return pointer           */
+                                      /* reg to a newly allocated reg.     */
+                                      /* desptr., return pointer           */
 /********/
 /* utility routines for rvm_tid_t (transaction identifer, or tid)          */
 /********/
 rvm_tid_t *tid;                       /* pointer to transaction identifier */
 
 rvm_tid_t *rvm_malloc_tid();          /* allocate, initialize tid          */
-                                       /* return pointer                    */
+                                      /* return pointer                    */
 
-rvm_free_tid(tid);        	      /* free the tid pointed to by tid    */
+rvm_free_tid(tid);                    /* free the tid pointed to by tid    */
 
-rvm_init_tid(tid);        	      /* initialize non-heap allocated tid */
+rvm_init_tid(tid);                    /* initialize non-heap allocated tid */
 
 rvm_tid_t *rvm_copy_tid(tid);         /* copy tid pointed to by opt        */
-                                       /* to a newly allocated tid          */
-                                       /* return pointer                    */
+                                      /* to a newly allocated tid          */
+                                      /* return pointer                    */
 ```
 
 Implementing RVM as a library limits freedom to change the program interface

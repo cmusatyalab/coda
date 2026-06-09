@@ -53,8 +53,10 @@ enhance performance.
 
 The options supported are:
 
-- **restore**: Create old and new value log records for modifications; restore virtual memory after an abort.
-- **no_restore**: Do not create old value log records; virtual memory not restored after an abort.
+- **restore**: Create old and new value log records for modifications; restore
+  virtual memory after an abort.
+- **no_restore**: Do not create old value log records; virtual memory not
+  restored after an abort.
 - **flush**: Flush log on commit.
 - **no_flush**: Do not flush log on commit.
 

@@ -64,7 +64,7 @@ example, the following command will have all display redirected to the
 file allrec:
 
     * show all > allrec
-    * 
+    *
 
 COMMANDS
 ========
@@ -196,7 +196,7 @@ peek [*file*] *offset* / [*csf*]
     long, **s** for short, **O** for offset (two long integers representing
     the high and low order bits respectively), **f** for float, **D** for
     double and **t** for time value.
-    
+
     There are nine different possible
     formats: **c** for character, **d** for decimal, **o** for octal, **x**
     for hexadecimal, **u** for unsigned, **f** for float, **D** for double,
@@ -293,7 +293,7 @@ monitor [**clear**] [**no_update** | **update**]
 
           Enter list of addresses/format, terminate with null line
         :  0x200d7550/1l
-        : 
+        :
         * show monitor
 
         Range    Address/format     Length
@@ -452,7 +452,6 @@ show
 
     timestamp
     :   by record timestamp (note: no effect)
-
 
 sizeof *strcut* | **all**
 :   Show the size of a the give structure *struct*, or size of all

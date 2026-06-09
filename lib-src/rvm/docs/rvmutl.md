@@ -29,7 +29,7 @@ Redirection of output permits the output of commands to be captured in
 files for printing or further processing.  This is often useful with the
 statistics and log printing commands.
 
-Redirection of input permits commands to be placed in files 
+Redirection of input permits commands to be placed in files
 At present, this is of limited utility since the only initialization
 performed by rvmutl is for log files.
 However, as the initializations for the segment loader and allocator
@@ -40,7 +40,7 @@ files will be valuable for automating application system builds.
 As an example, the following sequence will initialize the file
 log_file to have one megabyte of log record space:
 
-```
+``` sh
 % rvmutl
 * init_log log_file 1M
 * quit

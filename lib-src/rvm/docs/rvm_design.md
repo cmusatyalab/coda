@@ -369,19 +369,21 @@ allow the maximum useful concurrency while minimizing synchronization overhead.
 
 The fast functions are:
 
-```
-rvm_begin_transaction  rvm_abort_transaction
-rvm_set_range          rvm_modify_bytes
-rvm_set_options        rvm_query
-rvm_unmap              rvm_terminate
-```
+- rvm_begin_transaction
+- rvm_abort_transaction
+- rvm_set_range
+- rvm_modify_bytes
+- rvm_set_options
+- rvm_query
+- rvm_unmap
+- rvm_terminate
 
 Slow functions are those requiring synchronous file access:
 
-```
-rvm_map                rvm_end_transaction
-rvm_flush              rvm_truncate
-```
+- rvm_map
+- rvm_end_transaction
+- rvm_flush
+- rvm_truncate
 
 These functions will be sequentialized on their access to files.
 First-come, first-served order prevails. Functions operating on separate files

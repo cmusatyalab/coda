@@ -37,7 +37,8 @@ This transaction will be committed in `no_flush` mode if the
 allocation is made, and aborted otherwise.
 
 In neither case can context swaps be permitted between deallocation and
-transaction commit or abort since the modified, but uncommitted, free lists are visible to other RDS actions.
+transaction commit or abort since the modified, but uncommitted, free lists are
+visible to other RDS actions.
 If this condition cannot be met, or if there is a
 possibility that the transaction will abort, the functions
 `rds_fake_free` and `rds_do_free` must be used.

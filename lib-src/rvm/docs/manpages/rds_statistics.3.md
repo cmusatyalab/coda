@@ -22,7 +22,7 @@ int           rds_print_stats();
 
 RDS maintains simple statistics about the recoverable heap and the
 allocations performed.  The statistics area is kept in the recoverable
-heap region and is initialized when the heap is initialized.  
+heap region and is initialized when the heap is initialized.
 
 The statistics can be read by `rds_get_stats` into an `rds_stats_t`
 record for analysis by the application, or printed on `stdout` by
@@ -33,7 +33,7 @@ value of the function rather than in a parameter.
 After heap initialization, the statistics area can be cleared by
 calling `rds_clear_stats`.
 `rds_clear_stats` simply zeroes the statistics area via an internal
-transaction.  The space 
+transaction.  The space
 allocated and free counts will not be accurate if it is called after
 initializing the RDS heap.  Note that `rds_clear_stats` requires an
 error return code as a parameter, while the others return the error

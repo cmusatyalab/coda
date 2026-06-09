@@ -128,6 +128,7 @@ before it gets mapped into virtual memory.
 ### Log pointers and limits
 
 The log device can be:
+
 - regular Unix file
 - raw partition
 - raw partition in a dedicated disk
@@ -527,6 +528,7 @@ descriptor. The actual buffer is pointed to by the field `buf`, the length of th
 is stored by the field `buf_len`.
 
 Two routines can be used to fill and refill the log recovery buffer:
+
 - `init_buffer(log, offset, direction, ...)`
 - `refill_buffer(log, direction, ...)`
 
@@ -767,6 +769,7 @@ ordinary applications or the program `rvmutl`. This variable allows a differenti
 treatment on exception condition. For example, in the routine `scan_forward()`,
 if the record type is found not to be one that the routine is expecting (possibly
 means a corrupted log) the program will:
+
 - abort, if it is called by an general application
 - continue with error return, if it is called by `rvmutl`
 

@@ -30,7 +30,7 @@ and one for the recoverable heap.
 The lengths of the regions, specified by `staticLength` and
 `heapLength`, must be integrals of the system page size.  The heap
 region is allocated at `*startAddr` in virtual memory, which must be
-on a page 
+on a page
 boundary.  This address is the permanent address of the heap.  The
 static region starts at `*startAddr` + `heapLength` and is also
 permanent.  One additional region is created at the beginning of the
@@ -51,7 +51,7 @@ When `rds_zap_heap` is complete, the memory will be mapped.
 then calls `rds_init_heap` to initialize the free
 lists as specified by the `nlists` and `chunkSize` parameters.
 `chunkSize` is specified in bytes, and must
-be an integral multiple of `sizeof (char *)`, and be at least 
+be an integral multiple of `sizeof (char *)`, and be at least
 `RDS_MIN_CHUNK_SIZE`.  The number of free lists must be at least
 `RDS_MIN_FREE_LISTS`.
 The transaction required by `rds_init_heap` is created and

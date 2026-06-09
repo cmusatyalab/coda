@@ -22,17 +22,17 @@ int           *err;      /* pointer to error return location */
 
 `rds_init_heap` initializes a recoverable heap in the previously
 mapped memory region specified by the address `base` and `length`
-parameters. 
+parameters.
 Allocation requests will be rounded up to an integral number of
 allocation units `chunkSize`, which is specified in bytes, and must
-be an integral multiple of `sizeof (char *)`, and be at least 
+be an integral multiple of `sizeof (char *)`, and be at least
 `RDS_MIN_CHUNK_SIZE`.
 
 For rapid allocation, RDS maintains separate allocation lists for
 blocks of different sizes.  The sizes are integrals of `chunkSize`,
 beginning with 1 and extending to the number of lists specified by
 `nlists`, which must be at least `RDS_MIN_FREE_LISTS`.  These
-lists are initially empty and the entire heap is 
+lists are initially empty and the entire heap is
 placed on the large block list as a single block.  `rds_malloc` will
 split this block as required.
 

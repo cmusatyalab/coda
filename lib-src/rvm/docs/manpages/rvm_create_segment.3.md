@@ -38,7 +38,7 @@ file must exist and be at least one page long.
 The parameter `region_defs` must point to an array of
 `rvm_region_def_t` descriptors, with
 one descriptor for each region to be loaded by
-`rvm_load_segment`.  
+`rvm_load_segment`.
 The descriptor array must be allocated and deallocated by application,
 and must be as long as the number of descriptors specified by
 `nregions`.  The maximum number of regions that can be described in
@@ -49,12 +49,12 @@ page size, the error `RVM_ENO_MEMORY` will be returned.
 
 Each `rvm_region_def_t` descriptor requires the regions virtual
 memory address and its length.  The virtual memory address where the
-region will be 
+region will be
 loaded must be page-aligned.  It can be specified as zero and, if so, will
 cause the loader to allocate virtual memory for the region.
 Regions containing pointers must
 specify an address to guarantee that they are loaded in the same place
-each time.  
+each time.
 The region length must be an integral multiple of the page size, or
 the error code `RVM_ERANGE` will be returned.
 
@@ -75,7 +75,7 @@ data in the segment; only the first page of the segment for the header
 is affected.
 
 Since it is an initialization function, `rvm_create_segment`
-performs no internal synchronization, so if there 
+performs no internal synchronization, so if there
 is a possibility of concurrent access to the segment,
 the application must do appropriate serialization.
 

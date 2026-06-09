@@ -10,12 +10,12 @@ and related systems, special instructions are included below.
 Please note that RVM is copyrighted by Carnegie Mellon University, and
 the terms of distribution are specified by the following copyright notice:
 
-```
+``` text
        RVM: an Experimental Recoverable Virtual Memory Package
-			     Release 1.3
+                 Release 1.3
 
-	  Copyright (c) 1990-1994 Carnegie Mellon University
-			 All Rights Reserved.
+      Copyright (c) 1990-1994 Carnegie Mellon University
+             All Rights Reserved.
 
 Permission  to use, copy, modify and distribute this software and
 its documentation is hereby granted (including for commercial  or
@@ -73,14 +73,14 @@ use your present version of `rvmutl` to force any remaining records to
 be reflected in the modified segments, and then reinitialize the log
 with the new version of `rvmutl`:
 
-```
+``` sh
 .../RVM1.2/bin/rvmutl        # RVM 1.2
 * open_log <log file name>
 * recover
 * quit
 ```
 
-```
+``` sh
 .../RVM1.3/bin/rvmutl        # RVM 1.3
 * init_log <log file name> <size>
 * quit
@@ -116,11 +116,11 @@ use the procedure specified above.
 To import RVM, use FTP to get the file RVM.TAR into the directory from
 which you wish to build RVM.  Use the CMU Computer Science FTP server:
 
-```
+``` sh
 cd <your directory>
 ftp FTP.CS.CMU.EDU
 Name: anonymous
-password: <userid>\@host
+password: <userid>@<host>
 cd project/rvm-releases
 get README               # this text
 get rvm_manual.ps        # RVM manual (PostScript)
@@ -129,12 +129,12 @@ get RVM1.3.TAR           # packed source files
 quit
 ```
 
-You should also send mail to rvm@cs.cmu.edu to be placed on a mailing
-list for future updates.
+You should also send mail to [rvm@cs.cmu.edu](mailto:rvm@cs.cmu.edu) to be
+placed on a mailing list for future updates.
 
 Then unpack the files:
 
-```
+``` sh
 tar xf RVM1.3.TAR
 ```
 
@@ -150,7 +150,7 @@ If your machine/OS is not mentioned, no special action is needed.
 
 Delete the following files:
 
-```
+``` text
 .../RVM1.3/Makeconf
 .../RVM1.3/rvm/Makeconf
 .../RVM1.3/rds/Makeconf
@@ -167,7 +167,7 @@ after the "get basic definitions" with the definitions and macros in
 the build_defs file which will be found in the RVM directory created
 by unpacking the tar file:
 
-```
+``` text
 .../RVM1.3/rvm/Makefile
 .../RVM1.3/rds/Makefile
 .../RVM1.3/seg/Makefile
@@ -179,7 +179,7 @@ by unpacking the tar file:
 
 Execute the following commands:
 
-```
+``` sh
 cd RVM1.3
 make initialize
 ```
@@ -200,7 +200,7 @@ the following directories under RVM1.3:
 - **OBJS**: (Mach only) directory structure for machine-specific build areas,
   normally cleared after the initial build process.
 
-These directories and files are fully built (for Mach) in the RVM1.3 
+These directories and files are fully built (for Mach) in the RVM1.3
 directory on the FTP server, so you can see what you should get if
 there is trouble.
 
@@ -221,7 +221,7 @@ used in Mach.
 
 The Makefiles included are intended to both install the system and
 help with the building of customized versions.  The process can be
-controlled from two levels: the top level, at the RVM1.3 directory, for 
+controlled from two levels: the top level, at the RVM1.3 directory, for
 builds of all the subsystems.  The second level is builds of a
 specific subsystem from its source directory.  From the top level, the
 following build options are available:
@@ -252,7 +252,7 @@ determined by examining the subsystem Makefiles.
 The version of Make used in Mach 2.6 will automatically include a file
 called Makeconf if it exists.  This is used for common configuration
 macros.  Since Unix Make doesnt support this, but does have an include
-facility, most configuration macros are actually put in the file 
+facility, most configuration macros are actually put in the file
 `RVM1.3/build_defs`, which is included are necessary.  The Makeconf
 files contain Mach specific things only.  To allow the same Makefiles to be
 used for both operating systems, most directories are referred to by
@@ -292,7 +292,7 @@ easily done from the `RVM1.3/tests` directory, but if you copy the
 map_*_files and the t*_chk_files to any other place, you can
 run it there.  The procedure is:
 
-```
+``` sh
 .../RVM1.3/bin/rvmutl
 * init_log log_file 10k
 * quit
@@ -325,7 +325,7 @@ wiil most likely differ.
 First, cd to a directory in which you can build about 2M of files.
 Create a log file using rvmutl as in the the previous test:
 
-```
+``` sh
 .../RVM1.3/bin/rvmutl
 * init_log basher_log 600k
 * sizeof page
@@ -335,7 +335,7 @@ Create a log file using rvmutl as in the the previous test:
 To prepare a data segment, first load
 `...RVM1.3/bin/rvm_basher` and run the following commands:
 
-```
+``` sh
 .../RVM1.3/bin/rvm_basher
 * log basher_log
 * show_break
@@ -358,7 +358,7 @@ must be integral page sized in RVM; your application can use as many
 pages as need in both the heap and static regions -- the basher needs
 only the minimum.)
 
-```
+``` sh
 .../RVM1.3/bin/rdsinit basher_log basher_data
 Enter the length of the file/device basher_data: 1000000
    <rdsinit will zero the file and initialize RVM>
@@ -373,7 +373,7 @@ chunksize: 128
 
 You are now ready to run the basher:
 
-```
+``` sh
 .../RVM1.3/bin/rvm_basher < .../RVM1.3/tests/basher_parms
 ```
 
@@ -408,9 +408,9 @@ starting point if you wish to try building it.
 
 ## Contact with RVM Maintainers
 
-Email should be sent to rvm@cs.cmu.edu.  If you send mail to this
-account when you import RVM, you will be put on a mailing list of future
-upgrades and bug fixes.
+Email should be sent to [rvm@cs.cmu.edu](mailto:rvm@cs.cmu.edu).  If you send
+mail to this account when you import RVM, you will be put on a mailing list of
+future upgrades and bug fixes.
 
 Please understand that if you modify RVM, or any other parts of this
 distribution, we cannot provide assistance in debugging your

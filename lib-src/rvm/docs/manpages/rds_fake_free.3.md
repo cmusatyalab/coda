@@ -39,7 +39,7 @@ the intention list.
 To actually free the blocks on the intention list, `rds_do_free` is
 called.  This must be done immediately before calling
 `rvm_end_transaction` for the deallocating transaction, and must not
-be done if 
+be done if
 `rvm_abort_transaction` is called.  Also, no context swaps can be
 allowed between the calls on `rds_do_free` and `rvm_end_transaction`.
 

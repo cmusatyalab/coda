@@ -4,7 +4,7 @@
 %%CreationDate: 4/23/90   8:05 PM
 %%DocumentFonts: Helvetica
 %%BoundingBox: 20 630 400 770
-%%Pages:(atend) 
+%%Pages:(atend)
 %%EndComments
 % *** convert to PostScript coordinates ***
 1 -1 scale 30 -762 translate
@@ -39,18 +39,18 @@ $cricket begin
 /+ /add l
 /- /sub l
 /? /div l
-/ma {* +}b 
+/ma {* +}b
 /h {D * e D ma sqrt}d
-/np {} d 
+/np {} d
 systemdict D /setpacking known D {/packstate currentpacking d D setpacking}i /pack? x
-begin /settransfer load /setscreen load end 
+begin /settransfer load /setscreen load end
 /setscreen x /settransfer x
 systemdict /setcmykcolor known not { /setcmykcolor {pop pop pop pop 0 SG} d} if
-/dt [ currenttransfer ] cvx d 
-/ds [ currentscreen D [ e ] cvx /devSpot x ] cvx d 
-/jp {e [ 3 1 roll aload pop counttomark -1 roll aload pop ] cvx}b 
-/settransfer {dt jp settransfer}b 
-/macvec dup where not { 256 array d 
+/dt [ currenttransfer ] cvx d
+/ds [ currentscreen D [ e ] cvx /devSpot x ] cvx d
+/jp {e [ 3 1 roll aload pop counttomark -1 roll aload pop ] cvx}b
+/settransfer {dt jp settransfer}b
+/macvec dup where not { 256 array d
 macvec 0 StandardEncoding
 0 128 getinterval putinterval
 macvec 16#27 /quotesingle put
@@ -73,48 +73,48 @@ macvec 16#60 /grave put
 /apple /Ograve /Uacute /Ucircumflex /Ugrave /dotlessi /circumflex /tilde
 /macron /breve /dotaccent /ring /cedilla /hungarumlaut /ogonek /caron
 macvec 128 128 v astore pop}{pop pop}I
-/ad {+ d}b 
-/sd {- d}b 
-/td {* d}b 
+/ad {+ d}b
+/sd {- d}b
+/td {* d}b
 /dd {? d}b
-/c {2 ? e 2 ? e}b 
+/c {2 ? e 2 ? e}b
 /n0 {D 0 eq {pop}}b
 /m1 matrix d /m2 matrix d /m3 matrix d
-/ct 0 d 
-/s+ 0 d 
-/po 0 d 
+/ct 0 d
+/s+ 0 d
+/po 0 d
 /ts 40 string d
 /s1 (|______) d
 ts 0 s1 V
 /sp ( ) d
-/SM {/m3 m3 currentmatrix d}b 
-/RM {m3 setmatrix}b 
+/SM {/m3 m3 currentmatrix d}b
+/RM {m3 setmatrix}b
 /dpi 72 0 matrix defaultmatrix dtransform h d
 /inch {72 *}b
 /cm {28.3465 *}b
 /pi 3.1415923 d
-/fs 256 string d 
-/sh {m1 m2 copy 2 3 -1 roll sin put m2 concat}b 
-/fc {T n0 {rotate}I scale n0 {sh}I}b 
-/a {/ea x /sa x SM -1 * scale 0 0 1 sa ea 2 copy gt {arcn}{arc}I RM}b 
-/cn {SM T x1 y1 scale 0 0 1 ct 90 * D 90 + arc /ct ct 1 ad RM}b 
-/rr {/y1 x /x1 x /ct 0 d c y1 - /yr x x1 - /xr x N xr yr cn xr neg yr cn xr neg yr neg cn xr yr neg cn C}b 
-/dg 
+/fs 256 string d
+/sh {m1 m2 copy 2 3 -1 roll sin put m2 concat}b
+/fc {T n0 {rotate}I scale n0 {sh}I}b
+/a {/ea x /sa x SM -1 * scale 0 0 1 sa ea 2 copy gt {arcn}{arc}I RM}b
+/cn {SM T x1 y1 scale 0 0 1 ct 90 * D 90 + arc /ct ct 1 ad RM}b
+/rr {/y1 x /x1 x /ct 0 d c y1 - /yr x x1 - /xr x N xr yr cn xr neg yr cn xr neg yr neg cn xr yr neg cn C}b
+/dg
 {/lc x clip rotate T /dy x /dx x
-0 eq {N 
+0 eq {N
 1 eq {1 10 lc ? 10{log dy * 0 e neg M dx 0 R}for lc 10 gt{dy 0 e neg M dx 0 R}i}
 {lc 1 eq {0 0 e neg M dx 0 R}{/st dy lc 1 - dd 0 1 lc 1 - {st * 0 e neg M dx 0 R}for}I}I
 stroke}
 {1 eq {/st 0 d /inc 10 lc 1 + dd dx dy lt {/rd dx d}{/rd dy d}I
-1 1 lc {/di st 1 + log 10 log ? rd td N dx di - dy di - 0 360 a C stroke /st st inc ad}for} 
+1 1 lc {/di st 1 + log 10 log ? rd td N dx di - dy di - 0 360 a C stroke /st st inc ad}for}
 {dx dy lt {/st dx lc dd}{/st dy lc dd}I lc {N dx dy 0 360 a C stroke /dx dx st sd /dy dy st sd}repeat} I
 }I}b
 /sb {/ea x /ia x /sa x /yr x /xr x ea sa lt{/ia ia neg d}i N sa ia ea{D /x1 e cos xr td /y1 e sin yr * neg d x1 y1 M 0 0 L}for}b
-/bm {/y1 x /x1 x bitgray SG x1 y1 /md where {pop md /invertflag 2 copy known {get not}{pop pop true}I }{true}I 
+/bm {/y1 x /x1 x bitgray SG x1 y1 /md where {pop md /invertflag 2 copy known {get not}{pop pop true}I }{true}I
 [x1 0 0 y1 0 0] {currentfile picstring readhexstring pop}imagemask}b
 /c1 .166667 d /c2 .833333 d /c3 .5 d
-/p3 {+ c3 *}b 
-/dc{/y2 x /x2 x x0 c1 * x1 c2 ma y0 c1 * y1 c2 ma x1 c2 * x2 c1 ma y1 c2 * y2 c1 ma x1 x2 p3 y1 y2 p3 curveto}b 
+/p3 {+ c3 *}b
+/dc{/y2 x /x2 x x0 c1 * x1 c2 ma y0 c1 * y1 c2 ma x1 c2 * x2 c1 ma y1 c2 * y2 c1 ma x1 x2 p3 y1 y2 p3 curveto}b
 /mp {/x0 x1 d /y0 y1 d /x1 x2 d /y1 y2 d}b
 /SPOLY_INIT
 {/SPOLY_SAVE save d /cls x
@@ -124,61 +124,61 @@ cls {/yy y1 d /xx x1 d /C {mp xx yy dc systemdict /closepath get exec}d M}
 {lineto}I /L {{dc mp}stopped {/L {pop pop}d /noerr false d}i}d}d}d
 /SPOLY_END {SPOLY_SAVE restore}b
 /ah {g 2 copy T 3 -1 roll - 3 1 roll e - atan rotate os 0 M hl hw R 0 hw 2 * neg R C fill G}b
-/da 
-{/bp x /ep x g stroke G 
-currentlinewidth dup .24 lt {pop .24}i 
+/da
+{/bp x /ep x g stroke G
+currentlinewidth dup .24 lt {pop .24}i
 D -10 * D /hl x -2 ? /os x 2 * /hw x
 flattenpath /out? false d
 bp{g {/by x /bx x}
 {2 copy by eq e bx eq and {pop pop}{/out? true d}I out? {exit}i}
 /np load dup pathforall N bx by ah G}i
-ep{/out? false d reversepath {/ey x /ex x} 
+ep{/out? false d reversepath {/ey x /ex x}
 {2 copy ey eq e ex eq and {pop pop}{/out? true d}I out? {exit}i}
-/np load dup pathforall N ex ey ah}i}b 
-/tp {sm0 transform}b 
-/sfp {} d 
-/op {{tp moveto}{tp lineto}{3{tp 6 2 roll}repeat curveto}{C} pathforall sfp stroke}b 
+/np load dup pathforall N ex ey ah}i}b
+/tp {sm0 transform}b
+/sfp {} d
+/op {{tp moveto}{tp lineto}{3{tp 6 2 roll}repeat curveto}{C} pathforall sfp stroke}b
 /sm0 matrix d /sm1 matrix d
-/so 
-{SG /eg x /tg x /yt x /xt x 
+/so
+{SG /eg x /tg x /yt x /xt x
 xt 0 ne yt 0 ne or {
 xt abs yt abs gt {/tt xt abs d}{/tt yt abs d}I
 tt 144 gt {/ct dpi 2 dd /sfp{g eofill G}d}
 {tt 72 gt {/ct dpi 4 dd /sfp{g eofill G}d}
 {/ct dpi 4 dd}I}I
 /ig tg eg - ct ? neg d
-/x1 xt ct ? neg d /y1 yt ct dd 
-1 0 0 1 xt yt sm0 astore pop 
+/x1 xt ct ? neg d /y1 yt ct dd
+1 0 0 1 xt yt sm0 astore pop
 1 0 0 1 x1 y1 neg sm1 astore pop
 g op G
 1 1 ct{g ig * tg + SG sm0 D sm1 e concatmatrix pop op G}for}i}b
 /css {T 0 0 M xsp 0 32 Txt widthshow}b
-/sc 
+/sc
 {g /xsp x /tg x /eg x /sg x /y1 x /x1 x /Txt x
 /sst dpi 4 dd /y2 y1 sst dd /x2 x1 neg sst dd
 eg sg eq {/sg sg .001 sd}i
-/ig eg sg - sst ? neg d 
-g tg SG x1 y1 neg css 
-eg ig + ig sg {SG x2 y2 css}for G 
-x2 y2 css CP G T 0 0 M}b 
-/gbb {pathbbox /y1 x /x1 x /y2 x /x2 x /x3 x1 x2 sd /y3 y1 y2 sd}b 
-/radf 
+/ig eg sg - sst ? neg d
+g tg SG x1 y1 neg css
+eg ig + ig sg {SG x2 y2 css}for G
+x2 y2 css CP G T 0 0 M}b
+/gbb {pathbbox /y1 x /x1 x /y2 x /x2 x /x3 x1 x2 sd /y3 y1 y2 sd}b
+/radf
 {/dn dpi 300 ? 8 * 24 ad /ig rg 255 ? dn dd
-sg 255 ? SG eoclip gbb 
+sg 255 ? SG eoclip gbb
 x2 x3 2 ? + y2 y3 2 ? + T N
-x3 y3 h 2 ? D dn ? neg 1 
+x3 y3 h 2 ? D dn ? neg 1
 {0 0 3 -1 roll 0 360 arc C fill currentgray ig + SG}for}b
-/dof 
-{/ff x 
+/dof
+{/ff x
 eoclip 180 - rotate gbb
 x1 y1 T 180 rotate x3 y3 scale
 0 1 255 {fs e D 255 ? ff rg * sg + round cvi put}for
 1 256 8 [1 0 0 256 0 0] fs image}b
 /gft {radf {{} dof}{{1 e - 9 * 1 + log 1 e -}dof}}b
-/df 
-{g 2 copy eq {SG pop 0 ne {pop}i fill}{255 * e 255 * e 1 index - /rg x /sg x /gft load e get exec}I G}b 
+/df
+{g 2 copy eq {SG pop 0 ne {pop}i fill}{255 * e 255 * e 1 index - /rg x /sg x /gft load e get exec}I G}b
 /oc
-{/tl x /ju x /di 0 d 
+{/tl x /ju x /di 0 d
 g flattenpath
 {/y1 x /x1 x}{/y2 x /x2 x /dx x2 x1 sd /dy y2 y1 sd /di dx D * dy D ma sqrt di ad /x1 x2 d /y1 y2 d}
 {}{/y2 x /x2 x /dx x2 x1 sd /dy y2 y1 sd /di dx D * dy D ma sqrt d}pathforall
@@ -187,37 +187,37 @@ ju 1 eq{/po di tl - 2 ? store}i
 ju 2 eq{/po di tl - store}i G}b
 /pt {/FM true d /os x /sr x /os os sr 0 1 v W pop 2 ? ad /pd 0 d /sl os d /ct 0 d g flattenpath {mtp}{ltp}{ctp}{cpp}pathforall G}b
 /mtp {/y1 x /x1 x /x2 x1 d /y2 y1 d /ovr FM {os /FM false d}{0}I d x1 y1 transform /cpy x /cpx x}b
-/ltp 
-{/x3 x1 d /y3 y1 d /y1 x /x1 x /dx x1 x3 sd /dy y1 y3 sd /di dx D * dy D ma sqrt d 
+/ltp
+{/x3 x1 d /y3 y1 d /y1 x /x1 x /dx x1 x3 sd /dy y1 y3 sd /di dx D * dy D ma sqrt d
 /di 0 ne
 {/dsx dx di ? ovr td /dsy dy di ? ovr td x3 dsx + y3 dsy + transform
 /cpy x /cpx x /pd pd di ad {sl pd le {ct sr length lt{sch}{exit}I}{/ovr sl pd sd exit}I}loop}i}b
-/ctp {}b 
-/cpp {x2 y2 ltp x2 y2 mtp}b 
-/sch 
+/ctp {}b
+/cpp {x2 y2 ltp x2 y2 mtp}b
+/sch
 {/ch sr ct 1 v d /ct ct 1 ad
-/cw ch W pop 2 dd 
+/cw ch W pop 2 dd
 g cpx cpy itransform T dy dx atan rotate cw neg 0 M ch SH
 ct sr length lt{sr ct 1 v W pop 2 ? 0 rmoveto}i
 CP transform /cpy x /cpx x G
 /sl sl cw ad /po po cw 2 ma store ct sr length lt{/sl sl sr ct 1 v W pop 2 ? ad}i}b
 /cpd {/newslots x D length newslots + dict D 3 1 roll begin {1 index /FID ne {def}i}forall pop pop end}b
 /fn? {FontDirectory exch known} b
-/mof 
-{/ui 0 d 
-/pw 1000 24 dd 
-/nn x 
-/bn x 
-ui 0 eq 
+/mof
+{/ui 0 d
+/pw 1000 24 dd
+/nn x
+/bn x
+ui 0 eq
 {/ui bn findfont
-dup /UniqueID known 
+dup /UniqueID known
 {/UniqueID get 1 add}{pop 1}ifelse
 def} if
-/bfd bn findfont def 
-/ct bfd maxlength 1 ad 
+/bfd bn findfont def
+/ct bfd maxlength 1 ad
 bfd /UniqueID known not
 {/ct ct 1 ad} if
-/ofd ct dict def 
+/ofd ct dict def
 bfd
 { exch dup /FID ne
 {exch ofd 3 1 roll put}
@@ -228,12 +228,12 @@ ofd /PaintType 2 put
 ofd /StrokeWidth pw put
 ofd /UniqueID ui put
 nn ofd definefont pop}b
-/muf 
+/muf
 {20 dict begin
-/ui x 
+/ui x
 e /BaseFont e findfont d
-ui 0 eq 
-{/ui BaseFont D /UniqueID known 
+ui 0 eq
+{/ui BaseFont D /UniqueID known
 {/UniqueID get 1 +}{pop 1}I d}i
 /FontType 3 d
 /Upos BaseFont /FontInfo 2 copy known
@@ -258,30 +258,30 @@ theChar show
 0 Upos rmoveto 0 Upos L
 Uwid setlinewidth stroke
 end}d
-currentdict 
+currentdict
 end
 definefont pop}b
 /of {dup fn? {pop pop}{mof}I}b
 /uf {1 index fn? {pop pop pop}{muf}I}b
-/ns {g CP m3 currentmatrix nulldevice setmatrix T 0 0 M Txt CP pop G}b 
-/ft {/ftsave save d CP 3 1 roll + e T 0 0 M /show /myshow l Txt ftsave restore}b 
-/ls {/Txt x 0 ft}b 
-/cs {/Txt x ns 2 ? neg ft}b 
-/rs {/Txt x ns neg ft}b 
-/slp {/sproc x /sr x 0 1 sr length 1 - {sr e 1 v sproc}for}b 
-/ss 
+/ns {g CP m3 currentmatrix nulldevice setmatrix T 0 0 M Txt CP pop G}b
+/ft {/ftsave save d CP 3 1 roll + e T 0 0 M /show /myshow l Txt ftsave restore}b
+/ls {/Txt x 0 ft}b
+/cs {/Txt x ns 2 ? neg ft}b
+/rs {/Txt x ns neg ft}b
+/slp {/sproc x /sr x 0 1 sr length 1 - {sr e 1 v sproc}for}b
+/ss
 {/Txt x /fsave save d
-CP 2 copy T 0 0 M 
+CP 2 copy T 0 0 M
 /ffsave save d pop - /lw x ns /tw x /wsp lw tw sd /nsp 0 d
-/show {nsp e {sp eq {1 +}i}slp /nsp x}d 
+/show {nsp e {sp eq {1 +}i}slp /nsp x}d
 Txt 0 nsp 0 gt {wsp nsp ? +}i ffsave restore /s+ x
 /myshow load D systemdict /show get ne
 {D D length 1 - get cvlit /charshadow eq {[ e aload pop e pop s+ e ] cvx}i}
 {pop {s+ 0 32 4 -1 roll widthshow}}I
 /show x Txt fsave restore}b
-/cf{D /fn x length 7 + string /ts x ts 0 s1 V ts 7 fn V /fnm ts cvn d 
+/cf{D /fn x length 7 + string /ts x ts 0 s1 V ts 7 fn V /fnm ts cvn d
 FontDirectory fnm known not {fn cvn findfont 0 cpd /nfd x nfd D /FontName fnm put /Encoding macvec put fnm nfd definefont pop}i}b
- 
+
 /JoinProcs /jp l
 /fixcoordinates /fc l
 /doarc /a l
@@ -303,9 +303,9 @@ FontDirectory fnm known not {fn cvn findfont 0 cpd /nfd x nfd D /FontName fnm pu
 /centershow /cs l
 /fullshow /ss l
 /coordinatefont /cf l
- 
+
 pack? {packstate setpacking}i
- 
+
 %-----------------------------------
 %Encode PS Fonts to match Mac Fonts
 (Helvetica) coordinatefont
@@ -329,7 +329,7 @@ grestore
 gsave  % Text Block
 0 1  -1  0 -168.5 -56.999  fixcoordinates
 /myshow /show load def
-0 setgray 
+0 setgray
 -14 -7 moveto
 /|______Helvetica findfont 12 scalefont setfont
 {
@@ -339,7 +339,7 @@ grestore
 gsave  % Text Block
 0 1  -1  0 162 -57  fixcoordinates
 /myshow /show load def
-0 setgray 
+0 setgray
 -20 -7 moveto
 /|______Helvetica findfont 12 scalefont setfont
 {
@@ -353,7 +353,7 @@ grestore
 gsave  % Text Block
 0 1  -1  0 -9 -56  fixcoordinates
 /myshow /show load def
-0 setgray 
+0 setgray
 -57 -4 moveto
 /|______Helvetica findfont 12 scalefont setfont
 {
@@ -395,7 +395,7 @@ grestore
 gsave  % Text Block
 0 1  -1  0 8.5 37.5  fixcoordinates
 /myshow /show load def
-0 setgray 
+0 setgray
 -24 -1 moveto
 /|______Helvetica findfont 18 scalefont setfont
 {
@@ -405,7 +405,7 @@ grestore
 gsave  % Text Block
 0 1  -1  0 -168.5 14.999  fixcoordinates
 /myshow /show load def
-0 setgray 
+0 setgray
 -14 -7 moveto
 /|______Helvetica findfont 12 scalefont setfont
 {
@@ -415,7 +415,7 @@ grestore
 gsave  % Text Block
 0 1  -1  0 162 14.999  fixcoordinates
 /myshow /show load def
-0 setgray 
+0 setgray
 -20 -7 moveto
 /|______Helvetica findfont 12 scalefont setfont
 {
@@ -429,7 +429,7 @@ grestore
 gsave  % Text Block
 0 1  -1  0 -125.999 51  fixcoordinates
 /myshow /show load def
-0 setgray 
+0 setgray
 -57 -7 moveto
 /|______Helvetica findfont 12 scalefont setfont
 {
@@ -529,7 +529,7 @@ gsave % Line
 newpath
 18 -27  moveto
 -18 27 lineto
-0.35 setlinewidth 0 setgray 
+0.35 setlinewidth 0 setgray
 0 setlinecap [4 2] 0 setdash
 true true strokearrow
 grestore
@@ -538,7 +538,7 @@ gsave % Line
 newpath
 18 -27  moveto
 -18 27 lineto
-0.35 setlinewidth 0 setgray 
+0.35 setlinewidth 0 setgray
 0 setlinecap [4 2] 0 setdash
 true true strokearrow
 grestore
@@ -613,7 +613,7 @@ gsave % Line
 newpath
 9 -26.5  moveto
 -9 26.5 lineto
-0.349 setlinewidth 0 setgray 
+0.349 setlinewidth 0 setgray
 0 setlinecap [4 2] 0 setdash
 true true strokearrow
 grestore
@@ -622,14 +622,14 @@ gsave % Line
 newpath
 9 -26.5  moveto
 -9 26.5 lineto
-0.349 setlinewidth 0 setgray 
+0.349 setlinewidth 0 setgray
 0 setlinecap [4 2] 0 setdash
 true true strokearrow
 grestore
 gsave  % Text Block
 0 1  -1  0 66.5 49.5  fixcoordinates
 /myshow /show load def
-0 setgray 
+0 setgray
 -39 -3 moveto
 /|______Helvetica findfont 9 scalefont setfont
 {
@@ -653,7 +653,7 @@ grestore
 gsave  % Text Block
 0 1  -1  0 77.5 59.5  fixcoordinates
 /myshow /show load def
-0 setgray 
+0 setgray
 -50 -3 moveto
 /|______Helvetica findfont 9 scalefont setfont
 {
@@ -675,4 +675,3 @@ grestore
 
 showpage end
 vmstate restore
-

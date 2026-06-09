@@ -33,7 +33,7 @@ This avoids extra transaction start and commit
 overhead and provides automatic deallocation if the transaction must
 later abort.
 However, no context swap can be permitted between allocation and
-transaction commit or abort since the 
+transaction commit or abort since the
 modified, but uncommitted, free lists are visible to other RDS actions.
 
 If context swaps cannot be prohibited, or the available transaction was
