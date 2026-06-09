@@ -9,10 +9,11 @@ It allows the application to be benefited from *transactional* support. In parti
 allows operations on virtual memory to be *atomic* and *persistent*, provided that the
 application declares its intention through the RVM application programming interface.
 
-XXX overview figure
-
+![Overview](images/overview.png)
+/// caption
 *Overview of RVM structure shows the three important components of RVM:
 **virtual memory**, **data segment** and **log**.*
+///
 
 Virtual memory is where the application manipulates its data. RVM allows the application
 to declare *regions* of virtual memory to be associated with regions in external data
@@ -143,8 +144,10 @@ currently 0 and 8192 bytes (16 sectors) respectively.
 Log records are appended sequentially on log area after the log status block. The area
 starts from `log_start` and is of size `log_size`.
 
-XXX log_struct figure
+![Log Structure](images/log_struct.png)
+/// caption
 *Structure of the log*
+///
 
 As new records are appended, the log pointer `log_tail` will be advanced. `log_head`
 points to the first record in the log that is not yet subjected to truncation
@@ -159,8 +162,10 @@ and are subject to truncation. At the same time `log_head` will be advanced to
 be appended by concurrent threads while truncation is in progress, and `log_tail` will
 advance to new position.
 
-XXX log_trunc figure
+![Log Truncation](images/log_trunc.png)
+/// caption
 *Truncation of the log*
+///
 
 It is important to use the log pointer to delimit the log into truncation epoch and
 current epoch as we don't want the log truncation process to interfere with the log
@@ -233,8 +238,10 @@ with a record end marker. This is for the simple case when the transactions are 
 by a wrap marker in between. If the transaction is split by a wrap marker, it will have two
 sequences of records, each begins and ends with a transaction header and end marker.
 
-XXX log_records figure
+![Log Records](images/log_records.png)
+/// caption
 *Transaction records*
+///
 
 New value records have variable lengths, each of them begins with a new value range header
 and follows by the actual data. The actual data is the image of the virtual memory range
@@ -252,8 +259,10 @@ for end record marker, this value means the *backward* link to the transaction h
 length field: `length`, it is the length of the actual data. `length` may not be equal to
 `rec_length` because of the padding.
 
-XXX record links figure
+![Record Links](images/record_links.png)
+/// caption
 *Forward and backward links of records*
+///
 
 The fourth possible record type that could be found on log is the wrap marker.
 Note that wrapping may not happen exactly at the end of the log, it may happen a little
@@ -282,8 +291,10 @@ Log wrapping can happen *between* transaction. In this case, it simply leave a w
 (of type `log_wrap_t`) and start a brand new transaction at the beginning of log
 `log_start`.
 
-XXX wrapping figure
+![Wrapping](images/wrapping.png)
+/// caption
 *Three different possible wrapping*
+///
 
 It can also happen *within* a transaction. There are two possibilities: between different
 new value records or *splitting* a new value records. Since a range can be very long,
@@ -526,8 +537,10 @@ Upon returns of these two routines, `log_buf->ptr` will be the index into log bu
 that corresponds the current log position, and `log_buf->offset` will correspond to the
 log offset of byte 0 in log buffer. `log_buf->offset` will be sector aligned.
 
-XXX log_buf figure
+![Log Buffer](images/log_buf.png)
+/// caption
 *log buffer and init_buffer()*
+///
 
 The following is a typical sequence code in log truncation:
 

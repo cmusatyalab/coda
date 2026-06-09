@@ -115,10 +115,11 @@ For large regions, copying can take some time, and designers should consider
 mapping such regions at initialization and leaving them mapped as long as they
 are required.
 
-XXX copy on map figure
-
+![Copy on map](images/copy-on-map.png)
+/// caption
 *Data mapping with the copy-on-map method. All shaded areas are physically
 copied to the addresses specified during mapping.*
+///
 
 For Mach applications, segment mapping can be done in cooperation with the
 virtual memory system by using Machs external pager interface.
@@ -126,11 +127,12 @@ Mapped regions are copied into virtual memory on demand by the external pager,
 so there is no I/O delay when a region is mapped. This mapping method is
 illustrated below.
 
-XXX copy on demand figure
-
+![Copy on map](images/copy-on-demand.png)
+/// caption
 *Data mapping with the copy-on-demand method. Address space is reserved by
 mapping (lightly shaded areas), but the pages are not physically copied until
 referenced (dark shading).*
+///
 
 Because virtual memory contains uncommitted changes, the pager is not permitted
 to write pages back to the data file. If a page must be forced out of virtual
