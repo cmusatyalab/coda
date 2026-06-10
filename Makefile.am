@@ -7,6 +7,10 @@ ACLOCAL_AMFLAGS = -I m4
 EXTRA_DIST = LICENSE LICENSE.lgpl README.BSD README.Solaris README.nt \
 	     bootstrap.sh configure README.md \
 	     mkdocs.yml docs docs-meta
+dist-hook:
+	rm -f $(distdir)/docs/lwp $(distdir)/docs/rpc2 $(distdir)/docs/rvm \
+		$(distdir)/docs-meta/20-rpc2-references.bib \
+		$(distdir)/docs-meta/25-rvm-references.bib
 
 distcleancheck_listfiles = \
        find -type f -exec sh -c 'test -f $(srcdir)/{} || echo {}' ';'
