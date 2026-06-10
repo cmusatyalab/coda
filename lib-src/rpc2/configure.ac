@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script
 
 dnl Initialization
-AC_PREREQ([2.72])
+AC_PREREQ([2.71])
 AC_INIT([rpc2],[2.38])
 AC_CONFIG_AUX_DIR([.])
 AC_CONFIG_MACRO_DIR([m4])

@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 
 dnl autoconf 2.5 stuff
-AC_PREREQ([2.72])
+AC_PREREQ([2.71])
 AC_INIT([Coda],[8.1.7~dev0],[bugs@coda.cs.cmu.edu])
 AC_CONFIG_AUX_DIR([.])
 AC_CONFIG_MACRO_DIR([m4])
