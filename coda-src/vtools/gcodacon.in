@@ -370,7 +370,7 @@ class About(Gtk.AboutDialog):
         Gtk.AboutDialog.__init__(self)
         self.set_comments("Show the Coda client's volume/reintegration state")
         self.set_copyright("Copyright (c) 2007-2019 Carnegie Mellon University")
-        self.set_website("http://www.coda.cs.cmu.edu/")
+        self.set_website("http://coda.cs.cmu.edu/")
         self.set_website_label("Coda Distributed File System")
         self.set_license(
             " ".join(

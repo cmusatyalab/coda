@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2021 Carnegie Mellon University
+          Copyright (c) 1987-2026 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -552,7 +552,7 @@ static void Usage(char *argv0)
         " -wfmin\t\t\t\tsize of files below which it's NEVER partially cached\n"
         " -wfstall\t\t\tmaximum time to wait for a whole file caching. If \n"
         "\t\t\t\texceeded it's partially cached\n\n"
-        "For more information see http://www.coda.cs.cmu.edu/\n"
+        "For more information see http://coda.cs.cmu.edu/\n"
         "Report bugs to <bugs@coda.cs.cmu.edu>.\n",
         argv0);
 }

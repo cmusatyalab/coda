@@ -10,7 +10,7 @@ RDSINIT=@sbindir@/rdsinit
 
 Name: Recoverable Virtual Memory (lwp build)
 Description: Persistent memory storage library (linked against liblwp)
-URL: http://www.coda.cs.cmu.edu/
+URL: http://coda.cs.cmu.edu/
 Version: @VERSION@
 Requires: lwp
 Cflags: -I${includedir}

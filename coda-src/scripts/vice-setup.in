@@ -344,7 +344,7 @@ if [ "$isscm" = Y ]; then
     fi
     echo
     echo "enjoy Coda."
-    echo " for more information see http://www.coda.cs.cmu.edu."
+    echo " for more information see http://coda.cs.cmu.edu."
 
     exit 0
 fi

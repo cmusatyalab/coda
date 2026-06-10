@@ -85,7 +85,7 @@ MASTER_SITES=	ftp://ftp.coda.cs.cmu.edu/pub/coda/src/
 EXTRACT_SUFX=	.tar.gz
 
 MAINTAINER=	coda@cs.cmu.edu
-@NetBSD HOMEPAGE=	http://www.coda.cs.cmu.edu/
+@NetBSD HOMEPAGE=	http://coda.cs.cmu.edu/
 @FreeBSD LIB_DEPENDS+=	lwp.2:\${PORTSDIR}/devel/lwp
 @FreeBSD LIB_DEPENDS+=	rpc2.4:\${PORTSDIR}/devel/rpc2
 @FreeBSD LIB_DEPENDS+=	rvm.2:\${PORTSDIR}/devel/rvm
@@ -144,7 +144,7 @@ side caching.
 This package builds the entire source tree but only installs(/packages) the
 @PKG@ side programs.
 
-For more info, contact <coda@cs.cmu.edu> or visit http://www.coda.cs.cmu.edu.
+For more info, contact <coda@cs.cmu.edu> or visit http://coda.cs.cmu.edu.
 EOF
 
     sed -e "s/@PKG@/${pkg}/" < /tmp/text > "${dst}"
