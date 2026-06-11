@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 2017-2021 Carnegie Mellon University
+          Copyright (c) 2017-2026 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -22,6 +22,7 @@ Coda are listed in the file CREDITS.
 #include <sys/socket.h>
 #include <assert.h>
 #include <sys/time.h>
+#include <stdlib.h>
 #include <uv.h>
 #include <gnutls/gnutls.h>
 
@@ -156,6 +157,11 @@ typedef struct remotedest {
     struct minicb_tcp_req *outbound_queue;
     uv_mutex_t outbound_mutex;
 } dest_t;
+
+static inline void free_tcphandle(uv_handle_t *handle)
+{
+    free(handle);
+}
 
 void outbound_worker_cb(uv_async_t *async);
 

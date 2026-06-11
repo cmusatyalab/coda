@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 2017-2021 Carnegie Mellon University
+          Copyright (c) 2017-2026 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -587,11 +587,6 @@ static void cleanup_work(uv_work_t *w, int status)
     free(w);
 }
 
-static void free_tcphandle(uv_handle_t *handle)
-{
-    free(handle);
-}
-
 /* running on worker thread, should only use limited set of libuv functions */
 static void peeloff_and_decrypt(uv_work_t *w)
 {
@@ -1087,6 +1082,7 @@ static void tcp_newconnection_cb(uv_stream_t *bindhandle, int status)
     DEBUG("uv_accept() --> %d\n", rc);
     if (rc < 0) {
         DEBUG("uv_accept() --> %s\n", uv_strerror(rc));
+        free(clienthandle);
         return;
     }
 
@@ -1098,6 +1094,7 @@ static void tcp_newconnection_cb(uv_stream_t *bindhandle, int status)
     DEBUG("uv_tcp_getpeername() --> %d\n", rc);
     if (rc < 0) {
         DEBUG("uv_tcp_getpeername() --> %s\n", uv_strerror(rc));
+        uv_close((uv_handle_t *)clienthandle, free_tcphandle);
         return;
     }
 

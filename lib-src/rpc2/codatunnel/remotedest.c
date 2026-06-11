@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 2017-2021 Carnegie Mellon University
+          Copyright (c) 2017-2026 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -166,10 +166,20 @@ static void _free_dest_cb(uv_handle_t *handle)
     dest_t *d = handle->data;
     DEBUG("_free_dest_cb(%p)\n", d);
 
-    if (d->decrypted_record)
+    if (d->decrypted_record) {
         free(d->decrypted_record);
-    d->decrypted_record = NULL;
-    free(d->tcphandle);
+        d->decrypted_record = NULL;
+    }
+
+    /* Close TCP stream before deinit, as TLS may flush buffered data */
+    if (d->tcphandle) {
+        uv_close((uv_handle_t *)d->tcphandle, free_tcphandle);
+        d->tcphandle = NULL;
+    }
+
+    gnutls_deinit(d->my_tls_session);
+    d->my_tls_session = NULL;
+
     free((void *)d->fqdn);
     cleardest(d); /* make slot FREE again */
 }
