@@ -171,9 +171,12 @@ static void _free_dest_cb(uv_handle_t *handle)
         d->decrypted_record = NULL;
     }
 
-    /* Close TCP stream before deinit, as TLS may flush buffered data */
+    /* Release TCP handle before deinit, as TLS may flush buffered data.
+     * We got here either because there was no d->tcphandle, or we were
+     * called from free_dest(d)->uv_close(d->tcphandle, _free_dest_cb)
+     * so it should not be necessary to call uv_close again. */
     if (d->tcphandle) {
-        uv_close((uv_handle_t *)d->tcphandle, free_tcphandle);
+        free_tcphandle((uv_handle_t *)d->tcphandle);
         d->tcphandle = NULL;
     }
 
