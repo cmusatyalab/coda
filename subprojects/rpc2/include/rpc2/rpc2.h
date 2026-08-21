@@ -1,10 +1,10 @@
 /* BLURB lgpl
 
-                           Coda File System
-                              Release 7
+                            Coda File System
+                               Release 8
 
-          Copyright (c) 1987-2019 Carnegie Mellon University
-                  Additional copyrights listed below
+           Copyright (c) 1987-2026 Carnegie Mellon University
+                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
 the  terms of the  GNU  Library General Public Licence  Version 2,  as
@@ -490,6 +490,9 @@ typedef struct RPC2_PacketBuffer {
 /*      RPC2_MULTICAST  0x04	   Old multicast flag */
 /*      RPC2SEC_CAPABLE 0x08	   Old rpc2sec flag */
 #define RPC2SEC_CAPABLE 0x10 /* set on Init1 packet by new rpc2sec stack */
+#define TCPFTP_CAPABLE 0x20 /* set on packets by a TCPFTP-capable peer */
+
+int rpc2_tcpftp_capable(void); /* true iff our codatunneld is running */
 
 /* Format of filter used in RPC2_GetRequest */
 

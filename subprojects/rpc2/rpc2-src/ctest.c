@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                               Release 8
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+           Copyright (c) 1987-2026 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -39,6 +39,7 @@ Pittsburgh, PA.
 
 #define DEBUG
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/time.h>
@@ -53,6 +54,8 @@ Pittsburgh, PA.
 #include <rpc2/rpc2.h>
 #include <rpc2/se.h>
 #include <rpc2/sftp.h>
+#include <rpc2/tcpftp.h>
+#include <rpc2/codatunnel.h>
 
 #include "test.h"
 
@@ -100,6 +103,8 @@ int bwflag = 0;
 char *bwfile;
 struct timeval start, middle;
 FILE *BW_f;
+static int ctenabled       = 0; /* non-zero when -ct was given */
+static const char *certdir = NULL; /* -ct CERTDIR */
 
 int bwi = 0;
 static void bwcb(void *userp, unsigned int offset)
@@ -150,6 +155,19 @@ int main(int arg, char **argv)
             arg--;
             argv++;
             continue;
+        } else if (!strcmp(argv[1], "-ct")) {
+            if (arg < 3) {
+                printf("ctest: -ct requires a CERTDIR argument\n");
+                exit(EXIT_FAILURE);
+            }
+            ctenabled = 1;
+            certdir   = argv[2];
+            arg -= 2;
+            argv += 2;
+            continue;
+        } else {
+            printf("ctest: unknown option \"%s\"\n", argv[1]);
+            exit(EXIT_FAILURE);
         }
     }
     if (arg > 1) {
@@ -189,12 +207,29 @@ int main(int arg, char **argv)
     sftpi.AckPoint   = 8;
     sftpi.PacketSize = 2800;
     SFTP_Activate(&sftpi);
+    TCPFTP_Activate();
     SFTP_EnforceQuota = 1;
 #endif
 
 #ifdef PROFILE
     InitProfiling();
 #endif
+
+    /* Fork the coda tunnel daemon, if requested (-ct), before RPC2_Init so
+     * the secure layer picks up the tunnel vside socket. */
+    if (ctenabled) {
+        int rc = codatunnel_fork(arg, argv, NULL, "0.0.0.0", "0", 1, certdir);
+        if (rc < 0) {
+            perror("codatunnel_fork");
+            exit(EXIT_FAILURE);
+        }
+        (void)printf("ctest: forked codatunneld with certs in %s\n", certdir);
+
+        /* The tunnel already authenticates and encrypts at the transport
+         * layer, so the test client may pick a plain (unencrypted) binding
+         * instead of being forced to a secure one. */
+        RPC2_secure_only = 0;
+    }
 
     if (WhatHappened(RPC2_Init(RPC2_VERSION, (RPC2_Options *)NULL,
                                (RPC2_PortIdent *)NULL, -1,
@@ -293,9 +328,13 @@ int main(int arg, char **argv)
         case FETCHFILE:
         case STOREFILE:
             memset(&sed, 0, sizeof(SE_Descriptor)); /* initialize */
-            sed.Tag                                            = SMARTFTP;
-            sed.Value.SmartFTPD.Tag                            = FILEBYNAME;
-            sed.Value.SmartFTPD.FileInfo.ByName.ProtectionBits = 0644;
+            /* SE mode for the transfer; CODATUNNEL_TEST_SE=tcpftp selects
+             * the TCPFTP side effect, default is SMARTFTP. */
+            const char *testse = getenv("CODATUNNEL_TEST_SE");
+            sed.Tag = (testse && !strcmp(testse, "tcpftp")) ? TCPFTP : SMARTFTP;
+            struct SFTP_Descriptor *s         = SE_common(&sed);
+            s->Tag                            = FILEBYNAME;
+            s->FileInfo.ByName.ProtectionBits = 0644;
 
             if (bwflag) {
                 sed.userp  = (void *)0x12344321;
@@ -303,9 +342,9 @@ int main(int arg, char **argv)
             }
 
             if (opcode == (long)STOREFILE)
-                sed.Value.SmartFTPD.TransmissionDirection = CLIENTTOSERVER;
+                s->TransmissionDirection = CLIENTTOSERVER;
             else
-                sed.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
+                s->TransmissionDirection = SERVERTOCLIENT;
 
             if (!qflag)
                 printf("Request body length (0 unless testing piggybacking): ");
@@ -315,88 +354,92 @@ int main(int arg, char **argv)
 
             if (!qflag)
                 printf("Local seek offset? (0): ");
-            (void)fscanf(ifd, "%ld", &sed.Value.SmartFTPD.SeekOffset);
+            (void)fscanf(ifd, "%ld", &s->SeekOffset);
             if (!qflag && fflag)
-                printf(" %ld\n", sed.Value.SmartFTPD.SeekOffset);
+                printf(" %ld\n", s->SeekOffset);
 
             if (!qflag)
                 printf("Local byte quota? (-1): ");
-            (void)fscanf(ifd, "%ld", &sed.Value.SmartFTPD.ByteQuota);
+            (void)fscanf(ifd, "%ld", &s->ByteQuota);
             if (!qflag && fflag)
-                printf(" %ld\n", sed.Value.SmartFTPD.ByteQuota);
+                printf(" %ld\n", s->ByteQuota);
 
             if (!qflag)
                 printf(
                     "Local file name ('-' for stdin/stdout, '/dev/mem' for VM file): ");
-            (void)fscanf(ifd, "%s",
-                         sed.Value.SmartFTPD.FileInfo.ByName.LocalFileName);
+            (void)fscanf(ifd, "%s", s->FileInfo.ByName.LocalFileName);
             if (!qflag && fflag)
-                printf(" %s\n",
-                       sed.Value.SmartFTPD.FileInfo.ByName.LocalFileName);
+                printf(" %s\n", s->FileInfo.ByName.LocalFileName);
 
-            if (strcmp(sed.Value.SmartFTPD.FileInfo.ByName.LocalFileName,
-                       "-") == 0) {
-                sed.Value.SmartFTPD.Tag = FILEBYFD;
-                sed.Value.SmartFTPD.FileInfo.ByFD.fd =
-                    (opcode == FETCHFILE) ? fileno(stdout) : fileno(stdin);
+            if (strcmp(s->FileInfo.ByName.LocalFileName, "-") == 0) {
+                s->Tag              = FILEBYFD;
+                s->FileInfo.ByFD.fd = (opcode == FETCHFILE) ? fileno(stdout) :
+                                                              fileno(stdin);
             }
 
-            if (strcmp(sed.Value.SmartFTPD.FileInfo.ByName.LocalFileName,
-                       "/dev/mem") == 0) {
-                sed.Value.SmartFTPD.Tag = FILEINVM;
-                sed.Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqBody =
-                    (RPC2_ByteSeq)VMFileBuf;
-                sed.Value.SmartFTPD.FileInfo.ByAddr.vmfile.MaxSeqLen =
-                    VMMaxFileSize;
-                sed.Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqLen =
+            if (strcmp(s->FileInfo.ByName.LocalFileName, "/dev/mem") == 0) {
+                s->Tag                              = FILEINVM;
+                s->FileInfo.ByAddr.vmfile.SeqBody   = (RPC2_ByteSeq)VMFileBuf;
+                s->FileInfo.ByAddr.vmfile.MaxSeqLen = VMMaxFileSize;
+                s->FileInfo.ByAddr.vmfile.SeqLen =
                     VMCurrFileSize; /* ignored for fetch */
             }
 
             /* Request packet contains: reply length, remote seek offset,
-             * remote byte quota, hash mark, remote name*/
-            if (!qflag)
-                printf("Reply body length (0 unless testing piggybacking): ");
-            (void)fscanf(ifd, "%ld", &tt);
-            if (!qflag && fflag)
-                printf(" %ld\n", tt);
-            tt = (long)htonl((unsigned long)tt);
-            memcpy(Buff1->Body, &tt, sizeof(long));
+             * remote byte quota, hash mark, remote name. The three leading
+             * numeric fields are fixed-width uint32 (network order) at
+              * offsets 0/4/8, matching stest's reader; the hash mark and name
+              * follow at 3*sizeof(uint32_t) and 1+3*sizeof(uint32_t). */
+            {
+                int v32;
+                uint32_t hv;
 
-            if (!qflag)
-                printf("Remote seek offset (0) : ");
-            (void)fscanf(ifd, "%ld", &tt);
-            if (!qflag && fflag)
-                printf(" %ld\n", tt);
-            tt = (long)htonl((unsigned long)tt);
-            memcpy(Buff1->Body + sizeof(long), &tt, sizeof(long));
+                if (!qflag)
+                    printf(
+                        "Reply body length (0 unless testing piggybacking): ");
+                (void)fscanf(ifd, "%d", &v32);
+                if (!qflag && fflag)
+                    printf(" %d\n", v32);
+                hv = htonl((uint32_t)v32);
+                memcpy(Buff1->Body, &hv, sizeof(hv));
 
-            if (!qflag)
-                printf("Remote byte quota (-1): ");
-            (void)fscanf(ifd, "%ld", &tt);
-            if (!qflag && fflag)
-                printf(" %ld\n", tt);
-            tt = (long)htonl((unsigned long)tt);
-            memcpy(Buff1->Body + 2 * sizeof(long), &tt, sizeof(long));
+                if (!qflag)
+                    printf("Remote seek offset (0) : ");
+                (void)fscanf(ifd, "%d", &v32);
+                if (!qflag && fflag)
+                    printf(" %d\n", v32);
+                hv = htonl((uint32_t)v32);
+                memcpy(Buff1->Body + sizeof(hv), &hv, sizeof(hv));
+
+                if (!qflag)
+                    printf("Remote byte quota (-1): ");
+                (void)fscanf(ifd, "%d", &v32);
+                if (!qflag && fflag)
+                    printf(" %d\n", v32);
+                hv = htonl((uint32_t)v32);
+                memcpy(Buff1->Body + 2 * sizeof(hv), &hv, sizeof(hv));
+            }
 
             if (!qflag)
                 printf(
                     "Remote file name ('-' for stdin/stdout, '/dev/mem' for VM file): ");
-            (void)fscanf(ifd, "%s", (char *)Buff1->Body + 1 + 3 * sizeof(long));
+            (void)fscanf(ifd, "%s",
+                         (char *)Buff1->Body + 1 + 3 * sizeof(uint32_t));
             if (!qflag && fflag)
-                printf(" %s\n", (char *)Buff1->Body + 1 + 3 * sizeof(long));
+                printf(" %s\n", (char *)Buff1->Body + 1 + 3 * sizeof(uint32_t));
             Buff1->Header.BodyLength +=
-                3 * sizeof(long) + 2 +
-                strlen((char *)(Buff1->Body + 1 + 3 * sizeof(long)));
+                3 * sizeof(uint32_t) + 2 +
+                strlen((char *)(Buff1->Body + 1 + 3 * sizeof(uint32_t)));
 
             if (!qflag)
                 printf("Hash mark: ");
 
-            (void)fscanf(ifd, "%c", &sed.Value.SmartFTPD.hashmark);
+            (void)fscanf(ifd, "%c", &s->hashmark);
             if (!qflag && fflag)
-                printf(" %c\n", sed.Value.SmartFTPD.hashmark);
-            if (sed.Value.SmartFTPD.hashmark == '0')
-                sed.Value.SmartFTPD.hashmark = 0;
-            *(Buff1->Body + 3 * sizeof(long)) = sed.Value.SmartFTPD.hashmark;
+                printf(" %c\n", s->hashmark);
+            if (s->hashmark == '0')
+                s->hashmark = 0;
+            *(Buff1->Body + 3 * sizeof(uint32_t)) = s->hashmark;
 
             ClearStats();
             FT_GetTimeOfDay(&t1, NULL);
@@ -418,19 +461,18 @@ int main(int arg, char **argv)
                 continue;
             }
             tt = Buff2->Header.ReturnCode;
-            if (tt == (long)SE_SUCCESS && sed.LocalStatus == SE_SUCCESS) {
+            if (tt == (long)RPC2_SUCCESS && sed.LocalStatus == SE_SUCCESS) {
                 rpctime = ((t2.tv_sec - t1.tv_sec) * 1000) +
                           ((t2.tv_usec - t1.tv_usec) / 1000);
+                if (rpctime < 1)
+                    rpctime = 1; /* elapsed < 1ms: avoid divide-by-zero */
                 printf(
                     "%ld bytes transferred in %ld milliseconds (%ld kbytes/second)\n",
-                    sed.Value.SmartFTPD.BytesTransferred, rpctime,
-                    sed.Value.SmartFTPD.BytesTransferred / rpctime);
-                printf("QuotaExceeded = %ld\n",
-                       sed.Value.SmartFTPD.QuotaExceeded);
-                if (opcode == (long)FETCHFILE &&
-                    (sed.Value.SmartFTPD.Tag == FILEINVM)) {
-                    VMCurrFileSize =
-                        sed.Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqLen;
+                    s->BytesTransferred, rpctime,
+                    s->BytesTransferred / rpctime);
+                printf("QuotaExceeded = %ld\n", s->QuotaExceeded);
+                if (opcode == (long)FETCHFILE && (s->Tag == FILEINVM)) {
+                    VMCurrFileSize = s->FileInfo.ByAddr.vmfile.SeqLen;
                     printf("VMCurrFileSize = %ld\n", VMCurrFileSize);
                 }
             } else
@@ -669,7 +711,7 @@ static void DoBinding(RPC2_Handle *cid)
     ssid.Value.SubsysId = SUBSYS_SRV;
 
     if (!qflag)
-        printf("Side Effect Type (%d or %d)? ", 0, SMARTFTP);
+        printf("Side Effect Type (0, %d=SMARTFTP)? ", SMARTFTP);
     (void)fscanf(ifd, "%d", &bparms.SideEffectType);
     if (!qflag && fflag)
         printf(" %d\n", bparms.SideEffectType);

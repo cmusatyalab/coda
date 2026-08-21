@@ -51,12 +51,14 @@ rpc2_dep = declare_dependency(
 meson.override_dependency('rpc2', rpc2_dep)
 
 libse_sources = [
+  'ftp_proto.c',
   'sftp1.c',
   'sftp2.c',
   'sftp3.c',
   'sftp4.c',
   'sftp5.c',
   'sftp6.c',
+  'tcpftp1.c',
 ]
 
 libse_lib = library('se',

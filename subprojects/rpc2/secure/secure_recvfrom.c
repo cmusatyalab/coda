@@ -21,7 +21,7 @@ Coda are listed in the file CREDITS.
 
 #include <rpc2/secure.h>
 
-#include "codatunnel/wrapper.h"
+#include "codatunnel/codatunnel.private.h"
 #include "grunt.h"
 
 /* RFC 2406 - IP Encapsulating Security Payload (ESP)

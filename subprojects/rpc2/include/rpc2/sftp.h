@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2025 Carnegie Mellon University
+          Copyright (c) 1987-2026 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -42,6 +42,7 @@ Pittsburgh, PA.
 
 #include <unistd.h>
 #include <stdlib.h>
+#include <rpc2/tcpftp.h>
 /*
     Features:
     1. Windowing with bit masks to avoid unnecessary retransmissions
@@ -159,6 +160,10 @@ The interpretation of header fields is similar to that in RPC:
     0x10 /* on data packets, indicates first of group sent by source */
 #define SFTP_COUNTED \
     0x20 /* on data packets: arrived or acked before last round */
+#define SFTP_TCPFTP \
+    0x40 /* on RPC packets: an 8-byte codatunnel correlation cookie is appended
+            immediately before the (optional) SFTP parms; the server reads it
+            as the tail of the body after parms extraction */
 
 /* SFTP Opcodes */
 #define SFTP_START \
@@ -330,6 +335,8 @@ struct SFTP_Entry /* per-connection data structure */
      * received.
      */
     struct security_association *sa;
+    int TcpFtp; /* negotiated: use the codatunnel offload for file transfers */
+    struct TcpFtpState TcpFtpState; /* cookie / sink spool / got-block */
 };
 
 extern long SFTP_DebugLevel;

@@ -132,7 +132,7 @@ int nofork;
 /* Global red and yellow zone limits on CML length; default is infinite */
 int redzone_limit = -1, yellowzone_limit = -1;
 
-static int codatunnel_enabled;
+static int codatunnel_is_enabled;
 static int codatunnel_onlytcp;
 
 /* *****  Private constants  ***** */
@@ -381,7 +381,7 @@ int main(int argc, char **argv) EXCLUDES_TRANSACTION
     /* test mismatch with kernel before doing real work */
     testKernDevice();
 
-    if (codatunnel_enabled) {
+    if (codatunnel_is_enabled) {
         int rc;
         /* masquerade_port is the UDP portnum specified via venus.conf */
         char service[6];
@@ -686,10 +686,10 @@ static void ParseCmdline(int argc, char **argv)
             else if (STREQ(argv[i], "-mapprivate"))
                 MapPrivate = true;
             else if (STREQ(argv[i], "-codatunnel")) {
-                codatunnel_enabled = 1;
+                codatunnel_is_enabled = 1;
                 eprint("codatunnel enabled");
             } else if (STREQ(argv[i], "-no-codatunnel")) {
-                codatunnel_enabled = -1;
+                codatunnel_is_enabled = -1;
                 eprint("codatunnel disabled");
             } else if (STREQ(argv[i], "-onlytcp")) {
                 codatunnel_onlytcp = 1;
@@ -911,14 +911,14 @@ static void DefaultCmdlineParms()
         plan9server_enabled = false;
 
     /* Enable client-server communication helper process */
-    CODACONF_INT(codatunnel_enabled, "codatunnel", 1);
+    CODACONF_INT(codatunnel_is_enabled, "codatunnel", 1);
     CODACONF_INT(codatunnel_onlytcp, "onlytcp", 0);
 
-    if (codatunnel_onlytcp && codatunnel_enabled != -1)
-        codatunnel_enabled = 1;
-    if (codatunnel_enabled == -1) {
-        codatunnel_onlytcp = 0;
-        codatunnel_enabled = 0;
+    if (codatunnel_onlytcp && codatunnel_is_enabled != -1)
+        codatunnel_is_enabled = 1;
+    if (codatunnel_is_enabled == -1) {
+        codatunnel_onlytcp    = 0;
+        codatunnel_is_enabled = 0;
     }
 
     CODACONF_INT(detect_reintegration_retry, "detect_reintegration_retry", 1);

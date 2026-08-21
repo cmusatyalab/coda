@@ -21,7 +21,7 @@ Coda are listed in the file CREDITS.
 #include <uv.h>
 #include <gnutls/gnutls.h>
 
-#include "codatunnel.private.h"
+#include "codatunneld.private.h"
 
 /* Code to track and manage known destinations We use a very simple
    array of fixed length, and brute force search to get started.
@@ -46,6 +46,7 @@ static void cleardest(dest_t *d)
     d->my_tls_session        = NULL;
     d->uvcount               = 0;
     d->uvoffset              = 0;
+    d->read_paused           = 0;
     d->tls_send_queue        = NULL;
     d->outbound_queue        = NULL;
     for (i = 0; i < UVBUFLIMIT; i++) {
@@ -72,9 +73,12 @@ void initdestarray(uv_loop_t *mainloop)
         uv_cond_init(&d->uvcount_nonzero);
         uv_mutex_init(&d->tls_receive_record_mutex);
         uv_mutex_init(&d->tls_send_mutex);
+        uv_mutex_init(&d->tls_session_mutex);
         uv_mutex_init(&d->outbound_mutex);
         uv_async_init(mainloop, &d->wakeup, outbound_worker_cb);
         d->wakeup.data = d;
+        uv_async_init(mainloop, &d->resume_read, resume_read_cb);
+        d->resume_read.data = d;
     }
 }
 
@@ -203,6 +207,7 @@ void free_dest(dest_t *d)
 
     if (d->tcphandle)
         uv_read_stop((uv_stream_t *)d->tcphandle);
+    d->read_paused = 0; /* never resume the read on a closing dest */
 
     /* drain received buffer queue */
     for (i = 0; i < d->uvcount; i++)
@@ -213,6 +218,8 @@ void free_dest(dest_t *d)
     uv_mutex_unlock(&d->uvcount_mutex);
 
     drain_outbound_queues(d);
+
+    ct_fail_dest_transfers(d);
 
     if (d->tcphandle) {
         uv_close((uv_handle_t *)d->tcphandle, _free_dest_cb);
@@ -225,6 +232,7 @@ void free_dest(dest_t *d)
 /* nb is number of useful bytes in thisbuf->base */
 void enq_element(dest_t *d, const uv_buf_t *thisbuf, int nb)
 {
+    int stop_read = 0;
     DEBUG("enq_element(%p, %p, %d)\n", d, thisbuf, nb);
 
     uv_mutex_lock(&d->uvcount_mutex);
@@ -241,8 +249,18 @@ void enq_element(dest_t *d, const uv_buf_t *thisbuf, int nb)
     assert(d->uvcount != -1);
 
     DEBUG("d->uvcount = %d\n", d->uvcount);
-    if (d->uvcount >= UVBUFLIMIT) { /* no space; drop packet */
-        DEBUG("Dropping packet\n");
+    if (d->uvcount >= UVBUFLIMIT) { /* no free slot left */
+        /* We filled the queue in the prior upcall and stopped the read, so
+           this upcall should not fire. If it does, there is no slot to hold
+           the buffer in; free it rather than write out of bounds. (In
+           TCPACTIVE this is unreachable: uv_read_stop is issued the instant
+           the queue fills, and libuv will not invoke recv_tcp_cb again until
+           read is resumed. For handshake traffic it preserves the old
+           drop-when-full behavior, which is harmless for small handshake
+           datagrams. */
+        DEBUG("Queue full; dropping packet (no slot)\n");
+        TLOG("CT_DROP d=%p uvcount=%d paused=%d\n", d, d->uvcount,
+             d->read_paused);
         free(thisbuf->base);
     } else { /* append to list of uvbufs */
         DEBUG("Enqing packet\n");
@@ -250,8 +268,21 @@ void enq_element(dest_t *d, const uv_buf_t *thisbuf, int nb)
         d->enqarray[d->uvcount].numbytes = nb;
         d->uvcount++;
         uv_cond_signal(&d->uvcount_nonzero);
+
+        /* Apply backpressure the moment the queue is full: stop pulling more
+           from the socket so the excess stays in the kernel buffer and pushes
+           back on the writer. Resume is poked by eat_uvbytes() via
+           resume_read once the queue drains to zero. */
+        if (d->state == TCPACTIVE && d->uvcount >= UVBUFLIMIT &&
+            !d->read_paused) {
+            d->read_paused = 1;
+            stop_read      = 1;
+            TLOG("CT_RD_PAUSE d=%p uvcount=%d\n", d, d->uvcount);
+        }
     }
     uv_mutex_unlock(&d->uvcount_mutex);
+    if (stop_read)
+        uv_read_stop((uv_stream_t *)d->tcphandle);
 }
 
 /* Callback function to check if any buffers are available */
@@ -282,8 +313,9 @@ ssize_t eat_uvbytes(gnutls_transport_ptr_t gtp, void *tlsbuf, size_t nread)
 {
     DEBUG("eat_uvbytes(%p, %p, %lu)\n", gtp, tlsbuf, nread);
 
-    dest_t *d   = (dest_t *)gtp;
-    ssize_t len = -1;
+    dest_t *d          = (dest_t *)gtp;
+    ssize_t len        = -1;
+    int resume_pending = 0; /* set if we just drained the recv queue to zero */
 
     uv_mutex_lock(&d->uvcount_mutex);
 
@@ -330,9 +362,19 @@ ssize_t eat_uvbytes(gnutls_transport_ptr_t gtp, void *tlsbuf, size_t nread)
         d->enqarray[d->uvcount].b.base   = NULL;
         d->enqarray[d->uvcount].b.len    = 0;
         d->enqarray[d->uvcount].numbytes = 0;
+
+        /* Queue just drained to zero and the read is paused -> poke the event
+           loop to resume pulling. read_paused is only ever set (and read)
+           under this same mutex. */
+        if (d->uvcount == 0 && d->read_paused) {
+            resume_pending = 1;
+            TLOG("CT_RD_RESUME_TRIG d=%p\n", d);
+        }
     }
 unlock_out:
     uv_mutex_unlock(&d->uvcount_mutex);
+    if (resume_pending)
+        uv_async_send(&d->resume_read);
     return len;
 }
 

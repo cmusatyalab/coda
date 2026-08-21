@@ -18,7 +18,7 @@ Coda are listed in the file CREDITS.
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <rpc2/codatunnel.h>
-#include "wrapper.h"
+#include "codatunnel.private.h"
 
 /* If codatunnel is not configured, this file provides no-op routines
    to keep the linker happy */
@@ -39,6 +39,40 @@ int codatunnel_socket()
 void codatunnel_init0(const struct sockaddr *addr, socklen_t addrlen,
                       const char *peername)
 {
+    /* do nothing */
+}
+
+int codatunnel_enabled(void)
+{
+    return 0;
+}
+
+int codatunnel_file_register(const struct sockaddr *peer, socklen_t addrlen,
+                             int fd, uint64_t offset, uint64_t length, int role,
+                             uint64_t *cookie)
+{
+    (void)peer;
+    (void)addrlen;
+    (void)fd;
+    (void)offset;
+    (void)length;
+    (void)role;
+    if (cookie)
+        *cookie = 0;
+    return -1;
+}
+
+void codatunnel_file_unreg(uint64_t cookie)
+{
+    (void)cookie;
+}
+
+int codatunnel_file_wait(uint64_t cookie, int timeout_ticks, uint64_t *nbytes)
+{
+    (void)cookie;
+    (void)timeout_ticks;
+    (void)nbytes;
+    return -1;
 }
 
 ssize_t codatunnel_sendto(int sockfd, const void *buf, size_t len, int flags,

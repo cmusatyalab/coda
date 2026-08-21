@@ -64,7 +64,7 @@ Pittsburgh, PA.
 #include <rpc2/secure.h>
 
 #include "cbuf.h"
-#include "codatunnel/wrapper.h"
+#include "codatunnel/codatunnel.private.h"
 #include "rpc2.private.h"
 #include "trace.h"
 

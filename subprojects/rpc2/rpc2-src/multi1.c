@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 7
+                              Release 8
 
-          Copyright (c) 1987-2019 Carnegie Mellon University
+          Copyright (c) 1987-2026 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -495,6 +495,10 @@ static long mrpc_SendPacketsReliably(
         rpc2_RetryInterval(ce, 0, &slp->RInterval, req->Prefix.LengthOfPacket,
                            sizeof(struct RPC2_PacketHeader), 0);
         rpc2_ActivateSle(slp, &slp->RInterval);
+
+        if (ce->Flags & CE_TCPFTP)
+            req->Header.Flags =
+                htonl(ntohl(req->Header.Flags) | TCPFTP_CAPABLE);
 
         rpc2_XmitPacket(req, ce->HostInfo->Addr, 0);
     }

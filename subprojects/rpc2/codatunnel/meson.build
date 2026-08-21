@@ -2,8 +2,11 @@ codatunnel_sources = [
   'codatunnel.c',
   'codatunnel.private.h',
   'codatunneld.c',
+  'codatunneld.private.h',
+  'cookie.c',
+  'cookie.h',
+  'ctp.h',
   'remotedest.c',
-  'wrapper.h',
 ]
 
 codatunnel_inc = include_directories('.')

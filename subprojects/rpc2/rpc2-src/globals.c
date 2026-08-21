@@ -1,10 +1,10 @@
 /* BLURB lgpl
 
-                           Coda File System
-                              Release 7
+                            Coda File System
+                               Release 8
 
-          Copyright (c) 1987-2019 Carnegie Mellon University
-                  Additional copyrights listed below
+           Copyright (c) 1987-2026 Carnegie Mellon University
+                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
 the  terms of the  GNU  Library General Public Licence  Version 2,  as
@@ -46,6 +46,7 @@ Pittsburgh, PA.
 #include <errno.h>
 #include "rpc2.private.h"
 #include <rpc2/se.h>
+#include <rpc2/codatunnel.h>
 
 /* Contains the storage for all globals used in rpc2; see
    rpc2.private.h for descriptions */
@@ -110,3 +111,10 @@ long rpc2_errno;
 
 /* Obsolete: purely for compatibility with /vice/file */
 long rpc2_TimeCount, rpc2_CallCount, rpc2_ReqCount, rpc2_AckCount, rpc2_MaxConn;
+
+/* The TCPFTP/codatunnel offload is always compiled into libse; the only
+ * runtime requirement is a running codatunneld. */
+int rpc2_tcpftp_capable(void)
+{
+    return codatunnel_enabled();
+}

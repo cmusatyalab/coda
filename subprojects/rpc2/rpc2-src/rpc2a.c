@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2020 Carnegie Mellon University
+          Copyright (c) 1987-2026 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -54,7 +54,7 @@ Pittsburgh, PA.
 #include <rpc2/se.h>
 #include <rpc2/secure.h>
 
-#include <codatunnel/wrapper.h>
+#include <codatunnel/codatunnel.private.h>
 
 #include "cbuf.h"
 #include "rpc2.private.h"
@@ -445,6 +445,11 @@ ScanWorkList:
     if (rc < RPC2_WLIMIT) {
         DROPIT();
     }
+
+    /* If the client advertised TCPFTP and we are capable, mark the connection
+     * as TCPFTP-negotiated; the Init2 packet carries the bit back. */
+    if ((pb->Header.Flags & TCPFTP_CAPABLE) && rpc2_tcpftp_capable())
+        ce->Flags |= CE_TCPFTP;
 
     memset(SharedSecret, 0, sizeof(RPC2_EncryptionKey));
     clientIdent = (ce->SecurityLevel != RPC2_OPENKIMONO) ? &cident : NULL;
@@ -917,6 +922,9 @@ try_next_addr:
         ib->RPC2SEC_version   = htonl(SECURE_VERSION);
         ib->Preferred_Keysize = htonl(RPC2_Preferred_Keysize);
     }
+    /* advertise TCPFTP/codatunnel support to the server */
+    if (rpc2_tcpftp_capable())
+        pb->Header.Flags |= TCPFTP_CAPABLE;
 
     rpc2_htonp(pb); /* convert header to network order */
 
@@ -1043,6 +1051,12 @@ try_next_addr:
     ce->sa.peer_spi = pb->Header.LocalHandle;
     say(9, RPC2_DebugLevel, "PeerHandle for local %#x is %#x\n", *ConnHandle,
         ce->PeerHandle);
+
+    /* If the server advertised TCPFTP and we are capable, the connection can
+     * use the codatunnel offload. */
+    if ((pb->Header.Flags & TCPFTP_CAPABLE) && rpc2_tcpftp_capable())
+        ce->Flags |= CE_TCPFTP;
+
     RPC2_FreeBuffer(&pb); /* Release INIT2 packet */
 
     /* old bind sequence, 2-way handshake, skip remaining phases */
@@ -1483,6 +1497,9 @@ static void SendOKInit2(IN struct CEntry *ce)
     if (ce->TimeStampEcho) /* service time is now-requesttime */
         rpc2_StampPacket(ce, pb);
 
+    if (ce->Flags & CE_TCPFTP)
+        pb->Header.Flags |= TCPFTP_CAPABLE;
+
     rpc2_htonp(pb); /* convert to network order */
     rpc2_XmitPacket(pb, ce->HostInfo->Addr, 1);
     SavePacketForRetry(pb, ce);
@@ -1581,6 +1598,9 @@ static RPC2_PacketBuffer *Send2Get3(struct CEntry *ce, RPC2_EncryptionKey key,
     pb2->Header.Opcode     = RPC2_INIT2;
     pb2->Header.ReturnCode = (ce->Flags & CE_OLDV) ? RPC2_OLDVERSION :
                                                      RPC2_SUCCESS;
+
+    if (ce->Flags & CE_TCPFTP)
+        pb2->Header.Flags |= TCPFTP_CAPABLE;
 
     if (ce->TimeStampEcho) /* service time is now-requesttime */
         rpc2_StampPacket(ce, pb2);

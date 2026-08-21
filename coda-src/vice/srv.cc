@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2021 Carnegie Mellon University
+          Copyright (c) 1987-2026 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -144,7 +144,7 @@ const char *CodaSrvIp; // default NULL ('ipaddress' in server.conf)
 
 /* local */
 static int MapPrivate; // default 0
-static int codatunnel_enabled; // default 0
+static int codatunnel_is_enabled; // default 0
 static int codatunnel_onlytcp; // default 0
 static int nofork; // default 0
 static const char *sslcertdir;
@@ -422,7 +422,7 @@ int main(int argc, char *argv[]) EXCLUDES_TRANSACTION
     SwapLog(0);
 
     /* Fork the Coda tunnel daemon for codatunnel, if requested */
-    if (codatunnel_enabled) {
+    if (codatunnel_is_enabled) {
         /* format a suitable bindaddr string */
         const char *bindaddr = "0.0.0.0";
         if (srvhost) {
@@ -1425,9 +1425,9 @@ static void ParseEnvVars(void)
 
     check_reintegration_retry =
         codaenv_int("check_reintegration_retry", check_reintegration_retry);
-    codatunnel_enabled = codaenv_int("codatunnel", codatunnel_enabled);
-    codatunnel_onlytcp = codaenv_int("onlytcp", codatunnel_onlytcp);
-    nofork             = codaenv_int("nofork", nofork);
+    codatunnel_is_enabled = codaenv_int("codatunnel", codatunnel_is_enabled);
+    codatunnel_onlytcp    = codaenv_int("onlytcp", codatunnel_onlytcp);
+    nofork                = codaenv_int("nofork", nofork);
 }
 
 static int ReadConfigFile(void)
@@ -1489,7 +1489,7 @@ static int ReadConfigFile(void)
         vicetab = strdup(vice_config_path("db/vicetab"));
 
     CODACONF_INT(check_reintegration_retry, "check_reintegration_retry", 1);
-    CODACONF_INT(codatunnel_enabled, "codatunnel", 0);
+    CODACONF_INT(codatunnel_is_enabled, "codatunnel", 0);
     CODACONF_INT(codatunnel_onlytcp, "onlytcp", 0);
     CODACONF_INT(nofork, "nofork", 0);
 
@@ -1616,10 +1616,10 @@ static int ParseArgs(int argc, char *argv[])
         } else if (!strcmp(argv[i], "-mapprivate")) {
             MapPrivate = 1;
         } else if (!strcmp(argv[i], "-codatunnel")) {
-            codatunnel_enabled = true;
+            codatunnel_is_enabled = true;
             eprint("codatunnel enabled");
         } else if (!strcmp(argv[i], "-no-codatunnel")) {
-            codatunnel_enabled = false;
+            codatunnel_is_enabled = false;
             eprint("codatunnel disabled");
         } else if (!strcmp(argv[i], "-onlytcp")) {
             codatunnel_onlytcp = true;

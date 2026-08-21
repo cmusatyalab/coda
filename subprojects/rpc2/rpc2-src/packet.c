@@ -3,7 +3,7 @@
 			Coda File System
 			    Release 8
 
-	    Copyright (c) 1987-2025 Carnegie Mellon University
+	    Copyright (c) 1987-2026 Carnegie Mellon University
 		Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -53,7 +53,7 @@ Pittsburgh, PA.
 #include <rpc2/secure.h>
 
 #include "cbuf.h"
-#include "codatunnel/wrapper.h" /* for CODATUNNEL_ISRETRY_HINT */
+#include "codatunnel/codatunnel.private.h" /* for CODATUNNEL_ISRETRY_HINT */
 #include "rpc2.private.h"
 #include "trace.h"
 
@@ -266,7 +266,7 @@ long rpc2_RecvPacket(IN long whichSocket, OUT RPC2_PacketBuffer *whichBuff)
             break;
         case EBADF: /* network socket got shut down (codatunnel died?) */
             say(-1, RPC2_DebugLevel,
-                "Network socket closed, running disconnnected\n");
+                "Network socket closed, running disconnected\n");
             rpc2_v4RequestSocket = rpc2_v6RequestSocket = -1;
             break;
         default:
@@ -416,6 +416,10 @@ long rpc2_SendReliably(struct CEntry *Conn, struct SL_Entry *Sle,
 
     if (TestRole(Conn, CLIENT)) /* stamp the outgoing packet */
         Packet->Header.TimeStamp = htonl(rpc2_MakeTimeStamp());
+
+    if (Conn->Flags & CE_TCPFTP)
+        Packet->Header.Flags =
+            htonl(ntohl(Packet->Header.Flags) | TCPFTP_CAPABLE);
 
     rpc2_XmitPacket(Packet, Conn->HostInfo->Addr, 0);
 

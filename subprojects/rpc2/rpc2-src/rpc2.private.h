@@ -1,10 +1,10 @@
 /* BLURB lgpl
 
-                           Coda File System
-                              Release 7
+                            Coda File System
+                               Release 8
 
-          Copyright (c) 1987-2019 Carnegie Mellon University
-                  Additional copyrights listed below
+           Copyright (c) 1987-2026 Carnegie Mellon University
+                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
 the  terms of the  GNU  Library General Public Licence  Version 2,  as
@@ -142,6 +142,7 @@ Truly random values to allow easy detection of storage corruption.
 
 /* Definitions for Flags field of connections */
 #define CE_OLDV 0x1 /* old version detected during bind */
+#define CE_TCPFTP 0x2 /* connection may use the codatunnel/TCPFTP offload */
 
 /*---------------- Data Structures ----------------*/
 struct CEntry /* describes a single RPC connection */

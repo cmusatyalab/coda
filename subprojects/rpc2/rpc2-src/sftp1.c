@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2025 Carnegie Mellon University
+          Copyright (c) 1987-2026 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -65,8 +65,10 @@ Pittsburgh, PA.
 
 #include <rpc2/se.h>
 #include <rpc2/sftp.h>
+#include <rpc2/tcpftp.h>
 
 #include "rpc2.private.h"
+#include "codatunnel.private.h"
 
 /*----------------------- Local procedure specs  ----------------------*/
 static long GetFile();
@@ -98,6 +100,20 @@ static long MakeBigEnough();
 
 #define BOGUS(pb) \
     (sftp_TraceBogus(1, __LINE__), sftp_bogus++, SFTP_FreeBuffer(&pb))
+
+/* Append the raw 8-byte cookie before the SFTP parms. SEDataOffset remains
+ * owned by the SFTP parms/piggy logic (see SFTP_TCPFTP in sftp.h). */
+static int sftp_append_cookie(RPC2_PacketBuffer **whichP,
+                              const unsigned char *blk, size_t blen)
+{
+    if (MakeBigEnough(whichP, (off_t)blen, RPC2_MAXPACKETSIZE) < 0)
+        return -1;
+    memcpy((*whichP)->Body + (*whichP)->Header.BodyLength, blk, blen);
+    (*whichP)->Header.BodyLength += blen;
+    (*whichP)->Prefix.LengthOfPacket =
+        (long)sizeof(struct RPC2_PacketHeader) + (*whichP)->Header.BodyLength;
+    return 0;
+}
 
 /*------------- Procedures directly invoked by RPC2 ---------------*/
 
@@ -215,6 +231,11 @@ long SFTP_Bind2(IN RPC2_Handle ConnHandle, IN RPC2_Unsigned BindTime)
     se->HostInfo = rpc2_GetHost(se->PInfo.RemoteHost.Value.AddrInfo);
     assert(se->HostInfo);
 
+    {
+        struct CEntry *ce = rpc2_GetConn(ConnHandle);
+        se->TcpFtp        = (ce != NULL && (ce->Flags & CE_TCPFTP)) != 0;
+    }
+
     return (RPC2_SUCCESS);
 }
 
@@ -249,6 +270,12 @@ long SFTP_NewConn(IN RPC2_Handle ConnHandle, IN RPC2_CountedBS *ClientIdent)
     assert(se->HostInfo);
 
     se->sa = rpc2_GetSA(ConnHandle);
+
+    {
+        struct CEntry *ce = rpc2_GetConn(ConnHandle);
+        se->TcpFtp        = (ce != NULL && (ce->Flags & CE_TCPFTP)) != 0;
+    }
+
     RPC2_SetSEPointer(ConnHandle, se);
 
     return (RPC2_SUCCESS);
@@ -275,6 +302,63 @@ long SFTP_MakeRPC1(IN RPC2_Handle ConnHandle, INOUT SE_Descriptor *SDesc,
 
     se->XferState = XferNotStarted;
     se->HitEOF    = FALSE;
+    if (se->TcpFtp) {
+        struct SFTP_Descriptor *d = &SDesc->Value.SmartFTPD;
+        const void *peer;
+        struct CEntry *ce = rpc2_GetConn(ConnHandle);
+        unsigned char blk[8];
+        size_t wrote    = 0;
+        uint64_t cookie = 0;
+        socklen_t plen;
+        int role = (d->TransmissionDirection == CLIENTTOSERVER) ?
+                       TCPFTP_ROLE_SOURCE :
+                       TCPFTP_ROLE_SINK;
+
+        if (ce && ce->HostInfo && ce->HostInfo->Addr) {
+            peer = ce->HostInfo->Addr->ai_addr;
+            plen = (socklen_t)ce->HostInfo->Addr->ai_addrlen;
+        } else {
+            FAIL(se, RPC2_SEFAIL1);
+        }
+
+        if (tcpftp_register_local(&se->TcpFtpState,
+                                  (const struct sockaddr *)peer, plen, d, role,
+                                  0, &cookie) != 0) {
+            /* codatunnel unusable: fall back to in-VM and don't retry */
+            se->TcpFtp             = 0;
+            se->TcpFtpState.Cookie = 0;
+            se->TcpFtpState.VmFd   = -1;
+            goto invm;
+        }
+        se->TcpFtpState.Cookie = cookie;
+
+        if (tcpftp_pack_param_block(&cookie, blk, sizeof(blk), &wrote) != 0 ||
+            sftp_append_cookie(RequestPtr, blk, wrote) != 0) {
+            codatunnel_file_unreg(cookie);
+            se->TcpFtpState.Cookie = 0;
+            if (se->TcpFtpState.VmFd >= 0) {
+                close(se->TcpFtpState.VmFd);
+                se->TcpFtpState.VmFd = -1;
+            }
+            FAIL(se, RPC2_SEFAIL4);
+        }
+        (*RequestPtr)->Header.SEFlags |= SFTP_TCPFTP;
+
+        /* parms still piggyback on the first call (server needs them) */
+        if (se->SentParms == FALSE &&
+            sftp_AppendParmsToPacket(se, RequestPtr) < 0) {
+            codatunnel_file_unreg(se->TcpFtpState.Cookie);
+            se->TcpFtpState.Cookie = 0;
+            if (se->TcpFtpState.VmFd >= 0) {
+                close(se->TcpFtpState.VmFd);
+                se->TcpFtpState.VmFd = -1;
+            }
+            FAIL(se, RPC2_SEFAIL4);
+        }
+        return (RPC2_SUCCESS);
+    }
+
+invm:
     if (SDesc->Value.SmartFTPD.TransmissionDirection == CLIENTTOSERVER) {
         se->SendMostRecent   = se->SendLastContig;
         se->SendWorriedLimit = se->SendLastContig;
@@ -345,6 +429,16 @@ long SFTP_MakeRPC2(IN RPC2_Handle ConnHandle, INOUT SE_Descriptor *SDesc,
         }
     }
 
+    if (se->TcpFtp && se->TcpFtpState.Cookie != 0) {
+        long status = tcpftp_finalize(&se->TcpFtpState, &SDesc->Value.SmartFTPD,
+                                      se->TcpFtpState.Cookie);
+        se->TcpFtpState.Cookie = 0;
+        SDesc->LocalStatus     = (status == 0) ? SE_SUCCESS : SE_FAILURE;
+        SDesc->RemoteStatus    = SE_SUCCESS;
+        se->SDesc              = NULL;
+        return (RPC2_SUCCESS);
+    }
+
     /* Clean up local state */
     for (i = 0; i < MAXOPACKETS; i++)
         if (se->ThesePackets[i] != NULL)
@@ -401,6 +495,22 @@ long SFTP_GetRequest(RPC2_Handle ConnHandle, RPC2_PacketBuffer *Request)
         }
     }
 
+    se->TcpFtpState.Cookie   = 0;
+    se->TcpFtpState.GotBlock = 0;
+    if (Request->Header.SEFlags & SFTP_TCPFTP) {
+        /* The client appended the 8-byte cookie immediately before the parms;
+         * the parms were extracted above, so the cookie is now the tail of the
+         * body. NOTE: sftp_ExtractParmsFromPacket shrinks BodyLength but does
+         * NOT adjust SEDataOffset, so measure against BodyLength alone. */
+        if (Request->Header.BodyLength < 8 ||
+            tcpftp_unpack_param_block((const unsigned char *)&Request
+                                          ->Body[Request->Header.BodyLength - 8],
+                                      8, &se->TcpFtpState.Cookie) != 0)
+            FAIL(se, RPC2_SEFAIL2);
+        Request->Header.BodyLength -= 8;
+        se->TcpFtpState.GotBlock = 1;
+    }
+
     return (RPC2_SUCCESS);
 }
 
@@ -419,6 +529,9 @@ long SFTP_InitSE(RPC2_Handle ConnHandle, SE_Descriptor *SDesc)
     if (se->GotParms == FALSE)
         FAIL(se, RPC2_SEFAIL2);
     se->SDesc = SDesc;
+
+    if (se->TcpFtp && se->TcpFtpState.GotBlock)
+        return (RPC2_SUCCESS); /* no in-VM pump; CheckSE registers the file */
 
     rc = sftp_InitIO(se);
     if (rc < 0) {
@@ -445,6 +558,36 @@ long SFTP_CheckSE(RPC2_Handle ConnHandle, SE_Descriptor *SDesc, long Flags)
     if (se->WhoAmI != SFSERVER)
         FAIL(se, RPC2_SEFAIL2);
     se->SDesc = SDesc;
+
+    if (se->TcpFtp && se->TcpFtpState.GotBlock) {
+        struct SFTP_Descriptor *d = &SDesc->Value.SmartFTPD;
+        struct CEntry *ce         = rpc2_GetConn(ConnHandle);
+        const void *peer;
+        uint64_t cookie;
+        socklen_t plen;
+        int role = (d->TransmissionDirection == CLIENTTOSERVER) ?
+                       TCPFTP_ROLE_SINK :
+                       TCPFTP_ROLE_SOURCE;
+        int status;
+
+        if (!ce || !ce->HostInfo || !ce->HostInfo->Addr)
+            FAIL(se, RPC2_SEFAIL1);
+        peer   = ce->HostInfo->Addr->ai_addr;
+        plen   = (socklen_t)ce->HostInfo->Addr->ai_addrlen;
+        cookie = se->TcpFtpState.Cookie;
+        if (tcpftp_register_local(&se->TcpFtpState,
+                                  (const struct sockaddr *)peer, plen, d, role,
+                                  cookie, &cookie) != 0)
+            FAIL(se, RPC2_SEFAIL1);
+        se->TcpFtpState.Cookie = cookie;
+        status                 = tcpftp_finalize(&se->TcpFtpState, d, cookie);
+        se->TcpFtpState.Cookie = 0;
+        SDesc->LocalStatus     = (status == 0) ? SE_SUCCESS : SE_FAILURE;
+        SDesc->RemoteStatus    = SE_SUCCESS;
+        sftp_vfclose(se);
+        se->SDesc = NULL;
+        return (status == 0) ? RPC2_SUCCESS : RPC2_SEFAIL1;
+    }
 
     if (SDesc->LocalStatus != SE_NOTSTARTED ||
         SDesc->RemoteStatus != SE_NOTSTARTED)
@@ -1107,18 +1250,19 @@ struct SFTP_Entry *sftp_AllocSEntry(void)
     assert((sfp = (struct SFTP_Entry *)malloc(sizeof(struct SFTP_Entry))) !=
            NULL);
     memset(sfp, 0, sizeof(struct SFTP_Entry)); /* all fields initialized to 0 */
-    sfp->Magic          = SFTPMAGIC;
-    sfp->openfd         = -1;
-    sfp->fd_offset      = 0;
-    sfp->PacketSize     = SFTP_PacketSize;
-    sfp->WindowSize     = SFTP_WindowSize;
-    sfp->SendAhead      = SFTP_SendAhead;
-    sfp->AckPoint       = SFTP_AckPoint;
-    sfp->DupThreshold   = SFTP_DupThreshold;
-    sfp->Retransmitting = FALSE;
-    sfp->RequestTime    = 0;
-    sfp->RecvQueue      = NULL;
-    sfp->RecvQueueLen   = 0;
+    sfp->Magic            = SFTPMAGIC;
+    sfp->openfd           = -1;
+    sfp->fd_offset        = 0;
+    sfp->TcpFtpState.VmFd = -1;
+    sfp->PacketSize       = SFTP_PacketSize;
+    sfp->WindowSize       = SFTP_WindowSize;
+    sfp->SendAhead        = SFTP_SendAhead;
+    sfp->AckPoint         = SFTP_AckPoint;
+    sfp->DupThreshold     = SFTP_DupThreshold;
+    sfp->Retransmitting   = FALSE;
+    sfp->RequestTime      = 0;
+    sfp->RecvQueue        = NULL;
+    sfp->RecvQueueLen     = 0;
     CLRTIME(&sfp->LastWord);
     return (sfp);
 }
@@ -1145,6 +1289,10 @@ void sftp_FreeSEntry(struct SFTP_Entry *se)
             SFTP_FreeBuffer(&se->ThesePackets[i]);
     if (se->HostInfo)
         rpc2_FreeHost(&se->HostInfo);
+    if (se->TcpFtpState.Cookie)
+        codatunnel_file_unreg(se->TcpFtpState.Cookie);
+    if (se->TcpFtpState.VmFd >= 0)
+        close(se->TcpFtpState.VmFd);
     free(se);
 }
 

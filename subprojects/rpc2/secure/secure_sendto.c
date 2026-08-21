@@ -24,7 +24,7 @@ Coda are listed in the file CREDITS.
 
 #include <rpc2/secure.h>
 
-#include "codatunnel/wrapper.h"
+#include "codatunnel/codatunnel.private.h"
 #include "grunt.h"
 
 ssize_t secure_sendto(int s, const void *buf, size_t len, int flags,

@@ -38,6 +38,7 @@ Pittsburgh, PA.
 */
 
 #include <rpc2/rpc2.h>
+#include <stdint.h>
 
 #ifndef _SE_
 #define _SE_
@@ -71,6 +72,7 @@ struct SE_Definition {
  * descriptors */
 #define OMITSE 9999 /* in MultiRPC for omitting side effects on some conns */
 #define SMARTFTP 1189
+#define TCPFTP 31155
 
 enum WhichWay
 {
@@ -84,6 +86,37 @@ enum FileInfoTag
     FILEBYFD    = 67,
     FILEINVM    = 74
 };
+
+/* File-identity sub-descriptors. Shared by both the SMARTFTP and the TCPFTP
+ * descriptors, which reuse SFTP's request / parameter plumbing for the
+ * identity of the file to transfer. */
+struct FileInfoByName {
+    long ProtectionBits; /* Unix mode bits to be set for created files */
+    char LocalFileName[256];
+}; /* standard Unix open() */
+
+struct FileInfoByInode {
+    long Device; /* device on which file resides */
+    long Inode; /* inode number of file (inode MUST exist already) */
+}; /* ITC inode-open */
+
+struct FileInfoByFD {
+    long fd; /* fd of already-open file (not automatically closed!) */
+}; /* user gives already-open file */
+
+struct FileInfoByAddr {
+    /* Describes buffer allocated by user in VM.
+     *  When file used as source:
+     *  - user sets vmfile.SeqLen to actual file length.
+     *  - SFTP ignores vmfile.MaxSeqLen
+     *  When used as sink:
+     *  - user sets vmfile.MaxSeqLen
+     *  - SFTP sets vmfile.SeqLen to length of received file.
+     *  - SFTP returns RPC2_SEFAIL3 if file bigger than MaxSeqLen.
+     */
+    RPC2_BoundedBS vmfile;
+    long vmfilep; /* for internal use by SFTP as file pointer */
+}; /* file resides in VM */
 
 struct SFTP_Descriptor {
     enum WhichWay TransmissionDirection; /* IN */
@@ -104,38 +137,24 @@ struct SFTP_Descriptor {
      *  fair game.
      */
     long QuotaExceeded; /* OUT: set to 1 if transfer terminated due to ByteQuota
-                           limit 0 otherwise */
+                            limit 0 otherwise */
     enum FileInfoTag Tag; /* IN */
     union {
-        struct FileInfoByName {
-            long ProtectionBits; /* Unix mode bits to be set for created files */
-            char LocalFileName[256];
-        } ByName; /* if (Tag == FILEBYNAME); standard Unix open() */
-
-        struct FileInfoByInode {
-            long Device; /* device on which file  resides */
-            long Inode; /* inode number of file (inode MUST exist already)*/
-        } ByInode; /* if (Tag == FILEBYINODE); ITC inode-open */
-
-        struct FileInfoByFD {
-            long fd; /* fd of already-open file (not automatically closed!) */
-        } ByFD; /* if (Tag == FILEBYFD); user gives already-open file */
-
-        struct FileInfoByAddr {
-            /* Describes buffer allocated by user in VM.
-             *  When file used as source:
-             *  - user sets vmfile.SeqLen to actual file length.
-             *  - SFTP ignores vmfile.MaxSeqLen
-             *  When used as sink:
-             *  - user sets vmfile.MaxSeqLen
-             *  - SFTP sets vmfile.SeqLen to length of received file.
-             *  - SFTP returns RPC2_SEFAIL3 if file bigger than MaxSeqLen.
-             */
-            RPC2_BoundedBS vmfile;
-            long vmfilep; /* for internal use by SFTP as file pointer */
-        } ByAddr; /* if (Tag == FILEINVM); file resides in VM */
+        struct FileInfoByName ByName; /* if (Tag == FILEBYNAME) */
+        struct FileInfoByInode ByInode; /* if (Tag == FILEBYINODE) */
+        struct FileInfoByFD ByFD; /* if (Tag == FILEBYFD) */
+        struct FileInfoByAddr ByAddr; /* if (Tag == FILEINVM) */
     } FileInfo; /* everything is IN */
 };
+
+/* TCPFTP streams its payload over the codatunnel
+ * daemon-to-daemon channel; unlike SMARTFTP, no data loop runs in the RPC2
+ * process. It shares the very same file SE descriptor shape as SMARTFTP - the
+ * SFTP_Descriptor above. The per-transfer correlation cookie and the terminal
+ * daemon status are SE-internal bookkeeping held in the per-connection TCPFTP
+ * entry (tcpftp1.c), not part of the descriptor: the wire carries only the
+ * 8-byte cookie (ftp_proto.c), and each end resolves file identity, tag,
+ * direction, offset and length from its own SFTP_Descriptor. */
 
 enum SE_Status
 {
@@ -148,10 +167,11 @@ enum SE_Status
 typedef struct SE_SideEffectDescriptor {
     enum SE_Status LocalStatus;
     enum SE_Status RemoteStatus;
-    long Tag; /* only SMARTFTP or OMITSE */
+    long Tag; /* only SMARTFTP, TCPFTP or OMITSE */
     union {
         /* nothing for OMITSE */
         struct SFTP_Descriptor SmartFTPD;
+        struct SFTP_Descriptor TcpFTPD; /* same shape as SmartFTPD */
     } Value;
 
     /* this is a callback function, which is called whenever a block of
@@ -159,6 +179,18 @@ typedef struct SE_SideEffectDescriptor {
     void (*XferCB)(void *userp, unsigned int offset);
     void *userp;
 } SE_Descriptor;
+
+/* SE_common(): the transfer fields shared by both file SE modes live in the
+ * SFTP_Descriptor, so a data site reads/writes them through one accessor
+ * regardless of whether the connection is SMARTFTP or TCPFTP. Both union arms
+ * are SFTP_Descriptor and alias the same bytes (offset 0), so the choice made
+ * at bind time (sed.Tag) does not change the shape. */
+static inline struct SFTP_Descriptor *SE_common(SE_Descriptor *s)
+{
+    if (s->Tag == TCPFTP)
+        return &s->Value.TcpFTPD;
+    return &s->Value.SmartFTPD;
+}
 
 typedef struct SFTPI {
     long PacketSize; /* bytes in data packet */

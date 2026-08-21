@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                               Release 8
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+           Copyright (c) 1987-2026 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -38,6 +38,7 @@ Pittsburgh, PA.
 */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/stat.h>
@@ -53,6 +54,8 @@ Pittsburgh, PA.
 #include <rpc2/rpc2_addrinfo.h>
 #include <rpc2/se.h>
 #include <rpc2/sftp.h>
+#include <rpc2/tcpftp.h>
+#include <rpc2/codatunnel.h>
 
 #include "test.h"
 
@@ -90,6 +93,8 @@ static void HandleRequests(void *); /* Routine to serve requests */
 
 long VerboseFlag;
 RPC2_PortIdent ThisPort;
+static int ctenabled       = 0; /* non-zero when -ct was given */
+static const char *certdir = NULL; /* -ct CERTDIR */
 
 long VMMaxFileSize; /* length of VMFileBuf, initially 0 */
 long VMCurrFileSize; /* number of useful bytes in VMFileBuf */
@@ -113,7 +118,36 @@ int main(int argc, char *argv[])
     sftpi.AckPoint   = 8;
     GetParms(argc, argv, &sftpi);
     SFTP_Activate(&sftpi);
+    TCPFTP_Activate();
     SFTP_EnforceQuota = 1;
+
+    /* Fork the coda tunnel daemon (-ct) before InitRPC/RPC2_Init so the
+     * secure layer picks up the tunnel vside socket. */
+    if (ctenabled) {
+        char portbuf[16];
+        const char *bind_service;
+        int rc;
+
+        /* The tunnel wire port should match the RPC port so the tunnel stays
+         * transparent to peers: use the -p port if one was given, otherwise
+         * fall back to the side-effect service. */
+        if (ThisPort.Value.InetPortNumber) {
+            snprintf(portbuf, sizeof(portbuf), "%u",
+                     (unsigned)ntohs(ThisPort.Value.InetPortNumber));
+            bind_service = portbuf;
+        } else {
+            bind_service = "codasrv-se";
+        }
+
+        rc = codatunnel_fork(argc, argv, "localhost", "localhost", bind_service,
+                             1, certdir);
+        if (rc < 0) {
+            perror("codatunnel_fork");
+            exit(EXIT_FAILURE);
+        }
+        (void)printf("stest: forked codatunneld with certs in %s\n", certdir);
+    }
+
     InitRPC();
 
     if ((maxLWPs < 1) || (maxLWPs > MAXLWPS)) {
@@ -351,42 +385,41 @@ static long ProcessPacket(RPC2_Handle cIn, RPC2_PacketBuffer *pIn,
         break;
     }
     case FETCHFILE:
-    case STOREFILE:
-        sed.Tag                                            = SMARTFTP;
-        sed.Value.SmartFTPD.Tag                            = FILEBYNAME;
-        sed.Value.SmartFTPD.SeekOffset                     = 0;
-        sed.Value.SmartFTPD.FileInfo.ByName.ProtectionBits = 0644;
+    case STOREFILE:;
+        /* SE mode for the transfer; CODATUNNEL_TEST_SE=tcpftp selects the
+         * TCPFTP side effect, default is SMARTFTP. */
+        const char *testse = getenv("CODATUNNEL_TEST_SE");
+        sed.Tag = (testse && !strcmp(testse, "tcpftp")) ? TCPFTP : SMARTFTP;
+        struct SFTP_Descriptor *s         = SE_common(&sed);
+        s->Tag                            = FILEBYNAME;
+        s->SeekOffset                     = 0;
+        s->FileInfo.ByName.ProtectionBits = 0644;
 
         if (opcode == (long)STOREFILE)
-            sed.Value.SmartFTPD.TransmissionDirection = CLIENTTOSERVER;
+            s->TransmissionDirection = CLIENTTOSERVER;
         else
-            sed.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
-        uint32_t *u32_body             = (uint32_t *)pIn->Body;
-        replylen                       = ntohl(u32_body[0]);
-        sed.Value.SmartFTPD.SeekOffset = ntohl(u32_body[1]);
-        printf("SeekOffset = %ld\n", sed.Value.SmartFTPD.SeekOffset);
-        sed.Value.SmartFTPD.ByteQuota = ntohl(u32_body[2]);
-        printf("ByteQuota = %ld\n", sed.Value.SmartFTPD.ByteQuota);
-        sed.Value.SmartFTPD.hashmark = *(pIn->Body + 3 * sizeof(long));
-        strcpy((char *)sed.Value.SmartFTPD.FileInfo.ByName.LocalFileName,
-               (char *)pIn->Body + 1 + 3 * sizeof(long));
+            s->TransmissionDirection = SERVERTOCLIENT;
+        uint32_t *u32_body = (uint32_t *)pIn->Body;
+        replylen           = ntohl(u32_body[0]);
+        s->SeekOffset      = ntohl(u32_body[1]);
+        printf("SeekOffset = %ld\n", s->SeekOffset);
+        s->ByteQuota = ntohl(u32_body[2]);
+        printf("ByteQuota = %ld\n", s->ByteQuota);
+        s->hashmark = *(pIn->Body + 3 * sizeof(uint32_t));
+        strcpy((char *)s->FileInfo.ByName.LocalFileName,
+               (char *)pIn->Body + 1 + 3 * sizeof(uint32_t));
 
-        if (strcmp(sed.Value.SmartFTPD.FileInfo.ByName.LocalFileName, "-") ==
-            0) {
-            sed.Value.SmartFTPD.Tag = FILEBYFD;
-            sed.Value.SmartFTPD.FileInfo.ByFD.fd =
-                (opcode == FETCHFILE) ? fileno(stdin) : fileno(stdout);
+        if (strcmp(s->FileInfo.ByName.LocalFileName, "-") == 0) {
+            s->Tag              = FILEBYFD;
+            s->FileInfo.ByFD.fd = (opcode == FETCHFILE) ? fileno(stdin) :
+                                                          fileno(stdout);
         } else {
-            if (strcmp(sed.Value.SmartFTPD.FileInfo.ByName.LocalFileName,
-                       "/dev/mem") ==
+            if (strcmp(s->FileInfo.ByName.LocalFileName, "/dev/mem") ==
                 0) { /* Has to be set each time: other modes may clobber  fields */
-                sed.Value.SmartFTPD.Tag = FILEINVM;
-                sed.Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqBody =
-                    (RPC2_ByteSeq)VMFileBuf;
-                sed.Value.SmartFTPD.FileInfo.ByAddr.vmfile.MaxSeqLen =
-                    VMMaxFileSize;
-                sed.Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqLen =
-                    VMCurrFileSize;
+                s->Tag                              = FILEINVM;
+                s->FileInfo.ByAddr.vmfile.SeqBody   = (RPC2_ByteSeq)VMFileBuf;
+                s->FileInfo.ByAddr.vmfile.MaxSeqLen = VMMaxFileSize;
+                s->FileInfo.ByAddr.vmfile.SeqLen    = VMCurrFileSize;
             }
         }
 
@@ -409,11 +442,12 @@ static long ProcessPacket(RPC2_Handle cIn, RPC2_PacketBuffer *pIn,
         if (sed.LocalStatus != SE_SUCCESS) {
             printf("sed.LocalStatus = %s\n",
                    SE_ErrorMsg((long)sed.LocalStatus));
+            pOut->Header.ReturnCode = (int)sed.LocalStatus;
+        } else {
+            pOut->Header.ReturnCode = RPC2_SUCCESS;
         }
-        pOut->Header.ReturnCode = (int)sed.LocalStatus;
-        if ((opcode == (long)STOREFILE) &&
-            (sed.Value.SmartFTPD.Tag == FILEINVM)) {
-            VMCurrFileSize = sed.Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqLen;
+        if ((opcode == (long)STOREFILE) && (s->Tag == FILEINVM)) {
+            VMCurrFileSize = s->FileInfo.ByAddr.vmfile.SeqLen;
             printf("VMCurrFileSize = %ld\n", VMCurrFileSize);
         }
 
@@ -535,9 +569,14 @@ static void GetParms(long argc, char *argv[], SFTP_Initializer *sftpI)
                 htons(ThisPort.Value.InetPortNumber);
             continue;
         }
+        if (strcmp(argv[i], "-ct") == 0 && i < argc - 1) {
+            ctenabled = 1;
+            certdir   = argv[++i];
+            continue;
+        }
 
         printf(
-            "Usage: stest [-x debuglevel] [-sx sftpdebuglevel]  [-l maxlwps] [-v verboseflag] [-p port]\n");
+            "Usage: stest [-x debuglevel] [-sx sftpdebuglevel]  [-l maxlwps] [-v verboseflag] [-p port] [-ct certdir]\n");
         exit(EXIT_FAILURE);
     }
 }
