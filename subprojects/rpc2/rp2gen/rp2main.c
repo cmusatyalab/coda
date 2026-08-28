@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2025 Carnegie Mellon University
+          Copyright (c) 1987-2026 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -68,8 +68,9 @@ FILE *cfile = NULL, *sfile = NULL, *hfile = NULL, *mfile = NULL, *pfile = NULL,
      *libfile = NULL;
 char *cfile_name, *sfile_name, *hfile_name, *mfile_name, *pfile_name,
     *libfile_name;
-;
+    ;
 char *file_name;
+char *outdir_name; /* write generated files to this directory, default "." */
 char define_name[MAXPATHLEN]; /* value of __XXX__ */
 
 int32_t HeaderOnlyFlag; /* set to one if only .h file is to be produced */
@@ -183,6 +184,7 @@ static int32_t GetArgs(int argc, char *argv[])
     cplusplus   = RP2_FALSE; /* by default generate .c not .cc files */
     ansi = RP2_FALSE; /* generate ## paste tokens rather than double-comment */
     neterrors = RP2_FALSE; /* exchange errors in OS independent fashion */
+    outdir_name = NIL; /* write generated files to current directory */
     /* Wire-in client, server and multi languages to be C.
        Should be settable on command line when other languages are supported */
     clanguage  = C;
@@ -244,10 +246,16 @@ static int32_t GetArgs(int argc, char *argv[])
                 cpatharray = (char **)malloc(sizeof(char *));
             else
                 cpatharray = (char **)realloc(cpatharray,
-                                              (cpathcnt + 1) * sizeof(char *));
+                                               (cpathcnt + 1) * sizeof(char *));
             assert(cpatharray != NULL);
             cpatharray[cpathcnt] = argv[i];
             cpathcnt++;
+            continue;
+        }
+        if (strcmp(argv[i], "-C") == 0) {
+            if (++i >= argc)
+                badargs();
+            outdir_name = argv[i];
             continue;
         }
         badargs();
@@ -256,7 +264,18 @@ static int32_t GetArgs(int argc, char *argv[])
     return (0);
 }
 
-extern char *coda_rp2_basename(), *concat();
+extern char *coda_rp2_basename(), *concat(), *concat3elem();
+
+/* Build the path to a generated file, prefixed with the output
+   directory given by -C, if any, we'll just leak the allocations */
+static char *outpath(char *name)
+{
+    if (outdir_name == NIL) {
+        // return concat("", name);
+        return name;
+    }
+    return concat3elem(outdir_name, "/", name);
+}
 
 static int32_t SetupFiles()
 {
@@ -273,7 +292,7 @@ static int32_t SetupFiles()
 
     if (hfile_name == NIL)
         hfile_name = concat(base, ".h");
-    hfile = fopen(hfile_name, "w");
+    hfile = fopen(outpath(hfile_name), "w");
     if (hfile == NIL) {
         perror(hfile_name);
         exit(EXIT_FAILURE);
@@ -289,7 +308,7 @@ static int32_t SetupFiles()
         if (cfile_name == NIL)
             cfile_name = concat(base, ".client.c");
     }
-    cfile = fopen(cfile_name, "w");
+    cfile = fopen(outpath(cfile_name), "w");
     if (cfile == NIL) {
         perror(cfile_name);
         exit(EXIT_FAILURE);
@@ -304,7 +323,7 @@ static int32_t SetupFiles()
         if (sfile_name == NIL)
             sfile_name = concat(base, ".server.c");
     }
-    sfile = fopen(sfile_name, "w");
+    sfile = fopen(outpath(sfile_name), "w");
     if (sfile == NIL) {
         perror(sfile_name);
         exit(EXIT_FAILURE);
@@ -319,7 +338,7 @@ static int32_t SetupFiles()
         if (mfile_name == NIL)
             mfile_name = concat(base, ".multi.c");
     }
-    mfile = fopen(mfile_name, "w");
+    mfile = fopen(outpath(mfile_name), "w");
     if (mfile == NIL) {
         perror(mfile_name);
         exit(EXIT_FAILURE);
@@ -334,14 +353,14 @@ static int32_t SetupFiles()
         if (pfile_name == NIL)
             pfile_name = concat(base, ".print.c");
     }
-    pfile = fopen(pfile_name, "w");
+    pfile = fopen(outpath(pfile_name), "w");
     if (pfile == NIL) {
         perror(pfile_name);
         exit(EXIT_FAILURE);
     }
 
     libfile_name = concat(base, ".helper.c");
-    libfile      = fopen(libfile_name, "w");
+    libfile      = fopen(outpath(libfile_name), "w");
     if (libfile == NIL) {
         perror(libfile_name);
         exit(EXIT_FAILURE);
@@ -357,8 +376,9 @@ static int32_t SetupFiles()
 static void badargs(void)
 {
     printf(
-        "Usage: rp2gen [-neterrors,-n] [-I incldir] [-s srvstub] "
-        " [-c clntstub]\n");
+        "Usage: rp2gen [-neterrors,-n] [-I incldir] [-C outdir] "
+        "[-s srvstub]\n");
+    printf("              [-c clntstub]\n");
     printf("              [-h header] [-m multistub] [-p printstub] \n");
     printf("              [-t tcpdump prettyprint]   file\n");
     exit(EXIT_FAILURE);
@@ -507,7 +527,7 @@ static int32_t do_procs()
             fclose(cfile);
             cfile = NULL;
         }
-        unlink(cfile_name);
+        unlink(outpath(cfile_name));
     } else
         (*lang_struct[(int32_t)clanguage].proc)(head, RP2_CLIENT, cfile);
 
@@ -517,7 +537,7 @@ static int32_t do_procs()
             fclose(sfile);
             sfile = NULL;
         }
-        unlink(sfile_name);
+        unlink(outpath(sfile_name));
     } else
         (*lang_struct[(int32_t)slanguage].proc)(head, RP2_SERVER, sfile);
 
@@ -527,7 +547,7 @@ static int32_t do_procs()
             fclose(mfile);
             mfile = NULL;
         }
-        unlink(mfile_name);
+        unlink(outpath(mfile_name));
     } else
         (*lang_struct[(int32_t)mlanguage].proc)(head, RP2_MULTI, mfile);
 
@@ -536,7 +556,7 @@ static int32_t do_procs()
             fclose(pfile);
             pfile = NULL;
         }
-        unlink(pfile_name);
+        unlink(outpath(pfile_name));
     } else
         (*lang_struct[(int32_t)slanguage].proc)(head, RP2_DUMP, pfile);
 
