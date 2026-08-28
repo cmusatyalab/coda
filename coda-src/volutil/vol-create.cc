@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2021 Carnegie Mellon University
+          Copyright (c) 1987-2026 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -188,7 +188,6 @@ long S_VolCreate(RPC2_Handle rpcid, RPC2_String formal_partition,
     V_destroyMe(vp)     = 0;
     V_needsSalvaged(vp) = 0;
     V_linkcount(vp)     = 1;
-    V_volumeindex(vp);
 
     VUpdateVolume(&error, vp);
     VDetachVolume(&error, vp); /* Allow file server to grab it */

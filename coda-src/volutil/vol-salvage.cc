@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2021 Carnegie Mellon University
+          Copyright (c) 1987-2026 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -404,7 +404,6 @@ static int SalvageVolumeGroup(struct VolumeSummary *vsp, int nVols)
 {
     struct ViceInodeInfo *inodes = 0;
     int size;
-    int haveRWvolume = !(readOnly(vsp));
     VLog(9, "Entering SalvageVolumeGroup(%#08x, %d)", vsp->header.parent,
          nVols);
     VLog(9, "ForceSalvage = %d", ForceSalvage);
@@ -446,8 +445,6 @@ static int SalvageVolumeGroup(struct VolumeSummary *vsp, int nVols)
         /* check volume head looks ok */
         if (SalvageVolHead(&(vsp[i])) == -1) {
             VLog(0, "SalvageVolumeGroup: Bad Volume 0x%#08x");
-            if (i == 0)
-                haveRWvolume = 0;
             continue;
         }
         VLog(9, "SVG: Going to salvage Volume 0x%#08x vnodes",
