@@ -7,7 +7,7 @@ ACLOCAL_AMFLAGS = -I m4
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = lwp.pc
 
-EXTRA_DIST = PORTING bootstrap.sh configure
+EXTRA_DIST = PORTING bootstrap.sh configure README mkdocs.yml docs
 
 CONFIG_CLEAN_FILES = lwp.pc lwp-uninstalled.pc
 MAINTAINERCLEANFILES = Makefile.in aclocal.m4 compile config.guess \
