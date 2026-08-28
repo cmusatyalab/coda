@@ -10,7 +10,7 @@ if LIBRVM
 pkgconfig_DATA += rvm.pc
 endif
 
-EXTRA_DIST = bootstrap.sh configure
+EXTRA_DIST = bootstrap.sh configure mkdocs.yml docs
 
 MAINTAINERCLEANFILES = AUTHORS Makefile.in README compile \
     config.guess config.h.in config.sub configure install-sh libtool \
