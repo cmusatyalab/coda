@@ -4,7 +4,7 @@ if BUILD_CLIENT
 bin_PROGRAMS = parser
 endif
 
-parser_SOURCES = resolver_parser.y resolver_lexer.l ruletypes.cc ruletypes.h \
+parser_SOURCES = resolver_parser.yy resolver_lexer.l ruletypes.cc ruletypes.h \
 		 resolver.cc wildmat.c path.c asr.h
 EXTRA_DIST = resolve.eg
 
@@ -21,8 +21,4 @@ LDADD = $(top_builddir)/coda-src/util/libutil.la \
 	$(top_builddir)/coda-src/kerndep/libkerndep.la \
 	$(top_builddir)/lib-src/base/libbase.la
 
-# resolver_parser should be compiled as a C++ file
-resolver_parser.o: resolver_parser.c
-	$(CXXCOMPILE) -c -o $@ $<
-
-resolver_lexer.l: resolver_parser.h
+resolver_lexer.l: resolver_parser.hh

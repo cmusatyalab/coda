@@ -24,7 +24,7 @@ listed in the file CREDITS.
 extern "C" {
 #endif
 
-#include "resolver_parser.h"
+#include "resolver_parser.hh"
 #include "asr.h"
 #include <stdio.h>
 #include <stdlib.h>
