@@ -129,7 +129,7 @@ struct CVEntry {
     RPC2_CountedBS Identity;
     long SecurityLevel;
     RPC2_EncryptionKey Password;
-    char NameBuf[30];
+    char NameBuf[64];
 };
 
 #define MAXCON 100
@@ -756,7 +756,8 @@ static void GetConns(void)
         ConnVector[i].Status         = SFREE;
         ConnVector[i].RemoteHost.Tag = RPC2_HOSTBYNAME;
         GetStringVar(ConnVector[i].RemoteHost.Value.Name, "Next Host: ");
-        sprintf(ConnVector[i].NameBuf, "%s.%d", myname, i);
+        snprintf(ConnVector[i].NameBuf, sizeof(ConnVector[i].NameBuf),
+                 "%s.%d", myname, i);
         ConnVector[i].SecurityLevel    = RPC2_OPENKIMONO;
         ConnVector[i].Identity.SeqBody = (RPC2_ByteSeq)ConnVector[i].NameBuf;
         ConnVector[i].Identity.SeqLen  = 1 + strlen(ConnVector[i].NameBuf);
