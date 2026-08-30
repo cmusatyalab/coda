@@ -74,7 +74,8 @@ typedef struct condition {
     }
 
 #define condition_signal(c) \
-    {                       \
+    {                      \
+    (void)(c);             \
     }
 
 #define condition_broadcast(c) \
