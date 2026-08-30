@@ -86,10 +86,18 @@ void bitmap::operator delete(void *ptr)
 
 bitmap::bitmap(int inputmapsize, int recable)
 {
+    /* malloced is read before it is definitely set: operator new()
+     * has stamped BITMAP_VIANEW for heap objects, while for stack
+     * objects it is intentionally undefined (see the comment in
+     * operator new()).  The destructor asserts on the value to catch
+     * non-heap-allocated bitmaps, so this hack must stay. */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wuninitialized"
     /* ensure malloced is undefined if via stack! */
     CODA_ASSERT(malloced != BITMAP_NOTVIANEW);
     if (malloced != BITMAP_VIANEW)
         malloced = BITMAP_NOTVIANEW; /* infer I must be on the stack */
+#pragma GCC diagnostic pop
     /* From this point on, malloced is definitely defined */
 
     recoverable = recable;

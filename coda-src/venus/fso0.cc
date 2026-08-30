@@ -190,9 +190,10 @@ void FSOInit()
                        (FSDB->freelist).count());
             }
 
-            if (FSDB->htab.count() + FSDB->freelist.count() != FSDB->MaxFiles)
+            if (FSDB->htab.count() + FSDB->freelist.count() !=
+                (int)FSDB->MaxFiles)
                 CHOKE("FSOInit: missing %d cache files",
-                      FSDB->MaxFiles -
+                      (int)FSDB->MaxFiles -
                           (FSDB->htab.count() + FSDB->freelist.count()));
         }
 

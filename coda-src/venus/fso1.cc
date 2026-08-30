@@ -2581,7 +2581,7 @@ void fsobj::UpdateVastroFlag(uid_t uid, int force, int state)
         /* With size above WholeFileMaxSize it's always treated as a VASTRO */
         flags.vastro = 0x1;
 
-    else if (Size() > (FSDB->FreeBlockCount() * 1024))
+    else if (Size() > (size_t)FSDB->FreeBlockCount() * 1024)
         /* If not enough space left treat it as VASTRO */
         flags.vastro = 0x1;
 

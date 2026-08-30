@@ -110,7 +110,7 @@ int archive_write_entry(FILE *fp, ino_t inode, mode_t mode, uid_t uid,
         if (S_ISDIR(mode))
             strcat(tar.hdr.name, "/");
 
-        sprintf(tar.hdr.mode, "%07o", mode & ~S_IFMT);
+        sprintf(tar.hdr.mode, "%07o", (unsigned)(mode & ~S_IFMT) & 07777);
 
         CODA_ASSERT(uid < 0777777UL);
         sprintf(tar.hdr.userid, "%07o", uid);

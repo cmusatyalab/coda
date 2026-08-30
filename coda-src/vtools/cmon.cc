@@ -508,7 +508,7 @@ static void PrintServer(struct server *s)
     } while (0)
 
         wprintw(w, "%*s\n", SRVCOLWIDTH, when(s->probe, s->newvs.StartTime));
-        wprintw(w, "%*d\n", SRVCOLWIDTH, s->binds);
+        wprintw(w, "%*ld\n", SRVCOLWIDTH, s->binds);
         wprintw(w, "\n");
         WPRINT(cpu_sys);
         WPRINT(cpu_user);

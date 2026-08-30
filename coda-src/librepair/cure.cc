@@ -112,16 +112,16 @@ int RepairRename(int nreplicas, resreplica *dirs, resdir_entry **deGroup,
             printf("\t%s as %s\n", parentpath[i], childpath[i]);
 
     int prevset = 0;
-    char prevpath[2048];
-    char curpath[2048];
+    char prevpath[MAXPATHLEN + MAXNAMELEN + 2];
+    char curpath[MAXPATHLEN + MAXNAMELEN + 2];
     for (i = 0; i < nreplicas; i++) {
-        char buf[2048];
+        char buf[MAXPATHLEN + MAXNAMELEN + 32];
         if (!usepath[i])
             continue;
-        sprintf(curpath, "%s/%s", parentpath[i], childpath[i]);
+        snprintf(curpath, sizeof(curpath), "%s/%s", parentpath[i], childpath[i]);
         if (prevset && (!strcmp(curpath, prevpath)))
             continue;
-        sprintf(buf, "Do you want to preserve %s? ", curpath);
+        snprintf(buf, sizeof(buf), "Do you want to preserve %s? ", curpath);
         if (Parser_getbool(buf, 1))
             break;
         strcpy(prevpath, curpath);

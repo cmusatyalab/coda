@@ -499,7 +499,7 @@ int s_list_coda_inodes(struct DiskPartition *dp, char *resultFile,
     struct dirent *ent = NULL;
     int rc;
     FILE *inodeFile = NULL;
-    char err[200];
+    char err[MAXPATHLEN + 64];
     struct dinode *inodes = NULL;
 
     LogMsg(9, VolDebugLevel, stdout,
@@ -508,8 +508,8 @@ int s_list_coda_inodes(struct DiskPartition *dp, char *resultFile,
 
     pdir = opendir(devname);
     if (pdir == NULL) {
-        sprintf(err, "Could not read directory %s to get inode list\n",
-                devname);
+        snprintf(err, sizeof(err), "Could not read directory %s to get inode list\n",
+                 devname);
         perror(err);
         return -1;
     }

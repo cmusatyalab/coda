@@ -156,7 +156,6 @@ int CompareDirContents(SE_Descriptor *sid_bufs, ViceFid *fid)
         // dump contents to files
         DumpDirContents(sid_bufs, fid);
     DirHeader *firstreplica = NULL;
-    int firstreplicasize    = 0;
     for (int i = 0; i < VSG_MEMBERS; i++) {
         int len = sid_bufs[i].Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqLen;
         DirHeader *buf = (DirHeader *)sid_bufs[i]
@@ -164,8 +163,7 @@ int CompareDirContents(SE_Descriptor *sid_bufs, ViceFid *fid)
 
         if (len) {
             if (!firstreplica) {
-                firstreplica     = buf;
-                firstreplicasize = len;
+                firstreplica = buf;
                 continue;
             }
 

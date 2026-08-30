@@ -1445,19 +1445,26 @@ inline void worker::op_coda_open_by_path(union inputArgs *in,
         MarinerReport(&vtarget.c_fid, u.u_uid);
 
         char *begin = (char *)(&out->coda_open_by_path.path + 1);
-        out->coda_open_by_path.path = begin - (char *)out;
-        sprintf(begin, "%s%s/%s", CachePrefix, CacheDir, vtarget.c_cf->Name());
+        int cap     = VC_MAXMSGSIZE - (begin - (char *)out);
+        int n       = snprintf(begin, cap, "%s%s/%s", CachePrefix, CacheDir,
+                               vtarget.c_cf->Name());
+        if (n < 0 || n >= cap)
+            u.u_error = ENAMETOOLONG;
+        else {
+            out->coda_open_by_path.path = begin - (char *)out;
 
 #ifdef __CYGWIN32__
-        slash = begin;
-        for (slash = begin; *slash; slash++) {
-            if (*slash == '/')
-                *slash = '\\';
-        }
+            slash = begin;
+            for (slash = begin; *slash; slash++) {
+                if (*slash == '/')
+                    *slash = '\\';
+            }
 #endif
-        *msg_size = sizeof(struct coda_open_by_path_out) + strlen(begin) + 1;
-        LOG(100,
-            ("CODA_OPEN_BY_PATH: returning '%s', size=%d\n", begin, *msg_size));
+            *msg_size = sizeof(struct coda_open_by_path_out) + n + 1;
+            LOG(100,
+                ("CODA_OPEN_BY_PATH: returning '%s', size=%d\n", begin,
+                 *msg_size));
+        }
     }
 }
 

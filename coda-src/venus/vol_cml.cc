@@ -3256,10 +3256,13 @@ void RecoverPathName(char *path, VenusFid *fid, ClientModifyLog *CML,
                         suffix);
                 return;
             }
+            int len;
             if (suffix[0])
-                sprintf(buf, "%s/%s", f->comp, suffix);
+                len = snprintf(buf, sizeof(buf), "%s/%s", f->comp, suffix);
             else
-                sprintf(buf, "%s", f->comp);
+                len = snprintf(buf, sizeof(buf), "%s", f->comp);
+            if (len < 0 || (size_t)len >= sizeof(buf))
+                CHOKE("RecoverPathName: path too long");
             strcpy(suffix, buf);
 
             /* going up to its parent */

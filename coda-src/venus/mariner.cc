@@ -412,7 +412,7 @@ void mariner::write_queued()
         // pop a buffer off of the queue
         CODA_ASSERT(queue_len >= 1);
         cur = queue[0];
-        for (i = 1; i < queue_len; i++)
+        for (i = 1; i < (int)queue_len; i++)
             queue[i - 1] = queue[i];
         queue_len--;
 

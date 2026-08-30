@@ -102,7 +102,11 @@ int repair_mountrw(struct conflict *conf, char *msg, int msgsize)
 	conf->local = 1;
 #endif
 
-        snprintf(tmppath, sizeof(tmppath), "%s/%s", conf->rodir, de->d_name);
+        if (snprintf(tmppath, sizeof(tmppath), "%s/%s", conf->rodir, de->d_name)
+            >= (int)sizeof(tmppath)) {
+            strerr(msg, msgsize, "path too long: %s", de->d_name);
+            goto CLEANUP;
+        }
 
         /* set replica values */
         if (repair_getfid(tmppath, &rwv->fid, rwv->realmname, &rwv->VV, msg,

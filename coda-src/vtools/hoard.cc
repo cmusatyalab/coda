@@ -40,6 +40,7 @@ extern "C" {
 #include <sys/types.h>
 #include <sys/file.h>
 #include <sys/stat.h>
+#include <limits.h>
 
 #include "coda_wait.h"
 #include <ctype.h>
@@ -155,6 +156,19 @@ public:
     }
 };
 
+/* Generate a unique name for a file the server will create.  tmpnam()
+ * would work too, but the linkers rightly object to it.  The name must
+ * not exist yet, so we don't create the file ourselves. */
+static void maketmpname(char *dest, size_t size)
+{
+    static int seq;
+    const char *dir = getenv("TMPDIR");
+
+    if (dir == NULL || dir[0] == '\0')
+        dir = P_tmpdir;
+    snprintf(dest, size, "%s/hoard.%d.%d", dir, getpid(), seq++);
+}
+
 class listentry : public olink {
 public:
     hdb_list_msg msg;
@@ -162,7 +176,7 @@ public:
 
     listentry(char *lname, vuid_t luid)
     {
-        tmpnam(msg.outfile);
+        maketmpname(msg.outfile, sizeof(msg.outfile));
         strcpy(tname, lname);
         msg.luid = luid;
     }
@@ -197,7 +211,7 @@ public:
 
     verify_entry(const char *vname, vuid_t vuid, int verbosity)
     {
-        tmpnam(msg.outfile);
+        maketmpname(msg.outfile, sizeof(msg.outfile));
         strcpy(tname, vname);
         msg.luid      = vuid;
         msg.verbosity = verbosity;

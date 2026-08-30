@@ -13,6 +13,11 @@ meson.add_dist_script('tools/distbuild.sh')
 conf = configuration_data()
 compiler = meson.get_compiler('c')
 
+# Coda's dlist/strbase list-traversal idiom takes offsetof() of C++
+# classes that are not standard-layout.  That is intentional and works
+# in practice, so silence the conditional-support warning.
+add_project_arguments('-Wno-invalid-offsetof', language : 'cpp')
+
 prefix = get_option('prefix')
 bindir = prefix / get_option('bindir')
 sbindir = prefix / get_option('sbindir')
