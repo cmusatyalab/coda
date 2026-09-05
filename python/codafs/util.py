@@ -12,9 +12,13 @@
 """Various helper commands"""
 
 import subprocess
-from distutils.spawn import find_executable
 from subprocess import DEVNULL
 from typing import Any
+
+try:
+    from distutils.spawn import find_executable as which
+except ImportError:
+    from shutil import which
 
 __all__ = ["DEVNULL", "ExecutionError", "check_output", "run"]
 
@@ -34,7 +38,7 @@ def _cached(command: str, *args: str) -> list[str]:
     except KeyError:
         pass
 
-    filepath = find_executable(command)
+    filepath = which(command)
     if filepath is None:
         msg = f"Cannot find {command}"
         raise FileNotFoundError(msg)
