@@ -372,10 +372,11 @@ static long tcpftp_invm_readback(struct SFTP_Descriptor *d, int fd)
  * spool back into the local buffer. A failed transfer drops the spool without
  * publishing partial bytes. Returns the terminal status (0 == ok). */
 long tcpftp_finalize(struct TcpFtpState *st, struct SFTP_Descriptor *d,
-                     uint64_t cookie)
+                     uint64_t cookie, int nowait)
 {
     uint64_t nbytes = 0;
-    int status = codatunnel_file_wait(cookie, 0, &nbytes); /* wait + release */
+    int status =
+        codatunnel_file_wait(cookie, 0, nowait, &nbytes); /* wait + release */
     d->BytesTransferred = (long)nbytes;
 
     if (st->VmFd >= 0) {
@@ -465,7 +466,7 @@ static long TCPFTP_MakeRPC2(RPC2_Handle ConnHandle, SE_Descriptor *SDesc,
     if (se->TcpFtp.Cookie == 0)
         return RPC2_SUCCESS; /* nothing registered (unsupported form) */
 
-    status             = tcpftp_finalize(&se->TcpFtp, d, se->TcpFtp.Cookie);
+    status             = tcpftp_finalize(&se->TcpFtp, d, se->TcpFtp.Cookie, 1);
     se->TcpFtp.Cookie  = 0;
     SDesc->LocalStatus = (status == 0) ? SE_SUCCESS : SE_FAILURE;
     return RPC2_SUCCESS;
@@ -555,7 +556,7 @@ static long TCPFTP_CheckSE(RPC2_Handle ConnHandle, SE_Descriptor *SDesc,
         return rc; /* already an RPC2_SEFAIL* code */
     se->TcpFtp.Cookie = cookie;
 
-    status              = tcpftp_finalize(&se->TcpFtp, d, cookie);
+    status              = tcpftp_finalize(&se->TcpFtp, d, cookie, 0);
     se->TcpFtp.Cookie   = 0;
     SDesc->LocalStatus  = (status == 0) ? SE_SUCCESS : SE_FAILURE;
     SDesc->RemoteStatus = SE_SUCCESS;

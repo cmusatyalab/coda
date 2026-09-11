@@ -289,7 +289,8 @@ void codatunnel_file_unreg(uint64_t cookie)
     ct_cookie_remove(cookie);
 }
 
-int codatunnel_file_wait(uint64_t cookie, int timeout_ticks, uint64_t *nbytes)
+int codatunnel_file_wait(uint64_t cookie, int timeout_ticks, int nowait,
+                         uint64_t *nbytes)
 {
     uint32_t s   = -1;
     uint64_t got = 0;
@@ -317,6 +318,14 @@ int codatunnel_file_wait(uint64_t cookie, int timeout_ticks, uint64_t *nbytes)
         }
         if (r != CT_COOKIE_PENDING)
             break; /* registration removed while we waited */
+        if (nowait) {
+            /* No terminal status yet (the peer never started the pump, e.g.
+             * it rejected the RPC before CheckSE): do not block the
+             * cooperative io thread. Fall out with the not-done status. */
+            TLOG("TCPFTP file_wait cookie=%lu INCOMPLETE (nowait)\n",
+                 (unsigned long)cookie);
+            break; /* status stays -1 (no terminal status) */
+        }
         TLOG("TCPFTP file_wait cookie=%lu BLOCK\n", (unsigned long)cookie);
         LWP_WaitProcess(&file_wakeup);
     }

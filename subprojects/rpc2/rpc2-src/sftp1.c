@@ -430,8 +430,17 @@ long SFTP_MakeRPC2(IN RPC2_Handle ConnHandle, INOUT SE_Descriptor *SDesc,
     }
 
     if (se->TcpFtp && se->TcpFtpState.Cookie != 0) {
+        /* Client side: never block. This SE handler runs on the handle's io
+         * thread, the same cooperative context that demuxes the daemon's
+         * CT_FILEDONE (see codatunnel_file_wait). So the terminal status is
+         * only visible here if that FILEDONE was demuxed before the reply
+         * packet that woke us; tcpftp_finalize(nowait) copies it when present
+         * and returns not-done otherwise (peer rejected the RPC before CheckSE,
+         * or the FILEDONE has not landed yet). We cannot wait longer: blocking
+         * here would deadlock the very thread that demuxes the pending
+         * FILEDONE. */
         long status = tcpftp_finalize(&se->TcpFtpState, &SDesc->Value.SmartFTPD,
-                                      se->TcpFtpState.Cookie);
+                                      se->TcpFtpState.Cookie, 1); /* nowait */
         se->TcpFtpState.Cookie = 0;
         SDesc->LocalStatus     = (status == 0) ? SE_SUCCESS : SE_FAILURE;
         SDesc->RemoteStatus    = SE_SUCCESS;
@@ -580,7 +589,7 @@ long SFTP_CheckSE(RPC2_Handle ConnHandle, SE_Descriptor *SDesc, long Flags)
                                   cookie, &cookie) != 0)
             FAIL(se, RPC2_SEFAIL1);
         se->TcpFtpState.Cookie = cookie;
-        status                 = tcpftp_finalize(&se->TcpFtpState, d, cookie);
+        status = tcpftp_finalize(&se->TcpFtpState, d, cookie, 0);
         se->TcpFtpState.Cookie = 0;
         SDesc->LocalStatus     = (status == 0) ? SE_SUCCESS : SE_FAILURE;
         SDesc->RemoteStatus    = SE_SUCCESS;

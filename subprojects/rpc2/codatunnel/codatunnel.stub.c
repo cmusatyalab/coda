@@ -67,10 +67,12 @@ void codatunnel_file_unreg(uint64_t cookie)
     (void)cookie;
 }
 
-int codatunnel_file_wait(uint64_t cookie, int timeout_ticks, uint64_t *nbytes)
+int codatunnel_file_wait(uint64_t cookie, int timeout_ticks, int nowait,
+                         uint64_t *nbytes)
 {
     (void)cookie;
     (void)timeout_ticks;
+    (void)nowait;
     (void)nbytes;
     return -1;
 }

@@ -59,9 +59,11 @@ int tcpftp_register_local(struct TcpFtpState *st, const struct sockaddr *peer,
                           uint64_t in_cookie, uint64_t *out_cookie);
 
 /* Wait for the daemon's terminal status; for an in-VM sink, drain the spool
- * back into d's buffer. Returns the terminal status (0 == ok). */
+ * back into d's buffer. Returns the terminal status (0 == ok). When nowait
+ * is set the wait is non-blocking: a still-pending cookie yields -1
+ * (not-done) instead of blocking the io thread. */
 long tcpftp_finalize(struct TcpFtpState *st, struct SFTP_Descriptor *d,
-                     uint64_t cookie);
+                     uint64_t cookie, int nowait);
 
 /* Byte size of the packed param block: a fixed 8 bytes (the correlation
  * cookie) for every supported form. */

@@ -63,14 +63,16 @@ ssize_t codatunnel_recvfrom(int sockfd, void *buf, size_t len, int flags,
  * identifies the registration and is returned in *cookie (set to 0 on
  * failure). codatunnel_file_wait() blocks (cooperatively) until the daemon
  * reports a terminal status for that cookie, releases and returns the
- * SFTP-space status (0 == success).
- * codatunnel_file_unreg() releases without blocking. When the tunnel is not
- * started these all report -1 / no-op.
+ * SFTP-space status (0 == success); with nowait set, a still-pending cookie
+ * is not waited on - the call releases and returns -1 (not-done) instead of
+ * blocking. codatunnel_file_unreg() releases without blocking. When the
+ * tunnel is not started these all report -1 / no-op.
  */
 int codatunnel_file_register(const struct sockaddr *peer, socklen_t addrlen,
                              int fd, uint64_t offset, uint64_t length, int role,
                              uint64_t *cookie);
-int codatunnel_file_wait(uint64_t cookie, int timeout_ticks, uint64_t *nbytes);
+int codatunnel_file_wait(uint64_t cookie, int timeout_ticks, int nowait,
+                         uint64_t *nbytes);
 void codatunnel_file_unreg(uint64_t cookie);
 
 #ifdef __cplusplus

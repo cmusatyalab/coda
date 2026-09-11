@@ -55,7 +55,7 @@ TEST(fileapi, register_is_error_and_zeroes_cookie_when_disabled)
 TEST(fileapi, wait_finalize_unreg_contract_when_disabled)
 {
     uint64_t nbytes = 7; /* must survive untouched on the -1 path */
-    EXPECT_EQ(-1, codatunnel_file_wait(1234, 0, &nbytes));
+    EXPECT_EQ(-1, codatunnel_file_wait(1234, 0, 0, &nbytes));
     EXPECT_EQ(nbytes, (uint64_t)7);
     /* must not crash even for an unknown / zero cookie */
     codatunnel_file_unreg(1234);
