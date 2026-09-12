@@ -296,8 +296,10 @@ int codatunnel_file_wait(uint64_t cookie, int timeout_ticks, int nowait,
     uint64_t got = 0;
     int status   = -1;
 
-    /* The timeout is not re-implemented here; the SFTP side-effect already
-     * runs under an RPC2 deadline, which bounds the real wait. */
+    /* timeout_ticks is intentionally unused: the block is bounded by the
+     * daemon's terminal FILEDONE, which arrives when the channel dies (a
+     * silently dead peer is caught by the tunnel's TCP keepalive) or when
+     * the daemon itself dies (EOF on the vside). */
     (void)timeout_ticks;
     if (!codatunnel_enable_codatunnel)
         return -1;

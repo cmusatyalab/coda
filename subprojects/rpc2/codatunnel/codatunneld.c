@@ -81,6 +81,16 @@ static uv_tcp_t tcplistener; /* facing the network, only on servers */
 static uv_async_t async_forward;
 static uv_mutex_t async_forward_mutex;
 
+/* TCP keepalive on the tunnel connections. The idle period deliberately
+ * matches Coda's existing ~60s RPC2 keepalive (the client's RPC2_timeout,
+ * codasrv's "timeout"); the tunnel is a direct TCP/TLS connection and we do
+ * not need to keep NAT/masquerade entries alive, so a 1s ping is
+ * unnecessary. libuv leaves the probe cadence to the kernel (9 probes, 10s
+ * apart on Linux), so a silently dead peer is found ~2.5 min after the last
+ * traffic and the resulting channel teardown fails all in-flight transfers.
+ */
+#define CT_TCP_KEEPALIVE_IDLE 60 /* seconds of idleness before first probe */
+
 /* File-transfer registration record. The app hands the daemon an already-open
  * fd (SCM_RIGHTS on the FILEREG datagram) and the daemon owns it until the
  * registration is released; one record per cookie lives in the shared cookie
@@ -1948,6 +1958,7 @@ static void tcp_connect_cb(uv_connect_t *req, int status)
 
     /* disable Nagle */
     uv_tcp_nodelay(d->tcphandle, 1);
+    uv_tcp_keepalive(d->tcphandle, 1, CT_TCP_KEEPALIVE_IDLE);
 
     rc = uv_read_start((uv_stream_t *)d->tcphandle, alloc_cb, recv_tcp_cb);
     if (rc)
@@ -2219,6 +2230,7 @@ static void tcp_newconnection_cb(uv_stream_t *bindhandle, int status)
 
     /* disable Nagle */
     uv_tcp_nodelay(d->tcphandle, 1);
+    uv_tcp_keepalive(d->tcphandle, 1, CT_TCP_KEEPALIVE_IDLE);
 
     /* now start receiving data on this TCP connection */
     DEBUG("About to call uv_read_start()\n");
