@@ -3,7 +3,7 @@
 [ -z "$MESON_SOURCE_ROOT" ] && exit 1
 [ -z "$MESON_BUILD_ROOT" ] && exit 1
 
-cd "$MESON_BUILD_ROOT"
+cd "$MESON_BUILD_ROOT" || exit 1
 
 # copying all the files also works around some issues with symlinks
 rsync -a --copy-links "$MESON_SOURCE_ROOT/docs/" docs/
