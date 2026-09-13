@@ -499,23 +499,25 @@ long rpc2_CreateIPSocket(int af, int *svar, struct RPC2_addrinfo *addr,
                          short *Port);
 
 /* Packet  routines */
-long rpc2_SendReliably(), rpc2_MSendPacketsReliably();
+long rpc2_SendReliably(struct CEntry *Conn, struct SL_Entry *Sle,
+                       RPC2_PacketBuffer *Packet, struct timeval *TimeOut);
 void rpc2_XmitPacket(RPC2_PacketBuffer *pb, struct RPC2_addrinfo *addr,
                      int confirm);
-void rpc2_InitPacket();
+void rpc2_InitPacket(RPC2_PacketBuffer *pb, struct CEntry *ce, long bodylen);
 int rpc2_MorePackets(void);
 long rpc2_RecvPacket(long whichSocket, RPC2_PacketBuffer *whichBuff);
 void rpc2_htonp(RPC2_PacketBuffer *p);
 void rpc2_ntohp(RPC2_PacketBuffer *p);
 long rpc2_CancelRetry(struct CEntry *Conn, struct SL_Entry *Sle);
 void rpc2_UpdateRTT(RPC2_PacketBuffer *pb, struct CEntry *ceaddr);
-void rpc2_ExpireEvents();
+void rpc2_ExpireEvents(void);
 void SavePacketForRetry(RPC2_PacketBuffer *pb, struct CEntry *ce);
 
 /* Connection manipulation routines  */
 int rpc2_InitConn(void);
-void rpc2_FreeConn(), rpc2_SetConnError();
-struct CEntry *rpc2_AllocConn();
+void rpc2_FreeConn(RPC2_Handle whichConn);
+void rpc2_SetConnError(struct CEntry *ce);
+struct CEntry *rpc2_AllocConn(struct RPC2_addrinfo *addr);
 struct CEntry *rpc2_ConnFromBindInfo(struct RPC2_addrinfo *peeraddr,
                                      RPC2_Handle RemoteHandle,
                                      RPC2_Integer whichUnique);
@@ -540,7 +542,11 @@ int rpc2_RetryInterval(struct CEntry *ce, int retry, struct timeval *tv,
                        RPC2_Unsigned OutBytes, RPC2_Unsigned InBytes, int sftp);
 
 /* Multicast group manipulation routines */
-void rpc2_InitMgrp(), rpc2_FreeMgrp(), rpc2_RemoveFromMgrp(), rpc2_DeleteMgrp();
+void rpc2_InitMgrp(void);
+void rpc2_FreeMgrp(struct MEntry *me);
+void rpc2_RemoveFromMgrp(struct MEntry *me, struct CEntry *ce);
+void rpc2_DeleteMgrp(struct MEntry *me);
+void HandleInitMulticast(RPC2_PacketBuffer *pb, struct CEntry *ce);
 struct MEntry *rpc2_AllocMgrp(struct RPC2_addrinfo *addr, RPC2_Handle handle);
 struct MEntry *rpc2_GetMgrp(struct RPC2_addrinfo *addr, RPC2_Handle handle,
                             long role);
@@ -550,7 +556,7 @@ void rpc2_HoldPacket(RPC2_PacketBuffer *whichPB);
 void rpc2_UnholdPacket(RPC2_PacketBuffer *whichPB);
 
 /* RPC2_GetRequest() filter matching function */
-int rpc2_FilterMatch();
+int rpc2_FilterMatch(RPC2_RequestFilter *whichF, RPC2_PacketBuffer *whichP);
 
 /* Autonomous LWPs */
 void rpc2_SocketListener(void *);
@@ -564,12 +570,20 @@ void RPC2_DispatchProcess(void);
 /* Packet timestamp creation */
 unsigned int rpc2_TVTOTS(const struct timeval *tv);
 void rpc2_TSTOTV(const unsigned int ts, struct timeval *tv);
-unsigned int rpc2_MakeTimeStamp();
+unsigned int rpc2_MakeTimeStamp(void);
 
 /* Debugging routines */
-void rpc2_PrintTMElem(), rpc2_PrintFilter(), rpc2_PrintSLEntry(),
-    rpc2_PrintCEntry(), rpc2_PrintTraceElem(), rpc2_PrintPacketHeader(),
-    rpc2_PrintHostIdent(), rpc2_PrintPortIdent(), rpc2_PrintSEDesc();
+struct TraceElem;
+void rpc2_PrintTMElem(struct TM_Elem *tPtr, FILE *tFile);
+void rpc2_PrintFilter(RPC2_RequestFilter *fPtr, FILE *tFile);
+void rpc2_PrintSLEntry(struct SL_Entry *slPtr, FILE *tFile);
+void rpc2_PrintCEntry(struct CEntry *cPtr, FILE *tFile);
+void rpc2_PrintTraceElem(struct TraceElem *whichTE, long whichIndex,
+                         FILE *outFile);
+void rpc2_PrintPacketHeader(RPC2_PacketBuffer *pb, FILE *tFile);
+void rpc2_PrintHostIdent(RPC2_HostIdent *hPtr, FILE *tFile);
+void rpc2_PrintPortIdent(RPC2_PortIdent *pPtr, FILE *tFile);
+void rpc2_PrintSEDesc(SE_Descriptor *whichSDesc, FILE *whichFile);
 extern FILE *ErrorLogFile;
 
 /* encryption */
@@ -578,7 +592,7 @@ struct security_association *rpc2_GetSA(uint32_t spi);
 void rpc2_ApplyD(RPC2_PacketBuffer *pb, struct CEntry *ce);
 void rpc2_ApplyE(RPC2_PacketBuffer *pb, struct CEntry *ce);
 
-time_t rpc2_time();
+time_t rpc2_time(void);
 long rpc2_InitRetry(long HowManyRetries, struct timeval *Beta0);
 
 void rpc2_NoteBinding(struct RPC2_addrinfo *peeraddr, RPC2_Handle RemoteHandle,
@@ -651,7 +665,7 @@ void rpc2_formataddrinfo(const struct RPC2_addrinfo *ai, char *buf,
 #define INOUT /* Obvious */
 
 /* Conditional debugging output macros: no side effect in these! */
-char *rpc2_timestring();
+char *rpc2_timestring(void);
 #ifdef RPC2DEBUG
 #define say(when, what, how...)                                        \
     do {                                                               \

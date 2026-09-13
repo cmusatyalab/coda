@@ -58,6 +58,7 @@ Pittsburgh, PA.
 #include <rpc2/codatunnel.h>
 
 #include "test.h"
+#include "rpc2.private.h"
 
 #ifndef INET_ADDRSTRLEN
 #define INET_ADDRSTRLEN 16
@@ -65,16 +66,20 @@ Pittsburgh, PA.
 
 #define SUBSYS_SRV 1001
 #define STESTSTACK 0x25000
-extern long RPC2_Perror;
-extern long RPC2_DebugLevel;
-extern long SFTP_DebugLevel;
 
 static char ShortText[200];
 static char LongText[3000];
 
-static long FindKey(); /* To obtain keys from ClientIdent */
-static long NoteAuthFailure(); /* To note authentication failures */
-static void PrintHostIdent(), PrintPortIdent();
+static long FindKey(RPC2_Integer *authenticationtype,
+                    RPC2_CountedBS *ClientIdent, RPC2_EncryptionKey IdentKey,
+                    RPC2_EncryptionKey SessionKey);
+/* To obtain keys from ClientIdent */
+static long
+NoteAuthFailure(RPC2_Integer authenticationtype, RPC2_CountedBS *cIdent,
+                RPC2_Integer eType, RPC2_HostIdent *pHost,
+                RPC2_PortIdent *pPort); /* To note authentication failures */
+static void PrintHostIdent(RPC2_HostIdent *hPtr, FILE *tFile);
+static void PrintPortIdent(RPC2_PortIdent *pPtr, FILE *tFile);
 static void GetParms(long argc, char *argv[], SFTP_Initializer *sftpI);
 static void FillStrings(void);
 static void InitRPC(void);
@@ -221,7 +226,7 @@ static void HandleRequests(void *arg)
     }
 }
 
-static long FindKey(RPC2_Integer authenticationtype,
+static long FindKey(RPC2_Integer *authenticationtype,
                     RPC2_CountedBS *ClientIdent, RPC2_EncryptionKey IdentKey,
                     RPC2_EncryptionKey SessionKey)
 {
@@ -359,9 +364,6 @@ static long ProcessPacket(RPC2_Handle cIn, RPC2_PacketBuffer *pIn,
         break;
 
     case ENDREMOTEPROFILING: {
-        /* hack */
-        extern PROCESS rpc2_SocketListenerPID;
-
 #ifdef PROFILE
         ProfilingOff();
         DoneProfiling();

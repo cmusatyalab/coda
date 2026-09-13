@@ -392,12 +392,18 @@ long SFTP_MakeRPC1(RPC2_Handle ConnHandle, SE_Descriptor *SDesc,
                    RPC2_PacketBuffer **RequestPtr);
 long SFTP_MakeRPC2(RPC2_Handle ConnHandle, SE_Descriptor *SDesc,
                    RPC2_PacketBuffer *Reply);
-long SFTP_MultiRPC1();
-long SFTP_MultiRPC2();
-long SFTP_CreateMgrp();
-long SFTP_AddToMgrp();
-long SFTP_InitMulticast();
-long SFTP_DeleteMgrp();
+long SFTP_MultiRPC1(int HowMany, RPC2_Handle ConnHandleList[],
+                    SE_Descriptor SDescList[], RPC2_PacketBuffer *req[],
+                    long retcode[]);
+long SFTP_MultiRPC2(RPC2_Handle ConnHandle, SE_Descriptor *SDesc,
+                    RPC2_PacketBuffer *Reply);
+long SFTP_CreateMgrp(RPC2_Handle MgroupHandle);
+long SFTP_AddToMgrp(RPC2_Handle MgroupHandle, RPC2_Handle ConnHandle,
+                    RPC2_PacketBuffer **Request);
+long SFTP_InitMulticast(RPC2_Handle MgroupHandle, RPC2_Handle ConnHandle,
+                        RPC2_PacketBuffer *Request);
+long SFTP_DeleteMgrp(RPC2_Handle MgroupHandle, struct RPC2_addrinfo *ClientAddr,
+                     long Role);
 long SFTP_GetRequest(RPC2_Handle ConnHandle, RPC2_PacketBuffer *Request);
 long SFTP_InitSE(RPC2_Handle ConnHandle, SE_Descriptor *SDesc);
 long SFTP_CheckSE(RPC2_Handle ConnHandle, SE_Descriptor *SDesc, long Flags);

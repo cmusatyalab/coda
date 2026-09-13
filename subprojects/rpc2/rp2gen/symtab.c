@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 5
+                              Release 8
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2026 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -45,19 +45,9 @@ Pittsburgh, PA.
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "rp2.h"
-
-extern ENTRY *make_entry();
-extern RPC2_TYPE *rpc2_simple_type();
-extern VAR *make_var();
-ENTRY *find();
-
-/*
- * If this is not prototyped its return value defaults to int which results
- * in bogus results on systems where sizeof(void*) > sizeof(int).
- */
-extern RPC2_TYPE *rpc2_struct_type(VAR **);
 
 /* This module uses external chaining */
 
@@ -109,7 +99,6 @@ static int hash(char *name)
     return value % SYMTAB_SIZE;
 }
 
-extern int strcmp();
 #define equal(s1, s2) (strcmp(s1, s2) == 0)
 
 ENTRY *find(char *name)

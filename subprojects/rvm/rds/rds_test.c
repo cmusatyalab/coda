@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 5
+                              Release 8
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2026 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -65,7 +65,7 @@ int main(int argc, char *argv[])
 
     case S_IFCHR:
         printf("Enter the length of the device %s: ", DataDev);
-        gets(string);
+        fgets(string, sizeof string, stdin);
 
         sptr = string;
         if ((*sptr == '0') && (*(++sptr) == 'x'))
@@ -82,7 +82,7 @@ int main(int argc, char *argv[])
 
     for (;;) {
         printf("> ");
-        gets(string);
+        fgets(string, sizeof string, stdin);
 
         switch (*string) {
         case 'i':
@@ -97,12 +97,12 @@ int main(int argc, char *argv[])
             for (i = 0; i < 20; i++) {
                 printf("region %d:\n", i);
                 printf("    vmaddr> ");
-                gets(string);
+                fgets(string, sizeof string, stdin);
                 if (*string == 'q')
                     break;
                 sscanf(string, "%x", &regions[i].vmaddr);
                 printf("    length> ");
-                gets(string);
+                fgets(string, sizeof string, stdin);
                 sscanf(string, "%x", &regions[i].length);
             }
 
@@ -181,7 +181,7 @@ int main(int argc, char *argv[])
             rvm_tid_t *ttid = rvm_malloc_tid();
 
             printf("address of transaction to abort: 0x");
-            gets(string);
+            fgets(string, sizeof string, stdin);
             sscanf(string, "%x", (int *)&ttid);
 
             ret = rvm_abort_transaction(ttid);
@@ -195,7 +195,7 @@ int main(int argc, char *argv[])
             rvm_tid_t *ttid = rvm_malloc_tid();
 
             printf("address of transaction to end: 0x");
-            gets(string);
+            fgets(string, sizeof string, stdin);
             sscanf(string, "%x", (int *)&ttid);
 
             ret = rvm_end_transaction(ttid, flush);
@@ -210,10 +210,10 @@ int main(int argc, char *argv[])
             int *addr;
 
             printf("address to write to: ");
-            gets(string);
+            fgets(string, sizeof string, stdin);
             sscanf(string, "%x", (int *)&addr);
             printf("Number of words to write: ");
-            gets(string);
+            fgets(string, sizeof string, stdin);
             sscanf(string, "%d", &len);
 
             ret = rvm_begin_transaction(tid, no_restore);
@@ -244,10 +244,10 @@ int main(int argc, char *argv[])
             int *addr;
 
             printf("address to read from: ");
-            gets(string);
+            fgets(string, sizeof string, stdin);
             sscanf(string, "%x", (int *)&addr);
             printf("Number of words to read: ");
-            gets(string);
+            fgets(string, sizeof string, stdin);
             sscanf(string, "%d", &len);
 
             for (i = 0; i < len; i++)
@@ -260,16 +260,16 @@ int main(int argc, char *argv[])
             int slen, hlen, nlists, chunksize;
             printf("Create a dynamic heap.\n");
             printf("starting address of rvm: ");
-            gets(string);
+            fgets(string, sizeof string, stdin);
             sscanf(string, "%x", (int *)&static_addr);
             printf("heap len, static len: ");
-            gets(string);
+            fgets(string, sizeof string, stdin);
             sscanf(string, "%x, %x", &hlen, &slen);
             printf("nlists: ");
-            gets(string);
+            fgets(string, sizeof string, stdin);
             nlists = atoi(string);
             printf("chunksize: ");
-            gets(string);
+            fgets(string, sizeof string, stdin);
             chunksize = atoi(string);
 
             rds_zap_heap(DataDev, DataLen, static_addr, slen, hlen, nlists,
@@ -290,10 +290,10 @@ int main(int argc, char *argv[])
             char *temp;
 
             printf("Size of object to allocate: ");
-            gets(string);
+            fgets(string, sizeof string, stdin);
             s = atoi(string);
             printf("Number of objects to allocate: ");
-            gets(string);
+            fgets(string, sizeof string, stdin);
             n = atoi(string);
 
             for (i = 0; i < n; i++) {
@@ -307,7 +307,7 @@ int main(int argc, char *argv[])
             char *temp;
 
             printf("object to free: 0x");
-            gets(string);
+            fgets(string, sizeof string, stdin);
             sscanf(string, "%x", (int *)&temp);
             rds_free(temp, 0, &err);
             if (err != SUCCESS) {
@@ -327,16 +327,16 @@ int main(int argc, char *argv[])
             /* Start a transaction to initialize the heap */
             printf("Initialize heap.\n");
             printf("starting address of rvm: ");
-            gets(string);
+            fgets(string, sizeof string, stdin);
             sscanf(string, "%x", (int *)&startAddr);
             printf("heap len, static len: ");
-            gets(string);
+            fgets(string, sizeof string, stdin);
             sscanf(string, "%x, %x", &hlen, &slen);
             printf("nlists: ");
-            gets(string);
+            fgets(string, sizeof string, stdin);
             nlists = atoi(string);
             printf("chunksize: ");
-            gets(string);
+            fgets(string, sizeof string, stdin);
             chunksize = atoi(string);
 
             ret = rvm_begin_transaction(tid, no_restore);

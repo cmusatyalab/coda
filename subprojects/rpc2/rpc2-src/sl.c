@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
 	                   Coda File System
-	                      Release 7
+	                      Release 8
 
-	  Copyright (c) 1987-2019 Carnegie Mellon University
+	  Copyright (c) 1987-2026 Carnegie Mellon University
 	          Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -63,23 +63,27 @@ Pittsburgh, PA.
 #include <rpc2/se.h>
 #include "trace.h"
 
-void rpc2_IncrementSeqNumber();
 static void DelayedAck(struct SL_Entry *sle);
-int XlateMcastPacket(RPC2_PacketBuffer *pb);
-void HandleInitMulticast();
-void rpc2_ExpireEvents(void);
 
 static RPC2_PacketBuffer *ShrinkPacket(RPC2_PacketBuffer *pb);
-static struct CEntry *MakeConn();
+static struct CEntry *MakeConn(RPC2_PacketBuffer *pb);
 static struct CEntry *FindOrNak(RPC2_PacketBuffer *pb);
 static void HandleSLPacket(RPC2_PacketBuffer *pb, struct CEntry *ce);
-static struct SL_Entry *FindRecipient();
-static int BogusSl();
+static struct SL_Entry *FindRecipient(RPC2_PacketBuffer *pb);
+static int BogusSl(struct CEntry *ce, RPC2_PacketBuffer *pb);
 static int PacketCame(void);
-static void DecodePacket(), HandleCurrentReply(), SendBusy(), HandleBusy(),
-    HandleOldRequest(), HandleNewRequest(), HandleCurrentRequest(),
-    HandleInit1(), HandleInit2(), HandleInit3(), HandleInit4(),
-    HandleRetriedBind();
+static void DecodePacket(RPC2_PacketBuffer *pb, struct CEntry *ce);
+static void HandleCurrentReply(RPC2_PacketBuffer *pb, struct CEntry *ce);
+static void SendBusy(struct CEntry *ce, int doEncrypt);
+static void HandleBusy(RPC2_PacketBuffer *pb, struct CEntry *ce);
+static void HandleOldRequest(RPC2_PacketBuffer *pb, struct CEntry *ce);
+static void HandleNewRequest(RPC2_PacketBuffer *pb, struct CEntry *ce);
+static void HandleCurrentRequest(RPC2_PacketBuffer *pb, struct CEntry *ce);
+static void HandleInit1(RPC2_PacketBuffer *pb);
+static void HandleInit2(RPC2_PacketBuffer *pb, struct CEntry *ce);
+static void HandleInit3(RPC2_PacketBuffer *pb, struct CEntry *ce);
+static void HandleInit4(RPC2_PacketBuffer *pb, struct CEntry *ce);
+static void HandleRetriedBind(RPC2_PacketBuffer *pb, struct CEntry *ce);
 
 static void SendNak(RPC2_PacketBuffer *pb);
 

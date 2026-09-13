@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 5
+                              Release 8
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2026 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -77,12 +77,9 @@ static int MC_ExtractParmsFromPacket(struct SFTP_Entry *mse,
  * The procs below interface directly with RPC2
  * ------------------------ */
 
-long SFTP_MultiRPC1(IN HowMany, IN ConnHandleList, INOUT SDescList, INOUT req,
-                    INOUT retcode) int HowMany;
-RPC2_Handle ConnHandleList[];
-SE_Descriptor SDescList[];
-RPC2_PacketBuffer *req[];
-long retcode[];
+long SFTP_MultiRPC1(int HowMany, RPC2_Handle ConnHandleList[],
+                    SE_Descriptor SDescList[], RPC2_PacketBuffer *req[],
+                    long retcode[])
 {
     int host;
     say(1, SFTP_DebugLevel, "SFTP_MultiRPC1()\n");
@@ -98,10 +95,8 @@ long retcode[];
     return -1;
 }
 
-long SFTP_MultiRPC2(IN ConnHandle, INOUT SDesc,
-                    INOUT Reply) RPC2_Handle ConnHandle;
-SE_Descriptor *SDesc;
-RPC2_PacketBuffer *Reply;
+long SFTP_MultiRPC2(RPC2_Handle ConnHandle, SE_Descriptor *SDesc,
+                    RPC2_PacketBuffer *Reply)
 {
     struct SFTP_Entry *se;
     long rc;
@@ -115,7 +110,7 @@ RPC2_PacketBuffer *Reply;
     return (rc);
 }
 
-long SFTP_CreateMgrp(IN MgroupHandle) RPC2_Handle MgroupHandle;
+long SFTP_CreateMgrp(RPC2_Handle MgroupHandle)
 {
     struct MEntry *me;
     struct SFTP_Entry *mse; /* Multicast SFTP Entry */

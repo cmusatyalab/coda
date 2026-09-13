@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2026 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -113,10 +113,9 @@ int wildmat(char *text, char *p)
 
 #ifdef TEST
 #include <stdio.h>
-/* Yes, we use gets not fgets.  Sue me. */
-extern char *gets();
+#include <stdlib.h>
 
-main()
+int main(void)
 {
     char p[80];
     char text[80];
@@ -128,12 +127,12 @@ main()
     for (;;) {
         printf("Enter pattern:  ");
         (void)fflush(stdout);
-        if (gets(p) == NULL || p[0] == '\n')
+        if (fgets(p, sizeof p, stdin) == NULL || p[0] == '\n')
             break;
         for (;;) {
             printf("Enter text:  ");
             (void)fflush(stdout);
-            if (gets(text) == NULL)
+            if (fgets(text, sizeof text, stdin) == NULL)
                 exit(EXIT_SUCCESS);
             if (text[0] == '\0')
                 /* Blank line; go back and get a new pattern. */

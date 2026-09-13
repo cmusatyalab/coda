@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2025 Carnegie Mellon University
+          Copyright (c) 1987-2026 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -109,19 +109,6 @@ typedef struct {
     int radix; /* print radix for vmaddr */
 } chk_vec_t;
 
-/* signal handler function type (rvmutl only) */
-typedef rvm_bool_t rvm_signal_call_t();
-
-/* recovery monitor call-back function type */
-typedef void rvm_monitor_call_t();
-/*  rvm_length_t    vmaddr;
-    rvm_length_t    length;
-    char            *data_ptr;
-    rvm_offset_t    *data_offset;
-    rec_hdr_t       *rec_hdr;
-    rvm_length_t    index;
-    char            *msg;
-*/
 /*                    round up & down macros
             **** all depend on sizes being a power of 2 ****
 */
@@ -570,6 +557,15 @@ typedef struct {
     struct timeval timestamp; /* timestamp of record entry */
     rvm_length_t rec_num; /* record number of entry */
 } rec_hdr_t;
+
+/* signal handler function type (rvmutl only) */
+typedef rvm_bool_t rvm_signal_call_t(FILE *out_stream);
+
+/* recovery monitor call-back function type */
+typedef void rvm_monitor_call_t(rvm_length_t vmaddr, rvm_length_t length,
+                                char *data_ptr, rvm_offset_t *data_offset,
+                                rec_hdr_t *rec_hdr, rvm_length_t index,
+                                char *msg);
 
 /* transaction record header: trans_hdr_t
  *   -- a single copy in the log descriptor */

@@ -80,10 +80,20 @@ static struct timeval DefaultRetryInterval = { 60, 0 };
    See documentation for libfail for details.
  */
 
-int (*Fail_SendPredicate)() = NULL, (*Fail_RecvPredicate)() = NULL;
+int (*Fail_SendPredicate)(unsigned char ip1, unsigned char ip2,
+                          unsigned char ip3, unsigned char ip4,
+                          unsigned char color, RPC2_PacketBuffer *pb,
+                          struct sockaddr_in *sin, int sock) = NULL;
+int (*Fail_RecvPredicate)(unsigned char ip1, unsigned char ip2,
+                          unsigned char ip3, unsigned char ip4,
+                          unsigned char color, RPC2_PacketBuffer *pb,
+                          struct sockaddr_in *sin, int sock) = NULL;
 
-static long FailPacket(int (*predicate)(), RPC2_PacketBuffer *pb,
-                       struct RPC2_addrinfo *addr, int sock)
+static long
+FailPacket(int (*predicate)(unsigned char, unsigned char, unsigned char,
+                            unsigned char, unsigned char, RPC2_PacketBuffer *,
+                            struct sockaddr_in *, int),
+           RPC2_PacketBuffer *pb, struct RPC2_addrinfo *addr, int sock)
 {
     long drop;
     unsigned char ip1, ip2, ip3, ip4;

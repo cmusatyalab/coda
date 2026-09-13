@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 5
+                              Release 8
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2026 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -46,7 +46,11 @@ struct CBUF_Header {
     char *Buffer; /* pointer to malloc()ed array of bytes */
 };
 
-extern struct CBUF_Header *CBUF_Init();
+extern struct CBUF_Header *CBUF_Init(long elemSize, long noofElems,
+                                     char *printName);
 char *CBUF_NextSlot(struct CBUF_Header *bufId);
-extern void CBUF_WalkBuff();
-extern void CBUF_Free();
+extern void CBUF_WalkBuff(struct CBUF_Header *bufId,
+                          void (*userProc)(void *elem, long index,
+                                           FILE *outFile),
+                          long howMany, FILE *outFile);
+extern void CBUF_Free(struct CBUF_Header **whichBuff);

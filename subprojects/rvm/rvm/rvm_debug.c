@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 7
+                              Release 8
 
-          Copyright (c) 1987-2019 Carnegie Mellon University
+          Copyright (c) 1987-2026 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -70,7 +70,7 @@ static rvm_length_t type_sizes[NUM_TYPES] = { CACHE_TYPE_SIZES,
 
 /* empty routine to force loading of this module when referenced by a program
    can also be used as a break point when a condition must be calculated */
-void rvm_debug(val) rvm_length_t val;
+void rvm_debug(rvm_length_t val)
 {
     if (val != 0)
         printf("\nAt rvm_debug: %ld (%lx)\n", val, val);

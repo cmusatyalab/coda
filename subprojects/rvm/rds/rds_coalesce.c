@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 5
+                              Release 8
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2026 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -139,7 +139,7 @@ void coalesce(rvm_tid_t *tid, int *err)
                 save = fbp->next; /* Save the old value of next */
 
                 /* place fbp in its new list. */
-                put_block((char *)fbp, tid, err);
+                put_block(fbp, tid, err);
                 if (*err != SUCCESS) {
                     return;
                 }
@@ -180,7 +180,7 @@ void coalesce(rvm_tid_t *tid, int *err)
                 save = fbp->next; /* Save the old value of next */
 
                 /* Place the object in it's appropriate list. */
-                put_block((char *)fbp, tid, err);
+                put_block(fbp, tid, err);
                 if (*err != SUCCESS) {
                     return;
                 }

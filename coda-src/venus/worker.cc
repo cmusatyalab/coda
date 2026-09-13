@@ -1461,9 +1461,8 @@ inline void worker::op_coda_open_by_path(union inputArgs *in,
             }
 #endif
             *msg_size = sizeof(struct coda_open_by_path_out) + n + 1;
-            LOG(100,
-                ("CODA_OPEN_BY_PATH: returning '%s', size=%d\n", begin,
-                 *msg_size));
+            LOG(100, ("CODA_OPEN_BY_PATH: returning '%s', size=%d\n", begin,
+                      *msg_size));
         }
     }
 }

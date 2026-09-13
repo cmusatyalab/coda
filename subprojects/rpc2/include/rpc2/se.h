@@ -37,36 +37,12 @@ Pittsburgh, PA.
 
 */
 
+#include <stdio.h>
 #include <rpc2/rpc2.h>
 #include <stdint.h>
 
 #ifndef _SE_
 #define _SE_
-
-struct SE_Definition {
-    long SideEffectType; /* what kind of side effect am I? */
-    long (*SE_Init)(); /* on both client & server side */
-    long (*SE_Bind1)(); /* on client side */
-    long (*SE_Bind2)(); /* on client side */
-    long (*SE_Unbind)(); /* on client and server side */
-    long (*SE_NewConnection)(); /* on server side */
-    long (*SE_MakeRPC1)(); /* on client side */
-    long (*SE_MakeRPC2)(); /* on client side */
-    long (*SE_MultiRPC1)(); /* on client side */
-    long (*SE_MultiRPC2)(); /* on client side */
-    long (*SE_CreateMgrp)(); /* on client side */
-    long (*SE_AddToMgrp)(); /* on client side */
-    long (*SE_InitMulticast)(); /* on server side */
-    long (*SE_DeleteMgrp)(); /* on client and server side */
-    long (*SE_GetRequest)(); /* on server side */
-    long (*SE_InitSideEffect)(); /* on server side */
-    long (*SE_CheckSideEffect)(); /* on server side */
-    long (*SE_SendResponse)(); /* on server side */
-    long (*SE_PrintSEDescriptor)(); /* for debugging */
-    long (*SE_SetDefaults)(); /* for initialization */
-    long (*SE_GetSideEffectTime)();
-    long (*SE_GetHostInfo)();
-};
 
 /* Types of side effects: use these in the RPC2_Bind() call and in filling SE
  * descriptors */
@@ -180,6 +156,51 @@ typedef struct SE_SideEffectDescriptor {
     void *userp;
 } SE_Descriptor;
 
+/* forward declarations so the prototypes below refer to file-scope structs,
+ * not structs local to the parameter list */
+struct HEntry;
+struct SE_Definition {
+    long SideEffectType; /* what kind of side effect am I? */
+    long (*SE_Init)(void); /* on both client & server side */
+    long (*SE_Bind1)(RPC2_Handle ConnHandle,
+                     RPC2_CountedBS *ClientIdent); /* on client side */
+    long (*SE_Bind2)(RPC2_Handle ConnHandle,
+                     RPC2_Unsigned BindTime); /* on client side */
+    long (*SE_Unbind)(RPC2_Handle ConnHandle); /* on client and server side */
+    long (*SE_NewConnection)(RPC2_Handle ConnHandle,
+                             RPC2_CountedBS *ClientIdent); /* on server side */
+    long (*SE_MakeRPC1)(RPC2_Handle ConnHandle, SE_Descriptor *SDesc,
+                        RPC2_PacketBuffer **RequestPtr); /* on client side */
+    long (*SE_MakeRPC2)(RPC2_Handle ConnHandle, SE_Descriptor *SDesc,
+                        RPC2_PacketBuffer *Reply); /* on client side */
+    long (*SE_MultiRPC1)(int HowMany, RPC2_Handle ConnHandleList[],
+                         SE_Descriptor SDescList[], RPC2_PacketBuffer *req[],
+                         long retcode[]); /* on client side */
+    long (*SE_MultiRPC2)(RPC2_Handle ConnHandle, SE_Descriptor *SDesc,
+                         RPC2_PacketBuffer *Reply); /* on client side */
+    long (*SE_CreateMgrp)(RPC2_Handle MgroupHandle); /* on client side */
+    long (*SE_AddToMgrp)(RPC2_Handle MgroupHandle, RPC2_Handle ConnHandle,
+                         RPC2_PacketBuffer **Request); /* on client side */
+    long (*SE_InitMulticast)(RPC2_Handle MgroupHandle, RPC2_Handle ConnHandle,
+                             RPC2_PacketBuffer *Request); /* on server side */
+    long (*SE_DeleteMgrp)(RPC2_Handle MgroupHandle,
+                          struct RPC2_addrinfo *ClientAddr,
+                          long Role); /* on client and server side */
+    long (*SE_GetRequest)(RPC2_Handle ConnHandle,
+                          RPC2_PacketBuffer *Request); /* on server side */
+    long (*SE_InitSideEffect)(RPC2_Handle ConnHandle,
+                              SE_Descriptor *SDesc); /* on server side */
+    long (*SE_CheckSideEffect)(RPC2_Handle ConnHandle, SE_Descriptor *SDesc,
+                               long Flags); /* on server side */
+    long (*SE_SendResponse)(RPC2_Handle ConnHandle,
+                            RPC2_PacketBuffer **Reply); /* on server side */
+    long (*SE_PrintSEDescriptor)(SE_Descriptor *SDesc,
+                                 FILE *outFile); /* for debugging */
+    long (*SE_SetDefaults)(void); /* for initialization */
+    long (*SE_GetSideEffectTime)(RPC2_Handle ConnHandle, struct timeval *Time);
+    long (*SE_GetHostInfo)(RPC2_Handle ConnHandle, struct HEntry **hPtr);
+};
+
 /* SE_common(): the transfer fields shared by both file SE modes live in the
  * SFTP_Descriptor, so a data site reads/writes them through one accessor
  * regardless of whether the connection is SMARTFTP or TCPFTP. Both union arms
@@ -218,7 +239,7 @@ Flag options in RPC2_CheckSEStatus(): OR these together as needed
 extern struct SE_Definition *SE_DefSpecs; /* array */
 extern long SE_DefCount; /* how many are there? */
 extern void SE_SetDefaults();
-extern char *SE_ErrorMsg();
+extern char *SE_ErrorMsg(long rc);
 
 /*
   Statistics

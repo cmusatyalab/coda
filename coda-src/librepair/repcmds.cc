@@ -753,8 +753,8 @@ int findtype(struct conflict *conf)
         return (-1); /* need at least 1 replica */
 
     /* do the first one manually */
-    if (snprintf(tmppath, sizeof(tmppath), "%s/%s", conf->rodir, tmp->compname)
-        >= (int)sizeof(tmppath))
+    if (snprintf(tmppath, sizeof(tmppath), "%s/%s", conf->rodir,
+                 tmp->compname) >= (int)sizeof(tmppath))
         return (-1);
     if (lstat(tmppath, &sbuf) < 0)
         return (-1);
@@ -763,8 +763,7 @@ int findtype(struct conflict *conf)
 
     while (tmp != NULL) {
         if (snprintf(tmppath, sizeof(tmppath), "%s/%s", conf->rodir,
-                     tmp->compname)
-            >= (int)sizeof(tmppath))
+                     tmp->compname) >= (int)sizeof(tmppath))
             return (-1);
         if (lstat(tmppath, &sbuf) < 0)
             return (-1);

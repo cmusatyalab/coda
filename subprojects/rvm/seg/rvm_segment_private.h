@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 5
+                              Release 8
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2026 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -22,10 +22,10 @@ Coda are listed in the file CREDITS.
 #define _RVM_SEGMENT_PRIVATE_H_
 /* Worker definitions */
 
-extern rvm_return_t allocate_vm();
-extern rvm_return_t deallocate_vm();
+extern rvm_return_t allocate_vm(char **addr, unsigned long length);
+extern rvm_return_t deallocate_vm(char *addr, unsigned long length);
 
-extern int overlap();
+extern int overlap(unsigned long nregions, rvm_region_def_t regionDefs[]);
 
 /* Macro definitions for the segment header */
 

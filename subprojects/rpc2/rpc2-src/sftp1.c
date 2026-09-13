@@ -71,12 +71,13 @@ Pittsburgh, PA.
 #include "codatunnel.private.h"
 
 /*----------------------- Local procedure specs  ----------------------*/
-static long GetFile();
-static long PutFile();
+static long GetFile(struct SFTP_Entry *sEntry);
+static long PutFile(struct SFTP_Entry *sEntry);
 static RPC2_PacketBuffer *sftp_DequeuePacket(struct SFTP_Entry *sEntry);
 static RPC2_PacketBuffer *AwaitPacket(struct SFTP_Entry *sEntry, int retry,
                                       int outbytes, int inbytes);
-static long MakeBigEnough();
+static long MakeBigEnough(RPC2_PacketBuffer **whichP, off_t extraBytes,
+                          long maxSize);
 
 /*---------------------------  Local macros ---------------------------*/
 #define FAIL(se, rCode)   \
@@ -1355,8 +1356,7 @@ void sftp_SetError(struct SFTP_Entry *s, enum SFState e)
 
 /*-------------------------- Debugging routines ------------------------*/
 
-long SFTP_PrintSED(IN SDesc, IN outFile) SE_Descriptor *SDesc;
-FILE *outFile;
+long SFTP_PrintSED(IN SE_Descriptor *SDesc, IN FILE *outFile)
 {
     struct SFTP_Descriptor *sftpd;
     sftpd = &SDesc->Value.SmartFTPD;

@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 5
+                              Release 8
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2026 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -144,9 +144,7 @@ void sftp_TraceBogus(long filenum, long linenum)
 #endif
 }
 
-static void PrintSFEntry(tEntry, tId, outFile) struct TraceEntry *tEntry;
-long tId;
-FILE *outFile;
+static void PrintSFEntry(struct TraceEntry *tEntry, long tId, FILE *outFile)
 {
 #ifdef RPC2DEBUG
     char *s;
@@ -228,7 +226,8 @@ void sftp_DumpTrace(char *fName)
         "%6s  %6s    %8s    %8s  %6s             %8s    %8s    %8s  %4s\n\n",
         "Op", "SNo", "Flags", "SEFlags", "GotEm", "AlsoSeen", "RHandle",
         "LHandle", "Blen");
-    CBUF_WalkBuff(TraceBuf, PrintSFEntry, TRACELEN, dumpfile);
+    CBUF_WalkBuff(TraceBuf, (void (*)(void *, long, FILE *))PrintSFEntry,
+                  TRACELEN, dumpfile);
     fclose(dumpfile);
 #endif
 }

@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 6
+                              Release 8
 
-          Copyright (c) 1987-2018 Carnegie Mellon University
+          Copyright (c) 1987-2026 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -143,5 +143,59 @@ int yylex(void);
 void yyerror(char *s);
 void yywarn(char *s);
 
-/* function defined in rp2main */
+/* functions defined in the parser */
+int yyparse(void);
+
+/* functions defined in rp2main */
 void spit_include(char *filename);
+void spit_type(ENTRY *type);
+void spit_define(char *id, char *value);
+
+/* functions defined in crout */
+void print_struct_func(RPC2_TYPE *t, FILE *where, FILE *hfile, char *name);
+void cinclude(char *filename, WHO who, FILE *where);
+void cdefine(char *id, char *value, WHO who, FILE *where);
+void ctype(ENTRY *e, WHO who, FILE *where);
+void cproc(PROC *head, WHO who, FILE *where);
+void copcodes(PROC *head, WHO who, FILE *where);
+
+/* functions defined in symtab */
+ENTRY *find(char *name);
+void enter(ENTRY *e);
+void init_table(void);
+
+/* functions defined in util */
+void no_storage(char *proc);
+char *copy(char *s);
+void insert(PROC *proc);
+PROC *get_head(void);
+RPC2_TYPE *rpc2_enum_type(ENUM **values);
+RPC2_TYPE *rpc2_struct_type(VAR **struct_fields);
+RPC2_TYPE *rpc2_simple_type(TYPE_TAG tag);
+VAR *make_var(char *name, MODE mode, ENTRY *type);
+ENTRY *make_entry(RPC2_TYPE *type, ENTRY *defined);
+ENUM *make_enum(char *name, char *rep);
+PROC *make_proc(int opnum, char *name, VAR **formals, char *timeout,
+                rp2_bool new_connection);
+PROC *check_proc(PROC *proc);
+char *concat(char *s1, char *s2);
+char *concat3elem(char *s1, char *s2, char *s3);
+char *coda_rp2_basename(char *name);
+
+/* functions defined in the lexer */
+void init_lex(void);
+rp2_bool include2(char *name, char *proc);
+
+/* global variables, defined in rp2main */
+extern struct subsystem subsystem;
+extern char *server_prefix, *client_prefix;
+extern FILE *file;
+extern FILE *hfile;
+extern char *file_name;
+extern char **cpatharray;
+extern int cpathcnt;
+extern int HeaderOnlyFlag;
+extern rp2_bool testing;
+extern rp2_bool cplusplus;
+extern rp2_bool neterrors;
+extern time_t versionnumber;

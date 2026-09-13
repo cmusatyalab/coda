@@ -508,8 +508,8 @@ int s_list_coda_inodes(struct DiskPartition *dp, char *resultFile,
 
     pdir = opendir(devname);
     if (pdir == NULL) {
-        snprintf(err, sizeof(err), "Could not read directory %s to get inode list\n",
-                 devname);
+        snprintf(err, sizeof(err),
+                 "Could not read directory %s to get inode list\n", devname);
         perror(err);
         return -1;
     }

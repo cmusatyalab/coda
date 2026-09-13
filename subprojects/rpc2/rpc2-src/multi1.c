@@ -60,11 +60,6 @@ Pittsburgh, PA.
 #include "cbuf.h"
 #include <rpc2/multi.h>
 
-extern void rpc2_IncrementSeqNumber();
-extern long HandleResult();
-extern void rpc2_PrintPacketHeader();
-extern long SetupMulticast();
-
 typedef struct {
     struct CEntry *ceaddr;
     RPC2_PacketBuffer *req;
@@ -85,7 +80,12 @@ static void SetupPackets(int HowMany, MultiCon *mcon,
                          SE_Descriptor SDescList[], RPC2_PacketBuffer *Request);
 static MultiCon *InitMultiCon(int HowMany);
 static void FreeMultiCon(int HowMany, MultiCon *mcon);
-static long mrpc_SendPacketsReliably();
+static long mrpc_SendPacketsReliably(int HowMany, MultiCon *mcon,
+                                     RPC2_Handle ConnHandleList[],
+                                     ARG_INFO *ArgInfo,
+                                     SE_Descriptor SDescList[],
+                                     RPC2_UnpackMulti_func *UnpackMulti,
+                                     struct timeval *TimeOut);
 static PacketCon *InitPacketCon(int HowMany);
 static void FreePacketCon(PacketCon *pcon);
 static long exchange(PacketCon *pcon, int cur_ind);
@@ -103,7 +103,7 @@ long RPC2_MultiRPC(
     IN RPC2_Integer RCList[], /* NULL or list of per-connection return codes */
     IN RPC2_Multicast *MCast, /* NULL if multicast not used */
     IN RPC2_PacketBuffer *Request, /* Gets clobbered during call: BEWARE */
-    IN SE_Descriptor SDescList[], IN long (*UnpackMulti)(),
+    IN SE_Descriptor SDescList[], IN RPC2_UnpackMulti_func *UnpackMulti,
     IN OUT ARG_INFO *ArgInfo, IN struct timeval *BreathOfLife)
 {
     MultiCon *mcon;
@@ -412,7 +412,7 @@ static long mrpc_SendPacketsReliably(
     ARG_INFO *ArgInfo, /* Structure of client information
                           (built in MakeMulti) */
     SE_Descriptor SDescList[], /* array of side effect descriptors */
-    long (*UnpackMulti)(), /* pointer to unpacking routine */
+    RPC2_UnpackMulti_func *UnpackMulti, /* unpacking routine */
     struct timeval *TimeOut) /* client specified timeout */
 {
     struct SL_Entry *slp;

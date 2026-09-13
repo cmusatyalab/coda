@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 5
+                              Release 8
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2026 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -102,7 +102,7 @@ struct TraceElem {
             RPC2_RequestFilter Filter;
             int IsNullBreathOfLife;
             struct timeval BreathOfLife;
-            long (*GetKeys)();
+            RPC2_GetKeys_func *GetKeys;
             int EncryptionTypeMask;
         } GetRequestEntry;
 

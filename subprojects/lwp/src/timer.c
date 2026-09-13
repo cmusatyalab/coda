@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2021 Carnegie Mellon University
+          Copyright (c) 1987-2026 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -41,6 +41,7 @@ Pittsburgh, PA.
 #include <config.h>
 #endif
 
+#include <stdbool.h>
 #include <sys/time.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -54,8 +55,6 @@ Pittsburgh, PA.
 #else
 #define DEBUG(...)
 #endif
-
-typedef unsigned char bool;
 
 #define expiration TotalTime
 

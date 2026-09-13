@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 5
+                              Release 8
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2026 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -169,14 +169,14 @@ extern FILE *rds_tracing_file;
  * Definitions of worker functions.
  */
 extern int print_heap();
-extern free_block_t *split();
-extern free_block_t *get_block();
-extern int put_block();
+extern free_block_t *split(int size, rvm_tid_t *tid, int *err);
+extern free_block_t *get_block(int size, rvm_tid_t *tid, int *err);
+extern int put_block(free_block_t *bp, rvm_tid_t *tid, int *err);
 
 /*********************
  * Definitions of util functions
  */
-int rm_from_list();
+int rm_from_list(free_list_t *list, free_block_t *bp, rvm_tid_t *tid, int *err);
 
 /***********************
  * Coalesce

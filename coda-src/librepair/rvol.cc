@@ -102,8 +102,8 @@ int repair_mountrw(struct conflict *conf, char *msg, int msgsize)
 	conf->local = 1;
 #endif
 
-        if (snprintf(tmppath, sizeof(tmppath), "%s/%s", conf->rodir, de->d_name)
-            >= (int)sizeof(tmppath)) {
+        if (snprintf(tmppath, sizeof(tmppath), "%s/%s", conf->rodir,
+                     de->d_name) >= (int)sizeof(tmppath)) {
             strerr(msg, msgsize, "path too long: %s", de->d_name);
             goto CLEANUP;
         }

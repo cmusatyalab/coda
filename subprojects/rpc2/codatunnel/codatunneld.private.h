@@ -197,7 +197,7 @@ void outbound_worker_cb(uv_async_t *async);
 void resume_read_cb(uv_async_t *async);
 
 /* Stuff for destination management */
-void initdestarray();
+void initdestarray(uv_loop_t *mainloop);
 dest_t *getdest(const struct sockaddr_storage *, socklen_t);
 dest_t *createdest(const struct sockaddr_storage *, socklen_t,
                    const char *peername);

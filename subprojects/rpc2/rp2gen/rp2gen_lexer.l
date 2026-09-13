@@ -47,8 +47,6 @@ Pittsburgh, PA.
 
 #define RETURN(Arg) if (yydebug != 0) printf("Lex: token:%d\n", Arg); return(Arg)
 
-extern FILE *file, *hfile;
-extern char *file_name;
 int line;
 
 static rp2_bool included();
@@ -58,12 +56,6 @@ static void IncludeVerbatim(void);
 int yywrap();
 
 extern int yydebug;
-extern YYSTYPE yylval;
-
-extern char *copy();
-
-extern int cpathcnt;
-extern char **cpatharray;
 
 /* Stack of unput chars */
 #define MAX_UNPUT_CHARS 10
@@ -292,8 +284,7 @@ static rp2_bool included()
     return include_stack.include_top > 0;
 }
 
-static FILE *inc_open(name)
-    char *name;
+static FILE *inc_open(char *name)
 {
     FILE *f;
 
@@ -304,8 +295,7 @@ static FILE *inc_open(name)
     return NIL;
 }
 
-rp2_bool include2(name, proc)
-    char *name, *proc;
+rp2_bool include2(char *name, char *proc)
 {
     FILE *f;
 

@@ -114,9 +114,9 @@ NOTE 1
 size_t RPC2_Preferred_Keysize;
 int RPC2_secure_only;
 
-void SavePacketForRetry();
-static int InvokeSE();
-static void SendOKInit2();
+static int InvokeSE(long CallType, RPC2_Handle ConnHandle, SE_Descriptor *SDesc,
+                    long Flags);
+static void SendOKInit2(struct CEntry *ce);
 static int ServerHandShake(struct CEntry *ce, int32_t xrand,
                            RPC2_EncryptionKey SharedSecret,
                            uint32_t rpc2sec_version, size_t keysize,
@@ -144,7 +144,6 @@ static long MakeFake(INOUT RPC2_PacketBuffer *pb, IN struct CEntry *ce,
 
 FILE *rpc2_logfile;
 FILE *rpc2_tracefile;
-extern struct timeval SaveResponse;
 
 void RPC2_SetLog(FILE *file, int level)
 {

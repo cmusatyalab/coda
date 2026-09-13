@@ -52,14 +52,6 @@ int32_t yydebug;
 static int32_t SetupFiles();
 static void badargs(void);
 
-extern void print_struct_func(RPC2_TYPE *t, FILE *where, FILE *hfile,
-                              char *name);
-extern char *coda_rp2_basename(char *name);
-extern rp2_bool include2(char *name, char *proc);
-
-extern void no_storage();
-extern void init_lex(), init_table(), yyparse();
-
 struct subsystem subsystem; /* Holds global subsystem information */
 char *server_prefix, *client_prefix;
 
@@ -68,7 +60,7 @@ FILE *cfile = NULL, *sfile = NULL, *hfile = NULL, *mfile = NULL, *pfile = NULL,
      *libfile = NULL;
 char *cfile_name, *sfile_name, *hfile_name, *mfile_name, *pfile_name,
     *libfile_name;
-    ;
+;
 char *file_name;
 char *outdir_name; /* write generated files to this directory, default "." */
 char define_name[MAXPATHLEN]; /* value of __XXX__ */
@@ -132,10 +124,10 @@ int32_t cpathcnt; /* no of elements in cpath, initially 0 */
 time_t versionnumber; /* used to check version */
 
 /* forward decls */
-static int32_t GetArgs();
-static int32_t h_hack_begin();
-static int32_t h_hack_end();
-static int32_t header();
+static int32_t GetArgs(int argc, char **argv);
+static int32_t h_hack_begin(FILE *hfile, char *name);
+static int32_t h_hack_end(FILE *hfile);
+static int32_t header(FILE *hfile, char *name);
 static int32_t do_procs();
 static int32_t SetupFiles();
 
@@ -183,7 +175,7 @@ static int32_t GetArgs(int argc, char *argv[])
     strictproto = RP2_TRUE; /* generate strict prototypes */
     cplusplus   = RP2_FALSE; /* by default generate .c not .cc files */
     ansi = RP2_FALSE; /* generate ## paste tokens rather than double-comment */
-    neterrors = RP2_FALSE; /* exchange errors in OS independent fashion */
+    neterrors   = RP2_FALSE; /* exchange errors in OS independent fashion */
     outdir_name = NIL; /* write generated files to current directory */
     /* Wire-in client, server and multi languages to be C.
        Should be settable on command line when other languages are supported */
@@ -246,7 +238,7 @@ static int32_t GetArgs(int argc, char *argv[])
                 cpatharray = (char **)malloc(sizeof(char *));
             else
                 cpatharray = (char **)realloc(cpatharray,
-                                               (cpathcnt + 1) * sizeof(char *));
+                                              (cpathcnt + 1) * sizeof(char *));
             assert(cpatharray != NULL);
             cpatharray[cpathcnt] = argv[i];
             cpathcnt++;
@@ -263,8 +255,6 @@ static int32_t GetArgs(int argc, char *argv[])
     file_name = argv[argc - 1];
     return (0);
 }
-
-extern char *coda_rp2_basename(), *concat(), *concat3elem();
 
 /* Build the path to a generated file, prefixed with the output
    directory given by -C, if any, we'll just leak the allocations */
@@ -433,27 +423,46 @@ static void cant_happen(ENTRY *type, WHO who, FILE *where)
     return;
 }
 
-extern void cinclude(), cdefine(), ctype(), cproc(), copcodes();
-
-static void no_support();
+static void no_support(ENTRY *type, WHO who, FILE *where);
 
 static struct {
     char *name; /* Name for printing */
-    void (*include)(); /* Routine for outputting include to file */
-    void (*define)(); /* Routine for outputting define to file */
-    void (*type)(); /* Routine for outputting type to file */
-    void (*proc)(); /* Routine for outputting procedure to file */
-    void (*op_codes)(); /* Routine for generating op codes in .h file */
+    void (*include)(char *filename, WHO who, FILE *where); /* Routine for
+                                                             outputting
+                                                             include to file */
+    void (*define)(char *id, char *value, WHO who, FILE *where); /* Routine
+                                                                   for
+                                                                   outputting
+                                                                   define to
+                                                                   file */
+    void (*type)(ENTRY *e, WHO who, FILE *where); /* Routine for outputting
+                                                   type to file */
+    void (*proc)(PROC *head, WHO who, FILE *where); /* Routine for outputting
+                                                    procedure to file */
+    void (*op_codes)(PROC *head, WHO who, FILE *where); /* Routine for
+                                                         generating op codes
+                                                         in .h file */
 } lang_struct[] = {
 
-    /* NONE */ { "N/A", cant_happen, cant_happen, cant_happen, cant_happen,
-                 cant_happen },
+    /* NONE */
+    { "N/A", (void (*)(char *, WHO, FILE *))cant_happen,
+      (void (*)(char *, char *, WHO, FILE *))cant_happen,
+      (void (*)(ENTRY *, WHO, FILE *))cant_happen,
+      (void (*)(PROC *, WHO, FILE *))cant_happen,
+      (void (*)(PROC *, WHO, FILE *))cant_happen },
     /* C */ { "C", cinclude, cdefine, ctype, cproc, copcodes },
     /* PASCAL */
-    { "PASCAL", no_support, no_support, no_support, no_support, no_support },
+    { "PASCAL", (void (*)(char *, WHO, FILE *))no_support,
+      (void (*)(char *, char *, WHO, FILE *))no_support,
+      (void (*)(ENTRY *, WHO, FILE *))no_support,
+      (void (*)(PROC *, WHO, FILE *))no_support,
+      (void (*)(PROC *, WHO, FILE *))no_support },
     /* F77 */
-    { "FORTRAN 77", no_support, no_support, no_support, no_support, no_support }
-
+    { "FORTRAN 77", (void (*)(char *, WHO, FILE *))no_support,
+      (void (*)(char *, char *, WHO, FILE *))no_support,
+      (void (*)(ENTRY *, WHO, FILE *))no_support,
+      (void (*)(PROC *, WHO, FILE *))no_support,
+      (void (*)(PROC *, WHO, FILE *))no_support }
 };
 
 static void no_support(ENTRY *type, WHO who, FILE *where)
@@ -497,7 +506,6 @@ void spit_define(char *id, char *value)
 
 static int32_t do_procs()
 {
-    extern PROC *get_head();
     register PROC *head, *proc;
     register rp2_bool seen_new_connection;
 

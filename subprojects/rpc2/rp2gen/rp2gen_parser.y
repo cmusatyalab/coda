@@ -1,9 +1,9 @@
 %{ /* BLURB gpl
 
                            Coda File System
-                              Release 5
+                              Release 8
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2026 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -41,22 +41,6 @@ Pittsburgh, PA.
 #include <stdlib.h>
 #include <string.h>
 #include "rp2.h"
-
-extern int yydebug;
-extern int HeaderOnlyFlag;
-
-extern char *copy();
-extern RPC2_TYPE *rpc2_enum_type(), *rpc2_struct_type();
-extern ENTRY *make_entry(), *find();
-extern ENUM *make_enum();
-extern VAR *make_var();
-extern PROC *make_proc(), *check_proc();
-extern void enter();
-extern char *concat();
-extern struct subsystem subsystem;
-extern void no_storage(char *);
-extern void spit_define(char *, char *);
-extern void insert(PROC *proc);
 
 /* Structure for handling IDENTIFIER lists */
 
@@ -127,8 +111,7 @@ struct {
     int		counter;
 } var_list;
 
-static int length(p)
-    char **p;
+static int length(char **p)
 {
     register int len;
 
@@ -155,14 +138,12 @@ static VAR **make_var_array()
     return array;
 }
 
-static char *createsize(name)
-    char *name;
+static char *createsize(char *name)
 {
     return concat(name, "_size_");
 }
 
-static char *createmaxsize(name)
-    char *name;
+static char *createmaxsize(char *name)
 {
     return concat(name, "_size_max_");
 }
@@ -234,13 +215,11 @@ prefixes		: empty
 
 prefix			: SERVER PREFIX String ';'
 					{
-					    extern char *server_prefix;
 					    server_prefix = copy($3+1);
 					    server_prefix[strlen(server_prefix)-1] = '\0';
 					}
 			| CLIENT PREFIX String ';'
 					{
-					    extern char *client_prefix;
 					    client_prefix = copy($3+1);
 					    client_prefix[strlen(client_prefix)-1] = '\0';
 					}
@@ -299,7 +278,6 @@ define			: DEFINE IDENTIFIER NUMBER
 
 typedef			: TYPEDEF rpc2_type IDENTIFIER array_spec ';'
 					{
-					    extern void spit_type();
 					    $2 -> name = $3;
 					    $2 -> bound = $4;
 					    if ($2->bound != NIL && $2->type->tag != RPC2_BYTE_TAG) {

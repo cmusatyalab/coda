@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2025 Carnegie Mellon University
+          Copyright (c) 1987-2026 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -113,7 +113,8 @@ typedef struct {
 static peekpoke_buf_t peekpoke; /* file & buffer for peek/poke cmds */
 
 /* buffer loading function type */
-typedef char *chk_buffer_t();
+typedef char *chk_buffer_t(rvm_offset_t *offset, rvm_length_t length,
+                           FILE *err_stream);
 /*  rvm_offset_t    *offset;
     rvm_length_t    length;
     FILE            *err_stream;
@@ -190,8 +191,8 @@ typedef enum
     NOT_A_KEY /* end mark, do not delete */
 } key_id_t;
 
-typedef rvm_bool_t cmd_func_t(); /* command function template */
-typedef rvm_bool_t sw_func_t(); /* switch processing function template */
+typedef rvm_bool_t cmd_func_t(void); /* command function template */
+typedef rvm_bool_t sw_func_t(void); /* switch processing function template */
 
 typedef struct /* string name vector entry */
 {
@@ -227,9 +228,10 @@ typedef struct /* string name vector entry */
 #define KEY_WORD_STR "key word"
 
 /* internal forward declarations */
-static rvm_bool_t do_quit();
-static rvm_bool_t chk_sigint();
-static long lookup_str_name();
+static rvm_bool_t do_quit(void);
+static rvm_bool_t chk_sigint(FILE *out_stream);
+static long lookup_str_name(char *str, str_name_entry_t *str_vec,
+                            char *ambig_str);
 
 #ifndef ZERO
 #define ZERO 0
@@ -5402,7 +5404,7 @@ static void do_cmd_switches(int argc, char *argv[])
             exit(EXIT_FAILURE); /* error */
 
         /* invoke processing function */
-        (void)(cmd_sw_vec[sw_index].func)(argc, argv);
+        (void)(cmd_sw_vec[sw_index].func)();
     }
 }
 

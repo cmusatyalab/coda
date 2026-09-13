@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 5
+                              Release 8
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2026 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -80,8 +80,9 @@ char *CBUF_NextSlot(struct CBUF_Header *bufId)
     return (p);
 }
 
-void CBUF_WalkBuff(struct CBUF_Header *bufId, void (*userProc)(), long howMany,
-                   FILE *outFile)
+void CBUF_WalkBuff(struct CBUF_Header *bufId,
+                   void (*userProc)(void *elem, long index, FILE *outFile),
+                   long howMany, FILE *outFile)
 /* userProc	called with (<ptr to elem>, <index of elem>, outFile)
  * howMany;	userProc is invoked only for the last howMany elems
  * outFile;	opened for writing already */

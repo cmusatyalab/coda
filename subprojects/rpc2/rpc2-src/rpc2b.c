@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 7
+                              Release 8
 
-          Copyright (c) 1987-2019 Carnegie Mellon University
+          Copyright (c) 1987-2026 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -580,7 +580,9 @@ long RPC2_DumpTrace(IN FILE *OutFile, IN long HowMany)
 #ifdef RPC2DEBUG
     if (OutFile == NULL)
         OutFile = stdout; /* it's ok, call-by-value */
-    CBUF_WalkBuff(rpc2_TraceBuffHeader, rpc2_PrintTraceElem, HowMany, OutFile);
+    CBUF_WalkBuff(rpc2_TraceBuffHeader,
+                  (void (*)(void *, long, FILE *))rpc2_PrintTraceElem, HowMany,
+                  OutFile);
     (void)fflush(OutFile);
 #endif
     return (RPC2_SUCCESS);

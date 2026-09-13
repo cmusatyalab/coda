@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2021 Carnegie Mellon University
+          Copyright (c) 1987-2026 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -81,7 +81,6 @@ static void version_check(FILE *where);
 static void declare_CallCount(PROC *head, FILE *where);
 static void declare_MultiCall(PROC *head, FILE *where);
 static void declare_LogFunction(PROC *head, FILE *where);
-void print_struct_func(RPC2_TYPE *t, FILE *where, FILE *hfile, char *name);
 void print_pack_var(char *prefix, VAR *var, FILE *where);
 void print_unpack_var(char *prefix, VAR *var, FILE *where);
 
@@ -89,15 +88,6 @@ static void spit_pack_request(PROC *proc, FILE *where, rp2_bool header);
 static void spit_unpack_request(PROC *proc, FILE *where, rp2_bool header);
 static void spit_pack_response(PROC *proc, FILE *where, rp2_bool header);
 static void spit_unpack_response(PROC *proc, FILE *where, rp2_bool header);
-
-extern char *concat(), *concat3elem(), *server_prefix, *client_prefix;
-;
-extern rp2_bool testing;
-extern rp2_bool cplusplus;
-extern rp2_bool neterrors; /* exchange OS independent errors */
-extern struct subsystem subsystem;
-extern unsigned versionnumber; /* used to check version */
-extern ENTRY *find();
 
 enum
 {
@@ -221,7 +211,6 @@ void print_struct_func(RPC2_TYPE *t, FILE *where, FILE *hfile, char *name)
 
 void print_unpack_var(char *prefix, VAR *var, FILE *where)
 {
-    extern char *concat();
     char *name, *suffix;
     MODE mode;
 
@@ -302,7 +291,6 @@ void print_unpack_var(char *prefix, VAR *var, FILE *where)
 
 void print_pack_var(char *prefix, VAR *var, FILE *where)
 {
-    extern char *concat();
     char *name, *suffix;
 
     name   = concat(prefix, var->name);
@@ -1205,7 +1193,6 @@ static void set_timeout(PROC *proc, FILE *where)
 
 static void pack(WHO who, VAR *parm, char *prefix, FILE *where)
 {
-    extern char *concat();
     char *name, *suffix;
     const char *deref;
 
@@ -1658,10 +1645,6 @@ static void pass_parm(VAR *parm, FILE *where)
 
 static void execute(PROC *head, FILE *where)
 {
-#if __GNUC__ < 2
-    extern int32_t strlen();
-#endif
-    extern char *copy();
     int32_t sawnewconn;
 
     fprintf(where,
@@ -1729,8 +1712,6 @@ static void execute(PROC *head, FILE *where)
 /* spit out code to pretty print packets in tcpdump */
 static void print_dump(PROC *head, FILE *where)
 {
-    extern char *copy();
-
     fprintf(where, "\nint %s_PrintOpcode(int opcode, int subsysid) {\n",
             subsystem.subsystem_name);
 
@@ -1908,13 +1889,14 @@ static void macro_define(FILE *where)
     if (!subname)
         return; /* Must be a HeadersOnly case */
 
-    fprintf(where, "\n#define %s_HEAD_VERSION\t%d\n", subname, versionnumber);
+    fprintf(where, "\n#define %s_HEAD_VERSION\t%d\n", subname,
+            (int)versionnumber);
 }
 
 static void version_check(FILE *where)
 {
     fprintf(where, "#if (%s_HEAD_VERSION != %d)", subsystem.subsystem_name,
-            versionnumber);
+            (int)versionnumber);
     fprintf(where, "\n; char *NOTE[] = ");
     fprintf(where, "CAUTION_______________________________________!!!");
     fprintf(where, "VERSION_IS_INCONSISTENT_WITH_HEADER_FILE______!!!");

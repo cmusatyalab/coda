@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2021 Carnegie Mellon University
+          Copyright (c) 1987-2026 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -59,8 +59,10 @@ Pittsburgh, PA.
 
 #include "rpc2.private.h"
 
-static void ClientPacket();
-static void ServerPacket();
+static void ClientPacket(RPC2_PacketBuffer *whichPacket,
+                         struct SFTP_Entry *sEntry);
+static void ServerPacket(RPC2_PacketBuffer *whichPacket,
+                         struct SFTP_Entry *sEntry);
 static void SFSendNAK(RPC2_PacketBuffer *pb);
 
 #define BOGUS(pb) \

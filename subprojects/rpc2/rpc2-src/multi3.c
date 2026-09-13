@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 7
+                              Release 8
 
-          Copyright (c) 1987-2019 Carnegie Mellon University
+          Copyright (c) 1987-2026 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -58,9 +58,6 @@ Pittsburgh, PA.
 #include "trace.h"
 
 struct rpc2_LinkEntry *rpc2_MgrpFreeList; /* free mgrp blocks */
-
-void rpc2_RemoveFromMgrp(struct MEntry *me, struct CEntry *ce);
-void rpc2_DeleteMgrp(struct MEntry *me);
 
 /* this definition was taken from sl.c */
 #define BOGUS(p) /* bogus packet; throw it away */         \
@@ -156,7 +153,7 @@ struct MEntry *rpc2_AllocMgrp(struct RPC2_addrinfo *addr, RPC2_Handle handle)
     return (me);
 }
 
-void rpc2_FreeMgrp(me) struct MEntry *me;
+void rpc2_FreeMgrp(struct MEntry *me)
 {
     struct CEntry *ce;
     int i;
