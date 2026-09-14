@@ -18,7 +18,7 @@ rds_lib = library('rds',
   version : lt_version,
   include_directories : [config_h_include, rvm_inc],
   dependencies : [seg_dep],
-  install : true,
+  install : get_option('install-dev'),
 )
 
 rds_dep = declare_dependency(

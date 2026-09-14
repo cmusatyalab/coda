@@ -14,11 +14,14 @@ rvm_sources = [
   'rvm_utils.c',
 ]
 
+# The plain (non-LWP) flavor mirrors autotools --enable-librvm, which is
+# off by default; only build it, do not install it, unless building
+# standalone with development files enabled.
 rvm_lib = library('rvm',
   rvm_sources,
   version : lt_version,
   include_directories : [config_h_include, rvm_inc],
-  install : true,
+  install : get_option('install-dev'),
 )
 
 rvm_dep = declare_dependency(

@@ -11,7 +11,7 @@ seg_lib = library('seg',
   version : lt_version,
   include_directories : [config_h_include, rvm_inc],
   dependencies : [rvm_dep],
-  install : true,
+  install : get_option('install-dev'),
 )
 
 seg_dep = declare_dependency(

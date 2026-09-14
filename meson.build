@@ -234,6 +234,52 @@ configure_file(
 # dist_certificate_DATA), installed to sysconfdirx.
 install_data('tools/Coda_CA.crt', install_dir : sysconfdirx / 'ssl')
 
+# systemd service units and modules-load.d config (mirrors SYSTEMD_CHECKS
+# and the HAVE_SYSTEMD block in tools/Makefile.am). Paths default to the
+# ones reported by pkg-config; set the options to 'no'/empty to skip.
+systemd_dep = dependency('systemd', required : get_option('systemd'))
+systemd_service_dir = get_option('systemdsystemunitdir')
+systemd_modules_dir = get_option('modulesloaddir')
+if systemd_dep.found()
+  if systemd_service_dir == ''
+    systemd_service_dir = systemd_dep.get_variable(pkgconfig : 'systemdsystemunitdir')
+  endif
+  if systemd_modules_dir == ''
+    systemd_modules_dir = systemd_dep.get_variable(pkgconfig : 'modulesloaddir', default_value : '')
+  endif
+endif
+
+if systemd_service_dir != ''
+  unit_conf = configuration_data()
+  unit_conf.set('SBINDIR', sbindir)
+  unit_conf.set('SYSCONFDIR', sysconfdirx)
+  if not get_option('build_client').disabled()
+    configure_file(
+      input : 'tools/coda-client.tmpl',
+      output : 'coda-client.service',
+      configuration : unit_conf,
+      install : true,
+      install_dir : systemd_service_dir,
+    )
+  endif
+  if not get_option('build_server').disabled()
+    foreach unit : ['coda-server', 'coda-auth2', 'coda-update-master',
+                    'coda-update-slave']
+      configure_file(
+        input : 'tools/' + unit + '.tmpl',
+        output : unit + '.service',
+        configuration : unit_conf,
+        install : true,
+        install_dir : systemd_service_dir,
+      )
+    endforeach
+  endif
+endif
+
+if systemd_modules_dir != '' and not get_option('build_client').disabled()
+  install_data('tools/coda.conf', install_dir : systemd_modules_dir)
+endif
+
 subdir('lib-src')
 subdir('coda-src')
 subdir('test-src')

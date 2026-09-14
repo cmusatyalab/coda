@@ -4,3 +4,9 @@ option('build_server', type : 'feature', value : 'enabled',
   description : 'build Coda server components')
 option('vcodacon', type : 'feature', value : 'auto',
   description : 'build graphical vcodacon console')
+option('systemd', type : 'feature', value : 'auto',
+  description : 'install systemd service files (paths autodetected via pkg-config)')
+option('systemdsystemunitdir', type : 'string', value : '',
+  description : 'directory for systemd service files (default: pkg-config systemd)')
+option('modulesloaddir', type : 'string', value : '',
+  description : 'directory for kernel modules-load.d config (default: pkg-config systemd)')

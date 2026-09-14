@@ -95,14 +95,16 @@ subdir('rp2gen')
 subdir('rpc2-src')
 subdir('scripts')
 
-pkg = import('pkgconfig')
+if get_option('install-dev')
+  pkg = import('pkgconfig')
 
-pkg.generate(rpc2_lib,
-  description : 'Remote Procedure Call library',
-  libraries : libse_lib,
-  variables : { 'RP2GEN' : rp2gen.full_path() },
-  url : 'http://coda.cs.cmu.edu',
-)
+  pkg.generate(rpc2_lib,
+    description : 'Remote Procedure Call library',
+    libraries : libse_lib,
+    variables : { 'RP2GEN' : rp2gen.full_path() },
+    url : 'http://coda.cs.cmu.edu',
+  )
+endif
 
 # The rpc2 package provides rpc2+se, matching rpc2.pc
 rpc2_dep = declare_dependency(

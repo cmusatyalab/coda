@@ -36,6 +36,8 @@ tags
 test-driver
 site/
 ylwrap
+.wraplock
+packagecache/
 *.[ao]
 *.l[ao]
 *.client.c
@@ -50,6 +52,4 @@ unittest.xml
 test-src/unit/unit
 test-src/unit/rvm_test.data
 test-src/unit/rvm_test.log
-subprojects/.wraplock
 subprojects/googletest-*/
-subprojects/packagecache/

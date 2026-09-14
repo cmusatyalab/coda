@@ -57,37 +57,39 @@ subdir('seg')
 subdir('rds')
 subdir('tests')
 
-pkg = import('pkgconfig')
+if get_option('install-dev')
+  pkg = import('pkgconfig')
 
-pkg.generate(rds_lib,
-  name : 'rvm',
-  description : 'Persistent memory storage library',
-  variables : {
-    'RVMUTL' : rvmutl.full_path(),
-    'RDSINIT' : rdsinit.full_path(),
-  },
-  url : 'http://coda.cs.cmu.edu',
-)
+  pkg.generate(rds_lib,
+    name : 'rvm',
+    description : 'Persistent memory storage library',
+    variables : {
+      'RVMUTL' : rvmutl.full_path(),
+      'RDSINIT' : rdsinit.full_path(),
+    },
+    url : 'http://coda.cs.cmu.edu',
+  )
 
-pkg.generate(rdslwp_lib,
-  name : 'rvmlwp',
-  description : 'Persistent memory storage library (LWP build)',
-  variables : {
-    'RVMUTL' : rvmutl.full_path(),
-    'RDSINIT' : rdsinit.full_path(),
-  },
-  url : 'http://coda.cs.cmu.edu',
-)
+  pkg.generate(rdslwp_lib,
+    name : 'rvmlwp',
+    description : 'Persistent memory storage library (LWP build)',
+    variables : {
+      'RVMUTL' : rvmutl.full_path(),
+      'RDSINIT' : rdsinit.full_path(),
+    },
+    url : 'http://coda.cs.cmu.edu',
+  )
 
-pkg.generate(rdspt_lib,
-  name : 'rvmpt',
-  description : 'Persistent memory storage library (pthead build)',
-  variables : {
-    'RVMUTL' : rvmutl.full_path(),
-    'RDSINIT' : rdsinit.full_path(),
-  },
-  url : 'http://coda.cs.cmu.edu',
-)
+  pkg.generate(rdspt_lib,
+    name : 'rvmpt',
+    description : 'Persistent memory storage library (pthread build)',
+    variables : {
+      'RVMUTL' : rvmutl.full_path(),
+      'RDSINIT' : rdsinit.full_path(),
+    },
+    url : 'http://coda.cs.cmu.edu',
+  )
+endif
 
 # The rvmlwp package provides rds+seg+rvm, matching rvmlwp.pc
 rvmlwp_dep = declare_dependency(
