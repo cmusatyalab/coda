@@ -1,5 +1,5 @@
 project('rpc2', 'c',
-  version : '2.38',
+  version : '2.39',
   license : 'LGPL-2.0-only',
   default_options : [
     'warning_level=1',

@@ -1,5 +1,5 @@
 project('rvm', 'c',
-  version : '1.29',
+  version : '1.30',
   license : 'LGPL-2.0-only',
   default_options : [
     'warning_level=1',

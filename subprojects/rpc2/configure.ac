@@ -2,7 +2,7 @@ dnl Process this file with autoconf to produce a configure script
 
 dnl Initialization
 AC_PREREQ([2.69])
-AC_INIT([rpc2],[2.38])
+AC_INIT([rpc2],[2.39])
 AC_CONFIG_AUX_DIR([.])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_SRCDIR([rpc2-src/rpc2.private.h])
@@ -24,7 +24,8 @@ dnl Checks for programs.
 AC_PROG_CC
 CODA_PROG_NATIVECC
 AC_PROG_CPP
-AM_PROG_LEX([noyywrap])
+AC_PROG_LEX([noyywrap])
+AM_PROG_LEX
 if test -z "${ac_cv_prog_LEX}" ; then
     AC_MSG_ERROR([Build requires flex or lex lexical analyzer generator])
 fi

@@ -1,5 +1,5 @@
 project('lwp', 'c',
-  version : '2.18',
+  version : '2.19',
   license : 'LGPL-2.0-only',
   default_options : [
     'warning_level=1',
