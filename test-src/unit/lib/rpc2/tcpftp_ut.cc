@@ -132,6 +132,21 @@ TEST(tcpftp, capability_flag_does_not_collide)
     EXPECT_EQ(TCPFTP_CAPABLE & RPC2SEC_CAPABLE, 0u);
 }
 
+/* The SFTP->TCPFTP upgrade is opt-in: RPC2_TCPFTP is read once in RPC2_Init
+ * into the rpc2_tcpftp global, and rpc2_tcpftp_capable() ANDs it with
+ * codatunnel_enabled(). The gate defaults off, so a peer must never
+ * advertise capability out of the box. codatunnel_enabled() is 0 in the unit
+ * build (no daemon), so we pin the default-off contract here; the "on" path
+ * needs a running codatunneld and is covered by the ctest harness. */
+TEST(tcpftp, upgrade_gate_default_off)
+{
+    extern int rpc2_tcpftp;
+    const int saved = rpc2_tcpftp;
+    rpc2_tcpftp     = 0; /* default: RPC2_TCPFTP unset */
+    EXPECT_EQ(rpc2_tcpftp_capable(), 0);
+    rpc2_tcpftp = saved;
+}
+
 /* The REQUEST body carries three 64-bit network-order fields; the peeloff
  * reads cookie at +0, offset at +8, len at +16. */
 TEST(tcpftp, request_wire_layout)

@@ -52,6 +52,10 @@ Pittsburgh, PA.
 #include <arpa/inet.h>
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* This string is used in RPC initialization calls to ensure that the
 runtime system and the header files are mutually consistent.  Also
 passed across on RPC2_NewBinding for advisory information to other
@@ -492,7 +496,8 @@ typedef struct RPC2_PacketBuffer {
 #define RPC2SEC_CAPABLE 0x10 /* set on Init1 packet by new rpc2sec stack */
 #define TCPFTP_CAPABLE 0x20 /* set on packets by a TCPFTP-capable peer */
 
-int rpc2_tcpftp_capable(void); /* true iff our codatunneld is running */
+int rpc2_tcpftp_capable(void); /* true iff codatunneld is running AND the
+                                  RPC2_TCPFTP opt-in gate is enabled */
 
 /* Format of filter used in RPC2_GetRequest */
 
@@ -867,5 +872,9 @@ extern long rpc2_SSCreationCount, rpc2_SSCount, rpc2_SSFreeCount;
 extern long rpc2_Unbinds, rpc2_FreeConns, rpc2_AllocConns, rpc2_GCConns;
 extern long rpc2_PBCount, rpc2_PBHoldCount, rpc2_PBFreezeCount;
 extern long rpc2_FreezeHWMark, rpc2_HoldHWMark;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _RPC2_ */

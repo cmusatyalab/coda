@@ -122,6 +122,11 @@ long RPC2_Init(
     env              = getenv("RPC2SEC_ONLY");
     RPC2_secure_only = !env || (env && memchr("0fFnN", *env, 5) == NULL);
 
+    /* The SFTP->TCPFTP upgrade is opt-in: only advertised when RPC2_TCPFTP
+     * is set to something other than 0/false/no/nada (default off). */
+    env         = getenv("RPC2_TCPFTP");
+    rpc2_tcpftp = env && (memchr("0fFnN", *env, 5) == NULL);
+
     verbose = (Options && (Options->Flags & RPC2_OPTION_VERBOSE_INIT));
     secure_init(verbose);
 

@@ -40,8 +40,12 @@ capability is negotiated in the RPC2 bind handshake, in the `Flags` field of
 the packet header:
 
 - `TCPFTP_CAPABLE 0x20`. Set on outgoing packets by a peer whose local
-  `codatunneld` is running. The test is `rpc2_tcpftp_capable()`, which simply
-  returns `codatunnel_enabled()` (see `globals.c`).
+  `codatunneld` is running. The test is `rpc2_tcpftp_capable()`, which returns
+  `codatunnel_enabled() && rpc2_tcpftp` (see `globals.c`). The upgrade is
+  opt-in via the `RPC2_TCPFTP` env var, read once in `RPC2_Init`
+  (`rpc2b.c`) into the `rpc2_tcpftp` global; it is off by default (and when
+  the var is `0`/`false`/`no`/`nada`), so a peer only ever advertises the
+  capability when the operator has enabled it **and** its daemon is running.
 - On the client, the bit is set on **INIT1** before the bind is sent
   (`rpc2a.c`). On the server, when it sees the bit on the client's **INIT1**
   and is itself capable, it marks the connection

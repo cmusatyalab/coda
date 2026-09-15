@@ -449,6 +449,7 @@ extern long rpc2_HostFreeCount, rpc2_HostCount, rpc2_HostCreationCount;
 
 /*------------- Miscellaneous  global data  ------------*/
 extern int rpc2_ipv6ready; /* can userspace handle IPv6 addresses */
+extern int rpc2_tcpftp; /* opt-in gate for SFTP->TCPFTP upgrade, default off */
 extern int rpc2_v4RequestSocket; /* fd of RPC socket  */
 extern int rpc2_v6RequestSocket; /* fd of RPC socket  */
 /* we may need more when we deal with many domains */

@@ -56,6 +56,10 @@ long RPC2_Perror = 1, RPC2_DebugLevel = 0, RPC2_Trace = 0; /* see rpc2.h */
 /* whether the client can handle RPC2_HOSTBYADDRINFO and IPv6 connections */
 int rpc2_ipv6ready;
 
+/* opt-in gate for the SFTP->TCPFTP upgrade; read once in RPC2_Init,
+   default off (see rpc2b.c) */
+int rpc2_tcpftp = 0;
+
 int rpc2_v4RequestSocket = -1;
 int rpc2_v6RequestSocket = -1;
 RPC2_PortIdent rpc2_LocalPort;
@@ -112,9 +116,10 @@ long rpc2_errno;
 /* Obsolete: purely for compatibility with /vice/file */
 long rpc2_TimeCount, rpc2_CallCount, rpc2_ReqCount, rpc2_AckCount, rpc2_MaxConn;
 
-/* The TCPFTP/codatunnel offload is always compiled into libse; the only
- * runtime requirement is a running codatunneld. */
+/* The TCPFTP/codatunnel offload is always compiled into libse; it is only
+ * active when a codatunneld is running AND the RPC2_TCPFTP opt-in gate (see
+ * rpc2_tcpftp, read in RPC2_Init) is enabled. */
 int rpc2_tcpftp_capable(void)
 {
-    return codatunnel_enabled();
+    return codatunnel_enabled() && rpc2_tcpftp;
 }
