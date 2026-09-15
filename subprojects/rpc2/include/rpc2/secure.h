@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
 			Coda File System
-			    Release 6
+			    Release 8
 
-	  Copyright (c) 2005-2016 Carnegie Mellon University
+	  Copyright (c) 2005-2026 Carnegie Mellon University
 		  Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -20,6 +20,10 @@ Coda are listed in the file CREDITS.
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <stdint.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* RFC2460 - Internet Protocol, Version 6 (IPv6) Specification
  * Section 5 - Packet Size Issues
@@ -187,5 +191,9 @@ ssize_t secure_recvfrom(int s, void *buf, size_t len, int flags,
 /* time-constant comparison */
 int secure_compare(const void *user_data, size_t user_len, const void *secret,
                    size_t secret_len);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _RPC2_SECURE_H_ */

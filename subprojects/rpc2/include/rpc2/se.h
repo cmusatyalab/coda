@@ -44,6 +44,10 @@ Pittsburgh, PA.
 #ifndef _SE_
 #define _SE_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Types of side effects: use these in the RPC2_Bind() call and in filling SE
  * descriptors */
 #define OMITSE 9999 /* in MultiRPC for omitting side effects on some conns */
@@ -260,4 +264,9 @@ struct sftpStats {
 
 extern struct sftpStats sftp_Sent, sftp_MSent;
 extern struct sftpStats sftp_Recvd, sftp_MRecvd;
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif

@@ -43,6 +43,11 @@ Pittsburgh, PA.
 #include <unistd.h>
 #include <stdlib.h>
 #include <rpc2/tcpftp.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
     Features:
     1. Windowing with bit masks to avoid unnecessary retransmissions
@@ -483,6 +488,11 @@ extern long SFTP_MaxPackets;
                  (char *)&pb->Header.BodyLength,                       \
                  pb->Prefix.LengthOfPacket - 4 * sizeof(RPC2_Integer), \
                  sfe->PInfo.SessionKey, sfe->PInfo.EncryptionType)
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif /* _SFTP */
 
 /* Predicate to test if file is in vm */

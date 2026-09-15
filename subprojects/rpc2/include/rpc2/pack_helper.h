@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 5
+                              Release 8
 
-          Copyright (c) 1987-2016 Carnegie Mellon University
+          Copyright (c) 1987-2026 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -17,6 +17,10 @@ Coda are listed in the file CREDITS.
 #ifndef _PACK_HELPER_
 #define _PACK_HELPER_
 #include <rpc2/rpc2.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef struct {
     char *buffer;
@@ -71,5 +75,9 @@ int pack_struct_CallCountEntry(BUFFER *buf, CallCountEntry *ptr);
 int pack_struct_MultiCallEntry(BUFFER *buf, MultiCallEntry *ptr);
 
 int pack_struct_MultiStubWork(BUFFER *buf, MultiStubWork *ptr);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

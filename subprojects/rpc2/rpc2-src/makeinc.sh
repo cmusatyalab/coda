@@ -24,6 +24,10 @@ echo "Generating ../include/rpc2/errors.h"
 
 #include <errno.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Similar to perror but also knows about locally undefined errno values */
 const char *cerror(int err);
 
@@ -40,8 +44,14 @@ const char *cerror(int err);
 
 EOF
 sed 's/^#define \([^\t]*\)[\t]*\([^t]*\)\t\/\* \(.*\) \*\/$/#ifndef \1\n#define \1 (RPC2_ERRBASE+\2) \/* \3 *\/\n#endif/' < errordb.txt
-echo
-echo "#endif /* _ERRORS_H_ */"
+cat << EOF
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* _ERRORS_H_ */
+EOF
 ) > ../include/rpc2/errors.h
 
 echo "Generating switchc2s.h"

@@ -20,6 +20,10 @@
 
 #include <errno.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Similar to perror but also knows about locally undefined errno values */
 const char *cerror(int err);
 
@@ -250,5 +254,9 @@ const char *cerror(int err);
 #define CAENOSERVERS (RPC2_ERRBASE+308) /* No servers are known to Venus */
 #endif
 
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _ERRORS_H_ */

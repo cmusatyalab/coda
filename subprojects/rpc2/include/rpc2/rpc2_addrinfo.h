@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 5
+                              Release 8
 
-            Copyright (c) 2003 Carnegie Mellon University
+           Copyright (c) 2003-2026 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -20,6 +20,10 @@ Coda are listed in the file CREDITS.
 
 #include <sys/types.h>
 #include <netinet/in.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* struct addrinfo wrappers, by using our own versions we can support systems
  * that don't have these useful functions yet and can avoid allocation problems
@@ -80,5 +84,9 @@ void RPC2_formataddrinfo(const struct RPC2_addrinfo *host, char *buf,
 /* The maximum size that the previous buffer can be,
  * '[' + inet6 addr + ']:' + portnumber + '\0' */
 #define RPC2_ADDRSTRLEN (1 + 46 + 2 + 10 + 1)
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _RPC2_ADDRINFO_H */

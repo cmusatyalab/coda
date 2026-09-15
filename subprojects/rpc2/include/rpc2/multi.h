@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2025 Carnegie Mellon University
+          Copyright (c) 1987-2026 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -42,6 +42,10 @@ Pittsburgh, PA.
 
 #ifndef _MULTI_H_
 #define _MULTI_H_
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define MAXSERVERS 100
 
@@ -150,5 +154,9 @@ typedef struct arg_info {
              name##_local_i++)                                            \
             (object)[name##_local_i] = name##_bufs[ix][name##_local_i];   \
     }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _MULTI_H_ */
