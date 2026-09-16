@@ -1,5 +1,5 @@
 project('coda', ['c', 'cpp'],
-  version : '8.1.7',
+  version : '8.1.8',
   license : 'GPL-2.0-only',
   default_options : [
     'warning_level=1',

@@ -1,5 +1,5 @@
 project('rpc2', 'c',
-  version : '2.39',
+  version : '2.40',
   license : 'LGPL-2.0-only',
   default_options : [
     'warning_level=1',
@@ -16,7 +16,7 @@ project('rpc2', 'c',
 # - if any interfaces were added, increment lt_age
 # - if any interfaces were removed or changed, set lt_age to 0
 #
-lt_revision = 0
+lt_revision = 1
 lt_current = 15
 lt_age = 9
 lt_version = '@0@.@1@.@2@'.format(lt_current-lt_age, lt_age, lt_revision)
