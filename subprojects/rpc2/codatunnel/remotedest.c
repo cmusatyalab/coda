@@ -79,6 +79,8 @@ void initdestarray(uv_loop_t *mainloop)
         d->wakeup.data = d;
         uv_async_init(mainloop, &d->resume_read, resume_read_cb);
         d->resume_read.data = d;
+        uv_async_init(mainloop, &d->redrive, ct_redrive_cb);
+        d->redrive.data = d;
     }
 }
 

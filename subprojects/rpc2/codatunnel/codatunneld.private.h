@@ -186,6 +186,10 @@ typedef struct remotedest {
      * resume_read are guarded by uvcount_mutex. */
     int read_paused; /* read stopped because recv queue is full */
     uv_async_t resume_read; /* queue drained -> loop resumes uv_read_start */
+    /* Restart file transfers deferred while this channel was handshaking.
+     * Sent from setuptls() (a worker) once the channel commits TCPACTIVE; the
+     * callback runs on the loop because starting a pump is loop-only. */
+    uv_async_t redrive;
 } dest_t;
 
 static inline void free_tcphandle(uv_handle_t *handle)
@@ -195,6 +199,7 @@ static inline void free_tcphandle(uv_handle_t *handle)
 
 void outbound_worker_cb(uv_async_t *async);
 void resume_read_cb(uv_async_t *async);
+void ct_redrive_cb(uv_async_t *async);
 
 /* Stuff for destination management */
 void initdestarray(uv_loop_t *mainloop);

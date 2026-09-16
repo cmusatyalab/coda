@@ -922,6 +922,15 @@ static void file_async_cb(uv_async_t *arg)
             break;
         case CT_ASYNC_FAILDEST:
             ct_fail_dest_transfers(d);
+            /* setuptls() (a worker) enqueued this op after a handshake
+             * failure. The tcphandle belongs to codatunnel_main_loop, so the
+             * worker may not uv_read_stop/uv_close it; tear it down here on
+             * the loop. Skip if free_dest() already started closing it. */
+            if (d->tcphandle && d->state != TCPCLOSING) {
+                uv_read_stop((uv_stream_t *)d->tcphandle);
+                uv_close((uv_handle_t *)d->tcphandle, free_tcphandle);
+                d->tcphandle = NULL;
+            }
             break;
         case CT_ASYNC_DATA:
             ct_transfer_data_arrived(r);
@@ -1737,18 +1746,12 @@ static void peeloff_and_decrypt(uv_work_t *w)
 }
 
 /* Re-arm driver registrations that the FILEREG handler dropped because the
- * channel was not yet TCPACTIVE. Runs on the uv loop (posted from setuptls
- * before the peeloff work, so this always precedes processing of the queued
- * peer packets). A live record here was never started: any peer traffic for
- * it (a chunk, EOF, or the first REQUEST answer) would have errored and freed
- * it. A record that already streamed has refs != 0 and is skipped. The work
- * struct is heap-allocated per channel-up (freeing the closer), so concurrent
- * channel-ups never share -- and double-submit -- a single work item. */
-static void ct_redrive_close(uv_work_t *w, int status)
-{
-    free(w);
-}
-
+ * channel was not yet TCPACTIVE. The per-dest redrive async is posted from
+ * setuptls() (a worker) and serviced on the loop; each channel has its own
+ * handle, so concurrent channel-ups never share one. A live record here was
+ * never started: any peer traffic for it (a chunk, EOF, or the first REQUEST
+ * answer) would have errored and freed it. A record that already streamed has
+ * refs != 0 and is skipped. */
 struct ct_redrive_ctx {
     dest_t *d;
 };
@@ -1771,9 +1774,13 @@ static void ct_redrive_one(uint64_t cookie, void *waiter, void *arg)
     }
 }
 
-static void ct_redrive_work(uv_work_t *w)
+/* Loop-side: d->redrive is posted from setuptls() (a worker) once the channel
+ * commits TCPACTIVE. Runs on the loop because ct_pump_do_start() starts a pump
+ * (uv_async_init) and may emit the first chunk / FILEDONE (uv_write), all of
+ * which are loop-only. */
+void ct_redrive_cb(uv_async_t *async)
 {
-    struct ct_redrive_ctx ctx = { .d = (dest_t *)w->data };
+    struct ct_redrive_ctx ctx = { .d = (dest_t *)async->data };
     ct_cookie_foreach(ct_redrive_one, &ctx);
 }
 
@@ -1812,10 +1819,9 @@ static void setuptls(uv_work_t *w)
             if (certverify == IGNORE) {                                    \
                 async_free_dest(d);                                        \
             } else {                                                       \
+                uv_mutex_lock(&d->uvcount_mutex);                          \
                 d->state = ALLOCATED;                                      \
-                uv_read_stop((uv_stream_t *)d->tcphandle);                 \
-                uv_close((uv_handle_t *)d->tcphandle, free_tcphandle);     \
-                d->tcphandle = NULL;                                       \
+                uv_mutex_unlock(&d->uvcount_mutex);                        \
                 file_async_enqueue(0, CT_ASYNC_FAILDEST, d);               \
             }                                                              \
         }                                                                  \
@@ -1908,14 +1914,10 @@ eagain:
     uv_rwlock_rdunlock(&credential_load_lock);
 
     /* Re-arm driver registrations that landed before this channel was active
-     * (their FILEREG was signalled but not started). Queued before the peel
-     * work below, so it runs on the loop ahead of any queued peer packets. */
-    uv_work_t *rw = malloc(sizeof(*rw));
-    if (rw) {
-        rw->data = d;
-        uv_queue_work(codatunnel_main_loop, rw, ct_redrive_work,
-                      ct_redrive_close);
-    }
+     * (their FILEREG was signalled but not started). setuptls() runs on a
+     * worker, but starting a pump is loop-only, so post the thread-safe
+     * redrive async and let the loop run it. */
+    uv_async_send(&d->redrive);
 
     /* Process any received data (or EOF) in case it arrived before we
      * finished processing the handshake. */
