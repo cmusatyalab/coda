@@ -28,7 +28,7 @@ unit_exe = executable('unit',
   unit_sources,
   include_directories : [config_h_include, base_inc, unit_inc, codatunnel_inc, gtest_inc],
   cpp_args : ['-DVENUS', '-DTIMING', '-DVENUSDEBUG'],
-  dependencies : [util_dep, base_dep, rvm_dep, rpc2_dep],
+  dependencies : [util_dep, base_dep, rvm_dep, rpc2_dep, libse_dep],
   link_with : [gtest_lib],
 )
 

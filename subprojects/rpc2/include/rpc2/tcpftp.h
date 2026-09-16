@@ -50,6 +50,13 @@ struct TcpFtpState {
 #define TCPFTP_ROLE_SOURCE 0 /* mirror CT_SOURCE / CT_SINK (codatunnel/ctp.h) */
 #define TCPFTP_ROLE_SINK 1
 
+/* Length a local registration reports to the daemon: for a source, size past
+ * the seek offset capped at ByteQuota when positive (<= 0 == unlimited,
+ * matching classic SFTP); for a sink, 0 (accept however many bytes arrive).
+ * See tcpftp_reglen() in tcpftp1.c. */
+uint64_t tcpftp_reglen(const struct SFTP_Descriptor *d, int role,
+                       uint64_t size);
+
 /* Open/resolve the local file for d's tag + role and register it with the
  * daemon (see tcpftp1.c). in_cookie is 0 (client, generate) or the client's
  * cookie (server, reuse); *out_cookie receives the resulting cookie. Returns 0

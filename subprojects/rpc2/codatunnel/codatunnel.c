@@ -15,6 +15,7 @@ Coda are listed in the file CREDITS.
 
 #*/
 
+#include <errno.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
@@ -225,8 +226,20 @@ int codatunnel_file_register(const struct sockaddr *peer, socklen_t addrlen,
         *cookie = 0;
     /* documented: *cookie is 0 on any failure path below */
 
-    if (!codatunnel_enable_codatunnel || !peer || fd < 0 || !cookie)
+    TLOG(
+        "TCPFTP file_register fd=%d role=%s offset=%lu length=%lu "
+        "in_cookie=0x%lx\n",
+        fd, role ? "sink" : "source", (unsigned long)offset,
+        (unsigned long)length, (unsigned long)in_cookie);
+
+    if (!codatunnel_enable_codatunnel || !peer || fd < 0 || !cookie) {
+        TLOG(
+            "TCPFTP file_register: bad args (enabled=%d peer=%p fd=%d "
+            "cookie=%p)\n",
+            (int)codatunnel_enable_codatunnel, (const void *)peer, fd,
+            (const void *)cookie);
         return -1;
+    }
 
     /* The cookie is the cross-daemon correlation key: the client pre-registers
      * with a fresh cookie and carries it in its RPC; the RPC-server side
@@ -234,8 +247,11 @@ int codatunnel_file_register(const struct sockaddr *peer, socklen_t addrlen,
      * in-cookie is therefore both the "use this cookie as-is" instruction and
      * exactly the "I am the later end" marker. */
     if (in_cookie) {
-        if (ct_cookie_add(in_cookie, NULL) != 0)
-            return -1; /* supplied cookie already in use, or table full */
+        if (ct_cookie_add(in_cookie, NULL) != 0) {
+            TLOG("TCPFTP file_register: supplied cookie 0x%lx already in use\n",
+                 (unsigned long)in_cookie);
+            return -1;
+        }
         c = in_cookie;
     } else {
         /* no supplied cookie: generate a fresh, unallocated one (0 reserved).
@@ -250,13 +266,14 @@ int codatunnel_file_register(const struct sockaddr *peer, socklen_t addrlen,
                 break;
         }
         if (tries >= 8) {
-            DEBUG(" codatunnel_file_register: cookie table full\n");
+            TLOG("TCPFTP file_register: cookie table full\n");
             return -1;
         }
     }
 
     reg = (ct_filereg *)malloc(sizeof(ct_filereg));
     if (!reg) {
+        TLOG("TCPFTP file_register: malloc failed\n");
         ct_cookie_remove(c);
         return -1;
     }
@@ -270,6 +287,8 @@ int codatunnel_file_register(const struct sockaddr *peer, socklen_t addrlen,
     memcpy(&reg->peer, peer, addrlen);
 
     if (vside_send_control(CT_FILEREG, reg, sizeof(ct_filereg), fd) != 0) {
+        TLOG("TCPFTP file_register: vside send failed (daemon dead?): %s\n",
+             strerror(errno));
         ct_cookie_remove(c);
         free(reg);
         return -1;

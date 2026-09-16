@@ -752,8 +752,10 @@ static void ct_pump_do_start(uint64_t cookie, int send_ready)
 
     dest_t *d = getdest(&rec->peer, rec->peerlen);
     if (!d || d->state != TCPACTIVE) {
-        DEBUG("pump start: channel for cookie %lu not active\n",
-              (unsigned long)cookie);
+        TLOG(
+            "TCPFTP pump start: channel for cookie=%lu not active "
+            "(d=%p state=%d)\n",
+            (unsigned long)cookie, (void *)d, d ? (int)d->state : -1);
         rec->refs = 0;
         ct_push_filedone(cookie, CT_STATUS_IOERR, 0);
         ct_rec_free_now(cookie);
@@ -988,7 +990,8 @@ static void ct_filereg_handler(int fd, const char *body, size_t bodylen)
 
     if (fd < 0) {
         /* no fd arrived (the app must hand one in the same datagram) */
-        DEBUG("FILEREG: no fd via SCM_RIGHTS, dropping\n");
+        TLOG("TCPFTP FILEREG cookie=%lu: no fd via SCM_RIGHTS, dropping\n",
+             (unsigned long)reg->cookie);
         ct_push_filedone(reg->cookie, CT_STATUS_IOERR, 0);
         return;
     }
@@ -1015,8 +1018,8 @@ static void ct_filereg_handler(int fd, const char *body, size_t bodylen)
     if (ct_cookie_add(reg->cookie, rec) != 0) {
         /* cookie already registered (or table full): the first
            registration still owns it; drop this one, no FILE_DONE yet */
-        DEBUG("FILEREG: cookie %lu already registered, dropping\n",
-              (unsigned long)reg->cookie);
+        TLOG("TCPFTP FILEREG cookie=%lu already registered, dropping\n",
+             (unsigned long)reg->cookie);
         close(fd);
         uv_mutex_destroy(&rec->lock);
         free(rec);
@@ -1045,6 +1048,11 @@ static void ct_filereg_handler(int fd, const char *body, size_t bodylen)
                 ct_send_transfer_request(d, reg->cookie, rec->offset,
                                          CT_CHUNKMAX);
             }
+        } else {
+            TLOG(
+                "TCPFTP FILEREG cookie=%lu driver: channel not active "
+                "(d=%p state=%d), deferring to redrive\n",
+                (unsigned long)reg->cookie, (void *)d, d ? (int)d->state : -1);
         }
         /* A channel that is not yet TCPACTIVE cannot be signalled from here;
          * the READY / pump start is deferred and issued from
@@ -1052,7 +1060,7 @@ static void ct_filereg_handler(int fd, const char *body, size_t bodylen)
     }
     return;
 drop:
-    DEBUG("FILEREG: malformed packet dropped\n");
+    TLOG("TCPFTP FILEREG: malformed packet dropped\n");
 }
 
 /* A channel died. The app's request/transfer for every record whose peer was

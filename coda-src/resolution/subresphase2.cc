@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2021 Carnegie Mellon University
+          Copyright (c) 1987-2026 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -120,6 +120,7 @@ static int rs_ShipLogs(RPC2_Handle RPCid, char *buf, int bufsize)
     sid.Tag                                   = SMARTFTP;
     sid.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
     sid.Value.SmartFTPD.SeekOffset            = 0;
+    sid.Value.SmartFTPD.ByteQuota             = -1;
     sid.Value.SmartFTPD.hashmark = (SrvDebugLevel > 2 ? '#' : '\0');
     sid.Value.SmartFTPD.Tag      = FILEINVM;
     sid.Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqLen    = bufsize;

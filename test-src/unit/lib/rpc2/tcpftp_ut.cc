@@ -147,6 +147,60 @@ TEST(tcpftp, upgrade_gate_default_off)
     rpc2_tcpftp = saved;
 }
 
+/* The source registration length is the size past the seek offset, capped at
+ * ByteQuota only when it is positive. The <= 0 values mean unlimited, matching
+ * classic SFTP's "> 0" quota tests; in particular 0 (an app that memsets its
+ * SE and never sets a quota, e.g. rs_ShipLogs) must ship the whole file, not
+ * zero bytes. A sink always registers 0. */
+TEST(tcpftp, reglen_unlimited_convention)
+{
+    struct SFTP_Descriptor d;
+
+    memset(&d, 0, sizeof(d));
+    d.SeekOffset = 100;
+
+    /* quota 0: unlimited (the rs_ShipLogs regression) */
+    d.ByteQuota = 0;
+    EXPECT_EQ(tcpftp_reglen(&d, TCPFTP_ROLE_SOURCE, 1000), 900u);
+
+    /* quota -1: unlimited */
+    d.ByteQuota = -1;
+    EXPECT_EQ(tcpftp_reglen(&d, TCPFTP_ROLE_SOURCE, 1000), 900u);
+
+    /* no seek */
+    d.SeekOffset = 0;
+    EXPECT_EQ(tcpftp_reglen(&d, TCPFTP_ROLE_SOURCE, 1000), 1000u);
+
+    /* seek past the end: nothing to send */
+    d.SeekOffset = 1000;
+    EXPECT_EQ(tcpftp_reglen(&d, TCPFTP_ROLE_SOURCE, 1000), 0u);
+    d.SeekOffset = 0;
+
+    /* sink always registers 0 */
+    EXPECT_EQ(tcpftp_reglen(&d, TCPFTP_ROLE_SINK, 1000), 0u);
+}
+
+TEST(tcpftp, reglen_positive_quota_caps)
+{
+    struct SFTP_Descriptor d;
+
+    memset(&d, 0, sizeof(d));
+    d.SeekOffset = 0;
+
+    /* quota below the size: capped */
+    d.ByteQuota = 400;
+    EXPECT_EQ(tcpftp_reglen(&d, TCPFTP_ROLE_SOURCE, 1000), 400u);
+
+    /* quota above the size: no effect */
+    d.ByteQuota = 2000;
+    EXPECT_EQ(tcpftp_reglen(&d, TCPFTP_ROLE_SOURCE, 1000), 1000u);
+
+    /* quota applies past the seek offset */
+    d.SeekOffset = 100;
+    d.ByteQuota  = 400;
+    EXPECT_EQ(tcpftp_reglen(&d, TCPFTP_ROLE_SOURCE, 1000), 400u);
+}
+
 /* The REQUEST body carries three 64-bit network-order fields; the peeloff
  * reads cookie at +0, offset at +8, len at +16. */
 TEST(tcpftp, request_wire_layout)

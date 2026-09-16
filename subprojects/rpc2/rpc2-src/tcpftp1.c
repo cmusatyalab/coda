@@ -28,6 +28,7 @@ Coda are listed in the file CREDITS.
 #include <rpc2/rpc2.h>
 #include <rpc2/tcpftp.h>
 #include <assert.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
 #include <stdint.h>
@@ -39,6 +40,9 @@ Coda are listed in the file CREDITS.
 #include <sys/time.h>
 #include <sys/types.h>
 
+/* codatunneld.private.h must precede rpc2.private.h: the latter defines a
+ * FREE macro that would clobber the dest-state enumerator in the former. */
+#include "codatunneld.private.h" /* TLOG (gated by CODATUNNEL_TLOG) */
 #include "rpc2.private.h"
 #include "codatunnel.private.h" /* codatunnel_file_* control plane (internal) */
 
@@ -213,6 +217,29 @@ static long TCPFTP_Unbind(RPC2_Handle ConnHandle)
     return tcpftp_set(ConnHandle, NULL);
 }
 
+/* Compute the length a local registration reports to the daemon. For a source
+ * it is the byte count to send - the file's actual size (or the VM SeqLen)
+ * past the seek offset, capped at ByteQuota when positive. The <= 0 ==
+ * unlimited convention matches classic SFTP's "> 0" quota tests, so an app
+ * that leaves ByteQuota 0 (an unset SE) ships the whole file rather than zero
+ * bytes. Registering the true end lets the source pump stop on a clean EOF
+ * instead of pread()-ing past the file and reporting IOERR. A sink registers
+ * 0, telling the daemon to accept however many bytes it is written (the local
+ * buffer / MaxSeqLen bounds it). */
+uint64_t tcpftp_reglen(const struct SFTP_Descriptor *d, int role, uint64_t size)
+{
+    uint64_t seek;
+    uint64_t reglen;
+
+    if (role != TCPFTP_ROLE_SOURCE)
+        return 0;
+    seek   = (d->SeekOffset > 0) ? (uint64_t)d->SeekOffset : 0;
+    reglen = (size > seek) ? size - seek : 0;
+    if (d->ByteQuota > 0 && (uint64_t)d->ByteQuota < reglen)
+        reglen = (uint64_t)d->ByteQuota;
+    return reglen;
+}
+
 /* Open/resolve the local file for the descriptor's tag + role and register it
  * with the daemon as the source or sink of the cross-daemon transfer, cleaning
  * up whatever the SE itself opened once the daemon holds its own SCM_RIGHTS
@@ -242,6 +269,12 @@ int tcpftp_register_local(struct TcpFtpState *st, const struct sockaddr *peer,
     byfd        = (d->Tag == FILEBYFD);
     invm        = (d->Tag == FILEINVM);
     *out_cookie = 0;
+    TLOG(
+        "tcpftp_register_local tag=%d role=%s in_cookie=0x%llx seek=%lld "
+        "quota=%ld\n",
+        (int)d->Tag, role == TCPFTP_ROLE_SOURCE ? "source" : "sink",
+        (unsigned long long)in_cookie, (long long)d->SeekOffset,
+        (long)d->ByteQuota);
 
     switch (d->Tag) {
     case FILEBYNAME:
@@ -258,11 +291,16 @@ int tcpftp_register_local(struct TcpFtpState *st, const struct sockaddr *peer,
         char path[PATH_MAX];
         int pl = snprintf(path, sizeof(path), "%s/tcpftp-ftp.XXXXXX", P_tmpdir);
         uint64_t seq, off;
-        if (pl < 0 || (size_t)pl >= sizeof(path))
+        if (pl < 0 || (size_t)pl >= sizeof(path)) {
+            TLOG("tcpftp_register_local: tmpdir path too long\n");
             return RPC2_SEFAIL1;
+        }
         fd = mkstemp(path);
-        if (fd < 0)
+        if (fd < 0) {
+            TLOG("tcpftp_register_local: mkstemp failed: %s\n",
+                 strerror(errno));
             return RPC2_SEFAIL1;
+        }
         /* Unlink immediately: both ends reach the data through their open fds
          * (ours + the daemon's SCM_RIGHTS copy), so no directory entry is ever
          * needed, and the inode is freed by the kernel when the last fd closes
@@ -277,6 +315,11 @@ int tcpftp_register_local(struct TcpFtpState *st, const struct sockaddr *peer,
             while (off < seq) {
                 ssize_t n = write(fd, body + off, (size_t)(seq - off));
                 if (n <= 0) {
+                    TLOG(
+                        "tcpftp_register_local: spool write failed at "
+                        "%llu/%llu: %s\n",
+                        (unsigned long long)off, (unsigned long long)seq,
+                        strerror(errno));
                     close(fd); /* spool is unlinked; the kernel frees it */
                     return RPC2_SEFAIL1;
                 }
@@ -286,35 +329,29 @@ int tcpftp_register_local(struct TcpFtpState *st, const struct sockaddr *peer,
         break;
     }
     default:
+        TLOG("tcpftp_register_local: unsupported tag %d\n", (int)d->Tag);
         return RPC2_SEFAIL1; /* FILEBYINODE (or anything else) is unsupported */
     }
 
-    if (fd < 0)
+    if (fd < 0) {
+        TLOG("tcpftp_register_local: open failed: %s\n", strerror(errno));
         return RPC2_SEFAIL1;
+    }
 
-    /* Register length: for a source it is the byte count to send - the file's
-     * actual size (or the VM SeqLen) past the seek offset, capped at ByteQuota
-     * (-1 == unlimited). Registering the true end lets the source pump stop on
-     * a clean EOF instead of pread()-ing past the file and reporting IOERR. A
-     * sink registers 0, telling the daemon to accept however many bytes it is
-     * written (the local buffer / MaxSeqLen bounds it). */
-    reglen = 0;
-    if (role == TCPFTP_ROLE_SOURCE) {
+    {
         uint64_t size;
         if (invm) {
             size = (uint64_t)vm->vmfile.SeqLen;
         } else {
             struct stat sb;
-            if (fstat(fd, &sb) != 0)
+            if (fstat(fd, &sb) != 0) {
+                TLOG("tcpftp_register_local: fstat failed: %s\n",
+                     strerror(errno));
                 return RPC2_SEFAIL1;
+            }
             size = (uint64_t)sb.st_size;
         }
-        {
-            uint64_t seek = (d->SeekOffset > 0) ? (uint64_t)d->SeekOffset : 0;
-            reglen        = (size > seek) ? size - seek : 0;
-            if (d->ByteQuota >= 0 && (uint64_t)d->ByteQuota < reglen)
-                reglen = (uint64_t)d->ByteQuota;
-        }
+        reglen = tcpftp_reglen(d, role, size);
     }
     /* codatunnel_file_register takes the supplied cookie through *cookie:
      * non-zero means "reuse as-is and mark this the later end" (the server
@@ -323,9 +360,21 @@ int tcpftp_register_local(struct TcpFtpState *st, const struct sockaddr *peer,
     *out_cookie = in_cookie;
     ok = (codatunnel_file_register(peer, plen, fd, (uint64_t)d->SeekOffset,
                                    reglen, role, out_cookie) == 0);
-
-    if (!ok)
+    if (!ok) {
+        TLOG(
+            "tcpftp_register_local: codatunnel_file_register failed "
+            "reglen=%llu seek=%llu in_cookie=0x%llx\n",
+            (unsigned long long)reglen,
+            (unsigned long long)(uint64_t)d->SeekOffset,
+            (unsigned long long)in_cookie);
         *out_cookie = 0;
+    } else {
+        TLOG(
+            "tcpftp_register_local: registered tag=%d role=%s reglen=%llu "
+            "cookie=0x%llx\n",
+            (int)d->Tag, role == TCPFTP_ROLE_SOURCE ? "source" : "sink",
+            (unsigned long long)reglen, (unsigned long long)*out_cookie);
+    }
     if (ok && invm && role == TCPFTP_ROLE_SINK) {
         st->VmFd = fd; /* held open; drained into the VM buffer at finalize */
     } else if (!byfd) {
