@@ -1,0 +1,14 @@
+[wrap-file]
+directory = lua-5.5.0
+source_url = https://www.lua.org/ftp/lua-5.5.0.tar.gz
+source_filename = lua-5.5.0.tar.gz
+source_hash = 57ccc32bbbd005cab75bcc52444052535af691789dba2b9016d5c50640d68b3d
+source_fallback_url = https://wrapdb.mesonbuild.com/v2/lua_5.5.0-1/get_source/lua-5.5.0.tar.gz
+patch_filename = lua_5.5.0-1_patch.zip
+patch_url = https://wrapdb.mesonbuild.com/v2/lua_5.5.0-1/get_patch
+patch_fallback_url = https://github.com/mesonbuild/wrapdb/releases/download/lua_5.5.0-1/lua_5.5.0-1_patch.zip
+patch_hash = 69ec4a2dd99ecf8e84830093d418f3a5be1202f16ba8d636b3008b67506e5cca
+wrapdb_version = 5.5.0-1
+
+[provide]
+dependency_names = lua, lua-5.5

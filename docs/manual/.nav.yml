@@ -5,6 +5,7 @@ nav:
  - scenarios.md
  - system_overview.md
  - obtaining_coda.md
+ - building.md
  - kernel.md
  - client_installation.md
  - server_installation.md

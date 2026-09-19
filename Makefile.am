@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-SUBDIRS = ${subdirs} configs lib-src coda-src python tools test-src
+SUBDIRS = ${subdirs} configs lib-src coda-src python tools
 
 ACLOCAL_AMFLAGS = -I m4
 

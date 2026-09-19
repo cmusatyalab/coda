@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 2018-2025 Carnegie Mellon University
+          Copyright (c) 2018-2026 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -46,7 +46,7 @@ public:
 
 char LwpDeathTest::sync = 0;
 
-RVM_TEST_F(LwpDeathTest, init_wrong_priority)
+LWP_TEST_F(LwpDeathTest, init_wrong_priority)
 {
     PROCESS main;
     int ret_val = 0;
@@ -58,7 +58,7 @@ RVM_TEST_F(LwpDeathTest, init_wrong_priority)
     EXPECT_EQ(ret_val, LWP_EINIT);
 }
 
-RVM_TEST_F(LwpDeathTest, init)
+LWP_TEST_F(LwpDeathTest, init)
 {
     PROCESS main;
     int ret_val = 0;
@@ -75,7 +75,7 @@ static void dummy_main(void *p)
     LWP_SignalProcess(&LwpDeathTest::sync);
 }
 
-RVM_TEST_F(LwpDeathTest, create_process)
+LWP_TEST_F(LwpDeathTest, create_process)
 {
     PROCESS main;
     PROCESS sec_proc;
@@ -97,7 +97,7 @@ RVM_TEST_F(LwpDeathTest, create_process)
     EXPECT_EQ(ret_val, LWP_SUCCESS);
 }
 
-RVM_TEST_F(LwpDeathTest, create_process_null_main)
+LWP_TEST_F(LwpDeathTest, create_process_null_main)
 {
     PROCESS sec_proc;
     int ret_val = 0;
@@ -128,7 +128,7 @@ static void dummy_main_dispatch(void *p)
     }
 }
 
-RVM_TEST_F(LwpDeathTest, dispatch_process)
+LWP_TEST_F(LwpDeathTest, dispatch_process)
 {
     PROCESS main;
     PROCESS sec_proc;
@@ -158,7 +158,7 @@ static void dummy_main_non_exiting(void *p)
     }
 }
 
-RVM_TEST_F(LwpDeathTest, non_exiting_process)
+LWP_TEST_F(LwpDeathTest, non_exiting_process)
 {
     PROCESS main;
     PROCESS sec_proc;
@@ -180,7 +180,7 @@ static void dummy_main_exiting(void *p)
     return;
 }
 
-RVM_TEST_F(LwpDeathTest, exiting_process)
+LWP_TEST_F(LwpDeathTest, exiting_process)
 {
     PROCESS main;
     PROCESS sec_proc;

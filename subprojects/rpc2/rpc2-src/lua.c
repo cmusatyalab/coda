@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
 			   Coda File System
-			      Release 6
+			      Release 8
 
-	    Copyright (c) 2006-2016 Carnegie Mellon University
+	    Copyright (c) 2006-2026 Carnegie Mellon University
 		  Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -306,8 +306,13 @@ static void l2c_totimeval(lua_State *L, int index, struct timeval *tv)
 static int l2c_timeval_init(lua_State *L)
 {
     luaL_newmetatable(L, RPC2_TIMEVAL);
+#if LUA_VERSION_NUM >= 502
+    luaL_setfuncs(L, timeval_m, 0);
+#else
     luaL_openlib(L, NULL, timeval_m, 0);
-    lua_register(L, "time", timeval_new);
+#endif
+    lua_pushcfunction(L, timeval_new);
+    lua_setglobal(L, "time");
     return 1;
 }
 
@@ -430,14 +435,19 @@ void LUA_clocktick(void)
     if (L)
         lua_close(L);
 
+#if LUA_VERSION_NUM >= 504
     L = luaL_newstate();
+#else
+    L = lua_newstate(NULL, NULL);
+#endif
 
     /* Load default libraries. Maybe this is a bit too much, we probably
      * really only need math and string. */
     luaL_openlibs(L);
 
     /* make sure print sends it's output to rpc2_logfile */
-    lua_register(L, "print", print);
+    lua_pushcfunction(L, print);
+    lua_setglobal(L, "print");
     l2c_timeval_init(L);
 
     l2c_pushtimeval(L, &KeepAlive);
@@ -446,7 +456,7 @@ void LUA_clocktick(void)
     lua_pushinteger(L, (lua_Integer)Retry_N);
     lua_setglobal(L, "RPC2_RETRIES");
 
-    if (luaL_dofile(L, lua_script)) {
+    if (luaL_loadfile(L, lua_script) || lua_pcall(L, 0, 0, 0)) {
         badscript();
         return;
     }

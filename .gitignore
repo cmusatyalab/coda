@@ -53,3 +53,7 @@ test-src/unit/unit
 test-src/unit/rvm_test.data
 test-src/unit/rvm_test.log
 subprojects/googletest-*/
+subprojects/libuv-*/
+subprojects/libuv.wrap
+subprojects/lua-*/
+subprojects/lua.wrap

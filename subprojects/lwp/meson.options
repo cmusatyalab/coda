@@ -1,6 +1,13 @@
-option('enable-pthread', type : 'feature', value : 'disabled',
-  description : 'Build the experimental pthread library',
+option(
+    'enable-pthread',
+    type: 'feature',
+    value: 'disabled',
+    description: 'Build the experimental pthread library',
 )
-option('install-dev', type : 'boolean', value : true,
-  description : 'Install headers',
+option(
+    'rpath',
+    type: 'boolean',
+    value: false,
+    yield: true,
+    description: 'embed an RPATH so installed binaries find libraries in a (non-standard) libdir',
 )

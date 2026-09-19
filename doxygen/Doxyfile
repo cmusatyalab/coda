@@ -873,8 +873,11 @@ RECURSIVE              = YES
 # Note that relative paths are relative to the directory from which doxygen is
 # run.
 
-EXCLUDE                = .git .cache ccache docs docs-meta external-src \
-                         subprojects/googletest-* subprojects/packagecache
+EXCLUDE                = .git .cache ccache docs docs-meta \
+                         subprojects/googletest-* \
+                         subprojects/packagecache \
+                         subprojects/libuv-* \
+                         subprojects/lua-*
 
 # The EXCLUDE_SYMLINKS tag can be used to select whether or not files or
 # directories that are symbolic links (a Unix file system feature) are excluded

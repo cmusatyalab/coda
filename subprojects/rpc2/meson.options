@@ -1,6 +1,13 @@
-option('with-lua', type : 'feature', value : 'auto',
-  description : 'embed Lua interpreter for network emulation',
+option(
+    'with-lua',
+    type: 'feature',
+    value: 'enabled',
+    description: 'embed Lua interpreter for network emulation',
 )
-option('install-dev', type : 'boolean', value : true,
-  description : 'Install headers and rp2gen code generator',
+option(
+    'rpath',
+    type: 'boolean',
+    value: false,
+    yield: true,
+    description: 'embed an RPATH so installed binaries find libraries in a (non-standard) libdir',
 )

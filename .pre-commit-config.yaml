@@ -69,6 +69,13 @@ repos:
       - id: markdownlint
         name: Lint markdown documentation
 
+  - repo: https://github.com/trim21/pre-commit-mirror-meson
+    rev: v1.12.0
+    hooks:
+      - id: meson-fmt
+        name: Format meson build files
+        args: ["--inplace"]
+
   #- repo: https://gitlab.com/devopshq/gitlab-ci-linter
   #  rev: v1.0.3
   #  hooks:

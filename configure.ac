@@ -194,18 +194,6 @@ AM_CONDITIONAL([WANT_FTS], [test "$ac_cv_header_fts_h" = no])
 
 AM_CONDITIONAL(HAVE_VALGRIND, [test "$HAVE_VALGRIND_BIN" == "1"])
 
-AM_CONDITIONAL(RUN_UNIT, [test "$run_unit" != no -a -f "${srcdir}/external-src/googletest/googletest/Makefile.am"])
-
-dnl Needed for googletest/googletest/Makefile.am
-AM_CONDITIONAL(HAVE_PTHREADS, [false])
-
-dnl If Valgrind isn't installed notify the user
-AM_COND_IF(HAVE_VALGRIND,, [
-    AM_COND_IF(RUN_UNIT, [
-        AC_MSG_WARN([Valgrind missing, please install it before running memcheck])]
-    )]
-)
-
 AC_CONFIG_FILES([coda-src/scripts/bldvldb.sh],
        [chmod +x coda-src/scripts/bldvldb.sh])
 AC_CONFIG_FILES([coda-src/scripts/createvol_rep],
@@ -264,10 +252,6 @@ coda-src/egasr/Makefile
 coda-src/asrlauncher/Makefile
 coda-src/vcodacon/Makefile
 coda-src/smon2/Makefile
-python/Makefile
-test-src/Makefile
-test-src/unit/Makefile])
-
-CODA_SOFT_CONFIG_SUBDIR([external-src/googletest/googletest], [--with-pthreads=no])
+python/Makefile])
 
 AC_OUTPUT

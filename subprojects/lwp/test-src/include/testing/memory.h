@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 7
+                              Release 8
 
-             Copyright (c) 2019 Carnegie Mellon University
+           Copyright (c) 2019-2026 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -58,7 +58,7 @@ extern "C" {
     EXPECT_EQ(base_reachable, reachable) << "Memory Leak found";  \
     EXPECT_EQ(base_suppressed, suppressed) << "Memory Leak found";
 
-#define RVM_LAUNCH_IN_INSTANCE(function)                             \
+#define LWP_LAUNCH_IN_INSTANCE(function)                             \
     ASSERT_EXIT(({                                                   \
                     TEST_FOR_MEMORY_LEAKS_SETUP                      \
                     function();                                      \
@@ -75,21 +75,21 @@ extern "C" {
                 ::testing::ExitedWithCode(0), ".*");
 
 /* Google test wrapper to support memory leaks testing for forked
- * processes. Tests that require RVM should fork/clone since RVM
+ * processes. Tests that require LWP should fork/clone since LWP
  * is NOT reentrant. */
-#define RVM_TEST(test_case_name, test)                            \
+#define LWP_TEST(test_case_name, test)                            \
     static void test_case_name##_##test##_RvmTest();              \
     TEST(test_case_name, test)                                    \
     {                                                             \
-        RVM_LAUNCH_IN_INSTANCE(test_case_name##_##test##_RvmTest) \
+        LWP_LAUNCH_IN_INSTANCE(test_case_name##_##test##_RvmTest) \
     }                                                             \
     static void test_case_name##_##test##_RvmTest()
 
-#define RVM_TEST_F(test_case_name, test)                          \
+#define LWP_TEST_F(test_case_name, test)                          \
     static void test_case_name##_##test##_RvmTest();              \
     TEST_F(test_case_name, test)                                  \
     {                                                             \
-        RVM_LAUNCH_IN_INSTANCE(test_case_name##_##test##_RvmTest) \
+        LWP_LAUNCH_IN_INSTANCE(test_case_name##_##test##_RvmTest) \
     }                                                             \
     static void test_case_name##_##test##_RvmTest()
 
