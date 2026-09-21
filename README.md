@@ -32,21 +32,20 @@ ensure that everything builds and installs with the same library versions.
 ### Dependencies
 
 Coda requires a working C/C++ development environment with gcc, gcc-c++,
-autotools, libtool, automake, pkg-config, flex, and bison. We require
-development headers for readline, ncurses5, and optionally the lua5.1
-library.
+Meson, Ninja, pkg-config, flex, and bison. We require development headers for
+readline, ncurses5, and optionally the lua5.1 library.
 
 On Redhat/Fedora/CentOS systems
 
 ```sh
-yum install gcc gcc-c++ autoconf automake libtool pkgconfig flex bison \
+yum install gcc gcc-c++ meson ninja-build pkgconfig flex bison \
     readline-devel ncurses5-devel lua-devel clang gnutls-devel libuv-devel
 ```
 
 On Debian/Ubuntu and derived systems
 
 ```sh
-apt-get install build-essential automake libtool-bin pkg-config flex bison \
+apt-get install build-essential meson ninja-build pkg-config flex bison \
     libreadline-dev libncurses5-dev liblua5.1-0-dev libffi8 libuv1-dev \
     libgnutls28-dev valgrind python3-build
 ```
@@ -54,10 +53,9 @@ apt-get install build-essential automake libtool-bin pkg-config flex bison \
 ### Build
 
 ```sh
-./bootstrap.sh
-./configure --prefix=/usr --with-lua
-make
-sudo make install
+meson setup build --prefix=/usr
+meson compile -C build
+sudo meson install -C build
 ```
 
 ### Building the documentation
@@ -141,10 +139,10 @@ Coda repository, we are still trying to keep them mostly independent. This
 means that they retain their own build infrastructure and library versioning.
 
 When updating supporting library sources make sure to properly follow the
-libtool library versioning guidelines. The version info is set using the
-`CODA_LIBRARY_VERSION` macro in configure.ac and consists of
-`current:revision:age` values which update according to the following basic
-rules.
+libtool library versioning guidelines. The version info is set in each
+subproject's `meson.build` (the `lt_current`, `lt_revision`, and `lt_age`
+variables) and consists of `current:revision:age` values which update
+according to the following basic rules.
 
 - If the library source code has changed at all since the last update, then
   increment revision (‘c:r:a’ becomes ‘c:r+1:a’)
@@ -164,8 +162,8 @@ in practice that is typically what happens.
 Version updates are easily forgotten right before a release so it is better to
 update early, there is a helper script `tools/version_check.sh` that will show
 if there are any changes to the libraries. Developers don't have to care as
-much because they can run their binaries directly from the build tree in which
-case libtool will make sure the right library is used.
+much because they can run their binaries directly from the build tree, where
+the runtime path is already set to use the freshly built libraries.
 
 ### Tracing RVM transactions
 
@@ -185,8 +183,8 @@ These annotations can then be validated by using clang's thread safety
 analysis.
 
 ```sh
-./configure CC=clang CXX=clang++
-make
+meson setup build -Dcc=clang -Dcxx=clang++
+meson compile -C build
 ```
 
 There will be compiler warnings that indicate when functions or methods are

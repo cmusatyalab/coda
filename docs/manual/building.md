@@ -1,33 +1,22 @@
 # Building Coda
 
-Coda builds with two supported build systems: the traditional
-autotools (`bootstrap`/`configure`/`make`) build and a faster Meson
-build. Both are kept in working order and exercised by CI. For
-iterative development the Meson build is preferred: it configures and
-links much faster and generates fewer intermediate files.
+Coda is built with **Meson** and the Ninja backend.
 
 ## Prerequisites
 
 - A C and C++ compiler (GCC or Clang).
 - `bison` and `flex`, used to generate the rpc2 and resolver parsers
-  and lexers (required by both builds).
+  and lexers.
 - `pkg-config`.
 - `lua` (optional; enables the rpc2 Lua rate-limiting scripts).
+- **Meson >= 1.1.0** and **Ninja**.
 
-The Meson build additionally requires **Meson >= 1.1.0** and
-**Ninja**. The documentation `docs` target also needs `uv`/`uvx`.
+The documentation `docs` target additionally needs `mkdocs` (with the
+`mkdocs-material`, `mkdocs-awesome-nav`, `mkdocs-bibtex`, and
+`mkdocs-minify-plugin` plugins); if `mkdocs` is not on the `PATH` it
+falls back to `uvx`.
 
-## Autotools
-
-```sh
-./bootstrap.sh                              # regenerate build scripts
-./configure --prefix=/usr --with-lua       # --disable-unit-test to skip tests
-make
-make install
-make check                                 # GoogleTest unit tests
-```
-
-## Meson
+## Building
 
 ```sh
 meson setup build --fatal-meson-warnings   # configure
@@ -52,6 +41,18 @@ build/test-src/unit/unit --gtest_filter=tcpftp.*
 Relevant options (see `meson.options`): `-Dbuild_client`,
 `-Dbuild_server`, `-Dvcodacon`, `-Dsystemd`, plus the
 `-Dsystemdsystemunitdir` and `-Dmodulesloaddir` path overrides.
+
+## Subprojects
+
+`subprojects/lwp`, `subprojects/rpc2`, and `subprojects/rvm` are each
+independent Meson projects with their own `meson.options`. They build as
+part of Coda, and can also be built on their own by pointing `meson
+setup` at the subproject directory:
+
+```sh
+meson setup /tmp/rpc2-build subprojects/rpc2
+meson compile -C /tmp/rpc2-build
+```
 
 ## Install tags
 
