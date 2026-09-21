@@ -2,7 +2,7 @@ project(
     'coda',
     'c',
     'cpp',
-    version: '8.1.8',
+    version: run_command('tools/version.sh', 'get-vcs').stdout().strip(),
     license: 'GPL-2.0-only',
     default_options: [
         'warning_level=1',
@@ -11,6 +11,7 @@ project(
     ],
     meson_version: '>= 1.1.0',
 )
+meson.add_dist_script('tools/version.sh', 'set-dist', meson.project_version())
 
 conf = configuration_data()
 compiler = meson.get_compiler('c')

@@ -2,7 +2,7 @@ project(
     'rpc2',
     'c',
     'cpp',
-    version: '2.40',
+    version: '2.41',
     license: 'LGPL-2.0-only',
     default_options: [
         'warning_level=1',
@@ -19,7 +19,7 @@ project(
 # - if any interfaces were added, increment lt_age
 # - if any interfaces were removed or changed, set lt_age to 0
 #
-lt_revision = 1
+lt_revision = 2
 lt_current = 15
 lt_age = 9
 lt_version = '@0@.@1@.@2@'.format(lt_current - lt_age, lt_age, lt_revision)

@@ -2,7 +2,7 @@ project(
     'rvm',
     'c',
     'cpp',
-    version: '1.30',
+    version: '1.31',
     license: 'LGPL-2.0-only',
     default_options: [
         'warning_level=1',
