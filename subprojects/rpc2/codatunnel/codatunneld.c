@@ -735,11 +735,12 @@ static void ct_pump_arm_close_cb(uv_handle_t *handle)
     free(p);
 }
 
-/* Start a source pump. Runs on the uv loop only: FILEREG starts the "driver"
- * end here (send_ready=1, it is the side that tells the peer to start), and
- * ct_transfer_ready_arrived starts the "earlier" end (send_ready=0). The pump
- * is allocated, its re-arm handle opened, the first chunk is emitted, and the
- * completion loop (ct_pump_arm_cb) then carries the rest. */
+/* Start a source pump. Runs on the uv loop only. Called with send_ready=1 from
+ * the FILEREG handler (a driver SOURCE, i.e. a fetch) and re-issued from
+ * ct_redrive_one() once the channel commits TCPACTIVE; it always sends
+ * CT_TRANSFER_READY (telling the peer's sink to proceed) before streaming. The
+ * pump is allocated, its re-arm handle opened, the first chunk is emitted, and
+ * the completion loop (ct_pump_arm_cb) then carries the rest. */
 static void ct_pump_do_start(uint64_t cookie, int send_ready)
 {
     struct ct_filerec *rec = ct_cookie_waiter(cookie);
@@ -1033,11 +1034,11 @@ static void ct_filereg_handler(int fd, const char *body, size_t bodylen)
         (reg->flags & CT_FILREG_DRIVER) != 0, (unsigned long)reg->offset,
         (unsigned long)reg->length);
 
-    /* The "driver" end (always the RPC server's CheckSE side) sends
-     * CT_TRANSFER_READY. A driver SOURCE starts the pump immediately; a driver
-     * SINK opens, sends the first REQUEST, and waits for its chunks. An
-     * EARLIER SOURCE waits for the peer's REQUESTs; an EARLIER SINK waits
-     * for the first chunk. */
+    /* The "driver" end is always the RPC server's CheckSE side. A driver SOURCE
+     * (a fetch) sends CT_TRANSFER_READY and starts the pump immediately; a
+     * driver SINK (a store) opens, sends the first REQUEST, and waits for its
+     * chunks. An EARLIER SOURCE waits for the peer's REQUESTs; an EARLIER SINK
+     * waits for the first chunk. */
     if (reg->flags & CT_FILREG_DRIVER) {
         dest_t *d = getdest(&rec->peer, rec->peerlen);
         if (d && d->state == TCPACTIVE) {

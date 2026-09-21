@@ -44,7 +44,7 @@ enum ct_opcode
     CT_FILEUNREG = 3, /* app->daemon: cancel/release a registration */
     CT_FILEDONE  = 4, /* daemon->app: terminal state of a registration */
     CT_TRANSFER_READY =
-        5, /* daemon->daemon: sink (driver end) is open, proceed */
+        5, /* daemon->daemon: driver SOURCE (a fetch) is open and pumping */
     CT_TRANSFER_DATA  = 6, /* daemon->daemon: file bytes @{cookie,offset} */
     CT_TRANSFER_EOF   = 7, /* daemon->daemon: no more bytes for cookie */
     CT_TRANSFER_ERROR = 8, /* daemon->daemon: local open/xfer failed */
@@ -57,14 +57,16 @@ enum ct_opcode
 #define CT_SINK 1
 
 /*
- * ct_filereg.flags bits. The "driver" bit drives the CT_TRANSFER_READY start
- * rule: a single daemon can only see its own FILEREG, so it cannot tell which
- * end registered first. The RPC-server side (CheckSE) is always the driver
- * end — it passes the client's cookie back through *cookie, which is the
- * "non-zero in -> use as-is (server side)" convention, so the app sets this
- * bit from that single fact. A SOURCE that is "driver" (a fetch) starts
- * streaming immediately (the sink pre-registered); a SOURCE that is not
- * "driver" (a store) waits for the sink's CT_TRANSFER_READY before streaming.
+ * ct_filereg.flags bits. The "driver" bit fixes each end's posture: a single
+ * daemon can only see its own FILEREG, so it cannot tell on its own which end
+ * registered first. The RPC-server side (CheckSE) is always the driver end —
+ * it passes the client's cookie back through *cookie, which is the "non-zero
+ * in -> use as-is (server side)" convention, so the app sets this bit from
+ * that single fact. With the bit set, a SOURCE (a fetch) is the driver and
+ * starts the pump immediately (sends CT_TRANSFER_READY, then streams); a SINK
+ * (a store) is the driver and pulls by sending CT_TRANSFER_REQUESTs. The
+ * non-driver end is passive: a SOURCE (a store) serves the peer's
+ * CT_TRANSFER_REQUESTs, and a SINK (a fetch) just writes the incoming DATA.
  */
 #define CT_FILREG_DRIVER 0x1
 

@@ -101,11 +101,11 @@ from the byte *data plane*:
   `CT_FILEREG` envelope. The caller keeps its own handle to `fd`; the daemon
   owns its `dup()`'d copy until the registration is released.
 - The `CT_FILEREG` envelope carries a `ct_filereg` (see `ctp.h`):
-  `cookie`, `role` (`CT_SOURCE` / `CT_SINK`), `flags` (the `CT_FILREG_LATER`
+  `cookie`, `role` (`CT_SOURCE` / `CT_SINK`), `flags` (the `CT_FILREG_DRIVER`
   bit), the tunnel `peer` address this transfer rides, and `offset` / `length`.
   `length` is the total file length on the source, or the expected byte count
   on the sink.
-- `cookie` (8 bytes, network order on the wire) is the key of the daemon's
+- `cookie` (8 bytes, host byte order over the vside) is the key of the daemon's
   shared file table (`cookie.c`), so both daemons of one transfer track the
   same registration. The app's matching cookie table (`cookie.c` on the
   application side) is what `codatunnel_file_wait` blocks on until the daemon
@@ -118,11 +118,11 @@ temporary spool that the daemon `pwrite()`s; the side effect keeps that spool
 fd open in `TcpFtpState.VmFd` so its finalize hook can seek + read the bytes
 back into the in-VM buffer.
 
-## The LATER bit, and which end drives
+## The DRIVER bit, and which end drives
 
 A single daemon only sees its own `FILEREG`, so it cannot tell on its own which
-end registered first. The `CT_FILREG_LATER` bit resolves that. The RPC-server
-side (the `CheckSE` path) is *always* the later end — it passes the client's
+end registered first. The `CT_FILREG_DRIVER` bit resolves that. The RPC-server
+side (the `CheckSE` path) is *always* the driver end — it passes the client's
 cookie back through `*cookie` as-is (the "non-zero in, use as-is" convention),
 and that single fact is what sets the bit.
 
@@ -130,19 +130,19 @@ That one bit drives both directions and keeps each end in the right posture:
 
 | Direction       | Client end                  | Server end                    |
 | --------------- | --------------------------- | ----------------------------- |
-| **Push** (C→S)  | earlier `CT_SOURCE`         | later `CT_SINK` — the puller  |
-| **Fetch** (S→C) | earlier `CT_SINK`           | later `CT_SOURCE` — the pump  |
+| **Push** (C→S)  | earlier `CT_SOURCE`         | driver `CT_SINK` — the puller  |
+| **Fetch** (S→C) | earlier `CT_SINK`           | driver `CT_SOURCE` — the pump  |
 
-- In a **push** (client to server), the server's sink is *later* and therefore
+- In a **push** (client to server), the server's sink is the *driver* and therefore
   drives the transfer by issuing `CT_TRANSFER_REQUEST`s; the client's source
   is *earlier* and sits passively, serving whatever it is asked for.
-- In a **fetch** (server to client), the server's source is *later* and
+- In a **fetch** (server to client), the server's source is the *driver* and
   therefore starts the pump immediately (its sink pre-registered); the client's
   sink is *earlier* and stays passive.
 
 The gate is applied in two places in the daemon: a `CT_SINK` issues a
-follow-on `CT_TRANSFER_REQUEST` only if it is `later`; a `CT_SOURCE` answers a
-`CT_TRANSFER_REQUEST` only if it is *not* `later`. This is what keeps the fetch
+follow-on `CT_TRANSFER_REQUEST` only if it is the `driver`; a `CT_SOURCE` answers a
+`CT_TRANSFER_REQUEST` only if it is *not* the `driver`. This is what keeps the fetch
 client sink quiet and the push server sink active, and it is the reason the
 data path is asymmetric.
 
@@ -151,7 +151,9 @@ data path is asymmetric.
 The daemon-to-daemon records ride in the body region of a `ctp_t` envelope over
 the TLS channel. The relevant opcodes (`ctp.h`):
 
-- `CT_TRANSFER_READY 5` — the sink (later end) is open; proceed.
+- `CT_TRANSFER_READY 5` — the driver source (a fetch) is open and begins to
+  pump; the peer's sink treats receipt as a no-op, and the bytes follow via
+  `CT_TRANSFER_DATA`.
 - `CT_TRANSFER_DATA 6` — file bytes at `{cookie, offset}`, followed in the same
   record by the payload.
 - `CT_TRANSFER_EOF 7` — no more bytes for this cookie.
@@ -160,14 +162,14 @@ the TLS channel. The relevant opcodes (`ctp.h`):
   `{cookie, offset, len}` (`len <= CT_CHUNKMAX`).
 
 All 8-byte fields travel in network byte order. `CT_CHUNKMAX` is sized so a
-full-chunk `CT_TRANSFER_DATA` record is exactly `CT_TLSMAXPAYLOAD` (65535),
+full-chunk `CT_TRANSFER_DATA` record is exactly `CT_TLSMAXPAYLOAD` (16384),
 keeping a full chunk inside a single TLS fragment so `gnutls_record_send` will
 not split it. `CT_MAX_RECORD` is the largest record the daemon accepts on a
 channel.
 
 ### Push: sink-driven pull
 
-For a client-to-server transfer the server's later sink opens the file, sends
+For a client-to-server transfer the server's driver sink opens the file, sends
 the first `CT_TRANSFER_REQUEST`, and then, after each chunk lands
 (`ct_transfer_data_arrived`), issues the next `CT_TRANSFER_REQUEST` for
 `CT_CHUNKMAX` more bytes. The client's earlier source answers each
@@ -176,11 +178,11 @@ requested length at the requested offset and replies with a
 `CT_TRANSFER_DATA`. When the bytes served reach the source's registered length
 it sends the definitive `CT_TRANSFER_EOF` and reports `CT_FILEDONE` locally so
 its own finalize returns. A REQUEST that no longer has a live source record —
-or that targets a *later* (pump-driven) fetch source — is dropped.
+or that targets a *driver* (pump-driven) fetch source — is dropped.
 
 ### Fetch: source-driven pump
 
-For a server-to-client transfer the server's later source runs a pump
+For a server-to-client transfer the server's driver source runs a pump
 (`ct_pump_do_start`). The pump works one chunk at a time, entirely on the event
 loop: it `pread()`s a chunk from the source file and fires it at the channel
 with a completion hook; when that chunk's bytes hit TCP, the send worker
