@@ -10,9 +10,14 @@ rsync -a --copy-links "$MESON_SOURCE_ROOT/docs/" docs/
 rsync -a --copy-links "$MESON_SOURCE_ROOT/docs-meta/" docs-meta/
 rsync -a --copy-links "$MESON_SOURCE_ROOT/mkdocs.yml" mkdocs.yml
 
-uvx \
-  --with mkdocs-material \
-  --with mkdocs-awesome-nav \
-  --with mkdocs-bibtex \
-  --with mkdocs-minify-plugin \
-  mkdocs build
+if command -v mkdocs >/dev/null 2>&1
+then
+    mkdocs build
+else
+    uvx \
+      --with mkdocs-material \
+      --with mkdocs-awesome-nav \
+      --with mkdocs-bibtex \
+      --with mkdocs-minify-plugin \
+      mkdocs build
+fi

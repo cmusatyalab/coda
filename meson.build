@@ -330,7 +330,8 @@ subdir('test-src')
 
 # for building documentation, if found adds the 'docs' compile target
 rsync = find_program('rsync', disabler: true, required: false)
+mkdocs = find_program('mkdocs', disabler: true, required: false)
 uvx = find_program('uvx', disabler: true, required: false)
-if rsync.found() and uvx.found()
+if rsync.found() and (mkdocs.found() or uvx.found())
     run_target('docs', command: ['tools/build-docs.sh'])
 endif
