@@ -1,20 +1,19 @@
 image: registry.cmusatyalab.org/coda/coda-packaging/coda-build-src
 
 # should be a no-op if the submitter used the pre-commit hooks
-post_commit:
+pre_commit:
   stage: .pre
   variables:
-    PRE_COMMIT_HOME: ${CI_PROJECT_DIR}/.cache/pre-commit
+    PREK_HOME: ${CI_PROJECT_DIR}/.cache/prek
   cache:
     key: precommit
-    policy: pull-push
     paths:
-      - ${CI_PROJECT_DIR}/.cache
+      - $PREK_HOME
   script:
-    - pre-commit run -v --all-files
+    - prek run -v --all-files
     - tools/version_check.sh
 
-.build_template:
+distbuild:
   stage: build
   variables:
     CCACHE_DIR: ${CI_PROJECT_DIR}/.cache/ccache
@@ -22,53 +21,48 @@ post_commit:
     CCACHE_COMPILERCHECK: content
     CCACHE_NOHASHDIR: "true"
     CCACHE_MAXSIZE: 500M
-    CC: "/usr/bin/ccache gcc"
-    CXX: "/usr/bin/ccache g++"
-    FIXVER: ""
-    TARGET: all
+    MESON_PACKAGE_CACHE_DIR: ${CI_PROJECT_DIR}/.cache/wrapdb
   cache:
     key: default
     paths:
       - $CCACHE_DIR
-      - ${CI_PROJECT_DIR}/config.cache
+      - $MESON_PACKAGE_CACHE_DIR
+  before_script:
+    - meson setup build --prefix=/usr
   script:
-    - ./bootstrap.sh $FIXVER
-    - ./configure -C --prefix=/usr --with-lua
-    - make -j $TARGET
-
-test_build:
-  extends: .build_template
-  except:
-    - tags
-    - master
-    - /^coda-.*$/
-
-build_source:
-  extends: .build_template
-  variables:
-    FIXVER: "--fix-versions"
-    TARGET: distcheck
+    - meson dist -C build
   artifacts:
     expire_in: 1 week
     paths:
-      - "coda-*.tar*"
+      - build/meson-dist/coda-*.tar.xz
+      - build/meson-dist/coda-*.tar.xz.sha256sum
   only:
-    - tags
     - master
+    - tags
     - /^coda-.*$/
 
-test_doc:
-  stage: build
-  script:
-    - doxygen doxygen/Doxyfile
+testbuild:
+  extends: distbuild
+  only: null
   except:
     - master
+    - tags
+    - /^coda-.*$/
 
 pages:
-  stage: build
+  extends: distbuild
+  stage: deploy
+  variables:
+    MKDOCS_CACHE: ${CI_PROJECT_DIR}/.cache/plugins
+  cache:
+    key: docs
+    paths:
+      - $MKDOCS_CACHE
   script:
-    - doxygen doxygen/Doxyfile
-    - mv doxygen/html/ public/
+    - meson compile docs -C build
+    - mv build/site public
+    #- doxygen doxygen/Doxyfile
+    #- mv doxygen/html/ public/doxygen
   artifacts:
     expire_in: 1 week
     paths:

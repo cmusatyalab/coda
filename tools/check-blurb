@@ -1,6 +1,10 @@
 #!/bin/sh
 
-CODA_RELEASE=8
+# CODA_RELEASE is the major release number, from the latest coda-* git
+# tag (the same source version_check.sh uses) -- the "Release N" a
+# touched file's blurb must carry. Replaces autotools @CODA_RELEASE@.
+CODA_RELEASE=$(git describe --match="coda-*" 2>/dev/null | cut -d- -f2 | cut -d. -f1)
+CODA_RELEASE=${CODA_RELEASE:-8}
 COPYRIGHT_YEAR=$(date +'%Y')
 
 check_release=true

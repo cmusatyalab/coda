@@ -216,8 +216,6 @@ AC_CONFIG_FILES([coda-src/scripts/vice-setup-user],
        [chmod +x coda-src/scripts/vice-setup-user])
 AC_CONFIG_FILES([coda-src/vtools/gcodacon],
        [chmod +x coda-src/vtools/gcodacon])
-AC_CONFIG_FILES([tools/check-blurb],
-       [chmod +x tools/check-blurb])
 AC_CONFIG_FILES([
 Makefile
 coda_config.h
