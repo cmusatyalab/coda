@@ -3,7 +3,6 @@ egasr_tool_inc = [
     config_h_include,
     base_inc,
     kerndep_inc,
-    vicedep_inc,
     dir_inc,
     vv_inc,
 ]

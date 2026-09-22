@@ -21,15 +21,13 @@ librepio_lib = static_library(
         config_h_include,
         base_inc,
         util_inc,
-        vicedep_inc,
         kerndep_inc,
         al_inc,
         partition_inc,
-        auth2_inc,
         vv_inc,
         vol_inc,
     ],
-    dependencies: [rpc2_dep, vicedep_gen_dep],
+    dependencies: [rpc2_dep, vicedep_gen_dep, auth2_gen_dep],
 )
 
 libclnrepair_lib = static_library(
@@ -47,15 +45,13 @@ libclnrepair_lib = static_library(
         config_h_include,
         base_inc,
         util_inc,
-        vicedep_inc,
         kerndep_inc,
         al_inc,
         partition_inc,
-        auth2_inc,
         vv_inc,
         vol_inc,
     ],
-    dependencies: [rpc2_dep, vicedep_gen_dep],
+    dependencies: [rpc2_dep, vicedep_gen_dep, auth2_gen_dep],
 )
 
 librepair_inc = include_directories('.')

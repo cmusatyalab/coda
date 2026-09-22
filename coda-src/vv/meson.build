@@ -9,7 +9,7 @@ vv_lib = static_library(
     'vv',
     vv_sources,
     build_by_default: false,
-    include_directories: [config_h_include, vicedep_inc],
+    include_directories: [config_h_include],
     dependencies: [rvm_rpc2_dep, base_dep, vicedep_gen_dep],
 )
 

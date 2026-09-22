@@ -27,7 +27,7 @@ if not get_option('build_client').disabled()
     executable(
         'parser',
         asr_sources + ruletypes_sources + [resolver_parser, resolver_lexer],
-        include_directories: [config_h_include, vicedep_inc],
+        include_directories: [config_h_include],
         dependencies: [
             util_dep,
             kerndep_dep,

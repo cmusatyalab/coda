@@ -25,6 +25,16 @@ rpc2 = {
 
 auth2_inc = include_directories('.')
 
+# auth2.h is produced by the rp2gen custom target above.  That target has no
+# build-order edge to the targets that #include the header, so on a clean build
+# ninja may compile a consumer before rp2gen has run (the .d depfile only exists
+# after the first build).  Consumers add this dependency, which both orders the
+# header before compilation and provides the auth2 include dir (auth2_inc).
+auth2_gen_dep = declare_dependency(
+    include_directories: auth2_inc,
+    sources: [rpc2['auth2']['header']],
+)
+
 auser_sources = [
     'auser.c',
     'auser.h',
@@ -91,9 +101,8 @@ if not get_option('build_client').disabled()
             kerndep_inc,
             util_inc,
             al_inc,
-            auth2_inc,
         ],
-        dependencies: [kerndep_dep, util_dep, base_dep, rpc2_dep],
+        dependencies: [kerndep_dep, util_dep, base_dep, rpc2_dep, auth2_gen_dep],
         link_with: [libauser_lib],
         install: true,
     )
@@ -107,9 +116,8 @@ if not get_option('build_client').disabled()
             kerndep_inc,
             util_inc,
             al_inc,
-            auth2_inc,
         ],
-        dependencies: [kerndep_dep, util_dep, base_dep, rpc2_dep],
+        dependencies: [kerndep_dep, util_dep, base_dep, rpc2_dep, auth2_gen_dep],
         link_with: [libauser_lib],
         install: true,
     )
@@ -123,9 +131,8 @@ if not get_option('build_client').disabled()
             kerndep_inc,
             util_inc,
             al_inc,
-            auth2_inc,
         ],
-        dependencies: [kerndep_dep, util_dep, base_dep, rpc2_dep],
+        dependencies: [kerndep_dep, util_dep, base_dep, rpc2_dep, auth2_gen_dep],
         link_with: [libauser_lib],
         install: true,
     )
@@ -139,9 +146,8 @@ if not get_option('build_client').disabled()
             kerndep_inc,
             util_inc,
             al_inc,
-            auth2_inc,
         ],
-        dependencies: [kerndep_dep, util_dep, base_dep, rpc2_dep],
+        dependencies: [kerndep_dep, util_dep, base_dep, rpc2_dep, auth2_gen_dep],
         link_with: [libauser_lib],
         install: true,
     )
@@ -155,9 +161,8 @@ if not get_option('build_client').disabled()
             kerndep_inc,
             util_inc,
             al_inc,
-            auth2_inc,
         ],
-        dependencies: [kerndep_dep, util_dep, base_dep, rpc2_dep],
+        dependencies: [kerndep_dep, util_dep, base_dep, rpc2_dep, auth2_gen_dep],
         link_with: [libauser_lib],
         install: true,
     )
@@ -175,7 +180,6 @@ if not get_option('build_server').disabled()
             kerndep_inc,
             util_inc,
             al_inc,
-            auth2_inc,
         ],
         dependencies: [
             al_dep,
@@ -183,6 +187,7 @@ if not get_option('build_server').disabled()
             rwcdb_dep,
             base_dep,
             rpc2_dep,
+            auth2_gen_dep,
         ],
         link_with: [libauth2_lib],
         install: true,
@@ -198,9 +203,8 @@ if not get_option('build_server').disabled()
             kerndep_inc,
             util_inc,
             al_inc,
-            auth2_inc,
         ],
-        dependencies: [base_dep, rpc2_dep],
+        dependencies: [base_dep, rpc2_dep, auth2_gen_dep],
         install: true,
         install_dir: get_option('sbindir'),
     )
@@ -214,9 +218,15 @@ if not get_option('build_server').disabled()
             kerndep_inc,
             util_inc,
             al_inc,
-            auth2_inc,
         ],
-        dependencies: [al_dep, util_dep, rwcdb_dep, base_dep, rpc2_dep],
+        dependencies: [
+            al_dep,
+            util_dep,
+            rwcdb_dep,
+            base_dep,
+            rpc2_dep,
+            auth2_gen_dep,
+        ],
         link_with: [libauth2_lib],
         install: true,
         install_dir: get_option('sbindir'),

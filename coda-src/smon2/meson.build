@@ -9,7 +9,7 @@ if not get_option('build_server').disabled()
     executable(
         'getvolinfo',
         ['getvolinfo.c'],
-        include_directories: [config_h_include, vicedep_inc],
+        include_directories: [config_h_include],
         dependencies: [base_dep, rpc2_dep, vicedep_gen_dep],
         link_with: [venusdep_lib],
         install: true,
@@ -18,7 +18,7 @@ if not get_option('build_server').disabled()
     executable(
         'rpc2ping',
         ['rpc2ping.c'],
-        include_directories: [config_h_include, vicedep_inc],
+        include_directories: [config_h_include],
         dependencies: [base_dep, rpc2_dep, vicedep_gen_dep],
         link_with: [venusdep_lib],
         install: true,
@@ -27,7 +27,7 @@ if not get_option('build_server').disabled()
     executable(
         'rvmsizer',
         ['rvmsizer.c'],
-        include_directories: [config_h_include, vicedep_inc],
+        include_directories: [config_h_include],
         dependencies: [base_dep, rpc2_dep, vicedep_gen_dep],
         install: true,
     )
@@ -35,7 +35,7 @@ if not get_option('build_server').disabled()
     executable(
         'smon2',
         ['smon2.c'],
-        include_directories: [config_h_include, vicedep_inc],
+        include_directories: [config_h_include],
         dependencies: [base_dep, rpc2_dep, vicedep_gen_dep],
         link_with: [venusdep_lib],
         install: true,

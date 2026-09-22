@@ -45,16 +45,14 @@ vol_lib = static_library(
         config_h_include,
         base_inc,
         util_inc,
-        vicedep_inc,
         dir_inc,
         kerndep_inc,
         al_inc,
         partition_inc,
-        auth2_inc,
         vv_inc,
         lka_inc,
     ],
-    dependencies: [rvm_rpc2_dep, vicedep_gen_dep],
+    dependencies: [rvm_rpc2_dep, vicedep_gen_dep, auth2_gen_dep],
 )
 
 vol_inc = include_directories('.')

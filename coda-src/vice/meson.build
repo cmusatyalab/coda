@@ -10,19 +10,17 @@ libviceerror_lib = static_library(
         config_h_include,
         base_inc,
         util_inc,
-        vicedep_inc,
         dir_inc,
         kerndep_inc,
         al_inc,
         partition_inc,
-        auth2_inc,
         vv_inc,
         lka_inc,
         vol_inc,
         librepair_inc,
         resolution_inc,
     ],
-    dependencies: [rvm_rpc2_dep, vicedep_gen_dep],
+    dependencies: [rvm_rpc2_dep, vicedep_gen_dep, auth2_gen_dep],
 )
 
 if not get_option('build_server').disabled()
@@ -63,6 +61,7 @@ if not get_option('build_server').disabled()
             kerndep_dep,
             rvm_rpc2_dep,
             vicedep_gen_dep,
+            auth2_gen_dep,
         ],
         link_with: [
             libviceerror_lib,
@@ -89,7 +88,7 @@ if not get_option('build_server').disabled()
     executable(
         'printvrdb',
         ['printvrdb.cc'],
-        include_directories: [config_h_include, vicedep_inc],
+        include_directories: [config_h_include],
         dependencies: [util_dep, base_dep, rvm_rpc2_dep, vicedep_gen_dep],
         link_with: [util_lib],
         install: true,

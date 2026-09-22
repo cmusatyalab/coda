@@ -17,7 +17,7 @@ partition_lib = static_library(
     'partition',
     partition_sources,
     build_by_default: false,
-    include_directories: [config_h_include, base_inc, util_inc, vicedep_inc],
+    include_directories: [config_h_include, base_inc, util_inc],
     dependencies: [rpc2_dep, vicedep_gen_dep],
 )
 
@@ -33,7 +33,7 @@ if not get_option('build_server').disabled()
     inoder = executable(
         'inoder',
         inoder_sources,
-        include_directories: [config_h_include, base_inc, util_inc, vicedep_inc],
+        include_directories: [config_h_include, base_inc, util_inc],
         dependencies: [util_dep, base_dep, rpc2_dep, vicedep_gen_dep],
         link_with: [partition_lib],
         install: true,

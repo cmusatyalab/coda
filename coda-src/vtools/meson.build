@@ -9,7 +9,6 @@ vtools_tool_inc = [
     base_inc,
     kerndep_inc,
     util_inc,
-    vicedep_inc,
     al_inc,
     partition_inc,
     vv_inc,

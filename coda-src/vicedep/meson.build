@@ -75,13 +75,14 @@ vicedep_inc = include_directories('.')
 # custom targets above.  Those targets have no build-order edge to the targets
 # that #include the headers, so on a clean build ninja may compile a consumer
 # before rp2gen has run (the .d depfile only exists after the first build).
-# Consumers of the vicedep include dir add this dependency so the headers are
-# generated first.
+# Consumers add this dependency, which both orders the headers before
+# compilation and provides the vicedep include dir (vicedep_inc).
 vicedep_gen_hdrs = []
 foreach k : rpc2.keys()
     vicedep_gen_hdrs = vicedep_gen_hdrs + [rpc2[k]['header']]
 endforeach
 vicedep_gen_dep = declare_dependency(
+    include_directories: vicedep_inc,
     sources: vicedep_gen_hdrs,
 )
 

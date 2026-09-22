@@ -17,7 +17,6 @@ dir_lib = static_library(
         base_inc,
         kerndep_inc,
         util_inc,
-        vicedep_inc,
     ],
     dependencies: [rvm_rpc2_dep, vicedep_gen_dep],
 )

@@ -13,12 +13,10 @@ norton_inc_list = [
     config_h_include,
     base_inc,
     util_inc,
-    vicedep_inc,
     dir_inc,
     kerndep_inc,
     al_inc,
     partition_inc,
-    auth2_inc,
     vv_inc,
     lka_inc,
     vol_inc,
@@ -31,7 +29,7 @@ libnorton_lib = static_library(
     norton_sources,
     build_by_default: false,
     include_directories: norton_inc_list,
-    dependencies: [rvm_rpc2_dep, vicedep_gen_dep],
+    dependencies: [rvm_rpc2_dep, vicedep_gen_dep, auth2_gen_dep],
 )
 
 norton_inc = include_directories('.')
@@ -56,6 +54,7 @@ if not get_option('build_server').disabled()
         base_dep,
         rvm_rpc2_dep,
         vicedep_gen_dep,
+        auth2_gen_dep,
     ]
 
     executable(
