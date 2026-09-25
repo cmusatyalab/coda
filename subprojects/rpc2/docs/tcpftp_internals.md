@@ -40,18 +40,25 @@ capability is negotiated in the RPC2 bind handshake, in the `Flags` field of
 the packet header:
 
 - `TCPFTP_CAPABLE 0x20`. Set on outgoing packets by a peer whose local
-  `codatunneld` is running. The test is `rpc2_tcpftp_capable()`, which returns
-  `codatunnel_enabled() && rpc2_tcpftp` (see `globals.c`). The upgrade is
-  opt-in via the `RPC2_TCPFTP` env var, read once in `RPC2_Init`
-  (`rpc2b.c`) into the `rpc2_tcpftp` global; it is off by default (and when
-  the var is `0`/`false`/`no`/`nada`), so a peer only ever advertises the
-  capability when the operator has enabled it **and** its daemon is running.
+  `codatunneld` is running. The upgrade is opt-in via the `RPC2_TCPFTP` env
+  var, read once in `RPC2_Init` (`rpc2b.c`) into the `rpc2_tcpftp` global; it
+  is off by default (and when the var is `0`/`false`/`no`/`nada`), so a peer
+  only ever advertises the capability when the operator has enabled it **and**
+  its daemon is running.
+- The **initiating** end must be able to open the daemon-to-daemon channel:
+  `rpc2_tcpftp_capable_initiator()` is `rpc2_tcpftp_capable()` ANDed with
+  `!codatunnel_is_server()`. A `codasrv` codatunneld is server-mode — it only
+  accepts tunnels, it never initiates one (see `codatunnel_fork` /
+  `codatunneld`), so a server-initiated RPC (directory resolution is the
+  common case) must not negotiate TCPFTP: the transfer would have no active
+  peer channel and the side effect would block forever. Venus initiates, so
+  client-to-server offload is unaffected.
 - On the client, the bit is set on **INIT1** before the bind is sent
   (`rpc2a.c`). On the server, when it sees the bit on the client's **INIT1**
   and is itself capable, it marks the connection
   `CE_TCPFTP 0x2` (a per-connection flag in `struct CEntry`) and echoes the
-  bit back on **INIT2** / the 3-way-get exchange. On the client, the symmetric
-  check marks the connection when the server echoes the bit.
+  bit back on **INIT2** / the 3-way-get exchange. On the initiating end, the
+  symmetric check marks the connection when the server echoes the bit.
 - Once a connection is `CE_TCPFTP`, every subsequent outgoing packet on it is
   stamped with `TCPFTP_CAPABLE`: in `rpc2_SendReliably` (`packet.c`) for the
   single-connection path and in `mrpc_SendPacketsReliably` (`multi1.c`) for the

@@ -499,6 +499,13 @@ typedef struct RPC2_PacketBuffer {
 int rpc2_tcpftp_capable(void); /* true iff codatunneld is running AND the
                                   RPC2_TCPFTP opt-in gate is enabled */
 
+/* Whether this end may advertise TCPFTP on a connection it initiates. False
+ * when our codatunneld is server-mode (a codasrv) and therefore cannot open
+ * the daemon-to-daemon tunnel; such a connection must fall back to in-process
+ * SFTP. Split into a pure predicate so it is unit-testable without a daemon. */
+int rpc2_tcpftp_advertise(int capable, int daemon_is_server);
+int rpc2_tcpftp_capable_initiator(void);
+
 /* Format of filter used in RPC2_GetRequest */
 
 enum E1

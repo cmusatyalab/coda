@@ -147,6 +147,19 @@ TEST(tcpftp, upgrade_gate_default_off)
     rpc2_tcpftp = saved;
 }
 
+/* A codasrv codatunneld is server-mode: it only accepts tunnels and never
+ * initiates one, so a server-to-server RPC (e.g. resolution) must not
+ * negotiate TCPFTP. If it did, the side effect would register a transfer on a
+ * peer for which no daemon-to-daemon channel can exist, and block forever.
+ * Only an initiating daemon (venus) may advertise. */
+TEST(tcpftp, server_daemon_must_not_advertise)
+{
+    EXPECT_EQ(rpc2_tcpftp_advertise(1, 0), 1); /* client, gate on */
+    EXPECT_EQ(rpc2_tcpftp_advertise(1, 1), 0); /* server, gate on */
+    EXPECT_EQ(rpc2_tcpftp_advertise(0, 0), 0); /* client, gate off */
+    EXPECT_EQ(rpc2_tcpftp_advertise(0, 1), 0); /* server, gate off */
+}
+
 /* The source registration length is the size past the seek offset, capped at
  * ByteQuota only when it is positive. The <= 0 values mean unlimited, matching
  * classic SFTP's "> 0" quota tests; in particular 0 (an app that memsets its

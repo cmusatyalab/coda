@@ -47,6 +47,11 @@ int codatunnel_enabled(void)
     return 0;
 }
 
+int codatunnel_is_server(void)
+{
+    return 0;
+}
+
 int codatunnel_file_register(const struct sockaddr *peer, socklen_t addrlen,
                              int fd, uint64_t offset, uint64_t length, int role,
                              uint64_t *cookie)

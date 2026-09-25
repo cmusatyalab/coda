@@ -921,8 +921,9 @@ try_next_addr:
         ib->RPC2SEC_version   = htonl(SECURE_VERSION);
         ib->Preferred_Keysize = htonl(RPC2_Preferred_Keysize);
     }
-    /* advertise TCPFTP/codatunnel support to the server */
-    if (rpc2_tcpftp_capable())
+    /* advertise TCPFTP/codatunnel support to the server, but only when this
+     * end can actually open the daemon-to-daemon tunnel (venus, not codasrv) */
+    if (rpc2_tcpftp_capable_initiator())
         pb->Header.Flags |= TCPFTP_CAPABLE;
 
     rpc2_htonp(pb); /* convert header to network order */
@@ -1051,9 +1052,9 @@ try_next_addr:
     say(9, RPC2_DebugLevel, "PeerHandle for local %#x is %#x\n", *ConnHandle,
         ce->PeerHandle);
 
-    /* If the server advertised TCPFTP and we are capable, the connection can
-     * use the codatunnel offload. */
-    if ((pb->Header.Flags & TCPFTP_CAPABLE) && rpc2_tcpftp_capable())
+    /* If the server advertised TCPFTP and we can open the tunnel from this
+     * initiating end, the connection can use the codatunnel offload. */
+    if ((pb->Header.Flags & TCPFTP_CAPABLE) && rpc2_tcpftp_capable_initiator())
         ce->Flags |= CE_TCPFTP;
 
     RPC2_FreeBuffer(&pb); /* Release INIT2 packet */

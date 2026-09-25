@@ -33,6 +33,12 @@ Coda are listed in the file CREDITS.
 /* global flag below controls whether codatunnel is used */
 static int codatunnel_enable_codatunnel = 0; /* non zero to enable tunneling */
 
+/* Whether our codatunneld listens for incoming tunnels (a codasrv) or only
+ * initiates them (a venus). Only an initiating daemon can create a
+ * daemon-to-daemon channel, so the TCPFTP offload may only be negotiated on a
+ * connection that an initiating daemon opens. */
+static int codatunnel_i_am_server = 0;
+
 /* fd in parent of open hfsocket */
 static int codatunnel_vside_sockfd = -1; /* v2t: venus to tunnel */
 
@@ -69,6 +75,7 @@ int codatunnel_fork(int argc, char **argv, const char *tcp_bindaddr,
 
     /* codatunnel is enabled when the daemon process is forked */
     codatunnel_enable_codatunnel = 1;
+    codatunnel_i_am_server       = (tcp_bindaddr != NULL);
 
     /* Create socketpair for host-facing UDP communication */
     rc = socketpair(AF_UNIX, SOCK_SEQPACKET, 0, sockfd);
@@ -141,6 +148,11 @@ void codatunnel_init0(const struct sockaddr *addr, socklen_t addrlen,
 int codatunnel_enabled(void)
 {
     return codatunnel_enable_codatunnel ? 1 : 0;
+}
+
+int codatunnel_is_server(void)
+{
+    return codatunnel_i_am_server ? 1 : 0;
 }
 
 /* Shared wakeup event for codatunnel_file_wait(). LWP signals are

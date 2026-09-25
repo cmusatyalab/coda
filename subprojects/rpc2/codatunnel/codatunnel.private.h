@@ -42,6 +42,11 @@ extern "C" {
 /* return socket to codatunneld when tunnel is started, otherwise return -1 */
 int codatunnel_socket();
 
+/* Whether our codatunneld is in server mode (it listens for and accepts
+ * incoming tunnels but never initiates one). False on a client, where the
+ * daemon initiates the daemon-to-daemon tunnel. */
+int codatunnel_is_server(void);
+
 void codatunnel_init0(const struct sockaddr *addr, socklen_t addrlen,
                       const char *peername);
 

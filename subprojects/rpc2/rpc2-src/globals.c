@@ -47,6 +47,7 @@ Pittsburgh, PA.
 #include "rpc2.private.h"
 #include <rpc2/se.h>
 #include <rpc2/codatunnel.h>
+#include <codatunnel/codatunnel.private.h>
 
 /* Contains the storage for all globals used in rpc2; see
    rpc2.private.h for descriptions */
@@ -122,4 +123,23 @@ long rpc2_TimeCount, rpc2_CallCount, rpc2_ReqCount, rpc2_AckCount, rpc2_MaxConn;
 int rpc2_tcpftp_capable(void)
 {
     return codatunnel_enabled() && rpc2_tcpftp;
+}
+
+/* Pure form of the advertisement decision, split out so it can be unit-tested
+ * without a live daemon: a peer may only negotiate TCPFTP on a connection it
+ * initiates when its own codatunneld can actually create the daemon-to-daemon
+ * channel. */
+int rpc2_tcpftp_advertise(int capable, int daemon_is_server)
+{
+    return capable && !daemon_is_server;
+}
+
+/* Whether this end may advertise TCPFTP on a connection it initiates. A
+ * codasrv codatunneld is server-mode and never initiates a tunnel, so a
+ * server-to-server RPC (e.g. directory resolution) must not negotiate TCPFTP:
+ * the side effect would have no active channel and block forever. Venus
+ * initiates, so client-to-server offload is unaffected. */
+int rpc2_tcpftp_capable_initiator(void)
+{
+    return rpc2_tcpftp_advertise(rpc2_tcpftp_capable(), codatunnel_is_server());
 }
