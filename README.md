@@ -50,12 +50,12 @@ apt-get install build-essential meson ninja-build pkg-config flex bison \
     libgnutls28-dev valgrind python3-build
 ```
 
-### Build
+### Build & install runtime binaries, libraries and man pages
 
 ```sh
 meson setup build --prefix=/usr
 meson compile -C build
-sudo meson install -C build
+sudo meson install -C build --tags runtime,man
 ```
 
 ### Building the documentation
