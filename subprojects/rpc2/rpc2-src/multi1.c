@@ -696,7 +696,15 @@ static void MSend_Cleanup(int HowMany, MultiCon *mcon,
     for (i = 0; i < pcon->indexlen; i++) {
         thispacket = pcon->indexlist[i];
         slp        = mcon[thispacket].sle;
-        TM_Remove(rpc2_TimerQueue, &slp->TElem);
+        /* Only remove the timer element if it is actually armed in the queue.
+         * An SL that has already been deactivated (ARRIVED / NAKED, or whose
+         * retransmit timer fired and was not re-armed) carries the (-1,-1)
+         * sentinel and is not linked in rpc2_TimerQueue; an unguarded
+         * TM_Remove on such an element corrupts the list. Mirror the guard
+         * rpc2_DeactivateSle relies on. */
+        if (slp->TElem.TotalTime.tv_sec != -1 ||
+            slp->TElem.TotalTime.tv_usec != -1)
+            TM_Remove(rpc2_TimerQueue, &slp->TElem);
 
         /* Call side-effect routine and increment connection sequence number for
          * abandoned requests */

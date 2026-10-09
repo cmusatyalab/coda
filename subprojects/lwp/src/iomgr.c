@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2025 Carnegie Mellon University
+          Copyright (c) 1987-2026 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -146,7 +146,16 @@ static struct IoRequest *NewRequest()
     return request;
 }
 
-#define Purge(list) FOR_ALL_ELTS(req, list, { free(req->BackPointer); })
+/* Free every IoRequest on the list. FOR_ALL_ELTS captures each element's Next
+ * before the body frees it, so the walk is safe; reset the sentinel to
+ * self-referential afterwards so the list reads as empty (TM_Final relies on
+ * this to validate the list is drained before it frees the sentinel). */
+#define Purge(list)                                          \
+    do {                                                     \
+        FOR_ALL_ELTS(req, list, { free(req->BackPointer); }) \
+        (list)->Next = (list);                               \
+        (list)->Prev = (list);                               \
+    } while (0)
 
 /*
  *    The IOMGR module manages three types of IO for the LWPs in the process:
@@ -618,6 +627,27 @@ int IOMGR_Select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
 
     /* Wait for action */
     LWP_QWait();
+
+    /* If we were woken by anything other than an IOMGR dispatch/timeout path,
+     * none of those paths have run: iomgrRequest still points at this request
+     * and request->timeout is still linked in Requests. (The only code that
+     * clears iomgrRequest is the IOMGR wake paths, which always TM_Remove the
+     * element first, and IOMGR_Cancel.) FreeRequest() below would push this
+     * request onto the LIFO free list while its element stays linked, and the
+     * stale iomgrRequest would let the next IOMGR_Select()/IOMGR_Cancel() act
+     * on an already-linked element (double insert / double remove => timer-list
+     * corruption). This happens when a raw LWP_QSignal reaches us while we are
+     * blocked in IOMGR_Select, or when we enter IOMGR_Select carrying a leftover
+     * qpending credit. Self-remove the element and clear the pointer so the
+     * bookkeeping stays in sync. (See IomgrTest.stray_qsignal_credit.) */
+    if (lwp_cpptr->iomgrRequest == request) {
+        lwpdebug(0,
+                 "IOMGR_Select: %s woken non-IOMGR (iomgrRequest %p still "
+                 "set); self-removing timer element\n",
+                 lwp_cpptr->name, (void *)request);
+        TM_Remove(Requests, &request->timeout);
+        lwp_cpptr->iomgrRequest = 0;
+    }
 
     /* Update parameters & return */
     if (readfds)

@@ -19,7 +19,7 @@ project(
 # - if any interfaces were added, increment lt_age
 # - if any interfaces were removed or changed, set lt_age to 0
 #
-lt_revision = 3
+lt_revision = 4
 lt_current = 3
 lt_age = 1
 lt_version = '@0@.@1@.@2@'.format(lt_current - lt_age, lt_age, lt_revision)

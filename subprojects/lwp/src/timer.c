@@ -138,7 +138,8 @@ int TM_Final(struct TM_Elem **list)
         return -1;
 
     DEBUG("TM_Final(%p)\n", *list);
-    //assert((*list)->Next == *list && (*list)->Prev == *list);
+    /* The list must be drained (sentinel self-referential) before finalizing. */
+    assert((*list)->Next == *list && (*list)->Prev == *list);
 
     free((char *)*list);
     *list = NULL;

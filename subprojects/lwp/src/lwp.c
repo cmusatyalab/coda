@@ -1,9 +1,9 @@
 /* BLURB lgpl
 
 			Coda File System
-			    Release 7
+			    Release 8
 
-	Copyright (c) 1987-2019 Carnegie Mellon University
+	Copyright (c) 1987-2026 Carnegie Mellon University
 		Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -443,11 +443,19 @@ int LWP_QWait()
 /* signal the PROCESS pid - by adding it to the runnable queue */
 int LWP_QSignal(PROCESS pid)
 {
-    if (++pid->qpending != 0)
+    if (++pid->qpending != 0) {
+        lwpdebug(0,
+                 "LWP_QSignal: %s -> %s qpending %d->%d (credit, ENOWAIT) "
+                 "iomgrRequest=%s\n",
+                 lwp_cpptr->name, pid->name, pid->qpending - 1, pid->qpending,
+                 (pid->iomgrRequest != 0) ? "set" : "none");
         return LWP_ENOWAIT;
+    }
 
-    lwpdebug(0, "LWP_Qsignal: %s is going to QSignal %s\n", lwp_cpptr->name,
-             pid->name);
+    lwpdebug(0,
+             "LWP_QSignal: %s -> %s qpending -1->0 (unblock) iomgrRequest=%s\n",
+             lwp_cpptr->name, pid->name,
+             (pid->iomgrRequest != 0) ? "set" : "none");
 
     pid->status = READY;
     lwpmove(pid, &blocked, &runnable[pid->priority]);

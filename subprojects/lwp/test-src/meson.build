@@ -13,6 +13,8 @@ if gtest_sub.found() and have_memcheck_h
         [
             'main.cc',
             'lwp_ut.cc',
+            'iomgr_ut.cc',
+            'timer_ut.cc',
         ],
         include_directories: [
             config_h_include,
