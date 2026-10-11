@@ -37,6 +37,10 @@ listed in the file CREDITS.
 #include <stdio.h>
 #include <sys/types.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct pdb_array {
     int32_t size, memsize;
     int32_t *data;
@@ -58,5 +62,9 @@ int pdb_array_pack(int32_t *d, pdb_array *l);
 int pdb_array_unpack(int32_t *s, pdb_array *l);
 int pdb_array_to_array(int32_t *d, pdb_array *l);
 int pdb_array_snprintf(char *d, pdb_array *l, int len);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

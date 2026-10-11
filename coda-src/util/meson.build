@@ -43,8 +43,6 @@ util_sources = [
     'recvarl.h',
     'rvmlib.c',
     'rvmlib.h',
-    'rvmtesting.cc',
-    'rvmtesting.h',
     'util.c',
     'util.h',
     'vice_file.c',

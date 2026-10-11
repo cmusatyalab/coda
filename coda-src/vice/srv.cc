@@ -257,10 +257,6 @@ static int DaemonizeSrv(const char *pidfile);
 static void SetupRLimitAndSignals(void);
 static void InitializeServerRVM(const char *name);
 
-#ifdef RVMTESTING
-#include <rvmtesting.h>
-#endif
-
 extern void dumpvm();
 
 void zombie(int sig) TRANSACTION_OPTIONAL // for aborting open transactions
@@ -1745,9 +1741,6 @@ static void SetupRLimitAndSignals(void)
     sigaction(SIGFPE, &sa, NULL);
     sigaction(SIGSEGV, &sa, NULL);
 
-#ifdef RVMTESTING
-    sa.sa_handler = my_sigBus; /* Defined in util/rvmtesting.c */
-#endif
     sigaction(SIGBUS, &sa, NULL);
 }
 

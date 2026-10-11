@@ -242,7 +242,9 @@ void bitmap::SetValue(int index, int value)
 
 void bitmap::CopyRange(int start, int len, bitmap &b)
 {
-    int bit_end    = len < 0 ? mapsize - 1 : start + len;
+    /* mapsize is a byte count; a negative len runs to the end of the
+       map, which holds mapsize << 3 bits. */
+    int bit_end    = len < 0 ? mapsize << 3 : start + len;
     int byte_start = start;
     int byte_end   = bit_end;
 
@@ -275,7 +277,9 @@ void bitmap::CopyRange(int start, int len, bitmap &b)
 
 void bitmap::SetRangeValue(int start, int len, int value)
 {
-    int bit_end    = len < 0 ? mapsize - 1 : start + len;
+    /* mapsize is a byte count; a negative len runs to the end of the
+       map, which holds mapsize << 3 bits. */
+    int bit_end    = len < 0 ? mapsize << 3 : start + len;
     int byte_start = start;
     int byte_end   = bit_end;
 
@@ -295,7 +299,10 @@ void bitmap::SetRangeValue(int start, int len, int value)
     byte_start = byte_start >> 3;
     byte_end   = byte_end >> 3;
 
-    memset(&map[byte_start], value, byte_end - byte_start);
+    /* memset fills whole bytes, so a set must use 0xFF: filling with a
+       truthy value like 1 (0x01) would only set the last bit of each
+       byte. */
+    memset(&map[byte_start], value ? 0xFF : 0, byte_end - byte_start);
 
     for (int i = start; i < (byte_start << 3); i++) {
         SetValue(i, value);

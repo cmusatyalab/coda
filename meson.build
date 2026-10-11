@@ -2,7 +2,7 @@ project(
     'coda',
     'c',
     'cpp',
-    version: run_command('tools/version.sh', 'get-vcs').stdout().strip(),
+    version: run_command('tools/version.sh', 'get-vcs', check: true).stdout().strip(),
     license: 'GPL-2.0-only',
     default_options: [
         'warning_level=1',

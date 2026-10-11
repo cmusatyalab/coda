@@ -7,6 +7,8 @@ unit_inc = include_directories(
 unit_sources = [
     'main.cc',
     'util/u_bitmap.cc',
+    'util/u_bitmap_legacy.cc',
+    'util/u_pdbarray.cc',
 ]
 
 # Link gtest directly instead of using gtest_dep: gtest_dep propagates the
@@ -27,7 +29,7 @@ if gtest_sub.found()
             gtest_inc,
         ],
         cpp_args: ['-DVENUS', '-DTIMING', '-DVENUSDEBUG'],
-        dependencies: [util_dep, base_dep],
+        dependencies: [al_dep, util_dep, base_dep],
         link_with: [gtest_lib],
     )
 
