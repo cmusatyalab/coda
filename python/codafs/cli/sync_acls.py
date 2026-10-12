@@ -26,7 +26,7 @@ from operator import itemgetter
 from pathlib import Path
 
 import yaml
-from codafs.cfs import listacl, setacl
+from codafs.cfs import get_acl, set_acl
 from codafs.optional import ValidationError, jsonschema_validate, tqdm
 from codafs.structs import AclEntry
 from codafs.walk import walk_volume
@@ -134,7 +134,7 @@ def collect_acls(root: Path, cross_volume: bool = False) -> list[AclEntry]:
         logging.info("Getting ACL for %s", directory)
 
         path = str(directory.relative_to(root))
-        acl = [asdict(entry) for entry in listacl(directory)]
+        acl = [asdict(entry) for entry in get_acl(directory)]
 
         directory_acls.append(dict(path=path, acl=acl))
 
@@ -160,14 +160,14 @@ def update_acls(dest: Path, acls: list[AclEntry], dry_run: bool = True):
                 logging.warning("Skipping non-directory %s", path)
                 continue
 
-            cur_acl = listacl(path)
+            cur_acl = get_acl(path)
             new_acl = [(entry["name"], entry["rights"]) for entry in acl["acl"]]
 
             if cur_acl == new_acl:
                 logging.debug("Skipping already set acl at %s", path)
                 continue
 
-            setacl(path, new_acl, dry_run=dry_run)
+            set_acl(path, new_acl, dry_run=dry_run)
 
 
 def main() -> int:
