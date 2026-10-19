@@ -2,7 +2,7 @@ project(
     'lwp',
     'c',
     'cpp',
-    version: '2.20',
+    version: '2.21',
     license: 'LGPL-2.0-only',
     default_options: [
         'warning_level=1',

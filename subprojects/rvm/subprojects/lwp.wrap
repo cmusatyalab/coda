@@ -1,9 +1,9 @@
 [wrap-file]
-directory = lwp-2.20
+directory = lwp-2.21
 
-source_url = http://coda.cs.cmu.edu/coda/source/lwp-2.20.tar.xz
-source_filename = lwp-2.20.tar.xz
-source_hash = 270a6fec6fb87a1f57723e1d29f6cbdc07868c07b5a83b53649fa09a0e3c3273
+source_url = http://coda.cs.cmu.edu/coda/source/lwp-2.21.tar.xz
+source_filename = lwp-2.21.tar.xz
+source_hash = 899d23e921876b361e67d34956aa22f4ca015c064e326f092343de7663759eed
 
 [provide]
 dependency_names = lwp

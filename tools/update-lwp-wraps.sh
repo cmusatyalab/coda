@@ -33,6 +33,7 @@ meson setup lwp-build "$TOPDIR/subprojects/lwp"
 meson dist -C lwp-build
 cp "lwp-build/meson-dist/lwp-$VERSION.tar.xz" "$TAR"
 rm -r lwp-build
+rm -r subprojects/lwp/subprojects/googletest-*
 
 HASH=$(sha256sum "$TAR" | cut -d\  -f1)
 
