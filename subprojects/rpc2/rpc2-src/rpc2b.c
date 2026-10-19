@@ -120,12 +120,12 @@ long RPC2_Init(
     /* Do we accept only secure connections, default is yes. This can be
      * disabled by setting the RPC2SEC_ONLY to 0, false, no, (nada, forgetit) */
     env              = getenv("RPC2SEC_ONLY");
-    RPC2_secure_only = !env || (env && memchr("0fFnN", *env, 5) == NULL);
+    RPC2_secure_only = !env || (memchr("0fFnN", *env, 5) == NULL);
 
-    /* The SFTP->TCPFTP upgrade is opt-in: only advertised when RPC2_TCPFTP
-     * is set to something other than 0/false/no/nada (default off). */
+    /* The SFTP->TCPFTP upgrade is opt-out: it will not be advertised when
+     * RPC2_TCPFTP is set to something like 0/false/no/nada (default on). */
     env         = getenv("RPC2_TCPFTP");
-    rpc2_tcpftp = env && (memchr("0fFnN", *env, 5) == NULL);
+    rpc2_tcpftp = !env || (memchr("0fFnN", *env, 5) == NULL);
 
     verbose = (Options && (Options->Flags & RPC2_OPTION_VERBOSE_INIT));
     secure_init(verbose);
