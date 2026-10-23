@@ -260,6 +260,9 @@ void bitmap7::CopyRange(int start, int len, bitmap7 &b)
     if (!map)
         return;
 
+    /* The bulk range must fit in both bitmaps' maps */
+    CODA_ASSERT(end_byte <= mapsize && end_byte <= b.mapsize);
+
     if (bulk_len <= 0) {
         for (int i = start; i < end_bit; i++) {
             b.SetValue(i, Value(i));
@@ -269,7 +272,8 @@ void bitmap7::CopyRange(int start, int len, bitmap7 &b)
 
     /* Copy all the bytes in between */
     memcpy(&b.map[start_byte], &map[start_byte], bulk_len);
-    if (recoverable)
+    /* b.map, not our own map, is the range that was just modified */
+    if (b.recoverable)
         rvmlib_set_range(&b.map[start_byte], sizeof(char) * bulk_len);
 
     /* Copy the values from before the first copied byte */
