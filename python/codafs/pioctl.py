@@ -33,6 +33,7 @@ from __future__ import annotations
 import errno
 import os
 import secrets
+import threading
 import time
 from pathlib import Path
 
@@ -44,6 +45,14 @@ CODA_MAXPATHLEN = 1024  # maximum length of a pioctl path
 
 # how long to wait for the client to process a pioctl
 PIOCTL_TIMEOUT = 60.0
+
+# how many pioctl files may be in flight at once, per process.  The client
+# services each pioctl on a worker thread drawn from its message worker
+# pool (20 by default), which is shared with all other VFS traffic on the
+# workstation, and the thread is busy for as long as the command takes, so
+# keep the fan-out well below the pool size.
+MAX_INFLIGHT_PIOCTLS = 8
+_inflight_pioctls = threading.BoundedSemaphore(MAX_INFLIGHT_PIOCTLS)
 
 # prefix of the pioctl virtual file (pioctl.h)
 PIOCTL_PREFIX = "...PIOCTL."
@@ -264,42 +273,43 @@ def pioctl(
     header = (
         f"{cmd}\n{len(relpath)}\n{int(follow)}\n{len(in_data)}\n{out_size}\x00"
     ).encode()
-    with open(pioctl_file, "wb") as pfile:
-        pfile.write(header + relpath.encode() + in_data)
-    # the client processes the pioctl when the file is closed and
-    # rewrites the file with the response
+    with _inflight_pioctls:
+        with open(pioctl_file, "wb") as pfile:
+            pfile.write(header + relpath.encode() + in_data)
+        # the client processes the pioctl when the file is closed and
+        # rewrites the file with the response
 
-    # The client processes the pioctl asynchronously: until it rewrites
-    # the file with the response, reads return an empty file or EIO.
-    deadline = time.monotonic() + timeout
-    while True:
-        try:
-            with open(pioctl_file, "rb") as pfile:
-                raw = pfile.read()
-        except OSError as e:
-            if e.errno == errno.EIO:
-                raw = b""  # still being processed
-            elif e.errno == errno.ENOENT:
-                msg = f"no response from Coda client in {pioctl_file}"
-                raise OSError(errno.EBADF, msg) from None
-            else:
-                raise
-        parts = raw.split(b"\n", 2)
-        if (
-            len(parts) == 3
-            and parts[0].isdigit()
-            and parts[1].isdigit()
-            and parts[2].startswith(b"\x00")
-        ):
-            code = int(parts[0])
-            size = int(parts[1])
-            if size > out_size:
-                msg = f"pioctl response too large in {pioctl_file}"
-                raise OSError(errno.EBADF, msg)
-            data = parts[2][1 : 1 + size]
-            if len(data) == size:
-                return code, data
-        if time.monotonic() >= deadline:
-            msg = f"timed out waiting for Coda client response in {pioctl_file}"
-            raise TimeoutError(msg)
-        time.sleep(0.05)
+        # The client processes the pioctl asynchronously: until it rewrites
+        # the file with the response, reads return an empty file or EIO.
+        deadline = time.monotonic() + timeout
+        while True:
+            try:
+                with open(pioctl_file, "rb") as pfile:
+                    raw = pfile.read()
+            except OSError as e:
+                if e.errno == errno.EIO:
+                    raw = b""  # still being processed
+                elif e.errno == errno.ENOENT:
+                    msg = f"no response from Coda client in {pioctl_file}"
+                    raise OSError(errno.EBADF, msg) from None
+                else:
+                    raise
+            parts = raw.split(b"\n", 2)
+            if (
+                len(parts) == 3
+                and parts[0].isdigit()
+                and parts[1].isdigit()
+                and parts[2].startswith(b"\x00")
+            ):
+                code = int(parts[0])
+                size = int(parts[1])
+                if size > out_size:
+                    msg = f"pioctl response too large in {pioctl_file}"
+                    raise OSError(errno.EBADF, msg)
+                data = parts[2][1 : 1 + size]
+                if len(data) == size:
+                    return code, data
+            if time.monotonic() >= deadline:
+                msg = f"timed out waiting for Coda client response in {pioctl_file}"
+                raise TimeoutError(msg)
+            time.sleep(0.05)
