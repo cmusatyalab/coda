@@ -430,6 +430,9 @@ long rpc2_SendReliably(struct CEntry *Conn, struct SL_Entry *Sle,
     if (Conn->Flags & CE_TCPFTP)
         Packet->Header.Flags =
             htonl(ntohl(Packet->Header.Flags) | TCPFTP_CAPABLE);
+    if (Conn->Flags & CE_TCPFTP_PIGGY)
+        Packet->Header.Flags =
+            htonl(ntohl(Packet->Header.Flags) | TCPFTP_PIGGY_CAPABLE);
 
     rpc2_XmitPacket(Packet, Conn->HostInfo->Addr, 0);
 

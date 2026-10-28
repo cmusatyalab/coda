@@ -499,6 +499,9 @@ static long mrpc_SendPacketsReliably(
         if (ce->Flags & CE_TCPFTP)
             req->Header.Flags =
                 htonl(ntohl(req->Header.Flags) | TCPFTP_CAPABLE);
+        if (ce->Flags & CE_TCPFTP_PIGGY)
+            req->Header.Flags =
+                htonl(ntohl(req->Header.Flags) | TCPFTP_PIGGY_CAPABLE);
 
         rpc2_XmitPacket(req, ce->HostInfo->Addr, 0);
     }

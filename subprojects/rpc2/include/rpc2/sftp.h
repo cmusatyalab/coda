@@ -168,7 +168,10 @@ The interpretation of header fields is similar to that in RPC:
 #define SFTP_TCPFTP \
     0x40 /* on RPC packets: an 8-byte codatunnel correlation cookie is appended
             immediately before the (optional) SFTP parms; the server reads it
-            as the tail of the body after parms extraction */
+            as the tail of the body after parms extraction. Mutually
+            exclusive with SFTP_PIGGY on a given packet: either the
+            [cookie][parms] combo (first call) or a piggybacked file rides
+            the body, never both */
 
 /* SFTP Opcodes */
 #define SFTP_START \
@@ -341,6 +344,7 @@ struct SFTP_Entry /* per-connection data structure */
      */
     struct security_association *sa;
     int TcpFtp; /* negotiated: use the codatunnel offload for file transfers */
+    int TcpFtpPiggy; /* negotiated: peer may receive files in RPC packets */
     struct TcpFtpState TcpFtpState; /* cookie / sink spool / got-block */
 };
 
@@ -436,6 +440,14 @@ int sftp_vfwritefile(struct SFTP_Entry *se, char *buf, int nbytes);
 void sftp_vfclose(struct SFTP_Entry *se);
 int sftp_piggybackfileread(struct SFTP_Entry *se, char *buf);
 off_t sftp_piggybackfilesize(struct SFTP_Entry *se);
+off_t sftp_vfile_size(struct SFTP_Descriptor *d, long openfd);
+int sftp_vfile_read(struct SFTP_Descriptor *d, long openfd, off_t *fd_offset,
+                    char *buf, off_t len);
+int sftp_vfile_write(struct SFTP_Descriptor *d, long openfd, off_t *fd_offset,
+                     char *buf, int nbytes);
+off_t sftp_vfile_piggy(struct SFTP_Descriptor *d, long openfd, off_t *fd_offset,
+                       long role, RPC2_PacketBuffer **whichP, off_t maxBytes,
+                       unsigned int maxSize);
 void sftp_TraceBogus(long filenum, long linenum);
 void sftp_TraceStatus(struct SFTP_Entry *sEntry, int filenum, int linenum);
 void sftp_DumpTrace(char *fName);

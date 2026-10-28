@@ -45,6 +45,15 @@ the packet header:
   is off by default (and when the var is `0`/`false`/`no`/`nada`), so a peer
   only ever advertises the capability when the operator has enabled it **and**
   its daemon is running.
+- `TCPFTP_PIGGY_CAPABLE 0x40`. A build-level capability: this peer
+  understands the piggybacked file wire format (a whole file in the packet
+  body, `SFTP_PIGGY`/`TCPFTP_PIGGY` in `SEFlags`). It is advertised under
+  exactly the same condition as `TCPFTP_CAPABLE` and negotiated with the same
+  Init1 → Init2 echo, setting `CE_TCPFTP_PIGGY 0x4` on both ends. The piggy
+  *send* paths check the negotiated flag (receive paths do not: accepting a
+  piggybacked file is always safe); a pre-piggy peer neither sets nor echoes
+  the bit (unknown header bits are ignored), so a mixed-version pair
+  automatically falls back to the daemon-only path.
 - The **initiating** end must be able to open the daemon-to-daemon channel:
   `rpc2_tcpftp_capable_initiator()` is `rpc2_tcpftp_capable()` ANDed with
   `!codatunnel_is_server()`. A `codasrv` codatunneld is server-mode — it only
@@ -63,10 +72,13 @@ the packet header:
   stamped with `TCPFTP_CAPABLE`: in `rpc2_SendReliably` (`packet.c`) for the
   single-connection path and in `mrpc_SendPacketsReliably` (`multi1.c`) for the
   MultiRPC path.
-- The SFTP side effect reads the negotiated flag at connection setup:
+- The SFTP side effect reads the negotiated flags at connection setup:
   `SFTP_Bind2` (client) and `SFTP_NewConn` (server) copy
-  `(ce->Flags & CE_TCPFTP)` into `se->TcpFtp`, and the shared per-connection
-  offload state lives in `se->TcpFtpState` (see `sftp.h`).
+  `(ce->Flags & CE_TCPFTP)` into `se->TcpFtp` and
+  `(ce->Flags & CE_TCPFTP_PIGGY)` into `se->TcpFtpPiggy`; the standalone
+  TCPFTP side effect caches the same flag in
+  `TCPFTP_Entry.PiggyNegotiated`. The shared per-connection offload state
+  lives in `se->TcpFtpState` (see `sftp.h`).
 
 A connection that is not `CE_TCPFTP` (old peer, or no daemon running) simply
 never sets the bit and the SFTP side effect takes its normal in-process path;
@@ -94,6 +106,72 @@ is located by measuring `BodyLength` alone and reading the last 8 bytes of the
 body after the parms have been peeled off. The cookie rides in the body region
 of the RPC packet on the RPC2 channel; it is the only TCPFTP-specific thing
 that crosses the application-visible wire.
+
+## Piggybacking small files
+
+Offloading has a fixed cost: two daemon registrations, a control round trip
+over the vside, and at least one TLS record per chunk. A file smaller than an
+RPC2 packet does not amortize that cost, so — exactly as in classic SFTP — it
+rides the RPC itself instead, and the daemon is not involved at all.
+
+**Wire form.** With the piggy flag set, the file's bytes occupy
+`Body[Header.SEDataOffset..Header.BodyLength)` with no per-file framing. The
+flag is `SFTP_PIGGY`; `TCPFTP_PIGGY` is the same bit (`0x2`), so
+`sftp_AddPiggy` — which sets the flag and `SEDataOffset` itself — works
+unmodified in both side effects. The piggy flag and the 8-byte cookie are
+**mutually exclusive on one packet** (bits `0x2` vs `0x40`): a packet carries
+either a file region or the cookie. On the SFTP side effect the first RPC call
+still carries the `[cookie][parms]` combo, so a client push piggyback happens
+only on the second and later call; the first call's *reply* may still be a
+fetch piggyback. A zero-byte file is a legal piggyback (empty region, flag
+set), and `FILEBYINODE` is never piggybacked — only the daemon can `iopen` an
+inode.
+
+**Shared machinery.** The file is resolved through the vfile primitives
+(`sftp3.c`: `sftp_vfile_size` / `sftp_vfile_read` / `sftp_vfile_write`, keyed
+on `(descriptor, openfd, fd_offset)`), and the size decision uses
+`tcpftp_reglen` — the same length a local daemon registration would report
+(past the seek offset, capped at `ByteQuota` when positive, `0` for a sink) —
+so a piggybacked file moves exactly what the daemon would. The client push
+and the server fetch funnel into `sftp_vfile_piggy` (`sftp1.c`), which reads
+the bytes into `GlobalJunk` and hands them to `sftp_AddPiggy`. Classic SFTP's
+own `sftp_piggybackfilesize` (with its `EnforceQuota` gate) is untouched.
+
+**The paths.**
+
+- *Push piggyback* (client is source). `MakeRPC1` opens the file in source
+  mode; if the registration length fits the request body it appends the bytes
+  and returns without a daemon registration. A too-big file (`-2`) falls
+  through to the registration below; a read error is `RPC2_SEFAIL4`. On the
+  SFTP side effect this is gated on `SFTP_DoPiggy`, `SentParms` (never the
+  first call) and `Tag != FILEBYINODE`; the standalone TCPFTP SE has no such
+  gates.
+- *Fetch piggyback* (server is source). `CheckSE` makes the same test *before*
+  registering with the daemon: if the file fits an empty reply, the bytes are
+  squirreled into a detached in-VM descriptor and appended to the RPC reply by
+  `SendResponse` via `sftp_AddPiggy`. A miss falls through to the daemon
+  registration, which opens its own fd. The SFTP side effect keeps the classic
+  squirrel statuses (`LocalStatus = SE_SUCCESS`,
+  `RemoteStatus = SE_INPROGRESS`); the standalone SE marks both `SE_SUCCESS`,
+  since no daemon work is pending.
+- *Push piggyback receipt* (server is sink). The client read its source file
+  itself, so no daemon registration exists: `GetRequest` peels the region and
+  `CheckSE` writes it to the sink. On the SFTP side effect that is simply the
+  classic squirrel-write path, reached because `GotBlock == 0`.
+- *Fetch piggyback receipt* (client is sink). The client pre-registered its
+  sink with the daemon in `MakeRPC1` (and opened the sink file best-effort so
+  it can write a piggybacked reply). When the reply carries the file,
+  `MakeRPC2` writes the region to the sink — retrying the open if the
+  best-effort one failed, since the daemon's own open (its registration)
+  succeeded — then releases the now-useless daemon registration non-blocking
+  (`codatunnel_file_unreg`); there is deliberately no `tcpftp_finalize`,
+  because this SE handler runs on the io thread that demuxes the daemon's
+  `CT_FILEDONE`, and waiting would deadlock it. That pre-register / unreg
+  asymmetry is why a fetch piggyback still costs one (unused) daemon slot.
+
+**Observability.** A piggybacked transfer shows up as a *missing*
+`tcpftp_register_local` TLOG line (the daemon is not involved) and, on the SFTP
+side effect, an increment of the `sftp_didpiggy` statistic.
 
 ## File registration: the app-to-daemon control plane
 
@@ -244,28 +322,37 @@ the standalone entry and in the SFTP `SFTP_Entry`.
 
 On the SFTP path (`sftp1.c`), once a connection is `TcpFtp`:
 
-- `SFTP_MakeRPC1` (client) resolves the local file, registers it with the
-  daemon (`tcpftp_register_local`, in role source/sink from
-  `TransmissionDirection`), packs the cookie and appends it, sets
-  `SFTP_TCPFTP`, and still piggybacks the SFTP parms on the first call. If the
-  codatunnel is unusable it *falls back to the in-VM SFTP path* rather than
-  retrying.
+- `SFTP_MakeRPC1` (client) first tries a *push piggyback* (second and later
+  calls only: the file may ride the request and skip the daemon), and on a
+  fetch opens the sink file best-effort so a piggybacked reply can be written.
+  Otherwise it resolves the local file, registers it with the daemon
+  (`tcpftp_register_local`, in role source/sink from `TransmissionDirection`),
+  packs the cookie and appends it, sets `SFTP_TCPFTP`, and still piggybacks the
+  SFTP parms on the first call. If the codatunnel is unusable it *falls back
+  to the in-VM SFTP path* rather than retrying.
 - `SFTP_GetRequest` (server) peels the 8-byte cookie off the tail of the body
   after the parms, records `GotBlock`.
 - `SFTP_InitSE` (server) skips the in-VM pump entirely (`GotBlock` is set) —
   there is no in-process file loop; the daemon does the work.
-- `SFTP_CheckSE` (server) registers the local file with the client's cookie,
-  finalizes (`tcpftp_finalize` waits for the daemon's terminal status and,
-  for an in-VM sink, drains the spool back into the buffer), and frees the SFTP
-  IO.
-- `SFTP_MakeRPC2` (client) finalizes on the reply, and `sftp_FreeSEntry`
-  releases any in-flight cookie and spool fd so an aborted transfer cannot leak
-  the daemon slot.
+- `SFTP_CheckSE` (server) first tries a *fetch piggyback* (the file may ride
+  the reply and skip the daemon entirely); on a miss it registers the local
+  file with the client's cookie, finalizes (`tcpftp_finalize` waits for the
+  daemon's terminal status and, for an in-VM sink, drains the spool back into
+  the buffer), and frees the SFTP IO.
+- `SFTP_MakeRPC2` (client) first peels a piggybacked reply off the body and
+  writes it to the sink, releasing the daemon registration non-blocking (no
+  `tcpftp_finalize` — it would deadlock the io thread that demuxes
+  `CT_FILEDONE`); otherwise it finalizes as before. `sftp_FreeSEntry` releases
+  any in-flight cookie and spool fd so an aborted transfer cannot leak the
+  daemon slot.
 
 The standalone `TCPFTP` SE (`tcpftp1.c`) performs the same register → wait →
 finalize dance through its own `MakeRPC1`/`MakeRPC2`/`GetRequest`/`CheckSE`
 entry points and the same `tcpftp_register_local` / `tcpftp_finalize`
-helpers, with the shared `TcpFtpState` in the `TCPFTP_Entry`.
+helpers, with the shared `TcpFtpState` in the `TCPFTP_Entry`, plus the
+piggyback paths above: push in `MakeRPC1`, fetch squirrel in `CheckSE` with
+the append in `SendResponse`, receipt in `MakeRPC2`, and — on the server — the
+push-piggy region peeled in `GetRequest` and written in `CheckSE`.
 
 ## References
 
@@ -278,3 +365,6 @@ helpers, with the shared `TcpFtpState` in the `TCPFTP_Entry`.
   app, and its `ct_cookie_foreach` teardown walk.
 - `tcpftp.h` — the per-connection state, registration/finalize helpers, and the
   cookie param-block (de)serialization.
+- `sftp.h` / `sftp1.c` / `sftp3.c` — the shared piggyback machinery: the
+  `sftp_vfile_*` primitives, `sftp_vfile_piggy`, `sftp_AddPiggy`, and the
+  `SFTP_PIGGY` / `SFTP_TCPFTP` flag contract.

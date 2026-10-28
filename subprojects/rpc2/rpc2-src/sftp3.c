@@ -3,7 +3,7 @@
                            Coda File System
                               Release 8
 
-          Copyright (c) 1987-2025 Carnegie Mellon University
+          Copyright (c) 1987-2026 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -1340,6 +1340,92 @@ static void PrintDb(struct SFTP_Entry *se, RPC2_PacketBuffer *pb)
    two args to all the routines are the same: an SE descriptor that defines
    the file, and a file descriptor that is already open in the correct mode */
 
+/* The sftp_vfile_* primitives below are keyed on an explicit
+ * (descriptor, openfd, fd_offset) triple rather than an SFTP_Entry, so the
+ * TCPFTP side effects (tcpftp1.c) can share them with classic SFTP. The
+ * openfd/fd_offset pair follows the sftp_InitIO convention: openfd is open
+ * in the correct mode and positioned at SeekOffset (openfd == -1 for
+ * FILEINVM); fd_offset tracks the current position for FILEBYFD (a shared
+ * fd) and is rewritten after every read/write. The caller decides how many
+ * bytes to move (classic SFTP: sftp_piggybackfilesize; TCPFTP:
+ * tcpftp_reglen) and passes that length. */
+
+/* Size of the file d refers to, as the vfile layer sees it: SeqLen for a
+ * FILEINVM, the fstat() size otherwise. Returns < 0 (RPC2_SEFAIL4) if the
+ * fstat() fails. */
+off_t sftp_vfile_size(struct SFTP_Descriptor *d, long openfd)
+{
+    struct stat stbuf;
+
+    if (d->Tag == FILEINVM)
+        return d->FileInfo.ByAddr.vmfile.SeqLen;
+    if (fstat(openfd, &stbuf) < 0)
+        return (RPC2_SEFAIL4);
+    return (stbuf.st_size);
+}
+
+/* Reads len bytes from the file d refers to into buf. For a FILEINVM the
+ * bytes come from vmfilep (the seek set by sftp_InitIO / tcpftp_initio);
+ * otherwise they are read from openfd, re-seeking to *fd_offset first for
+ * FILEBYFD (a shared fd) and advancing *fd_offset after.
+ * Returns 0 on success, RPC2_SEFAIL4 on a short read/fstat failure.
+ * WARNING: buf must be big enough -- no checks are done! */
+int sftp_vfile_read(struct SFTP_Descriptor *d, long openfd, off_t *fd_offset,
+                    char *buf, off_t len)
+{
+    struct FileInfoByAddr *p;
+    ssize_t n;
+
+    if (d->Tag == FILEINVM) {
+        p = &d->FileInfo.ByAddr;
+        memcpy(buf, (char *)p->vmfile.SeqBody + p->vmfilep, (size_t)len);
+    } else {
+        if (d->Tag == FILEBYFD)
+            (void)lseek(openfd, *fd_offset, SEEK_SET);
+
+        n = read(openfd, buf, (size_t)len);
+        if (n < len)
+            return (RPC2_SEFAIL4);
+        *fd_offset += n;
+    }
+    return (0);
+}
+
+/* Writes nbytes from buf to the file d refers to. For a FILEINVM the bytes
+ * go to the start of the in-VM buffer, returning RPC2_SEFAIL3 if it is
+ * smaller than MaxSeqLen; otherwise they are written to openfd, re-seeking
+ * to *fd_offset first for FILEBYFD and advancing *fd_offset after.
+ * Returns 0 on success, RPC2_SEFAIL3 (MaxSeqLen overflow / ENOSPC) or
+ * RPC2_SEFAIL4 on other I/O errors. */
+int sftp_vfile_write(struct SFTP_Descriptor *d, long openfd, off_t *fd_offset,
+                     char *buf, int nbytes)
+{
+    struct FileInfoByAddr *p;
+    ssize_t n;
+
+    if (d->Tag == FILEINVM) {
+        p = &d->FileInfo.ByAddr;
+        if (nbytes > p->vmfile.MaxSeqLen)
+            return (RPC2_SEFAIL3);
+
+        memcpy(p->vmfile.SeqBody, buf, (size_t)nbytes);
+        p->vmfile.SeqLen = nbytes;
+    } else {
+        if (d->Tag == FILEBYFD)
+            (void)lseek(openfd, *fd_offset, SEEK_SET);
+
+        n = write(openfd, buf, (size_t)nbytes);
+        if (n < nbytes) {
+            if (errno == ENOSPC)
+                return (RPC2_SEFAIL3);
+
+            return (RPC2_SEFAIL4);
+        }
+        *fd_offset += n;
+    }
+    return (0);
+}
+
 /* Returns length of file defined by se->SDesc
    Returns RPC2 error code (< 0)  on failure
 
@@ -1353,23 +1439,17 @@ static void PrintDb(struct SFTP_Entry *se, RPC2_PacketBuffer *pb)
 */
 off_t sftp_piggybackfilesize(struct SFTP_Entry *se)
 {
-    struct stat stbuf;
+    struct SFTP_Descriptor *d = &se->SDesc->Value.SmartFTPD;
     off_t length;
 
-    if (MEMFILE(se->SDesc)) {
-        length = se->SDesc->Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqLen;
-    } else {
-        if (fstat(se->openfd, &stbuf) < 0)
-            return (RPC2_SEFAIL4);
-
-        length = stbuf.st_size;
-    }
+    length = sftp_vfile_size(d, se->openfd);
+    if (length < 0)
+        return (length);
 
     /* When we try to transfer too much, return a value so that we avoid
      * piggybacking */
-    if (SFTP_EnforceQuota && se->SDesc->Value.SmartFTPD.ByteQuota > 0 &&
-        length > se->SDesc->Value.SmartFTPD.ByteQuota)
-        return (se->SDesc->Value.SmartFTPD.ByteQuota);
+    if (SFTP_EnforceQuota && d->ByteQuota > 0 && length > d->ByteQuota)
+        return (d->ByteQuota);
 
     return (length);
 }
@@ -1380,20 +1460,18 @@ int sftp_piggybackfileread(struct SFTP_Entry *se, char *buf)
    WARNING: buf must be big enough -- no checks are done!
 */
 {
-    struct FileInfoByAddr *p;
-    ssize_t n, len;
+    struct SFTP_Descriptor *d = &se->SDesc->Value.SmartFTPD;
 
     if (MEMFILE(se->SDesc)) {
-        p = &se->SDesc->Value.SmartFTPD.FileInfo.ByAddr;
-        memcpy(buf, p->vmfile.SeqBody, sftp_piggybackfilesize(se));
-    } else {
-        if (BYFDFILE(se->SDesc))
-            (void)lseek(se->openfd, se->fd_offset, SEEK_SET);
+        /* Classic SFTP copies the whole in-VM buffer from the start
+         * regardless of any seek; keep that behavior here rather than
+         * using sftp_vfile_read (which honors vmfilep). */
+        struct FileInfoByAddr *p = &d->FileInfo.ByAddr;
 
-        len = sftp_piggybackfilesize(se);
-        n   = read(se->openfd, buf, len);
-        if (n < len)
-            return (RPC2_SEFAIL4);
+        memcpy(buf, p->vmfile.SeqBody, sftp_piggybackfilesize(se));
+    } else if (sftp_vfile_read(d, se->openfd, &se->fd_offset, buf,
+                               sftp_piggybackfilesize(se)) < 0) {
+        return (RPC2_SEFAIL4);
     }
     return (0);
 }
@@ -1403,30 +1481,8 @@ int sftp_piggybackfileread(struct SFTP_Entry *se, char *buf)
 */
 int sftp_vfwritefile(struct SFTP_Entry *se, char *buf, int nbytes)
 {
-    struct FileInfoByAddr *p;
-    ssize_t n;
-
-    if (MEMFILE(se->SDesc)) {
-        p = &se->SDesc->Value.SmartFTPD.FileInfo.ByAddr;
-        if (nbytes > p->vmfile.MaxSeqLen)
-            return (RPC2_SEFAIL3);
-
-        memcpy(p->vmfile.SeqBody, buf, nbytes);
-        p->vmfile.SeqLen = nbytes;
-    } else {
-        if (BYFDFILE(se->SDesc))
-            (void)lseek(se->openfd, se->fd_offset, SEEK_SET);
-
-        n = write(se->openfd, buf, nbytes);
-        if (n < nbytes) {
-            if (errno == ENOSPC)
-                return (RPC2_SEFAIL3);
-
-            return (RPC2_SEFAIL4);
-        }
-        se->fd_offset += n;
-    }
-    return (0);
+    return sftp_vfile_write(&se->SDesc->Value.SmartFTPD, se->openfd,
+                            &se->fd_offset, buf, nbytes);
 }
 
 /* close any still open filedescriptor */

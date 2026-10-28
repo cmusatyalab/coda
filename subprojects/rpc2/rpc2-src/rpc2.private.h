@@ -143,6 +143,7 @@ Truly random values to allow easy detection of storage corruption.
 /* Definitions for Flags field of connections */
 #define CE_OLDV 0x1 /* old version detected during bind */
 #define CE_TCPFTP 0x2 /* connection may use the codatunnel/TCPFTP offload */
+#define CE_TCPFTP_PIGGY 0x4 /* both ends may piggyback files in RPC packets */
 
 /*---------------- Data Structures ----------------*/
 struct CEntry /* describes a single RPC connection */

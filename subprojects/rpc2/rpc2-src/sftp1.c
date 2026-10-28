@@ -235,6 +235,7 @@ long SFTP_Bind2(IN RPC2_Handle ConnHandle, IN RPC2_Unsigned BindTime)
     {
         struct CEntry *ce = rpc2_GetConn(ConnHandle);
         se->TcpFtp        = (ce != NULL && (ce->Flags & CE_TCPFTP)) != 0;
+        se->TcpFtpPiggy   = (ce != NULL && (ce->Flags & CE_TCPFTP_PIGGY)) != 0;
     }
 
     return (RPC2_SUCCESS);
@@ -275,6 +276,7 @@ long SFTP_NewConn(IN RPC2_Handle ConnHandle, IN RPC2_CountedBS *ClientIdent)
     {
         struct CEntry *ce = rpc2_GetConn(ConnHandle);
         se->TcpFtp        = (ce != NULL && (ce->Flags & CE_TCPFTP)) != 0;
+        se->TcpFtpPiggy   = (ce != NULL && (ce->Flags & CE_TCPFTP_PIGGY)) != 0;
     }
 
     RPC2_SetSEPointer(ConnHandle, se);
@@ -322,10 +324,53 @@ long SFTP_MakeRPC1(IN RPC2_Handle ConnHandle, INOUT SE_Descriptor *SDesc,
             FAIL(se, RPC2_SEFAIL1);
         }
 
+        /* On the second and later call the file may ride the request itself
+         * instead of the tunnel (push piggy); the first call must carry the
+         * cookie and the SFTP parms, so it always uses the daemon. The peer
+         * must have negotiated the format (TcpFtpPiggy): a pre-piggy peer
+         * would misread the file bytes as a cookie. A miss falls through to
+         * the registration below. */
+        if (role == TCPFTP_ROLE_SOURCE && SFTP_DoPiggy && se->TcpFtpPiggy &&
+            se->SentParms && d->Tag != FILEBYINODE) {
+            off_t maxbytes;
+
+            if (sftp_InitIO(se) == 0) {
+                maxbytes = SFTP_MAXBODYSIZE - (*RequestPtr)->Header.BodyLength;
+                if (se->PacketSize < SFTP_MAXPACKETSIZE)
+                    maxbytes -= (SFTP_MAXPACKETSIZE - se->PacketSize);
+                len = sftp_vfile_piggy(d, se->openfd, &se->fd_offset,
+                                       (long)role, RequestPtr, maxbytes,
+                                       SFTP_MAXPACKETSIZE);
+                if (len == -1) {
+                    sftp_vfclose(se);
+                    FAIL(se, RPC2_SEFAIL4);
+                }
+                if (len == -2) {
+                    sftp_vfclose(se); /* too big: use the daemon */
+                } else {
+                    se->TcpFtpState.Cookie   = 0;
+                    se->TcpFtpState.GotBlock = 0; /* nothing registered */
+                    ce->reqsize += len;
+                    sftp_didpiggy++;
+                    sftp_Progress(SDesc, len);
+                    sftp_vfclose(se);
+                    return (RPC2_SUCCESS);
+                }
+            } else
+                sftp_vfclose(se); /* open failed; the daemon opens its own */
+        }
+
+        if (role == TCPFTP_ROLE_SINK && d->Tag != FILEBYINODE)
+            /* Open the sink now, best effort, so MakeRPC2 can write a
+             * piggybacked reply (and the data path has an fd if the server
+             * falls back to streaming); FILEINVM needs no fd. */
+            (void)sftp_InitIO(se);
+
         if (tcpftp_register_local(&se->TcpFtpState,
                                   (const struct sockaddr *)peer, plen, d, role,
                                   0, &cookie) != 0) {
             /* codatunnel unusable: fall back to in-VM and don't retry */
+            sftp_vfclose(se); /* the invm path below re-opens */
             se->TcpFtp             = 0;
             se->TcpFtpState.Cookie = 0;
             se->TcpFtpState.VmFd   = -1;
@@ -410,6 +455,7 @@ long SFTP_MakeRPC2(IN RPC2_Handle ConnHandle, INOUT SE_Descriptor *SDesc,
     struct SFTP_Entry *se;
     int i;
     off_t nbytes;
+    int reply_piggy;
 
     say(1, SFTP_DebugLevel, "SFTP_MakeRPC2()\n");
 
@@ -418,9 +464,20 @@ long SFTP_MakeRPC2(IN RPC2_Handle ConnHandle, INOUT SE_Descriptor *SDesc,
     SDesc->LocalStatus = SDesc->RemoteStatus = SE_SUCCESS; /* tentatively */
 
     /* Pluck off  file if piggybacked  */
-    if (Reply != NULL && (Reply->Header.SEFlags & SFTP_PIGGY) &&
-        SDesc->Value.SmartFTPD.TransmissionDirection == SERVERTOCLIENT) {
-        nbytes = sftp_ExtractFileFromPacket(se, Reply);
+    reply_piggy =
+        (Reply != NULL && (Reply->Header.SEFlags & SFTP_PIGGY) &&
+         SDesc->Value.SmartFTPD.TransmissionDirection == SERVERTOCLIENT);
+    if (reply_piggy) {
+        if (se->openfd < 0) {
+            /* A TcpFtp fetch opened the sink best effort in MakeRPC1; the
+             * daemon's own open (its registration) succeeded, so a retry
+             * should too. FILEINVM re-initializes harmlessly. */
+            if (sftp_InitIO(se) != 0)
+                nbytes = -1;
+            else
+                nbytes = sftp_ExtractFileFromPacket(se, Reply);
+        } else
+            nbytes = sftp_ExtractFileFromPacket(se, Reply);
         if (nbytes >= 0) {
             sftp_didpiggy++;
             sftp_Progress(SDesc, nbytes);
@@ -431,6 +488,21 @@ long SFTP_MakeRPC2(IN RPC2_Handle ConnHandle, INOUT SE_Descriptor *SDesc,
     }
 
     if (se->TcpFtp && se->TcpFtpState.Cookie != 0) {
+        if (reply_piggy) {
+            /* The file moved on the reply itself, so the daemon
+             * registration is now dead weight: release it non-blocking
+             * and be done. No tcpftp_finalize: this SE handler runs on
+             * the handle's io thread, the same context that demuxes the
+             * daemon's CT_FILEDONE, so waiting here would deadlock. */
+            codatunnel_file_unreg(se->TcpFtpState.Cookie);
+            se->TcpFtpState.Cookie = 0;
+            if (se->TcpFtpState.VmFd >= 0) {
+                close(se->TcpFtpState.VmFd);
+                se->TcpFtpState.VmFd = -1;
+            }
+            se->SDesc = NULL;
+            return (RPC2_SUCCESS);
+        }
         /* Client side: never block. This SE handler runs on the handle's io
          * thread, the same cooperative context that demuxes the daemon's
          * CT_FILEDONE (see codatunnel_file_wait). So the terminal status is
@@ -508,6 +580,11 @@ long SFTP_GetRequest(RPC2_Handle ConnHandle, RPC2_PacketBuffer *Request)
     se->TcpFtpState.Cookie   = 0;
     se->TcpFtpState.GotBlock = 0;
     if (Request->Header.SEFlags & SFTP_TCPFTP) {
+        /* A piggybacked file and the 8-byte cookie layout are mutually
+         * exclusive on one packet (see SFTP_TCPFTP); a squirreled file
+         * here means the client sent both. */
+        if (se->PiggySDesc != NULL)
+            FAIL(se, RPC2_SEFAIL2);
         /* The client appended the 8-byte cookie immediately before the parms;
          * the parms were extracted above, so the cookie is now the tail of the
          * body. NOTE: sftp_ExtractParmsFromPacket shrinks BodyLength but does
@@ -579,6 +656,51 @@ long SFTP_CheckSE(RPC2_Handle ConnHandle, SE_Descriptor *SDesc, long Flags)
                        TCPFTP_ROLE_SINK :
                        TCPFTP_ROLE_SOURCE;
         int status;
+
+        /* Fetch piggy: the file may ride the RPC reply instead of the
+         * tunnel, which skips the daemon registration entirely. The client
+         * pre-registered its sink in MakeRPC1 and releases it in MakeRPC2
+         * when the piggybacked reply arrives. The client must have
+         * negotiated the format (TcpFtpPiggy): a pre-piggy client cannot
+         * write a piggybacked reply. Any miss falls through to the
+         * registration below, which opens the file itself. */
+        if (role == TCPFTP_ROLE_SOURCE && d->Tag != FILEBYINODE &&
+            SFTP_DoPiggy && se->TcpFtpPiggy &&
+            (Flags & SE_AWAITREMOTESTATUS) == 0) {
+            off_t size, filelen, maxbytes;
+            int rc2;
+
+            rc2 = -1;
+            if (sftp_InitIO(se) == 0) {
+                size = sftp_vfile_size(d, se->openfd);
+                if (size >= 0) {
+                    filelen  = (off_t)tcpftp_reglen(d, role, (uint64_t)size);
+                    maxbytes = SFTP_MAXBODYSIZE; /* empty reply */
+                    if (se->PacketSize < SFTP_MAXPACKETSIZE)
+                        maxbytes -= (SFTP_MAXPACKETSIZE - se->PacketSize);
+                    if (filelen <= maxbytes) {
+                        struct FileInfoByAddr *bp;
+
+                        sftp_AllocPiggySDesc(se, filelen, SERVERTOCLIENT);
+                        bp  = &se->PiggySDesc->Value.SmartFTPD.FileInfo.ByAddr;
+                        rc2 = sftp_vfile_read(d, se->openfd, &se->fd_offset,
+                                              (char *)bp->vmfile.SeqBody,
+                                              filelen);
+                        if (rc2 < 0)
+                            sftp_FreePiggySDesc(se);
+                        else {
+                            sftp_Progress(SDesc, filelen);
+                            SDesc->RemoteStatus = SE_INPROGRESS;
+                            SDesc->LocalStatus  = SE_SUCCESS;
+                            sftp_vfclose(se);
+                            se->SDesc = NULL;
+                            return (RPC2_SUCCESS);
+                        }
+                    }
+                }
+            }
+            sftp_vfclose(se); /* miss: the daemon opens its own fd */
+        }
 
         if (!ce || !ce->HostInfo || !ce->HostInfo->Addr)
             FAIL(se, RPC2_SEFAIL1);
@@ -1025,6 +1147,11 @@ static RPC2_PacketBuffer *AwaitPacket(struct SFTP_Entry *sEntry, int retry,
 
 /*---------------------- Piggybacking routines -------------------------*/
 
+/* Shared scratch buffer for piggyback file reads, sized to the largest body
+ * any RPC2 packet can carry (both the SFTP and the TCPFTP maxbytes formulas
+ * below stay within it). */
+static char GlobalJunk[RPC2_MAXPACKETSIZE - sizeof(struct RPC2_PacketHeader)];
+
 static long MakeBigEnough(RPC2_PacketBuffer **whichP, off_t extraBytes,
                           long maxSize)
 /* Checks if whichP is a packet buffer to which extraBytes can be appended.
@@ -1100,8 +1227,6 @@ off_t sftp_AppendFileToPacket(struct SFTP_Entry *sEntry,
     long rc, maxbytes;
     off_t filelen;
     struct CEntry *ce;
-    /* buffer for read(); avoids huge local on my stack */
-    static char GlobalJunk[SFTP_MAXBODYSIZE];
 
     filelen = sftp_piggybackfilesize(sEntry);
     if (filelen < 0)
@@ -1152,6 +1277,38 @@ off_t sftp_ExtractFileFromPacket(struct SFTP_Entry *sEntry,
     /* shorten the packet */
     whichP->Header.BodyLength -= len;
     return (len);
+}
+
+/* Shared piggyback append used by the SFTP side effect (classic and TCPFTP
+ * branches) and the standalone TCPFTP side effect. Reads the bytes the
+ * codatunnel registration would have moved - tcpftp_reglen(), so a
+ * piggybacked file moves exactly what the daemon would - from the file d
+ * refers to, into GlobalJunk, and appends them to *whichP. openfd/fd_offset
+ * are the pair produced by sftp_InitIO / tcpftp_initio.
+ * Returns +len on success, -2 if the file would not fit in maxBytes, or -1
+ * on a size/read failure. On -2 and -1 openfd is left open; the caller
+ * vfcloses it. maxBytes must be no more than maxSize minus the packet header
+ * minus the current BodyLength, so that the sftp_AddPiggy assert cannot fire.
+ */
+off_t sftp_vfile_piggy(struct SFTP_Descriptor *d, long openfd, off_t *fd_offset,
+                       long role, RPC2_PacketBuffer **whichP, off_t maxBytes,
+                       unsigned int maxSize)
+{
+    off_t size, filelen;
+
+    size = sftp_vfile_size(d, openfd);
+    if (size < 0)
+        return (-1);
+
+    filelen = (off_t)tcpftp_reglen(d, (int)role, (uint64_t)size);
+    if (filelen > maxBytes)
+        return (-2);
+
+    if (sftp_vfile_read(d, openfd, fd_offset, GlobalJunk, filelen) < 0)
+        return (-1);
+
+    assert(sftp_AddPiggy(whichP, GlobalJunk, filelen, maxSize) == 0);
+    return (filelen);
 }
 
 int sftp_AppendParmsToPacket(struct SFTP_Entry *sEntry,

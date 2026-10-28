@@ -50,6 +50,15 @@ struct TcpFtpState {
 #define TCPFTP_ROLE_SOURCE 0 /* mirror CT_SOURCE / CT_SINK (codatunnel/ctp.h) */
 #define TCPFTP_ROLE_SINK 1
 
+/* SEFlags bit: a piggybacked file rides this packet's body (see the SFTP
+ * piggyback wire format: file bytes in Body[SEDataOffset..BodyLength], this
+ * bit set, no SEDataOffset adjustment needed for the file). TCPFTP_PIGGY has
+ * the same value as SFTP_PIGGY so sftp_AddPiggy() is reusable as-is. On any
+ * given packet the piggy flag and the 8-byte cookie layout are mutually
+ * exclusive: a cookie request carries [cookie][parms] in the body and
+ * neither flag, a piggybacked request carries the file and the flag. */
+#define TCPFTP_PIGGY 0x2
+
 /* Length a local registration reports to the daemon: for a source, size past
  * the seek offset capped at ByteQuota when positive (<= 0 == unlimited,
  * matching classic SFTP); for a sink, 0 (accept however many bytes arrive).

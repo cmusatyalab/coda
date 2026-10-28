@@ -21,6 +21,7 @@ CREDITS.
 #include <gtest/gtest.h>
 
 #include <rpc2/rpc2.h>
+#include <rpc2/sftp.h>
 #include <rpc2/tcpftp.h>
 
 #include "ctp.h"
@@ -129,7 +130,9 @@ TEST(tcpftp, capability_flag_does_not_collide)
 {
     EXPECT_EQ(TCPFTP_CAPABLE, 0x20u);
     EXPECT_EQ(RPC2SEC_CAPABLE, 0x10u);
+    EXPECT_EQ(TCPFTP_PIGGY_CAPABLE, 0x40u);
     EXPECT_EQ(TCPFTP_CAPABLE & RPC2SEC_CAPABLE, 0u);
+    EXPECT_EQ(TCPFTP_PIGGY_CAPABLE & (TCPFTP_CAPABLE | RPC2SEC_CAPABLE), 0u);
 }
 
 /* The SFTP->TCPFTP upgrade is opt-in: RPC2_TCPFTP is read once in RPC2_Init
@@ -227,4 +230,53 @@ TEST(tcpftp, request_wire_layout)
     EXPECT_EQ(ct_ntoh64(*(uint64_t *)raw), 0x1122334455667788ULL);
     EXPECT_EQ(ct_ntoh64(*(uint64_t *)(raw + 8)), 0x1000ULL);
     EXPECT_EQ(ct_ntoh64(*(uint64_t *)(raw + 16)), (uint64_t)CT_CHUNKMAX);
+}
+
+/* The piggyback flag contract shared by the SFTP and TCPFTP side effects:
+ * TCPFTP_PIGGY must be exactly SFTP_PIGGY so that sftp_AddPiggy (which sets
+ * the flag and SEDataOffset itself) and the receivers' flag tests behave
+ * identically in both side effects, and it must be disjoint from SFTP_TCPFTP:
+ * a packet carries either the piggy region or the 8-byte cookie, never both. */
+TEST(tcpftp, piggy_flag_contract)
+{
+    EXPECT_EQ(TCPFTP_PIGGY, SFTP_PIGGY);
+    EXPECT_EQ(TCPFTP_PIGGY, 0x2u);
+    EXPECT_EQ(SFTP_TCPFTP, 0x40u);
+    EXPECT_EQ(TCPFTP_PIGGY & SFTP_TCPFTP, 0u);
+}
+
+/* Piggy region layout: with the flag set, the file's bytes occupy
+ * Body[SEDataOffset..BodyLength) with no per-file framing. The zero-byte
+ * file is a legal degenerate case (SEDataOffset == BodyLength), not a "no
+ * piggy" marker -- the flag, not the region, says a file is present. The
+ * complementary cookie case carries exactly one 8-byte param block. */
+TEST(tcpftp, piggy_region_layout)
+{
+    /* The header tag is only complete through the enclosing buffer type,
+     * so drive the layout off a real (unallocated) packet buffer. */
+    RPC2_PacketBuffer pb;
+
+    memset(&pb, 0, sizeof(pb));
+
+    /* Nonzero piggy: 3 bytes of ordinary body, then 5 bytes of file. */
+    pb.Header.SEFlags      = TCPFTP_PIGGY;
+    pb.Header.SEDataOffset = 3;
+    pb.Header.BodyLength   = 8;
+    EXPECT_EQ((unsigned long)pb.Header.BodyLength -
+                  (unsigned long)pb.Header.SEDataOffset,
+              5u);
+
+    /* Zero-byte piggy: the region shrinks to nothing, flag still set. */
+    pb.Header.BodyLength = 3;
+    EXPECT_EQ((unsigned long)pb.Header.BodyLength -
+                  (unsigned long)pb.Header.SEDataOffset,
+              0u);
+    EXPECT_EQ(pb.Header.SEFlags & TCPFTP_PIGGY, TCPFTP_PIGGY);
+
+    /* Cookie case: no piggy flag; the region is exactly the 8-byte block. */
+    pb.Header.SEFlags    = SFTP_TCPFTP;
+    pb.Header.BodyLength = 11;
+    EXPECT_EQ((unsigned long)pb.Header.BodyLength -
+                  (unsigned long)pb.Header.SEDataOffset,
+              8u);
 }

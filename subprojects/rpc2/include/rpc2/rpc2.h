@@ -495,6 +495,12 @@ typedef struct RPC2_PacketBuffer {
 /*      RPC2SEC_CAPABLE 0x08	   Old rpc2sec flag */
 #define RPC2SEC_CAPABLE 0x10 /* set on Init1 packet by new rpc2sec stack */
 #define TCPFTP_CAPABLE 0x20 /* set on packets by a TCPFTP-capable peer */
+/* Set like TCPFTP_CAPABLE, but advertises understanding of the piggybacked
+ * file wire format (a whole file in the packet body, SFTP_PIGGY /
+ * TCPFTP_PIGGY in SEFlags). Negotiated with the same Init1/Init2 echo; a
+ * pre-piggy peer simply never sets or echoes it, so both ends fall back to
+ * the daemon-only path. */
+#define TCPFTP_PIGGY_CAPABLE 0x40 /* set on packets by a piggy-capable peer */
 
 int rpc2_tcpftp_capable(void); /* true iff codatunneld is running AND the
                                   RPC2_TCPFTP opt-in gate is enabled */

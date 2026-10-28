@@ -449,6 +449,10 @@ ScanWorkList:
      * as TCPFTP-negotiated; the Init2 packet carries the bit back. */
     if ((pb->Header.Flags & TCPFTP_CAPABLE) && rpc2_tcpftp_capable())
         ce->Flags |= CE_TCPFTP;
+    /* Piggybacked files only make sense on a TCPFTP-negotiated connection, so
+     * require that too; this end understands the format unconditionally. */
+    if ((ce->Flags & CE_TCPFTP) && (pb->Header.Flags & TCPFTP_PIGGY_CAPABLE))
+        ce->Flags |= CE_TCPFTP_PIGGY;
 
     memset(SharedSecret, 0, sizeof(RPC2_EncryptionKey));
     clientIdent = (ce->SecurityLevel != RPC2_OPENKIMONO) ? &cident : NULL;
@@ -922,9 +926,10 @@ try_next_addr:
         ib->Preferred_Keysize = htonl(RPC2_Preferred_Keysize);
     }
     /* advertise TCPFTP/codatunnel support to the server, but only when this
-     * end can actually open the daemon-to-daemon tunnel (venus, not codasrv) */
+     * end can actually open the daemon-to-daemon tunnel (venus, not codasrv);
+     * the piggy bit is a build capability and rides along */
     if (rpc2_tcpftp_capable_initiator())
-        pb->Header.Flags |= TCPFTP_CAPABLE;
+        pb->Header.Flags |= TCPFTP_CAPABLE | TCPFTP_PIGGY_CAPABLE;
 
     rpc2_htonp(pb); /* convert header to network order */
 
@@ -1056,6 +1061,10 @@ try_next_addr:
      * initiating end, the connection can use the codatunnel offload. */
     if ((pb->Header.Flags & TCPFTP_CAPABLE) && rpc2_tcpftp_capable_initiator())
         ce->Flags |= CE_TCPFTP;
+    /* The server echoes the piggy bit only when it understands the format and
+     * the connection negotiated TCPFTP, so the echo is the whole check. */
+    if ((ce->Flags & CE_TCPFTP) && (pb->Header.Flags & TCPFTP_PIGGY_CAPABLE))
+        ce->Flags |= CE_TCPFTP_PIGGY;
 
     RPC2_FreeBuffer(&pb); /* Release INIT2 packet */
 
@@ -1499,6 +1508,8 @@ static void SendOKInit2(IN struct CEntry *ce)
 
     if (ce->Flags & CE_TCPFTP)
         pb->Header.Flags |= TCPFTP_CAPABLE;
+    if (ce->Flags & CE_TCPFTP_PIGGY)
+        pb->Header.Flags |= TCPFTP_PIGGY_CAPABLE;
 
     rpc2_htonp(pb); /* convert to network order */
     rpc2_XmitPacket(pb, ce->HostInfo->Addr, 1);
@@ -1601,6 +1612,8 @@ static RPC2_PacketBuffer *Send2Get3(struct CEntry *ce, RPC2_EncryptionKey key,
 
     if (ce->Flags & CE_TCPFTP)
         pb2->Header.Flags |= TCPFTP_CAPABLE;
+    if (ce->Flags & CE_TCPFTP_PIGGY)
+        pb2->Header.Flags |= TCPFTP_PIGGY_CAPABLE;
 
     if (ce->TimeStampEcho) /* service time is now-requesttime */
         rpc2_StampPacket(ce, pb2);
