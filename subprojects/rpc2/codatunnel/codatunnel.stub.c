@@ -67,6 +67,16 @@ int codatunnel_file_register(const struct sockaddr *peer, socklen_t addrlen,
     return -1;
 }
 
+void codatunnel_file_progress(uint64_t cookie,
+                              void (*cb)(void *userp, unsigned int offset),
+                              void *userp, uint64_t seek)
+{
+    (void)cookie;
+    (void)cb;
+    (void)userp;
+    (void)seek;
+}
+
 void codatunnel_file_unreg(uint64_t cookie)
 {
     (void)cookie;

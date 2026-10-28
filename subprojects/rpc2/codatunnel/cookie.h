@@ -35,6 +35,12 @@ extern "C" {
  * venus/codasrv, at a cost of a 256-entry scan per look-up. */
 #define CT_COOKIE_MAX 256
 
+/* Progress callback attached to a registration (app side only). Invoked on
+ * the io thread for every daemon CT_FILEPROGRESS, with the file-relative
+ * offset so far (seek + bytes). Same signature as SE_Descriptor::XferCB. The
+ * daemon never sets a progress callback (it stores its ct_filerec in waiter). */
+typedef void (*ct_progress_cb_t)(void *userp, unsigned int offset);
+
 /* ct_cookie_get() returns this when the cookie is known but the daemon has
  * not yet delivered a terminal status. A plain -1 means the cookie is
  * unknown; 0 means a status is available. */
@@ -50,6 +56,20 @@ int ct_cookie_add(uint64_t cookie, void *waiter);
  * Returns 0 if the cookie is known (status/nbytes stored), -1 if unknown and
  * the delivery is dropped (peer already forgot the registration). */
 int ct_cookie_deliver(uint64_t cookie, uint32_t status, uint64_t nbytes);
+
+/* Attach a progress callback to a known cookie (app side). Called once by the
+ * SE layer right after the registration, so the cookie slot already exists.
+ * A NULL cb detaches progress for the cookie. Returns 0 if the cookie is
+ * known, -1 otherwise. seek is the registration start so the callback can
+ * report the file-relative offset (seek + bytes). */
+int ct_cookie_set_progress(uint64_t cookie, ct_progress_cb_t cb, void *userp,
+                           uint64_t seek);
+
+/* Invoke the cookie's progress callback with nbytes transferred so far.
+ * Called by the CT_FILEPROGRESS demux; runs on the io thread. Returns 0 if a
+ * callback ran, -1 if none was attached or the cookie is unknown. Unlike
+ * ct_cookie_deliver() it never marks the cookie finished or wakes a wait. */
+int ct_cookie_progress(uint64_t cookie, uint64_t nbytes, uint32_t status);
 
 /* If the cookie is known and a status has been delivered, store *status and
  * *nbytes (when non-NULL) and return 0. Returns CT_COOKIE_PENDING if the

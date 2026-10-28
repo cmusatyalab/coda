@@ -76,6 +76,15 @@ ssize_t codatunnel_recvfrom(int sockfd, void *buf, size_t len, int flags,
 int codatunnel_file_register(const struct sockaddr *peer, socklen_t addrlen,
                              int fd, uint64_t offset, uint64_t length, int role,
                              uint64_t *cookie);
+/* Attach a progress callback to a registration (the app half of the daemon's
+ * CT_FILEPROGRESS). cb/userp come from the SE descriptor's XferCB/userp and
+ * seek is its SeekOffset; the callback fires on the io thread for every chunk
+ * the daemon reports, with the file-relative offset so far (seek + bytes). A
+ * NULL cb turns progress off for the cookie. No-op when the tunnel is not
+ * started. Call after codatunnel_file_register() succeeds. */
+void codatunnel_file_progress(uint64_t cookie,
+                              void (*cb)(void *userp, unsigned int offset),
+                              void *userp, uint64_t seek);
 int codatunnel_file_wait(uint64_t cookie, int timeout_ticks, int nowait,
                          uint64_t *nbytes);
 void codatunnel_file_unreg(uint64_t cookie);

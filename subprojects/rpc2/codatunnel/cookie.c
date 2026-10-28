@@ -30,6 +30,9 @@ struct ct_cookie_entry {
     void *waiter;
     int finished;
     int in_use;
+    ct_progress_cb_t progress_cb; /* app side only; NULL when unset */
+    void *progress_userp;
+    uint64_t progress_seek;
 };
 
 static struct ct_cookie_entry cookies[CT_COOKIE_MAX];
@@ -52,12 +55,15 @@ static int find_free_slot(void)
 
 static void init_slot(int i, uint64_t cookie, void *waiter)
 {
-    cookies[i].cookie   = cookie;
-    cookies[i].status   = 0;
-    cookies[i].nbytes   = 0;
-    cookies[i].waiter   = waiter;
-    cookies[i].finished = 0;
-    cookies[i].in_use   = 1;
+    cookies[i].cookie         = cookie;
+    cookies[i].status         = 0;
+    cookies[i].nbytes         = 0;
+    cookies[i].waiter         = waiter;
+    cookies[i].finished       = 0;
+    cookies[i].in_use         = 1;
+    cookies[i].progress_cb    = NULL;
+    cookies[i].progress_userp = NULL;
+    cookies[i].progress_seek  = 0;
 }
 
 int ct_cookie_add(uint64_t cookie, void *waiter)
@@ -80,6 +86,31 @@ int ct_cookie_deliver(uint64_t cookie, uint32_t status, uint64_t nbytes)
     cookies[i].status   = status;
     cookies[i].nbytes   = nbytes;
     cookies[i].finished = 1;
+    return 0;
+}
+
+int ct_cookie_set_progress(uint64_t cookie, ct_progress_cb_t cb, void *userp,
+                           uint64_t seek)
+{
+    int i = find_slot(cookie);
+    if (i < 0)
+        return -1;
+    cookies[i].progress_cb    = cb;
+    cookies[i].progress_userp = userp;
+    cookies[i].progress_seek  = seek;
+    return 0;
+}
+
+int ct_cookie_progress(uint64_t cookie, uint64_t nbytes, uint32_t status)
+{
+    int i = find_slot(cookie);
+    if (i < 0)
+        return -1;
+    if (!cookies[i].progress_cb)
+        return -1;
+    (void)status; /* progress carries no meaningful status */
+    cookies[i].progress_cb(cookies[i].progress_userp,
+                           (unsigned int)(cookies[i].progress_seek + nbytes));
     return 0;
 }
 

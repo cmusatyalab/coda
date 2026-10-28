@@ -655,6 +655,11 @@ static long TCPFTP_MakeRPC1(RPC2_Handle ConnHandle, SE_Descriptor *SDesc,
     }
     se->TcpFtp.Cookie   = cookie;
     se->TcpFtp.GotBlock = 0;
+    /* The daemon owns the I/O, so report per-chunk progress back through the
+     * SE descriptor's progress callback, mirroring SFTP's XferCB. No-op when
+     * the app left XferCB NULL. */
+    codatunnel_file_progress(cookie, SDesc->XferCB, SDesc->userp,
+                             (uint64_t)d->SeekOffset);
 
     if (tcpftp_pack_param_block(&cookie, blk, sizeof(blk), &blen) != 0 ||
         tcpftp_append_block(RequestPtr, blk, blen) != 0) {
@@ -909,6 +914,9 @@ static long TCPFTP_CheckSE(RPC2_Handle ConnHandle, SE_Descriptor *SDesc,
     if (rc != 0)
         return rc; /* already an RPC2_SEFAIL* code */
     se->TcpFtp.Cookie = cookie;
+    /* Per-chunk progress for the daemon-driven transfer, as above. */
+    codatunnel_file_progress(cookie, SDesc->XferCB, SDesc->userp,
+                             (uint64_t)d->SeekOffset);
 
     status              = tcpftp_finalize(&se->TcpFtp, d, cookie, 0);
     se->TcpFtp.Cookie   = 0;

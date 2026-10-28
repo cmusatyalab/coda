@@ -333,6 +333,17 @@ int codatunnel_file_register(const struct sockaddr *peer, socklen_t addrlen,
     return 0;
 }
 
+void codatunnel_file_progress(uint64_t cookie,
+                              void (*cb)(void *userp, unsigned int offset),
+                              void *userp, uint64_t seek)
+{
+    if (!codatunnel_enable_codatunnel || cookie == 0)
+        return;
+    TLOG("TCPFTP file_progress cookie=%lu cb=%p seek=%lu\n",
+         (unsigned long)cookie, (void *)cb, (unsigned long)seek);
+    ct_cookie_set_progress(cookie, (ct_progress_cb_t)cb, userp, seek);
+}
+
 void codatunnel_file_unreg(uint64_t cookie)
 {
     uint64_t c = cookie;
@@ -531,6 +542,23 @@ ssize_t codatunnel_recvfrom(int sockfd, void *buf, size_t len, int flags,
         // returning 0 will make it look like a short read
         // secure_recvfrom will drop the packet and sets errno to ENOMEM
         // rpc2_RecvPacket will go back to the socketlistener loop
+        return 0;
+    }
+
+    if (p.opcode == CT_FILEPROGRESS) {
+        /* Non-terminal per-chunk progress pushed down by the daemon; fire the
+         * registration's progress callback (if any) and keep reading so the
+         * SocketListener's "give me one RPC2 packet" cadence is unchanged.
+         * This never completes a codatunnel_file_wait() - it just re-enters
+         * the SE layer's XferCB, exactly as SFTP does on its sink loop. */
+        if ((size_t)(rc - (ssize_t)sizeof(ctp_t)) >= sizeof(ct_fileprogress)) {
+            ct_fileprogress pr;
+            int c;
+            memcpy(&pr, buf, sizeof(ct_fileprogress));
+            c = ct_cookie_progress(pr.cookie, pr.nbytes, pr.status);
+            TLOG("TCPFTP FILEPROGRESS(demux) cookie=%lu nbytes=%lu fire=%d\n",
+                 (unsigned long)pr.cookie, (unsigned long)pr.nbytes, c);
+        }
         return 0;
     }
 

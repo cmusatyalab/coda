@@ -50,6 +50,9 @@ enum ct_opcode
     CT_TRANSFER_ERROR = 8, /* daemon->daemon: local open/xfer failed */
     CT_TRANSFER_REQUEST =
         9, /* daemon->daemon: sink asks the source for bytes @{cookie,offset} */
+    CT_FILEPROGRESS =
+        10, /* daemon->app: per-chunk progress for a registration (body =
+            * ct_fileprogress); non-terminal, never completes a file_wait */
 };
 
 /* role values for ct_filereg.role */
@@ -109,6 +112,19 @@ typedef struct ct_filedone {
     uint32_t status; /* SFTP error space; 0 == success */
     uint32_t pad;
 } ct_filedone;
+
+/* Non-terminal per-chunk progress pushed down by the daemon to its app (the
+ * app->daemon CT_FILEREG counterpart of CT_FILEDONE). Same layout as
+ * ct_filedone - a cookie plus a running byte count - but it is NOT a terminal
+ * state: the app's progress callback consumes it and it never completes a
+ * codatunnel_file_wait(). nbytes is the running byte count from the
+ * registration start (rec->next - rec->offset). */
+typedef struct ct_fileprogress {
+    uint64_t cookie;
+    uint64_t nbytes;
+    uint32_t status; /* reserved; always 0 for progress */
+    uint32_t pad;
+} ct_fileprogress;
 
 typedef struct ct_filereg {
     uint64_t cookie;

@@ -280,3 +280,33 @@ TEST(tcpftp, piggy_region_layout)
                   (unsigned long)pb.Header.SEDataOffset,
               8u);
 }
+
+/* CT_FILEPROGRESS is the daemon->app per-chunk progress: a new opcode
+ * appended after the original 0-9 block (the explicit value 10 keeps every
+ * earlier opcode stable for backward compatibility), and its vside body
+ * reuses the exact 24-byte layout of the CT_FILEDONE body so the demux size
+ * check stays symmetric. The body is written in native byte order (the app
+ * half of the vside memcpys it straight into the struct), so the field
+ * offsets are plain struct offsets: cookie at +0, running bytes at +8. */
+TEST(tcpftp, fileprogress_wire_layout)
+{
+    EXPECT_EQ(CT_FILEPROGRESS, 10u);
+    EXPECT_EQ(CT_FILEPROGRESS, (int)CT_TRANSFER_REQUEST + 1);
+
+    /* Same size as the terminal body... */
+    EXPECT_EQ(sizeof(ct_fileprogress), sizeof(ct_filedone));
+    EXPECT_EQ(sizeof(ct_fileprogress), 24u);
+
+    /* ...and the same field offsets. */
+    ct_fileprogress pr;
+    memset(&pr, 0, sizeof(pr));
+    pr.cookie    = 0x0102030405060708ULL;
+    pr.nbytes    = 0x1000;
+    pr.status    = 0;
+    pr.pad       = 0;
+    uint8_t *raw = (uint8_t *)&pr;
+    EXPECT_EQ(*(uint64_t *)raw, 0x0102030405060708ULL);
+    EXPECT_EQ(*(uint64_t *)(raw + 8), 0x1000ULL);
+    EXPECT_EQ(*(uint32_t *)(raw + 16), 0u);
+    EXPECT_EQ(*(uint32_t *)(raw + 20), 0u);
+}

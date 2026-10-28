@@ -436,6 +436,58 @@ static void ct_push_filedone(uint64_t cookie, uint32_t status, uint64_t nbytes)
     }
 }
 
+/* Push a non-terminal per-chunk progress to the app over the vside, exactly
+ * the framing ct_push_filedone() uses (a minicb carries the buffer so libuv
+ * frees it when the send completes). It reports the running byte count (from
+ * the registration start) so the app's progress callback can gauge how far the
+ * transfer has gotten; it is never terminal, so it never completes a file_wait
+ * and the app's CT_FILEPROGRESS demux simply re-enters the SE layer's
+ * XferCB. One is pushed per chunk at every point the daemon moves a chunk
+ * (a sink receiving, a pump sending, a pull answering a request). */
+static void ct_push_progress(uint64_t cookie, uint64_t nbytes)
+{
+    minicb_pipe_req_t *req;
+    char *pkt;
+    ctp_t *p;
+    ct_fileprogress *pr;
+    int rc;
+
+    TLOG("TCPFTP PROGRESS cookie=%lu nbytes=%lu\n", (unsigned long)cookie,
+         (unsigned long)nbytes);
+
+    req = malloc(sizeof(*req));
+    pkt = malloc(sizeof(ctp_t) + sizeof(ct_fileprogress));
+    if (!req || !pkt) {
+        ERROR("malloc() failed\n");
+        free(req);
+        free(pkt);
+        return;
+    }
+    req->qnext = NULL;
+
+    p  = (ctp_t *)pkt;
+    pr = (ct_fileprogress *)(pkt + sizeof(ctp_t));
+    strncpy(p->magic, "magic01", sizeof(p->magic));
+    memset(&p->addr, 0, sizeof(p->addr));
+    p->opcode   = CT_FILEPROGRESS;
+    p->is_retry = 0;
+    p->msglen   = sizeof(ct_fileprogress);
+    p->addrlen  = 0;
+    pr->cookie  = cookie;
+    pr->nbytes  = nbytes;
+    pr->status  = 0;
+    pr->pad     = 0;
+
+    req->msg      = uv_buf_init(pkt, sizeof(ctp_t) + sizeof(ct_fileprogress));
+    req->req.data = pkt;
+    rc = uv_write(&req->req, (uv_stream_t *)&codatunnel, &req->msg, 1,
+                  minicb_pipe);
+    if (rc) {
+        ERROR("uv_write(): rc = %d\n", rc);
+        minicb_pipe(&req->req, rc);
+    }
+}
+
 /* ---- source pump + registration lifetime ------------------------------ */
 
 /* The body of a daemon->daemon record travels over the TLS hop in network
@@ -689,6 +741,8 @@ static void ct_pump_send_next(ct_pump_t *p)
          (unsigned long)n);
     /* transport owns the buffer; p->arm re-arms the pump when this hits TCP */
     send_to_tcp_dest(p->d, total, &buft, &p->arm);
+    /* Chunk emitted: report running progress to the app. */
+    ct_push_progress(p->cookie, p->off - p->begin);
 }
 
 /* A chunk landed on TCP: the send worker posted p->arm (thread-safe
@@ -867,6 +921,9 @@ static void ct_transfer_data_arrived(const ct_async_req_t *r)
         return;
     }
     rec->next = r->offset + n;
+
+    /* A chunk landed: report running progress to the app. */
+    ct_push_progress(r->cookie, rec->next - rec->offset);
 
     /* Sink-driven pull: after a chunk lands, ask for the next one. Only the
      * DRIVER (server-side, push) sink drives; the fetch client sink stays
@@ -2680,6 +2737,8 @@ static void ct_transfer_request_arrived(const ct_async_req_t *r)
     TLOG("TCPFTP PULL DATA cookie=%lu off=%lu len=%lu\n",
          (unsigned long)r->cookie, (unsigned long)r->offset, (unsigned long)n);
     send_to_tcp_dest(r->d, (ssize_t)total, &buft, NULL);
+    /* Chunk served: report running progress to the app. */
+    ct_push_progress(r->cookie, rec->next - rec->offset);
     free(scratch);
 
     if (rec->next >= end)
