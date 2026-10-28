@@ -19,7 +19,7 @@ project(
 # - if any interfaces were added, increment lt_age
 # - if any interfaces were removed or changed, set lt_age to 0
 #
-lt_revision = 3
+lt_revision = 4
 lt_current = 15
 lt_age = 9
 lt_version = '@0@.@1@.@2@'.format(lt_current - lt_age, lt_age, lt_revision)
@@ -29,8 +29,15 @@ compiler = meson.get_compiler('c')
 
 lwp_dep = dependency('lwp', fallback: ['lwp', 'lwp_dep'])
 
-# for codatunnel
-libuv_dep = dependency('libuv', version: '>= 1.4.0')
+# for codatunnel. File fds are handed to the daemon via SCM_RIGHTS, which
+# needs uv_pipe_pending_type() to report UV_FILE for regular files; that
+# only works with libuv >= 1.44.2. Use the pinned subproject when the
+# system libuv is older.
+libuv_dep = dependency(
+    'libuv',
+    version: '>= 1.44.2',
+    fallback: ['libuv', 'libuv_dep'],
+)
 gnutls_dep = dependency('gnutls')
 
 # lua for network emulation scripts. Prefer an installed system Lua, else

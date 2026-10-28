@@ -73,6 +73,29 @@ int codatunnel_fork(int argc, char **argv, const char *tcp_bindaddr,
     DEBUG("codatunnel_fork(\"%s:%s\", \"%s:%s\", %d)\n", tcp_bindaddr,
           bind_service, udp_bindaddr, bind_service, onlytcp);
 
+    /* The file handoff to the daemon needs libuv >= CT_MIN_UV_VERSION (see
+     * the macro comment); check the version of the libuv this process
+     * actually loaded, not the one we were built against. The daemon is
+     * forked, not exec'd, so it inherits exactly this one. */
+    if (uv_version() < CT_MIN_UV_VERSION) {
+        if (onlytcp) {
+            /* the in-band RPC2 path is not an option when the caller asks
+             * for TCP-only tunneling; fail instead of degrading */
+            fprintf(stderr,
+                    "codatunnel_fork: libuv %s is older than 1.44.2 and "
+                    "onlytcp is set, cannot continue without codatunnel\n",
+                    uv_version_string());
+            errno = EPROTONOSUPPORT;
+            return -1;
+        }
+        fprintf(stderr,
+                "codatunnel_fork: libuv %s is older than 1.44.2, codatunnel "
+                "disabled, using the regular in-band RPC2 path (no TCPFTP "
+                "offload)\n",
+                uv_version_string());
+        return 0;
+    }
+
     /* codatunnel is enabled when the daemon process is forked */
     codatunnel_enable_codatunnel = 1;
     codatunnel_i_am_server       = (tcp_bindaddr != NULL);

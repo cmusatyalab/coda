@@ -52,6 +52,14 @@ int mapthread(uv_thread_t);
         fflush(stderr);                                    \
     } while (0)
 
+/* Minimum libuv version, packed the way uv_version() reports it. File
+ * registration relies on uv_pipe_pending_type() reporting UV_FILE for
+ * SCM_RIGHTS fds, which libuv only does since 1.44.2; on older versions the
+ * fds are silently dropped. That behavior is not detectable at link time (an
+ * old libuv links cleanly), so both the parent and the forked daemon check
+ * uv_version() against this at startup. */
+#define CT_MIN_UV_VERSION ((1 << 16) | (44 << 8) | 2)
+
 /* Timeline log for the daemon-driven file transfer and the per-packet tunnel
  * trace. Gated behind the CODATUNNEL_TLOG env var (default OFF) so a normal
  * build is silent and disk-safe; set CODATUNNEL_TLOG to any value to turn on

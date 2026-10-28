@@ -2406,6 +2406,18 @@ void codatunneld(int codatunnel_sockfd, const char *tcp_bindaddr,
 
     fprintf(stderr, "codatunneld: starting\n");
 
+    /* File registration needs libuv >= CT_MIN_UV_VERSION (see the macro
+     * comment); the parent already checked this before forking, but verify
+     * here too so this daemon can never run on an older libuv and silently
+     * drop file handoffs. */
+    if (uv_version() < CT_MIN_UV_VERSION) {
+        fprintf(stderr,
+                "codatunneld: libuv %s is older than 1.44.2, file "
+                "registration would not work; exiting\n",
+                uv_version_string());
+        exit(-1);
+    }
+
     if (tcp_bindaddr)
         codatunnel_I_am_server = 1; /* remember who I am */
     if (onlytcp)
