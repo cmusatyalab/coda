@@ -1,12 +1,13 @@
 tags
 doxygen/html
-.wraplock
 packagecache/
 subprojects/googletest-*/
 subprojects/libuv-*/
 subprojects/libuv.wrap
 subprojects/lua-*/
 subprojects/lua.wrap
+subprojects/.wraplock
+subprojects/wrapdb.json
 *.orig
 *.swp
 *~
