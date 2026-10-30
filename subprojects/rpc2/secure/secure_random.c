@@ -1,8 +1,8 @@
 /* BLURB lgpl
 			Coda File System
-			    Release 6
+			    Release 8
 
-	    Copyright (c) 2006 Carnegie Mellon University
+	    Copyright (c) 2006-2026 Carnegie Mellon University
 		  Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -343,7 +343,9 @@ static void check_random(int verbose)
 /* initialization only called from secure_init */
 void secure_random_init(int verbose)
 {
-    uint8_t initial_seed[INITIAL_SEED_LENGTH];
+    /* reserve extra space we don't actually use just so that the compiler
+     * doesn't freak out about all of our memcpy's into this region */
+    uint8_t initial_seed[INITIAL_SEED_LENGTH * 2];
 
     if (counter != 0)
         return; /* we're already initialized */
