@@ -2,7 +2,7 @@ project(
     'rpc2',
     'c',
     'cpp',
-    version: '2.42',
+    version: '2.43',
     license: 'LGPL-2.0-only',
     default_options: [
         'warning_level=1',
