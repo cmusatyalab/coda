@@ -24,7 +24,7 @@ checkver () {
   fi
 
   # the meson.build project version should match the git tag
-  MESONVER=$(sed -n "s/^[[:space:]]*version:[[:space:]]*'\([^']*\)',\{0,1\}$/\1/p" "$SUBDIR/meson.build")
+  MESONVER=$(sed -n "1,10 s/^[[:space:]]*version:[[:space:]]*'\([^']*\)',\{0,1\}$/\1/p" "$SUBDIR/meson.build")
   if [ -n "$MESONVER" ] && [ "$MESONVER" != "$RELEASE" ] ; then
     echo "$SUBSYS: meson.build version $MESONVER does not match git tag $RELEASE"
     [ "$TAGGED_SUBSYS" = "$SUBSYS" ] && exit 1
