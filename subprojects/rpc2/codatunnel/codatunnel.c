@@ -21,14 +21,16 @@ Coda are listed in the file CREDITS.
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#include <assert.h>
 #include <uv.h>
 
 #include <lwp/lwp.h>
 #include <rpc2/codatunnel.h>
 
+#include "codatunnel_log.h"
 #include "codatunneld.private.h"
-#include "cookie.h"
 #include "codatunnel.private.h"
+#include "cookie.h"
 
 /* global flag below controls whether codatunnel is used */
 static int codatunnel_enable_codatunnel = 0; /* non zero to enable tunneling */

@@ -21,70 +21,14 @@ Coda are listed in the file CREDITS.
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <assert.h>
-#include <sys/time.h>
 #include <stdlib.h>
 #include <uv.h>
 #include <gnutls/gnutls.h>
 
+#include "codatunnel_log.h"
 #include "ctp.h"
 
 int mapthread(uv_thread_t);
-
-#if 0 /* per-packet/per-record trace; off by default (see TLOG below) */
-#define DEBUG(...)                                                      \
-    do {                                                                \
-        struct timeval tt;                                              \
-        gettimeofday(&tt, 0);                                           \
-        int myid = mapthread(uv_thread_self());                         \
-        fprintf(stderr, "[%d] %ld.%06ld %s:%d ", myid, (long)tt.tv_sec, \
-                (long)tt.tv_usec, __FUNCTION__, __LINE__);              \
-        fprintf(stderr, __VA_ARGS__);                                   \
-        fflush(stderr);                                                 \
-    } while (0)
-#else
-#define DEBUG(...)
-#endif
-
-#define ERROR(...)                                         \
-    do {                                                   \
-        fprintf(stderr, "%s:%d ", __FUNCTION__, __LINE__); \
-        fprintf(stderr, __VA_ARGS__);                      \
-        fflush(stderr);                                    \
-    } while (0)
-
-/* Minimum libuv version, packed the way uv_version() reports it. File
- * registration relies on uv_pipe_pending_type() reporting UV_FILE for
- * SCM_RIGHTS fds, which libuv only does since 1.44.2; on older versions the
- * fds are silently dropped. That behavior is not detectable at link time (an
- * old libuv links cleanly), so both the parent and the forked daemon check
- * uv_version() against this at startup. */
-#define CT_MIN_UV_VERSION ((1 << 16) | (44 << 8) | 2)
-
-/* Timeline log for the daemon-driven file transfer and the per-packet tunnel
- * trace. Gated behind the CODATUNNEL_TLOG env var (default OFF) so a normal
- * build is silent and disk-safe; set CODATUNNEL_TLOG to any value to turn on
- * the full trace for a debugging session (no rebuild needed to toggle). Every
- * line is prefixed with a gettimeofday stamp (sec.usec) so client and server
- * daemon logs can be turned into timelines and correlated. */
-static inline int ct_tlog_enabled(void)
-{
-    static int en = -1;
-
-    if (en < 0)
-        en = (getenv("CODATUNNEL_TLOG") != NULL);
-    return en;
-}
-
-#define TLOG(...)                                                             \
-    do {                                                                      \
-        if (ct_tlog_enabled()) {                                              \
-            struct timeval tt;                                                \
-            gettimeofday(&tt, 0);                                             \
-            fprintf(stderr, "%ld.%06ld ", (long)tt.tv_sec, (long)tt.tv_usec); \
-            fprintf(stderr, __VA_ARGS__);                                     \
-            fflush(stderr);                                                   \
-        }                                                                     \
-    } while (0)
 
 /* the actual tunnel daemon (defined in codatunneld.c) */
 void codatunneld(int codatunnel_sockfd, const char *tcp_bindaddr,

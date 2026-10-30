@@ -1,6 +1,7 @@
 codatunnel_sources = [
     'codatunnel.c',
     'codatunnel.private.h',
+    'codatunnel_log.h',
     'codatunneld.c',
     'codatunneld.private.h',
     'cookie.c',

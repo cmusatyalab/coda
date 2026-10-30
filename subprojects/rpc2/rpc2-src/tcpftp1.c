@@ -41,9 +41,7 @@ Coda are listed in the file CREDITS.
 #include <sys/time.h>
 #include <sys/types.h>
 
-/* codatunneld.private.h must precede rpc2.private.h: the latter defines a
- * FREE macro that would clobber the dest-state enumerator in the former. */
-#include "codatunneld.private.h" /* TLOG (gated by CODATUNNEL_TLOG) */
+#include "codatunnel_log.h" /* TLOG (gated by CODATUNNEL_TLOG) */
 #include "rpc2.private.h"
 #include "codatunnel.private.h" /* codatunnel_file_* control plane (internal) */
 

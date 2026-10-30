@@ -21,6 +21,7 @@ Coda are listed in the file CREDITS.
 #include <uv.h>
 #include <gnutls/gnutls.h>
 
+#include "codatunnel_log.h"
 #include "codatunneld.private.h"
 
 /* Code to track and manage known destinations We use a very simple
